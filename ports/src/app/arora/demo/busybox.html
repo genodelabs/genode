@@ -1,0 +1,70 @@
+<html><head><title>Genode Web-Browser Demo (3/4)</title></head>
+<style type="text/css">
+
+/* backgrounds */
+body        { background-image:url(bg.png); }
+div#title   { background-image:url(title_bg.png); background-color:#ccccdd; }
+div#bgtop   { background-image:url(bg_top.png); }
+div#content { background-image:url(bg_content.png); background-color:#ddddff; }
+div#title, div#content, div#bgtop { background-repeat:repeat-x; }
+div#content { background-position:bottom; }
+
+/* borders */
+div#content, div#title { border-style:solid; border-width:1px; border-color:#001122; }
+
+/* spacing */
+div#content, div#title {
+ width:680px;
+ padding-left:1em; padding-right:1em; padding-top:0.5em; padding-bottom:0.5em;
+ margin-top:10px; margin-bottom:10px;
+}
+span#space { margin:50px; }
+body { margin:0px; }
+div#title { padding-top:0px; padding-bottom:0px; }
+div#content h1 { padding-top: 1em; }
+
+/* center horizontally */
+div#content, div#title, table { float: none; margin: auto; }
+
+div#content { margin-top:1em; }
+
+/* fonts */
+a, p, h1 { font:  100% Verdana, Arial, Helvetica, sans-serif; }
+h1 { color:#000077; font-size:20px; }
+div#title h1 { font-size:24px; }
+div#title h1 { color:#000033; }
+div#content p { font-size:13px; }
+div#content a { font-size:16px; }
+
+div.annotation p { font-style:italic; }
+
+</style>
+<body>
+<div id="bgtop"><br/><span id="top"/><div id="title"><h1>Genode Web-Browser Demo (3/4)</h1></div>
+<div id="content">
+ <p>
+  Because we can start the Linux kernel as a Genode subsystem,
+  you can have fun with Busybox Linux in the web browser:
+ </p>
+<embed src="rom:///busybox_plugin.tar" args="ram_quota=32M" type="application/x-genode-plugin" width="640px" height="480px"><br>
+ <div class="annotation">
+  <p>
+   Click onto the plugin to pass the keyboard focus to Linux.
+  </p>
+ </div>
+ <p>
+  Want to reboot Linux? Just hit the "reload" button. :-)
+ </p>
+ <p>
+  But we can take things still a step further - streaming a block
+  device from a web server.
+ </p>
+ <div class="annotation">
+  <p>
+   Note that the following demo requires an internet connection.
+  </p>
+ </div>
+ <p>
+  <a href="http://genode.org/files/livecd-10.11/tinycore.html" alt="Continue: Run a Tinycore Linux image, streamed from the web">Continue: Run a Tinycore Linux image, streamed from the web</a>
+ </p>
+</div></div><br/><span id="space"/></body></html>

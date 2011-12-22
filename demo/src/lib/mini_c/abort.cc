@@ -1,0 +1,22 @@
+/*
+ * \brief  Mini C abort()
+ * \author Christian Helmuth
+ * \date   2008-07-24
+ */
+
+/*
+ * Copyright (C) 2008-2011 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#include <base/printf.h>
+#include <base/sleep.h>
+
+extern "C" void *abort(void)
+{
+	PDBG("abort called");
+	Genode::sleep_forever();
+	return 0;
+}

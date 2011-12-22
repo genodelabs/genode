@@ -1,0 +1,81 @@
+<html><head><title>Genode Web-Browser Demo (1/4)</title></head>
+<style type="text/css">
+
+/* backgrounds */
+body        { background-image:url(bg.png); }
+div#title   { background-image:url(title_bg.png); background-color:#ccccdd; }
+div#bgtop   { background-image:url(bg_top.png); }
+div#content { background-image:url(bg_content.png); background-color:#ddddff; }
+div#title, div#content, div#bgtop { background-repeat:repeat-x; }
+div#content { background-position:bottom; }
+
+/* borders */
+div#content, div#title { border-style:solid; border-width:1px; border-color:#001122; }
+
+/* spacing */
+div#content, div#title {
+ width:680px;
+ padding-left:1em; padding-right:1em; padding-top:0.5em; padding-bottom:0.5em;
+ margin-top:10px; margin-bottom:10px;
+}
+span#space { margin:50px; }
+body { margin:0px; }
+div#title { padding-top:0px; padding-bottom:0px; }
+div#content h1 { padding-top: 1em; }
+
+/* center horizontally */
+div#content, div#title, table { float: none; margin: auto; }
+
+div#content { margin-top:1em; }
+
+/* fonts */
+a, p, h1 { font:  100% Verdana, Arial, Helvetica, sans-serif; }
+h1 { color:#000077; font-size:20px; }
+div#title h1 { font-size:24px; }
+div#title h1 { color:#000033; }
+div#content p { font-size:13px; }
+div#content a { font-size:16px; }
+
+div.annotation p { font-style:italic; }
+
+</style>
+<body>
+<div id="bgtop"><br/><span id="top"/><div id="title"><h1>Genode Web-Browser Demo (1/4)</h1></div>
+<div id="content">
+ <p>
+  Welcome to the web-browser demo, showcasing the Arora web browser with a complete
+  networking stack running natively on a microkernel. Beware, it is a tech demo
+  and may be rough around the edges. But we hope you will recognise the potential
+  that lies in the combination of existing software with Genode's concepts.
+ </p>
+ <p>
+  The demo consists of three parts. The first two parts do not rely on a network
+  connection. All data comes from the Live-CD. So if your network connection
+  does not work, you are still able to test drive the first two experiments. The
+  third demo, however, requires an internet connection.
+ </p>
+ <a name="Why_bringing_Arora_to_Genode?"></a>
+ <h1>Why bringing Arora to Genode?</h1>
+  <p>
+   There were two reasons for porting Arora to the Genode Framework. First,
+   because today's web browsers, including Arora, are extremely complex, porting
+   such a huge software stack to a custom operating system is a great challenge.
+   Arora has become one of our most advanced workloads, stressing the base
+   system, the dynamic linker, the TCP/IP stack, and device drivers.
+   We chose Arora among the available web browsers because we already
+   had Qt4 running on Genode. Porting Arora seemed an evolutionary step, which
+   actually turned out to be the case.
+  </p>
+  <p>
+   But in addition to the technical challenge, we quickly recognised the potential
+   that lies beyond the plain porting work. Inspired by recent developments
+   of sandboxing techniques for browser plugins as introduced by Google Chrome, we
+   pursued a generalization of these ideas. What we found was, that the recursive
+   structure of Genode and its capability-based security are able to vastly improve
+   the isolation of browser plugins while, at the same time, making the plugins
+   more flexible.
+  </p>
+  <p>
+   <a href="qrc:/demo/nitpicker.html" alt="Continue: Run a complete Genode subsystem as browser plugin">Continue: Run a complete Genode subsystem as browser plugin</a>
+  </p>
+</div></div><br/><span id="space"/></body></html>

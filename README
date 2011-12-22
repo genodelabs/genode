@@ -1,4 +1,180 @@
-Genode OS Framework
 
-This is just the initial version without any code yet. We're on the
-way to migrate the current released version into Git.
+                      =================================
+                      Genode Operating System Framework
+                      =================================
+
+
+This is the source tree of the reference implementation of the Genode OS
+architecture. For a general overview about the architecture, please refer to
+the project's official website:
+
+:Official project website for the Genode OS Framework:
+
+  [http://genode.org/documentation/general-overview]
+
+The current implementation can be compiled for 8 different kernels: Linux,
+L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, Codezero, and a custom
+kernel for the MicroBlaze architecture. Whereas the Linux version serves us as
+development vehicle and enables us to rapidly develop the generic parts of the
+system, the actual target platforms of the framework are microkernels. There
+is no "perfect" microkernel - and neither should there be one. If a microkernel
+pretended to be fit for all use cases, it wouldn't be "micro". Hence, all
+microkernels differ in terms of their respective features, complexity, and
+supported hardware architectures.
+
+Genode allows the use of each of the kernels listed above with a rich set of
+device drivers, protocol stacks, libraries, and applications in a uniform way.
+For developers, the framework provides an easy way to target multiple different
+kernels instead of tying the development to a particular kernel technology. For
+kernel developers, Genode contributes advanced workloads, stress-testing their
+kernel, and enabling a variety of application use cases that would not be
+possible otherwise. For users and system integrators, it enables the choice of
+the kernel that fits best with the requirements at hand for the particular
+usage scenario.
+
+
+Directory overview
+##################
+
+The Genode source tree is composed of the following subdirectories:
+
+:'doc':
+
+  This directory contains general documentation. Please consider the following
+  document for a quick guide to get started with the framework:
+
+  ! doc/getting_started.txt
+
+  If you are curious about the ready-to-use components that come with the
+  framework, please review the components overview:
+
+  ! doc/components.txt
+
+:'base':
+
+  This directory contains the source-code repository of the fundamental
+  frameworks and interfaces of Genode. Furthermore, it contains the generic
+  parts of core.
+
+:'os':
+
+  This directory contains the non-base OS components such as the init process,
+  device drivers, and basic system services.
+
+:'demo':
+
+  This directory contains the source-code repository of various services and
+  applications that we use for demonstration purposes. For example, a graphical
+  application launcher called Launchpad and the Scout tutorial browser.
+
+:'base-<platform>':
+  These directories contain platform-specific source-code repositories
+  complementing the 'base' repository. The following platforms are supported:
+
+  :'linux':
+    Linux kernel (both x86_32 and x86_64)
+
+  :'pistachio':
+    L4ka::Pistachio kernel developed at University of Karlsruhe.
+    See [http://genode.org/community/wiki/GenodeOnL4kaPistachio]
+
+  :'fiasco':
+    L4/Fiasco kernel developed at University of Technology Dresden.
+    See [http://genode.org/community/wiki/GenodeOnL4Fiasco]
+
+  :'foc':
+    Fiasco.OC is a modernized version of the Fiasco microkernel with a
+    completely revised kernel interface fostering capability-based
+    security. It is not compatible with L4/Fiasco.
+    See [http://genode.org/community/wiki/GenodeOnFiascoOC]
+
+  :'okl4':
+    OKL4 kernel (x86_32 and ARM) developed at Open-Kernel-Labs.
+    See [http://genode.org/community/wiki/GenodeOnOKL4]
+
+  :'nova':
+    NOVA hypervisor developed at University of Technology Dresden
+    See [http://genode.org/community/wiki/GenodeOnNOVA]
+
+  :'codezero':
+    Codezero microkernel developed by B-Labs
+    See [http://genode.org/community/wiki/GenodeOnCodezero]
+
+  :'mb':
+    Support for running Genode natively on the MicroBlaze softcore CPU.
+    See [http://genode.org/community/wiki/GenodeOnMicroBlaze]
+
+  :'host':
+    Pseudo platform documenting the interface between the generic and
+    platform-specific parts of the base framework. This is not a functional
+    base platform.
+
+:'tool':
+
+  Source-code management tools and scripts. Please refer to the README file
+  contained in the directory.
+
+:'hello_tutorial':
+
+  Tutorial for creating a simple client-server scenario with Genode. This
+  repository includes documentation and the complete source code.
+
+:'libports':
+
+  This source-code repository contains ports of popular open-source libraries
+  to Genode, most importantly the C library. The repository contains no
+  upstream source code but means to download the code and adapt it to Genode.
+  For instructions about how to use this mechanism, please consult the README
+  file at the top level of the repository.
+
+:'linux_drivers':
+
+  This source-code repository contains the device driver environment for
+  executing Linux device drivers natively on Genode.
+
+:'dde_ipxe':
+
+  This source-code repository contains the device driver environment for
+  executing drivers of the iPXE project.
+
+:'qt4':
+
+  This source-code repository contains the Genode version of Qt4 framework.
+  Please find more information about using Qt4 with Genode in the repository's
+  'README' file.
+
+:'ports':
+
+  This source-code repository hosts ports of 3rd-party applications to
+  Genode. The repository does not contain upstream source code but provides
+  a mechanism for downloading the official source distributions and adapt
+  them to the Genode environment. The used mechanism is roughly the same
+  as used for the 'libports' repository. Please consult 'libports/README'
+  for further information.
+
+:'ports-<platform>':
+
+  These platform-specific source-code repositories contain software that
+  capitalizes special features of the respective kernel platform. I.e.,
+  for the OKL4 base platform, a port of OKLinux is provided in 'ports-okl4'.
+  For the Fiasco.OC platform, 'ports-foc' hosts a port of the L4Linux
+  kernel. For further information, please refer to the README file at the
+  top level of the respective repository.
+
+:'gems':
+
+  This source-code repository contains Genode applications that use
+  both native Genode interfaces as well as features of other high-level
+  repositories, in particular shared libraries provided by 'libports'.
+
+
+Contact
+#######
+
+The best way to get in touch with Genode developers and users is the project's
+mailing list. Please feel welcome to join in!
+
+:Genode Mailing Lists:
+
+  [http://genode.org/community/mailing-lists]
+

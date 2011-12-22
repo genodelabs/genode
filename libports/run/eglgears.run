@@ -1,0 +1,130 @@
+if {![have_spec x86]} {
+	puts "Run script is only supported on x86"; exit 0 }
+
+build {
+	core init
+	drivers/timer
+	server/nitpicker server/nit_fb
+	app/launchpad
+	app/eglgears
+	drivers/framebuffer drivers/pci drivers/input
+	lib/gallium
+}
+
+create_boot_directory
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="vesa_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route><any-service><parent/><any-child/></any-service></route>
+	</start>
+	<start name="launchpad">
+		<resource name="RAM" quantum="1G"/>
+		<config>
+			<launcher><ram_quota>100M</ram_quota><filename>init</filename>
+				<config>
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="RAM"/>
+						<service name="IRQ"/>
+						<service name="IO_MEM"/>
+						<service name="IO_PORT"/>
+						<service name="CAP"/>
+						<service name="PD"/>
+						<service name="RM"/>
+						<service name="CPU"/>
+						<service name="LOG"/>
+						<service name="PCI"/>
+						<service name="SIGNAL"/>
+						<service name="Nitpicker"/>
+						<service name="Timer"/>
+					</parent-provides>
+					<start name="nit_fb">
+						<resource name="RAM" quantum="1M"/>
+						<provides><service name="Input"/><service name="Framebuffer"/></provides>
+						<route><any-service><parent/></any-service></route>
+						<config xpos="300" ypos="100" width="576" height="408" />
+					</start>
+					<start name="eglgears">
+						<resource name="RAM" quantum="1G"/>
+						<route><any-service> <parent /> <any-child/> </any-service></route>
+					</start>
+				</config>
+			</launcher>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init ld.lib.so timer nitpicker nit_fb
+	launchpad eglgears
+	gallium.lib.so libc.lib.so libm.lib.so libc_log.lib.so
+}
+
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec i915]  boot_modules gallium-i915.lib.so
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 768"
+
+run_genode_until forever
+

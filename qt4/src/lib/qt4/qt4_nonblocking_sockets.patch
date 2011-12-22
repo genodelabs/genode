@@ -1,0 +1,21 @@
+diff --git a/src/network/socket/qnativesocketengine_unix.cpp b/src/network/socket/qnativesocketengine_unix.cpp
+--- a/src/network/socket/qnativesocketengine_unix.cpp
++++ b/src/network/socket/qnativesocketengine_unix.cpp
+@@ -282,7 +282,7 @@
+         break;
+     case QNativeSocketEngine::NonBlockingSocketOption: {
+         // Make the socket nonblocking.
+-#if !defined(Q_OS_VXWORKS)
++#if !defined(Q_OS_VXWORKS) && !defined(Q_OS_GENODE)
+         int flags = ::fcntl(socketDescriptor, F_GETFL, 0);
+         if (flags == -1) {
+ #ifdef QNATIVESOCKETENGINE_DEBUG
+@@ -296,7 +296,7 @@
+ #endif
+             return false;
+         }
+-#else // Q_OS_VXWORKS
++#else // Q_OS_VXWORKS || Q_OS_GENODE
+         int onoff = 1;
+ #ifdef Q_OS_SYMBIAN
+         if (::ioctl(socketDescriptor, FIONBIO, &onoff) < 0) {

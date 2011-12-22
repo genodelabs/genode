@@ -1,0 +1,75 @@
+#
+# \brief  Test for 'tar_rom' service
+# \author Norman Feske
+# \date   2010-09-07
+#
+# The test spawns a sub init, which uses a 'tar_rom' instance
+# rather than core's ROM service. The 'tar_rom' service manages
+# a TAR archive containing the binary of the 'test-timer' program.
+# The nested init instance tries to start this program. The
+# test succeeds when the test-timer program prints its first
+# line of LOG output.
+#
+
+build "core init drivers/timer test/timer server/tar_rom"
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="tar_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config>
+			<archive name="archive.tar"/>
+		</config>
+	</start>
+	<start name="init">
+		<resource name="RAM" quantum="2M"/>
+		<config verbose="yes">
+			<parent-provides>
+				<service name="ROM"/>
+				<service name="RAM"/>
+				<service name="LOG"/>
+				<service name="Timer"/>
+			</parent-provides>
+			<start name="test-timer">
+				<resource name="RAM" quantum="1M"/>
+				<route> <any-service> <parent/> </any-service> </route>
+			</start>
+		</config>
+		<route>
+			<any-service> <child name="tar_rom"/> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+exec sh -c "cd bin; tar cfh archive.tar test-timer"
+
+build_boot_image "core init timer tar_rom archive.tar"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "--- timer test ---" 10
+
+exec rm bin/archive.tar

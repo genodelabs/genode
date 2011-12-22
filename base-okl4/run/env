@@ -1,0 +1,200 @@
+#
+# \brief  OKL4-specific test-environment supplements
+# \author Norman Feske
+# \date   2010-08-16
+#
+# This file is meant to be used as '--include' argument for 'tool/run'.
+#
+
+##
+# Get the base-okl4 repository
+#
+proc base_okl4_dir {} { return [repository_contains mk/spec-okl4.mk] }
+
+##
+# Read the location of the OKL4 directory from 'etc/okl4.conf'
+#
+proc okl4_dir { } {
+	global _okl4_dir
+
+	if {![info exists _okl4_dir]} {
+		if {[file exists etc/okl4.conf]} {
+			set _okl4_dir [exec sed -n "/^OKL4_DIR/s/^.*=\\s*//p" etc/okl4.conf]
+			if {[file exists $_okl4_dir]} { return $_okl4_dir }
+		}
+
+		set _okl4_dir [base_okl4_dir]/contrib/okl4
+	}
+
+	return $_okl4_dir
+}
+
+##
+# Return the location of the OKL4 kernel
+#
+proc okl4 { } {
+	if {[okl4_external]} { return [okl4_dir]/build/pistachio/bin/kernel }
+	return bin/kernel
+}
+
+##
+# Return whether okl4 kernel is provided from the outside
+#
+proc okl4_external { } {
+	if {"[okl4_dir]" == "[base_okl4_dir]/contrib/okl4"} { return 0 }
+	return 1
+}
+
+##################################
+## Test framework API functions ##
+##################################
+
+proc create_boot_directory { } {
+	exec rm -rf   [run_dir]
+	exec mkdir -p [run_dir]/genode
+}
+
+
+set weaver_xml_template {
+	<machine>
+		<word_size size="0x20" />
+		<virtual_memory name="virtual">
+			<region base="0x120000" size="0x3fe00000" />
+		</virtual_memory>
+		<physical_memory name="system_dram">
+			<region base="0x0" size="0xa000" type="dedicated" />
+		</physical_memory>
+		<physical_memory name="bios">
+			<region base="0xf0000" size="0x10000" type="dedicated" />
+		</physical_memory>
+		<physical_memory name="rom_expansion">
+			<region base="0x100000" size="0x1800000" type="dedicated" />
+		</physical_memory>
+		<physical_memory name="physical">
+			<region base="0x2000000" size="0x1d000000" type="conventional" />
+		</physical_memory>
+		<phys_device name="timer_dev">
+			<interrupt name="int_timer0" number="0" />
+		</phys_device>
+		<phys_device name="serial_dev">
+			<interrupt name="int_serial0" number="4" />
+		</phys_device>
+		<phys_device name="rtc_dev">
+		</phys_device>
+		<page_size size="0x1000" />
+		<page_size size="0x400000" />
+	</machine>
+	<physical_pool name="system_dram" direct="true">
+		<memory src="system_dram" />
+	</physical_pool>
+
+	<virtual_pool name="virtual">
+		<memory src="virtual" />
+	</virtual_pool>
+
+	<physical_pool name="bios" direct="true">
+		<memory src="bios" />
+	</physical_pool>
+
+	<physical_pool name="rom_expansion" direct="true">
+		<memory src="rom_expansion" />
+	</physical_pool>
+
+	<physical_pool name="physical" direct="true">
+		<memory src="physical" />
+	</physical_pool>
+
+	<kernel file="okl4_kernel" xip="false" >
+		<dynamic max_threads="0x400" />
+		<config>
+			<option key="root_caps" value="4096"/>
+		</config>
+	</kernel>
+
+	<rootprogram file="core" virtpool="virtual" physpool="physical" />
+}
+
+proc build_boot_image {binaries} {
+	global weaver_xml_template
+
+	#
+	# Strip binaries
+	#
+	copy_and_strip_genode_binaries_to_run_dir $binaries
+
+	#
+	# Build kernel if needed
+	#
+	# Once the kernel is exists, it gets never revisited automatically.
+	# Consequently, when changing the kernel sources, the kernel build must be
+	# issued explicitly via 'make kernel'. This way, the rare case of changing
+	# the kernel does not stand in the way of the everyday's work flow of
+	# executing run scripts as quick as possible.
+	#
+	if {![okl4_external] && ![file exists [okl4]]} { build { kernel } }
+
+	exec cp [okl4] [run_dir]/kernel
+
+	#
+	# Generate ELF weaver config
+	#
+	set fh [open "[run_dir].weaver.xml" "WRONLY CREAT TRUNC"]
+	puts $fh {<?xml version="1.0"?>}
+	puts $fh {<!DOCTYPE image SYSTEM "weaver-1.1.dtd">}
+	puts $fh {<image>}
+	regsub okl4_kernel $weaver_xml_template "[run_dir]/kernel" weaver_xml_template
+	regsub core $weaver_xml_template "[run_dir]/genode/core" weaver_xml_template
+	puts $fh $weaver_xml_template
+	puts $fh {	<pd name="modules">}
+	puts $fh "		<memsection name=\"config\" file=\"[run_dir]/genode/config\" direct=\"true\" />"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh "		<memsection name=\"$binary\" file=\"[run_dir]/genode/$binary\" direct=\"true\" />" }
+	}
+	puts $fh {	</pd>}
+	puts $fh {</image>}
+	close $fh
+
+	#
+	# Run ELF Weaver to create a boot image
+	#
+	set ret [exec "[okl4_dir]/tools/pyelf/elfweaver" merge --output "[run_dir]/image.elf" "[run_dir].weaver.xml"]
+	if {[regexp "error" $ret dummy]} {
+		puts stderr "Elfweaver failed: $ret"
+		exit -6
+	}
+	exec [cross_dev_prefix]strip [run_dir]/image.elf
+	exec cp [run_dir]/image.elf [run_dir].elf
+	exec gzip [run_dir]/image.elf
+
+	#
+	# Keep only the ELF boot image, but remove stripped binaries
+	#
+	exec rm -r [run_dir]/genode
+
+	#
+	# Install GRUB
+	#
+	install_iso_bootloader_to_run_dir
+
+	#
+	# Generate grub config file
+	#
+	# The core binary is part of the 'binaries' list but it must
+	# appear right after 'sigma0' as boot module. Hence the special case.
+	#
+	set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+	puts $fh "timeout 0"
+	puts $fh "default 0"
+	puts $fh "hiddenmenu"
+	puts $fh "\ntitle Genode on OKL4"
+	puts $fh "kernel /image.elf.gz"
+	puts $fh "vbeset 0x117"
+	close $fh
+
+	create_iso_image_from_run_dir
+}
+
+
+proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
+	spawn_qemu $wait_for_re $timeout_value }

@@ -1,0 +1,401 @@
+diff --git a/src/adblock/adblock.pri b/src/adblock/adblock.pri
+--- a/src/adblock/adblock.pri
++++ b/src/adblock/adblock.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/adblock
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/bookmarks/bookmarks.pri b/src/bookmarks/bookmarks.pri
+--- a/src/bookmarks/bookmarks.pri
++++ b/src/bookmarks/bookmarks.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/bookmarks
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+@@ -23,4 +25,4 @@
+     addbookmarkdialog.ui \
+     bookmarksdialog.ui
+ 
+-include(xbel/xbel.pri)
++include $(REP_DIR)/contrib/$(ARORA)/src/bookmarks/xbel/xbel.pri
+diff --git a/src/bookmarks/xbel/xbel.pri b/src/bookmarks/xbel/xbel.pri
+--- a/src/bookmarks/xbel/xbel.pri
++++ b/src/bookmarks/xbel/xbel.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/bookmarks/xbel
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/browserapplication.cpp b/src/browserapplication.cpp
+--- a/src/browserapplication.cpp
++++ b/src/browserapplication.cpp
+@@ -129,10 +129,12 @@
+     qDebug() << "BrowserApplication::" << __FUNCTION__ << "I am the only arora";
+ #endif
+ 
++#ifndef Q_OS_GENODE
+     // not sure what else to do...
+     if (!startSingleServer())
+         return;
+ #endif
++#endif
+ 
+ #if defined(Q_WS_MAC)
+     QApplication::setQuitOnLastWindowClosed(false);
+diff --git a/src/browsermainwindow.cpp b/src/browsermainwindow.cpp
+--- a/src/browsermainwindow.cpp
++++ b/src/browsermainwindow.cpp
+@@ -1218,12 +1218,15 @@
+ 
+ void BrowserMainWindow::filePrintPreview()
+ {
++/* QPrintPreviewDialog is currently not supported in Genode's Qt */
++#ifndef Q_OS_GENODE
+     if (!currentTab())
+         return;
+     QPrintPreviewDialog dialog(this);
+     connect(&dialog, SIGNAL(paintRequested(QPrinter *)),
+             currentTab(), SLOT(print(QPrinter *)));
+     dialog.exec();
++#endif
+ }
+ 
+ void BrowserMainWindow::filePrint()
+@@ -1235,12 +1238,15 @@
+ 
+ void BrowserMainWindow::printRequested(QWebFrame *frame)
+ {
++/* QPrinter is currently not supported in Genode's Qt */
++#ifndef Q_OS_GENODE
+     QPrinter printer;
+     QPrintDialog dialog(&printer, this);
+     dialog.setWindowTitle(tr("Print Document"));
+     if (dialog.exec() != QDialog::Accepted)
+         return;
+     frame->print(&printer);
++#endif
+ }
+ 
+ void BrowserMainWindow::privateBrowsing()
+diff --git a/src/history/history.pri b/src/history/history.pri
+--- a/src/history/history.pri
++++ b/src/history/history.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/history
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/locationbar/locationbar.pri b/src/locationbar/locationbar.pri
+--- a/src/locationbar/locationbar.pri
++++ b/src/locationbar/locationbar.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/locationbar
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/main.cpp b/src/main.cpp
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -17,6 +17,7 @@
+  * Boston, MA  02110-1301  USA
+  */
+ 
++#include <QtCore>
+ #include "browserapplication.h"
+ 
+ #ifdef Q_OS_WIN
+@@ -27,12 +28,16 @@
+ {
+     Q_INIT_RESOURCE(htmls);
+     Q_INIT_RESOURCE(data);
++    Q_IMPORT_PLUGIN(qgif);
++    Q_IMPORT_PLUGIN(qjpeg);
+ #ifdef Q_WS_X11
+     QApplication::setGraphicsSystem(QString::fromLatin1("raster"));
+ #endif
+     BrowserApplication application(argc, argv);
++#ifndef Q_OS_GENODE
+     if (!application.isRunning())
+         return 0;
++#endif
+ #ifdef Q_OS_WIN
+     application.setStyle(new ExplorerStyle);
+ #endif
+diff --git a/src/network/cookiejar/cookiejar.pri b/src/network/cookiejar/cookiejar.pri
+--- a/src/network/cookiejar/cookiejar.pri
++++ b/src/network/cookiejar/cookiejar.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+@@ -19,5 +21,6 @@
+     cookies.ui \
+     cookiesexceptions.ui
+ 
+-include($$PWD/networkcookiejar/networkcookiejar.pri)
++include $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
+ 
++
+diff --git a/src/network/cookiejar/networkcookiejar/networkcookiejar.pri b/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
+--- a/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
++++ b/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar/networkcookiejar 
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/network/network.pri b/src/network/network.pri
+--- a/src/network/network.pri
++++ b/src/network/network.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/network
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+@@ -19,4 +21,4 @@
+     networkproxyfactory.cpp \
+     schemeaccesshandler.cpp
+ 
+-include(cookiejar/cookiejar.pri)
++include $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar/cookiejar.pri
+diff --git a/src/opensearch/opensearch.pri b/src/opensearch/opensearch.pri
+--- a/src/opensearch/opensearch.pri
++++ b/src/opensearch/opensearch.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/opensearch
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/qwebplugins/clicktoflash/clicktoflash.pri b/src/qwebplugins/clicktoflash/clicktoflash.pri
+--- a/src/qwebplugins/clicktoflash/clicktoflash.pri
++++ b/src/qwebplugins/clicktoflash/clicktoflash.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/clicktoflash
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/qwebplugins/qwebplugins.pri b/src/qwebplugins/qwebplugins.pri
+--- a/src/qwebplugins/qwebplugins.pri
++++ b/src/qwebplugins/qwebplugins.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+@@ -9,5 +11,5 @@
+   arorawebplugin.cpp \
+   webpluginfactory.cpp
+ 
+-include(clicktoflash/clicktoflash.pri)
++include $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/clicktoflash/clicktoflash.pri
+ 
+diff --git a/src/src.pri b/src/src.pri
+--- a/src/src.pri
++++ b/src/src.pri
+@@ -1,8 +1,9 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src
++
++CC_CXX_OPT += -DGITVERSION=\"\\\"0\\\"\" -DGITCHANGENUMBER=\"\\\"0\\\"\" -include qhash.h -include quiloader.h
++
+ CONFIG += qt warn_on
+-contains(QT_BUILD_PARTS, tools): CONFIG += uitools
+-else : DEFINES += QT_NO_UITOOLS
+-
+-win32|os2 : Debug : CONFIG += console
++CONFIG += uitools
+ 
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+@@ -15,15 +16,6 @@
+ MOC_DIR     = $$PWD/.moc
+ OBJECTS_DIR = $$PWD/.obj
+ 
+-exists(../.git/HEAD) {
+-    GITVERSION=$$system(git log -n1 --pretty=format:%h)
+-    !isEmpty(GITVERSION) {
+-        GITCHANGENUMBER=$$system(git log --pretty=format:%h | wc -l)
+-        DEFINES += GITVERSION=\"\\\"$$GITVERSION\\\"\"
+-        DEFINES += GITCHANGENUMBER=\"\\\"$$GITCHANGENUMBER\\\"\"
+-    }
+-}
+-
+ FORMS += \
+     aboutdialog.ui \
+     autofilldialog.ui \
+@@ -89,49 +81,24 @@
+     webview.cpp \
+     webviewsearch.cpp
+ 
+-include(adblock/adblock.pri)
+-include(bookmarks/bookmarks.pri)
+-include(history/history.pri)
+-include(locationbar/locationbar.pri)
+-include(network/network.pri)
+-include(opensearch/opensearch.pri)
+-include(qwebplugins/qwebplugins.pri)
+-include(utils/utils.pri)
+-include(useragent/useragent.pri)
++include $(REP_DIR)/contrib/$(ARORA)/src/adblock/adblock.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/bookmarks/bookmarks.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/history/history.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/locationbar/locationbar.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/network/network.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/opensearch/opensearch.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/qwebplugins.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/utils/utils.pri
++include $(REP_DIR)/contrib/$(ARORA)/src/useragent/useragent.pri
+ 
+ RESOURCES += \
+-    $$PWD/data/data.qrc \
+-    $$PWD/data/graphics/graphics.qrc \
+-    $$PWD/data/searchengines/searchengines.qrc \
+-    $$PWD/htmls/htmls.qrc
++    data.qrc \
++    graphics.qrc \
++    searchengines.qrc \
++    htmls.qrc
+ 
+ DISTFILES += ../AUTHORS \
+     ../ChangeLog \
+     ../LICENSE.GPL2 \
+     ../LICENSE.GPL3 \
+     ../README
+-
+-win32 {
+-    RC_FILE = $$PWD/browser.rc
+-    LIBS += -luser32
+-}
+-
+-os2 {
+-    RC_FILE = $$PWD/browser_os2.rc
+-}
+-
+-mac {
+-    ICON = browser.icns
+-    QMAKE_INFO_PLIST = Info_mac.plist
+-}
+-
+-include(../webkittrunk.pri)
+-
+-unix {
+-    PKGDATADIR = $$DATADIR/arora
+-    DEFINES += DATADIR=\\\"$$DATADIR\\\" PKGDATADIR=\\\"$$PKGDATADIR\\\"
+-}
+-
+-win32 {
+-    LIBS += -ladvapi32
+-}
+diff --git a/src/src.pro b/src/src.pro
+--- a/src/src.pro
++++ b/src/src.pro
+@@ -1,65 +1,16 @@
+ TEMPLATE = app
+ 
+ TARGET = arora
+-mac {
+-    TARGET = Arora
+-    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
+-}
+ 
+ DEFINES += \
+     QT_NO_CAST_FROM_ASCII \
+     QT_NO_CAST_TO_ASCII \
+     QT_STRICT_ITERATORS \
+ 
+-include(../install.pri)
+-
+-include(src.pri)
++include $(REP_DIR)/contrib/$(ARORA)/src/src.pri
+ 
+ SOURCES += main.cpp
+ 
+ DESTDIR = ../
+ 
+-include(locale/locale.pri)
+-
+-!mac {
+-unix {
+-    INSTALLS += translations desktop iconxpm iconsvg icon16 icon32 icon128 man man-compress
+-
+-    translations.path = $$PKGDATADIR
+-    translations.files += .qm/locale
+-
+-    desktop.path = $$DATADIR/applications
+-    desktop.files += arora.desktop
+-
+-    iconxpm.path = $$DATADIR/pixmaps
+-    iconxpm.files += data/arora.xpm
+-
+-    iconsvg.path = $$DATADIR/icons/hicolor/scalable/apps
+-    iconsvg.files += data/arora.svg
+-
+-    icon16.path = $$DATADIR/icons/hicolor/16x16/apps
+-    icon16.files += data/16x16/arora.png
+-
+-    icon32.path = $$DATADIR/icons/hicolor/32x32/apps
+-    icon32.files += data/32x32/arora.png
+-
+-    icon128.path = $$DATADIR/icons/hicolor/128x128/apps
+-    icon128.files += data/128x128/arora.png
+-
+-    man.path = $$DATADIR/man/man1
+-    man.files += data/arora.1
+-
+-    man-compress.path = $$DATADIR/man/man1
+-    man-compress.extra = "" "gzip -9 -f \$(INSTALL_ROOT)/$$DATADIR/man/man1/arora.1" ""
+-    man-compress.depends = install_man
+-
+-    GNOME_DEFAULT_APPS_PATH = $$system(pkg-config --variable=defappsdir gnome-default-applications)
+-
+-    !isEmpty(GNOME_DEFAULT_APPS_PATH) {
+-        INSTALLS += gnome-default-app
+-
+-        gnome-default-app.path = $$GNOME_DEFAULT_APPS_PATH
+-        gnome-default-app.files = data/arora.xml
+-    }
+-}
+-}
++QT_PLUGIN += qgif qjpeg
+diff --git a/src/useragent/useragent.pri b/src/useragent/useragent.pri
+--- a/src/useragent/useragent.pri
++++ b/src/useragent/useragent.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/useragent
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+diff --git a/src/utils/utils.pri b/src/utils/utils.pri
+--- a/src/utils/utils.pri
++++ b/src/utils/utils.pri
+@@ -1,3 +1,5 @@
++INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/utils
++
+ INCLUDEPATH += $$PWD
+ DEPENDPATH += $$PWD
+ 
+@@ -26,10 +28,3 @@
+     squeezelabel.cpp \
+     treesortfilterproxymodel.cpp \
+     webpageproxy.cpp
+-
+-win32 {
+-    HEADERS += explorerstyle.h
+-    SOURCES += explorerstyle.cpp
+-    LIBS += -lgdi32
+-}
+-

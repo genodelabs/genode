@@ -1,0 +1,19 @@
+This directory contains an implementation of a simple AHCI driver.
+
+Behavior
+--------
+
+The server implements Genode's new block-driver API ('os/include/block'), thus
+exposing the block-session interface as front-end. AHCI depends on Genode's PCI
+driver as well as the timer server. For a usage example see: 'os/run/ahci.run'.
+
+Limitations and known issues
+----------------------------
+
+Currently, the server scans the PCI bus at startup and retrieves the first available
+AHCI controller, scans the controller ports and uses the first non-ATAPI port
+where a device is present.
+
+On real hardware and on kernels taking advantage of I/O APICs (namely NOVA and
+Fiasco.OC) we still lack support for ACPI parsing and thus for interrupts,
+leading to a non-working driver.

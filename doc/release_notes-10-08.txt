@@ -1,0 +1,618 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 10.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+The Genode project is back with the feature-packed release 10.08, set out to
+bring device support of the Genode OS Framework to the next level. Our road
+map hinted at two particular spots of activity, introducing wireless networking
+and enabling hardware-accelerated graphics. To pursue the first goal, we pushed
+the boundaries of our Linux device driver environment by porting Madwifi to
+Genode. When it comes to hardware-accelerated graphics, today the Gallium3D
+protocol stack and the corresponding GEM GPU drivers are the state of the art
+on Linux and other UNIX-like operating systems. With the current release, we
+make this powerful graphics architecture available on Genode, including
+support for hardware-accelerated 3D graphics on Intel GMA GPUs. But we haven't
+stopped with our device-driver related activities here as we introduce a new
+ATAPI driver accommodated with an ISO9660 file-system implementation, and we
+largely revisited our existing driver base.
+
+Apart from device-driver support, two major features of the release are the
+upgrade of the Qt4 framework from version 4.5.2 to version 4.6.3 alongside with
+many performance and stability improvements, and the added support for dynamic
+linking on ARM platforms with both the OKL4 and Codezero kernels.
+
+
+Gallium3D and Intel's Graphics Execution Manager
+################################################
+
+Gallium3D is the most modern and most actively developed open-source software
+stack regarding hardware-accelerated graphics. It is mainly deployed on
+Linux but it has been ported to other operating systems such as the BSD family,
+OpenSolaris, AROS, and now Genode. In the following, we will first provide
+a little background about Gallium3D followed by a rough overview on how its
+components fit into Genode.
+
+Gallium3D was designed to displace the long-evolved but inherently insecure
+direct rendering infrastructure on Linux. With DRI, each application that uses
+hardware-accelerated graphics has unlimited access to the GPU and its resources
+such as the frame buffer. To allow multiple applications to use the GPU in a
+time-shared manner, those applications have to behave cooperatively. There is a
+central service, the DRM driver in the kernel, orchestrating the applications
+in such a way that well-behaved applications use distinct GPU resources such as memory
+and contexts, and so come along nicely. However, there are no effective measures
+against misbehaving applications. A further consequence of this architecture
+is the multitude of vendor-specific protocol implementations. Because each
+application contains an instance of the GPU driver accessing the broad hardware
+interface of the graphics device, each vendor happened to take a different route
+for translating graphics APIs such as OpenGL to the actual device interface.
+Consequently, the code basis for graphics protocol stacks has become extremely
+complex and fragmented. In contrast, the designers of Gallium3D set out to
+modularize the protocol stack such that generic code is easy to use by different
+vendors and the vendor-specific portion of the protocol stack stays as small as
+possible, thereby lowering the costs for new-device support in the future.
+
+In contrast to DRI, a Gallium-based application does not operate directly on
+the GPU device. Instead, it uses a higher-level abstraction, namely buffer
+objects for holding data operated on by the GPU. Buffer objects can contain
+pixels, geometry data, and GPU command streams. The latter type of buffer
+object can be issued for execution to perform actual GPU operations. The
+buffer-object interface is provided by a central service called graphics
+execution manager (GEM) normally residing in the kernel. GEM arbitrates the
+allocation of buffer objects, manages cache coherency between GPU and CPU, and
+passes buffers objects containing GPU command streams scheduled for execution to the
+graphics device.
+
+The high-complexity Gallium3D protocol stack is instantiated for each
+application and acts as a client of the (relatively) low-complexity GEM.
+Provided that the GPU command stream assembled by a Gallium3D application
+cannot subvert the operation of GEM, this architecture removes the complex
+protocol stack from the trusted computing base. Only the low-complexity GEM
+service must be trusted with regard to security, robustness, and the absence
+of GPU-based inter-application crosstalk. In contrast to DRI, Gallium3D is
+perfectly in line with the architecturally principles of Genode. On Linux, the
+Gallium3D stack communicates with GEM via 'ioctl' operations on the '/dev/drm/'
+device interface. In the context of Genode, GEM should be executed as a
+user-level device driver and resource multiplexer providing the GEM operations
+as a GPU session interface by the means of RPC and shared memory. Each
+Gallium3D application connects to the GPU server and operates on a GPU session.
+
+
+The puzzle pieces of Mesa/Gallium3D
+===================================
+
+Gallium3D is part of the Mesa OpenGL library. It comes as a set of modules
+consisting of state trackers (API implementations such as OpenGL),
+drivers (translating generic graphics commands into device-specific command
+streams), winsys (the glue between a window system and the Gallium3D
+application), and a large library of utilities. Most of the code is
+independent from the actual GPU device as well as the operating-system.
+
+On Genode, Mesa-7.8.1 has been incorporated into the 'libports' repository.
+However, we only use the Gallium3D-related parts of Mesa on Genode. For
+example, the port does not make use of the Mesa swrast facility for
+software-based rendering. It rather relies on the Gallium3D softpipe driver.
+When built, all generic Gallium3D-related parts of Mesa are linked into the
+single 'gallium.lib.so' library.
+
+The following figure gives an overview of how the components of the graphics
+software stack relate to each other. The components are described in the
+following.
+
+[image img/gallium3d]
+
+
+EGL driver
+~~~~~~~~~~
+
+EGL is an OS-agnostic API for managing rendering buffers. The implementation
+of this API is OS-specific because, among other things, it cares about the
+interaction of the application with the native windowing system such that the
+result of GPU-based rendering can be displayed in the GUI. EGL also plays a special
+role among the Gallium state trackers because it is used by other state trackers.
+The window-system-specific code is called EGL driver. Mesa-7.8.1 comes with
+EGL drivers for the X window system and the Linux kernel-mode-switching
+interface. For Genode, we have added a new EGL driver that uses Genode's
+'Framebuffer_session' interface as back end. It is located at
+'libports/src/lib/egl'. Because the EGL driver is GPU-independent, it is
+part of 'gallium.lib.so'. The following screenshot shows the EGL driver
+in action.
+
+[image img/gallium_softpipe_screen]
+
+
+Gallium i915 GPU driver
+~~~~~~~~~~~~~~~~~~~~~~~
+
+We picked Intel's GMA as the first series of supported GPUs because they
+are well documented and GEM has been implemented first for Intel GPUs.
+There are two Gallium3D drivers for Intel GPUs called i915 and i965.
+Currently, we have ported the i915 driver that supports the following GPU
+models: i915 G/GM, i945 G/GM/GME, G33G, Q33G, and Q35G. On Genode, the Gallium3D
+GPU driver comes in the form of a shared library called 'gallium-i915.lib.so'.
+Is gets dynamically loaded by the EGL driver using 'dlopen'. If the EGL
+driver fails to load the 'gallium-i915.lib.so' driver, it falls back
+to the softpipe driver compiled into 'gallium.lib.so'.
+
+Because there is no build dependency to this shared library, we created a
+pseudo build target at 'libports/src/lib/gallium/i915' for the sole purpose of
+building this library as a side effect.
+
+On Linux, the code contained in 'gallium-i915.lib.so' communicates with the '/dev/drm/'
+device interface. However, the interaction with the device is not performed
+directly but via a library called 'libdrm'.
+
+
+libdrm
+~~~~~~
+
+The DRM library is a convenient front end to the '/dev/drm/' device. At
+first glance, replacing this library with a Genode-specific implementation
+seems natural. However, because 'libdrm' is not only a mere wrapper around the 'ioctl'
+interface of the device but also contains a substantial amount of program logic
+and device heuristics, we decided to reuse this library unmodified and go for
+the 'ioctl' interface as a hook to connect Gallium3D with GEM. Hence, 'libdrm'
+has become part of the 'libports' repository alongside Mesa. Ultimately,
+'libdrm' translates all requests coming from 'gallium-i915.lib.so' to
+(GPU-specific) 'ioctl' and 'mmap' operations on the '/dev/drm/' device. On
+Genode, there is no such device. In fact, there are no device nodes at all.
+Instead, we use our libc plugin mechanism to redirect operations on this
+specific device file to a dedicated libc plugin. When 'libdrm' opens '/dev/drm/', the
+libc plugin located at 'src/lib/libdrm/' takes over the responsibility of the
+returned file descriptor. Therefore all file operations on this file handle are
+handed over to the plugin. This is the point where we can transparently
+incorporate RPC communication to the GEM service. For now, however, we do not
+have RPC stub code yet. Instead, we link the GEM code directly into
+'gallium-i915.lib.so'. This allows us to implement the GEM-related 'ioctl'
+operations by calling GEM code directly. For the interaction between
+'libdrm' and GEM, we added a preliminary 'Gpu_driver' interface located at
+'os/include/gpu/'.
+
+
+Graphics execution manager
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+GEM is normally part of the Linux kernel and dispatches (a subset of)
+operations on '/dev/drm/'. We use the Intel-specific GEM code taken from
+Linux-2.6.34. This code relies on the Intel-AGP subsystem to manage the GPU's
+graphics translation table. Therefore, we had to port the Intel-AGP sub system
+as well. Because GEM is a relatively new feature of the Linux kernel, we
+decided to not use our Linux device driver environment (currently based on the
+kernel version 2.6.20) for our porting work but rather went for the creation
+of a driver-specific Linux emulation environment. The code is part of the
+'linux_drivers' repository and located at 'src/drivers/gpu/'. The 'contrib/'
+subdirectory contains unmodified Linux code, the 'i915' subdirectory contains
+the implementation of the 'Gpu_driver' interface and code for emulating Linux
+interfaces in a way that the 'contrib/' code behaves like in its natural
+execution environment.
+
+
+Building an OpenGL application
+==============================
+
+As an example on how to build an OpenGL application on Genode, the 'libports'
+repository provides a slightly modified version of the famous Gears demo.
+You can find the code under 'libports/app/eglgears/'.
+
+Prior building the application, make sure that you have issued 'make
+prepare' for the 'mesa' and 'libdrm' libraries. In the root of the 'libports'
+repository, issue the following commands to download the upstream source
+codes for these libraries and to integrate them with the Genode build system:
+
+! make prepare PKG=mesa
+! make prepare PKG=libdrm
+
+After having added 'libc' and 'libports' to the 'REPOSITORIES' declaration
+of your '<build-dir>/etc/build.conf', you can building 'eglgears' via
+'make app/eglgears'. The build process will create the 'eglgears' executable
+alongside with 'gallium.lib.so'. You can start 'eglgears' using a plain
+framebuffer such as 'vesa_drv'. The EGL driver included in 'gallium.lib.so'
+will try to load a shared library called 'gallium-i915.lib.so' and, if not
+present, revert to the softpipe driver.
+
+If you want to give the hardware-accelerated version a spin, you will
+need to build 'gallium-i915.lib.so'. The driver is only built when
+the build 'SPECS' variable contains the keyword 'i915'. Simply add the
+following line to your '<build-dir>/etc/specs.conf' file:
+
+! SPECS += i915
+
+Currently, the GEM (contained in the 'linux_drivers' repository') is
+linked to 'gallium-i915.lib.so'. Hence, the 'linux_drivers' repository
+must be specified in your 'build.conf'. The Gallium driver is built
+as a side effect of building a pseudo target via:
+
+! make lib/gallium
+
+If you add the resulting 'gallium-i915.lib.so' to core's ROM service,
+the EGL driver will attempt to use the hardware driver.
+
+
+Current limitations
+===================
+
+At the current stage, Gallium3D on Genode is able to run the Gears
+demo using Intel GMA GPUs. However, the work done so far must be
+regarded as the first of several steps towards a complete solution.
+Let us highlight the most important limitations and construction
+sites:
+
+* Both GEM and the Gallium3D protocol stack are executed as part of
+  a single process, accessing the GPU exclusively. Until we have
+  separated GEM from Gallium3D, only a single GPU-using application
+  can run at a time.
+* Even though a Gallium3D application is able to use the GPU for
+  3D rendering, the EGL driver relies on CPU-based blitting
+  in order to transfer the rendering result to the screen.
+* Interrupt-based synchronization has not been implemented yet. The
+  GPU is expected to be faster than the CPU. For this reason,
+  the EGL driver waits for 5 ms after each rendered frame.
+  Proper vblank handling is desired.
+* On some platforms, we observed pixel artifacts, which
+  we attribute to cache coherency issues.
+* Resource deallocation within the GEM driver has not been implemented
+  yet. Therefore, we expect that the current version is not suited for
+  highly dynamic applications.
+* The 'eglgears' demo runs fine with resolutions up to 800x600
+  but we observed unstable behaviour with higher resolutions.
+
+Despite of these limitations, the first version of Gallium3D on
+Genode showcases that a subsystem as comprehensive as Gallium3D
+plus GEM can be natively executed on Genode.
+
+
+Operating-system services and libraries
+#######################################
+
+Init configuration concept
+==========================
+
+The previous release 10.05 introduced a new configuration concept that enables
+the specification of mandatory access-control rules among flexible ways to
+route service requests throughout the system. With the current release, this
+concept is used by default. We have adapted all example configurations to the
+new format, polished the new init implementation, and moved it from
+'os/src/init/experimental/' to 'os/src/init/'. The old init variant is still
+available at 'os/src/init/traditional/' but it is scheduled to be removed with
+the next release 10.11.
+
+The description of the configuration concept and the XML format is provided by
+the document "Configuring the init process of Genode" located at
+'os/doc/init.txt'.
+
+
+Block session interface
+=======================
+
+The block session interface extends Genode's range of device-class interfaces by
+a general-purpose interface to access block devices. It is based on the
+packet-stream framework, using a single TX-stream to transmit block requests
+to the server-side. Clients are free to request read/write operations on
+several sequent blocks at once. Services implementing the server-side of the
+block-session interface can choose an appropriate block size and the kind of
+block-operation they support (e.g., read-only device). The new block session
+interface is located at 'os/include/block_session/'.
+
+
+ROM-loop block device
+=====================
+
+Based on the new block session interface, we implemented a service, which
+provides a rom-file as read-only block-device. Linux users might know this
+kind of service under the term "loop device". The following configuration
+snippet shows how the file provided by a rom-session can be used as block
+device:
+
+! <config>
+!   ...
+!   <start name="rom_loopdev">
+!     <resource name="RAM" quantum="1M"/>
+!     <provides><service name="Block"/></provides>
+!     <config>
+!         <filename>livecd.iso</filename>
+!     </config>
+! </config>
+
+
+C runtime enhancements
+======================
+
+Both 'libc' and 'libm' are now built as *shared objects*, reducing the memory
+footprint for scenarios with multiple libc-using applications. When starting
+programs that use the libc, make sure to have 'libc.lib.so' and 'libm.lib.so'
+available as files at the ROM service.
+
+Motivated by our work on Gallium3D and libdrm, we extended the libc *plugin*
+*interface* with the support of 'ioctl' and 'mmap'. This change enables us to
+install custom handlers of those libc calls for a specific file. In the
+particular case, libdrm performs 'ioctl' and 'mmap' calls referring to the
+'/dev/drm' device interface. Now, we can supply a libc plugin specific for a
+single file.
+
+The update of Qt4 from version 4.5.2 to version 4.6.3 required refinements
+of 'clock_gettime()', 'sysctl()', and 'getpagesize()'. Those functions
+are still dummy stubs but with a meaningful behaviour from Qt4's perspective.
+
+
+DDE Kit
+=======
+
+During our various device-driver activities, we improved the DDE Kit support
+library for device-driver developments. The revised handling of I/O memory
+resources now allows multiple requests of the same resource to support, e.g.,
+multiple Linux 'ioremap()' calls. The I/O memory-mapping type is configurable
+as uncached or write-combined, and DDE Kit automatically keeps track of
+virtual-to-physical address mappings. Also, DDE Kit now provides 64-bit integer
+types and a proper 'size_t'.
+
+
+Dynamic linker
+==============
+
+In order to support shared libraries on ARM platforms, we added EABI support to
+the dynamic linker and Genode's build-system environment. Thus shared libraries
+are now supported on Codezero and OKL4 GTA01 targets. This also includes C++
+exception handling.
+
+Additionally, we implemented libc's dynamic linking interface ('dlfcn.h') and are
+now able to support dynamic loading of libraries by applications via 'dlopen'
+and friends.
+
+
+Device drivers
+##############
+
+New ATAPI driver
+================
+
+With version 10.08, Genode provides a port of the low level ATA/ATPI driver
+available from [http://ata-atapi.com]. Currently, the driver supports ATAPI
+devices only and is implemented as a block-interface server (see Section
+[Block device interface]). By default, the driver tries to take advantage of
+the device's DMA engine but it can also operate in PIO mode as a fall-back
+solution.
+
+
+New wireless networking driver
+==============================
+
+According to our roadmap, we introduce initial support for wireless networking.
+Based on DDE Linux 2.6, a port of the madwifi driver (version 0.9.4) is now
+available for Genode. This driver supports widely used wifi-cards containing an
+Atheros chipset (namely: 5210, 5211, 5212).
+
+Due to the fact that part of the madwifi-project's contribution is binary code
+in uuencoded form containing mandatory copyright headers, you need a 'uudecode'
+binary installed on your system if you like to compile the madwifi driver for
+Genode. If you're using Ubuntu/Debian or one of its derivates as your
+development environment, you might install the necessary application via:
+
+! sudo aptitude install sharutils
+! emerge sharutils (on Gentoo)
+
+This first wireless networking driver is in experimental stage and doesn't
+support any form of encryption and authentication on the ieee80211 layer. So
+you can only use it in conjunction with an unprotected access-point.
+
+To set an appropriate ESSID you can tweak the driver's configuration, like in
+the following example:
+
+! <config>
+!   ...
+!   <start name="madwifi_drv">
+!     <resource name="RAM" quantum="2M"/>
+!     <provides><service name="Nic"/></provides>
+!     <config>
+!         <essid>My_access_point</essid>
+!     </config>
+! </config>
+
+When started, the 'madwifi_drv' announces a "Nic" session usable by the
+lwIP stack.
+
+
+PCI driver
+==========
+
+We enhanced the PCI bus scanning facility of our PCI driver with regard to
+multi-function devices and added an accessor function for the physical
+bus-device-function (BDF) ID.
+
+
+VESA driver
+===========
+
+To support a wider range of graphics cards, we revised the VESA driver and
+support more peculiarities of VBE implementations. Some of these are: unaligned
+I/O port accesses, dependency on the physical BDF of PCI devices, support for
+all flavours of PCI configuration space accesses.
+
+
+PS/2 input driver
+=================
+
+Even after long years of intensive use, the PS/2 driver is sometimes good for a
+surprise, which prompted us to improve the keyboard scan code and mouse button
+handling. The driver fully supports scan code set 1 and 2 keyboards and copes
+with oddities like "fake shift" events and "yet another scan code for Pause".
+
+
+Timer
+=====
+
+The current release corrects a shortcoming of our timer driver on Pistachio and
+Fiasco. Timing on these platforms is now more accurate.
+
+
+Paravirtualized Linux
+#####################
+
+Based on the new block-session interface, we implemented a new stub driver
+for OKLinux that enables the usage of a block-session device within Linux.
+Thereby, the old stub driver that provided a ROM file as block device
+is no longer needed and will be removed with the next release. A ROM file
+can now be supplied to Linux via the new ROM loop service.
+
+
+Protocol stacks and libraries
+#############################
+
+lwIP
+====
+
+Tweaking the configuration of the lightweight IP stack to better fit Genode's
+application needs lead to a considerable improvement with respect to network
+performance.
+
+
+ISO9660 file system
+===================
+
+ISO9660 is the standard file system used on data CD/DVD medias. With the ATAPI
+driver ready, we implemented ISO9660 support on top of the this driver. The
+'iso9660' server implements the ROM-session interface and can be used by any
+ROM connection. In order to take advantage of this new feature, we exploit
+Genode's new configuration concept and route the client's ROM service
+request to the ISO9660 server.
+
+Configuration file snippet:
+
+! <start name="atapi_drv">
+!      <resource name="RAM" quantum="1M" />
+!      <provides><service name="Block" /></provides>
+! </start>
+! <start name="iso9660">
+!      <resource name="RAM" quantum="10M" />
+!      <provides><service name="ROM" /></provides>
+! </start>
+! <start name="iso-client">
+!      <resource name="RAM" quantum="1M" />
+!      <route>
+!           <service name="ROM"><child name="iso9660"/></service>
+!           <any-service><parent /><any-child/></any-service>
+!      </route>
+! </start>
+
+:Limitations:
+The memory necessary to read a file from the ATAPI driver into memory is
+currently accounted on behalf of the ISO9660 server, not for the client side.
+Because of this limitation, it becomes necessary to equip the ISO server with
+a sufficient memory quota.
+
+The 'Ecma-119' standard requires support for 8.3 upper-case file names only.
+Because of this limitation, a number of unapproved ISO 9660 extensions have
+evolved (eg. Joliet, Rock Ridge). Since we don't see using 8.3 file names within
+Genode as an option, we added Rock Ridge extension support to the ISO 9660
+server. Please make sure that your ISO-creation tool supports the Rock Ridge
+extension and enable it during ISO creation.
+
+
+Qt4.6.3
+=======
+
+We updated our port of the Qt4 framework from version 4.5.2 to version 4.6.3.
+Thereby, we changed the way of how the source code is organized. Previously, we
+maintained copies of modified files within the 'qt4' repository. Now, we
+keep those changes in the form of patches, which get applied to the 'contrib'
+code when 'make prepare' is issued within the 'qt4' repository. This change
+significantly reduces the size of the 'qt4' repository. We applied the same
+approach to the port of the Arora browser. Furthermore, the performance and
+stability of Qt4 and Webkit in particular have received a lot of attention,
+resulting in a much improved Arora browsing experience.
+
+
+Platform-specific changes
+#########################
+
+OKL4
+====
+
+With the current release, we have started to maintain a few patches of the
+official version of the OKL4v2 kernel. The patches are located at
+'base-okl4/patches' and have the following purpose:
+
+:'syscall_pic.patch':
+
+  The original distribution of the OKL4 kernel comes with x86 syscall bindings
+  that use absolute addressing modes. Therefore, code using L4 syscalls
+  cannot be compiled as position-independent code (gcc option '-fPIC').
+  Unfortunately, shared libraries must be compiled as position independent
+  because the location of such a library's text segment is not known at
+  compile time. Consequently, OKL4 syscalls cannot be issued by shared
+  libraries, which is a severe limitation. The patch fixes the problem
+  by changing all OKL4 syscall bindings and removing PIC-incompatible
+  addressing modes. It does not affect the functionality of the kernel.
+
+:'eabi_build.patch':
+
+  The build system of the orignal OKL4 distribution is not prepared to
+  compile ARM EABI binaries as generated by modern tool chains such as the
+  Codesourcery GCC. The patch applies the needed changes to the OKL4 build
+  infrastructure.
+
+
+Pistachio
+=========
+
+Similar to the situation with the OKL4 kernel, we need to patch the Pistachio
+system-call bindings to enable syscalls from shared libraries. The
+corresponding patch is located at 'base-pistachio/patches' and is known to work
+with Pistachio revision 'r782:57124b75c67c'. Without applying this patch, the
+linker generates text relocation infos, which result in a run-time error of the
+'ldso' on the attempt to modify the read-only text segment of a shared library.
+
+
+Codezero
+========
+
+Because we enhanced our dynamic linker to support ARM EABI, shared libraries
+are now fully usable with the Codezero kernel.
+
+
+Tools and build system
+######################
+
+Unified tool chain for building ARM targets
+===========================================
+
+With the previous versions of Genode,
+we took the approach to use the tool chains of the respective kernel
+to build Genode targets. For example, we used to rely on NICTA's ARM cross compiler
+(based on gcc-3.4) for building Genode for the OKL4/gta01 platform. 
+Genode on Codezero, however, used the Codesourcery tool chain. We identified this approach as
+a dead end because we would need to support modern tool chains alongside
+ancient tool chains that are no longer used in practice. For accommodating
+the latter, we had to introduce special workarounds and make compromises.
+
+Therefore, we changed Genode to officially support one modern reference
+tool chain to build all ARM-specific targets both on OKL4 and Codezero.
+Currently, we use the Codesourcery tool chain version 2009q3-67, which
+is available here:
+
+:Codesourcery ARM EABI tool chain:
+  [http://www.codesourcery.com/sgpp/lite/arm/portal/release1039]
+
+Because the original OKL4v2 distribution does not support modern ARM EABI tool
+chains, it cannot be used out of the box anymore. But you can find a patch
+to enable ARM EABI for OKL4v2 at 'base-okl4/patches/'.
+
+
+Build system
+============
+
+* We changed the build system to link all shared libraries with
+  the '--whole-archive' option.
+
+* All libraries are now built as position-independent code (compiler
+  option '-fPIC') by default. It is possible to explicitly disable
+  '-fPIC' by adding 'CC_OPT_PIC=' to the library description file.
+
+* To ease the integration of third-party code into the Genode build
+  system, we have added a mechanism for setting source-file-specific
+  compiler options. Compiler arguments for a single file such as
+  'main.cc' can be assigned by setting the build variable 'CC_OPT_main'.

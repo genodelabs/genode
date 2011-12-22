@@ -1,0 +1,585 @@
+
+              ==============================================
+              Release notes for the Genode OS Framework 9.05
+              ==============================================
+
+                               Genode Labs
+
+
+Shortly after including support for the L4ka::Pistachio kernel in the
+previous release, the Genode version 9.05 gives a further evidence of
+Genode's high portability by making the framework available on top of
+the OKL4 kernel. This kernel is a commercial-grade microkernel
+developed by [http://ok-labs.com - Open Kernel Labs]. In Section
+[Supporting the OKL4 kernel as new base platform], we elaborate on the
+new base platform and summarize the experiences made during our porting
+work.
+
+The previous Genode release was accompanied by a source-code archive containing
+the initial version of Qt4 for Genode. Our approach is to make the Qt4
+framework available for building Genode applications running natively on the
+microkernel rather than within a virtualization environment. As advertised in
+our [http://genode.org/about/road-map - road map], we have now seamlessly
+integrated the Qt4 framework into our mainline source tree.  Furthermore, we
+have adapted our port to the Qt4 version 4.5.1. Section [Integration of Qt4
+into the mainline repository] gives a rough overview of the changes and an
+introduction on how to use the Qt4 framework with Genode.
+
+The third major feature of the release is the addition of preliminary USB
+support. We have been able to port major parts of Linux' USB infrastructure
+to Genode using the DDE Kit introduced in autumn 2008. Section [USB support]
+presents an overview about the pursued design and the current state of
+implementation.
+
+Section [OKLinux on Genode] outlines our ongoing efforts of running Linux
+as a node in Genode's process tree.
+
+
+Supporting the OKL4 kernel as new base platform
+###############################################
+
+The OKL4 kernel developed by Open Kernel Labs started as a fork of the
+L4ka::Pistachio kernel. Whereas L4ka::Pistachio remained true to the L4
+x.2 specification, OKL4 was subject of major API changes geared towards high
+performance on the ARM architecture. OKL4 earned much fame for executing a
+user-level variant of Linux (OKLinux) on top the microkernel, which turned out
+to be faster than executing Linux natively on the ARM9 architecture. Even
+though OKL4 is primary targeted at the ARM architecture, we wanted to go for
+the x86 variant because of two reasons. First, there exists the just mentioned
+user-level port of Linux for OKL4, which looks like an attractive way to execute
+Linux on Genode once Genode runs on OKL4. Second, we think that distributing
+Genode in the form of ISO images bootable on plain PC hardware is the best
+way to reach the OS community. Therefore, we decided to use OKL4 version 2.1 as
+the base for our work. In contrast to later releases, this version supports
+both x86 and ARM. The following section reviews the unique features of the
+OKL4 kernel from our perspective.
+
+
+OKL4 viewed from the angle of a Genode developer
+================================================
+
+On the kernel-API level, OKL4 has several interesting properties that had been
+both welcome and challenging. We want to highlight the following points:
+
+In contrast to prior L4 kernels, OKL4 has *removed wall-clock timeouts* from
+the kernel interface. On L4, timeouts were used as arguments for for blocking
+IPC operations serving two purposes. First, specifying IPC timeouts allowed the
+IPC caller for regaining control over the blocking thread after the specified
+time elapsed. This is considered as important in the case that the called
+thread misbehaves and never answers the call. However, the problem of choosing
+an appropriate timeout was never properly resolved.  When dimensioning the
+timeout too small, the called thread may miss the timeout just because it had
+no chance to be selected by the scheduler in time. Such timeouts rely on the
+presumption that there is low load on the system. On the other hand, when
+dimensioning the timeout too high, the system will become sluggish when the
+called thread misbehaves. For example, a simple GUI server may want to send
+input events to its clients with a timeout to be robust against misbehaving
+clients that never wait for events. When choosing a timeout too small, chances
+are high that an event will occur at a time when the receiver is handling a
+previous event. The timeout would trigger and the event would get lost. When
+choosing the timeout too large, say 1 second, any misbehaving client could make
+the GUI server freeze for 1 second. Therefore, timeouts for regaining control
+over a blocked thread seem to be a bad idea.  So we welcome their absence in
+OKL4. The second use of timeouts is their use as user-level time source. On L4,
+sleep is typically implemented as a blocking IPC with a timeout set to the
+sleep value. For this purpose, a system built on top of OKL4 has to employ a
+user level device driver accessing a timer device. In Genode, we already have a
+timer service for this purpose. So we won't miss timeouts at all.
+
+Classical L4 kernels provide two variants of *synchronous IPC*. So called long
+IPC could copy any amount of memory from the sending to the receiving address
+space. This is complicated operation because either communication partner may
+specify communication buffers that contain unmapped pages. Hence, page faults
+may occur during long-IPC operations. On L4, page faults, in turn, are handled
+by the user land.  Not until a user-level pager thread resolves the page fault
+by establishing a mapping at the faulting address, the kernel can proceed the
+IPC operation. This sounds pretty complicated, and it is. The second IPC
+variant is called short IPC. It constrains the transferable payload to CPU
+registers. Hence, these IPC operations should only be used for messages with a
+payload of a maximum of 2 machine words. Because short IPCs are never touching
+user-level memory pages, no page faults can occur.
+On OKL4, there is only one IPC operation, which copies payload from the
+sender's user-level thread-control block (UTCB) to the receiver's UTCB. An
+UTCB is an always-mapped memory region. Hence no page faults can occur during
+IPC operations. On Genode, the UTCB size of 256 bytes may become a limitation
+when RPC messages get large. For example, session requests may include large
+session-argument strings specifying session-constructor arguments. Current
+services rely only on a few arguments so the size limitation is not an
+apparent problem. But that may change for future services. Furthermore, in
+contrast to L4 x.2, OKL4 does not allow for transferring payload other than
+plain data. In particular, OKL4 does not support the transfer of memory
+mappings via IPC.   Removing memory mappings from the IPC operation is a very
+good idea. On Genode, only roottask (core) establishes mappings and shared
+memory is implemented as a user-level protocol (data spaces). There is no need
+to allow arbitrary processes to establish memory mapping via IPC.
+
+The *boot procedure* of OKL4 largely differs from other L4 kernels.  This is
+attributed to Open Kernel Labs' focus on embedded systems, which mostly rely on
+single-image boot loading. OKL4 employs a tool (elfweaver) for creating a
+bootable image from a bunch of files and an XML configuration file.  Among the
+declarations about which processes to be loaded and which policies to enforce,
+the configuration file contains platform parameters such as the amount of
+physical memory of the machine. This static approach to configure a system is
+certainly useful for embedded systems but PC hardware uses to vary a lot. In
+this case, evaluating boot-time memory descriptors would be the preferred
+solution.
+
+OKL4 introduces kernel support for *user-level synchronization*. Prior L4
+kernels facilitated user-level synchronization through a combination of
+synchronous IPC operations with either priorities or delayed preemption.
+OKL4's mutexes can make the life in the user land much easier. However, we have
+not looked into OKL4 mutexes yet.
+
+There does not exist a recursive *map operation* as the source operand of the
+map operation is a physical memory descriptor rather than a virtual address in
+the mapper's address space. Consequently, this design eliminates the need for
+having a recursive unmap operation and thereby, the need to maintain a mapping
+data base in the kernel. This is cool because Genode keeps track of the
+mappings at the user level anyway (within core). From our perspective, there is
+no need to maintain mapping relationships in the kernel.  Removing the mapping
+database effectively discards a lot of much-discussed problems about how to
+manage the mapping database in a clever way.
+
+There exists *no root memory manager* (sigma0). Because the map operation
+takes a physical memory descriptor as argument instead of a virtual address
+in the mapper's address space. The mapper does not need to have the mapped
+page locally mapped within its own address space. In fact, core (as the only
+mapper in a Genode system) does only have very little memory mapped locally.
+This design accelerates the boot time because there is no need to map each
+physical page in core at startup as performed when running core on the other
+L4 kernels.
+
+These differences of OKL4 compared with the microkernels already supported
+by Genode posed a number of interesting challenges and opportunities. We have
+thoroughly documented the process in
+[http://genode.org/documentation/articles/genode-on-okl4 - Bringing Genode to OKL4].
+
+
+Usage
+=====
+
+For using Genode with OKL4, please refer to the following dedicated Wiki page:
+
+:[http://genode.org/community/wiki/GenodeOnOKL4 - Genode on OKL4]:
+  Wiki page about building and using Genode with the OKL4 kernel.
+
+
+Limitations of the current implementation
+=========================================
+
+The current implementation is able to execute the complete Genode demonstration
+scenario on OKL4. This means, we can build and destroy arbitrary trees of
+processes, have all the needed infrastructure in place to execute user-level
+device drivers such as VESA and PS/2, perform inter-process communication
+via RPC and shared memory, and have all basic framework API functions available.
+We regard the current state as the first functional version. However, there are
+the following points that need improvement and are subject to our future work.
+
+:Incomplete timer driver:
+
+  On x86, the timer driver should program the PIT to dispatch sleep requests.
+  However, the I/O ports of the PIT can only by made available to one party in
+  the system (which naturally would be the timer driver). Unfortunately, there
+  are some VESA BIOSes around, which try using the PIT directly. The current
+  version of our VESA driver does not virtualize these accesses. It rather
+  tries to gain direct access to the I/O ports from core. This would not work
+  if the timer already uses this device resource. Our plan is to supplement
+  our VESA driver with a virtual PIT that uses the timer service as back end.
+  Then we can safely use the PIT by the timer driver.
+
+:Signalling framework not yet implemented:
+
+  We have not yet implemented Genode's API for asynchronous notifications
+  in the OKL4 version. In fact, the goal of the initial version of the
+  OKL4 support was running the default demonstration scenario, which does
+  not rely on signals. The second and more technical reason is that we
+  consider exploiting OKL4's event mechanism for implementing the signalling
+  API but have not finalized the design. The generic implementation as used
+  on the other platforms cannot be used on OKL4 because this implementation
+  utilizes one helper thread per signal transmitter. Within core, each RM
+  session is a potential signal transmitter, which means that we need to
+  create a helper thread per process. Unfortunately, by default, OKL4
+  limits the number of threads within roottask (core) to only 8 threads,
+  which would impose a severe limit on the number of processes we could
+  run on OKL4.
+
+:OKL4's kernel mutexes yet to be used:
+
+  We have not yet explored the use of mutexes provided by the OKL4 kernel
+  for implementing Genode synchronization APIs but we rather rely on a
+  yielding spin lock for now. This has a number of drawbacks such as high
+  wake-up latencies in the contention case (depending on the scheduling
+  time slice), no support for priorities, and no fairness. Although it
+  is a simple and robust solution to start with, we plan to facilitate
+  the OKL4 kernel feature with our upcoming work.
+
+:Overly simplistic UTCB allocation:
+
+  Right now, we allocate a fixed amount of 32 UTCBs per address space and
+  thereby limit the maximum number of threads per process. In the future,
+  this limit should be made configurable.
+
+:Managed dataspaces not yet supported:
+
+  The support of managed dataspaces relies on the signal API, which is
+  not yet available for OKL4.
+
+:Message buffers are limited to 256 bytes:
+
+  Because OKL4 performs message-based inter-process communication by
+  copying data between the UTCBs of the communicating threads, the
+  UTCB size constaints the maximum message size. Therefore, message
+  must not exceed 256 bytes. This is not a huge problem for the currently
+  available Genode programs but we can imagine session argument-lists
+  to become larger in the future.
+
+:Advanced thread functions are incomplete:
+
+  Thread functions such as querying registers of remote threads are not yet
+  implemented.
+
+
+Integration of Qt4 into the mainline repository
+###############################################
+
+Qt4 is a tool kit for developing platform-independent applications. It
+comprises a complete platform-abstraction layer and a rich GUI tool kit
+widely used for commercial and open-source applications. It is particularly
+known as the technical foundation of the KDE project. The previous Genode
+release was accompanied by a snapshot of our initial port of Qt4 to Genode. For
+the current release, we have turned this proof-of-concept implementation into a
+properly integrated part of the Genode mainline development. This enables Qt4
+applications to be executed natively on the full range of kernels supported by
+Genode.
+
+
+Usage
+=====
+
+We complemented Genode's source tree with the new 'qt4' source-code repository,
+which contains the Genode-specific parts of the Qt4 framework. The most
+portions for the Qt4 framework are used unmodified and thereby have not been
+made part of the Genode source tree. Instead, we fetch the original Qt4 source
+code from Trolltech's FTP server. This way, our source tree remains tidy and
+neat.
+
+For using Qt4 for your Genode applications, you first need to download and
+prepare the original Qt4 source codes and build a few Qt4 tools such as the
+meta-object compiler and the resource compiler. The makefile found in the
+top-level directory of the 'qt4' repository automates this task:
+
+! make prepare
+
+To include the 'qt4' repository into the Genode build process, just add the
+'qt4' directory to the 'REPOSITORIES' declaration of the 'etc/build.conf' file
+within your build directory. Make sure that the repositories 'demo' and 'libc'
+are included as well. The 'qt4' repository comes with a couple of demo applications.
+The 'qt_launchpad' is especially interesting because it makes use of both the
+Qt4 framework and the Genode framework in one application.
+
+
+Features and limitations
+========================
+
+The Qt4 port comprises Qt's Core library, GUI library, Script library, XML
+library, and the UI tools library.
+
+For using Qt4 on the Linux version of Genode, we recommend using the Genode
+tool chain rather than your host's tool chain. Qt4 makes use of a lot of libc
+functionality, supplied by Genode's 'libc' repository. However, on Linux we
+still link against your host's libc. This becomes a problem if your host
+compiler's C++ support code references libc functionality that is not part of
+Genode's libc. Thereby the linker will silently create references to glibc
+symbols, making both libraries collide. So if using Qt4, we recommend using the
+Genode tool chain:
+
+:[http://genode.org/download/tool-chain]:
+  Information about downloading and using the Genode tool chain
+
+
+USB support
+###########
+
+This release introduces the first fragments of USB support to Genode, taking
+the USB human-interface device (HID) class as starting point. With this work,
+we follow our approach of reusing unmodified Linux device drivers executed
+within a device-driver environment called DDE Linux. In the previous release,
+we already utilized this approach for realizing basic networking on Genode.
+With this release, we complement DDE Linux with support required by USB
+drivers. We are grateful for being able to base our implementation on the
+excellent foundation laid by Dirk Vogt. He described his work in
+[http://os.inf.tu-dresden.de/papers_ps/vogt-beleg.pdf - USB for the L4 environment].
+
+For USB HID support, we added the Linux USB and input subsystems to the DDE
+Linux 2.6 framework. Besides the 'dde_linux26/net.h' API for network drivers
+added in Genode 9.02, the current version also includes APIs for input
+('dde_linux26/input.h') and USB ('dde_linux26/usb.h'). We intend these
+interfaces to mature towards generic driver-library APIs in the future. For
+example, BSD-based drivers shall transparently provide the same functionality
+as the current Linux drivers, which permits the simple reuse of driver server
+implementations.
+
+[image img/usb_current]
+
+Image [img/usb_current] illustrates the current implementation of the USB-based
+human-interface device (HID) driver. In this monolithic setup, all parts of the
+USB stack and the device API are executed within one address space. These parts
+are
+
+* Input server glue code
+* HID driver and input subsystem
+* Core functions for management of USB request buffers (URBs),
+  attached devices, and registered drivers
+* Host controller drivers for UHCI, OHCI, and EHCI
+
+[image img/usb_aspired]
+
+We regard this as an intermediate step towards our goal to decompose the USB
+stack. Image [img/usb_aspired] shows our aspired design. In this design, the
+USB server and one or more USB gadget drivers run in dedicated address spaces.
+The USB server provides two interfaces called USB session interface and USB
+device interface. A USB session interface corresponds to a virtual root hub,
+from which USB devices can be queried. The client of the USB session interface
+is usually an USB gadget driver that uses the USB device interface. Because
+this interface is used for transferring the actual payload at a potentially
+high bandwidth, it is based on shared memory and signals. The USB server
+consists of the following components:
+
+* USB server glue code
+* Virtual USB device driver managing all attached devices
+* Core functions including hardware hub management
+* Host controller drivers
+
+The USB server presents a virtual USB hub to each USB gadget driver. Such
+a driver consists of:
+
+* Device interface, e.g., input server glue code
+* Gadget driver, e.g., HID driver and input subsystem
+* Core functions
+* Virtual host controller
+* USB client glue code
+
+The HID driver uses the USB session API to monitor ports of its virtual root
+hub and submit URBs to attached devices. The session interface facilitates the
+signalling framework for event notification and a shared-memory dataspace for
+URB transmission.
+
+The 'os' repository already contains the USB session and USB device interfaces.
+However, the decomposition is not yet in a functional state.
+
+
+:Current limitations:
+
+The current monolithic implementation of the USB HID service can already be
+used as a replacement of the PS/2 driver. However, both drivers cannot be used
+at the same time, yet. To enable the use of both USB HID and PS/2, we plan to
+create a further component that merges multiple streams of input events and
+passes the result to the GUI server.
+
+
+OKLinux on Genode
+#################
+
+According to our road map, we pursued the goal to run Linux as a node in
+Genode's process tree. We explored two approaches:
+
+:Reanimating the Afterburner project conducted by the [http://l4ka.org - L4Ka group]:
+  This approach is the result of the L4Ka groups's long-year experience with
+  manually supporting L4Linux on top of the L4ka::Pistachio kernel. Because of
+  the high costs of maintaining the paravirtualized Linux kernel, a
+  semiautomatic paravirtualization technique was created. According to the
+  impressive results presented in
+  [http://l4ka.org/publications/paper.php?docid=2025 - Pre-Virtualization: Soft Layering for Virtual Machines],
+  this approach is able to drastically reduce maintenance costs while retaining
+  good performance. Furthermore, the approach was applied not only to Linux
+  running on the L4 kernel but also for using Xen or Linux as underlying
+  host operating systems.
+
+:Porting the OKL4-specific version of L4Linux to Genode:
+  Open Kernel Labs maintain a custom version of L4Linux that runs on OKL4. This
+  version is mostly referred to as OKLinux aka Wombat. Since Genode can now use OKL4
+  as base platform, the reuse of OKLinux in combination with Genode has become
+  a feasible option.
+
+Both approaches have pros and cons. Whereas Afterburner is a intriguing
+approach, this project seems to be stalled. It relies on a rather old tool
+chain, and recent Linux features such as thread-local storage support are not
+considered, yet. To pick up this solution for Genode will require us to fully
+understand the mechanisms and the code. So we consider this as a mid-term
+solution. In short term, running OKLinux on Genode is more feasible. We were
+already able to create a prototype version of OKLinux running on Genode. This
+version starts up the kernel including all Linux kernel threads, mounts the
+boot partition supplied as memory image, and starts the init process. The
+engineering costs had been rather low. We replaced the Iguana user land
+libraries as originally used by Wombat by a Genode-specific reimplementation to
+keep our manual adaptions of the Linux kernel code as small as possible.
+Our custom reimplementation of the needed Iguana APIs consists of less than
+1,000 lines of code (SLOC). The diff for our changes to the OKLinux kernel code
+comprises less than 1,000 lines. We plan to make a snapshot of this prototype
+publicly available soon.
+
+
+Operating-system services and libraries
+#######################################
+
+Nitpicker GUI server
+====================
+
+We optimized the performance of the 'refresh' call, which updates all views of
+a session, which display a given buffer portion. The new implementation restricts
+the redraw operations to the fragment of each view that displays the specified
+buffer portion. The performance improvement becomes most visible when updating
+only small parts of a buffer.
+
+
+USB session interface
+=====================
+
+Genode's emerging USB support introduces two new interfaces to the 'os' repository,
+which are called USB session and USB device.
+
+An _USB_session_ is a virtual USB bus with just one root hub with 'MAX_PORTS'
+downstream ports. The client of such as session submits USB request blocks
+(URBs) and is, in turn, informed about port changes on the root hub as well as
+request completion. Connected USB devices can be referenced by USB device
+capabilities and are associated with one port at the virtual root hub on
+server side.
+
+An _USB_device_ references a hardware device connected to a virtual USB bus's
+root hub. The device capability enables the client to send USB request
+blocks to the hardware device.
+
+
+Input interface
+===============
+
+We updated the key codes of the input interface in response to recent changes
+of Linux' 'dev/event' definitions.
+
+
+VESA driver
+===========
+
+Until now, there existed different processes that tried to access the PCI bus
+via I/O ports, in particular the VESA framebuffer driver and the PCI bus
+driver.
+
+Since core enforces that each I/O port can only be assigned exclusively to one
+component in the system, multiple processes that need access to the same I/O
+ports cannot run at the same time. For our default demonstration scenario, we
+had been able to allow the VESA driver to use the PCI I/O ports because nobody
+else needed them. However, our growing base of device drivers relies on the
+PCI bus driver. To be able to use the VESA driver together with other drivers,
+we virtualized the access to the PCI bus from within the VESA driver.
+
+Our current PCI virtualization code is pretty limited. The VESA driver sees a
+virtual PCI bus with only the VGA card attached. For now, we only allow reading
+the PCI configuration space of this device, but not writing to it. Apparently,
+this simple approach is sufficient to run the VESA BIOS of Qemu. However, other
+VESA BIOS implementations may need further access to the PCI device's
+configuration space. For example, for querying the size of a PCI resource,
+write access to base address registers is required. In such an event, the VESA
+driver will print a message about the missing virtualization feature:
+! writing data register not supported
+If you see such a message, we are very interested to see your log output such
+that we can enhance our PCI virtualization code as needed. Please contact us!
+
+
+Base framework
+##############
+
+In the process of bringing Genode to the OKL4 kernel, we have generalized much
+of former platform-specific code:
+
+* The initialization of C++ exception handling has now become part of the
+  generic 'cxx' library in the 'base' repository. All platforms except
+  Linux are using this generic library now.
+
+* The 'server' library used to contain a platform-specific part that
+  implemented the 'manage' function of a 'Server_entrypoint'. The
+  generalized version of this library is now being used on all platforms
+  other than Linux.
+
+* We unified core-internal interfaces and their implementations such as
+  'Dataspace_component', 'Cap_session_component', 'Rm_session_component',
+  and 'Irq_session_component'. The result has become part of the 'base'
+  repository.
+
+* On OKL4, threads need to execute small startup code for querying their
+  own thread IDs. Therefore, we have extended the 'Thread_base' interface
+  with a platform-specific hook function called '_thread_bootstrap'.
+
+* The types defined in 'base/native_types.h' had been complemented by a
+  new 'Native_thread_id' type. This type is exclusively used by core and the
+  framework libraries. For using the Genode API, this type is meaningless.
+
+* For the 64bit support, we slightly refined the interfaces of some utility
+  template functions in 'util/misc_math.h'. Furthermore, parts of the generic
+  marshalling code of the IPC framework needed refinement, but no API changes
+  were needed.
+
+
+Linux-specific changes
+######################
+
+Adaptation to 64 bit
+====================
+
+Because most Genode developers tend to work with the Linux version of Genode,
+supporting 64-bit Linux becomes increasingly important. With the current release,
+we start to officially support 64-bit Linux as base platform. This comes
+along with the following changes:
+
+* We replaced the 'spec-x86.mk' file with new 'spec-x86_32.mk' and 'spec-x86_64.mk'
+  files. The default version of 'base-linux/etc/specs.conf' automatically
+  chooses the right spec file according to the output of 'uname -m'. Therefore,
+  output of the build processes matches your host architecture. This behaviour
+  can be changed by placing a customized 'spec.conf' file in your build directory's
+  'etc/' subdirectory.
+
+* We added type definitions for 64-bit-specific fixed-size integers in the form
+  of a 64-bit-specific 'fixed_stdint.h' file.
+
+* Because using 64 bit instead of 32 bit changes the payload size of RPC
+  messages, we had to adjust several message buffers such as 'Ram_session_client'
+  and 'Input::Session_client', and adapted the used stack sizes.
+
+* Towards the goal of completely dissolving Genode's dependency on the Linux' glibc,
+  we implemented custom system-call bindings. Apparently, Linux' syscall interface
+  differs between 32 bit and 64 bit. For example, the 32-bit version handles
+  all socket-related calls via a compound 'socketcall' whereas the 64-bit
+  version uses distinct syscalls. Another difference is the handling of the
+  'mmap' syscall and different behaviour of 'tkill'. The latter problem was
+  resolved by replacing 'tkill' with 'tgkill' and setting the thread-group
+  argument of the corresponding PID. Therefore, a 'Native_thread_id' on Linux
+  now comprises both the TID and the PID.
+
+* The 'Platform_env' on Linux contains a local implementation of the 'Rm_session'
+  interface, which uses 'mmap' to attach dataspaces to the process' address
+  space and maintains the region list in the form of a static array. This array
+  was dimensioned to 256 entries, which constrained the maximum amount of
+  usable memory when allocating a lot of small blocks via Genode's heap. Since
+  the heap allocates backing store at the granularity of only 16KB, the worst
+  case for reaching this limit was about 4MB. This was OK for our simple test
+  applications. But for using Qt4, in particular on 64 bit, this has become a
+  serious limitation. For now, we increased the region limit to 4096 and plan
+  to replace the static array with a dynamically growing data structure.
+  Furthermore, we made the heap granularity depend on the actual machine-word
+  size. Therefore, the heap allocates its backing store in 32KB blocks when
+  running on 64 bit.
+
+
+Debugging hooks
+===============
+
+On Linux, we use gdb for debugging Genode. This is feasible as long as the
+targeted process is running. However, during low-level debugging, we had the
+recurring problem of a thread dying shortly after starting up. So we added a hook
+for halting a thread at the startup in order to be able to attach gdb to the
+thread before it dies. This simple hook lets the thread wait for a key press by
+directly calling the 'read' syscall. We also added a simple debug facility for
+printing debug messages bypassing Genode's LOG service by calling the 'write'
+syscall directly.  Both hooks are now part of the Linux version of the 'env'
+library (see 'base-linux/src/base/env/debug.cc'). Note that these hooks are not
+part of the Genode API. There exists no header file.
+

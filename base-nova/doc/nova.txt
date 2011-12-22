@@ -1,0 +1,254 @@
+
+              ==========================================
+              How to use Genode with the NOVA hypervisor
+              ==========================================
+
+                            Norman Feske
+
+
+When we started the development of Genode in 2006 at the OS Group of the TU
+Dresden, it was originally designated to be the user land of a next-generation
+and to-be-developed new kernel called NOVA. Because the kernel was not ready at
+that time, we had to rely on intermediate solutions as kernel platform such as
+L4/Fiasco and Linux during development. These circumstances led us to the
+extremely portable design that Genode has today and motivated us to make Genode
+available on the whole family of L4 microkernels. In December 2009, the day we
+waited for a long time had come. The first version of NOVA was publicly
+released:
+
+:Official website of the NOVA hypervisor:
+  [http://hypervisor.org]
+
+Besides the novel and modern kernel interface, NOVA has a list of features that
+sets it apart from most other microkernels, in particular support for
+virtualization hardware, multi-processor support, and capability-based
+security.
+
+
+Why bringing Genode to NOVA?
+############################
+
+NOVA is an acronym for NOVA OS Virtualization Architecture. It stands for a
+radically new approach of combining full x86 virtualization with microkernel
+design principles. Because NOVA is a microkernelized hypervisor, the term
+microhypervisor was coined. In its current form, it successfully addresses
+three main challenges. First, how to consolidate a microkernel system-call API
+with a hypercall API in such a way that the API remains orthogonal? The answer
+to this question lies in NOVA's unique IPC interface. Second, how to implement
+a virtual machine monitor outside the hypervisor without spoiling
+performance? The Vancouver virtual machine monitor that runs on top NOVA proves
+that a decomposition at this system level is not only feasible but can yield
+high performance. Third, being a modern microkernel, NOVA set out to pursue a
+capability-based security model, which is a challenge on its own.
+
+Up to now, the NOVA developers were most concerned about optimizing and
+evaluating NOVA for the execution of virtual machines, not so much about
+running a fine-grained decomposed multi-server operating system. This is where
+Genode comes into play. With our port of Genode to NOVA, we contribute the
+workload to evaluate NOVA's kernel API against this use case. We are happy to
+report that the results so far are overly positive.
+
+At this point, we want to thank the main developers of NOVA Udo Steinberg and
+Bernhard Kauer for making their exceptional work and documentation publicly
+available, and for being so responsive to our questions. We also greatly
+enjoyed the technical discussions we had and look forward to the future
+evolution of NOVA.
+
+
+How to explore Genode on NOVA?
+##############################
+
+To download the NOVA kernel and integrate it with Genode, issue the following
+command from within the 'base-nova' directory:
+
+! make prepare
+
+For creating a preconfigured build directory prepared for compiling Genode for
+NOVA, use the 'create_builddir' tool:
+
+! <genode-dir>/tool/create_builddir nova_x86 BUILD_DIR=<build-dir>
+
+This tool will create a fresh build directory at the location specified
+as 'BUILD_DIR'. Provided that you have installed the
+[http://genode.org/download/tool-chain - Genode tool chain], you can now build
+the NOVA kernel via
+
+! make kernel
+
+For test driving Genode on NOVA directly from the build directory, you can use
+Genode's run mechanism. For example, the following command builds and executes
+Genode's graphical demo scenario on Qemu:
+
+! make run/demo
+
+
+Challenges
+##########
+
+From all currently supported base platforms of Genode, the port to NOVA was
+the most venturesome effort. It is the first platform with kernel support for
+capabilities and local names. That means no process except the kernel has
+global knowledge. This raises a number of questions that seem extremely hard
+to solve at the first sight. For example: There are no global IDs for threads
+and other kernel objects. So how to address the destination for an IPC message?
+Or another example: A thread does not know its own identity per se and there is
+no system call similar to 'getpid' or 'l4_myself', not even a way to get a
+pointer to a thread's own user-level thread-control block (UTCB). The UTCB,
+however, is needed to invoke system calls. So how can a thread obtain its UTCB
+in order to use system calls? The answers to these questions must be provided by
+user-level concepts. Fortunately, Genode was designed for a capability kernel
+right from the beginning so that we already had solutions to most of these
+questions. In the following, we give a brief summary of the specifics of Genode
+on NOVA:
+
+* We maintain our own system-call bindings for NOVA ('base-nova/include/nova/')
+  derived from the NOVA specification. We put the bindings under MIT license
+  to encourage their use outside of Genode.
+
+* Core runs directly as roottask on the NOVA hypervisor. On startup, core
+  maps the complete I/O port range to itself and implements debug output via
+  comport 0.
+
+* Because NOVA does not allow rootask to have a BSS segment, we need a slightly
+  modified linker script for core (see 'src/platform/roottask.ld').
+  All other Genode programs use Genode's generic linker script.
+
+* The Genode 'Capability' type consists of a portal selector expressing the
+  destination of a capability invocation and a global object ID expressing
+  the identity of the object when the capability is specified as an invocation
+  argument. In the latter case, the global ID is needed because of a limitation
+  of the current system-call interface. In the future, we are going to entirely
+  remove the global ID.
+
+* Thread-local data such as the UTCB pointer is provided by the new thread
+  context management introduced with the Genode release 10.02. It enables
+  each thread to determine its thread-local data using the current stack
+  pointer.
+
+* NOVA provides threads without time called local execution contexts (EC).
+  Local ECs are intended as server-side RPC handlers. The processing time
+  needed to perform RPC requests is provided by the client during the RPC call.
+  This way, RPC semantics becomes very similar to function call semantics with
+  regard to the accounting of CPU time. Genode already distinguishes normal
+  threads (with CPU time) and server-side RPC handlers ('Server_activation')
+  and, therefore, can fully utilize this elegant mechanism without changing the
+  Genode API.
+
+* On NOVA, there are no IPC send or IPC receive operations. Hence, this part
+  of Genode's IPC framework cannot be implemented on NOVA. However, the
+  corresponding classes 'Ipc_istream' and 'Ipc_ostream' are never used directly
+  but only as building blocks for the actually used 'Ipc_client' and
+  'Ipc_server' classes. Compared with the other Genode base platforms, Genode's
+  API for synchronous IPC communication maps more directly onto the NOVA
+  system-call interface.
+
+* The Lock implementation utilizes NOVA's semaphore as a utility to let a
+  thread block in the attempt to get a contended lock. In contrast to the
+  intuitive way of using one kernel semaphore for each user lock, we use only
+  one kernel semaphore per thread and the peer-to-peer wake-up mechanism we
+  introduced in the release 9.08. This has two advantages: First, a lock does
+  not consume a kernel resource, and second, the full semantics of the Genode
+  lock including the 'cancel-blocking' semantics are preserved.
+
+* NOVA does not support server-side out-of-order processing of RPC requests.
+  This is particularly problematic in three cases: Page-fault handling, signal
+  delivery, and the timer service.
+
+  A page-fault handler can receive a page fault request only if the previous
+  page fault has been answered. However, if there is no answer for a
+  page-fault, the page-fault handler has to decide whether to reply with a
+  dummy answer (in this case, the faulter will immediately raise the same page
+  fault again) or block until the page-fault can be resolved. But in the latter
+  case, the page-fault handler cannot handle any other page faults. This is
+  unfeasible if there is only one page-fault handler in the system. Therefore,
+  we instantiate one pager per user thread.  This way, we can block and unblock
+  individual threads when faulting.
+
+  Another classical use case for out-of-order RPC processing is signal
+  delivery. Each process has a signal-receiver thread that blocks at core's
+  signal service using an RPC call. This way, core can selectively deliver
+  signals by replying to one of these in-flight RPCs with a zero-timeout
+  response (preserving the fire-and-forget signal semantics). On NOVA however,
+  a server cannot have multiple RPCs in flight. Hence, we use a NOVA semaphore
+  shared between core and the signal-receiver thread to wakeup the
+  signal-receiver on the occurrence of a signal. Because a semaphore-up
+  operation does not carry payload, the signal has to perform a non-blocking
+  RPC call to core to pick up the details about the signal. Thanks to Genode's
+  RPC framework, the use of the NOVA semaphore is hidden in NOVA-specific stub
+  code for the signal interface and remains completely transparent at API
+  level.
+
+  For the timer service, we currently use one thread per client to avoid the need
+  for out-of-order RPC processing.
+
+* Because NOVA provides no time source, we use the x86 PIT as user-level time
+  source, similar as on OKL4.
+
+* On the current version of NOVA, kernel capabilities are delegated using IPC.
+  Genode supports this scheme by being able to marshal 'Capability' objects as
+  RPC message payload. In contrast to all other Genode base platforms where
+  the 'Capability' object is just plain data, the NOVA version must marshal
+  'Capability' objects such that the kernel translates the sender-local name to
+  the receiver-local name. This special treatment is achieved by overloading
+  the marshalling and unmarshalling operators of Genode's RPC framework. The
+  transfer of capabilities is completely transparent at API level and no
+  modification of existing RPC stub code was needed.
+
+
+Manually booting Genode on NOVA
+###############################
+
+NOVA supports multi-boot-compliant boot loaders such as GRUB, Pulsar, or gPXE.
+For example, a GRUB configuration entry for booting the Genode demo scenario
+with NOVA looks as follows, whereas 'genode/' is a symbolic link to the 'bin/'
+subdirectory of the Genode build directory and the 'config' file is a copy of
+'os/config/demo'.
+
+! title Genode demo scenario
+!  kernel /hypervisor noapic
+!  module /genode/core
+!  module /genode/init
+!  module /config/demo/config
+!  module /genode/timer
+!  module /genode/ps2_drv
+!  module /genode/pci_drv
+!  module /genode/vesa_drv
+!  module /genode/launchpad
+!  module /genode/nitpicker
+!  module /genode/liquid_fb
+!  module /genode/nitlog
+!  module /genode/testnit
+!  module /genode/scout
+
+
+Limitations
+###########
+
+The current NOVA version of Genode is able to run the complete Genode demo
+scenario including several device drivers (PIT, PS/2, VESA, PCI) and the GUI.
+Still the NOVA support is not on par with some of the other platforms.
+The current limitations are:
+
+* No real-time priority support: NOVA supports priority-based scheduling
+  but, in the current version, it allows each thread to create scheduling
+  contexts with arbitrary scheduling parameters. This makes it impossible
+  to enforce priority assignment from a central point as facilitated with
+  Genode's priority concept.
+
+* No multi-processor support: NOVA supports multi-processor CPUs through
+  binding each execution context (ECs) to a particular CPU. Because everyone
+  can create ECs, every process could use multiple CPUs. However, Genode's API
+  devises a more restrictive way of allocating and assigning resources. In
+  short, physical resource usage should be arbitrated by core and the creation
+  of physical ECs should be performed by core only. However, Remote EC creation
+  is not yet supported by NOVA. Even though, multiple CPU can be used with
+  Genode on NOVA right now by using NOVA system calls directly, there is no
+  support at the Genode API level.
+
+* No cancel-blocking semantics: The cancellation of locks is not support,
+  yet. Because of this missing functionality, applications can freeze
+  in situations where a subsystems that blocks for a service is attempted
+  to get destroyed.
+
+
+

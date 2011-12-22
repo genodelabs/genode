@@ -1,0 +1,21 @@
+diff -ru /tmp/okl4_2.1.1-patch.9/pistachio/src/ipc.cc pistachio/src/ipc.cc
+--- a/pistachio/src/ipc.cc	2008-06-16 07:16:55.000000000 +0200
++++ b/pistachio/src/ipc.cc	2010-09-21 12:35:41.000000000 +0200
+@@ -424,8 +424,6 @@
+ 
+         TRACE_IPC("send phase curr=%t, to=%t\n", current, to_tcb);
+ 
+-        threadid_t sender_handle = threadhandle(current->tcb_idx);
+-
+ check_waiting:
+         okl4_atomic_barrier_smp();
+         // not waiting || (not waiting for me && not waiting for any)
+@@ -500,7 +498,7 @@
+             /* set sent_from to be thread handle of the sender. */
+             TRACE_IPC("set sent_from of tcb(tid) 0x%lx(0x%lx) to handle of tcb %lx which is 0x%lx\n",
+                 to_tcb, to_tid.get_raw(), current, sender_handle.get_raw());
+-            to_tcb->sent_from = sender_handle;
++            to_tcb->sent_from = current->myself_global;
+         }
+ 
+         if (EXPECT_FALSE(!transfer_message(current, to_tcb)))

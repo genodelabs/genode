@@ -1,0 +1,60 @@
+#
+# \brief  Test if the exception mechanism works in hybrid applications
+# \author Christian Prochaska
+# \date   2011-11-22
+#
+
+#
+# Build
+#
+
+build {
+	core init
+	test/lx_hybrid_exception
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="test-lx_hybrid_exception">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+}
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	test-lx_hybrid_exception
+}
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+# qemu config
+append qemu_args "-nographic -m 64 "
+
+run_genode_until "child exited with exit value 0.*\n" 10
+
+puts "Test succeeded"
+
+# vi: set ft=tcl :

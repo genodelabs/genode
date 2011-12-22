@@ -1,0 +1,14 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>demo/intro.html</file>
+    <file>demo/busybox.html</file>
+    <file>demo/tinycore.html</file>
+    <file>demo/nitpicker.html</file>
+    <file>demo/bg_content.png</file>
+    <file>demo/bg.png</file>
+    <file>demo/bg_top.png</file>
+    <file>demo/title_bg.png</file>
+    <file>demo/nitpicker_plugin.png</file>
+    <file>demo/http_block.png</file>
+</qresource>
+</RCC>

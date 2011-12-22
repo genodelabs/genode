@@ -1,0 +1,1289 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 11.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+With our work on Genode 11.05, we pursued two missions, substantiating the
+support for the base platforms introduced with the last release, and
+reconsidering one of the most fundamental aspects of the framework, which is
+inter-process communication. Besides these two main topics, we enjoyed working
+on a number of experimental features such as GDB support that will hopefully
+have far-reaching effects on how our framework is used.
+
+Cross-kernel platform support is certainly one of the most distinctive features
+that sets Genode apart from other operating-system development kits. With the
+previous version 10.02, we had proudly announced having bumped the number of
+supported base platforms to 8 different kernels. Since this release, the two
+new base platforms received a lot of attention. We not only advanced the
+support for the Fiasco.OC kernel to catch up featurewise with the other
+platforms but went on with porting its most prominent application, namely
+L4Linux, to Genode. L4Linux is a paravirtualized version of the Linux kernel
+specifically developed to run as user-level application on top of Fiasco.OC.
+Now L4Linux can be used with Genode on both x86 and ARM. The second addition to
+the base platforms was our custom kernel implementation for the Xilinx
+MicroBlaze architecture. For this platform, we have now activated the APIs for
+creating user-level device drivers, and introduced a reference SoC for
+executing Genode on the Xilinx Spartan-3A Starter Kit.
+
+Getting inter-process communication right is possibly the most serious concern
+of microkernel-based operating systems. When Genode was started in 2006, we
+disregarded the time-tested standard solution of using interface description
+languages and IDL compilers. Well, we never looked back. Genode devised the use
+of standard C++ features combined with simple object-oriented design patterns.
+Even though we regarded our approach as a great leap forward, it had some
+inherent shortcomings. These were the lack of type safety, the need for
+manually maintaining communication code, and the manual estimation of
+communication-buffer sizes. The current release remedies all these shortcomings
+with a brand new API for implementing procedure calls across process
+boundaries. This API facilitates type safety and almost eliminates any manual
+labour needed when implementing remote procedure calls between processes. Yet,
+the concept still relies only on the C++ compiler with no need for additional
+tools.
+
+As the Genode developer community grows, we observe the rising need for a solid
+debugging solution. The new release features our first step towards the use of
+the GNU debugger within our framework. In addition to the progress on the
+actual framework, we are steadily seeking ways to make Genode more easily
+accessible to new developers. We have now added new ready-to-use scripts for
+building, configuring, and test-driving a number of Genode features including
+Qt4, lwIP, GDB, and L4Linux.
+
+
+New API for type-safe inter-process communication
+#################################################
+
+Efficient and easy-to-use inter-process communication (IPC) is crucial for
+multi-server operating systems because on such systems, almost all of the
+functionally offered by a traditional monolithic kernel is provided by a crowd
+of different user-level processes talking to each other. Whereas the L4 line of
+microkernels took the lead in terms of IPC performance, the development of
+applications for such platforms and dealing with the kernel mechanisms in
+particular is not easy. Hence, for most microkernels, there exists tooling
+support to hide the peculiarities of kernel mechanisms behind higher-level
+interface description languages (IDL). However, in our past experience, the
+introduction of an IDL compiler into the tool chain of a multi-server OS did
+not only bring comfort, but also serious headaches. The two most prominent
+problems are the unfortunate mixing of abstraction levels and the complexity of
+the solution.
+
+Even though IDL compilers are a time-tested solution for distributed systems,
+we argue that applying them to kernel-level systems programming is misguided.
+On the one hand, IDLs such as CORBA IDL suggest a lot power (e.g., the ability
+to communicate arbitrarily complex data types), which microkernel-targeting IDL
+compilers fail to deliver because of kernel interface constraints
+(e.g., hard limits with regard to message sizes). On the other hand, IDL
+per se misses expressions and functionality important to OS development such as
+easy-to-use bindings to a systems programming language, fine-tuned resource
+allocation, or the transfer of special IPC items. Therefore, most IDL compilers
+used for microkernels sport various extensions or even do crazy things like
+retrieving type definitions from C header files.
+
+With the rich feature set demanded by application developers, some IDL
+compilers have become extremely complex, i.e., comprising more than 60K lines
+of code. Furthermore, the integration of an IDL compiler into the tool chain
+implies build-system complexity. Also the stub codes generated by an IDL
+compiler must be taken into consideration and raise the question of whether
+they must by regarded as part of the trusted computing base and, therefore,
+become subject to human review.
+
+For these reasons, Genode dismissed the IDL approach in favor for a raw
+C++-based alternative, fostering the use of the C++ streaming operators
+combined with templates. The following paper provides a detailed discussion
+on the subject:
+
+:[http://genode-labs.com/publications/dynrpc-2007.pdf - A Case Study on the Cost and Benefit of Dynamic RPC Marshalling for Low-Level System Components]:
+  _SIGOPS OSR Special Issue on Secure Small-Kernel Systems, 2007_
+
+In hindsight, leaving behind the IDL approach was the right decision. From a
+developer's perspective, there is no need to comprehend two levels of
+abstraction - one systems programming language should be enough. Genode's IPC
+framework has raw and direct semantics without hidden magic. Still the IPC
+framework is abstract enough to remain extremely portable. The same API works
+seamless across 8 different kernels using different flavours of IPC mechanisms.
+
+That said, our solution was never exempt from valid criticism, which we try
+to remedy with the Genode version 11.05.
+
+
+State of the art
+================
+
+Genode provides three ways of inter-process communication: signals, shared
+memory, and synchronous remote procedure calls (RPC). In the following, only
+remote procedure calls are discussed. An RPC in the context of Genode is a
+function call to a remote process running on the same machine (contrarily to
+the term RPC being used in the context of systems distributed over a network).
+
+The state of the art is best explained by the example interface discussed
+in the [http://genode.org/documentation/developer-resources/client_server_tutorial - Hello Tutorial].
+On Genode, each RPC interface is represented by an abstract C++ class,
+enriched by some bits of information shared by the caller and the callee.
+
+! class Session
+! {
+!   protected:
+!
+!     enum Opcode { SAY_HELLO = 23, ADD = 42 };
+!
+!   public:
+!
+!     virtual void say_hello() = 0;
+!     virtual int add(int a, int b) = 0;
+! };
+
+On the callee side, each function is represented by a number (opcode). To let
+both caller and callee talk about the same opcodes, the interface class hosts
+an 'Opcode' enumeration with each value corresponding to one RPC function.
+
+On the callee side, the interface is inherited by a so-called 'Server' class
+with the purpose of dispatching incoming RPC requests and directing them to the
+respective server-side implementation of the abstract RPC interface.
+
+! struct Session_server : Server_object,
+!                         Session
+! {
+!   int dispatch(int op, Ipc_istream &is,
+!                        Ipc_ostream &os)
+!   {
+!     switch(op) {
+!
+!     case SAY_HELLO:
+!       say_hello();
+!       break;
+!
+!     case ADD:
+!       {
+!         int a = 0, b = 0;
+!         is >> a >> b;
+!         os << add(a,b);
+!         break;
+!       }
+!
+!     default:
+!       return -1;
+!     }
+!     return 0;
+!   }
+! };
+
+The 'Server' class is further inherited by the actual implementation of the
+callee's functions. By using this class-hierarchy convention, the 'Server'
+dispatch code can be reused by multiple implementations of the same interface.
+
+The caller-side of the RPC interface is represented by a 'Client' class,
+implementing the 'Session' interface using Genode's IPC streaming API, namely
+an 'Ipc_client' object.
+
+! class Session_client : public Session
+! {
+!   protected:
+!
+!     Msgbuf<256> _sndbuf, _rcvbuf;
+!     Ipc_client  _ipc_client;
+!     Lock        _lock;
+!
+!   public:
+!
+!     Session_client(Session_capability cap)
+!     : _ipc_client(cap, &_sndbuf, &_rcvbuf) { }
+!
+!     void say_hello()
+!     {
+!       Lock::Guard guard(_lock);
+!       _ipc_client << SAY_HELLO << IPC_CALL;
+!     }
+!
+!     int add(int a, int b)
+!     {
+!       Lock::Guard guard(_lock);
+!       int ret = 0;
+!       _ipc_client << ADD << a << b << IPC_CALL >> ret;
+!       return ret;
+!     }
+! };
+
+Even though this scheme is relatively easy to follow and served us well over
+the years, it has several drawbacks:
+
+:Consistency between 'Client' and 'Server' stub codes:
+
+  The developer is responsible to manually maintain the consistency between the
+  'Client' and 'Server' classes. For the mapping of opcodes to functions, the
+  naming convention of letting the enum names correlate to uppercase function
+  names is just fine. But there is no easy-to-follow convention for function
+  arguments. Care must be taken to let both 'Client' and 'Server' stream the
+  correct argument types in the same order. In practice, maintaining the
+  correlation between 'Client' and 'Server' stub code is not too hard because
+  the stub code is easy to comprehend and to test. However, in some cases,
+  errors slipped in and remained undetected for some time. For example, a
+  client inserting an 'int' value and a server extracting a 'long' value play
+  nicely together as long as they are executed on 32-bit machines. But on 64
+  bit, the communication breaks down.
+
+:Manual dimensioning of message buffers:
+
+  The 'Ipc_client' message buffers must be dimensioned correctly. Choosing them
+  too small may lead to corrupted RPC arguments. Too large buffers waste
+  memory. Because arguments are differently sized on different architectures,
+  numerically specified buffer sizes are always wrong. Because expressing
+  the buffer size with a proper accumulation of 'sizeof()' values is awkward to
+  do manually, message buffers tend to get over dimensioned.
+
+:Locking of message buffers:
+
+  Because one 'Client' object may be concurrently accessed by multiple threads,
+  precautions for thread safety must be taken by protecting the message buffers
+  with lock guards. Of course, the implementation effort is not too high, but
+  a missing lock guard can take hours to spot once a weird race condition occurs.
+
+:Danger of using anonymous enums for defining opcodes:
+
+  The compiler is free to optimize the size of values of anonymous enums. Small
+  values may be represented as 'char' whereas larger values may use 'int'. On
+  the callee side, the opcode is always extracted into an 'int' variable.
+  Hence, the client must insert an 'int' value as well, which is not guaranteed
+  for anonymous enums. Unfortunately, the 'Opcode' type is never explicitly
+  used, so that a missing type name is not detected at compile time.
+
+:Exception-support possible but labour intensive:
+
+  Several of Genode's interfaces indicate error conditions via C++ exceptions.
+  The propagation of exceptions via IPC is pretty straight forward. On the
+  callee-side, the dispatch code must catch each exception known to be thrown
+  from the implementation and translate each exception type to a unique return
+  value. If such a return value is received at the caller side, the 'Client'
+  stub code throws the respective exception. Similar to the streaming of
+  function arguments, the corresponding code is easy to craft, yet it must be
+  maintained manually.
+
+
+Re-approaching the problem using template meta programming
+==========================================================
+
+When we introduced Genode's C++-stream-based dynamic RPC marshalling in 2006,
+we were hinted by Michael Hohmuth to the possibility of automatic generation
+of the stub code via recursive C++ templates. However, back then, neither Michael
+nor we had the profound understanding of the programming technique required to
+put this idea into practice. However, the idea kept spinning in our heads - until
+today.
+
+Last year, we finally realized a prototype implementation of this idea. To our
+excitement, we discovered that this technique had the potential to remedy all
+of the issues pointed out above. With the current release, this powerful
+technique gets introduced into the Genode API. Because this new API would break
+compatibility with our existing IPC and client-server APIs, we took the chance
+to closely examine the use cases of these APIs, and re-consider their feature
+sets. Our findings are:
+
+* The distinction between the IPC API ('ipc.h') and the client-server API
+  ('server.h') turned out to be slightly over designed. Originally, the IPC
+  API was meant as a mere abstraction to the low-level IPC mechanism of the
+  kernel (sending and receiving messages) whereas the server API adds the
+  object model. However, there is no single use case for the stand-alone use of
+  the IPC API except for a bunch of test cases specifically developed for the
+  IPC API implementations. Furthermore, half of the IPC API namely send-only
+  IPC and wait-only IPC remained unused, and on some base platforms (e.g.,
+  NOVA) even unsupported. Consequently, we see potential to simplify the IPC
+  API by sticking to raw function-call semantics.
+
+* The use of C++ streams for marshalling/unmarshalling suggests an enormous
+  flexibility. E.g., by overloading the operators for specific types, complex
+  nested data structures could be transferred. However, this never happened -
+  for the good reason that we always strive to keep the RPC interfaces of OS
+  services as simple and straight-forward as possible. If the payload becomes
+  complex, we found that the use of synchronous RPCs should be reconsidered
+  anyway. For such use cases, shared memory is the way to go. On the other
+  hand, the possibility of overloading the stream operators turned out to be
+  extremely useful for handling platform-specific IPC payload, most prominently
+  kernel-protected capabilities on NOVA and Fiasco.OC. So we will stick with
+  the C++-stream based marshalling/unmarshalling.
+
+* The inheritance of RPC interfaces is an important feature to support
+  platform-specific extensions to Genode's core services. For example, on
+  Linux, an extension to the 'Dataspace' interface provides additional
+  information about the file that is used as backing store. On OKL4, the
+  extension of core's PD services provides OKL4-specific functions that where
+  added to run OKLinux on Genode. Consequently, the support for interface
+  inheritance is a must.
+
+* The typed capabilities introduced with Genode 8.11 formed an inheritance
+  hierarchy independent from the actual interfaces. By convention, typed
+  capabilities were tagged with their corresponding interface classes but their
+  inheritance relationship was explicitly expressed by an additional template
+  argument. For this reason, the definition of each capability type had to
+  be provided via a separate header file (named 'capability.h') for each
+  interface. It would be much nicer to just use the class relationships between
+  interfaces to infer the corresponding capability-type relationships.
+
+* Allowing RPC functions to throw exceptions is crucial. In fact, our
+  goal is to design RPC interfaces in C++ style as far as possible. If
+  throwing an exception fits naturally into the API, the framework should
+  not stand in the way. Consequently, C++ exception support for the RPC
+  framework is a must.
+
+* The separation of 'Server_activation' and 'Server_entrypoint' never
+  paid off. The 'Server_activation' represents the thread to be used
+  by a 'Server_entrypoint'. The original design of the NOVA hypervisor
+  envisioned the use of multiple "worker" activations to serve one entry point.
+  Our API tried to anticipate this kernel feature. In the meanwhile, two
+  reasons are speaking against this idea. No other kernel supports such a
+  feature, so using the feature by an application would spoil it's inter-kernel
+  portability. Second, even the NOVA developers disregarded this feature at a
+  later development stage. In summary, merging both 'Server_activation' and
+  'Server_entrypoint' looks like a good idea to simplify Genode's API.
+
+Even though the revised RPC API promised to be a vast improvement over the
+original IPC and client-server APIs, the risks of such a huge overhaul must be
+considered as well. We are aware of developers with reservations about the use
+of C++ template meta programming. It seems to be common sense that this
+technique is some kind of witch craft, the code tends to be ugly, the compiler
+takes ages to cut its teeth through the recursive templates, and the resulting
+binaries become bloated and large. If any of these arguments had held true, we
+would not have introduced this technique into Genode. Admittedly, the syntax of
+template meta code is not always easy to comprehend but we believe that
+elaborative comments in the code make even these parts approachable.
+
+
+Introduction of the new API
+===========================
+
+The new RPC API completely replaces the formerly known IPC ('base/ipc.h')
+and client-server ('base/server.h') APIs. It consists of the following
+header files:
+
+:'base/rpc.h':
+  Contains the basic type definitions and utility macros to declare RPC
+  interfaces. It does not depend on any other Genode API except for the
+  meta-programming utilities provided by 'util/meta.h'. Therefore, 'base/rpc.h'
+  does not pollute the namespace of the place where it is included.
+
+:'base/rpc_args.h':
+  Contains definitions of non-trivial argument types used for transferring
+  strings and binary buffers. Its use by a RPC interface is entirely optional.
+
+:'base/rpc_server.h':
+  Contains the interfaces of the server-side RPC API. This part of the API
+  consists of the 'Rpc_object' class template and the 'Rpc_entrypoint' class.
+  It entirely replaces the original 'base/server.h' API ('Rpc_object'
+  corresponds to the original 'Server_object', 'Rpc_entrypoint' corresponds to
+  the original 'Server_activation' and 'Server_entrypoint' classes.
+
+:'base/rpc_client.h':
+  Contains the API support for invoking RPC functions. It is complemented by
+  the definitions in 'base/capability.h'. The most significant elements of the
+  client-side RPC API are the 'Capability' class template and 'Rpc_client',
+  which is a convenience wrapper around 'Capability'.
+
+That sounds simple enough. Let's see how to use this API for the example of
+Section [State of the art].
+
+The RPC interface is still an abstract C++ interface, supplemented by some bits
+of RPC-relevant information.
+
+! #include <base/rpc.h>
+!
+! struct Session
+! {
+!   virtual void say_hello() = 0;
+!   virtual int add(int a, int b) = 0;
+!
+!   GENODE_RPC(Rpc_say_hello, void, say_hello);
+!   GENODE_RPC(Rpc_add, int, add, int, int);
+!   GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
+! };
+
+Note that the 'Opcode' enum is gone. Instead there is an RPC interface
+declaration using the 'GENODE_RPC' and 'GENODE_RPC_INTERFACE' macros. These
+macros are defined in 'base/rpc.h' and have the purpose to enrich the interface
+with type information. They are only used at compile time and have no effect on
+the run time or the size of the interface class. Each RPC function is
+represented as a type. In this example, the type meta data of the 'say_hello'
+function is attached to the 'Rpc_say_hello' type within the scope of 'Session'.
+The macro arguments are:
+
+! GENODE_RPC(func_type, ret_type, func_name, arg_type ...)
+
+The 'func_type' argument is an arbitrary type name (except for the type name
+'Rpc_functions') used to refer to the RPC function, 'ret_type' is the return
+type or 'void', 'func_name' is the name of the server-side function that
+implements the RPC function, and the list of 'arg_type' arguments comprises the
+RPC function argument types. The 'GENODE_RPC_INTERFACE' macro defines a type
+called 'Rpc_functions' that contains the list of the RPC functions provided by
+the RPC interface.
+
+On the server side, the need for the 'Server' class has vanished. Instead, the
+server-side implementation inherits 'Rpc_object' with the interface type as
+arguments.
+
+! #include <base/rpc_server.h>
+!
+! struct Component : Rpc_object<Session>
+! {
+!     void say_hello()
+!     {
+!       ...
+!     }
+!
+!     int add(int a, int b)
+!     {
+!       ...
+!     }
+! };
+
+The RPC dispatching is done by the 'Rpc_object' class template, according to
+the type information that comes with the 'Session' interface.
+
+On the client-side, there is still a '<interface>/client.h' file, but it has
+become significantly shorter.
+
+! #include <base/rpc_client.h>
+!
+! struct Session_client : Rpc_client<Session>
+! {
+!   Session_client(Capability<Session> cap)
+!   : Rpc_client<Session>(cap) { }
+!
+!   void say_hello() {
+!     call<Rpc_say_hello>(); }
+!
+!   int add(int a, int b) {
+!     return call<Rpc_add>(a, b); }
+! };
+
+There are a few notable things. First, 'Capability' is now a template class
+taking the interface type as argument. So in principle, there is no more a
+pressing need to explicitly define a dedicated capability type for each
+interface. Second, the message buffer declarations are gone. Message buffers
+are dimensioned automatically at compile time. Third, there is no manual
+application of the C++ stream operator. Instead, the 'call' function template
+performs the correct marshalling and unmarshalling in a type-safe manner. Type
+conversion rules correspond to the normal C++ type-conversion rules. So you can
+actually pass a char value to a function taking an int value. If there is no
+valid type conversion or the number of arguments is wrong, the error gets
+detected at compile time. Finally, there no more any need for locking message
+buffers. Very similar to the way, plain function calls work, the 'call'
+mechanism allocates a correctly dimensioned message buffer on the stack of the
+caller. The message buffer is like a call frame. By definition, a call frame
+cannot be used by multiple thready concurrently because each thread has its own
+stack.
+
+
+Transferable argument types
+===========================
+
+The arguments specified to 'GENODE_RPC' behave mostly as expected by a normal
+function call. But there are some notable differences to keep in mind:
+
+:Value types:
+  Value types are supported for basic types and plain-old-data types
+  (self-sufficient structs or classes). The object data is transferred as such.
+  If the type is not self sufficient (it contains pointers or references), the
+  pointers and references are transferred as plain data, most certainly
+  pointing to the wrong thing in the callee's address space.
+
+:Const references:
+  Const references behave like value types. The referenced object is
+  transferred to the server and a reference to the server-local copy is passed
+  to the server-side function. Note that in contrast to a normal function call
+  taking a reference argument, the size of the referenced object is accounted
+  for allocating the message buffer on the client side.
+
+:Non-const references:
+  Non-const references are handled similar to const references. In addition the
+  server-local copy gets transferred back to the caller so that server-side
+  modifications of the object become visible to the client.
+
+; Should we mention, that copy constructors/assignment opeerators of
+; by-reference parameters may be called by the stream op, or do I miss
+; something?
+
+:Capabilities:
+  Capabilities can be transfered as values, const references, or non-const
+  references.
+
+:Variable-length buffers:
+  There exists special support for passing binary buffers to RPC functions using
+  the 'Rpc_in_buffer' class template provided by 'base/rpc_args.h'. The maximum
+  size of the buffer must be specified as template argument. An 'Rpc_in_buffer'
+  object does not contain a copy of the data passed to the constructor, only a
+  pointer to the data. In contrast to a fix-sized object containing a copy of
+  the payload, the RPC framework does not transfer the whole object but only
+  the actually used payload.
+
+:Pointers:
+  Pointers and const pointers are handled similar to references. The pointed-to
+  argument gets transferred and the server-side function is called with a
+  pointer to the local copy. *Note* that the semantics of specifying pointers
+  as arguments for RPC interface functions is not finalized. We may decide to
+  remove the support for pointers to avoid misconceptions about them (i.e.,
+  expecting 'char const *' to be handled as a null-terminated string, or
+  expecting pointers to be transferred as raw bits).
+
+; IMO 'Type *out_param' fits better than 'Type &out_param' because of
+; the copy constructor issue, right?
+
+All types specified at RPC arguments or as return value must have a default
+constructor.
+
+By default, all RPC arguments are input arguments, which get transferred to the
+server. The return type of the RPC function, if present, is an output-only
+value. To avoid a reference argument from acting as both input- and output
+argument, a const reference should be used. Some interfaces may prefer to
+handle certain reference arguments as output-only, e.g., to query multiple
+state variables from a server. In this case, the RPC direction can be defined
+specifically for the type in question by providing a custom type trait
+specialization for 'Trait::Rpc_direction' (see 'base/rpc.h').
+
+
+Supporting advanced RPC use cases
+=================================
+
+Two advanced use cases are important to mention, throwing exceptions across RPC
+boundaries and interface inheritance.
+
+:C++ exceptions:
+
+  The propagation of C++ exceptions from the server to the client is supported
+  by a special variant of the 'GENODE_RPC' macro:
+
+  ! GENODE_RPC_THROW(func_type, ret_type, func_name,
+  !                  exc_type_list, arg_type ...)
+
+  This macro features the additional 'exc_type_list' argument, which is a type
+  list of exception types. To see this feature at work, please refer to
+  Genode's base interfaces such as 'parent/parent.h'. Exception objects are not
+  transferred as payload - just the information that the specific exception was
+  raised. Hence, information provided with the thrown object will be lost
+  when crossing an RPC boundary.
+
+:Interface inheritance:
+
+  The inheritance of RPC interfaces comes down to a concatenation of the
+  'Rpc_functions' type lists of both the base interface and the derived
+  interface. This use case is supported by a special version of the
+  'GENODE_RPC_INTERFACE' macro:
+
+  ! GENODE_RPC_INTERFACE_INHERIT(base_interface,
+  !                              rpc_func ...)
+
+  The 'base_interface' argument is the type of the inherited interface. For an
+  example, please refer to 'linux_dataspace/linux_dataspace.h' as contained in
+  the 'base-linux' repository.
+
+:Casting capability types:
+
+  For typed capabilities, the same type conversion rules apply as for pointers.
+  In fact, a typed capability pretty much resembles a typed pointer, pointing
+  to a remote object. Hence, assigning a specialized capability (e.g.,
+  'Capability<Input::Session>') to a base-typed capability (e.g.,
+  'Capability<Session>') is always valid. For the opposite case, a static cast
+  is needed. For capabilities, this cast is supported by
+  ! static_cap_cast<INTERFACE>(cap)
+
+  In rare circumstances, mostly in platform-specific base code, a reinterpret
+  cast for capabilities is required. It allows to convert any capability to
+  another type:
+  ! reinterpret_cap_cast<INTERFACE>(cap)
+
+:Non-virtual interface functions:
+
+  It is possible to declare RPC functions using 'GENODE_RPC', which do not
+  exist as virtual functions in the interface class. In this case, the function
+  name specified as third argument to 'GENODE_RPC' is of course not valid for
+  the interface class but an alternative class can be specified as second
+  argument to 'Rpc_object'. This way, a server-side implementation may specify
+  its own class to direct the RPC function to a local (possibly non-virtual)
+  implementation. This feature is used to allow the RPC function to have a
+  slightly different semantic as the actual C++ interface function. For
+  example, an interface may contain a function taking a 'char const *' as
+  argument and expecting a null-terminated string. When specifying this type as
+  'GENODE_RPC' argument, the RPC framework will not know about the implied
+  string semantics and just transfer a single character. In this case, the
+  'GENODE_RPC' function may use a 'Rpc_in_buffer' (defined in 'rpc_args.h')
+  instead and refer to a differently named server-side function (e.g., using a
+  '_' prefix). On the server side, the 'Rpc_in_buffer' argument can then be
+  converted to the function interface expected by the real server function.
+
+
+Typed capabilities, typed root interfaces
+=========================================
+
+The consistent use of typing 'Rpc_object', 'Capability', and 'Rpc_client' with
+interface type has paved the way to further type-safety goodness. Since there
+now is a 1:1 relationship between each 'Rpc_object' type and a 'Capability'
+type, the 'Rpc_entrypoint' has become able to propagate this type information
+through the 'manage' function. A capability returned by 'manage' is now
+guaranteed to refer to the same interface as the 'Rpc_object' argument. If such
+a capability is transferred as argument of an RPC function through the new
+type-safe argument marshalling, the receiver will obtain the correct capability
+type. The only current exception is the handling of session capabilities
+transferred through the parent interface. But also this use case greatly
+benefits from the now type-enriched capabilities.
+
+For the propagation of session capabilities, there are two transitions visible
+to the application developer: The way a service is announced at the parent and
+the way a session is requested from the parent. For announcing a service,
+the parent's 'announce' function is used, which takes the service name and
+a root capability as argument.
+! env()->parent()->announce(Hello::Session::service_name(),
+!                           Root_capability(ep.manage(&root)));
+With Genode 11.05, is has become possible to tag 'Root' interfaces with their
+respective session types using the 'Typed_root' template defined in
+'root/root.h'. By combining typed capabilities with typed root interfaces, the
+'Parent' class has become able to provide a simplified 'announce' function,
+taking only a root capability as argument and inferring the other information
+needed:
+! env()->parent()->announce(ep.manage(&root));
+This way, the type of the root interface gets propagated through the 'manage'
+function right into the 'Parent' interface.
+
+The request of sessions from the parent is almost exclusively performed by
+so-called 'Connection' objects, which are already typed in the original API.
+
+
+Migration path
+==============
+
+The new RPC API is the most fundamental API change in Genode's history. In such
+a case, breaking API compatibility is inevitable. The question is how to make
+the migration path to the new API as smooth as possible. We are confident to
+have found a pretty good answer to this question.
+
+Immediate incompatibilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the time being, the new API complements the existing API so that code
+relying on the IPC and client-server APIs will largely continue to work until
+the old APIs will be removed with the Genode version 11.08. So the immediate
+incompatibilities come down to the following:
+
+* 'Capability' has become a template. The original untyped 'Capability' class
+  interface is available as 'Untyped_capability'. Within the 'base-<platform>'
+  repositories, the content of 'base/capability.h' moved over to
+  'base/native_types.h' and is now called 'Native_capability'.
+  'Untyped_capability' and 'Native_capability' are equivalent. The latter type
+  is meant to be used in low-level code that interacts with the
+  platform-specific capability members. In contrast, 'Untyped_capability' is
+  used in places where the type of the capability can be left unspecified. Both
+  types are rare in Genode's API and their use in application code is
+  discouraged. For now, the old 'Typed_capability' is equivalent to the new
+  'Capability'.
+
+* To implement the strict consistency between interface hierarchies and
+  capability hierarchies, all session interfaces must be derived from
+  'Genode::Session' defined in 'session/session.h'. Only by adhering to this
+  rule, 'Capability<Your_session>' can be converted to 'Capability<Session>'.
+
+To make the transition to the API as seamless as possible, the new API reuses
+(inherits) parts of the original interfaces. E.g., 'Rpc_entrypoint' has
+'Server_entrypoint' as base class. Also, the original 'Server_entrypoint' can
+deal with typed capabilities.
+
+Transition steps
+~~~~~~~~~~~~~~~~
+
+The steps required for the transition to the new API are almost contained
+in the RPC interface's 'include/<interface>' directory.
+
+:Modifications in '<interface>/<interface>.h':
+  * Include the header 'base/rpc.h'. For a session interface, include
+    the header 'session/session.h' instead.
+  * Remove the opcode definition.
+  * Add the 'GENODE_RPC' and 'GENODE_RPC_INTERFACE' declarations to
+    the interface class.
+
+:Modifications in '<interface>/client.h>':
+  * Include the header '<rpc_client.h>', remove the headers
+    'base/lock.h', 'base/ipc.h'.
+  * Remove the member variables (message buffer, lock, ipc-client
+    object). Now that there are no longer any private members, you may decide
+    to turn the 'class' into a 'struct'.
+  * Inherit the client class from 'Rpc_client<INTERFACE>'
+  * Pass 'Capability<INTERFACE>' to the constructor of
+    'Rpc_client<INTERFACE>'.
+  * Replace the content of each interface function with
+    'call<RPC_FUNC>(args...)'.
+
+:Modifications in '<interface>/server.h>':
+  In most cases, this file can be deleted.
+
+:Modifications in the implementation:
+  Replace base class '<INTERFACE>_server' by base class
+  'Rpc_object<INTERFACE>'.
+
+Because the abstract C++ interface of the RPC interface has not changed, client
+code does not require any changes.
+
+
+Migration of Genode's interfaces
+================================
+
+Our original plan envisioned the migration of all of the base repositories to
+the new RPC API, and thereby test the concept with many representative use
+cases including the application of advanced features outlined above. To our
+delight, the transition to the new API went far more smoothly than anticipated,
+motivating us to look at the 'os' interfaces as well - with great success. The
+following interfaces have been converted to use the new API: 'Cap_session',
+'Cpu_session', 'Foc_cpu_session', 'Dataspace', 'Linux_dataspace',
+'Io_mem_session', 'Io_port_session', 'Irq_session', 'Log_session', 'Parent',
+'Pd_session', 'Okl4_pd_session', 'Foc_pd_session', 'Ram_session', 'Rm_session',
+'Rom_session', 'Root', 'Session', 'Signal_session', 'Framebuffer_session',
+'Input_session', 'Loader_session', 'Nitpicker_session', 'Nitpicker_view',
+'Pci_device', 'Pci_session', 'Timer_session', and 'Noux_session'. Additionally,
+several process-local RPC interfaces (e.g., in core, timer, nitpicker) have been
+converted. Each of those interfaces worked instantly after modification and
+fixing eventual compile errors. This overly positive experience greatly
+supports our confidence in the new technique. Our goal was to not change the
+original C++ interfaces. For this reason, some interfaces still rely on
+server-side wrappers of the 'Rpc_object' class template. Those wrappers are
+called '<interface>/rpc_object.h'. With the next release, we are going to
+remove them altogether. The only interfaces not yet migrated are the users of
+Genode's packet stream interface such as 'Nic_session', 'Audio_out_session',
+and 'Block_session'. The conversion of those is subject to the next release.
+
+
+Limitations
+===========
+
+The *maximum number of RPC function arguments* is limited to 7.
+If your function requires more arguments, you may consider grouping
+some of them in a compound struct.
+
+The *maximum number of RPC functions per interface* supported by the
+'GENODE_RPC_INTERFACE' macro is limited to 9. In contrast to the limitation of
+the number of function arguments, this limitation is unfortunate. Even in
+core's base services, there is an interface ('cpu_session.h') exceeding this
+limit. However, in cases like this, the limitation can be worked-around by
+manually constructing the type list of RPC functions instead of using the
+convenience macro:
+! typedef Meta::Type_tuple<Rpc_create_thread,
+!         Meta::Type_tuple<Rpc_kill_thread,
+!                          Meta::Empty> >
+!         Rpc_functions;
+
+Both limitations exist because C++ does not support templates with variable
+numbers of arguments. Our type-list implementation employed by the
+'GENODE_RPC_INTERFACE' macro always takes a fixed number of arguments but
+allows defaults for all of them. So the maximum number of arguments is
+constrained. In C++0x, type lists are better supported, which will possibly
+remove these limits and simplify the template code.
+
+
+L4Linux
+#######
+
+L4Linux is a user-level variant of the Linux kernel that can be executed as
+plain user-level program on the Fiasco.OC microkernel combined with the L4Re
+userland. The L4Linux kernel uses a paravirtualization technique and provides
+binary compatibility with the Linux kernel. Since 1997, L4Linux is developed
+and maintained by the OS Group at the University of Technology Dresden. Thanks
+to the timely tracking of the upstream Linux kernel by L4Linux main developer
+Adam Lackorzynski, the L4Linux kernel is particularly valued for being up to
+date with the current version of the Linux kernel. As of today, L4Linux
+corresponds to the kernel version 2.6.38.
+
+L4Linux is often regarded as one of the prime features of the Fiasco.OC
+platform. Since Genode started to support Fiasco.OC with the previous release,
+we desired to bring this virtualization solution to Genode running on this
+kernel. Our L4Linux port is contained in the new 'ports-foc' repository.
+Details about building and running L4Linux on Genode can be found in the
+top-level README file within this repository.
+
+To keep our changes to L4Linux as minimal as possible, most parts of our
+port come in the form of a library, which emulates the subset of the L4Re
+userland semantics expected by L4Linux. This library can be found at
+'ports-foc/src/lib/l4lx'. At the current stage, the kernel command line is
+defined at 'startup.c'. The L4Re emulation approach turned out to be very
+efficient with regard to the preservation of original L4Linux code. Excluding
+the Genode-specific stub drivers for input and framebuffer, our patch
+('ports-foc/patches/l4lx_genode.patch') consists of merely 650 lines.
+
+
+Base framework
+##############
+
+New support for template meta programming
+=========================================
+
+As part of the work on the new RPC framework, several utilities for template
+meta programming have been created. These utilities are available at
+'base/include/util/meta.h'. Currently, this header file comprises the following
+functionality:
+
+* Type traits for querying reference types, non-reference types, and stripping
+  constness from types
+* Class templates for constructing type lists, namely 'Type_tuple' and
+  'Type_list'
+* Template meta functions for working with type lists, e.g., 'Length',
+  'Index_of', 'Append', 'Type_at'
+* N-Tuples aggregating members (both reference and plain-old-data members)
+  specified via a type list, called 'Ref_tuple_N' and 'Pod_tuple_N'
+* Helper function templates for calling member functions using arguments
+  supplied in a N-tuple structure
+* A helper for the partial specialization of member function templates, called
+  'Overload_selector'
+
+To differentiate the meta-programming code from normal Genode APIs, all
+utilities of 'util/meta.h' reside in a nested 'Meta' name space.
+
+
+Thread state querying
+=====================
+
+As a prerequisite for realizing our GDB monitor experiment described in Section
+[GDB monitor experiment], we implemented the 'Cpu_session::state()' function
+for OKL4, L4ka::Pistachio, and Fiasco.OC. Furthermore, the CPU session
+interface have been extended with the functions 'pause' and 'resume', which
+allow to halt and resume the execution of threads created via the CPU session.
+The 'pause' and 'resume' functions are implemented for OKL4 only.
+
+
+Misc
+====
+
+* We generalized the former architecture-specific 'touch' functions for
+  accessing memory (ro or rw). The new version is available at
+  'base/include/util/touch.h'.
+
+* The constructor interfaces of the 'Process' and 'Child' classes have changed
+  to accommodate the RM session capability for the new process as an argument.
+  Originally, the RM session was magically created by the 'Process' class by
+  acquiring a new RM session from 'env()->parent()'. With the new interface, a
+  parent that needs to virtualize the RM session of its child can supply a
+  custom RM-session capability.
+
+
+Operating-system services and libraries
+#######################################
+
+Dynamic linker
+==============
+
+To support dynamic linking on all platforms including Fiasco.OC, we
+revisited our dynamic loader and changed its mode of operation. In the past,
+the dynamic loader was a statically linked program executed by the 'process'
+library if a dynamic binary was supplied as 'Process' argument. Because, the
+dynamic loader is a normal Genode process, it initialized its Genode
+environment on startup, and requested the dynamic binary as well as the
+required shared libraries from its parent via ROM sessions. Finally, the
+dynamic linker called the startup code of the dynamically linked program. This
+program, in turn, initialized again an environment. Consequently, dynamically
+linked programs used to employ two 'Genode::env()' environments, each backed
+with the same 'RAM', 'RM', and 'CPU' sessions. On most platforms this slightly
+schizophrenic nature of dynamically linked programs worked without problems.
+
+However, things became tricky on Fiasco.OC because on this kernel, the
+environment contains parts that must be instantiated only once, namely the
+allocator for kernel-capability selectors. Therefore, a way was desired to
+remove the duplicated Genode environment. The solution is a scheme as used on
+Linux. The dynamic linker is both, a shared library and a program. It contains
+a single instance of the Genode environment. Each dynamic binary is linked
+against the dynamic linker but not against the Genode base libraries that
+normally provide the Genode environment. Now, each time the Genode environment
+is referenced either by the dynamically linked program or another library, the
+dynamic linker resolves the reference by returning its own symbols.
+
+This architectural change is pretty far reaching and changes the way the
+dynamic linker is handled by the build system and at runtime. The user-visible
+changes are the following:
+
+* The dynamic linker is not anymore a separate target. So the original
+  location at 'os/src/ldso' is no more.
+
+* The new dynamic linker is called 'ld.lib.so' and resides in
+  'os/lib/ldso'.
+
+* To ensure that the dynamic linker gets built before linking any dynamic
+  binary, each shared library is implicitly made dependent on 'ld.lib.so'.
+  The build system takes care of that during the build process. But it
+  is important to know that the 'ld.lib.so' must also be provided as boot
+  module.
+
+* All programs that potentially create child processes must query the
+  dynamic linker with the new name 'ld.lib.so' instead of 'ldso'.
+
+The new dynamic linker has been tested on OKL4 (both x86 and ARM),
+L4ka::Pistachio, Linux (both x86_32 and x86_64), Codezero, NOVA, Fiasco.OC
+(x86_32, x86_64, and ARM), and L4/Fiasco.
+
+
+Utilities for implementing device drivers
+=========================================
+
+As the arsenal of native Genode device drivers grows, we observe code patterns
+that are repeatedly used. To foster code reuse and minimize duplicated code, we
+introduce the following new utilities and skeletons to the 'os' repository:
+
+:'os/attached_io_mem_dataspace.h':
+
+  is a memory-mapped I/O dataspace that is ready to use immediately after
+  construction. This class wraps the creation of an IO_MEM connection, the
+  request of the IO_MEM session's dataspace, and the attachment of the
+  dataspace to the local address space. Even more important, this class takes
+  care of releasing these resources at destruction time.
+
+:'os/attached_ram_dataspace.h':
+
+  was formerly known as 'os/ram_dataspace.h' works analogously to
+  'os/attached_io_mem_dataspace.h', but for RAM dataspaces. This is
+  very handy for allocating DMA buffers.
+
+:'os/irq_activation.h':
+
+  contains a code pattern found in almost each device driver that handles
+  interrupts. An 'Irq_activation' is a thread that is associated with the IRQ
+  specified as constructor argument. Each time, an IRQ occurs, a callback
+  'handle_irq' is executed. Hence, a device driver implementing the callback
+  interface, can easily be connected to an IRQ.
+
+:'nic/driver.h':
+
+  contains a set of interfaces to be used for implementing network device
+  drivers. The interfaces are designed in a way that enables the strict
+  separation of device-specific code and Genode-specific code. Note that
+  the interfaces are not yet finalized and lack some functions, in
+  particular those related to resource accounting.
+
+:'nic/component.h':
+
+  contains ready-to-use glue code for integrating a network device driver into
+  Genode. The code takes care about implementing the 'Nic::Session_component'
+  and 'Nic::Root', parses session arguments and sets up the packet stream
+  between the client and the device driver. Note that this code is still in
+  flux and not yet optimized. Currently, only the new 'lan9118' driver makes
+  use of 'nic/component.h' but we are planning to move all other 'Nic' session
+  implementations over to this skeleton.
+
+
+Device drivers
+##############
+
+Because of the growing number of platforms and devices supported by Genode, we
+improved the consistent use of the Genode build specs mechanism. Each device
+driver does now depend on a dedicated spec value, which can selectively be
+enabled by each platform as needed. For example, the PCI driver does now
+depend on the 'pci' spec value. This value is present in the build 'SPECS' of
+the various microkernels running on x86 hardware but not on the Linux base
+platform or ARM platforms.
+
+New and improved device drivers are:
+
+:PL110 display controller:
+  The framebuffer driver for the PL110 display controller has been moved
+  from 'os/src/platform/versatilepb' to 'os/src/drivers/framebuffer/pl110'.
+  The PL110 driver depends on the build spec 'pl110'.
+
+:Lan9118 network interface:
+  The new NIC driver for Lan9118 is located at 'os/src/drivers/nic/lan9118/'.
+  This driver is built as 'nic_drv' when the build specs contain the
+  'lan9118' value. This is the case for the 'fiasco_pbxa9' platform. The driver
+  is known to work on Qemu, yet untested on real hardware.
+
+:PL180 MMC and SDcard:
+  The new block driver for the PL180 MMC and SDcard is located at
+  'os/src/drivers/sdcard/'. It depends on the build specs value 'pl180'.
+  At the current stage, the driver contains the low-level code for the
+  device access but lacks the interfacing to Genode's 'Block_session'
+  interface.
+
+:PL050 PS/2 input:
+  The interrupt handling of the PL050 driver has been improved,
+  IRQs are enabled only once, the IRQ pending bits are used to check
+  for availability of PS/2 packets. The PL050 driver depends on the
+  build spec value 'pl050'.
+
+:VESA framebuffer:
+  The VESA driver has become functional on the x86_64 platform.
+  It depends on the build spec value 'vesa'.
+
+
+Libraries and applications
+##########################
+
+Ready-to-use run scripts for standard scenarios
+===============================================
+
+On our mailing list, questions about using certain Genode components of various
+base platforms, pop up at a regular basis. For example, how to use the lwIP
+stack on a specific kernel. The answer to these kind of question depends on
+several properties such as the used hardware platform or, when using Qemu, the
+Qemu arguments. To make the exploration of various Genode features more
+attractive, we have added the following run scripts that exercise the use
+cases and document the steps required to build, configure, and integrate the
+respective feature:
+
+:'os/run/demo.run': builds and executes Genode's default demo scenario.
+  It should run out of the box from a fresh build directory.
+
+:'libports/run/lwip.run': runs the 'lwip_httpsrv' example on Qemu, downloads a
+  website from the HTTP server, and validates the response. Make sure to have
+  the 'libc' and 'libports' repositories enabled in your 'build.conf'. The
+  'libports' repository must be prepared for 'lwip' ('make prepare PKG=lwip').
+  Furthermore, you will need a network driver ('nic_drv') as provided by the
+  'linux_drivers' repository.
+
+:'ports/run/gdb_monitor.run': runs a test program as child of the new GDB
+  monitor, executed in Qemu. It then attaches a GDB session to the GDB monitor,
+  allowing the user to inspect the test program. In addition to the repositories
+  used by 'lwip.run', this run script further depends on the 'gdb' package
+  provided by the 'ports' repository.
+
+:'qt4/run/qt4.run': runs the 'qt_launchpad' application, which allows the user
+  to manually start the Qt4 'textedit' program. Of course, the run script
+  depends on a prepared 'qt4' repository. Furthermore, Qt4 depends on the
+  libraries 'zlib', 'libpng', and 'freetype' provided by the 'libports'
+  repository.
+
+:'ports/run/noux.run': compiles the GNU coreutils and wraps them into a tar
+  archive. It then runs the Noux environment with the tar archive as file
+  system and instructs Noux to execute the 'ls -Rla' command. The run script
+  depends on the 'libc', and 'ports' repositories. The 'ports' repository must
+  be prepared for the 'coreutils' package.
+
+:'ports-okl4/run/lx_block.run': starts the OKLinux kernel on top of OKL4.
+  This run script must be slightly adapted to use a custom disk image.
+  By default, it expects a disk image called 'tinycore.img' and an initrd
+  called 'initrd.gz' in the '<build-dir>/bin/' directory.
+
+:'ports-foc/run/l4linux.run': starts the L4Linux kernel on top of Fiasco.OC.
+
+
+GDB monitor experiment
+======================
+
+Because there are repeated requests for a debugging solution for Genode
+programs, we started exploring the use of GNU debugger (GDB) with Genode. The
+approach is to run the program to debug (target) as a child process of a
+so-called GDB monitor process. The GDB monitor allows the observation and
+manipulation of the target program via a remote GDB TCP/IP connection. Our
+immediate goal was to examine the mode of interaction between the GDB monitor
+and GDB, and to determine the set of requirements a base platform must deliver
+to make debugging possible.
+
+The experiment was first conducted on OKL4 because this kernel provides an easy
+access to register states of any thread using 'exregs'. Furthermore, in
+contrast to most of the other base platforms, OKL4 features a way to suspend
+and resume threads. Once, this initial goal was reached, we enabled parts of
+the debugging facilities for other base platforms, namely L4/Fiasco,
+L4ka::Pistachio, and Fiasco.OC.
+
+:Usage:
+
+To illustrate the use of GDB monitor, a ready-to-use run script is provided
+at 'ports/run/gdb_monitor'. This run script executes a simple test program
+within the GDB monitor. Once the program is running, a host GDB is started
+in a new terminal window and connects to the target running inside Qemu.
+In the run script, you will recognise the following things:
+
+* A NIC driver must be built and started. Please make sure to have
+  a repository with a 'nic_drv' target enabled. E.g., on x86 platforms,
+  you may use the 'linux_drivers' repository.
+
+* The GDB monitor reads the name of the target program from its Genode config:
+  ! <config> <target name="..."/> </config>
+
+* To connect a host GDB to the remote target running in Qemu, use the
+  following GDB command:
+  ! target remote localhost:8181
+
+:Current state, limitations:
+
+First, it is important to highlight that the GDB monitor is an experiment and
+not ready for real-world use. It has been tested on Fiasco.OC, L4/Fiasco,
+OKL4, and L4ka::Pistachio on the x86_32 architecture. On these platforms,
+GDB monitor can be used to examine the memory in the target program. However,
+only on OKL4, the threads in the target program are halted. The observed memory
+state may appear inconsistent on the other platforms. On all platforms, the
+current stack pointer and program counter values can be inspected. On OKL4, a
+backtrace can be printed. The running threads in the target program can be
+listed ('info threads'), selected ('thread N'), and examined. Advanced
+debugging features such as breakpoints and watchpoints as well as the access to
+general-purpose registers are not implemented.
+
+
+Platform support
+################
+
+Fiasco.OC
+=========
+
+With the previous Genode version 11.02, Fiasco.OC was introduced as new
+base platform. The initial support contained all functionality needed to
+execute the graphical Genode demo scenario on this kernel. However, some pieces
+needed for more complex scenarios were missing, most importantly support for
+the dynamic linker and the signalling framework. The dynamic linker is a
+prerequisite for using the C runtime and all dependent libraries such as lwIP
+and Qt4. The signalling framework is used by Genode's packet stream interface,
+which in turn, is the basis for the 'Nic', 'Block', and 'Audio_out' interfaces.
+
+The current release brings the Fiasco.OC base platform on par with the other
+fully-supported platforms so that the complete Genode software stack becomes
+available on this kernel.
+
+Furthermore, we started to take advantage of Fiasco.OC's exceptional platform
+support by enabling the use of the x86_64 architecture as well as the ARM
+RealView PBX-A9 platform. For the latter platform, though, some parts of Genode
+such as Qt4 and Noux are not yet available. To make the ARM RealView PBX-A9
+platform usable, we introduced a number of new device drivers such as the PL050
+input driver, Lan9118 network driver, and PL110 display driver. Using these
+drivers, most of Genode's components including networking and graphics are
+ready to use on the PBX-A9 platform. It should be noted, however, that the
+device drivers have been developed and tested on Qemu only. They are untested on
+real hardware. Their main purpose for now is to showcase how to create Genode
+drivers for different device classes.
+
+:Improved integration of 3rd-party kernel sources with Genode:
+
+In the spirit of other repositories that incorporate 3rd-party code, the
+'base-foc' repository comes with a new top-level Makefile that takes care of
+downloading all the pieces needed for deploying Genode on Fiasco.OC. All that's
+needed is issuing 'make prepare' from within the 'base-foc' repository.
+When using this way of incorporating Fiasco.OC, the kernel can be built right
+from the Genode build directory as created with the build-directory creation
+tool at 'tool/builddir/create_builddir':
+! make kernel
+The kernel will be configured and built according to the platform as specified
+to the 'create_builddir' tool. The kernel's build directory can be found at
+the '<genode-build-dir>/kernel/fiasco.oc/'.
+
+The kernel is accompanied by two user-level components, namely sigma0 and bootstrap.
+Those components can be built in a similar fashion:
+! make sigma0
+! make bootstrap
+For building sigma0 and bootstrap, the Genode build system invokes the L4Re
+build system. The corresponding L4Re build directory can be found at
+'<genode-build-dir>/l4/'. The kernel interfaces of Fiasco.OC as used by Genode
+are installed to '<genode-build-dir>/include/'.
+
+Alternatively to using the new way of integrating Fiasco.OC with Genode,
+the location of the kernel binary and a custom L4Re build directory can be
+explicitly specified in a file called '<genode-build-dir>/etc/foc.conf':
+! L4_BUILD_DIR = <abs-path-to-l4re-build-dir>
+! KERNEL       = <abs-path-to-fiasco-kernel>
+
+With the new integration approach, the make targets 'clean' and 'cleanall'
+are no longer synonymous. The 'clean' target removes all Genode-specific
+files from the build directory but keeps the Fiasco.OC and L4Re build
+directories. In contrast, the 'cleanall' rule wipes everything.
+
+:Small changes to 'base-foc':
+
+* Core does now export Fiasco.OC's kernel info page (KIP) as ROM module.
+* The thread library takes advantage of the user-defined part of the UTCB to
+  store the pointer to the 'Thread_base' object instead of using the stack
+  pointer as a key.
+* Fiasco.OC's VCPU feature has been made accessible via an Fiasco.OC-specific
+  extension of core's PD and CPU session interfaces. The only user of these
+  extension as of today is L4Linux.
+* Improved IRQ support for level triggered interrupts, increasing the
+  maximum number of supported interrupts to 256.
+
+
+MicroBlaze
+==========
+
+Our custom kernel platform for the Xilinx MicroBlaze softcore CPU, which we
+introduced with Genode 11.02, has been complemented with the core interfaces
+needed for the implementation of user-level device drivers. Those interfaces
+are the IRQ service and the IO_MEM service.
+
+IRQ support
+~~~~~~~~~~~
+
+To accommodate core's IRQ service, the interface between the kernel-level and
+user-level parts of core had to be extended with syscalls for managing and
+handling interrupts. These syscalls are exclusively used by the interrupt
+threads of core's IRQ services. They are not accessible from other user-level
+programs.
+
+:'irq_allocate(irq_number)':
+  associates the specified IRQ to the calling core thread. One thread
+  may associate itself with multiple IRQs by consecutive calls of this
+  syscall. However, the current implementation of core's IRQ service
+  employs one core thread per IRQ.
+
+:'irq_free(irq_number)':
+  reverts the effect of 'irq_allocate'.
+
+:'irq_wait()':
+  lets the calling thread block for any of the IRQs it is associated
+  with. When unblocked, the calling thread receives the information
+  about the occurred IRQ in its user-level thread-control block (UTCB).
+
+Run environment, SoC for S3A Starter Kit
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The initial version of the 'base-mb' platform was tied to a fixed work flow,
+executing a predefined Genode scenario on Qemu. With the current release, the
+build-system integration advanced towards the versatile usage pattern as found
+on the other base platforms.
+
+* The improved run environment supports the inclusion of arbitrary boot modules
+  into core's ROM service. The underlying mechanism has not changed though. The
+  ROM modules are aggregated via an assembly file called 'boot_modules.s' using
+  the 'incbin' directive. Because this file gets linked to core, core can be
+  booted as single-image on a target.
+
+* In addition of using the MicroBlaze variant of Qemu to execute Genode,
+  support has been added use different targets. As a reference, a ready-to-use
+  SoC 'system.bit' file is provided for the Xilinx Spartan3A Starter Kit board.
+
+You can get further inspiration to explore the 'base-mb' platform by studying
+the new documentation to be found at 'base-mb/doc/'.
+
+
+Build system and tools
+######################
+
+Genode does currently support 8 different kernel platforms. For each kernel,
+different steps are required to download and install the kernel and to
+supply the kernel headers to the Genode build system. Furthermore, the
+ways of how the result of the Genode build process has to be integrated with
+the boot mechanism of respective kernel differs a lot.
+
+Hence, for each base platform, there exists a dedicated Wiki page describing
+the manual steps to follow. In the case of Fiasco.OC, these steps are
+particularly elaborative, making the use of this platform with Genode less
+approachable than most of the others.
+
+:New work flow for integrating 3rd-party kernel code:
+
+To make the head start of using Fiasco.OC as simple as possible, we explored a
+new way to integrate the 3rd-party kernel code with Genode. Similar to the
+'make prepare' mechanism that we already use for the 'qt4', 'ports', and
+'libports' repositories, we have added a top-level Makefile to 'base-foc' that
+automates the preparation of all the 3rd-party code needed to use Genode with
+the base platform. In the case of Fiasco.OC, this is the kernel code plus some
+bits of the L4Re userland, namely sigma0, bootstrap, and l4sys. This
+preparation mechanism is complemented by platform-specific pseudo targets that
+enable the building of the 3rd-party code right from Genode's build directory.
+To support this methodology, we added a hook into the Genode build system,
+allowing a platform-specific initialization of the Genode build directory.
+E.g., for creating symbolic links to kernel headers. These initial steps are
+executed by a pseudo library called 'platform.mk'. This library is guaranteed to
+be built prior all other libraries and targets. The new level of integration
+greatly simplifies the use of Genode on Fiasco.OC. Hence, we are eager to apply
+the same idea to the other base platforms as well.
+
+:New naming scheme for platform-specific ports repositories:
+
+The 'oklinux' repository is now called 'ports-okl4'. Thereby, we want to
+facilitate a unified naming scheme for platform-specific 3rd party software.
+E.g., the port of L4Linux resides in the new 'ports-foc' repository because it
+is specific for the Fiasco.OC base platform.
+
+:New convenience functions for run scripts:
+
+To ease the creation of run scripts that are usable across different kernel and
+hardware platforms, we have added new convenience functions to the 'run'
+tool. The functions 'append_if' and 'lappend_if' are intended to be
+used in combination with the 'have_spec' function to allow the easy
+extension of the Genode config, Qemu parameters, and the list of boot
+modules driven by 'SPECS' values. For a showcase, please refer to the
+new 'os/run/demo.run' script.
+

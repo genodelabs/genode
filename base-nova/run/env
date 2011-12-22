@@ -1,0 +1,82 @@
+#
+# \brief  NOVA-specific test-environment supplements
+# \author Norman Feske
+# \date   2010-08-31
+#
+# This file is meant to be used as '--include' argument for 'tool/run'.
+#
+
+
+##
+# Read the location of the Pistachio user directory from 'etc/pistachio.conf'
+#
+proc nova_kernel { } {
+	global _nova_kernel
+
+	if {![info exists _nova_kernel]} {
+		if {[file exists etc/nova.conf]} {
+			set _nova_kernel [exec sed -n "/^NOVA_KERNEL/s/^.*=\\s*//p" etc/nova.conf]
+		} else {
+			set _nova_kernel "[pwd]/kernel/hypervisor"
+		}
+	}
+	return $_nova_kernel
+}
+
+##
+# Return whether nova is provided from the outside
+#
+proc nova_external { } {
+	if {[nova_kernel] == "[pwd]/kernel/hypervisor"} { return 0 }
+	return 1
+}
+
+##################################
+## Test framework API functions ##
+##################################
+
+proc create_boot_directory { } {
+	exec rm -rf   [run_dir]
+	exec mkdir -p [run_dir]/genode
+}
+
+
+proc build_boot_image {binaries} {
+
+	#
+	# Collect contents of the ISO image
+	#
+	copy_and_strip_genode_binaries_to_run_dir $binaries
+
+	if {![nova_external] && ![file exists [nova_kernel]]} { build { kernel } }
+
+	puts "using NOVA kernel at [nova_kernel]"
+	exec cp [nova_kernel] [run_dir]/hypervisor
+
+	install_iso_bootloader_to_run_dir
+
+	#
+	# Generate grub config file
+	#
+	# The core binary is part of the 'binaries' list but it must
+	# appear right after 'sigma0' as boot module. Hence the special case.
+	#
+	set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+	puts $fh "timeout 0"
+	puts $fh "default 0"
+	puts $fh "\ntitle Genode on NOVA"
+	puts $fh " kernel /hypervisor serial"
+	puts $fh " module /genode/core"
+	puts $fh " module /genode/config"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh " module /genode/$binary" } }
+	close $fh
+
+	create_iso_image_from_run_dir
+}
+
+
+proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
+	spawn_qemu $wait_for_re $timeout_value }
+

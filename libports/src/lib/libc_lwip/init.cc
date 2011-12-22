@@ -1,0 +1,23 @@
+/*
+ * \brief  lwip plugin creation
+ * \author Christian Prochaska
+ * \date   2010-02-12
+ *
+ */
+
+/*
+ * Copyright (C) 2010-2011 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#include <base/printf.h>
+
+extern void create_lwip_plugin();
+
+void __attribute__((constructor)) init_libc_lwip(void)
+{
+	PDBG("init_libc_lwip()\n");
+	create_lwip_plugin();
+}

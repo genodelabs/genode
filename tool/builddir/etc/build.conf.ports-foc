@@ -1,0 +1,5 @@
+
+#
+# Software ported specifically for Fiasco.OC, i.e., L4Linux
+#
+#REPOSITORIES += $(GENODE_DIR)/ports-foc

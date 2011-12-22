@@ -1,0 +1,122 @@
+#
+# \brief  Test for the TCP terminal
+# \author Norman Feske
+# \date   2011-09-08
+#
+
+#
+# TODO: Add support for Linux via user-level networking (using the
+#       tun/tap proxy driver at os/src/drivers/nic/linux)
+#
+if {[have_spec linux]} {
+	puts "Run script does not support Linux."; exit 0 }
+
+#
+# XXX: Currently, we have no NIC driver for 64-bit
+#
+if {[have_spec 64bit]} {
+	puts "Run script does not support 64-bit platforms."; exit 0 }
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/pci drivers/timer drivers/nic
+	server/tcp_terminal
+	test/terminal_echo
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="512K"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+	<start name="tcp_terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config>
+			<policy label="test-terminal_echo" port="8888"/>
+		</config>
+	</start>
+	<start name="test-terminal_echo">
+		<resource name="RAM" quantum="1M"/>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="512K"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	nic_drv
+	ld.lib.so libc.lib.so lwip.lib.so libc_log.lib.so libc_lock_pipe.lib.so
+	tcp_terminal
+	test-terminal_echo
+}
+
+# platform-specific modules
+lappend_if [have_spec pci] boot_modules pci_drv
+
+build_boot_image $boot_modules
+
+#
+# Execute test
+#
+
+# qemu config
+append qemu_args " -m 128 -nographic "
+
+append_if [have_spec x86]     qemu_args " -net nic,model=pcnet "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -redir tcp:5555::8888 "
+
+run_genode_until forever
+
+#
+# Now, connect via 'telnet localhost 5555'
+#
+
+# vi: set ft=tcl :

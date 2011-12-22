@@ -1,0 +1,55 @@
+build "core init test/ldso"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM" />
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-ldso">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-ldso test-ldso.lib.so test-ldso2.lib.so libc.lib.so libm.lib.so ld.lib.so"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "child exited with exit value 0.*\n" 10
+
+# pay only attention to the output of init and its children
+grep_output {^\[init}
+
+unify_output {environ: [a-f0-9]+} "environ: <unified>"
+
+compare_output_to {
+	[init -> test-ldso] Starting ldso ...
+	[init -> test-ldso] Starting application ... environ: <unified>
+	[init -> test-ldso] 
+	[init -> test-ldso] Static Geekings!
+	[init -> test-ldso] ================
+	[init -> test-ldso] Test read
+	[init -> test-ldso] [31mno plugin found for read(0)[0m
+	[init -> test-ldso] Static object in funcion ... a: aaaaaaaa b: bbbbbbbb c: cccccccc 6: 00000666
+	[init -> test-ldso] Shared library function call ...good
+	[init -> test-ldso] Ctor in shared lib ... a: aaaaaaaa b: bbbbbbbb c: cccccccc 6: 00000666
+	[init -> test-ldso] Exception in shared lib ... good (library)
+	[init -> test-ldso] Cross library exception ... good (cross library)
+	[init -> test-ldso] Exception during RPC: [31mCould not open file "__not_found__"[0m
+	[init -> test-ldso] good
+	[init -> test-ldso] Exception in dynamic binary ... good (binary)
+	[init -> test-ldso] Exception inter-shared library ... good (inter)
+	[init -> test-ldso] Exception from LDSO with explicit catch ... good
+	[init -> test-ldso] Libc test: abs(-10): 10
+	[init -> test-ldso] ================
+	[init -> test-ldso] 
+	[init] virtual void Genode::Child_policy::exit(int): [33mchild exited with exit value 0[0m
+}
+

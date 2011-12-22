@@ -1,0 +1,26 @@
+Nitpicker is the low-level GUI server of Genode. For the general concepts,
+please refer to the following document:
+
+:A Nitpicker’s guide to a minimal-complexity secure GUI:
+
+  [http://genode-labs.com/publications/nitpicker-secure-gui-2005.pdf]
+
+
+Configuration
+~~~~~~~~~~~~~
+
+Nitpicker supports the following configuration options, supplied via
+Genode's config mechanism.
+
+:Tinting of clients in X-Ray mode:
+
+  Nitpicker allows for assigning a color to single clients or a groups
+  of clients based on the client's label. The following configuration
+  tints all views of the launchpad subsystem in blue except for those
+  views that belong to the testnit child of launchpad.
+  ! <config>
+  !   <policy label="launchpad"            color="#0000ff"/>
+  !   <policy label="launchpad -> testnit" color="#ff0000"/>
+  ! </config>
+
+

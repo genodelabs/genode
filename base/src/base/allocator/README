@@ -1,0 +1,5 @@
+This directory contains a memory-allocator implementation. The
+allocator supports storing its meta-data independently from the
+managed memory area. This is useful if the allocator is used
+to manage memory that is not accessible by the allocator itself
+(e.g., virtual memory of another protection domain).

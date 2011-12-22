@@ -1,0 +1,65 @@
+This directory contains an implementation of a block-device-partition server.
+
+Behavior
+--------
+
+The server uses Genode's block-session interfaces as both front and back end,
+leading to the most common use case where this server will reside "between" a
+block-driver server and a higher level component like a file-system server.
+
+At startup, the partition server will try to parse the master boot record (MBR)
+of its back-end block session. If no partition table is found, the whole block
+device is exported as partition '0'. In the other case, the MBR and possible
+extended boot records (EBRs) are parsed and offered as separate block sessions
+to the front-end clients. The four primary partitions will receive partition
+numbers '1' to '4' whereas the first logical partition will be assigned to '5'.
+
+In order to route a client to the right partition, the server parses its
+configuration section looking for 'policy' tags.
+
+XML Syntax:
+! <policy labal="<program name>" parition="<partition number>" />
+
+Usage
+-----
+
+Configuration snippet with two clients and an (hypothetical) IDE driver:
+!<start name="ata_driver">
+!  <resource name="RAM" quantum="1M" />
+!  <provides><service name="Block"/></provides>
+!  <config ata="yes" />
+!</start>
+!
+!<start name="part_blk">
+!  <resource name="RAM" quantum="10M" />
+!  <provides><service name="Block" /></provides>
+!
+!  <!-- route part_blk to the ata_driver -->
+!  <route>
+!    <any-service><child name="ata_driver"/> <parent/><any-child/></any-service>
+!  </route>
+!
+!  <!-- allow program 'test-part1' to access logical partition '6', while program
+!      'test-part2' receives access to primary partition 1 -->
+!  <config>
+!    <policy label="test-part1" partition="6"/>
+!    <policy label="test-part2" partition="1"/>
+!  </config>
+!</start>
+!
+!<!-- part_blk clients -->
+!<start name="test-part1">
+!  <binary name="test-part"/>
+!  <resource name="RAM" quantum="10M" />
+!  <route>
+!    <any-service> <child name="part_blk" /> <parent/> <any-child/> </any-service>
+!  </route>
+!</start>
+!
+!<start name="test-part2">
+!  <binary name="test-part"/>
+!  <resource name="RAM" quantum="10M" />
+!  <route>
+!    <any-service> <child name="part_blk" /> <parent/> <any-child/> </any-service>
+!  </route>
+!</start>

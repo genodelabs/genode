@@ -1,0 +1,876 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 11.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+One year ago, the release 10.02 was our break-through with regard to the support
+of multiple kernels as base platform for Genode. With the added support for
+the NOVA hypervisor and the Codezero kernel, Genode applications could be executed
+on 6 different kernels. With the current release, we take our commitment to
+kernel platform support even further. With the added support for the Fiasco.OC
+kernel, we make Genode available on one of the most feature-rich modern microkernels.
+Additionally, we entered the realms of kernel design with our new platform support
+for the Xilinx MicroBlaze architecture. This platform support comes in the shape
+of a custom kernel specifically targeted to the MicroBlaze CPU architecture.
+Furthermore, we updated our support for the NOVA Hypervisor to the bleeding-edge
+version 0.3, which has been released earlier this month.
+
+With the current support for 8 different kernel platforms (L4/Fiasco, Linux,
+L4ka::Pistachio, OKL4, NOVA, Codezero, Fiasco.OC, and native MicroBlaze), testing
+and integrating application scenarios across all platforms becomes increasingly
+challenging. Therefore, we introduce a new framework for automating such tasks.
+Thanks to the tight integration of the automation tool with Genode's build system,
+going back and forth between different kernels becomes an almost seamless
+experience.
+
+Functionality-wise, the release carries on our vision to create a highly secure
+yet easy to use general-purpose operating system. Because the Genode framework
+is developed on Linux using the wonderful GNU tools, we consider the
+availability of the GNU user land on Genode as crucial for using the system by
+ourself. This motivation drives the creation of a custom execution environment
+for GNU software on top of Genode. With the current release, we are proud to
+present the first pieces of this execution environment. Even though not fully
+functional yet, it clearly shows the direction of where we are heading.
+
+
+Support for Fiasco.OC
+#####################
+
+The OC in the name of the Fiasco.OC kernel stands for "object capability", hinting
+at the most significant feature that sets current-generation microkernels such as
+NOVA, seL4, and Fiasco.OC apart from their predecessors. Whereas previous L4 kernels
+succeeded in protecting subsystems from each other, the new generation of kernels
+is geared towards strict security policies. Traditionally, two protection domains
+were able to communicate with each other if they both agreed. Communication partners
+were typically globally known via their respective thread/task IDs. Obviously, this
+policy is not able to guarantee the separation of subsystems. If two subsystems
+conspire, they could always share information. Object-capability-based kernels
+are taking the separation much further by prohibiting any communication between
+protection domains by default. Two protection domains can communicate only if
+a common acquaintance of both agrees. This default-deny policy facilitates the
+creation of least-privilege security policies. From the ground up, Genode has
+been designed as a capability-based system which is naturally capable of leveraging
+kernel-based object-capability support if present. After NOVA, Fiasc.OC is the
+second of Genode's base platforms that provides this feature.
+
+Apart from being a capability-based kernel, Fiasco.OC has a number of compelling
+features such as thorough support for ARM platforms and the x86 32/64 bit
+architectures. It supports SMP, hardware virtualization, and provides special
+optimizations for running paravirtualized operating systems.
+
+Technically, Fiasco.OC is the successor of the L4/Fiasco kernel developed by
+the OS group of the TU-Dresden. However, the kernel interface of Fiasco.OC has
+not much in common with L4/Fiasco. Some heritages are still there (e.g., IPC
+timeouts) but the kernel API has evolved to a fully object-oriented model.
+
+:Thanks:
+
+  We are indebted to the main developer of Fiasco.OC Alexander Warg for being
+  very reponsive to our inquiries while doing the porting work. Thanks to his
+  support, the adaptation of Genode to this kernel has been an almost smooth
+  ride.
+
+
+Prerequisites
+=============
+
+You need GNU C & C++ Compilers, GNU Binutils, GNU Make, and Perl to use the
+Fiasco.OC build system. On Debian/Ubuntu systems, you have to install the
+following packages:
+
+! apt-get install make gawk g++ binutils pkg-config subversion
+
+Moreover, you need to download and install the tool-chain used by Genode. Have
+a look at this page:
+
+:[http://genode.org/download/tool-chain]:
+  Genode tool-chain
+
+
+Downloading and building Fiasco.OC
+==================================
+
+Checkout the Fiasco.OC sources and tool-chain to an appropriated directory:
+
+! export REPOMGR_SVN_REV=27
+! svn cat http://svn.tudos.org/repos/oc/tudos/trunk/repomgr |\
+!   perl - init http://svn.tudos.org/repos/oc/tudos fiasco l4re
+
+
+Building the kernel
+~~~~~~~~~~~~~~~~~~~
+
+Create the build directory for the kernel:
+
+! cd <path_to_fiasco_src_dir>/src/kernel/fiasco
+! make BUILDDIR=<path_to_kernel_build_dir>
+
+Go to the build directory, configure the kernel:
+
+! cd mybuild
+! make config
+
+This will launch the configuration menu. Here you can configure your kernel.
+The default config is just fine to test the Genode port. It will build a
+uniprocessor IA32 kernel with debugging features enabled. You can exit the menu and
+save the configuration by simply typing 'x'.
+
+Now, build Fiasco.OC by invoking:
+
+! make
+
+
+Building necessary tools
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To practically use Fiasco.OC, you need in addition to the kernel a tool to
+bootstrap it, and the initial pager of the system, namely 'sigma0'. Both tools
+can be found in the L4 runtime environment's base directory. Outgoing from
+the directory where you checked out the sources, you have to change to the
+following directory:
+
+! cd <path_to_fiasco_src_dir>/src/l4
+
+Create another build directory:
+
+! make B=<path_to_l4re_build_dir>
+
+Again, you might want to tweak the configuration:
+
+! make O=<path_to_l4re_build_dir> config
+
+Finally, build the tools:
+
+! make O=<path_to_l4re_build_dir>
+
+
+Building the Fiasco.OC version of Genode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Fiasco.OC version of Genode is available at the Genode public subversion repository:
+
+:http://genode.org/download/subversion-repository:
+  Information about accessing the Genode public subversion repository
+
+Go to a directory where you want the Genode/Fiasco.OC build directory to remain. Use
+the helper script in the 'tool/builddir' directory of the Genode source tree to
+create the initial build environment. You need to state the absolute path to the
+build directory of the L4 runtime environment as 'L4_DIR', as it contains the kernel
+bindings needed by the Genode port.
+
+! <path_to_genode_src_dir>/tool/builddir/create_builddir foc_x86_32 \
+!     L4_DIR=<path_to_l4re_build_dir> \
+!     GENODE_DIR=<path_to_genode_src_dir> \
+!     BUILD_DIR=<path_to_genode_build_dir>
+
+Now, go to the newly created build directory and type make.
+
+! cd <path_to_genode_build_dir>
+! make
+
+
+Booting Genode on top of Fiasco.OC
+==================================
+
+Example GRUB configuration entry:
+
+! timeout 0
+! default 0
+!
+! title Genode on Fiasco.OC
+!  kernel /bootstrap -modaddr=0x01100000
+!  module /fiasco -serial_esc
+!  module /sigma0
+!  module /core
+!  module /init
+!  module /config
+!  module /pci_drv
+!  module /vesa_drv
+!  module /ps2_drv
+!  module /timer
+!  module /nitpicker
+!  module /launchpad
+!  module /liquid_fb
+!  module /scout
+!  module /testnit
+!  module /nitlog
+
+For an example of a matching Genode 'config' file, please take a look
+at 'os/config/demo'.
+
+The Genode binaries are located in '<path_to_genode_build_dir>/bin',
+the 'fiasco' kernel in '<path_to_kernel_build_dir>'. Assuming you compiled
+for x86/586 (the default), you can find the 'bootstrap' binary in
+'bin/x86_586' and 'sigma0' in 'bin/x86_586/l4f' within the
+'<path_to_l4re_build_dir>' directory.
+
+
+Current state
+=============
+
+The adaptation of Genode to Fiasco.OC covers most parts of the Genode API
+including advanced semantics such as cancelable locks and support for
+real-time priorities. So far, it has been tested on the x86 architecture.
+Because 'base-foc' does not contain x86-specific code, we expect no major
+roadblocks for running Genode on Fiasco.OC on ARM. However, we have not
+exercised tests in this regard.
+
+As of today, there exist the following limitations of the Fiasco.OC support:
+
+* The dynamic linker is not yet adapted to Fiasco.OC. Special care must
+  be taken for handling the parent capability for dynamically loaded
+  programs. We have already covered this issue for the NOVA version but
+  the adaptation to Fiasco.OC remains yet to be done.
+
+* The destruction of sub systems is not yet fully stable. Because Genode
+  forms a more dynamic workload than the original userland accompanied with
+  the kernel, the usage pattern of the kernel API triggers different
+  effects. We are working with the Fiasco.OC developers to remedy this
+  issue.
+
+* The signalling framework is not yet supported. A design exist but it is
+  not implemented yet.
+
+We believe however that none of these limitations are a significant hurdle for
+starting to use Genode with this kernel. Please expect this issues to be
+resolved with the upcoming Genode release.
+
+
+Technical details about 'base-foc'
+==================================
+
+The following technical bits are worth noting when exploring the use of
+Genode with the 'base-foc' platform.
+
+* The timer implementation uses a one thread-per-client mode of operation.
+  We use IPC timeouts as time source. Hence, the timer driver is hardware
+  independent and should work out of the box on all hardware platforms
+  supported by Fiasco.OC.
+
+* Each 'Server_object' of Genode corresponds to a so-called IPC gate,
+  which is the Fiasco.OC kernel object used for capability invocation.
+  Therefore, protection and object integrity is provided at the fine
+  granularity of single 'Server_objects'. This is in line with our
+  support for NOVA's implementation of capability-based security.
+
+* In contrast to the lock implementation that we used with the original
+  L4/Fiasco kernel, the 'base-foc' lock is a fully-featured Genode lock
+  with support for lock cancellation and blocking. For blocking and
+  waking up lock applicants, we use Fiasco.OC's IRQ objects.
+
+* The allocator used for managing process-local capability selectors
+  does not yet support the reuse of capability selectors.
+
+
+Further Information
+===================
+
+:genode/tool/builddir/README:
+  Reference manual for the 'create_builddir' script
+
+:[http://os.inf.tu-dresden.de/fiasco]:
+  Official website for the Fiasco.OC microkernel.
+
+
+Noux - an execution environment for the GNU userland
+####################################################
+
+Even though Genode is currently mainly geared to the classical special-purpose
+application domains for microkernel-based systems, the main property that sets
+Genode apart from traditional systems is the thorough support for dynamic
+workloads and the powerful mechanisms for handling hardware resources and
+security policies in highly dynamic setting. We are convinced that Genode's
+architecture scales far beyond static special-purpose domains and believe in
+the feasibility of Genode as a solid foundation for a fully-fledged general
+purpose operating system. Internally at Genode Labs, we set up the ultimate
+goal to switch from Linux to Genode for our day-to-day work. We identified
+several functionalities that we could not live without and systematically try
+to bring those features to Genode.  Of course, the most fundamental programs
+are the tools needed to develop and build Genode. Currently we are developing
+on Linux and enjoy using the GNU userland.
+
+Consequently, we require a solution for using this rich tool set on Genode.
+The straight-forward way for making these tools available on Genode would be
+running them within a virtualized Linux instance (e.g., using OKLinux on OKL4).
+However, this approach would defeat our actual goal to create a highly secure
+yet easy to use working environment because adding Linux to the picture would
+involve administering the virtualized Linux system. We would prefer a native
+solution that makes the overall system less, not more, complicated. This way
+the idea for a native execution environment for the GNU userland on Genode
+was born. The implementation is called Noux and the first bits of code are
+featured in the 'ports' repository. Noux consists of two parts, a build
+environment for compiling GNU programs such that they can be run as Genode
+processes  and an execution environment that provides the classical UNIX
+functionality to these programs.
+
+
+Noux build environment
+======================
+
+From our experience, porting existing UNIX applications to a non-UNIX system
+tends to be a task of manual and time-consuming labour. One has to loosely
+understand the build system and the relationship of the involved source codes,
+implement dummy functions for unresolved references, and develop custom glue
+code that interfaces the ported application to the actual system. Taking the
+shortcut of changing the original code has to be avoided at any cost because
+this produces recurring costs in the future when updating the application. In
+short, this long-winding process does not scale. For porting a tool set such as
+the GNU userland consisting of far more than a three-digit number of individual
+programs, this manual approach becomes unfeasible. Therefore, we have created
+a build environment that facilitates the use of the original procedure of
+invoking './configure && make'. The challenge is to supply configure with
+the right arguments and environment variables ('CFLAGS' and the like) such that
+the package is configured against the Genode environment. The following
+considerations must be taken:
+
+* Configure must not detect any global headers (e.g., '/usr/include/')
+  or libraries (e.g., '/usr/lib/'). This can be achieved by the '-nostdinc' and
+  '-nostdlib' options
+* Configure has to use the same include-search paths as used for compiling
+  normal libc-using Genode programs
+* Configure must use the Genode tool chain
+* The final linking stage must use the Genode linker script, the Genode
+  base libraries, and other Genode-specific linker arguments.
+
+Thanks to the power of the GNU build system, all this can be achieved by
+supplying arguments to './configure' and indirectly to the 'make' process via
+environment variables. The new Noux build environment takes care of these
+precautions. It comes in the form of the 'ports/mk/noux.mk' file which enables
+the seamless integration of GNU packages with the Genode build system. To
+compile a GNU package, the manual steps needed are reduced to the creation of a
+'target.mk' file representing the package.  This 'target.mk' defines the name
+of the package (by default, the basename of the 'target.mk' enclosing directory
+is assumed) and the location of the source package. With this approach, we
+managed to build 'coreutils' (over 100 small UNIX utilities such as 'ls', 'cp',
+'sort'), 'binutils' (GNU linker, assembler, object-file tools), 'findutils'
+('find', 'xargs'), 'bash', 'dash', GNU make, and finally the GNU compiler
+collection including 'g++'. The resulting binaries are ready to be executed as
+native Genode processes. However, without the right environment that presents
+the program the needed UNIX functionality, those programs won't do much.
+This leads us to the Noux execution environment.
+
+
+Noux execution environment
+==========================
+
+The Noux execution environment plays the role of a UNIX kernel for programs
+built via the Noux build environment. In contrast to a real kernel, the Noux
+environment is a plain Genode user-level process that plays the role of being
+the parent of one or multiple Noux processes. In addition of providing the
+'Genode::Parent' interface, Noux also provides a locally implemented service called
+'Noux::Session' that offers UNIX-like system-calls via an RPC interface. Each
+hosted program is linked against a special Noux libc plugin that catches all
+libc calls that would normally result in a system call. It then transparently
+forwards this function call to the 'Noux::Session' interface.
+
+Currently the Noux execution environment implements the following
+system calls: 'getcwd', 'write', 'stat', 'fstat', 'fcntl', 'open',
+'close', 'dirent', 'fchdir', 'read', and 'execve'.
+
+The execution environment submits arguments (argc, argv, environment) to the
+hosted program, manages its current working directory and receives its exit
+code. File operations are targeted to a custom VFS infrastructure, which
+principally allows a flexible configuration of the virtual file system visible
+to the hosted programs. At the current stage, Noux supports mounting plain tar
+archives obtained from core's ROM service as read-only file system. On startup,
+the Noux environment starts one process (the init process) and connects the
+file descriptor 1 (stdout) to Genode's LOG service.
+
+State of the implementation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The infrastructure implemented so far already allows the execution of many simple
+UNIX tools such as 'ls -lRa', 'echo', 'seq', 'find'.  The 'execve' system call
+is implemented such that a new process is started that inherits the file
+descriptors and the PID of the calling process. This allows using the exec
+functionality of the 'bash' shell. However, because 'fork' is not implemented
+yet, there is currently no way to start multiple programs hosted in a single
+Noux execution environment.
+
+As of today, the Noux environment is not considered to be usable for practical
+purposes. However, it clearly shows the feasibility of the path we are walking.
+With the foundation laid, we are looking forward to expanding Noux to a capable
+solution for running our beloved GNU userland tools on Genode.
+
+Vision
+~~~~~~
+
+The most significant intermediate result of pursuing the development of Noux is
+the realization that such an environment is not exceedingly complex. Because of
+the combination with Genode, we only need to provide a comfortable runtime as
+expected by user processes but we can leave much of intricate parts of UNIX out
+of the picture. For example, because we handle device drivers on Genode, we do
+not need to consider device-user interaction in Noux.  As another example,
+because the problem of bootstrapping the OS is already solved by Genode, there
+is no need to run an 'init' process within Noux. Our vision foresees that Noux
+runtimes are to be created on demand for individual tasks such as editing a
+file (starting a custom Noux instance containing only the file to edit and the
+text editor), compiling source code (starting a custom Noux instance with only
+the source code and the build tools). Because Noux is so simple, we expect the
+runtime overhead of starting a Noux instance to be not more than the time
+needed to spawn a shell in a normal UNIX-like system.
+
+Test drive
+~~~~~~~~~~
+
+To give Noux a spin, we recommend using Linux as base platform as this is
+the platform we use for developing it. First, you will need to download the
+source code of the GNU packages. From within the 'ports' repository,
+use the following command:
+
+! make prepare PKG=coreutils
+
+This command will download the source code of the GNU coreutils. You may
+also like to give the other packages a try. To see what is available,
+just call 'make' without any argument.
+
+Create a build directory (e.g., using tool/builddir/create_builddir).
+Change to the build directory and issue the command
+
+! make run/noux
+
+This command will execute the run script provided at 'ports/run/noux.run'.
+First it builds core, init, and coreutils. Then it creates a tar archive
+containing the installed coreutils. Finally, it starts the Noux environment on
+Genode. Noux then mounts the TAR archive as file system and executes 'ls -laR',
+showing the directory tree.
+
+
+Approaching platform support for Xilinx MicroBlaze
+##################################################
+
+With the release 11.02, we are excited to include the first version of our
+custom platform support for the Xilinx MicroBlaze CPU architecture. MicroBlaze
+is a so-called softcore CPU, which is commonly used as part of FPGA-based
+System-on-Chip designs. At Genode Labs, we are regularly using this IP core,
+in particular for our Genode FPGA Graphics Project, which is a GUI software stack
+and a set of IP cores for implementing fully-fledged windowed GUIs on FPGAs:
+
+:Website of the Genode FPGA Graphics Project:
+
+  [http://genode-labs.com/products/fpga-graphics]
+
+Ever since we first released the Genode FPGA project, we envisioned to combine
+it with the Genode OS Framework. In Spring 2010, Martin Stein joined our team
+at Genode Labs and accepted the challenge to bring the Genode OS Framework to
+the realms of FPGA-based SoCs. Technically, this implies porting the framework
+to the MicroBlaze CPU architecture. In contrast to most softcore CPUs such as
+the popular Lattice Mico32, the MicroBlaze features a MMU, which is a fundamental
+requirement for implementing a microkernel-based system. Architecturally-wise
+MicroBlaze is a RISC CPU similar to MIPS. Many system parameters of the CPU
+(caches, certain arithmetic and shift instructions) can be parametrized at
+synthesizing time of the SoC. We found that the relatively simple architecture
+of this CPU provides a perfect playground for pursuing some of our ideas about
+kernel design that go beyond the scope of current microkernels. So instead of
+adding MicroBlaze support into one of the existing microkernels already
+supported by Genode, we went for a new kernel design. Deviating from the typical
+microkernel, which is a self-sufficient program running in kernel mode that
+executes user-level processes on top, our design regards the kernel as a part of
+Genode's core. It is not a separate program but a library that implements the
+glue between user-level core and the raw CPU. Specifically, it provides the
+entrypoint for hardware exceptions, a thread scheduler, an IPC mechanism, and
+functions to manipulate virtual address spaces (loading and flushing entries
+from the CPU's software-loaded TLB). It does not manage any physical memory
+resources or the relationship between processes. This is the job of core.
+From the kernel-developer's point of view, the kernel part can be summarized as
+follows:
+
+* The kernel provides user-level threads that are scheduled in a round-robin
+  fashion.
+* Threads can communicate via synchronous IPC.
+* There is a mechanism for blocking and waking up threads. This mechanism
+  can be used by Genode to implement locking as well as asynchronous
+  inter-process communication.
+* There is a single kernel thread, which never blocks in the kernel code paths.
+  So the kernel acts as a state machine. Naturally, there is no concurrency in the
+  execution paths traversed in kernel mode, vastly simplifying these code parts.
+  However, all code paths are extremely short and bounded with regard to
+  execution time. Hence, we expect the interference with interrupt latencies
+  to be low.
+* The IPC operation transfers payload between UTCBs only. Each thread has a
+  so-called user-level thread control block which is mapped transparently by
+  the kernel. Because of this mapping, user-level page faults cannot occur
+  during IPC transfers.
+* There is no mapping database. Virtual address spaces are manipulated by
+  loading and flushing physical TLB entries. There is no caching of mappings
+  done in the kernel. All higher-level information about the interrelationship
+  of memory and processes is managed by the user-level core.
+* Core runs in user mode, mapped 1-to-1 from the physical address space
+  except for its virtual thread-context area.
+* The kernel paths are executed in physical address space (MicroBlaze).
+  Because both kernel code and user-level core code are observing the same
+  address-space layout, both worlds appear to run within a single address
+  space.
+* User processes can use the entire virtual address space (4G) except for a
+  helper page for invoking syscalls and a page containing atomic operations.
+  There is no reservation used for the kernel.
+* The MicroBlaze architecture lacks an atomic compare-and-swap instruction. On
+  user-level, this functionality is emulated via delayed preemption. A kernel-
+  provided page holds the sequence of operations to be executed atomically and
+  prevents (actually delays) the preemption of a thread that is currently
+  executing instructions at that page.
+* The MicroBlaze MMU supports several different page sizes (1K up to 16MB).
+  Genode fully supports this feature for page sizes >= 4K. This way, the TLB
+  footprint can be minimized by choosing sensible alignments of memory
+  objects.
+
+Current state
+=============
+
+The MicroBlaze platform support resides in the 'base-mb' repository. At the
+current stage, core is able to successfully start multiple nested instances of
+the init process. Most of the critical kernel functionality is working. This
+includes inter-process communication, address-space creation, multi-threading,
+thread synchronization, page-fault handling, and TLB eviction.
+
+This simple scenario already illustrates the vast advantage of
+using different page sizes supported by the MicroBlaze CPU. If using
+4KB pages only, a scenario with three nested init processes produces more than
+300.000 page faults. There is an extremely high pressure on the TLB, which
+only contains 64 entries. Those entries are constantly evicted so that
+threshing effects are likely to occur. By making use of flexible page
+sizes (4K, 16K, 64K, 256K, 1M, 4M, 16M), the number of page faults gets
+slashed to only 1.800, speeding up the boot time by factor 10.
+
+Currently, there is no restriction of IPC communication rights. Threads are
+addressed using their global thread IDs (in fact, using their respective
+indices in the KTCB array). For the future, we are planning to add
+capabilty-based delegation of communication rights.
+
+Building and using Genode on MicroBlaze
+=======================================
+
+For building Genode for the MicroBlaze platform, you need the MicroBlaze
+tool chain as it comes with the Xilinx EDK. The tool chain is typically
+prefixed with 'mb-'. Please make sure that the tool chain's 'bin/' directory
+is included in your 'PATH' environment variable.
+
+For building and starting Genode on MicroBlaze, you first need to create
+a build directory using the build-directory creation tool:
+
+! tool/builddir/create_builddir microblaze \
+!     BUILD_DIR=</path/to/build/dir> \
+!     GENODE_DIR=</path/to/genode/dir>
+
+The 'base-mb' repository comes with support for Genode's run tool. In order to
+use it, you will first need to declare the location of your qemu binary using
+the 'QEMU=/path/to/qemu' variable in the '<build-dir>/etc/microblaze.conf'
+file. Then you will be able to start an example scenario by issuing the
+following command from within your build directory:
+
+! make run/nested_init
+
+Thereby, the 'run' tool will attempt to start core using the microblaze version
+of qemu.
+
+You can also find a simple hello-world example at 'base-mb/src/test/hello'.
+The corresponding run script is located at 'base-mb/run/hello.run'. You can
+execute it via 'make run/hello' from the build directory.
+
+Note that currently, all boot modules are linked against the core binary.
+To change the boot modules, the file 'base-mb/src/core/boot_modules.s' must
+be modified.
+
+For reference, we are using the following tools:
+
+* mb-g++ (GCC) 4.1.1 20060524 (Xilinx 11.2 Build EDK_LS2.2
+  20 Apr 2009 Xilinx 11.2 Build EDK_LS2.2 23 Apr 2009)
+* GNU ld version 2.16 Xilinx 11.2 Build EDK_LS2.2 23 Apr 2009
+* GNU assembler 2.16 Xilinx 11.2 Build EDK_LS2.2 23 Apr 2009
+* QEMU emulator version 0.14.50, Copyright (c) 2003-2008 Fabrice Bellard
+  Petalogix linux reference design targeting Xilinx Spartan 3ADSP-1800 boards.
+
+
+Supporting the NOVA hypervisor version 0.3
+##########################################
+
+NOVA is a so called microhypervisor - a modern capability-based microkernel
+with special support for hardware-based virtualization and IOMMUs. Since we
+incorporated the initial support for the NOVA hypervisor in Genode one year
+ago, this kernel underwent multiple revisions. The latest version was released
+earlier this month. To our delight, much of the features that we missed from
+the initial release had been implemented during the course of the last year. We
+are especially happy about the fully functional 'revoke' system call and the
+support for remote kernel-object creation.
+
+With the Genode release 11.02, we officially support the latest NOVA version.
+The update of Genode to the new version required two steps. First, because many
+details of the kernel interface were changed between version 0.1 and version
+0.3, we had to revisit our syscall bindings and adapting our code to changed
+kernel semantics. Second, we filled our 'base-nova' code related to object
+destruction and unmapping with life to benefit from NOVA's 'revoke' system
+call. Consequently, we are now able to run the complete Genode software stack
+including the dynamic linker on NOVA.
+
+Note that for using Genode on NOVA, you will need to apply a small patch to the
+NOVA source code. This patch enables the re-use of user-level thread control
+blocks in the kernel. The patch can be found at 'base-nova/patches/utcb.patch'.
+
+When executing NOVA on qemu, please specify the '-cpu coreduo' argument to the
+qemu command line. When using Genode 'run' tool, you may assign this argument
+to the 'QEMU_OPT' variable in '<build-dir>/etc/build.conf'.
+
+:Thanks:
+
+  We are grateful for the ongoing very pleasant collaboration with Udo Steinberg
+  who is the driving force behind NOVA. Thanks for the ultra-fast responses to our
+  questions and for considering our suggestions regarding the feature set of
+  NOVA's kernel interface!
+
+
+Base framework
+##############
+
+Upgrading existing sessions
+===========================
+
+Genode enables a client of a service to lend parts of its own resources to
+the service when opening a session. This way, servers do not need to allocate
+own resources on behalf of their clients and become inherently robust against
+resource-exhaustion-based denial-of-service attacks.
+
+However, there are cases when the client can not decide about the amount of
+resources to lend at session-creation time. In such cases, we used to devise an
+overly generous client policy. Now, we have added a new 'upgrade' function to
+the 'Parent' and 'Root' interfaces that enables a client to upgrade the
+resources of an existing session.
+
+For the 'env()->rm_session()' and 'env()->ram_session()' of processes using
+the Genode 'env' library, we implemented a transparent quota upgrade that kicks in
+in the event of an exceeded metadata backing store.
+
+
+Comprehensive accounting of core resources
+==========================================
+
+We changed all services of core to limit their respective resource usage
+specifically for each individual session. For example, the number of dataspaces
+that can be handled by a particular region-manager (RM) session depends on the
+resource donation attached to the session. To implement this accounting scheme
+throughout core, we added a generic 'Allocator_guard' utility to
+'base/include/'. We recommend using this utility when implementing resource
+multiplexers, in particular multi-level services. Thanks to this change in
+core, the need for a slack memory reservation in core has vanished.
+
+
+Various changes
+===============
+
+The remaining parts of the base API underwent no fundamental revision. The
+changes are summarized as follows.
+
+:C++ Support:
+
+  We removed 'libgcc' from our C++ support library ('cxx') and link
+  it to each individual final target and shared library instead. This change alleviates
+  the need to abuse the 'KEEP_SYMBOLS' mechanism that we used in 'cxx' to
+  keep libc-dependencies of GCC's support libraries local to the 'cxx'
+  library. Besides the benefit of reducing heuristics, this change improves
+  the compatibility with recent cross-compiling tool chains.
+  Furthermore, we added 'realloc' to the local libc support of the 'cxx'
+  library because recent ARM tool chains tend to use this function.
+
+:Argument handling for 'main()':
+
+  We added a hook to the startup code to enable the implementation of
+  custom facilities for passing arguments to the main function. The
+  hook uses the global variables 'genode_argc' and 'genode_argv'.
+
+:Child-exit policy hook:
+
+  We enhanced the 'Child_policy' with a new policy interface that allows
+  a simplified implementation of policies related to program termination.
+
+:Changed API of 'Range_allocator':
+
+  We changed the return value of 'alloc_addr' to distinguish different error
+  conditions.  Note that the boolean meaning of the return value is inverted.
+  Please check your uses of 'alloc_addr'!
+
+
+Operating-system services and libraries
+#######################################
+
+C Runtime
+=========
+
+In conjunction with our work on Noux, we improved Genode's C runtime at many
+places. First, we added libstdtime and some previously missing bits of libgdtoa
+to the libc.  These additions largely alleviate the need for dummy stubs, in
+particular time-related functions. Second, we added the following functions to
+our libc plugin interface: 'dup2', 'fchdir', 'fcntl', 'fstat', 'stat', and
+'write'.  This enables the creation of advanced libc plugins simulating a whole
+file system as done with Noux. Still, there are a number of dummy stubs found
+at 'libc/src/lib/libc/dummy.cc'.  However, those stubs are now all defined as
+weak symbols such that they can be overridden by libc plugins. Finally, we have
+replaced the original 'exit' implementation that comes with the libc with a
+Genode-specific version. The new version reports the exit code of the
+application to the parent process via an 'Parent::exit()' RPC call.
+
+Until now, Genode's libc magically handled output to stdout and stderr by
+printing messages via Genode's LOG interface. We have now replaced this
+hard-wired interface by an optional libc plugin called 'libc_log'. If present, write
+operations to stdout are caught at the libc plugin interface and delegated to
+the plugin, which implements the output to the LOG interface. If you have an
+application using Genode's libc, you might consider adding the 'libc_log'
+library to your 'target.mk' file.
+
+
+Support for big numbers by the means of libgmp and libmpfr
+==========================================================
+
+We have now include both the GNU Multiple Precision Arithmetic Library and
+(GMP) and MPFR to the 'ports' repository. This work was specifically motivated
+by our port of GCC to Genode as GCC version 4.4.5 requires both libraries.
+Because we intend to use those libraries primarily on x86_32, the current port
+covers only this architecture. However, expanding the port to
+further CPU architectures should be straight-forward if needed.
+
+Furthermore, you can now also find GCC's 'longlong.h' header at
+'libports/include/gcc'.
+
+
+Qt4 updated to version 4.7.1
+############################
+
+The current release bumps the supported Qt4 version from 4.6.2 to 4.7.1 and the
+Arora web browser (located at the ports repository) from version 0.10.2 to
+version 0.11. Of course, we updated our custom additions such as our custom
+Nitpicker plugin widget that enables the seamless integration of native
+Nitpicker GUI clients into Qt4 applications to work with the new Qt4 version.
+
+
+Tools
+#####
+
+Tool chain update to GCC 4.4.5 and Binutils 2.21
+================================================
+
+We upgraded the official Genode tool chain from gcc 4.2.4 to gcc 4.4.5. Please
+update your tool chain by downloading the new binary archive (available for x86_32)
+or building the tool chain from source using our 'tool/tool_chain' utility.
+
+New support for automated integration and testing
+=================================================
+
+With the growing number of supported base platforms, the integration and testing
+of Genode application scenarios across all kernels becomes
+increasingly challenging. Each kernel has a different boot mechanism and
+specific requirements such as the module order of multiboot modules (Fiasco's
+bootstrap, Pistachio's sigma0 and kickstart), kernel parameters, or the
+invocation of a single-image creation tool (OKL4's elfweaver). To make our
+life supporting all those platforms easier, we have created a tool called
+'run', which is tightly integrated within Genode's build system. In short 'run'
+gathers the intrinsics in the form of a 'run/env' file specific for the
+platform used by the current build directory from the respective
+'base-<platform>' repository. It then executes a so-called run script, which
+contains all steps needed to configure, build, and integrate an application
+scenario. For example, a typical run script for building and running a test
+case resides in a file called '<any-repository>/run/<run-script-name>.run' and
+looks as follows:
+
+! build "core init test/exception"
+! create_boot_directory
+! install_config {
+!   <config>
+!     <parent-provides>
+!       <!--<service name="ROM"/>-->
+!       <service name="LOG"/>
+!     </parent-provides>
+!     <default-route>
+!       <any-service> <parent/> </any-service>
+!     </default-route>
+!     <start name="test-exception">
+!       <resource name="RAM" quantum="1M"/>
+!     </start>
+!   </config>
+! }
+! build_boot_image "core init test-exception"
+! append qemu_args "-nographic -m 64"
+! run_genode_until {.*Exception \(label 0xffb0\) occured.*} 10
+
+First, the build system is instructed to create the targets specified as argument
+for the 'build' function. Next, for the integration part, a new boot directory is
+created. On most kernel platform, the respective location of the boot directory
+is '<build-dir>/var/run/<run-script-name>'. Initially, this directory is empty.
+It gets populated with a 'config' file specified as argument of the 'install_config'
+command, and by the boot modules specified at the 'build_boot_image' command.
+Now that the integration is complete, the scenario is executed via the
+'run_genode_until' command. This command takes a regular expression as
+argument, which determines the successful termination of the test case. The
+second argument is a timeout (is seconds). In the example, the test case will
+fail if its output does not match the regular expression within the execution
+time of 10 seconds.
+
+The command 'append qemu_args' specifies run-script-specific qemu arguments in
+the case that qemu is used to execute the scenario. This is the case for most
+kernel platforms (except for Linux where core gets executed directly on the host).
+Additional build-directory-specific qemu arguments can be specified in the
+'etc/build.conf' file by defining the 'QEMU_OPT' variable. For example, to
+prevent KVM being used on Ubuntu Linux, specify:
+
+! QEMU_OPT = -no-kvm
+
+To execute the run script from with build directory, you need to have Expect
+installed. Typically, the Linux package is called 'expect'. Simply issue
+the following command from within your build directory:
+
+! make run/<run-script>
+
+Note that you will need to have a GRUB 'stage2_eltorito' binary available
+at '<genode-dir>/tool/grub' on base platforms that use an ISO image as boot
+stategy.
+
+Because the whole chain of actions, building, integrating, executing, and
+validating an application scenario is now at the fingertips of issuing a
+single command with no kernel-specific considerations needed, it has never
+been easier to run the same scenario on a wide range of different kernels.
+Please find further instructive examples at 'os/run/'. The 'ldso' run
+script executes the test of the dynamic linker. It is completely generic.
+The 'demo' run script starts Genode's default demo scenario and shows how
+platform-specific considerations (e.g., which device drivers to use) can be
+taken into account.
+
+We found that the 'run' tool significantly boosted our productivity not
+only for testing purposes but also for accelerating the development-test
+cycle during our day-to-day work.
+
+:Technical notes:
+
+The 'run' tool uses Expect as automation tool. Expect is a Tcl interpreter,
+which is accompanied by special functionality for automating interactive
+command-line applications. Technically, a run script is an Expect script
+which gets included by the 'tool/run' script. For the reference of
+run-specific functions, please revise the documentation in the 'tool/run'
+script. Because each run script is actual Expect source code, it is possible
+to use all Tcl and Expect scripting features in a run script.
+In particular, a run script may issue shell commands using Tcl's 'exec'
+function. This way, even complex integration tasks can be accomplished.
+For example, the integration of the Genode Live CD was done via a single
+run script.
+
+
+Build system
+============
+
+To facilitate the integration of 3rd-party build systems into the Genode build
+process, we added support for pseudo targets that do not require any 'SRC'
+declaration. Such 'target.mk' may contain custom rules that will be executed
+when the target is revisited by the build system. The bindings are as follows:
+
+! build_3rd_party:
+!   ...custom commands...
+! 
+! $(TARGET): build_3rd_party
+! 
+! clean_3rd_party:
+!   ...custom commands...
+! 
+! clean_prg_objects: clean_3rd_party:
+
+

@@ -1,0 +1,9 @@
+Vancouver is a virtual machine monitor specifically developed for the use with
+the NOVA hypervisor. It virtualizes 32bit x86 PC hardware including various
+peripherals. The combination of NOVA and Vancouver is described in the
+following paper by Udo Steinberg and Bernhard Kauer:
+
+[http://os.inf.tu-dresden.de/papers_ps/steinberg_eurosys2010.pdf - NOVA: A Microhypervisor-Based Secure Virtualization Architecture]
+
+The official project website is [http://hypervisor.org].
+

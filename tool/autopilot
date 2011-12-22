@@ -1,0 +1,360 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Automated exection of test cases
+# \author Norman Feske
+# \date   2011-07-2
+#
+# The autopilot utility automates the process of executing multiple run
+# scripts on different platforms. For each executed run script, the exit
+# value is checked and the result gets logged to a file.
+#
+
+##
+# Execute 'func' for each command line argument of type 'tag'
+#
+proc foreach_cmdline_arg { tag func } {
+	global argv
+	set re "(\\s|^)-$tag\\s*(\[^\\s\]+)"
+	set args $argv
+	while {[regexp -- $re $args dummy dummy $tag]} {
+		eval $func
+		regsub -- $re $args "" args
+	}
+}
+
+
+##
+# Determine base directory of genode source tree based on the known location of
+# the 'autopilot' tool within the tree
+#
+proc genode_dir { } {
+	global argv0;
+	return [file dirname [file dirname $argv0]]
+}
+
+
+proc default_test_dir { } { global env; return "/tmp/autopilot.$env(USER)" }
+proc default_log_file { } { return "autopilot.log" }
+
+
+##
+# Present usage information
+#
+proc help { } {
+
+	set help_text {
+		Automatically execute test cases on different platforms
+		
+		  usage: autopilot -p <platform> ... [-r <run-script> ...]
+		                  [-d <test-dir>] [-j <make-jobs>]
+		                  [--help] [--cleanup] [--force]
+		                  [--stdout] [--skip-clean-rules]
+		                  [--enable-ccache]
+
+		  --force             replace test directory if it already exists
+		  --cleanup           remove test directory at exit
+		  --stdout            print test output instead of writing log files
+		  --skip-clean-rules  skip cleanall tests, keep build-directory content
+		  --enable-ccache     use ccache instead of plain gcc
+		}
+
+	append help_text "\ndefault test directory is [default_test_dir]\n"
+
+	regsub -all {\n\t\t} $help_text "\n" help_text
+
+	puts $help_text
+}
+
+
+##
+# Return true if command-line switch was specified
+#
+proc get_cmd_switch { arg_name } {
+	global argv
+	return [expr [lsearch $argv $arg_name] >= 0]
+}
+
+
+##
+# Remove test directory
+#
+proc wipe_test_dir { } {
+	global test_dir
+	exec rm -rf $test_dir
+}
+
+
+##
+# Remove build artifacts if commanded via the '--cleanup' argument
+#
+proc cleanup { } {
+	if {[get_cmd_switch --cleanup]} {
+		puts "cleaning up $test_dir"
+		wipe_test_dir
+	}
+}
+
+
+##
+# Abort execution with a message and an error code
+#
+proc fail { message error_code } {
+	cleanup
+	puts stderr "Error: $message"
+	exit $error_code
+}
+
+
+##
+# Return build directory used for the specified platform
+#
+proc build_dir { platform } {
+	global test_dir
+	return [file join $test_dir $platform]
+}
+
+
+##
+# Return name of log file for test of 'run_script' on 'platform'
+#
+proc log_file { platform run_script } {
+	global test_dir
+	return [file join $test_dir $platform.$run_script.log]
+}
+
+
+##
+# Return file descriptor for writing the log output of test case
+#
+proc log_fd { platform run_script } {
+
+	# if '--stdout' was specified, don't write log output to files
+	if {[get_cmd_switch --stdout]} { return stdout }
+
+	# create file descriptor of log file on demand
+	global _log_fds
+	if {![info exists _log_fds($platform,$run_script)]} {
+		set new_fd [open [log_file $platform $run_script] "WRONLY CREAT TRUNC"]
+		set _log_fds($platform,$run_script) $new_fd
+	}
+	return $_log_fds($platform,$run_script)
+}
+
+
+##
+# Close file descriptor used for log output of test case
+#
+proc close_log_fd { platform run_script } {
+	global _log_fds
+	if {[info exists _log_fds($platform,$run_script)]} {
+		close $_log_fds($platform,$run_script)
+		unset _log_fds($platform,$run_script)
+	}
+}
+
+
+##
+# Execute single run script for specified platform
+#
+# \return true if run script succeeded
+#
+proc execute_run_script { platform run_script } {
+
+	set return_value true
+	set fd [log_fd $platform $run_script]
+
+	if {[catch {
+		exec make -C [build_dir $platform] [file join run $run_script] >@ $fd
+	}]} {
+		set return_value false
+	}
+
+	close_log_fd $platform $run_script
+	return $return_value
+}
+
+
+##
+# Clean build directory
+#
+# \return list of unexpected files remaining after 'make cleanall'
+#
+proc clean_build_dir { platform } {
+	set fd [log_fd $platform cleanall]
+
+	# make returns the exit code 2 on error
+	if {[catch {
+		exec make -C [build_dir $platform] cleanall >@ $fd
+	}] == 2} {
+		close_log_fd $platform cleanall
+		return [list "clean rule terminated abnormally"]
+	}
+	close_log_fd $platform cleanall
+
+	set remainings [split [exec sh -c "cd [build_dir $platform]; find . -mindepth 1"] "\n"]
+
+	set unexpected { }
+	foreach r $remainings {
+		if {$r == "./etc"} continue
+		if {$r == "./Makefile"} continue
+		if {[regexp {\.\/etc\/.*} $r dummy]} continue
+		lappend unexpected "unexpected: $r"
+	}
+	return $unexpected
+}
+
+
+proc build_failed_because_of_missing_run_script { platform run_script } {
+
+	# we cannot inspect any logfile when --stdout was used
+	if {[get_cmd_switch --stdout]} { return 0 }
+
+	# grep log output for the respective error message of the build system
+	if {[catch {
+		exec grep "^Error: No run script for" [log_file $platform $run_script]
+	}]} { return 0 }
+	return 1
+}
+
+
+#
+# Collect command-line arguments
+#
+
+set platforms { }
+foreach_cmdline_arg p { global platforms; lappend platforms $p }
+
+set run_scripts { }
+foreach_cmdline_arg r { global run_scripts; lappend run_scripts $r }
+
+set test_dir [default_test_dir]
+foreach_cmdline_arg d { global test_dir; set test_dir $d }
+
+set make_jobs 2
+foreach_cmdline_arg j { global make_jobs; set make_jobs $j }
+
+# present help if explicitly requested
+if {[get_cmd_switch --help]} { help; exit 0 }
+
+# present help if arguments do not suffice
+if {![llength $platforms]} {
+	puts stderr "Error: invalid arguments"
+	help
+	exit -1
+}
+
+# print information about the parameters
+puts "genode dir  : [genode_dir]"
+puts "platforms   : $platforms"
+puts "run scripts : $run_scripts"
+puts "test dir    : $test_dir"
+puts "make -j     : $make_jobs"
+
+
+#
+# We first create all build directory for all platforms to back out early if
+# any error occurs during the creation of build directories due to wrong
+# command-line arguments.
+#
+
+if {[file exists $test_dir] && ![get_cmd_switch --force]} {
+	puts stderr "Error: test directory $test_dir already exists"
+	exit -3
+}
+
+
+if {[get_cmd_switch --force]} { wipe_test_dir }
+
+
+# create build directories
+foreach platform $platforms {
+
+	if {[catch {
+		exec [genode_dir]/tool/create_builddir $platform BUILD_DIR=[build_dir $platform]
+	}]} {
+		fail "create_builddir for platform $platform failed" -1
+	}
+
+	set build_conf [file join [build_dir $platform] etc build.conf]
+	if {![file exists $build_conf]} {
+		fail "build dir for $platform lacks 'etc/build.conf' file" -2
+	}
+
+	# enable all repositories
+	exec sed -i "/^#REPOSITORIES/s/^#//" $build_conf
+
+	# enable parallel build
+	exec echo "MAKE += -j$make_jobs" >> $build_conf
+
+	# optionally enable ccache
+	if {[get_cmd_switch --enable-ccache]} {
+		set tools_conf [file join [build_dir $platform] etc tools.conf]
+		exec echo "CUSTOM_CC  = ccache \$(CROSS_DEV_PREFIX)gcc" >> $tools_conf
+		exec echo "CUSTOM_CXX = ccache \$(CROSS_DEV_PREFIX)g++" >> $tools_conf
+	}
+}
+
+
+#
+# Revisit each platform's build directory and execute all test cases
+#
+
+
+##
+# Print label identifying the specified test case to stderr
+#
+proc print_step_label { platform step } {
+	puts -nonewline stderr "[format {%-20s} $platform:] [format {%-20s} $step] "
+}
+
+
+# default exit value used if all tests went successfully
+set exit_value 0
+
+
+# execute run scripts
+foreach platform $platforms {
+
+	puts stderr "\n--- platform $platform ---"
+
+	foreach run_script $run_scripts {
+		print_step_label $platform $run_script
+		if {[execute_run_script $platform $run_script]} {
+			puts stderr "-> OK"
+		} else {
+			
+			if {[build_failed_because_of_missing_run_script $platform $run_script]} {
+				puts stderr "-> UNAVAILABLE"
+			} else {
+				puts stderr "-> ERROR"
+				set exit_value -1
+			}
+		}
+	}
+
+	if {[get_cmd_switch --skip-clean-rules]} continue
+
+	# execute and validate cleanall rule
+	print_step_label $platform cleanall
+	set pollution [clean_build_dir $platform]
+	if {[llength $pollution] == 0} {
+		puts stderr "-> OK"
+	} else {
+		puts stderr "-> ERROR"
+		set exit_value -1
+		foreach p $pollution { puts stderr "      $p" }
+	}
+}
+
+proc concluding_message { } {
+	global exit_value
+	if {$exit_value == 0} { return "everything ok" }
+	return "errors occurred"
+}
+
+puts stderr "--- done ([concluding_message]) ---"
+
+cleanup
+
+exit $exit_value

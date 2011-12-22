@@ -1,0 +1,70 @@
+#!/usr/bin/make -f
+#
+# \brief   ISO image creation tool
+# \author  Christian Helmuth
+# \date    2009-02-05
+
+ISO    ?= genode
+ISODIR  = $(abspath $(ISO))
+ISOIMG  = $(abspath $(ISO).iso)
+
+default help:
+	@echo "--- available commands ---"
+	@echo "iso      - create ISO image of directory \"$(ISO)\""
+	@echo "tiny.iso - create tiny ISO image of directory \"$(ISO)\""
+	@echo "compress - create bzip2 compressed ISO image"
+	@echo "clean    - cleanup everything"
+	@echo
+	@echo "--- configuration options ---"
+	@echo "ISO=<name>   Overwrites basename of cd image file."
+	@echo
+	@echo "Please, place your binaries and config files in appropriate subdirectories in"
+	@echo "  $(ISODIR)"
+	@echo "and adapt"
+	@echo "  $(ISODIR)/boot/grub/menu.lst"
+	@echo "to your configuration's needs. A sample directory tree can be found in"
+	@echo "tool/boot/genode."
+
+#
+# Function to generate bootable ISO images
+#
+# parameter 1  filename of ISO image
+# parameter 2  path of directory containing file tree for the ISO image
+#
+gen_iso_image = genisoimage -f -l -R -hide-rr-moved -jcharset utf8 \
+                            -no-emul-boot -boot-load-size 4 -boot-info-table \
+                            -b boot/isolinux/isolinux.bin \
+                            -o $(1) $(2)
+
+$(ISOIMG) iso:
+	@$(call gen_iso_image, $(ISOIMG) $(ISODIR))
+	@which isohybrid > /dev/null && isohybrid $(ISOIMG)
+
+STRIP_FILES = $(wildcard genode/*) $(wildcard pistachio/*)
+
+#
+# Compact all files in a directory using strip and gzip
+#
+# parameter 1  directory containing the files to strip and gzip
+#
+compact_files = for f in `find $(1) -type f`; do \
+                    strip $$f -o strip.tmp; \
+                    gzip -c strip.tmp > $$f; \
+                done; rm -f strip.tmp
+
+tiny.iso:
+	@rm -rf $(@:.iso=.dir)
+	@cp -Lrp $(ISODIR) $(@:.iso=.dir)
+	@$(call compact_files, $(@:.iso=.dir)/fiasco)
+	@$(call compact_files, $(@:.iso=.dir)/pistachio)
+	@$(call compact_files, $(@:.iso=.dir)/genode)
+	@$(call gen_iso_image, $@ $(@:.iso=.dir))
+	@rm -rf $(@:.iso=.dir)
+
+compress: $(ISOIMG)
+	@bzip2 -f -c $< > $).bz2
+
+clean:
+	@rm -rf tiny.dir tiny.iso $(ISOIMG)
+
+.PHONY: $(ISOIMG) tiny.iso clean

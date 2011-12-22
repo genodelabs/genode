@@ -1,0 +1,91 @@
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<start name="timer">
+		<binary name="timer"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route>
+			<service name="CAP">     <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
+		</route>
+	</start>
+	<start name="fb_sdl">
+		<binary name="fb_sdl"/>
+		<resource name="RAM" quantum="3M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<route>
+			<service name="CAP"><parent/></service>
+			<service name="LOG"><parent/></service>
+		</route>
+	</start>
+	<start name="nitpicker">
+		<binary name="nitpicker"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="CAP">         <parent/>              </service>
+			<service name="LOG">         <parent/>              </service>
+			<service name="Framebuffer"> <child name="fb_sdl"/> </service>
+			<service name="Input">       <child name="fb_sdl"/> </service>
+			<service name="Timer">       <child name="timer"/>  </service>
+		</route>
+	</start>
+	<start name="liquid_fb">
+		<binary name="liquid_fb"/>
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<route>
+			<service name="CAP">       <parent/>                 </service>
+			<service name="LOG">       <parent/>                 </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Timer">     <child name="timer"/>     </service>
+		</route>
+	</start>
+	<start name="nested_nitpicker">
+		<binary name="nitpicker"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="CAP">         <parent/>                 </service>
+			<service name="LOG">         <parent/>                 </service>
+			<service name="Framebuffer"> <child name="liquid_fb"/> </service>
+			<service name="Input">       <child name="liquid_fb"/> </service>
+			<service name="Timer">       <child name="timer"/>     </service>
+		</route>
+	</start>
+	<start name="launchpad">
+		<binary name="launchpad"/>
+		<resource name="RAM" quantum="32M"/>
+		<route>
+			<service name="CAP">       <parent/>                        </service>
+			<service name="LOG">       <parent/>                        </service>
+			<service name="Nitpicker"> <child name="nested_nitpicker"/> </service>
+			<service name="Timer">     <child name="timer"/>            </service>
+			<service name="ROM">       <parent/>                        </service>
+			<service name="RAM">       <parent/>                        </service>
+			<service name="RM">        <parent/>                        </service>
+			<service name="PD">        <parent/>                        </service>
+			<service name="CPU">       <parent/>                        </service>
+		</route>
+	</start>
+</config>
+
+<!-- vim:set syntax=xml:-->

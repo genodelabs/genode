@@ -1,0 +1,26 @@
+diff --git a/src/network/socket/qnativesocketengine_unix.cpp b/src/network/socket/qnativesocketengine_unix.cpp
+--- a/src/network/socket/qnativesocketengine_unix.cpp
++++ b/src/network/socket/qnativesocketengine_unix.cpp
+@@ -388,6 +388,22 @@
+         case EISCONN:
+             socketState = QAbstractSocket::ConnectedState;
+             break;
++#ifdef Q_OS_GENODE
++        /* to have Arora get an error indication, socketState needs to change
++         * to "ConnectingState" before changing to "UnconnectedState" again
++         */
++        case ECONNABORTED:
++            if (socketState == QAbstractSocket::UnconnectedState) {
++                /* interpret ECONNABORTED as EINPROGRESS */
++                setError(QAbstractSocket::UnfinishedSocketOperationError, InvalidSocketErrorString);
++                socketState = QAbstractSocket::ConnectingState;
++            } else {
++                /* interpret ECONNABORTED as EHOSTUNREACH */
++                setError(QAbstractSocket::NetworkError, HostUnreachableErrorString);
++                socketState = QAbstractSocket::UnconnectedState;
++            }
++            break;
++#endif
+         case ECONNREFUSED:
+         case EINVAL:
+             setError(QAbstractSocket::ConnectionRefusedError, ConnectionRefusedErrorString);

@@ -1,0 +1,120 @@
+<html><head><title>Genode Web-Browser Demo (4/4)</title></head>
+<style type="text/css">
+
+/* backgrounds */
+body        { background-image:url(bg.png); }
+div#title   { background-image:url(title_bg.png); background-color:#ccccdd; }
+div#bgtop   { background-image:url(bg_top.png); }
+div#content { background-image:url(bg_content.png); background-color:#ddddff; }
+div#title, div#content, div#bgtop { background-repeat:repeat-x; }
+div#content { background-position:bottom; }
+
+/* borders */
+div#content, div#title { border-style:solid; border-width:1px; border-color:#001122; }
+
+/* spacing */
+div#content, div#title {
+ width:680px;
+ padding-left:1em; padding-right:1em; padding-top:0.5em; padding-bottom:0.5em;
+ margin-top:10px; margin-bottom:10px;
+}
+span#space { margin:50px; }
+body { margin:0px; }
+div#title { padding-top:0px; padding-bottom:0px; }
+div#content h1 { padding-top: 1em; }
+
+/* center horizontally */
+div#content, div#title, table { float: none; margin: auto; }
+
+div#content { margin-top:1em; }
+
+/* fonts */
+a, p, h1 { font:  100% Verdana, Arial, Helvetica, sans-serif; }
+h1 { color:#000077; font-size:20px; }
+div#title h1 { font-size:24px; }
+div#title h1 { color:#000033; }
+div#content p { font-size:13px; }
+div#content a { font-size:16px; }
+
+div.annotation p { font-style:italic; }
+div.annotation a { font-style:italic; }
+
+</style>
+<body>
+<div id="bgtop"><br/><span id="top"/><div id="title"><h1>Genode Web-Browser Demo (4/4)</h1></div>
+<div id="content">
+ <p>
+  On Genode, each device driver is a normal program communicating with its client
+  via inter-process communication. Apart from the benefits regarding fault
+  isolation, this allows for having multiple implementations of the same
+  device-driver interface. For an application using such an interface, the
+  implementation of the interface is completely transparent. As an example, we can
+  provide a custom block device driver to the Linux kernel. But our driver does not
+  access any real block device but instead fetches data via HTTP from a
+  web server.
+ </p>
+ <p>
+  This enables us to stream a boot image of a complete Linux distribution on demand
+  via the internet. Of course the boot time depends on the speed of the internet
+  connection and on the performance of the web server providing the image.
+ </p>
+<embed src="http://genode.org/files/livecd-10.11/tinycore_plugin.tar.gz" args="ram_quota=128M" type="application/x-genode-plugin" width="640px" height="480px"><br>
+ <div class="annotation">
+  <p>
+   Click onto the plugin to pass the keyboard focus to Linux. Maybe you like to watch
+   a short movie streamed from <a href="http://www.blender.org/">blender.org</a>? Just
+   type in play_movie.sh and press enter.
+  </p>
+ </div>
+ <p>
+  In the case of the plugin above, the subsystem consists of a Linux kernel, a
+  small <tt>initrd</tt>, and the HTTP-block device driver including a TCP/IP stack. The Linux
+  system is able to access the network via a distinct IP address.
+ </p>
+ <a name="http_block"></a>
+ <table class="captionedimage"><tr><td>
+   <img src="http_block.png">
+ </td></tr></table>
+ <p>
+  The figure illustrates the use of the network bridge by the web
+  browser, the HTTP-based block driver, and the Linux kernel. Even though the
+  plugin is executed as an isolated subsystem, it can interact with
+  system components outside the subsystem if permission is granted by the
+  loader. The loader may base this decision on a static policy (as used for
+  the demo), or it could further take plugin-provided information into account,
+  for example a cryptographic signature proofing the origin of the
+  plugin.
+ </p>
+ <a name="Have_fun_with_the_other_demos!"></a>
+ <h1>Have fun with the other demos!</h1>
+  <p>
+   Thank you for viewing the web browser demo.
+   You can learn more about this framework or get the source code at:
+  </p>
+  <div><dl>
+   <dt><a href="http://genode.org" alt="http://genode.org">http://genode.org</a></dt>
+   <dd>
+    <p>
+     Genode OS Framework project website
+    </p>
+   </dd>
+  </dl></div>
+  <p>
+   To get in touch, subscribe to our mailing list or simply drop us a note via
+  </p>
+<pre>
+ info@genode.org
+</pre>
+  <p>
+   To learn more about the company behind the framework, visit our company's
+   website:
+  </p>
+  <div><dl>
+   <dt><a href="http://www.genode-labs.com" alt="http://www.genode-labs.com">http://www.genode-labs.com</a></dt>
+   <dd>
+    <p>
+     Genode Labs company
+    </p>
+   </dd>
+  </dl></div>
+</div></div><br/><span id="space"/></body></html>

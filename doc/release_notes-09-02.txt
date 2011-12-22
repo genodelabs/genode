@@ -1,0 +1,460 @@
+
+              ==============================================
+              Release notes for the Genode OS Framework 9.02
+              ==============================================
+
+                               Genode Labs
+
+Summary
+#######
+
+Whereas the focus of the previous release 8.11 was the refinement of
+Genode's base API and the creation of the infrastructure needed to build
+real-world applications, the release 9.02 is focused on functional
+enhancements in two directions. The first direction is broadening the
+number of possible base platforms for the framework. At present, most
+microkernels bring along a custom user land, which is closely tied to the
+particular kernel. Our vision is to establish Genode as a common ground for
+developing applications, protocol stacks, and device drivers in such a way
+that the software becomes easily portable among different kernels. This
+release makes Genode available on the L4ka::Pistachio kernel. Hence,
+software developed with the Genode API can now run unmodified on
+Linux/x86, L4/Fiasco, and L4ka::Pistachio. In the second direction, we
+are steadily advancing the functionality available on top of Genode. With
+this release, we introduce a basic networking facility and support for
+native Qt4 applications as major new features. Thanks to Genode's
+portability, these features become automatically available on all
+supported base platforms.
+
+Our original plan for the release 9.02 also comprised the support of a
+Linux-on-Genode (para-)virtualization solution. Initially, we intended to
+make [http://os.inf.tu-dresden.de/L4/LinuxOnL4/ - L4Linux] available on
+the L4/Fiasco version of Genode. However, we identified several downsides
+with this approach. Apparently, the development of the officially available
+version of L4/Fiasco has become slow and long-known issues remain unfixed.
+L4Linux, however, is closely tied to L4/Fiasco and the L4 environment. For
+us at Genode Labs, maintaining both a custom port of L4Linux for Genode
+and L4/Fiasco by ourself in addition to developing Genode is unfeasible.
+In contrast, the Pistachio kernel features more advanced options for
+virtualization ([http://l4ka.org/projects/virtualization/afterburn/ - Afterburner]
+and VT support) that we want to explore. Furthermore, there exists another
+version of L4Linux called OKLinux for the OKL4 kernel developed at
+[http://ok-labs.com - OK-Labs], which is very interesting as well.
+Therefore, we decided against an ad-hoc solution and deferred this feature
+to the next release. [http:/about/road-map - See our updated road map...]
+
+
+Major new Features
+##################
+
+Genode on L4ka::Pistachio
+=========================
+
+From the very beginning, the base API of the Genode OS Framework was
+designed for portability. We put a lot of effort into finding API
+abstractions that are both implementable on a wide range of kernels and as
+close to the hardware as possible to keep the abstraction overhead low. For
+this reason, we developed the framework in parallel for the Linux kernel and
+the L4/Fiasco kernel. To validate our claim that Genode is highly portable,
+Julian Stecklina ported the framework to another member of the L4 family,
+namely the [http://l4ka.org/projects/pistachio/ - L4ka::Pistachio kernel].
+This high-performance kernel implements the latest official L4 API called
+L4.x2 and has a number of advanced features such as multi-processor support
+and virtualization support.
+
+After Julian successfully created the first Pistachio version of Genode,
+we successively refined his work and conducted further unifications among
+the platform-dependent code for the different kernels. The result of this
+effort is included in this release and comes in the form of the
+'base-pistachio' source-code repository.
+
+;Interesting technical notes:
+
+* The IRQ handling on Pistachio is slightly different from L4/Fiasco.
+  On L4/Fiasco, an IRQ becomes unmasked only when the user-level IRQ
+  handler thread blocks for an IRQ by issuing an IPC call to the
+  kernel's corresponding IRQ thread. In contrast, Pistachio unmasks an
+  IRQ as soon as the user-level IRQ handler associates itself with an
+  IRQ. Thus, an IRQ message may occur not only when the user-level IRQ
+  handler blocks for any IRQ but anytime. In particular, IRQ messages
+  may interfere with the IRQ handler's IPC communication with other
+  threads. To ensure that IRQ messages do only occur when expecting
+  them, we lazily associate the IRQ handler thread to the IRQ the
+  first time we wait for an IRQ and issue an unmasking IPC call
+  subsequent times.
+
+* Genode provides a mechanism for gracefully destructing threads that
+  are in a blocking state, for example waiting for an IPC message.
+  Such a thread may hold locks or other resources that would not
+  get properly freed when just killing the thread by force. Therefore,
+  Genode provides a way to issue the cancellation of a blocking
+  operation by another thread (e.g., the thread calling the destructor).
+  Once, a blocking operation got canceled, a C++ exception
+  ('Blocking_canceled') is raised such the thread can fall back into
+  a defined state and then be destructed. On L4ka::Pistachio, we use
+  Pistachio's pager-exchange-registers feature in combination with
+  the user-defined UTCB handle for cancelling blocking operations and
+  detecting cancellations. The interesting code bits can be found in
+  'src/base/ipc/ipc.cc', 'src/base/lock/lock.cc',
+  'src/core/platform_thread.cc', and in the Pistachio-specific
+  timer-service implementation.
+
+* During the refinement of the Pistachio version, we were able to further
+  generalize code that was previously specific for L4/Fiasco and
+  L4ka::Pistachio respectively. Now, the platform-specific code comprises
+  less than 3,000 lines of code (LOC) for L4/Pistachio, circa 2,000 LOC
+  for L4/Fiasco, and circa 1,000 LOC for Linux. Hence, we expect that
+  porting the framework to further kernels is possible at reasonable
+  engineering costs.
+
+:Current limitations:
+
+* The current version does not use superpages (4M mappings) because we
+  experienced problems with mapping 4K pages out of 4M pages. This is an
+  issue that we like to investigate further because using 4M mappings
+  would improve the boot time and reduce the kernel-memory usage.
+
+* Currently, we use a simple sleeping spinlock for synchronization, which
+  is not optimal for several reasons. There are no fairness guarantees,
+  the spinning consumes CPU time, and threads that got blocked in the
+  contention case are woken up at the coarse granularity of the kernel's
+  timer tick, which is typically one millisecond.
+
+* Nested RM sessions as introduced as an experimental feature in the
+  Genode release 8.11 are not yet supported.
+
+:Further details:
+
+You can find further technical details and usage instructions at our
+dedicated [http://genode.org/community/wiki/GenodeOnL4kaPistachio - Wiki page].
+
+
+Qt4 on Genode
+=============
+
+The minimalism of the Genode OS Framework with regard to its code
+complexity raised the question of whether this framework is feasible
+for hosting real-world applications and widely used runtime environments.
+Christian Prochaska took the challenge to port Trolltech's Qt4 application
+framework, which serves as the basis for the popular KDE desktop, to Genode.
+
+Because Christian started his work more than a year ago at a time when no
+C library was available on Genode, several intermediate steps were needed.
+The first step was the integration of the Qt4 tools such as the meta-object
+compiler (moc) and resource compiler properly into the our build systion.
+With the tools in place, the Linux version of Genode came to an advantage.
+In this environment, a Genode application is able to use glibc functionality.
+So the problem of a missing C library could be deferred and Christian was
+able to focus on interfacing Qt with the existing Genode services such as
+the Nitpicker GUI sever. Next, the glibc dependencies were successively
+replaced by custom implementations or simple dummy stubs. Thereby, all
+needed functionalities such as timed semaphores and thread-local storage
+had to be mapped to existing Genode API calls. Once, all glibc dependencies
+had been dissolved, Qt could be compiled for the L4/Fiasco version.
+
+Since a C library has become available in Genode 8.11, we were able to
+replace Christian's intermediate stub codes with a real C library. We also
+utilize recently added features of Genode such as its alarm framework to
+simplify the Qt4 port. Furthermore, we were able to remove all
+platform-specific bits such that the Qt4 port has now become completely
+generic with regard to the underlying kernel. Qt4 can be executed on Linux,
+L4/Fiasco, and L4ka::Pistachio without any changes. Figure [img/qt4_screenshot]
+shows a screenshot of Qt's Tetrix example running side-by-side with native
+Genode applications.
+
+[image img/qt4_screenshot]
+
+:Current state:
+
+* The Qt4 port comes in the form of a source-code repository, which contains
+  all Qt source codes, and some example programs such as Tetrix. You can
+  download the Qt4 repository as a separate archive at the download page of
+  the Genode release 9.2. For the next release, we plan to separate the
+  Genode-specific parts from Qt original code and make the Genode-specific
+  parts a regular component of the Genode main line.
+
+* The Qt4 port consists of Qt's Core library, GUI library, Script library,
+  XML library, and the UI tools library. Other libraries such as Webkit
+  are not ported yet.
+
+* This first version of Qt4 on Genode is not to be considered as stable.
+  There are several known issues yet to be addressed. In particular,
+  the 'QEventDispatcher' is still work in progress and not fully stabilized.
+
+* Because, we use to statically link programs, the binaries of Qt
+  applications are exceedingly large. For example the Tetrix binary is
+  100MB including debug information and 11MB in the stripped form. For
+  employing Qt on Genode at a larger scale, Genode should be enhanced with
+  [http://genode.org/community/wiki/SharedLibrarySupport - shared-library support].
+
+
+Networking
+==========
+
+With Genode 8.11, we introduced the Device-Driver-Environment Kit (DDE Kit)
+API, which is a C API specifically designed for implementing and porting
+device drivers written in plain C. We have now complemented DDE Kit with an
+environment for executing Linux device drivers natively on Genode. This
+library is called 'dde_linux26' and contained in our new 'linux_drivers'
+source-code repository. The environment consists of several parts, which
+correspond to the different sub systems of the Linux kernel 2.6, such as
+'arch', 'drivers', 'kernel'.
+
+The first class of device-drivers supported by DDE Linux 2.6 is networking.
+At the current stage, the DDE Linux network library comprises general
+network-device infrastructure as well as an exemplary driver for the PCnet32
+network device.
+
+Based on this library, we have created a basic TCP/IP test utilizing the
+uIP stack, which uses the DDE Linux network library as back end. The test
+program implements a basic web server displaying uIP packet statistics.
+When executed on Qemu, you can use your host's web browser to connect to
+the web server running on Genode:
+
+For booting Genode on L4/Fiasco with the web-server demo, use a GRUB
+entry in your 'menu.lst' file as follows.
+
+! title Genode: DDE Linux 2.6 NET on L4/Fiasco
+!   kernel /fiasco/bootstrap -maxmem=64 -modaddr=0x02000000
+!   module /fiasco/fiasco -nokd -serial -serial_esc
+!   module /fiasco/sigma0
+!   module /genode/core
+!   module /genode/init
+!   module /config
+!   module /genode/timer
+!   module /genode/pci_drv
+!   module /genode/test-dde_linux26_net
+
+The first four lines are L4/Fiasco specific. When using L4ka::Pistachio,
+the 'menu.lst' entry looks like this:
+
+! title Genode: DDE Linux 2.6 NET on L4/Pistachio
+!   kernel /pistachio/kickstart
+!   module /pistachio/x86-kernel
+!   module /pistachio/sigma0
+!   module /genode/core
+!   module /genode/init
+!   module /config
+!   module /genode/timer
+!   module /genode/pci_drv
+!   module /genode/test-dde_linux26_net
+
+The web-server test requires the PCI bus driver and the timer service.
+Therefore, the 'config' file for Genode's init should have following
+content:
+! <config>
+!   <start>
+!     <filename>timer</filename>
+!     <ram_quota>512K</ram_quota>
+!   </start>
+!   <start>
+!     <filename>pci_drv</filename>
+!     <ram_quota>512K</ram_quota>
+!   </start>
+!   <start>
+!     <filename>test-dde_linux26_net</filename>
+!     <ram_quota>16M</ram_quota>
+!   </start>
+! </config>
+
+Now, its time to create an ISO image from all files specified in
+the GRUB configuration. For this, the new utility 'tool/create_iso'
+becomes handy. The ISO image can then be booted on Qemu using the
+following arguments:
+! qemu -m 64 -serial stdio -no-kqemu -cdrom <iso-image> \
+!      -net nic,model=pcnet -net user -redir tcp:5555::80
+
+The '-redir' argument tells qemu to redirect TCP connections with
+localhost:5555 to the guest OS at port 80. After having booted
+up Genode on Qemu, you can use your host's web browser to access
+the web server:
+! firefox http://localhost:5555
+
+:Notes about using the TAP version:
+
+* Preparations
+  * You must be permitted to sudo and have installed the tunctl
+    utility. Under Debian/Ubuntu execute
+
+    ! sudo apt-get install uml-utilities
+
+  * Create TAP device
+    ! TAPDEV=$(sudo tunctl -b -u $USER)
+    ! sudo /sbin/ifconfig $TAPDEV 10.0.0.1
+
+  * setup DHCP server on $TAPDEV and 10.0.0.0/8
+
+* Run qemu
+  ! qemu -m 64 -serial stdio -no-kqemu -cdrom dde.iso \
+  !      -net nic,model=pcnet \
+  !      -net tap,ifname=$TAPDEV,script=no,downscript=no
+
+* Ping
+
+* Cleanup
+  * Stop DHCP server
+  * Remove TAP device
+    ! sudo tunctl -d $TAPDEV
+
+
+Operating-system services and libraries
+#######################################
+
+C Runtime
+=========
+
+We have replaced the 'malloc' implementation of the original FreeBSD C
+library with a custom implementation, which relies on Genode's 'Heap' as
+allocator. The FreeBSD libc reserves a default memory pool of 1MB, which
+is no problem on FreeBSD because virtual memory is backed lazily with
+physical pages on demand. On Genode however, we immediately account the
+allocated memory, which implicates high quota requirements even for
+applications that use little memory. In contrast, Genode's heap allocates
+and accounts its backing store in relatively small chunks of a few KB.
+Therefore, the quota accounting for applications is much more in line with
+the actual memory usage. Furthermore, our custom 'malloc' implementation
+has the additional benefit of being thread safe.
+
+* Added i386-specific parts of gen lib, in particular longjmp, setjmp.
+
+
+Device-Driver-Environment Kit
+=============================
+
+* The DDE Kit uses our alarm framework (located in the 'os' repository) now
+  rather than its own event-scheduler implementation formerly called 'Tick'.
+
+* We refined the DDE Kit API and reduced the number of custom types. For
+  example, we removed the custom 'dde_kit_lock_t' and using
+  'struct dde_kit_lock' instead, and replaced 'dde_kit_thread_t' with
+  'struct dde_kit_thread'.
+
+Because of the apparent stabilization of the DDE Kit API, we have now added
+this API to Genode's official API reference.
+[http://genode.org/documentation/api/dde_kit_index - See the documentation of the DDE Kit API...]
+
+
+PS/2 input driver
+=================
+
+We improved the PS/2 keyboard driver by adding missing scan-code translations
+for the scan code set 1, in particular the cursor keys.
+
+
+Applications
+############
+
+Launchpad configuration
+=======================
+
+Launchpad is a graphical application for interactively starting and killing
+programs. It is used for the default demonstration of Genode. By default,
+launchpad displays a preconfigured list of programs and their respective
+default memory quotas. The user can tweak the memory quota for each entry
+with mouse and then start a program by clicking on its name. As an
+alternative to using the default list, you can now define the list manually
+by supplying a configuration to Launchpad. The following example tells
+launchpad to display a list of two launcher entries:
+
+!<config>
+!  <launcher>
+!    <filename>sdl_pathfind</filename>
+!    <ram_quota>10M</ram_quota>
+!  </launcher>
+!  <launcher>
+!    <filename>liquid_fb</filename>
+!    <ram_quota>10M</ram_quota>
+!  </launcher>
+!</config>
+
+To use this configuration for a Launchpad started via init, you can simply
+insert the launchpad configuration into the '<start>' node of the launchpad
+entry in init's 'config' file.
+
+
+Platform-specific changes
+#########################
+
+L4/Fiasco
+=========
+
+* Raise 'Blocking_canceled' exceptions on canceled IPC calls
+
+32-bit Linux
+============
+
+* We continued dissolving the dependency of Genode from the glibc by using
+  a custom 'getenv' implementation used during process creation.
+* By default, we compile now with '-nostdinc' and explicitly specify
+  '/usr/include' as include search directory only when needed. Previously,
+  a Genode application, which included a host include file by mistake, has
+  not raised any compilation error when compiled for the Linux version of
+  Genode. Now, all Genode platforms behave equally with regard to include
+  search directories.
+* We enforce using the actual compiler's C++ support libraries rather than
+  the default libraries installed on the host.
+
+
+Tools and build infrastructure
+##############################
+
+Official tool chain
+===================
+
+At the download section of our website, we used to provide a crosstool-based
+tool chain as pre-compiled binaries. Since we got several requests about
+how to build such a tool chain from scratch, we created custom utility for
+downloading, building, and installing the official Genode tool chain. You
+can find the utility at 'tool/tool_chain'. For usage instructions, just
+start 'tool_chain' without arguments. Because this utility is a plain script,
+you can follow and verify each step that we use for creating the Genode tool
+chain. Currently, this official tool chain is based on binutils 2.18 and
+gcc 4.2.4.
+
+As an alternative to installing the tool chain from source, we also
+provide pre-compiled binaries at the download section of our website.
+[http://genode.org/download/tool-chain - Visit our tool-chain download website...]
+
+For the Linux version of Genode, we still use the host's default gcc
+as tool chain. This way, we spare the hassle of downloading and installing
+a custom tool chain for somebody who wants to give Genode a quick try.
+With this is mind, we have fixes several small issues with gcc 4.3.2:
+
+* Fixed dependency generation for gcc-4.3.2. Older version of gcc used to
+  append a '.o' dependency at the target of '.d'-files. However, gcc-4.3.2
+  seems to handle the option '-MT' differently, resulting in a rule that
+  contains only the '.d' as target. Now, we explicitly specify both the
+  '.o' file and the '.d' file as target. Consequently, on older gcc
+  versions, the '.o' file appears twice but that is no problem.
+
+* Fixed assembler issue with the 'fnstsw' instruction in the C library.
+  This instruction does not accept eax but only ax as argument.
+
+Build-directory creation tool
+=============================
+
+We added a rule for creating a pre-configured build directory for the
+Pistachio version to our build-directory creation tool
+('tool/builddir/create_builddir'). Furthermore, we changed the default
+build configuration such that the official Genode tool chain is used for
+L4/Fiasco and L4ka::Pistachio.
+
+Build system
+============
+
+* Improved clean rule - visit each target directory only once
+* Stop the build process on the first error by default, for continuing
+  the build process depite of an error, you can use the '-i' argument
+  of make.
+* Compiler flags can now be set specific for compiling C and C++ sources.
+  This is needed because both variants allow different sets of warning
+  options. The new variables are called 'CC_CXX_OPT' and 'CC_C_OPT'.
+
+ISO image creation tool
+=======================
+
+We have created a convenient front end for 'genisoimage', which we
+use for testing Genode on Qemu. You can find this ISO-image-creation
+tool at 'tool/create_iso'. For usage instructions, simply start the
+tool without arguments.
+

@@ -1,0 +1,133 @@
+#
+# Build
+#
+
+set build_components {
+	core init drivers/timer drivers/pci
+	drivers/ahci test/ahci
+}
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="pci">
+		<resource name="RAM" quantum="2M"/>
+		<binary name="pci_drv"/>
+		<provides><service name="PCI"/></provides>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="ahci">
+		<binary name="ahci_drv" />
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+	</start>
+	<start name="test-ahci">
+		<resource name="RAM" quantum="2M" />
+		<route>
+			<service name="Block"><child name="ahci"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+set boot_modules {
+	core init timer pci_drv ahci_drv test-ahci
+}
+
+build_boot_image $boot_modules
+
+#
+# Qemu
+#
+
+set disk_image "bin/block.img"
+
+append qemu_args " -m 64 -nographic "
+append qemu_args " -drive id=disk,file=$disk_image,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
+
+if { [file exists $disk_image] == 0 } then {
+	# create random block device file
+	puts "creating disk image \"$disk_image\""
+	catch {
+		exec dd if=/dev/urandom of=$disk_image bs=512 count=20480
+	}
+}
+
+#
+# Test
+#
+
+run_genode_until "child exited with exit value 0.*\n" 10
+
+# pay only attention to the output of test-ahci
+grep_output {^\[init -> t}
+
+compare_output_to {
+	[init -> test-ahci] --- AHCI block driver test ---
+	[init -> test-ahci] We have 20480 blocks with a size of 512 bytes (10 MB)
+	[init -> test-ahci] Comparing block 0000000000: success
+	[init -> test-ahci] Comparing block 0000000640: success
+	[init -> test-ahci] Comparing block 0000001280: success
+	[init -> test-ahci] Comparing block 0000001920: success
+	[init -> test-ahci] Comparing block 0000002560: success
+	[init -> test-ahci] Comparing block 0000003200: success
+	[init -> test-ahci] Comparing block 0000003840: success
+	[init -> test-ahci] Comparing block 0000004480: success
+	[init -> test-ahci] Comparing block 0000005120: success
+	[init -> test-ahci] Comparing block 0000005760: success
+	[init -> test-ahci] Comparing block 0000006400: success
+	[init -> test-ahci] Comparing block 0000007040: success
+	[init -> test-ahci] Comparing block 0000007680: success
+	[init -> test-ahci] Comparing block 0000008320: success
+	[init -> test-ahci] Comparing block 0000008960: success
+	[init -> test-ahci] Comparing block 0000009600: success
+	[init -> test-ahci] Comparing block 0000010240: success
+	[init -> test-ahci] Comparing block 0000010880: success
+	[init -> test-ahci] Comparing block 0000011520: success
+	[init -> test-ahci] Comparing block 0000012160: success
+	[init -> test-ahci] Comparing block 0000012800: success
+	[init -> test-ahci] Comparing block 0000013440: success
+	[init -> test-ahci] Comparing block 0000014080: success
+	[init -> test-ahci] Comparing block 0000014720: success
+	[init -> test-ahci] Comparing block 0000015360: success
+	[init -> test-ahci] Comparing block 0000016000: success
+	[init -> test-ahci] Comparing block 0000016640: success
+	[init -> test-ahci] Comparing block 0000017280: success
+	[init -> test-ahci] Comparing block 0000017920: success
+	[init -> test-ahci] Comparing block 0000018560: success
+	[init -> test-ahci] Comparing block 0000019200: success
+	[init -> test-ahci] Comparing block 0000019840: success
+}
+

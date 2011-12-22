@@ -1,0 +1,32 @@
+diff --git a/demos/textedit/main.cpp b/demos/textedit/main.cpp
+--- a/demos/textedit/main.cpp
++++ b/demos/textedit/main.cpp
+@@ -48,7 +48,8 @@
+ 
+     QApplication a( argc, argv );
+     TextEdit mw;
+-    mw.resize( 700, 800 );
++    mw.move( 300, 0 );
++    mw.resize( 700, 700 );
+     mw.show();
+     return a.exec();
+ }
+diff --git a/demos/textedit/textedit.pro b/demos/textedit/textedit.pro
+--- a/demos/textedit/textedit.pro
++++ b/demos/textedit/textedit.pro
+@@ -8,10 +8,6 @@
+                   main.cpp
+ 
+ RESOURCES += textedit.qrc
+-build_all:!build_pass {
+-    CONFIG -= build_all
+-    CONFIG += release
+-}
+ 
+ # install
+ target.path = $$[QT_INSTALL_DEMOS]/textedit
+@@ -19,4 +15,3 @@
+ sources.path = $$[QT_INSTALL_DEMOS]/textedit
+ INSTALLS += target sources
+ 
+-symbian: include($$QT_SOURCE_TREE/demos/symbianpkgrules.pri)

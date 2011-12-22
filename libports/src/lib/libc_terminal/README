@@ -1,0 +1,6 @@
+The 'libc_terminal' plugin allows the use of Genode's terminal-session
+interface via file operations of the C library. The plugin responds to opening
+requests for the file "/dev/terminal". Read and write operations referring to
+the resulting file descriptor are redirected to a terminal service as defined
+via Genode's service routing policy. The plugin supports 'read', 'write',
+'stat', and 'select'.

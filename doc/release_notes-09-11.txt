@@ -1,0 +1,1017 @@
+
+
+              ==============================================
+              Release notes for the Genode OS Framework 9.11
+              ==============================================
+
+                               Genode Labs
+
+
+In contrast to the previous release, which had been mainly about important
+refinements and optimizations under the hood, the release 9.11 is focused on
+new features.
+
+Our brand new packet streaming framework enables the efficient communication of
+bulk data between processes based on a shared-memory protocol and asynchronous
+signalling. We put this new facility to use for the new NIC session interface.
+This interface allows us to execute network drivers and network protocol stacks
+in distinct processes. The most interesting current use case is the new
+integration of the light-weight IP stack (lwIP) into Genode.
+The most noticeable platform-related addition is the new support for the ARM
+architecture to the OKL4 version of the framework.
+
+As with every release, we refined recently introduced features and tightly
+integrated them into our mainline development. The most prominent of these
+features is dynamic linking support, which was introduced with the previous
+release and has now become fully integrated in the framework and the build
+system. Also our steady improvement of the Linux device-driver
+environment yields fruit in the form of USB storage support. With regard to
+Qt4, we are proud to announce the availability of the Qt4/Webkit library
+on all kernels supported by Genode.
+
+Furthermore, we added the paravirtualized Linux kernel called OKLinux to
+the official Genode distribution. This variant of Linux can be executed
+on top of the OKL4 version of Genode and provides a binary-compatible execution
+environment for Linux programs alongside low-complexity native Genode
+programs.
+
+This document compiles these and more changes between the versions 9.08 and
+9.11 of Genode. It contains new bits of documentation and tries to put our
+development into a broader context.
+
+
+Base framework
+##############
+
+The 'base-host' platform
+========================
+
+We added a new platform repository called 'base-host' to the Genode
+distribution. This repository contains dummy implementations of
+platform-specific Genode APIs to enable the compilation of Genode for the host
+platform. Because the repository provides dummy implementations, most of the
+generated binaries will not work. However, the repository serves two important
+purposes. It documents all platform-specific APIs that must be filled out when
+porting Genode to another platform, and it is the build environment for unit
+tests executed on the host platform.
+
+
+Signalling-framework refinements
+================================
+
+With our work on the packet-streaming facility described in Section
+[Packet-stream interface], we discovered a not yet supported use case for the
+signalling framework.
+
+The original implementation expected one or more signal-handling threads
+to block or poll for signals from potentially different sources and dispatch
+them in the order of arrival.
+Such a thread would instantiate one signal receiver associated with
+potentially many signal contexts (representing different signal sources).
+
+The new use case, however, requires one thread to be able to selectively handle
+a subset of signal contexts at a time. The API already facilitated this
+use case by a simple instantiation of multiple signal receivers and let one
+thread handle signals for one or another signal source by querying the
+different receivers.
+Until now, this use case was not supported by the underlying implementation
+because signals were submitted to signal receivers, which could only hold
+one pending signal. A signal could only be supplied to a receiver if
+there was no pending signal already stored at the receiver. Otherwise,
+signal delivery for the complete process stalled. We have now changed
+the implementation such that signals are always supplied to signal contexts
+instead of receivers. This way, the order of signal arrival and signal
+handling becomes completely decoupled and clears the way for a much more
+flexible use of the signalling framework.
+
+
+:Interface changes:
+
+Because the capability for signal submission refers to a signal context
+rather than a signal receiver, we changed the class names of the signal API
+accordingly. The previously called 'Signal_receiver_capability' is now called
+'Signal_context_capability'. We also streamlined the interface of core's SIGNAL
+service according to this new naming scheme. The latter change, however, is
+completely transparent at the Genode API level.
+
+
+C++ runtime improvements
+========================
+
+The base framework of Genode is written in C++, but without a C runtime
+underneath. The C++ support libraries, however, use to depend on certain
+functions normally provided by the C library. Therefore, Genode has to provide
+custom implementations of these functions. This C++ runtime environment is
+encapsulated in the 'cxx' library. We use to complement the 'cxx' library as
+needed.
+
+One feature that was previously missing is proper synchronization of static
+constructors. In contrast to constructors of global variables, which are
+executed by the startup code before any other threads are created, static
+constructors are executed lazily, potentially by different threads. A typical
+static constructor looks like this:
+
+! Some_object *get_some_object() {
+!   static Some_object o;
+!   return &o;
+! }
+
+When calling the function 'get_some_object' the first time, The instance of
+'Some_object' is constructed at a static memory location. For all subsequent
+calls of 'get_some_object', the once created object is not constructed again
+but reused. This is a very handy alternative to global constructors when
+objects inter-depend on each other. In contrast to the construction order
+of global constructors, which is arbitrary, the call order of static constructors
+is implicitly defined by the code such that object dependencies are recognised.
+However, because static constructors are executed lazily, they may be called
+by different threads. The previous version of 'cxx' had no synchronization
+in place for protecting a static constructor from being concurrently
+executed by more than one thread, resulting in a 'recursive_init_error'
+run-time exception.
+
+With the Genode workloads getting more advanced and dynamic, we have seen
+this condition to trigger and have added proper support for guarded static
+C++ constructors into the 'cxx' library.
+
+
+Library-based AVL tree
+======================
+
+Our AVL-tree implementation in 'base/include/util/avl_tree.h' is a fundamental
+data structure for the framework. It is used at numerous places such as
+memory allocators, address-space layout management, and the server-object
+framework. Up to now, this implementation was a big template, instantiated
+for each data type to organize. Moreover, most operations were implemented
+using inline functions. By statically profiling the layout of Genode's
+binaries, we observed that this inline code ended up multiple times in
+the binaries. However, the program logic of all those instances was essentially
+the same (e.g., how to perform a tree rotation). Only the policy (i.e., the
+sort criterion) differs. We now have re-implemented the AVL tree as two parts,
+the actual AVL-tree algorithm, which is independent from any template
+parameters and resides in a library called 'avl_tree', and a policy-dependent
+front-end template class residing in the 'avl_tree.h' header file.
+
+To our delight, this change reduced the average size of Genode's binaries
+by 10%. For example, the core binary for OKL4 on x86 went from 305 KB
+down to only 270 KB.
+
+
+:Interface change:
+
+The new AVL-tree implementation comes along with a slight API change.  The
+operation to remove a node from an AVL tree used to be a member function of the
+'Avl_node' object to remove. This function is now being provided by the
+'Avl_tree' taking an 'Avl_node' as argument. Because the 'Avl_tree' is a
+container of 'Avl_node' objects, this change makes the AVL tree more consistent
+with other container classes such as 'List' and 'Fifo'.
+
+
+Initial support for the ARM architecture
+########################################
+
+Right from the start of the project, the portability of the framework was a
+primary concern. This is reflected by the framework's unique capability to
+seamlessly run on four different kernels. With regard to the portability
+among different CPU architectures, however, the development was focused on the
+x86 architecture as this architecture is most common. With the release 9.11,
+the project moves beyond the x86 architecture by adding support ARM CPUs and an
+exemplary ARM-based SoC platform, namely GTA01.  Because of all current Genode
+base platforms the OKL4 is the most widely used kernel on ARM-based devices,
+we have focused our efforts on this kernel first. The 'base-okl4' repository
+comes now with support for the ARM-based GTA01 platform as used for the
+Openmoko project. We choose this platform because it is supported
+out-of-the-box by the OKL4 2.1.1 distribution. The ARM-specific code that
+we had to add to the framework is surprisingly little. It covers the assembly
+startup code for executables, support code for atomic operations, and the
+platform driver for GTA01. Because the OKL4 kernels provides abstractions
+for all other CPU-specific peculiarities, the code for all framework libraries
+and components are the same for ARM and x86. This also includes the C++
+startup code and the linker script.
+
+The procedure for trying out the new ARM support with the GTA01 platform using
+Qemu is decribed at a dedicated Wiki page:
+
+
+:Genode/OKL4 on the GTA01 platfrom:
+
+  [http://genode.org/community/wiki/GenodeOKL4OnTheGTA01Platform - Genode.org Community Wiki]
+
+Both the OKL4 version 2.1.1 and the GTA01 chip are not the most current
+platforms but this combination turned out to be good as starting point.
+Because we use OKL4 2.1.1 on a regular basis on x86, using this kernel on ARM
+is an evolutionary intermediate step towards moving on to more recent kernels.
+
+
+:Limitiations:
+
+* The platform driver for GTA01 is pretty limited. It is just as a
+  show case for running Genode on the Qemu-neo1973 emulator. The driver
+  is not tested on real hardware.
+* This release contains the initial support, which currently covers the
+  base framework, the 'os', and the 'demo' repositories. Other repositories
+  such as 'libc', 'linux_drivers', and 'qt4' are not supported yet.
+* Dynamic linking is not yet not supported on ARM
+
+
+Paravirtualized Linux on Genode/OKL4
+####################################
+
+OKLinux is a para-virtualized version of the Linux kernel running on top of the
+micro-kernel OKL4. It enables us to execute Linux applications in the Genode
+environment side-by-side with low-complexity native Genode applications, which
+can implement security-critical functions without relying on the
+high-complexity Linux kernel.  Compared with most existing virtualization
+solutions including Xen and KVM, the trusted computing base for such
+security-critical components is one or more magnitudes smaller (the OKL4 kernel
++ Genode base framework are less than 30,000 lines of code).
+
+The original code of OKLinux relies on the Iguana framework - a bunch of
+server components and libraries to simplify construction of applications
+running on top of OKL4. The new 'oklinux' Genode repository contains a small
+OKLinux support library, as well as a patch for OKLinux 2.6.23, that replaces
+Iguana by the Genode framework. Nevertheless, our version of OKLinux stays to
+be dependent on the OKL4 kernel, meaning that you can only use it in
+combination with Genode running on top of OKL4.
+
+Usage
+=====
+
+If you haven't build Genode for OKL4 yet, please refer to the following document:
+
+:[http://genode.org/community/wiki/GenodeOnOKL4 - Genode on OKL4 Wiki page]:
+  This Wiki page contains the information on how to build and use
+  Genode with OKL4.
+
+For building OKLinux for Genode, you first need to download and patch the
+original sources. The top-level makefile of the 'oklinux' repository automates
+this task. Just issue:
+
+! make prepare
+
+Afterwards you need to include the 'oklinux' repository into the Genode build
+process. Just add the path to this directory to the 'REPOSITORIES' declaration
+of the 'etc/build.conf' file within your build directory.
+Now, you can change to your build directory and simply type:
+
+! make oklinux
+
+That's all. The 'bin/' directory within your build directory should now contain
+a symbolic link to the 'vmlinux' binary.
+To test your Linux binary, you also need to tweak the config file for init and
+for the elfweaver tool. You will find examples for this in the 'config/'
+directory of the 'oklinux' repository. Moreover, you will need to add a RAM disk
+file to your setup as OKLinux for Genode only supports RAM disks by now.
+
+RAM disk
+========
+
+OKLinux provides a special block device driver, which uses a RAM disk as
+backing-store. You can specify your RAM disk file on the kernel command line of
+Linux by setting the 'igms_name=' parameter.
+If you use a RAM-disk file that contains only a file system you have to set the
+root parameter on the kernel command line to '/dev/igms0'. If your RAM disk
+contains a whole partition table, state '/dev/igms0pn', whereby n stands for
+the partition number containing the root file system.
+
+Kernel command line
+===================
+
+You can state the Linux kernel command line by using the XML config-file of the
+init node that starts your Linux instance. In addition to the filename and
+quota within the start section of Linux, you simply add the following:
+
+! <config>
+!      <commandline>igms_name=ramdisk root=/dev/igms0p1</commandline>
+! </config>
+
+Configure Linux
+===============
+
+This OKLinux package contains only a minimal Linux configuration. Especially,
+any hardware drivers are missing, as Genode/OKL4 doesn't allow direct hardware
+access from Linux. Instead, Linux accesses hardware indirectly through Genode
+services. The current version of OKLinux comes with stub drivers for connecting
+Linux to Genode's 'Input_session', 'Timer_session', and 'Framebuffer_session'
+interfaces and we plan to add support for more device classes in the future.
+
+If you want to enable/disable options in Linux, you can simply do so by using
+the normal Linux build system. You will find the '.config' file Linux is using
+within the 'oklinux/' directory of your build directory. If you don't want to
+tweak '.config' directly, you can also change to the 'oklinux/' directory of
+your build directory and issue:
+
+! ARCH=l4 SYSTEM=i386 make menuconfig
+
+Then you will get the well known ncurses interface.
+
+Troubleshooting
+===============
+
+If you run into problems when building OKLinux and you want the build process
+to be somehow more verbose, you can build OKLinux this way:
+
+! VERBOSE_LX_MK=1 make oklinux
+
+Example
+=======
+
+The following screenshot shows Genode running on OKL4 with two instances
+of OKLinux running. One instance booted the TinyCore Linux distribution
+including the X Window System. The other instance booted a busybox-based
+RAM Disk and runs with just about 16 MB of RAM. Each Linux kernel uses
+a separate instance of the Liquid FB virtual frame buffer:
+
+[image img/tinycore_busybox_screen]
+
+The Genode process tree looks as follows (the figure omits usual Genode
+components such as device drivers for PCI, PS/2, VESA, and the Timer):
+
+[image img/tinycore_busybox]
+
+The Linux Launcher node is just a slightly modified Init node with the only
+difference being that requests for sessions to the Nitpicker GUI server or
+to the timer are always delegated to the parent rather than to another
+child.
+
+
+Operating-system services and libraries
+#######################################
+
+Completed support for dynamic linking
+=====================================
+
+With the previous release, we introduced the initial version of a dynamic
+linker for Genode. This version came in the form of a separate source-code
+repository called 'ldso' containing the dynamic linker and the linker
+scripts for building shared libraries and dynamically linked executables.
+However, some pieces were still missing to make the dynamic linker
+generally usable in practice. The Genode build system lacked proper support
+for building and using shared libraries and the dynamic linker had been
+only tested on the x86_32 platform on Pistachio and OKL4.
+In the meanwhile, we filled these gaps. With the release 9.11, we completely
+dissolved the dependency of the dynamic linker from the C library and,
+thereby, could make the dynamic linker a regular part of the 'os' repository.
+It now resides in the 'os/src/ldso' directory and supports all Genode base
+platforms L4/Fiasco, L4ka::Pistachio, OKL4, and Linux on the x86_32 and
+x86_64 architectures. We are especially delighted about the dynamic linker
+functioning seamlessly on the Linux platform. Because 'ldso' uses only
+the Genode API as back end, there are no platform-specific quirks needed.
+
+
+:Usage:
+
+To build a shared library instead of a regular static library, you just need to
+declare 'SHARED_LIB = yes' in the library-description file.  When doing so, a
+'<libname>.lib.so' file will be generated and installed in the
+'<build-dir>/bin/' directory.  For building an executable that uses a shared
+library, no special precautions are needed. The build system will automatically
+detect the use of shared libraries, concludes that the binary must be
+dynamically linked, and will use the correct linker script.  When loading a
+dynamically linked program, the dynamic linker 'lsdo' and all used shared
+objects must be loaded as well.
+
+
+:Integration with the framework:
+
+On Genode, the 'process' library provides the API to create new processes from
+ELF executables. The user of the 'process' library can register a capability to
+a dataspace containing the dynamic linker via the function
+'Process::dynamic_linker'. When creating a new process, the library first
+revisits the ELF header of the executable to determine whether the binary is
+statically or dynamically linked. If statically linked, the process library
+proceeds with loading the ELF binary. Otherwise, it loads the dynamic linker as
+registered beforehand. When the dynamic linker (ldso) starts up, it requests
+the dataspace of the dynamically linked executable by opening a ROM session for
+the magic file called 'binary'. Note that the dynamic linker does not even need
+to know the real name of executable. Then ldso further loads all shared
+libraries needed for the executable via ROM sessions with the names of the
+respective shared object files and populates the local address space. After
+having initialized the address space for the new executable, ldso jumps to the
+executable's main function.
+
+
+Packet-stream interface
+=======================
+
+Up to now, Genode provides synchronous IPC calls and asynchronous signals as
+inter-process communication primitives. The IPC framework transfers message
+payload by copying data between processes via the kernel. The signalling
+mechanism provides semantics similar to interrupts but does not support the
+transfer of message payloads. With the new packet-stream interface, we
+complement those inter-process communication facilities with a mechanism
+that carries payload over a shared memory block employing an asynchronous
+data-flow protocol. It is geared towards large bulk payloads such as
+network traffic, block-device data, video frames, sound samples, and USB
+URB packets.
+
+The packet-stream interface comes in the form of the single header file
+'os/packet_stream.h' and supports the unidirectional streaming of bulk data
+between processes via a shared-memory block. The public interface consists of
+the two class templates 'Packet_stream_source', and 'Packet_stream_sink'. Both
+communication parties agree on a policy with regard to the organization of the
+communication buffer by specifying the same 'Packet_stream_policy' as template
+argument.
+
+[image img/packet_stream]
+
+As illustrated in the Figure above, the communication buffer consists of
+three parts, a submit queue, an acknowledgement queue, and a bulk buffer.
+The submit queue contains packets generated by the source to be processed
+by the sink. The acknowledgement queue contains packets that are processed
+and acknowledged by the sink. The bulk buffer contains the actual payload.
+The assignment of packets to bulk-buffer regions is performed by the
+source.
+
+The interplay between source and sink for processing a single packet looks
+as follows:
+
+# The source allocates a region of the bulk buffer for storing the packet
+  payload using 'alloc_packet'. It then requests the local start address of
+  the payload using 'packet_content' and fills the packet with data
+# The source submits the packet to the submit queue via 'submit_packet'
+# The sink requests a packet from the submit queue using 'get_packet',
+  determines the local start address of the payload using 'packet_content',
+  and processes the contained data
+# After having finished the processing of the packet, the sink acknowledges
+  the packet using 'acknowledge_packet', placing the packet into the
+  acknowledgement queue
+# The source reads the packet from the acknowledgement queue and releases
+  the packet using 'release_packet'. Thereby, the region of the bulk buffer
+  that was used by the packet becomes marked as free.
+
+This protocol has four corner cases that are handled by signals:
+
+:submit queue is full: when the source is trying to submit a new packet.
+  In this case, the source blocks and waits for the sink to remove packets
+  from the submit queue. If the sink observes such a condition (calling
+  'get_packet' on a full submit queue, it delivers a 'ready_to_submit'
+  signal to wake up the source.
+
+:submit queue is empty: when the sink tries to obtain a packet via
+  'get_packet'. The sink is going to block. If the source places a
+  packet into an empty submit queue, it delivers a 'packet_avail'
+  signal to wake up the sink.
+
+:acknowledgement queue is full: when the sink tries to acknowledge a packet
+  using 'acknowledge_packet'. The sink is going to block until the source
+  removes an acknowledged packet from the acknowledgement queue and delivers
+  a 'ready_to_ack' signal.
+
+:acknowledgement queue is empty: when the source tries to obtain an
+  acknowledged packet using 'get_acked_packet'. In this case, the source
+  will block until the sink places another acknowledged packet into the
+  empty acknowledgement queue and delivers a 'ack_avail' signal.
+
+These conditions can be avoided by querying the state of the submit and
+acknowledge buffers using the functions 'packet_avail',
+'ready_to_submit', 'ready_to_ack', and 'ack_avail'.
+
+If bidirectional data exchange between two processes is desired, two pairs
+of 'Packet_stream_source' and 'Packet_stream_sink' should be instantiated.
+
+
+NIC-session interface
+=====================
+
+The NIC session interface is the first application of our new packet stream
+facility. It allows executing network drivers as separate processes rather
+than linked against the network protocol stack. A NIC session consists of
+two packet streams, the transmission stream (TX) for sending packets and
+the reception stream (RX) for receiving packets.  Furthermore, each NIC
+session comprises a simple RPC interface for requesting the MAC address of
+the network adaptor and for defining signal handlers for the signals TX
+ready-for-submit, TX acknowledgements-available, RX ready-to-ack, and RX
+packet-available. By default, those signals are handled by default signal
+handlers contained in blocking packet-stream functions. However, it is
+possible to override the data-flow handlers to implement semantics similar
+to the POSIX 'select' function, for example to wait for all possible
+signals of multiple NIC sessions using only a single blocking function.
+You can find the NIC-session interface as part of the 'os' repository
+at 'os/include/nic_session/'.
+
+
+Light-weight IP stack (lwIP)
+============================
+
+Our port of the light-weight IP stack (lwIP) builds upon the foundation
+laid with the NIC-session interface.
+
+The following Figure illustrates the integration of a networking
+application with lwIP that uses the NIC-session interface as back end.
+
+[image img/lwip]
+
+The port of the lwIP stack resides in the new 'libports' repository
+described in Section [New libports repository]. It comes with
+two examples, a loopback demonstration and a minimalistic HTTP server.
+The examples are located at the 'libports' repository at 'src/test/lwip/'.
+The lwIP back-end acts as a client of the NIC-session interface.
+For the server counterpart, we added a DDE-Linux based stand-alone
+network driver for PCnet32 to the 'linux_drivers' repository.
+
+For starting the HTTP-server test on L4ka::Pistachio, OKL4, and L4/Fiasco,
+the following config file can be used:
+
+! <config>
+!   <start>
+!     <filename>timer</filename>
+!     <ram_quota>512K</ram_quota>
+!   </start>
+!   <start>
+!     <filename>pci_drv</filename>
+!     <ram_quota>512K</ram_quota>
+!   </start>
+!   <start>
+!     <filename>nic_drv</filename>
+!     <ram_quota>512K</ram_quota>
+!   </start>
+!   <start>
+!     <filename>lwip_httpsrv_test</filename>
+!     <ram_quota>1M</ram_quota>
+!   </start>
+! </config>
+
+For trying out the example with Qemu, please refer to the instructions
+given in the
+[http://genode.org/documentation/release-notes/9.02#section-4 - description]
+of the initial networking support added in Genode version 9.02.
+
+
+MMX-based 2D blitting library
+=============================
+
+Previous Genode releases already featured a 2D blitting library with a
+MMX-based optimization for x86_32. This optimization, however, was not enabled
+by default. Starting with the current release, several graphics-related parts
+of Genode will profit from our revisited version of this library, which is now
+enabled for both x86_32 and x86_64 by default. From this change, you can expect
+a definite performance boost of the Nitpicker GUI server and all
+Scout-widget-based applications such as the tutorial browser and launchpad. The
+library interface is located at 'os/include/blit/blit.h'. On architectures with
+no MMX, a generic implementation of the interface is used as fall back, which
+makes it safe to use the 'blit' interface for developing portable
+applications.
+
+
+Zero-footprint runtime for Ada/Spark
+====================================
+
+At Genode Labs, we are exploring the use of the Spark subset of Ada to
+implement security-critical code and use Genode as development platform.
+For this reason, we have added support for executing freestanding Ada
+code on Genode. An example of the use of Ada on Genode can be found at
+'base/src/test/ada'.
+
+The program relies on the normal startup procedure of a Genode process.
+Execution starts at the 'crt0' assembly entry provided by the startup library.
+The 'crt0' code sets up the stack of the main thread and calls the '_main'
+function implemented in the C++ portion of Genode's startup library. In turn,
+the '_main' function calls 'main' of the actual program. The main function of
+this example calls the Ada main procedure. The test further exercises the call
+of C functions from Ada code. So the integration of Ada and C code is almost
+seamless.
+
+For building the Ada test program, you must have installed the GNU GNAT Ada
+compiler. Right now, we are using the host version of this compiler, which
+is save as long as we do not use advanced Ada features such as exceptions.
+To enable building the test program, add 'gnat' to the 'SPECS' declaration
+of your '<builddir>/etc/specs.conf'. Otherwise, the Genode build system
+will skip the target.
+
+Please note that the current version of this program does not use 'gnatbind'.
+Therefore, package elaboration is not executed.
+
+
+Misc improvements of OS-level services and libraries
+====================================================
+
+:Init:
+
+  Fixed quota-limitation problem in init. There was a race between the
+  call of 'env()->ram_session()->avail_quota()' and already running children
+  that donated quota via init to a server. During the quota transfer, child
+  quota gets temporarily transferred to init to be further transferred to
+  the server. In the worst case, such temporary quota was then assigned to
+  the last child when limiting its quota to 'avail_quota()'. We solved this
+  problem by deferring the start of child programs until all quota calculations
+  are finished.
+
+:Nitpicker GUI server:
+
+  Prevent superfluous screen updates when switching clicking on different
+  views of the same session, making the GUI more responsive.
+
+
+New libports repository
+#######################
+
+With proper shared-library support in place and with our C runtime getting
+more and more mature, we feel an increased desire to port existing popular
+libraries to Genode. For this purpose, we have now introduced a dedicated
+source-code repository called 'libports'.  Following the approach taken
+with our Qt4 porting effort, this repository does not contain actual source
+code but a mechanism to download upstream library source codes and adapting
+them to Genode. This way, we can easily keep track of the adaptions needed
+for Genode and update libraries to later versions.
+
+:Usage:
+
+At the root of the 'libports' repository, there is a 'Makefile' automating
+the task of downloading and preparing the library source codes. By just
+typing 'make', you get an overview of the available libraries and further
+instructions.
+
+In the common case, you might just want to prepare all libraries by issuing:
+! make prepare
+
+Alternatively, you can select one particular library to prepare by
+specifying the base name of a library (wihout the version number) as
+command-line argument:
+! make prepare LIB=freetype
+
+After having prepared the 'libports' repository, we are ready to include
+the repository into the build process by appending it to the 'REPOSITORIES'
+declaration of your '<build-dir>/etc/build.conf' file.
+
+:Under the hood:
+
+For each library, there is a file contained in the 'libports/ports/'
+subdirectory. The file is named after the library and contains the
+library-specific rules for downloading the source code and installing
+header files.
+
+For reference, we have included ports of *Freetype2* and *Jpeg*.  Note that
+currently, these ports serve mainly the purpose of illustrating the use of the
+'libports' repository and are not thoroughly tested. However, we have
+successfully used them with Qt4.
+
+:How does 'libports' relate to the other repositories?:
+
+The 'libports' repository is meant as a place for porting popular libraries
+that usually expect a POSIX-like environment - similar to the environment
+provided by Genode's 'libc' repository. So 'libports' depends on 'libc' and,
+consequently, on the repositories 'libc' depends on, most specifically the 'os'
+repository. Because the dynamic linker is now a regular part of the 'os'
+repository, libraries contained in 'libports' can (and should) be built as
+shared libraries.
+
+
+Device drivers
+##############
+
+Device-driver environment
+=========================
+
+We steadily improve our device-driver environment for executing Linux drivers
+directly on Genode. For this release, we updated the Linux environment to the
+Linux kernel version 2.6.20.21, and improved several parts of the
+Linux-specific code, in particular the handling timers and tasklets.
+
+In the DDE Kit, we made the 'free()' function compatible with C99 (accepting a
+NULL pointer as argument) and fixed a memory leak.
+
+
+USB storage
+===========
+
+We extended our USB stack with the driver infrastructure needed for
+accessing USB storage devices. The USB stack is ported from the Linux
+kernel using the Linux device-driver environment. Our Genode-specific
+support code consists of two parts:
+
+* We added emulation code for the Linux SCSI protocol layer as relied
+  on by the Linux USB stack. The currently supported SCSI commands are INQUIRY,
+  READ_10, WRITE_10, and READ_CAPACITY.  Furthermore, we added a custom block
+  interface at 'linux_drivers/include/dde_linux26/block.h', which still has a
+  number of limitations (thread safe, synchronous, single block r/w requests
+  only).
+* For the file-system layer, we ported the
+  [http://elm-chan.org/fsw/ff/00index_e.html - FatFs R0.07e library]
+  to Genode. This library allows us to access the directories and files of the
+  FAT file system on the USB device. It has been ported using our new
+  'libports' repository.
+
+The new USB storage support can be tested using a test program supplied with
+the 'linux_drivers' repository. It runs on all base platforms except on Linux.
+The source code of the test is located at
+'src/src/test/dde_linux26_usbstorage'. For compiling, you need to download the
+'libffat' first. From the 'libports' repository, you can issue:
+! make prepare LIB=ffat
+
+Furthermore, you must ensure that both the 'libports' and 'linux_drivers'
+repositories are specified in the 'REPOSITORIES' declaration in your
+'<builddir>/etc/build.conf' file. Because of the dependency of the USB-storage
+test from libffat, the program is not built by default until explicitely
+enabled by stating that 'libffat' is available.  This must be done by extending
+the 'SPECS' variable in your '<builddir>/etc/specs.conf':
+! SPECS += libffat
+
+After these preparations, you can build the test program from your
+build directory:
+! make test/dde_linux26_usbstorage
+
+For executing the test, you need to specify Genode's 'timer' and 'pci_drv'
+alongside the 'test-dde_linux26_usbstorage' program. The test program
+will access an attached USB storage device, output the root directory
+content and load the first 16 bytes of the first file. You can try this
+out on Qemu by using a virtual USB storage device. First create a
+disk image with a FAT file system:
+! dd if=/dev/zero of=<usb-device-file> count=2048
+! mkfs.vfat <usb-device-file>
+! mount -oloop <usb-device-file> <mount-dir>
+! cp <some data> <mount-dir>
+! umount <mount-dir>
+
+Then you can attach this disk image to Qemu using the arguments
+'-usb -usbdevice disk:<usb-device-file>'.
+
+
+PS/2 mouse and keyboard driver
+==============================
+
+We improved Genode's native PS/2 driver to be more robust against delays at
+startup. During the time after the startup of the PS/2 driver until a
+client connects, incoming input events used to fill up and eventually overflow
+the event queue. Now, we start sampling input events only after a client
+connects to the PS/2 driver.
+
+Furthermore, we have added support for the Intellimouse ImPS/2 and ExPS/2
+protocol extensions to support mice with a vertical scroll wheel and
+5-button mouses. The improvement required no changes of the 'Input::Event'
+interface. Scroll-wheel events are reported as 'WHEEL' events with the wheel
+count delivered as 'ry' value. The buttons correspond to the key codes
+'BTN_LEFT', 'BTN_RIGHT', 'BTN_MIDDLE', 'BTN_SIDE', 'BTN_EXTRA'.
+
+Regarding the keyboard driver, we do not print messages on the occurrence of
+key-repeat events any longer. These messages tended to significantly slow down
+keyboard-based applications such as the OKLinux console.
+
+
+NIC driver implementing the NIC-session interface
+=================================================
+
+We added a new NIC driver using the Linux Device Driver Environment, which
+implements the server side of the new NIC-session interface described in
+Section [NIC-session Interface]. The currently used Linux driver is 'pcnet'
+that is implemented in Qemu. Nevertheless, it should be straight forward to
+add other Linux network drivers the same way.
+
+
+Qt4 and Webkit
+##############
+
+We have extended our Qt4 port with Webkit support, which is one of the most
+complex components of Qt4. One particularly interesting point was the dependency
+of the JavaScript engine from the C++ standard template library. The Genode
+tool chain, however, already features the STL headers, which worked out nicely
+once we figured out a way to wrest the information about the STL header
+location from the compiler.
+
+Because Qt4 applications have exceedingly large binary sizes relying on static
+linking, we put Genode's newly available shared-library support to good use by
+declaring all Qt4 libraries as shared objects. This way, Qt4 applications have
+now become reasonably small. For example, the binary of the Tetrix example went
+from over 10MB down to about 600KB.
+
+Since the Genode release 9.11, Qt4 depends on the 'libports' repository,
+specifically on the 'freetype2' and 'jpeg' libraries. Please make sure
+that you called the top-level Makefile of the 'libports' repository
+for those preparing those libraries and that your 'REPOSITORIES' declaration
+contains the 'libports' repository.
+
+
+Applications
+############
+
+Seamless Xvfb integration into Genode on Linux
+==============================================
+
+Xvfb is a virtual X server that uses a plain file as frame buffer instead of a
+physical screen. The 'xvfb' glue program makes an Xvfb session available to the
+Linux version of Genode such that both native Genode programs and X clients can
+run seamlessly integrated in one Nitpicker session. Using the 'xvfb' glue
+program contained in the 'os/src/app/xvfb' directory. Because Xvfb is executed
+as Nitpicker client, it is possible to integrate multiple instances of Xvfb
+into the same Nitpicker session.
+
+[image img/xvfb_screen]
+
+The scenario above uses two instances of Xvfb, which are displayed by the
+Nitpicker GUI server executed on Genode. Each Xvfb process is connected
+to Genode via a xvfb adaptor program, which is hybrid using both the Linux
+API (for accessing the virtual frame buffer and performing its role as
+X client) and the Genode API (for its role as Nitpicker client).
+
+[image img/xvfb]
+
+
+:Preconditions for compiling:
+
+The xvfb adaptor tracks dirty screen regions using the X damage extension
+and injects user-input events into the X server using the X test extension.
+So you need the development packages of both extensions to compile it. The
+Debian package for the X damage extension is called 'libxdamage-dev'. The
+X test extension is normally installed by default or resides in a package
+called 'libxtst-dev'. Furthermore you need to enhance your 'SPECS' declaration
+in your '<builddir>/etc/specs.conf' file as follows:
+
+! SPECS += x11 xdamage xtest
+
+
+:Usage:
+
+First start Xvfb using the following command-line arguments:
+
+! Xvfb :1 -fbdir /tmp -screen 0 1024x768x16
+
+While Xvfb is running, '/tmp/Xvfb_screen0' will contain the content of the X
+server's frame buffer. This file must be specified for the 'xvfb' declaration
+in the config file. In addition, the display of X server instance must be
+declared via the 'display' tag. For example:
+
+! <config>
+!   <display>:1</display>
+!   <xvfb>/tmp/Xvfb_screen0</xvfb>
+! </config>
+
+
+:Known Limitations:
+
+* With the current version, some key codes are not mapped correctly.
+* The screen mode of Nitpicker and the Xvfb session must be the same.
+  Only modes with 16bit color depth are supported.
+
+
+Backdrop application
+====================
+
+For the Genode Live CD, we added a simple backdrop application to the 'demo'
+repository, residing in 'src/app/backdrop'. It uses libpng to display a PNG
+image as background of the Nitpicker GUI server.
+
+
+:Usage:
+
+You have to specify the name of the PNG file to be used as background
+image via a declaration in your config file:
+
+! <config>
+!   <image>background.png</image>
+! </config>
+
+
+:Limitations:
+
+The PNG file is expected to be equal to the screen size. No scaling
+or tiling is supported.
+
+
+Extended configurability of native applications
+===============================================
+
+:Launchpad:
+
+By default, launchpad displays a preconfigured list of programs and their
+respective default memory quotas. The user can tweak the memory quota
+for each entry with mouse and then start a program by clicking on its
+name. As an alternative to using the default list, you can define the list
+manually by supplying a configuration to Launchpad. The following example
+configuration tells launchpad to display a list of two launcher entries:
+
+!<config>
+!  <launcher>
+!    <filename>sdl_pathfind</filename>
+!    <ram_quota>10M</ram_quota>
+!  </launcher>
+!  <launcher>
+!    <filename>liquid_fb</filename>
+!    <ram_quota>10M</ram_quota>
+!  </launcher>
+!  <launcher>
+!    <filename>init</filename>
+!    <ram_quota>10M</ram_quota>
+!    <config>
+!      <start>
+!        <filename>hello</filename>
+!        <ram_quota>1M</ram_quota>
+!      </start>
+!    </config>
+!  </launcher>
+!</config>
+
+To use this configuration for a Launchpad started via init, you can
+simply insert the launchpad configuration into the '<start>' node
+of the launchpad entry in init's 'config' file.
+
+
+:Liquid frame buffer:
+
+Liquid frame buffer is an implementation of the frame buffer interface
+running as a client of the Nitpicker GUI server. It supports the
+following configuration options. The example shows the default
+values.
+
+! <config>
+!
+!   <!-- enable the animated background,
+!        valid values or 'on' and 'off' -->
+!   <animate>on</animate>
+!
+!   <!-- the initial window position and
+!        size of the virtual frame buffer -->
+!   <x>400</x>
+!   <y>270</y>
+!   <width>500</width>
+!   <height>400</height>
+!
+!   <!-- set the window title -->
+!   <title>Liquid Framebuffer</title>
+!
+! </config>
+
+Because Liquid frame buffer creates the virtual frame-buffer window at
+start time, not at session-creation time, sufficient memory resources must
+be provided when starting the program. Consequently, the client does not
+need to donate memory for the frame buffer backing store.
+
+Liquid frame buffer supports only one client. If multiple virtual frame
+buffers are needed, multiple instances of the program should be used.
+
+
+Misc improvements of native applications
+========================================
+
+* Fixed keyboard handling in Liquid FB, now all keyboard events are directed
+  to the window content, which makes Liquid FB more appropriate for hosting
+  an OKLinux console.
+
+* Replaced slow pixel copy code of the scout widget set with the MMX-based 2D
+  blitting library and thereby improved the graphics performance of
+  applications such as launchpad, liquid FB, and scout.
+
+* Defer creation of Nitpicker view to the first buffer refresh. This avoids
+  artifacts when moving the mouse over designated view area during at the
+  startup of a scout application.
+
+
+Platform-specific changes
+#########################
+
+:L4ka::Pistachio:
+
+We further extended our work regarding *write-combined access to I/O* memory
+to the L4ka::Pistachio base platform. So this platform can now also enjoy the
+performance boost that we experienced on the L4/Fiasco platform when enabling
+write-combined I/O for the frame buffer.
+
+
+:Linux:
+
+To enable the dynamic linker to work on Linux the same way as on the other
+platforms, we enhanced the Linux-specific *local region manager* to handle an
+optional local address and offset when attaching a dataspace.
+
+Thread destruction on Linux works asynchronous by a sending a signal
+via the 'tgkill' system call to the thread to be killed. Unfortunately, the
+Linux kernel delivers signals only in the kernel-entry path. This means that
+after calling 'tgkill', the to-be-killed thread still moves on until it enters
+the kernel (either by issuing a system call or when being preempted). This has
+the side effect that the thread continues to access its stack for a while. If
+killing a thread in the local address space and immediately freeing the stack
+of the killed thread by using the 'munmap' system call, the process would
+ultimately receive a segmentation fault. To solve this problem, we need to
+ensure that the to-be-killed thread is really not executing any instructions
+anymore before freeing the stack. We do this by repetitively issuing 'tgkill'
+for the thread until an EINVAL error is returned.
+
+
+:OKL4:
+
+We changed the serial output of core to use the OKL4 kernel debugger for
+printing the output of core instead of poking the comports directly. This way,
+the console is not anymore x86-specific but platform-independent.
+
+
+Build system
+############
+
+* For debugging Genode applications using the GDB stub of Qemu,
+  applications should use distinct virtual memory ranges. Otherwise,
+  breakpoints set in one program would trigger when another program
+  accesses the breakpointed virtual address. Therefore, we have
+  introduced the 'LD_TEXT_ADDR' variable to the build system.
+  A value assigned to this variable in a 'target.mk' file overrides
+  the default link address.
+
+* The integration of dynamic linking support into the build system
+  led to some architectural changes. Most importantly, the final linking stage
+  is now performed by a separate 'make' instance executing 'base/mk/link.mk'.
+  However, this change has no implications on the use of the build system.
+
+* Generate symbols for marking the end of binary data linked via the
+  'SRC_BIN' mechanism. The start and end of binary data are marked by the
+  symbols '_binary_<name>_start' and '_binary_<name>_end'.
+
+* Use 'AS_OPT' also for linking binary data, which is important to make
+  the resulting object file always compatible with the compiled objects.
+  This is important on architectures with non-unified calling conventions.

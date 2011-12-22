@@ -1,0 +1,48 @@
+#
+# Build
+#
+
+build { core init hello drivers/timer }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="hello_server">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Hello"/></provides>
+	</start>
+	<start name="hello_client">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>}
+
+#
+# Boot image
+#
+
+build_boot_image { core init hello_client hello_server timer }
+
+append qemu_args " -nographic "
+
+run_genode_until forever

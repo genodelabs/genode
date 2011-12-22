@@ -1,0 +1,119 @@
+#!/usr/bin/tclsh
+
+# read include file
+set include_pathname [lindex $argv 0]
+if {[catch {
+	set source [exec cat $include_pathname]
+}]} {
+	puts stderr ""
+	puts stderr "Assign correct ifndef-define name to header file."
+	puts stderr "The name is derived from the location of the"
+	puts stderr "header file relative to directory from which"
+	puts stderr "this program is executed."
+	puts stderr ""
+	puts stderr "\n  usage: fix_include_ifndef <include_file>\n"
+	exit 0
+}
+
+puts stderr "Fixing ifndef header for $include_pathname"
+
+# convert pathname to ifndef string
+regsub {^./} $include_pathname "" ifndef_name
+set ifndef_name [string toupper $ifndef_name]
+regsub -all {/} $ifndef_name {__} ifndef_name
+regsub -all {\.} $ifndef_name {_} ifndef_name
+regsub -all {\-} $ifndef_name {_} ifndef_name
+set ifndef_name "_$ifndef_name\_"
+
+set lines [split $source "\n"]
+set state comment_header_begin
+set i 0
+set output ""
+
+proc out {txtline} {
+	global output
+	append output "$txtline\n"
+}
+
+foreach line $lines {
+	incr i
+	
+	if {$state == "comment_header_begin"} {
+		if {[regexp {^/*} $line]} {
+			set state comment_header
+			out $line
+			continue
+		} else {
+			puts stderr "Error (line $i): missing comment header"
+			exit -1;
+		}
+	}
+
+	if {$state == "comment_header"} {
+		if {[regexp {^ \*/} $line]} {
+			set state empty_line_after_comment_header
+			out $line
+			continue;
+		}
+		if {[regexp {^ \*[^/]*} $line]} {
+			out $line
+			continue
+		}
+		puts "Error (line $i): non-complient comment header"
+		exit -1;
+	}
+
+	if {$state == "empty_line_after_comment_header"} {
+		if {![regexp {^$} $line]} {
+			puts "Error (line $i): no empty line after comment header"
+			exit -1;
+		}
+		set state ifndef
+		out $line
+		continue
+	}
+
+	if {$state == "ifndef"} {
+		if {![regexp {^#ifndef} $line]} {
+			puts "Error (line $i): expected \"#ifndef\""
+			exit -1;
+		}
+
+		regsub {^.*$} $line "#ifndef $ifndef_name" line
+		out $line
+		set state define
+		continue
+	}
+
+	if {$state == "define"} {
+		if {![regexp {^#define} $line]} {
+			puts "Error (line $i): expected \"#define\""
+			exit -1;
+		}
+
+		regsub {^.*$} $line "#define $ifndef_name" line
+		out $line
+		set state source_main
+		continue
+	}
+
+	out $line
+}
+
+# remove empty lines at the end of the header file
+while {[regexp "\n$" $output]} {
+	regsub "\n$" $output "" output
+}
+
+if {![regexp "\n#endif\[^\n\]*\$" $output]} {
+	puts stderr "Error: last line is no \"#endif\""
+	exit -1
+}
+
+regsub "\n#endif\[^\n\]*\$" $output "\n#endif /* $ifndef_name */" output
+
+# write result back to include file
+set fh [open $include_pathname "w"]
+puts $fh $output
+close $fh
+

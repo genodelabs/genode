@@ -1,0 +1,258 @@
+/*
+ * \brief  Framebuffer driver front end
+ * \author Norman Feske
+ * \author Christian Helmuth
+ * \author Sebastian Sumpf
+ * \date   2007-09-11
+ */
+
+/*
+ * Copyright (C) 2007-2011 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* Genode */
+#include <base/env.h>
+#include <base/sleep.h>
+#include <base/rpc_server.h>
+#include <root/component.h>
+#include <cap_session/connection.h>
+#include <framebuffer_session/framebuffer_session.h>
+#include <rom_session/connection.h>
+#include <util/xml_node.h>
+#include <dataspace/client.h>
+#include <blit/blit.h>
+#include <os/config.h>
+
+/* Local */
+#include "framebuffer.h"
+
+using namespace Genode;
+
+
+/***************
+ ** Utilities **
+ ***************/
+
+/**
+ * Determine session argument value based on config file and session arguments
+ *
+ * \param attr_name   attribute name of config node
+ * \param args        session argument string
+ * \param arg_name    argument name
+ * \param default     default session argument value if value is neither
+ *                    specified in config node nor in session arguments
+ */
+unsigned long session_arg(const char *attr_name, const char *args,
+                          const char *arg_name, unsigned long default_value)
+{
+	unsigned long result = default_value;
+
+	/* try to obtain value from config file */
+	try { Genode::config()->xml_node().attribute(attr_name).value(&result); }
+	catch (...) { }
+
+	/* check session argument to override value from config file */
+	result = Arg_string::find_arg(args, arg_name).ulong_value(result);
+	return result;
+}
+
+
+bool config_attribute(const char *attr_name)
+{
+
+	bool result  = false;
+
+	try {
+		result = Genode::config()->xml_node().attribute(attr_name).has_value("yes"); }
+	catch (...) {}
+
+	return result;
+}
+
+
+/***********************************************
+ ** Implementation of the framebuffer service **
+ ***********************************************/
+
+namespace Framebuffer {
+
+	class Session_component : public Genode::Rpc_object<Session>
+	{
+		private:
+
+			unsigned _scr_width, _scr_height, _scr_mode;
+			bool     _buffered;
+
+			/* dataspace uses a back buffer (if '_buffered' is true) */
+			Genode::Ram_dataspace_capability _bb_ds;
+			void                            *_bb_addr;
+
+			/* dataspace of physical frame buffer */
+			Genode::Dataspace_capability _fb_ds;
+			void                        *_fb_addr;
+
+		public:
+
+			/**
+			 * Constructor
+			 */
+			Session_component(unsigned scr_width, unsigned scr_height, unsigned scr_mode,
+			                  Genode::Dataspace_capability fb_ds, bool buffered)
+			:
+				_scr_width(scr_width), _scr_height(scr_height), _scr_mode(scr_mode),
+				_buffered(buffered), _fb_ds(fb_ds)
+			{
+				if (!_buffered) return;
+
+				if (scr_mode != 16) {
+					PWRN("buffered mode not supported for mode %d", (int)scr_mode);
+					_buffered = false;
+				}
+
+				size_t buf_size = scr_width*scr_height*scr_mode/8;
+				try { _bb_ds = Genode::env()->ram_session()->alloc(buf_size); }
+				catch (...) {
+					PWRN("could not allocate back buffer, disabled buffered output");
+					_buffered = false;
+				}
+				PDBG("use buf size %zd", buf_size);
+
+				if (_buffered && _bb_ds.valid()) {
+					_bb_addr = Genode::env()->rm_session()->attach(_bb_ds);
+					_fb_addr = Genode::env()->rm_session()->attach(_fb_ds);
+				}
+
+				if (_buffered)
+					PINF("using buffered output");
+			}
+
+			/**
+			 * Destructor
+			 */
+			~Session_component()
+			{
+				if (!_buffered) return;
+
+				Genode::env()->rm_session()->detach(_bb_addr);
+				Genode::env()->ram_session()->free(_bb_ds);
+				Genode::env()->rm_session()->detach(_fb_addr);
+			}
+
+
+			/***********************************
+			 ** Framebuffer session interface **
+			 ***********************************/
+
+			Dataspace_capability dataspace() {
+				return _buffered ? Dataspace_capability(_bb_ds)
+				                 : Dataspace_capability(_fb_ds); }
+
+			void info(int *out_w, int *out_h, Mode *out_mode)
+			{
+				*out_w = _scr_width;
+				*out_h = _scr_height;
+
+				switch (_scr_mode) {
+				case 16: *out_mode = RGB565; break;
+				default: *out_mode = INVALID;
+				}
+			}
+
+			/* not implemented */
+			void refresh(int x, int y, int w, int h)
+			{
+				if (!_buffered) return;
+
+				/* clip specified coordinates against screen boundaries */
+				int x2 = min(x + w - 1, (int)_scr_width  - 1),
+				    y2 = min(y + h - 1, (int)_scr_height - 1);
+				int x1 = max(x, 0),
+				    y1 = max(y, 0);
+				if (x1 > x2 || y1 > y2) return;
+
+				/* determine bytes per pixel */
+				int bypp = 0;
+				if (_scr_mode == 16) bypp = 2;
+				if (!bypp) return;
+
+				/* copy pixels from back buffer to physical frame buffer */
+				char *src = (char *)_bb_addr + bypp*(_scr_width*y + x),
+				     *dst = (char *)_fb_addr + bypp*(_scr_width*y + x);
+
+				blit(src, bypp*_scr_width, dst, bypp*_scr_width,
+				     bypp*(x2 - x1 + 1), y2 - y1 + 1);
+			}
+	};
+
+
+	/**
+	 * Shortcut for single-client root component
+	 */
+	typedef Genode::Root_component<Session_component, Genode::Single_client> Root_component;
+
+	class Root : public Root_component
+	{
+		protected:
+
+			Session_component *_create_session(const char *args)
+			{
+				unsigned long scr_width  = session_arg("width",  args, "fb_width", 1024),
+				              scr_height = session_arg("height", args, "fb_height", 768),
+				              scr_mode   = session_arg("depth",  args, "fb_mode",    16);
+				bool          buffered         = config_attribute("buffered");
+				bool          use_current_mode = config_attribute("preinit");
+
+				if (use_current_mode) {
+					if (Framebuffer_drv::use_current_mode()) {
+						PWRN("Could not use preinitialized VESA mode");
+						throw Root::Invalid_args();
+					}
+				} else if (Framebuffer_drv::set_mode(scr_width, scr_height, scr_mode)) {
+					PWRN("Could not set vesa mode %lux%lu@%lu", scr_width, scr_height,
+					     scr_mode);
+					throw Root::Invalid_args();
+				}
+
+				return new (md_alloc()) Session_component(scr_width, scr_height, scr_mode,
+				                                          Framebuffer_drv::hw_framebuffer(),
+				                                          buffered);
+			}
+
+		public:
+
+			Root(Rpc_entrypoint *session_ep, Allocator *md_alloc)
+			: Root_component(session_ep, md_alloc) { }
+	};
+}
+
+
+int main(int argc, char **argv)
+{
+	/* We need to create capabilities for sessions. Therefore, we request the
+	 * CAP service. */
+	static Cap_connection cap;
+
+	/* initialize server entry point */
+	enum { STACK_SIZE = 8*1024 };
+	static Rpc_entrypoint ep(&cap, STACK_SIZE, "vesa_ep");
+
+	/* init driver back end */
+	if (Framebuffer_drv::init()) {
+		PERR("H/W driver init failed");
+		return 3;
+	}
+
+	/* entry point serving framebuffer root interface */
+	static Framebuffer::Root fb_root(&ep, env()->heap());
+
+	/* tell parent about the service */
+	env()->parent()->announce(ep.manage(&fb_root));
+
+	/* main's done - go to sleep */
+
+	sleep_forever();
+	return 0;
+}

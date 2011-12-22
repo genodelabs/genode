@@ -1,0 +1,50 @@
+This directory contains tools for managing and using the source code
+of Genode.
+
+:'create_builddir'
+
+  The 'create_builddir' tool provides a convenient way to create build
+  directories for different platforms. Its usage information is printed when
+  starting the tool without arguments.
+
+:'builddir/':
+
+  This directory contains a Makefile template and configuration snippets used
+  by the 'create_builddir' tool.
+
+:'tool_chain':
+
+  This tool downloads, builds, and installs the tool chain needed to build the
+  Genode OS Framework. For getting usage information, start the tool without
+  arguments.
+
+:'create_iso':
+
+  This simple tool helps to build bootable ISO images from your build of
+  Genode. For getting usage information, start the tool without arguments.
+
+:'beautify':
+
+  Beautify is a coding-style checking tool that analyzes source code for its
+  adherence to Genode's coding style as described in 'doc/coding_style.txt'.
+  Whenever possible, the tool tries to fix the issues and outputs a corrected
+  file.  Some corrections, however, require human interaction.  In this case,
+  the tool stops the analysis with an error.
+
+:'parse_cxx':
+
+  This tool is a C++ parser used as front-end for Beautify.
+
+:'fix_include_ifndef':
+
+  This tool helps with assigning consistent include guards to header files.
+
+:'boot':
+
+  This directory contains boot-loader files needed to create boot images.
+
+:'autopilot':
+
+  Autopilot is a tool for the automatic execution of run scripts among multiple
+  base platforms.
+

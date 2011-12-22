@@ -1,0 +1,63 @@
+build "core init test/sub_rm"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="SIGNAL"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-sub_rm">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-sub_rm"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until {.*--- end of sub-rm test ---.*} 10
+
+if [have_spec linux_x86_32] {
+	set maps [exec cat /proc/[exec pidof test-sub_rm]/maps]
+
+	puts "\nmemory map after test completion follows:\n"
+	puts "$maps\n"
+
+	#
+	# Validate some properties of the final mmap
+	#
+	if {![regexp {60000000-60040000 ---p} $maps]} {
+		puts "Error: detaching from sub RM session failed"
+		exit -1
+	}
+	if {![regexp {60040000-60044000 rwxs} $maps]} {
+		puts "Error: populating already attached sub RM session failed"
+		exit -1
+	}
+	if {![regexp {60080000-60083000 rwxs 00001000} $maps]} {
+		puts "Error: using offset parameter to sub RM attach did not work"
+		exit -1
+	}
+	if {![regexp {600c0000-600c2000 rwxs 00001000} $maps]} {
+		puts "Error: using offset and size parameters to sub RM attach did not work"
+		exit -1
+	}
+	if {![regexp -- {-60100000 ---p} $maps]} {
+		puts "Error: attached sub RM session exceeds region boundary"
+		exit -1
+	}
+}
+
+puts "Test succeeded"

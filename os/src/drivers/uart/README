@@ -1,0 +1,22 @@
+This driver operates the UARTs on the given platform. It provides the
+'Terminal_session' interface for output via serial line.
+
+Configuration
+~~~~~~~~~~~~~
+
+The server supports the following configuration options, supplied
+via Genode's config mechanism.
+
+:Routing clients to specific UARTs:
+
+  Depending on the underlying hardware platform, the UART server is
+  configurable to route specific clients to distinct UARTs. There is
+  no default routing, so the configuration is mandatory. UART 0 is
+  assumed to be used by the kernel and, therefore, left untouched.
+
+  ! <config>
+  !   <policy label="test-uart1" uart="1" />
+  !   <policy label="test-uart2" uart="2" />
+  !   <policy label="test-uartx" uart="1" />
+  ! </config>
+

@@ -1,0 +1,145 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Prepare Genode build directory
+# \author Christian Helmuth, Norman Feske
+# \date   2008-08-14
+#
+
+MAKEOVERRIDES =
+
+PLATFORM = $(MAKECMDGOALS)
+
+usage:
+	@echo
+	@echo "Tool for preparing Genode build directories"
+	@echo
+	@echo "usage:"
+	@echo
+	@echo "  create_builddir <platform> BUILD_DIR=<build-dir>"
+	@echo
+	@echo "  <platform>   can be 'linux_x86', 'fiasco_x86', 'pistachio_x86',"
+	@echo "               'okl4_x86', 'nova_x86', 'codezero_vpb926',"
+	@echo "               'mb_s3a_starter_kit', foc_x86_32', 'foc_x86_64',"
+	@echo "               ''foc_pbxa9', or 'foc_vea9x4'"
+	@echo "               'or 'foc_pbxa9'"
+	@echo "               "
+	@echo "  <build-dir>  is the location of the build directory to create"
+	@echo
+
+#
+# Determine Genode base directory based on the known location of the
+# 'create_builddir' tool within the Genode source tree
+#
+GENODE_DIR ?= $(realpath $(dir $(MAKEFILE_LIST))/..)
+
+ifeq ($(BUILD_DIR),)
+$(PLATFORM):: usage
+	@echo "Error: BUILD_DIR not defined." ; false
+endif
+
+#
+# Convert GENODE_DIR to an absolute directory because the user
+# may have specified a '~'-relative location or a pwd-relative
+# location.
+#
+GENODE_ABS_DIR := $(realpath $(shell echo $(GENODE_DIR)))
+
+#
+# Generic build-directory preparation rules
+#
+BUILD_CONF          = $(GENODE_ABS_DIR)/tool/builddir/etc/build.conf
+BUILD_CONF_PLATFORM = $(BUILD_CONF).$(PLATFORM)
+
+$(BUILD_DIR)/etc:
+	@mkdir -p $@
+
+$(BUILD_DIR)/etc/build.conf::
+	@echo "GENODE_DIR    = $(GENODE_ABS_DIR)" > $@
+	@echo 'BASE_DIR      = $$(GENODE_DIR)/base' >> $@
+
+#
+# Supply -no-kvm argument to Qemu for kernels that are incompatible with KVM
+#
+ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86 pistachio_x86,$(PLATFORM)),)
+$(BUILD_DIR)/etc/build.conf::
+	@cat $(BUILD_CONF).qemu_no_kvm >> $@
+endif
+
+#
+# Add 'base-<platform>' and generic repositories
+#
+$(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
+	@echo >> $@
+	@echo "##" >> $@
+	@echo "## Kernel-specific base repository" >> $@
+	@echo "##" >> $@
+	@echo >> $@
+	@cat $< >> $@
+	@cat $(BUILD_CONF).generic >> $@
+
+#
+# Add 'ports-okl4' repository to OKL4 build directory
+#
+ifeq ($(PLATFORM),okl4_x86)
+$(BUILD_DIR)/etc/build.conf::
+	@cat $(BUILD_CONF).ports-okl4 >> $@
+endif
+
+$(BUILD_DIR)/Makefile:
+	@ln -sf $(GENODE_ABS_DIR)/tool/builddir/build.mk $@
+
+#
+# Add 'ports-foc' repository to Fiasco.OC build directory
+#
+ifeq ($(filter-out foc_x86_32 foc_pbxa9,$(PLATFORM)),)
+$(BUILD_DIR)/etc/build.conf::
+	@cat $(BUILD_CONF).ports-foc >> $@
+endif
+
+#
+# Add x86 drivers repositories to x86 build directories
+#
+ifeq ($(filter-out foc_x86_32 okl4_x86 nova_x86 pistachio_x86 fiasco_x86,$(PLATFORM)),)
+$(BUILD_DIR)/etc/build.conf::
+	@cat $(BUILD_CONF).drivers_x86 >> $@
+endif
+
+#
+# Generic platform dependencies
+#
+$(PLATFORM):: $(BUILD_DIR)/etc
+$(PLATFORM):: $(BUILD_DIR)/etc/build.conf
+$(PLATFORM):: $(BUILD_DIR)/Makefile
+
+#
+# Platform-specific dependencies
+#
+codezero_vpb926::
+	@echo "SPECS += codezero_platform_vpb926" > $(BUILD_DIR)/etc/specs.conf
+
+foc_x86_32::
+	@echo "SPECS = genode foc_x86_32" > $(BUILD_DIR)/etc/specs.conf
+
+foc_x86_64::
+	@echo "SPECS = genode foc_x86_64" > $(BUILD_DIR)/etc/specs.conf
+
+foc_pbxa9::
+	@echo "SPECS = genode foc_pbxa9" > $(BUILD_DIR)/etc/specs.conf
+
+foc_vea9x4::
+	@echo "SPECS = genode foc_vea9x4" > $(BUILD_DIR)/etc/specs.conf
+
+codezero_vpb926::
+	@echo "CODEZERO_DIR = $(GENODE_DIR)/base-codezero/contrib" > $(BUILD_DIR)/etc/codezero.conf
+
+mb_s3a_starter_kit::
+	@echo "SPECS = genode mb_s3a_starter_kit" > $(BUILD_DIR)/etc/specs.conf
+
+mb_ml507::
+	@echo "SPECS = genode mb_ml507" > $(BUILD_DIR)/etc/specs.conf
+
+$(PLATFORM)::
+	@echo "successfully created build directory at $(BUILD_DIR)"
+
+.PHONY: $(PLATFORM)

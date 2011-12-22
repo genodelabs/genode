@@ -1,0 +1,522 @@
+/*
+ * \brief  x86 emulation binding and support
+ * \author Sebastian Sumpf
+ * \author Christian Helmuth
+ * \date   2007-09-11
+ */
+
+/*
+ * Copyright (C) 2007-2011 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#include <base/printf.h>
+#include <base/env.h>
+#include <base/sleep.h>
+#include <util/avl_tree.h>
+#include <util/misc_math.h>
+#include <os/attached_ram_dataspace.h>
+
+#include <io_port_session/connection.h>
+#include <io_mem_session/connection.h>
+
+#include "ifx86emu.h"
+#include "framebuffer.h"
+#include "vesa.h"
+#include "hw_emul.h"
+
+
+namespace X86emu {
+#include"x86emu/x86emu.h"
+}
+
+using namespace Vesa;
+using namespace Genode;
+using X86emu::x86_mem;
+using X86emu::PAGESIZE;
+using X86emu::CODESIZE;
+
+struct X86emu::X86emu_mem X86emu::x86_mem;
+
+static const bool verbose      = false;
+static const bool verbose_mem  = false;
+static const bool verbose_port = false;
+
+
+/***************
+ ** Utilities **
+ ***************/
+
+class Region : public Avl_node<Region>
+{
+	private:
+
+		addr_t _base;
+		size_t _size;
+
+	public:
+
+		Region(addr_t base, size_t size) : _base(base), _size(size) { }
+
+		/************************
+		 ** AVL node interface **
+		 ************************/
+
+		bool higher(Region *r) { return r->_base >= _base; }
+
+		/**
+		 * Find region the given region fits into
+		 */
+		Region * match(addr_t base, size_t size)
+		{
+			Region *r = this;
+
+			do {
+				if (base >= r->_base
+				 && base + size <= r->_base + r->_size)
+					break;
+
+				if (base < r->_base)
+					r = r->child(LEFT);
+				else
+					r = r->child(RIGHT);
+			} while (r);
+
+			return r;
+		}
+
+		/**
+		 * Find region the given region meets
+		 *
+		 * \return Region overlapping or just meeting (can be merged into
+		 *         super region)
+		 */
+		Region * meet(addr_t base, size_t size)
+		{
+			Region *r = this;
+
+			do {
+				if ((r->_base <= base && r->_base + r->_size >= base)
+				 || (base <= r->_base && base + size >= r->_base))
+					break;
+
+				if (base < r->_base)
+					r = r->child(LEFT);
+				else
+					r = r->child(RIGHT);
+			} while (r);
+
+			return r;
+		}
+
+		/**
+		 * Log region
+		 */
+		void print_regions()
+		{
+			if (child(LEFT))
+				child(LEFT)->print_regions();
+
+			printf("    [%08lx,%08lx)\n", _base, _base + _size);
+
+			if (child(RIGHT))
+				child(RIGHT)->print_regions();
+		}
+
+		addr_t base() const { return _base; }
+		size_t size() const { return _size; }
+};
+
+
+template <typename TYPE>
+class Region_database : public Avl_tree<Region>
+{
+	public:
+
+		TYPE * match(addr_t base, size_t size)
+		{
+			if (!first()) return 0;
+
+			return static_cast<TYPE *>(first()->match(base, size));
+		}
+
+		TYPE * meet(addr_t base, size_t size)
+		{
+			if (!first()) return 0;
+
+			return static_cast<TYPE *>(first()->meet(base, size));
+		}
+
+		TYPE * get_region(addr_t base, size_t size)
+		{
+			TYPE *region;
+
+			/* look for match and return if found */
+			if ((region = match(base, size)))
+				return region;
+
+			/*
+			 * We try to create a new port region, but first we look if any overlapping
+			 * resp. meeting regions already exist. These are freed and merged into a
+			 * new super region including the new port region.
+			 */
+
+			addr_t beg = base, end = base + size;
+
+			while ((region = meet(beg, end - beg))) {
+				/* merge region into super region */
+				beg = min(beg, static_cast<addr_t>(region->base()));
+				end = max(end, static_cast<addr_t>(region->base() + region->size()));
+
+				/* destroy old region */
+				remove(region);
+				destroy(env()->heap(), region);
+			}
+
+			try {
+				region = new (env()->heap()) TYPE(beg, end - beg);
+				insert(region);
+				return region;
+			} catch (...) {
+				PERR("Access to I/O region [%08lx,%08lx) denied", beg, end - beg);
+				return 0;
+			}
+		}
+
+		void print_regions()
+		{
+			if (!first()) return;
+
+			first()->print_regions();
+		}
+};
+
+
+/**
+ * I/O port region including corresponding IO_PORT connection
+ */
+class Port_region : public Region, public Io_port_connection
+{
+	public:
+
+		Port_region(unsigned short port_base, size_t port_size)
+		: Region(port_base, port_size), Io_port_connection(port_base, port_size)
+		{
+			if (verbose)
+				PLOG("add port [%04lx,%04lx)", base(), base() + size());
+		}
+
+		~Port_region()
+		{
+			if (verbose)
+				PLOG("del port [%04lx,%04lx)", base(), base() + size());
+		}
+};
+
+
+/**
+ * I/O memory region including corresponding IO_MEM connection
+ */
+class Mem_region : public Region
+{
+	private:
+
+		class Io_mem_dataspace : public Io_mem_connection
+		{
+			private:
+
+				void *_local_addr;
+
+			public:
+
+				Io_mem_dataspace(addr_t base, size_t size)
+				: Io_mem_connection(base, size)
+				{
+					_local_addr = env()->rm_session()->attach(dataspace());
+				}
+
+				~Io_mem_dataspace()
+				{
+					env()->rm_session()->detach(_local_addr);
+				}
+
+				Io_mem_dataspace_capability cap() { return dataspace(); }
+
+				template <typename T>
+				T * local_addr() { return static_cast<T *>(_local_addr); }
+		};
+
+		Io_mem_dataspace _ds;
+
+	public:
+
+		Mem_region(addr_t mem_base, size_t mem_size)
+		: Region(mem_base, mem_size), _ds(mem_base, mem_size)
+		{
+			if (verbose)
+				PLOG("add mem  [%08lx,%08lx) @ %p", base(), base() + size(), _ds.local_addr<void>());
+		}
+
+		~Mem_region()
+		{
+			if (verbose)
+				PLOG("del mem  [%08lx,%08lx)", base(), base() + size());
+		}
+
+		template <typename T>
+		T * virt_addr(addr_t addr)
+		{
+			return reinterpret_cast<T *>(_ds.local_addr<char>() + (addr - base()));
+		}
+};
+
+
+static Region_database<Port_region> port_region_db;
+static Region_database<Mem_region>  mem_region_db;
+
+
+/**
+ * Setup static memory for x86emu
+ */
+static int map_code_area(void)
+{
+	int err;
+	Ram_dataspace_capability ds_cap;
+	void *dummy;
+
+	/* map page0 */
+	if ((err = Framebuffer_drv::map_io_mem(0x0, PAGESIZE, false, &dummy))) {
+		PERR("Could not map page zero");
+		return err;
+	}
+	x86_mem.bios_addr(dummy);
+
+	/* alloc code pages in RAM */
+	try {
+		static Attached_ram_dataspace ram_ds(env()->ram_session(), CODESIZE);
+		dummy = ram_ds.local_addr<void>();
+		x86_mem.data_addr(dummy);
+	} catch (...) {
+		PERR("Could not allocate dataspace for code");
+		return -1;
+	}
+
+	/* build opcode command */
+	uint32_t code = 0;
+	code  = 0xcd;        /* int opcode */
+	code |= 0x10 << 8;   /* 10h  */
+	code |= 0xf4 << 16;  /* ret opcode */
+	memcpy(dummy, &code, sizeof(code));
+
+	return 0;
+}
+
+
+/**********************************
+ ** x86emu memory-access support **
+ **********************************/
+
+template <typename T>
+static T X86API read(X86emu::u32 addr)
+{
+	T ret = *X86emu::virt_addr<T>(addr);
+
+	if (verbose_mem) {
+		unsigned v = ret;
+		PLOG(" io_mem: read  [%p,%p) val 0x%ux",
+		     reinterpret_cast<void*>(addr),
+		     reinterpret_cast<void*>(addr + sizeof(T)), v);
+	}
+
+	return ret;
+}
+
+
+template <typename T>
+static void X86API write(X86emu::u32 addr, T val)
+{
+	*X86emu::virt_addr<T>(addr) = val;
+
+	if (verbose_mem) {
+		unsigned v = val;
+		PLOG(" io_mem: write [%p,%p) val 0x%ux",
+		     reinterpret_cast<void*>(addr),
+		     reinterpret_cast<void*>(addr + sizeof(T)), v);
+	}
+}
+
+
+X86emu::X86EMU_memFuncs mem_funcs = {
+	&read, &read, &read,
+	&write, &write, &write
+};
+
+
+/********************************
+ ** x86emu port-access support **
+ ********************************/
+
+template <typename T>
+static T X86API inx(X86emu::X86EMU_pioAddr addr)
+{
+	T ret;
+	unsigned short port = static_cast<unsigned short>(addr);
+
+	if (hw_emul_handle_port_read(port, &ret))
+		return ret;
+
+	Port_region *region = port_region_db.get_region(port, sizeof(T));
+
+	if (!region) return 0;
+
+	switch (sizeof(T)) {
+		case 1:
+			ret = (T)region->inb(port);
+			break;
+		case 2:
+			ret = (T)region->inw(port);
+			break;
+		default:
+			ret = (T)region->inl(port);
+	}
+
+	if (verbose_port) {
+		unsigned v = ret;
+		PLOG("io_port: read  [%04ux,%04zx) val 0x%ux", (unsigned short)addr,
+		     addr + sizeof(T), v);
+	}
+
+	return ret;
+}
+
+
+template <typename T>
+static void X86API outx(X86emu::X86EMU_pioAddr addr, T val)
+{
+	unsigned short port = static_cast<unsigned short>(addr);
+
+	if (hw_emul_handle_port_write(port, val))
+		return;
+
+	Port_region *region = port_region_db.get_region(port, sizeof(T));
+
+	if (!region) return;
+
+	if (verbose_port) {
+		unsigned v = val;
+		PLOG("io_port: write [%04ux,%04zx) val 0x%ux", (unsigned short)addr,
+		     addr + sizeof(T), v);
+	}
+
+	switch (sizeof(T)) {
+		case 1:
+			region->outb(port, val);
+			break;
+		case 2:
+			region->outw(port, val);
+			break;
+		default:
+			region->outl(port, val);
+	}
+}
+
+
+/**
+ * Port access hooks
+ */
+X86emu::X86EMU_pioFuncs port_funcs = {
+	&inx,  &inx,  &inx,
+	&outx, &outx, &outx
+};
+
+
+/************************
+ ** API implementation **
+ ************************/
+
+/* instantiate externally used template funciton */
+template char* X86emu::virt_addr<char, uint32_t>(uint32_t addr);
+template uint16_t* X86emu::virt_addr<uint16_t, uint32_t>(uint32_t addr);
+
+template <typename TYPE, typename ADDR_TYPE>
+TYPE * X86emu::virt_addr(ADDR_TYPE addr)
+{
+	addr_t      local_addr = static_cast<addr_t>(addr);
+	Mem_region *region;
+
+	/* retrieve local mapping for given address */
+
+	/* page 0 */
+	if (local_addr >= 0 && local_addr < PAGESIZE)
+		local_addr += x86_mem.bios_addr();
+
+	/* fake code segment */
+	else if (local_addr >= PAGESIZE && local_addr < (PAGESIZE + CODESIZE))
+		local_addr += (x86_mem.data_addr() - PAGESIZE);
+
+	/* any other I/O memory allocated on demand */
+	else if ((region = mem_region_db.get_region(addr & ~(PAGESIZE-1), PAGESIZE)))
+		return region->virt_addr<TYPE>(local_addr);
+
+	else {
+		PWRN("Invalid address 0x%08lx", local_addr);
+		local_addr = 0;
+	}
+
+	return reinterpret_cast<TYPE *>(local_addr);
+}
+
+
+uint16_t X86emu::x86emu_cmd(uint16_t eax, uint16_t ebx, uint16_t ecx,
+                            uint16_t edi, uint16_t *out_ebx)
+{
+	using namespace X86emu;
+	M.x86.R_EAX  = eax;          /* int10 function number */
+	M.x86.R_EBX  = ebx;
+	M.x86.R_ECX  = ecx;
+	M.x86.R_EDI  = edi;
+	M.x86.R_IP   = 0;            /* address of "int10; ret" */
+	M.x86.R_SP   = PAGESIZE;     /* SS:SP pointer to stack */
+	M.x86.R_CS   =
+	M.x86.R_DS   =
+	M.x86.R_ES   =
+	M.x86.R_SS   = PAGESIZE >> 4;
+
+	X86EMU_exec();
+
+	if (out_ebx)
+	    *out_ebx = M.x86.R_EBX;
+
+	return M.x86.R_AX;
+}
+
+
+int X86emu::init(void)
+{
+	if (map_code_area())
+		return -1;
+
+	if (verbose) {
+		PDBG("--- x86 bios area is [0x%lx - 0x%lx) ---",
+		      x86_mem.bios_addr(), x86_mem.bios_addr() + PAGESIZE);
+		PDBG("--- x86 data area is [0x%lx - 0x%lx) ---",
+		     x86_mem.data_addr(), x86_mem.data_addr() + CODESIZE);
+	}
+
+	X86emu::M.x86.debug = 0;
+	X86emu::X86EMU_setupPioFuncs(&port_funcs);
+	X86emu::X86EMU_setupMemFuncs(&mem_funcs);
+	return 0;
+}
+
+
+void X86emu::print_regions()
+{
+	printf("I/O port regions:\n");
+	port_region_db.print_regions();
+
+	printf("I/O memory regions:\n");
+	mem_region_db.print_regions();
+}

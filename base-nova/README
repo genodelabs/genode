@@ -1,0 +1,10 @@
+This repository contains the port of Genode to the NOVA microhypervisor.
+
+For more information on this base platform, please refer to the official
+website.
+
+:[http://hypervisor.org]: Official website for the NOVA microhypervisor.
+
+For information on using Genode on NOVA, please revisit the documentation at
+'base-nova/doc/nova.txt':
+

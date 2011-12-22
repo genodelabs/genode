@@ -1,0 +1,26 @@
+This directory contains a HTTP client that implements Genode's block session
+interface as a front-end. This way you can incorporate arbitrary files via.
+HTTP requests and export them as a block device within Genode.
+
+
+Usage
+-----
+
+Config file snippet:
+
+!<start name="http_blkdrv">
+!  <resource name="RAM" quantum="1M" />
+!  <provides><service name="Block"/></provides> <!-- Mandatory -->
+!  <config>
+!
+!    <!-- File to export as a block device.
+!         Syntax:'http:://<host>[:port]/<path to file>' -->
+!    <uri>http://kc86.genode.labs:80/file.iso</uri> 
+!
+!    <!- The block size of the exported block device. This is optional, the
+!        default is 512 bytes. -->
+!    <block-size>2048</block-size> 
+!
+!  </config>
+!</start>
+

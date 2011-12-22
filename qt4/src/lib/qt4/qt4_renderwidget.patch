@@ -1,0 +1,17 @@
+- revert a change introduced in Qt 4.7 that caused the mouse mask not being updated when loading a Nitpicker plugin in Arora
+
+diff --git a/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp b/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp
+--- a/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp
++++ b/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp
+@@ -265,6 +265,11 @@
+     }
+ 
+     if (m_widget) {
++        // Move the widget if necessary.  We normally move and resize widgets during layout, but sometimes
++        // widgets can move without layout occurring (most notably when you scroll a document that
++        // contains fixed positioned elements).
++        m_widget->move(tx + borderLeft() + paddingLeft(), ty + borderTop() + paddingTop());
++
+         // Tell the widget to paint now.  This is the only time the widget is allowed
+         // to paint itself.  That way it will composite properly with z-indexed layers.
+         if (m_substituteImage)

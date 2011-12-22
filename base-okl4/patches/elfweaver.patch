@@ -1,0 +1,11 @@
+--- a/tools/pyelf/weaver/bootinfo.py	2010-10-28 15:37:01.000000000 +0200
++++ b/tools/pyelf/weaver/bootinfo.py	2008-06-16 07:16:56.000000000 +0200
+@@ -80,7 +80,7 @@
+ 
+ # A guess at the number of extra ADD_*_MEM ops needed to hold the
+ # free-list.
+-BOOTINFO_GUESS_OPS    = 20
++BOOTINFO_GUESS_OPS    = 200
+ 
+ class BootInfoObject:
+     """Common interfaces for bootinfo objects."""

@@ -1,0 +1,45 @@
+This directory contains ports of popular 3rd-party software to Genode.
+
+
+Usage
+-----
+
+At the root of the 'libports' repository, there is 'Makefile' automating the
+task of downloading and preparing the library source codes. By just typing
+'make', you get an overview of the available libraries and further
+instructions.
+
+In the common case, you might just want to prepare all packages by issuing:
+! make prepare
+
+Alternatively, you can select individual packages to prepare by specifying
+their base names (without the version number) as command-line argument. For
+example, the following command prepares both the C library and the Freetype
+library:
+! make prepare PKG="libc freetype"
+
+After having prepared the 'libports' repository, you are ready to include the
+repository into the build process by appending it to the 'REPOSITORIES'
+declaration of your '<build-dir>/etc/build.conf' file.
+
+
+Under the hood
+--------------
+
+For each library, there is a file contained in the 'libports/ports/'
+subdirectory. The file is named after the library and contains the
+library-specific rules for downloading the source code and installing header
+files.
+
+
+How does 'libports' relate to the other repositories?
+-----------------------------------------------------
+
+Most libraries hosted in the 'libports' repository expect a complete C library,
+which is provided with the 'libc' package. Please do not forget to prepare the
+libc package when using any of the other libports packages. The libc, in turn,
+depends on the 'os' repository for its back end. Because the 'os' repository is
+the home of the dynamic linker, libraries contained in 'libports' are safe to
+assume the presence of the dynamic linker and, thus, should be built as shared
+libraries.
+

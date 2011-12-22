@@ -1,0 +1,182 @@
+diff --git a/src/api/map.c b/src/api/map.c
+index 1d15086..6139b4c 100644
+--- a/src/api/map.c
++++ b/src/api/map.c
+@@ -78,6 +78,6 @@ int sys_unmap(unsigned long virtual, unsigned long npages, unsigned int tid)
+ 			retval = ret;
+ 	}
+ 
+-	return ret;
++	return retval;
+ }
+ 
+diff --git a/src/api/thread.c b/src/api/thread.c
+index 985c425..579e4fb 100644
+--- a/src/api/thread.c
++++ b/src/api/thread.c
+@@ -497,7 +497,7 @@ out_err:
+  */
+ int sys_thread_control(unsigned int flags, struct task_ids *ids)
+ {
+-	struct ktcb *task = 0, *pager = 0;
++	struct ktcb *task = 0;
+ 	int err, ret = 0;
+ 
+ 	if ((err = check_access((unsigned long)ids, sizeof(*ids),
+@@ -508,8 +508,6 @@ int sys_thread_control(unsigned int flags, struct task_ids *ids)
+ 		if (!(task = tcb_find(ids->tid)))
+ 			return -ESRCH;
+ 
+-		pager = task->pager;
+-
+ 		/*
+ 		 * Caller may operate on a thread if it shares
+ 		 * the same address space with that thread's pager
+diff --git a/src/arch/arm/mapping-common.c b/src/arch/arm/mapping-common.c
+index 385f7c2..55b4bea 100644
+--- a/src/arch/arm/mapping-common.c
++++ b/src/arch/arm/mapping-common.c
+@@ -313,12 +313,11 @@ int check_mapping(unsigned long vaddr, unsigned long size,
+ int remove_mapping_space(struct address_space *space, unsigned long vaddr)
+ {
+ 	pmd_table_t *pmd_table;
+-	int pgd_i, pmd_i;
++	int pmd_i;
+ 	pmd_t *pmd;
+ 	unsigned int pmd_type, pte_type;
+ 
+ 	vaddr = page_align(vaddr);
+-	pgd_i = PGD_INDEX(vaddr);
+ 	pmd_i = PMD_INDEX(vaddr);
+ 
+ 	/*
+diff --git a/src/glue/arm/init.c b/src/glue/arm/init.c
+index 2373c66..43c6fda 100644
+--- a/src/glue/arm/init.c
++++ b/src/glue/arm/init.c
+@@ -68,8 +68,6 @@ void print_sections(void)
+ /* The kip is non-standard, using 0xBB to indicate mine for now ;-) */
+ void kip_init()
+ {
+-	struct utcb **utcb_ref;
+-
+ 	/*
+ 	 * TODO: Adding utcb size might be useful
+ 	 */
+@@ -86,9 +84,6 @@ void kip_init()
+ 
+ 	kip_init_syscalls();
+ 
+-	/* KIP + 0xFF0 is pointer to UTCB segment start address */
+-	utcb_ref = (struct utcb **)((unsigned long)&kip + UTCB_KIP_OFFSET);
+-
+ 	add_boot_mapping(virt_to_phys(&kip), USER_KIP_PAGE, PAGE_SIZE,
+ 			 MAP_USR_RO);
+ 	printk("%s: Kernel built on %s, %s\n", __KERNELNAME__,
+diff --git a/loader/libs/elf/src/elf.c b/loader/libs/elf/src/elf.c
+index 4a1b5e0..f97273b 100644
+--- a/loader/libs/elf/src/elf.c
++++ b/loader/libs/elf/src/elf.c
+@@ -339,16 +339,12 @@ elf_loadFile(void *elfFile, bool phys)
+ {
+ 	int i;
+ 	int num_pheaders;
+-	int pheader_offset;
+-	int pheader_type;
+ 	if (elf_checkFile(elfFile) != 0) {
+ 		return false;
+ 	}
+ 
+ 	num_pheaders = elf_getNumProgramHeaders(elfFile);
+-	pheader_offset = elf_getProgramHeaderOffset(elfFile, 0);
+ 	//printf("Number of program headers: %d\n", num_pheaders);
+-	//printf("Program header offset of first header from file beginning: 0x%p\n",pheader_offset);
+ 
+ 	/*
+ 	 * FIXME:
+@@ -373,8 +369,6 @@ elf_loadFile(void *elfFile, bool phys)
+ 	//	printf("This section's size in file: %p\n", len);
+ 		src = (uint64_t) (uintptr_t) elfFile + elf_getProgramHeaderOffset(elfFile, i);
+ 	//	printf("Elf program header offset: %p\n", src);
+-		pheader_type = elf_getProgramHeaderType(elfFile, i);
+-	//	printf("Elf program header type: %p\n", pheader_type);
+ // Comment
+ printf("Copying to range from 0x%x to 0x%x of size: 0x%x\n", (unsigned int)dest, (unsigned int)dest + (unsigned int)len, (unsigned int)len);
+ 		memcpy((void*) (uintptr_t) dest, (void*) (uintptr_t) src, len);
+diff --git a/loader/libs/elf/src/elf32.c b/loader/libs/elf/src/elf32.c
+index 2d13798..78bbf33 100644
+--- a/loader/libs/elf/src/elf32.c
++++ b/loader/libs/elf/src/elf32.c
+@@ -248,7 +248,6 @@ elf32_fprintf(FILE *f, struct Elf32_Header *file, int size, const char *name, in
+ 	struct Elf32_Shdr *sections;
+ 	unsigned numSections;
+ 	int i, r;
+-	char *str_table;
+ 
+ 	fprintf(f, "Found an elf32 file called \"%s\" located "
+ 		"at address 0x%p\n", name, file);
+@@ -307,7 +306,6 @@ elf32_fprintf(FILE *f, struct Elf32_Header *file, int size, const char *name, in
+ 		}
+ 	}
+ 	if (flags & ELF_PRINT_SECTIONS) {
+-		str_table = elf32_getSegmentStringTable(file);
+ 
+ 		printf("Section Headers:\n");
+ 		printf("  [Nr] Name              Type            Addr     Off\n");
+diff --git a/src/generic/capability.c b/src/generic/capability.c
+index 0860ea5..ef44445 100644
+--- a/src/generic/capability.c
++++ b/src/generic/capability.c
+@@ -403,7 +403,7 @@ struct capability *cap_match_mem(struct capability *cap,
+ {
+ 	struct sys_map_args *args = args_ptr;
+ 	struct ktcb *target = args->task;
+-	unsigned long long start, end, pfn_point;
++	unsigned long long start, pfn_point;
+ 	unsigned long pfn;
+ 	unsigned int perms;
+ 
+@@ -415,7 +415,6 @@ struct capability *cap_match_mem(struct capability *cap,
+ 
+ 	/* Long long range check to avoid overflow */
+ 	start = cap->start;
+-	end = cap->end;
+ 	pfn_point = pfn;
+ 	if (start > pfn_point || cap->end < pfn_point + args->npages)
+ 		return 0;
+diff --git a/loader/main.c b/loader/main.c
+index 7d21a4c..8d7d6db 100644
+--- a/loader/main.c
++++ b/loader/main.c
+@@ -26,7 +26,6 @@ int load_elf_image(unsigned long **entry, void *filebuf);
+ int load_container_image(void *cont_section)
+ {
+ 	struct Elf32_Header *elf_header = (struct Elf32_Header *)cont_section;
+-	struct Elf32_Shdr *sect_header;
+ 	int nsect;
+ 	int nimgs = 0;
+ 	unsigned long *image_entry;
+@@ -36,7 +35,6 @@ int load_container_image(void *cont_section)
+ 		return -1;
+ 	}
+ 
+-	sect_header = elf32_getSectionTable(elf_header);
+ 	nsect = elf32_getNumSections(elf_header);
+ 
+ 	for (int i = 0; i < nsect; i++) {
+@@ -59,7 +57,6 @@ int load_container_image(void *cont_section)
+ int load_container_images(unsigned long start, unsigned long end)
+ {
+ 	struct Elf32_Header *elf_header = (struct Elf32_Header *)start;
+-	struct Elf32_Shdr *sect_header;
+ 	int nsect = 0;
+ 	int nconts = 0;
+ 
+@@ -68,7 +65,6 @@ int load_container_images(unsigned long start, unsigned long end)
+ 		return -1;
+ 	}
+ 
+-	sect_header = elf32_getSectionTable(elf_header);
+ 	nsect = elf32_getNumSections(elf_header);
+ 
+ 	for (int i = 0; i < nsect; i++) {

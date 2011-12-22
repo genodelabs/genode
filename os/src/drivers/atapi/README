@@ -1,0 +1,24 @@
+This directory contains a port of the MINDRVR PATA/SATA driver (See:
+[http://ata-atapi.com].
+
+The driver will probe the system's IDE bus and will use the first ATAPI device
+present.
+
+
+Usage
+-----
+
+Simply start the 'atapi_drv' in your Genode environment. The front-end
+implemented by the driver is Genode's block interface (see:
+'os/include/block_session').
+
+Configuration example:
+
+! <start name="atapi_drv">
+!   <resource name="RAM" quantum="1M" />
+!     <provides><service name="Block" /></provides>
+! </start>
+
+To use the driver as IDE block driver supporting both read and write
+transactions, supply the XML attribute 'ata="yes"' to the config node of
+'atapi_drv'.

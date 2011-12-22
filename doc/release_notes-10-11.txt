@@ -1,0 +1,871 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 10.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+During the past three months, the Genode project was primarily driven by our
+desire to create a bigger picture out of the rich set of components that we
+introduced over time, in particular over the last year. Looking back at the
+progress made since mid 2009, there were many functional additions to the
+framework, waiting to get combined. To name a few, we added support for
+networking, audio output, real-time priorities, mandatory access control,
+USB, ATAPI block devices, Python, hardware-accelerated 3D graphics, Qt4,
+the WebKit-based Arora browser, and the paravirtualized OKLinux kernel.
+So many wonderful toys waiting to get played with. This is how the idea of
+creating [http://genode.org/download/live-cds - the new Genode Live CD] was
+born. In the past, Genode was mostly used in settings with a relatively static
+configuration consisting of several components orchestrated to fulfill
+a few special-purpose functions. Now, the time has come for the next step,
+creating one dynamic setup that allows for the selection of different subsystems
+at runtime rather than at boot time.
+
+This step is challenging in several ways. First, the processes that form
+the base system have to run during the entire time of all demo setups. If
+any of those processes contained stability problems or leaked memory, it would
+subvert the complete system. Second, the components of all subsystems combined
+are far too complex to be loaded into memory at boot time. This would not
+only take too long but would consume a lot of RAM. Instead, those components
+and their data had to be fetched from disk (CDROM) on demand. Third, because
+multiple demo subsystems can be active at a time, low-level resources such as
+networking and audio output must be multiplexed to prevent different
+subsystems from interfering with each other. Finally, we had to create a
+single boot and configuration concept that is able to align the needs of all
+demos, yet staying manageable.
+
+Alongside these challenges, we came up with a lot of ideas about how Genode's
+components could be composed in new creative ways. Some of these ideas such
+as the browser-plugin concept and the http-based block server made it onto
+the Live CD. So for producing the Live CD, we not only faced the said
+technical challenges but also invested substantial development effort in new
+components, which contributed to our overall goal. Two weeks ago, we released
+the Live CD. This release-notes document is the story about how we got there.
+
+To keep ourself focused on the mission described above, we deferred the
+original roadmap goal for this release, which was the creation of a Unix-like
+runtime environment to enable compiling Genode on Genode. This will be the
+primary goal for the next release.
+
+
+Execution environment for gPXE drivers
+######################################
+
+Up to now, DDE Linux provided Genode with drivers for hardware devices
+ranging from USB HID to WLAN. In preparation of the live CD, we
+noticed the demand for support of a broader selection of ethernet
+devices. Intel's e1000 PCI and PCIe cards seemed to mark the bottom
+line of what we had to support. The major advantage of NIC drivers
+from Linux is their optimization for maximum performance. This emerges
+a major downside if DDE Linux comes into play: We have to provide all
+the nifty interfaces used by the driver in our emulation framework. To
+achieve our short-term goal of a great live CD experience, we had to
+walk a different path.
+
+[http://gpxe.org/ - gPXE] is a lovely network boot loader / open-source
+PXE ROM project and the successor of the famous Etherboot
+implementation. Besides support for DNS, HTTP, iSCSI and AoE, gPXE
+includes dozens of NIC drivers and applies a plain driver framework.
+As we were also itching to evaluate DDE kit and the DDE approach at
+large with this special _donator OS_, we went for implementing the
+device-driver environment for gPXE (DDE gPXE).
+
+The current version provides drivers for e1000, e1000e, and pcnet
+devices. The emulation framework comprises just about 600 lines of
+code compared to more than 22,000 LOC reused unmodified from gPXE.
+Benchmarks with the PCNet32 driver showed that DDE gPXE's performance
+is comparable to DDE Linux.
+
+The gPXE driver environment comes in the form of the new 'dde_gpxe'
+repository. For building DDE gPXE, you first need to download and patch
+the original sources. The top-level makefile of this repository automates
+this task. Just issue:
+
+! make prepare
+
+Now, you need to include the DDE gPXE repository into your Genode
+build process. Just add the path to this directory to the
+'REPOSITORIES' declaration of the 'etc/build.conf' file within your
+build directory, for example
+
+! REPOSITORIES += $(GENODE_DIR)/dde_gpxe
+
+After successful build the DDE gPXE based ethernet driver is located
+at 'bin/gpxe_nic_drv'.
+
+
+On-demand paging
+################
+
+In the [http://genode.org/documentation/release-notes/8.11#section-8 - release 8.11],
+we laid the foundation for implementing user-level dataspace managers.
+But so far, the facility remained largely unused except for managing thread
+contexts. This changed with this release.
+
+So what is a user-level dataspace manager and who needs it? In short,
+Genode's memory management is based on dataspaces. A dataspace is a
+container for memory. Normally, it is created via core's RAM or ROM
+services. The RAM service hands out dataspaces containing contiguous
+physical memory. After allocating such a RAM dataspace, the creator can
+attach the dataspace to its own address space to access the dataspace
+content. In addition, it can pass a dataspace reference (called dataspace
+capability) to other processes, which, in turn, can than attach the same
+dataspace to their local address space, thereby establishing shared memory.
+Similarly, core's ROM service hands out boot-time binary data as dataspaces.
+
+For the most use cases of Genode so far, these two core services were the
+only dataspace providers needed. However, there are use cases that require
+more sophisticated memory management. For example, to implement swapping,
+the content of a dataspace must be transferred to disk in a way that
+is transparent to the users of the dataspace. In monolithic kernels, such
+functionality is implemented in the kernel. But on a multi-server OS
+such as Genode, this is no option. Implementing such a feature into
+core would increase the trusted computing base of all applications
+including those who do not need swapping. Core would need a hard-disk
+driver, effectively subverting the Genode concept. Other examples for
+advanced memory-management facilities are copy-on-write memory and
+non-contiguous memory - complexity we wish to avoid at the root of the
+process tree. Instead of implementing such memory management facilities
+by itself, core provides a mechanism to let any process manage dataspaces.
+This technique is also called user-level page-fault handling.
+
+For the Live CD, we decided to give Genode's user-level page-fault handling
+facility a go. The incentive was accessing files stored on CDROM in an
+elegant way. We wanted to make the CDROM access completely transparent to
+the applications. An application should be able to use a ROM session as
+if the file was stored at core's ROM service. But instead of being
+provided by core, the session request would be delegated to an
+alternative ROM service implementation that reads the data from disk
+as needed. Some of the files stored in the CDROM are large. For example,
+the disk image that we use for the Linux demo is 160MB. So reading
+this file at once and keeping it in memory is not an option. Instead, only
+those parts of the file should be read from disk, which are actually
+needed. To uphold the illusion of dealing with plain ROM files for
+the client, we need to employ on-demand-paging in the CDROM server.
+Here is how it works.
+
+# The dataspace manager creates an empty managed dataspace. Core
+  already provides a tool for managing address spaces called
+  region manager (RM service). A RM session is an address space,
+  to which dataspaces can be attached. This is exactly what is
+  needed for a managed dataspace. So a dataspace manager uses the
+  same core service to define the layout of a managed dataspace
+  as is used to manage the address space of a process. In fact,
+  any RM session can be converted into a managed dataspace.
+  ! enum { MANAGED_DS_SIZE = 64*1024*1024 };
+  ! Rm_connection rm(0, MANAGED_DS_SIZE);
+  This code creates a RM session with the size of 64MB. This is an empty
+  address space. A dataspace capability that corresponds to this address
+  space can then be requested via
+  ! Dataspace_capability ds = rm.dataspace();
+
+# The dataspace capability can be passed to a client, which may
+  attach the dataspace to its local address space. Because the
+  managed dataspace is not populated by any backing store, however,
+  an access would trigger a page fault, halting the execution of
+  the client. Here, the page-fault protocol comes into play.
+
+# The dataspace manager registers itself for receiving a signal each time
+  a fault occurs:
+  ! Signal_receiver rec;
+  ! Signal_context client;
+  ! Signal_context_capability sig_cap = rec.manage(client);
+  ! rm.fault_handler(sig_cap);
+  When an empty part of the managed dataspace is accessed by any
+  process, a signal is delivered. The dataspace manager can then
+  retrieve the fault information (access type, fault address) and
+  dispatch the page fault by attaching a real dataspace at the
+  fault address of the managed dataspace. In a simple case, the code
+  looks as follows:
+  ! while (true) {
+  !   Signal signal = rec.wait_for_signal();
+  !   for (int i = 0; i < signal.num(); i++) {
+  !     Rm_session::State state = rm.state();
+  !     ds = alloc_backing_store_dataspace(PAGE_SIZE);
+  !     rm.attach_at(ds, state.addr & PAGE_MASK);
+  !   }
+  ! }
+  This simple page-fault handler would lazily allocate a page of
+  backing store memory each time a fault occurs. When the backing
+  store is attached to the managed dataspace, core will automatically
+  wake up the faulted client.
+
+# The example above has the problem that the dataspace manager has
+  to pay for the backing store that is indirectly used by the client.
+  To prevent the client from exhausting the dataspace manager's memory,
+  the dataspace manager may choose to use a limited pool of backing
+  store only. If this pool is exceeded, the dataspace manager can reuse
+  an already used backing-store block by first revoking it from its
+  current managed dataspace:
+  ! rm.detach(addr);
+  This will flush all mappings referring to the specified address
+  from all users of the managed dataspace. The next time, this
+  address region is accessed, a new signal will be delivered.
+
+This page-fault protocol has the following unique properties. First,
+because core is used as a broker between client and dataspace manager, the
+dataspace manager remains completely unaware of the identity of its client.
+It does not even need to possess the communication right to the client. In
+contrast, all other user-level page-fault protocols that we are aware of
+require direct communication between client and dataspace manager. Second,
+because dataspaces are used as first-level objects to resolve page faults,
+page faults can be handed at an arbitrary granularity (of course, a multiple
+of the physical page size). For example, a dataspace manager may decide to
+attach backing-store dataspaces of 64K to the managed dataspace. So the
+overhead produced by user-level page-fault handler can be traded for the
+page-fault granularity. But most importantly, the API is the same across
+all kernels that support user-level page fault handling. Thus the low-level
+page-fault handling code becomes inherently portable.
+
+Having said that, we have completed the implementation of the described
+core mechanisms, in particular the 'detach' facility, for OKL4. The ISO9660
+driver as featured on the Live CD implements the 'ROM' interface and
+reads the contents of those files from CDROM on demand. It uses a
+fixed pool of backing store, operates at a page-fault granularity of
+64KB, and implements a simple fifo replacement strategy.
+
+
+Base framework
+##############
+
+There had been only a few changes to the base framework described as
+follows.
+
+We unified the core-specific console implementation among all
+base platforms and added synchronization of 'vprintf' calls.
+The kernel-specific code resides now in the respective
+'base-<platform>/src/base/console/core_console.h' files.
+
+We removed the argument-less constructor from 'Allocator_avl_tpl'.
+This constructor created an allocator that uses itself for
+meta-data allocation, which is the usual case when creating
+local memory allocators. However, on Genode, this code is typically
+used to build non-memory allocators such as address-space regions.
+For these use cases, the default policy is dangerous. Hence, we
+decided to remove the default policy.
+
+The 'printf' helper macros have been unified and simplified. The
+available macros are 'PINF' for status information, 'PWRN' for warnings,
+'PLOG' for log messages, and 'PERR' for errors. By default, the message
+types are colored differently to make them easily distinguishable.
+In addition to normal messages, there is the 'PDBG' for debugging
+purposes. It remains to be the only macro that prints the function name
+as message prefix and is meant for temporary messages, to be removed
+before finalizing the code.
+
+Genode's on-demand-paging mechanism relies on the signalling framework.
+Each managed dataspace is assigned to a distinct signal context.
+Hence, signal contexts need to be created and disposed alongside
+with managed dataspaces. We complemented the signalling framework
+with a 'dissolve' function to enable the destruction of signal
+contexts.
+
+
+Operating-system services and libraries
+#######################################
+
+Finished transition to new init concept
+=======================================
+
+With the release 10.05, we introduced the
+[http://genode.org/documentation/release-notes/10.05#section-0 - current configuration concept of init].
+This concept supports mandatory access control and provides flexible
+ways for defining client-server relationships. Until now, we maintained
+the old init concept. With the current release, the transition to the
+new concept is finished and we removed the traditional init.
+We retained the support for loading configurations for individual subsystems
+from different files but adopted the syntax to the use of attributes.
+Instead of
+! <configfile>subsystem.config</configfile>
+the new syntax is
+! <configfile name="subsystem.config"/>
+
+
+Virtual network bridge (Proxy ARP)
+==================================
+
+Since we originally added networking support to Genode, only one program could
+use the networking facilities at a time. In the simplest form, such a program
+included the network driver, protocol stack, and the actual application. For
+example, the uIP stack featured with release 9.02 followed this approach.
+In release 9.11 we added the 'Nic_session' interface to decouple the network
+driver from the TCP/IP protocol stack. But the 1-to-1 relation between
+application and network interface remained. With the current release, we
+introduce the 'nic_bridge' server, which is able to multiplex the 'Nic_session'
+interface.
+
+The implementation is roughly based on the proxy ARP RFC 1027. At startup, the
+'nic_bridge' creates a 'Nic_session' to the real network driver and, in turn,
+announces a 'Nic' service at its parent. But in contrast to a network driver
+implementing this interface, 'nic_bridge' supports an arbitrary number of
+'Nic_sessions' to be opened. From the client's perspective, such a session
+looks like a real network adaptor.
+
+This way, it has become possible to run multiple TCP/IP stacks in
+parallel, each obtaining a distinct IP address via DHCP. For example,
+is has become possible to run multiple paravirtualized Linux kernels
+alongside an lwIP-based web browser, each accessing the network via a
+distinct IP address.
+
+As a side effect for developing the 'nic_bridge', we created a set
+of utilities for implementing network protocols. The utilities are
+located at 'os/include/net' and comprise protocol definitions for
+ethernet, IPv4, UDP, ARP, and DHCP.
+
+
+Nitpicker GUI server
+====================
+
+Our work on the Live CD motivated several improvements of the Nitpicker
+GUI server.
+
+
+Alpha blending
+~~~~~~~~~~~~~~
+
+In addition to nitpicker's plain pixel buffer interface that is compatible
+with a normal framebuffer session, each nitpicker session can now have
+an optional alpha channel as well as an corresponding input-mask channel
+associated. Both the alpha channel and the input mask are contained in the
+same dataspace as the pixel buffer. The pixel buffer is followed by
+the 8-bit alpha values, which are then followed by the input-mask values.
+This way, the presence of an alpha channel does not interfere with the
+actual pixel format. Each 8-bit input mask value specifies the user-input
+policy for the respective pixel. If the value is zero, user input
+referring to the pixel is not handled by the client but "falls through"
+the view that is visible in the background of the pixel. This is typically
+the case for drop shadows. If the input-mask value is '1', the input
+is handled by the client.
+
+With the input-mask mechanism in place, we no longer have a definitive
+assignment of each pixel to a single client anymore. In principle, an
+invisible client is able to track mouse movements by creating a full-screen
+view with all alpha values set to '0' and all input-mask values set to '1'.
+Once, the user clicks on this invisible view, the user input gets routed
+to the invisible client instead of the actually visible view. This
+security risk can be addressed at two levels:
+* In X-Ray mode, nitpicker completely disables alpha blending
+  and the input-mask mechanism such that the user can identify the
+  client that is responsible for each pixel on screen.
+* The use of the alpha channel is a session argument, which is specified
+  by nitpicker clients at session-creation time. Consequently, this
+  session argument is subjected to the policy of all processes involved
+  with routing the session request to nitpicker. Such a policy may permit
+  the use of an alpha channel only for trusted applications.
+
+_Caution:_ The use of alpha channels implies read operations from
+the frame buffer. On typical PC graphics hardware, such operations are
+extremely slow. For this reason, the VESA driver should operate in
+buffered mode when using alpha blending in Nitpicker.
+
+
+Tinted views in X-Ray mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We added support for tinting individual clients or groups of clients
+with different colors based on their label as reported at session-creation
+time. By using session colors, nitpicker assists the user to tell apart
+different security domains without reading textual information. In
+addition to the tinting effect, the title bar presents the session
+color of the currently focused session.
+
+The following nitpicker configuration tints all views of the launchpad
+subsystem in blue except for those views that belong to the testnit
+child of launchpad. Those are tinted red.
+! <config>
+!   <policy label="launchpad"            color="#0000ff"/>
+!   <policy label="launchpad -> testnit" color="#ff0000"/>
+! </config>
+
+
+Misc Nitpicker changes
+~~~~~~~~~~~~~~~~~~~~~~
+
+We introduced a so-called 'stay-top' session argument, which declares
+that views created via this session should stay on top of other views.
+This function is useful for menus that should always remain accessible
+or banner images as used for Live CD.
+
+Nitpicker's reserved region at the top of the screen used to cover up
+the screen area as seen by the clients. We have now excluded this area
+from the coordinate system of the clients.
+
+We implemented the 'kill' mode that can be activated by the 'kill' key.
+(typically this is the 'Print Screen' key) This feature allows the user
+to select a client to be removed from the GUI. The client is not
+actually killed but only locked out. The 'kill' mode is meant as an
+emergency brake if an application behaves in ways not wanted by the
+user.
+
+
+ISO9660 server
+==============
+
+As outlined in Section [On-demand paging], we revisited the ISO9660 server
+to implement on-demand-paged dataspaces. It is the first real-world
+use case for Genode's user-level page-fault protocol. The memory pool
+to be used as backing store for managed dataspaces is dimensioned according
+to the RAM assigned to the iso9660 server. The server divides this backing
+store into blocks of 64KB and assigns those blocks to the managed dataspaces
+in a fifo fashion. We found that using a granularity of 64KB improved the
+performance over smaller block sizes because this way, we profit from reading
+data ahead for each block request. This is particularly beneficial for
+CDROM drives because of their extremely long seek times.
+
+
+Audio mixer
+===========
+
+We added a new *channel synchronization* facility to the 'Audio_out_session'
+interface. An 'Audio_out_session' refers to a single channel. For stereo
+playback, two sessions must be created. At session-creation time, the
+client can provide a hint about the channel type such as "front-left" as
+session-construction argument. This design principally allows for supporting
+setups with an arbitrary amount of channels. However, those channels must
+be synchronized. For this reason, we introduced the 'sync_session' function
+to the 'Audio_out_session' interface. It takes the session capability of
+another 'Audio_out_session' as argument. The specified session is then
+used as synchronization reference.
+
+To reduce the latency when stopping audio replay, we introduced a new *flush*
+function to the 'Audio_out_session' interface. By calling this function,
+a client can express that it is willing to discard all audio data already
+submitted to the mixer.
+
+Furthermore, we improved the audio mixer to support both long-running
+streams of audio and sporadic sounds. For the latter use case, low latency
+is particularly critical. In this regard, the current implementation is a
+vast improvement over the initial version. However, orchestrating the
+mixer with audio drivers as well as with different clients (in particular
+ALSA programs running on a paravirtualized Linux) is not trivial. In the
+process, we learned a lot, which will eventually prompt us to further
+optimize the current solution.
+
+
+Nitpicker-based virtual Framebuffer
+===================================
+
+To support the browser-plugin demo, we introduced 'nit_fb', which is a
+framebuffer service that uses the nitpicker GUI server as back end. It
+is similar to the liquid framebuffer as featured in the 'demo' repository
+but in contrast to liquid framebuffer, 'nit_fb' is non-interactive.
+It has a fixed screen position and size. Furthermore, it does not
+virtualize the framebuffer but passes through the framebuffer portion of
+the nitpicker session, yielding better performance and lower latency.
+
+If instantiated multiple times, 'nit_fb' can be used to statically arrange
+multiple virtual frame buffers on one physical screen. The size and screen
+position of each 'nit_fb' instance can be defined via Genode's configuration
+mechanism using the following attributes of the 'nit_fb' config node:
+! <config xpos="100" ypos="150"
+!         width="300" height="200"
+!         refresh_rate="25"/>
+If 'refresh_rate' isn't set, the server will not trigger any refresh
+operations by itself.
+
+On the Live CD, each browser plugin instantiates a separate instance of
+'nit_fb' to present the plugin's content on screen. In this case, the
+view position is not fixed because the view is further virtualized by the
+loader, which imposes its policy onto 'nit_fb' - Genode's nested
+policies at work!
+
+
+TAR ROM service
+===============
+
+For large setups, listing individual files as boot modules in single-image
+creation tools (e.g., elfweaver) or multiboot boot loaders can be
+cumbersome, especially when many data files or shared libraries are
+involved. To facilitate the grouping of files, 'tar_rom' is an
+implementation of the 'ROM' interface that operates on a 'tar' file.
+
+The name of the TAR archive must be specified via the 'name' attribute of
+an 'archive' tag, for example:
+
+! <config>
+!   <archive name="archive.tar"/>
+! </config>
+
+The backing store for the dataspaces exported via ROM sessions is accounted
+on the 'rom_tar' service (not on its clients) to make the use of 'rom_tar'
+transparent to the regular users of core's ROM service. Hence, this service
+must not be used by multiple clients that do not trust each other.
+Typically, 'tar_rom' is instantiated per client.
+
+The Live CD uses the 'tar_rom' service for the browser demo. Each plugin
+is fetched from the web as a tar file containing the config file of the
+plugin subsystem as well as supplemental binary files that are provided
+to the plugin subsystem as ROM files. This way, a plugin can carry along
+multiple components and data that form a complete Genode subsystem.
+
+
+DDE Kit
+=======
+
+The DDE kit underwent slight modifications since the previous release.
+It now provides 64-bit integer types and a revised virtual PCI bus
+implementation.
+
+
+Device drivers
+##############
+
+PCI bus
+=======
+
+Genode was tested on several hardware platforms in preparation of the
+current release. This revealed some deficiencies with the PCI bus
+driver implementation. The revised driver now efficiently supports
+platforms with many PCI busses (as PCIe demands) and correctly handles
+multi-function devices.
+
+
+VESA framebuffer
+================
+
+We updated the configuration syntax of the VESA driver to better match
+the style of new init syntax, preferring the use of attributes rather than
+XML sub nodes. Please refer to the updated documentation at
+'os/src/drivers/framebuffer/vesa/README'.
+
+:Buffered output:
+
+  To accommodate framebuffer clients that need to read from the frame buffer,
+  in particular the nitpicker GUI server operating with alpha channels, we
+  introduced a buffered mode to the VESA driver. If enabled, the VESA driver
+  will hand out a plain memory dataspace to the client rather than the
+  physical framebuffer. Each time, the client issues as 'refresh' operation
+  on the framebuffer-session interface, the VESA driver copies the corresponding
+  screen region from the client-side virtual framebuffer to the physical
+  framebuffer. Note that the VESA driver will require additional RAM quota
+  to allocate the client buffer. If the quota is insufficient, the driver will
+  fall back to non-buffered output.
+
+:Preinitialized video modes:
+
+  As an alternative to letting the VESA driver set up a screen mode, the
+  driver has become able to reuse an already initialized mode, which is useful
+  if the VESA mode is already initialized by the boot loader. If the screen
+  is initialized that way, the 'preinit' attribute of the 'config' node can
+  be set to '"yes"' to prevent the driver from changing the mode. This way,
+  the driver will just query the current mode and make the already
+  initialized framebuffer available to its client.
+
+
+Audio
+=====
+
+We observed certain hardware platforms (in particular VirtualBox) to
+behave strangely after ALSA buffer-underrun conditions. It seems that the
+VirtualBox audio driver plays actually more frames than requested by
+ALSA's 'writei' function, resulting in recurring replay of data that
+was in the buffer at underrun time. As a work-around for this problem,
+we zero-out the sound-hardware buffer in the condition of an ALSA buffer
+underrun. This way, the recurring replay is still there, but it is
+replaying silence.
+
+To improve the support for sporadic audio output, we added a check for the PCM
+state for buffer underruns prior issuing the actual playback. In the event of
+an underrun, we re-prepare the sound card before starting the playback.
+
+Furthermore, we implemented the new flush and channel-synchronization
+abilities of the 'Audio_out_session' interface for the DDE Linux driver.
+
+
+Paravirtualized Linux
+#####################
+
+To support the demo scenarios that showcase the paravirtualized Linux kernel,
+we enhanced our custom stub drivers of the OKLinux kernel. Thereby, we have
+reached a high level of integration of OKLinux with native Genode services,
+including audio output, block devices, framebuffer output, seamless integration
+with the Nitpicker GUI, and networking. All stub drivers are compiled in by
+default and are ready to use by specifying a device configuration in the config
+node for the Linux kernel. This way, one Linux kernel image can be easily used
+in different scenarios.
+
+:Integration with the Nitpicker GUI:
+
+  We enhanced our fbdev stub driver with a mechanism to merge view reposition
+  events. If a X11 window is moved, a lot of subsequent events of this type are
+  generated. Using the new optimization, only the most recent state gets
+  reported to Nitpicker, making the X11 GUI more responsive.
+
+:UnionFS:
+
+  As we noticed that unionfs is required by all our Linux scenarios, we decided
+  to include and enable the patch by default.
+
+:Network support:
+
+  With the introduction of the 'nic_bridge', multiple networking stacks can run
+  on Genode at the same time, which paves the way for new use cases. We have now
+  added a stub driver using Genode's 'Nic_session' interface to make the new
+  facility available to Linux.
+
+:Audio output:
+
+  We adapted the ALSA stub driver to the changes of the 'Audio_out_session'
+  interface, using the new channel synchronization and flush functions.
+  Thereby, we optimized the stub driver to keep latency and seek times of
+  Linux userland applications reasonably low.
+
+:Removed ROM file driver:
+
+  With the addition of the 'Block_session' stub driver, the original ROM file
+  driver is no longer required. So we removed the stub. For using ROM files as
+  disk images for Linux, there is the 'rom_loopdev' server, which provides a
+  block session that operates on a ROM file.
+
+:Asynchronous block interface:
+
+  To improve performance, we changed the block stub driver to facilitate the
+  asynchronous mode of operation as provided by the 'Block_session' interface.
+  This way, multiple block requests can be issued at once, thereby shadowing
+  the round trip times for individual requests.
+
+
+Protocol stacks and libraries
+#############################
+
+Gallium3D / Intel GEM
+=====================
+
+We improved the cache handling of our DRM emulation code (implementing
+'drm_clflush_pages') and our EGL driver, thereby fixing caching
+artifacts on i945 GPUs. Furthermore, we added a temporary work-around
+for the currently dysfunctional sequence-number tracking with i945 GPUs.
+On this chipset, issuing the 'MI_STORE_DWORD_INDEX' GPU command used
+for tracking sequence numbers apparently halts the processing the command
+stream. This condition is normally handled by an interrupt. However,
+we have not enabled interrupts yet.
+
+To prepare the future support for more Gallium drivers than i915, we
+implemented a driver-selection facility in the EGL driver. The code
+scans the PCI bus for a supported GPU and returns the name of the
+corresponding driver library. If no driver library could be found,
+the EGL driver falls back to softpipe rendering.
+
+
+lwIP
+====
+
+We revised our port of the lwIP TCP/IP stack, and thereby improved its
+stability and performance.
+
+* The lwIP library is now built as shared object, following the convention
+  for libraries contained in the 'libports' repository.
+* By default (when using the 'libc_lwip_nic_dhcp' library), lwIP will
+  issue a DHCP request at startup. If this request times out, the loopback
+  device is set as default.
+* If there is no 'Nic' service available, the lwIP stack will fall back to
+  the loopback device.
+* We increased the default number of PCBs in lwIP to 64.
+* We removed a corner case of the timed semaphore that could occur
+  when a timeout was triggered at the same time ,'up' was called.
+  In this case, the semaphore was unblocked but the timeout condition
+  was not reflected at the caller of 'down'. However, the lwIP code
+  relies on detecting those timeouts.
+
+
+Qt4
+====
+
+We implemented a custom *nitpicker plugin widget*, which allows for the
+seamless integration of arbitrary nitpicker clients into a Qt4 application.
+The primary use case is the browser plugin mechanism presented at
+the Live CD. In principle, the 'QNitpickerViewWidget' allows for creating
+mash-up allocations consisting of multiple native Genode programs. As shown
+by the browser plugin demo, a Qt4 application can even integrate other
+programs that run isolated from the Qt4 application, and thereby depend on
+on a significantly less complex trusted computing base than the Qt4
+application itself.
+
+[image img/nitpicker_plugin]
+
+The image above illustrates the use of the 'QNitpickerViewWidget' in the
+scenario presented on the Live CD. The browser obtains the Nitpicker view to be
+embedded into the website from the loader service, which virtualizes the
+Nitpicker session interface for the loaded plugin subsystem. The browser then
+tells the loader about where to present the plugin view on screen. But it has
+neither control over the plugin's execution nor can it observe any user
+interaction with the plugin.
+
+
+New Gems repository with HTTP-based block server
+################################################
+
+To give the web-browser demo of our Live CD a special twist, and to show off
+the possibilities of a real multi-server OS, we decided to implement the
+somewhat crazy idea of letting a Linux OS run on a disk image fetched at
+runtime from a web server. This way, the Linux OS would start right away and
+disk blocks would be streamed over the network as needed. Implementing this
+idea was especially attractive because such a feature would be extremely hard
+to implement on a classical OS but is a breeze to realize on Genode where all
+device drivers and protocol stacks are running as distinct user-level
+components. The following figure illustrates the idea:
+
+[image img/http_block]
+
+The block stub driver of the Linux kernel gets connected to a special block
+driver called 'http_block', which does not access a real block device but
+rather uses TCP/IP and HTTP to fetch disk blocks from a web server.
+
+Because the 'http_block' server is both user of high-level functionality (the
+lwIP stack) and provider of a low-level interface ('Block_session'), the
+program does not fit well into one of the existing source-code repositories.
+The 'os' repository, which is normally hosting servers for low-level interfaces
+is the wrong place for 'http_block' because this program would make the 'os'
+repository depend on the higher-level 'libports' repository where the 'lwip'
+stack is located. On the other hand, placing 'http_block' into the 'libports'
+repository is also wrong because the program is not a ported library. It merely
+uses libraries provided by 'libports'. In the future, we expect that native
+Genode components that use both low-level and high-level repositories will
+become rather the norm than an exception. Therefore, we introduced a new
+repository called 'gems' for hosting such programs.
+
+
+Tools
+#####
+
+Automated coding-style checker
+==============================
+
+As Genode's code base grows and new developers start to get involved,
+we noticed recurring questions regarding coding style. There is a
+[http://genode.org/documentation/developer-resources/coding_style - document]
+describing our coding style but for people just starting to get involved,
+adhering all the rules can become tedious. However, we stress the importance
+of a consistent coding style for the project. Not only does a consistent style
+make the framework more approachable for users, but it also eases the work
+of all regular developers, who can feel right at home at any part of
+the code.
+
+To avoid wasting precious developer time with coding-style fixes, we
+have created a tool for the automated checking and (if possible) fixing
+the adherence of source code to Genode's coding style. The tool is
+located at 'tool/beautify'. It takes a source file as argument and
+reports coding-style violations. The checks are fairly elaborative:
+* Placement of braces and parenthesis
+* Indentation and alignment, trailing spaces
+* Vertical spacing (e.g., between member functions, above comments)
+* Naming of member variables and functions (e.g., private members start with '_')
+* Use of upper and lower case
+* Presence of a file header with the mandatory fields
+* Policy for function-header comments (comment at declaration, not
+  at implementation)
+* Style of single-line comments, function-header comments, multi-line comments
+
+The user of 'beautify' may opt to let the tool fix most of the violations
+automatically by specifying the command line arguments '-fix' and '-write'.
+With only the '-fix' argument, the tool will output the fixed version of
+the code via stdout. By specifying the '-write' argument, the changes will
+be written back to the original file. In any case, we strongly recommend
+to manually inspect all changes made by the tool.
+
+Under the hood, the tool consists of two parts. A custom C++ parser called
+'parse_cxx' reads the source code and converts it to a syntax tree. In the
+syntax tree, all formating information such as whitespaces are preserved.
+The C++ parser is a separate command-line tool, which we also use for
+other purposes (e.g., generating the API documentation at the website).
+The actual 'beautify' tool calls 'parse_cxx', and applies its checks and
+fixes to the output of 'parse_cxx'. For this reason, both tools have to
+reside in the same directory.
+
+
+Platform-specific changes
+#########################
+
+OKL4
+====
+
+:Added support for shared interrupts:
+
+  The Genode Live CD operates on a large number of devices that trigger
+  interrupts (USB, keyboard, mouse, ATAPI, timer, network). On most
+  platforms, the chances are extremely high that some of them use
+  the same IRQ line. Therefore, we enhanced core's IRQ service to
+  allow multiple clients to request the same IRQ. If the interrupt occurs,
+  all clients referring to this interrupt are notified. The interrupt
+  gets cleared after all of those clients responded. Even though, we regard
+  PIC interrupts as a legacy, the support of shared interrupts enables
+  us to use OKL4 with such complex usage scenarios.
+
+:Revised page-fault handling:
+
+  If a page fault occurs, the OKL4 kernel delivers a message to the page-fault
+  handler. The message contains the page-fault address and type as well as the
+  space ID where the fault happened. However, the identity of the faulting
+  thread is not delivered. Instead, the sender ID of the page fault message
+  contains the KTCB index of the faulting thread, which is only meaningful
+  within the kernel. This KTCB index is used as a reply token for answering the
+  page fault message. We wondered about why OKL4 choose to deliver the KTCB
+  index rather then the global thread ID as done for plain IPC messages. The
+  only reasonable answer is that by using the KTCB index directly in OKL4's
+  page-fault protocol, one lookup from the userland-defined thread ID to the
+  KTCB index can be avoided. However, this comes at the cost of losing the
+  identity of the faulting thread. We used to take the space ID as a key for
+  the fault context within core. However, with Genode's user-level page-fault
+  mechanism, this simplification does not suffice anymore. We have to know the
+  faulting thread as a page fault may not be answered immediately but at a
+  later time. During that time, the page-fault state has to be stored at core's
+  representation of the faulting thread. Our solution is reverting OKL4's
+  page-fault protocol to operate with global thread IDs only and to never make
+  kernel-internal KTCB indices visible at the user land. You can find the patch
+  for the OKL4 kernel at 'base-okl4/patches/reply_tid.patch'.
+
+:Reboot via kernel debugger:
+
+  We fixed the reboot code of OKL4's kernel debugger to improve our work
+  flow. The patch can be found at 'base-okl4/patches/kdb_reboot.patch'.
+
+:Relieved conflict with libc 'limits.h':
+
+  For some reason, the OKL4 kernel bindings provide definitions
+  normally found in libc headers. This circumstance ultimately leads
+  to trouble when combining OKL4 with a real C runtime. We have
+  relieved the problem with the patch 'base-okl4/patches/char_bit.patch'.
+
+:Exception handling:
+
+  We added a diagnostic message to core that reports about exceptions
+  such as division by zero.
+
+
+Pistachio
+=========
+
+Our revised syscall bindings for supporting position-independent code
+on L4ka::Pistachio have been integrated into the mainline development
+of the kernel. Therefore, the patch is not needed anymore when using
+a kernel revision newer than 'r791:0d25c1f65a3a'.
+
+
+Linux
+=====
+
+On Linux, we let the kernel manage all virtual address spaces for us,
+except for the thread-context area. Because the kernel does not know
+about the special meaning of the thread-context area, it may choose to
+use this part of the virtual address space as target for 'mmap'. This
+may lead to memory corruption. Fortunately, there is a way to tell the
+kernel about virtual address regions that should be reserved. The
+trick is to pre-populate the said region with anonymous memory using
+the 'mmap' arguments 'MAP_PRIVATE', 'MAP_FIXED', 'MAP_ANONYMOUS', and
+'PROT_NONE'. The kernel will still accept a fixed-address mapping
+within such a reserved region (overmap) but won't consider using the
+region by itself. The reservation must be done at the startup of each
+process and each time when detaching a dataspace from the thread
+context area. For the process startup, we use the hook function
+'main_thread_bootstrap' in 'src/platform/_main_helper.h'. For reverting
+detached dataspaces to a reserved region within the context area, we
+added as special case to 'src/base/env/rm_session_mmap.cc'.
+For hybrid programs (Genode processes that link against native
+shared libraries of the Linux system), which are loaded by the dynamic
+linker of Linux, we must further prevent the dynamic linker from
+populating the thread-context area. This is achieved by adding a
+special program segment at the linking stage of all elf binaries.
+

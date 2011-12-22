@@ -1,0 +1,8 @@
+This directory and its subdirectories contain machine-generated code,
+produced when building the OKL4 kernel with its native Scons build environment.
+
+It is not part of the Genode project and remains under the licence of the OKL4 kernel.
+
+You can obtain the OKL4 kernel version 2.1.1. here:
+
+[http://www.ok-labs.com - Open Kernel Labs]

@@ -1,0 +1,61 @@
+#
+# Build
+#
+
+build {
+	core init
+	drivers/timer
+	test/timed_semaphore
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="test-timed_semaphore">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>}
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	test-timed_semaphore
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 64 -nographic "
+
+run_genode_until "end of timed-semaphore test" 10
+
+puts "Test succeeded"

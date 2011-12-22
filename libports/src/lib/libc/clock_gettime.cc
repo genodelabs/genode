@@ -1,0 +1,32 @@
+/*
+ * \brief  C-library back end
+ * \author Christian Prochaska
+ * \date   2010-05-19
+ */
+
+/*
+ * Copyright (C) 2010-2011 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#include <base/printf.h>
+#include <os/timed_semaphore.h>
+
+#include <sys/time.h>
+
+extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
+{
+	if (clk_id != CLOCK_MONOTONIC)
+		PWRN("Unsupported clk_id, using CLOCK_MONOTONIC instead.");
+
+	Genode::Alarm::Time time = Genode::Timeout_thread::alarm_timer()->time();
+
+	if (tp) {
+		tp->tv_sec = time / 1000;
+		tp->tv_nsec = (time % 1000) * (1000 * 1000);
+	}
+
+	return 0;
+}

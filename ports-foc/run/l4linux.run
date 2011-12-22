@@ -1,0 +1,144 @@
+assert_spec foc
+
+#
+# Build
+#
+set build_components {
+	core
+	init
+	drivers/timer
+	drivers/uart
+	drivers/framebuffer
+	l4linux }
+
+lappend_if [have_spec     x86] build_components drivers/nic
+lappend_if [have_spec     pci] build_components drivers/pci
+lappend_if [have_spec     ps2] build_components drivers/input/ps2
+lappend_if [have_spec lan9118] build_components drivers/nic
+
+build $build_components
+create_boot_directory
+
+#
+# Config
+#
+set config  {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="uart_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<config><policy label="l4linux" uart="1"/></config>
+	</start> }
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="vesa_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start> }
+
+append_if [have_spec pl11x] config {
+	<start name="pl11x_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start> }
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>}
+
+append_if [have_spec x86] config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
+
+append_if [have_spec lan9118] config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nic"/></provides>
+	</start> }
+
+append config {
+	<start name="l4linux">
+		<resource name="RAM" quantum="128M"/>
+		<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules { core init timer uart_drv l4linux initrd.gz }
+lappend_if [have_spec     pci] boot_modules pci_drv
+lappend_if [have_spec     ps2] boot_modules ps2_drv
+lappend_if [have_spec   pl11x] boot_modules pl11x_drv
+lappend_if [have_spec    vesa] boot_modules vesa_drv
+lappend_if [have_spec     x86] boot_modules nic_drv
+lappend_if [have_spec lan9118] boot_modules nic_drv
+
+if {[have_spec x86]} {
+	set uri "http://genode.org/files/release-11.11/l4lx/initrd-ia32.gz"
+} elseif {[have_spec arm]} {
+	set uri "http://genode.org/files/release-11.11/l4lx/initrd-arm.gz"
+}
+if {![file exists bin/initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O bin/initrd.gz $uri
+}
+
+build_boot_image  [join $boot_modules " "]
+
+#
+# Qemu
+#
+append qemu_args " -m 128 -nographic "
+append qemu_args " -serial unix:/tmp/qemu-pipe,server,nowait "
+append qemu_args " -serial mon:stdio "
+append_if [have_spec     x86] qemu_args " -net nic,model=e1000 -net user "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 -net user "
+
+#
+# Execute test case
+#
+run_genode_until {.*\/ #.*} 120
+
+# Wait for network to settle down
+send "sleep 5\n"
+send "wget http://genode.org/\n"
+
+expect {
+	 -re "Connecting to genode.org.*index.html.*\/ #.*" { }
+	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+}
+
+exec rm bin/initrd.gz

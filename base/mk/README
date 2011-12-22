@@ -1,0 +1,14 @@
+This directory contains the build system. In consists mainly of makefile
+templates for different directory roles.
+
+:'global.mk': This file contains global variables, for example the
+  definitions of the tools to use.
+
+:'generic.mk': Generic rules for creating file types from others.
+
+:'prg.mk': This file represents the target binary role of a directory.
+  It must be included by all makefiles that build programs.
+
+:'lib.mk': This file represents a library role. It is never used from
+  within the 'src/' directory but only from the <libname>.mk files
+  in 'lib/mk/'.

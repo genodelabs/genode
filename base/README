@@ -1,0 +1,12 @@
+This is generic part of the Genode implementation. It consists of two parts:
+
+:_Core_: is the ultimate root of the Genode application tree
+  and provides abstractions for the lowest-level hardware resources
+  such as RAM, ROM, CPU, and generic device access. All generic parts of Core
+  can be found here - for system-specific implementations refer to the
+  appropriate 'base-<system>' directory.
+
+:_Base libraries and protocols_: that are used by each Genode component
+  to interact with other components. This is the glue that holds everything
+  together.
+

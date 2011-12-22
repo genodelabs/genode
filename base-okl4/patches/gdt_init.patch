@@ -1,0 +1,12 @@
+diff -r ac48ec8ffd86 arch/ia32/pistachio/src/init.cc
+--- a/arch/ia32/pistachio/src/init.cc	Tue Aug 03 13:10:36 2010 +0200
++++ b/arch/ia32/pistachio/src/init.cc	Wed Nov 24 12:01:30 2010 +0100
+@@ -230,7 +230,7 @@
+ 
+     /* create a temporary GDT descriptor to load the GDTR from */
+     /*lint -e529 gdt_desc is only used inside __asm__ blocks */
+-    ia32_sysdesc_t gdt_desc = {sizeof(gdt), (u32_t)gdt, 0} ;
++    ia32_sysdesc_t gdt_desc = {sizeof(gdt) - 1, (u32_t)gdt, 0} ;
+ 
+     __asm__ __volatile__("lgdt %0               \n"     /* load descriptor table        */
+                          "ljmp  %1,$1f          \n"     /* refetch code segment descr.  */

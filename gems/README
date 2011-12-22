@@ -1,0 +1,6 @@
+This directory is a source-code repository containing Genode-specific
+services and applications. In contrast to the components that come with
+the 'os' repository, programs contained in 'gems' are able to leverage
+the functionalities provided by higher-level repositories such as
+'libports', and 'qt4'. To use the 'gems' repository, make sure to
+also add those repositories to your build configuraion.

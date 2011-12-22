@@ -1,0 +1,579 @@
+#!/usr/bin/make -f
+#
+# \brief  Tool-chain creation tool for the Genode OS Framework
+# \author Norman Feske
+# \date   2009-02-03
+#
+
+help:
+	$(ECHO)
+	$(ECHO) "Build tool chain for the Genode OS Framework"
+	$(ECHO)
+	$(ECHO) "The tool chain consists of GCC $(GCC_VERSION) and binutils $(BINUTILS_VERSION)"
+	$(ECHO) "and will be created at '$(LOCAL_INSTALL_LOCATION)'."
+	$(ECHO)
+	$(ECHO) "--- available commands ---"
+	$(ECHO) "x86        - create tool chain for x86"
+	$(ECHO) "arm        - create tool chain for arm"
+	$(ECHO) "clean      - clean everything except downloaded archives"
+	$(ECHO) "cleanall   - clean everything including downloaded archives"
+	$(ECHO) "install    - copy tool chain to '$(INSTALL_LOCATION)'"
+	$(ECHO)
+
+#
+# User interface
+#
+
+SUPPORTED_PLATFORMS := x86 microblaze arm
+
+PLATFORM := $(firstword $(filter $(SUPPORTED_PLATFORMS),$(MAKECMDGOALS)))
+
+$(SUPPORTED_PLATFORMS): install
+
+#
+# Enable parallel build for 2nd-level $(MAKE) by default
+#
+
+MAKE_OPT ?= -j4
+
+#
+# Determine Genode base directory based on the known location of the
+# 'create_builddir' tool within the Genode source tree
+#
+
+GENODE_DIR ?= $(realpath $(dir $(MAKEFILE_LIST))/..)
+
+#
+# Download locations
+#
+
+DOWNLOAD_MIRROR      ?= ftp://ftp.fu-berlin.de
+GCC_DOWNLOAD_URL      = $(DOWNLOAD_MIRROR)/gnu/gcc
+BINUTILS_DOWNLOAD_URL = $(DOWNLOAD_MIRROR)/gnu/binutils
+GDB_DOWNLOAD_URL      = $(DOWNLOAD_MIRROR)/gnu/gdb
+GMP_DOWNLOAD_URL      = $(DOWNLOAD_MIRROR)/gnu/gmp
+MPFR_DOWNLOAD_URL     = $(DOWNLOAD_MIRROR)/gnu/mpfr
+MPC_DOWNLOAD_URL     ?= http://www.multiprecision.org/mpc/download
+
+
+#
+# Tool versions and install location
+#
+
+GCC_VERSION       = 4.6.1
+BINUTILS_VERSION  = 2.21.1
+GDB_VERSION       = 7.3.1
+GMP_VERSION       = 5.0.2
+MPFR_VERSION      = 3.1.0
+MPC_VERSION       = 0.9
+INSTALL_LOCATION  = /usr/local/genode-gcc
+DOWNLOAD_DIR      = download
+CONTRIB_DIR       = contrib
+
+BINUTILS_DOWNLOAD_TBZ2 = binutils-$(BINUTILS_VERSION).tar.bz2
+
+# download file name differs from dir name found within the archive
+ifeq ($(BINUTILS_VERSION),2.21.1)
+BINUTILS_DOWNLOAD_TBZ2 = binutils-$(BINUTILS_VERSION)a.tar.bz2
+endif
+
+#
+# Utilities
+#
+
+SHELL       = bash
+BRIGHT_COL  = \033[01;33m
+DEFAULT_COL = \033[0m
+ECHO        = @echo -e
+VERBOSE     = @
+
+AUTOCONF_gcc_4.4.5 = autoconf2.59
+AUTOCONF_gcc_4.6.1 = autoconf2.64
+
+AUTOCONF = $(AUTOCONF_gcc_$(GCC_VERSION))
+
+ifeq ($(AUTOCONF),)
+$(error Unknown autoconf version for GCC $(GCC_VERSION).)
+endif
+
+ifeq ($(shell which $(AUTOCONF)),)
+$(error Need to have $(AUTOCONF) installed.)
+endif
+
+ifeq ($(shell which autogen)),)
+$(error Need to have autogen installed.)
+endif
+
+#
+# Libc stub
+#
+
+LIBC_GEN_SYMLINKS = \
+	stdint.h memory.h string.h stdlib.h unistd.h errno.h wchar.h \
+	ctype.h strings.h wctype.h math.h stdio.h dlfcn.h inttypes.h \
+	malloc.h signal.h fcntl.h assert.h locale.h setjmp.h time.h \
+	link.h gnu-versions.h elf.h
+
+LIBC_GEN_SYS_SYMLINKS = types.h stat.h sem.h
+
+LIBC_DIR    = $(shell pwd)/build/libc/include
+LIBC_STUB_H = $(GENODE_DIR)/tool/libgcc_libc_stub.h
+
+LIBC = $(addprefix $(LIBC_DIR)/,$(LIBC_GEN_SYMLINKS)) \
+       $(addprefix $(LIBC_DIR)/sys/,$(LIBC_GEN_SYS_SYMLINKS))
+
+$(LIBC_DIR) $(LIBC_DIR)/sys:
+	$(VERBOSE)mkdir -p $@
+
+$(addprefix $(LIBC_DIR)/,$(LIBC_GEN_SYMLINKS)): $(LIBC_DIR)
+	$(VERBOSE)ln -sf $(LIBC_STUB_H) $@
+
+$(addprefix $(LIBC_DIR)/sys/,$(LIBC_GEN_SYS_SYMLINKS)): $(LIBC_DIR)/sys
+	$(VERBOSE)ln -sf $(LIBC_STUB_H) $@
+
+#
+# 'configure' parameters for binutils, gcc and gdb
+#
+
+LOCAL_INSTALL_LOCATION = $(shell pwd)/build/install
+
+#
+# Local install location for gmp, mpfr, and mpc libraries. These libraries are
+# requried at build time of gcc. We install them locally before invoking the
+# gcc build. Because the libs do not need to be included in the tool-chain
+# package (they are statically linked against gcc), we install them to a
+# different install location as gcc.
+#
+LOCAL_LIB_INSTALL_LOCATION = $(shell pwd)/build/lib-install
+
+TARGET_NAME_x86        = x86_64-elf
+TARGET_NAME_microblaze = microblaze-elf
+TARGET_NAME_arm        = arm-elf-eabi
+
+ifneq ($(VERBOSE),)
+CONFIG_QUIET = --quiet
+MAKEFLAGS   += --quiet
+export MAKEFLAGS
+endif
+
+COMMON_CONFIG = $(CONFIG_QUIET) \
+                --prefix=$(LOCAL_INSTALL_LOCATION) \
+                --program-prefix=genode-$(PLATFORM)- \
+                --target=$(TARGET_NAME_$(PLATFORM)) \
+                --program-transform-name="s/$(TARGET_NAME_$(PLATFORM))/$(PLATFORM)/"
+
+BINUTILS_CONFIG += $(COMMON_CONFIG) --disable-werror
+
+#
+# Prevent GNU assembler from treating '/' as the start of a comment. In
+# 'gas/config/tc-i386.c', the policy of handling '/' is defined. For Linux, '/'
+# is treated as division, which we expect. To apply this needed policy for our
+# plain 'elf' version gas, we supply the definition of 'TE_LINUX' by hand.
+# Fortunately, this define is not used outside of gas.
+#
+BINUTILS_CONFIG += CFLAGS=-DTE_LINUX
+
+#
+# Add platform-specific binutils configure arguments
+#
+BINUTILS_CONFIG += $(BINUTILS_CONFIG_$(PLATFORM))
+
+#
+# Dummy libc symbols to resolve unresolved references when linking
+# 'libgcc_s.so'. Even though, this library is not used on Genode, we want the
+# link command to succeed to complete the build process.
+#
+DUMMY_LIBC_SYMS      = strlen free memcpy malloc memset abort dl_iterate_phdr
+LD_PREFIX            = -Wl,
+LD_DEFSYM_DUMMY_LIBC = $(addprefix $(LD_PREFIX)--defsym=,$(addsuffix =0,$(DUMMY_LIBC_SYMS)))
+
+GCC_CONFIG += $(COMMON_CONFIG) \
+              --with-gnu-as --with-gnu-ld --disable-tls --disable-threads \
+              --disable-libstdcxx-pch \
+              --enable-shared \
+              --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
+              --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION) \
+              --with-mpc=$(LOCAL_LIB_INSTALL_LOCATION) \
+              CPPFLAGS_FOR_TARGET=-I$(LIBC_DIR) \
+              CFLAGS_FOR_TARGET="-I$(LIBC_DIR) -nostdlib $(LD_DEFSYM_DUMMY_LIBC) -fPIC"
+
+GCC_CONFIG += $(GCC_CONFIG_$(PLATFORM))
+
+#
+# Configure options passed to gcc
+#
+# The 't-linux' tmake file is needed to let the tool chain use 'unwind-dw2-fde-glibc',
+# needed for the exception handling on Genode in the presence of shared libraries.
+#
+HOST_CONFIG_ARGS = $(CONFIG_QUIET) \
+                   host_xm_include_list=$(LINK_SPEC_H_$(PLATFORM)) \
+                   tmake_file='t-slibgcc-elf-ver t-slibgcc-nolc-override t-linux'
+
+# passed to target components such as libgcc, libstdc++
+TARGET_CONFIG_ARGS = $(CONFIG_QUIET) \
+                     extra_parts='crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o'
+
+# compile libsupc++ as position-independent code
+TARGET_CONFIG_ARGS += LIBSUPCXX_PICFLAGS='-prefer-pic'
+
+GCC_INSTALL_RULE = install-strip
+ifeq ($(GCC_VERSION),4.4.5)
+GCC_INSTALL_RULE = install
+endif
+
+#
+# Default linker script
+#
+# Needed only to make target-configure happy.
+#
+
+LD_SCRIPT_microblaze = $(LOCAL_INSTALL_LOCATION)/$(TARGET_NAME_microblaze)/lib/xilinx.ld
+
+$(LD_SCRIPT_$(PLATFORM)):
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)touch $@
+
+#
+# Link spec
+#
+# The 'LINK_SPEC' define comprises the rules of how the GCC frontend invokes
+# the linker.
+#
+
+LINK_SPEC_H_x86 = $(shell pwd)/build/$(PLATFORM)/link_spec.h
+
+$(LINK_SPEC_H_x86):
+	$(VERBOSE)echo "#define LINK_SPEC \"%{!m32:-m elf_x86_64} %{m32:-m elf_i386} %{shared:-shared} %{!static:--eh-frame-hdr}\"" > $@
+
+$(LINK_SPEC_H_arm):
+	$(VERBOSE)echo "#define LINK_SPEC \"%(shared:-shared) %{!static:--eh-frame-hdr}\"" > $@
+
+#
+# Platform-specific multilib support
+#
+
+MAKE_OPT_x86 := MULTILIB_OPTIONS="m64/m32" MULTILIB_DIRNAMES="64 32"
+MAKE_OPT += $(MAKE_OPT_$(PLATFORM))
+
+#
+# Build rules and dependencies between build steps
+#
+# We use the binaries 'objdump' and 'g++' as representatives for expressing
+# dependencies. All other programs will be generated as side effect.
+#
+
+BINUTILS_BINARIES           = build/$(PLATFORM)/binutils/binutils/objdump
+BINUTILS_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-objdump
+GCC_BINARIES                = build/$(PLATFORM)/gcc/gcc/g++
+GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
+GDB_BINARIES                = build/$(PLATFORM)/gdb/gdb/gdb
+GDB_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
+
+build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES)
+
+$(DOWNLOAD_DIR):
+	$(VERBOSE)mkdir -p $@
+
+$(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2): $(DOWNLOAD_DIR)
+	$(ECHO) "$(BRIGHT_COL)downloading binutils...$(DEFAULT_COL)"
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BINUTILS_DOWNLOAD_URL)/$(BINUTILS_DOWNLOAD_TBZ2) && touch $@
+
+$(DOWNLOAD_DIR)/gcc-core-$(GCC_VERSION).tar.bz2: $(DOWNLOAD_DIR)
+	$(ECHO) "$(BRIGHT_COL)downloading gcc...$(DEFAULT_COL)"
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GCC_DOWNLOAD_URL)/gcc-$(GCC_VERSION)/gcc-core-$(GCC_VERSION).tar.bz2 && touch $@
+
+$(DOWNLOAD_DIR)/gcc-g++-$(GCC_VERSION).tar.bz2: $(DOWNLOAD_DIR)
+	$(ECHO) "$(BRIGHT_COL)downloading g++...$(DEFAULT_COL)"
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GCC_DOWNLOAD_URL)/gcc-$(GCC_VERSION)/gcc-g++-$(GCC_VERSION).tar.bz2 && touch $@
+
+$(DOWNLOAD_DIR)/gmp-$(GMP_VERSION).tar.bz2: $(DOWNLOAD_DIR)
+	$(ECHO) "$(BRIGHT_COL)downloading gmp...$(DEFAULT_COL)"
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GMP_DOWNLOAD_URL)/gmp-$(GMP_VERSION).tar.bz2 && touch $@
+
+$(DOWNLOAD_DIR)/mpfr-$(MPFR_VERSION).tar.bz2: $(DOWNLOAD_DIR)
+	$(ECHO) "$(BRIGHT_COL)downloading mpfr...$(DEFAULT_COL)"
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPFR_DOWNLOAD_URL)/mpfr-$(MPFR_VERSION).tar.bz2 && touch $@
+
+$(DOWNLOAD_DIR)/mpc-$(MPC_VERSION).tar.gz: $(DOWNLOAD_DIR)
+	$(ECHO) "$(BRIGHT_COL)downloading mpc...$(DEFAULT_COL)"
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_DOWNLOAD_URL)/mpc-$(MPC_VERSION).tar.gz && touch $@
+
+$(CONTRIB_DIR)/gmp-$(GMP_VERSION)/configure: $(DOWNLOAD_DIR)/gmp-$(GMP_VERSION).tar.bz2
+	$(ECHO) "$(BRIGHT_COL)unpacking gmp...$(DEFAULT_COL)"
+	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR)
+
+$(CONTRIB_DIR)/mpfr-$(MPFR_VERSION)/configure: $(DOWNLOAD_DIR)/mpfr-$(MPFR_VERSION).tar.bz2
+	$(ECHO) "$(BRIGHT_COL)unpacking mpfr...$(DEFAULT_COL)"
+	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR)
+
+$(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure: $(DOWNLOAD_DIR)/mpc-$(MPC_VERSION).tar.gz
+	$(ECHO) "$(BRIGHT_COL)unpacking mpc...$(DEFAULT_COL)"
+	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR)
+
+$(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure: $(addprefix $(DOWNLOAD_DIR)/,gcc-core-$(GCC_VERSION).tar.bz2 gcc-g++-$(GCC_VERSION).tar.bz2)
+	$(ECHO) "$(BRIGHT_COL)unpacking gcc and g++...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(CONTRIB_DIR)
+	$(VERBOSE)for i in $^ ; do tar xfj $$i -C $(CONTRIB_DIR) ;done
+	$(VERBOSE)touch $@
+	$(ECHO) "$(BRIGHT_COL)patching gcc build system...$(DEFAULT_COL)"
+	@#
+	@# Enable support for passing custom 'tmake_file' and 'extra_parts' to the
+	@# GCC configure process uncommenting the default initialization of the
+	@# respective variables. The 'extra_parts' variable is used to carry the
+	@# the information about which crtN files are to be created.
+	@#
+	@# The 't-386elf' file must the treated to prevent it from defining the
+	@# 'EXTRA_PARTS' variable. If defined, the 'libgcc' Makefile would prepare
+	@# it against our custom list of 'extra_parts' and consequently fail.
+	@#
+	$(VERBOSE)sed -i "/^tmake_file=$$/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config.gcc
+	$(VERBOSE)sed -i "/^extra_parts=$$/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config.gcc
+	$(VERBOSE)sed -i "/^extra_parts=$$/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libgcc/config.host
+	$(VERBOSE)sed -i "/^EXTRA_PARTS=/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config/i386/t-i386elf
+	$(VERBOSE)sed -i "/^EXTRA_MULTILIB_PARTS *=/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config/arm/t-arm-elf
+	@#
+	@# Let 'config.gcc' expand our already populated 'tmake_file' variable rather
+	@# than making a hard assignment. This is needed for the ARM platform because
+	@# the target 'arm-elf-eabi' actually matches the pattern 'arm-*-*-eabi' in
+	@# the 'config.gcc' file.
+	@#
+	$(VERBOSE)sed -i "/tmake_file=\"arm/s/=\"/=\"\$${tmake_file} /" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config.gcc
+	@#
+	@# Enable LINK_SPEC customization via configure arguments
+	@#
+	@# We add a hook for sneaking our custom LINK_SPEC definition into the GCC
+	@# configure process by uncommentig the 'host_xm_include_list'. This enables us
+	@# to supply a custom header file to be included into 'gcc/config.h' defining
+	@# the 'LINK_SPEC' macro. This macro expresses the policy of how the GCC
+	@# frontend invokes 'ld' on multiarch platforms. I.e., on x86, we need to pass
+	@# '-melf_i386' to 'ld' when building in '-m32' mode.
+	@#
+	$(VERBOSE)sed -i "/^host_xm_include_list=$$/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/configure.ac
+	@#
+	@# Make sure to disable the 'inhibit_libc' flag, which is evaluated when
+	@# compiling libgcc. When libc is inhibited, the 'unwind-dw2-fde-glibc.c'
+	@# is not using the "new" glibc exception handling mechanism. However,
+	@# Genode's dynamic linker relies on this mechanism.
+	@#
+	$(VERBOSE)sed -i "/inhibit_libc=true/s/true/false # was true/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/configure.ac
+	@#
+	@# Accept prepopulation of 'host_configargs' and 'target_configargs' as
+	@# configure argument (only needed for gcc-4.4.5, fixed with later versions)
+	@#
+	$(VERBOSE)sed -i "/host_configargs=.--cache-file/s/=./=\"\$$host_configargs /" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure.ac
+	$(VERBOSE)sed -i "/target_configargs=..baseargs/s/=.*/=\"\$$target_configargs \$${baseargs}\"/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure.ac
+	@#
+	@# Allow customization of CPPFLAGS_FOR_TARGET, not supported by the original
+	@# GCC config and build system.
+	@#
+	$(VERBOSE)sed -i "/^CXXFLAGS_FOR_TARGET =/s/^/CPPFLAGS_FOR_TARGET = @CPPFLAGS_FOR_TARGET@\n/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/Makefile.tpl
+	$(VERBOSE)sed -i "/AC_SUBST(CFLAGS_FOR_TARGET)/s/^/AC_SUBST(CPPFLAGS_FOR_TARGET)\n/"          $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure.ac
+	@#
+	@# Fix the handling of CPP_FOR_TARGET. Without the fix, the configure script
+	@# of libgcc tries to use the normal 'cpp' for executing preprocessor tests,
+	@# which produces bogus results.
+	@#
+	$(VERBOSE)sed -i "/CC=.*XGCC.*export CC/s/^/	CPP=\"\$$(CPP_FOR_TARGET) \$$(XGCC_FLAGS_FOR_TARGET) \$$\$$TFLAGS\"; export CPP; \\\\\n/"  $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/Makefile.tpl
+	$(VERBOSE)sed -i "/^CC_FOR_TARGET=/s/^/CPP_FOR_TARGET=\$$(STAGE_CC_WRAPPER) @CPP_FOR_TARGET@\n/"                                           $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/Makefile.tpl
+	$(VERBOSE)sed -i "/CC=.*XGCC.*TFLAGS....$$/s/^/	'CPP=\$$\$$(CPP_FOR_TARGET) \$$\$$(XGCC_FLAGS_FOR_TARGET) \$$\$$(TFLAGS)' \\\\\n/"         $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/Makefile.tpl
+	$(VERBOSE)sed -i "/flag= CC_FOR_TARGET/s/^/flags_to_pass = { flag= CPP_FOR_TARGET ; };\n/"                                                 $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/Makefile.def
+	$(VERBOSE)sed -i "/^GCC_TARGET_TOOL.cc,/s/^/GCC_TARGET_TOOL(cpp, CPP_FOR_TARGET, CPP, \[gcc\/cpp -B\$$\$$r\/\$$(HOST_SUBDIR)\/gcc\/\])\n/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure.ac
+	@#
+	@# Ensure -fno-short-enums as default.
+	@#
+	$(VERBOSE)sed -i "s/return TARGET_AAPCS_BASED && arm_abi != ARM_ABI_AAPCS_LINUX/return false/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config/arm/arm.c
+	@#
+	@# Remove sanity check for host/target combination in configure script of
+	@# libstdc++. An alternative fix would be the addition of a new host or
+	@# the use of an existing one. However, adding a new host would require
+	@# us to maintain a larger patch to the GCC build system, and using an
+	@# existing host comes with all the (possibly unwanted) policies associated
+	@# with the respective host platform. We want to stick with the bare-bone
+	@# compiler as much as possible.
+	@#
+	$(VERBOSE)sed -i "/No support for this host.target combination/d" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libstdc++-v3/crossconfig.m4
+	$(VERBOSE)cd $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libstdc++-v3; $(AUTOCONF)
+	@#
+	@# Allow passing of PICFLAGS to the configure script of libstdc++.
+	@# Without this change, libsupc++ would be compiled w/o PICFLAGS, resulting
+	@# in text relocations. Because for base tool chains, no 'dynamic_linker'
+	@# is defined (see 'libtool.m4'), 'dynamic_linker' is set to 'no', which
+	@# results in 'can_build_shared = no', which, in turn , results
+	@# in 'enable_shared = no', which, in turn, sets 'LIBSUPCXX_PICFLAGS' to
+	@# nothing rather then '-prefer-pic'.
+	@#
+	$(VERBOSE)sed -i "/LIBSUPCXX_PICFLAGS=$$/s/LIB/__LIB/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libstdc++-v3/configure.ac
+	@#
+	@# Re-generate configure scripts
+	@#
+	$(VERBOSE)cd $(CONTRIB_DIR)/gcc-$(GCC_VERSION); autogen Makefile.def
+	$(VERBOSE)cd $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libgcc; $(AUTOCONF)
+	$(VERBOSE)cd $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libstdc++-v3; $(AUTOCONF)
+	$(VERBOSE)cd $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc; $(AUTOCONF)
+	$(VERBOSE)cd $(CONTRIB_DIR)/gcc-$(GCC_VERSION); $(AUTOCONF)
+	@#
+	@# Fix a bug in gcc 4.6.1 that causes compile errors when building Qt4 for ARM
+	@# More detailed description at and solution from http://gcc.gnu.org/ml/gcc-patches/2010-11/msg02245.html
+	@#
+ifeq ($(GCC_VERSION),4.6.1)
+	$(ECHO) "$(BRIGHT_COL)patching gcc...$(DEFAULT_COL)"
+	$(VERBOSE)sed -i "/|| (volatilep && flag_strict_volatile_bitfields > 0/s/)/ \&\& (bitpos % GET_MODE_ALIGNMENT (mode) != 0))/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/expr.c
+endif
+
+$(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure: $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2)
+	$(ECHO) "$(BRIGHT_COL)unpacking binutils...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(CONTRIB_DIR)
+	$(VERBOSE)tar xfj $^ -C $(CONTRIB_DIR) && touch $@
+
+build/$(PLATFORM)/binutils/Makefile: $(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure
+	$(ECHO) "$(BRIGHT_COL)configuring binutils...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); ../../../$(CONTRIB_DIR)/binutils-$(BINUTILS_VERSION)/configure $(BINUTILS_CONFIG)
+
+$(BINUTILS_BINARIES): build/$(PLATFORM)/binutils/Makefile
+	$(ECHO) "$(BRIGHT_COL)builing binutils...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT)
+
+$(BINUTILS_INSTALLED_BINARIES): $(BINUTILS_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)installing binutils...$(DEFAULT_COL)"
+	$(VERBOSE)for i in binutils gas ld intl opcodes; do \
+		$(MAKE) -C build/$(PLATFORM)/binutils/$$i install-strip; done
+	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/binutils/libiberty install
+
+COMMON_LIB_CONFIG = --prefix=$(LOCAL_LIB_INSTALL_LOCATION) \
+                    --disable-shared --enable-static
+
+GMP_CONFIG  = $(COMMON_LIB_CONFIG)
+MPFR_CONFIG = $(COMMON_LIB_CONFIG) --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION)
+MPC_CONFIG  = $(COMMON_LIB_CONFIG) --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
+                                   --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION)
+
+$(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a:  build/gmp/Makefile
+$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a: build/mpfr/Makefile
+$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a:  build/mpc/Makefile
+
+# rule to build libgmp, libmpfr, and libmpc
+$(LOCAL_LIB_INSTALL_LOCATION)/lib/lib%.a:
+	$(ECHO) "$(BRIGHT_COL)building lib$*...$(DEFAULT_COL)"
+	$(VERBOSE)make -C build/$* all install
+
+build/gmp/Makefile: $(CONTRIB_DIR)/gmp-$(GMP_VERSION)/configure
+
+build/gmp/Makefile:
+	$(ECHO) "$(BRIGHT_COL)configuring libgmp...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); \
+		../../$(CONTRIB_DIR)/gmp-$(GMP_VERSION)/configure $(GMP_CONFIG)
+
+build/mpfr/Makefile: $(CONTRIB_DIR)/mpfr-$(MPFR_VERSION)/configure \
+                     $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a
+
+build/mpfr/Makefile:
+	$(ECHO) "$(BRIGHT_COL)configuring libmpfr...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); \
+		../../$(CONTRIB_DIR)/mpfr-$(MPFR_VERSION)/configure $(MPFR_CONFIG)
+
+build/mpc/Makefile: $(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure \
+                    $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
+                    $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a
+
+build/mpc/Makefile:
+	$(ECHO) "$(BRIGHT_COL)configuring libmpc...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); \
+		../../$(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure $(MPC_CONFIG)
+
+build/$(PLATFORM)/gcc/Makefile: $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure \
+                                $(BINUTILS_INSTALLED_BINARIES) \
+                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
+                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
+                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
+
+build/$(PLATFORM)/gcc/Makefile:
+	$(ECHO) "$(BRIGHT_COL)configuring gcc...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); \
+		host_configargs="$(HOST_CONFIG_ARGS)" \
+		target_configargs="$(TARGET_CONFIG_ARGS)" \
+		../../../$(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure $(GCC_CONFIG)
+
+$(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile \
+                 $(LINK_SPEC_H_$(PLATFORM)) \
+                 $(LD_SCRIPT_$(PLATFORM)) \
+                 $(LIBC)
+
+$(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile
+	$(ECHO) "$(BRIGHT_COL)builing gcc...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT)
+
+$(GCC_INSTALLED_BINARIES): $(GCC_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)installing gcc...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gcc $(GCC_INSTALL_RULE)
+
+$(DOWNLOAD_DIR)/gdb-$(GDB_VERSION).tar.bz2: $(DOWNLOAD_DIR)
+	$(ECHO) "$(BRIGHT_COL)downloading gdb...$(DEFAULT_COL)"
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_DOWNLOAD_URL)/gdb-$(GDB_VERSION).tar.bz2 && touch $@
+
+$(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure: $(DOWNLOAD_DIR)/gdb-$(GDB_VERSION).tar.bz2
+	$(ECHO) "$(BRIGHT_COL)unpacking gdb...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(CONTRIB_DIR)
+	$(VERBOSE)tar xfj $^ -C $(CONTRIB_DIR) && touch $@
+	$(ECHO) "$(BRIGHT_COL)patching gdb...$(DEFAULT_COL)"
+	@#
+	@# Include 'solib.o' and 'solib-svr4.o' in arm*-*-* (non-OS) target configuration for shared library support
+	@#
+	$(VERBOSE)sed -i "s/gdb_target_obs=\"arm-tdep\.o\"$$/gdb_target_obs=\"arm-tdep.o solib.o solib-svr4.o\"/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/configure.tgt
+	@#
+	@# Add an x86_64-*-* (non-OS) target with shared library support
+	@#
+	$(VERBOSE)sed -i "/^xtensa\*-\*-linux\*/ s/^/x86_64-*-*)\n\tgdb_target_obs=\"amd64-tdep.o i386-tdep.o i387-tdep.o solib.o solib-svr4.o\"\n\t;;\n/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/configure.tgt
+	@#
+	@# Enable shared library support
+	@#
+	$(VERBOSE)sed -i "/^#include \"features\/i386\/amd64-avx\.c\"$$/ s/$$/\n\n#include \"solib-svr4\.h\"/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/amd64-tdep.c
+	$(VERBOSE)sed -i "/AMD64 generally uses/ s/^/  set_solib_svr4_fetch_link_map_offsets(gdbarch, svr4_lp64_fetch_link_map_offsets);\n\n/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/amd64-tdep.c
+	$(VERBOSE)sed -i "/^#include \"features\/arm-with-m\.c\"$$/ s/$$/\n\n#include \"solib-svr4\.h\"/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/arm-tdep.c
+	$(VERBOSE)sed -i "/gdbarch = gdbarch_alloc (&info, tdep);/ s/$$/\n\n  set_solib_svr4_fetch_link_map_offsets(gdbarch, svr4_ilp32_fetch_link_map_offsets);/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/arm-tdep.c
+	$(VERBOSE)sed -i "/^#include \"features\/i386\/i386-mmx\.c\"$$/ s/$$/\n\n#include \"solib-svr4\.h\"/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/i386-tdep.c
+	$(VERBOSE)sed -i "/gdbarch = gdbarch_alloc (&info, tdep);/ s/$$/\n\n  set_solib_svr4_fetch_link_map_offsets(gdbarch, svr4_ilp32_fetch_link_map_offsets);/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/i386-tdep.c
+	@#
+	@# Enable software single-stepping on ARM
+	@#
+	$(VERBOSE)sed -i "/gdbarch = gdbarch_alloc (&info, tdep);/ s/$$/\n\n  set_gdbarch_software_single_step(gdbarch, arm_software_single_step);/" $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/gdb/arm-tdep.c
+
+build/$(PLATFORM)/gdb/Makefile: $(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure
+	$(ECHO) "$(BRIGHT_COL)configuring gdb...$(DEFAULT_COL)"
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cd $(dir $@); \
+		../../../$(CONTRIB_DIR)/gdb-$(GDB_VERSION)/configure $(COMMON_CONFIG)
+
+$(GDB_BINARIES): build/$(PLATFORM)/gdb/Makefile
+	$(ECHO) "$(BRIGHT_COL)builing gdb...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT)
+
+$(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
+	$(ECHO) "$(BRIGHT_COL)installing gdb...$(DEFAULT_COL)"
+	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gdb install
+
+#
+# Clean rules
+#
+
+clean:
+	rm -rf $(addprefix $(CONTRIB_DIR)/,binutils-$(BINUTILS_VERSION) gcc-$(GCC_VERSION))
+	rm -rf build
+
+cleanall: clean
+	rm -rf $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2)
+	rm -rf $(DOWNLOAD_DIR)/gcc-core-$(GCC_VERSION).tar.bz2
+	rm -rf $(DOWNLOAD_DIR)/gcc-g++-$(GCC_VERSION).tar.bz2
+
+#
+# Install rules
+#
+
+install: build_all
+	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
+	$(VERBOSE)sudo cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
+

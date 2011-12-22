@@ -1,0 +1,79 @@
+This driver for x86 VBE 2.0 flat framebuffers was implemented by Sebastian
+Sumpf.
+
+
+Building instructions
+~~~~~~~~~~~~~~~~~~~~~
+
+* 'specs.conf': set 'SPECS' variable, enable at least the following specs:
+  'genode' 'fiasco'  'fiasco_x86'. Also,  add the location of the
+  'framebuffer_session' include files to your include search path, e.g.,
+  'INC_DIR += <genode dir>/demo/include'
+
+* Compile; the target will be called 'vesa_drv' --> Good luck
+
+Config arguments
+~~~~~~~~~~~~~~~~
+
+By default, the driver sets up a resolution of 1024x768 at 16 bit color
+depth. This behaviour can be overridden by supplying the following
+arguments via Genode's config mechanism:
+
+! <config width="1024"
+!         height="768"
+!         depth="16"
+!         buffered="no" />
+
+The 'depth' attribute is specified in bits per pixel. If setting the
+'buffered' attribute to 'yes', the VESA driver hands out a plain
+memory buffer to its client and flushes the pixels to the physical
+frame buffer each time, 'refresh' is called by the client. Buffered
+output should be used if the client tends to read from the frame
+buffer (i.e., the client performs output with alpha channel).
+
+Note that only VESA modes but no arbitrary combination of values are
+supported. To find out which graphics modes exist on your platform,
+you might use the 'vbeprobe' command of the GRUB boot loader. Also,
+the driver will print a list of supported modes if the specified
+values are invalid.
+
+As an alternative to letting the VESA driver set up a screen mode, the
+driver is able to reuse an already initialized mode, which becomes useful
+if the VESA mode is already initialized by the boot loader. If the screen
+is initialized that way, the 'preinit' attribute of the 'config' node can
+be set to '"yes"' to prevent the driver from changing the mode. This way,
+the driver will just query the current mode and make the already
+initialized framebuffer available to its client.
+
+
+Options and usage from clients
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:Example:
+
+  ! #include <framebuffer_session/connection.h>
+  !
+  ! ...
+  !
+  ! /* create session to frame-buffer service */
+  ! Framebuffer::Connection framebuffer(1024, 768, Framebuffer::Session::RGB565);
+  !
+  ! /* retrieve frame buffer dataspace */
+  ! Dataspace_capability fb_ds_cap = framebuffer.dataspace();
+  !
+  ! /* map dataspace to local address space */
+  ! void *local_addr = env()->rm_session()->attach(fb_ds_cap);
+
+:Session-creation arguments:
+
+  :'fb_width': resolution width in pixel
+
+  :'fb_height': resolution height in pixel
+
+  :'fb_mode ': bits per pixel
+
+:Supported modes:
+
+  '640x480', '800x600', '1024x786', '1280x1024' at 15, 16, 24, 32 bits per pixel
+  Buffered output is only supported for modes using 16 bits per pixel.
+

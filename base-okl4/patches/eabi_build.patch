@@ -1,0 +1,232 @@
+diff -r 71343ce52545 platform/s3c2410/tools/machines.py
+--- a/platform/s3c2410/tools/machines.py	Tue Aug 03 13:04:38 2010 +0200
++++ b/platform/s3c2410/tools/machines.py	Tue Aug 03 13:09:16 2010 +0200
+@@ -92,7 +92,7 @@
+     skyeye = "gta01.skyeye"
+     device_core = "gta01"
+     memory = s3c2410.memory.copy()
+-    memory['physical'] = [Region(0x30000000L, 0x38000000L)]
++    memory['physical'] = [Region(0x33000000L, 0x38000000L)]
+ #    memory['reserved'] = [Region(0x60000000L, 0xffffffffL, "reserved")]
+ #    memory['sfr']      = [Region(0x48000000L, 0x60000000L, "dedicated")]
+     memory['rom1']      = [Region(0x08000000L, 0x30000000L, "dedicated")]
+diff -r 71343ce52545 tools/pyelf/elf/constants.py
+--- a/tools/pyelf/elf/constants.py	Tue Aug 03 13:04:38 2010 +0200
++++ b/tools/pyelf/elf/constants.py	Tue Aug 03 13:09:16 2010 +0200
+@@ -237,9 +237,11 @@
+     _show = {}
+ 
+ class ArmFlags(IntString):
++    """IntString for Arm Flags field"""
+     _show = {}
+ 
+ class MipsFlags(IntString):
++    """IntString for Mips Flags field"""
+     _show = {}
+ 
+ EF_MIPS_NOREORDER   = MipsFlags(1, "noreorder")
+@@ -315,6 +317,7 @@
+ PT_MIPS_REGINFO = ElfPhType(PT_LOPROC + 0, "MIPS_REGINFO")
+ 
+ 
++PT_ARM_EXIDX = ElfPhType(PT_LOPROC + 1, "ARM_EXIDX")
+ PT_PAX_FLAGS    = ElfPhType(PT_LOOS + 0x5041580L, "PAX_FLAGS")
+ PT_GNU_EH_FRAME = ElfPhType(PT_LOOS + 0x474e550L, "GNU_EH_FRAME")
+ PT_GNU_STACK = ElfPhType(PT_LOOS + 0x474e551L, "GNU_STACK")
+@@ -329,13 +332,18 @@
+ PF_MASKOS = 0x0FF00000L
+ PF_MASKPROC = 0xF0000000L
+ 
+-SHN_UNDEF = 0
+-SHN_LORESERVE = 0xff00
+-SHN_LOPROC = 0xff00
+-SHN_HIPROC = 0xff1f
+-SHN_ABS = 0xfff1
+-SHN_COMMON = 0xfff2
+-SHN_HIRESERVE = 0xffff
++class ElfShIndex(IntString):
++    """IntString for ELF section indexes"""
++    _show = {}
++    _default_string = "%3d"
++
++SHN_UNDEF     = ElfShIndex(0, "UND")
++SHN_LORESERVE = ElfShIndex(0xff00, "RSV")
++SHN_LOPROC    = ElfShIndex(0xff00, "PRC")
++SHN_HIPROC    = ElfShIndex(0xff1f, "PRC")
++SHN_ABS       = ElfShIndex(0xfff1, "ABS")
++SHN_COMMON    = ElfShIndex(0xfff2, "COM")
++SHN_HIRESERVE = ElfShIndex(0xffff, "RCV")
+ 
+ class ElfShType(IntString):
+     """IntString for ELF section header types"""
+@@ -356,8 +364,7 @@
+ 
+ SHT_INIT_ARRAY = ElfShType(14, "INIT_ARRAY")
+ SHT_FINI_ARRAY = ElfShType(15, "FINI_ARRAY")
+-SHT_MIPS_REGINFO = ElfShType(0x70000006, "MIPS_REGINFO")
+-
++SHT_GROUP = ElfShType(17, "GROUP")
+ 
+ SHT_LOPROC = 0x70000000L
+ SHT_HIPROC = 0x7fffffffL
+@@ -365,7 +372,11 @@
+ SHT_HIUSER = 0xffffffffL
+ 
+ 
++SHT_ARM_EXIDX = ElfShType(SHT_LOPROC + 1, "ARM_EXIDX")
++
++SHT_ARM_EXIDX = ElfShType(SHT_LOPROC + 1, 'ARM_EXIDX')
+ SHT_IA_64_UNWIND = ElfShType(SHT_LOPROC + 1, "IA_64_UNWIND")
++SHT_MIPS_REGINFO = ElfShType(SHT_LOPROC + 6, "MIPS_REGINFO")
+ 
+ SHT_VERNEED = ElfShType(0x6ffffffe, "VERNEED")
+ SHT_VERSYM = ElfShType(0x6fffffff, "VERSYM")
+@@ -380,22 +391,43 @@
+ 
+ SHF_LINK_ORDER = (1 << 7)
+ 
++SHF_GROUP = (1 << 9)
++
+ SHF_MASKOS =   0x0f000000L
+ SHF_MASKPROC = 0xf0000000L
+ 
+ STN_UNDEF = 0
+ 
+-STB_LOCAL = 0 
+-STB_GLOBAL = 1
+-STB_WEAK = 2
+-STB_LOPROC = 13
+-STB_HIPROC = 15
++class ElfSymbolBinding(IntString):
++    """IntString for the ELF Symbol Table Binding."""
++    _show = {}
++    _default_string = "<unknown>: %d"
+ 
+-STT_NOTYPE = 0
+-STT_OBJECT = 1
+-STT_FUNC = 2
+-STT_SECTION = 3
+-STT_FILE = 4
+-STT_LOPROC = 13
+-STT_HIPROC = 15
++STB_LOCAL  = ElfSymbolBinding(0, "LOCAL")
++STB_GLOBAL = ElfSymbolBinding(1, "GLOBAL")
++STB_WEAK   = ElfSymbolBinding(2, "WEAK")
++STB_LOPROC = ElfSymbolBinding(13, "processor specific")
++STB_HIPROC = ElfSymbolBinding(15, "processor specific")
+ 
++class ElfSymbolType(IntString):
++    """IntString for the ELF Symbol Table Type."""
++    _show = {}
++    _default_string = "<unknown>: %d"
++
++STT_NOTYPE  = ElfSymbolType(0, "NOTYPE")
++STT_OBJECT  = ElfSymbolType(1, "OBJECT")
++STT_FUNC    = ElfSymbolType(2, "FUNC")
++STT_SECTION = ElfSymbolType(3, "SECTION")
++STT_FILE    = ElfSymbolType(4, "FILE")
++STT_LOPROC  = ElfSymbolType(13, "processor specific")
++STT_HIPROC  = ElfSymbolType(15, "processor specific")
++
++class ElfSymbolVisibility(IntString):
++    """IntString for the Elf Symbol Table Visibility."""
++    _show = {}
++    _default_string = "<unknown>: %"
++
++STV_DEFAULT   = ElfSymbolVisibility(0, "DEFAULT")
++STV_INTERNAL  = ElfSymbolVisibility(1, "INTERNAL")
++STV_HIDDEN    = ElfSymbolVisibility(2, "HIDDEN")
++STV_PROTECTED = ElfSymbolVisibility(3, "PROTECTED")
+diff -r 71343ce52545 tools/pyelf/elf/segment.py
+--- a/tools/pyelf/elf/segment.py	Tue Aug 03 13:04:38 2010 +0200
++++ b/tools/pyelf/elf/segment.py	Tue Aug 03 13:09:16 2010 +0200
+@@ -67,7 +67,7 @@
+ __revision__ = 1.0
+ 
+ from elf.ByteArray import ByteArray
+-from elf.constants import PT_NULL, PT_PHDR, SHT_NOBITS
++from elf.constants import PT_NULL, PT_PHDR, SHT_NOBITS, SHT_ARM_EXIDX
+ from elf.structures import InvalidArgument, ELF_PH_CLASSES
+ from elf.util import Span, Unprepared
+ 
+@@ -246,6 +246,9 @@
+         """Return a copy of the Elf segment."""
+ 
+         for sect in self.sections:
++            # special handling for ARM EABI exception tables
++            if sect.type == SHT_ARM_EXIDX:
++                sect.link = None
+             assert sect.link is None
+ 
+         sections = [sect.copy() for sect in self.sections]
+diff -r 71343ce52545 tools/pyelf/weaver/image.py
+--- a/tools/pyelf/weaver/image.py	Tue Aug 03 13:04:38 2010 +0200
++++ b/tools/pyelf/weaver/image.py	Tue Aug 03 13:09:16 2010 +0200
+@@ -60,8 +60,8 @@
+ import os.path
+ from elf.core import UnpreparedElfFile, SectionedElfSegment
+ from elf.section import UnpreparedElfSection
+-from elf.constants import PT_PAX_FLAGS, PT_GNU_STACK, PT_PHDR, \
+-                          PT_LOAD, PT_MIPS_REGINFO, ET_EXEC, \
++from elf.constants import PT_PAX_FLAGS, PT_GNU_STACK, PT_PHDR, SHT_ARM_EXIDX, \
++                          PT_LOAD, PT_MIPS_REGINFO, PT_ARM_EXIDX, ET_EXEC, \
+                           SHT_PROGBITS, SHF_WRITE, SHF_ALLOC, \
+                           PF_R, PF_W, EF_MIPS_ABI_O64, ElfMachine
+ from elf.ByteArray import ByteArray
+@@ -79,8 +79,26 @@
+     PT_GNU_STACK, # PT_GNU_STACK.  Indicates stack executability.
+     PT_MIPS_REGINFO, # 
+     PT_PHDR,      # PT_PHDR. Entry for header table itself
++    SHT_ARM_EXIDX,
+     ]
+ 
++# List of symbols that should be changed when they're added to the
++# image symbol table.
++# Probably should be list of regexs, but that's not needed yet.
++NO_PREFIX_SYMBOLS = (
++    # ARM mapping symbols.
++    "$a", # ARM code
++    "$t", # THUMB code.
++    "$d", # Data items
++    )
++
++def can_prefix_symbol(symbol):
++    """
++    Return whether or not a symbol should have a prefix added to it in
++    the final image.
++    """
++    return symbol.name not in NO_PREFIX_SYMBOLS
++
+ def valid_segment(segment):
+     if segment.type in skipped_types:
+         return False
+@@ -88,7 +106,7 @@
+     if segment.get_memsz() == 0:
+         return False
+ 
+-    if segment.type != PT_LOAD:
++    if segment.type != PT_LOAD and segment.type != PT_ARM_EXIDX:
+         raise MergeError, "Unable to handle segments that aren't " \
+               "of type LOAD (found type 0x%x)." % (segment.type)
+ 
+@@ -1109,13 +1127,17 @@
+             if obj.attrs.phys_addr is not None:
+                 pbase = obj.attrs.phys_addr
+                 pend = pbase + obj.attrs.size - 1
+-                physical_objects[pbase, pend] = obj.attrs.abs_name()
++                if (pbase, pend) in physical_objects:
++                    physical_objects[pbase, pend].append(obj.attrs.abs_name())
++                else:
++                    physical_objects[pbase, pend] = [obj.attrs.abs_name()]
+ 
+         print "VIRTUAL:"
+         for (base, end), name in sorted(virtual_objects.items()):
+             print "  <%08x:%08x> %s" % (base, end, name)
+ 
+         print "PHYSICAL:"
+-        for (base, end), name in sorted(physical_objects.items()):
+-            print "  <%08x:%08x> %s" % (base, end, name)
++        for (base, end), names in sorted(physical_objects.items()):
++            for name in names:
++                print "  <%08x:%08x> %s" % (base, end, name)
+ 

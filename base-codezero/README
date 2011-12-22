@@ -1,0 +1,3 @@
+This repository contains the port of Genode to the Codezero microkernel
+For instructions about using Genode with Codezero, please refer to
+'doc/codezero.txt'.

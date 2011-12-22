@@ -1,0 +1,200 @@
+#
+# Build
+#
+
+if {[have_spec foc] == 0} {
+   puts "Runs on Fiasco.OC only"
+   exit 0
+}
+
+# generic components
+set build_components {
+	core
+	init
+	drivers/timer
+	drivers/framebuffer
+	drivers/uart
+	server/nitpicker
+	server/nit_fb
+	l4android
+}
+
+lappend_if [have_spec   x86]   build_components drivers/nic
+lappend_if [have_spec   x86]   build_components drivers/atapi
+lappend_if [have_spec pl180]   build_components drivers/sd_card
+lappend_if [have_spec lan9118] build_components drivers/nic/lan9118
+lappend_if [have_spec   pci]   build_components drivers/pci
+lappend_if [have_spec   ps2]   build_components drivers/input/ps2
+
+build $build_components
+create_boot_directory
+
+#
+# Config
+#
+
+set config  {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="uart_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<config><policy label="l4android" uart="1"/></config>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Input">       <child name="input_drv"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="Android">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="0" ypos="0" width="640" height="480" refresh_rate="25"/>
+	</start>}
+
+append_if [have_spec x86] config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+	<start name="atapi_drv">
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Block" /></provides>
+		<config ata="yes"/>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="fb_drv">
+		<binary name="vesa_drv"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Framebuffer"/></provides>
+		<config width="640" height="480" depth="16" buffered="yes" />
+	</start> }
+
+append_if [have_spec lan9118] config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nic"/></provides>
+	</start> }
+
+append_if [have_spec pl180] config {
+	<start name="sd_card_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Block"/></provides>
+	</start> }
+
+append_if [have_spec pl11x] config {
+	<start name="fb_drv">
+		<binary name="pl11x_drv"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start> }
+
+append_if [have_spec ps2] config {
+	<start name="input_drv">
+		<binary name="ps2_drv"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>}
+
+append config {
+	<start name="l4android">
+		<resource name="RAM" quantum="512M"/>
+		<config args="mem=128M console=ttyS0 l4x_rd=root-ginger.gz">
+			<block label="sda"/>
+		</config>
+		<route>
+			<service name="Input">       <child name="Android"/> </service>
+			<service name="Framebuffer"> <child name="Android"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+set boot_modules {
+	core
+	init
+	timer
+	nitpicker
+	nit_fb
+	uart_drv
+	l4android
+	root-ginger.gz
+}
+
+lappend_if [have_spec x86]     boot_modules nic_drv
+lappend_if [have_spec x86]     boot_modules atapi_drv
+lappend_if [have_spec pci]     boot_modules pci_drv
+lappend_if [have_spec ps2]     boot_modules ps2_drv
+lappend_if [have_spec pl11x]   boot_modules pl11x_drv
+lappend_if [have_spec lan9118] boot_modules nic_drv
+lappend_if [have_spec pl180]   boot_modules sd_card_drv
+lappend_if [have_spec vesa]    boot_modules vesa_drv
+
+if {[have_spec x86]} {
+	set initrd_uri "http://genode.org/files/release-11.11/l4lx/root-ia32-ginger.gz"
+	set system_uri "http://genode.org/files/release-11.11/l4lx/system-ia32-ginger.img"
+} elseif {[have_spec arm]} {
+	set initrd_uri "http://genode.org/files/release-11.11/l4lx/root-arm-ginger.gz"
+	set system_uri "http://genode.org/files/release-11.11/l4lx/system-arm-ginger.img"
+}
+if {![file exists bin/root-ginger.gz]} {
+	puts "Download initramfs ..."
+	exec curl $initrd_uri > bin/root-ginger.gz 2> /dev/null
+}
+if {![file exists bin/system-ginger.img]} {
+	puts "Download system image ..."
+	exec curl $system_uri > bin/system-ginger.img 2> /dev/null
+}
+
+build_boot_image  [join $boot_modules " "]
+
+append qemu_args " -m 512 "
+append qemu_args " -serial unix:/tmp/qemu-pipe,server,nowait "
+append qemu_args " -serial mon:stdio "
+append_if [have_spec     x86] qemu_args " -hda bin/system-ginger.img "
+append_if [have_spec     x86] qemu_args " -net nic,model=e1000 "
+append_if [have_spec   pl180] qemu_args " -drive file=bin/system-ginger.img,if=sd,cache=writeback "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append qemu_args " -net user -redir tcp:5555::5555 "
+run_genode_until forever

@@ -1,0 +1,28 @@
+diff --git a/arch/ia32/pistachio/src/trap.spp b/arch/ia32/pistachio/src/trap.spp
+--- a/arch/ia32/pistachio/src/trap.spp
++++ b/arch/ia32/pistachio/src/trap.spp
+@@ -142,6 +142,24 @@
+         PROFILE_KERNEL_TIME_STOP
+ 
+         orl     $STACK_TOP, %esp
++
++        /* Determine if there is any work required before returning
++         * back to userspace. */
++
++        /* Get address of current TCB */
++        IA32_GET_CURRENT_TCB %edx
++        /* Add offset of the callback function pointer */ 
++        addl    $(OFS_TCB_POST_SYSCALL_CALLBACK), %edx
++        /* If the callback function pointer is set... */
++        cmpl    $0, (%edx)
++        je      1f
++        /* ...call start_post_syscall_callback() */
++        pusha                                       /* %esp = stack_top - 32 */
++        call    start_post_syscall_callback         /* %esp = stack top */
++        sub     $32, %esp                           /* %esp = stack top - 32 */
++        popa
++        1:
++
+         movl    (%esp), %edx
+         addl    $(OFS_TCB_ARCH), %edx
+ 

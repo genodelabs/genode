@@ -1,0 +1,203 @@
+#
+# \brief  Fiasco.OC-specific test-environment supplements
+# \author Stefan Kalkowski
+# \date   2010-11-22
+#
+# This file is meant to be used as '--include' argument for 'tool/run'.
+#
+
+##
+# Return the location of the Fiasco.OC user directory
+#
+proc l4_dir { } {
+	global _l4_dir
+
+	if {![info exists _l4_dir]} {
+		if {[file exists etc/foc.conf]} {
+			set _l4_dir [exec sed -n "/^L4_BUILD_DIR/s/^.*=\\s*//p" etc/foc.conf]
+			if {[file exists $_l4_dir]} { return $_l4_dir }
+		}
+
+		set _l4_dir "[pwd]/l4"
+		if {![file exists $_l4_dir]} {
+			puts -nonewline stderr "Error: Could neither find the L4 build directory "
+			puts -nonewline stderr "within '<genode-build-dir>/l4' nor at a location "
+			puts -nonewline stderr "specified via 'L4_BUILD_DIR = <l4re-build-dir>' "
+			puts            stderr "in <genode-build-dir>/etc/foc.conf'."
+			exit 1
+		}
+	}
+	return $_l4_dir
+}
+
+##
+# Return whether the l4-buid-directory is provided from the outside
+#
+proc l4_dir_external { } {
+	if {[l4_dir] == "[pwd]/l4"} { return 0 }
+	return 1
+}
+
+##
+# Return the location of the Fiasco.OC kernel directory
+#
+proc fiasco { } {
+	global _fiasco
+
+	if {![info exists _fiasco]} {
+		if {[file exists etc/foc.conf]} {
+			set _fiasco [exec sed -n "/^KERNEL/s/^.*=\\s*//p" etc/foc.conf]
+			if {[file exists $_fiasco]} { return $_fiasco }
+		}
+
+		# try to fall back to version hosted with the Genode build directory
+		set _fiasco "[pwd]/kernel/fiasco.oc/fiasco"
+	}
+	return $_fiasco
+}
+
+##
+# Return whether fiasco kernel is provided from the outside
+#
+proc fiasco_external { } {
+	if {[fiasco] == "[pwd]/kernel/fiasco.oc/fiasco"} { return 0 }
+	return 1
+}
+
+##################################
+## Test framework API functions ##
+##################################
+
+proc create_boot_directory { } {
+	exec rm -rf   [run_dir]
+	exec mkdir -p [run_dir]/genode
+
+	if {[have_spec x86]} {
+		exec mkdir -p [run_dir]/fiasco
+		exec mkdir -p [run_dir]/boot/grub
+	}
+}
+
+
+proc copy_and_strip_binaries {binaries} {
+
+	#
+	# Collect contents of the boot image
+	#
+	foreach binary $binaries {
+		exec cp bin/$binary [run_dir]/genode
+		catch {
+			exec [cross_dev_prefix]strip [run_dir]/genode/$binary }
+	}
+
+	#
+	# Generate config file for bootstrap
+	#
+}
+
+
+proc bin_dir { } {
+	if {[have_spec x86_32]}  { return "[l4_dir]/bin/x86_586" }
+	if {[have_spec x86_64]}  { return "[l4_dir]/bin/amd64_K8" }
+	if {[have_spec arm_v7a]} { return "[l4_dir]/bin/arm_armv7a" }
+
+	puts stderr "Error: Cannot determine bin directory"
+	exit 1
+}
+
+
+proc build_boot_image_x86 {binaries} {
+
+	copy_and_strip_binaries $binaries
+
+	set foc_targets { }
+	if {![fiasco_external] && ![file exists kernel]} { lappend foc_targets kernel }
+	if {![l4_dir_external]} {
+		if {![file exists bootstrap]} { lappend foc_targets bootstrap }
+		if {![file exists sigma0]}    { lappend foc_targets sigma0    }
+	}
+	if {[llength $foc_targets] > 0} { build $foc_targets }
+
+	# assert existence of the L4 build directory
+	l4_dir
+
+	puts "using fiasco kernel [fiasco]"
+	exec cp [fiasco] [run_dir]/fiasco
+	puts "using sigma0/bootstrap at [l4_dir]"
+	exec cp [bin_dir]/l4f/sigma0 [run_dir]/fiasco
+	exec cp [bin_dir]/bootstrap [run_dir]/fiasco
+
+	install_iso_bootloader_to_run_dir
+
+	#
+	# Generate grub config file
+	#
+	# The core binary is part of the 'binaries' list but it must
+	# appear right after 'sigma0' as boot module. Hence the special case.
+	#
+	set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+	puts $fh "timeout 0"
+	puts $fh "default 0"
+	puts $fh "\ntitle Genode on Fiasco.OC"
+	puts $fh " kernel /fiasco/bootstrap -modaddr=0x01100000"
+	puts $fh " module /fiasco/fiasco -serial_esc"
+	puts $fh " module /fiasco/sigma0"
+	puts $fh " module /genode/core"
+	puts $fh " module /genode/config"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh " module /genode/$binary" } }
+	puts $fh " vbeset 0x117 506070"
+	close $fh
+
+	create_iso_image_from_run_dir
+}
+
+
+proc build_boot_image_arm {binaries} {
+
+	copy_and_strip_binaries $binaries
+
+	build "kernel sigma0 bootstrap"
+
+	#
+	# Generate bootstrap config
+	#
+	set fh [open "[run_dir]/modules.list" "WRONLY CREAT TRUNC"]
+
+	puts $fh "modaddr 0x01100000\n"
+	puts $fh "entry    genode"
+	puts $fh "kernel   [fiasco] -serial_esc"
+	puts $fh "roottask genode/core"
+	puts $fh "module   genode/config"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh "module   genode/$binary" } }
+	close $fh
+
+	set gen_img_cmd "cd [l4_dir]/source/pkg/bootstrap/server/src && "
+	append gen_img_cmd "make O=[l4_dir] ENTRY=genode "
+	append gen_img_cmd "BOOTSTRAP_DO_UIMAGE= BOOTSTRAP_DO_RAW_IMAGE= "
+	append gen_img_cmd "BOOTSTRAP_MODULES_LIST=[pwd]/[run_dir]/modules.list "
+	append gen_img_cmd "BOOTSTRAP_SEARCH_PATH=[pwd]/[run_dir]:[file dirname [fiasco]]:[l4_dir] "
+	append gen_img_cmd "SYSTEM_TARGET=[cross_dev_prefix]"
+
+	set pid [eval "spawn sh -c \"$gen_img_cmd\""]
+	expect { eof { } }
+	if {[lindex [wait $pid] end] != 0} {
+		puts "Error: Single-image creation failed"
+		exit -4
+	}
+
+	exec cp [bin_dir]/bootstrap.elf [run_dir]/image.elf
+}
+
+
+proc build_boot_image {binaries} {
+	if {[have_spec x86]} { return [build_boot_image_x86 $binaries] }
+	if {[have_spec arm]} { return [build_boot_image_arm $binaries] }
+}
+
+
+proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
+	spawn_qemu $wait_for_re $timeout_value }

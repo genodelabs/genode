@@ -1,0 +1,10 @@
+diff --git a/loader/main.c b/loader/main.c
+index 7d21a4c..ee03918 100644
+--- a/loader/main.c
++++ b/loader/main.c
+@@ -135,3 +135,5 @@ int main(void)
+ 	return -1;
+ }
+ 
++
++asm(".global __aeabi_unwind_cpp_pr0; __aeabi_unwind_cpp_pr0:");

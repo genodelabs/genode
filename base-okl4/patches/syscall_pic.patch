@@ -1,0 +1,411 @@
+diff -r e2bca488e43b arch/ia32/libs/l4/include/syscalls.h
+--- a/arch/ia32/libs/l4/include/syscalls.h	Tue Aug 03 12:58:05 2010 +0200
++++ b/arch/ia32/libs/l4/include/syscalls.h	Mon Aug 16 15:51:08 2010 +0200
+@@ -97,22 +97,13 @@
+ #define L4_FlushDCache          30
+ #define L4_FlushCache           31
+ 
+-#if defined(__pic__)
+ # define __L4_SAVE_REGS         "       pushl %%ebx; pushl %%ebp\n"
+ # define __L4_RESTORE_REGS      "       popl  %%ebp; popl  %%ebx\n"
+ # define __L4_CLOBBER_REGS      "cc"
+-#else
+-# define __L4_SAVE_REGS         "       pushl %%ebp             \n"
+-# define __L4_RESTORE_REGS      "       popl  %%ebp             \n"
+-# define __L4_CLOBBER_REGS      "ebx", "cc"
+-#endif
+ 
+-
+-#define __SYSCALL_SAVE_REGS \
+-            "       push %%ebp\n"
+-
+-#define __SYSCALL_RESTORE_REGS \
+-            "       pop %%ebp\n"
++#define __SYSCALL_SAVE_REGS     __L4_SAVE_REGS
++#define __SYSCALL_RESTORE_REGS  __L4_RESTORE_REGS
++#define __SYSCALL_CLOBBER_REGS  __L4_CLOBBER_REGS
+ 
+ L4_INLINE L4_ThreadId_t
+ L4_ExchangeRegisters(L4_ThreadId_t dest,
+@@ -129,7 +120,6 @@
+                      L4_Word_t *old_UserDefhandle, L4_ThreadId_t *old_pager)
+ {
+     L4_ThreadId_t result;
+-    L4_Word_t dummy;
+     L4_Word_t *utcb = __L4_X86_Utcb() + (__L4_TCR_SYSCALL_ARGS);
+ 
+     utcb[0] = flags;
+@@ -137,21 +127,26 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
+-            "       movl %%esp, %%ebp\n"
+-            "       movl $0x8000000a, %%eax\n"
+-            "       sysenter\n"
+-            "0:\n"
+-            "       movl %%ebp, %%ecx\n"
+-            __SYSCALL_RESTORE_REGS
++              "       movl %%edi, %%ebx\n" //set IP
++              "       call 0f \n"
++              "  0:\n"
++              "       addl $(1f-0b), (%%esp)\n"
++              "       movl (%%esp), %%edi\n"
++              "       movl %%esp, %%ebp\n"
++              "       movl $0x8000000a, %%eax\n"
++              "       sysenter\n"
++              "  1:\n"
++              "       movl %%ebp, %%ecx\n" //old flags
++              "       movl %%ebx, %%edx\n" //old ip
++              "       popl %%ebp\n"
++              __SYSCALL_RESTORE_REGS
+             :
+-            "=a"(result), "=S"(*old_control), "=D"(*old_sp), "=b"(*old_ip),
+-            "=c"(*old_flags), "=d"(dummy)
++            "=a"(result), "=S"(*old_control), "=D"(*old_sp),
++            "=c"(*old_flags), "=d"(*old_ip)
+             :
+-            "S"(dest), "d"(control), "c"(sp), "b"(ip)
++            "S"(dest), "d"(control), "c"(sp), "D"(ip)
+             : "memory"
+     );
+-
+     old_pager->raw = utcb[0];
+     *old_UserDefhandle = utcb[1];
+ 
+@@ -175,11 +170,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000006, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=b"(dummy), "=S"(dummy), "=d"(dummy), "=c"(dummy)
+@@ -194,22 +193,28 @@
+ L4_INLINE void
+ L4_ThreadSwitch(L4_ThreadId_t dest)
+ {
++
+     L4_Word_t dummy;
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp),%%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000004, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=S"(dummy)
+             :
+             "S"(dest)
+             :
+-            "eax", "ebx", "ecx", "edx", "edi"
++            "eax", "ecx", "edx", "edi",
++            __SYSCALL_CLOBBER_REGS
+     );
+ }
+ 
+@@ -230,11 +235,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000009, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(res_ts), "=d"(dummy), "=c"(dummy), "=b"(dummy)
+@@ -262,18 +271,22 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x8000000b, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(tag_out), "=d"(dummy), "=c"(dummy)
+             :
+             "S"(to), "d"(FromSpecifier), "c"(tag)
+             :
+-            "edi", "ebx"
++            "edi", __SYSCALL_CLOBBER_REGS
+     );
+ 
+     if (!L4_IsNilThread(FromSpecifier)) {
+@@ -296,11 +309,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x8000000b, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=S"(tag_out), "=d"(dummy), "=c"(dummy)
+@@ -324,11 +341,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp),%%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x8000000b, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=S"(tag_out), "=d"(dummy), "=c"(dummy)
+@@ -350,18 +371,22 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp),%%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000002, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy)
+             :
+             "S"(SpaceSpecifier), "d"(control)
+             :
+-            "ebx", "ecx", "edi"
++            "ecx", "edi", __SYSCALL_CLOBBER_REGS
+     );
+ 
+     return result;
+@@ -382,11 +407,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000005, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(res_resources), "=d"(dummy), "=c"(dummy), "=b"(dummy)
+@@ -410,11 +439,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000001, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy)
+@@ -434,11 +467,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp),%%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000003, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy)
+@@ -459,11 +496,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000007, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy), "=c"(dummy), "=b"(dummy)
+@@ -484,11 +525,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000008, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy), "=c"(dummy)
+@@ -508,11 +553,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x8000000e, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy), "=c"(dummy)
+@@ -532,11 +581,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x8000000f, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy)
+@@ -556,11 +609,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000010, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy)
+@@ -583,11 +640,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000011, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(dummy), "=d"(dummy)
+@@ -611,11 +672,15 @@
+ 
+     __asm__ __volatile__ (
+             __SYSCALL_SAVE_REGS
+-            "       movl $0f, %%edi\n"
++            "       call 0f \n"
++            "0:\n"
++            "       addl $(1f-0b), (%%esp)\n"
++            "       movl (%%esp), %%edi\n"
+             "       movl %%esp, %%ebp\n"
+             "       movl $0x80000012, %%eax\n"
+             "       sysenter\n"
+-            "0:\n"
++            "1:\n"
++            "       popl %%ebp\n"
+             __SYSCALL_RESTORE_REGS
+             :
+             "=a"(result), "=S"(*size)

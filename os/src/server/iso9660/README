@@ -1,0 +1,27 @@
+This directory contains an implementation of an ISO 9660 file system.
+
+Limitations
+-----------
+
+At the moment, the only file-name format supported is the Rock Ridge extension.
+The ISO specified 8.3 upper-case-file names are not supported, as well as Joliet.
+
+Usage
+-----
+
+The server requires an ATAPI-block device as back-end. Please have a look at
+'os/src/drivers/atapi'. The front-end of the server is implemented as a ROM
+session server. In order to access this server from your application, you need
+to route the ROM session to the ISO-ROM-session server in Genode's configuration
+file:
+
+!<start name="test-iso">
+!  <resource name="RAM" quantum="10M" />
+!    <route>
+!      <service name="ROM"><child name="iso9660"/></service>
+!    </route>
+!</start>
+
+Currently, the RAM quota necessary to obtain a file from the ISO file system
+is allocated on behalf of the ISO server. Please make sure to provide
+sufficient RAM quota to the ISO server.

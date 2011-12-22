@@ -1,0 +1,4 @@
+This repository contains the L4/Fiasco-specific implementation of Genode.
+
+For instructions to build and start the Fiasco version of Genode, please
+consult the documentation located at 'base-fiasco/doc/fiasco.txt'.

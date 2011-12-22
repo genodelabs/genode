@@ -1,0 +1,183 @@
+##
+## Rules for building a program target
+##
+## The following variables must be passed when calling this file:
+##
+##   BASE_DIR         - base directory of the build system
+##   REP_DIR          - source repository of the program
+##   PRG_REL_DIR      - directory of the program relative to 'src/'
+##   REPOSITORIES     - repositories providing libs and headers
+##   INSTALL_DIR      - final install location
+##   VERBOSE          - build verboseness modifier
+##   VERBOSE_DIR      - verboseness modifier for changing directories
+##   VERBOSE_MK       - verboseness of make calls
+##   LIB_CACHE_DIR    - library build cache location
+##
+
+#
+# Prevent target.mk rules to be executed as default rule
+#
+all:
+
+#
+# Function that searches for files in all repositories and returns the first match
+#
+select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/$(1))))
+
+#
+# Include target build instructions
+#
+PRG_DIR := $(REP_DIR)/src/$(PRG_REL_DIR)
+include $(PRG_DIR)/target.mk
+
+#
+# Include lib-import description files
+#
+include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-$(LIB).mk))
+
+#
+# Include specifics for platforms, kernel APIs, etc.
+#
+include $(SPEC_FILES)
+
+vpath % $(PRG_DIR)
+
+include $(BASE_DIR)/mk/global.mk
+
+#
+# Assemble linker options for static and dynamic linkage
+#
+ifneq ($(LD_TEXT_ADDR),)
+CXX_LINK_OPT += -Wl,-Ttext=$(LD_TEXT_ADDR)
+endif
+
+#
+# Supply machine-dependent arguments to the linker
+#
+CXX_LINK_OPT += $(CC_MARCH)
+
+#
+# Generic linker script for statically linked binaries
+#
+LD_SCRIPT_STATIC ?= $(call select_from_repositories,src/platform/genode.ld)
+
+include $(BASE_DIR)/mk/generic.mk
+include $(BASE_DIR)/mk/base-libs.mk
+
+ifeq ($(INSTALL_DIR),)
+all: message $(TARGET)
+else
+all: message $(INSTALL_DIR)/$(TARGET)
+endif
+	@true # prevent nothing-to-be-done message
+
+.PHONY: message
+message:
+	$(MSG_PRG)$(PRG_REL_DIR)/$(TARGET)
+
+#
+# Enforce unconditional call of gnatmake rule when compiling Ada sources
+#
+# Citation from texinfo manual for make:
+#
+# If a rule has no prerequisites or commands, and the target of the rule
+# is a nonexistent file, then `make' imagines this target to have been
+# updated whenever its rule is run.  This implies that all targets
+# depending on this one will always have their commands run.
+#
+FORCE:
+$(SRC_ADA:.adb=.o): FORCE
+
+#
+# The 'sort' is needed to ensure the same link order regardless
+# of the find order, which uses to vary among different systems.
+#
+SHARED_LIBS := $(foreach l,$(DEPS:.lib=),$(LIB_CACHE_DIR)/$l/$l.lib.so)
+SHARED_LIBS := $(sort $(wildcard $(SHARED_LIBS)))
+
+#
+# Use CXX for linking
+#
+LD_CMD := $(CXX) $(CXX_LINK_OPT)
+
+ifeq ($(SHARED_LIBS),)
+LD_SCRIPTS  := $(LD_SCRIPT_STATIC)
+FILTER_DEPS := $(DEPS:.lib=)
+else
+LD_SCRIPTS  := $(LD_SCRIPT_DYN)
+LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
+               -Wl,--eh-frame-hdr
+
+#
+# Filter out the base libraries since they will be provided by the ldso.library
+#
+FILTER_DEPS := $(filter-out $(BASE_LIBS),$(DEPS:.lib=))
+SHARED_LIBS += $(LIB_CACHE_DIR)/$(DYNAMIC_LINKER)/$(DYNAMIC_LINKER).lib.so
+endif
+
+#
+# LD_SCRIPT_PREFIX is needed as 'addprefix' chokes on prefixes containing
+# commas othwerwise. For compatibilty with older tool chains, we use two -Wl
+# parameters for both components of the linker command line.
+#
+LD_SCRIPT_PREFIX  = -Wl,-T -Wl,
+
+#
+# LD_SCRIPTS may be a list of linker scripts (e.g., in base-linux). Further,
+# we use the default linker script if none was specified - 'addprefix' expands
+# to empty string on empty input.
+#
+LD_CMD += $(addprefix $(LD_SCRIPT_PREFIX), $(LD_SCRIPTS))
+
+STATIC_LIBS := $(foreach l,$(FILTER_DEPS),$(LIB_CACHE_DIR)/$l/$l.lib.a)
+STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
+
+#
+# We need the linker option '--whole-archive' to make sure that all library
+# constructors marked with '__attribute__((constructor))' end up int the
+# binary. When not using this option, the linker goes through all libraries
+# to resolve a symbol and, if it finds the symbol, stops searching. This way,
+# object files that are never explicitly referenced (such as library
+# constructors) would not be visited at all.
+#
+# Furthermore, the '--whole-archive' option reveals symbol ambiguities, which
+# would go undetected if the search stops after the first match.
+#
+LINK_ITEMS       := $(OBJECTS) $(STATIC_LIBS) $(SHARED_LIBS)
+SHORT_LINK_ITEMS := $(subst $(LIB_CACHE_DIR),$$libs,$(LINK_ITEMS))
+
+LD_CMD += -Wl,--whole-archive -Wl,--start-group
+LD_CMD += $(SHORT_LINK_ITEMS)
+LD_CMD += -Wl,--end-group -Wl,--no-whole-archive
+LD_CMD += $(EXT_OBJECTS)
+
+#
+# Link libgcc to each program
+#
+LD_LIBGCC ?= $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
+LD_CMD += $(LD_LIBGCC)
+
+#
+# Skip final linking if no objects are involved, i.e. no 'SRC' files are
+# specified in the 'target.mk' file. This applies for pseudo 'target.mk'
+# files that invoke a 3rd-party build system by providing local rule for
+# $(TARGET).
+#
+ifneq ($(OBJECTS),)
+$(TARGET): $(LINK_ITEMS) $(wildcard $(LD_SCRIPTS))
+	$(MSG_LINK)$(TARGET)
+	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD_CMD) -o $@
+
+$(INSTALL_DIR)/$(TARGET): $(TARGET)
+	$(VERBOSE)ln -sf `pwd`/$(TARGET) $@
+else
+$(TARGET):
+$(INSTALL_DIR)/$(TARGET): $(TARGET)
+endif
+
+clean_prg_objects:
+	$(MSG_CLEAN)$(PRG_REL_DIR)
+	$(VERBOSE)$(RM) -f $(OBJECTS) $(OBJECTS:.o=.d) $(TARGET)
+	$(VERBOSE)$(RM) -f *.d *.i *.ii *.s *.ali
+
+clean: clean_prg_objects

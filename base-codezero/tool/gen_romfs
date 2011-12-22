@@ -1,0 +1,202 @@
+#!/usr/bin/python
+
+import os, re, getopt, sys
+from stat import ST_SIZE
+from subprocess import PIPE, Popen
+
+verbose = 0
+
+
+# return address of 4K page following the spefified address
+def round_page(addr):
+	page_size = 0x1000
+	return (addr + page_size) & ~(page_size - 1)
+
+
+def first_free_addr_after_program(elf, cross_prefix = ""):
+	try:
+		objdump = cross_prefix + "objdump"
+		objdump_output = Popen([objdump, "-p", elf],
+		                       stdout=PIPE).communicate()[0]
+	except OSError:
+		print "Error: execution of " + objdump + " failed, invalid cross-tool prefix?"
+		exit(3)
+
+	#
+	# The output of 'objdump -p' contains the list of program segments. Each
+	# segment has two lines of text, the first containing the 'vaddr' value and
+	# the latter containing the 'memsz' value. For each line, we match for both
+	# 'vaddr' and 'memsz' fields. When observing a line with a 'memsz' field,
+	# we know that the previous line contained the corresponding 'vaddr' and
+	# that the end address of the segment is the sum of the current 'vaddr'
+	# and 'memsz' values.
+	#
+	max_end_addr = 0
+	for line in objdump_output.splitlines():
+		match_vaddr = re.compile(".*vaddr (0x[0-9a-f]*).*").match(line)
+		match_memsz = re.compile(".*memsz (0x[0-9a-f]*).*").match(line)
+		if (match_vaddr):
+			vaddr = int(match_vaddr.group(1), 0)
+		if (match_memsz):
+			memsz = int(match_memsz.group(1), 0)
+			max_end_addr = max(max_end_addr, vaddr + memsz)
+
+	# align the first free address at the next page boundary
+	return round_page(max_end_addr)
+
+
+def generate_modules_asm(modules):
+	"""
+	Generate assembly code aggregating boot-module data from specified files.
+	The generated assembly code looks as follows:
+
+	/*
+	 * The ELF image consists only of a data section. At file offset 0, there
+	 * is a magic cookie that core validates when accessing the ROM fs. It is
+	 * followed by the end address of the meta data.
+	 */
+	.section .data
+	.string "GROM"     /* magic cookie used by core to identify a ROM fs image*/
+	.long header_end   /* end of ROM fs meta data */
+
+	/*
+	 * Each module is represented by a struct of 3 long values. The first
+	 * value is pointer to the module name. A null-pointer marks the end of
+	 * the module list.
+	 */
+	.long mod1_name             /* pointer to the null-terminated module name */
+	.long mod1_start            /* pointer to the module data */
+	.long mod1_end - mod1_start /* size of the module data */
+
+	.long 0
+
+	/*
+	 * For each module, there exists a null-terminated string labeled with
+	 * 'mod<index>_name' referenced by the module list above.
+	 */
+	mod1_name:
+	.string "name of data module"
+	.byte 0
+
+	header_end:
+
+	/*
+	 * The data of each module must be aligned at a page boundary to enable
+	 * the mapping of individual modules to different address spaces.
+	 */
+	.align 4096
+	mod1_start: .incbin "data"
+	mod1_end:
+	"""
+
+	asm_src = ""
+
+	# header
+	asm_src += ".section .data\nmodule_list:\n"
+	asm_src += ".ascii \"GROM\"\n"
+	asm_src += ".long header_end\n"
+
+	# module list
+	i = 1
+	for module in modules:
+		asm_src += ".long mod" + str(i) + "_name\n"
+		asm_src += ".long mod" + str(i) + "_start\n"
+		asm_src += ".long mod" + str(i) + "_end - mod" + str(i) + "_start\n"
+		i = i + 1
+	asm_src += ".long 0\n"
+
+	# module names
+	i = 1
+	for module in modules:
+		asm_src += "mod" + str(i) + "_name: .string \"" + os.path.split(module)[1] + "\"; .byte 0\n"
+		i = i + 1
+
+	asm_src += "header_end:\n"
+
+	# module data
+	i = 1
+	for module in modules:
+		asm_src += ".p2align 12,0\n"
+		asm_src += "mod" + str(i) + "_start: .incbin \"" + module + "\"; "
+		asm_src += "mod" + str(i) + "_end:\n"
+		i = i + 1
+
+	return asm_src
+
+instructions = """
+usage: gen_romfs [-v] [-p <cross-prefix>] -c <core-elf> -o <output> [modules ...]
+
+Generates Genode ROM file system as ELF file loadable into a Codezero container
+
+  -c|--core     ELF binary of Genode's core
+  -o|--output   name of ELF image to generate
+  -p|--prefix   cross toolchain prefix
+  -v|--verbose  print details about generated ROM file systemn
+"""
+
+def usage():
+	print instructions
+
+def user_error(message):
+	print "Error: " + message
+	usage
+	sys.exit(2)
+
+# default values for command-line arguments
+cross_prefix = ""
+core_elf     = ""
+dst_elf      = ""
+
+# parse command line arguments
+try:
+	opts, modules = getopt.getopt(sys.argv[1:],
+	                              "c:o:p:v",
+	                              ["core=", "output=", "prefix=", "verbose"])
+except getopt.GetoptError:
+	usage()
+	sys.exit(2)
+for opt, arg in opts:
+	if opt in ("-c", "--core"):
+		core_elf = arg
+	elif opt in ("-o", "--output"):
+		dst_elf = arg
+	elif opt in ("-p", "--prefix"):
+		cross_prefix = arg
+	elif opt in ("-v", "--verbose"):
+		verbose = 1
+	else:
+		user_error("invalid argument \"" + arg + "\"")
+
+# validate arguments
+if (core_elf     == ""): user_error("no core binary specified")
+if (len(modules) ==  0): user_error("no modules specified")
+if (dst_elf      == ""): user_error("no output file spefied")
+
+# determine destination address of the modules ELF image
+modules_start_addr = first_free_addr_after_program(core_elf, cross_prefix)
+
+if (verbose):
+	print "module address: " + hex(modules_start_addr)
+
+# generate assembly code aggregating the module data
+asm_src = generate_modules_asm(modules)
+
+if (verbose):
+	print "generated assember code:"
+	for line in asm_src.splitlines():
+		print "  " + line
+
+# invoke assembler and linker through the gcc front end
+gcc_cmd = [cross_prefix + "gcc",
+           "-nostdlib",
+           "-x", "assembler",
+           "-Wl,--entry=0",
+           "-Wl,--section-start=.data="   + hex(modules_start_addr),
+           "-o", dst_elf,
+           "-"]
+
+if (verbose):
+	print "gcc command line:"
+	print "  " + ' '.join(gcc_cmd)
+
+Popen(gcc_cmd, stdin=PIPE).communicate(asm_src)[0]

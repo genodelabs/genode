@@ -1,0 +1,40 @@
+diff -urN lwip-1.3.2.orig/src/api/sockets.c lwip-1.3.2/src/api/sockets.c
+--- lwip-1.3.2.orig/src/api/sockets.c	2009-12-24 16:38:19.000000000 +0100
++++ lwip-1.3.2/src/api/sockets.c	2010-02-16 11:27:00.000000000 +0100
+@@ -162,6 +162,9 @@
+   set_errno(sk->err); \
+ } while (0)
+ 
++/* function to notify libc about a socket event */
++extern void (*libc_select_notify)();
++
+ /* Forward delcaration of some functions */
+ static void event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len);
+ static void lwip_getsockopt_internal(void *arg);
+@@ -1034,7 +1037,7 @@
+  * Processes recvevent (data available) and wakes up tasks waiting for select.
+  */
+ static void
+-event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
++orig_event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
+ {
+   int s;
+   struct lwip_socket *sock;
+@@ -1123,6 +1126,17 @@
+   }
+ }
+ 
++/* Wrapper for the original event_callback() function that additionally calls
++ * libc_select_notify()
++ */
++static void
++event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
++{
++	orig_event_callback(conn, evt, len);
++	if (libc_select_notify)
++		libc_select_notify();
++}
++
+ /**
+  * Unimplemented: Close one end of a full-duplex connection.
+  * Currently, the full connection is closed.

@@ -1,0 +1,9 @@
+#
+# \brief  Version node description for libc
+# \author Sebastian Sumpf
+# \date   2010-06-17
+#
+
+#depends on nothing
+FBSD_1.0 {
+};

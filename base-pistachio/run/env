@@ -1,0 +1,108 @@
+#
+# \brief  Pistachio-specific test-environment supplements
+# \author Norman Feske
+# \date   2010-08-25
+#
+# This file is meant to be used as '--include' argument for 'tool/run'.
+#
+
+
+##
+# Read the location of the Pistachio user directory from 'etc/pistachio.conf'
+#
+proc pistachio_user_dir { } {
+	global _pistachio_user_dir
+
+	if {![info exists _pistachio_user_dir]} {
+		if {[file exists etc/pistachio.conf]} {
+			set _pistachio_user_dir [exec sed -n "/^PISTACHIO_USER_BUILD_DIR/s/^.*=\\s*//p" etc/pistachio.conf]
+		} else {
+			set _pistachio_user_dir "[pwd]/l4"
+		}
+	}
+	return $_pistachio_user_dir
+}
+
+
+##
+# Read the location of the Pistachio kernel directory from 'etc/pistachio.conf'
+# or return a good heuristic
+#
+proc pistachio_kernel { } {
+	global _pistachio_kernel
+
+	if {![info exists _pistachio_kernel]} {
+		if {[file exists etc/pistachio.conf]} {
+			set _pistachio_kernel [exec sed -n "/^PISTACHIO_KERNEL/s/^.*=\\s*//p" etc/pistachio.conf]
+			if {$_pistachio_kernel == ""} {
+				set _pistachio_kernel [file dirname [file dirname [pistachio_user_dir]]]/kernel/build/x86-kernel
+			}
+		} else {
+			set _pistachio_kernel "[pwd]/bin/kernel"
+		}
+	}
+	return $_pistachio_kernel
+}
+
+
+##
+# Return whether the kernel is provided from the outside
+#
+proc kernel_external { } {
+	if {[pistachio_kernel] == "[pwd]/bin/kernel"} { return 0 }
+	return 1
+}
+
+
+##################################
+## Test framework API functions ##
+##################################
+
+proc create_boot_directory { } {
+	exec rm -rf   [run_dir]
+	exec mkdir -p [run_dir]/genode
+	exec mkdir -p [run_dir]/pistachio
+}
+
+
+proc build_boot_image {binaries} {
+
+	#
+	# Collect contents of the ISO image
+	#
+	copy_and_strip_genode_binaries_to_run_dir $binaries
+
+	if {![kernel_external] && ![file exists [pistachio_kernel]]} { build { kernel } }
+
+	exec cp [pistachio_kernel] [run_dir]/pistachio/kernel
+	exec cp [pistachio_user_dir]/serv/sigma0/sigma0 [run_dir]/pistachio
+	exec cp [pistachio_user_dir]/util/kickstart/kickstart [run_dir]/pistachio
+
+	install_iso_bootloader_to_run_dir
+
+	#
+	# Generate grub config file
+	#
+	# The core binary is part of the 'binaries' list but it must
+	# appear right after 'sigma0' as boot module. Hence the special case.
+	#
+	set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
+	puts $fh "timeout 0"
+	puts $fh "default 0"
+	puts $fh "\ntitle Genode on L4ka::Pistachio"
+	puts $fh " kernel /pistachio/kickstart"
+	puts $fh " module /pistachio/kernel"
+	puts $fh " module /pistachio/sigma0"
+	puts $fh " module /genode/core"
+	puts $fh " module /genode/config"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh " module /genode/$binary" } }
+	close $fh
+
+	create_iso_image_from_run_dir
+}
+
+
+proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
+	spawn_qemu $wait_for_re $timeout_value }

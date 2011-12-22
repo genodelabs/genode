@@ -1,0 +1,267 @@
+Coding style guidelines for Genode
+##################################
+
+Things to avoid
+===============
+
+Please avoid using pre-processor macros. C++ provides language
+features for almost any case, for which a C programmer uses
+macros.
+
+:Defining constants:
+
+  Use 'enum' instead of '#define'
+  ! enum { MAX_COLORS = 3 };
+  ! enum {
+  !   COLOR_RED   = 1,
+  !   COLOR_BLUE  = 2,
+  !   COLOR_GREEN = 3
+  ! };
+
+:Meta-programming:
+
+  Use templates instead of pre-processor macros.
+  In contrast to macros, templates are type-safe
+  and fit well with the implementation syntax.
+
+:Conditional-code inclusion:
+
+  Please avoid C-hacker style '#ifdef CONFIG_PLATFROM' - '#endif'
+  constructs but instead, factor-out the encapsulated code into a
+  separate file and introduce a proper function interface.
+  The build process should then be used to select the appropriate
+  platform-specific files at compile time. Keep platform dependent
+  code as small as possible. Never pollute existing generic code
+  with platform-specific code.
+
+
+Header of each file
+===================
+
+! /*
+!  * \brief  Short description of the file
+!  * \author Original author
+!  * \date   Creation date
+!  *
+!  * Some more detailed description. This is optional.
+!  */
+
+
+Identifiers
+===========
+
+* First character of class names uppercase, any other characters lowercase
+* Function and variable names lower case
+* 'Multi_word_identifiers' via underline
+* 'CONSTANTS' upper case
+* Private and protected members of a class begin with an '_'-character
+* Accessor functions are named after their corresponding attributes:
+
+  ! /**
+  !  * Request private member variable
+  !  */
+  ! int value() { return _value; }
+  !
+  ! /**
+  !  * Set the private member variable
+  !  */
+  ! void value(int value) { _value = value; }
+
+
+Indentation
+===========
+
+* Use one tab per indentation step. *Do not mix tabs and spaces!*
+* Use no tabs except at the beginning of a line.
+* Use spaces for alignment
+
+See [http://web.archive.org/web/20050311153439/http://electroly.com/mt/archives/000002.html]
+for a more detailed description.
+
+This way, everyone can set his preferred tabsize in his editor
+and the source code always looks good.
+
+
+Switch statements
+~~~~~~~~~~~~~~~~~
+
+Switch-statement blocks should be indented as follows:
+
+! switch (color) {
+!
+! case BLUE:
+! <tab>break;
+!
+! case GREEN:
+! <tab>{
+! <tab><tab>int declaration_required;
+! <tab><tab>...
+! <tab>}
+!
+! default:
+! }
+
+Please note that the case labels have the same indentation
+level as the switch statement. This avoids a two-level
+indentation-change at the end of the switch block that
+would occur otherwise.
+
+
+Vertical whitespaces
+====================
+
+In header files:
+
+* Leave two empty lines between classes.
+* Leave one empty line between member functions.
+
+In implementation files:
+
+* Leave two empty lines between functions.
+
+
+Braces
+======
+
+* Braces after class, struct and function names are placed at a new line:
+  ! class Foo
+  ! {
+  !   public:
+  !
+  !     void function(void)
+  !     {
+  !       ...
+  !     }
+  ! };
+
+  except for single-line functions.
+
+* All other occurrences of open braces (for 'if', 'while', 'do', 'for',
+  'namespace', 'enum' etc.) are at the end of a line:
+
+  ! if (flag) {
+  !   ..
+  ! } else {
+  !   ..
+  ! }
+
+* Surprisingly, one-line functions should be written on one line.
+  Typically, this applies for accessor functions.
+  If slightly more space than one line is needed, indent as follows:
+
+  ! int heavy_computation(int a, int lot, int of, int args) {
+  !   return a + lot + of + args; }
+
+
+Comments
+========
+
+Function header
+~~~~~~~~~~~~~~~
+
+Each public or protected (but no private) function in a header-file should be
+prepended by a header as follows:
+
+! /**
+!  * Short description
+!  *
+!  * \param   a    meaning of parameter a
+!  * \param   b    meaning of parameter b
+!  * \param   c,d  meaning of parameters c and d
+!  *
+!  * \return       meaning of return value
+!  * \retval  0    meaning of the return value 0
+!  *
+!  * More detailed information about the function. This is optional.
+!  */
+
+Descriptions of parameters and return values should be lower-case and brief.
+More elaborative descriptions can be documented in the text area below.
+
+In implementation files, only local and private functions should feature
+function headers.
+
+
+Single-line comments
+~~~~~~~~~~~~~~~~~~~~
+
+! /* use this syntax for single line comments */
+
+A single-line comment should be prepended by an empty line.
+Single-line comments should be short - no complete sentences. Use lower-case.
+
+C++-style comments ('//') should only be used for temporarily commenting-out
+code.  Such commented-out garbage is easy to 'grep' and there are handy
+'vim'-macros available for creating and removing such comments.
+
+
+Variable descriptions
+~~~~~~~~~~~~~~~~~~~~~
+
+Use the same syntax as for single-line comments. Insert two or more
+spaces before your comment starts.
+
+! int size;   /* in kilobytes */
+
+
+Multi-line comments
+~~~~~~~~~~~~~~~~~~~
+
+Multi-line comments are more detailed descriptions in the form of
+sentences.
+A multi-line comment should be enclosed by empty lines.
+
+! /*
+!  * This is some tricky
+!  * algorithm that works
+!  * as follows:
+!  * ...
+!  */
+
+The first and last line of a multi-line comment contain no words.
+
+
+Source-code blocks
+~~~~~~~~~~~~~~~~~~
+
+For structuring your source code, you can entitle the different
+parts of a file like this:
+
+! <- two empty lines
+!
+! /********************
+!  ** Event handlers **
+!  ********************/
+! <- one empty line
+
+Note the two stars at the left and right. There are two of them to
+make the visible width of the border match its height (typically,
+characters are ca. twice as high as wide).
+
+A source-code block header represents a headline for the following
+code. To couple this headline with the following code closer than
+with previous code, leave two empty lines above and one empty line
+below the source-code block header.
+
+
+Order of public, protected, and private blocks
+==============================================
+
+For consistency reasons, use the following class layout:
+
+! class Sandstein
+! {
+!   private:
+!     ...
+!   protected:
+!     ...
+!   public:
+! };
+
+Typically, the private section contains member variables that are used
+by public accessor functions below. In this common case, we only reference
+symbols that are defined above as it is done when programming plain C.
+
+Leave one empty line (or a line that contains only a brace) above and below
+a 'private', 'protected', or 'public' label. This also applies when the
+label is followed by a source-code block header.

@@ -1,0 +1,9 @@
+This repository contains the port of Genode to the Fiasco.OC microkernel.
+For further information, please refer to the following documents:
+
+:[http://genode.org/community/wiki/GenodeOnFiascoOC - Genode on Fiasco.OC Wiki page]:
+  This Wiki page contains the information on how to build and use
+  Genode with Fiasco.OC.
+
+:[http://os.inf.tu-dresden.de/fiasco]:
+  Official website for the Fiasco.OC microkernel.

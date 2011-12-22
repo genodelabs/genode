@@ -1,0 +1,36 @@
+build "core init test/libc"
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="test-libc">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>
+}
+
+build_boot_image {
+	core init test-libc
+	ld.lib.so libc.lib.so libc_log.lib.so libm.lib.so
+}
+
+append qemu_args " -nographic -m 64 "
+
+run_genode_until "--- returning from main ---" 10
+

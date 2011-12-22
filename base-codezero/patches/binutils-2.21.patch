@@ -1,0 +1,33 @@
+diff --git a/src/arch/arm/vectors.S b/src/arch/arm/vectors.S
+index 0475389..62f3c38 100644
+--- a/src/arch/arm/vectors.S
++++ b/src/arch/arm/vectors.S
+@@ -503,7 +503,7 @@ BEGIN_PROC(arm_irq_exception_basic)
+ 	mov	lr, pc
+ 	ldr	pc, =do_irq
+ 	ldmfd	sp!, {r0-r3, pc}^
+-END_PROC(arm_irq_exception)
++END_PROC(arm_irq_exception_basic)
+ 
+ /* Minimal IRQ state saved on irq stack right after irq vector enters: */
+ #define	IRQ_R0		0
+diff --git a/conts/userlibs/libc/src/arch-arm/memcpy.S b/conts/userlibs/libc/src/arch-arm/memcpy.S
+index 383f5d2..b4df27f 100644
+--- a/conts/userlibs/libc/src/arch-arm/memcpy.S
++++ b/conts/userlibs/libc/src/arch-arm/memcpy.S
+@@ -57,4 +57,4 @@ BEGIN_PROC(memcpy)
+ 		bne last
+ 	1:
+ 	pop {r0, r4 - r11, pc}
+-END_PROC(_memcpy)
++END_PROC(memcpy)
+diff --git a/conts/userlibs/libc/src/arch-arm/memset.S b/conts/userlibs/libc/src/arch-arm/memset.S
+index ce9b06c..3746955 100644
+--- a/conts/userlibs/libc/src/arch-arm/memset.S
++++ b/conts/userlibs/libc/src/arch-arm/memset.S
+@@ -65,4 +65,4 @@ BEGIN_PROC(memset)
+ 		bne	end
+ 
+ 	ldmfd	sp!, {r4 - r11, pc}
+-END_PROC(_memset)
++END_PROC(memset)

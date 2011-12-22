@@ -1,0 +1,87 @@
+#
+# Automatically generated make config: don't edit
+# Fiasco configuration
+# Wed Sep 14 14:33:24 2011
+#
+
+#
+# Target configuration
+#
+CONFIG_IA32=y
+# CONFIG_AMD64 is not set
+# CONFIG_ARM is not set
+CONFIG_PF_PC=y
+# CONFIG_PF_UX is not set
+CONFIG_ABI_VF=y
+# CONFIG_IA32_486 is not set
+CONFIG_IA32_586=y
+# CONFIG_IA32_686 is not set
+# CONFIG_IA32_P2 is not set
+# CONFIG_IA32_P3 is not set
+# CONFIG_IA32_P4 is not set
+# CONFIG_IA32_PM is not set
+# CONFIG_IA32_CORE2 is not set
+# CONFIG_IA32_ATOM is not set
+# CONFIG_IA32_K6 is not set
+# CONFIG_IA32_K7 is not set
+# CONFIG_IA32_K8 is not set
+# CONFIG_IA32_K10 is not set
+# CONFIG_CPU_VIRT is not set
+CONFIG_SCHED_PIT=y
+# CONFIG_SCHED_RTC is not set
+# CONFIG_SCHED_APIC is not set
+# CONFIG_WORKAROUND_AMD_FPU_LEAK is not set
+CONFIG_REGPARM3=y
+
+#
+# Kernel options
+#
+CONFIG_CONTEXT_4K=y
+CONFIG_IO_PROT=y
+# CONFIG_IO_PROT_IOPL_3 is not set
+# CONFIG_SYNC_TSC is not set
+# CONFIG_FINE_GRAINED_CPUTIME is not set
+CONFIG_SCHED_FIXED_PRIO=y
+
+#
+# Debugging
+#
+CONFIG_INLINE=y
+# CONFIG_NDEBUG is not set
+# CONFIG_NO_FRAME_PTR is not set
+# CONFIG_STACK_DEPTH is not set
+# CONFIG_ALLOW_RO_TEXT is not set
+# CONFIG_LIST_ALLOC_SANITY is not set
+# CONFIG_BEFORE_IRET_SANITY is not set
+# CONFIG_IRQ_SPINNER is not set
+CONFIG_WATCHDOG=y
+CONFIG_SERIAL=y
+CONFIG_JDB=y
+# CONFIG_JDB_LOGGING is not set
+CONFIG_JDB_DISASM=y
+CONFIG_JDB_GZIP=y
+# CONFIG_JDB_ACCOUNTING is not set
+# CONFIG_JDB_MISC is not set
+CONFIG_POWERSAVE_GETCHAR=y
+CONFIG_USER_SINGLE_STEP=y
+# CONFIG_WARN_NONE is not set
+CONFIG_WARN_WARNING=y
+# CONFIG_WARN_ANY is not set
+
+#
+# Compiling
+#
+CONFIG_CC="gcc"
+CONFIG_CXX="g++"
+CONFIG_HOST_CC="gcc"
+CONFIG_HOST_CXX="g++"
+# CONFIG_VERBOSE is not set
+# CONFIG_MAINTAINER_MODE is not set
+CONFIG_LABEL=""
+# CONFIG_EXPERIMENTAL is not set
+CONFIG_PERF_CNT=y
+CONFIG_BIT32=y
+CONFIG_WARN_LEVEL=1
+CONFIG_XARCH="ia32"
+CONFIG_IA32_TARGET="Intel Pentium"
+CONFIG_ABI="vf"

@@ -1,0 +1,216 @@
+
+                        Introduction to Genode
+
+                             Genode Labs
+
+[image img/genode_logo]
+
+Genode is a construction kit for building special-purpose operating systems
+out of a number of components such as device drivers, protocol
+stacks, and applications. Those components are organized using only a few
+yet powerful architectual prinicples, and thereby, allow for the
+composition of a wide range of different systems. The live CD is meant to
+showcase how far the concept scales as of today.
+
+The following introduction will provide you with hands-on experience with
+the basics of Genode:
+
+* The creation and destruction of single processes as well as arbitrarily
+  complex sub systems
+* The trusted-path facility of the Nitpicker secure GUI
+* The assignment of resource quotas to sub systems
+* The multiple instantiation of services
+* The usage of run-time adaptable policy for routing client requests to
+  different services
+
+
+The launchpad application starter
+#################################
+
+[image img/launchpad 50%] Main window of the launchpad application
+  starter.
+
+Figure [img/launchpad] shows the main window of the launchpad application. It
+consists of three areas. The upper area contains status information about
+launchpad itself. The available memory quota is presented by a grey-colored
+bar. The middle area of the window contains the list of available applications
+that can be started by clicking on the application's name. Before starting an
+application, the user can define the amount of memory quota to donate to the
+new application by adjusting the red bar using the mouse.
+[exec-once:launchpad(22M) - Start the launchpad by clicking on this link...]
+
+For a first test, you may set the memory quota of the program named scout to
+10MB and then click its name. Thereupon, another instance of the scout text
+browser will be started and the lower area of launchpad becomes populated with
+status information about launchpad's children. Currently, launchpad has scout
+as its only child. For each child, its name, its memory quota, and a kill
+button are presented.  After having started scout, you will further notice a
+change of launchpad's own status information as the memory quota spent for
+scout is not directly available to launchpad anymore.
+
+[image img/setup] Illustration of the system setup after having
+  started the scout tutorial browser.
+
+In Figure [img/setup], you see an illustration of the current setup (slightly
+simplified, leaving out the main menu and the other parts of the live CD). At
+the very bottom, there are the kernel, core, and init. Init has started the
+framebuffer driver, the timer driver, the nitpicker GUI server, and launchpad
+as it children. Launchpad, in turn, has started the second instance of scout as
+its only child. You can get a further idea about the relationship between the
+applications by pressing the 'ScrLock' key, which gets especially handled by
+the nitpicker GUI server. We call this key the X-ray key because it makes the
+identity of each window on screen visible to the user. Each screen region gets
+labeled by its chain of parents and their grandparents respectively. During the
+walk through the demo scenario, you may press the X-ray key at any time to make
+the parent-child relationships visible on screen.
+
+By pressing the kill button (labeled with 'x') of the scout child in
+launchpad's window, scout will disappear and launchpad regains its original
+memory quota. Although killing a process may sound like a simple thing to do,
+it is worthwhile to mention that scout was using a number of services, for
+example core's LOG service, the nitpicker GUI service, and the timer service.
+While using these services, scout made portions of its own memory quota
+available to them. When scout was killed by launchpad, all those relationships
+were gracefully reverted such that there is no resource leakage.
+
+
+Recursive system structure
+##########################
+
+[image img/x-ray] A second instance of launchad is used
+  to start the 'testnit' program, which manages three
+  colored windows. The identity of each screen regions
+  is unveiled by the X-ray mode of the nitpicker GUI
+  server.
+
+Thanks to the recursive structure of Genode, the mechanisms
+that function for a single application are also applicable to
+whole sub systems.
+As a test, you may configure the launchpad application
+entry within the launchpad window to 15MB and start
+another instance of launchpad.
+A new launchpad window will appear. Apart from the status
+information at the upper part of its window, it looks
+completely identical to the first instance.
+You may notice that the displayed available quota of the
+second launchpad instance is lower then the 15MB. The
+difference corresponds to the application's static memory
+usage including the BSS segment and the double-buffer
+backing store.
+With the new instance, you may start further applications,
+for example by clicking on 'testnit.'
+To distinguish the different instances of the applications
+on screen, the X-ray key becomes handy again.
+Figure [img/x-ray] shows a screenshot of the described setup
+in X-ray mode.
+Now, after creating a whole hierarchy of applications,
+you can try killing the whole tree at once by clicking
+the kill button of the launchpad entry in the original
+launchpad window.
+You will notice that whole sub system gets properly
+destructed and the original system state is regained.
+
+
+The flexibility of nested policies
+##################################
+
+Beside providing the ability to construct and destruct
+hierarchically structured sub systems, the recursive
+system structure allows for an extremely flexible
+definition and management of system policies that can
+be implanted into each parent.
+As an example, launchpad has a simple built-in policy of how
+children are connected to services.
+
+If a child requests
+a service, launchpad looks if such a service is provided
+by any of the other children and, if so, a connection
+gets established. If the service is not offered by any child,
+launchpad delegates the request to its parent.
+For example, a request for the 'LOG' service will always
+end up at core, which implements the service by the
+means of terminal (or kernel debug) output.
+By starting a child that offers the same service interface,
+however, we can shadow core's 'LOG' service by an alternative
+implementation.
+You can try this out by first starting 'testnit' and
+observing its log output at the terminal window. When
+started, 'testnit' tells us some status information.
+By further starting the program called 'nitlog,' we create
+a new 'LOG' service as a child of launchpad. On screen, this
+application appears just as a black window that can be
+dragged to any screen position with the mouse.
+When now starting a new instance of 'testnit', launchpad
+will resolve the request for the 'LOG' service by establishing
+a connection to 'nitlog' instead of propagating the request
+to its parent. Consequently, we can now observe the status
+output of the second 'testnit' instance inside the 'nitlog'
+window.
+
+The same methodology can be applied to arbitrarily complex
+services. For example, you can create a new instance of
+the framebuffer service by starting the 'liquid_fb' application.
+This application provides the framebuffer service and,
+in turn, uses the nitpicker GUI server to get displayed on
+screen. Because any new requests for a framebuffer will now be
+served by the 'liquid_fb' application, we can start another
+instance of nitpicker. This instance uses 'liquid_fb' as its
+graphics back end and, in turn, provides the GUI service.
+Now, when starting another instance of scout, the new scout
+window will appear within 'liquid_fb' too (Figure [img/liquid_fb]).
+
+[image img/liquid_fb]
+  Executing multiple instances of the nitpicker GUI server
+  in a nested way.
+
+The extremely simple example policy implemented in launchpad
+in combination with the recursive system structure of Genode
+already provides a wealth of flexibility without the need
+to recompile or reconfigure any application.
+The policy implemented and enforced by a parent may
+also deny services for its children or impose other restrictions.
+For example, the window labels presented in X-ray mode are
+successively defined by all parents and grandparents that
+mediate the request of an application to the GUI service.
+The scout window as the parent of launchpad imposes its
+policy of labeling the GUI session with the label _"launchpad"_.
+Init as the parent of scout again overrides this label
+with the name of its immediate child from which the GUI request
+comes from. Hence the label becomes _"scout -> launchpad"_.
+
+
+Where to go from here?
+######################
+
+Although this little demonstration scratches only the surface of
+Genode, we hope that the power of its underlying design becomes
+apparent. The most distinctive property of Genode, however, is its
+extremely low complexity. The functionality of the complete demo
+scenario is implemented in less than 20,000 lines of source code
+(LOC), including the GUI and the demo applications. As a point of
+reference, when relying on libpng for decompressing the images as seen
+in the text browser, this number doubles. In fact, the complete base
+OS framework accounts for less source-code complexity than the code
+needed for decoding the PNG images. To these numbers, the complexity
+of the used underlying kernel must be added, for example 10-20 KLOC
+for an L4 microkernel (or far more than 500 KLOC when relying on the
+Linux kernel). In combination with a microkernel, Genode enables the
+implementation of security-sensitive applications with a trusted
+computing base (TCB) of some thousands rather than millions of lines
+of code. If using a hypervisor as kernel for Genode, this advantage
+can further be combined with compatibility to existing applications
+executed on virtual machines.
+
+More details, architectural and technical documents, our road
+map, and the complete source code are available at [http://genode.org].
+
+The development of the Genode OS Framework is conducted as
+an open-source community project, coordinated by Genode Labs,
+a company founded by the original authors of Genode.
+If you are interested in supporting our project through
+participation or funding, please consider joining our
+community ([http://genode.org]) or contact Genode Labs
+([http://www.genode-labs.com]).
+
+! info@genode-labs.com
+

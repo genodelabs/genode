@@ -1,0 +1,77 @@
+#
+# \brief  Test if global static constructors in hybrid applications and
+#         host shared libs get called
+# \author Christian Prochaska
+# \date   2011-11-24
+#
+
+#
+# Build
+#
+
+build {
+	core init
+	test/lx_hybrid_ctors
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="test-lx_hybrid_ctors">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+}
+
+#
+# Boot modules
+#
+
+exec cp test/lx_hybrid_ctors/libtestlib.so bin/
+
+# generic modules
+set boot_modules {
+	core init
+	test-lx_hybrid_ctors
+	libtestlib.so
+}
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+# qemu config
+append qemu_args "-nographic -m 64 "
+
+run_genode_until "child exited with exit value 0.*\n" 10
+
+#
+# Compare output
+#
+
+grep_output {\[init -\> test-lx_hybrid_ctors\]}
+
+compare_output_to {
+	[init -> test-lx_hybrid_ctors] Global static constructor of host library called.
+	[init -> test-lx_hybrid_ctors] Global static constructor of Genode application called
+	[init -> test-lx_hybrid_ctors] --- lx_hybrid global static constructor test ---
+	[init -> test-lx_hybrid_ctors] --- returning from main ---
+}
+
+exec rm bin/libtestlib.so
+
+# vi: set ft=tcl :

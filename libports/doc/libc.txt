@@ -1,0 +1,72 @@
+The C library of the Genode OS Framework is based on the code of FreeBSD. The
+original code is available at the official FreeBSD website.
+
+:FreeBSD website: [http://www.freebsd.org]
+
+Currently, the libc supports the x86_32, x86_64 and ARM architectures. Support
+for other architectures is planned as future addition.
+
+Usage
+-----
+
+Before the libc is ready to use, the original FreeBSD source codes must be
+downloaded and integrated with the Genode build system. The Makefile found
+at the top level of the 'libports' repository automates this task. Please make
+sure to have Subversion installed. Then issue the following command from
+within the 'libports/' directory:
+
+! make prepare PKG=libc
+
+To use the libc in your application, add 'libc' to the 'LIBS' declaration in
+your build-description file. This declaration will make the libc headers
+available for the include path of your target and link the C library. When
+building, make sure that the 'libports' repository is included in your build
+configuration ('<build-dir>/etc/build.conf').
+
+Limitations
+-----------
+
+The current version of the C library is not thread-safe. For most string and
+math functions, this is not a problem (as these functions do not modify global
+state) but be careful with using more complex functions such as 'malloc' from
+multiple threads. Also, 'errno' may become meaningless when calling libc
+functions from multiple threads.
+
+We have left out the following files from the Genode port of the FreeBSD libc:
+:gdtoa libary:  'strtodnrp.c'
+:gen library:   'getosreldate.c'
+:string libary: 'strcoll.c', 'strxfrm.c', 'wcscoll.c', 'wcsxfrm.c'
+:math library:  's_exp2l.c'
+
+In the ARM version, the following additional files are excluded:
+:libm: 'e_acosl.c', 'e_asinl.c', 'e_atan2l.c', 'e_hypotl.c', 's_atanl.c',
+  's_cosl.c', 's_frexpl.c', 's_nextafterl.c', 's_nexttoward.c',
+  's_rintl.c', s_scalbnl.c', 's_sinl.c', 's_tanl.c', 's_fmal.c'
+
+Atomic operation on ARM are not supported. Although these operations are
+defined in 'machine/atomic.h', their original FreeBSD implementations are not
+functional because we do not emulate the required FreeBSD environment (see:
+'sysarch.h'). However, these functions are not a regular part of the libc
+anyway and are not referenced from any other libc code.
+
+The current back end is quite simplistic and it may help you to revisit the
+current state of the implementation in the 'src/lib/libc' directory. If
+one of the functions in 'dummies.c' is called, you will see an message in your
+debug output:
+! <function-name> called, not yet implemented!
+However, some of the back-end function implemented in the other files have
+dummy semantics but have to remain quiet because they are called from low-level
+libc code.
+
+Genode-specific additions
+-------------------------
+
+The back end of the libc is tailored to Genode via a flexible plugin concept.
+This concept enables the combination of a variety of Genode-specific interfaces
+with libc-based programs. For example, one program may want to use Genode's LOG
+service as standard output whereas interactive programs might prefer the use of
+Terminal sessions. Further available (entirely optional) back ends include a
+BSD socket implementation based on the lwIP stack and a VFAT file-system back
+end based on libffat. The interfaces used between plugins and the libc are
+located at 'include/libc-plugin/'.
+

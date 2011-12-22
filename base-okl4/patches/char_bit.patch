@@ -1,0 +1,25 @@
+--- a/libs/l4/include/types.h	2008-06-16 07:16:55.000000000 +0200
++++ b/libs/l4/include/types.h	2010-11-24 12:48:52.000000000 +0200
+@@ -180,9 +180,19 @@
+ #endif
+ 
+ /** @todo FIXME Source from libc's limit.h once we can - awiggins. */
+-#define CHAR_BIT 8
+-#define WORD_T_BIT (sizeof (word_t) * CHAR_BIT)
+-#define L4_BITS_PER_WORD WORD_T_BIT
++#ifndef CHAR_BIT
++/*
++ * Do not use a #define for 'CHAR_BIT' because such a definition
++ * would ultimately collide with libc headers (see the predictive
++ * comment above). If OKL4 headers are included into a dedicated
++ * C++ namespace, this conflict can be avoided. OKL4's CHAR_BIT
++ * will then end up being 'Okl4::CHAR_BIT' wheras libc's CHAR_BIT
++ * will populate the root name space.
++ */
++enum { CHAR_BIT = 8 };
++#endif
++enum { WORD_T_BIT = sizeof(word_t) * CHAR_BIT };
++enum { L4_BITS_PER_WORD = WORD_T_BIT };
+ 
+ // XXX: magpie workaround
+ // # define __PLUS32 + (sizeof (L4_Word_t) * 8 - 32)

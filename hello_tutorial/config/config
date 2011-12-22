@@ -1,0 +1,12 @@
+<config>
+	<start name="hello_server">
+		<resource name="RAM" quantum="256K"/>
+		<provides><service name="Hello"/></provides>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="256K"/>
+	</start>
+	<start name="hello_client">
+		<resource name="RAM" quantum="256K"/>
+	</start>
+</config>

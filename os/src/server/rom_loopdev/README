@@ -1,0 +1,6 @@
+ROM loop device is an implementation of the block-session interface
+running as a client of a ROM session. It exports the requested ROM file as a
+block device, similiar to loop devices known in Linux. The example shows how
+to choose the right ROM file in its configuration and how to configure the exported block size.
+
+! <config file="image.iso" block_size="2048"/>

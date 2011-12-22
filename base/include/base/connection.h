@@ -1,0 +1,98 @@
+/*
+ * \brief  Connection to a service
+ * \author Norman Feske
+ * \date   2008-08-22
+ */
+
+/*
+ * Copyright (C) 2008-2011 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#ifndef _INCLUDE__BASE__CONNECTION_H_
+#define _INCLUDE__BASE__CONNECTION_H_
+
+#include <base/env.h>
+#include <base/capability.h>
+
+namespace Genode {
+
+	/**
+	 * Representation of an open connection to a service
+	 */
+	template <typename SESSION_TYPE>
+	class Connection
+	{
+		public:
+
+			enum On_destruction { CLOSE = false, KEEP_OPEN = true };
+
+		private:
+
+			/*
+			 * Because the argument string is used with the parent interface,
+			 * the message-buffer size of the parent-interface provides a
+			 * realistic upper bound for dimensioning the format- string
+			 * buffer.
+			 */
+			enum { FORMAT_STRING_SIZE = Parent::Session_args::MAX_SIZE };
+
+			Capability<SESSION_TYPE> _cap;
+
+			On_destruction _on_destruction;
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * \param cap  session capability
+			 * \param od   session policy applied when destructing the connection
+			 */
+			Connection(Capability<SESSION_TYPE> cap, On_destruction od = CLOSE):
+				_cap(cap), _on_destruction(od) { }
+
+			/**
+			 * Destructor
+			 */
+			~Connection()
+			{
+				if (_on_destruction == CLOSE)
+					env()->parent()->close(_cap);
+			}
+
+			/**
+			 * Return session capability
+			 */
+			Capability<SESSION_TYPE> cap() const { return _cap; }
+
+			/**
+			 * Define session policy
+			 */
+			void on_destruction(On_destruction od) { _on_destruction = od; }
+
+			/**
+			 * Shortcut for env()->parent()->session() function
+			 */
+			Capability<SESSION_TYPE> session(const char *format_args, ...)
+			{
+				char buf[FORMAT_STRING_SIZE];
+
+				/* process format string */
+				va_list list;
+				va_start(list, format_args);
+
+				String_console sc(buf, FORMAT_STRING_SIZE);
+				sc.vprintf(format_args, list);
+
+				va_end(list);
+
+				/* call parent interface with the resulting argument buffer */
+				return env()->parent()->session<SESSION_TYPE>(buf);
+			}
+	};
+}
+
+#endif /* _INCLUDE__BASE__CONNECTION_H_ */

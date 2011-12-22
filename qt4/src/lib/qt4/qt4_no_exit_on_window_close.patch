@@ -1,0 +1,30 @@
+diff --git a/src/gui/kernel/qwidget.cpp b/src/gui/kernel/qwidget.cpp
+--- a/src/gui/kernel/qwidget.cpp
++++ b/src/gui/kernel/qwidget.cpp
+@@ -7596,6 +7596,26 @@
+     QPointer<QWidget> that = q;
+     QPointer<QWidget> parentWidget = q->parentWidget();
+ 
++#ifdef Q_OS_GENODE
++    /* prevent closing of the last window in the demo */
++    if (parentWidget.isNull() || !parentWidget->isVisible() || parentWidget->testAttribute(Qt::WA_DontShowOnScreen)) {
++		QWidgetList list = QApplication::topLevelWidgets();
++		bool lastWindowClosed = true;
++		for (int i = 0; i < list.size(); ++i) {
++			QWidget *w = list.at(i);
++			if ((w != q) && (w->isVisible() && !w->testAttribute(Qt::WA_DontShowOnScreen))
++					&& !w->parentWidget()) {
++				lastWindowClosed = false;
++				break;
++			}
++		}
++		if (lastWindowClosed) {
++			data.is_closing = 0;
++			return false;
++		}
++    }
++#endif
++
+ #ifdef QT3_SUPPORT
+     bool isMain = (QApplicationPrivate::main_widget == q);
+ #endif

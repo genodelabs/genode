@@ -1,0 +1,13 @@
+The 'rom_tar' service obtains a TAR archive via a ROM connection and, in turn,
+provides the files contained in the TAR archive as individual ROM sessions.
+The name of the TAR archive must be specified via the 'name' attribute of
+an 'archive' tag, for example:
+
+! <config>
+!   <archive name="archive.tar"/>
+! </config>
+
+The backing store for the dataspaces exported via ROM sessions is accounted
+on the 'rom_tar' service (not on its clients) to make the use of 'rom_tar'
+transparent to the regular users of core's ROM service. Hence, this service
+must not be used by multiple clients that do not trust each other.

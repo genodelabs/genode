@@ -1,0 +1,42 @@
+diff --git a/src/arch/i386/include/ipxe/rdtsc_timer.h b/src/arch/i386/include/ipxe/rdtsc_timer.h
+index 472e140..d5095a7 100644
+--- a/src/arch/i386/include/ipxe/rdtsc_timer.h
++++ b/src/arch/i386/include/ipxe/rdtsc_timer.h
+@@ -30,7 +30,10 @@ static inline __always_inline unsigned long
+ TIMER_INLINE ( rdtsc, currticks ) ( void ) {
+ 	unsigned long ticks;
+ 
+-	__asm__ __volatile__ ( "rdtsc\n\t"
++	__asm__ __volatile__ (
++			       "mfence\n\t"
++			       "rdtsc\n\t"
++			       "mfence\n\t"
+ 			       "shrdl %1, %%edx, %%eax\n\t"
+ 			       : "=a" ( ticks ) : "i" ( TSC_SHIFT ) : "edx" );
+ 	return ticks;
+diff --git a/src/include/assert.h b/src/include/assert.h
+index 40a00a2..8bae55c 100644
+--- a/src/include/assert.h
++++ b/src/include/assert.h
+@@ -29,7 +29,7 @@ FILE_LICENCE ( GPL2_OR_LATER );
+  * to the printf symbol.
+  */
+ extern int __attribute__ (( format ( printf, 1, 2 ) )) 
+-assert_printf ( const char *fmt, ... ) asm ( "printf" );
++assert_printf ( const char *fmt, ... ) asm ( "ipxe_printf" );
+ 
+ /**
+  * Assert a condition at run-time.
+diff --git a/src/include/compiler.h b/src/include/compiler.h
+index feea516..d5163b6 100644
+--- a/src/include/compiler.h
++++ b/src/include/compiler.h
+@@ -271,7 +271,7 @@ REQUEST_EXPANDED ( CONFIG_SYMBOL );
+  * to the printf symbol.
+  */
+ extern int __attribute__ (( format ( printf, 1, 2 ) )) 
+-dbg_printf ( const char *fmt, ... ) asm ( "printf" );
++dbg_printf ( const char *fmt, ... ) asm ( "ipxe_printf" );
+ 
+ extern void dbg_autocolourise ( unsigned long id );
+ extern void dbg_decolourise ( void );

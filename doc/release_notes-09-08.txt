@@ -1,0 +1,573 @@
+
+
+              ==============================================
+              Release notes for the Genode OS Framework 9.08
+              ==============================================
+
+                               Genode Labs
+
+
+Whereas the previous releases were focused on adding features to the framework,
+the overall theme for the current release 9.08 was refinement. We took the
+chance to revisit several parts of the framework that we considered as
+interim solutions, and replaced them with solid and hopefully long-lasting
+implementations. Specifically, we introduce a new lock implementation, a new
+timer service, a platform-independent signalling mechanism, a completely
+reworked startup code for all platforms, and thread-local storage support.
+Even though some of the changes touches fundamental mechanisms, we managed
+to keep the actual Genode API almost unmodified.
+
+With regard to features, the release introduces initial support for dynamic
+linking, a core extension to enable a user-level variant of Linux to run on the
+OKL4 version of Genode, and support for super pages and write-combined I/O
+memory access on featured L4 platforms.
+
+The most significant change for the Genode Linux version is the grand unification with
+the other base platforms. Now, the Linux version shares the same linker script
+and most of the startup code with the supported L4 platforms. Thanks to our
+evolved system-call bindings, we were further able to completely dissolve
+Genode's dependency from Linux's glibc. Thereby, the Linux version of Genode is
+on the track to become one of the lowest-complexity (in terms of source-code
+complexity) Linux-kernel-based OSes available.
+
+
+Base framework
+##############
+
+New unified lock implementation
+===============================
+
+Since the first Genode release one year ago, the lock implementation had been
+a known weak spot. To keep things simple, we employed a yielding spinlock
+as basic synchronization primitive. All other thread-synchronization
+mechanisms such as semaphores were based on this lock. In principle, the
+yielding spinlock used to look like this:
+
+! class Lock {
+!   private:
+!     enum Lock_variable { UNLOCKED, LOCKED };
+!     Lock_variable _lock_variable;
+!
+!   public:
+!     void lock() {
+!       while (!cmpxchg(&_lock_variable, UNLOCKED, LOCKED))
+!         yield_cpu_time();
+!     }
+!
+!     void Lock::unlock() { _lock_variable = UNLOCKED; }
+! }
+
+The compare-exchange is an atomic operation that compares the current value
+of '_lock_variable' to the value 'UNLOCKED', and, if equal, replaces the
+value by 'LOCKED'. If this operation succeeds, 'cmpxchg' returns true, which
+means that the lock acquisition succeeded. Otherwise, we know that the lock
+is already owned by someone else, so we yield the CPU time to another thread.
+
+Besides the obvious simplicity of this solution, it does require minimal
+CPU time in the non-contention case, which we considered to be the common case. In
+the contention case however, this implementation has a number of drawbacks.
+First, the lock is not fair, one thread may be able to grab and release the
+lock a number of times before another thread has the chance to be
+scheduled at the right time to proceed with the lock acquisition if the lock
+is free. Second, the lock does not block the acquiring thread but lets it
+actively spin. This behavior consumes CPU time and slows down other threads that
+do real work. Furthermore, this lock is incompatible with the use of thread
+priorities. If the lock is owned by a low-priority thread and a high-priority
+thread tries to acquire a lock, the high-priority thread keeps being active
+after calling 'yield_cpu_time()'. Therefore the lock owner starves and has no
+chance to release the lock. This effect can be partially alleviated by replacing
+'yield_cpu_time()' by a sleep function but this work-around implies higher
+wake-up latencies.
+
+Because we regarded this yielding spinlock as an intermediate solution since the
+first release, we are happy to introduce a completely new implementation now.
+The new implementation is based on a wait queue of lock applicants that are
+trying to acquire the lock. If a thread detects that the lock is already
+owned by another thread (lock holder), it adds itself into the wait queue
+of the lock and calls a blocking system call. When the lock owner releases
+the lock, it wakes up the next member of the lock's wait queue.
+In the non-contention case, the lock remains as cheap as the yielding
+spinlock. Because the new lock employs a fifo wait queue, the lock guarantees
+fairness in the contention case. The implementation has two interesting points
+worth noting. In order to make the wait-queue operations thread safe, we use a simple
+spinlock within the lock for protecting the wait queue. In practice, we
+measured that there is almost never contention for this spin lock as two
+threads would need to acquire the lock at exactly the same time. Nevertheless,
+the lock remains safe even for this case. Thanks to the use of the additional spinlock within
+the lock, the lock implementation is extremely simple. The seconds interesting
+aspect is the base mechanism for blocking and waking up threads such
+that there is no race between detecting contention and blocking.
+On Linux, we use 'sleep' for blocking and 'SIGUSR1' to cancel the sleep operation.
+Because Linux delivers signals to threads at kernel entry,
+the wake-up signal gets reliably delivered even if it occurs prior
+thread blocking. On OKL4 and Pistachio, we use the exchange-registers
+('exregs') system call for both blocking and waking up threads. Because 'exregs'
+returns the previous thread state, the sender of the wake-up
+signal can detect if the targeted thread is already in a blocking state.
+If not, it helps the thread to enter the blocking state by a thread-switch
+and then repeats the wake-up. Unfortunately, Fiasco does not support the
+reporting of the previous thread state as exregs return value. On this kernel,
+we have to stick with the yielding spinlock.
+
+
+New Platform-independent signalling mechanism
+=============================================
+
+The release 8.11 introduced an API for asynchronous notifications. Until
+recently, however, we have not used this API to a large extend because it
+was not supported on all platforms (in particular OKL4) and its implementation
+was pretty heavy-weight. Until now signalling required one additional thread for each signal
+transmitter and each signal receiver. The current release introduces a
+completely platform-independent light-weight (in terms of the use of
+threads) signalling mechanism based on a new core service called SIGNAL.
+A SIGNAL session can be used to allocate multiple signal receivers, each
+represented by a unique signal-receiver capability. Via such a capability,
+signals can be submitted to the receiver's session. The owner of a SIGNAL
+session can receive signals submitted to the receivers of this session
+by calling the blocking 'wait_for_signal' function. Based on this simple
+mechanism, we have been able to reimplement Genode's signal API. Each
+process creates one SIGNAL session at core and owns a dedicated thread
+that blocks for signals submitted to any receiver allocated by the process.
+Once, the signal thread receives a signal from core, it determines
+the local signal-receiver context and dispatches the signal accordingly.
+
+The new implementation of the signal API required a small refinement.
+The original version allowed the specification of an opaque argument
+at the creation time of a signal receiver, which had been delivered with
+each signal submitted to the respective receiver. The new version replaces
+this opaque argument with a C++ class called 'Signal_context'. This allows
+for a more object-oriented use of the signal API.
+
+
+Generic support for thread-local storage
+========================================
+
+Throughout Genode we avoid relying on thread-local storage (TLS) and, in fact,
+we had not needed such a feature while creating software solely using the
+framework. However, when porting existing code to Genode, in particular Linux
+device drivers and Qt-based applications, the need for TLS arises. For such
+cases, we have now extended Genode's 'Thread' class with generic TLS
+support. The static function 'Thread_base::myself()' returns a pointer to the
+'Thread_base' object of the calling thread, which may be casted to a inherited
+thread type (holding TLS information) as needed.
+
+The 'Thread_base' object is looked up by using the current stack pointer
+as key into an AVL tree of registered stacks. Hence, the lookup traverses a
+plain data structure and does not rely on platform-dependent CPU features
+(such as 'gs' segment-register TLS lookups on Linux).
+
+Even though, Genode does provide a mechanism for TLS, we strongly discourage
+the use of this feature when creating new code with the Genode API. A clean
+C++ program never has to rely on side effects bypassing the programming
+language. Instead, all context information needed by a function to operate,
+should be passed to the function as arguments.
+
+
+Core extensions to run Linux on top of Genode on OKL4
+#####################################################
+
+As announced on our road map, we are working on bringing a user-level variant
+of the Linux kernel to Genode. During this release cycle, we focused on
+enabling OKLinux aka Wombat to run on top of Genode. To run Wombat on Genode we
+had to implement glue code between the wombat kernel code and the Genode API,
+and slightly extend the PD service of core.
+
+The PD-service extension is a great show case for implementing inheritance
+of RPC interfaces on Genode. The extended PD-session interface resides
+in 'base-okl4/include/okl4_pd_session' and provides the following additional
+functions:
+
+! Okl4::L4SpaceId_t space_id();
+! void space_pager(Thread_capability);
+
+The 'space_id' function returns the L4 address-space ID corresponding to
+the PD session. The 'space_pager' function can be used to set the
+protection domain as pager and exception handler for the specified
+thread. This function is used by the Linux kernel to register itself
+as pager and exception handler for all Linux user processes.
+
+In addition to the actual porting work, we elaborated on replacing the original
+priority-based synchronization scheme with a different synchronization mechanism
+based on OKL4's thread suspend/resume feature and Genode locks. This way, all
+Linux threads and user processes run at the same priority as normal Genode
+processes, which improves the overall (best-effort) performance and makes
+Linux robust against starvation in the presence of a Genode process that is
+active all the time.
+
+At the current stage, we are able to successfully boot OKLinux on Genode and
+start the X Window System. The graphics output and user input are realized
+via custom stub drivers that use Genode's input and frame-buffer interfaces
+as back ends.
+
+We consider the current version as a proof of concept. It is not yet included
+in the official release but we plan to make it a regular part of the official
+Genode distribution with the next release.
+
+
+Preliminary shared-library support
+##################################
+
+Our Qt4 port made the need for dynamically linked binaries more than evident.
+Statically linked programs using the Qt4 library tend to grow far beyond 10MB
+of stripped binary size. To promote the practical use of Qt4 on Genode, we
+ported the dynamic linker from FreeBSD (part of 'libexec') to Genode.
+The port consists of three parts
+
+# Building the 'ldso' binary on Genode, using Genode's parent interface to
+  gain access to shared libraries and use Genode's address-space management
+  facilities to construct the address space of the dynamically loaded program.
+# Adding support for the detection of dynamically linked binaries, the starting
+  of 'ldso' in the presence of a dynamically linked binary, and passing the
+  program's binary image to 'ldso'.
+# Adding support for building shared libraries and dynamically linked
+  programs to the Genode build system.
+
+At the current stage, we have completed the first two steps and are able to
+successfully load and run dynamically linked Qt4 applications. Thanks to
+dynamic linking, the binary size of Qt4 programs drops by an order of
+magnitude. Apparently, the use of shared qt libraries already pays off when
+using only two Qt4 applications.
+
+You can find our port of 'ldso' in the separate 'ldso' repository. We will
+finalize the build-system integration in the next weeks and plan to support
+dynamic linking as regular feature as part of the 'os' repository with the next
+release.
+
+
+Operating-system services and libraries
+#######################################
+
+Improved handling of XML configuration data
+===========================================
+
+Genode allows for configuring a whole process tree via a single configuration
+file. Core provides the file named 'config' as a ROM-session dataspace to the
+init process. Init attaches the dataspace into its own address space and
+reads the configuration data via a simple XML parser. The XML parser takes
+a null-terminated string as input and provides functions for traversing the
+XML tree. This procedure, however, is a bit flawed because init cannot
+expect XML data provided as a dataspace to be null terminated. On most platforms,
+this was no problem so far because boot modules, as provided by core's ROM
+service, used to be padded with zeros. However, there are platforms, in particular
+OKL4, that do not initialize the padding space between boot modules. In this
+case, the actual XML data is followed by arbitrary bits but possibly no null
+termination. Furthermore, there exists the corner case of using a config
+file with a size of a multiple of 4096 bytes. In this case, the null termination
+would be expected just at the beginning of the page beyond the dataspace.
+
+There are two possible solutions for this problem: copying the content of
+the config dataspace to a freshly allocated RAM dataspace and appending the
+null termination, or passing a size-limit of the XML data to the XML parser.
+We went for the latter solution to avoid the memory overhead of copying
+configuration data just for appending the null termination. Making the XML
+parser to respect a string-length boundary involved the following changes:
+
+* The 'strncpy' function had to be made robust against source strings that are not
+  null-terminated. Strictly speaking, passing a source buffer without
+  null-termination violates the function interface because, by definition,
+  'src' is a string, which should always be null-terminated. The 'size'
+  argument usually refers to the bound of the 'dst' buffer. However, in our
+  use case, for the XML parser, the source string may not be properly terminated.
+  In this case, we want to ensure that the function does not read any characters
+  beyond 'src + size'.
+* Enhanced 'ascii_to_ulong' function to accept an optional size-limitation
+  argument
+* Added support for size-limited tokens in 'base/include/util/token.h'
+* Added support for constructing an XML node from a size-limited string
+* Adapted init to restrict the size of the config XML node to the file size
+  of the config file
+
+
+Nitpicker GUI server
+====================
+
+* Avoid superfluous calls of 'framebuffer.refresh()' to improve the overall
+  performance
+
+* Fixed stacking of views behind all others, but in front of the background.
+  This problem occurred when seamlessly running another window system as
+  Nitpicker client.
+
+
+Misc
+====
+
+:Alarm framework:
+
+  Added 'next_deadline()' function to the alarm framework. This function is
+  used by the timer server to program the next one-shot timer interrupt,
+  depending on the scheduled timeouts.
+
+:DDE Kit:
+
+  * Implemented 'dde_kit_thread_usleep()' and 'dde_kit_thread_nsleep()'
+  * Removed unused/useless 'dde_kit_init_threads()' function
+
+:Qt4:
+
+  Added support for 'QProcess'. This class can be used to start Genode
+  applications from within Qt applications in a Qt4-compatible way.
+
+
+Device drivers
+##############
+
+New single-threaded timer service
+=================================
+
+With the OKL4 support added with the previous release, the need for a new timer
+service emerged. In contrast to the other supported kernels, OKL4 imposed two
+restrictions, which made the old implementation unusable:
+
+* The kernel interface of OKL4 does not provide a time source. The kernel
+  uses a APIC timer internally to implement preemptive scheduling but, in
+  contrast to other L4 kernels that support IPC timeouts, OKL4 does not
+  expose wall-clock time to the user land. Therefore, the user land has to
+  provide a timer driver that programs a hardware timer, handles timer
+  interrupts, and makes the time source available to multiple clients.
+
+* OKL4 restricts the number of threads per address space according to a
+  global configuration value. By default, the current Genode version set
+  this value to 32. The old version of the timer service, however, employed
+  one thread for each timer client. So the number of timer clients was
+  severely limited.
+
+Motivated by these observations, we created a completely new timer service that
+dispatches all clients with a single thread and also supports different time
+sources as back ends. For example, the back ends for Linux, L4/Fiasco, and
+L4ka::Pistachio simulate periodic timer interrupts using Linux' 'nanosleep' system
+call - respective IPC timeouts. The OKL4 back end contains a PIT driver
+and operates this timer device in one-shot mode.
+
+To implement the timer server in a single-threaded manner, we used an
+experimental API extension to Genode's server framework. Please note that we
+regard this extension as temporary and will possible remove it with the next
+release. The timer will then service its clients using the Genode's signal API.
+
+Even though the timer service is a complete reimplementation, its interface
+remains unmodified. So this change remains completely transparent at the API level.
+
+
+VESA graphics driver
+====================
+
+The previous release introduced a simple PCI-bus virtualization into the VESA
+driver. At startup, the VESA driver uses the PCI bus driver to find a VGA card
+and provides this single PCI device to the VESA BIOS via a virtual PCI bus. All
+access to the virtualized PCI device are then handled locally by the VESA
+driver. In addition to PCI access, some VESA BIOS implementations tend to use
+the programmable interval timer (PIT) device at initialization time. Because we
+do not want to permit the VESA BIOS to gain access to the physical timer
+device, the VESA driver does now provide an extremely crippled virtual PIT.
+Well, it is just enough to make all VESA BIOS implementations happy that we
+tested.
+
+On the feature side, we added support for VESA mode-list handling and a
+default-mode fallback to the driver.
+
+
+Misc
+====
+
+:SDL-based frame buffer and input driver:
+
+  For making the Linux version of Genode more usable, we complemented the
+  existing key-code translations from SDL codes to Genode key codes.
+
+:PS/2 mouse and keyboard driver:
+
+  Improved robustness against ring-buffer overruns in cases where input events
+  are produced at a higher rate than they can be handled, in particular, if
+  there is no input client connected to the driver.
+
+
+Platform-specific changes
+#########################
+
+Support for super pages
+=======================
+
+Previous Genode versions for the OKL4, L4ka::Pistachio, and L4/Fiasco kernels used
+4K pages only. The most visible implication was a very noticeable delay during
+system startup on L4ka::Pistachio and L4/Fiasco. This delay was caused by core
+requesting the all physical memory from the root memory manager (sigma0) -
+page by page. Another disadvantage of using 4K pages only, is the resulting TLB footprint
+of large linear mappings such as the frame buffer. Updating a 10bit frame buffer
+with a resolution of 1024x768 would touch 384 pages and thereby significantly
+pollute the TLB.
+
+This release introduces support for super pages for the L4ka::Pistachio and
+L4/Fiasco versions of Genode. In contrast to normal 4K pages, a super page
+describes a 4M region of virtual memory with a single entry in the page
+directory. By supporting super pages in core, the overhead of the startup
+protocol between core and sigma0 gets reduced by a factor of 1000.
+
+Unfortunately, OKL4 does not support super pages such that this feature remains
+unused on this platform. However, since OKL4 does not employ a root memory
+manager, there is no startup delay anyway. Only the advantage of super pages
+with regard to reduced TLB footprint is not available on this platform.
+
+
+Support for write-combined access to I/O memory
+===============================================
+
+To improve graphics performance, we added principle support for write combined I/O access
+to the 'IO_MEM' service of core. The creator of an 'IO_MEM' session can now specify the
+session argument "write_combined=yes" at session-creation time. Depending on the
+actual base platform, core then tries to establish the correct page-table
+attribute configuration when mapping the corresponding I/O dataspace. Setting
+caching attributes differs for each kernel:
+
+* L4ka::Pistachio supports a 'MemoryControl' system call, which allows for specifying
+  caching attributes for a core-local virtual address range. The attributes are
+  propagated to other processes when core specifies such a memory range
+  as source operand during IPC map operations. However, with the current version,
+  we have not yet succeeded to establish the right attribute setting, so the performance
+  improvement is not noticeable.
+
+* On L4/Fiasco, we fully implemented the use of the right attributes for marking
+  the frame buffer for write-combined access. This change significantly boosts
+  the graphics performance and, with regard to graphics performance, serves us
+  as the benchmark for the other kernels.
+
+* OKL4 v2 does not support x86 page attribute tables. So write-combined access
+  to I/O memory cannot be enabled.
+
+* On Linux, the 'IO_MEM' service is not yet used because we still rely on libSDL
+  as hardware abstraction on this platform.
+
+
+Unification of linker scripts and startup codes
+===============================================
+
+During the last year, we consistently improved portability and the support for
+different kernel platforms. By working on different platforms in parallel,
+code duplications get detected pretty easily. The startup code was a steady
+source for such duplications. We have now generalized and unified the startup
+code for all platforms:
+
+* On all base platforms (Linux-x86_32, Linux-x86_64, OKL4, L4ka::Pistachio, and
+  L4/Fiasco) Genode now uses the same linker script for statically linked
+  binaries. Therefore, the linker script has now become part of the 'base'
+  repository.
+
+* We unified the assembly startup code ('crt0') for all three L4 platforms.
+  Linux has a custom crt0 code residing in 'base-linux/src/platform'. For
+  the other platforms, the 'crt0' codes resides in the 'base/src/platform/'
+  directory.
+
+* We factored out the platform-depending bits of the C++ startup code
+  ('_main.cc') into platform-specific '_main_helper.h' files. The '_main.cc'
+  file has become generic and moved to 'base/src/platform'.
+
+
+Linux
+=====
+
+With the past two releases, we successively reduced the dependency of the
+Linux version of core from the 'glibc'. Initially, this step had been
+required to enable the use of our custom libc. For example, the 'mmap'
+function of our libc uses Genode primitives to map dataspace to the
+local address space. The back end of the used Genode functions, in turn,
+relied on Linux' 'mmap' syscall. We cannot use syscall bindings provided
+by the 'glibc' for issuing the 'mmap' syscall because the
+binding would clash with our libc implementation of 'mmap'. Hence we
+started to define our own syscall bindings.
+
+With the current version, the base system of Genode has become completely
+independent of the 'glibc'. Our custom syscall bindings for the x86_32 and
+x86_64 architectures reside in 'base-linux/src/platform' and consist of
+35 relatively simple functions using a custom variant of the 'syscall'
+function. The only exception here is the clone system call, which requires
+assembly resides in a separate file.
+
+This last step on our way towards a glibc-free Genode on Linux pushes the
+idea to only use the Linux kernel but no further Linux user infrastructure
+to the max. However, it is still not entirely possible to build a Linux
+based OS completely based on Genode. First, we have to set up the loopback
+device to enable Genode's RPC communication over sockets. Second, we
+still rely on libSDL as hardware abstraction and libSDL, in turn, relies
+on the glibc.
+
+:Implications:
+
+Because the Linux version is now much in line with the other kernel platforms,
+using custom startup code and direct system calls, we cannot support
+host tool chains to compile this version of Genode anymore. Host tool chains, in
+particular the C++ support library, rely on certain Linux features
+such as thread-local storage via the 'gs' segment registers. These things are
+normally handled by the glibc but Genode leaves them uninitialized.
+To build the Linux version of Genode, you have to use the official
+Genode tool chain.
+
+
+OKL4
+====
+
+The build process for Genode on OKL4 used to be quite complicated. Before
+being able to build Genode, one had to build the original Iguana user land
+of OKL4 because the Genode build system looked at the Iguana build directory
+for the L4 headers actually used. We now have simplified this process by
+not relying on the presence of the Iguana build directory anymore. All
+needed header files are now shadowed from the OKL4 source tree
+to an include location within Genode's build directory. Furthermore, we
+build Iguana's boot-info library directly from within the Genode build system,
+instead of linking the binary archive as produced by Iguana's build process.
+
+Of course, to run Genode on OKL4, you still need to build the OKL4 kernel
+but the procedure of building the Genode user land is now much easier.
+
+Misc changes:
+
+* Fixed split of unmap address range into size2-aligned flexpages. The
+  'unmap' function did not handle dataspaces with a size of more than 4MB
+  properly.
+* Fixed line break in the console driver by appending a line feed to
+  each carriage return. This is in line with L4/Fiasco and L4ka::Pistachio,
+  which do the same trick when text is printed via their kernel debugger.
+
+
+L4ka::Pistachio
+===============
+
+The previous version of core on Pistachio assumed a memory split of 2GB/2GB
+between userland and kernel. Now, core reads the virtual-memory layout from
+the kernel information page and thereby can use up to 3GB of virtual memory.
+
+*Important:* Because of the added support for super pages, the Pistachio
+kernel must be built with the "new mapping database" feature enabled!
+
+
+L4/Fiasco
+=========
+
+Removed superfluous zeroing-out of the memory we get from sigma0. This change
+further improves the startup performance of Genode on L4/Fiasco.
+
+
+Build infrastructure
+####################
+
+Tool chain
+==========
+
+* Bumped binutils version to 2.19.1
+* Support both x86_32 and x86_64
+* Made tool_chain's target directory customizable to enable building and
+  installing the tool chain with user privileges
+
+
+Build system
+============
+
+* Do not include dependency rules when cleaning. This change brings not
+  only a major speedup but it also prevents dependency rules from messing
+  with generic rules, in particular those defined in 'spec-okl4.mk'.
+
+* Enable the use of '-ffunction-sections' combined with '-gc-sections'
+  by default and thereby reduce binary sizes by an average of 10-15%.
+
+* Because all base platforms, including Linux, now depend on the Genode tool
+  chain, the build system uses this tool chain as default. You can still
+  override the tool chain by creating a custom 'etc/tools.conf' file
+  in your build directory.

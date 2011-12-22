@@ -1,0 +1,703 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 11.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+One of Genode's most distinctive properties is its support for various
+different kernels as base platforms. Each of the 8 currently supported kernels
+differs with regard to features, security, hardware support, complexity, and
+resource management. Even though different applications call for different
+kernel properties, through Genode, those properties can be leveraged using a
+unified API. The growing number of supported base platforms, however, poses two
+challenges, which are the comprehension of the large diversity of tools and
+boot concepts, and capturing of the semantic differences of all the kernels.
+
+With the version 11.08, the framework mitigates the former challenge by
+introducing a unified way to download, build, and use each of the
+kernels with Genode's user-level infrastructure. The new tools empower users of
+the framework to instantly change the underlying kernel without the need to know
+the peculiarities of the respective kernels. Using microkernels has never been
+easier.
+
+The second challenge of translating each kernel's specific behaviour to the
+framework's unified API longs for an automated testing infrastructure that
+systematically exercises all the various facets of the API on all base
+platforms. The new version introduces the tooling support especially designed
+for conducting such quality-assurance measures. These tools largely remove the
+burden of manual testing while helping us to uphold the stability and quality
+of the framework as it grows in terms of functional complexity and number of
+base platforms.
+
+Speaking of functional enhancements, the work on version 11.08 was focused
+on our block-device infrastructure and ARM support. The block-device-related
+work is primarily motivated by our fundamental goal to scale Genode to a
+general-purpose computing platform. The additions comprise new drivers for
+SD-cards, IDE, SATA, USB storage as well as a new partition server. All those
+components provide Genode's generic block interface, which is meant to be used
+as back end for file systems. On file-system level, a new libc plugin utilizes
+libffat to enable the straight-forward use of VFAT partitions by libc-using
+programs.
+
+The current release comes with far-reaching improvements with respect to
+ARM-based platforms. The paravirtualized L4Linux kernel has been updated to
+Linux version 2.6.39 running on both x86_32 and ARM. Also, Qt4 including Webkit
+has become functional on ARMv6-based platforms.
+
+Among the further improvements are many new examples in the form of
+ready-to-use run scripts as well as a comprehensive documentation update.
+
+Originally, we had planned to complement the Noux runtime environment to
+support interactive command-line applications by the time of the current
+release. However, we realized that the current users of the framework would
+value the new streamlined tooling support, the enhanced documentation, and the
+new quality-assurance infrastructure over such a functional addition. Hence, we
+prioritized the topics accordingly. Even though you will find the first bits of
+interactive GNU application support in this release, we deferred working on
+this topic in full steam to the upcoming version 11.11.
+
+
+Blurring the boundaries between different kernels
+#################################################
+
+Before the Genode project was born, each microkernel carried along its own
+userland. For example, the L4/Fiasco kernel came with the L4 environment, the
+OKL4 kernel came with Iguana, or the L4ka::Pistachio kernel came with a small
+set of example components. Those user-level counterparts of the kernel
+complemented their respective kernels with a runtime for user-level
+applications and components while exposing significant parts of the kernel
+interface at API level. Consequently, most if not all applications developed
+against these APIs were tied to a particular kernel. On the one hand, this
+approach enabled developers to fine-tune their programs using kernel-specific
+features. On the other hand, much effort was wasted by duplicating other
+people's work. Eventually, all of the mentioned userlands stayed limited to
+special purposes - for the most part the purposes of operating-systems
+researchers. Consequently, none of the microkernels gained much attention in
+general-purpose computing. Another consequence of the highly fragmented
+microkernel community was the lack of a common ground to compare different
+kernels in an unbiased way because each userland provided a different set of
+components and libraries.
+
+Different application areas call for different kernel features such as
+security mechanisms, scheduling, resource management, and hardware support.
+Naturally, each kernel exhibits a specific profile of these parameters
+depending on its primary purpose. If one microkernel attempted to accommodate
+too many features, it would certainly sacrifice the fundamental idea of being
+minimally complex. Consequently, kernels happen to be vastly different. During
+the past three years, however, Genode has demonstrated that one carefully
+crafted API can target highly diverse kernels, and thereby enables users of
+the framework to select the kernel that fits best with the requirements
+dictated by each application scenario individually. For us Genode developers,
+it was extremely gratifying to see that kernels as different as Linux and NOVA
+can be reconciled at the programming-interface level. Still, each kernel comes
+with different tools, configuration mechanisms, and boot concepts. Even though
+Genode programs can be developed in a kernel-independent way, the deployment of
+such programs still required profound insights into the peculiarities of the
+respective kernel.
+
+With the current release, we introduce a fundamentally new way of using
+different microkernels by unifying the procedures of downloading and building
+kernels as well as integrating and running Genode programs with each of them.
+Existing Genode application scenarios can be ported between kernels in an
+instant without the need for deep insights into the kernel's technicalities. As
+a teaser, consider the following commands for building and running Genode's
+graphical demo scenario on the OKL4 microkernel:
+
+! # check out Genode
+! svn co https://genode.svn.sourceforge.net/svnroot/genode/trunk genode
+!
+! # download the kernel, e.g., OKL4
+! make -C genode/base-okl4 prepare
+!
+! # create Genode build directory
+! genode/tool/create_builddir \
+!   okl4_x86 BUILD_DIR=build
+!
+! # build everything and execute the interactive demo
+! make -C build run/demo
+
+The same principle steps can be used for any of the OKL4, NOVA,
+L4/Fiasco, Fiasco.OC, L4ka::Pistachio, or Codezero kernels. You should
+nevertheless consult the documentation at 'base-<platform>/doc/' before
+starting to use a specific kernel because some base platforms require
+the installation of additional tools.
+
+Under the hood, this seamless way of dealing with different kernels is made
+possible by the following considerations:
+
+:Repository preparation:
+
+Each kernel comes from a different source such as a Git/SVN/Mercurial
+repository or a packaged archive. Some kernels require additional patches. For
+example, OKL4 needs to be patched to overcome problems with modern tool chains.
+Now, each 'base-<platform>' repository hosts a 'Makefile' that automates the
+download and patch procedure. To download the source code of a kernel,
+issue 'make prepare' from within the kernel's 'base-<platform>' directory. The
+3rd-party source code will be located at 'base-<platform>/contrib/'.
+
+:Building the kernel:
+
+Each kernel has a different approach when it comes to configuration and
+compilation. For example, NOVA comes with a simple 'Makefile', OKL4 relies on a
+complex SCons-based build system, L4ka::Pistachio uses CML2 and autoconf (for
+the userland tools). Furthermore, some kernels require the setting of specific
+configuration values. We have streamlined all these procedures into the Genode
+build process by the means of a 'kernel' pseudo target and a 'platform' pseudo
+library. The kernel can be compiled directly from the Genode build directory by
+issuing 'make kernel'. The 'platform' pseudo library takes care of making the
+kernel headers available to Genode. For some kernels such as OKL4 and NOVA, we
+replaced the original build mechanism with a Genode target. For other kernels
+such as L4ka::Pistachio or Fiasco.OC, we invoke the kernel's build system.
+
+:Genode build directory:
+
+Genode build directories are created via the 'tool/create_builddir' tool.
+This tool used to require certain kernel-specific arguments such as the
+location of the kernel source tree. Thanks to the unified way of preparing
+kernels, the need for such arguments has vanished. Now, the only remaining
+arguments to 'create_builddir' are the actual platform and the location
+of the build directory to create.
+
+:System integration and booting:
+
+As diverse the build systems of the kernels are, so are the boot concepts. Some
+kernels rely on a multiboot-compliant boot loader whereas others have special
+tools for creating boot images. Thankfully, Genode's run concept allows us to
+hide the peculiarities of booting behind a neat and easy-to-use facade. For
+each platform we have crafted a dedicated run environment located at
+'base-<platform>/run/env', which contains the rules for system integration and
+booting. Therefore, one and the same run script can be used to build and
+execute one application scenario across various different kernels. For an
+illustrative example, the 'os/src/run/demo.run' script can be executed on all
+base platforms (except for base-mb) by issuing 'make run/demo' from within the
+build directory.
+
+
+Emerging block-device infrastructure
+####################################
+
+Since version 10.08, Genode is equipped with a block-session interface. Its
+primary use cases so far were the supply of the paravirtualized OKLinux kernel
+with backing store, and the access of the content of a bootable Live CD.
+However, for our mission to use Genode as general-purpose computing platform,
+disk device access is crucial. Therefore, we dedicated our attention to
+various aspects of Genode's block-device infrastructure, reaching from
+programming APIs for block drivers, over partition handling, to file-system
+access.
+
+:Block session interface:
+
+The glue that holds all block-device-related components together is the generic
+block interface 'os/include/block_session'. It is based on the framework's
+packet-stream facility, which allows the communication of bulk data via shared
+memory and a data-flow protocol using asynchronous notifications. The interface
+supports arbitrary allocation schemes and the use of multiple outstanding
+requests. Hence, it is generally suited for scatter-gather DMA and the use of
+command queuing as offered by the firmware of modern block-device controllers.
+(albeit the current drivers do not exploit this potential yet)
+
+:Block component framework:
+
+Our observation that components implementing the block session interface share
+similar code patterns prompted us to design a framework API for implementing
+this family of components. The set of classes located at 'os/include/block'
+facilitate the separation of device-specific code from application logic.
+Whereas 'component.h' provides the application logic needed to implement the
+block service, the 'driver.h' is an abstract interface to be implemented by the
+actual device driver. This new infrastructure significantly reduces code
+duplication among new block-device drivers.
+
+:Device-driver implementations:
+
+The new block-device drivers introduced with the current release address
+common types of block devices:
+
+* By adding ATA read/write support to the ATAPI driver ('os/src/drivers/atapi'),
+  this driver can be used to access IDE disks now.
+* The new fully-functional SD-card driver ('os/src/drivers/sdcard') enables the
+  use of SD-cards connected via the PL180 controller.
+* The USB storage driver ('linux_drivers/src/drivers/usb') has been adapted
+  to the block-session interface and can be used on PC hardware.
+* The new AHCI driver ('os/src/drivers/ahci') enables the access of disks
+  connected via SATA on PC hardware.
+
+Because all drivers are providing the generic block-session interfaces, they
+can be arbitrarily combined with components that use this interface as back
+end, for example, the partition server and file systems.
+
+:Partition manager as resource multiplexer:
+
+The new partition manager ('os/src/server/part_blk') multiplexes one back-end
+block session to multiple block sessions, each accessing a different partition.
+Its natural role is being "plugged" between a block-device driver and a file
+system.
+
+:File-system access:
+
+Even though a session interface for file systems does not exist yet, we
+enabled the use of VFAT partitions through a libc plugin. This libc plugin uses
+the ffat library to access files stored on a block device. An
+application using this plugin can be directly connected to a block session.
+
+
+New documentation
+#################
+
+The new way of dealing with different kernels motivated us to revisit and
+complement our exiting documentation. The following documents are new or
+have received considerable attention:
+
+:[http://genode.org/documentation/developer-resources/getting_started - Getting started]:
+  The revised guide of how to explore Genode provides a quick way to
+  test drive Genode's graphical demo scenario with a kernel of your
+  choice and gives pointers to documents needed to proceed your
+  exploration.
+
+:[http://genode.org/documentation/developer-resources/build_system - Build system manual]:
+  The new build-system manual explains the concepts behind Genode's
+  build system, provides guidance with creating custom programs and
+  libraries, and covers the tool support for the automated integration
+  and testing of application scenarios.
+
+:[http://genode.org/documentation/components - Components overview]:
+  The new components-overview document explains the categorization of
+  Genode's components and lists all components that come with the framework.
+
+:[http://genode.org/documentation/developer-resources/init - Configuration of the init process]:
+  The document describes Genode's configuration concept, the routing of
+  service requests, and the expression of mandatory access-control policies.
+
+:[http://genode.org/community/wiki - Wiki]:
+  The platform-specific Wiki pages for L4/Fiasco, L4ka::Pistachio, NOVA,
+  Codezero, Fiasco.OC, and OKL4 have been updated to reflect the new flows of
+  working with the respective base platforms.
+
+
+Base framework
+##############
+
+The RPC API for performing procedure calls across process boundaries
+introduced with the version 11.05 was the most significant API change
+in Genode's history. To make the transition from the old client-server
+API to the new RPC API as smooth as possible, we temporarily upheld
+compatibility to the old API. Now, the time has come to put the old
+API at rest. The changes that are visible at API level are as follows:
+
+* The old client-server API in the form of 'base/server.h' is no more.
+  The functionality of the original classes 'Server_entrypoint' and
+  'Server_activation' is contained in the 'Rpc_entrypoint' class provided
+  via 'base/rpc_server.h'.
+
+* When introducing the RPC API, we intentionally left the actual session
+  interfaces as unmodified as possible to proof the versatility of the new
+  facility. However, it became apparent that some of the original interfaces
+  could profit from using a less C-ish style. For example, some interfaces used
+  to pass null-terminated strings as 'char const *' rather than via a dedicated
+  type. The methodology of using the new RPC API while leaving the original
+  interfaces intact was to implement such old-style functions as wrappers
+  around new-style RPC functions. These wrappers were contained in
+  'rpc_object.h' files, e.g. for 'linux_dataspace', 'parent', 'root',
+  'signal_session', 'cpu_session'. Now, we have taken the chance to modernise
+  the API by disposing said wrappers. Thereby, the need for 'rpc_object.h'
+  files has (almost) vanished.
+
+* The remaining users of the old client-server API have been adapted to the
+  new RPC API, most prominently, the packet-stream-related interfaces such as
+  'block_session', 'nic_session', and 'audio_session'.
+
+* We removed 'Typed_capability' and the second argument of the 'Capability'
+  template. The latter was an artifact that was only used to support the
+  transition from the old to the new API.
+
+* The 'ipc_client' has no longer an 'operator int'. The result of an IPC can
+  be requested via the 'result' function.
+
+* We refined the accessors of 'Rpc_in_buffer' in 'base/rpc_args.h'. The
+  'addr()' has been renamed to 'base()', 'is_valid_string()' considers the
+  buffer's capacity, and the new 'string()' function is guaranteed to return a
+  null-terminated string.
+
+* We introduced a new 'Rm_session::Local_addr' class, which serves two
+  purposes. It allows the transfer of the bit representation of pointers across
+  RPC calls and effectively removes the need for casting the return type of
+  'Rm_session::attach' to the type needed at the caller side.
+
+* The 'Connection' class template has been simplified, taking the session
+  interface as template argument (rather than the capability type). This change
+  simplified the 'Connection' classes of most session interfaces.
+
+* The never-used return value of 'Parent::announce' has been removed. From the
+  child's perspective, an announcement always succeeds. The way of how the
+  announcement is treated is entirely up to the parent. The client should never
+  act differently depending on the parent's policy anyway.
+
+* The new 'Thread_base::cap()' accessor function allows obtaining the thread's
+  capability as used for the argument to CPU-session operations.
+
+
+Operating-system services and libraries
+#######################################
+
+Dynamic linker
+==============
+
+As a follow-up to the major revision of the dynamic linker that was featured
+with the previous release, we addressed several corner cases related to
+exception handling and improved the handling of global symbols.
+
+The dynamic linker used to resolve requests for global symbols by handing out
+its own symbols if present. However, in some cases, this behaviour is
+undesired. For example, the dynamic linker contains a small set of libc
+emulation functions specifically for the ported linker code. In the presence of
+the real libc, however, these symbols should never be considered at all. To
+avoid such ambiguities during symbol resolution, the set of symbols to be
+exported is now explicitly declared by the white-list contained in the
+'os/src/lib/ldso/symbol.map' file.
+
+We changed the linkage of the C++ support library ('cxx') against dynamic
+binaries to be consistent with the other base libraries. Originally, the 'cxx'
+library was linked to both the dynamic linker and the dynamic binary, which
+resulted in subtle problems caused by the duplication of cxx-internal data
+structures. By linking 'cxx' only to the dynamic linker and exporting the
+'__cxa' ABI as global symbols, these issues have been resolved. As a positive
+side effect, this change reduces the size of dynamic binaries.
+
+C++ exception handling in the presence of shared libraries turned out to be
+more challenging than we originally anticipated. For example, the
+'_Unwind_Resume' symbol is exported by the compiler's 'libsupc++' as a hidden
+global symbol, which can only be resolved when linking this library to the
+binary but is not seen by the dynamic linker. This was the actual reason of why
+we used to link 'cxx' against both dynamic binaries and shared libraries
+causing the problem mentioned in the previous paragraph. Normally, this problem
+is addressed by a shared library called 'libgcc_s.so' that comes with the
+compiler. However, this library depends on glibc, which prevents us from using
+it on Genode. Our solution is renaming the hidden global symbol using a
+'_cxx__' prefix and introducing a non-hidden global wrapper function
+('__cxx__Unwind_Resume' in 'unwind.cc'), which is resolved at runtime by the
+dynamic linker.
+
+Another corner case we identified is throwing exceptions from within the
+dynamic linker. In contrast to the original FreeBSD version of the dynamic
+linker, which is a plain C program that can never throw a C++ exception,
+Genode's version relies on C++ code that makes use of exceptions. To support
+C++ exceptions from within the dynamic linker, we have to relocate the
+linkers's global symbols again after having loaded the dynamic binary. This
+way, type information that is also present within the dynamic binary becomes
+relocated to the correct positions.
+
+
+Block partition server
+======================
+
+The new block-partition server uses Genode's block-session interfaces as both
+front and back end, leading to the most common use case where this server will
+reside between a block driver and a higher level component like a file-system
+server.
+
+At startup, the partition server will try to parse the master boot record (MBR)
+of its back-end block session. If no partition table is found, the whole block
+device is exported as partition '0'. In the other case, the MBR and possible
+extended boot records (EBRs) are parsed and offered as separate block sessions
+to the front-end clients. The four primary partitions will receive partition
+numbers '1' to '4' whereas the first logical partition will be assigned to '5'.
+
+The policy of which partition is exposed to which client can be expressed
+in the config supplied to the 'part_blk' server. Please refer to the
+documentation at 'os/src/server/part_blk/README' for further details. As an
+illustration of the practical use of the 'part_blk' server, you can find a run
+script at 'os/run/part_blk.run'.
+
+
+Skeleton of text terminal
+=========================
+
+As part of the ongoing work towards using interactive text-based GNU software
+on Genode, we created the first bits of the infrastructure required for
+pursuing this quest:
+
+The new terminal-session interface at 'os/include/terminal_session/' is the
+designated interface to be implemented by terminal programs.
+
+After investigating the pros and cons of various terminal protocols and
+terminal emulators, we settled for implementing a custom terminal emulator
+implementing the Linux termcap. This termcap offers a reasonable small set of
+commands while providing all essential features such as function-key support
+and mouse support. Thanks to Peter Persson for pointing us to the right
+direction! The preliminary code for parsing the escape sequences for the Linux
+termcap is located at 'gems/include/terminal/'.
+
+We have created a simplistic terminal service that implements the
+terminal-session interface using a built-in font. Please note that the
+implementation at 'gems/src/server/terminal/' is at an early stage. It is
+accompanied by a simple echo program located at 'gems/src/test/terminal_echo'.
+
+
+Device drivers
+##############
+
+USB HID and USB storage
+=======================
+
+We replaced the former DDE-Linux-based USB-related driver libraries (at the
+'linux_drivers/' repository) by a single USB driver server that offers the
+'Input' and 'Block' services. This enables us to use both USB HID and USB
+storage at the same time. The new USB driver is located at
+'linux_drivers/src/drivers/usb/'.
+
+For using the USB driver as input service (supporting USB HID), add the
+'<hid/>' tag to the 'usb_drv' configuration. Analogously, for using the driver
+as block service, add the '<storage/>' tag. Both tags can be combined.
+
+For testing the USB stack, the 'linux_drivers' repository comes with the run
+scripts 'usb_hid.run' and 'usb_storage.run'.
+
+
+ATA read/write support
+======================
+
+The ATAPI driver has been extended to support IDE block devices for both
+read and write transactions. To use the new facility, supply 'ata="yes"'
+as XML attribute to the config node of 'atapi_drv'. Please note that this
+driver was primarily tested on Qemu. Use it with caution.
+
+
+SATA driver
+===========
+
+The new SATA driver at 'os/src/drivers/ahci/' implements the block-driver
+API ('os/include/block'), thus exposing the block-session interface as
+front-end. AHCI depends on Genode's PCI driver as well as the timer server. For
+a usage example see: 'os/run/ahci.run'.
+
+Limitations and known issues
+----------------------------
+
+Currently, the server scans the PCI bus at startup and retrieves the first available
+AHCI controller, scans the controller ports and uses the first non-ATAPI port
+where a device is present.
+
+On real hardware and on kernels taking advantage of I/O APICs (namely NOVA and
+Fiasco.OC) we still lack support for ACPI parsing and thus for interrupts,
+leading to a non-working driver.
+
+
+SD-card driver
+==============
+
+The first fragments of our SD-card driver that we introduced with the previous
+release have been complemented. The new SD-card driver located at
+'os/src/drivers/sd_card/' implements the block-session interface by using
+MMC/SD-cards and the PL180 controller as back end. Currently the driver
+supports single-capacity SD cards. Therefore, the block file for Qemu should
+not exceed 512 MB. Because the driver provides the generic block-session
+interface, it can be combined with the new 'libc_ffat' plugin in a
+straight-forward way. To give the driver a quick spin, you may give the
+'libports/run/libc_ffat.run' script on the 'foc_pbxa9' platform a try.
+
+
+ARM Realview PL011 UART driver
+==============================
+
+The new PL011 UART driver at 'os/src/drivers/uart/' implements the LOG session
+interface using the PL011 device. Up to 4 UARTs are supported. The assignment
+of UARTs to clients can be defined via a policy supplied to the driver's config
+node. For further information, please refer to the README file within the
+'uart' directory.
+
+
+Libraries and applications
+##########################
+
+Hello tutorial
+==============
+
+The 'hello_tutorial/' repository contains a step-by-step guide for building
+a simple client-server scenario. The tutorial has been rewritten for the new
+RPC API and is now complemented by a run script for testing the final scenario
+on various base platforms.
+
+C and C++ runtimes
+==================
+
+:Support for standard C++ headers:
+
+Triggered by public demand for using standard C++ headers for Genode applications,
+we introduced a generally usable solution in the form of the 'stdcxx' library
+to the 'libc' repository. The new 'stdcxx' library is not a real library. (you
+will find the corresponding 'lib/mk/stdcxx.mk' file empty) However, it comes
+with a 'lib/import/import-stdcxx.mk' file that adds the compiler's C++ includes
+to the default include-search path for any target that has 'stdcxx' listed in
+its 'LIBS' declaration.
+
+:Libc back end for accessing VFAT partitions:
+
+The new 'libc_ffat' libc plugin uses a block session via the ffat library. It
+can be used by a Genode application to access a VFAT file system via the libc
+file API. The file-system access is performed via the 'ffat' library. To
+download this library and integrate it with Genode, change to the 'libports'
+repository and issue the following command:
+! make prepare PKG=ffat
+For an example of how to use the libc-ffat plugin, please refer to the run
+script 'libports/run/libc_ffat.run'. The source code of the test program can be
+found at 'libports/src/test/libc_ffat/'.
+
+Qt4
+===
+
+Qt4 version 4.7.1 has been enabled on ARMv6-based platforms, i.e., PBX-A9 on
+Fiasco.OC. The support comprises the entire Qt4 framework including qt_webcore
+(Webkit).
+
+L4Linux
+=======
+
+L4Linux enables the use of one or multiple instances of Linux-based operating
+systems as subsystems running on the Fiasco.OC kernel. The Genode version of
+L4Linux has seen the following improvements:
+
+:Kernel version: has been updated to Linux 2.6.39.
+
+:ARM support: The L4Linux kernel can be used on ARM-based platforms now.
+  The PBX-A9 platform is supported via the 'l4linux.run' script as found
+  at 'ports-foc/run/'. Please find more information at 'ports-foc/README'.
+
+:Genode-specific stub drivers outside the kernel tree:
+  The stub drivers that enable the use of Genode's services as virtual
+  devices for L4Linux have been moved outside the kernel patch, which
+  makes them much easier to maintain. These stub drivers are located
+  under 'ports-foc/src/drivers/'.
+
+
+Platform support
+################
+
+All base platforms are now handled in a unified fashion. Downloading 3rd-party
+source code is performed using the 'prepare' rule of the 'Makefile' provided by
+the respective kernel's 'base-<platform>' repository. Once, the platform's base
+repository is prepared, the kernel can be built directly from the Genode
+build directory using 'make kernel'. All base platforms are now supported by
+Genode's run mechanism that automates the tasks of system integration and
+testing. For more details about each specific kernel, please revisit the
+updated documentation within the respective 'base-<platform>/doc/' directory.
+
+:L4/Fiasco:
+
+The kernel has been updated to revision 472, enabling the use of recent
+GNU tool chains.
+
+:Fiasco.OC:
+
+The kernel as been updated to revision 36, which remedies stability problems
+related to interaction of the IPC path with thread destruction. The new version
+improves the stability of highly dynamic workloads that involve the frequent
+creation and destruction of subsystems. However, we experienced the new kernel
+version to behave instable on the x86_64 architecture. If you depend on x86_64,
+we recommend to temporarily stick with Genode 11.05 and Fiasco.OC revision 31.
+
+:L4ka::Pistachio:
+
+The kernel has been updated to revision 803, enabling the use of recent
+versions of binutils.
+
+:OKL4:
+
+OKL4v2 is showing its age. Apparently, the use of the original distribution
+requires tools (i.e., python 2.4) that do not ship with current Linux
+distributions anymore. This makes it increasingly difficult to use this kernel.
+Still, we find ourselves frequently using it for our day-to-day development. To
+streamline the use of OKL4v2, we have now incorporated the kernel compilation
+into the Genode build system and thereby weakened the kernel's dependency on
+ancient tools. However, we decided to drop support for OKL4/ARM for now. We
+figured that the supported GTA01 platform is hardly used anymore and hard to
+test because it is unsupported by Qemu. Newer ARM platforms are supported by
+other kernels anyway.
+
+:Codezero:
+
+Even though B-Labs apparently abandoned the idea of developing the Codezero
+kernel in the open, we adapted Genode to the kernel's most recent Open-Source
+version that is still available at the official Git repository. Furthermore,
+the kernel is now fully supported by Genode's new 'make prepare' procedure and
+run environment. Therefore, run scripts such as 'run/demo' can now easily be
+executed on Codezero without the need to manually configure the kernel.
+
+Note that, for now, we have disabled Codezero's capabilities because they do
+not allow the assignment of device resources. Consequently, 'sys_map' fails for
+MMIO regions when performing the capability check (calling 'cap_map_check').
+Furthermore, the current version of the kernel requires a workaround for a
+current limitation regarding the definition of a thread's pager. At some point,
+Codezero abandoned the facility to define the pager for a given thread via the
+exregs system call. Instead, the kernel hard-wires the creator of the thread as
+the thread's pager. This is conflicting with Genode's way of creating and
+paging threads. In the current version of Genode for this kernel, all threads
+are paged by one thread (thread 3 happens to be the global pager) within core.
+As a workaround to Codezero's current limitation, we define thread 3 to be the
+pager of all threads. The patch of the upstream code is automatically being
+applied by the 'make prepare' mechanism.
+
+
+Build system and tools
+######################
+
+In addition to the major change with respect to the integration of the various
+base platforms, Genode's tool support received the following incremental
+improvements:
+
+
+Build system
+============
+
+:Simplification of 'create_builddir' tool:
+
+The 'create_builddir' tool has been relocated from
+'tool/builddir/create_builddir' to 'tool/create_builddir' to make it more
+readily accessible. Furthermore, we simplified the usage of the tool by
+removing the mandatory 'GENODE_DIR' argument. If not explicitly specified, the
+tool deduces 'GENODE_DIR' from the its known location within the Genode source
+tree.
+
+:Booting from USB sticks:
+
+For most x86-based base platforms, their respective run environments execute
+Genode from an ISO image via Qemu. Naturally, such an ISO image can be burned
+onto a CD-ROM to be used to boot a real machine. However, booting from CD-ROM
+is slow and optical drives are becoming scarce. Therefore we changed the
+procedure of creating ISO images to support writing the resulting images to a
+USB stick. Under the hood, the boot mechanism chain-loads GRUB via ISOLinux.
+The files to implement the boot concept are located at 'tool/boot/'.
+
+:Support for source files in target sub directories:
+
+Until now, the 'SRC_*' declarations in target description files contained
+a list of plain file names. The location of the files within the directory
+tree had to be defined via 'vpath'. This led to inconveniences when building
+3rd-party code that contains files with the same name at different subdirectories.
+To resolve such an ambiguity, the target had to be decomposed into multiple
+libraries each building a different set of subdirectories. To make the
+build system more convenient to use, we have now added support for specifying
+source codes with a relative pathname. For example, instead of using
+! SRC_CC = main.cc addon.cc
+! vpath addon.cc $(PRG_DIR)/contrib
+we can now use
+! SRC_CC = main.cc contrib/addon.cc
+
+
+Automated testing across multiple kernels
+=========================================
+
+To execute one or multiple test cases on more than one base platform, we
+introduced a dedicated tool located at 'tool/autopilot'. Its primary purpose is
+the nightly execution of test cases. The tool takes a list of platforms and a
+list of run scripts as arguments and executes each run script on each platform.
+The build directory for each platform is created at
+'/tmp/autopilot.<username>/<platform>' and the output of each run script is
+written to a file called '<platform>.<run-script>.log'. On stderr, autopilot
+prints the statistics about whether or not each run script executed
+successfully on each platform. If at least one run script failed, autopilot
+returns a non-zero exit code, which makes it straight forward to include
+autopilot into an automated build-and-test environment.
+

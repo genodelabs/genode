@@ -1,0 +1,1770 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  C++-coding-style checking tool
+# \author Norman Feske
+# \date   2007-08-17
+#
+
+# check command line arguments (read input filename and remove argument
+regexp -- {-tokens +([^\s]+)} $argv dummy input_token_file
+regsub -- {-tokens +([^\s]+)} $argv "" argv]
+
+set config_fix [regexp -- {-fix\M} $argv dummy]
+regsub -- {-fix\M} $argv "" argv]
+
+set config_write [regexp -- {-write\M} $argv dummy]
+regsub -- {-write\M} $argv "" argv]
+
+
+#################################################
+## Read input and fill internal representation ##
+#################################################
+
+##
+# Find location of 'parse_cxx'
+#
+# We expect to find 'parse_cxx' in the same directory
+# as we are located. The question is: Where are we?
+##
+proc parse_cxx_file { } {
+	global argv0
+
+	set path $argv0
+
+	if {[file type $path] == "link"} {
+		set path [file readlink $path] }
+
+	set parse_cxx_file "[file dirname $path]/parse_cxx"
+
+	if {![file exists $parse_cxx_file]} {
+		puts stderr "Error: Could not find 'parse_cxx' in '$path'."
+		exit -1
+	}
+	return $parse_cxx_file
+}
+
+
+set input_source [lindex $argv end]
+
+if {![file exists $input_source]} {
+	puts stderr ""
+	puts stderr "Check adherence to Genode's C++ coding style"
+	puts stderr "\n  usage: beautify \[-tokens <token_file>\] \[-fix\] \[-write\] \[<source_file>\]"
+	puts stderr ""
+	puts stderr "For normal use, <source_file> is the name of the file to analyse."
+	puts stderr "If the '-tokens' argument is specified, the input is taken"
+	puts stderr "directly from a file containing a token list. This is useful"
+	puts stderr "for debugging."
+	puts stderr "By specifying the '-fix' argument, a proposed version for"
+	puts stderr "the source file will be written to stdout. This version may"
+	puts stderr "contain warning directives for manual revision."
+	puts stderr "If the option '-write' is specific in addition to '-fix', the"
+	puts stderr "fixed version of the file gets written back to the source code."
+	puts stderr ""
+	exit -1;
+}
+
+set tokens {}
+if {[info exists input_token_file]} {
+	set tokens [exec cat $input_token_file]
+} else {
+	if {[catch {
+		set tokens [exec [parse_cxx_file] -format tokens $input_source]
+	}]} {
+		puts stderr "Error: parsing the C++ file '$input_source' failed"
+		puts stderr "Parser output follows:\n$tokens"
+	}
+}
+
+foreach token $tokens {
+	set name [lindex $token 0]
+	set line [lindex $token 1]
+	set text [lindex $token 2]
+	set tok_text($name) "$text"
+	set tok_line($name) $line
+}
+
+if {![info exists tok_text(content0)]} {
+	puts stderr "Error: input contains no root token 'content0'."
+	exit -1
+}
+
+
+##
+# Return current (partially corrected) code and abort
+##
+proc abort {{message ""}} {
+	global config_write
+	global config_fix
+	global input_source
+
+	if {$message != ""} { puts stderr "Aborting code check: $message" }
+	if {$config_fix} {
+
+		# use stdout by default
+		set fd stdout
+
+		# if called with '-write', write the changes back to source file
+		if {$config_write} {
+			set fd [open $input_source "WRONLY CREAT TRUNC"] }
+
+		dump_source content0 $fd
+
+		close $fd
+	}
+	exit
+}
+
+
+proc msg { message } { puts stderr $message }
+
+
+##
+# Print warning message
+##
+proc warn {message {token ""} {prefix Warning}} {
+	global tok_line
+	set line ""
+	catch { set line " at line $tok_line($token)" }
+	puts stderr "$prefix$line: $message"
+}
+
+
+##
+# Print error message
+##
+proc error {message {token ""}} { warn $message $token Error }
+
+
+##########################
+## Source-code back end ##
+##########################
+
+##
+# Output syntax tree as XML
+##
+proc dump_source {token fd} {
+	global tok_text
+
+	set output $tok_text($token)
+
+	while {$output != ""} {
+	
+		# consume plain text
+		if {[regexp {^[^§]+} $output plain]} {
+			regsub -all {³} $plain "\\\&" plain
+			puts -nonewline $fd $plain
+			regsub {^[^§]+} $output "" output
+		}
+
+		# consume token
+		if {[regexp {§(.+?)°} $output dummy subtoken]} {
+			dump_source $subtoken $fd
+			regsub {§(.+?)°} $output "" output
+		}
+	}
+
+	# append newline at end of output
+	if {$token == "content0"} { puts $fd "" }
+}
+
+
+###########################
+## Syntax-tree utilities ##
+###########################
+
+##
+# Select list of tokens of specified type from subtree
+##
+proc select_by_type {tok_type {token content0} {max_depth 999}} {
+	global tok_text
+
+	if {$max_depth == "0"} { return }
+
+	incr max_depth -1
+
+	set txt $tok_text($token)
+
+	set result [list]
+
+	while {$txt != ""} {
+	
+		# consume plain text
+		if {[regexp {^[^§]+} $txt plain]} {
+			regsub {^[^§]+} $txt "" txt }
+
+		# consume token
+		if {[regexp {§(.+?)°} $txt dummy subtoken]} {
+
+			if {[regexp "^$tok_type\\d+\$" $subtoken dummy]} {
+				lappend result $subtoken }
+
+			# traverse into subtoken
+			set result [concat $result [select_by_type $tok_type $subtoken $max_depth]]
+
+			# eat token
+			regsub {§(.+?)°} $txt "" txt
+		}
+	}
+	return $result
+}
+
+
+##
+# Return list of all tokens
+##
+proc select_all { } { return "content0 [select_by_type {.*}]" }
+
+
+##
+# Return list of tokes contained in the string
+##
+proc list_of_tokens { string } {
+	set result { }
+	while {[regexp {§(\w+\d+)°} $string dummy tok]} {
+		lappend result $tok
+		regsub {§(\w+\d+)°} $string "" string
+	}
+	return $result
+}
+
+
+##
+# Expand all tokens of string
+##
+proc expand { txt } {
+	global tok_text
+
+	set pattern {§(.+?)°}
+	while {[regexp $pattern $txt dummy token]} {
+
+		# avoid backslash to be used as re back references
+		regsub -all {\\} $tok_text($token) {\\\\} expanded_txt
+		regsub -- $pattern $txt $expanded_txt txt
+	}
+	return $txt
+}
+
+
+##
+# Expand subtree of token
+##
+proc expand_token { token } {
+	global tok_text
+	return [expand $tok_text($token)]
+}
+
+
+##
+# Return number of line breaks contained in the speficied sub tree
+##
+proc count_line_breaks { token } {
+	set txt [expand_token $token]
+	set num_lines 0
+	while {[regsub "\n" $txt "" txt]} { incr num_lines }
+	return $num_lines
+}
+
+
+##
+# Return 1 if token is a leaf
+##
+proc is_leaf { token } {
+	global tok_text
+	if {[regexp {§.*°} $tok_text($token) dummy]} {
+		return 0 }
+	return 1
+}
+
+
+##
+# Return 1 if token is at the begin of a line
+##
+proc is_at_begin_of_line { token } {
+	global tok_text
+	while {$token != "content0"} {
+		set parent_token [get_parent $token]
+
+		if {[regexp "\n\\s*§$token°" $tok_text($parent_token) dummy]} {
+			return 1 }
+
+		if {[regexp "\[^\\s\].*§$token°" "$tok_text($parent_token)" dummy]} {
+			return 0 }
+
+		set token $parent_token
+	}
+	return 1
+}
+
+
+##
+# Returns 1 if token is of one of the specified types
+##
+proc is_type { token types } {
+	foreach type $types {
+		if {[regexp "^$type\\d+" $token dummy]} { return 1 } }
+	return 0
+}
+
+
+##
+# Return next leaf token, or "" if no leaf token exists
+##
+proc next_leaf { token } {
+	global tok_text
+	if {[is_leaf $token]} { return $token }
+	foreach tok [list_of_tokens $tok_text($token)] {
+		set leaf_token [next_leaf $tok]
+		if {$leaf_token != ""} { return $leaf_token }
+	}
+	return ""
+}
+
+
+##
+# Convert string into a string containing only indentation and alignment
+# characters
+##
+proc indent_filter { string } {
+#	regsub -all {[^\s]} $string " " string
+	return $string
+}
+
+
+##
+# Return indentation and alignment of leaf token
+##
+proc indent_of {token} {
+	global tok_text
+
+	set leaf_indent ""
+	if {[is_leaf $token]} {
+		regexp {^([\t ]*)} $tok_text($token) dummy leaf_indent }
+
+	set parent [get_parent $token]
+	if {$parent == ""} {return ""}
+	set parent_text $tok_text($parent)
+
+	# expand all characters in front of our token
+	set prev ""
+	regexp "^(.*)§$token°" $parent_text dummy prev
+	set expanded_indent [expand $prev]
+
+	# if the expanded part of the parent token contains the newline, we are done
+	if {[regexp {\n} $expanded_indent dummy]} {
+		regexp {[^\n]*$} $expanded_indent indent_after_newline
+		return [indent_filter "$indent_after_newline$leaf_indent"] }
+
+	# keep searching for newline at the parent
+	return [indent_filter [indent_of $parent]$expanded_indent$leaf_indent]
+}
+
+
+##
+# Return alignment level of token
+##
+proc align_level_of { token } {
+	regexp {[^\t]*$} [indent_of [next_leaf $token]] alignment
+	return [string length $alignment]
+}
+
+
+##
+# Return indentation level of token
+##
+proc indent_level_of { token } {
+	regexp {^\t*} [indent_of [next_leaf $token]] indentation
+	return [string length $indentation]
+}
+
+
+proc hpos { token } {
+	return [expr [indent_level_of $token]*4 + [align_level_of $token]] }
+
+
+##
+# Find parent by depth search
+##
+proc get_parent {token} {
+	global tok_parent
+	if {[info exists tok_parent($token)] == 0} { return "" }
+	return $tok_parent($token)
+}
+
+
+##
+# Return 1 if token in located within compound token
+##
+proc is_within { token compound } {
+	while {1} {
+		set parent [get_parent $token]
+		if {$parent == ""} { return 0 }
+		if {[is_type $parent $compound]} { return 1 }
+		set token $parent
+	}
+}
+
+
+##
+# Return characters between token and next newline
+##
+proc trailing_chars_after { token } {
+	global tok_text
+	set parent [get_parent $token]
+	if {$parent == ""} { return "" }
+
+	regexp "§$token°(.*)\$" $tok_text($parent) dummy chars_after_token
+
+	# if parent has newline character after token, return number of characters until newline
+	if {[regexp "^(.*?)\\n" [expand $chars_after_token] dummy chars_until_newline]} {
+		return "$chars_until_newline" }
+
+	return "[expand $chars_after_token][trailing_chars_after $parent]"
+}
+
+
+##
+# Calculate length of token, if merged on a single line
+##
+proc calc_merged_line_length { token } {
+	global tok_text
+
+	set string $tok_text($token)
+
+	# remove leading comment
+	regsub {^\s*§m?lcomment\d+°\n} $string "" string
+
+	set expanded [expand $string]
+
+	#
+	# Check if the entire token fits plus the tokens until the next newline
+	# fit on a single line
+	#
+	set token_len [string length $expanded]
+	set trailing_len [string length [trailing_chars_after $token]]
+
+	return [expr [hpos $token] + $token_len + $trailing_len]
+}
+
+
+
+############################
+## Transformation helpers ##
+############################
+
+##
+# Strip leading whitespace from first argument of a parenthesis block
+#
+# The parenthesis block can be a 'parenblk' or 'argparenblk'
+##
+proc strip_whitespace_from_first_argument { par_token } {
+	global tok_text
+
+	# tolerate newline directly after the parenthesis in function-call argument lists
+	if {[regexp {§openparen\d+°\n} $tok_text($par_token)] &&
+		[is_type [get_parent $par_token] function]} return
+
+	# strip whitespace residing in the parenthesis token
+	regsub {(§openparen\d+°)\s+} $tok_text($par_token) "\\1" tok_text($par_token)
+
+	#
+	# Further whitespace can be present within the first argument token.
+	# The par_token consists of 'openparen', arguments, and 'closeparen'.
+	# The arguments may be strings or identifiers. We just grab the
+	# second list element and squeeze it.
+	#
+	set firstarg_token [lindex [list_of_tokens $tok_text($par_token)] 1]
+	if {[is_at_begin_of_line $firstarg_token]} return
+	set firstarg_token [next_leaf $firstarg_token]
+	regsub {^[\t ]+} $tok_text($firstarg_token) "" tok_text($firstarg_token)
+	foreach tok [select_by_type {.*} $firstarg_token 1] {
+		if {[is_type $tok string]} continue
+		regsub -all {[\t ]+} $tok_text($tok) "" tok_text($tok) }
+}
+
+
+proc strip_whitespace_from_last_argument { par_token } {
+	global tok_text
+
+	# strip whitespace residing in the parenthesis token
+	regsub {[\t ]+(§closeparen\d+°)} $tok_text($par_token) "\\1" tok_text($par_token)
+}
+
+
+##
+# Remove newline in front of specified token
+#
+# The argument must be a leaf token.
+##
+proc remove_newline_in_front_of { token {replacement " "} } {
+	global config_fix
+	global tok_text
+	if {$config_fix == 0} return
+	if {![is_at_begin_of_line $token]} return
+
+	# remove any alignment spaceing from token
+	regsub {^[\t ]+} $tok_text($token) "" tok_text($token)
+
+	set parent [get_parent $token]
+	if {$parent == ""} return
+
+	# remove leading non-newline whitespace from parent's token
+	regsub "\[\\t \]+(§$token°)" $tok_text($parent) "\\1" tok_text($parent)
+
+	# look out for the newline to eliminate, replace it
+	set pattern "\[\\t \]*\n\[\\t \]*(§$token°)"
+	if {[regexp $pattern $tok_text($parent) dummy]} {
+		regsub $pattern $tok_text($parent) "$replacement\\1" tok_text($parent)
+		return
+	}
+
+	# if there is no newline character at the parent, continue at the parent
+	if {[regexp "^§$token°" $tok_text($parent) dummy]} {
+		remove_newline_in_front_of $parent $replacement }
+}
+
+
+proc reindent { token } {
+	global indent_level
+	global align_level
+	set indent_level [indent_level_of $token]
+	set align_level [align_level_of $token]
+	indent_block $token
+}
+
+
+#######################
+## Debugging support ##
+#######################
+
+proc dump_class_elems {class_token elem_type} {
+	global tok_text
+
+	set elem_tokens [select_by_type $elem_type $class_token 3]
+
+	if {![llength $elem_tokens]} { return }
+
+	puts stderr "  $elem_type ([llength $elem_tokens]):"
+	foreach elem_token $elem_tokens {
+		set function_token [lindex [select_by_type function   $elem_token] 0]
+		set name_token     [lindex [select_by_type identifier $function_token] 0]
+		puts stderr "    $tok_text($name_token)"
+	}
+}
+
+
+### PRINT INFORMATION ABOUT THE CLASSES AND THEIR MEMBER FUNCTIONS ###
+proc dump_classes { } {
+	global tok_text
+	foreach class_token [select_by_type class] {
+		set name_token [lindex [select_by_type identifier  $class_token] 0]
+		puts stderr "class $tok_text($name_token):"
+
+		foreach elem {constdecl constimpl destdecl destimpl funcdecl funcimpl} {
+			dump_class_elems $class_token $elem }
+	}
+}
+
+
+###################
+## Preprocessing ##
+###################
+
+#
+# Determine the parent of each token
+#
+
+foreach parent_tok [select_all] {
+	foreach tok [list_of_tokens $tok_text($parent_tok)] {
+		set tok_parent($tok) $parent_tok } }
+
+#
+# Transform syntax tree such that all indentations are located at
+# leaf nodes. However, do not touch preprocessor macros. We won't
+# attempt to reindent those.
+#
+
+foreach tok [select_all] {
+	if {[is_type $tok preproc]} continue
+	if {[is_leaf $tok] && [is_at_begin_of_line $tok]} {
+		set indent [indent_of $tok]
+
+		# remove remove whitespace from the tokens in front of the leaf
+		remove_newline_in_front_of $tok "\n"
+
+		# add indentation at the begin of the leaf token
+		regsub {^[\t ]*} $tok_text($tok) "$indent" tok_text($tok)
+	}
+}
+
+
+#########################
+## Coding-style checks ##
+#########################
+
+#
+# There are the following classes of complaints:
+#
+# Error      - Intervention by the user is required,
+#              The style-checking process stops.
+#
+# Warning    - Style conflicts that can be fixed automatically.
+#              The style-checking process continues.
+#
+# Suggestion - Non-essential style suggestions that can be followed
+#              automatically.
+#
+
+#
+# Checking valid uses of preprocessor commands
+#
+
+msg "Checking preprocessor commands..."
+
+set abort_after_preproc_check 0
+foreach tok [select_by_type preproc] {
+	set parent_tok [get_parent $tok]
+
+	if {[is_type $parent_tok content]} continue
+	if {[is_type $parent_tok block]} {
+		if {[is_type [get_parent $parent_tok] namespaceblock]} continue
+		if {[is_type [get_parent $parent_tok] externcblk]} continue
+	}
+
+	error "preprocessor command not allowed at this location" $tok
+	set abort_after_preproc_check 1
+}
+if {$abort_after_preproc_check} {
+	error "further processing not possible because of errors above"
+	abort
+}
+
+#
+# Check for C++ comments
+#
+
+msg "Checking absence of C++ comments..."
+
+foreach tok [select_by_type cxxcomment] {
+	puts stderr "Warning at line $tok_line($tok): remove C++ comments, use /* traditional */ comment style"
+}
+
+#
+# Perform indentation
+#
+
+msg "Checking indentation..."
+
+##
+# Generate string containing the white space for the given indentation and
+# alignment
+##
+proc gen_indent { indent_level align_level } {
+	set indent ""
+	for { set i 0 } { $i < $indent_level } { incr i } { append indent "\t" }
+	for { set i 0 } { $i < $align_level  } { incr i } { append indent " " }
+	return $indent;
+}
+
+
+##
+# Indent multi-line comment
+#
+proc indent_mlcomment { mlcomment_token indent_level } {
+	global tok_text
+	set result {}
+	set cnt 0
+	foreach line [split $tok_text($mlcomment_token) "\n"] {
+		set alignment 0
+		if {$cnt > 0} { set alignment 1 }
+
+		set indentation [gen_indent $indent_level $alignment]
+
+		# handle single-line-style comments following code, i.e, a variable declaration
+		if {[is_at_begin_of_line $mlcomment_token] == 0} {
+			if {$cnt == 0} {
+				regexp {^[\t ]*} $line indentation
+			} else {
+				set align_level [expr [align_level_of $mlcomment_token] + 3]
+				set indentation [gen_indent [indent_level_of $mlcomment_token] $align_level]
+			}
+		}
+
+		regsub {^\s*(.*)$} $line "$indentation\\1" line
+
+		incr cnt
+		lappend result $line
+	}
+	return [join $result "\n"]
+}
+
+
+set alignment_stack {}
+
+
+proc push_alignment { align_level } {
+	global alignment_stack
+	lappend alignment_stack $align_level
+}
+
+
+proc pop_alignment { } {
+	global alignment_stack
+	set top [lindex $alignment_stack end]
+	set alignment_stack [lreplace $alignment_stack end end]
+	return $top
+}
+
+
+##
+# Return true if statement is a non-block single statement to be indented
+##
+proc is_single_indented_statement { token } {
+	global tok_text
+
+	if {![is_at_begin_of_line [next_leaf $token]]} { return 0 }
+	if {![is_type $token statement] && ![is_type $token lcomment]} { return 0 }
+
+	# indent line comment only if it is the first of its parent
+	if {[is_type $token lcomment]} {
+		if {[regexp "§$token°\\s*§keyelse\\d+°" $tok_text([get_parent $token]) dummy]} {
+			return 0 } }
+
+	# child of statement must not be a block
+	if {[llength [select_by_type block $token 1]] > 0} { return 0 }
+
+	# parent must be 'if', 'ifelse', or 'for' token
+	if {[is_type [get_parent $token] {if while ifelse for}]} { return 1 }
+
+	return 0
+}
+
+
+proc is_indented_assignment { block_token } {
+	global tok_text
+	if {[llength [select_by_type {assign\w*} $block_token 1]] == 0} { return 0 }
+	return [regexp {§assign\w*\d+°[\t ]*\n} $tok_text($block_token) dummy]
+}
+
+
+proc first_init_elem { initializer_token } {
+	global tok_text
+	return [lindex [list_of_tokens $tok_text($initializer_token)] 1]
+}
+
+
+proc is_normal_assignment { block_token } {
+	foreach compound {argparenblk enum virtassign} {
+		if {[is_type $block_token $compound] || [is_within $block_token $compound]} {
+			return 0 } }
+	if {[llength [select_by_type {assign\w*} $block_token 1]] > 0} { return 1 }
+	return 0
+}
+
+
+proc is_followed_by_space { token } {
+	global tok_text
+	return [regexp "§$token°\[\t \]" $tok_text([get_parent $token]) dummy]
+}
+
+
+proc is_indented_parenblk { parenblk } {
+	global tok_text
+	if {[is_type $parenblk parenblk] == 0} { return 0 }
+
+	# if the opening parenthesis is followed by a newline, we indent the content
+	if {[regexp {§openparen\d+°\n} $tok_text($parenblk) dummy]} { return 1 }
+
+	return 0
+}
+
+
+proc is_comment_within_switch { token } {
+	if {[is_type $token {lcomment mlcomment}] &&
+		[is_type [get_parent $token] codeseq] &&
+		[is_type [get_parent [get_parent $token]] block] &&
+		[is_type [get_parent [get_parent [get_parent $token]]] statement] &&
+		[is_type [get_parent [get_parent [get_parent [get_parent $token]]]] switch]} { return 1 }
+	return 0
+}
+
+
+proc indent_block { block_token } {
+	global indent_level
+	global align_level
+	global tok_text
+	global tok_line
+	global config_fix
+	global depth
+
+	if {[is_type $block_token mlcomment]} {
+		if {$config_fix} {
+			set tok_text($block_token) [indent_mlcomment $block_token $indent_level]
+		}
+		return
+	}
+
+	# preprocessor macros are never indented
+	if {[is_type $block_token preproc]} {
+		if {$config_fix} {
+			set tok [next_leaf $block_token]
+			regsub {^\s*} $tok_text($tok) "" tok_text($tok)
+		}
+		return
+	}
+
+	if {[is_leaf $block_token] && [is_at_begin_of_line $block_token]} {
+		set curr_indent ""
+		regexp {^[\t ]*} $tok_text($block_token) curr_indent
+		set expected_indent [gen_indent $indent_level $align_level]
+
+		# preserve alignment of certain operators
+		if {[is_type $block_token {lshift rshift plus minus}]} {
+			set expected_indent [gen_indent $indent_level [align_level_of $block_token]]
+		}
+
+		if {$curr_indent != $expected_indent} {
+			set align_msg ""
+			if {$align_level > 0} {
+				set align_msg " and $align_level spaces" }
+			warn "wrong indentation, please change to $indent_level tabs$align_msg" $block_token
+			regsub {^[\t ]+} $tok_text($block_token) [gen_indent $indent_level $align_level] tok_text($block_token)
+		}
+		return
+	}
+
+	#
+	# Process non-leaf token
+	#
+	if {[is_type $block_token {protected private public}]} { incr indent_level }
+	if {[is_type $block_token inherit]} {
+		push_alignment $align_level
+		set align_level [expr [align_level_of [next_leaf $block_token]] + 2]
+	}
+	foreach tok [select_by_type {.*} $block_token 1] {
+
+		if {[is_type $tok {"assign\\w*"}] && [is_normal_assignment $block_token]} {
+			push_alignment $align_level
+			if {[is_indented_assignment $block_token]} {
+				incr indent_level
+				set align_level 0
+			} else {
+				set align_level [expr [align_level_of $tok] + 2]
+			}
+		}
+		if {[is_type $tok typename] && [is_type $block_token typedef]} {
+			push_alignment $align_level
+			set align_level 8
+		}
+		if {[is_type $tok closeparen]} {
+			if {[is_indented_parenblk $block_token]} { incr indent_level -1 }
+			set align_level [pop_alignment]
+		}
+		if {[is_type $tok closebrace]} { incr indent_level -1 }
+		if {[is_type $tok {label caselabel publiclabel privatelabel protectedlabel}]} { incr indent_level -1 }
+		if {[is_comment_within_switch $tok]} { incr indent_level -1 }
+		if {[is_single_indented_statement $tok]} { incr indent_level }
+		if {[is_at_begin_of_line $tok] && [is_followed_by_space $tok]} {
+			if {[is_type $tok {or and}]} { incr align_level -3}
+			if {[is_type $tok {bitor amper plus minus question}]} { incr align_level -2}
+		}
+
+		indent_block $tok
+
+		if {[is_type $tok identifier] && [is_type $block_token vardecl]} {
+
+			# handle only the first identifier of a vardecl
+			if {[lindex [list_of_tokens $tok_text($block_token)] 0] == $tok} {
+				push_alignment $align_level
+
+				#
+				# Align subsequent lines of variable declaration at the
+				# second identifier, which should be the name of the
+				# first variable.
+				#
+				set second_token [lindex [list_of_tokens $tok_text($block_token)] 1]
+				set align_level [align_level_of [next_leaf $second_token]]
+			}
+		}
+
+		if {[is_at_begin_of_line $tok] && [is_followed_by_space $tok]} {
+			if {[is_type $tok {or and}]} { incr align_level 3}
+			if {[is_type $tok {bitor amper plus minus}]} { incr align_level 2}
+		}
+
+		if {[is_type $tok keyreturn]} {
+			push_alignment $align_level
+			set align_level 7
+		}
+
+		if {[is_single_indented_statement $tok]} { incr indent_level -1 }
+		if {[is_type $tok {label caselabel publiclabel privatelabel protectedlabel}]} { incr indent_level }
+		if {[is_comment_within_switch $tok]} { incr indent_level }
+		if {[is_type $tok openbrace]} { incr indent_level }
+		if {[is_type $tok openparen]} {
+			push_alignment $align_level
+			if {[is_indented_parenblk $block_token]} {
+				set align_level 0
+				incr indent_level
+			} else {
+				set align_level [expr [align_level_of $tok] + 1]
+			}
+		}
+		if {[is_type $tok colon] && [is_type $block_token initializer]} {
+			if {[align_level_of [first_init_elem $block_token]] > 0} {
+				push_alignment $align_level
+				set align_level [align_level_of [first_init_elem $block_token]]
+			} else {
+				incr indent_level
+			}
+		}
+	}
+	if {[is_type $block_token {protected private public}]} { incr indent_level -1 }
+	if {[is_type $block_token {inherit typedef return vardecl}]} { set align_level [pop_alignment] }
+	if {[is_normal_assignment $block_token]} {
+
+		#
+		# one block token may contain multiple assign tokens, revert
+		# indentation for each of them
+		#
+		foreach assign [select_by_type {assign\w*} $block_token] {
+			set align_level [pop_alignment]
+			if {[is_indented_assignment $block_token]} { incr indent_level -1 }
+		}
+	}
+	if {[is_type $block_token initializer]} {
+		if {[align_level_of [first_init_elem $block_token]] > 0} {
+			set align_level [pop_alignment]
+		} else {
+			incr indent_level -1
+		}
+	}
+}
+
+
+set indent_level 0
+set align_level 0
+indent_block content0
+
+#abort
+msg "Checking file header..."
+
+#
+# Check empty space in front of file header
+#
+
+if {[regexp {^\s+} $tok_text(content0) dummy]} {
+	warn "empty space before file header at the beginning of the file"
+	if {$config_fix} {
+		regsub {^\s+} $tok_text(content0) "" tok_text(content0) }
+}
+
+#
+# Check existence of file header
+#
+
+proc file_header_template { } {
+	set    res ""
+	append res "/*\n"
+	append res " * \\brief  Brief description of the file\n"
+	append res " * \\author Name of Author\n"
+	append res " * \\date   [exec date --iso-8601]\n"
+	append res " */\n"
+	append res "#warning Style: please fill out the file header and remove this warning\n\n"
+	return $res
+}
+
+if {![regexp {^§mlcomment\d+°} $tok_text(content0) dummy]} {
+	error "expect file header at the beginning of the file"
+	if {$config_fix} {
+		regsub {^(§(tab|space|align|line)\d+°)*} $tok_text(content0) [file_header_template] tok_text(content0) }
+	abort
+}
+
+#
+# Inspect file header
+#
+
+proc check_author { header_line } {
+	# author
+	if {[regexp {^ \* \\author([\t ]+)([^\t ].*)} $header_line dummy align author] == 0} {
+		warn "malformed author field in file header"
+		return
+	}
+	if {[string length $author] < 2} {
+		warn "incomplete author field in file header"
+	}
+	if {$align != " "} {
+		warn "unaligned author field in file header"
+		set align " "
+	}
+	if {[string is lower [string index $author 0]]} {
+		warn "author name should start with an upper-case character"
+		set author [string toupper $author 0 0]
+	}
+	return " * \\author$align$author"
+}
+
+proc check_file_header { } {
+	global tok_text
+	global config_fix
+	set header_token [lindex [list_of_tokens $tok_text(content0)] 0]
+	set header [expand_token $header_token]
+	set header_lines [split $header "\n"]
+	set cnt 0
+
+	# first line
+	if {[lindex $header_lines 0] != "/*"} {
+		warn "malformed first line of file header"
+		lset header_lines 0 "/*"
+	}
+
+	# brief description
+	if {[regexp {^ \* \\brief(\s+)([^\s].*)} [lindex $header_lines 1] dummy align desc] == 0} {
+		warn "malformed brief description in file header"
+		return
+	}
+	if {[string length $desc] < 2} {
+		warn "incomplete brief description in file header"
+	}
+	if {$align != "  "} {
+		warn "unaligned brief description in file header"
+		set align "  "
+	}
+	if {[string is lower [string index $desc 0]]} {
+		warn "brief description of file header should start with an upper-case character"
+		set desc [string toupper $desc 0 0]
+	}
+	lset header_lines 1 " * \\brief$align$desc"
+
+	set line_cnt 2
+
+	while {[regexp {\\author} [lindex $header_lines $line_cnt] dummy]} {
+		lset header_lines $line_cnt [check_author [lindex $header_lines $line_cnt]]
+		incr line_cnt
+	}
+
+	# date
+	if {[regexp {^ \* \\date([\t ]+)([^\t ].*)} [lindex $header_lines $line_cnt] dummy align date] == 0} {
+		warn "malformed date field in file header"
+		return
+	}
+	if {[regexp {^\d\d\d\d-\d\d-\d\d$} $date dummy] == 0} {
+		warn "date in file header not in format YYYY-MM-DD"
+
+		# attempt to convert german date to YYYY-MM-DD
+		if {[regexp {(\d\d)\.(\d\d)\.(\d\d\d\d)} $date dummy day month year]} {
+			if {$month < 13} { set date "$year-$month-$day" }
+		}
+	}
+	if {$align != "   "} {
+		warn "unaligned date field in file header"
+		set align "   "
+	}
+	lset header_lines $line_cnt " * \\date$align$date"
+	incr line_cnt
+
+	if {$config_fix} {
+		set tok_text($header_token) [join $header_lines "\n"] }
+}
+
+check_file_header
+
+#
+# Check for single empty line after file header
+#
+
+if {[regexp {^§mlcomment\d+°\n\n\n+} $tok_text(content0) dummy]} {
+	warn "expect single empty line after file header"
+	if {$config_fix} {
+		regsub {^(§mlcomment\d+°\n)\n+} $tok_text(content0) "\\1\n" tok_text(content0) }
+}
+
+msg "Checking names of classes, functions, and variables..."
+
+#
+# Private members must start with an underscore
+#
+
+proc vardecl_name { vardecl_token } {
+	global tok_text
+	if {[is_type $vardecl_token vardecl] == 0} return ""
+	# the variable name is the second identifier of the vardecl token
+	set name [lindex [select_by_type identifier $vardecl_token 1] 1]
+	if {$name == ""} { return "" }
+	return $tok_text($name)
+}
+
+proc funcsignature_name { funcsignature_token } {
+	global tok_text
+	if {[is_type $funcsignature_token funcsignature] == 0} return ""
+	return $tok_text([lindex [select_by_type identifier $funcsignature_token 1] 0])
+}
+
+foreach prot_type {private protected} {
+	foreach prot [select_by_type $prot_type] {
+		foreach vardecl [select_by_type vardecl $prot 2] {
+			if {[regexp {^_} [vardecl_name $vardecl]]} continue
+			error "$prot_type member variable name '[vardecl_name $vardecl]' should start with an underscore" $vardecl
+		}
+
+		foreach funcsignature [select_by_type funcsignature $prot 3] {
+			if {[regexp {^_} [funcsignature_name $funcsignature]]} continue
+			if {[is_type [get_parent $funcsignature] {constdecl constimpl destdecl destimpl}]} continue
+			error "$prot_type member function name '[funcsignature_name $funcsignature]' should start with an underscore" $funcsignature
+		}
+	}
+}
+
+#
+# Variables and functions must not contain upper-case characters
+#
+
+foreach vardecl [select_by_type vardecl] {
+	if {[regexp {[A-Z]} [vardecl_name $vardecl] dummy]} {
+		error "variable name must not contain upper-case characters" $vardecl } }
+
+# do not look at funcsignature tokens of constructors and destructors
+foreach func_type "[select_by_type funcdecl] [select_by_type funcimpl]" {
+	foreach funcsignature [select_by_type funcsignature $func_type 1] {
+		if {[regexp {[A-Z]} [funcsignature_name $funcsignature] dummy]} {
+			error "function name must not contain upper-case characters" $funcsignature } }
+}
+
+msg "Checking for superfluous semicolons..."
+
+#
+# Check for non-needed trailing semicolons
+#
+
+foreach tok "content0 [select_by_type namespaceblock]" {
+	set txt $tok_text($tok)
+	while {[regexp {§(namespace\d+)°\s*;+} $txt dummy ns]} {
+		set ns_name [select_by_type identifier $ns 1]
+		warn "unneeded trailing ';' after name-space block of '$tok_text($ns_name)'"
+		regsub {(§namespace\d+°)\s*;+} $txt {\1} txt
+	}
+
+	if {$config_fix} {
+		set tok_text($tok) $txt }
+}
+
+foreach tok_type {funcimpl constimpl destimpl} {
+	foreach tok [select_by_type $tok_type] {
+
+		if {[regexp {[\s;]+$} $tok_text($tok) dummy] == 0} continue
+
+		warn "superfluous characters after implementation block" $tok
+
+		if {$config_fix} {
+			regsub {[\s;]+$} $tok_text($tok) "" tok_text($tok)
+		}
+	}
+}
+
+#
+# Check proper use of single spaces
+#
+
+msg "Checking for correct spacing..."
+
+proc check_single_spaces {env_token
+                          tok_type      tok_type_name
+                          tok_type_next tok_type_name_next
+                          {error_message "Getting confused"}} {
+	global tok_text config_fix
+
+	if {[regexp "§($tok_type\\d+)°(\\s*)§($tok_type_next\\d+)°" $tok_text($env_token) dummy tok ws next_token]} {
+		if {$ws != " "} {
+			warn "Use single space between $tok_type_name and $tok_type_name_next" $tok
+			if {$config_fix} {
+				regsub "(§$tok_type\\d+°)\\s*(§$tok_type_next\\d+°)" $tok_text($env_token) "\\1 \\2" tok_text($env_token) }
+		}
+	} else {
+		abort "$error_message at line $tok_line($env_token)" }
+}
+
+# between namespace name and opening brace
+foreach tok [select_by_type namespace] {
+	set namespace_name [expand_token [lindex [select_by_type identifier $tok] 0]]
+	check_single_spaces $tok identifier     "namespace name \"$namespace_name\"" \
+	                         namespaceblock "opening brace" \
+	                         "Invalid namespace definition"
+}
+
+# no space after function names
+foreach tok_type {function funcsignature funcptr destfunction} {
+	foreach tok [select_by_type $tok_type] {
+		set pattern {\s+§((parenblk|argparenblk)\d+)°}
+		if {[regexp $pattern $tok_text($tok) dummy paren_token dummy] == 0} continue
+
+		warn "superfluous space between function name and parenthesis" $tok
+		if {$config_fix} {
+			regsub $pattern $tok_text($tok) "§\\1°" tok_text($tok)
+			set leaf [next_leaf $paren_token]
+			regsub {^\s*} $tok_text($leaf) "" tok_text($leaf)
+		}
+
+		#
+		# We change the indentation of an open parenthesis,
+		# so we must reindent the whole block.
+		#
+		reindent $paren_token
+	}
+}
+
+
+# superfluous space within a parenthesis block
+foreach par_type {parenblk argparenblk} {
+	foreach par_token [select_by_type $par_type] {
+
+		# tolerate extra whitspaces in for and function statements
+		if {[is_type [get_parent $par_token] {forcond function}]} continue
+
+		set string [expand_token $par_token]
+
+		if {[regexp {\(\s+} $string dummy]} {
+			warn "leading whitespace in parenthesis block" $par_token
+			if {$config_fix} { strip_whitespace_from_first_argument $par_token }
+		}
+		if {[regexp {\s+\)} $string dummy]} {
+			warn "trailing whitespace in parenthesis block" $par_token
+			if {$config_fix} { strip_whitespace_from_last_argument $par_token }
+		}
+	}
+}
+
+#
+# Check proper use of empty lines
+#
+
+##
+# Check if there is one empty line before the specified token
+#
+# \param min  if set to 0, accept less than one line
+# \parem max  if set to 0, accept more than one line
+##
+proc check_empty_line_before {token tok_type_name {min 1} {max 1}} {
+	global tok_text
+	global config_fix
+
+	# walk up the parent tree until we see our left context
+	set parent_token [get_parent $token]
+	while {[regexp "^§$token°" $tok_text($parent_token)]} {
+		set token $parent_token
+		set parent_token [get_parent $token]
+		if {$parent_token == ""} return
+	}
+
+	set parent_text $tok_text($parent_token)
+
+	if {$max && [regexp "\n\n\n§$token°" $parent_text dummy]} {
+		warn "expected only one empty line before $tok_type_name" $token
+		regsub "\n+§$token°" $parent_text "\n\n§$token°" parent_text
+	}
+
+	if {$min && [regexp "\[^\n\]\n§$token°" $parent_text dummy]} {
+		warn "missing one empty line before $tok_type_name" $token
+		regsub "\n+§$token°" $parent_text "\n\n§$token°" parent_text
+	}
+
+	if {$config_fix} { set tok_text($parent_token) $parent_text }
+}
+
+
+proc check_empty_line_after {env_token tok_type tok_type_name} {
+	global tok_text config_fix
+
+	set txt $tok_text($env_token)
+	while {[regexp "§($tok_type\\d+)°((\[^\n\])|(\n\[^\n\])|(\n{3}))" $txt dummy tok next]} {
+		warn "Expect one empty line after $tok_type_name" $tok
+		regsub "(§$tok_type\\d+°)(\n)*" $txt "\\1\n\n" txt
+	}
+	if {$config_fix} {
+		set tok_text($env_token) $txt }
+}
+
+# empty line after protection-scope labels
+foreach p {public private protected} {
+	foreach tok [select_by_type $p] {
+		check_empty_line_after $tok label "\"$p:\" label" } }
+
+# empty line before protection-scope labels
+foreach p {public private protected} {
+	foreach tok [select_by_type $p] {
+		check_empty_line_before $tok "\"$p:\" label" 0 1 } }
+
+# empty line at beginning of name space
+foreach tok [select_by_type namespaceblock] {
+
+	#
+	# Allow for the special case of having a bunch of
+	# includes within a namespace, otherwise check for
+	# an empty line.
+	#
+	if {![regexp {^§openbrace\d+°\s§preproc\d+°} $tok_text($tok)]} {
+		if {[count_line_breaks $tok] > "1"} {
+			check_empty_line_after $tok openbrace "opening brace of name space" } }
+}
+
+
+##
+# Return 1 if token is the first token of a block
+##
+proc is_first_token_of_block { token } {
+	global tok_text
+	foreach block_type {block parenblk classblock enumblock} {
+
+		#
+		# Walk up compound tokens until we find a block or
+		# find another token in front of us.
+		#
+		while {1} {
+			set parent [get_parent $token]
+			if {[is_type $parent $block_type]} {
+
+				#
+				# A block starts with a brace or parenthesis. We are interested
+				# in the second token.
+				#
+				if {[lindex [list_of_tokens $tok_text($parent)] 1] == $token} {
+					return 1 }
+				break
+			}
+			if {[lindex [list_of_tokens $tok_text($parent)] 0] != $token} {
+				break }
+			set token $parent
+		}
+	}
+	return 0
+}
+
+# empty line between member-functions
+foreach tok_type { { funcdecl  "function declaration"    0 }
+                   { funcimpl  "function"                0 }
+                   { constdecl "constructor declaration" 0 }
+                   { constimpl "constructor"             0 }
+                   { destdecl  "destructor declaration"  0 }
+                   { destimpl  "destructor"              0 }
+                   { lcomment  "single-line comment"     1 } } {
+
+	foreach tok [select_by_type [lindex $tok_type 0]] {
+		if {[is_type [get_parent $tok] namespaceblock]} continue
+		if {[is_type [get_parent $tok] content]} continue
+		if {[is_at_begin_of_line $tok] == 0} continue
+		if {[is_first_token_of_block $tok]} continue
+		set message  [lindex $tok_type 1]
+		set test_min [lindex $tok_type 2]
+		check_empty_line_before $tok $message $test_min
+	}
+}
+
+#
+# Check absence of spacing around certain binary operators
+#
+
+foreach identifier [select_by_type identifier] {
+	foreach operator {deref dot doublecolon} {
+		set string $tok_text($identifier)
+
+		# only look at binary operators
+		if {[regexp "\[^\\s\].*§$operator\\d+°.*\[^\\s\]" $string dummy] == 0} continue
+
+		# check for space left of operator
+		if {[regexp "\[\\t \]+§$operator\\d+°" $string dummy]} {
+			warn "superfluous whitespace in front of '->' operator" $identifier
+			regsub "\[\\t \]+(§$operator\\d+°)" $string {\1} string
+		}
+
+		# check for space right of operator
+		while {[regexp -- "§$operator\\d+°\[\\t \]+" $string dummy]} {
+			warn "superfluous whitespace after '->' operator" $tok
+			regsub -- "(§$operator\\d+°)\[\\t \]+" $string {\1} string
+		}
+		if {$config_fix} { set tok_text($identifier) $string }
+	}
+}
+
+#
+# Check for trailing spaces
+#
+
+msg "Checking for trailing spaces..."
+
+foreach tok [select_all] {
+	set lines [split $tok_text($tok) "\n"]
+	if {[llength $lines] < 2} continue
+
+	set result {}
+	set cnt 0
+	set expanded ""
+	foreach line $lines {
+
+		append expanded [expand $line]
+
+		if {$cnt < [expr [llength $lines] - 1]} {
+			if {[regexp {\s+$} $line dummy]} {
+				set num_newlines [regexp -all {\n} $expanded dummy]
+				set line_num [expr $tok_line($tok) + $num_newlines + $cnt]
+				puts stderr "Warning at line $line_num: trailing space"
+				if {$config_fix} {
+					regsub {\s+$} $line "" line }
+			}
+		}
+		lappend result $line
+		incr cnt
+	}
+	if {$config_fix} { set tok_text($tok) [join $result "\n"]}
+}
+
+#
+# Check for superfluous leading and spaces in single-line comments
+#
+
+foreach tok [select_by_type lcomment] {
+	if {[regexp {/\*  +} $tok_text($tok)] == 0} continue
+
+	warn "Warning: superfluous leading space in comment" $tok
+	if {$config_fix} {
+		regsub {/\*  +} $tok_text($tok) {/* } tok_text($tok) }
+}
+
+msg "Checking placement of braces and parenthesis..."
+
+#
+# Check for brace placement after 'if', 'for', 'switch', 'while', etc.
+#
+
+foreach block [select_by_type block] {
+	set openbrace [select_by_type openbrace $block 1]
+	if {![is_at_begin_of_line $openbrace]} continue
+
+	#
+	# Each block is wrapped in a statement. We have to inspect the
+	# parent of the statement.
+	#
+	set types_to_check {if for ifelse switch while}
+	if {![is_type [get_parent [get_parent $block]] $types_to_check]} {
+		continue }
+
+	warn "put opening brace to previous line" $block
+	remove_newline_in_front_of [next_leaf $block]
+}
+
+#
+# Check for absence of newline between enum and opening brace
+#
+
+foreach enumblock [select_by_type enumblock] {
+	if {![is_at_begin_of_line $enumblock]} continue
+
+	warn "put opening brace to previous line" $enumblock
+	remove_newline_in_front_of [next_leaf $enumblock]
+}
+
+#
+# Check for single space after keywords 'if', 'for', 'switch', 'while'
+#
+
+foreach type {if for while switch catch} {
+	set tok_type "cond"
+	set tok_type "$type$tok_type"
+	foreach tok [select_by_type $tok_type] {
+		if {[regexp "§key$type\\d+° §(parenblk\\d+)°" $tok_text($tok) dummy]} continue
+
+		warn "use one space after after '$type'" $tok
+
+		if {$config_fix} {
+			regexp {§(parenblk\d+)°} $tok_text($tok) dummy parenblk
+			regsub "\\s*(§parenblk\\d+°)" $tok_text($tok) { \1} tok_text($tok)
+			set leaf [next_leaf $parenblk]
+			regsub {^\s*} $tok_text($leaf) "" tok_text($leaf)
+			reindent $tok
+		}
+	}
+}
+
+#
+# Check for newline after opening and in front of closing braces
+#
+
+foreach impl_type {funcimpl constimpl destimpl} {
+	foreach impl [select_by_type $impl_type] {
+		if {[regexp {§funcsignature\d+°\n} $tok_text($impl)]} continue
+		if {[regexp {§funcsignature\d+°[\t ]*§initializer\d+°} $tok_text($impl)]} continue
+
+		# tolerate single-line or double-line implementations
+		set text $tok_text($impl)
+		regsub {^([\t ]*)§m?lcomment\d+°} $text {\1} text
+		set expanded [expand $text]
+		if {[regexp -all {\n} $expanded dummy] < 2} continue
+		if {[calc_merged_line_length $impl] < 79} continue
+
+		warn "missing newline after function signature" $impl
+
+		if {$config_fix == 0} continue
+
+		set indent [gen_indent [indent_level_of [next_leaf $impl]] 0]
+		regsub {(§funcsignature\d+°)\s*} $tok_text($impl) "\\1\n$indent" tok_text($impl)
+	}
+}
+
+#
+# Check if the closing brace of an single open brace is single too
+#
+foreach block_type {block classblock enumbloc} {
+	foreach block [select_by_type $block_type] {
+
+		if {[is_at_begin_of_line $block] == 0} continue
+
+		# if close brace follows a newline, we are fine
+		if {[regexp {\n[\t ]*§closebrace\d+°} $tok_text($block) dummy]} continue
+
+		# if block is empty and only one space is used, we are fine
+		if {[regexp {§openbrace\d+° §closebrace\d+°} $tok_text($block) dummy]} continue
+
+		if {[regexp {§openbrace\d+°(\s\s|)§closebrace\d+°} $tok_text($block) dummy]} {
+			warn "use one space within empty block" $block
+			regsub -all {(§openbrace\d+°)(\s\s|)(§closebrace\d+°)} $tok_text($block) {\1 \2} tok_text($block)
+		}
+
+		warn "put closing brace of block at a new line" $block
+
+		if {$config_fix == 0} continue
+
+		regsub {\s*(§closebrace\d+°)} $tok_text($block) "\n\\1" tok_text($block)
+		set closebrace [select_by_type closebrace $block 1]
+		regsub {^} $tok_text($closebrace) "[indent_of $block]" tok_text($closebrace)
+	}
+}
+
+#
+# No newlines after free-standing opening braces
+#
+
+foreach block_type {block classblock enumblock} {
+	foreach block [select_by_type $block_type] {
+
+		if {[is_at_begin_of_line $block] == 0} continue
+
+		if {[regexp {§(openbrace\d+)°[\t ]*\n[\ ]*\n} $tok_text($block) dummy openbrace] == 0} {
+			continue }
+
+		warn "superfluous empty line after opening brace" $block
+
+		if {$config_fix == 0} continue
+
+		regsub {§(openbrace\d+)°\s*} $tok_text($block) "§\\1°\n" tok_text($block)
+	}
+}
+
+#
+# Check for free-standing closing parenthesis
+#
+
+foreach closeparen [select_by_type closeparen] {
+	if {![is_at_begin_of_line $closeparen]} continue
+
+	warn "put closing parenthesis at the end of previous line" $closeparen
+	remove_newline_in_front_of [next_leaf $closeparen] ""
+}
+
+#
+# Check for absence of newline at beginning of inherit block
+#
+
+foreach inherit [select_by_type inherit] {
+	if {[regexp {§colon\d+°\s*\n\s*§([^°]+)°} $tok_text($inherit) dummy tag] == 0} {
+		continue }
+
+	if {![is_at_begin_of_line $tag]} continue
+
+	warn "remove linebreak after colon" $tag
+	remove_newline_in_front_of [next_leaf $tag] " "
+}
+
+#
+# Check for superfluous lines
+#
+
+foreach tok_type {parenblk argparenblk initializer funcsignature inherit funcdecl funcimpl enum} {
+	foreach token [select_by_type $tok_type] {
+
+		# remove leading comment
+		set string $tok_text($token)
+		regsub {^\s*§m?lcomment\d+°\n} $string "" string
+
+		# if token contains no newline, there is nothing to optimize
+		set expanded [expand $string]
+		set num_newlines [regexp -all {\n} $expanded dummy]
+		if {$num_newlines == 0} continue
+
+		# if token contains an empty line, keep it that way
+		if {[regexp {\n\n} $expanded dummy]} continue
+
+		# check it token fits on a single line
+		if {[calc_merged_line_length $token] > 79} continue
+
+		warn "merge line with following lines" $token
+
+		if {$config_fix == 0} continue
+
+		while {[regexp {(§m?lcomment\d+°\n.*)\n} $tok_text($token)]} {
+			regsub {(§m?lcomment\d+°\n.*)\n} $tok_text($token) {\1} tok_text($token)
+		}
+
+		foreach tok "$token [select_by_type {.*} $token]" {
+#			if {[is_type $tok mlcomment]} continue
+			while {[regexp {\n\s*§([^°]+)°} $tok_text($tok) dummy sub_tok]} {
+
+				# indentation is always located at the leaf
+				set sub_tok [next_leaf $sub_tok]
+
+				regsub {\n\s*(§[^°]+°)} $tok_text($tok) " \\1" tok_text($tok)
+				regsub {^\s*}           $tok_text($sub_tok) "" tok_text($sub_tok)
+
+				#
+				# If newline was located at the begin of a parenthesis block, remove the
+				# space after the open parenthesis
+				#
+				regsub {(§openparen\d+°)\s*(§[^°]+°)}  $tok_text($tok)  "\\1\\2" tok_text($tok)
+			}
+		}
+	}
+}
+
+
+#
+# Comment functions at their declaration, not their implementation
+#
+
+msg "Checking location of comments..."
+
+proc check_impl_comment_policy { impl } {
+	global tok_text
+
+	if {[is_within $impl classblock]} return
+	if {[is_within $impl tplfunc]} return
+	if {[llength [select_by_type mlcomment $impl]] == 0} return
+
+	# check if function has no inline or static modifier
+	set modifier_tokens [select_by_type modifier $impl]
+
+	set is_local 0
+	foreach modifier_token $modifier_tokens {
+		set modifier [expand_token $modifier_token]
+		if {[regexp {\mstatic\M} $modifier dummy]} { set is_local 1 }
+		if {[regexp {\minline\M} $modifier dummy]} { set is_local 1 }
+	}
+
+	if {[regexp {^\s*§mlcomment\d+°} $tok_text($impl) dummy] == 0} return
+
+	set funcname [expand_token [select_by_type identifier [select_by_type funcsignature $impl 1] 1]]
+	if {!$is_local} {
+		warn "move description of non-local \"$funcname\" to its declaration" $impl
+	}
+}
+
+proc check_impl_comment_style { impl } {
+	global tok_text
+	global config_fix
+
+	if {[regexp {^\s*§lcomment} $tok_text($impl) dummy]} {
+		warn "turn function-header comment into multi-line comment" impl
+		return
+	}
+
+	# if no function header exists, there is nothing to check
+	if {[regexp {^\s*§(mlcomment\d+)°} $tok_text($impl) dummy mlcomment] == 0} {
+		return }
+
+	if {[regexp {^\s*\/\*\*\n} $tok_text($mlcomment)] == 0} {
+		warn "function-header comment should start with '/**'" $mlcomment
+
+		if {$config_fix} {
+			regsub {^(\s*)\/\*+\n} $tok_text($mlcomment) "\\1/**\n" tok_text($mlcomment)
+		}
+	}
+
+	if {[regexp {\n[\t ]*\*\/$} $tok_text($mlcomment)] == 0} {
+		warn "function-header comment should end with '*/'" $mlcomment
+
+		if {$config_fix} {
+			regsub {(\n[\t ]*)[* ]*\*\/ *$} $tok_text($mlcomment) "\\1\*\/" tok_text($mlcomment)
+		}
+	}
+
+	if {[regexp {^[^\w]*[a-z]} $tok_text($mlcomment)]} {
+		warn "brief description should start with upper case" $mlcomment
+		return
+	}
+}
+
+foreach tok_type {funcimpl constimpl destimpl} {
+	foreach impl_token [select_by_type $tok_type] {
+		check_impl_comment_policy $impl_token
+		check_impl_comment_style $impl_token
+	}
+}
+
+#
+# Check function header comments
+#
+
+msg "Checking comments..."
+
+proc check_upper_case { string message {token ""} } {
+	if {[string toupper $string 0 0] == $string} return
+	warn $message $token
+}
+
+
+proc check_mlcomment { token } {
+	global tok_text
+	global tok_line
+	global config_fix
+	set string $tok_text($token)
+	set brief_pattern {\\brief\s+([^\n]+)\n}
+	if {[regexp $brief_pattern $string dummy brief]} {
+
+		check_upper_case $brief "start brief decription with upper case" $token
+		set brief [string toupper $brief 0 0]
+
+		warn "ommit '\\brief' tag for brief description comment, use" $token
+		warn "/**"       $token
+		warn " * $brief" $token
+		warn " *"        $token
+
+		regsub $brief_pattern $string "$brief\n" string
+		regsub {\/\*\n} $string "/**\n" string
+	}
+
+	set pattern {(/\*[^\\]*\n)([\t ]*\*)\s*\\}
+	if {[regexp $pattern $string dummy start indent]} {
+		if {[regexp {[^\*]\n$} $start dummy]} {
+			warn "brief description of comment should be followed by an empty line" $token
+			regsub $pattern $string "$start$indent\n$indent \\" string
+		}
+	}
+
+	if {$config_fix} { set tok_text($token) $string }
+}
+
+
+proc is_at_begin_of_parent { token } {
+	global tok_text
+	return [regexp "^\\s*§$token°" $tok_text([get_parent $token]) dummy]
+}
+
+
+foreach mlcomment [select_by_type mlcomment] {
+
+	# do not look at file header
+	if {[get_parent $mlcomment] == "content0" && [is_at_begin_of_parent $mlcomment]} continue
+
+	check_mlcomment $mlcomment
+}
+
+
+abort

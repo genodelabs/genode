@@ -1,0 +1,116 @@
+
+                      =============================
+                      How to start exploring Genode
+                      =============================
+
+                               Norman Feske
+
+
+Abstract
+########
+
+This guide is meant to provide you a painless start with using the Genode OS
+Framework. It explains the steps needed to get a simple demo system running
+on Linux first, followed by the instructions on how to run the same scenario
+on a microkernel.
+
+
+Quick start to build Genode for Linux
+#####################################
+
+The best starting point for exploring Genode is to run it on Linux. Make sure
+that your system satisfies the following requirements:
+
+* GNU 'Make' version 3.81 or newer
+* 'libSDL-dev'
+* 'tclsh' and 'expect'
+* 'byacc' (only needed for the L4/Fiasco kernel)
+* 'qemu' and 'genisoimage' (for testing non-Linux platforms via Qemu)
+
+Furthermore, you will need to install the official Genode toolchain, which
+you can download at [http://genode.org/download/tool-chain].
+
+The Genode build system never touches the source tree but generates object
+files, libraries, and programs in a dedicated build directory. We do not have a
+build directory yet. For a quick start, let us create one for the Linux base
+platform:
+
+! cd <genode-dir>
+! ./tool/create_builddir linux_x86 BUILD_DIR=build.lx
+
+The new build directory is called 'build.lx' and configured for the 'linux_x86'
+platform. To give Genode a try, build and execute a simple demo scenario via:
+
+! cd build.lx
+! make run/demo
+
+By invoking 'make' with the 'run/demo' argument, all components needed by the
+demo scenario are built and the demo is executed. If you are interested in
+looking behind the scenes of the demo scenario, please refer to
+'doc/build_system.txt' and the run script at 'os/run/demo.run'.
+
+
+Using platforms other than Linux
+================================
+
+Running Genode on Linux is the most convenient way to get acquainted with the
+framework. However, the point where Genode starts to shine is when used as the
+user land executed on a microkernel. The framework supports a variety of
+different kernels such as L4/Fiasco, L4ka::Pistachio, OKL4, and NOVA. Those
+kernels largely differ in terms of feature sets, build systems, tools, and boot
+concepts. To relieve you from dealing with those peculiarities, Genode provides
+you with an unified way of using them. For each kernel platform, there exists
+a dedicated directory called 'base-<platform>'. Within this directory, you will
+find a 'Makefile', which automates the task of downloading the source codes of
+the kernel and interfacing the kernel with Genode. Just change to the
+respective 'base-<platform>' directory and issue:
+
+! make prepare
+
+Note that each 'base-<platform>' directory comes with a 'README' file, which
+you should revisit first when exploring the base platform. Additionally, most
+'base-<platform>' directories provide more in-depth information within their
+respective 'doc/' subdirectories.
+
+Now that the base platform is prepared, the 'create_builddir' tool can be used
+to create a build directory for your platform of choice by giving the platform
+as argument. To see the list of available platforms, execute 'create_builddir'
+with no arguments.
+
+For example, to give the demo scenario a spin on the OKL4 kernel, the following
+steps are required:
+
+# Download the kernel:
+  ! cd <genode-dir>
+  ! make -C base-okl4 prepare
+# Create a build directory
+  ! ./tool/create_builddir okl4_x86 BUILD_DIR=build.okl4
+# Build and execute the demo using Qemu
+  ! make -C build.okl4 run/demo
+
+The procedure works analogously for the other base platforms.
+
+
+How to proceed with exploring Genode
+####################################
+
+Now that you have taken the first steps into using Genode, you may seek to
+get more in-depth knowledge and practical experience. The foundation for doing
+so is a basic understanding of the build system. The documentation at
+'build_system.txt' provides you with the information about the layout of the
+source tree, how new components are integrated, and how complete system
+scenarios can be expressed. Equipped with this knowledge, it is time to get
+hands-on experience with creating custom Genode components. A good start is the
+'hello_tutorial', which shows you how to implement a simple client-server
+scenario. To compose complex scenarios out of many small components, the
+documentation of the Genode's configuration concept at 'os/doc/init.txt' is an
+essential reference.
+
+Certainly, you will have further questions on your way with exploring Genode.
+The best place to get these questions answered is the Genode mailing list.
+Please feel welcome to ask your questions and to join the discussions:
+
+:Genode Mailing Lists:
+
+  [http://genode.org/community/mailing-lists]
+

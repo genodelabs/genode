@@ -1,0 +1,16 @@
+This directory contains default configuration files that are used
+by the '<role>.mk' files in the 'mk/' directory. By
+convention, configuration files are first read from here
+followed by a corresponding config file in '<builddir>/etc/'.
+
+
+Convention
+~~~~~~~~~~
+
+We include config files directly into makefiles. So the basic
+makefile syntax applies here, too.
+
+Config files should
+* Have '.conf' as filename extension.
+* Use only assignments but provide no rules or other 'make'-magic.
+* Not include other files!

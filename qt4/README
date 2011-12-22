@@ -1,0 +1,27 @@
+This repository contains the Qt4 toolkit für Genode
+
+Qt4 is a tool kit for developing platform-independent applications. It
+comprises a complete platform-abstraction layer and a rich GUI tool kit.
+With this repository, native Qt4 applications can be compiled and
+natively executed for the Genode OS Framework. This way, Qt4 becomes
+available on all base platforms supported by Genode.
+
+Usage
+-----
+
+For using Qt4 for your Genode applications, you first need to download and
+prepare the original Qt4 source codes and build a few Qt4 tools such as
+the meta-object compiler (moc) and the resource compiler. The top-level
+makefile found in this directory automates this task. Just issue:
+
+! make prepare
+
+To include the 'qt4' repository into the Genode build process,
+add the 'qt4/' directory to the 'REPOSITORIES' declaration of the
+'etc/build.conf' file within your build directory.
+
+Since the Genode release 9.11, Qt4 depends on the 'libports' repository,
+specifically on the 'freetype2' and 'jpeg' libraries. Please make sure
+that you called the top-level Makefile of the 'libports' repository
+for those preparing those libraries and that your 'REPOSITORIES' declaration
+contains the 'libports' repository.

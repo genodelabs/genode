@@ -1,0 +1,126 @@
+#
+# \brief  Example for using Vancouver on Genode
+# \author Norman Feske
+# \date   2011-11-21
+#
+# This run script starts the Vancouver VMM booting the multiboot modules
+# listed in the 'multiboot' config node. It assumes that the module files
+# are present at '<build-dir>/bin/' (see the 'boot_modules' variable).
+#
+
+#
+# Build
+#
+
+if {![have_spec nova]} {
+	puts "\nVancouver is only supported on NOVA\n"
+	exit 0
+}
+
+set build_components {
+	core init
+	drivers/timer
+	vancouver
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="vancouver">
+		<binary name="vancouver"/>
+		<resource name="RAM" quantum="64M"/>
+		<config>
+			<machine>
+				<mem start="0x0" end="0xa0000"/>
+				<mem start="0x100000" end="0x2000000"/>
+				<!--<ioio/>-->
+				<nullio io_base="0x80" />
+				<pic io_base="0x20" elcr_base="0x4d0"/>
+				<pic io_base="0xa0" irq="2" elcr_base="0x4d1"/>
+				<pit io_base="0x40" irq="0"/>
+				<scp io_port_a="0x92" io_port_b="0x61"/>
+				<kbc io_base="0x60" irq_kbd="1" irq_aux="12"/>
+				<keyb ps2_port="0" host_keyboard="0x10000"/>
+				<mouse ps2_port="1" host_mouse="0x10001"/>
+				<rtc io_base="0x70" irq="8"/>
+				<serial io_base="0x3f8" irq="0x4" host_serial="0x4711"/>
+				<hostsink host_dev="0x4712" buffer="80"/>
+				<vga io_base="0x03c0"/>
+				<vbios_disk/>
+				<vbios_keyboard/>
+				<vbios_mem/>
+				<vbios_time/>
+				<vbios_reset/>
+				<vbios_multiboot/>
+				<msi/>
+				<ioapic/>
+				<pcihostbridge bus_num="0" bus_count="0x10" io_base="0xcf8"
+				               mem_base="0xe0000000"/>
+				<pmtimer io_port="0x8000"/>
+				<vcpu/> <halifax/> <vbios/> <lapic/>
+			</machine>
+			<multiboot>
+				<rom name="bootstrap"/>
+				<rom name="fiasco"/>
+				<rom name="sigma0.foc"/>
+				<rom name="core.foc"/>
+			</multiboot>
+		</config>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	vancouver
+}
+
+#
+# Add files for a simple Fiasco.OC setup to core's ROM service
+#
+# The files are copied from a Genode build directory for the Fiasco.OC base
+# platform.
+#
+append boot_modules { bootstrap fiasco sigma0.foc core.foc }
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 "
+append qemu_args " -nographic "
+
+run_genode_until forever

@@ -1,0 +1,24 @@
+This directory contains library description files.  Each '<libname>.mk' file
+holds the instruction for building the library '<libname>'. These makefiles are
+never used directly but they are called from the build system when required.
+When called, the build system passes the following variables:
+
+:'BASE_DIR': This is the base directory of the source tree.
+
+Source codes are specified by setting the 'SRC_CC' and 'SRC_C' variables.
+The source code locations must be specified via 'vpath'.
+A library can include other libraries by setting the 'LIBS'
+variable.
+
+Each '<libname>.mk' file must include the 'lib.mk' role file:
+
+! include $(BASE_DIR)/mk/lib.mk
+
+Libraries implementing one and the same library interface may have specific
+implementations for different platforms. Such platform-specific '<libname>.mk'
+files should be placed into corresponding subdirectories. For example, the
+'linux'-specific implementation of the 'server' library resides in the 'linux/'
+subdirectory. The build system automatically searches the right '<libname>.mk'
+file by evaluating the 'SPECS' configuration variable. If 'SPECS' is set to
+'host linux', the build system will look into the directories './', './host',
+and './linux'.

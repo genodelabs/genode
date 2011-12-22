@@ -1,0 +1,19 @@
+Manual modifications
+####################
+
+:'src/lib/libc/stdlib/malloc.c':
+
+  Undefine 'MALLOC_DSS' to avoid the usage of sbrk.
+  ! //#define	MALLOC_DSS
+
+:'src/lib/libc/stdio/vfwprintf.c':
+
+  Fix warnings caused by conversions between (char *) and (wchar_t *).
+  This is just a cosmetic fix.
+
+:'src/lib/libc/gen/_pthread_stubs.c':
+
+  Prevent definition of symbol 'pthread_cancel'. This symbol is provided by the
+  C++ support library as weak symbol. By redefining this symbol as non-weak in
+  the libc, the C++ support library would use the libc dummy stub instead its
+  own implementation, causing problems with handling exceptions.

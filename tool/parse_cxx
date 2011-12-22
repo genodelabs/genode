@@ -1,0 +1,906 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Regular-expression-based C++ parser
+# \author Norman Feske
+# \date   2007-08-15
+#
+
+# check command line arguments
+set config_out_xml    [regsub -- "-format +xml"    $argv "" argv]
+set config_out_tokens [regsub -- "-format +tokens" $argv "" argv]
+set config_out_source [regsub -- "-format +source" $argv "" argv]
+set config_whitespace [regsub -- "-whitespace"     $argv "" argv]
+
+# read file
+set input_pathname [lindex $argv 0]
+if {[catch {
+
+	#
+	# Create root node of the syntax tree
+	#
+	set txt(0) [exec cat $input_pathname]
+	set typ(0) content
+	set num 1
+}]} {
+	foreach line {
+		""
+		"Parse C++ file and output syntax tree."
+		""
+		"  usage: parse_cxx \[-whitespace\] \[-format {xml|tokens|source}\] <source_file>"
+		""
+		"The supported output formats are:"
+		""
+		"  xml    - XML-based representation"
+		"  tokens - List of tokens (parser-internal representation)"
+		"  source - Source as generated from syntax tree (for debugging)"
+		""
+		"If the '-whitespace' argument is specified, whitespaces get translated to tokens."
+		""
+	} { puts stderr $line }
+
+	exit -1;
+}
+
+# do not stop parsing (this variable is only used for debugging)
+set stop 0
+
+#
+# Detect occurence of magic characters that we
+# use to mark substitutions in the syntax tree.
+#
+if {[regexp {[§³°]} $txt(0) magic_char]} {
+	puts stderr "Error: Source code contains reserved character '$magic_char'."
+	puts stderr "       The following characters are reserved: '§', '³', '°'"
+	exit -1;
+}
+
+#
+# Replace all '&' characters from the original input
+# because they cause trouble with the regexp command.
+#
+regsub -all {&} $txt(0) "³" txt(0)
+
+
+##
+# Extract expression from content
+#
+# All expressions that occur in the token types 'typelist'
+# and that match the 'subexpr' criterion get replaced in
+# their original token by a reference tag and form a new
+# token of the type 'newtype'.
+#
+# The reference is coded as §<token_type><token_id>°.
+# Since the reference has the type coded in, we can
+# match sub tokens of specific types via plain regular
+# expressions.
+##
+proc extract {newtype subexpr typelist} {
+	global num txt typ stop
+	set old_num $num
+
+	if {$stop} { return }
+
+	for {set i 0} {$i < $old_num} {incr i} {
+		if {[lsearch $typelist $typ($i)] > -1} {
+			while {[regexp $subexpr $txt($i) mid]} {
+
+				# new sub text #
+				set typ($num) $newtype
+				set txt($num) $mid
+
+				# substitute expression by a reference #
+				regsub $subexpr $txt($i)  "§$newtype$num°" txt($i)
+				incr num
+			}
+		}
+	}
+}
+
+
+##
+# Extract operations
+#
+# \param op_name  name of operator
+# \param op_type  type of operator, can be "binary", "pre", or "post"
+# \param op_dir   direction of application, can be "ltr" (left to
+#                 right) or "trl" (right to left)
+##
+proc extract_op {newtype op_name op_type op_dir typelist} {
+	global num txt typ stop
+	set old_num $num
+
+	if {$stop} { return }
+
+	# Extracting operators is context-sensitive. In particular,
+	# unary operators must not be applied if they have an
+	# operand as neighbor. Hence, we construct a pattern with
+	# three subpatterns, one for the leading context, one for
+	# the new operand sub token, and one for the trailing context.
+
+	if {$op_dir == "ltr"} {
+		set lpattern ""
+	} else {
+		set lpattern ".*"
+	}
+
+	set repl_left {\1}
+	if {$op_type == "pre"} {
+		set pattern "(^|$lpattern\(?:\[^i\]er|\[^e\]r|\[^r\\d\]\)\\d+°\\s*)(§$op_name\\d+°\\s*§identifier\\d+°)" }
+		set repl_right {}
+	if {$op_type == "post"} {
+		set pattern "($lpattern)(§identifier\\d+°\\s*§$op_name\\d+°\\s*)((§(\[^i\]|i\[^d\]|id\[^e\]))|;|\$)" }
+		set repl_right {\3}
+	if {$op_type == "binary"} {
+		set pattern "($lpattern)(§identifier\\d+°\\s*§$op_name\\d+°\\s*§identifier\\d+°)"
+		set repl_right {}
+	}
+
+	for {set i 0} {$i < $old_num} {incr i} {
+		if {[lsearch $typelist $typ($i)] > -1} {
+
+			while {[regexp $pattern $txt($i) dummy lcontext match rcontext]} {
+
+				# new sub text #
+				set typ($num) $newtype
+				set txt($num) $match
+
+				set old_txt $txt($i)
+
+				# substitute expression by a reference #
+				regsub $pattern $txt($i)  "$repl_left§$newtype$num°$repl_right" txt($i)
+
+				incr num
+			}
+		}
+	}
+}
+
+
+proc extract_operations { from } {
+	set operators { { doublecolon    binary ltr }
+	                { parenblk       post   ltr # function call }
+	                { arrayindex     post   ltr }
+	                { deref          binary ltr }
+	                { dot            binary ltr }
+	                { incr           post   ltr }
+	                { decr           post   ltr }
+	                { not            pre    rtl }
+	                { tilde          pre    rtl }
+	                { incr           pre    rtl }
+	                { decr           pre    rtl }
+	                { minus          pre    rtl }
+	                { plus           pre    rtl }
+	                { star           pre    rtl # deref }
+	                { amper          pre    rtl # addrof }
+	                { keysizeof      pre    rtl }
+	                { parenblk       pre    rtl # cast }
+	                { star           binary ltr }
+	                { div            binary ltr }
+	                { mod            binary ltr }
+	                { plus           binary ltr }
+	                { minus          binary ltr }
+	                { lshift         binary ltr }
+	                { rshift         binary ltr }
+	                { less           binary ltr }
+	                { lessequal      binary ltr }
+	                { greater        binary ltr }
+	                { greaterequal   binary ltr }
+	                { equal          binary ltr }
+	                { notequal       binary ltr }
+	                { amper          binary ltr # bitand }
+	                { xor            binary ltr }
+	                { bitor          binary ltr }
+	                { and            binary ltr }
+	                { or             binary ltr }
+	                { cond           binary ltr }
+	                { assign         binary rtl }
+	                { assignopplus   binary rtl }
+	                { assignopminus  binary rtl }
+	                { assignopmult   binary rtl }
+	                { assignopdiv    binary rtl }
+	                { assignopmod    binary rtl }
+	                { assignopbitand binary rtl }
+	                { assignopbitxor binary rtl }
+	                { assignopbitor  binary rtl }
+	                { assignoplshift binary rtl }
+	                { assignoprshift binary rtl }
+	                { keythrow       pre    rtl }
+	                { comma          binary ltr }
+	            }
+
+	foreach op $operators {
+		set op_name [lindex $op 0]
+		set op_type [lindex $op 1]
+		set op_dir  [lindex $op 2]
+		extract_op identifier $op_name $op_type $op_dir $from
+	}
+}
+
+
+proc extract_enum_operations { from } {
+	set operators { { doublecolon    binary ltr }
+	                { parenblk       post   ltr # function call }
+	                { not            pre    rtl }
+	                { tilde          pre    rtl }
+	                { minus          pre    rtl }
+	                { plus           pre    rtl }
+	                { amper          pre    rtl # addrof }
+	                { keysizeof      pre    rtl }
+	                { star           binary ltr }
+	                { div            binary ltr }
+	                { mod            binary ltr }
+	                { plus           binary ltr }
+	                { minus          binary ltr }
+	                { lshift         binary ltr }
+	                { rshift         binary ltr }
+	                { less           binary ltr }
+	                { lessequal      binary ltr }
+	                { greater        binary ltr }
+	                { greaterequal   binary ltr }
+	                { equal          binary ltr }
+	                { notequal       binary ltr }
+	                { amper          binary ltr # bitand }
+	                { xor            binary ltr }
+	                { bitor          binary ltr }
+	                { and            binary ltr }
+	                { or             binary ltr }
+	                { cond           binary ltr }
+	            }
+
+	foreach op $operators {
+		set op_name [lindex $op 0]
+		set op_type [lindex $op 1]
+		set op_dir  [lindex $op 2]
+		extract_op identifier $op_name $op_type $op_dir $from
+	}
+}
+
+
+##
+# Refine types of sub tokens
+#
+# This function changes the type of sub tokens of the specified
+# environment token to the specified replacement type.  It is
+# used to specialize token types depending on their environment.
+# For example, for turning blocks within classes into specialized
+# declaration blocks, for which other rules apply than for
+# function-body blocks.
+##
+proc refine_sub_tokens {env_type sub_type repl_sub_type} {
+	global num txt typ stop
+
+	if {$stop} { return }
+
+	# iterate through token list in search of env-typed tokens
+	for {set i 0} {$i < $num} {incr i} {
+		if {$typ($i) == $env_type} {
+
+			set env $txt($i)
+			while {[regexp "§$sub_type\(\\d+)°" $env dummy sub_token_idx]} {
+				set typ($sub_token_idx) $repl_sub_type
+				regsub "§$sub_type\(\\d+)°" $env "§$repl_sub_type$sub_token_idx°" env
+			}
+
+			# update environment token
+			set txt($i) $env
+		}
+	}
+}
+
+
+#####################################################
+## Rules for splitting the input into its elements ##
+#####################################################
+
+#
+# Starting with only the root token (content0) of the syntax tree
+# containing the whole source code as one string, we extract
+# typed sub tokens to partition the string into parts of distinct
+# meanings (token types).  In the process of subsequently
+# applying extraction rules to specific token types, a syntax
+# tree is formed.
+#
+
+# extract line comments
+extract lcomment {/\*[^\n]*?\*/} content
+
+# extract multi-line comments
+extract mlcomment {/\*.*?\*/} content
+
+extract quotedchar {'(.|\\.)'} content
+
+# extract strings
+#
+# Strings may contain quoted '"' characters.
+#
+extract string {\"([^\"]|\")*?\"} content
+
+# extract C++-style comments
+extract cxxcomment {\/\/[^\n]*} content
+
+# extract preprocessor directives
+#
+# Preprocessor macros may span over multiple lines if a
+# backslash is supplied at the end of each line.
+#
+extract preproc {#([^\n]|\\\n)*} content
+
+extract preprefix {#} preproc
+
+# extract keywords
+foreach keyword {
+	private public protected unsigned extern
+	while for if else switch do return typedef
+	static_cast reinterpret_cast dynamic_cast
+	using namespace class struct union enum template
+	const inline static virtual friend explicit
+	volatile case default operator new throw
+	try catch continue sizeof asm
+	GENODE_RPC GENODE_RPC_THROW
+	GENODE_RPC_INTERFACE GENODE_RPC_INTERFACE_INHERIT
+	GENODE_TYPE_LIST
+} {
+	set keytag $keyword
+	regsub -all {_} $keytag "" keytag
+	set keytag [string tolower $keytag]
+	extract "key$keytag" "\\m$keyword\\M" content
+}
+
+# extract extern "C"
+extract "keyexternc" {§keyextern\d+°\s*§string\d+°} content
+
+# fold parenthesis and blocks
+extract parenblk {\([^()]*?\)} {content parenblk}
+extract block    {\{[^{}]*?\}} {content parenblk block}
+extract openbrace  "\{" block
+extract closebrace "\}" block
+extract openparen  {\(} parenblk
+extract closeparen {\)} parenblk
+
+extract externcblk {§keyexternc\d+°\s*§block\d+°} content
+
+# extract template argument blocks
+extract tplargs    {<[^<>{}]*>$} {content block parenblk}
+extract tplargs    {<[^<>{}]*>(?=[^>])} {content block parenblk}
+
+# extract special characters
+extract equal          {==}   {content block parenblk}
+extract assignopplus   {\+=}  {content block parenblk}
+extract assignopminus  {\-=}  {content block parenblk}
+extract assignopmult   {\*=}  {content block parenblk}
+extract assignopdiv    {\/=}  {content block parenblk}
+extract assignopmod    {%=}   {content block parenblk}
+extract assignopbitor  {\|=}  {content block parenblk}
+extract assignopbitand {³=}   {content block parenblk}
+extract assignopbitxor {\^=}  {content block parenblk}
+extract assignopneq    {\!=}  {content block parenblk}
+extract assignoplshift {<<=}  {content block parenblk}
+extract assignoprshift {>>=}  {content block parenblk}
+extract incr           {\+\+} {content block parenblk}
+extract decr           {\-\-} {content block parenblk}
+extract doublecolon    {::}   {content block parenblk}
+extract or             {\|\|} {content block parenblk}
+extract bitor          {\|}   {content block parenblk}
+extract and            {³³}   {content block parenblk}
+extract amper          {³}    {content block parenblk}
+extract plus           {\+}   {content block parenblk}
+extract div            {\/}   {content block parenblk}
+extract star           {\*}   {content block parenblk}
+extract notequal       {\!=}  {content block parenblk}
+extract not            {\!}   {content block parenblk}
+extract deref          {\->}  {content block parenblk}
+extract dot            {\.}   {content block parenblk}
+extract tilde          {~}    {content block parenblk}
+extract lshift         {<<}   {content block parenblk}
+extract rshift         {>>}   {content block parenblk}
+extract greaterequal   {>=}   {content block parenblk}
+extract lessequal      {<=}   {content block parenblk}
+extract greater        {>}    {content block parenblk}
+extract less           {<}    {content block parenblk}
+extract minus          {\-}   {content block parenblk}
+extract mod            {%}    {content block parenblk}
+extract xor            {\^}   {content block parenblk}
+extract question       {\?}   {content block parenblk}
+extract comma          {,}    {content block parenblk}
+extract assign         {=}    {content block parenblk}
+
+extract attribute {__attribute__\s*§parenblk\d+°} {content block parenblk}
+
+# extract identifiers
+extract identifier {([\w_][\w\d_]*)+(?=[^°]*(§|$))} {content parenblk block}
+
+extract identifier {§quotedchar\d+°} {content parenblk block}
+
+# merge template arguments with the predecessing identifier
+extract identifier {§identifier\d+°\s*§tplargs\d+°} {content block parenblk}
+
+# extract using namespace
+extract using {§keyusing\d+°\s*§keynamespace\d+°\s*§identifier\d+°\s*;} {content block}
+
+# extract casted identifiers and thereby potentially creating new valid assignments
+extract identifier {§key(static|dynamic|reinterpret)cast\d+°\s*§tplargs\d+°\s*§parenblk\d+°} {block}
+
+#
+# XXX the C++ precedence rules are not fully implemented
+#
+
+# extract namespaced identifiers
+extract identifier {§identifier\d+°\s*§doublecolon\d+°\s*§identifier\d+°} block
+
+# extract identifiers in the root namespace
+extract identifier {§doublecolon\d+°\s*§identifier\d+°} block
+
+extract whilecond {§keywhile\d+°\s*§parenblk\d+°} block
+extract forcond {§keyfor\d+°\s*§parenblk\d+°} block
+extract ifcond {§keyif\d+°\s*§parenblk\d+°} block
+extract switchcond {§keyswitch\d+°\s*§parenblk\d+°} block
+extract catchcond {§keycatch\d+°\s*§parenblk\d+°} block
+
+# extract forward declarations of structs and classes
+extract classdecl  {§keyclass\d+°\s*§identifier\d+°\s*;}  {content block}
+extract structdecl {§keystruct\d+°\s*§identifier\d+°\s*;} {content block}
+
+# extract classes
+extract class   {(§mlcomment\d+° *\n[ \t]*)?§keyclass\d+°\s*§identifier\d+°[^;]*;}  {content block}
+extract struct  {(§mlcomment\d+° *\n[ \t]*)?§keystruct\d+°\s*§identifier\d+°[^;]*;} {content block}
+extract union   {(§mlcomment\d+° *\n[ \t]*)?§keyunion\d+°\s*§identifier\d+°[^;]*;}  {content block}
+extract enum    {(§mlcomment\d+° *\n[ \t]*)?§keyenum\d+°\s*[^;]*;}                  {content block}
+
+extract inherit {:.*?(?=\s*§block\d+°)} {class struct union}
+
+# partition block types into more expressive sub types
+refine_sub_tokens class  block classblock
+refine_sub_tokens struct block classblock
+refine_sub_tokens union  block classblock
+refine_sub_tokens enum   block enumblock
+
+extract_enum_operations enumblock
+
+#enumvalue {§identifier\d+°[^,]*?(?=§comma\d+°)} enumblock
+extract enumentry {§identifier\d+°\s*§assign\d+°\s*§identifier\d+°} enumblock
+extract enumvalue {§identifier\d+°$} enumentry
+extract enumentry {§identifier\d+°} enumblock
+
+# extract template classes
+extract tplclassdecl {(§mlcomment\d+°[\t ]*\n[\t ]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§classdecl\d+°} {content block classblock}
+extract tplstructdecl {(§mlcomment\d+°[\t ]*\n[\t ]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§structdecl\d+°} {content block classblock}
+
+extract tplclass {(§mlcomment\d+°[\t ]*\n[\t ]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§class\d+°} {content block classblock}
+extract tplstruct {(§mlcomment\d+°[\t ]*\n[\t ]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§struct\d+°} {content block classblock}
+
+refine_sub_tokens tplclassdecl classdecl class;
+refine_sub_tokens tplstructdecl structdecl class;
+
+extract arrayindex {\[[^\]]*\]} {content classblock block arrayindex}
+
+# detect case labels within switch statements and protection labels
+extract caselabel {§keycase\d+°[^:]+:} {block}
+extract caselabel {§keydefault\d+°:} {block}
+foreach keyword { private public protected } {
+	set label label
+	extract "$keyword$label" "§key$keyword\\d+°:" {classblock} }
+
+extract identifier {§identifier\d+°+\s*§doublecolon\d+°\s*§identifier\d+°} {content classblock}
+
+# extract class initialize list
+extract initializer {:\s*§identifier\d+°\s*§parenblk\d+°(\s*§comma\d+°\s*§identifier\d+°\s*§parenblk\d+°)*} {content classblock}
+extract colon {:}   {initializer inherit}
+
+# extract asm blocks
+extract asm {§keyasm\d+°\s*(§keyvolatile\d+°)?\s*§parenblk\d+°} {content block}
+
+# extract Genode-specific RPC declaration macros
+set genode_macros { genoderpc genoderpcthrow genoderpcinterface genoderpcinterfaceinherit genodetypelist }
+foreach key $genode_macros {
+	extract $key "§key$key\\d+°\\s*§parenblk\\d+°\\s*" { classblock parenblk } }
+
+foreach key $genode_macros {
+	refine_sub_tokens $key parenblk macroargblk }
+
+# extract functions
+extract operatorfunction {§keyoperator\d+°\s*§[^°]+\d+°\s*§parenblk\d+°} {content classblock}
+extract funcptr {§parenblk\d+°\s*§parenblk\d+°(\s*§attribute\d+°)?} {content classblock block identifier parenblk}
+extract function {§identifier\d+°\s*§parenblk\d+°(\s*§attribute\d+°)?} {content classblock block initializer}
+
+extract destfunction {(§identifier\d+°§doublecolon\d+°)?§tilde\d+°§identifier\d+°\s*§parenblk\d+°} {content classblock}
+extract identifier {(§identifier\d+°§doublecolon\d+°)?§tilde\d+°§identifier\d+°} destfunction
+
+extract identifier {§identifier\d+°\s*§parenblk\d+°} {parenblk block identifier initializer}
+extract identifier {§parenblk\d+°} {parenblk block}
+#extract_operations parenblk
+
+# extract arrays
+extract array {(§identifier\d+°\s*)(§arrayindex\d+°\s*)+} {content classblock block}
+extract identifier {§array\d+°} {content classblock block}
+
+# extract assignments
+extract identifier {(?=(\s*|;))(§star\d+°\s*)*§identifier\d+°\s*§assign\w*\d+°[^;]*} block
+
+# extract throw statements
+extract identifier {(?=(\s*|;))§keythrow\d+°\s*[^;]*} block
+
+# extract stream operators
+#extract lhidentifier {(?=(\s*|;))[^;]*?§(lshift|rshift)\d+°[^;]*} block
+
+# extract uses of the new operator
+extract identifier {§keynew\d+°\s*(§parenblk\d+°\s*)?§function\d+°} block
+
+# extract return statements
+extract return {§keyreturn\d+°[^;]*} {block}
+
+# extract modifiers
+extract modifier {(§key(extern|externc|const|static|inline|virtual|volatile)\d+°\s*)+} {content classblock block}
+
+# extract function declarations
+extract funcdecl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned)\d+°\s*)*§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§modifier\d+°\s*)*(§assign\d+°\s*§identifier\d+°)?\s*;} {content block classblock}
+
+# extract function implementations
+extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned)\d+°\s*)?§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
+extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?§operatorfunction\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
+
+# extract function implementations
+extract funcimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyunsigned)\d+°\s*)?§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*§(operator)?function\d+°\s*(§modifier\d+°\s*)?§block\d+°[;\t ]*} {content block classblock}
+
+# extract template functions
+extract tplfunc {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§funcimpl\d+°} {content block classblock}
+
+# extract template functions declarations
+extract tplfuncdecl {(§mlcomment\d+° *\n[ \t]*)?§keytemplate\d+°\s*§tplargs\d+°\s*§funcdecl\d+°} {content block classblock}
+
+# extract destructor implementations
+extract destimpl {(§mlcomment\d+° *\n[ \t]*)?(§modifier\d+°\s*)?§tilde\d+°§function\d+°\s*§block\d+°[;\t ]*} {content classblock}
+refine_sub_tokens destimpl destfunction function
+
+# extract constructor implementations
+extract constimpl {(§mlcomment\d+° *\n[ \t]*)?(§(modifier|keyexplicit)\d+°\s*)*§function\d+°\s*(§initializer\d+°\s*)?\s*§block\d+°[;\t ]*} {content classblock}
+
+# extract destructor declarations
+extract destdecl {(§mlcomment\d+° *\n[ \t]*)?(§modifier\d+°\s*)?§tilde\d+°§function\d+°\s*(§assign\d+°\s+§identifier\d+°)?\s*;} {classblock}
+
+# extract constructor declarations
+extract constdecl {(§mlcomment\d+° *\n[ \t]*)?(§keyexplicit\d+°[ \t]*)?§function\d+°\s*(§assign\d+°\s+§identifier\d+°)?\s*;} {classblock}
+
+# extract friendship declarations
+extract frienddecl {§keyfriend\d+°\s*§classdecl\d+°} {classblock}
+
+# classify function signatures and their containing argument-parenthesis blocks
+foreach env_type [list destdecl constdecl destimpl constimpl funcimpl funcdecl] {
+	refine_sub_tokens $env_type function funcsignature }
+refine_sub_tokens funcsignature parenblk argparenblk
+
+extract_operations parenblk
+extract modifier {(§key(const|volatile)\d+°\s*)+} {argparenblk}
+
+# extract pure-virtual assignments
+extract virtassign {§assign\d+°\s+§identifier\d+°} funcdecl
+
+# extract return values
+extract retval {(§keyunsigned\d+°\s*)*(§(identifier|keyunsigned)\d+°)(\s|(§amper\d+°)|(§star\d+°))*} {funcdecl funcimpl}
+extract identifier {§keyunsigned\d+°\s*(§identifier\d+°)?} {retval}
+
+# extract single argument declarations within argument-parenthesis blocks
+extract argdecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)(\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*§identifier\d+°} {argparenblk tplargs}
+
+extract argname {§identifier\d+°$} {argdecl}
+extract argtype {^(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)(\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*} {argdecl}
+
+# extract argument-declaration types
+extract argdecltype {^§(identifier|keyunsigned)\d+°(\s|(§amper\d+°)|(§star\d+°))*} argdecl
+
+# extract typedefs
+extract typedef {(§mlcomment\d+° *\n[ \t]*)?§keytypedef\d+°(\s*§identifier\d+°)+\s*;} {content classblock block}
+extract typename {§identifier\d+°(?=;)} typedef
+
+# extract function pointers
+extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*(§funcptr\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
+
+# extract variable declarations (type + any number of comma-separated variables + optional tailing comment)
+extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*(§(identifier|array)\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
+
+# extract commented variable declaration
+extract commentedvardecl {§vardecl\d+°\s*§m?lcomment\d+°(\s*§lcomment\d°)*} {content classblock block}
+
+# extract valid declaration sequences
+set elem "(mlcomment|lcomment|vardecl|array|commentedvardecl|typedef|funcimpl|funcdecl|enum|class|struct|union|constimpl|constdecl|destimpl|destdecl|tplfunc|tplfuncdecl|tplstruct|tplstructdecl|tplclass|tplclassdecl|frienddecl|classdecl|structdecl)"
+extract declseq "§$elem\\d+°(\\s*§$elem\\d+°)*" {classblock}
+
+# group protection scopes with corresponding declaration sequences
+foreach keyword { private public protected } {
+	set label label
+	extract $keyword "§$keyword$label\\d+°\\s*§declseq\\d+°" {classblock} }
+
+# extract protection-scope labels
+extract label {§key(private|public|protected)\d+°:} {private public protected}
+
+# extract name spaces
+extract namespace {§keynamespace\d+°\s*§identifier\d+°\s*§block\d+°} {content block}
+refine_sub_tokens namespace block namespaceblock
+
+#
+# The remaining block tokens are code blocks. So we can
+# apply code-specific rules to them.
+#
+
+extract identifier {§function\d+°} block
+
+extract_operations {block identifier}
+
+# extract statements from remaining code blocks
+extract statement {§asm\d+°;} block
+extract statement {§identifier\d+°;} block
+extract statement {§return\d+°;}     {block}
+extract statement {§keycontinue\d+°\s*;} block
+
+# extract try-catch statements
+extract statement {§keytry\d+°\s*§block\d+°(\s*§catchcond\d+°\s*§block\d+°)+} {block}
+
+# wrap blocks into statements
+extract statement {§block\d+°} {block statement}
+
+# empty statements (all normal semicolons should be encapsulated in statements now)
+extract statement {;} {block}
+
+# turn control structures into statements
+set pattern_ifelse {(§ifcond\d+°(\s|§m?lcomment\d+°)*§statement\d+°(\s|§m?lcomment\d+°)*§keyelse\d+°(\s|§m?lcomment\d+°)*§statement\d+°)}
+set pattern_if     {(§ifcond\d+°(\s|§m?lcomment\d+°)*§statement\d+°(?!(\s|§m?lcomment\d+°)*§keyelse))}
+set pattern_for    {(§(while|for|switch)cond\d+°(\s|§m?lcomment\d+°)*§statement\d+°)}
+extract statement "($pattern_ifelse|$pattern_if|$pattern_for)" {block statement}
+
+# extract control-structure types
+extract ifelse $pattern_ifelse                                         {statement}
+extract if     $pattern_if                                             {statement}
+extract for    {§forcond\d+°(\s|§m?lcomment\d+°)*(§statement\d+°|;)}   {statement}
+extract while  {§whilecond\d+°(\s|§m?lcomment\d+°)*(§statement\d+°|;)} {statement}
+extract switch {§switchcond\d+°(\s|§m?lcomment\d+°)*§statement\d+°}    {statement}
+
+# turn control-flow element into statements
+foreach type { ifelse if while for switch try } {
+	extract statement "§$type\\d+°" block }
+
+# extract valid code sequences
+set elem "(mlcomment|vardecl|statement|lcomment)"
+extract codeseq "§$elem\\d+°(\\s*§$elem\\d+°)*" {block}
+
+#
+# Extract line breaks, spaces, and tabs from all types
+#
+
+if {$config_whitespace} {
+	set all_types ""
+	for {set i 0} {$i < $num} {incr i} {
+		if {[lsearch $all_types $typ($i)] == -1} {
+			lappend all_types $typ($i) }}
+	
+	extract line {\n}       $all_types
+	extract align { +(?= )} $all_types
+	extract space { }       $all_types
+	extract tab   {\t}      $all_types
+}
+
+
+###############################
+## Back-end helper functions ##
+###############################
+
+##
+# Return name of reference token with specified index
+##
+proc token_by_idx {idx} {
+	global typ;
+	return "$typ($idx)$idx"
+}
+
+
+##
+# Return index of specified reference token
+##
+proc idx_of_token {token} {
+	regexp {[0-9]+} $token idx
+	return $idx
+}
+
+
+##
+# Return type of specified reference token
+##
+proc type_of_token {token} {
+	regexp {[a-z]+} $token type
+	return $type
+}
+
+
+##
+# Return marker for reference token
+##
+proc marker {token} {
+	return "§$token°"
+}
+
+
+##
+# Return text referenced by token
+##
+proc token_text {token} {
+	global txt
+	return $txt([idx_of_token $token])
+}
+
+
+##
+# Assign a line number to each reference token
+#
+# To be able to provide error messages including line numbers, we
+# determine the line number for each reference token and store it
+# as an attribute.
+#
+# The result of the function is stored in the global 'ln' array.
+##
+proc assign_line_numbers {{token content0}} {
+	global ln curr_ln config_whitespace
+
+	if {$token == "content0"} { set curr_ln 1 }
+
+	# assign current line number to current token
+	set ln([idx_of_token $token]) $curr_ln
+
+	# count occurrences of line breaks
+	if {[type_of_token $token] == "line"} { incr curr_ln }
+	if {!$config_whitespace && ($token == "\n")} { incr curr_ln }
+
+	# count lines for all sub-tokens
+	set tex [token_text $token]
+	while {$tex != ""} {
+
+		# count and eat raw line breaks (needed if 'whitespace' option is disabled)
+		if {[regexp {^\n} $tex dummy]} {
+			if {!$config_whitespace} { incr curr_ln }
+			regsub {\n} $tex "" tex
+		}
+
+		# ignore plain text
+		if {[regexp {^[^§\n]+} $tex plain]} {
+			regsub {^[^§\n]+} $tex "" tex }
+
+		# traverse into token
+		if {[regexp {^§(.+?)°} $tex dummy token]} {
+			assign_line_numbers $token
+			regsub {§(.+?)°} $tex "" tex
+		}
+	}
+}
+
+
+##
+# Look up line number of specified reference token
+##
+proc line_number {token} {
+	global ln
+	return $ln([idx_of_token $token])
+}
+
+
+##
+# Output tokens as valid Tcl List
+#
+# The result of this function can be used directly
+# as input by another Tcl script.
+##
+proc dump_tokens { } {
+	global num typ txt
+	set tokens [list]
+
+	for {set i 0} {($i < $num)} {incr i} {
+		set token [token_by_idx $i]
+		set text $txt($i)
+
+		lappend tokens [list $token [line_number $token] $text]
+	}
+	puts $tokens
+}
+
+
+##########################
+## Source-code back end ##
+##########################
+
+##
+# Output syntax tree as source code
+#
+# This constructs the source code from the syntax tree. It is
+# useful to check the result against the input to make sure that
+# no information gets lost during the parsing procedure.
+##
+proc dump_source { } {
+	global num typ txt
+
+	set output $txt(0)
+
+	while {[regexp {§(.+?)°} $output dummy token]} {
+		regsub $dummy $output [token_text $token] output
+	}
+
+	# revert character substitutions of '&'
+	regsub -all {³} $output "\\\&" output
+
+	puts $output
+}
+
+
+##################
+## XML back end ##
+##################
+
+proc dump_xml_subtree {token} {
+	global dump_xml_indent line
+
+	set type [type_of_token $token]
+	set tex  [token_text    $token]
+	set line [line_number   $token]
+
+	# shorten frequent leaf nodes
+	if {$type == "line"} {
+		puts "$dump_xml_indent<linebreak line=\"$line\"/>"
+	} elseif {$type == "tab"} {
+		puts "$dump_xml_indent<tab line=\"$line\"/>"
+	} elseif {$type == "space"} {
+		puts "$dump_xml_indent<space line=\"$line\"/>"
+	} elseif {$type == "align"} {
+		puts "$dump_xml_indent<align line=\"$line\">$tex</align>"
+	} else {
+
+		puts "$dump_xml_indent<$type line=\"$line\">"
+		set dump_xml_indent "  $dump_xml_indent"
+
+		while {$tex != ""} {
+
+			# consume plain text
+			if {[regexp {^[^§]+} $tex plain]} {
+
+				# perform character substitutions for xml compliance
+				regsub -all {³}  $plain "\\\&amp;"  plain
+				regsub -all {<}  $plain "\\\&lt;"   plain
+				regsub -all {>}  $plain "\\\&gt;"   plain
+				regsub -all "\"" $plain "\\\&quot;" plain
+				regsub -all "'"  $plain "\\\&apos;" plain
+
+				puts "$dump_xml_indent<plain line=\"$line\">$plain</plain>"
+				regsub {^[^§]+} $tex "" tex
+			}
+
+			# consume token
+			if {[regexp {§(.+?)°} $tex dummy token]} {
+				dump_xml_subtree $token
+				regsub {§(.+?)°} $tex "" tex
+			}
+		}
+
+		regsub "  " $dump_xml_indent "" dump_xml_indent
+		puts "$dump_xml_indent</$type>"
+	}
+}
+
+
+##
+# Output syntax tree as xml
+##
+proc dump_xml { } {
+
+	# reset indentation level
+	global dump_xml_indent
+	set    dump_xml_indent ""
+
+	# output subtree beginning with the root node
+	dump_xml_subtree content0
+}
+
+
+##################
+## Main program ##
+##################
+
+assign_line_numbers
+
+if {$config_out_tokens} { dump_tokens }
+if {$config_out_xml}    { dump_xml }
+if {$config_out_source} { dump_source }

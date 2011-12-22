@@ -1,0 +1,11 @@
+The 'nit_fb' server provides a single session of the 'Input' and 'Framebuffer'
+services by presenting a Nitpicker view at a predefined screen position. If
+instantiated multiple times, it can be used to statically arrange multiple
+virtual frame buffers on one physical screen. The size and screen position
+of each 'nit_fb' instance can be defined via Genode's configuration mechansim
+using the following attributes of the 'nit_fb' config node:
+
+! <config xpos="100" ypos="150" width="300" height="200" refresh_rate="25"/>
+
+If 'refresh_rate' isn't set the server will not trigger any refresh operations
+by itself.

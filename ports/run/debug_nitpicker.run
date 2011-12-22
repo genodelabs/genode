@@ -1,0 +1,147 @@
+#
+# \brief  Example for debugging a service
+# \author Norman Feske
+# \date   2011-09-13
+#
+# This example shows how GDB monitor can be used to debug a Genode service.
+# GDB monitor sits in between the service and the service's parent. Any
+# service announcements are transparently propagated through the GDB
+# monitor to the parent. This way, the internal state of a service can
+# be observed at any time via a remote GDB connection. In the example,
+# the remote GDB connection is realized via an UART device. Alternatively,
+# 'tcp_terminal' could be used (to attach GDB via a network connection).
+#
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/timer drivers/uart
+	app/gdb_monitor
+	test/gdb_monitor
+	server/nitpicker app/scout
+	drivers/framebuffer drivers/pci drivers/input
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="512K"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="uart_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config>
+			<policy label="gdb_monitor" uart="1"/>
+		</config>
+	</start>
+	<start name="gdb_monitor">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config><target name="nitpicker"/></config>
+	</start>
+	<start name="scout">
+		<resource name="RAM" quantum="32M"/>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="vesa_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec pl11x] config {
+	<start name="pl11x_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so libc_log.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
+	uart_drv
+	gdb_monitor
+	nitpicker scout
+}
+
+# platform-specific modules
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec pl11x] boot_modules pl11x_drv
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+#
+set local_port 5555
+
+# qemu config
+append qemu_args " -m 128 "
+
+# connect comport 0 to stdio
+append qemu_args " -serial mon:stdio "
+
+# connect comport 1 with TCP port $local_port
+append qemu_args " -serial chardev:uart "
+append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait "
+
+run_genode_until {.*Remote debugging using /dev/terminal.*} 30
+
+puts "GDB monitor is up, starting GDB in a new terminal"
+
+exec [terminal] -e "[gdb] bin/nitpicker -ex \"target remote localhost:$local_port\"" &
+
+interact
+
+# vi: set ft=tcl :

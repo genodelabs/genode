@@ -1,0 +1,10 @@
+Mini C library
+
+This library only provides the libc support for libz, libpng,
+and DOpE. Most functions are not implemented. The implemented
+functions might be slightly incompatible to a real libc.
+Please use this library with caution!
+
+If you require libc support that goes beyond simple string
+functions for your application, please consider porting a
+real libc to Genode instead of enhancing mini_c.

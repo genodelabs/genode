@@ -1,0 +1,78 @@
+
+      Conventions for the Genode development
+
+
+                  Norman Feske
+
+
+Documentation
+#############
+
+We use the GOSH syntax
+[http://os.inf.tu-dresden.de/~nf2/files/GOSH/current/gosh.txt]
+for documentation and README files.
+
+
+README files
+############
+
+Each directory should contain a file called 'README' that briefly explains
+what the directory is about. In 'doc/Makefile' is a rule for
+generating a directory overview from the 'README' files automatically.
+
+You can structure your 'README' file by using the GOSH style for subsections:
+! Subsection
+! ~~~~~~~~~~
+Do not use chapters or sections in your 'README' files.
+
+
+Filenames
+#########
+
+All normal filenames are lowercase.  Filenames should be chosen to be
+expressive.  Someone who explores your files for the first time might not
+understand what 'mbi.cc' means but 'multiboot_info.cc' would ring a bell. If a
+filename contains multiple words, use the '_' to separate them (instead of
+'miscmath.h', use 'misc_math.h').
+
+
+Coding style
+############
+
+A common coding style helps a lot to ease collaboration. The official coding
+style of the Genode base components is described in 'doc/coding_style.txt'.
+If you consider working closely together with the Genode main developers,
+your adherence to this style is greatly appreciated.
+
+
+Include files and RPC interfaces
+################################
+
+Never place include files directly into the '<repository>/include/' directory
+but use a meaningful subdirectory that corresponds to the component that
+provides the interfaces.
+
+Each RPC interface is represented by a separate include subdirectory. For
+an example, see 'base/include/ram_session/'. The headerfile that defines
+the RPC function interface has the same base name as the directory. The RPC
+stubs are called 'client.h' and 'server.h'. If your interface uses a custom
+capability type, it is defined in 'capability.h'. Furthermore, if your
+interface is a session interface of a service, it is good practice to
+provide a connection class in a 'connection.h' file for managing session-
+construction arguments and the creation and destruction of sessions.
+
+Specialization-dependent include directories are placed in 'include/<specname>/'.
+
+
+Service Names
+#############
+
+Service names as announced via the 'parent()->announce()' function follow
+the following convention:
+
+Core's services, which are the most fundamental base services are written
+completely upper case. Each developer should be aware of the meaning of the
+used acronyms such as RAM, RM, ROM.  All other service names should be
+descriptive names rather than acronyms.  Service names should contain only
+letters, numbers, and underline characters.  The first character must
+always be an uppercase letter, all other characters are lowercase.

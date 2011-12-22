@@ -1,0 +1,2 @@
+This directory contains support code for building Iguana's bootinfo
+library from within Genode's build process.

@@ -1,0 +1,12 @@
+TCP terminal is a service that provides Genode's terminal-session interface
+via individual TCP connections. It supports multiple clients. The TCP port
+to be used for each client is defined in as session policy in the config node
+of the TCP server:
+
+! <config>
+!   <policy label="client"         port="8181"/>
+!   <policy label="another_client" port="8282"/>
+! </config>
+
+For an example of how to use the TCP terminal, please refer to the run script
+at 'gems/run/tcp_terminal.run'.

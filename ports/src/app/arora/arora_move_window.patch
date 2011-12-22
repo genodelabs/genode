@@ -1,0 +1,14 @@
+diff --git a/src/browserapplication.cpp b/src/browserapplication.cpp
+--- a/src/browserapplication.cpp
++++ b/src/browserapplication.cpp
+@@ -553,6 +553,10 @@
+     if (!m_mainWindows.isEmpty())
+         mainWindow()->m_autoSaver->saveIfNeccessary();
+     BrowserMainWindow *browser = new BrowserMainWindow();
++
++    browser->resize(790, 705);
++    browser->move(215, 6);
++
+     m_mainWindows.prepend(browser);
+     connect(this, SIGNAL(privacyChanged(bool)),
+             browser, SLOT(privacyChanged(bool)));

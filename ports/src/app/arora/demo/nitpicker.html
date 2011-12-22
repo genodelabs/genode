@@ -1,0 +1,142 @@
+<html><head><title>Genode Web-Browser Demo (2/4)</title></head>
+<style type="text/css">
+
+/* backgrounds */
+body        { background-image:url(bg.png); }
+div#title   { background-image:url(title_bg.png); background-color:#ccccdd; }
+div#bgtop   { background-image:url(bg_top.png); }
+div#content { background-image:url(bg_content.png); background-color:#ddddff; }
+div#title, div#content, div#bgtop { background-repeat:repeat-x; }
+div#content { background-position:bottom; }
+
+/* borders */
+div#content, div#title { border-style:solid; border-width:1px; border-color:#001122; }
+
+/* spacing */
+div#content, div#title {
+ width:680px;
+ padding-left:1em; padding-right:1em; padding-top:0.5em; padding-bottom:0.5em;
+ margin-top:10px; margin-bottom:10px;
+}
+span#space { margin:50px; }
+body { margin:0px; }
+div#title { padding-top:0px; padding-bottom:0px; }
+div#content h1 { padding-top: 1em; }
+
+/* center horizontally */
+div#content, div#title, table { float: none; margin: auto; }
+
+div#content { margin-top:1em; }
+
+/* fonts */
+a, p, h1 { font:  100% Verdana, Arial, Helvetica, sans-serif; }
+h1 { color:#000077; font-size:20px; }
+div#title h1 { font-size:24px; }
+div#title h1 { color:#000033; }
+div#content p { font-size:13px; }
+div#content a { font-size:16px; }
+
+div.annotation p { font-style:italic; }
+
+</style>
+<body>
+<div id="bgtop"><br/><span id="top"/><div id="title"><h1>Genode Web-Browser Demo (2/4)</h1></div>
+<div id="content">
+ <p>
+  Current-generation web browsers execute browser plugins either as part of the
+  web browser or within a specially tailored execution environment running
+  more-or-less independently from the web browser. Plugins executed in the same
+  process as the browser itself are a stability and security risk, in particular
+  if the plugin code is highly complex third-party binary-only software. So
+  putting this code in a sandbox sounds like a good idea. But it raises a number
+  of questions: Which functionality should the sandboxing mechanism provide? How
+  does the security policy of the sandbox look like? How is it enforced? Who is
+  in charge of configuring this policy? How does the browser interact with the
+  sandboxed plugin in order to realize the visual integration into the website? Where
+  do the resources needed for constructing the sandbox come from?
+ </p>
+ <p>
+  Indeed, many hard questions.
+ </p>
+ <a name="On_Genode,_each_process_lives_in_a_Sandbox"></a>
+ <h1>On Genode, each process lives in a Sandbox</h1>
+  <p>
+   In the domain of web browsers, these questions pop up right now and seek for a
+   solution. However, when replacing "sandbox" by "execution environment" and
+   "plugin" by "program", it becomes apparent that these questions are classical
+   operating-system issues.
+  </p>
+  <p>
+   The Genode architecture solves these issues by design at the OS level.
+   Each process lives in a sandbox, created, paid-for, and controlled by its parent.
+   Access control is denied by default and must be granted explicitly by passing
+   capabilities between processes. Since each process runs in a sandbox anyway,
+   there is no need for a browser-specific solution. We can just run an arbitrary
+   fully-featured Genode subsystem as browser plugin:
+  </p>
+<embed src="rom:///nitpicker_plugin.tar" args="ram_quota=32M" type="application/x-genode-plugin" width="640px" height="480px"><br>
+  <p>
+   The plugin above consists of multiple processes and uses the same
+   binaries as the Genode system you are running. The most significant advantage of this
+   technique, however, is the degree of isolation between browser and plugin. Even though
+   both are integrated into one GUI, they are executed isolated from each other.
+   Just press the X-Ray key (usually this is <tt>ScrLock</tt>) to reveal their
+   respective identities. The browser window is labeled as "menu -&gt; browser -&gt; arora",
+   which means that "arora" is a child process created as part of the
+   "browser" subsystem, which, in turn, was created by the "menu". In contrast,
+   the plugin is labeled as "loader -&gt; init -&gt; framebuffer". It is a subsystem spawned
+   by a "loader" service running independently from the menu. The following diagram
+   depicts the scenario:
+  </p>
+  <a name="nitpicker_plugin"></a>
+  <table class="captionedimage"><tr><td>
+    <img src="nitpicker_plugin.png">
+  </td></tr></table>
+  <div class="annotation">
+   <p>
+    The solid lines are parent-child relationships, the dotted lines are
+    client-server relationships as routed through the process hierarchy.
+   </p>
+  </div>
+  <p>
+   The browser downloads the plugin and hands it over to the loader service,
+   accompanied with the (memory) resources the loader needs to execute the new plugin
+   subsystem. Because the plugin is executed by the loader, not by the browser
+   directly, the browser has no direct power over the plugin. It can tell the
+   loader about the position on screen, where the plugin should be presented, but
+   it can neither interfere with the execution and data of the plugin, nor observe
+   user input referring to the plugin. The plugin, in turn, does not even know
+   about the existence of the browser. In the extreme case, if either of the two
+   crashes, the other remains unaffected.
+  </p>
+  <div class="annotation">
+   <p>
+    For a test demonstrating that both subsystems are really independent, you may
+    lock out the browser from the GUI by force using the kill key (<tt>Print</tt>). Scroll
+    up to make the plugin visible and hit the kill key. After the screen
+    turns reddish, click onto the browser (outside the plugin). You will see
+    that the plugin will remain intact. However, to proceed with the demo,
+    you will need to stop and restart the browser demo from the main menu.
+   </p>
+  </div>
+ <a name="Pretty_geeky,_but_is_it_useful_in_practice?"></a>
+ <h1>Pretty geeky, but is it useful in practice?</h1>
+  <p>
+   Think of a trusted service provider such as a bank. When performing online
+   banking via a normal web application, you type in your PIN and TAN numbers into
+   the browser which relies on <b>millions of lines of code</b> - an enormous
+   attack surface for malware such as trojan horses. In contrast, if the trusted
+   service provider offered a Genode subsystem as plugin, most of this complexity
+   including the whole browser would be removed from the critical path. A plugin
+   started by Genode's loader relies on <b>35K lines of code</b> only (the microkernel
+   plus the Genode base system). By delivering the (trusted) client application each
+   time the user visits the web site, the service provider can always deliver the
+   latest version. The plugin can be a single program or a complete subsystem. It
+   can even bring along its own TCP/IP stack connected to the network via Genode's
+   low-level network bridge. This way, the plugin will actually use a distinct IP
+   address as if it was executed on a separate machine.
+  </p>
+  <p>
+   <a href="qrc:/demo/busybox.html" alt="Continue: Booting a Linux kernel in the browser">Continue: Booting a Linux kernel in the browser</a>
+  </p>
+</div></div><br/><span id="space"/></body></html>

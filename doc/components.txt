@@ -1,0 +1,357 @@
+
+
+                      ==========================
+                      Genode components overview
+                      ==========================
+
+                             Norman Feske
+
+
+Abstract
+########
+
+Genode comes with a growing number of components apparently scattered across
+various repositories. This document provides an overview of these components
+and outlines the systematics behind them.
+
+
+Categorization of components
+############################
+
+Genode components usually fall into one of four categories, namely device
+drivers, resource multiplexers, protocol stacks, and applications. Each
+of them is briefly characterized as follows:
+
+:Device drivers: translate hardware resources into device-independent
+  session interfaces. Naturally, a device driver is specific to a
+  particular hardware platform. The hardware resources are accessed
+  via core's IO_MEM, IO_PORT, and IRQ services. The functionality of
+  the driver is made available to other system components by announcing
+  one of Genode's device-independent session interfaces, which are
+  'pci_session', 'framebuffer_session', 'input_session', 'block_session',
+  'audio_out_session', 'log_session', 'nic_session', and 'timer_session'
+  (see 'os/include/' for the interface definitions). Those interfaces are
+  uniform across hardware platforms and kernel base platforms. Usually,
+  each device driver can accommodate only one client at a time.
+
+:Resource multiplexers: provide mechanisms to multiplex device resources
+  to multiple clients. A typical resource multiplexer requests one
+  of Genode's device-independent session interface (usually connected
+  to a device driver) and, in turn, announces a service of the same kind.
+  However, in contrast to a device driver, a resource multiplexer is able
+  to serve more than one client at the same time.
+
+:Protocol stacks: translate low-level interfaces to higher-level
+  interfaces (or sometimes vice versa). Typically, a protocol stack comes
+  in the form of a library, which uses a device-independent session
+  interface as back end and provides a high-level library interface as
+  front end. However, protocol stacks also exist in the form of
+  distinct components that implement translations between different
+  session interfaces.
+
+:Applications: implement functionality using APIs as provided by
+  protocol stacks.
+
+:Runtime environments: enable existing 3rd-party software to be executed
+  as a Genode sub systems.
+
+
+Device drivers
+##############
+
+Device drivers usually reside in the 'src/drivers' subdirectory of source-code
+repositories. The most predominant repositories hosting device drivers are
+'os', 'linux_drivers', 'dde_ipxe'.
+
+
+Platform devices
+================
+
+:'os/src/drivers/pci':
+  Implements the PCI-session interface using the PCI controller as found on
+  x86 PC hardware. Using this interface, a client can probe for a particular
+  device and request information about physical device resources (using the
+  'pci_device' interface). These information are subsequently used to request
+  respective IO_MEM, IRQ, and IO_PORT sessions at core.
+
+
+UART devices
+============
+
+The UART device drivers implement the terminal-session interface.
+
+:'os/src/drivers/uart/pl011':
+  Driver for the PL011 UART as found on many ARM-based platforms.
+
+:'os/src/drivers/uart/i8250':
+  Driver for the i8250 UART as found on PC hardware.
+
+
+Framebuffer and input drivers
+=============================
+
+Framebuffer and input drivers implement the framebuffer-session interface and
+input-session interfaces respectively.
+
+:'os/src/drivers/input/dummy':
+  Pseudo input driver without accessing any hardware. This component is useful
+  to resolve a dependency from an input session for scenarios where no user
+  input is required.
+
+:'os/src/drivers/input/fiasco_ux':
+  Driver for the virtual hardware provided by the user-mode version of the
+  Fiasco kernel.
+
+:'os/src/drivers/input/ps2/x86':
+  Driver for the 'i8042' PS/2 controller as found in x86 PCs. It supports both
+  mouse (including ImPS/2, ExPS/2) and keyboard.
+
+:'os/src/drivers/input/ps2/pl050':
+  Driver for the PL050 PS/2 controller as found on ARM platforms such as
+  VersatilePB. The physical base address used by the driver is obtained at
+  compile time from a header file called 'pl050_defs.h'. The version of the
+  VersatilePB platform can be found at 'os/include/platform/vpb926/' and
+  is made available to the driver via the SPECS machinery of the Genode build
+  system.
+
+:'os/src/drivers/framebuffer/vesa':
+  Driver using VESA mode setting on x86 PCs. For more information, please refer
+  to the README file in the driver directory.
+
+:'os/src/drivers/framebuffer/pl11x':
+  Driver for the PL110/PL111 LCD display.
+
+:'os/src/drivers/framebuffer/sdl':
+  Serves as both framebuffer and input driver on Linux using libSDL. This
+  driver is only usable on the Linux base platform.
+
+:'os/src/drivers/framebuffer/fiasco_ux':
+  Driver for the virtual framebuffer device provided by the user-mode Fiasco
+  kernel.
+
+:'linux_drivers/src/drivers/usb':
+  USB driver that makes USB HID devices available as input sessions.
+  For an example of using this driver, refer to the run script at
+  'linux_drivers/run/usb_hid'.
+
+
+Timer drivers
+=============
+
+All timer drivers implement the timer-session interface. Technically, a timer
+driver is both a device driver (accessing a timer device) and a resource
+multiplexer (supporting multiple timer-session clients at the same time). The
+timer implementations differ in their use of different time sources and the
+mode of internal operation of the timer sessions. Time sources are either
+hardware timers, a time source provided by the kernel, or a pseudo time source
+(busy).
+
+The internal operation of the timer session depends on the kernel. On kernels
+with support for out-of-order RPCs, all timer sessions are handled by a single
+thread. Otherwise, each timer session uses a dedicated thread.
+
+:'timer/nova':      PIT as time source,         multi-threaded
+:'timer/codezero':  busy time source,           single-threaded
+:'timer/okl4_arm':  busy time source,           single-threaded
+:'timer/okl4_x86':  PIT as time source,         single-threaded
+:'timer/foc':       IPC timeout as time source, multi-threaded
+:'timer/fiasco':    IPC timeout as time source, single-threaded
+:'timer/pistachio': IPC timeout as time source, single-threaded
+:'timer/linux':     nanosleep as time source,   single-threaded
+
+
+Audio output drivers
+====================
+
+All audio-output drivers implement the audio session interface defined at
+'os/include/audio_out_session/'.
+
+:'os/src/drivers/audio_out/linux':
+  Uses ALSA as back-end on the Linux base platform.
+
+:'linux_drivers/src/drivers/audio_out':
+  Sound drivers for the most common PC sound hardware, ported from the Linux
+  kernel.
+
+
+Block drivers
+=============
+
+All block drivers implement the block-session interface defined at
+'os/include/block_session/'.
+
+:'os/src/drivers/atapi':
+  Driver for ATAPI CD-ROM devices on x86 PCs.
+
+:'os/src/drivers/sd_card':
+  Driver for SD-cards connected via the PL180 device as found on the PBX-A9
+  platform.
+
+:'linux_drivers/src/drivers/usb':
+  USB driver that makes USB storage devices available as block sessions.
+  For an example of using this driver, refer to the run script at
+  'linux_drivers/run/usb_storage'.
+
+:'os/src/drivers/ahci':
+  Driver for SATA disks on x86 PCs.
+
+
+Network interface drivers
+=========================
+
+All network interface drivers implement the NIC session interface
+defined at 'os/include/nic_session'.
+
+:'os/src/drivers/nic/linux':
+  Driver that uses a Linux tap device as back end. It is only useful on the
+  Linux base platform.
+
+:'os/src/drivers/nic/lan9118':
+  Native device driver for the LAN9118 network adaptor as featured on the
+  PBX-A9 platform.
+
+:'dde_ipxe/src/drivers/nic':
+  Device drivers ported from the iPXE project. Supported devices are Intel
+  E1000 and pcnet32.
+
+:'linux_drivers/src/drivers/madwifi':
+  The MadWifi wireless stack ported from the Linux kernel.
+
+
+Resource multiplexers
+#####################
+
+By convention, resource multiplexers are located at the 'src/server'
+subdirectory of a source repository.
+
+:Framebuffer and input: The framebuffer and input session interfaces can be
+  multiplexed using the Nitpicker GUI server, which allows multiple clients to
+  create and manage rectangular areas on screen. Nitpicker uses one input
+  session and one framebuffer session as back end and, in turn, provides
+  so-called nitpicker sessions to one or multiple clients. Each nitpicker
+  session contains a virtual framebuffer and a virtual input session. Nitpicker
+  (including a README file) is located at 'os/src/server/nitpicker'.
+
+:Audio output: The audio mixer located at 'os/src/server/mixer' enables
+  multiple clients to use the audio-out interface. The mixing is done by simply
+  adding and clamping the signals of all present clients.
+
+:Networking: The NIC bridge located at 'os/src/server/nic_bridge' multiplexes
+  one NIC session to multiple virtual NIC sessions using a proxy-ARP
+  implementation. Each client has to obtain a dedicated IP address visible to
+  the physical network. DHCP requests originating from the virtual NIC sessions
+  are delegated to the physical network.
+
+:Block: The block-device partition server at 'os/src/server/part_blk' reads
+  the partition table of a block session and exports each partition found as
+  separate block session. For using this server, please refer to the run
+  script at 'os/run/part_blk'.
+
+
+Protocol stacks
+###############
+
+Protocol stacks come either in the form of separate components that translate
+one session interface to another, or in the form of libraries.
+
+Separate components:
+
+:'os/src/server/nit_fb':
+  Translates a nitpicker session to a pair of framebuffer and input sessions.
+  Each 'nit_fb' instance is visible as a rectangular area on screen presenting
+  a virtual frame buffer. The area is statically positioned. For more
+  information, please refer to 'os/src/server/nit_fb/README'.
+
+:'demo/src/server/liquid_framebuffer':
+  Implements the same translation as 'nit_fb' but by presenting an interactive
+  window rather than a statically positioned screen area.
+
+:'os/src/server/tar_rom':
+  Provides each file contained in a tar file obtained via Genode's ROM session
+  as separate ROM session.
+
+:'os/src/server/iso9660':
+  Provides each file of an ISO9660 file system accessed via a block session as
+  separate ROM session.
+
+:'os/src/server/rom_loopdev':
+  Provides the content of a ROM file as a block session, similar to the
+  loop-mount mechanism on Linux
+
+:'demo/src/server/nitlog':
+  Provides a LOG session, printing log output on screen via a nitpicker
+  session.
+
+Libraries:
+
+:'libports/lib/mk/libc_log':
+  Redirects the standard output of the libc to Genode's LOG session interface.
+
+:'libports/lib/mk/libc_lwip_nic_dhcp':
+  Translates the BSD socket API to a NIC session using the lwIP stack.
+
+:'libports/lib/mk/gallium' + 'linux_drivers/lib/mk/gpu_i915_drv':
+  Translates the OpenGL API to a framebuffer session using the MESA OpenGL
+  stack and the Intel GEM GPU driver.
+
+:'libports/lib/mk/sdl':
+  Translates the libSDL API to framebuffer and input sessions.
+
+:'qt4':
+  Qt4 framework, using nitpicker session and NIC session as back end.
+
+
+Applications
+############
+
+Applications are Genode components that use other component's services but
+usually do not provide services. They are typically located in the 'src/app/'
+subdirectory of a repository. Most applications come with README files
+located in their respective directory.
+
+:'demo/src/app/backdrop':
+  Nitpicker client application that sets a PNG image as desktop background.
+
+:'demo/src/app/launchpad':
+  Graphical application for interactively starting and killing subsystems.
+
+:'demo/src/app/scout':
+  Graphical hypertext browser used for Genode's default demonstration scenario.
+
+:'libports/src/app/eglgears':
+  Example program for using OpenGL via the Gallium3D graphics stack.
+
+:'ports/src/app/arora':
+  Arora is a Qt4-based web browser using the Webkit engine.
+
+:'ports/src/app/gdb_monitor':
+  Application that allows the debugging of a process via GDB over a remote
+  connection.
+
+:'qt4/src/app/qt_launchpad':
+  Graphical application starter implemented using Qt4.
+
+:'qt4/src/app/examples/':
+  Several example applications that come with Qt4.
+
+:'os/src/app/xvfb':
+  Is a proxy application that enables the integration of a virtual X server
+  into a Nitpicker session on the Linux base platform.
+
+
+Runtime environments
+####################
+
+:'ports/src/noux': Noux is an experimental implementation of a UNIX-like API
+  that enables the use of unmodified command-line based GNU software. For using
+  noux, refer to the run script 'ports/run/noux.run'.
+
+:'ports-okl4/src/oklinux': OKLinux is a paravirtualized Linux kernel that
+  enables the use of Linux-based OSes as subsystems on the OKL4 kernel. For
+  using OKLinux, refer to the run script 'ports-okl4/run/lx_block.run'.
+
+:'ports-foc/src/l4linux': L4Linux is a paravirtualized Linux kernel that
+  enables the use of Linux-based OSes as subsystems on the Fiasco.OC kernel.
+  For using L4Linux, refer to the run script 'ports-foc/run/l4linux.run'.
+
+

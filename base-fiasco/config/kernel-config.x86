@@ -1,0 +1,95 @@
+#
+# Automatically generated make config: don't edit
+# Fiasco kernel version: SVN
+# Thu Jul 21 16:51:09 2011
+#
+
+#
+# Target configuration
+#
+CONFIG_IA32=y
+# CONFIG_AMD64 is not set
+# CONFIG_ARM is not set
+CONFIG_PF_PC=y
+# CONFIG_PF_UX is not set
+# CONFIG_PF_REALVIEW is not set
+# CONFIG_PF_INTEGRATOR is not set
+# CONFIG_PF_XSCALE is not set
+# CONFIG_PF_SA1100 is not set
+CONFIG_ABI_V2=y
+# CONFIG_ARM_PXA is not set
+# CONFIG_ARM_SA is not set
+# CONFIG_ARM_920T is not set
+# CONFIG_ARM_926 is not set
+# CONFIG_ARM_1176 is not set
+# CONFIG_ARM_MPCORE is not set
+# CONFIG_ARM_CORTEX_A8 is not set
+# CONFIG_IA32_486 is not set
+CONFIG_IA32_586=y
+# CONFIG_IA32_686 is not set
+# CONFIG_IA32_P2 is not set
+# CONFIG_IA32_P3 is not set
+# CONFIG_IA32_P4 is not set
+# CONFIG_IA32_PM is not set
+# CONFIG_IA32_K6 is not set
+# CONFIG_IA32_K7 is not set
+# CONFIG_IA32_K8 is not set
+# CONFIG_AMD64_K8 is not set
+CONFIG_SCHED_PIT=y
+# CONFIG_SCHED_RTC is not set
+# CONFIG_SCHED_APIC is not set
+# CONFIG_WORKAROUND_AMD_FPU_LEAK is not set
+CONFIG_REGPARM3=y
+
+#
+# Kernel options
+#
+CONFIG_HANDLE_SEGMENTS=y
+# CONFIG_PL0_HACK is not set
+CONFIG_TASK_CAPS=y
+# CONFIG_USER_LOCKS is not set
+CONFIG_CONTEXT_4K=y
+CONFIG_IO_PROT=y
+# CONFIG_IO_PROT_IOPL_3 is not set
+CONFIG_SYNC_TSC=y
+CONFIG_FINE_GRAINED_CPUTIME=y
+
+#
+# Debugging
+#
+CONFIG_INLINE=y
+# CONFIG_NDEBUG is not set
+# CONFIG_NO_FRAME_PTR is not set
+# CONFIG_STACK_DEPTH is not set
+# CONFIG_LIST_ALLOC_SANITY is not set
+# CONFIG_BEFORE_IRET_SANITY is not set
+CONFIG_GSTABS=y
+# CONFIG_WATCHDOG is not set
+CONFIG_SERIAL=y
+CONFIG_JDB=y
+# CONFIG_JDB_LOGGING is not set
+# CONFIG_JDB_ACCOUNTING is not set
+# CONFIG_JDB_MISC is not set
+CONFIG_POWERSAVE_GETCHAR=y
+# CONFIG_WARN_NONE is not set
+# CONFIG_WARN_WARNING is not set
+CONFIG_WARN_ANY=y
+
+#
+# Compiling
+#
+CONFIG_CC="gcc"
+CONFIG_CXX="g++"
+CONFIG_HOST_CC="gcc"
+CONFIG_HOST_CXX="g++"
+# CONFIG_VERBOSE is not set
+# CONFIG_MAINTAINER_MODE is not set
+CONFIG_LABEL=""
+CONFIG_EXPERIMENTAL=y
+CONFIG_PERF_CNT=y
+CONFIG_BIT32=y
+CONFIG_WARN_LEVEL=2
+CONFIG_XARCH="ia32"
+CONFIG_IA32_TARGET="Intel Pentium"
+CONFIG_ABI="v2"
+CONFIG_DECEIT_BIT_DISABLES_SWITCH=y

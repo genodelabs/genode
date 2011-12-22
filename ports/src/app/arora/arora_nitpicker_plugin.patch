@@ -1,0 +1,28 @@
+diff --git a/src/qwebplugins/qwebplugins.pri b/src/qwebplugins/qwebplugins.pri
+--- a/src/qwebplugins/qwebplugins.pri
++++ b/src/qwebplugins/qwebplugins.pri
+@@ -12,4 +12,4 @@
+   webpluginfactory.cpp
+ 
+ include $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/clicktoflash/clicktoflash.pri
+-
++include $(REP_DIR)/src/app/arora/qwebplugins/nitpicker/nitpicker.pri
+diff --git a/src/qwebplugins/webpluginfactory.cpp b/src/qwebplugins/webpluginfactory.cpp
+--- a/src/qwebplugins/webpluginfactory.cpp
++++ b/src/qwebplugins/webpluginfactory.cpp
+@@ -20,6 +20,7 @@
+ #include "webpluginfactory.h"
+ 
+ #include "clicktoflashplugin.h"
++#include "nitpickerplugin.h"
+ 
+ #include <qwidget.h>
+ #include <qurl.h>
+@@ -88,6 +89,7 @@
+     qDeleteAll(m_plugins);
+     m_plugins.clear();
+     m_plugins.append(new ClickToFlashPlugin);
++    m_plugins.append(new NitpickerPlugin);
+     foreach (AroraWebPlugin *plugin, m_plugins) {
+         foreach (const QWebPluginFactory::MimeType &pluginMimeType, plugin->metaPlugin().mimeTypes)
+             m_pluginsCache.insert(pluginMimeType.name, plugin);

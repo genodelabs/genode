@@ -1,0 +1,54 @@
+--- a/arch/ia32/pistachio/include/segdesc.h	2008-06-16 07:16:54.000000000 +0200
++++ b/arch/ia32/pistachio/include/segdesc.h	2011-07-04 10:59:54.251729822 +0200
+@@ -144,7 +144,7 @@ INLINE void ia32_segdesc_t::set_raw(word
+ INLINE void ia32_segdesc_t::dump(bool global, int index)
+ {
+     printf("%s[%d] = %p:%p", global ? "GDT" : "LDT", index,
+-        x.raw[0], x.raw[1]);
++           (void*)x.raw[0], (void*)x.raw[1]);
+     if ( (x.raw[0] == 0 && x.raw[1] == 0) ||
+          (! x.d.s) )
+     {
+@@ -152,12 +152,12 @@ INLINE void ia32_segdesc_t::dump(bool gl
+         return;
+     }
+     printf(" <%p,%p> ",
+-            x.d.base_low + (x.d.base_high << 24),
+-            x.d.base_low + (x.d.base_high << 24) +
++           (void*)(x.d.base_low + (x.d.base_high << 24)),
++           (void*)(x.d.base_low + (x.d.base_high << 24) +
+             (x.d.g ? 0xfff |
+                 (x.d.limit_low + (x.d.limit_high << 16)) << 12 :
+-                (x.d.limit_low + (x.d.limit_high << 16))));
+-    printf("dpl=%d %d-bit ", x.d.dpl, x.d.d ? 32 : 16);
++                (x.d.limit_low + (x.d.limit_high << 16)))));
++    printf("dpl=%ld %d-bit ", x.d.dpl, x.d.d ? 32 : 16);
+     if ( x.d.type & 0x8 )
+         printf("code %cC %cR ",
+                 x.d.type & 0x4 ? ' ' : '!',
+--- a/pistachio/include/stdarg.h	2008-06-16 07:16:55.000000000 +0200
++++ b/pistachio/include/stdarg.h	2011-07-04 12:03:21.767314266 +0200
+@@ -80,7 +80,11 @@ typedef __builtin_va_list va_list;
+ #define va_arg(ap, type) __builtin_va_arg((ap), type)
+ #define va_copy(dest, src) __builtin_va_copy((ap), type)
+ #define va_end(ap) __builtin_va_end((ap))
+-#define va_start(ap, parmN) __builtin_stdarg_start((ap), (parmN))
++#if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4))
++#define va_start(ap, parmN)__builtin_va_start((ap),parmN)
++#else
++#define va_start(ap, parmN)__builtin_stdarg_start((ap),parmN)
++#endif
+ 
+ #endif
+ 
+--- a/pistachio/src/tracebuffer.cc	2008-06-16 07:16:55.000000000 +0200
++++ b/pistachio/src/tracebuffer.cc	2011-07-04 12:04:16.597394680 +0200
+@@ -96,7 +96,7 @@ SECTION(SEC_INIT) void init_tracebuffer(
+     trace_buffer->buffers   = TBUF_BUFFERS;
+ 
+     /* Calculate buffer size */
+-    buffer_first = sizeof(trace_buffer_t) + 7 & (~7UL);
++    buffer_first = sizeof(trace_buffer_t) + (7 & (~7UL));
+     trace_buffer->buffer_size =
+         ((TBUFF_SIZE - buffer_first) / TBUF_BUFFERS) & (~7UL);
+ 

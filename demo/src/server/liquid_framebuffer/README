@@ -1,0 +1,31 @@
+Liquid frame buffer is an implementation of the frame buffer interface
+running as a client of the Nitpicker GUI server. It supports the
+following configuration options. The example shows the default
+values.
+
+! <config>
+!
+!   <!-- enable the animated background,
+!        valid values or 'on' and 'off' -->
+!   <animate>on</animate>
+!
+!   <!-- the initial window position and
+!        size of the virtual frame buffer -->
+!   <x>400</x>
+!   <y>270</y>
+!   <width>500</width>
+!   <height>400</height>
+!
+!   <!-- set the window title -->
+!   <title>Liquid Framebuffer</title>
+!
+! </config>
+
+Because Liquid frame buffer creates the virtual frame-buffer window at
+start time, not at session-creation time, sufficient memory resources must
+be provided when starting the program. Consequently, the client does not
+need to donate memory for the frame buffer backing store.
+
+Liquid frame buffer supports only one client. If multiple
+virtual frame buffers are needed, multiple instances of the
+program should be used.

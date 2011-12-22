@@ -1,0 +1,32 @@
+--- /tmp/freebsd-libc.cvs/stdio/vfwprintf.c	2008-08-04 08:55:42.000000000 +0100
++++ libc/stdio/vfwprintf.c	2009-02-21 21:44:30.000000000 +0100
+@@ -838,10 +838,10 @@
+ 				sign = '-';
+ 			if (expt == INT_MAX) {	/* inf or nan */
+ 				if (*cp == 'N') {
+-					cp = (ch >= 'a') ? L"nan" : L"NAN";
++					cp = (wchar_t *)((ch >= 'a') ? L"nan" : L"NAN");
+ 					sign = '\0';
+ 				} else
+-					cp = (ch >= 'a') ? L"inf" : L"INF";
++					cp = (wchar_t *)((ch >= 'a') ? L"inf" : L"INF");
+ 				size = 3;
+ 				flags &= ~ZEROPAD;
+ 				break;
+@@ -953,14 +953,14 @@
+ 		case 's':
+ 			if (flags & LONGINT) {
+ 				if ((cp = GETARG(wchar_t *)) == NULL)
+-					cp = L"(null)";
++					cp = (wchar_t *)(L"(null)");
+ 			} else {
+ 				char *mbp;
+ 
+ 				if (convbuf != NULL)
+ 					free(convbuf);
+ 				if ((mbp = GETARG(char *)) == NULL)
+-					cp = L"(null)";
++					cp = (wchar_t *)(L"(null)");
+ 				else {
+ 					convbuf = __mbsconv(mbp, prec);
+ 					if (convbuf == NULL) {
