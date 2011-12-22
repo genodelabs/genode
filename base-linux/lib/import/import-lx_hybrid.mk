@@ -24,12 +24,24 @@ INC_DIR += $(shell echo "int main() {return 0;}" |\
 CXX_LINK_OPT += $(addprefix -L,$(HOST_LIB_SEARCH_DIRS))
 
 #
+# Determine ldconfig executable
+#
+# On Ubuntu, /sbin/ is in the PATH variable. Hence we try using the program
+# found via 'which'. If 'which' does not return anything (i.e., on Debian),
+# try using the expected location '/sbin/'.
+#
+LDCONFIG := $(firstword $(wildcard $(shell which ldconfig) /sbin/ldconfig))
+ifeq ($(LDCONFIG),)
+$(error ldconfig is not found)
+endif
+
+#
 # Add search paths for shared-library lookup
 #
 # We add all locations of shared libraries present in the ld.cache to our
 # library search path.
 #
-HOST_SO_SEARCH_DIRS := $(sort $(dir $(shell ldconfig -p | sed "s/^.* \//\//" | grep "^\/")))
+HOST_SO_SEARCH_DIRS := $(sort $(dir $(shell $(LDCONFIG) -p | sed "s/^.* \//\//" | grep "^\/")))
 LINK_ARG_PREFIX := -Wl,
 CXX_LINK_OPT += $(addprefix $(LINK_ARG_PREFIX)-rpath-link $(LINK_ARG_PREFIX),$(HOST_SO_SEARCH_DIRS))
 
