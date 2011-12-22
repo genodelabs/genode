@@ -56,6 +56,8 @@ namespace Genode {
 		: tid(tid), pid(pid) { }
 	};
 
+	struct Thread_meta_data;
+
 	/**
 	 * Native thread contains more thread-local data than just the ID
 	 *
@@ -71,7 +73,16 @@ namespace Genode {
 		int client;  /* socket used as IPC client */
 		int server;  /* socket used as IPC server */
 
-		Native_thread() : client(-1), server(-1) { }
+		/**
+		 * Opaque pointer to additional thread-specific meta data
+		 *
+		 * This pointer is used by hybrid Linux/Genode program to maintain
+		 * POSIX-thread-related meta data. For non-hybrid Genode programs, it
+		 * remains unused.
+		 */
+		Thread_meta_data *meta_data;
+
+		Native_thread() : client(-1), server(-1), meta_data(0) { }
 	};
 
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2) {

@@ -67,6 +67,7 @@ EXT_OBJECTS += $(shell cc -print-file-name=crtbegin.o)
 EXT_OBJECTS += $(shell cc -print-file-name=crtend.o)
 EXT_OBJECTS += $(shell cc -print-file-name=crtn.o)
 EXT_OBJECTS += -lgcc -lgcc_s -lsupc++ -lc
+EXT_OBJECTS += -lpthread
 
 #
 # Some header files installed on GNU/Linux test for the GNU compiler. For

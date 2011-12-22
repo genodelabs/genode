@@ -133,6 +133,18 @@ STATIC_LIBS := $(foreach l,$(FILTER_DEPS),$(LIB_CACHE_DIR)/$l/$l.lib.a)
 STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
 
 #
+# For hybrid Linux/Genode programs, prevent the linkage of the normal thread
+# library. Because such programs use the glibc, we map Genode's thread API
+# to 'pthreads' instead to improve inter-operability with native Linux
+# libraries. Furthermore, we do not need Genode's cxx library for such
+# programs because the cxx functionality is already provided by the glibc.
+#
+ifeq ($(USE_HOST_LD_SCRIPT),yes)
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/thread/thread.lib.a, $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/cxx/cxx.lib.a,       $(STATIC_LIBS))
+endif
+
+#
 # We need the linker option '--whole-archive' to make sure that all library
 # constructors marked with '__attribute__((constructor))' end up int the
 # binary. When not using this option, the linker goes through all libraries

@@ -277,6 +277,10 @@ namespace Genode {
 			 * \param name        thread name for debugging
 			 * \param stack_size  stack size
 			 *
+			 * \throw Stack_too_large
+			 * \throw Stack_alloc_failed
+			 * \throw Context_alloc_failed
+			 *
 			 * The stack for the new thread will be allocated from the RAM
 			 * session of the process environment. A small portion of the
 			 * stack size is internally used by the framework for storing
