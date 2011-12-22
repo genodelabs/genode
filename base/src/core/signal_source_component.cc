@@ -30,6 +30,13 @@ void Signal_source_component::submit(Signal_context_component *context,
                                      int                       cnt)
 {
 	/*
+	 * If the client does not block in 'wait_for_signal', the
+	 * signal will be delivered as result of the next
+	 * 'wait_for_signal' call.
+	 */
+	context->increment_signal_cnt(cnt);
+
+	/*
 	 * If the client is blocking at the signal source (indicated by
 	 * the valid reply capability), we wake him up.
 	 */
@@ -43,17 +50,13 @@ void Signal_source_component::submit(Signal_context_component *context,
 		 * the reply capability.
 		 */
 		_reply_cap = Untyped_capability();
+		context->reset_signal_cnt();
+
+	} else {
+
+		if (!context->is_enqueued())
+			_signal_queue.enqueue(context);
 	}
-
-	/*
-	 * If the client does not block in 'wait_for_signal', the
-	 * signal will be delivered as result of the next
-	 * 'wait_for_signal' call.
-	 */
-	context->increment_signal_cnt(cnt);
-
-	if (!context->is_enqueued())
-		_signal_queue.enqueue(context);
 }
 
 

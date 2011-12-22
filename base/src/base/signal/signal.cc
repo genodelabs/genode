@@ -241,6 +241,9 @@ Signal Signal_receiver::wait_for_signal()
 			/* invalidate current signal in context */
 			context->_curr_signal = Signal(0, 0);
 
+			if (result.num() == 0)
+				PWRN("returning signal with num == 0");
+
 			/* return last received signal */
 			return result;
 		}

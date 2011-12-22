@@ -86,7 +86,7 @@ void Signal_session_component::free_context(Signal_context_capability context_ca
 
 
 void Signal_session_component::submit(Signal_context_capability context_cap,
-                                      unsigned                   cnt)
+                                      unsigned                  cnt)
 {
 	Signal_context_component *context;
 	context = dynamic_cast<Signal_context_component *>
