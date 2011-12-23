@@ -51,6 +51,10 @@
 /libports/include/readline/rltypedefs.h
 /libports/include/readline/tilde.h
 /libports/include/zlib
+/libports/include/gmp/gmp-impl.h
+/libports/include/gmp/x86_32/gmp-mparam.h
+/libports/include/mpfr/
+/libports/src/lib/gmp/mpn/asm-defs.m4
 /libports/src/lib/ncurses/codes.c
 /libports/src/lib/ncurses/comp_captab.c
 /libports/src/lib/ncurses/fallback.c
