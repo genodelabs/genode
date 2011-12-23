@@ -155,6 +155,7 @@ ALL_INC_DIR += $(INC_DIR)
 ALL_INC_DIR += $(foreach DIR,$(REP_INC_DIR), $(foreach REP,$(REPOSITORIES),$(REP)/$(DIR)))
 ALL_INC_DIR += $(foreach REP,$(REPOSITORIES),$(REP)/include)
 ALL_INC_DIR += $(LIBGCC_INC_DIR)
+ALL_INC_DIR += $(HOST_INC_DIR)
 
 INSTALL_DIR ?=
 

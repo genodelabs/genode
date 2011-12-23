@@ -305,7 +305,7 @@ foreach platform $platforms {
 # Print label identifying the specified test case to stderr
 #
 proc print_step_label { platform step } {
-	puts -nonewline stderr "[format {%-20s} $platform:] [format {%-20s} $step] "
+	puts -nonewline stderr "[format {%-20s} $platform:] [format {%-22s} $step] "
 }
 
 

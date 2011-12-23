@@ -21,9 +21,8 @@ usage:
 	@echo "  <platform>   can be 'linux_x86', 'fiasco_x86', 'pistachio_x86',"
 	@echo "               'okl4_x86', 'nova_x86', 'codezero_vpb926',"
 	@echo "               'mb_s3a_starter_kit', foc_x86_32', 'foc_x86_64',"
-	@echo "               ''foc_pbxa9', or 'foc_vea9x4'"
-	@echo "               'or 'foc_pbxa9'"
-	@echo "               "
+	@echo "               'foc_pbxa9', 'foc_vea9x4', or 'lx_hybrid_x86'"
+	@echo
 	@echo "  <build-dir>  is the location of the build directory to create"
 	@echo
 
@@ -77,6 +76,17 @@ $(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
 	@echo >> $@
 	@cat $< >> $@
 	@cat $(BUILD_CONF).generic >> $@
+
+#
+# Add optional repositories for all platforms except for lx_hybrid
+#
+# Those repositories rely on Genode's libc or contain device drivers.
+# Both prerequisites are not available for hybrid Linux/Genode programs.
+#
+ifneq ($(PLATFORM),lx_hybrid_x86)
+$(BUILD_DIR)/etc/build.conf::
+	@cat $(BUILD_CONF).optional >> $@
+endif
 
 #
 # Add 'ports-okl4' repository to OKL4 build directory
@@ -138,6 +148,10 @@ mb_s3a_starter_kit::
 
 mb_ml507::
 	@echo "SPECS = genode mb_ml507" > $(BUILD_DIR)/etc/specs.conf
+
+lx_hybrid_x86::
+	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
+	@echo "SPECS += always_hybrid" >> $(BUILD_DIR)/etc/specs.conf
 
 $(PLATFORM)::
 	@echo "successfully created build directory at $(BUILD_DIR)"

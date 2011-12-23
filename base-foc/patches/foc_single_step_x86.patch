@@ -204,15 +204,6 @@ Index: kernel/fiasco/src/kern/arm/thread-arm.cpp
 ===================================================================
 --- kernel/fiasco/src/kern/arm/thread-arm.cpp	(revision 38)
 +++ kernel/fiasco/src/kern/arm/thread-arm.cpp	(working copy)
-@@ -361,7 +361,7 @@
- IMPLEMENT inline
- Mword
- Thread::user_flags() const
--{ return 0; }
-+{ return state() & Thread_ready; }
- 
- IMPLEMENT inline NEEDS[Thread::exception_triggered]
- void
 @@ -549,6 +549,10 @@
    return (v[insn >> 28] >> (psr >> 28)) & 1;
  }

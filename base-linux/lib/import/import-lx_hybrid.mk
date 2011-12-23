@@ -13,10 +13,14 @@ HOST_LIB_SEARCH_DIRS := $(shell cc -print-search-dirs | grep libraries |\
 #
 # Add search path for 'limits.h'
 #
-INC_DIR += $(shell echo "int main() {return 0;}" |\
-                   LANG=C $(CXX) -x c++ -v -E - 2>&1 |\
-                   sed '/^\#include <\.\.\.> search starts here:/,/^End of search list/!d' |\
-                   grep "include-fixed")
+# We cannot simply extend 'INC_DIR' because this would give precedence to the
+# host include search paths over Genode search path. The variable HOST_INC_DIR
+# is appended to the include directory list.
+#
+HOST_INC_DIR += $(shell echo "int main() {return 0;}" |\
+                        LANG=C $(CXX) -x c++ -v -E - 2>&1 |\
+                        sed '/^\#include <\.\.\.> search starts here:/,/^End of search list/!d' |\
+                        grep "include-fixed")
 
 #
 # Add search paths for normal libraries

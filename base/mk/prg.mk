@@ -31,6 +31,14 @@ PRG_DIR := $(REP_DIR)/src/$(PRG_REL_DIR)
 include $(PRG_DIR)/target.mk
 
 #
+# Enforce use of 'lx_hybrid' library for all targets when 'always_hybrid' is
+# enabled
+#
+ifeq ($(filter-out $(SPECS),always_hybrid),)
+LIBS += lx_hybrid
+endif
+
+#
 # Include lib-import description files
 #
 include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-$(LIB).mk))
@@ -140,8 +148,9 @@ STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
 # programs because the cxx functionality is already provided by the glibc.
 #
 ifeq ($(USE_HOST_LD_SCRIPT),yes)
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/thread/thread.lib.a, $(STATIC_LIBS))
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/cxx/cxx.lib.a,       $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/startup/startup.lib.a, $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/thread/thread.lib.a,   $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/cxx/cxx.lib.a,         $(STATIC_LIBS))
 endif
 
 #

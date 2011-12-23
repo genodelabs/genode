@@ -325,7 +325,7 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 
 	/* offset must be positive and page-aligned */
 	if (offset < 0
-	 || align_addr(offset, get_page_size_log2()) != (size_t)offset)
+	 || align_addr(offset, get_page_size_log2()) != offset)
 		throw Invalid_args();
 
 	/* check dataspace validity */

@@ -98,7 +98,7 @@ void Platform_thread::pause()
 	 */
 	l4_thread_ex_regs_ret(_thread_cap.dst(), &_pager->state.ip,
 	                      &_pager->state.sp, &flags);
-	bool in_syscall  = _in_syscall(flags);
+	bool in_syscall  = flags == 0;
 	_pager->state.lock.unlock();
 
 	/**

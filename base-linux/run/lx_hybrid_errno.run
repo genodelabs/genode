@@ -1,0 +1,48 @@
+#
+# \brief  Test thread-local errno works for hybrid Linux/Genode programs
+# \author Norman Feske
+# \date   2011-12-05
+#
+
+#
+# Build
+#
+
+build { core init test/lx_hybrid_errno }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="test-lx_hybrid_errno">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+}
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules { core init test-lx_hybrid_errno }
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+run_genode_until "--- finished thread-local errno test ---.*\n" 10
+

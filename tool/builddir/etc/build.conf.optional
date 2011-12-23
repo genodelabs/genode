@@ -1,0 +1,34 @@
+
+##
+## Optional repositories
+##
+
+#
+# Ports of popular open-source libraries and the C library
+#
+# Make sure to execute 'make prepare' in 'libports' prior building.
+#
+#REPOSITORIES += $(GENODE_DIR)/libports
+
+#
+# Qt4 tool kit
+#
+# The 'qt4' repository depends on 'libc' and 'libports'
+# Make sure to execute 'make prepare' in 'qt4' prior building.
+#
+#REPOSITORIES += $(GENODE_DIR)/qt4
+
+#
+# Ports of popular 3rd-party applications
+#
+# The 'ports' repository depends on 'libc', 'libports', and 'qt4'.
+# Make sure to execute 'make prepare' in 'ports' prior building.
+#
+#REPOSITORIES += $(GENODE_DIR)/ports
+
+#
+# High-level Genode-specific services and applications
+#
+# The 'gems' repository depends on 'libc', 'libports', and 'qt4'.
+#
+#REPOSITORIES += $(GENODE_DIR)/gems

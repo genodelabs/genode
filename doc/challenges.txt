@@ -1,0 +1,501 @@
+
+                 =======================================
+                 Future Challanges of the Genode project
+                 =======================================
+
+
+Abstract
+########
+
+This document compiles various ideas to pursue in the context of Genode. It is
+meant as source of inspiration for individuals who are interested in getting
+involved with the project and for students who want to base their student
+research projects on Genode.
+
+
+Applications and library infrastructure
+#######################################
+
+:Chrome web browser:
+
+  The Chrome web browser promises to address the most pressing security
+  concerns of web application by isolation measures, in particular the
+  sandboxing of plugins and the confinement of individual web applications. As
+  we demonstrated with the Genode Live CD 10.11, Genode facilitates a more
+  natural way to pursue such techniques compared with current commodity
+  operating systems. Furthermore, the use of Genode as base platform for Chrome
+  would strengthen the web-browser security by dwarfing its trusted computing
+  base by two orders of magnitude compared to the use of Linux as base
+  platform. This would allow Chrome to be considered as a secure interface to
+  the web for use cases in the high-assurance domain.
+
+:Qemu or Virtual Box on Genode:
+
+  Using Genode as hosting platform for virtual machines running in Qemu or
+  Virtual Box would enable the execution of security-sensitive functions (for
+  example cryptography) with a minimally-complex trusted computing base
+  beside running Windows on the same machine.
+
+:VNC server implementing Genode's framebuffer session interface:
+
+  With 'Input' and 'Framebuffer', Genode provides two low-level interfaces
+  used by interactive applications. For example, the Nitpicker GUI server uses
+  these interfaces as a client and, in turn, exports multiple virtual
+  'Framebuffer' and 'Input' interfaces to its clients. This enables a
+  highly modular use of applications such as the nesting of GUIs. By
+  implementing the 'Framebuffer' and 'Input' interfaces with a VNC server
+  implementation, all graphical workloads of Genode would become available over
+  the network. One immediate application of this implementation is the remote
+  testing of graphical Genode applications running on a headless server.
+
+:Tiled window manager:
+
+  At Genode Labs, we pursue the goal to shape Genode into an general-purpose
+  operating system suitable for productive work. The feature set needed to
+  achieve this goal largely depends on the tools and applications daily used by
+  the Genode engineers. As one particularly important tool for being highly
+  productive, we identified a tiled user interface. Currently, all developers
+  at Genode Labs embrace either the Ion3 window manager or the tiled Terminator
+  terminal emulator. Hence, we desire to have a similar mode of user
+  interaction on Genode as well. The goal of this challenge is to identify the
+  most important usage patters and the implementation of a tiled GUI that
+  multiplexes the framebuffer into a set of tiled and tabbed virtual
+  framebuffers.
+
+  Related to this work, the low-level 'Framebuffer' and 'Input' interfaces
+  should be subject to a revision, for example for enabling the flexible change
+  of framebuffer sizes as needed by a tiled user interface.
+
+:Interactive sound switchbox based on Genode's Audio_out session interface:
+
+  Since version 10.05, Genode features a highly flexible configuration concept
+  that allows the arbitrary routing of session requests throughout the
+  hierarchic process structure. Even though primarily designed for expressing
+  mandatory-access control rules, the concept scales far beyond this use case.
+  For example, it can be used to run an arbitrary number of processes
+  implementing the same interface and connecting the different interface
+  implementations. One special case of this scenario is a chain of audio
+  filters with each using the 'Audio_out' session interface for both roles
+  client and server. Combined with the Nitpicker GUI server and Genode's
+  support for real-time priorities, this base techniques enable the creation of
+  flexible audio mixer / switchboard applications, which require dedicated
+  frameworks (e.g., Jack audio) on traditional operating systems. The goal of
+  this project is to create a show case implementation demonstrating the
+  feasibility for creating high-quality audio applications on Genode.
+  Furthermore, we wish for feedback regarding the current design of our bulk
+  streaming interface when used for low-latency applications.
+
+:PDF reader for E-Government use:
+
+  A facility for reading PDF and E-Book documents is one of the indispensable
+  features Genode has to provide to be considered for general-purpose
+  computing. The goal of this work is to identify a suitable open-source PDF
+  engine and port it as native application to Genode. The challenging part is
+  to keep the complexity of this application as low as possible in order to
+  enable the use of this application as a trusted document reader. Further
+  ideas envision the use of PDF files as medium for sensitive documents
+  combined with measures for protecting the integrity of the displayed
+  information. For example, when processing contracts or similar sensitive
+  documents in E-Government scenarios, the consumer of such documents expects
+  the correct display of all the information as expressed by the creator of the
+  document. In the event of a compromised PDF engine or a man-in-the middle
+  attacker manipulating the PDF file, the consumer of the document requires a
+  way to identify such security breaches. In this context, running the PDF
+  engine in a sandboxed Genode subsystem has two incentives. First, the attack
+  surface for manipulating the PDF engine gets dramatically reduced, and
+  second, the integrity of the result of the PDF engine can be measured by an
+  independent trusted component facilitating Genode secure GUI server
+  (Nitpicker).
+
+:Graphical on-target IPC tracing tool using Qt4:
+
+  Analysing the interaction of components of a multi-server operating system
+  such as Genode is important to discover bottlenecks of the system and for
+  debugging highly complex usage scenarios involving many processes. Currently,
+  Genode handles this problem with two approaches. First, Genode's
+  recursive structure enables the integration of a subsystem in a basic
+  OS setup featuring only those drivers and components used for the particular
+  subsystem. After the successful integration of such a subsystem, it can
+  be embedded into a far more complex application scenario without any changes.
+  With this approach, the subject to analyse can be kept at a reasonable level
+  at integration time. For debugging purposes, the current approach is using
+  the debugging facilities of the respective base platforms (e.g., using
+  GDB on Linux, the Fiasco kernel debugger, the OKL4 kernel debugger).
+
+  However, in many cases, bottlenecks do not occur when integrating individual
+  sub systems but after integrating multiple of such subsystems into a large
+  application scenario. For such scenarios, existing debugging methodologies do
+  not scale. A tool is desired that is able to capture the relationships
+  between processes of a potentially large process hierarchy, to display
+  communication and control flows between those processes, and to visualize the
+  interaction of threads with the kernel's scheduler.
+
+  Since Qt4 is available natively on Genode, the creation of both offline and
+  on-target analysis tools has become feasible. The first step of this project
+  is creating an interactive on-target tool, that displays the interaction
+  of communicating threads as captured on the running system. The tool should
+  work on a selected kernel that provides a facility for tracing IPC messages.
+
+
+Application frameworks
+######################
+
+:Running the Meego application stack on Genode using Qt4:
+
+  With Genode 11.02, Qt4 4.7.1 has become available. The most prominent feature
+  of this version is the new QML language to design GUIs using a declarative
+  language. This technique is targeted specifically to mobile applications and
+  other touch-based devices. The goal of this project is to run the Meego
+  application stack natively on Genode. First, the software components and
+  Meego-specific Linux customizations must be identified. For each such
+  component, it must be decided whether to port its code or to reimplement its
+  interface. The immediate goal of the first step is running one Meego example
+  application natively on Genode.
+
+:Python Qt4 bindings:
+
+  With the Python interpreter and the port of the Qt4 framework, the principle
+  components for Python-based GUIs on Genode are available. However, the glue
+  between both components is missing. The incentive of this work is supplementing
+  our Python port with the modules needed for real applications and porting the
+  Qt4 bindings to Genode. This would bring Genode one step closer to executing
+  modern Python-based GUI applications (in particular KDE4 applications).
+
+:Evaluation of porting GTK+ to Genode:
+
+  With Qt4, we have demonstrated the feasibility to run a highly-complex
+  application framework via Genode on a wide range of microkernels. That leaves
+  the question of looking into the other major toolkit in town, namely GTK+ as
+  used by Firefox and the Gnome desktop.
+
+:Cairographics:
+
+  Cairo is a high-quality 2D vector graphics engine used by a large number of
+  open-source projects, in particular GTK+. Hence the port of Cairo is a
+  prerequisite for the GTK+ challenge. In addition, it would enable the
+  use of further libraries such as Poppler.
+
+
+Device drivers
+##############
+
+:Enhancing Gallium3D support:
+
+  Genode 10.08 introduced Gallium3D including the GPU driver for Intel GMA
+  CPUs. With this initial version, we demonstrated that the powerful software
+  stack for running hardware-accelerated 3D applications can be deployed on
+  Genode. At the same time, it motivates us to reach out for even more
+  ambitious goals:
+
+  First, the current approach executes the GPU driver alongside the complete
+  Gallium3D software stack and the application code in one address space. To
+  enable the use of multiple hardware-accelerated applications running at the
+  same time, the GPU driver must run separated from the Gallium3D code as done
+  on Linux. The preliminary interfaces for this decomposition are already in
+  place but there are several open questions. Most importantly, the page-fault
+  handling of buffer objects mapped in the application's address space.
+
+  Second, we'd like to complement our current Intel GMA GPU driver with
+  interrupt-based synchronization, namely vblank handling. This requires an
+  understanding of the Intel GMA interrupt code and the enhancement of our
+  driver environment.
+
+  Third, we desire the use of further Gallium3D drivers, in particular the
+  Nouveau and r300 drivers. The basic approach to bring these drivers to Genode
+  is the same as for Intel GMA but the respective driver environments are yet
+  to be developed.
+
+  If you are interested in low-level graphics hacking, GPUs, and
+  high-performance graphics, this project is ideal to get you on track.
+
+:Split USB core from USB device drivers:
+
+  Genode's current USB support is based on the Linux USB stack running as a
+  single process on Genode. This process includes the USB core logic, USB host
+  controller driver as well as the USB device drivers such as HID or USB
+  storage. This monolithic USB process is rather inflexible. Hence, we desire a
+  decomposition of this solution such that the USB host driver and each USB
+  device driver runs in a separate process.
+
+:IOMMU support on the NOVA Hypervisor:
+
+  The NOVA hypervisor is the first open-source microkernel with thorough
+  support for IOMMUs, which principally enables the use of untrusted device
+  drivers alongside sensitive software on one machine. Without an IOMMU, each
+  device driver for a device that operates with DMA, is able to indirectly
+  access the whole physical memory through programming the device. With IOMMU,
+  the physical memory addressable by DMA operations can be restrained per
+  device. The goal of this challenge is to enhance Genode with I/O protection
+  when running on the NOVA kernel. This would clear the way towards reusing
+  complex untrusted device drivers running in dedicated device-driver OS
+  instances.
+
+:I/O Kit:
+
+  I/O Kit is the device-driver framework as used by the Darwin operating
+  system, which forms the basis for Mac OS X. The port of I/O Kit would enable
+  the easy re-use of the library of I/O-Kit-based device drivers on Genode. As
+  foundation of this project, we recommend to use the DDE Kit API featured by
+  Genode.
+
+:Support for multi-touch input devices:
+
+  The efforts towards enabling mobile application stacks such as Meego and
+  Android on Genode must be accompanied by a revision of Genode's 'Input'
+  session interface to accommodate multi-touch input devices. First, existing
+  APIs such as multi-touch support in X11, Qt4, and Android should be analysed.
+  Based on these findings, we expect a proposal for changing Genode's input
+  interface. The interface extension should be validated by a example driver
+  implementing the interface as well as an example applications.
+
+
+System services
+###############
+
+:Copy-on-write memory manager:
+
+  Genode's managed dataspaces provide a generalized page-table concept,
+  enabling servers to provide on-demand paged memory objects (dataspaces) to
+  clients. This concept is showcased by the ISO9660 driver, which provides
+  on-demand paged ROM dataspaces to its clients. Depending on the access
+  pattern of the client, the ISO9660 server loads the used parts of the ROM
+  file from CDROM. Managed dataspaces principally allow for a wide variety of
+  interesting applications such as the transparent migration of non-local and
+  local memory in a NUMA system, sparse dataspaces, swapping, and copy-on-write
+  dataspaces. The goal of this project is a dataspace manager that implements
+  copy-on-write semantics combined with a merging technique optimizing the
+  memory footprint at runtime. Pages of two managed dataspaces that share the
+  same content should be provided via read-only page sharing. If one client
+  attempts to change the content of a shared page, a new physical copy of the
+  page get created. Vice versa, if the content of different pages converge, the
+  sharing should be re-established. This work is a follow-up of the diploma
+  thesis of Sebastian Sumpf
+  [http://os.inf.tu-dresden.de/papers_ps/sumpf-diplom.pdf - Cloning L4Linux].
+  On the course of this project, the managed dataspace concept of Genode
+  will be refined, in particular regarding the creation of read-only
+  dataspaces from read-write dataspaces.
+
+:Using Haskell as systems-development language:
+
+  The goal of this project is the application of functional programming
+  i.e., Haskell, for the implementation of low-level Genode components.
+  Implementing critical functionalities in such a high-level language instead
+  of a classical systems language such as C or C++ would pave the way towards
+  analyzing such components with formal methods.
+
+  The use of Haskell for systems development was pioneered by the
+  [http://programatica.cs.pdx.edu/House/ - House Project]. A more recent
+  development is [http://halvm.org - HalVM] - a light-weight OS runtime for
+  Xen that is based on Haskell.
+
+:Dbus emulation:
+
+  Dbus is a popular inter-process communication mechanism on Linux, which
+  enables user applications to respond to global system events and announce
+  state changes to other applications. It is extensively used by modern desktop
+  environments. To enable such applications to integrate well with Genode, a
+  Dbus emulation solution has to be developed.
+
+:Wayland:
+
+  With the availability of Gallium3D on Genode, the prospect for incorporating
+  further projects of the Linux graphics ecosystem into Genode arises.
+  [http://wayland.freedesktop.org - Wayland] is a window server especially
+  designed to be used with Gallium3D. Its design has many similarities with
+  Genode's Nitpicker GUI server, in particular the decision to move window
+  handling policies to the client and thereby minimize the complexity of the
+  GUI server. Whereas Nitpicker was designed for high security, Wayland is
+  targeted to creating GUIs with fluid and tearless animations using
+  hardware-accelerated graphics. We believe that because of the many conceptual
+  parallels with Nitpicker, Wayland would fit very well into the Genode system.
+  However, as a prerequisite for this project, Genode's Gallium3D support must
+  be decomposed first. See the challenges regarding our Gallium3D support for
+  further information.
+
+
+Runtime environments
+####################
+
+:Android's Dalvik VM natively on Genode:
+
+  Dalvik is a Java virtual machine that is used for executing applications on
+  Android. By running Dalvik directly on Genode, the Linux kernel could be
+  removed from the trusted computing base of Android, facilitating the use of
+  this mobile OS in high-assurance settings.
+
+:Vancouver VMM for Genode on the NOVA hypervisor:
+
+  Vancouver is the user-level virtual-machine monitor accompanying the NOVA
+  hypervisor. It combines a VT-based CPU virtualization with a rich set of
+  device models to run unmodified guest operating systems at near-native
+  performance. Since NOVA is a supported base platform of Genode, running
+  Vancouver in the dynamic Genode environment has become feasible. By running
+  Vancouver on Genode instead of NOVA's original static userland would open up
+  new use cases where the combination of faithful virtualization with dynamic
+  applications is desired.
+
+  Genode 11.11 introduced the initial integration of Vancouver into Genode.
+  This version of Vancouver is able to bootstrap another kernel (e.g.,
+  Fiasco.OC) within the virtual machine. However, several pieces are missing
+  for reaching the goal of running a fully-fledged Linux OS as guest.
+
+:Runtime for the D programming language:
+
+  The D systems programming language was designed to overcome many gripes that
+  exists with C++. In particular, it introduces a sane syntax for meta
+  programming, supports unit tests, and contract-based programming. These
+  features make D a compelling language to explore when implementing OS
+  components. Even though D is a compiled language, it comes with a runtime
+  providing support for exception handling and garbage collection. The goal of
+  the project is to explore the use of D for Genode programs, porting the
+  runtime to Genode, adapting the Genode build system to accommodate D
+  programs, and interfacing D programs with other Genode components written in
+  C++.
+
+
+Platforms
+#########
+
+:Evaluation of MP scheduling models on different Genode base platforms:
+
+  Several of Genode's supported base platforms come with multi-processor
+  support, i.e., Linux, NOVA, L4ka::Pistachio, Codezero, and Fiasco.OC. Each of
+  these kernels follows a different approach for utilizing multiple CPUs. For
+  example, Linux and Codezero manage the association of threads with CPUs
+  largely transparent for user-level programs. In contrast, NOVA makes the use
+  of multiple CPUs explicit and constraints the modes of IPC interaction of
+  threads running on different CPUs. Furthermore, kernels differ with regard to
+  thread migration and scheduling. The goal of this project is to identify ways
+  to support the SMP features of the respective kernels at Genode's API level
+  such that SMP can be easily utilized by Genode programs in a largely kernel
+  agnostic way.
+
+:Microkernelizing Linux:
+
+  Thanks to Genode's generic interfaces for I/O access as provided by core, all
+  Genode device drivers including drivers ported from Linux and gPXE can be
+  executed as user-level components on all supported microkernels. However, so
+  far, we have not enabled the use of these device drivers on Linux as base
+  platform. The goal of this project is the systematic replacement of in-kernel
+  Linux device drivers by Genode processes running in user space, effectively
+  reducing the Linux kernel to a runtime for Genode's core process. But moving
+  drivers to Genode processes is just the beginning. By employing further
+  Genode functionality such as its native GUI, lwIP, and Noux, many protocol
+  stacks can effectively be removed from the Linux kernel.
+
+  The goal of this project is to evaluate how small the Linux kernel can get
+  when used as a microkernel.
+
+:Support for the Genode FPGA Graphics SoC platform:
+
+  With Genode 11.02, we introduced the first version of native support for the
+  MicroBlaze softcore CPU. With this foundation laid, we can proceed with
+  bringing GUI-based interactive Genode applications to FPGA-based SoC
+  platforms. As target SoC design, we aspire to use the open-source IP cores
+  provided by the
+  [http://genode-labs.com/products/fpga-graphics - Genode FPGA graphics project].
+
+:Support for the HelenOS/Spark kernel:
+
+  [http://www.helenos.org - HelenOS] is a microkernel-based multi-server OS
+  developed at the university of Prague. It is based on the Spark microkernel,
+  which runs on a wide variety of CPU architectures including Sparc, MIPS, and
+  PowerPC. This broad platform support makes Spark an interesting kernel to
+  look at alone. But a further motivation is the fact that Spark does not
+  follow the classical L4 road, providing a kernel API that comes with an own
+  terminology and different kernel primitives. This makes the mapping of
+  Spark's kernel API to Genode a challenging endeavour and would provide us
+  with feedback regarding the universality of Genode's internal interfaces.
+  Finally, this project has the potential to ignite a further collaboration
+  between the HelenOS and Genode communities.
+
+:Support for the seL4 kernel:
+
+  The seL4 kernel developed by NICTA and OK-Labs is the first formally verified
+  microkernel. It runs on the x86 and ARM architectures and supports the
+  execution of a paravirtualized version of Linux on top. Even though seL4 is
+  proprietary technology, a free binary release and the specification of the
+  kernel API has been published early 2011. Being a capability-based kernel,
+  seL4 is in the line of the current-generation L4 kernels alongside NOVA and
+  Fiasco.OC. Genode already supports the latter two kernel, which hints at the
+  feasibility to support seL4 as well. Currently, the seL4 kernel comes with a
+  rather static user land, which is far from utilizing the full potential of
+  the kernel with regard to dynamic resource management. By adapting Genode to
+  seL4, a rich dynamic application workload would become available to this
+  kernel, which could potentially spawn interest in extending the formal
+  verification efforts at NICTA to the Genode system executing dynamic
+  real-world applications.
+
+:Support for the Barrelfish kernel:
+
+  [http://barrelfish.org - `Barrelfish] is a so-called multi-kernel OS designed
+  for heterogeneous multi-processor systems. At its heart, it is a
+  microkernel-based multi-server OS. Its kernel provides different mechanisms
+  than L4-based kernels. Instead of managing threads in the kernel, there is a
+  mechanism for implementing preemptive multi-threading at user level.
+  Consequently, inter-process communication does not address threads but
+  protection domains. This makes the Barrelfish kernel a very interesting and
+  challenging target for running Genode.
+
+:Support for the XNU kernel (Darwin):
+
+  XNU is the kernel used by Darwin and Mac OS X. It is derived from the
+  MACH microkernel and extended with a UNIX-like syscall API. Because the
+  kernel is used for Mac OS X, it could represent an industry-strength
+  base platform for Genode supporting all CPU features as used by Mac OS X.
+
+:Xen as kernel for Genode:
+  Using Xen as kernel for Genode would clear the way to remove the
+  overly complex Linux OS from the trusted computing base of Xen
+  guests OSes.
+
+  Xen is a hypervisor that can host multiple virtual machines on one physical
+  machine. For driving physical devices and for virtual-machine management, Xen
+  relies on a privileged guest OS called Dom0. Currently, Linux is the
+  predominant choice to be used as Dom0, which implicates a trusted computing
+  base of millions of lines of code for the other guest OSes.
+
+  Even though Xen was designed as hypervisor, a thorough analysis done by Julian
+  Stecklina concludes that Xen qualifies well as a kernel for Genode. For
+  example, Julian implemented a version of Genode's IPC framework that utilizes
+  Xen's communication mechanisms (event channels and shared memory).
+
+:Linux process containers for supporting Genode`s resource trading:
+
+  Even though the Linux version of Genode is primarily meant as a development
+  platform, there exist interesting opportunities to explore when combining
+  Genode with Linux, in particular Linux' process containers.
+  Linux process containers provide a mechanism to partition physical resources,
+  foremost CPU time, between Linux processes. This raises the interesting
+  question of whether this mechanism could be used for a proper implementation
+  of Genode's resource trading on Linux.
+  [http://lwn.net/Articles/236038/ - Process containers introduction...]
+
+
+Optimizations
+#############
+
+:Low-latency audio streaming:
+
+  Genode comes with an audio streaming interface called 'Audio_out' session.
+  It is based on a shared-memory packet stream accompanied with asynchronous
+  data-flow signals. For real-time audio processing involving chains of Genode
+  components, streams of audio data must be carried at low latency, imposing
+  constraints to buffer sizes and the modes of operation of the audio mixer and
+  audio drivers. The goal of this project is to create a holistic design of the
+  whole chain of audio processing, taking thread-scheduling into account. A
+  particular challenge is the mixed output of real-time (small buffer, low
+  latency) and non-real-time (larger buffer to compensate jitter, higher
+  latency) audio sources.
+
+:De-privileging the VESA graphics driver:
+
+  The VESA graphics driver executes the graphics initialization code provided
+  by the graphics card via an x86 emulator. To initialize a graphics mode, this
+  code needs to access device hardware. Currently, we permit access to all
+  device registers requested by the graphics-card's code. These devices include
+  the system timer, the PCI configuration registers, and the interrupt
+  controller, which are critical for the proper operating of the kernel. The
+  goal of this work is to restrict the permissions of the VESA driver to a
+  minimum by virtualizing all devices but the actual graphics card.
+

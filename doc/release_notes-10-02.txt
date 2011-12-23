@@ -313,7 +313,7 @@ Codezero is a microkernel primarily targeted to ARM-based embedded systems.
 It is developed as an open-source project by a British company called B-Labs.
 
 :B-Labs website:
-  [http://b-labs.co.uk]
+  [http://b-labs.com]
 
 The Codezero kernel was first made publicly available in summer 2009. The
 latest version, documentation, and community resources are available at the

@@ -168,7 +168,7 @@ void Thread_base::_free_context()
 
 void Thread_base::name(char *dst, size_t dst_len)
 {
-	snprintf(dst, min(dst_len, (size_t)Context::NAME_LEN), _context->name);
+	snprintf(dst, min(dst_len, (size_t)Context::NAME_LEN), "%s", _context->name);
 }
 
 

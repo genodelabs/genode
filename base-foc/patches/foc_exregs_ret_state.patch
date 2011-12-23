@@ -1,0 +1,26 @@
+Index: kernel/fiasco/src/kern/ia32/thread-ia32.cpp
+===================================================================
+--- kernel/fiasco/src/kern/ia32/thread-ia32.cpp	(revision 38)
++++ kernel/fiasco/src/kern/ia32/thread-ia32.cpp	(working copy)
+@@ -90,7 +90,7 @@
+ IMPLEMENT inline
+ Mword
+ Thread::user_flags() const
+-{ return regs()->flags(); }
++{ return state() & Thread_ready; }
+ 
+ 
+ 
+Index: kernel/fiasco/src/kern/arm/thread-arm.cpp
+===================================================================
+--- kernel/fiasco/src/kern/arm/thread-arm.cpp	(revision 38)
++++ kernel/fiasco/src/kern/arm/thread-arm.cpp	(working copy)
+@@ -361,7 +361,7 @@
+ IMPLEMENT inline
+ Mword
+ Thread::user_flags() const
+-{ return 0; }
++{ return state() & Thread_ready; }
+ 
+ IMPLEMENT inline NEEDS[Thread::exception_triggered]
+ void

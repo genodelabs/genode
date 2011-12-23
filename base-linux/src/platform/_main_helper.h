@@ -25,7 +25,7 @@
 __attribute__((weak)) char **lx_environ = (char **)0;
 
 
-static void main_thread_bootstrap()
+static inline void main_thread_bootstrap()
 {
 	using namespace Genode;
 

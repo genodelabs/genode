@@ -45,7 +45,6 @@ extern char **lx_environ;
  */
 __attribute__((constructor(101))) void lx_hybrid_init()
 {
-	main_thread_bootstrap();
 	lx_environ = environ;
 }
 
@@ -77,6 +76,7 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 
 /* Genode includes */
 #include <base/thread.h>
+#include <base/env.h>
 
 /* libc includes */
 #include <pthread.h>
@@ -149,7 +149,7 @@ namespace Genode {
 static void empty_signal_handler(int) { }
 
 
-static void *thread_start(void *arg)
+static void adopt_thread(Thread_meta_data *meta_data)
 {
 	/*
 	 * Set signal handler such that canceled system calls get not
@@ -158,7 +158,7 @@ static void *thread_start(void *arg)
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 
 	/* assign 'Thread_meta_data' pointer to TLS entry */
-	pthread_setspecific(tls_key(), arg);
+	pthread_setspecific(tls_key(), meta_data);
 
 	/* enable immediate cancellation when calling 'pthread_cancel' */
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, 0);
@@ -166,9 +166,17 @@ static void *thread_start(void *arg)
 	/*
 	 * Initialize thread meta data
 	 */
+	Native_thread &native_thread = meta_data->thread_base->tid();
+	native_thread.tid = lx_gettid();
+	native_thread.pid = lx_getpid();
+}
+
+
+static void *thread_start(void *arg)
+{
 	Thread_meta_data *meta_data = (Thread_meta_data *)arg;
-	meta_data->thread_base->tid().tid = lx_gettid();
-	meta_data->thread_base->tid().pid = lx_getpid();
+
+	adopt_thread(meta_data);
 
 	/* unblock 'Thread_base' constructor */
 	meta_data->construct_lock.unlock();
@@ -181,13 +189,52 @@ static void *thread_start(void *arg)
 }
 
 
+extern "C" void *malloc(::size_t size);
+
+
 Thread_base *Thread_base::myself()
 {
-	void *tls = pthread_getspecific(tls_key());
+	void * const tls = pthread_getspecific(tls_key());
 
-	bool const is_main_thread = (tls == 0);
+	if (tls != 0)
+		return ((Thread_meta_data *)tls)->thread_base;
 
-	return is_main_thread ? 0 : ((Thread_meta_data *)tls)->thread_base;
+	bool const is_main_thread = (lx_getpid() == lx_gettid());
+	if (is_main_thread)
+		return 0;
+
+	/*
+	 * The function was called from a thread created by other means than
+	 * Genode's thread API. This may happen if a native Linux library creates
+	 * threads via the pthread library. If such a thread calls Genode code,
+	 * which then tries to perform IPC, the program fails because there exists
+	 * no 'Thread_base' object. We recover from this unfortunate situation by
+	 * creating a dummy 'Thread_base' object and associate it with the calling
+	 * thread.
+	 */
+
+	/*
+	 * Create dummy 'Thread_base' object but suppress the execution of its
+	 * constructor. If we called the constructor, we would create a new Genode
+	 * thread, which is not what we want. For the allocation, we use glibc
+	 * malloc because 'Genode::env()->heap()->alloc()' uses IPC.
+	 *
+	 * XXX  Both the 'Thread_base' and 'Threadm_meta_data' objects are never
+	 *      freed.
+	 */
+	Thread_base *thread = (Thread_base *)malloc(sizeof(Thread_base));
+	memset(thread, 0, sizeof(*thread));
+	Thread_meta_data *meta_data = new Thread_meta_data(thread);
+
+	/*
+	 * Initialize 'Thread_base::_tid' using the default constructor of
+	 * 'Native_thread'. This marks the client and server sockets as
+	 * uninitialized and prompts the IPC framework to create those as needed.
+	 */
+	meta_data->thread_base->tid() = Native_thread();
+	adopt_thread(meta_data);
+
+	return thread;
 }
 
 
@@ -203,14 +250,14 @@ void Thread_base::start()
 Thread_base::Thread_base(const char *name, size_t stack_size)
 : _list_element(this)
 {
-	_tid.meta_data = new Thread_meta_data(this);
+	_tid.meta_data = new (env()->heap()) Thread_meta_data(this);
 
 	int const ret = pthread_create(&_tid.meta_data->pt, 0, thread_start,
 	                              _tid.meta_data);
 	if (ret) {
 		PERR("pthread_create failed (returned %d, errno=%d)",
 		     ret, errno);
-		delete _tid.meta_data;
+		destroy(env()->heap(), _tid.meta_data);
 		throw Context_alloc_failed();
 	}
 
@@ -241,6 +288,6 @@ Thread_base::~Thread_base()
 			     ret, errno);
 	}
 
-	delete _tid.meta_data;
+	destroy(env()->heap(), _tid.meta_data);
 	_tid.meta_data = 0;
 }

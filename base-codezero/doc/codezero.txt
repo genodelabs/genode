@@ -12,7 +12,7 @@ It is developed by the British company B-Labs.
 
 :B-Labs website:
 
-  [http://b-labs.co.uk]
+  [http://b-labs.com]
 
 The Codezero kernel was first made publicly available in summer 2009. The
 latest version, documentation, and community resources are available at the

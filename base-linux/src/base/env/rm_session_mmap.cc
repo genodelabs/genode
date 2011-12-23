@@ -19,7 +19,7 @@
 using namespace Genode;
 
 
-static size_t dataspace_size(Dataspace_capability ds)
+static Genode::size_t dataspace_size(Dataspace_capability ds)
 {
 	if (ds.valid())
 		return Dataspace_client(ds).size();
@@ -42,8 +42,8 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 }
 
 
-static void *map_local(Dataspace_capability ds, size_t size, addr_t offset,
-                       bool use_local_addr, addr_t local_addr)
+static void *map_local(Dataspace_capability ds, Genode::size_t size,
+                       addr_t offset, bool use_local_addr, addr_t local_addr)
 {
 	Linux_dataspace::Filename fname = Linux_dataspace_client(ds).fname();
 	fname.buf[sizeof(fname.buf) - 1] = 0;

@@ -1,0 +1,63 @@
+
+                         ======================
+                         Contributing to Genode
+                         ======================
+
+
+If you like to improve Genode in any way, you're more than welcome to
+contribute. A collection of ideas to enhance the current implementation can be
+found at the [http:/about/challenges - Challenges] page.
+
+Genode is publicly licensed under the terms of the GNU GPL with Genode Labs
+maintaining the right to also distribute derivates to customers under
+negotiated licenses. [http:/about/licenses - Read more] about Genode Labs'
+dual-licensing business model. Contributions from outside Genode Labs can only
+be incorporated into Genode's mainline development if each individual
+contributor expliticly grants the permission to redistribute his contributions
+under non-GPL licenses. This can be done in two ways:
+
+# If you are planning a continuous involvement with the Genode development,
+  we recommend you to fill out and sign the
+  [http:gca.pdf - Genode Contributor's Agreement] (GCA). The GCA enables Genode
+  Labs to license Genode (including your contributions) under other licenses
+  than the GPL. The signed GCA covers all your future contributions.
+
+# Alternatively, if you don't want to sign the GCA, you may submit
+  your contributions under the [http:mit_license - MIT License]. This
+  license is liberal and permits Genode Labs to use your contributions
+  in open and closed-source projects.
+
+The major difference between both variants (and maybe an advantage of the GCA
+for you) is: The GCA permits only Genode Labs to relicense your contributions
+whereas the MIT license effectively puts your code into the public domain.
+
+
+Development for Genode
+######################
+
+The Genode source code is available via file releases and a public source-code
+repository (see the [http:/download - Download section] for details). Genode
+Labs update the sources (incorporating community contributions) and announce
+new Genode releases. Therefore, the source-code repository is not meant for
+active development but for convenient source-code update and tracking of
+changes between releases.
+
+The advantage of this approach is that only code that meets Genode Labs's
+quality measures (tests, stability) becomes part of an official Genode release.
+The second (more legal) argument is that Genode Labs is obliged to ensure all
+contributions fit our dual-licensing model.
+
+
+Submission of your contribution
+###############################
+
+As soon as you developed a patch you regard valuable to share with the
+community, submit it for incorporation. First, decide which of the above
+contribution licensing variants fits your needs best. Then, accompany your
+patch with a proper description of its changes and send it to the 'genode-main'
+mailing list. Depending on your chosen licensing variant, you may have to state
+that your source code is licensed under the MIT license.
+
+Please, follow the developer discussion and possibly improve your patch. The
+integration into Genode may take some time for review and testing at Genode
+Labs.

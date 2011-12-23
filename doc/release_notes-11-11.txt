@@ -16,7 +16,7 @@ sight, this topic sounds like riding a dead horse because virtualization is
 widely regarded as commodity by now. However, because Genode has virtualization
 built right in the heart of its architecture, this topic gets a quite different
 spin. As described in Section [A Plethora of Levels of Virtualization], the
-version 11.11 contains the results our exploration work about faithful
+version 11.11 contains the results of our exploration work about faithful
 virtualization, paravirtualization, OS-level virtualization, and
 application-level virtualization. The latter category is particularly unique to
 Genode's architecture.
@@ -173,7 +173,7 @@ Genode. This particular program is interesting for several technical reasons as
 well. First, in contrast to most command-line tools such as coreutils, it is
 interactive and implements its event loop via the 'select' system. This
 provided us with the incentive to implement 'select' in Noux. Second, with far
-more than 100,000 lines of code, VIM not a toy but a highly complex and
+more than 100,000 lines of code, VIM is not a toy but a highly complex and
 advanced UNIX tool. Third, its user interface is based on ncurses, which
 requires a fairly complete terminal emulator. Consequently, conducting the
 development of Noux implied working with and understanding several components
@@ -246,7 +246,7 @@ observe and intercept all interactions between the process and core. In
 particular, GDB monitor gains access to all memory objects allocated from the
 debugging target's RAM session, it knows about the address space layout, and
 becomes aware of all threads created by the debugging target. Because, GDB
-monitor does possess the actual capabilities to the debugging target's CPU
+monitor does possess the actual capabilitiy to the debugging target's CPU
 session, it can execute control over those threads, i.e., pausing them or
 enabling single-stepping. By combining the information about the debugging
 target's address space layout and the access to its memory objects, GDB monitor
@@ -352,7 +352,7 @@ session becomes ready to use. The Terminal::Connection waits for this signal
 at construction time. Furthermore, we extended the terminal session interface
 with the new 'avail()' and 'size()' functions. The 'avail()' function can be
 used to query for the availability of new characters. The 'size()' function
-returns the size of the terminal (number of row and columns).
+returns the size of the terminal (number of rows and columns).
 
 
 Dynamic linker
@@ -661,7 +661,7 @@ adding the following line:
 
 ! QEMU_OPT = -enable-kvm
 
-Unfortunately, it hardly depends on your Qemu version and configuration,
+Unfortunately, it very much depends on your Qemu version and configuration,
 whether Fiasco.OC runs problem-free with KVM support enabled. If you encounter
 problems, try to use a limited KVM option with Qemu, like '-no-kvm-irqchip', or
 '-no-kvm-pit' instead of '-enable-kvm'.
@@ -748,7 +748,7 @@ interface has been extended to reflect the whole register set of the
 corresponding thread depending to the underlying hardware platform. Moreover,
 you can now stop and resume a thread's execution. On the x86 platform, it has
 become possible to enable single-stepping mode for a specific thread. All
-exceptions of a thread raises are now reflected to the exception handler of
+exceptions a thread raises are now reflected to the exception handler of
 this thread. The exception handler can be set via the CPU-session interface. To
 support stop/resume, single stepping and breakpoints on ARM, we had to modify
 the Fiasco.OC kernel slightly. All patches to the Fiasco.OC kernel can be found
@@ -905,7 +905,7 @@ stand in the way when building low-level system components. For example, the
 Hence, we have to turn it off when building Genode. However, some tool chains
 lack this option. So the attempt to turn it off produces an error. The most
 important problem with Linux tool chains is the dependency of their respective
-GCC support libraries from the glibc. When not using a Linux glibc, as the case
+GCC support libraries on the glibc. When not using a Linux glibc, as the case
 with Genode, this leads to manifold problems, most of them subtle and extremely
 hard to debug. For example, the support libraries expect the Linux way of
 implementing thread-local storage (using segment registers on x86_32). This
@@ -931,7 +931,7 @@ reason we used the ARM tool chains provided by CodeSourcery.
 
 With Genode 11.11, we addressed the root of the tool-chain problem by
 completely decoupling the Genode tool chain from the host system that is used
-to build it. The most important step was the removal of GCC's dependency from
+to build it. The most important step was the removal of GCC's dependency on
 a C library, which is normally needed to build the GCC support libraries. We
 were able to remove the libc dependency by sneaking-in a small custom libc stub
 into the GCC build process. This stub comes in the form of the single header
@@ -957,7 +957,7 @@ for x86 within your '/tmp/' directory, use the following commands:
 ! mkdir /tmp/tool_chain
 ! cd /tmp/tool_chain
 ! <genode-dir>/tool/tool_chain x86
-After completing the build, you will be asked for the superuser password to
+After completing the build, you will be asked for your user password to
 enable the installation of the result to '/usr/local/genode-gcc/'.
 
 Since we introduced GDB support into Genode, we added GDB in addition to GCC
@@ -976,14 +976,14 @@ the dependency information between libraries and targets in the file
 '<build-dir>/var/libdeps'. This generated file contains make rules to be
 executed in the second build stage, which performs all compilation and linking
 steps. In contrast to the first stage, the work-intensive second stage can be
-executed in parallel using '-j' argument of make. Because of the serialization
+executed in parallel using the '-j' argument of make. Because of the serialization
 of the first build stage, it naturally does not profit from multiple CPUs.
 This should be no problem because the task of the first stage is simple and
 supposedly executed quickly. However, for large builds including many
 targets, we found the time needed for the first stage to become longer
 than expected. This prompted us to do a bit of profiling.
 
-Tracing the 'execve' syscalls of first build stage via 'strace' evidenced that
+Tracing the 'execve' syscalls of the first build stage via 'strace' evidenced that
 the echo commands used for creating the 'var/libdeps' file attributed
 significantly to the overall time because each echo involves the spawning of a
 shell. There are two counter measures: First, we eagerly detect already visited
@@ -1005,4 +1005,4 @@ to clean up contribution code package-sensitive analog to the preparation of
 packages. If you don't want to tidy up the whole libports repository, but for
 instance just the LwIP code, just issue:
 
-! 'make clean PKG=lwip
+! make clean PKG=lwip

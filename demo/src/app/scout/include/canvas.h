@@ -46,8 +46,8 @@ class Canvas
 			/* check against canvas boundaries */
 			if (_clip_x1 < 0) _clip_x1 = 0;
 			if (_clip_y1 < 0) _clip_y1 = 0;
-			if (_clip_x2 >= _w && w > 0) _clip_x2 = _w - 1;
-			if (_clip_y2 >= _h && w > 0) _clip_y2 = _h - 1;
+			if (w > 0 && _clip_x2 > _w - 1) _clip_x2 = _w - 1;
+			if (h > 0 && _clip_y2 > _h - 1) _clip_y2 = _h - 1;
 		}
 
 		/**
