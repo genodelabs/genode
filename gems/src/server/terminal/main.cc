@@ -74,9 +74,6 @@ class Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE>
 };
 
 
-static int do_refresh;
-
-
 inline Pixel_rgb565 blend(Pixel_rgb565 src, int alpha)
 {
 	Pixel_rgb565 res;
@@ -394,6 +391,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 			case '\n': /* 10 */
 				_line_feed();
+				_carriage_return();
 				break;
 
 			case 8: /* backspace */
@@ -489,9 +487,14 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				_char_cell_array.scroll_up(_cursor_pos.y, _region_end);
 		}
 
-		void ech(int)
+		void ech(int v)
 		{
-			PDBG("not implemented");
+			Cursor_guard guard(*this);
+
+			for (int i = 0; i < v; i++, _cursor_pos.x++)
+				_char_cell_array.set_cell(_cursor_pos.x, _cursor_pos.y,
+				                          Char_cell(' ', FONT_REGULAR,
+				                          _color_index, _inverse, _highlight));
 		}
 
 		void ed()
@@ -521,7 +524,10 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void hpa(int x)
 		{
-			PDBG("not implemented - hpa %d", x);
+			Cursor_guard guard(*this);
+
+			_cursor_pos.x = x;
+			_cursor_pos.x = Genode::min(_boundary.width - 1, _cursor_pos.x);
 		}
 
 		void hts()
@@ -556,7 +562,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void op()
 		{
-			PDBG("not implemented");
+			_color_index = DEFAULT_COLOR_INDEX;
 		}
 
 		void rc()
@@ -646,7 +652,10 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void vpa(int y)
 		{
-			PDBG("not implemented - vpa %d", y);
+			Cursor_guard guard(*this);
+
+			_cursor_pos.y = y;
+			_cursor_pos.y = Genode::min(_boundary.height - 1, _cursor_pos.y);
 		}
 };
 
@@ -760,7 +769,13 @@ static void convert_char_array_to_pixels(Char_cell_array *cell_array,
 
 namespace Terminal {
 
-	class Session_component : public Genode::Rpc_object<Session, Session_component>
+	struct Flush_callback : Genode::List<Flush_callback>::Element
+	{
+		virtual void flush() = 0;
+	};
+
+	class Session_component : public Genode::Rpc_object<Session, Session_component>,
+	                          public Flush_callback
 	{
 		private:
 
@@ -778,6 +793,11 @@ namespace Terminal {
 			unsigned                     _lines;
 			Framebuffer::Session::Mode   _fb_mode;
 			void                        *_fb_addr;
+
+			/**
+			 * Protect '_char_cell_array'
+			 */
+			Genode::Lock _lock;
 
 			Char_cell_array                  _char_cell_array;
 			Char_cell_array_character_screen _char_cell_array_character_screen;
@@ -837,10 +857,12 @@ namespace Terminal {
 
 			void flush()
 			{
+				Genode::Lock::Guard guard(_lock);
+
 				convert_char_array_to_pixels<Pixel_rgb565>(&_char_cell_array,
-				                             (Pixel_rgb565 *)_fb_addr,
-				                             _fb_width,
-				                             _fb_height);
+				                                           (Pixel_rgb565 *)_fb_addr,
+				                                           _fb_width,
+				                                           _fb_height);
 
 				
 				int first_dirty_line =  10000,
@@ -885,6 +907,8 @@ namespace Terminal {
 
 			void _write(Genode::size_t num_bytes)
 			{
+				Genode::Lock::Guard guard(_lock);
+
 				unsigned char *src = _io_buffer.local_addr<unsigned char>();
 
 				for (unsigned i = 0; i < num_bytes; i++) {
@@ -894,8 +918,6 @@ namespace Terminal {
 					/* submit character to sequence decoder */
 					_decoder.insert(src[i]);
 				}
-
-				flush();
 			}
 
 			Genode::Dataspace_capability _dataspace()
@@ -923,12 +945,34 @@ namespace Terminal {
 	};
 
 
+	struct Flush_callback_registry
+	{
+		Genode::List<Flush_callback> _list;
+		Genode::Lock _lock;
+
+		void add(Flush_callback *flush_callback)
+		{
+			Genode::Lock::Guard guard(_lock);
+			_list.insert(flush_callback);
+		}
+
+		void flush()
+		{
+			Genode::Lock::Guard guard(_lock);
+			Flush_callback *curr = _list.first();
+			for (; curr; curr = curr->next())
+				curr->flush();
+		}
+	};
+
+
 	class Root_component : public Genode::Root_component<Session_component>
 	{
 		private:
 
-			Read_buffer          *_read_buffer;
-			Framebuffer::Session *_framebuffer;
+			Read_buffer             *_read_buffer;
+			Framebuffer::Session    *_framebuffer;
+			Flush_callback_registry &_flush_callback_registry;
 
 		protected:
 
@@ -941,9 +985,12 @@ namespace Terminal {
 				 */
 				Genode::size_t io_buffer_size = 4096;
 
-				return new (md_alloc()) Session_component(_read_buffer,
-				                                          _framebuffer,
-				                                          io_buffer_size);
+				Session_component *session =
+					new (md_alloc()) Session_component(_read_buffer,
+					                                   _framebuffer,
+					                                   io_buffer_size);
+				_flush_callback_registry.add(session);
+				return session;
 			}
 
 		public:
@@ -951,13 +998,15 @@ namespace Terminal {
 			/**
 			 * Constructor
 			 */
-			Root_component(Genode::Rpc_entrypoint *ep,
-			               Genode::Allocator      *md_alloc,
-			               Read_buffer            *read_buffer,
-			               Framebuffer::Session   *framebuffer)
+			Root_component(Genode::Rpc_entrypoint  *ep,
+			               Genode::Allocator       *md_alloc,
+			               Read_buffer             *read_buffer,
+			               Framebuffer::Session    *framebuffer,
+			               Flush_callback_registry &flush_callback_registry)
 			:
 				Genode::Root_component<Session_component>(ep, md_alloc),
-				_read_buffer(read_buffer), _framebuffer(framebuffer)
+				_read_buffer(read_buffer), _framebuffer(framebuffer),
+				_flush_callback_registry(flush_callback_registry)
 			{ }
 	};
 }
@@ -1291,9 +1340,12 @@ int main(int, char **)
 		color_palette[i + 8] = col;
 	}
 
+	static Terminal::Flush_callback_registry flush_callback_registry;
+
 	/* create root interface for service */
 	static Terminal::Root_component root(&ep, &sliced_heap,
-	                                     &read_buffer, &framebuffer);
+	                                     &read_buffer, &framebuffer,
+	                                     flush_callback_registry);
 
 	/* announce service at our parent */
 	env()->parent()->announce(ep.manage(&root));
@@ -1326,10 +1378,13 @@ int main(int, char **)
 
 	while (1) {
 
+		flush_callback_registry.flush();
+
 		while (!input.is_pending()) {
 			enum { PASSED_MSECS = 10 };
 			timer.msleep(PASSED_MSECS);
-			do_refresh = 1;
+
+			flush_callback_registry.flush();
 
 			if (scancode_tracker.valid()) {
 				repeat_cnt -= PASSED_MSECS;
