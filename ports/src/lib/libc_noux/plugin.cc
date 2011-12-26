@@ -34,6 +34,7 @@
 #include <sys/dirent.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <termios.h>
 
 
 
@@ -365,6 +366,10 @@ namespace {
 		sysio()->open_in.mode = flags;
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_OPEN)) {
+			/*
+			 * XXX  we should return meaningful errno values
+			 */
+			errno = ENOENT;
 			return 0;
 		}
 
@@ -474,7 +479,24 @@ namespace {
 			sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_TIOCGWINSZ;
 			break;
 
+		case TIOCGETA:
+			{
+				PDBG("TIOCGETA - argp=0x%p", argp);
+				::termios *termios = (::termios *)argp;
+
+				/*
+				 * Set 'ECHO' flag, needed by libreadline. Otherwise, echoing
+				 * user input doesn't work in bash.
+				 */
+				termios->c_lflag = ECHO;
+				return 0;
+			}
+
+			break;
+
 		default:
+
+			PWRN("unsupported ioctl (request=0x%x", request);
 			break;
 		}
 
@@ -535,6 +557,7 @@ namespace {
 			break;
 
 		case F_GETFL:
+			PINF("fcntl: F_GETFL for libc_fd=%d", fd->libc_fd);
 			sysio()->fcntl_in.cmd = Noux::Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS;
 			break;
 
@@ -546,7 +569,7 @@ namespace {
 
 		/* invoke system call */
 		if (!noux()->syscall(Noux::Session::SYSCALL_FCNTL)) {
-			PWRN("fcntl failed");
+			PWRN("fcntl failed (libc_fd= %d, cmd=%x)", fd->libc_fd, cmd);
 			/* XXX read error code from sysio */
 			errno = EINVAL;
 			return -1;

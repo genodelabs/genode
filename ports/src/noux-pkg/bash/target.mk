@@ -1,4 +1,4 @@
-NOUX_CONFIGURE_ARGS = --disable-readline --without-bash-malloc
+NOUX_CONFIGURE_ARGS = --without-bash-malloc
 NOUX_CFLAGS += -Dsh_xfree=free
 
 #
