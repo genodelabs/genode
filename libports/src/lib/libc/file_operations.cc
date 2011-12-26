@@ -226,6 +226,10 @@ extern "C" int ioctl(int libc_fd, int request, char *argp) {
 	FD_FUNC_WRAPPER(ioctl, libc_fd, request, argp); }
 
 
+extern "C" int _ioctl(int libc_fd, int request, char *argp) {
+	FD_FUNC_WRAPPER(ioctl, libc_fd, request, argp); }
+
+
 extern "C" int listen(int libc_fd, int backlog) {
 	FD_FUNC_WRAPPER(listen, libc_fd, backlog); }
 
