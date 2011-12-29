@@ -67,7 +67,8 @@ LIBC_IMPORT_INCLUDES =  include/libc/strings.h \
                         include/libc/netdb.h \
                         include/libc/ar.h \
                         include/libc/stdint.h \
-                        include/libc/ieeefp.h
+                        include/libc/ieeefp.h \
+                        include/libc/memory.h
 
 #
 # Files from include directory needed for stdlib
