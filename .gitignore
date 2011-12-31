@@ -20,6 +20,7 @@
 /libports/include/ffat
 /libports/include/freetype
 /libports/include/ft2build.h
+/libports/include/jbig2dec
 /libports/include/libc-amd64/
 /libports/include/libc-arm/
 /libports/include/libc-i386/
@@ -27,6 +28,7 @@
 /libports/include/libpng
 /libports/include/lwip/lwip
 /libports/include/lwip/netif
+/libports/include/mupdf
 /libports/include/ncurses/MKterm.h.awk
 /libports/include/ncurses/capdefaults.c
 /libports/include/ncurses/curses.h
@@ -45,6 +47,7 @@
 /libports/include/ncurses/termcap.h
 /libports/include/ncurses/tic.h
 /libports/include/ncurses/unctrl.h
+/libports/include/openjpeg
 /libports/include/python2.6
 /libports/include/readline/keymaps.h
 /libports/include/readline/rlstdc.h
@@ -63,6 +66,7 @@
 /libports/src/lib/ncurses/names.c
 /libports/src/lib/ncurses/unctrl.c
 /libports/tool/mesa/glsl
+/libports/tool/mupdf
 /ports-foc/contrib
 /ports-okl4/contrib
 /ports-okl4/download
