@@ -1,0 +1,119 @@
+
+                             ========
+                             Road Map
+                             ========
+
+
+This page contains our preliminary plans for evolving Genode.
+Progress in addition to this planning will very much depend on the
+degree of community support the project will receive. The
+[http:/community/wiki/Challenges - Challenges] page collects some of
+our ideas to advance Genode in various directions.
+
+The road map is not fixed. If there is commercial interest of
+pushing the Genode technology to a certain direction, we are willing
+to revisit our plans.
+
+
+2012
+####
+
+"Eating our own dog food"
+=========================
+
+To emphasize our conviction in the maturity and flexibility of
+Genode, we dedicate the year 2012 to the transition of the framework
+from a toolkit for building special-purpose operating systems to a
+fully functional general-purpose OS. The ambitioned goal of the
+Genode developers is to switch to Genode as everyday OS environment
+for carrying out productive work. In addition to bringing forward
+Genode as general purpose OS, we plan to use it to serve the
+genode.org web site.
+
+
+Ingredients
+===========
+
+As developers of low-level system software, we have very specific
+expectations from our everyday OS. While we can live happily without
+graphical effects and rich multimedia applications, an efficient
+Unix-like command-line interface, the presence of development tools,
+and system stability are crucial.
+
+We identified the following features as fundamental to our computing
+needs:
+
+* VIM
+* Shell
+* Tool chain (coreutils, gcc, binutils, make, findutils, tar, Tcl,
+  expect)
+* Persistent file system
+* Block-device encryption
+* SSH client
+* Git client
+* GNUPG
+* Web browser (also used for email, don't need multi-media stuff)
+* PDF viewer
+* A way to run a just-compiled Genode sub system
+* Interactive Python shell (to be used as a calculator)
+* Screen lock
+* A fall-back virtual machine running Linux for carrying out sporadic
+  work with images (Gimp, Povray, ImageMagick, etc.) and LaTeX, and
+  for testing the Linux version of Genode
+* Tiled window manager (similar to the wonderful ion3)
+* IM client for Jabber
+
+With those fundamentals in place, we will be ready to get started
+using the system. This will be the right time to address add-ons
+that make the devloper's life more efficient and enjoyable:
+
+* EMACS (for all those that cannot live with VIM)
+* Intel wireless driver
+* Media player (at least for playing music)
+* Thinkpad ACPI support, fan daemon
+* Qemu
+* Tuxpaint
+* High-performance graphics, e.g., via the Wayland display server
+* Native mail-user agent (e.g., mutt)
+* Additional command-line tools (e.g., mc)
+
+The work on enabling these functionalities on top of Genode will be
+scattered over the year. However, for each of the four releases in
+2012, we define a particular focus.
+
+
+Milestones
+==========
+
+:February - Release 12.02:
+  * File and directory-service interfaces
+  * Offline Unix tools (vim, shell, tool chain)
+  * PDF viewer
+
+:March - Live CD 12.03:
+  * Presenting usage scenarios of Genode as development platform
+
+:May - Release 12.05:
+  * Revisiting the support for Linux drivers (USB, sound)
+  * Network-based Unix tools (e.g., ssh, Git), IM client
+  * Persistent file system
+
+:August - Release 12.08:
+  * Tiled window manager and user-interface concept
+  * Intel wireless driver
+  * Media player
+  * Hosting genode.org website on Genode
+  * Multi-processor support on NOVA, Pistachio, and Fiasco.OC
+
+:November - Release 12.11:
+  * Extended support for Lenovo Thinkpad
+  * Cryptography (block-device encryption, GNUPG)
+  * Additional tools (emacs, mc)
+
+
+Additional topics
+=================
+
+In addition to the main theme for 2012 described above, Genode will
+continue to improve its support for ARM-based platforms.
+
