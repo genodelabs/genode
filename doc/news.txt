@@ -4,6 +4,39 @@
                                ===========
 
 
+Road Map 2012
+#############
+
+| The road map for 2012 envisions the use of Genode as everyday development
+| platform.
+
+The overall theme for Genode in 2012 will be the practical use of our
+OS technology for carrying out regular development work. We see this as
+the best way to proof the maturity of the framework. Furthermore, by eating
+our own dog food, we generate a strong incentive for ourself to address
+topics that would otherwise be deferred.
+
+For assembling the road map, we introspected ourselves and identified
+a list of functionalities that we could not live without, ranging from
+a Unix-like command-line interface, over the support for specific
+PC hardware, to fancy features such as a tiled window manager.
+
+We plan to publish four releases at our quarterly release cycle. So the
+list of desired functionalities are spread throughout those releases.
+However, each release will have a different emphasis.
+
+Version 12.02 will be geared towards the usage scenarios that we are
+going to present at our next Live CD scheduled for March. For version
+12.05 we are planning a major rework of our arsenal of Linux-based
+device drivers. The release 12.08 will be the tipping point for making
+the initial switch to Genode by including Intel wireless drivers and
+a tiled window manager. Towards the end of the year, we will take the
+opportunity of version 12.11 to optimize the support for our beloved
+Lenovo Thinkpads and bring additional tools such as emacs to the table.
+
+[http://genode.org/about/road-map - Review our road-map for more details...]
+
+
 New issue tracker at Github
 ###########################
 
