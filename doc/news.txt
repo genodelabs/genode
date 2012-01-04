@@ -4,8 +4,57 @@
                                ===========
 
 
-Road Map 2012
-#############
+Genode at FOSDEM | 2012-01-04
+#############################
+
+| Meet us at FOSDEM 2012, to be held on 4-5 February in Brussels.
+
+FOSDEM is one of the world's largest events of the Free-Software and
+Open-Source-Community.
+
+:[http://fosdem.org/2012 - FOSDEM 2012, 4-5 February, Brussels, Belgium]:
+
+This year, it will feature a dev room specifically dedicated to multi-server
+and microkernel-based operating systems. The list of participating projects
+include HelenOS, MINIX, GNU Hurd, and Genode. The dev room will host talks,
+discussion sessions, and demonstrations. Among the talks, there will be an
+introduction of the Genode OS Framework presented by Norman Feske:
+
+:Abstract:
+
+_Today's operating systems try to find a balance between seemingly_
+_conflicting goals. Ease of use is traded against security, resource_
+_utilization is traded against resource accountability, and system_
+_complexity is traded against scalability. For example, SELinux is ill_
+_famed as hard to use and consequently remains widely unused. As another_
+_example, isolation kernels minimize the complexity of critical system_
+_software but at the cost of limiting these solutions to static applications._
+
+_The Genode OS architecture shows how these apparently inherent conflicts_
+_can be solved by operating-system design. By combining a recursive_
+_system structure with capability-based security, mandatory access_
+_control becomes easy to deploy. At the same time, the trusted computing_
+_base can be minimized for each application individually such that the_
+_attack surface for security-critical system functions gets reduced by_
+_orders of magnitude compared to existing approaches. Furthermore, a_
+_concept for trading physical resources among processes allows for_
+_dynamic workloads while maintaining quality of service. That is not just_
+_theory - the system is ready for demonstration and its developers are_
+_planning to use it as development environment by the end of 2012._
+
+_After a brief introduction of where Genode comes from, the main part of_
+_the talk will be focused on the OS architecture and give a glimpse at_
+_the implementation via live demonstrations. Finally, the talk will_
+_briefly discuss the planned steps towards using Genode as_
+_general-purpose OS._
+
+For everyone interested in operating systems in general and microkernel
+technology in particular, this year's FOSDEM is a great opportunity to
+get in touch. We are looking forward to meeting you in Brussels!
+
+
+Road Map 2012 | 2012-01-02
+##########################
 
 | The road map for 2012 envisions the use of Genode as everyday development
 | platform.
@@ -37,8 +86,8 @@ Lenovo Thinkpads and bring additional tools such as emacs to the table.
 [http://genode.org/about/road-map - Review our road-map for more details...]
 
 
-New issue tracker at Github
-###########################
+New issue tracker at Github | 2011-12-20
+########################################
 
 | To promote open development, the new issue tracker replaces both the public
 | tracker at Sourceforge and the tracker formerly internal to Genode Labs.
