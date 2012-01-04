@@ -96,12 +96,39 @@ ifeq ($(AUTOCONF),)
 $(error Unknown autoconf version for GCC $(GCC_VERSION).)
 endif
 
+#
+# Check if 'autoconf' is installed
+#
 ifeq ($(shell which $(AUTOCONF)),)
-$(error Need to have $(AUTOCONF) installed.)
+$(error Need to have '$(AUTOCONF)' installed.)
 endif
 
+#
+# Check if 'libncurses' is installed
+#
+ifneq ($(shell $(LD) -lncurses -e0 -o /tmp/a.out && echo ok),ok)
+$(error Need to have 'libncurses' installed.)
+endif
+
+#
+# Check if 'texinfo' is installed
+#
+ifeq ($(shell which texi2pdf),)
+$(error Need to have 'texinfo' installed.)
+endif
+
+#
+# Check if 'wget' is installed
+#
+ifeq ($(shell which wget),)
+$(error Need to have 'wget' installed.)
+endif
+
+#
+# Check if 'autogen' is installed
+#
 ifeq ($(shell which autogen)),)
-$(error Need to have autogen installed.)
+$(error Need to have 'autogen' installed.)
 endif
 
 #
