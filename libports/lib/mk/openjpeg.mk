@@ -19,7 +19,7 @@ vpath %.c $(OPENJPEG_DIR)
 opj_config.h:
 	$(VERBOSE)echo "#define PACKAGE_VERSION \"1.4.0\"" > $@
 
-$(SRC_C): opj_config.h
+$(SRC_C:.c=.o): opj_config.h
 
 clean: clean_opj_config_h
 
@@ -32,7 +32,7 @@ malloc.h:
 	$(VERBOSE)echo "#include <stdlib.h>" > $@
 	$(VERBOSE)echo "#undef HAVE_MEMALIGN" >> $@
 
-$(SRC_C): malloc.h
+$(SRC_C:.c=.o): malloc.h
 
 clean: clean_malloc_h
 
