@@ -96,6 +96,18 @@ namespace {
 				}
 				return orig_count;
 			}
+
+			int ioctl(Libc::File_descriptor *, int request, char *)
+			{
+				/*
+				 * Some programs or libraries use to perform 'TIOCGETA'
+				 * operations on stdout, in particular the termios module of
+				 * Python. Those programs may break if 'tcgetattr' return with
+				 * an error. We pretend to be more successful than we really
+				 * are to make them happy.
+				 */
+				return 0;
+			}
 	};
 
 
