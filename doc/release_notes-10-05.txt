@@ -987,7 +987,7 @@ that this program must be build for a Linux host platformm using a separate
 build directory. This build directory must use the 'base-host' repository and
 extend the 'SPECS' variable with 'x11', 'xtest', and 'xdamage'.
 
-[image img/red_green_screenshot]
+[image red_green_screenshot]
 
 The screenshot shows two Linux instances and the native launchpad application
 seamlessly integrated into a single GUI. We slightly modified nitpicker to tint
@@ -1018,7 +1018,7 @@ Even though compared with other browsers, its popularity is relatively small
 but for us, it is perfect to stretch the bounds of our Genode infrastructure.
 The following screenshot shows Arora running as native Genode process.
 
-[image img/arora_screenshot]
+[image arora_screenshot]
 
 Porting Arora to Genode motivated many improvements of our C library, the Qt4
 port, and the lwIP stack. In the current state, the application is fully

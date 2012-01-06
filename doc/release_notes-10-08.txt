@@ -104,7 +104,7 @@ The following figure gives an overview of how the components of the graphics
 software stack relate to each other. The components are described in the
 following.
 
-[image img/gallium3d]
+[image gallium3d]
 
 
 EGL driver
@@ -123,7 +123,7 @@ interface. For Genode, we have added a new EGL driver that uses Genode's
 part of 'gallium.lib.so'. The following screenshot shows the EGL driver
 in action.
 
-[image img/gallium_softpipe_screen]
+[image gallium_softpipe_screen]
 
 
 Gallium i915 GPU driver

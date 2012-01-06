@@ -84,7 +84,7 @@ until now, Vancouver has been tied to a specialized user land that comes with
 NOVA. For the current Genode release, we took the chance to adopt this
 technology for Genode.
 
-[image img/vancouver]
+[image vancouver]
   The Vancouver virtual machine monitor executed as Genode
   component
 
@@ -126,7 +126,7 @@ Genode.
 :[http://l4android.org]:
   L4Android project website
 
-[image img/l4android]
+[image l4android]
   Android, a Linux distribution, and a process tree of Genode
   components running side by side
 
@@ -149,7 +149,7 @@ without changing the original source code of the UNIX programs. This work is
 primarily motivated by our ongoing mission to use Genode as development
 environment.
 
-[image img/noux]
+[image noux]
   The Noux runtime environment for UNIX software. The program is linked
   against a custom libc plugin that directs system calls over an RPC
   interface to the Noux server. The RPC interface resembles a
@@ -217,7 +217,7 @@ line with Genode's architecture but capitalizes it. Instead of adding
 special debugging interfaces to low-level components such as the kernel
 and core, we use an approach that we call application-level virtualization.
 
-[image img/no_gdb]
+[image no_gdb]
   A Genode process uses low-level services provided by core as well as a
   higher-level service implemented as separate process component.
 
@@ -229,7 +229,7 @@ directly for those services but requests them via its chain of parents (i.e,
 the init process). This gives us the opportunity to route session requests for
 those services to alternative implementations.
 
-[image img/gdb]
+[image gdb]
   GDB monitor transparently intercepts the interaction of a Genode process with
   its environment. By virtualizing fundamental core services, GDB monitor
   exercises full control over the debugging target. GDB monitor, in turn,

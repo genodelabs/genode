@@ -623,7 +623,7 @@ space. This portion is called thread-context area. Within the thread-context
 area, each thread has a fixed-sized slot, a thread context. The layout of each
 thread context looks as follows
 
-[image img/thread_context]
+[image thread_context]
 
 ; lower address
 ;   ...
@@ -820,7 +820,7 @@ limit (this is the case for OKL4 and Pistachio), this configuration should
 result in the following assignments of physical priorities to process-tree
 nodes:
 
-[image img/priorities]
+[image priorities]
 
 The red marker shows the resulting priority of the corresponding process.
 

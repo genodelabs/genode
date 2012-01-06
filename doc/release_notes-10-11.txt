@@ -684,7 +684,7 @@ programs that run isolated from the Qt4 application, and thereby depend on
 on a significantly less complex trusted computing base than the Qt4
 application itself.
 
-[image img/nitpicker_plugin]
+[image nitpicker_plugin]
 
 The image above illustrates the use of the 'QNitpickerViewWidget' in the
 scenario presented on the Live CD. The browser obtains the Nitpicker view to be
@@ -708,7 +708,7 @@ to implement on a classical OS but is a breeze to realize on Genode where all
 device drivers and protocol stacks are running as distinct user-level
 components. The following figure illustrates the idea:
 
-[image img/http_block]
+[image http_block]
 
 The block stub driver of the Linux kernel gets connected to a special block
 driver called 'http_block', which does not access a real block device but

@@ -321,12 +321,12 @@ including the X Window System. The other instance booted a busybox-based
 RAM Disk and runs with just about 16 MB of RAM. Each Linux kernel uses
 a separate instance of the Liquid FB virtual frame buffer:
 
-[image img/tinycore_busybox_screen]
+[image tinycore_busybox_screen]
 
 The Genode process tree looks as follows (the figure omits usual Genode
 components such as device drivers for PCI, PS/2, VESA, and the Timer):
 
-[image img/tinycore_busybox]
+[image tinycore_busybox]
 
 The Linux Launcher node is just a slightly modified Init node with the only
 difference being that requests for sessions to the Nitpicker GUI server or
@@ -412,7 +412,7 @@ communication parties agree on a policy with regard to the organization of the
 communication buffer by specifying the same 'Packet_stream_policy' as template
 argument.
 
-[image img/packet_stream]
+[image packet_stream]
 
 As illustrated in the Figure above, the communication buffer consists of
 three parts, a submit queue, an acknowledgement queue, and a bulk buffer.
@@ -499,7 +499,7 @@ laid with the NIC-session interface.
 The following Figure illustrates the integration of a networking
 application with lwIP that uses the NIC-session interface as back end.
 
-[image img/lwip]
+[image lwip]
 
 The port of the lwIP stack resides in the new 'libports' repository
 described in Section [New libports repository]. It comes with
@@ -794,7 +794,7 @@ program contained in the 'os/src/app/xvfb' directory. Because Xvfb is executed
 as Nitpicker client, it is possible to integrate multiple instances of Xvfb
 into the same Nitpicker session.
 
-[image img/xvfb_screen]
+[image xvfb_screen]
 
 The scenario above uses two instances of Xvfb, which are displayed by the
 Nitpicker GUI server executed on Genode. Each Xvfb process is connected
@@ -802,7 +802,7 @@ to Genode via a xvfb adaptor program, which is hybrid using both the Linux
 API (for accessing the virtual frame buffer and performing its role as
 X client) and the Genode API (for its role as Nitpicker client).
 
-[image img/xvfb]
+[image xvfb]
 
 
 :Preconditions for compiling:

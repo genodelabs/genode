@@ -319,7 +319,7 @@ example, BSD-based drivers shall transparently provide the same functionality
 as the current Linux drivers, which permits the simple reuse of driver server
 implementations.
 
-[image img/usb_current]
+[image usb_current]
 
 Image [img/usb_current] illustrates the current implementation of the USB-based
 human-interface device (HID) driver. In this monolithic setup, all parts of the
@@ -332,7 +332,7 @@ are
   attached devices, and registered drivers
 * Host controller drivers for UHCI, OHCI, and EHCI
 
-[image img/usb_aspired]
+[image usb_aspired]
 
 We regard this as an intermediate step towards our goal to decompose the USB
 stack. Image [img/usb_aspired] shows our aspired design. In this design, the

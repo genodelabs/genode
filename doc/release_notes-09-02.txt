@@ -162,7 +162,7 @@ L4/Fiasco, and L4ka::Pistachio without any changes. Figure [img/qt4_screenshot]
 shows a screenshot of Qt's Tetrix example running side-by-side with native
 Genode applications.
 
-[image img/qt4_screenshot]
+[image qt4_screenshot]
 
 :Current state:
 

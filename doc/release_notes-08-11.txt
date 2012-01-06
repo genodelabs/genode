@@ -129,7 +129,7 @@ illustrated in Figure [img/layered_ipc], typification is done at the
 object-framework level on the server side and via in the 'Connection'
 classes at the client side.
 
-[image img/layered_ipc]
+[image layered_ipc]
 
 From the application-developer's perspective, working with capabilities
 has now become type-safe, making the produced code more readable and robust.
@@ -216,7 +216,7 @@ properly communicated to the receiver even if the receiver is not highly
 responsive. Notifications do not carry any payload because this payload
 would have to be queued at the transmitter.
 
-[image img/signals]
+[image signals]
 
 Image [img/signals] illustrates the roles of signaller thread,
 transmitter, receiver, and signal-handler thread.
@@ -349,7 +349,7 @@ the base API and the interfaces defined in the 'os' repository. Figure
 [img/base_cap_types] provides an overview about the capability types
 provided by the base API.
 
-[image img/base_cap_types]
+[image base_cap_types]
   Overview about the capability types provided by the base API
 
 Furthermore, we have complemented all session interfaces with
@@ -463,7 +463,7 @@ API from scratch by fully utilizing the existing Genode infrastructure
 such as the available structured data types, core's I/O services,
 the synchronization primitives, and the thread API.
 
-[image img/dde_kit]
+[image dde_kit]
 
 Figure [img/signals] illustrates the role of DDE kit when re-using an
 unmodified device driver taken from the Linux kernel. DDE kit translates
