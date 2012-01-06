@@ -3,7 +3,7 @@
 #
 
 LIBS   = libc-string libc-locale libc-stdlib libc-stdio libc-gen libc-gdtoa \
-         libc-inet libc-stdtime libc-regex
+         libc-inet libc-stdtime libc-regex libc-compat
 LIBS  += timed_semaphore cxx
 
 #
