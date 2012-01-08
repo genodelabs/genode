@@ -35,6 +35,12 @@ of Genode.
 
   This tool is a C++ parser used as front-end for Beautify.
 
+:'cxx_to_html':
+
+  This tool converts a C++ source file to a HTML view to be used for the API
+  documentation at the genode.org website. It relies on 'parse_cxx' to do the
+  actual C++ parsing.
+
 :'fix_include_ifndef':
 
   This tool helps with assigning consistent include guards to header files.

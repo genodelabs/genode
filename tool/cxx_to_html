@@ -1,0 +1,150 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Convert C++ code to html
+# \author Norman Feske
+# \date   2008-06-14
+#
+
+#################################################
+## Read input and fill internal representation ##
+#################################################
+
+##
+# Find location of 'parse_cxx'
+#
+# We expect to find 'parse_cxx' in the same directory
+# as we are located. The question is: Where are we?
+##
+proc parse_cxx_file { } {
+	global argv0
+
+	set path $argv0
+
+	if {[file type $path] == "link"} {
+		set path [file readlink $path] }
+
+	set parse_cxx_file "[file dirname $path]/parse_cxx"
+
+	if {![file exists $parse_cxx_file]} {
+		puts stderr "Error: Could not find 'parse_cxx' in '$path'."
+		exit -1
+	}
+	return $parse_cxx_file
+}
+
+
+set input_source [lindex $argv end]
+if {[catch {
+	if {[info exists input_token_file]} {
+		set tokens [exec cat $input_token_file]
+	} else {
+		set tokens [exec [parse_cxx_file] -format tokens $input_source]
+	}
+}]} {
+	puts stderr ""
+	puts stderr "Convert C++ code to HTML"
+	puts stderr "\n  usage: cxx_to_html \[<source_file>\]"
+	puts stderr ""
+	puts stderr "The result of the conversion will be written to stdout."
+	puts stderr ""
+	exit -1;
+}
+
+foreach token $tokens {
+	set name [lindex $token 0]
+	set line [lindex $token 1]
+	set text [lindex $token 2]
+	set tok_text($name) "$text"
+	set tok_line($name) $line
+}
+
+if {![info exists tok_text(content0)]} {
+	puts stderr "Error: input contains no root token 'content0'."
+	exit -1
+}
+
+
+proc tok_type {token} {
+	regexp {[a-z]+} $token type
+	return $type
+}
+
+
+proc line_tag {line_num} {
+	set line "$line_num\\\&nbsp;\\\&nbsp;"
+	if {$line_num < 1000} { set line "\\\&nbsp;$line" }
+	if {$line_num <  100} { set line "\\\&nbsp;$line" }
+	if {$line_num <   10} { set line "\\\&nbsp;$line" }
+	return "<code id=\"line\">$line</code>"
+}
+
+
+##
+# Output syntax tree as HTML
+##
+proc dump_source {{token content0}} {
+	global tok_text
+	global line_num
+
+	set output $tok_text($token)
+
+	set curr_tok_type [tok_type $token]
+
+	if {$token == "content0"} {
+		set line_num 1
+		puts -nonewline "<code id=\"line\">\&nbsp;\&nbsp;\&nbsp;1\&nbsp;\&nbsp;</code>"
+		incr line_num
+	}
+
+	if {$curr_tok_type != "identifier"} {
+		puts -nonewline "<code id=\"$curr_tok_type\">"
+	}
+
+	while {$output != ""} {
+	
+		# consume plain text
+		if {[regexp {^[^§]+} $output plain]} {
+			# perform character substitutions for xml compliance
+			regsub -all {³}  $plain "\\\&amp;"  plain
+			regsub -all {<}  $plain "\\\&lt;"   plain
+			regsub -all {>}  $plain "\\\&gt;"   plain
+			regsub -all "\"" $plain "\\\&quot;" plain
+
+			# because of a bug in plone/zope, which somehow strips the trailing semicolon
+			# on html output, we cannot use &apos;
+			#regsub -all "'"  $plain "\\\&apos;" plain
+
+			regsub -all "'"  $plain "`" plain
+			regsub -all " "  $plain "\\\&nbsp;" plain
+			regsub -all "\t" $plain "\\\&nbsp;\\\&nbsp;\\\&nbsp;" plain
+
+			while {[regexp "\n" $plain dummy]} {
+				regsub "\n" $plain "<br />[line_tag $line_num]" plain
+				incr line_num
+			}
+
+			regsub -all "\<br \/\>" $plain "<br />\n" plain
+			puts -nonewline $plain
+			regsub {^[^§]+} $output "" output
+		}
+
+		# consume token
+		if {[regexp {§(.+?)°} $output dummy subtoken]} {
+			dump_source $subtoken
+			regsub {§(.+?)°} $output "" output
+		}
+	}
+	if {$curr_tok_type != "identifier"} {
+		puts -nonewline "</code>"
+	}
+}
+
+# print header
+puts " <div class=\"cplusplus\">"
+
+# print content
+dump_source
+
+# print footer
+puts " </div>"
