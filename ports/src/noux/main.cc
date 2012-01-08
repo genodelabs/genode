@@ -337,6 +337,26 @@ static Noux::Args const &args_of_init_process()
 }
 
 
+static void quote(char *buf, Genode::size_t buf_len)
+{
+	char c = '"';
+
+	/*
+	 * Make sure to leave space at the end of buffer for the finishing '"' and
+	 * the null-termination.
+	 */
+	unsigned i = 0;
+	for (; c && (i + 2 < buf_len); i++)
+	{
+		char next_c = buf[i];
+		buf[i] = c;
+		c = next_c;
+	}
+	buf[i + 0] = '"';
+	buf[i + 1] = 0;
+}
+
+
 /**
  * Return string containing the environment variables of init
  *
@@ -357,6 +377,7 @@ static char const *env_string_of_init_process()
 
 			arg_node.attribute("name").value(name_buf, sizeof(name_buf));
 			arg_node.attribute("value").value(value_buf, sizeof(value_buf));
+			quote(value_buf, sizeof(value_buf));
 
 			Genode::Arg_string::set_arg(env_buf, sizeof(env_buf),
 			                            name_buf, value_buf);
