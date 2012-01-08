@@ -339,15 +339,21 @@ static Noux::Args const &args_of_init_process()
 
 static void quote(char *buf, Genode::size_t buf_len)
 {
-	char c = '"';
-
 	/*
 	 * Make sure to leave space at the end of buffer for the finishing '"' and
 	 * the null-termination.
 	 */
+	char c = '"';
 	unsigned i = 0;
 	for (; c && (i + 2 < buf_len); i++)
 	{
+		/*
+		 * So shouldn't this have a special case for '"' characters inside the
+		 * string? This is actually not needed because such a string could
+		 * never be constructed via the XML config anyway. You can sneak in '"'
+		 * characters only by quoting them in the XML file. Then, however, they
+		 * are already quoted.
+		 */
 		char next_c = buf[i];
 		buf[i] = c;
 		c = next_c;
