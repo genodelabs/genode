@@ -16,11 +16,11 @@
 
 namespace Genode {
 
-	template <typename T>
-	T max(T v1, T v2) { return v1 > v2 ? v1 : v2; }
+	template <typename T1, typename T2>
+	T1 max(T1 v1, T2 v2) { return v1 > v2 ? v1 : v2; }
 
-	template <typename T>
-	T min(T v1, T v2) { return v1 < v2 ? v1 : v2; }
+	template <typename T1, typename T2>
+	T1 min(T1 v1, T2 v2) { return v1 < v2 ? v1 : v2; }
 
 	template <typename T>
 	T abs(T value) { return value >= 0 ? value : -value; }
