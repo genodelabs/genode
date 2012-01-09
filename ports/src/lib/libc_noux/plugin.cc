@@ -331,6 +331,7 @@ namespace {
 				_stderr(Libc::file_descriptor_allocator()->alloc(this, noux_context(2), 2))
 			{ }
 
+			bool supports_chdir(const char *)     { return true; }
 			bool supports_open(const char *, int) { return true; }
 			bool supports_stat(const char *)      { return true; }
 

@@ -110,6 +110,18 @@ bool Plugin::supports_unlink(const char*)
 	return false;
 }
 
+/**
+ * Default implementations
+ */
+
+int Plugin::chdir(const char *path)
+{
+	Libc::File_descriptor *fd = open(path, 0 /* no rights necessary */);
+	bool success = ((fd != NULL)
+			and (fchdir(fd) == 0)
+			and (close(fd)  == 0));
+	return success ? 0 : -1;
+}
 
 /**
  * Generate dummy member function of Plugin class
@@ -161,7 +173,6 @@ DUMMY(ssize_t, -1, write,         (File_descriptor *, const void *, ::size_t));
 /*
  * Misc
  */
-DUMMY(int, -1, chdir,        (const char*));
 DUMMY(void,  , freeaddrinfo, (struct ::addrinfo *));
 DUMMY(int, -1, getaddrinfo,  (const char *, const char *, const struct ::addrinfo *, struct ::addrinfo **));
 DUMMY(int, -1, mkdir,        (const char*, mode_t));
