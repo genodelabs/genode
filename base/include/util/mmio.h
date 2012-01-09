@@ -7,7 +7,7 @@
 #ifndef _BASE__INCLUDE__UTIL__MMIO_H_
 #define _BASE__INCLUDE__UTIL__MMIO_H_
 
-#include <base/stdint.h>
+#include <util/register.h>
 
 
 namespace Genode
@@ -45,40 +45,24 @@ namespace Genode
 			 * A POD-like region at offset 'MMIO_OFFSET' within a MMIO region
 			 */
 			template <off_t MMIO_OFFSET, typename STORAGE_T>
-			struct Register
+			struct Register : public Genode::Register<STORAGE_T>
 			{
-				typedef STORAGE_T storage_t;
 				enum { OFFSET = MMIO_OFFSET };
 
 				/**
 				 * A bitregion within a register
 				 */
 				template <unsigned long BIT_SHIFT, unsigned long BIT_SIZE>
-				struct Subreg
+				struct Subreg : public Genode::Register<STORAGE_T>::template Subreg<BIT_SHIFT, BIT_SIZE>
 				{
-					enum {
-						SHIFT = BIT_SHIFT,
-						WIDTH = BIT_SIZE,
-						MASK  = (1 << WIDTH) - 1,
-					};
-
 					/**
 					 * Back reference to containing register
 					 */
-					typedef Register<OFFSET, storage_t> Compound_reg;
-
-					/**
-					 * Get a register value with this subreg set to 'value'
-					 * and the rest left zero
-					 */
-					static storage_t bits(storage_t const value)
-					{
-						return (value & MASK) << SHIFT;
-					};
+					typedef Register<OFFSET, STORAGE_T> Compound_reg;
 				};
 
 				/**
-				 * An array of 'SUBREGS' many similar bitregions
+				 * An array of 'SUBREGS' many similar bitregions with distance 'BIT_SHIFT'
 				 * FIXME: Side effects of a combination of 'Reg_array' and 'Subreg_array'
 				 *        are not evaluated
 				 */
@@ -90,14 +74,14 @@ namespace Genode
 						WIDTH           = BIT_SIZE,
 						MASK            = (1 << WIDTH) - 1,
 						ITERATION_WIDTH = (SHIFT + WIDTH),
-						STORAGE_WIDTH   = BYTE_WIDTH * sizeof(storage_t),
+						STORAGE_WIDTH   = BYTE_WIDTH * sizeof(STORAGE_T),
 						ARRAY_SIZE      = (ITERATION_WIDTH * SUBREGS) >> BYTE_EXP,
 					};
 
 					/**
 					 * Back reference to containing register
 					 */
-					typedef Register<OFFSET, storage_t> Compound_reg;
+					typedef Register<OFFSET, STORAGE_T> Compound_reg;
 
 					/**
 					 * Calculate the MMIO-relative offset 'offset' and shift 'shift'
@@ -190,7 +174,7 @@ Genode::Mmio::Register<OFFSET, STORAGE_T>::Subreg_array<BIT_SHIFT, BIT_SIZE, SUB
                                                                                                    unsigned long const index)
 {
 	unsigned long const bit_off = (index+1) * ITERATION_WIDTH - WIDTH;
-	offset  = (off_t) ((bit_off / STORAGE_WIDTH) * sizeof(storage_t));
+	offset  = (off_t) ((bit_off / STORAGE_WIDTH) * sizeof(STORAGE_T));
 	shift   = bit_off - ( offset << BYTE_EXP );
 	offset += Compound_reg::OFFSET;
 }
@@ -325,3 +309,4 @@ void Genode::Mmio::write(typename SUBREG_ARRAY::Compound_reg::storage_t const va
 
 
 #endif /* _BASE__INCLUDE__UTIL__MMIO_H_ */
+
