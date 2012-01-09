@@ -20,8 +20,10 @@
 #include <libc-plugin/plugin.h>
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 using namespace Libc;
 
@@ -57,12 +59,15 @@ inline File_descriptor *libc_fd_to_fd(int libc_fd, const char *func_name)
 /**
  * Generate body of wrapper function taking a file descriptor as first argument
  */
-#define FD_FUNC_WRAPPER(func_name, libc_fd, ...) \
-	File_descriptor *fd = libc_fd_to_fd(libc_fd, #func_name); \
-	if (!fd || !fd->plugin) \
-		return INVALID_FD; \
-	return fd->plugin->func_name(fd, ##__VA_ARGS__ );
+#define FD_FUNC_WRAPPER_GENERIC(result_stm, func_name, libc_fd, ...)	\
+	File_descriptor *fd = libc_fd_to_fd(libc_fd, #func_name);	\
+	if (!fd || !fd->plugin)						\
+		result_stm INVALID_FD;					\
+	else								\
+		result_stm fd->plugin->func_name(fd, ##__VA_ARGS__ );
 
+#define FD_FUNC_WRAPPER(func_name, libc_fd, ...) \
+	FD_FUNC_WRAPPER_GENERIC(return, func_name, libc_fd, ##__VA_ARGS__ )
 
 /**
  * Generate body of wrapper function taking a path name as first argument
@@ -147,8 +152,15 @@ extern "C" int fchdir(int libc_fd) {
 	FD_FUNC_WRAPPER(fchdir, libc_fd); }
 
 
-extern "C" int fcntl(int libc_fd, int cmd, long arg) {
-	FD_FUNC_WRAPPER(fcntl, libc_fd, cmd, arg); }
+extern "C" int fcntl(int libc_fd, int cmd, ...)
+{
+	va_list ap;
+	int res;
+	va_start(ap, cmd);
+	FD_FUNC_WRAPPER_GENERIC(res =, fcntl, libc_fd, cmd, va_arg(ap, long));
+	va_end(ap);
+	return res;
+}
 
 
 extern "C" int _fcntl(int libc_fd, int cmd, long arg) {
@@ -283,9 +295,13 @@ extern "C" int _open(const char *pathname, int flags, ::mode_t mode)
 }
 
 
-extern "C" int open(const char *pathname, int flags, ::mode_t mode)
+extern "C" int open(const char *pathname, int flags, ...)
 {
-	return _open(pathname, flags, mode);
+	va_list ap;
+	va_start(ap, flags);
+	int res = _open(pathname, flags, va_arg(ap, unsigned));
+	va_end(ap);
+	return res;
 }
 
 
