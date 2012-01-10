@@ -88,7 +88,7 @@ follows:
   objects.
 
 Current state
-=============
+#############
 
 The MicroBlaze platform support resides in the 'base-mb' repository. At the
 current stage, core is able to successfully start multiple nested instances of
