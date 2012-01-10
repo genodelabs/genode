@@ -373,7 +373,7 @@ New ATAPI driver
 With version 10.08, Genode provides a port of the low level ATA/ATPI driver
 available from [http://ata-atapi.com]. Currently, the driver supports ATAPI
 devices only and is implemented as a block-interface server (see Section
-[Block device interface]). By default, the driver tries to take advantage of
+[Block session interface]). By default, the driver tries to take advantage of
 the device's DMA engine but it can also operate in PIO mode as a fall-back
 solution.
 

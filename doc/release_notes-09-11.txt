@@ -238,9 +238,8 @@ Usage
 
 If you haven't build Genode for OKL4 yet, please refer to the following document:
 
-:[http://genode.org/community/wiki/GenodeOnOKL4 - Genode on OKL4 Wiki page]:
-  This Wiki page contains the information on how to build and use
-  Genode with OKL4.
+:[http://genode.org/documentation/platforms/okl4 - Genode on the OKL4 microkernel]:
+  This page contains the information on how to build and use Genode with OKL4.
 
 For building OKLinux for Genode, you first need to download and patch the
 original sources. The top-level makefile of the 'oklinux' repository automates

@@ -125,8 +125,8 @@ effort is included in this release and comes in the form of the
 
 :Further details:
 
-You can find further technical details and usage instructions at our
-dedicated [http://genode.org/community/wiki/GenodeOnL4kaPistachio - Wiki page].
+You can find further technical details and usage instructions at this
+dedicated [http://genode.org/documentation/platforms/pistachio - page].
 
 
 Qt4 on Genode
@@ -158,7 +158,7 @@ utilize recently added features of Genode such as its alarm framework to
 simplify the Qt4 port. Furthermore, we were able to remove all
 platform-specific bits such that the Qt4 port has now become completely
 generic with regard to the underlying kernel. Qt4 can be executed on Linux,
-L4/Fiasco, and L4ka::Pistachio without any changes. Figure [img/qt4_screenshot]
+L4/Fiasco, and L4ka::Pistachio without any changes. Figure [qt4_screenshot]
 shows a screenshot of Qt's Tetrix example running side-by-side with native
 Genode applications.
 
@@ -185,7 +185,7 @@ Genode applications.
   applications are exceedingly large. For example the Tetrix binary is
   100MB including debug information and 11MB in the stripped form. For
   employing Qt on Genode at a larger scale, Genode should be enhanced with
-  [http://genode.org/community/wiki/SharedLibrarySupport - shared-library support].
+  shared-library support.
 
 
 Networking

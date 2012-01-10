@@ -125,7 +125,7 @@ language level, we introduced a template for creating specialized
 capability types ('Typed_capability' in 'base/typed_capability.h') and
 the convention that each RPC interface declares a dedicated capability
 type. Note that type-safety is not maintained across RPC interfaces. As
-illustrated in Figure [img/layered_ipc], typification is done at the
+illustrated in Figure [layered_ipc], typification is done at the
 object-framework level on the server side and via in the 'Connection'
 classes at the client side.
 
@@ -218,7 +218,7 @@ would have to be queued at the transmitter.
 
 [image signals]
 
-Image [img/signals] illustrates the roles of signaller thread,
+Image [signals] illustrates the roles of signaller thread,
 transmitter, receiver, and signal-handler thread.
 
 [http://genode.org/documentation/api/base_index#Asynchronous_notifications - See the new API documentation for asynchronous notifications...]
@@ -346,7 +346,7 @@ Consistent use of typed capabilities and connection classes
 
 We applied capability typification to all interfaces of Genode including
 the base API and the interfaces defined in the 'os' repository. Figure
-[img/base_cap_types] provides an overview about the capability types
+[base_cap_types] provides an overview about the capability types
 provided by the base API.
 
 [image base_cap_types]
@@ -442,7 +442,7 @@ FreeBSD in his diploma thesis
 ;
 Dirk Vogt successfully re-approached the port of USB device drivers
 from the Linux kernel to L4 in his student research project
-[http://os.inf.tu-dresden.de/papers_ps/vogt-beleg.pdf - USB for the L4 Environment].
+[http://os.inf.tu-dresden.de/papers_ps/beleg-vogt.pdf - USB for the L4 Environment].
 
 The current incarnation of the DDE kit API provides the following
 features:
@@ -465,7 +465,7 @@ the synchronization primitives, and the thread API.
 
 [image dde_kit]
 
-Figure [img/signals] illustrates the role of DDE kit when re-using an
+Figure [dde_kit] illustrates the role of DDE kit when re-using an
 unmodified device driver taken from the Linux kernel. DDE kit translates
 Genode's C++ base API to the DDE kit C API. The DDE kit API, in turn, is
 used as back end by the Linux driver environment, which translates Linux

@@ -158,10 +158,10 @@ thoroughly documented the process in
 Usage
 =====
 
-For using Genode with OKL4, please refer to the following dedicated Wiki page:
+For using Genode with OKL4, please refer to the following dedicated page:
 
-:[http://genode.org/community/wiki/GenodeOnOKL4 - Genode on OKL4]:
-  Wiki page about building and using Genode with the OKL4 kernel.
+:[http://genode.org/documentation/platforms/okl4 - Genode on the OKL4 microkernel]:
+  Site about building and using Genode with the OKL4 kernel.
 
 
 Limitations of the current implementation
@@ -308,7 +308,7 @@ we already utilized this approach for realizing basic networking on Genode.
 With this release, we complement DDE Linux with support required by USB
 drivers. We are grateful for being able to base our implementation on the
 excellent foundation laid by Dirk Vogt. He described his work in
-[http://os.inf.tu-dresden.de/papers_ps/vogt-beleg.pdf - USB for the L4 environment].
+[http://os.inf.tu-dresden.de/papers_ps/beleg-vogt.pdf - USB for the L4 environment].
 
 For USB HID support, we added the Linux USB and input subsystems to the DDE
 Linux 2.6 framework. Besides the 'dde_linux26/net.h' API for network drivers
@@ -321,7 +321,7 @@ implementations.
 
 [image usb_current]
 
-Image [img/usb_current] illustrates the current implementation of the USB-based
+Image [usb_current] illustrates the current implementation of the USB-based
 human-interface device (HID) driver. In this monolithic setup, all parts of the
 USB stack and the device API are executed within one address space. These parts
 are
@@ -335,7 +335,7 @@ are
 [image usb_aspired]
 
 We regard this as an intermediate step towards our goal to decompose the USB
-stack. Image [img/usb_aspired] shows our aspired design. In this design, the
+stack. Image [usb_aspired] shows our aspired design. In this design, the
 USB server and one or more USB gadget drivers run in dedicated address spaces.
 The USB server provides two interfaces called USB session interface and USB
 device interface. A USB session interface corresponds to a virtual root hub,
@@ -389,7 +389,7 @@ Genode's process tree. We explored two approaches:
   the high costs of maintaining the paravirtualized Linux kernel, a
   semiautomatic paravirtualization technique was created. According to the
   impressive results presented in
-  [http://l4ka.org/publications/paper.php?docid=2025 - Pre-Virtualization: Soft Layering for Virtual Machines],
+  [http://www.l4ka.org/l4ka/publ_2006_levasseur-ua_soft-layering.pdf - Pre-Virtualization: Soft Layering for Virtual Machines],
   this approach is able to drastically reduce maintenance costs while retaining
   good performance. Furthermore, the approach was applied not only to Linux
   running on the L4 kernel but also for using Xen or Linux as underlying
