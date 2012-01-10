@@ -4,6 +4,13 @@
  * \date   2011-10-26
  */
 
+/*
+ * Copyright (C) 2011-2012 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _BASE__INCLUDE__UTIL__MMIO_H_
 #define _BASE__INCLUDE__UTIL__MMIO_H_
 
@@ -87,8 +94,14 @@ namespace Genode
 					 * Calculate the MMIO-relative offset 'offset' and shift 'shift'
 					 * within the according 'storage_t' value to acces subreg no. 'index'
 					 */
-					inline static void access_dest(off_t & offset, unsigned long & shift,
-					                               unsigned long const index);
+					static void access_dest(off_t & offset, unsigned long & shift,
+					                        unsigned long const index)
+					{
+						unsigned long const bit_off = (index+1) * ITERATION_WIDTH - WIDTH;
+						offset  = (off_t) ((bit_off / STORAGE_WIDTH) * sizeof(STORAGE_T));
+						shift   = bit_off - ( offset << BYTE_EXP );
+						offset += Compound_reg::OFFSET;
+					}
 				};
 			};
 
@@ -163,20 +176,6 @@ namespace Genode
 			inline void write(typename SUBREG_ARRAY::Compound_reg::storage_t const value,
 			                  unsigned long const index);
 	};
-}
-
-
-template <Genode::off_t OFFSET, typename STORAGE_T>
-template <unsigned long BIT_SHIFT, unsigned long BIT_SIZE, unsigned long SUBREGS>
-void
-Genode::Mmio::Register<OFFSET, STORAGE_T>::Subreg_array<BIT_SHIFT, BIT_SIZE, SUBREGS>::access_dest(Genode::off_t & offset,
-                                                                                                   unsigned long & shift,
-                                                                                                   unsigned long const index)
-{
-	unsigned long const bit_off = (index+1) * ITERATION_WIDTH - WIDTH;
-	offset  = (off_t) ((bit_off / STORAGE_WIDTH) * sizeof(STORAGE_T));
-	shift   = bit_off - ( offset << BYTE_EXP );
-	offset += Compound_reg::OFFSET;
 }
 
 

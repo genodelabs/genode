@@ -4,6 +4,13 @@
  * \date   2011-11-10
  */
 
+/*
+ * Copyright (C) 2011-2012 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #ifndef _BASE__INCLUDE__UTIL__REGISTER_H_
 #define _BASE__INCLUDE__UTIL__REGISTER_H_
 
@@ -37,32 +44,34 @@ namespace Genode
 			typedef Register<storage_t> Compound_reg;
 
 			/**
-			 * Get a register value with this subreg set to 'value'
-			 * and the rest left zero
+			 * Get a register value with this subreg set to 'value' and the rest left zero
+			 *
+			 * \detail  Useful to combine successive access to multiple subregs
+			 *          into one operation
 			 */
 			static storage_t bits(storage_t const value) { return (value & MASK) << SHIFT; }
 
 			/**
 			 * Get value of this subreg from 'reg'
 			 */
-			static storage_t value(storage_t const reg) { return (reg >> SHIFT) & MASK; }
+			static storage_t get(storage_t const reg) { return (reg >> SHIFT) & MASK; }
 
 			/**
 			 * Get registervalue 'reg' with this subreg set to zero
 			 */
-			static void clear_bits(storage_t & reg) { reg &= ~(MASK << SHIFT); }
+			static void clear(storage_t & reg) { reg &= ~(MASK << SHIFT); }
 
 			/**
 			 * Get registervalue 'reg' with this subreg set to 'value'
 			 */
-			static void set_bits(storage_t & reg, storage_t const value = ~0)
+			static void set(storage_t & reg, storage_t const value = ~0)
 			{
-				clear_bits(reg);
+				clear(reg);
 				reg |= (value & MASK) << SHIFT;
 			};
 		};
 	};
 }
 
-#endif /* _BASE__INCLUDE__UTIL__CPU_REGISTER_H_ */
+#endif /* _BASE__INCLUDE__UTIL__REGISTER_H_ */
 
