@@ -7,7 +7,7 @@
 This page contains our preliminary plans for evolving Genode.
 Progress in addition to this planning will very much depend on the
 degree of community support the project will receive. The
-[http:/community/wiki/Challenges - Challenges] page collects some of
+[http:/about/challenges - Challenges] page collects some of
 our ideas to advance Genode in various directions.
 
 The road map is not fixed. If there is commercial interest of
