@@ -584,18 +584,23 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  }
  
  static void
-@@ -414,8 +443,8 @@
+@@ -414,7 +443,15 @@
      }
  }
  
--static const unsigned char x86_breakpoint[] = { 0xCC };
--#define x86_breakpoint_len 1
-+static const unsigned char x86_breakpoint[] = { /*0xCC*/0xCD, 0x00 };
-+#define x86_breakpoint_len 2
++#ifdef __GENODE__
++/* The 'INT3' instruction is used by some kernel debuggers and thus cannot
++ * serve as breakpoint instruction for the GDB monitor. Instead, the 'HLT'
++ * instruction gets used. It's a privileged instruction which triggers an
++ * exception when executed in user mode */
++static const unsigned char x86_breakpoint[] = { 0xF4 };
++#else
+ static const unsigned char x86_breakpoint[] = { 0xCC };
++#endif
+ #define x86_breakpoint_len 1
  
  static int
- x86_breakpoint_at (CORE_ADDR pc)
-@@ -2576,7 +2605,7 @@
+@@ -2576,7 +2613,7 @@
    x86_siginfo_fixup,
    x86_linux_new_process,
    x86_linux_new_thread,
