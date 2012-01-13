@@ -7,9 +7,9 @@ include $(call select_from_repositories,lib/import/import-syscall.mk)
 # Manually supply all library search paths of the host compiler to our tool
 # chain.
 #
-HOST_LIB_SEARCH_DIRS := $(shell cc -print-search-dirs | grep libraries |\
-                                sed "s/.*=//"   | sed "s/:/ /g" |\
-                                sed "s/\/ / /g" | sed "s/\/\$$//")
+HOST_LIB_SEARCH_DIRS = $(shell cc $(CC_MARCH) -print-search-dirs | grep libraries |\
+                               sed "s/.*=//"   | sed "s/:/ /g" |\
+                               sed "s/\/ / /g" | sed "s/\/\$$//")
 #
 # Add search path for 'limits.h'
 #
@@ -77,11 +77,11 @@ endif
 #
 # Use the host's startup codes, linker script, and dynamic linker
 #
-EXT_OBJECTS += $(shell cc -print-file-name=crt1.o)
-EXT_OBJECTS += $(shell cc -print-file-name=crti.o)
-EXT_OBJECTS += $(shell cc -print-file-name=crtbegin.o)
-EXT_OBJECTS += $(shell cc -print-file-name=crtend.o)
-EXT_OBJECTS += $(shell cc -print-file-name=crtn.o)
+EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crt1.o)
+EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crti.o)
+EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtbegin.o)
+EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtend.o)
+EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtn.o)
 EXT_OBJECTS += -lgcc -lgcc_s -lsupc++ -lc
 EXT_OBJECTS += -lpthread
 
