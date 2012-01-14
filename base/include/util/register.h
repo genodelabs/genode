@@ -1,5 +1,5 @@
 /*
- * \brief  Generic accessor framework for highly structured memory regions
+ * \brief  Generic access framework for highly structured memory regions
  * \author Martin stein
  * \date   2011-11-10
  */
@@ -33,9 +33,11 @@ namespace Genode
 		struct Subreg
 		{
 			enum {
-				SHIFT = BIT_SHIFT,
-				WIDTH = BIT_SIZE,
-				MASK  = (1 << WIDTH) - 1,
+				SHIFT      = BIT_SHIFT,
+				WIDTH      = BIT_SIZE,
+				MASK       = (1 << WIDTH) - 1,
+				REG_MASK   = MASK << SHIFT,
+				CLEAR_MASK = ~REG_MASK,
 			};
 
 			/**
@@ -49,22 +51,22 @@ namespace Genode
 			 * \detail  Useful to combine successive access to multiple subregs
 			 *          into one operation
 			 */
-			static storage_t bits(storage_t const value) { return (value & MASK) << SHIFT; }
+			static inline storage_t bits(storage_t const value) { return (value & MASK) << SHIFT; }
 
 			/**
 			 * Get value of this subreg from 'reg'
 			 */
-			static storage_t get(storage_t const reg) { return (reg >> SHIFT) & MASK; }
+			static inline storage_t get(storage_t const reg) { return (reg >> SHIFT) & MASK; }
 
 			/**
 			 * Get registervalue 'reg' with this subreg set to zero
 			 */
-			static void clear(storage_t & reg) { reg &= ~(MASK << SHIFT); }
+			static inline void clear(storage_t & reg) { reg &= CLEAR_MASK; }
 
 			/**
 			 * Get registervalue 'reg' with this subreg set to 'value'
 			 */
-			static void set(storage_t & reg, storage_t const value = ~0)
+			static inline void set(storage_t & reg, storage_t const value = ~0)
 			{
 				clear(reg);
 				reg |= (value & MASK) << SHIFT;

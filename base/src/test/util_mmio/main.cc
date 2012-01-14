@@ -54,6 +54,12 @@ struct Cpu_state : Register<uint16_t>
 	inline static void write(storage_t & v) { cpu_state = v; }
 };
 
+struct A : public Mmio {
+
+	A(addr_t const base) : Mmio(base) { }
+
+};
+
 /**
  * Exemplary MMIO region type
  */
@@ -77,8 +83,25 @@ struct Test_mmio : public Mmio
 		struct Invalid_area     : Subreg<6,8> { };
 		struct Overlapping_area : Subreg<0,6> { };
 	};
-};
 
+	struct Array : Reg_array<0x2, uint16_t, 10, 2> 
+	{
+		struct A : Subreg<0,1> { };
+		struct B : Subreg<1,2> { };
+		struct C : Subreg<3,1> { };
+		struct D : Subreg<1,3> { };
+	};
+};
+/*  little endian                                                      LSB --> MSB  */
+/*  big endian                                                         MSB <-- LSB  */
+/*  address    0x0     0x1     0x2     0x3     0x4     0x5     0x6     0x7     0x8  */
+/*  bits       0   4   8   12  16  20  24  28  32  36  40  44  48  52  56  60  64   */
+/*  bit        |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||    */
+/*  4bit       |   |   |   |   |R0 |R1 |R2 |R3 |R4 |R5 |-- |-- |   |   |   |   |    */
+/*  8bit (byte)|       |       |       |       |       |       |       |       |    */
+/*  16bit      |               |Int0           |Int1           |               |    */
+/*  32bit      |                               |                               |    */
+/*  64bit      |                                                               |    */
 
 /**
  * Print out memory content hexadecimal
@@ -270,6 +293,55 @@ int main()
 	    || Cpu_state::B::get(state)   != 0
 	    || Cpu_state::Irq::get(state) != 0)
 	{ return test_failed(10); }
+
+	/**
+	 * Test 11, read/write register array items with array- and item overflows 
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	mmio.write<Test_mmio::Array>(0xa,  0);
+	mmio.write<Test_mmio::Array>(0xb,  4);
+	mmio.write<Test_mmio::Array>(0xc,  5);
+	mmio.write<Test_mmio::Array>(0xdd, 9);
+	mmio.write<Test_mmio::Array>(0xff, 11);
+
+	static uint8_t mmio_cmpr_11[MMIO_SIZE] = {0,0,0x0a,0,0xcb,0,0xd0,0};
+	if (compare_mem(mmio_mem, mmio_cmpr_11, sizeof(mmio_mem)) ||
+	    mmio.read<Test_mmio::Array>(0) != 0xa ||
+	    mmio.read<Test_mmio::Array>(4) != 0xb ||
+	    mmio.read<Test_mmio::Array>(5) != 0xc ||
+	    mmio.read<Test_mmio::Array>(9) != 0xd ||
+	    mmio.read<Test_mmio::Array>(11) !=  0 )
+	{ return test_failed(11); }
+
+	/**
+	 * Test 12, read/write subregs of register array items with array-, item- and subreg overflows
+	 *          also test overlappng subregs
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	mmio.write<Test_mmio::Array::A>(0x1, 0);
+	mmio.write<Test_mmio::Array::B>(0x2, 0);
+	mmio.write<Test_mmio::Array::A>(0x1, 1);
+	mmio.write<Test_mmio::Array::B>(0x1, 1);
+	mmio.write<Test_mmio::Array::A>(0xf, 4);
+	mmio.write<Test_mmio::Array::B>(0xe, 4);
+	mmio.write<Test_mmio::Array::D>(0xd, 5);
+	mmio.write<Test_mmio::Array::C>(0x1, 8);
+	mmio.write<Test_mmio::Array::D>(0x3, 8);
+	mmio.write<Test_mmio::Array::A>(0xf, 11);
+
+	static uint8_t mmio_cmpr_12[MMIO_SIZE] = {0,0,0b00110101,0,0b10100101,0,0b00000110,0};
+	if (compare_mem(mmio_mem, mmio_cmpr_12, sizeof(mmio_mem)) ||
+		mmio.read<Test_mmio::Array::A>(0)  != 0x1 ||
+		mmio.read<Test_mmio::Array::B>(0)  != 0x2 ||
+		mmio.read<Test_mmio::Array::A>(1)  != 0x1 ||
+		mmio.read<Test_mmio::Array::B>(1)  != 0x1 ||
+		mmio.read<Test_mmio::Array::A>(4)  != 0x1 ||
+		mmio.read<Test_mmio::Array::B>(4)  != 0x2 ||
+		mmio.read<Test_mmio::Array::D>(5)  != 0x5 ||
+		mmio.read<Test_mmio::Array::C>(8)  != 0x0 ||
+		mmio.read<Test_mmio::Array::D>(8)  != 0x3 ||
+		mmio.read<Test_mmio::Array::A>(11) != 0   )
+	{ return test_failed(12); }
 
 	printf("Test ended successfully\n");
 	return 0;
