@@ -1,4 +1,7 @@
 *~
+*.orig
+*.swp
+*.rej
 
 /base-codezero/contrib
 /base-fiasco/contrib
