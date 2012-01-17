@@ -84,7 +84,7 @@ update_contrib_subdirs: $(addprefix $(REAL_CONTRIB_DIR)/,$(SVN_TARGETS))
 
 # for resolving the dependencies of 'update_contrib_subdirs'
 $(REAL_CONTRIB_DIR)/%:
-	$(VERBOSE)svn up -r $(SVN_REV) $(SVN_URI)/$* $@
+	$(VERBOSE)svn co -r $(SVN_REV) $(SVN_URI)/$* $@
 
 apply_patches:
 	$(ECHO) "applying patches to '$(REAL_CONTRIB_DIR)/'"
