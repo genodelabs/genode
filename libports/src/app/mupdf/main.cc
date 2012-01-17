@@ -14,6 +14,10 @@
 /* Genode includes */
 #include <framebuffer_session/connection.h>
 #include <base/sleep.h>
+#include <input_session/connection.h>
+#include <input/event.h>
+#include <input/keycodes.h>
+#include <timer_session/connection.h>
 
 /* MuPDF includes */
 extern "C" {
@@ -116,17 +120,18 @@ class Pdf_view
 		struct _Framebuffer : Framebuffer::Connection
 		{
 			typedef uint16_t pixel_t;
-			int width, height;
-			Framebuffer::Session::Mode mode;
-			pixel_t *base;
+
+			Framebuffer::Mode mode;
+			pixel_t          *base;
 
 			_Framebuffer()
+			:
+				mode(Framebuffer::Connection::mode()),
+				base(Genode::env()->rm_session()->attach(dataspace()))
 			{
-				info(&width, &height, &mode);
-				base = Genode::env()->rm_session()->attach(dataspace());
-				PDBG("Framebuffer is %dx%d\n", width, height);
+				PDBG("Framebuffer is %dx%d\n", mode.width(), mode.height());
 
-				if (mode != Framebuffer::Session::RGB565) {
+				if (mode.format() != Framebuffer::Mode::RGB565) {
 					PERR("Color modes other than RGB565 are not supported. Exiting.");
 					throw Non_supported_framebuffer_mode();
 				}
@@ -148,10 +153,10 @@ class Pdf_view
 		{
 			pdfapp_init(&_pdfapp);
 			_pdfapp.userdata = this;
-			_pdfapp.scrw       = _framebuffer.width;
-			_pdfapp.scrh       = _framebuffer.height;
-			_pdfapp.resolution = 2*75; /* XXX read from config */
-			_pdfapp.pageno     = 9;    /* XXX read from config */
+			_pdfapp.scrw       = _framebuffer.mode.width();
+			_pdfapp.scrh       = _framebuffer.mode.height();
+			_pdfapp.resolution = 75;   /* XXX read from config */
+			_pdfapp.pageno     = 0;    /* XXX read from config */
 
 			int fd = open(file_name, O_BINARY | O_RDONLY, 0666);
 			if (fd < 0) {
@@ -168,18 +173,23 @@ class Pdf_view
 		}
 
 		void show();
+
+		void handle_key(int ascii)
+		{
+			pdfapp_onkey(&_pdfapp, ascii);
+		}
 };
 
 
 void Pdf_view::show()
 {
-	int const x_max = Genode::min(_framebuffer.width,  _pdfapp.image->w);
-	int const y_max = Genode::min(_framebuffer.height, _pdfapp.image->h);
+	int const x_max = Genode::min(_framebuffer.mode.width(),  _pdfapp.image->w);
+	int const y_max = Genode::min(_framebuffer.mode.height(), _pdfapp.image->h);
 
 	Genode::size_t src_line_bytes   = _pdfapp.image->n * _pdfapp.image->w;
 	unsigned char *src_line         = _pdfapp.image->samples;
 
-	Genode::size_t dst_line_width   = _framebuffer.width; /* in pixels */
+	Genode::size_t dst_line_width   = _framebuffer.mode.width(); /* in pixels */
 	_Framebuffer::pixel_t *dst_line = _framebuffer.base;
 
 	for (int y = 0; y < y_max; y++) {
@@ -188,7 +198,13 @@ void Pdf_view::show()
 		dst_line += dst_line_width;
 	}
 
-	_framebuffer.refresh(0, 0, _framebuffer.width, _framebuffer.height);
+	_framebuffer.refresh(0, 0, _framebuffer.mode.width(), _framebuffer.mode.height());
+}
+
+
+extern "C" void _sigprocmask()
+{
+	/* suppress debug message by default "not-implemented" implementation */
 }
 
 
@@ -270,12 +286,57 @@ void winresize(pdfapp_t *app, int w, int h)
  ** Main program **
  ******************/
 
+static int keycode_to_ascii(int code)
+{
+	switch (code) {
+	case Input::KEY_LEFT:      return 'h';
+	case Input::KEY_RIGHT:     return 'l';
+	case Input::KEY_DOWN:      return 'j';
+	case Input::KEY_UP:        return 'k';
+	case Input::KEY_PAGEDOWN:
+	case Input::KEY_ENTER:     return ' ';
+	case Input::KEY_PAGEUP:
+	case Input::KEY_BACKSPACE: return 'b';
+	default:                   return 0;
+	}
+}
+
+
 int main(int, char **)
 {
 	char const *file_name = "test.pdf"; /* XXX read from config */
 
 	static Pdf_view pdf_view(file_name);
 
+	static Input::Connection input;
+	static Timer::Connection timer;
+
+	Input::Event *ev_buf = Genode::env()->rm_session()->attach(input.dataspace());
+	int key_cnt = 0;
+
+	/*
+	 * Input event loop
+	 */
+	for (;;) {
+		while (!input.is_pending()) timer.msleep(20);
+
+		for (int i = 0, num_ev = input.flush(); i < num_ev; i++) {
+
+			Input::Event const &ev = ev_buf[i];
+
+			if (ev.type() == Input::Event::PRESS)   key_cnt++;
+			if (ev.type() == Input::Event::RELEASE) key_cnt--;
+
+			if (ev.type() == Input::Event::PRESS && key_cnt == 1) {
+
+				PDBG("key %d pressed", ev.keycode());
+
+				int const ascii = keycode_to_ascii(ev.keycode());
+				if (ascii)
+					pdf_view.handle_key(ascii);
+			}
+		}
+	}
 	Genode::sleep_forever();
 	return 0;
 }
