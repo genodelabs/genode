@@ -44,15 +44,15 @@ namespace Input {
 			/**
 			 * Accessors
 			 */
-			Type type()    { return _type; }
-			int  keycode() { return _keycode; }
-			int  ax()      { return _ax; }
-			int  ay()      { return _ay; }
-			int  rx()      { return _rx; }
-			int  ry()      { return _ry; }
+			Type type()    const { return _type; }
+			int  keycode() const { return _keycode; }
+			int  ax()      const { return _ax; }
+			int  ay()      const { return _ay; }
+			int  rx()      const { return _rx; }
+			int  ry()      const { return _ry; }
 
-			bool is_absolute_motion() { return _type == MOTION && !_rx && !_ry; }
-			bool is_relative_motion() { return _type == MOTION && (_rx || _ry); }
+			bool is_absolute_motion() const { return _type == MOTION && !_rx && !_ry; }
+			bool is_relative_motion() const { return _type == MOTION && (_rx || _ry); }
 	};
 }
 
