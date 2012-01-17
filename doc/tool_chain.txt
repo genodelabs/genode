@@ -59,6 +59,18 @@ see a valid reason not to use it, please contact us (e.g., via the mailing
 list).
 
 
+Gentoo Portage overlay
+######################
+
+For Gentoo users, there exist a Portage overlay, which includes the Genode
+toolchain.
+
+:[https://github.com/blitz/blitz-overlay]:
+  Portage overlay for using the Genode tool chain on Gentoo
+
+You'll find the toolchain under sys-devel/genode-toolchain.
+
+
 Background information - Why do we need a special tool chain?
 #############################################################
 
