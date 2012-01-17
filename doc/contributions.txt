@@ -34,7 +34,7 @@ for your own activities:
 
 :[http://genode.org/about/road-map]: Road Map
 
-:[http://genode.org/about/challenges:] Future Challenges
+:[http://genode.org/about/challenges]: Future Challenges
 
 Once you settled on a specific topic to work on, it is a good idea to get
 acquainted with the work flow and tools used by the project. The following
@@ -152,17 +152,11 @@ at your will. Please make sure that you are in the legal position to sign
 the GCA (i.e., by making sure that your contribution to Genode is in line with
 the Open-Source policy of your employer).
 
-Send a signed copy of the GCA to Genode Labs:
-
-:Postal address of Genode Labs:
-
-  *Genode Labs GmbH,*
-  *Tharandter Str. 13,*
-  *D-01159 Dresden,*
-  *Germany*
+Send a signed copy of the GCA to Genode Labs. The postal address
+is *Genode Labs GmbH, Dammweg 2, D-01097 Dresden, Germany*.
 
 Alternatively, you may send a scanned copy of the signed GCA via email
-to 'licensing@genode-labs.com'.
+to *licensing@genode-labs.com*.
 
 
 Incorporating your work into the mainline source tree
