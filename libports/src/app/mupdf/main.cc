@@ -27,78 +27,6 @@ extern "C" {
 #include <unistd.h>
 
 
-/**************************
- ** Called from pdfapp.c **
- **************************/
-
-void winrepaint(pdfapp_t *)
-{
-	PDBG("not implemented");
-}
-
-
-void winrepaintsearch(pdfapp_t *)
-{
-	PDBG("not implemented");
-}
-
-
-void wincursor(pdfapp_t *, int curs)
-{
-	PDBG("curs=%d - not implemented", curs);
-}
-
-
-void winerror(pdfapp_t *, fz_error error)
-{
-	PDBG("error=%d", error);
-	Genode::sleep_forever();
-}
-
-
-void winwarn(pdfapp_t *, char *msg)
-{
-	PWRN("MuPDF: %s", msg);
-}
-
-
-void winhelp(pdfapp_t *)
-{
-	PDBG("not implemented");
-}
-
-
-char *winpassword(pdfapp_t *, char *)
-{
-	PDBG("not implemented");
-	return NULL;
-}
-
-
-void winclose(pdfapp_t *app)
-{
-	PDBG("not implemented");
-}
-
-
-void winreloadfile(pdfapp_t *)
-{
-	PDBG("not implemented");
-}
-
-
-void wintitle(pdfapp_t *app, char *s)
-{
-	PDBG("s=\"%s\" - not implemented", s);
-}
-
-
-void winresize(pdfapp_t *app, int w, int h)
-{
-	PDBG("not implemented");
-}
-
-
 /***************
  ** Dithering **
  ***************/
@@ -168,58 +96,91 @@ static void convert_line_rgba_to_rgb565(const unsigned char *rgba_src,
 }
 
 
-/******************
- ** Main program **
- ******************/
+/**************
+ ** PDF view **
+ **************/
 
-int main(int, char **)
+class Pdf_view
 {
-	static Framebuffer::Connection framebuffer;
-	Framebuffer::Session::Mode mode;
-	int fb_width, fb_height;
-	framebuffer.info(&fb_width, &fb_height, &mode);
+	public:
 
-	typedef uint16_t pixel_t;
-	pixel_t *fb_base = Genode::env()->rm_session()->attach(framebuffer.dataspace());
+		/**
+		 * Exception types
+		 */
+		class Non_supported_framebuffer_mode { };
+		class Invalid_input_file_name { };
+		class Unexpected_document_color_depth { };
 
-	PDBG("Framebuffer is %dx%d\n", fb_width, fb_height);
+	private:
 
-	if (mode != Framebuffer::Session::RGB565) {
-		PERR("Color modes other than RGB565 are not supported. Exiting.");
-		return 1;
-	}
+		struct _Framebuffer : Framebuffer::Connection
+		{
+			typedef uint16_t pixel_t;
+			int width, height;
+			Framebuffer::Session::Mode mode;
+			pixel_t *base;
 
-	static pdfapp_t pdfapp;
-	pdfapp_init(&pdfapp);
+			_Framebuffer()
+			{
+				info(&width, &height, &mode);
+				base = Genode::env()->rm_session()->attach(dataspace());
+				PDBG("Framebuffer is %dx%d\n", width, height);
 
-	pdfapp.scrw       = fb_width;
-	pdfapp.scrh       = fb_height;
-	pdfapp.resolution = 2*75; /* XXX read from config */
-	pdfapp.pageno     = 9;    /* XXX read from config */
+				if (mode != Framebuffer::Session::RGB565) {
+					PERR("Color modes other than RGB565 are not supported. Exiting.");
+					throw Non_supported_framebuffer_mode();
+				}
+			}
+		} _framebuffer;
 
-	char const *file_name = "test.pdf"; /* XXX read from config */
+		pdfapp_t _pdfapp;
 
-	int fd = open(file_name, O_BINARY | O_RDONLY, 0666);
-	if (fd < 0) {
-		PERR("Could not open input file \"%s\", Exiting.", file_name);
-		return 2;
-	}
-	pdfapp_open(&pdfapp, (char *)file_name, fd, 0);
+	public:
 
-	if (pdfapp.image->n != 4) {
-		PERR("Unexpected color depth, expected 4, got %d, Exiting.",
-		     pdfapp.image->n);
-		return 3;
-	}
+		/**
+		 * Constructor
+		 *
+		 * \throw Non_supported_framebuffer_mode
+		 * \throw Invalid_input_file_name
+		 * \throw Unexpected_document_color_depth
+		 */
+		Pdf_view(char const *file_name)
+		{
+			pdfapp_init(&_pdfapp);
+			_pdfapp.userdata = this;
+			_pdfapp.scrw       = _framebuffer.width;
+			_pdfapp.scrh       = _framebuffer.height;
+			_pdfapp.resolution = 2*75; /* XXX read from config */
+			_pdfapp.pageno     = 9;    /* XXX read from config */
 
-	int const x_max = Genode::min(fb_width,  pdfapp.image->w);
-	int const y_max = Genode::min(fb_height, pdfapp.image->h);
+			int fd = open(file_name, O_BINARY | O_RDONLY, 0666);
+			if (fd < 0) {
+				PERR("Could not open input file \"%s\", Exiting.", file_name);
+				throw Invalid_input_file_name();
+			}
+			pdfapp_open(&_pdfapp, (char *)file_name, fd, 0);
 
-	Genode::size_t src_line_bytes = pdfapp.image->n * pdfapp.image->w;
-	unsigned char *src_line       = pdfapp.image->samples;
+			if (_pdfapp.image->n != 4) {
+				PERR("Unexpected color depth, expected 4, got %d, Exiting.",
+				     _pdfapp.image->n);
+				throw Unexpected_document_color_depth();
+			}
+		}
 
-	Genode::size_t dst_line_width = fb_width; /* in pixels */
-	pixel_t       *dst_line       = fb_base;
+		void show();
+};
+
+
+void Pdf_view::show()
+{
+	int const x_max = Genode::min(_framebuffer.width,  _pdfapp.image->w);
+	int const y_max = Genode::min(_framebuffer.height, _pdfapp.image->h);
+
+	Genode::size_t src_line_bytes   = _pdfapp.image->n * _pdfapp.image->w;
+	unsigned char *src_line         = _pdfapp.image->samples;
+
+	Genode::size_t dst_line_width   = _framebuffer.width; /* in pixels */
+	_Framebuffer::pixel_t *dst_line = _framebuffer.base;
 
 	for (int y = 0; y < y_max; y++) {
 		convert_line_rgba_to_rgb565(src_line, dst_line, x_max, y);
@@ -227,7 +188,93 @@ int main(int, char **)
 		dst_line += dst_line_width;
 	}
 
-	framebuffer.refresh(0, 0, fb_width, fb_height);
+	_framebuffer.refresh(0, 0, _framebuffer.width, _framebuffer.height);
+}
+
+
+/**************************
+ ** Called from pdfapp.c **
+ **************************/
+
+void winrepaint(pdfapp_t *pdfapp)
+{
+	PDBG("called");
+	Pdf_view *pdf_view = (Pdf_view *)pdfapp->userdata;
+	pdf_view->show();
+}
+
+
+void winrepaintsearch(pdfapp_t *)
+{
+	PDBG("not implemented");
+}
+
+
+void wincursor(pdfapp_t *, int curs)
+{
+	PDBG("curs=%d - not implemented", curs);
+}
+
+
+void winerror(pdfapp_t *, fz_error error)
+{
+	PDBG("error=%d", error);
+	Genode::sleep_forever();
+}
+
+
+void winwarn(pdfapp_t *, char *msg)
+{
+	PWRN("MuPDF: %s", msg);
+}
+
+
+void winhelp(pdfapp_t *)
+{
+	PDBG("not implemented");
+}
+
+
+char *winpassword(pdfapp_t *, char *)
+{
+	PDBG("not implemented");
+	return NULL;
+}
+
+
+void winclose(pdfapp_t *app)
+{
+	PDBG("not implemented");
+}
+
+
+void winreloadfile(pdfapp_t *)
+{
+	PDBG("not implemented");
+}
+
+
+void wintitle(pdfapp_t *app, char *s)
+{
+	PDBG("s=\"%s\" - not implemented", s);
+}
+
+
+void winresize(pdfapp_t *app, int w, int h)
+{
+	PDBG("not implemented, w=%d, h=%d", w, h);
+}
+
+
+/******************
+ ** Main program **
+ ******************/
+
+int main(int, char **)
+{
+	char const *file_name = "test.pdf"; /* XXX read from config */
+
+	static Pdf_view pdf_view(file_name);
 
 	Genode::sleep_forever();
 	return 0;
