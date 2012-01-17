@@ -4,6 +4,47 @@
                                ===========
 
 
+Source code moved to GitHub | 2012-01-17
+########################################
+
+| GitHub has become the central place for Genode's mainline development.
+
+Moving Genode's code base to the new public GitHub repository represents
+the final step on our agenda to open up our development process. From now on,
+the 'genodelabs/genode' repository is where the current development happens:
+
+:[https://github.com/genodelabs - Genode Repository at GitHub]:
+
+To follow the development of the master branch, you may like to subscribe
+to the corresponding Atom feed:
+
+:[https://github.com/genodelabs/genode/commits/master.atom - Commit Feed]:
+
+In addition to having moved the code over to the new repository, our
+documentation and website underwent several changes:
+
+* The genode.org website has been migrated away from the original Plone
+  CMS to an entirely static custom-made CMS that fetches its content
+  from the 'genodelabs/genode' repository. Thereby, most of the web-site
+  content has been incorporated into the repository and will be managed
+  through Git.
+
+* The Wiki is no more. Its content has been moved to the normal documentation
+  section. By using Git for the documentation, the process of contributing to
+  the documentation is streamlined with the process of how code contributions
+  are handled.
+
+* The how-to-contribute documention has been rewritten, taking the new
+  GitHub repository into account:
+
+  :[http:/community/contributions]:
+    Contributing to Genode
+
+So far, our experience with using GitHub for hosting the Genode development
+has been a smooth and overly enjoyable ride. We hope you will appreciate the
+greatly liberated development process as much as we do.
+
+
 Genode at FOSDEM | 2012-01-04
 #############################
 
