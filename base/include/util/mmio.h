@@ -28,7 +28,7 @@ namespace Genode
 		protected:
 
 			/**
-			 * Write 'value' typed to MMIO base + 'o'
+			 * Write typed 'value' to MMIO base + 'o'
 			 */
 			template <typename STORAGE_T>
 			inline void _write(off_t const o, STORAGE_T const value);
@@ -45,6 +45,12 @@ namespace Genode
 
 			/**
 			 * A POD-like region at offset 'MMIO_OFFSET' within a MMIO region
+			 *
+			 * \detail  The register can contain multiple bitfields. Bitfields
+			 *          that are partially out of the register range are read and 
+			 *          written also partially. Bitfields that are completely out 
+			 *          of the register range are read as '0' and trying to 
+			 *          overwrite them has no effect
 			 */
 			template <off_t MMIO_OFFSET, typename STORAGE_T>
 			struct Register : public Genode::Register<STORAGE_T>
@@ -54,12 +60,12 @@ namespace Genode
 				/**
 				 * A bitregion within a register
 				 * 
-				 * \detail  Subregs are read and written according to their range,
-				 *          so if we have a 'Subreg<2,3>' and write '0b11101' to it
+				 * \detail  Bitfields are read and written according to their range,
+				 *          so if we have a 'Bitfield<2,3>' and write '0b11101' to it
 				 *          only '0b101' (shiftet by 2 bits) is written
 				 */
 				template <unsigned long BIT_SHIFT, unsigned long BIT_SIZE>
-				struct Subreg : public Genode::Register<STORAGE_T>::template Subreg<BIT_SHIFT, BIT_SIZE>
+				struct Bitfield : public Genode::Register<STORAGE_T>::template Bitfield<BIT_SHIFT, BIT_SIZE>
 				{
 					/**
 					 * Back reference to containing register
@@ -71,16 +77,16 @@ namespace Genode
 			/**
 			 * An array of successive similar items
 			 *
-			 * \detail  'STORAGE_T' width must a power of 2. The array
-			 *          takes all subregs that are covered by an item width and
-			 *          iterates them successive 'ITEMS' times, thus subregs out of 
-			 *          the range of the first item are not accessible. Furthermore
-			 *          the maximum item width is the width of 'STORAGE_T'.
+			 * \detail  'STORAGE_T' width must be a power of 2. The array
+			 *          takes all bitfields that are covered by an item width and
+			 *          iterates them successive 'ITEMS' times. Thus bitfields out of 
+			 *          the range of the first item are not accessible in any item. 
+			 *          Furthermore the maximum item width is the width of 'STORAGE_T'.
 			 *          The array is not limited to one 'STORAGE_T' instance,
 			 *          it uses as much successive instances as needed.
 			 */
 			template <off_t MMIO_OFFSET, typename STORAGE_T, unsigned long ITEMS, unsigned long _ITEM_WIDTH_LOG2>
-			struct Reg_array : public Register<MMIO_OFFSET, STORAGE_T>
+			struct Register_array : public Register<MMIO_OFFSET, STORAGE_T>
 			{
 				enum {
 					MAX_INDEX       = ITEMS - 1,
@@ -100,23 +106,25 @@ namespace Genode
 				/**
 				 * A bitregion within a register array
 				 *
-				 * \detail  Subregs are only written and read as far as the
-				 *          item width reaches, i.e. assume a 'Reg_array<0,uint8_t,6,2>'
-				 *          that contains a 'Subreg<1,5>' and we write '0b01101' to it, then
-				 *          only '0b101' is written and read in consequence
+				 * \detail  Bitfields are only written and read as far as the
+				 *          item width reaches, i.e. assume a 'Register_array<0,uint8_t,6,2>'
+				 *          that contains a 'Bitfield<1,5>' and we write '0b01101' to it, then
+				 *          only '0b101' is written and read in consequence. Bitfields that are
+				 *          completely out of the item range ar read as '0' and trying to overwrite 
+				 *          them has no effect.
 				 */
 				template <unsigned long BIT_SHIFT, unsigned long BIT_SIZE>
-				struct Subreg : public Register<MMIO_OFFSET, STORAGE_T>::template Subreg<BIT_SHIFT, BIT_SIZE>
+				struct Bitfield : public Register<MMIO_OFFSET, STORAGE_T>::template Bitfield<BIT_SHIFT, BIT_SIZE>
 				{
 					/**
 					 * Back reference to containing register array
 					 */
-					typedef Reg_array<MMIO_OFFSET, STORAGE_T, ITEMS, ITEM_WIDTH_LOG2> Compound_array;
+					typedef Register_array<MMIO_OFFSET, STORAGE_T, ITEMS, ITEM_WIDTH_LOG2> Compound_array;
 				};
 
 				/**
 				 * Calculate the MMIO-relative offset 'offset' and shift 'shift'
-				 * within the according 'storage_t' instance to access this subreg 
+				 * within the according 'storage_t' instance to access this bitfield 
 				 * from item 'index'
 				 */
 				static inline void access_dest(off_t & offset, unsigned long & shift,
@@ -154,27 +162,27 @@ namespace Genode
 			inline typename REGISTER::storage_t read() const;
 
 			/**
-			 * Override the register 'REGISTER' with 'value'
+			 * Write 'value' to the register 'REGISTER'
 			 */
 			template <typename REGISTER>
 			inline void write(typename REGISTER::storage_t const value);
 
 
-			/****************************************
-			 ** Access to subregs within registers **
-			 ****************************************/
+			/******************************************
+			 ** Access to bitfields within registers **
+			 ******************************************/
 
 			/**
-			 * Read the subreg 'SUBREG'
+			 * Read the bitfield 'BITFIELD'
 			 */
-			template <typename SUBREG>
-			inline typename SUBREG::Compound_reg::storage_t read() const;
+			template <typename BITFIELD>
+			inline typename BITFIELD::Compound_reg::storage_t read() const;
 
 			/**
-			 * Override the subreg 'SUBREG' with 'value'
+			 * Write value to the bitfield 'BITFIELD'
 			 */
-			template <typename SUBREG>
-			inline void write(typename SUBREG::Compound_reg::storage_t const value);
+			template <typename BITFIELD>
+			inline void write(typename BITFIELD::Compound_reg::storage_t const value);
 
 
 			/*******************************
@@ -182,34 +190,34 @@ namespace Genode
 			 *******************************/
 
 			/**
-			 * Read the whole item 'index' of the array 'REG_ARRAY'
+			 * Read the whole item 'index' of the array 'REGISTER_ARRAY'
 			 */
-			template <typename REG_ARRAY>
-			inline typename REG_ARRAY::storage_t read(unsigned long const index) const;
+			template <typename REGISTER_ARRAY>
+			inline typename REGISTER_ARRAY::storage_t read(unsigned long const index) const;
 
 			/**
-			 * Override item 'index' of the array 'REG_ARRAY' with 'value'
+			 * Write 'value' to item 'index' of the array 'REGISTER_ARRAY' 
 			 */
-			template <typename REG_ARRAY>
-			inline void write(typename REG_ARRAY::storage_t const value,
+			template <typename REGISTER_ARRAY>
+			inline void write(typename REGISTER_ARRAY::storage_t const value,
 			                  unsigned long const index);
 
 
-			/***************************************************
-			 ** Access to subregs within register array items **
-			 ***************************************************/
+			/*****************************************************
+			 ** Access to bitfields within register array items **
+			 *****************************************************/
 
 			/**
-			 * Read the subreg 'ARRAY_SUBREG' of item 'index' of the compound reg array
+			 * Read the bitfield 'ARRAY_BITFIELD' of item 'index' of the compound reg array
 			 */
-			template <typename ARRAY_SUBREG>
-			inline typename ARRAY_SUBREG::Compound_array::storage_t read(unsigned long const index) const;
+			template <typename ARRAY_BITFIELD>
+			inline typename ARRAY_BITFIELD::Compound_array::storage_t read(unsigned long const index) const;
 
 			/**
-			 * Override subreg 'ARRAY_SUBREG' of item 'index' of the compound reg array with 'value'
+			 * Write 'value' to bitfield 'ARRAY_BITFIELD' of item 'index' of the compound reg array
 			 */
-			template <typename ARRAY_SUBREG>
-			inline void write(typename ARRAY_SUBREG::Compound_array::storage_t const value, long unsigned const index);
+			template <typename ARRAY_BITFIELD>
+			inline void write(typename ARRAY_BITFIELD::Compound_array::storage_t const value, long unsigned const index);
 	};
 }
 
@@ -254,30 +262,30 @@ void Genode::Mmio::write(typename REGISTER::storage_t const value)
 }
 
 
-/****************************************
- ** Access to subregs within registers **
- ****************************************/
+/******************************************
+ ** Access to bitfields within registers **
+ ******************************************/
 
 
-template <typename SUBREG>
-typename SUBREG::Compound_reg::storage_t Genode::Mmio::read() const
+template <typename BITFIELD>
+typename BITFIELD::Compound_reg::storage_t Genode::Mmio::read() const
 {
-	typedef typename SUBREG::Compound_reg Register;
+	typedef typename BITFIELD::Compound_reg Register;
 	typedef typename Register::storage_t storage_t;
 
-	return SUBREG::get(_read<storage_t>(Register::OFFSET));
+	return BITFIELD::get(_read<storage_t>(Register::OFFSET));
 }
 
 
-template <typename SUBREG>
-void Genode::Mmio::write(typename SUBREG::Compound_reg::storage_t const value)
+template <typename BITFIELD>
+void Genode::Mmio::write(typename BITFIELD::Compound_reg::storage_t const value)
 {
-	typedef typename SUBREG::Compound_reg Register;
+	typedef typename BITFIELD::Compound_reg Register;
 	typedef typename Register::storage_t storage_t;
 
 	storage_t new_reg = read<Register>();
-	SUBREG::clear(new_reg);
-	SUBREG::set(new_reg, value);
+	BITFIELD::clear(new_reg);
+	BITFIELD::set(new_reg, value);
 
 	write<Register>(new_reg);
 }
@@ -288,96 +296,96 @@ void Genode::Mmio::write(typename SUBREG::Compound_reg::storage_t const value)
  ************************************/
 
 
-template <typename REG_ARRAY>
-typename REG_ARRAY::storage_t Genode::Mmio::read(unsigned long const index) const
+template <typename REGISTER_ARRAY>
+typename REGISTER_ARRAY::storage_t Genode::Mmio::read(unsigned long const index) const
 {
 	/**
 	 * Handle array overflow
 	 */
-	if (index > REG_ARRAY::MAX_INDEX) return 0;
+	if (index > REGISTER_ARRAY::MAX_INDEX) return 0;
 
 	off_t offset;
 
 	/**
 	 * Optimize access if item width equals storage type width
 	 */
-	if (REG_ARRAY::ITEM_IS_REG) {
+	if (REGISTER_ARRAY::ITEM_IS_REG) {
 
-		offset = REG_ARRAY::OFFSET + (index << REG_ARRAY::ITEM_WIDTH_LOG2);
-		return _read<typename REG_ARRAY::storage_t>(offset);
+		offset = REGISTER_ARRAY::OFFSET + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
+		return _read<typename REGISTER_ARRAY::storage_t>(offset);
 
 	} else {
 
 		long unsigned shift;
-		REG_ARRAY::access_dest(offset, shift, index);
-		return (_read<typename REG_ARRAY::storage_t>(offset) >> shift) & REG_ARRAY::ITEM_MASK;
+		REGISTER_ARRAY::access_dest(offset, shift, index);
+		return (_read<typename REGISTER_ARRAY::storage_t>(offset) >> shift) & REGISTER_ARRAY::ITEM_MASK;
 	}
 
 }
 
 
-template <typename REG_ARRAY>
-void Genode::Mmio::write(typename REG_ARRAY::storage_t const value,
+template <typename REGISTER_ARRAY>
+void Genode::Mmio::write(typename REGISTER_ARRAY::storage_t const value,
                          unsigned long const index)
 {
 	/**
 	 * Avoid array overflow
 	 */
-	if (index > REG_ARRAY::MAX_INDEX) return;
+	if (index > REGISTER_ARRAY::MAX_INDEX) return;
 
 	off_t offset;
 
 	/**
 	 * Optimize access if item width equals storage type width
 	 */
-	if (REG_ARRAY::ITEM_IS_REG) {
+	if (REGISTER_ARRAY::ITEM_IS_REG) {
 
-		offset = REG_ARRAY::OFFSET + (index << REG_ARRAY::ITEM_WIDTH_LOG2);
-		_write<typename REG_ARRAY::storage_t>(offset, value);
+		offset = REGISTER_ARRAY::OFFSET + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
+		_write<typename REGISTER_ARRAY::storage_t>(offset, value);
 
 	} else {
 
 		long unsigned shift;
-		REG_ARRAY::access_dest(offset, shift, index);
+		REGISTER_ARRAY::access_dest(offset, shift, index);
 
 		/**
 		 * Insert new value into old register value
 		 */
-		typename REG_ARRAY::storage_t new_reg = _read<typename REG_ARRAY::storage_t>(offset);
-		new_reg &= ~(REG_ARRAY::ITEM_MASK << shift);
-		new_reg |= (value & REG_ARRAY::ITEM_MASK) << shift;
+		typename REGISTER_ARRAY::storage_t new_reg = _read<typename REGISTER_ARRAY::storage_t>(offset);
+		new_reg &= ~(REGISTER_ARRAY::ITEM_MASK << shift);
+		new_reg |= (value & REGISTER_ARRAY::ITEM_MASK) << shift;
 
-		_write<typename REG_ARRAY::storage_t>(offset, new_reg);
+		_write<typename REGISTER_ARRAY::storage_t>(offset, new_reg);
 	}
 }
 
 
-/***************************************************
- ** Access to subregs within register array items **
- ***************************************************/
+/*****************************************************
+ ** Access to bitfields within register array items **
+ *****************************************************/
 
 
-template <typename ARRAY_SUBREG>
-void Genode::Mmio::write(typename ARRAY_SUBREG::Compound_array::storage_t const value, 
+template <typename ARRAY_BITFIELD>
+void Genode::Mmio::write(typename ARRAY_BITFIELD::Compound_array::storage_t const value, 
                          long unsigned const index)
 {
-	typedef typename ARRAY_SUBREG::Compound_array Reg_array;
+	typedef typename ARRAY_BITFIELD::Compound_array Register_array;
 
-	typename Reg_array::storage_t new_reg = read<Reg_array>(index);
-	ARRAY_SUBREG::clear(new_reg);
-	ARRAY_SUBREG::set(new_reg, value);
+	typename Register_array::storage_t new_reg = read<Register_array>(index);
+	ARRAY_BITFIELD::clear(new_reg);
+	ARRAY_BITFIELD::set(new_reg, value);
 
-	write<Reg_array>(new_reg, index);
+	write<Register_array>(new_reg, index);
 }
 
 
-template <typename ARRAY_SUBREG>
-typename ARRAY_SUBREG::Compound_array::storage_t Genode::Mmio::read(long unsigned const index) const
+template <typename ARRAY_BITFIELD>
+typename ARRAY_BITFIELD::Compound_array::storage_t Genode::Mmio::read(long unsigned const index) const
 {
-	typedef typename ARRAY_SUBREG::Compound_array Array;
+	typedef typename ARRAY_BITFIELD::Compound_array Array;
 	typedef typename Array::storage_t storage_t;
 
-	return ARRAY_SUBREG::get(read<Array>(index));
+	return ARRAY_BITFIELD::get(read<Array>(index));
 }
 
 

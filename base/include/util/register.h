@@ -30,7 +30,7 @@ namespace Genode
 		 * A bitregion within a register
 		 */
 		template <unsigned long BIT_SHIFT, unsigned long BIT_SIZE>
-		struct Subreg
+		struct Bitfield
 		{
 			enum {
 				SHIFT      = BIT_SHIFT,
@@ -46,25 +46,25 @@ namespace Genode
 			typedef Register<storage_t> Compound_reg;
 
 			/**
-			 * Get a register value with this subreg set to 'value' and the rest left zero
+			 * Get a register value with this bitfield set to 'value' and the rest left zero
 			 *
-			 * \detail  Useful to combine successive access to multiple subregs
+			 * \detail  Useful to combine successive access to multiple bitfields
 			 *          into one operation
 			 */
 			static inline storage_t bits(storage_t const value) { return (value & MASK) << SHIFT; }
 
 			/**
-			 * Get value of this subreg from 'reg'
+			 * Get value of this bitfield from 'reg'
 			 */
 			static inline storage_t get(storage_t const reg) { return (reg >> SHIFT) & MASK; }
 
 			/**
-			 * Get registervalue 'reg' with this subreg set to zero
+			 * Get registervalue 'reg' with this bitfield set to zero
 			 */
 			static inline void clear(storage_t & reg) { reg &= CLEAR_MASK; }
 
 			/**
-			 * Get registervalue 'reg' with this subreg set to 'value'
+			 * Get registervalue 'reg' with this bitfield set to 'value'
 			 */
 			static inline void set(storage_t & reg, storage_t const value = ~0)
 			{

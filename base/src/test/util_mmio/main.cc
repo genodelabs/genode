@@ -33,7 +33,7 @@ static uint8_t mmio_mem[MMIO_SIZE];
  */
 struct Cpu_state : Register<uint16_t>
 {
-	struct Mode : Subreg<0,4>
+	struct Mode : Bitfield<0,4>
 	{
 		enum {
 			KERNEL  = 0b1000,
@@ -41,13 +41,13 @@ struct Cpu_state : Register<uint16_t>
 			MONITOR = 0b1010,
 		};
 	};
-	struct A   : Subreg<6,1> { };
-	struct B   : Subreg<8,1> { };
-	struct C   : Subreg<10,1> { };
-	struct Irq : Subreg<12,3> { };
+	struct A   : Bitfield<6,1> { };
+	struct B   : Bitfield<8,1> { };
+	struct C   : Bitfield<10,1> { };
+	struct Irq : Bitfield<12,3> { };
 
-	struct Invalid_bit  : Subreg<18,1> { };
-	struct Invalid_area : Subreg<15,4> { };
+	struct Invalid_bit  : Bitfield<18,1> { };
+	struct Invalid_area : Bitfield<15,4> { };
 
 	inline static storage_t read() { return cpu_state; }
 
@@ -69,8 +69,8 @@ struct Test_mmio : public Mmio
 
 	struct Reg : Register<0x04, uint8_t> 
 	{ 
-		struct Bit_1 : Subreg<0,1> { };
-		struct Area  : Subreg<1,3>
+		struct Bit_1 : Bitfield<0,1> { };
+		struct Area  : Bitfield<1,3>
 		{
 			enum { 
 				VALUE_1       = 3, 
@@ -78,30 +78,21 @@ struct Test_mmio : public Mmio
 				VALUE_3       = 5, 
 			};
 		};
-		struct Bit_2            : Subreg<4,1> { };
-		struct Invalid_bit      : Subreg<8,1> { };
-		struct Invalid_area     : Subreg<6,8> { };
-		struct Overlapping_area : Subreg<0,6> { };
+		struct Bit_2            : Bitfield<4,1> { };
+		struct Invalid_bit      : Bitfield<8,1> { };
+		struct Invalid_area     : Bitfield<6,8> { };
+		struct Overlapping_area : Bitfield<0,6> { };
 	};
 
-	struct Array : Reg_array<0x2, uint16_t, 10, 2> 
+	struct Array : Register_array<0x2, uint16_t, 10, 2> 
 	{
-		struct A : Subreg<0,1> { };
-		struct B : Subreg<1,2> { };
-		struct C : Subreg<3,1> { };
-		struct D : Subreg<1,3> { };
+		struct A : Bitfield<0,1> { };
+		struct B : Bitfield<1,2> { };
+		struct C : Bitfield<3,1> { };
+		struct D : Bitfield<1,3> { };
 	};
 };
-/*  little endian                                                      LSB --> MSB  */
-/*  big endian                                                         MSB <-- LSB  */
-/*  address    0x0     0x1     0x2     0x3     0x4     0x5     0x6     0x7     0x8  */
-/*  bits       0   4   8   12  16  20  24  28  32  36  40  44  48  52  56  60  64   */
-/*  bit        |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||    */
-/*  4bit       |   |   |   |   |R0 |R1 |R2 |R3 |R4 |R5 |-- |-- |   |   |   |   |    */
-/*  8bit (byte)|       |       |       |       |       |       |       |       |    */
-/*  16bit      |               |Int0           |Int1           |               |    */
-/*  32bit      |                               |                               |    */
-/*  64bit      |                                                               |    */
+
 
 /**
  * Print out memory content hexadecimal
@@ -159,9 +150,9 @@ int test_failed(unsigned test_id)
 
 int main()
 {
-	/**********************************
-	 ** Genode::Mmio::Register tests **
-	 **********************************/
+	/************************************
+	 ** 'Genode::Mmio::Register' tests **
+	 ************************************/
 
 	/**
 	 * Init fake MMIO
@@ -169,7 +160,7 @@ int main()
 	Test_mmio mmio((addr_t)&mmio_mem[0]);
 
 	/**
-	 * Test 1, read/write whole reg, use 'Subreg::bits' with overflowing values
+	 * Test 1, read/write whole reg, use 'Bitfield::bits' with overflowing values
 	 */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::Reg>(Test_mmio::Reg::Bit_1::bits(7) |
@@ -243,7 +234,7 @@ int main()
 	{ return test_failed(7); }
 
 	/**
-	 * Test 8, read/write bitarea that overlaps other subregs
+	 * Test 8, read/write bitarea that overlaps other bitfields
 	 */
 	mmio.write<Test_mmio::Reg::Overlapping_area>(0b00110011);
 
@@ -253,12 +244,12 @@ int main()
 	{ return test_failed(8); }
 
 
-	/****************************
-	 ** Genode::Register tests **
-	 ****************************/
+	/******************************
+	 ** 'Genode::Register' tests **
+	 ******************************/
 
 	/**
-	 * Test 9, read/write subregs appropriately, overflowing and out of range
+	 * Test 9, read/write bitfields appropriately, overflowing and out of range
 	 */
 	Cpu_state::storage_t state = Cpu_state::read();
 	Cpu_state::Mode::set(state, Cpu_state::Mode::MONITOR);
@@ -282,7 +273,7 @@ int main()
 	{ return test_failed(9); }
 
 	/**
-	 * Test 10, clear subregs
+	 * Test 10, clear bitfields
 	 */
 	Cpu_state::B::clear(state);
 	Cpu_state::Irq::clear(state);
@@ -293,6 +284,11 @@ int main()
 	    || Cpu_state::B::get(state)   != 0
 	    || Cpu_state::Irq::get(state) != 0)
 	{ return test_failed(10); }
+
+
+	/******************************************
+	 ** 'Genode::Mmio::Register_array' tests **
+	 ******************************************/
 
 	/**
 	 * Test 11, read/write register array items with array- and item overflows 
@@ -314,8 +310,8 @@ int main()
 	{ return test_failed(11); }
 
 	/**
-	 * Test 12, read/write subregs of register array items with array-, item- and subreg overflows
-	 *          also test overlappng subregs
+	 * Test 12, read/write bitfields of register array items with array-, item- and bitfield overflows
+	 *          also test overlappng bitfields
 	 */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::Array::A>(0x1, 0);
