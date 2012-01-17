@@ -31,7 +31,7 @@ static uint8_t mmio_mem[MMIO_SIZE];
 /**
  * Exemplary highly structured type for accessing 'cpu_state'
  */
-struct Cpu_state : Register<uint16_t>
+struct Cpu_state : Register<16>
 {
 	struct Mode : Bitfield<0,4>
 	{
@@ -49,9 +49,9 @@ struct Cpu_state : Register<uint16_t>
 	struct Invalid_bit  : Bitfield<18,1> { };
 	struct Invalid_area : Bitfield<15,4> { };
 
-	inline static storage_t read() { return cpu_state; }
+	inline static access_t read() { return cpu_state; }
 
-	inline static void write(storage_t & v) { cpu_state = v; }
+	inline static void write(access_t & v) { cpu_state = v; }
 };
 
 struct A : public Mmio {
@@ -67,15 +67,15 @@ struct Test_mmio : public Mmio
 {
 	Test_mmio(addr_t const base) : Mmio(base) { }
 
-	struct Reg : Register<0x04, uint8_t> 
+	struct Reg : Register<0x04, 8>
 	{ 
 		struct Bit_1 : Bitfield<0,1> { };
 		struct Area  : Bitfield<1,3>
 		{
 			enum { 
-				VALUE_1       = 3, 
-				VALUE_2       = 4, 
-				VALUE_3       = 5, 
+				VALUE_1 = 3,
+				VALUE_2 = 4,
+				VALUE_3 = 5,
 			};
 		};
 		struct Bit_2            : Bitfield<4,1> { };
@@ -84,7 +84,7 @@ struct Test_mmio : public Mmio
 		struct Overlapping_area : Bitfield<0,6> { };
 	};
 
-	struct Array : Register_array<0x2, uint16_t, 10, 2> 
+	struct Array : Register_array<0x2, 16, 10, 4>
 	{
 		struct A : Bitfield<0,1> { };
 		struct B : Bitfield<1,2> { };
@@ -251,7 +251,7 @@ int main()
 	/**
 	 * Test 9, read/write bitfields appropriately, overflowing and out of range
 	 */
-	Cpu_state::storage_t state = Cpu_state::read();
+	Cpu_state::access_t state = Cpu_state::read();
 	Cpu_state::Mode::set(state, Cpu_state::Mode::MONITOR);
 	Cpu_state::A::set(state, 1);
 	Cpu_state::B::set(state);

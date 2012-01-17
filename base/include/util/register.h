@@ -18,23 +18,94 @@
 
 namespace Genode
 {
+	namespace Trait {
+
+		/**
+		 * Get unsigned integer type for a given access width
+		 */
+		template <unsigned long _WIDTH> struct Uint_type;
+
+		template <> struct Uint_type<8>
+		{
+			typedef uint8_t Type;
+			enum { WIDTH_LOG2 = 3 };
+
+			/**
+			 * Declare dividers of the compound type width
+			 */
+			template <unsigned long _DIVISOR_WIDTH> struct Divisor;
+		};
+
+		template <> struct Uint_type<16> : Uint_type<8>
+		{
+			typedef uint16_t Type;
+			enum { WIDTH_LOG2 = 4 };
+		};
+
+		template <> struct Uint_type<32> : Uint_type<16>
+		{
+			typedef uint32_t Type;
+			enum { WIDTH_LOG2 = 5 };
+		};
+
+		template <> struct Uint_type<64> : Uint_type<32>
+		{
+			typedef uint32_t Type;
+			enum { WIDTH_LOG2 = 6 };
+		};
+
+		template <> struct Uint_type<8>::Divisor<1>   { enum { WIDTH_LOG2 = 0 }; };
+		template <> struct Uint_type<8>::Divisor<2>   { enum { WIDTH_LOG2 = 1 }; };
+		template <> struct Uint_type<8>::Divisor<4>   { enum { WIDTH_LOG2 = 2 }; };
+		template <> struct Uint_type<8>::Divisor<8>   { enum { WIDTH_LOG2 = 3 }; };
+		template <> struct Uint_type<16>::Divisor<16> { enum { WIDTH_LOG2 = 4 }; };
+		template <> struct Uint_type<32>::Divisor<32> { enum { WIDTH_LOG2 = 5 }; };
+		template <> struct Uint_type<64>::Divisor<64> { enum { WIDTH_LOG2 = 6 }; };
+	}
+
 	/**
-	 * A POD-like highly structured memory region
+	 * An integer like highly structured memory region
+	 *
+	 * \param  _ACCESS_WIDTH  Bit width of the region
+	 *
+	 * \detail The register can contain multiple bitfields. Bitfields
+	 *         that are partially exceed the register range are read and 
+	 *         written also partially. Bitfields that are completely out 
+	 *         of the register range are read as '0' and trying to 
+	 *         overwrite them has no effect.
 	 */
-	template <typename STORAGE_T>
+	template <unsigned long _ACCESS_WIDTH>
 	struct Register
 	{
-		typedef STORAGE_T storage_t;
+		enum {
+			ACCESS_WIDTH      = _ACCESS_WIDTH,
+
+			ACCESS_WIDTH_LOG2 = Trait::Uint_type<ACCESS_WIDTH>::WIDTH_LOG2,
+		};
+
+		typedef typename Trait::Uint_type<ACCESS_WIDTH>::Type access_t;
 
 		/**
 		 * A bitregion within a register
+		 * 
+		 * \param  _SHIFT  Bit shift of the first bit within the compound register
+		 * \param  _WIDTH  Bit width of the region
+		 *
+		 * \detail  Bitfields are read and written according to their range,
+		 *          so if we have a 'Bitfield<2,3>' and write '0b11101' to it
+		 *          only '0b101' (shiftet by 2 bits) is written
 		 */
-		template <unsigned long BIT_SHIFT, unsigned long BIT_SIZE>
+		template <unsigned long _SHIFT, unsigned long _WIDTH>
 		struct Bitfield
 		{
 			enum {
-				SHIFT      = BIT_SHIFT,
-				WIDTH      = BIT_SIZE,
+
+				/**
+				 * Fetch template parameters
+				 */
+				SHIFT      = _SHIFT,
+				WIDTH      = _WIDTH,
+
 				MASK       = (1 << WIDTH) - 1,
 				REG_MASK   = MASK << SHIFT,
 				CLEAR_MASK = ~REG_MASK,
@@ -43,7 +114,7 @@ namespace Genode
 			/**
 			 * Back reference to containing register
 			 */
-			typedef Register<storage_t> Compound_reg;
+			typedef Register<ACCESS_WIDTH> Compound_reg;
 
 			/**
 			 * Get a register value with this bitfield set to 'value' and the rest left zero
@@ -51,22 +122,22 @@ namespace Genode
 			 * \detail  Useful to combine successive access to multiple bitfields
 			 *          into one operation
 			 */
-			static inline storage_t bits(storage_t const value) { return (value & MASK) << SHIFT; }
+			static inline access_t bits(access_t const value) { return (value & MASK) << SHIFT; }
 
 			/**
 			 * Get value of this bitfield from 'reg'
 			 */
-			static inline storage_t get(storage_t const reg) { return (reg >> SHIFT) & MASK; }
+			static inline access_t get(access_t const reg) { return (reg >> SHIFT) & MASK; }
 
 			/**
 			 * Get registervalue 'reg' with this bitfield set to zero
 			 */
-			static inline void clear(storage_t & reg) { reg &= CLEAR_MASK; }
+			static inline void clear(access_t & reg) { reg &= CLEAR_MASK; }
 
 			/**
 			 * Get registervalue 'reg' with this bitfield set to 'value'
 			 */
-			static inline void set(storage_t & reg, storage_t const value = ~0)
+			static inline void set(access_t & reg, access_t const value = ~0)
 			{
 				clear(reg);
 				reg |= (value & MASK) << SHIFT;
