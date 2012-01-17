@@ -16,29 +16,20 @@ the 'genodelabs/genode' repository is where the current development happens:
 :[https://github.com/genodelabs - Genode Repository at GitHub]:
 
 To follow the development of the master branch, you may like to subscribe
-to the corresponding Atom feed:
-
-:[https://github.com/genodelabs/genode/commits/master.atom - Commit Feed]:
+to the corresponding
+[https://github.com/genodelabs/genode/commits/master.atom - Atom Feed].
 
 In addition to having moved the code over to the new repository, our
-documentation and website underwent several changes:
-
-* The genode.org website has been migrated away from the original Plone
-  CMS to an entirely static custom-made CMS that fetches its content
-  from the 'genodelabs/genode' repository. Thereby, most of the web-site
-  content has been incorporated into the repository and will be managed
-  through Git.
-
-* The Wiki is no more. Its content has been moved to the normal documentation
-  section. By using Git for the documentation, the process of contributing to
-  the documentation is streamlined with the process of how code contributions
-  are handled.
-
-* The how-to-contribute documention has been rewritten, taking the new
-  GitHub repository into account:
-
-  :[http:/community/contributions]:
-    Contributing to Genode
+documentation and website underwent several changes. First, the genode.org
+website has been migrated away from the original Plone CMS to an entirely
+static custom-made CMS that fetches its content from the 'genodelabs/genode'
+repository. Thereby, most of the web-site content has been incorporated into
+the repository and will be managed through Git. Second, the Wiki is no more.
+Its content has been moved to the normal documentation section. By using Git
+for the documentation, the process of contributing to the documentation is
+streamlined with the way of how code contributions are handled. The steps
+of this process are described in the updated
+[http:/community/contributions - how-to-contribute] guide.
 
 So far, our experience with using GitHub for hosting the Genode development
 has been a smooth and overly enjoyable ride. We hope you will appreciate the
