@@ -395,16 +395,16 @@ Platforms
   provided by the
   [http://genode-labs.com/products/fpga-graphics - Genode FPGA graphics project].
 
-:Support for the HelenOS/Spark kernel:
+:Support for the HelenOS/SPARTAN kernel:
 
   [http://www.helenos.org - HelenOS] is a microkernel-based multi-server OS
-  developed at the university of Prague. It is based on the Spark microkernel,
+  developed at the university of Prague. It is based on the SPARTAN microkernel,
   which runs on a wide variety of CPU architectures including Sparc, MIPS, and
-  PowerPC. This broad platform support makes Spark an interesting kernel to
-  look at alone. But a further motivation is the fact that Spark does not
+  PowerPC. This broad platform support makes SPARTAN an interesting kernel to
+  look at alone. But a further motivation is the fact that SPARTAN does not
   follow the classical L4 road, providing a kernel API that comes with an own
   terminology and different kernel primitives. This makes the mapping of
-  Spark's kernel API to Genode a challenging endeavour and would provide us
+  SPARTAN's kernel API to Genode a challenging endeavour and would provide us
   with feedback regarding the universality of Genode's internal interfaces.
   Finally, this project has the potential to ignite a further collaboration
   between the HelenOS and Genode communities.
