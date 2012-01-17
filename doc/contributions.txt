@@ -1,63 +1,199 @@
 
-                         ======================
-                         Contributing to Genode
-                         ======================
+
+                          ======================
+                          Contributing to Genode
+                          ======================
 
 
-If you like to improve Genode in any way, you're more than welcome to
-contribute. A collection of ideas to enhance the current implementation can be
-found at the [http:/about/challenges - Challenges] page.
+You can contribute to the development of Genode in many different ways. First,
+you can contribute by trying out the framework and sharing your expectations
+and experience with us. This will help us to adjust the goals of the project
+according to the needs of its users. Please do not hesitate to discuss your
+ideas or suggestion at our mailing list. Maybe you stumbled over an issue that
+should be documented but isn't? Or the documentation contains errors with
+regard to content or spelling? Please let us know by raising the issue at the
+genode-main mailing list:
+
+:[http://genode.org/community/mailing-lists - Genode mailing lists]:
+
+If you are interested in getting your hands dirty with working on the Genode
+code base or authoring additional documentation, you are more than welcome.
+For getting a rough overview of the current topics the Genode developers are
+pondering over, please have a look at the issue tracker:
+
+:[https://github.com/genodelabs/genode/issues - Issue tracker]:
+
+You will see that the issues cover a large spectre ranging from minor fixes,
+over new features, to architectural changes. To pick the topic that suits
+you best, please consider introducing your intentions to the mailing list.
+We will gladly assist you with picking a topic to get you started.
+
+Alternatively, you may like to have a look at our road map and future
+challenges to see the big picture of our developments and to get inspiration
+for your own activities:
+
+:[http://genode.org/about/road-map]: Road Map
+
+:[http://genode.org/about/challenges:] Future Challenges
+
+Once you settled on a specific topic to work on, it is a good idea to get
+acquainted with the work flow and tools used by the project. The following
+sections are meant as a rough guide for working with Genode's mainline source
+tree in practice.
+
+
+Clone the repository
+####################
+
+The complete source code for both the Genode OS Framework and its documentation
+is managed via the project's public Git repository:
+
+:[https://github.com/genodelabs - Genode Repository at GitHub]:
+
+Also, most of the content of the genode.org website can be found in the form
+of plain text file within the repository.
+
+If you intend to contribute changes to the mainline development, we
+recommend you to fork the Genode repository on GitHub. This will make it
+easy for everyone to track you activities, comment on your work.
+
+
+Create a topic branch
+#####################
+
+As a rule of thumb, every line of development should have a corresponding
+issue in the issue tracker. This will be the place where we will discuss
+your ongoing work. If there is no issue for your topic, please
+create one. Once there exists the issue with a short description about
+what your line of work is about, create a new topic branch based on the
+'genodelabs/master' branch. For example,
+
+! git checkout -b issue76
+
+Work on your branch in the way you prefer. A long-winded history on your branch
+is not a problem because it will stay local to your repository. However, if you
+invest your time in maintaining a clean history, this is much appreciated.
+
+
+Follow Genode's coding conventions
+##################################
+
+Genode's source code follows certain time-tested conventions regarding the
+coding style and code pattern, which are important to us. The coding style
+is described in the following document:
+
+:[http://genode.org/documentation/developer-resources/coding_style]:
+  Coding Style Guidelines
+
+We know from experience that for new developers, adhering the coding style can
+be distracting and even annoying at times. To relieve you from keeping all
+those rules in your head, there is a tool for checking your code against the
+guidelines. The *beautify tool* is located at 'tool/beautify'. When invoked
+with no arguments, it will provide you with brief usage instructions.
+
+
+Writing a commit message
+########################
+
+* Use the first line to summarize your commit using not more than 50 characters.
+  This line will be displayed by various tools. So it should express the basic
+  topic and eventually refer to an issue. For example:
+  ! Add sanity checks in 'tool/tool_chain', fix #62
+
+* If the patch refers to an existing issue, add a reference to the
+  corresponding issue. If not, please consider opening an issue first. In the
+  case the patch is supposed to close an existing issue, add this information
+  using GitHub's conventions, e.g., by stating "fix #45" in your commit
+  message, the issue will be closed automatically, by stating "ref #45', the
+  commit will be displayed in the stream of discussion of the corresponding
+  issue.
+
+* After a blank line, add a description of the patch. For writing the
+  description, keep the following questions in mind:
+  * Why is the patch needed?
+  * How does the patch achieve the goal?
+  * What are known consequences of this patch? Will it break API compatibility,
+    or produce a follow-up issue?
+
+  The description should use a line with of about 75 characters. It may consist
+  of multiple paragraphs separated by blank lines.
+
+* Proof-read your commit message for spelling or grammatical errors.
+
+* Reconsider the documentation related to your patch: If the commit message
+  contains important information not present in the form of source-code
+  comments, this information should better placed into the code or the
+  accompanied documentation (e.g., in the form of a README file).
+
+
+Genode Contributors Agreement
+#############################
+
+Before we will be able to incorporate your changes into Genode's mainline
+development, we require your permission to use your code.
 
 Genode is publicly licensed under the terms of the GNU GPL with Genode Labs
-maintaining the right to also distribute derivates to customers under
-negotiated licenses. [http:/about/licenses - Read more] about Genode Labs'
-dual-licensing business model. Contributions from outside Genode Labs can only
-be incorporated into Genode's mainline development if each individual
-contributor expliticly grants the permission to redistribute his contributions
-under non-GPL licenses. This can be done in two ways:
+maintaining the right to also distribute derivates under different licenses or
+update the public License (i.e., eventually switching from GPLv2 to GPLv3).
+Contributions from outside Genode Labs can only be incorporated into Genode's
+mainline development if each individual contributor explicitly grants the
+permission to let Genode Labs redistribute his contributions under non-GPL
+licenses. This permission is granted by signing the Genode Contributors
+Agreement:
 
-# If you are planning a continuous involvement with the Genode development,
-  we recommend you to fill out and sign the
-  [http:gca.pdf - Genode Contributor's Agreement] (GCA). The GCA enables Genode
-  Labs to license Genode (including your contributions) under other licenses
-  than the GPL. The signed GCA covers all your future contributions.
+:[http:gca.pdf - Genode Contributor's Agreement]:
+  Genode Contributor's Agreement (GCA)
 
-# Alternatively, if you don't want to sign the GCA, you may submit
-  your contributions under the [http:mit_license - MIT License]. This
-  license is liberal and permits Genode Labs to use your contributions
-  in open and closed-source projects.
+By signing the GCA, you don't lose any rights for your contribution. However,
+you enable Genode Labs to license Genode (including your contributions) under
+licenses other than the GPL. The GCA needs to be signed only once. The signed
+GCA covers your future contributions. Of course, you may cancel this agreement
+at your will. Please make sure that you are in the legal position to sign
+the GCA (i.e., by making sure that your contribution to Genode is in line with
+the Open-Source policy of your employer).
 
-The major difference between both variants (and maybe an advantage of the GCA
-for you) is: The GCA permits only Genode Labs to relicense your contributions
-whereas the MIT license effectively puts your code into the public domain.
+Send a signed copy of the GCA to Genode Labs:
 
+:Postal address of Genode Labs:
 
-Development for Genode
-######################
+  *Genode Labs GmbH,*
+  *Tharandter Str. 13,*
+  *D-01159 Dresden,*
+  *Germany*
 
-The Genode source code is available via file releases and a public source-code
-repository (see the [http:/download - Download section] for details). Genode
-Labs update the sources (incorporating community contributions) and announce
-new Genode releases. Therefore, the source-code repository is not meant for
-active development but for convenient source-code update and tracking of
-changes between releases.
-
-The advantage of this approach is that only code that meets Genode Labs's
-quality measures (tests, stability) becomes part of an official Genode release.
-The second (more legal) argument is that Genode Labs is obliged to ensure all
-contributions fit our dual-licensing model.
+Alternatively, you may send a scanned copy of the signed GCA via email
+to 'licensing@genode-labs.com'.
 
 
-Submission of your contribution
-###############################
+Incorporating your work into the mainline source tree
+#####################################################
 
-As soon as you developed a patch you regard valuable to share with the
-community, submit it for incorporation. First, decide which of the above
-contribution licensing variants fits your needs best. Then, accompany your
-patch with a proper description of its changes and send it to the 'genode-main'
-mailing list. Depending on your chosen licensing variant, you may have to state
-that your source code is licensed under the MIT license.
+Our goal with the 'genodelabs/master' branch is to keep the history as linear
+as possible to make it easy for users of the framework to track the
+development.
+To help us with accomplishing this goal, please make sure that your patch
+applies cleanly to 'genodelabs/master'.
 
-Please, follow the developer discussion and possibly improve your patch. The
-integration into Genode may take some time for review and testing at Genode
-Labs.
+For the continuous work on your private topic branch, please feel free to
+commit as you like. For example, your commit sequence could look like:
+
+! "Implemented A"
+! "Discarded a part of A because it was a bad idea"
+! "Fixed spelling in comment"
+
+If your history contains intermediate steps that are not meaningful to have in
+'genodelabs/master', you may decide to clean up your history via 'git rebase -i'.
+Ideally, each revision should represent a consistent state of your work that
+should (at least) build without errors. The refined history will then end up in
+the form of just a few commits. For the example above, all three commits should
+be merged into a single commit "Feature A" as the intermediate (and potentially
+bugged) revisions are not useful to have in 'genodelabs/main'.
+
+
+Important notice
+################
+
+Please do not take the steps described herein too seriously. They are not
+carved in stone. If you have suggestions for improving them, or if you feel
+staggered by all those rules, please let us know.
+
