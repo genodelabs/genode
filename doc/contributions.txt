@@ -1,5 +1,4 @@
 
-
                           ======================
                           Contributing to Genode
                           ======================
@@ -55,7 +54,7 @@ of plain text file within the repository.
 
 If you intend to contribute changes to the mainline development, we
 recommend you to fork the Genode repository on GitHub. This will make it
-easy for everyone to track you activities, comment on your work.
+easy for everyone to track your activities, comment on your work.
 
 
 Create a topic branch
