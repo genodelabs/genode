@@ -234,16 +234,14 @@ int main(int argc, char **argv)
 
 	static Nitpicker::Connection       nitpicker;
 	static Framebuffer::Session_client framebuffer(nitpicker.framebuffer_session());
-	static int                         fb_width, fb_height;
-	static Framebuffer::Session::Mode  fb_mode;
 	Nitpicker::View_capability         view_cap = nitpicker.create_view();
 	static Nitpicker::View_client      view(view_cap);
 
 	/* obtain screen size */
-	framebuffer.info(&fb_width, &fb_height, &fb_mode);
+	Framebuffer::Mode const mode = framebuffer.mode();
 
-	if (fb_mode != Framebuffer::Session::RGB565) {
-		printf("Error: Color mode %d not supported\n", (int)fb_mode);
+	if (mode.format() != Framebuffer::Mode::RGB565) {
+		printf("Error: Color mode %d not supported\n", (int)mode.format());
 		return -3;
 	}
 
@@ -251,13 +249,13 @@ int main(int argc, char **argv)
 	uint16_t *fb = env()->rm_session()->attach(framebuffer.dataspace());
 
 	/* fill virtual framebuffer with decoded image data */
-	convert_png_to_rgb565(png_data, fb, fb_width, fb_height);
+	convert_png_to_rgb565(png_data, fb, mode.width(), mode.height());
 
 	/* display view behind all others */
 	nitpicker.background(view_cap);
-	view.viewport(0, 0, fb_width, fb_height, 0, 0, false);
+	view.viewport(0, 0, mode.width(), mode.height(), 0, 0, false);
 	view.stack(Nitpicker::View_capability(), false, false);
-	framebuffer.refresh(0, 0, fb_width, fb_height);
+	framebuffer.refresh(0, 0, mode.width(), mode.height());
 
 	sleep_forever();
 	return 0;

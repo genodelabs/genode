@@ -165,12 +165,7 @@ namespace Framebuffer
 
 			Genode::Dataspace_capability dataspace() { return _fb_ds_cap; }
 
-			void info(int *out_w, int *out_h, Mode *out_mode)
-			{
-				*out_w    = SCR_WIDTH;
-				*out_h    = SCR_HEIGHT;
-				*out_mode = RGB565;
-			}
+			Mode mode() { return Mode(SCR_WIDTH, SCR_HEIGHT, Mode::RGB565); }
 
 			void refresh(int x, int y, int w, int h) { }
 	};

@@ -82,8 +82,9 @@ extern "C" {
 	{
 		Screen *s = Screen_array::screens()->get(screen);
 		if (s && s->framebuffer()) {
-			Framebuffer::Session::Mode dummy;
-			s->framebuffer()->info(out_w, out_h, &dummy);
+			Framebuffer::Mode const mode = s->framebuffer()->mode();
+			*out_w = mode.width();
+			*out_h = mode.height();
 		}
 	}
 

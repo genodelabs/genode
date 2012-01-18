@@ -27,8 +27,8 @@ namespace Framebuffer {
 		Genode::Dataspace_capability dataspace() {
 			return call<Rpc_dataspace>(); }
 
-		void info(int *out_w, int *out_h, Mode *out_mode) {
-			call<Rpc_info>(out_w, out_h, out_mode); }
+		Mode mode() {
+			return call<Rpc_mode>(); }
 
 		void refresh(int x, int y, int w, int h) {
 			call<Rpc_refresh>(x, y, w, h); }

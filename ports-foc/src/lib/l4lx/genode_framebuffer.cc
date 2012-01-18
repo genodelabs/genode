@@ -66,8 +66,9 @@ extern "C" {
 	{
 		Linux::Irq_guard guard;
 
-		Framebuffer::Session::Mode dummy;
-		framebuffer()->info(out_w, out_h, &dummy);
+		Framebuffer::Mode const mode = framebuffer()->mode();
+		*out_w = mode.width();
+		*out_h = mode.height();
 	}
 
 

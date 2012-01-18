@@ -173,10 +173,8 @@ int main(int argc, char **argv)
 	 */
 	if (view_w == 0 || view_h == 0) {
 		Framebuffer::Session_client nit_fb(nitpicker.framebuffer_session());
-		int w = 0, h = 0;
-		Framebuffer::Session::Mode mode;
-		nit_fb.info(&w, &h, &mode);
-		view_w = w, view_h = h;
+		Framebuffer::Mode const mode = nit_fb.mode();
+		view_w = mode.width(), view_h = mode.height();
 	}
 
 	PINF("using xywh=(%ld,%ld,%ld,%ld) refresh_rate=%ld",

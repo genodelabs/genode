@@ -198,11 +198,10 @@ namespace Framebuffer
 
 			Genode::Dataspace_capability dataspace() { return _window_content->fb_ds_cap(); }
 
-			void info(int *out_w, int *out_h, Mode *out_mode)
+			Mode mode()
 			{
-				*out_w    = _window_content->fb_w();
-				*out_h    = _window_content->fb_h();
-				*out_mode = RGB565;
+				return Mode(_window_content->fb_w(), _window_content->fb_h(),
+				            Mode::RGB565);
 			}
 
 			void refresh(int x, int y, int w, int h) {

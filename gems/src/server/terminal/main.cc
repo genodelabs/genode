@@ -784,14 +784,12 @@ namespace Terminal {
 
 			Genode::Attached_ram_dataspace _io_buffer;
 
-			int                          _fb_width;
-			int                          _fb_height;
+			Framebuffer::Mode            _fb_mode;
 			Genode::Dataspace_capability _fb_ds_cap;
 			unsigned                     _char_width;
 			unsigned                     _char_height;
 			unsigned                     _columns;
 			unsigned                     _lines;
-			Framebuffer::Session::Mode   _fb_mode;
 			void                        *_fb_addr;
 
 			/**
@@ -810,10 +808,8 @@ namespace Terminal {
 			 */
 			Genode::Dataspace_capability _init_fb()
 			{
-				_framebuffer->info(&_fb_width, &_fb_height, &_fb_mode);
-
-				if (_fb_mode != Framebuffer::Session::RGB565) {
-					PERR("Color mode %d not supported", _fb_mode);
+				if (_fb_mode.format() != Framebuffer::Mode::RGB565) {
+					PERR("Color mode %d not supported", _fb_mode.format());
 					return Genode::Dataspace_capability();
 				}
 
@@ -830,6 +826,7 @@ namespace Terminal {
 			                  Genode::size_t        io_buffer_size)
 			: _read_buffer(read_buffer), _framebuffer(framebuffer),
 			  _io_buffer(Genode::env()->ram_session(), io_buffer_size),
+			  _fb_mode(_framebuffer->mode()),
 			  _fb_ds_cap(_init_fb()),
 
 			  /* take size of space character as character cell size */
@@ -837,8 +834,8 @@ namespace Terminal {
 			  _char_height(mono_font.str_h("m")),
 
 			  /* compute number of characters fitting on the framebuffer */
-			  _columns(_fb_width/_char_width),
-			  _lines(_fb_height/_char_height),
+			  _columns(_fb_mode.width()/_char_width),
+			  _lines(_fb_mode.height()/_char_height),
 
 			  _fb_addr(Genode::env()->rm_session()->attach(_fb_ds_cap)),
 			  _char_cell_array(_columns, _lines, Genode::env()->heap()),
@@ -848,11 +845,11 @@ namespace Terminal {
 				using namespace Genode;
 
 				printf("new terminal session:\n");
-				printf("  framebuffer has %dx%d pixels\n", _fb_width, _fb_height);
+				printf("  framebuffer has %dx%d pixels\n", _fb_mode.width(), _fb_mode.height());
 				printf("  character size is %dx%d pixels\n", _char_width, _char_height);
 				printf("  terminal size is %dx%d characters\n", _columns, _lines);
 
-				framebuffer->refresh(0, 0, _fb_width, _fb_height);
+				framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 			}
 
 			void flush()
@@ -861,8 +858,8 @@ namespace Terminal {
 
 				convert_char_array_to_pixels<Pixel_rgb565>(&_char_cell_array,
 				                                           (Pixel_rgb565 *)_fb_addr,
-				                                           _fb_width,
-				                                           _fb_height);
+				                                           _fb_mode.width(),
+				                                           _fb_mode.height());
 
 				
 				int first_dirty_line =  10000,
@@ -880,7 +877,7 @@ namespace Terminal {
 				int num_dirty_lines = last_dirty_line - first_dirty_line + 1;
 
 				_framebuffer->refresh(0, first_dirty_line*_char_height,
-				                      _fb_width, num_dirty_lines*_char_height);
+				                      _fb_mode.width(), num_dirty_lines*_char_height);
 			}
 
 

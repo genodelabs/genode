@@ -115,9 +115,8 @@ int main(int argc, char **argv)
 	static Nitpicker::Connection nitpicker(256, 256, CONFIG_ALPHA);
 	static Timer::Connection     timer;
 
-	int scr_w = 0, scr_h = 0;
-	Framebuffer::Session::Mode scr_mode;
-	nitpicker.framebuffer()->info(&scr_w, &scr_h, &scr_mode);
+	Framebuffer::Mode const mode = nitpicker.framebuffer()->mode();
+	int const scr_w = mode.width(), scr_h = mode.height();
 
 	printf("screen is %dx%d\n", scr_w, scr_h);
 	if (!scr_w || !scr_h) {

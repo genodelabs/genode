@@ -19,14 +19,47 @@
 
 namespace Framebuffer {
 
+	struct Mode
+	{
+		public:
+
+			/**
+			 * Pixel formats
+			 */
+			enum Format { INVALID, RGB565 };
+
+			static Genode::size_t bytes_per_pixel(Format format)
+			{
+				if (format == RGB565) return 2;
+				return 0;
+			}
+
+		private:
+
+			int    _width, _height;
+			Format _format;
+
+		public:
+
+			Mode() : _width(0), _height(0), _format(INVALID) { }
+
+			Mode(int width, int height, Format format)
+			: _width(width), _height(height), _format(format) { }
+
+			int    width()  const { return _width; }
+			int    height() const { return _height; }
+			Format format() const { return _format; }
+
+			/**
+			 * Return number of bytes per pixel
+			 */
+			Genode::size_t bytes_per_pixel() const {
+				return bytes_per_pixel(_format); }
+	};
+
 	struct Session : Genode::Session
 	{
 		static const char *service_name() { return "Framebuffer"; }
-
-		/**
-		 * Pixel formats
-		 */
-		enum Mode { INVALID, RGB565 };
 
 		virtual ~Session() { }
 
@@ -37,12 +70,8 @@ namespace Framebuffer {
 
 		/**
 		 * Request current screen mode properties
-		 *
-		 * \param out_w     width of frame buffer
-		 * \param out_h     height of frame buffer
-		 * \param out_mode  pixel format
 		 */
-		virtual void info(int *out_w, int *out_h, Mode *out_mode) = 0;
+		virtual Mode mode() = 0;
 
 		/**
 		 * Flush specified pixel region
@@ -51,21 +80,16 @@ namespace Framebuffer {
 		 */
 		virtual void refresh(int x, int y, int w, int h) = 0;
 
-		/**
-		 * Return number of bytes per pixel for a given pixel format
-		 */
-		static Genode::size_t bytes_per_pixel(Mode mode) { return 2; }
-
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
 		GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, dataspace);
-		GENODE_RPC(Rpc_info, void, info, int *, int *, Mode *);
+		GENODE_RPC(Rpc_mode, Mode, mode);
 		GENODE_RPC(Rpc_refresh, void, refresh, int, int, int, int);
 
-		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_info, Rpc_refresh);
+		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_mode, Rpc_refresh);
 	};
 }
 

@@ -35,7 +35,7 @@ namespace Nitpicker {
 			 */
 			Session_capability
 			_connect(unsigned width, unsigned height, bool alpha,
-			         Framebuffer::Session::Mode mode, bool stay_top)
+			         Framebuffer::Mode::Format format, bool stay_top)
 			{
 				using namespace Genode;
 
@@ -51,12 +51,12 @@ namespace Nitpicker {
 				 * probe for any valid video mode. For now, we just probe for
 				 * RGB565.
 				 */
-				if (mode == Framebuffer::Session::INVALID)
-					mode =  Framebuffer::Session::RGB565;
+				if (format == Framebuffer::Mode::INVALID)
+					format =  Framebuffer::Mode::RGB565;
 
 				/* if buffer dimensions are specified, calculate ram quota to donate */
 				if (width && height)
-					ram_quota = width*height*Framebuffer::Session::bytes_per_pixel(mode);
+					ram_quota = width*height*Framebuffer::Mode::bytes_per_pixel(format);
 
 				/* account for alpha and input-mask buffers */
 				if (alpha)
@@ -74,8 +74,8 @@ namespace Nitpicker {
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", width);
 				if (height)
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", height);
-				if (mode != Framebuffer::Session::INVALID)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_mode", mode);
+				if (format != Framebuffer::Mode::INVALID)
+					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
 				if (alpha)
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "alpha", "yes");
 				if (stay_top)
@@ -92,18 +92,19 @@ namespace Nitpicker {
 			 * \param width   desired buffer width
 			 * \param height  desired buffer height
 			 * \param alpha   true for using a buffer with alpha channel
-			 * \param mode    desired pixel format
+			 * \param format  desired pixel format
 			 *
-			 * The specified value for 'mode' is not enforced. After creating the
-			 * session, you should validate the actual pixel format of the
-			 * buffer by its 'info'.
+			 * The specified value for 'format' is not enforced. After creating 
+			 * the session, you should validate the actual pixel format of the
+			 * buffer by its 'mode'.
 			 */
 			Connection(unsigned width  = 0, unsigned height = 0, bool alpha = false,
-			           Framebuffer::Session::Mode mode = Framebuffer::Session::INVALID,
+			           Framebuffer::Mode::Format format = Framebuffer::Mode::INVALID,
 			           bool stay_top = false)
 			:
 				/* establish nitpicker session */
-				Genode::Connection<Session>(_connect(width, height, alpha, mode, stay_top)),
+				Genode::Connection<Session>(_connect(width, height, alpha,
+				                                     format, stay_top)),
 				Session_client(cap()),
 
 				/* request frame-buffer and input sub sessions */

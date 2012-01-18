@@ -28,7 +28,8 @@ namespace Framebuffer {
 			/**
 			 * Create session and return typed session capability
 			 */
-			Session_capability _connect(unsigned width, unsigned height, Mode mode)
+			Session_capability _connect(unsigned width, unsigned height,
+			                            Mode::Format format)
 			{
 				using namespace Genode;
 
@@ -43,8 +44,8 @@ namespace Framebuffer {
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", width);
 				if (height)
 					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", height);
-				if (mode != Session::INVALID)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_mode", mode);
+				if (format != Mode::INVALID)
+					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
 
 				return session(argbuf);
 			}
@@ -62,11 +63,11 @@ namespace Framebuffer {
 			 * session, you should validate the actual frame-buffer attributes
 			 * by calling the 'info' function of the frame-buffer interface.
 			 */
-			Connection(unsigned  width  = 0,
-			           unsigned  height = 0,
-			           Mode      mode   = INVALID)
+			Connection(unsigned     width  = 0,
+			           unsigned     height = 0,
+			           Mode::Format format = Mode::INVALID)
 			:
-				Genode::Connection<Session>(_connect(width, height, mode)),
+				Genode::Connection<Session>(_connect(width, height, format)),
 				Session_client(cap())
 			{ }
 	};

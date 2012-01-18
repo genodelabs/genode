@@ -30,7 +30,7 @@
  */
 static SDL_Surface *screen;
 static int scr_width = 1024, scr_height = 768;
-static Framebuffer::Session::Mode scr_mode = Framebuffer::Session::RGB565;
+static Framebuffer::Mode::Format scr_format = Framebuffer::Mode::RGB565;
 
 /*
  * Dataspace capability and local address of virtual frame buffer
@@ -57,16 +57,11 @@ namespace Framebuffer {
 			/**
 			 * Constructor
 			 */
-			Session_component() : _mode(RGB565) { }
+			Session_component() : _mode(scr_width, scr_height, Mode::RGB565) { }
 
 			Genode::Dataspace_capability dataspace() { return fb_ds_cap; }
 
-			void info(int *out_w, int *out_h, Mode *out_mode)
-			{
-				*out_w    = scr_width;
-				*out_h    = scr_height;
-				*out_mode = _mode;
-			}
+			Mode mode() { return _mode; }
 
 			void refresh(int x, int y, int w, int h)
 			{
@@ -79,9 +74,9 @@ namespace Framebuffer {
 				if (x1 > x2 || y1 > y2) return;
 
 				/* copy pixels from shared dataspace to sdl surface */
-				const int start_offset    = bytes_per_pixel(_mode)*(y1*scr_width + x1);
-				const int line_len        = bytes_per_pixel(_mode)*(x2 - x1 + 1);
-				const int pitch           = bytes_per_pixel(_mode)*scr_width;
+				const int start_offset = _mode.bytes_per_pixel()*(y1*scr_width + x1);
+				const int line_len     = _mode.bytes_per_pixel()*(x2 - x1 + 1);
+				const int pitch        = _mode.bytes_per_pixel()*scr_width;
 
 				char *src = (char *)fb_ds_addr     + start_offset;
 				char *dst = (char *)screen->pixels + start_offset;
@@ -138,11 +133,12 @@ extern "C" int main(int, char**)
 		return -1;
 	}
 
-	Genode::size_t bpp = Framebuffer::Session::bytes_per_pixel(scr_mode);
+	Genode::size_t bpp = Framebuffer::Mode::bytes_per_pixel(scr_format);
 	screen = SDL_SetVideoMode(scr_width, scr_height, bpp*8, SDL_SWSURFACE);
 	SDL_ShowCursor(0);
 
-	Genode::printf("creating virtual framebuffer for mode %dx%d@%zd\n", scr_width, scr_height, bpp*8);
+	Genode::printf("creating virtual framebuffer for mode %dx%d@%zd\n",
+	               scr_width, scr_height, bpp*8);
 
 	/*
 	 * Create dataspace representing the virtual frame buffer

@@ -61,20 +61,19 @@ class Genode_framebuffer
 {
 	private:
 
-		Framebuffer::Connection _framebuffer;
-		int _width, _height;
-		Framebuffer::Session::Mode _mode;
-		Genode::Dataspace_capability _ds_cap;
-		void *_local_addr;
+		Framebuffer::Connection            _framebuffer;
+		Framebuffer::Mode            const _mode;
+		Genode::Dataspace_capability const _ds_cap;
+		void                       * const _local_addr;
 
 	public:
 
 		Genode_framebuffer()
-		{
-			_framebuffer.info(&_width, &_height, &_mode);
-			_ds_cap = _framebuffer.dataspace();
-			_local_addr = Genode::env()->rm_session()->attach(_ds_cap);
-		}
+		:
+			_mode(_framebuffer.mode()),
+			_ds_cap(_framebuffer.dataspace()),
+			_local_addr(Genode::env()->rm_session()->attach(_ds_cap))
+		{ }
 
 		~Genode_framebuffer()
 		{
@@ -85,11 +84,11 @@ class Genode_framebuffer
 
 		void flush()
 		{
-			_framebuffer.refresh(0, 0, _width, _height);
+			_framebuffer.refresh(0, 0, _mode.width(), _mode.height());
 		}
 
-		int width()  const { return _width; }
-		int height() const { return _height; }
+		int width()  const { return _mode.width();  }
+		int height() const { return _mode.height(); }
 };
 
 

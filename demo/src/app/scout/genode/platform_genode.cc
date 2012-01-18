@@ -27,7 +27,7 @@
 
 static int                        _scr_w;
 static int                        _scr_h;
-static Framebuffer::Session::Mode _scr_mode;
+static Framebuffer::Mode::Format  _scr_format;
 static Input::Event              *_ev_buf;
 static char                      *_scr_adr;
 static char                      *_buf_adr;
@@ -221,7 +221,10 @@ Platform::Platform(unsigned vx, unsigned vy, unsigned vw, unsigned vh,
 	 * propagated to different nitpicker instances.
 	 */
 	_nitpicker = new (env()->heap()) Nitpicker::Connection();
-	_nitpicker->framebuffer()->info(&_scr_w, &_scr_h, &_scr_mode);
+	Framebuffer::Mode const query_mode = _nitpicker->framebuffer()->mode();
+	_scr_w      = query_mode.width();
+	_scr_h      = query_mode.height();
+	_scr_format = query_mode.format();
 	destroy(env()->heap(), _nitpicker);
 
 	if (_max_vw) _scr_w = min(_max_vw, _scr_w);
@@ -231,21 +234,21 @@ Platform::Platform(unsigned vx, unsigned vy, unsigned vw, unsigned vh,
 	 * Allocate a nitpicker buffer double as high as the physical screen to
 	 * use the upper/lower halves for double-buffering.
 	 */
-	_nitpicker = new (env()->heap()) Nitpicker::Connection(_scr_w, _scr_h*2, false, _scr_mode);
+	_nitpicker = new (env()->heap())
+		Nitpicker::Connection(_scr_w, _scr_h*2, false, _scr_format);
 
 	static Timer::Connection timer;
 	_timer = &timer;
 
-	int dummy = 0;
-	_nitpicker->framebuffer()->info(&dummy, &dummy, &_scr_mode);
+	Framebuffer::Mode const used_mode = _nitpicker->framebuffer()->mode();
 
 	/*
 	 * We use the upper half the allocated nitpicker buffer for '_scr_adr'
 	 * and the lower half for '_buf_adr'.
 	 */
-	_scr_adr  = env()->rm_session()->attach(_nitpicker->framebuffer()->dataspace());
-	_buf_adr  = (char *)_scr_adr + _scr_w*_scr_h*Framebuffer::Session::bytes_per_pixel(_scr_mode);
-	_ev_buf   = env()->rm_session()->attach(_nitpicker->input()->dataspace());
+	_scr_adr = env()->rm_session()->attach(_nitpicker->framebuffer()->dataspace());
+	_buf_adr = (char *)_scr_adr + _scr_w*_scr_h*used_mode.bytes_per_pixel();
+	_ev_buf  = env()->rm_session()->attach(_nitpicker->input()->dataspace());
 
 	new (env()->heap()) Timer_thread();
 
@@ -290,7 +293,7 @@ void Platform::flip_buf_scr()
  */
 void Platform::copy_buf_to_scr(int x, int y, int w, int h)
 {
-	Genode::size_t bpp = Framebuffer::Session::bytes_per_pixel(_scr_mode);
+	Genode::size_t bpp = Framebuffer::Mode::bytes_per_pixel(_scr_format);
 
 	/* copy background buffer to foreground buffer */
 	int len     =      w*bpp;

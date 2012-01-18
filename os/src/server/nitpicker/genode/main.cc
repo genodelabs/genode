@@ -155,7 +155,7 @@ class Buffer
 	private:
 
 		Area                           _size;
-		Framebuffer::Session::Mode     _mode;
+		Framebuffer::Mode::Format      _format;
 		Genode::Attached_ram_dataspace _ram_ds;
 
 	public:
@@ -166,8 +166,8 @@ class Buffer
 		 * \throw Ram_session::Alloc_failed
 		 * \throw Rm_session::Attach_failed
 		 */
-		Buffer(Area size, Framebuffer::Session::Mode mode, Genode::size_t bytes):
-			_size(size), _mode(mode),
+		Buffer(Area size, Framebuffer::Mode::Format format, Genode::size_t bytes):
+			_size(size), _format(format),
 			_ram_ds(Genode::env()->ram_session(), bytes)
 		{ }
 
@@ -176,7 +176,7 @@ class Buffer
 		 */
 		Genode::Ram_dataspace_capability ds_cap() { return _ram_ds.cap(); }
 		Area                               size() { return _size; }
-		Framebuffer::Session::Mode         mode() { return _mode; }
+		Framebuffer::Mode::Format        format() { return _format; }
 		void                        *local_addr() { return _ram_ds.local_addr<void>(); }
 };
 
@@ -186,8 +186,8 @@ class Chunky_dataspace_texture : public Buffer, public Chunky_texture<PT>
 {
 	private:
 
-		Framebuffer::Session::Mode _mode() {
-			return Framebuffer::Session::RGB565; }
+		Framebuffer::Mode::Format _format() {
+			return Framebuffer::Mode::RGB565; }
 
 		/**
 		 * Return base address of alpha channel or 0 if no alpha channel exists
@@ -206,7 +206,7 @@ class Chunky_dataspace_texture : public Buffer, public Chunky_texture<PT>
 		 * Constructor
 		 */
 		Chunky_dataspace_texture(Area size, bool use_alpha):
-			Buffer(size, _mode(), calc_num_bytes(size, use_alpha)),
+			Buffer(size, _format(), calc_num_bytes(size, use_alpha)),
 			Chunky_texture<PT>((PT *)local_addr(),
 			                   _alpha_base(size, use_alpha), size) { }
 
@@ -341,11 +341,10 @@ namespace Framebuffer {
 
 			Genode::Dataspace_capability dataspace() { return _buffer->ds_cap(); }
 
-			void info(int *out_w, int *out_h, Mode *out_mode)
+			Mode mode()
 			{
-				*out_w    = _buffer->size().w();
-				*out_h    = _buffer->size().h();
-				*out_mode = _buffer->mode();
+				return Mode(_buffer->size().w(), _buffer->size().h(),
+				            _buffer->format());
 			}
 
 			void refresh(int x, int y, int w, int h)
@@ -838,11 +837,10 @@ int main(int argc, char **argv)
 	/*
 	 * Initialize framebuffer
 	 */
-	int scr_w = 0, scr_h = 0;
-	Framebuffer::Session::Mode scr_mode = Framebuffer::Session::INVALID;
-	framebuffer.info(&scr_w, &scr_h, &scr_mode);
+	Framebuffer::Mode const mode = framebuffer.mode();
 
-	PINF("framebuffer is %dx%d@%d\n", scr_w, scr_h, scr_mode);
+	PINF("framebuffer is %dx%d@%d\n",
+	     mode.width(), mode.height(), mode.format());
 
 	Dataspace_capability fb_ds_cap = framebuffer.dataspace();
 	if (!fb_ds_cap.valid()) {
@@ -851,11 +849,11 @@ int main(int argc, char **argv)
 	}
 
 	void *fb_base = env()->rm_session()->attach(fb_ds_cap);
-	Screen<PT> screen((PT *)fb_base, Area(scr_w, scr_h));
+	Screen<PT> screen((PT *)fb_base, Area(mode.width(), mode.height()));
 
 	enum { MENUBAR_HEIGHT = 16 };
-	PT *menubar_pixels = (PT *)env()->heap()->alloc(sizeof(PT)*scr_w*16);
-	Chunky_menubar<PT> menubar(menubar_pixels, Area(scr_w, MENUBAR_HEIGHT));
+	PT *menubar_pixels = (PT *)env()->heap()->alloc(sizeof(PT)*mode.width()*16);
+	Chunky_menubar<PT> menubar(menubar_pixels, Area(mode.width(), MENUBAR_HEIGHT));
 
 	User_state user_state(&screen, &menubar);
 
@@ -881,7 +879,7 @@ int main(int argc, char **argv)
 
 	Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
-	static Nitpicker::Root<PT> np_root(&ep, Area(scr_w, scr_h),
+	static Nitpicker::Root<PT> np_root(&ep, Area(mode.width(), mode.height()),
 	                                   &user_state, &sliced_heap,
 	                                   &screen, &framebuffer,
 	                                   MENUBAR_HEIGHT);

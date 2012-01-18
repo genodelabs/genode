@@ -150,15 +150,10 @@ namespace Framebuffer {
 				return _buffered ? Dataspace_capability(_bb_ds)
 				                 : Dataspace_capability(_fb_ds); }
 
-			void info(int *out_w, int *out_h, Mode *out_mode)
+			Mode mode()
 			{
-				*out_w = _scr_width;
-				*out_h = _scr_height;
-
-				switch (_scr_mode) {
-				case 16: *out_mode = RGB565; break;
-				default: *out_mode = INVALID;
-				}
+				return Mode(_scr_width, _scr_height,
+				            _scr_mode == 16 ? Mode::RGB565 : Mode::INVALID);
 			}
 
 			/* not implemented */

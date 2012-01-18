@@ -44,9 +44,7 @@ extern "C" {
 #include "SDL_genode_fb_video.h"
 
 	static Framebuffer::Connection *framebuffer = 0;
-	static Framebuffer::Session::Mode scr_mode = Framebuffer::Session::INVALID;
-	static int width = 0;
-	static int height = 0;
+	static Framebuffer::Mode scr_mode;
 	static SDL_Rect *modes[2];
 	static SDL_Rect df_mode;
 
@@ -156,19 +154,19 @@ extern "C" {
 		}
 
 		/* Get the framebuffer size and mode infos */
-		framebuffer->info(&width, &height, &scr_mode);
-		t->info.current_w = width;
-		t->info.current_h = height;
+		scr_mode = framebuffer->mode();
+		t->info.current_w = scr_mode.width();
+		t->info.current_h = scr_mode.height();
 		PDBG("Framebuffer has width=%d and height=%d",
 		     t->info.current_w, t->info.current_h);
 
 		/* set mode specific values */
-		switch(scr_mode)
+		switch(scr_mode.format())
 		{
-		case Framebuffer::Session::RGB565:
+		case Framebuffer::Mode::RGB565:
 			PDBG("We use pixelformat rgb565.");
 			vformat->BitsPerPixel  = 16;
-			vformat->BytesPerPixel = 2;
+			vformat->BytesPerPixel = scr_mode.bytes_per_pixel();
 			vformat->Rmask = 0x0000f800;
 			vformat->Gmask = 0x000007e0;
 			vformat->Bmask = 0x0000001f;
@@ -179,8 +177,8 @@ extern "C" {
 			return -1;
 		}
 		modes[0] = &df_mode;
-		df_mode.w = width;
-		df_mode.h = height;
+		df_mode.w = scr_mode.width();
+		df_mode.h = scr_mode.height();
 		modes[1] = 0;
 
 		/* Map the buffer */
