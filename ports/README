@@ -11,5 +11,5 @@ Dependencies from other repositories
 Application provided by the 'ports' repository typically expect a rich
 runtime environment, including shared libraries provided by the 'libports'
 repository. Hence, 'ports' depends on 'libports'. Furthermore, applications
-may  additional repositories. For example, the Arora web browser depends
+may require additional repositories. For example, the Arora web browser depends
 on the 'qt4' repository.
