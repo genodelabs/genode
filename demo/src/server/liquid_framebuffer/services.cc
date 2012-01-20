@@ -196,13 +196,18 @@ namespace Framebuffer
 	{
 		public:
 
-			Genode::Dataspace_capability dataspace() { return _window_content->fb_ds_cap(); }
+			Genode::Dataspace_capability dataspace() {
+				return _window_content->fb_ds_cap(); }
+
+			void release() { }
 
 			Mode mode()
 			{
 				return Mode(_window_content->fb_w(), _window_content->fb_h(),
 				            Mode::RGB565);
 			}
+
+			void mode_sigh(Genode::Signal_context_capability) { }
 
 			void refresh(int x, int y, int w, int h) {
 				window_content()->redraw_area(x, y, w, h); }

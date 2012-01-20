@@ -341,11 +341,15 @@ namespace Framebuffer {
 
 			Genode::Dataspace_capability dataspace() { return _buffer->ds_cap(); }
 
+			void release() { }
+
 			Mode mode()
 			{
 				return Mode(_buffer->size().w(), _buffer->size().h(),
 				            _buffer->format());
 			}
+
+			void mode_sigh(Genode::Signal_context_capability) { }
 
 			void refresh(int x, int y, int w, int h)
 			{

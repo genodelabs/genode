@@ -45,16 +45,17 @@ namespace Framebuffer {
 
 			Dataspace_capability dataspace() { return Framebuffer_drv::hw_framebuffer(); }
 
-			void info(int *out_w, int *out_h, Mode *out_mode)
-			{
-				*out_w = scr_width;
-				*out_h = scr_height;
+			void release() { }
 
-				switch (scr_mode) {
-				case 16: *out_mode = RGB565; break;
-				default: *out_mode = INVALID;
-				}
+			Mode mode()
+			{
+				if (scr_mode != 16)
+					return Mode(); /* invalid mode */
+
+				return Mode(scr_width, scr_height, Mode::RGB565);
 			}
+
+			void mode_sigh(Genode::Signal_context_capability sigh) { }
 
 			void refresh(int x, int y, int w, int h)
 			{

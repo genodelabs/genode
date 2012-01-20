@@ -150,11 +150,15 @@ namespace Framebuffer {
 				return _buffered ? Dataspace_capability(_bb_ds)
 				                 : Dataspace_capability(_fb_ds); }
 
+			void release() { }
+
 			Mode mode()
 			{
 				return Mode(_scr_width, _scr_height,
 				            _scr_mode == 16 ? Mode::RGB565 : Mode::INVALID);
 			}
+
+			void mode_sigh(Genode::Signal_context_capability) { }
 
 			/* not implemented */
 			void refresh(int x, int y, int w, int h)
