@@ -596,8 +596,26 @@ bool Rm_session_component::reverse_lookup(addr_t                dst_base,
 	if (!*src_dataspace)
 		return false;
 
-	/* constrain destination fault area to region */
-	dst_fault_area->constrain(dst_base + region->base(), region->size());
+	/*
+	 * Constrain destination fault area to region
+	 *
+	 * Handle corner case when the 'dst_base' is negative. In this case, we
+	 * determine the largest flexpage within the positive portion of the
+	 * region.
+	 */
+	addr_t region_base = region->base() + dst_base;
+	size_t region_size = region->size();
+
+	/* check for overflow condition */
+	while ((long)region_base < 0 && (long)(region_base + region_size) > 0) {
+
+		/* increment base address by half of the region size */
+		region_base += region_size >> 1;
+
+		/* lower the region size by one log2 step */
+		region_size >>= 1;
+	}
+	dst_fault_area->constrain(region_base, region_size);
 
 	/* calculate source fault address relative to 'src_dataspace' */
 	addr_t src_fault_offset = fault_addr - region->base() + region->offset();
