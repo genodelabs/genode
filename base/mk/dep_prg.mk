@@ -73,7 +73,28 @@ endif
 	  echo "") >> $(LIB_DEP_FILE)
 	@for i in $(LIBS_TO_VISIT); do \
 	  $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_lib.mk REP_DIR=$(REP_DIR) LIB=$$i; done
+#
+# Make 'all' depend on the target, which triggers the building of the target
+# and the traversal of the target's library dependencies. But we only do so
+# if the target does not depend on any library with unsatisfied build
+# requirements. In such a case, the target cannot be linked anyway.
+#
 	@(echo ""; \
 	  echo "ifeq (\$$(filter \$$(DEP_$(TARGET).prg:.lib=),\$$(INVALID_DEPS)),)"; \
 	  echo "all: $(TARGET).prg"; \
 	  echo "endif") >> $(LIB_DEP_FILE)
+#
+# Normally, if the target depends on a library, which cannot be built (such
+# libraries get recorded in the 'INVALID_DEPS' variable), we skip the target
+# altogether. In some cases, however, we want to build all non-invalid
+# libraries of a target regardless of whether the final target can be created
+# or not. (i.e., for implementing the mechanism for building all libraries,
+# see 'base/src/lib/target.mk'). This use case is supported via the
+# 'FORCE_BUILD_LIBS' variable. If the 'target.mk' file assigns the value
+# 'yes' to this variable, we build all non-invalid libraries regardless of
+# the validity of the final target.
+#
+ifeq ($(FORCE_BUILD_LIBS),yes)
+	@(echo ""; \
+	  echo "all: \$$(addsuffix .lib,\$$(filter-out \$$(INVALID_DEPS), $(LIBS)))") >> $(LIB_DEP_FILE)
+endif
