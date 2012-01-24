@@ -125,7 +125,6 @@ class Format_command
 				case 'x': type = UINT;    base = 16; break;
 				case 'X': type = UINT;    base = 16; uppercase = 1; break;
 				case 'p': type = PTR;     base = 16; break;
-				case 'b': type = UINT;    base = 2;  break;
 				case 'c': type = CHAR;    break;
 				case 's': type = STRING;  break;
 				case '%': type = PERCENT; break;
@@ -163,8 +162,12 @@ static char ascii(int digit, int uppercase = 0)
 template <typename T>
 void Console::_out_signed(T value, unsigned base)
 {
-	/* for base 2, the number of digits is the number of value bits */
-	char buf[sizeof(value)*8];
+	/**
+	 * for base 8, the number of digits is the number of value bytes times 3
+	 * at a max, because 0xff is 0o377 and accumulating this implies a
+	 * strictly decreasing factor
+	 */
+	char buf[sizeof(value)*3];
 
 	/* set flag if value is negative */
 	int neg = value < 0 ? 1 : 0;
@@ -199,8 +202,12 @@ void Console::_out_signed(T value, unsigned base)
 template <typename T>
 void Console::_out_unsigned(T value, unsigned base, int pad)
 {
-	/* for base 2, the number of digits is the number of value bits */
-	char buf[sizeof(value)*8];
+	/**
+	 * for base 8, the number of digits is the number of value bytes times 3
+	 * at a max, because 0xff is 0o377 and accumulating this implies a
+	 * strictly decreasing factor
+	 */
+	char buf[sizeof(value)*3];
 
 	int i = 0;
 
