@@ -1,0 +1,6 @@
+D3m stands for demo device driver manager. It is the service responsible for
+implementing device-driver policies such as probing for a boot device or
+merging user input coming from different input devices (USB HID and PS/2).
+
+The actual device drivers are executed as child processes of d3m. At the
+current stage, d3m is primarily geared towards bootable live CD images.
