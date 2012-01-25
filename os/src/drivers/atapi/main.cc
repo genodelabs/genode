@@ -147,7 +147,6 @@ namespace Block {
 				_startup_sema.down();
 			}
 
-
 			void info(Genode::size_t *blk_count, Genode::size_t *blk_size,
 			          Operations *ops)
 			{
@@ -183,6 +182,7 @@ namespace Block {
 		private:
 
 			Genode::Rpc_entrypoint &_ep;
+			Ata::Device *_device;
 
 		protected:
 
@@ -223,31 +223,33 @@ namespace Block {
 				catch (...) {}
 
 				int type = probe_ata ? REG_CONFIG_TYPE_ATA : REG_CONFIG_TYPE_ATAPI;
-				/*
-				 * Probe for ATA(PI) device
-				 */
-				Ata::Device *device = Ata::Device::probe_legacy(type);
 
-				if (!device) {
+				/*
+				 * Probe for ATA(PI) device, but only once
+				 */
+				if (!_device)
+					_device = Ata::Device::probe_legacy(type);
+
+				if (!_device) {
 					PERR("No device present");
 					throw Root::Unavailable();
 				}
 
-				if (Atapi_device *atapi_device = dynamic_cast<Atapi_device *>(device))
+				if (Atapi_device *atapi_device = dynamic_cast<Atapi_device *>(_device))
 					if (!atapi_device->test_unit_ready()) {
 						PERR("No disc present");
 						throw Root::Unavailable();
 					}
 
 				return new (md_alloc())
-					Session_component(env()->ram_session()->alloc(tx_buf_size), _ep, device);
+					Session_component(env()->ram_session()->alloc(tx_buf_size), _ep, _device);
 			}
 
 		public:
 
 			Root(Genode::Rpc_entrypoint *session_ep,
 			     Genode::Allocator *md_alloc)
-			: Root_component(session_ep, md_alloc), _ep(*session_ep) { }
+			: Root_component(session_ep, md_alloc), _ep(*session_ep), _device(0) { }
 	};
 }
 
