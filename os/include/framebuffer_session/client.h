@@ -29,7 +29,7 @@ namespace Framebuffer {
 
 		void release() { call<Rpc_release>(); }
 
-		Mode mode() { return call<Rpc_mode>(); }
+		Mode mode() const { return call<Rpc_mode>(); }
 
 		void mode_sigh(Genode::Signal_context_capability sigh) {
 			call<Rpc_mode_sigh>(sigh); }

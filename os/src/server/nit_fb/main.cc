@@ -117,7 +117,7 @@ namespace Input {
 
 			Genode::Dataspace_capability dataspace() { return _to_input_ds; }
 
-			bool is_pending() { return _from_input->is_pending(); }
+			bool is_pending() const { return _from_input->is_pending(); }
 
 			int flush()
 			{

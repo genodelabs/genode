@@ -76,7 +76,7 @@ namespace Input {
 
 			Genode::Dataspace_capability dataspace() { return _ev_ds.cap(); }
 
-			bool is_pending() { return event_pending(); }
+			bool is_pending() const { return event_pending(); }
 
 			int flush()
 			{

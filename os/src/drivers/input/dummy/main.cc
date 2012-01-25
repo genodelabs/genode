@@ -43,7 +43,7 @@ namespace Input {
 
 			Dataspace_capability dataspace() { return ev_ds_cap; }
 
-			bool is_pending() { return 0; }
+			bool is_pending() const { return 0; }
 
 			int flush()
 			{

@@ -49,7 +49,7 @@ Genode::Dataspace_capability Session_component::dataspace()
 }
 
 
-bool Session_component::is_pending(){ return _isc->is_pending(); }
+bool Session_component::is_pending() const { return _isc->is_pending(); }
 
 
 int Session_component::flush()

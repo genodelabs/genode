@@ -98,7 +98,7 @@ namespace Input {
 			/**
 			 * Return true if input is pending
 			 */
-			bool input_pending() { return connected() && _client.is_pending(); }
+			bool input_pending() const { return connected() && _client.is_pending(); }
 
 			/**
 			 * Return event buffer
@@ -215,7 +215,7 @@ namespace Input {
 
 			Genode::Dataspace_capability dataspace() { return _ev_ds.cap(); }
 
-			bool is_pending()
+			bool is_pending() const
 			{
 				return _source_registry.any_source_has_pending_input();
 			}

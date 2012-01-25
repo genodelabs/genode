@@ -27,7 +27,7 @@ namespace Input {
 		Genode::Dataspace_capability dataspace() {
 			return call<Rpc_dataspace>(); }
 
-		bool is_pending() {
+		bool is_pending() const {
 			return call<Rpc_is_pending>(); }
 
 		int flush() {

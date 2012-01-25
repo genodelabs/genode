@@ -152,7 +152,7 @@ namespace Framebuffer {
 
 			void release() { }
 
-			Mode mode()
+			Mode mode() const
 			{
 				return Mode(_scr_width, _scr_height,
 				            _scr_mode == 16 ? Mode::RGB565 : Mode::INVALID);

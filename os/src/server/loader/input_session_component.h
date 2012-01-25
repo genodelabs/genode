@@ -51,7 +51,7 @@ namespace Input {
 			 *****************************/
 
 			Genode::Dataspace_capability dataspace();
-			bool is_pending();
+			bool is_pending() const;
 			int flush();
 	};
 }

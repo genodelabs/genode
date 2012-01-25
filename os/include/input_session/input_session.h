@@ -36,7 +36,7 @@ namespace Input {
 		 *
 		 * \return  true if new events are available
 		 */
-		virtual bool is_pending() = 0;
+		virtual bool is_pending() const = 0;
 
 		/**
 		 * Flush pending events to event buffer

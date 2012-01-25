@@ -86,7 +86,7 @@ namespace Framebuffer {
 		/**
 		 * Request current display-mode properties
 		 */
-		virtual Mode mode() = 0;
+		virtual Mode mode() const = 0;
 
 		/**
 		 * Register signal handler to be notified on mode changes

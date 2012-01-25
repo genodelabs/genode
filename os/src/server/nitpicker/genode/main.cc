@@ -291,7 +291,7 @@ namespace Input {
 
 			Genode::Dataspace_capability dataspace() { return _ev_ram_ds.cap(); }
 
-			bool is_pending() { return _num_ev > 0; }
+			bool is_pending() const { return _num_ev > 0; }
 
 			int flush()
 			{
@@ -343,7 +343,7 @@ namespace Framebuffer {
 
 			void release() { }
 
-			Mode mode()
+			Mode mode() const
 			{
 				return Mode(_buffer->size().w(), _buffer->size().h(),
 				            _buffer->format());

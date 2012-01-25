@@ -167,7 +167,7 @@ namespace Framebuffer
 
 			void release() { }
 
-			Mode mode() { return Mode(SCR_WIDTH, SCR_HEIGHT, Mode::RGB565); }
+			Mode mode() const { return Mode(SCR_WIDTH, SCR_HEIGHT, Mode::RGB565); }
 
 			void mode_sigh(Genode::Signal_context_capability) { }
 

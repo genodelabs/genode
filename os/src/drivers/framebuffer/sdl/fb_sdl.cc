@@ -63,7 +63,7 @@ namespace Framebuffer {
 
 			void release() { }
 
-			Mode mode() { return _mode; }
+			Mode mode() const { return _mode; }
 
 			void mode_sigh(Genode::Signal_context_capability) { }
 

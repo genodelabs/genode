@@ -47,7 +47,7 @@ namespace Input {
 
 			Dataspace_capability dataspace() { return ev_ds_cap; }
 
-			bool is_pending() { return Input_drv::event_pending(); }
+			bool is_pending() const { return Input_drv::event_pending(); }
 
 			int flush()
 			{

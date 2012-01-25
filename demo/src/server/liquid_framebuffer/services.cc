@@ -201,7 +201,7 @@ namespace Framebuffer
 
 			void release() { }
 
-			Mode mode()
+			Mode mode() const
 			{
 				return Mode(_window_content->fb_w(), _window_content->fb_h(),
 				            Mode::RGB565);

@@ -47,7 +47,7 @@ namespace Framebuffer {
 
 			void release() { }
 
-			Mode mode()
+			Mode mode() const
 			{
 				if (scr_mode != 16)
 					return Mode(); /* invalid mode */
