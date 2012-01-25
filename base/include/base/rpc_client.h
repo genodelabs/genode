@@ -45,7 +45,7 @@ namespace Genode {
 	template <typename RPC_INTERFACE>
 	template <typename ATL>
 	void Capability<RPC_INTERFACE>::
-	_marshal_args(Ipc_client &ipc_client, ATL &args)
+	_marshal_args(Ipc_client &ipc_client, ATL &args) const
 	{
 		if (Trait::Rpc_direction<typename ATL::Head>::Type::IN)
 			ipc_client << args.get();
@@ -58,7 +58,7 @@ namespace Genode {
 	template <typename T>
 	void Capability<RPC_INTERFACE>::
 	_unmarshal_result(Ipc_client &ipc_client, T &arg,
-	                  Meta::Overload_selector<Rpc_arg_out>)
+	                  Meta::Overload_selector<Rpc_arg_out>) const
 	{
 		ipc_client >> arg;
 	}
@@ -68,7 +68,7 @@ namespace Genode {
 	template <typename T>
 	void Capability<RPC_INTERFACE>::
 	_unmarshal_result(Ipc_client &ipc_client, T &arg,
-	                  Meta::Overload_selector<Rpc_arg_inout>)
+	                  Meta::Overload_selector<Rpc_arg_inout>) const
 	{
 		_unmarshal_result(ipc_client, arg, Meta::Overload_selector<Rpc_arg_out>());
 	}
@@ -77,7 +77,7 @@ namespace Genode {
 	template <typename RPC_INTERFACE>
 	template <typename ATL>
 	void Capability<RPC_INTERFACE>::
-	_unmarshal_results(Ipc_client &ipc_client, ATL &args)
+	_unmarshal_results(Ipc_client &ipc_client, ATL &args) const
 	{
 		/*
 		 * Unmarshal current argument. The overload of
@@ -95,7 +95,7 @@ namespace Genode {
 	template <typename RPC_INTERFACE>
 	template <typename IF>
 	void Capability<RPC_INTERFACE>::
-	_call(typename IF::Client_args &args, typename IF::Ret_type &ret)
+	_call(typename IF::Client_args &args, typename IF::Ret_type &ret) const
 	{
 		/**
 		 * Message buffer for RPC message

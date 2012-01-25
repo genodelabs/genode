@@ -458,9 +458,6 @@ namespace Genode {
 		 * \param args      function arguments
 		 * \param func      pointer-to-member function to invoke
 		 */
-		template <typename RET_TYPE, typename SERVER, typename ARGS>
-		static inline void call_member(RET_TYPE &ret, SERVER &server, ARGS &args,
-		                               RET_TYPE (SERVER::*func)());
 
 		template <typename RET_TYPE, typename SERVER, typename ARGS>
 		static inline void call_member(RET_TYPE &ret, SERVER &server, ARGS &args,
@@ -468,8 +465,18 @@ namespace Genode {
 		{ ret = (server.*func)(); }
 
 		template <typename RET_TYPE, typename SERVER, typename ARGS>
+		static inline void call_member(RET_TYPE &ret, SERVER &server, ARGS &args,
+		                               RET_TYPE (SERVER::*func)() const)
+		{ ret = (server.*func)(); }
+
+		template <typename RET_TYPE, typename SERVER, typename ARGS>
 		static inline void call_member(Meta::Empty &ret, SERVER &server, ARGS &args,
 		                               void (SERVER::*func)())
+		{ (server.*func)(); }
+
+		template <typename RET_TYPE, typename SERVER, typename ARGS>
+		static inline void call_member(Meta::Empty &ret, SERVER &server, ARGS &args,
+		                               void (SERVER::*func)() const)
 		{ (server.*func)(); }
 
 		/* 1 */

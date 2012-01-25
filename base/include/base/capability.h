@@ -48,32 +48,32 @@ namespace Genode {
 			 * Insert RPC arguments into the message buffer
 			 */
 			template <typename ATL>
-			void _marshal_args(Ipc_client &ipc_client, ATL &args);
+			void _marshal_args(Ipc_client &ipc_client, ATL &args) const;
 
-			void _marshal_args(Ipc_client &, Meta::Empty &) { }
+			void _marshal_args(Ipc_client &, Meta::Empty &) const { }
 
 			/**
 			 * Unmarshal single RPC argument from the message buffer
 			 */
 			template <typename T>
 			void _unmarshal_result(Ipc_client &ipc_client, T &arg,
-			                       Meta::Overload_selector<Rpc_arg_out>);
+			                       Meta::Overload_selector<Rpc_arg_out>) const;
 
 			template <typename T>
 			void _unmarshal_result(Ipc_client &ipc_client, T &arg,
-			                       Meta::Overload_selector<Rpc_arg_inout>);
+			                       Meta::Overload_selector<Rpc_arg_inout>) const;
 
 			template <typename T>
 			void _unmarshal_result(Ipc_client &, T &arg,
-			                       Meta::Overload_selector<Rpc_arg_in>) { }
+			                       Meta::Overload_selector<Rpc_arg_in>) const { }
 
 			/**
 			 * Read RPC results from the message buffer
 			 */
 			template <typename ATL>
-			void _unmarshal_results(Ipc_client &ipc_client, ATL &args);
+			void _unmarshal_results(Ipc_client &ipc_client, ATL &args) const;
 
-			void _unmarshal_results(Ipc_client &, Meta::Empty &) { }
+			void _unmarshal_results(Ipc_client &, Meta::Empty &) const { }
 
 			/**
 			 * Check RPC return code for the occurrence of exceptions
@@ -86,7 +86,7 @@ namespace Genode {
 			 */
 			template <typename EXC_TL>
 			void _check_for_exceptions(Rpc_exception_code const exc_code,
-			                           Meta::Overload_selector<EXC_TL>)
+			                           Meta::Overload_selector<EXC_TL>) const
 			{
 				enum { EXCEPTION_CODE = RPC_EXCEPTION_BASE - Meta::Length<EXC_TL>::Value };
 
@@ -97,13 +97,15 @@ namespace Genode {
 			}
 
 			void _check_for_exceptions(Rpc_exception_code const,
-			                           Meta::Overload_selector<Meta::Empty>) { }
+			                           Meta::Overload_selector<Meta::Empty>) const
+			{ }
 
 			/**
 			 * Perform RPC call, arguments passed a as nested 'Ref_tuple' object
 			 */
 			template <typename IF>
-			void _call(typename IF::Client_args &args, typename IF::Ret_type &ret);
+			void _call(typename IF::Client_args &args,
+			           typename IF::Ret_type    &ret) const;
 
 			/**
 			 * Shortcut for querying argument types used in 'call' functions
@@ -116,7 +118,7 @@ namespace Genode {
 
 			template <typename FROM_RPC_INTERFACE>
 			Untyped_capability
-			_check_compatibility(Capability<FROM_RPC_INTERFACE> const &cap)
+			_check_compatibility(Capability<FROM_RPC_INTERFACE> const &cap) const
 			{
 				FROM_RPC_INTERFACE *from = 0;
 				RPC_INTERFACE *to = from;
@@ -158,7 +160,7 @@ namespace Genode {
 
 			template <typename IF>
 			typename Trait::Call_return<typename IF::Ret_type>::Type
-			call()
+			call() const
 			{
 				Meta::Empty e;
 				typename Trait::Call_return<typename IF::Ret_type>::Type ret;
@@ -168,7 +170,7 @@ namespace Genode {
 
 			template <typename IF>
 			typename Trait::Call_return<typename IF::Ret_type>::Type
-			call(typename Arg<IF, 0>::Type v1)
+			call(typename Arg<IF, 0>::Type v1) const
 			{
 				Meta::Empty e;
 				typename IF::Client_args args(v1, e);
@@ -179,7 +181,7 @@ namespace Genode {
 
 			template <typename IF>
 			typename Trait::Call_return<typename IF::Ret_type>::Type
-			call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2)
+			call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2) const
 			{
 				Meta::Empty e;
 				typename IF::Client_args args(v1, v2, e);
@@ -191,7 +193,7 @@ namespace Genode {
 			template <typename IF>
 			typename Trait::Call_return<typename IF::Ret_type>::Type
 			call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
-			     typename Arg<IF, 2>::Type v3)
+			     typename Arg<IF, 2>::Type v3) const
 			{
 				Meta::Empty e;
 				typename IF::Client_args args(v1, v2, v3, e);
@@ -203,7 +205,7 @@ namespace Genode {
 			template <typename IF>
 			typename Trait::Call_return<typename IF::Ret_type>::Type
 			call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
-			     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4)
+			     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4) const
 			{
 				Meta::Empty e;
 				typename IF::Client_args args(v1, v2, v3, v4, e);
@@ -216,7 +218,7 @@ namespace Genode {
 			typename Trait::Call_return<typename IF::Ret_type>::Type
 			call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 			     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4,
-			     typename Arg<IF, 4>::Type v5)
+			     typename Arg<IF, 4>::Type v5) const
 			{
 				Meta::Empty e;
 				typename IF::Client_args args(v1, v2, v3, v4, v5, e);
@@ -229,7 +231,7 @@ namespace Genode {
 			typename Trait::Call_return<typename IF::Ret_type>::Type
 			call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 			     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4,
-			     typename Arg<IF, 4>::Type v5, typename Arg<IF, 5>::Type v6)
+			     typename Arg<IF, 4>::Type v5, typename Arg<IF, 5>::Type v6) const
 			{
 				Meta::Empty e;
 				typename IF::Client_args args(v1, v2, v3, v4, v5, v6, e);
@@ -243,7 +245,7 @@ namespace Genode {
 			call(typename Arg<IF, 0>::Type v1, typename Arg<IF, 1>::Type v2,
 			     typename Arg<IF, 2>::Type v3, typename Arg<IF, 3>::Type v4,
 			     typename Arg<IF, 4>::Type v5, typename Arg<IF, 5>::Type v6,
-			     typename Arg<IF, 6>::Type v7)
+			     typename Arg<IF, 6>::Type v7) const
 			{
 				Meta::Empty e;
 				typename IF::Client_args args(v1, v2, v3, v4, v5, v6, v7, e);
