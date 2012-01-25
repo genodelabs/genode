@@ -2,6 +2,8 @@
 # Gallium driver for i915, loaded as needed at runtime (via 'dlopen')
 #
 
+REQUIRES += i915
+
 include $(REP_DIR)/lib/mk/gallium.inc
 
 # i915 driver
