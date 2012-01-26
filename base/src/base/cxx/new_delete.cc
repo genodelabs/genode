@@ -15,9 +15,6 @@
 #include <base/allocator.h>
 
 
-/**
- * New operator for allocating from a specified allocator
- */
 void *operator new(Genode::size_t size, Genode::Allocator *allocator)
 {
 	if (!allocator)
@@ -33,3 +30,15 @@ void *operator new [] (Genode::size_t size, Genode::Allocator *allocator)
 
 	return allocator->alloc(size);
 }
+
+
+void operator delete (void *ptr, Genode::Allocator *alloc)
+{
+	/*
+	 * Warn on the attempt to use an allocator that relies on the size
+	 * argument.
+	 */
+	if (alloc->need_size_for_free())
+		PERR("C++ runtime: delete called with unsafe allocator, leaking memory");
+}
+

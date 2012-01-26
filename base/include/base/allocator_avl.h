@@ -242,6 +242,8 @@ namespace Genode {
 			 * slab allocator.
 			 */
 			size_t overhead(size_t size) { return sizeof(Block) + sizeof(umword_t); }
+
+			bool need_size_for_free() const { return false; }
 	};
 
 

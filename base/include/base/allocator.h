@@ -75,6 +75,21 @@ namespace Genode {
 			 */
 			virtual size_t overhead(size_t size) = 0;
 
+			/**
+			 * Return true if the size argument of 'free' is required
+			 *
+			 * The generic 'Allocator' interface requires the caller of 'free'
+			 * to supply a valid size argument but not all implementations make
+			 * use of this argument. If this function returns false, it is safe
+			 * to call 'free' with an invalid size.
+			 *
+			 * Allocators that rely on the size argument must not be used for
+			 * constructing objects whose constructors may throw exceptions.
+			 * See the documentation of 'operator delete(void *, Allocator *)'
+			 * below for more details.
+			 */
+			virtual bool need_size_for_free() const { return true; }
+
 
 			/***************************
 			 ** Convenience functions **
@@ -146,8 +161,9 @@ namespace Genode {
 			/**
 			 * Free a previously allocated block
 			 *
-			 * NOTE: We have to declare the 'Allocator::free' function here
-			 * as well to make gcc happy.
+			 * NOTE: We have to declare the 'Allocator::free(void *)' function
+			 * here as well to make the compiler happy. Otherwise the C++
+			 * overload resolution would not find 'Allocator::free(void *)'.
 			 */
 			virtual void free(void *addr) = 0;
 			virtual void free(void *addr, size_t size) = 0;
@@ -201,5 +217,33 @@ namespace Genode {
 
 void *operator new    (Genode::size_t size, Genode::Allocator *allocator);
 void *operator new [] (Genode::size_t size, Genode::Allocator *allocator);
+
+
+/**
+ * Delete operator invoked when an exception occurs during the construction of
+ * a dynamically allocated object
+ *
+ * When an exception occurs during the construction of a dynamically allocated
+ * object, the C++ standard devises the automatic invocation of the global
+ * operator delete. When passing an allocator as argument to the new operator
+ * (the typical case for Genode), the compiler magically calls the operator
+ * delete taking the allocator type as second argument. This is how we end up
+ * here.
+ *
+ * There is one problem though: We get the pointer of the to-be-deleted object
+ * but not its size. But Genode's 'Allocator' interface requires the object
+ * size to be passed as argument to 'Allocator::free()'.
+ *
+ * Even though in the general case, we cannot assume all 'Allocator'
+ * implementations to remember the size of each allocated object, the commonly
+ * used 'Heap', 'Sliced_heap', 'Allocator_avl', and 'Slab' do so and ignore the
+ * size argument. When using either of those allocators, we are fine. Otherwise
+ * we print a warning and pass the zero size argument anyway.
+ *
+ * :Warning: Never use an allocator that depends on the size argument of the
+ *   'free()' function for the allocation of objects that may throw exceptions
+ *   at their construction time!
+ */
+void operator delete (void *, Genode::Allocator *);
 
 #endif /* _INCLUDE__BASE__ALLOCATOR_H_ */
