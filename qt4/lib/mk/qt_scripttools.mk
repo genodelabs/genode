@@ -2,6 +2,8 @@ include $(REP_DIR)/lib/import/import-qt_scripttools.mk
 
 SHARED_LIB = yes
 
+REQUIRES += deprecated
+
 # extracted from src/script/Makefile
 QT_DEFINES += -DQT_BUILD_SCRIPTTOOLS_LIB -DQT_NO_USING_NAMESPACE -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_NO_DEBUG -DQT_SCRIPT_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 
