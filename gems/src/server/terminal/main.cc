@@ -774,23 +774,53 @@ namespace Terminal {
 		virtual void flush() = 0;
 	};
 
+
+	struct Flush_callback_registry
+	{
+		Genode::List<Flush_callback> _list;
+		Genode::Lock _lock;
+
+		void add(Flush_callback *flush_callback)
+		{
+			Genode::Lock::Guard guard(_lock);
+			_list.insert(flush_callback);
+		}
+
+		void remove(Flush_callback *flush_callback)
+		{
+			Genode::Lock::Guard guard(_lock);
+			_list.remove(flush_callback);
+		}
+
+		void flush()
+		{
+			Genode::Lock::Guard guard(_lock);
+			Flush_callback *curr = _list.first();
+			for (; curr; curr = curr->next())
+				curr->flush();
+		}
+	};
+
+
 	class Session_component : public Genode::Rpc_object<Session, Session_component>,
 	                          public Flush_callback
 	{
 		private:
 
-			Read_buffer          *_read_buffer;
-			Framebuffer::Session *_framebuffer;
+			Read_buffer                   *_read_buffer;
+			Framebuffer::Session          *_framebuffer;
+
+			Flush_callback_registry       &_flush_callback_registry;
 
 			Genode::Attached_ram_dataspace _io_buffer;
 
-			Framebuffer::Mode            _fb_mode;
-			Genode::Dataspace_capability _fb_ds_cap;
-			unsigned                     _char_width;
-			unsigned                     _char_height;
-			unsigned                     _columns;
-			unsigned                     _lines;
-			void                        *_fb_addr;
+			Framebuffer::Mode              _fb_mode;
+			Genode::Dataspace_capability   _fb_ds_cap;
+			unsigned                       _char_width;
+			unsigned                       _char_height;
+			unsigned                       _columns;
+			unsigned                       _lines;
+			void                          *_fb_addr;
 
 			/**
 			 * Protect '_char_cell_array'
@@ -821,26 +851,29 @@ namespace Terminal {
 			/**
 			 * Constructor
 			 */
-			Session_component(Read_buffer          *read_buffer,
-			                  Framebuffer::Session *framebuffer,
-			                  Genode::size_t        io_buffer_size)
-			: _read_buffer(read_buffer), _framebuffer(framebuffer),
-			  _io_buffer(Genode::env()->ram_session(), io_buffer_size),
-			  _fb_mode(_framebuffer->mode()),
-			  _fb_ds_cap(_init_fb()),
+			Session_component(Read_buffer             *read_buffer,
+			                  Framebuffer::Session    *framebuffer,
+			                  Genode::size_t           io_buffer_size,
+			                  Flush_callback_registry &flush_callback_registry)
+			:
+				_read_buffer(read_buffer), _framebuffer(framebuffer),
+				_flush_callback_registry(flush_callback_registry),
+				_io_buffer(Genode::env()->ram_session(), io_buffer_size),
+				_fb_mode(_framebuffer->mode()),
+				_fb_ds_cap(_init_fb()),
 
-			  /* take size of space character as character cell size */
-			  _char_width(mono_font.str_w("m")),
-			  _char_height(mono_font.str_h("m")),
+				/* take size of space character as character cell size */
+				_char_width(mono_font.str_w("m")),
+				_char_height(mono_font.str_h("m")),
 
-			  /* compute number of characters fitting on the framebuffer */
-			  _columns(_fb_mode.width()/_char_width),
-			  _lines(_fb_mode.height()/_char_height),
+				/* compute number of characters fitting on the framebuffer */
+				_columns(_fb_mode.width()/_char_width),
+				_lines(_fb_mode.height()/_char_height),
 
-			  _fb_addr(Genode::env()->rm_session()->attach(_fb_ds_cap)),
-			  _char_cell_array(_columns, _lines, Genode::env()->heap()),
-			  _char_cell_array_character_screen(_char_cell_array),
-			  _decoder(_char_cell_array_character_screen)
+				_fb_addr(Genode::env()->rm_session()->attach(_fb_ds_cap)),
+				_char_cell_array(_columns, _lines, Genode::env()->heap()),
+				_char_cell_array_character_screen(_char_cell_array),
+				_decoder(_char_cell_array_character_screen)
 			{
 				using namespace Genode;
 
@@ -850,6 +883,13 @@ namespace Terminal {
 				printf("  terminal size is %dx%d characters\n", _columns, _lines);
 
 				framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+
+				_flush_callback_registry.add(this);
+			}
+
+			~Session_component()
+			{
+				_flush_callback_registry.remove(this);
 			}
 
 			void flush()
@@ -942,27 +982,6 @@ namespace Terminal {
 	};
 
 
-	struct Flush_callback_registry
-	{
-		Genode::List<Flush_callback> _list;
-		Genode::Lock _lock;
-
-		void add(Flush_callback *flush_callback)
-		{
-			Genode::Lock::Guard guard(_lock);
-			_list.insert(flush_callback);
-		}
-
-		void flush()
-		{
-			Genode::Lock::Guard guard(_lock);
-			Flush_callback *curr = _list.first();
-			for (; curr; curr = curr->next())
-				curr->flush();
-		}
-	};
-
-
 	class Root_component : public Genode::Root_component<Session_component>
 	{
 		private:
@@ -985,8 +1004,8 @@ namespace Terminal {
 				Session_component *session =
 					new (md_alloc()) Session_component(_read_buffer,
 					                                   _framebuffer,
-					                                   io_buffer_size);
-				_flush_callback_registry.add(session);
+					                                   io_buffer_size,
+					                                   _flush_callback_registry);
 				return session;
 			}
 
