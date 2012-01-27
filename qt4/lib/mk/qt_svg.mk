@@ -54,7 +54,8 @@ INC_DIR += $(REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
            $(REP_DIR)/contrib/$(QT4)/include/QtSvg \
            $(REP_DIR)/include/qt4/QtSvg/private \
            $(REP_DIR)/contrib/$(QT4)/include/QtSvg/private \
-           $(REP_DIR)/src/lib/qt4/src/corelib/global
+           $(REP_DIR)/src/lib/qt4/src/corelib/global \
+           $(REP_DIR)/contrib/$(QT4)/src/3rdparty/harfbuzz/src
 
 LIBS += qt_core qt_gui zlib libc
 
