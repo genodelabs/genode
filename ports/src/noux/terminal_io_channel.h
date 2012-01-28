@@ -64,9 +64,12 @@ namespace Noux {
 				return false;
 			}
 
-			Genode::size_t count = terminal.read(sysio->read_out.chunk,
-			                                     sizeof(sysio->read_out.chunk));
-			sysio->read_out.count = count;
+			Genode::size_t const max_count =
+				Genode::min(sysio->read_in.count,
+				            sizeof(sysio->read_out.chunk));
+
+			sysio->read_out.count =
+				terminal.read(sysio->read_out.chunk, max_count);
 			return true;
 		}
 
