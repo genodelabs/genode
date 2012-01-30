@@ -55,6 +55,11 @@ This directory contains patches for the OKL4 kernel version 2.1.1-patch.9.
   GDT and TSS. As a result, VirtualBox stops with a 'GURU_MEDITATION'
   error.
 
+:'invalid_opcode_exception_ipc.patch':
+
+  When an invalid opcode gets executed, OKL4 switches to the kernel debugger
+  console instead of sending an exception IPC to the userland. This patch
+  fixes the problem by removing the code that invokes the debugger console.
 
 Applying the patches
 --------------------

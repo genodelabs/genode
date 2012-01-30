@@ -1,0 +1,23 @@
+- send 'invalid opcode' exception IPC to userland instead of switching to the kernel debugger console
+
+diff --git a/arch/ia32/pistachio/src/exception.cc b/arch/ia32/pistachio/src/exception.cc
+--- a/arch/ia32/pistachio/src/exception.cc
++++ b/arch/ia32/pistachio/src/exception.cc
+@@ -177,17 +177,6 @@
+             printf ("invalid opcode by %t at IP %p\n", current, addr),
+             "ia32_ud at %x (current=%x)", (u32_t)addr, (u32_t)current);
+ 
+-    /* instruction emulation, only in user area! */
+-    if (space->is_user_area(addr)) {
+-        switch(space->get_from_user(addr)) {
+-        case 0xf0: /* lock prefix */
+-            /* fall trough */
+-        default:
+-            printf("invalid opcode  at IP %p\n", addr);
+-            enter_kdebug("invalid opcode");
+-        }
+-    }
+-
+     continuation_t cont = ASM_CONTINUATION;
+     send_exception_ipc(frame, IA32_EXC_INVALIDOPCODE, cont);
+ }
