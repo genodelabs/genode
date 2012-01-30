@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 	static Rpc_entrypoint usb_ep(&cap, STACK_SIZE, "usb_slave");
 	static Usb_policy     usb_policy(usb_ep, input_source_registry,
 	                                 block_driver_registry, usb_config_ds.cap());
-	static Genode::Slave  usb_slave(usb_ep, usb_policy, 1024*1024);
+	static Genode::Slave  usb_slave(usb_ep, usb_policy, 3*1024*1024);
 
 	/* create ATAPI driver */
 	static Rpc_entrypoint atapi_ep(&cap, STACK_SIZE, "atapi_slave");
