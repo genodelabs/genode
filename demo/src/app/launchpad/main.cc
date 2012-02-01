@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 	long initial_h = read_int_attr_from_config("height", 400);
 
 	/* init platform */
-	static Platform pf(initial_x, initial_y, initial_w, initial_h);
+	static Platform pf(initial_x, initial_y, initial_w, initial_h, 400);
 
 	/* init canvas */
 	static Chunky_canvas<Pixel_rgb565> canvas;
