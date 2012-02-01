@@ -334,6 +334,13 @@ void adjust_pci_device ( struct pci_device *pci ) {
  ** Device management **
  ***********************/
 
+struct settings_operations generic_settings_operations = {
+        .store = 0,
+        .fetch = 0,
+        .clear = 0,
+};
+
+
 int register_settings(struct settings *settings, struct settings *parent,
                       const char *name)
 {
