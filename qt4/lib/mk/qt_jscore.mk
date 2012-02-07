@@ -15,7 +15,7 @@ CC_CXX_OPT += -D_GLIBCXX_USE_C99_MATH
 CC_WARN =
 
 # extracted from src/3rdparty/webkit/JavaScriptCore/Makefile
-SRC_CC = \
+QT_SOURCES = \
 		pcre_compile.cpp \
 		pcre_exec.cpp \
 		pcre_tables.cpp \
@@ -182,15 +182,11 @@ SRC_CC = \
 # extracted from "compiler_moc_header_make_all" target
 COMPILER_MOC_HEADER_MAKE_ALL_FILES =
 
-$(subst moc_,,$(COMPILER_MOC_HEADER_MAKE_ALL_FILES:.cpp=.o)) : $(COMPILER_MOC_HEADER_MAKE_ALL_FILES)
-
 # source files generated from existing source files ("%.moc: %.cpp" rule in spec-qt4.mk)
 # extracted from "compiler_moc_source_make_all" rule
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
 									MainThreadQt.moc \
 									ThreadingQt.moc
-
-$(COMPILER_MOC_SOURCE_MAKE_ALL_FILES:.moc=.o) : $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES)
 
 INC_DIR += $(REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
            $(REP_DIR)/include/qt4 \
@@ -282,3 +278,5 @@ vpath % $(REP_DIR)/contrib/$(QT4)/src/3rdparty/webkit/JavaScriptCore/wtf/unicode
 vpath % $(REP_DIR)/contrib/$(QT4)/src/3rdparty/webkit/JavaScriptCore/wtf/unicode/icu
 vpath % $(REP_DIR)/contrib/$(QT4)/src/3rdparty/webkit/JavaScriptCore/yarr
 vpath % $(REP_DIR)/contrib/$(QT4)/src/3rdparty/webkit/JavaScriptCore/generated
+
+include $(REP_DIR)/lib/mk/qt.mk

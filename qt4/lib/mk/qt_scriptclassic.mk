@@ -9,7 +9,7 @@ QT_DEFINES += -DQT_BUILD_SCRIPT_LIB -DQT_NO_USING_NAMESPACE -DQLALR_NO_QSCRIPTGR
 CC_WARN =
 
 # extracted from src/script/Makefile
-SRC_CC = \
+QT_SOURCES = \
          qscriptasm.cpp \
          qscriptast.cpp \
          qscriptastvisitor.cpp \
@@ -63,14 +63,10 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
                                      moc_qscriptengine.cpp \
                                      moc_qscriptextensionplugin.cpp
 
-$(subst moc_,,$(COMPILER_MOC_HEADER_MAKE_ALL_FILES:.cpp=.o)) : $(COMPILER_MOC_HEADER_MAKE_ALL_FILES)
-
 # source files generated from existing source files ("%.moc: %.cpp" rule in spec-qt4.mk)
 # extracted from "compiler_moc_source_make_all" rule
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
                                      qscriptextqobject.moc
-
-$(COMPILER_MOC_SOURCE_MAKE_ALL_FILES:.moc=.o) : $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES)
 
 INC_DIR += $(REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
            $(REP_DIR)/include/qt4 \
@@ -92,3 +88,5 @@ vpath % $(REP_DIR)/include/qt4/QtScript/private
 vpath % $(REP_DIR)/src/lib/qt4/src/script
 
 vpath % $(REP_DIR)/contrib/qtscriptclassic-1.0_1-opensource/src
+
+include $(REP_DIR)/lib/mk/qt.mk

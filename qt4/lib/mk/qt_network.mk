@@ -9,7 +9,7 @@ QT_DEFINES += -DQT_BUILD_NETWORK_LIB -DQT_NO_USING_NAMESPACE -DQT_NO_CAST_TO_ASC
 CC_WARN =
 
 # extracted from src/script/Makefile
-SRC_CC = \
+QT_SOURCES = \
 		qftp.cpp \
 		qhttp.cpp \
 		qhttpnetworkheader.cpp \
@@ -119,8 +119,6 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
 									moc_qlocalserver.cpp \
 									moc_qlocalsocket.cpp
 
-$(subst moc_,,$(COMPILER_MOC_HEADER_MAKE_ALL_FILES:.cpp=.o)) : $(COMPILER_MOC_HEADER_MAKE_ALL_FILES)
-
 INC_DIR += $(REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
            $(REP_DIR)/include/qt4 \
            $(REP_DIR)/contrib/$(QT4)/include \
@@ -148,3 +146,5 @@ vpath % $(REP_DIR)/contrib/$(QT4)/src/network/access
 vpath % $(REP_DIR)/contrib/$(QT4)/src/network/bearer
 vpath % $(REP_DIR)/contrib/$(QT4)/src/network/kernel
 vpath % $(REP_DIR)/contrib/$(QT4)/src/network/socket
+
+include $(REP_DIR)/lib/mk/qt.mk

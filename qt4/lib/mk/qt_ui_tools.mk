@@ -8,7 +8,7 @@ QT_DEFINES += -DQFORMINTERNAL_NAMESPACE -DQT_DESIGNER_STATIC -DQT_FORMBUILDER_NO
 CC_OPT += -Wno-unused-but-set-variable
 
 # extracted from src/script/Makefile
-SRC_CC = \
+QT_SOURCES = \
          abstractformbuilder.cpp \
          formbuilder.cpp \
          ui4.cpp \
@@ -29,14 +29,10 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
                                      moc_properties_p.cpp \
                                      moc_quiloader.cpp
 
-$(subst moc_,,$(COMPILER_MOC_HEADER_MAKE_ALL_FILES:.cpp=.o)) : $(COMPILER_MOC_HEADER_MAKE_ALL_FILES)
-
 # source files generated from existing source files ("%.moc: %.cpp" rule in spec-qt4.mk)
 # extracted from "compiler_moc_source_make_all" rule
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
                                      quiloader.moc
-
-$(COMPILER_MOC_SOURCE_MAKE_ALL_FILES:.moc=.o) : $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES)
 
 INC_DIR += $(REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
            $(REP_DIR)/include/qt4 \
@@ -64,3 +60,5 @@ vpath % $(REP_DIR)/src/lib/qt4/tools/designer/src/uitools
 
 vpath % $(REP_DIR)/contrib/$(QT4)/tools/designer/src/lib/uilib
 vpath % $(REP_DIR)/contrib/$(QT4)/tools/designer/src/uitools
+
+include $(REP_DIR)/lib/mk/qt.mk

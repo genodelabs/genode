@@ -6,7 +6,7 @@ SHARED_LIB = yes
 QT_DEFINES += -DQT_BUILD_XML_LIB -DQT_NO_USING_NAMESPACE -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_NO_DEBUG -DQT_CORE_LIB
 
 # extracted from src/xml/Makefile
-SRC_CC = \
+QT_SOURCES = \
          qdom.cpp \
          qxml.cpp
 
@@ -17,13 +17,9 @@ SRC_CC = \
 # extracted from "compiler_moc_header_make_all" target
 COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
 
-$(subst moc_,,$(COMPILER_MOC_HEADER_MAKE_ALL_FILES:.cpp=.o)) : $(COMPILER_MOC_HEADER_MAKE_ALL_FILES)
-
 # source files generated from existing source files ("%.moc: %.cpp" rule in spec-qt4.mk)
 # extracted from "compiler_moc_source_make_all" rule
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
-
-$(COMPILER_MOC_SOURCE_MAKE_ALL_FILES:.moc=.o) : $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES)
 
 INC_DIR += $(REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
            $(REP_DIR)/include/qt4 \
@@ -48,3 +44,5 @@ vpath % $(REP_DIR)/src/lib/qt4/src/xml/sax
 
 vpath % $(REP_DIR)/contrib/$(QT4)/src/xml/dom
 vpath % $(REP_DIR)/contrib/$(QT4)/src/xml/sax
+
+include $(REP_DIR)/lib/mk/qt.mk

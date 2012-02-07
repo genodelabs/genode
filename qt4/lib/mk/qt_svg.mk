@@ -7,7 +7,7 @@ QT_DEFINES += -DQT_BUILD_SVG_LIB -DQT_NO_USING_NAMESPACE -DQT_NO_CAST_TO_ASCII -
 
 # extracted from src/svg/Makefile
 
-SRC_CC = \
+QT_SOURCES = \
          qsvggraphics.cpp \
          qsvghandler.cpp \
          qsvgnode.cpp \
@@ -31,13 +31,9 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
                                      moc_qsvgwidget.cpp \
                                      moc_qgraphicssvgitem.cpp
 
-$(subst moc_,,$(COMPILER_MOC_HEADER_MAKE_ALL_FILES:.cpp=.o)) : $(COMPILER_MOC_HEADER_MAKE_ALL_FILES)
-
 # source files generated from source files ("%.moc: %.cpp" rule in spec-qt4.mk)
 # extracted from "compiler_moc_source_make_all" target
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
-
-$(COMPILER_MOC_SOURCE_MAKE_ALL_FILES:.moc=.o) : $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES)
 
 INC_DIR += $(REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
            $(REP_DIR)/include/qt4 \
@@ -65,3 +61,5 @@ vpath % $(REP_DIR)/include/qt4/QtSvg/private
 vpath % $(REP_DIR)/src/lib/qt4/src/svg
 
 vpath % $(REP_DIR)/contrib/$(QT4)/src/svg
+
+include $(REP_DIR)/lib/mk/qt.mk
