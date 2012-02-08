@@ -75,3 +75,9 @@ L(pseudo_end):
 
     .cfi_endproc
 
+/*
+ * Allow stacks to be mapped executable (needed because Genode does not
+ * offer an API to handle non-execute mappings yet).
+ */
+.section .note.GNU-stack, "", @progbits
+

@@ -27,3 +27,10 @@ lx_syscall:
 	syscall			    /* Do the system call.  */
 L(pseudo_end):
 	ret            /* Return to caller.  */
+
+/*
+ * Allow stacks to be mapped executable (needed because Genode does not
+ * offer an API to handle non-execute mappings yet).
+ */
+.section .note.GNU-stack, "", @progbits
+

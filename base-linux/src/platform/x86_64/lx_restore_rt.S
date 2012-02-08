@@ -14,3 +14,10 @@
 lx_restore_rt:
 	movq $SYS_rt_sigreturn, %rax
 	syscall
+
+/*
+ * Allow stacks to be mapped executable (needed because Genode does not
+ * offer an API to handle non-execute mappings yet).
+ */
+.section .note.GNU-stack, "", @progbits
+
