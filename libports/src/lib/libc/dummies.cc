@@ -13,13 +13,18 @@
 
 #include <base/printf.h>
 #include <stddef.h>
+#include <errno.h>
 
 extern "C" {
 
 	typedef long DUMMY;
 
-#define DUMMY(retval, name) __attribute__((weak)) \
-	DUMMY name(void) { PDBG( #name " called, not implemented"); return retval; }
+#define DUMMY(retval, name) __attribute__((weak))		\
+DUMMY name(void) {						\
+	PDBG( #name " called, not implemented");		\
+	errno = ENOSYS;						\
+	return retval;						\
+}
 
 DUMMY(-1, access)
 DUMMY(-1, chmod)
