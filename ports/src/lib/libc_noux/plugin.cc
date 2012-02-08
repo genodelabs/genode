@@ -96,6 +96,11 @@ static void _sysio_to_stat_struct(Noux::Sysio const *sysio, struct stat *buf)
 
 static int _stat(const char *path, struct stat *buf, bool lstat = false)
 {
+	if ((path == NULL) or (buf == NULL)) {
+		errno = EFAULT;
+		return -1;
+	}
+
 	Genode::strncpy(sysio()->stat_in.path, path, sizeof(sysio()->stat_in.path));
 
 	if (!noux()->syscall(Noux::Session::SYSCALL_STAT)) {
