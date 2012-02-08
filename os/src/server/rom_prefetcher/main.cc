@@ -20,8 +20,27 @@
 #include <base/printf.h>
 #include <base/env.h>
 #include <base/sleep.h>
+#include <os/config.h>
 
 volatile int dummy;
+
+
+static void prefetch_dataspace(Genode::Dataspace_capability ds)
+{
+	char *mapped = Genode::env()->rm_session()->attach(ds);
+	Genode::size_t size = Genode::Dataspace_client(ds).size();
+
+	/*
+	 * Modify global volatile 'dummy' variable to prevent the compiler
+	 * from removing the prefetch loop.
+	 */
+
+	enum { PREFETCH_STEP = 4096 };
+	for (Genode::size_t i = 0; i < size; i += PREFETCH_STEP)
+		dummy += mapped[i];
+
+	Genode::env()->rm_session()->detach(mapped);
+}
 
 
 class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
@@ -29,24 +48,6 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 	private:
 
 		Genode::Rom_connection _rom;
-
-		enum { _PREFETCH_STEP = 4096 };
-
-		void _prefetch_dataspace(Genode::Dataspace_capability ds)
-		{
-			char *mapped = Genode::env()->rm_session()->attach(ds);
-			Genode::size_t size = Genode::Dataspace_client(ds).size();
-
-			/*
-			 * Modify global volatile 'dummy' variable to prevent the compiler
-			 * from removing the prefetch loop.
-			 */
-
-			for (Genode::size_t i = 0; i < size; i += _PREFETCH_STEP)
-				dummy += mapped[i];
-
-			Genode::env()->rm_session()->detach(mapped);
-		}
 
 	public:
 
@@ -57,7 +58,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 */
 		Rom_session_component(const char *filename) : _rom(filename)
 		{
-			_prefetch_dataspace(_rom.dataspace());
+			prefetch_dataspace(_rom.dataspace());
 		}
 
 		/***************************
@@ -104,6 +105,31 @@ int main(int argc, char **argv)
 
 	/* connection to capability service needed to create capabilities */
 	static Cap_connection cap;
+
+	/*
+	 * Prefetch ROM files specified in the config
+	 */
+	try {
+		Genode::Xml_node entry = config()->xml_node().sub_node("rom");
+		for (;;) {
+
+			enum { NAME_MAX_LEN = 64 };
+			char name[NAME_MAX_LEN];
+			name[0] = 0;
+			entry.attribute("name").value(name, sizeof(name));
+
+			try {
+				Rom_connection rom(name);
+				PINF("prefetching ROM file  %s", name);
+				prefetch_dataspace(rom.dataspace());
+			} catch (...) {
+				PERR("could not open ROM file %s", name);
+			}
+
+			/* proceed with next XML node */
+			entry = entry.next("rom");
+		}
+	} catch (...) { }
 
 	static Sliced_heap sliced_heap(env()->ram_session(),
 	                               env()->rm_session());
