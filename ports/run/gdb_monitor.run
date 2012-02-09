@@ -6,6 +6,12 @@
 #
 
 #
+# Only Genode/Fiasco.OC supports all the tested features at this time
+#
+
+assert_spec foc
+
+#
 # Build
 #
 
@@ -92,10 +98,139 @@ append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,serve
 
 run_genode_until {.*Remote debugging using /dev/terminal.*} 30
 
-puts "GDB monitor is up, starting GDB in a new terminal"
+puts "GDB monitor is up, starting GDB"
 
-exec [terminal] -e "[gdb] bin/test-gdb_monitor -ex \"target remote localhost:$local_port\"" &
+# sequence of GDB commands to execute at startup
+set gdb_cmds ""
+append gdb_cmds {-ex "target remote localhost:$local_port" }
 
-interact
+#
+# The test breaks into the 'main()' function of the dynamically linked test
+# application by using the following gdb command sequence. It's important that
+# the 'main()' breakpoint gets set before the 'sharedlibrary' command is
+# executed. Otherwise the breakpoint would get set in ld.lib.so's main()
+# function.
+#
+
+# don't ask for y/n when loading a new symbol file
+append gdb_cmds {-ex "set interactive-mode off" }
+
+# load the symbols of ld.lib.so
+append gdb_cmds {-ex "symbol-file bin/ld.lib.so" }
+
+# set a breakpoint in the 'call_main()' function
+append gdb_cmds {-ex "b call_main" }
+
+# continue execution until the breakpoint triggers
+append gdb_cmds {-ex "c" }
+
+# delete the 'call_main()' breakpoint
+append gdb_cmds {-ex "delete 1" }
+
+# load the symbols of the test application
+append gdb_cmds {-ex "symbol-file bin/test-gdb_monitor" }
+
+# set a breakpoint in the application's 'main()' function
+append gdb_cmds {-ex "b main" }
+
+# load the symbols of loaded shared libraries
+append gdb_cmds {-ex "sharedlibrary" }
+
+# continue execution until the breakpoint triggers
+append gdb_cmds {-ex "c" }
+
+# delete the 'main()' breakpoint
+append gdb_cmds {-ex "delete 2" }
+
+#
+# Test commands
+#
+
+# test: breakpoint in shared library 
+append gdb_cmds {-ex "b puts" }
+append gdb_cmds {-ex "c" }
+
+# test: stack trace when not in syscall
+append gdb_cmds {-ex "bt" }
+
+# test: thread info
+append gdb_cmds {-ex "b Test_thread::entry()" }
+append gdb_cmds {-ex "c" }
+append gdb_cmds {-ex "info threads" }
+
+# test: single stepping
+append gdb_cmds {-ex "step" }
+
+# test: catch segmentation fault
+append gdb_cmds {-ex "c" }
+
+# test: stack trace when in syscall
+append gdb_cmds {-ex "thread 1" }
+append gdb_cmds {-ex "bt" }
+
+# quit
+append gdb_cmds {-ex "q" }
+
+# run GDB and redirect stderr to stdio to get the relevant output into the expect buffer  
+eval spawn [gdb] bin/test-gdb_monitor -batch $gdb_cmds 2&>1
+
+set timeout 60
+expect {
+	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+}
+
+set gdb_output $expect_out(buffer)
+
+#
+# Evaluate the test results
+#
+
+if {![regexp {Breakpoint 2, main ()} $gdb_output]} {
+	puts stderr "Error: Breakpoint in main() did not trigger"
+	exit -1
+}
+
+if {![regexp {Breakpoint 3, puts ()} $gdb_output]} {
+	puts "Error: Breakpoint in shared library did not trigger"
+	exit -1
+}
+
+if {![regexp {#0  puts} $gdb_output] ||
+    ![regexp {in func2 ()} $gdb_output] ||
+    ![regexp {in func1 ()} $gdb_output] ||
+    ![regexp {in main ()} $gdb_output]} {
+	puts stderr "Error: Stack trace when not in syscall is not as expected"
+	exit -1
+}
+
+if {![regexp {Breakpoint 4, Test_thread::entry()} $gdb_output]} {
+	puts stderr "Error: Breakpoint in test thread did not trigger"
+	exit -1
+}
+
+if {![regexp {\* 2    Thread 2          Test_thread::entry} $gdb_output] || 
+    ![regexp {  1    Thread 1} $gdb_output]} {
+	puts stderr "Error: Thread info is not as expected"
+	exit -1
+}
+
+if {![regexp {40				func()} $gdb_output]} {
+	puts stderr "Error: Single stepping didn't result in the expected output"
+	exit -1
+}
+
+if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $gdb_output]} {
+	puts stderr "Error: Segmentation fault exception was not catched"
+	exit -1
+}
+
+if {![regexp {Genode::Ipc_istream::_wait} $gdb_output] ||
+    ![regexp {Genode::Ipc_server::_wait} $gdb_output] ||
+    ![regexp {Genode::sleep_forever ()} $gdb_output]} {
+	puts stderr "Error: Stack trace when in syscall is not as expected"
+	exit -1
+}
+
+puts "Test succeeded"
 
 # vi: set ft=tcl :

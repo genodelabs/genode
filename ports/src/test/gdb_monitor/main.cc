@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <timer_session/connection.h>
@@ -24,56 +23,55 @@ class Test_thread : public Genode::Thread<2*4096>
 {
 	public:
 
-		void func3()
+		void func()
 		{
+			/*
+			 * make sure that the main thread is sleeping in
+			 * Genode::sleep_forever() when the segfault happens
+			 */
 			static Timer::Connection timer;
+			timer.msleep(500);
 
-			while (1) {
-				enum { ROUNDS = 2 };
-
-				for (int cnt = 0; cnt < ROUNDS; ++cnt) {
-					/* call libc printf function */
-					printf("Test thread is running, round %d of %d\n", cnt + 1, ROUNDS);
-					timer.msleep(1000);
-				}
-
-				*(int *)0 = 42;
-			}
-
-			Genode::sleep_forever();
+			*(int *)0 = 42;
 		}
 
-		void entry()
+		void entry() /* set a breakpoint here to test the 'info threads' command */
 		{
-			func3();
+			func();
 
 			Genode::sleep_forever();
 		}
 };
 
-
-static void func2()
+/* this function returns a value to make itself appear in the stack trace when building with -O2 */
+int func2()
 {
-	static Timer::Connection timer;
-	while(1) {
-		PDBG("GDB monitor test is running...");
-		timer.msleep(1000);
-	}
+	/* set the first breakpoint here to test the 'backtrace' command for a
+	 * thread which is not in a syscall */
+	puts("in func2()\n");
 
-	Genode::sleep_forever();
+	return 0;
 }
 
-static void func1()
+
+/* this function returns a value to make itself appear in the stack trace when building with -O2 */
+int func1()
 {
 	func2();
+
+	return 0;
 }
+
 
 int main(void)
 {
 	Test_thread test_thread;
-	test_thread.start();
 
 	func1();
+
+	test_thread.start();
+
+	Genode::sleep_forever();
 
 	return 0;
 }
