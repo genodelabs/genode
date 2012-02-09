@@ -68,7 +68,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 			case R10: PDBG("cannot determine contents of register R10"); return -1;
 			case R11:
 				/* When in a syscall, the user FP is SP+28+8 */
-				*reg_content = thread_state.sp + 20 + 8;
+				*reg_content = thread_state.sp + 28 + 8;
 				PDBG("FP = %8lx", *reg_content);
 				return 0;
 			case R12: PDBG("cannot determine contents of register R12"); return -1;
