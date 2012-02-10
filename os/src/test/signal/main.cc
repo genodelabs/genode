@@ -414,7 +414,11 @@ static void stress_test()
 	/* stop emitting signals */
 	printf("deactivate sender\n");
 	sender->idle();
-	timer.msleep(FINISH_IDLE_TIME);
+
+	while (handler->receive_cnt() < sender->submit_cnt()) {
+		printf("waiting for signals still in flight...");
+		timer.msleep(FINISH_IDLE_TIME);
+	}
 
 	printf("\n");
 	printf("sender submitted a total of %d signals\n", sender->submit_cnt());
