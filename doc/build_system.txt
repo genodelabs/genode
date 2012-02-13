@@ -32,9 +32,9 @@ from the build directory, one source tree can have many different build
 directories associated, each targeted at another platform.
 
 The recommended way for creating a build directory is the use of the
-'create_builddir' tool located at '<genode-dir>/tool/builddir/'. By starting
-the tool without arguments, its usage information will be printed. For creating
-a new build directory, one of the listed target platforms must be specified.
+'create_builddir' tool located at '<genode-dir>/tool/'. By starting the tool
+without arguments, its usage information will be printed. For creating a new
+build directory, one of the listed target platforms must be specified. 
 Furthermore, the location of the new build directory has to be specified via
 the 'BUILD_DIR=' argument. For example:
 
@@ -42,7 +42,7 @@ the 'BUILD_DIR=' argument. For example:
 ! ./tool/create_builddir linux_x86 BUILD_DIR=/tmp/build.linux_x86
 
 This command will create a new build directory for the Linux/x86 platform
-at '<genode-dir>/build.linux_x86/'.
+at '/tmp/build.linux_x86/'.
 
 
 Build-directory configuration via 'build.conf'
@@ -141,7 +141,7 @@ Of course, you can combine these verboseness toggles for maximizing the noise.
 Enabling parallel builds
 ========================
 
-To utilize multiple CPU codes during the build process, you may invoke 'make'
+To utilize multiple CPU cores during the build process, you may invoke 'make'
 with the '-j' argument. If manually specifying this argument becomes an
 inconvenience, you may add the following line to your 'etc/build.conf' file:
 
@@ -201,8 +201,8 @@ Target descriptions
 A good starting point is to look at the init target. The source code of init is
 located at 'os/src/init/'. In this directory, you will find a target description
 file named 'target.mk'. This file contains the building instructions and it is
-usually is very simple. The build process is controlled by defining the
-following variables.
+usually very simple. The build process is controlled by defining the following
+variables.
 
 
 Build variables to be defined by you
