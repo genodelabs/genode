@@ -275,7 +275,8 @@ void Console::vprintf(const char *format, va_list list)
 
 				case Format_command::LONG:
 
-					numeric_arg = va_arg(list, long);
+					numeric_arg = (cmd.type == Format_command::UINT) ?
+						va_arg(list, unsigned long) : va_arg(list, long);
 					break;
 
 				case Format_command::SIZE_T:
@@ -285,7 +286,8 @@ void Console::vprintf(const char *format, va_list list)
 
 				case Format_command::DEFAULT:
 
-					numeric_arg = va_arg(list, int);
+					numeric_arg = (cmd.type == Format_command::UINT) ?
+						va_arg(list, unsigned int) : va_arg(list, int);
 					break;
 			}
 		}
