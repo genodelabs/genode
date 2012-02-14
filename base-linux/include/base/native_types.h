@@ -137,6 +137,7 @@ namespace Genode {
 			/**
 			 * Access raw capability data
 			 */
+			long dst() const { return _tid; }
 			long tid() const { return _tid; }
 	};
 
