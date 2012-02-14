@@ -109,6 +109,7 @@ void Rpc_entrypoint::_activation_entry()
 		ep->_curr_obj = ep->obj_by_id(srv.badge());
 		if (!ep->_curr_obj) {
 			PERR("could not look up server object, return from call");
+			ep->_curr_obj_lock.unlock();
 			srv << IPC_REPLY;
 		}
 
