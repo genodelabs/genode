@@ -4,6 +4,28 @@
                                ===========
 
 
+Slides of our talks at FOSDEM 2012 | 2012-02-14
+###############################################
+
+| The slides for both Genode-related talks at FOSDEM 2012 are available.
+
+At this year's FOSDEM, the Genode project was present with two talks and the
+participation in a panel discussion at the microkernel developer room.
+
+Norman Feske held an introductory talk, presenting Genode's architecture and
+demonstrating several use case live:
+
+:[http://genode-labs.com/publications/nfeske-genode-fosdem-2012-02.pdf - Introducing Genode]:
+
+Stefan Kalkowski presented his experience with supporting many different
+kernels as base platforms of Genode:
+
+:[http://genode-labs.com/publications/skalkowski-diversity-fosdem-2012-02.pdf - The agony of choice - the diversity of microkernels in Genode]:
+
+The abstracts of both talks are available at the updated
+[http:/about/publications - publications section].
+
+
 Source code moved to GitHub | 2012-01-17
 ########################################
 
