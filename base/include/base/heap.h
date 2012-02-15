@@ -77,6 +77,9 @@ namespace Genode {
 					 * \return          0 on success or negative error code
 					 */
 					int expand(size_t size, Range_allocator *alloc);
+
+					void reassign_resources(Ram_session *ram, Rm_session *rm) {
+						_ram_session = ram, _rm_session = rm; }
 			};
 
 			/*
@@ -127,6 +130,12 @@ namespace Genode {
 			 *          currently used quota.
 			 */
 			int quota_limit(size_t new_quota_limit);
+
+			/**
+			 * Re-assign RAM and RM sessions
+			 */
+			void reassign_resources(Ram_session *ram, Rm_session *rm) {
+				_ds_pool.reassign_resources(ram, rm); }
 
 
 			/*************************

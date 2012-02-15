@@ -106,15 +106,28 @@ namespace Genode {
 
 		private:
 
-			Parent_client                 _parent_client;
-			Parent                       *_parent;
-			Ram_session_capability        _ram_session_cap;
-			Expanding_ram_session_client  _ram_session_client;
-			Cpu_session_client            _cpu_session_client;
-			Expanding_rm_session_client   _rm_session_client;
-			Pd_session_client             _pd_session_client;
-			Heap                          _heap;
+			Parent_client _parent_client;
 
+			struct Resources
+			{
+				Ram_session_capability       ram_cap;
+				Expanding_ram_session_client ram;
+				Cpu_session_client           cpu;
+				Expanding_rm_session_client  rm;
+				Pd_session_client            pd;
+
+				Resources(Parent &parent)
+				:
+					ram_cap(static_cap_cast<Ram_session>(parent.session("Env::ram_session", ""))),
+					ram(ram_cap),
+					cpu(static_cap_cast<Cpu_session>(parent.session("Env::cpu_session", ""))),
+					rm(static_cap_cast<Rm_session>(parent.session("Env::rm_session", ""))),
+					pd(static_cap_cast<Pd_session>(parent.session("Env::pd_session", "")))
+				{ }
+			};
+
+			Resources _resources;
+			Heap      _heap;
 
 		public:
 
@@ -123,26 +136,37 @@ namespace Genode {
 			 */
 			Platform_env()
 			:
-				_parent_client(Genode::parent_cap()), _parent(&_parent_client),
-				_ram_session_cap(static_cap_cast<Ram_session>(parent()->session("Env::ram_session", ""))),
-				_ram_session_client(_ram_session_cap),
-				_cpu_session_client(static_cap_cast<Cpu_session>(parent()->session("Env::cpu_session", ""))),
-				_rm_session_client(static_cap_cast<Rm_session>(parent()->session("Env::rm_session", ""))),
-				_pd_session_client(static_cap_cast<Pd_session>(parent()->session("Env::pd_session", ""))),
-				_heap(ram_session(), rm_session())
+				_parent_client(Genode::parent_cap()),
+				_resources(_parent_client),
+				_heap(&_resources.ram, &_resources.rm)
 			{ }
+
+			/**
+			 * Reload parent capability and reinitialize environment resources
+			 *
+			 * This function is solely used for implementing fork semantics.
+			 * After forking a process, the new child process is executed
+			 * within a copy of the address space of the forking process.
+			 * Thereby, the new process inherits the original 'Platform_env'
+			 * object of the forking process, which is meaningless in the
+			 * context of the new process. By calling this function, the new
+			 * process is able to reinitialize its 'Platform_env' with
+			 * meaningful capabilities obtained via its updated parent
+			 * capability.
+			 */
+			void reload_parent_cap();
 
 
 			/*******************
 			 ** Env interface **
 			 *******************/
 
-			Parent                 *parent()          { return  _parent; }
-			Ram_session            *ram_session()     { return &_ram_session_client; }
-			Ram_session_capability  ram_session_cap() { return  _ram_session_cap; }
-			Cpu_session            *cpu_session()     { return &_cpu_session_client; }
-			Rm_session             *rm_session()      { return &_rm_session_client; }
-			Pd_session             *pd_session()      { return &_pd_session_client; }
+			Parent                 *parent()          { return &_parent_client; }
+			Ram_session            *ram_session()     { return &_resources.ram; }
+			Ram_session_capability  ram_session_cap() { return  _resources.ram_cap; }
+			Cpu_session            *cpu_session()     { return &_resources.cpu; }
+			Rm_session             *rm_session()      { return &_resources.rm; }
+			Pd_session             *pd_session()      { return &_resources.pd; }
 			Allocator              *heap()            { return &_heap; }
 	};
 }
