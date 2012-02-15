@@ -44,16 +44,14 @@ class Log_console : public Console
 
 		void _out_char(char c)
 		{
-			/* flush full buffer */
-			if (_num_chars >= sizeof(_buf) - 1) _flush();
-
 			/* ensure enough buffer space for complete escape sequence */
 			if ((c == 27) && (_num_chars + 8 > _BUF_SIZE)) _flush();
 
 			_buf[_num_chars++] = c;
 
 			/* flush immediately on line break */
-			if (c == '\n') _flush();
+			if (c == '\n' || _num_chars >= sizeof(_buf) - 1)
+                          _flush();
 		}
 
 	public:
