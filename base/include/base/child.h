@@ -84,6 +84,14 @@ namespace Genode {
 		{
 			PDBG("child exited with exit value %d", exit_value);
 		}
+
+		/**
+		 * Reference RAM session
+		 *
+		 * The RAM session returned by this function is used for session-quota
+		 * transfers.
+		 */
+		virtual Ram_session *ref_ram_session() { return env()->ram_session(); }
 	};
 
 
@@ -333,7 +341,7 @@ namespace Genode {
 				_session_list.remove(s);
 
 				/* return session quota to the ram session of the child */
-				if (env()->ram_session()->transfer_quota(_ram, s->donated_ram_quota()))
+				if (_policy->ref_ram_session()->transfer_quota(_ram, s->donated_ram_quota()))
 					PERR("We ran out of our own quota");
 
 				destroy(heap(), s);
