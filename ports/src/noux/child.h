@@ -110,26 +110,173 @@ namespace Noux {
 			Child_execve_cleanup_dispatcher   _execve_cleanup_dispatcher;
 			Genode::Signal_context_capability _execve_cleanup_context_cap;
 
+			Genode::Cap_session * const _cap_session;
+
+			enum { STACK_SIZE = 4*1024*sizeof(long) };
+			Genode::Rpc_entrypoint _entrypoint;
+
 			/**
 			 * Resources assigned to the child
 			 */
 			struct Resources
 			{
-				Genode::Ram_connection ram;
-				Genode::Cpu_connection cpu;
-				Genode::Rm_connection  rm;
-
-				Resources(char const *label) : ram(label), cpu(label)
+				struct Dataspace_info : Genode::Object_pool<Dataspace_info>::Entry
 				{
-					ram.ref_account(Genode::env()->ram_session_cap());
-					Genode::env()->ram_session()->transfer_quota(ram.cap(), 2*1024*1024);
+					Genode::size_t               _size;
+					Genode::Dataspace_capability _ds_cap;
+
+
+					Dataspace_info(Genode::Dataspace_capability ds_cap)
+					:
+						Genode::Object_pool<Dataspace_info>::Entry(ds_cap),
+						_size(Genode::Dataspace_client(ds_cap).size()),
+						_ds_cap(ds_cap)
+					{ }
+
+					Genode::size_t                 size() const { return _size; }
+					Genode::Dataspace_capability ds_cap() const { return _ds_cap; }
+				};
+
+
+				struct Local_ram_session : Rpc_object<Genode::Ram_session>
+				{
+					Genode::Object_pool<Dataspace_info> _pool;
+					Genode::size_t                      _used_quota;
+
+					/**
+					 * Constructor
+					 */
+					Local_ram_session() : _used_quota(0) { }
+
+					/**
+					 * Destructor
+					 */
+					~Local_ram_session()
+					{
+						PWRN("~Local_ram_session not yet implemented, leaking RAM");
+					}
+
+
+					/***************************
+					 ** Ram_session interface **
+					 ***************************/
+
+					Genode::Ram_dataspace_capability alloc(Genode::size_t size)
+					{
+						PINF("RAM alloc %zd", size);
+
+						Genode::Ram_dataspace_capability ds_cap = Genode::env()->ram_session()->alloc(size);
+
+						Dataspace_info *ds_info = new (Genode::env()->heap())
+						                          Dataspace_info(ds_cap);
+
+						_used_quota += ds_info->size();
+
+						_pool.insert(ds_info);
+
+						return ds_cap;
+					}
+
+					void free(Genode::Ram_dataspace_capability ds_cap)
+					{
+						PINF("RAM free");
+
+						Dataspace_info *ds_info = _pool.obj_by_cap(ds_cap);
+
+						if (!ds_info) {
+							PERR("RAM free: dataspace lookup failed");
+							return;
+						}
+						
+						_pool.remove(ds_info);
+						_used_quota -= ds_info->size();
+
+						Genode::env()->ram_session()->free(ds_cap);
+						Genode::destroy(Genode::env()->heap(), ds_info);
+					}
+
+					int ref_account(Genode::Ram_session_capability) { return 0; }
+					int transfer_quota(Genode::Ram_session_capability, Genode::size_t) { return 0; }
+					Genode::size_t quota() { return Genode::env()->ram_session()->quota(); }
+					Genode::size_t used() { return _used_quota; }
+				};
+
+
+				/**
+				 * Used to record all RM attachements
+				 */
+				struct Local_rm_session : Rpc_object<Genode::Rm_session>
+				{
+					Genode::Rm_connection rm;
+
+					Local_addr attach(Genode::Dataspace_capability ds,
+					                  Genode::size_t size = 0, Genode::off_t offset = 0,
+					                  bool use_local_addr = false,
+					                  Local_addr local_addr = (Genode::addr_t)0)
+					{
+						PINF("RM attach called");
+
+						/*
+						 * XXX look if we can identify the specified dataspace.
+						 *     Is it a dataspace allocated via 'Local_ram_session'?
+						 */
+
+						return rm.attach(ds, size, offset, use_local_addr, local_addr);
+					}
+
+					void detach(Local_addr local_addr)
+					{
+						PINF("RM detach called");
+						rm.detach(local_addr);
+					}
+
+					Genode::Pager_capability add_client(Genode::Thread_capability thread)
+					{
+						PINF("RM add client called");
+						return rm.add_client(thread);
+					}
+
+					void fault_handler(Genode::Signal_context_capability handler)
+					{
+						PINF("RM fault handler called");
+						return rm.fault_handler(handler);
+					}
+
+					State state()
+					{
+						PINF("RM state called");
+						return rm.state();
+					}
+
+					Genode::Dataspace_capability dataspace()
+					{
+						PINF("RM dataspace called");
+						return rm.dataspace();
+					}
+				};
+
+
+				Genode::Rpc_entrypoint ep;
+				Local_ram_session      ram;
+				Genode::Cpu_connection cpu;
+				Local_rm_session       rm;
+
+				Resources(char const *label, Genode::Rpc_entrypoint &ep)
+				:
+					ep(ep),
+					cpu(label)
+				{
+					ep.manage(&ram);
+					ep.manage(&rm);
 				}
+
+				~Resources()
+				{
+					ep.dissolve(&rm);
+					ep.dissolve(&ram);
+				}
+
 			} _resources;
-
-			Genode::Cap_session * const _cap_session;
-
-			enum { STACK_SIZE = 4*1024*sizeof(long) };
-			Genode::Rpc_entrypoint _entrypoint;
 
 			/**
 			 * Command line arguments
@@ -209,7 +356,8 @@ namespace Noux {
 			      Args                const &args,
 			      char const                *env,
 			      Genode::Cap_session       *cap_session,
-			      Genode::Service_registry  *parent_services)
+			      Genode::Service_registry  *parent_services,
+			      Genode::Rpc_entrypoint    &resources_ep)
 			:
 				_pid(pid),
 				_sig_rec(sig_rec),
@@ -217,9 +365,9 @@ namespace Noux {
 				_exit_context_cap(sig_rec->manage(&_exit_dispatcher)),
 				_execve_cleanup_dispatcher(this),
 				_execve_cleanup_context_cap(sig_rec->manage(&_execve_cleanup_dispatcher)),
-				_resources(name),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
+				_resources(name, resources_ep),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
 				_vfs(vfs),
@@ -283,6 +431,11 @@ namespace Noux {
 			{
 				PINF("child %s exited with exit value %d", _name, exit_value);
 				Genode::Signal_transmitter(_exit_context_cap).submit();
+			}
+
+			Genode::Ram_session *ref_ram_session()
+			{
+				return &_resources.ram;
 			}
 
 

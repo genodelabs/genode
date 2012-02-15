@@ -170,7 +170,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                              sizeof(_sysio->execve_in.args)),
 				                         env, /* XXX */
 				                         _cap_session,
-				                         _parent_services);
+				                         _parent_services,
+				                         _resources.ep);
 
 				/* let new chuld inherit our file descriptors */
 				for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
@@ -444,6 +445,12 @@ int main(int argc, char **argv)
 
 	/* XXX union RAM service */
 
+	/*
+	 * Entrypoint used to virtualize child resources such as RAM, RM
+	 */
+	enum { STACK_SIZE = 1024*sizeof(long) };
+	static Genode::Rpc_entrypoint resources_ep(&cap, STACK_SIZE, "noux_rsc_ep");
+
 	/* create init process */
 	static Genode::Signal_receiver sig_rec;
 
@@ -454,7 +461,8 @@ int main(int argc, char **argv)
 	                       args_of_init_process(),
 	                       env_string_of_init_process(),
 	                       &cap,
-	                       &parent_services);
+	                       &parent_services,
+	                       resources_ep);
 
 	static Terminal::Connection terminal;
 
