@@ -188,7 +188,7 @@ void Console::_out_signed(T value, unsigned base)
 
 	/* add sign to buffer for negative values */
 	if (neg)
-		buf[i++] = '-';
+		_out_char('-');
 
 	/* output buffer in reverse order */
 	for (; i--; )
@@ -223,7 +223,7 @@ void Console::_out_unsigned(T value, unsigned base, int pad)
 
 	/* add padding zeros */
 	for (; pad-- > 0; )
-		buf[i++] = ascii(0);
+		_out_char(ascii(0));
 
 	/* output buffer in reverse order */
 	for (; i--; )
