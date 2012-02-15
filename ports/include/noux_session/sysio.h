@@ -247,6 +247,12 @@ namespace Noux {
 
 			SYSIO_DECL(select, { Select_fds fds; Select_timeout timeout; },
 			                   { Select_fds fds; });
+
+			SYSIO_DECL(fork,   { Genode::addr_t ip; Genode::addr_t sp;
+			                     Genode::addr_t parent_cap_addr; },
+			                   { int pid; });
+
+			SYSIO_DECL(getpid, { }, { int pid; });
 		};
 	};
 };

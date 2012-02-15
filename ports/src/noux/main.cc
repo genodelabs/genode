@@ -283,6 +283,19 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				return true;
 			}
 
+		case SYSCALL_FORK:
+			{
+				PDBG("fork called - not implemented");
+				_sysio->fork_out.pid = 77;
+				return true;
+			}
+
+		case SYSCALL_GETPID:
+			{
+				_sysio->getpid_out.pid = _pid;
+				return true;
+			}
+
 		case SYSCALL_INVALID: break;
 		}
 	}

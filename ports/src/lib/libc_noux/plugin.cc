@@ -293,6 +293,64 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 }
 
 
+#include <setjmp.h>
+
+#include <base/crt0.h> /* for '_parent_cap', needed by 'fork' */
+#include <base/platform_env.h>
+
+
+static jmp_buf fork_jmp_buf;
+
+
+/*
+ * The new process created via fork will start its execution here.
+ */
+extern "C" void fork_trampoline()
+{
+	static_cast<Genode::Platform_env *>(Genode::env())->reload_parent_cap();
+
+	longjmp(fork_jmp_buf, 1);
+}
+
+
+extern "C" pid_t fork(void)
+{
+	/* stack used for executing 'fork_trampoline' */
+	enum { STACK_SIZE = 1024 };
+	static long stack[STACK_SIZE];
+
+	if (setjmp(fork_jmp_buf)) {
+
+		/* got here via longjmp from 'fork_trampoline' */
+
+		PDBG("fork: got here via longjmp");
+		return 0;
+
+	} else {
+
+		PDBG("fork: got here via normal control flow");
+
+		/* got here during the normal control flow of the fork call */
+		sysio()->fork_in.ip              = (Genode::addr_t)(&fork_trampoline);
+		sysio()->fork_in.sp              = (Genode::addr_t)(&stack[STACK_SIZE]);
+		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&_parent_cap);
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_FORK)) {
+			PERR("fork error %d", sysio()->error.general);
+		}
+
+		return sysio()->fork_out.pid;
+	}
+}
+
+
+extern "C" pid_t getpid(void)
+{
+	noux()->syscall(Noux::Session::SYSCALL_GETPID);
+	return sysio()->getpid_out.pid;
+}
+
+
 /*********************
  ** File operations **
  *********************/
