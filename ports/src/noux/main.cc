@@ -148,6 +148,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			}
 
 		case SYSCALL_IOCTL:
+
 			return _lookup_channel(_sysio->ioctl_in.fd)->ioctl(_sysio);
 
 		case SYSCALL_DIRENT:
@@ -171,13 +172,13 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         env, /* XXX */
 				                         _cap_session,
 				                         _parent_services,
-				                         _resources.ep);
+				                         _resources.ep,
+				                         false);
 
-				/* let new chuld inherit our file descriptors */
+				/* let new child inherit our file descriptors */
 				for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
 					if (fd_in_use(fd))
 						child->add_io_channel(io_channel_by_fd(fd), fd);
-
 
 				/* signal main thread to remove ourself */
 				Genode::Signal_transmitter(_execve_cleanup_context_cap).submit();
@@ -462,7 +463,8 @@ int main(int argc, char **argv)
 	                       env_string_of_init_process(),
 	                       &cap,
 	                       &parent_services,
-	                       resources_ep);
+	                       resources_ep,
+	                       false);
 
 	static Terminal::Connection terminal;
 

@@ -256,24 +256,108 @@ namespace Noux {
 				};
 
 
+				/**
+				 * Used to defer the execution of the process' main thread
+				 */
+				struct Local_cpu_session : Rpc_object<Genode::Cpu_session>
+				{
+					bool forked;
+					Genode::Cpu_connection cpu;
+
+					Genode::Thread_capability main_thread;
+
+					Local_cpu_session(char const *label, bool forked)
+					: forked(forked), cpu(label) { }
+
+					Genode::Thread_capability create_thread(Name const &name)
+					{
+						/*
+						 * Prevent any attempt to create more than the main
+						 * thread.
+						 */
+						if (main_thread.valid()) {
+							PWRN("Invalid attempt to create a thread besides main");
+							return Genode::Thread_capability();
+						}
+						main_thread = cpu.create_thread(name);
+
+						PINF("created main thread");
+						return main_thread;
+					}
+
+					void kill_thread(Genode::Thread_capability thread) {
+						cpu.kill_thread(thread); }
+
+					Genode::Thread_capability first() {
+						return cpu.first(); }
+
+					Genode::Thread_capability next(Genode::Thread_capability curr) {
+						return cpu.next(curr); }
+
+					int set_pager(Genode::Thread_capability thread,
+					              Genode::Pager_capability  pager) {
+					    return cpu.set_pager(thread, pager); }
+
+					int start(Genode::Thread_capability thread, Genode::addr_t ip, Genode::addr_t sp)
+					{
+						if (forked) {
+							PINF("defer attempt to start thread at ip 0x%lx", ip);
+							return 0;
+						}
+						return cpu.start(thread, ip, sp);
+					}
+
+					void pause(Genode::Thread_capability thread) {
+						cpu.pause(thread); }
+
+					void resume(Genode::Thread_capability thread) {
+						cpu.resume(thread); }
+
+					void cancel_blocking(Genode::Thread_capability thread) {
+						cpu.cancel_blocking(thread); }
+
+					int state(Genode::Thread_capability thread, Genode::Thread_state *dst) {
+						return cpu.state(thread, dst); }
+
+					void exception_handler(Genode::Thread_capability         thread,
+					                       Genode::Signal_context_capability handler) {
+					    cpu.exception_handler(thread, handler); }
+
+					void single_step(Genode::Thread_capability thread, bool enable) {
+						cpu.single_step(thread, enable); }
+
+
+					/**
+					 * Explicity start main thread, only meaningful when
+					 * 'forked' is true
+					 */
+					void start_main_thread(Genode::addr_t ip, Genode::addr_t sp)
+					{
+						cpu.start(main_thread, ip, sp);
+					}
+				};
+
 				Genode::Rpc_entrypoint ep;
+
 				Local_ram_session      ram;
-				Genode::Cpu_connection cpu;
+				Local_cpu_session      cpu;
 				Local_rm_session       rm;
 
-				Resources(char const *label, Genode::Rpc_entrypoint &ep)
+				Resources(char const *label, Genode::Rpc_entrypoint &ep, bool forked)
 				:
 					ep(ep),
-					cpu(label)
+					cpu(label, forked)
 				{
 					ep.manage(&ram);
 					ep.manage(&rm);
+					ep.manage(&cpu);
 				}
 
 				~Resources()
 				{
-					ep.dissolve(&rm);
 					ep.dissolve(&ram);
+					ep.dissolve(&rm);
+					ep.dissolve(&cpu);
 				}
 
 			} _resources;
@@ -349,6 +433,14 @@ namespace Noux {
 
 		public:
 
+			/**
+			 * Constructor
+			 *
+			 * \param forked  false if the child is spawned directly from
+			 *                an executable binary (i.e., the init process,
+			 *                or children created via execve, or
+			 *                true if the child is a fork from another child
+			 */
 			Child(char const                *name,
 			      int                        pid,
 			      Genode::Signal_receiver   *sig_rec,
@@ -357,7 +449,8 @@ namespace Noux {
 			      char const                *env,
 			      Genode::Cap_session       *cap_session,
 			      Genode::Service_registry  *parent_services,
-			      Genode::Rpc_entrypoint    &resources_ep)
+			      Genode::Rpc_entrypoint    &resources_ep,
+			      bool                       forked)
 			:
 				_pid(pid),
 				_sig_rec(sig_rec),
@@ -367,7 +460,7 @@ namespace Noux {
 				_execve_cleanup_context_cap(sig_rec->manage(&_execve_cleanup_dispatcher)),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
-				_resources(name, resources_ep),
+				_resources(name, resources_ep, false),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
 				_vfs(vfs),
