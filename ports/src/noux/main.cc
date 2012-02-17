@@ -455,16 +455,16 @@ int main(int argc, char **argv)
 	/* create init process */
 	static Genode::Signal_receiver sig_rec;
 
-	init_child = new Child(name_of_init_process(),
-	                       alloc_pid(),
-	                       &sig_rec,
-	                       &vfs,
-	                       args_of_init_process(),
-	                       env_string_of_init_process(),
-	                       &cap,
-	                       &parent_services,
-	                       resources_ep,
-	                       false);
+	init_child = new Noux::Child(name_of_init_process(),
+	                             alloc_pid(),
+	                             &sig_rec,
+	                             &vfs,
+	                             args_of_init_process(),
+	                             env_string_of_init_process(),
+	                             &cap,
+	                             &parent_services,
+	                             resources_ep,
+	                             false);
 
 	static Terminal::Connection terminal;
 

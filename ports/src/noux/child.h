@@ -33,6 +33,8 @@
 
 namespace Noux {
 
+	using namespace Genode;
+
 	class Child;
 
 	bool is_init_process(Child *child);
@@ -81,67 +83,67 @@ namespace Noux {
 			void dispatch()
 			{
 				PINF("execve cleanup dispatcher called");
-				Genode::destroy(Genode::env()->heap(), _child);
+				destroy(env()->heap(), _child);
 			}
 	};
 
 
-	class Child : private Genode::Child_policy,
-	              public  Genode::Rpc_object<Session>,
+	class Child : private Child_policy,
+	              public  Rpc_object<Session>,
 	              public  File_descriptor_registry
 	{
 		private:
 
 			int const _pid;
 
-			Genode::Signal_receiver *_sig_rec;
+			Signal_receiver *_sig_rec;
 
 			/**
 			 * Semaphore used for implementing blocking syscalls, i.e., select
 			 */
-			Genode::Semaphore _blocker;
+			Semaphore _blocker;
 
 			enum { MAX_NAME_LEN = 64 };
 			char _name[MAX_NAME_LEN];
 
-			Child_exit_dispatcher             _exit_dispatcher;
-			Genode::Signal_context_capability _exit_context_cap;
+			Child_exit_dispatcher     _exit_dispatcher;
+			Signal_context_capability _exit_context_cap;
 
-			Child_execve_cleanup_dispatcher   _execve_cleanup_dispatcher;
-			Genode::Signal_context_capability _execve_cleanup_context_cap;
+			Child_execve_cleanup_dispatcher _execve_cleanup_dispatcher;
+			Signal_context_capability       _execve_cleanup_context_cap;
 
-			Genode::Cap_session * const _cap_session;
+			Cap_session * const _cap_session;
 
 			enum { STACK_SIZE = 4*1024*sizeof(long) };
-			Genode::Rpc_entrypoint _entrypoint;
+			Rpc_entrypoint _entrypoint;
 
 			/**
 			 * Resources assigned to the child
 			 */
 			struct Resources
 			{
-				struct Dataspace_info : Genode::Object_pool<Dataspace_info>::Entry
+				struct Dataspace_info : Object_pool<Dataspace_info>::Entry
 				{
-					Genode::size_t               _size;
-					Genode::Dataspace_capability _ds_cap;
+					size_t               _size;
+					Dataspace_capability _ds_cap;
 
 
-					Dataspace_info(Genode::Dataspace_capability ds_cap)
+					Dataspace_info(Dataspace_capability ds_cap)
 					:
-						Genode::Object_pool<Dataspace_info>::Entry(ds_cap),
-						_size(Genode::Dataspace_client(ds_cap).size()),
+						Object_pool<Dataspace_info>::Entry(ds_cap),
+						_size(Dataspace_client(ds_cap).size()),
 						_ds_cap(ds_cap)
 					{ }
 
-					Genode::size_t                 size() const { return _size; }
-					Genode::Dataspace_capability ds_cap() const { return _ds_cap; }
+					size_t                 size() const { return _size; }
+					Dataspace_capability ds_cap() const { return _ds_cap; }
 				};
 
 
-				struct Local_ram_session : Rpc_object<Genode::Ram_session>
+				struct Local_ram_session : Rpc_object<Ram_session>
 				{
-					Genode::Object_pool<Dataspace_info> _pool;
-					Genode::size_t                      _used_quota;
+					Object_pool<Dataspace_info> _pool;
+					size_t                      _used_quota;
 
 					/**
 					 * Constructor
@@ -161,13 +163,13 @@ namespace Noux {
 					 ** Ram_session interface **
 					 ***************************/
 
-					Genode::Ram_dataspace_capability alloc(Genode::size_t size)
+					Ram_dataspace_capability alloc(size_t size)
 					{
 						PINF("RAM alloc %zd", size);
 
-						Genode::Ram_dataspace_capability ds_cap = Genode::env()->ram_session()->alloc(size);
+						Ram_dataspace_capability ds_cap = env()->ram_session()->alloc(size);
 
-						Dataspace_info *ds_info = new (Genode::env()->heap())
+						Dataspace_info *ds_info = new (env()->heap())
 						                          Dataspace_info(ds_cap);
 
 						_used_quota += ds_info->size();
@@ -177,7 +179,7 @@ namespace Noux {
 						return ds_cap;
 					}
 
-					void free(Genode::Ram_dataspace_capability ds_cap)
+					void free(Ram_dataspace_capability ds_cap)
 					{
 						PINF("RAM free");
 
@@ -191,28 +193,28 @@ namespace Noux {
 						_pool.remove(ds_info);
 						_used_quota -= ds_info->size();
 
-						Genode::env()->ram_session()->free(ds_cap);
-						Genode::destroy(Genode::env()->heap(), ds_info);
+						env()->ram_session()->free(ds_cap);
+						destroy(env()->heap(), ds_info);
 					}
 
-					int ref_account(Genode::Ram_session_capability) { return 0; }
-					int transfer_quota(Genode::Ram_session_capability, Genode::size_t) { return 0; }
-					Genode::size_t quota() { return Genode::env()->ram_session()->quota(); }
-					Genode::size_t used() { return _used_quota; }
+					int ref_account(Ram_session_capability) { return 0; }
+					int transfer_quota(Ram_session_capability, size_t) { return 0; }
+					size_t quota() { return env()->ram_session()->quota(); }
+					size_t used() { return _used_quota; }
 				};
 
 
 				/**
 				 * Used to record all RM attachements
 				 */
-				struct Local_rm_session : Rpc_object<Genode::Rm_session>
+				struct Local_rm_session : Rpc_object<Rm_session>
 				{
-					Genode::Rm_connection rm;
+					Rm_connection rm;
 
-					Local_addr attach(Genode::Dataspace_capability ds,
-					                  Genode::size_t size = 0, Genode::off_t offset = 0,
+					Local_addr attach(Dataspace_capability ds,
+					                  size_t size = 0, off_t offset = 0,
 					                  bool use_local_addr = false,
-					                  Local_addr local_addr = (Genode::addr_t)0)
+					                  Local_addr local_addr = (addr_t)0)
 					{
 						PINF("RM attach called");
 
@@ -230,13 +232,13 @@ namespace Noux {
 						rm.detach(local_addr);
 					}
 
-					Genode::Pager_capability add_client(Genode::Thread_capability thread)
+					Pager_capability add_client(Thread_capability thread)
 					{
 						PINF("RM add client called");
 						return rm.add_client(thread);
 					}
 
-					void fault_handler(Genode::Signal_context_capability handler)
+					void fault_handler(Signal_context_capability handler)
 					{
 						PINF("RM fault handler called");
 						return rm.fault_handler(handler);
@@ -248,7 +250,7 @@ namespace Noux {
 						return rm.state();
 					}
 
-					Genode::Dataspace_capability dataspace()
+					Dataspace_capability dataspace()
 					{
 						PINF("RM dataspace called");
 						return rm.dataspace();
@@ -259,17 +261,17 @@ namespace Noux {
 				/**
 				 * Used to defer the execution of the process' main thread
 				 */
-				struct Local_cpu_session : Rpc_object<Genode::Cpu_session>
+				struct Local_cpu_session : Rpc_object<Cpu_session>
 				{
 					bool forked;
-					Genode::Cpu_connection cpu;
+					Cpu_connection cpu;
 
-					Genode::Thread_capability main_thread;
+					Thread_capability main_thread;
 
 					Local_cpu_session(char const *label, bool forked)
 					: forked(forked), cpu(label) { }
 
-					Genode::Thread_capability create_thread(Name const &name)
+					Thread_capability create_thread(Name const &name)
 					{
 						/*
 						 * Prevent any attempt to create more than the main
@@ -277,7 +279,7 @@ namespace Noux {
 						 */
 						if (main_thread.valid()) {
 							PWRN("Invalid attempt to create a thread besides main");
-							return Genode::Thread_capability();
+							return Thread_capability();
 						}
 						main_thread = cpu.create_thread(name);
 
@@ -285,20 +287,20 @@ namespace Noux {
 						return main_thread;
 					}
 
-					void kill_thread(Genode::Thread_capability thread) {
+					void kill_thread(Thread_capability thread) {
 						cpu.kill_thread(thread); }
 
-					Genode::Thread_capability first() {
+					Thread_capability first() {
 						return cpu.first(); }
 
-					Genode::Thread_capability next(Genode::Thread_capability curr) {
+					Thread_capability next(Thread_capability curr) {
 						return cpu.next(curr); }
 
-					int set_pager(Genode::Thread_capability thread,
-					              Genode::Pager_capability  pager) {
+					int set_pager(Thread_capability thread,
+					              Pager_capability  pager) {
 					    return cpu.set_pager(thread, pager); }
 
-					int start(Genode::Thread_capability thread, Genode::addr_t ip, Genode::addr_t sp)
+					int start(Thread_capability thread, addr_t ip, addr_t sp)
 					{
 						if (forked) {
 							PINF("defer attempt to start thread at ip 0x%lx", ip);
@@ -307,23 +309,23 @@ namespace Noux {
 						return cpu.start(thread, ip, sp);
 					}
 
-					void pause(Genode::Thread_capability thread) {
+					void pause(Thread_capability thread) {
 						cpu.pause(thread); }
 
-					void resume(Genode::Thread_capability thread) {
+					void resume(Thread_capability thread) {
 						cpu.resume(thread); }
 
-					void cancel_blocking(Genode::Thread_capability thread) {
+					void cancel_blocking(Thread_capability thread) {
 						cpu.cancel_blocking(thread); }
 
-					int state(Genode::Thread_capability thread, Genode::Thread_state *dst) {
+					int state(Thread_capability thread, Thread_state *dst) {
 						return cpu.state(thread, dst); }
 
-					void exception_handler(Genode::Thread_capability         thread,
-					                       Genode::Signal_context_capability handler) {
+					void exception_handler(Thread_capability         thread,
+					                       Signal_context_capability handler) {
 					    cpu.exception_handler(thread, handler); }
 
-					void single_step(Genode::Thread_capability thread, bool enable) {
+					void single_step(Thread_capability thread, bool enable) {
 						cpu.single_step(thread, enable); }
 
 
@@ -331,19 +333,19 @@ namespace Noux {
 					 * Explicity start main thread, only meaningful when
 					 * 'forked' is true
 					 */
-					void start_main_thread(Genode::addr_t ip, Genode::addr_t sp)
+					void start_main_thread(addr_t ip, addr_t sp)
 					{
 						cpu.start(main_thread, ip, sp);
 					}
 				};
 
-				Genode::Rpc_entrypoint ep;
+				Rpc_entrypoint ep;
 
 				Local_ram_session      ram;
 				Local_cpu_session      cpu;
 				Local_rm_session       rm;
 
-				Resources(char const *label, Genode::Rpc_entrypoint &ep, bool forked)
+				Resources(char const *label, Rpc_entrypoint &ep, bool forked)
 				:
 					ep(ep),
 					cpu(label, forked)
@@ -377,11 +379,11 @@ namespace Noux {
 			/**
 			 * ELF binary
 			 */
-			Genode::Dataspace_capability const _binary_ds;
+			Dataspace_capability const _binary_ds;
 
 			Genode::Child _child;
 
-			Genode::Service_registry * const _parent_services;
+			Service_registry * const _parent_services;
 
 			Init::Child_policy_enforce_labeling _labeling_policy;
 			Init::Child_policy_provide_rom_file _binary_policy;
@@ -391,22 +393,22 @@ namespace Noux {
 			enum { PAGE_SIZE = 4096, PAGE_MASK = ~(PAGE_SIZE - 1) };
 			enum { SYSIO_DS_SIZE = PAGE_MASK & (sizeof(Sysio) + PAGE_SIZE - 1) };
 
-			Genode::Attached_ram_dataspace _sysio_ds;
-			Sysio * const                  _sysio;
+			Attached_ram_dataspace _sysio_ds;
+			Sysio * const          _sysio;
 
 			Session_capability const _noux_session_cap;
 
-			struct Local_noux_service : public Genode::Service
+			struct Local_noux_service : public Service
 			{
-				Session_capability _cap;
+				Genode::Session_capability _cap;
 
 				/**
 				 * Constructor
 				 *
 				 * \param cap  capability to return on session requests
 				 */
-				Local_noux_service(Session_capability cap)
-				: Genode::Service(service_name()), _cap(cap) { }
+				Local_noux_service(Genode::Session_capability cap)
+				: Service(service_name()), _cap(cap) { }
 
 				Genode::Session_capability session(const char *args) { return _cap; }
 				void upgrade(Genode::Session_capability, const char *args) { }
@@ -441,16 +443,16 @@ namespace Noux {
 			 *                or children created via execve, or
 			 *                true if the child is a fork from another child
 			 */
-			Child(char const                *name,
-			      int                        pid,
-			      Genode::Signal_receiver   *sig_rec,
-			      Vfs                       *vfs,
-			      Args                const &args,
-			      char const                *env,
-			      Genode::Cap_session       *cap_session,
-			      Genode::Service_registry  *parent_services,
-			      Genode::Rpc_entrypoint    &resources_ep,
-			      bool                       forked)
+			Child(char const        *name,
+			      int                pid,
+			      Signal_receiver   *sig_rec,
+			      Vfs               *vfs,
+			      Args               const &args,
+			      char const        *env,
+			      Cap_session       *cap_session,
+			      Service_registry  *parent_services,
+			      Rpc_entrypoint    &resources_ep,
+			      bool               forked)
 			:
 				_pid(pid),
 				_sig_rec(sig_rec),
@@ -478,7 +480,7 @@ namespace Noux {
 				_local_noux_service(_noux_session_cap)
 			{
 				_args.dump();
-				Genode::strncpy(_name, name, sizeof(_name));
+				strncpy(_name, name, sizeof(_name));
 			}
 
 			~Child()
@@ -496,10 +498,10 @@ namespace Noux {
 
 			const char *name() const { return _name; }
 
-			Genode::Service *resolve_session_request(const char *service_name,
-			                                         const char *args)
+			Service *resolve_session_request(const char *service_name,
+			                                 const char *args)
 			{
-				Genode::Service *service = 0;
+				Service *service = 0;
 
 				/* check for local ROM file requests */
 				if ((service =   _args_policy.resolve_session_request(service_name, args))
@@ -508,14 +510,14 @@ namespace Noux {
 					return service;
 
 				/* check for locally implemented noux service */
-				if (Genode::strcmp(service_name, Session::service_name()) == 0)
+				if (strcmp(service_name, Session::service_name()) == 0)
 					return &_local_noux_service;
 
 				return _parent_services->find(service_name);
 			}
 
 			void filter_session_args(const char *service,
-			                         char *args, Genode::size_t args_len)
+			                         char *args, size_t args_len)
 			{
 				_labeling_policy.filter_session_args(service, args, args_len);
 			}
@@ -523,10 +525,10 @@ namespace Noux {
 			void exit(int exit_value)
 			{
 				PINF("child %s exited with exit value %d", _name, exit_value);
-				Genode::Signal_transmitter(_exit_context_cap).submit();
+				Signal_transmitter(_exit_context_cap).submit();
 			}
 
-			Genode::Ram_session *ref_ram_session()
+			Ram_session *ref_ram_session()
 			{
 				return &_resources.ram;
 			}
@@ -536,7 +538,7 @@ namespace Noux {
 			 ** Noux session interface **
 			 ****************************/
 
-			Genode::Dataspace_capability sysio_dataspace()
+			Dataspace_capability sysio_dataspace()
 			{
 				return _sysio_ds.cap();
 			}
