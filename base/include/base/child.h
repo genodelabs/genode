@@ -402,6 +402,7 @@ namespace Genode {
 			Ram_session_capability ram_session_cap() const { return _ram; }
 			Cpu_session_capability cpu_session_cap() const { return _cpu; }
 			Rm_session_capability   rm_session_cap() const { return _rm;  }
+			Parent_capability       parent_cap()     const { return cap(); }
 
 			/**
 			 * Discard all sessions to specified service
