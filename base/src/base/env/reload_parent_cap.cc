@@ -12,9 +12,10 @@
  */
 
 #include <base/platform_env.h>
+#include <base/crt0.h>
 
 
-void Genode::Platform_env::reload_parent_cap()
+void Genode::Platform_env::reload_parent_cap(Capability<Parent> parent_cap)
 {
 	/*
 	 * This function is unused during the normal operation of Genode. It is
@@ -22,13 +23,22 @@ void Genode::Platform_env::reload_parent_cap()
 	 * Noux execution environment.
 	 *
 	 * The function is called by the freshly created process right after the
-	 * fork happened. During the fork, the Noux environment is expected to have
-	 * updated the '_parent_cap' of the new process.
+	 * fork happened.
 	 *
 	 * The existing 'Platform_env' object contains capabilities that are
 	 * meaningful for the forking process but not the new process. Before the
 	 * the environment can be used, it must be reinitialized with the resources
 	 * provided by the actual parent.
+	 */
+
+	/*
+	 * Patch new parent capability into the original location as specified by
+	 * the linker script.
+	 */
+	*(Capability<Parent> *)(&_parent_cap) = parent_cap;
+
+	/*
+	 * Re-initialize 'Platform_env' members
 	 */
 	_parent_client = Parent_client(Genode::parent_cap());
 	_resources     = Resources(_parent_client);

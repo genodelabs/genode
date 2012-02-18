@@ -154,7 +154,7 @@ namespace Genode {
 			 * meaningful capabilities obtained via its updated parent
 			 * capability.
 			 */
-			void reload_parent_cap();
+			void reload_parent_cap(Capability<Parent>);
 
 
 			/*******************

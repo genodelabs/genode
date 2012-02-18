@@ -361,6 +361,14 @@ namespace Genode {
 			 */
 			~Platform_env() { parent()->exit(0); }
 
+			/**
+			 * Reload parent capability and reinitialize environment resources
+			 */
+			void reload_parent_cap(Capability<Parent>)
+			{
+				/* not supported on Linux */
+			}
+
 
 			/*******************
 			 ** Env interface **
