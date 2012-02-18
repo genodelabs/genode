@@ -190,8 +190,18 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 			throw THREAD_FAIL;
 		}
 
+		/*
+		 * The argument 'elf_ds_cap' may be invalid, which is not an error.
+		 * This can happen when the process library is used to set up a process
+		 * forked from another. In this case, all process initialization should
+		 * be done except for the ELF loading and the startup of the main
+		 * thread (as a forked process does not start its execution at the ELF
+		 * entrypoint).
+		 */
+		bool const forked = !elf_ds_cap.valid();
+
 		/* check for dynamic program header */
-		if (_check_dynamic_elf(elf_ds_cap)) {
+		if (!forked && _check_dynamic_elf(elf_ds_cap)) {
 			if (!_dynamic_linker_cap.valid()) {
 				PERR("Dynamically linked file found, but no dynamic linker binary present");
 				throw ELF_FAIL;
@@ -203,10 +213,13 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 		Ram_session_client ram(ram_session_cap);
 
 		/* parse ELF binary and setup segment dataspaces */
-		addr_t entry = _setup_elf(parent_cap, elf_ds_cap, ram, _rm_session_client);
-		if (!entry) {
-			PERR("Setup ELF failed");
-			throw ELF_FAIL;
+		addr_t entry = 0;
+		if (elf_ds_cap.valid()) {
+			entry = _setup_elf(parent_cap, elf_ds_cap, ram, _rm_session_client);
+			if (!entry) {
+				PERR("Setup ELF failed");
+				throw ELF_FAIL;
+			}
 		}
 
 		/* register parent interface for new protection domain */
@@ -238,13 +251,20 @@ Process::Process(Dataspace_capability    elf_ds_cap,
 			throw THREAD_PAGER_FAIL;
 		}
 
-		/* start thread */
-		err = _cpu_session_client.start(_thread0_cap, entry, 0 /* unused */);
-		if (err) {
-			PERR("Thread0 startup failed");
-			throw THREAD_START_FAIL;
-		}
+		/*
+		 * Inhibit start of main thread if the new process happens to be forked
+		 * from another. In this case, the main thread will get manually
+		 * started after constructing the 'Process'.
+		 */
+		if (!forked) {
 
+			/* start main thread */
+			err = _cpu_session_client.start(_thread0_cap, entry, 0 /* unused */);
+			if (err) {
+				PERR("Thread0 startup failed");
+				throw THREAD_START_FAIL;
+			}
+		}
 	}
 	catch (Local_exception cause) {
 
