@@ -28,15 +28,15 @@
  * ;- run 'ls -lRa' (dirent syscall)
  * ;- run 'cat' (read syscall)
  * ;- execve
- * - fork
+ * ;- fork
  * - pipe
- * - read init binary from vfs
- * - import env into child
+ * ;- read init binary from vfs
+ * - import env into child (execve and fork)
  * - shell
  * - debug 'find'
  * - stacked file system infrastructure
  * - TMP file system
- * - RAM service using a common quota pool
+ * ;- RAM service using a common quota pool
  */
 
 /* Genode includes */
@@ -52,6 +52,9 @@
 #include <tar_file_system.h>
 
 
+enum { verbose_syscall = false };
+
+
 namespace Noux {
 
 	static Noux::Child *init_child;
@@ -59,19 +62,6 @@ namespace Noux {
 	bool is_init_process(Child *child) { return child == init_child; }
 	void init_process_exited() { init_child = 0; }
 };
-
-
-/**
- * Allocate unique process ID
- */
-static int alloc_pid()
-{
-	static Genode::Lock lock;
-	Genode::Lock::Guard guard(lock);
-
-	static int num_pids = 0;
-	return num_pids++;
-}
 
 
 extern "C" void wait_for_continue();
@@ -83,7 +73,10 @@ extern "C" void wait_for_continue();
 
 bool Noux::Child::syscall(Noux::Session::Syscall sc)
 {
-//	Genode::printf("-> SYSCALL %s\n", Noux::Session::syscall_name(sc));
+	if (verbose_syscall)
+		Genode::printf("PID %d -> SYSCALL %s\n",
+		               _pid, Noux::Session::syscall_name(sc));
+
 	try {
 		switch (sc) {
 
@@ -175,10 +168,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _resources.ep,
 				                         false);
 
-				/* let new child inherit our file descriptors */
-				for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
-					if (fd_in_use(fd))
-						child->add_io_channel(io_channel_by_fd(fd), fd);
+				_assign_io_channels_to(child);
 
 				/* signal main thread to remove ourself */
 				Genode::Signal_transmitter(_execve_cleanup_context_cap).submit();
@@ -287,8 +277,37 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_FORK:
 			{
-				PDBG("fork called - not implemented");
-				_sysio->fork_out.pid = 77;
+				Genode::addr_t ip              = _sysio->fork_in.ip;
+				Genode::addr_t sp              = _sysio->fork_in.sp;
+				Genode::addr_t parent_cap_addr = _sysio->fork_in.parent_cap_addr;
+
+				int new_pid = pid_allocator()->alloc();
+				char const *env = "PWD=\"/\"";
+
+				Child *child = new Child("borked" /*name()*/,
+				                         new_pid,
+				                         _sig_rec,
+				                         _vfs,
+				                         _args,
+				                         env, /* XXX */
+				                         _cap_session,
+				                         _parent_services,
+				                         _resources.ep,
+				                         true);
+
+				_assign_io_channels_to(child);
+
+				/* copy our address space into the new child */
+				_resources.rm.replay(child->ram(), child->rm());
+
+				/* start executing the main thread of the new process */
+				child->start_forked_main_thread(ip, sp, parent_cap_addr);
+
+				/* activate child entrypoint, thereby starting the new process */
+				child->start();
+
+				_sysio->fork_out.pid = new_pid;
+
 				return true;
 			}
 
@@ -427,7 +446,7 @@ int main(int argc, char **argv)
 
 	/* whitelist of service requests to be routed to the parent */
 	static Genode::Service_registry parent_services;
-	char const *service_names[] = { "LOG", "ROM", "Timer", "RM", 0 };
+	char const *service_names[] = { "LOG", "ROM", "Timer", 0 };
 	for (unsigned i = 0; service_names[i]; i++)
 		parent_services.insert(new Genode::Parent_service(service_names[i]));
 
@@ -444,8 +463,6 @@ int main(int argc, char **argv)
 		}
 	} catch (Genode::Xml_node::Nonexistent_sub_node) { }
 
-	/* XXX union RAM service */
-
 	/*
 	 * Entrypoint used to virtualize child resources such as RAM, RM
 	 */
@@ -456,7 +473,7 @@ int main(int argc, char **argv)
 	static Genode::Signal_receiver sig_rec;
 
 	init_child = new Noux::Child(name_of_init_process(),
-	                             alloc_pid(),
+	                             pid_allocator()->alloc(),
 	                             &sig_rec,
 	                             &vfs,
 	                             args_of_init_process(),

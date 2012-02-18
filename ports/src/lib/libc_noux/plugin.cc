@@ -38,22 +38,50 @@
 
 
 
-Noux::Session *noux()
+class Noux_connection
 {
-	static Noux::Connection noux_inst;
-	return &noux_inst;
+	private:
+
+		Noux::Connection *_connection;
+		Noux::Sysio      *_sysio;
+
+		void _connect()
+		{
+			_connection = new (Genode::env()->heap()) Noux::Connection;
+			_sysio = Genode::env()->rm_session()->attach(_connection->sysio_dataspace());
+		}
+
+		void _disconnect()
+		{
+			Genode::env()->rm_session()->detach(_sysio);
+			Genode::destroy(Genode::env()->heap(), _connection);
+		}
+
+	public:
+
+		Noux_connection() { _connect(); }
+
+		void reconnect() {
+			_disconnect(); _connect();
+			PDBG("reconnected to Noux cap=%lx", _connection->cap().local_name());
+			PDBG("getpid returns %d", getpid());
+		}
+
+		Noux::Session *session() { return _connection; }
+		Noux::Sysio   *sysio()   { return _sysio; }
+};
+
+
+Noux_connection *noux_connection()
+{
+	static Noux_connection inst;
+	return &inst;
 }
 
 
-Noux::Sysio *sysio()
-{
-	using namespace Noux;
+Noux::Session *noux()  { return noux_connection()->session(); }
+Noux::Sysio   *sysio() { return noux_connection()->sysio();   }
 
-	static Sysio *sysio =
-		Genode::env()->rm_session()->attach(noux()->sysio_dataspace());
-
-	return sysio;
-}
 
 enum { FS_BLOCK_SIZE = 1024 };
 
@@ -295,11 +323,11 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 
 #include <setjmp.h>
 
-#include <base/crt0.h> /* for '_parent_cap', needed by 'fork' */
 #include <base/platform_env.h>
 
 
 static jmp_buf fork_jmp_buf;
+static Genode::Capability<Genode::Parent> new_parent_cap;
 
 
 /*
@@ -307,7 +335,15 @@ static jmp_buf fork_jmp_buf;
  */
 extern "C" void fork_trampoline()
 {
-	static_cast<Genode::Platform_env *>(Genode::env())->reload_parent_cap();
+	/*
+	 * XXX remove hard-coded parent cap
+	 */
+	Okl4::L4_ThreadId_t tid;
+	tid.raw = 0x210001UL;
+	Genode::Native_capability cap(tid, 0x107UL);
+	new_parent_cap = Genode::reinterpret_cap_cast<Genode::Parent>(cap);
+
+	static_cast<Genode::Platform_env *>(Genode::env())->reload_parent_cap(new_parent_cap);
 
 	longjmp(fork_jmp_buf, 1);
 }
@@ -322,18 +358,15 @@ extern "C" pid_t fork(void)
 	if (setjmp(fork_jmp_buf)) {
 
 		/* got here via longjmp from 'fork_trampoline' */
-
-		PDBG("fork: got here via longjmp");
+		noux_connection()->reconnect();
 		return 0;
 
 	} else {
 
-		PDBG("fork: got here via normal control flow");
-
 		/* got here during the normal control flow of the fork call */
 		sysio()->fork_in.ip              = (Genode::addr_t)(&fork_trampoline);
 		sysio()->fork_in.sp              = (Genode::addr_t)(&stack[STACK_SIZE]);
-		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&_parent_cap);
+		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&new_parent_cap);
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_FORK)) {
 			PERR("fork error %d", sysio()->error.general);
