@@ -7,6 +7,8 @@
 # This file is based on the generated Makefile created by qt4's configure.
 #
 
+QT4 = qt-everywhere-opensource-src-4.7.4
+
 CC_1 =  gcc
 CC = $(CC_1)
 CXX_1 =  g++
@@ -22,7 +24,7 @@ QMAKE_LFLAGS = $(QMAKE_LFLAGS_1)
 REP_DIR := ../..
 
 # root of Qt4 source tree
-CONTRIB_DIR := $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1
+CONTRIB_DIR := $(REP_DIR)/contrib/$(QT4)
 
 # tell make where to look for source codes
 vpath %.h   $(CONTRIB_DIR)/qmake

@@ -5,6 +5,8 @@
 # \date   2009-05-15
 #
 
+QT4 = qt-everywhere-opensource-src-4.7.4
+
 REP_DIR := $(realpath ..)
 
 #
@@ -20,7 +22,7 @@ ifneq ($(HOST_ARCH),x86_64)
 HOST_ARCH=x86
 endif
 
-QMAKESPEC = $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1/mkspecs/qws/linux-$(HOST_ARCH)-g++
+QMAKESPEC = $(REP_DIR)/contrib/$(QT4)/mkspecs/qws/linux-$(HOST_ARCH)-g++
 
 #
 # Build qmake
@@ -31,10 +33,10 @@ qmake/qmake:
 #
 # Build the other tools using qmake
 #
-vpath bootstrap.pro $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1/src/tools/bootstrap
-vpath       moc.pro $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1/src/tools/moc
-vpath       rcc.pro $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1/src/tools/rcc
-vpath       uic.pro $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1/src/tools/uic
+vpath bootstrap.pro $(REP_DIR)/contrib/$(QT4)/src/tools/bootstrap
+vpath       moc.pro $(REP_DIR)/contrib/$(QT4)/src/tools/moc
+vpath       rcc.pro $(REP_DIR)/contrib/$(QT4)/src/tools/rcc
+vpath       uic.pro $(REP_DIR)/contrib/$(QT4)/src/tools/uic
 
 bootstrap/libbootstrap.a: bootstrap/Makefile
 	make -C bootstrap
@@ -58,7 +60,7 @@ uic/uic: uic/Makefile bootstrap/libbootstrap.a
 %/Makefile: %.pro
 	mkdir -p $*
 	QMAKESPEC=$(QMAKESPEC) qmake/qmake -o $*/Makefile \
-		QT_BUILD_TREE=$(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1 \
+		QT_BUILD_TREE=$(REP_DIR)/contrib/$(QT4) \
 		INCLUDEPATH+=$(REP_DIR)/include/qt4 \
 		INCLUDEPATH+=$(REP_DIR)/include/qt4/QtCore \
 		INCLUDEPATH+=$(REP_DIR)/src/lib/qt4/src/corelib/global \

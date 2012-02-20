@@ -1,4 +1,4 @@
-QT4 = qt-everywhere-opensource-src-4.7.1
+include $(REP_DIR)/lib/import/import-qt4.mk
 
 SRC_CC       = main.cpp qjpeghandler.cpp
 

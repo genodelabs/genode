@@ -12,8 +12,10 @@ INC_DIR += $(PRG_DIR)
 # include the qmake project file
 # -> change the filename if it differs from the project dir name
 
+QT4 = qt-everywhere-opensource-src-4.7.4
+
 #QMAKE_PROJECT_FILE = $(realpath $(PRG_DIR)/$(PROJECT_DIR_NAME).pro)
-QMAKE_PROJECT_FILE = $(realpath $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1/examples/webkit/previewer/previewer.pro)
+QMAKE_PROJECT_FILE = $(realpath $(REP_DIR)/contrib/$(QT4)/examples/webkit/previewer/previewer.pro)
 
 ifneq ($(strip $(QMAKE_PROJECT_FILE)),)
 include $(QMAKE_PROJECT_FILE)
@@ -38,7 +40,7 @@ endif
 
 CC_CXX_OPT += -DQT_MAIN_STACK_SIZE=512*1024
 
-vpath % $(REP_DIR)/contrib/qt-everywhere-opensource-src-4.7.1/examples/webkit/previewer
+vpath % $(REP_DIR)/contrib/$(QT4)/examples/webkit/previewer
 
 ###### end of editable part ######
 

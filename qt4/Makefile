@@ -12,7 +12,7 @@ CONTRIB_DIR  = contrib
 PATCHES_DIR  = ../../src/lib/qt4
 
 QT4_URL = ftp://ftp.trolltech.com/qt/source
-QT4     = qt-everywhere-opensource-src-4.7.1
+QT4     = qt-everywhere-opensource-src-4.7.4
 QT4_TGZ = $(QT4).tar.gz
 
 QTSCRIPTCLASSIC_URL = http://get.qt.nokia.com/qt/solutions/lgpl
@@ -23,7 +23,6 @@ PATCHES = qt4_genode.patch \
           qt4_nonblocking_sockets.patch \
           qt4_no_search_for_resolv_lib.patch \
           qt4_lwip_connect_semantics_adaption.patch \
-          qt4_no_separate_host_lookup_threads.patch \
           previewer_example.patch \
           textedit_example.patch \
           qt4_no_exit_on_window_close.patch \

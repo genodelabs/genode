@@ -4,7 +4,7 @@
 ifeq ($(QT4_IMPORTED),)
 QT4_IMPORTED = true
 
-QT4 = qt-everywhere-opensource-src-4.7.1
+QT4 = qt-everywhere-opensource-src-4.7.4
 
 # identify the qt4 repository by searching for a file that is unique for qt4
 QT4_REP_DIR := $(call select_from_repositories,lib/import/import-qt4.mk)

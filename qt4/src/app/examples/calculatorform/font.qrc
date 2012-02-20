@@ -1,6 +1,6 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
 <qresource prefix="/qt/fonts">
-<file alias="helvetica_120_50.qpf">../../../../contrib/qt-everywhere-opensource-src-4.7.1/lib/fonts/helvetica_120_50.qpf</file>
+<file alias="helvetica_120_50.qpf">../../../../contrib/qt-everywhere-opensource-src-4.7.4/lib/fonts/helvetica_120_50.qpf</file>
 </qresource>
 </RCC>

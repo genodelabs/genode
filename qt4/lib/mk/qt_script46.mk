@@ -343,4 +343,4 @@ vpath % $(REP_DIR)/contrib/$(QT4)/src/script/bridge
 vpath % $(REP_DIR)/contrib/$(QT4)/src/script/parser
 vpath % $(REP_DIR)/contrib/$(QT4)/src/script/utils
 
-include $(REP_DIR)/lib/mk/qt.mk
+include $(REP_DIR)/lib/mk/qt.inc

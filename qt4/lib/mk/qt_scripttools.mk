@@ -146,4 +146,4 @@ vpath % $(REP_DIR)/include/qt4/QtScriptTools/private
 vpath % $(REP_DIR)/src/lib/qt4/src/scripttools/debugging
 vpath % $(REP_DIR)/contrib/$(QT4)/src/scripttools/debugging
 
-include $(REP_DIR)/lib/mk/qt.mk
+include $(REP_DIR)/lib/mk/qt.inc
