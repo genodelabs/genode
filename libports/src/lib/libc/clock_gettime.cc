@@ -16,7 +16,8 @@
 
 #include <sys/time.h>
 
-extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
+extern "C" __attribute__((weak))
+int clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id != CLOCK_MONOTONIC)
 		PWRN("Unsupported clk_id, using CLOCK_MONOTONIC instead.");

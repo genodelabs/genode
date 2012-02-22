@@ -15,7 +15,8 @@
 
 #include <sys/time.h>
 
-extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
+extern "C" __attribute__((weak))
+int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	Genode::Alarm::Time time = Genode::Timeout_thread::alarm_timer()->time();
 
