@@ -15,11 +15,13 @@ set build_components {
 	server/terminal
 }
 lappend build_components noux-pkg/bash
+lappend build_components noux-pkg/coreutils
 lappend build_components test/libports/ncurses
 
 build $build_components
 
 exec tar cfv bin/bash.tar -h -C bin/bash .
+exec tar rfv bin/bash.tar -h -C bin/coreutils .
 
 create_boot_directory
 

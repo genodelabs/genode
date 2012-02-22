@@ -163,6 +163,10 @@ namespace Noux {
 					virtual void destroy(Dataspace_capability) = 0;
 				};
 
+
+				class Dataspace_registry;
+
+
 				class Dataspace_info : public Object_pool<Dataspace_info>::Entry
 				{
 					private:
@@ -185,7 +189,30 @@ namespace Noux {
 						size_t                 size() const { return _size; }
 						Dataspace_capability ds_cap() const { return _ds_cap; }
 
-						virtual Dataspace_capability fork(Ram_session_capability ram) = 0;
+						/**
+						 * Create shadow copy of dataspace
+						 *
+						 * \param ds_registry  registry for keeping track of
+						 *                     the new dataspace
+						 * \param ep           entrypoint used to serve the RPC
+						 *                     interface of the new dataspace
+						 *                     (used if the dataspace is a sub
+						 *                     RM session)
+						 * \return             capability for the new dataspace
+						 */
+						virtual Dataspace_capability fork(Ram_session_capability ram,
+						                                  Dataspace_destroyer   &destroyer,
+						                                  Dataspace_registry    &ds_registry,
+						                                  Rpc_entrypoint        &ep) = 0;
+
+						/**
+						 * Write data sequence into dataspace
+						 *
+						 * \param dst_offset  destination offset within dataspace
+						 * \param src         data source buffer
+						 * \param len         length of source buffer in bytes
+						 */
+						virtual void poke(addr_t dst_offset, void const *src, size_t len) = 0;
 
 						Dataspace_destroyer &destroyer() { return _destroyer; }
 				};
@@ -223,7 +250,10 @@ namespace Noux {
 					                   Dataspace_destroyer &destroyer)
 					: Dataspace_info(ds_cap, destroyer) { }
 
-					Dataspace_capability fork(Ram_session_capability ram)
+					Dataspace_capability fork(Ram_session_capability ram,
+					                          Dataspace_destroyer &destroyer,
+					                          Dataspace_registry &,
+					                          Rpc_entrypoint &)
 					{
 						size_t const size = Dataspace_client(ds_cap()).size();
 
@@ -232,7 +262,7 @@ namespace Noux {
 						try {
 							dst_ds = Ram_session_client(ram).alloc(size);
 						} catch (...) {
-							return Ram_dataspace_capability();
+							return Dataspace_capability();
 						}
 
 						void *src = 0;
@@ -253,10 +283,28 @@ namespace Noux {
 
 						if (!src || !dst) {
 							Ram_session_client(ram).free(dst_ds);
-							return Ram_dataspace_capability();
+							return Dataspace_capability();
 						}
-						
+
 						return dst_ds;
+					}
+
+					void poke(addr_t dst_offset, void const *src, size_t len)
+					{
+						if ((dst_offset >= size()) || (dst_offset + len > size())) {
+						 	PERR("illegal attemt to write beyond dataspace boundary");
+						 	return;
+						}
+
+						char *dst = 0;
+						try {
+							dst = Genode::env()->rm_session()->attach(ds_cap());
+						} catch (...) { }
+
+						if (src && dst)
+							memcpy(dst + dst_offset, src, len);
+
+						if (dst) Genode::env()->rm_session()->detach(dst);
 					}
 				};
 
@@ -295,7 +343,7 @@ namespace Noux {
 					 ** Dataspace_destroyer interface **
 					 ***********************************/
 
-					/* XXX not yet used */
+					/* XXX not used yet */
 					void destroy(Dataspace_capability ds)
 					{
 						free(static_cap_cast<Ram_dataspace>(ds));
@@ -409,8 +457,19 @@ namespace Noux {
 					 *                 the copies of RAM dataspaces
 					 */
 					void replay(Ram_session_capability dst_ram,
-					            Rm_session_capability  dst_rm)
+					            Rm_session_capability  dst_rm,
+					            Dataspace_registry    &ds_registry,
+					            Rpc_entrypoint        &ep)
 					{
+						/*
+						 * XXX remove this
+						 */
+						struct Dummy_destroyer : Dataspace_destroyer
+						{
+							void destroy(Dataspace_capability) { }
+						};
+						static Dummy_destroyer dummy_destroyer;
+
 						Region *curr = _regions.first();
 						for (; curr; curr = curr->next()) {
 
@@ -419,7 +478,15 @@ namespace Noux {
 							Dataspace_info *info = _ds_registry.lookup_info(curr->ds);
 
 							if (info) {
-								ds = info->fork(dst_ram);
+								/*
+								 * XXX using 'this' as destroyer may be false,
+								 *     the destroyer should better correspond to
+								 *     dst_ram.
+								 */
+								ds = info->fork(dst_ram,
+								                dummy_destroyer,
+								                ds_registry,
+								                ep);
 								if (!ds.valid())
 									PERR("replay: Error while forking dataspace");
 
@@ -443,7 +510,7 @@ namespace Noux {
 								 *     detect unexpected dataspaces.
 								 */
 								ds = curr->ds;
-								PWRN("replay: unknown dataspace type");
+								PWRN("replay: unknown dataspace type, assume ROM");
 							}
 
 							Rm_session_client(dst_rm).attach(ds, curr->size,
@@ -451,6 +518,38 @@ namespace Noux {
 							                                 true,
 							                                 curr->local_addr);
 						}
+					}
+
+					void poke(addr_t dst_addr, void const *src, size_t len)
+					{
+						Region *region = _lookup_region_by_addr(dst_addr);
+						if (!region) {
+							PERR("poke: no region at 0x%lx", dst_addr);
+							return;
+						}
+
+						/*
+						 * Test if start and end address occupied by the object
+						 * type refers to the same region.
+						 */
+						if (region != _lookup_region_by_addr(dst_addr + len - 1)) {
+							PERR("attempt to write beyond region boundary");
+							return;
+						}
+
+						Dataspace_info *info = _ds_registry.lookup_info(region->ds);
+						if (!info) {
+							PERR("attempt to write to unknown dataspace type");
+							for (;;);
+							return;
+						}
+
+						if (region->offset) {
+							PERR("poke: writing to region with offset is not supported");
+							return;
+						}
+
+						info->poke(dst_addr - region->local_addr, src, len);
 					}
 
 
@@ -535,20 +634,30 @@ namespace Noux {
 						_sub_rm(sub_rm)
 					{ }
 
-					Dataspace_capability fork(Ram_session_capability ram)
+					Dataspace_capability fork(Ram_session_capability ram,
+					                          Dataspace_destroyer &destoyer,
+					                          Dataspace_registry  &ds_registry,
+					                          Rpc_entrypoint      &ep)
 					{
-						Rm_connection *new_sub_rm = new Rm_connection(0, size());
+						Local_rm_session *new_sub_rm =
+							new Local_rm_session(ds_registry, 0, size());
 
-						/*
-						 * XXX We are leaking the 'Rm_connection' because of
-						 *     keeping only the dataspace.
-						 */
+						Rm_session_capability rm_cap = ep.manage(new_sub_rm);
 
-						_sub_rm.replay(ram, new_sub_rm->cap());
+						_sub_rm.replay(ram, rm_cap, ds_registry, ep);
 
-						Dataspace_capability ds_cap = new_sub_rm->dataspace();
+						ds_registry.insert(new Sub_rm_dataspace_info(*new_sub_rm));
 
-						return ds_cap;
+						return new_sub_rm->dataspace();
+					}
+
+					void poke(addr_t dst_offset, void const *src, size_t len)
+					{
+						if ((dst_offset >= size()) || (dst_offset + len > size())) {
+							PERR("illegal attemt to write beyond RM boundary");
+							return;
+						}
+						_sub_rm.poke(dst_offset, src, len);
 					}
 				};
 
@@ -573,6 +682,7 @@ namespace Noux {
 						 */
 						if (main_thread.valid()) {
 							PWRN("Invalid attempt to create a thread besides main");
+							while (1);
 							return Thread_capability();
 						}
 						main_thread = cpu.create_thread(name);
@@ -804,7 +914,7 @@ namespace Noux {
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
 				_vfs(vfs),
-				_binary_ds(forked ? Dataspace_capability() 
+				_binary_ds(forked ? Dataspace_capability()
 				                  : vfs->dataspace_from_file(name)),
 				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, this),
@@ -821,11 +931,6 @@ namespace Noux {
 			{
 				_args.dump();
 				strncpy(_name, name, sizeof(_name));
-
-				Native_capability cap = _child.parent_cap();
-
-				PINF("PID %d has parent cap %lx,%lx",
-				     _pid, cap.tid().raw, cap.local_name());
 			}
 
 			~Child()
@@ -837,16 +942,20 @@ namespace Noux {
 
 			void start() { _entrypoint.activate(); }
 
-			void start_forked_main_thread(addr_t ip, addr_t sp, addr_t /* parent_cap_addr */)
+			void start_forked_main_thread(addr_t ip, addr_t sp, addr_t parent_cap_addr)
 			{
-				/*
-				 * XXX poke parent_cap_addr into child's address space
-				 */
+				/* poke parent_cap_addr into child's address space */
+				Parent_capability const cap = _child.parent_cap();
+				_resources.rm.poke(parent_cap_addr, &cap, sizeof(cap));
+
+				/* start execution of new main thread at supplied trampoline */
 				_resources.cpu.start_main_thread(ip, sp);
 			}
 
 			Ram_session_capability ram() const { return _resources.ram.cap(); }
 			Rm_session_capability   rm() const { return _resources.rm.cap(); }
+
+			Resources::Dataspace_registry &ds_registry() { return _resources.ds_registry; }
 
 
 			/****************************

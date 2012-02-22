@@ -284,7 +284,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				int new_pid = pid_allocator()->alloc();
 				char const *env = "PWD=\"/\"";
 
-				Child *child = new Child("borked" /*name()*/,
+				/*
+				 * XXX To ease debugging, it would be useful to generate a
+				 *     unique name that includes the PID instead of just
+				 *     reusing the name of the parent.
+				 */
+				Child *child = new Child(name(),
 				                         new_pid,
 				                         _sig_rec,
 				                         _vfs,
@@ -298,7 +303,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				_assign_io_channels_to(child);
 
 				/* copy our address space into the new child */
-				_resources.rm.replay(child->ram(), child->rm());
+				_resources.rm.replay(child->ram(), child->rm(),
+				                     child->ds_registry(), _resources.ep);
 
 				/* start executing the main thread of the new process */
 				child->start_forked_main_thread(ip, sp, parent_cap_addr);

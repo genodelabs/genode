@@ -33,42 +33,39 @@
 #include <sys/fcntl.h>
 #include <sys/dirent.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <termios.h>
 
+
+void *operator new (size_t, void *ptr) { return ptr; }
 
 
 class Noux_connection
 {
 	private:
 
-		Noux::Connection *_connection;
+		Noux::Connection _connection;
 		Noux::Sysio      *_sysio;
 
-		void _connect()
+		Noux::Sysio *_obtain_sysio()
 		{
-			_connection = new (Genode::env()->heap()) Noux::Connection;
-			_sysio = Genode::env()->rm_session()->attach(_connection->sysio_dataspace());
-		}
-
-		void _disconnect()
-		{
-			Genode::env()->rm_session()->detach(_sysio);
-			Genode::destroy(Genode::env()->heap(), _connection);
+			return Genode::env()->rm_session()->attach(_connection.sysio_dataspace());
 		}
 
 	public:
 
-		Noux_connection() { _connect(); }
+		Noux_connection() : _sysio(_obtain_sysio()) { }
 
-		void reconnect() {
-			_disconnect(); _connect();
-			PDBG("reconnected to Noux cap=%lx", _connection->cap().local_name());
-			PDBG("getpid returns %d", getpid());
+		void reconnect()
+		{
+			new (&_connection) Noux_connection;
+			Genode::env()->rm_session()->detach(_sysio);
+			_sysio = _obtain_sysio();
 		}
 
-		Noux::Session *session() { return _connection; }
-		Noux::Sysio   *sysio()   { return _sysio; }
+		Noux::Session *session() { return &_connection; }
+		Noux::Sysio   *sysio()   { return  _sysio; }
 };
 
 
@@ -320,14 +317,14 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 	return out_fds.total_fds();
 }
 
-
 #include <setjmp.h>
-
 #include <base/platform_env.h>
 
 
 static jmp_buf fork_jmp_buf;
 static Genode::Capability<Genode::Parent> new_parent_cap;
+
+extern "C" void stdout_reconnect(); /* provided by 'log_console.cc' */
 
 
 /*
@@ -335,15 +332,10 @@ static Genode::Capability<Genode::Parent> new_parent_cap;
  */
 extern "C" void fork_trampoline()
 {
-	/*
-	 * XXX remove hard-coded parent cap
-	 */
-	Okl4::L4_ThreadId_t tid;
-	tid.raw = 0x210001UL;
-	Genode::Native_capability cap(tid, 0x107UL);
-	new_parent_cap = Genode::reinterpret_cap_cast<Genode::Parent>(cap);
-
 	static_cast<Genode::Platform_env *>(Genode::env())->reload_parent_cap(new_parent_cap);
+
+	stdout_reconnect();
+	noux_connection()->reconnect();
 
 	longjmp(fork_jmp_buf, 1);
 }
@@ -357,8 +349,9 @@ extern "C" pid_t fork(void)
 
 	if (setjmp(fork_jmp_buf)) {
 
-		/* got here via longjmp from 'fork_trampoline' */
-		noux_connection()->reconnect();
+		/*
+		 * We got here via longjmp from 'fork_trampoline'.
+		 */
 		return 0;
 
 	} else {
@@ -381,6 +374,51 @@ extern "C" pid_t getpid(void)
 {
 	noux()->syscall(Noux::Session::SYSCALL_GETPID);
 	return sysio()->getpid_out.pid;
+}
+
+
+extern "C" pid_t _wait4(pid_t pid, int *status, int options,
+                        struct rusage *rusage)
+{
+	/*
+	 * XXX dummy to accomodate the 'reap_zombie_children' function in bash
+	 */
+	if (options & WNOHANG) {
+		PWRN("_wait4 dummy called (with WNOHANG) - not implemented");
+		return 0;
+	}
+
+	PDBG("_wait4 (pid=%d, options=0x%x) called, waiting forever...",
+	      pid, options);
+
+	for (;;);
+	return 0;
+}
+
+
+/********************
+ ** Time functions **
+ ********************/
+
+/*
+ * The default implementations as provided by the libc rely on a dedicated
+ * thread. But on Noux, no thread other than the main thread is allowed. For
+ * this reason, we need to override the default implementations here.
+ */
+
+extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
+{
+	PDBG("clock_gettime called - not implemented");
+	errno = EINVAL;
+	return -1;
+}
+
+
+extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+	PDBG("gettimeofdaye called - not implemented");
+	errno = EINVAL;
+	return -1;
 }
 
 
