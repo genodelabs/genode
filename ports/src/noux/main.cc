@@ -435,6 +435,13 @@ static char const *env_string_of_init_process()
 }
 
 
+Noux::Pid_allocator *Noux::pid_allocator()
+{
+	static Noux::Pid_allocator inst;
+	return &inst;
+}
+
+
 void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
 

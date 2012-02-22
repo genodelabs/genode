@@ -16,8 +16,6 @@
 
 /* Genode includes */
 #include <init/child_policy.h>
-#include <ram_session/connection.h>
-#include <cpu_session/connection.h>
 #include <base/signal.h>
 #include <base/semaphore.h>
 #include <cap_session/cap_session.h>
@@ -30,6 +28,10 @@
 #include <noux_session/capability.h>
 #include <args.h>
 #include <environment.h>
+#include <local_rm_service.h>
+#include <ram_session_component.h>
+#include <cpu_session_component.h>
+
 
 namespace Noux {
 
@@ -61,11 +63,7 @@ namespace Noux {
 	/**
 	 * Return singleton instance of PID allocator
 	 */
-	Pid_allocator *pid_allocator()
-	{
-		static Pid_allocator inst;
-		return &inst;
-	}
+	Pid_allocator *pid_allocator();
 
 
 	class Child;
@@ -155,598 +153,23 @@ namespace Noux {
 			 */
 			struct Resources
 			{
-				/*
-				 * XXX not used yet
+				/**
+				 * Entrypoint used to serve the RPC interfaces of the
+				 * locally-provided services
 				 */
-				struct Dataspace_destroyer
-				{
-					virtual void destroy(Dataspace_capability) = 0;
-				};
-
-
-				class Dataspace_registry;
-
-
-				class Dataspace_info : public Object_pool<Dataspace_info>::Entry
-				{
-					private:
-
-						size_t               _size;
-						Dataspace_capability _ds_cap;
-						Dataspace_destroyer &_destroyer;
-
-					public:
-
-						Dataspace_info(Dataspace_capability ds_cap,
-						               Dataspace_destroyer &destroyer)
-						:
-							Object_pool<Dataspace_info>::Entry(ds_cap),
-							_size(Dataspace_client(ds_cap).size()),
-							_ds_cap(ds_cap),
-							_destroyer(destroyer)
-						{ }
-
-						size_t                 size() const { return _size; }
-						Dataspace_capability ds_cap() const { return _ds_cap; }
-
-						/**
-						 * Create shadow copy of dataspace
-						 *
-						 * \param ds_registry  registry for keeping track of
-						 *                     the new dataspace
-						 * \param ep           entrypoint used to serve the RPC
-						 *                     interface of the new dataspace
-						 *                     (used if the dataspace is a sub
-						 *                     RM session)
-						 * \return             capability for the new dataspace
-						 */
-						virtual Dataspace_capability fork(Ram_session_capability ram,
-						                                  Dataspace_destroyer   &destroyer,
-						                                  Dataspace_registry    &ds_registry,
-						                                  Rpc_entrypoint        &ep) = 0;
-
-						/**
-						 * Write data sequence into dataspace
-						 *
-						 * \param dst_offset  destination offset within dataspace
-						 * \param src         data source buffer
-						 * \param len         length of source buffer in bytes
-						 */
-						virtual void poke(addr_t dst_offset, void const *src, size_t len) = 0;
-
-						Dataspace_destroyer &destroyer() { return _destroyer; }
-				};
-
-
-				class Dataspace_registry
-				{
-					private:
-
-						Object_pool<Dataspace_info> _pool;
-
-					public:
-
-						void insert(Dataspace_info *info)
-						{
-							_pool.insert(info);
-						}
-
-						void remove(Dataspace_info *info)
-						{
-							_pool.remove(info);
-						}
-
-						Dataspace_info *lookup_info(Dataspace_capability ds_cap)
-						{
-							return _pool.obj_by_cap(ds_cap);
-						}
-				};
-
-
-				struct Ram_dataspace_info : Dataspace_info,
-				                            List<Ram_dataspace_info>::Element
-				{
-					Ram_dataspace_info(Ram_dataspace_capability ds_cap,
-					                   Dataspace_destroyer &destroyer)
-					: Dataspace_info(ds_cap, destroyer) { }
-
-					Dataspace_capability fork(Ram_session_capability ram,
-					                          Dataspace_destroyer &destroyer,
-					                          Dataspace_registry &,
-					                          Rpc_entrypoint &)
-					{
-						size_t const size = Dataspace_client(ds_cap()).size();
-
-						Ram_dataspace_capability dst_ds;
-
-						try {
-							dst_ds = Ram_session_client(ram).alloc(size);
-						} catch (...) {
-							return Dataspace_capability();
-						}
-
-						void *src = 0;
-						try {
-							src = Genode::env()->rm_session()->attach(ds_cap());
-						} catch (...) { }
-
-						void *dst = 0;
-						try {
-							dst = Genode::env()->rm_session()->attach(dst_ds);
-						} catch (...) { }
-
-						if (src && dst)
-							memcpy(dst, src, size);
-
-						if (src) Genode::env()->rm_session()->detach(src);
-						if (dst) Genode::env()->rm_session()->detach(dst);
-
-						if (!src || !dst) {
-							Ram_session_client(ram).free(dst_ds);
-							return Dataspace_capability();
-						}
-
-						return dst_ds;
-					}
-
-					void poke(addr_t dst_offset, void const *src, size_t len)
-					{
-						if ((dst_offset >= size()) || (dst_offset + len > size())) {
-						 	PERR("illegal attemt to write beyond dataspace boundary");
-						 	return;
-						}
-
-						char *dst = 0;
-						try {
-							dst = Genode::env()->rm_session()->attach(ds_cap());
-						} catch (...) { }
-
-						if (src && dst)
-							memcpy(dst + dst_offset, src, len);
-
-						if (dst) Genode::env()->rm_session()->detach(dst);
-					}
-				};
-
-
-				struct Local_ram_session : Rpc_object<Ram_session>,
-				                           Dataspace_destroyer
-				{
-					List<Ram_dataspace_info> _list;
-
-					/*
-					 * Track the RAM resources accumulated via RAM session
-					 * allocations.
-					 */
-					size_t _used_quota;
-
-					Dataspace_registry &_registry;
-
-					/**
-					 * Constructor
-					 */
-					Local_ram_session(Dataspace_registry &registry)
-					: _used_quota(0), _registry(registry) { }
-
-					/**
-					 * Destructor
-					 */
-					~Local_ram_session()
-					{
-						Ram_dataspace_info *info = 0;
-						while ((info = _list.first()))
-							free(static_cap_cast<Ram_dataspace>(info->ds_cap()));
-					}
-
-
-					/***********************************
-					 ** Dataspace_destroyer interface **
-					 ***********************************/
-
-					/* XXX not used yet */
-					void destroy(Dataspace_capability ds)
-					{
-						free(static_cap_cast<Ram_dataspace>(ds));
-					}
-
-
-					/***************************
-					 ** Ram_session interface **
-					 ***************************/
-
-					Ram_dataspace_capability alloc(size_t size)
-					{
-						Ram_dataspace_capability ds_cap = env()->ram_session()->alloc(size);
-
-						Ram_dataspace_info *ds_info = new (env()->heap())
-						                              Ram_dataspace_info(ds_cap, *this);
-
-						_used_quota += ds_info->size();
-
-						_registry.insert(ds_info);
-						_list.insert(ds_info);
-
-						return ds_cap;
-					}
-
-					void free(Ram_dataspace_capability ds_cap)
-					{
-						Ram_dataspace_info *ds_info =
-							dynamic_cast<Ram_dataspace_info *>(_registry.lookup_info(ds_cap));
-
-						if (!ds_info) {
-							PERR("RAM free: dataspace lookup failed");
-							return;
-						}
-						
-						_registry.remove(ds_info);
-						_list.remove(ds_info);
-						_used_quota -= ds_info->size();
-
-						env()->ram_session()->free(ds_cap);
-						Genode::destroy(env()->heap(), ds_info);
-					}
-
-					int ref_account(Ram_session_capability) { return 0; }
-					int transfer_quota(Ram_session_capability, size_t) { return 0; }
-					size_t quota() { return env()->ram_session()->quota(); }
-					size_t used() { return _used_quota; }
-				};
-
+				Rpc_entrypoint       &ep;
 
 				/**
-				 * Used to record all RM attachements
+				 * Registry of dataspaces owned by the Noux process
 				 */
-				struct Local_rm_session : Rpc_object<Rm_session>
-				{
-					struct Region : List<Region>::Element
-					{
-						Dataspace_capability ds;
-						size_t               size;
-						off_t                offset;
-						addr_t               local_addr;
-
-						Region(Dataspace_capability ds, size_t size,
-						       off_t offset, addr_t local_addr)
-						:
-							ds(ds), size(size),
-							offset(offset), local_addr(local_addr)
-						{ }
-
-						/**
-						 * Return true if region contains specified address
-						 */
-						bool contains(addr_t addr) const
-						{
-							return (addr >= local_addr)
-							    && (addr <  local_addr + size);
-						}
-					};
-
-					Rm_connection _rm;
-
-					Dataspace_registry &_ds_registry;
-
-					List<Region> _regions;
-
-					Region *_lookup_region_by_addr(addr_t local_addr)
-					{
-						Region *curr = _regions.first();
-						for (; curr; curr = curr->next()) {
-							if (curr->contains(local_addr))
-							    return curr;
-						}
-						return 0;
-					}
-
-					Local_rm_session(Dataspace_registry &ds_registry,
-					                 addr_t start = ~0UL, size_t size = 0)
-					: _rm(start, size), _ds_registry(ds_registry) { }
-
-					~Local_rm_session()
-					{
-						Region *curr = 0;
-						for (; curr; curr = curr->next())
-							detach(curr->local_addr);
-					}
-
-					/**
-					 * Replay attachments onto specified RM session
-					 *
-					 * \param dst_ram  backing store used for allocating the
-					 *                 the copies of RAM dataspaces
-					 */
-					void replay(Ram_session_capability dst_ram,
-					            Rm_session_capability  dst_rm,
-					            Dataspace_registry    &ds_registry,
-					            Rpc_entrypoint        &ep)
-					{
-						/*
-						 * XXX remove this
-						 */
-						struct Dummy_destroyer : Dataspace_destroyer
-						{
-							void destroy(Dataspace_capability) { }
-						};
-						static Dummy_destroyer dummy_destroyer;
-
-						Region *curr = _regions.first();
-						for (; curr; curr = curr->next()) {
-
-							Dataspace_capability ds;
-
-							Dataspace_info *info = _ds_registry.lookup_info(curr->ds);
-
-							if (info) {
-								/*
-								 * XXX using 'this' as destroyer may be false,
-								 *     the destroyer should better correspond to
-								 *     dst_ram.
-								 */
-								ds = info->fork(dst_ram,
-								                dummy_destroyer,
-								                ds_registry,
-								                ep);
-								if (!ds.valid())
-									PERR("replay: Error while forking dataspace");
-
-								/*
-								 * XXX We could detect dataspaces that are
-								 *     attached more than once. For now, we
-								 *     create a new fork for each attachment.
-								 */
-
-							} else {
-
-								/*
-								 * If the dataspace is not a RAM dataspace,
-								 * assume that it's a ROM dataspace.
-								 *
-								 * XXX Handle ROM dataspaces explicitly. For
-								 *     once, we need to make sure that they
-								 *     remain available until the child process
-								 *     exits even if the parent process exits
-								 *     earlier. Furthermore, we would like to
-								 *     detect unexpected dataspaces.
-								 */
-								ds = curr->ds;
-								PWRN("replay: unknown dataspace type, assume ROM");
-							}
-
-							Rm_session_client(dst_rm).attach(ds, curr->size,
-							                                 curr->offset,
-							                                 true,
-							                                 curr->local_addr);
-						}
-					}
-
-					void poke(addr_t dst_addr, void const *src, size_t len)
-					{
-						Region *region = _lookup_region_by_addr(dst_addr);
-						if (!region) {
-							PERR("poke: no region at 0x%lx", dst_addr);
-							return;
-						}
-
-						/*
-						 * Test if start and end address occupied by the object
-						 * type refers to the same region.
-						 */
-						if (region != _lookup_region_by_addr(dst_addr + len - 1)) {
-							PERR("attempt to write beyond region boundary");
-							return;
-						}
-
-						Dataspace_info *info = _ds_registry.lookup_info(region->ds);
-						if (!info) {
-							PERR("attempt to write to unknown dataspace type");
-							for (;;);
-							return;
-						}
-
-						if (region->offset) {
-							PERR("poke: writing to region with offset is not supported");
-							return;
-						}
-
-						info->poke(dst_addr - region->local_addr, src, len);
-					}
-
-
-					/**************************
-					 ** RM session interface **
-					 **************************/
-
-					Local_addr attach(Dataspace_capability ds,
-					                  size_t size = 0, off_t offset = 0,
-					                  bool use_local_addr = false,
-					                  Local_addr local_addr = (addr_t)0)
-					{
-						if (size == 0)
-							size = Dataspace_client(ds).size();
-
-						/*
-						 * XXX look if we can identify the specified dataspace.
-						 *     Is it a dataspace allocated via 'Local_ram_session'?
-						 */
-
-						local_addr = _rm.attach(ds, size, offset,
-						                        use_local_addr, local_addr);
-
-						/*
-						 * Record attachement for later replay (needed during
-						 * fork)
-						 */
-						_regions.insert(new (Genode::env()->heap())
-						                Region(ds, size, offset, local_addr));
-						return local_addr;
-					}
-
-					void detach(Local_addr local_addr)
-					{
-						_rm.detach(local_addr);
-
-						Region *region = _lookup_region_by_addr(local_addr);
-						if (!region) {
-							PWRN("Attempt to detach unknown region at 0x%p",
-							     (void *)local_addr);
-							return;
-						}
-
-						_regions.remove(region);
-						destroy(Genode::env()->heap(), region);
-					}
-
-					Pager_capability add_client(Thread_capability thread)
-					{
-						return _rm.add_client(thread);
-					}
-
-					void fault_handler(Signal_context_capability handler)
-					{
-						return _rm.fault_handler(handler);
-					}
-
-					State state()
-					{
-						return _rm.state();
-					}
-
-					Dataspace_capability dataspace()
-					{
-						return _rm.dataspace();
-					}
-				};
-
-
-				struct Sub_rm_dataspace_info : Dataspace_info
-				{
-					struct Dummy_destroyer : Dataspace_destroyer
-					{
-						void destroy(Dataspace_capability) { }
-					} _dummy_destroyer;
-
-					Local_rm_session &_sub_rm;
-
-					Sub_rm_dataspace_info(Local_rm_session &sub_rm)
-					:
-						Dataspace_info(sub_rm.dataspace(), _dummy_destroyer),
-						_sub_rm(sub_rm)
-					{ }
-
-					Dataspace_capability fork(Ram_session_capability ram,
-					                          Dataspace_destroyer &destoyer,
-					                          Dataspace_registry  &ds_registry,
-					                          Rpc_entrypoint      &ep)
-					{
-						Local_rm_session *new_sub_rm =
-							new Local_rm_session(ds_registry, 0, size());
-
-						Rm_session_capability rm_cap = ep.manage(new_sub_rm);
-
-						_sub_rm.replay(ram, rm_cap, ds_registry, ep);
-
-						ds_registry.insert(new Sub_rm_dataspace_info(*new_sub_rm));
-
-						return new_sub_rm->dataspace();
-					}
-
-					void poke(addr_t dst_offset, void const *src, size_t len)
-					{
-						if ((dst_offset >= size()) || (dst_offset + len > size())) {
-							PERR("illegal attemt to write beyond RM boundary");
-							return;
-						}
-						_sub_rm.poke(dst_offset, src, len);
-					}
-				};
-
+				Dataspace_registry    ds_registry;
 
 				/**
-				 * Used to defer the execution of the process' main thread
+				 * Locally-provided services for accessing platform resources
 				 */
-				struct Local_cpu_session : Rpc_object<Cpu_session>
-				{
-					bool const        forked;
-					Cpu_connection    cpu;
-					Thread_capability main_thread;
-
-					Local_cpu_session(char const *label, bool forked)
-					: forked(forked), cpu(label) { }
-
-					Thread_capability create_thread(Name const &name)
-					{
-						/*
-						 * Prevent any attempt to create more than the main
-						 * thread.
-						 */
-						if (main_thread.valid()) {
-							PWRN("Invalid attempt to create a thread besides main");
-							while (1);
-							return Thread_capability();
-						}
-						main_thread = cpu.create_thread(name);
-
-						PINF("created main thread");
-						return main_thread;
-					}
-
-					void kill_thread(Thread_capability thread) {
-						cpu.kill_thread(thread); }
-
-					Thread_capability first() {
-						return cpu.first(); }
-
-					Thread_capability next(Thread_capability curr) {
-						return cpu.next(curr); }
-
-					int set_pager(Thread_capability thread,
-					              Pager_capability  pager) {
-					    return cpu.set_pager(thread, pager); }
-
-					int start(Thread_capability thread, addr_t ip, addr_t sp)
-					{
-						if (forked) {
-							PINF("defer attempt to start thread at ip 0x%lx", ip);
-							return 0;
-						}
-						return cpu.start(thread, ip, sp);
-					}
-
-					void pause(Thread_capability thread) {
-						cpu.pause(thread); }
-
-					void resume(Thread_capability thread) {
-						cpu.resume(thread); }
-
-					void cancel_blocking(Thread_capability thread) {
-						cpu.cancel_blocking(thread); }
-
-					int state(Thread_capability thread, Thread_state *dst) {
-						return cpu.state(thread, dst); }
-
-					void exception_handler(Thread_capability         thread,
-					                       Signal_context_capability handler) {
-					    cpu.exception_handler(thread, handler); }
-
-					void single_step(Thread_capability thread, bool enable) {
-						cpu.single_step(thread, enable); }
-
-					/**
-					 * Explicitly start main thread, only meaningful when
-					 * 'forked' is true
-					 */
-					void start_main_thread(addr_t ip, addr_t sp)
-					{
-						cpu.start(main_thread, ip, sp);
-					}
-				};
-
-				Rpc_entrypoint    &ep;
-				Dataspace_registry ds_registry;
-				Local_ram_session  ram;
-				Local_cpu_session  cpu;
-				Local_rm_session   rm;
+				Ram_session_component ram;
+				Cpu_session_component cpu;
+				Rm_session_component  rm;
 
 				Resources(char const *label, Rpc_entrypoint &ep, bool forked)
 				:
@@ -818,41 +241,7 @@ namespace Noux {
 
 			} _local_noux_service;
 
-			struct Local_sub_rm_service : public Service
-			{
-				Rpc_entrypoint                &_ep;
-				Resources::Dataspace_registry &_ds_registry;
-
-				Local_sub_rm_service(Rpc_entrypoint &ep,
-				                     Resources::Dataspace_registry &ds_registry)
-				:
-					Service(Rm_session::service_name()),
-					_ep(ep), _ds_registry(ds_registry)
-				{ }
-
-				Genode::Session_capability session(const char *args)
-				{
-					addr_t start = Arg_string::find_arg(args, "start").ulong_value(~0UL);
-					size_t size  = Arg_string::find_arg(args, "size").ulong_value(0);
-
-					Resources::Local_rm_session *rm =
-						new Resources::Local_rm_session(_ds_registry, start, size);
-
-					Genode::Session_capability cap = _ep.manage(rm);
-
-					_ds_registry.insert(new Resources::Sub_rm_dataspace_info(*rm));
-
-					return cap;
-				}
-
-				void upgrade(Genode::Session_capability, const char *args) { }
-
-				void close(Genode::Session_capability)
-				{
-					PWRN("Local_sub_rm_service::close not implemented, leaking memory");
-				}
-
-			} _local_sub_rm_service;
+			Local_rm_service _local_rm_service;
 
 			/**
 			 * Exception type for failed file-descriptor lookup
@@ -891,16 +280,16 @@ namespace Noux {
 			 *                or children created via execve, or
 			 *                true if the child is a fork from another child
 			 */
-			Child(char const        *name,
-			      int                pid,
-			      Signal_receiver   *sig_rec,
-			      Vfs               *vfs,
-			      Args               const &args,
-			      char const        *env,
-			      Cap_session       *cap_session,
-			      Service_registry  *parent_services,
-			      Rpc_entrypoint    &resources_ep,
-			      bool               forked)
+			Child(char const       *name,
+			      int               pid,
+			      Signal_receiver  *sig_rec,
+			      Vfs              *vfs,
+			      Args              const &args,
+			      char const       *env,
+			      Cap_session      *cap_session,
+			      Service_registry *parent_services,
+			      Rpc_entrypoint   &resources_ep,
+			      bool              forked)
 			:
 				_pid(pid),
 				_sig_rec(sig_rec),
@@ -927,7 +316,7 @@ namespace Noux {
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
 				_local_noux_service(_noux_session_cap),
-				_local_sub_rm_service(_entrypoint, _resources.ds_registry)
+				_local_rm_service(_entrypoint, _resources.ds_registry)
 			{
 				_args.dump();
 				strncpy(_name, name, sizeof(_name));
@@ -954,8 +343,7 @@ namespace Noux {
 
 			Ram_session_capability ram() const { return _resources.ram.cap(); }
 			Rm_session_capability   rm() const { return _resources.rm.cap(); }
-
-			Resources::Dataspace_registry &ds_registry() { return _resources.ds_registry; }
+			Dataspace_registry &ds_registry()  { return _resources.ds_registry; }
 
 
 			/****************************
@@ -985,7 +373,7 @@ namespace Noux {
 				 * space.
 				 */
 				if (strcmp(service_name, Rm_session::service_name()) == 0)
-					return &_local_sub_rm_service;
+					return &_local_rm_service;
 
 				return _parent_services->find(service_name);
 			}
