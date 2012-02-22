@@ -54,7 +54,7 @@ install_config {
 }
 
 build_boot_image {
-	core init timer uart_drv ld.lib.so noux libc.lib.so libm.lib.so
+	core init timer uart_drv ld.lib.so noux libc.lib.so
 	libc_noux.lib.so noux_fork.tar
 }
 
@@ -68,7 +68,6 @@ append qemu_args " -nographic"
 append qemu_args " -serial mon:stdio"
 append qemu_args " -serial file:$noux_output_file"
 
-#run_genode_until "child exited with exit value 0.*\n" 20
 run_genode_until "child.*exited.*\n" 20
 
 puts "[exec cat $noux_output_file]"
