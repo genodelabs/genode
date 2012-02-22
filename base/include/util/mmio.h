@@ -44,11 +44,12 @@ namespace Genode
 			/**
 			 * An integer like region within a MMIO region.
 			 *
-			 * \param  _OFFSET         Offset of the region relative to the base 
-			 *                         of the compound MMIO.
-			 * \param  _ACCESS_WIDTH   Bit width of the region.
+			 * \param  _OFFSET         Offset of the region relative to the
+			 *                         base of the compound MMIO
+			 * \param  _ACCESS_WIDTH   Bit width of the region, for a list of
+			 *                         supported widths see 'Genode::Register'
 			 *
-			 * \detail  See 'Genode::Register' 
+			 * \detail  See 'Genode::Register'
 			 */
 			template <off_t _OFFSET, unsigned long _ACCESS_WIDTH>
 			struct Register : public Genode::Register<_ACCESS_WIDTH>
@@ -60,14 +61,16 @@ namespace Genode
 
 				/**
 				 * A region within a register
-				 * 
-				 * \param  _SHIFT  Bit shift of the first bit within the compound register
+				 *
+				 * \param  _SHIFT  Bit shift of the first bit within the
+				 *                 compound register
 				 * \param  _WIDTH  Bit width of the region
 				 *
 				 * \detail  See 'Genode::Register::Bitfield'
 				 */
 				template <unsigned long _SHIFT, unsigned long _WIDTH>
-				struct Bitfield : public Genode::Register<ACCESS_WIDTH>::template Bitfield<_SHIFT, _WIDTH>
+				struct Bitfield :
+					public Genode::Register<ACCESS_WIDTH>::template Bitfield<_SHIFT, _WIDTH>
 				{
 					/**
 					 * Back reference to containing register
@@ -79,26 +82,33 @@ namespace Genode
 			/**
 			 * An array of successive equally structured regions
 			 *
-			 * \param  _OFFSET        Offset of the first region relative to the base 
-			 *                        of the compound MMIO.
-			 * \param  _ACCESS_WIDTH  Bit width of a single access, must be at least 
-			 *                        the item width.
-			 * \param  _ITEMS         How many times the region gets iterated successive
+			 * \param  _OFFSET        Offset of the first region relative to
+			 *                        the base of the compound MMIO.
+			 * \param  _ACCESS_WIDTH  Bit width of a single access, must be at
+			 *                        least the item width.
+			 * \param  _ITEMS         How many times the region gets iterated
+			 *                        successive
 			 * \param  _ITEM_WIDTH    Bit width of a region
 			 *
-			 * \detail  The array takes all inner structures, wich are covered by an item 
-			 *          width and iterates them successive. Such structures that are partially 
-			 *          exceed an item range are read and written also partially. Structures that are
-			 *          completely out of the item range are read as '0' and trying to overwrite 
-			 *          them has no effect. The array is not limited to its access width, it extends to
-			 *          the memory region of its successive items. Trying to read out read with an item
-			 *          index out of the array range returns '0', trying to write to such indices 
-			 *          has no effect
+			 * \detail  The array takes all inner structures, wich are covered
+			 *          by an item width and iterates them successive. Such
+			 *          structures that are partially exceed an item range are
+			 *          read and written also partially. Structures that are
+			 *          completely out of the item range are read as '0' and
+			 *          trying to overwrite them has no effect. The array is
+			 *          not limited to its access width, it extends to the
+			 *          memory region of its successive items. Trying to read
+			 *          out read with an item index out of the array range
+			 *          returns '0', trying to write to such indices has no
+			 *          effect
 			 */
-			template <off_t _OFFSET, unsigned long _ACCESS_WIDTH, unsigned long _ITEMS, unsigned long _ITEM_WIDTH>
+			template <off_t _OFFSET, unsigned long _ACCESS_WIDTH,
+			          unsigned long _ITEMS, unsigned long _ITEM_WIDTH>
 			struct Register_array : public Register<_OFFSET, _ACCESS_WIDTH>
 			{
-				typedef typename Trait::Uint_type<_ACCESS_WIDTH>::template Divisor<_ITEM_WIDTH> Item;
+				typedef
+				typename Trait::Uint_type<_ACCESS_WIDTH>::template Divisor<_ITEM_WIDTH>
+				Item;
 
 				enum {
 					OFFSET          = _OFFSET,
@@ -111,7 +121,8 @@ namespace Genode
 					ITEM_MASK       = (1 << ITEM_WIDTH) - 1,
 				};
 
-				typedef typename Register<OFFSET, ACCESS_WIDTH>::access_t access_t;
+				typedef typename Register<OFFSET, ACCESS_WIDTH>::access_t
+				access_t;
 
 				/**
 				 * A bitregion within a register array item
@@ -119,26 +130,38 @@ namespace Genode
 				 * \param  _SHIFT  Bit shift of the first bit within an item
 				 * \param  _WIDTH  Bit width of the region
 				 *
-				 * \detail  See 'Genode::Register::Bitfield' 
+				 * \detail  See 'Genode::Register::Bitfield'
 				 */
 				template <unsigned long _SHIFT, unsigned long _SIZE>
-				struct Bitfield : public Register<OFFSET, ACCESS_WIDTH>::template Bitfield<_SHIFT, _SIZE>
+				struct Bitfield :
+					public Register<OFFSET, ACCESS_WIDTH>::template Bitfield<_SHIFT, _SIZE>
 				{
 					/**
 					 * Back reference to containing register array
 					 */
-					typedef Register_array<OFFSET, ACCESS_WIDTH, ITEMS, ITEM_WIDTH> Compound_array;
+					typedef Register_array<OFFSET, ACCESS_WIDTH, ITEMS, ITEM_WIDTH>
+						Compound_array;
 				};
 
 				/**
-				 * Calculate the MMIO-relative offset 'offset' and shift 'shift'
-				 * within the according 'access_t' instance to access item 'index'
+				 * Calculate destination of an array-item access
+				 *
+				 * \param  offset  Gets overridden with the offset of the
+				 *                 access type instance, that contains the
+				 *                 access destination, relative to the MMIO
+				 *                 base
+				 * \param  shift   Gets overridden with the shift of the
+				 *                 destination within the access type instance
+				 *                 targeted by 'offset'
+				 * \param  index   Index of the targeted array item
 				 */
-				static inline void access_dest(off_t & offset, unsigned long & shift,
+				static inline void access_dest(off_t & offset,
+				                               unsigned long & shift,
 				                               unsigned long const index)
 				{
 					unsigned long const bit_off = index << ITEM_WIDTH_LOG2;
-					offset  = (off_t) ((bit_off >> BYTE_WIDTH_LOG2) & ~(sizeof(access_t)-1) );
+					offset  = (off_t) ((bit_off >> BYTE_WIDTH_LOG2)
+					          & ~(sizeof(access_t)-1) );
 					shift   = bit_off - ( offset << BYTE_WIDTH_LOG2 );
 					offset += OFFSET;
 				}
@@ -189,7 +212,8 @@ namespace Genode
 			 * Write value to the bitfield 'BITFIELD'
 			 */
 			template <typename BITFIELD>
-			inline void write(typename BITFIELD::Compound_reg::access_t const value);
+			inline void
+			write(typename BITFIELD::Compound_reg::access_t const value);
 
 
 			/*******************************
@@ -200,10 +224,11 @@ namespace Genode
 			 * Read the whole item 'index' of the array 'REGISTER_ARRAY'
 			 */
 			template <typename REGISTER_ARRAY>
-			inline typename REGISTER_ARRAY::access_t read(unsigned long const index) const;
+			inline typename REGISTER_ARRAY::access_t
+			read(unsigned long const index) const;
 
 			/**
-			 * Write 'value' to item 'index' of the array 'REGISTER_ARRAY' 
+			 * Write 'value' to item 'index' of the array 'REGISTER_ARRAY'
 			 */
 			template <typename REGISTER_ARRAY>
 			inline void write(typename REGISTER_ARRAY::access_t const value,
@@ -215,16 +240,21 @@ namespace Genode
 			 *****************************************************/
 
 			/**
-			 * Read the bitfield 'ARRAY_BITFIELD' of item 'index' of the compound reg array
+			 * Read the bitfield 'ARRAY_BITFIELD' of item 'index' of the
+			 * compound reg array
 			 */
 			template <typename ARRAY_BITFIELD>
-			inline typename ARRAY_BITFIELD::Compound_array::access_t read(unsigned long const index) const;
+			inline typename ARRAY_BITFIELD::Compound_array::access_t
+			read(unsigned long const index) const;
 
 			/**
-			 * Write 'value' to bitfield 'ARRAY_BITFIELD' of item 'index' of the compound reg array
+			 * Write 'value' to bitfield 'ARRAY_BITFIELD' of item 'index' of
+			 * the compound reg array
 			 */
 			template <typename ARRAY_BITFIELD>
-			inline void write(typename ARRAY_BITFIELD::Compound_array::access_t const value, long unsigned const index);
+			inline void
+			write(typename ARRAY_BITFIELD::Compound_array::access_t const value,
+			      long unsigned const index);
 	};
 }
 
@@ -304,7 +334,8 @@ void Genode::Mmio::write(typename BITFIELD::Compound_reg::access_t const value)
 
 
 template <typename REGISTER_ARRAY>
-typename REGISTER_ARRAY::access_t Genode::Mmio::read(unsigned long const index) const
+typename REGISTER_ARRAY::access_t
+Genode::Mmio::read(unsigned long const index) const
 {
 	/**
 	 * Handle array overflow
@@ -318,14 +349,16 @@ typename REGISTER_ARRAY::access_t Genode::Mmio::read(unsigned long const index) 
 	 */
 	if (REGISTER_ARRAY::ITEM_WIDTH == REGISTER_ARRAY::ACCESS_WIDTH) {
 
-		offset = REGISTER_ARRAY::OFFSET + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
+		offset = REGISTER_ARRAY::OFFSET
+		         + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
 		return _read<typename REGISTER_ARRAY::access_t>(offset);
 
 	} else {
 
 		long unsigned shift;
 		REGISTER_ARRAY::access_dest(offset, shift, index);
-		return (_read<typename REGISTER_ARRAY::access_t>(offset) >> shift) & REGISTER_ARRAY::ITEM_MASK;
+		return (_read<typename REGISTER_ARRAY::access_t>(offset) >> shift)
+		       & REGISTER_ARRAY::ITEM_MASK;
 	}
 
 }
@@ -347,7 +380,8 @@ void Genode::Mmio::write(typename REGISTER_ARRAY::access_t const value,
 	 */
 	if (REGISTER_ARRAY::ITEM_WIDTH == REGISTER_ARRAY::ACCESS_WIDTH) {
 
-		offset = REGISTER_ARRAY::OFFSET + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
+		offset = REGISTER_ARRAY::OFFSET
+		         + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
 		_write<typename REGISTER_ARRAY::access_t>(offset, value);
 
 	} else {
@@ -358,7 +392,9 @@ void Genode::Mmio::write(typename REGISTER_ARRAY::access_t const value,
 		/**
 		 * Insert new value into old register value
 		 */
-		typename REGISTER_ARRAY::access_t new_reg = _read<typename REGISTER_ARRAY::access_t>(offset);
+		typename REGISTER_ARRAY::access_t new_reg =
+			_read<typename REGISTER_ARRAY::access_t>(offset);
+
 		new_reg &= ~(REGISTER_ARRAY::ITEM_MASK << shift);
 		new_reg |= (value & REGISTER_ARRAY::ITEM_MASK) << shift;
 
@@ -373,8 +409,9 @@ void Genode::Mmio::write(typename REGISTER_ARRAY::access_t const value,
 
 
 template <typename ARRAY_BITFIELD>
-void Genode::Mmio::write(typename ARRAY_BITFIELD::Compound_array::access_t const value, 
-                         long unsigned const index)
+void
+Genode::Mmio::write(typename ARRAY_BITFIELD::Compound_array::access_t const value,
+                    long unsigned const index)
 {
 	typedef typename ARRAY_BITFIELD::Compound_array Register_array;
 
@@ -387,7 +424,8 @@ void Genode::Mmio::write(typename ARRAY_BITFIELD::Compound_array::access_t const
 
 
 template <typename ARRAY_BITFIELD>
-typename ARRAY_BITFIELD::Compound_array::access_t Genode::Mmio::read(long unsigned const index) const
+typename ARRAY_BITFIELD::Compound_array::access_t
+Genode::Mmio::read(long unsigned const index) const
 {
 	typedef typename ARRAY_BITFIELD::Compound_array Array;
 	typedef typename Array::access_t access_t;

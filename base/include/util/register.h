@@ -1,5 +1,5 @@
 /*
- * \brief  Generic access framework for highly structured memory regions
+ * \brief  Generic accessor framework for highly structured memory regions
  * \author Martin stein
  * \date   2011-11-10
  */
@@ -21,9 +21,14 @@ namespace Genode
 	namespace Trait {
 
 		/**
-		 * Get unsigned integer type for a given access width
+		 * Properties of integer types with a given bitwidth
 		 */
 		template <unsigned long _WIDTH> struct Uint_type;
+
+		/***************************************************************
+		 ** Provide the integer type and the width as exponent to the **
+		 ** base of 2 for all supported widths in 'Uint_type'         **
+		 ***************************************************************/
 
 		template <> struct Uint_type<8>
 		{
@@ -31,7 +36,7 @@ namespace Genode
 			enum { WIDTH_LOG2 = 3 };
 
 			/**
-			 * Declare dividers of the compound type width
+			 * Access widths, wich are dividers to the compound type width
 			 */
 			template <unsigned long _DIVISOR_WIDTH> struct Divisor;
 		};
@@ -54,10 +59,16 @@ namespace Genode
 			enum { WIDTH_LOG2 = 6 };
 		};
 
-		template <> struct Uint_type<8>::Divisor<1>   { enum { WIDTH_LOG2 = 0 }; };
-		template <> struct Uint_type<8>::Divisor<2>   { enum { WIDTH_LOG2 = 1 }; };
-		template <> struct Uint_type<8>::Divisor<4>   { enum { WIDTH_LOG2 = 2 }; };
-		template <> struct Uint_type<8>::Divisor<8>   { enum { WIDTH_LOG2 = 3 }; };
+
+		/********************************************************************
+		 ** Provide widths as exponents to the base of 2 for all supported **
+		 ** access widths in 'Uint_type::Divisor'                          **
+		 ********************************************************************/
+
+		template <> struct Uint_type<8>::Divisor<1> { enum { WIDTH_LOG2 = 0 }; };
+		template <> struct Uint_type<8>::Divisor<2> { enum { WIDTH_LOG2 = 1 }; };
+		template <> struct Uint_type<8>::Divisor<4> { enum { WIDTH_LOG2 = 2 }; };
+		template <> struct Uint_type<8>::Divisor<8> { enum { WIDTH_LOG2 = 3 }; };
 		template <> struct Uint_type<16>::Divisor<16> { enum { WIDTH_LOG2 = 4 }; };
 		template <> struct Uint_type<32>::Divisor<32> { enum { WIDTH_LOG2 = 5 }; };
 		template <> struct Uint_type<64>::Divisor<64> { enum { WIDTH_LOG2 = 6 }; };
@@ -69,9 +80,9 @@ namespace Genode
 	 * \param  _ACCESS_WIDTH  Bit width of the region
 	 *
 	 * \detail The register can contain multiple bitfields. Bitfields
-	 *         that are partially exceed the register range are read and 
-	 *         written also partially. Bitfields that are completely out 
-	 *         of the register range are read as '0' and trying to 
+	 *         that are partially exceed the register range are read and
+	 *         written also partially. Bitfields that are completely out
+	 *         of the register range are read as '0' and trying to
 	 *         overwrite them has no effect.
 	 */
 	template <unsigned long _ACCESS_WIDTH>
@@ -87,8 +98,9 @@ namespace Genode
 
 		/**
 		 * A bitregion within a register
-		 * 
-		 * \param  _SHIFT  Bit shift of the first bit within the compound register
+		 *
+		 * \param  _SHIFT  Bit shift of the first bit within the compound
+		 *                 register
 		 * \param  _WIDTH  Bit width of the region
 		 *
 		 * \detail  Bitfields are read and written according to their range,
@@ -117,17 +129,20 @@ namespace Genode
 			typedef Register<ACCESS_WIDTH> Compound_reg;
 
 			/**
-			 * Get a register value with this bitfield set to 'value' and the rest left zero
+			 * Get a register value with this bitfield set to 'value' and the
+			 * rest left zero
 			 *
-			 * \detail  Useful to combine successive access to multiple bitfields
-			 *          into one operation
+			 * \detail  Useful to combine successive access to multiple
+			 *          bitfields into one operation
 			 */
-			static inline access_t bits(access_t const value) { return (value & MASK) << SHIFT; }
+			static inline access_t bits(access_t const value) {
+				return (value & MASK) << SHIFT; }
 
 			/**
 			 * Get value of this bitfield from 'reg'
 			 */
-			static inline access_t get(access_t const reg) { return (reg >> SHIFT) & MASK; }
+			static inline access_t get(access_t const reg) {
+				return (reg >> SHIFT) & MASK; }
 
 			/**
 			 * Get registervalue 'reg' with this bitfield set to zero
