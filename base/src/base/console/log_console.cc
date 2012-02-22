@@ -19,6 +19,10 @@
 
 using namespace Genode;
 
+
+void *operator new (size_t, void *ptr) { return ptr; }
+
+
 class Log_console : public Console
 {
 	private:
@@ -77,6 +81,21 @@ class Log_console : public Console
 		 * Return LOG session interface
 		 */
 		Log_session *log_session() { return &_log; }
+
+		/**
+		 * Re-establish LOG session
+		 */
+		void reconnect()
+		{
+			/*
+			 * Note that the destructor of old 'Log_connection' is not called.
+			 * This is not needed because the only designated use of this
+			 * function is the startup procedure of noux processes created
+			 * via fork. At the point of calling this function, the new child
+			 * has no valid capability to the original LOG session anyway.
+			 */
+			new (&_log) Log_connection;
+		}
 };
 
 
@@ -100,12 +119,18 @@ Log_console *stdout_log_console()
 
 
 /**
- * Hook for supporting libC back ends for stdio
+ * Hook for supporting libc back ends for stdio
  */
 extern "C" int stdout_write(const char *s)
 {
 	return stdout_log_console()->log_session()->write(s);
 }
+
+
+/**
+ * Hook for support the 'fork' implementation of the noux libc backend
+ */
+extern "C" void stdout_reconnect() { stdout_log_console()->reconnect(); }
 
 
 void Genode::printf(const char *format, ...)
