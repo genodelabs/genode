@@ -247,14 +247,14 @@ Working with shared libraries
 =============================
 
 To get acquainted with GDB monitor, the 'ports' repository comes with two
-example run scripts. The 'gdb_monitor.run' script executes a simple test
-program via GDB monitor. The test program can be found at
+example run scripts. The 'gdb_monitor_interactive.run' script executes a
+simple test program via GDB monitor. The test program can be found at
 'ports/src/test/gdb_monitor/'. When looking behind the scenes, the simple
 program is not simple at all. It uses shared libraries (the libc and libc_log)
-plugin and executes multiple threads. To it is a nice testbed for exercising
+plugin and executes multiple threads. So it is a nice testbed for exercising
 these aspects. The run script can be invoked right from the build directory
-via 'make run/gdb_monitor'. It will execute the scenario on Qemu and use
-the UART to communicate with GDB. Qemu is instructed to redirect the second
+via 'make run/gdb_monitor_interactive'. It will execute the scenario on Qemu and
+use the UART to communicate with GDB. Qemu is instructed to redirect the second
 serial interface to a local socket (using the port 5555):
 ! -serial chardev:uart
 ! -chardev socket,id=uart,port=5555,host=localhost,server,nowait
@@ -262,62 +262,30 @@ serial interface to a local socket (using the port 5555):
 The used TCP port is then specified to the GDB as remote target:
 ! target remote localhost:5555
 
-The 'gdb_monitor.run' script performs these steps for you and spawns GDB
-in a new terminal window. From within your build directory, execute the
+The 'gdb_monitor_interactive.run' script performs these steps for you and spawns
+GDB in a new terminal window. From within your build directory, execute the
 run script via:
-! make run/gdb_monitor
+! make run/gdb_monitor_interactive
 On startup, GDB monitor halts the target program and waits for GDB to
-connect. Once connected GDB will greet you with a prompt like this:
+connect. Once connected, GDB will greet you with a prompt like this:
 
-! Reading symbols from /open/build/genode/foc_x86_32/bin/test-gdb_monitor...done.
-! Remote debugging using localhost:5555
-! warning: Unable to find dynamic linker breakpoint function.
-! GDB will be unable to debug shared library initializers
-! and track explicitly loaded dynamic code.
-! 0x00054ac0 in ?? ()
-! (gdb) 
+! Breakpoint 2, main () at /.../ports/src/test/gdb_monitor/main.cc:67
+! 67 {
+! (gdb)
 
-Since 'test-gdb_monitor' is a dynamically linked binary, Genode has started
-the dynamic linker. Because neither the actual binary nor any shared library
-has been loaded so far, GDB cannot determine symbol information. So let's
-start executing the program using the 'c' (continue) command:
-! (gdb) c
-! Continuing.
-The test program will start printing some messages via core's LOG service.
-We can interrupt it by pressing Control-C in the GDB console.
-! ^C
-! Program received signal SIGINT, Interrupt.
-! 0x0005396c in ?? ()
-! (gdb) 
-Now that the program has been executed for a while, it is a good time to let
-GDB figure out information about shared libraries using the 'sharedlibrary' command:
-! (gdb) sharedlibrary
-You will see several messages indicating where GDB fetches symbol information
-for each shared library used by the program. To see, what GDB has found out,
-use the 'info shared' command. GDB will respond with a table like this:
-(gdb) info shared
-! From        To          Syms Read   Shared Object Library
-! 0x0009c1b8  0x00100b64  Yes         /.../build/var/libcache/libc/libc.lib.so
-! 0x00007c5c  0x00007ecc  Yes         /.../build/var/libcache/libc_log/libc_log.lib.so
-! 0x0003e704  0x00063748  Yes         /.../build/var/libcache/ld/ld.lib.so
-It is telling us the load location of each shared library and informs us
-about having successfully obtained the symbol information for each library.
-
-Now, with symbol information available, let's set a breakpoint to the 'printf'
-function, which is repeatedly called by the test program using the 'breakpoint'
-command:
-! (gdb) b printf
-! Breakpoint 1 at 0xd503c: file /.../stdio/printf.c, line 49.
-After continuing the executing via 'c' (continue), you will see that the
+At this point, GDB has acquired symbol information from the loaded shared
+libraries and stopped the program at the beginning of its 'main()' function.
+Now let's set a breakpoint to the 'puts' function, which is called by the test
+program, by using the 'breakpoint' command:
+! (gdb) b puts
+! Breakpoint 3 at 0x106e120: file /.../libc-8.2.0/libc/stdio/puts.c, line 53.
+After continuing the execution via 'c' (continue), you will see that the
 breakpoint will trigger with a message like this:
 ! (gdb) c
 ! Continuing.
-! [New Thread 2]
-! [Switching to Thread 2]
-!
-! Breakpoint 1, printf (fmt=0x1004144 "Test thread is running, cnt=%d\n")
-!     at /.../stdio/printf.c:49
-! 49     ret = vfprintf(stdout, fmt, ap);
+! Breakpoint 3, puts (s=0x10039c0 "in func2()\n")
+!     at /.../libc-8.2.0/libc/stdio/puts.c:53
+! 53 {
 
 Now, you can inspect the source code of the function via the 'list' command,
 inspect the function arguments ('info args' command) or start stepping
@@ -326,68 +294,53 @@ backtrace including several functions located in different shared libraries,
 set another breakpoint at the 'stdout_write' function. This function is
 used by the 'libc_log' backend and provided by the dynamic linker. The
 backtrace will reveal all the intermediate steps throughout the libc when
-'printf' is called.
+'puts' is called.
 
 ! (gdb) b stdout_write
-! Breakpoint 1 at 0x55906: file /.../log_console.cc, line 101.
+! Breakpoint 4 at 0x59d10: file /.../log_console.cc, line 108.
 ! (gdb) c
 ! Continuing.
-! [New Thread 2]
-! [Switching to Thread 2]
-! 
-! Breakpoint 1, stdout_write (s=0x400ff434 "Test thread is running, cnt=8\n")
-!     at /.../genode/base/src/base/console/log_console.cc:101
-! 101	{
+! Breakpoint 4, stdout_write (s=0x1015860 "in func2()\n")
+!     at /.../genode/base/src/base/console/log_console.cc:108
+! 108	{
 ! (gdb) bt
-! #0  stdout_write (s=0x400ff434 "Test thread is running, cnt=8\n")
-!     at /.../genode/base/src/base/console/log_console.cc:101
-! #1  0x0000799c in Libc::Log_plugin::write (this=0x8310, fd=0x114ba8, 
-!     buf=0x3e60, count=30)
-!     at /.../genode/libports/src/lib/libc_log/plugin.cc:84
-! #2  0x000f85f8 in _write (libc_fd=1, buf=0x3e60, count=30)
-!     at /.../genode/libports/src/lib/libc/file_operations.cc:379
-! #3  0x000d737f in __swrite (cookie=0x105ca8, 
-!     buf=0x3e60 "Test thread is running, cnt=8\n\006", n=30)
-!     at /.../stdio/stdio.c:71
-! #4  0x000d7233 in _swrite (fp=0x105ca8, 
-!     buf=0x3e60 "Test thread is running, cnt=8\n\006", n=30)
-!     at /.../stdio/stdio.c:133
-! #5  0x000d04cb in __sflush (fp=0x105ca8)
-!     at /.../stdio/fflush.c:123
-! #6  0x000d052a in __fflush (fp=0x400ff434)
-!     at /.../stdio/fflush.c:96
-! #7  0x000d310b in __sfvwrite (fp=0x105ca8, uio=0x400ffdd8)
-!     at /.../stdio/fvwrite.c:194
-! #8  0x000d7ea4 in __sprint (fp=0x400ff434, uio=0x400ffdd8)
-!     at /.../stdio/vfprintf.c:88
-! #9  0x000dad08 in __vfprintf (fp=0x105ca8, 
-!     fmt0=0x1003618 "Test thread is running, cnt=%d\n", ap=0x400ffe98 "\b")
-! ---Type <return> to continue, or q <return> to quit---
-!     at /.../stdio/vfprintf.c:1179
-! #10 0x000db29f in vfprintf (fp=0x105ca8, 
-!     fmt0=0x1003618 "Test thread is running, cnt=%d\n", ap=0x400ffe98 "\b")
-!     at /.../stdio/vfprintf.c:351
-! #11 0x000d61f0 in printf (fmt=0x1003618 "Test thread is running, cnt=%d\n")
-!     at /.../stdio/printf.c:49
-! #12 0x0100086a in func3 (this=0x1015914)
-!     at /.../genode/ports/src/test/gdb_monitor/main.cc:28
-! #13 Test_thread::entry (this=0x1015914)
-!     at /.../genode/ports/src/test/gdb_monitor/main.cc:38
-! #14 0x00059333 in Genode::Thread_base::_thread_start ()
-!     at /.../genode/base-foc/src/base/thread/thread_bootstrap.cc:39
-! #15 0x00000000 in ?? ()
+! #0  stdout_write (s=0x1015860 "in func2()\n")
+!     at /.../genode/base/src/base/console/log_console.cc:108
+! #1  0x010c3701 in (anonymous namespace)::Plugin::write (this=0x10c4378, 
+!     fd=0x10c0fa8, buf=0x6590, count=11)
+!     at /.../genode/libports/src/lib/libc_log/plugin.cc:93
+! #2  0x010937bf in _write (libc_fd=1, buf=0x6590, count=11)
+!     at /.../genode/libports/src/lib/libc/file_operations.cc:406
+! #3  0x0106ec4f in __swrite (cookie=0x10a1048, buf=0x6590 "in func2()\n", n=11)
+!     at /.../genode/libports/contrib/libc-8.2.0/libc/stdio/stdio.c:71
+! #4  0x0106ef5a in _swrite (fp=0x10a1048, buf=0x6590 "in func2()\n", n=11)
+!     at /.../genode/libports/contrib/libc-8.2.0/libc/stdio/stdio.c:133
+! #5  0x01067598 in __sflush (fp=0x10a1048)
+!     at /.../genode/libports/contrib/libc-8.2.0/libc/stdio/fflush.c:123
+! #6  0x010675f8 in __fflush (fp=0x10a1048)
+!     at /.../genode/libports/contrib/libc-8.2.0/libc/stdio/fflush.c:96
+! #7  0x0106a223 in __sfvwrite (fp=0x10a1048, uio=0x1015a44)
+!     at /.../genode/libports/contrib/libc-8.2.0/libc/stdio/fvwrite.c:194
+! #8  0x0106e1ad in puts (s=0x10039c0 "in func2()\n")
+!     at /.../genode/libports/contrib/libc-8.2.0/libc/stdio/puts.c:68
+! #9  0x0100041d in func2 ()
+!     at /.../genode/ports/src/test/gdb_monitor/main.cc:51
+! #10 0x01000444 in func1 ()
+!     at /.../genode/ports/src/test/gdb_monitor/main.cc:60
+! #11 0x01000496 in main ()
+!     at /.../genode/ports/src/test/gdb_monitor/main.cc:70
 
 To inspect a specific call frame, switch to a particular frame by using
 the number printed in the backtrace. For example, to print the local
 variables of the call frame 5:
 ! (gdb) f 5
-! #5  0x000d04cb in __sflush (fp=0x105ca8)
-!     at /.../stdio/fflush.c:123
-! 123			t = _swrite(fp, (char *)p, n);
+! #5  0x01067598 in __sflush (fp=0x10a1048)
+!     at /.../libc-8.2.0/libc/stdio/fflush.c:123
+! 123   t = _swrite(fp, (char *)p, n);
 ! (gdb) info locals
-! p = 0x3e60 "Test thread is running, cnt=8\n\006"
-! n = 30
-! t = 1074787380
+! p = 0x6590 "in func2()\n"
+! n = 11
+! t = <optimized out>
 
 The test program consists of multiple threads. To see which threads there are,
 use the 'info thread' command. To switch another thread, use the 'thread'
@@ -398,7 +351,8 @@ Inspecting a Genode service
 ===========================
 
 As a reference for debugging a native Genode service, the 'debug_nitpicker.run'
-script provides a ready-to-use scenario. You can invoke it via 'make run/debug_nitpicker'.
+script provides a ready-to-use scenario. You can invoke it via
+'make run/debug_nitpicker'.
 
 Nitpicker is a statically linked program. Hence, no special precautions are
 needed to obtain its symbol information. As a stress test for GDB monitor,
