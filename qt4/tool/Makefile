@@ -5,9 +5,9 @@
 # \date   2009-05-15
 #
 
-QT4 = qt-everywhere-opensource-src-4.7.4
-
 REP_DIR := $(realpath ..)
+
+include $(REP_DIR)/lib/mk/qt_version.inc
 
 #
 # Compound rule for building the tools in the right order

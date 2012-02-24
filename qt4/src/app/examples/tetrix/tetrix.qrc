@@ -1,8 +1,0 @@
-<RCC>
-    <qresource prefix="/" >
-        <file>tetrixwindow.js</file>
-        <file>tetrixwindow.ui</file>
-        <file>tetrixboard.js</file>
-        <file>tetrixpiece.js</file>
-    </qresource>
-</RCC>

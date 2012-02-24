@@ -11,8 +11,11 @@ DOWNLOAD_DIR = download
 CONTRIB_DIR  = contrib
 PATCHES_DIR  = ../../src/lib/qt4
 
+REP_DIR := $(realpath .)
+
+include $(REP_DIR)/lib/mk/qt_version.inc
+
 QT4_URL = ftp://ftp.trolltech.com/qt/source
-QT4     = qt-everywhere-opensource-src-4.7.4
 QT4_TGZ = $(QT4).tar.gz
 
 QTSCRIPTCLASSIC_URL = http://get.qt.nokia.com/qt/solutions/lgpl

@@ -1,14 +1,14 @@
 # prevent import file to be included twice, for example via import-qt_gui.mk
-# and import-QtCore.mk
+# and import-qt_core.mk
 
 ifeq ($(QT4_IMPORTED),)
 QT4_IMPORTED = true
 
-QT4 = qt-everywhere-opensource-src-4.7.4
-
 # identify the qt4 repository by searching for a file that is unique for qt4
-QT4_REP_DIR := $(call select_from_repositories,lib/import/import-qt4.mk)
+QT4_REP_DIR := $(call select_from_repositories,lib/import/import-qt4.inc)
 QT4_REP_DIR := $(realpath $(dir $(QT4_REP_DIR))../..)
+
+include $(QT4_REP_DIR)/lib/mk/qt_version.inc
 
 QT4_INC_DIR := $(QT4_REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
                $(QT4_REP_DIR)/include/qt4 \
@@ -56,14 +56,16 @@ QT_DEFINES += -U__linux__
 
 CC_CXX_OPT += $(QT_DEFINES)
 
+SOURCES_FILTERED = $(filter-out $(SOURCES_FILTER_OUT), $(SOURCES))
+HEADERS_FILTERED = $(filter-out $(HEADERS_FILTER_OUT), $(HEADERS))
+
 # add sources defined in qmake project files
-SRC_CC += $(SOURCES)
+SRC_CC += $(SOURCES_FILTERED)
 
 # handle moc-headers, resources and ui descriptions
-$(SRC_CC:.cpp=.o): $(SOURCES:.cpp=.moc) \
-                   $(addprefix ui_,$(FORMS:.ui=.h))
+$(SRC_CC:.cpp=.o): $(addprefix ui_,$(FORMS:.ui=.h))
 
-SRC_CC_QT_GENERATED = $(addprefix moc_,$(HEADERS:.h=.cpp)) \
+SRC_CC_QT_GENERATED = $(addprefix moc_,$(HEADERS_FILTERED:.h=.cpp)) \
                       $(addprefix qrc_,$(RESOURCES:.qrc=.cpp))
 
 .SECONDARY: $(SRC_CC_QT_GENERATED)
@@ -138,6 +140,6 @@ endif
 clean cleanall: clean_rule
 clean_rule:
 	$(VERBOSE)$(RM) -f $(SRC_CC_QT_GENERATED)
-	$(VERBOSE)$(RM) -f $(SOURCES:.cpp=.moc)
+	$(VERBOSE)$(RM) -f $(SOURCES_FILTERED:.cpp=.moc)
 	$(VERBOSE)$(RM) -f $(addprefix ui_,$(FORMS:.ui=.h))
 endif

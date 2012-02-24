@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-qt4.mk
+include $(REP_DIR)/lib/import/import-qjpeg.mk
 
 SRC_CC       = main.cpp qjpeghandler.cpp
 
