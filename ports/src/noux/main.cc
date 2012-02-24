@@ -32,7 +32,7 @@
  * - pipe
  * ;- read init binary from vfs
  * - import env into child (execve and fork)
- * - shell
+ * ;- shell
  * - debug 'find'
  * - stacked file system infrastructure
  * - TMP file system
@@ -75,7 +75,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 {
 	if (verbose_syscall)
 		Genode::printf("PID %d -> SYSCALL %s\n",
-		               _pid, Noux::Session::syscall_name(sc));
+		               pid(), Noux::Session::syscall_name(sc));
 
 	try {
 		switch (sc) {
@@ -157,7 +157,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				char const *env = "PWD=\"/\"";
 				char const *filename = _sysio->execve_in.filename;
 				Child *child = new Child(filename,
-				                         _pid,
+				                         parent(),
+				                         pid(),
 				                         _sig_rec,
 				                         _vfs,
 				                         Args(_sysio->execve_in.args,
@@ -167,6 +168,10 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _parent_services,
 				                         _resources.ep,
 				                         false);
+
+				/* replace ourself by the new child at the parent */
+				parent()->remove(this);
+				parent()->insert(child);
 
 				_assign_io_channels_to(child);
 
@@ -290,6 +295,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 *     reusing the name of the parent.
 				 */
 				Child *child = new Child(name(),
+				                         this,
 				                         new_pid,
 				                         _sig_rec,
 				                         _vfs,
@@ -299,6 +305,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _parent_services,
 				                         _resources.ep,
 				                         true);
+
+				Family_member::insert(child);
 
 				_assign_io_channels_to(child);
 
@@ -319,25 +327,25 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_GETPID:
 			{
-				_sysio->getpid_out.pid = _pid;
+				_sysio->getpid_out.pid = pid();
 				return true;
 			}
 
 		case SYSCALL_WAIT4:
 			{
-				PINF("SYSCALL_WAIT4 called");
+				Family_member *exited = _sysio->wait4_in.nohang ? poll4() : wait4();
 
-				/*
-				 * XXX check if one of out children exited
-				 */
+				if (exited) {
+					_sysio->wait4_out.pid    = exited->pid();
+					_sysio->wait4_out.status = exited->exit_status();
+					Family_member::remove(exited);
 
-				if (!_sysio->wait4_in.nohang)
-					_blocker.down();
-
-				_sysio->wait4_out.pid = -1;
-				_sysio->wait4_out.status = 0;
-
-				PINF("SYSCALL_WAIT4 returning");
+					/* destroy 'Noux::Child' */
+					destroy(Genode::env()->heap(), exited);
+				} else {
+					_sysio->wait4_out.pid    = 0;
+					_sysio->wait4_out.status = 0;
+				}
 				return true;
 			}
 
@@ -504,6 +512,7 @@ int main(int argc, char **argv)
 	static Genode::Signal_receiver sig_rec;
 
 	init_child = new Noux::Child(name_of_init_process(),
+	                             0,
 	                             pid_allocator()->alloc(),
 	                             &sig_rec,
 	                             &vfs,
@@ -540,8 +549,9 @@ int main(int argc, char **argv)
 		Signal_dispatcher *dispatcher =
 			static_cast<Signal_dispatcher *>(signal.context());
 
-		for (int i = 0; i < signal.num(); i++)
-			dispatcher->dispatch();
+		if (dispatcher)
+			for (int i = 0; i < signal.num(); i++)
+				dispatcher->dispatch();
 	}
 
 	PINF("-- exiting noux ---");

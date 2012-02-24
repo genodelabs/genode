@@ -95,8 +95,6 @@ append config {
 				<fstab> <tar name="bash.tar" at="/"/> </fstab>
 				<start name="/bin/bash">
 					<env name="TERM" value="linux" />
-					<env name="FOO" value="/slashemdir,BAR=baz" />
-					<env name="FUZ" value="holla\"die waldfee" />
 				</start>
 			</config>
 		</start>

@@ -93,7 +93,6 @@ namespace Noux {
 					/* trigger exit of main event loop */
 					init_process_exited();
 				}
-				/* XXX destroy child */
 			}
 	};
 
@@ -119,13 +118,101 @@ namespace Noux {
 	};
 
 
-	class Child : private Child_policy,
-	              public  Rpc_object<Session>,
-	              public  File_descriptor_registry
+	class Family_member : public List<Family_member>::Element
 	{
 		private:
 
-			int const _pid;
+			int             const _pid;
+			Lock                  _lock;
+			List<Family_member>   _list;
+			Family_member * const _parent;
+			bool                  _has_exited;
+			int                   _exit_status;
+			Semaphore             _wait4_blocker;
+
+			void _wakeup_wait4()
+			{
+				_wait4_blocker.up();
+			}
+
+		public:
+
+			Family_member(int pid, Family_member *parent)
+			: _pid(pid), _parent(parent), _has_exited(false), _exit_status(0)
+			{ }
+
+			virtual ~Family_member() { }
+
+			int pid() const { return _pid; }
+
+			Family_member *parent() { return _parent; }
+
+			int exit_status() const { return _exit_status; }
+
+			/**
+			 * Called by the parent at creation time of the process
+			 */
+			void insert(Family_member *member)
+			{
+				Lock::Guard guard(_lock);
+				_list.insert(member);
+			}
+
+			/**
+			 * Called by the parent from the return path of the wait4 syscall
+			 */
+			void remove(Family_member *member)
+			{
+				Lock::Guard guard(_lock);
+				_list.remove(member);
+			}
+
+			/**
+			 * Tell the parent that we exited
+			 */
+			void wakeup_parent(int exit_status)
+			{
+				_exit_status = exit_status;
+				_has_exited  = true;
+				if (_parent)
+					_parent->_wakeup_wait4();
+			}
+
+			Family_member *poll4()
+			{
+				Lock::Guard guard(_lock);
+
+				/* check if any of our children has exited */
+				Family_member *curr = _list.first();
+				for (; curr; curr = curr->next()) {
+					if (curr->_has_exited)
+						return curr;
+				}
+				return 0;
+			}
+
+			/**
+			 * Wait for the exit of any of our children
+			 */
+			Family_member *wait4()
+			{
+				for (;;) {
+					Family_member *result = poll4();
+					if (result)
+						return result;
+
+					_wait4_blocker.down();
+				}
+			}
+	};
+
+
+	class Child : private Child_policy,
+	              public  Rpc_object<Session>,
+	              public  File_descriptor_registry,
+	              public  Family_member
+	{
+		private:
 
 			Signal_receiver *_sig_rec;
 
@@ -281,6 +368,7 @@ namespace Noux {
 			 *                true if the child is a fork from another child
 			 */
 			Child(char const       *name,
+			      Family_member    *parent,
 			      int               pid,
 			      Signal_receiver  *sig_rec,
 			      Vfs              *vfs,
@@ -291,7 +379,7 @@ namespace Noux {
 			      Rpc_entrypoint   &resources_ep,
 			      bool              forked)
 			:
-				_pid(pid),
+				Family_member(pid, parent),
 				_sig_rec(sig_rec),
 				_exit_dispatcher(this),
 				_exit_context_cap(sig_rec->manage(&_exit_dispatcher)),
@@ -324,6 +412,11 @@ namespace Noux {
 
 			~Child()
 			{
+				PDBG("Destructing child %p", this);
+
+				_sig_rec->dissolve(&_execve_cleanup_dispatcher);
+				_sig_rec->dissolve(&_exit_dispatcher);
+
 				/* XXX _binary_ds */
 
 				_entrypoint.dissolve(this);
@@ -387,7 +480,12 @@ namespace Noux {
 			void exit(int exit_value)
 			{
 				PINF("child %s exited with exit value %d", _name, exit_value);
-				Signal_transmitter(_exit_context_cap).submit();
+
+				wakeup_parent(exit_value);
+
+				/* handle exit of the init process */
+				if (parent() == 0)
+					Signal_transmitter(_exit_context_cap).submit();
 			}
 
 			Ram_session *ref_ram_session()

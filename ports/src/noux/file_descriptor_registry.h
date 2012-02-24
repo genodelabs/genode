@@ -48,7 +48,7 @@ namespace Noux {
 				return false;
 			}
 
-			void _assign_fd(int fd, Shared_pointer<Io_channel> io_channel)
+			void _assign_fd(int fd, Shared_pointer<Io_channel> &io_channel)
 			{
 				_fds[fd].io_channel = io_channel;
 				_fds[fd].allocated  = true;
