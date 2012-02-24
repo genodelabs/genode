@@ -13,4 +13,6 @@ CC_OPT += -DHAVE_STRING_H -DHAVE_STDINT_H
 # disable warning noise for contrib code
 CC_WARN = -Wno-deprecated-declarations
 
+SHARED_LIB = yes
+
 vpath %.c $(JBIG2DEC_DIR)

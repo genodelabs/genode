@@ -72,7 +72,7 @@ install_config $config
 #
 if {![file exist bin/test.pdf]} {
 	set pdf_url "http://genode-labs.com/publications/genode-fpga-graphics-2009.pdf"
-	catch { exec wget $pdf_url -O bin/test.pdf] }
+	catch { exec wget $pdf_url -O bin/test.pdf }
 }
 
 if {![file exist bin/test.pdf]} {
