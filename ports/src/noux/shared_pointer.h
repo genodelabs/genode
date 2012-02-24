@@ -82,13 +82,13 @@ namespace Noux {
 	{
 		private:
 
-			T                  *_ptr;
+			T                 *_ptr;
 			Genode::Allocator *_alloc;
 
 			void _dec_ref_count()
 			{
 				if (Shared_pointer_base::_dec_ref_count()) {
-					PDBG("ref count reached zero -> delete object");
+					PDBG("ref count for %p reached zero -> delete object", _ptr);
 					Genode::destroy(_alloc, _ptr);
 					_ptr         = 0;
 					_alloc       = 0;
@@ -107,7 +107,9 @@ namespace Noux {
 			}
 
 			Shared_pointer(Shared_pointer const & from)
-			: Shared_pointer_base(from._ref_counter), _ptr(from._ptr), _alloc(from._alloc)
+			:
+				Shared_pointer_base(from._ref_counter),
+				_ptr(from._ptr), _alloc(from._alloc)
 			{
 				_inc_ref_count();
 			}
@@ -118,11 +120,15 @@ namespace Noux {
 				if (_ptr == from._ptr)
 					return *this;
 
+				/* forget about original pointed-to object */
 				_dec_ref_count();
 
 				_ref_counter = from._ref_counter;
 				_ptr         = from._ptr;
 				_alloc       = from._alloc;
+
+				/* account for newly assigned pointed-to object */
+				_inc_ref_count();
 
 				return *this;
 			}
