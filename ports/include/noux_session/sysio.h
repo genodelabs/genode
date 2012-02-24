@@ -253,6 +253,9 @@ namespace Noux {
 			                   { int pid; });
 
 			SYSIO_DECL(getpid, { }, { int pid; });
+
+			SYSIO_DECL(wait4,  { int pid; bool nohang; },
+			                   { int pid; int status; });
 		};
 	};
 };

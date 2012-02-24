@@ -323,6 +323,24 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				return true;
 			}
 
+		case SYSCALL_WAIT4:
+			{
+				PINF("SYSCALL_WAIT4 called");
+
+				/*
+				 * XXX check if one of out children exited
+				 */
+
+				if (!_sysio->wait4_in.nohang)
+					_blocker.down();
+
+				_sysio->wait4_out.pid = -1;
+				_sysio->wait4_out.status = 0;
+
+				PINF("SYSCALL_WAIT4 returning");
+				return true;
+			}
+
 		case SYSCALL_INVALID: break;
 		}
 	}

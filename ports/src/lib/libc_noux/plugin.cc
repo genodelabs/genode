@@ -380,19 +380,17 @@ extern "C" pid_t getpid(void)
 extern "C" pid_t _wait4(pid_t pid, int *status, int options,
                         struct rusage *rusage)
 {
-	/*
-	 * XXX dummy to accomodate the 'reap_zombie_children' function in bash
-	 */
-	if (options & WNOHANG) {
-		PWRN("_wait4 dummy called (with WNOHANG) - not implemented");
-		return 0;
+	sysio()->wait4_in.pid    = pid;
+	sysio()->wait4_in.nohang = !!(options & WNOHANG);
+	if (!noux()->syscall(Noux::Session::SYSCALL_WAIT4)) {
+		PERR("wait4 error %d", sysio()->error.general);
+		return -1;
 	}
 
-	PDBG("_wait4 (pid=%d, options=0x%x) called, waiting forever...",
-	      pid, options);
+	if (status)
+		*status = sysio()->wait4_out.status;
 
-	for (;;);
-	return 0;
+	return sysio()->wait4_out.pid;
 }
 
 
