@@ -36,7 +36,7 @@ namespace Genode {
 			enum {
 				PD_BITS      = 9,
 				THREAD_BITS  = 9,
-				VERSION_BITS = 14,
+				VERSION_BITS = 14 - 1, /* preserve 1 bit, see 'make_l4_id' */
 				PD_FIRST     = 0,
 				PD_MAX       = (1 << PD_BITS)      - 1,
 				THREAD_MAX   = (1 << THREAD_BITS)  - 1,
@@ -56,7 +56,15 @@ namespace Genode {
 			                                    unsigned thread_no,
 			                                    unsigned version)
 			{
-				return Pistachio::L4_GlobalId((pd_no << PD_BITS) | thread_no, version);
+				/*
+				 * We have to make sure that the 6 lower version bits are
+				 * never zero. Otherwise, the kernel won't recognize the
+				 * thread ID as a global ID (i.e., 'L4_ThreadControl' would
+				 * fail during the creation of a new PD). To maintain this
+				 * invariant, we always set the lowest version bit to one.
+				 */
+				return Pistachio::L4_GlobalId((pd_no << PD_BITS) | thread_no,
+				                               (version << 1) | 1);
 			}
 
 
