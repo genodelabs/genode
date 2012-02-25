@@ -1,0 +1,35 @@
+This directory contains an implementation of a simple ACPI parser
+
+Behavior
+--------
+
+This server should be used when using a kernel (like Fiasco.OC or Nova) that
+takes advantage of x86's APIC. The server traverses the ACPI tables and sets the
+interrupt line of devices within the PCI config space to the GSIs found in the
+ACPI tables.
+
+Usage
+-----
+
+Start the 'acpi_drv' in your Genode environment. Do not start the 'pci_drv'
+since this will be used as a slave of the 'acpi_drv'. You still must load the
+'pci_drv' in your boot loader.
+
+Configuration snipped:
+
+!<start name="acpi">
+!  <resource name="RAM" quantum="2M"/>
+!    <binary name="acpi_drv"/>
+!    <provides><service name="PCI"/></provides>
+!    <route>
+!      <service name="ROM"> <parent/> </service>
+!      <any-service> <any-child/> <parent/> </any-service>
+!    </route>
+!</start>
+
+Limitations and known issues
+----------------------------
+
+Currently there is no interface to set the interrupt mode for Irq_sessions
+(e.g., level or edge triggered). This is required by Fiasco.OCs kernel
+interface. We regard this as future work.
