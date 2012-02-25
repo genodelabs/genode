@@ -41,12 +41,17 @@ namespace Genode {
 				bool   write_combined;
 
 				/**
+				 * Base address of request used for freeing mem-ranges
+				 */
+				addr_t req_base;
+
+				/**
 				 * Default constructor
 				 *
 				 * This constructor enables Dataspace_attr objects to be
 				 * returned from the '_prepare_io_mem' function.
 				 */
-				Dataspace_attr() { }
+				Dataspace_attr() : size(0) { }
 
 				/**
 				 * Constructor
@@ -54,24 +59,28 @@ namespace Genode {
 				 * An invalid dataspace is represented by setting all
 				 * arguments to zero.
 				 */
-				Dataspace_attr(size_t s, addr_t cla, addr_t pa, bool write_combined):
-					size(s), core_local_addr(cla), phys_addr(pa) { }
+				Dataspace_attr(size_t s, addr_t cla, addr_t pa, bool write_combined,
+				               addr_t req_base)
+				:
+					size(s), core_local_addr(cla), phys_addr(pa), req_base(req_base) { }
+			};
 
-			} ds_attr;
-
-			class Io_dataspace_component : public Dataspace_component
+			struct Io_dataspace_component : Dataspace_component
 			{
-				public:
+				addr_t req_base;
 
-					/**
-					 * Constructor
-					 */
-					Io_dataspace_component(Dataspace_attr da)
-					: Dataspace_component(da.size, da.core_local_addr,
-					                      da.phys_addr, da.write_combined,
-					                      true) { }
+				/**
+				 * Constructor
+				 */
+				Io_dataspace_component(Dataspace_attr da)
+				:
+					Dataspace_component(da.size, da.core_local_addr,
+					                    da.phys_addr, da.write_combined,
+					                    true),
+					req_base(da.req_base) { }
 
-					bool valid() { return size() != 0; }
+
+				bool valid() { return size() != 0; }
 			};
 
 			Range_allocator            *_io_mem_alloc;

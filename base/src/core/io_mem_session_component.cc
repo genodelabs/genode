@@ -16,7 +16,7 @@
 #include <root/root.h>
 #include <dataspace_component.h>
 #include <io_mem_session_component.h>
-
+#include <base/allocator_avl.h>
 #include "util.h"
 
 using namespace Genode;
@@ -47,18 +47,18 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 	int ret;
 	if ((ret = ram_alloc->remove_range(base, size))) {
 		PERR("I/O memory [%lx,%lx) used by RAM allocator (%d)", base, base + size, ret);
-		return Dataspace_attr(0, 0, 0, 0);
+		return Dataspace_attr();
 	}
 
 	/* allocate region */
 	switch (_io_mem_alloc->alloc_addr(req_size, req_base)) {
 	case Range_allocator::RANGE_CONFLICT:
 		PERR("I/O memory [%lx,%lx) not available", base, base + size);
-		return Dataspace_attr(0, 0, 0, 0);
+		return Dataspace_attr();
 
 	case Range_allocator::OUT_OF_METADATA:
 		PERR("I/O memory allocator ran out of meta data");
-		return Dataspace_attr(0, 0, 0, 0);
+		return Dataspace_attr();
 
 	case Range_allocator::ALLOC_OK: break;
 	}
@@ -71,7 +71,7 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 		     base, base + size, local_addr, local_addr + size,
 		     _write_combined ? " (write-combined)" : "");
 
-	return Dataspace_attr(size, local_addr, base, _write_combined);
+	return Dataspace_attr(size, local_addr, base, _write_combined, req_base);
 }
 
 
@@ -97,6 +97,8 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator *io_mem_alloc
 
 Io_mem_session_component::~Io_mem_session_component()
 {
+	if (verbose)
+		PDBG("I/O mem free [%lx,%lx)", _ds.phys_addr(), _ds.phys_addr() + _ds.size());
 	/* dissolve IO_MEM dataspace from service entry point */
 	_ds_ep->dissolve(&_ds);
 
@@ -110,5 +112,5 @@ Io_mem_session_component::~Io_mem_session_component()
 	 */
 
 	/* free region in IO_MEM allocator */
-	_io_mem_alloc->free(reinterpret_cast<void *>(_ds.phys_addr()));
+	_io_mem_alloc->free(reinterpret_cast<void *>(_ds.req_base));
 }
