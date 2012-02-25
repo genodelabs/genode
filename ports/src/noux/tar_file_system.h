@@ -274,17 +274,23 @@ namespace Noux {
 				}
 
 				try {
-					Attached_ram_dataspace *ds = new (env()->heap())
-						Attached_ram_dataspace(env()->ram_session(), record->size());
+					Ram_dataspace_capability ds_cap =
+						env()->ram_session()->alloc(record->size());
 
-					PDBG("copying %s (%zd bytes) into new dataspace", path, record->size());
+					void *local_addr = env()->rm_session()->attach(ds_cap);
+					memcpy(local_addr, record->data(), record->size());
+					env()->rm_session()->detach(local_addr);
 
-					memcpy(ds->local_addr<void>(), record->data(), record->size());
-					return ds->cap();
+					return ds_cap;
 				}
 				catch (...) { PDBG("Could not create new dataspace"); }
 
 				return Dataspace_capability();
+			}
+
+			void release(Genode::Dataspace_capability ds_cap)
+			{
+				env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds_cap));
 			}
 
 			bool stat(Sysio *sysio, char const *path)

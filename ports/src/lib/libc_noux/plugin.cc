@@ -38,6 +38,9 @@
 #include <termios.h>
 
 
+enum { verbose = false };
+
+
 void *operator new (size_t, void *ptr) { return ptr; }
 
 
@@ -166,13 +169,15 @@ static bool serialize_string_array(char const * const * array, char *dst, Genode
 extern "C" int execve(const char *filename, char *const argv[],
                       char *const envp[])
 {
-	PDBG("filename=%s", filename);
+	if (verbose) {
+		PDBG("filename=%s", filename);
 
-	for (int i = 0; argv[i]; i++)
-		PDBG("argv[%d]='%s'", i, argv[i]);
+		for (int i = 0; argv[i]; i++)
+			PDBG("argv[%d]='%s'", i, argv[i]);
 
-	for (int i = 0; envp[i]; i++)
-		PDBG("envp[%d]='%s'", i, envp[i]);
+		for (int i = 0; envp[i]; i++)
+			PDBG("envp[%d]='%s'", i, envp[i]);
+	}
 
 	Genode::strncpy(sysio()->execve_in.filename, filename, sizeof(sysio()->execve_in.filename));
 	if (!serialize_string_array(argv, sysio()->execve_in.args,
@@ -416,6 +421,33 @@ extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	PDBG("gettimeofdaye called - not implemented");
 	errno = EINVAL;
+	return -1;
+}
+
+
+/*********************
+ ** Signal handling **
+ *********************/
+
+extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+{
+	/* XXX todo */
+	errno = ENOSYS;
+	return -1;
+}
+
+
+extern "C" int _sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+{
+	return sigprocmask(how, set, oldset);
+}
+
+
+extern "C" int sigaction(int signum, const struct sigaction *act,
+                         struct sigaction *oldact)
+{
+	/* XXX todo */
+	errno = ENOSYS;
 	return -1;
 }
 

@@ -46,6 +46,16 @@ namespace Noux {
 				return Genode::Dataspace_capability();
 			}
 
+			void release_dataspace_for_file(char const *filename,
+			                                Genode::Dataspace_capability ds_cap)
+			{
+				for (File_system *fs = _file_systems.first(); fs; fs = fs->next()) {
+					char const *fs_local_path = fs->local_path(filename);
+					if (fs_local_path)
+						fs->release(ds_cap);
+				}
+			}
+
 			void add_file_system(File_system *file_system)
 			{
 				_file_systems.insert(file_system);

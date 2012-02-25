@@ -15,7 +15,6 @@
 #define _NOUX__CHILD_H_
 
 /* Genode includes */
-#include <init/child_policy.h>
 #include <base/signal.h>
 #include <base/semaphore.h>
 #include <cap_session/cap_session.h>
@@ -28,10 +27,9 @@
 #include <noux_session/capability.h>
 #include <args.h>
 #include <environment.h>
-#include <local_rm_service.h>
 #include <ram_session_component.h>
 #include <cpu_session_component.h>
-
+#include <child_policy.h>
 
 namespace Noux {
 
@@ -118,99 +116,9 @@ namespace Noux {
 	};
 
 
-	class Family_member : public List<Family_member>::Element
-	{
-		private:
-
-			int             const _pid;
-			Lock                  _lock;
-			List<Family_member>   _list;
-			Family_member * const _parent;
-			bool                  _has_exited;
-			int                   _exit_status;
-			Semaphore             _wait4_blocker;
-
-			void _wakeup_wait4()
-			{
-				_wait4_blocker.up();
-			}
-
-		public:
-
-			Family_member(int pid, Family_member *parent)
-			: _pid(pid), _parent(parent), _has_exited(false), _exit_status(0)
-			{ }
-
-			virtual ~Family_member() { }
-
-			int pid() const { return _pid; }
-
-			Family_member *parent() { return _parent; }
-
-			int exit_status() const { return _exit_status; }
-
-			/**
-			 * Called by the parent at creation time of the process
-			 */
-			void insert(Family_member *member)
-			{
-				Lock::Guard guard(_lock);
-				_list.insert(member);
-			}
-
-			/**
-			 * Called by the parent from the return path of the wait4 syscall
-			 */
-			void remove(Family_member *member)
-			{
-				Lock::Guard guard(_lock);
-				_list.remove(member);
-			}
-
-			/**
-			 * Tell the parent that we exited
-			 */
-			void wakeup_parent(int exit_status)
-			{
-				_exit_status = exit_status;
-				_has_exited  = true;
-				if (_parent)
-					_parent->_wakeup_wait4();
-			}
-
-			Family_member *poll4()
-			{
-				Lock::Guard guard(_lock);
-
-				/* check if any of our children has exited */
-				Family_member *curr = _list.first();
-				for (; curr; curr = curr->next()) {
-					if (curr->_has_exited)
-						return curr;
-				}
-				return 0;
-			}
-
-			/**
-			 * Wait for the exit of any of our children
-			 */
-			Family_member *wait4()
-			{
-				for (;;) {
-					Family_member *result = poll4();
-					if (result)
-						return result;
-
-					_wait4_blocker.down();
-				}
-			}
-	};
-
-
-	class Child : private Child_policy,
-	              public  Rpc_object<Session>,
-	              public  File_descriptor_registry,
-	              public  Family_member
+	class Child : public Rpc_object<Session>,
+	              public File_descriptor_registry,
+	              public Family_member
 	{
 		private:
 
@@ -220,9 +128,6 @@ namespace Noux {
 			 * Semaphore used for implementing blocking syscalls, i.e., select
 			 */
 			Semaphore _blocker;
-
-			enum { MAX_NAME_LEN = 64 };
-			char _name[MAX_NAME_LEN];
 
 			Child_exit_dispatcher     _exit_dispatcher;
 			Signal_context_capability _exit_context_cap;
@@ -244,12 +149,12 @@ namespace Noux {
 				 * Entrypoint used to serve the RPC interfaces of the
 				 * locally-provided services
 				 */
-				Rpc_entrypoint       &ep;
+				Rpc_entrypoint &ep;
 
 				/**
 				 * Registry of dataspaces owned by the Noux process
 				 */
-				Dataspace_registry    ds_registry;
+				Dataspace_registry ds_registry;
 
 				/**
 				 * Locally-provided services for accessing platform resources
@@ -293,15 +198,6 @@ namespace Noux {
 			 */
 			Dataspace_capability const _binary_ds;
 
-			Genode::Child _child;
-
-			Service_registry * const _parent_services;
-
-			Init::Child_policy_enforce_labeling _labeling_policy;
-			Init::Child_policy_provide_rom_file _binary_policy;
-			Init::Child_policy_provide_rom_file _args_policy;
-			Init::Child_policy_provide_rom_file _env_policy;
-
 			enum { PAGE_SIZE = 4096, PAGE_MASK = ~(PAGE_SIZE - 1) };
 			enum { SYSIO_DS_SIZE = PAGE_MASK & (sizeof(Sysio) + PAGE_SIZE - 1) };
 
@@ -310,25 +206,12 @@ namespace Noux {
 
 			Session_capability const _noux_session_cap;
 
-			struct Local_noux_service : public Service
-			{
-				Genode::Session_capability _cap;
+			Local_noux_service _local_noux_service;
+			Local_rm_service   _local_rm_service;
+			Service_registry  &_parent_services;
 
-				/**
-				 * Constructor
-				 *
-				 * \param cap  capability to return on session requests
-				 */
-				Local_noux_service(Genode::Session_capability cap)
-				: Service(service_name()), _cap(cap) { }
-
-				Genode::Session_capability session(const char *args) { return _cap; }
-				void upgrade(Genode::Session_capability, const char *args) { }
-				void close(Genode::Session_capability) { }
-
-			} _local_noux_service;
-
-			Local_rm_service _local_rm_service;
+			Child_policy  _child_policy;
+			Genode::Child _child;
 
 			/**
 			 * Exception type for failed file-descriptor lookup
@@ -375,7 +258,7 @@ namespace Noux {
 			      Args              const &args,
 			      char const       *env,
 			      Cap_session      *cap_session,
-			      Service_registry *parent_services,
+			      Service_registry &parent_services,
 			      Rpc_entrypoint   &resources_ep,
 			      bool              forked)
 			:
@@ -393,33 +276,30 @@ namespace Noux {
 				_vfs(vfs),
 				_binary_ds(forked ? Dataspace_capability()
 				                  : vfs->dataspace_from_file(name)),
-				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
-				       _resources.rm.cap(), &_entrypoint, this),
-				_parent_services(parent_services),
-				_labeling_policy(_name),
-				_binary_policy("binary", _binary_ds,  &_entrypoint),
-				_args_policy(  "args",   _args.cap(), &_entrypoint),
-				_env_policy(   "env",    _env.cap(),  &_entrypoint),
 				_sysio_ds(Genode::env()->ram_session(), SYSIO_DS_SIZE),
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
 				_local_noux_service(_noux_session_cap),
-				_local_rm_service(_entrypoint, _resources.ds_registry)
+				_local_rm_service(_entrypoint, _resources.ds_registry),
+				_parent_services(parent_services),
+				_child_policy(name, _binary_ds, _args.cap(), _env.cap(),
+				              _entrypoint, _local_noux_service,
+				              _local_rm_service, _parent_services,
+				              *this, _exit_context_cap, _resources.ram),
+				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
+				       _resources.rm.cap(), &_entrypoint, &_child_policy)
 			{
 				_args.dump();
-				strncpy(_name, name, sizeof(_name));
 			}
 
 			~Child()
 			{
-				PDBG("Destructing child %p", this);
-
 				_sig_rec->dissolve(&_execve_cleanup_dispatcher);
 				_sig_rec->dissolve(&_exit_dispatcher);
 
-				/* XXX _binary_ds */
-
 				_entrypoint.dissolve(this);
+
+				_vfs->release_dataspace_for_file(_child_policy.name(), _binary_ds);
 			}
 
 			void start() { _entrypoint.activate(); }
@@ -437,61 +317,6 @@ namespace Noux {
 			Ram_session_capability ram() const { return _resources.ram.cap(); }
 			Rm_session_capability   rm() const { return _resources.rm.cap(); }
 			Dataspace_registry &ds_registry()  { return _resources.ds_registry; }
-
-
-			/****************************
-			 ** Child_policy interface **
-			 ****************************/
-
-			const char *name() const { return _name; }
-
-			Service *resolve_session_request(const char *service_name,
-			                                 const char *args)
-			{
-				Service *service = 0;
-
-				/* check for local ROM file requests */
-				if ((service =   _args_policy.resolve_session_request(service_name, args))
-				 || (service =    _env_policy.resolve_session_request(service_name, args))
-				 || (service = _binary_policy.resolve_session_request(service_name, args)))
-					return service;
-
-				/* check for locally implemented noux service */
-				if (strcmp(service_name, Session::service_name()) == 0)
-					return &_local_noux_service;
-
-				/*
-				 * Check for the creation of an RM session, which is used by
-				 * the dynamic linker to manually manage a part of the address
-				 * space.
-				 */
-				if (strcmp(service_name, Rm_session::service_name()) == 0)
-					return &_local_rm_service;
-
-				return _parent_services->find(service_name);
-			}
-
-			void filter_session_args(const char *service,
-			                         char *args, size_t args_len)
-			{
-				_labeling_policy.filter_session_args(service, args, args_len);
-			}
-
-			void exit(int exit_value)
-			{
-				PINF("child %s exited with exit value %d", _name, exit_value);
-
-				wakeup_parent(exit_value);
-
-				/* handle exit of the init process */
-				if (parent() == 0)
-					Signal_transmitter(_exit_context_cap).submit();
-			}
-
-			Ram_session *ref_ram_session()
-			{
-				return &_resources.ram;
-			}
 
 
 			/****************************

@@ -176,6 +176,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				_assign_io_channels_to(child);
 
 				/* signal main thread to remove ourself */
+				PINF("submit signal to _execve_cleanup_context_cap");
 				Genode::Signal_transmitter(_execve_cleanup_context_cap).submit();
 
 				/* start executing the new process */
@@ -294,7 +295,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 *     unique name that includes the PID instead of just
 				 *     reusing the name of the parent.
 				 */
-				Child *child = new Child(name(),
+				Child *child = new Child(_child_policy.name(),
 				                         this,
 				                         new_pid,
 				                         _sig_rec,
@@ -342,6 +343,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 					/* destroy 'Noux::Child' */
 					destroy(Genode::env()->heap(), exited);
+
+					PINF("quota: avail=%zd, used=%zd",
+					     Genode::env()->ram_session()->avail(),
+					     Genode::env()->ram_session()->used());
+
 				} else {
 					_sysio->wait4_out.pid    = 0;
 					_sysio->wait4_out.status = 0;
@@ -519,7 +525,7 @@ int main(int argc, char **argv)
 	                             args_of_init_process(),
 	                             env_string_of_init_process(),
 	                             &cap,
-	                             &parent_services,
+	                             parent_services,
 	                             resources_ep,
 	                             false);
 

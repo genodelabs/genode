@@ -105,16 +105,6 @@ namespace Noux {
 			            Dataspace_registry    &ds_registry,
 			            Rpc_entrypoint        &ep)
 			{
-				/*
-				 * XXX remove this
-				 */
-				struct Dummy_destroyer : Dataspace_destroyer
-				{
-					void destroy(Dataspace_capability) { }
-				};
-
-				static Dummy_destroyer dummy_destroyer;
-
 				for (Region *curr = _regions.first(); curr; curr = curr->next()) {
 
 					Dataspace_capability ds;
@@ -123,11 +113,7 @@ namespace Noux {
 
 					if (info) {
 
-						/*
-						 * XXX Using 'this' as destroyer may be false, the
-						 *     destroyer should better correspond to dst_ram.
-						 */
-						ds = info->fork(dst_ram, dummy_destroyer, ds_registry, ep);
+						ds = info->fork(dst_ram, ds_registry, ep);
 
 						/*
 						 * XXX We could detect dataspaces that are attached
@@ -148,7 +134,6 @@ namespace Noux {
 						 *     like to detect unexpected dataspaces.
 						 */
 						ds = curr->ds;
-						PWRN("replay: unknown dataspace type, assume ROM");
 					}
 
 					if (!ds.valid()) {

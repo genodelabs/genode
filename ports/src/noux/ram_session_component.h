@@ -24,7 +24,7 @@
 #define _NOUX__RAM_SESSION_COMPONENT_H_
 
 /* Genode includes */
-#include <ram_session/capability.h>
+#include <ram_session/client.h>
 #include <base/rpc_server.h>
 #include <base/env.h>
 
@@ -38,12 +38,10 @@ namespace Noux {
 	struct Ram_dataspace_info : Dataspace_info,
 	                            List<Ram_dataspace_info>::Element
 	{
-		Ram_dataspace_info(Ram_dataspace_capability ds_cap,
-		                   Dataspace_destroyer &destroyer)
-		: Dataspace_info(ds_cap, destroyer) { }
+		Ram_dataspace_info(Ram_dataspace_capability ds_cap)
+		: Dataspace_info(ds_cap) { }
 
 		Dataspace_capability fork(Ram_session_capability ram,
-		                          Dataspace_destroyer   &destroyer,
 		                          Dataspace_registry    &,
 		                          Rpc_entrypoint        &)
 		{
@@ -101,8 +99,7 @@ namespace Noux {
 	};
 
 
-	class Ram_session_component : public Rpc_object<Ram_session>,
-	                              public Dataspace_destroyer
+	class Ram_session_component : public Rpc_object<Ram_session>
 	{
 		private:
 
@@ -136,19 +133,6 @@ namespace Noux {
 			}
 
 
-			/***********************************
-			 ** Dataspace_destroyer interface **
-			 ***********************************/
-
-			/*
-			 * XXX not used yet
-			 */
-			void destroy(Dataspace_capability ds)
-			{
-				free(static_cap_cast<Ram_dataspace>(ds));
-			}
-
-
 			/***************************
 			 ** Ram_session interface **
 			 ***************************/
@@ -158,7 +142,7 @@ namespace Noux {
 				Ram_dataspace_capability ds_cap = env()->ram_session()->alloc(size);
 
 				Ram_dataspace_info *ds_info = new (env()->heap())
-				                              Ram_dataspace_info(ds_cap, *this);
+				                              Ram_dataspace_info(ds_cap);
 
 				_used_quota += ds_info->size();
 

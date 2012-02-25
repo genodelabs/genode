@@ -51,6 +51,8 @@ namespace Noux {
 						return Genode::Dataspace_capability();
 					}
 
+					void release(Genode::Dataspace_capability) { }
+
 					bool        stat(Sysio *, char const *)   { return _msg("stat"); }
 					Vfs_handle *open(Sysio *, char const *)   { _msg("open"); return 0; }
 					void        close(Vfs_handle *)           { _msg("close"); }

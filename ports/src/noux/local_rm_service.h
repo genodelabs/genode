@@ -30,38 +30,52 @@ namespace Noux {
 	{
 		private:
 
-			struct Dummy_destroyer : Dataspace_destroyer
-			{
-				void destroy(Dataspace_capability) { }
-			} _dummy_destroyer;
-
-			Rm_session_component &_sub_rm;
+			Rm_session_component * const _sub_rm;
+			Rpc_entrypoint              &_ep;
+			Rm_session_capability        _rm_cap;
 
 		public:
 
-			Rm_dataspace_info(Rm_session_component &sub_rm)
+			/**
+			 * Constructor
+			 *
+			 * \param sub_rm  pointer to 'Rm_session_component' that belongs
+			 *                to the 'Rm_dataspace_info' object
+			 * \param ep      entrypoint to manage the 'Rm_session_component'
+			 *
+			 * The ownership of the pointed-to object gets transferred to the
+			 * 'Rm_dataspace_info' object. I.e., 'sub_rm' will get destructed
+			 * on the destruction of its corresponding 'Rm_dataspace_info'
+			 * object. Also, 'Rm_dataspace_info' takes care of associating
+			 * 'sub_rm' with 'ep'.
+			 */
+			Rm_dataspace_info(Rm_session_component *sub_rm,
+			                  Rpc_entrypoint &ep)
 			:
-				Dataspace_info(sub_rm.dataspace(), _dummy_destroyer),
-				_sub_rm(sub_rm)
+				Dataspace_info(sub_rm->dataspace()),
+				_sub_rm(sub_rm), _ep(ep), _rm_cap(_ep.manage(_sub_rm))
 			{ }
 
+			~Rm_dataspace_info()
+			{
+				_ep.dissolve(_sub_rm);
+				destroy(Genode::env()->heap(), _sub_rm);
+			}
+
+			Rm_session_capability rm_cap() { return _rm_cap; }
+
 			Dataspace_capability fork(Ram_session_capability ram,
-			                          Dataspace_destroyer &,
 			                          Dataspace_registry  &ds_registry,
 			                          Rpc_entrypoint      &ep)
 			{
 				Rm_session_component *new_sub_rm =
 					new Rm_session_component(ds_registry, 0, size());
 
-				Rm_session_capability rm_cap = ep.manage(new_sub_rm);
+				Rm_dataspace_info *rm_info = new Rm_dataspace_info(new_sub_rm, ep);
 
-				/*
-				 * XXX  Where to dissolve the RM session?
-				 */
+				_sub_rm->replay(ram, rm_info->rm_cap(), ds_registry, ep);
 
-				_sub_rm.replay(ram, rm_cap, ds_registry, ep);
-
-				ds_registry.insert(new Rm_dataspace_info(*new_sub_rm));
+				ds_registry.insert(rm_info);
 
 				return new_sub_rm->dataspace();
 			}
@@ -72,7 +86,7 @@ namespace Noux {
 					PERR("illegal attemt to write beyond RM boundary");
 					return;
 				}
-				_sub_rm.poke(dst_offset, src, len);
+				_sub_rm->poke(dst_offset, src, len);
 			}
 	};
 
@@ -100,18 +114,34 @@ namespace Noux {
 				Rm_session_component *rm =
 					new Rm_session_component(_ds_registry, start, size);
 
-				Genode::Session_capability cap = _ep.manage(rm);
-
-				_ds_registry.insert(new Rm_dataspace_info(*rm));
-
-				return cap;
+				Rm_dataspace_info *info = new Rm_dataspace_info(rm, _ep);
+				_ds_registry.insert(info);
+				return info->rm_cap();
 			}
 
 			void upgrade(Genode::Session_capability, const char *args) { }
 
-			void close(Genode::Session_capability)
+			void close(Genode::Session_capability session)
 			{
-				PWRN("Local_rm_service::close not implemented, leaking memory");
+				Rm_session_component *rm_session =
+					dynamic_cast<Rm_session_component *>(_ep.obj_by_cap(session));
+
+				if (!rm_session) {
+					PWRN("Unexpected call of close with non-RM-session argument");
+					return;
+				}
+
+				/* use RM dataspace as key to obtain the dataspace info object */
+				Dataspace_capability ds_cap = rm_session->dataspace();
+
+				/* release dataspace info */
+				Dataspace_info *info = _ds_registry.lookup_info(ds_cap);
+				if (info) {
+					_ds_registry.remove(info);
+					destroy(Genode::env()->heap(), info);
+				} else {
+					PWRN("Could not lookup dataspace info for local RM session");
+				}
 			}
 	};
 }
