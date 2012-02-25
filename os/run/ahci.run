@@ -3,7 +3,7 @@
 #
 
 set build_components {
-	core init drivers/timer drivers/pci
+	core init drivers/timer drivers/pci drivers/acpi
 	drivers/ahci test/ahci
 }
 build $build_components
@@ -32,10 +32,14 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="pci">
+	<start name="acpi">
 		<resource name="RAM" quantum="2M"/>
-		<binary name="pci_drv"/>
+		<binary name="acpi_drv"/>
 		<provides><service name="PCI"/></provides>
+		<route>
+			<service name="ROM"> <parent/> </service>
+			<any-service> <any-child/> <parent/> </any-service>
+		</route>
 	</start>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -63,7 +67,7 @@ install_config $config
 #
 
 set boot_modules {
-	core init timer pci_drv ahci_drv test-ahci
+	core init timer pci_drv ahci_drv test-ahci acpi_drv
 }
 
 build_boot_image $boot_modules
