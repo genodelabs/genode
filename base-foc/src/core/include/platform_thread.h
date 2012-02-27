@@ -39,6 +39,7 @@ namespace Genode {
 			friend class Platform_pd;
 
 			bool              _core_thread;
+			unsigned          _badge;
 			Native_capability _thread_cap;
 			Native_capability _gate_cap;
 			Native_capability _remote_gate_cap;

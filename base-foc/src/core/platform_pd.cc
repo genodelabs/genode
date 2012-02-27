@@ -44,7 +44,7 @@ static addr_t core_utcb_base() {
 void Platform_pd::_create_pd(bool syscall)
 {
 	if (!_l4_task_cap.valid())
-		_l4_task_cap = Capability_allocator::allocator()->alloc();
+		_l4_task_cap = cap_alloc()->alloc();
 
 	if (syscall) {
 		if (!_l4_task_cap)
@@ -154,6 +154,7 @@ void Platform_pd::map_task_cap()
 
 Platform_pd::Platform_pd(bool create, Native_task task_cap)
 : _l4_task_cap(task_cap),
+  _badge(create ? Badge_allocator::allocator()->alloc() : 0),
   _parent_cap_mapped(false),
   _task_cap_mapped(false)
 {
@@ -170,5 +171,7 @@ Platform_pd::~Platform_pd()
 		if (_threads[i])
 			_threads[i]->unbind();
 	}
+
 	_destroy_pd();
+	Badge_allocator::allocator()->free(_badge);
 }

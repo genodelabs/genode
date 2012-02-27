@@ -19,6 +19,7 @@
 
 /* core includes */
 #include <signal_session_component.h>
+#include <cap_session_component.h>
 
 namespace Fiasco {
 #include <l4/sys/factory.h>
@@ -68,10 +69,11 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 {
 	using namespace Fiasco;
 
-	Fiasco_capability irq = Capability_allocator::allocator()->alloc();
+	unsigned long badge   = Badge_allocator::allocator()->alloc();
+	Fiasco_capability irq = cap_alloc()->alloc_id(badge);
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, irq);
 	if (l4_error(res))
 		PERR("Allocation of irq object failed!");
 
-	_blocking_semaphore = Native_capability(irq, -1);
+	_blocking_semaphore = Native_capability(irq, badge);
 }

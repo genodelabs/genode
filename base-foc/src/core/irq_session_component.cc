@@ -50,7 +50,7 @@ bool Irq_session_component::Interrupt::higher(Irq_session_component::Interrupt *
 
 
 Irq_session_component::Interrupt::Interrupt()
-: _cap(Capability_allocator::allocator()->alloc()), _sem(), number(0) {}
+: _cap(cap_alloc()->alloc()), _sem(), number(0) {}
 
 
 Native_thread Irq_session_component::Interrupt_handler::handler_cap()

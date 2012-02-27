@@ -63,14 +63,14 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 		 * Allocate new badge, and ipc-gate and set badge as gate-label
 		 */
 		unsigned long badge = Badge_allocator::allocator()->alloc();
-		Native_thread gate  = Capability_allocator::allocator()->alloc();
+		Native_thread gate  = cap_alloc()->alloc_id(badge);
 		l4_msgtag_t   tag   = l4_factory_create_gate(L4_BASE_FACTORY_CAP,
 		                                             gate,
 		                                             n->pt()->native_thread(),
 		                                             badge);
 		if (l4_msgtag_has_error(tag)) {
 			PERR("l4_factory_create_gate failed!");
-			Capability_allocator::allocator()->free(gate);
+			cap_alloc()->free(gate);
 			Badge_allocator::allocator()->free(badge);
 			return cap;
 		} else
@@ -117,15 +117,17 @@ void Cap_session_component::free(Native_capability cap)
 		return;
 
 	Capability_tree::tree()->remove(n);
-	Badge_allocator::allocator()->free(n->badge());
 	l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
 	                                l4_obj_fpage(cap.dst(), 0, 0),
 	                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
 	if (l4_msgtag_has_error(tag))
 		PERR("destruction of ipc-gate %lx failed!", (unsigned long) cap.dst());
 
+	/* free badge _after_ invalidating all caps */
+	Badge_allocator::allocator()->free(n->badge());
+
 	/* free explicilty allocated cap-selector */
-	Capability_allocator::allocator()->free(n->gate());
+	cap_alloc()->free(n->gate());
 
 	destroy(platform_specific()->core_mem_alloc(), n);
 }
@@ -227,4 +229,11 @@ Capability_tree* Capability_tree::tree()
 {
 	static Capability_tree _tree;
 	return &_tree;
+}
+
+
+Genode::Capability_allocator* Genode::cap_alloc()
+{
+	static Genode::Capability_allocator_tpl<20*1024> _alloc;
+	return &_alloc;
 }

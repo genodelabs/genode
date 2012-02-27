@@ -19,5 +19,4 @@
 
 
 Genode::Native_capability Genode::Pd_session_component::task_cap() {
-	return Native_capability(_pd.native_task(),
-	                         Badge_allocator::allocator()->alloc()); }
+	return Native_capability(_pd.native_task(), _pd.badge()); }

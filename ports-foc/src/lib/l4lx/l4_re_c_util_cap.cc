@@ -28,7 +28,7 @@ extern "C" {
 
 	l4_cap_idx_t l4re_util_cap_alloc(void)
 	{
-		l4_cap_idx_t ret = Genode::Capability_allocator::allocator()->alloc();
+		l4_cap_idx_t ret = Genode::cap_alloc()->alloc();
 
 		if (DEBUG)
 			PDBG("ret=%lx", ret);

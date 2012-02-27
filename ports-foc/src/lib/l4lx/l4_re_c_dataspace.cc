@@ -22,6 +22,7 @@
 namespace Fiasco {
 #include <l4/re/c/dataspace.h>
 #include <l4/sys/err.h>
+#include <l4/sys/kdebug.h>
 }
 
 using namespace Fiasco;

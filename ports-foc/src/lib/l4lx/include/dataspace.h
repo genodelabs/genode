@@ -50,7 +50,7 @@ namespace L4lx {
 			          Genode::size_t                 size,
 			          Genode::Dataspace_capability   ds)
 			: _name(name), _size(size), _cap(ds),
-			  _ref(Genode::Capability_allocator::allocator()->alloc()) {}
+			  _ref(Genode::cap_alloc()->alloc()) {}
 
 
 			/***************

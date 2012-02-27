@@ -43,6 +43,7 @@ namespace Genode {
 			};
 
 			Native_task       _l4_task_cap; /* L4 task capability slot */
+			unsigned          _badge;
 			Native_capability _parent;
 			bool              _parent_cap_mapped;
 			bool              _task_cap_mapped;
@@ -109,6 +110,7 @@ namespace Genode {
 			 *******************************/
 
 			Native_task   native_task() { return _l4_task_cap;  }
+			unsigned      badge()       { return _badge;        }
 			Native_thread parent_cap()  { return _parent.dst(); }
 	};
 }

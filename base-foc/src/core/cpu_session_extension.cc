@@ -53,7 +53,7 @@ Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
 	Cpu_thread_component *thread = _lookup_thread(cap);
 	if (!thread) return Native_capability();
 
-	return Native_capability(thread->platform_thread()->native_thread(), -1);
+	return thread->platform_thread()->thread_cap();
 }
 
 
@@ -61,11 +61,11 @@ Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 {
 	using namespace Fiasco;
 
-	Fiasco_capability irq_cap(Genode::Capability_allocator::allocator()->alloc());
+	Fiasco_capability irq_cap(Genode::cap_alloc()->alloc());
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, irq_cap);
 	if (l4_error(res))
 		PWRN("Allocation of irq object failed!");
-	return Genode::Native_capability(irq_cap, -1);
+	return Genode::Native_capability(irq_cap, Badge_allocator::allocator()->alloc());
 }
 
 

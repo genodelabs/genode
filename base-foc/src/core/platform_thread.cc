@@ -212,7 +212,7 @@ void Platform_thread::_create_thread()
 void Platform_thread::_finalize_construction(const char *name, unsigned prio)
 {
 	/* create irq for new thread */
-	_irq_cap = Capability_allocator::allocator()->alloc();
+	_irq_cap = cap_alloc()->alloc();
 	l4_msgtag_t tag = l4_factory_create_irq(L4_BASE_FACTORY_CAP, _irq_cap);
 	if (l4_msgtag_has_error(tag))
 		PWRN("creating thread's irq failed");
@@ -236,8 +236,9 @@ void Platform_thread::_finalize_construction(const char *name, unsigned prio)
 Platform_thread::Platform_thread(const char *name,
                                  unsigned    prio)
 : _core_thread(false),
-  _thread_cap(Capability_allocator::allocator()->alloc(),
-              Badge_allocator::allocator()->alloc()),
+  _badge(Badge_allocator::allocator()->alloc()),
+  _thread_cap(cap_alloc()->alloc_id(_badge),
+              _badge),
   _node(_thread_cap.local_name(), 0, this, _thread_cap.dst()),
   _utcb(0),
   _platform_pd(0),
@@ -272,8 +273,9 @@ Platform_thread::Platform_thread(Native_thread cap, const char *name)
 
 Platform_thread::Platform_thread(const char *name)
 : _core_thread(true),
-  _thread_cap(Capability_allocator::allocator()->alloc(),
-              Badge_allocator::allocator()->alloc()),
+  _badge(Badge_allocator::allocator()->alloc()),
+  _thread_cap(cap_alloc()->alloc_id(_badge),
+              _badge),
   _node(_thread_cap.local_name(), 0, this, _thread_cap.dst()),
   _utcb(0),
   _platform_pd(0),
@@ -302,6 +304,6 @@ Platform_thread::~Platform_thread()
 
 	/* remove the thread capability */
 	Capability_tree::tree()->remove(&_node);
-	Badge_allocator::allocator()->free(_thread_cap.local_name());
-	Capability_allocator::allocator()->free(_thread_cap.dst());
+	cap_alloc()->free(_thread_cap.dst());
+	Badge_allocator::allocator()->free(_badge);
 }

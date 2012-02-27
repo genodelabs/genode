@@ -22,27 +22,29 @@
 #ifndef _INCLUDE__BASE__CAP_SEL_ALLOC_H_
 #define _INCLUDE__BASE__CAP_SEL_ALLOC_H_
 
+/* Genode includes */
 #include <base/stdint.h>
+#include <util/avl_tree.h>
+#include <base/native_types.h>
+#include <base/printf.h>
+#include <cpu/atomic.h>
+
+/* Fiasco.OC includes */
+namespace Fiasco {
+#include <l4/sys/ipc.h>
+#include <l4/sys/consts.h>
+}
 
 namespace Genode
 {
 	class Capability_allocator
 	{
-		private:
+		protected:
 
-			addr_t _cap_idx;
-
-			/**
-			 * Constructor
-			 */
-			Capability_allocator();
+			Capability_allocator() {}
+			virtual ~Capability_allocator() {}
 
 		public:
-
-			/**
-			 * Return singleton instance of 'Capability_allocator'
-			 */
-			static Capability_allocator* allocator();
 
 			/**
 			 * Allocate range of capability selectors
@@ -52,7 +54,18 @@ namespace Genode
 			 * \return               first capability selector of allocated range,
 			 *                       or 0 if allocation failed
 			 */
-			addr_t alloc(size_t num_caps = 1);
+			virtual addr_t alloc(size_t num_caps = 1) = 0;
+
+
+			/**
+			 * Allocate or find a capability selector
+			 *
+			 * \param id  Genode's global capability id we're looking for
+			 * \return    return a previously allocated cap-selector associated
+			 *            with the given id, or a new one, that is associated
+			 *            with the id from now on.
+			 */
+			virtual addr_t alloc_id(unsigned id) = 0;
 
 			/**
 			 * Release range of capability selectors
@@ -60,7 +73,152 @@ namespace Genode
 			 * \param cap            first capability selector of range
 			 * \param num_caps_log2  number of capability selectors to free.
 			 */
-			void free(addr_t cap, size_t num_caps = 1);
+			virtual void free(addr_t cap, size_t num_caps = 1) = 0;
+	};
+
+
+	Capability_allocator* cap_alloc();
+
+
+	template <unsigned SZ>
+	class Capability_allocator_tpl : public Capability_allocator
+	{
+		private:
+
+			/**
+			 * Low-level lock to protect the allocator
+			 *
+			 * We cannot use a normal Genode lock because this lock is used by code
+			 * executed prior the initialization of Genode.
+			 */
+			class Alloc_lock
+			{
+				private:
+
+					int _state;
+
+				public:
+
+					enum State { LOCKED, UNLOCKED };
+
+					/**
+					 * Constructor
+					 */
+					Alloc_lock() : _state(UNLOCKED) {}
+
+					void lock()
+					{
+						while (!Genode::cmpxchg(&_state, UNLOCKED, LOCKED))
+							Fiasco::l4_ipc_sleep(Fiasco::l4_ipc_timeout(0, 0, 500, 0));
+					}
+
+					void unlock() { _state = UNLOCKED; }
+			};
+
+
+			/**
+			 * Node in the capability cache,
+			 * associates global cap ids with kernel-capabilities.
+			 */
+			class Cap_node : public Avl_node<Cap_node>
+			{
+				private:
+
+					friend class Capability_allocator_tpl<SZ>;
+
+					unsigned long _id;
+					addr_t        _kcap;
+
+				public:
+
+					Cap_node() : _id(0), _kcap(0) {}
+					Cap_node(unsigned long id, addr_t kcap)
+					: _id(id), _kcap(kcap) {}
+
+					bool higher(Cap_node *n) {
+						return n->_id > _id; }
+
+					Cap_node *find_by_id(unsigned long id)
+					{
+						if (_id == id) return this;
+
+						Cap_node *n = Avl_node<Cap_node>::child(id > _id);
+						return n ? n->find_by_id(id) : 0;
+					}
+
+
+					unsigned long id()    const { return _id;          }
+					addr_t        kcap()  const { return _kcap;        }
+					bool          valid() const { return _id || _kcap; }
+			};
+
+
+			addr_t             _cap_idx;  /* start cap-selector */
+			Cap_node           _data[SZ]; /* cache-nodes backing store */
+			Avl_tree<Cap_node> _tree;     /* cap cache */
+			Alloc_lock         _lock;
+
+		public:
+
+			/**
+			 * Constructor
+			 */
+			Capability_allocator_tpl()
+			: _cap_idx(Fiasco::Fiasco_capability::USER_BASE_CAP) { }
+
+
+			/************************************
+			 ** Capability_allocator interface **
+			 ************************************/
+
+			addr_t alloc(size_t num_caps)
+			{
+				_lock.lock();
+				int ret_base = _cap_idx;
+				_cap_idx += num_caps * Fiasco::L4_CAP_SIZE;
+				_lock.unlock();
+				return ret_base;
+			}
+
+			addr_t alloc_id(unsigned id)
+			{
+				_lock.lock();
+				Cap_node *n = _tree.first();
+				if (n)
+					n = n->find_by_id(id);
+				_lock.unlock();
+
+				if (n) {
+					return n->kcap();
+				}
+
+				addr_t kcap = alloc(1);
+
+				_lock.lock();
+				for (unsigned i = 0; i < SZ; i++)
+					if (!_data[i].valid()) {
+						_data[i]._id   = id;
+						_data[i]._kcap = kcap;
+						_tree.insert(&_data[i]);
+						break;
+					}
+				_lock.unlock();
+				return kcap;
+			}
+
+			void free(addr_t cap, size_t num_caps)
+			{
+				_lock.lock();
+
+				for (unsigned i = 0; i < SZ; i++)
+					if (!_data[i]._kcap == cap) {
+						_tree.remove(&_data[i]);
+						_data[i]._kcap = 0;
+						_data[i]._id   = 0;
+						break;
+					}
+				_lock.unlock();
+			}
 	};
 }
 
