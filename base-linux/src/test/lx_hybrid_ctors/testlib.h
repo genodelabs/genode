@@ -11,18 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <stdio.h>
-
-#include "testlib.h"
-
-
-Testlib_testclass::Testlib_testclass()
+struct Testlib_testclass
 {
-	printf("[init -> test-lx_hybrid_ctors] Global static constructor of host library called.\n");
-}
-
-
-void Testlib_testclass::dummy() { }
-
-
-Testlib_testclass testlib_testobject;
+	Testlib_testclass();
+	void dummy();
+};
