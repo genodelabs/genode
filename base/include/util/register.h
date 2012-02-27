@@ -79,11 +79,10 @@ namespace Genode
 	 *
 	 * \param  _ACCESS_WIDTH  Bit width of the region
 	 *
-	 * \detail The register can contain multiple bitfields. Bitfields
-	 *         that are partially exceed the register range are read and
-	 *         written also partially. Bitfields that are completely out
-	 *         of the register range are read as '0' and trying to
-	 *         overwrite them has no effect.
+	 * The register can contain multiple bitfields. Bitfields that are
+	 * partially exceed the register range are read and written also partially.
+	 * Bitfields that are completely out of the register range are read as '0'
+	 * and trying to overwrite them has no effect.
 	 */
 	template <unsigned long _ACCESS_WIDTH>
 	struct Register
