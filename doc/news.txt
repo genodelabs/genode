@@ -4,6 +4,38 @@
                                ===========
 
 
+Genode OS Framework release 12.02 | 2012-02-28
+##############################################
+
+| Version 12.02 comes with a new API for MMIO access, a new ACPI driver,
+| fork support for the Noux runtime, Qt version 4.7.4, and special support
+| for using Genode as application framework on Linux.
+
+We took the current release cycle as opportunity to carry out our plan to
+open up our development process. Because carrying out such a fundamental
+change of our work flows and tools bears many risks, we were curious about the
+outcome of this undertaking. We can happily report that the transition went
+actually better than expected. Genode 12.02 is the first version conducted
+under a completely open development model.
+
+The new version contains the first steps towards the goal of using Genode as
+general-purpose OS for the daily use by its developers. The Noux runtime
+environment has been enhanced with support for the fork system call, which
+enables us to run the bash shell and coreutils natively on various
+microkernels. A new ACPI driver paves the ground for using the whole feature
+set of Fiasco.OC and NOVA on recent x86-based hardware platforms. Furthermore,
+you can find the first bits of a new device-driver manager.
+
+The framework's base API has been enhanced to foster code reuse and robustness.
+For example, we introduced a new API for accessing memory-mapped I/O resources,
+which facilitates the use of the C++ type system to simplify device drivers.
+Another example is the added API support for the common pattern of reusing
+existing components as sandboxed libraries.
+
+These and many more changes are described in full detail in the
+[http:/documentation/release-notes/11.11 - release notes of version 12.02...]
+
+
 Slides of our talks at FOSDEM 2012 | 2012-02-14
 ###############################################
 
@@ -295,8 +327,6 @@ Genode's architecture, we implemented a solution for user-level debugging via
 the GNU debugger. The solution fits perfectly with the Genode architecture and
 provides powerful debugging facilities without compromizing the security of the
 system.
-
-[ title="Release notes for the Genode OS Framework 11.11"
 
 To learn more about those and many other improvements, please read on the
 [http:/documentation/release-notes/11.11 - release notes of version 11.11...]
