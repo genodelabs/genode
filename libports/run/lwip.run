@@ -78,7 +78,7 @@ set config {
 
 append_if [have_spec pci] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="512K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="PCI"/> </provides>
 	</start> }
 

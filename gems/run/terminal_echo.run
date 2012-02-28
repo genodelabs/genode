@@ -54,7 +54,7 @@ append_if [have_spec vesa] config {
 
 append_if [have_spec pl11x] config {
 	<start name="pl11x_drv">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 

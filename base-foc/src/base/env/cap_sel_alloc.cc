@@ -19,6 +19,6 @@
 
 Genode::Capability_allocator* Genode::cap_alloc()
 {
-	static Genode::Capability_allocator_tpl<8192> _alloc;
+	static Genode::Capability_allocator_tpl<4096> _alloc;
 	return &_alloc;
 }
