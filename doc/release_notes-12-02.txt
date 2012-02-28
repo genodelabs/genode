@@ -28,13 +28,13 @@ with new device-driver infrastructure such as the first version of a device
 driver manager and a new ACPI parser.
 
 Feature-wise, the current release takes the first steps towards the goal of the
-[file:///open/build/www/genode.org/about/road-map - Roadmap for 2012], turning
-Genode into a general-purpose OS ready for everyday use by its developers.
-According to the roadmap, we enhanced the Noux runtime with fork semantics so
-that we can run command-line based GNU programs such as the bash shell
-and coreutils unmodified and natively on various microkernels. Furthermore,
-the library infrastructure has been enhanced by porting and updating libraries
-such as Qt 4.7.4 and the MuPDF PDF rendering engine.
+[http://genode.org/about/road-map - Roadmap for 2012], turning Genode into a
+general-purpose OS ready for everyday use by its developers. According to the
+roadmap, we enhanced the Noux runtime with fork semantics so that we can run
+command-line based GNU programs such as the bash shell and coreutils unmodified
+and natively on various microkernels. Furthermore, the library infrastructure
+has been enhanced by porting and updating libraries such as Qt 4.7.4 and the
+MuPDF PDF rendering engine.
 
 
 Liberation of the development process
