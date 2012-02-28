@@ -33,7 +33,7 @@ Another example is the added API support for the common pattern of reusing
 existing components as sandboxed libraries.
 
 These and many more changes are described in full detail in the
-[http:/documentation/release-notes/11.11 - release notes of version 12.02...]
+[http:/documentation/release-notes/12.02 - release notes of version 12.02...]
 
 
 Slides of our talks at FOSDEM 2012 | 2012-02-14
