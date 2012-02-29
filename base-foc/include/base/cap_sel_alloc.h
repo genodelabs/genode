@@ -27,6 +27,7 @@
 #include <util/avl_tree.h>
 #include <base/native_types.h>
 #include <base/printf.h>
+#include <base/lock_guard.h>
 #include <cpu/atomic.h>
 
 /* Fiasco.OC includes */
@@ -80,41 +81,40 @@ namespace Genode
 	Capability_allocator* cap_alloc();
 
 
+	/**
+	 * Low-level spin-lock to protect the allocator
+	 *
+	 * We cannot use a normal Genode lock because this lock is used by code
+	 * executed prior the initialization of Genode.
+	 */
+	class Spin_lock
+	{
+		private:
+
+			volatile int _spinlock;
+
+		public:
+
+			/**
+			 * Constructor
+			 */
+			Spin_lock();
+
+			void lock();
+			void unlock();
+
+			/**
+			 * Lock guard
+			 */
+			typedef Genode::Lock_guard<Spin_lock> Guard;
+	};
+
+
+
 	template <unsigned SZ>
 	class Capability_allocator_tpl : public Capability_allocator
 	{
 		private:
-
-			/**
-			 * Low-level lock to protect the allocator
-			 *
-			 * We cannot use a normal Genode lock because this lock is used by code
-			 * executed prior the initialization of Genode.
-			 */
-			class Alloc_lock
-			{
-				private:
-
-					int _state;
-
-				public:
-
-					enum State { LOCKED, UNLOCKED };
-
-					/**
-					 * Constructor
-					 */
-					Alloc_lock() : _state(UNLOCKED) {}
-
-					void lock()
-					{
-						while (!Genode::cmpxchg(&_state, UNLOCKED, LOCKED))
-							Fiasco::l4_ipc_sleep(Fiasco::l4_ipc_timeout(0, 0, 500, 0));
-					}
-
-					void unlock() { _state = UNLOCKED; }
-			};
-
 
 			/**
 			 * Node in the capability cache,
@@ -156,7 +156,7 @@ namespace Genode
 			addr_t             _cap_idx;  /* start cap-selector */
 			Cap_node           _data[SZ]; /* cache-nodes backing store */
 			Avl_tree<Cap_node> _tree;     /* cap cache */
-			Alloc_lock         _lock;
+			Spin_lock          _lock;
 
 		public:
 
@@ -173,10 +173,10 @@ namespace Genode
 
 			addr_t alloc(size_t num_caps)
 			{
-				_lock.lock();
+				Spin_lock::Guard guard(_lock);
+
 				int ret_base = _cap_idx;
 				_cap_idx += num_caps * Fiasco::L4_CAP_SIZE;
-				_lock.unlock();
 				return ret_base;
 			}
 
@@ -208,7 +208,7 @@ namespace Genode
 
 			void free(addr_t cap, size_t num_caps)
 			{
-				_lock.lock();
+				Spin_lock::Guard guard(_lock);
 
 				for (unsigned i = 0; i < SZ; i++)
 					if (!_data[i]._kcap == cap) {
@@ -217,7 +217,6 @@ namespace Genode
 						_data[i]._id   = 0;
 						break;
 					}
-				_lock.unlock();
 			}
 	};
 }

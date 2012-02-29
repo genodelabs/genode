@@ -19,9 +19,6 @@
  */
 typedef volatile int dde_kit_spin_lock;
 
-enum { DDE_KIT_SPIN_LOCK_LOCKED, DDE_KIT_SPIN_LOCK_UNLOCKED };
-
-
 /**
  * Initialize spin lock
  *

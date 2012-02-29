@@ -13,53 +13,16 @@
 
 /* Genode includes */
 #include <base/cancelable_lock.h>
-#include <base/printf.h>
-#include <cpu/atomic.h>
 
 /* local includes */
-#include <lock_helper.h>
+#include "spin_lock.h"
 
 using namespace Genode;
-
 
 /**
  * Track interesting lock conditions, counters are only used for testing
  */
-int debug_spinlock_contention_cnt;
 int debug_lock_sleep_race_cnt;
-
-
-/***************
- ** Utilities **
- ***************/
-
-/*
- * Spinlock functions used for protecting the critical sections within the
- * 'lock' and 'unlock' functions. Contention in these short-running code
- * portions is rare but is must be considered.
- */
-
-enum State { SPINLOCK_LOCKED, SPINLOCK_UNLOCKED };
-
-static inline void spinlock_lock(volatile int *lock_variable)
-{
-	while (!cmpxchg(lock_variable, SPINLOCK_UNLOCKED, SPINLOCK_LOCKED)) {
-
-		debug_spinlock_contention_cnt++;  /* only for statistics */
-
-		/*
-		 * Yield our remaining time slice to help the spinlock holder to pass
-		 * the critical section.
-		 */
-		thread_yield();
-	}
-}
-
-
-static inline void spinlock_unlock(volatile int *lock_variable)
-{
-	*lock_variable = SPINLOCK_UNLOCKED;
-}
 
 
 /********************

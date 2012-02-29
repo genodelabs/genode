@@ -32,10 +32,13 @@ SRC_CC       = main.cc \
                context_area.cc \
                cap_session_component.cc \
                cpu_session_extension.cc \
-               pd_session_extension.cc
+               pd_session_extension.cc \
+               spin_lock.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
-               $(GEN_CORE_DIR)/include
+               $(GEN_CORE_DIR)/include \
+               $(REP_DIR)/src/base/lock \
+               $(BASE_DIR)/src/base/lock
 
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath multiboot_info.cc           $(GEN_CORE_DIR)
@@ -52,4 +55,5 @@ vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)
 vpath thread.cc                   $(REP_DIR)/src/base/thread
 vpath thread_bootstrap.cc         $(REP_DIR)/src/base/thread
+vpath spin_lock.cc                $(REP_DIR)/src/base/env
 vpath %.cc                        $(REP_DIR)/src/core

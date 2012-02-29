@@ -15,21 +15,16 @@
 #include <cpu/atomic.h>
 #include <base/printf.h>
 
+#include <spin_lock.h>
+
 extern "C" {
 #include <dde_kit/spin_lock.h>
 }
 
 
-static inline void spinlock_lock(volatile int *lock_variable)
-{
-	while (!Genode::cmpxchg(lock_variable, DDE_KIT_SPIN_LOCK_UNLOCKED,
-	                                       DDE_KIT_SPIN_LOCK_LOCKED));
-}
-
-
 extern "C" void dde_kit_spin_lock_init(dde_kit_spin_lock *spin_lock)
 {
-	*spin_lock = DDE_KIT_SPIN_LOCK_UNLOCKED;
+	*spin_lock = SPINLOCK_UNLOCKED;
 }
 
 
@@ -52,6 +47,6 @@ extern "C" int dde_kit_spin_lock_try_lock(dde_kit_spin_lock *spin_lock)
 
 extern "C" void dde_kit_spin_lock_unlock(dde_kit_spin_lock *spin_lock)
 {
-	*spin_lock = DDE_KIT_SPIN_LOCK_UNLOCKED;
+	spinlock_unlock(spin_lock);
 }
 
