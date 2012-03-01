@@ -22,30 +22,6 @@
 #include <codezero/syscalls.h>
 
 
-/**
- * Resolve 'Thread_base::myself' when not linking the thread library
- *
- * This weak symbol is primarily used by test cases. Most other Genode programs
- * use the thread library. If the thread library is not used, 'myself' can only
- * be called by the main thread, for which 'myself' is defined as zero.
- */
-Genode::Thread_base * __attribute__((weak)) Genode::Thread_base::myself() { return 0; }
-
-
-Genode::Native_utcb *Genode::Thread_base::utcb()
-{
-	/*
-	 * If 'utcb' is called on the object returned by 'myself',
-	 * the 'this' pointer may be NULL (if the calling thread is
-	 * the main thread). Therefore we handle this special case
-	 * here.
-	 */
-	if (this == 0) return 0;
-
-	return &_context->utcb;
-}
-
-
 static Codezero::l4_mutex main_running_lock = { -1 };
 
 
@@ -61,7 +37,7 @@ static inline bool thread_id_valid(Genode::Native_thread_id tid)
 }
 
 
-static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
+static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 {
 	if (!thread_id_valid(tid))
 		return false;

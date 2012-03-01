@@ -24,8 +24,8 @@ namespace Pistachio {
 }
 
 
-bool operator == (Genode::Native_thread_id t1, Genode::Native_thread_id t2) { return t1.raw == t2.raw; }
-bool operator != (Genode::Native_thread_id t1, Genode::Native_thread_id t2) { return t1.raw != t2.raw; }
+static inline bool operator == (Genode::Native_thread_id t1, Genode::Native_thread_id t2) { return t1.raw == t2.raw; }
+static inline bool operator != (Genode::Native_thread_id t1, Genode::Native_thread_id t2) { return t1.raw != t2.raw; }
 
 
 /**
@@ -43,7 +43,7 @@ static inline void thread_yield() { Pistachio::L4_Yield(); }
  *
  * \return true if the thread was in blocking state
  */
-static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
+static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 {
 	using namespace Pistachio;
 

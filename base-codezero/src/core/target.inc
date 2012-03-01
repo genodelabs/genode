@@ -29,7 +29,8 @@ SRC_CC       = \
                core_rm_session.cc \
                core_mem_alloc.cc \
                dump_alloc.cc \
-               context_area.cc
+               context_area.cc \
+               utcb.cc
 
 INC_DIR      = $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
@@ -52,4 +53,5 @@ vpath context_area.cc             $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
 vpath thread_bootstrap.cc         $(BASE_DIR)/src/base/thread
 vpath thread.cc                   $(BASE_DIR)/src/base/thread
+vpath utcb.cc                     $(REP_DIR)/src/base/env
 
