@@ -126,6 +126,14 @@ namespace Genode {
 				return cap;
 			}
 
+			/**
+			 * Private constructor, should be used by the local-capability
+			 * factory method only.
+			 *
+			 * \param ptr pointer to the local object this capability represents.
+			 */
+			Capability(void *ptr) : Untyped_capability(ptr) {}
+
 		public:
 
 			typedef RPC_INTERFACE Rpc_interface;
@@ -147,6 +155,28 @@ namespace Genode {
 			 * Default constructor creates invalid capability
 			 */
 			Capability() { }
+
+			/**
+			 * Factory method to construct a local-capability.
+			 *
+			 * Local-capabilities can be used protection-domain internally
+			 * only. They simply incorporate a pointer to some process-local
+			 * object.
+			 *
+			 * \param ptr pointer to the corresponding local object.
+			 * \return a capability that represents the local object.
+			 */
+			static Capability<RPC_INTERFACE> local_cap(RPC_INTERFACE* ptr) {
+				return Capability<RPC_INTERFACE>((void*)ptr); }
+
+			/**
+			 * Dereference a local-capability.
+			 *
+			 * \param c the local-capability.
+			 * \return pointer to the corresponding local object.
+			 */
+			static RPC_INTERFACE* deref(Capability<RPC_INTERFACE> c) {
+				return reinterpret_cast<RPC_INTERFACE*>(c.local()); }
 
 			/*
 			 * Suppress warning about uninitialized 'ret' variable in 'call'

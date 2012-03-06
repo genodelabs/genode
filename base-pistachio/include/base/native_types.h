@@ -69,6 +69,10 @@ namespace Genode {
 			Pistachio::L4_ThreadId_t _tid;
 			long                     _local_name;
 
+		protected:
+
+			Native_capability(void* ptr) : _local_name((long)ptr) {}
+
 		public:
 
 			/**
@@ -82,6 +86,8 @@ namespace Genode {
 
 			long local_name() const { return _local_name; }
 			Pistachio::L4_ThreadId_t dst() const { return _tid; }
+
+			void* local() const { return (void*)_local_name; }
 
 			bool valid() const { return !Pistachio::L4_IsNilThread(_tid); }
 

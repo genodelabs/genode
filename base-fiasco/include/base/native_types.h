@@ -74,6 +74,11 @@ namespace Genode {
 			Fiasco::l4_threadid_t _tid;
 			long                  _local_name;
 
+		protected:
+
+			Native_capability(void *ptr)
+			: _tid(Fiasco::invalid_l4_threadid_t()), _local_name((long)ptr) { }
+
 		public:
 
 			/**
@@ -84,6 +89,8 @@ namespace Genode {
 
 			long local_name() const { return _local_name; }
 			Fiasco::l4_threadid_t dst() const { return _tid; }
+
+			void* local() const { return (void*)_local_name;  }
 
 			bool valid() const { return l4_is_invalid_id(_tid) == 0; }
 

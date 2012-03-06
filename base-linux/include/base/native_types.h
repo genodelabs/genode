@@ -108,6 +108,10 @@ namespace Genode {
 			long _tid;         /* target thread */
 			long _local_name;
 
+		protected:
+
+			Native_capability(void* ptr) : _local_name((long)ptr) { }
+
 		public:
 
 			/**
@@ -116,6 +120,8 @@ namespace Genode {
 			Native_capability() : _tid(0), _local_name(0) { }
 
 			long local_name() const { return _local_name; }
+
+			void* local() const { return (void*)_local_name; }
 
 			bool valid() const { return _tid != 0; }
 

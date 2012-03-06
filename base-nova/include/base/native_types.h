@@ -58,6 +58,10 @@ namespace Genode {
 			int _pt_sel;
 			int _unique_id;
 
+		protected:
+
+			Native_capability(void* ptr) : _unique_id((int)ptr) {}
+
 		public:
 
 			/**
@@ -74,12 +78,13 @@ namespace Genode {
 			Native_capability(int pt_sel, int unique_id)
 			: _pt_sel(pt_sel), _unique_id(unique_id) { }
 
-			bool valid()      const { return _pt_sel != 0 && _unique_id != 0; }
-			int  local_name() const { return _unique_id; }
-			int  dst()        const { return _pt_sel; }
+			bool  valid()      const { return _pt_sel != 0 && _unique_id != 0; }
+			int   local_name() const { return _unique_id; }
+			void* local()      const { return (void*)_unique_id; }
+			int   dst()        const { return _pt_sel; }
 
-			int  unique_id()  const { return _unique_id; }
-			int  pt_sel()     const { return _pt_sel; }
+			int   unique_id()  const { return _unique_id; }
+			int   pt_sel()     const { return _pt_sel; }
 	};
 
 	typedef int Native_connection_state;

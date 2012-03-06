@@ -112,6 +112,11 @@ namespace Genode {
 			Native_thread_id _tid;  /* global thread ID */
 			int _local_name;        /* global unique object ID */
 
+		protected:
+
+			Native_capability(void* ptr) : _local_name((int)ptr) {
+				_tid.tid = Codezero::NILTHREAD; }
+
 		public:
 
 			/**
@@ -131,6 +136,7 @@ namespace Genode {
 			bool valid() const { return _tid.tid != Codezero::NILTHREAD; }
 
 			int local_name() const { return _local_name; }
+			void* local() const { return (void*)_local_name;  }
 			int dst() const { return _tid.tid; }
 
 			Native_thread_id tid() const { return _tid; }

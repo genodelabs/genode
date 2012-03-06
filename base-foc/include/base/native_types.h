@@ -60,6 +60,10 @@ namespace Genode {
 			Native_thread _cap_sel;
 			int           _unique_id;
 
+		protected:
+
+			Native_capability(void* ptr) : _unique_id((int)ptr) { }
+
 		public:
 
 			/**
@@ -73,9 +77,10 @@ namespace Genode {
 			Native_capability(Native_thread cap_sel, int unique_id)
 			: _cap_sel(cap_sel), _unique_id(unique_id) { }
 
-			int              local_name() const { return _unique_id; }
-			Native_thread    dst()        const { return _cap_sel;   }
-			Native_thread_id tid()        const { return _cap_sel;   }
+			int              local_name() const { return _unique_id;         }
+			void*            local()      const { return (void*)_unique_id;  }
+			Native_thread    dst()        const { return _cap_sel;           }
+			Native_thread_id tid()        const { return _cap_sel;           }
 
 			bool valid() const { return _cap_sel.valid() && _unique_id != 0; }
 

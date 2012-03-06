@@ -51,7 +51,8 @@ class Context_area_rm_session : public Rm_session
 		                  size_t size, off_t offset,
 		                  bool use_local_addr, Local_addr local_addr)
 		{
-			Dataspace_component *ds = context_ds[ds_cap.local_name()];
+			Dataspace_component *ds =
+				dynamic_cast<Dataspace_component*>(Dataspace_capability::deref(ds_cap));
 			if (!ds) {
 				PERR("dataspace for core context does not exist");
 				return (addr_t)0;
@@ -111,14 +112,8 @@ class Context_area_ram_session : public Ram_session
 			context_ds[i] = new (platform()->core_mem_alloc())
 				Dataspace_component(size, 0, (addr_t)phys_base, false, true);
 
-			/*
-			 * We do not manage the dataspace via an entrypoint because it will
-			 * only be used by the 'context_area_rm_session'. Therefore, we
-			 * construct a "capability" by hand using the context ID as local
-			 * name.
-			 */
-			Native_capability cap;
-			return reinterpret_cap_cast<Ram_dataspace>(Native_capability(cap.dst(), i));
+			Dataspace_capability cap = Dataspace_capability::local_cap(context_ds[i]);
+			return static_cap_cast<Ram_dataspace>(cap);
 		}
 
 		void free(Ram_dataspace_capability ds) { PDBG("not yet implemented"); }

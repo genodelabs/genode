@@ -36,6 +36,10 @@ namespace Genode {
 			Native_thread_id  _tid;
 			long              _local_name;
 
+		protected:
+
+			Native_capability(void* ptr) : _local_name((long)ptr) {}
+
 		public:
 
 			Native_capability() : _tid(0), _local_name(0) { }
@@ -46,6 +50,8 @@ namespace Genode {
 			bool valid() const { return _tid!=0; }
 
 			int local_name() const { return _local_name; }
+
+			void* local() const { return (void*)_local_name; }
 
 			int dst() const { return (int)_tid; }
 
