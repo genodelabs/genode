@@ -322,12 +322,12 @@ class Element : public List<Element>::Element
 		/**
 		 * Return parent of this element
 		 */
-		Element *_parent()
+		Element *_parent(bool update_size = false)
 		{
 			Element *parent = list()->first();
 
 			/* set length of previous element */
-			if (parent && !parent->size())
+			if (update_size && parent && !parent->size())
 				parent->size(_data - parent->data());
 
 			/* find parent */
@@ -346,7 +346,7 @@ class Element : public List<Element>::Element
 		void _set_name()
 		{
 			uint8_t const *name = _name_addr();
-			Element *parent     = _parent();
+			Element *parent     = _parent(true);
 			uint32_t prefix_len = _prefix_len(name);
 
 			if (_name_len <= prefix_len) {
