@@ -503,12 +503,8 @@ class Element : public List<Element>::Element
 					memcpy(name, _data + offset, name_len);
 					name[name_len] = 0;
 
-					char name_dev[dev->_name_len + 1];
-					memcpy(name_dev, dev->_name, dev->_name_len);
-					name_dev[dev->_name_len] = 0;
-
 					if (verbose)
-						PDBG("Indirect %s %s", name, name_dev);
+						PDBG("Indirect %s", name);
 
 					for (uint32_t skip = 0; skip <= dev->_name_len / NAME_LEN; skip++) {
 						Element *e = dev->_compare(name, skip * NAME_LEN);
@@ -719,7 +715,7 @@ class Element : public List<Element>::Element
 				e->_bdf = (seg << 16) | (bbn << 8) | (adr >> 16) << 3 | (adr & 0xffff);
 
 				/* add routing */
-					Element *prt = e->_compare("_PRT");
+				Element *prt = e->_compare("_PRT");
 				if (prt) prt->dump();
 
 				if (prt) {

@@ -96,7 +96,7 @@ if { [file exists $disk_image] == 0 } then {
 run_genode_until "child exited with exit value 0.*\n" 10
 
 # pay only attention to the output of test-ahci
-grep_output {^\[init -> t}
+grep_output {^\[init -> test-ahci}
 
 compare_output_to {
 	[init -> test-ahci] --- AHCI block driver test ---
