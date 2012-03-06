@@ -67,6 +67,9 @@ SRC_C  = $(wildcard $(LIBM_DIR)/src/*.c) \
          $(wildcard $(LIBM_DIR)/bsdsrc/*.c)
 SRC_C := $(filter-out $(FILTER_OUT),$(notdir $(SRC_C)))
 
+# remove on update to version 9
+SRC_C += log2.c
+
 #
 # 'e_rem_pio2.c' uses '__inline'
 #
@@ -75,5 +78,8 @@ CC_OPT += -D__inline=inline
 vpath %.c $(LIBM_DIR)/src
 vpath %.c $(LIBM_DIR)/ld80
 vpath %.c $(LIBM_DIR)/bsdsrc
+
+# remove on update to version 9
+vpath log2.c $(REP_DIR)/src/lib/libc
 
 SHARED_LIB = yes

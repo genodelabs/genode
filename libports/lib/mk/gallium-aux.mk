@@ -19,9 +19,6 @@ SRC_C += u_format_access.c u_format_table.c
 # remove non-needed files from list
 SRC_C := $(filter-out u_indices.c u_unfilled_indices.c u_debug_memory.c,$(SRC_C))
 
-# definition of 'log2' that is missing in FreeBSD's libc
-CC_OPT_u_math = -D'log2(x)=(log(x)/log(2))'
-
 # dim build noise
 CC_OPT_draw_vertex           += -Wno-unused-but-set-variable
 CC_OPT_draw_vs_varient       += -Wno-enum-compare
