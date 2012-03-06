@@ -7,7 +7,7 @@ ifeq ($(filter-out $(SPECS),x86),)
 
   ifeq ($(filter-out $(SPECS),64bit),)
     REP_INC_DIR += include/gmp/x86_64
-  endif # 32bit
+  endif # 64bit
 
 else
 REQUIRES += x86
