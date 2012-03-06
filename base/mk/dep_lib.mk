@@ -17,6 +17,11 @@
 #
 
 #
+# Utility for selecting files from the list of repositories
+#
+select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/$(1))))
+
+#
 # Generate dependencies only for those libs that are
 # not already contained in the library build log
 #
