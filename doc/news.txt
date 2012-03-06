@@ -4,6 +4,24 @@
                                ===========
 
 
+Google Summer of Code 2012 | 2012-03-08
+#######################################
+
+| Genode Labs applies as mentoring organization at the Google
+| Summer of Code 2012 program.
+
+If you are a student interested in working on a Genode-related topic during
+the summer, the application of our project to this year's Google Summer
+of Code (GSoC) program may provide you with the perfect opportunity. If accepted,
+you will be able to work on one of a wide range of intriguing topics, get
+hands-on experience with advanced OS technology, and learn from the
+methodologies of long-term systems architects and developers mentoring
+your work.
+
+Learn more about Genode's aspired participation in GSoC 2012
+at our dedicated [http:/community/gsoc_2012 - Google Summer of Code 2012 website...]
+
+
 Genode OS Framework release 12.02 | 2012-02-28
 ##############################################
 
