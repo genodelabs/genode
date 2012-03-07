@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+#include <util/string.h>
 #include <kernel/types.h>
 
 namespace Genode {
@@ -56,6 +57,12 @@ namespace Genode {
 			int dst() const { return (int)_tid; }
 
 			Native_thread_id tid() const { return _tid; }
+
+			/**
+			 * Copy this capability to another pd.
+			 */
+			void copy_to(void* dst) {
+				memcpy(dst, this, sizeof(Native_capability)); }
 	};
 
 	typedef int Native_connection_state;

@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+#include <util/string.h>
+
 namespace Fiasco {
 #include <l4/sys/types.h>
 
@@ -114,6 +116,12 @@ namespace Genode {
 			 * Access raw capability data
 			 */
 			Fiasco::l4_threadid_t tid() const { return _tid; }
+
+			/**
+			 * Copy this capability to another pd.
+			 */
+			void copy_to(void* dst) {
+				memcpy(dst, this, sizeof(Native_capability)); }
 	};
 
 	typedef Fiasco::l4_threadid_t Native_connection_state;

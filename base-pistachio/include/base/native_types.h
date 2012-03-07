@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+#include <util/string.h>
+
 namespace Pistachio {
 #include <l4/types.h>
 }
@@ -109,6 +111,12 @@ namespace Genode {
 			 * Access raw capability data
 			 */
 			Pistachio::L4_ThreadId_t tid() const { return _tid; };
+
+			/**
+			 * Copy this capability to another pd.
+			 */
+			void copy_to(void* dst) {
+				memcpy(dst, this, sizeof(Native_capability)); }
 	};
 
 	typedef Pistachio::L4_ThreadId_t Native_connection_state;

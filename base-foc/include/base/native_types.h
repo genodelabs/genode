@@ -1,6 +1,8 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+#include <util/string.h>
+
 namespace Fiasco {
 #include <l4/sys/consts.h>
 #include <l4/sys/types.h>
@@ -84,6 +86,11 @@ namespace Genode {
 
 			bool valid() const { return _cap_sel.valid() && _unique_id != 0; }
 
+			/**
+			 * Copy this capability to another pd.
+			 */
+			void copy_to(void* dst) {
+				memcpy(dst, this, sizeof(Native_capability)); }
 	};
 
 	typedef int Native_connection_state;

@@ -122,7 +122,7 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 			 * data segment
 			 */
 			if (!parent_info) {
-				memcpy(ptr, &parent_cap, sizeof(parent_cap));
+				parent_cap.copy_to(ptr);
 				parent_info = true;
 			}
 

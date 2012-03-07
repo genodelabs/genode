@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+#include <util/string.h>
+
 /*
  * We cannot just include <semaphore.h> and <pthread.h> here
  * because this would impy the nested inclusion of a myriad
@@ -145,6 +147,12 @@ namespace Genode {
 			 */
 			long dst() const { return _tid; }
 			long tid() const { return _tid; }
+
+			/**
+			 * Copy this capability to another pd.
+			 */
+			void copy_to(void* dst) {
+				memcpy(dst, this, sizeof(Native_capability)); }
 	};
 
 	typedef int Native_connection_state;  /* socket descriptor */

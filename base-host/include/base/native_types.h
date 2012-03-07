@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
+#include <util/string.h>
+
 namespace Genode {
 
 	typedef volatile int  Native_lock;
@@ -42,6 +44,12 @@ namespace Genode {
 			void*            local()      const { return (void*)_local_name; }
 			int              dst()        const { return 0; }
 			Native_thread_id tid()        const { return 0; }
+
+			/**
+			 * Copy this capability to another pd.
+			 */
+			void copy_to(void* dst) {
+				memcpy(dst, this, sizeof(Native_capability)); }
 	};
 
 	typedef int Native_connection_state;
