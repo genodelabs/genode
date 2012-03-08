@@ -55,11 +55,12 @@ namespace Genode {
 
 	struct Portal_checker
 	{
-		static bool valid(int pt) { return pt != 0; }
-		static int  invalid()     { return 0;       }
+		typedef int Dst;
+		static bool valid(Dst pt) { return pt != 0; }
+		static Dst  invalid()     { return 0;       }
 	};
 
-	typedef Native_capability_tpl<int, Portal_checker> Native_capability;
+	typedef Native_capability_tpl<Portal_checker> Native_capability;
 	typedef int Native_connection_state;
 }
 

@@ -21,8 +21,9 @@ namespace Fiasco {
 
 	struct Thread_id_check
 	{
-		static bool valid(l4_threadid_t id) { return !l4_is_invalid_id(id); }
-		static l4_threadid_t invalid()      { return L4_INVALID_ID;}
+		typedef l4_threadid_t Dst;
+		static bool valid(Dst id) { return !l4_is_invalid_id(id); }
+		static Dst invalid()      { return L4_INVALID_ID;}
 	};
 }
 
@@ -65,7 +66,7 @@ namespace Genode {
 	 */
 	typedef struct { } Native_utcb;
 
-	typedef Native_capability_tpl<Native_thread_id,Fiasco::Thread_id_check> Native_capability;
+	typedef Native_capability_tpl<Fiasco::Thread_id_check> Native_capability;
 	typedef Fiasco::l4_threadid_t Native_connection_state;
 }
 

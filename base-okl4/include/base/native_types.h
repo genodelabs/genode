@@ -80,13 +80,12 @@ namespace Genode {
 
 	struct Thread_id_checker
 	{
-		static bool valid(Okl4::L4_ThreadId_t tid) {
-			return !Okl4::L4_IsNilThread(tid);   }
-		static Okl4::L4_ThreadId_t invalid() { return Okl4::L4_nilthread; }
+		typedef Okl4::L4_ThreadId_t Dst;
+		static bool valid(Dst tid) { return !Okl4::L4_IsNilThread(tid); }
+		static Dst  invalid()      { return Okl4::L4_nilthread; }
 	};
 
-	typedef Native_capability_tpl<Okl4::L4_ThreadId_t,
-	                              Thread_id_checker> Native_capability;
+	typedef Native_capability_tpl<Thread_id_checker> Native_capability;
 	typedef Okl4::L4_ThreadId_t Native_connection_state;
 }
 

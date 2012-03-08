@@ -94,8 +94,9 @@ namespace Genode {
 		return (t1.tid != t2.tid) || (t1.pid != t2.pid); }
 
 	struct Thread_id_check {
-		static bool valid(long id) { return id != 0; }
-		static long invalid()      { return 0;       }
+		typedef long Dst;
+		static bool valid(Dst id) { return id != 0; }
+		static Dst  invalid()     { return 0;       }
 	};
 
 	/**
@@ -103,7 +104,7 @@ namespace Genode {
 	 */
 	typedef struct { } Native_utcb;
 
-	typedef Native_capability_tpl<long, Thread_id_check> Native_capability;
+	typedef Native_capability_tpl<Thread_id_check> Native_capability;
 	typedef int Native_connection_state;  /* socket descriptor */
 }
 

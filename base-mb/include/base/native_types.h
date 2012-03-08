@@ -30,17 +30,16 @@ namespace Genode {
 
 	Native_thread_id my_thread_id();
 
-
 	struct Thread_id_check
 	{
-		static bool valid(Kernel::Thread_id tid) {
+		typedef Kernel::Thread_id Dst;
+		static bool valid(Dst tid) {
 			return tid != Kernel::INVALID_THREAD_ID; }
-		static Kernel::Thread_id invalid()
+		static Dst invalid()
 			{ return Kernel::INVALID_THREAD_ID; }
 	};
 
-
-	typedef Native_capability_tpl<Kernel::Thread_id,Thread_id_check> Native_capability;
+	typedef Native_capability_tpl<Thread_id_check> Native_capability;
 	typedef int Native_connection_state;
 }
 

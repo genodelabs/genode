@@ -22,62 +22,85 @@
 
 namespace Genode {
 
-	template <typename ID, typename T>
+	/**
+	 * Generic parts of the platform-specific 'Native_capability'
+	 *
+	 * \param POLICY  policy class that provides the type used as capability
+	 *                destination and functions for checking the validity of
+	 *                the platform-specific destination type and for
+	 *                invalid destinations.
+	 *
+	 * The struct passed as 'POLICY' argument must have the following
+	 * interface:
+	 *
+	 * ! typedef Dst;
+	 * ! static bool valid(Dst dst);
+	 * ! static Dst invalid();
+	 *
+	 * The 'Dst' type is the platform-specific destination type (e.g., the ID
+	 * of the destination thread targeted by the capability). The 'valid'
+	 * function returns true if the specified destination is valid. The
+	 * 'invalid' function produces an invalid destination.
+	 */
+	template <typename POLICY>
 	class Native_capability_tpl
 	{
 		private:
 
-			ID   _tid;
+			typedef typename POLICY::Dst Dst;
+
+			Dst  _tid;
 			long _local_name;
 
 		protected:
 
 			/**
-			 * Constructor for a local capability.
+			 * Constructor for a local capability
 			 *
 			 * A local capability just encapsulates a pointer to some
 			 * local object. This constructor is only used by a factory
 			 * method for local-capabilities in the generic Capability
 			 * class.
 			 *
-			 * \param ptr address of the local object.
+			 * \param ptr address of the local object
 			 */
 			Native_capability_tpl(void* ptr)
-			: _tid(T::invalid()), _local_name((long)ptr) { }
+			: _tid(POLICY::invalid()), _local_name((long)ptr) { }
 
 		public:
 
 			/**
-			 * Constructor for an invalid capability.
+			 * Constructor for an invalid capability
 			 */
-			Native_capability_tpl() : _tid(T::invalid()), _local_name(0) { }
+			Native_capability_tpl() : _tid(POLICY::invalid()), _local_name(0) { }
 
 			/**
-			 * Publicly available constructor.
+			 * Publicly available constructor
 			 *
-			 * \param tid        kernel-specific thread id
-			 * \param local_name global, unique id of the cap.
+			 * \param tid         kernel-specific thread id
+			 * \param local_name  ID used as key to lookup the 'Rpc_object'
+			 *                    that corresponds to the capability.
 			 */
-			Native_capability_tpl(ID tid, long local_name)
-			: _tid(tid), _local_name(local_name) {}
+			Native_capability_tpl(Dst tid, long local_name)
+			: _tid(tid), _local_name(local_name) { }
 
 			/**
-			 * \return true when the capability is a valid one, otherwise false.
+			 * Return true when the capability is valid
 			 */
-			bool valid() const { return T::valid(_tid); }
+			bool valid() const { return POLICY::valid(_tid); }
 
 			/**
-			 * \return the globally unique id.
+			 * Return ID used to lookup the 'Rpc_object' by its capability
 			 */
 			long local_name() const { return _local_name; }
 
 			/**
-			 * \return true if this is a local-capability, otherwise false.
+			 * Return pointer to object referenced by a local-capability
 			 */
 			void* local() const { return (void*)_local_name; }
 
 			/**
-			 * Copy this capability to another pd.
+			 * Copy this capability to another PD
 			 */
 			void copy_to(void* dst) {
 				memcpy(dst, this, sizeof(Native_capability_tpl)); }
@@ -88,9 +111,9 @@ namespace Genode {
 			 *****************************************/
 
 			/**
-			 * \return the kernel-specific thread specifier.
+			 * Return the kernel-specific capability destination
 			 */
-			ID tid() const { return _tid; }
+			Dst tid() const { return _tid; }
 	};
 }
 

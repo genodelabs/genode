@@ -10,10 +10,12 @@ namespace Fiasco {
 
 	struct Thread_id_check
 	{
-		static bool valid(l4_cap_idx_t idx) {
+		typedef l4_cap_idx_t Dst;
+
+		static bool valid(Dst idx) {
 			return !(idx & Fiasco::L4_INVALID_CAP_BIT) && idx != 0; }
 
-		static l4_cap_idx_t invalid() { return L4_INVALID_CAP;}
+		static Dst invalid() { return L4_INVALID_CAP;}
 	};
 
 	enum Cap_selectors {
@@ -42,8 +44,8 @@ namespace Genode {
 	typedef Fiasco::l4_cap_idx_t Native_task;
 	typedef Fiasco::l4_utcb_t*   Native_utcb;
 	typedef int                  Native_connection_state;
-	typedef Native_capability_tpl<Fiasco::l4_cap_idx_t,
-	                              Fiasco::Thread_id_check> Native_capability;
+
+	typedef Native_capability_tpl<Fiasco::Thread_id_check> Native_capability;
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

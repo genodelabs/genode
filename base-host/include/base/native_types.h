@@ -19,8 +19,9 @@
 namespace Genode {
 
 	struct Empty_thread_id {
-		static bool valid(Empty_thread_id id) { return true; }
-		static Empty_thread_id invalid()      { return Empty_thread_id();}
+		typedef int Dst;
+		static bool valid(Dst) { return false; }
+		static Dst invalid()   { return false; }
 	};
 
 	typedef volatile int  Native_lock;
