@@ -67,7 +67,7 @@ namespace Genode {
 				_init_sem();
 
 				/* block on semaphore, will be unblocked if signal is available */
-				Nova::sm_ctrl(_sem.pt_sel(), Nova::SEMAPHORE_DOWN);
+				Nova::sm_ctrl(_sem.tid(), Nova::SEMAPHORE_DOWN);
 
 				/*
 				 * Now that the server has unblocked the semaphore, we are sure

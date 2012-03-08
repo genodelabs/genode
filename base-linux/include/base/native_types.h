@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <util/string.h>
+#include <base/native_capability.h>
 
 /*
  * We cannot just include <semaphore.h> and <pthread.h> here
@@ -93,68 +93,17 @@ namespace Genode {
 	inline bool operator != (Native_thread_id t1, Native_thread_id t2) {
 		return (t1.tid != t2.tid) || (t1.pid != t2.pid); }
 
+	struct Thread_id_check {
+		static bool valid(long id) { return id != 0; }
+		static long invalid()      { return 0;       }
+	};
+
 	/**
 	 * Empty UTCB type expected by the thread library, unused on Linux
 	 */
 	typedef struct { } Native_utcb;
 
-	/*
-	 * On Linux, the local_name member of a capability is global
-	 * to the whole system. Therefore, capabilities are to be
-	 * created at a central place that prevents id clashes.
-	 */
-	class Native_capability
-	{
-		protected:
-
-			long _tid;         /* target thread */
-			long _local_name;
-
-		protected:
-
-			Native_capability(void* ptr) : _local_name((long)ptr) { }
-
-		public:
-
-			/**
-			 * Default constructor
-			 */
-			Native_capability() : _tid(0), _local_name(0) { }
-
-			long local_name() const { return _local_name; }
-
-			void* local() const { return (void*)_local_name; }
-
-			bool valid() const { return _tid != 0; }
-
-
-			/****************************************************
-			 ** Functions to be used by the Linux backend only **
-			 ****************************************************/
-
-			/**
-			 * Constructor
-			 *
-			 * This constructor can be called to create a Linux
-			 * capability by hand. It must never be used from
-			 * generic code!
-			 */
-			Native_capability(long tid, long local_name)
-			: _tid(tid), _local_name(local_name) { }
-
-			/**
-			 * Access raw capability data
-			 */
-			long dst() const { return _tid; }
-			long tid() const { return _tid; }
-
-			/**
-			 * Copy this capability to another pd.
-			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability)); }
-	};
-
+	typedef Native_capability_tpl<long, Thread_id_check> Native_capability;
 	typedef int Native_connection_state;  /* socket descriptor */
 }
 

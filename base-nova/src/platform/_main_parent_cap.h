@@ -39,7 +39,7 @@ namespace Genode {
 
 		/* assemble parent capability from object ID and portal */
 		return reinterpret_cap_cast<Parent>(Native_capability(Nova::PT_SEL_PARENT,
-		                                                      cap.unique_id()));
+		                                                      cap.local_name()));
 	}
 }
 

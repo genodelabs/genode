@@ -14,10 +14,16 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <util/string.h>
+#include <base/native_capability.h>
 
 namespace Pistachio {
 #include <l4/types.h>
+
+	struct Thread_id_checker
+	{
+		static bool valid(L4_ThreadId_t tid) { return !L4_IsNilThread(tid); }
+		static L4_ThreadId_t invalid() { return L4_nilthread; }
+	};
 }
 
 namespace Genode {
@@ -59,66 +65,8 @@ namespace Genode {
 	 */
 	typedef struct { } Native_utcb;
 
-	/*
-	 * On Pistachio, the local_name member of a capability is global to the
-	 * whole system. Therefore, capabilities are to be created at a central
-	 * place that prevents id clashes.
-	 */
-	class Native_capability
-	{
-		protected:
-
-			Pistachio::L4_ThreadId_t _tid;
-			long                     _local_name;
-
-		protected:
-
-			Native_capability(void* ptr) : _local_name((long)ptr) {}
-
-		public:
-
-			/**
-			 * Default constructor
-			 */
-			Native_capability() : _local_name (0)
-			{
-				using namespace Pistachio;
-				_tid = L4_nilthread;
-			}
-
-			long local_name() const { return _local_name; }
-			Pistachio::L4_ThreadId_t dst() const { return _tid; }
-
-			void* local() const { return (void*)_local_name; }
-
-			bool valid() const { return !Pistachio::L4_IsNilThread(_tid); }
-
-
-			/********************************************************
-			 ** Functions to be used by the Pistachio backend only **
-			 ********************************************************/
-
-			/**
-			 * Constructor
-			 *
-			 * Creates a L4 capability manually. This must not be called from
-			 * generic code.
-			 */
-			Native_capability(Pistachio::L4_ThreadId_t tid, long local_name)
-			: _tid(tid), _local_name(local_name) { }
-
-			/**
-			 * Access raw capability data
-			 */
-			Pistachio::L4_ThreadId_t tid() const { return _tid; };
-
-			/**
-			 * Copy this capability to another pd.
-			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability)); }
-	};
-
+	typedef Native_capability_tpl<Pistachio::L4_ThreadId_t,
+	                              Pistachio::Thread_id_checker> Native_capability;
 	typedef Pistachio::L4_ThreadId_t Native_connection_state;
 }
 

@@ -111,7 +111,7 @@ namespace Genode {
 
 			Native_task   native_task() { return _l4_task_cap;  }
 			unsigned      badge()       { return _badge;        }
-			Native_thread parent_cap()  { return _parent.dst(); }
+			Native_thread parent_cap()  { return _parent.tid(); }
 	};
 }
 

@@ -38,7 +38,7 @@ namespace Genode {
 			{
 				Lock::Guard lock_guard(_lock());
 
-				return Native_capability(ep.pt_sel(), ++_unique_id_cnt);
+				return Native_capability(ep.tid(), ++_unique_id_cnt);
 			}
 
 			void free(Native_capability cap) { }

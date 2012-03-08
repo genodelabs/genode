@@ -44,7 +44,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 		_signal_queue.enqueue(context);
 
 		/* wake up client */
-		Fiasco::l4_irq_trigger(_blocking_semaphore.dst());
+		Fiasco::l4_irq_trigger(_blocking_semaphore.tid());
 	}
 }
 
@@ -69,9 +69,9 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 {
 	using namespace Fiasco;
 
-	unsigned long badge   = Badge_allocator::allocator()->alloc();
-	Fiasco_capability irq = cap_alloc()->alloc_id(badge);
-	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, irq);
+	unsigned long    badge = Badge_allocator::allocator()->alloc();
+	Native_thread_id irq   = cap_alloc()->alloc_id(badge);
+	l4_msgtag_t      res   = l4_factory_create_irq(L4_BASE_FACTORY_CAP, irq);
 	if (l4_error(res))
 		PERR("Allocation of irq object failed!");
 

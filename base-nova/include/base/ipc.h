@@ -19,9 +19,9 @@
 
 inline void Genode::Ipc_ostream::_marshal_capability(Genode::Native_capability const &cap)
 {
-	long unique_id = cap.unique_id();
+	long unique_id = cap.local_name();
 	_write_to_buf(unique_id);
-	_snd_msg->snd_append_pt_sel(cap.pt_sel());
+	_snd_msg->snd_append_pt_sel(cap.tid());
 }
 
 

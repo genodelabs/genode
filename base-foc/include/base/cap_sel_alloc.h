@@ -163,8 +163,7 @@ namespace Genode
 			/**
 			 * Constructor
 			 */
-			Capability_allocator_tpl()
-			: _cap_idx(Fiasco::Fiasco_capability::USER_BASE_CAP) { }
+			Capability_allocator_tpl() : _cap_idx(Fiasco::USER_BASE_CAP) { }
 
 
 			/************************************

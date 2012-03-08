@@ -49,7 +49,7 @@ void Thread_base::start()
 	/* get gate-capability and badge of new thread */
 	Thread_state state;
 	env()->cpu_session()->state(_thread_cap, &state);
-	_tid = state.cap.dst();
+	_tid = state.cap.tid();
 
 	/*
 	 * send newly constructed thread, pointer to its Thread_base object,

@@ -55,20 +55,16 @@ static inline void thread_yield() { Fiasco::l4_thread_yield(); }
  */
 static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 {
-	using namespace Fiasco;
-
-	Genode::Native_thread_id irq = tid + Fiasco_capability::THREAD_IRQ_CAP;
-	l4_irq_trigger(irq);
+	Genode::Native_thread_id irq = tid + Fiasco::THREAD_IRQ_CAP;
+	Fiasco::l4_irq_trigger(irq);
 	return true;
 }
 
 
 static inline Genode::Native_thread_id thread_get_my_native_id()
 {
-	using namespace Fiasco;
-
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
-	return myself ? myself->tid() : Fiasco_capability::MAIN_THREAD_CAP;
+	return myself ? myself->tid() : Fiasco::MAIN_THREAD_CAP;
 }
 
 
@@ -85,7 +81,7 @@ static inline Genode::Native_thread_id thread_invalid_id()
  */
 static inline bool thread_id_valid(Genode::Native_thread_id tid)
 {
-	return tid.valid();
+	return Fiasco::Thread_id_check::valid(tid);
 }
 
 
@@ -105,8 +101,7 @@ static inline void thread_stop_myself()
 {
 	using namespace Fiasco;
 
-	Genode::Native_thread_id irq = thread_get_my_native_id()
-	                               + Fiasco_capability::THREAD_IRQ_CAP;
+	Genode::Native_thread_id irq = thread_get_my_native_id() + THREAD_IRQ_CAP;
 	l4_irq_receive(irq, L4_IPC_NEVER);
 }
 

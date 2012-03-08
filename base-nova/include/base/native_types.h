@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <util/string.h>
+#include <base/native_capability.h>
 
 namespace Genode {
 
@@ -53,48 +53,13 @@ namespace Genode {
 			long _utcb[UTCB_SIZE/sizeof(long)];
 	};
 
-	class Native_capability
+	struct Portal_checker
 	{
-		private:
-
-			int _pt_sel;
-			int _unique_id;
-
-		protected:
-
-			Native_capability(void* ptr) : _unique_id((int)ptr) {}
-
-		public:
-
-			/**
-			 * Default constructor creates an invalid capability
-			 */
-			Native_capability() : _pt_sel(0), _unique_id(0) { }
-
-			/**
-			 * Construct capability manually
-			 *
-			 * This constructor should be called only from the platform-specific
-			 * part of the Genode framework.
-			 */
-			Native_capability(int pt_sel, int unique_id)
-			: _pt_sel(pt_sel), _unique_id(unique_id) { }
-
-			bool  valid()      const { return _pt_sel != 0 && _unique_id != 0; }
-			int   local_name() const { return _unique_id; }
-			void* local()      const { return (void*)_unique_id; }
-			int   dst()        const { return _pt_sel; }
-
-			int   unique_id()  const { return _unique_id; }
-			int   pt_sel()     const { return _pt_sel; }
-
-			/**
-			 * Copy this capability to another pd.
-			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability)); }
+		static bool valid(int pt) { return pt != 0; }
+		static int  invalid()     { return 0;       }
 	};
 
+	typedef Native_capability_tpl<int, Portal_checker> Native_capability;
 	typedef int Native_connection_state;
 }
 

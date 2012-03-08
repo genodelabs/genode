@@ -14,15 +14,16 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <util/string.h>
+#include <base/native_capability.h>
 
 namespace Fiasco {
 #include <l4/sys/types.h>
 
-	/**
-	 * Return invalid L4 thread ID
-	 */
-	inline l4_threadid_t invalid_l4_threadid_t() { return L4_INVALID_ID; }
+	struct Thread_id_check
+	{
+		static bool valid(l4_threadid_t id) { return !l4_is_invalid_id(id); }
+		static l4_threadid_t invalid()      { return L4_INVALID_ID;}
+	};
 }
 
 namespace Genode {
@@ -64,66 +65,7 @@ namespace Genode {
 	 */
 	typedef struct { } Native_utcb;
 
-	/*
-	 * On Fiasco, the local_name member of a capability is global
-	 * to the whole system. Therefore, capabilities are to be
-	 * created at a central place that prevents id clashes.
-	 */
-	class Native_capability
-	{
-		protected:
-
-			Fiasco::l4_threadid_t _tid;
-			long                  _local_name;
-
-		protected:
-
-			Native_capability(void *ptr)
-			: _tid(Fiasco::invalid_l4_threadid_t()), _local_name((long)ptr) { }
-
-		public:
-
-			/**
-			 * Default constructor
-			 */
-			Native_capability()
-			: _tid(Fiasco::invalid_l4_threadid_t()), _local_name(0) { }
-
-			long local_name() const { return _local_name; }
-			Fiasco::l4_threadid_t dst() const { return _tid; }
-
-			void* local() const { return (void*)_local_name;  }
-
-			bool valid() const { return l4_is_invalid_id(_tid) == 0; }
-
-
-			/*****************************************************
-			 ** Functions to be used by the Fiasco backend only **
-			 *****************************************************/
-
-			/**
-			 * Constructor
-			 *
-			 * This constructor can be called to create a Fiasco
-			 * capability by hand. It must never be used from
-			 * generic code!
-			 */
-			Native_capability(Fiasco::l4_threadid_t tid,
-			                  Fiasco::l4_umword_t local_name)
-			: _tid(tid), _local_name(local_name) { }
-
-			/**
-			 * Access raw capability data
-			 */
-			Fiasco::l4_threadid_t tid() const { return _tid; }
-
-			/**
-			 * Copy this capability to another pd.
-			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability)); }
-	};
-
+	typedef Native_capability_tpl<Native_thread_id,Fiasco::Thread_id_check> Native_capability;
 	typedef Fiasco::l4_threadid_t Native_connection_state;
 }
 

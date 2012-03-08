@@ -27,7 +27,7 @@ inline void Genode::Ipc_ostream::_marshal_capability(Genode::Native_capability c
 	long unique_id = cap.local_name();
 	_write_to_buf(unique_id);
 	if (unique_id)
-		_snd_msg->snd_append_cap_sel(cap.dst());
+		_snd_msg->snd_append_cap_sel(cap.tid());
 }
 
 

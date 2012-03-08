@@ -14,45 +14,21 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <util/string.h>
+#include <base/native_capability.h>
 
 namespace Genode {
+
+	struct Empty_thread_id {
+		static bool valid(Empty_thread_id id) { return true; }
+		static Empty_thread_id invalid()      { return Empty_thread_id();}
+	};
 
 	typedef volatile int  Native_lock;
 	typedef int           Native_thread;
 	typedef Native_thread Native_thread_id;
 	typedef struct { }    Native_utcb;
-
-	class Native_capability
-	{
-		private:
-
-			long _local_name;
-
-		protected:
-
-			Native_capability(void* ptr) : _local_name((long)ptr) { }
-
-		public:
-
-			Native_capability() : _local_name(0) { }
-			Native_capability(Native_thread_id, long local_name)
-			: _local_name(local_name) { }
-
-			bool             valid()      const { return _local_name != 0; }
-			int              local_name() const { return _local_name; }
-			void*            local()      const { return (void*)_local_name; }
-			int              dst()        const { return 0; }
-			Native_thread_id tid()        const { return 0; }
-
-			/**
-			 * Copy this capability to another pd.
-			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability)); }
-	};
-
 	typedef int Native_connection_state;
+	typedef Native_capability_tpl<Empty_thread_id,Empty_thread_id> Native_capability;
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

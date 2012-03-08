@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <util/string.h>
+#include <base/native_capability.h>
 
 namespace Codezero {
 
@@ -49,6 +49,9 @@ namespace Genode {
 		Native_thread_id(int l4id) : tid(l4id), running_lock(0) { }
 
 		Native_thread_id(int l4id, Codezero::l4_mutex *rl) : tid(l4id), running_lock(rl) { }
+
+		static bool valid(int tid) { return tid != Codezero::NILTHREAD; }
+		static int  invalid()      { return Codezero::NILTHREAD;        }
 	};
 
 	struct Native_thread
@@ -102,54 +105,7 @@ namespace Genode {
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2) { return t1.tid == t2.tid; }
 	inline bool operator != (Native_thread_id t1, Native_thread_id t2) { return t1.tid != t2.tid; }
 
-	/*
-	 * Because Codezero does not support local names for capabilities, a Genode
-	 * capability consists of the global thread ID and a global object ID, not
-	 * protected by the kernel when transmitted as IPC payloads.
-	 */
-	class Native_capability
-	{
-		private:
-
-			Native_thread_id _tid;  /* global thread ID */
-			int _local_name;        /* global unique object ID */
-
-		protected:
-
-			Native_capability(void* ptr) : _local_name((int)ptr) {
-				_tid.tid = Codezero::NILTHREAD; }
-
-		public:
-
-			/**
-			 * Default constructor creates invalid capability
-			 */
-			Native_capability()
-			: _local_name(0) { _tid.tid = Codezero::NILTHREAD; }
-
-			/**
-			 * Constructor for hand-crafting capabilities
-			 *
-			 * This constructor is only used internally be the framework.
-			 */
-			Native_capability(Native_thread_id tid, int local_name)
-			: _tid(tid), _local_name(local_name) { }
-
-			bool valid() const { return _tid.tid != Codezero::NILTHREAD; }
-
-			int local_name() const { return _local_name; }
-			void* local() const { return (void*)_local_name;  }
-			int dst() const { return _tid.tid; }
-
-			Native_thread_id tid() const { return _tid; }
-
-			/**
-			 * Copy this capability to another pd.
-			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability)); }
-	};
-
+	typedef Native_capability_tpl<int,Native_thread_id> Native_capability;
 	typedef int Native_connection_state;
 }
 

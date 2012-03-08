@@ -43,7 +43,7 @@ static addr_t core_utcb_base() {
 
 void Platform_pd::_create_pd(bool syscall)
 {
-	if (!_l4_task_cap.valid())
+	if (!Thread_id_check::valid(_l4_task_cap))
 		_l4_task_cap = cap_alloc()->alloc();
 
 	if (syscall) {
@@ -75,8 +75,6 @@ void Platform_pd::_destroy_pd()
 
 int Platform_pd::bind_thread(Platform_thread *thread)
 {
-	using namespace Fiasco;
-
 	for (unsigned i = 0; i < THREAD_MAX; i++) {
 		if (_threads[i])
 			continue;
@@ -87,12 +85,11 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 		else
 			thread->_utcb =
 				reinterpret_cast<l4_utcb_t*>(UTCB_AREA_START + i * L4_UTCB_OFFSET);
-		Native_thread cap_offset   = Fiasco_capability::THREADS_BASE_CAP +
-		                             i * Fiasco_capability::THREAD_CAP_SLOT;
-		thread->_remote_gate_cap   = Native_capability(cap_offset + Fiasco_capability::THREAD_GATE_CAP,
+		Native_thread cap_offset   = THREADS_BASE_CAP + i * THREAD_CAP_SLOT;
+		thread->_remote_gate_cap   = Native_capability(cap_offset + THREAD_GATE_CAP,
 		                                               thread->_gate_cap.local_name());
-		thread->_remote_pager_cap  = cap_offset + Fiasco_capability::THREAD_PAGER_CAP;
-		thread->_remote_irq_cap    = cap_offset + Fiasco_capability::THREAD_IRQ_CAP;
+		thread->_remote_pager_cap  = cap_offset + THREAD_PAGER_CAP;
+		thread->_remote_irq_cap    = cap_offset + THREAD_IRQ_CAP;
 
 		/* inform thread about binding */
 		thread->bind(this);
@@ -129,8 +126,8 @@ void Platform_pd::map_parent_cap()
 {
 	if (!_parent_cap_mapped) {
 		l4_msgtag_t tag = l4_task_map(_l4_task_cap, L4_BASE_TASK_CAP,
-		                  l4_obj_fpage(_parent.dst(), 0, L4_FPAGE_RWX),
-		                  Fiasco_capability::PARENT_CAP | L4_ITEM_MAP);
+		                  l4_obj_fpage(_parent.tid(), 0, L4_FPAGE_RWX),
+		                  PARENT_CAP | L4_ITEM_MAP);
 		if (l4_msgtag_has_error(tag))
 			PWRN("mapping parent cap failed");
 
@@ -144,7 +141,7 @@ void Platform_pd::map_task_cap()
 	if (!_task_cap_mapped) {
 		l4_msgtag_t tag = l4_task_map(_l4_task_cap, L4_BASE_TASK_CAP,
 		                  l4_obj_fpage(_l4_task_cap, 0, L4_FPAGE_RWX),
-		                  Fiasco_capability::TASK_CAP | L4_ITEM_MAP);
+		                  TASK_CAP | L4_ITEM_MAP);
 		if (l4_msgtag_has_error(tag))
 			PWRN("mapping task cap failed");
 		_task_cap_mapped = true;

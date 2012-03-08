@@ -61,7 +61,7 @@ Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 {
 	using namespace Fiasco;
 
-	Fiasco_capability irq_cap(Genode::cap_alloc()->alloc());
+	Native_thread_id irq_cap(Genode::cap_alloc()->alloc());
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, irq_cap);
 	if (l4_error(res))
 		PWRN("Allocation of irq object failed!");

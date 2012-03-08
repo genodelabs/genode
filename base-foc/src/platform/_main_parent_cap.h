@@ -28,8 +28,7 @@ namespace Genode {
 
 		/* assemble parent capability from object ID and Fiasco cap */
 		return reinterpret_cap_cast<Parent>(
-			Native_capability(Fiasco::Fiasco_capability::PARENT_CAP,
-		                      cap.local_name()));
+			Native_capability(Fiasco::PARENT_CAP, cap.local_name()));
 	}
 }
 

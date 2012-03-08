@@ -14,8 +14,8 @@
 #ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
-#include <util/string.h>
 #include <kernel/types.h>
+#include <base/native_capability.h>
 
 namespace Genode {
 
@@ -30,41 +30,17 @@ namespace Genode {
 
 	Native_thread_id my_thread_id();
 
-	class Native_capability
+
+	struct Thread_id_check
 	{
-		private:
-
-			Native_thread_id  _tid;
-			long              _local_name;
-
-		protected:
-
-			Native_capability(void* ptr) : _local_name((long)ptr) {}
-
-		public:
-
-			Native_capability() : _tid(0), _local_name(0) { }
-
-			Native_capability(Native_thread_id tid, long local_name)
-			: _tid(tid), _local_name(local_name) { }
-
-			bool valid() const { return _tid!=0; }
-
-			int local_name() const { return _local_name; }
-
-			void* local() const { return (void*)_local_name; }
-
-			int dst() const { return (int)_tid; }
-
-			Native_thread_id tid() const { return _tid; }
-
-			/**
-			 * Copy this capability to another pd.
-			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability)); }
+		static bool valid(Kernel::Thread_id tid) {
+			return tid != Kernel::INVALID_THREAD_ID; }
+		static Kernel::Thread_id invalid()
+			{ return Kernel::INVALID_THREAD_ID; }
 	};
 
+
+	typedef Native_capability_tpl<Kernel::Thread_id,Thread_id_check> Native_capability;
 	typedef int Native_connection_state;
 }
 

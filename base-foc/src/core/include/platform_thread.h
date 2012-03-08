@@ -147,14 +147,14 @@ namespace Genode {
 			 * Return identification of thread when faulting
 			 */
 			unsigned long pager_object_badge() {
-				return (unsigned long) _thread_cap.dst(); }
+				return (unsigned long) _thread_cap.tid(); }
 
 
 			/*******************************
 			 ** Fiasco-specific Accessors **
 			 *******************************/
 
-			Native_thread     native_thread() const { return _thread_cap.dst(); }
+			Native_thread     native_thread() const { return _thread_cap.tid(); }
 			Native_capability thread_cap()    const { return _thread_cap; }
 			Native_capability gate()          const { return _remote_gate_cap; }
 			const char       *name()          const { return _name; }
