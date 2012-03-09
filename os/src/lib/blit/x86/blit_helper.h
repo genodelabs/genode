@@ -1,5 +1,5 @@
 /*
- * \brief  Blitting function for x86
+ * \brief  Blitting utilities for x86
  * \author Norman Feske
  * \date   2007-10-09
  */
@@ -11,13 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <blit/blit.h>
+#ifndef _LIB__BLIT__BLIT_HELPER_H_
+#define _LIB__BLIT__BLIT_HELPER_H_
+
 #include <mmx.h>
 
-
-/***************
- ** Utilities **
- ***************/
 
 /**
  * Copy single 16bit column
@@ -54,8 +52,6 @@ static inline void copy_block_32bit(char *src, int src_w,
 }
 
 
-
-
 /**
  * Copy block with a size of multiple of 32 bytes
  *
@@ -71,46 +67,4 @@ static inline void copy_block_32byte(char *src, int src_w,
 			copy_32byte_chunks(src, dst, w);
 }
 
-
-/***********************
- ** Library interface **
- ***********************/
-
-extern "C" void blit(void *s, unsigned src_w,
-                     void *d, unsigned dst_w,
-                     int w, int h)
-{
-	char *src = (char *)s, *dst = (char *)d;
-
-	if (w <= 0 || h <= 0) return;
-
-	/* we support blitting only at a granularity of 16bit */
-	w &= ~1;
-
-	/* copy unaligned column */
-	if (w && ((long)dst & 2)) {
-		copy_16bit_column(src, src_w, dst, dst_w, h);
-		w -= 2; src += 2; dst += 2;
-	}
-
-	/* now, we are on a 32bit aligned destination address */
-
-	/* copy 32byte chunks */
-	if (w >> 5) {
-		copy_block_32byte(src, src_w, dst, dst_w, w >> 5, h);
-		src += w & ~31;
-		dst += w & ~31;
-		w    = w &  31;
-	}
-
-	/* copy 32bit chunks */
-	if (w >> 2) {
-		copy_block_32bit(src, src_w, dst, dst_w, w >> 2, h);
-		src += w & ~3;
-		dst += w & ~3;
-		w    = w &  3;
-	}
-
-	/* handle trailing row */
-	if (w >> 1) copy_16bit_column(src, src_w, dst, dst_w, h);
-}
+#endif /* _LIB__BLIT__BLIT_HELPER_H_ */

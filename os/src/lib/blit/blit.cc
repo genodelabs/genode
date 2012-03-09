@@ -12,7 +12,7 @@
  */
 
 #include <blit/blit.h>
-#include <util/string.h>
+#include <blit_helper.h>
 
 
 extern "C" void blit(void *s, unsigned src_w,
@@ -21,6 +21,35 @@ extern "C" void blit(void *s, unsigned src_w,
 {
 	char *src = (char *)s, *dst = (char *)d;
 
-	for (int i = h; i--; src += src_w, dst += dst_w)
-		Genode::memcpy(dst, src, w);
+	if (w <= 0 || h <= 0) return;
+
+	/* we support blitting only at a granularity of 16bit */
+	w &= ~1;
+
+	/* copy unaligned column */
+	if (w && ((long)dst & 2)) {
+		copy_16bit_column(src, src_w, dst, dst_w, h);
+		w -= 2; src += 2; dst += 2;
+	}
+
+	/* now, we are on a 32bit aligned destination address */
+
+	/* copy 32byte chunks */
+	if (w >> 5) {
+		copy_block_32byte(src, src_w, dst, dst_w, w >> 5, h);
+		src += w & ~31;
+		dst += w & ~31;
+		w    = w &  31;
+	}
+
+	/* copy 32bit chunks */
+	if (w >> 2) {
+		copy_block_32bit(src, src_w, dst, dst_w, w >> 2, h);
+		src += w & ~3;
+		dst += w & ~3;
+		w    = w &  3;
+	}
+
+	/* handle trailing row */
+	if (w >> 1) copy_16bit_column(src, src_w, dst, dst_w, h);
 }
