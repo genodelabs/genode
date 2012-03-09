@@ -74,7 +74,7 @@ static void* alloc_vcpu_state()
 
 	// TODO: use different sizes for 32 vs. 64-bit
 	l4_fpage_t fpage = l4_fpage(addr, L4_LOG2_PAGESIZE, L4_CAP_FPAGE_RW);
-	l4_msgtag_t tag  = l4_task_add_ku_mem(Fiasco_capability::TASK_CAP, fpage);
+	l4_msgtag_t tag  = l4_task_add_ku_mem(Fiasco::TASK_CAP, fpage);
 	if (l4_error(tag))
 		PERR("l4_task_add_ku_mem for %p failed with %ld!",
 		     (void*)addr, l4_error(tag));
@@ -131,8 +131,8 @@ void l4lx_thread_pager_change(l4_cap_idx_t thread, l4_cap_idx_t pager)
 	if (DEBUG)
 		PDBG("Change pager of %lx to %lx", thread, pager);
 
-	l4_cap_idx_t p_id = thread - Fiasco_capability::THREAD_GATE_CAP
-	                    + Fiasco_capability::THREAD_PAGER_CAP;
+	l4_cap_idx_t p_id = thread - Fiasco::THREAD_GATE_CAP
+	                    + Fiasco::THREAD_PAGER_CAP;
 
 	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
 	            l4_obj_fpage(pager, 0, L4_FPAGE_RWX), p_id | L4_ITEM_MAP);
