@@ -18,8 +18,6 @@
 #ifndef _INCLUDE__BASE__NATIVE_CAPABILITY_H_
 #define _INCLUDE__BASE__NATIVE_CAPABILITY_H_
 
-#include <util/string.h>
-
 namespace Genode {
 
 	/**
@@ -102,8 +100,7 @@ namespace Genode {
 			/**
 			 * Copy this capability to another PD
 			 */
-			void copy_to(void* dst) {
-				memcpy(dst, this, sizeof(Native_capability_tpl)); }
+			void copy_to(void* dst) { POLICY::copy(dst, this); }
 
 
 			/*****************************************

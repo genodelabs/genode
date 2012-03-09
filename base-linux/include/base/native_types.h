@@ -93,10 +93,11 @@ namespace Genode {
 	inline bool operator != (Native_thread_id t1, Native_thread_id t2) {
 		return (t1.tid != t2.tid) || (t1.pid != t2.pid); }
 
-	struct Thread_id_check {
+	struct Cap_dst_policy {
 		typedef long Dst;
 		static bool valid(Dst id) { return id != 0; }
 		static Dst  invalid()     { return 0;       }
+		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
 	/**
@@ -104,7 +105,7 @@ namespace Genode {
 	 */
 	typedef struct { } Native_utcb;
 
-	typedef Native_capability_tpl<Thread_id_check> Native_capability;
+	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef int Native_connection_state;  /* socket descriptor */
 }
 

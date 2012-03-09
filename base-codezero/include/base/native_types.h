@@ -27,9 +27,18 @@ namespace Genode {
 
 	class Platform_thread;
 
-	struct Native_thread_id
+	struct Cap_dst_policy
 	{
 		typedef int Dst;
+
+		static bool valid(Dst tid) { return tid != Codezero::NILTHREAD; }
+		static Dst  invalid()      { return Codezero::NILTHREAD;        }
+		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
+	};
+
+	struct Native_thread_id
+	{
+		typedef Cap_dst_policy::Dst Dst;
 
 		Dst tid;
 
@@ -51,9 +60,6 @@ namespace Genode {
 		Native_thread_id(Dst l4id) : tid(l4id), running_lock(0) { }
 
 		Native_thread_id(Dst l4id, Codezero::l4_mutex *rl) : tid(l4id), running_lock(rl) { }
-
-		static bool valid(Dst tid) { return tid != Codezero::NILTHREAD; }
-		static Dst  invalid()      { return Codezero::NILTHREAD;        }
 	};
 
 	struct Native_thread
@@ -107,7 +113,7 @@ namespace Genode {
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2) { return t1.tid == t2.tid; }
 	inline bool operator != (Native_thread_id t1, Native_thread_id t2) { return t1.tid != t2.tid; }
 
-	typedef Native_capability_tpl<Native_thread_id> Native_capability;
+	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef int Native_connection_state;
 }
 

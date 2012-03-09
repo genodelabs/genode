@@ -18,13 +18,6 @@
 
 namespace Pistachio {
 #include <l4/types.h>
-
-	struct Cap_dst_policy
-	{
-		typedef L4_ThreadId_t Dst;
-		static bool valid(Dst tid) { return !L4_IsNilThread(tid); }
-		static Dst  invalid()      { return L4_nilthread; }
-	};
 }
 
 namespace Genode {
@@ -34,6 +27,18 @@ namespace Genode {
 	class Platform_thread;
 
 	typedef Pistachio::L4_ThreadId_t Native_thread_id;
+
+	struct Cap_dst_policy
+	{
+		typedef Pistachio::L4_ThreadId_t Dst;
+		static bool valid(Dst tid) { return !Pistachio::L4_IsNilThread(tid); }
+		static Dst  invalid()
+		{
+			using namespace Pistachio;
+			return L4_nilthread;
+		}
+		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
+	};
 
 	struct Native_thread
 	{
@@ -66,7 +71,7 @@ namespace Genode {
 	 */
 	typedef struct { } Native_utcb;
 
-	typedef Native_capability_tpl<Pistachio::Cap_dst_policy> Native_capability;
+	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 
 	typedef Pistachio::L4_ThreadId_t Native_connection_state;
 }

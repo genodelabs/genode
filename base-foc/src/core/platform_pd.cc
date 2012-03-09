@@ -43,7 +43,7 @@ static addr_t core_utcb_base() {
 
 void Platform_pd::_create_pd(bool syscall)
 {
-	if (!Thread_id_check::valid(_l4_task_cap))
+	if (!Cap_dst_policy::valid(_l4_task_cap))
 		_l4_task_cap = cap_alloc()->alloc();
 
 	if (syscall) {

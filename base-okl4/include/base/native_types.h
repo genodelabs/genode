@@ -78,14 +78,15 @@ namespace Genode {
 	 */
 	typedef struct { } Native_utcb;
 
-	struct Thread_id_checker
+	struct Cap_dst_policy
 	{
 		typedef Okl4::L4_ThreadId_t Dst;
 		static bool valid(Dst tid) { return !Okl4::L4_IsNilThread(tid); }
 		static Dst  invalid()      { return Okl4::L4_nilthread; }
+		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
-	typedef Native_capability_tpl<Thread_id_checker> Native_capability;
+	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef Okl4::L4_ThreadId_t Native_connection_state;
 }
 

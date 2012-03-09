@@ -18,10 +18,11 @@
 
 namespace Genode {
 
-	struct Empty_thread_id {
+	struct Cap_dst_policy {
 		typedef int Dst;
 		static bool valid(Dst) { return false; }
 		static Dst invalid()   { return false; }
+		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
 	typedef volatile int  Native_lock;
@@ -29,7 +30,7 @@ namespace Genode {
 	typedef Native_thread Native_thread_id;
 	typedef struct { }    Native_utcb;
 	typedef int Native_connection_state;
-	typedef Native_capability_tpl<Empty_thread_id,Empty_thread_id> Native_capability;
+	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

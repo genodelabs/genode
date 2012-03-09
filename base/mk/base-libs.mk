@@ -6,7 +6,7 @@
 #
 BASE_LIBS = alarm allocator_avl avl_tree cxx env heap \
             ipc lock slab timed_semaphore thread signal \
-            log_console slab
+            log_console slab cap_copy
 
 #
 # Name of Genode's dynamic linker

@@ -98,7 +98,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 void Ipc_pager::acknowledge_wakeup()
 {
-	l4_cap_idx_t dst = Thread_id_check::valid(_last) ? _last : L4_SYSF_REPLY;
+	l4_cap_idx_t dst = Cap_dst_policy::valid(_last) ? _last : L4_SYSF_REPLY;
 
 	/* answer wakeup call from one of core's region-manager sessions */
 	l4_ipc_send(dst, l4_utcb(), l4_msgtag(0, 0, 0, 0), L4_IPC_SEND_TIMEOUT_0);

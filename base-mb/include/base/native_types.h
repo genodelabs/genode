@@ -30,16 +30,17 @@ namespace Genode {
 
 	Native_thread_id my_thread_id();
 
-	struct Thread_id_check
+	struct Cap_dst_policy
 	{
 		typedef Kernel::Thread_id Dst;
 		static bool valid(Dst tid) {
 			return tid != Kernel::INVALID_THREAD_ID; }
 		static Dst invalid()
 			{ return Kernel::INVALID_THREAD_ID; }
+		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
-	typedef Native_capability_tpl<Thread_id_check> Native_capability;
+	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef int Native_connection_state;
 }
 

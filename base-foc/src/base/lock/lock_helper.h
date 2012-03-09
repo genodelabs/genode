@@ -81,7 +81,7 @@ static inline Genode::Native_thread_id thread_invalid_id()
  */
 static inline bool thread_id_valid(Genode::Native_thread_id tid)
 {
-	return Fiasco::Thread_id_check::valid(tid);
+	return Genode::Cap_dst_policy::valid(tid);
 }
 
 
