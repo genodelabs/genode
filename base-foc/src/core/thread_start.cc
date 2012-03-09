@@ -44,7 +44,7 @@ void Thread_base::start()
 		new(platform()->core_mem_alloc()) Platform_thread(_context->name);
 
 	platform_specific()->core_pd()->bind_thread(pt);
-	_tid = pt->gate().tid();
+	_tid = pt->gate().dst();
 	_thread_cap = reinterpret_cap_cast<Cpu_thread>(pt->thread_cap());
 
 	pt->pager(platform_specific()->core_pager());

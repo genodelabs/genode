@@ -96,7 +96,7 @@ int Platform_thread::state(Thread_state *state_dst)
 
 int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 {
-	Native_thread_id pager_tid = _pager ? _pager->cap().tid() : 0;
+	Native_thread_id pager_tid = _pager ? _pager->cap().dst() : 0;
 	Kernel::Utcb* putcb        = physical_utcb(_tid);
 
 	/* Hand over arguments for the thread's bootstrap */

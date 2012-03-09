@@ -118,10 +118,10 @@ void Cap_session_component::free(Native_capability cap)
 
 	Capability_tree::tree()->remove(n);
 	l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
-	                                l4_obj_fpage(cap.tid(), 0, L4_FPAGE_RWX),
+	                                l4_obj_fpage(cap.dst(), 0, L4_FPAGE_RWX),
 	                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
 	if (l4_msgtag_has_error(tag))
-		PERR("destruction of ipc-gate %lx failed!", (unsigned long) cap.tid());
+		PERR("destruction of ipc-gate %lx failed!", (unsigned long) cap.dst());
 
 	/* free badge _after_ invalidating all caps */
 	Badge_allocator::allocator()->free(n->badge());

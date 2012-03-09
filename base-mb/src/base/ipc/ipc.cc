@@ -130,7 +130,7 @@ void Ipc_client::_call()
 	unsigned request_size = _write_offset;
 	copy_msgbuf_to_utcb(_snd_msg, request_size, _dst.local_name());
 
-	unsigned reply_size = Kernel::ipc_request(_dst.tid(), request_size);
+	unsigned reply_size = Kernel::ipc_request(_dst.dst(), request_size);
 
 	copy_utcb_to_msgbuf(reply_size, _rcv_msg);
 

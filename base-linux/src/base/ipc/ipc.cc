@@ -108,7 +108,7 @@ void Ipc_client::_prepare_next_call()
 {
 	/* prepare next request in buffer */
 	long local_name = _dst.local_name();
-	long tid        = Native_capability::tid();
+	long tid        = Native_capability::dst();
 
 	_write_offset = 0;
 	_write_to_buf(local_name);
@@ -122,7 +122,7 @@ void Ipc_client::_prepare_next_call()
 void Ipc_client::_call()
 {
 	if (_dst.valid()) {
-		lx_send_to(_rcv_cs, _dst.tid(), "server",
+		lx_send_to(_rcv_cs, _dst.dst(), "server",
 		           _snd_msg->buf, _write_offset);
 
 		lx_recv_from(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
@@ -183,7 +183,7 @@ void Ipc_server::_wait()
 void Ipc_server::_reply()
 {
 	try {
-		lx_send_to(_rcv_cs, _dst.tid(), "client", _snd_msg->buf, _write_offset);
+		lx_send_to(_rcv_cs, _dst.dst(), "client", _snd_msg->buf, _write_offset);
 	} catch (Ipc_error) { }
 
 	_prepare_next_reply_wait();
@@ -194,7 +194,7 @@ void Ipc_server::_reply_wait()
 {
 	/* when first called, there was no request yet */
 	if (_reply_needed)
-		lx_send_to(_rcv_cs, _dst.tid(), "client", _snd_msg->buf, _write_offset);
+		lx_send_to(_rcv_cs, _dst.dst(), "client", _snd_msg->buf, _write_offset);
 
 	_wait();
 }

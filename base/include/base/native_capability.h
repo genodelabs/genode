@@ -110,7 +110,7 @@ namespace Genode {
 			/**
 			 * Return the kernel-specific capability destination
 			 */
-			Dst tid() const { return _tid; }
+			Dst dst() const { return _tid; }
 	};
 }
 

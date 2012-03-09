@@ -44,7 +44,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 		_signal_queue.enqueue(context);
 
 		/* wake up client */
-		Fiasco::l4_irq_trigger(_blocking_semaphore.tid());
+		Fiasco::l4_irq_trigger(_blocking_semaphore.dst());
 	}
 }
 

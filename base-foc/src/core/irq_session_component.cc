@@ -56,7 +56,7 @@ Irq_session_component::Interrupt::Interrupt()
 Native_thread Irq_session_component::Interrupt_handler::handler_cap()
 {
 	static Interrupt_handler handler;
-	return handler._thread_cap.tid();
+	return handler._thread_cap.dst();
 }
 
 

@@ -34,17 +34,17 @@ void Ipc_ostream::_send()
 {
 	if (verbose_ipc)
 		PDBG("thread %d sends IPC to %d, write_offset=%d",
-		     thread_myself(), _dst.tid(), _write_offset);
+		     thread_myself(), _dst.dst(), _write_offset);
 
 	umword_t snd_size = min(_write_offset, (unsigned)L4_IPC_EXTENDED_MAX_SIZE);
 
 	*(umword_t *)_snd_msg->addr() = _dst.local_name();
 
-	int ret = l4_send_extended(_dst.tid(), L4_IPC_TAG_SYNC_EXTENDED,
+	int ret = l4_send_extended(_dst.dst(), L4_IPC_TAG_SYNC_EXTENDED,
 	                           snd_size, _snd_msg->addr());
 	if (ret < 0)
 		PERR("l4_send_extended (to thread %d) returned ret=%d",
-		     _dst.tid(), ret);
+		     _dst.dst(), ret);
 
 	_write_offset = sizeof(umword_t);
 }
@@ -71,7 +71,7 @@ void Ipc_istream::_wait()
 
 	if (verbose_ipc)
 		PDBG("thread %d waits for IPC from %d, rcv_buf at %p, rcv_size=%d",
-		     tid(), _rcv_cs, rcv_buf, (int)rcv_size);
+		     dst(), _rcv_cs, rcv_buf, (int)rcv_size);
 
 	int ret = l4_receive_extended(_rcv_cs, rcv_size, rcv_buf);
 	if (ret < 0)
@@ -79,7 +79,7 @@ void Ipc_istream::_wait()
 
 	if (verbose_ipc)
 		PDBG("thread %d received IPC from %d",
-		     tid(), l4_get_sender());
+		     dst(), l4_get_sender());
 
 	_read_offset = sizeof(umword_t);
 }
@@ -107,7 +107,7 @@ void Ipc_client::_call()
 {
 #warning l4_sendrecv_extended is not yet implemented in l4lib/arch/syslib.h
 	_send();
-	_rcv_cs = _dst.tid();
+	_rcv_cs = _dst.dst();
 	_wait();
 	_rcv_cs = L4_ANYTHREAD;
 

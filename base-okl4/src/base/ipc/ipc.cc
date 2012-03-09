@@ -104,7 +104,7 @@ void Ipc_ostream::_send()
 	                    _dst.local_name());
 
 	/* perform IPC send operation */
-	L4_MsgTag_t rcv_tag = L4_Send(_dst.tid());
+	L4_MsgTag_t rcv_tag = L4_Send(_dst.dst());
 
 	if (L4_IpcFailed(rcv_tag)) {
 		PERR("ipc error in _send.");
@@ -186,7 +186,7 @@ void Ipc_client::_call()
 	                    _dst.local_name());
 
 	L4_Accept(L4_UntypedWordsAcceptor);
-	L4_MsgTag_t rcv_tag = L4_Call(_dst.tid());
+	L4_MsgTag_t rcv_tag = L4_Call(_dst.dst());
 
 	enum { ERROR_MASK = 0xe, ERROR_CANCELED = 3 << 1 };
 	if (L4_IpcFailed(rcv_tag) &&
@@ -244,7 +244,7 @@ void Ipc_server::_reply()
 	                    _dst.local_name());
 
 	/* perform non-blocking IPC send operation */
-	L4_MsgTag_t rcv_tag = L4_Reply(_dst.tid());
+	L4_MsgTag_t rcv_tag = L4_Reply(_dst.dst());
 
 	if (L4_IpcFailed(rcv_tag))
 		PERR("ipc error in _reply - gets ignored");
@@ -261,7 +261,7 @@ void Ipc_server::_reply_wait()
 		copy_msgbuf_to_utcb(_snd_msg, _write_offset/sizeof(L4_Word_t),
 		                    _dst.local_name());
 
-		L4_MsgTag_t rcv_tag = L4_ReplyWait(_dst.tid(), &_rcv_cs);
+		L4_MsgTag_t rcv_tag = L4_ReplyWait(_dst.dst(), &_rcv_cs);
 
 		/*
 		 * TODO: Check for IPC error

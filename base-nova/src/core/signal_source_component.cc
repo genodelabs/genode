@@ -40,7 +40,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 		_signal_queue.enqueue(context);
 
 		/* wake up client */
-		Nova::sm_ctrl(_blocking_semaphore.tid(), Nova::SEMAPHORE_UP);
+		Nova::sm_ctrl(_blocking_semaphore.dst(), Nova::SEMAPHORE_UP);
 	}
 }
 

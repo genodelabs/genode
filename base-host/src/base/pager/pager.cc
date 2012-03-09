@@ -46,7 +46,7 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 	/* return invalid capability if no activation is present */
 	if (!_activation) return Pager_capability();
 
-	Native_capability cap = Native_capability(_activation->cap().tid(), obj->badge());
+	Native_capability cap = Native_capability(_activation->cap().dst(), obj->badge());
 
 	/* add server object to object pool */
 	obj->cap(cap);

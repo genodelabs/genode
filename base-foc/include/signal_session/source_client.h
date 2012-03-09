@@ -51,7 +51,7 @@ namespace Genode {
 				/* request mapping of semaphore capability selector */
 				_sem = call<Rpc_request_semaphore>();
 
-				l4_msgtag_t tag = l4_irq_attach(_sem.tid(), 0,
+				l4_msgtag_t tag = l4_irq_attach(_sem.dst(), 0,
 				                                Thread_base::myself()->tid());
 				if (l4_error(tag))
 					PERR("l4_irq_attach failed with %ld!", l4_error(tag));
@@ -76,7 +76,7 @@ namespace Genode {
 				using namespace Fiasco;
 
 				/* block on semaphore, will be unblocked if signal is available */
-				l4_irq_receive(_sem.tid(), L4_IPC_NEVER);
+				l4_irq_receive(_sem.dst(), L4_IPC_NEVER);
 
 				/*
 				 * Now that the server has unblocked the semaphore, we are sure

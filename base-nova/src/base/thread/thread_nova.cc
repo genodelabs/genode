@@ -49,7 +49,7 @@ static void request_event_portal(Pager_capability pager_cap,
 	utcb->set_msg_word(1);
 	utcb->crd_rcv = Obj_crd(exc_base + event, 0);
 
-	int res = call(pager_cap.tid());
+	int res = call(pager_cap.dst());
 	if (res)
 		PERR("request of event (%d) capability selector failed", event);
 

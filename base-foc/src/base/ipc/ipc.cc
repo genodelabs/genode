@@ -142,7 +142,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base *snd_msg, unsigned offset,
 void Ipc_ostream::_send()
 {
 	l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, _dst);
-	tag = l4_ipc_send(_dst.tid(), l4_utcb(), tag, L4_IPC_NEVER);
+	tag = l4_ipc_send(_dst.dst(), l4_utcb(), tag, L4_IPC_NEVER);
 	if (ipc_error(tag, DEBUG_MSG))
 		throw Ipc_error();
 
@@ -215,7 +215,7 @@ void Ipc_client::_call()
 		rcv_cap_sel += L4_CAP_SIZE;
 	}
 
-	tag = l4_ipc_call(_dst.tid(), l4_utcb(), tag, L4_IPC_NEVER);
+	tag = l4_ipc_call(_dst.dst(), l4_utcb(), tag, L4_IPC_NEVER);
 	if (l4_ipc_error(tag, l4_utcb()) == L4_IPC_RECANCELED)
 		throw Genode::Blocking_canceled();
 	if (ipc_error(tag, DEBUG_MSG))

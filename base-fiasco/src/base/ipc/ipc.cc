@@ -35,7 +35,7 @@ void Ipc_ostream::_send()
 	_snd_msg->send_dope = L4_IPC_DOPE((_write_offset + sizeof(umword_t) - 1)>>2, 0);
 
 	l4_msgdope_t result;
-	l4_ipc_send(_dst.tid(), _snd_msg->addr(), _dst.local_name(),
+	l4_ipc_send(_dst.dst(), _snd_msg->addr(), _dst.local_name(),
 	            *reinterpret_cast<l4_umword_t *>(&_snd_msg->buf[sizeof(umword_t)]),
 	            L4_IPC_NEVER, &result);
 
@@ -120,7 +120,7 @@ void Ipc_client::_call()
 	_snd_msg->send_dope = L4_IPC_DOPE((_write_offset + 2*sizeof(umword_t) - 1)>>2, 0);
 	_rcv_msg->size_dope = L4_IPC_DOPE(_rcv_msg->size()>>2, 0);
 
-	l4_ipc_call(_dst.tid(),
+	l4_ipc_call(_dst.dst(),
 	            _write_offset <= 2*sizeof(umword_t) ? L4_IPC_SHORT_MSG : _snd_msg->addr(),
 	            _dst.local_name(),
 	            *reinterpret_cast<l4_umword_t *>(&_snd_msg->buf[sizeof(umword_t)]),
@@ -193,7 +193,7 @@ void Ipc_server::_reply()
 	_snd_msg->send_dope = L4_IPC_DOPE((_write_offset + sizeof(umword_t) - 1)>>2, 0);
 
 	l4_msgdope_t result;
-	l4_ipc_send(_dst.tid(), _snd_msg->addr(), _dst.local_name(),
+	l4_ipc_send(_dst.dst(), _snd_msg->addr(), _dst.local_name(),
 	            *reinterpret_cast<l4_umword_t *>(&_snd_msg->buf[sizeof(umword_t)]),
 	            L4_IPC_SEND_TIMEOUT_0, &result);
 
@@ -221,7 +221,7 @@ void Ipc_server::_reply_wait()
 		 * an integer as RPC result.
 		 */
 		l4_ipc_reply_and_wait(
-		            _dst.tid(),
+		            _dst.dst(),
 		            _write_offset <= 2*sizeof(umword_t) ? L4_IPC_SHORT_MSG : _snd_msg->addr(),
 		            _dst.local_name(),
 		            *reinterpret_cast<l4_umword_t *>(&_snd_msg->buf[sizeof(umword_t)]),

@@ -90,7 +90,7 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 
 	_activation->cap();
 
-	Untyped_capability cap = Native_capability(_activation->cap().tid(), obj->badge());
+	Untyped_capability cap = Native_capability(_activation->cap().dst(), obj->badge());
 
 	/* add server object to object pool */
 	obj->cap(cap);

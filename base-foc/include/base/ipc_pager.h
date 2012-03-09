@@ -154,7 +154,7 @@ namespace Genode {
 			 * Set destination for next reply
 			 */
 			void set_reply_dst(Native_capability pager_object) {
-				_last = pager_object.tid(); }
+				_last = pager_object.dst(); }
 
 			/**
 			 * Answer call without sending a flex-page mapping

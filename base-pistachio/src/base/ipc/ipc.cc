@@ -47,7 +47,7 @@ using namespace Pistachio;
 
 void Ipc_ostream::_send()
 {
-	IPCDEBUG("_send to 0x%08lx.\n", _dst.tid().raw);
+	IPCDEBUG("_send to 0x%08lx.\n", _dst.dst().raw);
 
 	L4_Msg_t msg;
 	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
@@ -59,7 +59,7 @@ void Ipc_ostream::_send()
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Send(_dst.tid());
+	L4_MsgTag_t result = L4_Send(_dst.dst());
 
 	/*
 	 * Error indicator
@@ -208,7 +208,7 @@ void Ipc_client::_call()
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Call(_dst.tid());
+	L4_MsgTag_t result = L4_Call(_dst.dst());
 
 	_write_offset = _read_offset = sizeof(umword_t);
 
@@ -266,7 +266,7 @@ void Ipc_server::_reply()
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Reply(_dst.tid());
+	L4_MsgTag_t result = L4_Reply(_dst.dst());
 	if (L4_IpcFailed(result))
 		PERR("ipc error in _reply, ignored");
 
@@ -298,7 +298,7 @@ void Ipc_server::_reply_wait()
 		L4_Accept(L4_UntypedWordsAcceptor);
 		L4_Accept(L4_StringItemsAcceptor, &msgbuf);
 
-		L4_MsgTag_t result = L4_Ipc(_dst.tid(), L4_anythread, L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs);
+		L4_MsgTag_t result = L4_Ipc(_dst.dst(), L4_anythread, L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs);
 		IPCDEBUG("Got something from 0x%x.\n", L4_ThreadNo(L4_GlobalId(_rcv_cs)));
 
 		/* error handling - check whether send or receive failed */

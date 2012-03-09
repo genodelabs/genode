@@ -126,7 +126,7 @@ void Platform_pd::map_parent_cap()
 {
 	if (!_parent_cap_mapped) {
 		l4_msgtag_t tag = l4_task_map(_l4_task_cap, L4_BASE_TASK_CAP,
-		                  l4_obj_fpage(_parent.tid(), 0, L4_FPAGE_RWX),
+		                  l4_obj_fpage(_parent.dst(), 0, L4_FPAGE_RWX),
 		                  PARENT_CAP | L4_ITEM_MAP);
 		if (l4_msgtag_has_error(tag))
 			PWRN("mapping parent cap failed");

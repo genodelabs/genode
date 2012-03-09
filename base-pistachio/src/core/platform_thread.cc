@@ -54,7 +54,7 @@ void Platform_thread::set_cpu(unsigned int cpu_no)
 int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 {
 	L4_ThreadId_t thread = _l4_thread_id;
-	L4_ThreadId_t pager  = _pager ? _pager->cap().tid() : L4_nilthread;
+	L4_ThreadId_t pager  = _pager ? _pager->cap().dst() : L4_nilthread;
 
 	/* XXX should always be the root task */
 	L4_ThreadId_t preempter = L4_Myself();

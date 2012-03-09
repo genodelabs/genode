@@ -138,9 +138,9 @@ void Ipc_client::_call()
 	_rcv_msg->rcv_prepare_pt_sel_window(utcb);
 
 	/* establish the mapping via a portal traversal */
-	if (_dst.tid() == 0)
+	if (_dst.dst() == 0)
 		PWRN("destination portal is zero");
-	int res = Nova::call(_dst.tid());
+	int res = Nova::call(_dst.dst());
 	if (res)
 		PERR("call returned %d", res);
 

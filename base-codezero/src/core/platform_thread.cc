@@ -35,7 +35,7 @@ void Platform_thread::set_cpu(unsigned int cpu_no)
 
 int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 {
-	Native_thread_id pager = _pager ? _pager->cap().tid() : -1;
+	Native_thread_id pager = _pager ? _pager->cap().dst() : -1;
 
 	/* setup thread context */
 	struct exregs_data exregs;
