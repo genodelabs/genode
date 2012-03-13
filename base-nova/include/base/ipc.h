@@ -19,9 +19,11 @@
 
 inline void Genode::Ipc_ostream::_marshal_capability(Genode::Native_capability const &cap)
 {
-	long unique_id = cap.local_name();
+	long unique_id = cap.valid() ? cap.local_name() : ~0L;
 	_write_to_buf(unique_id);
-	_snd_msg->snd_append_pt_sel(cap.dst());
+
+	if (cap.valid())
+		_snd_msg->snd_append_pt_sel(cap.dst());
 }
 
 
@@ -29,7 +31,7 @@ inline void Genode::Ipc_istream::_unmarshal_capability(Genode::Native_capability
 {
 	long unique_id = 0;
 	_read_from_buf(unique_id);
-	int pt_sel = _rcv_msg->rcv_pt_sel();
+	int pt_sel = unique_id != ~0L ? _rcv_msg->rcv_pt_sel() : 0;
 	cap = Native_capability(pt_sel, unique_id);
 }
 
