@@ -23,11 +23,7 @@
 /* core includes */
 #include <platform_pd.h>
 #include <cap_session_component.h>
-
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/types.h>
-}
+#include <cap_mapping.h>
 
 namespace Genode {
 
@@ -38,22 +34,18 @@ namespace Genode {
 
 			friend class Platform_pd;
 
-			bool              _core_thread;
-			unsigned          _badge;
-			Native_capability _thread_cap;
-			Native_capability _gate_cap;
-			Native_capability _remote_gate_cap;
-			Native_thread     _remote_pager_cap;
-			Native_thread     _irq_cap;
-			Native_thread     _remote_irq_cap;
-			Capability_node   _node;
-			Native_utcb       _utcb;
-			char              _name[32];       /* thread name that will be
-			                                     registered at the kernel
-			                                     debugger */
-			Platform_pd      *_platform_pd;    /* protection domain thread
-			                                     is bound to */
-			Pager_object     *_pager;
+			bool          _core_thread;
+			Cap_mapping   _thread;
+			Cap_mapping   _gate;
+			Cap_mapping   _pager;
+			Cap_mapping   _irq;
+			Native_utcb   _utcb;
+			char          _name[32];       /* thread name that will be
+			                                 registered at the kernel
+			                                 debugger */
+			Platform_pd  *_platform_pd;    /* protection domain thread
+			                                 is bound to */
+			Pager_object *_pager_obj;
 
 			void _create_thread(void);
 			void _finalize_construction(const char *name, unsigned prio);
@@ -71,7 +63,8 @@ namespace Genode {
 			/**
 			 * Constructor for core main-thread
 			 */
-			Platform_thread(Native_thread cap, const char *name);
+			Platform_thread(Core_cap_index* thread,
+			                Core_cap_index* irq, const char *name);
 
 			/**
 			 * Constructor for core threads
@@ -112,10 +105,9 @@ namespace Genode {
 			/**
 			 * This thread is about to be bound
 			 *
-			 * \param cap   final capability index
 			 * \param pd    platform pd, thread is bound to
 			 */
-			void bind(/*Native_thread_id cap, */Platform_pd *pd);
+			void bind(Platform_pd *pd);
 
 			/**
 			 * Unbind this thread
@@ -140,25 +132,25 @@ namespace Genode {
 			/**
 			 * Return/set pager
 			 */
-			Pager_object *pager() const { return _pager; }
+			Pager_object *pager() const { return _pager_obj; }
 			void pager(Pager_object *pager);
 
 			/**
 			 * Return identification of thread when faulting
 			 */
 			unsigned long pager_object_badge() {
-				return (unsigned long) _thread_cap.dst(); }
+				return (unsigned long) _thread.local->kcap(); }
 
 
 			/*******************************
 			 ** Fiasco-specific Accessors **
 			 *******************************/
 
-			Native_thread     native_thread() const { return _thread_cap.dst(); }
-			Native_capability thread_cap()    const { return _thread_cap; }
-			Native_capability gate()          const { return _remote_gate_cap; }
-			const char       *name()          const { return _name; }
-			bool              core_thread()   const { return _core_thread; }
+			Cap_mapping& thread()            { return _thread;      }
+			Cap_mapping& gate()              { return _gate;        }
+			const char  *name()        const { return _name;        }
+			bool         core_thread() const { return _core_thread; }
+			Native_utcb  utcb()        const { return _utcb;        }
 	};
 }
 

@@ -24,16 +24,20 @@ namespace Genode {
 
 	struct Thread_state : public Cpu_state
 	{
-		Native_capability     cap;          /* capability selector with thread cap */
+		Native_thread         kcap;         /* thread's gate cap in its pd */
+		int                   id;           /* id of gate capability */
+		Native_utcb           utcb;         /* thread's utcb in its pd */
 		unsigned              exceptions;   /* counts exceptions raised by the thread */
 		bool                  paused;       /* indicates whether thread is stopped */
-		bool                  in_exception; /* true if thread is currently in exception */
+		bool                  in_exception; /* true if thread is in exception */
 		Lock                  lock;
 
 		/**
 		 * Constructor
 		 */
-		Thread_state() : cap(), exceptions(0), paused(false) { }
+		Thread_state()
+		: kcap(Fiasco::L4_INVALID_CAP), id(0), utcb(0), exceptions(0),
+		  paused(false), in_exception(false) { }
 	};
 }
 

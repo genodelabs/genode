@@ -16,6 +16,7 @@
 
 /* Core includes */
 #include <cpu_session_component.h>
+#include <platform.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {
@@ -35,7 +36,7 @@ void Genode::Cpu_session_component::enable_vcpu(Genode::Thread_capability thread
 	Cpu_thread_component *thread = _lookup_thread(thread_cap);
 	if (!thread) return;
 
-	Native_thread tid = thread->platform_thread()->native_thread();
+	Native_thread tid = thread->platform_thread()->thread().local->kcap();
 
 	l4_msgtag_t tag = l4_thread_vcpu_control(tid, vcpu_state);
 	if (l4_msgtag_has_error(tag))
@@ -53,7 +54,7 @@ Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
 	Cpu_thread_component *thread = _lookup_thread(cap);
 	if (!thread) return Native_capability();
 
-	return thread->platform_thread()->thread_cap();
+	return Native_capability(thread->platform_thread()->thread().local);
 }
 
 
@@ -61,11 +62,11 @@ Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 {
 	using namespace Fiasco;
 
-	Native_thread_id irq_cap(Genode::cap_alloc()->alloc());
-	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, irq_cap);
+	Cap_index* i = cap_map()->insert(platform_specific()->cap_id_alloc()->alloc());
+	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, i->kcap());
 	if (l4_error(res))
 		PWRN("Allocation of irq object failed!");
-	return Genode::Native_capability(irq_cap, Badge_allocator::allocator()->alloc());
+	return Genode::Native_capability(i);
 }
 
 
@@ -78,7 +79,7 @@ void Genode::Cpu_session_component::single_step(Genode::Thread_capability thread
 	Cpu_thread_component *thread = _lookup_thread(thread_cap);
 	if (!thread) return;
 
-	Native_thread tid = thread->platform_thread()->native_thread();
+	Native_thread tid = thread->platform_thread()->thread().local->kcap();
 
 	enum { THREAD_SINGLE_STEP = 0x40000 };
 	int flags = enable ? THREAD_SINGLE_STEP : 0;

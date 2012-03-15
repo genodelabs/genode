@@ -98,7 +98,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 void Ipc_pager::acknowledge_wakeup()
 {
-	l4_cap_idx_t dst = Cap_dst_policy::valid(_last) ? _last : L4_SYSF_REPLY;
+	l4_cap_idx_t dst = Fiasco::Capability::valid(_last) ? _last : L4_SYSF_REPLY;
 
 	/* answer wakeup call from one of core's region-manager sessions */
 	l4_ipc_send(dst, l4_utcb(), l4_msgtag(0, 0, 0, 0), L4_IPC_SEND_TIMEOUT_0);
@@ -106,5 +106,5 @@ void Ipc_pager::acknowledge_wakeup()
 
 
 Ipc_pager::Ipc_pager()
-: Native_capability(Thread_base::myself()->tid(), 0), _badge(0) { }
+: Native_capability(cap_map()->find(Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])), _badge(0) { }
 

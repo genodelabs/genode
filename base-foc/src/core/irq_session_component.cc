@@ -1,6 +1,7 @@
 /*
- * \brief  Core implementation of IRQ sessions
+ * \brief  Fiasco.OC-specific core implementation of IRQ sessions
  * \author Christian Helmuth
+ * \author Stefan Kalkowski
  * \date   2007-09-13
  *
  * FIXME ram quota missing
@@ -51,7 +52,8 @@ bool Irq_session_component::Interrupt::higher(Irq_session_component::Interrupt *
 
 
 Irq_session_component::Interrupt::Interrupt()
-: _cap(cap_alloc()->alloc()), _sem(), number(0) {}
+: _cap(cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
+  _sem(), number(0) {}
 
 
 Native_thread Irq_session_component::Interrupt_handler::handler_cap()

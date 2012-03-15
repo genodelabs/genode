@@ -30,6 +30,7 @@ SRC_CC       = main.cc \
                signal_source_component.cc \
                dump_alloc.cc \
                context_area.cc \
+               cap_map.cc \
                cap_session_component.cc \
                cpu_session_extension.cc \
                pd_session_extension.cc \
@@ -55,5 +56,6 @@ vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)
 vpath thread.cc                   $(REP_DIR)/src/base/thread
 vpath thread_bootstrap.cc         $(REP_DIR)/src/base/thread
+vpath cap_map.cc                  $(REP_DIR)/src/base/env
 vpath spin_lock.cc                $(REP_DIR)/src/base/env
 vpath %.cc                        $(REP_DIR)/src/core

@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/snprintf.h>
-#include <base/cap_sel_alloc.h>
 
 #include <env.h>
 #include <l4lx_irq.h>

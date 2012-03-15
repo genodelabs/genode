@@ -32,6 +32,9 @@ namespace Genode {
 
 		public:
 
+			Signal_source_rpc_object(Native_capability cap)
+			: _blocking_semaphore(cap) {}
+
 			Native_capability _request_semaphore() { return _blocking_semaphore; }
 	};
 }

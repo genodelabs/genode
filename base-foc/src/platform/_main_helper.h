@@ -16,14 +16,21 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <base/native_types.h>
+#include <base/cap_map.h>
 
 namespace Fiasco {
 #include <l4/sys/utcb.h>
+#include <l4/sys/kdebug.h>
 }
 
+enum { MAIN_THREAD_CAP_ID = 1 };
 
 static void main_thread_bootstrap() {
-	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = 0; }
+	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]      = MAIN_THREAD_CAP_ID;
+	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = 0;
+	Genode::cap_map()->insert(MAIN_THREAD_CAP_ID, Fiasco::MAIN_THREAD_CAP);
+}
 
 
 #endif /* _PLATFORM___MAIN_HELPER_H_ */

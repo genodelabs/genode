@@ -18,7 +18,7 @@
 #define _INCLUDE__BASE__IPC_MSGBUF_H_
 
 /* Genode includes */
-#include <base/cap_sel_alloc.h>
+#include <base/cap_map.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {
@@ -51,7 +51,7 @@ namespace Genode {
 			/**
 			 * Base of capability receive window.
 			 */
-			addr_t _rcv_cap_sel_base;
+			Cap_index* _rcv_idx_base;
 
 			/**
 			 * Read counter for unmarshalling portal capability selectors
@@ -65,12 +65,14 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Msgbuf_base()
-			: _rcv_cap_sel_base(cap_alloc()->alloc(MAX_CAP_ARGS))
+			Msgbuf_base() : _rcv_idx_base(cap_idx_alloc()->alloc(MAX_CAP_ARGS))
 			{
 				rcv_reset();
 				snd_reset();
 			}
+
+			~Msgbuf_base() {
+				cap_idx_alloc()->free(_rcv_idx_base, MAX_CAP_ARGS); }
 
 			/*
 			 * Begin of actual message buffer
@@ -121,7 +123,7 @@ namespace Genode {
 			/**
 			 * Return address of capability receive window.
 			 */
-			addr_t rcv_cap_sel_base() { return _rcv_cap_sel_base; }
+			addr_t rcv_cap_sel_base() { return _rcv_idx_base->kcap(); }
 
 			/**
 			 * Reset capability receive window
@@ -134,7 +136,7 @@ namespace Genode {
 			 * \return   capability selector, or 0 if index is invalid
 			 */
 			addr_t rcv_cap_sel() {
-				return _rcv_cap_sel_base + _rcv_cap_sel_cnt++ * Fiasco::L4_CAP_SIZE; }
+				return rcv_cap_sel_base() + _rcv_cap_sel_cnt++ * Fiasco::L4_CAP_SIZE; }
 	};
 
 

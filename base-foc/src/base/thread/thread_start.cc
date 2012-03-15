@@ -18,17 +18,27 @@
 #include <base/sleep.h>
 #include <base/env.h>
 
+namespace Fiasco {
+#include <l4/sys/utcb.h>
+}
+
 using namespace Genode;
 
 
 void Thread_base::_deinit_platform_thread()
 {
+	using namespace Fiasco;
+
+	int id = l4_utcb_tcr_u(_context->utcb)->user[UTCB_TCR_BADGE];
 	env()->cpu_session()->kill_thread(_thread_cap);
+	cap_map()->remove(cap_map()->find(id));
 }
 
 
 void Thread_base::start()
 {
+	using namespace Fiasco;
+
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
@@ -41,23 +51,20 @@ void Thread_base::start()
 	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
 	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
 
+	/* get gate-capability and badge of new thread */
+	Thread_state state;
+	env()->cpu_session()->state(_thread_cap, &state);
+	_tid = state.kcap;
+	_context->utcb = state.utcb;
+
+	l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE]      = state.id;
+	l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
+	cap_map()->insert(state.id, state.kcap);
+
 	/* register initial IP and SP at core */
 	addr_t thread_sp = (addr_t)&_context->stack[-4];
 	thread_sp &= ~0xf;  /* align initial stack to 16 byte boundary */
 	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, thread_sp);
-
-	/* get gate-capability and badge of new thread */
-	Thread_state state;
-	env()->cpu_session()->state(_thread_cap, &state);
-	_tid = state.cap.dst();
-
-	/*
-	 * send newly constructed thread, pointer to its Thread_base object,
-	 * and its badge
-	 */
-	Msgbuf<128> snd_msg, rcv_msg;
-	Ipc_client cli(state.cap, &snd_msg, &rcv_msg);
-	cli << (addr_t)this << state.cap.local_name() << IPC_CALL;
 }
 
 

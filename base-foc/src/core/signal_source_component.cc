@@ -14,12 +14,11 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/cap_sel_alloc.h>
 #include <base/native_types.h>
 
 /* core includes */
 #include <signal_session_component.h>
-#include <cap_session_component.h>
+#include <platform.h>
 
 namespace Fiasco {
 #include <l4/sys/factory.h>
@@ -65,15 +64,13 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 
 
 Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
-: _entrypoint(ep)
+: Signal_source_rpc_object(cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
+  _entrypoint(ep)
 {
 	using namespace Fiasco;
 
-	unsigned long    badge = Badge_allocator::allocator()->alloc();
-	Native_thread_id irq   = cap_alloc()->alloc_id(badge);
-	l4_msgtag_t      res   = l4_factory_create_irq(L4_BASE_FACTORY_CAP, irq);
+	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
+	                                        _blocking_semaphore.dst());
 	if (l4_error(res))
 		PERR("Allocation of irq object failed!");
-
-	_blocking_semaphore = Native_capability(irq, badge);
 }

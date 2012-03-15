@@ -1,4 +1,4 @@
-LIBS     = syscalls cap_copy
+LIBS     = syscalls
 SRC_CC  += ipc.cc pager.cc
 INC_DIR += $(REP_DIR)/src/base/lock
 

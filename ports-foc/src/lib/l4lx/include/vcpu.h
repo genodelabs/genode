@@ -18,6 +18,7 @@
 #include <base/ipc.h>
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <base/cap_map.h>
 #include <foc_cpu_session/connection.h>
 
 namespace Fiasco {
@@ -35,30 +36,12 @@ namespace L4lx {
 
 			void                      (*_func)(void *data);
 			void                       *_data;
-			Fiasco::l4_utcb_t          *_utcb;
 			Genode::addr_t              _vcpu_state;
 
 			static void _startup()
 			{
-				using namespace Genode;
-				using namespace Fiasco;
-
-				/* receive thread_base object pointer, and store it in TLS */
-				addr_t      thread_base = 0;
-				Msgbuf<128> snd_msg, rcv_msg;
-				Ipc_server  srv(&snd_msg, &rcv_msg);
-				srv >> IPC_WAIT >> thread_base;
-
-				l4_utcb_tcr()->user[UTCB_TCR_THREAD_OBJ] = thread_base;
-
-				Vcpu* me = dynamic_cast<Vcpu*>(Thread_base::myself());
-				me->_utcb = l4_utcb();
-				l4_utcb_tcr()->user[0] = me->tid(); /* L4X_UTCB_TCR_ID */
-
-				srv << IPC_REPLY;
-
 				/* start thread function */
-				Vcpu* vcpu = reinterpret_cast<Vcpu*>(thread_base);
+				Vcpu* vcpu = reinterpret_cast<Vcpu*>(Genode::Thread_base::myself());
 				vcpu->entry();
 			}
 
@@ -79,12 +62,12 @@ namespace L4lx {
 			: Genode::Thread_base(name, stack_size),
 			  _func(func),
 			  _data(data),
-			  _utcb(0),
 			  _vcpu_state(vcpu_state) { start(); }
 
 			void start()
 			{
 				using namespace Genode;
+				using namespace Fiasco;
 
 				/* create thread at core */
 				char buf[48];
@@ -99,6 +82,17 @@ namespace L4lx {
 					env()->rm_session()->add_client(_thread_cap);
 				vcpu_connection()->set_pager(_thread_cap, pager_cap);
 
+				/* get gate-capability and badge of new thread */
+				Thread_state state;
+				vcpu_connection()->state(_thread_cap, &state);
+				_tid = state.kcap;
+				_context->utcb = state.utcb;
+
+				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
+				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE]      = state.id;
+				l4_utcb_tcr_u(state.utcb)->user[0] = state.kcap; /* L4X_UTCB_TCR_ID */
+				cap_map()->insert(state.id, state.kcap);
+
 				/* register initial IP and SP at core */
 				addr_t stack = (addr_t)&_context->stack[-4];
 				stack &= ~0xf;  /* align initial stack to 16 byte boundary */
@@ -106,18 +100,9 @@ namespace L4lx {
 
 				if (_vcpu_state)
 					vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
-
-				/* get gate-capability and badge of new thread */
-				Thread_state state;
-				vcpu_connection()->state(_thread_cap, &state);
-				_tid = state.cap.dst();
-
-				Msgbuf<128> snd_msg, rcv_msg;
-				Ipc_client cli(state.cap, &snd_msg, &rcv_msg);
-				cli << (addr_t)this << IPC_CALL;
 			}
 
-			Fiasco::l4_utcb_t *utcb() { return _utcb; };
+			Fiasco::l4_utcb_t *utcb() { return _context->utcb; };
 	};
 
 }

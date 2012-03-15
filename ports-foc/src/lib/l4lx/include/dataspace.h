@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <dataspace/client.h>
-#include <base/cap_sel_alloc.h>
+#include <base/cap_map.h>
 #include <util/avl_tree.h>
 
 namespace Fiasco {
@@ -50,7 +50,7 @@ namespace L4lx {
 			          Genode::size_t                 size,
 			          Genode::Dataspace_capability   ds)
 			: _name(name), _size(size), _cap(ds),
-			  _ref(Genode::cap_alloc()->alloc()) {}
+				_ref(Genode::cap_idx_alloc()->alloc(1)->kcap()) {}
 
 
 			/***************

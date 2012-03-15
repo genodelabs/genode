@@ -52,7 +52,7 @@ enum Debug {
 };
 
 
-static bool ipc_error(l4_msgtag_t tag, bool print)
+static inline bool ipc_error(l4_msgtag_t tag, bool print)
 {
 	int ipc_error = l4_ipc_error(tag, l4_utcb());
 	if (ipc_error) {
@@ -189,8 +189,7 @@ void Ipc_istream::_wait()
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
 	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
-	Native_capability(thread_get_my_native_id(),
-	                  Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
+	Native_capability(cap_map()->find(Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])),
 	_rcv_msg(rcv_msg)
 {
 	_read_offset = sizeof(l4_mword_t);
@@ -266,8 +265,7 @@ void Ipc_server::_reply()
 {
 	l4_msgtag_t tag = copy_msgbuf_to_utcb(_snd_msg, _write_offset, _dst);
 	tag = l4_ipc_send(L4_SYSF_REPLY, l4_utcb(), tag, L4_IPC_SEND_TIMEOUT_0);
-	if (ipc_error(tag, DEBUG_MSG))
-		throw Ipc_error();
+	ipc_error(tag, DEBUG_MSG);
 }
 
 

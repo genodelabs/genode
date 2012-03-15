@@ -32,8 +32,8 @@ namespace Genode {
 			{
 				private:
 
-					Native_thread _cap;
-					Semaphore     _sem;
+					Cap_index* _cap;
+					Semaphore  _sem;
 
 				public:
 
@@ -44,8 +44,8 @@ namespace Genode {
 					bool higher(Interrupt *n);
 					Interrupt* find_by_num(unsigned num);
 
-					Native_thread capability() { return _cap; }
-					Semaphore*    semaphore()  { return &_sem; }
+					Native_thread capability() { return _cap->kcap(); }
+					Semaphore*    semaphore()  { return &_sem;        }
 			};
 
 

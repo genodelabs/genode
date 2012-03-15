@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/cap_sel_alloc.h>
+#include <base/cap_map.h>
 
 namespace Fiasco {
 #include <l4/re/c/util/cap.h>
@@ -28,7 +28,7 @@ extern "C" {
 
 	l4_cap_idx_t l4re_util_cap_alloc(void)
 	{
-		l4_cap_idx_t ret = Genode::cap_alloc()->alloc();
+		l4_cap_idx_t ret = Genode::cap_idx_alloc()->alloc(1)->kcap();
 
 		if (DEBUG)
 			PDBG("ret=%lx", ret);

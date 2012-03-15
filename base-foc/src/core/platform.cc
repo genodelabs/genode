@@ -120,30 +120,23 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0() : Pager_object(0)
+Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0)
 {
 	/*
 	 * We use the Pager_object here in a slightly different manner,
 	 * just to tunnel the pager cap to the Platform_thread::start method.
 	 */
-	cap(reinterpret_cap_cast<Thread_capability>(Native_capability(Fiasco::L4_BASE_PAGER_CAP, 0)));
+	cap(reinterpret_cap_cast<Thread_capability>(Native_capability(i)));
 }
 
 
-Platform::Sigma0 *Platform::sigma0()
-{
-	static Sigma0 _sigma0;
-	return &_sigma0;
-}
-
-
-Platform::Core_pager::Core_pager(Platform_pd *core_pd)
+Platform::Core_pager::Core_pager(Platform_pd *core_pd, Sigma0 *sigma0)
 : Platform_thread("core.pager"), Pager_object(0)
 {
-	Platform_thread::pager(sigma0());
+	Platform_thread::pager(sigma0);
 
 	core_pd->bind_thread(this);
-	cap(Native_capability(native_thread(), 0));
+	cap(thread().local);
 
 	/* stack begins at the top end of the '_core_pager_stack' array */
 	void *sp = (void *)&_core_pager_stack[PAGER_STACK_ELEMENTS - 1];
@@ -152,8 +145,8 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 	using namespace Fiasco;
 
 	l4_thread_control_start();
-	l4_thread_control_pager(native_thread());
-	l4_thread_control_exc_handler(native_thread());
+	l4_thread_control_pager(thread().local->kcap());
+	l4_thread_control_exc_handler(thread().local->kcap());
 	l4_msgtag_t tag = l4_thread_control_commit(L4_BASE_THREAD_CAP);
 	if (l4_msgtag_has_error(tag))
 		PWRN("l4_thread_control_commit failed!");
@@ -162,7 +155,7 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 
 Platform::Core_pager *Platform::core_pager()
 {
-	static Core_pager _core_pager(core_pd());
+	static Core_pager _core_pager(core_pd(), &_sigma0);
 	return &_core_pager;
 }
 
@@ -447,7 +440,8 @@ void Platform::_setup_rom()
 Platform::Platform() :
 	_ram_alloc(0), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
-	_region_alloc(core_mem_alloc())
+	_region_alloc(core_mem_alloc()), _cap_id_alloc(core_mem_alloc()),
+	_sigma0(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_PAGER_CAP))
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.
@@ -472,17 +466,25 @@ Platform::Platform() :
 		printf(":core ranges: ");  _core_address_ranges().raw()->dump_addr_tree();
 	}
 
+	Core_cap_index* pdi =
+		reinterpret_cast<Core_cap_index*>(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_TASK_CAP));
+	Core_cap_index* thi =
+		reinterpret_cast<Core_cap_index*>(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_THREAD_CAP));
+	Core_cap_index* irqi =
+		reinterpret_cast<Core_cap_index*>(cap_map()->insert(_cap_id_alloc.alloc()));
+
 	/* setup pd object for core pd */
-	_core_pd = new(core_mem_alloc()) Platform_pd(false, Fiasco::L4_BASE_TASK_CAP);
+	_core_pd = new(core_mem_alloc())
+		Platform_pd(reinterpret_cast<Core_cap_index*>(pdi));
 
 	/*
 	 * We setup the thread object for thread0 in core pd using a special
 	 * interface that allows us to specify the capability slot.
 	 */
 	Platform_thread *core_thread = new(core_mem_alloc())
-		Platform_thread(Fiasco::L4_BASE_THREAD_CAP, "core.main");
+		Platform_thread(thi, irqi, "core.main");
 
-	core_thread->pager(sigma0());
+	core_thread->pager(&_sigma0);
 	_core_pd->bind_thread(core_thread);
 }
 

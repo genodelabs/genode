@@ -21,15 +21,10 @@ namespace Genode {
 	/**
 	 * Return constructed parent capability
 	 */
-	Parent_capability parent_cap()
-	{
-		Native_capability cap;
-		memcpy(&cap, (void *)&_parent_cap, sizeof(cap));
-
-		/* assemble parent capability from object ID and Fiasco cap */
-		return reinterpret_cap_cast<Parent>(
-			Native_capability(Fiasco::PARENT_CAP, cap.local_name()));
-	}
+	Parent_capability parent_cap() {
+		static Cap_index* i = cap_map()->insert(*((int*)&_parent_cap),
+		                                        Fiasco::PARENT_CAP);
+		return reinterpret_cap_cast<Parent>(Native_capability(i)); }
 }
 
 #endif /* _PLATFORM__MAIN_PARENT_CAP_H_ */

@@ -44,19 +44,16 @@ void Thread_base::start()
 		new(platform()->core_mem_alloc()) Platform_thread(_context->name);
 
 	platform_specific()->core_pd()->bind_thread(pt);
-	_tid = pt->gate().dst();
-	_thread_cap = reinterpret_cap_cast<Cpu_thread>(pt->thread_cap());
-
+	_tid = pt->gate().remote;
+	_thread_cap =
+		reinterpret_cap_cast<Cpu_thread>(Native_capability(pt->thread().local));
 	pt->pager(platform_specific()->core_pager());
-	pt->start((void *)_thread_start, _context->stack);
 
-	/*
-	 * send newly constructed thread, pointer to its Thread_base object,
-	 * and its badge
-	 */
-	Msgbuf<128> snd_msg, rcv_msg;
-	Ipc_client cli(_thread_cap, &snd_msg, &rcv_msg);
-	cli << (addr_t)this << pt->gate().local_name() << IPC_CALL;
+	_context->utcb = pt->utcb();
+	l4_utcb_tcr_u(pt->utcb())->user[UTCB_TCR_BADGE]      = pt->gate().local->id();
+	l4_utcb_tcr_u(pt->utcb())->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
+
+	pt->start((void *)_thread_start, _context->stack);
 }
 
 

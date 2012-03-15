@@ -37,38 +37,6 @@ static addr_t core_utcb_base() {
 }
 
 
-/****************************
- ** Private object members **
- ****************************/
-
-void Platform_pd::_create_pd(bool syscall)
-{
-	if (!Cap_dst_policy::valid(_l4_task_cap))
-		_l4_task_cap = cap_alloc()->alloc();
-
-	if (syscall) {
-		if (!_l4_task_cap)
-			panic("no cap slot for pd creation available!");
-
-		l4_fpage_t utcb_area = l4_fpage(UTCB_AREA_START,
-		                                log2<unsigned>(UTCB_AREA_SIZE), 0);
-		l4_msgtag_t tag = l4_factory_create_task(L4_BASE_FACTORY_CAP,
-		                                         _l4_task_cap, utcb_area);
-
-		if (l4_msgtag_has_error(tag))
-			panic("pd creation failed");
-	}
-}
-
-
-void Platform_pd::_destroy_pd()
-{
-	l4_task_unmap(L4_BASE_TASK_CAP,
-	              l4_obj_fpage(_l4_task_cap, 0, L4_FPAGE_RWX),
-	              L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
-}
-
-
 /***************************
  ** Public object members **
  ***************************/
@@ -86,10 +54,15 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 			thread->_utcb =
 				reinterpret_cast<l4_utcb_t*>(UTCB_AREA_START + i * L4_UTCB_OFFSET);
 		Native_thread cap_offset   = THREADS_BASE_CAP + i * THREAD_CAP_SLOT;
-		thread->_remote_gate_cap   = Native_capability(cap_offset + THREAD_GATE_CAP,
-		                                               thread->_gate_cap.local_name());
-		thread->_remote_pager_cap  = cap_offset + THREAD_PAGER_CAP;
-		thread->_remote_irq_cap    = cap_offset + THREAD_IRQ_CAP;
+		thread->_gate.remote   = cap_offset + THREAD_GATE_CAP;
+		thread->_pager.remote  = cap_offset + THREAD_PAGER_CAP;
+		thread->_irq.remote    = cap_offset + THREAD_IRQ_CAP;
+
+		/* if it's no core-thread we have to map parent and pager gate cap */
+		if (!thread->core_thread()) {
+			_task.map(_task.local->kcap());
+			_parent.map(_task.local->kcap());
+		}
 
 		/* inform thread about binding */
 		thread->bind(this);
@@ -116,49 +89,33 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 
 int Platform_pd::assign_parent(Native_capability parent)
 {
-	if (_parent.valid()) return -1;
-	_parent = parent;
+	if (!parent.valid()) return -1;
+	_parent.local  = reinterpret_cast<Core_cap_index*>(parent.idx());
+	_parent.remote = PARENT_CAP;
 	return 0;
 }
 
 
-void Platform_pd::map_parent_cap()
+Platform_pd::Platform_pd(Core_cap_index* i)
+: _task(i, TASK_CAP)
 {
-	if (!_parent_cap_mapped) {
-		l4_msgtag_t tag = l4_task_map(_l4_task_cap, L4_BASE_TASK_CAP,
-		                  l4_obj_fpage(_parent.dst(), 0, L4_FPAGE_RWX),
-		                  PARENT_CAP | L4_ITEM_MAP);
-		if (l4_msgtag_has_error(tag))
-			PWRN("mapping parent cap failed");
-
-	_parent_cap_mapped = true;
-	}
+	for (unsigned i = 0; i < THREAD_MAX; i++)
+		_threads[i] = (Platform_thread*) 0;
 }
 
 
-void Platform_pd::map_task_cap()
-{
-	if (!_task_cap_mapped) {
-		l4_msgtag_t tag = l4_task_map(_l4_task_cap, L4_BASE_TASK_CAP,
-		                  l4_obj_fpage(_l4_task_cap, 0, L4_FPAGE_RWX),
-		                  TASK_CAP | L4_ITEM_MAP);
-		if (l4_msgtag_has_error(tag))
-			PWRN("mapping task cap failed");
-		_task_cap_mapped = true;
-	}
-}
-
-
-Platform_pd::Platform_pd(bool create, Native_task task_cap)
-: _l4_task_cap(task_cap),
-  _badge(create ? Badge_allocator::allocator()->alloc() : 0),
-  _parent_cap_mapped(false),
-  _task_cap_mapped(false)
+Platform_pd::Platform_pd()
+: _task(true, TASK_CAP)
 {
 	for (unsigned i = 0; i < THREAD_MAX; i++)
 		_threads[i] = (Platform_thread*) 0;
 
-	_create_pd(create);
+	l4_fpage_t utcb_area = l4_fpage(UTCB_AREA_START,
+	                                log2<unsigned>(UTCB_AREA_SIZE), 0);
+	l4_msgtag_t tag = l4_factory_create_task(L4_BASE_FACTORY_CAP,
+	                                         _task.local->kcap(), utcb_area);
+	if (l4_msgtag_has_error(tag))
+		PERR("pd creation failed");
 }
 
 
@@ -168,7 +125,4 @@ Platform_pd::~Platform_pd()
 		if (_threads[i])
 			_threads[i]->unbind();
 	}
-
-	_destroy_pd();
-	Badge_allocator::allocator()->free(_badge);
 }

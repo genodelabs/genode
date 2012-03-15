@@ -14,7 +14,7 @@
  */
 
 /* Genode includes */
-#include <base/cap_sel_alloc.h>
+#include <base/cap_map.h>
 
 /* Lock implementation local include */
 #include <spin_lock.h>

@@ -18,12 +18,17 @@
 #ifndef _CORE__INCLUDE__PLATFORM_PD_H_
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
+/* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/exception.h>
 #include <base/sync_allocator.h>
 #include <platform_thread.h>
 #include <base/thread.h>
 
+/* core includes */
+#include <cap_mapping.h>
+
+/* Fiasco.OC includes */
 namespace Fiasco {
 #include <l4/sys/consts.h>
 }
@@ -42,27 +47,9 @@ namespace Genode {
 				                  THREAD_MAX * Thread_base::CONTEXT_VIRTUAL_SIZE)
 			};
 
-			Native_task       _l4_task_cap; /* L4 task capability slot */
-			unsigned          _badge;
-			Native_capability _parent;
-			bool              _parent_cap_mapped;
-			bool              _task_cap_mapped;
+			Cap_mapping       _task;
+			Cap_mapping       _parent;
 			Platform_thread  *_threads[THREAD_MAX];
-
-			/**
-			 * Protection-domain creation
-			 *
-			 * The syscall parameter propagates if any L4 kernel function
-			 * should be used. We need the special case for the Core startup.
-			 */
-			void _create_pd(bool syscall);
-
-			/**
-			 * Protection domain destruction
-			 *
-			 * No special case for Core here - we just never call it.
-			 */
-			void _destroy_pd();
 
 		public:
 
@@ -70,10 +57,14 @@ namespace Genode {
 
 
 			/**
-			 * Constructor
+			 * Constructor for core.
 			 */
-			Platform_pd(bool create = true,
-			            Native_task task_cap = Native_task());
+			Platform_pd(Core_cap_index*);
+
+			/**
+			 * Constructor for all tasks except core.
+			 */
+			Platform_pd();
 
 			/**
 			 * Destructor
@@ -102,16 +93,12 @@ namespace Genode {
 			 */
 			int assign_parent(Native_capability parent);
 
-			void map_task_cap();
-			void map_parent_cap();
-
 			/*******************************
 			 ** Fiasco-specific Accessors **
 			 *******************************/
 
-			Native_task   native_task() { return _l4_task_cap;  }
-			unsigned      badge()       { return _badge;        }
-			Native_thread parent_cap()  { return _parent.dst(); }
+			Native_capability native_task() const {
+				return Native_capability(_task.local); }
 	};
 }
 
