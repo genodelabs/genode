@@ -39,20 +39,31 @@ set config {
 	<start name="acpi">
 		<resource name="RAM" quantum="2M"/>
 		<binary name="acpi_drv"/>
-		<provides><service name="PCI"/></provides>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
 		<route>
-			<service name="ROM"> <parent/> </service>
-			<any-service> <any-child/> <parent/> </any-service>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
+		<route>
+			<service name="IRQ"><child name="acpi" /></service>
+			<any-service> <parent /> <any-child /></any-service>
+		</route>
 	</start>
 	<start name="ahci">
 		<binary name="ahci_drv" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
+		<route>
+			<service name="IRQ"><child name="acpi" /></service>
+			<any-service> <parent /> <any-child /></any-service>
+		</route>
 	</start>
 	<start name="test-ahci">
 		<resource name="RAM" quantum="2M" />

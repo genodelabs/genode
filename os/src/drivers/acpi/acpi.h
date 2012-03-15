@@ -25,6 +25,11 @@ class Acpi
 		 * Rewrite PCI-config space with GSIs found in ACPI tables
 		 */
 		static void rewrite_irq(Pci::Session_capability &session);
+
+		/**
+		 * Return override GSI for IRQ
+		 */
+		static unsigned override(unsigned irq);
 };
 
 #endif /* _ACPI_H_ */

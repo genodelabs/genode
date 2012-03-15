@@ -6,7 +6,9 @@ Behavior
 This server should be used when using a kernel (like Fiasco.OC or Nova) that
 takes advantage of x86's APIC. The server traverses the ACPI tables and sets the
 interrupt line of devices within the PCI config space to the GSIs found in the
-ACPI tables.
+ACPI tables. The 'MADT' table is parsed by the server as well, enabling clients
+to use the correct IRQ when 'Interrupt Override' structures are found wihtin the
+table.
 
 Usage
 -----
@@ -15,16 +17,29 @@ Start the 'acpi_drv' in your Genode environment. Do not start the 'pci_drv'
 since this will be used as a slave of the 'acpi_drv'. You still must load the
 'pci_drv' in your boot loader.
 
-Configuration snipped:
+Configuration snipped (please not that IRQ service requests of the 'timer' are
+routed to the ACPI-driver):
 
 !<start name="acpi">
 !  <resource name="RAM" quantum="2M"/>
 !    <binary name="acpi_drv"/>
-!    <provides><service name="PCI"/></provides>
+!    <provides>
+!      <service name="PCI"/>
+!      <service name="IRQ" />
+!    </provides>
 !    <route>
-!      <service name="ROM"> <parent/> </service>
-!      <any-service> <any-child/> <parent/> </any-service>
+!      <service name="PCI"> <any-child /> </service>
+!      <any-service> <parent/> <any-child /> </any-service>
 !    </route>
+!</start>
+!
+!<start name="timer">
+!  <resource name="RAM" quantum="1M"/>
+!  <provides><service name="Timer"/></provides>
+!  <route>
+!    <service name="IRQ"><child name="acpi" /></service>
+!    <any-service> <parent /> <any-child /></any-service>
+!  </route>
 !</start>
 
 Limitations and known issues

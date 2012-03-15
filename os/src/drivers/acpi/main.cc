@@ -21,8 +21,72 @@
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <pci_session/client.h>
+#include <irq_session/connection.h>
+#include <root/component.h>
 
 #include "acpi.h"
+
+/**
+ * IRQ service
+ */
+namespace Irq {
+
+	typedef Genode::Rpc_object<Genode::Typed_root<Genode::Irq_session> > Irq_session;
+
+	/**
+	 * Root interface of IRQ service
+	 */
+	class Root : public Irq_session
+	{
+		public:
+
+			/**
+			 * Remap IRQ number and create IRQ session at parent
+			 */
+			Genode::Session_capability session(Root::Session_args const &args)
+			{
+				using namespace Genode;
+
+				if (!args.is_valid_string()) throw Root::Invalid_args();
+
+				long irq_number = Arg_string::find_arg(args.string(), "irq_number").long_value(-1);
+
+				/* check for 'MADT' overrides */
+				irq_number = Acpi::override(irq_number);
+
+				/* qouta handling */
+				size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").long_value(0);
+				size_t old_quota = 0, new_quota = 0;
+				Session_capability cap;
+
+				/* allocate IRQ at parent*/
+				try {
+					old_quota = env()->ram_session()->quota();
+					Irq_connection irq(irq_number);
+					new_quota = env()->ram_session()->quota();
+					irq.on_destruction(Irq_connection::KEEP_OPEN);
+					cap = irq.cap();
+				} catch (...) { throw Root::Unavailable(); }
+
+				/* check used quota against quota provided */
+				if (old_quota > new_quota && (old_quota - new_quota) > ram_quota) { 
+					close(cap);
+					throw Root::Quota_exceeded();
+				}
+
+				return cap;
+			}
+
+			/**
+			 * Close session at parent
+			 */
+			void close(Genode::Session_capability session) {
+				Genode::env()->parent()->close(session); }
+
+			void upgrade(Genode::Session_capability session, Upgrade_args const &args) { }
+	};
+}
+
 
 namespace Pci {
 
@@ -44,6 +108,8 @@ namespace Pci {
 
 		public:
 
+			Root(Provider &pci_provider) : _pci_provider(pci_provider) { }
+
 			Genode::Session_capability session(Session_args const &args)
 			{
 				if (!args.is_valid_string()) throw Invalid_args();
@@ -58,33 +124,27 @@ namespace Pci {
 				}
 			}
 
+			void close(Genode::Session_capability session) {
+				Genode::Root_client(_pci_provider.root()).close(session); }
+
 			void upgrade(Genode::Session_capability, Upgrade_args const &) { }
-
-			void close(Genode::Session_capability session)
-			{
-				Genode::Root_client(_pci_provider.root()).close(session);
-			}
-
-			Root(Provider &pci_provider) : _pci_provider(pci_provider) { }
 	};
 }
 
-typedef Genode::Capability<Genode::Typed_root<Pci::Session> > Service_capability;
 
 class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 {
 	private:
 
 		Genode::Root_capability _cap;
-		Genode::Rpc_entrypoint &_ep;
+		Genode::Rpc_entrypoint &_pci_ep;
+		Genode::Rpc_entrypoint &_irq_ep;
 
 	protected:
 
 		char const **_permitted_services() const
-			{
-			static char const *permitted_services[] = {
-				                                          "CAP", "RM", "LOG", "IO_PORT", 0 };
-
+		{
+			static char const *permitted_services[] = { "CAP", "RM", "LOG", "IO_PORT", 0 };
 			return permitted_services;
 		};
 
@@ -103,17 +163,22 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 
 			Acpi::rewrite_irq(session);
 
-			/* announce service PCI to parent */
+			/* announce PCI/IRQ services to parent */
 			static Pci::Root pci_root(*this);
-			Genode::env()->parent()->announce(_ep.manage(&pci_root));
+			static Irq::Root irq_root;
+
+			Genode::env()->parent()->announce(_pci_ep.manage(&pci_root));
+			Genode::env()->parent()->announce(_irq_ep.manage(&irq_root));
 
 			Genode::Root_client(_cap).close(session);
 		}
 
 	public:
 
-		Pci_policy(Genode::Rpc_entrypoint &slave_ep, Genode::Rpc_entrypoint &ep)
-		: Slave_policy("pci_drv", slave_ep), _ep(ep)
+		Pci_policy(Genode::Rpc_entrypoint &slave_ep,
+		           Genode::Rpc_entrypoint &pci_ep,
+		           Genode::Rpc_entrypoint &irq_ep)
+		: Slave_policy("pci_drv", slave_ep), _pci_ep(pci_ep), _irq_ep(irq_ep)
 		{ }
 
 		bool announce_service(const char             *service_name,
@@ -144,9 +209,13 @@ int main(int argc, char **argv)
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "acpi_ep");
 
+	/* IRQ service */
+	static Cap_connection irq_cap;
+	static Rpc_entrypoint irq_ep(&irq_cap, STACK_SIZE, "acpi_irq_ep");
+
 	/* use 'pci_drv' as slave service */
 	static Rpc_entrypoint pci_ep(&cap, STACK_SIZE, "pci_slave");
-	static Pci_policy     pci_policy(pci_ep, ep);
+	static Pci_policy     pci_policy(pci_ep, ep, irq_ep);
 	static Genode::Slave  pci_slave(pci_ep, pci_policy, 512 * 1024);
 
 	Genode::sleep_forever();

@@ -26,6 +26,30 @@ using namespace Genode;
 /* Enable debugging output */
 static const bool verbose = false;
 
+/* Generic Apic structure */
+struct Apic_struct
+{
+	enum Types { SRC_OVERRIDE = 2 };
+
+	uint8_t type;
+	uint8_t length;
+
+	bool is_override() { return type == SRC_OVERRIDE; }
+
+	Apic_struct *next() { return reinterpret_cast<Apic_struct *>((uint8_t *)this + length); }
+} __attribute__((packed));
+
+
+/* ACPI spec 5.2.12.5 */
+struct Apic_override : Apic_struct
+{
+	uint8_t  bus;
+	uint8_t  irq;
+	uint32_t gsi;
+	uint16_t flags;
+} __attribute__((packed));
+
+
 /* ACPI spec 5.2.6 */
 struct Generic
 {
@@ -40,6 +64,37 @@ struct Generic
 	uint32_t creator_rev;
 
 	uint8_t const *data() { return reinterpret_cast<uint8_t *>(this); }
+
+	/* MADT acpi structures */
+	Apic_struct *apic_struct() { return reinterpret_cast<Apic_struct *>(&creator_rev + 8); }
+	Apic_struct *end()         { return reinterpret_cast<Apic_struct *>(signature + size); }
+};
+
+
+/**
+ * List that holds interrupt override information
+ */
+class Irq_override : public List<Irq_override>::Element
+{
+	private:
+
+		uint32_t _irq;   /* source IRQ */
+		uint32_t _gsi;   /* target GSI */
+		uint32_t _flags; /* interrupt flags */
+
+	public:
+
+		Irq_override(uint32_t irq, uint32_t gsi, uint32_t flags)
+		: _irq(irq), _gsi(gsi), _flags(flags) { }
+
+		static List<Irq_override> *list()
+		{
+			static List<Irq_override> _list;
+			return &_list;
+		}
+
+		bool     match(uint32_t irq) const { return irq == _irq; }
+		uint32_t gsi()               const { return _gsi; }
 };
 
 
@@ -120,9 +175,33 @@ class Table_wrapper
 		bool is_facp()     const { return _cmp("FACP");}
 
 		/**
+		 * Is this a MADT table
+		 */
+		bool is_madt() { return _cmp("APIC"); }
+
+		/**
 		 * Look for DSDT and SSDT tables
 		 */
 		bool is_searched() const { return _cmp("DSDT") || _cmp("SSDT"); }
+
+		/**
+		 * Parse override structures
+		 */
+		void parse_madt()
+		{
+			Apic_struct *apic = _table->apic_struct();
+			for (; apic < _table->end(); apic = apic->next()) {
+				if (!apic->is_override())
+					continue;
+
+				Apic_override *o = static_cast<Apic_override *>(apic);
+				
+				if (verbose)
+					PDBG("Found IRQ %u -> GSI %u", o->irq, o->gsi);
+				
+				Irq_override::list()->insert(new (env()->heap()) Irq_override(o->irq, o->gsi, o->flags));
+			}
+		}
 
 		Table_wrapper(addr_t base)
 		: _base(base), _io_mem(0), _table(0)
@@ -859,6 +938,13 @@ class Acpi_table
 
 						Element::parse(table.table());
 					}
+
+					if (table.is_madt()) {
+						if (verbose)
+							PDBG("Found MADT");
+
+						table.parse_madt();
+					}
 				}
 
 				if (dsdt) {
@@ -1067,3 +1153,15 @@ void Acpi::rewrite_irq(Pci::Session_capability &session)
 	}
 }
 
+
+/**
+ * Search override structures
+ */
+unsigned Acpi::override(unsigned irq)
+{
+	for (Irq_override *i = Irq_override::list()->first(); i; i = i->next())
+		if (i->match(irq))
+			return i->gsi();
+	
+	return irq;
+}
