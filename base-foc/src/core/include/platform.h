@@ -126,6 +126,11 @@ namespace Genode {
 			Core_pager *core_pager();
 
 			/**
+			 * Set interrupt mode (e.g., level or edge)
+			 */
+			static void setup_irq_mode(unsigned irq_number);
+
+			/**
 			 * Constructor
 			 */
 			Platform();

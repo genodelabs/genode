@@ -14,3 +14,5 @@
 #include <platform.h>
 
 void Genode::Platform::_setup_io_port_alloc() { }
+
+void Genode::Platform::setup_irq_mode(unsigned irq_number) { }

@@ -20,6 +20,7 @@
 /* core includes */
 #include <irq_root.h>
 #include <irq_session_component.h>
+#include <platform.h>
 #include <util.h>
 
 /* Fiasco includes */
@@ -121,6 +122,9 @@ Irq_session_component::Irq_session_component(Cap_session     *cap_session,
 
 	if (l4_error(l4_icu_bind(L4_BASE_ICU_CAP, irq_number, _irq.capability())))
 		PERR("Binding IRQ%ld to the ICU failed", irq_number);
+
+	/* set interrupt mode */
+	Platform::setup_irq_mode(irq_number);
 
 	if (l4_error(l4_irq_attach(_irq.capability(), irq_number,
 	                           Interrupt_handler::handler_cap())))

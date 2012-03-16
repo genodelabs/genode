@@ -21,6 +21,7 @@
 /* Fiasco.OC includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
+#include <l4/sys/icu.h>
 }
 
 void Genode::Platform::_setup_io_port_alloc()
@@ -41,4 +42,15 @@ void Genode::Platform::_setup_io_port_alloc()
 
 	/* setup allocator */
 	_io_port_alloc.add_range(0, 0x10000);
+}
+
+
+void Genode::Platform::setup_irq_mode(unsigned irq_number)
+{
+	using namespace Fiasco;
+
+	/* set IRQ below 16 to edge/high and others to level/low */
+	l4_umword_t mode = irq_number < 16 ? L4_IRQ_F_POS_EDGE : L4_IRQ_F_LEVEL_LOW;
+	if (l4_error(l4_icu_set_mode(L4_BASE_ICU_CAP, irq_number, mode)))
+		PERR("Setting mode for  IRQ%u failed", irq_number);
 }
