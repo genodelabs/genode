@@ -1,4 +1,5 @@
-TARGET = ahci_drv
-SRC_CC = main.cc
-LIBS   = cxx env server signal
+TARGET   = ahci_drv
+REQUIRES = x86_32
+SRC_CC   = main.cc
+LIBS     = cxx env server signal
 

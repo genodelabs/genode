@@ -1,7 +1,11 @@
+if {![have_spec x86_32]} {
+	puts "\nThe AHCI driver supports the x86_32 architecture only\n"
+	exit 0
+}
+
 #
 # Build
 #
-
 set build_components {
 	core init drivers/timer drivers/pci drivers/acpi
 	drivers/ahci test/ahci
