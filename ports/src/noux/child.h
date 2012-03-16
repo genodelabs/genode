@@ -257,6 +257,7 @@ namespace Noux {
 			      Vfs              *vfs,
 			      Args              const &args,
 			      char const       *env,
+			      char const       *pwd,
 			      Cap_session      *cap_session,
 			      Service_registry &parent_services,
 			      Rpc_entrypoint   &resources_ep,
@@ -289,6 +290,7 @@ namespace Noux {
 				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy)
 			{
+				_env.pwd(pwd);
 				_args.dump();
 			}
 

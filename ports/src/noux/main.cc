@@ -154,7 +154,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_EXECVE:
 			{
-				char const *env = "PWD=\"/\"";
+				char const *env = "";
 				char const *filename = _sysio->execve_in.filename;
 				Child *child = new Child(filename,
 				                         parent(),
@@ -164,6 +164,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         Args(_sysio->execve_in.args,
 				                              sizeof(_sysio->execve_in.args)),
 				                         env, /* XXX */
+				                         _env.pwd(),
 				                         _cap_session,
 				                         _parent_services,
 				                         _resources.ep,
@@ -288,7 +289,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Genode::addr_t parent_cap_addr = _sysio->fork_in.parent_cap_addr;
 
 				int new_pid = pid_allocator()->alloc();
-				char const *env = "PWD=\"/\"";
+				char const *env = "";
 
 				/*
 				 * XXX To ease debugging, it would be useful to generate a
@@ -302,6 +303,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _vfs,
 				                         _args,
 				                         env, /* XXX */
+				                         _env.pwd(),
 				                         _cap_session,
 				                         _parent_services,
 				                         _resources.ep,
@@ -524,6 +526,7 @@ int main(int argc, char **argv)
 	                             &vfs,
 	                             args_of_init_process(),
 	                             env_string_of_init_process(),
+	                             "/",
 	                             &cap,
 	                             parent_services,
 	                             resources_ep,
