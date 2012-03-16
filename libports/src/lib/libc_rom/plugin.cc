@@ -11,6 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
+#include <os/attached_rom_dataspace.h>
+#include <util/misc_math.h>
+#include <base/printf.h>
+#include <base/env.h>
+
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
@@ -19,13 +25,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-
-/* Genode includes */
-#include <os/attached_rom_dataspace.h>
-#include <util/misc_math.h>
-#include <base/printf.h>
-#include <base/env.h>
-
 
 namespace {
 
