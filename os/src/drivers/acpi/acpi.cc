@@ -66,9 +66,9 @@ struct Generic
 	uint8_t const *data() { return reinterpret_cast<uint8_t *>(this); }
 
 	/* MADT acpi structures */
-	Apic_struct *apic_struct() { return reinterpret_cast<Apic_struct *>(&creator_rev + 8); }
+	Apic_struct *apic_struct() { return reinterpret_cast<Apic_struct *>(&creator_rev + 3); }
 	Apic_struct *end()         { return reinterpret_cast<Apic_struct *>(signature + size); }
-};
+} __attribute__((packed));
 
 
 /**

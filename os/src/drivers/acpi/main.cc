@@ -54,27 +54,12 @@ namespace Irq {
 				/* check for 'MADT' overrides */
 				irq_number = Acpi::override(irq_number);
 
-				/* qouta handling */
-				size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").long_value(0);
-				size_t old_quota = 0, new_quota = 0;
-				Session_capability cap;
-
 				/* allocate IRQ at parent*/
 				try {
-					old_quota = env()->ram_session()->quota();
 					Irq_connection irq(irq_number);
-					new_quota = env()->ram_session()->quota();
 					irq.on_destruction(Irq_connection::KEEP_OPEN);
-					cap = irq.cap();
+					return irq.cap();
 				} catch (...) { throw Root::Unavailable(); }
-
-				/* check used quota against quota provided */
-				if (old_quota > new_quota && (old_quota - new_quota) > ram_quota) { 
-					close(cap);
-					throw Root::Quota_exceeded();
-				}
-
-				return cap;
 			}
 
 			/**

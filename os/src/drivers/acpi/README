@@ -17,7 +17,7 @@ Start the 'acpi_drv' in your Genode environment. Do not start the 'pci_drv'
 since this will be used as a slave of the 'acpi_drv'. You still must load the
 'pci_drv' in your boot loader.
 
-Configuration snipped (please not that IRQ service requests of the 'timer' are
+Configuration snipped (please note that IRQ service requests of the 'timer' are
 routed to the ACPI-driver):
 
 !<start name="acpi">
