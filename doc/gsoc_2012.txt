@@ -12,6 +12,8 @@ participation in the program.
 :[http://www.google-melange.com/gsoc/homepage/google/gsoc2012]:
   Visit the official homepage of the Google Summer of Code program.
 
+*Update* Genode Labs was not accepted as mentoring organization for GSoC 2012.
+
 
 Application of Genode Labs as mentoring organization
 ####################################################
@@ -215,17 +217,20 @@ front-end block session gets closed).
 :[https://github.com/genodelabs/genode/issues/113 - Discuss the issue...]:
 
 
-Student applications
-####################
-
-The formal steps for applying to the GSoC program will be posted once Genode
-Labs is accepted as mentoring organization. If you are a student interested
-in working on a Genode-related GSoC project, now is a good time to get
-involved with the Genode community. The best way is joining the discussions
-at our mailing list and the issue tracker. This way, you will learn about
-the currently relevant topics, our discussion culture, and the people behind
-the project.
-
-:[http://genode.org/community/mailing-lists]: Join our mailing list
-:[https://github.com/genodelabs/genode/issues]: Discuss issues around Genode
+; _Since Genode Labs was not accepted as GSoC mentoring organization, the_
+; _following section has become irrelevant. Hence, it is commented-out_
+;
+; Student applications
+; ####################
+;
+; The formal steps for applying to the GSoC program will be posted once Genode
+; Labs is accepted as mentoring organization. If you are a student interested
+; in working on a Genode-related GSoC project, now is a good time to get
+; involved with the Genode community. The best way is joining the discussions
+; at our mailing list and the issue tracker. This way, you will learn about
+; the currently relevant topics, our discussion culture, and the people behind
+; the project.
+;
+; :[http://genode.org/community/mailing-lists]: Join our mailing list
+; :[https://github.com/genodelabs/genode/issues]: Discuss issues around Genode
 

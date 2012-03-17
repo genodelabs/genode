@@ -4,6 +4,27 @@
                                ===========
 
 
+GSoC 2012 application rejected | 2012-03-17
+###########################################
+
+| Unfortunately, Genode Labs was not accepted as mentoring
+| organization for this year's Google Summer of Code program.
+
+We just received the following notification from Google:
+
+: <pre>
+: Thank you for submitting "Genode Labs" organization application to
+: Google Summer of Code 2012. Unfortunately, we were unable to accept
+: your organization's application at this time. We received many more
+: applications for the program than we are able to accommodate, and
+: we would encourage you to reapply for future instances of the program.
+:
+: Best regards,
+:
+: Google Open Source Programs
+: </pre>
+
+
 Google Summer of Code 2012 | 2012-03-08
 #######################################
 
