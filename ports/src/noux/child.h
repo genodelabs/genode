@@ -90,6 +90,14 @@ namespace Noux {
 
 					/* trigger exit of main event loop */
 					init_process_exited();
+				} else {
+					/* destroy 'Noux::Child' */
+					destroy(Genode::env()->heap(), _child);
+
+					PINF("destroy %p", _child);
+					PINF("quota: avail=%zd, used=%zd",
+					     Genode::env()->ram_session()->avail(),
+					     Genode::env()->ram_session()->used());
 				}
 			}
 	};
@@ -110,7 +118,6 @@ namespace Noux {
 
 			void dispatch()
 			{
-				PINF("execve cleanup dispatcher called");
 				destroy(env()->heap(), _child);
 			}
 	};
@@ -240,6 +247,14 @@ namespace Noux {
 						child->add_io_channel(io_channel_by_fd(fd), fd);
 			}
 
+			void _block_for_io_channel(Shared_pointer<Io_channel> &io)
+			{
+				Wake_up_notifier notifier(&_blocker);
+				io->register_wake_up_notifier(&notifier);
+				_blocker.down();
+				io->unregister_wake_up_notifier(&notifier);
+			}
+
 		public:
 
 			/**
@@ -314,6 +329,11 @@ namespace Noux {
 
 				/* start execution of new main thread at supplied trampoline */
 				_resources.cpu.start_main_thread(ip, sp);
+			}
+
+			void submit_exit_signal()
+			{
+				Signal_transmitter(_exit_context_cap).submit();
 			}
 
 			Ram_session_capability ram() const { return _resources.ram.cap(); }

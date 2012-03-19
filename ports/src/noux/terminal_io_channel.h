@@ -27,13 +27,14 @@ namespace Noux {
 
 	struct Terminal_io_channel : Io_channel, Signal_dispatcher
 	{
-		Terminal::Session &terminal;
+		Terminal::Session       &terminal;
+		Genode::Signal_receiver &sig_rec;
 
 		enum Type { STDIN, STDOUT, STDERR } type;
 
 		Terminal_io_channel(Terminal::Session &terminal, Type type,
 		                    Genode::Signal_receiver &sig_rec)
-		: terminal(terminal), type(type)
+		: terminal(terminal), sig_rec(sig_rec), type(type)
 		{
 			/*
 			 * Enable wake up STDIN channel on the presence of new input
@@ -51,9 +52,12 @@ namespace Noux {
 			}
 		}
 
-		bool write(Sysio *sysio)
+		~Terminal_io_channel() { sig_rec.dissolve(this); }
+
+		bool write(Sysio *sysio, size_t &count)
 		{
 			terminal.write(sysio->write_in.chunk, sysio->write_in.count);
+			count = sysio->write_in.count;
 			return true;
 		}
 
@@ -86,6 +90,9 @@ namespace Noux {
 
 		bool check_unblock(bool rd, bool wr, bool ex) const
 		{
+			/* never block for writing */
+			if (wr) return true;
+
 			/*
 			 * Unblock I/O channel if the terminal has new user input. Channels
 			 * otther than STDIN will never unblock.

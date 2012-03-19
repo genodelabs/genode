@@ -498,10 +498,12 @@ namespace {
 			bool supports_chdir(const char *)     { return true; }
 			bool supports_open(const char *, int) { return true; }
 			bool supports_stat(const char *)      { return true; }
+			bool supports_pipe()                  { return true; }
 
 			Libc::File_descriptor *open(const char *, int);
 			ssize_t write(Libc::File_descriptor *, const void *, ::size_t);
 			int close(Libc::File_descriptor *);
+			int dup2(Libc::File_descriptor *, Libc::File_descriptor *);
 			int fstat(Libc::File_descriptor *, struct stat *);
 			int fstatfs(Libc::File_descriptor *, struct statfs *);
 			int fcntl(Libc::File_descriptor *, int, long);
@@ -511,6 +513,7 @@ namespace {
 			ssize_t read(Libc::File_descriptor *, void *, ::size_t);
 			int stat(const char *, struct stat *);
 			int ioctl(Libc::File_descriptor *, int request, char *argp);
+			int pipe(Libc::File_descriptor *pipefd[2]);
 	};
 
 
@@ -539,7 +542,7 @@ namespace {
 		}
 
 		Libc::Plugin_context *context = noux_context(sysio()->open_out.fd);
-		return Libc::file_descriptor_allocator()->alloc(this, context);
+		return Libc::file_descriptor_allocator()->alloc(this, context, sysio()->open_out.fd);
 	}
 
 
@@ -600,9 +603,6 @@ namespace {
 
 			Genode::memcpy(buf, sysio()->read_out.chunk, sysio()->read_out.count);
 
-//			for (int i = 0; i < sysio()->read_out.count; i++)
-//				Genode::printf("read %d\n", ((char *)buf)[i]);
-
 			sum_read_count += sysio()->read_out.count;
 
 			if (sysio()->read_out.count < sysio()->read_in.count)
@@ -626,6 +626,7 @@ namespace {
 			/* XXX set errno */
 			return -1;
 		}
+		Libc::file_descriptor_allocator()->free(fd);
 		return 0;
 	}
 
@@ -693,6 +694,44 @@ namespace {
 		default:
 			return -1;
 		}
+	}
+
+
+	int Plugin::pipe(Libc::File_descriptor *pipefd[2])
+	{
+		/* perform syscall */
+		if (!noux()->syscall(Noux::Session::SYSCALL_PIPE)) {
+			PERR("pipe error");
+			/* XXX set errno */
+			return -1;
+		}
+
+		for (int i = 0; i < 2; i++) {
+			Libc::Plugin_context *context = noux_context(sysio()->pipe_out.fd[i]);
+			pipefd[i] = Libc::file_descriptor_allocator()->alloc(this, context, sysio()->pipe_out.fd[i]);
+		}
+		return 0;
+	}
+
+
+	int Plugin::dup2(Libc::File_descriptor *fd, Libc::File_descriptor *new_fd)
+	{
+		/*
+		 * We use a one-to-one mapping of libc fds and Noux fds.
+		 */
+		new_fd->context = noux_context(new_fd->libc_fd);
+
+		sysio()->dup2_in.fd    = noux_fd(fd->context);
+		sysio()->dup2_in.to_fd = noux_fd(new_fd->context);
+
+		/* perform syscall */
+		if (!noux()->syscall(Noux::Session::SYSCALL_DUP2)) {
+			PERR("dup2 error");
+			/* XXX set errno */
+			return -1;
+		}
+
+		return 0;
 	}
 
 

@@ -24,7 +24,8 @@ namespace Noux {
 	{
 		Genode::Semaphore *semaphore;
 
-		Wake_up_notifier() : semaphore(0) { }
+		Wake_up_notifier(Genode::Semaphore *semaphore = 0)
+		: semaphore(semaphore) { }
 
 		void wake_up()
 		{

@@ -29,9 +29,9 @@
  * ;- run 'cat' (read syscall)
  * ;- execve
  * ;- fork
- * - pipe
+ * ;- pipe
  * ;- read init binary from vfs
- * - import env into child (execve and fork)
+ * ;- import env into child (execve and fork)
  * ;- shell
  * - debug 'find'
  * - stacked file system infrastructure
@@ -48,6 +48,7 @@
 #include <vfs_io_channel.h>
 #include <terminal_io_channel.h>
 #include <dummy_input_io_channel.h>
+#include <pipe_io_channel.h>
 #include <root_file_system.h>
 #include <tar_file_system.h>
 
@@ -86,14 +87,36 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			                sizeof(_sysio->getcwd_out.path));
 			return true;
 
-
 		case SYSCALL_WRITE:
+			{
+				size_t const count_in = _sysio->write_in.count;
 
-			return _lookup_channel(_sysio->write_in.fd)->write(_sysio);
+				for (size_t count = 0; count != count_in; ) {
+
+					Shared_pointer<Io_channel> io = _lookup_channel(_sysio->write_in.fd);
+
+					if (!io->check_unblock(false, true, false))
+						_block_for_io_channel(io);
+
+					/*
+					 * 'io->write' is expected to update 'write_out.count'
+					 */
+					if (io->write(_sysio, count) == false)
+						return false;
+				}
+				return true;
+			}
 
 		case SYSCALL_READ:
+			{
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->read_in.fd);
 
-			return _lookup_channel(_sysio->read_in.fd)->read(_sysio);
+				while (!io->check_unblock(true, false, false))
+					_block_for_io_channel(io);
+
+				io->read(_sysio);
+				return true;
+			}
 
 		case SYSCALL_STAT:
 		case SYSCALL_LSTAT: /* XXX implement difference between 'lstat' and 'stat' */
@@ -113,7 +136,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			{
 				Absolute_path absolute_path(_sysio->open_in.path, _env.pwd());
 
-				PWRN("open pwd=%s path=%s", _env.pwd(), _sysio->open_in.path);
+				PINF("open pwd=%s path=%s", _env.pwd(), _sysio->open_in.path);
 
 				/* remember mode only for debug output */
 				int const mode = _sysio->open_in.mode;
@@ -123,7 +146,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					return false;
 
 				Shared_pointer<Io_channel> channel(new Vfs_io_channel(absolute_path.base(), _vfs, vfs_handle),
-				 Genode::env()->heap());
+				                                   Genode::env()->heap());
 
 				_sysio->open_out.fd = add_io_channel(channel);
 
@@ -134,8 +157,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_CLOSE:
 			{
-				int const fd = _sysio->close_in.fd;
-				PINF("close fd %d", fd);
 				remove_io_channel(_sysio->close_in.fd);
 				return true;
 			}
@@ -208,7 +229,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				_assign_io_channels_to(child);
 
 				/* signal main thread to remove ourself */
-				PINF("submit signal to _execve_cleanup_context_cap");
 				Genode::Signal_transmitter(_execve_cleanup_context_cap).submit();
 
 				/* start executing the new process */
@@ -373,17 +393,35 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					_sysio->wait4_out.status = exited->exit_status();
 					Family_member::remove(exited);
 
-					/* destroy 'Noux::Child' */
-					destroy(Genode::env()->heap(), exited);
-
-					PINF("quota: avail=%zd, used=%zd",
-					     Genode::env()->ram_session()->avail(),
-					     Genode::env()->ram_session()->used());
+					PINF("submit exit signal for PID %d", exited->pid());
+					static_cast<Child *>(exited)->submit_exit_signal();
 
 				} else {
 					_sysio->wait4_out.pid    = 0;
 					_sysio->wait4_out.status = 0;
 				}
+				return true;
+			}
+
+		case SYSCALL_PIPE:
+			{
+				Shared_pointer<Pipe> pipe(new Pipe, Genode::env()->heap());
+
+				Shared_pointer<Io_channel> pipe_sink(new Pipe_sink_io_channel(pipe, *_sig_rec),
+				                                     Genode::env()->heap());
+				Shared_pointer<Io_channel> pipe_source(new Pipe_source_io_channel(pipe, *_sig_rec),
+				                                       Genode::env()->heap());
+
+				_sysio->pipe_out.fd[0] = add_io_channel(pipe_source);
+				_sysio->pipe_out.fd[1] = add_io_channel(pipe_sink);
+
+				return true;
+			}
+
+		case SYSCALL_DUP2:
+			{
+				add_io_channel(io_channel_by_fd(_sysio->dup2_in.fd),
+				               _sysio->dup2_in.to_fd);
 				return true;
 			}
 
@@ -588,9 +626,8 @@ int main(int argc, char **argv)
 		Signal_dispatcher *dispatcher =
 			static_cast<Signal_dispatcher *>(signal.context());
 
-		if (dispatcher)
-			for (int i = 0; i < signal.num(); i++)
-				dispatcher->dispatch();
+		for (int i = 0; i < signal.num(); i++)
+			dispatcher->dispatch();
 	}
 
 	PINF("-- exiting noux ---");

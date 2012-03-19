@@ -37,9 +37,7 @@ namespace Noux {
 			return old_value;
 		}
 
-		operator T () {
-			PDBG("value=%d", (int)value);
-			return value; }
+		operator T () { return value; }
 	};
 }
 

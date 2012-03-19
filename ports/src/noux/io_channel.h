@@ -28,6 +28,8 @@
 
 namespace Noux {
 
+	using namespace Genode;
+
 	/**
 	 * Input/output channel interface
 	 */
@@ -39,18 +41,20 @@ namespace Noux {
 			 * List of notifiers (i.e., processes) used by threads that block
 			 * for an I/O-channel event
 			 */
-			Genode::List<Wake_up_notifier> _notifiers;
-			Genode::Lock                   _notifiers_lock;
+			List<Wake_up_notifier> _notifiers;
+			Lock                   _notifiers_lock;
 
 		public:
 
-			virtual bool  write(Sysio *sysio)           { return false; }
-			virtual bool   read(Sysio *sysio)           { return false; }
-			virtual bool  fstat(Sysio *sysio)           { return false; }
-			virtual bool  fcntl(Sysio *sysio)           { return false; }
-			virtual bool fchdir(Sysio *sysio, Pwd *pwd) { return false; }
-			virtual bool dirent(Sysio *sysio)           { return false; }
-			virtual bool  ioctl(Sysio *sysio)           { return false; }
+			virtual ~Io_channel() { }
+
+			virtual bool  write(Sysio *sysio, size_t &count) { return false; }
+			virtual bool   read(Sysio *sysio)                { return false; }
+			virtual bool  fstat(Sysio *sysio)                { return false; }
+			virtual bool  fcntl(Sysio *sysio)                { return false; }
+			virtual bool fchdir(Sysio *sysio, Pwd *pwd)      { return false; }
+			virtual bool dirent(Sysio *sysio)                { return false; }
+			virtual bool  ioctl(Sysio *sysio)                { return false; }
 
 			/**
 			 * Return true if an unblocking condition of the channel is satisfied
@@ -62,8 +66,6 @@ namespace Noux {
 			virtual bool check_unblock(bool rd, bool wr, bool ex) const {
 				return false; }
 
-			virtual ~Io_channel() { };
-
 			/**
 			 * Register blocker for getting waked up on an I/O channel event
 			 *
@@ -72,7 +74,7 @@ namespace Noux {
 			 */
 			void register_wake_up_notifier(Wake_up_notifier *notifier)
 			{
-				Genode::Lock::Guard guard(_notifiers_lock);
+				Lock::Guard guard(_notifiers_lock);
 
 				_notifiers.insert(notifier);
 			}
@@ -86,13 +88,13 @@ namespace Noux {
 			 */
 			void unregister_wake_up_notifier(Wake_up_notifier *notifier)
 			{
-				Genode::Lock::Guard guard(_notifiers_lock);
+				Lock::Guard guard(_notifiers_lock);
 
 				_notifiers.remove(notifier);
 			}
 
 			/**
-			 * Tell all registered notifiers about an occurred I/O channel
+			 * Tell all registered notifiers about an occurred I/O event
 			 *
 			 * This function is called by I/O channel implementations that
 			 * respond to external signals, e.g., the availability of new
@@ -100,7 +102,7 @@ namespace Noux {
 			 */
 			void invoke_all_notifiers()
 			{
-				Genode::Lock::Guard guard(_notifiers_lock);
+				Lock::Guard guard(_notifiers_lock);
 
 				for (Wake_up_notifier *n = _notifiers.first(); n; n = n->next())
 					n->wake_up();

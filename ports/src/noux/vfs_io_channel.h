@@ -96,6 +96,15 @@ namespace Noux {
 			sysio->dirent_in.index -= 2;
 			return _fh->ds()->dirent(sysio, _path.base());
 		}
+
+		bool check_unblock(bool rd, bool wr, bool ex) const
+		{
+			/*
+			 * XXX For now, we use the TAR fs only, which never blocks.
+			 *     However, real file systems may block.
+			 */
+			return true;
+		}
 	};
 }
 
