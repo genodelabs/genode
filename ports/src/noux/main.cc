@@ -154,8 +154,39 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_EXECVE:
 			{
-				char const *env = "";
 				char const *filename = _sysio->execve_in.filename;
+
+				/*
+				 * Deserialize environment variable buffer into a
+				 * null-terminated string. The source env buffer contains a
+				 * list of strings separated by single 0 characters. Each
+				 * string has the form "name=value" (w/o the quotes). The end
+				 * of the list is marked by an additional 0 character. The
+				 * resulting string is a null-terminated string containing a
+				 * comma-separated list of environment variables.
+				 *
+				 * In the following loop, 'i' is the index into the source
+				 * buffer, 'j' is the index into the destination buffer, 'env'
+				 * is the destination.
+				 */
+				char env[Sysio::ENV_MAX_LEN];
+				for (unsigned i = 0, j = 0; i < Sysio::ENV_MAX_LEN && _sysio->execve_in.env[i]; )
+				{
+					char const *src = &_sysio->execve_in.env[i];
+
+					/* prepend a comma in front of each entry except for the first one */
+					if (i) {
+						snprintf(env + j, sizeof(env) - j, ",");
+						j++;
+					}
+
+					snprintf(env + j, sizeof(env) - j, "%s", src);
+
+					/* skip null separator in source string */
+					i += strlen(src) + 1;
+					j += strlen(src);
+				}
+
 				Child *child = new Child(filename,
 				                         parent(),
 				                         pid(),
@@ -163,7 +194,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _vfs,
 				                         Args(_sysio->execve_in.args,
 				                              sizeof(_sysio->execve_in.args)),
-				                         env, /* XXX */
+				                         env,
 				                         _env.pwd(),
 				                         _cap_session,
 				                         _parent_services,
@@ -288,8 +319,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Genode::addr_t sp              = _sysio->fork_in.sp;
 				Genode::addr_t parent_cap_addr = _sysio->fork_in.parent_cap_addr;
 
-				int new_pid = pid_allocator()->alloc();
-				char const *env = "";
+				int const new_pid = pid_allocator()->alloc();
 
 				/*
 				 * XXX To ease debugging, it would be useful to generate a
@@ -302,7 +332,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _sig_rec,
 				                         _vfs,
 				                         _args,
-				                         env, /* XXX */
+				                         _env.env(),
 				                         _env.pwd(),
 				                         _cap_session,
 				                         _parent_services,

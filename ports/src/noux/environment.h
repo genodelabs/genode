@@ -53,6 +53,11 @@ namespace Noux {
 
 			using Genode::Attached_ram_dataspace::cap;
 
+			/**
+			 * Return list of environment variables as comma-separated list
+			 */
+			char const *env() { return _env; }
+
 
 			/*******************
 			 ** Pwd interface **
