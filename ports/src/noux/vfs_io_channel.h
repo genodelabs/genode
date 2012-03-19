@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _NOUX__VDS_IO_CHANNEL_H_
-#define _NOUX__VDS_IO_CHANNEL_H_
+#ifndef _NOUX__VFS_IO_CHANNEL_H_
+#define _NOUX__VFS_IO_CHANNEL_H_
 
 /* Noux includes */
 #include <io_channel.h>
@@ -99,4 +99,4 @@ namespace Noux {
 	};
 }
 
-#endif /* _NOUX__VDS_IO_CHANNEL_H_ */
+#endif /* _NOUX__VFS_IO_CHANNEL_H_ */
