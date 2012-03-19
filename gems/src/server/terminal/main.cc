@@ -300,8 +300,9 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		Cursor_visibility   _cursor_visibility;
 		int                 _region_start;
 		int                 _region_end;
+		int                 _tab_size;
 
-		enum { DEFAULT_COLOR_INDEX = 4 };
+		enum { DEFAULT_COLOR_INDEX = 4, DEFAULT_TAB_SIZE = 8 };
 
 		struct Cursor_guard
 		{
@@ -343,7 +344,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_highlight(false),
 			_cursor_visibility(CURSOR_VISIBLE),
 			_region_start(0),
-			_region_end(_boundary.height - 1)
+			_region_end(_boundary.height - 1),
+			_tab_size(DEFAULT_TAB_SIZE)
 		{ }
 
 
@@ -401,6 +403,13 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 					if (_cursor_pos.x > 0)
 						_cursor_pos.x--;
 
+					break;
+				}
+
+			case 9: /* tab */
+				{
+					Cursor_guard guard(*this);
+					_cursor_pos.x += _tab_size - (_cursor_pos.x % _tab_size);
 					break;
 				}
 
