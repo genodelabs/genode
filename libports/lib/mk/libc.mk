@@ -12,7 +12,7 @@ LIBS  += timed_semaphore cxx
 SRC_CC = atexit.cc dummies.cc rlimit.cc sysctl.cc readlink.cc munmap.cc \
          issetugid.cc errno.cc gai_strerror.cc clock_gettime.cc \
          gettimeofday.cc malloc.cc progname.cc fd_alloc.cc file_operations.cc \
-         plugin.cc plugin_registry.cc select.cc exit.cc environ.cc
+         plugin.cc plugin_registry.cc select.cc exit.cc environ.cc nanosleep.cc
 
 #
 # Files from string library that are not included in libc-raw_string because
