@@ -417,6 +417,9 @@ void Platform::_setup_rom()
 		Rom_module *new_rom = new(core_mem_alloc()) Rom_module(rom);
 		_rom_fs.insert(new_rom);
 
+		/* map module */
+		touch_ro((const void*)new_rom->addr(), new_rom->size());
+
 		if (verbose)
 			printf(" mod[%d] [%p,%p) %s\n", i,
 			       (void *)new_rom->addr(), ((char *)new_rom->addr()) + new_rom->size(),
