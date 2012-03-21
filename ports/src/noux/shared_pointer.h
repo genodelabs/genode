@@ -54,7 +54,7 @@ namespace Noux {
 
 		public:
 
-			Reference_counter() : _value(1) { }
+			Reference_counter() : _value(0) { }
 	};
 
 
@@ -88,7 +88,10 @@ namespace Noux {
 			void _dec_ref_count()
 			{
 				if (Shared_pointer_base::_dec_ref_count()) {
-					PDBG("ref count for %p reached zero -> delete object", _ptr);
+
+					if (0)
+						PINF("ref count for %p reached zero -> delete object", _ptr);
+
 					Genode::destroy(_alloc, _ptr);
 					_ptr         = 0;
 					_alloc       = 0;
