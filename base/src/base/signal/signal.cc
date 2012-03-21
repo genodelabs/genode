@@ -92,6 +92,78 @@ static Signal_handler_thread *signal_handler_thread()
 }
 
 
+/*****************************
+ ** Signal context registry **
+ *****************************/
+
+namespace Genode {
+
+	/**
+	 * Facility to validate the liveliness of signal contexts
+	 *
+	 * After dissolving a 'Signal_context' from a 'Signal_receiver', a signal
+	 * belonging to the context may still in flight, i.e., currently processed
+	 * within core or the kernel. Hence, after having received a signal, we
+	 * need to manually check for the liveliness of the associated context.
+	 * Because we cannot trust the signal imprint to represent a valid pointer,
+	 * we need an associative data structure to validate the value. That is the
+	 * role of the 'Signal_context_registry'.
+	 */
+	class Signal_context_registry
+	{
+		private:
+
+			/*
+			 * Currently, the registry is just a linked list. If this becomes a
+			 * scalability problem, we might introduce a more sophisticated
+			 * associative data structure.
+			 */
+			Lock mutable                        _lock;
+			List<List_element<Signal_context> > _list;
+
+		public:
+
+			void insert(List_element<Signal_context> *le)
+			{
+				Lock::Guard guard(_lock);
+				_list.insert(le);
+			}
+
+			void remove(List_element<Signal_context> *le)
+			{
+				Lock::Guard guard(_lock);
+				_list.remove(le);
+			}
+
+			bool test_and_lock(Signal_context *context) const
+			{
+				Lock::Guard guard(_lock);
+
+				/* search list for context */
+				List_element<Signal_context> *le = _list.first();
+				for ( ; le; le = le->next()) {
+
+					if (context == le->object()) {
+						/* lock object */
+						context->_lock.lock();
+						return true;
+					}
+				}
+				return false;
+			}
+	};
+}
+
+
+/**
+ * Return process-wide registry of registered signal contexts
+ */
+Genode::Signal_context_registry *signal_context_registry()
+{
+	static Signal_context_registry inst;
+	return &inst;
+}
+
 
 /************************
  ** Signal transmitter **
@@ -123,12 +195,14 @@ void Signal_receiver::_unsynchronized_dissolve(Signal_context *context)
 	signal_connection()->free_context(context->_cap);
 
 	/* restore default initialization of signal context */
-	context->_receiver             = 0;
-	context->_list_element.context = 0;
-	context->_cap                  = Signal_context_capability();
+	context->_receiver = 0;
+	context->_cap      = Signal_context_capability();
 
 	/* remove context from context list */
-	_contexts.remove(&context->_list_element);
+	_contexts.remove(&context->_receiver_le);
+
+	/* unregister context from process-wide registry */
+	signal_context_registry()->remove(&context->_registry_le);
 }
 
 
@@ -144,8 +218,8 @@ Signal_receiver::~Signal_receiver()
 	Lock::Guard list_lock_guard(_contexts_lock);
 
 	/* disassociate contexts from the receiver */
-	for (Signal_context::List_element *le; (le = _contexts.first()); )
-		_unsynchronized_dissolve(le->context);
+	for (List_element<Signal_context> *le; (le = _contexts.first()); )
+		_unsynchronized_dissolve(le->object());
 }
 
 
@@ -155,12 +229,14 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 		throw Context_already_in_use();
 
 	context->_receiver = this;
-	context->_list_element.context = context;
 
 	Lock::Guard list_lock_guard(_contexts_lock);
 
 	/* insert context into context list */
-	_contexts.insert(&context->_list_element);
+	_contexts.insert(&context->_receiver_le);
+
+	/* register context at process-wide registry */
+	signal_context_registry()->insert(&context->_registry_le);
 
 	bool try_again;
 	do {
@@ -202,9 +278,9 @@ bool Signal_receiver::pending()
 	Lock::Guard list_lock_guard(_contexts_lock);
 
 	/* look up the contexts for the pending signal */
-	for (Signal_context::List_element *le = _contexts.first(); le; le = le->next()) {
+	for (List_element<Signal_context> *le = _contexts.first(); le; le = le->next()) {
 
-		Signal_context *context = le->context;
+		Signal_context *context = le->object();
 
 		Lock::Guard lock_guard(context->_lock);
 
@@ -225,9 +301,9 @@ Signal Signal_receiver::wait_for_signal()
 		Lock::Guard list_lock_guard(_contexts_lock);
 
 		/* look up the contexts for the pending signal */
-		for (Signal_context::List_element *le = _contexts.first(); le; le = le->next()) {
+		for (List_element<Signal_context> *le = _contexts.first(); le; le = le->next()) {
 
-			Signal_context *context = le->context;
+			Signal_context *context = le->object();
 
 			Lock::Guard lock_guard(context->_lock);
 
@@ -252,9 +328,11 @@ Signal Signal_receiver::wait_for_signal()
 		 * Normally, we should never arrive at this point because that would
 		 * mean, the '_signal_available' semaphore was increased without
 		 * registering the signal in any context associated to the receiver.
+		 *
+		 * However, if a context gets dissolved right after submitting a
+		 * signal, we may have increased the semaphore already. In this case
+		 * the signal-causing context is absent from the list.
 		 */
-		class Wait_for_signal_unexpected_error { };
-		throw Wait_for_signal_unexpected_error();
 	}
 	return Signal(0, 0); /* unreachable */
 }
@@ -263,10 +341,6 @@ Signal Signal_receiver::wait_for_signal()
 void Signal_receiver::local_submit(Signal ns)
 {
 	Signal_context *context = ns.context();
-
-	if (!context) return;
-
-	Lock::Guard lock_guard(context->_lock);
 
 	/*
 	 * Replace current signal of the context by signal with accumulated
@@ -292,11 +366,16 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 		/* look up context as pointed to by the signal imprint */
 		Signal_context *context = (Signal_context *)(source_signal.imprint());
 
-		/* sanity check */
-		if (!context) continue;
+		if (!signal_context_registry()->test_and_lock(context)) {
+			PWRN("encountered dead signal context");
+			continue;
+		}
 
 		/* construct and locally submit signal object */
 		Signal signal(context, source_signal.num());
 		context->_receiver->local_submit(signal);
+
+		/* free context lock that was taken by 'test_and_lock' */
+		context->_lock.unlock();
 	}
 }

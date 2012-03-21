@@ -24,6 +24,7 @@ namespace Genode {
 
 	class Signal_receiver;
 	class Signal_context;
+	class Signal_context_registry;
 
 
 	/**
@@ -97,15 +98,14 @@ namespace Genode {
 		private:
 
 			/**
-			 * Helper class to handle a 'Signal_context' as list element
+			 * List element in 'Signal_receiver'
 			 */
-			struct List_element : public List<List_element>::Element {
-				Signal_context *context; };
+			List_element<Signal_context> _receiver_le;
 
 			/**
-			 * List element in the receiver's context list
+			 * List element in process-global registry
 			 */
-			List_element _list_element;
+			List_element<Signal_context> _registry_le;
 
 			/**
 			 * Receiver to which the context is associated with
@@ -128,13 +128,16 @@ namespace Genode {
 			Signal_context_capability _cap;
 
 			friend class Signal_receiver;
+			friend class Signal_context_registry;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Signal_context() : _receiver(0), _pending(0) { }
+			Signal_context()
+			: _receiver_le(this), _registry_le(this),
+			  _receiver(0), _pending(0) { }
 
 			/**
 			 * Destructor
@@ -204,8 +207,8 @@ namespace Genode {
 			/**
 			 * List of associated contexts
 			 */
-			Lock                               _contexts_lock;
-			List<Signal_context::List_element> _contexts;
+			Lock                                _contexts_lock;
+			List<List_element<Signal_context> > _contexts;
 
 			/**
 			 * Helper to dissolve given context
