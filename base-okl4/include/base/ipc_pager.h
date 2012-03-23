@@ -77,6 +77,7 @@ namespace Genode {
 
 			Okl4::L4_MsgTag_t   _faulter_tag;   /* fault flags                    */
 			Okl4::L4_ThreadId_t _last;          /* faulted thread                 */
+			Okl4::L4_Word_t     _last_space;    /* space of faulted thread        */
 			Okl4::L4_Word_t     _fault_addr;    /* page-fault address             */
 			Okl4::L4_Word_t     _fault_ip;      /* instruction pointer of faulter */
 			Mapping             _reply_mapping; /* page-fault answer              */
@@ -147,6 +148,11 @@ namespace Genode {
 			 * Return thread ID of last faulter
 			 */
 			Native_thread_id last() const { return _last; }
+
+			/**
+			 * Return address space where the last page fault occurred
+			 */
+			unsigned long last_space() const { return _last_space; }
 
 			/**
 			 * Return badge for faulting thread

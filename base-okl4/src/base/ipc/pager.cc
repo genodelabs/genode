@@ -108,6 +108,7 @@ void Ipc_pager::wait_for_fault()
 		if (verbose_page_fault)
 			print_page_fault(L4_Label(_faulter_tag), _fault_addr, _fault_ip, _last.raw);
 	}
+	_last_space = L4_SenderSpace().raw;
 }
 
 

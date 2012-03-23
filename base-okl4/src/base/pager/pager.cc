@@ -54,14 +54,16 @@ void Pager_activation_base::entry()
 
 		} else {
 
-			/* prevent threads outside of core to mess with our wake-up interface */
-//			enum { CORE_TASK_ID = 4 };
-//			if (pager.last() != CORE_TASK_ID) {
-
-#warning Check for messages from outside of core
-			if (0) {
-
-			} else {
+			/*
+			 * Prevent threads outside of core to mess with our wake-up
+			 * interface. This condition can trigger if a process gets
+			 * destroyed which triggered a page fault shortly before getting
+			 * killed. In this case, 'wait_for_fault()' returns (because of
+			 * the page fault delivery) but the pager-object lookup will fail
+			 * (because core removed the process already).
+			 */
+			enum { CORE_SPACE = 0 };
+			if (pager.last_space() == CORE_SPACE) {
 
 				/*
 				 * We got a request from one of cores region-manager sessions
