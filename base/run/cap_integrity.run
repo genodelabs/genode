@@ -32,8 +32,5 @@ match_max -d 100000
 
 run_genode_until {child exited with exit value 0.*} 60
 
-if {[regexp {\[init\] test message} $output]} {
-	exit -1
-}
-
-puts "Test succeeded"
+grep_output {\[init\] test message}
+compare_output_to { }
