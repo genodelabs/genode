@@ -188,6 +188,21 @@ proc compare_output_to { good } {
 		incr i
 	}
 
+	#
+	# if $good is empty the foreach-loop isn't entered
+	# so we've to check for it separately
+	#
+	if {![llength $good_list] && [llength $output_list]} {
+		foreach output_line $output_list {
+			set output_line [strip_whitespace $output_line]
+			puts ""
+			puts stderr "Line $i of output is unexpected"
+			puts stderr " got:      '$output_line'"
+			incr mismatch_cnt
+			incr i
+		}
+	}
+
 	if {$mismatch_cnt > 0} {
 		puts "Error: Test failed, $mismatch_cnt unexpected lines of output"
 		exit -1
