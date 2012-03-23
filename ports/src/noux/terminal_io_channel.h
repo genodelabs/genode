@@ -29,12 +29,13 @@ namespace Noux {
 	{
 		Terminal::Session       &terminal;
 		Genode::Signal_receiver &sig_rec;
+		bool                     eof;
 
 		enum Type { STDIN, STDOUT, STDERR } type;
 
 		Terminal_io_channel(Terminal::Session &terminal, Type type,
 		                    Genode::Signal_receiver &sig_rec)
-		: terminal(terminal), sig_rec(sig_rec), type(type)
+		: terminal(terminal), sig_rec(sig_rec), eof(false), type(type)
 		{
 			/*
 			 * Enable wake up STDIN channel on the presence of new input
@@ -68,12 +69,42 @@ namespace Noux {
 				return false;
 			}
 
+			/* deliver EOF observed by the previous 'read' call */
+			if (eof) {
+				sysio->read_out.count = 0;
+				eof = false;
+				return true;
+			}
+
 			Genode::size_t const max_count =
 				Genode::min(sysio->read_in.count,
 				            sizeof(sysio->read_out.chunk));
 
 			sysio->read_out.count =
 				terminal.read(sysio->read_out.chunk, max_count);
+
+			/* scan received characters for EOF */
+			for (unsigned i = 0; i < sysio->read_out.count; i++) {
+
+				enum { EOF = 4 };
+				if (sysio->read_out.chunk[i] != EOF)
+					continue;
+
+				/* discard EOF character and everything that follows... */
+				sysio->read_out.count = i;
+
+				/*
+				 * If EOF was the only character of the batch, the count has
+				 * reached zero. In this case the read result indicates the EOF
+				 * condition as is. However, if count is greater than zero, we
+				 * deliver the previous characters of the batch and return the
+				 * zero result from the subsequent 'read' call. This condition
+				 * is tracked by the 'eof' variable.
+				 */
+				if (sysio->read_out.count > 0)
+					eof = true;
+			}
+
 			return true;
 		}
 
