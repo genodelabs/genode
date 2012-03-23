@@ -92,7 +92,7 @@ Cap_mapping::Cap_mapping(Core_cap_index* i, Native_thread_id r)
 Cap_mapping::~Cap_mapping()
 {
 	unmap();
-	cap_map()->remove(cap_map()->find(local->id()));
+	cap_map()->remove(local);
 }
 
 
