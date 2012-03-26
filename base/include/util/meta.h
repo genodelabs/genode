@@ -600,7 +600,7 @@ namespace Genode {
 		                                                    typename Type_at<ARGS, 5>::Type,
 		                                                    typename Type_at<ARGS, 6>::Type))
 		{ (server.*func)(args.get(), args._2.get(), args._2._2.get(), args._2._2._2.get(),
-		                 args._2._2._2._2.get(), args._2._2._2._2_._2.get(), args._2._2._2._2._2.get()); }
+		                 args._2._2._2._2.get(), args._2._2._2._2._2.get(), args._2._2._2._2._2.get()); }
 
 
 		/********************
