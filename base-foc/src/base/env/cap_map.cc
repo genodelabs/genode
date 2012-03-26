@@ -39,6 +39,10 @@ Genode::addr_t Genode::Cap_index::kcap() {
 	return cap_idx_alloc()->idx_to_kcap(this); }
 
 
+/****************************
+ **  Capability_map class  **
+ ****************************/
+
 Genode::Cap_index* Genode::Capability_map::find(int id)
 {
 	using namespace Genode;
@@ -52,10 +56,6 @@ Genode::Cap_index* Genode::Capability_map::find(int id)
 }
 
 
-/****************************
- **  Capability_map class  **
- ****************************/
-
 Genode::Cap_index* Genode::Capability_map::insert(int id)
 {
 	using namespace Genode;
@@ -63,8 +63,10 @@ Genode::Cap_index* Genode::Capability_map::insert(int id)
 	Lock_guard<Spin_lock> guard(_lock);
 
 	Cap_index *i = cap_idx_alloc()->alloc(1);
-	i->id(id);
-	_tree.insert(i);
+	if (i) {
+		i->id(id);
+		_tree.insert(i);
+	}
 	return i;
 }
 
@@ -76,8 +78,10 @@ Genode::Cap_index* Genode::Capability_map::insert(int id, addr_t kcap)
 	Lock_guard<Spin_lock> guard(_lock);
 
 	Cap_index *i = cap_idx_alloc()->alloc(kcap, 1);
-	i->id(id);
-	_tree.insert(i);
+	if (i) {
+		i->id(id);
+		_tree.insert(i);
+	}
 	return i;
 }
 
