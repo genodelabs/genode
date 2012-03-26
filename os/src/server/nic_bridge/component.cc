@@ -55,7 +55,12 @@ bool Session_component::Tx_handler::handle_arp(Ethernet_frame *eth, Genode::size
 		new (eth->data()) Arp_packet(size - sizeof(Ethernet_frame));
 	if (arp->ethernet_ipv4() &&
 		arp->opcode() == Arp_packet::REQUEST) {
-		arp->src_mac(_mac);
+		Ipv4_address_node *node = Vlan::vlan()->ip_tree()->first();
+		if (node)
+			node = node->find_by_address(arp->dst_ip());
+		if (!node) {
+			arp->src_mac(_mac);
+		}
 	}
 	return true;
 }
