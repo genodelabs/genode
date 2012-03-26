@@ -67,7 +67,7 @@ namespace Genode {
 					{
 						if (obj_id == _obj_id()) return this;
 
-						Entry *obj = child(obj_id > _obj_id());
+						Entry *obj = this->child(obj_id > _obj_id());
 
 						return obj ? obj->find_by_obj_id(obj_id) : 0;
 					}
