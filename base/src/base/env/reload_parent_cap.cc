@@ -15,7 +15,8 @@
 #include <base/crt0.h>
 
 
-void Genode::Platform_env::reload_parent_cap(Capability<Parent> parent_cap)
+void Genode::Platform_env::reload_parent_cap(Native_capability::Dst dst,
+                                             long local_name)
 {
 	/*
 	 * This function is unused during the normal operation of Genode. It is
@@ -35,7 +36,10 @@ void Genode::Platform_env::reload_parent_cap(Capability<Parent> parent_cap)
 	 * Patch new parent capability into the original location as specified by
 	 * the linker script.
 	 */
-	*(Capability<Parent> *)(&_parent_cap) = parent_cap;
+	Native_capability::Raw *raw = (Native_capability::Raw *)(&_parent_cap);
+
+	raw->dst        = dst;
+	raw->local_name = local_name;
 
 	/*
 	 * Re-initialize 'Platform_env' members

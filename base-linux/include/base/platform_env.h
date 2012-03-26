@@ -364,7 +364,7 @@ namespace Genode {
 			/**
 			 * Reload parent capability and reinitialize environment resources
 			 */
-			void reload_parent_cap(Capability<Parent>)
+			void reload_parent_cap(Capability<Parent>::Dst, long)
 			{
 				/* not supported on Linux */
 			}

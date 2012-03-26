@@ -128,9 +128,9 @@ Ipc_istream::~Ipc_istream() { }
 void Ipc_client::_call()
 {
 	unsigned request_size = _write_offset;
-	copy_msgbuf_to_utcb(_snd_msg, request_size, _dst.local_name());
+	copy_msgbuf_to_utcb(_snd_msg, request_size, Ipc_ostream::_dst.local_name());
 
-	unsigned reply_size = Kernel::ipc_request(_dst.dst(), request_size);
+	unsigned reply_size = Kernel::ipc_request(Ipc_ostream::_dst.dst(), request_size);
 
 	copy_utcb_to_msgbuf(reply_size, _rcv_msg);
 
@@ -181,7 +181,7 @@ void Ipc_server::_reply_wait()
 	unsigned reply_size = 0;
 	if (_reply_needed) {
 		reply_size = _write_offset;
-		copy_msgbuf_to_utcb(_snd_msg, reply_size, _dst.local_name());
+		copy_msgbuf_to_utcb(_snd_msg, reply_size, Ipc_ostream::_dst.local_name());
 	}
 
 	unsigned request_size = Kernel::ipc_serve(reply_size);

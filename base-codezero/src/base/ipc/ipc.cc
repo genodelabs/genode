@@ -107,7 +107,7 @@ void Ipc_client::_call()
 {
 #warning l4_sendrecv_extended is not yet implemented in l4lib/arch/syslib.h
 	_send();
-	_rcv_cs = _dst.dst();
+	_rcv_cs = Ipc_ostream::_dst.dst();
 	_wait();
 	_rcv_cs = L4_ANYTHREAD;
 
@@ -144,7 +144,7 @@ void Ipc_server::_wait()
 	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
 
 	/* define destination of next reply */
-	_dst = Native_capability(l4_get_sender(), badge());
+	Ipc_ostream::_dst = Native_capability(l4_get_sender(), badge());
 
 	_prepare_next_reply_wait();
 }

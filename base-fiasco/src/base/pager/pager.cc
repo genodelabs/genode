@@ -105,7 +105,6 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 	/* return invalid capability if no activation is present */
 	if (!_activation) return Pager_capability();
 
-	Native_thread_id tid = _activation->cap().dst();
 	Native_capability cap(_activation->cap().dst(), obj->badge());
 
 	/* add server object to object pool */

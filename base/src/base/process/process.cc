@@ -122,7 +122,11 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 			 * data segment
 			 */
 			if (!parent_info) {
-				parent_cap.copy_to(ptr);
+				Native_capability::Raw *raw = (Native_capability::Raw *)ptr;
+
+				raw->dst        = parent_cap.dst();
+				raw->local_name = parent_cap.local_name();
+
 				parent_info = true;
 			}
 

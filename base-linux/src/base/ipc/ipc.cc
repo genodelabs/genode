@@ -107,7 +107,7 @@ Ipc_istream::~Ipc_istream() { }
 void Ipc_client::_prepare_next_call()
 {
 	/* prepare next request in buffer */
-	long local_name = _dst.local_name();
+	long local_name = Ipc_ostream::_dst.local_name();
 	long tid        = Native_capability::dst();
 
 	_write_offset = 0;
@@ -121,8 +121,8 @@ void Ipc_client::_prepare_next_call()
 
 void Ipc_client::_call()
 {
-	if (_dst.valid()) {
-		lx_send_to(_rcv_cs, _dst.dst(), "server",
+	if (Ipc_ostream::_dst.valid()) {
+		lx_send_to(_rcv_cs, Ipc_ostream::_dst.dst(), "server",
 		           _snd_msg->buf, _write_offset);
 
 		lx_recv_from(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
@@ -154,12 +154,12 @@ void Ipc_server::_prepare_next_reply_wait()
 	long tid;
 	if (_reply_needed) {
 		_read_from_buf(tid);
-		_dst = Native_capability(tid, 0); /* only _tid member is used */
+		Ipc_ostream::_dst = Native_capability(tid, 0); /* only _tid member is used */
 	}
 
 	/* prepare next reply */
 	_write_offset   = 0;
-	long local_name = _dst.local_name();
+	long local_name = Ipc_ostream::_dst.local_name();
 	_write_to_buf(local_name);  /* XXX unused, needed by de/marshaller */
 
 	/* leave space for exc code at the beginning of the msgbuf */
@@ -183,7 +183,8 @@ void Ipc_server::_wait()
 void Ipc_server::_reply()
 {
 	try {
-		lx_send_to(_rcv_cs, _dst.dst(), "client", _snd_msg->buf, _write_offset);
+		lx_send_to(_rcv_cs, Ipc_ostream::_dst.dst(), "client",
+		           _snd_msg->buf, _write_offset);
 	} catch (Ipc_error) { }
 
 	_prepare_next_reply_wait();
@@ -194,7 +195,8 @@ void Ipc_server::_reply_wait()
 {
 	/* when first called, there was no request yet */
 	if (_reply_needed)
-		lx_send_to(_rcv_cs, _dst.dst(), "client", _snd_msg->buf, _write_offset);
+		lx_send_to(_rcv_cs, Ipc_ostream::_dst.dst(), "client",
+		           _snd_msg->buf, _write_offset);
 
 	_wait();
 }

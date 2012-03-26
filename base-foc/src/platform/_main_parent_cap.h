@@ -21,10 +21,22 @@ namespace Genode {
 	/**
 	 * Return constructed parent capability
 	 */
-	Parent_capability parent_cap() {
-		static Cap_index* i = cap_map()->insert(*((int*)&_parent_cap),
+	Parent_capability parent_cap()
+	{
+		Native_capability::Raw *raw = (Native_capability::Raw *)&_parent_cap;
+
+		static Cap_index *i = cap_map()->insert(raw->local_name,
 		                                        Fiasco::PARENT_CAP);
-		return reinterpret_cap_cast<Parent>(Native_capability(i)); }
+
+		/*
+		 * Update local name after a parent capability got reloaded via
+		 * 'Platform_env::reload_parent_cap()'.
+		 */
+		if (i->id() != raw->local_name)
+			i->id(raw->local_name);
+
+		return reinterpret_cap_cast<Parent>(Native_capability(i));
+	}
 }
 
 #endif /* _PLATFORM__MAIN_PARENT_CAP_H_ */

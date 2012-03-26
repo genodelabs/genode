@@ -134,13 +134,13 @@ void Ipc_client::_call()
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 
 	copy_msgbuf_to_utcb(utcb, _snd_msg, _write_offset/sizeof(mword_t),
-	                    _dst.local_name());
+	                    Ipc_ostream::_dst.local_name());
 	_rcv_msg->rcv_prepare_pt_sel_window(utcb);
 
 	/* establish the mapping via a portal traversal */
-	if (_dst.dst() == 0)
+	if (Ipc_ostream::_dst.dst() == 0)
 		PWRN("destination portal is zero");
-	int res = Nova::call(_dst.dst());
+	int res = Nova::call(Ipc_ostream::_dst.dst());
 	if (res)
 		PERR("call returned %d", res);
 
@@ -185,7 +185,7 @@ void Ipc_server::_reply()
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 
 	copy_msgbuf_to_utcb(utcb, _snd_msg, _write_offset/sizeof(mword_t),
-	                    _dst.local_name());
+	                    Ipc_ostream::_dst.local_name());
 
 	Nova::reply(Thread_base::myself()->stack_top());
 }

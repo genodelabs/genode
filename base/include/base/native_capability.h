@@ -43,11 +43,22 @@ namespace Genode {
 	template <typename POLICY>
 	class Native_capability_tpl
 	{
-		private:
+		public:
 
 			typedef typename POLICY::Dst Dst;
 
-			Dst  _tid;
+			/**
+			 * Compound object used to copy raw capability members
+			 *
+			 * This type is a utility solely used to communicate the
+			 * information about the parent capability from the parent to the
+			 * new process.
+			 */
+			struct Raw { Dst dst; long local_name; };
+
+		private:
+
+			Dst  _dst;
 			long _local_name;
 
 		protected:
@@ -63,14 +74,14 @@ namespace Genode {
 			 * \param ptr address of the local object
 			 */
 			Native_capability_tpl(void* ptr)
-			: _tid(POLICY::invalid()), _local_name((long)ptr) { }
+			: _dst(POLICY::invalid()), _local_name((long)ptr) { }
 
 		public:
 
 			/**
 			 * Constructor for an invalid capability
 			 */
-			Native_capability_tpl() : _tid(POLICY::invalid()), _local_name(0) { }
+			Native_capability_tpl() : _dst(POLICY::invalid()), _local_name(0) { }
 
 			/**
 			 * Publicly available constructor
@@ -80,12 +91,12 @@ namespace Genode {
 			 *                    that corresponds to the capability.
 			 */
 			Native_capability_tpl(Dst tid, long local_name)
-			: _tid(tid), _local_name(local_name) { }
+			: _dst(tid), _local_name(local_name) { }
 
 			/**
 			 * Return true when the capability is valid
 			 */
-			bool valid() const { return POLICY::valid(_tid); }
+			bool valid() const { return POLICY::valid(_dst); }
 
 			/**
 			 * Return ID used to lookup the 'Rpc_object' by its capability
@@ -98,19 +109,9 @@ namespace Genode {
 			void* local() const { return (void*)_local_name; }
 
 			/**
-			 * Copy this capability to another PD
+			 * Return capability destination
 			 */
-			void copy_to(void* dst) { POLICY::copy(dst, this); }
-
-
-			/*****************************************
-			 ** Only used by platform-specific code **
-			 *****************************************/
-
-			/**
-			 * Return the kernel-specific capability destination
-			 */
-			Dst dst() const { return _tid; }
+			Dst dst() const { return _dst; }
 	};
 }
 

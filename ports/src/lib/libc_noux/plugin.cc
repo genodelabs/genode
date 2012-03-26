@@ -327,7 +327,7 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 
 
 static jmp_buf fork_jmp_buf;
-static Genode::Capability<Genode::Parent> new_parent_cap;
+static Genode::Capability<Genode::Parent>::Raw new_parent;
 
 extern "C" void stdout_reconnect(); /* provided by 'log_console.cc' */
 
@@ -337,7 +337,8 @@ extern "C" void stdout_reconnect(); /* provided by 'log_console.cc' */
  */
 extern "C" void fork_trampoline()
 {
-	static_cast<Genode::Platform_env *>(Genode::env())->reload_parent_cap(new_parent_cap);
+	static_cast<Genode::Platform_env *>(Genode::env())
+		->reload_parent_cap(new_parent.dst, new_parent.local_name);
 
 	stdout_reconnect();
 	noux_connection()->reconnect();
@@ -364,7 +365,7 @@ extern "C" pid_t fork(void)
 		/* got here during the normal control flow of the fork call */
 		sysio()->fork_in.ip              = (Genode::addr_t)(&fork_trampoline);
 		sysio()->fork_in.sp              = (Genode::addr_t)(&stack[STACK_SIZE]);
-		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&new_parent_cap);
+		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&new_parent);
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_FORK)) {
 			PERR("fork error %d", sysio()->error.general);

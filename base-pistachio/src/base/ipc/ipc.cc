@@ -47,11 +47,11 @@ using namespace Pistachio;
 
 void Ipc_ostream::_send()
 {
-	IPCDEBUG("_send to 0x%08lx.\n", _dst.dst().raw);
+	IPCDEBUG("_send to 0x%08lx.\n", Ipc_ostream::_dst.dst().raw);
 
 	L4_Msg_t msg;
 	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-	L4_Word_t local_name = _dst.local_name();
+	L4_Word_t local_name = Ipc_ostream::_dst.local_name();
 
 	L4_Clear(&msg);
 
@@ -59,7 +59,7 @@ void Ipc_ostream::_send()
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Send(_dst.dst());
+	L4_MsgTag_t result = L4_Send(Ipc_ostream::_dst.dst());
 
 	/*
 	 * Error indicator
@@ -190,7 +190,7 @@ void Ipc_client::_call()
 	IPCDEBUG("Starting to _call (with %u bytes of data).\n", _write_offset);
 	L4_Msg_t msg;
 	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-	L4_Word_t local_name = _dst.local_name();
+	L4_Word_t local_name = Ipc_ostream::_dst.local_name();
 
 	IPCDEBUG("Destination local_name = 0x%x\n", local_name);
 
@@ -208,7 +208,7 @@ void Ipc_client::_call()
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Call(_dst.dst());
+	L4_MsgTag_t result = L4_Call(Ipc_ostream::_dst.dst());
 
 	_write_offset = _read_offset = sizeof(umword_t);
 
@@ -249,7 +249,7 @@ void Ipc_server::_wait()
 	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
 
 	/* define destination of next reply */
-	_dst = Native_capability(_rcv_cs, badge());
+	Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
 
 	_prepare_next_reply_wait();
 }
@@ -259,14 +259,14 @@ void Ipc_server::_reply()
 {
 	L4_Msg_t msg;
 	L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-	L4_Word_t local_name = _dst.local_name();
+	L4_Word_t local_name = Ipc_ostream::_dst.local_name();
 
 	L4_Clear(&msg);
 	L4_Append(&msg, local_name);
 	L4_Append(&msg, sitem);
 	L4_Load(&msg);
 
-	L4_MsgTag_t result = L4_Reply(_dst.dst());
+	L4_MsgTag_t result = L4_Reply(Ipc_ostream::_dst.dst());
 	if (L4_IpcFailed(result))
 		PERR("ipc error in _reply, ignored");
 
@@ -284,7 +284,7 @@ void Ipc_server::_reply_wait()
 		/* prepare massage */
 		L4_Msg_t msg;
 		L4_StringItem_t sitem = L4_StringItem(_write_offset, _snd_msg->buf);
-		L4_Word_t local_name = _dst.local_name();
+		L4_Word_t local_name = Ipc_ostream::_dst.local_name();
 
 		L4_Clear(&msg);
 		L4_Append(&msg, local_name);
@@ -298,7 +298,8 @@ void Ipc_server::_reply_wait()
 		L4_Accept(L4_UntypedWordsAcceptor);
 		L4_Accept(L4_StringItemsAcceptor, &msgbuf);
 
-		L4_MsgTag_t result = L4_Ipc(_dst.dst(), L4_anythread, L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs);
+		L4_MsgTag_t result = L4_Ipc(Ipc_ostream::_dst.dst(), L4_anythread,
+		                            L4_Timeouts(L4_ZeroTime, L4_Never), &_rcv_cs);
 		IPCDEBUG("Got something from 0x%x.\n", L4_ThreadNo(L4_GlobalId(_rcv_cs)));
 
 		/* error handling - check whether send or receive failed */
@@ -339,7 +340,7 @@ void Ipc_server::_reply_wait()
 		IPCDEBUG("local_name = 0x%lx\n", badge());
 
 		/* define destination of next reply */
-		_dst = Native_capability(_rcv_cs, badge());
+		Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
 
 		_prepare_next_reply_wait();
 

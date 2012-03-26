@@ -324,8 +324,9 @@ namespace Noux {
 			void start_forked_main_thread(addr_t ip, addr_t sp, addr_t parent_cap_addr)
 			{
 				/* poke parent_cap_addr into child's address space */
-				Parent_capability const cap = _child.parent_cap();
-				_resources.rm.poke(parent_cap_addr, &cap, sizeof(cap));
+				Capability<Parent> const &cap = _child.parent_cap();
+				Capability<Parent>::Raw   raw = { cap.dst(), cap.local_name() };
+				_resources.rm.poke(parent_cap_addr, &raw, sizeof(raw));
 
 				/* start execution of new main thread at supplied trampoline */
 				_resources.cpu.start_main_thread(ip, sp);

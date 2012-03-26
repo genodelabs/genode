@@ -53,16 +53,20 @@ namespace Genode {
 	 */
 	class Native_capability
 	{
+		public:
+
+			typedef Fiasco::l4_cap_idx_t Dst;
+
+			struct Raw
+			{
+				Dst  dst;
+				long local_name;
+			};
+
 		private:
 
 			Cap_index* _idx;
 			void*      _ptr;
-
-			inline Native_thread_id _cap_sel() const
-			{
-				return _idx ? Native_thread_id(_idx->kcap())
-				            : Native_thread_id();
-			}
 
 		protected:
 
@@ -102,11 +106,10 @@ namespace Genode {
 			 **  Interface provided by all platforms  **
 			 *******************************************/
 
-			int       local_name() const { return _idx ? _idx->id() : 0;        }
-			Native_thread    dst() const { return _cap_sel();                   }
-			bool           valid() const { return (_idx != 0) && _idx->valid(); }
-			void*          local() const { return _ptr;                         }
-			void copy_to(void* dst)      { *((int*)dst) = local_name();         }
+			int   local_name() const { return _idx ? _idx->id() : 0;        }
+			Dst   dst()        const { return _idx ? Dst(_idx->kcap()) : Dst(); }
+			bool  valid()      const { return (_idx != 0) && _idx->valid(); }
+			void *local()      const { return _ptr;                         }
 	};
 
 

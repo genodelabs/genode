@@ -120,9 +120,9 @@ void Ipc_client::_call()
 	_snd_msg->send_dope = L4_IPC_DOPE((_write_offset + 2*sizeof(umword_t) - 1)>>2, 0);
 	_rcv_msg->size_dope = L4_IPC_DOPE(_rcv_msg->size()>>2, 0);
 
-	l4_ipc_call(_dst.dst(),
+	l4_ipc_call(Ipc_ostream::_dst.dst(),
 	            _write_offset <= 2*sizeof(umword_t) ? L4_IPC_SHORT_MSG : _snd_msg->addr(),
-	            _dst.local_name(),
+	            Ipc_ostream::_dst.local_name(),
 	            *reinterpret_cast<l4_umword_t *>(&_snd_msg->buf[sizeof(umword_t)]),
 	            _rcv_msg->addr(),
 	            reinterpret_cast<l4_umword_t *>(&rec_badge),
@@ -180,7 +180,7 @@ void Ipc_server::_wait()
 	try { Ipc_istream::_wait(); } catch (Blocking_canceled) { }
 
 	/* define destination of next reply */
-	_dst = Native_capability(_rcv_cs, badge());
+	Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
 
 	_prepare_next_reply_wait();
 }
@@ -193,7 +193,8 @@ void Ipc_server::_reply()
 	_snd_msg->send_dope = L4_IPC_DOPE((_write_offset + sizeof(umword_t) - 1)>>2, 0);
 
 	l4_msgdope_t result;
-	l4_ipc_send(_dst.dst(), _snd_msg->addr(), _dst.local_name(),
+	l4_ipc_send(Ipc_ostream::_dst.dst(), _snd_msg->addr(), 
+	            Ipc_ostream::_dst.local_name(),
 	            *reinterpret_cast<l4_umword_t *>(&_snd_msg->buf[sizeof(umword_t)]),
 	            L4_IPC_SEND_TIMEOUT_0, &result);
 
@@ -221,9 +222,9 @@ void Ipc_server::_reply_wait()
 		 * an integer as RPC result.
 		 */
 		l4_ipc_reply_and_wait(
-		            _dst.dst(),
+		            Ipc_ostream::_dst.dst(),
 		            _write_offset <= 2*sizeof(umword_t) ? L4_IPC_SHORT_MSG : _snd_msg->addr(),
-		            _dst.local_name(),
+		            Ipc_ostream::_dst.local_name(),
 		            *reinterpret_cast<l4_umword_t *>(&_snd_msg->buf[sizeof(umword_t)]),
 		            &_rcv_cs, _rcv_msg->addr(),
 		            reinterpret_cast<l4_umword_t *>(&_rcv_msg->buf[0]),
@@ -247,7 +248,7 @@ void Ipc_server::_reply_wait()
 	} else _wait();
 
 	/* define destination of next reply */
-	_dst = Native_capability(_rcv_cs, badge());
+	Ipc_ostream::_dst = Native_capability(_rcv_cs, badge());
 
 	_prepare_next_reply_wait();
 }
