@@ -751,7 +751,7 @@ NIC driver implementing the NIC-session interface
 
 We added a new NIC driver using the Linux Device Driver Environment, which
 implements the server side of the new NIC-session interface described in
-Section [NIC-session Interface]. The currently used Linux driver is 'pcnet'
+Section [NIC-session interface]. The currently used Linux driver is 'pcnet'
 that is implemented in Qemu. Nevertheless, it should be straight forward to
 add other Linux network drivers the same way.
 

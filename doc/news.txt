@@ -430,7 +430,7 @@ VFAT partitions. The ARM support has been extended to cover both L4Linux (on
 Fiasco.OC) and Qt4 (ARMv6, ARMv7). Furthermore, the new version is accompanied
 with a comprehensive documentation update.
 
-Read [http:documentation/release-notes/11.08 - the full story]
+Read [http:/documentation/release-notes/11.08 - the full story]
 about the various improvements that come with the version 11.08...
 
 
@@ -983,13 +983,13 @@ for graphics, input devices, and sound. It is often used as back end for games,
 emulators, and media players. Also the Linux version of Genode relies on the
 hardware abstractions provided by libSDL.
 
-As [http:/community/viewml?msg_name=4978DC53.3090409%40torfbruecke.net&amp;forum_name=genode-main - announced on the Genode mailing list],
+As [http://sourceforge.net/mailarchive/message.php?msg_id=21406424 - announced on the Genode mailing list],
 libSDL has been ported to Genode. At the current stage, the port supports
 the video subsystem and the input handling for mouse and keyboard. With
 libSDL now becoming available for Genode, it becomes much easier to make the
 wealth of libSDL-based applications available on our platform.
 
-[http:/community/viewml?msg_name=4978DC53.3090409%40torfbruecke.net&amp;forum_name=genode-main - Read the announcement...]
+[http://sourceforge.net/mailarchive/message.php?msg_id=21406424 - Read the announcement...]
 
 
 Genode on the L4ka::Pistachio kernel | 2008-12-18
@@ -1044,7 +1044,7 @@ base API by a number of exciting feature such as support for asynchronous
 notifications, capability typification, and managed dataspaces.
 
 Learn more about all the new features and changes described in our comprehensive
-[http:/documentation/release-notes/release_notes-08-11 - release notes...]
+[http:/documentation/release-notes/8.11 - release notes...]
 
 [http:/download/latest-release - Download the release 8.11 of the Genode OS Framework...]
 

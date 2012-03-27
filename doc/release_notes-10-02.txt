@@ -908,7 +908,7 @@ request inconsistently. We have now enhanced the 'Root_component' template with
 a policy parameter to 'Root_component' that allows the specification of a
 session-creation policy. The most important policy is whether a service can
 have a single or multiple clients.
-[http://genode.org/documentation/api/static_content/code/base/include/root/component - See the improved template...]
+[http://genode.org/documentation/api/inline?code/base/include/root/component.h - See the improved template...]
 
 Out-of-order RPC replies
 ========================
