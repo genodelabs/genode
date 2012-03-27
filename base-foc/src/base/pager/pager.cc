@@ -55,14 +55,18 @@ void Pager_activation_base::entry()
 			continue;
 		}
 
+		/* lookup referenced object */
+		Pager_object *obj = _ep->obj_by_id(pager.badge());
+
+		/* the pager_object might be destroyed, while we got the message */
+		if (!obj)
+			continue;
+
 		switch (pager.msg_type()) {
 
 		case Ipc_pager::PAGEFAULT:
 		case Ipc_pager::EXCEPTION:
 			{
-				/* lookup referenced object */
-				Pager_object *obj = _ep->obj_by_id(pager.badge());
-
 				if (pager.is_exception()) {
 					Lock::Guard guard(obj->state.lock);
 					pager.copy_regs(&obj->state);
@@ -94,11 +98,6 @@ void Pager_activation_base::entry()
 				 * have to send a reply to the specified thread and answer the
 				 * call.
 				 */
-				Pager_object *obj = _ep->obj_by_id(pager.badge());
-				if (!obj) {
-					PWRN("Got illegal wake-up message from %lx", pager.badge());
-					continue;
-				}
 
 				/* send reply to the caller */
 				pager.set_reply_dst(Native_thread());
@@ -122,8 +121,6 @@ void Pager_activation_base::entry()
 		 */
 		case Ipc_pager::PAUSE:
 			{
-				Pager_object *obj = _ep->obj_by_id(pager.badge());
-
 				Lock::Guard guard(obj->state.lock);
 				pager.copy_regs(&obj->state);
 
