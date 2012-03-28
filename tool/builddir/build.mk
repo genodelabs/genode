@@ -90,10 +90,10 @@ export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-na
 #
 # Find out about the target directories to build
 #
-DST_DIRS = $(filter-out all clean bin cleanall again run/%,$(MAKECMDGOALS))
+DST_DIRS := $(filter-out all clean bin cleanall again run/%,$(MAKECMDGOALS))
 
 ifeq ($(MAKECMDGOALS),)
-DST_DIRS = .
+DST_DIRS := *
 endif
 
 #
@@ -101,13 +101,6 @@ endif
 #
 all $(DST_DIRS): gen_deps_and_build_targets
 	@true
-
-#
-# Helper to find targets in repositories
-# The sed command is there to replace /./ by /. This happens when DST_DIRS = .
-#
-find_src_target_mk     = $(GNU_FIND) $$i/src/$(@:.visit=) -name target.mk 2>/dev/null | sed "s/\/\.\//\//g"
-find_all_src_target_mk = for i in $(REPOSITORIES); do $(find_src_target_mk); done
 
 -include $(call select_from_repositories,etc/specs.conf)
 -include $(BUILD_BASE_DIR)/etc/specs.conf
@@ -135,56 +128,86 @@ init_progress_log:
 
 .PHONY: init_libdep_file
 init_libdep_file:
-	@echo "#"                                               > $(LIB_DEP_FILE)
-	@echo "# Library dependencies for build '$(DST_DIRS)'" >> $(LIB_DEP_FILE)
-	@echo "#"                                              >> $(LIB_DEP_FILE)
-	@echo ""                                               >> $(LIB_DEP_FILE)
-	@echo "export SPEC_FILES := \\"                        >> $(LIB_DEP_FILE)
-	@for i in $(SPEC_FILES); do \
-	  echo "  $$i \\" >> $(LIB_DEP_FILE); done
-	@echo ""                                               >> $(LIB_DEP_FILE)
-	@echo "LIB_CACHE_DIR = $(LIB_CACHE_DIR)"               >> $(LIB_DEP_FILE)
-	@echo "BASE_DIR      = $(realpath $(BASE_DIR))"        >> $(LIB_DEP_FILE)
-	@echo "VERBOSE      ?= $(VERBOSE)"                     >> $(LIB_DEP_FILE)
-	@echo "VERBOSE_MK   ?= $(VERBOSE_MK)"                  >> $(LIB_DEP_FILE)
-	@echo "VERBOSE_DIR  ?= $(VERBOSE_DIR)"                 >> $(LIB_DEP_FILE)
-	@echo "INSTALL_DIR  ?= $(INSTALL_DIR)"                 >> $(LIB_DEP_FILE)
-	@echo "SHELL        ?= $(SHELL)"                       >> $(LIB_DEP_FILE)
-	@echo "MKDIR        ?= mkdir"                          >> $(LIB_DEP_FILE)
-	@echo ""                                               >> $(LIB_DEP_FILE)
-	@echo "all:"                                           >> $(LIB_DEP_FILE)
-	@echo "	@true # prevent nothing-to-be-done message"    >> $(LIB_DEP_FILE)
-	@echo ""                                               >> $(LIB_DEP_FILE)
+	@echo "checking library dependencies..."
+	@(echo "#"; \
+	  echo "# Library dependencies for build '$(DST_DIRS)'"; \
+	  echo "#"; \
+	  echo ""; \
+	  echo "export SPEC_FILES := \\"; \
+	  for i in $(SPEC_FILES); do \
+	    echo "  $$i \\"; done; \
+	  echo ""; \
+	  echo "LIB_CACHE_DIR = $(LIB_CACHE_DIR)"; \
+	  echo "BASE_DIR      = $(realpath $(BASE_DIR))"; \
+	  echo "VERBOSE      ?= $(VERBOSE)"; \
+	  echo "VERBOSE_MK   ?= $(VERBOSE_MK)"; \
+	  echo "VERBOSE_DIR  ?= $(VERBOSE_DIR)"; \
+	  echo "INSTALL_DIR  ?= $(INSTALL_DIR)"; \
+	  echo "SHELL        ?= $(SHELL)"; \
+	  echo "MKDIR        ?= mkdir"; \
+	  echo ""; \
+	  echo "all:"; \
+	  echo "	@true # prevent nothing-to-be-done message"; \
+	  echo "") > $(LIB_DEP_FILE)
 
 #
-# We check if any target.mk files exist in the specified src directory. If
-# there exist any target.mk files, we revisit each repository and create
-# corresponding rules in the library-dependency file.
-#
-# This stage is executed serially.
+# We check if any target.mk files exist in the specified directories within
+# any of the repositories listed in the 'REPOSITORIES' variable.
 #
 
 $(dir $(LIB_DEP_FILE)):
 	@mkdir -p $@
 
-VISIT_DST_DIRS = $(addsuffix .visit,$(DST_DIRS))
+#
+# Find all 'target.mk' files located within any of the specified subdirectories
+# ('DST_DIRS') and any repository. The 'sort' is used to remove duplicates.
+#
+TARGETS_TO_VISIT := $(shell find $(REPOSITORIES:=/src) -false \
+                            $(foreach DST,$(DST_DIRS), \
+                                      -or -path "*/src/$(DST)/**target.mk" \
+                                          -printf " %P "))
+TARGETS_TO_VISIT := $(sort $(TARGETS_TO_VISIT))
 
-.PHONY: $(VISIT_DST_DIRS)
-.NOTPARALLEL: $(VISIT_DST_DIRS)
-$(VISIT_DST_DIRS): $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
-	@echo "checking library dependencies for $(@:.visit=)..."
-	@test "`$(find_all_src_target_mk)`" != "" ||\
-	      (echo Error: non-existing target $(@:.visit=); false)
-	$(VERBOSE_MK)set -e; for i in $(REPOSITORIES); do \
-	  for j in `$(find_src_target_mk)`; do \
+#
+# Perform sanity check for non-existing targets being specified at the command
+# line.
+#
+MISSING_TARGETS := $(strip \
+                     $(foreach DST,$(DST_DIRS),\
+                       $(if $(filter $(DST)/%,$(TARGETS_TO_VISIT)),,$(DST))))
+
+ifneq ($(MAKECMDGOALS),)
+ifneq ($(MISSING_TARGETS),)
+init_libdep_file: error_missing_targets
+error_missing_targets:
+	@for target in $(MISSING_TARGETS); do \
+	  echo "Error: target '$$target' does not exist"; done
+	@false;
+endif
+endif
+
+#
+# The procedure of collecting library dependencies is realized as a single
+# rule to gain maximum performance. If we invoked a rule for each target,
+# we would need to spawn one additional shell per target, which would take
+# 10-20 percent more time.
+#
+traverse_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
+	$(VERBOSE_MK) \
+	for target in $(TARGETS_TO_VISIT); do \
+	  for rep in $(REPOSITORIES); do \
+	    test -f $$rep/src/$$target || continue; \
 	    $(MAKE) $(VERBOSE_DIR) -f $(BASE_DIR)/mk/dep_prg.mk \
-	      REP_DIR=$$i TARGET_MK=$$j \
-	      BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
-	      SHELL=$(SHELL) \
-	      DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; done; done
+	            REP_DIR=$$rep TARGET_MK=$$rep/src/$$target \
+	            BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
+	            SHELL=$(SHELL) \
+	            DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; \
+	    break; \
+	  done; \
+	done
 
 .PHONY: $(LIB_DEP_FILE)
-$(LIB_DEP_FILE): $(VISIT_DST_DIRS)
+$(LIB_DEP_FILE): traverse_dependencies
 
 ##
 ## Second stage: build targets based on the result of the first stage
