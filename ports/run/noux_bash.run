@@ -5,7 +5,7 @@ if {![have_spec x86_32]} {
 
 #
 # Uncomment the following line when working on the VIM source code. Otherwise,
-# VIM may get recompiled, yet it does not get reinstalled into 'bin/bash'.
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
 #
 #exec rm -rf noux-pkg/bash bin/bash
 
@@ -13,11 +13,14 @@ set build_components {
 	core init drivers/timer noux lib/libc_noux
 	drivers/framebuffer drivers/pci drivers/input
 	server/terminal
+	test/libports/ncurses
 }
-lappend build_components noux-pkg/bash
-lappend build_components noux-pkg/coreutils
-lappend build_components noux-pkg/vim
-lappend build_components test/libports/ncurses
+
+#
+# Build Noux packages only once
+#
+foreach pkg {bash coreutils vim} {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
 build $build_components
 
@@ -33,7 +36,7 @@ set viminfo=}
 close $vimrc_fd
 
 # strip all binaries prior archiving
-exec sh -c "find bin/bash/ bin/vim/ bin/coreutils/ -type f | (xargs -ixxx strip xxx || true) 2>/dev/null"
+exec sh -c "find bin/bash/ bin/vim/ bin/coreutils/ -type f | (xargs strip || true) 2>/dev/null"
 
 exec tar cfv bin/bash.tar -h -C bin/bash .
 exec tar rfv bin/bash.tar -h -C bin/coreutils .
