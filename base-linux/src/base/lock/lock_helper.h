@@ -42,7 +42,7 @@ static inline void thread_yield()
 }
 
 
-static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
+static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 {
 	lx_tgkill(tid.pid, tid.tid, LX_SIGUSR1);
 	return true;
