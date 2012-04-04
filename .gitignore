@@ -52,6 +52,7 @@
 /libports/include/ncurses/unctrl.h
 /libports/include/openjpeg
 /libports/include/python2.6
+/libports/include/qoost
 /libports/include/readline/keymaps.h
 /libports/include/readline/rlstdc.h
 /libports/include/readline/rltypedefs.h
