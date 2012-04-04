@@ -35,6 +35,33 @@ namespace Genode {
 			Ram_dataspace_capability  _ds;
 			void                     *_local_addr;
 
+			template <typename T>
+			static void _swap(T &v1, T &v2) { T tmp = v1; v1 = v2; v2 = tmp; }
+
+			void _detach_and_free_dataspace()
+			{
+				if (_local_addr)
+					env()->rm_session()->detach(_local_addr);
+
+				if (_ram_session && _ds.valid())
+					_ram_session->free(_ds);
+			}
+
+			void _alloc_and_attach()
+			{
+				if (!_size || !_ram_session) return;
+
+				try {
+					_ds         = _ram_session->alloc(_size);
+					_local_addr = env()->rm_session()->attach(_ds);
+
+				/* revert allocation if attaching the dataspace failed */
+				} catch (Rm_session::Attach_failed) {
+					_ram_session->free(_ds);
+					throw;
+				}
+			}
+
 		public:
 
 			/**
@@ -44,27 +71,15 @@ namespace Genode {
 			 * \throw Rm_session::Attach_failed
 			 */
 			Attached_ram_dataspace(Ram_session *ram_session, size_t size)
-			: _size(size), _ram_session(ram_session)
+			: _size(size), _ram_session(ram_session), _local_addr(0)
 			{
-				try {
-					_ds = ram_session->alloc(size);
-					_local_addr = env()->rm_session()->attach(_ds);
-
-				/* revert allocation if attaching the dataspace failed */
-				} catch (Rm_session::Attach_failed) {
-					ram_session->free(_ds);
-					throw;
-				}
+				_alloc_and_attach();
 			}
 
 			/**
 			 * Destructor
 			 */
-			~Attached_ram_dataspace()
-			{
-				env()->rm_session()->detach(_local_addr);
-				_ram_session->free(_ds);
-			}
+			~Attached_ram_dataspace() { _detach_and_free_dataspace(); }
 
 			/**
 			 * Return capability of the used RAM dataspace
@@ -85,6 +100,31 @@ namespace Genode {
 			 * Return size
 			 */
 			size_t size() const { return _size; }
+
+			void swap(Attached_ram_dataspace &other)
+			{
+				_swap(_size,        other._size);
+				_swap(_ram_session, other._ram_session);
+				_swap(_ds,          other._ds);
+				_swap(_local_addr,  other._local_addr);
+			}
+
+			/**
+			 * Re-allocate dataspace with a new size
+			 *
+			 * The content of the original dataspace is not retained.
+			 */
+			void realloc(Ram_session *ram_session, size_t new_size)
+			{
+				if (new_size < _size) return;
+
+				_detach_and_free_dataspace();
+
+				_size        = new_size;
+				_ram_session = ram_session;
+
+				_alloc_and_attach();
+			}
 	};
 }
 
