@@ -27,10 +27,9 @@ namespace Init {
 		private:
 
 			enum { CONFIGFILE_NAME_LEN = 64 };
+			char _filename[CONFIGFILE_NAME_LEN];
 
 			Genode::Ram_session_capability   _ram_session_cap;
-			Genode::Rom_session_capability   _rom_session_cap;
-			Genode::Rom_dataspace_capability _config_rom_ds;
 			Genode::Ram_dataspace_capability _config_ram_ds;
 
 		public:
@@ -38,36 +37,34 @@ namespace Init {
 			/**
 			 * Constructor
 			 *
-			 * The provided RAM session is used to obtain a dataspace
-			 * for holding the copy of the child's configuration data.
-			 * Normally, the child's RAM session should be used to
-			 * account the consumed RAM quota to the child.
+			 * The provided RAM session is used to obtain a dataspace for
+			 * holding the copy of the child's configuration data unless the
+			 * configuration is supplied via a config file. Normally, the
+			 * child's RAM session should be used to account the consumed RAM
+			 * quota to the child.
 			 */
 			Child_config(Genode::Ram_session_capability ram_session,
-			             Genode::Xml_node start_node)
+			             Genode::Xml_node               start_node)
 			: _ram_session_cap(ram_session)
 			{
 				using namespace Genode;
 
 				/*
-				 * If the start node contains a 'filename' entry,
-				 * we obtain the specified file from ROM.
+				 * If the start node contains a 'filename' entry, we only keep
+				 * the information about the file name.
 				 */
-				char filename[CONFIGFILE_NAME_LEN];
+				_filename[0] = 0;
 				try {
 					Xml_node configfile_node = start_node.sub_node("configfile");
-					configfile_node.attribute("name").value(filename, sizeof(filename));
+					configfile_node.attribute("name")
+						.value(_filename, sizeof(_filename));
 
-					Rom_connection rom(filename);
-					rom.on_destruction(Rom_connection::KEEP_OPEN);
-					_rom_session_cap = rom.cap();
-					_config_rom_ds = rom.dataspace();
+					return;
 				} catch (...) { }
 
 				/*
-				 * If the start node contains a 'config' entry,
-				 * we copy this entry into a fresh dataspace to
-				 * be provided to our child.
+				 * If the start node contains a 'config' entry, we copy this
+				 * entry into a fresh dataspace to be provided to our child.
 				 */
 				Ram_session_client rsc(_ram_session_cap);
 				try {
@@ -111,23 +108,32 @@ namespace Init {
 				using namespace Genode;
 
 				/*
-				 * The configuration data is either provided as a
-				 * ROM dataspace (holding a complete configfile) or
-				 * as a RAM dataspace holding a copy of the start
-				 * node's config entry.
+				 * The configuration data is either provided as a ROM session
+				 * (holding a complete configfile) or as a RAM dataspace
+				 * holding a copy of the start node's config entry. In the
+				 * latter case, the child's configuration resides in a
+				 * shadow copy kept in '_config_ram_ds'.
 				 */
-				if (_rom_session_cap.valid())
-					env()->parent()->close(_rom_session_cap);
-				else
+				if (_config_ram_ds.valid())
 					Ram_session_client(_ram_session_cap).free(_config_ram_ds);
 			}
 
 			/**
+			 * Return file name if configuration comes from a file
+			 *
+			 * If the configuration is provided inline, the function returns 0.
+			 */
+			char const *filename() const {
+				return _filename[0] != 0 ? _filename : 0; }
+
+			/**
 			 * Request dataspace holding the start node's configuration data
+			 *
+			 * This function returns a valid dataspace only when using an
+			 * inline configuration (if 'filename()' returns 0).
 			 */
 			Genode::Dataspace_capability dataspace() {
-				return _rom_session_cap.valid() ? Genode::Dataspace_capability(_config_rom_ds)
-				                                : Genode::Dataspace_capability(_config_ram_ds); }
+				return Genode::Dataspace_capability(_config_ram_ds); }
 	};
 }
 

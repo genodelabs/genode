@@ -140,15 +140,18 @@ struct Usb_policy : public Genode::Slave_policy
 
 	public:
 
-		Usb_policy(Genode::Rpc_entrypoint      &entrypoint,
-		           Input::Source_registry      &input_source_registry,
-		           Block::Driver_registry      &block_driver_registry,
-		           Genode::Dataspace_capability config)
+		Usb_policy(Genode::Rpc_entrypoint &entrypoint,
+		           Input::Source_registry &input_source_registry,
+		           Block::Driver_registry &block_driver_registry,
+		           Genode::Ram_session    *ram,
+		           char const             *config)
 		:
-			Genode::Slave_policy("usb_drv", entrypoint, config),
+			Genode::Slave_policy("usb_drv", entrypoint, ram),
 			_input_source_registry(input_source_registry),
 			_block_driver_registry(block_driver_registry)
-		{ }
+		{
+			configure(config);
+		}
 
 		bool announce_service(const char             *service_name,
 		                      Genode::Root_capability root,
@@ -238,19 +241,12 @@ int main(int argc, char **argv)
 	static Ps2_policy     ps2_policy(ps2_ep, input_source_registry);
 	static Genode::Slave  ps2_slave(ps2_ep, ps2_policy, 512*1024);
 
-	/*
-	 * Create config dataspace for USB driver
-	 */
-	enum { USB_CONFIG_MAX_LEN = 4096 };
-	Genode::Attached_ram_dataspace usb_config_ds(Genode::env()->ram_session(),
-	                                             USB_CONFIG_MAX_LEN);
-	char const *config = "<config><hid/><storage/></config>";
-	Genode::strncpy(usb_config_ds.local_addr<char>(), config, USB_CONFIG_MAX_LEN);
-
 	/* create USB driver */
+	char const *config = "<config><hid/><storage/></config>";
 	static Rpc_entrypoint usb_ep(&cap, STACK_SIZE, "usb_slave");
 	static Usb_policy     usb_policy(usb_ep, input_source_registry,
-	                                 block_driver_registry, usb_config_ds.cap());
+	                                 block_driver_registry, env()->ram_session(),
+	                                 config);
 	static Genode::Slave  usb_slave(usb_ep, usb_policy, 3*1024*1024);
 
 	/* create ATAPI driver */

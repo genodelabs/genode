@@ -1,0 +1,50 @@
+build "core init test/dynamic_config"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="SIGNAL"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="test-dynamic_config_server">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="ROM" /> </provides>
+		</start>
+		<start name="test-dynamic_config">
+			<resource name="RAM" quantum="1M"/>
+			<configfile name="config.dynamic" />
+			<route>
+				<service name="ROM">
+					<if-arg key="filename" value="config.dynamic" />
+					<child name="test-dynamic_config_server"/>
+				</service>
+				<any-service> <parent /> </any-service>
+			</route>
+		</start>
+	</config>
+}
+
+build_boot_image "core init timer test-dynamic_config test-dynamic_config_server"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until {obtained counter value 11 from config.*} 100
+
+puts "Test succeeded"

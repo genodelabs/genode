@@ -156,6 +156,8 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			Genode::Dataspace_capability ds = _file_ds;
 			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds);
 		}
+
+		void sigh(Genode::Signal_context_capability) { }
 };
 
 

@@ -123,6 +123,8 @@ namespace Init {
 				Genode::Rom_dataspace_capability dataspace() {
 					return Genode::static_cap_cast<Genode::Rom_dataspace>(ds_cap); }
 
+				void sigh(Genode::Signal_context_capability) { }
+
 			} _local_rom_session;
 
 			Genode::Rpc_entrypoint *_ep;
@@ -190,6 +192,39 @@ namespace Init {
 				char buf[FILENAME_MAX_LEN];
 				Genode::Arg_string::find_arg(args, "filename").string(buf, sizeof(buf), "");
 				return !Genode::strcmp(buf, _filename) ? &_local_rom_service : 0;
+			}
+	};
+
+
+	class Child_policy_redirect_rom_file
+	{
+		private:
+
+			char const *_from;
+			char const *_to;
+
+		public:
+
+			Child_policy_redirect_rom_file(const char *from, const char *to)
+			: _from(from), _to(to) { }
+
+			void filter_session_args(const char *service,
+			                         char *args, Genode::size_t args_len)
+			{
+				if (!_from || !_to) return;
+
+				/* ignore session requests for non-ROM services */
+				if (Genode::strcmp(service, "ROM")) return;
+
+				/* drop out if request refers to another file name */
+				enum { FILENAME_MAX_LEN = 32 };
+				char buf[FILENAME_MAX_LEN];
+				Genode::Arg_string::find_arg(args, "filename").string(buf, sizeof(buf), "");
+				if (Genode::strcmp(_from, buf) != 0) return;
+
+				/* replace filename argument */
+				Genode::snprintf(buf, sizeof(buf), "\"%s\"", _to);
+				Genode::Arg_string::set_arg(args, args_len, "filename", buf);
 			}
 	};
 

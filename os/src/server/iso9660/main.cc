@@ -186,11 +186,12 @@ namespace Iso {
 
 			File *_file;
 
+		public:
+
 			Rom_dataspace_capability dataspace() {
 				return static_cap_cast<Rom_dataspace>(_file->rm()->dataspace()); }
 
-		public:
-
+			void sigh(Signal_context_capability) { }
 
 			Rom_component(char *path, Signal_receiver *receiver,
 			              Backing_store *backing_store)
@@ -205,10 +206,6 @@ namespace Iso {
 
 				File::cache()->insert(_file);
 			}
-
-			~Rom_component()
-			{}
-
 	};
 
 
@@ -274,7 +271,7 @@ namespace Iso {
 				try {
 					return new (md_alloc())
 						Rom_component(_path, Pager::pager()->signal_receiver(),
-					                  _backing_store);
+						              _backing_store);
 				}
 				catch (Io_error)       { throw Root::Unavailable(); }
 				catch (Non_data_disc)  { throw Root::Unavailable(); }

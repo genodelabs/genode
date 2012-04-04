@@ -66,6 +66,7 @@ namespace Genode {
 			 ***************************/
 
 			Rom_dataspace_capability dataspace() { return _ds_cap; }
+			void sigh(Signal_context_capability) { }
 	};
 }
 

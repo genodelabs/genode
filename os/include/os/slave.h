@@ -22,6 +22,7 @@
 #include <ram_session/connection.h>
 #include <cpu_session/connection.h>
 #include <rm_session/connection.h>
+#include <os/child_policy_dynamic_rom.h>
 
 namespace Genode {
 
@@ -44,14 +45,13 @@ namespace Genode {
 
 		private:
 
-			char const               *_label;
-			Genode::Service_registry  _parent_services;
-
-			Genode::Rpc_entrypoint             &_entrypoint;
-			Genode::Rom_connection              _binary_rom;
-			Init::Child_policy_enforce_labeling _labeling_policy;
-			Init::Child_policy_provide_rom_file _binary_policy;
-			Init::Child_policy_provide_rom_file _config_policy;
+			char const                           *_label;
+			Genode::Service_registry              _parent_services;
+			Genode::Rpc_entrypoint               &_entrypoint;
+			Genode::Rom_connection                _binary_rom;
+			Init::Child_policy_enforce_labeling   _labeling_policy;
+			Init::Child_policy_provide_rom_file   _binary_policy;
+			Genode::Child_policy_dynamic_rom_file _config_policy;
 
 			bool _service_permitted(const char *service_name)
 			{
@@ -67,24 +67,35 @@ namespace Genode {
 			/**
 			 * Slave-policy constructor
 			 *
-			 * \param label         name of the program to start
-			 * \param entrypoint    entrypoint used to provide local services
-			 *                      such as the config ROM service
-			 * \param config        dataspace containing the child config
+			 * \param label       name of the program to start
+			 * \param entrypoint  entrypoint used to provide local services
+			 *                    such as the config ROM service
+			 * \param ram         RAM session used for buffering config data
+			 *
+			 * If 'ram' is set to 0, no configuration can be supplied to the
+			 * slave.
 			 */
-			Slave_policy(const char                  *label,
-			             Genode::Rpc_entrypoint      &entrypoint,
-			             Genode::Dataspace_capability config = Genode::Dataspace_capability())
+			Slave_policy(const char             *label,
+			             Genode::Rpc_entrypoint &entrypoint,
+			             Genode::Ram_session    *ram = 0)
 			:
 				_label(label),
 				_entrypoint(entrypoint),
 				_binary_rom(_label, _label),
 				_labeling_policy(_label),
 				_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
-				_config_policy("config", config, &_entrypoint)
+				_config_policy("config", _entrypoint, ram)
 			{ }
 
 			Genode::Dataspace_capability binary() { return _binary_rom.dataspace(); }
+
+			/**
+			 * Assign new configuration to slave
+			 */
+			void configure(char const *config)
+			{
+				_config_policy.load(config, Genode::strlen(config) + 1);
+			}
 
 
 			/****************************

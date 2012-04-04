@@ -72,6 +72,10 @@ namespace Gdb_monitor {
 				return static_cap_cast<Rom_dataspace>(
 				       static_cap_cast<Dataspace>(_clone_cap));
 			}
+
+			void release() { }
+
+			void sigh(Genode::Signal_context_capability) { }
 	};
 
 

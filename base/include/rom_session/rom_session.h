@@ -19,6 +19,7 @@
 
 #include <dataspace/capability.h>
 #include <session/session.h>
+#include <base/signal.h>
 
 namespace Genode {
 
@@ -38,8 +39,33 @@ namespace Genode {
 		 * \return  capability to ROM dataspace
 		 *
 		 * The capability may be invalid.
+		 *
+		 * Consecutive calls of this functions are not guaranteed to return the
+		 * same dataspace as dynamic ROM sessions may update the ROM data
+		 * during the lifetime of the session. When calling the function, the
+		 * server may destroy the old dataspace and replace it with a new one
+		 * containing the updated data. Hence, prior calling this function, the
+		 * client should make sure to detach the previously requested dataspace
+		 * from its local address space.
 		 */
 		virtual Rom_dataspace_capability dataspace() = 0;
+
+		/**
+		 * Register signal handler to be notified of ROM data changes
+		 *
+		 * The ROM session interface allows for the implementation of ROM
+		 * services that dynamically update the data exported as ROM dataspace
+		 * during the lifetime of the session. This is useful in scenarios
+		 * where this data is generated rather than originating from a static
+		 * file, for example to update a program's configuration at runtime.
+		 *
+		 * By installing a signal handler using the 'sigh()' function, the
+		 * client will receive a notification each time the data changes at the
+		 * server. From the client's perspective, the original data contained
+		 * in the currently used dataspace remains unchanged until the client
+		 * calls 'dataspace()' the next time.
+		 */
+		virtual void sigh(Signal_context_capability sigh) = 0;
 
 
 		/*********************
@@ -47,8 +73,9 @@ namespace Genode {
 		 *********************/
 
 		GENODE_RPC(Rpc_dataspace, Rom_dataspace_capability, dataspace);
+		GENODE_RPC(Rpc_sigh, void, sigh, Signal_context_capability);
 
-		GENODE_RPC_INTERFACE(Rpc_dataspace);
+		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_sigh);
 	};
 }
 

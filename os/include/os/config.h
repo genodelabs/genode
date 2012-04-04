@@ -47,6 +47,36 @@ namespace Genode {
 			{ }
 
 			Xml_node xml_node() { return _config_xml; }
+
+			/**
+			 * Register signal handler for tracking config modifications
+			 */
+			void sigh(Signal_context_capability cap) { _config_rom.sigh(cap); }
+
+			/**
+			 * Reload configuration
+			 *
+			 * \throw Invalid  if the new configuration has an invalid syntax
+			 *
+			 * This function is meant to be called as response to a signal
+			 * received by the signal handler as registered via 'sigh()'.
+			 */
+			void reload()
+			{
+				try {
+					/* re-acquire dataspace from ROM session */
+					env()->rm_session()->detach(_config_xml.addr());
+					_config_ds = _config_rom.dataspace();
+
+					/* re-initialize XML node with new config data */
+					_config_xml = Xml_node(env()->rm_session()->attach(_config_ds),
+					                       Genode::Dataspace_client(_config_ds).size());
+
+				} catch (Genode::Xml_node::Invalid_syntax) {
+					PERR("Config file has invalid syntax");
+					throw Invalid();
+				}
+			}
 	};
 
 	/**

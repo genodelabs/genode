@@ -67,6 +67,8 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 
 		Genode::Rom_dataspace_capability dataspace() {
 			return _rom.dataspace(); }
+
+		void sigh(Genode::Signal_context_capability) { }
 };
 
 class Rom_root : public Genode::Root_component<Rom_session_component>

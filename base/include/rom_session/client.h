@@ -26,6 +26,8 @@ namespace Genode {
 
 		Rom_dataspace_capability dataspace() {
 			return call<Rpc_dataspace>(); }
+
+		void sigh(Signal_context_capability cap) { call<Rpc_sigh>(cap); }
 	};
 }
 
