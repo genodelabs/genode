@@ -180,7 +180,7 @@ namespace Genode {
 
 			/*
 			 * Suppress warning about uninitialized 'ret' variable in 'call'
-			 * functions on compilers that support the #praga. If this is
+			 * functions on compilers that support the #pragma. If this is
 			 * not the case, the pragma can be masked by supplying the
 			 * 'SUPPRESS_GCC_PRAGMA_WUNINITIALIZED' define to the compiler.
 			 */
