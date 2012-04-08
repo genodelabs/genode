@@ -68,13 +68,10 @@ namespace Block {
 			  _op(op), _block_number(blk_nr),
 			  _block_count(blk_count), _success(false) { }
 
-			Opcode operation() { return _op; }
-
-			Genode::size_t block_number() { return _block_number; }
-
-			Genode::size_t block_count() { return _block_count; }
-
-			bool succeeded() { return _success; }
+			Opcode         operation()    const { return _op;           }
+			Genode::size_t block_number() const { return _block_number; }
+			Genode::size_t block_count()  const { return _block_count;  }
+			bool           succeeded()    const { return _success;      }
 
 			void succeeded(bool b) { _success = b ? 1 : 0; }
 	};
