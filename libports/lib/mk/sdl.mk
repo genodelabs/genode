@@ -18,7 +18,9 @@ SHARED_LIB = yes
 
 # backends
 SRC_CC   = SDL_genode_fb_video.cc \
-           SDL_genode_fb_events.cc
+           SDL_genode_fb_events.cc \
+           SDL_genodeaudio.cc \
+           SDL_systimer.cc
 
 INC_DIR += $(REP_DIR)/include/SDL \
            $(REP_DIR)/src/lib/sdl \
@@ -53,8 +55,8 @@ INC_DIR += $(SDL_DIR)/src/thread
 SRC_C   += SDL_cpuinfo.c
 
 # timer subsystem
-SRC_C   += SDL_systimer.c \
-           SDL_timer.c
+SRC_C   += SDL_timer.c
+INC_DIR += $(SDL_DIR)/src/timer
 
 # video subsystem
 SRC_C  +=  SDL_blit_0.c \
@@ -92,8 +94,8 @@ SRC_C   += SDL_audio.c \
            SDL_mixer_m68k.c \
            SDL_mixer_MMX.c \
            SDL_mixer_MMX_VC.c \
-           SDL_wave.c \
-           SDL_genodeaudio.c
+           SDL_wave.c
+
 INC_DIR += $(SDL_DIR)/src/audio
 
 # file I/O subsystem
@@ -116,6 +118,7 @@ CC_OPT_SDL_wave     += -Wno-unused-but-set-variable
 # backend pathes
 vpath %    $(REP_DIR)/src/lib/sdl
 vpath %    $(REP_DIR)/src/lib/sdl/audio
+vpath %    $(REP_DIR)/src/lib/sdl/timer
 vpath %    $(REP_DIR)/src/lib/sdl/video
 
 # contribution pathes
@@ -130,7 +133,6 @@ vpath %.c  $(SDL_DIR)/src/audio
 vpath %.c  $(SDL_DIR)/src/thread
 vpath %.c  $(SDL_DIR)/src/thread/pthread
 vpath %.c  $(SDL_DIR)/src/timer
-vpath %.c  $(SDL_DIR)/src/timer/dummy
 vpath %.c  $(SDL_DIR)/src/events
 vpath %.c  $(SDL_DIR)/src/cpuinfo
 vpath %.c  $(SDL_DIR)/src/file
