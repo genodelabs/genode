@@ -1,0 +1,13 @@
+Index: l4/tool/gendep/Makefile
+===================================================================
+--- l4/tool/gendep/Makefile	(revision 38)
++++ l4/tool/gendep/Makefile	(working copy)
+@@ -23,7 +23,7 @@
+ ifneq ($(filter linux freebsd,$(HOST_SYSTEM)),)
+ LIB     := $(LIB32) $(LIB64)
+ LIBDL-linux := -ldl
+-cmd_link = $(HOST_CC) -m$(2) -shared -Wl,-soname,$(1) $(LIBDL-$(HOST_SYSTEM)) -o $(1)
++cmd_link = $(HOST_CC) -m$(2) -shared -Wl,--no-as-needed -Wl,-soname,$(1) $(LIBDL-$(HOST_SYSTEM)) -o $(1)
+ else
+ ifeq ($(HOST_SYSTEM),darwin)
+ LIB     := $(OBJ_DIR)/libgendep.so
