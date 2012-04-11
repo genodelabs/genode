@@ -168,7 +168,8 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 
 		bool announce_service(const char             *service_name,
 		                      Genode::Root_capability root,
-		                      Genode::Allocator      *alloc)
+		                      Genode::Allocator      *alloc,
+		                      Genode::Server         *server)
 		{
 			/* wait for 'pci_drv' to announce the PCI service */
 			if (Genode::strcmp(service_name, "PCI"))

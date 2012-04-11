@@ -69,7 +69,8 @@ namespace Genode {
 		 */
 		virtual bool announce_service(const char            *name,
 		                              Root_capability        root,
-		                              Allocator             *alloc)
+		                              Allocator             *alloc,
+		                              Server                *server)
 		{ return false; }
 
 		/**
@@ -296,6 +297,9 @@ namespace Genode {
 			/* child policy */
 			Child_policy           *_policy;
 
+			/* server role */
+			Server                 _server;
+
 			/**
 			 * Session-argument buffer
 			 */
@@ -376,7 +380,8 @@ namespace Genode {
 				_entrypoint(entrypoint),
 				_parent_cap(_entrypoint->manage(this)),
 				_process(elf_ds, ram, cpu, rm, _parent_cap, policy->name(), 0),
-				_policy(policy)
+				_policy(policy),
+				_server(ram)
 			{ }
 
 			/**
@@ -437,7 +442,7 @@ namespace Genode {
 			{
 				if (!name.is_valid_string()) return;
 
-				_policy->announce_service(name.string(), root, heap());
+				_policy->announce_service(name.string(), root, heap(), &_server);
 			}
 
 			Session_capability session(Service_name const &name, Session_args const &args)

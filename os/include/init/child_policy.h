@@ -309,7 +309,8 @@ namespace Init {
 
 			bool announce_service(const char              *service_name,
 			                      Genode::Root_capability  root,
-			                      Genode::Allocator       *alloc)
+			                      Genode::Allocator       *alloc,
+			                      Genode::Server          *server)
 			{
 				if (_child_services->find(service_name)) {
 					PWRN("%s: service %s is already registered",

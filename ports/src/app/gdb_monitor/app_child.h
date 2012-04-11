@@ -307,7 +307,8 @@ namespace Gdb_monitor {
 
 			bool announce_service(const char     *name,
 			                      Root_capability root,
-			                      Allocator      *alloc)
+			                      Allocator      *alloc,
+			                      Server         *server)
 			{
 				/* create and announce proxy for the child's root interface */
 				Child_service_root *r = new (alloc)

@@ -92,7 +92,8 @@ class Iso9660_boot_probe
 
 		bool announce_service(char const             *service_name,
 		                      Genode::Root_capability root,
-		                      Genode::Allocator      *alloc)
+		                      Genode::Allocator      *alloc,
+		                      Genode::Server         *server)
 		{
 			if (Genode::strcmp(service_name, "ROM") != 0)
 				return false;

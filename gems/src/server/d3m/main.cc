@@ -61,7 +61,8 @@ class Ipxe_policy : public Genode::Slave_policy, public Nic::Provider
 
 		bool announce_service(const char             *service_name,
 		                      Genode::Root_capability root,
-		                      Genode::Allocator      *alloc)
+		                      Genode::Allocator      *alloc,
+		                      Genode::Server         *server)
 		{
 			if (Genode::strcmp(service_name, "Nic"))
 				return false;
@@ -105,7 +106,8 @@ struct Ps2_policy : public Genode::Slave_policy
 
 		bool announce_service(const char             *service_name,
 		                      Genode::Root_capability root,
-		                      Genode::Allocator      *alloc)
+		                      Genode::Allocator      *alloc,
+		                      Genode::Server         *server)
 		{
 			if (Genode::strcmp(service_name, "Input"))
 				return false;
@@ -155,7 +157,8 @@ struct Usb_policy : public Genode::Slave_policy
 
 		bool announce_service(const char             *service_name,
 		                      Genode::Root_capability root,
-		                      Genode::Allocator      *alloc)
+		                      Genode::Allocator      *alloc,
+		                      Genode::Server         *server)
 		{
 			if (Genode::strcmp(service_name, "Input") == 0) {
 				_input_source_registry_entry.connect(root);
@@ -202,7 +205,8 @@ class Atapi_policy : public Genode::Slave_policy
 
 		bool announce_service(char const              *service_name,
 		                      Genode::Root_capability  root,
-		                      Genode::Allocator       *alloc)
+		                      Genode::Allocator       *alloc,
+		                      Genode::Server          *server)
 		{
 			if (Genode::strcmp(service_name, "Block"))
 				return false;

@@ -552,7 +552,8 @@ namespace Init {
 
 			bool announce_service(const char             *service_name,
 			                      Genode::Root_capability root,
-			                      Genode::Allocator      *alloc)
+			                      Genode::Allocator      *alloc,
+			                      Genode::Server         *server)
 			{
 				if (config_verbose)
 					Genode::printf("child \"%s\" announces service \"%s\"\n",
