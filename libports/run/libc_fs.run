@@ -1,0 +1,64 @@
+#
+# \brief  Test for using the libc_fs plugin with the RAM file system
+# \author Norman Feske
+# \date   2012-04-11
+#
+
+#
+# Build
+#
+
+build { core init server/ram_fs test/libc_fs }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config> <policy label="" root="/" writeable="yes" /> </config>
+	</start>
+	<start name="test-libc_fs">
+		<resource name="RAM" quantum="2M"/>
+	</start>
+</config>
+}
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	core init
+	ld.lib.so libc.lib.so libc_log.lib.so libc_fs.lib.so
+	ram_fs test-libc_fs
+}
+
+#
+# Execute test case
+#
+
+append qemu_args " -m 128 -nographic "
+run_genode_until {.*child exited with exit value 0.*} 60
+
+puts "\ntest succeeded\n"
+
+# vi: set ft=tcl :

@@ -1,0 +1,77 @@
+#
+# \brief  Unit test for chunk data structure used by RAM fs
+# \author Norman Feske
+# \date   2012-04-19
+#
+
+build "core init test/ram_fs_chunk"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-ram_fs_chunk">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-ram_fs_chunk"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "child exited with exit value 0.*\n" 10
+
+grep_output {^\[init -> test-ram_fs_chunk\]}
+
+compare_output_to {
+	[init -> test-ram_fs_chunk] --- ram_fs_chunk test ---
+	[init -> test-ram_fs_chunk] [32mchunk sizes[0m
+	[init -> test-ram_fs_chunk] [32m  level 0: payload=120 sizeof=36[0m
+	[init -> test-ram_fs_chunk] [32m  level 1: payload=24 sizeof=32[0m
+	[init -> test-ram_fs_chunk] [32m  level 2: payload=6 sizeof=28[0m
+	[init -> test-ram_fs_chunk] [32m  level 3: payload=2 sizeof=16[0m
+	[init -> test-ram_fs_chunk] write "five-o-one" at offset 0 -> content (size=10): "five-o-one"
+	[init -> test-ram_fs_chunk] write "five" at offset 7 -> content (size=11): "five-o-five"
+	[init -> test-ram_fs_chunk] write "Nuance" at offset 17 -> content (size=23): "five-o-five......Nuance"
+	[init -> test-ram_fs_chunk] write "YM-2149" at offset 35 -> content (size=42): "five-o-five......Nuance............YM-2149"
+	[init -> test-ram_fs_chunk] trunc(30) -> content (size=30): "five-o-five......Nuance......."
+	[init -> test-ram_fs_chunk] trunc(29) -> content (size=24): "five-o-five......Nuance."
+	[init -> test-ram_fs_chunk] trunc(28) -> content (size=24): "five-o-five......Nuance."
+	[init -> test-ram_fs_chunk] trunc(27) -> content (size=24): "five-o-five......Nuance."
+	[init -> test-ram_fs_chunk] trunc(26) -> content (size=24): "five-o-five......Nuance."
+	[init -> test-ram_fs_chunk] trunc(25) -> content (size=24): "five-o-five......Nuance."
+	[init -> test-ram_fs_chunk] trunc(24) -> content (size=24): "five-o-five......Nuance."
+	[init -> test-ram_fs_chunk] trunc(23) -> content (size=23): "five-o-five......Nuance"
+	[init -> test-ram_fs_chunk] trunc(22) -> content (size=22): "five-o-five......Nuanc"
+	[init -> test-ram_fs_chunk] trunc(21) -> content (size=21): "five-o-five......Nuan"
+	[init -> test-ram_fs_chunk] trunc(20) -> content (size=20): "five-o-five......Nua"
+	[init -> test-ram_fs_chunk] trunc(19) -> content (size=19): "five-o-five......Nu"
+	[init -> test-ram_fs_chunk] trunc(18) -> content (size=18): "five-o-five......N"
+	[init -> test-ram_fs_chunk] trunc(17) -> content (size=17): "five-o-five......"
+	[init -> test-ram_fs_chunk] trunc(16) -> content (size=14): "five-o-five..."
+	[init -> test-ram_fs_chunk] trunc(15) -> content (size=14): "five-o-five..."
+	[init -> test-ram_fs_chunk] trunc(14) -> content (size=14): "five-o-five..."
+	[init -> test-ram_fs_chunk] trunc(13) -> content (size=12): "five-o-five."
+	[init -> test-ram_fs_chunk] trunc(12) -> content (size=12): "five-o-five."
+	[init -> test-ram_fs_chunk] trunc(11) -> content (size=11): "five-o-five"
+	[init -> test-ram_fs_chunk] trunc(10) -> content (size=10): "five-o-fiv"
+	[init -> test-ram_fs_chunk] trunc(9) -> content (size=9): "five-o-fi"
+	[init -> test-ram_fs_chunk] trunc(8) -> content (size=8): "five-o-f"
+	[init -> test-ram_fs_chunk] trunc(7) -> content (size=7): "five-o-"
+	[init -> test-ram_fs_chunk] trunc(6) -> content (size=6): "five-o"
+	[init -> test-ram_fs_chunk] trunc(5) -> content (size=5): "five-"
+	[init -> test-ram_fs_chunk] trunc(4) -> content (size=4): "five"
+	[init -> test-ram_fs_chunk] trunc(3) -> content (size=3): "fiv"
+	[init -> test-ram_fs_chunk] trunc(2) -> content (size=2): "fi"
+	[init -> test-ram_fs_chunk] trunc(1) -> content (size=1): "f"
+	[init -> test-ram_fs_chunk] allocator: sum=0
+}
+
+
