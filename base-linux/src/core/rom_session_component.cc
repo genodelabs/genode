@@ -48,6 +48,11 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 	char fname_buf[Linux_dataspace::FNAME_LEN];
 	Arg_string::find_arg(args, "filename").string(fname_buf, sizeof(fname_buf), "");
 
+	/* only files inside the current working directory are allowed */
+	for (const char *c = fname_buf; *c; c++)
+		if (*c == '/')
+			throw Root::Invalid_args();
+
 	Genode::size_t fsize = file_size(fname_buf);
 
 	/* use invalid capability as default value */
