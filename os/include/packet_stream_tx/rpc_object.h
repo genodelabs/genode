@@ -28,20 +28,10 @@ namespace Packet_stream_tx {
 			Genode::Capability<CHANNEL> _cap;
 			typename CHANNEL::Sink      _sink;
 
+			Genode::Signal_context_capability _sigh_ready_to_ack;
+			Genode::Signal_context_capability _sigh_packet_avail;
+
 		public:
-
-			/*
-			 * Accessors for server-side signal handlers
-			 *
-			 * The functions are virtual to enable derived classes to supply
-			 * custom handlers for data-flow signals.
-			 */
-
-			virtual Genode::Signal_context_capability sigh_ready_to_ack() {
-				return _sink.sigh_ready_to_ack(); }
-
-			virtual Genode::Signal_context_capability sigh_packet_avail() {
-				return _sink.sigh_packet_avail(); }
 
 			/**
 			 * Constructor
@@ -53,12 +43,55 @@ namespace Packet_stream_tx {
 			 */
 			Rpc_object(Genode::Dataspace_capability ds,
 			           Genode::Rpc_entrypoint &ep)
-			: _ep(ep), _cap(_ep.manage(this)), _sink(ds) { }
+			:
+				_ep(ep), _cap(_ep.manage(this)), _sink(ds),
+
+				/* init signal handlers with default handlers of sink */
+				_sigh_ready_to_ack(_sink.sigh_ready_to_ack()),
+				_sigh_packet_avail(_sink.sigh_packet_avail())
+			{ }
 
 			/**
 			 * Destructor
 			 */
 			~Rpc_object() { _ep.dissolve(this); }
+
+			/*
+			 * The 'sigh_packet_avail()' and 'sigh_ready_to_ack()' functions
+			 * may be called at session-creation time to override the default
+			 * data-flow signal handlers as provided by the packet-stream sink.
+			 * The default handlers let the server block in the event of data
+			 * congestion. By installing custom signal handlers, a server
+			 * implementation is able to avoid blocking for a single event by
+			 * facilitating the use of a select-like mode of operation.
+			 *
+			 * Note that calling these functions after the finished creation of
+			 * the session has no effect because the client queries the signal
+			 * handlers only once at session-creation time.
+			 */
+
+			/**
+			 * Override default handler for server-side ready-to-ack signals
+			 */
+			void sigh_ready_to_ack(Genode::Signal_context_capability sigh) {
+				_sigh_ready_to_ack = sigh; }
+
+			/**
+			 * Override default handler for server-side packet-avail signals
+			 *
+			 * Must be called at constuction time only.
+			 */
+			void sigh_packet_avail(Genode::Signal_context_capability sigh) {
+				_sigh_packet_avail = sigh; }
+
+			typename CHANNEL::Sink *sink() { return &_sink; }
+
+			Genode::Capability<CHANNEL> cap() const { return _cap; }
+
+
+			/*******************
+			 ** RPC functions **
+			 *******************/
 
 			Genode::Dataspace_capability dataspace() { return _sink.dataspace(); }
 
@@ -68,9 +101,12 @@ namespace Packet_stream_tx {
 			void sigh_ack_avail(Genode::Signal_context_capability sigh) {
 				_sink.register_sigh_ack_avail(sigh); }
 
-			typename CHANNEL::Sink *sink() { return &_sink; }
+			virtual Genode::Signal_context_capability sigh_ready_to_ack() {
+				return _sigh_ready_to_ack; }
 
-			Genode::Capability<CHANNEL> cap() const { return _cap; }
+			virtual Genode::Signal_context_capability sigh_packet_avail() {
+				return _sigh_packet_avail; }
+
 	};
 }
 
