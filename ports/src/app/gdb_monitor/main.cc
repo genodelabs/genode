@@ -62,6 +62,9 @@ int main()
 		return -1;
 	}
 
+	/* extract target node from config file */
+	Xml_node target_node = config()->xml_node().sub_node("target");
+
 	/* reserve some memory for gdb_monitor and give the rest to the child */
 	Number_of_bytes ram_quota = env()->ram_session()->avail() - 2*1024*1024;
 
@@ -99,7 +102,8 @@ int main()
 	                              ram.cap(),
 	                              &cap_session,
 	                              &parent_services,
-	                              &child_root_ep);
+	                              &child_root_ep,
+	                              target_node);
 	sleep_forever();
 
 	return 0;

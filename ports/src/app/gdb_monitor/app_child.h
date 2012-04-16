@@ -20,6 +20,7 @@
 #include <base/child.h>
 #include <base/service.h>
 
+#include <init/child_config.h>
 #include <init/child_policy.h>
 
 #include <util/arg_string.h>
@@ -46,7 +47,10 @@ namespace Gdb_monitor {
 			Service_registry              *_parent_services;
 			Service_registry              _local_services;
 
+			Init::Child_config            _child_config;
+
 			Init::Child_policy_provide_rom_file _binary_policy;
+			Init::Child_policy_provide_rom_file _config_policy;
 
 			Gdb_stub_thread               _gdb_stub_thread;
 			Object_pool<Dataspace_object> _managed_ds_map;
@@ -234,12 +238,15 @@ namespace Gdb_monitor {
 			          Genode::Ram_session_capability  ram_session,
 			          Genode::Cap_session            *cap_session,
 			          Service_registry               *parent_services,
-			          Genode::Rpc_entrypoint         *root_ep)
+			          Genode::Rpc_entrypoint         *root_ep,
+			          Xml_node                        target_node)
 			: Init::Child_policy_enforce_labeling(unique_name),
 			  _unique_name(unique_name),
 			  _entrypoint(cap_session, STACK_SIZE, "GDB monitor entrypoint name"),
 			  _parent_services(parent_services),
+			  _child_config(ram_session, target_node),
 			  _binary_policy("binary", elf_ds, &_entrypoint),
+			  _config_policy("config", _child_config.dataspace(), &_entrypoint),
 			  _gdb_stub_thread(),
 			  _rm_root(&_entrypoint, env()->heap() /* should be _child.heap() */, &_managed_ds_map, &_gdb_stub_thread),
 			  _rm_session_cap(_get_rm_session_cap()),
@@ -280,6 +287,10 @@ namespace Gdb_monitor {
 				/* check for binary file request */
 				if ((service = _binary_policy.resolve_session_request(service_name, args)))
 					return service;
+
+				/* check for config file request */
+				if ((service = _config_policy.resolve_session_request(service_name, args)))
+						return service;
 
 				service = _local_services.find(service_name);
 				if (service)
