@@ -57,7 +57,8 @@ Rm_session_component::Region *Rm_session_component::find_region(void *local_addr
 Rm_session::Local_addr
 Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
                              off_t offset, bool use_local_addr,
-                             Rm_session::Local_addr local_addr)
+                             Rm_session::Local_addr local_addr,
+                             bool executable)
 {
 	if (verbose)
 		PDBG("size = %zd, offset = %x", size, (unsigned int)offset);
@@ -76,7 +77,9 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 		throw Invalid_args();
 	}
 
-	void *addr = _parent_rm_session.attach(ds_cap, size, offset, use_local_addr, local_addr);
+	void *addr = _parent_rm_session.attach(ds_cap, size, offset,
+	                                       use_local_addr, local_addr,
+	                                       executable);
 
 	Lock::Guard lock_guard(_region_map_lock);
 	_region_map.insert(new (env()->heap()) Region(addr, (void*)((addr_t)addr + size - 1), ds_cap, offset));

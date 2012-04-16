@@ -49,7 +49,8 @@ class Context_area_rm_session : public Rm_session
 		 */
 		Local_addr attach(Dataspace_capability ds_cap,
 		                  size_t size, off_t offset,
-		                  bool use_local_addr, Local_addr local_addr)
+		                  bool use_local_addr, Local_addr local_addr,
+		                  bool executable)
 		{
 			Dataspace_component *ds =
 				dynamic_cast<Dataspace_component*>(Dataspace_capability::deref(ds_cap));

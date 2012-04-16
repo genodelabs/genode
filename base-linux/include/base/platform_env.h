@@ -206,7 +206,8 @@ namespace Genode {
 					 **************************************/
 
 					Local_addr attach(Dataspace_capability ds, size_t size,
-					                  off_t, bool, Local_addr);
+					                  off_t, bool, Local_addr,
+					                  bool executable);
 
 					void detach(Local_addr local_addr);
 

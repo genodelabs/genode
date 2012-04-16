@@ -84,8 +84,11 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 		bool parent_info = false;
 		off_t  offset;
 		Dataspace_capability ds_cap;
+		void *out_ptr = 0;
 
 		bool write = seg.flags().w;
+		bool exec = seg.flags().x;
+
 		if (write) {
 
 			/* read-write segment */
@@ -133,6 +136,9 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 			/* detach dataspace */
 			env()->rm_session()->detach(base);
 
+			try { out_ptr = rm.attach_at(ds_cap, addr, size, offset); }
+			catch (Rm_session::Attach_failed) { }
+
 		} else {
 
 			/* read-only segment */
@@ -142,11 +148,14 @@ static addr_t _setup_elf(Parent_capability parent_cap,
 			/* XXX currently we assume r/o segment sizes never differ */
 			if (seg.file_size() != seg.mem_size())
 				PWRN("filesz and memsz for read-only segment differ");
-		}
 
-		void *out_ptr = 0;
-		try { out_ptr = rm.attach(ds_cap, size, offset, true, addr); }
-		catch (Rm_session::Attach_failed) { }
+			if (exec)
+				try { out_ptr = rm.attach_executable(ds_cap, addr, size, offset); }
+				catch (Rm_session::Attach_failed) { }
+			else
+				try { out_ptr = rm.attach_at(ds_cap, addr, size, offset); }
+				catch (Rm_session::Attach_failed) { }
+		}
 
 		if ((addr_t)out_ptr != addr)
 			PWRN("addresses differ after attach (addr=%p out_ptr=%p)",

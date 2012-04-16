@@ -93,7 +93,7 @@ namespace Gdb_monitor {
 			 **************************************/
 
 			Local_addr       attach        (Dataspace_capability, Genode::size_t,
-			                                Genode::off_t, bool, Local_addr);
+			                                Genode::off_t, bool, Local_addr, bool);
 			void             detach        (Local_addr);
 			Pager_capability add_client    (Thread_capability);
 			void             fault_handler (Signal_context_capability handler);

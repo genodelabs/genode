@@ -342,7 +342,7 @@ namespace Genode {
 			 ** Region manager session interface **
 			 **************************************/
 
-			Local_addr       attach        (Dataspace_capability, size_t, off_t, bool, Local_addr);
+			Local_addr       attach        (Dataspace_capability, size_t, off_t, bool, Local_addr, bool);
 			void             detach        (Local_addr);
 			Pager_capability add_client    (Thread_capability);
 			void             fault_handler (Signal_context_capability handler);

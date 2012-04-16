@@ -318,7 +318,8 @@ void Rm_faulter::continue_after_resolved_fault()
 Rm_session::Local_addr
 Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
                              off_t offset, bool use_local_addr,
-                             Rm_session::Local_addr local_addr)
+                             Rm_session::Local_addr local_addr,
+                             bool executable)
 {
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);

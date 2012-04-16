@@ -117,6 +117,7 @@ namespace Genode {
 		 * \param use_local_addr   if set to true, attach the dataspace at
 		 *                         the specified 'local_addr'
 		 * \param local_addr       local destination address
+		 * \param executable       if the mapping should be executable
 		 *
 		 * \throw Attach_failed    if dataspace or offset is invalid,
 		 *                         or on region conflict
@@ -128,7 +129,8 @@ namespace Genode {
 		virtual Local_addr attach(Dataspace_capability ds,
 		                          size_t size = 0, off_t offset = 0,
 		                          bool use_local_addr = false,
-		                          Local_addr local_addr = (addr_t)0) = 0;
+		                          Local_addr local_addr = (addr_t)0,
+		                          bool executable = false) = 0;
 
 		/**
 		 * Shortcut for attaching a dataspace at a predefined local address
@@ -136,6 +138,13 @@ namespace Genode {
 		Local_addr attach_at(Dataspace_capability ds, addr_t local_addr,
 		                     size_t size = 0, off_t offset = 0) {
 			return attach(ds, size, offset, true, local_addr); }
+
+		/**
+		 * Shortcut for attaching a dataspace executable at a predefined local address
+		 */
+		Local_addr attach_executable(Dataspace_capability ds, addr_t local_addr,
+		                             size_t size = 0, off_t offset = 0) {
+			return attach(ds, size, offset, true, local_addr, true); }
 
 		/**
 		 * Remove region from local address space
@@ -179,7 +188,7 @@ namespace Genode {
 		GENODE_RPC_THROW(Rpc_attach, Local_addr, attach,
 		                 GENODE_TYPE_LIST(Invalid_dataspace, Region_conflict,
 		                                  Out_of_metadata, Invalid_args),
-		                 Dataspace_capability, size_t, off_t, bool, Local_addr);
+		                 Dataspace_capability, size_t, off_t, bool, Local_addr, bool);
 		GENODE_RPC(Rpc_detach, void, detach, Local_addr);
 		GENODE_RPC_THROW(Rpc_add_client, Pager_capability, add_client,
 		                 GENODE_TYPE_LIST(Invalid_thread, Out_of_memory),

@@ -43,7 +43,8 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 
 
 static void *map_local(Dataspace_capability ds, Genode::size_t size,
-                       addr_t offset, bool use_local_addr, addr_t local_addr)
+                       addr_t offset, bool use_local_addr, addr_t local_addr,
+                       bool executable)
 {
 	Linux_dataspace::Filename fname = Linux_dataspace_client(ds).fname();
 	fname.buf[sizeof(fname.buf) - 1] = 0;
@@ -56,7 +57,7 @@ static void *map_local(Dataspace_capability ds, Genode::size_t size,
 	}
 
 	int   flags = MAP_SHARED | (use_local_addr ? MAP_FIXED : 0);
-	int   prot  = PROT_READ | PROT_EXEC | (writable ? PROT_WRITE : 0);
+	int   prot  = PROT_READ | (writable ? PROT_WRITE : 0) | (executable ? PROT_EXEC : 0);
 	void *addr  = lx_mmap(use_local_addr ? (void*)local_addr : 0, size,
 	                      prot, flags, fd, offset);
 
@@ -84,7 +85,8 @@ Rm_session::Local_addr
 Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
                                       size_t size, off_t offset,
                                       bool use_local_addr,
-                                      Rm_session::Local_addr local_addr)
+                                      Rm_session::Local_addr local_addr,
+                                      bool executable)
 {
 	Lock::Guard lock_guard(_lock);
 
@@ -150,7 +152,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 		 * and map it.
 		 */
 		if (_is_attached())
-			map_local(ds, region_size, offset, true, _base + (addr_t)local_addr);
+			map_local(ds, region_size, offset, true, _base + (addr_t)local_addr, executable);
 
 		return (void *)local_addr;
 
@@ -197,7 +199,8 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 					continue;
 
 				map_local(region.dataspace(), region.size(), region.offset(),
-				          true, rm->_base + region.start() + region.offset());
+				          true, rm->_base + region.start() + region.offset(),
+				          executable);
 			}
 
 			return rm->_base;
@@ -209,7 +212,8 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 			 *
 			 * Boring, a plain dataspace is attached to a root RM session.
 			 */
-			void *addr = map_local(ds, region_size, offset, use_local_addr, local_addr);
+			void *addr = map_local(ds, region_size, offset, use_local_addr,
+			                       local_addr, executable);
 
 			_add_to_rmap(Region((addr_t)addr, offset, ds, region_size));
 

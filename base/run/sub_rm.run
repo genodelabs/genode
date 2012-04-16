@@ -42,15 +42,15 @@ if [have_spec linux_x86_32] {
 		puts "Error: detaching from sub RM session failed"
 		exit -1
 	}
-	if {![regexp {60040000-60044000 rwxs} $maps]} {
+	if {![regexp {60040000-60044000 rw.s} $maps]} {
 		puts "Error: populating already attached sub RM session failed"
 		exit -1
 	}
-	if {![regexp {60080000-60083000 rwxs 00001000} $maps]} {
+	if {![regexp {60080000-60083000 rw.s 00001000} $maps]} {
 		puts "Error: using offset parameter to sub RM attach did not work"
 		exit -1
 	}
-	if {![regexp {600c0000-600c2000 rwxs 00001000} $maps]} {
+	if {![regexp {600c0000-600c2000 rw.s 00001000} $maps]} {
 		puts "Error: using offset and size parameters to sub RM attach did not work"
 		exit -1
 	}

@@ -38,7 +38,8 @@ namespace Genode {
 
 			Local_addr attach(Dataspace_capability ds_cap, size_t size=0,
 			                  off_t offset=0, bool use_local_addr = false,
-			                  Local_addr local_addr = 0)
+			                  Local_addr local_addr = 0,
+			                  bool executable = false)
 			{
 				Dataspace_component *ds = static_cast<Dataspace_component *>(_ds_ep->obj_by_cap(ds_cap));
 				if (!ds)

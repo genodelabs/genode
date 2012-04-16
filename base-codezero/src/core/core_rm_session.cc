@@ -25,7 +25,8 @@ using namespace Genode;
 Rm_session::Local_addr
 Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
                         off_t offset, bool use_local_addr,
-                        Rm_session::Local_addr local_addr)
+                        Rm_session::Local_addr local_addr,
+                        bool executable)
 {
 	using namespace Codezero;
 

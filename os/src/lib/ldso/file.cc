@@ -78,6 +78,13 @@ namespace Genode {
 			                     size_t size = 0, off_t offset = 0) {
 				return Rm_connection::attach_at(ds, local_addr - _base, size, offset); }
 
+			/**
+			 * Overwritten from 'Rm_connection'
+			 */
+			Local_addr attach_executable(Dataspace_capability ds, addr_t local_addr,
+			                             size_t size = 0, off_t offset = 0) {
+				return Rm_connection::attach_executable(ds, local_addr - _base, size, offset); }
+
 			void detach(Local_addr local_addr) {
 				Rm_connection::detach((addr_t)local_addr - _base); }
 	};
@@ -128,7 +135,7 @@ namespace Genode {
 			void setup_text(addr_t vaddr, size_t size, off_t offset)
 			{
 				_vaddr = vaddr;
-				Rm_area::r()->attach_at(_ds_rom, vaddr, size, offset);
+				Rm_area::r()->attach_executable(_ds_rom, vaddr, size, offset);
 			}
 
 			addr_t alloc_region(addr_t vaddr, addr_t vlimit)

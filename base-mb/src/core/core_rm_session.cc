@@ -25,7 +25,8 @@ using namespace Genode;
 Rm_session::Local_addr
 Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
                         off_t offset, bool use_local_addr,
-                        Rm_session::Local_addr local_addr)
+                        Rm_session::Local_addr local_addr,
+                        bool executable)
 {
 	Dataspace_component *ds = static_cast<Dataspace_component *>(_ds_ep->obj_by_cap(ds_cap));
 	if (!ds)

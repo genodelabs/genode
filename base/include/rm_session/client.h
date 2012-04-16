@@ -25,10 +25,12 @@ namespace Genode {
 		: Rpc_client<Rm_session>(session) { }
 
 		Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
-		                  bool use_local_addr, Local_addr local_addr)
+		                  bool use_local_addr, Local_addr local_addr,
+		                  bool executable = false)
 		{
 			return call<Rpc_attach>(ds, size, offset,
-			                        use_local_addr, local_addr);
+			                        use_local_addr, local_addr,
+			                        executable);
 		}
 
 		void detach(Local_addr local_addr) {
