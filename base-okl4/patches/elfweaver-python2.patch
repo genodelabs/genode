@@ -1,8 +1,0 @@
---- a/tools/pyelf/elfweaver	2012-02-12 15:35:22.347943742 +0100
-+++ b/tools/pyelf/elfweaver	2012-02-12 15:35:26.444610504 +0100
-@@ -1,4 +1,4 @@
--#!/usr/bin/env python
-+#!/usr/bin/env python2
- #
- # Copyright (c) 2007 Open Kernel Labs, Inc. (Copyright Holder).
- # All rights reserved.
