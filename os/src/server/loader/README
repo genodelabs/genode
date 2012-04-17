@@ -1,9 +1,5 @@
-This directory contains an experimental loader service, which allows
-for the instantiation of subsystems via a service. The resources for
-the new subsystem are provided by the client when opening the session.
-Except for the lifetime of the subsystem, however, the client has no
-control over the functioning of the subsystem.
-
-Note that this is an experimental implementation crafted for the
-browser plugin mechanism presented at the 2010-10 Live CD. But the
-service will eventually evolve to become a generally useful tool.
+This directory contains a loader service, which allows for the instantiation of
+subsystems via a session interface. The resources for the new subsystem are
+provided by the client when opening the session. The client has no control over
+the functioning of the subsystem except for the controlling the lifetime of the
+subsystem.

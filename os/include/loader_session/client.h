@@ -21,35 +21,34 @@
 
 namespace Loader {
 
-	struct Session_client : Genode::Rpc_client<Session>
+	struct Session_client : Rpc_client<Session>
 	{
-		Session_client(Loader::Session_capability session)
-		: Genode::Rpc_client<Session>(session) { }
+		explicit Session_client(Loader::Session_capability session)
+		: Rpc_client<Session>(session) { }
 
+		Dataspace_capability alloc_rom_module(Name const &name, size_t size) {
+			return call<Rpc_alloc_rom_module>(name, size); }
 
-		/******************************
-		 ** Loader-session interface **
-		 ******************************/
+		void commit_rom_module(Name const &name) {
+			call<Rpc_commit_rom_module>(name); }
 
-		Genode::Dataspace_capability dataspace() {
-			return call<Rpc_dataspace>(); }
+		void ram_quota(size_t quantum) {
+			call<Rpc_ram_quota>(quantum); }
 
-		void start(Start_args const &args,
-		           int max_width, int max_height,
-		           Genode::Alarm::Time timeout,
-		           Name const &name = "")
-		{
-			call<Rpc_start>(args, max_width, max_height, timeout, name);
-		}
+		void constrain_geometry(int width, int height) {
+			call<Rpc_constrain_geometry>(width, height); }
 
-		Nitpicker::View_capability view(int *w, int *h, int *buf_x, int *buf_y)
-		{
-			int dummy = 0;
-			return call<Rpc_view>(w ? w : &dummy,
-			                      h ? h : &dummy,
-			                      buf_x ? buf_x : &dummy,
-			                      buf_y ? buf_y : &dummy);
-		}
+		void view_ready_sigh(Signal_context_capability sigh) {
+			call<Rpc_view_ready_sigh>(sigh); }
+
+		void start(Name const &binary, Name const &label = "") {
+			call<Rpc_start>(binary, label); }
+
+		Nitpicker::View_capability view() {
+			return call<Rpc_view>(); }
+
+		View_geometry view_geometry() {
+			return call<Rpc_view_geometry>(); }
 	};
 }
 

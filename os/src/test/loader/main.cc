@@ -13,52 +13,45 @@
 
 #include <base/printf.h>
 #include <base/sleep.h>
-#include <dataspace/client.h>
 #include <loader_session/connection.h>
 #include <nitpicker_view/client.h>
-#include <rom_session/connection.h>
 #include <timer_session/connection.h>
-#include <util/arg_string.h>
 
 using namespace Genode;
 
 int main(int argc, char **argv)
 {
-	Rom_connection rc("testnit");
-	Dataspace_capability rom_ds = rc.dataspace();
-	char *rom_ds_addr = (char*)env()->rm_session()->attach(rom_ds);
+	Loader::Connection loader(8*1024*1024);
 
-	size_t rom_ds_size = Dataspace_client(rom_ds).size();
-	char args[256] = "";
-	Arg_string::set_arg(args, sizeof(args),"ram_quota", "8M");
-	Arg_string::set_arg(args, sizeof(args),"ds_size", rom_ds_size);
+	static Signal_receiver sig_rec;
 
-	Loader::Connection lc(args);
-	Dataspace_capability loader_ds = lc.dataspace();
-	char *loader_ds_addr = (char*)env()->rm_session()->attach(loader_ds);
+	Signal_context sig_ctx;
 
-	memcpy(loader_ds_addr, rom_ds_addr, rom_ds_size);
+	loader.view_ready_sigh(sig_rec.manage(&sig_ctx));
 
-	env()->rm_session()->detach(loader_ds_addr);
-	env()->rm_session()->detach(rom_ds_addr);
+	loader.start("testnit", "test-label");
 
-	lc.start("ram_quota=4M", 800, 600, 1000, "testnit");
+	sig_rec.wait_for_signal();
 
-	int w, h, buf_x, buf_y;
-	Nitpicker::View_capability view_cap = lc.view(&w, &h, &buf_x, &buf_y);
+	Nitpicker::View_capability view_cap = loader.view();
 
-	PDBG("w = %d, h = %d, buf_x = %d, buf_y = %d", w, h, buf_x, buf_y);
+	Loader::Session::View_geometry geometry = loader.view_geometry();
 
-	Nitpicker::View_client vc(view_cap);
-	vc.stack(Nitpicker::View_capability(), true, false);
+	PDBG("w = %d, h = %d, buf_x = %d, buf_y = %d",
+	     geometry.width, geometry.height, geometry.buf_x, geometry.buf_y);
 
-	Timer::Connection tc;
+	Nitpicker::View_client view(view_cap);
+	view.stack(Nitpicker::View_capability(), true, false);
+
+	Timer::Connection timer;
 
 	while(1) {
-		vc.viewport(0, 0, w, h, buf_x, buf_y, true);
-		tc.msleep(1000);
-		vc.viewport(50, 50, w, h, buf_x, buf_y, true);
-		tc.msleep(1000);
+		view.viewport(0, 0, geometry.width, geometry.height,
+		              geometry.buf_x, geometry.buf_y, true);
+		timer.msleep(1000);
+		view.viewport(50, 50, geometry.width, geometry.height,
+		              geometry.buf_x, geometry.buf_y, true);
+		timer.msleep(1000);
 	}
 
 	sleep_forever();

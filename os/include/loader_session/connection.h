@@ -1,6 +1,7 @@
 /*
  * \brief  Connection to Loader service
  * \author Christian Prochaska
+ * \author Norman Feske
  * \date   2009-10-05
  */
 
@@ -21,15 +22,9 @@ namespace Loader {
 
 	struct Connection : Genode::Connection<Session>, Session_client
 	{
-		/**
-		 * Constructor
-		 *
-		 * \param args  argument string stating the RAM quota to be
-		 *              transfered to the service
-		 */
-		Connection(const char *args)
+		Connection(size_t ram_quota)
 		:
-			Genode::Connection<Session>(session(args)),
+			Genode::Connection<Session>(session("ram_quota=%zd", ram_quota)),
 			Session_client(cap())
 		{ }
 	};
