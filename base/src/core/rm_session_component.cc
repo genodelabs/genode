@@ -690,6 +690,10 @@ void Rm_session_component::dissolve(Rm_client *cl)
 }
 
 
+static Dataspace_capability _type_deduction_helper(Dataspace_capability cap) {
+	return cap; }
+
+
 Rm_session_component::Rm_session_component(Rpc_entrypoint   *ds_ep,
                                            Rpc_entrypoint   *thread_ep,
                                            Allocator        *md_alloc,
@@ -702,7 +706,7 @@ Rm_session_component::Rm_session_component(Rpc_entrypoint   *ds_ep,
 	_md_alloc(md_alloc, ram_quota),
 	_client_slab(&_md_alloc), _ref_slab(&_md_alloc),
 	_map(&_md_alloc), _pager_ep(pager_ep),
-	_ds(this, vm_size), _ds_cap(ds_ep->manage(&_ds))
+	_ds(this, vm_size), _ds_cap(_type_deduction_helper(ds_ep->manage(&_ds)))
 {
 	/* configure managed VM area */
 	_map.add_range(vm_start, vm_size);
