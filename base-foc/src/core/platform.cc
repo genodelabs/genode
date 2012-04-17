@@ -126,7 +126,7 @@ Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0)
 	 * We use the Pager_object here in a slightly different manner,
 	 * just to tunnel the pager cap to the Platform_thread::start method.
 	 */
-	cap(reinterpret_cap_cast<Thread_capability>(Native_capability(i)));
+	cap(Native_capability(i));
 }
 
 

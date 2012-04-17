@@ -40,13 +40,13 @@ int Platform_thread::start(void *ip, void *sp)
 {
 	/* map the pager cap */
 	if (_platform_pd)
-		_pager.map(_platform_pd->native_task().dst());
+		_pager.map(_platform_pd->native_task()->kcap());
 
 	/* reserve utcb area and associate thread with this task */
 	l4_thread_control_start();
 	l4_thread_control_pager(_pager.remote);
 	l4_thread_control_exc_handler(_pager.remote);
-	l4_thread_control_bind(_utcb, _platform_pd->native_task().dst());
+	l4_thread_control_bind(_utcb, _platform_pd->native_task()->kcap());
 	l4_msgtag_t tag = l4_thread_control_commit(_thread.local->kcap());
 	if (l4_msgtag_has_error(tag)) {
 		PWRN("l4_thread_control_commit for %lx failed!",
@@ -132,8 +132,8 @@ void Platform_thread::resume()
 void Platform_thread::bind(Platform_pd *pd)
 {
 	_platform_pd = pd;
-	_gate.map(pd->native_task().dst());
-	_irq.map(pd->native_task().dst());
+	_gate.map(pd->native_task()->kcap());
+	_irq.map(pd->native_task()->kcap());
 }
 
 
@@ -188,7 +188,7 @@ void Platform_thread::_create_thread()
 		PERR("cannot create more thread kernel-objects!");
 
 	/* create initial gate for thread */
-	_gate.local = reinterpret_cast<Core_cap_index*>(Cap_session_component::alloc(0, _thread.local).idx());
+	_gate.local = static_cast<Core_cap_index*>(Cap_session_component::alloc(0, _thread.local).idx());
 }
 
 

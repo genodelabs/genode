@@ -19,4 +19,4 @@
 
 
 Genode::Native_capability Genode::Pd_session_component::task_cap() {
-	return _pd.native_task(); }
+	return Native_capability(_pd.native_task()); }

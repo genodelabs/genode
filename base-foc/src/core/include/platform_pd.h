@@ -97,8 +97,7 @@ namespace Genode {
 			 ** Fiasco-specific Accessors **
 			 *******************************/
 
-			Native_capability native_task() const {
-				return Native_capability(_task.local); }
+			Core_cap_index* native_task() { return _task.local; }
 	};
 }
 

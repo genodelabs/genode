@@ -53,16 +53,19 @@ namespace Genode
 
 			enum { INVALID_ID = -1, UNUSED = 0 };
 
-			uint16_t _id; /* global capability id */
+			uint8_t  _ref_cnt; /* reference counter    */
+			uint16_t _id;      /* global capability id */
 
 		public:
 
-			Cap_index() : _id(INVALID_ID) { }
+			Cap_index() : _ref_cnt(0), _id(INVALID_ID) { }
 
 			bool     valid() const   { return _id != INVALID_ID; }
 			bool     used()  const   { return _id != UNUSED;     }
 			uint16_t id()    const   { return _id;               }
 			void     id(uint16_t id) { _id = id;                 }
+			uint8_t  inc()           { return ++_ref_cnt;        }
+			uint8_t  dec()           { return --_ref_cnt;        }
 			addr_t   kcap();
 
 			void* operator new    (size_t size, Cap_index* idx) { return idx; }

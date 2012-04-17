@@ -151,8 +151,12 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	/*
 	 * Now the thread context is backed by memory, so it is safe to access its
 	 * members.
+	 *
+	 * We need to initalize the context object's memory with zeroes,
+	 * otherwise the ds_cap isn't invalid. That would cause trouble
+	 * when the assignment operator of Native_capability is used.
 	 */
-
+	memset(context, 0, sizeof(Context));
 	context->thread_base = this;
 	context->stack_base  = ds_addr;
 	context->ds_cap      = ds_cap;

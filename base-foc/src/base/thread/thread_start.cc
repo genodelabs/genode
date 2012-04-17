@@ -57,23 +57,14 @@ void Thread_base::start()
 	_tid = state.kcap;
 	_context->utcb = state.utcb;
 
-	/**
-	 * If we've a dead capability in our database, which is already
-	 * revoked, its id might be reused.
-	 */
-	Cap_index *i = cap_map()->find(state.id);
-	if (i) {
-		l4_msgtag_t tag = l4_task_cap_valid(L4_BASE_TASK_CAP, i->kcap());
-		if (!tag.label())
-			cap_map()->remove(i);
-	}
-
 	try {
 		l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE]      = state.id;
 		l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
-		cap_map()->insert(state.id, state.kcap);
+
+		/* we need to manually increase the reference counter here */
+		cap_map()->insert(state.id, state.kcap)->inc();
 	} catch(Cap_index_allocator::Region_conflict) {
-		PERR("could not insert id %lx", state.id);
+		PERR("could not insert id %x", state.id);
 	}
 
 	/* register initial IP and SP at core */

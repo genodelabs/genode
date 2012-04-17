@@ -97,7 +97,7 @@ void Genode::Capability_map::remove(Genode::Cap_index* i)
 			i = _tree.first()->find_by_id(i->id());
 		if (i) {
 			_tree.remove(i);
-			cap_idx_alloc()->free(i,1);
+			cap_idx_alloc()->free(i, 1);
 		}
 	}
 }

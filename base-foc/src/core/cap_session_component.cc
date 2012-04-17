@@ -50,7 +50,7 @@ Genode::Cap_index_allocator* Genode::cap_idx_alloc()
 Core_cap_index* Cap_mapping::_get_cap()
 {
 	int id = platform_specific()->cap_id_alloc()->alloc();
-	return reinterpret_cast<Core_cap_index*>(cap_map()->insert(id));
+	return static_cast<Core_cap_index*>(cap_map()->insert(id));
 }
 
 
@@ -82,17 +82,27 @@ void Cap_mapping::unmap()
 
 
 Cap_mapping::Cap_mapping(bool alloc, Native_thread_id r)
-: local(alloc ? _get_cap() : 0), remote(r) { }
+: local(alloc ? _get_cap() : 0), remote(r)
+{
+	if (local)
+		local->inc();
+}
 
 
 Cap_mapping::Cap_mapping(Core_cap_index* i, Native_thread_id r)
-: local(i), remote(r) { }
+: local(i), remote(r)
+{
+	if (local)
+		local->inc();
+}
 
 
 Cap_mapping::~Cap_mapping()
 {
-	unmap();
-	cap_map()->remove(local);
+	if (local) {
+		unmap();
+		cap_map()->remove(local);
+	}
 }
 
 
@@ -113,14 +123,13 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 	try {
 		using namespace Fiasco;
 
-		Core_cap_index* ref = reinterpret_cast<Core_cap_index*>(ep.idx());
+		Core_cap_index* ref = static_cast<Core_cap_index*>(ep.idx());
 
 		/*
 		 * Allocate new id, and ipc-gate and set id as gate-label
 		 */
 		unsigned long id = platform_specific()->cap_id_alloc()->alloc();
-		Core_cap_index* idx =
-			reinterpret_cast<Core_cap_index*>(cap_map()->insert(id));
+		Core_cap_index* idx = static_cast<Core_cap_index*>(cap_map()->insert(id));
 		l4_msgtag_t tag = l4_factory_create_gate(L4_BASE_FACTORY_CAP,
 		                                         idx->kcap(),
 		                                         ref->pt()->thread().local->kcap(), id);
@@ -135,6 +144,7 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 
 		idx->session(session);
 		idx->pt(ref->pt());
+		idx->inc();
 		cap = Native_capability(idx);
 	} catch (Cap_id_allocator::Out_of_ids) {
 		PERR("Out of IDs");
@@ -156,7 +166,7 @@ void Cap_session_component::free(Native_capability cap)
 	if (!cap.valid())
 		return;
 
-	Core_cap_index* idx = reinterpret_cast<Core_cap_index*>(cap.idx());
+	Core_cap_index* idx = static_cast<Core_cap_index*>(cap.idx());
 
 	/*
 	 * check whether this cap_session has created the capability to delete.
