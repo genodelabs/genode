@@ -48,6 +48,16 @@ __attribute__((constructor(101))) void lx_hybrid_init()
 	lx_environ = environ;
 }
 
+/*
+ * Dummy symbols to let generic tests programs (i.e., 'test-config_args') link
+ * successfully. Please note that such programs are not expected to work when
+ * built as hybrid Linux/Genode programs because when using the glibc startup
+ * code, we cannot manipulate argv prior executing main. However, by defining
+ * these symbols, we prevent the automated build bot from stumbling over such
+ * binaries.
+ */
+char **genode_argv = 0;
+int    genode_argc = 1;
 
 /************
  ** Thread **
