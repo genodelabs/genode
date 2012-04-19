@@ -22,6 +22,7 @@ SRC_CC   = SDL_genode_fb_video.cc \
 
 INC_DIR += $(REP_DIR)/include/SDL \
            $(REP_DIR)/src/lib/sdl \
+           $(REP_DIR)/src/lib/sdl/thread \
            $(REP_DIR)/src/lib/sdl/video
 
 # main files
@@ -43,8 +44,10 @@ SRC_C   += SDL_getenv.c \
 # thread subsystem
 SRC_C   += SDL_thread.c \
            SDL_systhread.c \
+           SDL_syscond.c \
            SDL_sysmutex.c \
            SDL_syssem.c
+INC_DIR += $(SDL_DIR)/src/thread
 
 # cpuinfo subsystem
 SRC_C   += SDL_cpuinfo.c
@@ -101,7 +104,7 @@ SRC_C   += SDL_joystick.c \
 INC_DIR += $(SDL_DIR)/src/joystick
 
 # we need libc
-LIBS = libc
+LIBS = libc pthread
 
 # dim build noise for contrib code
 CC_OPT_SDL_RLEaccel += -Wno-unused-but-set-variable
@@ -114,6 +117,9 @@ vpath %    $(REP_DIR)/src/lib/sdl
 vpath %    $(REP_DIR)/src/lib/sdl/video
 
 # contribution pathes
+vpath SDL_syscond.c   $(SDL_DIR)/src/thread/generic
+vpath SDL_sysmutex.c  $(SDL_DIR)/src/thread/generic
+
 vpath %.c  $(SDL_DIR)/src
 vpath %.c  $(SDL_DIR)/src/stdlib
 vpath %.c  $(SDL_DIR)/src/video
@@ -121,7 +127,7 @@ vpath %.c  $(SDL_DIR)/src/video/dummy
 vpath %.c  $(SDL_DIR)/src/audio
 vpath %.c  $(SDL_DIR)/src/audio/dummy
 vpath %.c  $(SDL_DIR)/src/thread
-vpath %.c  $(SDL_DIR)/src/thread/generic
+vpath %.c  $(SDL_DIR)/src/thread/pthread
 vpath %.c  $(SDL_DIR)/src/timer
 vpath %.c  $(SDL_DIR)/src/timer/dummy
 vpath %.c  $(SDL_DIR)/src/events
