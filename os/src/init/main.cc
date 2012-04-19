@@ -157,15 +157,20 @@ int main(int, char **)
 	catch (...) { }
 
 	/* create children */
-	Genode::Xml_node start_node = Genode::config()->xml_node().sub_node("start");
-	for (;; start_node = start_node.next("start")) {
+	try {
+		Genode::Xml_node start_node = Genode::config()->xml_node().sub_node("start");
+		for (;; start_node = start_node.next("start")) {
 
-		children.insert(new (Genode::env()->heap())
-		                Child(start_node, default_route_node, &children,
-		                      read_prio_levels_log2(),
-		                      &parent_services, &child_services, &cap));
+			children.insert(new (Genode::env()->heap())
+							Child(start_node, default_route_node, &children,
+								  read_prio_levels_log2(),
+								  &parent_services, &child_services, &cap));
 
-		if (start_node.is_last("start")) break;
+			if (start_node.is_last("start")) break;
+		}
+	}
+	catch (Genode::Xml_node::Nonexistent_sub_node) {
+		PERR("No children to start");
 	}
 
 	/* start children */
