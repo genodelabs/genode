@@ -1,0 +1,42 @@
+build "core init test/ds_ownership"
+
+create_boot_directory
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<start name="test-ds_ownership">
+		<resource name="RAM" quantum="10M"/>
+		<route><any-service><parent/></any-service></route>
+		<config verbose="yes">
+			<parent-provides>
+				<service name="ROM"/>
+				<service name="RAM"/>
+				<service name="CAP"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="CPU"/>
+				<service name="LOG"/>
+			</parent-provides>
+		</config>
+	</start>
+</config>
+}
+
+build_boot_image "core init test-ds_ownership"
+
+run_genode_until {.*Test ended.*\.} 10
+
+grep_output {\[init -\> test-ds_ownership\] Test ended}
+
+compare_output_to {
+	[init -> test-ds_ownership] Test ended successfully.
+}
