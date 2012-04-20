@@ -27,6 +27,7 @@ static const bool verbose = false;
 void Ram_session_component::_free_ds(Dataspace_component *ds)
 {
 	if (!ds) return;
+	if (!ds->owner(this)) return;
 
 	size_t ds_size = ds->size();
 
@@ -153,7 +154,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size)
 
 	Dataspace_component *ds;
 	try {
-		ds = new (&_ds_slab) Dataspace_component(ds_size, (addr_t)ds_addr, true);
+		ds = new (&_ds_slab) Dataspace_component(ds_size, (addr_t)ds_addr, true, this);
 	} catch (Allocator::Out_of_memory) {
 		PWRN("Could not allocate metadata");
 		throw Out_of_metadata();

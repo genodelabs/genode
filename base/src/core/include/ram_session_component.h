@@ -29,7 +29,8 @@ namespace Genode {
 	typedef List<Ram_session_component> Ram_ref_account_members;
 
 	class Ram_session_component : public Rpc_object<Ram_session>,
-	                              public Ram_ref_account_members::Element
+	                              public Ram_ref_account_members::Element,
+	                              public Dataspace_owner
 	{
 		private:
 

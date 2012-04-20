@@ -29,6 +29,11 @@ namespace Genode {
 	class Rm_region;
 	class Rm_session_component;
 
+	/**
+	 * Deriving classes can own a dataspace to implement conditional behavior
+	 */
+	class Dataspace_owner { };
+
 	class Dataspace_component : public Rpc_object<Dataspace>
 	{
 		private:
@@ -42,6 +47,10 @@ namespace Genode {
 
 			List<Rm_region> _regions;    /* regions this is attached to */
 			Lock            _lock;
+
+			/* Holds the dataspace owner if a distinction between owner and
+			 * others is necessary on the dataspace, otherwise it is 0 */
+			Dataspace_owner * _owner;
 
 		protected:
 
@@ -62,17 +71,19 @@ namespace Genode {
 			Dataspace_component()
 				: _phys_addr(0), _core_local_addr(0), _size(0),
 				  _is_io_mem(false), _write_combined(false), _writable(false),
-				  _managed(false) { }
+				  _owner(0), _managed(false) { }
 
 			/**
 			 * Constructor for non-I/O dataspaces
 			 *
 			 * This constructor is used by RAM and ROM dataspaces.
 			 */
-			Dataspace_component(size_t size, addr_t core_local_addr, bool writable)
+			Dataspace_component(size_t size, addr_t core_local_addr,
+			                    bool writable,
+			                    Dataspace_owner * owner = 0)
 			: _phys_addr(core_local_addr), _core_local_addr(core_local_addr),
 			  _size(round_page(size)), _is_io_mem(false), _write_combined(false),
-			  _writable(writable), _managed(false) { }
+			  _writable(writable), _owner(owner), _managed(false) { }
 
 			/**
 			 * Constructor for dataspaces with different core-local and
@@ -86,10 +97,11 @@ namespace Genode {
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
 			                    addr_t phys_addr, bool write_combined,
-			                    bool writable)
+			                    bool writable,
+			                    Dataspace_owner * owner = 0)
 			: _phys_addr(phys_addr), _core_local_addr(core_local_addr),
 			  _size(size), _is_io_mem(true), _write_combined(write_combined),
-			  _writable(writable), _managed(false) { }
+			  _writable(writable), _owner(owner), _managed(false) { }
 
 			/**
 			 * Destructor
@@ -122,6 +134,11 @@ namespace Genode {
 
 			void attached_to(Rm_region *region);
 			void detached_from(Rm_region *region);
+
+			/**
+			 * Check if dataspace is owned by a specific owner
+			 */
+			bool owner(Dataspace_owner * const o) const { return _owner == o; }
 
 			List<Rm_region> *regions() { return &_regions; }
 
