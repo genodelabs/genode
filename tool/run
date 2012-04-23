@@ -414,9 +414,8 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	global qemu_args
 	global qemu
 	global spawn_id
-	set qemu "qemu"
 
-	# use special qemu versions for non x86_32 architectures
+	if {[have_spec x86_32]} { set qemu "qemu-system-i386" }
 	if {[have_spec x86_64]} { set qemu "qemu-system-x86_64" }
 	if {[have_spec arm]}    { set qemu "qemu-system-arm" }
 

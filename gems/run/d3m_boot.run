@@ -106,7 +106,7 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	global qemu_args
 	global qemu
 	global spawn_id
-	set qemu "qemu"
+	set qemu "qemu-system-i386"
 
 	set timeout $timeout_value
 	set pid [eval "spawn $qemu $qemu_args"]
