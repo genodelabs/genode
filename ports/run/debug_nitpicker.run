@@ -63,7 +63,10 @@ set config {
 	<start name="gdb_monitor">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
-		<config><target name="nitpicker"/></config>
+		<config>
+			<target name="nitpicker"/>
+			<preserve name="RAM" quantum="2M"/>
+		</config>
 	</start>
 	<start name="scout">
 		<resource name="RAM" quantum="32M"/>

@@ -58,6 +58,7 @@ set config {
 					<test_config_subnode/>
 				</config>
 			</target>
+			<preserve name="RAM" quantum="2M"/>
 		</config>
 	</start>
 </config>
