@@ -34,7 +34,7 @@ namespace Genode {
 			/**
 			 * Constructor
 			 *
-			 * \throw Rom_connection::Rom_session_failed
+			 * \throw Rom_connection::Rom_connection_failed
 			 * \throw Rm_session::Attach_failed
 			 */
 			Attached_rom_dataspace(char const *name)
