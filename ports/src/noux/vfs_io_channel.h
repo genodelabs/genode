@@ -81,9 +81,9 @@ namespace Noux {
 			unsigned const index = sysio->dirent_in.index;
 			if (index < 2) {
 				sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY;
-				Genode::strncpy(sysio->dirent_out.entry.name,
-				                index ? ".." : ".",
-				                sizeof(sysio->dirent_out.entry.name));
+				strncpy(sysio->dirent_out.entry.name,
+				        index ? ".." : ".",
+				        sizeof(sysio->dirent_out.entry.name));
 
 				sysio->dirent_out.entry.fileno = 1;
 				return true;

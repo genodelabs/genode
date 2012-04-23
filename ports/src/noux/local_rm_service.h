@@ -23,9 +23,6 @@
 
 namespace Noux {
 
-	using namespace Genode;
-
-
 	class Rm_dataspace_info : public Dataspace_info
 	{
 		private:
@@ -59,7 +56,7 @@ namespace Noux {
 			~Rm_dataspace_info()
 			{
 				_ep.dissolve(_sub_rm);
-				destroy(Genode::env()->heap(), _sub_rm);
+				destroy(env()->heap(), _sub_rm);
 			}
 
 			Rm_session_capability rm_cap() { return _rm_cap; }
@@ -138,7 +135,7 @@ namespace Noux {
 				Dataspace_info *info = _ds_registry.lookup_info(ds_cap);
 				if (info) {
 					_ds_registry.remove(info);
-					destroy(Genode::env()->heap(), info);
+					destroy(env()->heap(), info);
 				} else {
 					PWRN("Could not lookup dataspace info for local RM session");
 				}

@@ -19,7 +19,7 @@
 
 namespace Noux {
 
-	struct Signal_dispatcher : public Genode::Signal_context
+	struct Signal_dispatcher : public Signal_context
 	{
 		virtual void dispatch() = 0;
 	};

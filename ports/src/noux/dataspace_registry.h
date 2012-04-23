@@ -19,9 +19,6 @@
 
 namespace Noux {
 
-	using namespace Genode;
-
-
 	class Dataspace_registry;
 
 
@@ -96,7 +93,7 @@ namespace Noux {
 						return;
 
 					_pool.remove(info);
-					destroy(Genode::env()->heap(), info);
+					destroy(env()->heap(), info);
 				}
 			}
 

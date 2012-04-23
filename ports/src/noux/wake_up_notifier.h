@@ -20,11 +20,11 @@
 
 namespace Noux {
 
-	struct Wake_up_notifier : Genode::List<Wake_up_notifier>::Element
+	struct Wake_up_notifier : List<Wake_up_notifier>::Element
 	{
-		Genode::Semaphore *semaphore;
+		Semaphore *semaphore;
 
-		Wake_up_notifier(Genode::Semaphore *semaphore = 0)
+		Wake_up_notifier(Semaphore *semaphore = 0)
 		: semaphore(semaphore) { }
 
 		void wake_up()

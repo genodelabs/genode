@@ -29,8 +29,8 @@ namespace Noux {
 	 */
 	struct Directory_service
 	{
-		virtual Genode::Dataspace_capability dataspace(char const *path) = 0;
-		virtual void release(Genode::Dataspace_capability) = 0;
+		virtual Dataspace_capability dataspace(char const *path) = 0;
+		virtual void release(Dataspace_capability) = 0;
 
 		virtual Vfs_handle *open(Sysio *sysio, char const *path) = 0;
 

@@ -17,6 +17,6 @@
 #include <base/capability.h>
 #include <noux_session/noux_session.h>
 
-namespace Noux { typedef Genode::Capability<Session> Session_capability; }
+namespace Noux { typedef Capability<Session> Session_capability; }
 
 #endif /* _INCLUDE__NOUX_SESSION__CAPABILITY_H_ */

@@ -32,14 +32,14 @@ namespace Noux {
 	{
 		private:
 
-			Genode::Lock _lock;
-			long         _value;
+			Lock _lock;
+			long _value;
 
 			friend class Shared_pointer_base;
 
 			void _inc_ref_count()
 			{
-				Genode::Lock::Guard guard(_lock);
+				Lock::Guard guard(_lock);
 				_value++;
 			}
 
@@ -48,7 +48,7 @@ namespace Noux {
 			 */
 			long _dec_ref_count()
 			{
-				Genode::Lock::Guard guard(_lock);
+				Lock::Guard guard(_lock);
 				return --_value;
 			}
 
@@ -82,8 +82,8 @@ namespace Noux {
 	{
 		private:
 
-			T                 *_ptr;
-			Genode::Allocator *_alloc;
+			T         *_ptr;
+			Allocator *_alloc;
 
 			void _dec_ref_count()
 			{
@@ -92,7 +92,7 @@ namespace Noux {
 					if (0)
 						PINF("ref count for %p reached zero -> delete object", _ptr);
 
-					Genode::destroy(_alloc, _ptr);
+					destroy(_alloc, _ptr);
 					_ptr         = 0;
 					_alloc       = 0;
 					_ref_counter = 0;
@@ -103,7 +103,7 @@ namespace Noux {
 
 			Shared_pointer() : Shared_pointer_base(0), _ptr(0), _alloc(0) { }
 
-			Shared_pointer(T *ptr, Genode::Allocator *alloc)
+			Shared_pointer(T *ptr, Allocator *alloc)
 			: Shared_pointer_base(ptr), _ptr(ptr), _alloc(alloc)
 			{
 				_inc_ref_count();

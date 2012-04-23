@@ -25,11 +25,11 @@ namespace Noux {
 	{
 		protected:
 
-			char         * const _buf;
-			Genode::size_t const _buf_size;
-			Genode::size_t       _len;
+			char * const _buf;
+			size_t const _buf_size;
+			size_t       _len;
 
-			Genode::size_t _free_size() const
+			size_t _free_size() const
 			{
 				/*
 				 * Keep space for two trailing zeros, indicating the end of the
@@ -49,7 +49,7 @@ namespace Noux {
 			 * \param buf_size  size of argument buffer in character,
 			 *                  must be at least 2
 			 */
-			Args(char *buf, Genode::size_t buf_size)
+			Args(char *buf, size_t buf_size)
 			: _buf(buf), _buf_size(buf_size), _len(0)
 			{
 				if (buf_size <= 2)
@@ -67,18 +67,18 @@ namespace Noux {
 
 			bool valid() const { return _buf_size > 0; }
 
-			Genode::size_t len() const { return _len; }
+			size_t len() const { return _len; }
 
 			char const * const base() const { return _buf; }
 
 			void append(char const *arg)
 			{
-				Genode::size_t const arg_len = Genode::strlen(arg);
+				size_t const arg_len = strlen(arg);
 
 				if (arg_len > _free_size())
 					throw Overrun();
 
-				Genode::strncpy(_buf + _len, arg, _buf_size - _len);
+				strncpy(_buf + _len, arg, _buf_size - _len);
 
 				_len += arg_len + 1; /* keep null termination between strings */
 
@@ -89,27 +89,27 @@ namespace Noux {
 			void dump()
 			{
 				for (unsigned i = 0, j = 0; _buf[i] && (i < _buf_size - 2);
-				     i += Genode::strlen(&_buf[i]) + 1, j++)
+				     i += strlen(&_buf[i]) + 1, j++)
 					PINF("arg(%u): \"%s\"", j, &_buf[i]);
 			}
 	};
 
-	class Args_dataspace : private Genode::Attached_ram_dataspace, public Args
+	class Args_dataspace : private Attached_ram_dataspace, public Args
 	{
 		public:
 
-			Args_dataspace(Genode::size_t size, Args const &from = Args())
+			Args_dataspace(size_t size, Args const &from = Args())
 			:
-				Genode::Attached_ram_dataspace(Genode::env()->ram_session(), size),
+				Attached_ram_dataspace(env()->ram_session(), size),
 				Args(local_addr<char>(), size)
 			{
 				if (from.len() > size - 2)
 					throw Overrun();
 
-				Genode::memcpy(_buf, from.base(), from.len() + 1);
+				memcpy(_buf, from.base(), from.len() + 1);
 			}
 
-			using Genode::Attached_ram_dataspace::cap;
+			using Attached_ram_dataspace::cap;
 	};
 }
 

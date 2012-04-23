@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2012 Genode Labs GmbH
+ * Copyright (C) 2011-2012 gENODe Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -27,7 +27,7 @@
 namespace Noux {
 
 	class File_system : public Directory_service, public File_io_service,
-	                    public Genode::List<File_system>::Element
+	                    public List<File_system>::Element
 	{
 		private:
 
@@ -38,7 +38,6 @@ namespace Noux {
 			 */
 			void _strip_trailing_slashes_from_mount_point()
 			{
-				using namespace Genode;
 				size_t len;
 				while ((len = strlen(_mount_point)) && (_mount_point[len - 1] == '/'))
 					_mount_point[len - 1] = 0;
@@ -46,7 +45,7 @@ namespace Noux {
 
 		public:
 
-			File_system(Genode::Xml_node config)
+			File_system(Xml_node config)
 			{
 				enum { TYPE_MAX_LEN = 64 };
 				char type[TYPE_MAX_LEN];
@@ -60,7 +59,7 @@ namespace Noux {
 
 			File_system(char const *mount_point)
 			{
-				Genode::strncpy(_mount_point, mount_point, sizeof(_mount_point));
+				strncpy(_mount_point, mount_point, sizeof(_mount_point));
 				_strip_trailing_slashes_from_mount_point();
 			}
 
@@ -78,8 +77,6 @@ namespace Noux {
 			 */
 			char const *local_path(char const *global_path)
 			{
-				using namespace Genode;
-
 				size_t const mount_point_len = strlen(_mount_point);
 
 				if (strlen(global_path) < mount_point_len)

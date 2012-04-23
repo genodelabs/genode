@@ -29,6 +29,8 @@
 
 namespace Noux {
 
+	using namespace Genode;
+
 	struct Sysio
 	{
 		/*
@@ -65,7 +67,7 @@ namespace Noux {
 
 		struct Stat
 		{
-			Genode::size_t size;
+			size_t         size;
 			unsigned       mode;
 			unsigned       uid;
 			unsigned       gid;
@@ -148,7 +150,7 @@ namespace Noux {
 			 * Return total number of file descriptors contained in the array
 			 */
 			size_t total_fds() const {
-				return Genode::min(num_rd + num_wr + num_ex, (size_t)MAX_FDS); }
+				return min(num_rd + num_wr + num_ex, (size_t)MAX_FDS); }
 
 			/**
 			 * Check for maximum population of fds array
@@ -240,7 +242,7 @@ namespace Noux {
 
 			SYSIO_DECL(fchdir, { int fd; }, { });
 
-			SYSIO_DECL(read,   { int fd; Genode::size_t count; },
+			SYSIO_DECL(read,   { int fd; size_t count; },
 			                   { Chunk chunk; size_t count; });
 
 			SYSIO_DECL(execve, { Path filename; Args args; Env env; }, { });
@@ -248,8 +250,8 @@ namespace Noux {
 			SYSIO_DECL(select, { Select_fds fds; Select_timeout timeout; },
 			                   { Select_fds fds; });
 
-			SYSIO_DECL(fork,   { Genode::addr_t ip; Genode::addr_t sp;
-			                     Genode::addr_t parent_cap_addr; },
+			SYSIO_DECL(fork,   { addr_t ip; addr_t sp;
+			                     addr_t parent_cap_addr; },
 			                   { int pid; });
 
 			SYSIO_DECL(getpid, { }, { int pid; });

@@ -19,8 +19,6 @@
 
 namespace Noux {
 
-	using namespace Genode;
-
 	class Pipe : public Reference_counter
 	{
 		private:

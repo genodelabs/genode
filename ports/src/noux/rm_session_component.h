@@ -24,8 +24,6 @@
 
 namespace Noux {
 
-	using namespace Genode;
-
 	class Rm_session_component : public Rpc_object<Rm_session>
 	{
 		private:
@@ -207,7 +205,7 @@ namespace Noux {
 				 * Record attachement for later replay (needed during
 				 * fork)
 				 */
-				_regions.insert(new (Genode::env()->heap())
+				_regions.insert(new (env()->heap())
 				                Region(ds, size, offset, local_addr));
 				return local_addr;
 			}
@@ -224,7 +222,7 @@ namespace Noux {
 				}
 
 				_regions.remove(region);
-				destroy(Genode::env()->heap(), region);
+				destroy(env()->heap(), region);
 			}
 
 			Pager_capability add_client(Thread_capability thread)

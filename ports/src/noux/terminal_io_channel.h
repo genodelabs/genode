@@ -27,14 +27,14 @@ namespace Noux {
 
 	struct Terminal_io_channel : Io_channel, Signal_dispatcher
 	{
-		Terminal::Session       &terminal;
-		Genode::Signal_receiver &sig_rec;
-		bool                     eof;
+		Terminal::Session &terminal;
+		Signal_receiver   &sig_rec;
+		bool               eof;
 
 		enum Type { STDIN, STDOUT, STDERR } type;
 
 		Terminal_io_channel(Terminal::Session &terminal, Type type,
-		                    Genode::Signal_receiver &sig_rec)
+		                    Signal_receiver &sig_rec)
 		: terminal(terminal), sig_rec(sig_rec), eof(false), type(type)
 		{
 			/*
@@ -76,9 +76,9 @@ namespace Noux {
 				return true;
 			}
 
-			Genode::size_t const max_count =
-				Genode::min(sysio->read_in.count,
-				            sizeof(sysio->read_out.chunk));
+			size_t const max_count =
+				min(sysio->read_in.count,
+				    sizeof(sysio->read_out.chunk));
 
 			sysio->read_out.count =
 				terminal.read(sysio->read_out.chunk, max_count);

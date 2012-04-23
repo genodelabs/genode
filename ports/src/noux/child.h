@@ -33,9 +33,6 @@
 
 namespace Noux {
 
-	using namespace Genode;
-
-
 	/**
 	 * Allocator for process IDs
 	 */
@@ -92,12 +89,12 @@ namespace Noux {
 					init_process_exited();
 				} else {
 					/* destroy 'Noux::Child' */
-					destroy(Genode::env()->heap(), _child);
+					destroy(env()->heap(), _child);
 
 					PINF("destroy %p", _child);
 					PINF("quota: avail=%zd, used=%zd",
-					     Genode::env()->ram_session()->avail(),
-					     Genode::env()->ram_session()->used());
+					     env()->ram_session()->avail(),
+					     env()->ram_session()->used());
 				}
 			}
 	};

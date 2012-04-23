@@ -28,8 +28,6 @@
 
 namespace Noux {
 
-	using namespace Genode;
-
 	/**
 	 * Input/output channel interface
 	 */

@@ -21,13 +21,13 @@
 
 namespace Noux {
 
-	struct Session_client : Genode::Rpc_client<Session>
+	struct Session_client : Rpc_client<Session>
 	{
 			explicit Session_client(Session_capability session)
-			: Genode::Rpc_client<Session>(session) { }
+			: Rpc_client<Session>(session) { }
 
 
-			Genode::Dataspace_capability sysio_dataspace()
+			Dataspace_capability sysio_dataspace()
 			{
 				return call<Rpc_sysio_dataspace>();
 			}

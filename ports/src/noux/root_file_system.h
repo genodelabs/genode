@@ -27,7 +27,7 @@ namespace Noux {
 	{
 		private:
 
-			Genode::Lock _lock;
+			Lock _lock;
 
 		public:
 
@@ -49,7 +49,7 @@ namespace Noux {
 
 			bool dirent(Sysio *sysio, char const *path)
 			{
-				Genode::Lock::Guard guard(_lock);
+				Lock::Guard guard(_lock);
 
 				int const index = sysio->dirent_in.index;
 				if (index) {
@@ -58,8 +58,8 @@ namespace Noux {
 				}
 				sysio->dirent_out.entry.fileno = 13;
 
-				Genode::strncpy(sysio->dirent_out.entry.name, "test",
-				                sizeof(sysio->dirent_out.entry.name));
+				strncpy(sysio->dirent_out.entry.name, "test",
+				        sizeof(sysio->dirent_out.entry.name));
 
 				sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY;
 				return true;
@@ -67,18 +67,18 @@ namespace Noux {
 
 			Vfs_handle *open(Sysio *sysio, char const *path)
 			{
-				Genode::Lock::Guard guard(_lock);
+				Lock::Guard guard(_lock);
 
-				if (Genode::strcmp(path, "/") == 0)
-					return new (Genode::env()->heap()) Vfs_handle(this, this, 0);
+				if (strcmp(path, "/") == 0)
+					return new (env()->heap()) Vfs_handle(this, this, 0);
 
 				return 0;
 			}
 
 			void close(Vfs_handle *handle)
 			{
-				Genode::Lock::Guard guard(_lock);
-				Genode::destroy(Genode::env()->heap(), handle);
+				Lock::Guard guard(_lock);
+				destroy(env()->heap(), handle);
 			}
 
 

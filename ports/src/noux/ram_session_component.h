@@ -33,8 +33,6 @@
 
 namespace Noux {
 
-	using namespace Genode;
-
 	struct Ram_dataspace_info : Dataspace_info,
 	                            List<Ram_dataspace_info>::Element
 	{
@@ -57,19 +55,19 @@ namespace Noux {
 
 			void *src = 0;
 			try {
-				src = Genode::env()->rm_session()->attach(ds_cap());
+				src = env()->rm_session()->attach(ds_cap());
 			} catch (...) { }
 
 			void *dst = 0;
 			try {
-				dst = Genode::env()->rm_session()->attach(dst_ds);
+				dst = env()->rm_session()->attach(dst_ds);
 			} catch (...) { }
 
 			if (src && dst)
 				memcpy(dst, src, size);
 
-			if (src) Genode::env()->rm_session()->detach(src);
-			if (dst) Genode::env()->rm_session()->detach(dst);
+			if (src) env()->rm_session()->detach(src);
+			if (dst) env()->rm_session()->detach(dst);
 
 			if (!src || !dst) {
 				Ram_session_client(ram).free(dst_ds);
@@ -88,13 +86,13 @@ namespace Noux {
 
 			char *dst = 0;
 			try {
-				dst = Genode::env()->rm_session()->attach(ds_cap());
+				dst = env()->rm_session()->attach(ds_cap());
 			} catch (...) { }
 
 			if (src && dst)
 				memcpy(dst + dst_offset, src, len);
 
-			if (dst) Genode::env()->rm_session()->detach(dst);
+			if (dst) env()->rm_session()->detach(dst);
 		}
 	};
 
@@ -167,7 +165,7 @@ namespace Noux {
 				_used_quota -= ds_info->size();
 
 				env()->ram_session()->free(ds_cap);
-				Genode::destroy(env()->heap(), ds_info);
+				destroy(env()->heap(), ds_info);
 			}
 
 			int ref_account(Ram_session_capability) { return 0; }

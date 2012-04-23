@@ -34,7 +34,7 @@ namespace Noux {
 			Directory_service *_ds;
 			File_io_service   *_fs;
 			int                _status_flags;
-			Genode::size_t     _seek;
+			size_t             _seek;
 
 			friend class Vfs_io_channel; /* for modifying '_seek' */
 
@@ -45,13 +45,13 @@ namespace Noux {
 					static bool _msg(char const *sc) {
 						PERR("%s not supported by directory service", sc); return false; }
 
-					Genode::Dataspace_capability dataspace(char const *)
+					Dataspace_capability dataspace(char const *)
 					{
 						_msg("dataspace");
-						return Genode::Dataspace_capability();
+						return Dataspace_capability();
 					}
 
-					void release(Genode::Dataspace_capability) { }
+					void release(Dataspace_capability) { }
 
 					bool        stat(Sysio *, char const *)   { return _msg("stat"); }
 					Vfs_handle *open(Sysio *, char const *)   { _msg("open"); return 0; }
@@ -93,7 +93,7 @@ namespace Noux {
 
 			int status_flags() { return _status_flags; }
 
-			Genode::size_t seek() const { return _seek; }
+			size_t seek() const { return _seek; }
 	};
 }
 

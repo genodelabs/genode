@@ -31,23 +31,23 @@ namespace Noux {
 	{
 		private:
 
-			Genode::List<File_system> _file_systems;
+			List<File_system> _file_systems;
 
 		public:
 
-			Genode::Dataspace_capability dataspace_from_file(char const *filename)
+			Dataspace_capability dataspace_from_file(char const *filename)
 			{
 				for (File_system *fs = _file_systems.first(); fs; fs = fs->next()) {
 					char const *fs_local_path = fs->local_path(filename);
-					Genode::Dataspace_capability ds_cap;
+					Dataspace_capability ds_cap;
 					if (fs_local_path && (ds_cap = fs->dataspace(fs_local_path)).valid())
 						return ds_cap;
 				}
-				return Genode::Dataspace_capability();
+				return Dataspace_capability();
 			}
 
 			void release_dataspace_for_file(char const *filename,
-			                                Genode::Dataspace_capability ds_cap)
+			                                Dataspace_capability ds_cap)
 			{
 				for (File_system *fs = _file_systems.first(); fs; fs = fs->next()) {
 					char const *fs_local_path = fs->local_path(filename);

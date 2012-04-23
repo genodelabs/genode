@@ -27,8 +27,7 @@ namespace Noux {
 	/**
 	 * Front-end for PWD environment variable
 	 */
-	class Environment : private Genode::Attached_ram_dataspace,
-	                    public  Pwd
+	class Environment : private Attached_ram_dataspace, public Pwd
 	{
 		private:
 
@@ -44,14 +43,13 @@ namespace Noux {
 			 * \param env  comma-separated list of environment variables
 			 */
 			Environment(char const *env) :
-				Genode::Attached_ram_dataspace(Genode::env()->ram_session(),
-				                               ENV_DS_SIZE),
+				Attached_ram_dataspace(Genode::env()->ram_session(), ENV_DS_SIZE),
 				_env(local_addr<char>())
 			{
-				Genode::strncpy(_env, env, ENV_DS_SIZE);
+				strncpy(_env, env, ENV_DS_SIZE);
 			}
 
-			using Genode::Attached_ram_dataspace::cap;
+			using Attached_ram_dataspace::cap;
 
 			/**
 			 * Return list of environment variables as comma-separated list
@@ -88,7 +86,7 @@ namespace Noux {
 					return;
 				}
 
-				Genode::Arg_string::set_arg(_env, ENV_DS_SIZE, "PWD", quoted);
+				Arg_string::set_arg(_env, ENV_DS_SIZE, "PWD", quoted);
 				PINF("changed current work directory to %s", _pwd_path.base());
 			}
 	};

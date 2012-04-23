@@ -23,13 +23,15 @@
 
 namespace Noux {
 
+	using namespace Genode;
+
 	struct Session : Genode::Session
 	{
 		static const char *service_name() { return "Noux"; }
 
 		virtual ~Session() { }
 
-		virtual Genode::Dataspace_capability sysio_dataspace() = 0;
+		virtual Dataspace_capability sysio_dataspace() = 0;
 
 		enum Syscall {
 			SYSCALL_GETCWD,
@@ -96,7 +98,7 @@ namespace Noux {
 		 ** RPC declaration **
 		 *********************/
 
-		GENODE_RPC(Rpc_sysio_dataspace, Genode::Dataspace_capability, sysio_dataspace);
+		GENODE_RPC(Rpc_sysio_dataspace, Dataspace_capability, sysio_dataspace);
 		GENODE_RPC(Rpc_syscall, bool, syscall, Syscall);
 
 		GENODE_RPC_INTERFACE(Rpc_sysio_dataspace, Rpc_syscall);
