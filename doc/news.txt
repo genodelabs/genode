@@ -4,6 +4,24 @@
                                ===========
 
 
+Genode participation at GSoC 2012 | 2012-04-25
+##############################################
+
+| Tobias Börtitz steps up to the challenge of combining the HelenOS kernel
+| with the Genode userland.
+
+Google has announced the list of scholarships accepted for this year's Google
+Summer of Code program. Thanks to HelenOS being an accepted mentoring
+organization, we are happy to announce the project of Tobias Börtitz, who will
+bring the worlds of HelenOS and Genode closer together:
+
+:[http://trac.helenos.org/ticket/419 - HelenOS as a Genode platform]:
+
+Genode Labs will support Tobias on his quest. His mentor will be long-time
+Genode developer Stefan Kalkowski. We are looking forward to working together
+on this intriguing topic!
+
+
 New dynamic run-time configuration support | 2012-04-11
 #######################################################
 
