@@ -22,7 +22,7 @@
 
 /* Noux includes */
 #include <file_descriptor_registry.h>
-#include <vfs.h>
+#include <dir_file_system.h>
 #include <signal_dispatcher.h>
 #include <noux_session/capability.h>
 #include <args.h>
@@ -195,7 +195,7 @@ namespace Noux {
 			 */
 			Environment _env;
 
-			Vfs * const _vfs;
+			Dir_file_system * const _root_dir;
 
 			/**
 			 * ELF binary
@@ -266,7 +266,7 @@ namespace Noux {
 			      Family_member    *parent,
 			      int               pid,
 			      Signal_receiver  *sig_rec,
-			      Vfs              *vfs,
+			      Dir_file_system  *root_dir,
 			      Args              const &args,
 			      char const       *env,
 			      char const       *pwd,
@@ -286,9 +286,9 @@ namespace Noux {
 				_resources(name, resources_ep, false),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
-				_vfs(vfs),
+				_root_dir(root_dir),
 				_binary_ds(forked ? Dataspace_capability()
-				                  : vfs->dataspace_from_file(name)),
+				                  : root_dir->dataspace(name)),
 				_sysio_ds(Genode::env()->ram_session(), SYSIO_DS_SIZE),
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
@@ -313,7 +313,7 @@ namespace Noux {
 
 				_entrypoint.dissolve(this);
 
-				_vfs->release_dataspace_for_file(_child_policy.name(), _binary_ds);
+				_root_dir->release(_child_policy.name(), _binary_ds);
 			}
 
 			void start() { _entrypoint.activate(); }

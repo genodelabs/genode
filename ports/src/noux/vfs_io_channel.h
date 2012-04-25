@@ -17,23 +17,33 @@
 /* Noux includes */
 #include <io_channel.h>
 #include <file_system.h>
+#include <dir_file_system.h>
 #include <pwd.h>
 
 namespace Noux {
 
 	struct Vfs_io_channel : public Io_channel
 	{
-		Vfs        *_vfs;
 		Vfs_handle *_fh;
 
 		Absolute_path _path;
+		Absolute_path _leaf_path;
 
-		Vfs_io_channel(char const *path, Vfs *vfs, Vfs_handle *vfs_handle)
-		: _vfs(vfs), _fh(vfs_handle), _path(path) { }
+		Vfs_io_channel(char const *path, char const *leaf_path,
+		               Dir_file_system *root_dir, Vfs_handle *vfs_handle)
+		: _fh(vfs_handle), _path(path), _leaf_path(leaf_path) { }
 
-		~Vfs_io_channel() { _vfs->close(_fh); }
+		~Vfs_io_channel() { destroy(env()->heap(), _fh); }
 
-		bool write(Sysio *sysio) { return _fh->fs()->write(sysio, _fh); }
+		bool write(Sysio *sysio, size_t &count)
+		{
+			if (!_fh->fs()->write(sysio, _fh))
+				return false;
+
+			count = sysio->write_out.count;
+			_fh->_seek += count;
+			return true;
+		}
 
 		bool read(Sysio *sysio)
 		{
@@ -44,15 +54,14 @@ namespace Noux {
 			return true;
 		}
 
-		bool fstat(Sysio *sysio) { return _fh->ds()->stat(sysio, _path.base()); }
+		bool fstat(Sysio *sysio)
+		{
+			return _fh->ds()->stat(sysio, _leaf_path.base());
+		}
 
 		bool fcntl(Sysio *sysio)
 		{
 			switch (sysio->fcntl_in.cmd) {
-
-			case Sysio::FCNTL_CMD_SET_FD_FLAGS:
-
-				return true;
 
 			case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
 
@@ -73,12 +82,18 @@ namespace Noux {
 			return true;
 		}
 
+		/*
+		 * The 'dirent' function for the root directory only (the
+		 * 'Dir_file_system::open()' function handles all requests referring
+		 * to directories). Hence, '_path' is the absolute path of the
+		 * directory to inspect.
+		 */
 		bool dirent(Sysio *sysio)
 		{
 			/*
 			 * Return artificial dir entries for "." and ".."
 			 */
-			unsigned const index = sysio->dirent_in.index;
+			unsigned const index = _fh->seek() / sizeof(Sysio::Dirent);
 			if (index < 2) {
 				sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY;
 				strncpy(sysio->dirent_out.entry.name,
@@ -86,15 +101,46 @@ namespace Noux {
 				        sizeof(sysio->dirent_out.entry.name));
 
 				sysio->dirent_out.entry.fileno = 1;
+				_fh->_seek += sizeof(Sysio::Dirent);
 				return true;
 			}
 
 			/*
-			 * Delegate remaining dir-entry request to the actual file
-			 * system.
+			 * Delegate remaining dir-entry request to the actual file system.
+			 * Align index range to zero when calling the directory service.
 			 */
-			sysio->dirent_in.index -= 2;
-			return _fh->ds()->dirent(sysio, _path.base());
+
+			if (!_fh->ds()->dirent(sysio, _path.base(), index - 2))
+				return false;
+
+			_fh->_seek += sizeof(Sysio::Dirent);
+			return true;
+		}
+
+		/**
+		 * Return size of file that the I/O channel refers to
+		 *
+		 * Note that this function overwrites the 'sysio' argument. Do not
+		 * call it prior saving all input arguments from the original sysio
+		 * structure.
+		 */
+		size_t size(Sysio *sysio)
+		{
+			if (fstat(sysio))
+				return sysio->stat_out.st.size;
+
+			return 0;
+		}
+
+		bool lseek(Sysio *sysio)
+		{
+			switch (sysio->lseek_in.whence) {
+			case Sysio::LSEEK_SET: _fh->_seek = sysio->lseek_in.offset; break;
+			case Sysio::LSEEK_CUR:  break;
+			case Sysio::LSEEK_END: _fh->_seek = size(sysio); break;
+			}
+			sysio->lseek_out.offset = _fh->_seek;
+			return true;
 		}
 
 		bool check_unblock(bool rd, bool wr, bool ex) const

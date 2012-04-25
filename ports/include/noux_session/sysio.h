@@ -58,6 +58,17 @@ namespace Noux {
 
 		typedef __SIZE_TYPE__ size_t;
 
+		/**
+		 * Flags of 'mode' argument of open syscall
+		 */
+		enum {
+			OPEN_MODE_RDONLY  = 0,
+			OPEN_MODE_WRONLY  = 1,
+			OPEN_MODE_RDWR    = 2,
+			OPEN_MODE_ACCMODE = 3,
+			OPEN_MODE_CREATE  = 0x0200,
+		};
+
 		enum {
 			STAT_MODE_SYMLINK   = 0120000,
 			STAT_MODE_FILE      = 0100000,
@@ -99,6 +110,8 @@ namespace Noux {
 				} tiocgwinsz;
 			};
 		};
+
+		enum Lseek_whence { LSEEK_SET, LSEEK_CUR, LSEEK_END };
 
 		enum { DIRENT_MAX_NAME_LEN = 128 };
 
@@ -208,8 +221,14 @@ namespace Noux {
 		enum General_error { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
 		enum Stat_error    { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
 		enum Fcntl_error   { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
-		enum Open_error    { OPEN_ERR_UNACCESSIBLE = NUM_GENERAL_ERRORS };
+		enum Open_error    { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM };
 		enum Execve_error  { EXECVE_NONEXISTENT    = NUM_GENERAL_ERRORS };
+		enum Unlink_error  { UNLINK_ERR_NO_ENTRY, UNLINK_ERR_NO_PERM };
+		enum Rename_error  { RENAME_ERR_NO_ENTRY, RENAME_ERR_CROSS_FS,
+		                     RENAME_ERR_NO_PERM };
+		enum Mkdir_error   { MKDIR_ERR_EXISTS,   MKDIR_ERR_NO_ENTRY,
+		                     MKDIR_ERR_NO_SPACE, MKDIR_ERR_NO_PERM,
+		                     MKDIR_ERR_NAME_TOO_LONG};
 
 		union {
 			General_error general;
@@ -217,13 +236,17 @@ namespace Noux {
 			Fcntl_error   fcntl;
 			Open_error    open;
 			Execve_error  execve;
+			Unlink_error  unlink;
+			Rename_error  rename;
+			Mkdir_error   mkdir;
 		} error;
 
 		union {
 
 			SYSIO_DECL(getcwd, { }, { Path path; });
 
-			SYSIO_DECL(write,  { int fd; size_t count; Chunk chunk; }, { });
+			SYSIO_DECL(write,  { int fd; size_t count; Chunk chunk; },
+			                   { size_t count; });
 
 			SYSIO_DECL(stat,   { Path path; }, { Stat st; });
 
@@ -238,7 +261,10 @@ namespace Noux {
 
 			SYSIO_DECL(ioctl,  : Ioctl_in { int fd; }, : Ioctl_out { });
 
-			SYSIO_DECL(dirent, { int fd; int index; }, { Dirent entry; });
+			SYSIO_DECL(lseek,  { int fd; off_t offset; Lseek_whence whence; },
+			                   { off_t offset; });
+
+			SYSIO_DECL(dirent, { int fd; }, { Dirent entry; });
 
 			SYSIO_DECL(fchdir, { int fd; }, { });
 
@@ -261,6 +287,12 @@ namespace Noux {
 			SYSIO_DECL(pipe,   { }, { int fd[2]; });
 
 			SYSIO_DECL(dup2,   { int fd; int to_fd; }, { });
+
+			SYSIO_DECL(unlink, { Path path; }, { });
+
+			SYSIO_DECL(rename, { Path from_path; Path to_path; }, { });
+
+			SYSIO_DECL(mkdir, { Path path; int mode; }, { });
 		};
 	};
 };

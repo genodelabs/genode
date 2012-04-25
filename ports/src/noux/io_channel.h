@@ -44,6 +44,10 @@ namespace Noux {
 
 		public:
 
+			bool close_on_execve;
+
+			Io_channel() : close_on_execve(false) { }
+
 			virtual ~Io_channel() { }
 
 			virtual bool  write(Sysio *sysio, size_t &count) { return false; }
@@ -53,6 +57,7 @@ namespace Noux {
 			virtual bool fchdir(Sysio *sysio, Pwd *pwd)      { return false; }
 			virtual bool dirent(Sysio *sysio)                { return false; }
 			virtual bool  ioctl(Sysio *sysio)                { return false; }
+			virtual bool  lseek(Sysio *sysio)                { return false; }
 
 			/**
 			 * Return true if an unblocking condition of the channel is satisfied

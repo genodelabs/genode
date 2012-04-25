@@ -122,7 +122,7 @@ static void _sysio_to_stat_struct(Noux::Sysio const *sysio, struct stat *buf)
 }
 
 
-static int _stat(const char *path, struct stat *buf, bool lstat = false)
+static int _stat(char const *path, struct stat *buf, bool lstat = false)
 {
 	if ((path == NULL) or (buf == NULL)) {
 		errno = EFAULT;
@@ -144,7 +144,7 @@ static int _stat(const char *path, struct stat *buf, bool lstat = false)
 }
 
 
-extern "C" int lstat(const char *path, struct stat *buf) { return _stat(path, buf, true);  }
+extern "C" int lstat(char const *path, struct stat *buf) { return _stat(path, buf, true);  }
 
 
 static bool serialize_string_array(char const * const * array, char *dst, Genode::size_t dst_len)
@@ -166,7 +166,7 @@ static bool serialize_string_array(char const * const * array, char *dst, Genode
 }
 
 
-extern "C" int execve(const char *filename, char *const argv[],
+extern "C" int execve(char const *filename, char *const argv[],
                       char *const envp[])
 {
 	if (verbose) {
@@ -383,6 +383,20 @@ extern "C" pid_t getpid(void)
 }
 
 
+extern "C" int access(char const *pathname, int mode)
+{
+	PDBG("access '%s' (mode=%x) called, not implemented", pathname, mode);
+	return 0;
+}
+
+
+extern "C" int chmod(char const *path, mode_t mode)
+{
+	PDBG("chmod '%s' to 0x%x not implemented", path, mode);
+	return 0;
+}
+
+
 extern "C" pid_t _wait4(pid_t pid, int *status, int options,
                         struct rusage *rusage)
 {
@@ -496,35 +510,42 @@ namespace {
 				_stderr(Libc::file_descriptor_allocator()->alloc(this, noux_context(2), 2))
 			{ }
 
-			bool supports_chdir(const char *)     { return true; }
-			bool supports_open(const char *, int) { return true; }
-			bool supports_stat(const char *)      { return true; }
-			bool supports_pipe()                  { return true; }
+			bool supports_chdir(char const *)                { return true; }
+			bool supports_open(char const *, int)            { return true; }
+			bool supports_stat(char const *)                 { return true; }
+			bool supports_pipe()                             { return true; }
+			bool supports_unlink(char const *)               { return true; }
+			bool supports_rename(const char *, const char *) { return true; }
+			bool supports_mkdir(const char *, mode_t)        { return true; }
 
-			Libc::File_descriptor *open(const char *, int);
+			Libc::File_descriptor *open(char const *, int);
 			ssize_t write(Libc::File_descriptor *, const void *, ::size_t);
 			int close(Libc::File_descriptor *);
 			int dup2(Libc::File_descriptor *, Libc::File_descriptor *);
 			int fstat(Libc::File_descriptor *, struct stat *);
+			int fsync(Libc::File_descriptor *);
 			int fstatfs(Libc::File_descriptor *, struct statfs *);
 			int fcntl(Libc::File_descriptor *, int, long);
 			ssize_t getdirentries(Libc::File_descriptor *, char *, ::size_t, ::off_t *);
 			::off_t lseek(Libc::File_descriptor *, ::off_t offset, int whence);
 			int fchdir(Libc::File_descriptor *);
 			ssize_t read(Libc::File_descriptor *, void *, ::size_t);
-			int stat(const char *, struct stat *);
+			int stat(char const *, struct stat *);
 			int ioctl(Libc::File_descriptor *, int request, char *argp);
 			int pipe(Libc::File_descriptor *pipefd[2]);
+			int unlink(char const *path);
+			int rename(const char *oldpath, const char *newpath);
+			int mkdir(const char *path, mode_t mode);
 	};
 
 
-	int Plugin::stat(const char *path, struct stat *buf)
+	int Plugin::stat(char const *path, struct stat *buf)
 	{
 		return _stat(path, buf, false);
 	}
 
 
-	Libc::File_descriptor *Plugin::open(const char *pathname, int flags)
+	Libc::File_descriptor *Plugin::open(char const *pathname, int flags)
 	{
 		if (Genode::strlen(pathname) + 1 > sizeof(sysio()->open_in.path)) {
 			errno = ENAMETOOLONG;
@@ -549,6 +570,7 @@ namespace {
 
 	int Plugin::fstatfs(Libc::File_descriptor *, struct statfs *buf)
 	{
+		buf->f_flags = MNT_UNION;
 		return 0;
 	}
 
@@ -556,11 +578,6 @@ namespace {
 	ssize_t Plugin::write(Libc::File_descriptor *fd, const void *buf,
 	                      ::size_t count)
 	{
-		if (fd != _stdout && fd != _stderr) {
-			errno = EBADF;
-			return -1;
-		}
-
 		/* remember original len for the return value */
 		int const orig_count = count;
 
@@ -574,7 +591,7 @@ namespace {
 			Genode::memcpy(sysio()->write_in.chunk, src, curr_count);
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_WRITE)) {
-				PERR("write error %d", sysio()->error.general);
+				PERR("write error %d (fd %d)", sysio()->error.general, noux_fd(fd->context));
 			}
 
 			count -= curr_count;
@@ -750,11 +767,51 @@ namespace {
 	}
 
 
+	int Plugin::fsync(Libc::File_descriptor *fd)
+	{
+		PDBG("not implemented");
+		return 0;
+	}
+
+
 	int Plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 	{
 		/* copy arguments to sysio */
 		sysio()->fcntl_in.fd = noux_fd(fd->context);
 		switch (cmd) {
+
+		case F_DUPFD:
+			{
+				/*
+				 * Allocate free file descriptor locally. Noux FDs are expected
+				 * to correspond one-to-one to libc FDs.
+				 */
+				Libc::File_descriptor *new_fd =
+					Libc::file_descriptor_allocator()->alloc(this, 0);
+
+				new_fd->context = noux_context(new_fd->libc_fd);
+
+				/*
+				 * Use new allocated number as name of file descriptor
+				 * duplicate.
+				 */
+				if (dup2(fd, new_fd)) {
+					PERR("Plugin::fcntl: dup2 unexpectedly failed");
+					errno = EINVAL;
+					return -1;
+				}
+
+				return new_fd->libc_fd;
+			}
+
+		case F_GETFD:
+			/*
+			 * Normally, we would return the file-descriptor flags.
+			 *
+			 * XXX: FD_CLOEXEC not yet supported
+			 */
+			PWRN("fcntl(F_GETFD) not implemented, returning 0");
+			return 0;
 
 		case F_SETFD:
 			sysio()->fcntl_in.cmd      = Noux::Sysio::FCNTL_CMD_SET_FD_FLAGS;
@@ -793,10 +850,7 @@ namespace {
 			return -1;
 		}
 
-		unsigned const curr_offset = *basep;
-
 		sysio()->dirent_in.fd = noux_fd(fd->context);
-		sysio()->dirent_in.index = curr_offset / sizeof(struct dirent);
 
 		struct dirent *dirent = (struct dirent *)buf;
 		Genode::memset(dirent, 0, sizeof(struct dirent));
@@ -837,13 +891,29 @@ namespace {
 	::off_t Plugin::lseek(Libc::File_descriptor *fd,
 	                      ::off_t offset, int whence)
 	{
-		PWRN("lseek - not implemented: fd=%d, offset=%ld, whence=%d",
-		     noux_fd(fd->context), (long)offset, whence);
+		sysio()->lseek_in.fd = noux_fd(fd->context);
+		sysio()->lseek_in.offset = offset;
 
-		if (whence == SEEK_SET)
-			return offset;
+		switch (whence) {
+		default:
+		case SEEK_SET: sysio()->lseek_in.whence = Noux::Sysio::LSEEK_SET; break;
+		case SEEK_CUR: sysio()->lseek_in.whence = Noux::Sysio::LSEEK_CUR; break;
+		case SEEK_END: sysio()->lseek_in.whence = Noux::Sysio::LSEEK_END; break;
+		}
 
-		return 0;
+		if (!noux()->syscall(Noux::Session::SYSCALL_LSEEK)) {
+			switch (sysio()->error.general) {
+
+			case Noux::Sysio::ERR_FD_INVALID:
+				errno = EBADF;
+				PERR("dirent: ERR_FD_INVALID");
+				return -1;
+
+			case Noux::Sysio::NUM_GENERAL_ERRORS: return -1;
+			}
+		}
+
+		return sysio()->lseek_out.offset;
 	}
 
 
@@ -856,6 +926,62 @@ namespace {
 			return -1;
 		}
 
+		return 0;
+	}
+
+
+	int Plugin::unlink(char const *path)
+	{
+		Genode::strncpy(sysio()->unlink_in.path, path, sizeof(sysio()->unlink_in.path));
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_UNLINK)) {
+			PWRN("unlink syscall failed for path \"%s\"", path);
+			switch (sysio()->error.unlink) {
+			case Noux::Sysio::UNLINK_ERR_NO_ENTRY: errno = ENOENT; break;
+			default:                               errno = EPERM;  break;
+			}
+			return -1;
+		}
+
+		return 0;
+	}
+
+
+	int Plugin::rename(char const *from_path, char const *to_path)
+	{
+		Genode::strncpy(sysio()->rename_in.from_path, from_path, sizeof(sysio()->rename_in.from_path));
+		Genode::strncpy(sysio()->rename_in.to_path,   to_path,   sizeof(sysio()->rename_in.to_path));
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_RENAME)) {
+			PWRN("rename syscall failed for \"%s\" -> \"%s\"", from_path, to_path);
+			switch (sysio()->error.rename) {
+			case Noux::Sysio::RENAME_ERR_NO_ENTRY: errno = ENOENT; break;
+			case Noux::Sysio::RENAME_ERR_CROSS_FS: errno = EXDEV;  break;
+			case Noux::Sysio::RENAME_ERR_NO_PERM:  errno = EPERM;  break;
+			default:                               errno = EPERM;  break;
+			}
+			return -1;
+		}
+
+		return 0;
+	}
+
+	int Plugin::mkdir(const char *path, mode_t mode)
+	{
+		Genode::strncpy(sysio()->mkdir_in.path, path, sizeof(sysio()->mkdir_in.path));
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_MKDIR)) {
+			PWRN("mkdir syscall failed for \"%s\" mode=0x%x", path, (int)mode);
+			switch (sysio()->error.mkdir) {
+			case Noux::Sysio::MKDIR_ERR_EXISTS:        errno = EEXIST;       break;
+			case Noux::Sysio::MKDIR_ERR_NO_ENTRY:      errno = ENOENT;       break;
+			case Noux::Sysio::MKDIR_ERR_NO_SPACE:      errno = ENOSPC;       break;
+			case Noux::Sysio::MKDIR_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; break;
+			case Noux::Sysio::MKDIR_ERR_NO_PERM:       errno = EPERM;        break;
+			default:                                   errno = EPERM;        break;
+			}
+			return -1;
+		}
 		return 0;
 	}
 

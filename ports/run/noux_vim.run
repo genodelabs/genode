@@ -90,7 +90,7 @@ append config {
 		<start name="noux">
 			<resource name="RAM" quantum="1G"/>
 			<config>
-				<fstab> <tar name="vim.tar" at="/"/> </fstab>
+				<fstab> <tar name="vim.tar" /> </fstab>
 				<start name="/bin/vim">
 					<env name="TERM" value="linux" />
 

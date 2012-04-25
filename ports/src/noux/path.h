@@ -59,9 +59,10 @@ namespace Noux {
 					path[i] = 0;
 			}
 
-			static char const *last_element(char const *path)
+			template <typename T>
+			static T *last_element(T *path)
 			{
-				char const *result = path;
+				T *result = path;
 				for (; *path; path++)
 					if (path[0] == '/' && path[1] != 0)
 						result = path;
@@ -199,10 +200,8 @@ namespace Noux {
 						_append_slash_if_needed();
 						_append(relative_path);
 					}
-//					PDBG("path: '%s'", _path);
 				}
 				_canonicalize();
-//				PDBG("canonical path: '%s'", _path);
 			}
 
 		public:
@@ -229,6 +228,11 @@ namespace Noux {
 					*dst++ = *src++;
 
 				*dst = 0;
+			}
+
+			void strip_last_element()
+			{
+				last_element(_path)[1] = 0;
 			}
 
 			bool equals(Path_base const &ref) const { return strcmp(ref._path, _path) == 0; }
@@ -269,7 +273,7 @@ namespace Noux {
 				return (num_slashes == 1) && !equals("/");
 			}
 
-			void append(char const *str) { _append(str); }
+			void append(char const *str) { _append(str); _canonicalize(); }
 	};
 
 

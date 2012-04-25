@@ -34,8 +34,8 @@
  * ;- import env into child (execve and fork)
  * ;- shell
  * - debug 'find'
- * - stacked file system infrastructure
- * - TMP file system
+ * ;- stacked file system infrastructure
+ * ;- TMP file system
  * ;- RAM service using a common quota pool
  */
 
@@ -49,8 +49,7 @@
 #include <terminal_io_channel.h>
 #include <dummy_input_io_channel.h>
 #include <pipe_io_channel.h>
-#include <root_file_system.h>
-#include <tar_file_system.h>
+#include <dir_file_system.h>
 
 
 enum { verbose_syscall = false };
@@ -121,8 +120,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_STAT:
 		case SYSCALL_LSTAT: /* XXX implement difference between 'lstat' and 'stat' */
 
-			return _vfs->stat(_sysio, Absolute_path(_sysio->stat_in.path,
-			                                        _env.pwd()).base());
+			return _root_dir->stat(_sysio, Absolute_path(_sysio->stat_in.path,
+			                                             _env.pwd()).base());
 
 		case SYSCALL_FSTAT:
 
@@ -130,28 +129,41 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_FCNTL:
 
+			if (_sysio->fcntl_in.cmd == Sysio::FCNTL_CMD_SET_FD_FLAGS) {
+
+				/* we assume that there is only the close-on-execve flag */
+				_lookup_channel(_sysio->fcntl_in.fd)->close_on_execve =
+					!!_sysio->fcntl_in.long_arg;
+				return true;
+			}
+
 			return _lookup_channel(_sysio->fcntl_in.fd)->fcntl(_sysio);
 
 		case SYSCALL_OPEN:
 			{
 				Absolute_path absolute_path(_sysio->open_in.path, _env.pwd());
 
-				PINF("open pwd=%s path=%s", _env.pwd(), _sysio->open_in.path);
-
-				/* remember mode only for debug output */
-				int const mode = _sysio->open_in.mode;
-
-				Vfs_handle *vfs_handle = _vfs->open(_sysio, absolute_path.base());
+				Vfs_handle *vfs_handle = _root_dir->open(_sysio, absolute_path.base());
 				if (!vfs_handle)
 					return false;
 
-				Shared_pointer<Io_channel> channel(new Vfs_io_channel(absolute_path.base(), _vfs, vfs_handle),
-				                                   Genode::env()->heap());
+				char const *leaf_path = _root_dir->leaf_path(absolute_path.base());
+
+				/*
+				 * File descriptors of opened directories are handled by
+				 * '_root_dir'. In this case, we use the absolute path as leaf
+				 * path because path operations always refer to the global
+				 * root.
+				 */
+				if (vfs_handle->ds() == _root_dir)
+					leaf_path = absolute_path.base();
+
+				Shared_pointer<Io_channel>
+					channel(new Vfs_io_channel(absolute_path.base(),
+					                           leaf_path, _root_dir, vfs_handle),
+					        Genode::env()->heap());
 
 				_sysio->open_out.fd = add_io_channel(channel);
-
-				PINF("open fd %d for \"%s\" with mode %o",
-				     _sysio->open_out.fd, absolute_path.base(), mode);
 				return true;
 			}
 
@@ -165,6 +177,10 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 			return _lookup_channel(_sysio->ioctl_in.fd)->ioctl(_sysio);
 
+		case SYSCALL_LSEEK:
+
+			return _lookup_channel(_sysio->lseek_in.fd)->lseek(_sysio);
+
 		case SYSCALL_DIRENT:
 
 			return _lookup_channel(_sysio->dirent_in.fd)->dirent(_sysio);
@@ -175,7 +191,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_EXECVE:
 			{
-				char const *filename = _sysio->execve_in.filename;
+				Absolute_path absolute_path(_sysio->execve_in.filename, _env.pwd());
 
 				/*
 				 * Deserialize environment variable buffer into a
@@ -208,11 +224,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					j += strlen(src);
 				}
 
-				Child *child = new Child(filename,
+				Child *child = new Child(absolute_path.base(),
 				                         parent(),
 				                         pid(),
 				                         _sig_rec,
-				                         _vfs,
+				                         _root_dir,
 				                         Args(_sysio->execve_in.args,
 				                              sizeof(_sysio->execve_in.args)),
 				                         env,
@@ -350,7 +366,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         this,
 				                         new_pid,
 				                         _sig_rec,
-				                         _vfs,
+				                         _root_dir,
 				                         _args,
 				                         _env.env(),
 				                         _env.pwd(),
@@ -424,6 +440,23 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				               _sysio->dup2_in.to_fd);
 				return true;
 			}
+
+		case SYSCALL_UNLINK:
+
+			return _root_dir->unlink(_sysio, Absolute_path(_sysio->unlink_in.path,
+			                                               _env.pwd()).base());
+
+		case SYSCALL_RENAME:
+
+			return _root_dir->rename(_sysio, Absolute_path(_sysio->rename_in.from_path,
+			                                               _env.pwd()).base(),
+			                                 Absolute_path(_sysio->rename_in.to_path,
+			                                               _env.pwd()).base());
+
+		case SYSCALL_MKDIR:
+
+			return _root_dir->mkdir(_sysio, Absolute_path(_sysio->mkdir_in.path,
+			                                              _env.pwd()).base());
 
 		case SYSCALL_INVALID: break;
 		}
@@ -568,15 +601,8 @@ int main(int argc, char **argv)
 	static Genode::Cap_connection cap;
 
 	/* initialize virtual file system */
-	static Vfs vfs;
-
-	try {
-		Genode::Xml_node fs = Genode::config()->xml_node().sub_node("fstab").sub_node();
-		for (; ; fs = fs.next()) {
-			if (fs.has_type("tar"))
-				vfs.add_file_system(new Tar_file_system(fs));
-		}
-	} catch (Genode::Xml_node::Nonexistent_sub_node) { }
+	static Dir_file_system
+		root_dir(config()->xml_node().sub_node("fstab"));
 
 	/*
 	 * Entrypoint used to virtualize child resources such as RAM, RM
@@ -591,7 +617,7 @@ int main(int argc, char **argv)
 	                             0,
 	                             pid_allocator()->alloc(),
 	                             &sig_rec,
-	                             &vfs,
+	                             &root_dir,
 	                             args_of_init_process(),
 	                             env_string_of_init_process(),
 	                             "/",
