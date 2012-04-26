@@ -1,0 +1,13 @@
+Index: kernel/fiasco/src/jdb/jdb_kobject_names.cpp
+===================================================================
+--- kernel/fiasco/src/jdb/jdb_kobject_names.cpp	(revision 38)
++++ kernel/fiasco/src/jdb/jdb_kobject_names.cpp	(working copy)
+@@ -43,7 +43,7 @@
+ 
+ enum
+ {
+-  Name_buffer_size = 8192,
++  Name_buffer_size = 4*8192,
+   Name_entries = Name_buffer_size / sizeof(Jdb_kobject_name),
+ };
+ 

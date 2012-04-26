@@ -12,3 +12,9 @@ required for using this kernel with Genode.
   On the occurrence of undefined-instruction exceptions on ARM, Fiasco.OC
   reports a wrong program-counter value to the exception handler. The patch
   fixes the problem.
+
+:'jdb_kobject_names.patch':
+
+  This patch increases the size of the JDB kernel object names buffer. The
+  original size was too small for some Genode scenarios and caused missing
+  thread names in the kernel debugger thread list.
