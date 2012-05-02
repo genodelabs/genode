@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/heap.h>
 #include <base/rpc_server.h>
 #include <base/signal.h>
 #include <base/sleep.h>
@@ -24,6 +25,7 @@
 /* local includes */
 #include <child.h>
 #include <nitpicker.h>
+#include <ram_session_client_guard.h>
 #include <rom.h>
 
 
@@ -39,6 +41,7 @@ namespace Loader {
 			struct Local_rom_service : Service
 			{
 				Rpc_entrypoint             &_ep;
+				Allocator                  &_md_alloc;
 				Parent_service              _parent_rom_service;
 				Rom_module_registry        &_rom_modules;
 				Lock                        _lock;
@@ -47,15 +50,17 @@ namespace Loader {
 				void _close(Rom_session_component *rom)
 				{
 					_ep.dissolve(rom);
-					destroy(env()->heap(), rom);
+					destroy(&_md_alloc, rom);
 					_rom_sessions.remove(rom);
 				}
 
 				Local_rom_service(Rpc_entrypoint      &ep,
+				                  Allocator           &md_alloc,
 				                  Rom_module_registry &rom_modules)
 				:
 					Service("virtual_rom"),
 					_ep(ep),
+					_md_alloc(md_alloc),
 					_parent_rom_service(Rom_session::service_name()),
 					_rom_modules(rom_modules)
 				{ }
@@ -82,7 +87,7 @@ namespace Loader {
 
 						Rom_module &module = _rom_modules.lookup_and_lock(name);
 
-						Rom_session_component *rom = new (env()->heap())
+						Rom_session_component *rom = new (&_md_alloc)
 							Rom_session_component(module);
 
 						_rom_sessions.insert(rom);
@@ -118,14 +123,19 @@ namespace Loader {
 			struct Local_nitpicker_service : Service
 			{
 				Rpc_entrypoint &ep;
+				Allocator      &_md_alloc;
 
 				Signal_context_capability view_ready_sigh;
 
 				Nitpicker::Session_component *open_session;
 
-				Local_nitpicker_service(Rpc_entrypoint &ep)
+				Local_nitpicker_service(Rpc_entrypoint &ep,
+				                        Allocator &md_alloc)
 				:
-					Service("virtual_nitpicker"), ep(ep), open_session(0)
+					Service("virtual_nitpicker"),
+					ep(ep),
+					_md_alloc(md_alloc),
+					open_session(0)
 				{ }
 
 				~Local_nitpicker_service()
@@ -134,7 +144,7 @@ namespace Loader {
 						return;
 
 					ep.dissolve(open_session);
-					destroy(env()->heap(), open_session);
+					destroy(&_md_alloc, open_session);
 				}
 
 				Genode::Session_capability session(const char *args)
@@ -142,11 +152,7 @@ namespace Loader {
 					if (open_session)
 						throw Unavailable();
 
-					/*
-					 * XXX replace allocation from 'env()->heap()' with
-					 *     use of session-specific allocator
-					 */
-					open_session = new (env()->heap())
+					open_session = new (&_md_alloc)
 						Nitpicker::Session_component(ep, view_ready_sigh, args);
 
 					return ep.manage(open_session);
@@ -158,6 +164,8 @@ namespace Loader {
 			enum { STACK_SIZE = 2*4096 };
 
 			size_t                    _ram_quota;
+			Ram_session_client_guard  _ram_session_client;
+			Heap                      _md_alloc;
 			size_t                    _subsystem_ram_quota_limit;
 			int                       _width, _height;
 			Rpc_entrypoint            _ep;
@@ -186,19 +194,21 @@ namespace Loader {
 			Session_component(size_t quota, Ram_session &ram, Cap_session &cap)
 			:
 				_ram_quota(quota),
-				_subsystem_ram_quota_limit(~0),
+				_ram_session_client(env()->ram_session_cap(), _ram_quota),
+				_md_alloc(&_ram_session_client, env()->rm_session()),
+				_subsystem_ram_quota_limit(0),
 				_width(-1), _height(-1),
 				_ep(&cap, STACK_SIZE, "session_ep"),
-				_rom_modules(ram, *env()->heap()), /* XXX remove env()->heap() */
-				_rom_service(_ep, _rom_modules),
-				_nitpicker_service(_ep),
+				_rom_modules(_ram_session_client, _md_alloc),
+				_rom_service(_ep, _md_alloc, _rom_modules),
+				_nitpicker_service(_ep, _md_alloc),
 				_child(0)
 			{ }
 
 			~Session_component()
 			{
 				if (_child)
-					destroy(env()->heap(), _child);
+					destroy(&_md_alloc, _child);
 			}
 
 
@@ -241,18 +251,14 @@ namespace Loader {
 					return;
 				}
 
-				/*
-				 * XXX account for ROM modules
-				 */
-				size_t const ram_quota = _subsystem_ram_quota_limit;
+				size_t const ram_quota = (_subsystem_ram_quota_limit > 0) ?
+				                         min(_subsystem_ram_quota_limit, _ram_session_client.avail()) :
+				                         _ram_session_client.avail();
 
-				/*
-				 * XXX don't use 'env()->heap()'
-				 */
-				_child = new (env()->heap())
+				_child = new (&_md_alloc)
 					Child(binary_name.string(), label.string(), _ep,
-					      ram_quota, _parent_services, _rom_service,
-					      _nitpicker_service, _width, _height);
+					      _ram_session_client, ram_quota, _parent_services,
+					      _rom_service, _nitpicker_service, _width, _height);
 			}
 
 			Nitpicker::View_capability view()

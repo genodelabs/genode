@@ -77,7 +77,7 @@ namespace Genode {
 		virtual int ref_account(Ram_session_capability ram_session) = 0;
 
 		/**
-		 * Transfer quota the another ram session
+		 * Transfer quota to another RAM session
 		 *
 		 * \param ram_session  receiver of quota donation
 		 * \param amount       amount of quota to donate

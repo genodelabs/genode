@@ -44,7 +44,9 @@ namespace Loader {
 				Cpu_connection cpu;
 				Rm_connection  rm;
 
-				Resources(char const *label, size_t ram_quota)
+				Resources(char const *label,
+				          Ram_session_client &ram_session_client,
+				          size_t ram_quota)
 				: ram(label), cpu(label)
 				{
 					/* deduce session costs from usable ram quota */
@@ -56,8 +58,8 @@ namespace Loader {
 						ram_quota -= session_donations;
 					else ram_quota = 0;
 
-					ram.ref_account(env()->ram_session_cap());
-					env()->ram_session()->transfer_quota(ram.cap(), ram_quota);
+					ram.ref_account(ram_session_client);
+					ram_session_client.transfer_quota(ram.cap(), ram_quota);
 				}
 			} _resources;
 
@@ -87,6 +89,7 @@ namespace Loader {
 			Child(const char *binary_name,
 			      const char *label,
 			      Rpc_entrypoint &ep,
+			      Ram_session_client &ram_session_client,
 			      size_t ram_quota,
 			      Service_registry &parent_services,
 			      Service &local_rom_service,
@@ -95,7 +98,7 @@ namespace Loader {
 			:
 				_label(label),
 				_ep(ep),
-				_resources(_label.string, ram_quota),
+				_resources(_label.string, ram_session_client, ram_quota),
 				_parent_services(parent_services),
 				_local_nitpicker_service(local_nitpicker_service),
 				_local_rom_service(local_rom_service),
