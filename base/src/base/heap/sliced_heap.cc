@@ -29,6 +29,8 @@ namespace Genode {
 			inline void *operator new(size_t size, void *at_addr) {
 				return at_addr; }
 
+			inline void operator delete (void*) { }
+
 			/**
 			 * Constructor
 			 */
@@ -106,6 +108,7 @@ void Sliced_heap::free(void *addr, size_t size)
 	_block_list.remove(b);
 	_consumed -= b->size();
 	Ram_dataspace_capability ds_cap = b->ds_cap();
+	delete b;
 	_rm_session->detach(b);
 	_ram_session->free(ds_cap);
 }
