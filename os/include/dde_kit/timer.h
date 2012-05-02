@@ -62,6 +62,16 @@ struct dde_kit_timer *dde_kit_timer_add(void (*fn)(void *), void *priv,
  */
 void dde_kit_timer_del(struct dde_kit_timer *timer);
 
+
+/**
+ * Schedule absolute timeout
+ *
+ * \param timer    timer reference
+ * \param timeout  absolute timeout (in DDE kit ticks)
+ */
+void dde_kit_timer_schedule_absolute(struct dde_kit_timer *timer, unsigned long timeout);
+
+
 /**
  * Check whether a timer is pending
  *

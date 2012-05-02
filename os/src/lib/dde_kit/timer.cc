@@ -149,8 +149,12 @@ class dde_kit_timer : public Alarm, public List<dde_kit_timer>::Element
 	public:
 
 		dde_kit_timer(void (*handler)(void *), void *priv, unsigned long absolute_timeout)
-		: _handler(handler), _priv(priv), _pending(true)
+		: _handler(handler), _priv(priv), _pending(true) {
+			schedule(absolute_timeout); }
+
+		void schedule(unsigned long absolute_timeout)
 		{
+			_pending = true;
 			_timer_thread->schedule_absolute(this, absolute_timeout);
 		}
 
@@ -181,6 +185,10 @@ extern "C" struct dde_kit_timer *dde_kit_timer_add(void (*fn)(void *), void *pri
 		return 0;
 	}
 }
+
+
+extern "C" void dde_kit_timer_schedule_absolute(struct dde_kit_timer *timer, unsigned long timeout) {
+	timer->schedule(timeout); }
 
 
 extern "C" void dde_kit_timer_del(struct dde_kit_timer *timer)
