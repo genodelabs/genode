@@ -1,0 +1,13 @@
+<config>
+	<parent-provides>
+		<service name="LOG"/>
+		<service name="Timer"/>
+		<service name="Nitpicker"/>
+	</parent-provides>
+	<default-route>
+        <any-service> <parent/> <any-child/> </any-service>
+    </default-route>
+	<start name="testnit">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>

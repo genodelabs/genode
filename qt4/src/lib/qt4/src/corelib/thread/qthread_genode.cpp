@@ -341,6 +341,7 @@ void QThread::terminate()
 			d->genode_thread = 0;
 			
 			d->terminated = true;
+			d->running = false;
 		}
 }
 

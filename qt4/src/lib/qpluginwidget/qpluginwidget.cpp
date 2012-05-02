@@ -6,6 +6,7 @@
 
 #include <base/env.h>
 #include <dataspace/client.h>
+#include <os/timed_semaphore.h>
 #include <rom_session/connection.h>
 #include <util/arg_string.h>
 
@@ -18,6 +19,70 @@
 #include <qpluginwidget/qpluginwidget.h>
 
 QPluginWidget *QPluginWidget::_last = 0;
+
+using namespace Genode;
+
+
+const char *config = " \
+<config> \
+    <parent-provides> \
+		<service name=\"CAP\"/> \
+		<service name=\"CPU\"/> \
+	    <service name=\"LOG\"/> \
+		<service name=\"PD\"/> \
+		<service name=\"RAM\"/> \
+		<service name=\"RM\"/> \
+		<service name=\"ROM\"/> \
+		<service name=\"Timer\"/> \
+		<service name=\"Nitpicker\"/> \
+    </parent-provides> \
+    <default-route> \
+        <any-service> <parent/> <any-child/> </any-service> \
+    </default-route> \
+	<start name=\"tar_rom\"> \
+	    <resource name=\"RAM\" quantum=\"1M\"/> \
+		<provides> <service name=\"ROM\"/> </provides> \
+		<config> \
+		    <archive name=\"plugin.tar\"/> \
+		</config> \
+	</start> \
+	<start name=\"init\"> \
+        <resource name=\"RAM\" quantum=\"2G\"/> \
+		<configfile name=\"config.plugin\"/> \
+        <route> \
+            <service name=\"ROM\"> \
+                <if-arg key=\"filename\" value=\"config.plugin\" /> \
+                <child name=\"tar_rom\"/> \
+            </service> \
+            <any-service> <parent /> </any-service> \
+        </route> \
+    </start> \
+</config> \
+";
+
+
+class Signal_wait_thread : public QThread
+{
+	private:
+
+		Signal_receiver &_signal_receiver;
+		Timed_semaphore &_timeout_semaphore;
+
+	protected:
+
+		void run()
+		{
+			_signal_receiver.wait_for_signal();
+			_timeout_semaphore.up();
+		}
+
+	public:
+
+		Signal_wait_thread(Signal_receiver &signal_receiver, Timed_semaphore &timeout_semaphore)
+		: _signal_receiver(signal_receiver),
+		  _timeout_semaphore(timeout_semaphore) { }
+};
+
 
 PluginStarter::PluginStarter(QUrl plugin_url, QString &args,
                              int max_width, int max_height)
@@ -43,22 +108,19 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 
 		PDBG("file_size_uncompressed = %u", file_size);
 
-		size_t ram_quota = Genode::Arg_string::find_arg(_args.constData(), "ram_quota").long_value(0) + file_size;
+		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").long_value(0) + file_size;
 
-		if ((long)Genode::env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
+		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
 			PERR("quota exceeded");
 			_plugin_loading_state = QUOTA_EXCEEDED_ERROR;
 			return;
 		}
 
-		QByteArray ram_quota_string("ram_quota=" + QByteArray::number((unsigned long long) ram_quota));
-		QByteArray ds_size_string("ds_size=" + QByteArray::number((unsigned long long)file_size));
-		QByteArray plugin_connection_args(ram_quota_string + "," + ds_size_string);
-		_pc = new Loader::Connection(plugin_connection_args.constData());
+		_pc = new Loader::Connection(ram_quota);
 
-		Genode::Dataspace_capability ds = _pc->dataspace();
+		Dataspace_capability ds = _pc->alloc_rom_module(file_name.toUtf8().constData(), file_size);
 		if (ds.valid()) {
-			void *ds_addr = Genode::env()->rm_session()->attach(ds);
+			void *ds_addr = env()->rm_session()->attach(ds);
 
 			z_stream zs;
 			zs.next_in = (Bytef*)(file_buf.data());
@@ -76,7 +138,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 				_plugin_loading_state = INFLATE_ERROR;
 
 				inflateEnd(&zs);
-				Genode::env()->rm_session()->detach(ds_addr);
+				env()->rm_session()->detach(ds_addr);
 				return;
 			}
 
@@ -86,45 +148,60 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 				_plugin_loading_state = INFLATE_ERROR;
 
 				inflateEnd(&zs);
-				Genode::env()->rm_session()->detach(ds_addr);
+				env()->rm_session()->detach(ds_addr);
 				return;
 			}
 
 			inflateEnd(&zs);
 
-			Genode::env()->rm_session()->detach(ds_addr);
+			env()->rm_session()->detach(ds_addr);
+			_pc->commit_rom_module(file_name.toUtf8().constData());
 		}
 	} else {
-		size_t ram_quota = Genode::Arg_string::find_arg(_args.constData(), "ram_quota").long_value(0);
+		size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").long_value(0);
 
-		if ((long)Genode::env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
+		if ((long)env()->ram_session()->avail() - (long)ram_quota < QPluginWidget::RAM_QUOTA) {
 			_plugin_loading_state = QUOTA_EXCEEDED_ERROR;
 			return;
 		}
 
-		QByteArray ram_quota_string("ram_quota=" + QByteArray::number((unsigned long long) ram_quota));
-		QByteArray ds_size_string("ds_size=" + QByteArray::number((unsigned long long)file_buf.size()));
-		QByteArray plugin_connection_args(ram_quota_string + "," + ds_size_string);
-		_pc = new Loader::Connection(plugin_connection_args.constData());
+		_pc = new Loader::Connection(ram_quota);
 
-		Genode::Dataspace_capability ds = _pc->dataspace();
-		if (ds.valid()) {
-			void *ds_addr = Genode::env()->rm_session()->attach(_pc->dataspace());
-
-			memcpy(ds_addr, file_buf.constData(), file_buf.size());
-
-			Genode::env()->rm_session()->detach(ds_addr);
+		Dataspace_capability plugin_ds = _pc->alloc_rom_module("plugin.tar", file_buf.size());
+		if (plugin_ds.valid()) {
+			void *plugin_ds_addr = env()->rm_session()->attach(plugin_ds);
+			::memcpy(plugin_ds_addr, file_buf.constData(), file_buf.size());
+			env()->rm_session()->detach(plugin_ds_addr);
+			_pc->commit_rom_module("plugin.tar");
 		}
 	}
 
-	try {
-		_pc->start(_args.constData(), _max_width, _max_height, 10000, file_name.toLatin1().constData());
-		_plugin_loading_state = LOADED;
-	} catch (Loader::Session::Rom_access_failed) {
-		_plugin_loading_state = ROM_CONNECTION_FAILED_EXCEPTION;
-	} catch (Loader::Session::Plugin_start_timed_out) {
-		_plugin_loading_state = TIMEOUT_EXCEPTION;
+	Dataspace_capability config_ds = _pc->alloc_rom_module("config", ::strlen(config) + 1);
+	if (config_ds.valid()) {
+		void *config_ds_addr = env()->rm_session()->attach(config_ds);
+		::memcpy(config_ds_addr, config, ::strlen(config) + 1);
+		env()->rm_session()->detach(config_ds_addr);
+		_pc->commit_rom_module("config");
 	}
+
+	Signal_receiver sig_rec;
+	Signal_context sig_ctx;
+
+	_pc->view_ready_sigh(sig_rec.manage(&sig_ctx));
+	_pc->constrain_geometry(_max_width, _max_height);
+	_pc->start("init", "init");
+
+	Timed_semaphore view_ready_semaphore;
+	Signal_wait_thread signal_wait_thread(sig_rec, view_ready_semaphore);
+	signal_wait_thread.start();
+	try {
+		view_ready_semaphore.down(10000);
+		_plugin_loading_state = LOADED;
+	} catch (Timeout_exception) {
+		_plugin_loading_state = TIMEOUT_EXCEPTION;
+		signal_wait_thread.terminate();
+	}
+	signal_wait_thread.wait();
 }
 
 
@@ -135,19 +212,19 @@ void PluginStarter::run()
 		QString file_name = _plugin_url.path().remove("/");
 
 		try {
-			Genode::Rom_connection rc(file_name.toLatin1().constData());
+			Rom_connection rc(file_name.toLatin1().constData());
 
-			Genode::Dataspace_capability rom_ds = rc.dataspace();
+			Dataspace_capability rom_ds = rc.dataspace();
 
-			char const *rom_ds_addr = (char const *)Genode::env()->rm_session()->attach(rom_ds);
+			char const *rom_ds_addr = (char const *)env()->rm_session()->attach(rom_ds);
 
-			QByteArray file_buf = QByteArray::fromRawData(rom_ds_addr, Genode::Dataspace_client(rom_ds).size());
+			QByteArray file_buf = QByteArray::fromRawData(rom_ds_addr, Dataspace_client(rom_ds).size());
 
 			_start_plugin(file_name, file_buf);
 
-			Genode::env()->rm_session()->detach(rom_ds_addr);
+			env()->rm_session()->detach(rom_ds_addr);
 
-		} catch (Genode::Rom_connection::Rom_connection_failed) {
+		} catch (Rom_connection::Rom_connection_failed) {
 			_plugin_loading_state = ROM_CONNECTION_FAILED_EXCEPTION;
 		}
 
@@ -195,7 +272,12 @@ void PluginStarter::networkReplyFinished()
 
 Nitpicker::View_capability PluginStarter::plugin_view(int *w, int *h, int *buf_x, int *buf_y)
 {
-	return _pc->view(w, h, buf_x, buf_y);
+	Loader::Session::View_geometry geometry = _pc->view_geometry();
+	if (w) *w = geometry.width;
+	if (h) *h = geometry.height;
+	if (buf_x) *buf_x = geometry.buf_x;
+	if (buf_y) *buf_y = geometry.buf_y;
+	return _pc->view();
 }
 
 
@@ -242,8 +324,6 @@ void QPluginWidget::cleanup()
 		_plugin_starter->exit();
 		/* wait until the thread has left the run() function */
 		_plugin_starter->wait();
-		/* terminate the Genode thread */
-		_plugin_starter->terminate();
 		/* delete the QThread object */
 		delete _plugin_starter;
 		_plugin_starter = 0;
