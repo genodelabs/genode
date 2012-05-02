@@ -325,16 +325,7 @@ namespace Genode {
 			Capability<RPC_INTERFACE>
 			manage(Rpc_object<RPC_INTERFACE, RPC_SERVER> *obj)
 			{
-				Untyped_capability untyped_cap = _manage(obj);
-
-				/*
-				 * Turn untyped capability returned by '_entrypoint.manage()'
-				 * to a capability with the type corresponding to the supplied
-				 * RPC object.
-				 */
-				Capability<RPC_INTERFACE> typed_cap;
-				memcpy(&typed_cap, &untyped_cap, sizeof(typed_cap));
-				return typed_cap;
+				return reinterpret_cap_cast<RPC_INTERFACE>(_manage(obj));
 			}
 
 			/**
