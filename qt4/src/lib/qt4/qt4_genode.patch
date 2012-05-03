@@ -870,7 +870,7 @@ diff --git a/src/corelib/thread/qthread_p.h b/src/corelib/thread/qthread_p.h
  #include "qplatformdefs.h"
  #include "QtCore/qthread.h"
  #include "QtCore/qmutex.h"
-@@ -136,6 +140,39 @@
+@@ -136,6 +140,56 @@
      static QThread *threadForId(int id);
  
  #ifdef Q_OS_UNIX
@@ -878,17 +878,34 @@ diff --git a/src/corelib/thread/qthread_p.h b/src/corelib/thread/qthread_p.h
 +
 +    class Genode_thread : public Genode::Thread_qt
 +    {
-+      public:
-+        Genode_thread(QThread *qthread) : _qthread(qthread) { }
++        private:
 +
-+        virtual void entry()
-+        {
-+        	QThreadPrivate::start(_qthread);
-+        	QThreadPrivate::finish(_qthread);
-+        }
++    	    /*
++    	     * The '_finished_lock' is necessary because 'QThreadPrivate::mutex'
++    	     * uses a 'Genode::Timed_semaphore' internally and it isn't safe
++    	     * to delete a Genode thread that just called 'Semaphore::up()',
++    	     * because the 'Semaphore::_meta_lock' could still be locked.
++    	     */
++            Genode::Lock _finished_lock;
++            QThread *_qthread;
 +
-+      private:
-+        QThread *_qthread;
++        public:
++
++            Genode_thread(QThread *qthread)
++            : _finished_lock(Genode::Lock::LOCKED),
++              _qthread(qthread) { }
++
++            virtual void entry()
++            {
++                QThreadPrivate::start(_qthread);
++                QThreadPrivate::finish(_qthread);
++                _finished_lock.unlock();
++            }
++
++            void join()
++            {
++                _finished_lock.lock();
++            }
 +    };
 +
 +    Genode_thread *genode_thread;
@@ -910,7 +927,7 @@ diff --git a/src/corelib/thread/qthread_p.h b/src/corelib/thread/qthread_p.h
      pthread_t thread_id;
      QWaitCondition thread_done;
  
-@@ -145,6 +182,7 @@
+@@ -145,6 +199,7 @@
  #else
      static void finish(void *);
  #endif

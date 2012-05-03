@@ -251,10 +251,10 @@ bool QWaitCondition::wait(QMutex *mutex, unsigned long time)
     } else {
     	try {
     	  d->sem.down((Genode::Alarm::Time) time);
+          result = true;
     	} catch (Genode::Timeout_exception) {
-    		return false;
+          result = false;
     	}
-    	return true;
     }
     
     mutex->lock();

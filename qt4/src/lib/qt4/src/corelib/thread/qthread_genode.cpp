@@ -188,8 +188,8 @@ void QThreadPrivate::finish(QThread *thr)
     void *data = &d->data->tls;
     QThreadStorageData::finish((void **)data);
 
-		QThreadPrivate::tls.remove(QThread::currentThreadId());
-		
+    QThreadPrivate::tls.remove(QThread::currentThreadId());
+
     d->thread_id = 0;
     d->thread_done.wakeAll();
 }
@@ -336,14 +336,28 @@ void QThread::terminate()
     Q_D(QThread);
     QMutexLocker locker(&d->mutex);
 
-		if (QThreadPrivate::tls.value(QThread::currentThreadId()).termination_enabled) {
-			delete d->genode_thread;
-			d->genode_thread = 0;
-			
-			d->terminated = true;
-			d->running = false;
-		}
+    if (QThreadPrivate::tls.value(QThread::currentThreadId()).termination_enabled) {
+
+        if (d->genode_thread) {
+            delete d->genode_thread;
+            d->genode_thread = 0;
+        }
+
+        d->terminated = true;
+        d->running = false;
+    }
 }
+
+
+static inline void join_and_delete_genode_thread(QThreadPrivate *d)
+{
+    if (d->genode_thread) {
+        d->genode_thread->join();
+        delete d->genode_thread;
+        d->genode_thread = 0;
+    }
+}
+
 
 /*!
     Blocks the thread until either of these conditions is met:
@@ -374,13 +388,17 @@ bool QThread::wait(unsigned long time)
         return false;
     }
 
-    if (d->finished || !d->running)
+    if (d->finished || !d->running) {
+        join_and_delete_genode_thread(d);
         return true;
+    }
 
     while (d->running) {
         if (!d->thread_done.wait(locker.mutex(), time))
             return false;
     }
+
+    join_and_delete_genode_thread(d);
 
     return true;
 }
