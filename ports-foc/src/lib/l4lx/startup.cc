@@ -103,7 +103,8 @@ static void prepare_l4re_env()
 	using namespace Fiasco;
 
 	Genode::Foc_cpu_connection cpu;
-
+	static Genode::Native_capability main_thread_cap
+		= cpu.native_cap(Genode::env()->cpu_session()->first());
 	l4re_env_t *env = l4re_env();
 	env->first_free_utcb = (l4_addr_t)l4_utcb() + L4_UTCB_OFFSET;
 	env->utcb_area       = l4_fpage((l4_addr_t)l4_utcb(),
@@ -113,7 +114,7 @@ static void prepare_l4re_env()
 	env->scheduler       = L4_BASE_SCHEDULER_CAP;
 	env->mem_alloc       = L4_INVALID_CAP;
 	env->log             = L4_INVALID_CAP;
-	env->main_thread     = cpu.native_cap(Genode::env()->cpu_session()->first()).dst();
+	env->main_thread     = main_thread_cap.dst();
 	env->rm              = Fiasco::THREADS_BASE_CAP + Fiasco::THREAD_PAGER_CAP;
 }
 

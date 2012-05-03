@@ -96,7 +96,7 @@ namespace {
 			Genode::size_t             _blk_size;
 			Genode::size_t             _blk_cnt;
 			Block::Session::Operations _blk_ops;
-			Fiasco::l4_cap_idx_t       _irq_cap;
+			Genode::Native_capability  _irq_cap;
 			Genode::Signal_context     _tx;
 			char                       _name[32];
 
@@ -105,21 +105,21 @@ namespace {
 			Block_device(const char *label)
 			: _alloc(Genode::env()->heap()),
 			  _session(&_alloc, TX_BUF_SIZE, label),
-			  _irq_cap(L4lx::vcpu_connection()->alloc_irq().dst())
+			  _irq_cap(L4lx::vcpu_connection()->alloc_irq())
 			{
 				_session.info(&_blk_cnt, &_blk_size, &_blk_ops);
 				Genode::strncpy(_name, label, sizeof(_name));
 			}
 
-			Req_cache              *cache()       { return &_cache;    }
-			Block::Connection      *session()     { return &_session;  }
-			Fiasco::l4_cap_idx_t    irq_cap()     { return  _irq_cap;  }
-			Genode::Signal_context *context()     { return &_tx;       }
-			Genode::size_t          block_size()  { return  _blk_size; }
-			Genode::size_t          block_count() { return  _blk_cnt;  }
+			Req_cache              *cache()       { return &_cache;         }
+			Block::Connection      *session()     { return &_session;       }
+			Fiasco::l4_cap_idx_t    irq_cap()     { return  _irq_cap.dst(); }
+			Genode::Signal_context *context()     { return &_tx;            }
+			Genode::size_t          block_size()  { return  _blk_size;      }
+			Genode::size_t          block_count() { return  _blk_cnt;       }
 			bool                    writeable()   {
 				return _blk_ops.supported(Block::Packet_descriptor::WRITE); }
-			const char             *name()        { return  _name;     }
+			const char             *name()        { return  _name;          }
 	};
 
 

@@ -71,8 +71,8 @@ static unsigned int startup_timer(struct l4x_irq_desc_private *p)
 
 	Genode::snprintf(name, sizeof(name), "timer.i%d", TIMER_IRQ);
 
-	Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
-	p->irq_cap = cap.dst();
+	static Genode::Native_capability timer_cap = L4lx::vcpu_connection()->alloc_irq();
+	p->irq_cap = timer_cap.dst();
 	p->cpu     = 0;
 
 	l4lx_thread_create(timer_irq_thread, cpu, 0, 0, 0, 0, 0, name);

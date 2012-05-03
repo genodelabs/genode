@@ -153,9 +153,9 @@ extern "C" {
 
 	l4_cap_idx_t genode_net_irq_cap()
 	{
-		static l4_cap_idx_t cap = L4lx::vcpu_connection()->alloc_irq().dst();
-		static Signal_thread th(cap);
-		return cap;
+		static Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
+		static Signal_thread th(cap.dst());
+		return cap.dst();
 	}
 
 

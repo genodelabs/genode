@@ -95,10 +95,10 @@ extern "C" {
 
 
 	l4_cap_idx_t genode_terminal_irq(unsigned idx) {
-		static l4_cap_idx_t cap = L4lx::vcpu_connection()->alloc_irq().dst();
+		static Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
 		if (!signal_thread)
-			signal_thread = new (Genode::env()->heap()) Signal_thread(cap);
-		return cap;
+			signal_thread = new (Genode::env()->heap()) Signal_thread(cap.dst());
+		return cap.dst();
 	}
 
 

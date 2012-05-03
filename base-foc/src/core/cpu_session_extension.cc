@@ -66,6 +66,12 @@ Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, i->kcap());
 	if (l4_error(res))
 		PWRN("Allocation of irq object failed!");
+
+	/*
+	 * Increment reference-counter, because we don't hold any
+	 * reference to IRQ object by now
+	 */
+	i->inc();
 	return Genode::Native_capability(i);
 }
 
