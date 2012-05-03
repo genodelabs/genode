@@ -1,0 +1,13 @@
+Index: kernel/fiasco/src/kern/task.cpp
+===================================================================
+--- kernel/fiasco/src/kern/task.cpp	(revision 38)
++++ kernel/fiasco/src/kern/task.cpp	(working copy)
+@@ -511,7 +511,7 @@
+   Obj_space::Capability c_a = obj_space()->lookup(obj_a.cap());
+   Obj_space::Capability c_b = obj_space()->lookup(obj_b.cap());
+ 
+-  return commit_result(c_a == c_b);
++  return commit_result(c_a.obj()->kobject_start_addr() == c_b.obj()->kobject_start_addr());
+ }
+ 
+ PRIVATE inline NOEXPORT
