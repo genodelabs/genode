@@ -1,4 +1,4 @@
-ZLIB     = zlib-1.2.6
+ZLIB     = zlib-1.2.7
 ZLIB_DIR = $(REP_DIR)/contrib/$(ZLIB)
 LIBS    += libc
 INC_DIR += $(ZLIB_DIR)

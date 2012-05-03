@@ -1,4 +1,4 @@
-ZLIB     = zlib-1.2.6
+ZLIB     = zlib-1.2.7
 ZLIB_TGZ = $(ZLIB).tar.gz
 ZLIB_URL = http://zlib.net/$(ZLIB_TGZ)
 
