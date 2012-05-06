@@ -2,7 +2,7 @@
 # Lua C++ library test
 #
 
-build "core init test/moon"
+build "core init drivers/timer test/moon"
 
 create_boot_directory
 
@@ -11,11 +11,16 @@ install_config {
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RM"/>
+		<service name="CAP"/>
 		<service name="LOG"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
 	<start name="test-moon">
 		<resource name="RAM" quantum="1100K"/>
 	</start>
@@ -23,11 +28,11 @@ install_config {
 }
 
 build_boot_image {
-	core init test-moon
+	core init timer test-moon
 	ld.lib.so libc.lib.so libc_log.lib.so libm.lib.so
 }
 
 append qemu_args " -nographic -m 64 "
 
-run_genode_until forever
+run_genode_until {.*test-moon.*Finished\..*} 30
 

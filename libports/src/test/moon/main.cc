@@ -12,7 +12,9 @@
  */
 
 /* Genode includes */
+#include <base/env.h>
 #include <base/printf.h>
+#include <timer_session/connection.h>
 
 /* Lua includes */
 #include <lua.h>
@@ -20,48 +22,103 @@
 #include <lauxlib.h>
 
 
-static int log(lua_State *L)
+static Timer::Session & timer_session()
 {
-	int n = lua_gettop(L);
+	static Timer::Connection timer;
+
+	return timer;
+}
+
+
+/**
+ * Lua: Sleep for milliseconds
+ */
+static int l_msleep(lua_State *lua)
+{
+	if ((lua_gettop(lua) != 1)
+	 || !lua_isnumber(lua, 1)) {
+		lua_pushstring(lua, "msleep: invalid argument");
+		lua_error(lua);
+		return 0;
+	}
+
+	timer_session().msleep(lua_tonumber(lua, 1));
+
+	return 0;
+}
+
+
+/**
+ * Lua: Return RAM quota
+ */
+static int l_quota(lua_State *lua)
+{
+	if ((lua_gettop(lua) != 0)) {
+		lua_pushstring(lua, "quota: invalid argument");
+		lua_error(lua);
+		return 0;
+	}
+
+	lua_pushnumber(lua, Genode::env()->ram_session()->quota());
+
+	return 1;
+}
+
+
+/**
+ * Lua: Log arguments
+ */
+static int l_log(lua_State *lua)
+{
+	int n = lua_gettop(lua);
 
 	for (int i = 1; i <= n; ++i) {
-		if (lua_isstring(L, i))
-			PLOG("%s", lua_tostring(L, i));
-		else if (lua_isnil(L, i))
+		if (lua_isstring(lua, i))
+			PLOG("%s", lua_tostring(lua, i));
+		else if (lua_isnil(lua, i))
 			PLOG("%s", "nil");
-		else if (lua_isboolean(L, i))
-			PLOG("%s", lua_toboolean(L, i) ? "true" : "false");
+		else if (lua_isboolean(lua, i))
+			PLOG("%s", lua_toboolean(lua, i) ? "true" : "false");
 		else
-			PLOG("%s: %p", luaL_typename(L, i), lua_topointer(L, i));
+			PLOG("%s: %p", luaL_typename(lua, i), lua_topointer(lua, i));
 	}
+
 	return 0;
 }
 
 
 static char const *exec_string =
-	"i = 10000000000000000 + 1\n"
-	"log(\"your result is: \"..i)\n"
-	"a = { }\n"
+	"local a = { }\n"
 	"log(a)\n"
-	"log(type(a))\n"
 	"a.foo = \"foo\"\n"
 	"a.bar = \"bar\"\n"
 	"log(a.foo .. \" \" .. a.bar)\n"
+	"\n"
+	"print(\"Our RAM quota is \"..quota()..\" bytes.\")\n"
+	"\n"
+	"print(\"Going to sleep...\")\n"
+	"for i=1,4 do\n"
+	"  msleep(i * 1000)\n"
+	"  print(\"Slept well for \"..i..\" seconds.\")\n"
+	"end\n"
+	"print(\"Finished.\")\n"
 	;
 
 
 int main()
 {
-	lua_State *L = lua_open();
+	lua_State *lua = lua_open();
 
 	/* initialize libs */
-	luaopen_base(L);
+	luaopen_base(lua);
 
-	/* register simple log function */
-	lua_register(L, "log", log);
+	/* register local functions */
+	lua_register(lua, "log",    l_log);
+	lua_register(lua, "msleep", l_msleep);
+	lua_register(lua, "quota",  l_quota);
 
-	if (luaL_dostring(L, exec_string) != 0)
-		PLOG("%s\n", lua_tostring(L, -1));
+	if (luaL_dostring(lua, exec_string) != 0)
+		PLOG("%s\n", lua_tostring(lua, -1));
 
-	lua_close(L);
+	lua_close(lua);
 }
