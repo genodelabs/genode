@@ -29,6 +29,7 @@
 /libports/include/libc-i386/
 /libports/include/libc/
 /libports/include/libpng
+/libports/include/lua
 /libports/include/lwip/lwip
 /libports/include/lwip/netif
 /libports/include/mupdf
