@@ -1,5 +1,5 @@
-if {![have_spec x86_32]} {
-	puts "\nNoux is supported on the x86_32 architecture only\n"
+if {![have_spec x86]} {
+	puts "\nNoux is supported on the x86 architecture only\n"
 	exit 0
 }
 if {[have_spec linux]} {
@@ -33,7 +33,7 @@ install_config {
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
 		<start name="timer">
-			<resource name="RAM" quantum="512K"/>
+			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 		<start name="uart_drv">

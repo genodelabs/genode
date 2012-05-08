@@ -40,7 +40,7 @@ PWD = $(shell pwd)
 #
 # Disable Noux on non-x86 architectures for now
 #
-REQUIRES += x86 32bit
+REQUIRES += x86
 
 #
 # Detect missing preparation of noux package
