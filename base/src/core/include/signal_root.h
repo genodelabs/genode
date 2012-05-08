@@ -26,7 +26,7 @@ namespace Genode {
 	{
 		private:
 
-			enum { STACK_SIZE = 4096 };
+			enum { STACK_SIZE = sizeof(addr_t)*1024 };
 			Rpc_entrypoint _ep;
 
 		public:

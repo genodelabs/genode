@@ -1340,7 +1340,7 @@ int main(int, char **)
 	                       (env()->rm_session()->attach(ev_ds_cap));
 
 	/* initialize entry point that serves the root interface */
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = sizeof(addr_t)*1024 };
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "terminal_ep");
 
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());

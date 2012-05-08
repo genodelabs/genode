@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 	/*
 	 * Initialize server entry point
 	 */
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = sizeof(addr_t)*1024 };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "ps2_ep");
 
