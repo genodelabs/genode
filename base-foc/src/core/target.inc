@@ -2,7 +2,7 @@ TARGET       = core
 REQUIRES     = foc
 LIBS         = cxx ipc heap core_printf process pager lock raw_signal raw_server
 
-LD_TEXT_ADDR = 0x140000
+LD_TEXT_ADDR = 0x490000
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
