@@ -145,6 +145,12 @@ namespace Noux {
 			T const* operator -> () const { return _ptr; }
 
 			operator bool () const { return _ptr != 0; }
+
+			template<typename To>
+			Shared_pointer<To> dynamic_pointer_cast()
+			{
+				return Shared_pointer<To>(dynamic_cast<To *>(_ptr), _alloc);
+			}
 	};
 }
 
