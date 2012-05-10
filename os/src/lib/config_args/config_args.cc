@@ -47,7 +47,7 @@ void init_config_args(void)
 	if (argc == 0)
 		return;
 
-	argv = (char**)env()->heap()->alloc(argc * sizeof(char*));
+	argv = (char**)env()->heap()->alloc((argc + 1) * sizeof(char*));
 
 	/* read the arguments */
 	Xml_node arg_node = config()->xml_node().sub_node("arg");
@@ -61,6 +61,8 @@ void init_config_args(void)
 			arg_node = arg_node.next("arg");
 		}
 	} catch (Xml_node::Nonexistent_sub_node) { }
+
+	argv[argc] = 0;
 
 	/* register command-line arguments at Genode's startup code */
 	genode_argc = argc;
