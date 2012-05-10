@@ -93,7 +93,8 @@ SRC_C   += SDL_audio.c \
            SDL_mixer_MMX.c \
            SDL_mixer_MMX_VC.c \
            SDL_wave.c \
-           SDL_dummyaudio.c
+           SDL_genodeaudio.c
+INC_DIR += $(SDL_DIR)/src/audio
 
 # file I/O subsystem
 SRC_C   += SDL_rwops.c
@@ -114,6 +115,7 @@ CC_OPT_SDL_wave     += -Wno-unused-but-set-variable
 
 # backend pathes
 vpath %    $(REP_DIR)/src/lib/sdl
+vpath %    $(REP_DIR)/src/lib/sdl/audio
 vpath %    $(REP_DIR)/src/lib/sdl/video
 
 # contribution pathes
@@ -125,7 +127,6 @@ vpath %.c  $(SDL_DIR)/src/stdlib
 vpath %.c  $(SDL_DIR)/src/video
 vpath %.c  $(SDL_DIR)/src/video/dummy
 vpath %.c  $(SDL_DIR)/src/audio
-vpath %.c  $(SDL_DIR)/src/audio/dummy
 vpath %.c  $(SDL_DIR)/src/thread
 vpath %.c  $(SDL_DIR)/src/thread/pthread
 vpath %.c  $(SDL_DIR)/src/timer

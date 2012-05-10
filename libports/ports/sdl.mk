@@ -25,6 +25,7 @@ $(CONTRIB_DIR)/$(SDL): $(DOWNLOAD_DIR)/$(SDL_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)rm -f $@/include/SDL_config.h
 	$(VERBOSE)patch -p0 -i src/lib/sdl/SDL_video.patch
+	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(SDL) -p1 -i ../../src/lib/sdl/SDL_audio.patch
 
 #
 # Install SDL headers

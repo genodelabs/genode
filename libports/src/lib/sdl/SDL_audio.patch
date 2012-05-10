@@ -1,0 +1,26 @@
+diff --git a/src/audio/SDL_audio.c b/src/audio/SDL_audio.c
+--- a/src/audio/SDL_audio.c
++++ b/src/audio/SDL_audio.c
+@@ -113,6 +113,9 @@
+ #if SDL_AUDIO_DRIVER_EPOCAUDIO
+ 	&EPOCAudio_bootstrap,
+ #endif
++#if SDL_AUDIO_DRIVER_GENODE
++	&GENODEAUD_bootstrap,
++#endif
+ 	NULL
+ };
+ SDL_AudioDevice *current_audio = NULL;
+diff --git a/src/audio/SDL_sysaudio.h b/src/audio/SDL_sysaudio.h
+--- a/src/audio/SDL_sysaudio.h
++++ b/src/audio/SDL_sysaudio.h
+@@ -177,6 +177,9 @@
+ #if SDL_AUDIO_DRIVER_EPOCAUDIO
+ extern AudioBootStrap EPOCAudio_bootstrap; 
+ #endif
++#if SDL_AUDIO_DRIVER_GENODE
++extern AudioBootStrap GENODEAUD_bootstrap;
++#endif
+ 
+ /* This is the current audio device */
+ extern SDL_AudioDevice *current_audio;
