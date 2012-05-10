@@ -43,6 +43,13 @@ namespace Genode {
 
 					Ram_dataspace_capability cap;
 					void  *local_addr;
+
+					Dataspace(Ram_dataspace_capability c, void *a)
+					: cap(c), local_addr(a) {}
+
+					inline void * operator new(Genode::size_t, void* addr) {
+						return addr; }
+					inline void operator delete(void*) { }
 			};
 
 			class Dataspace_pool : public List<Dataspace>

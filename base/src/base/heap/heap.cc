@@ -34,6 +34,7 @@ Heap::Dataspace_pool::~Dataspace_pool()
 		Ram_dataspace_capability ds_cap = ds->cap;
 
 		remove(ds);
+		delete ds;
 		_rm_session->detach(ds->local_addr);
 		_ram_session->free(ds_cap);
 	}
@@ -66,9 +67,7 @@ int Heap::Dataspace_pool::expand(size_t size, Range_allocator *alloc)
 	}
 
 	/* add dataspace information to list of dataspaces */
-	Dataspace *ds  = reinterpret_cast<Dataspace *>(ds_addr);
-	ds->cap        = new_ds_cap;
-	ds->local_addr = local_addr;
+	Dataspace *ds  = new (ds_addr) Dataspace(new_ds_cap, local_addr);
 	insert(ds);
 
 	return 0;
