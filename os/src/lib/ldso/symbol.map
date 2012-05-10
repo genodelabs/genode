@@ -50,6 +50,8 @@
 		/* GNU verbose terminate handler */
 		extern "C++" { __gnu_cxx::__verbose_terminate_handler*; };
 
+		extern "C++" { std::terminate*; };
+
 		/* x86 */
 		__cxa*;
 		_Unwind_Resume;
