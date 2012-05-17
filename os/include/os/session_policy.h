@@ -54,8 +54,12 @@ namespace Genode {
 				int best_match = -1;
 				try {
 					unsigned label_len = 0;
-					Xml_node policy = config()->xml_node().sub_node("policy");
-					for (int i = 0;; i++, policy = policy.next("policy")) {
+					Xml_node policy = config()->xml_node().sub_node();
+
+					for (int i = 0;; i++, policy = policy.next()) {
+
+						if (!policy.has_type("policy"))
+							continue;
 
 						/* label attribtute from policy node */
 						char policy_label[LABEL_LEN];
@@ -63,7 +67,8 @@ namespace Genode {
 						                                sizeof(policy_label));
 
 						if (!_label_matches(session_label, policy_label)
-						 || strlen(policy_label) < label_len) continue;
+						 || strlen(policy_label) < label_len)
+							continue;
 
 						label_len = strlen(policy_label);
 						best_match = i;
