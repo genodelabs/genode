@@ -90,6 +90,17 @@ namespace Noux {
 				}
 			}
 
+			static void strip_superfluous_slashes(char *path)
+			{
+				for (; *path; path++) {
+					if (path[0] != '/') continue;
+
+					/* strip superfluous slashes, e.g., "//path/" -> "/path" */
+					while (path[1] == '/')
+						remove_char(path);
+				}
+			}
+
 			/**
 			 * Find double-dot path element
 			 *
@@ -124,6 +135,10 @@ namespace Noux {
 
 					/* skip previous path element */
 					while (cut_start > 0 && path[cut_start - 1] != '/')
+						cut_start--;
+
+					/* skip slash in front of the pair of dots */
+					if (cut_start > 0)
 						cut_start--;
 
 					strip(path + cut_start, cut_end - cut_start);
@@ -167,6 +182,7 @@ namespace Noux {
 			{
 				strip_superfluous_dotslashes(_path);
 				strip_double_dot_dirs(_path);
+				strip_superfluous_slashes(_path);
 				remove_trailing('.', _path);
 			}
 
