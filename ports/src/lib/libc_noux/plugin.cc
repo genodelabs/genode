@@ -212,6 +212,16 @@ extern "C" int execve(char const *filename, char *const argv[],
 
 
 /**
+ * Called by execvp
+ */
+extern "C" int _execve(char const *filename, char *const argv[],
+                       char *const envp[])
+{
+	return execve(filename, argv, envp);
+}
+
+
+/**
  * Return number of marhalled file descriptors into select argument buffer
  *
  * \return number of marshalled file descriptors, this value is guaranteed to
@@ -376,6 +386,9 @@ extern "C" pid_t fork(void)
 }
 
 
+extern "C" pid_t vfork(void) { return fork(); }
+
+
 extern "C" pid_t getpid(void)
 {
 	noux()->syscall(Noux::Session::SYSCALL_GETPID);
@@ -385,14 +398,22 @@ extern "C" pid_t getpid(void)
 
 extern "C" int access(char const *pathname, int mode)
 {
-	PDBG("access '%s' (mode=%x) called, not implemented", pathname, mode);
-	return 0;
+	if (verbose)
+		PDBG("access '%s' (mode=%x) called, not implemented", pathname, mode);
+
+	struct stat stat;
+	if (::stat(pathname, &stat) == 0)
+		return 0;
+
+	errno = ENOENT;
+	return -1;
 }
 
 
 extern "C" int chmod(char const *path, mode_t mode)
 {
-	PDBG("chmod '%s' to 0x%x not implemented", path, mode);
+	if (verbose)
+		PDBG("chmod '%s' to 0x%x not implemented", path, mode);
 	return 0;
 }
 
@@ -426,7 +447,8 @@ extern "C" pid_t _wait4(pid_t pid, int *status, int options,
 
 extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
-	PDBG("clock_gettime called - not implemented");
+	if (verbose)
+		PDBG("clock_gettime called - not implemented");
 	errno = EINVAL;
 	return -1;
 }
@@ -434,7 +456,8 @@ extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
 
 extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-	PDBG("gettimeofdaye called - not implemented");
+	if (verbose)
+		PDBG("gettimeofdaye called - not implemented");
 	errno = EINVAL;
 	return -1;
 }
@@ -548,9 +571,13 @@ namespace {
 	Libc::File_descriptor *Plugin::open(char const *pathname, int flags)
 	{
 		if (Genode::strlen(pathname) + 1 > sizeof(sysio()->open_in.path)) {
+			PDBG("ENAMETOOLONG");
 			errno = ENAMETOOLONG;
 			return 0;
 		}
+
+		if (flags & O_CREAT)
+			unlink(pathname);
 
 		Genode::strncpy(sysio()->open_in.path, pathname, sizeof(sysio()->open_in.path));
 		sysio()->open_in.mode = flags;
@@ -559,6 +586,7 @@ namespace {
 			/*
 			 * XXX  we should return meaningful errno values
 			 */
+			PDBG("ENOENT (sysio()->error.open=%d)", sysio()->error.open);
 			errno = ENOENT;
 			return 0;
 		}
@@ -665,7 +693,8 @@ namespace {
 
 		case TIOCGETA:
 			{
-				PDBG("TIOCGETA - argp=0x%p", argp);
+				if (verbose)
+					PDBG("TIOCGETA - argp=0x%p", argp);
 				::termios *termios = (::termios *)argp;
 
 				/*
@@ -769,7 +798,8 @@ namespace {
 
 	int Plugin::fsync(Libc::File_descriptor *fd)
 	{
-		PDBG("not implemented");
+		if (verbose)
+			PDBG("not implemented");
 		return 0;
 	}
 

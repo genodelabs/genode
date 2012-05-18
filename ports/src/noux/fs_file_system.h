@@ -333,7 +333,7 @@ namespace Noux {
 				bool const create = sysio->open_in.mode & Sysio::OPEN_MODE_CREATE;
 
 				if (create)
-					PDBG("creation of file %s requested", file_name.base());
+					PDBG("creation of file %s requested", file_name.base() + 1);
 
 				::File_system::Dir_handle dir = _fs.dir(dir_path.base(), false);
 				Fs_handle_guard dir_guard(_fs, dir);
@@ -350,7 +350,6 @@ namespace Noux {
 					error = Sysio::OPEN_ERR_NO_PERM; }
 
 				sysio->error.open = error;
-
 				return 0;
 			}
 

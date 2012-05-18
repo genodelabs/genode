@@ -29,6 +29,8 @@ namespace Noux {
 
 	class Tar_file_system : public File_system
 	{
+		enum { verbose = false };
+
 		Lock _lock;
 
 		struct Rom_name
@@ -336,7 +338,10 @@ namespace Noux {
 				case Record::TYPE_FILE:    mode |= Sysio::STAT_MODE_FILE; break;
 				case Record::TYPE_SYMLINK: mode |= Sysio::STAT_MODE_SYMLINK; break;
 				case Record::TYPE_DIR:     mode |= Sysio::STAT_MODE_DIRECTORY; break;
-				default: PDBG("unhandled record type %d", record->type());
+
+				default:
+					if (verbose)
+						PDBG("unhandled record type %d", record->type());
 				}
 
 				sysio->stat_out.st.mode  = mode;
@@ -364,7 +369,10 @@ namespace Noux {
 				case 0: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_FILE;      break;
 				case 2: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_SYMLINK;   break;
 				case 5: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY; break;
-				default: PDBG("unhandled record type %d", record->type());
+
+				default:
+					if (verbose)
+						PDBG("unhandled record type %d", record->type());
 				}
 
 				Absolute_path absolute_path(record->name());

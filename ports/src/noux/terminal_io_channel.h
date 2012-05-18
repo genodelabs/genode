@@ -140,7 +140,6 @@ namespace Noux {
 					Terminal::Session::Size size = terminal.size();
 					sysio->ioctl_out.tiocgwinsz.rows    = size.lines();
 					sysio->ioctl_out.tiocgwinsz.columns = size.columns();
-					PDBG("OP_TIOCGWINSZ requested");
 					return true;
 				}
 
