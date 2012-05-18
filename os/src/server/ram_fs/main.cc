@@ -598,6 +598,16 @@ static void preload_content(Genode::Allocator      &alloc,
 			catch (Rm_session::Attach_failed) {
 				PWRN("Could not locally attach ROM file \"%s\"", (char *)name); }
 		}
+
+		/*
+		 * Create file from inline data provided as content of the XML node
+		 */
+		if (sub_node.has_type("inline")) {
+
+			File *file = new (&alloc) File(alloc, name);
+			file->write(sub_node.content_addr(), sub_node.content_size(), 0);
+			dir.adopt_unsynchronized(file);
+		}
 	}
 }
 
