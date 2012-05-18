@@ -224,34 +224,40 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					j += strlen(src);
 				}
 
-				Child *child = new Child(absolute_path.base(),
-				                         parent(),
-				                         pid(),
-				                         _sig_rec,
-				                         _root_dir,
-				                         Args(_sysio->execve_in.args,
-				                              sizeof(_sysio->execve_in.args)),
-				                         env,
-				                         _env.pwd(),
-				                         _cap_session,
-				                         _parent_services,
-				                         _resources.ep,
-				                         false);
+				try {
+					Child *child = new Child(absolute_path.base(),
+					                         parent(),
+					                         pid(),
+					                         _sig_rec,
+					                         _root_dir,
+					                         Args(_sysio->execve_in.args,
+					                              sizeof(_sysio->execve_in.args)),
+					                         env,
+					                         _env.pwd(),
+					                         _cap_session,
+					                         _parent_services,
+					                         _resources.ep,
+					                         false);
 
-				/* replace ourself by the new child at the parent */
-				parent()->remove(this);
-				parent()->insert(child);
+					/* replace ourself by the new child at the parent */
+					parent()->remove(this);
+					parent()->insert(child);
 
-				_assign_io_channels_to(child);
+					_assign_io_channels_to(child);
 
-				/* signal main thread to remove ourself */
-				Genode::Signal_transmitter(_execve_cleanup_context_cap).submit();
+					/* signal main thread to remove ourself */
+					Genode::Signal_transmitter(_execve_cleanup_context_cap).submit();
 
-				/* start executing the new process */
-				child->start();
+					/* start executing the new process */
+					child->start();
 
-				/* this child will be removed by the execve_finalization_dispatcher */
-				return true;
+					/* this child will be removed by the execve_finalization_dispatcher */
+					return true;
+				}
+				catch (Child::Binary_does_not_exist) {
+					_sysio->error.execve = Sysio::EXECVE_NONEXISTENT; }
+
+				return false;
 			}
 
 		case SYSCALL_SELECT:

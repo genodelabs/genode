@@ -254,6 +254,8 @@ namespace Noux {
 
 		public:
 
+			struct Binary_does_not_exist : Exception { };
+
 			/**
 			 * Constructor
 			 *
@@ -261,6 +263,11 @@ namespace Noux {
 			 *                an executable binary (i.e., the init process,
 			 *                or children created via execve, or
 			 *                true if the child is a fork from another child
+			 *
+			 * \throw Binary_does_not_exist  if child is not a fork and the
+			 *                               specified name could not be
+			 *                               looked up at the virtual file
+			 *                               system
 			 */
 			Child(char const       *name,
 			      Family_member    *parent,
@@ -304,6 +311,11 @@ namespace Noux {
 			{
 				_env.pwd(pwd);
 				_args.dump();
+
+				if (!forked && !_binary_ds.valid()) {
+					PERR("Lookup of executable \"%s\" failed", name);
+					throw Binary_does_not_exist();
+				}
 			}
 
 			~Child()
