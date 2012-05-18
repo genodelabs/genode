@@ -12,18 +12,24 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <base/printf.h>
 #include <base/env.h>
 
+/* Genode-specific libc interfaces */
 #include <libc-plugin/fd_alloc.h>
 #include <libc-plugin/plugin_registry.h>
 #include <libc-plugin/plugin.h>
 
+/* libc includes */
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+/* libc-internal includes */
+#include "libc_mem_alloc.h"
 
 using namespace Libc;
 
@@ -258,9 +264,8 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
                       int libc_fd, ::off_t offset)
 {
 	/* handle requests for anonymous memory */
-	if (!addr && libc_fd == -1) {
-		return malloc(length);
-	}
+	if (!addr && libc_fd == -1)
+		return Libc::mem_alloc()->alloc(length, PAGE_SHIFT);
 
 	/* lookup plugin responsible for file descriptor */
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "mmap");
