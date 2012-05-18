@@ -1025,6 +1025,7 @@ namespace {
 /* external symbols provided by Genode's startup code */
 extern char **genode_argv;
 extern int    genode_argc;
+extern char **genode_envp;
 
 /* pointer to environment, provided by libc */
 extern char **environ;
@@ -1107,6 +1108,9 @@ void init_libc_noux(void)
 
 	/* register list of environment variables at libc 'environ' pointer */
 	environ = env_array;
+
+	/* define env pointer to be passed to main function (in '_main.cc') */
+	genode_envp = environ;
 
 	/* initialize noux libc plugin */
 	static Plugin noux_plugin;

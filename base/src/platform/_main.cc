@@ -31,7 +31,7 @@
 
 using namespace Genode;
 
-extern int main(int argc, char **argv);
+extern int main(int argc, char **argv, char **envp);
 extern void init_exception_handling();  /* implemented in base/cxx */
 
 enum { ATEXIT_SIZE = 256 };
@@ -212,6 +212,7 @@ static char *argv[1] = { argv0 };
  */
 char **genode_argv = argv;
 int    genode_argc = 1;
+char **genode_envp = 0;
 
 
 /**
@@ -250,7 +251,7 @@ extern "C" int _main()
 	/* now, it is save to call printf */
 
 	/* call real main function */
-	int ret = main(genode_argc, genode_argv);
+	int ret = main(genode_argc, genode_argv, genode_envp);
 
 	genode_exit(ret);
 
