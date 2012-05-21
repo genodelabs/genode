@@ -1,0 +1,160 @@
+#
+# \brief  Showcases terminal_log server
+# \author Stefan Kalkowski
+# \date   2012-05-21
+#
+
+build {
+	core
+	init
+	drivers/framebuffer
+	drivers/input
+	drivers/pci
+	server/nitpicker
+	server/nit_fb
+	server/terminal
+	server/terminal_log
+}
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<service name="Nitpicker"> <child name="nitpicker"/> </service>
+		<service name="Timer">     <child name="timer"/> </service>
+		<service name="Terminal">  <child name="terminal"/> </service>
+		<service name="PCI">       <child name="pci_drv"/> </service>
+		<any-service><parent/></any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Input">       <child name="fb_sdl"/> </service>
+			<service name="Framebuffer"> <child name="fb_sdl"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="fb_drv">
+		<binary name="vesa_drv"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec pl11x] config {
+	<start name="fb_drv">
+		<binary name="pl11x_drv"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="input_drv">
+		<binary name="ps2_drv"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append_if [expr ! [have_spec sdl]] config {
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Input">       <child name="input_drv"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append config {
+	<start name="terminal_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="0" ypos="0" width="640" height="480" refresh_rate="25"/>
+	</start>
+	<start name="terminal">
+		<resource name="RAM" quantum="3M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input">       <child name="terminal_fb"/> </service>
+			<service name="Framebuffer"> <child name="terminal_fb"/> </service>
+			<any-service> <parent/> <any-child/></any-service>
+		</route>
+	</start>
+	<start name="terminal_log">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="LOG"/></provides>
+	</start>
+	<start name="launchpad">
+		<resource name="RAM" quantum="32M"/>
+		<route>
+			<service name="LOG">       <child name="terminal_log"/> </service>
+			<any-service> <any-child/> <parent/></any-service>
+		</route>
+	</start>
+</config>
+}
+install_config $config
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	nitpicker
+	launchpad
+	testnit
+	nit_fb
+	terminal
+	terminal_log
+}
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec pl11x] boot_modules pl11x_drv
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 "
+run_genode_until forever
