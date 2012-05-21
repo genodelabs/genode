@@ -238,7 +238,7 @@ namespace Noux {
 					        sizeof(sysio->dirent_out.entry.name));
 
 					sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY;
-					sysio->dirent_out.entry.fileno = (unsigned)this;
+					sysio->dirent_out.entry.fileno = 1;
 				} else
 					sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_END;
 				return true;
