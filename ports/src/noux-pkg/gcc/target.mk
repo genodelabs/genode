@@ -130,7 +130,7 @@ NOUX_CXXFLAGS += -ffunction-sections $(CC_OLEVEL) -nostdlib $(NOUX_CPPFLAGS)
 #
 NOUX_LIBS += -Wl,--start-group $(sort $(LINK_ITEMS)) $(sort $(LINK_ITEMS)) $(LIBGCC) -Wl,--end-group
 
-NOUX_ENV += CC=$(CC) LD=$(LD) AR=$(AR) LIBS='$(NOUX_LIBS)' \
+NOUX_ENV += CC='$(CC)' LD='$(LD)' AR='$(AR)' LIBS='$(NOUX_LIBS)' \
             LDFLAGS='$(NOUX_LDFLAGS)' CFLAGS='$(NOUX_CFLAGS)' \
             CPPFLAGS='$(NOUX_CPPFLAGS)' CXXFLAGS='$(NOUX_CXXFLAGS)'
 
@@ -148,20 +148,20 @@ Makefile reconfigure: noux_env.sh
 
 noux_env.sh:
 	$(VERBOSE)rm -f $@
-	$(VERBOSE)echo "export CC=$(CC)" >> $@
-	$(VERBOSE)echo "export AR=$(AR)" >> $@
-	$(VERBOSE)echo "export LD=$(LD)" >> $@
+	$(VERBOSE)echo "export CC='$(CC)'" >> $@
+	$(VERBOSE)echo "export AR='$(AR)'" >> $@
+	$(VERBOSE)echo "export LD='$(LD)'" >> $@
 	$(VERBOSE)echo "export CPPFLAGS='$(NOUX_CPPFLAGS)'" >> $@
 	$(VERBOSE)echo "export CFLAGS='$(NOUX_CFLAGS)'" >> $@
 	$(VERBOSE)echo "export CXXFLAGS='$(NOUX_CXXFLAGS)'" >> $@
 	$(VERBOSE)echo "export LDFLAGS='$(NOUX_LDFLAGS)'" >> $@
 	$(VERBOSE)echo "export LIBS='$(NOUX_LIBS)'" >> $@
-	$(VERBOSE)echo "export CC_FOR_TARGET=$(CC)" >> $@
-	$(VERBOSE)echo "export CXX_FOR_TARGET=$(CXX)" >> $@
-	$(VERBOSE)echo "export GCC_FOR_TARGET=$(CC)" >> $@
-	$(VERBOSE)echo "export LD_FOR_TARGET=$(LD)" >> $@
-	$(VERBOSE)echo "export AS_FOR_TARGET=$(AS)" >> $@
-	$(VERBOSE)echo "export AR_FOR_TARGET=$(AR)" >> $@
+	$(VERBOSE)echo "export CC_FOR_TARGET='$(CC)'" >> $@
+	$(VERBOSE)echo "export CXX_FOR_TARGET='$(CXX)'" >> $@
+	$(VERBOSE)echo "export GCC_FOR_TARGET='$(CC)'" >> $@
+	$(VERBOSE)echo "export LD_FOR_TARGET='$(LD)'" >> $@
+	$(VERBOSE)echo "export AS_FOR_TARGET='$(AS)'" >> $@
+	$(VERBOSE)echo "export AR_FOR_TARGET='$(AR)'" >> $@
 	$(VERBOSE)echo "export LDFLAGS_FOR_TARGET='$(NOUX_LDFLAGS)'" >> $@
 	$(VERBOSE)echo "export LIBS_FOR_TARGET='$(NOUX_LIBS)'" >> $@
 	$(VERBOSE)echo "export CFLAGS_FOR_BUILD='$(NOUX_CFLAGS_FOR_BUILD)'" >> $@
