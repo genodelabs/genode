@@ -13,9 +13,10 @@ set build_components {
 	init
 	drivers/timer
 	drivers/framebuffer
-	drivers/uart
 	server/nitpicker
 	server/nit_fb
+	server/terminal
+	server/terminal_log
 	l4android
 }
 
@@ -55,11 +56,6 @@ set config  {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="uart_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Terminal"/></provides>
-		<config><policy label="l4android" uart="1"/></config>
-	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -69,7 +65,7 @@ set config  {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="Android">
+	<start name="android_fb">
 		<binary name="nit_fb"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides>
@@ -77,7 +73,54 @@ set config  {
 			<service name="Input"/>
 		</provides>
 		<config xpos="0" ypos="0" width="640" height="480" refresh_rate="25"/>
-	</start>}
+	</start>
+	<start name="android_term_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="0" ypos="482" width="1024" height="268" refresh_rate="25"/>
+	</start>
+	<start name="log_term_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="642" ypos="0" width="380" height="480" refresh_rate="25"/>
+	</start>
+	<start name="android_term">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input">       <child name="android_term_fb"/> </service>
+			<service name="Framebuffer"> <child name="android_term_fb"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="log_term">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input">       <child name="log_term_fb"/> </service>
+			<service name="Framebuffer"> <child name="log_term_fb"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="terminal_log">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="LOG"/></provides>
+		<route>
+			<service name="Terminal"> <child name="log_term"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+}
 
 append_if [have_spec x86] config {
 	<start name="nic_drv">
@@ -99,9 +142,9 @@ append_if [have_spec pci] config {
 append_if [have_spec vesa] config {
 	<start name="fb_drv">
 		<binary name="vesa_drv"/>
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
-		<config width="640" height="480" depth="16" buffered="yes" />
+		<config width="1024" height="768" depth="16" buffered="yes" />
 	</start> }
 
 append_if [have_spec lan9118] config {
@@ -137,8 +180,10 @@ append config {
 			<block label="sda"/>
 		</config>
 		<route>
-			<service name="Input">       <child name="Android"/> </service>
-			<service name="Framebuffer"> <child name="Android"/> </service>
+			<service name="Input">       <child name="android_fb"/> </service>
+			<service name="Framebuffer"> <child name="android_fb"/> </service>
+			<service name="Terminal">    <child name="android_term"/> </service>
+			<service name="LOG">         <child name="terminal_log"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -157,7 +202,8 @@ set boot_modules {
 	timer
 	nitpicker
 	nit_fb
-	uart_drv
+	terminal
+	terminal_log
 	l4android
 	root-ginger.gz
 }
@@ -190,7 +236,6 @@ if {![file exists bin/system-ginger.img]} {
 build_boot_image  [join $boot_modules " "]
 
 append qemu_args " -m 512 "
-append qemu_args " -serial unix:/tmp/qemu-pipe,server,nowait "
 append qemu_args " -serial mon:stdio "
 append_if [have_spec     x86] qemu_args " -hda bin/system-ginger.img "
 append_if [have_spec     x86] qemu_args " -net nic,model=e1000 "
