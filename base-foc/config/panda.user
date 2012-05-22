@@ -1,0 +1,63 @@
+#
+# Automatically generated make config: don't edit
+# L4Re Configuration
+#
+# CONFIG_BUILD_ARCH_x86 is not set
+# CONFIG_BUILD_ARCH_amd64 is not set
+CONFIG_BUILD_ARCH_arm=y
+# CONFIG_BUILD_ARCH_ppc32 is not set
+# CONFIG_BUILD_ARCH_sparc is not set
+CONFIG_BUILD_ARCH="arm"
+CONFIG_BUILD_ABI_l4f=y
+CONFIG_BUILD_ABI="l4f"
+CONFIG_CPU="armv7a"
+# CONFIG_CPU_ARM_ARMV4 is not set
+# CONFIG_CPU_ARM_ARMV4T is not set
+# CONFIG_CPU_ARM_ARMV5 is not set
+# CONFIG_CPU_ARM_ARMV5T is not set
+# CONFIG_CPU_ARM_ARMV5TE is not set
+# CONFIG_CPU_ARM_ARMV6 is not set
+# CONFIG_CPU_ARM_ARMV6T2 is not set
+# CONFIG_CPU_ARM_ARMV6ZK is not set
+CONFIG_CPU_ARM_ARMV7A=y
+# CONFIG_CPU_ARM_ARMV7R is not set
+CONFIG_CPU_ARMV6KPLUS=y
+CONFIG_CPU_ARMV6PLUS=y
+
+#
+# Platform
+#
+# CONFIG_PLATFORM_ARM_integrator is not set
+# CONFIG_PLATFORM_ARM_rv is not set
+# CONFIG_PLATFORM_ARM_imx21 is not set
+# CONFIG_PLATFORM_ARM_imx51 is not set
+# CONFIG_PLATFORM_ARM_omap3evm is not set
+# CONFIG_PLATFORM_ARM_beagleboard is not set
+CONFIG_PLATFORM_ARM_pandaboard=y
+# CONFIG_PLATFORM_ARM_tegra2 is not set
+# CONFIG_PLATFORM_ARM_custom is not set
+CONFIG_ARM_PLATFORM_TYPE="pandaboard"
+CONFIG_RAM_BASE=0x80000000
+CONFIG_RAM_SIZE_MB=512
+# CONFIG_USE_DROPS_STDDIR is not set
+# CONFIG_USE_DICE is not set
+CONFIG_DROPS_STDDIR="/path/to/l4re"
+CONFIG_DROPS_INSTDIR="/path/to/l4re"
+CONFIG_BID_COLORED_PHASES=y
+
+#
+# Building
+#
+CONFIG_YACC="yacc"
+CONFIG_LEX="flex"
+CONFIG_CTAGS="ctags"
+CONFIG_ETAGS="etags"
+CONFIG_HAVE_LDSO=y
+CONFIG_INT_CPP_NAME_SWITCH=y
+CONFIG_INT_LD_NAME_SWITCH=y
+# CONFIG_BID_STRIP_PROGS is not set
+# CONFIG_BID_GCC_OMIT_FP is not set
+# CONFIG_BID_GENERATE_MAPFILE is not set
+# CONFIG_BID_BUILD_DOC is not set
+# CONFIG_RELEASE_MODE is not set
+CONFIG_LABEL=""
