@@ -1,0 +1,1 @@
+CC_C_OPT += -DARCH_X86_64=1
