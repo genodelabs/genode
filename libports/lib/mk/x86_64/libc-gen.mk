@@ -2,7 +2,7 @@ include $(REP_DIR)/lib/mk/libc-gen.inc
 
 LIBC_GEN_AMD64_DIR = $(LIBC_DIR)/libc/amd64/gen
 
-FILTER_OUT_S += rfork_thread.S sigsetjmp.S
+FILTER_OUT_S += rfork_thread.S sigsetjmp.S setjmp.S _setjmp.S
 FILTER_OUT_C += _set_tp.c
 
 #
