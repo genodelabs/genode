@@ -35,12 +35,12 @@ static Timer::Session & timer_session()
  */
 static int l_msleep(lua_State *lua)
 {
-	if ((lua_gettop(lua) != 1)
-	 || !lua_isnumber(lua, 1)) {
-		lua_pushstring(lua, "msleep: invalid argument");
+	if (lua_gettop(lua) != 1) {
+		lua_pushstring(lua, "msleep: invalid number of arguments");
 		lua_error(lua);
 		return 0;
 	}
+	luaL_checknumber(lua, 1);
 
 	timer_session().msleep(lua_tonumber(lua, 1));
 
@@ -54,7 +54,7 @@ static int l_msleep(lua_State *lua)
 static int l_quota(lua_State *lua)
 {
 	if ((lua_gettop(lua) != 0)) {
-		lua_pushstring(lua, "quota: invalid argument");
+		lua_pushstring(lua, "quota: invalid number of arguments");
 		lua_error(lua);
 		return 0;
 	}
@@ -87,18 +87,29 @@ static int l_log(lua_State *lua)
 }
 
 
+/**
+ * Lua library for Genode functions
+ */
+static const struct luaL_reg l_genode[] = {
+	{ "log",    l_log    },
+	{ "msleep", l_msleep },
+	{ "quota",  l_quota  },
+	{ 0, 0 } /* end of list */
+};
+
+
 static char const *exec_string =
 	"local a = { }\n"
-	"log(a)\n"
+	"Genode.log(a)\n"
 	"a.foo = \"foo\"\n"
 	"a.bar = \"bar\"\n"
-	"log(a.foo .. \" \" .. a.bar)\n"
+	"Genode.log(a.foo .. \" \" .. a.bar)\n"
 	"\n"
-	"print(\"Our RAM quota is \"..quota()..\" bytes.\")\n"
+	"print(\"Our RAM quota is \"..Genode.quota()..\" bytes.\")\n"
 	"\n"
 	"print(\"Going to sleep...\")\n"
 	"for i=1,4 do\n"
-	"  msleep(i * 1000)\n"
+	"  Genode.msleep(i * 1000)\n"
 	"  print(\"Slept well for \"..i..\" seconds.\")\n"
 	"end\n"
 	"print(\"Finished.\")\n"
@@ -112,10 +123,8 @@ int main()
 	/* initialize libs */
 	luaopen_base(lua);
 
-	/* register local functions */
-	lua_register(lua, "log",    l_log);
-	lua_register(lua, "msleep", l_msleep);
-	lua_register(lua, "quota",  l_quota);
+	/* register Genode Lua library */
+	luaL_register(lua, "Genode", l_genode);
 
 	if (luaL_dostring(lua, exec_string) != 0)
 		PLOG("%s\n", lua_tostring(lua, -1));
