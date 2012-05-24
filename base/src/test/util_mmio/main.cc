@@ -1,17 +1,17 @@
 /*
- * \brief  Basic test for MMIO access framework
- * \author Christian Helmuth
+ * \brief  Diversified test of the Register and MMIO framework
  * \author Martin Stein
  * \date   2012-01-09
  */
 
 /*
- * Copyright (C) 2011-2012 Genode Labs GmbH
+ * Copyright (C) 2012 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode includes */
 #include <util/mmio.h>
 #include <base/printf.h>
 
@@ -26,7 +26,7 @@ static uint16_t cpu_state;
  * Assume this is a MMIO region
  */
 enum{ MMIO_SIZE = 8 };
-static uint8_t mmio_mem[MMIO_SIZE]; 
+static uint8_t mmio_mem[MMIO_SIZE];
 
 /**
  * Exemplary highly structured type for accessing 'cpu_state'
@@ -68,11 +68,11 @@ struct Test_mmio : public Mmio
 	Test_mmio(addr_t const base) : Mmio(base) { }
 
 	struct Reg : Register<0x04, 8>
-	{ 
+	{
 		struct Bit_1 : Bitfield<0,1> { };
 		struct Area  : Bitfield<1,3>
 		{
-			enum { 
+			enum {
 				VALUE_1 = 3,
 				VALUE_2 = 4,
 				VALUE_3 = 5,
@@ -91,16 +91,28 @@ struct Test_mmio : public Mmio
 		struct C : Bitfield<3,1> { };
 		struct D : Bitfield<1,3> { };
 	};
+
+	struct Strict_array : Register_array<0x0, 16, 10, 4, true>
+	{
+		struct A : Bitfield<1,1> { };
+		struct B : Bitfield<2,4> { };
+	};
+
+	struct Strict_reg : Register<0x0, 32, true>
+	{
+		struct A : Bitfield<3,2> { };
+		struct B : Bitfield<30,4> { };
+	};
 };
 
 
 /**
  * Print out memory content hexadecimal
  */
-void dump_mem(uint8_t * base, size_t size) 
+void dump_mem(uint8_t * base, size_t size)
 {
 	addr_t top = (addr_t)base + size;
-	for(; (addr_t)base < top;) { 
+	for(; (addr_t)base < top;) {
 		printf("%2X ", *(uint8_t *)base);
 		base = (uint8_t *)((addr_t)base + sizeof(uint8_t));
 	}
@@ -110,10 +122,10 @@ void dump_mem(uint8_t * base, size_t size)
 /**
  * Zero-fill memory region
  */
-void zero_mem(uint8_t * base, size_t size) 
+void zero_mem(uint8_t * base, size_t size)
 {
 	addr_t top = (addr_t)base + size;
-	for(; (addr_t)base < top;) { 
+	for(; (addr_t)base < top;) {
 		*base = 0;
 		base = (uint8_t *)((addr_t)base + sizeof(uint8_t));
 	}
@@ -180,7 +192,7 @@ int main()
 
 	static uint8_t mmio_cmpr_2[MMIO_SIZE] = {0,0,0,0,0b00000001,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_2, sizeof(mmio_mem)) ||
-	    mmio.read<Test_mmio::Reg::Bit_1>() != 1) 
+	    mmio.read<Test_mmio::Reg::Bit_1>() != 1)
 	{ return test_failed(2); }
 
 	/**
@@ -190,7 +202,7 @@ int main()
 
 	static uint8_t mmio_cmpr_3[MMIO_SIZE] = {0,0,0,0,0b00010001,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_3, sizeof(mmio_mem)) ||
-	    mmio.read<Test_mmio::Reg::Bit_2>() != 1) 
+	    mmio.read<Test_mmio::Reg::Bit_2>() != 1)
 	{ return test_failed(3); }
 
 	/**
@@ -291,7 +303,7 @@ int main()
 	 ******************************************/
 
 	/**
-	 * Test 11, read/write register array items with array- and item overflows 
+	 * Test 11, read/write register array items with array- and item overflows
 	 */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::Array>(0xa,  0);
@@ -338,6 +350,42 @@ int main()
 		mmio.read<Test_mmio::Array::D>(8)  != 0x3 ||
 		mmio.read<Test_mmio::Array::A>(11) != 0   )
 	{ return test_failed(12); }
+
+	/**
+	 * Test 13, writing to registers with 'STRICT_WRITE' set
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	*(uint8_t*)((addr_t)mmio_mem + sizeof(uint32_t)) = 0xaa;
+	mmio.write<Test_mmio::Strict_reg::A>(0xff);
+	mmio.write<Test_mmio::Strict_reg::B>(0xff);
+	static uint8_t mmio_cmpr_13[MMIO_SIZE] = {0,0,0,0b11000000,0b10101010,0,0,0};
+	if (compare_mem(mmio_mem, mmio_cmpr_13, sizeof(mmio_mem))) {
+		return test_failed(13); }
+
+	/**
+	 * Test 14, writing to register array items with 'STRICT_WRITE' set
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	*(uint8_t*)((addr_t)mmio_mem + sizeof(uint16_t)) = 0xaa;
+	mmio.write<Test_mmio::Strict_array>(0b1010, 0);
+	mmio.write<Test_mmio::Strict_array>(0b1010, 1);
+	mmio.write<Test_mmio::Strict_array>(0b1010, 2);
+	mmio.write<Test_mmio::Strict_array>(0b1100, 3);
+	mmio.write<Test_mmio::Strict_array>(0b110011, 3);
+	static uint8_t mmio_cmpr_14[MMIO_SIZE] = {0,0b00110000,0b10101010,0,0,0,0,0};
+	if (compare_mem(mmio_mem, mmio_cmpr_14, sizeof(mmio_mem))) {
+		return test_failed(14); }
+
+	/**
+	 * Test 15, writing to register array bitfields with 'STRICT_WRITE' set
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	*(uint8_t*)((addr_t)mmio_mem + sizeof(uint16_t)) = 0xaa;
+	mmio.write<Test_mmio::Strict_array::A>(0xff, 3);
+	mmio.write<Test_mmio::Strict_array::B>(0xff, 3);
+	static uint8_t mmio_cmpr_15[MMIO_SIZE] = {0,0b11000000,0b10101010,0,0,0,0,0};
+	if (compare_mem(mmio_mem, mmio_cmpr_15, sizeof(mmio_mem))) {
+		return test_failed(15); }
 
 	printf("Test ended successfully\n");
 	return 0;

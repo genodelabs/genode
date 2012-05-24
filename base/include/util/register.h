@@ -30,15 +30,21 @@ namespace Genode
 		 ** base of 2 for all supported widths in 'Uint_type'         **
 		 ***************************************************************/
 
-		template <> struct Uint_type<8>
+		template <> struct Uint_type<1>
 		{
-			typedef uint8_t Type;
-			enum { WIDTH_LOG2 = 3 };
+			typedef bool Type;
+			enum { WIDTH_LOG2 = 0 };
 
 			/**
 			 * Access widths, wich are dividers to the compound type width
 			 */
 			template <unsigned long _DIVISOR_WIDTH> struct Divisor;
+		};
+
+		template <> struct Uint_type<8> : Uint_type<1>
+		{
+			typedef uint8_t Type;
+			enum { WIDTH_LOG2 = 3 };
 		};
 
 		template <> struct Uint_type<16> : Uint_type<8>
@@ -65,7 +71,7 @@ namespace Genode
 		 ** access widths in 'Uint_type::Divisor'                          **
 		 ********************************************************************/
 
-		template <> struct Uint_type<8>::Divisor<1> { enum { WIDTH_LOG2 = 0 }; };
+		template <> struct Uint_type<1>::Divisor<1> { enum { WIDTH_LOG2 = 0 }; };
 		template <> struct Uint_type<8>::Divisor<2> { enum { WIDTH_LOG2 = 1 }; };
 		template <> struct Uint_type<8>::Divisor<4> { enum { WIDTH_LOG2 = 2 }; };
 		template <> struct Uint_type<8>::Divisor<8> { enum { WIDTH_LOG2 = 3 }; };
@@ -136,6 +142,14 @@ namespace Genode
 			 */
 			static inline access_t bits(access_t const value) {
 				return (value & MASK) << SHIFT; }
+
+			/**
+			 * Get a register value 'reg' masked according to this bitfield
+			 *
+			 * \detail  E.g. '0x1234' masked according to a
+			 *          'Register<16>::Bitfield<5,7>' returns '0x0220'
+			 */
+			static inline access_t masked(access_t const reg) { return reg & REG_MASK; }
 
 			/**
 			 * Get value of this bitfield from 'reg'

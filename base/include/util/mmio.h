@@ -14,6 +14,7 @@
 #ifndef _BASE__INCLUDE__UTIL__MMIO_H_
 #define _BASE__INCLUDE__UTIL__MMIO_H_
 
+/* Genode includes */
 #include <util/register.h>
 
 namespace Genode
@@ -29,13 +30,15 @@ namespace Genode
 			 * Write typed 'value' to MMIO base + 'o'
 			 */
 			template <typename _ACCESS_T>
-			inline void _write(off_t const o, _ACCESS_T const value);
+			inline void _write(off_t const o, _ACCESS_T const value) {
+				*(_ACCESS_T volatile *)((addr_t)base + o) = value; }
 
 			/**
 			 * Read typed from MMIO base + 'o'
 			 */
 			template <typename _ACCESS_T>
-			inline _ACCESS_T _read(off_t const o) const;
+			inline _ACCESS_T _read(off_t const o) const {
+				return *(_ACCESS_T volatile *)((addr_t)base + o); }
 
 		public:
 
@@ -44,19 +47,29 @@ namespace Genode
 			/**
 			 * An integer like region within a MMIO region.
 			 *
-			 * \param  _OFFSET         Offset of the region relative to the
-			 *                         base of the compound MMIO
-			 * \param  _ACCESS_WIDTH   Bit width of the region, for a list of
-			 *                         supported widths see 'Genode::Register'
+			 * \param  _OFFSET        Offset of the region relative to the
+			 *                        base of the compound MMIO
+			 * \param  _ACCESS_WIDTH  Bit width of the region, for a list of
+			 *                        supported widths see 'Genode::Register'
+			 * \param  _STRICT_WRITE  If set to 0, when writing a bitfield, we
+			 *                        read the register value, update the bits
+			 *                        on it, and write it back to the register.
+			 *                        If set to 1 we take an empty register
+			 *                        value instead, apply the bitfield on it,
+			 *                        and write it to the register. This can
+			 *                        be useful if you have registers that have
+			 *                        different means on reads and writes.
 			 *
 			 * \detail  See 'Genode::Register'
 			 */
-			template <off_t _OFFSET, unsigned long _ACCESS_WIDTH>
+			template <off_t _OFFSET, unsigned long _ACCESS_WIDTH,
+			          bool _STRICT_WRITE = false>
 			struct Register : public Genode::Register<_ACCESS_WIDTH>
 			{
 				enum {
 					OFFSET       = _OFFSET,
 					ACCESS_WIDTH = _ACCESS_WIDTH,
+					STRICT_WRITE = _STRICT_WRITE,
 				};
 
 				/**
@@ -72,10 +85,8 @@ namespace Genode
 				struct Bitfield :
 					public Genode::Register<ACCESS_WIDTH>::template Bitfield<_SHIFT, _WIDTH>
 				{
-					/**
-					 * Back reference to containing register
-					 */
-					typedef Register<OFFSET, ACCESS_WIDTH> Compound_reg;
+					/* Back reference to containing register */
+					typedef Register<OFFSET, ACCESS_WIDTH, STRICT_WRITE> Compound_reg;
 				};
 			};
 
@@ -89,6 +100,16 @@ namespace Genode
 			 * \param  _ITEMS         How many times the region gets iterated
 			 *                        successive
 			 * \param  _ITEM_WIDTH    Bit width of a region
+			 * \param  _STRICT_WRITE  If set to 0, when writing a bitfield, we
+			 *                        read the register value, update the bits
+			 *                        on it, and write it back to the register.
+			 *                        If set to 1, we take an empty register
+			 *                        value instead, apply the bitfield on it,
+			 *                        and write it to the register. This can
+			 *                        be useful if you have registers that have
+			 *                        different means on reads and writes.
+			 *                        Please note that ACCESS_WIDTH is decisive
+			 *                        for the range of such strictness.
 			 *
 			 * \detail  The array takes all inner structures, wich are covered
 			 *          by an item width and iterates them successive. Such
@@ -103,14 +124,18 @@ namespace Genode
 			 *          effect
 			 */
 			template <off_t _OFFSET, unsigned long _ACCESS_WIDTH,
-			          unsigned long _ITEMS, unsigned long _ITEM_WIDTH>
-			struct Register_array : public Register<_OFFSET, _ACCESS_WIDTH>
+			          unsigned long _ITEMS, unsigned long _ITEM_WIDTH,
+			          bool _STRICT_WRITE = false>
+
+			struct Register_array : public Register<_OFFSET, _ACCESS_WIDTH,
+			                                        _STRICT_WRITE>
 			{
 				typedef
 				typename Trait::Uint_type<_ACCESS_WIDTH>::template Divisor<_ITEM_WIDTH>
 				Item;
 
 				enum {
+					STRICT_WRITE    = _STRICT_WRITE,
 					OFFSET          = _OFFSET,
 					ACCESS_WIDTH    = _ACCESS_WIDTH,
 					ITEMS           = _ITEMS,
@@ -121,7 +146,8 @@ namespace Genode
 					ITEM_MASK       = (1 << ITEM_WIDTH) - 1,
 				};
 
-				typedef typename Register<OFFSET, ACCESS_WIDTH>::access_t
+				typedef
+				typename Register<OFFSET, ACCESS_WIDTH, STRICT_WRITE>::access_t
 				access_t;
 
 				/**
@@ -134,12 +160,11 @@ namespace Genode
 				 */
 				template <unsigned long _SHIFT, unsigned long _SIZE>
 				struct Bitfield :
-					public Register<OFFSET, ACCESS_WIDTH>::template Bitfield<_SHIFT, _SIZE>
+					public Register<OFFSET, ACCESS_WIDTH, STRICT_WRITE>::template Bitfield<_SHIFT, _SIZE>
 				{
-					/**
-					 * Back reference to containing register array
-					 */
-					typedef Register_array<OFFSET, ACCESS_WIDTH, ITEMS, ITEM_WIDTH>
+					/* Back reference to containing register array */
+					typedef Register_array<OFFSET, ACCESS_WIDTH, ITEMS,
+					                       ITEM_WIDTH, STRICT_WRITE>
 						Compound_array;
 				};
 
@@ -183,19 +208,23 @@ namespace Genode
 			 * Typed address of register 'REGISTER'
 			 */
 			template <typename REGISTER>
-			inline typename REGISTER::access_t volatile * typed_addr() const;
+			inline typename REGISTER::access_t volatile * typed_addr() const {
+				return (typename REGISTER::access_t volatile *)
+					base + REGISTER::OFFSET; }
 
 			/**
 			 * Read the whole register 'REGISTER'
 			 */
 			template <typename REGISTER>
-			inline typename REGISTER::access_t read() const;
+			inline typename REGISTER::access_t read() const {
+				return _read<typename REGISTER::access_t>(REGISTER::OFFSET); }
 
 			/**
 			 * Write 'value' to the register 'REGISTER'
 			 */
 			template <typename REGISTER>
-			inline void write(typename REGISTER::access_t const value);
+			inline void write(typename REGISTER::access_t const value) {
+				_write<typename REGISTER::access_t>(REGISTER::OFFSET, value); }
 
 
 			/******************************************
@@ -259,46 +288,6 @@ namespace Genode
 }
 
 
-template <typename ACCESS_T>
-void Genode::Mmio::_write(off_t const o, ACCESS_T const value)
-{
-	*(ACCESS_T volatile *)((addr_t)base + o) = value;
-}
-
-
-template <typename ACCESS_T>
-ACCESS_T Genode::Mmio::_read(off_t const o) const
-{
-	return *(ACCESS_T volatile *)((addr_t)base + o);
-}
-
-
-/*************************
- ** Access to registers **
- *************************/
-
-
-template <typename REGISTER>
-typename REGISTER::access_t volatile * Genode::Mmio::typed_addr() const
-{
-	return (typename REGISTER::access_t volatile *)base + REGISTER::OFFSET;
-}
-
-
-template <typename REGISTER>
-typename REGISTER::access_t Genode::Mmio::read() const
-{
-	return _read<typename REGISTER::access_t>(REGISTER::OFFSET);
-}
-
-
-template <typename REGISTER>
-void Genode::Mmio::write(typename REGISTER::access_t const value)
-{
-	_write<typename REGISTER::access_t>(REGISTER::OFFSET, value);
-}
-
-
 /******************************************
  ** Access to bitfields within registers **
  ******************************************/
@@ -309,7 +298,6 @@ typename BITFIELD::Compound_reg::access_t Genode::Mmio::read() const
 {
 	typedef typename BITFIELD::Compound_reg Register;
 	typedef typename Register::access_t access_t;
-
 	return BITFIELD::get(_read<access_t>(Register::OFFSET));
 }
 
@@ -317,14 +305,22 @@ typename BITFIELD::Compound_reg::access_t Genode::Mmio::read() const
 template <typename BITFIELD>
 void Genode::Mmio::write(typename BITFIELD::Compound_reg::access_t const value)
 {
+	/* Initialize the pattern that is written finally to the register */
 	typedef typename BITFIELD::Compound_reg Register;
-	typedef typename Register::access_t access_t;
+	typename Register::access_t write_value;
+	if (Register::STRICT_WRITE)
+	{
+		/* We must only apply the bitfield to an empty write pattern */
+		write_value = 0;
+	} else {
 
-	access_t new_reg = read<Register>();
-	BITFIELD::clear(new_reg);
-	BITFIELD::set(new_reg, value);
-
-	write<Register>(new_reg);
+		/* We've got to apply the bitfield to the old register value */
+		write_value = read<Register>();
+		BITFIELD::clear(write_value);
+	}
+	/* Apply bitfield value and override register */
+	BITFIELD::set(write_value, value);
+	write<Register>(write_value);
 }
 
 
@@ -337,24 +333,18 @@ template <typename REGISTER_ARRAY>
 typename REGISTER_ARRAY::access_t
 Genode::Mmio::read(unsigned long const index) const
 {
-	/**
-	 * Handle array overflow
-	 */
+	/* Reads outside the array return 0 */
 	if (index > REGISTER_ARRAY::MAX_INDEX) return 0;
 
+	/* If item width equals access width we optimize the access */
 	off_t offset;
-
-	/**
-	 * Optimize access if item width equals access width
-	 */
 	if (REGISTER_ARRAY::ITEM_WIDTH == REGISTER_ARRAY::ACCESS_WIDTH) {
-
 		offset = REGISTER_ARRAY::OFFSET
 		         + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
 		return _read<typename REGISTER_ARRAY::access_t>(offset);
 
+	/* Access width and item width differ */
 	} else {
-
 		long unsigned shift;
 		REGISTER_ARRAY::access_dest(offset, shift, index);
 		return (_read<typename REGISTER_ARRAY::access_t>(offset) >> shift)
@@ -368,37 +358,36 @@ template <typename REGISTER_ARRAY>
 void Genode::Mmio::write(typename REGISTER_ARRAY::access_t const value,
                          unsigned long const index)
 {
-	/**
-	 * Avoid array overflow
-	 */
+	/* Writes outside the array are ignored */
 	if (index > REGISTER_ARRAY::MAX_INDEX) return;
 
+	/* If item width equals access width we optimize the access */
 	off_t offset;
-
-	/**
-	 * Optimize access if item width equals access width
-	 */
 	if (REGISTER_ARRAY::ITEM_WIDTH == REGISTER_ARRAY::ACCESS_WIDTH) {
-
 		offset = REGISTER_ARRAY::OFFSET
 		         + (index << REGISTER_ARRAY::ITEM_WIDTH_LOG2);
 		_write<typename REGISTER_ARRAY::access_t>(offset, value);
 
+	/* Access width and item width differ */
 	} else {
-
 		long unsigned shift;
 		REGISTER_ARRAY::access_dest(offset, shift, index);
 
-		/**
-		 * Insert new value into old register value
-		 */
-		typename REGISTER_ARRAY::access_t new_reg =
-			_read<typename REGISTER_ARRAY::access_t>(offset);
+		/* Insert new value into old register value */
+		typename REGISTER_ARRAY::access_t write_value;
+		if (REGISTER_ARRAY::STRICT_WRITE)
+		{
+			/* We must only apply the bitfield to an empty write pattern */
+			write_value = 0;
+		} else {
 
-		new_reg &= ~(REGISTER_ARRAY::ITEM_MASK << shift);
-		new_reg |= (value & REGISTER_ARRAY::ITEM_MASK) << shift;
-
-		_write<typename REGISTER_ARRAY::access_t>(offset, new_reg);
+			/* We've got to apply the bitfield to the old register value */
+			write_value = _read<typename REGISTER_ARRAY::access_t>(offset);
+			write_value &= ~(REGISTER_ARRAY::ITEM_MASK << shift);
+		}
+		/* Apply bitfield value and override register */
+		write_value |= (value & REGISTER_ARRAY::ITEM_MASK) << shift;
+		_write<typename REGISTER_ARRAY::access_t>(offset, write_value);
 	}
 }
 
@@ -413,13 +402,22 @@ void
 Genode::Mmio::write(typename ARRAY_BITFIELD::Compound_array::access_t const value,
                     long unsigned const index)
 {
+	/* Initialize the pattern that is finally written to the register */
 	typedef typename ARRAY_BITFIELD::Compound_array Register_array;
+	typename Register_array::access_t write_value;
+	if (Register_array::STRICT_WRITE)
+	{
+		/* We must only apply the bitfield to an empty write pattern */
+		write_value = 0;
+	} else {
 
-	typename Register_array::access_t new_reg = read<Register_array>(index);
-	ARRAY_BITFIELD::clear(new_reg);
-	ARRAY_BITFIELD::set(new_reg, value);
-
-	write<Register_array>(new_reg, index);
+		/* We've got to apply the bitfield to the old register value */
+		write_value = read<Register_array>(index);
+		ARRAY_BITFIELD::clear(write_value);
+	}
+	/* Apply bitfield value and override register */
+	ARRAY_BITFIELD::set(write_value, value);
+	write<Register_array>(write_value, index);
 }
 
 
@@ -429,7 +427,6 @@ Genode::Mmio::read(long unsigned const index) const
 {
 	typedef typename ARRAY_BITFIELD::Compound_array Array;
 	typedef typename Array::access_t access_t;
-
 	return ARRAY_BITFIELD::get(read<Array>(index));
 }
 
