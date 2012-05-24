@@ -227,17 +227,25 @@ extern "C" ssize_t _getdirentries(int libc_fd, char *buf, ::size_t nbytes, ::off
 	FD_FUNC_WRAPPER(getdirentries, libc_fd, buf, nbytes, basep); }
 
 
-extern "C" int getpeername(int libc_fd, struct sockaddr *addr, socklen_t *addrlen) {
+
+extern "C" int _getpeername(int libc_fd, struct sockaddr *addr, socklen_t *addrlen) {
 	FD_FUNC_WRAPPER(getpeername, libc_fd, addr, addrlen); }
 
 
-extern "C" int getsockname(int libc_fd, struct sockaddr *addr, socklen_t *addrlen) {
+extern "C" int getpeername(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
+{
+	return _getpeername(libc_fd, addr, addrlen);
+}
+
+
+extern "C" int _getsockname(int libc_fd, struct sockaddr *addr, socklen_t *addrlen) {
 	FD_FUNC_WRAPPER(getsockname, libc_fd, addr, addrlen); }
 
 
-extern "C" int getsockopt(int libc_fd, int level, int optname,
-                          void *optval, socklen_t *optlen) {
-	FD_FUNC_WRAPPER(getsockopt, libc_fd, level, optname, optval, optlen); }
+extern "C" int getsockname(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
+{
+	return _getsockname(libc_fd, addr, addrlen);
+}
 
 
 extern "C" int ioctl(int libc_fd, int request, char *argp) {
@@ -348,9 +356,20 @@ extern "C" ssize_t recv(int libc_fd, void *buf, ::size_t len, int flags) {
 	FD_FUNC_WRAPPER(recv, libc_fd, buf, len, flags); }
 
 
-extern "C" ssize_t recvfrom(int libc_fd, void *buf, ::size_t len, int flags,
+extern "C" ssize_t _recvfrom(int libc_fd, void *buf, ::size_t len, int flags,
                               struct sockaddr *src_addr, socklen_t *addrlen) {
 	FD_FUNC_WRAPPER(recvfrom, libc_fd, buf, len, flags, src_addr, addrlen); }
+
+
+extern "C" ssize_t recvfrom(int libc_fd, void *buf, ::size_t len, int flags,
+                              struct sockaddr *src_addr, socklen_t *addrlen)
+{
+	return _recvfrom(libc_fd, buf, len, flags, src_addr, addrlen);
+}
+
+
+extern "C" ssize_t recvmsg(int libc_fd, struct msghdr *msg, int flags) {
+	FD_FUNC_WRAPPER(recvmsg, libc_fd, msg, flags); }
 
 
 extern "C" int rename(const char *oldpath, const char *newpath) {
@@ -361,15 +380,44 @@ extern "C" ssize_t send(int libc_fd, const void *buf, ::size_t len, int flags) {
 	FD_FUNC_WRAPPER(send, libc_fd, buf, len, flags); }
 
 
-extern "C" ssize_t sendto(int libc_fd, const void *buf, ::size_t len, int flags,
+extern "C" ssize_t _sendto(int libc_fd, const void *buf, ::size_t len, int flags,
                             const struct sockaddr *dest_addr, socklen_t addrlen) {
 	FD_FUNC_WRAPPER(sendto, libc_fd, buf, len, flags, dest_addr, addrlen); }
 
 
-extern "C" int setsockopt(int libc_fd, int level, int optname,
+extern "C" ssize_t sendto(int libc_fd, const void *buf, ::size_t len, int flags,
+                            const struct sockaddr *dest_addr, socklen_t addrlen)
+{
+	return _sendto(libc_fd, buf, len, flags, dest_addr, addrlen);
+}
+
+
+extern "C" int _getsockopt(int libc_fd, int level, int optname,
+                          void *optval, socklen_t *optlen)
+{
+	return getsockopt(libc_fd, level, optname, optval, optlen);
+}
+
+
+extern "C" int getsockopt(int libc_fd, int level, int optname,
+                          void *optval, socklen_t *optlen) {
+	FD_FUNC_WRAPPER(getsockopt, libc_fd, level, optname, optval, optlen); }
+
+
+extern "C" int _setsockopt(int libc_fd, int level, int optname,
                           const void *optval, socklen_t optlen) {
 	FD_FUNC_WRAPPER(setsockopt, libc_fd, level, optname, optval, optlen); }
 
+
+extern "C" int setsockopt(int libc_fd, int level, int optname,
+                          const void *optval, socklen_t optlen)
+{
+	return _setsockopt(libc_fd, level, optname, optval, optlen);
+}
+
+
+extern "C" int shutdown(int libc_fd, int how) {
+	FD_FUNC_WRAPPER(shutdown, libc_fd, how); }
 
 extern "C" int socket(int domain, int type, int protocol)
 {

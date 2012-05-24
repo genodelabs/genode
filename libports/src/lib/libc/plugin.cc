@@ -164,9 +164,11 @@ DUMMY(::off_t, -1, lseek,         (File_descriptor *, ::off_t, int));
 DUMMY(ssize_t, -1, read,          (File_descriptor *, void *, ::size_t));
 DUMMY(ssize_t, -1, recv,          (File_descriptor *, void *, ::size_t, int));
 DUMMY(ssize_t, -1, recvfrom,      (File_descriptor *, void *, ::size_t, int, struct sockaddr *, socklen_t *));
+DUMMY(ssize_t, -1, recvmsg,       (File_descriptor *, struct msghdr *, int));
 DUMMY(ssize_t, -1, send,          (File_descriptor *, const void *, ::size_t, int));
 DUMMY(ssize_t, -1, sendto,        (File_descriptor *, const void *, ::size_t, int, const struct sockaddr *, socklen_t));
 DUMMY(int,     -1, setsockopt,    (File_descriptor *, int, int, const void *, socklen_t));
+DUMMY(int,     -1, shutdown,      (File_descriptor *, int));
 DUMMY(ssize_t, -1, write,         (File_descriptor *, const void *, ::size_t));
 
 

@@ -21,6 +21,7 @@
 #include <libc-plugin/plugin.h>
 
 #include <sys/select.h>
+#include <signal.h>
 
 using namespace Libc;
 
@@ -269,6 +270,30 @@ select(int nfds, fd_set *readfds, fd_set *writefds,
 			*exceptfds = select_cb.exceptset;
 	} else
 		select_cb_list_lock().unlock();
+
+	return nready;
+}
+
+extern "C" int
+__attribute__((weak))
+pselect(int nfds, fd_set *readfds, fd_set *writefds,
+       fd_set *exceptfds, const struct timespec *timeout,
+       const sigset_t *sigmask)
+{
+	struct timeval tv, *tvp;
+	sigset_t origmask;
+	int nready;
+
+	if (timeout) {
+		tv.tv_usec = timeout->tv_nsec / 1000;
+		tv.tv_sec = timeout->tv_sec;
+	}
+
+	if (sigmask)
+		sigprocmask(SIG_SETMASK, sigmask, &origmask);
+	nready = select(nfds, readfds, writefds, exceptfds, &tv);
+	if (sigmask)
+		sigprocmask(SIG_SETMASK, &origmask, NULL);
 
 	return nready;
 }

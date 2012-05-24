@@ -6,17 +6,27 @@ LIBC := libc-8.2.0
 PORTS += $(LIBC)
 
 #
+# Sanity check for tools
+#
+ifeq ($(shell which lex),)
+$(error Missing installation of 'lex' (package flex))
+endif
+
+#
 # Subdirectories to check out from FreeBSD's Subversion repository
 #
 LIBC_SVN_BASE = http://svn.freebsd.org/base/release/8.2.0
 
-LIBC_CONTRIB_SUB_DIRS = libc include sys_sys sys_netinet sys_netinet6 \
-                        sys_bsm sys_vm sys_arm sys_i386 sys_amd64 \
+LIBC_CONTRIB_SUB_DIRS = libc libutil include sys_sys sys_netinet sys_netinet6 \
+                        sys_net sys_bsm sys_rpc sys_vm sys_arm sys_i386 sys_amd64 \
                         msun gdtoa
 
 LIBC_SVN_libc         = lib/libc
+LIBC_SVN_libutil      = lib/libutil
 LIBC_SVN_include      = include
 LIBC_SVN_sys_sys      = sys/sys
+LIBC_SVN_sys_rpc      = sys/rpc
+LIBC_SVN_sys_net      = sys/net
 LIBC_SVN_sys_netinet  = sys/netinet
 LIBC_SVN_sys_netinet6 = sys/netinet6
 LIBC_SVN_sys_bsm      = sys/bsm
@@ -53,8 +63,11 @@ LIBC_IMPORT_INCLUDES =  include/libc/strings.h \
                         include/libc/time.h \
                         include/libc/sysexits.h \
                         include/libc/arpa/inet.h \
+                        include/libc/arpa/ftp.h \
                         include/libc/arpa/nameser.h \
                         include/libc/arpa/nameser_compat.h \
+                        include/libc/arpa/telnet.h \
+                        include/libc/arpa/tftp.h \
                         include/libc/resolv.h \
                         include/libc/wctype.h \
                         include/libc/fcntl.h \
@@ -68,7 +81,9 @@ LIBC_IMPORT_INCLUDES =  include/libc/strings.h \
                         include/libc/ar.h \
                         include/libc/stdint.h \
                         include/libc/ieeefp.h \
-                        include/libc/memory.h
+                        include/libc/memory.h \
+                        include/libc/res_update.h \
+                        include/libc/rpc/rpc.h
 
 #
 # Files from include directory needed for stdlib
@@ -133,10 +148,17 @@ LIBC_IMPORT_INCLUDES += include/libc/vm/vm_param.h \
                         include/libc/vm/pmap.h
 
 #
+# Files coming from the sys/net directories
+#
+LIBC_IMPORT_INCLUDES += include/libc/net/if.h
+
+#
 # Files coming from the sys/netinet and sys/netinet6 directories
 #
 LIBC_IMPORT_INCLUDES += include/libc/netinet/in.h \
+                        include/libc/netinet/in_systm.h \
                         include/libc/netinet6/in6.h \
+                        include/libc/netinet/ip.h \
                         include/libc/netinet/tcp.h
 
 #
@@ -160,6 +182,7 @@ LIBC_IMPORT_INCLUDES += include/libc/sys/_types.h \
                         include/libc/sys/time.h \
                         include/libc/sys/param.h \
                         include/libc/sys/stdint.h \
+                        include/libc/sys/event.h \
                         include/libc/errno.h
 
 #
@@ -371,6 +394,21 @@ LIBC_IMPORT_INCLUDES += include/libc-amd64/fenv.h
 #
 LIBC_IMPORT_INCLUDES += include/libc/bsm/audit.h
 
+#
+# Generate files needed for compiling libc-net
+#
+libc_gen_nslexer: $(CONTRIB_DIR)/$(LIBC)/libc/net/nslexer.l
+	$(VERBOSE)$(LEX) -P_nsyy -t $< | \
+		sed -e '/YY_BUF_SIZE/s/16384/1024/' \
+		> $(CONTRIB_DIR)/$(LIBC)/libc/net/nslexer.c
+
+libc_gen_nsparser: $(CONTRIB_DIR)/$(LIBC)/libc/net/nsparser.y
+	$(VERBOSE)$(YACC) -d -p_nsyy $< \
+		--defines=$(CONTRIB_DIR)/$(LIBC)/libc/net/nsparser.h \
+		--output=$(CONTRIB_DIR)/$(LIBC)/libc/net/nsparser.c
+
+libc_net_generate: libc_gen_nslexer libc_gen_nsparser
+
 ##
 # Shortcut for creating a symlink
 #
@@ -386,10 +424,16 @@ include/libc/arpa/%.h: $(CONTRIB_DIR)/$(LIBC)/include/arpa/%.h
 include/libc/%.h: $(CONTRIB_DIR)/$(LIBC)/include/%.h
 	$(libc_gen_symlink_subsub)
 
+include/libc/net/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_net/%.h
+	$(libc_gen_symlink_subsubsub)
+
 include/libc/netinet/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_netinet/%.h
 	$(libc_gen_symlink_subsubsub)
 
 include/libc/netinet6/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_netinet6/%.h
+	$(libc_gen_symlink_subsubsub)
+
+include/libc/rpc/%.h: $(CONTRIB_DIR)/$(LIBC)/include/rpc/%.h
 	$(libc_gen_symlink_subsubsub)
 
 include/libc/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_sys/%.h
@@ -456,7 +500,7 @@ apply_patches-libc: checkout-libc
 create_include_symlinks-libc: checkout-libc
 	$(VERBOSE)make -s $(LIBC_IMPORT_INCLUDES)
 
-prepare-libc: create_include_symlinks-libc apply_patches-libc
+prepare-libc: create_include_symlinks-libc apply_patches-libc libc_net_generate
 
 clean_include_symlinks-libc:
 	$(VERBOSE)find include -type l -delete

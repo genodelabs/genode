@@ -153,7 +153,7 @@ src/lib/ncurses/codes.c:
 
 src/lib/ncurses/fallback.c: $(NCURSES_SRC_DIR)/tinfo/MKfallback.sh
 	$(VERBOSE)sh -e $< x $(CONTRIB_DIR)/$(NCURSES)/misc/terminfo.src tic linux > $@
-	#$(VERBOSE)sh -e $< /usr/share/terminfo $(NCURSES_SRC_DIR)/misc/terminfo.src /usr/bin/tic > $@
+	$(VERBOSE)#sh -e $< /usr/share/terminfo $(NCURSES_SRC_DIR)/misc/terminfo.src /usr/bin/tic > $@
 
 src/lib/ncurses/unctrl.c:
 	$(VERBOSE)echo | mawk -f $(NCURSES_SRC_DIR)/base/MKunctrl.awk bigstrings=1 > $@

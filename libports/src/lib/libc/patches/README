@@ -17,3 +17,7 @@ Manual modifications
   C++ support library as weak symbol. By redefining this symbol as non-weak in
   the libc, the C++ support library would use the libc dummy stub instead its
   own implementation, causing problems with handling exceptions.
+
+:'src/lib/libc/resolv/res_send.c':
+
+  Disable usage of kqueue and fix building libresolv when kqueue is disabled.

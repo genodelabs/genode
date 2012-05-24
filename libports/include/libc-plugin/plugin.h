@@ -103,6 +103,7 @@ namespace Libc {
 			virtual ssize_t recv(File_descriptor *, void *buf, ::size_t len, int flags);
 			virtual ssize_t recvfrom(File_descriptor *, void *buf, ::size_t len, int flags,
 			                         struct sockaddr *src_addr, socklen_t *addrlen);
+			virtual ssize_t recvmsg(File_descriptor *, struct msghdr *msg, int flags);
 			virtual int rename(const char *oldpath, const char *newpath);
 			virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
 			                   fd_set *exceptfds, struct timeval *timeout);
@@ -114,6 +115,7 @@ namespace Libc {
 			virtual int setsockopt(File_descriptor *, int level,
 			                       int optname, const void *optval,
 			                       socklen_t optlen);
+			virtual int shutdown(File_descriptor *, int how);
 			virtual File_descriptor *socket(int domain, int type, int protocol);
 			virtual int stat(const char *path, struct stat *buf);
 			virtual int unlink(const char *path);

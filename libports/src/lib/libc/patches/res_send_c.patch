@@ -1,0 +1,35 @@
+--- libc/include/port_after.h.orig	2006-03-21 19:31:24.000000000 +0100
++++ libc/include/port_after.h		2012-05-24 11:22:13.453080652 +0200
+@@ -4,7 +4,7 @@
+ #define _PORT_AFTER_H_
+ 
+ #define HAVE_SA_LEN		1
+-#define HAS_INET6_STRUCTS	1
++//#define HAS_INET6_STRUCTS	1
+ #define HAVE_SIN6_SCOPE_ID	1
+ #define HAVE_TIME_R		1
+ 
+--- libc/include/port_before.h.orig	2006-03-21 16:37:16.000000000 +0100
++++ libc/include/port_before.h		2012-05-24 11:22:13.453080652 +0200
+@@ -4,8 +4,8 @@
+ #define _PORT_BEFORE_H_
+ 
+ #define _LIBC		1
+-#define DO_PTHREADS	1
+-#define USE_KQUEUE	1
++//#define DO_PTHREADS	1
++//#define USE_KQUEUE	1
+ 
+ #define ISC_SOCKLEN_T	socklen_t
+ #define ISC_FORMAT_PRINTF(fmt, args) \
+--- libc/resolv/res_send.c.orig	2008-12-14 20:39:53.360146000 +0100
++++ libc/resolv/res_send.c	2012-05-24 11:29:55.602592107 +0200
+@@ -78,7 +78,7 @@
+ 
+ #include "port_before.h"
+ #ifndef USE_KQUEUE
+-#include "fd_setsize.h"
++//#include "fd_setsize.h"
+ #endif
+ 
+ #include "namespace.h"

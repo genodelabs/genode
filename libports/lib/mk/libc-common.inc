@@ -4,6 +4,7 @@ LIBC_DIR = $(REP_DIR)/contrib/libc-8.2.0
 INC_DIR += $(LIBC_DIR)/libc/locale
 INC_DIR += $(LIBC_DIR)/libc/include
 INC_DIR += $(LIBC_DIR)/libc/stdio
+INC_DIR += $(LIBC_DIR)/libc/net
 INC_DIR += $(LIBC_DIR)/gdtoa
 
 #CC_OPT += -DGENODE_RELEASE
