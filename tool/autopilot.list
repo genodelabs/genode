@@ -4,6 +4,7 @@ rm_fault
 rom_blk
 tar_rom
 noux
+noux_net_netcat
 libc_ffat
 timed_semaphore
 signal
