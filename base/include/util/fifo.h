@@ -67,15 +67,15 @@ namespace Genode {
 			 */
 			void enqueue(QT *e)
 			{
-				e->_next = 0;
-				e->_is_enqueued = true;
+				e->Fifo::Element::_next = 0;
+				e->Fifo::Element::_is_enqueued = true;
 
 				if (empty()) {
 					_tail = _head = e;
 					return;
 				}
 
-				_tail->_next = e;
+				_tail->Fifo::Element::_next = e;
 				_tail = e;
 			}
 
@@ -92,12 +92,12 @@ namespace Genode {
 				if (_head == _tail)
 					_head = _tail = 0;
 				else
-					_head = _head->_next;
+					_head = _head->Fifo::Element::_next;
 
 				/* mark fifo queue element as free */
 				if (result) {
-					result->_next = 0;
-					result->_is_enqueued = false;
+					result->Fifo::Element::_next = 0;
+					result->Fifo::Element::_is_enqueued = false;
 				}
 
 				return result;
