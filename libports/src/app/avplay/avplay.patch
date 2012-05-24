@@ -1,0 +1,24 @@
+- don't show status messages
+- fix audio/video synchronicity (needs more testing)
+
+diff --git a/avplay.c b/avplay.c
+--- a/avplay.c
++++ b/avplay.c
+@@ -235,7 +235,7 @@
+ };
+ static int seek_by_bytes = -1;
+ static int display_disable;
+-static int show_status = 1;
++static int show_status = 0;
+ static int av_sync_type = AV_SYNC_AUDIO_MASTER;
+ static int64_t start_time = AV_NOPTS_VALUE;
+ static int64_t duration = AV_NOPTS_VALUE;
+@@ -965,7 +965,7 @@
+                         2 * is->audio_st->codec->channels;
+     }
+     if (bytes_per_sec)
+-        pts -= (double)hw_buf_size / bytes_per_sec;
++        pts -= 0.5;
+     return pts;
+ }
+ 

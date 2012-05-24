@@ -20,6 +20,7 @@ $(DOWNLOAD_DIR)/$(LIBAV_TGZ):
 
 $(CONTRIB_DIR)/$(LIBAV): $(DOWNLOAD_DIR)/$(LIBAV_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(LIBAV) -p1 -i ../../src/app/avplay/avplay.patch
 
 clean-libav:
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(LIBAV)

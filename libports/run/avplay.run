@@ -1,0 +1,96 @@
+build {
+	core init
+	drivers/timer
+	drivers/framebuffer drivers/pci drivers/input drivers/audio_out
+	app/avplay
+}
+
+create_boot_directory
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="vesa_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+		<start name="audio_out_drv">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Audio_out"/></provides>
+		</start>
+	<start name="avplay">
+		<resource name="RAM" quantum="64M"/>
+		<config>
+			<arg value="avplay"/>
+			<arg value="mediafile"/>
+			<sdl_audio_volume value="100"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init timer audio_out_drv avplay
+	ld.lib.so libc.lib.so libc_log.lib.so libc_rom.lib.so libm.lib.so pthread.lib.so zlib.lib.so sdl.lib.so
+	avfilter.lib.so avutil.lib.so avcodec.lib.so avformat.lib.so swscale.lib.so
+	mediafile
+}
+
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 -soundhw all"
+
+run_genode_until forever
+
