@@ -31,6 +31,11 @@
 namespace Block {
 
 	/**
+	 * Sector type for block session
+	 */
+	typedef Genode::uint64_t sector_t;
+
+	/**
 	 * Represents an operation request with respect to a block,
 	 * the data associated with the 'Packet_descriptor' is either
 	 * the data read from or written to the block indicated by

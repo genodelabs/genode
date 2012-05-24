@@ -1,0 +1,75 @@
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/pci
+	drivers/usb
+	test/input
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides><service name="Input"/></provides>
+		<config>
+			<hid/>
+		</config>
+	</start>
+	<start name="test-input">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer pci_drv usb_drv test-input
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 -usb  -usbdevice mouse -usbdevice keyboard"
+
+
+run_genode_until forever

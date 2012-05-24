@@ -13,6 +13,8 @@
 /base-okl4/download
 /base-pistachio/contrib
 /dde_ipxe/contrib
+/dde_linux/contrib
+/dde_linux/download
 /libports/contrib
 /libports/download
 /libports/include/EGL/egl.h

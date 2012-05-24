@@ -127,10 +127,17 @@ The Genode source tree is composed of the following subdirectories:
   For instructions about how to use this mechanism, please consult the README
   file at the top level of the repository.
 
-:'linux_drivers':
+:'dde_linux':
 
   This source-code repository contains the device driver environment for
-  executing Linux device drivers natively on Genode.
+  executing Linux device drivers natively on Genode. Currently, this
+  repository hosts the USB stack.
+
+:'linux_drivers':
+
+  Deprecated version of the Linux device driver environment featuring audio
+  drivers and the Intel GEM driver. This repository is in a transitionary
+  phase. Its functionality will be incorporated into 'dde_linux'.
 
 :'dde_ipxe':
 

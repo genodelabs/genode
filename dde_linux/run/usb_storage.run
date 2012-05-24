@@ -1,0 +1,107 @@
+#
+# \brief  Test for using the Block (Storage) service of usb_drv
+# \author Christian Prochaska
+# \date   2011-06-24
+#
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/pci
+	drivers/timer
+	drivers/usb
+	test/ahci
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="512K"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="Block"/> </provides>
+		<config><storage /></config>
+	</start>
+	<start name="pci_drv">
+		<resource name="RAM" quantum="512K"/>
+		<provides> <service name="PCI"/> </provides>
+	</start>
+		<start name="test-usb">
+		<resource name="RAM" quantum="1M" />
+		<binary name="test-ahci" />
+	</start>
+</config>
+}
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer usb_drv pci_drv test-ahci
+}
+
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+set disk_image "bin/test.img"
+set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
+puts "creating disk image:\n$cmd"
+catch { exec sh -c $cmd }
+
+set cmd "mkfs.vfat -F32 $disk_image"
+puts "formating disk image with vfat file system:\$cmd"
+catch { exec sh -c $cmd }
+
+#
+# Qemu opts for UHCI
+#
+#append qemu_args " -m 64 -nographic -usbdevice disk::$disk_image -boot order=d"
+
+#
+# Qemu opts for EHCI
+#
+append qemu_args "-drive if=none,id=disk,file=$disk_image"
+append qemu_args {  \
+-m 64 -nographic -M pc \
+-device usb-ehci,id=ehci \
+-device usb-storage,bus=ehci.0,drive=disk \
+-boot order=d }
+
+run_genode_until {.*child exited with exit value 0.*} 40
+
+puts "\ntest succeeded\n"
+
+# vi: set ft=tcl :

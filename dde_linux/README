@@ -1,0 +1,37 @@
+Device drivers ported from the Linux kernel
+
+USB
+###
+
+HID
+~~~
+
+Supports keyboard and mouse. A run script can be found under 'run/usb_hid.run'.
+
+Configuration snippet:
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="3M"/>
+!  <provides><service name="Input"/></provides>
+!  <config>
+!    <hid/>
+!  </config>
+!</start>
+
+Note: It has been observed that certain 1.0 versions of Qemu do not generate
+mouse interrupts. The mouse driver should work correctly on Qemu 1.0.93 and
+above.
+
+STORAGE
+~~~~~~~
+
+Currently supports one USB storage device. Hot plugging has not been tested. A
+run script can be found under 'run/usb_storage.run'.
+
+Configuration snippet:
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="2M"/>
+!  <provides> <service name="Block"/> </provides>
+!  <config><storage /></config>
+!</start>
