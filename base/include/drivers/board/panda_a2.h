@@ -1,0 +1,53 @@
+/**
+ * \brief  Driver for the OMAP4 PandaBoard revision A2
+ * \author Martin stein
+ * \date   2011-11-03
+ */
+
+/*
+ * Copyright (C) 2011-2012 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#ifndef _BASE__INCLUDE__DRIVERS__BOARD__PANDA_A2_H_
+#define _BASE__INCLUDE__DRIVERS__BOARD__PANDA_A2_H_
+
+namespace Genode
+{
+	/**
+	 * Driver for the OMAP4 PandaBoard revision A2
+	 */
+	struct Panda_a2
+	{
+		enum
+		{
+			/* Buses */
+			L4_PER_BASE = 0x48000000,
+			L4_PER_SIZE = 0x01000000,
+
+			/* Clocks */
+			MPU_DPLL_CLOCK = 200*1000*1000,
+
+			/* UART */
+			TL16C750_3_MMIO_BASE = L4_PER_BASE + 0x20000,
+			TL16C750_3_MMIO_SIZE = 0x2000,
+			TL16C750_3_CLOCK = 48*1000*1000,
+			TL16C750_3_IRQ = 74,
+
+			/* CPU */
+			CORTEX_A9_PRIVATE_MEM_BASE = L4_PER_BASE + 0x240000,
+			CORTEX_A9_PRIVATE_MEM_SIZE = 0x2000,
+			CORTEX_A9_CLOCK = MPU_DPLL_CLOCK,
+			CORTEX_A9_SECURITY_EXTENSION = 0,
+
+			/* RAM */
+			EMIF1_EMIF2_CS0_SDRAM_BASE = 0x80000000,
+			EMIF1_EMIF2_CS0_SDRAM_SIZE = 0x40000000,
+		};
+	};
+}
+
+#endif /* _BASE__INCLUDE__DRIVERS__BOARD__PANDA_A2_H_ */
+
