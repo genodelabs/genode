@@ -34,8 +34,12 @@ namespace Genode
 	 */
 	struct Ap_1_0_bitfield
 	{
-		enum { KERNEL_AND_USER_NO_ACCESS = 0,
-		       KERNEL_AND_USER_SAME_ACCESS = 3 };
+		enum {
+			KERNEL_AND_USER_NO_ACCESS = 0,
+			USER_NO_ACCESS = 1,
+			USER_RO_ACCESS = 2,
+			KERNEL_AND_USER_SAME_ACCESS = 3
+		};
 	};
 
 	/**
@@ -43,9 +47,48 @@ namespace Genode
 	 */
 	struct Ap_2_bitfield
 	{
-		enum { KERNEL_RW_OR_NO_ACCESS = 0,
-		       KERNEL_RO_ACCESS       = 1 };
+		enum {
+			KERNEL_RW_OR_NO_ACCESS = 0,
+			KERNEL_RO_ACCESS = 1
+		};
 	};
+
+
+	/**
+	 * Permission configuration according to given access rights
+	 *
+	 * \param  T  targeted translation-table-descriptor type
+	 * \param  w  see 'Section_table::insert_translation'
+	 * \param  x  see 'Section_table::insert_translation'
+	 * \param  k  see 'Section_table::insert_translation'
+	 *
+	 * \return  descriptor value with requested perms and the rest left zero
+	 */
+	template <typename T>
+	static typename T::access_t access_permission_bits(bool const w,
+	                                                   bool const x,
+	                                                   bool const k)
+	{
+		/* lookup table for AP bitfield values according to 'w' and 'k' */
+		typedef typename T::Ap_1_0 Ap_1_0;
+		typedef typename T::Ap_2 Ap_2;
+		static typename T::access_t const ap_bits[2][2] = {{
+			Ap_1_0::bits(Ap_1_0::USER_RO_ACCESS) |              /* -- */
+			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS),
+
+			Ap_1_0::bits(Ap_1_0::USER_NO_ACCESS) |              /* -k */
+			         Ap_2::bits(Ap_2::KERNEL_RO_ACCESS) }, {
+
+			Ap_1_0::bits(Ap_1_0::KERNEL_AND_USER_SAME_ACCESS) | /* w- */
+			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS),
+
+			Ap_1_0::bits(Ap_1_0::USER_NO_ACCESS) |              /* wk */
+			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS) }
+		};
+		/* combine XN and AP bitfield values according to 'w', 'x' and 'k' */
+		typedef typename T::Xn Xn;
+		return Xn::bits(!x) | ap_bits[w][k];
+	}
 
 	/**
 	 * Cortex A9 second level translation table
@@ -111,17 +154,23 @@ namespace Genode
 				static void type(access_t & v, Type const t)
 				{
 					switch (t) {
-					case FAULT:
+
+					case FAULT: {
+
 						Type_1::set(v, 0);
 						Type_2::set(v, 0);
-						break;
-					case SMALL_PAGE:
+						break; }
+
+					case SMALL_PAGE: {
+
 						Type_1::set(v, 1);
-						 break;
-					case LARGE_PAGE:
+						break; }
+
+					case LARGE_PAGE: {
+
 						Type_1::set(v, 0);
 						Type_2::set(v, 1);
-						break;
+						break; }
 					}
 				}
 
@@ -196,42 +245,12 @@ namespace Genode
 				struct S        : Bitfield<10, 1> { };  /* shareable bit */
 				struct Ng       : Bitfield<11, 1> { };  /* not global bit */
 				struct Pa_31_12 : Bitfield<12, 20> { }; /* physical address bits [31:12] */
-
-				/**
-				 * Permission configuration according to given access rights
-				 *
-				 * \param  r  readability
-				 * \param  w  writeability
-				 * \param  x  executability
-				 * \return    descriptor value configured with appropriate
-				 *            access permissions and the rest left zero
-				 */
-				static access_t access_permission_bits(bool const r,
-				                                       bool const w,
-				                                       bool const x)
-				{
-					access_t v = Xn::bits(!x);
-					if (r) {
-						v |= Ap_1_0::bits(Ap_1_0::KERNEL_AND_USER_SAME_ACCESS);
-						if(w) v |= Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS);
-						else v |= Ap_2::bits(Ap_2::KERNEL_RO_ACCESS);
-					}
-					else if (w) {
-						PDBG("Write only translations not supported");
-						while (1) ;
-					}
-					else {
-						v |= Ap_1_0::bits(Ap_1_0::KERNEL_AND_USER_NO_ACCESS)
-						     | Ap_2::bits(Ap_2::KERNEL_RO_ACCESS);
-					}
-					return v;
-				}
 			};
 
 			/*
 			 * Table payload
 			 *
-			 * Attention: Must be the only member of this class
+			 * Must be the only member of this class
 			 */
 			Descriptor::access_t _entries[SIZE/sizeof(Descriptor::access_t)];
 
@@ -240,10 +259,12 @@ namespace Genode
 			/**
 			 * Get entry index by virtual offset
 			 *
-			 * \param  i    is overridden with the resulting index
-			 * \param  vo   virtual offset relative to the virtual table base
-			 * \retval  <0  if virtual offset couldn't be resolved,
-			 *              in this case 'i' reside invalid
+			 * \param i   is overridden with the resulting index
+			 * \param vo  virtual offset relative to the virtual table base
+			 *
+			 * \retval  0  on success
+			 * \retval <0  If virtual offset couldn't be resolved.
+			 *             In this case 'i' reside invalid
 			 */
 			int _index_by_vo (unsigned long & i, addr_t const vo) const
 			{
@@ -266,8 +287,8 @@ namespace Genode
 			{
 				/* check table alignment */
 				if (!aligned((addr_t)this, ALIGNM_LOG2)
-				    || (addr_t)this != (addr_t)_entries) {
-
+				    || (addr_t)this != (addr_t)_entries)
+				{
 					PDBG("Insufficient table alignment");
 					while (1) ;
 				}
@@ -289,25 +310,25 @@ namespace Genode
 			/**
 			 * Insert one atomic translation into this table
 			 *
-			 * \param  vo           offset of the virtual region represented
-			 *                      by the translation within the virtual
-			 *                      region represented by this table
-			 * \param  pa           base of the physical backing store
-			 * \param  size_log2    log2(Size of the translated region),
-			 *                      must be supported by this table
-			 * \param  r            shall one can read trough this translation
-			 * \param  w            shall one can write trough this translation
-			 * \param  x            shall one can execute trough this
-			 *                      translation
+			 * \param vo         offset of the virtual region represented
+			 *                   by the translation within the virtual
+			 *                   region represented by this table
+			 * \param pa         base of the physical backing store
+			 * \param size_log2  log2(Size of the translated region),
+			 *                   must be supported by this table
+			 * \param w          see 'Section_table::insert_translation'
+			 * \param x          see 'Section_table::insert_translation'
+			 * \param k          see 'Section_table::insert_translation'
+			 * \param g          see 'Section_table::insert_translation'
 			 *
-			 * This method overrides an existing translation in case that it
-			 * spans the the same virtual range and is not a link to another
-			 * table level.
+			 * This method overrides an existing translation in case
+			 * that it spans the the same virtual range and is not
+			 * a link to another table level.
 			 */
-			void insert_translation (addr_t const vo, addr_t const pa,
-			                         unsigned long const size_log2,
-			                         bool const r, bool const w, bool const x,
-			                         bool const global)
+			void insert_translation(addr_t const vo, addr_t const pa,
+			                        unsigned long const size_log2,
+			                        bool const w, bool const x,
+			                        bool const k, bool const g)
 			{
 				/* validate virtual address */
 				unsigned long i;
@@ -315,25 +336,32 @@ namespace Genode
 					PDBG("Invalid virtual offset");
 					while (1) ;
 				}
-
 				/* select descriptor type by the translation size */
-				if (size_log2 == Small_page::VIRT_SIZE_LOG2) {
+				if (size_log2 == Small_page::VIRT_SIZE_LOG2)
+				{
+					/* compose new descriptor value */
+					Descriptor::access_t entry =
+						access_permission_bits<Small_page>(w, x, k)
+						| Small_page::Ng::bits(!g)
+						| Small_page::Pa_31_12::masked(pa);
+					Descriptor::type(entry, Descriptor::SMALL_PAGE);
 
-					/*
-					 * Can we write to the targeted entry?
-					 */
-					if (Descriptor::valid(_entries[i]) &&
-					    Descriptor::type(_entries[i]) != Descriptor::SMALL_PAGE)
+					/* check if we can we write to the targeted entry */
+					if (Descriptor::valid(_entries[i]))
 					{
+						/*
+						 * It's possible that multiple threads fault at the
+						 * same time on the same translation, thus we need
+						 * this check.
+						 */
+						if (_entries[i] == entry) return;
+
+						/* never modify existing translations */
 						PDBG("Couldn't override entry");
 						while (1) ;
 					}
-
-					/* compose descriptor */
-					_entries[i] = Small_page::access_permission_bits(r, w, x)
-					              | Small_page::Ng::bits(!global)
-					              | Small_page::Pa_31_12::masked(pa);
-					Descriptor::type(_entries[i], Descriptor::SMALL_PAGE);
+					/* override table entry with new descriptor value */
+					_entries[i] = entry;
 					return;
 				}
 				PDBG("Translation size not supported");
@@ -343,9 +371,9 @@ namespace Genode
 			/**
 			 * Remove translations, wich overlap with a given virtual region
 			 *
-			 * \param   vo    offset of the virtual region within the region
-			 *                represented by this table
-			 * \param   size  region size
+			 * \param vo    offset of the virtual region within the region
+			 *              represented by this table
+			 * \param size  region size
 			 */
 			void remove_region (addr_t const vo, size_t const size)
 			{
@@ -354,21 +382,13 @@ namespace Genode
 				unsigned long i;
 				while (1)
 				{
-					/*
-					 * Is anything left over to remove?
-					 */
+					/* check if anything is left over to remove */
 					if (residual_vo >= vo + size) return;
 
-					/*
-					 * Does the residual region overlap with the region
-					 * represented by this table?
-					 */
+					/* check if residual region overlaps with table */
 					if (_index_by_vo(i, residual_vo)) return;
 
-					/*
-					 * Update current entry and recalculate the residual
-					 * region.
-					 */
+					/* update current entry and recalculate residual region */
 					switch (Descriptor::type(_entries[i]))
 					{
 					case Descriptor::FAULT:
@@ -514,8 +534,7 @@ namespace Genode
 			};
 
 			/**
-			 * References a second level translation table for the virtual
-			 * region it represents
+			 * Link to a second level translation table
 			 */
 			struct Page_table_descriptor : Descriptor
 			{
@@ -578,58 +597,26 @@ namespace Genode
 				struct Ng       : Bitfield<17, 1> { };  /* not global bit */
 				struct Ns       : Bitfield<19, 1> { };  /* non-secure bit */
 				struct Pa_31_20 : Bitfield<20, 12> { }; /* physical address bits [31:20] */
-
-				/**
-				 * Permission configuration according to given access rights
-				 *
-				 * \param  r  readability
-				 * \param  w  writeability
-				 * \param  x  executability
-				 * \return    descriptor value configured with appropriate
-				 *            access permissions and the rest left zero
-				 */
-				static access_t access_permission_bits(bool const r,
-				                                       bool const w,
-				                                       bool const x)
-				{
-					access_t v = Xn::bits(!x);
-					if (r) {
-						v |= Ap_1_0::bits(Ap_1_0::KERNEL_AND_USER_SAME_ACCESS);
-						if(w) v |= Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS);
-						else v |= Ap_2::bits(Ap_2::KERNEL_RO_ACCESS);
-					}
-					else if (w) {
-						PDBG("Write only sections not supported");
-						while (1) ;
-					}
-					else {
-						v |= Ap_1_0::bits(Ap_1_0::KERNEL_AND_USER_NO_ACCESS)
-						     | Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS);
-					}
-					return v;
-				}
 			};
 
-			/*
-			 * Table payload
-			 *
-			 * Attention: Must be the first member of this class
-			 */
+			/* table payload, must be the first member of this class */
 			Descriptor::access_t _entries[SIZE/sizeof(Descriptor::access_t)];
 
 			enum { MAX_INDEX = sizeof(_entries) / sizeof(_entries[0]) - 1 };
 
-			/* is this table dedicated to secure mode or to non-secure mode */
+			/* if this table dedicated to secure mode or to non-secure mode */
 			bool _secure;
 
 			/**
 			 * Get entry index by virtual offset
 			 *
-			 * \param  i    is overridden with the resulting index
-			 * \param  vo   offset within the virtual region represented
-			 *              by this table
-			 * \retval <0   if virtual offset couldn't be resolved,
-			 *              in this case 'i' reside invalid
+			 * \param i    is overridden with the resulting index
+			 * \param vo   offset within the virtual region represented
+			 *             by this table
+			 *
+			 * \retval  0  on success
+			 * \retval <0  if virtual offset couldn't be resolved,
+			 *             in this case 'i' reside invalid
 			 */
 			int _index_by_vo(unsigned long & i, addr_t const vo) const
 			{
@@ -647,8 +634,8 @@ namespace Genode
 			{
 				/* check table alignment */
 				if (!aligned((addr_t)this, ALIGNM_LOG2)
-				    || (addr_t)this != (addr_t)_entries) {
-
+				    || (addr_t)this != (addr_t)_entries)
+				{
 					PDBG("Insufficient table alignment");
 					while (1) ;
 				}
@@ -670,40 +657,45 @@ namespace Genode
 			/**
 			 * Insert one atomic translation into this table
 			 *
-			 * \param  vo           offset of the virtual region represented
-			 *                      by the translation within the virtual
-			 *                      region represented by this table
-			 * \param  pa           base of the physical backing store
-			 * \param  size_log2    size log2 of the translated region
-			 * \param  r            shall one can read trough this translation
-			 * \param  w            shall one can write trough this translation
-			 * \param  x            shall one can execute trough this translation
-			 * \param  global       shall the translation apply to all
-			 *                      address spaces
-			 * \param  extra_space  If > 0, it must point to a portion of
-			 *                      size-aligned memory space wich may be used
-			 *                      furthermore by the table for the incurring
-			 *                      administrative costs of the  translation.
-			 *                      To determine the amount of additionally
-			 *                      needed memory one can instrument this
-			 *                      method with 'extra_space' set to 0.
-			 *                      The so donated memory may be regained by
-			 *                      using the method 'regain_memory'.
-			 * \retval  0           translation successfully inserted
-			 * \retval  >0          translation not inserted, the return value
-			 *                      is the size log2 of additional size-aligned
-			 *                      space that is needed to do the translation.
-			 *                      This occurs solely when 'extra_space' is 0.
+			 * \param vo           offset of the virtual region represented
+			 *                     by the translation within the virtual
+			 *                     region represented by this table
+			 * \param pa           base of the physical backing store
+			 * \param size_log2    size log2 of the translated region
+			 * \param w            if one can write trough this translation
+			 * \param x            if one can execute trough this translation
+			 * \param k            If set to 1, the given permissions apply
+			 *                     in kernel mode, while in user mode this
+			 *                     translations grants no type of access.
+			 *                     If set to 0, the given permissions apply
+			 *                     in user mode, while in kernel mode this
+			 *                     translation grants any type of access.
+			 * \param g            if the translation applies to all spaces
+			 * \param extra_space  If > 0, it must point to a portion of
+			 *                     size-aligned memory space wich may be used
+			 *                     furthermore by the table for the incurring
+			 *                     administrative costs of the  translation.
+			 *                     To determine the amount of additionally
+			 *                     needed memory one can instrument this
+			 *                     method with 'extra_space' set to 0.
+			 *                     The so donated memory may be regained by
+			 *                     using the method 'regain_memory'.
+			 *
+			 * \retval  0  translation successfully inserted
+			 * \retval >0  Translation not inserted, the return value
+			 *             is the size log2 of additional size-aligned
+			 *             space that is needed to do the translation.
+			 *             This occurs solely when 'extra_space' is 0.
 			 *
 			 * This method overrides an existing translation in case that it
 			 * spans the the same virtual range and is not a link to another
 			 * table level.
 			 */
-			unsigned long insert_translation (addr_t const vo, addr_t const pa,
-			                                  unsigned long const size_log2,
-			                                  bool const r, bool const w,
-			                                  bool const x, bool const global,
-			                                  void * const extra_space = 0)
+			unsigned long insert_translation(addr_t const vo, addr_t const pa,
+			                                 unsigned long const size_log2,
+			                                 bool const w, bool const x,
+			                                 bool const k, bool const g,
+			                                 void * const extra_space = 0)
 			{
 				/* validate virtual address */
 				unsigned long i;
@@ -713,34 +705,23 @@ namespace Genode
 				}
 
 				/* select descriptor type by translation size */
-				if (size_log2 < Section::VIRT_SIZE_LOG2) {
-
+				if (size_log2 < Section::VIRT_SIZE_LOG2)
+				{
+					/* check if an appropriate page table already exists */
 					Page_table * pt;
-
-					/*
-					 * Does an appropriate page table already exist?
-					 */
 					if (Descriptor::type(_entries[i]) == Descriptor::PAGE_TABLE) {
 						pt = (Page_table *)(addr_t)
 							Page_table_descriptor::Pa_31_10::masked(_entries[i]);
 					}
-
-					/*
-					 * Is there some extra space to create a page table?
-					 */
-					else if (extra_space) {
-
-						/*
-						 * Can we write to the targeted entry?
-						 */
+					/* check if we have enough memory for the page table */
+					else if (extra_space)
+					{
+						/* check if we can write to the targeted entry */
 						if (Descriptor::valid(_entries[i])) {
 							PDBG ("Couldn't override entry");
 							while (1) ;
 						}
-						/*
-						 * Create and link page table. The page table checks
-						 * alignment by itself.
-						 */
+						/* create and link page table */
 						pt = new (extra_space) Page_table();
 						_entries[i] = Page_table_descriptor::Ns::bits(!_secure)
 						              | Page_table_descriptor::Pa_31_10::masked((addr_t)pt);
@@ -751,27 +732,35 @@ namespace Genode
 
 					/* insert translation */
 					pt->insert_translation(vo - Section::Pa_31_20::masked(vo),
-					                       pa, size_log2, r, w, x, global);
+					                       pa, size_log2, w, x, k, g);
 					return 0;
 				}
-				if (size_log2 == Section::VIRT_SIZE_LOG2) {
+				if (size_log2 == Section::VIRT_SIZE_LOG2)
+				{
+					/* compose section descriptor */
+					Descriptor::access_t entry =
+						access_permission_bits<Section>(w, x, k)
+						| Section::Ns::bits(!_secure)
+						| Section::Ng::bits(!g)
+						| Section::Pa_31_20::masked(pa);
+					Descriptor::type(entry, Descriptor::SECTION);
 
-					/*
-					 * Can we write to the targeted entry?
-					 */
-					if (Descriptor::valid(_entries[i]) &&
-					    Descriptor::type(_entries[i]) != Descriptor::SECTION)
+					/* check if we can we write to the targeted entry */
+					if (Descriptor::valid(_entries[i]))
 					{
+						/*
+						 * It's possible that multiple threads fault at the
+						 * same time on the same translation, thus we need
+						 * this check.
+						 */
+						if (_entries[i] == entry) return 0;
+
+						/* never modify existing translations */
 						PDBG("Couldn't override entry");
 						while (1) ;
 					}
-
-					/* compose section descriptor */
-					_entries[i] = Section::access_permission_bits(r, w, x)
-					              | Section::Ns::bits(!_secure)
-					              | Section::Ng::bits(!global)
-					              | Section::Pa_31_20::masked(pa);
-					Descriptor::type(_entries[i], Descriptor::SECTION);
+					/* override the table entry */
+					_entries[i] = entry;
 					return 0;
 				}
 				PDBG("Translation size not supported");
@@ -781,9 +770,9 @@ namespace Genode
 			/**
 			 * Remove translations, wich overlap with a given virtual region
 			 *
-			 * \param  vo    offset of the virtual region within the region
-			 *               represented by this table
-			 * \param  size  region size
+			 * \param vo    offset of the virtual region within the region
+			 *              represented by this table
+			 * \param size  region size
 			 */
 			void remove_region (addr_t const vo, size_t const size)
 			{
@@ -792,21 +781,13 @@ namespace Genode
 				unsigned long i;
 				while (1)
 				{
-					/*
-					 * Is anything left over to remove?
-					 */
+					/* check if anything is left over to remove */
 					if (residual_vo >= vo + size) return;
 
-					/*
-					 * Does the residual region overlap with the region
-					 * represented by this table?
-					 */
+					/* check if the residual region overlaps with this table */
 					if (_index_by_vo(i, residual_vo)) return;
 
-					/*
-					 * Update current entry and recalculate the residual
-					 * region.
-					 */
+					/* update current entry and recalculate residual region */
 					switch (Descriptor::type(_entries[i]))
 					{
 					case Descriptor::FAULT:
@@ -850,21 +831,22 @@ namespace Genode
 			/**
 			 * Get a portion of memory that is no longer used by this table
 			 *
-			 * \param   base  base of regained memory portion if method returns 1
-			 * \param   s     size of regained memory portion if method returns 1
+			 * \param base  base of regained mem portion if method returns 1
+			 * \param s     size of regained mem portion if method returns 1
+			 *
+			 * \retval 0  no more memory to regain
 			 */
 			bool regain_memory (void * & base, size_t & s)
 			{
 				/* walk through all entries */
 				for (unsigned i = 0; i <= MAX_INDEX; i++)
 				{
-					if (Descriptor::type(_entries[i]) == Descriptor::PAGE_TABLE) {
-
+					if (Descriptor::type(_entries[i]) == Descriptor::PAGE_TABLE)
+					{
 						Page_table * const pt = (Page_table *)
 						(addr_t)Page_table_descriptor::Pa_31_10::masked(_entries[i]);
-
-						if (pt->empty()) {
-
+						if (pt->empty())
+						{
 							/* we've found an useless page table */
 							Descriptor::invalidate(_entries[i]);
 							base = (void *)pt;

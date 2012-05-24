@@ -48,23 +48,25 @@ namespace Genode
 			/* timer */
 			PRIVATE_TIMER_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x600,
 			PRIVATE_TIMER_MMIO_SIZE = 0x10,
-			PRIVATE_TIMER_IRQ  = 29,
-			TIMER_MMIO = PRIVATE_TIMER_MMIO_BASE,
-			TIMER_IRQ = PRIVATE_TIMER_IRQ,
+			PRIVATE_TIMER_IRQ = 29,
+			PRIVATE_TIMER_CLK = PERIPH_CLK
 		};
 
 		/**
-		 * Exceotion type IDs
+		 * CPU local timer module
 		 */
-		enum Exception_type
+		class Private_timer : public Cortex_a9_timer<PRIVATE_TIMER_CLK>
 		{
-			RESET                  = 1,
-			UNDEFINED_INSTRUCTION  = 2,
-			SUPERVISOR_CALL        = 3,
-			PREFETCH_ABORT         = 4,
-			DATA_ABORT             = 5,
-			INTERRUPT_REQUEST      = 6,
-			FAST_INTERRUPT_REQUEST = 7,
+			public:
+
+				enum { IRQ = PRIVATE_TIMER_IRQ };
+
+				/**
+				 * Constructor
+				 */
+				Private_timer() :
+					Cortex_a9_timer<PRIVATE_TIMER_CLK>(PRIVATE_TIMER_MMIO_BASE)
+				{ }
 		};
 
 		typedef Cortex_a9_timer<PERIPH_CLK> Timer;
@@ -170,10 +172,7 @@ namespace Genode
 		 */
 		struct Contextidr : Register<32>
 		{
-			struct Asid   : Bitfield<0,8> /* ID part used by MMU */
-			{
-				enum { MAX = MASK };
-			};
+			struct Asid   : Bitfield<0,8>  { }; /* ID part used by MMU */
 			struct Procid : Bitfield<8,24> { }; /* ID part used by debug/trace */
 
 			/**
@@ -286,8 +285,8 @@ namespace Genode
 		/**
 		 * Translation table base register 0
 		 *
-		 * Typically for process specific spaces, references first level table
-		 * with a size between 128B and 16KB according to TTBCR.N
+		 * Typically for process specific spaces, references first level
+		 * table with a size between 128B and 16KB according to 'Ttbcr::N'.
 		 */
 		struct Ttbr0 : Register<32>
 		{
@@ -356,22 +355,22 @@ namespace Genode
 		 */
 		struct Cpsr : Register<32>
 		{
-			struct M : Bitfield<0,5>       /* processor mode                          */
+			struct M : Bitfield<0,5>       /* processor mode */
 			{
-				enum {                     /* <Privileged>, <Description>             */
-					USER       = 0b10000,  /* 0, application code                     */
-					FIQ        = 0b10001,  /* 1, entered at fast interrupt            */
-					IRQ        = 0b10010,  /* 1, entered at normal interrupt          */
-					SUPERVISOR = 0b10011,  /* 1, most kernel code                     */
-					MONITOR    = 0b10110,  /* 1, a secure mode, switch sec./non-sec.  */
-					ABORT      = 0b10111,  /* 1, entered at aborts                    */
+				enum {                     /* <Privileged>, <Description> */
+					USER       = 0b10000,  /* 0, application code */
+					FIQ        = 0b10001,  /* 1, entered at fast interrupt */
+					IRQ        = 0b10010,  /* 1, entered at normal interrupt */
+					SUPERVISOR = 0b10011,  /* 1, most kernel code */
+					MONITOR    = 0b10110,  /* 1, a secure mode, switch sec./non-sec. */
+					ABORT      = 0b10111,  /* 1, entered at aborts */
 					UNDEFINED  = 0b11011,  /* 1, entered at instruction-related error */
 					SYSTEM     = 0b11111,  /* 1, applications that require privileged */
 				};
 			};
-			struct F : Bitfield<6,1> { };  /* fast interrupt request disable       */
-			struct I : Bitfield<7,1> { };  /* interrupt request disable            */
-			struct A : Bitfield<8,1> { };  /* asynchronous abort disable           */
+			struct F : Bitfield<6,1> { };  /* fast interrupt request disable */
+			struct I : Bitfield<7,1> { };  /* interrupt request disable */
+			struct A : Bitfield<8,1> { };  /* asynchronous abort disable */
 
 			/**
 			 * Read whole register
@@ -415,35 +414,189 @@ namespace Genode
 		 */
 		struct Context
 		{
-			/* general purpose registers, offset 0*4 .. 15*4 */
-			uint32_t
-				r0,  r1,  r2,  r3,  r4, r5, r6, r7,
-				r8,  r9, r10, r11, r12, sp, lr, pc;
+			enum {
+				MAX_GPR = 15,
+				MAX_CPU_EXCEPTION = 7,
+			};
 
-			/* special registers, offset 16*4 .. 17*4 */
-			uint32_t psr, contextidr;
+			/**
+			 * Native exception types
+			 */
+			enum Cpu_exception {
+				RESET = 1,
+				UNDEFINED_INSTRUCTION = 2,
+				SUPERVISOR_CALL = 3,
+				PREFETCH_ABORT = 4,
+				DATA_ABORT = 5,
+				INTERRUPT_REQUEST = 6,
+				FAST_INTERRUPT_REQUEST = 7,
+			};
 
-			/* additional state info, offset 18*4 .. 19*4 */
-			uint32_t exception_type, section_table;
+			/* general purpose register backups, offsets 0*4 .. 15*4 */
+			uint32_t r0,  r1,  r2,  r3,  r4, r5, r6, r7,
+			         r8,  r9, r10, r11, r12, r13, r14, r15;
+
+			uint32_t psr; /* program status register backup, offset 16*4 */
+			uint32_t contextidr; /* contextidr register backup, offset 17*4 */
+			uint32_t cpu_exception; /* native type of last exception,
+			                         * offset 18*4 */
+			uint32_t section_table; /* base address of applied section table,
+			                         * offset 19*4 */
+
+			/**
+			 * Read a general purpose register
+			 *
+			 * \param   id  ID of the targeted register
+			 * \param   r   Holds register value if this returns 1
+			 */
+			bool get_gpr(unsigned id, unsigned & r) const
+			{
+				if (id > MAX_GPR) return 0;
+				r = *(&r0 + id);
+				return 1;
+			}
+
+			/**
+			 * Override a general purpose register
+			 *
+			 * \param   id  ID of the targeted register
+			 * \param   r   Has been written to register if this returns 1
+			 */
+			bool set_gpr(unsigned id, unsigned const r)
+			{
+				if (id > MAX_GPR) return 0;
+				*(&r0 + id) = r;
+				return 1;
+			}
 
 			/***************
 			 ** Accessors **
 			 ***************/
 
-			void software_tlb(Section_table * const st)
-			{ section_table = (addr_t)st; }
+			void software_tlb(Section_table * const st) {
+				section_table = (addr_t)st; }
 
-			Section_table * software_tlb() { return (Section_table *)section_table; }
+			Section_table * software_tlb() const {
+				return (Section_table *)section_table; }
 
-			void instruction_ptr(addr_t const p) { pc = p; }
+			void instruction_ptr(addr_t const p) { r15 = p; }
 
-			addr_t instruction_ptr() { return pc; }
+			addr_t instruction_ptr() const { return r15; }
 
-			void return_ptr(addr_t const p) { lr = p; }
+			void return_ptr(addr_t const p) { r14 = p; }
 
-			void stack_ptr(addr_t const p) { sp = p; }
+			void stack_ptr(addr_t const p) { r13 = p; }
 
-			void pd_id(unsigned long const id) { contextidr = id; }
+			void protection_domain(unsigned const id) { contextidr = id; }
+		};
+
+		/**
+		 * An usermode execution state
+		 */
+		struct User_context : Context
+		{
+			/**
+			 * Constructor
+			 */
+			User_context()
+			{
+				/* Execute in usermode with IRQ's enabled and FIQ's and
+				 * asynchronous aborts disabled */
+				psr = Cpsr::M::bits(Cpsr::M::USER) | Cpsr::F::bits(1) |
+				      Cpsr::I::bits(0) | Cpsr::A::bits(1);
+			}
+
+			/***************************************************
+			 ** Communication between user and context holder **
+			 ***************************************************/
+
+			void user_arg_0(unsigned const arg) { r0 = arg; }
+			void user_arg_1(unsigned const arg) { r1 = arg; }
+			void user_arg_2(unsigned const arg) { r2 = arg; }
+			void user_arg_3(unsigned const arg) { r3 = arg; }
+			void user_arg_4(unsigned const arg) { r4 = arg; }
+			void user_arg_5(unsigned const arg) { r5 = arg; }
+			void user_arg_6(unsigned const arg) { r6 = arg; }
+			void user_arg_7(unsigned const arg) { r7 = arg; }
+			unsigned user_arg_0() const { return r0; }
+			unsigned user_arg_1() const { return r1; }
+			unsigned user_arg_2() const { return r2; }
+			unsigned user_arg_3() const { return r3; }
+			unsigned user_arg_4() const { return r4; }
+			unsigned user_arg_5() const { return r5; }
+			unsigned user_arg_6() const { return r6; }
+			unsigned user_arg_7() const { return r7; }
+
+			/**
+			 * Determine wich type of exception occured on this context lastly
+			 *
+			 * \return  0  If the exception is unknown by the kernel
+			 *          1  If the exception is an interrupt
+			 *          2  If the exception is a pagefault
+			 *          3  If the exception is a syscall
+			 */
+			unsigned exception() const
+			{
+				/* map all CPU-exception types to kernel-exception types */
+				enum { INVALID = 0, INTERRUPT = 1, PAGEFAULT = 2, SYSCALL = 3 };
+				static unsigned cpu_excpt_to_excpt[MAX_CPU_EXCEPTION + 1] = {
+					INVALID,   /* 0 */
+					INVALID,   /* 1 */
+					INVALID,   /* 2 */
+					SYSCALL,   /* 3 */
+					PAGEFAULT, /* 4 */
+					PAGEFAULT, /* 5 */
+					INTERRUPT, /* 6 */
+					INVALID    /* 7 */
+				};
+				/* determine exception type */
+				if (cpu_exception > MAX_CPU_EXCEPTION) return INVALID;
+				return cpu_excpt_to_excpt[cpu_exception];
+			}
+
+			/**
+			 * Does a pagefault exist and originate from a lack of translation?
+			 *
+			 * \param  va  Holds the virtual fault-address if this
+			 *             function returns 1
+			 * \param  w   Indicates wether the fault was caused by a write
+			 *             access if this function returns 1
+			 */
+			bool translation_miss(addr_t & va, bool & w) const
+			{
+				/* determine fault type */
+				switch (cpu_exception)
+				{
+				case PREFETCH_ABORT: {
+
+					/* check if fault was caused by a translation miss */
+					Ifsr::Fault_status const fs = Ifsr::fault_status();
+					if(fs == Ifsr::SECTION_TRANSLATION_FAULT ||
+					   fs == Ifsr::PAGE_TRANSLATION_FAULT)
+					{
+						/* fetch fault data */
+						w = 0;
+						va = Ifar::read();
+						return 1;
+					}
+					return 0; }
+				case DATA_ABORT: {
+
+					/* check if fault was caused by translation miss */
+					Dfsr::Fault_status const fs = Dfsr::fault_status();
+					if(fs == Dfsr::SECTION_TRANSLATION_FAULT ||
+					   fs == Dfsr::PAGE_TRANSLATION_FAULT)
+					{
+						/* fetch fault data */
+						Dfsr::access_t const dfsr = Dfsr::read();
+						w = Dfsr::Wnr::get(dfsr);
+						va = Dfar::read();
+						return 1;
+					}
+					return 0; }
+				default: return 0;
+				}
+			}
 		};
 
 		/**
@@ -541,7 +694,7 @@ namespace Genode
 		/**
 		 * Invalidate all entries of the branch predictor array
 		 *
-		 * Must be inline to avoid dependence on the branch predictor
+		 * Must be inline to avoid dependence on the branch predictor.
 		 */
 		__attribute__((always_inline)) inline static void flush_branch_prediction()
 		{
@@ -559,51 +712,6 @@ namespace Genode
 			asm volatile ("mcr p15, 0, %[asid], c8, c7, 2 \n"
 			              :: [asid]"r"(Contextidr::Asid::masked(process_id)) : );
 			flush_branch_prediction();
-		}
-
-		/**
-		 * Does a pagefault exist and originate from a lack of translation?
-		 *
-		 * \param  c   CPU Context that triggered the page fault
-		 * \param  va  holds the virtual fault-address if this
-		 *             function returns 1
-		 * \param  w   indicates whether the fault was caused by a write access
-		 *             if this function returns 1
-		 */
-		static bool translation_miss(Context * c, addr_t & va, bool & w)
-		{
-			/* determine fault type */
-			switch (c->exception_type)
-			{
-			case PREFETCH_ABORT: {
-
-				/* is fault caused by translation miss? */
-				Ifsr::Fault_status const fs = Ifsr::fault_status();
-				if(fs == Ifsr::SECTION_TRANSLATION_FAULT ||
-				   fs == Ifsr::PAGE_TRANSLATION_FAULT)
-				{
-					/* fetch fault data */
-					w = 0;
-					va = Ifar::read();
-					return 1;
-				}
-				return 0; }
-			case DATA_ABORT: {
-
-				/* is fault caused by translation miss? */
-				Dfsr::Fault_status const fs = Dfsr::fault_status();
-				if(fs == Dfsr::SECTION_TRANSLATION_FAULT ||
-				   fs == Dfsr::PAGE_TRANSLATION_FAULT)
-				{
-					/* fetch fault data */
-					Dfsr::access_t const dfsr = Dfsr::read();
-					w = Dfsr::Wnr::get(dfsr);
-					va = Dfar::read();
-					return 1;
-				}
-				return 0; }
-			default: return 0;
-			}
 		}
 	};
 }
