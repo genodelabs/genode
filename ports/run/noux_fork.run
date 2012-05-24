@@ -7,7 +7,7 @@ if {[have_spec linux]} {
 	exit 0
 }
 
-build "core init drivers/timer drivers/uart noux lib/libc_noux test/noux_fork"
+build "core init drivers/timer drivers/uart noux/minimal lib/libc_noux test/noux_fork"
 
 # strip coreutils binaries and create tar archive
 exec tar cfv bin/noux_fork.tar -h -C bin test-noux_fork

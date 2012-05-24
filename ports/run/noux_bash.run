@@ -10,7 +10,7 @@ if {![have_spec x86]} {
 #exec rm -rf noux-pkg/bash bin/bash
 
 set build_components {
-	core init drivers/timer noux lib/libc_noux
+	core init drivers/timer noux/minimal lib/libc_noux
 	drivers/framebuffer drivers/pci drivers/input
 	server/terminal server/ram_fs
 	test/libports/ncurses

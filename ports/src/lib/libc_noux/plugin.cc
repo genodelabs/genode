@@ -540,6 +540,10 @@ namespace {
 			bool supports_unlink(char const *)               { return true; }
 			bool supports_rename(const char *, const char *) { return true; }
 			bool supports_mkdir(const char *, mode_t)        { return true; }
+			bool supports_socket(int, int, int)              { return true; }
+			bool supports_freeaddrinfo(struct addrinfo *)    { return true; }
+			bool supports_getaddrinfo(const char *, const char *,
+						  struct addrinfo **)    { return true; }
 
 			Libc::File_descriptor *open(char const *, int);
 			ssize_t write(Libc::File_descriptor *, const void *, ::size_t);
@@ -559,6 +563,31 @@ namespace {
 			int unlink(char const *path);
 			int rename(const char *oldpath, const char *newpath);
 			int mkdir(const char *path, mode_t mode);
+
+			/* Network related functions */
+			Libc::File_descriptor *socket(int, int, int);
+			Libc::File_descriptor *accept(Libc::File_descriptor *,
+						      struct sockaddr *, socklen_t *);
+			int bind(Libc::File_descriptor *, const struct sockaddr *,
+				 socklen_t);
+			int connect(Libc::File_descriptor *, const struct sockaddr *addr,
+				    socklen_t addrlen);
+			void freeaddrinfo(struct addrinfo *);
+			int getaddrinfo(const char *, const char *, const struct addrinfo *,
+					struct addrinfo **);
+			int getpeername(Libc::File_descriptor *, struct sockaddr *,
+					socklen_t *);
+			int listen(Libc::File_descriptor *, int);
+			ssize_t send(Libc::File_descriptor *, const void *, ::size_t,
+				     int flags);
+			ssize_t sendto(Libc::File_descriptor *, const void *, size_t, int,
+				       const struct sockaddr *, socklen_t);
+			ssize_t recv(Libc::File_descriptor *, void *, ::size_t, int);
+			int getsockopt(Libc::File_descriptor *, int, int, void *,
+				       socklen_t *);
+			int setsockopt(Libc::File_descriptor *, int , int , const void *,
+				       socklen_t);
+			int shutdown(Libc::File_descriptor *, int how);
 	};
 
 
@@ -1012,6 +1041,373 @@ namespace {
 			}
 			return -1;
 		}
+		return 0;
+	}
+
+
+	Libc::File_descriptor *Plugin::socket(int domain, int type, int protocol)
+	{
+		sysio()->socket_in.domain = domain;
+		sysio()->socket_in.type = type;
+		sysio()->socket_in.protocol = protocol;
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_SOCKET))
+			return 0;
+
+		Libc::Plugin_context *context = noux_context(sysio()->socket_out.fd);
+		return Libc::file_descriptor_allocator()->alloc(this, context,
+				sysio()->socket_out.fd);
+	}
+
+
+	int Plugin::getsockopt(Libc::File_descriptor *fd, int level, int optname,
+			void *optval, socklen_t *optlen)
+	{
+		sysio()->getsockopt_in.fd = noux_fd(fd->context);
+		sysio()->getsockopt_in.level = level;
+		sysio()->getsockopt_in.optname = optname;
+
+		/* wipe-old state */
+		sysio()->getsockopt_in.optlen = *optlen;
+		Genode::memset(sysio()->getsockopt_in.optval, 0,
+				sizeof (sysio()->getsockopt_in.optval));
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_GETSOCKOPT))
+			return -1;
+
+		Genode::memcpy(optval, sysio()->setsockopt_in.optval,
+				sysio()->getsockopt_in.optlen);
+
+		return 0;
+	}
+
+
+	int Plugin::setsockopt(Libc::File_descriptor *fd, int level, int optname,
+			const void *optval, socklen_t optlen)
+	{
+		if (optlen > sizeof(sysio()->setsockopt_in.optval)) {
+			/* XXX */
+			return -1;
+		}
+
+		sysio()->setsockopt_in.fd = noux_fd(fd->context);
+		sysio()->setsockopt_in.level = level;
+		sysio()->setsockopt_in.optname = optname;
+		sysio()->setsockopt_in.optlen = optlen;
+
+		Genode::memcpy(sysio()->setsockopt_in.optval, optval, optlen);
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_SETSOCKOPT)) {
+			/* XXX */
+			return -1;
+		}
+
+		return 0;
+	}
+
+
+	Libc::File_descriptor *Plugin::accept(Libc::File_descriptor *fd, struct sockaddr *addr,
+			socklen_t *addrlen)
+	{
+		sysio()->accept_in.fd = noux_fd(fd->context);
+
+		if (addr != NULL) {
+			Genode::memcpy(&sysio()->accept_in.addr, addr, sizeof (struct sockaddr));
+			sysio()->accept_in.addrlen = *addrlen;
+		}
+		else {
+			Genode::memset(&sysio()->accept_in.addr, 0, sizeof (struct sockaddr));
+			sysio()->accept_in.addrlen = 0;
+		}
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_ACCEPT)) {
+			return 0;
+		}
+
+		if (addr != NULL)
+			*addrlen = sysio()->accept_in.addrlen;
+
+		Libc::Plugin_context *context = noux_context(sysio()->accept_out.fd);
+		return Libc::file_descriptor_allocator()->alloc(this, context,
+				sysio()->accept_out.fd);
+
+	}
+
+
+	int Plugin::bind(Libc::File_descriptor *fd, const struct sockaddr *addr,
+			socklen_t addrlen)
+	{
+		sysio()->bind_in.fd = noux_fd(fd->context);
+
+		Genode::memcpy(&sysio()->bind_in.addr, addr, sizeof (struct sockaddr));
+		sysio()->bind_in.addrlen = addrlen;
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_BIND)) {
+			errno = EACCES;
+			return -1;
+		}
+
+		return 0;
+	}
+
+
+	int Plugin::connect(Libc::File_descriptor *fd, const struct sockaddr *addr,
+			socklen_t addrlen)
+	{
+		sysio()->connect_in.fd = noux_fd(fd->context);
+
+		Genode::memcpy(&sysio()->connect_in.addr, addr, sizeof (struct sockaddr));
+		sysio()->connect_in.addrlen = addrlen;
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_CONNECT)) {
+			/* XXX errno */
+			return -1;
+		}
+
+		return 0;
+	}
+
+
+	void Plugin::freeaddrinfo(struct addrinfo *res)
+	{
+#if 0
+		struct addrinfo *next;
+
+		while (res) {
+			if (res->ai_addr) {
+				free(res->ai_addr);
+			}
+
+			if (res->ai_canonname) {
+				free(res->ai_canonname);
+			}
+
+			next = res->ai_next;
+			free(res);
+			res = next;
+		}
+#endif
+	}
+
+
+	int Plugin::getaddrinfo(const char *hostname, const char *servname,
+			const struct addrinfo *hints, struct addrinfo **res)
+	{
+#if 0
+		const char *service = NULL;
+		/**
+		 * We have to fetch the portnumber manually because lwip only
+		 * supports getting the service by portnumber. So we first check
+		 * if servname is already a ascii portnumber and if it is not we
+		 * call getservent(servername, NULL).
+		 */
+		char buf[6] = { 0 };
+		int port = atoi(servname);
+		if (port <= 0 || port > 0xffff) {
+			struct servent *se = getservbyname(servname, NULL);
+			if (se != NULL) {
+				port = htons(se->s_port);
+				snprintf(buf, 6, "%d", port);
+				service = buf;
+			}
+			else {
+				return -1;
+			}
+		}
+		else
+			service = servname;
+
+		size_t len = strlen(hostname);
+		len = min(len, 255);
+		memcpy(sysio()->getaddrinfo_in.hostname, hostname, len);
+		sysio()->getaddrinfo_in.hostname[len] = '\0';
+
+		len = strlen(service);
+		len = min(len, 255);
+		memcpy(sysio()->getaddrinfo_in.servname, service, len);
+		sysio()->getaddrinfo_in.servname[len] = '\0';
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_GETADDRINFO))
+			return -1;
+
+		struct addrinfo *rp = 0, *result;
+		for (int i = 0; i < sysio()->getaddrinfo_out.addr_num; i++) {
+			if (!rp) {
+				rp = (struct addrinfo *)malloc(sizeof (struct addrinfo));
+				*res = rp;
+			}
+			else {
+				rp->ai_next = (struct addrinfo *)malloc(sizeof (struct addrinfo));
+				rp = rp->ai_next;
+			}
+
+			rp->ai_flags     = sysio()->getaddrinfo_in.res[i].addrinfo.ai_flags;
+			rp->ai_family    = sysio()->getaddrinfo_in.res[i].addrinfo.ai_family;
+			rp->ai_socktype  = sysio()->getaddrinfo_in.res[i].addrinfo.ai_socktype;
+			rp->ai_protocol  = sysio()->getaddrinfo_in.res[i].addrinfo.ai_protocol;
+			rp->ai_addrlen   = sysio()->getaddrinfo_in.res[i].addrinfo.ai_addrlen;
+
+			if (sysio()->getaddrinfo_in.res[i].ai_addr.sa_len != 0) {
+				rp->ai_addr = (struct sockaddr *)malloc(sizeof (struct sockaddr));
+				memcpy(rp->ai_addr, &sysio()->getaddrinfo_in.res[i].ai_addr, sizeo
+						f (struct sockaddr));
+			}
+			else
+				rp->ai_addr = 0;
+
+			if (sysio()->getaddrinfo_in.res[i].ai_canonname != 0) {
+				size_t len = strlen(sysio()->getaddrinfo_in.res[i].ai_canonname) +
+					1;
+
+				rp->ai_canonname = (char *)malloc(len);
+				strncpy(rp->ai_canonname, sysio()->getaddrinfo_in.res[i].ai_canonn
+						ame, len);
+			}
+			else
+				rp->ai_canonname = 0;
+
+			rp->ai_next = 0;
+		}
+#endif
+
+		return -1;
+	}
+
+
+	int Plugin::getpeername(Libc::File_descriptor *fd, struct sockaddr *addr,
+			socklen_t *addrlen)
+	{
+		sysio()->getpeername_in.fd = noux_fd(fd->context);
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_GETPEERNAME)) {
+			/* errno */
+			return -1;
+		}
+		Genode::memcpy(&sysio()->getpeername_in.addr, addr,
+				sizeof (struct sockaddr));
+		sysio()->bind_in.addrlen = *addrlen;
+
+		return 0;
+	}
+
+
+	int Plugin::listen(Libc::File_descriptor *fd, int backlog)
+	{
+		sysio()->listen_in.fd = noux_fd(fd->context);
+		sysio()->listen_in.backlog = backlog;
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_LISTEN)) {
+			/* errno = EACCES; */
+			return -1;
+		}
+
+		return 0;
+	}
+
+
+	ssize_t Plugin::recv(Libc::File_descriptor *fd, void *buf, ::size_t len, int flags)
+	{
+		Genode::size_t sum_recv_count = 0;
+
+		while (len) {
+			Genode::size_t curr_len =
+				Genode::min(len, sizeof(sysio()->recv_in.buf));
+
+			sysio()->recv_in.fd = noux_fd(fd->context);
+			sysio()->recv_in.len = curr_len;
+
+			if (!noux()->syscall(Noux::Session::SYSCALL_RECV)) {
+				/* XXX set errno */
+				return -1;
+			}
+
+			Genode::memcpy(buf, sysio()->recv_in.buf, sysio()->recv_in.len);
+
+			sum_recv_count += sysio()->recv_in.len;
+
+			if (sysio()->recv_out.len < sysio()->recv_in.len)
+				break;
+
+			if (sysio()->recv_out.len <= len)
+				len -= sysio()->recv_out.len;
+			else
+				break;
+		}
+
+		return sum_recv_count;
+	}
+
+
+	ssize_t Plugin::send(Libc::File_descriptor *fd, const void *buf, ::size_t len, int flags)
+	{
+		/* remember original len for the return value */
+		int const orig_count = len;
+		char *src = (char *)buf;
+
+		sysio()->send_in.fd = noux_fd(fd->context);
+		while (len > 0) {
+
+			Genode::size_t curr_len = Genode::min(sizeof (sysio()->send_in.buf), len);
+
+			sysio()->send_in.len = curr_len;
+			Genode::memcpy(sysio()->send_in.buf, src, curr_len);
+
+			if (!noux()->syscall(Noux::Session::SYSCALL_SEND)) {
+				PERR("write error %d", sysio()->error.general);
+			}
+
+			len -= curr_len;
+			src += curr_len;
+		}
+		return orig_count;
+	}
+
+
+	ssize_t Plugin::sendto(Libc::File_descriptor *fd, const void *buf, size_t len, int flags,
+			const struct sockaddr *dest_addr, socklen_t addrlen)
+	{
+		int const orig_count = len;
+
+		if (addrlen > sizeof (sysio()->sendto_in.dest_addr)) {
+			/* XXX errno */
+			return -1;
+		}
+
+		sysio()->sendto_in.fd = noux_fd(fd->context);
+		sysio()->sendto_in.addrlen = addrlen;
+		Genode::memcpy(&sysio()->sendto_in.dest_addr, dest_addr, addrlen);
+
+		/* wipe-out sendto buffer */
+		Genode::memset(sysio()->sendto_in.buf, 0, sizeof (sysio()->sendto_in.buf));
+
+		char *src = (char *)buf;
+		while (len > 0) {
+			size_t curr_len = Genode::min(sizeof *sysio()->sendto_in.buf, len);
+
+			sysio()->sendto_in.len = curr_len;
+			Genode::memcpy(sysio()->sendto_in.buf, src, curr_len);
+
+			if (!noux()->syscall(Noux::Session::SYSCALL_SENDTO)) {
+				return -1;
+			}
+
+			len -= curr_len;
+			src += curr_len;
+		}
+
+		return orig_count;
+	}
+
+
+	int Plugin::shutdown(Libc::File_descriptor *fd, int how)
+	{
+		sysio()->shutdown_in.fd = noux_fd(fd->context);
+		sysio()->shutdown_in.how = how;
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_SHUTDOWN)) {
+			return -1;
+		}
+
 		return 0;
 	}
 

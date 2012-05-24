@@ -1,0 +1,4 @@
+This directory contains the implementation of network related stuff for noux.
+
+Currently network support is provided by using the libc and lwip directly
+(only for initialization of the actual network subsystem).

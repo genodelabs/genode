@@ -7,7 +7,7 @@ if {[have_spec linux]} {
 	exit 0
 }
 
-build "core init drivers/timer drivers/uart noux lib/libc_noux noux-pkg/coreutils"
+build "core init drivers/timer drivers/uart noux/minimal lib/libc_noux noux-pkg/coreutils"
 
 # strip coreutils binaries and create tar archive
 exec sh -c "[cross_dev_prefix]strip bin/coreutils/bin/*"

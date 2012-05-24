@@ -52,7 +52,7 @@
 #include <dir_file_system.h>
 
 
-enum { verbose_syscall = false };
+enum { verbose_syscall = true };
 
 
 namespace Noux {
@@ -66,6 +66,9 @@ namespace Noux {
 
 extern "C" void wait_for_continue();
 
+extern void (*close_socket)(int);
+
+extern void init_network();
 
 /*****************************
  ** Noux syscall dispatcher **
@@ -169,6 +172,13 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_CLOSE:
 			{
+				/**
+				 * We have to explicitly close Socket_io_channel fd's because
+				 * these are currently handled separately.
+				 */
+				if (close_socket)
+					close_socket(_sysio->close_in.fd);
+
 				remove_io_channel(_sysio->close_in.fd);
 				return true;
 			}
@@ -464,6 +474,22 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			return _root_dir->mkdir(_sysio, Absolute_path(_sysio->mkdir_in.path,
 			                                              _env.pwd()).base());
 
+		case SYSCALL_SOCKET:
+		case SYSCALL_GETSOCKOPT:
+		case SYSCALL_SETSOCKOPT:
+		case SYSCALL_ACCEPT:
+		case SYSCALL_BIND:
+		case SYSCALL_LISTEN:
+		case SYSCALL_SEND:
+		case SYSCALL_SENDTO:
+		case SYSCALL_RECV:
+		case SYSCALL_GETPEERNAME:
+		case SYSCALL_SHUTDOWN:
+		case SYSCALL_CONNECT:
+		case SYSCALL_GETADDRINFO:
+			{
+				return _syscall_net(sc);
+			}
 		case SYSCALL_INVALID: break;
 		}
 	}
@@ -610,6 +636,8 @@ int main(int argc, char **argv)
 	static Dir_file_system
 		root_dir(config()->xml_node().sub_node("fstab"));
 
+	/* initialize network */
+	init_network();
 	/*
 	 * Entrypoint used to virtualize child resources such as RAM, RM
 	 */

@@ -252,6 +252,12 @@ namespace Noux {
 				io->unregister_wake_up_notifier(&notifier);
 			}
 
+			/**
+			 * Method for handling noux network related system calls
+			 */
+
+			bool _syscall_net(Syscall sc);
+
 		public:
 
 			struct Binary_does_not_exist : Exception { };
