@@ -54,6 +54,11 @@
 /libports/include/ncurses/tic.h
 /libports/include/ncurses/unctrl.h
 /libports/include/openjpeg
+/libports/include/openssl
+/libports/src/lib/openssl/x86_32/aes_enc.s
+/libports/src/lib/openssl/x86_32/cpuid.s
+/libports/src/lib/openssl/x86_64/aes_enc.s
+/libports/src/lib/openssl/x86_64/cpuid.s
 /libports/include/python2.6
 /libports/include/qoost
 /libports/include/readline/keymaps.h
