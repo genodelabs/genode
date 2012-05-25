@@ -196,6 +196,7 @@ struct Plugin : Libc::Plugin
 	int ioctl(Libc::File_descriptor *sockfdo, int request, char *argp);
 	int listen(Libc::File_descriptor *sockfdo, int backlog);
 	ssize_t read(Libc::File_descriptor *fdo, void *buf, ::size_t count);
+	int shutdown(Libc::File_descriptor *fdo, int);
 	int select(int nfds, fd_set *readfds, fd_set *writefds,
 	           fd_set *exceptfds, struct timeval *timeout);
 	ssize_t send(Libc::File_descriptor *, const void *buf, ::size_t len, int flags);
@@ -428,6 +429,12 @@ int Plugin::listen(Libc::File_descriptor *sockfdo, int backlog)
 ssize_t Plugin::read(Libc::File_descriptor *fdo, void *buf, ::size_t count)
 {
 	return lwip_read(get_lwip_fd(fdo), buf, count);
+}
+
+
+int Plugin::shutdown(Libc::File_descriptor *sockfdo, int how)
+{
+	return lwip_shutdown(get_lwip_fd(sockfdo), how);
 }
 
 
