@@ -16,6 +16,15 @@ OKLX_ARCHIVE = $(OKLX_VERSION).tar.gz
 OKLX_CONTRIB = kernel-2.6.23-v2
 
 #
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
+$(call check_tool,wget)
+$(call check_tool,patch)
+$(call check_tool,sed)
+
+#
 # Print help information by default
 #
 help:

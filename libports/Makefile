@@ -23,6 +23,14 @@ SHELL        = bash
 prepare: $(DOWNLOAD_DIR) $(CONTRIB_DIR)
 
 #
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
+$(call check_tool,wget)
+$(call check_tool,patch)
+
+#
 # Include information about available ports
 #
 # Each '<port>.mk' file in the 'ports/' directory extends the following
@@ -66,4 +74,3 @@ clean: $(addprefix clean-,$(PKG))
 
 cleanall: clean
 	$(VERBOSE)rm -rf $(DOWNLOAD_DIR)
-

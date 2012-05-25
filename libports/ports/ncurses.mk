@@ -7,6 +7,12 @@ NCURSES_URL := http://ftp.gnu.org/pub/gnu/ncurses/$(NCURSES_TGZ)
 #
 PORTS += $(NCURSES)
 
+#
+# Check for tools
+#
+$(call check_tool,sed)
+$(call check_tool,mawk)
+
 NCURSES_SYMLINKED_INC := nc_alloc.h nc_panel.h nc_tparm.h term_entry.h \
                          tic.h hashed_db.h capdefaults.c
 NCURSES_GENERATED_INC := curses.h ncurses_def.h ncurses_dll.h term.h \

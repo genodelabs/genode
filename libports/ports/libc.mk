@@ -6,11 +6,11 @@ LIBC := libc-8.2.0
 PORTS += $(LIBC)
 
 #
-# Sanity check for tools
+# Check for tools
 #
-ifeq ($(shell which lex),)
-$(error Missing installation of 'lex' (package flex))
-endif
+$(call check_tool,svn)
+$(call check_tool,lex)
+$(call check_tool,yacc)
 
 #
 # Subdirectories to check out from FreeBSD's Subversion repository

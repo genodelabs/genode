@@ -12,6 +12,14 @@ NOVA_ARCHIVE = nova-hypervisor-0.4.tar.bz2
 NOVA_URI     = http://os.inf.tu-dresden.de/~us15/nova/$(NOVA_ARCHIVE)
 
 #
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
+$(call check_tool,wget)
+$(call check_tool,patch)
+
+#
 # Print help information by default
 #
 help:

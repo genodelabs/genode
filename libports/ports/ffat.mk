@@ -13,6 +13,11 @@ FFAT_URL = http://genode.org/files/$(FFAT_ZIP)
 #
 PORTS += ffat-0.07e
 
+#
+# Check for tools
+#
+$(call check_tool,unzip)
+
 prepare-ffat: $(CONTRIB_DIR)/$(FFAT)
 
 $(CONTRIB_DIR)/$(FFAT): clean-ffat

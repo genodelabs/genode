@@ -15,6 +15,15 @@ PATCHES       = $(shell find patches -name *.patch)
 SHELL         = bash
 
 #
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
+$(call check_tool,wget)
+$(call check_tool,patch)
+$(call check_tool,sed)
+
+#
 # Determine python version to use for OKL4's elfweaver
 #
 PYTHON2 := $(notdir $(lastword $(shell which python2 python2.{4,5,6,7,8})))

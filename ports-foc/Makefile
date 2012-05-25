@@ -16,11 +16,20 @@ PATCH-l4android = patches/l4android_genode.patch
 REV-l4android   = 90ca43bd629452ffd38d85fe8c976f069b5bb3d9
 REPO-l4android  = git://git.l4android.org/kernel.git
 
+#
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
+$(call check_tool,patch)
+
 ifeq ($(TARGET), l4android)
+$(call check_tool,git)
 DIFF   = git diff
 UPDATE = cd $(REAL_CONTRIB_DIR)/l4android; git fetch; git reset --hard $(REV-l4android)
 PATCH  = patch -p1
 else
+$(call check_tool,svn)
 DIFF   = svn diff
 UPDATE = svn up -r $(REV-l4linux) $(REAL_CONTRIB_DIR)/l4linux
 PATCH  = patch -p0

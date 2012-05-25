@@ -7,6 +7,11 @@ VIM_URL  = ftp://ftp.vim.org/pub/vim/unix/$(VIM_TBZ2)
 #
 PORTS += $(VIM)
 
+#
+# Check for tools
+#
+$(call check_tool,sed)
+
 prepare:: $(CONTRIB_DIR)/$(VIM)
 
 #

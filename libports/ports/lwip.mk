@@ -7,6 +7,11 @@ LWIP_URL = http://mirrors.zerg.biz/nongnu/lwip/$(LWIP_ZIP)
 #
 PORTS += $(LWIP)
 
+#
+# Check for tools
+#
+$(call check_tool,unzip)
+
 prepare-lwip: $(CONTRIB_DIR)/$(LWIP) include/lwip/lwip include/lwip/netif
 
 $(CONTRIB_DIR)/$(LWIP): clean-lwip

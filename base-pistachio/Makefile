@@ -12,6 +12,17 @@ CONTRIB_DIR = contrib
 PATCHES     = $(shell find patches -name *.patch)
 
 #
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
+$(call check_tool,git)
+$(call check_tool,patch)
+$(call check_tool,sed)
+$(call check_tool,autoheader)
+$(call check_tool,autoconf)
+
+#
 # Print help information by default
 #
 help::

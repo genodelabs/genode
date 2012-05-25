@@ -31,6 +31,14 @@ SVN_TARGETS = tools/preprocess \
               l4/pkg/libvcpu
 
 #
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+
+$(call check_tool,patch)
+$(call check_tool,svn)
+
+#
 # Print help information by default
 #
 help::
