@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INCLUDE__DRIVERS__CPU__CORTEX_A9__TIMER_H_
-#define _BASE__INCLUDE__DRIVERS__CPU__CORTEX_A9__TIMER_H_
+#ifndef _INCLUDE__DRIVERS__CPU__CORTEX_A9__TIMER_H_
+#define _INCLUDE__DRIVERS__CPU__CORTEX_A9__TIMER_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -28,7 +28,7 @@ namespace Genode
 		enum { TICS_PER_MS = CLK / 1000, };
 
 		/**
-		 * Load value rgeister
+		 * Load value register
 		 */
 		struct Load : Register<0x0, 32> { };
 
@@ -96,17 +96,17 @@ namespace Genode
 template <unsigned long CLOCK>
 void Genode::Cortex_a9_timer<CLOCK>::start_one_shot(uint32_t const tics)
 {
-	/* Reset timer */
+	/* reset timer */
 	clear_interrupt();
 	write<Control>(Control::Timer_enable::bits(0) |
 	               Control::Auto_reload::bits(0) |
 	               Control::Irq_enable::bits(1) |
 	               Control::Prescaler::bits(0));
 
-	/* Load timer and start decrementing */
+	/* load timer and start decrementing */
 	write<Load>(tics);
 	write<typename Control::Timer_enable>(1);
 }
 
 
-#endif /* _BASE__INCLUDE__DRIVERS__CPU__CORTEX_A9__TIMER_H_ */
+#endif /* _INCLUDE__DRIVERS__CPU__CORTEX_A9__TIMER_H_ */

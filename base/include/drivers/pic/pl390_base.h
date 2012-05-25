@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INCLUDE__DRIVERS__PIC__PL390_BASE_H_
-#define _BASE__INCLUDE__DRIVERS__PIC__PL390_BASE_H_
+#ifndef _INCLUDE__DRIVERS__PIC__PL390_BASE_H_
+#define _INCLUDE__DRIVERS__PIC__PL390_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -208,16 +208,16 @@ namespace Genode
 				_max_interrupt(_distr.max_interrupt()),
 				_last_taken_request(SPURIOUS_ID)
 			{
-				/* Disable device */
+				/* disable device */
 				_distr.write<Distr::Icddcr::Enable>(0);
 				_cpu.write<Cpu::Iccicr::Enable>(0);
 				mask();
 
-				/* Supported priority range */
+				/* supported priority range */
 				unsigned const min_prio = _distr.min_priority();
 				unsigned const max_prio = _distr.max_priority();
 
-				/* Configure every shared peripheral interrupt */
+				/* configure every shared peripheral interrupt */
 				for (unsigned i=MIN_SPI; i <= _max_interrupt; i++)
 				{
 					_distr.write<Distr::Icdicr::Edge_triggered>(0, i);
@@ -225,14 +225,14 @@ namespace Genode
 					_distr.write<Distr::Icdiptr::Cpu_targets>(Distr::Icdiptr::Cpu_targets::ALL, i);
 				}
 
-				/* Disable the priority filter */
+				/* disable the priority filter */
 				_cpu.write<Cpu::Iccpmr::Priority>(min_prio);
 
-				/* Disable preemption of interrupt handling by interrupts */
+				/* disable preemption of interrupt handling by interrupts */
 				_cpu.write<Cpu::Iccbpr::Binary_point>(
 					Cpu::Iccbpr::Binary_point::NO_PREEMPTION);
 
-				/* Enable device */
+				/* enable device */
 				_distr.write<Distr::Icddcr::Enable>(1);
 				_cpu.write<Cpu::Iccicr::Enable>(1);
 			}
@@ -304,5 +304,5 @@ namespace Genode
 	};
 }
 
-#endif /* _BASE__INCLUDE__DRIVERS__PIC__PL390_BASE_H_ */
+#endif /* _INCLUDE__DRIVERS__PIC__PL390_BASE_H_ */
 

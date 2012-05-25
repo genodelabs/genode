@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Driver for the OMAP4 PandaBoard revision A2
  * \author Martin stein
  * \date   2011-11-03
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INCLUDE__DRIVERS__BOARD__PANDA_A2_H_
-#define _BASE__INCLUDE__DRIVERS__BOARD__PANDA_A2_H_
+#ifndef _INCLUDE__DRIVERS__BOARD__PANDA_A2_H_
+#define _INCLUDE__DRIVERS__BOARD__PANDA_A2_H_
 
 namespace Genode
 {
@@ -23,11 +23,11 @@ namespace Genode
 	{
 		enum
 		{
-			/* Buses */
+			/* buses */
 			L4_PER_BASE = 0x48000000,
 			L4_PER_SIZE = 0x01000000,
 
-			/* Clocks */
+			/* clocks */
 			MPU_DPLL_CLOCK = 200*1000*1000,
 
 			/* UART */
@@ -49,5 +49,5 @@ namespace Genode
 	};
 }
 
-#endif /* _BASE__INCLUDE__DRIVERS__BOARD__PANDA_A2_H_ */
+#endif /* _INCLUDE__DRIVERS__BOARD__PANDA_A2_H_ */
 

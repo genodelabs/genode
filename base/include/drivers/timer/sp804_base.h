@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INCLUDE__DRIVERS__TIMER__SP804_H_
-#define _BASE__INCLUDE__DRIVERS__TIMER__SP804_H_
+#ifndef _INCLUDE__DRIVERS__TIMER__SP804_H_
+#define _INCLUDE__DRIVERS__TIMER__SP804_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -22,7 +22,7 @@ namespace Genode
 	/**
 	 * Basic driver for the ARM SP804 timer
 	 *
-	 * \detail  Uses only timer module 0
+	 * Uses only timer module 0.
 	 */
 	template <unsigned long CLK>
 	class Sp804_base : public Mmio
@@ -84,12 +84,12 @@ namespace Genode
 			 * Run the timer in order that it raises IRQ when
 			 * it reaches zero, then stop
 			 *
-			 * \param  tics  Native timer value used to assess the delay
+			 * \param  tics  native timer value used to assess the delay
 			 *               of the timer interrupt as of this call
 			 */
 			void run_and_stop(unsigned long const tics)
 			{
-				/* Disable and configure timer for a one-shot */
+				/* disable and configure timer for a one-shot */
 				clear_interrupt();
 				write<typename Control::Timer_en>(0);
 				write<Control>(Control::Timer_en::bits(0) |
@@ -99,21 +99,21 @@ namespace Genode
 				               Control::Size::bits(1) |
 				               Control::Oneshot::bits(1));
 
-				/* Load value and enable timer */
+				/* load value and enable timer */
 				write<Load>(tics);
 				write<typename Control::Timer_en>(1);
 			}
 
 			/**
-			 * Run the timer in order that it raises IRQ when
-			 * it reaches zero, then wrap and continue
+			 * Run the timer in order that it raises IRQ when it reaches zero,
+			 * then wrap and continue
 			 *
-			 * \param  tics  Native timer value used to assess the delay
+			 * \param  tics  native timer value used to assess the delay
 			 *               of the timer interrupt as of this call
 			 */
 			void run_and_wrap(unsigned long const tics)
 			{
-				/* Configure the timer in order that it reloads on 0 */
+				/* configure the timer in order that it reloads on 0 */
 				clear_interrupt();
 				write<typename Control::Timer_en>(0);
 				write<Control>(Control::Timer_en::bits(0) |
@@ -123,13 +123,15 @@ namespace Genode
 				               Control::Size::bits(1) |
 				               Control::Oneshot::bits(0));
 
-				/* Start timer with the inital value */
+				/* start timer with the initial value */
 				write<Load>(tics);
 				write<typename Control::Timer_en>(1);
 
-				/* Ensure that the timer loads its max value instead of
-				 * the initial value when it reaches 0 in order that it
-				 * looks like it wraps */
+				/*
+				 * Ensure that the timer loads its max value instead of the
+				 * initial value when it reaches 0 in order that it looks like
+				 * it wraps.
+				 */
 				write<Bgload>(max_value());
 			}
 
@@ -179,5 +181,5 @@ namespace Genode
 	};
 }
 
-#endif /* _BASE__INCLUDE__DRIVERS__TIMER__SP804_H_ */
+#endif /* _INCLUDE__DRIVERS__TIMER__SP804_H_ */
 

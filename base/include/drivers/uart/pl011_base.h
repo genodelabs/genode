@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INCLUDE__DRIVERS__UART__PL011_BASE_H_
-#define _BASE__INCLUDE__DRIVERS__UART__PL011_BASE_H_
+#ifndef _INCLUDE__DRIVERS__UART__PL011_BASE_H_
+#define _INCLUDE__DRIVERS__UART__PL011_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -119,9 +119,9 @@ namespace Genode
 
 			/**
 			 * Constructor
-			 * \param  base       Device MMIO base
-			 * \param  clock      Device reference clock frequency
-			 * \param  baud_rate  Targeted UART baud rate
+			 * \param  base       device MMIO base
+			 * \param  clock      device reference clock frequency
+			 * \param  baud_rate  targeted UART baud rate
 			 */
 			inline Pl011_base(addr_t const base, uint32_t const clock,
 			                  uint32_t const baud_rate);
@@ -141,16 +141,16 @@ Genode::Pl011_base::Pl011_base(addr_t const base, uint32_t const clock,
 	              Uartcr::Txe::bits(1)    |
 	              Uartcr::Rxe::bits(1));
 
-	/**
-	 * We can't print an error or throw C++ exceptions
-	 * because we must expect both to be uninitialized yet,
-	 * so its better to hold the program counter in here for debugging
+	/*
+	 * We can't print an error or throw C++ exceptions because we must expect
+	 * both to be uninitialized yet, so its better to hold the program counter
+	 * in here for debugging.
 	 */
 	if (baud_rate > MAX_BAUD_RATE) while(1) ;
 
-	/**
-	 * Calculate fractional and integer part of baud rate
-	 * divisor to initialize IBRD and FBRD
+	/*
+	 * Calculate fractional and integer part of baud rate divisor to initialize
+	 * IBRD and FBRD.
 	 */
 	uint32_t           const adjusted_br = baud_rate << 4;
 	double             const divisor = (double)clock / adjusted_br;
@@ -163,9 +163,7 @@ Genode::Pl011_base::Pl011_base(addr_t const base, uint32_t const clock,
 
 	write<Uartlcrh::Wlen>(Uartlcrh::Wlen::WORD_LENGTH_8BITS);
 
-	/**
-	 * Unmask all interrupts
-	 */
+	/* unmask all interrupts */
 	write<Uartimsc::Imsc>(0);
 
 	_wait_until_ready();
@@ -174,16 +172,16 @@ Genode::Pl011_base::Pl011_base(addr_t const base, uint32_t const clock,
 
 void Genode::Pl011_base::put_char(char const c)
 {
-	/* Wait as long as the transmission buffer is full */
+	/* wait as long as the transmission buffer is full */
 	while (read<Uartfr::Txff>()) ;
 
-	/* Auto complete new line commands */
+	/* auto complete new line commands */
 	if (c == ASCII_LINE_FEED) write<Uartdr::Data>(ASCII_CARRIAGE_RETURN);
 
-	/* Transmit character */
+	/* transmit character */
 	write<Uartdr::Data>(c);
 	_wait_until_ready();
 }
 
 
-#endif /* _BASE__INCLUDE__DRIVERS__UART__PL011_BASE_H_ */
+#endif /* _INCLUDE__DRIVERS__UART__PL011_BASE_H_ */

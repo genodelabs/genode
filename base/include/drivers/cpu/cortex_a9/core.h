@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_
-#define _BASE__INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_
+#ifndef _INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_
+#define _INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -31,21 +31,21 @@ namespace Genode
 	{
 		enum
 		{
-			/* Common */
+			/* common */
 			DATA_ACCESS_ALIGNM = 4,
 			CLK = Board::CORTEX_A9_CLOCK, /* CPU interface clock */
-			PERIPH_CLK = CLK,             /* Clock for CPU internal components */
+			PERIPH_CLK = CLK,             /* clock for CPU internal components */
 			MIN_PAGE_SIZE_LOG2 = 12,
 			MAX_PAGE_SIZE_LOG2 = 20,
 			HIGHEST_EXCEPTION_ENTRY = 0xffff0000,
 
-			/* Interrupt controller */
+			/* interrupt controller */
 			PL390_DISTRIBUTOR_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x1000,
 			PL390_DISTRIBUTOR_MMIO_SIZE = 0x1000,
 			PL390_CPU_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x100,
 			PL390_CPU_MMIO_SIZE = 0x100,
 
-			/* Timer */
+			/* timer */
 			PRIVATE_TIMER_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x600,
 			PRIVATE_TIMER_MMIO_SIZE = 0x10,
 			PRIVATE_TIMER_IRQ  = 29,
@@ -53,15 +53,17 @@ namespace Genode
 			TIMER_IRQ = PRIVATE_TIMER_IRQ,
 		};
 
-		/* Exceotion type IDs */
+		/**
+		 * Exceotion type IDs
+		 */
 		enum Exception_type
 		{
-			RESET = 1,
-			UNDEFINED_INSTRUCTION = 2,
-			SUPERVISOR_CALL = 3,
-			PREFETCH_ABORT = 4,
-			DATA_ABORT = 5,
-			INTERRUPT_REQUEST = 6,
+			RESET                  = 1,
+			UNDEFINED_INSTRUCTION  = 2,
+			SUPERVISOR_CALL        = 3,
+			PREFETCH_ABORT         = 4,
+			DATA_ABORT             = 5,
+			INTERRUPT_REQUEST      = 6,
 			FAST_INTERRUPT_REQUEST = 7,
 		};
 
@@ -72,14 +74,16 @@ namespace Genode
 		 */
 		struct Fsr : Register<32>
 		{
-			/* Fault status encoding */
+			/**
+			 * Fault status encoding
+			 */
 			enum Fault_status {
 				SECTION_TRANSLATION_FAULT = 5,
-				PAGE_TRANSLATION_FAULT = 7,
+				PAGE_TRANSLATION_FAULT    = 7,
 			};
 
-			struct Fs_3_0 : Bitfield<0, 4> { }; /* Fault status bits [3:0] */
-			struct Fs_4 : Bitfield<10, 1> { };  /* Fault status bits [4] */
+			struct Fs_3_0 : Bitfield<0, 4> { }; /* fault status bits [3:0] */
+			struct Fs_4 : Bitfield<10, 1> { };  /* fault status bits [4] */
 		};
 
 		/**
@@ -126,7 +130,7 @@ namespace Genode
 		 */
 		struct Dfsr : Fsr
 		{
-			struct Wnr : Bitfield<11, 1> { }; /* Write not read bit */
+			struct Wnr : Bitfield<11, 1> { }; /* write not read bit */
 
 			/**
 			 * Read register
@@ -187,9 +191,9 @@ namespace Genode
 		struct Sctlr : Register<32>
 		{
 			struct M    : Bitfield<0,1> { };  /* MMU enable bit */
-			struct C    : Bitfield<2,1> { };  /* Cache enable bit */
-			struct I    : Bitfield<12,1> { }; /* Instruction cache enable bit */
-			struct V    : Bitfield<13,1> { }; /* Exception vectors bit */
+			struct C    : Bitfield<2,1> { };  /* cache enable bit */
+			struct I    : Bitfield<12,1> { }; /* instruction cache enable bit */
+			struct V    : Bitfield<13,1> { }; /* exception vectors bit */
 
 			/**
 			 * Read whole register
@@ -215,19 +219,19 @@ namespace Genode
 		 */
 		struct Ttbcr : Register<32>
 		{
-			/********************
-			 * Always available *
-			 ********************/
+			/**********************
+			 ** Always available **
+			 **********************/
 
-			struct N : Bitfield<0,3>  /* Base address width */
+			struct N : Bitfield<0,3>  /* base address width */
 			{ };
 
-			/******************************************
-			 * Only available with security extension *
-			 ******************************************/
+			/********************************************
+			 ** Only available with security extension **
+			 ********************************************/
 
-			struct Pd0 : Bitfield<4,1> { }; /* Translation table walk disable bit for TTBR0 */
-			struct Pd1 : Bitfield<5,1> { }; /* Translation table walk disable bit for TTBR1 */
+			struct Pd0 : Bitfield<4,1> { }; /* translation table walk disable bit for TTBR0 */
+			struct Pd1 : Bitfield<5,1> { }; /* translation table walk disable bit for TTBR1 */
 
 			/**
 			 * Read whole register, only in privileged CPU mode
@@ -253,16 +257,16 @@ namespace Genode
 			/**
 			 * Access values for the 16 available domains
 			 */
-			struct D0 : Bitfield<0,2>  { };
-			struct D1 : Bitfield<2,2>  { };
-			struct D2 : Bitfield<4,2>  { };
-			struct D3 : Bitfield<6,2>  { };
-			struct D4 : Bitfield<8,2>  { };
-			struct D5 : Bitfield<10,2>  { };
-			struct D6 : Bitfield<12,2>  { };
-			struct D7 : Bitfield<14,2>  { };
-			struct D8 : Bitfield<16,2>  { };
-			struct D9 : Bitfield<18,2>  { };
+			struct D0  : Bitfield<0,2>   { };
+			struct D1  : Bitfield<2,2>   { };
+			struct D2  : Bitfield<4,2>   { };
+			struct D3  : Bitfield<6,2>   { };
+			struct D4  : Bitfield<8,2>   { };
+			struct D5  : Bitfield<10,2>  { };
+			struct D6  : Bitfield<12,2>  { };
+			struct D7  : Bitfield<14,2>  { };
+			struct D8  : Bitfield<16,2>  { };
+			struct D9  : Bitfield<18,2>  { };
 			struct D10 : Bitfield<20,2>  { };
 			struct D11 : Bitfield<22,2>  { };
 			struct D12 : Bitfield<24,2>  { };
@@ -282,53 +286,54 @@ namespace Genode
 		/**
 		 * Translation table base register 0
 		 *
-		 * \detail  Typically for process specific spaces, references first level
-		 *          table with a size between 128B and 16KB according to TTBCR.N,
+		 * Typically for process specific spaces, references first level table
+		 * with a size between 128B and 16KB according to TTBCR.N
 		 */
 		struct Ttbr0 : Register<32>
 		{
-			/********************
-			 * Always available *
-			 ********************/
+			/**********************
+			 ** Always available **
+			 **********************/
 
-			struct S            : Bitfield<1,1>   { }; /* Shareable bit */
-			struct Rgn          : Bitfield<3,2>        /* Region bits */
+			struct S   : Bitfield<1,1>   { }; /* shareable bit */
+			struct Rgn : Bitfield<3,2>        /* region bits */
 			{
 				enum { OUTER_NON_CACHEABLE                = 0b00,
-					   OUTER_WBACK_WALLOCATE_CACHEABLE    = 0b01,
-					   OUTER_WTHROUGH_CACHEABLE           = 0b10,
-					   OUTER_WBACK_NO_WALLCOATE_CACHEABLE = 0b11,
+				       OUTER_WBACK_WALLOCATE_CACHEABLE    = 0b01,
+				       OUTER_WTHROUGH_CACHEABLE           = 0b10,
+				       OUTER_WBACK_NO_WALLCOATE_CACHEABLE = 0b11,
 				};
 			};
 
-			struct Nos          : Bitfield<5,1>   { }; /* Not outer shareable bit */
-			struct Base_address : Bitfield<14,18> { }; /* Translation table base address (Driver supports only 16KB alignment) */
+			struct Nos          : Bitfield<5,1>   { }; /* not outer shareable bit */
+			struct Base_address : Bitfield<14,18> { }; /* translation table base address
+			                                              (Driver supports only 16KB alignment) */
 
-			/*********************************************
-			 * Only available without security extension *
-			 *********************************************/
+			/***********************************************
+			 ** Only available without security extension **
+			 ***********************************************/
 
-			struct C            : Bitfield<0,1>   { }; /* Cacheable bit */
+			struct C : Bitfield<0,1>   { }; /* cacheable bit */
 
-			/******************************************
-			 * Only available with security extension *
-			 ******************************************/
+			/********************************************
+			 ** Only available with security extension **
+			 ********************************************/
 
-			struct Irgn_1 : Bitfield<0,1> /* Inner region bit 0 */
+			struct Irgn_1 : Bitfield<0,1> /* inner region bit 0 */
 			{
 				enum { INNER_NON_CACHEABLE                = 0b0,
-					   INNER_WBACK_WALLOCATE_CACHEABLE    = 0b0,
-					   INNER_WTHROUGH_CACHEABLE           = 0b1,
-					   INNER_WBACK_NO_WALLCOATE_CACHEABLE = 0b1,
+				       INNER_WBACK_WALLOCATE_CACHEABLE    = 0b0,
+				       INNER_WTHROUGH_CACHEABLE           = 0b1,
+				       INNER_WBACK_NO_WALLCOATE_CACHEABLE = 0b1,
 				};
 			};
 
-			struct Irgn_0 : Bitfield<6,1> /* Inner region bit 1 */
+			struct Irgn_0 : Bitfield<6,1> /* inner region bit 1 */
 			{
 				enum { INNER_NON_CACHEABLE                = 0b0,
-					   INNER_WBACK_WALLOCATE_CACHEABLE    = 0b1,
-					   INNER_WTHROUGH_CACHEABLE           = 0b0,
-					   INNER_WBACK_NO_WALLCOATE_CACHEABLE = 0b1,
+				       INNER_WBACK_WALLOCATE_CACHEABLE    = 0b1,
+				       INNER_WTHROUGH_CACHEABLE           = 0b0,
+				       INNER_WBACK_NO_WALLCOATE_CACHEABLE = 0b1,
 				};
 			};
 
@@ -351,22 +356,22 @@ namespace Genode
 		 */
 		struct Cpsr : Register<32>
 		{
-			struct  M : Bitfield<0,5>      /* Processor mode                          */
+			struct M : Bitfield<0,5>       /* processor mode                          */
 			{
 				enum {                     /* <Privileged>, <Description>             */
-					USER       = 0b10000,  /* 0, Application code                     */
-					FIQ        = 0b10001,  /* 1, Entered at fast interrupt            */
-					IRQ        = 0b10010,  /* 1, Entered at normal interrupt          */
-					SUPERVISOR = 0b10011,  /* 1, Most kernel code                     */
-					MONITOR    = 0b10110,  /* 1, A secure mode, switch sec./non-sec.  */
-					ABORT      = 0b10111,  /* 1, Entered at aborts                    */
-					UNDEFINED  = 0b11011,  /* 1, Entered at instruction-related error */
-					SYSTEM     = 0b11111,  /* 1, Applications that require privileged */
+					USER       = 0b10000,  /* 0, application code                     */
+					FIQ        = 0b10001,  /* 1, entered at fast interrupt            */
+					IRQ        = 0b10010,  /* 1, entered at normal interrupt          */
+					SUPERVISOR = 0b10011,  /* 1, most kernel code                     */
+					MONITOR    = 0b10110,  /* 1, a secure mode, switch sec./non-sec.  */
+					ABORT      = 0b10111,  /* 1, entered at aborts                    */
+					UNDEFINED  = 0b11011,  /* 1, entered at instruction-related error */
+					SYSTEM     = 0b11111,  /* 1, applications that require privileged */
 				};
 			};
-			struct F      : Bitfield<6,1>  { };  /* Fast interrupt request disable       */
-			struct I      : Bitfield<7,1>  { };  /* Interrupt request disable            */
-			struct A      : Bitfield<8,1>  { };  /* Asynchronous abort disable           */
+			struct F : Bitfield<6,1> { };  /* fast interrupt request disable       */
+			struct I : Bitfield<7,1> { };  /* interrupt request disable            */
+			struct A : Bitfield<8,1> { };  /* asynchronous abort disable           */
 
 			/**
 			 * Read whole register
@@ -392,7 +397,7 @@ namespace Genode
 		 */
 		struct Scr : Register<32>
 		{
-			struct Ns : Bitfield<0, 1> { }; /* Non secure bit */
+			struct Ns : Bitfield<0, 1> { }; /* non secure bit */
 
 			/**
 			 * Read whole register
@@ -410,15 +415,15 @@ namespace Genode
 		 */
 		struct Context
 		{
-			/* General purpose registers, offset 0*4 .. 15*4 */
+			/* general purpose registers, offset 0*4 .. 15*4 */
 			uint32_t
 				r0,  r1,  r2,  r3,  r4, r5, r6, r7,
 				r8,  r9, r10, r11, r12, sp, lr, pc;
 
-			/* Special registers, offset 16*4 .. 17*4 */
+			/* special registers, offset 16*4 .. 17*4 */
 			uint32_t psr, contextidr;
 
-			/* Additional state info, offset 18*4 .. 19*4 */
+			/* additional state info, offset 18*4 .. 19*4 */
 			uint32_t exception_type, section_table;
 
 			/***************
@@ -454,8 +459,8 @@ namespace Genode
 		/**
 		 * Set CPU exception entry to a given address
 		 *
-		 * \return   0  Exception entry set to the given address
-		 *          <0  Otherwise
+		 * \return   0  exception entry set to the given address
+		 *          <0  otherwise
 		 */
 		static int exception_entry_at(addr_t a)
 		{
@@ -490,14 +495,14 @@ namespace Genode
 		/**
 		 * Enable the MMU
 		 *
-		 * \param  section_table  Section translation table of the initial
+		 * \param  section_table  section translation table of the initial
 		 *                        address space this function switches to
-		 * \param  process_id     Process ID of the initial address space
+		 * \param  process_id     process ID of the initial address space
 		 */
 		static void enable_mmu (Section_table * const section_table,
 		                        unsigned long const process_id)
 		{
-			/* Initialize domains */
+			/* initialize domains */
 			Dacr::write (Dacr::D0::bits (Dacr::CLIENT)
 			           | Dacr::D1::bits (Dacr::NO_ACCESS)
 			           | Dacr::D2::bits (Dacr::NO_ACCESS)
@@ -515,16 +520,16 @@ namespace Genode
 			           | Dacr::D14::bits (Dacr::NO_ACCESS)
 			           | Dacr::D15::bits (Dacr::NO_ACCESS));
 
-			/* Switch process ID */
+			/* switch process ID */
 			Contextidr::write(process_id);
 
-			/* Install section table */
+			/* install section table */
 			Ttbr0::write (Ttbr0::Base_address::masked ((addr_t)section_table));
 			Ttbcr::write (Ttbcr::N::bits(0)
 			            | Ttbcr::Pd0::bits(0)
 			            | Ttbcr::Pd1::bits(0) );
 
-			/* Enable MMU without instruction-, data-, or unified caches */
+			/* enable MMU without instruction-, data-, or unified caches */
 			Sctlr::access_t sctlr = Sctlr::read();
 			Sctlr::M::set(sctlr);
 			Sctlr::I::clear(sctlr);
@@ -536,7 +541,7 @@ namespace Genode
 		/**
 		 * Invalidate all entries of the branch predictor array
 		 *
-		 * \detail  Must be inline to avoid dependence on the branch predictor
+		 * Must be inline to avoid dependence on the branch predictor
 		 */
 		__attribute__((always_inline)) inline static void flush_branch_prediction()
 		{
@@ -559,25 +564,25 @@ namespace Genode
 		/**
 		 * Does a pagefault exist and originate from a lack of translation?
 		 *
-		 * \param  c   CPU Context that triggered the pagefault
-		 * \param  va  Holds the virtual fault-address if this
+		 * \param  c   CPU Context that triggered the page fault
+		 * \param  va  holds the virtual fault-address if this
 		 *             function returns 1
-		 * \param  w   Indicates wether the fault was caused by a write access
+		 * \param  w   indicates whether the fault was caused by a write access
 		 *             if this function returns 1
 		 */
 		static bool translation_miss(Context * c, addr_t & va, bool & w)
 		{
-			/* Determine fault type */
+			/* determine fault type */
 			switch (c->exception_type)
 			{
 			case PREFETCH_ABORT: {
 
-				/* Is fault caused by translation miss? */
+				/* is fault caused by translation miss? */
 				Ifsr::Fault_status const fs = Ifsr::fault_status();
 				if(fs == Ifsr::SECTION_TRANSLATION_FAULT ||
 				   fs == Ifsr::PAGE_TRANSLATION_FAULT)
 				{
-					/* Fetch fault data */
+					/* fetch fault data */
 					w = 0;
 					va = Ifar::read();
 					return 1;
@@ -585,12 +590,12 @@ namespace Genode
 				return 0; }
 			case DATA_ABORT: {
 
-				/* Is fault caused by translation miss? */
+				/* is fault caused by translation miss? */
 				Dfsr::Fault_status const fs = Dfsr::fault_status();
 				if(fs == Dfsr::SECTION_TRANSLATION_FAULT ||
 				   fs == Dfsr::PAGE_TRANSLATION_FAULT)
 				{
-					/* Fetch fault data */
+					/* fetch fault data */
 					Dfsr::access_t const dfsr = Dfsr::read();
 					w = Dfsr::Wnr::get(dfsr);
 					va = Dfar::read();
@@ -603,5 +608,5 @@ namespace Genode
 	};
 }
 
-#endif /* _BASE__INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_ */
+#endif /* _INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_ */
 

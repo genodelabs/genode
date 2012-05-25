@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BASE__INCLUDE__DRIVERS__UART__TL16C750_BASE_H_
-#define _BASE__INCLUDE__DRIVERS__UART__TL16C750_BASE_H_
+#ifndef _INCLUDE__DRIVERS__UART__TL16C750_BASE_H_
+#define _INCLUDE__DRIVERS__UART__TL16C750_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -27,8 +27,8 @@ namespace Genode
 	/**
 	 * Base driver Texas instruments TL16C750 UART module
 	 *
-	 * \detail  In contrast to the abilities of the TL16C750, this driver
-	 *          targets only the basic UART functionalities.
+	 * In contrast to the abilities of the TL16C750, this driver targets only
+	 * the basic UART functionalities.
 	 */
 	class Tl16c750_base : public Mmio
 	{
@@ -150,25 +150,27 @@ namespace Genode
 			 * Constructor
 			 *
 			 * \param  base       MMIO base address
-			 * \param  clock      Reference clock
-			 * \param  baud_rate  Targeted baud rate
+			 * \param  clock      reference clock
+			 * \param  baud_rate  targeted baud rate
 			 */
 			Tl16c750_base(addr_t const base, unsigned long const clock,
 			              unsigned long const baud_rate) : Mmio(base)
 			{
-				/* Reset and disable UART */
+				/* reset and disable UART */
 				write<Uart_sysc::Softreset>(1);
 				while (!read<Uart_syss::Resetdone>()) ;
 				write<Uart_mdr1::Mode_select>(Uart_mdr1::Mode_select::DISABLED);
 
-				/* Enable access to 'Uart_fcr' and 'Uart_ier' */
+				/* enable access to 'Uart_fcr' and 'Uart_ier' */
 				write<Uart_lcr::Reg_mode>(Uart_lcr::Reg_mode::OPERATIONAL);
 
-				/* Configure FIFOs, we don't use any interrupts or DMA,
-				 * thus FIFO trigger and DMA configurations are dispensable */
+				/*
+				 * Configure FIFOs, we don't use any interrupts or DMA,
+				 * thus FIFO trigger and DMA configurations are dispensable.
+				 */
 				write<Uart_fcr::Fifo_enable>(1);
 
-				/* Disable interrupts and sleep mode */
+				/* disable interrupts and sleep mode */
 				write<Uart_ier>(Uart_ier::Rhr_it::bits(0)
 				              | Uart_ier::Thr_it::bits(0)
 				              | Uart_ier::Line_sts_it::bits(0)
@@ -178,11 +180,13 @@ namespace Genode
 				              | Uart_ier::Rts_it::bits(0)
 				              | Uart_ier::Cts_it::bits(0));
 
-				/* Enable access to 'Uart_dlh' and 'Uart_dll' */
+				/* enable access to 'Uart_dlh' and 'Uart_dll' */
 				write<Uart_lcr::Reg_mode>(Uart_lcr::Reg_mode::CONFIG_B);
 
-				/* Load the new divisor value (this driver solely uses
-				 * 'UART_16X' mode )*/
+				/*
+				 * Load the new divisor value (this driver solely uses
+				 * 'UART_16X' mode)
+				 */
 				enum { UART_16X_DIVIDER_LOG2 = 4 };
 				unsigned long const adjusted_br = baud_rate << UART_16X_DIVIDER_LOG2;
 				double const divisor = (double)clock / adjusted_br;
@@ -190,16 +194,20 @@ namespace Genode
 				write<Uart_dll::Clock_lsb>(divisor_uint);
 				write<Uart_dlh::Clock_msb>(divisor_uint>>Uart_dll::Clock_lsb::WIDTH);
 
-				/* Configure protocol formatting and thereby return to
-				 * operational mode */
+				/*
+				 * Configure protocol formatting and thereby return to
+				 * operational mode.
+				 */
 				write<Uart_lcr>(Uart_lcr::Char_length::bits(Uart_lcr::Char_length::_8_BIT)
 				              | Uart_lcr::Nb_stop::bits(Uart_lcr::Nb_stop::_1_STOP_BIT)
 				              | Uart_lcr::Parity_en::bits(0)
 				              | Uart_lcr::Break_en::bits(0)
 				              | Uart_lcr::Div_en::bits(0));
 
-				/* Switch to UART mode, we don't use hardware or software flow
-				 * control, thus according configurations are dispensable*/
+				/*
+				 * Switch to UART mode, we don't use hardware or software flow
+				 * control, thus according configurations are dispensable
+				 */
 				write<Uart_mdr1::Mode_select>(Uart_mdr1::Mode_select::UART_16X);
 			}
 
@@ -208,18 +216,18 @@ namespace Genode
 			 */
 			void put_char(char const c)
 			{
-				/* Wait as long as the transmission buffer is full */
+				/* wait as long as the transmission buffer is full */
 				while (!read<Uart_lsr::Tx_fifo_empty>()) ;
 
-				/* Auto complete new line commands */
+				/* auto complete new line commands */
 				if (c == ASCII_LINE_FEED)
 					write<Uart_thr::Thr>(ASCII_CARRIAGE_RETURN);
 
-				/* Transmit character */
+				/* transmit character */
 				write<Uart_thr::Thr>(c);
 			}
 	};
 }
 
-#endif /* _BASE__INCLUDE__DRIVERS__UART__TL16C750_BASE_H_ */
+#endif /* _INCLUDE__DRIVERS__UART__TL16C750_BASE_H_ */
 
