@@ -15,13 +15,13 @@
 #define _PS2_KEYBOARD_H_
 
 #include <base/printf.h>
+#include <input/event_queue.h>
 #include <input/keycodes.h>
 
 #include "input_driver.h"
 #include "serial_interface.h"
 #include "scan_code_set_1.h"
 #include "scan_code_set_2.h"
-#include "event_queue.h"
 
 class Ps2_keyboard : public Input_driver
 {

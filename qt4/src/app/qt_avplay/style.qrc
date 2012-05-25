@@ -1,0 +1,10 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/">
+<file>style.qss</file>
+<file alias="player_play.png">../../../contrib/qt-everywhere-opensource-src-4.7.4/examples/network/torrent/icons/player_play.png</file>
+<file alias="player_pause.png">../../../contrib/qt-everywhere-opensource-src-4.7.4/examples/network/torrent/icons/player_pause.png</file>
+<file alias="player_stop.png">../../../contrib/qt-everywhere-opensource-src-4.7.4/examples/network/torrent/icons/player_stop.png</file>
+<file alias="volume.png">../../../contrib/qt-everywhere-opensource-src-4.7.4/demos/mobile/guitartuner/src/mycomponents/images/volume.png</file>
+</qresource>
+</RCC>

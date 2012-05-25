@@ -14,6 +14,7 @@
 #ifndef _EVENT_QUEUE_H_
 #define _EVENT_QUEUE_H_
 
+#include <base/printf.h>
 #include <input/event.h>
 #include <os/ring_buffer.h>
 

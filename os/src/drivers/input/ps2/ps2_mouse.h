@@ -15,9 +15,9 @@
 #define _PS2_MOUSE_H_
 
 #include <base/printf.h>
+#include <input/event_queue.h>
 #include <input/keycodes.h>
 
-#include "event_queue.h"
 #include "input_driver.h"
 
 class Ps2_mouse : public Input_driver

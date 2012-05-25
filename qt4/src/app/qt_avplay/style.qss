@@ -1,0 +1,32 @@
+Main_window {
+	max-width: 640px;
+	max-height: 512px;
+}
+
+Play_pause_button, Stop_button {
+	width: 32px;
+	height: 32px;
+}
+
+Play_pause_button#play {
+	border-image: url(:player_pause.png);
+}
+
+
+Play_pause_button#pause {
+	border-image: url(:player_play.png);
+}
+
+
+Stop_button {
+	border-image: url(:player_stop.png);
+}
+
+Volume_label {
+	background-image: url(:volume.png);
+	min-width: 16px;
+	max-width: 32px;
+	min-height: 16px;
+	max-height: 32px;
+	margin-right: 5px;
+}
