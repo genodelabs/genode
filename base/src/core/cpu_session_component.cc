@@ -24,14 +24,15 @@
 using namespace Genode;
 
 
-Thread_capability Cpu_session_component::create_thread(Name const &name)
+Thread_capability Cpu_session_component::create_thread(Name const &name, addr_t utcb)
 {
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
-	Lock::Guard slab_lock_guard(_slab_lock);
+	Lock::Guard slab_lock_guard(_thread_alloc_lock);
 
 	Cpu_thread_component *thread = 0;
 	try {
-		thread = new(&_slab) Cpu_thread_component(name.string(), _priority);
+		thread = new(&_thread_alloc) Cpu_thread_component(name.string(),
+		                                                  _priority, utcb);
 	} catch (Allocator::Out_of_memory) {
 		throw Thread_creation_failed();
 	}
@@ -43,7 +44,7 @@ Thread_capability Cpu_session_component::create_thread(Name const &name)
 
 void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *thread)
 {
-	Lock::Guard lock_guard(_slab_lock);
+	Lock::Guard lock_guard(_thread_alloc_lock);
 
 	_thread_ep->dissolve(thread);
 	_thread_list.remove(thread);
@@ -53,7 +54,7 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 	if (rc)
 		rc->member_rm_session()->dissolve(rc);
 
-	destroy(&_slab, thread);
+	destroy(&_thread_alloc, thread);
 }
 
 
@@ -169,7 +170,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint *thread_ep,
                                              const char *args)
 : _thread_ep(thread_ep), _pager_ep(pager_ep),
   _md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").long_value(0)),
-  _slab(&_md_alloc), _priority(0)
+  _thread_alloc(&_md_alloc), _priority(0)
 {
 	Arg a = Arg_string::find_arg(args, "priority");
 	if (a.valid()) {

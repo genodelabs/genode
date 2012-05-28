@@ -48,7 +48,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Platform_thread(const char *name  = 0,
-			                unsigned priority = 0,
+			                unsigned priority = 0, addr_t utcb = 0,
 			                int thread_id     = THREAD_INVALID);
 
 			/**

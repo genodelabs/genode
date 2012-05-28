@@ -28,7 +28,7 @@ using namespace Genode;
 typedef Token<Scanner_policy_identifier_with_underline> Tid_token;
 
 
-Platform_thread::Platform_thread(const char *name, unsigned)
+Platform_thread::Platform_thread(const char *name, unsigned, addr_t)
 {
 	/* search for thread-id portion of thread name */
 	Tid_token tok(name);

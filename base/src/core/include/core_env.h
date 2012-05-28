@@ -24,6 +24,7 @@
 #include <ram_session/client.h>
 
 /* core includes */
+#include <platform.h>
 #include <core_parent.h>
 #include <core_rm_session.h>
 #include <cap_session_component.h>

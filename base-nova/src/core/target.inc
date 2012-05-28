@@ -10,6 +10,7 @@ SRC_CC       = \
                ram_session_support.cc \
                rom_session_component.cc \
                cpu_session_component.cc \
+               cpu_session_support.cc \
                pd_session_component.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \

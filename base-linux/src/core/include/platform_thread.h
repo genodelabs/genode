@@ -34,7 +34,7 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_thread(const char *name, unsigned priority);
+			Platform_thread(const char *name, unsigned priority, addr_t);
 
 			/**
 			 * Cancel currently blocking operation

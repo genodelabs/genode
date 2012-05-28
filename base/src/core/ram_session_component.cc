@@ -24,6 +24,16 @@ using namespace Genode;
 static const bool verbose = false;
 
 
+addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
+{
+	Dataspace_component * const dsc =
+		dynamic_cast<Dataspace_component *>(_ds_ep->obj_by_cap(ds));
+
+	if (!dsc) throw Invalid_dataspace();
+	return dsc->phys_addr();
+}
+
+
 void Ram_session_component::_free_ds(Dataspace_component *ds)
 {
 	if (!ds) return;

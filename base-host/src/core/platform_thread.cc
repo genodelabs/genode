@@ -65,7 +65,8 @@ unsigned long Platform_thread::pager_object_badge() const
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
+Platform_thread::Platform_thread(const char *name, unsigned, addr_t,
+                                 int thread_id)
 {
 	PWRN("not implemented");
 }

@@ -130,7 +130,7 @@ const
 static int id_cnt;
 
 
-Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
+Platform_thread::Platform_thread(const char *name, unsigned, addr_t, int thread_id)
 : _pd(0), _id(++id_cnt) { }
 
 

@@ -25,6 +25,14 @@ namespace Fiasco {
 }
 
 
+Genode::Ram_dataspace_capability Genode::Cpu_session_component::utcb(Genode::Thread_capability thread_cap)
+{
+	using namespace Genode;
+	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
+	return Ram_dataspace_capability();
+}
+
+
 void Genode::Cpu_session_component::enable_vcpu(Genode::Thread_capability thread_cap,
                                                 Genode::addr_t vcpu_state)
 {

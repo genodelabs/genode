@@ -135,7 +135,7 @@ void Platform_thread::cancel_blocking()
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
+Platform_thread::Platform_thread(const char *name, unsigned, addr_t, int thread_id)
 : _thread_id(thread_id), _l4_thread_id(L4_INVALID_ID), _pager(0)
 {
 	strncpy(_name, name, sizeof(_name));

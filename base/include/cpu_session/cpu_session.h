@@ -62,10 +62,18 @@ namespace Genode {
 			 * Create a new thread
 			 *
 			 * \param   name  name for the thread
+			 * \param   utcb  Base of the UTCB that will be used by the thread
 			 * \return        capability representing the new thread
 			 * \throw         Thread_creation_failed
 			 */
-			virtual Thread_capability create_thread(Name const &name) = 0;
+			virtual Thread_capability create_thread(Name const &name,
+			                                        addr_t utcb = 0) = 0;
+
+			/**
+			 * Get dataspace of the UTCB that is used by the specified thread
+			 */
+			virtual Ram_dataspace_capability
+				utcb(Thread_capability thread) = 0;
 
 			/**
 			 * Kill an existing thread
@@ -188,7 +196,9 @@ namespace Genode {
 			 *********************/
 
 			GENODE_RPC_THROW(Rpc_create_thread, Thread_capability, create_thread,
-			                 GENODE_TYPE_LIST(Thread_creation_failed), Name const &);
+			                 GENODE_TYPE_LIST(Thread_creation_failed),
+			                 Name const &, addr_t);
+			GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb, Thread_capability);
 			GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
 			GENODE_RPC(Rpc_first, Thread_capability, first,);
 			GENODE_RPC(Rpc_next, Thread_capability, next, Thread_capability);
@@ -211,6 +221,7 @@ namespace Genode {
 			 * of employing the convenience macro 'GENODE_RPC_INTERFACE'.
 			 */
 			typedef Meta::Type_tuple<Rpc_create_thread,
+			        Meta::Type_tuple<Rpc_utcb,
 			        Meta::Type_tuple<Rpc_kill_thread,
 			        Meta::Type_tuple<Rpc_first,
 			        Meta::Type_tuple<Rpc_next,
@@ -223,7 +234,7 @@ namespace Genode {
 			        Meta::Type_tuple<Rpc_exception_handler,
 			        Meta::Type_tuple<Rpc_single_step,
 			                         Meta::Empty>
-			        > > > > > > > > > > > Rpc_functions;
+			        > > > > > > > > > > > > Rpc_functions;
 	};
 }
 

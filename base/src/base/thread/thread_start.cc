@@ -49,7 +49,8 @@ void Thread_base::start()
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
-	_thread_cap = env()->cpu_session()->create_thread(buf);
+	Cpu_session * cpu = env()->cpu_session();
+	_thread_cap = cpu->create_thread(buf, (addr_t)&_context->utcb);
 
 	/* assign thread to protection domain */
 	env()->pd_session()->bind_thread(_thread_cap);

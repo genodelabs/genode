@@ -53,7 +53,7 @@ namespace Genode {
 
 		public:
 
-			Cpu_thread_component(const char *name, unsigned priority)
+			Cpu_thread_component(const char *name, unsigned priority, addr_t)
 			: _platform_thread(name, priority), _bound(false) { }
 
 
@@ -80,8 +80,8 @@ namespace Genode {
 			Rpc_entrypoint            *_thread_ep;
 			Pager_entrypoint          *_pager_ep;
 			Allocator_guard            _md_alloc;          /* guarded meta-data allocator */
-			Cpu_thread_allocator       _slab;              /* meta-data allocator */
-			Lock                       _slab_lock;         /* protect slab access */
+			Cpu_thread_allocator       _thread_alloc;      /* meta-data allocator */
+			Lock                       _thread_alloc_lock; /* protect alloc access */
 			List<Cpu_thread_component> _thread_list;
 			Lock                       _thread_list_lock;  /* protect thread list */
 			unsigned                   _priority;          /* priority of threads
@@ -127,7 +127,8 @@ namespace Genode {
 			 ** CPU session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Name const &);
+			Thread_capability create_thread(Name const &, addr_t);
+			Ram_dataspace_capability utcb(Thread_capability thread);
 			void kill_thread(Thread_capability);
 			Thread_capability first();
 			Thread_capability next(Thread_capability);

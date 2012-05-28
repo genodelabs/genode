@@ -91,7 +91,8 @@ void Platform_thread::cancel_blocking()
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
+Platform_thread::Platform_thread(const char *name, unsigned, addr_t,
+                                 int thread_id)
 : _tid(-1)
 {
 	strncpy(_name, name, sizeof(_name));
