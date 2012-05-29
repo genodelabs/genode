@@ -61,7 +61,7 @@ Device drivers
 
 Device drivers usually reside in the 'src/drivers' subdirectory of source-code
 repositories. The most predominant repositories hosting device drivers are
-'os', 'linux_drivers', 'dde_ipxe'.
+'os', 'linux_drivers', 'dde_ipxe', 'dde_linux'.
 
 
 Platform devices
@@ -129,10 +129,11 @@ input-session interfaces respectively.
   Driver for the virtual framebuffer device provided by the user-mode Fiasco
   kernel.
 
-:'linux_drivers/src/drivers/usb':
-  USB driver that makes USB HID devices available as input sessions.
-  For an example of using this driver, refer to the run script at
-  'linux_drivers/run/usb_hid'.
+:'dde_linux/src/drivers/usb':
+  USB driver that makes USB HID and USB storage devices available as input
+  sessions and block session respectively. For examples of using this driver,
+  refer to the run scripts at 'dde_linux/run/usb_hid' and
+  'dde_linux/run/usb_storage'.
 
 
 Timer drivers
@@ -274,15 +275,36 @@ Separate components:
   Provides each file of an ISO9660 file system accessed via a block session as
   separate ROM session.
 
+:'os/src/server/ram_fs':
+  A file system implementation that keeps all data in memory.
+
 :'os/src/server/rom_loopdev':
   Provides the content of a ROM file as a block session, similar to the
   loop-mount mechanism on Linux
+
+:'os/src/server/terminal_log':
+  Adapter for forwarding LOG messages to a terminal session.
 
 :'demo/src/server/nitlog':
   Provides a LOG session, printing log output on screen via a nitpicker
   session.
 
+:'gems/src/server/terminal':
+  Provides a terminal session via a graphical terminal using a framebuffer
+  session and an input session.
+
+:'gems/src/server/tcp_terminal':
+  Provides one or multiple terminal sessions over TCP connections.
+  For further information, refer to 'gems/src/server/tcp_terminal/README'.
+
+:'gems/src/server/http_block':
+  A block service that fetches a virtual block device over the network from
+  a HTTP server.
+
 Libraries:
+
+:'libports/lib/mk/libc':
+  C runtime ported from FreeBSD.
 
 :'libports/lib/mk/libc_log':
   Redirects the standard output of the libc to Genode's LOG session interface.
@@ -290,12 +312,39 @@ Libraries:
 :'libports/lib/mk/libc_lwip_nic_dhcp':
   Translates the BSD socket API to a NIC session using the lwIP stack.
 
+:'libports/lib/mk/libc_fs':
+  Allows libc-using programs to access the Genode file-system infrastructure
+  using the POSIX file API.
+
+:'libports/lib/mk/libc_terminal':
+  Connects the standard input and output from/to Genode's terminal session
+  interface.
+
 :'libports/lib/mk/gallium' + 'linux_drivers/lib/mk/gpu_i915_drv':
   Translates the OpenGL API to a framebuffer session using the MESA OpenGL
   stack and the Intel GEM GPU driver.
 
+:'libports/lib/mk/pthread':
+  Subset of the POSIX thread and semaphore API.
+
+:'libports/lib/mk/python':
+  Runtime of the Python scripting language.
+
+:'libports/lib/mk/mupdf':
+  PDF rendering engine.
+
 :'libports/lib/mk/sdl':
   Translates the libSDL API to framebuffer and input sessions.
+
+:'libports/lib/mk/ncurses':
+  Library for implementing pseudo-graphical applications (i.e., VIM) that
+  run on a text terminal.
+
+:'libports/lib/mk/avcodec':
+  A library for video decoding, conversion, and streaming.
+
+:'libports/lib/mk/lua':
+  Runtime for the Lua scripting language.
 
 :'qt4':
   Qt4 framework, using nitpicker session and NIC session as back end.
@@ -338,6 +387,11 @@ located in their respective directory.
   Is a proxy application that enables the integration of a virtual X server
   into a Nitpicker session on the Linux base platform.
 
+:'ports/src/noux-pkg':
+  Ports of popular commandline-based Unix software such as VIM, bash,
+  coreutils, binutils, gcc, findutils, and netcat. The programs are supposed
+  to be executed within the Noux runtime environment.
+
 
 Runtime environments
 ####################
@@ -354,4 +408,18 @@ Runtime environments
   enables the use of Linux-based OSes as subsystems on the Fiasco.OC kernel.
   For using L4Linux, refer to the run script 'ports-foc/run/l4linux.run'.
 
+:'ports-foc/src/l4android': L4Android is a variant of L4Linux that is able
+  to execute the Android software stack on top of the Fiasco.OC kernel.
 
+:'ports/src/vancouver': Vancouver is a virtual-machine monitor developed for
+  the use with the NOVA platform. It virtualizes 32bit x86 PC hardware
+  including various peripherals. The current version is regarded as work in
+  progress. It is able to bootstrap one of the Fiasco or Pistachio kernels
+  but support for interrupts (i.e., the timer) is not yet implemented.
+
+:'os/src/server/loader': A service that allows the creation and destruction
+  of Genode subsystems via a session interface. For further information,
+  refer to 'os/src/server/loader/README'.
+
+:'os/src/app/chroot': A helper for the Linux base platforms that makes the
+  Linux chroot mechanism usable for Genode systems.
