@@ -27,6 +27,9 @@ usage:
 	@echo "                  'nova_x86_64'"
 	@echo "                  'codezero_vpb926'"
 	@echo "                  'mb_s3a_starter_kit'"
+	@echo "                  'hw_panda_a2'"
+	@echo "                  'hw_vea9x4'"
+	@echo "                  'hw_pbxa9'"
 	@echo "                  'foc_x86_32'"
 	@echo "                  'foc_x86_64'"
 	@echo "                  'foc_pbxa9'"
@@ -176,6 +179,15 @@ mb_s3a_starter_kit::
 
 mb_ml507::
 	@echo "SPECS = genode mb_ml507" > $(BUILD_DIR)/etc/specs.conf
+
+hw_pbxa9::
+	@echo "SPECS = genode hw_pbxa9" > $(BUILD_DIR)/etc/specs.conf
+
+hw_vea9x4::
+	@echo "SPECS = genode hw_vea9x4" > $(BUILD_DIR)/etc/specs.conf
+
+hw_panda_a2::
+	@echo "SPECS = genode hw_panda_a2" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
