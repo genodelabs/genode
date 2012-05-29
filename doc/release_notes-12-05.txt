@@ -1,0 +1,1030 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 12.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+The best way to characterize version 12.05 of the Genode OS Framework is to
+dub it as feature release. Among the numerous additions of new functionality
+are a new USB stack, media replay capabilities, and the ability to run the GNU
+tool chain including GCC, G++, Binutils, and GNU Make directly on Genode. That
+said, the current release is not short of architectural improvements either.
+The highlights are the introduction of Genode's file-system infrastructure and
+a new concept for the dynamic adjustment of the system's behaviour at runtime.
+
+The release follows the rough plan we laid out in our
+[http://genode.org/about/road-map - road map]. One planned road-map item was
+revisiting our base of device drivers as we realized that some important
+drivers were not on par with our requirements, the USB stack being the most
+important example. Our prior existing solution was originally ported from Linux
+2.6.20. It is needless to say that this version is severely limited when it comes
+to the use of modern hardware. Instead of continuing to walk the path of the
+existing solution, we took the chance to fundamentally re-approach the problem
+of porting a complex driver subsystem from the Linux kernel. We are happy to
+have found a new methodology that promises to become a much more sustainable
+solution for Genode. The rationale behind the new development is described in
+detail in section [Re-approaching the Linux device-driver environment].
+
+The second major road-map item refers to the Noux runtime environment, which
+enables us to run a growing number of unmodified GNU programs natively on
+Genode. The abilities of Noux have taken a giant leap forward. The two most
+significant improvements are the support of stacked file systems and networking
+support. With those in place, we have become able to run most parts of the
+Genode tool chain including GCC, G++, Binutils, and GNU Make via Noux. Thanks
+to the added networking support, we are able to use basic networking tools such
+as netcat as well.
+
+The third topic according to the road map is file-system support. Version 12.05
+contains the groundwork for this domain. The foundation is the new file-system
+session interface. A first implementation of this interface is available in the
+form of an in-memory file system. To enable the use of Genode's file-system
+facilities by applications, we added support to the C runtime as well as to
+Noux.
+
+In addition to the features planned according to our road map, there are many
+new functionalities and improvements. To name a few: By enhancing the existing
+configuration concept described in section [System reconfiguration at runtime],
+we principally enable components to respond to configuration adjustments
+on-the-fly, which clears the way for elegantly solving many problems typical
+for general-purpose computing. The port of libav accompanied with profound
+changes of our version of libSDL enables us to replay media data. The Fiasco.OC
+base platform has received a lot of attention to fully leverage the kernel's
+capability concept. Last but not least, the port of Lua interpreter allows for
+using this popular scripting language on Genode.
+
+The release of version 12.05 is accompanied with a slightly updated road map.
+The persistent storage topic has been traded for our media player because the
+former one naturally builds upon the just recently added file-system interface.
+Furthermore, we decided to defer the live CD until July as we realized that we
+first need to overhaul low-level components such as USB before the new live
+system can be expected to work as intended. Also, some of the scenarios we want
+to present depend on framework features that are just introduced with the
+current release, in particular the file-system infrastructure and the media
+capabilities.
+
+
+Re-approaching the Linux device-driver environment
+##################################################
+
+User-level device drivers are a never-ending quest for microkernel-based
+systems. The two most extreme approaches are the development of a custom driver
+base developed from scratch, or the use of a virtualized OS as donor of
+device-drivers. An example of the former approach is the HelenOS project, which
+aspires to conduct the development of all needed device drivers within the
+project. The latter approach also known as device-driver OS is domesticated by
+NUL (NOVA userland) for networking drivers and the L4Re (Fiasco.OC userland).
+
+For Genode, neither of both extremes seems to be viable. For the sake of
+argumentation, let's consider USB support as an example. We deem the
+development of a new USB stack from scratch as a far too elaborative
+undertaking, in particular when looking at the functionality we desire. The
+feature set of HelenOS's custom-built USB stack is quite illustrative. It
+supports HID and USB storage, yet no high-speed devices, nor even more
+sophisticated features such as USB 3.0. On the other hand, using the
+device-driver OS approach just for providing USB support is unfortunate when
+considering that even the most basic devices such as keyboard and mouse depend
+on a working USB stack. We would pull in a complete OS kernel (donor kernel)
+just for the sake of handling user input. Furthermore device drivers do not
+come for free even when using an unmodified donor kernel. Integrating the
+donor kernel with the remaining Genode system requires glue code interacting
+with the donor kernel. This code would translate driver API calls to Genode
+RPC interfaces. Even more importantly for us, the use of a device-driver OS
+requires a base platform with support for virtualization. But there is no
+virtualization solution that works across all of Genode's base platforms. Quite
+the contrary. We experience that each virtualization solution such as L4Linux,
+OKLinux, or Vancouver, is largely tied to a particular kernel (Fiasco.OC, OKL4,
+or NOVA respectively). Therefore the device-driver OS approach defeats Genode's
+inter-kernel portability. Even if we had a portable virtualization solution at
+hand, we still would have the problem that for providing the device-driver
+service, we need to trust the donor kernel to a certain degree. If the driver
+uses DMA, the whole donor kernel must be trusted not to misuse DMA. Even though
+IOMMUs are apparently able to relief the problem, they are far from being a
+magic bullet for solving it.
+
+Fortunately, there is a middle-ground to walk on namely porting device drivers
+from a "donor OS". We have come a long way to bring the porting work of device
+drivers to (a certain level of) perfection. The current release bears the fruit
+of our latest achievement in this respect. Let us summarize the long-winded
+travel through device-driver porting land that we had so far:
+
+The naive way is to identify the driver code in the source code of the donor
+OS, copying it over and massaging it until it works well in the new
+environment. There are two fundamental problems with this way of porting.
+First, there is a high likelihood to insert new bugs in the process of
+modifying the imported 3rd-party code. But more importantly, each update of the
+driver to a new version requires the developer to revisit the modifications.
+In many cases, the rationale behind certain changes gets lost over time. The
+consequence is that updating drivers becomes a largely dissatisfying kind of
+work for which there is always a good excuse to not take it on.
+
+To limit the trouble of maintaining 3rd-party drivers, the number-one rule
+is to not modify 3rd-party driver code. The much better alternative is
+to embed the unmodified driver into a so-called device-driver environment.
+(DDE). From the driver's perspective, a DDE looks identical to the
+donor OS. But the DDE makes the driver talk to custom glue code instead of
+interacting with the donor OS kernel. This raises the question of how to
+create a maintainable DDE. The first attempts to create a DDE for Linux
+device drivers came down to a mix of reimplementing some of the Linux
+APIs, taking some other portions of the Linux kernel as is, and modifying
+some Linux headers to a certain degree. Each of those categories has its
+own set of problems. By reimplementing Linux APIs, one risks to introduce bugs
+by not implementing the exact behaviour as the Linux kernel. Because most Linux
+APIs have no clear specification other than the kernel code, it is sometimes
+hard to capture all semantic details. The problem of introducing bugs can be
+alleviated by reusing original code wherever possible. For example, instead of
+providing custom memory allocators, it is tempting to just reuse the Linux slab
+implementation. The downside of reusing existing code is, however, that such
+code tends to depend on further kernel code. Pulling-in the transitive
+dependencies leads to more dependencies etc. The temptation of just continuing
+to add more and more unmodified kernel code into the DDE can easily go out of
+hand. One way to cut out such undesired dependencies is to slightly modify
+(parts of) the kernel code. Unfortunately, the category of slightly modified
+code usually turns out to become an ongoing maintenance burden. The bottom line
+is that finding the right mix of reimplementation, slight modification, and
+reuse is a matter of sure instinct of the DDE developer.
+
+Another way to put it is defining the problem as the search in an optimization
+space for the economically most sensible solution. The optimization criterion
+we set out to maximize is the ratio of feature code (the actual driver, no DDE
+nor glue) to the number of lines of code that must be manually maintained. To
+give the order of magnitude of the code we speak of, the traditional Linux DDE
+including the support for NIC, USB, and sound is comprised of more than 350.000
+lines of code. The portion of modified or custom written code (code that must
+be manually maintained) is more than 40.000 lines of code. Given this
+complexity, we found us hesitant to update the code to newer kernel versions.
+The engineering labour of such an update is significant yet not much rewarding
+work. Apart from the burden of managing a piece of software that complex, our
+confidence in the classical Linux DDE approach slipped further with each
+debugging session that involved Linux DDE. In our experience, Linux DDE still
+significantly deviates from the semantics of the Linux kernel but in subtle
+ways. Often problems go unnoticed until a driver uses a kernel API in a
+slightly unusual way. For example, a driver calling 'udelay()' from the interrupt
+handler. The sheer complexity of the code base can make localizing such issues
+a painful experience. This is further amplified by the existence of certain
+invariants provided by the Linux kernel but absent in the Linux DDE. One
+particular source of trouble is the control flow in the event of an interrupt.
+In the Linux kernel, the interrupt handler can make the assumption that no code
+of the interrupted CPU can be executed until the interrupt handler returns. In
+contrast, Linux DDE models interrupts as independent threads and assumes that
+all code is multi-processor safe. Consequently the control flows of the driver
+executed in the Linux kernel and the same driver executed in Linux DDE differs
+in subtle ways, leading to the worst of all bugs namely race conditions.
+
+While our focus shifted away from the classical Linux DDE, we discovered the
+beauty of creating extremely tight device driver environments. In contrast to
+the Linux DDE, which tried to be useful for a large range of driver classes on
+the cost of becoming complex, we created new slim DDEs for single drivers or a
+strictly outlined class of drivers. One example is the DDE for iPXE networking
+drivers. The iPXE boot loader covers most of today's commodity network cards.
+The drivers of iPXE are actually Linux drivers adapted to be executed in an
+environment as minimalistic as a boot loader. It turns out that a DDE of less
+than 1.000 lines of code paves the way towards using a rich base of networking
+drivers (more than 100.000 lines of driver code) on Genode. A similarly
+positive experience was made for the Intel GEM driver ported from the Linux
+kernel. The 18.000 lines of driver code require a DDE of less than 3.000 lines
+of code to reuse the driver on Genode.
+
+These success stories motivated us to proceed going into this direction
+when revisiting our USB driver. Our goal was to replace the aging USB driver,
+which was based on the original Linux DDE by a new driver conducted via an
+USB-specific but onion-skin tight DDE. As a general rule, we forbid ourself to
+modify 3rd-party code. To completely remove race conditions from the picture,
+we furthermore decided to run the entire driver stack including the handling
+of client requests with a single physical thread only. This thread manages
+multiple pseudo-thread contexts using cooperative scheduling.
+
+The result is more than convincing for us. With a DDE of less than 4.000 lines
+of code, we have become able to use the unmodified Linux-3.2 USB stack, which
+comprises more than 60.000 lines of code. Only 3 lines had to be modified. In
+contrast to Linux DDE, the 4.000 lines of custom-written DDE code are
+relatively easy to comprehend. For the most of the functions provided by the
+DDE, the implemented semantics is a rigid subset of the original functionality
+as found in the Linux kernel. Apparently the knowledge about the usage patterns
+of the functions in the particular driver allows for vast simplifications.
+Given our self-imposed rule to not modify 3rd-party code, we expect that future
+updates to new Linux kernel versions will pose much less of a burden.
+
+With our current approach of creating rigidly tailored DDEs, we are convinced
+to have found a healthy balance between the manual effort needed to create and
+maintain a base of ported device drivers and the utility those driver provide
+to our system.
+
+
+System reconfiguration at runtime
+#################################
+
+By addressing more and more concerns of general-purpose computing, we are
+forced to push the boundaries of the framework beyond the limited scope of
+special-purpose OSes. The biggest challenge is the accommodation of highly
+dynamic workload. With respect to managing physical resources, the framework
+was designed from the ground up with those requirements in mind. So there is a
+strong basement to build upon. However, another aspect of dynamic systems is
+the adaptation of the behaviour of components at runtime. This aspect used to
+be an underdeveloped spot of the Genode system. With the API improvements of
+the current release, we supplement the existing Genode concepts with profound
+support for dynamic policies.
+
+To give a few examples of such dynamic policies: We expect the audio mixer to
+immediately respond to adjusted volume settings. The calibration of pointer
+devices might be adapted on-the-fly by the user. We want to change the color
+scheme of the GUI without the need to restart the GUI server. Screen
+resolutions or the size of text terminals shouldn't be fixed at the start time
+but changeable. Also policies such as the assignment of devices to subsystems
+are subject to decisions taken at run time rather than at system-integration
+time. Of course, each of those problems could be addressed individually by
+adding dedicated RPC interfaces to components that support run-time
+adjustments. For example, a touchscreen device driver could sport an RPC
+interface for allowing the modification of calibration parameters.
+
+But the information supplied via such configuration interfaces tends to have
+a high overlap with configuration information passed to components via
+Genode's configuration mechanism, which ultimately leads to uncertainty
+about whether to supply such information via the configuration mechanism
+or via RPC. The RPC approach also raises the question of how to initialize
+dynamic configuration arguments such that the component can operate before
+being explicitly configured via RPC. In the best case, a component would
+accept both, a static configuration supplied via the existing configuration
+mechanism and a dynamic configuration interface exposed via RPC. Obviously,
+this spoils the principle of functional orthogonality, making the component
+hard to test and maintain. In the worst case, a component may drop the
+possibility for static configuration altogether and just rely on configuration
+parameters provided via RPC. This way, we introduce a mandatory dependency
+of the component from a corresponding configuration component.
+
+There must be a better solution. Fortunately, there is. The key is to turn the
+once static configuration mechanism into a dynamic facility. The configuration
+mechanism uses the ROM session interface as underlying mechanism. When a
+process requests a ROM module called "config" by opening a ROM session at its
+parent, the parent hands out the configuration data of the respective subsystem
+via a pseudo ROM dataspace. The process can then attach this dataspace to its
+local address space to access the configuration information. This information
+is typically expressed as XML, which makes the mechanism powerful enough to
+handle arbitrarily structured configuration data. Until now, most components
+used to request the 'config' dataspace only once at their start time. Once
+obtained, the policy remained in effect for the whole lifetime of the
+component. We can turn this static mode of operation into a dynamic one by
+letting the component query for a "config" ROM module not only once but
+repeatedly during its lifetime. Each time, the program requests its
+configuration, the parent may hand out a dataspace with updated information.
+The code for parsing the "config" data in the configured component is already
+there. The only change is that the code is executed not once but multiple
+times. Of course, having each component poll for configuration changes at their
+parent at regular intervals won't scale too well. Components should obtain a
+new config dataspace only if there is an actual change. To enable the parent to
+notify the component of such changes, we enhanced the ROM session interface
+with a signalling mechanism. The client (in our case this is the child process)
+can register a signal handler that will get notified each time the ROM module
+changes. On the reception of such a signal, it can re-evaluate the
+configuration information.
+
+Of course, the configuration file handled by the init process remains to be
+static because init is meant to handle the static portions of the system only.
+But dynamic config files can be used in three different ways already: First,
+requests for config files can be routed to arbitrary ROM services instead of
+the immediate parent. The remote ROM service may support the dynamic update of
+ROM modules and provide the signalling. An example for such a dynamic policy
+component can be found at 'os/run/dynamic_config.run'. In structure, this
+scenario corresponds to the approach of having a dedicated policy component
+define the runtime policy of a server. But in contrast to the native approach,
+the 'dynamic_config.run' scenario solves the initialization problem by letting
+the configured component use the policy provider as a service. The second way
+of employing dynamic configurations is to run a service as a child subsystem
+using the 'Slave' API. An example for this scenario is provided by
+'os/run/dynamic_config_slave.run'. The third variety is the use of the loader
+service to instantiate subsystems. The ROM modules of such subsystems can not
+only be defined by the client of the loader but can be updated at any time
+using dynamic ROM sessions. An example for the latter variant can be found at
+'os/run/dynamic_config_loader.run'.
+
+
+Base framework
+##############
+
+Support for dynamic ROM sessions
+================================
+
+As outlined in section [System reconfiguration at runtime], the usefulness of
+the ROM session interface has just taken a giant leap with the introduction of
+the following tiny function:
+
+! void sigh(Signal_context_capability sigh);
+
+This function allows a ROM session client to register for events referring to
+the session's ROM module. At first sight, it might be counter intuitive to
+expect events originating from such sessions because the most prominent
+provider of the ROM service is core, which exports static binary data loaded at
+boot time to higher-level components. Naturally, such boot-time modules never
+change. But ROM sessions are used elsewhere, in particular by parent processes
+for supplying read-only information to child subsystems. For instance, shared
+libraries, executable binaries, and configuration data are passed to child
+subsystems as ROM modules. But in contrast to core's ROM modules, this
+information may be dynamic in nature. For example, the configuration of the
+audio mixer may change at any time during the lifetime of the mixer. Also
+executable binaries may change in the event of system updates. Providing the
+system with the ability to respond to such changes is crucial to the use of
+Genode as general-purpose OS.
+
+For existing users of the ROM session interface, there is nothing to consider.
+API compatibility is maintained. However, by installing a signal handler using
+the 'sigh()' function, the client will receive a notification each time the
+data changes at the server. From the client's perspective, the original data
+contained in the currently used dataspace remains unchanged until the client
+calls 'dataspace()' the next time. This way, the update of the ROM module at
+the client side is transactional. There is no inconsistent intermediate state.
+
+
+Misc
+====
+
+:Support for non-executable memory mappings:
+
+Via the newly added 'executable' flag of 'Rm_session::attach()', clients of the
+RM service become able to express whether they want a mapping to be executable
+or not. This allows dataspaces to be mapped as non-executable by default and as
+executable only if needed.
+
+:Support for process-local pseudo capabilities:
+
+On some platforms, in particular Linux, we used process-local pseudo capabilities
+as helpers to implement the Genode API. In contrast to a normal capability,
+which refers to an object accessible via RPC, a pseudo capability is not
+more than a glorified pointer. The uses of local pseudo capabilities are
+normally constrained to special cases in platform-dependent code. They do not
+exist at API level.
+
+However, our observation of the need for such a utility for platforms other
+than Linux prompted us to generalize the local capabilities. The result has
+been incorporated into the platform-independent 'base' repository as part of
+the 'Native_capability_tpl' interface. At API level, this change is transparent.
+
+
+Low-level OS infrastructure
+###########################
+
+Loader
+======
+
+The original loader service was primarily motivated by the browser-plugin
+scenario presented on our live CD. But since the initial version, we envisioned
+this component to become the generic mechanism of choice for scenarios where
+subsystems are to be created and removed dynamically at runtime. The current
+release introduces a largely revised loader-session interface and a new
+implementation of the loader component. The new version widens the application
+scope of the service and, at the same time, reduces its implementation
+complexity.
+
+The complexity reduction is achieved by removing the original limitation of
+supplying the new sub system as a single binary blob only. The server used to
+implement heuristics and functionality for dealing with different kinds of
+blobs such as ELF images or TAR archives. This has been replaced by a
+session-local ROM service, which can be equipped with an arbitrary number of
+ROM modules supplied by the loader client prior starting the new sub system.
+Even though the TAR support has been removed, a separate instance of the
+'tar_rom' service can be used within the subsystem to provide the formerly
+built-in functionality.
+
+The new loader component is best illustrated by two examples. The traditional
+loader example at 'os/run/loader.run' shows how the loader intercepts the
+nitpicker session of the loaded subsystem. The corresponding source code
+can be found at 'os/src/test/loader/'. The second example at
+'os/run/dynamic_config_loader.run' shows how the concept of dynamic ROM
+sessions can be combined with the loader. As demonstrated by this example,
+ROM images used by the loaded sub system can be updated at runtime by the
+client of the loader session.
+
+
+New file-system infrastructure
+==============================
+
+The current release introduces Genode's file-system session interface, provides
+a first implementation of this interface in the form of an in-memory file
+system, and enables the libc to use the new file-system facility.
+
+The new interface resides in 'os/include/file_system_session/'. It uses
+synchronous RPC calls for functions referring to directory and meta-data
+handling. For transferring payload from/to files, the packet-stream interface
+is used. We envision that the asynchronous design of the packet-stream
+interface fits well with the block-session interface and thereby allows for
+hiding I/O latencies when performing subsequent requests in an asynchronous
+way.
+
+[image file_system_stack]
+
+Compared to Unix-like file-system APIs, Genode's file-system session interface
+is much simpler. In particular, it does not support per-file permissions. On
+Genode, we facilitate binding policy (such as write-permission) as sessions
+rather than individual file objects.
+
+In-memory file system
+~~~~~~~~~~~~~~~~~~~~~
+
+As reference implementation of the new interface, there is the new 'ram_fs'
+service at 'os/src/server/ram_fs'. It stores sparse files in memory. At the
+startup, 'ram_fs' is able to populate the file-system content with directories,
+ROM modules, and inline data as specified in its configuration.
+
+Access to the file system can be tailored for each session depending on the
+session's label. By default, no permissions are granted to any session.
+To selectively permit access to (a part of) the file system, at least one
+policy must be defined.
+
+The following configuration illustrates the way of how to express policy.
+
+! <config>
+!   <!-- preload RAM file system -->
+!   <content>
+!     <dir name="tmp">
+!       <rom name="init" as="blubb" />
+!     </dir>
+!     <dir name="home">
+!       <dir name="user">
+!         <inline name=".vimrc">
+!           set hidden
+!         </inline>
+!       </dir>
+!     </dir>
+!   </content>
+!   <!-- constrain sessions according to their labels -->
+!   <policy label="noux -> root" root="/" />
+!   <policy label="noux -> home" root="/home/user" writeable="yes" />
+!   <policy label="noux -> tmp"  root="/tmp"       writeable="yes" />
+! </config>
+
+The '<content>' sub node of the '<config>' node provides a way to pre-populate
+the file system with directories and files. Note that '<dir>' nodes can be
+arbitrarily nested. Files can be loaded from the ROM service. By adding the
+optional 'at' attribute to a '<rom>' node, the file name can be defined
+independently from the ROM module name. In addition to creating files from
+ROM modules, files can be created from data specified directly as part of the
+configuration using '<inline>' nodes. The content of such nodes is used as
+file content as is.
+
+Session-specific access-control policy is expressed via one or more '<policy>'
+nodes. At session-creation time, each policy node is matched against the label
+of the new session. If the label of a policy node matches, the defined policy
+is applied. If multiple policies match, the one with the longest 'label'
+attribute (the most specific one) is selected.
+
+A policy node may contain the following attributes. The mandatory 'root'
+attribute defines the view port of the session onto the file system. The
+optional 'writeable' attribute grants the permission to modify the file system.
+
+To illustrate the use of the 'ram_fs' component, refer to the
+'libports/run/libc_fs.run' script.
+
+:Limitations:
+
+The current state should be regarded as work in progress. In particular, the
+error handling and the life-time management of file-system nodes will need
+further attention. Functionality-wise, the support for truncating files and
+symbolic-link handling are not yet implemented.
+
+Furthermore, there is much room for optimization, in particular for the
+handling of directory entries. Currently, we communicate only one directory
+entry at a time, which is suboptimal when traversing large trees. However, we
+decided to focus on functionality first and defer optimizations (such as
+batching directory entries) to a later stage of development.
+
+The current implementation does not handle file modification times at all,
+which may be a severe limitation for tools that depend on this information such
+as GNU Make.
+
+
+File-system plugin for the C runtime
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To enable libc-using programs to access the new file-system interface, there is
+the new libc plugin at 'libports/src/lib/libc_fs'. Using this plugin, files
+stored on a native Genode file system can be accessed using the traditional
+POSIX file API.
+
+To see how the three parts described above fit together, the test case at
+'libports/run/libc_fs' can be taken as reference. It reuses the original
+'libc_ffat' test to exercise several file operations on a RAM file-system using
+the libc API.
+
+
+C Runtime
+=========
+
+:POSIX threads and semaphores:
+
+The new 'pthread' library implements a subset of the POSIX thread and semaphore
+API. We plan to extend it as needed. Currently, it is used as support for the
+libSDL-based 'avplay' program.
+
+:Separate setjmp/longjmp into own library:
+
+The setjmp/longjmp facility comes with the libc but it is fairly free-standing
+code, which is useful not only for libc-using programs but also for raw
+Genode components, in particular the new USB stack. Therefore, we separated
+the setjmp/longjmp code into a separate 'libc-setjmp' library. Even though
+the library is prefixed with 'libc' it does not depend on the remaining
+parts of the C runtime.
+
+:Misc:
+
+* Implementation of '_nanosleep()'
+* Let 'mmap()' return aligned anonymous memory
+
+
+Program argument handling
+=========================
+
+The main-function arguments of Genode programs were never used by genuine
+Genode components because the Genode's configuration concept is the most
+adequate and consistent way of passing parameters to components.
+
+But most components ported from other systems and not specifically developed
+for Genode, expect configuration arguments passed via the argc-argv interface.
+One way to reuse such components is to change their way of handling arguments
+by the means of patching 3rd-party source code. In some cases (for example
+for the Vancouver VMM), this is the preferred way because manual adaptation
+work is required anyway.
+
+On the other hand, there are 3rd-party applications that would be nice to
+reuse as is without any manual patching work, for example the libSDL-based
+'avplay' or the muPDF example application. To ease the integration of such
+programs into Genode setups, we added the new 'config_args' library. At the
+startup of the program, this library inspects the config node for arguments and
+fills the argv structure to be passed to the 'main()' function.
+
+The configuration syntax looks as follows:
+
+! <config>
+!   <arg value="...">
+!   <arg value="...">
+!         ...
+! </config>
+
+The 'value' attribute of the first '<arg>' node becomes 'argv[0]' and so on.
+
+
+DDE Kit
+=======
+
+We added the API call 'dde_kit_timer_schedule_absolute' to the DDE Kit
+interface. Traditionally, DDE Kit timers used to be disposed after a single
+use. But we learned that there exist use cases for reusing a single timer
+object for multiple subsequent timeouts. The 'schedule_absolute' function
+accommodates those scenarios.
+
+
+LOG-to-Terminal adapter
+=======================
+
+The new LOG-to-terminal component to be found at 'os/src/server/terminal_log'
+provides the LOG service by writing each LOG-output request prefixed by the
+session-label to a terminal-session. It thereby enables the routing of LOG
+output to different kinds of terminal sessions such as UART drivers, the
+graphical terminal, or the TCP terminal. The 'gems/run/terminal_log.run'
+script demonstrates the usage of the new component.
+
+
+Optimized blitting on ARM platforms
+===================================
+
+The blitting library employed by nitpicker and other GUI applications used to
+come in the form of two implementations. The generic version implemented the
+copying operation via Genode's 'memcpy' function, which conducts a simple
+byte-wise copy at relatively poor performance. In practice, the generic fall
+back was expected to not being used much as there is an assembly-optimized
+implementation for x86 machines. Because there wasn't an ARM-specific
+implementation available yet, ARM platforms suffered under the poor performance
+of the generic fall-back implementation. To bring the blitting up to speed on
+such platforms, we supplemented the blitting library with an ARM-specific
+optimized version.
+
+
+Libraries and applications
+##########################
+
+New and updated libraries
+=========================
+
+:Qoost:
+
+Qoost is a small library developed by Genode Labs for making the development
+of Qt4-based applications, in particular applications using QWidgets, more
+enjoyable. The library is currently used by the new Qt4-based video player
+example at 'qt4/src/app/qt_avplay'.
+
+:Update of zlib to version 1.2.7:
+
+Zlib as been updated because the previous version mysteriously disappeared
+from the official zlib mirrors.
+
+:Video codecs via libav:
+
+The [http://libav.org - libav project] is one successor of the popular
+[http://ffmpeg.org/ - FFmpeg] library, which is a comprehensive solution
+for video and audio decoding, conversion, and streaming. The version
+0.8.2 of libav has been incorporated into the libports repository.
+
+
+Lua for script-based testing
+============================
+
+The current release of Genode includes initial support for the Lua programming
+language, a clean scripting language with excellent portability capabilities -
+just ANSI C. Lua comes with a tiny runtime implementation, which recommends it
+as base for test scripting or rapid prototyping in Genode.
+
+Currently, the Lua libraries are accompanied by a small test program
+'test-moon', which utilizes the C++ variant of the Lua runtime. The test shows
+an exemplary integration of Genode interfaces to print the RAM quota and sleep
+for several seconds. The simplicity of the application shows the potential of
+this approach.
+
+In the future, essential Genode interfaces could be made available to Lua
+scripts as libraries or classes and 'test-moon' could be extended to a
+versatile test tool, which loads and runs test scripts configured with
+Genode's config mechanism. Test results can be aggregated, printed, and
+analyzed at runtime by scripts.
+
+:[http://lua.org/]: Lua programming language
+
+
+libSDL
+======
+
+Motivated by our work on media replay capabilities, we enhanced the port
+of libSDL with support for timer, thread, and audio-related functions.
+
+:SDL timer support:
+
+Basic support for SDL timers and delay functions has been added.
+
+:SDL thread support:
+
+Thanks to the minimal support for pthreads added by the means of the new
+'pthread' library, we are able to activate the SDL thread API. The most common
+threading and synchronization primitives work but not all features are
+supported. We will complement the coverage of support as needed.
+
+:SDL audio support:
+
+The new libSDL audio backend enables the use of Genode's audio-session
+interface from SDL applications. This way, SDL programs can be combined
+with audio drivers as well as with the mixer component.
+
+The audio volume (in percent) can be configured in the config file of the
+SDL application:
+
+! <config>
+!   <sdl_audio_volume value="100"/>
+! </config>
+
+Note that the SDL audio backend does respond to configuration changes at
+run time. By supplying the config dynamically rather than via a static
+file, the audio volume may get updated while the SDL application is running.
+
+
+GDB monitor
+===========
+
+We refined the GDB monitor to facilitate its use for debugging ever more
+sophisticated scenarios.
+
+One of those scenarios is executing the Noux environment within GDB. To execute
+a meaningful Noux scenario, we need a way to pass configuration data through
+the GDB monitor to the debugging target. This feature has been implemented by
+adding a new '<config>' subnode to the '<target>' node at the GDB monitor
+configuration.
+
+Furthermore, we discovered a limitation of the built-in memory-preservation
+policy of the GDB monitor. In general, GDB monitor passes all RAM quota to the
+debugging target, leaving only a hard-coded quantum of resources for itself.
+However, the amount of RAM actually required by the monitor depends on the
+behaviour of the debugging target. Each time, the target requests a ROM module,
+GDB monitor creates a shadow copy of the ROM module in order to be able to
+modify its content. Of course, the shadow copies consume memory, for which GDB
+monitor is accounted for. No hard-coded RAM-preservation policy will be able to
+cover all usage scenarios. Therefore, we decided to let the user express this
+policy explicitly via the GDB monitor configuration. The amount of RAM that GDB
+monitor should preserve for itself must be provided via the new 'resource' node
+of the GDB monitor configuration. For example,
+
+! <start name="gdb_monitor">
+!   <resource name="RAM" quantum="1G"/>
+!   <config>
+!      <target name="noux">
+!      <preserve name="RAM" quantum="2M"/>
+!      ...
+!   </config>
+! </start>
+
+
+Media player based on libav
+===========================
+
+The current release features the initial version of a natively running media
+player. It consists of the following pieces.
+
+:libav: is a framework library for decoding, converting and streaming audio
+  and video data. The libav library has been incorporated into the 'libports'
+  repository.
+
+:avplay: is an example application, which showcases the use of libav
+  using libSDL to integrate with a host OS. Thanks to our port of libSDL
+  to Genode, we are able to use the 'avplay' application without modification.
+  When used on Genode, 'avplay' uses a framebuffer session, an input session, a
+  timer session, and an audio-out session as back ends. Thereby we are able to
+  integrate 'avplay' seamlessly with existing components that provide these
+  interfaces, in particular the audio mixer, framebuffer and input drivers, but
+  also the nitpicker GUI server.
+
+:qt_avplay: is a Qt4 frontend to 'avplay'. It spawns an instance of 'avplay'
+  as a slave process.
+
+[image media_player]
+  The unmodified 'avplay' embedded in Qt4-based GUI.
+  The media file was downloaded from
+  http://www.youtube.com/watch?v=CbtAP3kUCxs.
+
+The latter part is particularly interesting because it makes creative use of
+Genode's unique service virtualization facilities. The 'qt_avplay' program
+(GUI) starts 'avplay' (aka the codec) as a separate child process. When
+started, the codec requests a framebuffer session from the GUI. The GUI, in
+turn, creates a separate session to the nitpicker GUI server specifically for
+displaying the codec's output on screen and hands out the buffer returned by
+nitpicker to the codec. However, the GUI retains the privilege to control the
+way how the buffer is displayed on screen. By using the 'QNitpickerViewWidget',
+the GUI is thereby able to embed the codec's view seamlessly into the Qt4 GUI
+as a widget. But both the GUI and the codec have completely independent data
+paths to the GUI server. So the operation of the codec does not depend on
+proper and timely operation of the GUI. Vice versa, the GUI process cannot be
+compromised by the codec because the codec is sandboxed in a separate process.
+The GUI interacts with the codec by virtualizing the input session interface
+used by the codec. I.e., when the user clicks on the play or pause button, the
+GUI submits artificial keyboard events with key codes interpreted by the
+'avplay' program.
+
+Besides the separation of the codec from the GUI, the 'qt_avplay' example is
+interesting because it makes use of Genode's new dynamic configuration
+facility. The SDL audio backend used by the codec repeatedly evaluates its
+configuration during runtime. This configuration includes a volume prescale
+factor. Via the dynamic configuration mechanism, the parent (the GUI) is able
+to update the value of the volume prescale factor at any time and thereby
+influence the behaviour of the codec.
+
+[image media_effects]
+
+Furthermore, the concept of running 'avplay' as a slave of the GUI clears the
+way to even more sophisticated features such as the transparent addition of
+video post-processing steps in the form of individual components. Instead of
+connecting the codec directly with the nitpicker session, the GUI may decide to
+route the framebuffer-session request to another slave (aka "effect plugin").
+The effect plugin is a component that requests a framebuffer session at its
+parent (the GUI) in order to provide a framebuffer service itself (to the GUI).
+Each time, its client invokes the 'refresh()' function, the effect plugin
+transforms pixels targeting its own framebuffer session. By routing the
+framebuffer session between the codec, one or more instances of effect plugins,
+and the nitpicker GUI server, any number of effect plugins can be chained
+together to form a pipe of video-processing components. All this flexibility
+comes with no addition to the Genode API. It is merely the result of composing
+plain Genode components.
+
+
+Terminal
+========
+
+Our custom terminal emulator that is hosted within the 'gems' repository has
+been enhanced to support tab characters as well as the escape sequences needed
+to use 'ls --color=auto'.
+
+
+Device drivers
+##############
+
+USB
+===
+
+The new 'dde_linux' repository will host device drivers ported from the Linux
+kernel. In contrast to the original 'linux_drivers' repository, 'dde_linux'
+does not contain any 3rd-party source code. To download the Linux kernel source
+code and extract the drivers, execute the 'make prepare' rule of the top-level
+Makefile. The initial version of the 'dde_linux' repository comes with a USB
+driver. The porting methodology follows the path of the Intel GEM port. Instead
+of attempting to provide a generic Linux environment that works across drivers,
+each driver comes with a specially tailored DDE.
+
+The DDE consists of Genode-specific implementations of Linux API functions as
+declared in 'lx_emul.h'. Most of these functions are dummies that must merely
+be provided to resolve dependencies at the linking stage. They are called by
+unused code-paths.
+
+As of now, the USB driver supports UHCI and EHCI on the x86_32 platform. It
+exposes USB HID devices and USB storage devices via Genode's input-session
+and block-session respectively.
+
+The HID driver supports keyboard and mouse. A run script can be found under
+'dde_linux/run/usb_hid.run'. Configuration snippet:
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="3M"/>
+!  <provides><service name="Input"/></provides>
+!  <config>
+!    <hid/>
+!  </config>
+!</start>
+
+Note that we observed that certain 1.0 versions of Qemu do not generate mouse
+interrupts. The mouse driver should work correctly on Qemu 1.0.93 and above.
+
+The USB storage driver supports one USB storage device. Hot plugging has not
+been tested. A run script can be found under 'dde_linux/run/usb_storage.run'.
+Configuration snippet:
+
+!<start name="usb_drv">
+!  <resource name="RAM" quantum="2M"/>
+!  <provides> <service name="Block"/> </provides>
+!  <config><storage /></config>
+!</start>
+
+
+Noux
+####
+
+Running GCC, binutils, coreutils natively on Genode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We introduced support for stacked file systems alongside new glue for accessing
+file-system implementations provided via Genode's new file-system-session
+interface. Using stacked file systems, an arbitrary number of file systems
+(such as TAR archives or file systems implemented as separate Genode
+components) can be composed to form one merged virtual file system.
+
+An example is given via the 'ports/run/noux_bash.run' script. This run script
+creates a virtual file system out of multiple TAR archives each containing the
+content of a particular GNU package. In addition, one 'ram_fs' is mounted,
+which enables Noux to perform write operations. This way, the shell output can
+be redirected to a file, or files can be saved in VIM.
+
+With the implementation of stacked file systems and the writeable RAM file
+system in place, we are ready to greatly extend the range of GNU packages that
+run (almost) unmodified on Genode. For us, the most important achievement is
+the new ability to run binutils, the GNU compiler collection, and GNU Make. To
+see Noux executing 'gcc' and 'readelf', please give the
+'ports/run/noux_tool_chain.run' script a try.
+
+Executing binutils and GCC has been successfully tested on OKL4, L4/Fiasco,
+and L4ka::Pistachio. Fiasco.OC, NOVA, Linux, and Codezero are not yet
+supported.
+
+
+Networking support
+~~~~~~~~~~~~~~~~~~
+
+We desire to use a wide range of Unix networking tools such as wget, lynx, ssh,
+netcat on Genode. For this reason, the second focus of our Noux-related
+developments is the added support for networking. The Noux syscall interface
+has been extended with system calls for 'socket', 'getsockopt', 'setsockopt',
+'accept', 'bind', 'getpeername', 'listen', 'send', 'sendto', 'recv',
+'shutdown', 'connect', and 'getaddrinfo'. Within Noux, those system calls
+are translated to calls to the libc and the libc-lwip plugin. This design
+principally enables us to easily replace the TCP/IP stack in the future if
+needed.
+
+To experiment with the new networking support of Noux, you may use the
+'ports/run/noux_net_netcat.run' as a good starting point. The test communicates
+a message between two instances of netcat one running on the host system and
+one running within the Noux runtime in qemu.
+
+
+Platform support
+################
+
+Fiasco.OC microkernel
+=====================
+
+Releasing kernel resources
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By now, the Fiasco.OC base platform was still lacking proper handling of
+kernel resources especially the tracking and releasing of capability selectors.
+With release 12.02 we introduced a capability map for Fiasco.OC to circumvent
+the usage of more than one kernel-selector for the same capability (please,
+refer to the release notes 12.02 for further details).
+With the current release we turned the capability class of the Fiasco.OC base
+platform into a smart-pointer-like object which releases the corresponding entry
+from the capability map whenever it detects that a capability gets unused.
+Thereby leaking of kernel resources in terms of capability selectors gets
+eliminated.
+
+While reworking the capability handling of the Fiasco.OC base platform the
+following problems were solved:
+
+* A patch for the 'l4_task_cap_equal' syscall in Fiasco.OC was added, that
+  fixes some false positives, meaning: when comparing two capability selectors
+  that referenced the same kernel object including the same, rights false
+  was returned.
+* There existed a race-condition when inserting a new capability into the
+  capability map
+* Due to the re-usage of capability ids it was possible that a newly received
+  capability was exceptionally freed when actually an old entry should be
+  removed from the capability map
+* At some points in the generic code base capabilities were copied in a way
+  that circumvented tracking by overloading assignment operators respectively
+  copy constructors effectively breaking the smart pointer semantic
+
+Basic PandaBoard support
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the current release we introduce basic support to build Genode/Fiasco.OC
+for the popular PandaBoard OMAP4 platform. Although most needed drivers are
+still lacking, it is at least possible to see core, init, and other
+applications via serial line running on the PandaBoard.
+
+Kernel debugger
+~~~~~~~~~~~~~~~
+
+The Fiasco.OC kernel debugger's object name buffer was too limited for most
+Genode scenarios incorporating more than just a handful of threads. That
+complicated debugging sometimes. An additional kernel patch extends the name
+buffer.
+
+Linux
+=====
+
+Using the chroot mechanism
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When used as component framework on Linux, Genode tries to preserve as many
+native Linux features as possible. In some instances, those features go
+surprisingly well with Genode. One particular feature is Linux' 'chroot'
+mechanism, which is a popular way to execute Linux processes in a jailed
+environment. When using Genode, the reliance on a file system is naturally
+reduced to a minimum because the framework comes with abstractions vastly
+different from a classical file system, namely capability-based naming of
+resources. Still, the file system is there and can be exploited. In theory,
+segregating different parts of Genode into different 'chroot' environments can
+improve the situation. In practice, the use of such platform-specific solutions
+raises the question of how to integrate the solution in way that is coherent
+with the rest of the framework.
+
+The new chroot component at 'os/src/app/chroot' makes the use of the chroot
+mechanism within Genode scenarios an almost seamless experience. The component
+behaves identical to Genode's init process except for the fact that its
+subsystem is constrained to a configurable chroot path. The chroot path is
+specified using a '<root>' node of the chroot configuration:
+
+! <root path="chroot_path" />
+
+The remaining part of the configuration is identical to the configuration of
+init. In fact, under the hood, the chroot component is barely more than a
+trampoline mechanism for spawning the actual init binary after taking all
+precautions needed to setup the chroot environment.
+
+To see how to deploy the new facility, please refer to the run script at
+'os/run/chroot.run'. The run script uses POSIX file capabilities to allow the
+use of the 'chroot' component under the account of a normal user. However, for
+granting the needed capabilities, the run script will ask for root permission.
+
+
+Non-executable mappings
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Up to now, the Genode API provided no way to devise the use of non-executable
+memory mappings. There is only the distinction between read-only and
+read-writable dataspaces. This limitation becomes a severe limitation when
+combining Genode with PaX. This prompted us to introduce the executable flag
+to the 'Rm_session::attach()' function using non-executable as the default. So
+far, Linux is the only platform that evaluates this flag. Only if set, the
+'mmap' syscall will enable 'MAP_EXECUTABLE'. This is actually a rare exception.
+The flag is set by the dynamic linker only. For hybrid Linux/Genode programs
+(that do use the Linux 'ld-linux.so' instead of Genode's dynamic linker) the
+executable flag is never set.
+
+
+OKL4
+====
+
+The hard-coded dependency on a '/usr/bin/python2' binary spawned a bit of
+confusion (or at least an inconvenience) among Genode users. So we introduced
+simple heuristics for determining the actually installed python-2 version
+during the 'make prepare' procedure and use the best match.
+
+
+Build system and tools
+######################
+
+:Support proper shadowing of target.mk files:
+
+The build system overlays multiple source trees (repositories) such that they
+can shadow libraries and include search paths. We have extended the shadowing
+concept to build targets. Furthermore, the change of the build system
+streamlines the build stage for generating library dependencies, reducing the
+processing time of this stage by 10-20 percent.
+
+:Explicitly use qemu-system-i386 rather than qemu:
+
+Up to now, the run tool used the plain 'qemu' binary for all (non-Linux)
+x86_32 platforms and resorted to 'qemu-system-*' variants for x86_64 and
+ARM platforms. To remove this inconsistency, the run tool has been changed
+to always use the specific 'qemu-system-*' binary.
+
