@@ -2,12 +2,19 @@ Index: kernel/fiasco/src/kern/task.cpp
 ===================================================================
 --- kernel/fiasco/src/kern/task.cpp	(revision 38)
 +++ kernel/fiasco/src/kern/task.cpp	(working copy)
-@@ -511,7 +511,7 @@
-   Obj_space::Capability c_a = obj_space()->lookup(obj_a.cap());
-   Obj_space::Capability c_b = obj_space()->lookup(obj_b.cap());
+@@ -508,10 +508,12 @@
+   if (obj_a.special() || obj_b.special())
+     return commit_result(obj_a.special_cap() == obj_b.special_cap());
+ 
+-  Obj_space::Capability c_a = obj_space()->lookup(obj_a.cap());
+-  Obj_space::Capability c_b = obj_space()->lookup(obj_b.cap());
++  Kobject_iface* ki_a = obj_space()->lookup(obj_a.cap()).obj();
++  Kobject_iface* ki_b = obj_space()->lookup(obj_b.cap()).obj();
++  Address a_a = ki_a ? ki_a->kobject_start_addr() : 0;
++  Address a_b = ki_b ? ki_b->kobject_start_addr() : 0;
  
 -  return commit_result(c_a == c_b);
-+  return commit_result(c_a.obj()->kobject_start_addr() == c_b.obj()->kobject_start_addr());
++  return commit_result(a_a == a_b);
  }
  
  PRIVATE inline NOEXPORT
