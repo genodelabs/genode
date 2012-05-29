@@ -62,13 +62,7 @@ void Thread_base::start()
 		l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 		/* there might be leaks in the application */
-		Cap_index *idx = cap_map()->find(state.id);
-		if (idx) {
-			idx->inc();
-			PWRN("leaking capability idx=%p id=%x ref_cnt=%d",
-			     idx, idx->id(), idx->dec());
-			cap_map()->remove(idx);
-		}
+		cap_map()->remove(cap_map()->find(state.id));
 
 		/* we need to manually increase the reference counter here */
 		cap_map()->insert(state.id, state.kcap)->inc();

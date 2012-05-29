@@ -59,8 +59,10 @@ void Pager_activation_base::entry()
 		Pager_object *obj = _ep->obj_by_id(pager.badge());
 
 		/* the pager_object might be destroyed, while we got the message */
-		if (!obj)
+		if (!obj) {
+			PWRN("No pager object found!");
 			continue;
+		}
 
 		switch (pager.msg_type()) {
 

@@ -16,6 +16,13 @@
 #include <base/cap_map.h>
 #include <base/native_types.h>
 
+#include <util/assert.h>
+
+namespace Fiasco {
+#include <l4/sys/consts.h>
+#include <l4/sys/task.h>
+}
+
 
 /***********************
  **  Cap_index class  **
@@ -62,6 +69,9 @@ Genode::Cap_index* Genode::Capability_map::insert(int id)
 
 	Lock_guard<Spin_lock> guard(_lock);
 
+	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
+	       "Double insertion in cap_map()!");
+
 	Cap_index *i = cap_idx_alloc()->alloc(1);
 	if (i) {
 		i->id(id);
@@ -77,11 +87,58 @@ Genode::Cap_index* Genode::Capability_map::insert(int id, addr_t kcap)
 
 	Lock_guard<Spin_lock> guard(_lock);
 
+	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
+	       "Double insertion in cap_map()!");
+
 	Cap_index *i = cap_idx_alloc()->alloc(kcap, 1);
 	if (i) {
 		i->id(id);
 		_tree.insert(i);
 	}
+	return i;
+}
+
+
+Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
+{
+	using namespace Genode;
+	using namespace Fiasco;
+
+	Lock_guard<Spin_lock> guard(_lock);
+
+	Cap_index* i = 0;
+
+	/* check whether capability id exists */
+	if (_tree.first())
+		i = _tree.first()->find_by_id(id);
+
+	/* if we own the capability already check whether it's the same */
+	if (i) {
+		l4_msgtag_t tag = l4_task_cap_equal(L4_BASE_TASK_CAP, i->kcap(), kcap);
+		if (!l4_msgtag_label(tag)) {
+			/*
+			 * they aren't equal, possibly an already revoked cap,
+			 * otherwise it's a fake capability and we return an invalid one
+			 */
+			tag = l4_task_cap_valid(L4_BASE_TASK_CAP, i->kcap());
+			if (l4_msgtag_label(tag))
+				return 0;
+		} else
+			/* they are equal so just return the one in the map */
+			return i;
+	} else {
+		/* the capability doesn't exists in the map so allocate a new one */
+		i = cap_idx_alloc()->alloc(1);
+		if (!i)
+			return 0;
+		i->id(id);
+		_tree.insert(i);
+	}
+
+	/* map the given cap to our registry entry */
+	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
+				l4_obj_fpage(kcap, 0, L4_FPAGE_RWX),
+				i->kcap() | L4_ITEM_MAP | L4_MAP_ITEM_GRANT);
 	return i;
 }
 
@@ -93,12 +150,10 @@ void Genode::Capability_map::remove(Genode::Cap_index* i)
 	Lock_guard<Spin_lock> guard(_lock);
 
 	if (i) {
-		if (_tree.first())
-			i = _tree.first()->find_by_id(i->id());
-		if (i) {
+		Cap_index* e = _tree.first() ? _tree.first()->find_by_id(i->id()) : 0;
+		if (e == i)
 			_tree.remove(i);
-			cap_idx_alloc()->free(i, 1);
-		}
+		cap_idx_alloc()->free(i, 1);
 	}
 }
 

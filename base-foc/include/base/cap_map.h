@@ -238,6 +238,20 @@ namespace Genode
 			Cap_index* insert(int id, addr_t kcap);
 
 			/**
+			 * Create and insert a new Cap_index with a specific capability id
+			 * and map from given kcap to newly allocated one
+			 *
+			 * Allocation of the Cap_index is done via the global
+			 * Cap_index_allocator, which might throw exceptions that aren't
+			 * caught by this method
+			 *
+			 * \param  id the global capability id
+			 * \return    pointer to the new Cap_index object, or zero
+			 *            when allocation failed
+			 */
+			Cap_index* insert_map(int id, addr_t kcap);
+
+			/**
 			 * Remove a Cap_index object
 			 *
 			 * \param i pointer to Cap_index object to remove

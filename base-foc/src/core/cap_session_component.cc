@@ -30,6 +30,8 @@ namespace Fiasco {
 #include <l4/sys/types.h>
 }
 
+#include <util/assert.h>
+
 using namespace Genode;
 
 /***************************
@@ -72,6 +74,9 @@ void Cap_mapping::map(Native_thread_id task)
 void Cap_mapping::unmap()
 {
 	using namespace Fiasco;
+
+	if (!local)
+		return;
 
 	l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
 	                                l4_obj_fpage(local->kcap(), 0, L4_FPAGE_RWX),
@@ -125,11 +130,21 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 
 		Core_cap_index* ref = static_cast<Core_cap_index*>(ep.idx());
 
+		ASSERT(ref && ref->pt(), "No valid platform_thread");
+		ASSERT(ref->pt()->thread().local, "No valid platform_thread cap set");
+
 		/*
 		 * Allocate new id, and ipc-gate and set id as gate-label
 		 */
 		unsigned long id = platform_specific()->cap_id_alloc()->alloc();
 		Core_cap_index* idx = static_cast<Core_cap_index*>(cap_map()->insert(id));
+
+		if (!idx) {
+			PWRN("Out of capabilities!");
+			platform_specific()->cap_id_alloc()->free(id);
+			return cap;
+		}
+
 		l4_msgtag_t tag = l4_factory_create_gate(L4_BASE_FACTORY_CAP,
 		                                         idx->kcap(),
 		                                         ref->pt()->thread().local->kcap(), id);
