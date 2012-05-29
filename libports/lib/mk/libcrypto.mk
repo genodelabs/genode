@@ -201,12 +201,16 @@ ifeq ($(filter-out $(SPECS),x86_32),)
 TARGET_CPUARCH=x86_32
 else ifeq ($(filter-out $(SPECS),x86_64),)
 TARGET_CPUARCH=x86_64
+
+SRC_S += modexp512.s
+SRC_S += rc4_md5.s
 endif
 
 INC_DIR += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
 
 #SRC_S += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/aes_enc.s
 SRC_S += cpuid.s
+
 
 #
 # Generate buildinf.h

@@ -29,7 +29,8 @@ $(CONTRIB_DIR)/$(OPENSSL): $(DOWNLOAD_DIR)/$(OPENSSL_TGZ)
 #
 
 generate_asm: $(OPENSSL_SRC)/x86_32/cpuid.s $(OPENSSL_SRC)/x86_64/cpuid.s \
-	      $(OPENSSL_SRC)/x86_32/aes_enc.s $(OPENSSL_SRC)/x86_64/aes_enc.s
+	      $(OPENSSL_SRC)/x86_32/aes_enc.s $(OPENSSL_SRC)/x86_64/aes_enc.s \
+	      $(OPENSSL_SRC)/x86_64/modexp512.s $(OPENSSL_SRC)/x86_64/rc4_md5.s
 
 $(OPENSSL_SRC)/x86_32/cpuid.s:
 	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/x86cpuid.pl elf \
@@ -46,6 +47,14 @@ $(OPENSSL_SRC)/x86_32/aes_enc.s:
 $(OPENSSL_SRC)/x86_64/aes_enc.s:
 	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/aes/asm/aes-x86_64.pl elf \
 		$(CONTRIB_DIR)/$(OPENSSEL)/crypto/perlasm/x86asm.pl elf > $@
+
+$(OPENSSL_SRC)/x86_64/modexp512.s:
+	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/bn/asm/modexp512-x86_64.pl \
+		$(CONTRIB_DIR)/$(OPENSSL_DIR)/crypto/perlasm/x86as.pl > $@
+
+$(OPENSSL_SRC)/x86_64/rc4_md5.s:
+	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/rc4/asm/rc4-md5-x86_64.pl \
+		$(CONTRIB_DIR)/$(OPENSSL_DIR)/crypto/perlasm/x86as.pl > $@
 
 
 #
