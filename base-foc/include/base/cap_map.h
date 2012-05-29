@@ -64,8 +64,8 @@ namespace Genode
 			bool     used()  const   { return _id != UNUSED;     }
 			uint16_t id()    const   { return _id;               }
 			void     id(uint16_t id) { _id = id;                 }
-			uint8_t  inc()           { return ++_ref_cnt;        }
-			uint8_t  dec()           { return --_ref_cnt;        }
+			uint8_t  inc();
+			uint8_t  dec();
 			addr_t   kcap();
 
 			void* operator new    (size_t size, Cap_index* idx) { return idx; }

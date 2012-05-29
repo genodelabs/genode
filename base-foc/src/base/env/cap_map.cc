@@ -18,6 +18,9 @@
 
 #include <util/assert.h>
 
+/* Lock implementation local include */
+#include <spin_lock.h>
+
 namespace Fiasco {
 #include <l4/sys/consts.h>
 #include <l4/sys/task.h>
@@ -27,6 +30,9 @@ namespace Fiasco {
 /***********************
  **  Cap_index class  **
  ***********************/
+
+static volatile int _cap_index_spinlock = SPINLOCK_UNLOCKED;
+
 
 bool Genode::Cap_index::higher(Genode::Cap_index *n) { return n->_id > _id; }
 
@@ -44,6 +50,24 @@ Genode::Cap_index* Genode::Cap_index::find_by_id(Genode::uint16_t id)
 
 Genode::addr_t Genode::Cap_index::kcap() {
 	return cap_idx_alloc()->idx_to_kcap(this); }
+
+
+Genode::uint8_t Genode::Cap_index::inc()
+{
+	spinlock_lock(&_cap_index_spinlock);
+	Genode::uint8_t ret = ++_ref_cnt;
+	spinlock_unlock(&_cap_index_spinlock);
+	return ret;
+}
+
+
+Genode::uint8_t Genode::Cap_index::dec()
+{
+	spinlock_lock(&_cap_index_spinlock);
+	Genode::uint8_t ret = --_ref_cnt;
+	spinlock_unlock(&_cap_index_spinlock);
+	return ret;
+}
 
 
 /****************************
