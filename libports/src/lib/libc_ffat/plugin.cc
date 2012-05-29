@@ -322,24 +322,20 @@ class Plugin : public Libc::Plugin
 			FILINFO ffat_file_info;
 			FRESULT res;
 
-			const unsigned int index = *basep / sizeof(struct dirent);
-			f_readdir(_get_ffat_dir(fd), 0);
-			for (unsigned int i = 0; i <= index; i++) {
-				res = f_readdir(_get_ffat_dir(fd), &ffat_file_info);
-				switch(res) {
-					case FR_OK:
-						break;
-					case FR_DISK_ERR:
-					case FR_INT_ERR:
-					case FR_NOT_READY:
-					case FR_INVALID_OBJECT:
-						errno = EIO;
-						return -1;
-					default:
-						/* not supposed to occur according to the libffat documentation */
-						PERR("f_readdir() returned an unexpected error code");
-						return -1;
-				}
+			res = f_readdir(_get_ffat_dir(fd), &ffat_file_info);
+			switch(res) {
+				case FR_OK:
+					break;
+				case FR_DISK_ERR:
+				case FR_INT_ERR:
+				case FR_NOT_READY:
+				case FR_INVALID_OBJECT:
+					errno = EIO;
+					return -1;
+				default:
+					/* not supposed to occur according to the libffat documentation */
+					PERR("f_readdir() returned an unexpected error code");
+					return -1;
 			}
 
 			if (ffat_file_info.fname[0] == 0) { /* no (more) entries */
@@ -359,7 +355,7 @@ class Plugin : public Libc::Plugin
 			dirent->d_reclen = sizeof(struct dirent);
 
 			::strncpy(dirent->d_name, ffat_file_info.fname,
-					  sizeof(dirent->d_name));
+			          sizeof(dirent->d_name));
 
 			dirent->d_namlen = ::strlen(dirent->d_name);
 
