@@ -91,18 +91,18 @@ Milestones
   * Offline Unix tools (vim, shell, tool chain)
   * PDF viewer
 
-:March - Live CD 12.03:
-  * Presenting usage scenarios of Genode as development platform
-
 :May - Release 12.05:
   * Revisiting the support for Linux drivers (USB, sound)
   * Network-based Unix tools (e.g., ssh, Git, rsync), IM client
-  * Persistent file system
+  * Media player
+
+:July - Live CD 12.03:
+  * Presenting usage scenarios of Genode as development platform
 
 :August - Release 12.08:
   * Tiled window manager and user-interface concept
   * Intel wireless driver
-  * Media player
+  * Persistent file system
   * Hosting genode.org website on Genode
   * Multi-processor support on NOVA, Pistachio, and Fiasco.OC
 
