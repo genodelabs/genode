@@ -47,7 +47,7 @@ int main(int, char **)
 	/* define initial config for slave */
 	slave_policy.configure("<config><counter>-1</counter></config>");
 
-	static Genode::Slave slave(ep, slave_policy, 512*1024);
+	static Genode::Slave slave(ep, slave_policy, 768*1024);
 
 	/* update slave config at regular intervals */
 	int counter = 0;

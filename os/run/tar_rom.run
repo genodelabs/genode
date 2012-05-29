@@ -37,7 +37,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="tar_rom">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="5M"/>
 		<provides><service name="ROM"/></provides>
 		<config>
 			<archive name="archive.tar"/>
