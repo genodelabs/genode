@@ -62,9 +62,8 @@ former one naturally builds upon the just recently added file-system interface.
 Furthermore, we decided to defer the live CD until July as we realized that we
 first need to overhaul low-level components such as USB before the new live
 system can be expected to work as intended. Also, some of the scenarios we want
-to present depend on framework features that are just introduced with the
-current release, in particular the file-system infrastructure and the media
-capabilities.
+to present depend on framework features just introduced with the current release,
+in particular the file-system infrastructure and the media capabilities.
 
 
 Re-approaching the Linux device-driver environment
@@ -148,34 +147,34 @@ is that finding the right mix of reimplementation, slight modification, and
 reuse is a matter of sure instinct of the DDE developer.
 
 Another way to put it is defining the problem as the search in an optimization
-space for the economically most sensible solution. The optimization criterion
-we set out to maximize is the ratio of feature code (the actual driver, no DDE
-nor glue) to the number of lines of code that must be manually maintained. To
-give the order of magnitude of the code we speak of, the traditional Linux DDE
+space for the economically most sensible solution. The optimization criterion we
+set out to maximize is the ratio of feature code (the actual driver, no DDE nor
+glue) to the number of lines of code that must be manually maintained. To give
+the order of magnitude of the code we speak of, the traditional Linux DDE
 including the support for NIC, USB, and sound is comprised of more than 350.000
-lines of code. The portion of modified or custom written code (code that must
-be manually maintained) is more than 40.000 lines of code. Given this
-complexity, we found us hesitant to update the code to newer kernel versions.
-The engineering labour of such an update is significant yet not much rewarding
+lines of code. The portion of modified or custom written code (code that must be
+manually maintained) is more than 40.000 lines of code. Given this complexity,
+we found us hesitant to update the code to newer kernel versions.  The
+engineering labour of such an update is significant yet not much of a rewarding
 work. Apart from the burden of managing a piece of software that complex, our
 confidence in the classical Linux DDE approach slipped further with each
 debugging session that involved Linux DDE. In our experience, Linux DDE still
 significantly deviates from the semantics of the Linux kernel but in subtle
 ways. Often problems go unnoticed until a driver uses a kernel API in a
 slightly unusual way. For example, a driver calling 'udelay()' from the interrupt
-handler. The sheer complexity of the code base can make localizing such issues
+handler. The sheer complexity of the code base can make tracking down such issues
 a painful experience. This is further amplified by the existence of certain
 invariants provided by the Linux kernel but absent in the Linux DDE. One
 particular source of trouble is the control flow in the event of an interrupt.
-In the Linux kernel, the interrupt handler can make the assumption that no code
-of the interrupted CPU can be executed until the interrupt handler returns. In
-contrast, Linux DDE models interrupts as independent threads and assumes that
+Within the Linux kernel, the interrupt handler can make the assumption that no
+code of the interrupted CPU can be executed until the interrupt handler returns.
+In contrast, Linux DDE models interrupts as independent threads and assumes that
 all code is multi-processor safe. Consequently the control flows of the driver
 executed in the Linux kernel and the same driver executed in Linux DDE differs
 in subtle ways, leading to the worst of all bugs namely race conditions.
 
 While our focus shifted away from the classical Linux DDE, we discovered the
-beauty of creating extremely tight device driver environments. In contrast to
+beauty of creating extremely tight device-driver environments. In contrast to
 the Linux DDE, which tried to be useful for a large range of driver classes on
 the cost of becoming complex, we created new slim DDEs for single drivers or a
 strictly outlined class of drivers. One example is the DDE for iPXE networking
@@ -200,13 +199,13 @@ multiple pseudo-thread contexts using cooperative scheduling.
 The result is more than convincing for us. With a DDE of less than 4.000 lines
 of code, we have become able to use the unmodified Linux-3.2 USB stack, which
 comprises more than 60.000 lines of code. Only 3 lines had to be modified. In
-contrast to Linux DDE, the 4.000 lines of custom-written DDE code are
-relatively easy to comprehend. For the most of the functions provided by the
-DDE, the implemented semantics is a rigid subset of the original functionality
-as found in the Linux kernel. Apparently the knowledge about the usage patterns
-of the functions in the particular driver allows for vast simplifications.
-Given our self-imposed rule to not modify 3rd-party code, we expect that future
-updates to new Linux kernel versions will pose much less of a burden.
+contrast to Linux DDE, the 4.000 lines of custom-written DDE code are relatively
+easy to comprehend. For most of the functions provided by the DDE, the
+implemented semantics are a rigid subset of the original functionality as found
+in the Linux kernel. Apparently the knowledge of function usage patterns in a
+particular driver allows for vast simplifications.  Given our self-imposed rule
+to not modify 3rd-party code, we expect that future updates to new Linux kernel
+versions will pose much less of a burden.
 
 With our current approach of creating rigidly tailored DDEs, we are convinced
 to have found a healthy balance between the manual effort needed to create and
@@ -324,9 +323,9 @@ libraries, executable binaries, and configuration data are passed to child
 subsystems as ROM modules. But in contrast to core's ROM modules, this
 information may be dynamic in nature. For example, the configuration of the
 audio mixer may change at any time during the lifetime of the mixer. Also
-executable binaries may change in the event of system updates. Providing the
-system with the ability to respond to such changes is crucial to the use of
-Genode as general-purpose OS.
+executable binaries may change in the event of system updates. Enabling the
+system to respond to such changes is crucial the use of Genode as
+general-purpose OS.
 
 For existing users of the ROM session interface, there is nothing to consider.
 API compatibility is maintained. However, by installing a signal handler using
@@ -382,7 +381,7 @@ supplying the new sub system as a single binary blob only. The server used to
 implement heuristics and functionality for dealing with different kinds of
 blobs such as ELF images or TAR archives. This has been replaced by a
 session-local ROM service, which can be equipped with an arbitrary number of
-ROM modules supplied by the loader client prior starting the new sub system.
+ROM modules supplied by the loader's client prior starting a new subsystem.
 Even though the TAR support has been removed, a separate instance of the
 'tar_rom' service can be used within the subsystem to provide the formerly
 built-in functionality.
@@ -393,7 +392,7 @@ nitpicker session of the loaded subsystem. The corresponding source code
 can be found at 'os/src/test/loader/'. The second example at
 'os/run/dynamic_config_loader.run' shows how the concept of dynamic ROM
 sessions can be combined with the loader. As demonstrated by this example,
-ROM images used by the loaded sub system can be updated at runtime by the
+ROM images used by the loaded subsystem can be updated at runtime by the
 client of the loader session.
 
 
@@ -422,10 +421,10 @@ rather than individual file objects.
 In-memory file system
 ~~~~~~~~~~~~~~~~~~~~~
 
-As reference implementation of the new interface, there is the new 'ram_fs'
-service at 'os/src/server/ram_fs'. It stores sparse files in memory. At the
-startup, 'ram_fs' is able to populate the file-system content with directories,
-ROM modules, and inline data as specified in its configuration.
+As reference implementation of the new interface, a new 'ram_fs' service can be
+found at 'os/src/server/ram_fs'. It stores sparse files in memory. At startup
+time, 'ram_fs' is able to populate the file-system with directories, ROM
+modules, and inline data as specified in its configuration.
 
 Access to the file system can be tailored for each session depending on the
 session's label. By default, no permissions are granted to any session.
@@ -457,7 +456,7 @@ The following configuration illustrates the way of how to express policy.
 The '<content>' sub node of the '<config>' node provides a way to pre-populate
 the file system with directories and files. Note that '<dir>' nodes can be
 arbitrarily nested. Files can be loaded from the ROM service. By adding the
-optional 'at' attribute to a '<rom>' node, the file name can be defined
+optional 'as' attribute to a '<rom>' node, the file name can be defined
 independently from the ROM module name. In addition to creating files from
 ROM modules, files can be created from data specified directly as part of the
 configuration using '<inline>' nodes. The content of such nodes is used as
@@ -498,7 +497,7 @@ File-system plugin for the C runtime
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To enable libc-using programs to access the new file-system interface, there is
-the new libc plugin at 'libports/src/lib/libc_fs'. Using this plugin, files
+a new libc plugin at 'libports/src/lib/libc_fs'. Using this plugin, files
 stored on a native Genode file system can be accessed using the traditional
 POSIX file API.
 
@@ -548,7 +547,7 @@ work is required anyway.
 
 On the other hand, there are 3rd-party applications that would be nice to
 reuse as is without any manual patching work, for example the libSDL-based
-'avplay' or the muPDF example application. To ease the integration of such
+'avplay' or the muPDF application. To ease the integration of such
 programs into Genode setups, we added the new 'config_args' library. At the
 startup of the program, this library inspects the config node for arguments and
 fills the argv structure to be passed to the 'main()' function.
@@ -668,7 +667,7 @@ supported. We will complement the coverage of support as needed.
 
 :SDL audio support:
 
-The new libSDL audio backend enables the use of Genode's audio-session
+The new libSDL audio back end enables the use of Genode's audio-session
 interface from SDL applications. This way, SDL programs can be combined
 with audio drivers as well as with the mixer component.
 
@@ -679,7 +678,7 @@ SDL application:
 !   <sdl_audio_volume value="100"/>
 ! </config>
 
-Note that the SDL audio backend does respond to configuration changes at
+Note that the SDL audio back end does respond to configuration changes at
 run time. By supplying the config dynamically rather than via a static
 file, the audio volume may get updated while the SDL application is running.
 
@@ -738,7 +737,7 @@ player. It consists of the following pieces.
   interfaces, in particular the audio mixer, framebuffer and input drivers, but
   also the nitpicker GUI server.
 
-:qt_avplay: is a Qt4 frontend to 'avplay'. It spawns an instance of 'avplay'
+:qt_avplay: is a Qt4 front end to 'avplay'. It spawns an instance of 'avplay'
   as a slave process.
 
 [image media_player]
@@ -766,7 +765,7 @@ GUI submits artificial keyboard events with key codes interpreted by the
 
 Besides the separation of the codec from the GUI, the 'qt_avplay' example is
 interesting because it makes use of Genode's new dynamic configuration
-facility. The SDL audio backend used by the codec repeatedly evaluates its
+facility. The SDL audio back end used by the codec repeatedly evaluates its
 configuration during runtime. This configuration includes a volume prescale
 factor. Via the dynamic configuration mechanism, the parent (the GUI) is able
 to update the value of the volume prescale factor at any time and thereby
@@ -851,13 +850,13 @@ Noux
 ####
 
 Running GCC, binutils, coreutils natively on Genode
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+===================================================
 
-We introduced support for stacked file systems alongside new glue for accessing
-file-system implementations provided via Genode's new file-system-session
-interface. Using stacked file systems, an arbitrary number of file systems
-(such as TAR archives or file systems implemented as separate Genode
-components) can be composed to form one merged virtual file system.
+We introduced support for stacked file systems alongside new glue code for
+accessing File-system implementations provided via Genode's new
+file-system-session Interface. Using stacked file systems, an arbitrary number
+of file systems (such as TAR archives or file systems implemented as separate
+Genode Components) can be composed to form one merged virtual file system.
 
 An example is given via the 'ports/run/noux_bash.run' script. This run script
 creates a virtual file system out of multiple TAR archives each containing the
@@ -878,10 +877,10 @@ supported.
 
 
 Networking support
-~~~~~~~~~~~~~~~~~~
+==================
 
 We desire to use a wide range of Unix networking tools such as wget, lynx, ssh,
-netcat on Genode. For this reason, the second focus of our Noux-related
+and netcat on Genode. For this reason, the second focus of our Noux-related
 developments is the added support for networking. The Noux syscall interface
 has been extended with system calls for 'socket', 'getsockopt', 'setsockopt',
 'accept', 'bind', 'getpeername', 'listen', 'send', 'sendto', 'recv',
