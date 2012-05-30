@@ -1,0 +1,75 @@
+#
+# \brief  Test genode basics by starting init instances in a nested manner
+# \author Martin Stein
+# \date   2012-05-30
+#
+
+# build program images
+build "core init"
+
+# create directory where the boot files are written to
+create_boot_directory
+
+# create XML configuration for init
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route><any-service><parent/></any-service></default-route>
+
+	<start name="init">
+		<resource name="RAM" quantum="10M"/>
+		<config verbose="yes">
+			<parent-provides>
+				<service name="ROM"/>
+				<service name="RAM"/>
+				<service name="CAP"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="CPU"/>
+				<service name="LOG"/>
+			</parent-provides>
+			<default-route><any-service><parent/></any-service></default-route>
+
+			<start name="init">
+				<resource name="RAM" quantum="5M"/>
+				<config verbose="yes">
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="RAM"/>
+						<service name="CAP"/>
+						<service name="PD"/>
+						<service name="RM"/>
+						<service name="CPU"/>
+						<service name="LOG"/>
+					</parent-provides>
+					<default-route>
+						<any-service><parent/></any-service>
+					</default-route>
+				</config>
+			</start>
+
+		</config>
+	</start>
+
+</config>
+}
+
+# create single boot image from the compiled program images
+build_boot_image "core init"
+
+# configure qemu to use 64 MB RAM and avoid GUI mode
+append qemu_args " -m 64 -nographic"
+
+# execute the test in qemu if the targeted platform is supported
+if {[have_spec hw_vea9x4] || [have_spec hw_pbxa9]} {
+	run_genode_until "No children to start.*\n" 10
+}
+

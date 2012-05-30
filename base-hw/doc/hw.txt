@@ -1,0 +1,67 @@
+
+                ======================================
+                How to use Genode directly on hardware
+                ======================================
+
+                            Martin Stein
+
+
+The 'base-hw' repository provides an implementation of Genodes core that runs
+directly on hardware, without an intermediate third-party kernel. Currently it
+runs on the ARM platforms Realview PBXA9, Versatile Express A9X4 and
+PandaBoard A2.
+
+This document provides brief instructions about building and booting Genode
+directly on hardware.
+
+
+Prerequisites
+#############
+
+To build Genode you need to download and install the tool-chain used by Genode.
+Have a look at this page:
+
+:[http://genode.org/download/tool-chain]:
+  Genode tool-chain
+
+If you want to use the so called run-scripts in Genode, a mechanism that
+automates building, integration and testing of components, you have to install
+the following, additional package:
+
+! apt-get install expect
+
+If you want to examine the examples that are given in this document, you will
+need Qemu for ARM emulations to run them on your machine:
+
+! apt-get install qemu-kvm-extras
+
+Building Genode to run directly on hardware
+###########################################
+
+The current version of the Genode source code is available at this page:
+
+:http://genode.org/download/repository:
+  Donwloading the Genode source code
+
+Now, go to a directory where you want the Genode build directory to
+remain. Use the helper script in the 'tool' directory of the Genode
+source tree to create the initial build environment. You need to state the
+build directory you want to create, and the hardware system to run
+Genode on. Choose 'hw_pbxa9', 'hw_vea9x4', or 'hw_panda_a2' depending on the
+hardware system you aim at.
+
+! <genode-dir>/tool/create_builddir hw_pbxa9 BUILD_DIR=<build-dir>
+
+Now, go to the newly created build directory make a test:
+
+! cd <build-dir>
+! make run/nested_init
+
+This will build the Genode components that are needed to run a simple test
+with 3 nested init programs, and than execute it via Qemu.
+
+For further informations according to the specific hardware systems, have
+look into the other documentations:
+
+! base-hw/doc/<system>.txt
+

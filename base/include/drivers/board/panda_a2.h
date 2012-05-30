@@ -23,9 +23,11 @@ namespace Genode
 	{
 		enum
 		{
-			/* buses */
+			/* interconnect domains */
 			L4_PER_BASE = 0x48000000,
 			L4_PER_SIZE = 0x01000000,
+			L4_CFG_BASE = 0x4a000000,
+			L4_CFG_SIZE = 0x01000000,
 
 			/* clocks */
 			MPU_DPLL_CLOCK = 200*1000*1000,
