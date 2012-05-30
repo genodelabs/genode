@@ -301,7 +301,8 @@ void Platform::_setup_mem_alloc()
 				/* XXX do not allocate page0 */
 				if (addr == 0) {
 					Fiasco::l4_task_unmap(Fiasco::L4_BASE_TASK_CAP,
-					                      Fiasco::l4_fpage(0, log2_size, 0),
+					                      Fiasco::l4_fpage(0, log2_size,
+					                                       Fiasco::L4_FPAGE_RW),
 					                      Fiasco::L4_FP_ALL_SPACES);
 					continue;
 				}
