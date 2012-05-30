@@ -4,6 +4,33 @@
                                ===========
 
 
+Genode OS Framework release 12.05 | 2012-05-30
+##############################################
+
+| The highlights of version 12.05 are our new USB stack, added media replay
+| capabilities, new support for dynamic system re-configuration,
+| and the ability to run the GNU tool chain on Genode.
+
+The just released version 12.05 is another corner stone for our plan to shape
+Genode into a general-purpose OS for the everyday use by its developers. It
+introduces numerious features that are crucial for this goal, in particular the
+groundwork for the use of file systems, the ability to execute the GNU tool
+chain directly on a Genode system, and a way to flexibly adapt the behaviour of
+operating-system components at runtime.
+
+In addition to working on the functionality outlined above, several of the
+framework's base platforms have received close attention. We profoundly
+revisited the platform-specific code for the Fiasco.OC kernel to fully leverage
+the kernel's capability concept. To facilitate the use of Genode as component
+framework on Linux, we extended the possibilities to use Linux-specific
+mechanisms, in particular chroot, in a way that is easy to use and coherent
+with the framework's architecture.
+
+For the full story behind all the new features and improvements, please
+refer to the
+[http:/documentation/release-notes/12.05 - release notes of version 12.05...]
+
+
 Genode participation at GSoC 2012 | 2012-04-25
 ##############################################
 
