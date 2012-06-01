@@ -185,6 +185,10 @@ class Static_character_screen : public Terminal::Character_screen
 		{
 		}
 
+		virtual void sgr0()
+		{
+		}
+
 		void sc()
 		{
 		}

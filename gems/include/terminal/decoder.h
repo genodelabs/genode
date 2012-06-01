@@ -343,10 +343,47 @@ namespace Terminal {
 						_screen.setaf(p2 - 30);
 						return true;
 					}
+					if ((p1 == 0 && p2 == 10)) {
+						/* turn of all attributes */
+						_screen.sgr0();
+						return true;
+					}
 					return false;
 				case 'R': return (_screen.u6(p1, p2), true);
 				default: return false;
 				}
+			}
+
+			bool _handle_esc_seq_7()
+			{
+				/*
+				 * All six-element escape sequences have the form
+				 * \E[<NUMBER1>;<NUMBER2>;<NUMBER3><COMMAND>
+				 */
+
+				if ((_escape_stack[0].value != '[')
+				 || (_escape_stack[1].type  != Escape_stack::Entry::NUMBER)
+				 || (_escape_stack[2].value != ';')
+				 || (_escape_stack[3].type  != Escape_stack::Entry::NUMBER)
+				 || (_escape_stack[4].value != ';')
+				 || (_escape_stack[5].type  != Escape_stack::Entry::NUMBER))
+					return false;
+
+				int const command = _escape_stack[6].value;
+
+				switch (command) {
+				case 'm':
+
+					/*
+					 * Currently returning true w/o actually handling the
+					 * sequence
+					 */
+					PDBG("Sequence '[X;Y;Zm' is not implemented");
+					return true;
+				default: return false;
+				}
+
+				return true;
 			}
 
 		public:
@@ -425,7 +462,8 @@ namespace Terminal {
 				 || ((_escape_stack.num_elem() == 2) && _handle_esc_seq_2())
 				 || ((_escape_stack.num_elem() == 3) && _handle_esc_seq_3())
 				 || ((_escape_stack.num_elem() == 4) && _handle_esc_seq_4())
-				 || ((_escape_stack.num_elem() == 5) && _handle_esc_seq_5()))
+				 || ((_escape_stack.num_elem() == 5) && _handle_esc_seq_5())
+				 || ((_escape_stack.num_elem() == 7) && _handle_esc_seq_7()))
 					_enter_state_idle();
 			};
 	};
