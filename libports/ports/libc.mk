@@ -10,7 +10,7 @@ PORTS += $(LIBC)
 #
 $(call check_tool,svn)
 $(call check_tool,lex)
-$(call check_tool,yacc)
+$(call check_tool,bison)
 
 #
 # Subdirectories to check out from FreeBSD's Subversion repository
@@ -403,7 +403,7 @@ libc_gen_nslexer: $(CONTRIB_DIR)/$(LIBC)/libc/net/nslexer.l
 		> $(CONTRIB_DIR)/$(LIBC)/libc/net/nslexer.c
 
 libc_gen_nsparser: $(CONTRIB_DIR)/$(LIBC)/libc/net/nsparser.y
-	$(VERBOSE)$(YACC) -d -p_nsyy $< \
+	$(VERBOSE)bison -d -p_nsyy $< \
 		--defines=$(CONTRIB_DIR)/$(LIBC)/libc/net/nsparser.h \
 		--output=$(CONTRIB_DIR)/$(LIBC)/libc/net/nsparser.c
 
