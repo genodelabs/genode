@@ -182,6 +182,11 @@ namespace Terminal {
 		virtual void sgr(int) = 0;
 
 		/**
+ 		 * Turn of all attributes
+		 */
+		virtual void sgr0() = 0;
+
+		/**
 		 * Save current cursor position
 		 */
 		virtual void sc() = 0;

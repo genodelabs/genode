@@ -619,6 +619,11 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				_color_index = DEFAULT_COLOR_INDEX;
 		}
 
+		void sgr0()
+		{
+			sgr(0);
+		}
+
 		void sc()
 		{
 			PDBG("not implemented");
