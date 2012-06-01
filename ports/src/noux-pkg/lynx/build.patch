@@ -1,0 +1,11 @@
+--- lynx-2.8.8.dev12.orig/src/makefile.in	2012-06-18 15:44:22.237274112 +0200
++++ lynx-2.8.8.dev12/src/makefile.in	2012-06-18 15:44:37.774023653 +0200
+@@ -102,7 +102,7 @@
+ 
+ lynx$x:   message do_chartrans_stuff $(top_builddir)/LYHelp.h $(OBJS) $(WWWLIB)
+ 	@echo "Linking and creating Lynx executable"
+-	$(CC) $(CC_OPTS) $(LDFLAGS) -o $@  $(OBJS) $(WWWLIB) $(LDFLAGS) $(LIBS) $(INTLLIB)
++	$(CC) $(CC_OPTS) $(LDFLAGS) -o $@  $(OBJS) $(WWWLIB) $(LIBS) $(INTLLIB)
+ 	@echo "Copying Lynx executable into top-level directory"
+ 	rm -f $(top_builddir)/$@
+ 	cp $@ $(top_builddir)/
