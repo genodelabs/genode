@@ -123,7 +123,7 @@ int main(int, char **)
 	 */
 	static Ipxe::Driver_factory driver_factory;
 
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = 2*sizeof(addr_t)*1024 };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nic_ep");
 
