@@ -1,0 +1,23 @@
+Index: l4/pkg/sigma0/server/src/init.cc
+===================================================================
+--- l4/pkg/sigma0/server/src/init.cc	(revision 38)
++++ l4/pkg/sigma0/server/src/init.cc	(working copy)
+@@ -27,6 +27,7 @@
+ #include "ioports.h"
+ #include "mem_man_test.h"
+ #include <l4/sys/debugger.h>
++#include <l4/sys/scheduler.h>
+ 
+ /* started as the L4 sigma0 task from crt0.S */
+ 
+@@ -61,6 +62,10 @@
+   l4_debugger_set_object_name(L4_BASE_FACTORY_CAP, "root factory");
+   l4_debugger_set_object_name(L4_BASE_THREAD_CAP,  "sigma0");
+ 
++  l4_sched_param_t params = l4_sched_param(255);
++  l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP, L4_BASE_THREAD_CAP, &params);
++
++
+   Page_alloc_base::init();
+ 
+   init_memory(info);
