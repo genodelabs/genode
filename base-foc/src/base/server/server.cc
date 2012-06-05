@@ -37,3 +37,54 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 	/* return capability that uses the object id as badge */
 	return new_obj_cap;
 }
+
+
+void Rpc_entrypoint::entry()
+{
+	Ipc_server srv(&_snd_buf, &_rcv_buf);
+	_ipc_server = &srv;
+	_cap = srv;
+	_cap_valid.unlock();
+
+	/*
+	 * Now, the capability of the server activation is initialized
+	 * an can be passed around. However, the processing of capability
+	 * invocations should not happen until activation-using server
+	 * is completely initialized. Thus, we wait until the activation
+	 * gets explicitly unblocked by calling 'Rpc_entrypoint::activate()'.
+	 */
+	_delay_start.lock();
+
+	while (1) {
+		int opcode = 0;
+
+		srv >> IPC_REPLY_WAIT >> opcode;
+
+		/* set default return value */
+		srv.ret(ERR_INVALID_OBJECT);
+
+		/* check whether capability's label fits global id */
+		if (((unsigned long)srv.badge()) != _rcv_buf.label()) {
+			PWRN("somebody tries to fake us!");
+			continue;
+		}
+
+		/* atomically lookup and lock referenced object */
+		{
+			Lock::Guard lock_guard(_curr_obj_lock);
+
+			_curr_obj = obj_by_id(srv.badge());
+			if (!_curr_obj)
+				continue;
+
+			_curr_obj->lock();
+		}
+
+		/* dispatch request */
+		try { srv.ret(_curr_obj->dispatch(opcode, srv, srv)); }
+		catch (Blocking_canceled) { }
+
+		_curr_obj->unlock();
+		_curr_obj = 0;
+	}
+}

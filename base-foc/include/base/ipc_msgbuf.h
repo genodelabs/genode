@@ -58,6 +58,8 @@ namespace Genode {
 			 */
 			addr_t _rcv_cap_sel_cnt;
 
+			unsigned long _label;
+
 			char _msg_start[];  /* symbol marks start of message */
 
 		public:
@@ -65,7 +67,8 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Msgbuf_base() : _rcv_idx_base(cap_idx_alloc()->alloc(MAX_CAP_ARGS))
+			Msgbuf_base()
+			: _rcv_idx_base(cap_idx_alloc()->alloc(MAX_CAP_ARGS)), _label(0)
 			{
 				rcv_reset();
 				snd_reset();
@@ -137,6 +140,9 @@ namespace Genode {
 			 */
 			addr_t rcv_cap_sel() {
 				return rcv_cap_sel_base() + _rcv_cap_sel_cnt++ * Fiasco::L4_CAP_SIZE; }
+
+			void label(unsigned long label) { _label = label; }
+			unsigned long label() { return _label & (~0UL << 2); }
 	};
 
 

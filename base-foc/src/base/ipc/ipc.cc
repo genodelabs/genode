@@ -178,6 +178,9 @@ void Ipc_istream::_wait()
 		tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
 	} while (ipc_error(tag, DEBUG_MSG));
 
+	/* copy received label into message buffer */
+	_rcv_msg->label(label);
+
 	/* copy message from the UTCBs message registers to the receive buffer */
 	copy_utcb_to_msgbuf(tag, _rcv_msg);
 
@@ -294,6 +297,9 @@ void Ipc_server::_reply_wait()
 			 */
 			_wait();
 		} else {
+
+			/* copy received label into message buffer */
+			_rcv_msg->label(label);
 
 			/* copy request message from the UTCBs message registers */
 			copy_utcb_to_msgbuf(tag, _rcv_msg);
