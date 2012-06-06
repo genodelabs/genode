@@ -207,5 +207,7 @@ int main(int, char **argv)
 	}
 
 	execve("init", argv, environ);
+
+	PERR("execve failed with errno=%d", errno);
 	return 0;
 }
