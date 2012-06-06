@@ -1373,7 +1373,6 @@ namespace {
 			return -1;
 		}
 
-		sysio()->sendto_in.fd = noux_fd(fd->context);
 		sysio()->sendto_in.addrlen = addrlen;
 		Genode::memcpy(&sysio()->sendto_in.dest_addr, dest_addr, addrlen);
 
@@ -1382,8 +1381,9 @@ namespace {
 
 		char *src = (char *)buf;
 		while (len > 0) {
-			size_t curr_len = Genode::min(sizeof *sysio()->sendto_in.buf, len);
+			size_t curr_len = Genode::min(sizeof (sysio()->sendto_in.buf), len);
 
+			sysio()->sendto_in.fd = noux_fd(fd->context);
 			sysio()->sendto_in.len = curr_len;
 			Genode::memcpy(sysio()->sendto_in.buf, src, curr_len);
 
