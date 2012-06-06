@@ -47,15 +47,15 @@ Echo::Echo(Genode::addr_t utcb_addr)
 
 	/* create echo EC */
 	int pd_sel = Genode::Cap_selector_allocator::pd_sel();
-	int res = create_ec(_ec_sel, pd_sel, ECHO_CPU_NO, utcb_addr,
-	                    (mword_t)echo_stack_top(), ECHO_EXC_BASE, ECHO_GLOBAL);
+	uint8_t res = create_ec(_ec_sel, pd_sel, ECHO_CPU_NO, utcb_addr,
+	                        (mword_t)echo_stack_top(), ECHO_EXC_BASE, ECHO_GLOBAL);
 
 	/* make error condition visible by raising an unhandled page fault */
-	if (res) { ((void (*)())(res*0x10000))(); }
+	if (res) { ((void (*)())(res*0x10000UL))(); }
 
 	/* set up echo portal to ourself */
 	res = create_pt(_pt_sel, pd_sel, _ec_sel, Mtd(0), (mword_t)echo_reply);
-	if (res) { ((void (*)())(res*0x10001))(); }
+	if (res) { ((void (*)())(res*0x10001UL))(); }
 }
 
 

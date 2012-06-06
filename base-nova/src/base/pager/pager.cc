@@ -151,7 +151,7 @@ Pager_object::~Pager_object()
 	revoke(Obj_crd(_tid.ec_sel, 0));
 	/* revoke utcb */
 	Rights rwx(true, true, true);
-	revoke(Nova::Mem_crd((unsigned)Thread_base::myself()->utcb() >> 12, 0, rwx));
+	revoke(Nova::Mem_crd((addr_t)Thread_base::myself()->utcb() >> 12, 0, rwx));
 }
 
 

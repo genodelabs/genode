@@ -18,7 +18,7 @@
 
 namespace Nova {
 
-	typedef long             mword_t;
+	typedef unsigned long    mword_t;
 	typedef unsigned char    uint8_t;
 	typedef Genode::uint16_t uint16_t;
 	typedef Genode::uint32_t uint32_t;

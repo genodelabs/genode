@@ -33,7 +33,7 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 
 	while (true) {
 		Nova::Mem_crd crd(core_local_base >> 12, 32, rwx);
-		Nova::lookup(&crd);
+		Nova::lookup(crd);
 
 		if (crd.is_null()) {
 			PERR("Invalid unmap at local: %08lx virt: %08lx",
@@ -42,7 +42,7 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 		}
 
 		if (verbose)
-			PINF("Lookup core_addr: %08lx base: %x order: %x is null %d", core_local_base, crd.base(), crd.order(), crd.is_null());
+			PINF("Lookup core_addr: %08lx base: %lx order: %lx is null %d", core_local_base, crd.base(), crd.order(), crd.is_null());
 
 		unmap_local(crd, false);
 

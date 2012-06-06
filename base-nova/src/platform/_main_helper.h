@@ -42,7 +42,7 @@ extern int __local_pd_sel;
 static void main_thread_bootstrap()
 {
 	/* register UTCB of main thread */
-	__main_thread_utcb = __initial_sp - Nova::PAGE_SIZE;
+	__main_thread_utcb = __initial_sp - Nova::PAGE_SIZE_BYTE;
 
 	/* register start of usable capability range */
 	enum { FIRST_FREE_PORTAL = 0x1000 };
