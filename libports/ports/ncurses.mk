@@ -51,6 +51,7 @@ src/lib/ncurses:
 $(NCURSES_GEN_SYMLINKS):
 	$(VERBOSE)for i in $(NCURSES_SYMLINKED_INC); do \
 		ln -sf ../../$(CONTRIB_DIR)/$(NCURSES)/include/$$i include/ncurses/$$i; done
+	$(VERBOSE)ln -sf curses.h include/ncurses/ncurses.h
 
 #
 # Produce generated includes
@@ -185,6 +186,7 @@ clean-ncurses: clean_ncurses_symlinks clean_ncurses_gen_files
 
 clean_ncurses_symlinks:
 	$(VERBOSE)rm -f $(NCURSES_GEN_SYMLINKS)
+	$(VERBOSE)rm -f include/ncurses/ncurses.h
 
 clean_ncurses_gen_files:
 	$(VERBOSE)rm -f $(NCURSES_GEN_FILES)
