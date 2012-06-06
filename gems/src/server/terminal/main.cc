@@ -302,7 +302,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		int                 _region_end;
 		int                 _tab_size;
 
-		enum { DEFAULT_COLOR_INDEX = 4, DEFAULT_TAB_SIZE = 8 };
+		enum { DEFAULT_COLOR_INDEX = 7, DEFAULT_TAB_SIZE = 8 };
 
 		struct Cursor_guard
 		{
@@ -1349,14 +1349,14 @@ int main(int, char **)
 	static Read_buffer read_buffer;
 
 	/* initialize color palette */
-	color_palette[0] = Color(100, 100, 100);
-	color_palette[1] = Color(0, 0, 224);
-	color_palette[2] = Color(0,255, 0);
-	color_palette[3] = Color(0,255,255);
-	color_palette[4] = Color(224, 224, 224);
-	color_palette[5] = Color(255, 0, 255);
-	color_palette[6] = Color(255, 255, 0);
-	color_palette[7] = Color(255, 0, 0);
+	color_palette[0] = Color(  0,   0,   0);	/* black */
+	color_palette[1] = Color(255,   0,   0);	/* red */
+	color_palette[2] = Color(  0, 255,   0);	/* green */
+	color_palette[3] = Color(255, 255,   0);	/* yellow */
+	color_palette[4] = Color(  0,   0, 255);	/* blue */
+	color_palette[5] = Color(255,   0, 255);	/* magenta */
+	color_palette[6] = Color(  0, 255, 255);	/* cyan */
+	color_palette[7] = Color(255, 255, 255);	/* white */
 
 	/* the upper portion of the palette contains highlight colors */
 	for (int i = 0; i < 8; i++) {
