@@ -173,6 +173,7 @@ extern "C" int _fcntl(int libc_fd, int cmd, long arg) {
 	return fcntl(libc_fd, cmd, arg); }
 
 
+/*
 extern "C" void freeaddrinfo(struct addrinfo *res)
 {
 	Plugin *plugin;
@@ -186,6 +187,7 @@ extern "C" void freeaddrinfo(struct addrinfo *res)
 
 	plugin->freeaddrinfo(res);
 }
+*/
 
 
 extern "C" int _fstat(int libc_fd, struct stat *buf) {
@@ -206,6 +208,7 @@ extern "C" int fsync(int libc_fd) {
 	FD_FUNC_WRAPPER(fsync, libc_fd); }
 
 
+/*
 extern "C" int getaddrinfo(const char *node, const char *service,
                            const struct addrinfo *hints,
                            struct addrinfo **res)
@@ -221,6 +224,7 @@ extern "C" int getaddrinfo(const char *node, const char *service,
 
 	return plugin->getaddrinfo(node, service, hints, res);
 }
+*/
 
 
 extern "C" ssize_t _getdirentries(int libc_fd, char *buf, ::size_t nbytes, ::off_t *basep) {
