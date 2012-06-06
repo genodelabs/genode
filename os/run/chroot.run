@@ -74,6 +74,7 @@ proc chroot_genode_tmp_path { } { return "[chroot_path]/tmp/genode-[exec id -u]"
 proc cleanup_chroot { } {
 	catch { exec sudo umount -l [chroot_cwd_path] }
 	catch { exec sudo umount -l [chroot_genode_tmp_path] }
+	catch { exec sudo umount -l [chroot_path]/lib }
 	exec rm -rf [chroot_path]
 }
 
@@ -108,6 +109,10 @@ exec sudo setcap cap_sys_admin,cap_sys_chroot=ep [run_dir]/chroot
 # start with fresh directory
 cleanup_chroot
 exec mkdir -p [chroot_path]
+exec mkdir -p [chroot_path]/lib
+
+# bind mount '/lib' as need libc within the chroot environment
+exec sudo mount --bind /lib [chroot_path]/lib
 
 #
 # Execute test case
