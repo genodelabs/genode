@@ -11,6 +11,7 @@ PORTS += $(LIBC)
 $(call check_tool,svn)
 $(call check_tool,lex)
 $(call check_tool,bison)
+$(call check_tool,rpcgen)
 
 #
 # Subdirectories to check out from FreeBSD's Subversion repository
@@ -83,7 +84,38 @@ LIBC_IMPORT_INCLUDES =  include/libc/strings.h \
                         include/libc/ieeefp.h \
                         include/libc/memory.h \
                         include/libc/res_update.h \
-                        include/libc/rpc/rpc.h
+                        include/libc/rpc/rpc.h \
+                        include/libc/netconfig.h \
+                        include/libc/rpc/xdr.h \
+                        include/libc/rpc/auth.h \
+                        include/libc/rpc/clnt_stat.h \
+                        include/libc/rpc/clnt.h \
+                        include/libc/rpc/clnt_soc.h \
+                        include/libc/rpc/rpc_msg.h \
+                        include/libc/rpc/auth_unix.h \
+                        include/libc/rpc/auth_des.h \
+                        include/libc/rpc/svc.h \
+                        include/libc/rpc/svc_soc.h \
+                        include/libc/rpc/svc_auth.h \
+                        include/libc/rpc/pmap_clnt.h \
+                        include/libc/rpc/pmap_prot.h \
+                        include/libc/rpc/rpcb_clnt.h \
+                        include/libc/rpc/rpcb_prot.h \
+                        include/libc/rpc/rpcent.h \
+                        include/libc/rpcsvc/yp_prot.h \
+                        include/libc/rpcsvc/ypclnt.h \
+                        include/libc/rpc/des_crypt.h \
+                        include/libc/rpc/des.h \
+                        include/libc/rpcsvc/nis.h \
+                        include/libc/rpcsvc/nis_tags.h \
+                        include/libc/rpcsvc/nislib.h \
+                        include/libc/rpc/rpc_com.h \
+                        include/libc/ifaddrs.h \
+                        include/libc/rpc/nettype.h \
+                        include/libc/rpc/rpcsec_gss.h \
+                        include/libc/gssapi/gssapi.h \
+                        include/libc/rpc/raw.h \
+                        include/libc/rpcsvc/crypt.h
 
 #
 # Files from include directory needed for stdlib
@@ -162,6 +194,11 @@ LIBC_IMPORT_INCLUDES += include/libc/netinet/in.h \
                         include/libc/netinet/tcp.h
 
 #
+# Files coming from the sys/rpc directory
+#
+LIBC_IMPORT_INCLUDES += include/libc/sys/rpc/types.h
+
+#
 # Files coming from the sys/sys directory
 #
 LIBC_IMPORT_INCLUDES += include/libc/sys/_types.h \
@@ -183,7 +220,9 @@ LIBC_IMPORT_INCLUDES += include/libc/sys/_types.h \
                         include/libc/sys/param.h \
                         include/libc/sys/stdint.h \
                         include/libc/sys/event.h \
-                        include/libc/errno.h
+                        include/libc/errno.h \
+                        include/libc/sys/errno.h \
+                        include/libc/sys/poll.h
 
 #
 # Files from sys/sys needed for stdlib and stdio and gen lib
@@ -409,20 +448,58 @@ libc_gen_nsparser: $(CONTRIB_DIR)/$(LIBC)/libc/net/nsparser.y
 
 libc_net_generate: libc_gen_nslexer libc_gen_nsparser
 
+#
+# Generate files needed for compiling libc-rpc
+#
+RPCB_FILES     = rpcb_prot.x
+SRC_RPCB_FILES = $(addprefix $(CONTRIB_DIR)/$(LIBC)/include/rpc/,$(RPCB_FILES))
+GEN_RPCB_FILES = $(SRC_RPCB_FILES:.x=.h)
+
+#
+# Unfortunatly include/rpcsvc contains a lot of .x files and to resolve their
+# dependencies would by cumbersome. So we include all of them instead of only
+# the ones we currently need.
+#
+RPCSVC_FILES    = bootparam_prot.x nfs_prot.x nlm_prot.x rstat.x ypupdate_prot.x \
+                  crypt.x nis_cache.x pmap_prot.x rwall.x yp.x \
+                  key_prot.x nis_callback.x rex.x sm_inter.x ypxfrd.x \
+                  klm_prot.x nis_object.x rnusers.x spray.x \
+                  mount.x nis.x rquota.x yppasswd.x
+
+SRC_RPCSVC_FILES = $(addprefix $(CONTRIB_DIR)/$(LIBC)/include/rpcsvc/,$(RPCSVC_FILES))
+GEN_RPCSVC_FILES = $(SRC_RPCSVC_FILES:.x=.h)
+
+# nis_object.h is needed by nis.h so we have to generate this header first
+$(CONTRIB_DIR)/$(LIBC)/include/rpcsvc/nis.h: $(CONTRIB_DIR)/$(LIBC)/include/rpcsvc/nis_object.x
+
+libc_rpc_generate:
+	$(VERBOSE)for header in $(GEN_RPCB_FILES); do\
+		if [ ! -e "$$header" ]; then \
+			rpcgen -C -h -DWANT_NFS3 $${header%.h}.x -o $$header; \
+		fi; done
+	$(VERBOSE)for header in $(GEN_RPCSVC_FILES); do\
+		if [ ! -e "$$header" ]; then \
+			rpcgen -C -h -DWANT_NFS3 $${header%.h}.x -o $$header; \
+		fi; done
+
 ##
 # Shortcut for creating a symlink
 #
 # \param $(1) prefix prepended to symlink origin, used for creating relative
 #             symlinks
 #
-libc_gen_symlink_subsub    = $(VERBOSE)mkdir -p $(dir $@); ln -sf    ../../$< $@
-libc_gen_symlink_subsubsub = $(VERBOSE)mkdir -p $(dir $@); ln -sf ../../../$< $@
+libc_gen_symlink_subsub       = $(VERBOSE)mkdir -p $(dir $@); ln -sf       ../../$< $@
+libc_gen_symlink_subsubsub    = $(VERBOSE)mkdir -p $(dir $@); ln -sf    ../../../$< $@
+libc_gen_symlink_subsubsubsub = $(VERBOSE)mkdir -p $(dir $@); ln -sf ../../../../$< $@
 
 include/libc/arpa/%.h: $(CONTRIB_DIR)/$(LIBC)/include/arpa/%.h
 	$(libc_gen_symlink_subsubsub)
 
 include/libc/%.h: $(CONTRIB_DIR)/$(LIBC)/include/%.h
 	$(libc_gen_symlink_subsub)
+
+include/libc/gssapi/%.h: $(CONTRIB_DIR)/$(LIBC)/include/gssapi/%.h
+	$(libc_gen_symlink_subsubsub)
 
 include/libc/net/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_net/%.h
 	$(libc_gen_symlink_subsubsub)
@@ -434,6 +511,9 @@ include/libc/netinet6/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_netinet6/%.h
 	$(libc_gen_symlink_subsubsub)
 
 include/libc/rpc/%.h: $(CONTRIB_DIR)/$(LIBC)/include/rpc/%.h
+	$(libc_gen_symlink_subsubsub)
+
+include/libc/rpcsvc/%.h: $(CONTRIB_DIR)/$(LIBC)/include/rpcsvc/%.h
 	$(libc_gen_symlink_subsubsub)
 
 include/libc/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_sys/%.h
@@ -453,6 +533,9 @@ include/libc-amd64/%.h: $(CONTRIB_DIR)/$(LIBC)/msun/amd64/%.h
 
 include/libc/sys/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_sys/%.h
 	$(libc_gen_symlink_subsubsub)
+
+include/libc/sys/rpc/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_rpc/%.h
+	$(libc_gen_symlink_subsubsubsub)
 
 include/libc-arm/machine/%.h: $(CONTRIB_DIR)/$(LIBC)/sys_arm/%.h
 	$(libc_gen_symlink_subsubsub)
@@ -500,7 +583,7 @@ apply_patches-libc: checkout-libc
 create_include_symlinks-libc: checkout-libc
 	$(VERBOSE)make -s $(LIBC_IMPORT_INCLUDES)
 
-prepare-libc: create_include_symlinks-libc apply_patches-libc libc_net_generate
+prepare-libc: apply_patches-libc libc_net_generate libc_rpc_generate create_include_symlinks-libc
 
 clean_include_symlinks-libc:
 	$(VERBOSE)find include -type l -delete
