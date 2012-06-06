@@ -137,7 +137,6 @@ DUMMY(-1, utimes)
 DUMMY(-1, utrace)
 DUMMY(-1, vfork)
 DUMMY(-1, _wait4)
-DUMMY(-1, _writev)
 
 void ksem_init(void)
 {
