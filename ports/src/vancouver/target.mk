@@ -4,7 +4,7 @@ CONTRIB_DIR = $(REP_DIR)/contrib/vancouver-0.4
 VANCOUVER_DIR = $(CONTRIB_DIR)/vancouver
 NOVA_INCLUDE_DIR = $(REP_DIR)/contrib/vancouver-0.4/base/include
 
-REQUIRES = nova
+REQUIRES = nova x86_32
 
 ifeq ($(wildcard $(VANCOUVER_DIR)),)
 REQUIRES += prepare_ports_vancouver

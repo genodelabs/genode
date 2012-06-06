@@ -212,7 +212,7 @@ int main()
 
 	/* create ram session for init and transfer some of our own quota */
 	Ram_session_capability init_ram_session_cap
-		= static_cap_cast<Ram_session>(ram_root.session("ram_quota=16K"));
+		= static_cap_cast<Ram_session>(ram_root.session("ram_quota=32K"));
 	Ram_session_client(init_ram_session_cap).ref_account(env()->ram_session_cap());
 
 	Cpu_connection init_cpu;

@@ -23,7 +23,8 @@ usage:
 	@echo "                  'fiasco_x86'"
 	@echo "                  'pistachio_x86'"
 	@echo "                  'okl4_x86'"
-	@echo "                  'nova_x86'"
+	@echo "                  'nova_x86_32'"
+	@echo "                  'nova_x86_64'"
 	@echo "                  'codezero_vpb926'"
 	@echo "                  'mb_s3a_starter_kit'"
 	@echo "                  'foc_x86_32'"
@@ -70,7 +71,7 @@ $(BUILD_DIR)/etc/build.conf::
 #
 # Supply -no-kvm argument to Qemu for kernels that are incompatible with KVM
 #
-ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86 pistachio_x86,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 foc_x86_64 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).qemu_no_kvm >> $@
 endif
@@ -120,7 +121,7 @@ endif
 #
 # Add x86 drivers repositories to x86 build directories
 #
-ifeq ($(filter-out foc_x86_32 okl4_x86 nova_x86 pistachio_x86 fiasco_x86,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 okl4_x86 nova_x86_32 nova_x86_64 pistachio_x86 fiasco_x86,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_x86 >> $@
 endif
@@ -143,6 +144,12 @@ foc_x86_32::
 
 foc_x86_64::
 	@echo "SPECS = genode foc_x86_64" > $(BUILD_DIR)/etc/specs.conf
+
+nova_x86_32::
+	@echo "SPECS = genode nova_x86_32 x86_32" > $(BUILD_DIR)/etc/specs.conf
+
+nova_x86_64::
+	@echo "SPECS = genode nova_x86_64 x86_64" > $(BUILD_DIR)/etc/specs.conf
 
 foc_pbxa9::
 	@echo "SPECS = genode foc_pbxa9" > $(BUILD_DIR)/etc/specs.conf

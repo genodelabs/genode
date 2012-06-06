@@ -87,7 +87,11 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 void Rpc_entrypoint::_activation_entry()
 {
 	/* retrieve portal id from eax */
-	int id_pt; asm volatile ("" : "=a" (id_pt));
+#ifdef __x86_64__
+       addr_t id_pt; asm volatile ("" : "=D" (id_pt));
+#else
+       addr_t id_pt; asm volatile ("" : "=a" (id_pt));
+#endif
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
 
 	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);

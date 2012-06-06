@@ -107,7 +107,7 @@ void Thread_base::_deinit_platform_thread()
 
 	/* revoke utcb */
 	Nova::Rights rwx(true, true, true);
-	Nova::revoke(Nova::Mem_crd((unsigned)Thread_base::myself()->utcb() >> 12, 0, rwx));
+	Nova::revoke(Nova::Mem_crd((addr_t)Thread_base::myself()->utcb() >> 12, 0, rwx));
 }
 
 
