@@ -287,15 +287,13 @@ namespace Genode {
 			Rpc_entrypoint         *_entrypoint;
 			Parent_capability       _parent_cap;
 
-			Process                 _process;
+			/* child policy */
+			Child_policy           *_policy;
 
 			/* sessions opened by the child */
 			Lock                    _lock;   /* protect list manipulation */
 			Object_pool<Session>    _session_pool;
 			List<Session>           _session_list;
-
-			/* child policy */
-			Child_policy           *_policy;
 
 			/* server role */
 			Server                 _server;
@@ -304,6 +302,8 @@ namespace Genode {
 			 * Session-argument buffer
 			 */
 			char _args[Parent::Session_args::MAX_SIZE];
+
+			Process _process;
 
 			/**
 			 * Attach session information to a child
@@ -379,9 +379,9 @@ namespace Genode {
 				_heap(&_ram_session_client, env()->rm_session()),
 				_entrypoint(entrypoint),
 				_parent_cap(_entrypoint->manage(this)),
-				_process(elf_ds, ram, cpu, rm, _parent_cap, policy->name(), 0),
 				_policy(policy),
-				_server(ram)
+				_server(ram),
+				_process(elf_ds, ram, cpu, rm, _parent_cap, policy->name(), 0)
 			{ }
 
 			/**
