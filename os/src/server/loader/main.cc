@@ -255,10 +255,14 @@ namespace Loader {
 				                         min(_subsystem_ram_quota_limit, _ram_session_client.avail()) :
 				                         _ram_session_client.avail();
 
-				_child = new (&_md_alloc)
-					Child(binary_name.string(), label.string(), _ep,
-					      _ram_session_client, ram_quota, _parent_services,
-					      _rom_service, _nitpicker_service, _width, _height);
+				try {
+					_child = new (&_md_alloc)
+						Child(binary_name.string(), label.string(), _ep,
+						      _ram_session_client, ram_quota, _parent_services,
+						      _rom_service, _nitpicker_service, _width, _height);
+				}
+				catch (Genode::Parent::Service_denied) {
+					throw Rom_module_does_not_exist(); }
 			}
 
 			Nitpicker::View_capability view()

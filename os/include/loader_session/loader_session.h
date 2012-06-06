@@ -108,6 +108,9 @@ namespace Loader {
 
 		/**
 		 * Start subsystem
+		 *
+		 * \throw Rom_module_does_not_exist  if the specified binary could
+		 *                                   not obtained as ROM module
 		 */
 		virtual void start(Name const &binary, Name const &label = "") = 0;
 
@@ -132,12 +135,17 @@ namespace Loader {
 
 		GENODE_RPC(Rpc_alloc_rom_module, Dataspace_capability, alloc_rom_module,
 		                                 Name const &, size_t);
-		GENODE_RPC(Rpc_commit_rom_module, void, commit_rom_module, Name const &);
+		GENODE_RPC_THROW(Rpc_commit_rom_module, void, commit_rom_module,
+		                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
+		                 Name const &);
 		GENODE_RPC(Rpc_ram_quota, void, ram_quota, size_t);
 		GENODE_RPC(Rpc_constrain_geometry, void, constrain_geometry, int, int);
 		GENODE_RPC(Rpc_view_ready_sigh, void, view_ready_sigh, Signal_context_capability);
-		GENODE_RPC(Rpc_start, void, start, Name const &, Name const &);
-		GENODE_RPC(Rpc_view, Nitpicker::View_capability, view);
+		GENODE_RPC_THROW(Rpc_start, void, start,
+		                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
+		                 Name const &, Name const &);
+		GENODE_RPC_THROW(Rpc_view, Nitpicker::View_capability, view,
+		                 GENODE_TYPE_LIST(View_does_not_exist));
 		GENODE_RPC(Rpc_view_geometry, View_geometry, view_geometry);
 
 		GENODE_RPC_INTERFACE(Rpc_alloc_rom_module, Rpc_commit_rom_module,

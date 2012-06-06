@@ -79,9 +79,14 @@ namespace Loader {
 
 			Rom_session_capability _rom_session(char const *name)
 			{
-				char args[Session::Name::MAX_SIZE];
-				snprintf(args, sizeof(args), "ram_quota=4K, filename=\"%s\"", name);
-				return static_cap_cast<Rom_session>(_local_rom_service.session(args));
+				try {
+					char args[Session::Name::MAX_SIZE];
+					snprintf(args, sizeof(args), "ram_quota=4K, filename=\"%s\"", name);
+					return static_cap_cast<Rom_session>(_local_rom_service.session(args));
+				} catch (Genode::Parent::Service_denied) {
+					PERR("Lookup for ROM module \"%s\" failed", name);
+					throw;
+				}
 			}
 
 		public:
