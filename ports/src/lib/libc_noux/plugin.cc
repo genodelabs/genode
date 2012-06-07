@@ -1278,14 +1278,16 @@ namespace {
 			socklen_t *addrlen)
 	{
 		sysio()->getpeername_in.fd = noux_fd(fd->context);
+		sysio()->getpeername_in.addrlen = *addrlen;
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_GETPEERNAME)) {
 			/* errno */
 			return -1;
 		}
-		Genode::memcpy(&sysio()->getpeername_in.addr, addr,
-				sizeof (struct sockaddr));
-		sysio()->bind_in.addrlen = *addrlen;
+
+		Genode::memcpy(addr, &sysio()->getpeername_in.addr,
+		               sizeof (struct sockaddr));
+		*addrlen = sysio()->getpeername_in.addrlen;
 
 		return 0;
 	}
