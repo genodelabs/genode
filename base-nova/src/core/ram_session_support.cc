@@ -63,7 +63,7 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 	}
 
 	if (verbose_ram_ds)
-		printf("-- ram ds size=%x phys %lx has core-local addr %p\n",
+		printf("-- ram ds size=%zx phys %lx has core-local addr %p\n",
 		       page_rounded_size, ds->phys_addr(), virt_addr);
 
 	/* map the dataspace's physical pages to local addresses */
