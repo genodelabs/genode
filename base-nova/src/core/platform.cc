@@ -281,7 +281,8 @@ Platform::Platform() :
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
 
-		const char *name = commandline_to_basename((char *)mem_desc->aux);
+		addr_t aux = mem_desc->aux;
+		const char *name = commandline_to_basename(reinterpret_cast<char *>(aux));
 		printf("detected multi-boot module: %s 0x%lx-0x%lx\n", name,
 		       (long)mem_desc->addr, (long)(mem_desc->addr + mem_desc->size - 1));
 
