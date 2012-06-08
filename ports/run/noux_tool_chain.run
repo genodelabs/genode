@@ -1,5 +1,5 @@
-if {![have_spec x86]} {
-	puts "\nNoux is supported on the x86 architecture only\n"
+if {![have_spec x86_32]} {
+	puts "\nThe Noux tool chain scenario is supported on the x86_32 architecture only\n"
 	exit 0
 }
 
@@ -34,7 +34,7 @@ close $vimrc_fd
 # strip all binaries prior archiving
 set find_args ""
 foreach pkg $noux_pkgs { append find_args " bin/$pkg/" }
-exec sh -c "find $find_args -type f | (xargs strip || true) 2>/dev/null"
+exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
 
 foreach pkg $noux_pkgs {
 	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }

@@ -8,4 +8,7 @@ NOUX_CFLAGS += -Dsh_xfree=free
 #
 NOUX_CFLAGS += -DNO_MAIN_ENV_ARG=1
 
+# Prevent interactions with nonexisting tty driver
+NOUX_CFLAGS += -DNO_TTY_DRIVER
+
 include $(REP_DIR)/mk/noux.mk
