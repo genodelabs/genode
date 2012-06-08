@@ -241,6 +241,15 @@ namespace Noux {
 				               sysio->recv_in.flags);
 			}
 
+			ssize_t recvfrom(Sysio *sysio)
+			{
+				ssize_t result = ::recvfrom(_socket, sysio->recv_in.buf, sysio->recv_in.len,
+				                            sysio->recv_in.flags, (struct sockaddr *)&sysio->recvfrom_in.src_addr,
+				                            &sysio->recvfrom_in.addrlen);
+
+				return result;
+			}
+
 			ssize_t send(Sysio *sysio)
 			{
 				return ::send(_socket, sysio->send_in.buf, sysio->send_in.len,
