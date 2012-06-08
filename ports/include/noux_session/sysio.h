@@ -380,6 +380,10 @@ namespace Noux {
 			SYSIO_DECL(recv,   { int fd; Chunk buf; size_t len; int flags; },
 			                   { size_t len; });
 
+			SYSIO_DECL(recvfrom, { int fd; Chunk buf; size_t len; int flags;
+			                       struct sockaddr src_addr; socklen_t addrlen; },
+			                     { size_t len; });
+
 			SYSIO_DECL(shutdown, { int fd; int how; }, { });
 
 			SYSIO_DECL(connect, { int fd; struct sockaddr addr; socklen_t addrlen; },

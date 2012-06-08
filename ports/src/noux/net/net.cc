@@ -269,6 +269,19 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 
 				return true;
 			}
+		case SYSCALL_RECVFROM:
+			{
+				GET_SOCKET_IO_CHANNEL(_sysio->recvfrom_in.fd, socket_io_channel)
+
+				ssize_t len = socket_io_channel->recvfrom(_sysio);
+
+				if (len == -1)
+					return false;
+
+				_sysio->recvfrom_out.len = len;
+
+				return true;
+			}
 		case SYSCALL_GETPEERNAME:
 			{
 				GET_SOCKET_IO_CHANNEL(_sysio->getpeername_in.fd, socket_io_channel)
