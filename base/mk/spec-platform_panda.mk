@@ -1,7 +1,7 @@
 #
 # Enable peripherals of the platform
 #
-SPECS +=
+SPECS += omap4
 
 #
 # Pull in CPU specifics
