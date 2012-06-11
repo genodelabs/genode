@@ -415,6 +415,13 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	global qemu
 	global spawn_id
 
+	#
+	# Back out on platforms w/o Qemu support
+	#
+	if {[have_spec platform_panda]}  {
+		puts stderr "skipping execution because platform is not supported by qemu"
+		return 0 }
+
 	if {[have_spec x86_32]} { set qemu "qemu-system-i386" }
 	if {[have_spec x86_64]} { set qemu "qemu-system-x86_64" }
 	if {[have_spec arm]}    { set qemu "qemu-system-arm" }
