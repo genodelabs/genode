@@ -1347,11 +1347,11 @@ namespace {
 		int const orig_count = len;
 		char *src = (char *)buf;
 
-		sysio()->send_in.fd = noux_fd(fd->context);
 		while (len > 0) {
 
 			Genode::size_t curr_len = Genode::min(sizeof (sysio()->send_in.buf), len);
 
+			sysio()->send_in.fd = noux_fd(fd->context);
 			sysio()->send_in.len = curr_len;
 			Genode::memcpy(sysio()->send_in.buf, src, curr_len);
 
