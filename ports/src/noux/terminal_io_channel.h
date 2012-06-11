@@ -108,6 +108,33 @@ namespace Noux {
 			return true;
 		}
 
+		bool fcntl(Sysio *sysio)
+		{
+			/**
+			 * Actually it is "inappropiate" to use fcntl() directly on terminals
+			 * (atleast according to the Open Group Specification). We do it anyway
+			 * since in our case stdout/in/err is directly connected to the terminal.
+			 *
+			 * Some GNU programms check if stdout is open by calling fcntl(stdout, F_GETFL, ...).
+			 */
+			switch (sysio->fcntl_in.cmd) {
+
+			case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
+			{
+				sysio->fcntl_out.result = 0;
+				return true;
+			}
+
+			default:
+			{
+				return false;
+			}
+
+			}
+
+			return false;
+		}
+
 		bool fstat(Sysio *sysio)
 		{
 			/*
