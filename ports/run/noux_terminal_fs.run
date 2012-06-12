@@ -1,0 +1,219 @@
+#
+# \brief  Test for the Noux terminal file system
+# \author Christian Prochaska
+# \date   2012-06-11
+#
+
+#
+# The test shows two framebuffer terminals. The upper terminal runs an
+# interatctive shell and the lower terminal can be accessed from the shell via
+# /dev/terminal.
+#
+# Example for writing to the lower terminal: echo "test" > /dev/terminal
+# Example for reading a line from the lower terminal: head -n 1 /dev/terminal
+#
+
+set build_components {
+	core init drivers/timer noux lib/libc_noux
+	drivers/framebuffer drivers/pci drivers/input
+	server/terminal server/ram_fs server/nitpicker
+	server/nit_fb
+}
+
+#
+# Build Noux packages only once
+#
+foreach pkg {bash coreutils} {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+build $build_components
+
+# strip all binaries prior archiving
+exec sh -c "find bin/bash/ bin/coreutils/ -type f | (xargs strip || true) 2>/dev/null"
+
+exec tar cfv bin/bash.tar      -h -C bin/bash .
+exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start> }
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start> }
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start> }
+
+append_if [have_spec vesa] config {
+	<start name="vesa_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start> }
+
+append_if [have_spec pl11x] config {
+	<start name="pl11x_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start> }
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append config {
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route> }
+append_if [have_spec ps2] config {
+			<service name="Input"><child name="ps2_drv"/></service> }
+append_if [have_spec vesa] config {
+			<service name="Framebuffer"><child name="vesa_drv"/> </service> }
+append_if [have_spec pl11x] config {
+			<service name="Framebuffer"><child name="pl11x_drv"/> </service> }
+append config {
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="terminal_noux_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="0" ypos="0" width="1024" height="380" refresh_rate="25"/>
+	</start>
+	<start name="terminal_test_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="0" ypos="388" width="1024" height="380" refresh_rate="25"/>
+	</start>
+	<start name="terminal_noux">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input"><child name="terminal_noux_fb"/></service>
+			<service name="Framebuffer"><child name="terminal_noux_fb"/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config>
+			<keyboard layout="de"/>
+		</config>
+	</start>
+	<start name="terminal_test">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input"><child name="terminal_test_fb"/></service>
+			<service name="Framebuffer"><child name="terminal_test_fb"/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config>
+			<keyboard layout="de"/>
+		</config>
+	</start>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<!-- constrain sessions according to their labels -->
+			<policy label="noux -> root" root="/" />
+		</config>
+	</start>
+	<start name="noux">
+		<resource name="RAM" quantum="1G" />
+		<route>
+			<service name="Terminal">
+				<if-arg key="label" value="noux"/><child name="terminal_noux"/>
+			</service>
+			<service name="Terminal">
+				<if-arg key="label" value="noux -> noux(terminal_fs)"/><child name="terminal_test"/>
+			</service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config>
+			<fstab>
+				<tar name="coreutils.tar" />
+				<tar name="bash.tar" />
+
+				<dir name="ram"> <fs label="root" /> </dir>
+				<dir name="dev"> <terminal name="terminal" /> </dir>
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="linux" />
+			</start>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal ram_fs nitpicker nit_fb
+	libc.lib.so libm.lib.so libc_noux.lib.so
+	bash.tar coreutils.tar
+}
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec pl11x] boot_modules pl11x_drv
+
+build_boot_image $boot_modules
+
+if {[have_spec x86_64]} {
+	# bash.tar is really huge when built for x86_64
+	append qemu_args " -m 300 "
+}
+
+run_genode_until forever
+
+exec rm bin/bash.tar

@@ -931,6 +931,7 @@ namespace {
 		case Noux::Sysio::DIRENT_TYPE_FILE:      dirent->d_type = DT_REG;  break;
 		case Noux::Sysio::DIRENT_TYPE_SYMLINK:   dirent->d_type = DT_LNK;  break;
 		case Noux::Sysio::DIRENT_TYPE_FIFO:      dirent->d_type = DT_FIFO; break;
+		case Noux::Sysio::DIRENT_TYPE_CHARDEV:   dirent->d_type = DT_CHR; break;
 		case Noux::Sysio::DIRENT_TYPE_END:       return 0;
 		}
 
