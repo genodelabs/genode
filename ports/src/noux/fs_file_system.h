@@ -335,11 +335,12 @@ namespace Noux {
 				if (create)
 					PDBG("creation of file %s requested", file_name.base() + 1);
 
-				::File_system::Dir_handle dir = _fs.dir(dir_path.base(), false);
-				Fs_handle_guard dir_guard(_fs, dir);
-
 				Sysio::Open_error error = Sysio::OPEN_ERR_UNACCESSIBLE;
+
 				try {
+					::File_system::Dir_handle dir = _fs.dir(dir_path.base(), false);
+					Fs_handle_guard dir_guard(_fs, dir);
+
 					::File_system::File_handle file = _fs.file(dir, file_name.base() + 1,
 					                                           mode, create);
 					return new (env()->heap()) Fs_vfs_handle(this, 0, file);
@@ -348,6 +349,7 @@ namespace Noux {
 					error = Sysio::OPEN_ERR_NO_PERM; }
 				catch (::File_system::Invalid_handle) {
 					error = Sysio::OPEN_ERR_NO_PERM; }
+				catch (::File_system::Lookup_failed) { }
 
 				sysio->error.open = error;
 				return 0;
