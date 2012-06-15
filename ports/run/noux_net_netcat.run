@@ -7,7 +7,7 @@ build {
 	core init
 	drivers/timer drivers/uart drivers/nic drivers/pci
 	noux/net lib/libc_noux
-	noux-pkg/gnu-netcat
+	noux-pkg/netcat
 }
 
 exec tar cfv bin/noux_netcat.tar -h -C bin/netcat .

@@ -1,4 +1,4 @@
-GNUNETCAT     = gnu-netcat-0.7.1
+GNUNETCAT     = netcat-0.7.1
 GNUNETCAT_VERSION = 0.7.1
 GNUNETCAT_TBZ = netcat-$(GNUNETCAT_VERSION).tar.bz2
 GNUNETCAT_URL = http://downloads.sourceforge.net/sourceforge/netcat/netcat-$(GNUNETCAT_VERSION).tar.bz2
