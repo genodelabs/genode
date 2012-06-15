@@ -60,7 +60,7 @@ append_if [have_spec omap4] config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="omap44xx_fb_drv">
+	<start name="omap4_fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
@@ -88,7 +88,7 @@ lappend_if [have_spec sdl]   boot_modules fb_sdl
 lappend_if [have_spec pci]   boot_modules pci_drv
 lappend_if [have_spec vesa]  boot_modules vesa_drv
 lappend_if [have_spec pl11x] boot_modules pl11x_drv
-lappend_if [have_spec omap4] boot_modules omap44xx_fb_drv
+lappend_if [have_spec omap4] boot_modules omap4_fb_drv
 
 build_boot_image $boot_modules
 
