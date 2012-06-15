@@ -343,7 +343,8 @@ namespace Noux {
 
 					::File_system::File_handle file = _fs.file(dir, file_name.base() + 1,
 					                                           mode, create);
-					return new (env()->heap()) Fs_vfs_handle(this, 0, file);
+
+					return new (env()->heap()) Fs_vfs_handle(this, mode, file);
 				}
 				catch (::File_system::Permission_denied) {
 					error = Sysio::OPEN_ERR_NO_PERM; }
