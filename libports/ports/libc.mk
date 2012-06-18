@@ -585,7 +585,7 @@ apply_patches-libc: checkout-libc
 create_include_symlinks-libc: checkout-libc
 	$(VERBOSE)make -s $(LIBC_IMPORT_INCLUDES)
 
-prepare-libc: create_include_symlinks-libc apply_patches-libc libc_net_generate libc_rpc_generate
+prepare-libc: apply_patches-libc libc_net_generate libc_rpc_generate create_include_symlinks-libc
 
 clean_include_symlinks-libc:
 	$(VERBOSE)find include -type l -delete
