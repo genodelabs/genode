@@ -16,12 +16,7 @@
 #include <platform.h>
 #include <util.h>
 #include <io_mem_session_component.h>
-
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/ipc.h>
-#include <l4/sigma0/sigma0.h>
-}
+#include <map_local.h>
 
 using namespace Genode;
 
@@ -32,17 +27,8 @@ void Io_mem_session_component::_unmap_local(addr_t base, size_t size)
 }
 
 
-static inline bool can_use_super_page(addr_t base, size_t size)
-{
-	return (base & (get_super_page_size() - 1)) == 0
-	    && (size >= get_super_page_size());
-}
-
-
 addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 {
-	using namespace Fiasco;
-
 	/* align large I/O dataspaces on a super-page boundary within core */
 	size_t alignment = (size >= get_super_page_size()) ? get_super_page_size_log2()
 	                                                   : get_page_size_log2();
@@ -52,40 +38,9 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 	if (!platform()->region_alloc()->alloc_aligned(size, &local_base, alignment))
 		return 0;
 
-	/* call sigma0 for I/O region */
-	unsigned offset = 0;
-	while (size) {
-		/* FIXME what about caching demands? */
-		/* FIXME what about read / write? */
-
-		l4_utcb_mr()->mr[0] = SIGMA0_REQ_FPAGE_IOMEM;
-
-		size_t page_size_log2 = get_page_size_log2();
-		if (can_use_super_page(base + offset, size))
-			page_size_log2 = get_super_page_size_log2();
-		l4_utcb_mr()->mr[1] = l4_fpage(base + offset,
-		                               page_size_log2, L4_FPAGE_RWX).raw;
-
-		/* open receive window for mapping */
-		l4_utcb_br()->bdr   = 0;
-		l4_utcb_br()->br[0] = L4_ITEM_MAP;
-		l4_utcb_br()->br[1] = l4_fpage((addr_t)local_base + offset,
-		                               page_size_log2, L4_FPAGE_RWX).raw;
-
-		l4_msgtag_t tag = l4_msgtag(L4_PROTO_SIGMA0, 2, 0, 0);
-		tag = l4_ipc_call(L4_BASE_PAGER_CAP, l4_utcb(), tag, L4_IPC_NEVER);
-		if (l4_ipc_error(tag, l4_utcb())) {
-			PERR("Ipc error %ld", l4_ipc_error(tag, l4_utcb()));
-			return 0;
-		}
-
-		if (l4_msgtag_items(tag) < 1) {
-			PERR("Got no mapping!");
-			return 0;
-		}
-
-		offset += 1 << page_size_log2;
-		size   -= 1 << page_size_log2;
+	if (!map_local_io(base, (addr_t)local_base, size >> get_page_size_log2())) {
+		PERR("map_local_io failed\n");
+		return 0;
 	}
 
 	return (addr_t)local_base;

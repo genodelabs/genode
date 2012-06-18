@@ -62,7 +62,7 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 	if (fsize == 0)
 		throw Root::Invalid_args();
 
-	_ds = Dataspace_component(fsize, 0, false);
+	_ds = Dataspace_component(fsize, 0, false, false, 0);
 	_ds.fname(fname_buf);
 
 	Dataspace_capability ds_cap = _ds_ep->manage(&_ds);

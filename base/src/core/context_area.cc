@@ -88,7 +88,7 @@ class Context_area_ram_session : public Ram_session
 {
 	public:
 
-		Ram_dataspace_capability alloc(size_t size)
+		Ram_dataspace_capability alloc(size_t size, bool cached)
 		{
 			/* find free context */
 			unsigned i;
@@ -111,7 +111,7 @@ class Context_area_ram_session : public Ram_session
 			}
 
 			context_ds[i] = new (platform()->core_mem_alloc())
-				Dataspace_component(size, 0, (addr_t)phys_base, false, true);
+				Dataspace_component(size, 0, (addr_t)phys_base, false, true, 0);
 
 			Dataspace_capability cap = Dataspace_capability::local_cap(context_ds[i]);
 			return static_cap_cast<Ram_dataspace>(cap);

@@ -34,7 +34,7 @@ namespace Genode {
 			Ram_session_client_guard(Ram_session_capability session, size_t amount)
 			: Ram_session_client(session), _amount(amount), _consumed(0) { }
 
-			Ram_dataspace_capability alloc(size_t size)
+			Ram_dataspace_capability alloc(size_t size, bool cached)
 			{
 				Lock::Guard _consumed_lock_guard(_consumed_lock);
 
@@ -44,7 +44,8 @@ namespace Genode {
 					return Ram_dataspace_capability();
 				}
 
-				Ram_dataspace_capability cap = Ram_session_client::alloc(size);
+				Ram_dataspace_capability cap =
+					Ram_session_client::alloc(size, cached);
 
 				_consumed += size;
 

@@ -111,6 +111,8 @@ int Framebuffer_drv::map_io_mem(addr_t base, size_t size, bool write_combined,
 		return -3;
 	}
 
+	PDBG("fb mapped to %p", *out_addr);
+
 	if (out_io_ds)
 		*out_io_ds = io_ds;
 

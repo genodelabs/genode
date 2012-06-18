@@ -13,23 +13,12 @@
 
 /* core includes */
 #include <rm_session_component.h>
-
-/* Fiasco includes */
-namespace Fiasco {
-#include <l4/sys/task.h>
-}
+#include <map_local.h>
 
 using namespace Genode;
 
-
 void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 {
-	using namespace Fiasco;
-
 	// TODO unmap it only from target space
-	addr_t addr = core_local_base;
-	for (; addr < core_local_base + size; addr += L4_PAGESIZE)
-		l4_task_unmap(L4_BASE_TASK_CAP,
-		              l4_fpage(addr, L4_LOG2_PAGESIZE, L4_FPAGE_RW),
-		              L4_FP_OTHER_SPACES);
+	unmap_local(core_local_base, size >> get_page_size_log2());
 }

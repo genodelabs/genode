@@ -50,8 +50,9 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Dataspace_component(size_t size, addr_t addr, bool writable,
-			                    Dataspace_owner * owner = 0)
+			Dataspace_component(size_t size, addr_t addr,
+			                    bool /* write_combined */, bool writable,
+			                    Dataspace_owner * owner)
 			: _size(size), _addr(addr), _writable(writable),
 			  _owner(owner) { }
 
@@ -67,7 +68,7 @@ namespace Genode {
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
 			                    addr_t phys_addr, bool write_combined,
-			                    bool writable, Dataspace_owner * _owner = 0)
+			                    bool writable, Dataspace_owner * _owner)
 				: _size(size), _addr(phys_addr), _owner(_owner)
 			{
 				PWRN("Should only be used for IOMEM and not within Linux.");

@@ -83,6 +83,13 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 	l4_umword_t grant   = _reply_mapping.grant() ? L4_MAP_ITEM_GRANT : 0;
 	l4_utcb_mr()->mr[0] = _reply_mapping.dst_addr() | L4_ITEM_MAP | grant;
+
+	/*
+	 * XXX Does L4_FPAGE_BUFFERABLE imply L4_FPAGE_UNCACHEABLE?
+	 */
+	if (_reply_mapping.write_combined())
+		l4_utcb_mr()->mr[0] |= L4_FPAGE_BUFFERABLE << 4;
+
 	l4_utcb_mr()->mr[1] = _reply_mapping.fpage().raw;
 
 	_tag = l4_ipc_send_and_wait(_last, l4_utcb(), snd_tag,

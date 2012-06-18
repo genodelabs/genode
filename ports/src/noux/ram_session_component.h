@@ -135,9 +135,10 @@ namespace Noux {
 			 ** Ram_session interface **
 			 ***************************/
 
-			Ram_dataspace_capability alloc(size_t size)
+			Ram_dataspace_capability alloc(size_t size, bool cached)
 			{
-				Ram_dataspace_capability ds_cap = env()->ram_session()->alloc(size);
+				Ram_dataspace_capability ds_cap =
+					env()->ram_session()->alloc(size, cached);
 
 				Ram_dataspace_info *ds_info = new (env()->heap())
 				                              Ram_dataspace_info(ds_cap);

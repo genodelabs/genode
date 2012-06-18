@@ -48,13 +48,16 @@ namespace Genode {
 		/**
 		 * Allocate RAM dataspace
 		 *
-		 * \param  size  size of RAM dataspace
+		 * \param  size    size of RAM dataspace
+		 * \param  cached  true for cached memory, false for allocating
+		 *                 uncached memory, i.e., for DMA buffers
 		 *
 		 * \throw  Quota_exceeded
 		 * \throw  Out_of_metadata
 		 * \return capability to new RAM dataspace
 		 */
-		virtual Ram_dataspace_capability alloc(size_t size) = 0;
+		virtual Ram_dataspace_capability alloc(size_t size,
+		                                       bool cached = true) = 0;
 
 		/**
 		 * Free RAM dataspace
@@ -112,7 +115,8 @@ namespace Genode {
 		 *********************/
 
 		GENODE_RPC_THROW(Rpc_alloc, Ram_dataspace_capability, alloc,
-		                 GENODE_TYPE_LIST(Quota_exceeded, Out_of_metadata), size_t);
+		                 GENODE_TYPE_LIST(Quota_exceeded, Out_of_metadata),
+		                 size_t, bool);
 		GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
 		GENODE_RPC(Rpc_ref_account, int, ref_account, Ram_session_capability);
 		GENODE_RPC(Rpc_transfer_quota, int, transfer_quota, Ram_session_capability, size_t);
