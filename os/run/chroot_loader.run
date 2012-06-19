@@ -69,6 +69,7 @@ proc cleanup_chroot { } {
 		catch { exec sudo umount -l [chroot_cwd_path $id] }
 		catch { exec sudo umount -l [chroot_genode_tmp_path $id] }
 		catch { exec sudo umount -l [chroot_path $id]/lib }
+		catch { exec sudo umount -l [chroot_path $id]/lib64 }
 		catch { exec rm -rf [chroot_path $id] }
 	}
 }
@@ -107,9 +108,11 @@ cleanup_chroot
 foreach id { 1 2 } {
 	exec mkdir -p [chroot_path $id]
 	exec mkdir -p [chroot_path $id]/lib
+	exec mkdir -p [chroot_path $id]/lib64
 
 	# bind mount '/lib' as need libc within the chroot environment
 	exec sudo mount --bind /lib [chroot_path $id]/lib
+	catch { exec sudo mount --bind /lib64 [chroot_path $id]/lib64 }
 }
 
 #
