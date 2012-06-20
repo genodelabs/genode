@@ -127,6 +127,14 @@ $(BUILD_DIR)/etc/build.conf::
 endif
 
 #
+# Add ARM drivers repositories to ARM build directories
+#
+ifeq ($(filter-out foc_panda,$(PLATFORM)),)
+$(BUILD_DIR)/etc/build.conf::
+	@cat $(BUILD_CONF).drivers_arm >> $@
+endif
+
+#
 # Generic platform dependencies
 #
 $(PLATFORM):: $(BUILD_DIR)/etc
