@@ -403,13 +403,20 @@ namespace Nova {
 		 *
 		 * \param exception  true to append the item to an exception reply
 		 */
-		void append_item(Crd crd, mword_t sel_hotspot,
+		__attribute__((warn_unused_result))
+		bool append_item(Crd crd, mword_t sel_hotspot,
 		                 bool kern_pd = false,
 		                 bool update_guest_pt = false)
 		{
 			/* transfer items start at the end of the UTCB */
 			items += 1 << 16;
 			Item *item = reinterpret_cast<Item *>(this) + (PAGE_SIZE_BYTE / sizeof(struct Item)) - (items >> 16);
+
+			/* check that there is enough space left on UTCB */
+			if (msg + msg_words() >= reinterpret_cast<mword_t *>(item)) {
+				items -= 1 << 16;
+				return false;
+			}
 
 			/* map from hypervisor or current pd */
 			unsigned h = kern_pd ? (1 << 11) : 0;
@@ -420,6 +427,7 @@ namespace Nova {
 			item->hotspot = crd.hotspot(sel_hotspot) | g | h | 1;
 			item->crd = crd.value();
 
+			return true;
 		}
 
 		mword_t mtd_value() const { return static_cast<Mtd>(mtd).value(); }
