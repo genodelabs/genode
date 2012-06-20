@@ -281,7 +281,8 @@ Platform::Platform() :
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
 
-		const char *name = commandline_to_basename((char *)mem_desc->aux);
+		addr_t aux = mem_desc->aux;
+		const char *name = commandline_to_basename(reinterpret_cast<char *>(aux));
 		printf("detected multi-boot module: %s 0x%lx-0x%lx\n", name,
 		       (long)mem_desc->addr, (long)(mem_desc->addr + mem_desc->size - 1));
 
@@ -318,7 +319,7 @@ Platform::Platform() :
 
 	/* IRQ allocator */
 	_irq_alloc.add_range(0, hip->sel_gsi - 1);
-	_gsi_base_sel = hip->sel_exc;
+	_gsi_base_sel = (hip->mem_desc_offset - hip->cpu_desc_offset) / hip->cpu_desc_size;
 
 	if (verbose_boot_info) {
 		printf(":virt_alloc: "); _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();

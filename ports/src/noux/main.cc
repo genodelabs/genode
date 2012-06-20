@@ -483,6 +483,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_SEND:
 		case SYSCALL_SENDTO:
 		case SYSCALL_RECV:
+		case SYSCALL_RECVFROM:
 		case SYSCALL_GETPEERNAME:
 		case SYSCALL_SHUTDOWN:
 		case SYSCALL_CONNECT:

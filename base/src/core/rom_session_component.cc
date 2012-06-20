@@ -25,7 +25,7 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 :
 	_rom_module(_find_rom(rom_fs, args)),
 	_ds(_rom_module ? _rom_module->size() : 0,
-	    _rom_module ? _rom_module->addr() : 0, false),
+	    _rom_module ? _rom_module->addr() : 0, false, false, 0),
 	_ds_ep(ds_ep)
 {
 	/* ROM module not found */

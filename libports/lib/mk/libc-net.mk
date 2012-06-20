@@ -4,7 +4,7 @@ LIBC_NET_DIR = $(LIBC_DIR)/libc/net
 SRC_C = getservent.c nsdispatch.c nsparser.c nslexer.c
 
 # needed for getaddrinfo()
-#SRC_C += getaddrinfo.c
+SRC_C += getaddrinfo.c gai_strerror .c
 
 # getaddrinfo() includes parts of rpc/ which in return includes
 # even more stuff from the rpc framework. For now the effort for

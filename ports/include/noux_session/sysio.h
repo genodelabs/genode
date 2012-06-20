@@ -120,6 +120,7 @@ namespace Noux {
 			DIRENT_TYPE_FILE,
 			DIRENT_TYPE_DIRECTORY,
 			DIRENT_TYPE_FIFO,
+			DIRENT_TYPE_CHARDEV,
 			DIRENT_TYPE_SYMLINK,
 			DIRENT_TYPE_END
 		};
@@ -378,6 +379,10 @@ namespace Noux {
 
 			SYSIO_DECL(recv,   { int fd; Chunk buf; size_t len; int flags; },
 			                   { size_t len; });
+
+			SYSIO_DECL(recvfrom, { int fd; Chunk buf; size_t len; int flags;
+			                       struct sockaddr src_addr; socklen_t addrlen; },
+			                     { size_t len; });
 
 			SYSIO_DECL(shutdown, { int fd; int how; }, { });
 

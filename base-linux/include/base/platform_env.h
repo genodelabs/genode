@@ -252,12 +252,12 @@ namespace Genode {
 					Expanding_ram_session_client(Ram_session_capability cap)
 					: Ram_session_client(cap), _cap(cap) { }
 
-					Ram_dataspace_capability alloc(size_t size) {
+					Ram_dataspace_capability alloc(size_t size, bool cached) {
 						bool try_again;
 						do {
 							try_again = false;
 							try {
-								return Ram_session_client::alloc(size);
+								return Ram_session_client::alloc(size, cached);
 
 							} catch (Ram_session::Out_of_metadata) {
 

@@ -71,6 +71,8 @@ namespace Genode {
 				return Fiasco::l4_fpage(_src_addr, _log2size, rights);
 			}
 
+			bool write_combined() const { return _write_combined; }
+
 			/**
 			 * Prepare map operation
 			 *

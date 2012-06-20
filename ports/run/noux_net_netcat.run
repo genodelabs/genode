@@ -1,7 +1,3 @@
-if {![have_spec x86_32]} {
-	puts "\nNoux is supported on the x86_32 architecture only\n"
-	exit 0
-}
 if {[have_spec linux]} {
 	puts "\nLinux not supported because of missing UART driver\n"
 	exit 0
@@ -32,7 +28,7 @@ exec tar rfv bin/noux_netcat.tar -h -C bin/ etc
 
 create_boot_directory
 
-install_config {
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -51,7 +47,7 @@ install_config {
 		<any-service> <any-child/> <parent/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="512K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="uart_drv">
@@ -64,11 +60,15 @@ install_config {
 	<start name="nic_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
-	</start>
+	</start>}
+
+append_if [have_spec pci] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="PCI"/> </provides>
-	</start>
+		<provides><service name="PCI"/> </provides>
+	</start>}
+	
+append config {
 	<start name="noux_net">
 		<resource name="RAM" quantum="1G"/>
 		<config>
@@ -82,11 +82,23 @@ install_config {
 </config>
 }
 
-build_boot_image {
-	core init timer uart_drv pci_drv nic_drv
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer uart_drv nic_drv
 	ld.lib.so noux_net libc.lib.so libm.lib.so
 	libc_noux.lib.so lwip.lib.so noux_netcat.tar
 }
+
+# platform-specific modules
+lappend_if [have_spec pci] boot_modules pci_drv
+
+build_boot_image $boot_modules
 
 #
 # Redirect the output of Noux via the virtual serial port 1 into a file to be

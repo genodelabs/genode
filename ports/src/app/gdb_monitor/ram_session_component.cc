@@ -29,7 +29,7 @@ Ram_session_component::~Ram_session_component()
 { }
 
 
-Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size)
+Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cached)
 {
 	return _parent_ram_session.alloc(ds_size);
 }

@@ -116,22 +116,25 @@ namespace Noux {
 
 			bool check_unblock(bool rd, bool wr, bool ex) const
 			{
-				if (_unblock & UNBLOCK_READ)
-					return true;
-				if (_unblock & UNBLOCK_WRITE)
-					return true;
-				if (_unblock & UNBLOCK_EXCEPT)
-					return true;
+				if (rd)
+					return (_unblock & UNBLOCK_READ);
+				if (wr)
+					return (_unblock & UNBLOCK_WRITE);
+				if (ex)
+					return (_unblock & UNBLOCK_EXCEPT);
 
 				return false;
 			}
 
-			size_t write(Sysio *sysio)
+			bool write(Sysio *sysio, size_t &count)
 			{
-				size_t written = ::write(_socket, sysio->write_in.chunk,
+				PINF("socket_io_channel write called");
+				count = ::write(_socket, sysio->write_in.chunk,
 				                         sysio->write_in.count);
 
-				return written;
+				sysio->write_out.count = count;
+
+				return count != -1 ? true : false;
 			}
 
 			bool read(Sysio *sysio)
@@ -239,6 +242,15 @@ namespace Noux {
 			{
 				return ::recv(_socket, sysio->recv_in.buf, sysio->recv_in.len,
 				               sysio->recv_in.flags);
+			}
+
+			ssize_t recvfrom(Sysio *sysio)
+			{
+				ssize_t result = ::recvfrom(_socket, sysio->recv_in.buf, sysio->recv_in.len,
+				                            sysio->recv_in.flags, (struct sockaddr *)&sysio->recvfrom_in.src_addr,
+				                            &sysio->recvfrom_in.addrlen);
+
+				return result;
 			}
 
 			ssize_t send(Sysio *sysio)

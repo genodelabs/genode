@@ -583,6 +583,8 @@ namespace {
 			ssize_t sendto(Libc::File_descriptor *, const void *, size_t, int,
 				       const struct sockaddr *, socklen_t);
 			ssize_t recv(Libc::File_descriptor *, void *, ::size_t, int);
+			ssize_t recvfrom(Libc::File_descriptor *, void *, ::size_t, int,
+			                 struct sockaddr *, socklen_t*);
 			int getsockopt(Libc::File_descriptor *, int, int, void *,
 				       socklen_t *);
 			int setsockopt(Libc::File_descriptor *, int , int , const void *,
@@ -931,6 +933,7 @@ namespace {
 		case Noux::Sysio::DIRENT_TYPE_FILE:      dirent->d_type = DT_REG;  break;
 		case Noux::Sysio::DIRENT_TYPE_SYMLINK:   dirent->d_type = DT_LNK;  break;
 		case Noux::Sysio::DIRENT_TYPE_FIFO:      dirent->d_type = DT_FIFO; break;
+		case Noux::Sysio::DIRENT_TYPE_CHARDEV:   dirent->d_type = DT_CHR; break;
 		case Noux::Sysio::DIRENT_TYPE_END:       return 0;
 		}
 
@@ -1340,17 +1343,68 @@ namespace {
 	}
 
 
+	ssize_t Plugin::recvfrom(Libc::File_descriptor *fd, void *buf, size_t len, int flags,
+	                         struct sockaddr *src_addr, socklen_t *addrlen)
+	{
+		Genode::size_t sum_recvfrom_count = 0;
+
+
+		while (len) {
+			Genode::size_t curr_len = Genode::min(len, sizeof(sysio()->recvfrom_in.buf));
+
+			sysio()->recv_in.fd = noux_fd(fd->context);
+			sysio()->recv_in.len = curr_len;
+			
+			if (src_addr == NULL) {
+				Genode::memset(&sysio()->recvfrom_in.src_addr, 0,
+				               sizeof (struct sockaddr));
+			}
+			else {
+				Genode::memcpy(&sysio()->recvfrom_in.src_addr, src_addr,
+				               sizeof (struct sockaddr));
+			}
+
+			if (addrlen == NULL) {
+				sysio()->recvfrom_in.addrlen = 0;
+			}
+			else {
+				sysio()->recvfrom_in.addrlen = *addrlen;
+			}
+
+
+			if (!noux()->syscall(Noux::Session::SYSCALL_RECVFROM)) {
+				/* XXX set errno */
+				return -1;
+			}
+
+			Genode::memcpy(buf, sysio()->recvfrom_in.buf, sysio()->recvfrom_in.len);
+
+			sum_recvfrom_count += sysio()->recvfrom_in.len;
+
+			if (sysio()->recvfrom_out.len < sysio()->recvfrom_in.len)
+				break;
+
+			if (sysio()->recvfrom_out.len <= len)
+				len -= sysio()->recvfrom_out.len;
+			else
+				break;
+		}
+
+		return sum_recvfrom_count;
+	}
+
+
 	ssize_t Plugin::send(Libc::File_descriptor *fd, const void *buf, ::size_t len, int flags)
 	{
 		/* remember original len for the return value */
 		int const orig_count = len;
 		char *src = (char *)buf;
 
-		sysio()->send_in.fd = noux_fd(fd->context);
 		while (len > 0) {
 
 			Genode::size_t curr_len = Genode::min(sizeof (sysio()->send_in.buf), len);
 
+			sysio()->send_in.fd = noux_fd(fd->context);
 			sysio()->send_in.len = curr_len;
 			Genode::memcpy(sysio()->send_in.buf, src, curr_len);
 

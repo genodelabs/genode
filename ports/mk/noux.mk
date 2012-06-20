@@ -38,11 +38,6 @@ NOUX_PKG_DIR = $(wildcard $(REP_DIR)/contrib/$(NOUX_PKG)-*)
 PWD = $(shell pwd)
 
 #
-# Disable Noux on non-x86 architectures for now
-#
-REQUIRES += x86
-
-#
 # Detect missing preparation of noux package
 #
 ifeq ($(NOUX_PKG_DIR),)
@@ -109,7 +104,7 @@ NOUX_LIBS_A  = $(filter %.a, $(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS_SO = $(filter %.so,$(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS += $(NOUX_LIBS_A) $(NOUX_LIBS_SO) $(NOUX_LIBS_A)
 
-NOUX_ENV += CC='$(CC)' LD='$(LD)' AR='$(AR)' LIBS='$(NOUX_LIBS)' \
+NOUX_ENV += CC='$(CC)' LD='$(LD)' AR='$(AR)' STRIP='$(STRIP)' LIBS='$(NOUX_LIBS)' \
             LDFLAGS='$(NOUX_LDFLAGS)' CFLAGS='$(NOUX_CFLAGS)' \
             CPPFLAGS='$(NOUX_CPPFLAGS)'
 

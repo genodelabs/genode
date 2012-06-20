@@ -302,7 +302,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		int                 _region_end;
 		int                 _tab_size;
 
-		enum { DEFAULT_COLOR_INDEX = 4, DEFAULT_TAB_SIZE = 8 };
+		enum { DEFAULT_COLOR_INDEX = 7, DEFAULT_TAB_SIZE = 8 };
 
 		struct Cursor_guard
 		{
@@ -617,6 +617,11 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			/* sgr 0 is the command to reset all attributes, including color */
 			if (value == 0)
 				_color_index = DEFAULT_COLOR_INDEX;
+		}
+
+		void sgr0()
+		{
+			sgr(0);
 		}
 
 		void sc()
@@ -1053,8 +1058,8 @@ enum {
 
 static unsigned char usenglish_keymap[128] = {
 	 0 ,ESC,'1','2','3','4','5','6','7','8','9','0','-','=', BS,TAB,
-	'q','w','e','r','t','y','u','i','o','p','[','}', LF, 0 ,'a','s',
-	'd','f','g','h','j','k','l',';','\'','`', 0 , 0 ,'z','x','c','v',
+	'q','w','e','r','t','y','u','i','o','p','[',']', LF, 0 ,'a','s',
+	'd','f','g','h','j','k','l',';','\'','`', 0, '\\' ,'z','x','c','v',
 	'b','n','m',',','.','/', 0 , 0 , 0 ,' ', 0 , 0 , 0 , 0 , 0 , 0 ,
 	 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'7','8','9','-','4','5','6','+','1',
 	'2','3','0',',', 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
@@ -1072,7 +1077,7 @@ static unsigned char usenglish_shift[256 - 32] = {
 	/*  32 */ ' ', 0 , 0,  0 , 0 , 0 , 0 ,'"', 0 , 0 , 0 , 0 ,'<','_','>','?',
 	/*  48 */ ')','!','@','#','$','%','^','&','*','(', 0 ,':', 0 ,'+', 0 , 0 ,
 	/*  64 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/*  80 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'{', 0 ,'}', 0 , 0 ,
+	/*  80 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'{','|','}', 0 , 0 ,
 	/*  96 */ '~','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
 	/* 112 */ 'P','Q','R','S','T','U','V','W','X','Y','Z', 0 ,'\\', 0 , 0 , 0 ,
 };
@@ -1349,14 +1354,14 @@ int main(int, char **)
 	static Read_buffer read_buffer;
 
 	/* initialize color palette */
-	color_palette[0] = Color(100, 100, 100);
-	color_palette[1] = Color(0, 0, 224);
-	color_palette[2] = Color(0,255, 0);
-	color_palette[3] = Color(0,255,255);
-	color_palette[4] = Color(224, 224, 224);
-	color_palette[5] = Color(255, 0, 255);
-	color_palette[6] = Color(255, 255, 0);
-	color_palette[7] = Color(255, 0, 0);
+	color_palette[0] = Color(  0,   0,   0);	/* black */
+	color_palette[1] = Color(255,   0,   0);	/* red */
+	color_palette[2] = Color(  0, 255,   0);	/* green */
+	color_palette[3] = Color(255, 255,   0);	/* yellow */
+	color_palette[4] = Color(  0,   0, 255);	/* blue */
+	color_palette[5] = Color(255,   0, 255);	/* magenta */
+	color_palette[6] = Color(  0, 255, 255);	/* cyan */
+	color_palette[7] = Color(255, 255, 255);	/* white */
 
 	/* the upper portion of the palette contains highlight colors */
 	for (int i = 0; i < 8; i++) {

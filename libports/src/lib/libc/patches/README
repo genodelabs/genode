@@ -1,6 +1,11 @@
 Manual modifications
 ####################
 
+:'src/lib/include/rpcsvc/nis.x':
+
+  CPP seems not to be able to parse splitted lines and so fails with
+  'definition keyword expected' otherwise (though that's just a rough guess).
+
 :'src/lib/libc/stdlib/malloc.c':
 
   Undefine 'MALLOC_DSS' to avoid the usage of sbrk.

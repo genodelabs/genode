@@ -1,55 +1,50 @@
 #
 # \brief  Download, and unpack the NOVA hypervisor.
 # \author Stefan Kalkowski
-# \date   2011-07-20
+# \author Alexander Boettcher
+# \date   2012-06-04
 #
 
 VERBOSE     ?= @
-ECHO         = @echo
-DOWNLOAD_DIR = download
-CONTRIB_DIR  = contrib
-NOVA_ARCHIVE = nova-hypervisor-0.4.tar.bz2
-NOVA_URI     = http://os.inf.tu-dresden.de/~us15/nova/$(NOVA_ARCHIVE)
+ECHO        = @echo
+GIT_URL     = git://github.com/IntelLabs/NOVA.git 
+GIT_REV     = f6bad89f2df036c9ee75699c2138586e28c711a0 
+CONTRIB_DIR = contrib
+PATCHES     = $(shell find patches -name *.patch)
 
 #
 # Utility to check if a tool is installed
 #
 check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 
-$(call check_tool,wget)
+$(call check_tool,git)
 $(call check_tool,patch)
 
 #
 # Print help information by default
 #
-help:
+help::
+
+prepare: $(CONTRIB_DIR)
+
+help::
 	$(ECHO)
 	$(ECHO) "Prepare the NOVA base repository"
 	$(ECHO)
 	$(ECHO) "--- available commands ---"
-	$(ECHO) "prepare  - download and extract the NOVA source code"
-	$(ECHO) "clean    - clean everything except downloaded archives"
-	$(ECHO) "cleanall - clean everything including downloaded archives"
+	$(ECHO) "prepare - checkout upstream source codes"
+	$(ECHO) "clean   - remove upstream source codes"
 	$(ECHO)
 
-$(DOWNLOAD_DIR)/$(NOVA_ARCHIVE):
-	$(ECHO) "downloading source code to '$(DOWNLOAD_DIR)/'"
-	$(VERBOSE)mkdir -p $(DOWNLOAD_DIR)
-	$(VERBOSE)wget -c $(NOVA_URI) -O $@
+$(CONTRIB_DIR)/.git:
+	$(VERBOSE)git clone $(GIT_URL) $(CONTRIB_DIR)
 
-$(CONTRIB_DIR): clean
+$(CONTRIB_DIR): $(CONTRIB_DIR)/.git
+	$(VERBOSE)cd $(CONTRIB_DIR); git reset --hard $(GIT_REV)
+	$(ECHO) "applying patches to '$(CONTRIB_DIR)/'"
+	$(VERBOSE)for i in $(PATCHES); do patch -d $@ -p1 < $$i; done
 
-$(CONTRIB_DIR): $(DOWNLOAD_DIR)/$(NOVA_ARCHIVE)
-	$(ECHO) "unpacking source code to '$(CONTRIB_DIR)/'"
-	$(VERBOSE)tar xjf $<
-	$(VERBOSE)mv hypervisor $@
-	$(VERBOSE)patch -d $@ -p1 < patches/utcb.patch
-	$(VERBOSE)touch $@
+.PHONY: $(CONTRIB_DIR)
 
-prepare: $(CONTRIB_DIR)
-
-clean:
+clean::
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)
-
-cleanall: clean
-	$(VERBOSE)rm -rf $(DOWNLOAD_DIR)

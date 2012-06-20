@@ -38,19 +38,20 @@ namespace Genode {
 	{
 		private:
 
-			addr_t _phys_addr;           /* address of dataspace in physical memory */
-			addr_t _core_local_addr;     /* address of core-local mapping           */
-			size_t _size;                /* size of dataspace in bytes              */
-			bool   _is_io_mem;           /* dataspace is I/O mem, not to be touched */
-			bool   _write_combined;      /* access I/O memory write-combined        */
-			bool   _writable;            /* false if dataspace is read-only         */
+			addr_t const _phys_addr;        /* address of dataspace in physical memory */
+			addr_t       _core_local_addr;  /* address of core-local mapping           */
+			size_t const _size;             /* size of dataspace in bytes              */
+			bool   const _is_io_mem;        /* dataspace is I/O mem, not to be touched */
+			bool   const _write_combined;   /* access I/O memory write-combined, or
+			                                   RAM uncacheable respectively            */
+			bool   const _writable;         /* false if dataspace is read-only         */
 
 			List<Rm_region> _regions;    /* regions this is attached to */
 			Lock            _lock;
 
 			/* Holds the dataspace owner if a distinction between owner and
 			 * others is necessary on the dataspace, otherwise it is 0 */
-			Dataspace_owner * _owner;
+			Dataspace_owner const * _owner;
 
 		protected:
 
@@ -69,9 +70,10 @@ namespace Genode {
 			 * Default constructor returning an invalid dataspace
 			 */
 			Dataspace_component()
-				: _phys_addr(0), _core_local_addr(0), _size(0),
-				  _is_io_mem(false), _write_combined(false), _writable(false),
-				  _owner(0), _managed(false) { }
+			:
+				_phys_addr(0), _core_local_addr(0), _size(0),
+				_is_io_mem(false), _write_combined(false), _writable(false),
+				_owner(0), _managed(false) { }
 
 			/**
 			 * Constructor for non-I/O dataspaces
@@ -79,11 +81,13 @@ namespace Genode {
 			 * This constructor is used by RAM and ROM dataspaces.
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    bool writable,
-			                    Dataspace_owner * owner = 0)
-			: _phys_addr(core_local_addr), _core_local_addr(core_local_addr),
-			  _size(round_page(size)), _is_io_mem(false), _write_combined(false),
-			  _writable(writable), _owner(owner), _managed(false) { }
+			                    bool write_combined, bool writable,
+			                    Dataspace_owner *owner)
+			:
+				_phys_addr(core_local_addr), _core_local_addr(core_local_addr),
+				_size(round_page(size)), _is_io_mem(false),
+				_write_combined(write_combined), _writable(writable),
+				_owner(owner), _managed(false) { }
 
 			/**
 			 * Constructor for dataspaces with different core-local and
@@ -97,11 +101,11 @@ namespace Genode {
 			 */
 			Dataspace_component(size_t size, addr_t core_local_addr,
 			                    addr_t phys_addr, bool write_combined,
-			                    bool writable,
-			                    Dataspace_owner * owner = 0)
-			: _phys_addr(phys_addr), _core_local_addr(core_local_addr),
-			  _size(size), _is_io_mem(true), _write_combined(write_combined),
-			  _writable(writable), _owner(owner), _managed(false) { }
+			                    bool writable, Dataspace_owner *owner)
+			:
+				_phys_addr(phys_addr), _core_local_addr(core_local_addr),
+				_size(size), _is_io_mem(true), _write_combined(write_combined),
+				_writable(writable), _owner(owner), _managed(false) { }
 
 			/**
 			 * Destructor

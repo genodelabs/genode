@@ -76,7 +76,7 @@ namespace Genode {
 				:
 					Dataspace_component(da.size, da.core_local_addr,
 					                    da.phys_addr, da.write_combined,
-					                    true),
+					                    true, 0),
 					req_base(da.req_base) { }
 
 

@@ -15,3 +15,7 @@ LD_SCRIPT_STATIC  = $(call select_from_repositories,src/platform/genode.ld) \
 else
 LD_SCRIPT_STATIC  =
 endif
+
+ifneq ($(filter hardening_tool_chain, $(SPECS)),)
+CC_OPT += -fPIC
+endif

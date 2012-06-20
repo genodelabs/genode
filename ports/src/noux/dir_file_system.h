@@ -22,6 +22,7 @@
 #include <noux_session/sysio.h>
 #include <tar_file_system.h>
 #include <fs_file_system.h>
+#include <terminal_file_system.h>
 
 namespace Noux {
 
@@ -87,6 +88,11 @@ namespace Noux {
 					/* traverse into <dir> nodes */
 					if (sub_node.has_type("dir")) {
 						_append_file_system(new Dir_file_system(sub_node));
+						continue;
+					}
+
+					if (sub_node.has_type("terminal")) {
+						_append_file_system(new Terminal_file_system(sub_node));
 						continue;
 					}
 

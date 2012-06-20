@@ -68,10 +68,10 @@ namespace Genode {
 			 ** RAM-session interface **
 			 ***************************/
 
-			Ram_dataspace_capability alloc(size_t size)
+			Ram_dataspace_capability alloc(size_t size, bool cached)
 			{
 				Lock::Guard lock_guard(_lock);
-				return RAM_SESSION_IMPL::alloc(size);
+				return RAM_SESSION_IMPL::alloc(size, cached);
 			}
 
 			void free(Ram_dataspace_capability ds)

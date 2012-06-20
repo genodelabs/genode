@@ -244,8 +244,9 @@ namespace Genode {
 					/**
 					 * Constructor
 					 */
-					Rm_dataspace_component(Rm_session_component *rsc, size_t size) :
-						Dataspace_component(size, 0, false),
+					Rm_dataspace_component(Rm_session_component *rsc, size_t size)
+					:
+						Dataspace_component(size, 0, false, false, 0),
 						_rm_session_component(rsc) { _managed = true; }
 
 

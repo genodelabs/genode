@@ -23,6 +23,15 @@
 
 using namespace Genode;
 
+/**
+ * Function gets called during destruction of an entrypoint.
+ * It is just here to make sure nobody else is in the entrypoint
+ * anymore (all communication portals must be revoked beforehand).
+ */
+static void _cleanup_entry()
+{
+	Nova::reply(Thread_base::myself()->stack_top());
+}
 
 /***********************
  ** Server entrypoint **
@@ -32,16 +41,23 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
 	using namespace Nova;
 
-	int ec_sel = tid().ec_sel;
-	int pt_sel = cap_selector_allocator()->alloc();
-	int pd_sel = cap_selector_allocator()->pd_sel();
+	unsigned ec_sel = tid().ec_sel;
+	addr_t pt_sel = cap_selector_allocator()->alloc(1);
+	unsigned pd_sel = cap_selector_allocator()->pd_sel();
 
 	/* create portal */
-	int res = create_pt(pt_sel, pd_sel, ec_sel, Mtd(0),
-	                    (mword_t)_activation_entry);
-
+	uint8_t res = create_pt(pt_sel, pd_sel, ec_sel, Mtd(0),
+	                        (mword_t)_activation_entry);
 	if (res) {
 		PERR("could not create server-object portal, create_pt returned %d\n",
+		     res);
+		return Untyped_capability();
+	}
+	/* create cleanup portal */
+	res = create_pt(pt_sel + 1, pd_sel, ec_sel, Mtd(0),
+	                (mword_t)_cleanup_entry);
+	if (res) {
+		PERR("could not create server-object-cleanup portal, create_pt returned %d\n",
 		     res);
 		return Untyped_capability();
 	}
@@ -51,6 +67,12 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 	/* supplement capability with object ID obtained from CAP session */
 	Untyped_capability new_obj_cap = _cap_session->alloc(ep_cap);
+
+	if (new_obj_cap.dst() != ep_cap.dst()) {
+		Nova::revoke(Nova::Obj_crd(new_obj_cap.dst(), 0), true);
+		cap_selector_allocator()->free(new_obj_cap.dst(), 0);
+		new_obj_cap = Native_capability(ep_cap.dst(), new_obj_cap.local_name());
+	}
 
 	/* add server object to object pool */
 	obj->cap(new_obj_cap);
@@ -63,6 +85,9 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 {
+	/* Avoid any incoming IPC early */
+	Nova::revoke(Nova::Obj_crd(obj->cap().dst(), 0), true);
+
 	/* make sure nobody is able to find this object */
 	remove(obj);
 
@@ -81,13 +106,23 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	obj->lock();
 
 	/* now the object may be safely destructed */
-}
 
+	_cap_session->free(obj->cap());
+	/* revoke cleanup portal */
+	Nova::revoke(Nova::Obj_crd(obj->cap().dst() + 1, 0), true);
+	/* free 2 cap selectors */
+	cap_selector_allocator()->free(obj->cap().dst(), 1);
+
+}
 
 void Rpc_entrypoint::_activation_entry()
 {
+#ifdef __x86_64__
+	addr_t id_pt; asm volatile ("" : "=D" (id_pt));
+#else
+	addr_t id_pt; asm volatile ("" : "=a" (id_pt));
+#endif
 	/* retrieve portal id from eax */
-	int id_pt; asm volatile ("" : "=a" (id_pt));
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
 
 	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
@@ -108,7 +143,7 @@ void Rpc_entrypoint::_activation_entry()
 
 		ep->_curr_obj = ep->obj_by_id(srv.badge());
 		if (!ep->_curr_obj) {
-			PERR("could not look up server object, return from call");
+			PERR("could not look up server object, return from call badge=%lx id_pt=%lx", srv.badge(), id_pt);
 			ep->_curr_obj_lock.unlock();
 			srv << IPC_REPLY;
 		}
@@ -136,7 +171,16 @@ void Rpc_entrypoint::entry()
 }
 
 
-void Rpc_entrypoint::_leave_server_object(Rpc_object_base *obj) { }
+void Rpc_entrypoint::_leave_server_object(Rpc_object_base *obj)
+{
+	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
+	/* don't call ourself */
+	if (utcb != reinterpret_cast<Nova::Utcb *>(&_context->utcb)) {
+		utcb->mtd = 0;
+		if (Nova::call(obj->cap().dst() + 1))
+			PERR("could not clean up entry point");
+	}
+}
 
 
 void Rpc_entrypoint::_block_until_cap_valid() { }

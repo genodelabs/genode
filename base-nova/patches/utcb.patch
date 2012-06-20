@@ -1,7 +1,7 @@
 diff -r 11c290b5edf9 src/syscall.cpp
 --- a/src/syscall.cpp	Wed Nov 09 14:50:18 2011 +0100
 +++ b/src/syscall.cpp	Wed Nov 09 15:07:03 2011 +0100
-@@ -240,11 +240,13 @@
+@@ -244,11 +244,13 @@
      }
      Pd *pd = static_cast<Pd *>(cap.obj());
  
@@ -13,6 +13,6 @@ diff -r 11c290b5edf9 src/syscall.cpp
  
 +    pd->insert_utcb (r->utcb());
 +
-     Ec *ec = new Ec (Pd::current, r->sel(), pd, r->flags() & 1 ? static_cast<void (*)()>(send_msg<ret_user_iret>) : 0, r->cpu(), r->evt(), r->utcb(), r->esp());
+     Ec *ec = new Ec (Pd::current, r->sel(), pd, r->flags() & 1 ? static_cast<void (*)()>(send_msg<ret_user_iret>) : nullptr, r->cpu(), r->evt(), r->utcb(), r->esp());
  
      if (!Space_obj::insert_root (ec)) {
