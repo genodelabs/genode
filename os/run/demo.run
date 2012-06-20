@@ -10,6 +10,8 @@ set build_components {
 	drivers/framebuffer drivers/pci drivers/input
 }
 
+lappend_if [have_spec usb] build_components drivers/usb
+
 build $build_components
 
 create_boot_directory
@@ -31,6 +33,7 @@ append config {
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
+		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -63,10 +66,23 @@ append_if [have_spec pl11x] config {
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 
+append_if [have_spec omap4] config {
+	<start name="omap4_fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
+	</start>}
+
+append_if [expr ![have_spec ps2] && [have_spec usb]] config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides><service name="Input"/></provides>
+		<config> <hid/> </config>
 	</start> }
 
 append config {
@@ -103,6 +119,8 @@ lappend_if [have_spec pci]   boot_modules pci_drv
 lappend_if [have_spec vesa]  boot_modules vesa_drv
 lappend_if [have_spec ps2]   boot_modules ps2_drv
 lappend_if [have_spec pl11x] boot_modules pl11x_drv
+lappend_if [have_spec omap4] boot_modules omap4_fb_drv
+lappend_if [have_spec usb]   boot_modules usb_drv
 
 build_boot_image $boot_modules
 
