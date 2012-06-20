@@ -35,8 +35,6 @@
 
 #include <nova/stdint.h>
 
-#define ALWAYS_INLINE __attribute__((always_inline))
-
 namespace Nova {
 
 	enum {
@@ -108,7 +106,7 @@ namespace Nova {
 
 		bool has_feature_vmx() const { return feature_flags & (1 << 1); }
 		bool has_feature_svm() const { return feature_flags & (1 << 2); }
-	};
+	} __attribute__((packed));
 
 
 	class Descriptor
@@ -136,7 +134,7 @@ namespace Nova {
 		public:
 
 			mword_t value() const { return _value; }
-	};
+	} __attribute__((packed));
 
 
 	/**
@@ -221,8 +219,8 @@ namespace Nova {
 
 			mword_t base()  const { return _query<BASE_MASK, BASE_SHIFT>(); }
 			mword_t order() const { return _query<ORDER_MASK, ORDER_SHIFT>(); }
-			bool is_null()   const { return (_value & TYPE_MASK) == NULL_CRD_TYPE; }
-	};
+			bool is_null()  const { return (_value & TYPE_MASK) == NULL_CRD_TYPE; }
+	} __attribute__((packed));
 
 
 	class Rights
@@ -425,7 +423,7 @@ namespace Nova {
 		}
 
 		mword_t mtd_value() const { return static_cast<Mtd>(mtd).value(); }
-	};
+	} __attribute__((packed));
 
 	/**
 	 * Size of event-specific portal window mapped at PD creation time
