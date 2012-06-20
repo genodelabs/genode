@@ -43,6 +43,8 @@ class Event_context : public Driver_context
 
 		void handle() {
 			Routine::schedule_all(); }
+
+		char const *debug() { return "Event_context"; }
 };
 
 

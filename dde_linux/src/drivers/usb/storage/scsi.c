@@ -27,6 +27,13 @@
  *   scsi_scan_host
  */
 
+/*
+ * Copyright (C) 2009-2012 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
 #include <lx_emul.h>
 
 #include "scsi.h"

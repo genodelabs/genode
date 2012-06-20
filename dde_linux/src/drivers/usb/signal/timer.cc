@@ -59,6 +59,7 @@ class Timer_context : public Driver_context
 				dde_kit_timer_schedule_absolute(_dde_timer, expires);
 		}
 
+		char const *debug() { return "Timer_context"; }
 		/**
 		 * Return true if timer is pending
 		 */

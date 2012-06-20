@@ -37,15 +37,15 @@ extern "C" {
 
 
 #if VERBOSE_LX_EMUL
-#define DEBUG_COMPLETION 1
+#define DEBUG_COMPLETION 0
 #define DEBUG_DMA        0
-#define DEBUG_DRIVER     1
-#define DEBUG_IRQ        1
+#define DEBUG_DRIVER     0
+#define DEBUG_IRQ        0
 #define DEBUG_KREF       0
-#define DEBUG_PCI        1
+#define DEBUG_PCI        0
 #define DEBUG_SLAB       0
-#define DEBUG_TIMER      1
-#define DEBUG_THREAD     1
+#define DEBUG_TIMER      0
+#define DEBUG_THREAD     0
 #else
 #define DEBUG_COMPLETION 0
 #define DEBUG_DRIVER     0
@@ -661,9 +661,13 @@ int isprint(int);
  ******************/
 
 #define __init
+#define __initdata
 #define __devinit
 #define __devinitconst
+#define __devexit
 #define __exit
+
+#define __exit_p(x) x
 
 #define subsys_initcall(fn) void subsys_##fn(void) { fn(); }
 
@@ -679,6 +683,7 @@ int isprint(int);
 #define MODULE_LICENSE(x)
 #define MODULE_PARM_DESC(x, y)
 //#define MODULE_ALIAS_MISCDEV(x)  /* needed by agp/backend.c */
+#define MODULE_ALIAS(x)
 
 #define THIS_MODULE 0
 
@@ -1239,7 +1244,12 @@ bool device_can_wakeup(struct device *dev);
 #define dev_WARN(dev, format, arg...) dde_kit_printf("dev_WARN: "  format, ## arg)
 #define dev_err( dev, format, arg...) dde_kit_printf("dev_error: " format, ## arg)
 #define dev_notice(dev, format, arg...) dde_kit_printf("dev_notice: " format, ## arg)
+
+#if VERBOSE_LX_EMUL
+#define dev_dbg(dev, format, arg...) dde_kit_printf("dev_dbg: " format, ## arg)
+#else
 #define dev_dbg( dev, format, arg...)
+#endif
 
 #define dev_printk(level, dev, format, arg...) \
 	dde_kit_printf("dev_printk: " format, ## arg)
@@ -1284,12 +1294,16 @@ struct class
 	char *(*devnode)(struct device *dev, mode_t *mode);
 };
 
+/* DEVICE */
 struct device {
+	const char                    *name;
 	struct device                 *parent;
 	struct kobject                 kobj;
 	const struct device_type      *type;
 	struct device_driver          *driver;
+	void                          *platform_data;
 	u64                           *dma_mask; /* needed by usb/hcd.h */
+	u64                            coherent_dma_mask; /* omap driver */
 	struct dev_pm_info             power;
 	dev_t                          devt;
 	const struct attribute_group **groups;
@@ -1826,12 +1840,15 @@ static inline u32 inl_p(u32 port) { u32 ret = inl(port); native_io_delay(); retu
  ** linux/ioport.h **
  ********************/
 
-#define IORESOURCE_IO 0x00000100
+#define IORESOURCE_IO  0x00000100
+#define IORESOURCE_MEM 0x00000200
+#define IORESOURCE_IRQ 0x00000400
 
 struct resource
 {
 	resource_size_t start;
 	resource_size_t end;
+	const char     *name;
 	unsigned long   flags;
 };
 
@@ -1843,6 +1860,7 @@ struct resource *request_mem_region(resource_size_t start, resource_size_t n,
 void release_region(resource_size_t start, resource_size_t n);
 void release_mem_region(resource_size_t start, resource_size_t n);
 
+resource_size_t resource_size(const struct resource *res);
 
 /***********************
  ** linux/interrupt.h **
@@ -2575,6 +2593,12 @@ struct scsi_driver
 {
 	int (*done)(struct scsi_cmnd *);
 };
+
+
+/**********************************
+ ** Platform specific defintions **
+ *********************************/
+#include <platform/lx_emul.h>
 
 
 /**********

@@ -73,6 +73,7 @@ namespace Block {
 			~Signal_dispatcher() { sig_rec->dissolve(this); }
 
 			void handle() { (obj.*member)(); }
+			char const *debug() { return "Block_context"; }
 	};
 
 

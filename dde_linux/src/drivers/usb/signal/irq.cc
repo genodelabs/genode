@@ -13,7 +13,7 @@
 
 #include <signal.h>
 #include <lx_emul.h>
-
+#include <dma.h>
 extern "C" {
 #include <dde_kit/interrupt.h>
 }
@@ -93,18 +93,13 @@ class Irq_context : public Driver_context,
 			/* report IRQ to all clients */
 			for (Irq_handler *h = _handler_list.first(); h; h = h->next()) {
 				irqreturn_t rc;
-				do {
-				 rc = h->handler(_irq, h->dev);
-				}
-				while (rc == IRQ_HANDLED);
-				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u", _irq, rc);
-				if (rc == IRQ_HANDLED) {
+				if ((rc = h->handler(_irq, h->dev)) == IRQ_HANDLED)
 					Routine::schedule_all();
-					return;
-				}
+				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u", _irq, rc);
 			}
 		}
 
+		const char *debug() { return "Irq_context"; }
 		/**
 		 * Request an IRQ
 		 */

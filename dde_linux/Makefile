@@ -7,7 +7,7 @@ CONTRIB_DIR  = contrib
 DOWNLOAD_DIR = download
 VERBOSE     ?= @
 ECHO         = @echo
-PATCHES      = $(shell find patches -name *.patch)
+PATCHES      := $(shell find patches -name \*.patch)
 
 LINUX      = linux-3.2.2
 LINUX_TBZ2 = $(LINUX).tar.bz2
@@ -31,7 +31,7 @@ CONTENT += include/linux/usbdevice_fs.h include/asm-generic/ioctl.h
 
 # USB host-controller driver
 CONTENT_USB_HOST := ehci.h ehci-hcd.c ehci-hub.c ehci-dbg.c ehci-mem.c \
-                    ehci-q.c ehci-pci.c ehci-sched.c ehci-sysfs.c 
+                    ehci-omap.c ehci-q.c ehci-pci.c ehci-sched.c ehci-sysfs.c 
 CONTENT_USB_HOST += ohci.h ohci-hcd.c ohci-hub.c ohci-dbg.c ohci-mem.c \
                     ohci-q.c ohci-pci.c ehci-lpm.c
 CONTENT_USB_HOST += uhci-hcd.h uhci-hcd.c uhci-debug.c uhci-q.c uhci-hub.c \
@@ -57,7 +57,12 @@ CONTENT += $(addprefix drivers/input/,$(CONTENT_INPUT))
 CONTENT += include/linux/input/mt.h
 
 
-CONTRIB_CONTENT := $(addprefix $(CONTRIB_DIR)/,$(CONTENT))
+# Panda board
+#CONTENT += drivers/mfd/omap-usb-host.c 
+#CONTENT += arch/arm/plat-omap/include/plat/usb.h
+#CONTENT_ARCH = usb-host.c mux.h mux2420.h mux2430.h mux34xx.h mux44xx.h
+#CONTENT += $(addprefix arch/arm/mach-omap2/,$(CONTENT_ARCH))
+#CONTRIB_CONTENT := $(addprefix $(CONTRIB_DIR)/,$(CONTENT))
 #
 #
 # Utility to check if a tool is installed
@@ -100,7 +105,7 @@ $(DOWNLOAD_DIR)/$(LINUX_TBZ2): $(DOWNLOAD_DIR)
 	$(VERBOSE)touch $@
 
 clean:
-	$(VERBOSE)rm -f $(CONTRIB_DIR)
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)
 
 cleanall: clean
 	$(VERBOSE)rm -rf $(DOWNLOAD_DIR)

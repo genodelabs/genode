@@ -32,13 +32,11 @@ extern "C" {
 
 using namespace Genode;
 
-extern "C" void subsys_usb_init();
+extern "C" int subsys_usb_init();
 extern "C" void subsys_input_init();
-extern "C" void module_ehci_hcd_init();
 extern "C" void module_evdev_init();
 extern "C" void module_hid_init();
 extern "C" void module_hid_init_core();
-extern "C" void module_uhci_hcd_init();
 extern "C" void module_usb_mouse_init();
 extern "C" void module_usb_kbd_init();
 extern "C" void module_usb_stor_init();
@@ -74,10 +72,8 @@ static void init(bool hid, bool stor)
 	/*
 	 * Host controller.
 	 *
-	 * ehci_hcd should always be loaded before uhci_hcd and ohci_hcd, not after
 	 */
-	module_ehci_hcd_init();
-	module_uhci_hcd_init();
+	platform_hcd_init();
 
 	/* storage */
 	if (stor)

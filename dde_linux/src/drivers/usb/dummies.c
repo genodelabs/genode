@@ -66,7 +66,7 @@ char *kasprintf(gfp_t gfp, const char *fmt, ...) { TRACE; return NULL; }
 int kstrtouint(const char *s, unsigned int base, unsigned int *res) { TRACE; return 0; }
 int sprintf(char *buf, const char *fmt, ...) { TRACE; return 0; }
 int sscanf(const char *b, const char *s, ...) { TRACE; return 0; }
-int scnprintf(char *buf, size_t size, const char *fmt, ...) { TRACE; return 0; }
+int scnprintf(char *buf, size_t size, const char *fmt, ...);
 int strict_strtoul(const char *s, unsigned int base, unsigned long *res) { TRACE; return 0; }
 long simple_strtoul(const char *cp, char **endp, unsigned int base) { TRACE; return 0; }
 
@@ -100,7 +100,6 @@ int ffs(int x) { TRACE; return 0; }
 
 int    memcmp(const void *dst, const void *src, size_t s) { TRACE; return 0; }
 char  *strcat(char *dest, const char *src) { TRACE; return 0; }
-int    strcmp(const char *s1, const char *s2) { TRACE; return 0; }
 int    strncmp(const char *cs, const char *ct, size_t count) { TRACE; return 0; }
 char  *strncpy(char *dst, const char *src, size_t s) { TRACE; return NULL; }
 char  *strchr(const char *s, int n) { TRACE; return NULL; }
@@ -236,7 +235,7 @@ void __set_current_state(int state) { TRACE; }
 int signal_pending(struct task_struct *p) { TRACE; return 0; }
 void schedule(void) { TRACE; }
 void yield(void) { TRACE; }
-void cpu_relax(void) { TRACE; }
+void cpu_relax(void) { TRACE; udelay(1); }
 
 struct task_struct *current;
 
@@ -321,7 +320,6 @@ bool device_can_wakeup(struct device *dev) { TRACE; return 0; }
  ********************/
 
 int         dev_set_name(struct device *dev, const char *name, ...) { TRACE; return 0; }
-const char *dev_name(const struct device *dev) { TRACE; return NULL; }
 int         dev_to_node(struct device *dev) { TRACE; return 0; }
 void        set_dev_node(struct device *dev, int node) { TRACE; }
 
@@ -523,7 +521,6 @@ void kunmap(struct page *page) { TRACE; }
  ** asm-generic/io.h **
  **********************/
 
-void *ioremap(resource_size_t offset, unsigned long size) { TRACE; return NULL; }
 void  iounmap(volatile void *addr) { TRACE; }
 void native_io_delay(void) { TRACE; }
 
@@ -780,3 +777,19 @@ void scsi_host_put(struct Scsi_Host *shost) { TRACE; }
 struct scsi_device *scsi_get_host_dev(struct Scsi_Host *shost) { TRACE; return 0; }
 
 
+/********************************
+ ** linux/regulator/consumer.h **
+ ********************************/
+struct regulator;
+int    regulator_enable(struct regulator *r)  { TRACE; return 0; }
+int    regulator_disable(struct regulator *r) { TRACE; return 0; }
+void   regulator_put(struct regulator *r)     { TRACE; }
+struct regulator *regulator_get(struct device *dev, const char *id) { TRACE; return 0; }
+
+
+/*******************************************
+ ** arch/arm/plat-omap/include/plat/usb.h **
+ *******************************************/
+
+int omap_usbhs_enable(struct device *dev) { TRACE; return 0; }
+void omap_usbhs_disable(struct device *dev) { TRACE; }

@@ -20,6 +20,7 @@
 #include <util/string.h>
 
 /* Local includes */
+#include "dma.h"
 #include "routine.h"
 #include "signal.h"
 #include "lx_emul.h"
@@ -198,15 +199,32 @@ int snprintf(char *buf, size_t size, const char *fmt, ...)
 }
 
 
+int scnprintf(char *buf, size_t size, const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	Genode::String_console sc(buf, size);
+	sc.vprintf(fmt, args);
+	va_end(args);
+
+	return sc.len();
+}
+
+int    strcmp(const char *s1, const char *s2) { return Genode::strcmp(s1, s2); }
 size_t strlen(const char *s) { return Genode::strlen(s); }
 
 
 size_t strlcat(char *dest, const char *src, size_t n)
 {
 	size_t len = strlen(dest);
-	Genode::strncpy(dest + len, src, n);
-	dest[len + n] = 0;
-	return n;
+
+	if (len >= n)
+		len = n - 1;
+
+	memcpy(dest, src, len);
+	dest[len] = 0;
+	return len;
 }
 
 
@@ -320,15 +338,27 @@ void kmem_cache_free(struct kmem_cache *cache, void *objp)
  ** asm-generic/io.h **
  **********************/
 
-void *ioremap_wc(resource_size_t phys_addr, unsigned long size)
+void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
 {
 	dde_kit_addr_t map_addr;
-	if (dde_kit_request_mem(phys_addr, size, 1, &map_addr)) {
+	if (dde_kit_request_mem(phys_addr, size, wc, &map_addr)) {
 		PERR("Failed to request I/O memory: [%x,%lx)", phys_addr, phys_addr + size);
 		return 0;
 	}
 
 	return (void *)map_addr;
+}
+
+
+void *ioremap_wc(resource_size_t phys_addr, unsigned long size)
+{
+	return _ioremap(phys_addr, size, 1);
+}
+
+
+void *ioremap(resource_size_t offset, unsigned long size)
+{
+	return _ioremap(offset, size, 0);
 }
 
 
@@ -438,6 +468,7 @@ int dev_set_drvdata(struct device *dev, void *data)
 
 
 struct device *get_device(struct device *dev) { TRACE; return dev; }
+const char *dev_name(const struct device *dev) { return dev->name; }
 
 
 long find_next_zero_bit_le(const void *addr,
@@ -527,78 +558,9 @@ enum { JIFFIES_TICK_MS = 1000 / DDE_KIT_HZ };
 
 unsigned long msecs_to_jiffies(const unsigned int m) { return m / JIFFIES_TICK_MS; }
 long time_after_eq(long a, long b) { return (a - b) >= 0; }
-long time_after(long a, long b)    { return (b - a) > 0; }
+long time_after(long a, long b)    { return (b - a) < 0; }
 
 
-/*********************
- ** linux/dmapool.h **
- *********************/
-
-namespace Genode {
-
-	/**
-	 * Dma-pool manager
-	 */
-	class Dma
-	{
-		private:
-
-			enum { SIZE = 1024 * 1024 };
-
-			addr_t        _base;       /* virt base of pool */
-			addr_t        _base_phys;  /* phys base of pool */
-			Allocator_avl _range;      /* range allocator for pool */
-
-			Dma() : _range(env()->heap())
-			{
-				Ram_dataspace_capability cap = env()->ram_session()->alloc(SIZE);
-				_base_phys = Dataspace_client(cap).phys_addr();
-				_base      = (addr_t)env()->rm_session()->attach(cap);
-				dde_kit_log(DEBUG_DMA, "New DMA range [%lx-%lx)", _base, _base + SIZE);
-				_range.add_range(_base, SIZE);
-			}
-
-		public:
-
-			static Dma* pool()
-			{
-				static Dma _p;
-				return &_p;
-			}
-
-			/**
-			 * Alloc 'size' bytes of DMA memory
-			 */
-			void *alloc(size_t size, int align = PAGE_SHIFT)
-			{
-				void *addr;
-				if (!_range.alloc_aligned(size, &addr, align)) {
-					PERR("DMA of %zu bytes allocation failed", size);
-					return 0;
-				}
-
-				return addr;
-			}
-
-			/**
-			 * Free DMA memory
-			 */
-			void  free(void *addr) { _range.free(addr); }
-
-			/**
-			 * Get phys for virt address
-			 */
-			addr_t phys_addr(void *addr)
-			{
-				addr_t a = (addr_t)addr;
-				if (a < _base || a >= _base + SIZE) {
-					PERR("No DMA phys addr for %lx", a);
-					return 0;
-				}
-				return (a - _base) + _base_phys;
-			}
-	};
-}
 
 
 struct dma_pool
@@ -611,7 +573,7 @@ struct dma_pool
 struct dma_pool *dma_pool_create(const char *name, struct device *d, size_t size,
                                  size_t align, size_t alloc)
 {
-	dde_kit_log(DEBUG_DMA, "size: %zx align:%zx", size, align);
+	dde_kit_log(DEBUG_DMA, "size: %zx align:%zx %p", size, align, __builtin_return_address((0)));
 
 	if (align & (align - 1))
 		return 0;
@@ -633,12 +595,13 @@ void  dma_pool_destroy(struct dma_pool *d)
 static void* _alloc(size_t size, int align, dma_addr_t *dma)
 {
 	void *addr = Genode::Dma::pool()->alloc(size, align);
-	dde_kit_log(DEBUG_DMA, "addr: %p size %zx align: %d", addr, size, align);
 
 	if (!addr)
 		return 0;
 
 	*dma = (dma_addr_t)Genode::Dma::pool()->phys_addr(addr);
+	dde_kit_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, pysh: %lx", addr, size, align, *dma);
+	memset(addr, 0, size);
 	return addr;
 }
 
@@ -646,6 +609,8 @@ static void* _alloc(size_t size, int align, dma_addr_t *dma)
 void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 {
 	return _alloc(d->size, d->align, dma);
+//	return _alloc(0x1000, 12, dma);
+
 }
 
 
@@ -767,4 +732,14 @@ void *sg_virt(struct scatterlist *sg)
 
 	struct page *page = (struct page *)sg->page_link;
 	return (void *)((unsigned long)page->virt + sg->offset);
+}
+
+
+/********************
+ ** linux/ioport.h **
+ ********************/
+
+resource_size_t resource_size(const struct resource *res)
+{
+	return res->end - res->start + 1;
 }

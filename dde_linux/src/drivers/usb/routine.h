@@ -22,6 +22,8 @@ extern "C" {
 #include <dde_kit/memory.h>
 }
 
+#include <platform/platform.h>
+
 static const bool verbose = false;
 
 
@@ -69,11 +71,7 @@ class Routine : public Genode::List<Routine>::Element
 				/* XXX  move to platform code */
 
 				/* switch stack and call '_func(_arg)' */
-				asm volatile ("movl %2, 0(%0);"
-				              "movl %1, -0x4(%0);"
-				              "movl %0, %%esp;"
-				              "call *-4(%%esp);"
-				              : : "r" (_stack + STACK_SIZE), "r" (_func), "r" (_arg));
+				platform_execute((void *)(_stack + STACK_SIZE), (void *)_func, _arg);
 			}
 
 			/* restore old state */

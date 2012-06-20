@@ -31,6 +31,8 @@ class Driver_context : public Genode::Signal_context
 		 * Perform context operation
 		 */
 		virtual void handle() = 0;
+
+		virtual char const *debug() = 0;
 };
 
 
