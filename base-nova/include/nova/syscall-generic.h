@@ -396,7 +396,7 @@ namespace Nova {
 		/**
 		 * Return current number of message word in UTCB
 		 */
-		unsigned msg_words() { return items & 0xff; }
+		unsigned msg_words() { return items & 0xffffU; }
 
 		/**
 		 * Append message-transfer item to message buffer
