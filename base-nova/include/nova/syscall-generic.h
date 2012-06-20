@@ -217,9 +217,11 @@ namespace Nova {
 				return sel_hotspot << 12;
 			}
 
+			mword_t addr()  const { return base() << BASE_SHIFT; }
 			mword_t base()  const { return _query<BASE_MASK, BASE_SHIFT>(); }
 			mword_t order() const { return _query<ORDER_MASK, ORDER_SHIFT>(); }
 			bool is_null()  const { return (_value & TYPE_MASK) == NULL_CRD_TYPE; }
+			uint8_t type()  const { return _query<TYPE_MASK, TYPE_SHIFT>(); }
 	} __attribute__((packed));
 
 
