@@ -268,7 +268,8 @@ namespace Genode {
 			 *
 			 * This function is only used on NOVA.
 			 */
-			static void _activation_entry();
+			__attribute__((regparm(1)))
+			static void _activation_entry(addr_t entry_id);
 
 		protected:
 
