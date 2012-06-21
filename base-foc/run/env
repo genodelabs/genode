@@ -190,6 +190,8 @@ proc build_boot_image_arm {binaries} {
 	}
 
 	exec cp [bin_dir]/bootstrap.elf [run_dir]/image.elf
+
+	puts stderr "\nboot image: [run_dir]/image.elf\n"
 }
 
 
