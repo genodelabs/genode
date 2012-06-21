@@ -318,7 +318,7 @@ class Vcpu_dispatcher : Genode::Thread_base,
 			Nova::Mem_crd crd(src >> PAGE_SIZE_LOG2, 32 - PAGE_SIZE_LOG2,
 			                  Nova::Rights(true, true, true));
 
-			Nova::uint8_t ret = Nova::lookup(&crd);
+			Nova::uint8_t ret = Nova::lookup(crd);
 
 			if (verbose_npt)
 				Logging::printf("looked up crd (base=0x%lx, order=%ld)\n",

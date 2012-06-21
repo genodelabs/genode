@@ -13,7 +13,7 @@
 
 #include <base/env.h>
 #include <base/sleep.h>
-
+#include <base/printf.h>
 
 extern "C" void _exit(int status)
 {

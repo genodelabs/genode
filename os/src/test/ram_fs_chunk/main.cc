@@ -101,10 +101,10 @@ int main(int, char **)
 	printf("--- ram_fs_chunk test ---\n");
 
 	PINF("chunk sizes");
-	PINF("  level 0: payload=%zd sizeof=%zd", Chunk_level_0::SIZE, sizeof(Chunk_level_0));
-	PINF("  level 1: payload=%zd sizeof=%zd", Chunk_level_1::SIZE, sizeof(Chunk_level_1));
-	PINF("  level 2: payload=%zd sizeof=%zd", Chunk_level_2::SIZE, sizeof(Chunk_level_2));
-	PINF("  level 3: payload=%zd sizeof=%zd", Chunk_level_3::SIZE, sizeof(Chunk_level_3));
+	PINF("  level 0: payload=%d sizeof=%zd", Chunk_level_0::SIZE, sizeof(Chunk_level_0));
+	PINF("  level 1: payload=%d sizeof=%zd", Chunk_level_1::SIZE, sizeof(Chunk_level_1));
+	PINF("  level 2: payload=%d sizeof=%zd", Chunk_level_2::SIZE, sizeof(Chunk_level_2));
+	PINF("  level 3: payload=%d sizeof=%zd", Chunk_level_3::SIZE, sizeof(Chunk_level_3));
 
 	static Allocator_tracer alloc(*env()->heap());
 

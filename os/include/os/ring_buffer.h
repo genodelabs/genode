@@ -22,7 +22,8 @@
  * Ring buffer template
  *
  * \param ET          element type
- * \param QUEUE_SIZE  maximum number of ring-buffer elements
+ * \param QUEUE_SIZE  number of element slots in the ring. the maximum number of
+ *                    ring-buffer elements is QUEUE_SIZE - 1
  *
  * The ring buffer manages its elements as values.
  * When inserting an element, a copy of the element is

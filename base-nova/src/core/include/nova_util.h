@@ -45,19 +45,28 @@ enum { verbose_local_map = false };
 static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
                      bool kern_pd = false)
 {
-	/* open receive window at the echo EC */
-	echo()->utcb()->crd_rcv = dst_crd;
+	/* open receive window at current EC */
+	utcb->crd_rcv = dst_crd;
 
-	/* reset message transfer descriptor */
-	utcb->set_msg_word(0);
+	/* tell echo thread what to map */
+	utcb->msg[0] = src_crd.value();
+	utcb->msg[1] = 0;
+	utcb->msg[2] = kern_pd;
+	utcb->set_msg_word(3);
 
-	/* append capability-range as message-transfer item */
-	utcb->append_item(src_crd, 0, kern_pd);
+	/* establish the mapping via a portal traversal during reply phase */
+	Nova::uint8_t res = Nova::call(echo()->pt_sel());
+	if (res != 0 || utcb->msg_words() != 1 || !utcb->msg[0]) {
+		PERR("Failure - map_local 0x%lx:%lu:%u->0x%lx:%lu:%u - call result=%x utcb=%x:%lx !!!",
+		     src_crd.addr(), src_crd.order(), src_crd.type(),
+		     dst_crd.addr(), dst_crd.order(), dst_crd.type(),
+		     res, utcb->msg_words(), utcb->msg[0]);
+		return res > 0 ? res : -1;
+	}
+	/* clear receive window */
+	utcb->crd_rcv = 0;
 
-	/* establish the mapping via a portal traversal */
-	if (echo()->pt_sel() == 0)
-		PWRN("call to pt 0");
-	return Nova::call(echo()->pt_sel());
+	return 0;
 }
 
 

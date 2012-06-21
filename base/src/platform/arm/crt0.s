@@ -29,6 +29,7 @@ __dso_handle:
 /*--- .bss (non-initialized data) ------------------*/
 .section ".bss"
 
+	.p2align 4
 	.globl	_stack_low
 _stack_low:
 	.space	64*1024

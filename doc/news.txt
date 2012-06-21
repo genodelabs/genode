@@ -4,6 +4,24 @@
                                ===========
 
 
+Interview in Revista Espírito Livre magazine | 2012-06-20
+#########################################################
+
+| Issue 36 of the Brazilian Revista Espírito Livre magazine features a
+| comprehensive interview with Norman Feske.
+
+The Brazilian Revista Espírito Livre is a magazine dedicated to Free and
+Open-Source software. With current issue 36, the Portuguese language magazine
+explores controversial questions about Internet freedom, privacy, neutrality
+among others. Genode seemingly represents a possible technical answer to some
+of these questions. In the comprehensive interview starting at page 35,
+co-founder of Genode Norman Feske talks about the background and motivation
+behind the project, describes the current structure of the community, and
+outlines his vision of the next generation of operating systems.
+
+[http://www.revista.espiritolivre.org/lancada-edicao-n-36-da-revista-espirito-livre - Issue 36 of the Revista Espírito Livre...]
+
+
 Genode OS Framework release 12.05 | 2012-05-30
 ##############################################
 

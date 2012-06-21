@@ -41,12 +41,12 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
 
 	if (use_local_addr) {
 		PERR("Parameter 'use_local_addr' not supported within core");
-		return 0;
+		return 0UL;
 	}
 
 	if (offset) {
 		PERR("Parameter 'offset' not supported within core");
-		return 0;
+		return 0UL;
 	}
 
 	/* allocate range in core's virtual address space */

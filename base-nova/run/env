@@ -6,6 +6,12 @@
 # This file is meant to be used as '--include' argument for 'tool/run'.
 #
 
+##
+# Install files needed to boot via PXE
+#
+proc install_pxe_bootloader_to_run_dir { } {
+        exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
+}
 
 ##
 # Read the location of the Pistachio user directory from 'etc/pistachio.conf'
@@ -17,7 +23,7 @@ proc nova_kernel { } {
 		if {[file exists etc/nova.conf]} {
 			set _nova_kernel [exec sed -n "/^NOVA_KERNEL/s/^.*=\\s*//p" etc/nova.conf]
 		} else {
-			set _nova_kernel "[pwd]/kernel/hypervisor"
+		        set _nova_kernel "[pwd]/kernel/hypervisor"
 		}
 	}
 	return $_nova_kernel
@@ -51,15 +57,15 @@ proc build_boot_image {binaries} {
 	if {![nova_external] && ![file exists [nova_kernel]]} { build { kernel } }
 
 	puts "using NOVA kernel at [nova_kernel]"
-	exec cp [nova_kernel] [run_dir]/hypervisor
+	exec objcopy -O elf32-i386 [nova_kernel] [run_dir]/hypervisor
 
 	install_iso_bootloader_to_run_dir
 
 	#
-	# Generate grub config file
-	#
 	# The core binary is part of the 'binaries' list but it must
 	# appear right after 'sigma0' as boot module. Hence the special case.
+	#
+	# Generate grub config file
 	#
 	set fh [open "[run_dir]/boot/grub/menu.lst" "WRONLY CREAT TRUNC"]
 	puts $fh "timeout 0"
@@ -74,6 +80,19 @@ proc build_boot_image {binaries} {
 	close $fh
 
 	create_iso_image_from_run_dir
+
+	#
+	# Generate pulsar config file
+	#
+	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+	puts $fh " exec /hypervisor serial spinner"
+	puts $fh " load /genode/core"
+	puts $fh " load /genode/config"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh " load /genode/$binary" } }
+	close $fh
+	install_pxe_bootloader_to_run_dir
 }
 
 

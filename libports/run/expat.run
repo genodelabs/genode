@@ -1,0 +1,79 @@
+#
+# \brief  Test for using the expat library
+# \author Christian Prochaska
+# \date   2012-06-12
+#
+
+#
+# Build
+#
+
+build { core init drivers/timer test/expat }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+        <start name="timer">
+                <resource name="RAM" quantum="1M"/>
+                <provides> <service name="Timer"/> </provides>
+        </start>
+	<start name="test-expat">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<test_tag test_attribute="test_value" />
+		</config>
+	</start>
+</config>
+}
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	core init timer
+	ld.lib.so libc.lib.so libc_log.lib.so libc_rom.lib.so expat.lib.so
+	test-expat
+}
+
+#
+# Execute test case
+#
+
+append qemu_args " -nographic -m 64"
+
+run_genode_until {.*child exited with exit value 0.*} 5
+
+grep_output {\[init -> test-expat\]  }
+
+compare_output_to {
+	[init -> test-expat]  start of element: config
+	[init -> test-expat]  start of element: test_tag
+	[init -> test-expat]  attribute: name='test_attribute', value='test_value'
+	[init -> test-expat]  end of element: test_tag
+	[init -> test-expat]  end of element: config
+}
+
+puts "\nTest succeeded\n"
+
+# vi: set ft=tcl :

@@ -39,7 +39,7 @@ static void copy_utcb_to_msgbuf(Nova::Utcb *utcb, Msgbuf_base *rcv_msg)
 	/* look up and validate destination message buffer to receive the payload */
 	mword_t *msg_buf = (mword_t *)rcv_msg->buf;
 	if (num_msg_words*sizeof(mword_t) > rcv_msg->size()) {
-		PERR("receive message buffer too small msg size=%x, buf size=%zd",
+		PERR("receive message buffer too small msg size=%zx, buf size=%zd",
 		     num_msg_words*sizeof(mword_t), rcv_msg->size());
 		num_msg_words = rcv_msg->size()/sizeof(mword_t);
 	}

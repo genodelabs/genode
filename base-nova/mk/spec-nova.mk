@@ -2,6 +2,12 @@
 # Specifics for the NOVA kernel API
 #
 
+SPECS += nova
+SPECS += pci ps2 vesa
+
+#
+# Linker options that are specific for x86
+#
 LD_TEXT_ADDR ?= 0x01000000
 
 #
@@ -9,8 +15,3 @@ LD_TEXT_ADDR ?= 0x01000000
 #
 STARTUP_LIB ?= startup
 PRG_LIBS += $(STARTUP_LIB)
-
-#
-# NOVA only runs on x86, enable x86 devices
-#
-SPECS += pci ps2 vesa

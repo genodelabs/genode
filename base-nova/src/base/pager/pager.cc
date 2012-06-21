@@ -48,9 +48,11 @@ void Pager_object::_page_fault_handler()
 	pf_lock()->unlock();
 
 	if (ret) {
-		PWRN("page-fault resolution for for address 0x%lx failed, going to sleep forever",
-		     ipc_pager.fault_addr());
-		sleep_forever();
+		PWRN("page-fault resolution for address 0x%lx, ip=0x%lx failed",
+		     ipc_pager.fault_addr(), ipc_pager.fault_ip());
+		/* revoke paging capability */
+		Nova::revoke(Nova::Obj_crd(obj->exc_pt_sel() + PT_SEL_PAGE_FAULT, 0), true);
+		ipc_pager.wait_for_fault();
 	}
 
 	ipc_pager.reply_and_wait_for_fault();
@@ -78,7 +80,7 @@ void Pager_object::_invoke_handler()
 	Pager_object *obj = static_cast<Pager_object *>(Thread_base::myself());
 
 	/* send single portal as reply */
-	int event = utcb->msg[0];
+	addr_t event = utcb->msg[0];
 	utcb->mtd = 0;
 
 	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT)
@@ -103,10 +105,10 @@ Pager_object::Pager_object(unsigned long badge)
 	mword_t  thread_utcb = (mword_t)  &_context->utcb;
 
 	/* create local EC */
-	int res = create_ec(_tid.ec_sel, pd_sel,
-	                    CPU_NO, thread_utcb,
-	                    (mword_t)thread_sp, /* <- delivered to the startup handler */
-	                    EXC_BASE, GLOBAL);
+	uint8_t res = create_ec(_tid.ec_sel, pd_sel,
+	                        CPU_NO, thread_utcb,
+	                        (mword_t)thread_sp, /* <- delivered to the startup handler */
+	                        EXC_BASE, GLOBAL);
 	if (res)
 		PDBG("create_ec returned %d", res);
 
@@ -143,15 +145,44 @@ Pager_object::Pager_object(unsigned long badge)
 	res = create_pt(_pt_sel, pd_sel, _tid.ec_sel, Mtd(0), (mword_t)_invoke_handler);
 	if (res)
 		PERR("could not create pager object identity, create_pt returned %d\n", res);
-}
 
+	_pt_cleanup = cap_selector_allocator()->alloc();
+	res = create_pt(_pt_cleanup, pd_sel, _tid.ec_sel, Mtd(0), (mword_t)_invoke_handler);
+	if (res)
+		PERR("could not create pager cleanup portal, create_pt returned %d\n", res);
+}
 
 Pager_object::~Pager_object()
 {
-	revoke(Obj_crd(_tid.ec_sel, 0));
+	/* Revoke thread capability */
+	revoke(Obj_crd(_tid.ec_sel, 0), true);
+	/* Revoke thread portals serving exceptions */
+	revoke(Obj_crd(_exc_pt_sel,NUM_INITIAL_PT_LOG2), true);
+	/* Revoke portal used as identity object */
+	revoke(Obj_crd(_pt_sel, 0), true);
+
+	/* Make sure nobody is in the handler anymore by doing an IPC to a
+         * local cap pointing to same serving thread. When the call returns
+         * we know that nobody is handled by this object anymore, because
+         * all remotely available portals had been revoked beforehand.
+         */
+	Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
+	utcb->mtd = 0;
+	if (uint8_t res = call(_pt_cleanup))
+		PERR("failure - cleanup call failed res=%d", res);
+
+	/* Revoke portal used for the cleanup call */
+	revoke(Obj_crd(_pt_cleanup, 0), true);
+
+	cap_selector_allocator()->free(_tid.ec_sel, 0);
+	cap_selector_allocator()->free(_exc_pt_sel, NUM_INITIAL_PT_LOG2);
+	cap_selector_allocator()->free(_pt_sel, 0);
+	cap_selector_allocator()->free(_pt_cleanup, 0);
+
 	/* revoke utcb */
 	Rights rwx(true, true, true);
-	revoke(Nova::Mem_crd((unsigned)Thread_base::myself()->utcb() >> 12, 0, rwx));
+	mword_t utcb_context = reinterpret_cast<mword_t>(&_context->utcb);
+	revoke(Nova::Mem_crd(utcb_context >> 12, 0, rwx));
 }
 
 
@@ -170,6 +201,13 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
+	/* cleanup cap session */
+	_cap_session->free(obj->Object_pool<Pager_object>::Entry::cap());
+	if (obj->pt_sel() != 0UL + obj->Object_pool<Pager_object>::Entry::cap().dst()) {
+		cap_selector_allocator()->free(obj->Object_pool<Pager_object>::Entry::cap().dst(), 0);
+		revoke(Obj_crd(obj->Object_pool<Pager_object>::Entry::cap().dst(), 0), true);
+	}
+
 	pf_lock()->lock();
 	remove(obj);
 	pf_lock()->unlock();

@@ -18,4 +18,8 @@ INC_DIR += $(shell echo "int main() {return 0;}" |\
 #
 # Link libstdc++ that comes with the tool chain
 #
+ifneq ($(filter hardening_tool_chain, $(SPECS)),)
+EXT_OBJECTS += $(shell $(CUSTOM_CXX_LIB) $(CC_MARCH) -print-file-name=libstdc++.so)
+else
 EXT_OBJECTS += $(shell $(CUSTOM_CXX_LIB) $(CC_MARCH) -print-file-name=libstdc++.a)
+endif

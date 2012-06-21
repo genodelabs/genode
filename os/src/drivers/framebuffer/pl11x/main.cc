@@ -131,15 +131,7 @@ namespace Framebuffer
 					_timer.msleep(100);
 				}
 
-				ctrl = CTRL_BGR | CTRL_ENABLED | CTRL_TFT | CTRL_VCOMP;
-
-				/*
-				 * QEmu (version <= 14.x) doesn't emulate pl11x properly,
-				 * set bpp16 although we actually use bbp16_565.
-				 * It doesn't set the system's identity register,
-				 * so we can detect it.
-				 */
-				ctrl |= (sys_reg_read(SP810_REG_ID) == 0) ? CTRL_BPP16 : CTRL_BPP16_565;
+				ctrl = CTRL_BGR | CTRL_ENABLED | CTRL_TFT | CTRL_VCOMP | CTRL_BPP16_565;
 
 				/* init color-lcd oscillator */
 				sys_reg_write(SP810_REG_LOCK,    0xa05f);

@@ -1,7 +1,3 @@
-if {![have_spec x86]} {
-	puts "\nNoux is supported on the x86 architecture only\n"
-	exit 0
-}
 if {[have_spec linux]} {
 	puts "\nLinux not supported because of missing UART driver\n"
 	exit 0
@@ -9,7 +5,7 @@ if {[have_spec linux]} {
 
 build "core init drivers/timer drivers/uart noux/minimal lib/libc_noux test/noux_fork"
 
-# strip coreutils binaries and create tar archive
+# create tar archive
 exec tar cfv bin/noux_fork.tar -h -C bin test-noux_fork
 
 create_boot_directory

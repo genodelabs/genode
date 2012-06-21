@@ -19,6 +19,7 @@ CUSTOM_AS      ?= $(CROSS_DEV_PREFIX)as
 CUSTOM_AR      ?= $(CROSS_DEV_PREFIX)ar
 CUSTOM_NM      ?= $(CROSS_DEV_PREFIX)nm
 CUSTOM_OBJCOPY ?= $(CROSS_DEV_PREFIX)objcopy
+CUSTOM_STRIP   ?= $(CROSS_DEV_PREFIX)strip
 
 #
 # GNU utilities
@@ -41,6 +42,7 @@ AS      = $(CUSTOM_AS)
 AR      = $(CUSTOM_AR)
 NM      = $(CUSTOM_NM)
 OBJCOPY = $(CUSTOM_OBJCOPY)
+STRIP   = $(CUSTOM_STRIP)
 
 #
 # Compiler and Linker options

@@ -82,7 +82,7 @@ class Context_area_ram_session : public Ram_session
 {
 	public:
 
-		Ram_dataspace_capability alloc(size_t size)
+		Ram_dataspace_capability alloc(size_t size, bool)
 		{
 			/* find free context */
 			unsigned i;
