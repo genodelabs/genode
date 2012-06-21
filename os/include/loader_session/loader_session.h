@@ -69,7 +69,8 @@ namespace Loader {
 		 * becomes visible. The server frees intermediate dataspaces that are
 		 * no longer used.
 		 */
-		virtual Dataspace_capability alloc_rom_module(Name const &name, size_t size) = 0;
+		virtual Dataspace_capability alloc_rom_module(Name const    &name,
+		                                              Genode::size_t size) = 0;
 
 		/**
 		 * Expose ROM module to loaded subsystem
@@ -91,7 +92,7 @@ namespace Loader {
 		 * If 'ram_quota' is not called prior calling 'start', all available
 		 * session resources will be assigned to the subsystem.
 		 */
-		virtual void ram_quota(size_t quantum) = 0;
+		virtual void ram_quota(Genode::size_t quantum) = 0;
 
 		/**
 		 * Constrain size of the nitpicker buffer used by the subsystem
@@ -134,11 +135,11 @@ namespace Loader {
 		 *******************/
 
 		GENODE_RPC(Rpc_alloc_rom_module, Dataspace_capability, alloc_rom_module,
-		                                 Name const &, size_t);
+		                                 Name const &, Genode::size_t);
 		GENODE_RPC_THROW(Rpc_commit_rom_module, void, commit_rom_module,
 		                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
 		                 Name const &);
-		GENODE_RPC(Rpc_ram_quota, void, ram_quota, size_t);
+		GENODE_RPC(Rpc_ram_quota, void, ram_quota, Genode::size_t);
 		GENODE_RPC(Rpc_constrain_geometry, void, constrain_geometry, int, int);
 		GENODE_RPC(Rpc_view_ready_sigh, void, view_ready_sigh, Signal_context_capability);
 		GENODE_RPC_THROW(Rpc_start, void, start,
