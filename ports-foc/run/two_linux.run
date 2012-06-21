@@ -20,6 +20,7 @@ lappend_if [have_spec     x86] build_components drivers/nic
 lappend_if [have_spec     pci] build_components drivers/pci
 lappend_if [have_spec     ps2] build_components drivers/input/ps2
 lappend_if [have_spec lan9118] build_components drivers/nic
+lappend_if [have_spec     usb] build_components drivers/usb
 
 build $build_components
 create_boot_directory
@@ -70,12 +71,27 @@ append_if [have_spec pl11x] config {
 		<provides><service name="Framebuffer"/></provides>
 	</start> }
 
+append_if [have_spec omap4] config {
+	<start name="fb_drv">
+		<binary name="omap4_fb_drv"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
 append_if [have_spec ps2] config {
 	<start name="input_drv">
 		<binary name="ps2_drv"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 	</start>}
+
+append_if [expr ![have_spec ps2] && [have_spec usb]] config {
+	<start name="input_drv">
+		<binary name="usb_drv"/>
+		<resource name="RAM" quantum="3M"/>
+		<provides><service name="Input"/></provides>
+		<config> <hid/> </config>
+	</start> }
 
 append_if [have_spec x86] config {
 	<start name="nic_drv">
@@ -199,6 +215,8 @@ lappend_if [have_spec   pl11x] boot_modules pl11x_drv
 lappend_if [have_spec    vesa] boot_modules vesa_drv
 lappend_if [have_spec     x86] boot_modules nic_drv
 lappend_if [have_spec lan9118] boot_modules nic_drv
+lappend_if [have_spec   omap4] boot_modules omap4_fb_drv
+lappend_if [have_spec   usb]   boot_modules usb_drv
 
 if {[have_spec x86]} {
 	set uri "https://github.com/downloads/skalk/genode/busybox-initrd-x86-20120618.gz"
