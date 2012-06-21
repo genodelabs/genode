@@ -39,7 +39,7 @@ namespace Genode {
 
 			Dma() : _range(env()->heap())
 			{
-				Ram_dataspace_capability cap = env()->ram_session()->alloc(SIZE);
+				Ram_dataspace_capability cap = env()->ram_session()->alloc(SIZE, false);
 				_base_phys = Dataspace_client(cap).phys_addr();
 				_base      = (addr_t)env()->rm_session()->attach(cap);
 				dde_kit_log(DEBUG_DMA, "New DMA range [%lx-%lx)", _base, _base + SIZE);
