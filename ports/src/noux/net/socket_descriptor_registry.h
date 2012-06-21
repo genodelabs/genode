@@ -56,6 +56,12 @@ namespace Noux {
 					_reset_sd(i);
 			}
 
+			void reset_all()
+			{
+				for (unsigned i = 0; i < MAX_SOCKET_DESCRIPTORS; i++)
+					_reset_sd(i);
+			}
+
 			int add_io_channel(Shared_pointer<T> io_channel, int sd = -1)
 			{
 				if (sd == -1) {
