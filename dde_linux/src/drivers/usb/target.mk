@@ -14,7 +14,6 @@ USB_DIR     := $(DRIVERS_DIR)/usb
 #
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(CONTRIB_DIR)/include
-INC_DIR += $(shell pwd)
 
 CC_OPT += -U__linux__ -D__KERNEL__
 CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG
@@ -55,7 +54,6 @@ SRC_C += $(addprefix scsi/,scsi.c constants.c)
 #
 GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(CONTRIB_DIR) |\
                         sed "s/^\#include *[<\"]\(.*\)[>\"].*/\1/" | sort | uniq)
-
 #
 # Filter out some black-listed headers
 #
@@ -66,6 +64,7 @@ GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(CONTRIB_DIR) |\
 ########################
 
 SUPPORTED = x86_32 platform_panda
+
 
 #
 # x86_32
@@ -89,6 +88,7 @@ SRC_CC  += platform.cc
 #SRC_C   += $(DRIVERS_DIR)/mfd/omap-usb-host.c
 vpath %.c  $(PRG_DIR)/arm/platform
 vpath %.cc $(PRG_DIR)/arm/platform
+
 #
 # Unsupported
 #
@@ -103,12 +103,24 @@ NO_GEN_INCLUDES := $(shell cd $(CONTRIB_DIR)/include; find -name "*.h" | sed "s/
 GEN_INCLUDES    := $(filter-out $(NO_GEN_INCLUDES),$(GEN_INCLUDES))
 
 #
+# Put Linux headers in 'GEN_INC' dir, since some include use "../../" paths use
+# three level include hierarchy
+#
+GEN_INC         := $(shell pwd)/include/include/include
+
+$(shell mkdir -p $(GEN_INC))
+
+GEN_INCLUDES    := $(addprefix $(GEN_INC)/,$(GEN_INCLUDES))
+INC_DIR         += $(GEN_INC)
+
+#
 # Make sure to create the header symlinks prior building
 #
 $(SRC_C:.c=.o) $(SRC_CC:.cc=.o): $(GEN_INCLUDES)
 
+
 #
-# Add prefix, since there are two hid-core.c with the same module init function
+# Add suffix, since there are two hid-core.c with the same module init function
 #
 hid/hid-core.o: MOD_SUFFIX="_core"
 
@@ -123,3 +135,6 @@ vpath %.c  $(PRG_DIR)/input
 vpath %.cc $(PRG_DIR)/input
 vpath %.cc $(PRG_DIR)/storage
 vpath %.c  $(PRG_DIR)/storage
+
+clean cleanall:
+	$(VERBOSE) rm -r include
