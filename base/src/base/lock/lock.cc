@@ -110,13 +110,14 @@ void Cancelable_lock::lock()
 
 
 		/* check if we are the applicant to be waken up next */
-		if (*_owner.applicant_to_wake_up() == myself) {
+		Applicant *a = _owner.applicant_to_wake_up();
+		if (a && (*a == myself)) {
+
 			_owner.applicant_to_wake_up(myself.applicant_to_wake_up());
 
 		/* otherwise, go through the list of remaining applicants */
 		} else {
 
-			Applicant *a = _owner.applicant_to_wake_up();
 			for (; a; a = a->applicant_to_wake_up()) {
 
 				/* remove reference to ourself from the applicants list */
