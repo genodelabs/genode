@@ -128,7 +128,9 @@ namespace Genode {
 				 * Remove element from queue and wake up the corresponding
 				 * blocking thread
 				 */
-				_queue.dequeue()->wake_up();
+				Semaphore_queue::Element * element = _queue.dequeue();
+				if (element)
+					element->wake_up();
 			}
 
 			void down()
