@@ -1376,9 +1376,6 @@ namespace {
 			return -1;
 		}
 
-		sysio()->sendto_in.addrlen = addrlen;
-		Genode::memcpy(&sysio()->sendto_in.dest_addr, dest_addr, addrlen);
-
 		/* wipe-out sendto buffer */
 		Genode::memset(sysio()->sendto_in.buf, 0, sizeof (sysio()->sendto_in.buf));
 
@@ -1389,6 +1386,15 @@ namespace {
 			sysio()->sendto_in.fd = noux_fd(fd->context);
 			sysio()->sendto_in.len = curr_len;
 			Genode::memcpy(sysio()->sendto_in.buf, src, curr_len);
+
+			if (addrlen == 0) {
+				sysio()->sendto_in.addrlen = 0;
+				Genode::memset(&sysio()->sendto_in.dest_addr, 0, sizeof (struct sockaddr));
+			}
+			else {
+				sysio()->sendto_in.addrlen = addrlen;
+				Genode::memcpy(&sysio()->sendto_in.dest_addr, dest_addr, addrlen);
+			}
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_SENDTO)) {
 				return -1;
