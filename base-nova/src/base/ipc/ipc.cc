@@ -138,11 +138,12 @@ void Ipc_client::_call()
 	_rcv_msg->rcv_prepare_pt_sel_window(utcb);
 
 	/* establish the mapping via a portal traversal */
-	if (Ipc_ostream::_dst.dst() == 0)
-		PWRN("destination portal is zero");
-	int res = Nova::call(Ipc_ostream::_dst.dst());
-	if (res)
-		PERR("call returned %d", res);
+	uint8_t res = Nova::call(Ipc_ostream::_dst.dst());
+	if (res) {
+		/* If an error occurred, reset word&item count (not done by kernel). */
+		utcb->set_msg_word(0);
+		PERR("call returned %u", res);
+	}
 
 	copy_utcb_to_msgbuf(utcb, _rcv_msg);
 	_snd_msg->snd_reset();
