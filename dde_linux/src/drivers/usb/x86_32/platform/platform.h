@@ -14,6 +14,8 @@
 #ifndef _X86_32__PLATFORM_H_
 #define _X86_32__PLATFORM_H_
 
+#include <platform.h>
+
 static inline
 void platform_execute(void *sp, void *func, void *arg)
 {
@@ -27,7 +29,7 @@ void platform_execute(void *sp, void *func, void *arg)
 extern "C" void module_ehci_hcd_init();
 extern "C" void module_uhci_hcd_init();
 
-static inline void platform_hcd_init(void)
+inline void platform_hcd_init(Services *s)
 {
 
 	/* ehci_hcd should always be loaded before uhci_hcd and ohci_hcd, not after */

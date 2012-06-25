@@ -21,6 +21,7 @@
 #include <os/config.h>
 #include <util/xml_node.h>
 
+#include <nic_session/nic_session.h>
 /* Local */
 #include "storage/component.h"
 #include "routine.h"
@@ -50,7 +51,7 @@ bool     Routine::_all        = false;
 void breakpoint() { PDBG("BREAK"); }
 
 
-static void init(bool hid, bool stor)
+static void init(Services *services)
 {
 	/* start jiffies */
 	dde_kit_timer_init(0, 0);
@@ -59,7 +60,7 @@ static void init(bool hid, bool stor)
 	subsys_usb_init();
 
 	/* input + HID */
-	if (hid) {
+	if (services->hid) {
 		subsys_input_init();
 		module_evdev_init();
 
@@ -73,10 +74,10 @@ static void init(bool hid, bool stor)
 	 * Host controller.
 	 *
 	 */
-	platform_hcd_init();
+	platform_hcd_init(services);
 
 	/* storage */
-	if (stor)
+	if (services->stor)
 		module_usb_stor_init();
 }
 
@@ -91,13 +92,12 @@ int main(int, char **)
 	static Rpc_entrypoint ep_hid(&cap, STACK_SIZE, "usb_hid_ep");
 	static Signal_receiver recv;
 
-	bool hid = false;
-	bool stor = false;
+	Services services;
 
 	try {
 		config()->xml_node().sub_node("hid");
 		start_input_service(&ep_hid);
-		hid = true;
+		services.hid = true;
 	} catch (Config::Invalid) {
 		PDBG("No <config> node found - not starting any USB services");
 		return 0;
@@ -107,9 +107,16 @@ int main(int, char **)
 
 	try {
 		config()->xml_node().sub_node("storage");
-		stor = true;
+		services.stor = true;
 	} catch (Xml_node::Nonexistent_sub_node) {
 		PDBG("No <storage> config node found - not starting the USB Storage (Block) service");
+	}
+
+	try {
+		config()->xml_node().sub_node("nic");
+		services.nic = true;
+	} catch (Xml_node::Nonexistent_sub_node) {
+		PDBG("No <nic> config node found - not starting the USB Nic (Network) service");
 	}
 
 	Timer::init(&recv);
@@ -117,10 +124,11 @@ int main(int, char **)
 	Event::init(&recv);
 	Service_handler::s()->receiver(&recv);
 	Storage::init(&recv);
+	Nic::init(&recv);
 
 	Routine::add(0, 0, "Main", true);
 	Routine::current_use_first();
-	init(hid, stor);
+	init(&services);
 
 	Routine::remove();
 

@@ -52,6 +52,53 @@ void Event::init(Genode::Signal_receiver *recv) {
 	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
 
 
+/**
+ * Delayed work
+ */
+class Work : public Genode::List<Work>::Element
+{
+	private:
+
+		void *_work;
+		bool  _delayed;
+
+		static Genode::List<Work> *_list()
+		{
+			static Genode::List<Work> _l;
+			return &_l;
+		}
+
+	public:
+
+		Work(void *work, bool delayed) : _work(work), _delayed(delayed) { }
+
+		static void schedule(void *work, bool delayed)
+		{
+			Work *w = new (Genode::env()->heap()) Work(work, delayed);
+			_list()->insert(w);
+		}
+
+		static void exec()
+		{
+			while (_list()->first()) {
+				Work *w = _list()->first();
+				_list()->remove(w);
+
+				if (w->_delayed) {
+					delayed_work *work = static_cast<delayed_work *>(w->_work);
+					work->work.func(&(work)->work);
+				}
+				else {
+					work_struct *work = static_cast<work_struct *>(w->_work);
+					work->func(work);
+				}
+				destroy(Genode::env()->heap(), w);
+			}
+		}
+
+};
+
+
 /************************
  ** linux/completion.h **
  ************************/
@@ -59,8 +106,14 @@ void Event::init(Genode::Signal_receiver *recv) {
 void __wake_up() { Routine::schedule_all(); }
 
 
-void __wait_event() {
-	Service_handler::s()->process(); }
+void __wait_event()
+{
+	/* schedule work first */
+	Work::exec();
+
+	/* schedule other routines or wait for signals */
+	Service_handler::s()->process();
+}
 
 
 void init_completion(struct completion *work)
@@ -167,3 +220,21 @@ int wake_up_process(struct task_struct *tsk)
 	return 0;
 }
 
+
+/***********************
+ ** linux/workquque.h **
+ ***********************/
+
+int schedule_delayed_work(struct delayed_work *work, unsigned long delay)
+{
+	Work::schedule((void *)work, true);
+	//work->work.func(&(work)->work);
+	return 0;
+}
+
+
+int schedule_work(struct work_struct *work)
+{
+	Work::schedule((void *)work, false);
+	return 1;
+}

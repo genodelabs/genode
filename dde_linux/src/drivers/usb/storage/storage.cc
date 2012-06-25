@@ -19,9 +19,9 @@
 
 #include <lx_emul.h>
 
-#include "component.h"
+#include <storage/component.h>
+#include <storage/scsi.h>
 #include "signal.h"
-#include "scsi.h"
 
 static Signal_helper *_signal = 0;
 

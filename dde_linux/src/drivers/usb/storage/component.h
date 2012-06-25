@@ -17,7 +17,7 @@
 #include <root/component.h>
 #include <block_session/rpc_object.h>
 
-#include "signal.h"
+#include <signal/dispatch.h>
 
 namespace Block {
 
@@ -25,7 +25,7 @@ namespace Block {
 
 	class Session_component;
 
-	struct Device
+	struct Device : ::Device
 	{
 		/**
 		 * Request block size for driver and medium
@@ -42,49 +42,14 @@ namespace Block {
 	};
 
 
-	template <typename T>
-	class Signal_dispatcher : public  Driver_context,
-                            public  Signal_context_capability
-	{
-		private:
-
-			T &obj;
-			void (T::*member) ();
-			Signal_receiver *sig_rec;
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param sig_rec     signal receiver to associate the signal
-			 *                    handler with
-			 * \param obj,member  object and member function to call when
-			 *                    the signal occurs
-			 */
-			Signal_dispatcher(Signal_receiver *sig_rec,
-			                  T &obj, void (T::*member)())
-			:
-				Signal_context_capability(sig_rec->manage(this)),
-				obj(obj), member(member),
-				sig_rec(sig_rec)
-			{ }
-
-			~Signal_dispatcher() { sig_rec->dissolve(this); }
-
-			void handle() { (obj.*member)(); }
-			char const *debug() { return "Block_context"; }
-	};
-
-
-	class Session_component : public Session_rpc_object
+	class Session_component : public Packet_session_component<Session_rpc_object>
 	{
 		private:
 
 			addr_t  _rq_phys ; /* physical addr. of rq_ds */
 			Device *_device;   /* device this session is using */
 
-			Signal_dispatcher<Session_component> _process_packet_dispatcher;
+		protected:
 
 			void _process_packets()
 			{
@@ -105,23 +70,17 @@ namespace Block {
 			/**
 			 * Constructor
 			 */
-			Session_component(Dataspace_capability  rq_ds,
+			Session_component(Dataspace_capability  tx_ds,
+			                  Ram_dataspace_capability  rx_ds,
 			                  Rpc_entrypoint       &ep,
 			                  Signal_receiver *sig_rec,
-			                  Device *device)
+			                  ::Device *device)
 			:
-				Session_rpc_object(rq_ds, ep),
-				_rq_phys(Dataspace_client(rq_ds).phys_addr()),
-				_device(device),
-				_process_packet_dispatcher(sig_rec, *this,
-				                           &Session_component::_process_packets)
-			{ 
-				/*
-				 * Register '_process_packets' dispatch function as signal
-				 * handler for packet-avail and ready-to-ack signals.
-				 */
-				_tx.sigh_packet_avail(_process_packet_dispatcher);
-				_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+				Packet_session_component(tx_ds, ep, sig_rec),
+				_rq_phys(Dataspace_client(tx_ds).phys_addr()),
+				_device(static_cast<Device *>(device))
+			{
+				env()->ram_session()->free(rx_ds);
 			}
 
 			void info(size_t *blk_count, size_t *blk_size,
@@ -148,58 +107,15 @@ namespace Block {
 	/**
 	 * Root component, handling new session requests
 	 */
-	class Root : public Root_component
+	class Root : public Packet_root<Root_component, Session_component>
 	{
-		private:
-
-			Rpc_entrypoint  &_ep;
-			Signal_receiver *_sig_rec;
-			Device          *_device;
-
-		protected:
-
-			/**
-			 * Always returns the singleton block-session component
-			 */
-			Session_component *_create_session(const char *args)
-			{
-				size_t ram_quota =
-					Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-				size_t tx_buf_size =
-					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-
-				/* delete ram quota by the memory needed for the session */
-				size_t session_size = max((size_t)4096,
-				                          sizeof(Session_component)
-				                          + sizeof(Allocator_avl));
-				if (ram_quota < session_size)
-					throw Root::Quota_exceeded();
-
-				/*
-				 * Check if donated ram quota suffices for both communication
-				 * buffers. Also check both sizes separately to handle a
-				 * possible overflow of the sum of both sizes.
-				 */
-				if (tx_buf_size > ram_quota - session_size) {
-					PERR("insufficient 'ram_quota', got %zd, need %zd",
-					     ram_quota, tx_buf_size + session_size);
-					throw Root::Quota_exceeded();
-				}
-
-				return new (md_alloc())
-					Session_component(env()->ram_session()->alloc(tx_buf_size),
-					                  _ep, _sig_rec, _device);
-			}
-
 		public:
 
-			Root(Rpc_entrypoint  *session_ep, Allocator *md_alloc,
+			Root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
 			     Signal_receiver *sig_rec, Device *device)
 			:
-				Root_component(session_ep, md_alloc),
-				_ep(*session_ep), _sig_rec(sig_rec), _device(device)
-			{ }
+				Packet_root(session_ep, md_alloc, sig_rec, device) { }
 	};
-}
 
+}
 #endif /* _STORAGE__COMPONENT_H_ */

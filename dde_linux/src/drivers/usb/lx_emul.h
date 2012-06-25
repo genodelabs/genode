@@ -39,10 +39,11 @@ extern "C" {
 #if VERBOSE_LX_EMUL
 #define DEBUG_COMPLETION 0
 #define DEBUG_DMA        0
-#define DEBUG_DRIVER     0
+#define DEBUG_DRIVER     1
 #define DEBUG_IRQ        0
 #define DEBUG_KREF       0
 #define DEBUG_PCI        0
+#define DEBUG_SKB        0
 #define DEBUG_SLAB       0
 #define DEBUG_TIMER      0
 #define DEBUG_THREAD     0
@@ -52,8 +53,9 @@ extern "C" {
 #define DEBUG_DMA        0
 #define DEBUG_IRQ        0
 #define DEBUG_KREF       0
-#define DEBUG_SLAB       0
 #define DEBUG_PCI        0
+#define DEBUG_SKB        0
+#define DEBUG_SLAB       0
 #define DEBUG_TIMER      0
 #define DEBUG_THREAD     0
 #endif
@@ -135,7 +137,8 @@ typedef dde_kit_size_t   size_t;
 typedef dde_kit_int64_t  int64_t;
 typedef dde_kit_uint64_t uint64_t;
 
-typedef uint32_t uint;
+typedef uint32_t      uint;
+typedef unsigned long ulong;
 
 typedef int8_t   s8;
 typedef uint8_t  u8;
@@ -161,6 +164,9 @@ typedef __u64 __le64;
 typedef __u16 __be16;
 typedef __u32 __be32;
 typedef __u64 __be64;
+
+typedef __u16 __sum16;
+typedef __u32 __wsum;
 
 typedef u64 sector_t;
 
@@ -229,6 +235,7 @@ typedef unsigned short mode_t;
 #define rmb() mb()
 #define wmb() asm volatile ("": : :"memory")
 #define smp_wmb() wmb()
+#define smp_mb() mb()
 
 static inline void barrier() { mb(); }
 
@@ -417,6 +424,8 @@ enum {
 	ETIME        = 46,
 	EALREADY     = 47,
 	EOPNOTSUPP   = 48,
+	EDOM         = 49,
+	ENOLINK      = 50,
 };
 
 static inline bool IS_ERR(void *ptr) {
@@ -504,6 +513,8 @@ static inline size_t min(size_t a, size_t b) {
                   _x < 0 ? -_x : _x;  })
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+#define BUILD_BUG_ON(condition)
 
 void might_sleep();
 
@@ -627,6 +638,7 @@ void  *memscan(void *addr, int c, size_t size);
 char  *strcat(char *dest, const char *src);
 int    strcmp(const char *s1, const char *s2);
 int    strncmp(const char *cs, const char *ct, size_t count);
+char  *strcpy(char *to, const char *from);
 char  *strncpy(char *, const char *, size_t);
 char  *strchr(const char *, int);
 char  *strrchr(const char *,int);
@@ -931,6 +943,8 @@ typedef struct wait_queue { int dummy; } wait_queue_t;
 #define DECLARE_WAIT_QUEUE_HEAD(name) \
 	wait_queue_head_t name = __WAIT_QUEUE_HEAD_INITIALIZER(name)
 
+#define DECLARE_WAIT_QUEUE_HEAD_ONSTACK(name) DECLARE_WAIT_QUEUE_HEAD(name)
+
 void __wake_up();
 void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
 void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
@@ -951,8 +965,8 @@ void __wait_event(void);
 #define _wait_event(condition) \
 	while(!(condition)) { \
 		__wait_event();     \
-	if (!(condition))     \
-		msleep(1);          \
+		if (!(condition))   \
+			msleep(1);        \
 	}                     \
 
 #define _wait_event_timeout(condition, timeout) \
@@ -1005,7 +1019,7 @@ void do_gettimeofday(struct timeval *tv);
  ** linux/sched.h **
  *******************/
 
-enum { TASK_RUNNING = 0, TASK_INTERRUPTIBLE = 1, TASK_NORMAL = 3 };
+enum { TASK_RUNNING = 0, TASK_INTERRUPTIBLE = 1, TASK_UNINTERRUPTIBLE = 2, TASK_NORMAL = 3 };
 
 enum { MAX_SCHEDULE_TIMEOUT = (~0U >> 1) };
 
@@ -1027,6 +1041,7 @@ void __set_current_state(int state);
 #define set_current_state(state) __set_current_state(state)
 int signal_pending(struct task_struct *p);
 void schedule(void);
+signed long schedule_timeout(signed long);
 signed long schedule_timeout_uninterruptible(signed long timeout);
 void yield(void);
 int wake_up_process(struct task_struct *tsk);
@@ -1200,6 +1215,7 @@ typedef struct pm_message { int event; } pm_message_t;
 
 struct dev_pm_info { bool is_prepared; };
 
+#define PMSG_IS_AUTO(msg) 0
 
 /************************
  ** linux/pm_runtime.h **
@@ -2594,6 +2610,396 @@ struct scsi_driver
 	int (*done)(struct scsi_cmnd *);
 };
 
+
+/************************
+ ** Networking support **
+ ************************/
+
+
+/********************
+ ** linux/skbuff.h **
+ ********************/
+
+enum {
+	NET_IP_ALIGN      = 2,
+	CHECKSUM_COMPLETE = 2,
+	CHECKSUM_PARTIAL  = 3,
+};
+
+struct skb_shared_info
+{
+	unsigned short nr_frags;
+};
+
+struct sk_buff
+{
+	struct sk_buff          *next;
+	struct sk_buff          *prev;
+
+	/*
+	 * This is the control buffer. It is free to use for every
+	 * layer. Please put your private variables there. If you
+	 * want to keep them across layers you have to do a skb_clone()
+	 * first. This is owned by whoever has the skb queued ATM.
+	 */
+	char  cb[48] __attribute__((aligned(8)));
+	
+	unsigned int len;
+	union
+	{
+		__wsum csum;
+		struct
+		{
+			u16 csum_start;
+			u16 csum_offset;
+		};
+	};
+	u8  local_df:1,
+	    cloned:1,
+	    ip_summed:2,
+	    nohdr:1,
+	    nfctinfo:3;
+	__be16         protocol;
+	unsigned char *start;
+	unsigned char *end;
+	unsigned char *data;
+	unsigned char *tail;
+	unsigned int   truesize;
+};
+
+struct sk_buff_head
+{
+	struct sk_buff  *next;
+	struct sk_buff  *prev;
+	u32        qlen;
+	spinlock_t lock;
+};
+
+
+#define skb_queue_walk_safe(queue, skb, tmp)                           \
+                            for (skb = (queue)->next, tmp = skb->next; \
+                            skb != (struct sk_buff *)(queue);          \
+                            skb = tmp, tmp = skb->next)
+
+struct skb_shared_info *skb_shinfo(struct sk_buff *);
+
+struct sk_buff *alloc_skb(unsigned int, gfp_t);
+unsigned char *skb_push(struct sk_buff *, unsigned int);
+unsigned char *skb_pull(struct sk_buff *, unsigned int);
+unsigned char *skb_put(struct sk_buff *, unsigned int);
+unsigned char *__skb_put(struct sk_buff *, unsigned int);
+void skb_trim(struct sk_buff *, unsigned int);
+unsigned int skb_headroom(const struct sk_buff *);
+int skb_checksum_start_offset(const struct sk_buff *);
+struct sk_buff *skb_copy_expand(const struct sk_buff *, int, int, gfp_t);
+unsigned char *skb_tail_pointer(const struct sk_buff *);
+int skb_tailroom(const struct sk_buff *);
+void skb_set_tail_pointer(struct sk_buff *, const int);
+struct sk_buff *skb_clone(struct sk_buff *, gfp_t);
+void skb_reserve(struct sk_buff *, int);
+
+struct sk_buff *skb_dequeue(struct sk_buff_head *);
+void skb_queue_head_init(struct sk_buff_head *);
+void skb_queue_tail(struct sk_buff_head *, struct sk_buff *);
+void __skb_queue_tail(struct sk_buff_head *, struct sk_buff *);
+int skb_queue_empty(const struct sk_buff_head *);
+void skb_queue_purge(struct sk_buff_head *);
+void __skb_unlink(struct sk_buff *, struct sk_buff_head *);
+
+void skb_tx_timestamp(struct sk_buff *);
+bool skb_defer_rx_timestamp(struct sk_buff *);
+
+void dev_kfree_skb(struct sk_buff *);
+void dev_kfree_skb_any(struct sk_buff *);
+
+
+/****************
+ ** linux/if.h **
+ ****************/
+
+enum {
+	IFF_PROMISC   = 0x100, /* receive all packets */
+	IFF_ALLMULTI  = 0x200, /* receive all multicast packets */
+	IFF_MULTICAST = 0x1000, /* supports multicast */
+	IFNAMSIZ      = 16,
+};
+
+struct ifreq { };
+
+
+/**********************
+ ** linux/if_ether.h **
+ **********************/
+
+enum {
+	ETH_ALEN    = 6,      /* octets in one ethernet addr */
+	ETH_P_8021Q = 0x8100, /* 802.1Q VLAN Extended Header  */
+
+	ETH_FRAME_LEN = 1514,
+};
+
+
+/*********************
+ ** linux/ethtool.h **
+ *********************/
+
+enum {
+	DUPLEX_FULL  = 0x1,
+	ETHTOOL_GSET = 0x1,
+	ETHTOOL_FWVERS_LEN = 32,
+	ETHTOOL_BUSINFO_LEN = 32,
+};
+
+
+struct ethtool_cmd
+{
+	u32 cmd;
+	u8  duplex;
+};
+
+struct ethtool_eeprom
+{
+	u32 magic;
+	u32 offset;
+	u32 len;
+};
+
+struct ethtool_drvinfo
+{
+	char    driver[32];     /* driver short name, "tulip", "eepro100" */
+	char    version[32];    /* driver version string */
+	char    fw_version[ETHTOOL_FWVERS_LEN]; /* firmware version string */
+	char    bus_info[ETHTOOL_BUSINFO_LEN];  /* Bus info for this IF. */
+	                                        /* For PCI devices, use pci_name(pci_dev). */
+};
+
+struct ethhdr { };
+
+struct net_device;
+
+struct ethtool_ops
+{
+	int     (*get_settings)(struct net_device *, struct ethtool_cmd *);
+	int     (*set_settings)(struct net_device *, struct ethtool_cmd *);
+	void    (*get_drvinfo)(struct net_device *, struct ethtool_drvinfo *);
+	int     (*nway_reset)(struct net_device *);
+	u32     (*get_link)(struct net_device *);
+	int     (*get_eeprom_len)(struct net_device *);
+	int     (*get_eeprom)(struct net_device *, struct ethtool_eeprom *, u8 *);
+	int     (*set_eeprom)(struct net_device *, struct ethtool_eeprom *, u8 *);
+	u32     (*get_msglevel)(struct net_device *);
+	void    (*set_msglevel)(struct net_device *, u32);
+};
+
+__u32 ethtool_cmd_speed(const struct ethtool_cmd *ep);
+u32 ethtool_op_get_link(struct net_device *);
+
+
+/***********************
+ ** linux/netdevice.h **
+ ***********************/
+
+#define netif_err(priv, type, dev, fmt, args...) dde_kit_printf("netif_err: " fmt, ## args);
+#define netif_info(priv, type, dev, fmt, args...) dde_kit_printf("netif_info: " fmt, ## args);
+
+#define netdev_err(dev, fmt, args...) dde_kit_printf("nedev_err: " fmt, ##args)
+#define netdev_warn(dev, fmt, args...) dde_kit_printf("nedev_warn: " fmt, ##args)
+#define netdev_info(dev, fmt, args...) dde_kit_printf("nedev_info: " fmt, ##args)
+
+#define netdev_for_each_mc_addr(a, b) if (0)
+
+#if VERBOSE_LX_EMUL
+#define netif_dbg(priv, type, dev, fmt, args...) dde_kit_printf("netif_dbg: "  fmt, ## args)
+#define netdev_dbg(dev, fmt, args...)  dde_kit_printf("nedev_dbg: " fmt, ##args)
+#else
+#define netif_dbg(priv, type, dev, fmt, args...)
+#define netdev_dbg(dev, fmt, args...)
+#endif
+
+#define SET_NETDEV_DEV(net, pdev)        ((net)->dev.parent = (pdev))
+#define SET_NETDEV_DEVTYPE(net, devtype) ((net)->dev.type = (devtype))
+
+enum netdev_tx { NETDEV_TX_OK = 0 };
+typedef enum netdev_tx netdev_tx_t;
+
+enum {
+	MAX_ADDR_LEN    = 32,
+
+	NETIF_F_HW_CSUM = 8,
+	NETIF_F_RXCSUM  = (1 << 29),
+
+	NET_RX_SUCCESS  = 0,
+
+	NETIF_MSG_DRV   = 0x1,
+	NETIF_MSG_PROBE = 0x2,
+	NETIF_MSG_LINK  = 0x4,
+};
+
+struct net_device_ops
+{
+	int (*ndo_open)(struct net_device *dev);
+	int (*ndo_stop)(struct net_device *dev);
+	netdev_tx_t (*ndo_start_xmit) (struct sk_buff *skb, struct net_device *dev);
+	void        (*ndo_set_rx_mode)(struct net_device *dev);
+	int         (*ndo_set_mac_address)(struct net_device *dev, void *addr);
+	int         (*ndo_validate_addr)(struct net_device *dev);
+	int         (*ndo_do_ioctl)(struct net_device *dev, struct ifreq *ifr, int cmd);
+	void        (*ndo_tx_timeout) (struct net_device *dev);
+	int         (*ndo_change_mtu)(struct net_device *dev, int new_mtu);
+	int         (*ndo_set_features)(struct net_device *dev, u32 features);
+};
+
+struct net_device_stats
+{
+	unsigned long rx_packets;
+	unsigned long tx_packets;
+	unsigned long rx_bytes;
+	unsigned long tx_bytes;
+	unsigned long rx_errors;
+	unsigned long tx_errors;
+	unsigned long rx_dropped;
+	unsigned long tx_dropped;
+	unsigned long rx_length_errors;
+	unsigned long rx_over_errors;
+	unsigned long rx_crc_errors;
+	unsigned long rx_frame_errors;
+};
+
+/* NET_DEVICE */
+struct net_device
+{
+	char           name[IFNAMSIZ];
+	u32            features;
+	u32            hw_features;
+
+	struct net_device_stats      stats;
+	const struct net_device_ops *netdev_ops;
+	const struct ethtool_ops *ethtool_ops;
+
+	unsigned long  state;
+
+	unsigned int   flags;
+	unsigned short hard_header_len; /* hardware hdr length  */
+	unsigned int   mtu;
+	unsigned char *dev_addr;
+	unsigned char  _dev_addr[ETH_ALEN];
+	unsigned long  trans_start;    /* Time (in jiffies) of last Tx */
+	int            watchdog_timeo; /* used by dev_watchdog() */
+	struct device  dev;
+	void          *priv;
+};
+
+
+struct netdev_hw_addr
+{
+	unsigned char addr[MAX_ADDR_LEN];
+};
+
+#define netif_msg_tx_err(p) ({ printk("netif_msg_tx_err called not implemented\n"); 0; })
+#define netif_msg_rx_err(p) ({ printk("netif_msg_rx_err called not implemented\n"); 0; })
+#define netif_msg_tx_queued(p) ({ printk("netif_msg_tx_queued called not implemented\n"); 0; })
+
+u32 netif_msg_init(int, int);
+
+void *netdev_priv(const struct net_device *);
+int netif_running(const struct net_device *);
+int netif_device_present(struct net_device *);
+void netif_device_detach(struct net_device *);
+void netif_start_queue(struct net_device *);
+void netif_stop_queue(struct net_device *);
+void netif_wake_queue(struct net_device *);
+void netif_device_attach(struct net_device *);
+void unregister_netdev(struct net_device *);
+void free_netdev(struct net_device *);
+int netif_rx(struct sk_buff *);
+void netif_carrier_off(struct net_device *);
+
+int netdev_mc_empty(struct net_device *);
+int register_netdev(struct net_device *);
+
+/*****************
+ ** linux/mii.h **
+ *****************/
+
+enum {
+	FLOW_CTRL_TX = 0x1,
+	FLOW_CTRL_RX = 0x2,
+
+	MII_BMCR      = 0x0,
+	MII_ADVERTISE = 0x4,
+	MII_LPA       = 0x5,
+
+	BMCR_RESET = 0x8000, /* reset to default state */
+
+	ADVERTISE_PAUSE_CAP  = 0x0400, /* try for pause */
+	ADVERTISE_CSMA       = 0x0001, /* only selector supported */
+	ADVERTISE_PAUSE_ASYM = 0x0800, /* try for asymetric pause  */
+	ADVERTISE_10HALF     = 0x0020,
+	ADVERTISE_10FULL     = 0x0040,
+	ADVERTISE_100HALF    = 0x0080,
+	ADVERTISE_100FULL    = 0x0100,
+	ADVERTISE_ALL        = ADVERTISE_10HALF | ADVERTISE_10FULL |
+	                       ADVERTISE_100HALF | ADVERTISE_100FULL
+};
+
+struct mii_if_info
+{
+	int phy_id;
+	int phy_id_mask;
+	int reg_num_mask;
+	struct net_device *dev;
+	int (*mdio_read) (struct net_device *dev, int phy_id, int location);
+	void (*mdio_write) (struct net_device *dev, int phy_id, int location, int val);
+};
+
+
+unsigned int mii_check_media (struct mii_if_info *, unsigned int,
+                              unsigned int);
+int mii_ethtool_gset(struct mii_if_info *, struct ethtool_cmd *);
+int mii_ethtool_sset(struct mii_if_info *, struct ethtool_cmd *);
+u8  mii_resolve_flowctrl_fdx(u16, u16);
+int mii_nway_restart (struct mii_if_info *);
+int mii_link_ok (struct mii_if_info *);
+
+struct mii_ioctl_data { };
+int generic_mii_ioctl(struct mii_if_info *,
+                      struct mii_ioctl_data *, int,
+                      unsigned int *);
+struct mii_ioctl_data *if_mii(struct ifreq *);
+
+
+/**********************
+ ** linux/inerrupt.h **
+ **********************/
+
+struct tasklet_struct
+{
+	void (*func)(unsigned long);
+	unsigned long data;
+};
+
+void tasklet_schedule(struct tasklet_struct *);
+void tasklet_kill(struct tasklet_struct *);
+
+/*************************
+ ** linux/etherdevice.h **
+ *************************/
+
+int eth_mac_addr(struct net_device *, void *);
+int eth_validate_addr(struct net_device *);
+__be16 eth_type_trans(struct sk_buff *, struct net_device *);
+int is_valid_ether_addr(const u8 *);
+
+void random_ether_addr(u8 *addr);
+
+struct net_device *alloc_etherdev(int);
+
+/********************
+ ** asm/checksum.h **
+ ********************/
+
+__wsum csum_partial(const void *, int, __wsum);
+__sum16 csum_fold(__wsum);
 
 /**********************************
  ** Platform specific defintions **

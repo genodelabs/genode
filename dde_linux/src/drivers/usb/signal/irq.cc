@@ -93,9 +93,13 @@ class Irq_context : public Driver_context,
 			/* report IRQ to all clients */
 			for (Irq_handler *h = _handler_list.first(); h; h = h->next()) {
 				irqreturn_t rc;
-				if ((rc = h->handler(_irq, h->dev)) == IRQ_HANDLED)
+
+				rc = h->handler(_irq, h->dev);
+				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u %p", _irq, rc, h->handler);
+				if (rc == IRQ_HANDLED) {
 					Routine::schedule_all();
-				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u", _irq, rc);
+					return; 
+				}
 			}
 		}
 

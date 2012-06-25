@@ -1,7 +1,7 @@
 TARGET   = usb_drv
 LIBS     = cxx env dde_kit server libc-setjmp signal
 SRC_CC   = main.cc lx_emul.cc irq.cc timer.cc event.cc storage.cc \
-           input_component.cc
+           input_component.cc nic.cc
 SRC_C    = dummies.c scsi.c evdev.c
 
 CONTRIB_DIR := $(REP_DIR)/contrib
@@ -82,12 +82,11 @@ else ifeq ($(filter-out $(SPECS),platform_panda),)
 CC_OPT  += -DCONFIG_USB_EHCI_HCD_OMAP -DCONFIG_USB_EHCI_TT_NEWSCHED -DVERBOSE_DEBUG
 INC_DIR += $(PRG_DIR)/arm
 INC_DIR += $(CONTRIB_DIR)/arch/arm/plat-omap/include
-SRC_C   += platform_device.c
+SRC_C   += platform_device.c usbnet.c smsc95xx.c
 SRC_CC  += platform.cc
-#SRC_C   += $(CONTRIB_DIR)/arch/arm/mach-omap2/usb-host.c
-#SRC_C   += $(DRIVERS_DIR)/mfd/omap-usb-host.c
 vpath %.c  $(PRG_DIR)/arm/platform
 vpath %.cc $(PRG_DIR)/arm/platform
+vpath %.c  $(CONTRIB_DIR)/drivers/net/usb
 
 #
 # Unsupported
@@ -135,6 +134,7 @@ vpath %.c  $(PRG_DIR)/input
 vpath %.cc $(PRG_DIR)/input
 vpath %.cc $(PRG_DIR)/storage
 vpath %.c  $(PRG_DIR)/storage
+vpath %.cc $(PRG_DIR)/nic
 
 clean cleanall:
 	$(VERBOSE) rm -r include

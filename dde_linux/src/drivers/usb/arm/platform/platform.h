@@ -18,6 +18,8 @@
 extern "C" {
 #endif
 
+#include <platform.h>
+
 static inline
 void platform_execute(void *sp, void *func, void *arg)
 {
@@ -27,9 +29,6 @@ void platform_execute(void *sp, void *func, void *arg)
 	              ""
 	              : : "r"(sp), "r"(func), "r"(arg) : "r0");
 }
-
-
-void platform_hcd_init(void);
 
 #ifdef __cplusplus
 }

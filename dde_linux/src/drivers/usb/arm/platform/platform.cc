@@ -61,7 +61,6 @@ static struct ehci_hcd_omap_platform_data _ehci_data
 };
 
 
-extern "C" void module_ehci_hcd_init();
 
 
 /**
@@ -370,9 +369,22 @@ static void omap_ehci_init()
 }
 
 
-void platform_hcd_init(void)
+extern "C" void module_ehci_hcd_init();
+extern "C" int  module_usbnet_init();
+extern "C" int  module_smsc95xx_init();
+
+void platform_hcd_init(Services *services)
 {
+	/* register netowrk */
+	if (services->nic) {
+		module_usbnet_init();
+		module_smsc95xx_init();
+	}
+
+	/* register EHCI controller */
 	module_ehci_hcd_init();
+
+	/* initialize EHCI */
 	omap_ehci_init();
 
 	/* setup EHCI-controller platform device */

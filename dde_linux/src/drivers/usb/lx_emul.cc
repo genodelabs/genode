@@ -77,13 +77,15 @@ void mutex_unlock(struct mutex *m) { if (m->lock) dde_kit_lock_unlock( m->lock);
 
 void *kmalloc(size_t size, gfp_t flags)
 {
-	return dde_kit_large_malloc(size);
+	/* align at least four byte alignment */
+	void *addr = Genode::Dma::pool()->alloc(size, 2);
+	return addr;
 }
 
 
 void *kzalloc(size_t size, gfp_t flags)
 {
-	void *addr = dde_kit_large_malloc(size);
+	void *addr = kmalloc(size, flags);
 	if (addr)
 		Genode::memset(addr, 0, size);
 	return addr;
@@ -100,7 +102,8 @@ void *kcalloc(size_t n, size_t size, gfp_t flags)
 
 void kfree(const void *p)
 {
-	dde_kit_large_free((void *)p);
+	//dde_kit_large_free((void *)p);
+	Genode::Dma::pool()->free((void *)p);
 }
 
 
@@ -396,6 +399,13 @@ class Driver : public Genode::List<Driver>::Element
 		 */
 		bool match(struct device *dev)
 		{
+			/*
+			 *  Don't try if buses don't match, since drivers often use 'container_of'
+			 *  which might cast the device to non-matching type
+			 */
+			if (_drv->bus != dev->bus)
+				return false;
+
 			bool ret = _drv->bus->match ? _drv->bus->match(dev, _drv) : true;
 			dde_kit_log(DEBUG_DRIVER, "MATCH: %s ret: %u match: %p",
 			            _drv->name, ret,  _drv->bus->match);
@@ -594,7 +604,7 @@ void  dma_pool_destroy(struct dma_pool *d)
 
 static void* _alloc(size_t size, int align, dma_addr_t *dma)
 {
-	void *addr = Genode::Dma::pool()->alloc(size, align);
+	void *addr = Genode::Dma::pool()->alloc(size, align < 2 ? 2 : align);
 
 	if (!addr)
 		return 0;
@@ -609,8 +619,6 @@ static void* _alloc(size_t size, int align, dma_addr_t *dma)
 void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 {
 	return _alloc(d->size, d->align, dma);
-//	return _alloc(0x1000, 12, dma);
-
 }
 
 
@@ -646,7 +654,7 @@ dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
                                 enum dma_data_direction dir,
                                 struct dma_attrs *attrs)
 {
-	dma_addr_t phys = (dma_addr_t)dde_kit_pgtab_get_physaddr(ptr);
+	dma_addr_t phys = (dma_addr_t)Genode::Dma::pool()->phys_addr(ptr);
 	dde_kit_log(DEBUG_DMA, "virt: %p phys: %lx", ptr, phys);
 	return phys;
 }
@@ -664,17 +672,6 @@ dma_addr_t dma_map_page(struct device *dev, struct page *page,
 int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
                      int nents, enum dma_data_direction dir,
                      struct dma_attrs *attrs) { return nents; }
-
-
-/***********************
- ** linux/workquque.h **
- ***********************/
-
-int schedule_delayed_work(struct delayed_work *work, unsigned long delay)
-{
-	work->work.func(&(work)->work);
-	return 0;
-}
 
 
 /*********************
@@ -742,4 +739,116 @@ void *sg_virt(struct scatterlist *sg)
 resource_size_t resource_size(const struct resource *res)
 {
 	return res->end - res->start + 1;
+}
+
+
+/****************
+ ** Networking **
+ ****************/
+
+
+/*************************
+ ** linux/etherdevice.h **
+ *************************/
+
+struct net_device *alloc_etherdev(int sizeof_priv)
+{
+	net_device *dev = (net_device *)kzalloc(sizeof(net_device), 0);
+
+	dev->mtu      = 1500;
+	dev->hard_header_len = 0;
+	dev->priv     = kzalloc(sizeof_priv, 0);
+	dev->dev_addr = dev->_dev_addr;
+	memset(dev->_dev_addr, 0, sizeof(dev->_dev_addr));
+
+	return dev;
+}
+
+
+int is_valid_ether_addr(const u8 *addr)
+{
+	/* is multicast */
+	if (!(addr[0] & 0x1))
+		return 0;
+
+	/* zero */
+	if (!(addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]))
+		return 0;
+	
+	return 1;
+}
+
+
+/*****************
+ ** linux/mii.h **
+ *****************/
+
+
+/**
+ * Restart NWay (autonegotiation) for this interface
+ */
+int mii_nway_restart (struct mii_if_info *mii)
+{
+	int bmcr;
+	int r = -EINVAL;
+	enum { 
+		BMCR_ANENABLE  = 0x1000, /* enable auto negotiation */
+		BMCR_ANRESTART = 0x200,  /* auto negotation restart */
+	};
+
+	/* if autoneg is off, it's an error */
+	bmcr = mii->mdio_read(mii->dev, mii->phy_id, MII_BMCR);
+
+	if (bmcr & BMCR_ANENABLE) {
+		printk("Reanable\n");
+		bmcr |= BMCR_ANRESTART;
+		mii->mdio_write(mii->dev, mii->phy_id, MII_BMCR, bmcr);
+		r = 0;
+	}
+
+	return r;
+}
+
+
+int mii_ethtool_gset(struct mii_if_info *mii, struct ethtool_cmd *ecmd)
+{
+	ecmd->duplex = DUPLEX_FULL;
+	return 0;
+}
+
+
+u8 mii_resolve_flowctrl_fdx(u16 lcladv, u16 rmtadv)
+{
+	u8 cap = 0;
+
+	if (lcladv & rmtadv & ADVERTISE_PAUSE_CAP) {
+		cap = FLOW_CTRL_TX | FLOW_CTRL_RX;
+	} else if (lcladv & rmtadv & ADVERTISE_PAUSE_ASYM) {
+		if (lcladv & ADVERTISE_PAUSE_CAP)
+			cap = FLOW_CTRL_RX;
+		else if (rmtadv & ADVERTISE_PAUSE_CAP)
+			cap = FLOW_CTRL_TX;
+	}
+
+	 return cap;
+}
+
+
+/***********************
+ ** linux/netdevice.h **
+ ***********************/
+
+void *netdev_priv(const struct net_device *dev)
+{
+	return dev->priv;
+}
+
+
+/**********************
+ ** linux/inerrupt.h **
+ **********************/
+
+void tasklet_schedule(struct tasklet_struct *t)
+{
+	t->func(t->data);
 }

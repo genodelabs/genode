@@ -1,0 +1,17 @@
+diff -r 4d66ab105ff0 drivers/net/usb/smsc95xx.c
+--- a/drivers/net/usb/smsc95xx.c	Fri Jul 06 17:50:36 2012 +0200
++++ b/drivers/net/usb/smsc95xx.c	Fri Jul 06 17:55:13 2012 +0200
+@@ -1032,7 +1032,12 @@
+ 
+ static void smsc95xx_rx_csum_offload(struct sk_buff *skb)
+ {
+-	skb->csum = *(u16 *)(skb_tail_pointer(skb) - 2);
++	/*
++	 * Use bytewise access to avoid alignment issues on packets that have none
++	 * aligned sizes
++	 */
++	char *tail = skb_tail_pointer(skb);
++	skb->csum = (*(tail - 2) << 8) | *(tail - 1);
+ 	skb->ip_summed = CHECKSUM_COMPLETE;
+ 	skb_trim(skb, skb->len - 2);
+ }

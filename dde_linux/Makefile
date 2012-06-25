@@ -56,13 +56,11 @@ CONTENT_INPUT := input.c evdev.c input-compat.h
 CONTENT += $(addprefix drivers/input/,$(CONTENT_INPUT))
 CONTENT += include/linux/input/mt.h
 
+# Panda board usb network driver
+CONTENT_NET = usbnet.c smsc95xx.c smsc95xx.h
+CONTENT    += $(addprefix drivers/net/usb/,$(CONTENT_NET))
+CONTENT    += include/linux/usb/usbnet.h
 
-# Panda board
-#CONTENT += drivers/mfd/omap-usb-host.c 
-#CONTENT += arch/arm/plat-omap/include/plat/usb.h
-#CONTENT_ARCH = usb-host.c mux.h mux2420.h mux2430.h mux34xx.h mux44xx.h
-#CONTENT += $(addprefix arch/arm/mach-omap2/,$(CONTENT_ARCH))
-#CONTRIB_CONTENT := $(addprefix $(CONTRIB_DIR)/,$(CONTENT))
 #
 #
 # Utility to check if a tool is installed

@@ -120,4 +120,9 @@ namespace Storage
 	void init(Genode::Signal_receiver *recv);
 }
 
+namespace Nic
+{
+	void init(Genode::Signal_receiver *recv);
+}
+
 #endif /* _SIGNAL_H_ */

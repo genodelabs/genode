@@ -136,8 +136,10 @@ class Routine : public Genode::List<Routine>::Element
 
 			Routine *next = _next(all);
 
-			if (next == _current)
+			if (next == _current) {
+				_check_dead();
 				return;
+			}
 
 			/* return when restored */
 			if (_current && _setjmp(_current->_env)) {

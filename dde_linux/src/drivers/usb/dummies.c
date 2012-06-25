@@ -197,7 +197,6 @@ void mdelay(unsigned long msecs) { TRACE; }
 
 bool cancel_work_sync(struct work_struct *work) { TRACE; return 0; }
 int cancel_delayed_work_sync(struct delayed_work *work) { TRACE; return 0; }
-int schedule_work(struct work_struct *work) { TRACE; return 0; }
 bool flush_work_sync(struct work_struct *work) { TRACE; return 0; }
 
 
@@ -236,6 +235,7 @@ int signal_pending(struct task_struct *p) { TRACE; return 0; }
 void schedule(void) { TRACE; }
 void yield(void) { TRACE; }
 void cpu_relax(void) { TRACE; udelay(1); }
+signed long schedule_timeout(signed long timeout) { TRACE; return 0; }
 
 struct task_struct *current;
 
@@ -521,7 +521,7 @@ void kunmap(struct page *page) { TRACE; }
  ** asm-generic/io.h **
  **********************/
 
-void  iounmap(volatile void *addr) { TRACE; }
+void iounmap(volatile void *addr) { TRACE; }
 void native_io_delay(void) { TRACE; }
 
 
@@ -793,3 +793,90 @@ struct regulator *regulator_get(struct device *dev, const char *id) { TRACE; ret
 
 int omap_usbhs_enable(struct device *dev) { TRACE; return 0; }
 void omap_usbhs_disable(struct device *dev) { TRACE; }
+
+
+/********************
+ ** linux/skbuff.h **
+ ********************/
+
+unsigned char *__skb_put(struct sk_buff *skb, unsigned int len) { TRACE; return 0; }
+int skb_checksum_start_offset(const struct sk_buff *skb) { TRACE; return 0; }
+struct sk_buff *skb_copy_expand(const struct sk_buff *skb,
+                                int newheadroom, int newtailroom,
+                                gfp_t gfp_mask) { TRACE; return 0; }
+int skb_tailroom(const struct sk_buff *skb) { TRACE; return 0; }
+
+int skb_queue_empty(const struct sk_buff_head *list) { TRACE; return 1; }
+void skb_queue_purge(struct sk_buff_head *list) { TRACE; }
+
+void skb_tx_timestamp(struct sk_buff *skb) { TRACE; }
+bool skb_defer_rx_timestamp(struct sk_buff *skb) { TRACE; return 0; }
+
+void dev_kfree_skb_any(struct sk_buff *skb) { TRACE; }
+
+
+/*********************
+ ** linux/ethtool.h **
+ *********************/
+
+__u32 ethtool_cmd_speed(const struct ethtool_cmd *ep) { TRACE; return 0; }
+u32 ethtool_op_get_link(struct net_device *dev) { TRACE; return 0; }
+
+
+/***********************
+ ** linux/netdevice.h **
+ ***********************/
+
+u32 netif_msg_init(int debug_value, int default_msg_enable_bits) { TRACE; return 0; }
+
+void netif_start_queue(struct net_device *dev) { TRACE; }
+void netif_device_detach(struct net_device *dev) { TRACE; }
+void netif_stop_queue(struct net_device *dev) { TRACE; }
+void netif_wake_queue(struct net_device *dev) { TRACE; }
+void netif_device_attach(struct net_device *dev) { TRACE; }
+void unregister_netdev(struct net_device *dev) { TRACE; }
+void free_netdev(struct net_device *dev) { TRACE; }
+void netif_carrier_off(struct net_device *dev) { TRACE; }
+
+int netdev_mc_empty(struct net_device *dev) { TRACE; return 1; }
+
+/*****************
+ ** linux/mii.h **
+ *****************/
+
+unsigned int mii_check_media (struct mii_if_info *mii,
+                              unsigned int ok_to_print,
+                              unsigned int init_media) { TRACE; return 0; }
+int mii_ethtool_sset(struct mii_if_info *mii, struct ethtool_cmd *ecmd) { TRACE; return 0; }
+int mii_link_ok (struct mii_if_info *mii) { TRACE; return 0; }
+
+int generic_mii_ioctl(struct mii_if_info *mii_if,
+                      struct mii_ioctl_data *mii_data, int cmd,
+                      unsigned int *duplex_changed) { TRACE; return 0; }
+struct mii_ioctl_data *if_mii(struct ifreq *rq) { TRACE; return 0; }
+
+
+/*************************
+ ** linux/etherdevice.h **
+ *************************/
+
+__be16 eth_type_trans(struct sk_buff *skb, struct net_device *dev) { TRACE; return 0; }
+int eth_mac_addr(struct net_device *dev, void *p) { TRACE; return 0; }
+int eth_validate_addr(struct net_device *dev) { TRACE; return 0; }
+
+
+/**********************
+ ** linux/inerrupt.h **
+ **********************/
+
+void tasklet_kill(struct tasklet_struct *t) { TRACE; }
+
+
+/********************
+ ** asm/checksum.h **
+ ********************/
+
+__wsum csum_partial(const void *buff, int len, __wsum wsum) { TRACE; return 0; }
+__sum16 csum_fold(__wsum sum) { TRACE; return 0; }
+
+

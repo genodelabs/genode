@@ -1,0 +1,80 @@
+#
+# \brief  Test for using the lwIP TCP/IP stack over USB
+# \author Sebastian Sumpf
+# \date   2012-07-06
+#
+# This test case executes a small HTTP server, it has been used on PandaBoard
+# hardware only, though it should execute but not do anything on other hardware
+#
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/pci drivers/timer drivers/usb
+	test/lwip/http_srv
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="512K"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Input"/>
+		</provides>
+		<config>
+			<nic mac="2e:60:90:0c:4e:01" />
+			<hid/>
+		</config>
+	</start>
+	<start name="test-lwip_httpsrv">
+		<resource name="RAM" quantum="2M"/>
+	</start> 
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	usb_drv
+	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so test-lwip_httpsrv
+}
+
+build_boot_image $boot_modules
+
+# vi: set ft=tcl :
