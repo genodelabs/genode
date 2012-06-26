@@ -41,9 +41,9 @@ void Thread_base::_init_platform_thread()
 	_tid.pd_sel = cap_selector_allocator()->pd_sel();
 
 	/* create running semaphore required for locking */
-	int res = Nova::create_sm(_tid.rs_sel, _tid.pd_sel, 0);
+	uint8_t res = Nova::create_sm(_tid.rs_sel, _tid.pd_sel, 0);
 	if (res)
-		PERR("create_sm returned %d", res);
+		PERR("create_sm returned %u", res);
 }
 
 
@@ -60,4 +60,9 @@ void Thread_base::start()
 	/*
 	 * On NOVA, core never starts regular threads.
 	 */
+}
+
+void Thread_base::cancel_blocking()
+{
+	Nova::sm_ctrl(_tid.rs_sel, Nova::SEMAPHORE_UP);
 }

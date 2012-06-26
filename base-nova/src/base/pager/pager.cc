@@ -162,12 +162,12 @@ Pager_object::~Pager_object()
 	revoke(Obj_crd(_pt_sel, 0), true);
 
 	/* Make sure nobody is in the handler anymore by doing an IPC to a
-         * local cap pointing to same serving thread. When the call returns
-         * we know that nobody is handled by this object anymore, because
-         * all remotely available portals had been revoked beforehand.
-         */
+	 * local cap pointing to same serving thread. When the call returns
+	 * we know that nobody is handled by this object anymore, because
+	 * all remotely available portals had been revoked beforehand.
+	 */
 	Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
-	utcb->mtd = 0;
+	utcb->set_msg_word(0);
 	if (uint8_t res = call(_pt_cleanup))
 		PERR("failure - cleanup call failed res=%d", res);
 
