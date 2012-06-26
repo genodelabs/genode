@@ -52,7 +52,8 @@ void Pager_object::_page_fault_handler()
 		     ipc_pager.fault_addr(), ipc_pager.fault_ip());
 		/* revoke paging capability */
 		Nova::revoke(Nova::Obj_crd(obj->exc_pt_sel() + PT_SEL_PAGE_FAULT, 0), true);
-		ipc_pager.wait_for_fault();
+		Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
+		utcb->set_msg_word(0);
 	}
 
 	ipc_pager.reply_and_wait_for_fault();
@@ -70,6 +71,7 @@ void Pager_object::_startup_handler()
 	utcb->eip = obj->_initial_eip;
 	utcb->esp = obj->_initial_esp;
 	utcb->mtd = Mtd::EIP | Mtd::ESP;
+	utcb->set_msg_word(0);
 	reply(Thread_base::myself()->stack_top());
 }
 
@@ -82,6 +84,7 @@ void Pager_object::_invoke_handler()
 	/* send single portal as reply */
 	addr_t event = utcb->msg[0];
 	utcb->mtd = 0;
+	utcb->set_msg_word(0);
 
 	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT)
 		utcb->append_item(Obj_crd(obj->_exc_pt_sel + event, 0), 0);
