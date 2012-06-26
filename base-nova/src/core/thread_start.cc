@@ -51,6 +51,14 @@ void Thread_base::_deinit_platform_thread()
 {
 	unmap_local(Nova::Obj_crd(_tid.ec_sel, 0));
 	unmap_local(Nova::Obj_crd(_tid.rs_sel, 0));
+
+	cap_selector_allocator()->free(_tid.ec_sel, 0);
+	cap_selector_allocator()->free(_tid.rs_sel, 0);
+
+	/* revoke utcb */
+	Nova::Rights rwx(true, true, true);
+	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
+	Nova::revoke(Nova::Mem_crd(utcb >> 12, 0, rwx));
 }
 
 
