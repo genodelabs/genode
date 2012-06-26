@@ -173,10 +173,17 @@ void Rpc_entrypoint::entry()
 
 void Rpc_entrypoint::_leave_server_object(Rpc_object_base *obj)
 {
+	{
+		Lock::Guard lock_guard(_curr_obj_lock);
+
+		if (obj == _curr_obj)
+			cancel_blocking();
+	}
+
 	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
 	/* don't call ourself */
 	if (utcb != reinterpret_cast<Nova::Utcb *>(&_context->utcb)) {
-		utcb->mtd = 0;
+		utcb->set_msg_word(0);
 		if (Nova::call(obj->cap().dst() + 1))
 			PERR("could not clean up entry point");
 	}
