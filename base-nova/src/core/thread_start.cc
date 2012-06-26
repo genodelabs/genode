@@ -49,7 +49,6 @@ void Thread_base::_init_platform_thread()
 
 void Thread_base::_deinit_platform_thread()
 {
-	unmap_local(Nova::Obj_crd(_tid.sc_sel, 0));
 	unmap_local(Nova::Obj_crd(_tid.ec_sel, 0));
 	unmap_local(Nova::Obj_crd(_tid.rs_sel, 0));
 }
