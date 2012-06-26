@@ -96,8 +96,7 @@ void Pager_object::wake_up() { PDBG("not yet implemented"); }
 Pager_object::Pager_object(unsigned long badge)
 : Thread_base("pager", PF_HANDLER_STACK_SIZE), _badge(badge)
 {
-	_tid.ec_sel = cap_selector_allocator()->alloc();
-	unsigned pd_sel = cap_selector_allocator()->pd_sel();
+	addr_t pd_sel = cap_selector_allocator()->pd_sel();
 
 	enum { CPU_NO = 0, GLOBAL = false, EXC_BASE = 0 };
 
@@ -154,8 +153,6 @@ Pager_object::Pager_object(unsigned long badge)
 
 Pager_object::~Pager_object()
 {
-	/* Revoke thread capability */
-	revoke(Obj_crd(_tid.ec_sel, 0), true);
 	/* Revoke thread portals serving exceptions */
 	revoke(Obj_crd(_exc_pt_sel,NUM_INITIAL_PT_LOG2), true);
 	/* Revoke portal used as identity object */
@@ -174,15 +171,10 @@ Pager_object::~Pager_object()
 	/* Revoke portal used for the cleanup call */
 	revoke(Obj_crd(_pt_cleanup, 0), true);
 
-	cap_selector_allocator()->free(_tid.ec_sel, 0);
 	cap_selector_allocator()->free(_exc_pt_sel, NUM_INITIAL_PT_LOG2);
 	cap_selector_allocator()->free(_pt_sel, 0);
 	cap_selector_allocator()->free(_pt_cleanup, 0);
 
-	/* revoke utcb */
-	Rights rwx(true, true, true);
-	mword_t utcb_context = reinterpret_cast<mword_t>(&_context->utcb);
-	revoke(Nova::Mem_crd(utcb_context >> 12, 0, rwx));
 }
 
 
