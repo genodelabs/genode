@@ -247,11 +247,6 @@ namespace Nova {
 		return status;
 	}
 
-	/**
-	 * Semaphore operations
-	 */
-	enum Sem_op { SEMAPHORE_UP = 0, SEMAPHORE_DOWN = 1 };
-
 
 	ALWAYS_INLINE
 	inline uint8_t sm_ctrl(unsigned sm, Sem_op op)
