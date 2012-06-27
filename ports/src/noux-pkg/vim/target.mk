@@ -29,18 +29,20 @@ LIBS += ncurses
 
 include $(REP_DIR)/mk/noux.mk
 
-noux_env.sh: mirror_vim_src flush_config_cache
+noux_env.sh: mirror_vim_src.tag flush_config_cache.tag
 
-MIRROR_ITEMS := configure src
-
-mirror_vim_src:
-	$(VERBOSE)cp -af $(addprefix $(NOUX_PKG_DIR)/,src configure) $(PWD)
-	$(VERBOSE)ln -sf $(NOUX_PKG_DIR)/runtime $(PWD)
-	$(VERBOSE)ln -sf $(NOUX_PKG_DIR)/Makefile $(PWD)
+mirror_vim_src.tag:
+	$(VERBOSE)cp -af $(NOUX_PKG_DIR)/src $(PWD)
+	$(VERBOSE)cp -af $(NOUX_PKG_DIR)/Makefile $(PWD)
 	$(VERBOSE)ln -sf $(NOUX_PKG_DIR)/Filelist $(PWD)
+	$(VERBOSE)ln -sf $(NOUX_PKG_DIR)/runtime $(PWD)
+	# let the configure script update the Makefile time stamp
+	$(VERBOSE)sed -i "/exit/s/^/touch ..\/Makefile\n/" src/configure
+	@touch $@
 
-flush_config_cache:
+flush_config_cache.tag:
 	$(VERBOSE)rm -f $(PWD)/src/auto/config.cache
+	@touch $@
 
 #
 # Make the ncurses linking test succeed
@@ -49,6 +51,7 @@ Makefile: dummy_libs
 
 NOUX_LDFLAGS += -L$(PWD)
 
+.SECONDARY: dummy_libs
 dummy_libs: libncurses.a
 
 libncurses.a:
