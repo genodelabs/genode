@@ -109,6 +109,12 @@ namespace Nova {
 	} __attribute__((packed));
 
 
+	/**
+	 * Semaphore operations
+	 */
+	enum Sem_op { SEMAPHORE_UP = 0U, SEMAPHORE_DOWN = 1U, SEMAPHORE_DOWNZERO = 0x3U };
+
+
 	class Descriptor
 	{
 		protected:
