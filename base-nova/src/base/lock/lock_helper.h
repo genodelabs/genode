@@ -84,5 +84,5 @@ static inline void thread_stop_myself()
 {
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 	int sem = myself ? myself->tid().rs_sel : main_thread_running_semaphore();
-	Nova::sm_ctrl(sem, Nova::SEMAPHORE_DOWN);
+	Nova::sm_ctrl(sem, Nova::SEMAPHORE_DOWNZERO);
 }
