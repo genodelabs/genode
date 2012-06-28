@@ -17,4 +17,4 @@ $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ):
 
 $(CONTRIB_DIR)/$(FINDUTILS): $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
-
+	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(FINDUTILS) -N -p1 < src/noux-pkg/findutils/build.patch

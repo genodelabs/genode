@@ -1,0 +1,28 @@
+diff --git a/gnulib/lib/getdate.y b/gnulib/lib/getdate.y
+--- a/gnulib/lib/getdate.y
++++ b/gnulib/lib/getdate.y
+@@ -114,7 +114,8 @@
+    wraps around, but there's no portable way to check for that at
+    compile-time.  */
+ verify (TYPE_IS_INTEGER (time_t));
+-verify (LONG_MIN <= TYPE_MINIMUM (time_t) && TYPE_MAXIMUM (time_t) <= LONG_MAX);
++/* the Genode libc defines 'time_t' as '__int64_t' on ARM, which makes this test fail */
++/* verify (LONG_MIN <= TYPE_MINIMUM (time_t) && TYPE_MAXIMUM (time_t) <= LONG_MAX); */
+ 
+ /* An integer value, and the number of digits in its textual
+    representation.  */
+diff --git a/gnulib/lib/mktime.c b/gnulib/lib/mktime.c
+--- a/gnulib/lib/mktime.c
++++ b/gnulib/lib/mktime.c
+@@ -165,8 +165,9 @@
+ 	    int year0, int yday0, int hour0, int min0, int sec0)
+ {
+   verify (C99_integer_division, -1 / 2 == 0);
+-  verify (long_int_year_and_yday_are_wide_enough,
+-	  INT_MAX <= LONG_MAX / 2 || TIME_T_MAX <= UINT_MAX);
++  /* the Genode libc defines 'time_t' as '__int64_t' on ARM, which makes this test fail */
++  /* verify (long_int_year_and_yday_are_wide_enough,
++	  INT_MAX <= LONG_MAX / 2 || TIME_T_MAX <= UINT_MAX); */
+ 
+   /* Compute intervening leap days correctly even if year is negative.
+      Take care to avoid integer overflow here.  */
