@@ -26,6 +26,7 @@ $(CONTRIB_DIR)/$(LWIP): $(DOWNLOAD_DIR)/$(LWIP_ZIP)
 	$(VERBOSE)unzip $< -d $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d $(CONTRIB_DIR) -p0 -i ../src/lib/lwip/libc_select_notify.patch
 	$(VERBOSE)patch -d $(CONTRIB_DIR) -p0 -i ../src/lib/lwip/errno.patch
+	$(VERBOSE)patch -d $(CONTRIB_DIR) -p0 -i ../src/lib/lwip/sol_socket_definition.patch
 
 include/lwip/lwip:
 	$(VERBOSE)mkdir -p $@
