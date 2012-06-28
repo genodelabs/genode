@@ -70,6 +70,7 @@
 /libports/include/zlib
 /libports/include/gmp/gmp-impl.h
 /libports/include/gmp/x86_32/gmp-mparam.h
+/libports/include/mpc/
 /libports/include/mpfr/
 /libports/src/lib/gmp/mpn/asm-defs.m4
 /libports/src/lib/ncurses/codes.c
