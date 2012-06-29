@@ -338,8 +338,6 @@ namespace Genode {
 			 */
 			void _remove_session(Session *s)
 			{
-				Lock::Guard lock_guard(_lock);
-
 				/* forget about this session */
 				_session_pool.remove(s);
 				_session_list.remove(s);
@@ -420,8 +418,9 @@ namespace Genode {
 			 */
 			void revoke_server(const Server *server)
 			{
-				while (1) {
+				Lock::Guard lock_guard(_lock);
 
+				while (1) {
 					/* search session belonging to the specified server */
 					Session *s = _session_list.first();
 					for ( ; s && (s->server() != server); s = s->next());
@@ -575,6 +574,7 @@ namespace Genode {
 					}
 				}
 
+				Lock::Guard lock_guard(_lock);
 				_remove_session(s);
 			}
 
