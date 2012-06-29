@@ -87,7 +87,7 @@ void Pager_object::_invoke_handler()
 	utcb->set_msg_word(0);
 
 	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT)
-		utcb->append_item(Obj_crd(obj->_exc_pt_sel + event, 0), 0);
+		utcb->append_item(Obj_crd(obj->exc_pt_sel() + event, 0), 0);
 
 	reply(Thread_base::myself()->stack_top());
 }
@@ -112,13 +112,10 @@ Pager_object::Pager_object(unsigned long badge)
 	                        (mword_t)thread_sp, /* <- delivered to the startup handler */
 	                        EXC_BASE, GLOBAL);
 	if (res)
-		PDBG("create_ec returned %d", res);
-
-	/* allocate capability-selector range for event portals */
-	_exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
+		PERR("create_ec returned %d - utcb 0x%lx", res, thread_utcb);
 
 	/* create portal for page-fault handler */
-	res = create_pt(_exc_pt_sel + PT_SEL_PAGE_FAULT, pd_sel, _tid.ec_sel,
+	res = create_pt(exc_pt_sel() + PT_SEL_PAGE_FAULT, pd_sel, _tid.ec_sel,
 	                Mtd(Mtd::QUAL | Mtd::EIP), (mword_t)_page_fault_handler);
 	if (res) {
 		PERR("could not create page-fault portal, create_pt returned %d\n",
@@ -128,7 +125,7 @@ Pager_object::Pager_object(unsigned long badge)
 	}
 
 	/* create portal for startup handler */
-	res = create_pt(_exc_pt_sel + PT_SEL_STARTUP, pd_sel, _tid.ec_sel,
+	res = create_pt(exc_pt_sel() + PT_SEL_STARTUP, pd_sel, _tid.ec_sel,
 	                Mtd(Mtd::ESP | Mtd::EIP), (mword_t)_startup_handler);
 	if (res) {
 		PERR("could not create startup portal, create_pt returned %d\n",
@@ -157,7 +154,7 @@ Pager_object::Pager_object(unsigned long badge)
 Pager_object::~Pager_object()
 {
 	/* Revoke thread portals serving exceptions */
-	revoke(Obj_crd(_exc_pt_sel,NUM_INITIAL_PT_LOG2), true);
+	revoke(Obj_crd(exc_pt_sel(), NUM_INITIAL_PT_LOG2), true);
 	/* Revoke portal used as identity object */
 	revoke(Obj_crd(_pt_sel, 0), true);
 
@@ -174,7 +171,6 @@ Pager_object::~Pager_object()
 	/* Revoke portal used for the cleanup call */
 	revoke(Obj_crd(_pt_cleanup, 0), true);
 
-	cap_selector_allocator()->free(_exc_pt_sel, NUM_INITIAL_PT_LOG2);
 	cap_selector_allocator()->free(_pt_sel, 0);
 	cap_selector_allocator()->free(_pt_cleanup, 0);
 
