@@ -31,8 +31,8 @@ namespace Genode {
 
 	typedef Native_thread Native_thread_id;
 
-	inline bool operator == (Native_thread_id t1, Native_thread_id t2) { return t1.ec_sel == t2.ec_sel; }
-	inline bool operator != (Native_thread_id t1, Native_thread_id t2) { return t1.ec_sel != t2.ec_sel; }
+	inline bool operator == (Native_thread_id t1, Native_thread_id t2) { return (t1.ec_sel == t2.ec_sel) && (t1.sc_sel == t2.sc_sel) && (t1.rs_sel == t2.rs_sel); }
+	inline bool operator != (Native_thread_id t1, Native_thread_id t2) { return (t1.ec_sel != t2.ec_sel) && (t1.sc_sel != t2.sc_sel) && (t1.rs_sel != t2.rs_sel); }
 
 	class Native_utcb
 	{
