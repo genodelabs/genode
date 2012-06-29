@@ -44,7 +44,6 @@ namespace Genode {
 			 */
 			Signal_context_capability _exception_sigh;
 
-			unsigned _exc_pt_sel;  /* base of event portal window */
 			unsigned _pt_sel;      /* portal selector for object identity */
 			unsigned _pt_cleanup;  /* portal selector for object cleanup/destruction */
 
@@ -76,7 +75,7 @@ namespace Genode {
 			/**
 			 * Return base of initial portal window
 			 */
-			unsigned exc_pt_sel() { return _exc_pt_sel; }
+			unsigned exc_pt_sel() { return _tid.exc_pt_sel; }
 
 			/**
 			 * Set initial stack pointer used by the startup handler
