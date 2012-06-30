@@ -9,9 +9,8 @@
 #
 
 build {
-	core init
-	drivers/timer drivers/pci drivers/framebuffer drivers/input server/terminal_crosslink
-	test/terminal_crosslink
+	core init drivers/timer
+	server/terminal_crosslink test/terminal_crosslink
 }
 
 create_boot_directory
@@ -37,42 +36,7 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
-
-append_if [have_spec sdl] config {
-        <start name="fb_sdl">
-                <resource name="RAM" quantum="4M"/>
-                <provides>
-                        <service name="Input"/>
-                        <service name="Framebuffer"/>
-                </provides>
-        </start>}
-
-append_if [have_spec pci] config {
-        <start name="pci_drv">
-                <resource name="RAM" quantum="1M"/>
-                <provides><service name="PCI"/></provides>
-        </start>}
-
-append_if [have_spec vesa] config {
-        <start name="vesa_drv">
-                <resource name="RAM" quantum="1M"/>
-                <provides><service name="Framebuffer"/></provides>
-        </start>}
-
-append_if [have_spec pl11x] config {
-        <start name="pl11x_drv">
-                <resource name="RAM" quantum="2M"/>
-                <provides><service name="Framebuffer"/></provides>
-        </start>}
-
-append_if [have_spec ps2] config {
-        <start name="ps2_drv">
-                <resource name="RAM" quantum="1M"/>
-                <provides><service name="Input"/></provides>
-        </start> }
-
-append config {
+	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="512K"/>
 		<provides> <service name="Timer"/> </provides>
@@ -93,20 +57,10 @@ install_config $config
 # Boot modules
 #
 
-# generic modules
-set boot_modules {
+build_boot_image {
 	core init timer terminal_crosslink
 	test-terminal_crosslink
 }
-
-# platform-specific modules
-lappend_if [have_spec linux] boot_modules fb_sdl
-lappend_if [have_spec pci]   boot_modules pci_drv
-lappend_if [have_spec vesa]  boot_modules vesa_drv
-lappend_if [have_spec ps2]   boot_modules ps2_drv
-lappend_if [have_spec pl11x] boot_modules pl11x_drv
-
-build_boot_image $boot_modules
 
 append qemu_args "-nographic -m 64"
 
