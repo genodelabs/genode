@@ -22,7 +22,7 @@ namespace Loader {
 
 	struct Connection : Genode::Connection<Session>, Session_client
 	{
-		Connection(Genode::size_t ram_quota)
+		Connection(size_t ram_quota)
 		:
 			Genode::Connection<Session>(session("ram_quota=%zd", ram_quota)),
 			Session_client(cap())

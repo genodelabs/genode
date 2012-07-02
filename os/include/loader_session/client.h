@@ -26,13 +26,13 @@ namespace Loader {
 		explicit Session_client(Loader::Session_capability session)
 		: Rpc_client<Session>(session) { }
 
-		Dataspace_capability alloc_rom_module(Name const &name, Genode::size_t size) {
+		Dataspace_capability alloc_rom_module(Name const &name, size_t size) {
 			return call<Rpc_alloc_rom_module>(name, size); }
 
 		void commit_rom_module(Name const &name) {
 			call<Rpc_commit_rom_module>(name); }
 
-		void ram_quota(Genode::size_t quantum) {
+		void ram_quota(size_t quantum) {
 			call<Rpc_ram_quota>(quantum); }
 
 		void constrain_geometry(int width, int height) {
