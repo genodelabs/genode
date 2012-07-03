@@ -1,7 +1,20 @@
-if {![have_spec x86_32]} {
-	puts "\nThe Noux tool chain scenario is supported on the x86_32 architecture only\n"
-	exit 0
-}
+#
+# Uncomment the following line when working on the binutils source code. Otherwise,
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+#
+#exec rm -rf noux-pkg/binutils bin/binutils
+
+#
+# Uncomment the following line when working on the GCC source code. Otherwise,
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+#
+#exec rm -rf noux-pkg/gcc bin/gcc
+
+#
+# Uncomment the following line when working on the make source code. Otherwise,
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+#
+#exec rm -rf noux-pkg/make bin/make
 
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
@@ -10,10 +23,27 @@ set build_components {
 	test/libports/ncurses
 }
 
+set cc_march ""
+
+if {[have_spec arm]} {
+	set binutils "binutils_arm"
+	set gcc "gcc_arm"
+	set tool_prefix "genode-arm-"
+}
+
+if {[have_spec x86]} {
+	set binutils "binutils_x86"
+	set gcc "gcc_x86"
+	set tool_prefix "genode-x86-"
+	if {[have_spec x86_32]} {
+		set cc_march "-m32"
+        }
+}
+
 #
 # Build Noux packages only once
 #
-set noux_pkgs {bash coreutils vim findutils binutils gcc make}
+set noux_pkgs "bash coreutils vim findutils make $binutils $gcc"
 
 foreach pkg $noux_pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
@@ -114,15 +144,22 @@ append config {
 			<content>
 				<dir name="tmp">
 					<inline name="a.c">int main(int argc, char **argv) { return 0; }</inline>
-					<inline name="Makefile">
+					<inline name="Makefile"> }
+append config "
 SHELL=/bin/bash
 all:
-	genode-x86-gcc -v -c a.c -o a.o
+	${tool_prefix}gcc $cc_march -v -c a.c -o a.o
+"
+append config {
 					</inline>
 				</dir>
 				<dir name="home">
 					<dir name="user">
-						<inline name=".bash_profile">cd /tmp; make; genode-x86-readelf -a a.o</inline>
+						<inline name=".bash_profile">
+							cd /tmp; make; }
+append config "${tool_prefix}readelf -a a.o"
+append config {
+						</inline>
 					</dir>
 				</dir>
 			</content>
@@ -177,7 +214,7 @@ set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so }
 
-append boot_modules { gmp.lib.so mpfr.lib.so }
+append boot_modules { gmp.lib.so mpfr.lib.so mpc.lib.so }
 
 foreach pkg $noux_pkgs {
 	lappend boot_modules "$pkg.tar" }
@@ -191,7 +228,11 @@ lappend_if [have_spec pl11x] boot_modules pl11x_drv
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 300 "
+if {[have_spec x86_64]} {
+	append qemu_args " -m 500 "
+} else {
+        append qemu_args " -m 320 "
+}
 
 run_genode_until forever
 

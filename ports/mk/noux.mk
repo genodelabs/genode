@@ -33,7 +33,7 @@ NOUX_PKG ?= $(TARGET)
 
 LIBS  += cxx env libc libm libc_noux
 
-NOUX_PKG_DIR = $(wildcard $(REP_DIR)/contrib/$(NOUX_PKG)-*)
+NOUX_PKG_DIR ?= $(wildcard $(REP_DIR)/contrib/$(NOUX_PKG)-*)
 
 PWD = $(shell pwd)
 
@@ -68,8 +68,15 @@ NOUX_BUILD_OUTPUT_FILTER = 2>&1 | sed "s/^/      [$(NOUX_PKG)]  /"
 
 endif
 
+ifeq ($(findstring arm, $(SPECS)), arm)
+NOUX_CONFIGURE_ARGS += --host arm-elf-eabi
+else
+ifeq ($(findstring x86, $(SPECS)), x86)
+NOUX_CONFIGURE_ARGS += --host x86_64-elf
+endif
+endif
+
 NOUX_CONFIGURE_ARGS += --srcdir=$(NOUX_PKG_DIR)
-NOUX_CONFIGURE_ARGS += --host x86-freebsd
 NOUX_CONFIGURE_ARGS += --prefix $(PWD)/install
 
 CONFIG_GUESS_SCRIPT = $(NOUX_PKG_DIR)/config.guess)
@@ -104,9 +111,9 @@ NOUX_LIBS_A  = $(filter %.a, $(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS_SO = $(filter %.so,$(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS += $(NOUX_LIBS_A) $(NOUX_LIBS_SO) $(NOUX_LIBS_A)
 
-NOUX_ENV += CC='$(CC)' LD='$(LD)' AR='$(AR)' STRIP='$(STRIP)' LIBS='$(NOUX_LIBS)' \
+NOUX_ENV += CC='$(CC)' CXX='$(CXX)' LD='$(LD)' AR='$(AR)' STRIP='$(STRIP)' LIBS='$(NOUX_LIBS)' \
             LDFLAGS='$(NOUX_LDFLAGS)' CFLAGS='$(NOUX_CFLAGS)' \
-            CPPFLAGS='$(NOUX_CPPFLAGS)'
+            CPPFLAGS='$(NOUX_CPPFLAGS)' CXXFLAGS='$(NOUX_CXXFLAGS)'
 
 NOUX_ENV += CC_FOR_BUILD=gcc LD_FOR_BUILD=ld \
             CFLAGS_FOR_BUILD='$(NOUX_CFLAGS_FOR_BUILD)' \
@@ -127,6 +134,7 @@ Makefile reconfigure: noux_env.sh
 noux_env.sh:
 	$(VERBOSE)rm -f $@
 	$(VERBOSE)echo "export CC='$(CC)'" >> $@
+	$(VERBOSE)echo "export CXX='$(CXX)'" >> $@
 	$(VERBOSE)echo "export AR='$(AR)'" >> $@
 	$(VERBOSE)echo "export LD='$(LD)'" >> $@
 	$(VERBOSE)echo "export CPPFLAGS='$(NOUX_CPPFLAGS)'" >> $@
