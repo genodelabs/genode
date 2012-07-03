@@ -1,52 +1,76 @@
-diff -ru contrib/gcc-4.4.5/configure contrib/_gcc-4.4.5/configure
---- contrib/gcc-4.4.5/configure	2010-06-07 22:10:41.000000000 +0200
-+++ contrib/gcc-4.4.5/configure	2011-02-10 22:23:18.000000000 +0100
-@@ -272,7 +272,7 @@
- PACKAGE_BUGREPORT=
+diff --git a/Makefile.in b/Makefile.in
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -155,6 +155,8 @@
+ 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
+ 	CXX="$(CXX_FOR_BUILD)"; export CXX; \
+ 	CXXFLAGS="$(CXXFLAGS_FOR_BUILD)"; export CXXFLAGS; \
++	CPPFLAGS="$(CPPFLAGS_FOR_BUILD)"; export CPPFLAGS; \
++	LIBS="$(LIBS_FOR_BUILD)"; export LIBS; \
+ 	GCJ="$(GCJ_FOR_BUILD)"; export GCJ; \
+ 	GFORTRAN="$(GFORTRAN_FOR_BUILD)"; export GFORTRAN; \
+ 	GOC="$(GOC_FOR_BUILD)"; export GOC; \
+@@ -193,6 +195,8 @@
+ 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
+ 	CXX="$(CXX)"; export CXX; \
+ 	CXXFLAGS="$(CXXFLAGS)"; export CXXFLAGS; \
++	CPPFLAGS="$(CPPFLAGS)"; export CPPFLAGS; \
++	LIBS="$(LIBS)"; export LIBS; \
+ 	GCJ="$(GCJ)"; export GCJ; \
+ 	GFORTRAN="$(GFORTRAN)"; export GFORTRAN; \
+ 	GOC="$(GOC)"; export GOC; \
+@@ -274,6 +278,7 @@
+ 	CFLAGS="$(CFLAGS_FOR_TARGET)"; export CFLAGS; \
+ 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
+ 	CPPFLAGS="$(CPPFLAGS_FOR_TARGET)"; export CPPFLAGS; \
++	LIBS="$(LIBS_FOR_TARGET)"; export LIBS; \
+ 	CXXFLAGS="$(CXXFLAGS_FOR_TARGET)"; export CXXFLAGS; \
+ 	GCJ="$(GCJ_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET) $$TFLAGS"; export GCJ; \
+ 	GFORTRAN="$(GFORTRAN_FOR_TARGET) $(XGCC_FLAGS_FOR_TARGET) $$TFLAGS"; export GFORTRAN; \
+@@ -543,10 +548,11 @@
+ CFLAGS_FOR_TARGET = @CFLAGS_FOR_TARGET@
+ CPPFLAGS_FOR_TARGET = @CPPFLAGS_FOR_TARGET@
+ CXXFLAGS_FOR_TARGET = @CXXFLAGS_FOR_TARGET@
++CPPFLAGS_FOR_TARGET = @CPPFLAGS_FOR_TARGET@
  
- ac_unique_file="move-if-change"
--ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TOPLEVEL_CONFIGURE_ARGUMENTS build build_cpu build_vendor build_os build_noncanonical host_noncanonical target_noncanonical host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN LN_S build_libsubdir build_subdir host_subdir target_subdir CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE do_compare gmplibs gmpinc extra_mpfr_configure_flags ppllibs pplinc clooglibs clooginc stage1_languages SYSROOT_CFLAGS_FOR_TARGET DEBUG_PREFIX_CFLAGS_FOR_TARGET CFLAGS_FOR_TARGET CXXFLAGS_FOR_TARGET RPATH_ENVVAR GCC_SHLIB_SUBDIR tooldir build_tooldir CONFIGURE_GDB_TK GDB_TK INSTALL_GDB_TK build_configargs build_configdirs host_configargs configdirs target_configargs AR_FOR_BUILD AS_FOR_BUILD CC_FOR_BUILD CFLAGS_FOR_BUILD CXXFLAGS_FOR_BUILD CXX_FOR_BUILD DLLTOOL_FOR_BUILD GCJ_FOR_BUILD GFORTRAN_FOR_BUILD LDFLAGS_FOR_BUILD LD_FOR_BUILD NM_FOR_BUILD RANLIB_FOR_BUILD WINDMC_FOR_BUILD WINDRES_FOR_BUILD config_shell YACC BISON M4 LEX FLEX MAKEINFO EXPECT RUNTEST AR AS DLLTOOL LD LIPO NM RANLIB STRIP WINDRES WINDMC OBJCOPY OBJDUMP CC_FOR_TARGET CXX_FOR_TARGET GCC_FOR_TARGET GCJ_FOR_TARGET GFORTRAN_FOR_TARGET AR_FOR_TARGET AS_FOR_TARGET DLLTOOL_FOR_TARGET LD_FOR_TARGET LIPO_FOR_TARGET NM_FOR_TARGET OBJDUMP_FOR_TARGET RANLIB_FOR_TARGET STRIP_FOR_TARGET WINDRES_FOR_TARGET WINDMC_FOR_TARGET RAW_CXX_FOR_TARGET FLAGS_FOR_TARGET COMPILER_AS_FOR_TARGET COMPILER_LD_FOR_TARGET COMPILER_NM_FOR_TARGET MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT stage1_cflags stage1_checking stage2_werror_flag datarootdir docdir pdfdir htmldir LIBOBJS LTLIBOBJS'
-+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS TOPLEVEL_CONFIGURE_ARGUMENTS build build_cpu build_vendor build_os build_noncanonical host_noncanonical target_noncanonical host host_cpu host_vendor host_os target target_cpu target_vendor target_os INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN LN_S build_libsubdir build_subdir host_subdir target_subdir CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX GNATBIND ac_ct_GNATBIND GNATMAKE ac_ct_GNATMAKE do_compare gmplibs gmpinc extra_mpfr_configure_flags ppllibs pplinc clooglibs clooginc stage1_languages SYSROOT_CFLAGS_FOR_TARGET DEBUG_PREFIX_CFLAGS_FOR_TARGET CFLAGS_FOR_TARGET CXXFLAGS_FOR_TARGET CPPFLAGS_FOR_TARGET LDFLAGS_FOR_TARGET RPATH_ENVVAR GCC_SHLIB_SUBDIR tooldir build_tooldir CONFIGURE_GDB_TK GDB_TK INSTALL_GDB_TK build_configargs build_configdirs host_configargs configdirs target_configargs AR_FOR_BUILD AS_FOR_BUILD CC_FOR_BUILD CFLAGS_FOR_BUILD CXXFLAGS_FOR_BUILD CXX_FOR_BUILD DLLTOOL_FOR_BUILD GCJ_FOR_BUILD GFORTRAN_FOR_BUILD LDFLAGS_FOR_BUILD LD_FOR_BUILD NM_FOR_BUILD RANLIB_FOR_BUILD WINDMC_FOR_BUILD WINDRES_FOR_BUILD config_shell YACC BISON M4 LEX FLEX MAKEINFO EXPECT RUNTEST AR AS DLLTOOL LD LIPO NM RANLIB STRIP WINDRES WINDMC OBJCOPY OBJDUMP CC_FOR_TARGET CXX_FOR_TARGET GCC_FOR_TARGET GCJ_FOR_TARGET GFORTRAN_FOR_TARGET AR_FOR_TARGET AS_FOR_TARGET DLLTOOL_FOR_TARGET LD_FOR_TARGET LIPO_FOR_TARGET NM_FOR_TARGET OBJDUMP_FOR_TARGET RANLIB_FOR_TARGET STRIP_FOR_TARGET WINDRES_FOR_TARGET WINDMC_FOR_TARGET RAW_CXX_FOR_TARGET FLAGS_FOR_TARGET COMPILER_AS_FOR_TARGET COMPILER_LD_FOR_TARGET COMPILER_NM_FOR_TARGET MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT stage1_cflags stage1_checking stage2_werror_flag datarootdir docdir pdfdir htmldir LIBOBJS LTLIBOBJS'
- ac_subst_files='serialization_dependencies host_makefile_frag target_makefile_frag alphaieee_frag ospace_frag'
- ac_pwd=`pwd`
+ LIBCFLAGS_FOR_TARGET = $(CFLAGS_FOR_TARGET)
+ LIBCXXFLAGS_FOR_TARGET = $(CXXFLAGS_FOR_TARGET) -fno-implicit-templates
+-LDFLAGS_FOR_TARGET = 
++LDFLAGS_FOR_TARGET = @LDFLAGS_FOR_TARGET@
+ GOCFLAGS_FOR_TARGET = -O2 -g
  
-@@ -13262,7 +13262,9 @@
- s,@SYSROOT_CFLAGS_FOR_TARGET@,$SYSROOT_CFLAGS_FOR_TARGET,;t t
- s,@DEBUG_PREFIX_CFLAGS_FOR_TARGET@,$DEBUG_PREFIX_CFLAGS_FOR_TARGET,;t t
- s,@CFLAGS_FOR_TARGET@,$CFLAGS_FOR_TARGET,;t t
-+s,@LDFLAGS_FOR_TARGET@,$LDFLAGS_FOR_TARGET,;t t
- s,@CXXFLAGS_FOR_TARGET@,$CXXFLAGS_FOR_TARGET,;t t
-+s,@CPPFLAGS_FOR_TARGET@,$CPPFLAGS_FOR_TARGET,;t t
- s,@RPATH_ENVVAR@,$RPATH_ENVVAR,;t t
- s,@GCC_SHLIB_SUBDIR@,$GCC_SHLIB_SUBDIR,;t t
- s,@tooldir@,$tooldir,;t t
-diff -ru contrib/gcc-4.4.5/gcc/config.gcc contrib/_gcc-4.4.5/gcc/config.gcc
---- contrib/gcc-4.4.5/gcc/config.gcc	2010-06-14 00:16:50.000000000 +0200
-+++ contrib/gcc-4.4.5/gcc/config.gcc	2011-02-06 22:45:54.000000000 +0100
-@@ -456,7 +456,7 @@
-   # pleases around the provided core setting.
-   gas=yes
-   gnu_ld=yes
--  extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
-+  extra_parts=
-   fbsd_major=`echo ${target} | sed -e 's/.*freebsd//g' | sed -e 's/\..*//g'`
-   tm_defines="${tm_defines} FBSD_MAJOR=${fbsd_major}"
-   tmake_file="t-slibgcc-elf-ver t-freebsd"
-diff -ru contrib/gcc-4.4.5/gcc/configure contrib/_gcc-4.4.5/gcc/configure
---- contrib/gcc-4.4.5/gcc/configure	2010-06-20 17:43:53.000000000 +0200
-+++ contrib/gcc-4.4.5/gcc/configure	2011-02-06 00:01:27.000000000 +0100
-@@ -13531,6 +13531,7 @@
- 	saved_CFLAGS="${CFLAGS}"
- 	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
- 	LDFLAGS="${LDFLAGS_FOR_BUILD}" \
-+	LIBS="${LIBS_FOR_BUILD}" CPPFLAGS="${CPPFLAGS_FOR_BUILD}" \
- 	${realsrcdir}/configure \
- 		--enable-languages=${enable_languages-all} \
- 		--target=$target_alias --host=$build_alias --build=$build_alias
-diff -ru contrib/gcc-4.4.5/gcc/Makefile.in contrib/_gcc-4.4.5/gcc/Makefile.in
---- contrib/gcc-4.4.5/gcc/Makefile.in	2010-09-07 13:07:31.000000000 +0200
-+++ contrib/gcc-4.4.5/gcc/Makefile.in	2011-02-06 00:59:25.000000000 +0100
-@@ -695,7 +695,7 @@
+ FLAGS_FOR_TARGET = @FLAGS_FOR_TARGET@
+@@ -741,6 +747,7 @@
+ 	"LD_FOR_TARGET=$(LD_FOR_TARGET)" \
+ 	"LIPO_FOR_TARGET=$(LIPO_FOR_TARGET)" \
+ 	"LDFLAGS_FOR_TARGET=$(LDFLAGS_FOR_TARGET)" \
++	"LIBS_FOR_TARGET=$(LIBS_FOR_TARGET)" \
+ 	"LIBCFLAGS_FOR_TARGET=$(LIBCFLAGS_FOR_TARGET)" \
+ 	"LIBCXXFLAGS_FOR_TARGET=$(LIBCXXFLAGS_FOR_TARGET)" \
+ 	"NM_FOR_TARGET=$(NM_FOR_TARGET)" \
+@@ -835,6 +842,7 @@
+ 	'CFLAGS=$$(CFLAGS_FOR_TARGET)' \
+ 	'CXX=$$(CXX_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
+ 	'CXXFLAGS=$$(CXXFLAGS_FOR_TARGET)' \
++	'CPPFLAGS=$$(CPPFLAGS_FOR_TARGET)' \
+ 	'DLLTOOL=$$(DLLTOOL_FOR_TARGET)' \
+ 	'GCJ=$$(GCJ_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
+ 	'GFORTRAN=$$(GFORTRAN_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
+diff --git a/configure b/configure
+--- a/configure
++++ b/configure
+@@ -639,6 +639,7 @@
+ CXXFLAGS_FOR_TARGET
+ CFLAGS_FOR_TARGET
+ CPPFLAGS_FOR_TARGET
++LDFLAGS_FOR_TARGET
+ DEBUG_PREFIX_CFLAGS_FOR_TARGET
+ SYSROOT_CFLAGS_FOR_TARGET
+ stage1_languages
+diff --git a/gcc/Makefile.in b/gcc/Makefile.in
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -770,7 +770,7 @@
  
  # Native linker and preprocessor flags.  For x-fragment overrides.
  BUILD_LDFLAGS=@BUILD_LDFLAGS@
@@ -55,75 +79,25 @@ diff -ru contrib/gcc-4.4.5/gcc/Makefile.in contrib/_gcc-4.4.5/gcc/Makefile.in
  
  # Actual name to use when installing a native compiler.
  GCC_INSTALL_NAME := $(shell echo gcc|sed '$(program_transform_name)')
-diff -ru contrib/gcc-4.4.5/libstdc++-v3/Makefile.in contrib/_gcc-4.4.5/libstdc++-v3/Makefile.in
---- contrib/gcc-4.4.5/libstdc++-v3/Makefile.in	2010-04-29 17:03:38.000000000 +0200
-+++ contrib/gcc-4.4.5/libstdc++-v3/Makefile.in	2011-02-10 22:44:08.000000000 +0100
-@@ -309,7 +309,7 @@
+@@ -1035,8 +1035,8 @@
  
- # -I/-D flags to pass when compiling.
- AM_CPPFLAGS = $(GLIBCXX_INCLUDES)
--@GLIBCXX_HOSTED_TRUE@hosted_source = doc src po testsuite
-+@GLIBCXX_HOSTED_TRUE@hosted_source = doc po testsuite
- SUBDIRS = include libsupc++ $(hosted_source)
- ACLOCAL_AMFLAGS = -I . -I .. -I ../config
- 
-diff -ru contrib/gcc-4.4.5/Makefile.in contrib/_gcc-4.4.5/Makefile.in
---- contrib/gcc-4.4.5/Makefile.in	2009-04-25 06:10:29.000000000 +0200
-+++ contrib/gcc-4.4.5/Makefile.in	2011-02-10 22:13:17.000000000 +0100
-@@ -140,6 +140,8 @@
- 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
- 	CXX="$(CXX_FOR_BUILD)"; export CXX; \
- 	CXXFLAGS="$(CXXFLAGS_FOR_BUILD)"; export CXXFLAGS; \
-+	CPPFLAGS="$(CPPFLAGS_FOR_BUILD)"; export CPPFLAGS; \
-+	LIBS="$(LIBS_FOR_BUILD)"; export LIBS; \
- 	GCJ="$(GCJ_FOR_BUILD)"; export GCJ; \
- 	GFORTRAN="$(GFORTRAN_FOR_BUILD)"; export GFORTRAN; \
- 	DLLTOOL="$(DLLTOOL_FOR_BUILD)"; export DLLTOOL; \
-@@ -175,6 +177,8 @@
- 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
- 	CXX="$(CXX)"; export CXX; \
- 	CXXFLAGS="$(CXXFLAGS)"; export CXXFLAGS; \
-+	CPPFLAGS="$(CPPFLAGS)"; export CPPFLAGS; \
-+	LIBS="$(LIBS)"; export LIBS; \
- 	AR="$(AR)"; export AR; \
- 	AS="$(AS)"; export AS; \
- 	CC_FOR_BUILD="$(CC_FOR_BUILD)"; export CC_FOR_BUILD; \
-@@ -232,6 +236,7 @@
- 	CFLAGS="$(CFLAGS_FOR_TARGET) $(SYSROOT_CFLAGS_FOR_TARGET) $(DEBUG_PREFIX_CFLAGS_FOR_TARGET)"; export CFLAGS; \
- 	CONFIG_SHELL="$(SHELL)"; export CONFIG_SHELL; \
- 	CPPFLAGS="$(CPPFLAGS_FOR_TARGET)"; export CPPFLAGS; \
-+	LIBS="$(LIBS_FOR_TARGET)"; export LIBS; \
- 	CXXFLAGS="$(CXXFLAGS_FOR_TARGET) $(SYSROOT_CFLAGS_FOR_TARGET) $(DEBUG_PREFIX_CFLAGS_FOR_TARGET)"; export CXXFLAGS; \
- 	GCJ="$(GCJ_FOR_TARGET)"; export GCJ; \
- 	GFORTRAN="$(GFORTRAN_FOR_TARGET)"; export GFORTRAN; \
-@@ -413,12 +418,13 @@
- 
- CFLAGS_FOR_TARGET = @CFLAGS_FOR_TARGET@
- CXXFLAGS_FOR_TARGET = @CXXFLAGS_FOR_TARGET@
-+CPPFLAGS_FOR_TARGET = @CPPFLAGS_FOR_TARGET@
- SYSROOT_CFLAGS_FOR_TARGET = @SYSROOT_CFLAGS_FOR_TARGET@
- DEBUG_PREFIX_CFLAGS_FOR_TARGET = @DEBUG_PREFIX_CFLAGS_FOR_TARGET@
- 
- LIBCFLAGS_FOR_TARGET = $(CFLAGS_FOR_TARGET)
- LIBCXXFLAGS_FOR_TARGET = $(CXXFLAGS_FOR_TARGET) -fno-implicit-templates
--LDFLAGS_FOR_TARGET = 
-+LDFLAGS_FOR_TARGET = @LDFLAGS_FOR_TARGET@
- 
- # ------------------------------------
- # Miscellaneous targets and flag lists
-@@ -575,6 +581,7 @@
- 	"LD_FOR_TARGET=$(LD_FOR_TARGET)" \
- 	"LIPO_FOR_TARGET=$(LIPO_FOR_TARGET)" \
- 	"LDFLAGS_FOR_TARGET=$(LDFLAGS_FOR_TARGET)" \
-+	"LIBS_FOR_TARGET=$(LIBS_FOR_TARGET)" \
- 	"LIBCFLAGS_FOR_TARGET=$(LIBCFLAGS_FOR_TARGET)" \
- 	"LIBCXXFLAGS_FOR_TARGET=$(LIBCXXFLAGS_FOR_TARGET)" \
- 	"NM_FOR_TARGET=$(NM_FOR_TARGET)" \
-@@ -642,6 +649,7 @@
- 	'CFLAGS=$$(CFLAGS_FOR_TARGET) $(SYSROOT_CFLAGS_FOR_TARGET) $(DEBUG_PREFIX_CFLAGS_FOR_TARGET)' \
- 	'CXX=$$(CXX_FOR_TARGET)' \
- 	'CXXFLAGS=$$(CXXFLAGS_FOR_TARGET) $(SYSROOT_CFLAGS_FOR_TARGET) $(DEBUG_PREFIX_CFLAGS_FOR_TARGET)' \
-+	'CPPFLAGS=$$(CPPFLAGS_FOR_TARGET)' \
- 	'DLLTOOL=$$(DLLTOOL_FOR_TARGET)' \
- 	'LD=$(COMPILER_LD_FOR_TARGET)' \
- 	'LDFLAGS=$$(LDFLAGS_FOR_TARGET)' \
+ # How to link with both our special library facilities
+ # and the system's installed libraries.
+-LIBS = @LIBS@ $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER) \
+-	$(HOST_LIBS)
++LIBS = $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) $(LIBDECNUMBER) \
++	$(HOST_LIBS) @LIBS@
+ BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(PLUGINLIBS) $(HOST_LIBS) \
+ 	$(ZLIB)
+ # Any system libraries needed just for GNAT.
+diff --git a/gcc/configure b/gcc/configure
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -10898,6 +10898,7 @@
+ 	saved_CFLAGS="${CFLAGS}"
+ 	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
+ 	LDFLAGS="${LDFLAGS_FOR_BUILD}" \
++	LIBS="${LIBS_FOR_BUILD}" CPPFLAGS="${CPPFLAGS_FOR_BUILD}" \
+ 	${realsrcdir}/configure \
+ 		--enable-languages=${enable_languages-all} \
+ 		--target=$target_alias --host=$build_alias --build=$build_alias
