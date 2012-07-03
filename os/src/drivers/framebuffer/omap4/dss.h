@@ -7,8 +7,8 @@
 #ifndef _DSS_H_
 #define _DSS_H_
 
-/* local includes */
-#include <mmio.h>
+/* Genode includes */
+#include <util/mmio.h>
 
 struct Dss : Genode::Mmio
 {

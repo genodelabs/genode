@@ -8,10 +8,10 @@
 #ifndef _DISPC_H_
 #define _DISPC_H_
 
-/* local includes */
-#include <mmio.h>
+/* Genode includes */
+#include <util/mmio.h>
 
-struct Dispc : Mmio
+struct Dispc : Genode::Mmio
 {
 	/**
 	 * Configures the display controller module for outputs LCD 1 and TV

@@ -7,10 +7,10 @@
 #ifndef _HDMI_H_
 #define _HDMI_H_
 
-/* local includes */
-#include <mmio.h>
+/* Genode includes */
+#include <util/mmio.h>
 
-struct Hdmi : Mmio
+struct Hdmi : Genode::Mmio
 {
 	struct Pwr_ctrl : Register<0x40, 32>
 	{

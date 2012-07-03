@@ -15,9 +15,9 @@
 /* Genode includes */
 #include <os/attached_io_mem_dataspace.h>
 #include <timer_session/connection.h>
+#include <util/mmio.h>
 
 /* local includes */
-#include <mmio.h>
 #include <dss.h>
 #include <dispc.h>
 #include <hdmi.h>
@@ -38,7 +38,7 @@ class Framebuffer::Driver
 
 	private:
 
-		struct Timer_delayer : Timer::Connection, Delayer
+		struct Timer_delayer : Timer::Connection, Mmio::Delayer
 		{
 			/**
 			 * Implementation of 'Delayer' interface

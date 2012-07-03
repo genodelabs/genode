@@ -284,6 +284,46 @@ namespace Genode
 			inline void
 			write(typename ARRAY_BITFIELD::Compound_array::access_t const value,
 			      long unsigned const index);
+
+
+			/*********************************
+			 ** Polling for bitfield states **
+			 *********************************/
+
+			/**
+			 * Interface for delaying the execution of a calling thread
+			 */
+			struct Delayer
+			{
+				/**
+				 * Delay the execution of the caller for the specified amount
+				 * of microseconds
+				 */
+				virtual void usleep(unsigned us) = 0;
+			};
+
+			/**
+			 * Wait until the 'BITFIELD' contains the specified 'value'
+			 *
+			 * \param value         value to wait for
+			 * \param delayer       sleeping facility to be used when the
+			 *                      value is not reached yet
+			 * \param max_attempts  number of bitfield probing attempts
+			 * \param us            number of microseconds between attempts
+			 */
+			template <typename BITFIELD>
+			inline bool
+			wait_for(typename BITFIELD::Compound_reg::access_t const value,
+			         Delayer &delayer,
+			         unsigned max_attempts = 500,
+			         unsigned us           = 1000)
+			{
+				for (unsigned i = 0; i < max_attempts; i++, delayer.usleep(us))
+					if (read<BITFIELD>() == value)
+						return true;
+
+				return false;
+			}
 	};
 }
 
