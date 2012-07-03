@@ -20,6 +20,81 @@
 namespace Genode {
 
 	/**
+	 * Lock-guarded allocator
+	 *
+	 * This class wraps the complete 'Allocator' interface while
+	 * preventing concurrent calls to the wrapped allocator implementation.
+	 *
+	 * \param ALLOCATOR_IMPL  class implementing the 'Allocator'
+	 *                        interface
+	 */
+	template <typename ALLOCATOR_IMPL>
+	class Synchronized_allocator : public Allocator
+	{
+		private:
+
+			Lock            _default_lock;
+			Lock           *_lock;
+			ALLOCATOR_IMPL _alloc;
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * This constructor uses an embedded lock for synchronizing the
+			 * access to the allocator.
+			 */
+			Synchronized_allocator()
+			: _lock(&_default_lock) { }
+
+			/**
+			 * Constructor
+			 *
+			 * This constructor uses an embedded lock for synchronizing the
+			 * access to the allocator.
+			 */
+			explicit Synchronized_allocator(Allocator *metadata_alloc)
+			: _lock(&_default_lock), _alloc(metadata_alloc) { }
+
+			/**
+			 * Return reference to wrapped (non-thread-safe) allocator
+			 *
+			 * This is needed, for example, if the wrapped allocator implements
+			 * methods in addition to the Range_allocator interface.
+			 */
+			ALLOCATOR_IMPL *raw() { return &_alloc; }
+
+			/*************************
+			 ** Allocator interface **
+			 *************************/
+
+			bool alloc(size_t size, void **out_addr)
+			{
+				Lock::Guard lock_guard(*_lock);
+				return _alloc.alloc(size, out_addr);
+			}
+
+			void free(void *addr, size_t size)
+			{
+				Lock::Guard lock_guard(*_lock);
+				_alloc.free(addr, size);
+			}
+
+			size_t consumed()
+			{
+				Lock::Guard lock_guard(*_lock);
+				return _alloc.consumed();
+			}
+
+			size_t overhead(size_t size)
+			{
+				Lock::Guard lock_guard(*_lock);
+				return _alloc.overhead(size);
+			}
+	};
+
+	/**
 	 * Lock-guarded range allocator
 	 *
 	 * This class wraps the complete 'Range_allocator' interface while
