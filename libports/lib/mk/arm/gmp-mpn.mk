@@ -1,27 +1,24 @@
 
 GMP_MPN_DIR = $(GMP_DIR)/mpn
 
-# filter out to avoid compile errors
-FILTER_OUT += pre_mod_1.c
-
 # this file uses the 'sdiv_qrnnd' symbol which is not defined
 FILTER_OUT += udiv_w_sdiv.c
 
-# add Pentium-specific assembly files and filter out the generic C files if needed
+# add ARM-specific assembly files and filter out the generic C files if needed
 
-SRC_ASM += copyd.asm copyi.asm hamdist.asm
+SRC_ASM += copyd.asm copyi.asm
 
-SRC_ASM += popcount.asm
 FILTER_OUT += popham.c
+CC_OPT_hamdist  = -DOPERATION_hamdist
+CC_OPT_popcount = -DOPERATION_popcount
 
 SRC_ASM += add_n.asm
 FILTER_OUT += add_n.c
-CC_OPT_add_n = -DOPERATION_add_n
 
 SRC_ASM += sub_n.asm
 FILTER_OUT += sub_n.c
-CC_OPT_sub_n = -DOPERATION_sub_n
 
+SRC_C += $(notdir $(wildcard $(REP_DIR)/src/lib/gmp/mpn/arm/*.c))
 SRC_C += $(notdir $(wildcard $(REP_DIR)/src/lib/gmp/mpn/32bit/*.c))
 SRC_C += $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(GMP_MPN_DIR)/generic/*.c)))
 
@@ -43,10 +40,10 @@ all: m4env
 endif
 
 m4env:
-	$(VERBOSE)mkdir -p $@/mpn/x86
-	$(VERBOSE)ln -s $(REP_DIR)/src/lib/gmp/x86_32/config.m4 m4env
+	$(VERBOSE)mkdir -p $@/mpn/arm
+	$(VERBOSE)ln -s $(REP_DIR)/src/lib/gmp/arm/config.m4 m4env
 	$(VERBOSE)ln -s $(GMP_MPN_DIR)/asm-defs.m4 m4env/mpn
-	$(VERBOSE)ln -s $(GMP_MPN_DIR)/x86/x86-defs.m4 m4env/mpn/x86
+	$(VERBOSE)ln -s $(GMP_MPN_DIR)/arm/arm-defs.m4 m4env/mpn/arm
 
 #
 # Create object files out of asm files
@@ -61,8 +58,8 @@ endif
 		$(GMP_MPN_DIR)/m4-ccas --m4=m4 $(CC) $(CC_MARCH) -std=gnu99 -fPIC -DPIC $(CC_OPT_$*) $(INCLUDES) -c $< -o $(PWD)/$@ \
 			$(M4_OUTPUT_FILTER)
 
+vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/arm
 vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/32bit
 vpath %.c   $(GMP_MPN_DIR)/generic
-vpath %.asm $(REP_DIR)/src/lib/gmp/mpn/x86_32
-vpath %.asm $(GMP_MPN_DIR)/x86/pentium
-vpath %.asm $(GMP_MPN_DIR)/x86
+#vpath %.asm $(REP_DIR)/src/lib/gmp/mpn/
+vpath %.asm $(GMP_MPN_DIR)/arm

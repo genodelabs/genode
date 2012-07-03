@@ -4,9 +4,6 @@ ifeq ($(wildcard $(MPFR_DIR)),)
 REQUIRES += prepare_mpfr
 endif
 
-# mpfr depends on gmp, which is only supported on x86_32 yet
-REQUIRES += x86_32
-
 LIBS      = libc gmp
 CC_OPT   += -DHAVE_STDARG -DHAVE_VA_COPY -DHAVE_INTTYPES_H
 INC_DIR  += $(REP_DIR)/include/mpfr

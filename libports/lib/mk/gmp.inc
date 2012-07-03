@@ -4,9 +4,6 @@ ifeq ($(wildcard $(GMP_DIR)),)
 REQUIRES += prepare_gmp
 endif
 
-# gmp depends on gmp-mpn which requires 32bit by now
-REQUIRES = x86_32
-
 include $(REP_DIR)/lib/import/import-gmp.mk
 
 LIBS += libc

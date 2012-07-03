@@ -28,10 +28,10 @@ along with the GNU MP Library.  If not, see http://www.gnu.org/licenses/.  */
 
 /* Instantiated by configure. */
 #if ! defined (__GMP_WITHIN_CONFIGURE)
-#define __GMP_BITS_PER_MP_LIMB             32
+#define __GMP_BITS_PER_MP_LIMB             64
 #define __GMP_HAVE_HOST_CPU_FAMILY_power   0
 #define __GMP_HAVE_HOST_CPU_FAMILY_powerpc 0
-#define GMP_LIMB_BITS                      32
+#define GMP_LIMB_BITS                      64
 #define GMP_NAIL_BITS                      0
 #endif
 #define GMP_NUMB_BITS     (GMP_LIMB_BITS - GMP_NAIL_BITS)
@@ -2219,7 +2219,7 @@ enum
 
 /* Define CC and CFLAGS which were used to build this version of GMP */
 #define __GMP_CC "gcc -std=gnu99"
-#define __GMP_CFLAGS "-m32 -O2 -pedantic -fomit-frame-pointer -mtune=core2 -march=core2"
+#define __GMP_CFLAGS "-O2 -pedantic -m64 -mtune=core2"
 
 /* Major version number is the value of __GNU_MP__ too, above and in mp.h. */
 #define __GNU_MP_VERSION 4

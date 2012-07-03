@@ -133,7 +133,7 @@ along with the GNU MP Library.  If not, see http://www.gnu.org/licenses/.
 /* #undef HAVE_HOST_CPU_FAMILY_m68k */
 /* #undef HAVE_HOST_CPU_FAMILY_power */
 /* #undef HAVE_HOST_CPU_FAMILY_powerpc */
-#define HAVE_HOST_CPU_FAMILY_x86 1
+/* #define HAVE_HOST_CPU_FAMILY_x86 1 */
 
 /* Define one of the following to 1 for the host CPU, as per the output of
    ./config.guess.  If your CPU is not listed here, leave all undefined.  */
@@ -207,7 +207,7 @@ along with the GNU MP Library.  If not, see http://www.gnu.org/licenses/.
 /* Define to 1 each of the following for which a native (ie. CPU specific)
     implementation of the corresponding routine exists.  */
 #define HAVE_NATIVE_mpn_add_n 1
-#define HAVE_NATIVE_mpn_add_nc 1
+/* #define HAVE_NATIVE_mpn_add_nc 1 */
 /* #undef HAVE_NATIVE_mpn_addlsh1_n */
 /* #undef HAVE_NATIVE_mpn_addmul_1c */
 /* #undef HAVE_NATIVE_mpn_addmul_2 */
@@ -237,7 +237,7 @@ along with the GNU MP Library.  If not, see http://www.gnu.org/licenses/.
 /* #undef HAVE_NATIVE_mpn_lshiftc */
 #define HAVE_NATIVE_mpn_mod_1 1
 #define HAVE_NATIVE_mpn_mod_1c 1
-#define HAVE_NATIVE_mpn_modexact_1_odd 1
+/* #define HAVE_NATIVE_mpn_modexact_1_odd 1 */
 #define HAVE_NATIVE_mpn_modexact_1c_odd 1
 /* #undef HAVE_NATIVE_mpn_mul_1c */
 /* #undef HAVE_NATIVE_mpn_mul_2 */
@@ -254,7 +254,7 @@ along with the GNU MP Library.  If not, see http://www.gnu.org/licenses/.
 #define HAVE_NATIVE_mpn_sqr_basecase 1
 /* #undef HAVE_NATIVE_mpn_sqr_diagonal */
 #define HAVE_NATIVE_mpn_sub_n 1
-#define HAVE_NATIVE_mpn_sub_nc 1
+/* #define HAVE_NATIVE_mpn_sub_nc 1 */
 /* #undef HAVE_NATIVE_mpn_sublsh1_n */
 /* #undef HAVE_NATIVE_mpn_submul_1c */
 #define HAVE_NATIVE_mpn_umul_ppmm 1

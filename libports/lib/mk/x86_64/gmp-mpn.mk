@@ -1,28 +1,27 @@
 
 GMP_MPN_DIR = $(GMP_DIR)/mpn
 
-# filter out to avoid compile errors
-FILTER_OUT += pre_mod_1.c
-
 # this file uses the 'sdiv_qrnnd' symbol which is not defined
 FILTER_OUT += udiv_w_sdiv.c
 
-# add Pentium-specific assembly files and filter out the generic C files if needed
+FILTER_OUT += pre_divrem_1.c
 
-SRC_ASM += copyd.asm copyi.asm hamdist.asm
+# add x86_64-specific assembly files and filter out the generic C files if needed
 
-SRC_ASM += popcount.asm
-FILTER_OUT += popham.c
+SRC_ASM += copyd.asm copyi.asm
 
-SRC_ASM += add_n.asm
-FILTER_OUT += add_n.c
 CC_OPT_add_n = -DOPERATION_add_n
-
-SRC_ASM += sub_n.asm
-FILTER_OUT += sub_n.c
 CC_OPT_sub_n = -DOPERATION_sub_n
 
-SRC_C += $(notdir $(wildcard $(REP_DIR)/src/lib/gmp/mpn/32bit/*.c))
+SRC_ASM += hamdist.asm
+CC_OPT_hamdist = -DOPERATION_hamdist
+
+SRC_ASM += popcount.asm
+CC_OPT_popcount = -DOPERATION_popcount
+
+FILTER_OUT += popham.c
+
+SRC_C += $(notdir $(wildcard $(REP_DIR)/src/lib/gmp/mpn/64bit/*.c))
 SRC_C += $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(GMP_MPN_DIR)/generic/*.c)))
 
 include $(REP_DIR)/lib/mk/gmp.inc
@@ -43,10 +42,10 @@ all: m4env
 endif
 
 m4env:
-	$(VERBOSE)mkdir -p $@/mpn/x86
-	$(VERBOSE)ln -s $(REP_DIR)/src/lib/gmp/x86_32/config.m4 m4env
+	$(VERBOSE)mkdir -p $@/mpn/x86_64
+	$(VERBOSE)ln -s $(REP_DIR)/src/lib/gmp/x86_64/config.m4 m4env
 	$(VERBOSE)ln -s $(GMP_MPN_DIR)/asm-defs.m4 m4env/mpn
-	$(VERBOSE)ln -s $(GMP_MPN_DIR)/x86/x86-defs.m4 m4env/mpn/x86
+	$(VERBOSE)ln -s $(GMP_MPN_DIR)/x86_64/x86_64-defs.m4 m4env/mpn/x86_64
 
 #
 # Create object files out of asm files
@@ -61,8 +60,7 @@ endif
 		$(GMP_MPN_DIR)/m4-ccas --m4=m4 $(CC) $(CC_MARCH) -std=gnu99 -fPIC -DPIC $(CC_OPT_$*) $(INCLUDES) -c $< -o $(PWD)/$@ \
 			$(M4_OUTPUT_FILTER)
 
-vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/32bit
+vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/64bit
 vpath %.c   $(GMP_MPN_DIR)/generic
-vpath %.asm $(REP_DIR)/src/lib/gmp/mpn/x86_32
-vpath %.asm $(GMP_MPN_DIR)/x86/pentium
-vpath %.asm $(GMP_MPN_DIR)/x86
+vpath %.asm $(REP_DIR)/src/lib/gmp/mpn/x86_64
+vpath %.asm $(GMP_MPN_DIR)/x86_64
