@@ -25,18 +25,12 @@ using namespace Nova;
 
 enum { PF_HANDLER_STACK_SIZE = 4096 };
 
-
-static Lock *pf_lock() { static Lock inst; return &inst; }
-
-
 void Pager_object::_page_fault_handler()
 {
 	Ipc_pager ipc_pager;
 	ipc_pager.wait_for_fault();
 
 	/* serialize page-fault handling */
-	pf_lock()->lock();
-
 	Thread_base *myself = Thread_base::myself();
 	if (!myself) {
 		PWRN("unexpected page-fault for non-existing pager object, going to sleep forever");
@@ -45,7 +39,6 @@ void Pager_object::_page_fault_handler()
 
 	Pager_object *obj = static_cast<Pager_object *>(myself);
 	int ret = obj->pager(ipc_pager);
-	pf_lock()->unlock();
 
 	if (ret) {
 		PWRN("page-fault resolution for address 0x%lx, ip=0x%lx failed",
@@ -159,14 +152,17 @@ Pager_object::~Pager_object()
 	revoke(Obj_crd(_pt_sel, 0), true);
 
 	/* Make sure nobody is in the handler anymore by doing an IPC to a
-	 * local cap pointing to same serving thread. When the call returns
+	 * local cap pointing to same serving thread (if not running in the
+	 * context of the serving thread). When the call returns
 	 * we know that nobody is handled by this object anymore, because
 	 * all remotely available portals had been revoked beforehand.
 	 */
 	Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
-	utcb->set_msg_word(0);
-	if (uint8_t res = call(_pt_cleanup))
-		PERR("failure - cleanup call failed res=%d", res);
+	if (reinterpret_cast<Utcb *>(&_context->utcb) != utcb) {
+		utcb->set_msg_word(0);
+		if (uint8_t res = call(_pt_cleanup))
+			PERR("failure - cleanup call failed res=%d", res);
+	}
 
 	/* Revoke portal used for the cleanup call */
 	revoke(Obj_crd(_pt_cleanup, 0), true);
@@ -199,8 +195,6 @@ void Pager_entrypoint::dissolve(Pager_object *obj)
 		revoke(Obj_crd(obj->Object_pool<Pager_object>::Entry::cap().dst(), 0), true);
 	}
 
-	pf_lock()->lock();
 	remove(obj);
-	pf_lock()->unlock();
 }
 
