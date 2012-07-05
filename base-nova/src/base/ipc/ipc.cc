@@ -57,7 +57,7 @@ static void copy_utcb_to_msgbuf(Nova::Utcb *utcb, Msgbuf_base *rcv_msg)
 /**
  * Copy message payload to UTCB message registers
  */
-static void copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base *snd_msg,
+static bool copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base *snd_msg,
                                 unsigned num_msg_words, mword_t local_name)
 {
 	/* look up address and size of message payload */
@@ -87,11 +87,14 @@ static void copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base *snd_msg,
 		int pt_sel = snd_msg->snd_pt_sel(i);
 		if (pt_sel < 0) continue;
 
-		utcb->append_item(Nova::Obj_crd(pt_sel, 0), i);
+		if (!utcb->append_item(Nova::Obj_crd(pt_sel, 0), i))
+			return false;
 	}
 
 	/* we have consumed portal capability selectors, reset message buffer */
 	snd_msg->snd_reset();
+
+	return true;
 }
 
 
@@ -133,8 +136,11 @@ void Ipc_client::_call()
 {
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 
-	copy_msgbuf_to_utcb(utcb, _snd_msg, _write_offset/sizeof(mword_t),
-	                    Ipc_ostream::_dst.local_name());
+	if (!copy_msgbuf_to_utcb(utcb, _snd_msg, _write_offset/sizeof(mword_t),
+	                         Ipc_ostream::_dst.local_name())) {
+		PERR("could not setup IPC");
+		return;
+	}
 	_rcv_msg->rcv_prepare_pt_sel_window(utcb);
 
 	/* establish the mapping via a portal traversal */

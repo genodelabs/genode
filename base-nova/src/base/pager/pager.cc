@@ -79,8 +79,11 @@ void Pager_object::_invoke_handler()
 	utcb->mtd = 0;
 	utcb->set_msg_word(0);
 
-	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT)
-		utcb->append_item(Obj_crd(obj->exc_pt_sel() + event, 0), 0);
+	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT) {
+		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel() + event, 0), 0);
+ 		/* one item ever fits on the UTCB */
+		(void)res;
+	}
 
 	reply(Thread_base::myself()->stack_top());
 }
