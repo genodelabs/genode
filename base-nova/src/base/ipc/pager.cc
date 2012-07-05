@@ -57,7 +57,9 @@ void Ipc_pager::set_reply_mapping(Mapping m)
 {
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 	utcb->set_msg_word(0);
-	utcb->append_item(m.mem_crd(), m.dst_addr());
+	bool res = utcb->append_item(m.mem_crd(), m.dst_addr());
+	/* one item ever fits on the UTCB */
+	(void)res;
 }
 
 
