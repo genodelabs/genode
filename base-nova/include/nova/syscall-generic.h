@@ -124,7 +124,7 @@ namespace Nova {
 			/**
 			 * Assign bitfield to descriptor
 			 */
-			template<int MASK, int SHIFT>
+			template<mword_t MASK, mword_t SHIFT>
 			void _assign(mword_t new_bits)
 			{
 				_value &= ~(MASK << SHIFT);
@@ -134,7 +134,7 @@ namespace Nova {
 			/**
 			 * Query bitfield from descriptor
 			 */
-			template<int MASK, int SHIFT>
+			template<mword_t MASK, mword_t SHIFT>
 			mword_t _query() const { return (_value >> SHIFT) & MASK; }
 
 		public:
@@ -183,10 +183,10 @@ namespace Nova {
 			 * Bitfield holding the descriptor type
 			 */
 			enum {
-				TYPE_MASK   = 0x3,     TYPE_SHIFT  =  0,
-				BASE_MASK   = 0xfffff, BASE_SHIFT  = 12,
-				ORDER_MASK  = 0x1f,    ORDER_SHIFT =  7,
-				RIGHTS_MASK = 0x7c
+				TYPE_MASK   = 0x3,  TYPE_SHIFT  =  0,
+				BASE_SHIFT  = 12,   RIGHTS_MASK = 0x7c,
+				ORDER_MASK  = 0x1f, ORDER_SHIFT =  7,
+				BASE_MASK   = (~0UL) >> BASE_SHIFT
 			};
 
 			/**
@@ -324,8 +324,9 @@ namespace Nova {
 		private:
 
 			enum {
-				QUANTUM_MASK  = 0xfffff, QUANTUM_SHIFT  = 12,
-				PRIORITY_MASK = 0xff,    PRIORITY_SHIFT =  0
+				PRIORITY_MASK = 0xff,    PRIORITY_SHIFT =  0,
+				QUANTUM_SHIFT = 12,
+				QUANTUM_MASK  = (~0UL) >> QUANTUM_SHIFT
 			};
 
 			void _quantum(mword_t quantum)
