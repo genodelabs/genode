@@ -231,11 +231,22 @@ Platform::Platform() :
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
+		if (verbose_boot_info)
+			printf("detected physical memory: 0x%llx - 0x%llx\n", mem_desc->addr, mem_desc->size);
+
+		/* skip regions above 4G on 32 bit, no op on 64 bit */
+		if (mem_desc->addr > ~0UL) continue;
+
 		addr_t base = round_page(mem_desc->addr);
-		size_t size = trunc_page(mem_desc->addr + mem_desc->size - 1) - base;
+		size_t size;
+		/* truncate size if base+size larger then natural 32/64 bit boundary */
+		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
+			size = trunc_page(~0UL - mem_desc->addr + 1);
+		else
+			size = trunc_page(mem_desc->addr + mem_desc->size) - base;
 
 		if (verbose_boot_info)
-			printf("detected physical memory: 0x%lx - 0x%zx\n", base, size);
+			printf("use      physical memory: 0x%lx - 0x%zx\n", base, size);
 
 		_io_mem_alloc.remove_range(base, size);
 		_core_mem_alloc.phys_alloc()->add_range(base, size);
@@ -246,8 +257,17 @@ Platform::Platform() :
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
+		/* skip regions above 4G on 32 bit, no op on 64 bit */
+		if (mem_desc->addr > ~0UL) continue;
+
 		addr_t base = trunc_page(mem_desc->addr);
-		size_t size = round_page(mem_desc->addr + mem_desc->size - 1) - base;
+		size_t size;
+		/* truncate size if base+size larger then natural 32/64 bit boundary */
+		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
+			size = round_page(~0UL - mem_desc->addr + 1);
+		else
+			size = round_page(mem_desc->addr + mem_desc->size) - base;
+
 		_io_mem_alloc.add_range(base, size);
 		_core_mem_alloc.phys_alloc()->remove_range(base, size);
 	}
@@ -261,6 +281,7 @@ Platform::Platform() :
 	addr_t prev_cmd_line_page = 0, curr_cmd_line_page = 0;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
+		if (!mem_desc->aux) continue;
 
 		curr_cmd_line_page = mem_desc->aux >> get_page_size_log2();
 		if (curr_cmd_line_page == prev_cmd_line_page) continue;
@@ -280,6 +301,7 @@ Platform::Platform() :
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
+		if (!mem_desc->addr || !mem_desc->size || !mem_desc->aux) continue;
 
 		addr_t aux = mem_desc->aux;
 		const char *name = commandline_to_basename(reinterpret_cast<char *>(aux));
