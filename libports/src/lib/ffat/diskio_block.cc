@@ -112,6 +112,7 @@ extern "C" DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 	/* check for success of operation */
 	if (!p.succeeded()) {
 		PERR("Could not read block(s)");
+		_source->release_packet(p);
 		return RES_ERROR;
 	}
 
@@ -124,6 +125,7 @@ extern "C" DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 		PDBG("%8x: %2x %c", i, buff[i], buff[i] >= 32 ? buff[i] : '-');
 #endif
 
+	_source->release_packet(p);
 	return RES_OK;
 }
 
@@ -152,9 +154,11 @@ extern "C" DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE cou
 	/* check for success of operation */
 	if (!p.succeeded()) {
 		PERR("Could not write block(s)");
+		_source->release_packet(p);
 		return RES_ERROR;
 	}
 
+	_source->release_packet(p);
 	return RES_OK;
 }
 #endif /* _READONLY */
