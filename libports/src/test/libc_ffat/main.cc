@@ -23,8 +23,8 @@
 
 
 #define CALL_AND_CHECK(ret, operation, condition, info_string, ...) \
-	ret = operation; \
 	printf("calling " #operation " " info_string "\n", ##__VA_ARGS__); \
+	ret = operation; \
 	if (condition) { \
 		printf(#operation " succeeded\n"); \
 	} else { \
@@ -37,15 +37,19 @@ int main(int argc, char *argv[])
 {
 	int ret, fd;
 
-	char const *dir_name  = "/testdir";
-	char const *file_name = "test.tst";
-	char const *pattern   = "a single line of text";
+	char const *dir_name      = "/testdir";
+	char const *dir_name_long = "testdir long";
+	char const *file_name     = "test.tst";
+	char const *pattern       = "a single line of text";
 
-	/* create directory */
+	/* create directory (short name) */
 	CALL_AND_CHECK(ret, mkdir(dir_name, 0777), ret == 0, "dir_name=%s", dir_name);
 
 	/* change to new directory */
 	CALL_AND_CHECK(ret, chdir(dir_name), ret == 0, "dir_name=%s", dir_name);
+
+	/* create directory (long name) */
+	CALL_AND_CHECK(ret, mkdir(dir_name_long, 0777), ret == 0, "dir_name_long=%s", dir_name_long);
 
 	/* write pattern to a file */
 	CALL_AND_CHECK(fd, open(file_name, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);

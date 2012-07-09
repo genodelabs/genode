@@ -320,9 +320,10 @@ class Plugin : public Libc::Plugin
 			::memset(dirent, 0, sizeof(struct dirent));
 
 			FILINFO ffat_file_info;
-			FRESULT res;
+			ffat_file_info.lfname = dirent->d_name;
+			ffat_file_info.lfsize = sizeof(dirent->d_name);
 
-			res = f_readdir(_get_ffat_dir(fd), &ffat_file_info);
+			FRESULT res = f_readdir(_get_ffat_dir(fd), &ffat_file_info);
 			switch(res) {
 				case FR_OK:
 					break;
@@ -354,8 +355,9 @@ class Plugin : public Libc::Plugin
 
 			dirent->d_reclen = sizeof(struct dirent);
 
-			::strncpy(dirent->d_name, ffat_file_info.fname,
-			          sizeof(dirent->d_name));
+			if (dirent->d_name[0] == 0) /* use short file name */
+				::strncpy(dirent->d_name, ffat_file_info.fname,
+						  sizeof(dirent->d_name));
 
 			dirent->d_namlen = ::strlen(dirent->d_name);
 
@@ -587,6 +589,9 @@ class Plugin : public Libc::Plugin
 			using namespace Ffat;
 
 			FILINFO file_info;
+			/* the long file name is not used in this function */
+			file_info.lfname = 0;
+			file_info.lfsize = 0;
 
 			FRESULT res = f_stat(path, &file_info);
 
