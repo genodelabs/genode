@@ -13,7 +13,7 @@ build {
 	drivers/pci
 	drivers/timer
 	drivers/usb
-	test/ahci
+	test/block
 }
 
 create_boot_directory
@@ -55,7 +55,7 @@ set config {
 	</start>
 		<start name="test-usb">
 		<resource name="RAM" quantum="1M" />
-		<binary name="test-ahci" />
+		<binary name="test-block" />
 	</start>
 </config>
 }
@@ -67,7 +67,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv pci_drv test-ahci
+	core init timer usb_drv pci_drv test-block
 }
 
 
