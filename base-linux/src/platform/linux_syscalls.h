@@ -314,6 +314,7 @@ inline int lx_stat(const char *path, struct stat64 *buf)
 
 enum {
 	LX_SIGUSR1   = 10,  /* used for cancel-blocking mechanism */
+	LX_SIGCHLD   = 17,  /* child process changed state, i.e., terminated */
 	LX_SIGCANCEL = 32,  /* accoring to glibc, this equals SIGRTMIN,
 	                       used for killing threads */
 };

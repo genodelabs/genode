@@ -167,6 +167,11 @@ static void adopt_thread(Thread_meta_data *meta_data)
 	 */
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 
+	/*
+	 * Prevent children from becoming zombies. (SIG_IGN = 1)
+	 */
+	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
+
 	/* assign 'Thread_meta_data' pointer to TLS entry */
 	pthread_setspecific(tls_key(), meta_data);
 

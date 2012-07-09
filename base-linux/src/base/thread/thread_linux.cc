@@ -40,6 +40,11 @@ static void thread_start(void *)
 	 */
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 
+	/*
+	 * Prevent children from becoming zombies. (SIG_IGN = 1)
+	 */
+	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
+
 	Thread_base::myself()->entry();
 	sleep_forever();
 }
