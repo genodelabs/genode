@@ -54,6 +54,8 @@
 
 		/* x86 */
 		__cxa*;
+		_Unwind_Complete;
+		_Unwind_DeleteException;
 		_Unwind_Resume;
 		__gxx_personality_v0;
 

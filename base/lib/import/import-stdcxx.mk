@@ -15,6 +15,9 @@ INC_DIR += $(shell echo "int main() {return 0;}" |\
                    sed '/^\#include <\.\.\.> search starts here:/,/^End of search list/!d' |\
                    grep "c++")
 
+# avoid multiple definition of type _mbstate_t
+CC_CXX_OPT += -D_GLIBCXX_HAVE_MBSTATE_T
+
 #
 # Link libstdc++ that comes with the tool chain
 #

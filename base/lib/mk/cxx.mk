@@ -15,7 +15,7 @@ LIBC_SYMBOLS += malloc free calloc realloc \
 #
 # Symbols we wrap (see unwind.cc)
 #
-EH_SYMBOLS = _Unwind_Resume
+EH_SYMBOLS = _Unwind_Resume _Unwind_Complete _Unwind_DeleteException
 
 #
 # Additional functions for ARM

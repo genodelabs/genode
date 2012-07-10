@@ -27,8 +27,12 @@ extern "C" {
 
 	/* Unwind function found in all binaries */
 	void  _cxx__Unwind_Resume(void *exc)  __attribute__((weak));
-	void __cxx__Unwind_Resume(void *exc) { 
+	void __cxx__Unwind_Resume(void *exc) {
 		_cxx__Unwind_Resume(exc); }
+
+	void  _cxx__Unwind_DeleteException(void *exc)  __attribute__((weak));
+	void __cxx__Unwind_DeleteException(void *exc) {
+		_cxx__Unwind_DeleteException(exc); }
 
 	/* Special ARM-EABI personality functions */
 #ifdef __ARM_EABI__
@@ -41,5 +45,9 @@ extern "C" {
 	int __cxx___aeabi_unwind_cpp_pr1(int state, void *block, void *context) {
 		return _cxx___aeabi_unwind_cpp_pr1(state, block, context); }
 
+	/* Unwind functions found in some binaries */
+	void  _cxx__Unwind_Complete(void *exc)  __attribute__((weak));
+	void __cxx__Unwind_Complete(void *exc) {
+		_cxx__Unwind_Complete(exc); }
 #endif
 }
