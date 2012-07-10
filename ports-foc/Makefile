@@ -8,7 +8,7 @@ VERBOSE        ?= @
 ECHO            = @echo
 TARGET         ?= l4linux
 
-PATCH-l4linux   = patches/l4lx_genode.patch
+PATCH-l4linux   = patches/l4lx_genode.patch patches/icmp_align.patch
 REV-l4linux     = 23
 REPO-l4linux    = http://svn.tudos.org/repos/oc/l4linux/trunk
 
@@ -62,7 +62,7 @@ help:
 prepare: clean
 	$(VERBOSE)$(UPDATE)
 	$(ECHO) "applying patches to '$(REAL_CONTRIB_DIR)/$(TARGET)'"
-	$(VERBOSE)$(PATCH) -d $(REAL_CONTRIB_DIR)/$(TARGET) -i $(realpath $(PATCH-$(TARGET)))
+	$(VERBOSE)for i in $(PATCH-$(TARGET)); do $(PATCH) -d $(REAL_CONTRIB_DIR)/$(TARGET) < $$i; done
 	$(VERBOSE)ln -s $(shell pwd)/src/drivers $(REAL_CONTRIB_DIR)/$(TARGET)/arch/l4/drivers
 	$(ECHO)
 	$(ECHO) "Preparation completed!"
