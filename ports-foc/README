@@ -171,8 +171,8 @@ block-driver stub in L4Linux. You need to state how much block devices you want
 to use, and their name internally used by Linux, e.g.:
 
 ! <config>
-!   <block name="sda"/>
-!   <block name="sdb"/>
+!   <block label="sda"/>
+!   <block label="sdb"/>
 ! <config/>
 
 Initramfs
