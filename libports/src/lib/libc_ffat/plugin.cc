@@ -449,7 +449,10 @@ class Plugin : public Libc::Plugin
 				ffat_flags |= FA_WRITE;
 
 			if ((flags & O_CREAT) == O_CREAT)
-				ffat_flags |= FA_CREATE_NEW;
+				if ((flags & O_EXCL) == O_EXCL)
+					ffat_flags |= FA_CREATE_NEW;
+				else
+					ffat_flags |= FA_CREATE_ALWAYS;
 
 			FRESULT res = f_open(&ffat_file, pathname, ffat_flags);
 

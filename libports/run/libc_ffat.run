@@ -53,6 +53,9 @@ set config {
 	</start>
 	<start name="test-libc_ffat">
 		<resource name="RAM" quantum="2M"/>
+		<config>
+			<iterations value="1"/>
+		</config>
 	</start>
 }
 

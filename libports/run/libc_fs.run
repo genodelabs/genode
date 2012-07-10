@@ -38,6 +38,9 @@ install_config {
 	</start>
 	<start name="test-libc_fs">
 		<resource name="RAM" quantum="2M"/>
+                <config>
+                        <iterations value="1"/>
+                </config>
 	</start>
 </config>
 }
