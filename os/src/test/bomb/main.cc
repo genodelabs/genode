@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 		parent_services.insert(new (env()->heap()) Parent_service(names[i]));
 
 	const long children = 2;
-	const long demand   = 512 * 1024;
+	const long demand   = 1024 * 1024;
 
 	unsigned long avail = env()->ram_session()->avail();
 	long amount = (avail - demand) / children;
