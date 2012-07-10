@@ -1,0 +1,256 @@
+assert_spec foc
+assert_spec platform_panda
+
+#
+# Build
+#
+build {
+	core
+	init
+	drivers/timer
+	drivers/framebuffer
+	drivers/sd_card
+	drivers/usb
+	server/nic_bridge
+	server/nitpicker
+	server/nit_fb
+	server/terminal
+	server/terminal_log
+	server/part_blk
+	test/lwip/http_srv
+	test/libc_ffat
+	l4linux
+}
+
+create_boot_directory
+
+#
+# Config
+#
+set config  {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="fb_drv">
+		<binary name="omap4_fb_drv"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>
+	<start name="sd_card_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Block"/></provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<hid/>
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+	</start>
+	<start name="part_blk">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Block"/></provides>
+		<config>
+			<policy label="vmlinux.1 -> sda" partition="1" />
+			<policy label="vmlinux.2 -> sda" partition="2" />
+			<policy label="test-libc_ffat"   partition="3" />
+		</config>
+		<route>
+			<service name="Block"> <child name="sd_card_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="nic_bridge">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nic"/></provides>
+		<route>
+			<service name="Nic"> <child name="usb_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Input">       <child name="usb_drv"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="linux.1">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="1" ypos="0" width="510" height="382"/>
+	</start>
+	<start name="linux.2">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="513" ypos="0" width="510" height="382"/>
+	</start>
+	<start name="http_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="1" ypos="385" width="510" height="376"/>
+	</start>
+	<start name="blocktest_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="513" ypos="385" width="510" height="376"/>
+	</start>
+	<start name="http_term">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input">       <child name="http_fb"/> </service>
+			<service name="Framebuffer"> <child name="http_fb"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="blocktest_term">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input">       <child name="blocktest_fb"/> </service>
+			<service name="Framebuffer"> <child name="blocktest_fb"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="blocktest_log">
+		<binary name="terminal_log" />
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="LOG"/></provides>
+		<route>
+			<service name="Terminal"> <child name="blocktest_term"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-libc_ffat">
+		<resource name="RAM" quantum="2M"/>
+		<config> <iterations value="10" /> </config>
+		<route>
+			<service name="Block"> <child name="part_blk"/> </service>
+			<service name="LOG">   <child name="blocktest_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="http_log">
+		<binary name="terminal_log" />
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="LOG"/></provides>
+		<route>
+			<service name="Terminal"> <child name="http_term"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-lwip_httpsrv">
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="LOG"> <child name="http_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="vmlinux.1">
+		<binary name="l4linux"/>
+		<resource name="RAM" quantum="96M"/>
+		<config args="mem=54M l4x_rd=initrd.gz">
+			<block label="sda" />
+		</config>
+		<route>
+			<service name="Input">       <child name="linux.1"/> </service>
+			<service name="Framebuffer"> <child name="linux.1"/> </service>
+			<service name="Block">       <child name="part_blk"/> </service>
+			<service name="Nic">         <child name="nic_bridge"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="vmlinux.2">
+		<binary name="l4linux"/>
+		<resource name="RAM" quantum="96M"/>
+		<config args="mem=54M l4x_rd=initrd.gz">
+			<block label="sda" />
+		</config>
+		<route>
+			<service name="Input">       <child name="linux.2"/> </service>
+			<service name="Framebuffer"> <child name="linux.2"/> </service>
+			<service name="Block">       <child name="part_blk"/> </service>
+			<service name="Nic">         <child name="nic_bridge"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules {
+	core
+	init
+	timer
+	nic_bridge
+	nitpicker
+	nit_fb
+	part_blk
+	terminal
+	terminal_log
+	l4linux
+	initrd.gz
+	omap4_fb_drv
+	sd_card_drv
+	usb_drv
+	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so libc_ffat.lib.so
+	test-lwip_httpsrv
+	test-libc_ffat
+}
+
+set uri "https://github.com/downloads/skalk/genode/busybox-initrd-arm-20120710.gz"
+
+if {![file exists bin/initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O bin/initrd.gz $uri
+}
+
+build_boot_image  [join $boot_modules " "]
+
