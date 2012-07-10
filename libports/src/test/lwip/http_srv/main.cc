@@ -50,7 +50,7 @@ void http_server_serve(int conn) {
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
 	buflen = lwip_recv(conn, buf, 1024, 0);
-	PDBG("Packet received!");
+	PLOG("Packet received!");
 
 	/* Ignore all receive errors */
 	if (buflen > 0) {
@@ -64,7 +64,7 @@ void http_server_serve(int conn) {
 			buf[3] == ' ' &&
 			buf[4] == '/' ) {
 
-			PDBG("Will send response");
+			PLOG("Will send response");
 
 			/* Send http header */
 			lwip_send(conn, http_html_hdr, Genode::strlen(http_html_hdr), 0);
@@ -88,13 +88,13 @@ int main()
 		return -1;
 	}
 
-	PDBG("Create new socket ...");
+	PLOG("Create new socket ...");
 	if((s = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		PERR("No socket available!");
 		return -1;
 	}
 
-	PDBG("Now, I will bind ...");
+	PLOG("Now, I will bind ...");
 	struct sockaddr_in in_addr;
     in_addr.sin_family = AF_INET;
     in_addr.sin_port = htons(80);
@@ -104,13 +104,13 @@ int main()
 		return -1;
 	}
 
-	PDBG("Now, I will listen ...");
+	PLOG("Now, I will listen ...");
 	if(lwip_listen(s, 5)) {
 		PERR("listen failed!");
 		return -1;
 	}
 
-	PDBG("Start the server loop ...");
+	PLOG("Start the server loop ...");
 	while(true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
