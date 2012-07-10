@@ -7,8 +7,12 @@ build {
 	init
 	drivers/input/ps2
 	drivers/pci
+	drivers/atapi
+	drivers/sd_card
 	drivers/framebuffer
 	drivers/timer
+	drivers/usb
+	server/ffat_fs
 	server/nitpicker
 	app/examples/textedit
 }
@@ -32,6 +36,7 @@ set config {
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
+		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -50,12 +55,36 @@ append_if [have_spec pci] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="PCI"/></provides>
+	</start>
+	<start name="atapi_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Block"/> </provides>
+		<config ata="yes" />
+	</start>}
+
+append_if [expr [have_spec pl180] || [have_spec omap4]] config {
+	<start name="sd_card_drv">
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Block"/></provides>
 	</start>}
 
 append_if [have_spec vesa] config {
 	<start name="vesa_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec omap4] config {
+	<start name="omap4_fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [expr ![have_spec ps2] && [have_spec usb]] config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides><service name="Input"/></provides>
+		<config> <hid/> </config>
 	</start>}
 
 append_if [have_spec pl11x] config {
@@ -68,7 +97,7 @@ append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
-	</start> }
+	</start>}
 
 append config {
 	<start name="timer">
@@ -79,8 +108,22 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 	</start>
+	<start name="ffat_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<!-- constrain sessions according to their labels -->
+			<policy label="textedit" root="/" writeable="yes" />
+		</config>
+	</start>
 	<start name="textedit">
-		<resource name="RAM" quantum="80M"/>
+		<resource name="RAM" quantum="40M"/>
+		<config xpos="3" ypos="0" width="500" height="710"/>
+	</start>
+	<start name="textedit2">
+		<binary name="textedit" />
+		<resource name="RAM" quantum="40M"/>
+		<config xpos="512" ypos="0" width="500" height="710"/>
 	</start>
 </config>
 }
@@ -97,28 +140,46 @@ set boot_modules {
 	init
 	timer
 	nitpicker
+	ffat_fs
 	textedit
 	dejavusans.lib.so
 	freetype.lib.so
 	ld.lib.so
 	libc.lib.so
 	libc_lock_pipe.lib.so
+	libc_fs.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so
 	qt_core.lib.so
 	qt_gui.lib.so
 	zlib.lib.so
+	usb_drv
 }
 
 # platform-specific modules
 lappend_if [have_spec linux] boot_modules fb_sdl
 lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec pci]   boot_modules atapi_drv
 lappend_if [have_spec vesa]  boot_modules vesa_drv
 lappend_if [have_spec ps2]   boot_modules ps2_drv
 lappend_if [have_spec pl11x] boot_modules pl11x_drv
+lappend_if [have_spec omap4] boot_modules sd_card_drv
+lappend_if [have_spec omap4] boot_modules omap4_fb_drv
+lappend_if [have_spec omap4] boot_modules usb_drv
 
 build_boot_image $boot_modules
+
+set disk_image "bin/test.hda"
+set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
+puts "creating disk image: $cmd"
+catch { exec sh -c $cmd }
+
+set cmd "mkfs.vfat -F32 $disk_image"
+puts "formating disk image with vfat file system: $cmd"
+catch { exec sh -c $cmd }
+
+append_if [have_spec   pci] qemu_args " -hda $disk_image -boot order=d "
 
 append qemu_args " -m 128"
 

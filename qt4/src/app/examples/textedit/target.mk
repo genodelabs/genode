@@ -12,3 +12,5 @@ vpath % $(QMAKE_PROJECT_PATH)
 include $(QT4_REP_DIR)/src/app/tmpl/target_defaults.inc
 
 include $(QT4_REP_DIR)/src/app/tmpl/target_final.inc
+
+LIBS += libc_fs

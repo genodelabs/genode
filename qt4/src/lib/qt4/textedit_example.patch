@@ -1,13 +1,42 @@
 diff --git a/demos/textedit/main.cpp b/demos/textedit/main.cpp
 --- a/demos/textedit/main.cpp
 +++ b/demos/textedit/main.cpp
-@@ -48,7 +48,8 @@
+@@ -39,16 +39,37 @@
+ **
+ ****************************************************************************/
  
++/* Genode includes */
++#include <os/config.h>
++
++/* Qt4 includes */
+ #include "textedit.h"
+ #include <QApplication>
+ 
++/* disable "not implemented yet" messages */
++extern "C" void _sigprocmask() { }
++extern "C" void sigprocmask() { }
++
+ int main( int argc, char ** argv )
+ {
+     Q_INIT_RESOURCE(textedit);
+ 
++    unsigned int x = 300;
++    unsigned int y = 0;
++    unsigned int w = 700;
++    unsigned int h = 700;
++
++    try { Genode::config()->xml_node().attribute("xpos").value(&x); } catch (...) { }
++    try { Genode::config()->xml_node().attribute("ypos").value(&y); } catch (...) { }
++    try { Genode::config()->xml_node().attribute("width").value(&w); } catch (...) { }
++    try { Genode::config()->xml_node().attribute("height").value(&h); } catch (...) { }
++
      QApplication a( argc, argv );
      TextEdit mw;
 -    mw.resize( 700, 800 );
-+    mw.move( 300, 0 );
-+    mw.resize( 700, 700 );
++
++    mw.move(x, y);
++    mw.resize(w, h);
++
      mw.show();
      return a.exec();
  }
