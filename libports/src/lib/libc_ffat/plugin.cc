@@ -33,7 +33,7 @@ namespace Ffat { extern "C" {
 } }
 
 
-static bool const verbose = true;
+static bool const verbose = false;
 
 
 namespace {
@@ -49,7 +49,8 @@ class Plugin_context : public Libc::Plugin_context
 
 		Plugin_context(const char *filename)
 		{
-			PDBG("new context at %p", this);
+			if (verbose)
+				PDBG("new context at %p", this);
 			_filename = (char*)malloc(::strlen(filename) + 1);
 			::strcpy(_filename, filename);
 		}
@@ -448,11 +449,12 @@ class Plugin : public Libc::Plugin
 			if (((flags & O_WRONLY) == O_WRONLY)  || ((flags & O_RDWR) == O_RDWR))
 				ffat_flags |= FA_WRITE;
 
-			if ((flags & O_CREAT) == O_CREAT)
+			if ((flags & O_CREAT) == O_CREAT) {
 				if ((flags & O_EXCL) == O_EXCL)
 					ffat_flags |= FA_CREATE_NEW;
 				else
 					ffat_flags |= FA_CREATE_ALWAYS;
+			}
 
 			FRESULT res = f_open(&ffat_file, pathname, ffat_flags);
 
@@ -470,14 +472,16 @@ class Plugin : public Libc::Plugin
 					 */
 					Ffat::DIR ffat_dir;
 					FRESULT f_opendir_res = f_opendir(&ffat_dir, pathname);
-					PDBG("opendir res=%d", f_opendir_res);
+					if (verbose)
+						PDBG("opendir res=%d", f_opendir_res);
 					switch(f_opendir_res) {
 						case FR_OK: {
 							Plugin_context *context = new (Genode::env()->heap())
 								Directory_plugin_context(pathname, ffat_dir);
 							Libc::File_descriptor *f =
 								Libc::file_descriptor_allocator()->alloc(this, context);
-							PDBG("new fd=%d", f->libc_fd);
+							if (verbose)
+								PDBG("new fd=%d", f->libc_fd);
 							return f;
 
 						}
