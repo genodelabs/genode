@@ -1,0 +1,133 @@
+#
+# \brief  Test for using the libc_fs plugin with the FFAT file system
+# \author Christian Prochaska
+# \date   2012-07-03
+#
+
+if {[catch { exec which mkfs.vfat } ]} {
+        puts stderr "Error: mkfs.vfat not installed, aborting test"; exit }
+
+if {[have_spec linux]} {
+        puts "Run script does not support this platform"; exit }
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/pci
+	drivers/atapi
+	drivers/timer
+	drivers/sd_card
+	server/ffat_fs
+	test/libc_fs
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="ffat_fs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config> <policy label="" root="/" writeable="yes" /> </config>
+	</start>
+	<start name="test-libc_fs">
+		<resource name="RAM" quantum="2M"/>
+	</start>
+}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start>
+	<start name="atapi_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Block"/> </provides>
+		<config ata="yes" />
+	</start>
+}
+
+append_if [expr [have_spec pl180] || [have_spec omap4]] config {
+	<start name="sd_card_drv">
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Block"/></provides>
+	</start>
+}
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ffat_fs
+	ld.lib.so libc.lib.so libc_log.lib.so libc_fs.lib.so
+	test-libc_fs
+}
+
+append_if [have_spec pci]   boot_modules { pci_drv atapi_drv }
+append_if [have_spec pl180] boot_modules { sd_card_drv }
+append_if [have_spec omap4] boot_modules { sd_card_drv }
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+set disk_image "bin/test.hda"
+set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
+puts "creating disk image: $cmd"
+catch { exec sh -c $cmd }
+
+set cmd "mkfs.vfat -F32 $disk_image"
+puts "formating disk image with vfat file system: $cmd"
+catch { exec sh -c $cmd }
+
+#
+# Qemu
+#
+append qemu_args " -m 128 -nographic "
+append_if [have_spec   pci] qemu_args " -hda $disk_image -boot order=d "
+append_if [have_spec pl180] qemu_args " -drive file=$disk_image,if=sd,cache=writeback "
+
+run_genode_until {.*child exited with exit value 0.*} 60
+
+exec rm -f $disk_image
+
+puts "\ntest succeeded\n"
+
+# vi: set ft=tcl :

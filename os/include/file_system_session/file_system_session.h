@@ -128,7 +128,7 @@ namespace File_system {
 	 */
 	enum Mode { STAT_ONLY = 0, READ_ONLY = 1, WRITE_ONLY = 2, READ_WRITE = 3 };
 
-	enum { MAX_NAME_LEN = 128, MAX_PATH_LEN = 1024 };
+	enum { MAX_NAME_LEN = 256, MAX_PATH_LEN = 1024 };
 
 	typedef Rpc_in_buffer<MAX_NAME_LEN> Name;
 	typedef Rpc_in_buffer<MAX_PATH_LEN> Path;

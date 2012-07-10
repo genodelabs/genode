@@ -121,7 +121,7 @@ class Plugin_context : public Libc::Plugin_context,
 		: _type(TYPE_FILE), _node_handle(handle), _seek_offset(~0), in_flight(false) { }
 
 		Plugin_context(File_system::Dir_handle handle)
-		: _type(TYPE_DIR), _node_handle(handle), _seek_offset(~0), in_flight(false) { }
+		: _type(TYPE_DIR), _node_handle(handle), _seek_offset(0), in_flight(false) { }
 
 		Plugin_context(File_system::Symlink_handle handle)
 		: _type(TYPE_SYMLINK), _node_handle(handle), _seek_offset(~0), in_flight(false) { }
@@ -346,6 +346,11 @@ class Plugin : public Libc::Plugin
 			return -1;
 		}
 
+		/*
+		 * *basep does not get initialized by the libc and is therefore
+		 * useless for determining a specific directory index. This
+		 * function uses the plugin-internal seek offset instead.
+		 */
 		ssize_t getdirentries(Libc::File_descriptor *fd, char *buf,
 		                      ::size_t nbytes, ::off_t *basep)
 		{
@@ -356,15 +361,8 @@ class Plugin : public Libc::Plugin
 				return -1;
 			}
 
-			unsigned const curr_offset = *basep;
-			unsigned const curr_index = curr_offset / sizeof(struct dirent);
-
-			seek_off_t const orig_seek_offset = context(fd)->seek_offset();
-			context(fd)->seek_offset(curr_index*sizeof(Directory_entry));
 			Directory_entry entry;
 			size_t num_bytes = read(fd, &entry, sizeof(entry));
-
-			context(fd)->seek_offset(orig_seek_offset);
 
 			/* detect end of directory entries */
 			if (num_bytes == 0)
@@ -384,7 +382,7 @@ class Plugin : public Libc::Plugin
 			case Directory_entry::TYPE_SYMLINK:   dirent->d_type = DT_LNK;  break;
 			}
 
-			dirent->d_fileno = curr_index + 1;
+			dirent->d_fileno = 1 + (context(fd)->seek_offset() / sizeof(struct dirent));
 			dirent->d_reclen = sizeof(struct dirent);
 
 			Genode::strncpy(dirent->d_name, entry.name, sizeof(dirent->d_name));
@@ -423,8 +421,12 @@ class Plugin : public Libc::Plugin
 
 		int mkdir(const char *path, mode_t mode)
 		{
+			Canonical_path canonical_path(path);
+
 			try {
-				file_system()->dir(path, true);
+				File_system::Dir_handle const handle =
+					file_system()->dir(canonical_path.str, true);
+				file_system()->close(handle);
 				return 0;
 			}
 			catch (File_system::Permission_denied)   { errno = EPERM; }
@@ -470,8 +472,7 @@ class Plugin : public Libc::Plugin
 				if (path.str[i] == '/')
 					last_slash = i;
 
-			char dir_path[256];
-			dir_path[0] = 0;
+			char dir_path[256] = "/";
 			if (last_slash > 0)
 				Genode::strncpy(dir_path, path.str,
 				                Genode::min(sizeof(dir_path), last_slash + 1));
