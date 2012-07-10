@@ -179,6 +179,7 @@ void Ipc_server::_wait()
 
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 
+	_rcv_msg->post_ipc(utcb);
 	copy_utcb_to_msgbuf(utcb, _rcv_msg);
 
 	/* reset unmarshaller */

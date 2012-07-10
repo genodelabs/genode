@@ -392,6 +392,7 @@ namespace Nova {
 		struct Item {
 			mword_t crd;
 			mword_t hotspot;
+			bool is_del() { return hotspot & 0x1; }
 		};
 
 		/**
@@ -415,7 +416,8 @@ namespace Nova {
 		__attribute__((warn_unused_result))
 		bool append_item(Crd crd, mword_t sel_hotspot,
 		                 bool kern_pd = false,
-		                 bool update_guest_pt = false)
+		                 bool update_guest_pt = false,
+		                 bool translate_map = false)
 		{
 			/* transfer items start at the end of the UTCB */
 			items += 1 << 16;
@@ -433,10 +435,22 @@ namespace Nova {
 			/* update guest page table */
 			unsigned g = update_guest_pt ? (1 << 10) : 0;
 
-			item->hotspot = crd.hotspot(sel_hotspot) | g | h | 1;
+			item->hotspot = crd.hotspot(sel_hotspot) | g | h | (translate_map ? 2 : 1);
 			item->crd = crd.value();
 
 			return true;
+		}
+
+		/**
+		 * Return typed item at postion i in UTCB
+		 *
+		 * \param i position of item requested, starts with 0
+		 */
+		Item * get_item(const unsigned i) {
+			if (i > (PAGE_SIZE_BYTE / sizeof(struct Item))) return 0;
+			Item * item = reinterpret_cast<Item *>(this) + (PAGE_SIZE_BYTE / sizeof(struct Item)) - i - 1;
+			if (reinterpret_cast<mword_t *>(item) < this->msg) return 0;
+			return item;
 		}
 
 		mword_t mtd_value() const { return static_cast<Mtd>(mtd).value(); }

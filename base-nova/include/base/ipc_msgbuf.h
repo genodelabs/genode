@@ -45,17 +45,23 @@ namespace Genode {
 			/**
 			 * Portal capability selectors to delegate
 			 */
-			int _snd_pt_sel[MAX_CAP_ARGS];
+			addr_t _snd_pt_sel[MAX_CAP_ARGS];
 
 			/**
 			 * Base of portal receive window
 			 */
 			int _rcv_pt_base;
 
+			struct {
+				addr_t sel;
+				bool   del;
+			} _rcv_pt_sel [MAX_CAP_ARGS];
+
 			/**
 			 * Read counter for unmarshalling portal capability selectors
 			 */
-			int _rcv_pt_sel_cnt;
+			unsigned _rcv_pt_sel_cnt;
+			unsigned _rcv_pt_sel_max;
 
 			/**
 			 * Flag set to true if receive window must be re-initialized
@@ -98,7 +104,7 @@ namespace Genode {
 			/**
 			 * Append portal capability selector to message buffer
 			 */
-			inline bool snd_append_pt_sel(int pt_sel)
+			inline bool snd_append_pt_sel(addr_t pt_sel)
 			{
 				if (_snd_pt_sel_cnt >= MAX_CAP_ARGS - 1)
 					return false;
@@ -119,25 +125,35 @@ namespace Genode {
 			 * \return   portal-capability selector, or
 			 *           -1 if index is invalid
 			 */
-			int snd_pt_sel(unsigned i) { return i < _snd_pt_sel_cnt ? _snd_pt_sel[i] : -1; }
+			addr_t snd_pt_sel(unsigned i) { return i < _snd_pt_sel_cnt ? _snd_pt_sel[i] : -1; }
 
 			/**
 			 * Request current portal-receive window
 			 */
-			int rcv_pt_base() { return _rcv_pt_base; }
+			addr_t rcv_pt_base() { return _rcv_pt_base; }
 
 			/**
 			 * Reset portal-capability receive window
 			 */
-			void rcv_reset() { _rcv_pt_sel_cnt = 0; }
+			void rcv_reset()
+			{
+				if (!rcv_invalid()) { rcv_cleanup(false); }
+
+				_rcv_pt_sel_cnt = 0;
+				_rcv_pt_sel_max = 0;
+				_rcv_pt_base = ~0UL;
+			}
 
 			/**
 			 * Return received portal-capability selector
 			 */
-			int rcv_pt_sel()
+			addr_t rcv_pt_sel()
 			{
-				_rcv_dirty = true;
-				return _rcv_pt_base + _rcv_pt_sel_cnt++;
+				/* return only received or translated caps */
+				if (_rcv_pt_sel_cnt < _rcv_pt_sel_max)
+					return _rcv_pt_sel[_rcv_pt_sel_cnt++].sel;
+				else
+					return 0;
 			}
 
 			/**
@@ -148,8 +164,62 @@ namespace Genode {
 			 * current receive window with one or more portal capabilities.
 			 * To enable the reception of portal capability selectors for the
 			 * next IDC, we need a fresh receive window.
+			 *
+			 * \param keep  If 'true', try to keep receive window if it's clean.
+			 *              If 'false', free caps of receive window because object is freed afterwards.
+			 *
+			 * \result 'true' if receive window was freed, 'false' if it was kept.
 			 */
-			bool rcv_dirty() { return _rcv_dirty; }
+			bool rcv_cleanup(bool keep)
+			{
+				/* If nothing has been used, revoke/free at once */
+				if (_rcv_pt_sel_cnt == 0) {
+					_rcv_pt_sel_max = 0;
+
+					if (_rcv_items)
+						Nova::revoke(Nova::Obj_crd(rcv_pt_base(), MAX_CAP_ARGS_LOG2), true);
+
+					if (keep) return false;
+
+					cap_selector_allocator()->free(rcv_pt_base(), MAX_CAP_ARGS_LOG2);
+					return true;
+				}
+
+				/* Revoke received unused caps, skip translated caps */
+				for (unsigned i = _rcv_pt_sel_cnt; i < _rcv_pt_sel_max; i++) {
+					if (_rcv_pt_sel[i].del) {
+						/* revoke cap we received but didn't use */
+						Nova::revoke(Nova::Obj_crd(_rcv_pt_sel[i].sel, 0), true);
+						/* mark cap as free */
+						cap_selector_allocator()->free(_rcv_pt_sel[i].sel, 0);
+					}
+				}
+
+				/* free all caps which are unused from the receive window */
+				for (unsigned i=0; i < MAX_CAP_ARGS; i++) {
+					unsigned j=0;
+					for (j=0; j < _rcv_pt_sel_max; j++) {
+						if (_rcv_pt_sel[j].sel == rcv_pt_base() + i) break;
+					}
+					if (j < _rcv_pt_sel_max) continue;
+
+					/* Revoke seems needless here, but is required.
+					 * It is possible that an evil guy translated us
+					 * more then MAX_CAP_ARGS and then mapped us
+					 * something to the receive window.
+					 * The mappings would not show up
+					 * in _rcv_pt_sel, but would be there.
+					 */
+					Nova::revoke(Nova::Obj_crd(rcv_pt_base() + i, 0), true);
+					/* i was unused, free at allocator */ 
+					cap_selector_allocator()->free(rcv_pt_base() + i, 0);
+				}
+
+				_rcv_pt_sel_cnt = 0;
+				_rcv_pt_sel_max = 0;
+
+				return true;
+			}
 
 			/**
 			 * Initialize receive window for portal capability selectors
@@ -168,7 +238,34 @@ namespace Genode {
 
 				/* register receive window at the UTCB */
 				utcb->crd_rcv = Nova::Obj_crd(rcv_pt_base(),MAX_CAP_ARGS_LOG2);
+				utcb->crd_xlt = Nova::Obj_crd(0, sizeof(addr_t) * 8 - 12);
 			}
+
+			/**
+			 * Post IPC processing.
+			 *
+			 * Remember where and which caps have been received
+			 * respectively have been translated.
+			 * The information is required to correctly free
+			 * cap indexes and to revoke unused received caps.
+			 *
+			 * \param utcb  UTCB of designated receiver thread
+			 */
+			void post_ipc(Nova::Utcb *utcb) {
+				_rcv_items = (utcb->items >> 16) & 0xffffu;
+				_rcv_pt_sel_max = 0;
+				_rcv_pt_sel_cnt = 0;
+
+				for (unsigned i=0; i < _rcv_items; i++) {
+					Nova::Utcb::Item * item = utcb->get_item(i);
+					if (!item) break;
+					if (_rcv_pt_sel_max >= MAX_CAP_ARGS) break;
+
+					_rcv_pt_sel[_rcv_pt_sel_max].sel   = item->crd >> 12;
+					_rcv_pt_sel[_rcv_pt_sel_max++].del = item->is_del();
+				}
+			}
+
 	};
 
 
