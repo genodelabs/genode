@@ -69,6 +69,14 @@ struct Test_mmio : public Mmio
 
 	struct Reg : Register<0x04, 8>
 	{
+		enum
+		{
+			/* ensure that we can not falsely overlay inherited enums */
+			OFFSET = 0x1234,
+			ACCESS_WIDTH = 1,
+			STRICT_WRITE = 1,
+		};
+
 		struct Bit_1 : Bitfield<0,1> { };
 		struct Area  : Bitfield<1,3>
 		{
@@ -86,6 +94,16 @@ struct Test_mmio : public Mmio
 
 	struct Array : Register_array<0x2, 16, 10, 4>
 	{
+		enum
+		{
+			/* ensure that we can not falsely overlay inherited enums */
+			STRICT_WRITE    = 1,
+			OFFSET          = 0x1234,
+			ACCESS_WIDTH    = 1,
+			ITEMS           = 1,
+			ITEM_WIDTH      = 1,
+		};
+
 		struct A : Bitfield<0,1> { };
 		struct B : Bitfield<1,2> { };
 		struct C : Bitfield<3,1> { };
