@@ -88,9 +88,15 @@ append_if [have_spec ps2] config {
 append_if [expr ![have_spec ps2] && [have_spec usb]] config {
 	<start name="input_drv">
 		<binary name="usb_drv"/>
-		<resource name="RAM" quantum="3M"/>
-		<provides><service name="Input"/></provides>
-		<config> <hid/> </config>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Nic" />
+		</provides>
+		<config>
+			<hid/>
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
 	</start> }
 
 append_if [have_spec x86] config {
@@ -106,16 +112,14 @@ append_if [have_spec lan9118] config {
 	</start> }
 
 append config {
-<!--
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nic"/></provides>
 		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Nic"> <child name="input_drv"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
--->
 	<start name="nitpicker">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -173,7 +177,7 @@ append config {
 		<route>
 			<service name="Input">       <child name="linux.1"/> </service>
 			<service name="Framebuffer"> <child name="linux.1"/> </service>
-			<!-- <service name="Nic">         <child name="nic_bridge"/> </service> -->
+			<service name="Nic">         <child name="nic_bridge"/> </service> 
 			<service name="LOG">         <child name="terminal_log"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -185,7 +189,7 @@ append config {
 		<route>
 			<service name="Input">       <child name="linux.2"/> </service>
 			<service name="Framebuffer"> <child name="linux.2"/> </service>
-			<!-- <service name="Nic">         <child name="nic_bridge"/> </service> -->
+			<service name="Nic">         <child name="nic_bridge"/> </service>
 			<service name="LOG">         <child name="terminal_log"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
@@ -241,4 +245,4 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 -net user "
 #
 # Execute test case
 #
-run_genode_until forever
+#run_genode_until forever
