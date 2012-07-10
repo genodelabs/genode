@@ -134,6 +134,7 @@ namespace Block {
 				*blk_count = _partition->_sectors;
 				*blk_size  = Partition::blk_size();
 				ops->set_operation(Packet_descriptor::READ);
+				ops->set_operation(Packet_descriptor::WRITE);
 			}
 
 			Partition::Partition *partition() { return _partition; }
