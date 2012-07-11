@@ -11,10 +11,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 #include <base/allocator_avl.h>
+#include <base/semaphore.h>
 #include <block_session/connection.h>
 #include "part_blk.h"
 
 using namespace Genode;
+
+/**
+ * Used to block until a packet has been freed
+ */
+static Semaphore _alloc_sem(0);
 
 namespace Partition {
 
@@ -22,7 +28,7 @@ namespace Partition {
 	size_t _blk_size;
 
 	Allocator_avl        _block_alloc(env()->heap());
-	Block::Connection    _blk(&_block_alloc);
+	Block::Connection    _blk(&_block_alloc, 4 * MAX_PACKET_SIZE);
 
 	Partition           *_part_list[MAX_PARTITIONS]; /* contains pointers to valid partittions or 0 */
 
@@ -84,15 +90,8 @@ namespace Partition {
 				Lock::Guard guard(_lock);
 				Block::Packet_descriptor::Opcode op = write ? Block::Packet_descriptor::WRITE
 				                                            : Block::Packet_descriptor::READ;
-
-				try {
-					_p = Block::Packet_descriptor( _blk.dma_alloc_packet(_blk_size * count),
+					_p = Block::Packet_descriptor(_blk.dma_alloc_packet(_blk_size * count),
 					                              op,  blk_nr, count);
-				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-					PERR("Packet overrun!");
-					_p = _blk.tx()->get_acked_packet();
-					throw Io_error();
-				}
 			}
 
 			void submit_request()
@@ -100,6 +99,10 @@ namespace Partition {
 				Lock::Guard guard(_lock);
 				_blk.tx()->submit_packet(_p);
 				_p = _blk.tx()->get_acked_packet();
+
+				/* unblock clients that possibly wait for packet stream allocations */
+				if (_alloc_sem.cnt() < 0)
+					_alloc_sem.up();
 
 				if (!_p.succeeded()) {
 					PERR("Could not access block %zu", _p.block_number());
@@ -198,16 +201,25 @@ namespace Partition {
 
 			unsigned long curr_count = min<unsigned long>(count, max_packets());
 			bytes                    = curr_count * _blk_size;
+			bool alloc = false;
+			while (!alloc) {
+				try {
+					Sector sec(lba, curr_count, write);
+		
+					if (!write) {
+						sec.submit_request();
+						memcpy(buf, sec.addr<void *>(), bytes);
+					}
+					else {
+						memcpy(sec.addr<void *>(), buf, bytes);
+						sec.submit_request();
+					}
 
-			Sector sec(lba, curr_count, write);
-
-			if (!write) {
-				sec.submit_request();
-				memcpy(buf, sec.addr<void *>(), bytes);
-			}
-			else {
-				memcpy(sec.addr<void *>(), buf, bytes);
-				sec.submit_request();
+					alloc = true;
+				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
+					/* block */
+					_alloc_sem.down();
+				}
 			}
 
 			lba   += curr_count;
