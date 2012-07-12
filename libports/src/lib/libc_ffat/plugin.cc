@@ -32,6 +32,12 @@ namespace Ffat { extern "C" {
 #include <ffat/ff.h>
 } }
 
+/*
+ * These macros are defined in later versions of the FatFs lib, but not in the
+ * one currently used for Genode.
+ */
+#define f_size(fp) ((fp)->fsize)
+#define f_tell(fp) ((fp)->fptr)
 
 static bool const verbose = false;
 
@@ -373,16 +379,26 @@ class Plugin : public Libc::Plugin
 		{
 			using namespace Ffat;
 
-			if (whence != SEEK_SET) {
-				PERR("only SEEK_SET is supported by the ffat lib");
-				errno = EINVAL;
-				return (::off_t)-1;
+			switch(whence) {
+				case SEEK_CUR:
+					offset += f_tell(_get_ffat_file(fd));
+					break;
+				case SEEK_END:
+					offset += f_size(_get_ffat_file(fd));
+					break;
+				default:
+					break;
 			}
 
 			FRESULT res = f_lseek(_get_ffat_file(fd), offset);
 
 			switch(res) {
 				case FR_OK:
+					/* according to the FatFs documentation this can happen */
+					if (f_tell(_get_ffat_file(fd)) != offset) {
+						errno = EINVAL;
+						return -1;
+					}
 					return offset;
 				case FR_DISK_ERR:
 				case FR_INT_ERR:
