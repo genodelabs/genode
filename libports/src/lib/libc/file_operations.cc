@@ -91,11 +91,24 @@ inline File_descriptor *libc_fd_to_fd(int libc_fd, const char *func_name)
  ** Libc functions **
  ********************/
 
+extern "C" int _accept(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
+{
+	return accept(libc_fd, addr, addrlen);
+}
+
+
 extern "C" int accept(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
 {
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "accept");
 	File_descriptor *ret_fd = (fd && fd->plugin) ? fd->plugin->accept(fd, addr, addrlen) : 0;
 	return ret_fd ? ret_fd->libc_fd : INVALID_FD;
+}
+
+
+extern "C" int _bind(int libc_fd, const struct sockaddr *addr,
+                     socklen_t addrlen)
+{
+	return bind(libc_fd, addr, addrlen);
 }
 
 
@@ -254,6 +267,12 @@ extern "C" int ioctl(int libc_fd, int request, char *argp) {
 
 extern "C" int _ioctl(int libc_fd, int request, char *argp) {
 	FD_FUNC_WRAPPER(ioctl, libc_fd, request, argp); }
+
+
+extern "C" int _listen(int libc_fd, int backlog)
+{
+	return listen(libc_fd, backlog);
+}
 
 
 extern "C" int listen(int libc_fd, int backlog) {
