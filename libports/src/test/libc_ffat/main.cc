@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -44,6 +45,7 @@ int main(int argc, char *argv[])
 	char const *dir_name      = "/testdir";
 	char const *file_name     = "test.tst";
 	char const *file_name2    = "test2.tst";
+	char const *file_name3    = "test3.tst";
 	char const *pattern       = "a single line of text";
 
 	size_t      pattern_size  = strlen(pattern) + 1;
@@ -103,6 +105,35 @@ int main(int argc, char *argv[])
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 		printf("content of file: \"%s\"\n", buf);
 		if (strcmp(buf, &pattern[2]) != 0) {
+			printf("unexpected content of file\n");
+			return -1;
+		} else {
+			printf("file content is correct\n");
+		}
+
+		/* test 'readv()' and 'writev()' */
+		CALL_AND_CHECK(fd, open(file_name3, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);
+		struct iovec iov[2];
+		/* write "a single line" */
+		iov[0].iov_base = (void*)pattern;
+		iov[0].iov_len = 13;
+		/* write " line of text" */
+		iov[1].iov_base = (void*)&pattern[8];
+		iov[1].iov_len = pattern_size - 8;
+		CALL_AND_CHECK(count, writev(fd, iov, 2), (size_t)count == (pattern_size + 5), "");
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+		CALL_AND_CHECK(fd, open(file_name3, O_RDONLY), fd >= 0, "file_name=%s", file_name);
+		memset(buf, 0, sizeof(buf));
+		/* read "a single line" */
+		iov[0].iov_base = buf;
+		iov[0].iov_len = 13;
+		/* read " line of text" to offset 8 */
+		iov[1].iov_base = &buf[8];
+		iov[1].iov_len = pattern_size;
+		CALL_AND_CHECK(count, readv(fd, iov, 2), (size_t)count == (pattern_size + 5), "");
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+		printf("content of buffer: \"%s\"\n", buf);
+		if (strcmp(buf, pattern) != 0) {
 			printf("unexpected content of file\n");
 			return -1;
 		} else {
