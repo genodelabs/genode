@@ -68,17 +68,18 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 	/* supplement capability with object ID obtained from CAP session */
 	Untyped_capability new_obj_cap = _cap_session->alloc(ep_cap);
 
-	if (new_obj_cap.dst() != ep_cap.dst()) {
-		Nova::revoke(Nova::Obj_crd(new_obj_cap.dst(), 0), true);
-		cap_selector_allocator()->free(new_obj_cap.dst(), 0);
-		new_obj_cap = Native_capability(ep_cap.dst(), new_obj_cap.local_name());
-	}
+	/*
+	 * new_obj_cap.local_name() contains now the global object id.
+	 * We drop it here since there is no need on NOVA to have it,
+	 * instead we use solely the dst id and the local obj id.
+	 */ 
+	new_obj_cap = Native_capability(new_obj_cap.dst(), pt_sel);
 
 	/* add server object to object pool */
 	obj->cap(new_obj_cap);
 	insert(obj);
 
-	/* return capability that uses the object id as badge */
+	/* return capability that uses the local object id as badge */
 	return new_obj_cap;
 }
 
@@ -86,7 +87,10 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 {
 	/* Avoid any incoming IPC early */
-	Nova::revoke(Nova::Obj_crd(obj->cap().dst(), 0), true);
+	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
+	/* If the dst is not the same, revoke the cap locally */
+	if (obj->cap().dst() != obj->cap().local_name())
+		Nova::revoke(Nova::Obj_crd(obj->cap().dst(), 0), true);
 
 	/* make sure nobody is able to find this object */
 	remove(obj);
@@ -109,9 +113,12 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 
 	_cap_session->free(obj->cap());
 	/* revoke cleanup portal */
-	Nova::revoke(Nova::Obj_crd(obj->cap().dst() + 1, 0), true);
+	Nova::revoke(Nova::Obj_crd(obj->cap().local_name() + 1, 0), true);
 	/* free 2 cap selectors */
-	cap_selector_allocator()->free(obj->cap().dst(), 1);
+	cap_selector_allocator()->free(obj->cap().local_name(), 1);
+	/* free dst cap selector if it wasn't the same as the local_name */
+	if (obj->cap().dst() != obj->cap().local_name())
+		cap_selector_allocator()->free(obj->cap().dst(), 0);
 
 }
 
@@ -141,7 +148,7 @@ void Rpc_entrypoint::_activation_entry()
 	{
 		Lock::Guard lock_guard(ep->_curr_obj_lock);
 
-		ep->_curr_obj = ep->obj_by_id(srv.badge());
+		ep->_curr_obj = ep->obj_by_id(id_pt);
 		if (!ep->_curr_obj) {
 			PERR("could not look up server object, return from call badge=%lx id_pt=%lx", srv.badge(), id_pt);
 			ep->_curr_obj_lock.unlock();
@@ -184,7 +191,7 @@ void Rpc_entrypoint::_leave_server_object(Rpc_object_base *obj)
 	/* don't call ourself */
 	if (utcb != reinterpret_cast<Nova::Utcb *>(&_context->utcb)) {
 		utcb->set_msg_word(0);
-		if (Nova::call(obj->cap().dst() + 1))
+		if (Nova::call(obj->cap().local_name() + 1))
 			PERR("could not clean up entry point");
 	}
 }
