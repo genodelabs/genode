@@ -2,17 +2,14 @@ diff --git a/src/pd.cpp b/src/pd.cpp
 index 8160d73..be9aa63 100644
 --- a/src/pd.cpp
 +++ b/src/pd.cpp
-@@ -173,8 +173,9 @@ void Pd::xlt_crd (Pd *pd, Crd xlt, Crd &crd)
+@@ -173,6 +173,7 @@ void Pd::xlt_crd (Pd *pd, Crd xlt, Crd &crd)
              sb = (sb - mdb->node_base) + (mdb->node_phys - node->node_phys) + node->node_base;
  
              if ((ro = clamp (sb, rb, so, ro)) != ~0UL) {
 +                trace (TRACE_DEL, "XLT OBJ PD:%p->%p SB:%#010lx RB:%#010lx O:%#04lx", pd, this, crd.base(), rb, so);
                  crd = Crd (crd.type(), rb, ro, mdb->node_attr);
--                return;
-+                return; 
+                 return;
              }
-         }
-     }
 @@ -245,22 +246,32 @@ void Pd::rev_crd (Crd crd, bool self)
  
  void Pd::xfer_items (Pd *src, Crd xlt, Crd del, Xfer *s, Xfer *d, unsigned long ti)
