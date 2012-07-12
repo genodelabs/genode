@@ -87,7 +87,7 @@ static bool copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base *snd_msg,
 		int pt_sel = snd_msg->snd_pt_sel(i);
 		if (pt_sel < 0) continue;
 
-		if (!utcb->append_item(Nova::Obj_crd(pt_sel, 0), i))
+		if (!utcb->append_item(Nova::Obj_crd(pt_sel, 0), i, false, false, true))
 			return false;
 	}
 
