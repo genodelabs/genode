@@ -179,9 +179,17 @@ Pager_object::~Pager_object()
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	/* supplement capability with object ID obtained from CAP session */
-	obj->Object_pool<Pager_object>::Entry::cap(_cap_session->alloc(Native_capability(obj->pt_sel(), 0)));
+	Native_capability cap_session = _cap_session->alloc(Native_capability(obj->pt_sel(), 0));
+
+	/*
+	 * cap_session.local_name() contains now the global object id.
+	 * We drop it here since there is no need on NOVA to have it,
+	 * instead we use solely the dst id and the local obj id.
+	 */ 
+	cap_session = Native_capability(cap_session.dst(), obj->pt_sel());
 
 	/* add server object to object pool */
+	obj->Object_pool<Pager_object>::Entry::cap(cap_session);
 	insert(obj);
 
 	/* return capability that uses the object id as badge */
