@@ -39,10 +39,14 @@
 int main(int argc, char *argv[])
 {
 	int ret, fd;
+	ssize_t count;
 
 	char const *dir_name      = "/testdir";
 	char const *file_name     = "test.tst";
+	char const *file_name2    = "test2.tst";
 	char const *pattern       = "a single line of text";
+
+	size_t      pattern_size  = strlen(pattern) + 1;
 
 	unsigned int iterations = 1;
 
@@ -60,8 +64,7 @@ int main(int argc, char *argv[])
 
 		/* write pattern to a file */
 		CALL_AND_CHECK(fd, open(file_name, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);
-		size_t count = strlen(pattern);
-		CALL_AND_CHECK(ret, write(fd, pattern, count), ret > 0, "count=%zd", count);
+		CALL_AND_CHECK(count, write(fd, pattern, pattern_size), (size_t)count == pattern_size, "");
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 
 		/* query file status of new file */
@@ -76,10 +79,30 @@ int main(int argc, char *argv[])
 		/* read and verify file content */
 		CALL_AND_CHECK(fd, open(file_name, O_RDONLY), fd >= 0, "file_name=%s", file_name);
 		static char buf[512];
-		CALL_AND_CHECK(count, read(fd, buf, sizeof(buf)), count > 0, "");
+		CALL_AND_CHECK(count, read(fd, buf, sizeof(buf)), (size_t)count == pattern_size, "");
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 		printf("content of file: \"%s\"\n", buf);
 		if (strcmp(buf, pattern) != 0) {
+			printf("unexpected content of file\n");
+			return -1;
+		} else {
+			printf("file content is correct\n");
+		}
+
+		/* test 'pread()' and 'pwrite()' */
+		CALL_AND_CHECK(fd, open(file_name2, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);
+		/* write "a single line of" */
+		CALL_AND_CHECK(count, pwrite(fd, pattern, (pattern_size - 6), 0), (size_t)count == (pattern_size - 6), "");
+		/* write "line of text" at offset 9 */
+		CALL_AND_CHECK(count, pwrite(fd, &pattern[9], (pattern_size - 9), 9), (size_t)count == (pattern_size - 9), "");
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+		CALL_AND_CHECK(fd, open(file_name2, O_RDONLY), fd >= 0, "file_name=%s", file_name);
+		memset(buf, 0, sizeof(buf));
+		/* read "single line of text" from offset 2 */
+		CALL_AND_CHECK(count, pread(fd, buf, sizeof(buf), 2), (size_t)count == (pattern_size - 2), "");
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+		printf("content of file: \"%s\"\n", buf);
+		if (strcmp(buf, &pattern[2]) != 0) {
 			printf("unexpected content of file\n");
 			return -1;
 		} else {
