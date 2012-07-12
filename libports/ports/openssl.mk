@@ -1,4 +1,4 @@
-OPENSSL_VERSION = 1.0.1b
+OPENSSL_VERSION = 1.0.1c
 OPENSSL         = openssl-$(OPENSSL_VERSION)
 OPENSSL_TGZ     = $(OPENSSL).tar.gz
 OPENSSL_URL     = https://www.openssl.org/source/$(OPENSSL_TGZ)
@@ -28,25 +28,7 @@ $(CONTRIB_DIR)/$(OPENSSL): $(DOWNLOAD_DIR)/$(OPENSSL_TGZ)
 # Generate ASM codes
 #
 
-generate_asm: $(OPENSSL_SRC)/x86_32/cpuid.s $(OPENSSL_SRC)/x86_64/cpuid.s \
-	      $(OPENSSL_SRC)/x86_32/aes_enc.s $(OPENSSL_SRC)/x86_64/aes_enc.s \
-	      $(OPENSSL_SRC)/x86_64/modexp512.s $(OPENSSL_SRC)/x86_64/rc4_md5.s
-
-$(OPENSSL_SRC)/x86_32/cpuid.s:
-	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/x86cpuid.pl elf \
-		$(CONTRIB_DIR)/$(OPENSSEL)/crypto/perlasm/x86asm.pl elf > $@
-
-$(OPENSSL_SRC)/x86_64/cpuid.s:
-	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/x86_64cpuid.pl elf \
-		$(CONTRIB_DIR)/$(OPENSSEL)/crypto/perlasm/x86asm.pl elf > $@
-
-$(OPENSSL_SRC)/x86_32/aes_enc.s:
-	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/aes/asm/aes-586.pl elf \
-		$(CONTRIB_DIR)/$(OPENSSEL)/crypto/perlasm/x86asm.pl elf > $@
-
-$(OPENSSL_SRC)/x86_64/aes_enc.s:
-	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/aes/asm/aes-x86_64.pl elf \
-		$(CONTRIB_DIR)/$(OPENSSEL)/crypto/perlasm/x86asm.pl elf > $@
+generate_asm: $(OPENSSL_SRC)/x86_64/modexp512.s $(OPENSSL_SRC)/x86_64/rc4_md5.s
 
 $(OPENSSL_SRC)/x86_64/modexp512.s:
 	$(VERBOSE)perl $(CONTRIB_DIR)/$(OPENSSL)/crypto/bn/asm/modexp512-x86_64.pl \
@@ -71,6 +53,6 @@ include/openssl:
 	$(VERBOSE)ln -fs ../../$(CONTRIB_DIR)/$(OPENSSL)/crypto/store/store.h include/openssl/
 
 clean-openssl:
-	$(VERBOSE)rm -rf include/OPENSSL
+	$(VERBOSE)rm -rf include/openssl
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(OPENSSL)
 	$(VERBOSE)rm -rf $(OPENSSL_SRC)/x86_32/*.s $(OPENSSL_SRC)/x86_64/*.s

@@ -1,5 +1,5 @@
 LIBSSL     = libssl-1.0.0
-LIBSSL_DIR = $(REP_DIR)/contrib/openssl-1.0.1b
+LIBSSL_DIR = $(REP_DIR)/contrib/openssl-1.0.1c
 
 #
 # ARM is not supported currently (needs testing)

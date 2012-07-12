@@ -1,5 +1,5 @@
 LIBCRYPTO     = libcrypto-1.0.0
-LIBCRYPTO_DIR = $(REP_DIR)/contrib/openssl-1.0.1b/crypto
+LIBCRYPTO_DIR = $(REP_DIR)/contrib/openssl-1.0.1c/crypto
 
 #
 # ARM is not supported currently (needs testing)
@@ -10,15 +10,13 @@ SHARED_LIB = yes
 
 LIBS += libc
 
-CC_OPT += -DDSO_DLFCN -DHAVE_DLFCN_H -Wa,--noexecstack -DL_ENDIAN -DTERMIOS
+CC_OPT += -DDSO_DLFCN -DHAVE_DLFCN_H -Wa,--noexecstack -DL_ENDIAN -DTERMIOS \
+          -DOPENSSL_NO_ASM
 
 #
 # crypto base source
 #
-# Removed 'mem_clr.c' from the list because this function is provided by
-# 'src/lib/openssl/x86_32/cpuid.s'.
-#
-SRC_C = cryptlib.c mem.c mem_dbg.c cversion.c ex_data.c cpt_err.c \
+SRC_C = cryptlib.c mem.c mem_dbg.c cversion.c ex_data.c cpt_err.c mem_clr.c \
         ebcdic.c uid.c o_time.c o_str.c o_dir.c o_fips.c o_init.c fips_ers.c
 
 #
@@ -207,9 +205,6 @@ SRC_S += rc4_md5.s
 endif
 
 INC_DIR += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
-
-#SRC_S += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/aes_enc.s
-SRC_S += cpuid.s
 
 
 #
