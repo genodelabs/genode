@@ -1,0 +1,233 @@
+if {![have_spec foc] || ![have_spec 32bit]} {
+        puts "\nThe Noux GDB scenario is supported on 32-bit Fiasco.OC only\n"
+        exit 0
+}
+
+if {[have_spec arm]} {
+	set gdb "gdb_arm"
+	set tool_prefix "genode-arm-"
+}
+
+if {[have_spec x86]} {
+	set gdb "gdb_x86"
+	set tool_prefix "genode-x86-"
+}
+
+#
+# Uncomment the following line when working on the GDB source code. Otherwise,
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+#
+#exec rm -rf noux-pkg/$gdb/ bin/$gdb/
+
+set build_components {
+	core init drivers/timer noux lib/libc_noux
+	drivers/framebuffer drivers/pci drivers/input
+	server/terminal server/terminal_crosslink
+	server/ram_fs app/gdb_monitor
+	test/gdb_monitor
+}
+lappend build_components noux-pkg/$gdb
+
+build $build_components
+
+# tar archive for GDB
+
+exec sh -c "find bin/$gdb/ -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
+exec tar cfhv bin/gdb.tar -C bin/$gdb .
+
+# names of the binaries needed for the GDB monitor test
+
+set test_binaries {
+	test-gdb_monitor
+	ld.lib.so
+	libc.lib.so
+	libc_log.lib.so
+}
+
+# tar archive for the unstripped binaries of the GDB monitor test
+
+foreach test_binary $test_binaries {
+	exec tar ufv bin/test-gdb_monitor.tar -h -C bin $test_binary
+}
+
+# tar archive for the source code of the GDB monitor test
+
+foreach test_binary $test_binaries {
+	set source_files [ exec [cross_dev_prefix]objdump -dl bin/$test_binary | grep "^/.*:.*" | sed -e "s/:.*//" | uniq ]
+	foreach source_file $source_files {
+		if [file exists $source_file] { exec tar ufvhP bin/test-gdb_monitor-src.tar $source_file }
+	}
+}
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start> }
+
+append_if [have_spec sdl] config {
+		<start name="fb_sdl">
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="Input"/>
+				<service name="Framebuffer"/>
+			</provides>
+		</start>}
+
+append_if [have_spec pci] config {
+		<start name="pci_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="PCI"/></provides>
+		</start>}
+
+append_if [have_spec vesa] config {
+		<start name="vesa_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Framebuffer"/></provides>
+		</start>}
+
+append_if [have_spec pl11x] config {
+		<start name="pl11x_drv">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Framebuffer"/></provides>
+		</start>}
+
+append_if [have_spec ps2] config {
+		<start name="ps2_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Input"/></provides>
+		</start> }
+
+append config {
+
+		<start name="terminal_noux">
+			<binary name="terminal"/>
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Terminal"/></provides>
+			<config>
+				<keyboard layout="de"/>
+			</config>
+		</start>
+		<start name="terminal_gdb">
+			<binary name="terminal_crosslink"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Terminal"/> </provides>
+		</start>
+		<start name="gdb_monitor">
+			<resource name="RAM" quantum="10M"/>
+			<route>
+				<service name="Terminal"><child name="terminal_gdb"/></service>
+				<any-service><parent/><any-child/></any-service>
+			</route>
+			<config>
+				<target name="test-gdb_monitor"/>
+				<preserve name="RAM" quantum="5M"/>
+			</config>
+		</start>
+		<start name="ram_fs">
+			<resource name="RAM" quantum="10M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<content>
+					<dir name="gdb">
+						<inline name="commands">
+							set interactive-mode off
+							directory /gdb/src
+							target remote /dev/gdb
+							symbol-file /gdb/ld.lib.so
+							b call_main
+							c
+							delete 1
+							symbol-file /gdb/test-gdb_monitor
+							b main
+							set solib-search-path /gdb
+							sharedlibrary
+							c
+							delete 2
+							set interactive-mode auto
+						</inline>
+					</dir>
+				</content>
+				<!-- constrain sessions according to their labels -->
+				<policy label="noux -> gdb" root="/gdb" />
+			</config>
+		</start>
+		<start name="noux">
+			<resource name="RAM" quantum="1G"/>
+			<route>
+				<service name="Terminal">
+					<if-arg key="label" value="noux"/><child name="terminal_noux"/>
+				</service>
+				<service name="Terminal">
+					<if-arg key="label" value="noux -> noux(terminal_fs)"/><child name="terminal_gdb"/>
+				</service>
+				<any-service><parent/><any-child/></any-service>
+			</route>
+			<config>
+				<fstab>
+					<tar name="gdb.tar" at="/"/>
+					<dir name="dev"><terminal name="gdb"/></dir>
+					<dir name="gdb">
+						<tar name="test-gdb_monitor.tar"/>
+						<fs label="gdb"/>
+						<dir name="src"> <tar name="test-gdb_monitor-src.tar"/> </dir>
+					</dir>
+				</fstab> }
+append config "
+				<start name=\"/bin/${tool_prefix}gdb\"> "
+append config {
+					<arg value="/gdb/test-gdb_monitor"/>
+					<arg value="-x" /><arg value="/gdb/commands" />
+				</start>
+			</config>
+		</start>
+	</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal terminal_crosslink
+	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
+	libc_lock_pipe.lib.so libc_log.lib.so libc_terminal.lib.so
+	ram_fs gdb_monitor test-gdb_monitor
+	gdb.tar test-gdb_monitor.tar test-gdb_monitor-src.tar
+}
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec pl11x] boot_modules pl11x_drv
+
+build_boot_image $boot_modules
+
+run_genode_until forever
+
+exec rm bin/gdb.tar

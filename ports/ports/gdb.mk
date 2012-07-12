@@ -43,7 +43,7 @@ GDB_CONTENT := gdb/regformats/regdat.sh \
 #
 PORTS += $(GDB)
 
-prepare:: $(CONTRIB_DIR)/$(GDB) generated_files
+prepare:: $(CONTRIB_DIR)/$(GDB)/configure generated_files
 
 #
 # Port-specific local rules
@@ -53,8 +53,16 @@ $(DOWNLOAD_DIR)/$(GDB_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_URL)/$(GDB_TBZ2) && touch $@
 
 $(CONTRIB_DIR)/$(GDB): $(DOWNLOAD_DIR)/$(GDB_TBZ2)
-	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) $(addprefix $(GDB)/,$(GDB_CONTENT))
+	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR)
+
+include ../tool/tool_chain_gdb_patches.inc
+
+$(CONTRIB_DIR)/$(GDB)/configure:: $(CONTRIB_DIR)/$(GDB)
+	@#
+	@# Genode-specific changes
+	@#
 	$(VERBOSE)patch -N -p1 -d $(CONTRIB_DIR)/$(GDB) < src/app/gdb_monitor/gdbserver_genode.patch
+	$(VERBOSE)patch -N -p1 -d $(CONTRIB_DIR)/$(GDB) < src/noux-pkg/gdb/build.patch
 
 GENERATED_DIR := src/lib/gdbserver_platform/generated
 

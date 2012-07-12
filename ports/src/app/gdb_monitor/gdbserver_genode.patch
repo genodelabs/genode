@@ -1,17 +1,5 @@
 - Genode-specific changes of gdbserver files
 
-diff --git a/gdb/common/signals.c b/gdb/common/signals.c
---- a/gdb/common/signals.c
-+++ b/gdb/common/signals.c
-@@ -19,6 +19,8 @@
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
- 
-+#define GDBSERVER
-+
- #ifdef GDBSERVER
- #include "server.h"
- #else
 diff --git a/gdb/gdbserver/linux-arm-low.c b/gdb/gdbserver/linux-arm-low.c
 --- a/gdb/gdbserver/linux-arm-low.c
 +++ b/gdb/gdbserver/linux-arm-low.c

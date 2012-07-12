@@ -27,6 +27,8 @@ SRC_C   =  event-loop.c \
 
 SRC_C  +=  linux-low.c
 
+CC_OPT += -DGDBSERVER
+
 CC_OPT_linux-low += -Wno-unused-function
 
 SRC_CC  =  genode-low.cc \

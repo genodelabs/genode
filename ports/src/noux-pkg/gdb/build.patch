@@ -1,0 +1,40 @@
+diff --git a/gdb/configure b/gdb/configure
+--- a/gdb/configure
++++ b/gdb/configure
+@@ -7917,11 +7917,11 @@
+ # configuration.
+ gdb_host_obs=posix-hdep.o
+ 
+-if test "${target}" = "${host}"; then
+-  gdb_native=yes
+-else
++#if test "${target}" = "${host}"; then
++#  gdb_native=yes
++#else
+   gdb_native=no
+-fi
++#fi
+ 
+ . $srcdir/configure.host
+ 
+@@ -12919,7 +12919,7 @@
+   return 0;
+ }
+ _ACEOF
+-if ac_fn_c_try_compile "$LINENO"; then :
++if ac_fn_c_try_link "$LINENO"; then :
+   gdb_cv_func_sigsetjmp=yes
+ else
+   gdb_cv_func_sigsetjmp=no
+diff --git a/missing b/missing
+--- a/missing
++++ b/missing
+@@ -314,7 +314,7 @@
+     fi
+     # If the file does not exist, the user really needs makeinfo;
+     # let's fail without touching anything.
+-    test -f $file || exit 1
++    #test -f $file || exit 1
+     touch $file
+     ;;
+ 
