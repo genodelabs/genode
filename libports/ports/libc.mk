@@ -182,7 +182,9 @@ LIBC_IMPORT_INCLUDES += include/libc/vm/vm_param.h \
 #
 # Files coming from the sys/net directories
 #
-LIBC_IMPORT_INCLUDES += include/libc/net/if.h
+LIBC_IMPORT_INCLUDES += include/libc/net/if.h \
+                        include/libc/net/if_dl.h \
+                        include/libc/net/if_types.h
 
 #
 # Files coming from the sys/netinet and sys/netinet6 directories

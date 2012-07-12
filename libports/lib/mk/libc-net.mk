@@ -4,11 +4,10 @@ LIBC_NET_DIR = $(LIBC_DIR)/libc/net
 SRC_C = getservent.c nsdispatch.c nsparser.c nslexer.c
 
 # needed for getaddrinfo()
-#SRC_C += getaddrinfo.c
+SRC_C += getaddrinfo.c
 
-# getaddrinfo() includes parts of rpc/ which in return includes
-# even more stuff from the rpc framework. For now the effort for
-# getting this right is too much.
+# needed for getnameinfo()
+SRC_C += getnameinfo.c name6.c
 
 # needed for gethostbyname()
 SRC_C += gethostnamadr.c gethostbydns.c gethostbyht.c map_v4v6.c
@@ -22,8 +21,14 @@ SRC_C += vars.c
 # b64_ntop
 SRC_C += base64.c
 
-INC_DIR += $(REP_DIR)/include/libc/sys
+SRC_C += rcmd.c rcmdsh.c
 
 include $(REP_DIR)/lib/mk/libc-common.inc
+
+INC_DIR += $(REP_DIR)/include/libc
+INC_DIR += $(REP_DIR)/include/libc/sys
+
+# needed for name6.c, contains res_private.h
+INC_DIR += $(LIBC_DIR)/libc/resolv
 
 vpath %.c $(LIBC_NET_DIR)
