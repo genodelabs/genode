@@ -79,15 +79,15 @@ void Thread_base::_init_platform_thread()
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
-	Thread_capability thread_cap = env()->cpu_session()->create_thread(buf);
+	_thread_cap = env()->cpu_session()->create_thread(buf);
 
 	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap = env()->rm_session()->add_client(thread_cap);
-	env()->cpu_session()->set_pager(thread_cap, pager_cap);
+	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
+	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
 
 	/* register initial IP and SP at core */
 	mword_t thread_sp = (mword_t)&_context->stack[-4];
-	env()->cpu_session()->start(thread_cap, (addr_t)_thread_start, thread_sp);
+	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, thread_sp);
 
 	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
 	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_PAGE_FAULT);
@@ -115,6 +115,9 @@ void Thread_base::_deinit_platform_thread()
 	Nova::Rights rwx(true, true, true);
 	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
 	Nova::revoke(Nova::Mem_crd(utcb >> 12, 0, rwx));
+
+	/* de-announce thread */
+	env()->cpu_session()->kill_thread(_thread_cap);
 }
 
 
