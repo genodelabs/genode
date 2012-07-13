@@ -8,7 +8,7 @@
 VERBOSE     ?= @
 ECHO        = @echo
 GIT_URL     = git://github.com/IntelLabs/NOVA.git 
-GIT_REV     = 37569cd43f82bb54f9e621163c4b0eb662bd1a51
+GIT_REV     = ad92f48564b1ed53e67f58e194c918af4da6a32d
 CONTRIB_DIR = contrib
 PATCHES     = $(shell find patches -name *.patch)
 
