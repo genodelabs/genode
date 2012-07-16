@@ -53,7 +53,10 @@ enum {
 	COMPORT_2_BASE = 0x3e8,
 	COMPORT_3_BASE = 0x2e8,
 	COMPORT_DATA_OFFSET   = 0,
-	COMPORT_STATUS_OFFSET = 5
+	COMPORT_STATUS_OFFSET = 5,
+
+	STATUS_THR_EMPTY = 0x20,  /* transmitter hold register empty */
+	STATUS_DHR_EMPTY = 0x40,  /* data hold register empty - data completely sent */
 };
 
 
@@ -101,7 +104,8 @@ inline void serial_out_char(Comport comport, uint8_t c)
 	                         COMPORT_2_BASE, COMPORT_3_BASE };
 
 	/* wait until serial port is ready */
-	while (!(inb(io_port[comport] + COMPORT_STATUS_OFFSET) & 0x60));
+	uint8_t ready = STATUS_THR_EMPTY;
+	while ((inb(io_port[comport] + COMPORT_STATUS_OFFSET) & ready) != ready);
 
 	/* output character */
 	outb(io_port[comport] + COMPORT_DATA_OFFSET, c);
