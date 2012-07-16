@@ -4,7 +4,7 @@
  * \author Sebastian Sumpf
  * \date   2010-01-19
  *
- * This is a NOVA-specific addition to the process enviroment.
+ * This is a NOVA-specific addition to the process environment.
  */
 
 /*
@@ -71,39 +71,32 @@ static Alloc_lock *alloc_lock()
 }
 
 
-static int _cap_free;
-
-
 addr_t Cap_selector_allocator::alloc(size_t num_caps_log2)
 {
 	alloc_lock()->lock();
-	int num_caps = 1 << num_caps_log2;
-	int ret_base = (_cap_free + num_caps - 1) & ~(num_caps - 1);
-	_cap_free = ret_base + num_caps;
+	addr_t ret_base = Bit_allocator::alloc(num_caps_log2);
 	alloc_lock()->unlock();
 	return ret_base;
 }
 
-
 void Cap_selector_allocator::free(addr_t cap, size_t num_caps_log2)
 {
-	/*
-	 * We don't free capability selectors because revoke is not supported
-	 * on NOVA yet, anyway.
-	 */
+	alloc_lock()->lock();
+	Bit_allocator::free(cap, num_caps_log2);
+	alloc_lock()->unlock();
+
 }
 
 
 unsigned Cap_selector_allocator::pd_sel() { return __local_pd_sel; }
 
-
-Cap_selector_allocator::Cap_selector_allocator()
+Cap_selector_allocator::Cap_selector_allocator() : Bit_allocator<4096>()
 {
 	/* initialize lock */
 	alloc_lock();
 
 	/* the first free selector is used for the lock */
-	_cap_free = __first_free_cap_selector + 1;
+	Bit_allocator::_reserve(0, __first_free_cap_selector + 1);
 }
 
 

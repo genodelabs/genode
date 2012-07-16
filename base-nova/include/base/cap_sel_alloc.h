@@ -19,17 +19,19 @@
 #define _INCLUDE__BASE__CAP_SEL_ALLOC_H_
 
 #include <base/stdint.h>
+#include <base/printf.h>
+#include <base/bit_allocator.h>
 
 namespace Genode {
 
-	class Cap_selector_allocator
+	class Cap_selector_allocator : public Bit_allocator<4096> 
 	{
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Cap_selector_allocator();
+			Cap_selector_allocator(); 
 
 			/**
 			 * Allocate range of capability selectors
@@ -60,6 +62,7 @@ namespace Genode {
 			 * \return PD selector
 			 */
 			static unsigned pd_sel();
+
 	};
 
 	/**
