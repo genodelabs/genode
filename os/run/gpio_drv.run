@@ -1,0 +1,74 @@
+#
+# Build
+#
+if {[have_spec omap4] == 0} {
+	puts "Runs on OMAP4 only"
+	exit 0
+}
+
+set build_components {
+	core init
+	drivers/timer drivers/gpio
+	test/gpio_drv
+}
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="omap4_gpio_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Gpio"/></provides>
+		<config>
+			<gpio num="121" mode="I"/>
+			<gpio num="7" mode="O" value="0"/>
+			<gpio num="8" mode="O" value="0"/>
+		</config>
+	</start>
+	<start name="omap4_gpio_drv">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	omap4_gpio_drv
+	test-omap4_gpio_drv
+}
+
+build_boot_image $boot_modules
+
