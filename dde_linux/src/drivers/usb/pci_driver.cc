@@ -93,6 +93,11 @@ class Pci_driver
 			_dev->revision     = client.config_read(REV, Device::ACCESS_8BIT);
 			_dev->dev.driver   = &_drv->driver;
 
+			/* dummy dma mask used to mark device as DMA capable */
+			static u64 dma_mask = ~(u64)0;
+			_dev->dev.dma_mask = &dma_mask;
+			_dev->dev.coherent_dma_mask = ~0;
+
 			/* read interrupt line */
 			_dev->irq          = client.config_read(IRQ, Device::ACCESS_8BIT);
 
@@ -221,6 +226,7 @@ int pci_register_driver(struct pci_driver *drv)
 
 	Pci::Device_capability cap = pci.first_device();
 	Pci::Device_capability old;
+	bool found = false;
 	while (cap.valid()) {
 
 		uint8_t bus, dev, func;
@@ -228,11 +234,11 @@ int pci_register_driver(struct pci_driver *drv)
 		client.bus_address(&bus, &dev, &func);
 		dde_kit_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
 
-		Pci_driver *pci_drv= 0;
+		Pci_driver *pci_drv = 0;
 		try {
 			pci_drv = new (env()->heap()) Pci_driver(drv, cap);
 			pci.on_destruction(Pci::Connection::KEEP_OPEN);
-			return 0;
+			found = true;
 		} catch (...) {
 			destroy(env()->heap(), pci_drv);
 			pci_drv = 0;
@@ -243,7 +249,7 @@ int pci_register_driver(struct pci_driver *drv)
 		pci.release_device(old);
 	}
 
-	return -ENODEV;
+	return found ? 0 : -ENODEV;
 }
 
 
@@ -276,38 +282,38 @@ unsigned int pci_resource_flags(struct pci_dev *dev, unsigned bar)
 }
 
 
-int pci_bus_read_config_byte(struct pci_bus *bus, unsigned int devfn, int, u8 *val)
+int pci_bus_read_config_byte(struct pci_bus *bus, unsigned int, int where, u8 *val)
 {
 	Pci_driver *drv = (Pci_driver *)bus;
-	drv->config_read(devfn, val);
-	dde_kit_log(DEBUG_PCI, "READ %p: %x", drv, *val);
+	drv->config_read(where, val);
+	dde_kit_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
 	return 0;
 }
 
 
-int pci_bus_read_config_word(struct pci_bus *bus, unsigned int devfn, int, u16 *val)
+int pci_bus_read_config_word(struct pci_bus *bus, unsigned int, int where, u16 *val)
 { 
 	Pci_driver *drv = (Pci_driver *)bus;
-	drv->config_read(devfn, val);
-	dde_kit_log(DEBUG_PCI, "READ %p: %x", drv, *val);
+	drv->config_read(where, val);
+	dde_kit_log(DEBUG_PCI, "READ %p: where: %x val: %x", drv, where, *val);
 	return 0; 
 }
 
 
-int pci_bus_write_config_word(struct pci_bus *bus, unsigned int devfn, int, u16 val)
+int pci_bus_write_config_word(struct pci_bus *bus, unsigned int, int where, u16 val)
 {
 	Pci_driver *drv = (Pci_driver *)bus;
-	dde_kit_log(DEBUG_PCI, "WRITE %p: %x", drv, val);
-	drv->config_write(devfn, val);
+	dde_kit_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
+	drv->config_write(where, val);
 	return 0;
 }
 
 
-int pci_bus_write_config_byte(struct pci_bus *bus, unsigned int devfn, int, u8 val)
+int pci_bus_write_config_byte(struct pci_bus *bus, unsigned int, int where, u8 val)
 {
 	Pci_driver *drv = (Pci_driver *)bus;
-	dde_kit_log(DEBUG_PCI, "WRITE %p: %x", drv, val);
-	drv->config_write(devfn, val);
+	dde_kit_log(DEBUG_PCI, "WRITE %p: where: %x val: %x", drv, where, val);
+	drv->config_write(where, val);
 	return 0;
 }
 

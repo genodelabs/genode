@@ -398,7 +398,7 @@ void platform_hcd_init(Services *services)
 	/*
 	 * Needed for DMA buffer allocation. See 'hcd_buffer_alloc' in 'buffer.c'
 	 */
-	static u64 dma_mask = ~(u32)0;
+	static u64 dma_mask = ~(u64)0;
 	pdev->dev.dma_mask = &dma_mask;
 	pdev->dev.coherent_dma_mask = ~0;
 

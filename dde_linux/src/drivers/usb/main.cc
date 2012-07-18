@@ -70,10 +70,7 @@ static void init(Services *services)
 		module_usb_kbd_init();
 	}
 
-	/*
-	 * Host controller.
-	 *
-	 */
+	/* host controller */
 	platform_hcd_init(services);
 
 	/* storage */

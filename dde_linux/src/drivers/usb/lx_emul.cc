@@ -610,7 +610,7 @@ static void* _alloc(size_t size, int align, dma_addr_t *dma)
 		return 0;
 
 	*dma = (dma_addr_t)Genode::Dma::pool()->phys_addr(addr);
-	dde_kit_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, pysh: %lx", addr, size, align, *dma);
+	dde_kit_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, phys: %lx", addr, size, align, *dma);
 	memset(addr, 0, size);
 	return addr;
 }

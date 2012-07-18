@@ -55,7 +55,7 @@ namespace Genode {
 			}
 
 			addr_t base() const { return _base; };
-			addr_t end() const { return _base + SIZE -1; }
+			addr_t end()  const { return _base + SIZE - 1; }
 
 			/**
 			 * Alloc 'size' bytes of DMA memory
@@ -67,7 +67,6 @@ namespace Genode {
 					PERR("DMA of %zu bytes allocation failed", size);
 					return 0;
 				}
-
 				return addr;
 			}
 

@@ -83,7 +83,10 @@ class Irq_context : public Driver_context,
 			_ctx_cap(_signal->receiver()->manage(this))
 		{
 			/* register at DDE (shared) */
-			dde_kit_interrupt_attach(_irq, 1, 0, _dde_handler, this);
+			int ret = dde_kit_interrupt_attach(_irq, 0, 0, _dde_handler, this);
+			if (ret)
+				PERR("Interrupt attach return %d for IRQ %u", ret, irq);
+
 			dde_kit_interrupt_enable(_irq);
 			_list()->insert(this);
 		}
