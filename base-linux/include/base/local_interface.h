@@ -56,7 +56,7 @@ namespace Genode {
 		static IF *deref(Capability<IF> cap)
 		{
 			/* check if this is a pseudo capability */
-			if (cap.dst() != 0 || !cap.local_name())
+			if (cap.dst().tid != 0 || !cap.local_name())
 				throw Non_local_capability();
 
 			/*
@@ -81,7 +81,8 @@ namespace Genode {
 		template <typename IF>
 		static Capability<IF> capability(IF *interface)
 		{
-			return reinterpret_cap_cast<IF>(Native_capability(0, (long)interface));
+			typedef Native_capability::Dst Dst;
+			return reinterpret_cap_cast<IF>(Native_capability(Dst(), (long)interface));
 		};
 	};
 }

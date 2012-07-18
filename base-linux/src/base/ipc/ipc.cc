@@ -93,7 +93,7 @@ void Ipc_istream::_wait()
 
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 : Ipc_unmarshaller(rcv_msg->buf, rcv_msg->size()),
-  Native_capability(lx_gettid(), 0),
+  Native_capability(Dst(lx_gettid(), -1), 0),
   _rcv_msg(rcv_msg)
 { }
 
@@ -109,7 +109,7 @@ void Ipc_client::_prepare_next_call()
 {
 	/* prepare next request in buffer */
 	long local_name = Ipc_ostream::_dst.local_name();
-	long tid        = Native_capability::dst();
+	long tid        = Native_capability::dst().tid;
 
 	_write_offset = 0;
 	_write_to_buf(local_name);
@@ -123,7 +123,7 @@ void Ipc_client::_prepare_next_call()
 void Ipc_client::_call()
 {
 	if (Ipc_ostream::_dst.valid()) {
-		lx_call(Ipc_ostream::_dst.dst(),
+		lx_call(Ipc_ostream::_dst.dst().tid,
 		        _snd_msg->buf, _write_offset,
 		        _rcv_msg->buf, _rcv_msg->size());
 	}
@@ -152,7 +152,7 @@ void Ipc_server::_prepare_next_reply_wait()
 	long tid = 0;
 	if (_reply_needed) {
 		_read_from_buf(tid);
-		Ipc_ostream::_dst = Native_capability(tid, 0); /* only _tid member is used */
+		Ipc_ostream::_dst = Native_capability(Dst(tid, -1), 0); /* only _tid member is used */
 	}
 
 	/* prepare next reply */

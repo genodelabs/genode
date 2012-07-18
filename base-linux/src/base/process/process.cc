@@ -116,7 +116,7 @@ const char *Process::_priv_pd_args(Parent_capability parent_cap,
 	enum { ENV_STR_LEN = 256 };
 	static char envbuf[5][ENV_STR_LEN];
 	Genode::snprintf(envbuf[0], ENV_STR_LEN, "parent_tid=%ld",
-	                 parent_cap.dst());
+	                 parent_cap.dst().tid);
 	Genode::snprintf(envbuf[1], ENV_STR_LEN, "parent_local_name=%lu",
 	                 parent_cap.local_name());
 	Genode::snprintf(envbuf[2], ENV_STR_LEN, "DISPLAY=%s",

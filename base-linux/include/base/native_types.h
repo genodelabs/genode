@@ -95,9 +95,20 @@ namespace Genode {
 		return (t1.tid != t2.tid) || (t1.pid != t2.pid); }
 
 	struct Cap_dst_policy {
-		typedef long Dst;
-		static bool valid(Dst id) { return id != 0; }
-		static Dst  invalid()     { return 0;       }
+
+		struct Dst
+		{
+			long tid;  /* XXX to be removed once the transition to SCM rights
+			                  is completed */
+			int socket;
+
+			Dst() : tid(0), socket(-1) { }
+
+			Dst(long tid, int socket) : tid(tid), socket(socket) { }
+		};
+
+		static bool valid(Dst id) { return id.tid != 0; }
+		static Dst  invalid()     { return Dst(); }
 		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 

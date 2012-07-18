@@ -327,7 +327,9 @@ namespace Genode {
 				long local_name = _get_env_ulong("parent_local_name");
 
 				/* produce typed capability manually */
-				return reinterpret_cap_cast<Parent>(Native_capability(tid, local_name));
+				typedef Native_capability::Dst Dst;
+				return reinterpret_cap_cast<Parent>(Native_capability(Dst(tid, -1),
+				                                    local_name));
 			}
 
 
