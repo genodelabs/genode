@@ -199,7 +199,7 @@ static void lx_call(long thread_id,
 
 	ret = lx_sendmsg(reply_channel[LOCAL_SOCKET], send_msg.msg(), 0);
 	if (ret < 0) {
-		PRAW("lx_sendmsg failed with %d in call()", ret);
+		PRAW("lx_sendmsg failed with %d in lx_call()", ret);
 		throw Genode::Ipc_error();
 	}
 
@@ -209,7 +209,7 @@ static void lx_call(long thread_id,
 
 	ret = lx_recvmsg(reply_channel[LOCAL_SOCKET], recv_msg.msg(), 0);
 	if (ret < 0) {
-		PRAW("lx_recvmsg failed with %d in call()", ret);
+		PRAW("lx_recvmsg failed with %d in lx_call()", ret);
 		throw Genode::Ipc_error();
 	}
 
@@ -221,8 +221,10 @@ static void lx_call(long thread_id,
 
 /**
  * Utility: Wait for request from client
+ *
+ * \return  socket descriptor of reply capability
  */
-static void lx_wait(Genode::Native_connection_state &cs,
+static int lx_wait(Genode::Native_connection_state &cs,
                     void *buf, Genode::size_t buf_len)
 {
 	int ret;
@@ -232,37 +234,33 @@ static void lx_wait(Genode::Native_connection_state &cs,
 	msg.prepare_reply_socket_slot();
 	msg.buffer(buf, buf_len);
 
-	ret = lx_recvmsg(cs.socket(), msg.msg(), 0);
+	ret = lx_recvmsg(cs, msg.msg(), 0);
 	if (ret < 0) {
-		PRAW("lx_recvmsg failed with %d in wait()", ret);
+		PRAW("lx_recvmsg failed with %d in lx_wait()", ret);
 		throw Genode::Ipc_error();
 	}
 
-	/* remember socket descriptor for reply */
-	cs.reply_socket(msg.reply_socket());
+	return msg.reply_socket();
 }
 
 
 /**
  * Utility: Send reply to client
  */
-static void lx_reply(Genode::Native_connection_state &cs,
+static void lx_reply(int reply_socket,
                      void *buf, Genode::size_t buf_len)
 {
 	int ret;
-	int sd = cs.reply_socket();
 
 	Message msg;
 
 	msg.buffer(buf, buf_len);
 
-	ret = lx_sendmsg(sd, msg.msg(), 0);
-	if (ret < 0) {
-		PRAW("lx_sendmsg failed with %d in reply()", ret);
-		throw Genode::Ipc_error();
-	}
+	ret = lx_sendmsg(reply_socket, msg.msg(), 0);
+	if (ret < 0)
+		PRAW("lx_sendmsg failed with %d in lx_reply()", ret);
 
-	lx_close(sd);
+	lx_close(reply_socket);
 }
 
 #endif /* _PLATFORM__LINUX_SOCKET_H_ */

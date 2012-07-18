@@ -94,14 +94,17 @@ namespace Genode {
 	inline bool operator != (Native_thread_id t1, Native_thread_id t2) {
 		return (t1.tid != t2.tid) || (t1.pid != t2.pid); }
 
-	struct Cap_dst_policy {
-
+	struct Cap_dst_policy
+	{
 		struct Dst
 		{
 			long tid;  /* XXX to be removed once the transition to SCM rights
 			                  is completed */
 			int socket;
 
+			/**
+			 * Default constructor creates invalid destination
+			 */
 			Dst() : tid(0), socket(-1) { }
 
 			Dst(long tid, int socket) : tid(tid), socket(socket) { }
@@ -119,45 +122,10 @@ namespace Genode {
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 
-	class Native_connection_state
-	{
-		public:
-
-			struct Reply_socket_error { };
-
-		private:
-
-			int _socket;        /* server-entrypoint socket */
-			int _reply_socket;  /* reply socket */
-
-		public:
-
-			Native_connection_state() : _socket(-1), _reply_socket(-1) { }
-
-			void socket(int socket) { _socket = socket; }
-			int socket() const { return _socket; }
-
-			/*
-			 * FIXME Check for unsupported usage pattern: Reply sockets should
-			 *       only be set once and read once.
-			 */
-
-			void reply_socket(int socket)
-			{
-				if (_reply_socket != -1) throw Reply_socket_error();
-
-				_reply_socket = socket;
-			}
-
-			int reply_socket()
-			{
-				if (_reply_socket == -1) throw Reply_socket_error();
-
-				int s         = _reply_socket;
-				_reply_socket = -1;
-				return s;
-			}
-	};
+	/**
+	 * The connection state is the socket handle of the RPC entrypoint
+	 */
+	typedef int Native_connection_state;
 
 	struct Native_config
 	{

@@ -108,8 +108,8 @@ Ipc_istream::~Ipc_istream() { }
 void Ipc_client::_prepare_next_call()
 {
 	/* prepare next request in buffer */
-	long local_name = Ipc_ostream::_dst.local_name();
-	long tid        = Native_capability::dst().tid;
+	long const local_name = Ipc_ostream::_dst.local_name();
+	long const tid        = Native_capability::dst().tid;
 
 	_write_offset = 0;
 	_write_to_buf(local_name);
@@ -151,9 +151,10 @@ void Ipc_server::_prepare_next_reply_wait()
 	/* read client thread id from request buffer */
 	long tid = 0;
 	if (_reply_needed) {
+	/* XXX to be removed */
+	long tid;
+	if (_reply_needed)
 		_read_from_buf(tid);
-		Ipc_ostream::_dst = Native_capability(Dst(tid, -1), 0); /* only _tid member is used */
-	}
 
 	/* prepare next reply */
 	_write_offset   = 0;
@@ -167,21 +168,34 @@ void Ipc_server::_prepare_next_reply_wait()
 
 void Ipc_server::_wait()
 {
-	/* wait for new server request */
-	try {
-		lx_wait(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
-	} catch (Blocking_canceled) { }
-
-	/* now we have a request to reply, determine reply destination */
 	_reply_needed = true;
-	_prepare_next_reply_wait();
+
+	try {
+		int const reply_socket = lx_wait(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
+
+		/*
+		 * Remember reply capability
+		 *
+		 * The 'local_name' of a capability is meaningful for addressing server
+		 * objects only. Because a reply capabilities does not address a server
+		 * object, the 'local_name' is meaningless.
+		 */
+		enum { DUMMY_LOCAL_NAME = -1 };
+
+		typedef Native_capability::Dst Dst;
+		enum { DUMMY_TID = -1 };
+		Dst dst(DUMMY_TID, reply_socket);
+		Ipc_ostream::_dst = Native_capability(dst, DUMMY_LOCAL_NAME);
+
+		_prepare_next_reply_wait();
+	} catch (Blocking_canceled) { }
 }
 
 
 void Ipc_server::_reply()
 {
 	try {
-		lx_reply(_rcv_cs, _snd_msg->buf, _write_offset);
+		lx_reply(Ipc_ostream::_dst.dst().socket, _snd_msg->buf, _write_offset);
 	} catch (Ipc_error) { }
 
 	_prepare_next_reply_wait();
@@ -192,7 +206,7 @@ void Ipc_server::_reply_wait()
 {
 	/* when first called, there was no request yet */
 	if (_reply_needed)
-		lx_reply(_rcv_cs, _snd_msg->buf, _write_offset);
+		lx_reply(Ipc_ostream::_dst.dst().socket, _snd_msg->buf, _write_offset);
 
 	_wait();
 }
@@ -202,7 +216,7 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 : Ipc_istream(rcv_msg),
   Ipc_ostream(Native_capability(), snd_msg), _reply_needed(false)
 {
-	_rcv_cs.socket(lx_server_socket(Thread_base::myself()));
+	_rcv_cs = lx_server_socket(Thread_base::myself());
 
 	_prepare_next_reply_wait();
 }
