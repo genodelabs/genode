@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 	/* use 'pci_drv' as slave service */
 	static Rpc_entrypoint pci_ep(&cap, STACK_SIZE, "pci_slave");
 	static Pci_policy     pci_policy(pci_ep, ep, irq_ep);
-	static Genode::Slave  pci_slave(pci_ep, pci_policy, 512 * 1024);
+	static Genode::Slave  pci_slave(pci_ep, pci_policy, 1024 * 1024);
 
 	Genode::sleep_forever();
 	return 0;
