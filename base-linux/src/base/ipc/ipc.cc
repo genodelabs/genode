@@ -109,11 +109,9 @@ void Ipc_client::_prepare_next_call()
 {
 	/* prepare next request in buffer */
 	long const local_name = Ipc_ostream::_dst.local_name();
-	long const tid        = Native_capability::dst().tid;
 
 	_write_offset = 0;
 	_write_to_buf(local_name);
-	_write_to_buf(tid);
 
 	/* prepare response buffer */
 	_read_offset = sizeof(long);
@@ -147,14 +145,6 @@ void Ipc_server::_prepare_next_reply_wait()
 {
 	/* skip server-local name */
 	_read_offset = sizeof(long);
-
-	/* read client thread id from request buffer */
-	long tid = 0;
-	if (_reply_needed) {
-	/* XXX to be removed */
-	long tid;
-	if (_reply_needed)
-		_read_from_buf(tid);
 
 	/* prepare next reply */
 	_write_offset   = 0;
