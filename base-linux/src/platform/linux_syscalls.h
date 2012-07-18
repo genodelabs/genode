@@ -43,41 +43,38 @@
 #include <util/string.h>
 
 
-/*****************************************
- ** Functions used by the IPC framework **
- *****************************************/
-
-#include <linux/net.h>
-
 extern "C" long lx_syscall(int number, ...);
 extern "C" int  lx_clone(int (*fn)(void *), void *child_stack,
                          int flags, void *arg);
 
 
-inline Genode::uint16_t lx_bswap16(Genode::uint16_t x)
+/*****************************************
+ ** General syscalls used by base-linux **
+ *****************************************/
+
+inline int lx_write(int fd, const void *buf, Genode::size_t count)
 {
-	char v[2] = {
-		(char)((x & 0xff00) >> 8),
-		(char)((x & 0x00ff) >> 0),
-	};
-	return *(Genode::uint16_t *)v;
+	return lx_syscall(SYS_write, fd, buf, count);
 }
 
 
-inline Genode::uint32_t lx_bswap32(Genode::uint32_t x)
+inline int lx_close(int fd)
 {
-	char v[4] = {
-		(char)((x & 0xff000000) >> 24),
-		(char)((x & 0x00ff0000) >> 16),
-		(char)((x & 0x0000ff00) >>  8),
-		(char)((x & 0x000000ff) >>  0),
-	};
-	return *(Genode::uint32_t *)v;
+	return lx_syscall(SYS_close, fd);
 }
 
-#define lx_htonl(x) lx_bswap32(x)
-#define lx_htons(x) lx_bswap16(x)
-#define lx_ntohs(x) lx_bswap16(x)
+
+inline int lx_unlink(const char *fname)
+{
+	return lx_syscall(SYS_unlink, fname);
+}
+
+
+/*****************************************
+ ** Functions used by the IPC framework **
+ *****************************************/
+
+#include <linux/net.h>
 
 #ifdef SYS_socketcall
 
@@ -95,11 +92,10 @@ inline int lx_socket(int domain, int type, int protocol)
 }
 
 
-inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
-                      socklen_t addrlen)
+inline int lx_socketpair(int domain, int type, int protocol, int sd[2])
 {
-	unsigned long args[3] = { sockfd, (unsigned long)serv_addr, addrlen };
-	return lx_socketcall(SYS_CONNECT, args);
+	unsigned long args[4] = { domain, type, protocol, (unsigned long)sd };
+	return lx_socketcall(SYS_SOCKETPAIR, args);
 }
 
 
@@ -111,28 +107,17 @@ inline int lx_bind(int sockfd, const struct sockaddr *addr,
 }
 
 
-inline int lx_getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+inline int lx_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-	unsigned long args[3] = { s, (unsigned long)name, (unsigned long)namelen };
-	return lx_socketcall(SYS_GETSOCKNAME, args);
+	unsigned long args[3] = { sockfd, (unsigned long)msg, flags };
+	return lx_socketcall(SYS_SENDMSG, args);
 }
 
 
-inline ssize_t lx_recvfrom(int s, void *buf, Genode::size_t len, int flags,
-                           struct sockaddr *from, socklen_t *from_len)
+inline int lx_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
-	unsigned long args[6] = { s, (unsigned long)buf, len, flags,
-	                          (unsigned long)from, (unsigned long)from_len };
-	return lx_socketcall(SYS_RECVFROM, args);
-}
-
-
-inline ssize_t lx_sendto(int s, void *buf, Genode::size_t len, int flags,
-                         struct sockaddr *to, socklen_t to_len)
-{
-	unsigned long args[6] = { s, (unsigned long)buf, len, flags,
-	                          (unsigned long)to, (unsigned long)to_len };
-	return lx_socketcall(SYS_SENDTO, args);
+	unsigned long args[3] = { sockfd, (unsigned long)msg, flags };
+	return lx_socketcall(SYS_RECVMSG, args);
 }
 
 #else
@@ -142,53 +127,9 @@ inline int lx_socket(int domain, int type, int protocol)
 	return lx_syscall(SYS_socket, domain, type, protocol);
 }
 
-
-inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
-                      socklen_t addrlen)
-{
-	return lx_syscall(SYS_connect, sockfd, serv_addr, addrlen);
-}
-
-
-inline int lx_bind(int sockfd, const struct sockaddr *addr,
-                   socklen_t addrlen)
-{
-	return lx_syscall(SYS_bind, sockfd, addr, addrlen);
-}
-
-
-inline int lx_getsockname(int s, struct sockaddr *name, socklen_t *namelen)
-{
-	return lx_syscall(SYS_getsockname, s, name, namelen);
-}
-
-
-inline ssize_t lx_recvfrom(int s, void *buf, Genode::size_t len, int flags,
-                           struct sockaddr *from, socklen_t *from_len)
-{
-	return lx_syscall(SYS_recvfrom, s, buf, len, flags, from, from_len);
-}
-
-
-inline ssize_t lx_sendto(int s, void *buf, Genode::size_t len, int flags,
-                         struct sockaddr *to, socklen_t to_len)
-{
-	return lx_syscall(SYS_sendto, s, buf, len, flags, to, to_len);
-}
+/* TODO add missing socket system calls */
 
 #endif /* SYS_socketcall */
-
-
-inline int lx_write(int fd, const void *buf, Genode::size_t count)
-{
-	return lx_syscall(SYS_write, fd, buf, count);
-}
-
-
-inline int lx_close(int fd)
-{
-	return lx_syscall(SYS_close, fd);
-}
 
 
 /*******************************************
@@ -290,11 +231,6 @@ inline int lx_ftruncate(int fd, unsigned long length)
 }
 
 
-inline int lx_unlink(const char *fname)
-{
-	return lx_syscall(SYS_unlink, fname);
-}
-
 /*******************************************************
  ** Functions used by core's rom-session support code **
  *******************************************************/
@@ -307,6 +243,7 @@ inline int lx_stat(const char *path, struct stat64 *buf)
 	return lx_syscall(SYS_stat64, path, buf);
 #endif
 }
+
 
 /***********************************************************************
  ** Functions used by thread lib and core's cancel-blocking mechanism **

@@ -35,6 +35,7 @@
 
 /* Linux includes */
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <errno.h>
 
@@ -93,7 +94,7 @@ void Ipc_istream::_wait()
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 : Ipc_unmarshaller(rcv_msg->buf, rcv_msg->size()),
   Native_capability(lx_gettid(), 0),
-  _rcv_msg(rcv_msg), _rcv_cs(-1)
+  _rcv_msg(rcv_msg)
 { }
 
 
@@ -122,10 +123,9 @@ void Ipc_client::_prepare_next_call()
 void Ipc_client::_call()
 {
 	if (Ipc_ostream::_dst.valid()) {
-		lx_send_to(_rcv_cs, Ipc_ostream::_dst.dst(), "server",
-		           _snd_msg->buf, _write_offset);
-
-		lx_recv_from(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
+		lx_call(Ipc_ostream::_dst.dst(),
+		        _snd_msg->buf, _write_offset,
+		        _rcv_msg->buf, _rcv_msg->size());
 	}
 	_prepare_next_call();
 }
@@ -135,8 +135,6 @@ Ipc_client::Ipc_client(Native_capability const &srv,
                        Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 : Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0)
 {
-	_rcv_cs = lx_client_socket(Thread_base::myself());
-
 	_prepare_next_call();
 }
 
@@ -171,7 +169,7 @@ void Ipc_server::_wait()
 {
 	/* wait for new server request */
 	try {
-		lx_recv_from(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
+		lx_wait(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
 	} catch (Blocking_canceled) { }
 
 	/* now we have a request to reply, determine reply destination */
@@ -183,8 +181,7 @@ void Ipc_server::_wait()
 void Ipc_server::_reply()
 {
 	try {
-		lx_send_to(_rcv_cs, Ipc_ostream::_dst.dst(), "client",
-		           _snd_msg->buf, _write_offset);
+		lx_reply(_rcv_cs, _snd_msg->buf, _write_offset);
 	} catch (Ipc_error) { }
 
 	_prepare_next_reply_wait();
@@ -195,8 +192,7 @@ void Ipc_server::_reply_wait()
 {
 	/* when first called, there was no request yet */
 	if (_reply_needed)
-		lx_send_to(_rcv_cs, Ipc_ostream::_dst.dst(), "client",
-		           _snd_msg->buf, _write_offset);
+		lx_reply(_rcv_cs, _snd_msg->buf, _write_offset);
 
 	_wait();
 }
@@ -206,7 +202,7 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 : Ipc_istream(rcv_msg),
   Ipc_ostream(Native_capability(), snd_msg), _reply_needed(false)
 {
-	_rcv_cs = lx_server_socket(Thread_base::myself());
+	_rcv_cs.socket(lx_server_socket(Thread_base::myself()));
 
 	_prepare_next_reply_wait();
 }

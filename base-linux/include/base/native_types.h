@@ -64,6 +64,7 @@ namespace Genode {
 	/**
 	 * Native thread contains more thread-local data than just the ID
 	 *
+	 * FIXME doc
 	 * A thread needs two sockets as it may be a server that depends on another
 	 * service during request processing. If the server socket would be used for
 	 * the client call, the server thread may be unblocked by further requests
@@ -73,8 +74,7 @@ namespace Genode {
 	 */
 	struct Native_thread : Native_thread_id
 	{
-		int client;  /* socket used as IPC client */
-		int server;  /* socket used as IPC server */
+		int socket;  /* server-entrypoint socket */
 
 		/**
 		 * Opaque pointer to additional thread-specific meta data
@@ -85,7 +85,7 @@ namespace Genode {
 		 */
 		Thread_meta_data *meta_data;
 
-		Native_thread() : client(-1), server(-1), meta_data(0) { }
+		Native_thread() : socket(-1), meta_data(0) { }
 	};
 
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2) {
@@ -107,7 +107,46 @@ namespace Genode {
 	typedef struct { } Native_utcb;
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
-	typedef int Native_connection_state;  /* socket descriptor */
+
+	class Native_connection_state
+	{
+		public:
+
+			struct Reply_socket_error { };
+
+		private:
+
+			int _socket;        /* server-entrypoint socket */
+			int _reply_socket;  /* reply socket */
+
+		public:
+
+			Native_connection_state() : _socket(-1), _reply_socket(-1) { }
+
+			void socket(int socket) { _socket = socket; }
+			int socket() const { return _socket; }
+
+			/*
+			 * FIXME Check for unsupported usage pattern: Reply sockets should
+			 *       only be set once and read once.
+			 */
+
+			void reply_socket(int socket)
+			{
+				if (_reply_socket != -1) throw Reply_socket_error();
+
+				_reply_socket = socket;
+			}
+
+			int reply_socket()
+			{
+				if (_reply_socket == -1) throw Reply_socket_error();
+
+				int s         = _reply_socket;
+				_reply_socket = -1;
+				return s;
+			}
+	};
 
 	struct Native_config
 	{
@@ -125,7 +164,6 @@ namespace Genode {
 		 */
 		static addr_t context_virtual_size() { return 0x00100000UL; }
 	};
-
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */
