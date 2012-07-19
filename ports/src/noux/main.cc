@@ -45,6 +45,7 @@
 
 /* Noux includes */
 #include <child.h>
+#include <child_env.h>
 #include <vfs_io_channel.h>
 #include <terminal_io_channel.h>
 #include <dummy_input_io_channel.h>
@@ -203,46 +204,23 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			{
 				Absolute_path absolute_path(_sysio->execve_in.filename, _env.pwd());
 
-				/*
-				 * Deserialize environment variable buffer into a
-				 * null-terminated string. The source env buffer contains a
-				 * list of strings separated by single 0 characters. Each
-				 * string has the form "name=value" (w/o the quotes). The end
-				 * of the list is marked by an additional 0 character. The
-				 * resulting string is a null-terminated string containing a
-				 * comma-separated list of environment variables.
-				 *
-				 * In the following loop, 'i' is the index into the source
-				 * buffer, 'j' is the index into the destination buffer, 'env'
-				 * is the destination.
-				 */
-				char env[Sysio::ENV_MAX_LEN];
-				for (unsigned i = 0, j = 0; i < Sysio::ENV_MAX_LEN && _sysio->execve_in.env[i]; )
-				{
-					char const *src = &_sysio->execve_in.env[i];
+				Dataspace_capability binary_ds = _root_dir->dataspace(absolute_path.base());
 
-					/* prepend a comma in front of each entry except for the first one */
-					if (i) {
-						snprintf(env + j, sizeof(env) - j, ",");
-						j++;
-					}
+				if (!binary_ds.valid())
+					throw Child::Binary_does_not_exist();
 
-					snprintf(env + j, sizeof(env) - j, "%s", src);
-
-					/* skip null separator in source string */
-					i += strlen(src) + 1;
-					j += strlen(src);
-				}
+				Child_env<sizeof(_sysio->execve_in.args)> child_env(
+				    absolute_path.base(), binary_ds, _sysio->execve_in.args,
+				    _sysio->execve_in.env);
 
 				try {
-					Child *child = new Child(absolute_path.base(),
+					Child *child = new Child(child_env.binary_name(),
 					                         parent(),
 					                         pid(),
 					                         _sig_rec,
 					                         _root_dir,
-					                         Args(_sysio->execve_in.args,
-					                              sizeof(_sysio->execve_in.args)),
-					                         env,
+					                         child_env.args(),
+					                         child_env.env(),
 					                         _env.pwd(),
 					                         _cap_session,
 					                         _parent_services,

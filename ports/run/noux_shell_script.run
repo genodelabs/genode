@@ -1,0 +1,171 @@
+set build_components {
+	core init drivers/timer noux/minimal lib/libc_noux
+	drivers/framebuffer drivers/pci drivers/input
+	server/terminal server/ram_fs
+	test/libports/ncurses
+}
+
+#
+# Build Noux packages only once
+#
+set noux_pkgs {bash coreutils make}
+
+foreach pkg $noux_pkgs {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+build $build_components
+
+# strip all binaries prior archiving
+set find_args ""
+foreach pkg $noux_pkgs { append find_args " bin/$pkg/" }
+exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
+
+# create '/bin/sh' symlink
+exec sh -c "ln -sf bash bin/bash/bin/sh"
+
+foreach pkg $noux_pkgs {
+	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start> }
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="vesa_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec pl11x] config {
+	<start name="pl11x_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append config {
+	<start name="terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<config>
+			<keyboard layout="de"/>
+		</config>
+	</start>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+
+			<!-- preload RAM file system with some ROM images -->
+			<content>
+				<dir name="home">
+					<dir name="user">
+						<inline name=".bash_profile">/home/test_script correct</inline>
+						<inline name="test_script">#!/bin/make -f
+wrong:
+	@echo "wrong target"
+correct:
+	@echo "correct target"
+						</inline>
+					</dir>
+				</dir>
+			</content>
+
+			<!-- constrain sessions according to their labels -->
+			<policy label="noux -> root" root="/" />
+			<policy label="noux -> home" root="/home/user" writeable="yes" />
+		</config>
+	</start>
+	<start name="noux">
+		<resource name="RAM" quantum="1G" />
+		<config>
+			<fstab> }
+
+foreach pkg $noux_pkgs {
+	append config "				<tar name=\"$pkg.tar\" />" }
+
+append config {
+				<dir name="home"> <fs label="home" /> </dir>
+				<dir name="ram"> <fs label="root" /> </dir>
+
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="linux" />
+				<env name="HOME" value="/home" />
+				<arg value="--login" />
+			</start>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal ram_fs
+	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so }
+
+foreach pkg $noux_pkgs {
+	lappend boot_modules "$pkg.tar" }
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec pl11x] boot_modules pl11x_drv
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 300 "
+
+run_genode_until forever
+
+exec rm bin/bash.tar
