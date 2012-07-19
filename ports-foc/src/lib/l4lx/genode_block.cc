@@ -129,6 +129,7 @@ namespace {
 
 			unsigned       _count;
 			Block_device **_devs;
+			Genode::Lock   _ready_lock;
 
 		protected:
 
@@ -143,6 +144,8 @@ namespace {
 					_devs[i]->session()->tx_channel()->sigh_ready_to_submit(cap);
 					_devs[i]->session()->tx_channel()->sigh_ack_avail(cap);
 				}
+
+				_ready_lock.unlock();
 
 				while (true) {
 					Signal s = receiver.wait_for_signal();
@@ -160,7 +163,19 @@ namespace {
 
 			Signal_thread(Block_device **devs)
 			: Genode::Thread<8192>("blk-signal-thread"),
-			  _count(Fiasco::genode_block_count()), _devs(devs) {}
+			  _count(Fiasco::genode_block_count()), _devs(devs),
+			  _ready_lock(Genode::Lock::LOCKED) {}
+
+			void start()
+			{
+				Genode::Thread_base::start();
+
+				/*
+				 * Do not return until the new thread has initialized the
+				 * signal handlers.
+				 */
+				_ready_lock.lock();
+			}
 	};
 
 }
