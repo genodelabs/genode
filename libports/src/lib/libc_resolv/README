@@ -1,0 +1,6 @@
+This libc plugin uses libc's own resolv facilities to do DNS resolving
+etc. pp. It is much more advanced than the functions which lwip has to
+offer.
+
+Its current use is for noux-pkgs only. ``Native'' Genode programs should
+use getaddrinfo() provided by lwip for now.

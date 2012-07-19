@@ -1,0 +1,20 @@
+--- libc/net/getaddrinfo.c.orig
++++ libc/net/getaddrinfo.c
+@@ -329,7 +329,7 @@ do { \
+ 	((x) == (y) || (/*CONSTCOND*/(w) && ((x) == ANY || (y) == ANY)))
+ 
+ void
+-freeaddrinfo(struct addrinfo *ai)
++libc_freeaddrinfo(struct addrinfo *ai)
+ {
+ 	struct addrinfo *next;
+ 
+@@ -362,7 +362,7 @@ str2number(const char *p, int *portp)
+ }
+ 
+ int
+-getaddrinfo(const char *hostname, const char *servname,
++libc_getaddrinfo(const char *hostname, const char *servname,
+     const struct addrinfo *hints, struct addrinfo **res)
+ {
+ 	struct addrinfo sentinel;
