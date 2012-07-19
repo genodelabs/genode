@@ -326,7 +326,7 @@ struct Mmchs : Genode::Mmio
 		write<Stat>(~0);
 	}
 
-	enum Bus_width { BUS_WIDTH_1, BUS_WIDTH_8 };
+	enum Bus_width { BUS_WIDTH_1, BUS_WIDTH_4 };
 
 	void bus_width(Bus_width bus_width)
 	{
@@ -336,8 +336,9 @@ struct Mmchs : Genode::Mmio
 			write<Hctl::Dtw>(Hctl::Dtw::ONE_BIT);
 			break;
 
-		case BUS_WIDTH_8:
-			write<Con::Dw8>(1);
+		case BUS_WIDTH_4:
+			write<Con::Dw8>(0);
+			write<Hctl::Dtw>(Hctl::Dtw::FOUR_BITS);
 			break;
 		}
 	}
@@ -510,13 +511,30 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			}
 
 			if (i == 0) {
-				PERR("Sd_send_op_cond timed out, could no power on SD card");
+				PERR("Sd_send_op_cond timed out, could no power-on SD card");
 				throw Detection_failed();
 			}
 
 			Card_info card_info = _detect();
 
-			write<Sysctl::Clkd>(0);
+			/*
+			 * Switch card to use 4 data signals
+			 */
+			if (!issue_command(Set_bus_width(Set_bus_width::Arg::Bus_width::FOUR_BITS),
+			                   card_info.rca())) {
+				PWRN("Set_bus_width(FOUR_BITS) command failed");
+				throw Detection_failed();
+			}
+
+			bus_width(BUS_WIDTH_4);
+
+			_delayer.usleep(10*1000);
+
+			stop_clock();
+			if (!set_and_enable_clock(CLOCK_DIV_0, _delayer)) {
+				PERR("set_clock failed");
+				throw Detection_failed();
+			}
 
 			return card_info;
 		}
@@ -555,16 +573,18 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			/* assemble command register */
 			Cmd::access_t cmd = 0;
 			Cmd::Index::set(cmd, command.index);
-			if (command.index == Sd_card::Read_multiple_block::INDEX
-			 || command.index == Sd_card::Write_multiple_block::INDEX) {
+			if (command.transfer != Sd_card::TRANSFER_NONE) {
 
 				Cmd::Dp::set(cmd);
 				Cmd::Bce::set(cmd);
 				Cmd::Msbs::set(cmd);
-				Cmd::Acen::set(cmd);
+
+				if (command.index == Sd_card::Read_multiple_block::INDEX
+				 || command.index == Sd_card::Write_multiple_block::INDEX)
+					Cmd::Acen::set(cmd);
 
 				/* set data-direction bit depending on the command */
-				bool const read = command.index == Sd_card::Read_multiple_block::INDEX;
+				bool const read = command.transfer == Sd_card::TRANSFER_READ;
 				Cmd::Ddir::set(cmd, read ? Cmd::Ddir::READ : Cmd::Ddir::WRITE);
 			}
 

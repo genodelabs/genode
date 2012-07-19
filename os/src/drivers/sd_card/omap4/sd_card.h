@@ -72,29 +72,32 @@ namespace Sd_card {
 	                RESPONSE_48_BIT,
 	                RESPONSE_48_BIT_WITH_BUSY };
 
+	enum Transfer { TRANSFER_NONE, TRANSFER_READ, TRANSFER_WRITE };
+
 	struct Command_base
 	{
 		unsigned      index;    /* command opcode */
 		Arg::access_t arg;      /* argument */
 		Response      rsp_type; /* response type */
+		Transfer      transfer; /* data transfer type */
 
-		Command_base(unsigned op, Response rsp_type)
+		Command_base(unsigned op, Response rsp_type, Transfer transfer)
 		:
-			index(op), arg(0), rsp_type(rsp_type)
+			index(op), arg(0), rsp_type(rsp_type), transfer(transfer)
 		{ }
 	};
 
-	template <unsigned _INDEX, Response RSP_TYPE>
+	template <unsigned _INDEX, Response RSP_TYPE, Transfer TRANSFER = TRANSFER_NONE>
 	struct Command : Command_base
 	{
 		enum { INDEX = _INDEX };
-		Command() : Command_base(_INDEX, RSP_TYPE) { }
+		Command() : Command_base(_INDEX, RSP_TYPE, TRANSFER) { }
 	};
 
-	template <unsigned INDEX, Response RSP_TYPE>
+	template <unsigned INDEX, Response RSP_TYPE, Transfer TRANSFER = TRANSFER_NONE>
 	struct Prefixed_command : private Command_base
 	{
-		Prefixed_command() : Command_base(INDEX, RSP_TYPE) { }
+		Prefixed_command() : Command_base(INDEX, RSP_TYPE, TRANSFER) { }
 
 		using Command_base::arg;
 
@@ -165,7 +168,7 @@ namespace Sd_card {
 		};
 	};
 
-	struct Read_multiple_block : Command<18, RESPONSE_48_BIT>
+	struct Read_multiple_block : Command<18, RESPONSE_48_BIT, TRANSFER_READ>
 	{
 		Read_multiple_block(unsigned long addr)
 		{
@@ -173,11 +176,27 @@ namespace Sd_card {
 		}
 	};
 
-	struct Write_multiple_block : Command<25, RESPONSE_48_BIT>
+	struct Write_multiple_block : Command<25, RESPONSE_48_BIT, TRANSFER_WRITE>
 	{
 		Write_multiple_block(unsigned long addr)
 		{
 			arg = addr;
+		}
+	};
+
+	struct Set_bus_width : Prefixed_command<6, RESPONSE_48_BIT>
+	{
+		struct Arg : Sd_card::Arg
+		{
+			struct Bus_width : Bitfield<0, 2>
+			{
+				enum Width { ONE_BIT = 0, FOUR_BITS = 2 };
+			};
+		};
+
+		Set_bus_width(Arg::Bus_width::Width width)
+		{
+			Arg::Bus_width::set(arg, width);
 		}
 	};
 
@@ -203,8 +222,18 @@ namespace Sd_card {
 		}
 	};
 
-	struct Acmd_prefix : Command<55, RESPONSE_48_BIT> { };
+	struct Acmd_prefix : Command<55, RESPONSE_48_BIT>
+	{
+		struct Arg : Sd_card::Arg
+		{
+			struct Rca : Bitfield<16, 16> { };
+		};
 
+		Acmd_prefix(unsigned rca)
+		{
+			Arg::Rca::set(arg, rca);
+		}
+	};
 
 	class Card_info
 	{
@@ -268,12 +297,15 @@ namespace Sd_card {
 			 * This overload is selected if the supplied command type has
 			 * 'Prefixed_command' as its base class. In this case, we need to
 			 * issue a CMD55 as command prefix followed by the actual command.
+			 *
+			 * \param prefix_rca  argument to CMD55 prefix command
 			 */
-			template <unsigned INDEX, Response RSP_TYPE>
-			bool issue_command(Prefixed_command<INDEX, RSP_TYPE> const &command)
+			template <unsigned INDEX, Response RSP_TYPE, Transfer TRANSFER>
+			bool issue_command(Prefixed_command<INDEX, RSP_TYPE, TRANSFER> const &command,
+			                   unsigned prefix_rca = 0)
 			{
 				/* send CMD55 prefix */
-				if (!_issue_command(Acmd_prefix())) {
+				if (!_issue_command(Acmd_prefix(prefix_rca))) {
 					PERR("prefix command timed out");
 					return false;
 				}
