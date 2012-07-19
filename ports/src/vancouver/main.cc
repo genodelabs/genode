@@ -413,6 +413,11 @@ class Vcpu_dispatcher : Genode::Thread_base,
 			_svm_invalid();
 		}
 
+		void _recall()
+		{
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
+		}
+
 		/**
 		 * Portal entry point entered on virtualization events
 		 *
@@ -492,6 +497,7 @@ class Vcpu_dispatcher : Genode::Thread_base,
 			/* shortcuts for common message-transfer descriptors */
 			Mtd const mtd_all(Mtd::ALL);
 			Mtd const mtd_cpuid(Mtd::EIP | Mtd::ACDB | Mtd::IRQ);
+			Mtd const mtd_irq(Mtd::IRQ);
 			/*
 			 * Register VCPU SVM event handlers
 			 */
@@ -504,6 +510,7 @@ class Vcpu_dispatcher : Genode::Thread_base,
 				_register_handler<0xfc, &This::_svm_npt>     (mtd_all);
 				_register_handler<0xfd, &This::_svm_invalid> (mtd_all);
 				_register_handler<0xfe, &This::_svm_startup> (mtd_all);
+				_register_handler<0xff, &This::_recall>      (mtd_irq);
 
 			} else {
 
