@@ -56,7 +56,13 @@ namespace Noux {
 
 		bool fstat(Sysio *sysio)
 		{
-			return _fh->ds()->stat(sysio, _leaf_path.base());
+			/*
+			 * 'sysio.stat_in' is not used in '_fh->ds()->stat()',
+			 * so no 'sysio' member translation is needed here
+			 */
+			bool result = _fh->ds()->stat(sysio, _leaf_path.base());
+			sysio->fstat_out.st = sysio->stat_out.st;
+			return result;
 		}
 
 		bool fcntl(Sysio *sysio)
@@ -78,6 +84,16 @@ namespace Noux {
 
 		bool fchdir(Sysio *sysio, Pwd *pwd)
 		{
+			sysio->fstat_in.fd = sysio->fchdir_in.fd;
+
+			fstat(sysio);
+
+			if ((sysio->fstat_out.st.mode & Sysio::STAT_MODE_DIRECTORY) !=
+				Sysio::STAT_MODE_DIRECTORY) {
+				sysio->error.fchdir = Sysio::FCHDIR_ERR_NOT_DIR;
+				return false;
+			}
+
 			pwd->pwd(_path.base());
 			return true;
 		}

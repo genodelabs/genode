@@ -273,6 +273,7 @@ namespace Noux {
 
 		enum General_error { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
 		enum Stat_error    { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
+		enum Fchdir_error  { FCHDIR_ERR_NOT_DIR    = NUM_GENERAL_ERRORS };
 		enum Fcntl_error   { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
 		enum Open_error    { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM };
 		enum Execve_error  { EXECVE_NONEXISTENT    = NUM_GENERAL_ERRORS };
@@ -286,6 +287,7 @@ namespace Noux {
 		union {
 			General_error general;
 			Stat_error    stat;
+			Fchdir_error  fchdir;
 			Fcntl_error   fcntl;
 			Open_error    open;
 			Execve_error  execve;

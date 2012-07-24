@@ -983,8 +983,10 @@ namespace {
 	{
 		sysio()->fchdir_in.fd = noux_fd(fd->context);
 		if (!noux()->syscall(Noux::Session::SYSCALL_FCHDIR)) {
-			PERR("fchdir error");
-			/* XXX set errno */
+			switch (sysio()->error.fchdir) {
+				case Noux::Sysio::FCHDIR_ERR_NOT_DIR: errno = ENOTDIR; break;
+				default:                              errno = EPERM;  break;
+			}
 			return -1;
 		}
 
