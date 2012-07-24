@@ -103,11 +103,77 @@ namespace Noux {
 
 			Dataspace_capability dataspace(char const *path)
 			{
-				return Dataspace_capability();
+				Lock::Guard guard(_lock);
+
+				Absolute_path dir_path(path);
+				dir_path.strip_last_element();
+
+				Absolute_path file_name(path);
+				file_name.keep_only_last_element();
+
+				Ram_dataspace_capability ds_cap;
+				char *local_addr = 0;
+
+				try {
+					::File_system::Dir_handle dir = _fs.dir(dir_path.base(),
+					                                        false);
+					Fs_handle_guard dir_guard(_fs, dir);
+
+					::File_system::File_handle file =
+					    _fs.file(dir, file_name.base() + 1,
+					             ::File_system::READ_ONLY, false);
+					Fs_handle_guard file_guard(_fs, file);
+
+					::File_system::Status status = _fs.status(file);
+
+					Ram_dataspace_capability ds_cap =
+					    env()->ram_session()->alloc(status.size);
+
+					local_addr = env()->rm_session()->attach(ds_cap);
+
+					::File_system::Session::Tx::Source &source = *_fs.tx();
+					size_t const max_packet_size = source.bulk_buffer_size() / 2;
+
+					for (size_t seek_offset = 0; seek_offset < status.size;
+					     seek_offset += max_packet_size) {
+
+						size_t const count = min(max_packet_size, status.size - seek_offset);
+
+						::File_system::Packet_descriptor
+							packet(source.alloc_packet(count),
+								   0,
+								   file,
+								   ::File_system::Packet_descriptor::READ,
+								   count,
+								   seek_offset);
+
+						/* pass packet to server side */
+						source.submit_packet(packet);
+						source.get_acked_packet();
+
+						memcpy(local_addr + seek_offset, source.packet_content(packet), count);
+
+						/*
+						 * XXX check if acked packet belongs to request,
+						 *     needed for thread safety
+						 */
+
+						source.release_packet(packet);
+					}
+
+					env()->rm_session()->detach(local_addr);
+
+					return ds_cap;
+				} catch(...) {
+					env()->rm_session()->detach(local_addr);
+					env()->ram_session()->free(ds_cap);
+					return Dataspace_capability();
+				}
 			}
 
 			void release(char const *path, Dataspace_capability ds_cap)
 			{
+				env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds_cap));
 			}
 
 			bool stat(Sysio *sysio, char const *path)
