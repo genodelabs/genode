@@ -61,7 +61,7 @@ namespace Genode
 
 		template <> struct Uint_type<64> : Uint_type<32>
 		{
-			typedef uint32_t Type;
+			typedef uint64_t Type;
 			enum { WIDTH_LOG2 = 6 };
 		};
 
@@ -120,13 +120,13 @@ namespace Genode
 				/**
 				 * Fetch template parameters
 				 */
-				SHIFT      = _SHIFT,
-				WIDTH      = _WIDTH,
-
-				MASK       = (1 << WIDTH) - 1,
-				REG_MASK   = MASK << SHIFT,
-				CLEAR_MASK = ~REG_MASK,
+				SHIFT = _SHIFT,
+				WIDTH = _WIDTH,
 			};
+
+			static access_t mask()       { return ((access_t)1 << WIDTH) - 1; }
+			static access_t reg_mask()   { return mask() << SHIFT; }
+			static access_t clear_mask() { return ~reg_mask(); }
 
 			/**
 			 * Back reference to containing register
@@ -141,7 +141,7 @@ namespace Genode
 			 *          bitfields into one operation
 			 */
 			static inline access_t bits(access_t const value) {
-				return (value & MASK) << SHIFT; }
+				return (value & mask()) << SHIFT; }
 
 			/**
 			 * Get a register value 'reg' masked according to this bitfield
@@ -149,18 +149,19 @@ namespace Genode
 			 * \detail  E.g. '0x1234' masked according to a
 			 *          'Register<16>::Bitfield<5,7>' returns '0x0220'
 			 */
-			static inline access_t masked(access_t const reg) { return reg & REG_MASK; }
+			static inline access_t masked(access_t const reg) {
+				return reg & reg_mask(); }
 
 			/**
 			 * Get value of this bitfield from 'reg'
 			 */
 			static inline access_t get(access_t const reg) {
-				return (reg >> SHIFT) & MASK; }
+				return (reg >> SHIFT) & mask(); }
 
 			/**
 			 * Get registervalue 'reg' with this bitfield set to zero
 			 */
-			static inline void clear(access_t & reg) { reg &= CLEAR_MASK; }
+			static inline void clear(access_t & reg) { reg &= clear_mask(); }
 
 			/**
 			 * Get registervalue 'reg' with this bitfield set to 'value'
@@ -168,7 +169,7 @@ namespace Genode
 			static inline void set(access_t & reg, access_t const value = ~0)
 			{
 				clear(reg);
-				reg |= (value & MASK) << SHIFT;
+				reg |= (value & mask()) << SHIFT;
 			};
 		};
 	};
