@@ -1,0 +1,98 @@
+diff --git a/include/ec.h b/include/ec.h
+index 10d895c..4442b38 100644
+--- a/include/ec.h
++++ b/include/ec.h
+@@ -30,6 +30,7 @@
+ #include "tss.h"
+ 
+ class Utcb;
++class Pt;
+ 
+ class Ec : public Kobject, public Refcount, public Queue<Sc>
+ {
+@@ -131,6 +132,8 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
+             regs.REG(ip) = regs.ARG_IP;
+         }
+ 
++	inline mword local_pt_id(const Ec *, const Pt *, const mword);
++
+     public:
+         static Ec *current CPULOCAL_HOT;
+         static Ec *fpowner CPULOCAL;
+diff --git a/include/pt.h b/include/pt.h
+index 3067914..3883fdd 100644
+--- a/include/pt.h
++++ b/include/pt.h
+@@ -34,6 +34,7 @@ class Pt : public Kobject
+         Refptr<Ec> const ec;
+         Mtd        const mtd;
+         mword      const ip;
++        Refptr<Pd> const pd;
+ 
+         Pt (Pd *, mword, Ec *, Mtd, mword);
+ 
+diff --git a/src/pt.cpp b/src/pt.cpp
+index ed5e692..23b9b5c 100644
+--- a/src/pt.cpp
++++ b/src/pt.cpp
+@@ -25,7 +25,7 @@
+ INIT_PRIORITY (PRIO_SLAB)
+ Slab_cache Pt::cache (sizeof (Pt), 32);
+ 
+-Pt::Pt (Pd *own, mword sel, Ec *e, Mtd m, mword addr) : Kobject (PT, static_cast<Space_obj *>(own), sel), ec (e), mtd (m), ip (addr)
++Pt::Pt (Pd *own, mword sel, Ec *e, Mtd m, mword addr) : Kobject (PT, static_cast<Space_obj *>(own), sel), ec (e), mtd (m), ip (addr), pd(own)
+ {
+     trace (TRACE_SYSCALL, "PT:%p created (EC:%p IP:%#lx)", this, e, ip);
+ }
+diff --git a/src/syscall.cpp b/src/syscall.cpp
+index 564e249..e0286fb 100644
+--- a/src/syscall.cpp
++++ b/src/syscall.cpp
+@@ -31,6 +31,29 @@
+ #include "utcb.h"
+ #include "vectors.h"
+ 
++mword Ec::local_pt_id(const Ec * ec, const Pt * pt, const mword pt_sel)
++{
++    if (EXPECT_FALSE (ec->pd != pt->pd)) {
++        Crd crd = Crd(Crd::OBJ, pt_sel, 0);
++        ec->pd->xlt_crd(Pd::current, Crd(Crd::OBJ, 0), crd);
++        if (crd.type() == Crd::OBJ) {
++            // Doesn't work, since Space_obj is only local to a pd available
++            //Kobject *local_obj = ec->pd->Space_obj::lookup(crd.base()).obj();
++            //trace(0, "kobject %u", local_obj->type());
++            return crd.base();
++        } else {
++            trace(0, "----- pt=%lx ec=%lx %p?=%p, call: %p:%#lx->%p:?",
++                  pt->node_base, ec->node_base,
++                  &*ec->pd, &*pt->pd,
++                  Pd::current, pt_sel,
++                  &*ec->pd);
++            trace(0, "base:order:attr type - %#lx:%#x:%#x %u", crd.base(), crd.order(), crd.attr(), crd.type());
++            return 0;
++        }
++    }
++    return pt->node_base;
++}
++
+ template <Sys_regs::Status T>
+ void Ec::sys_finish()
+ {
+@@ -93,7 +116,7 @@ void Ec::send_msg()
+         current->set_partner (ec);
+         current->regs.mtd = pt->mtd.val;
+         ec->cont = recv_kern;
+-        ec->regs.set_pt (pt->node_base);
++        ec->regs.set_pt (ec->local_pt_id(ec, pt, current->evt + r->dst_portal));
+         ec->regs.set_ip (pt->ip);
+         ec->make_current();
+     }
+@@ -122,7 +147,7 @@ void Ec::sys_call()
+         current->set_partner (ec);
+         ec->cont = recv_user;
+         ec->regs.set_ip (pt->ip);
+-        ec->regs.set_pt (pt->node_base);
++        ec->regs.set_pt (ec->local_pt_id(ec, pt, s->pt()));
+         ec->make_current();
+     }
+ 
