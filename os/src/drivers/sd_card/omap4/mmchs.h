@@ -9,6 +9,8 @@
 
 /* Genode includes */
 #include <util/mmio.h>
+#include <os/attached_ram_dataspace.h>
+#include <irq_session/connection.h>
 
 /* local includes */
 #include <sd_card.h>
@@ -54,6 +56,11 @@ struct Mmchs : Genode::Mmio
 
 		struct Dw8 : Bitfield<5, 1> { };
 
+		/**
+		 * Master master slave selection (set if master DMA)
+		 */
+		struct Dma_mns : Bitfield<20, 1> { };
+
 	};
 
 	/**
@@ -98,6 +105,11 @@ struct Mmchs : Genode::Mmio
 		 * Auto-CMD12 enable
 		 */
 		struct Acen : Bitfield<2, 1> { };
+
+		/**
+		 * DMA enable
+		 */
+		struct De : Bitfield<0, 1> { };
 	};
 
 	/**
@@ -263,6 +275,11 @@ struct Mmchs : Genode::Mmio
 		struct Cc_enable : Bitfield<0, 1> { };
 
 		/**
+		 * Transfer completed
+		 */
+		struct Tc_enable : Bitfield<1, 1> { };
+
+		/**
 		 * Card interrupt
 		 */
 		struct Cirq_enable : Bitfield<8, 1> { };
@@ -273,7 +290,14 @@ struct Mmchs : Genode::Mmio
 		struct Cto_enable : Bitfield<16, 1> { };
 	};
 
-	struct Ise : Register<0x238, 32> { };
+	struct Ise : Register<0x238, 32>
+	{
+		/*
+		 * The naming follows the lines of the 'Ie' register
+		 */
+		struct Tc_sigen  : Bitfield<1, 1> { };
+		struct Cto_sigen : Bitfield<16, 1> { };
+	};
 
 	/**
 	 * Capabilities
@@ -282,6 +306,27 @@ struct Mmchs : Genode::Mmio
 	{
 		struct Vs30 : Bitfield<25, 1> { };
 		struct Vs18 : Bitfield<26, 1> { };
+	};
+
+	/**
+	 * ADMA system address
+	 *
+	 * Base address of the ADMA descriptor table
+	 */
+	struct Admasal : Register<0x258, 32> { };
+
+	/**
+	 * ADMA descriptor layout
+	 */
+	struct Adma_desc : Genode::Register<64>
+	{
+		struct Valid   : Bitfield<0, 1> { };
+		struct Ent     : Bitfield<1, 1> { };
+		struct Int     : Bitfield<2, 1> { };
+		struct Act1    : Bitfield<4, 1> { };
+		struct Act2    : Bitfield<5, 1> { };
+		struct Length  : Bitfield<16, 16> { };
+		struct Address : Bitfield<32, 32> { };
 	};
 
 	bool reset_cmd_line(Delayer &delayer)
@@ -437,6 +482,17 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 
 		Delayer           &_delayer;
 		Sd_card::Card_info _card_info;
+		bool const         _use_dma;
+
+		/*
+		 * DMA memory for holding the ADMA descriptor table
+		 */
+		enum { ADMA_DESC_MAX_ENTRIES = 1024 };
+		Genode::Attached_ram_dataspace _adma_desc_ds;
+		Adma_desc::access_t *    const _adma_desc;
+		Genode::addr_t           const _adma_desc_phys;
+
+		Genode::Irq_connection _irq;
 
 		Sd_card::Card_info _init()
 		{
@@ -536,19 +592,174 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 				throw Detection_failed();
 			}
 
+			/* enable master DMA */
+			write<Con::Dma_mns>(1);
+
+			/* enable IRQs */
+			write<Ie::Tc_enable>(1);
+			write<Ie::Cto_enable>(1);
+			write<Ise::Tc_sigen>(1);
+			write<Ise::Cto_sigen>(1);
+
 			return card_info;
 		}
 
+		/**
+		 * Marshal ADMA descriptors according to block request
+		 *
+		 * \return false if block request is too large
+		 */
+		bool _setup_adma_descriptor_table(size_t block_count,
+		                                  Genode::addr_t out_buffer_phys)
+		{
+			using namespace Sd_card;
+
+			/* reset ADMA offset to first descriptor */
+			write<Admasal>(_adma_desc_phys);
+
+			enum { BLOCK_SIZE = 512  /* bytes */ };
+
+			size_t const max_adma_request_size = 64*1024 - 4; /* bytes */
+
+			/*
+			 * sanity check
+			 *
+			 * XXX An alternative to this sanity check would be to expose
+			 *     the maximum DMA transfer size to the driver and let the
+			 *     driver partition large requests into ones that are
+			 *     supported by the controller.
+			 */
+			if (block_count*BLOCK_SIZE > max_adma_request_size*ADMA_DESC_MAX_ENTRIES) {
+				PERR("Block request too large");
+				return false;
+			}
+
+			/*
+			 * Each ADMA descriptor can transfer up to MAX_ADMA_REQUEST_SIZE
+			 * bytes. If the request is larger, we generate a list of ADMA
+			 * descriptors.
+			 */
+
+			size_t const total_bytes = block_count*BLOCK_SIZE;
+
+			/* number of bytes for which descriptors have been created */
+			addr_t consumed_bytes = 0;
+
+			for (int index = 0; consumed_bytes < total_bytes; index++) {
+
+				size_t const remaining_bytes = total_bytes - consumed_bytes;
+
+				/* clamp current request to maximum ADMA request size */
+				size_t const curr_bytes = Genode::min(max_adma_request_size,
+				                                      remaining_bytes);
+				/*
+				 * Assemble new ADMA descriptor
+				 */
+				Adma_desc::access_t desc = 0;
+				Adma_desc::Address::set(desc, out_buffer_phys + consumed_bytes);
+				Adma_desc::Length::set(desc, curr_bytes);
+
+				/* set action to transfer */
+				Adma_desc::Act1::set(desc, 0);
+				Adma_desc::Act2::set(desc, 1);
+
+				Adma_desc::Valid::set(desc, 1);
+
+				/*
+				 * Let the last descriptor generate transfer-complete interrupt
+				 */
+				if (consumed_bytes + curr_bytes == total_bytes)
+					Adma_desc::Ent::set(desc, 1);
+
+				/* install descriptor into ADMA descriptor table */
+				_adma_desc[index] = desc;
+
+				consumed_bytes += curr_bytes;
+			}
+
+			return true;
+		}
+
+		bool _wait_for_transfer_complete()
+		{
+			if (!wait_for<Stat::Tc>(1, _delayer, 1000*1000, 0)
+			 && !wait_for<Stat::Tc>(1, _delayer)) {
+				PERR("Stat::Tc timed out");
+				return false;
+			}
+
+			/* clear transfer-completed bit */
+			write<Stat::Tc>(1);
+			return true;
+		}
+
+		bool _wait_for_bre()
+		{
+			if (!wait_for<Pstate::Bre>(1, _delayer, 1000*1000, 0)
+			 && !wait_for<Pstate::Bre>(1, _delayer)) {
+				PERR("Pstate::Bre timed out");
+				return false;
+			}
+			return true;
+		}
+
+		bool _wait_for_bwe()
+		{
+			if (!wait_for<Pstate::Bwe>(1, _delayer, 1000*1000, 0)
+			 && !wait_for<Pstate::Bwe>(1, _delayer)) {
+				PERR("Pstate::Bwe timed out");
+				return false;
+			}
+			return true;
+		}
+
+		bool _wait_for_transfer_complete_irq()
+		{
+			/*
+			 * XXX For now, the driver works fully synchronous. We merely use
+			 *     the interrupt mechanism to yield CPU time to concurrently
+			 *     running processes.
+			 */
+			for (;;) {
+				_irq.wait_for_irq();
+
+				/* check for transfer completion */
+				if (read<Stat::Tc>() == 1) {
+
+					/* clear transfer-completed bit */
+					write<Stat::Tc>(1);
+
+					if (read<Stat>() != 0)
+						PWRN("unexpected state (Stat: 0x%x Blen: 0x%x Nblk: %d)",
+						     read<Stat>(), read<Blk::Blen>(), read<Blk::Nblk>());
+
+					return true;
+				}
+
+				PWRN("unexpected interrupt, Stat: 0x%08x", read<Stat>());
+			}
+		}
+
 	public:
+
+		enum { IRQ_NUMBER = 83 + 32 };
 
 		/**
 		 * Constructor
 		 *
 		 * \param mmio_base  local base address of MMIO registers
 		 */
-		Omap4_hsmmc_controller(Genode::addr_t const mmio_base, Delayer &delayer)
+		Omap4_hsmmc_controller(Genode::addr_t const mmio_base, Delayer &delayer,
+		                       bool use_dma)
 		:
-			Mmchs(mmio_base), _delayer(delayer), _card_info(_init())
+			Mmchs(mmio_base), _delayer(delayer), _card_info(_init()),
+			_use_dma(use_dma),
+			_adma_desc_ds(Genode::env()->ram_session(),
+			              ADMA_DESC_MAX_ENTRIES*sizeof(Adma_desc::access_t),
+			              false),
+			_adma_desc(_adma_desc_ds.local_addr<Adma_desc::access_t>()),
+			_adma_desc_phys(Genode::Dataspace_client(_adma_desc_ds.cap()).phys_addr()),
+			_irq(IRQ_NUMBER)
 		{ }
 
 
@@ -580,8 +791,12 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 				Cmd::Msbs::set(cmd);
 
 				if (command.index == Sd_card::Read_multiple_block::INDEX
-				 || command.index == Sd_card::Write_multiple_block::INDEX)
+				 || command.index == Sd_card::Write_multiple_block::INDEX) {
 					Cmd::Acen::set(cmd);
+
+					if (_use_dma)
+						Cmd::De::set(cmd);
+				}
 
 				/* set data-direction bit depending on the command */
 				bool const read = command.transfer == Sd_card::TRANSFER_READ;
@@ -662,39 +877,6 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			return Sd_card::Send_relative_addr::Response::Rca::get(read<Rsp10>());
 		}
 
-		bool _wait_for_transfer_complete()
-		{
-			if (!wait_for<Stat::Tc>(1, _delayer, 1000*1000, 0)
-			 && !wait_for<Stat::Tc>(1, _delayer)) {
-				PERR("Stat::Tc timed out");
-				return false;
-			}
-
-			/* clear transfer-completed bit */
-			write<Stat::Tc>(1);
-			return true;
-		}
-
-		bool _wait_for_bre()
-		{
-			if (!wait_for<Pstate::Bre>(1, _delayer, 1000*1000, 0)
-			 && !wait_for<Pstate::Bre>(1, _delayer)) {
-				PERR("Pstate::Bre timed out");
-				return false;
-			}
-			return true;
-		}
-
-		bool _wait_for_bwe()
-		{
-			if (!wait_for<Pstate::Bwe>(1, _delayer, 1000*1000, 0)
-			 && !wait_for<Pstate::Bwe>(1, _delayer)) {
-				PERR("Pstate::Bwe timed out");
-				return false;
-			}
-			return true;
-		}
-
 		/**
 		 * Read data blocks from SD card
 		 *
@@ -708,7 +890,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			write<Blk::Nblk>(block_count);
 
 			if (!issue_command(Read_multiple_block(block_number))) {
-				PERR("Read_multiple_block failed");
+				PERR("Read_multiple_block failed, Stat: 0x%08x", read<Stat>());
 				return false;
 			}
 
@@ -753,6 +935,52 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			}
 
 			return _wait_for_transfer_complete();
+		}
+
+		/**
+		 * Read data blocks from SD card via master DMA
+		 *
+		 * \return true on success
+		 */
+		bool read_blocks_dma(size_t block_number, size_t block_count,
+		                     Genode::addr_t out_buffer_phys)
+		{
+			using namespace Sd_card;
+
+			write<Blk::Blen>(0x200);
+			write<Blk::Nblk>(block_count);
+
+			_setup_adma_descriptor_table(block_count, out_buffer_phys);
+
+			if (!issue_command(Read_multiple_block(block_number))) {
+				PERR("Read_multiple_block failed, Stat: 0x%08x", read<Stat>());
+				return false;
+			}
+
+			return _wait_for_transfer_complete_irq();
+		}
+
+		/**
+		 * Write data blocks to SD card via master DMA
+		 *
+		 * \return true on success
+		 */
+		bool write_blocks_dma(size_t block_number, size_t block_count,
+		                      Genode::addr_t buffer_phys)
+		{
+			using namespace Sd_card;
+
+			write<Blk::Blen>(0x200);
+			write<Blk::Nblk>(block_count);
+
+			_setup_adma_descriptor_table(block_count, buffer_phys);
+
+			if (!issue_command(Write_multiple_block(block_number))) {
+				PERR("Write_multiple_block failed");
+				return false;
+			}
+
+			return _wait_for_transfer_complete_irq();
 		}
 };
 

@@ -57,12 +57,16 @@ class Block::Omap4_driver : public Block::Driver
 		/* hsmmc controller instance */
 		Omap4_hsmmc_controller _controller;
 
+		bool const _use_dma;
+
 	public:
 
-		Omap4_driver()
+		Omap4_driver(bool use_dma)
 		:
 			_mmchs1_mmio(MMCHS1_MMIO_BASE, MMCHS1_MMIO_SIZE),
-			_controller((addr_t)_mmchs1_mmio.local_addr<void>(), _delayer)
+			_controller((addr_t)_mmchs1_mmio.local_addr<void>(),
+			            _delayer, use_dma),
+			_use_dma(use_dma)
 		{
 			Sd_card::Card_info const card_info = _controller.card_info();
 
@@ -102,17 +106,19 @@ class Block::Omap4_driver : public Block::Driver
 		              Genode::size_t block_count,
 		              Genode::addr_t phys)
 		{
-			throw Io_error();
+			if (!_controller.read_blocks_dma(block_number, block_count, phys))
+				throw Io_error();
 		}
 
 		void write_dma(Genode::size_t  block_number,
 		               Genode::size_t  block_count,
 		               Genode::addr_t  phys)
 		{
-			throw Io_error();
+			if (!_controller.write_blocks_dma(block_number, block_count, phys))
+				throw Io_error();
 		}
 
-		bool dma_enabled() { return false; }
+		bool dma_enabled() { return _use_dma; }
 };
 
 #endif /* _DRIVER_H_ */

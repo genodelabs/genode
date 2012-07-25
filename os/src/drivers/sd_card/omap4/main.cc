@@ -30,7 +30,8 @@ int main(int argc, char **argv)
 	{
 		Block::Driver *create()
 		{
-			return new (env()->heap()) Block::Omap4_driver();
+			bool use_dma = true;
+			return new (env()->heap()) Block::Omap4_driver(use_dma);
 		}
 
 		void destroy(Block::Driver *driver)
