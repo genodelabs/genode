@@ -189,7 +189,7 @@ namespace Block {
 				}
 
 				return new (md_alloc())
-					Session_component(env()->ram_session()->alloc(tx_buf_size),
+					Session_component(env()->ram_session()->alloc(tx_buf_size, false),
 					                  _driver_factory, _ep);
 			}
 
