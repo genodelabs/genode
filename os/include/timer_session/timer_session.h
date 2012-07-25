@@ -29,14 +29,26 @@ namespace Timer {
 		 */
 		virtual void msleep(unsigned ms) = 0;
 
+		/**
+		 * Return number of elapsed milliseconds since session creation
+		 */
+		virtual unsigned long elapsed_ms() const
+		{
+			/*
+			 * XXX Remove default implementation by implementing the
+			 *     interface in all timer variants.
+			 */
+			return 0; }
+
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
 		GENODE_RPC(Rpc_msleep, void, msleep, unsigned);
+		GENODE_RPC(Rpc_elapsed_ms, unsigned long, elapsed_ms);
 
-		GENODE_RPC_INTERFACE(Rpc_msleep);
+		GENODE_RPC_INTERFACE(Rpc_msleep, Rpc_elapsed_ms);
 	};
 }
 

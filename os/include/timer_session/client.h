@@ -25,6 +25,8 @@ namespace Timer {
 		: Genode::Rpc_client<Session>(session) { }
 
 		void msleep(unsigned ms) { call<Rpc_msleep>(ms); }
+
+		unsigned long elapsed_ms() const { return call<Rpc_elapsed_ms>(); }
 	};
 }
 

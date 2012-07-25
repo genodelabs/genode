@@ -18,10 +18,12 @@
 /* Genode includes */
 #include <base/rpc_server.h>
 #include <timer_session/capability.h>
+#include <os/attached_rom_dataspace.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
+#include <l4/sys/kip.h>
 }
 
 
@@ -63,8 +65,11 @@ namespace Timer {
 	{
 		private:
 
-			Genode::Rpc_entrypoint _entrypoint;
-			Session_capability     _session_cap;
+			Genode::Rpc_entrypoint           _entrypoint;
+			Session_capability               _session_cap;
+			Genode::Attached_rom_dataspace   _kip_ds;
+			Fiasco::l4_kernel_info_t * const _kip;
+			Fiasco::l4_cpu_time_t const      _initial_clock_value;
 
 		public:
 
@@ -74,7 +79,10 @@ namespace Timer {
 			Session_component(Genode::Cap_session *cap)
 			:
 				_entrypoint(cap, STACK_SIZE, "timer_session_ep"),
-				_session_cap(_entrypoint.manage(this))
+				_session_cap(_entrypoint.manage(this)),
+				_kip_ds("l4v2_kip"),
+				_kip(_kip_ds.local_addr<Fiasco::l4_kernel_info_t>()),
+				_initial_clock_value(_kip->clock)
 			{ }
 
 			/**
@@ -108,6 +116,11 @@ namespace Timer {
 				using namespace Fiasco;
 
 				l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(1000*ms)));
+			}
+
+			unsigned long elapsed_ms() const
+			{
+				return (_kip->clock - _initial_clock_value) / 1000;
 			}
 	};
 }
