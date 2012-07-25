@@ -34,6 +34,7 @@ namespace Genode {
 			Ram_session              *_ram_session;
 			Ram_dataspace_capability  _ds;
 			void                     *_local_addr;
+			bool const                _cached;
 
 			template <typename T>
 			static void _swap(T &v1, T &v2) { T tmp = v1; v1 = v2; v2 = tmp; }
@@ -52,7 +53,7 @@ namespace Genode {
 				if (!_size || !_ram_session) return;
 
 				try {
-					_ds         = _ram_session->alloc(_size);
+					_ds         = _ram_session->alloc(_size, _cached);
 					_local_addr = env()->rm_session()->attach(_ds);
 
 				/* revert allocation if attaching the dataspace failed */
@@ -70,8 +71,11 @@ namespace Genode {
 			 * \throw Ram_session::Alloc_failed
 			 * \throw Rm_session::Attach_failed
 			 */
-			Attached_ram_dataspace(Ram_session *ram_session, size_t size)
-			: _size(size), _ram_session(ram_session), _local_addr(0)
+			Attached_ram_dataspace(Ram_session *ram_session, size_t size,
+			                       bool cached = true)
+			:
+				_size(size), _ram_session(ram_session), _local_addr(0),
+				_cached(cached)
 			{
 				_alloc_and_attach();
 			}
