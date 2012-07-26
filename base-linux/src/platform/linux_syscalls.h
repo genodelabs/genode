@@ -64,6 +64,12 @@ inline int lx_close(int fd)
 }
 
 
+inline int lx_dup(int fd)
+{
+	return lx_syscall(SYS_dup, fd);
+}
+
+
 inline int lx_unlink(const char *fname)
 {
 	return lx_syscall(SYS_unlink, fname);

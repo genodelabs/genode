@@ -92,9 +92,10 @@ void Ipc_istream::_wait()
 
 
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
-: Ipc_unmarshaller(rcv_msg->buf, rcv_msg->size()),
-  Native_capability(Dst(lx_gettid(), -1), 0),
-  _rcv_msg(rcv_msg)
+:
+	Ipc_unmarshaller(rcv_msg->buf, rcv_msg->size()),
+	Native_capability(Dst(lx_gettid(), -1), 0),
+	_rcv_msg(rcv_msg)
 { }
 
 
@@ -115,15 +116,16 @@ void Ipc_client::_prepare_next_call()
 
 	/* prepare response buffer */
 	_read_offset = sizeof(long);
+
+	_snd_msg->reset_caps();
 }
 
 
 void Ipc_client::_call()
 {
 	if (Ipc_ostream::_dst.valid()) {
-		lx_call(Ipc_ostream::_dst.dst().tid,
-		        _snd_msg->buf, _write_offset,
-		        _rcv_msg->buf, _rcv_msg->size());
+		_snd_msg->used_size(_write_offset);
+		lx_call(Ipc_ostream::_dst.dst().tid, *_snd_msg, *_rcv_msg);
 	}
 	_prepare_next_call();
 }
@@ -153,6 +155,9 @@ void Ipc_server::_prepare_next_reply_wait()
 
 	/* leave space for exc code at the beginning of the msgbuf */
 	_write_offset += align_natural(sizeof(int));
+
+	/* reset capability slots of send message buffer */
+	_snd_msg->reset_caps();
 }
 
 
@@ -161,7 +166,7 @@ void Ipc_server::_wait()
 	_reply_needed = true;
 
 	try {
-		int const reply_socket = lx_wait(_rcv_cs, _rcv_msg->buf, _rcv_msg->size());
+		int const reply_socket = lx_wait(_rcv_cs, *_rcv_msg);
 
 		/*
 		 * Remember reply capability
@@ -185,7 +190,8 @@ void Ipc_server::_wait()
 void Ipc_server::_reply()
 {
 	try {
-		lx_reply(Ipc_ostream::_dst.dst().socket, _snd_msg->buf, _write_offset);
+		_snd_msg->used_size(_write_offset);
+		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg);
 	} catch (Ipc_error) { }
 
 	_prepare_next_reply_wait();
@@ -195,8 +201,10 @@ void Ipc_server::_reply()
 void Ipc_server::_reply_wait()
 {
 	/* when first called, there was no request yet */
-	if (_reply_needed)
-		lx_reply(Ipc_ostream::_dst.dst().socket, _snd_msg->buf, _write_offset);
+	if (_reply_needed) {
+		_snd_msg->used_size(_write_offset);
+		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg);
+	}
 
 	_wait();
 }
@@ -230,6 +238,10 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 
 	if (thread)
 		thread->tid().is_ipc_server = true;
+
+	/* override capability initialization performed by 'Ipc_istream' */
+	*static_cast<Native_capability *>(this) =
+		Native_capability(Native_capability::Dst(lx_gettid(), _rcv_cs), 0);
 
 	_prepare_next_reply_wait();
 }
