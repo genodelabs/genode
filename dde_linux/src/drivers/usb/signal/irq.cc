@@ -21,6 +21,7 @@ extern "C" {
 
 /* our local incarnation of sender and receiver */
 static Signal_helper *_signal = 0;
+static Genode::Lock _irq_ack_lock(Genode::Lock::LOCKED);
 
 
 /**
@@ -74,6 +75,8 @@ class Irq_context : public Driver_context,
 			/* set context & submit signal */
 			_signal->sender()->context(ctx->_ctx_cap);
 			_signal->sender()->submit();
+
+			_irq_ack_lock.lock();
 		}
 
 	public:
@@ -101,9 +104,10 @@ class Irq_context : public Driver_context,
 				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u %p", _irq, rc, h->handler);
 				if (rc == IRQ_HANDLED) {
 					Routine::schedule_all();
-					return; 
+					break;
 				}
 			}
+			_irq_ack_lock.unlock();
 		}
 
 		const char *debug() { return "Irq_context"; }
