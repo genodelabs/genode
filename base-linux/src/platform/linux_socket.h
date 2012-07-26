@@ -3,13 +3,8 @@
  * \author Christian Helmuth
  * \date   2012-01-17
  *
- * We create two sockets under lx_rpath() for each thread: client and server
- * role. The naming is 'ep-<thread id>-<role>'. The socket descriptors are
- * cached in Thread_base::_tid.
- *
- * Currently two socket files are needed, as the client does not send the reply
- * socket access-rights in a combined message with the payload. In the future,
- * only server sockets must be bound in lx_rpath().
+ * We create one socket under lx_rpath() for each 'Ipc_server'. The naming is
+ * 'ep-<thread id>-<role>'.
  */
 
 /*
@@ -146,29 +141,28 @@ namespace {
  */
 static int lx_server_socket(Genode::Thread_base *thread)
 {
+	int sd = lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (sd < 0)
+		return sd;
+
 	/*
-	 * Main thread uses Ipc_server for sleep_forever() only.
+	 * Main thread uses 'Ipc_server' for 'sleep_forever()' only. No need
+	 * for binding.
 	 */
 	if (!thread)
-		return lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+		return sd;
 
-	if (thread->tid().socket == -1) {
-		int sd = lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
-		if (sd < 0) return -1;
+	sockaddr_un addr;
+	lx_create_server_addr(&addr, thread->tid().tid);
 
-		sockaddr_un addr;
-		lx_create_server_addr(&addr, thread->tid().tid);
+	/* make sure bind succeeds */
+	lx_unlink(addr.sun_path);
 
-		/* make sure bind succeeds */
-		lx_unlink(addr.sun_path);
+	int const bind_ret = lx_bind(sd, (sockaddr *)&addr, sizeof(addr));
+	if (bind_ret < 0)
+		return bind_ret;
 
-		if (lx_bind(sd, (sockaddr *)&addr, sizeof(addr)) < 0)
-			return -2;
-
-		thread->tid().socket = sd;
-	}
-
-	return thread->tid().socket;
+	return sd;
 }
 
 

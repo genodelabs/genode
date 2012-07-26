@@ -74,7 +74,7 @@ namespace Genode {
 	 */
 	struct Native_thread : Native_thread_id
 	{
-		int socket;  /* server-entrypoint socket */
+		bool is_ipc_server;
 
 		/**
 		 * Opaque pointer to additional thread-specific meta data
@@ -85,7 +85,7 @@ namespace Genode {
 		 */
 		Thread_meta_data *meta_data;
 
-		Native_thread() : socket(-1), meta_data(0) { }
+		Native_thread() : is_ipc_server(false), meta_data(0) { }
 	};
 
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2) {

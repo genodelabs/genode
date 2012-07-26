@@ -203,10 +203,33 @@ void Ipc_server::_reply_wait()
 
 
 Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
-: Ipc_istream(rcv_msg),
-  Ipc_ostream(Native_capability(), snd_msg), _reply_needed(false)
+:
+	Ipc_istream(rcv_msg),
+	Ipc_ostream(Native_capability(), snd_msg), _reply_needed(false)
 {
+	Thread_base *thread = Thread_base::myself();
+
+	/*
+	 * If 'thread' is 0, the constructor was called by the main thread. By
+	 * definition, main is never an RPC entrypoint. However, the main thread
+	 * may call 'sleep_forever()', which instantiates 'Ipc_server'.
+	 */
+
+	if (thread && thread->tid().is_ipc_server) {
+		PRAW("unexpected multiple instantiation of Ipc_server by one thread");
+		struct Ipc_server_multiple_instance { };
+		throw Ipc_server_multiple_instance();
+	}
+
 	_rcv_cs = lx_server_socket(Thread_base::myself());
+	if (_rcv_cs < 0) {
+		PRAW("lx_server_socket failed (error %d)", _rcv_cs);
+		struct Ipc_socket_creation_failed { };
+		throw Ipc_socket_creation_failed();
+	}
+
+	if (thread)
+		thread->tid().is_ipc_server = true;
 
 	_prepare_next_reply_wait();
 }
