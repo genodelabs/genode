@@ -664,7 +664,7 @@ namespace {
 	{
 		Genode::size_t sum_read_count = 0;
 
-		while (count) {
+		while (count > 0) {
 
 			Genode::size_t curr_count =
 				Genode::min(count, sizeof(sysio()->read_out.chunk));
@@ -678,11 +678,13 @@ namespace {
 				return -1;
 			}
 
-			Genode::memcpy(buf, sysio()->read_out.chunk, sysio()->read_out.count);
+			Genode::memcpy((char*)buf + sum_read_count,
+			               sysio()->read_out.chunk,
+			               sysio()->read_out.count);
 
 			sum_read_count += sysio()->read_out.count;
 
-			if (sysio()->read_out.count < sysio()->read_in.count)
+			if (sysio()->read_out.count < curr_count)
 				break; /* end of file */
 
 			if (sysio()->read_out.count <= count)
