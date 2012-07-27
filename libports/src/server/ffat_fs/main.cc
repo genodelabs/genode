@@ -538,7 +538,8 @@ namespace File_system {
 				try {
 					node = _handle_registry.lookup(handle);
 				} catch(Invalid_handle) {
-					throw Lookup_failed();
+					PERR("close() called with invalid handle");
+					return;
 				}
 
 				PDBGV("name = %s", node->name());
