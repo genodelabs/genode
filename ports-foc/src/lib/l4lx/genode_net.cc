@@ -18,7 +18,9 @@
 #include <base/printf.h>
 #include <util/misc_math.h>
 #include <util/string.h>
+#include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
+#include <timer_session/connection.h>
 
 #include <vcpu.h>
 #include <linux.h>
@@ -27,87 +29,77 @@ namespace Fiasco {
 #include <genode/net.h>
 #include <l4/sys/irq.h>
 #include <l4/sys/kdebug.h>
+#include <l4/sys/ktrace.h>
 }
 
-static Nic::Connection *nic() {
-	static Nic::Connection *n = 0;
-	static bool initialized = false;
+#define TX_BENCH 0
+#define RX_BENCH 0
 
-	if (!initialized) {
-		try {
-			static Genode::Allocator_avl tx_block_alloc(Genode::env()->heap());
-			static Nic::Connection nic(&tx_block_alloc);
-			n = &nic;
-		} catch(...) { }
-		initialized = true;
+
+/**
+ * Debugging/Tracing
+ */
+#if TX_BENCH | RX_BENCH
+struct Counter : public Genode::Thread<8192>
+{
+	int             cnt;
+	Genode::size_t size;
+
+	void entry()
+	{
+		Timer::Connection _timer;
+		int interval = 5;
+		while(1) {
+			_timer.msleep(interval * 1000);
+			PDBG("LX Packets %d/s bytes/s: %d", cnt / interval, size / interval);
+			cnt = 0;
+			size = 0;
+		}
 	}
+
+	void inc(Genode::size_t s) { cnt++; size += s; }
+
+	Counter() : cnt(0), size(0)  { start(); }
+};
+#else
+struct Counter { inline void inc(Genode::size_t s) { } };
+#endif
+
+
+static Nic::Connection *nic() {
+
+	enum {
+		PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+		RX_BUF_SIZE = Nic::Session::RX_QUEUE_SIZE * PACKET_SIZE,
+		TX_BUF_SIZE = Nic::Session::TX_QUEUE_SIZE * PACKET_SIZE,
+	};
+
+	static Nic::Connection *n = 0;
+	static bool initialized   = false;
+
+	if (initialized)
+		return n;
+
+	try {
+		Linux::Irq_guard guard;
+		static Nic::Packet_allocator tx_block_alloc(Genode::env()->heap());
+		static Nic::Connection nic(&tx_block_alloc, TX_BUF_SIZE, RX_BUF_SIZE);
+		n = &nic;
+	} catch(...) { }
+	initialized = true;
+
 	return n;
 }
 
+
 namespace {
-
-	class Packet_pool
-	{
-		private:
-
-			class Entry
-			{
-				public:
-
-					Packet_descriptor packet;
-					void             *addr;
-
-					Entry() : addr(0) {}
-			};
-
-
-			enum { MAX_ENTRIES = 100 };
-
-			Entry _entries[MAX_ENTRIES];
-
-		public:
-
-			class Pool_full : Genode::Exception {};
-
-
-			void add(Packet_descriptor p, void* addr)
-			{
-				for (unsigned i=0; i < MAX_ENTRIES; i++) {
-					if (!_entries[i].addr) {
-						_entries[i].addr   = addr;
-						_entries[i].packet = p;
-						return;
-					}
-				}
-				throw Pool_full();
-			}
-
-			void* get(Packet_descriptor _packet)
-			{
-				for (unsigned i=0; i < MAX_ENTRIES; i++)
-					if (nic()->tx()->packet_content(_packet)
-						== nic()->tx()->packet_content(_entries[i].packet)) {
-						void *ret = _entries[i].addr;
-						_entries[i].addr = 0;
-						return ret;
-					}
-				return 0;
-			}
-	};
-
-
-	static Packet_pool *packet_pool()
-	{
-		static Packet_pool pool;
-		return &pool;
-	}
-
 
 	class Signal_thread : public Genode::Thread<8192>
 	{
 		private:
 
 			Fiasco::l4_cap_idx_t _cap;
+			Genode::Lock        *_sync;
 
 		protected:
 
@@ -122,8 +114,11 @@ namespace {
 				nic()->rx_channel()->sigh_ready_to_ack(cap);
 				nic()->rx_channel()->sigh_packet_avail(cap);
 
+				_sync->unlock();
+
 				while (true) {
 					receiver.wait_for_signal();
+
 					if (l4_error(l4_irq_trigger(_cap)) != -1)
 						PWRN("IRQ net trigger failed\n");
 				}
@@ -131,8 +126,9 @@ namespace {
 
 		public:
 
-			Signal_thread(Fiasco::l4_cap_idx_t cap)
-			: Genode::Thread<8192>("net-signal-thread"), _cap(cap) { start(); }
+			Signal_thread(Fiasco::l4_cap_idx_t cap, Genode::Lock *sync)
+			: Genode::Thread<8192>("net-signal-thread"), _cap(cap), _sync(sync) {
+				start(); }
 	};
 }
 
@@ -141,7 +137,7 @@ using namespace Fiasco;
 extern "C" {
 
 	static FASTCALL void (*receive_packet)(void*, void*, unsigned long) = 0;
-	static void *net_device                                    = 0;
+	static void *net_device                                             = 0;
 
 
 	void genode_net_start(void *dev, FASTCALL void (*func)(void*, void*, unsigned long))
@@ -153,8 +149,11 @@ extern "C" {
 
 	l4_cap_idx_t genode_net_irq_cap()
 	{
+		Linux::Irq_guard guard;
 		static Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
-		static Signal_thread th(cap.dst());
+		static Genode::Lock lock(Genode::Lock::LOCKED);
+		static Signal_thread th(cap.dst(), &lock);
+		lock.lock();
 		return cap.dst();
 	}
 
@@ -168,6 +167,7 @@ extern "C" {
 
 	void genode_net_mac(void* mac, unsigned long size)
 	{
+		Linux::Irq_guard guard;
 		using namespace Genode;
 
 		Nic::Mac_address m = nic()->mac_address();
@@ -175,21 +175,25 @@ extern "C" {
 	}
 
 
-	int genode_net_tx(void* addr, unsigned long len, void *skb)
+	int genode_net_tx(void* addr, unsigned long len)
 	{
+		Linux::Irq_guard guard;
+		static Counter counter;
+
 		try {
 			Packet_descriptor packet = nic()->tx()->alloc_packet(len);
 			void* content            = nic()->tx()->packet_content(packet);
-			packet_pool()->add(packet, skb);
-			Genode::memcpy(content, addr, len);
+
+			Genode::memcpy((char *)content, addr, len);
 			nic()->tx()->submit_packet(packet);
+
+			counter.inc(len);
+
 			return 0;
-		} catch(Packet_pool::Pool_full) {
-			PWRN("skb_buff/packet pool full!");
+		/* 'Packet_alloc_failed' */
 		} catch(...) {
-			PWRN("Send failed!");
+			return 1;
 		}
-		return 1;
 	}
 
 
@@ -197,22 +201,28 @@ extern "C" {
 		return nic()->tx()->ack_avail(); }
 
 
-	void* genode_net_tx_ack()
+	void genode_net_tx_ack()
 	{
+		Linux::Irq_guard guard;
+
 		Packet_descriptor packet = nic()->tx()->get_acked_packet();
-		void *skb = packet_pool()->get(packet);
 		nic()->tx()->release_packet(packet);
-		return skb;
 	}
 
 
 	void genode_net_rx_receive()
 	{
+		Linux::Irq_guard guard;
+		static Counter counter;
+
 		if (nic()) {
 			while(nic()->rx()->packet_avail()) {
 				Packet_descriptor p = nic()->rx()->get_packet();
+
 				if (receive_packet && net_device)
 					receive_packet(net_device, nic()->rx()->packet_content(p), p.size());
+				
+				counter.inc(p.size());
 				nic()->rx()->acknowledge_packet(p);
 			}
 		}
@@ -223,4 +233,8 @@ extern "C" {
 	{
 		return nic() ? 1 : 0;
 	}
+
+
+	void *genode_net_memcpy(void *dst, void const *src, unsigned long size) {
+		return Genode::memcpy(dst, src, size); }
 }

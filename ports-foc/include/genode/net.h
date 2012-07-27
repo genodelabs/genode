@@ -28,10 +28,11 @@ L4_CV int          genode_net_ready       (void);
 L4_CV void         genode_net_start       (void *dev, FASTCALL void (*func)(void*, void*, unsigned long));
 L4_CV void         genode_net_stop        (void);
 L4_CV void         genode_net_mac         (void* mac_addr, unsigned long size);
-L4_CV int          genode_net_tx          (void* addr,     unsigned long len, void *skb);
+L4_CV int          genode_net_tx          (void* addr,     unsigned long len);
 L4_CV int          genode_net_tx_ack_avail(void);
-L4_CV void*        genode_net_tx_ack      (void);
+L4_CV void         genode_net_tx_ack      (void);
 L4_CV void         genode_net_rx_receive  (void);
+L4_CV void        *genode_net_memcpy      (void *dst, void const *src, unsigned long size);
 
 #ifdef __cplusplus
 }

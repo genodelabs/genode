@@ -35,7 +35,7 @@ static void genode_net_receive_packet(void* dev_addr, void *addr,
 	struct net_device_stats *stats = (struct net_device_stats*) netdev_priv(dev);
 
 	/* allocate skb */
-	struct sk_buff *skb = dev_alloc_skb(size + 2);
+	struct sk_buff *skb = dev_alloc_skb(size + 4);
 	if (!skb) {
 		if (printk_ratelimit())
 			printk(KERN_NOTICE "genode_net_rx: low on mem - packet dropped!\n");
@@ -44,11 +44,12 @@ static void genode_net_receive_packet(void* dev_addr, void *addr,
 	}
 
 	/* copy packet */
-	memcpy(skb_put(skb, size), addr, size);
+	genode_net_memcpy(skb_put(skb, size), addr, size);
 
 	skb->dev       = dev;
 	skb->protocol  = eth_type_trans(skb, dev);
 	skb->ip_summed = CHECKSUM_NONE;
+
 	netif_rx(skb);
 
 	stats->rx_packets++;
@@ -84,20 +85,21 @@ int genode_net_xmit_frame(struct sk_buff *skb, struct net_device *dev)
 
 	/* collect acknowledgements of old packets */
 	while (genode_net_tx_ack_avail())
-		dev_kfree_skb((struct sk_buff *)genode_net_tx_ack());
+		genode_net_tx_ack();
 
 	/* transmit to nic-session */
-	if (genode_net_tx(addr, len, skb)) {
-		/* tx queue is full, could not enqueue packet */
-		netif_stop_queue(dev);
-		return 1;
+	while (genode_net_tx(addr, len)) {
+		/* tx queue is  full, could not enqueue packet */
+		genode_net_tx_ack();
 	}
+	dev_kfree_skb(skb);
 
 	/* save timestamp */
 	dev->trans_start = jiffies;
 
 	stats->tx_packets++;
 	stats->tx_bytes += len;
+
 	return 0;
 }
 
