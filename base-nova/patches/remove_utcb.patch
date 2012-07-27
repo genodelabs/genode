@@ -1,0 +1,48 @@
+diff --git a/include/space_mem.h b/include/space_mem.h
+index e155dad..224917c 100644
+--- a/include/space_mem.h
++++ b/include/space_mem.h
+@@ -70,6 +70,8 @@ class Space_mem : public Space
+ 
+         bool insert_utcb (mword);
+ 
++        bool remove_utcb (mword);
++
+         void update (Mdb *, mword = 0);
+ 
+         static void shootdown();
+diff --git a/src/space_mem.cpp b/src/space_mem.cpp
+index 5341836..bcae116 100644
+--- a/src/space_mem.cpp
++++ b/src/space_mem.cpp
+@@ -146,3 +146,17 @@ bool Space_mem::insert_utcb (mword b)
+ 
+     return false;
+ }
++
++bool Space_mem::remove_utcb (mword b)
++{
++    if (!b)
++        return false;
++
++    Mdb *mdb = tree_lookup(b >> PAGE_BITS, false);
++    if (!tree_remove (mdb))
++        return false;
++
++    delete mdb;
++
++    return true;
++}
+diff --git a/src/syscall.cpp b/src/syscall.cpp
+index 564e249..13f1134 100644
+--- a/src/syscall.cpp
++++ b/src/syscall.cpp
+@@ -254,6 +277,8 @@ void Ec::sys_create_ec()
+ 
+     if (!Space_obj::insert_root (ec)) {
+         trace (TRACE_ERROR, "%s: Non-NULL CAP (%#lx)", __func__, r->sel());
++        if (!pd->remove_utcb(r->utcb()))
++        	trace (TRACE_ERROR, "%s: Cannot remove UTCB", __func__);
+         delete ec;
+         sys_finish<Sys_regs::BAD_CAP>();
+     }
