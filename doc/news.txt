@@ -4,6 +4,33 @@
                                ===========
 
 
+NOVA Hypervisor supported on 64-bit x86 machines | 2012-07-27
+#############################################################
+
+| NOVA combines microkernel principles with capability-based security and
+| virtualization technology. The updated version complements the existing
+| x86_32 support with a new variant for x86_64.
+
+NOVA is a so-called microhypervisor for the x86 architecture. It combines the
+principles of microkernels with capability-based security and hardware-assisted
+virtualization.
+
+Genode supports NOVA as base platform since 2010. But because we used NOVA
+solely for sporadic research activities and NOVA was lacking a regular release
+schedule, Genode's platform support received only little attention. This has
+changed now. NOVA's main developer Udo Steinberg moved from TU Dresden to Intel
+Labs where he leads the development of NOVA as an Open-Source project. In fact,
+the code is now being hosted at GitHub. [https://github.com/IntelLabs/NOVA - NOVA on GitHub..]
+
+This ignited our renewed interest in promoting this platform to a first-level
+citizen of our framework. The first significant improvement is the recently
+added 64-bit support of NOVA. We enabled Genode to work with both variants of
+the kernel - 32 and 64 bit.
+
+We congratulate the NOVA developers to this new model of development and open
+collaboration and look forward to work closely together!
+
+
 Interview in Revista Espírito Livre magazine | 2012-06-20
 #########################################################
 
