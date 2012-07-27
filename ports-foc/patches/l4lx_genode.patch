@@ -1,3 +1,27 @@
+Index: arch/l4/Kconfig
+===================================================================
+--- arch/l4/Kconfig	(revision 23)
++++ arch/l4/Kconfig	(working copy)
+@@ -394,7 +394,19 @@
+ config L4_USE_L4SHMC
+ 	bool
+ 
++config SCREEN_GENODE
++	bool
++	select FB_CFB_FILLRECT
++	select FB_CFB_COPYAREA
++	select FB_CFB_IMAGEBLIT
++	default y
+ 
++config SERIAL_GENODE
++	bool
++	default y
++	select SERIAL_CORE
++	select SERIAL_CORE_CONSOLE
++
+ # some delimiter (for .config)
+ comment ""
+ source "arch/l4/Kconfig.arch"
 Index: arch/l4/kernel/dispatch.c
 ===================================================================
 --- arch/l4/kernel/dispatch.c	(revision 23)
@@ -20,6 +44,181 @@ Index: arch/l4/kernel/dispatch.c
  		}
  	}
  }
+Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
+===================================================================
+--- arch/l4/kernel/arch-x86/vmlinux.lds.S	(revision 23)
++++ arch/l4/kernel/arch-x86/vmlinux.lds.S	(working copy)
+@@ -33,7 +33,7 @@
+ 
+ #ifdef CONFIG_X86_32
+ OUTPUT_ARCH(i386)
+-ENTRY(phys_startup_32)
++ENTRY(_start)
+ jiffies = jiffies_64;
+ #else
+ OUTPUT_ARCH(i386:x86-64)
+@@ -67,17 +67,10 @@
+ 
+ #endif
+ 
+-PHDRS {
+-	text PT_LOAD FLAGS(5);          /* R_E */
+-	data PT_LOAD FLAGS(6);          /* RW_ */
+-#ifdef CONFIG_X86_64
+-	user PT_LOAD FLAGS(5);          /* R_E */
+-#ifdef CONFIG_SMP
+-	percpu PT_LOAD FLAGS(6);        /* RW_ */
+-#endif
+-	init PT_LOAD FLAGS(7);          /* RWE */
+-#endif
+-	note PT_NOTE FLAGS(0);          /* ___ */
++PHDRS
++{
++	ro   PT_LOAD;
++	rw   PT_LOAD;
+ }
+ 
+ SECTIONS
+@@ -97,6 +90,29 @@
+ 	/*_stext = .;*/
+ 	.text :  AT(ADDR(.text) - LOAD_OFFSET) {
+ 		_text = .;
++		_prog_img_beg = .;
++
++		/*
++		 * Leave space for parent capability parameters at start of data
++		 * section. The protection domain creator is reponsible for storing
++		 * sane values here.
++		 */
++		_parent_cap = .;
++		_parent_cap_thread_id = .;
++		LONG(0xffffffff);
++		_parent_cap_local_name = .;
++		LONG(0xffffffff);
++
++		/*
++		 * Platform-specific entry for Fiasco.OC.
++		 *
++		 * PIC-code compiled for Fiasco.OC, needs some PIC-compatible
++		 * way to enter the kernel, the fixed address of the kernel
++		 * entry code address needs to be found here.
++		 */
++		__l4sys_invoke_indirect = .;
++		LONG(0xeacff000);
++
+ 		/* bootstrapping code */
+ 		HEAD_TEXT
+ #ifdef CONFIG_X86_32
+@@ -112,14 +128,28 @@
+ 		ENTRY_TEXT
+ 		IRQENTRY_TEXT
+ 		*(.fixup)
++		*(.text.*) /* put all Genode .text entries in here */
+ 		*(.gnu.warning)
++
++		. = ALIGN(0x08);
++
++		_ctors_start = .;
++		KEEP (*(.ctors))
++		KEEP (*(SORT(.ctors.*)))
++		KEEP (*(.init_array)) /* list of constructors specific for ARM eabi */
++		_ctors_end = .;
++		_dtors_start = .;
++		KEEP (*(SORT(.dtors.*)))
++		KEEP (*(.dtors))
++		_dtors_end = .;
++
+ 		/* End of text section */
+ 		_etext = .;
+-	} :text = 0x9090
++	} : rw
+ 
+-	NOTES :text :note
++	NOTES :rw
+ 
+-	EXCEPTION_TABLE(16) :text = 0x9090
++	.eh_frame_hdr : { *(.eh_frame_hdr) }
+ 
+ #if defined(CONFIG_DEBUG_RODATA)
+ 	/* .text should occupy whole number of pages */
+@@ -152,10 +182,34 @@
+ 		/* rarely changed data like cpu maps */
+ 		READ_MOSTLY_DATA(INTERNODE_CACHE_BYTES)
+ 
++		*(.data.*) /* put all Genode .data entries in here */
++
++
+ 		/* End of data section */
+ 		_edata = .;
+-	} :data
++	} : rw
+ 
++	EXCEPTION_TABLE(16) : rw
++
++	/* exception frames for C++ */
++	.eh_frame : {
++		__eh_frame_start__ = .;
++		KEEP (*(.eh_frame))
++		LONG(0)
++	} : rw
++
++	.init_array : {
++		__init_array_start = .;
++		KEEP (*(SORT(.init_array.*)))
++		KEEP (*(.init_array))
++		__init_array_end = .;
++	}
++
++	.gcc_except_table : {
++		KEEP(*(.gcc_except_table))
++		KEEP(*(.gcc_except_table.*))
++	}
++
+ #ifdef CONFIG_X86_64
+ 
+ #ifdef CONFIG_L4
+@@ -366,6 +420,7 @@
+ 		__bss_start = .;
+ 		*(.bss..page_aligned)
+ 		*(.bss)
++		*(.bss.*) /* put all Genode .bss entries in here */
+ 		. = ALIGN(PAGE_SIZE);
+ 		__bss_stop = .;
+ 	}
+@@ -378,6 +433,7 @@
+ 		__brk_limit = .;
+ 	}
+ 
++	_prog_img_end = .;
+ 	_end = .;
+ 
+         STABS_DEBUG
+Index: arch/l4/kernel/arch-x86/x86_init.c
+===================================================================
+--- arch/l4/kernel/arch-x86/x86_init.c	(revision 23)
++++ arch/l4/kernel/arch-x86/x86_init.c	(working copy)
+@@ -38,7 +38,7 @@
+ struct x86_init_ops x86_init __initdata = {
+ 
+ 	.resources = {
+-		.probe_roms		= probe_roms,
++		.probe_roms		= x86_init_noop,
+ 		.reserve_resources	= reserve_standard_io_resources,
+ 		.memory_setup		= l4x_memory_setup,
+ 	},
+Index: arch/l4/kernel/arch-arm/dispatch.c
+===================================================================
+--- arch/l4/kernel/arch-arm/dispatch.c	(revision 23)
++++ arch/l4/kernel/arch-arm/dispatch.c	(working copy)
+@@ -66,7 +66,7 @@
+ };
+ 
+ 
+-#if 1
++#if 0
+ #define TBUF_LOG_IDLE(x)        TBUF_DO_IT(x)
+ #define TBUF_LOG_WAKEUP_IDLE(x)	TBUF_DO_IT(x)
+ #define TBUF_LOG_USER_PF(x)     TBUF_DO_IT(x)
 Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
 ===================================================================
 --- arch/l4/kernel/arch-arm/vmlinux.lds.S	(revision 23)
@@ -198,168 +397,6 @@ Index: arch/l4/kernel/arch-arm/traps.c
  }
  #endif
  
-Index: arch/l4/kernel/arch-x86/x86_init.c
-===================================================================
---- arch/l4/kernel/arch-x86/x86_init.c	(revision 23)
-+++ arch/l4/kernel/arch-x86/x86_init.c	(working copy)
-@@ -38,7 +38,7 @@
- struct x86_init_ops x86_init __initdata = {
- 
- 	.resources = {
--		.probe_roms		= probe_roms,
-+		.probe_roms		= x86_init_noop,
- 		.reserve_resources	= reserve_standard_io_resources,
- 		.memory_setup		= l4x_memory_setup,
- 	},
-Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
-===================================================================
---- arch/l4/kernel/arch-x86/vmlinux.lds.S	(revision 23)
-+++ arch/l4/kernel/arch-x86/vmlinux.lds.S	(working copy)
-@@ -33,7 +33,7 @@
- 
- #ifdef CONFIG_X86_32
- OUTPUT_ARCH(i386)
--ENTRY(phys_startup_32)
-+ENTRY(_start)
- jiffies = jiffies_64;
- #else
- OUTPUT_ARCH(i386:x86-64)
-@@ -67,17 +67,10 @@
- 
- #endif
- 
--PHDRS {
--	text PT_LOAD FLAGS(5);          /* R_E */
--	data PT_LOAD FLAGS(6);          /* RW_ */
--#ifdef CONFIG_X86_64
--	user PT_LOAD FLAGS(5);          /* R_E */
--#ifdef CONFIG_SMP
--	percpu PT_LOAD FLAGS(6);        /* RW_ */
--#endif
--	init PT_LOAD FLAGS(7);          /* RWE */
--#endif
--	note PT_NOTE FLAGS(0);          /* ___ */
-+PHDRS
-+{
-+	ro   PT_LOAD;
-+	rw   PT_LOAD;
- }
- 
- SECTIONS
-@@ -97,6 +90,29 @@
- 	/*_stext = .;*/
- 	.text :  AT(ADDR(.text) - LOAD_OFFSET) {
- 		_text = .;
-+		_prog_img_beg = .;
-+
-+		/*
-+		 * Leave space for parent capability parameters at start of data
-+		 * section. The protection domain creator is reponsible for storing
-+		 * sane values here.
-+		 */
-+		_parent_cap = .;
-+		_parent_cap_thread_id = .;
-+		LONG(0xffffffff);
-+		_parent_cap_local_name = .;
-+		LONG(0xffffffff);
-+
-+		/*
-+		 * Platform-specific entry for Fiasco.OC.
-+		 *
-+		 * PIC-code compiled for Fiasco.OC, needs some PIC-compatible
-+		 * way to enter the kernel, the fixed address of the kernel
-+		 * entry code address needs to be found here.
-+		 */
-+		__l4sys_invoke_indirect = .;
-+		LONG(0xeacff000);
-+
- 		/* bootstrapping code */
- 		HEAD_TEXT
- #ifdef CONFIG_X86_32
-@@ -112,14 +128,28 @@
- 		ENTRY_TEXT
- 		IRQENTRY_TEXT
- 		*(.fixup)
-+		*(.text.*) /* put all Genode .text entries in here */
- 		*(.gnu.warning)
-+
-+		. = ALIGN(0x08);
-+
-+		_ctors_start = .;
-+		KEEP (*(.ctors))
-+		KEEP (*(SORT(.ctors.*)))
-+		KEEP (*(.init_array)) /* list of constructors specific for ARM eabi */
-+		_ctors_end = .;
-+		_dtors_start = .;
-+		KEEP (*(SORT(.dtors.*)))
-+		KEEP (*(.dtors))
-+		_dtors_end = .;
-+
- 		/* End of text section */
- 		_etext = .;
--	} :text = 0x9090
-+	} : rw
- 
--	NOTES :text :note
-+	NOTES :rw
- 
--	EXCEPTION_TABLE(16) :text = 0x9090
-+	.eh_frame_hdr : { *(.eh_frame_hdr) }
- 
- #if defined(CONFIG_DEBUG_RODATA)
- 	/* .text should occupy whole number of pages */
-@@ -152,10 +182,34 @@
- 		/* rarely changed data like cpu maps */
- 		READ_MOSTLY_DATA(INTERNODE_CACHE_BYTES)
- 
-+		*(.data.*) /* put all Genode .data entries in here */
-+
-+
- 		/* End of data section */
- 		_edata = .;
--	} :data
-+	} : rw
- 
-+	EXCEPTION_TABLE(16) : rw
-+
-+	/* exception frames for C++ */
-+	.eh_frame : {
-+		__eh_frame_start__ = .;
-+		KEEP (*(.eh_frame))
-+		LONG(0)
-+	} : rw
-+
-+	.init_array : {
-+		__init_array_start = .;
-+		KEEP (*(SORT(.init_array.*)))
-+		KEEP (*(.init_array))
-+		__init_array_end = .;
-+	}
-+
-+	.gcc_except_table : {
-+		KEEP(*(.gcc_except_table))
-+		KEEP(*(.gcc_except_table.*))
-+	}
-+
- #ifdef CONFIG_X86_64
- 
- #ifdef CONFIG_L4
-@@ -366,6 +420,7 @@
- 		__bss_start = .;
- 		*(.bss..page_aligned)
- 		*(.bss)
-+		*(.bss.*) /* put all Genode .bss entries in here */
- 		. = ALIGN(PAGE_SIZE);
- 		__bss_stop = .;
- 	}
-@@ -378,6 +433,7 @@
- 		__brk_limit = .;
- 	}
- 
-+	_prog_img_end = .;
- 	_end = .;
- 
-         STABS_DEBUG
 Index: arch/l4/kernel/head.S
 ===================================================================
 --- arch/l4/kernel/head.S	(revision 23)
@@ -623,51 +660,6 @@ Index: arch/l4/kernel/main.c
  	LOG_printf("Still alive, going zombie???\n");
  	l4_sleep_forever();
  }
-Index: arch/l4/Kconfig
-===================================================================
---- arch/l4/Kconfig	(revision 23)
-+++ arch/l4/Kconfig	(working copy)
-@@ -394,7 +394,19 @@
- config L4_USE_L4SHMC
- 	bool
- 
-+config SCREEN_GENODE
-+	bool
-+	select FB_CFB_FILLRECT
-+	select FB_CFB_COPYAREA
-+	select FB_CFB_IMAGEBLIT
-+	default y
- 
-+config SERIAL_GENODE
-+	bool
-+	default y
-+	select SERIAL_CORE
-+	select SERIAL_CORE_CONSOLE
-+
- # some delimiter (for .config)
- comment ""
- source "arch/l4/Kconfig.arch"
-Index: arch/l4/include/asm/generic/l4lib.h
-===================================================================
---- arch/l4/include/asm/generic/l4lib.h	(revision 23)
-+++ arch/l4/include/asm/generic/l4lib.h	(working copy)
-@@ -3,6 +3,7 @@
- 
- #include <linux/stringify.h>
- 
-+#if 0
- #ifdef ARCH_arm
- #define L4_EXTERNAL_FUNC(func) \
- 	asm(".section \".data.l4externals.str\"                         \n" \
-@@ -58,5 +59,8 @@
- 	    ".previous                                                  \n" \
- 	   )
- #endif
-+#endif
- 
-+#define L4_EXTERNAL_FUNC(func) ;
-+
- #endif /* __INCLUDE__ASM_L4__GENERIC__L4LIB_H__ */
 Index: arch/l4/boot/Makefile
 ===================================================================
 --- arch/l4/boot/Makefile	(revision 23)
@@ -834,18 +826,27 @@ Index: arch/l4/Makefile
  
  server:
  	$(Q)$(MAKE) $(build)=arch/l4/server
-Index: include/asm-generic/vmlinux.lds.h
+Index: arch/l4/include/asm/generic/l4lib.h
 ===================================================================
---- include/asm-generic/vmlinux.lds.h	(revision 23)
-+++ include/asm-generic/vmlinux.lds.h	(working copy)
-@@ -371,6 +371,7 @@
- 		VMLINUX_SYMBOL(__start___modver) = .;			\
- 		*(__modver)						\
- 		VMLINUX_SYMBOL(__stop___modver) = .;			\
-+		LONG(0) /* enforce non-zero section size */		\
- 		. = ALIGN((align));					\
- 		VMLINUX_SYMBOL(__end_rodata) = .;			\
- 	}								\
+--- arch/l4/include/asm/generic/l4lib.h	(revision 23)
++++ arch/l4/include/asm/generic/l4lib.h	(working copy)
+@@ -3,6 +3,7 @@
+ 
+ #include <linux/stringify.h>
+ 
++#if 0
+ #ifdef ARCH_arm
+ #define L4_EXTERNAL_FUNC(func) \
+ 	asm(".section \".data.l4externals.str\"                         \n" \
+@@ -58,5 +59,8 @@
+ 	    ".previous                                                  \n" \
+ 	   )
+ #endif
++#endif
+ 
++#define L4_EXTERNAL_FUNC(func) ;
++
+ #endif /* __INCLUDE__ASM_L4__GENERIC__L4LIB_H__ */
 Index: drivers/tty/serial/l4ser.c
 ===================================================================
 --- drivers/tty/serial/l4ser.c	(revision 23)
@@ -936,3 +937,15 @@ Index: drivers/tty/serial/l4ser.c
  
  	if (l4ser_init_port(0, PORT0_NAME))
  		return -ENODEV;
+Index: include/asm-generic/vmlinux.lds.h
+===================================================================
+--- include/asm-generic/vmlinux.lds.h	(revision 23)
++++ include/asm-generic/vmlinux.lds.h	(working copy)
+@@ -371,6 +371,7 @@
+ 		VMLINUX_SYMBOL(__start___modver) = .;			\
+ 		*(__modver)						\
+ 		VMLINUX_SYMBOL(__stop___modver) = .;			\
++		LONG(0) /* enforce non-zero section size */		\
+ 		. = ALIGN((align));					\
+ 		VMLINUX_SYMBOL(__end_rodata) = .;			\
+ 	}								\
