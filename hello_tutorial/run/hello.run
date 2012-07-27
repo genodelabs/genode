@@ -13,13 +13,8 @@ create_boot_directory
 install_config {
 <config>
 	<parent-provides>
-		<service name="ROM"/>
-		<service name="RAM"/>
 		<service name="CAP"/>
 		<service name="LOG"/>
-		<service name="RM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>

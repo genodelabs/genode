@@ -5,13 +5,6 @@ create_boot_directory
 install_config {
 	<config>
 		<parent-provides>
-			<service name="ROM"/>
-			<service name="RAM"/>
-			<service name="CPU"/>
-			<service name="RM"/>
-			<service name="CAP"/>
-			<service name="PD"/>
-			<service name="SIGNAL"/>
 			<service name="LOG"/>
 		</parent-provides>
 		<default-route>
