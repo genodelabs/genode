@@ -93,6 +93,8 @@ namespace Noux {
 				_seek(0)
 			{ }
 
+			virtual ~Vfs_handle() { }
+
 			Directory_service *ds() { return _ds; }
 			File_io_service   *fs() { return _fs; }
 
