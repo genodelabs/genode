@@ -63,14 +63,14 @@ namespace Genode {
 			/**
 			 * Return portal capability selector for parent interface
 			 */
-			int parent_pt_sel() { return _parent.dst(); }
+			addr_t parent_pt_sel() { return _parent.local_name(); }
 
 			/**
 			 * Assign PD selector to PD
 			 */
 			void assign_pd(int pd_sel) { _pd_sel = pd_sel; }
 
-			int pd_sel() { return _pd_sel; }
+			addr_t pd_sel() { return _pd_sel; }
 
 			int id() { return _id; }
 	};

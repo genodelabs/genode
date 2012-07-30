@@ -96,6 +96,10 @@ void Thread_base::_deinit_platform_thread()
 
 	/* de-announce thread */
 	env()->cpu_session()->kill_thread(_thread_cap);
+
+	revoke(_thread_cap.local_name(), 0);
+	cap_selector_allocator()->free(_thread_cap.local_name(), 0);
+
 }
 
 
@@ -120,7 +124,7 @@ void Thread_base::start()
 	
 	/* request native EC thread cap */ 
 	Native_capability ec_cap = cpu.native_cap(_thread_cap);
-	_tid.ec_sel = ec_cap.dst();
+	_tid.ec_sel = ec_cap.local_name();
 
 	using namespace Nova;
 

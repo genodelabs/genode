@@ -17,6 +17,8 @@
 #include <base/native_capability.h>
 #include <base/stdint.h>
 
+#include <nova/syscalls.h>
+
 namespace Genode {
 
 	typedef volatile int  Native_lock;
@@ -57,18 +59,88 @@ namespace Genode {
 			 * user process. It is not backed by a dataspace but provided
 			 * by the kernel.
 			 */
-			long _utcb[UTCB_SIZE/sizeof(long)];
+			addr_t _utcb[UTCB_SIZE/sizeof(addr_t)];
 	};
 
-	struct Cap_dst_policy
+	class Native_capability
 	{
-		typedef addr_t Dst;
-		static bool valid(Dst pt) { return pt != 0; }
-		static Dst  invalid()     { return 0;       }
-		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
+		public:
+			typedef Nova::Obj_crd Dst;
+
+			struct Raw
+			{
+				Dst    dst;
+ 				/*
+				 * It is obsolete and unused in NOVA,
+				 * however still used by generic base part
+				 */
+				addr_t local_name;
+			};
+
+		private:
+			struct _Raw
+			{
+				Dst    dst;
+
+				_Raw() : dst() { }
+
+				_Raw(addr_t sel, unsigned rights)
+				: dst(sel, 0, rights) { }
+			} _cap;
+
+			bool   _trans_map;
+			void * _ptr;
+
+		protected:
+
+			explicit
+			Native_capability(void* ptr) : _cap(),
+			                               _trans_map(true),
+			                               _ptr(ptr) { }
+
+		public:
+			Native_capability() : _cap(), _trans_map(true),
+			                      _ptr(0) { }
+
+			explicit
+			Native_capability(addr_t sel, unsigned rights = 0x1f)
+			: _cap(sel, rights), _trans_map(true), _ptr(0) { }
+
+			Native_capability(const Native_capability &o)
+			: _cap(o._cap), _trans_map(o._trans_map), _ptr(o._ptr) { }
+
+			Native_capability& operator=(const Native_capability &o){
+				if (this == &o)
+					return *this;
+
+				_cap        = o._cap;
+				_trans_map  = o._trans_map;
+				_ptr        = o._ptr;
+				return *this;
+			}
+
+			bool valid() const
+			{
+				 return !_cap.dst.is_null() &&
+					 _cap.dst.base() != ~0UL;
+			 }
+
+			Dst dst()   const { return _cap.dst; }
+			void * local() const { return _ptr; }
+			addr_t local_name() const { return _cap.dst.base(); }
+
+			static Dst invalid() { return Dst(); }
+
+			static Native_capability invalid_cap()
+			{
+				return Native_capability(~0UL);
+			}
+
+			/** Invoke map syscall instead of translate_map call */
+			void solely_map() { _trans_map = false; }
+			bool trans_map() const { return _trans_map; } 
 	};
 
-	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef int Native_connection_state;
 }
 

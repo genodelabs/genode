@@ -38,12 +38,11 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 	/* _ec_sel is invalid until thread gets started */
 	if (tid().ec_sel != ~0UL)
-		ep_cap = Native_capability(tid().ec_sel, 0);
+		ec_cap = Native_capability(tid().ec_sel);
 	else
-		ep_cap = Native_capability(_thread_cap.dst(), 0);
+		ec_cap = _thread_cap;
 
-	new_obj_cap = _cap_session->alloc(ep_cap, (addr_t)_activation_entry);
-	new_obj_cap = Native_capability(new_obj_cap.dst(), new_obj_cap.dst());
+	ep_cap = _cap_session->alloc(ec_cap, (addr_t)_activation_entry);
 
 	/* add server object to object pool */
 	obj->cap(new_obj_cap);
@@ -100,7 +99,7 @@ void Rpc_entrypoint::_activation_entry()
 	ep->_rcv_buf.post_ipc(reinterpret_cast<Nova::Utcb *>(ep->utcb()));
 
 	/* destination of next reply */
-	srv.dst(Native_capability(id_pt, srv.badge()));
+	srv.dst(Native_capability(id_pt));
 
 	int opcode = 0;
 
@@ -223,7 +222,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		 * (to create portals bound to the ec)
 		 */
 		Native_capability ec_cap = cpu.native_cap(_thread_cap);
-		_tid.ec_sel = ec_cap.dst();
+		_tid.ec_sel = ec_cap.local_name();
 	}
 
 	_rcv_buf.rcv_prepare_pt_sel_window((Nova::Utcb *)&_context->utcb);

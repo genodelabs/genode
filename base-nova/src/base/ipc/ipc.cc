@@ -82,10 +82,10 @@ static bool copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base *snd_msg,
 
 	/* append portal capability selectors */
 	for (unsigned i = 0; i < snd_msg->snd_pt_sel_cnt(); i++) {
-		int pt_sel = snd_msg->snd_pt_sel(i);
-		if (pt_sel < 0) continue;
+		Nova::Obj_crd crd = snd_msg->snd_pt_sel(i);
+		if (crd.base() == ~0UL) continue;
 
-		if (!utcb->append_item(Nova::Obj_crd(pt_sel, 0), i, false, false, true))
+		if (!utcb->append_item(crd, i, false, false, true))
 			return false;
 	}
 
@@ -142,7 +142,7 @@ void Ipc_client::_call()
 	_rcv_msg->rcv_prepare_pt_sel_window(utcb);
 
 	/* establish the mapping via a portal traversal */
-	uint8_t res = Nova::call(Ipc_ostream::_dst.dst());
+	uint8_t res = Nova::call(Ipc_ostream::_dst.local_name());
 	if (res) {
 		/* If an error occurred, reset word&item count (not done by kernel). */
 		utcb->set_msg_word(0);

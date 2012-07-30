@@ -31,7 +31,7 @@ inline void request_event_portal(Genode::Native_capability cap,
 	utcb->msg[0]  = event;
 	utcb->set_msg_word(1);
 
-	uint8_t res = call(pager_cap.dst());
+	uint8_t res = call(pager_cap.local_name());
 	if (res)
 		PERR("request of event (%lu) capability selector failed",
 		     event);

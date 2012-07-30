@@ -99,11 +99,10 @@ void Pager_object::wake_up() { PDBG("not yet implemented"); }
 Pager_object::Pager_object(unsigned long badge)
 : Thread_base("pager", PF_HANDLER_STACK_SIZE), _badge(badge)
 {
-	addr_t pd_sel = cap_selector_allocator()->pd_sel();
-
-	enum { CPU_NO = 0, GLOBAL = false, EXC_BASE = 0 };
+	_pt_cleanup = cap_selector_allocator()->alloc();
 
 	/* create portal for page-fault handler */
+	addr_t pd_sel = __core_pd_sel;
 	uint8_t res = create_pt(exc_pt_sel() + PT_SEL_PAGE_FAULT, pd_sel,
 	                        _tid.ec_sel, Mtd(Mtd::QUAL | Mtd::EIP),
 	                        (mword_t)_page_fault_handler);
@@ -124,20 +123,6 @@ Pager_object::Pager_object(unsigned long badge)
 		throw Create_startup_pt_failed();
 	}
 
-	/*
-	 * Create object identity representing the pager object. It is used as
-	 * argument to 'Cpu_session::set_pager'. Furthermore it can be invoked
-	 * to request the mapping of the event capability selector window
-	 * corresponding to the pager object.
-	 */
-	_pt_sel = cap_selector_allocator()->alloc();
-	res = create_pt(_pt_sel, pd_sel, _tid.ec_sel, Mtd(0),
-	                reinterpret_cast<addr_t>(_invoke_handler));
-	if (res)
-		PERR("could not create pager object identity, error = %u\n",
-	             res);
-
-	_pt_cleanup = cap_selector_allocator()->alloc();
 	res = create_pt(_pt_cleanup, pd_sel, _tid.ec_sel, Mtd(0),
 	                reinterpret_cast<addr_t>(_invoke_handler));
 	if (res)
@@ -147,10 +132,9 @@ Pager_object::Pager_object(unsigned long badge)
 
 Pager_object::~Pager_object()
 {
-	/* Revoke thread portals serving exceptions */
-	revoke(Obj_crd(exc_pt_sel(), NUM_INITIAL_PT_LOG2), true);
-	/* Revoke portal used as identity object */
-	revoke(Obj_crd(_pt_sel, 0), true);
+	/* Revoke portals of Pager_object */
+	revoke(Obj_crd(exc_pt_sel() + PT_SEL_STARTUP, 0), true);
+	revoke(Obj_crd(exc_pt_sel() + PT_SEL_PAGE_FAULT, 0), true);
 
 	/* Make sure nobody is in the handler anymore by doing an IPC to a
 	 * local cap pointing to same serving thread (if not running in the
@@ -167,8 +151,6 @@ Pager_object::~Pager_object()
 
 	/* Revoke portal used for the cleanup call */
 	revoke(Obj_crd(_pt_cleanup, 0), true);
-
-	cap_selector_allocator()->free(_pt_sel, 0);
 	cap_selector_allocator()->free(_pt_cleanup, 0);
 
 }
@@ -177,11 +159,9 @@ Pager_object::~Pager_object()
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
 	/* request creation of portal bind to pager thread */
-	Native_capability pager_thread_cap(obj->ec_sel(), 0);
-	Native_capability cap_session = _cap_session->alloc(pager_thread_cap,
-		obj->handler_address());
-
-	cap_session = Native_capability(cap_session.dst(), cap_session.dst());
+	Native_capability pager_thread_cap(obj->ec_sel());
+	Native_capability cap_session =
+		_cap_session->alloc(pager_thread_cap, obj->handler_address());
 
 	/* add server object to object pool */
 	obj->Object_pool<Pager_object>::Entry::cap(cap_session);
@@ -199,9 +179,12 @@ void Pager_entrypoint::dissolve(Pager_object *obj)
 	_cap_session->free(obj->Object_pool<Pager_object>::Entry::cap());
 
 	/* cleanup locally */
-	addr_t pager_pt = obj->Object_pool<Pager_object>::Entry::cap().dst();
-	revoke(Obj_crd(pager_pt, 0), true);
-	cap_selector_allocator()->free(pager_pt, 0);
+	Native_capability pager_pt =
+		obj->Object_pool<Pager_object>::Entry::cap();
+
+	revoke(pager_pt.dst(), true);
+
+	cap_selector_allocator()->free(pager_pt.local_name(), 0);
 
 	remove(obj);
 }

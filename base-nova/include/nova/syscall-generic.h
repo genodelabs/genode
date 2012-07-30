@@ -242,6 +242,7 @@ namespace Nova {
 			mword_t order() const { return _query<ORDER_MASK, ORDER_SHIFT>(); }
 			bool is_null()  const { return (_value & TYPE_MASK) == NULL_CRD_TYPE; }
 			uint8_t type()  const { return _query<TYPE_MASK, TYPE_SHIFT>(); }
+			uint8_t rights() const { return _query<RIGHTS_MASK, RIGHTS_SHIFT>(); }
 	} __attribute__((packed));
 
 
@@ -323,6 +324,15 @@ namespace Nova {
 	{
 		public:
 
+			enum {
+				RIGHT_EC_RECALL = 0x1U,
+			};
+
+			Obj_crd() : Crd(0, 0)
+			{
+				_assign<TYPE_MASK, TYPE_SHIFT>(NULL_CRD_TYPE);
+			}
+	
 			Obj_crd(mword_t base, mword_t order,
 			        mword_t rights = RIGHTS_ALL)
 			: Crd(base, order)

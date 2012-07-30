@@ -149,18 +149,19 @@ static void init_core_page_fault_handler()
 
 	static char stack[STACK_SIZE];
 
-	mword_t sp = (long)&stack[STACK_SIZE - sizeof(long)];
-	int ec_sel = cap_selector_allocator()->alloc();
+	addr_t sp = (addr_t)&stack[STACK_SIZE - sizeof(addr_t)];
+	addr_t ec_sel = cap_selector_allocator()->alloc();
 
-	int ret = create_ec(ec_sel, __local_pd_sel, CPU_NO, CORE_PAGER_UTCB_ADDR,
-	                    (mword_t)sp, EXC_BASE, GLOBAL);
+	uint8_t ret = create_ec(ec_sel, __core_pd_sel, CPU_NO,
+	                        CORE_PAGER_UTCB_ADDR, (addr_t)sp, EXC_BASE,
+	                        GLOBAL);
 	if (ret)
-		PDBG("create_ec returned %d", ret);
+		PDBG("create_ec returned %u", ret);
 
 	/* set up page-fault portal */
 	create_pt(PT_SEL_PAGE_FAULT, __local_pd_sel, ec_sel,
 	          Mtd(Mtd::QUAL | Mtd::ESP | Mtd::EIP),
-	          (mword_t)page_fault_handler);
+	          (addr_t)page_fault_handler);
 }
 
 

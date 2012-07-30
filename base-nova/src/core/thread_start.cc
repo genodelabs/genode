@@ -35,10 +35,11 @@ using namespace Genode;
  */
 void Thread_base::_init_platform_thread()
 {
-	_tid.ec_sel = cap_selector_allocator()->alloc();
-	_tid.rs_sel = cap_selector_allocator()->alloc();
-	_tid.pd_sel = cap_selector_allocator()->pd_sel();
-	_tid.exc_pt_sel = cap_selector_allocator()->alloc(Nova::NUM_INITIAL_PT_LOG2);
+	using namespace Nova;
+
+	_tid.ec_sel     = cap_selector_allocator()->alloc();
+	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
+	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
 	/* create running semaphore required for locking */
 	uint8_t res = Nova::create_sm(_tid.rs_sel, _tid.pd_sel, 0);
@@ -56,7 +57,7 @@ void Thread_base::_init_platform_thread()
 	if (res) {
 		PERR("%p - create_ec returned %d", this, res);
 		PERR("valid thread %x %lx:%lx", _thread_cap.valid(),
-		     _thread_cap.dst(), _thread_cap.local_name());
+		     _thread_cap.dst()._sel, _thread_cap.local_name());
 	}
 }
 

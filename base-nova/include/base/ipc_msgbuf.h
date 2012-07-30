@@ -45,7 +45,10 @@ namespace Genode {
 			/**
 			 * Portal capability selectors to delegate
 			 */
-			addr_t _snd_pt_sel[MAX_CAP_ARGS];
+			struct {
+				addr_t   sel;
+				unsigned rights;
+			} _snd_pt_sel [MAX_CAP_ARGS];
 
 			/**
 			 * Base of portal receive window
@@ -109,19 +112,25 @@ namespace Genode {
 			/**
 			 * Append portal capability selector to message buffer
 			 */
-			inline bool snd_append_pt_sel(addr_t pt_sel)
+			inline bool snd_append_pt_sel(addr_t pt_sel,
+			                              unsigned rights)
 			{
 				if (_snd_pt_sel_cnt >= MAX_CAP_ARGS - 1)
 					return false;
 
-				_snd_pt_sel[_snd_pt_sel_cnt++] = pt_sel;
+				_snd_pt_sel[_snd_pt_sel_cnt  ].sel    = pt_sel;
+				_snd_pt_sel[_snd_pt_sel_cnt++].rights = rights;
 				return true;
 			}
 
 			/**
-			 * Return number of marshalled portal-capability selectors
+			 * Return number of marshalled portal-capability
+			 * selectors
 			 */
-			inline size_t snd_pt_sel_cnt() { return _snd_pt_sel_cnt; }
+			inline size_t snd_pt_sel_cnt()
+			{
+				 return _snd_pt_sel_cnt;
+			}
 
 			/**
 			 * Return portal capability selector
@@ -130,7 +139,14 @@ namespace Genode {
 			 * \return   portal-capability selector, or
 			 *           -1 if index is invalid
 			 */
-			addr_t snd_pt_sel(unsigned i) { return i < _snd_pt_sel_cnt ? _snd_pt_sel[i] : -1; }
+			Nova::Obj_crd snd_pt_sel(addr_t i)
+			{
+				if (i >= _snd_pt_sel_cnt)
+					return Nova::Obj_crd();
+
+				return Nova::Obj_crd(_snd_pt_sel[i].sel, 0,
+						     _snd_pt_sel[i].rights);
+			}
 
 			/**
 			 * Request current portal-receive window
