@@ -55,7 +55,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 
 void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 {
-	/* Avoid any incoming IPC early, keep local selector */
+	/* Avoid any incoming IPC early, keep local cap solely */
 	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), false);
 
 	/* make sure nobody is able to find this object */
@@ -78,11 +78,11 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	/* De-announce object from cap_session */
 	_cap_session->free(obj->cap());
 
-	/* Revoke local selector finally */
+	/* Revoke also local cap finally */
 	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
-	/* free cap selector ??? XXX */
-	//cap_selector_allocator()->free(obj->cap().local_name(), 0);
 
+	/* free cap selector */
+	cap_selector_allocator()->free(obj->cap().local_name(), 0);
 }
 
 void Rpc_entrypoint::_activation_entry()
@@ -114,16 +114,16 @@ void Rpc_entrypoint::_activation_entry()
 
 		ep->_curr_obj = ep->obj_by_id(id_pt);
 		if (!ep->_curr_obj || !id_pt) {
-/*
-			ep->_curr_obj = ep->obj_by_id(srv.badge());
-			if (!ep->_curr_obj) {
-*/
+			/* Badge is used to suppress error message solely.
+			 * It's non zero during cleanup call of an
+			 * rpc_object_base object, see _leave_server_object.
+			 */
+			if (!srv.badge())
 				PERR("could not look up server object, "
-				     " return from call badge=%lx id_pt=%lx",
-				     srv.badge(), id_pt);
-				ep->_curr_obj_lock.unlock();
-				srv << IPC_REPLY;
-//			}
+				     " return from call id_pt=%lx",
+				     id_pt);
+			ep->_curr_obj_lock.unlock();
+			srv << IPC_REPLY;
 		}
 
 		ep->_curr_obj->lock();
@@ -162,7 +162,8 @@ void Rpc_entrypoint::_leave_server_object(Rpc_object_base *obj)
 	                   Thread_base::myself()->utcb());
 	/* don't call ourself */
 	if (utcb != reinterpret_cast<Nova::Utcb *>(&_context->utcb)) {
-		utcb->set_msg_word(0);
+		utcb->msg[0] = 0xdead;
+		utcb->set_msg_word(1);
 		if (uint8_t res = Nova::call(obj->cap().local_name()))
 			PERR("could not clean up entry point - %u", res);
 	}

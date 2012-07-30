@@ -66,14 +66,14 @@ static inline Genode::Native_thread_id thread_get_my_native_id()
 
 static inline Genode::Native_thread_id thread_invalid_id()
 {
-	Genode::Native_thread_id tid = { 0, 0, -1 };
+	Genode::Native_thread_id tid = { 0, 0, ~0UL };
 	return tid;
 }
 
 
 static inline bool thread_id_valid(Genode::Native_thread_id tid)
 {
-	return tid.rs_sel != -1;
+	return tid.rs_sel != ~0UL;
 }
 
 
