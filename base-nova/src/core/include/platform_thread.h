@@ -125,7 +125,10 @@ namespace Genode {
 
 			Native_capability native_cap()
 			{
-				return Native_capability(_sel_ec(), 0);
+				using namespace Nova;
+
+				return Native_capability(
+					_sel_ec(), Obj_crd::RIGHT_EC_RECALL);
 			}
 
 	};
