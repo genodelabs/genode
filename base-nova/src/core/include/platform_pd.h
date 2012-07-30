@@ -26,7 +26,7 @@ namespace Genode {
 			int               _thread_cnt;
 			Native_capability _parent;
 			int               _id;
-			int               _pd_sel;
+			addr_t            _pd_sel;
 
 		public:
 
@@ -68,7 +68,7 @@ namespace Genode {
 			/**
 			 * Assign PD selector to PD
 			 */
-			void assign_pd(int pd_sel) { _pd_sel = pd_sel; }
+			void assign_pd(addr_t pd_sel) { _pd_sel = pd_sel; }
 
 			addr_t pd_sel() { return _pd_sel; }
 

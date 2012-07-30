@@ -114,15 +114,16 @@ void Rpc_entrypoint::_activation_entry()
 
 		ep->_curr_obj = ep->obj_by_id(id_pt);
 		if (!ep->_curr_obj || !id_pt) {
+/*
 			ep->_curr_obj = ep->obj_by_id(srv.badge());
 			if (!ep->_curr_obj) {
+*/
 				PERR("could not look up server object, "
 				     " return from call badge=%lx id_pt=%lx",
 				     srv.badge(), id_pt);
-
 				ep->_curr_obj_lock.unlock();
 				srv << IPC_REPLY;
-			}
+//			}
 		}
 
 		ep->_curr_obj->lock();

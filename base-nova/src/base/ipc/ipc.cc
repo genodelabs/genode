@@ -82,10 +82,11 @@ static bool copy_msgbuf_to_utcb(Nova::Utcb *utcb, Msgbuf_base *snd_msg,
 
 	/* append portal capability selectors */
 	for (unsigned i = 0; i < snd_msg->snd_pt_sel_cnt(); i++) {
-		Nova::Obj_crd crd = snd_msg->snd_pt_sel(i);
+		bool trans_map = true;
+		Nova::Obj_crd crd = snd_msg->snd_pt_sel(i, trans_map);
 		if (crd.base() == ~0UL) continue;
 
-		if (!utcb->append_item(crd, i, false, false, true))
+		if (!utcb->append_item(crd, i, false, false, trans_map))
 			return false;
 	}
 

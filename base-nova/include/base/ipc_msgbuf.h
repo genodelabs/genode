@@ -31,7 +31,10 @@ namespace Genode {
 	{
 		public:
 
-			enum { MAX_CAP_ARGS_LOG2 = 2, MAX_CAP_ARGS = 1 << MAX_CAP_ARGS_LOG2 };
+			enum {
+				MAX_CAP_ARGS_LOG2 = 2,
+				MAX_CAP_ARGS = 1 << MAX_CAP_ARGS_LOG2
+			};
 
 		protected:
 
@@ -48,6 +51,7 @@ namespace Genode {
 			struct {
 				addr_t   sel;
 				unsigned rights;
+				bool	 trans_map;
 			} _snd_pt_sel [MAX_CAP_ARGS];
 
 			/**
@@ -61,13 +65,15 @@ namespace Genode {
 			} _rcv_pt_sel [MAX_CAP_ARGS];
 
 			/**
-			 * Read counter for unmarshalling portal capability selectors
+			 * Read counter for unmarshalling portal capability
+			 * selectors
 			 */
 			unsigned _rcv_pt_sel_cnt;
 			unsigned _rcv_pt_sel_max;
 
 			/**
-			 * Number of capabilities which has been received, reported by the kernel.
+			 * Number of capabilities which has been received,
+			 * reported by the kernel.
 			 */
 			unsigned _rcv_items;
 
@@ -113,13 +119,15 @@ namespace Genode {
 			 * Append portal capability selector to message buffer
 			 */
 			inline bool snd_append_pt_sel(addr_t pt_sel,
-			                              unsigned rights)
+			                              unsigned rights,
+			                              bool trans_map)
 			{
 				if (_snd_pt_sel_cnt >= MAX_CAP_ARGS - 1)
 					return false;
 
-				_snd_pt_sel[_snd_pt_sel_cnt  ].sel    = pt_sel;
-				_snd_pt_sel[_snd_pt_sel_cnt++].rights = rights;
+				_snd_pt_sel[_snd_pt_sel_cnt  ].sel       = pt_sel;
+				_snd_pt_sel[_snd_pt_sel_cnt  ].rights    = rights;
+				_snd_pt_sel[_snd_pt_sel_cnt++].trans_map = trans_map;
 				return true;
 			}
 
@@ -139,11 +147,12 @@ namespace Genode {
 			 * \return   portal-capability selector, or
 			 *           -1 if index is invalid
 			 */
-			Nova::Obj_crd snd_pt_sel(addr_t i)
+			Nova::Obj_crd snd_pt_sel(addr_t i, bool &trans_map)
 			{
 				if (i >= _snd_pt_sel_cnt)
 					return Nova::Obj_crd();
 
+				trans_map = _snd_pt_sel[i].trans_map;
 				return Nova::Obj_crd(_snd_pt_sel[i].sel, 0,
 						     _snd_pt_sel[i].rights);
 			}
