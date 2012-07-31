@@ -116,7 +116,7 @@ Region* Region_manager::reserve_range(Genode::size_t size, int align,
 			Rm_connection *rmc = new (env()->heap()) Rm_connection(0, size);
 			addr = start ? env()->rm_session()->attach_at(rmc->dataspace(), start)
 			             : env()->rm_session()->attach(rmc->dataspace());
-			PDBG("attach done addr=%p!", addr);
+			//PDBG("attach done addr=%p!", addr);
 			break;
 		} catch(Rm_session::Attach_failed e) {
 			PWRN("attach failed start=%lx", start);

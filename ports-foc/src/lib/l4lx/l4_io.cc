@@ -24,7 +24,7 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static bool DEBUG = true;
+static bool DEBUG = false;
 
 extern "C" {
 

@@ -25,7 +25,7 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static const bool DEBUG = true;
+static const bool DEBUG = false;
 static l4re_env_t __l4re_env;
 
 extern void* l4lx_kinfo;

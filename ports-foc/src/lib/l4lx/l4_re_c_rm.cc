@@ -27,7 +27,7 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static const bool DEBUG      = true; /* print usage of region map functions */
+static const bool DEBUG      = false; /* print usage of region map functions */
 static const bool DEBUG_FIND = false; /* print also usage of region map lookups */
 
 enum {
