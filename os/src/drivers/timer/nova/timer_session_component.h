@@ -25,7 +25,7 @@
 
 namespace Timer {
 
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = sizeof(Genode::addr_t) * 1024 };
 
 	class Wake_up_alarm : public Genode::Alarm
 	{

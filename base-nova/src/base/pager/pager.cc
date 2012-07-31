@@ -23,7 +23,7 @@
 using namespace Genode;
 using namespace Nova;
 
-enum { PF_HANDLER_STACK_SIZE = 4096 };
+enum { PF_HANDLER_STACK_SIZE = sizeof(addr_t) * 1024 };
 
 void Pager_object::_page_fault_handler()
 {
