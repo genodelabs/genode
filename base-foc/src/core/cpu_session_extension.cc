@@ -24,6 +24,7 @@ namespace Fiasco {
 #include <l4/sys/factory.h>
 }
 
+static Genode::Avl_tree<Genode::Cpu_session_irqs> _irq_tree;
 
 Genode::Ram_dataspace_capability Genode::Cpu_session_component::utcb(Genode::Thread_capability thread_cap)
 {
@@ -69,18 +70,30 @@ Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
 Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 {
 	using namespace Fiasco;
+	using namespace Genode;
 
+	/* find irq object container of this cpu-session */
+	Cpu_session_irqs* node = _irq_tree.first();
+	if (node)
+		node = node->find_by_session(this);
+
+	/* if not found, we've to create one */
+	if (!node) {
+		node = new (&_md_alloc) Cpu_session_irqs(this);
+		_irq_tree.insert(node);
+	}
+
+	/* construct irq kernel-object */
 	Cap_index* i = cap_map()->insert(platform_specific()->cap_id_alloc()->alloc());
 	l4_msgtag_t res = l4_factory_create_irq(L4_BASE_FACTORY_CAP, i->kcap());
-	if (l4_error(res))
+	if (l4_error(res)) {
 		PWRN("Allocation of irq object failed!");
+		return Genode::Native_capability();
+	}
 
-	/*
-	 * Increment reference-counter, because we don't hold any
-	 * reference to IRQ object by now
-	 */
-	i->inc();
-	return Genode::Native_capability(i);
+	/* construct cap and hold a reference in the irq container object */
+	Genode::Native_capability cap(i);
+	return (node->add(cap)) ? cap : Genode::Native_capability();
 }
 
 
