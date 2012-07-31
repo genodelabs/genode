@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
 	ssize_t count;
 
 	char const *dir_name      = "/testdir";
+	char const *dir_name2     = "testdir2";
 	char const *file_name     = "test.tst";
 	char const *file_name2    = "test2.tst";
 	char const *file_name3    = "test3.tst";
@@ -63,6 +64,9 @@ int main(int argc, char *argv[])
 
 		/* change to new directory */
 		CALL_AND_CHECK(ret, chdir(dir_name), ret == 0, "dir_name=%s", dir_name);
+
+		/* create subdirectory with relative path */
+		CALL_AND_CHECK(ret, mkdir(dir_name2, 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", dir_name2);
 
 		/* write pattern to a file */
 		CALL_AND_CHECK(fd, open(file_name, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);

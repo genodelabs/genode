@@ -114,7 +114,7 @@ namespace File_system {
 				if (!sub_dir)
 					throw Lookup_failed();
 
-				return sub_dir->lookup_and_lock(path + i + 1);
+				return sub_dir->lookup_and_lock(path + i + 1, return_parent);
 			}
 
 			Directory *lookup_and_lock_dir(char const *path)
