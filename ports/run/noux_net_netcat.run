@@ -92,7 +92,7 @@ install_config $config
 set boot_modules {
 	core init timer uart_drv nic_drv
 	ld.lib.so noux_net libc.lib.so libm.lib.so
-	libc_noux.lib.so lwip.lib.so noux_netcat.tar
+	libc_resolv.lib.so libc_noux.lib.so lwip.lib.so noux_netcat.tar
 }
 
 # platform-specific modules
