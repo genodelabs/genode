@@ -70,7 +70,7 @@ if {[have_spec x86_64]} {
         append qemu_args " -m 300 "
 }
 
-run_genode_until "child exited with exit value 0.*\n" 30
+run_genode_until "child /bin/ls exited with exit value 0.*\n" 30
 
 puts "[exec cat $noux_output_file]"
 
