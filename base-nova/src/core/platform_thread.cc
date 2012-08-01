@@ -98,7 +98,7 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base)
 	 */
 	_pager->initial_esp(PD_UTCB + get_page_size());
 
-	addr_t pd_sel       = cap_selector_allocator()->pd_sel();
+	addr_t pd_sel       = Platform_pd::pd_core_sel();
 	addr_t exc_base_sel = cap_selector_allocator()->alloc(Nova::NUM_INITIAL_PT_LOG2);
 	addr_t sm_alloc_sel = exc_base_sel + PD_SEL_CAP_LOCK;
 	addr_t sm_ec_sel    = exc_base_sel + SM_SEL_EC;

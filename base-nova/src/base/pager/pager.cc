@@ -25,6 +25,7 @@ using namespace Genode;
 using namespace Nova;
 
 enum { PF_HANDLER_STACK_SIZE = sizeof(addr_t) * 1024 };
+extern Genode::addr_t __core_pd_sel;
 
 void Pager_object::_page_fault_handler()
 {

@@ -16,6 +16,7 @@
 #define _PLATFORM___MAIN_HELPER_H_
 
 #include <nova/syscalls.h>
+#include <base/stdint.h>
 
 /**
  * Location of the main thread's UTCB, initialized by the startup code
@@ -34,11 +35,6 @@ extern long __initial_sp;
  */
 extern int __first_free_cap_selector;
 
-/**
- * Selector of local protection domain
- */
-extern int __local_pd_sel;
-
 static void main_thread_bootstrap()
 {
 	/* register UTCB of main thread */
@@ -50,9 +46,6 @@ static void main_thread_bootstrap()
 	/* this variable may be set by the dynamic linker (ldso) */
 	if (!__first_free_cap_selector)
 		__first_free_cap_selector = FIRST_FREE_PORTAL;
-
-	/* register pd selector at cap allocator */
-	__local_pd_sel = Nova::PD_SEL;
 }
 
 #endif /* _PLATFORM___MAIN_HELPER_H_ */

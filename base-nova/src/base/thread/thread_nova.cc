@@ -54,7 +54,6 @@ void Thread_base::_init_platform_thread()
 	 * running semaphore and exception handler portals.
 	 */
 	_tid.ec_sel     = ~0UL;
-	_tid.pd_sel     = cap_selector_allocator()->pd_sel();
 	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
 
 	/* create thread at core */

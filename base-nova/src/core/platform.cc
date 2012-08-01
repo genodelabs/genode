@@ -64,7 +64,7 @@ extern unsigned _prog_img_beg, _prog_img_end;
 /**
  *  Capability selector of root PD
  */
-extern int __local_pd_sel;
+addr_t __core_pd_sel;
 
 /**
  * Preserve physical page for the exclusive (read-only) use by core
@@ -161,7 +161,7 @@ static void init_core_page_fault_handler()
 		PDBG("create_ec returned %u", ret);
 
 	/* set up page-fault portal */
-	create_pt(PT_SEL_PAGE_FAULT, __local_pd_sel, ec_sel,
+	create_pt(PT_SEL_PAGE_FAULT, __core_pd_sel, ec_sel,
 	          Mtd(Mtd::QUAL | Mtd::ESP | Mtd::EIP),
 	          (addr_t)page_fault_handler);
 }
@@ -185,11 +185,11 @@ Platform::Platform() :
 	__first_free_cap_selector = hip->sel_exc + hip->sel_gsi + 3;
 
 	/* set core pd selector */
-	__local_pd_sel = hip->sel_exc;
+	__core_pd_sel = hip->sel_exc;
 
 	/* create lock used by capability allocator */
-	Nova::create_sm(Nova::PD_SEL_CAP_LOCK, __local_pd_sel, 1);
-	Nova::create_sm(Nova::SM_SEL_EC, __local_pd_sel, 0);
+	Nova::create_sm(Nova::PD_SEL_CAP_LOCK, __core_pd_sel, 1);
+	Nova::create_sm(Nova::SM_SEL_EC, __core_pd_sel, 0);
 
 	/* locally map the whole I/O port range */
 	enum { ORDER_64K = 16 };

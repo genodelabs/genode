@@ -30,7 +30,6 @@ using namespace Genode;
  * Must be initialized by the startup code
  */
 int __first_free_cap_selector;
-int __local_pd_sel;
 
 /**
  * Low-level lock to protect the allocator
@@ -86,9 +85,7 @@ void Cap_selector_allocator::free(addr_t cap, size_t num_caps_log2)
 }
 
 
-unsigned Cap_selector_allocator::pd_sel() { return __local_pd_sel; }
-
-Cap_selector_allocator::Cap_selector_allocator() : Bit_allocator<4096>()
+Cap_selector_allocator::Cap_selector_allocator()
 {
 	/* initialize lock */
 	alloc_lock();

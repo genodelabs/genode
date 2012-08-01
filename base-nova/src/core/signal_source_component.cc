@@ -18,6 +18,7 @@
 
 /* core includes */
 #include <signal_session_component.h>
+#include <platform_pd.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -67,9 +68,9 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 	/* initialized blocking semaphore */
 	addr_t sem_sel = cap_selector_allocator()->alloc();
 	uint8_t ret = Nova::create_sm(sem_sel,
-	                              cap_selector_allocator()->pd_sel(), 0);
+	                              Platform_pd::pd_core_sel(), 0);
 	if (ret)
-		PERR("create_sm returned %d", ret);
+		PERR("create_sm returned %u", ret);
 
 	_blocking_semaphore = Native_capability(sem_sel);
 }

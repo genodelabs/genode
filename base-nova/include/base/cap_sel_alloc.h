@@ -56,13 +56,6 @@ namespace Genode {
 			 */
 			void free(addr_t cap, size_t num_caps_log2);
 
-			/**
-			 * Capability selector of local protection domain
-			 *
-			 * \return PD selector
-			 */
-			static unsigned pd_sel();
-
 	};
 
 	/**

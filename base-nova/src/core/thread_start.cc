@@ -25,6 +25,7 @@
 
 /* core includes */
 #include <nova_util.h>
+#include <platform_pd.h>
 
 using namespace Genode;
 
@@ -44,7 +45,7 @@ void Thread_base::_init_platform_thread()
 
 	/* create running semaphore required for locking */
 	addr_t rs_sel =_tid.exc_pt_sel + SM_SEL_EC;
-	uint8_t res = create_sm(rs_sel, _tid.pd_sel, 0);
+	uint8_t res = create_sm(rs_sel, pd_sel, 0);
 	if (res != NOVA_OK) {
 		PERR("create_sm returned %u", res);
 		throw Cpu_session::Thread_creation_failed();
@@ -55,7 +56,7 @@ void Thread_base::_init_platform_thread()
 
 	/* create local EC */
 	enum { CPU_NO = 0, GLOBAL = false };
-	res = create_ec(_tid.ec_sel, Cap_selector_allocator::pd_sel(), CPU_NO,
+	res = create_ec(_tid.ec_sel, pd_sel, CPU_NO,
 	                utcb, sp, _tid.exc_pt_sel, GLOBAL);
 	if (res != NOVA_OK) {
 		PERR("%p - create_ec returned %d", this, res);

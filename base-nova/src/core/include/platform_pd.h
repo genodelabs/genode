@@ -16,6 +16,12 @@
 
 #include <platform_thread.h>
 
+/*
+ * Must be initialized by the startup code,
+ * only valid in core
+ */
+extern Genode::addr_t __core_pd_sel;
+
 namespace Genode {
 
 	class Platform_thread;
@@ -73,6 +79,14 @@ namespace Genode {
 			addr_t pd_sel() { return _pd_sel; }
 
 			int id() { return _id; }
+
+			/**
+			 * Capability selector of core protection domain
+			 *
+			 * \return PD selector
+			 */
+			static addr_t pd_core_sel() { return __core_pd_sel; }
+
 	};
 }
 

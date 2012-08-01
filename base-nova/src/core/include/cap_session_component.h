@@ -18,6 +18,9 @@
 #include <base/rpc_server.h>
 #include <base/lock.h>
 
+/* core includes */
+#include <platform_pd.h>
+
 namespace Genode {
 
 	class Cap_session_component : public Rpc_object<Cap_session>

@@ -1,6 +1,7 @@
 /*
  * \brief  Echo implementation
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2010-01-19
  */
 
@@ -13,6 +14,9 @@
 
 /* Genode includes */
 #include <base/cap_sel_alloc.h>
+
+/* Core includes */
+#include <platform_pd.h>
 
 /* local includes */
 #include <echo.h>
@@ -65,7 +69,7 @@ Echo::Echo(Genode::addr_t utcb_addr)
 	using namespace Nova;
 
 	/* create echo EC */
-	int pd_sel = Genode::Cap_selector_allocator::pd_sel();
+	Genode::addr_t pd_sel = Genode::Platform_pd::pd_core_sel();
 	uint8_t res = create_ec(_ec_sel, pd_sel, ECHO_CPU_NO, utcb_addr,
 	                        (mword_t)echo_stack_top(), ECHO_EXC_BASE, ECHO_GLOBAL);
 

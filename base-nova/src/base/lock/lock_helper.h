@@ -45,7 +45,7 @@ static inline void thread_yield() { }
 
 static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 {
-	Genode::addr_t sem = tid.pd_sel == 0 ?
+	Genode::addr_t sem = (tid.ec_sel == 0 && tid.exc_pt_sel == 0) ?
 	               main_thread_running_semaphore() :
 	               tid.exc_pt_sel + Nova::SM_SEL_EC;
 
@@ -72,14 +72,14 @@ static inline Genode::Native_thread_id thread_get_my_native_id()
 
 static inline Genode::Native_thread_id thread_invalid_id()
 {
-	Genode::Native_thread_id tid = { 0, ~0UL };
+	Genode::Native_thread_id tid = { ~0UL, ~0UL };
 	return tid;
 }
 
 
 static inline bool thread_id_valid(Genode::Native_thread_id tid)
 {
-	return tid.pd_sel != ~0UL;
+	return !(tid.ec_sel == ~0UL && tid.exc_pt_sel == ~0UL);
 }
 
 
