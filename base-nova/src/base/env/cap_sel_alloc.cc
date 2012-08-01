@@ -2,6 +2,7 @@
  * \brief  Capability-selector allocator
  * \author Norman Feske
  * \author Sebastian Sumpf
+ * \author Alexander Boettcher
  * \date   2010-01-19
  *
  * This is a NOVA-specific addition to the process environment.
@@ -41,7 +42,7 @@ class Alloc_lock
 {
 	private:
 
-		int _sm_cap;
+		addr_t _sm_cap;
 
 	public:
 
@@ -50,10 +51,7 @@ class Alloc_lock
 		 *
 		 * \param sm_cap  capability selector for the used semaphore
 		 */
-		Alloc_lock(int sm_cap) : _sm_cap(sm_cap)
-		{
-			Nova::create_sm(_sm_cap, __local_pd_sel, 1);
-		}
+		Alloc_lock() : _sm_cap(Nova::PD_SEL_CAP_LOCK) { }
 
 		void lock() { Nova::sm_ctrl(_sm_cap, Nova::SEMAPHORE_DOWN); }
 
@@ -66,7 +64,7 @@ class Alloc_lock
  */
 static Alloc_lock *alloc_lock()
 {
-	static Alloc_lock alloc_lock_inst(__first_free_cap_selector);
+	static Alloc_lock alloc_lock_inst;
 	return &alloc_lock_inst;
 }
 

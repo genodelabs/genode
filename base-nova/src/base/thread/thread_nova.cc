@@ -2,6 +2,7 @@
  * \brief  NOVA-specific implementation of the Thread API
  * \author Norman Feske
  * \author Sebastian Sumpf
+ * \author Alexander Boettcher
  * \date   2010-01-19
  */
 
@@ -53,7 +54,6 @@ void Thread_base::_init_platform_thread()
 	 * running semaphore and exception handler portals.
 	 */
 	_tid.ec_sel     = ~0UL;
-	_tid.rs_sel     = cap_selector_allocator()->alloc();
 	_tid.pd_sel     = cap_selector_allocator()->pd_sel();
 	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
 
@@ -66,33 +66,29 @@ void Thread_base::_init_platform_thread()
 	env()->pd_session()->bind_thread(_thread_cap);
 
 	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
+	Pager_capability pager_cap =
+		env()->rm_session()->add_client(_thread_cap);
 	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
-
-	/* create running semaphore required for locking */
-	uint8_t res = create_sm(_tid.rs_sel, _tid.pd_sel, 0);
-	if (res != NOVA_OK) {
-		PERR("create_sm returned %u", res);
-		throw Cpu_session::Thread_creation_failed();
-	}
 
 }
 
 
 void Thread_base::_deinit_platform_thread()
 {
-//	Nova::revoke(Nova::Obj_crd(_tid.ec_sel, 0));
-	Nova::revoke(Nova::Obj_crd(_tid.rs_sel, 0));
-	Nova::revoke(Nova::Obj_crd(_tid.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2));
+	using namespace Nova;
 
-//	cap_selector_allocator()->free(_tid.ec_sel, 0);
-	cap_selector_allocator()->free(_tid.rs_sel, 0);
-	cap_selector_allocator()->free(_tid.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
+	if (_tid.ec_sel != ~0UL) {
+		revoke(Obj_crd(_tid.ec_sel, 0));
+		cap_selector_allocator()->free(_tid.ec_sel, 0);
+	}
+
+	revoke(Obj_crd(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2));
+	cap_selector_allocator()->free(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2);
 
 	/* revoke utcb */
-	Nova::Rights rwx(true, true, true);
+	Rights rwx(true, true, true);
 	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
-	Nova::revoke(Nova::Mem_crd(utcb >> 12, 0, rwx));
+	revoke(Mem_crd(utcb >> 12, 0, rwx));
 
 	/* de-announce thread */
 	env()->cpu_session()->kill_thread(_thread_cap);
@@ -131,6 +127,7 @@ void Thread_base::start()
 	/* request exception portals */
 	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
 	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_PAGE_FAULT);
+	request_event_portal(pager_cap, _tid.exc_pt_sel, SM_SEL_EC);
 
 	/* request creation of SC to let thread run*/
 	env()->cpu_session()->resume(_thread_cap);
@@ -139,5 +136,5 @@ void Thread_base::start()
 
 void Thread_base::cancel_blocking()
 {
-	Nova::sm_ctrl(_tid.rs_sel, Nova::SEMAPHORE_UP);
+	Nova::sm_ctrl(_tid.exc_pt_sel + Nova::SM_SEL_EC, Nova::SEMAPHORE_UP);
 }

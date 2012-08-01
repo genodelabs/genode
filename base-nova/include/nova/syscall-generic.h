@@ -2,6 +2,7 @@
  * \brief  Syscall bindings for the NOVA microhypervisor
  * \author Norman Feske
  * \author Sebastian Sumpf
+ * \author Alexander Boettcher
  * \date   2009-12-27
  */
 
@@ -499,6 +500,9 @@ namespace Nova {
 		PT_SEL_PARENT     = 0x1a,  /* convention on Genode */
 		PT_SEL_STARTUP    = 0x1e,
 		PD_SEL            = 0x1b,
+		PD_SEL_CAP_LOCK   = 0x1c,  /* convention on Genode */
+		SM_SEL_EC_MAIN    = 0x1c,  /* convention on Genode */
+		SM_SEL_EC         = 0x1d,  /* convention on Genode */
 	};
 
 }

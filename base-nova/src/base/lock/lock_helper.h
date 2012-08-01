@@ -1,6 +1,7 @@
 /*
  * \brief  Helper functions for the Lock implementation
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2009-10-02
  *
  * For documentation about the interface, please revisit the 'base-pistachio'
@@ -17,6 +18,7 @@
 /* Genode includes */
 #include <base/native_types.h>
 #include <base/thread.h>
+#include <base/stdint.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -32,7 +34,10 @@ extern int main_thread_running_semaphore();
  * use the thread library. If the thread library is not used, 'myself' can only
  * be called by the main thread, for which 'myself' is defined as zero.
  */
-Genode::Thread_base * __attribute__((weak)) Genode::Thread_base::myself() { return 0; }
+Genode::Thread_base * __attribute__((weak)) Genode::Thread_base::myself()
+{
+	return 0;
+}
 
 
 static inline void thread_yield() { }
@@ -40,8 +45,9 @@ static inline void thread_yield() { }
 
 static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 {
-	int sem = tid.rs_sel == 0 ? main_thread_running_semaphore()
-	                          : tid.rs_sel;
+	Genode::addr_t sem = tid.pd_sel == 0 ?
+	               main_thread_running_semaphore() :
+	               tid.exc_pt_sel + Nova::SM_SEL_EC;
 
 	Nova::sm_ctrl(sem, Nova::SEMAPHORE_UP);
 	return true;
@@ -51,13 +57,13 @@ static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 static inline Genode::Native_thread_id thread_get_my_native_id()
 {
 	/*
-	 * We encode the main thread as tid { 0, 0, 0 } because we cannot
+	 * We encode the main thread as tid { 0, 0 } because we cannot
 	 * call 'main_thread_running_semaphore()' here.
 	 */
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 
 	if (myself == 0) {
-		Genode::Native_thread_id main_tid = { 0, 0, 0 };
+		Genode::Native_thread_id main_tid = { 0, 0 };
 		return main_tid;
 	} else
 		return myself->tid();
@@ -66,14 +72,14 @@ static inline Genode::Native_thread_id thread_get_my_native_id()
 
 static inline Genode::Native_thread_id thread_invalid_id()
 {
-	Genode::Native_thread_id tid = { 0, 0, ~0UL };
+	Genode::Native_thread_id tid = { 0, ~0UL };
 	return tid;
 }
 
 
 static inline bool thread_id_valid(Genode::Native_thread_id tid)
 {
-	return tid.rs_sel != ~0UL;
+	return tid.pd_sel != ~0UL;
 }
 
 
@@ -82,7 +88,15 @@ static inline void thread_switch_to(Genode::Native_thread_id tid) { }
 
 static inline void thread_stop_myself()
 {
-	Genode::Thread_base *myself = Genode::Thread_base::myself();
-	int sem = myself ? myself->tid().rs_sel : main_thread_running_semaphore();
-	Nova::sm_ctrl(sem, Nova::SEMAPHORE_DOWNZERO);
+	using namespace Genode;
+	using namespace Nova;
+
+	addr_t sem;
+	Thread_base *myself = Thread_base::myself();
+	if (myself)
+		sem = myself->tid().exc_pt_sel + SM_SEL_EC;
+	else
+		sem = main_thread_running_semaphore();
+
+	sm_ctrl(sem, SEMAPHORE_DOWNZERO);
 }

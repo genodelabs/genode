@@ -1,6 +1,7 @@
 /*
  * \brief  Platform-specific type definitions
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2009-10-02
  */
 
@@ -26,8 +27,6 @@ namespace Genode {
 	struct Native_thread
 	{
 		addr_t ec_sel;      /* NOVA cap selector for execution context */
-		addr_t sc_sel;      /* NOVA cap selector for scheduling context */
-		addr_t rs_sel;      /* NOVA cap selector for running semaphore */
 		addr_t pd_sel;      /* NOVA cap selector of protection domain */
 		addr_t exc_pt_sel;  /* base of event portal window */
 	};
@@ -36,11 +35,11 @@ namespace Genode {
 
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2)
 	{
-		return (t1.ec_sel == t2.ec_sel) && (t1.rs_sel == t2.rs_sel);
-	 }
+		return (t1.ec_sel == t2.ec_sel) && (t1.pd_sel == t2.pd_sel); 
+	}
 	inline bool operator != (Native_thread_id t1, Native_thread_id t2)
 	{
-		return (t1.ec_sel != t2.ec_sel) && (t1.rs_sel != t2.rs_sel);
+		return (t1.ec_sel != t2.ec_sel) && (t1.pd_sel != t2.pd_sel);
 	}
 
 	class Native_utcb

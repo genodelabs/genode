@@ -2,6 +2,7 @@
  * \brief  NOVA-specific support code for the server-side RPC API
  * \author Norman Feske
  * \author Sebastian Sumpf
+ * \author Alexander Boettcher
  * \date   2010-01-13
  */
 
@@ -92,6 +93,7 @@ void Rpc_entrypoint::_activation_entry()
 #else
 	addr_t id_pt; asm volatile ("" : "=a" (id_pt));
 #endif
+
 	/* retrieve portal id from eax */
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
 
@@ -217,6 +219,8 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		                     Nova::PT_SEL_STARTUP);
 		request_event_portal(pager_cap, _tid.exc_pt_sel,
 		                     Nova::PT_SEL_PAGE_FAULT);
+		request_event_portal(pager_cap, _tid.exc_pt_sel,
+		                     Nova::SM_SEL_EC);
 
 		/**
 		 * Request native thread cap, _thread_cap only a token.

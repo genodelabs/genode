@@ -2,6 +2,7 @@
  * \brief  Platform interface implementation
  * \author Norman Feske
  * \author Sebastian Sumpf
+ * \author Alexander Boettcher
  * \date   2009-10-02
  */
 
@@ -16,6 +17,7 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <base/cap_sel_alloc.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -140,7 +142,7 @@ static void page_fault_handler()
 static void init_core_page_fault_handler()
 {
 	/* create echo EC */
-	enum { 
+	enum {
 		STACK_SIZE = 4*1024,
 		CPU_NO     = 0,
 		GLOBAL     = false,
@@ -184,6 +186,10 @@ Platform::Platform() :
 
 	/* set core pd selector */
 	__local_pd_sel = hip->sel_exc;
+
+	/* create lock used by capability allocator */
+	Nova::create_sm(Nova::PD_SEL_CAP_LOCK, __local_pd_sel, 1);
+	Nova::create_sm(Nova::SM_SEL_EC, __local_pd_sel, 0);
 
 	/* locally map the whole I/O port range */
 	enum { ORDER_64K = 16 };

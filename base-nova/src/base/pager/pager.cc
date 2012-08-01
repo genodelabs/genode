@@ -2,6 +2,7 @@
  * \brief  Pager framework
  * \author Norman Feske
  * \author Sebastian Sumpf
+ * \author Alexander Boettcher
  * \date   2010-01-25
  */
 
@@ -61,9 +62,6 @@ void Pager_object::_startup_handler()
 	Pager_object *obj = static_cast<Pager_object *>(Thread_base::myself());
 	Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
 
-//	printf("start new pager object with EIP=0x%p, ESP=0x%p\n",
-//	       (void *)obj->_initial_eip, (void *)obj->_initial_esp);
-
 	utcb->eip = obj->_initial_eip;
 	utcb->esp = obj->_initial_esp;
 	utcb->mtd = Mtd::EIP | Mtd::ESP;
@@ -78,14 +76,21 @@ void Pager_object::_invoke_handler()
 	Pager_object *obj = static_cast<Pager_object *>(Thread_base::myself());
 
 	/* send single portal as reply */
-	addr_t event = utcb->msg[0];
+	addr_t event = utcb->msg_words() != 1 ? 0 : utcb->msg[0];
 	utcb->mtd = 0;
 	utcb->set_msg_word(0);
 
-	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT) {
+	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT ||
+	    event == SM_SEL_EC) {
+		/**
+		 * Caller is requesting the SM cap of main thread
+		 * this object is paging - it is stored at SM_SEL_EC_MAIN
+		 */
+		if (event == SM_SEL_EC) event = SM_SEL_EC_MAIN;
+
 		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel() + event,
 		                                     0), 0);
- 		/* one item ever fits on the UTCB */
+		/* one item ever fits on the UTCB */
 		(void)res;
 	}
 
@@ -127,7 +132,7 @@ Pager_object::Pager_object(unsigned long badge)
 	                reinterpret_cast<addr_t>(_invoke_handler));
 	if (res)
 		PERR("could not create pager cleanup portal, error = %u\n",
-	             res);
+		     res);
 }
 
 Pager_object::~Pager_object()

@@ -1,6 +1,7 @@
 /*
  * \brief  Information about the main thread
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2010-01-19
  */
 
@@ -13,8 +14,6 @@
 
 /* Genode includes */
 #include <base/native_types.h>
-#include <base/cap_sel_alloc.h>
-#include <base/printf.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -30,14 +29,4 @@ Nova::mword_t __main_thread_utcb;
 Native_utcb *main_thread_utcb() { return (Native_utcb *)__main_thread_utcb; }
 
 
-int main_thread_running_semaphore()
-{
-	static int sm;
-	if (!sm) {
-		sm = cap_selector_allocator()->alloc();
-		int res = Nova::create_sm(sm, Cap_selector_allocator::pd_sel(), 0);
-		if (res)
-			PERR("create_sm returned %d", res);
-	}
-	return sm;
-}
+addr_t main_thread_running_semaphore() { return Nova::SM_SEL_EC; }
