@@ -88,6 +88,14 @@ namespace File_system {
 			}
 
 			file_size_t length() const { return _length; }
+
+			void truncate(file_size_t size)
+			{
+				if (size < _chunk.used_size())
+					_chunk.truncate(size);
+				else
+					_length = size;
+			}
 	};
 }
 

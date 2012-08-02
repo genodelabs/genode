@@ -356,6 +356,25 @@ class Plugin : public Libc::Plugin
 			return -1;
 		}
 
+		int ftruncate(Libc::File_descriptor *fd, ::off_t length)
+		{
+			File_system::Node_handle node_handle = context(fd)->node_handle();
+			File_system::File_handle &file_handle =
+			    static_cast<File_system::File_handle&>(node_handle);
+
+			try {
+				file_system()->truncate(file_handle, length);
+			} catch (File_system::Invalid_handle) {
+				errno = EINVAL;
+				return -1;
+			} catch (File_system::Permission_denied) {
+				errno = EPERM;
+				return -1;
+			}
+
+			return 0;
+		}
+
 		/*
 		 * *basep does not get initialized by the libc and is therefore
 		 * useless for determining a specific directory index. This

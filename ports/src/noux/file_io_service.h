@@ -24,8 +24,9 @@ namespace Noux {
 	 */
 	struct File_io_service
 	{
-		virtual bool write(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
-		virtual bool  read(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
+		virtual bool     write(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
+		virtual bool      read(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
+		virtual bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
 	};
 }
 

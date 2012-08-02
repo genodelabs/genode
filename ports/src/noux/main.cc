@@ -121,6 +121,16 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				return true;
 			}
 
+		case SYSCALL_FTRUNCATE:
+			{
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->ftruncate_in.fd);
+
+				while (!io->check_unblock(true, false, false))
+					_block_for_io_channel(io);
+
+				return io->ftruncate(_sysio);
+			}
+
 		case SYSCALL_STAT:
 		case SYSCALL_LSTAT: /* XXX implement difference between 'lstat' and 'stat' */
 

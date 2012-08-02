@@ -50,14 +50,15 @@ namespace Noux {
 
 			virtual ~Io_channel() { }
 
-			virtual bool  write(Sysio *sysio, size_t &count) { return false; }
-			virtual bool   read(Sysio *sysio)                { return false; }
-			virtual bool  fstat(Sysio *sysio)                { return false; }
-			virtual bool  fcntl(Sysio *sysio)                { return false; }
-			virtual bool fchdir(Sysio *sysio, Pwd *pwd)      { return false; }
-			virtual bool dirent(Sysio *sysio)                { return false; }
-			virtual bool  ioctl(Sysio *sysio)                { return false; }
-			virtual bool  lseek(Sysio *sysio)                { return false; }
+			virtual bool     write(Sysio *sysio, size_t &count) { return false; }
+			virtual bool      read(Sysio *sysio)                { return false; }
+			virtual bool     fstat(Sysio *sysio)                { return false; }
+			virtual bool ftruncate(Sysio *sysio)                { return false; }
+			virtual bool     fcntl(Sysio *sysio)                { return false; }
+			virtual bool    fchdir(Sysio *sysio, Pwd *pwd)      { return false; }
+			virtual bool    dirent(Sysio *sysio)                { return false; }
+			virtual bool     ioctl(Sysio *sysio)                { return false; }
+			virtual bool     lseek(Sysio *sysio)                { return false; }
 
 			/**
 			 * Return true if an unblocking condition of the channel is satisfied

@@ -77,6 +77,7 @@ namespace Libc {
 			virtual void freeaddrinfo(struct ::addrinfo *res);
 			virtual int fstat(File_descriptor *, struct stat *buf);
 			virtual int fsync(File_descriptor *);
+			virtual int ftruncate(File_descriptor *, ::off_t length);
 			virtual int getaddrinfo(const char *node, const char *service,
 			                        const struct ::addrinfo *hints,
 			                        struct ::addrinfo **res);

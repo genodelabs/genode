@@ -468,6 +468,12 @@ namespace Noux {
 				sysio->read_out.count = count;
 				return true;
 			}
+
+			bool ftruncate(Sysio *sysio, Vfs_handle *handle)
+			{
+				PDBG("called\n");
+				return false;
+			}
 	};
 }
 
