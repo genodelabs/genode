@@ -29,9 +29,8 @@ namespace Genode {
 	{
 		private:
 
-			int               _thread_cnt;
 			Native_capability _parent;
-			int               _id;
+			int               _thread_cnt;
 			addr_t            _pd_sel;
 
 		public:
@@ -76,9 +75,12 @@ namespace Genode {
 			 */
 			void assign_pd(addr_t pd_sel) { _pd_sel = pd_sel; }
 
+			/**
+			 * Capability selector of this task.
+			 *
+			 * \return PD selector
+			 */
 			addr_t pd_sel() { return _pd_sel; }
-
-			int id() { return _id; }
 
 			/**
 			 * Capability selector of core protection domain

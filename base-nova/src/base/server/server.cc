@@ -35,7 +35,7 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 {
 	using namespace Nova;
 
-	Untyped_capability ep_cap, new_obj_cap;                                 
+	Untyped_capability ec_cap, ep_cap;
 
 	/* _ec_sel is invalid until thread gets started */
 	if (tid().ec_sel != ~0UL)
@@ -46,11 +46,11 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 	ep_cap = _cap_session->alloc(ec_cap, (addr_t)_activation_entry);
 
 	/* add server object to object pool */
-	obj->cap(new_obj_cap);
+	obj->cap(ep_cap);
 	insert(obj);
 
-	/* return capability that uses the local object id as badge */
-	return new_obj_cap;
+	/* return entrypoint capability */
+	return ep_cap;
 }
 
 
@@ -88,13 +88,13 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 
 void Rpc_entrypoint::_activation_entry()
 {
+	/* retrieve portal id from eax/rdi */
 #ifdef __x86_64__
 	addr_t id_pt; asm volatile ("" : "=D" (id_pt));
 #else
 	addr_t id_pt; asm volatile ("" : "=a" (id_pt));
 #endif
 
-	/* retrieve portal id from eax */
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
 
 	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
@@ -208,7 +208,11 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		/* create new pager object and assign it to the new thread */
 		Pager_capability pager_cap =
 			env()->rm_session()->add_client(_thread_cap);
-		env()->cpu_session()->set_pager(_thread_cap, pager_cap);
+		if (!pager_cap.valid())
+			throw Cpu_session::Thread_creation_failed();
+
+		if (env()->cpu_session()->set_pager(_thread_cap, pager_cap))
+			throw Cpu_session::Thread_creation_failed();
 
 		addr_t thread_sp = (addr_t)&_context->stack[-4];
 		Genode::Nova_cpu_connection cpu;

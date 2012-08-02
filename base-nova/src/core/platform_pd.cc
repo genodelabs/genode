@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <base/cap_sel_alloc.h>
 
 /* core includes */
 #include <platform_pd.h>
@@ -45,12 +46,15 @@ int Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-static int id_cnt;
-
-
 Platform_pd::Platform_pd(signed pd_id, bool create)
-: _thread_cnt(0), _id(++id_cnt), _pd_sel(0) { }
+: _thread_cnt(0), _pd_sel(~0UL) { }
 
 
 Platform_pd::~Platform_pd()
-{ }
+{
+	if (_pd_sel == ~0UL) return;
+
+	/* Revoke and free cap, pd is gone */
+	Nova::revoke(Nova::Obj_crd(_pd_sel, 0));
+	cap_selector_allocator()->free(_pd_sel, 0);
+}

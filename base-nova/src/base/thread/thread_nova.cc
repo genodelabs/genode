@@ -59,15 +59,14 @@ void Thread_base::_init_platform_thread()
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
+
 	_thread_cap = env()->cpu_session()->create_thread(buf);
+	if (!_thread_cap.valid())
+		throw Cpu_session::Thread_creation_failed();
 
 	/* assign thread to protection domain */
-	env()->pd_session()->bind_thread(_thread_cap);
-
-	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap =
-		env()->rm_session()->add_client(_thread_cap);
-	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
+	if (env()->pd_session()->bind_thread(_thread_cap))
+		throw Cpu_session::Thread_creation_failed();
 
 }
 
@@ -106,8 +105,13 @@ void Thread_base::start()
 	using namespace Genode;
 
 	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
-	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
+	Pager_capability pager_cap =
+		env()->rm_session()->add_client(_thread_cap);
+	if (!pager_cap.valid())
+		throw Cpu_session::Thread_creation_failed();
+
+	if (env()->cpu_session()->set_pager(_thread_cap, pager_cap))
+		throw Cpu_session::Thread_creation_failed();
 
 	/* create EC at core */
 	addr_t thread_sp = reinterpret_cast<addr_t>(&_context->stack[-4]);
