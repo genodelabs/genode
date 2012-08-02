@@ -227,6 +227,16 @@ static void obtain_stat_for_node(File_system::Node_handle node_handle,
 
 class Plugin : public Libc::Plugin
 {
+	private:
+
+		::off_t _file_size(Libc::File_descriptor *fd)
+		{
+			struct stat stat_buf;
+			if (fstat(fd, &stat_buf) == -1)
+				return -1;
+			return stat_buf.st_size;
+		}
+
 	public:
 
 		/**
@@ -399,11 +409,13 @@ class Plugin : public Libc::Plugin
 
 			case SEEK_SET:
 				context(fd)->seek_offset(offset);
-				return 0;
+				return offset;
 
 			case SEEK_CUR:
 				context(fd)->advance_seek_offset(offset);
-				return 0;
+				if (context(fd)->is_appending())
+					return _file_size(fd);
+				return context(fd)->seek_offset();
 
 			case SEEK_END:
 				if (offset != 0) {
@@ -411,7 +423,7 @@ class Plugin : public Libc::Plugin
 					return -1;
 				}
 				context(fd)->infinite_seek_offset();
-				return 0;
+				return _file_size(fd);
 
 			default:
 				errno = EINVAL;
