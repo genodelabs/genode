@@ -1,6 +1,7 @@
 /*
  * \brief  String utility functions
  * \author Norman Feske
+ * \author Sebastian Sumpf
  * \date   2006-05-10
  */
 
@@ -16,6 +17,7 @@
 
 #include <base/stdint.h>
 #include <util/misc_math.h>
+#include <cpu/string.h>
 
 namespace Genode {
 
@@ -61,10 +63,24 @@ namespace Genode {
 		char *d = (char *)dst, *s = (char *)src;
 		size_t i;
 
-		if (s > d)
-			for (i = 0; i < size; i++, *d++ = *s++);
-		else
-			for (d += size, s += size, i = size; i-- > 0; *(--d) = *(--s));
+		/* try cpu specific version first */
+		if ((i = size - memcpy_cpu(dst, src, size)) == size)
+			return dst;
+
+		d += i; s += i; size -= i;
+
+		/* copy eight byte chunks */
+		for (i = size >> 3; i > 0; i--, *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++);
+
+		/* copy left over */
+		for (i = 0; i < (size & 0x7); i++, *d++ = *s++);
 
 		return dst;
 	}
