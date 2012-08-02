@@ -183,7 +183,7 @@ namespace Genode {
 				if (_rcv_pt_sel_cnt < _rcv_pt_sel_max)
 					return _rcv_pt_sel[_rcv_pt_sel_cnt++].sel;
 				else
-					return 0;
+					return ~0UL;
 			}
 
 			/**
@@ -294,7 +294,8 @@ namespace Genode {
 					if (!item) break;
 					if (_rcv_pt_sel_max >= MAX_CAP_ARGS) break;
 
-					_rcv_pt_sel[_rcv_pt_sel_max].sel   = item->crd >> 12;
+					Nova::Crd cap = Nova::Crd(item->crd);
+					_rcv_pt_sel[_rcv_pt_sel_max].sel   = cap.is_null() ? ~0UL : cap.base();
 					_rcv_pt_sel[_rcv_pt_sel_max++].del = item->is_del();
 				}
 			}

@@ -26,8 +26,13 @@ namespace Genode {
 
 	struct Native_thread
 	{
+		enum { INVALID_INDEX = ~0UL };
+
 		addr_t ec_sel;    /* NOVA cap selector for execution context */
 		addr_t exc_pt_sel; /* base of event portal window */
+
+		Native_thread() : ec_sel(INVALID_INDEX),
+		                  exc_pt_sel (INVALID_INDEX) { }
 	};
 
 	typedef Native_thread Native_thread_id;
@@ -92,6 +97,7 @@ namespace Genode {
 			bool   _trans_map;
 			void * _ptr;
 
+			enum { INVALID_INDEX = ~0UL };
 		protected:
 
 			explicit
@@ -123,18 +129,24 @@ namespace Genode {
 			bool valid() const
 			{
 				 return !_cap.dst.is_null() &&
-					 _cap.dst.base() != ~0UL;
+					 _cap.dst.base() != INVALID_INDEX;
 			 }
 
 			Dst dst()   const { return _cap.dst; }
 			void * local() const { return _ptr; }
-			addr_t local_name() const { return _cap.dst.base(); }
+
+			addr_t local_name() const {
+				if (valid())
+					return _cap.dst.base();
+				else
+					return INVALID_INDEX;
+			}
 
 			static Dst invalid() { return Dst(); }
 
 			static Native_capability invalid_cap()
 			{
-				return Native_capability(~0UL);
+				return Native_capability(INVALID_INDEX);
 			}
 
 			/** Invoke map syscall instead of translate_map call */

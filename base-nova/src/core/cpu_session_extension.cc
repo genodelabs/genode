@@ -24,7 +24,7 @@ Cpu_session_component::native_cap(Thread_capability thread_cap)
 {
 	Cpu_thread_component *thread = _lookup_thread(thread_cap);
 	if (!thread)
-		return Native_capability(0, 0);
+		return Native_capability::invalid_cap();
 
 	return thread->platform_thread()->native_cap();
 }

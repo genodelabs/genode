@@ -63,7 +63,9 @@ static inline Genode::Native_thread_id thread_get_my_native_id()
 	Genode::Thread_base *myself = Genode::Thread_base::myself();
 
 	if (myself == 0) {
-		Genode::Native_thread_id main_tid = { 0, 0 };
+		Genode::Native_thread_id main_tid;
+		main_tid.ec_sel     = 0;
+		main_tid.exc_pt_sel = 0;
 		return main_tid;
 	} else
 		return myself->tid();
@@ -72,7 +74,7 @@ static inline Genode::Native_thread_id thread_get_my_native_id()
 
 static inline Genode::Native_thread_id thread_invalid_id()
 {
-	Genode::Native_thread_id tid = { ~0UL, ~0UL };
+	Genode::Native_thread_id tid;
 	return tid;
 }
 
