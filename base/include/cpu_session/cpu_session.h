@@ -37,6 +37,7 @@
 #include <thread/capability.h>
 #include <pager/capability.h>
 #include <session/session.h>
+#include <ram_session/ram_session.h>
 
 namespace Genode {
 
@@ -72,8 +73,7 @@ namespace Genode {
 			/**
 			 * Get dataspace of the UTCB that is used by the specified thread
 			 */
-			virtual Ram_dataspace_capability
-				utcb(Thread_capability thread) = 0;
+			virtual Ram_dataspace_capability utcb(Thread_capability thread) = 0;
 
 			/**
 			 * Kill an existing thread

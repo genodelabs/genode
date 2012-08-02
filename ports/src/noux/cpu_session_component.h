@@ -70,7 +70,7 @@ namespace Noux {
 			 ** Cpu_session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Name const &name)
+			Thread_capability create_thread(Name const &name, addr_t utcb)
 			{
 				/*
 				 * Prevent any attempt to create more than the main
@@ -81,11 +81,14 @@ namespace Noux {
 					while (1);
 					return Thread_capability();
 				}
-				_main_thread = _cpu.create_thread(name);
+				_main_thread = _cpu.create_thread(name, utcb);
 
 				PINF("created main thread");
 				return _main_thread;
 			}
+
+			Ram_dataspace_capability utcb(Thread_capability thread) {
+				return _cpu.utcb(thread); }
 
 			void kill_thread(Thread_capability thread) {
 				_cpu.kill_thread(thread); }

@@ -54,7 +54,8 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		 ** CPU session interface **
 		 ***************************/
 
-		Thread_capability create_thread(Name const &);
+		Thread_capability create_thread(Name const &, addr_t);
+		Ram_dataspace_capability utcb(Thread_capability thread);
 		void kill_thread(Thread_capability);
 		Thread_capability first();
 		Thread_capability next(Thread_capability);

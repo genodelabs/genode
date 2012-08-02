@@ -25,8 +25,11 @@ namespace Genode {
 		explicit Foc_cpu_session_client(Cpu_session_capability session)
 		: Rpc_client<Foc_cpu_session>(static_cap_cast<Foc_cpu_session>(session)) { }
 
-		Thread_capability create_thread(Name const &name) {
-			return call<Rpc_create_thread>(name); }
+		Thread_capability create_thread(Name const &name, addr_t utcb = 0) {
+			return call<Rpc_create_thread>(name, utcb); }
+
+		Ram_dataspace_capability utcb(Thread_capability thread) {
+			return call<Rpc_utcb>(thread); }
 
 		void kill_thread(Thread_capability thread) {
 			call<Rpc_kill_thread>(thread); }
