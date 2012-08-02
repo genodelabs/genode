@@ -31,6 +31,13 @@ namespace Ffat { extern "C" {
 #include <ffat/ff.h>
 } }
 
+/*
+ * This macro is defined in later versions of the FatFs lib, but not in the
+ * one currently used for Genode.
+ */
+#define f_tell(fp) ((fp)->fptr)
+
+
 using namespace Genode;
 
 
@@ -767,14 +774,44 @@ namespace File_system {
 
 				using namespace Ffat;
 
-				FRESULT res = f_truncate(file->ffat_fil());
+				/* 'f_truncate()' truncates to the current seek pointer */
+
+				FRESULT res = f_lseek(file->ffat_fil(), size);
+
+				switch(res) {
+					case FR_OK:
+						/* according to the FatFs documentation this can happen */
+						if (f_tell(file->ffat_fil()) != size) {
+							PERR("f_lseek() could not seek to offset %llu", size);
+							return;
+						}
+						break;
+					case FR_DISK_ERR:
+						PERR("f_lseek() failed with error code FR_DISK_ERR");
+						return;
+					case FR_INT_ERR:
+						PERR("f_lseek() failed with error code FR_INT_ERR");
+						return;
+					case FR_NOT_READY:
+						PERR("f_lseek() failed with error code FR_NOT_READY");
+						return;
+					case FR_INVALID_OBJECT:
+						PERR("f_lseek() failed with error code FR_INVALID_OBJECT");
+						throw Invalid_handle();
+					default:
+						/* not supposed to occur according to the libffat documentation */
+						PERR("f_lseek() returned an unexpected error code");
+						return;
+				}
+
+				res = f_truncate(file->ffat_fil());
 
 				switch(res) {
 					case FR_OK:
 						return;
 					case FR_INVALID_OBJECT:
 						PERR("f_truncate() failed with error code FR_INVALID_OBJECT");
-						return;
+						throw Invalid_handle();
 					case FR_DISK_ERR:
 						PERR("f_truncate() failed with error code FR_DISK_ERR");
 						return;

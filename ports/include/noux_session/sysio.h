@@ -271,126 +271,130 @@ namespace Noux {
 			char             ai_canonname[255];
 		};
 
-		enum General_error { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
-		enum Stat_error    { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
-		enum Fchdir_error  { FCHDIR_ERR_NOT_DIR    = NUM_GENERAL_ERRORS };
-		enum Fcntl_error   { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
-		enum Open_error    { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM,
-		                     OPEN_ERR_EXISTS };
-		enum Execve_error  { EXECVE_NONEXISTENT    = NUM_GENERAL_ERRORS };
-		enum Unlink_error  { UNLINK_ERR_NO_ENTRY, UNLINK_ERR_NO_PERM };
-		enum Rename_error  { RENAME_ERR_NO_ENTRY, RENAME_ERR_CROSS_FS,
-		                     RENAME_ERR_NO_PERM };
-		enum Mkdir_error   { MKDIR_ERR_EXISTS,   MKDIR_ERR_NO_ENTRY,
-		                     MKDIR_ERR_NO_SPACE, MKDIR_ERR_NO_PERM,
-		                     MKDIR_ERR_NAME_TOO_LONG};
+		enum General_error   { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
+		enum Stat_error      { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
+		enum Fchdir_error    { FCHDIR_ERR_NOT_DIR    = NUM_GENERAL_ERRORS };
+		enum Fcntl_error     { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
+		enum Ftruncate_error { FTRUNCATE_ERR_NO_PERM = NUM_GENERAL_ERRORS };
+		enum Open_error      { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM,
+		                       OPEN_ERR_EXISTS };
+		enum Execve_error    { EXECVE_NONEXISTENT    = NUM_GENERAL_ERRORS };
+		enum Unlink_error    { UNLINK_ERR_NO_ENTRY, UNLINK_ERR_NO_PERM };
+		enum Rename_error    { RENAME_ERR_NO_ENTRY, RENAME_ERR_CROSS_FS,
+		                       RENAME_ERR_NO_PERM };
+		enum Mkdir_error     { MKDIR_ERR_EXISTS,   MKDIR_ERR_NO_ENTRY,
+		                       MKDIR_ERR_NO_SPACE, MKDIR_ERR_NO_PERM,
+		                       MKDIR_ERR_NAME_TOO_LONG};
 
 		union {
-			General_error general;
-			Stat_error    stat;
-			Fchdir_error  fchdir;
-			Fcntl_error   fcntl;
-			Open_error    open;
-			Execve_error  execve;
-			Unlink_error  unlink;
-			Rename_error  rename;
-			Mkdir_error   mkdir;
+			General_error   general;
+			Stat_error      stat;
+			Fchdir_error    fchdir;
+			Fcntl_error     fcntl;
+			Ftruncate_error ftruncate;
+			Open_error      open;
+			Execve_error    execve;
+			Unlink_error    unlink;
+			Rename_error    rename;
+			Mkdir_error     mkdir;
 		} error;
 
 		union {
 
-			SYSIO_DECL(getcwd, { }, { Path path; });
+			SYSIO_DECL(getcwd,      { }, { Path path; });
 
-			SYSIO_DECL(write,  { int fd; size_t count; Chunk chunk; },
-			                   { size_t count; });
+			SYSIO_DECL(write,       { int fd; size_t count; Chunk chunk; },
+			                        { size_t count; });
 
-			SYSIO_DECL(stat,   { Path path; }, { Stat st; });
+			SYSIO_DECL(stat,        { Path path; }, { Stat st; });
 
-			SYSIO_DECL(fstat,  { int fd; }, { Stat st; });
+			SYSIO_DECL(fstat,       { int fd; }, { Stat st; });
 
-			SYSIO_DECL(fcntl,  { int fd; long long_arg; Fcntl_cmd cmd; },
-			                   { int result; });
+			SYSIO_DECL(ftruncate,   { int fd; off_t length; }, { });
 
-			SYSIO_DECL(open,   { Path path; int mode; }, { int fd; });
+			SYSIO_DECL(fcntl,       { int fd; long long_arg; Fcntl_cmd cmd; },
+			                        { int result; });
 
-			SYSIO_DECL(close,  { int fd; }, { });
+			SYSIO_DECL(open,        { Path path; int mode; }, { int fd; });
 
-			SYSIO_DECL(ioctl,  : Ioctl_in { int fd; }, : Ioctl_out { });
+			SYSIO_DECL(close,       { int fd; }, { });
 
-			SYSIO_DECL(lseek,  { int fd; off_t offset; Lseek_whence whence; },
-			                   { off_t offset; });
+			SYSIO_DECL(ioctl,       : Ioctl_in { int fd; }, : Ioctl_out { });
 
-			SYSIO_DECL(dirent, { int fd; }, { Dirent entry; });
+			SYSIO_DECL(lseek,       { int fd; off_t offset; Lseek_whence whence; },
+			                        { off_t offset; });
 
-			SYSIO_DECL(fchdir, { int fd; }, { });
+			SYSIO_DECL(dirent,      { int fd; }, { Dirent entry; });
 
-			SYSIO_DECL(read,   { int fd; size_t count; },
-			                   { Chunk chunk; size_t count; });
+			SYSIO_DECL(fchdir,      { int fd; }, { });
 
-			SYSIO_DECL(execve, { Path filename; Args args; Env env; }, { });
+			SYSIO_DECL(read,        { int fd; size_t count; },
+			                        { Chunk chunk; size_t count; });
 
-			SYSIO_DECL(select, { Select_fds fds; Select_timeout timeout; },
-			                   { Select_fds fds; });
+			SYSIO_DECL(execve,      { Path filename; Args args; Env env; }, { });
 
-			SYSIO_DECL(fork,   { addr_t ip; addr_t sp;
-			                     addr_t parent_cap_addr; },
-			                   { int pid; });
+			SYSIO_DECL(select,      { Select_fds fds; Select_timeout timeout; },
+			                        { Select_fds fds; });
 
-			SYSIO_DECL(getpid, { }, { int pid; });
+			SYSIO_DECL(fork,        { addr_t ip; addr_t sp;
+			                          addr_t parent_cap_addr; },
+			                        { int pid; });
 
-			SYSIO_DECL(wait4,  { int pid; bool nohang; },
-			                   { int pid; int status; });
-			SYSIO_DECL(pipe,   { }, { int fd[2]; });
+			SYSIO_DECL(getpid,      { }, { int pid; });
 
-			SYSIO_DECL(dup2,   { int fd; int to_fd; }, { });
+			SYSIO_DECL(wait4,       { int pid; bool nohang; },
+			                        { int pid; int status; });
+			SYSIO_DECL(pipe,        { }, { int fd[2]; });
 
-			SYSIO_DECL(unlink, { Path path; }, { });
+			SYSIO_DECL(dup2,        { int fd; int to_fd; }, { });
 
-			SYSIO_DECL(rename, { Path from_path; Path to_path; }, { });
+			SYSIO_DECL(unlink,      { Path path; }, { });
 
-			SYSIO_DECL(mkdir,  { Path path; int mode; }, { });
+			SYSIO_DECL(rename,      { Path from_path; Path to_path; }, { });
 
-			SYSIO_DECL(socket, { int domain; int type; int protocol; },
-			                   { int fd; });
+			SYSIO_DECL(mkdir,       { Path path; int mode; }, { });
+
+			SYSIO_DECL(socket,      { int domain; int type; int protocol; },
+			                        { int fd; });
 
 			 /* XXX for now abuse Chunk for passing optval */
-			SYSIO_DECL(getsockopt, { int fd; int level; int optname; Chunk optval;
-			                       socklen_t optlen; }, { int result; });
+			SYSIO_DECL(getsockopt,  { int fd; int level; int optname; Chunk optval;
+			                          socklen_t optlen; }, { int result; });
 
-			SYSIO_DECL(setsockopt, { int fd; int level;
-			                         int optname; Chunk optval;
-			                         socklen_t optlen; }, { });
+			SYSIO_DECL(setsockopt,  { int fd; int level;
+			                          int optname; Chunk optval;
+			                          socklen_t optlen; }, { });
 
-			SYSIO_DECL(accept, { int fd; struct sockaddr addr; socklen_t addrlen; },
-			                   { int fd; });
+			SYSIO_DECL(accept,      { int fd; struct sockaddr addr; socklen_t addrlen; },
+			                        { int fd; });
 
-			SYSIO_DECL(bind,   { int fd; struct sockaddr addr;
-			                     socklen_t addrlen; }, { int result; });
+			SYSIO_DECL(bind,        { int fd; struct sockaddr addr;
+			                          socklen_t addrlen; }, { int result; });
 
 			SYSIO_DECL(getpeername, { int fd; struct sockaddr addr;
 			                          socklen_t addrlen; }, { });
 
-			SYSIO_DECL(listen, { int fd; int type; int backlog; },
-			                   { int result; });
+			SYSIO_DECL(listen,      { int fd; int type; int backlog; },
+			                        { int result; });
 
-			SYSIO_DECL(send,   { int fd; Chunk buf; size_t len; int flags; },
-			                   { ssize_t len; });
+			SYSIO_DECL(send,        { int fd; Chunk buf; size_t len; int flags; },
+			                        { ssize_t len; });
 
-			SYSIO_DECL(sendto, { int fd; Chunk buf; size_t len; int flags;
-			                     struct sockaddr dest_addr; socklen_t addrlen; },
-			                   { ssize_t len; });
+			SYSIO_DECL(sendto,      { int fd; Chunk buf; size_t len; int flags;
+			                          struct sockaddr dest_addr; socklen_t addrlen; },
+			                        { ssize_t len; });
 
-			SYSIO_DECL(recv,   { int fd; Chunk buf; size_t len; int flags; },
-			                   { size_t len; });
+			SYSIO_DECL(recv,        { int fd; Chunk buf; size_t len; int flags; },
+			                        { size_t len; });
 
-			SYSIO_DECL(recvfrom, { int fd; Chunk buf; size_t len; int flags;
-			                       struct sockaddr src_addr; socklen_t addrlen; },
-			                     { size_t len; });
+			SYSIO_DECL(recvfrom,    { int fd; Chunk buf; size_t len; int flags;
+			                          struct sockaddr src_addr; socklen_t addrlen; },
+			                        { size_t len; });
 
-			SYSIO_DECL(shutdown, { int fd; int how; }, { });
+			SYSIO_DECL(shutdown,    { int fd; int how; }, { });
 
-			SYSIO_DECL(connect, { int fd; struct sockaddr addr; socklen_t addrlen; },
-			                    { int result; });
+			SYSIO_DECL(connect,     { int fd; struct sockaddr addr; socklen_t addrlen; },
+			                        { int result; });
 
 			SYSIO_DECL(getaddrinfo, { Hostname hostname; Servname servname;
 			                          Addrinfo hints;

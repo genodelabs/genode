@@ -204,6 +204,8 @@ namespace Noux {
 				sysio->read_out.count = _terminal.read(sysio->read_out.chunk, sysio->read_in.count);
 				return true;
 			}
+
+			bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) { return false; }
 	};
 }
 

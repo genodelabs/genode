@@ -74,8 +74,9 @@ namespace Noux {
 					static bool _msg(char const *sc) {
 						PERR("%s not supported by file system", sc); return false; }
 
-					bool write(Sysio *sysio, Vfs_handle *handle) { return _msg("write"); }
-					bool  read(Sysio *sysio, Vfs_handle *handle) { return _msg("read"); }
+					bool     write(Sysio *sysio, Vfs_handle *handle) { return _msg("write"); }
+					bool      read(Sysio *sysio, Vfs_handle *handle) { return _msg("read"); }
+					bool ftruncate(Sysio *sysio, Vfs_handle *handle) { return _msg("ftruncate"); }
 				};
 				static Pseudo_file_io_service fs;
 				return &fs;

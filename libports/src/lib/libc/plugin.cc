@@ -154,6 +154,7 @@ DUMMY(int,     -1, fchdir,        (File_descriptor *));
 DUMMY(int,     -1, fcntl,         (File_descriptor *, int cmd, long arg));
 DUMMY(int,     -1, fstat,         (File_descriptor *, struct stat *));
 DUMMY(int,     -1, fsync,         (File_descriptor *));
+DUMMY(int,     -1, ftruncate,     (File_descriptor *, ::off_t));
 DUMMY(ssize_t, -1, getdirentries, (File_descriptor *, char *, ::size_t, ::off_t *));
 DUMMY(int,     -1, getpeername,   (File_descriptor *, struct sockaddr *, socklen_t *));
 DUMMY(int,     -1, getsockname,   (File_descriptor *, struct sockaddr *, socklen_t *));

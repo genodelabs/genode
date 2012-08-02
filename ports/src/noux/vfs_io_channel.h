@@ -65,6 +65,11 @@ namespace Noux {
 			return result;
 		}
 
+		bool ftruncate(Sysio *sysio)
+		{
+			return _fh->fs()->ftruncate(sysio, _fh);
+		}
+
 		bool fcntl(Sysio *sysio)
 		{
 			switch (sysio->fcntl_in.cmd) {

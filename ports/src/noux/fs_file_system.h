@@ -516,6 +516,27 @@ namespace Noux {
 				source.release_packet(packet);
 				return true;
 			}
+
+			bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle)
+			{
+				Fs_vfs_handle const *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
+
+				Sysio::Ftruncate_error error;
+
+				try {
+					_fs.truncate(handle->file_handle(), sysio->ftruncate_in.length);
+					return true;
+				} catch (::File_system::Invalid_handle) {
+					/* should not happen */
+					error = Sysio::FTRUNCATE_ERR_NO_PERM;
+				} catch (::File_system::Permission_denied) {
+					error = Sysio::FTRUNCATE_ERR_NO_PERM;
+				}
+
+				sysio->error.ftruncate = error;
+				return false;
+			}
+
 	};
 }
 

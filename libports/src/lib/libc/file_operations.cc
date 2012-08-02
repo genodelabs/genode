@@ -219,6 +219,10 @@ extern "C" int fsync(int libc_fd) {
 	FD_FUNC_WRAPPER(fsync, libc_fd); }
 
 
+extern "C" int ftruncate(int libc_fd, ::off_t length) {
+	FD_FUNC_WRAPPER(ftruncate, libc_fd, length); }
+
+
 extern "C" int getaddrinfo(const char *node, const char *service,
                            const struct addrinfo *hints,
                            struct addrinfo **res)

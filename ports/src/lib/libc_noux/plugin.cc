@@ -552,6 +552,7 @@ namespace {
 			int fstat(Libc::File_descriptor *, struct stat *);
 			int fsync(Libc::File_descriptor *);
 			int fstatfs(Libc::File_descriptor *, struct statfs *);
+			int ftruncate(Libc::File_descriptor *, ::off_t);
 			int fcntl(Libc::File_descriptor *, int, long);
 			ssize_t getdirentries(Libc::File_descriptor *, char *, ::size_t, ::off_t *);
 			::off_t lseek(Libc::File_descriptor *, ::off_t offset, int whence);
@@ -851,6 +852,21 @@ namespace {
 	{
 		if (verbose)
 			PDBG("not implemented");
+		return 0;
+	}
+
+
+	int Plugin::ftruncate(Libc::File_descriptor *fd, ::off_t length)
+	{
+		sysio()->ftruncate_in.fd = noux_fd(fd->context);
+		sysio()->ftruncate_in.length = length;
+		if (!noux()->syscall(Noux::Session::SYSCALL_FTRUNCATE)) {
+			switch (sysio()->error.ftruncate) {
+				case Noux::Sysio::FTRUNCATE_ERR_NO_PERM: errno = EPERM; break;
+			}
+			return -1;
+		}
+
 		return 0;
 	}
 

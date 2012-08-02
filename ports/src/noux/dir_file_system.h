@@ -518,6 +518,7 @@ namespace Noux {
 
 			bool write(Sysio *sysio, Vfs_handle *handle) { return false; }
 			bool read(Sysio *sysio, Vfs_handle *vfs_handle) { return false; }
+			bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) { return false; }
 	};
 }
 

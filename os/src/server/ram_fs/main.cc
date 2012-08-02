@@ -373,7 +373,15 @@ namespace File_system {
 				destroy(env()->heap(), node);
 			}
 
-			void truncate(File_handle, file_size_t size) { }
+			void truncate(File_handle file_handle, file_size_t size)
+			{
+				if (!_writable)
+					throw Permission_denied();
+
+				File *file = _handle_registry.lookup_and_lock(file_handle);
+				Node_lock_guard file_guard(*file);
+				file->truncate(size);
+			}
 
 			void move(Dir_handle from_dir_handle, Name const &from_name,
 			          Dir_handle to_dir_handle,   Name const &to_name)
