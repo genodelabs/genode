@@ -61,8 +61,6 @@ static struct ehci_hcd_omap_platform_data _ehci_data
 };
 
 
-
-
 /**
  * Enables USB clocks
  */
@@ -89,11 +87,8 @@ struct Clocks : Genode::Mmio
 	void dump()
 	{
 		Usb_host_clk::access_t a1 = read<Usb_host_clk>();
-		PDBG("Host clock %x", a1);
 		Usb_tll_clk::access_t a3 = read<Usb_tll_clk>();
-		PDBG("TLL: %x", a3);
 		Usb_phy_clk::access_t a4 = read<Usb_phy_clk>();
-		PDBG("Phy: %x", a4);
 	}
 };
 

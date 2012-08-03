@@ -812,8 +812,6 @@ void skb_queue_purge(struct sk_buff_head *list) { TRACE; }
 void skb_tx_timestamp(struct sk_buff *skb) { TRACE; }
 bool skb_defer_rx_timestamp(struct sk_buff *skb) { TRACE; return 0; }
 
-void dev_kfree_skb_any(struct sk_buff *skb) { TRACE; }
-
 
 /*********************
  ** linux/ethtool.h **

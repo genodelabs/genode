@@ -33,13 +33,13 @@ extern "C" {
 
 #include <linux/usb/storage.h>
 
-#define VERBOSE_LX_EMUL 0
+#define VERBOSE_LX_EMUL  0
 
 
 #if VERBOSE_LX_EMUL
 #define DEBUG_COMPLETION 0
 #define DEBUG_DMA        0
-#define DEBUG_DRIVER     1
+#define DEBUG_DRIVER     0
 #define DEBUG_IRQ        0
 #define DEBUG_KREF       0
 #define DEBUG_PCI        0
@@ -627,11 +627,9 @@ int fls(int x);
 /********************
  ** linux/string.h **
  ********************/
+#undef memcpy
 
-#ifndef __cplusplus
-void  *memcpy(void *dest, const void *src, size_t n);
-#endif
-
+void  *memcpy(void *d, const void *s, size_t n);
 void  *memset(void *s, int c, size_t n);
 int    memcmp(const void *, const void *, size_t);
 void  *memscan(void *addr, int c, size_t size);
@@ -2664,7 +2662,10 @@ struct sk_buff
 	unsigned char *end;
 	unsigned char *data;
 	unsigned char *tail;
+	unsigned char *phys;
 	unsigned int   truesize;
+	void *packet;
+	unsigned char *clone;
 };
 
 struct sk_buff_head
@@ -2682,7 +2683,6 @@ struct sk_buff_head
                             skb = tmp, tmp = skb->next)
 
 struct skb_shared_info *skb_shinfo(struct sk_buff *);
-
 struct sk_buff *alloc_skb(unsigned int, gfp_t);
 unsigned char *skb_push(struct sk_buff *, unsigned int);
 unsigned char *skb_pull(struct sk_buff *, unsigned int);
@@ -2901,7 +2901,8 @@ struct netdev_hw_addr
 
 u32 netif_msg_init(int, int);
 
-void *netdev_priv(const struct net_device *);
+static inline void *netdev_priv(const struct net_device *dev) { return dev->priv; }
+
 int netif_running(const struct net_device *);
 int netif_device_present(struct net_device *);
 void netif_device_detach(struct net_device *);
@@ -2978,7 +2979,7 @@ struct tasklet_struct
 	unsigned long data;
 };
 
-void tasklet_schedule(struct tasklet_struct *);
+static inline void tasklet_schedule(struct tasklet_struct *t) { t->func(t->data); }
 void tasklet_kill(struct tasklet_struct *);
 
 /*************************

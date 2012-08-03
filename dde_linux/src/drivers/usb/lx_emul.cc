@@ -20,7 +20,7 @@
 #include <util/string.h>
 
 /* Local includes */
-#include "dma.h"
+#include "mem.h"
 #include "routine.h"
 #include "signal.h"
 #include "lx_emul.h"
@@ -43,6 +43,208 @@ extern "C" {
 #define TRACE
 #define UNSUPPORTED
 #endif
+
+namespace Genode {
+
+	class Slab_alloc : public Slab
+	{
+		private:
+			
+			Mem::Zone_alloc *_allocator;
+
+			size_t _calculate_block_size(size_t object_size)
+			{
+				size_t block_size = 8 * (object_size + sizeof(Slab_entry)) + sizeof(Slab_block);
+				return align_addr(block_size, 12);
+			}
+
+		public:
+
+			Slab_alloc(size_t object_size, Mem::Zone_alloc *allocator)
+			: Slab(object_size, _calculate_block_size(object_size), 0, allocator),
+			  _allocator(allocator) { }
+
+		inline void *alloc()
+		{
+			void *result;
+			return (Slab::alloc(slab_size(), &result) ? result : 0);
+		}
+
+		bool match(void const *addr) { return _allocator->match(addr); }
+		addr_t phys_addr(void const *addr) { return _allocator->phys_addr(addr); }
+	};
+}
+
+
+class Malloc
+{
+	private:
+
+		Genode::Mem *_pool;
+
+		enum { 
+			SLAB_START_LOG2 = 3,  /* 8 B */
+			SLAB_STOP_LOG2  = 16, /* 64 KB */
+			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1
+		};
+
+		/* slab allocator using Mem as back-end */
+		Genode::Slab_alloc *_allocator[NUM_SLABS];
+
+		void _init_slabs()
+		{
+			using namespace Genode;
+			_pool->init_zones(NUM_SLABS);
+			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++) {
+				Mem::Zone_alloc *allocator = _pool->new_zone_allocator();
+				_allocator[i - SLAB_START_LOG2] = new (env()->heap()) Slab_alloc(1U << i, allocator);
+			}
+		}
+
+		/**
+		 * Return slab for 'struct dma_pool' of size
+		 */
+		int _dma_pool_slab(Genode::size_t size)
+		{
+			int msb = Genode::log2(size);
+			if (size > (1U << msb))
+				msb++;
+
+			/* take next chunk */
+			return msb++;
+		}
+
+	public:
+
+		Malloc(Genode::Mem *pool) : _pool(pool) { _init_slabs(); }
+
+		/**
+		 * General purpose allcator
+		 */
+		static Malloc *mem()
+		{
+			static Malloc _m(Genode::Mem::pool());
+			return &_m;
+		}
+
+		/**
+		 * DMA allocator
+		 */
+		static Malloc *dma()
+		{
+			static Malloc _m(Genode::Mem::dma());
+			return &_m;
+		}
+
+		/**
+		 * Alloc with alignment (uses back-end when alingment is > 2)
+		 */
+		void *alloc(Genode::size_t size, int align)
+		{
+			if (align <= 2)
+				return alloc(size);
+
+			return _pool->alloc(size, -1, align);
+		}
+
+
+		/**
+		 * Alloc in slabs
+		 */
+		void *alloc(Genode::size_t size)
+		{
+			int msb = Genode::log2(size);
+
+			if (size > (1U << msb))
+				msb++;
+
+			if (size < (1U << SLAB_START_LOG2))
+				msb = SLAB_STOP_LOG2;
+
+			if (msb > SLAB_STOP_LOG2) {
+				PINF("Slab too large %u", 1U << msb);
+				return _pool->alloc(size);
+			}
+
+			return _allocator[msb - SLAB_START_LOG2]->alloc();
+		}
+
+
+		/**
+		 * Free from slabs
+		 */
+		void free(void const *addr)
+		{
+
+			for (register unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++) {
+				Genode::Slab_alloc *slab = _allocator[i - SLAB_START_LOG2];
+				
+				if (!slab->match(addr))
+					continue;
+
+				slab->free((void *)addr);
+				return;
+			}
+			
+			_pool->free((void *)addr);
+		}
+
+		/**
+		 * Get phys addr
+		 */
+		Genode::addr_t phys_addr(void *addr)
+		{
+			for (register unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++) {
+				Genode::Slab_alloc *slab = _allocator[i - SLAB_START_LOG2];
+				
+				if (!slab->match(addr))
+					continue;
+
+				return slab->phys_addr(addr);
+			}
+			/* not found in slabs, try in back-end */
+			return _pool->phys_addr(addr);
+		}
+
+
+		/**
+		 * Allocate aligned memory in slabs
+		 */
+		void *dma_pool_alloc(size_t size, int align, Genode::addr_t *dma)
+		{
+			using namespace Genode;
+
+			int msb = _dma_pool_slab(size);
+			addr_t base = (addr_t)_allocator[msb - SLAB_START_LOG2]->alloc();
+
+			unsigned align_val = (1U << align);
+			unsigned align_mask = align_val - 1;
+
+			/* make room for pointer */
+			addr_t addr = base + sizeof(Genode::addr_t);
+
+			/* align */
+			addr = (addr + align_val - 1) & ~align_mask;
+			addr_t *ptr = (addr_t *)addr - 1;
+			*ptr = base;
+
+			*dma = phys_addr((void *)addr);
+			return (void *)addr;
+		}
+
+		/**
+		 * Free memory allocted with 'dma_pool_alloc'
+		 */
+		void dma_pool_free(size_t size, void *addr)
+		{
+			using namespace Genode;
+
+			int msb = _dma_pool_slab(size);
+			addr_t base = *((addr_t *)addr - 1);
+			_allocator[msb - SLAB_START_LOG2]->free((void *)base);
+		}
+};
+
 
 /***********************
  ** Atomic operations **
@@ -77,8 +279,7 @@ void mutex_unlock(struct mutex *m) { if (m->lock) dde_kit_lock_unlock( m->lock);
 
 void *kmalloc(size_t size, gfp_t flags)
 {
-	/* align at least four byte alignment */
-	void *addr = Genode::Dma::pool()->alloc(size, 2);
+	void *addr = flags & GFP_NOIO ? Malloc::dma()->alloc(size) : Malloc::mem()->alloc(size);
 	return addr;
 }
 
@@ -88,6 +289,7 @@ void *kzalloc(size_t size, gfp_t flags)
 	void *addr = kmalloc(size, flags);
 	if (addr)
 		Genode::memset(addr, 0, size);
+
 	return addr;
 }
 
@@ -102,8 +304,8 @@ void *kcalloc(size_t n, size_t size, gfp_t flags)
 
 void kfree(const void *p)
 {
-	//dde_kit_large_free((void *)p);
-	Genode::Dma::pool()->free((void *)p);
+	Malloc::mem()->free(p);
+	Malloc::dma()->free(p);
 }
 
 
@@ -161,7 +363,7 @@ int  kref_put(struct kref *kref, void (*release) (struct kref *kref))
 size_t copy_to_user(void *dst, void const *src, size_t len)
 {
 	if (dst && src && len)
-		Genode::memcpy(dst, src, len);
+		memcpy(dst, src, len);
 	return 0;
 }
 
@@ -169,7 +371,7 @@ size_t copy_to_user(void *dst, void const *src, size_t len)
 size_t copy_from_user(void *dst, void const *src, size_t len)
 {
 	if (dst && src && len)
-		Genode::memcpy(dst, src, len);
+		memcpy(dst, src, len);
 	return 0;
 }
 
@@ -181,12 +383,16 @@ bool access_ok(int access, void *addr, size_t size) { return 1; }
  ** linux/string.h **
  ********************/
 
-void  *memcpy(void *dest, const void *src, size_t n) {
-	return Genode::memcpy(dest, src, n); }
+void *_memcpy(void *d, const void *s, size_t n)
+{
+	return Genode::memcpy(d, s, n);
+}
 
 
-void  *memset(void *s, int c, size_t n) {
-	return Genode::memset(s, c, n); }
+inline void *memset(void *s, int c, size_t n) 
+{
+	return Genode::memset(s, c, n);
+}
 
 
 int snprintf(char *buf, size_t size, const char *fmt, ...)
@@ -570,9 +776,6 @@ unsigned long msecs_to_jiffies(const unsigned int m) { return m / JIFFIES_TICK_M
 long time_after_eq(long a, long b) { return (a - b) >= 0; }
 long time_after(long a, long b)    { return (b - a) < 0; }
 
-
-
-
 struct dma_pool
 {
 	size_t size;
@@ -602,43 +805,37 @@ void  dma_pool_destroy(struct dma_pool *d)
 }
 
 
-static void* _alloc(size_t size, int align, dma_addr_t *dma)
-{
-	void *addr = Genode::Dma::pool()->alloc(size, align < 2 ? 2 : align);
-
-	if (!addr)
-		return 0;
-
-	*dma = (dma_addr_t)Genode::Dma::pool()->phys_addr(addr);
-	dde_kit_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, phys: %lx", addr, size, align, *dma);
-	memset(addr, 0, size);
-	return addr;
-}
-
-
 void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 {
-	return _alloc(d->size, d->align, dma);
+	return Malloc::dma()->dma_pool_alloc(d->size, d->align, (Genode::addr_t*)dma);
 }
 
 
 void  dma_pool_free(struct dma_pool *d, void *vaddr, dma_addr_t a)
 {
 	dde_kit_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, d->size);
-	Genode::Dma::pool()->free(vaddr);
+	Malloc::dma()->dma_pool_free(d->size, vaddr);
 }
 
 
 void *dma_alloc_coherent(struct device *, size_t size, dma_addr_t *dma, gfp_t)
 {
-	return _alloc(size, PAGE_SHIFT, dma);
+	void *addr = Malloc::dma()->alloc(size, PAGE_SHIFT);
+
+	if (!addr)
+		return 0;
+
+	*dma = (dma_addr_t)Malloc::dma()->phys_addr(addr);
+	dde_kit_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, phys: %lx",
+	            addr, size, PAGE_SHIFT, *dma);
+	return addr;
 }
 
 
 void dma_free_coherent(struct device *, size_t size, void *vaddr, dma_addr_t)
 {
 	dde_kit_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, size);
-	Genode::Dma::pool()->free(vaddr);
+	Malloc::dma()->free(vaddr);
 }
 
 
@@ -654,7 +851,8 @@ dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
                                 enum dma_data_direction dir,
                                 struct dma_attrs *attrs)
 {
-	dma_addr_t phys = (dma_addr_t)Genode::Dma::pool()->phys_addr(ptr);
+	dma_addr_t phys = (dma_addr_t)Malloc::dma()->phys_addr(ptr);
+
 	dde_kit_log(DEBUG_DMA, "virt: %p phys: %lx", ptr, phys);
 	return phys;
 }
@@ -753,7 +951,7 @@ resource_size_t resource_size(const struct resource *res)
 
 struct net_device *alloc_etherdev(int sizeof_priv)
 {
-	net_device *dev = (net_device *)kzalloc(sizeof(net_device), 0);
+	net_device *dev = new (Genode::env()->heap()) net_device();
 
 	dev->mtu      = 1500;
 	dev->hard_header_len = 0;
@@ -782,7 +980,6 @@ int is_valid_ether_addr(const u8 *addr)
 /*****************
  ** linux/mii.h **
  *****************/
-
 
 /**
  * Restart NWay (autonegotiation) for this interface
@@ -834,21 +1031,3 @@ u8 mii_resolve_flowctrl_fdx(u16 lcladv, u16 rmtadv)
 }
 
 
-/***********************
- ** linux/netdevice.h **
- ***********************/
-
-void *netdev_priv(const struct net_device *dev)
-{
-	return dev->priv;
-}
-
-
-/**********************
- ** linux/inerrupt.h **
- **********************/
-
-void tasklet_schedule(struct tasklet_struct *t)
-{
-	t->func(t->data);
-}

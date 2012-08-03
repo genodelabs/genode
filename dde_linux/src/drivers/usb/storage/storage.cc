@@ -128,11 +128,11 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			cmnd->session = (void *)session;
 
 			Genode::uint32_t be_block_nr = bswap<Genode::uint32_t>(block_nr);
-			Genode::memcpy(&cmnd->cmnd[2], &be_block_nr, 4);
+			memcpy(&cmnd->cmnd[2], &be_block_nr, 4);
 
 			/* transfer one block */
 			Genode::uint16_t be_block_count =  bswap(block_count);
-			Genode::memcpy(&cmnd->cmnd[7], &be_block_count, 2);
+			memcpy(&cmnd->cmnd[7], &be_block_count, 2);
 
 			/* setup command */
 			scsi_setup_buffer(cmnd, block_count * _block_size, (void *)virt, phys);

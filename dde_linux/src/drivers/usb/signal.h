@@ -68,13 +68,20 @@ class Service_handler
 				return;
 			}
 
-			do {
+			check_signal();
+		}
+
+		void check_signal(bool block = true)
+		{
+			while (_receiver->pending() || block) {
+
 				Genode::Signal s = _receiver->wait_for_signal();
 
 				/* handle signal IRQ, timer, or event signals */
 				Driver_context *ctx = static_cast<Driver_context *>(s.context());
 				ctx->handle();
-			} while (_receiver->pending());
+				block = false;
+			}
 		}
 };
 
@@ -108,6 +115,7 @@ namespace Timer
 namespace Irq
 {
 	void init(Genode::Signal_receiver *recv);
+	void check_irq();
 }
 
 namespace Event

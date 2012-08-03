@@ -68,49 +68,7 @@ struct ehci_hcd_omap_platform_data
 };
 
 struct regulator;
-/*********************************************
- ** arch/arm/plat-omap/include/plat/board.h **
- *********************************************/
 
-struct omap_usb_config;
-
-
-/************************************************
- ** arch/arm/plat-omap/include/plat/omap34xx.h **
- ************************************************/
-
-#define OMAP34XX_UHH_CONFIG_BASE 0
-#define OMAP34XX_EHCI_BASE       0
-#define OMAP34XX_USBTLL_BASE     0
-#define INT_34XX_EHCI_IRQ        0
-#define OMAP34XX_OHCI_BASE       0
-#define INT_34XX_OHCI_IRQ        0
-#define OMAP3430_REV_ES2_1       0
-
-
-static inline int cpu_is_omap34xx(void) { return 0; }
-static inline int cpu_is_omap3430(void) { return 0; }
-
-/***************************************************
- ** platform definition os for OMAP44xx all under **
- ** 'arch/arm/plat-omap/include                   **
- ***************************************************/
-
-enum {
-	OMAP44XX_IRQ_GIC_START = 32,
-	OMAP44XX_IRQ_EHCI      = 77 + OMAP44XX_IRQ_GIC_START,
-	OMAP44XX_IRQ_OHCI      =76  + OMAP44XX_IRQ_GIC_START,
-};
-
-enum {
-	L4_44XX_BASE = 0x4a000000,
-	OMAP44XX_USBTLL_BASE     = L4_44XX_BASE + 0x62000,
-	OMAP44XX_UHH_CONFIG_BASE = L4_44XX_BASE + 0x64000,
-	OMAP44XX_HSUSB_OHCI_BASE = L4_44XX_BASE + 0x64800,
-	OMAP44XX_HSUSB_EHCI_BASE = L4_44XX_BASE + 0x64C00,
-};
-
-static inline int cpu_is_omap44xx(void) { return 1; }
 
 /*****************************
  ** linux/platform_device.h **
@@ -131,6 +89,7 @@ int platform_get_irq_byname(struct platform_device *, const char *);
 
 int platform_driver_register(struct platform_driver *);
 int platform_device_register(struct platform_device *);
+
 
 /**********************
  ** asm/generic/io.h **
