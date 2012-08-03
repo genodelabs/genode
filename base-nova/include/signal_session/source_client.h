@@ -21,11 +21,12 @@
 #ifndef _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_
 #define _INCLUDE__SIGNAL_SESSION__SOURCE_CLIENT_H_
 
-#include <nova/syscalls.h>
 #include <base/rpc_client.h>
 #include <signal_session/nova_source.h>
 
-#include <base/nova_util.h>
+/* NOVA includes */
+#include <nova/syscalls.h>
+#include <nova/util.h>
 
 namespace Genode {
 
@@ -34,7 +35,7 @@ namespace Genode {
 		private:
 
 			/**
-			 * Capability with 'pt_sel' referring to a NOVA semaphore
+			 * Capability referring to a NOVA semaphore
 			 */
 			Native_capability _sem;
 
@@ -78,7 +79,7 @@ namespace Genode {
 				 */
 				if (Nova::sm_ctrl(_sem.local_name(),
 				                  Nova::SEMAPHORE_DOWN))
-					nova_die(__FILE__, __LINE__);
+					nova_die();
 
 				/*
 				 * Now that the server has unblocked the semaphore, we are sure

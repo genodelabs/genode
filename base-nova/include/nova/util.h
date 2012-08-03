@@ -17,6 +17,17 @@
 #include <base/printf.h>
 #include <base/thread.h>
 
+__attribute__((always_inline))
+inline void nova_die(const char * text = 0)
+{
+	/*
+	 * If thread is de-constructed the sessions are already gone.
+	 * Be careful when enabling printf here.
+         */
+    	while (1)
+		asm volatile ("ud2a" : : "a"(text));
+}
+
 inline void request_event_portal(Genode::Native_capability cap,
                                  Genode::addr_t exc_base, Genode::addr_t event)
 {
@@ -31,7 +42,7 @@ inline void request_event_portal(Genode::Native_capability cap,
 	utcb->msg[0]  = event;
 	utcb->set_msg_word(1);
 
-	uint8_t res = call(pager_cap.local_name());
+	uint8_t res = call(cap.local_name());
 	if (res)
 		PERR("request of event (%lu) capability selector failed",
 		     event);

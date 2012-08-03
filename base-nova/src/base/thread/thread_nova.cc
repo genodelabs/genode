@@ -25,7 +25,7 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
-#include <base/nova_util.h>
+#include <nova/util.h>
 #include <nova_cpu_session/connection.h>
 
 using namespace Genode;
@@ -139,5 +139,8 @@ void Thread_base::start()
 
 void Thread_base::cancel_blocking()
 {
-	Nova::sm_ctrl(_tid.exc_pt_sel + Nova::SM_SEL_EC, Nova::SEMAPHORE_UP);
+	using namespace Nova;
+
+	if (sm_ctrl(_tid.exc_pt_sel + SM_SEL_EC, SEMAPHORE_UP))
+		nova_die();
 }

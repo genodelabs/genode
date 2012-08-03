@@ -21,6 +21,7 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/util.h>
 #include <nova_util.h>
 
 using namespace Genode;
@@ -28,7 +29,8 @@ using namespace Genode;
 
 void Irq_session_component::wait_for_irq()
 {
-	Nova::sm_ctrl(_irq_number, Nova::SEMAPHORE_DOWN);
+	if (Nova::sm_ctrl(_irq_number, Nova::SEMAPHORE_DOWN))
+		nova_die();
 }
 
 

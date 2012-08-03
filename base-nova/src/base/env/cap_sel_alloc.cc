@@ -20,6 +20,7 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/util.h>
 
 using namespace Genode;
 
@@ -52,9 +53,17 @@ class Alloc_lock
 		 */
 		Alloc_lock() : _sm_cap(Nova::PD_SEL_CAP_LOCK) { }
 
-		void lock() { Nova::sm_ctrl(_sm_cap, Nova::SEMAPHORE_DOWN); }
+		void lock()
+		{
+			if (Nova::sm_ctrl(_sm_cap, Nova::SEMAPHORE_DOWN))
+				nova_die();
+		}
 
-		void unlock() { Nova::sm_ctrl(_sm_cap, Nova::SEMAPHORE_UP); }
+		void unlock()
+		{
+			if (Nova::sm_ctrl(_sm_cap, Nova::SEMAPHORE_UP))
+				nova_die();
+		}
 };
 
 

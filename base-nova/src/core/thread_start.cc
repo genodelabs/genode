@@ -92,5 +92,6 @@ void Thread_base::cancel_blocking()
 {
 	using namespace Nova;
 
-	sm_ctrl(_tid.exc_pt_sel + SM_SEL_EC, SEMAPHORE_UP);
+	if (sm_ctrl(_tid.exc_pt_sel + SM_SEL_EC, SEMAPHORE_UP))
+		nova_die();
 }

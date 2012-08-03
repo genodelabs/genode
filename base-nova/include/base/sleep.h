@@ -20,6 +20,7 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/util.h>
 
 extern int main_thread_running_semaphore();
 
@@ -32,7 +33,10 @@ namespace Genode {
 		Thread_base *myself = Thread_base::myself();
 		addr_t sem = myself ? myself->tid().exc_pt_sel + SM_SEL_EC :
 		       main_thread_running_semaphore();
-		while (1) { Nova::sm_ctrl(sem, Nova::SEMAPHORE_DOWNZERO); }
+		while (1) {
+			if (Nova::sm_ctrl(sem, SEMAPHORE_DOWNZERO))
+				nova_die();
+		}
 	}
 }
 

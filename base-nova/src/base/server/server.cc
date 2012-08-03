@@ -21,9 +21,8 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
-#include <base/nova_util.h>
 #include <nova_cpu_session/connection.h>
-
+#include <nova/util.h>
 
 using namespace Genode;
 
