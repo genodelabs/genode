@@ -1,0 +1,664 @@
+diff -r a83abb859b41 drivers/net/usb/smsc95xx.c
+--- a/drivers/net/usb/smsc95xx.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/net/usb/smsc95xx.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -65,7 +65,7 @@
+ 
+ static int smsc95xx_read_reg(struct usbnet *dev, u32 index, u32 *data)
+ {
+-	u32 *buf = kmalloc(4, GFP_KERNEL);
++	u32 *buf = kmalloc(4, GFP_NOIO);
+ 	int ret;
+ 
+ 	BUG_ON(!dev);
+@@ -90,7 +90,7 @@
+ 
+ static int smsc95xx_write_reg(struct usbnet *dev, u32 index, u32 data)
+ {
+-	u32 *buf = kmalloc(4, GFP_KERNEL);
++	u32 *buf = kmalloc(4, GFP_NOIO);
+ 	int ret;
+ 
+ 	BUG_ON(!dev);
+@@ -328,7 +328,7 @@
+ 		return -ENOMEM;
+ 	}
+ 
+-	usb_context = kmalloc(sizeof(struct usb_context), GFP_ATOMIC);
++	usb_context = kmalloc(sizeof(struct usb_context), GFP_NOIO);
+ 	if (usb_context == NULL) {
+ 		netdev_warn(dev->net, "Error allocating control msg\n");
+ 		usb_free_urb(urb);
+@@ -990,7 +990,7 @@
+ 	}
+ 
+ 	dev->data[0] = (unsigned long)kzalloc(sizeof(struct smsc95xx_priv),
+-		GFP_KERNEL);
++		GFP_NOIO);
+ 
+ 	pdata = (struct smsc95xx_priv *)(dev->data[0]);
+ 	if (!pdata) {
+diff -r a83abb859b41 drivers/net/usb/usbnet.c
+--- a/drivers/net/usb/usbnet.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/net/usb/usbnet.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -201,7 +201,7 @@
+ 	period = max ((int) dev->status->desc.bInterval,
+ 		(dev->udev->speed == USB_SPEED_HIGH) ? 7 : 3);
+ 
+-	buf = kmalloc (maxp, GFP_KERNEL);
++	buf = kmalloc (maxp, GFP_NOIO);
+ 	if (buf) {
+ 		dev->interrupt = usb_alloc_urb (0, GFP_KERNEL);
+ 		if (!dev->interrupt) {
+@@ -1512,7 +1512,7 @@
+ 	if (!--dev->suspend_count) {
+ 		/* resume interrupt URBs */
+ 		if (dev->interrupt && test_bit(EVENT_DEV_OPEN, &dev->flags))
+-			usb_submit_urb(dev->interrupt, GFP_NOIO);
++			usb_submit_urb(dev->interrupt, GFP_KERNEL);
+ 
+ 		spin_lock_irq(&dev->txq.lock);
+ 		while ((res = usb_get_from_anchor(&dev->deferred))) {
+diff -r a83abb859b41 drivers/usb/core/config.c
+--- a/drivers/usb/core/config.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/core/config.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -689,7 +689,7 @@
+ 	if (!dev->rawdescriptors)
+ 		goto err2;
+ 
+-	desc = kmalloc(USB_DT_CONFIG_SIZE, GFP_KERNEL);
++	desc = kmalloc(USB_DT_CONFIG_SIZE, GFP_NOIO);
+ 	if (!desc)
+ 		goto err2;
+ 
+@@ -716,7 +716,7 @@
+ 		    USB_DT_CONFIG_SIZE);
+ 
+ 		/* Now that we know the length, get the whole thing */
+-		bigbuffer = kmalloc(length, GFP_KERNEL);
++		bigbuffer = kmalloc(length, GFP_NOIO);
+ 		if (!bigbuffer) {
+ 			result = -ENOMEM;
+ 			goto err;
+diff -r a83abb859b41 drivers/usb/core/devices.c
+--- a/drivers/usb/core/devices.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/core/devices.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -505,7 +505,7 @@
+ 		return 0;
+ 	/* allocate 2^1 pages = 8K (on i386);
+ 	 * should be more than enough for one device */
+-	pages_start = (char *)__get_free_pages(GFP_NOIO, 1);
++	pages_start = (char *)__get_free_pages(GFP_KERNEL, 1);
+ 	if (!pages_start)
+ 		return -ENOMEM;
+ 
+diff -r a83abb859b41 drivers/usb/core/hub.c
+--- a/drivers/usb/core/hub.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/core/hub.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -740,7 +740,7 @@
+ 			hcd = bus_to_hcd(hdev->bus);
+ 			if (hcd->driver->update_hub_device) {
+ 				ret = hcd->driver->update_hub_device(hcd, hdev,
+-						&hub->tt, GFP_NOIO);
++						&hub->tt, GFP_KERNEL);
+ 				if (ret < 0) {
+ 					dev_err(hub->intfdev, "Host not "
+ 							"accepting hub info "
+@@ -879,7 +879,7 @@
+  init3:
+ 	hub->quiescing = 0;
+ 
+-	status = usb_submit_urb(hub->urb, GFP_NOIO);
++	status = usb_submit_urb(hub->urb, GFP_KERNEL);
+ 	if (status < 0)
+ 		dev_err(hub->intfdev, "activate --> %d\n", status);
+ 	if (hub->has_indicators && blinkenlights)
+@@ -968,20 +968,21 @@
+ 	int maxp, ret;
+ 	char *message = "out of memory";
+ 
+-	hub->buffer = kmalloc(sizeof(*hub->buffer), GFP_KERNEL);
++	hub->buffer = kmalloc(sizeof(*hub->buffer), GFP_NOIO);
+ 	if (!hub->buffer) {
+ 		ret = -ENOMEM;
+ 		goto fail;
+ 	}
+ 
+-	hub->status = kmalloc(sizeof(*hub->status), GFP_KERNEL);
++	hub->status = kmalloc(sizeof(*hub->status), GFP_NOIO);
+ 	if (!hub->status) {
+ 		ret = -ENOMEM;
+ 		goto fail;
+ 	}
+ 	mutex_init(&hub->status_mutex);
+ 
+-	hub->descriptor = kmalloc(sizeof(*hub->descriptor), GFP_KERNEL);
++	hub->descriptor = kmalloc(sizeof(*hub->descriptor), GFP_NOIO);
++	printk("Alloc hub desc: %p\n", hub->descriptor);
+ 	if (!hub->descriptor) {
+ 		ret = -ENOMEM;
+ 		goto fail;
+@@ -3790,7 +3791,7 @@
+ 		len = max(len, old_length);
+ 	}
+ 
+-	buf = kmalloc(len, GFP_NOIO);
++	buf = kmalloc(len, GFP_KERNEL);
+ 	if (buf == NULL) {
+ 		dev_err(&udev->dev, "no mem to re-read configs after reset\n");
+ 		/* assume the worst */
+diff -r a83abb859b41 drivers/usb/core/message.c
+--- a/drivers/usb/core/message.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/core/message.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -50,7 +50,7 @@
+ 	init_completion(&ctx.done);
+ 	urb->context = &ctx;
+ 	urb->actual_length = 0;
+-	retval = usb_submit_urb(urb, GFP_NOIO);
++	retval = usb_submit_urb(urb, GFP_KERNEL);
+ 	if (unlikely(retval))
+ 		goto out;
+ 
+@@ -87,7 +87,7 @@
+ 	int retv;
+ 	int length;
+ 
+-	urb = usb_alloc_urb(0, GFP_NOIO);
++	urb = usb_alloc_urb(0, GFP_KERNEL);
+ 	if (!urb)
+ 		return -ENOMEM;
+ 
+@@ -866,11 +866,11 @@
+ 	if (index <= 0)
+ 		return NULL;
+ 
+-	buf = kmalloc(MAX_USB_STRING_SIZE, GFP_NOIO);
++	buf = kmalloc(MAX_USB_STRING_SIZE, GFP_KERNEL);
+ 	if (buf) {
+ 		len = usb_string(udev, index, buf, MAX_USB_STRING_SIZE);
+ 		if (len > 0) {
+-			smallbuf = kmalloc(++len, GFP_NOIO);
++			smallbuf = kmalloc(++len, GFP_KERNEL);
+ 			if (!smallbuf)
+ 				return buf;
+ 			memcpy(smallbuf, buf, len);
+@@ -941,7 +941,7 @@
+ int usb_get_status(struct usb_device *dev, int type, int target, void *data)
+ {
+ 	int ret;
+-	u16 *status = kmalloc(sizeof(*status), GFP_KERNEL);
++	u16 *status = kmalloc(sizeof(*status), GFP_NOIO);
+ 
+ 	if (!status)
+ 		return -ENOMEM;
+@@ -1713,7 +1713,7 @@
+ 	if (cp) {
+ 		nintf = cp->desc.bNumInterfaces;
+ 		new_interfaces = kmalloc(nintf * sizeof(*new_interfaces),
+-				GFP_NOIO);
++				GFP_KERNEL);
+ 		if (!new_interfaces) {
+ 			dev_err(&dev->dev, "Out of memory\n");
+ 			return -ENOMEM;
+@@ -1722,7 +1722,7 @@
+ 		for (; n < nintf; ++n) {
+ 			new_interfaces[n] = kzalloc(
+ 					sizeof(struct usb_interface),
+-					GFP_NOIO);
++					GFP_KERNEL);
+ 			if (!new_interfaces[n]) {
+ 				dev_err(&dev->dev, "Out of memory\n");
+ 				ret = -ENOMEM;
+diff -r a83abb859b41 drivers/usb/core/urb.c
+--- a/drivers/usb/core/urb.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/core/urb.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -266,7 +266,7 @@
+  *
+  * The general rules for how to decide which mem_flags to use
+  * are the same as for kmalloc.  There are four
+- * different possible values; GFP_KERNEL, GFP_NOFS, GFP_NOIO and
++ * different possible values; GFP_KERNEL, GFP_NOFS, GFP_KERNEL and
+  * GFP_ATOMIC.
+  *
+  * GFP_NOFS is not ever used, as it has not been implemented yet.
+@@ -279,7 +279,7 @@
+  *   (c) current->state != TASK_RUNNING, this is the case only after
+  *       you've changed it.
+  *
+- * GFP_NOIO is used in the block io path and error handling of storage
++ * GFP_KERNEL is used in the block io path and error handling of storage
+  * devices.
+  *
+  * All other situations use GFP_KERNEL.
+@@ -290,12 +290,12 @@
+  *  (2) queuecommand methods of scsi drivers must use GFP_ATOMIC (also
+  *      called with a spinlock held);
+  *  (3) If you use a kernel thread with a network driver you must use
+- *      GFP_NOIO, unless (b) or (c) apply;
++ *      GFP_KERNEL, unless (b) or (c) apply;
+  *  (4) after you have done a down() you can use GFP_KERNEL, unless (b) or (c)
+  *      apply or your are in a storage driver's block io path;
+  *  (5) USB probe and disconnect can use GFP_KERNEL unless (b) or (c) apply; and
+  *  (6) changing firmware on a running storage or net device uses
+- *      GFP_NOIO, unless b) or c) apply
++ *      GFP_KERNEL, unless b) or c) apply
+  *
+  */
+ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
+diff -r a83abb859b41 drivers/usb/storage/alauda.c
+--- a/drivers/usb/storage/alauda.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/alauda.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -448,8 +448,8 @@
+ 
+ 	num_zones = MEDIA_INFO(us).capacity >> (MEDIA_INFO(us).zoneshift
+ 		+ MEDIA_INFO(us).blockshift + MEDIA_INFO(us).pageshift);
+-	MEDIA_INFO(us).pba_to_lba = kcalloc(num_zones, sizeof(u16*), GFP_NOIO);
+-	MEDIA_INFO(us).lba_to_pba = kcalloc(num_zones, sizeof(u16*), GFP_NOIO);
++	MEDIA_INFO(us).pba_to_lba = kcalloc(num_zones, sizeof(u16*), GFP_KERNEL);
++	MEDIA_INFO(us).lba_to_pba = kcalloc(num_zones, sizeof(u16*), GFP_KERNEL);
+ 
+ 	if (alauda_reset_media(us) != USB_STOR_XFER_GOOD)
+ 		return USB_STOR_TRANSPORT_ERROR;
+@@ -577,8 +577,8 @@
+ 	unsigned int lba_offset, lba_real, blocknum;
+ 	unsigned int zone_base_lba = zone * uzonesize;
+ 	unsigned int zone_base_pba = zone * zonesize;
+-	u16 *lba_to_pba = kcalloc(zonesize, sizeof(u16), GFP_NOIO);
+-	u16 *pba_to_lba = kcalloc(zonesize, sizeof(u16), GFP_NOIO);
++	u16 *lba_to_pba = kcalloc(zonesize, sizeof(u16), GFP_KERNEL);
++	u16 *pba_to_lba = kcalloc(zonesize, sizeof(u16), GFP_KERNEL);
+ 	if (lba_to_pba == NULL || pba_to_lba == NULL) {
+ 		result = USB_STOR_TRANSPORT_ERROR;
+ 		goto error;
+@@ -940,7 +940,7 @@
+ 	 */
+ 
+ 	len = min(sectors, blocksize) * (pagesize + 64);
+-	buffer = kmalloc(len, GFP_NOIO);
++	buffer = kmalloc(len, GFP_KERNEL);
+ 	if (buffer == NULL) {
+ 		printk(KERN_WARNING "alauda_read_data: Out of memory\n");
+ 		return USB_STOR_TRANSPORT_ERROR;
+@@ -1033,7 +1033,7 @@
+ 	 */
+ 
+ 	len = min(sectors, blocksize) * pagesize;
+-	buffer = kmalloc(len, GFP_NOIO);
++	buffer = kmalloc(len, GFP_KERNEL);
+ 	if (buffer == NULL) {
+ 		printk(KERN_WARNING "alauda_write_data: Out of memory\n");
+ 		return USB_STOR_TRANSPORT_ERROR;
+@@ -1043,7 +1043,7 @@
+ 	 * We also need a temporary block buffer, where we read in the old data,
+ 	 * overwrite parts with the new data, and manipulate the redundancy data
+ 	 */
+-	blockbuffer = kmalloc((pagesize + 64) * blocksize, GFP_NOIO);
++	blockbuffer = kmalloc((pagesize + 64) * blocksize, GFP_KERNEL);
+ 	if (blockbuffer == NULL) {
+ 		printk(KERN_WARNING "alauda_write_data: Out of memory\n");
+ 		kfree(buffer);
+@@ -1121,7 +1121,7 @@
+ 	struct usb_host_interface *altsetting = us->pusb_intf->cur_altsetting;
+ 	nand_init_ecc();
+ 
+-	us->extra = kzalloc(sizeof(struct alauda_info), GFP_NOIO);
++	us->extra = kzalloc(sizeof(struct alauda_info), GFP_KERNEL);
+ 	if (!us->extra) {
+ 		US_DEBUGP("init_alauda: Gah! Can't allocate storage for"
+ 			"alauda info struct!\n");
+diff -r a83abb859b41 drivers/usb/storage/datafab.c
+--- a/drivers/usb/storage/datafab.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/datafab.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -174,7 +174,7 @@
+ 	// bounce buffer and the actual transfer buffer.
+ 
+ 	alloclen = min(totallen, 65536u);
+-	buffer = kmalloc(alloclen, GFP_NOIO);
++	buffer = kmalloc(alloclen, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -258,7 +258,7 @@
+ 	// bounce buffer and the actual transfer buffer.
+ 
+ 	alloclen = min(totallen, 65536u);
+-	buffer = kmalloc(alloclen, GFP_NOIO);
++	buffer = kmalloc(alloclen, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -338,7 +338,7 @@
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+ 	memcpy(command, scommand, 8);
+-	buf = kmalloc(512, GFP_NOIO);
++	buf = kmalloc(512, GFP_KERNEL);
+ 	if (!buf)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -409,7 +409,7 @@
+ 	}
+ 
+ 	memcpy(command, scommand, 8);
+-	reply = kmalloc(512, GFP_NOIO);
++	reply = kmalloc(512, GFP_KERNEL);
+ 	if (!reply)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -565,7 +565,7 @@
+ 	};
+ 
+ 	if (!us->extra) {
+-		us->extra = kzalloc(sizeof(struct datafab_info), GFP_NOIO);
++		us->extra = kzalloc(sizeof(struct datafab_info), GFP_KERNEL);
+ 		if (!us->extra) {
+ 			US_DEBUGP("datafab_transport:  Gah! "
+ 				  "Can't allocate storage for Datafab info struct!\n");
+diff -r a83abb859b41 drivers/usb/storage/jumpshot.c
+--- a/drivers/usb/storage/jumpshot.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/jumpshot.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -188,7 +188,7 @@
+ 	// bounce buffer and the actual transfer buffer.
+ 
+ 	alloclen = min(totallen, 65536u);
+-	buffer = kmalloc(alloclen, GFP_NOIO);
++	buffer = kmalloc(alloclen, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -265,7 +265,7 @@
+ 	// bounce buffer and the actual transfer buffer.
+ 
+ 	alloclen = min(totallen, 65536u);
+-	buffer = kmalloc(alloclen, GFP_NOIO);
++	buffer = kmalloc(alloclen, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -340,7 +340,7 @@
+ 
+ 	command[0] = 0xE0;
+ 	command[1] = 0xEC;
+-	reply = kmalloc(512, GFP_NOIO);
++	reply = kmalloc(512, GFP_KERNEL);
+ 	if (!reply)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -493,7 +493,7 @@
+ 	};
+ 
+ 	if (!us->extra) {
+-		us->extra = kzalloc(sizeof(struct jumpshot_info), GFP_NOIO);
++		us->extra = kzalloc(sizeof(struct jumpshot_info), GFP_KERNEL);
+ 		if (!us->extra) {
+ 			US_DEBUGP("jumpshot_transport:  Gah! Can't allocate storage for jumpshot info struct!\n");
+ 			return USB_STOR_TRANSPORT_ERROR;
+diff -r a83abb859b41 drivers/usb/storage/karma.c
+--- a/drivers/usb/storage/karma.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/karma.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -182,11 +182,11 @@
+ static int rio_karma_init(struct us_data *us)
+ {
+ 	int ret = 0;
+-	struct karma_data *data = kzalloc(sizeof(struct karma_data), GFP_NOIO);
++	struct karma_data *data = kzalloc(sizeof(struct karma_data), GFP_KERNEL);
+ 	if (!data)
+ 		goto out;
+ 
+-	data->recv = kmalloc(RIO_RECV_LEN, GFP_NOIO);
++	data->recv = kmalloc(RIO_RECV_LEN, GFP_KERNEL);
+ 	if (!data->recv) {
+ 		kfree(data);
+ 		goto out;
+diff -r a83abb859b41 drivers/usb/storage/onetouch.c
+--- a/drivers/usb/storage/onetouch.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/onetouch.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -163,7 +163,7 @@
+ 			usb_kill_urb(onetouch->irq);
+ 			break;
+ 		case US_RESUME:
+-			if (usb_submit_urb(onetouch->irq, GFP_NOIO) != 0)
++			if (usb_submit_urb(onetouch->irq, GFP_KERNEL) != 0)
+ 				dev_err(&onetouch->irq->dev->dev,
+ 					"usb_submit_urb failed\n");
+ 			break;
+diff -r a83abb859b41 drivers/usb/storage/realtek_cr.c
+--- a/drivers/usb/storage/realtek_cr.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/realtek_cr.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -367,7 +367,7 @@
+ 	u8 cmnd[12] = { 0 };
+ 	u8 *buf;
+ 
+-	buf = kmalloc(len, GFP_NOIO);
++	buf = kmalloc(len, GFP_KERNEL);
+ 	if (buf == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -398,7 +398,7 @@
+ 	u8 cmnd[12] = { 0 };
+ 	u8 *buf;
+ 
+-	buf = kmalloc(len, GFP_NOIO);
++	buf = kmalloc(len, GFP_KERNEL);
+ 	if (buf == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 	memcpy(buf, data, len);
+@@ -428,7 +428,7 @@
+ 	u8 cmnd[12] = { 0 };
+ 	u8 *buf;
+ 
+-	buf = kmalloc(len, GFP_NOIO);
++	buf = kmalloc(len, GFP_KERNEL);
+ 	if (buf == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+diff -r a83abb859b41 drivers/usb/storage/sddr09.c
+--- a/drivers/usb/storage/sddr09.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/sddr09.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -692,7 +692,7 @@
+ 		return result;
+ 	}
+ 
+-	buf = kmalloc(bulklen, GFP_NOIO);
++	buf = kmalloc(bulklen, GFP_KERNEL);
+ 	if (!buf)
+ 		return -ENOMEM;
+ 
+@@ -768,7 +768,7 @@
+ 	// bounce buffer and the actual transfer buffer.
+ 
+ 	len = min(sectors, (unsigned int) info->blocksize) * info->pagesize;
+-	buffer = kmalloc(len, GFP_NOIO);
++	buffer = kmalloc(len, GFP_KERNEL);
+ 	if (buffer == NULL) {
+ 		printk(KERN_WARNING "sddr09_read_data: Out of memory\n");
+ 		return -ENOMEM;
+@@ -1000,7 +1000,7 @@
+ 
+ 	pagelen = (1 << info->pageshift) + (1 << CONTROL_SHIFT);
+ 	blocklen = (pagelen << info->blockshift);
+-	blockbuffer = kmalloc(blocklen, GFP_NOIO);
++	blockbuffer = kmalloc(blocklen, GFP_KERNEL);
+ 	if (!blockbuffer) {
+ 		printk(KERN_WARNING "sddr09_write_data: Out of memory\n");
+ 		return -ENOMEM;
+@@ -1011,7 +1011,7 @@
+ 	// at a time between the bounce buffer and the actual transfer buffer.
+ 
+ 	len = min(sectors, (unsigned int) info->blocksize) * info->pagesize;
+-	buffer = kmalloc(len, GFP_NOIO);
++	buffer = kmalloc(len, GFP_KERNEL);
+ 	if (buffer == NULL) {
+ 		printk(KERN_WARNING "sddr09_write_data: Out of memory\n");
+ 		kfree(blockbuffer);
+@@ -1230,7 +1230,7 @@
+ 
+ 	alloc_blocks = min(numblocks, SDDR09_READ_MAP_BUFSZ >> CONTROL_SHIFT);
+ 	alloc_len = (alloc_blocks << CONTROL_SHIFT);
+-	buffer = kmalloc(alloc_len, GFP_NOIO);
++	buffer = kmalloc(alloc_len, GFP_KERNEL);
+ 	if (buffer == NULL) {
+ 		printk(KERN_WARNING "sddr09_read_map: out of memory\n");
+ 		result = -1;
+@@ -1242,8 +1242,8 @@
+ 
+ 	kfree(info->lba_to_pba);
+ 	kfree(info->pba_to_lba);
+-	info->lba_to_pba = kmalloc(numblocks*sizeof(int), GFP_NOIO);
+-	info->pba_to_lba = kmalloc(numblocks*sizeof(int), GFP_NOIO);
++	info->lba_to_pba = kmalloc(numblocks*sizeof(int), GFP_KERNEL);
++	info->pba_to_lba = kmalloc(numblocks*sizeof(int), GFP_KERNEL);
+ 
+ 	if (info->lba_to_pba == NULL || info->pba_to_lba == NULL) {
+ 		printk(KERN_WARNING "sddr09_read_map: out of memory\n");
+@@ -1438,7 +1438,7 @@
+ 		return -EINVAL;
+ 	}
+ 
+-	us->extra = kzalloc(sizeof(struct sddr09_card_info), GFP_NOIO);
++	us->extra = kzalloc(sizeof(struct sddr09_card_info), GFP_KERNEL);
+ 	if (!us->extra)
+ 		return -ENOMEM;
+ 	us->extra_destructor = sddr09_card_info_destructor;
+diff -r a83abb859b41 drivers/usb/storage/sddr55.c
+--- a/drivers/usb/storage/sddr55.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/sddr55.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -216,7 +216,7 @@
+ 
+ 	len = min((unsigned int) sectors, (unsigned int) info->blocksize >>
+ 			info->smallpageshift) * PAGESIZE;
+-	buffer = kmalloc(len, GFP_NOIO);
++	buffer = kmalloc(len, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR; /* out of memory */
+ 	offset = 0;
+@@ -344,7 +344,7 @@
+ 
+ 	len = min((unsigned int) sectors, (unsigned int) info->blocksize >>
+ 			info->smallpageshift) * PAGESIZE;
+-	buffer = kmalloc(len, GFP_NOIO);
++	buffer = kmalloc(len, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 	offset = 0;
+@@ -661,7 +661,7 @@
+ 
+ 	numblocks = info->capacity >> (info->blockshift + info->pageshift);
+ 	
+-	buffer = kmalloc( numblocks * 2, GFP_NOIO );
++	buffer = kmalloc( numblocks * 2, GFP_KERNEL );
+ 	
+ 	if (!buffer)
+ 		return -1;
+@@ -694,8 +694,8 @@
+ 
+ 	kfree(info->lba_to_pba);
+ 	kfree(info->pba_to_lba);
+-	info->lba_to_pba = kmalloc(numblocks*sizeof(int), GFP_NOIO);
+-	info->pba_to_lba = kmalloc(numblocks*sizeof(int), GFP_NOIO);
++	info->lba_to_pba = kmalloc(numblocks*sizeof(int), GFP_KERNEL);
++	info->pba_to_lba = kmalloc(numblocks*sizeof(int), GFP_KERNEL);
+ 
+ 	if (info->lba_to_pba == NULL || info->pba_to_lba == NULL) {
+ 		kfree(info->lba_to_pba);
+@@ -799,7 +799,7 @@
+ 
+ 	if (!us->extra) {
+ 		us->extra = kzalloc(
+-			sizeof(struct sddr55_card_info), GFP_NOIO);
++			sizeof(struct sddr55_card_info), GFP_KERNEL);
+ 		if (!us->extra)
+ 			return USB_STOR_TRANSPORT_ERROR;
+ 		us->extra_destructor = sddr55_card_info_destructor;
+diff -r a83abb859b41 drivers/usb/storage/shuttle_usbat.c
+--- a/drivers/usb/storage/shuttle_usbat.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/shuttle_usbat.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -1068,7 +1068,7 @@
+ 	if (!us || !info)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+-	reply = kmalloc(512, GFP_NOIO);
++	reply = kmalloc(512, GFP_KERNEL);
+ 	if (!reply)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -1153,7 +1153,7 @@
+ 	 */
+ 
+ 	alloclen = min(totallen, 65536u);
+-	buffer = kmalloc(alloclen, GFP_NOIO);
++	buffer = kmalloc(alloclen, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -1244,7 +1244,7 @@
+ 	 */
+ 
+ 	alloclen = min(totallen, 65536u);
+-	buffer = kmalloc(alloclen, GFP_NOIO);
++	buffer = kmalloc(alloclen, GFP_KERNEL);
+ 	if (buffer == NULL)
+ 		return USB_STOR_TRANSPORT_ERROR;
+ 
+@@ -1348,7 +1348,7 @@
+ 	len = (65535/srb->transfersize) * srb->transfersize;
+ 	US_DEBUGP("Max read is %d bytes\n", len);
+ 	len = min(len, scsi_bufflen(srb));
+-	buffer = kmalloc(len, GFP_NOIO);
++	buffer = kmalloc(len, GFP_KERNEL);
+ 	if (buffer == NULL) /* bloody hell! */
+ 		return USB_STOR_TRANSPORT_FAILED;
+ 	sector = short_pack(data[7+3], data[7+2]);
+@@ -1459,7 +1459,7 @@
+ 	unsigned char subcountL = USBAT_ATA_LBA_ME;
+ 	unsigned char *status = us->iobuf;
+ 
+-	us->extra = kzalloc(sizeof(struct usbat_info), GFP_NOIO);
++	us->extra = kzalloc(sizeof(struct usbat_info), GFP_KERNEL);
+ 	if (!us->extra) {
+ 		US_DEBUGP("init_usbat: Gah! Can't allocate storage for usbat info struct!\n");
+ 		return 1;
+diff -r a83abb859b41 drivers/usb/storage/transport.c
+--- a/drivers/usb/storage/transport.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/transport.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -151,7 +151,7 @@
+ 	us->current_urb->transfer_dma = us->iobuf_dma;
+ 
+ 	/* submit the URB */
+-	status = usb_submit_urb(us->current_urb, GFP_NOIO);
++	status = usb_submit_urb(us->current_urb, GFP_KERNEL);
+ 	if (status) {
+ 		/* something went wrong */
+ 		return status;
+@@ -429,7 +429,7 @@
+ 	US_DEBUGP("%s: xfer %u bytes, %d entries\n", __func__,
+ 			length, num_sg);
+ 	result = usb_sg_init(&us->current_sg, us->pusb_dev, pipe, 0,
+-			sg, num_sg, length, GFP_NOIO);
++			sg, num_sg, length, GFP_KERNEL);
+ 	if (result) {
+ 		US_DEBUGP("usb_sg_init returned %d\n", result);
+ 		return USB_STOR_XFER_ERROR;
+diff -r a83abb859b41 drivers/usb/storage/uas.c
+--- a/drivers/usb/storage/uas.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/uas.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -142,7 +142,7 @@
+ 		struct scsi_pointer *scp = (void *)cmdinfo;
+ 		struct scsi_cmnd *cmnd = container_of(scp,
+ 							struct scsi_cmnd, SCp);
+-		uas_submit_urbs(cmnd, cmnd->device->hostdata, GFP_NOIO);
++		uas_submit_urbs(cmnd, cmnd->device->hostdata, GFP_KERNEL);
+ 	}
+ }
+ 
+diff -r a83abb859b41 drivers/usb/storage/usb.c
+--- a/drivers/usb/storage/usb.c	Tue Aug 07 17:17:03 2012 +0200
++++ b/drivers/usb/storage/usb.c	Tue Aug 07 17:18:51 2012 +0200
+@@ -409,7 +409,7 @@
+ 	usb_set_intfdata(intf, us);
+ 
+ 	/* Allocate the control/setup and DMA-mapped buffers */
+-	us->cr = kmalloc(sizeof(*us->cr), GFP_KERNEL);
++	us->cr = kmalloc(sizeof(*us->cr), GFP_NOIO);
+ 	if (!us->cr) {
+ 		US_DEBUGP("usb_ctrlrequest allocation failed\n");
+ 		return -ENOMEM;

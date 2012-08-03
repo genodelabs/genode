@@ -1,0 +1,121 @@
+assert_spec foc
+assert_spec platform_panda
+
+#
+# Build
+#
+build {
+	core
+	init
+	drivers/timer
+	drivers/framebuffer
+	drivers/sd_card
+	drivers/usb
+	server/nic_bridge
+	server/part_blk
+	l4linux
+}
+
+create_boot_directory
+
+#
+# Config
+#
+set config  {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="fb_drv">
+		<binary name="omap4_fb_drv"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>
+	<start name="sd_card_drv" priority="-1">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Block"/></provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<hid/>
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+	</start>
+	<start name="part_blk" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Block"/></provides>
+		<config>
+			<policy label="vmlinux.1 -> sda" partition="1" />
+			<policy label="vmlinux.2 -> sda" partition="2" />
+			<policy label="test-libc_ffat"   partition="3" />
+		</config>
+		<route>
+			<service name="Block"> <child name="sd_card_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="vmlinux.1">
+		<binary name="l4linux"/>
+		<resource name="RAM" quantum="96M"/>
+		<config args="mem=54M l4x_rd=initrd.gz">
+			<block label="sda" />
+		</config>
+		<route>
+			<service name="Input">       <child name="usb_drv"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<service name="Block">       <child name="part_blk"/> </service>
+			<service name="Nic">         <child name="usb_drv"/> </service>
+			<service name="Timer">       <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules {
+	core
+	init
+	timer
+	part_blk
+	l4linux
+	initrd.gz
+	omap4_fb_drv
+	sd_card_drv
+	usb_drv
+}
+
+set uri "https://github.com/downloads/skalk/genode/busybox-initrd-arm-20120710.gz"
+
+if {![file exists bin/initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O bin/initrd.gz $uri
+}
+
+build_boot_image  [join $boot_modules " "]
+

@@ -13,15 +13,15 @@
 
 #include <signal.h>
 #include <lx_emul.h>
-#include <dma.h>
+
 extern "C" {
 #include <dde_kit/interrupt.h>
 }
 
-
 /* our local incarnation of sender and receiver */
 static Signal_helper *_signal = 0;
-static Genode::Lock _irq_ack_lock(Genode::Lock::LOCKED);
+static Genode::Lock   _irq_sync(Genode::Lock::LOCKED);
+static Genode::Lock   _irq_wait(Genode::Lock::LOCKED);
 
 
 /**
@@ -35,6 +35,7 @@ struct Irq_handler : Genode::List<Irq_handler>::Element
 	Irq_handler(void *dev, irq_handler_t handler)
 	: dev(dev), handler(handler) { }
 };
+
 
 
 /**
@@ -70,13 +71,60 @@ class Irq_context : public Driver_context,
 		/* called by the DDE kit upon IRQ */
 		static void _dde_handler(void *irq)
 		{
+			/* unlock if main thread is waiting */
+			_irq_wait.unlock();
+
 			Irq_context *ctx = static_cast<Irq_context *>(irq);
 
 			/* set context & submit signal */
 			_signal->sender()->context(ctx->_ctx_cap);
 			_signal->sender()->submit();
 
-			_irq_ack_lock.lock();
+			/* wait for interrupt to get acked at device side */
+			_irq_sync.lock();
+		}
+
+		/**
+		 * Call one IRQ handler
+		 */
+		inline bool _handle_one(Irq_handler *h)
+		{
+			bool handled = false;
+
+			/*
+			 * It might be that the next interrupt triggers right after the device has
+			 * acknowledged the IRQ
+			 */
+			do {
+				if (h->handler(_irq, h->dev) != IRQ_HANDLED)
+					return handled;
+
+				if (!handled)
+					Routine::schedule_all();
+
+				handled = true;
+
+			} while (true);
+		}
+
+		/**
+		 * Call all handlers registered for this context
+		 */
+		bool _handle()
+		{
+			bool handled = false;
+
+			/* report IRQ to all clients */
+			for (Irq_handler *h = _handler_list.first(); h; h = h->next()) {
+
+				handled = _handle_one(h);
+				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u %p", _irq, handled, h->handler);
+				if (handled)
+					break;
+			}
+			/* interrupt should be acked at device now */
+			_irq_sync.unlock();
+			return handled;
 		}
 
 	public:
@@ -94,23 +142,10 @@ class Irq_context : public Driver_context,
 			_list()->insert(this);
 		}
 
-		void handle()
-		{
-			/* report IRQ to all clients */
-			for (Irq_handler *h = _handler_list.first(); h; h = h->next()) {
-				irqreturn_t rc;
 
-				rc = h->handler(_irq, h->dev);
-				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u %p", _irq, rc, h->handler);
-				if (rc == IRQ_HANDLED) {
-					Routine::schedule_all();
-					break;
-				}
-			}
-			_irq_ack_lock.unlock();
-		}
-
+		inline void handle() { _handle(); }
 		const char *debug() { return "Irq_context"; }
+
 		/**
 		 * Request an IRQ
 		 */
@@ -126,11 +161,33 @@ class Irq_context : public Driver_context,
 			/* register Linux handler */
 			ctx->_handler_list.insert(h);
 		}
+
+		static bool check_irq()
+		{
+			bool handled = false;
+			for (Irq_context *i = _list()->first(); i; i = i->next())
+				handled |= i->_handle();
+
+			return handled;
+		}
+
+		static void wait()
+		{
+			_irq_wait.lock();
+			check_irq();
+		}
 };
 
 
 void Irq::init(Genode::Signal_receiver *recv) {
 	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
+
+
+void Irq::check_irq()
+{
+	if (!Irq_context::check_irq())
+		Irq_context::wait();
+}
 
 
 /***********************
@@ -140,7 +197,8 @@ void Irq::init(Genode::Signal_receiver *recv) {
 int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                  const char *name, void *dev)
 {
-	dde_kit_log(DEBUG_IRQ, "Request irq %u", irq);
+	dde_kit_log(DEBUG_IRQ, "Request irq %u handler %p", irq, handler);
 	Irq_context::request_irq(irq, handler, dev);
 	return 0;
 }
+

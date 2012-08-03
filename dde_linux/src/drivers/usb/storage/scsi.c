@@ -91,7 +91,7 @@ void scsi_alloc_buffer(size_t size, struct scsi_cmnd *cmnd)
 	scsi_setup_buffer(cmnd, size, 0, 0);
 	struct scatterlist *sgl = cmnd->sdb.table.sgl;
 	struct page *page       = _page(cmnd);
-	page->virt              = kmalloc(size, 0);
+	page->virt              = kmalloc(size, GFP_NOIO);
 	page->phys              = dma_map_single_attrs(0, page->virt, 0, 0, 0);
 	sgl->dma_address        = page->phys;
 }
