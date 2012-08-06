@@ -499,16 +499,34 @@ class Plugin : public Libc::Plugin
 				 * Open directory that contains the file to be opened/created
 				 */
 				File_system::Dir_handle const dir_handle =
-				file_system()->dir(dir_path, false);
+				    file_system()->dir(dir_path, false);
 
 				Node_handle_guard guard(dir_handle);
+
+				File_system::File_handle handle;
 
 				/*
 				 * Open or create file
 				 */
 				bool const create = (flags & O_CREAT) != 0;
-				File_system::File_handle const handle =
-					file_system()->file(dir_handle, basename, mode, create);
+
+				bool opened = false;
+				while (!opened) {
+					try {
+						handle = file_system()->file(dir_handle, basename, mode, create);
+						opened = true;
+					} catch (File_system::Node_already_exists) {
+						if (flags & O_EXCL)
+							throw File_system::Node_already_exists();
+						/* try to open the existing file */
+						try {
+							handle = file_system()->file(dir_handle, basename, mode, false);
+							opened = true;
+						} catch (File_system::Lookup_failed) {
+							/* the file got deleted in the meantime */
+						}
+					}
+				}
 
 				Plugin_context *context = new (Genode::env()->heap())
 					Plugin_context(handle);
