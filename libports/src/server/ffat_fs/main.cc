@@ -277,7 +277,7 @@ namespace File_system {
 						throw Permission_denied();
 
 				if (create)
-					ffat_flags |= FA_CREATE_ALWAYS; /* overwrite existing file */
+					ffat_flags |= FA_CREATE_NEW;
 
 				if ((mode == READ_ONLY) || (mode == READ_WRITE))
 					ffat_flags |= FA_READ;

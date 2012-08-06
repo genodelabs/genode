@@ -416,7 +416,10 @@ namespace Noux {
 					error = Sysio::OPEN_ERR_NO_PERM; }
 				catch (::File_system::Invalid_handle) {
 					error = Sysio::OPEN_ERR_NO_PERM; }
-				catch (::File_system::Lookup_failed) { }
+				catch (::File_system::Lookup_failed) {
+					error = Sysio::OPEN_ERR_UNACCESSIBLE; }
+				catch (::File_system::Node_already_exists) {
+					error = Sysio::OPEN_ERR_EXISTS; }
 
 				sysio->error.open = error;
 				return 0;

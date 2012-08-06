@@ -607,19 +607,37 @@ namespace {
 			return 0;
 		}
 
-		if (flags & O_CREAT)
-			unlink(pathname);
-
-		Genode::strncpy(sysio()->open_in.path, pathname, sizeof(sysio()->open_in.path));
-		sysio()->open_in.mode = flags;
-
-		if (!noux()->syscall(Noux::Session::SYSCALL_OPEN)) {
-			/*
-			 * XXX  we should return meaningful errno values
-			 */
-			PDBG("ENOENT (sysio()->error.open=%d)", sysio()->error.open);
-			errno = ENOENT;
-			return 0;
+		bool opened = false;
+		while (!opened) {
+			Genode::strncpy(sysio()->open_in.path, pathname, sizeof(sysio()->open_in.path));
+			sysio()->open_in.mode = flags;
+			if (noux()->syscall(Noux::Session::SYSCALL_OPEN))
+				opened = true;
+			else
+				switch (sysio()->error.open) {
+					case Noux::Sysio::OPEN_ERR_UNACCESSIBLE:
+						if (!(flags & O_CREAT)) {
+							errno = ENOENT;
+							return 0;
+						}
+						/* O_CREAT is set, so try to create the file */
+						Genode::strncpy(sysio()->open_in.path, pathname, sizeof(sysio()->open_in.path));
+						sysio()->open_in.mode = flags | O_EXCL;
+						if (noux()->syscall(Noux::Session::SYSCALL_OPEN))
+							opened = true;
+						else
+							switch (sysio()->error.open) {
+								case Noux::Sysio::OPEN_ERR_EXISTS:
+									/* file has been created by someone else in the meantime */
+									break;
+								case Noux::Sysio::OPEN_ERR_NO_PERM: errno = EPERM;  return 0;
+								default:                            errno = ENOENT; return 0;
+							}
+						break;
+					case Noux::Sysio::OPEN_ERR_NO_PERM: errno = EPERM;  return 0;
+					case Noux::Sysio::OPEN_ERR_EXISTS:  errno = EEXIST; return 0;
+					default:                            errno = ENOENT; return 0;
+				}
 		}
 
 		Libc::Plugin_context *context = noux_context(sysio()->open_out.fd);

@@ -73,6 +73,10 @@ int main(int argc, char *argv[])
 		CALL_AND_CHECK(count, write(fd, pattern, pattern_size), (size_t)count == pattern_size, "");
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 
+		/* open the file with O_CREAT again (should have no effect on the file) */
+		CALL_AND_CHECK(fd, open(file_name, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+
 		/* query file status of new file */
 		struct stat stat_buf;
 		CALL_AND_CHECK(ret, stat(file_name, &stat_buf), ret == 0, "file_name=%s", file_name);

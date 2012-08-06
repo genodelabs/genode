@@ -67,7 +67,7 @@ namespace Noux {
 			OPEN_MODE_WRONLY  = 1,
 			OPEN_MODE_RDWR    = 2,
 			OPEN_MODE_ACCMODE = 3,
-			OPEN_MODE_CREATE  = 0x0200,
+			OPEN_MODE_CREATE  = 0x0800, /* libc O_EXCL */
 		};
 
 		enum {
@@ -275,7 +275,8 @@ namespace Noux {
 		enum Stat_error    { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
 		enum Fchdir_error  { FCHDIR_ERR_NOT_DIR    = NUM_GENERAL_ERRORS };
 		enum Fcntl_error   { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
-		enum Open_error    { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM };
+		enum Open_error    { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM,
+		                     OPEN_ERR_EXISTS };
 		enum Execve_error  { EXECVE_NONEXISTENT    = NUM_GENERAL_ERRORS };
 		enum Unlink_error  { UNLINK_ERR_NO_ENTRY, UNLINK_ERR_NO_PERM };
 		enum Rename_error  { RENAME_ERR_NO_ENTRY, RENAME_ERR_CROSS_FS,
