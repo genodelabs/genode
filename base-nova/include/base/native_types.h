@@ -22,17 +22,16 @@
 
 namespace Genode {
 
-	typedef volatile int  Native_lock;
-
 	struct Native_thread
 	{
 		enum { INVALID_INDEX = ~0UL };
 
 		addr_t ec_sel;    /* NOVA cap selector for execution context */
 		addr_t exc_pt_sel; /* base of event portal window */
+		bool   is_vcpu;
 
 		Native_thread() : ec_sel(INVALID_INDEX),
-		                  exc_pt_sel (INVALID_INDEX) { }
+		                  exc_pt_sel (INVALID_INDEX), is_vcpu(false) {}
 	};
 
 	typedef Native_thread Native_thread_id;
@@ -96,61 +95,114 @@ namespace Genode {
 
 			bool   _trans_map;
 			void * _ptr;
+			addr_t _rcv_window;
 
 			enum { INVALID_INDEX = ~0UL };
 		protected:
 
 			explicit
-			Native_capability(void* ptr) : _cap(),
-			                               _trans_map(true),
-			                               _ptr(ptr) { }
+			Native_capability(void* ptr)
+			: _cap(), _trans_map(true), _ptr(ptr),
+			  _rcv_window(INVALID_INDEX) {}
 
 		public:
-			Native_capability() : _cap(), _trans_map(true),
-			                      _ptr(0) { }
+			/**
+			 * Constructors
+			 */
+			Native_capability()
+			: _cap(), _trans_map(true), _ptr(0),
+			  _rcv_window(INVALID_INDEX) {}
 
 			explicit
 			Native_capability(addr_t sel, unsigned rights = 0x1f)
-			: _cap(sel, rights), _trans_map(true), _ptr(0) { }
+			: _cap(sel, rights), _trans_map(true), _ptr(0),
+			  _rcv_window(INVALID_INDEX) {}
 
 			Native_capability(const Native_capability &o)
-			: _cap(o._cap), _trans_map(o._trans_map), _ptr(o._ptr) { }
+			: _cap(o._cap), _trans_map(o._trans_map), _ptr(o._ptr),
+			  _rcv_window(o._rcv_window) {}
 
-			Native_capability& operator=(const Native_capability &o){
+			/**
+			 * Copy constructor
+			 */
+			Native_capability& operator=
+				(const Native_capability &o)
+			{
 				if (this == &o)
 					return *this;
 
 				_cap        = o._cap;
 				_trans_map  = o._trans_map;
 				_ptr        = o._ptr;
+				_rcv_window = o._rcv_window;
 				return *this;
 			}
 
+			/**
+			 * Check whether the selector of the Native_cap and 
+			 * the capability type is valid.
+			 */
 			bool valid() const
 			{
-				 return !_cap.dst.is_null() &&
-					 _cap.dst.base() != INVALID_INDEX;
-			 }
+				return !_cap.dst.is_null() &&
+				       _cap.dst.base() != INVALID_INDEX;
+			}
 
 			Dst dst()   const { return _cap.dst; }
+
+			/**
+			 * Return pointer to the server object identified by
+			 * this cap
+			 */
 			void * local() const { return _ptr; }
 
-			addr_t local_name() const {
+			/**
+			 * Return the local_name. On NOVA it is the same as the
+			 * destination value.
+			 */
+			addr_t local_name() const
+			{
 				if (valid())
 					return _cap.dst.base();
 				else
 					return INVALID_INDEX;
 			}
 
+			/**
+			 * Set one specific cap selector index as receive
+			 * window for the next IPC. This can be used to make
+			 * sure that the to be received mapped capability will
+			 * be placed at a specific index.
+			 */
+			void   rcv_window(addr_t rcv) { _rcv_window = rcv; }
+
+			/**
+			 * Return the selector of the rcv_window.
+			 */
+			addr_t rcv_window() const { return _rcv_window; }
+
+			/**
+			 * Return an invalid Dst object
+			 */
 			static Dst invalid() { return Dst(); }
 
+			/**
+			 * Return a invalid Native_capability
+			 */
 			static Native_capability invalid_cap()
 			{
 				return Native_capability(INVALID_INDEX);
 			}
 
-			/** Invoke map syscall instead of translate_map call */
+			/**
+			 * Invoke map syscall instead of translate_map call
+			 */
 			void solely_map() { _trans_map = false; }
+
+			/**
+			 * Return true if the cap should be tried first to
+			 * be translated and if this fails it should be mapped.
+			 */
 			bool trans_map() const { return _trans_map; } 
 	};
 

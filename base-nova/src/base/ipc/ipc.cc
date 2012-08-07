@@ -140,7 +140,7 @@ void Ipc_client::_call()
 		PERR("could not setup IPC");
 		return;
 	}
-	_rcv_msg->rcv_prepare_pt_sel_window(utcb);
+	_rcv_msg->rcv_prepare_pt_sel_window(utcb, Ipc_ostream::_dst.rcv_window());
 
 	/* establish the mapping via a portal traversal */
 	uint8_t res = Nova::call(Ipc_ostream::_dst.local_name());

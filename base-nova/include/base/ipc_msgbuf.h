@@ -80,11 +80,13 @@ namespace Genode {
 			char _msg_start[];  /* symbol marks start of message */
 
 		public:
+			enum { INVALID_INDEX = ~0UL };
 
 			/**
 			 * Constructor
 			 */
-			Msgbuf_base() : _rcv_pt_base(~0UL), _rcv_items(0)
+			Msgbuf_base()
+			: _rcv_pt_base(INVALID_INDEX), _rcv_items(0)
 			{
 				rcv_reset();
 				snd_reset();
@@ -137,15 +139,17 @@ namespace Genode {
 			 */
 			inline size_t snd_pt_sel_cnt()
 			{
-				 return _snd_pt_sel_cnt;
+				return _snd_pt_sel_cnt;
 			}
 
 			/**
 			 * Return portal capability selector
 			 *
 			 * \param i  index (0 ... 'pt_sel_cnt()' - 1)
-			 * \return   portal-capability selector, or
-			 *           -1 if index is invalid
+			 * \return   portal-capability range descriptor
+			 *
+			 * The returned object could be a null cap. Use
+			 * is_null method to check for it.
 			 */
 			Nova::Obj_crd snd_pt_sel(addr_t i, bool &trans_map)
 			{
@@ -154,7 +158,7 @@ namespace Genode {
 
 				trans_map = _snd_pt_sel[i].trans_map;
 				return Nova::Obj_crd(_snd_pt_sel[i].sel, 0,
-						     _snd_pt_sel[i].rights);
+				                     _snd_pt_sel[i].rights);
 			}
 
 			/**
@@ -171,7 +175,7 @@ namespace Genode {
 
 				_rcv_pt_sel_cnt = 0;
 				_rcv_pt_sel_max = 0;
-				_rcv_pt_base = ~0UL;
+				_rcv_pt_base = INVALID_INDEX;
 			}
 
 			/**
@@ -183,31 +187,43 @@ namespace Genode {
 				if (_rcv_pt_sel_cnt < _rcv_pt_sel_max)
 					return _rcv_pt_sel[_rcv_pt_sel_cnt++].sel;
 				else
-					return ~0UL;
+					return INVALID_INDEX;
 			}
 
 			/**
 			 * Return true if receive window must be re-initialized
 			 */
-			bool rcv_invalid() { return _rcv_pt_base == ~0UL; }
+			bool rcv_invalid()
+			{
+				return _rcv_pt_base == INVALID_INDEX;
+			}
 
 			/**
 			 * Return true if receive window must be re-initialized
 			 *
-			 * After reading portal selectors from the message buffer using
-			 * 'rcv_pt_sel()', we assume that the IDC call populated the
-			 * current receive window with one or more portal capabilities.
-			 * To enable the reception of portal capability selectors for the
-			 * next IDC, we need a fresh receive window.
+			 * After reading portal selectors from the message
+			 * buffer using 'rcv_pt_sel()', we assume that the IDC
+			 * call populated the current receive window with one
+			 * or more portal capabilities.
+			 * To enable the reception of portal capability
+			 * selectors for the next IDC, we need a fresh receive
+			 * window.
 			 *
-			 * \param keep  If 'true', try to keep receive window if it's clean.
-			 *              If 'false', free caps of receive window because object is freed afterwards.
+			 * \param keep  'true' -  Try to keep receive window if
+			 *                        it's clean.
+			 *              'false' - Free caps of receive window
+			 *                        because object is freed
+			 *                        afterwards.
 			 *
-			 * \result 'true' if receive window was freed, 'false' if it was kept.
+			 * \result 'true'  -  receive window was freed
+			 *         'false' -  portal selectors has been kept
 			 */
 			bool rcv_cleanup(bool keep)
 			{
-				/* If nothing has been used, revoke/free at once */
+				/*
+				 * If nothing has been used, revoke and free
+				 * at once.
+				 */
 				if (_rcv_pt_sel_cnt == 0) {
 					_rcv_pt_sel_max = 0;
 
@@ -246,7 +262,7 @@ namespace Genode {
 					 * in _rcv_pt_sel, but would be there.
 					 */
 					Nova::revoke(Nova::Obj_crd(rcv_pt_base() + i, 0), true);
-					/* i was unused, free at allocator */ 
+					/* i was unused, free at allocator */
 					cap_selector_allocator()->free(rcv_pt_base() + i, 0);
 				}
 
@@ -257,21 +273,49 @@ namespace Genode {
 			}
 
 			/**
-			 * Initialize receive window for portal capability selectors
+			 * Initialize receive window for portal capability
+			 * selectors
 			 *
-			 * \param utcb  UTCB of designated receiver thread
+			 * \param utcb       - UTCB of designated receiver
+			 *                     thread
+			 * \param rcv_window - If specified - receive exactly
+			 *                     one capability at the specified
+			 *                     index of rcv_window
 			 *
-			 * Depending on the 'rcv_dirty' state of the message buffer, this
-			 * function allocates a fresh receive window and clears 'rcv_dirty'.
+			 * Depending on the 'rcv_invalid', 'rcv_cleanup(true)'
+			 * state of the message buffer and the specified
+			 * rcv_window parameter, this function allocates a
+			 * fresh receive window and clears 'rcv_invalid'.
 			 */
-			void rcv_prepare_pt_sel_window(Nova::Utcb *utcb)
+			void rcv_prepare_pt_sel_window(Nova::Utcb *utcb,
+			                               addr_t rcv_window = INVALID_INDEX)
 			{
-				if (rcv_invalid() || rcv_cleanup(true))
-					_rcv_pt_base = cap_selector_allocator()->alloc(MAX_CAP_ARGS_LOG2);
+				/*
+				 * If a rcv_window was specified use solely
+				 * the selector specified by rcv_window.
+				 */
+				if (rcv_window != INVALID_INDEX) {
+					/*
+					 * Cleanup if this msgbuf was already
+					 * used
+					 */
+					if (!rcv_invalid()) rcv_cleanup(false);
 
+					_rcv_pt_base = rcv_window;
+				} else {
+					if (rcv_invalid() || rcv_cleanup(true))
+						_rcv_pt_base = cap_selector_allocator()->alloc(MAX_CAP_ARGS_LOG2);
+				}
+
+				addr_t max = 0;
+				if (rcv_window == INVALID_INDEX)
+					max = MAX_CAP_ARGS_LOG2;
+
+				using namespace Nova;
 				/* register receive window at the UTCB */
-				utcb->crd_rcv = Nova::Obj_crd(rcv_pt_base(),MAX_CAP_ARGS_LOG2);
-				utcb->crd_xlt = Nova::Obj_crd(0, sizeof(addr_t) * 8 - 12);
+				utcb->crd_rcv = Obj_crd(rcv_pt_base(), max);
+				/* Open maximal translate window */
+				utcb->crd_xlt = Obj_crd(0, ~0UL);
 			}
 
 			/**
@@ -284,20 +328,33 @@ namespace Genode {
 			 *
 			 * \param utcb  UTCB of designated receiver thread
 			 */
-			void post_ipc(Nova::Utcb *utcb) {
+			void post_ipc(Nova::Utcb *utcb)
+			{
+				using namespace Nova;
+
 				_rcv_items = (utcb->items >> 16) & 0xffffu;
 				_rcv_pt_sel_max = 0;
 				_rcv_pt_sel_cnt = 0;
 
-				for (unsigned i=0; i < _rcv_items; i++) {
-					Nova::Utcb::Item * item = utcb->get_item(i);
-					if (!item) break;
-					if (_rcv_pt_sel_max >= MAX_CAP_ARGS) break;
+				addr_t max = 1UL << utcb->crd_rcv.order();
+				for (unsigned i = 0; i < _rcv_items; i++) {
+					Utcb::Item * item = utcb->get_item(i);
+					if (!item ||
+					    _rcv_pt_sel_max >= max) break;
 
-					Nova::Crd cap = Nova::Crd(item->crd);
-					_rcv_pt_sel[_rcv_pt_sel_max].sel   = cap.is_null() ? ~0UL : cap.base();
+					Crd cap = Crd(item->crd);
+					_rcv_pt_sel[_rcv_pt_sel_max].sel   = cap.is_null() ? INVALID_INDEX : cap.base();
 					_rcv_pt_sel[_rcv_pt_sel_max++].del = item->is_del();
 				}
+				/*
+				 * If a specific rcv_window has been specified,
+				 * (see rcv_prepare_pt_sel_window) then the
+				 * caller want to take care about freeing the
+				 * selector. Make the _rcv_pt_base invalid so
+				 * that it is not cleanup twice.
+				 */
+				if (max != MAX_CAP_ARGS)
+					_rcv_pt_base = INVALID_INDEX;
 			}
 
 	};
