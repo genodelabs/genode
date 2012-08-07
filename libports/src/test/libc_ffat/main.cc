@@ -180,6 +180,13 @@ int main(int argc, char *argv[])
 		               (ret == 0) && (stat_buf.st_size == 10),
 		               "file_name=%s", file_name4);
 
+		/* test 'O_TRUNC' flag */
+		CALL_AND_CHECK(fd, open(file_name4, O_WRONLY | O_TRUNC), fd >= 0, "file_name=%s", file_name4);
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+		CALL_AND_CHECK(ret, stat(file_name4, &stat_buf),
+		               (ret == 0) && (stat_buf.st_size == 0),
+		               "file_name=%s", file_name4);
+
 		if (i < (iterations - 1))
 			sleep(2);
 	}

@@ -550,8 +550,10 @@ class Plugin : public Libc::Plugin
 				Plugin_context *context = new (Genode::env()->heap())
 					Plugin_context(handle);
 
-				return Libc::file_descriptor_allocator()->alloc(this, context);
-
+				Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
+				if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1))
+					return 0;
+				return fd;
 			}
 			catch (File_system::Lookup_failed) {
 				PERR("open(%s) lookup failed", pathname); }
