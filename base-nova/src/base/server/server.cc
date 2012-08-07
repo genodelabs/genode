@@ -133,6 +133,7 @@ void Rpc_entrypoint::_activation_entry()
 	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(Thread_base::myself());
 
 	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
+	ep->_rcv_buf.post_ipc(reinterpret_cast<Nova::Utcb *>(ep->utcb()));
 
 	/* destination of next reply */
 	srv.dst(Native_capability(id_pt, srv.badge()));

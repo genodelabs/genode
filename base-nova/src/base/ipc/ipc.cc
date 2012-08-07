@@ -49,8 +49,6 @@ static void copy_utcb_to_msgbuf(Nova::Utcb *utcb, Msgbuf_base *rcv_msg)
 	mword_t *dst = (mword_t *)&msg_buf[0];
 	for (unsigned i = 0; i < num_msg_words; i++)
 		*dst++ = *src++;
-
-	rcv_msg->rcv_reset();
 }
 
 
@@ -151,6 +149,7 @@ void Ipc_client::_call()
 		PERR("call returned %u", res);
 	}
 
+	_rcv_msg->post_ipc(utcb);
 	copy_utcb_to_msgbuf(utcb, _rcv_msg);
 	_snd_msg->snd_reset();
 

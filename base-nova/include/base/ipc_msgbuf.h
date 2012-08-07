@@ -50,7 +50,7 @@ namespace Genode {
 			/**
 			 * Base of portal receive window
 			 */
-			int _rcv_pt_base;
+			addr_t _rcv_pt_base;
 
 			struct {
 				addr_t sel;
@@ -64,9 +64,9 @@ namespace Genode {
 			unsigned _rcv_pt_sel_max;
 
 			/**
-			 * Flag set to true if receive window must be re-initialized
+			 * Number of capabilities which has been received, reported by the kernel.
 			 */
-			bool _rcv_dirty;
+			unsigned _rcv_items;
 
 			char _msg_start[];  /* symbol marks start of message */
 
@@ -75,10 +75,15 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Msgbuf_base() : _rcv_dirty(true)
+			Msgbuf_base() : _rcv_pt_base(~0UL), _rcv_items(0)
 			{
 				rcv_reset();
 				snd_reset();
+			}
+
+			~Msgbuf_base()
+			{
+				rcv_reset();
 			}
 
 			/*
@@ -158,9 +163,14 @@ namespace Genode {
 
 			/**
 			 * Return true if receive window must be re-initialized
+			 */
+			bool rcv_invalid() { return _rcv_pt_base == ~0UL; }
+
+			/**
+			 * Return true if receive window must be re-initialized
 			 *
 			 * After reading portal selectors from the message buffer using
-			 * 'rcv_pt_sel()', we assume that the IDC call populared the
+			 * 'rcv_pt_sel()', we assume that the IDC call populated the
 			 * current receive window with one or more portal capabilities.
 			 * To enable the reception of portal capability selectors for the
 			 * next IDC, we need a fresh receive window.
@@ -231,10 +241,8 @@ namespace Genode {
 			 */
 			void rcv_prepare_pt_sel_window(Nova::Utcb *utcb)
 			{
-				if (rcv_dirty()) {
+				if (rcv_invalid() || rcv_cleanup(true))
 					_rcv_pt_base = cap_selector_allocator()->alloc(MAX_CAP_ARGS_LOG2);
-					_rcv_dirty = false;
-				}
 
 				/* register receive window at the UTCB */
 				utcb->crd_rcv = Nova::Obj_crd(rcv_pt_base(),MAX_CAP_ARGS_LOG2);
