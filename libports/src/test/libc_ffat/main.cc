@@ -184,5 +184,7 @@ int main(int argc, char *argv[])
 			sleep(2);
 	}
 
+	printf("test finished\n");
+
 	return 0;
 }
