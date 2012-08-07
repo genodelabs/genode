@@ -100,7 +100,7 @@ append config {
 			<launcher>
 				<filename>init</filename>
 				<ram_quota>70M</ram_quota>
-				<config>
+				<config prio_levels="2">
 					<parent-provides>
 						<service name="ROM"/>
 						<service name="RAM"/>
@@ -134,7 +134,7 @@ append config {
 							<service name="Framebuffer"/>
 						</provides>
 					</start>
-					<start name="l4linux">
+					<start name="l4linux" priority="-1">
 						<resource name="RAM" quantum="1G"/>
 						<config args="mem=52M l4x_rd=initrd.gz"/>
 					</start>
