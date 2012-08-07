@@ -16,6 +16,7 @@
 #include <base/sleep.h>
 #include <cap_session/connection.h>
 #include <nic_session/connection.h>
+#include <nic/packet_allocator.h>
 
 #include "packet_handler.h"
 #include "component.h"
@@ -29,11 +30,17 @@ int main(int, char **)
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nic_bridge_ep");
 
-	static Genode::Allocator_avl tx_block_alloc(env()->heap());
+	static Nic::Packet_allocator tx_block_alloc(env()->heap());
+
+	enum {
+		PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+		RX_BUF_SIZE = Nic::Session::RX_QUEUE_SIZE * PACKET_SIZE,
+		TX_BUF_SIZE = Nic::Session::TX_QUEUE_SIZE * PACKET_SIZE
+	};
 
 	Root_capability nic_root_cap;
 	try {
-		static Nic::Connection nic(&tx_block_alloc);
+		static Nic::Connection nic(&tx_block_alloc, TX_BUF_SIZE, RX_BUF_SIZE);
 		static Net::Rx_handler rx_handler(&nic);
 		static Net::Root       nic_root(&ep, env()->heap(), &nic);
 

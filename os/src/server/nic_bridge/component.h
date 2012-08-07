@@ -18,6 +18,7 @@
 #include <base/lock.h>
 #include <root/component.h>
 #include <util/arg_string.h>
+#include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
 #include <nic_session/connection.h>
 #include <net/ipv4.h>
@@ -38,7 +39,7 @@ namespace Net {
 		private:
 
 			Genode::Allocator_guard _guarded_alloc;
-			Genode::Allocator_avl   _range_alloc;
+			Nic::Packet_allocator   _range_alloc;
 
 		public:
 

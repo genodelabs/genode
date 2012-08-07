@@ -29,19 +29,20 @@ void Net::Address_node<LEN>::receive_packet(void *addr, Genode::size_t size)
 
 	Nic::Session::Rx::Source *source = _component->rx_source();
 
-	/* flush remaining acknowledgements */
-	while (source->ack_avail())
-		source->release_packet(source->get_acked_packet());
+	while (true) {
+		/* flush remaining acknowledgements */
+		while (source->ack_avail())
+			source->release_packet(source->get_acked_packet());
 
-	try {
-		/* allocate packet in rx channel */
-		Packet_descriptor rx_packet = source->alloc_packet(size);
+		try {
+			/* allocate packet in rx channel */
+			Packet_descriptor rx_packet = source->alloc_packet(size);
 
-		Genode::memcpy((void*)source->packet_content(rx_packet),
-		               (void*)addr, size);
-		source->submit_packet(rx_packet);
-	} catch (Nic::Session::Rx::Source::Packet_alloc_failed) {
-		PWRN("Couldn't transmit packet to client");
+			Genode::memcpy((void*)source->packet_content(rx_packet),
+			               (void*)addr, size);
+			source->submit_packet(rx_packet);
+			return;
+		} catch (Nic::Session::Rx::Source::Packet_alloc_failed) { }
 	}
 }
 
