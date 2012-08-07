@@ -126,11 +126,23 @@ inline int lx_recvmsg(int sockfd, struct msghdr *msg, int flags)
 	return lx_socketcall(SYS_RECVMSG, args);
 }
 
+
+inline int lx_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen)
+{
+	unsigned long args[3] = { sockfd, (unsigned long)name, (unsigned long)namelen };
+	return lx_socketcall(SYS_GETSOCKNAME, args);
+}
+
 #else
 
 inline int lx_socket(int domain, int type, int protocol)
 {
 	return lx_syscall(SYS_socket, domain, type, protocol);
+}
+
+inline int lx_getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+{
+	return lx_syscall(SYS_getsockname, s, name, namelen);
 }
 
 /* TODO add missing socket system calls */

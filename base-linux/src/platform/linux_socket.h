@@ -46,7 +46,50 @@ static void lx_create_server_addr(sockaddr_un *addr, long thread_id)
 {
 	addr->sun_family = AF_UNIX;
 	Genode::snprintf(addr->sun_path, sizeof(addr->sun_path), "%s/ep-%ld",
-	 lx_rpath(), thread_id);
+	                 lx_rpath(), thread_id);
+}
+
+
+/**
+ * Utility: Return thread ID to which the given socket is bound
+ *
+ * \return -1  if the socket is not bound to an entrypoint
+ */
+static int lookup_tid_by_socket(int sd)
+{
+	sockaddr_un name;
+	socklen_t name_len = sizeof(name);
+	int ret = lx_getsockname(sd, (sockaddr *)&name, &name_len);
+	if (ret < 0) {
+		PRAW("Error: lx_getsockname returned %d", ret);
+		return -1;
+	}
+
+	/*
+	 * The socket name has the form '<rpath>/ep-<tid>'. Hence, to determine the
+	 * tid, we have to skip 'strlen(rpath)' and 'strlen("/ep-"). We use static
+	 * variables to determine length of 'rpath' only once because it is not
+	 * going to change at runtime.
+	 */
+	static size_t const rpath_len = Genode::strlen(lx_rpath());
+	static size_t const ep_suffix = Genode::strlen("/ep-");
+
+	/*
+	 * Reply capabilities do not have a name because they are created via
+	 * 'socketpair'. Check if this function is called with such a socket
+	 * descriptor as argument.
+	 */
+	if (rpath_len + ep_suffix >= name_len) {
+		PRAW("Error: unexpectedly short socket name");
+		return -1;
+	}
+
+	unsigned tid = 0;
+	if (Genode::ascii_to(name.sun_path + rpath_len + ep_suffix, &tid) == 0) {
+		PRAW("Error: could not parse tid number");
+		return -1;
+	}
+	return tid;
 }
 
 
@@ -224,10 +267,13 @@ static void lx_call(long thread_id,
 
 	send_msg.buffer(send_msgbuf.buf, send_msgbuf.used_size());
 
+	/*
+	 * The socket argument is not actually used. It just needs to match the
+	 * socket type.
+	 */
 	ret = lx_sendmsg(reply_channel[LOCAL_SOCKET], send_msg.msg(), 0);
 	if (ret < 0) {
 		PRAW("lx_sendmsg failed with %d in lx_call()", ret);
-		while (1);
 		/* XXX */ wait_for_continue();
 		throw Genode::Ipc_error();
 	}
@@ -245,7 +291,7 @@ static void lx_call(long thread_id,
 	}
 
 	/*
-	 * 'lx_recvmsg()' returns the number of bytes received. remember this value
+	 * 'lx_recvmsg()' returns the number of bytes received. Remember this value
 	 * in 'Genode::Msgbuf_base'
 	 *
 	 * XXX revisit whether we really need this information
@@ -297,7 +343,9 @@ static int lx_wait(Genode::Native_connection_state &cs,
 	if (msg.num_sockets() > 1) {
 		PRAW("lx_wait: got %d sockets from wait", msg.num_sockets());
 		for (unsigned i = 0; i < msg.num_sockets(); i++) {
-			PRAW("         sd[%d]: %d", i, msg.socket_at_index(i));
+
+			int tid = (i > 0) ? lookup_tid_by_socket(msg.socket_at_index(i)) : -1;
+			PRAW("         sd[%d]: %d, tid=%d", i, msg.socket_at_index(i), tid);
 
 			/* don't close reply channel */
 			if (i > 0)
