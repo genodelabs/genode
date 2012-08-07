@@ -63,11 +63,11 @@ namespace Noux {
 
 					/* prepend a comma in front of each entry except for the first one */
 					if (i) {
-						snprintf(env + j, sizeof(env) - j, ",");
+						snprintf(_env + j, sizeof(_env) - j, ",");
 						j++;
 					}
 
-					snprintf(env + j, sizeof(env) - j, "%s", src);
+					snprintf(_env + j, sizeof(_env) - j, "%s", src);
 
 					/* skip null separator in source string */
 					i += strlen(src) + 1;
