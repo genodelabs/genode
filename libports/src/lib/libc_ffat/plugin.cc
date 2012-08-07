@@ -505,7 +505,10 @@ class Plugin : public Libc::Plugin
 				case FR_OK: {
 					Plugin_context *context = new (Genode::env()->heap())
 						File_plugin_context(pathname, ffat_file);
-					return Libc::file_descriptor_allocator()->alloc(this, context);
+					Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
+					if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1))
+						return 0;
+					return fd;
 				}
 				case FR_NO_FILE: {
 					/*

@@ -642,7 +642,11 @@ namespace {
 		}
 
 		Libc::Plugin_context *context = noux_context(sysio()->open_out.fd);
-		return Libc::file_descriptor_allocator()->alloc(this, context, sysio()->open_out.fd);
+		Libc::File_descriptor *fd =
+		    Libc::file_descriptor_allocator()->alloc(this, context, sysio()->open_out.fd);
+		if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1))
+			return 0;
+		return fd;
 	}
 
 
