@@ -28,6 +28,7 @@
 #include <parent/client.h>
 #include <ram_session/client.h>
 #include <cpu_session/client.h>
+#include <pd_session/client.h>
 
 namespace Genode {
 
@@ -323,13 +324,12 @@ namespace Genode {
 
 			Parent_capability _parent_cap()
 			{
-				long tid        = _get_env_ulong("parent_tid");
 				long local_name = _get_env_ulong("parent_local_name");
 
 				/* produce typed capability manually */
 				typedef Native_capability::Dst Dst;
-				return reinterpret_cap_cast<Parent>(Native_capability(Dst(tid, -1),
-				                                    local_name));
+				Dst const dst(PARENT_SOCKET_HANDLE);
+				return reinterpret_cap_cast<Parent>(Native_capability(dst, local_name));
 			}
 
 
@@ -343,6 +343,7 @@ namespace Genode {
 			Cpu_session_capability        _cpu_session_cap;
 			Cpu_session_client            _cpu_session_client;
 			Rm_session_mmap               _rm_session_mmap;
+			Pd_session_client             _pd_session_client;
 			Heap                          _heap;
 
 		public:
@@ -358,6 +359,7 @@ namespace Genode {
 				_cpu_session_cap(static_cap_cast<Cpu_session>(parent()->session("Env::cpu_session", ""))),
 				_cpu_session_client(_cpu_session_cap),
 				_rm_session_mmap(false),
+				_pd_session_client(static_cap_cast<Pd_session>(parent()->session("Env::pd_session", ""))),
 				_heap(&_ram_session_client, &_rm_session_mmap)
 			{ }
 

@@ -7,7 +7,6 @@
  * The current request message layout is:
  *
  *   long  server_local_name;
- *   long  client_thread_id;
  *   int   opcode;
  *   ...payload...
  *
@@ -44,6 +43,14 @@
 
 
 using namespace Genode;
+
+
+
+Genode::Ep_socket_descriptor_registry *Genode::ep_sd_registry()
+{
+	static Genode::Ep_socket_descriptor_registry registry;
+	return &registry;
+}
 
 
 /*****************
@@ -94,7 +101,7 @@ void Ipc_istream::_wait()
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
 	Ipc_unmarshaller(rcv_msg->buf, rcv_msg->size()),
-	Native_capability(Dst(lx_gettid(), -1), 0),
+	Native_capability(Dst(-1), 0),
 	_rcv_msg(rcv_msg)
 { }
 
@@ -123,10 +130,9 @@ void Ipc_client::_prepare_next_call()
 
 void Ipc_client::_call()
 {
-	if (Ipc_ostream::_dst.valid()) {
-		_snd_msg->used_size(_write_offset);
-		lx_call(Ipc_ostream::_dst.dst().tid, *_snd_msg, *_rcv_msg);
-	}
+	if (Ipc_ostream::_dst.valid())
+		lx_call(Ipc_ostream::_dst.dst().socket, *_snd_msg, _write_offset, *_rcv_msg);
+
 	_prepare_next_call();
 }
 
@@ -165,6 +171,15 @@ void Ipc_server::_wait()
 {
 	_reply_needed = true;
 
+	/*
+	 * Block infinitely if called from the main thread. This may happen if the
+	 * main thread calls 'sleep_forever()'.
+	 */
+	if (!Thread_base::myself()) {
+		struct timespec ts = { 1000, 0 };
+		for (;;) lx_nanosleep(&ts, 0);
+	}
+
 	try {
 		int const reply_socket = lx_wait(_rcv_cs, *_rcv_msg);
 
@@ -176,11 +191,8 @@ void Ipc_server::_wait()
 		 * object, the 'local_name' is meaningless.
 		 */
 		enum { DUMMY_LOCAL_NAME = -1 };
-
 		typedef Native_capability::Dst Dst;
-		enum { DUMMY_TID = -1 };
-		Dst dst(DUMMY_TID, reply_socket);
-		Ipc_ostream::_dst = Native_capability(dst, DUMMY_LOCAL_NAME);
+		Ipc_ostream::_dst = Native_capability(Dst(reply_socket), DUMMY_LOCAL_NAME);
 
 		_prepare_next_reply_wait();
 	} catch (Blocking_canceled) { }
@@ -190,9 +202,8 @@ void Ipc_server::_wait()
 void Ipc_server::_reply()
 {
 	try {
-		_snd_msg->used_size(_write_offset);
-		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg);
-	} catch (Ipc_error) { }
+		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg, _write_offset); }
+	catch (Ipc_error) { }
 
 	_prepare_next_reply_wait();
 }
@@ -201,10 +212,8 @@ void Ipc_server::_reply()
 void Ipc_server::_reply_wait()
 {
 	/* when first called, there was no request yet */
-	if (_reply_needed) {
-		_snd_msg->used_size(_write_offset);
-		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg);
-	}
+	if (_reply_needed)
+		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg, _write_offset);
 
 	_wait();
 }
@@ -229,19 +238,14 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 		throw Ipc_server_multiple_instance();
 	}
 
-	_rcv_cs = lx_server_socket(Thread_base::myself());
-	if (_rcv_cs < 0) {
-		PRAW("lx_server_socket failed (error %d)", _rcv_cs);
-		struct Ipc_socket_creation_failed { };
-		throw Ipc_socket_creation_failed();
-	}
+	_rcv_cs = lx_server_socket_pair(Thread_base::myself());
 
 	if (thread)
 		thread->tid().is_ipc_server = true;
 
 	/* override capability initialization performed by 'Ipc_istream' */
 	*static_cast<Native_capability *>(this) =
-		Native_capability(Native_capability::Dst(lx_gettid(), _rcv_cs), 0);
+		Native_capability(Native_capability::Dst(_rcv_cs.client_sd), 0);
 
 	_prepare_next_reply_wait();
 }

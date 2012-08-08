@@ -98,19 +98,17 @@ namespace Genode {
 	{
 		struct Dst
 		{
-			long tid;  /* XXX to be removed once the transition to SCM rights
-			                  is completed */
 			int socket;
 
 			/**
 			 * Default constructor creates invalid destination
 			 */
-			Dst() : tid(0), socket(-1) { }
+			Dst() : socket(-1) { }
 
-			Dst(long tid, int socket) : tid(tid), socket(socket) { }
+			explicit Dst(int socket) : socket(socket) { }
 		};
 
-		static bool valid(Dst id) { return id.tid != 0; }
+		static bool valid(Dst id) { return id.socket != -1; }
 		static Dst  invalid()     { return Dst(); }
 		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
@@ -125,7 +123,15 @@ namespace Genode {
 	/**
 	 * The connection state is the socket handle of the RPC entrypoint
 	 */
-	typedef int Native_connection_state;
+	struct Native_connection_state
+	{
+		int server_sd;
+		int client_sd;
+
+		Native_connection_state() : server_sd(-1), client_sd(-1) { }
+	};
+
+	enum { PARENT_SOCKET_HANDLE = 100 };
 
 	struct Native_config
 	{

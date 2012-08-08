@@ -70,6 +70,12 @@ inline int lx_dup(int fd)
 }
 
 
+inline int lx_dup2(int fd, int to)
+{
+	return lx_syscall(SYS_dup2, fd, to);
+}
+
+
 inline int lx_unlink(const char *fname)
 {
 	return lx_syscall(SYS_unlink, fname);
@@ -113,6 +119,14 @@ inline int lx_bind(int sockfd, const struct sockaddr *addr,
 }
 
 
+inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
+                      socklen_t addrlen)
+{
+	unsigned long args[3] = { sockfd, (unsigned long)serv_addr, addrlen };
+	return lx_socketcall(SYS_CONNECT, args);
+}
+
+
 inline int lx_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
 	unsigned long args[3] = { sockfd, (unsigned long)msg, flags };
@@ -127,10 +141,10 @@ inline int lx_recvmsg(int sockfd, struct msghdr *msg, int flags)
 }
 
 
-inline int lx_getsockname(int sockfd, struct sockaddr *name, socklen_t *namelen)
+inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
 {
 	unsigned long args[3] = { sockfd, (unsigned long)name, (unsigned long)namelen };
-	return lx_socketcall(SYS_GETSOCKNAME, args);
+	return lx_socketcall(SYS_GETPEERNAME, args);
 }
 
 #else
@@ -140,9 +154,23 @@ inline int lx_socket(int domain, int type, int protocol)
 	return lx_syscall(SYS_socket, domain, type, protocol);
 }
 
-inline int lx_getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+inline int lx_bind(int sockfd, const struct sockaddr *addr,
+                   socklen_t addrlen)
 {
-	return lx_syscall(SYS_getsockname, s, name, namelen);
+	return lx_syscall(SYS_bind, sockfd, addr, addrlen);
+}
+
+
+inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
+                      socklen_t addrlen)
+{
+	return lx_syscall(SYS_connect, sockfd, serv_addr, addrlen);
+}
+
+
+inline int lx_getpeername(int s, struct sockaddr *name, socklen_t *namelen)
+{
+	return lx_syscall(SYS_getpeername, s, name, namelen);
 }
 
 /* TODO add missing socket system calls */

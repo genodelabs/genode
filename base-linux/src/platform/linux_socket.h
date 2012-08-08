@@ -1,6 +1,7 @@
 /*
  * \brief  Linux socket utilities
  * \author Christian Helmuth
+ * \author Norman Feske
  * \date   2012-01-17
  *
  * We create one socket under lx_rpath() for each 'Ipc_server'. The naming is
@@ -39,31 +40,154 @@ extern "C" int raw_write_str(const char *str);
 	} while (0)
 
 
-/**
- * Utility: Create socket address for server entrypoint atthread ID
+/******************************
+ ** File-descriptor registry **
+ ******************************/
+
+/*
+ * We use the name of the Unix-domain socket as key to uniquely identify
+ * entrypoints. When receiving a socket descriptor as IPC payload, we first
+ * lookup the corresponding entrypoint ID. If we already possess a socket
+ * descriptor pointing to the same entrypoint, we close the received one and
+ * use the already known descriptor instead.
  */
-static void lx_create_server_addr(sockaddr_un *addr, long thread_id)
+
+namespace Genode
 {
-	addr->sun_family = AF_UNIX;
-	Genode::snprintf(addr->sun_path, sizeof(addr->sun_path), "%s/ep-%ld",
-	                 lx_rpath(), thread_id);
+	template <unsigned MAX_FDS>
+	class Socket_descriptor_registry;
+
+	typedef Socket_descriptor_registry<100> Ep_socket_descriptor_registry;
+
+	/**
+	 * Return singleton instance of registry for tracking entrypoint sockets
+	 */
+	Ep_socket_descriptor_registry *ep_sd_registry();
 }
 
 
+template <unsigned MAX_FDS>
+class Genode::Socket_descriptor_registry
+{
+	public:
+
+		class Limit_reached { };
+		class Aliased_global_id { };
+
+	private:
+
+		struct Entry
+		{
+			int fd;
+			int global_id;
+
+			/**
+			 * Default constructor creates empty entry
+			 */
+			Entry() : fd(-1), global_id(-1) { }
+
+			Entry(int fd, int global_id) : fd(fd), global_id(global_id) { }
+
+			bool is_free() const { return fd == -1; }
+		};
+
+		Entry _entries[MAX_FDS];
+
+		Genode::Lock mutable _lock;
+
+		Entry &_find_free_entry()
+		{
+			for (unsigned i = 0; i < MAX_FDS; i++)
+				if (_entries[i].is_free())
+					return _entries[i];
+
+			throw Limit_reached();
+		}
+
+		bool _is_registered(int global_id) const
+		{
+			for (unsigned i = 0; i < MAX_FDS; i++)
+				if (_entries[i].global_id == global_id)
+					return true;
+
+			return false;
+		}
+
+	public:
+
+		/**
+		 * Register association of socket descriptor and its corresponding ID
+		 *
+		 * \throw Limit_reached
+		 * \throw Aliased_global_id  if global ID is already registered
+		 */
+		void associate(int sd, int global_id)
+		{
+			Genode::Lock::Guard guard(_lock);
+
+			/* ignore invalid capabilities */
+			if (sd == -1 || global_id == -1)
+				return;
+
+			/*
+			 * Check for potential aliasing
+			 *
+			 * We allow any global ID to be present in the registry only once.
+			 */
+			if (_is_registered(global_id)) {
+				PRAW("attempted to register global ID %d twice", global_id);
+				throw Aliased_global_id();
+			}
+
+			Entry &entry = _find_free_entry();
+			entry = Entry(sd, global_id);
+		}
+
+		/**
+		 * Lookup file descriptor that belongs to specified global ID
+		 *
+		 * \return file descriptor or -1 if lookup failed
+		 */
+		int lookup_fd_by_global_id(int global_id) const
+		{
+			Genode::Lock::Guard guard(_lock);
+
+			for (unsigned i = 0; i < MAX_FDS; i++)
+				if (_entries[i].global_id == global_id)
+					return _entries[i].fd;
+
+			return -1;
+		}
+};
+
+
 /**
- * Utility: Return thread ID to which the given socket is bound
- *
- * \return -1  if the socket is not bound to an entrypoint
+ * Utility: Create socket address for server entrypoint at thread ID
  */
-static int lookup_tid_by_socket(int sd)
+struct Uds_addr : sockaddr_un
+{
+	Uds_addr(long thread_id)
+	{
+		sun_family = AF_UNIX;
+		Genode::snprintf(sun_path, sizeof(sun_path), "%s/ep-%ld",
+		                 lx_rpath(), thread_id);
+	}
+};
+
+
+
+/**
+ * Utility: Return thread ID to which the given socket is directed to
+ *
+ * \return -1  if the socket is pointing to a valid entrypoint
+ */
+static int lookup_tid_by_client_socket(int sd)
 {
 	sockaddr_un name;
 	socklen_t name_len = sizeof(name);
-	int ret = lx_getsockname(sd, (sockaddr *)&name, &name_len);
-	if (ret < 0) {
-		PRAW("Error: lx_getsockname returned %d", ret);
+	int ret = lx_getpeername(sd, (sockaddr *)&name, &name_len);
+	if (ret < 0)
 		return -1;
-	}
 
 	/*
 	 * The socket name has the form '<rpath>/ep-<tid>'. Hence, to determine the
@@ -115,17 +239,9 @@ namespace {
 
 		public:
 
-			Message(long server_thread_id = -1) : _num_sds(0)
+			Message(void *buffer, size_t buffer_len) : _num_sds(0)
 			{
 				memset(&_msg, 0, sizeof(_msg));
-
-				if (server_thread_id != -1) {
-					/* initialize receiver */
-					lx_create_server_addr(&_addr, server_thread_id);
-
-					_msg.msg_name    = &_addr;
-					_msg.msg_namelen = sizeof(_addr);
-				}
 
 				/* initialize control message */
 				struct cmsghdr *cmsg;
@@ -138,12 +254,7 @@ namespace {
 				cmsg->cmsg_level     = SOL_SOCKET;
 				cmsg->cmsg_type      = SCM_RIGHTS;
 				_msg.msg_controllen  = cmsg->cmsg_len;     /* actual cmsg length */
-			}
 
-			msghdr * msg() { return &_msg; }
-
-			void buffer(void *buffer, size_t buffer_len)
-			{
 				/* initialize iovec */
 				_msg.msg_iov    = &_iovec;
 				_msg.msg_iovlen = 1;
@@ -151,6 +262,8 @@ namespace {
 				_iovec.iov_base = buffer;
 				_iovec.iov_len  = buffer_len;
 			}
+
+			msghdr * msg() { return &_msg; }
 
 			void marshal_socket(int sd)
 			{
@@ -170,17 +283,7 @@ namespace {
 				_msg.msg_controllen  = cmsg->cmsg_len;     /* actual cmsg length */
 			}
 
-			int unmarshal_socket()
-			{
-				int ret = *((int *)CMSG_DATA((cmsghdr *)_cmsg_buf) + _num_sds);
-
-				_num_sds++;
-
-				return ret;
-			}
-
-			/* XXX only for debugging */
-			int socket_at_index(int index)
+			int socket_at_index(int index) const
 			{
 				return *((int *)CMSG_DATA((cmsghdr *)_cmsg_buf) + index);
 			}
@@ -200,45 +303,107 @@ namespace {
 
 
 /**
- * Utility: Get server socket for given thread
+ * Utility: Extract socket desriptors from SCM message into 'Genode::Msgbuf'
  */
-static int lx_server_socket(Genode::Thread_base *thread)
+static void extract_sds_from_message(unsigned start_index, Message const &msg,
+                                     Genode::Msgbuf_base &buf)
 {
-	int sd = lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
-	if (sd < 0)
-		return sd;
+	buf.reset_caps();
+
+	/* start at offset 1 to skip the reply channel */
+	for (unsigned i = start_index; i < msg.num_sockets(); i++) {
+
+		int const sd = msg.socket_at_index(i);
+		int const id = lookup_tid_by_client_socket(sd);
+		int const existing_sd = Genode::ep_sd_registry()->lookup_fd_by_global_id(id);
+
+		if (existing_sd >= 0) {
+			lx_close(sd);
+			buf.append_cap(existing_sd);
+		} else {
+			Genode::ep_sd_registry()->associate(sd, id);
+			buf.append_cap(sd);
+		}
+	}
+}
+
+
+class Server_socket_failed { };
+class Client_socket_failed { };
+class Bind_failed          { };
+class Connect_failed       { };
+
+
+/**
+ * Utility: Create named socket pair for given thread
+ *
+ * \throw Server_socket_failed
+ * \throw Client_socket_failed
+ * \throw Bind_failed
+ * \throw Connect_failed
+ */
+static Genode::Native_connection_state lx_server_socket_pair(Genode::Thread_base *thread)
+{
+	Genode::Native_connection_state ncs;
 
 	/*
-	 * Main thread uses 'Ipc_server' for 'sleep_forever()' only. No need
-	 * for binding.
+	 * Main thread uses 'Ipc_server' for 'sleep_forever()' only. No need for
+	 * binding.
 	 */
 	if (!thread)
-		return sd;
+		return ncs;
 
-	sockaddr_un addr;
-	lx_create_server_addr(&addr, thread->tid().tid);
+	Uds_addr addr(thread->tid().tid);
+
+	/*
+	 * Create server-side socket
+	 */
+	ncs.server_sd = lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (ncs.server_sd < 0) {
+		PRAW("Error: Could not create server-side socket (ret=%d)", ncs.server_sd);
+		throw Server_socket_failed();
+	}
 
 	/* make sure bind succeeds */
 	lx_unlink(addr.sun_path);
 
-	int const bind_ret = lx_bind(sd, (sockaddr *)&addr, sizeof(addr));
-	if (bind_ret < 0)
-		return bind_ret;
+	int const bind_ret = lx_bind(ncs.server_sd, (sockaddr *)&addr, sizeof(addr));
+	if (bind_ret < 0) {
+		PRAW("Error: Could not bind server socket (ret=%d)", bind_ret);
+		throw Bind_failed();
+	}
 
-	return sd;
+	/*
+	 * Create client-side socket
+	 */
+	ncs.client_sd = lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (ncs.client_sd < 0) {
+		PRAW("Error: Could not create client-side socket (ret=%d)", ncs.client_sd);
+		throw Client_socket_failed();
+	}
+
+	int const conn_ret = lx_connect(ncs.client_sd, (sockaddr *)&addr, sizeof(addr));
+	if (conn_ret < 0) {
+		PRAW("Error: Could not connect client-side socket (ret=%d)", conn_ret);
+		throw Connect_failed();
+	}
+
+	int const tid = lookup_tid_by_client_socket(ncs.client_sd);
+	Genode::ep_sd_registry()->associate(ncs.client_sd, tid);
+
+	return ncs;
 }
 
 
 /**
  * Utility: Send request to server and wait for reply
  */
-static void lx_call(long thread_id,
-                    Genode::Msgbuf_base &send_msgbuf,
+static void lx_call(int dst_sd,
+                    Genode::Msgbuf_base &send_msgbuf, size_t send_msg_len,
                     Genode::Msgbuf_base &recv_msgbuf)
 {
 	int ret;
-
-	Message send_msg(thread_id);
+	Message send_msg(send_msgbuf.buf, send_msg_len);
 
 	/* create reply channel */
 	enum { LOCAL_SOCKET  = 0, REMOTE_SOCKET = 1 };
@@ -247,7 +412,6 @@ static void lx_call(long thread_id,
 	ret = lx_socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0, reply_channel);
 	if (ret < 0) {
 		PRAW("lx_socketpair failed with %d", ret);
-		/* XXX */ wait_for_continue();
 		throw Genode::Ipc_error();
 	}
 
@@ -257,54 +421,27 @@ static void lx_call(long thread_id,
 	send_msg.marshal_socket(reply_channel[REMOTE_SOCKET]);
 
 	/* marshal capabilities contained in 'send_msgbuf' */
-	if (send_msgbuf.used_caps() > 0)
-		PRAW("lx_call: marshal %d caps:", send_msgbuf.used_caps());
+	for (unsigned i = 0; i < send_msgbuf.used_caps(); i++)
+		send_msg.marshal_socket(send_msgbuf.cap(i));
 
-	for (unsigned i = 0; i < send_msgbuf.used_caps(); i++) {
-		PRAW("         sd[%d]: %d", i, send_msgbuf.cap(i));
-		send_msg.marshal_socket(lx_dup(send_msgbuf.cap(i)));
-	}
-
-	send_msg.buffer(send_msgbuf.buf, send_msgbuf.used_size());
-
-	/*
-	 * The socket argument is not actually used. It just needs to match the
-	 * socket type.
-	 */
-	ret = lx_sendmsg(reply_channel[LOCAL_SOCKET], send_msg.msg(), 0);
+	ret = lx_sendmsg(dst_sd, send_msg.msg(), 0);
 	if (ret < 0) {
 		PRAW("lx_sendmsg failed with %d in lx_call()", ret);
-		/* XXX */ wait_for_continue();
 		throw Genode::Ipc_error();
 	}
 
-	Message recv_msg;
-	recv_msg.accept_sockets(Message::MAX_SDS_PER_MSG);
+	/* receive reply */
 
-	recv_msg.buffer(recv_msgbuf.buf, recv_msgbuf.size());
+	Message recv_msg(recv_msgbuf.buf, recv_msgbuf.size());
+	recv_msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
 	ret = lx_recvmsg(reply_channel[LOCAL_SOCKET], recv_msg.msg(), 0);
 	if (ret < 0) {
 		PRAW("lx_recvmsg failed with %d in lx_call()", ret);
-		/* XXX */ wait_for_continue();
 		throw Genode::Ipc_error();
 	}
 
-	/*
-	 * 'lx_recvmsg()' returns the number of bytes received. Remember this value
-	 * in 'Genode::Msgbuf_base'
-	 *
-	 * XXX revisit whether we really need this information
-	 */
-	recv_msgbuf.used_size(ret);
-
-	if (recv_msg.num_sockets() > 0) {
-		PRAW("lx_call: got %d sockets in reply", recv_msg.num_sockets());
-		for (unsigned i = 0; i < recv_msg.num_sockets(); i++) {
-			PRAW("         sd[%d]: %d", i, recv_msg.socket_at_index(i));
-			lx_close(recv_msg.socket_at_index(i));
-		}
-	}
+	extract_sds_from_message(0, recv_msg, recv_msgbuf);
 
 	/* destroy reply channel */
 	lx_close(reply_channel[LOCAL_SOCKET]);
@@ -320,44 +457,19 @@ static void lx_call(long thread_id,
 static int lx_wait(Genode::Native_connection_state &cs,
                    Genode::Msgbuf_base &recv_msgbuf)
 {
-	Message msg;
+	Message msg(recv_msgbuf.buf, recv_msgbuf.size());
 
 	msg.accept_sockets(Message::MAX_SDS_PER_MSG);
-	msg.buffer(recv_msgbuf.buf, recv_msgbuf.size());
 
-	int ret = lx_recvmsg(cs, msg.msg(), 0);
+	int ret = lx_recvmsg(cs.server_sd, msg.msg(), 0);
 	if (ret < 0) {
-		PRAW("lx_recvmsg failed with %d in lx_wait()", ret);
-		/* XXX */ wait_for_continue();
+		PRAW("lx_recvmsg failed with %d in lx_wait(), sd=%d", ret, cs.server_sd);
 		throw Genode::Ipc_error();
 	}
 
-	/*
-	 * 'lx_recvmsg()' returned message size, keep it in 'recv_msgbuf'.
-	 *
-	 * XXX revisit whether this information is actually needed.
-	 */
-	recv_msgbuf.used_size(ret);
+	int const reply_socket = msg.socket_at_index(0);
 
-
-	if (msg.num_sockets() > 1) {
-		PRAW("lx_wait: got %d sockets from wait", msg.num_sockets());
-		for (unsigned i = 0; i < msg.num_sockets(); i++) {
-
-			int tid = (i > 0) ? lookup_tid_by_socket(msg.socket_at_index(i)) : -1;
-			PRAW("         sd[%d]: %d, tid=%d", i, msg.socket_at_index(i), tid);
-
-			/* don't close reply channel */
-			if (i > 0)
-				lx_close(msg.socket_at_index(i));
-		}
-	}
-
-	int reply_socket = msg.unmarshal_socket();
-
-	/*
-	 * Copy-out additional sds from msg to recv_msgbuf
-	 */
+	extract_sds_from_message(1, msg, recv_msgbuf);
 
 	return reply_socket;
 }
@@ -367,11 +479,16 @@ static int lx_wait(Genode::Native_connection_state &cs,
  * Utility: Send reply to client
  */
 static void lx_reply(int reply_socket,
-                     Genode::Msgbuf_base &send_msgbuf)
+                     Genode::Msgbuf_base &send_msgbuf,
+                     size_t msg_len)
 {
-	Message msg;
+	Message msg(send_msgbuf.buf, msg_len);
 
-	msg.buffer(send_msgbuf.buf, send_msgbuf.used_size());
+	/*
+	 * Marshall capabilities to be transferred to the client
+	 */
+	for (unsigned i = 0; i < send_msgbuf.used_caps(); i++)
+		msg.marshal_socket(send_msgbuf.cap(i));
 
 	int ret = lx_sendmsg(reply_socket, msg.msg(), 0);
 	if (ret < 0)

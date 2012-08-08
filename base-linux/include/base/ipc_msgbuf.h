@@ -91,10 +91,6 @@ namespace Genode {
 			{
 				return index < _used_caps ? _caps[index] : -1;
 			}
-
-			size_t used_size() const { return _used_size; }
-
-			void used_size(size_t used_size) { _used_size = used_size; }
 	};
 
 

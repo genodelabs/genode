@@ -30,18 +30,22 @@ Dataspace_capability Process::_dynamic_linker_cap;
 /**
  * Argument frame for passing 'execve' paremeters through 'clone'
  */
-struct execve_args {
-	const char *filename;
-	char *const*argv;
-	char *const*envp;
+struct Execve_args
+{
+	const char  *filename;
+	char *const *argv;
+	char *const *envp;
+	int          parent_sd;
 };
 
 
 /**
  * Startup code of the new child process
  */
-static int _exec_child(struct execve_args *arg)
+static int _exec_child(Execve_args *arg)
 {
+	lx_dup2(arg->parent_sd, PARENT_SOCKET_HANDLE);
+
 	return lx_execve(arg->filename, arg->argv, arg->envp);
 }
 
@@ -66,6 +70,7 @@ static const char *get_env(const char *key)
 
 	return "";
 }
+
 
 /**
  * Check for dynamic ELF header
@@ -115,8 +120,6 @@ const char *Process::_priv_pd_args(Parent_capability parent_cap,
 	/* pass parent capability as environment variable to the child */
 	enum { ENV_STR_LEN = 256 };
 	static char envbuf[5][ENV_STR_LEN];
-	Genode::snprintf(envbuf[0], ENV_STR_LEN, "parent_tid=%ld",
-	                 parent_cap.dst().tid);
 	Genode::snprintf(envbuf[1], ENV_STR_LEN, "parent_local_name=%lu",
 	                 parent_cap.local_name());
 	Genode::snprintf(envbuf[2], ENV_STR_LEN, "DISPLAY=%s",
@@ -162,16 +165,11 @@ const char *Process::_priv_pd_args(Parent_capability parent_cap,
 	enum { STACK_SIZE = 4096 };
 	static char stack[STACK_SIZE];    /* initial stack used by the child until
 	                                     calling 'execve' */
-
 	/*
 	 * Argument frame as passed to 'clone'. Because, we can only pass a single
 	 * pointer, all arguments are embedded within the 'execve_args' struct.
 	 */
-	struct execve_args arg = {
-		fname.buf,
-		argv,
-		env
-	};
+	Execve_args arg = { fname.buf, argv, env, parent_cap.dst().socket };
 
 	pid_t pid = lx_create_process((int (*)(void *))_exec_child,
 	                              stack + STACK_SIZE - sizeof(umword_t), &arg);

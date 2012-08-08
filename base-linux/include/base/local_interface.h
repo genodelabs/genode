@@ -56,7 +56,7 @@ namespace Genode {
 		static IF *deref(Capability<IF> cap)
 		{
 			/* check if this is a pseudo capability */
-			if (cap.dst().tid != 0 || !cap.local_name())
+			if (cap.dst().socket != -1 || !cap.local_name())
 				throw Non_local_capability();
 
 			/*
