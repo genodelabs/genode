@@ -27,6 +27,7 @@
 #define LWIP_DHCP                   1  /* DHCP support */
 #define LWIP_SOCKET                 1  /* LwIP socket API */
 #define LWIP_COMPAT_SOCKETS         0  /* Libc compatibility layer */
+#define LWIP_COMPAT_MUTEX           1  /* use binary semaphore instead of mutex */
 #define LWIP_NETIF_API              1  /* Network interface API */
 #define LWIP_NETIF_LOOPBACK         1  /* Looping back to same address? */
 #define LWIP_HAVE_LOOPIF            1  /* 127.0.0.1 support ? */

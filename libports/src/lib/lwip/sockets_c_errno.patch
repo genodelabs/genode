@@ -1,0 +1,16 @@
+This patch is necessary because lwip always returns EALREADY if the
+connection is established but never EISCONN. So most programs will
+fail to connect because they at one point while connecting expect to
+get EISCONN.
+
+--- lwip-STABLE-1_4_1-RC1/src/api/sockets.c.orig
++++ lwip-STABLE-1_4_1-RC1/src/api/sockets.c
+@@ -142,7 +142,7 @@ static const int err_to_errno_table[] = {
+   EINVAL,        /* ERR_VAL        -6      Illegal value.           */
+   EWOULDBLOCK,   /* ERR_WOULDBLOCK -7      Operation would block.   */
+   EADDRINUSE,    /* ERR_USE        -8      Address in use.          */
+-  EALREADY,      /* ERR_ISCONN     -9      Already connected.       */
++  EISCONN,       /* ERR_ISCONN     -9      Already connected.       */
+   ECONNABORTED,  /* ERR_ABRT       -10     Connection aborted.      */
+   ECONNRESET,    /* ERR_RST        -11     Connection reset.        */
+   ENOTCONN,      /* ERR_CLSD       -12     Connection closed.       */

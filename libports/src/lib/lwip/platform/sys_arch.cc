@@ -101,7 +101,6 @@ extern "C" {
 #include <lwip/err.h>
 #include <lwip/sys.h>
 #include <lwip/dhcp.h>
-#include <netif/loopif.h>
 #include <arch/sys_arch.h>
 #include <arch/cc.h>
 #include <nic.h>
@@ -140,7 +139,6 @@ extern "C" {
 	{
 		static struct netif netif;
 		struct ip_addr ip, nm, gw;
-		struct netif *loopif = lwip_loopback_init();
 		ip.addr = ip_addr;
 		nm.addr = netmask;
 		gw.addr = gateway;
@@ -179,7 +177,6 @@ extern "C" {
 					dhcp_semaphore()->down(20000);
 				} catch (Genode::Timeout_exception) {
 					PWRN("DHCP timed out!");
-					netif_set_default(loopif);
 					return 1;
 				}
 				PDBG("got IP address %d.%d.%d.%d",
@@ -193,27 +190,10 @@ extern "C" {
 #endif /* LWIP_DHCP */
 			}
 		} catch (Nic_not_availble) {
-			PWRN("NIC not available, set loopback as default");
-			netif_set_default(loopif);
+			PWRN("NIC not available, loopback is used as default");
 			return 2;
 		}
 		return 0;
-	}
-
-
-	/* in lwip/genode.h */
-	struct netif *lwip_loopback_init(void)
-	{
-		/* setup LwIP's loopback device (as default NIC) */
-		static struct netif loop_netif;
-		struct ip_addr loop_ipaddr, loop_netmask, loop_gw;
-		IP4_ADDR(&loop_gw, 127,0,0,1);
-		IP4_ADDR(&loop_ipaddr, 127,0,0,1);
-		IP4_ADDR(&loop_netmask, 255,255,255,0);
-		netif_add(&loop_netif, &loop_ipaddr, &loop_netmask, &loop_gw, NULL,
-		          loopif_init, ip_input);
-		netif_set_up(&loop_netif);
-		return &loop_netif;
 	}
 
 
@@ -227,18 +207,21 @@ extern "C" {
 	 * \param  count specifies the initial state of the semaphore.
 	 * \return the semaphore, or SYS_SEM_NULL on error.
 	 */
-	sys_sem_t sys_sem_new(u8_t count)
+	err_t sys_sem_new(sys_sem_t* sem, u8_t count)
 	{
 		try {
 			Genode::Timed_semaphore *_sem = new (Genode::env()->heap())
 			                                Genode::Timed_semaphore(count);
-			return (sys_sem_t) _sem;
+			sem->ptr = _sem;
+			return ERR_OK;
 		} catch (Genode::Allocator::Out_of_memory) {
 			PWRN("Out of memory");
-			return SYS_SEM_NULL;
+			return ERR_MEM;
 		} catch (...) {
 			PERR("Unknown Exception occured!");
-			return SYS_SEM_NULL;
+			/* we just use a arbitrary value that is
+			 * not defined in err.h */
+			return -32;
 		}
 	}
 
@@ -248,11 +231,11 @@ extern "C" {
 	 *
 	 * \param sem the semaphore to free
 	 */
-	void sys_sem_free(sys_sem_t sem)
+	void sys_sem_free(sys_sem_t* sem)
 	{
 		try {
 			Genode::Timed_semaphore *_sem =
-				reinterpret_cast<Genode::Timed_semaphore*>(sem);
+				reinterpret_cast<Genode::Timed_semaphore*>(sem->ptr);
 			if (_sem)
 				destroy(Genode::env()->heap(), _sem);
 		} catch (...) {
@@ -265,13 +248,13 @@ extern "C" {
 	 * Signals (or releases) a semaphore.
 	 *
 	 */
-	void sys_sem_signal(sys_sem_t sem)
+	void sys_sem_signal(sys_sem_t* sem)
 	{
 		try {
 			Genode::Timed_semaphore *_sem =
-				reinterpret_cast<Genode::Timed_semaphore*>(sem);
+				reinterpret_cast<Genode::Timed_semaphore*>(sem->ptr);
 			if (!_sem) {
-				PERR("Invalid semaphore pointer at: %lx", sem);
+				//PERR("Invalid semaphore pointer at: %lx", *sem->ptr);
 				return;
 			}
 			_sem->up();
@@ -280,6 +263,37 @@ extern "C" {
 		}
 	}
 
+
+	/**
+	 * Checks if a semaphore is valid
+	 *
+	 * \param sem semaphore to check
+	 *
+	 * \return 1 if semaphore is valid, 0 otherwise.
+	 */
+	int sys_sem_valid(sys_sem_t* sem)
+	{
+		try {
+			Genode::Timed_semaphore *_sem =
+				reinterpret_cast<Genode::Timed_semaphore*>(sem->ptr);
+
+			if (_sem)
+				return 1;
+		} catch (...) { }
+
+		return 0;
+	}
+
+
+	/**
+	 * Sets a semaphore to invalid
+	 *
+	 * \param sem semaphore to set invalid
+	 */
+	void sys_sem_set_invalid(sys_sem_t* sem)
+	{
+		sem->ptr = NULL;
+	}
 
 	/**
 	 * Blocks the thread while waiting for the semaphore to be signaled.
@@ -291,13 +305,13 @@ extern "C" {
 	 *                acquires the semaphore, it should return how many
 	 *                milliseconds expired while waiting for the semaphore.
 	 */
-	u32_t sys_arch_sem_wait(sys_sem_t sem, u32_t timeout)
+	u32_t sys_arch_sem_wait(sys_sem_t* sem, u32_t timeout)
 	{
 		using namespace Genode;
 		try {
-			Timed_semaphore *_sem = reinterpret_cast<Timed_semaphore*>(sem);
+			Timed_semaphore *_sem = reinterpret_cast<Timed_semaphore*>(sem->ptr);
 			if (!_sem) {
-				PERR("Invalid semaphore pointer at: %lx", sem);
+				//PERR("Invalid semaphore pointer at: %lx", *sem->ptr);
 				return EINVAL;
 			}
 
@@ -357,17 +371,19 @@ extern "C" {
 	 * \param size  size of the mailbox
 	 * \return      a new mailbox, or SYS_MBOX_NULL on error.
 	 */
-	sys_mbox_t sys_mbox_new(int size) {
+	err_t sys_mbox_new(sys_mbox_t *mbox, int size) {
 		LWIP_UNUSED_ARG(size);
 		try {
 			Mailbox* _mbox = new (Genode::env()->heap()) Mailbox();
-			return (sys_mbox_t) _mbox;
+			mbox->ptr = _mbox;
+			return ERR_OK;
 		} catch (Genode::Allocator::Out_of_memory) {
 			PWRN("Out of memory");
+			return ERR_MEM;
 		} catch (...) {
 			PERR("Unknown Exception occured!");
+			return -32;
 		}
-		return SYS_MBOX_NULL;
 	}
 
 
@@ -376,15 +392,49 @@ extern "C" {
 	 *
 	 * \param mbox  mailbox to free
 	 */
-	void sys_mbox_free(sys_mbox_t mbox)
+	void sys_mbox_free(sys_mbox_t* mbox)
 	{
 		try {
-			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox);
+			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox->ptr);
 			if (_mbox)
 				destroy(Genode::env()->heap(), _mbox);
 		} catch (...) {
 			PERR("Unknown Exception occured!");
 		}
+	}
+
+	/**
+	 * Checks if a mailbox is valid.
+	 *
+	 * \param mbox mailbox to check
+	 *
+	 * \return 1 if mailbox is valid, 0 otherwise.
+	 */
+	int sys_mbox_valid(sys_mbox_t* mbox)
+	{
+		try {
+			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox->ptr);
+			if (_mbox) {
+				return 1;
+			}
+		} catch (...) { }
+
+		return 0;
+	}
+
+
+	/**
+	 * Invalidate a mailbox
+	 *
+	 * Afterwards sys_mbox_valid() returns 0.
+	 * ATTENTION: This does NOT mean that the mailbox shall be deallocated:
+         * sys_mbox_free() is always called before calling this function!
+	 *
+	 * \param mbox mailbox to set invalid
+	 */
+	void sys_mbox_set_invalid(sys_mbox_t* mbox)
+	{
+		mbox->ptr = NULL;
 	}
 
 
@@ -394,13 +444,13 @@ extern "C" {
 	 * \param mbox target mailbox
 	 * \param msg  message to post
 	 */
-	void sys_mbox_post(sys_mbox_t mbox, void *msg)
+	void sys_mbox_post(sys_mbox_t* mbox, void *msg)
 	{
 		while (true) {
 			try {
-				Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox);
+				Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox->ptr);
 				if (!_mbox) {
-					PERR("Invalid mailbox pointer at %lx", mbox);
+					//PERR("Invalid mailbox pointer at %lx", *mbox->ptr);
 					return;
 				}
 				_mbox->add(msg);
@@ -420,12 +470,12 @@ extern "C" {
 	 * \param mbox target mailbox
 	 * \param msg  message to post
 	 */
-	err_t sys_mbox_trypost(sys_mbox_t mbox, void *msg)
+	err_t sys_mbox_trypost(sys_mbox_t* mbox, void *msg)
 	{
 		try {
-			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox);
+			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox->ptr);
 			if (!_mbox) {
-				PERR("Invalid mailbox pointer at %lx", mbox);
+				//PERR("Invalid mailbox pointer at %lx", *mbox->ptr);
 				return EINVAL;
 			}
 			_mbox->add(msg);
@@ -446,7 +496,7 @@ extern "C" {
 	 * \param msg      pointer to message buffer
 	 * \param timeout  how long will it block, if no message is available
 	 */
-	u32_t sys_arch_mbox_fetch(sys_mbox_t mbox, void **msg, u32_t timeout)
+	u32_t sys_arch_mbox_fetch(sys_mbox_t* mbox, void **msg, u32_t timeout)
 	{
 		/*
 		 * The mailbox might be invalid to indicate,
@@ -456,9 +506,9 @@ extern "C" {
 			return 0;
 
 		try {
-			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox);
+			Mailbox* _mbox = reinterpret_cast<Mailbox*>(mbox->ptr);
 			if (!_mbox) {
-				PERR("Invalid mailbox pointer at %lx", mbox);
+				//PERR("Invalid mailbox pointer at %lx", *mbox->ptr);
 				return EINVAL;
 			}
 			return _mbox->get(msg, timeout);
@@ -483,7 +533,7 @@ extern "C" {
 	 * This is similar to sys_arch_mbox_fetch, however if a message is not present
 	 * in the mailbox, it immediately returns with the code SYS_MBOX_EMPTY.
 	 */
-	u32_t sys_arch_mbox_tryfetch(sys_mbox_t mbox, void **msg)
+	u32_t sys_arch_mbox_tryfetch(sys_mbox_t* mbox, void **msg)
 	{
 		return sys_arch_mbox_fetch(mbox, msg, Mailbox::NO_BLOCK);
 	}
@@ -502,7 +552,7 @@ extern "C" {
 	 * \param stacksize  size of the thread's stack
 	 * \param prio       priority of new thread
 	 */
-	sys_thread_t sys_thread_new(char *name, void (* thread)(void *arg),
+	sys_thread_t sys_thread_new(const char *name, void (* thread)(void *arg),
 	                            void *arg, int stacksize, int prio)
 	{
 		try
@@ -523,6 +573,7 @@ extern "C" {
 	}
 
 
+#if 0
 	/**************
 	 ** Timeouts **
 	 **************/
@@ -568,5 +619,6 @@ extern "C" {
 			return 0;
 		}
 	}
+#endif
 
 } /* extern "C" */

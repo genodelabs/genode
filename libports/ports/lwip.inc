@@ -1,0 +1,2 @@
+LWIP_VERSION = STABLE-1_4_1-RC1
+LWIP         = lwip-$(LWIP_VERSION)

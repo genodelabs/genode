@@ -2,14 +2,14 @@ Our FreeBSD libc based libc defines SOL_SOCKET as 0xffff. We change
 lwip's definition from 0xfff to match ours. This prevents us from
 converting the level when we call {g,s}etsockopt.
 
---- lwip-1.3.2.orig/src/include/lwip/sockets.h
-+++ lwip-1.3.2/src/include/lwip/sockets.h
-@@ -113,7 +113,7 @@ struct linger {
+--- lwip-STABLE-1_4_1-RC1/src/include/lwip/sockets.h.orig
++++ lwip-STABLE-1_4_1-RC1/src/include/lwip/sockets.h
+@@ -115,7 +115,7 @@ struct linger {
  /*
   * Level number for (get/set)sockopt() to apply to socket itself.
   */
 -#define  SOL_SOCKET  0xfff    /* options for socket level */
-+#define  SOL_SOCKET  0xffff    /* options for socket level */
++#define  SOL_SOCKET  0xffff   /* options for socket level */
  
  
  #define AF_UNSPEC       0

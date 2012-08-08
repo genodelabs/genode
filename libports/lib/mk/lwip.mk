@@ -4,14 +4,16 @@
 # The library implementes TCP and UDP as well as DNS and DHCP.
 #
 
-LWIP_DIR = $(REP_DIR)/contrib/lwip-1.3.2
+include $(REP_DIR)/ports/lwip.inc
+
+LWIP_DIR = $(REP_DIR)/contrib/$(LWIP)
 
 # Genode platform files
 SRC_CC   = nic.cc printf.cc sys_arch.cc
 
 # Core files
 SRC_C    = init.c mem.c memp.c netif.c pbuf.c stats.c udp.c raw.c sys.c \
-           tcp.c tcp_in.c tcp_out.c dhcp.c dns.c
+           tcp.c tcp_in.c tcp_out.c dhcp.c dns.c timers.c def.c
 
 # IPv4 files
 SRC_C   += icmp.c inet.c ip_addr.c ip.c ip_frag.c inet_chksum.c
@@ -21,7 +23,7 @@ SRC_C   += err.c api_lib.c api_msg.c netbuf.c netdb.c netifapi.c sockets.c \
            tcpip.c
 
 # Network interface files
-SRC_C   += etharp.c loopif.c
+SRC_C   += etharp.c
 
 LIBS     = thread cxx alarm signal libc timed_semaphore
 

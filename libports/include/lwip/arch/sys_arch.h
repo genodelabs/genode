@@ -16,8 +16,16 @@
 
 #include <arch/cc.h>
 
-typedef mem_ptr_t sys_sem_t;
-typedef mem_ptr_t sys_mbox_t;
+struct _sys_sem_t {
+	void* ptr;
+};
+typedef struct _sys_sem_t sys_sem_t;
+
+struct _sys_mbox_t {
+	void* ptr;
+};
+typedef struct _sys_mbox_t sys_mbox_t;
+
 typedef mem_ptr_t sys_thread_t;
 typedef mem_ptr_t sys_prot_t;
 

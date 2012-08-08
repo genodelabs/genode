@@ -1,6 +1,7 @@
-LWIP     = lwip-1.3.2
-LWIP_ZIP = $(LWIP).zip
-LWIP_URL = http://mirrors.zerg.biz/nongnu/lwip/$(LWIP_ZIP)
+include ports/lwip.inc
+
+LWIP_TGZ = $(LWIP).tar.gz
+LWIP_URL = http://git.savannah.gnu.org/cgit/lwip.git/snapshot/$(LWIP_TGZ)
 
 #
 # Interface to top-level prepare Makefile
@@ -19,14 +20,13 @@ $(CONTRIB_DIR)/$(LWIP): clean-lwip
 #
 # Port-specific local rules
 #
-$(DOWNLOAD_DIR)/$(LWIP_ZIP):
+$(DOWNLOAD_DIR)/$(LWIP_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LWIP_URL) && touch $@
 
-$(CONTRIB_DIR)/$(LWIP): $(DOWNLOAD_DIR)/$(LWIP_ZIP)
-	$(VERBOSE)unzip $< -d $(CONTRIB_DIR) && touch $@
-	$(VERBOSE)patch -d $(CONTRIB_DIR) -p0 -i ../src/lib/lwip/libc_select_notify.patch
-	$(VERBOSE)patch -d $(CONTRIB_DIR) -p0 -i ../src/lib/lwip/errno.patch
-	$(VERBOSE)patch -d $(CONTRIB_DIR) -p0 -i ../src/lib/lwip/sol_socket_definition.patch
+$(CONTRIB_DIR)/$(LWIP): $(DOWNLOAD_DIR)/$(LWIP_TGZ)
+	$(VERBOSE)tar xvzf $< -C $(CONTRIB_DIR) && touch $@
+	$(VERBOSE)find ./src/lib/lwip/ -name "*.patch" |\
+		xargs -ixxx sh -c "patch -p0 -r - -N -d $(CONTRIB_DIR) < xxx" || true
 
 include/lwip/lwip:
 	$(VERBOSE)mkdir -p $@

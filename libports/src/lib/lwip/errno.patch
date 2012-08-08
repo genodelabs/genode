@@ -1,7 +1,6 @@
-diff -urN lwip-1.3.2.orig/src/include/lwip/arch.h lwip-1.3.2/src/include/lwip/arch.h
---- lwip-1.3.2.orig/src/include/lwip/arch.h	2009-12-24 16:38:19.000000000 +0100
-+++ lwip-1.3.2/src/include/lwip/arch.h	2010-11-01 15:43:34.000000000 +0100
-@@ -224,6 +224,12 @@
+--- lwip-STABLE-1_4_1-RC1/src/include/lwip/arch.h.orig
++++ lwip-STABLE-1_4_1-RC1/src/include/lwip/arch.h
+@@ -208,6 +208,12 @@ extern "C" {
  extern int errno;
  #endif
  

@@ -1,7 +1,6 @@
-diff -urN lwip-1.3.2.orig/src/api/sockets.c lwip-1.3.2/src/api/sockets.c
---- lwip-1.3.2.orig/src/api/sockets.c	2009-12-24 16:38:19.000000000 +0100
-+++ lwip-1.3.2/src/api/sockets.c	2010-02-16 11:27:00.000000000 +0100
-@@ -162,6 +162,9 @@
+--- lwip-STABLE-1_4_1-RC1/src/api/sockets.c.orig
++++ lwip-STABLE-1_4_1-RC1/src/api/sockets.c
+@@ -171,6 +171,9 @@ static const int err_to_errno_table[] = {
    set_errno(sk->err); \
  } while (0)
  
@@ -11,7 +10,7 @@ diff -urN lwip-1.3.2.orig/src/api/sockets.c lwip-1.3.2/src/api/sockets.c
  /* Forward delcaration of some functions */
  static void event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len);
  static void lwip_getsockopt_internal(void *arg);
-@@ -1034,7 +1037,7 @@
+@@ -1244,7 +1247,7 @@ return_copy_fdsets:
   * Processes recvevent (data available) and wakes up tasks waiting for select.
   */
  static void
@@ -19,9 +18,9 @@ diff -urN lwip-1.3.2.orig/src/api/sockets.c lwip-1.3.2/src/api/sockets.c
 +orig_event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
  {
    int s;
-   struct lwip_socket *sock;
-@@ -1123,6 +1126,17 @@
-   }
+   struct lwip_sock *sock;
+@@ -1359,6 +1362,17 @@ again:
+   SYS_ARCH_UNPROTECT(lev);
  }
  
 +/* Wrapper for the original event_callback() function that additionally calls
@@ -30,9 +29,9 @@ diff -urN lwip-1.3.2.orig/src/api/sockets.c lwip-1.3.2/src/api/sockets.c
 +static void
 +event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
 +{
-+	orig_event_callback(conn, evt, len);
-+	if (libc_select_notify)
-+		libc_select_notify();
++       orig_event_callback(conn, evt, len);
++       if (libc_select_notify)
++               libc_select_notify();
 +}
 +
  /**
