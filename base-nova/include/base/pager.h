@@ -75,7 +75,12 @@ namespace Genode {
 			/**
 			 * Return base of initial portal window
 			 */
-			unsigned exc_pt_sel() { return _tid.exc_pt_sel; }
+			addr_t ec_sel() { return _tid.ec_sel; }
+
+			/**
+			 * Return base of initial portal window
+			 */
+			addr_t exc_pt_sel() { return _tid.exc_pt_sel; }
 
 			/**
 			 * Set initial stack pointer used by the startup handler
@@ -107,6 +112,16 @@ namespace Genode {
 				Signal_transmitter transmitter(_exception_sigh);
 				transmitter.submit();
 			}
+
+
+			/**
+			 * Return entry point address
+			 */
+			addr_t handler_address()
+			{
+				return reinterpret_cast<addr_t>(_invoke_handler);
+			}
+
 	};
 
 

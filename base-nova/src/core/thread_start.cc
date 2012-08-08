@@ -36,7 +36,6 @@ using namespace Genode;
 void Thread_base::_init_platform_thread()
 {
 	_tid.ec_sel = cap_selector_allocator()->alloc();
-	_tid.sc_sel = ~0; /* not needed within core */
 	_tid.rs_sel = cap_selector_allocator()->alloc();
 	_tid.pd_sel = cap_selector_allocator()->pd_sel();
 	_tid.exc_pt_sel = cap_selector_allocator()->alloc(Nova::NUM_INITIAL_PT_LOG2);
@@ -45,6 +44,20 @@ void Thread_base::_init_platform_thread()
 	uint8_t res = Nova::create_sm(_tid.rs_sel, _tid.pd_sel, 0);
 	if (res)
 		PERR("create_sm returned %u", res);
+
+	addr_t sp   = reinterpret_cast<addr_t>(&_context->stack[-4]);
+	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
+
+	/* create local EC */
+	enum { CPU_NO = 0, GLOBAL = false };
+	res = Nova::create_ec(_tid.ec_sel, Cap_selector_allocator::pd_sel(),
+	                      CPU_NO, utcb, sp,
+	                      _tid.exc_pt_sel, GLOBAL);
+	if (res) {
+		PERR("%p - create_ec returned %d", this, res);
+		PERR("valid thread %x %lx:%lx", _thread_cap.valid(),
+		     _thread_cap.dst(), _thread_cap.local_name());
+	}
 }
 
 

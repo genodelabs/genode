@@ -19,8 +19,13 @@
 #include <base/sleep.h>
 #include <base/env.h>
 
+#include <base/rpc_client.h>
+#include <session/session.h>
+
 /* NOVA includes */
 #include <nova/syscalls.h>
+#include <base/nova_util.h>
+#include <nova_cpu_session/connection.h>
 
 using namespace Genode;
 
@@ -35,29 +40,6 @@ void Thread_base::_thread_start()
 }
 
 
-static void request_event_portal(Pager_capability pager_cap,
-                                 int exc_base, int event)
-{
-	using namespace Nova;
-	Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
-
-	/* save original receive window */
-	Crd orig_crd = utcb->crd_rcv;
-
-	/* request event-handler portal */
-	utcb->msg[0] = event;
-	utcb->set_msg_word(1);
-	utcb->crd_rcv = Obj_crd(exc_base + event, 0);
-
-	int res = call(pager_cap.dst());
-	if (res)
-		PERR("request of event (%d) capability selector failed", event);
-
-	/* restore original receive window */
-	utcb->crd_rcv = orig_crd;
-}
-
-
 /*****************
  ** Thread base **
  *****************/
@@ -68,10 +50,9 @@ void Thread_base::_init_platform_thread()
 
 	/*
 	 * Allocate capability selectors for the thread's execution context,
-	 * scheduling context, running semaphore and exception handler portals.
+	 * running semaphore and exception handler portals.
 	 */
-	_tid.ec_sel     = cap_selector_allocator()->alloc();
-	_tid.sc_sel     = cap_selector_allocator()->alloc();
+	_tid.ec_sel     = ~0UL;
 	_tid.rs_sel     = cap_selector_allocator()->alloc();
 	_tid.pd_sel     = cap_selector_allocator()->pd_sel();
 	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
@@ -81,33 +62,30 @@ void Thread_base::_init_platform_thread()
 	name(buf, sizeof(buf));
 	_thread_cap = env()->cpu_session()->create_thread(buf);
 
+	/* assign thread to protection domain */
+	env()->pd_session()->bind_thread(_thread_cap);
+
 	/* create new pager object and assign it to the new thread */
 	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
 	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
 
-	/* register initial IP and SP at core */
-	mword_t thread_sp = (mword_t)&_context->stack[-4];
-	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, thread_sp);
-
-	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
-	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_PAGE_FAULT);
-
 	/* create running semaphore required for locking */
-	int res = create_sm(_tid.rs_sel, _tid.pd_sel, 0);
-	if (res)
-		PERR("create_sm returned %d", res);
+	uint8_t res = create_sm(_tid.rs_sel, _tid.pd_sel, 0);
+	if (res != NOVA_OK) {
+		PERR("create_sm returned %u", res);
+		throw Cpu_session::Thread_creation_failed();
+	}
+
 }
 
 
 void Thread_base::_deinit_platform_thread()
 {
-	Nova::revoke(Nova::Obj_crd(_tid.sc_sel, 0));
-	Nova::revoke(Nova::Obj_crd(_tid.ec_sel, 0));
+//	Nova::revoke(Nova::Obj_crd(_tid.ec_sel, 0));
 	Nova::revoke(Nova::Obj_crd(_tid.rs_sel, 0));
 	Nova::revoke(Nova::Obj_crd(_tid.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2));
 
-	cap_selector_allocator()->free(_tid.ec_sel, 0);
-	cap_selector_allocator()->free(_tid.sc_sel, 0);
+//	cap_selector_allocator()->free(_tid.ec_sel, 0);
 	cap_selector_allocator()->free(_tid.rs_sel, 0);
 	cap_selector_allocator()->free(_tid.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
 
@@ -123,25 +101,35 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::start()
 {
+	if (_tid.ec_sel != ~0UL)
+		throw Cpu_session::Thread_creation_failed();
+
+	using namespace Genode;
+
+	/* create new pager object and assign it to the new thread */
+	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
+	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
+
+	/* create EC at core */
+	addr_t thread_sp = reinterpret_cast<addr_t>(&_context->stack[-4]);
+
+	Genode::Nova_cpu_connection cpu;
+	if (cpu.start_exc_base_vcpu(_thread_cap, (addr_t)_thread_start,
+	                            thread_sp, _tid.exc_pt_sel))
+		throw Cpu_session::Thread_creation_failed();
+	
+	/* request native EC thread cap */ 
+	Native_capability ec_cap = cpu.native_cap(_thread_cap);
+	_tid.ec_sel = ec_cap.dst();
+
 	using namespace Nova;
 
-	/* create execution context */
-	enum { THREAD_CPU_NO = 0, THREAD_GLOBAL  = true };
-	int res = create_ec(_tid.ec_sel, _tid.pd_sel, THREAD_CPU_NO, (mword_t)&_context->utcb,
-	                    0, _tid.exc_pt_sel, THREAD_GLOBAL);
-	if (res)
-		PDBG("create_ec returned %d", res);
+	/* request exception portals */
+	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
+	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_PAGE_FAULT);
 
-	/*
-	 * Create scheduling context
-	 *
-	 * With assigning a scheduling context to the execution context, the new
-	 * thread will immediately start, enter the startup portal, and receives
-	 * the configured initial IP and SP from core.
-	 */
-	res = create_sc(_tid.sc_sel, _tid.pd_sel, _tid.ec_sel, Qpd());
-	if (res)
-		PERR("create_sc returned %d", res);
+	/* request creation of SC to let thread run*/
+	env()->cpu_session()->resume(_thread_cap);
 }
 
 

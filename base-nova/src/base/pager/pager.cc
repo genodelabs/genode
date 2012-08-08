@@ -33,7 +33,8 @@ void Pager_object::_page_fault_handler()
 	/* serialize page-fault handling */
 	Thread_base *myself = Thread_base::myself();
 	if (!myself) {
-		PWRN("unexpected page-fault for non-existing pager object, going to sleep forever");
+		PWRN("unexpected page-fault for non-existing pager object,"
+		     " going to sleep forever");
 		sleep_forever();
 	}
 
@@ -41,10 +42,12 @@ void Pager_object::_page_fault_handler()
 	int ret = obj->pager(ipc_pager);
 
 	if (ret) {
-		PWRN("page-fault resolution for address 0x%lx, ip=0x%lx failed",
+		PWRN("unresolvable page-fault at address 0x%lx, ip=0x%lx",
 		     ipc_pager.fault_addr(), ipc_pager.fault_ip());
-		/* revoke paging capability */
-		Nova::revoke(Nova::Obj_crd(obj->exc_pt_sel() + PT_SEL_PAGE_FAULT, 0), true);
+
+		/* revoke paging capability, let thread die in kernel */
+		Nova::revoke(Obj_crd(obj->exc_pt_sel() + PT_SEL_PAGE_FAULT, 0),
+		             true);
 		Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
 		utcb->set_msg_word(0);
 	}
@@ -58,8 +61,8 @@ void Pager_object::_startup_handler()
 	Pager_object *obj = static_cast<Pager_object *>(Thread_base::myself());
 	Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
 
-	printf("start new pager object with EIP=0x%p, ESP=0x%p\n",
-	       (void *)obj->_initial_eip, (void *)obj->_initial_esp);
+//	printf("start new pager object with EIP=0x%p, ESP=0x%p\n",
+//	       (void *)obj->_initial_eip, (void *)obj->_initial_esp);
 
 	utcb->eip = obj->_initial_eip;
 	utcb->esp = obj->_initial_esp;
@@ -80,7 +83,8 @@ void Pager_object::_invoke_handler()
 	utcb->set_msg_word(0);
 
 	if (event == PT_SEL_STARTUP || event == PT_SEL_PAGE_FAULT) {
-		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel() + event, 0), 0);
+		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel() + event,
+		                                     0), 0);
  		/* one item ever fits on the UTCB */
 		(void)res;
 	}
@@ -99,22 +103,12 @@ Pager_object::Pager_object(unsigned long badge)
 
 	enum { CPU_NO = 0, GLOBAL = false, EXC_BASE = 0 };
 
-	mword_t *thread_sp   = (mword_t *)&_context->stack[-4];
-	mword_t  thread_utcb = (mword_t)  &_context->utcb;
-
-	/* create local EC */
-	uint8_t res = create_ec(_tid.ec_sel, pd_sel,
-	                        CPU_NO, thread_utcb,
-	                        (mword_t)thread_sp, /* <- delivered to the startup handler */
-	                        EXC_BASE, GLOBAL);
-	if (res)
-		PERR("create_ec returned %d - utcb 0x%lx", res, thread_utcb);
-
 	/* create portal for page-fault handler */
-	res = create_pt(exc_pt_sel() + PT_SEL_PAGE_FAULT, pd_sel, _tid.ec_sel,
-	                Mtd(Mtd::QUAL | Mtd::EIP), (mword_t)_page_fault_handler);
+	uint8_t res = create_pt(exc_pt_sel() + PT_SEL_PAGE_FAULT, pd_sel,
+	                        _tid.ec_sel, Mtd(Mtd::QUAL | Mtd::EIP),
+	                        (mword_t)_page_fault_handler);
 	if (res) {
-		PERR("could not create page-fault portal, create_pt returned %d\n",
+		PERR("could not create page-fault portal, error = %u\n",
 		     res);
 		class Create_page_fault_pt_failed { };
 		throw Create_page_fault_pt_failed();
@@ -124,7 +118,7 @@ Pager_object::Pager_object(unsigned long badge)
 	res = create_pt(exc_pt_sel() + PT_SEL_STARTUP, pd_sel, _tid.ec_sel,
 	                Mtd(Mtd::ESP | Mtd::EIP), (mword_t)_startup_handler);
 	if (res) {
-		PERR("could not create startup portal, create_pt returned %d\n",
+		PERR("could not create startup portal, error = %u\n",
 		     res);
 		class Create_startup_pt_failed { };
 		throw Create_startup_pt_failed();
@@ -132,19 +126,23 @@ Pager_object::Pager_object(unsigned long badge)
 
 	/*
 	 * Create object identity representing the pager object. It is used as
-	 * argument to 'Cpu_session::set_pager'. Furthermore it can be invoked to
-	 * request the mapping of the event capability selector window
+	 * argument to 'Cpu_session::set_pager'. Furthermore it can be invoked
+	 * to request the mapping of the event capability selector window
 	 * corresponding to the pager object.
 	 */
 	_pt_sel = cap_selector_allocator()->alloc();
-	res = create_pt(_pt_sel, pd_sel, _tid.ec_sel, Mtd(0), (mword_t)_invoke_handler);
+	res = create_pt(_pt_sel, pd_sel, _tid.ec_sel, Mtd(0),
+	                reinterpret_cast<addr_t>(_invoke_handler));
 	if (res)
-		PERR("could not create pager object identity, create_pt returned %d\n", res);
+		PERR("could not create pager object identity, error = %u\n",
+	             res);
 
 	_pt_cleanup = cap_selector_allocator()->alloc();
-	res = create_pt(_pt_cleanup, pd_sel, _tid.ec_sel, Mtd(0), (mword_t)_invoke_handler);
+	res = create_pt(_pt_cleanup, pd_sel, _tid.ec_sel, Mtd(0),
+	                reinterpret_cast<addr_t>(_invoke_handler));
 	if (res)
-		PERR("could not create pager cleanup portal, create_pt returned %d\n", res);
+		PERR("could not create pager cleanup portal, error = %u\n",
+	             res);
 }
 
 Pager_object::~Pager_object()
@@ -178,33 +176,32 @@ Pager_object::~Pager_object()
 
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 {
-	/* supplement capability with object ID obtained from CAP session */
-	Native_capability cap_session = _cap_session->alloc(Native_capability(obj->pt_sel(), 0));
+	/* request creation of portal bind to pager thread */
+	Native_capability pager_thread_cap(obj->ec_sel(), 0);
+	Native_capability cap_session = _cap_session->alloc(pager_thread_cap,
+		obj->handler_address());
 
-	/*
-	 * cap_session.local_name() contains now the global object id.
-	 * We drop it here since there is no need on NOVA to have it,
-	 * instead we use solely the dst id and the local obj id.
-	 */ 
-	cap_session = Native_capability(cap_session.dst(), obj->pt_sel());
+	cap_session = Native_capability(cap_session.dst(), cap_session.dst());
 
 	/* add server object to object pool */
 	obj->Object_pool<Pager_object>::Entry::cap(cap_session);
 	insert(obj);
 
 	/* return capability that uses the object id as badge */
-	return reinterpret_cap_cast<Pager_object>(obj->Object_pool<Pager_object>::Entry::cap());
+	return reinterpret_cap_cast<Pager_object>(
+		obj->Object_pool<Pager_object>::Entry::cap());
 }
 
 
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
-	/* cleanup cap session */
+	/* cleanup at cap session */
 	_cap_session->free(obj->Object_pool<Pager_object>::Entry::cap());
-	if (obj->pt_sel() != 0UL + obj->Object_pool<Pager_object>::Entry::cap().dst()) {
-		cap_selector_allocator()->free(obj->Object_pool<Pager_object>::Entry::cap().dst(), 0);
-		revoke(Obj_crd(obj->Object_pool<Pager_object>::Entry::cap().dst(), 0), true);
-	}
+
+	/* cleanup locally */
+	addr_t pager_pt = obj->Object_pool<Pager_object>::Entry::cap().dst();
+	revoke(Obj_crd(pager_pt, 0), true);
+	cap_selector_allocator()->free(pager_pt, 0);
 
 	remove(obj);
 }
