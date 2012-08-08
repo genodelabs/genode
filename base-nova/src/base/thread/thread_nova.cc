@@ -118,7 +118,7 @@ void Thread_base::start()
 
 	Genode::Nova_cpu_connection cpu;
 	if (cpu.start_exc_base_vcpu(_thread_cap, (addr_t)_thread_start,
-	                            thread_sp, _tid.exc_pt_sel))
+	                            thread_sp, _tid.exc_pt_sel, _tid.is_vcpu))
 		throw Cpu_session::Thread_creation_failed();
 	
 	/* request native EC thread cap */ 
@@ -127,10 +127,14 @@ void Thread_base::start()
 
 	using namespace Nova;
 
-	/* request exception portals */
-	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
-	request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_PAGE_FAULT);
-	request_event_portal(pager_cap, _tid.exc_pt_sel, SM_SEL_EC);
+	/* request exception portals for normal threads */
+	if (!_tid.is_vcpu) {
+		request_event_portal(pager_cap, _tid.exc_pt_sel,
+		                     PT_SEL_STARTUP);
+		request_event_portal(pager_cap, _tid.exc_pt_sel,
+				     PT_SEL_PAGE_FAULT);
+		request_event_portal(pager_cap, _tid.exc_pt_sel, SM_SEL_EC);
+	}
 
 	/* request creation of SC to let thread run*/
 	env()->cpu_session()->resume(_thread_cap);

@@ -40,7 +40,7 @@ void Platform_thread::set_cpu(unsigned int cpu_no)
 }
 
 
-int Platform_thread::start(void *ip, void *sp, addr_t exc_base)
+int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 {
 	using namespace Nova;
 
@@ -58,7 +58,7 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base)
 	_pager->initial_eip((addr_t)ip);
 	if (!_is_main_thread) {
 		addr_t initial_sp = reinterpret_cast<addr_t>(sp);
-		addr_t utcb       = round_page(initial_sp);
+		addr_t utcb       = vcpu ? 0 : round_page(initial_sp);
 
 		_pager->initial_esp(initial_sp);
 		if (exc_base == ~0UL) {
@@ -83,6 +83,7 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base)
 
 		/* ip == 0 means that caller will use the thread as worker */
 		bool thread_global = ip;
+
 		res = create_ec(_sel_ec(), _pd->pd_sel(), _cpu_no, utcb,
 		                initial_sp, exc_base, thread_global);
 		if (res)
@@ -195,7 +196,7 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base)
 	cap_selector_allocator()->free(_sel_exc_base, NUM_INITIAL_PT_LOG2);
 	_sel_exc_base = ~0UL;
 
-	return -1;
+	return -7;
 }
 
 

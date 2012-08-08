@@ -68,10 +68,11 @@ namespace Genode {
 			return call<Rpc_native_cap>(cap); }
 
 		int start_exc_base_vcpu(Thread_capability thread, addr_t ip,
-		                        addr_t sp, addr_t exc_base)
+		                        addr_t sp, addr_t exc_base,
+		                        bool vcpu = false)
 		{
 			return call<Rpc_start_exc_base_vcpu>(thread, ip, sp,
-			                                     exc_base);
+			                                     exc_base, vcpu);
 		}
 
 

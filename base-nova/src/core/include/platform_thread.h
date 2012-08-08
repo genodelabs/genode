@@ -59,13 +59,18 @@ namespace Genode {
 			/**
 			 * Start thread
 			 *
-			 * \param ip      instruction pointer to start at
-			 * \param sp      stack pointer to use
+			 * \param ip       instruction pointer to start at
+			 * \param sp       stack pointer to use
+			 * \param exc_base exception base of thread in caller
+			 *                 protection domain
+			 * \param vcpu     If true it will run as vCPU,
+			 *                 otherwise it will be a thread.
 			 *
 			 * \retval  0  successful
-			 * \retval -1  thread could not be started
+			 * \retval -1  thread/vCPU could not be started
 			 */
-			int start(void *ip, void *sp, addr_t exc_base = ~0UL);
+			int start(void *ip, void *sp, addr_t exc_base = ~0UL,
+			          bool vcpu = false);
 
 			/**
 			 * Pause this thread
