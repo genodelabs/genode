@@ -39,7 +39,7 @@ void Platform_thread::set_cpu(unsigned int cpu_no)
 }
 
 
-int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
+int Platform_thread::start(void *ip, void *sp, addr_t exc_base)
 {
 	using namespace Nova;
 
@@ -48,13 +48,32 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 		return -1;
 	}
 
-	enum { PD_EC_CPU_NO = 0, PD_UTCB = 0x6000000 };
+	if (!_pd) {
+		PERR("protection domain undefined");
+		return -2;
+	}
 
+	enum { PD_UTCB = 0x6000000 };
 	_pager->initial_eip((addr_t)ip);
+	if (!_is_main_thread) {
+		addr_t initial_sp = reinterpret_cast<addr_t>(sp);
+		addr_t utcb       = round_page(initial_sp);
 
-	if (!_is_main_thread || !_pd) {
-		_pager->initial_esp((addr_t)sp);
-		return 0;
+		_pager->initial_esp(initial_sp);
+		if (exc_base == ~0UL) {
+			PERR("exception base not specified");
+			return -3;
+		}
+
+		/* ip == 0 means that caller will use the thread as worker */
+		bool thread_global = ip;
+		uint8_t res = create_ec(_sel_ec(), _pd->pd_sel(), _cpu_no,
+					utcb, initial_sp,
+					exc_base, thread_global);
+		if (res)
+			PERR("creation of new thread failed %u", res);
+
+		return res ? -4 : 0;
 	}
 
 	/*
@@ -67,32 +86,38 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	int res = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
 	                    Obj_crd(_pd->parent_pt_sel(), 0),
 	                    Obj_crd(_pager->exc_pt_sel() + PT_SEL_PARENT, 0));
-	if (res)
+	if (res) {
 		PERR("could not locally remap parent portal");
+		return -5;
+	}
 
-	Obj_crd initial_pts(_pager->exc_pt_sel(), Nova::NUM_INITIAL_PT_LOG2);
+	Obj_crd initial_pts(_pager->exc_pt_sel(), Nova::NUM_INITIAL_PT_LOG2,
+	                    1 << 4);
 
 
-	int pd_sel  = cap_selector_allocator()->pd_sel();
-	int pd0_sel = _pager->exc_pt_sel() + Nova::PD_SEL;
+	addr_t pd_sel  = cap_selector_allocator()->pd_sel();
+	addr_t pd0_sel = _pager->exc_pt_sel() + Nova::PD_SEL;
 	_pd->assign_pd(pd0_sel);
 
 	res = create_pd(pd0_sel, pd_sel, initial_pts);
-	if (res)
+	if (res) {
 		PERR("create_pd returned %d", res);
-
-	int ec_sel = cap_selector_allocator()->alloc();
-	int sc_sel = cap_selector_allocator()->alloc();
+		return -6;
+	}
 
 	enum { THREAD_GLOBAL = true };
-	res = create_ec(ec_sel, pd0_sel, PD_EC_CPU_NO, PD_UTCB, 0, 0,
+	res = create_ec(_sel_ec(), pd0_sel, _cpu_no, PD_UTCB, 0, 0,
 	                THREAD_GLOBAL);
-	if (res)
-		PDBG("create_ec returned %d", res);
+	if (res) {
+		PERR("create_ec returned %d", res);
+		return -7;
+	}
 
-	res = create_sc(sc_sel, pd0_sel, ec_sel, Qpd());
-	if (res)
+	res = create_sc(_sel_sc(), pd0_sel, _sel_ec(), Qpd());
+	if (res) {
 		PERR("create_sc returned %d", res);
+		return -8;
+	}
 
 	return 0;
 }
@@ -106,7 +131,10 @@ void Platform_thread::pause()
 
 void Platform_thread::resume()
 {
-	PDBG("not implemented");
+	uint8_t res = Nova::create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
+	                              Nova::Qpd());
+	if (res)
+		PDBG("create_sc returned %u", res);
 }
 
 
@@ -123,15 +151,13 @@ void Platform_thread::cancel_blocking() { PWRN("not implemented"); }
 unsigned long Platform_thread::pager_object_badge()
 const
 {
-	return _pd ? ((_pd->id() << 16) || _id) : ~0;
+	return ~0UL;
 }
 
 
-static int id_cnt;
-
-
-Platform_thread::Platform_thread(const char *name, unsigned, addr_t, int thread_id)
-: _pd(0), _id(++id_cnt) { }
+Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
+: _pd(0), _id_base(cap_selector_allocator()->alloc(1)),
+  _cpu_no(0) { }
 
 
 Platform_thread::~Platform_thread()

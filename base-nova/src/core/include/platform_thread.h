@@ -31,7 +31,11 @@ namespace Genode {
 			Platform_pd  *_pd;
 			Pager_object *_pager;
 			bool          _is_main_thread;
-			int           _id;
+			addr_t        _id_base;
+			unsigned      _cpu_no;
+
+			addr_t _sel_ec() { return _id_base; }
+			addr_t _sel_sc() { return _id_base + 1; }
 
 		public:
 
@@ -41,7 +45,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Platform_thread(const char *name = 0, unsigned priority = 0,
-			                addr_t utcb = 0, int thread_id = THREAD_INVALID);
+			                int thread_id = THREAD_INVALID);
 
 			/**
 			 * Destructor
@@ -53,12 +57,11 @@ namespace Genode {
 			 *
 			 * \param ip      instruction pointer to start at
 			 * \param sp      stack pointer to use
-			 * \param cpu_no  target cpu
 			 *
 			 * \retval  0  successful
 			 * \retval -1  thread could not be started
 			 */
-			int start(void *ip, void *sp, unsigned int cpu_no = 0);
+			int start(void *ip, void *sp, addr_t exc_base = ~0UL);
 
 			/**
 			 * Pause this thread
@@ -119,6 +122,12 @@ namespace Genode {
 			{
 				_pd = pd, _is_main_thread = is_main_thread;
 			}
+
+			Native_capability native_cap()
+			{
+				return Native_capability(_sel_ec(), 0);
+			}
+
 	};
 }
 
