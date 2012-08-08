@@ -44,7 +44,7 @@ namespace Nova {
 	};
 
 	/**
-	 * NOVA sytem-call IDs
+	 * NOVA system-call IDs
 	 */
 	enum Syscall {
 		NOVA_CALL       = 0x0,
@@ -63,6 +63,21 @@ namespace Nova {
 		NOVA_ASSIGN_GSI = 0xd,
 	};
 
+	/**
+	 * NOVA status codes returned by system-calls
+	 */
+        enum Status
+        {
+            NOVA_OK             = 0,
+            NOVA_IPC_TIMEOUT    = 1,
+            NOVA_IPC_ABORT      = 2,
+            NOVA_INV_HYPERCALL  = 3,
+            NOVA_INV_SELECTOR   = 4,
+            NOVA_INV_PARAMETER  = 5,
+            NOVA_INV_FEATURE    = 6,
+            NOVA_INV_CPU_NUMBER = 7,
+            NOVA_INVD_DEVICE_ID = 8,
+        };
 
 	/**
 	 * Hypervisor information page
@@ -184,9 +199,10 @@ namespace Nova {
 			 */
 			enum {
 				TYPE_MASK   = 0x3,  TYPE_SHIFT  =  0,
-				BASE_SHIFT  = 12,   RIGHTS_MASK = 0x7c,
+				BASE_SHIFT  = 12,   RIGHTS_MASK = 0x1f,
 				ORDER_MASK  = 0x1f, ORDER_SHIFT =  7,
-				BASE_MASK   = (~0UL) >> BASE_SHIFT
+				BASE_MASK   = (~0UL) >> BASE_SHIFT,
+				RIGHTS_SHIFT= 2
 			};
 
 			/**
@@ -197,9 +213,7 @@ namespace Nova {
 				MEM_CRD_TYPE    = 1,
 				IO_CRD_TYPE     = 2,
 				OBJ_CRD_TYPE    = 3,
-				RIGHTS_ALL      = 0x7c,
-				IO_CRD_ALL      = IO_CRD_TYPE | RIGHTS_ALL,
-				OBJ_CRD_ALL     = OBJ_CRD_TYPE | RIGHTS_ALL,
+				RIGHTS_ALL      = 0x1f,
 			};
 
 			void _base(mword_t base)
@@ -299,7 +313,8 @@ namespace Nova {
 			Io_crd(mword_t base, mword_t order)
 			: Crd(base, order)
 			{
-				_assign<TYPE_MASK | RIGHTS_MASK, TYPE_SHIFT>(IO_CRD_ALL);
+				_assign<TYPE_MASK, TYPE_SHIFT>(IO_CRD_TYPE);
+				_assign<RIGHTS_MASK, RIGHTS_SHIFT>(RIGHTS_ALL);
 			}
 	};
 
@@ -308,10 +323,12 @@ namespace Nova {
 	{
 		public:
 
-			Obj_crd(mword_t base, mword_t order)
+			Obj_crd(mword_t base, mword_t order,
+			        mword_t rights = RIGHTS_ALL)
 			: Crd(base, order)
 			{
-				_assign<TYPE_MASK | RIGHTS_MASK, TYPE_SHIFT>(OBJ_CRD_ALL);
+				_assign<TYPE_MASK, TYPE_SHIFT>(OBJ_CRD_TYPE);
+				_assign<RIGHTS_MASK, RIGHTS_SHIFT>(rights);
 			}
 	};
 
