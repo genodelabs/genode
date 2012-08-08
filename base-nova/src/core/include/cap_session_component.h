@@ -1,7 +1,7 @@
 /*
  * \brief  Capability allocation service
- * \author Norman Feske
- * \date   2006-06-26
+ * \author Alexander Boettcher
+ * \date   2012-07-27
  */
 
 /*
@@ -34,7 +34,9 @@ namespace Genode {
 
 		public:
 
-			Native_capability alloc(Native_capability ep)
+			Native_capability alloc(Native_capability ep,
+			                        addr_t entry,
+			                        addr_t mtd)
 			{
 				Lock::Guard lock_guard(_lock());
 
