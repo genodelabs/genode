@@ -129,10 +129,8 @@ void Thread_base::start()
 
 	/* request exception portals for normal threads */
 	if (!_tid.is_vcpu) {
-		request_event_portal(pager_cap, _tid.exc_pt_sel,
-		                     PT_SEL_STARTUP);
-		request_event_portal(pager_cap, _tid.exc_pt_sel,
-				     PT_SEL_PAGE_FAULT);
+		request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
+		request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_PAGE_FAULT);
 		request_event_portal(pager_cap, _tid.exc_pt_sel, SM_SEL_EC);
 	}
 

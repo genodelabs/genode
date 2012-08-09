@@ -32,9 +32,12 @@
 #include <base/sleep.h>
 #include <base/cap_sel_alloc.h>
 #include <base/thread.h>
+#include <base/rpc_server.h>
 #include <rom_session/connection.h>
 #include <rm_session/connection.h>
+#include <cap_session/connection.h>
 #include <os/config.h>
+#include <nova_cpu_session/connection.h>
 
 /* NOVA includes that come with Genode */
 #include <nova/syscalls.h>
@@ -52,7 +55,8 @@
 
 enum {
 	PAGE_SIZE_LOG2 = 12UL,
-	PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2
+	PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2,
+	STACK_SIZE     = 4096,
 };
 
 
@@ -65,7 +69,7 @@ enum { verbose_io  = false };
  *
  * Used for startup synchronization and coarse-grained locking.
  */
-Semaphore _lock;
+Genode::Lock global_lock(Genode::Lock::LOCKED);
 
 
 /**
@@ -165,21 +169,83 @@ class Guest_memory
 		}
 };
 
+class Vcpu_thread : Genode::Thread<STACK_SIZE> {
 
-class Vcpu_dispatcher : Genode::Thread_base,
+	private:
+
+		/**
+		 * Log2 size of portal window used for virtualization events
+		 */
+		enum { VCPU_EXC_BASE_LOG2 = 8 };
+
+	public:
+
+		Vcpu_thread(char const * name) : Thread(name)
+		{
+			/* release pre-allocated selectors of Thread */
+			Genode::cap_selector_allocator()->
+				free(tid().exc_pt_sel,
+				     Nova::NUM_INITIAL_PT_LOG2);
+
+			/* allocate correct number of selectors */
+			tid().exc_pt_sel = Genode::cap_selector_allocator()->
+				alloc(VCPU_EXC_BASE_LOG2);
+
+			/* tell generic thread code that this becomes a vCPU */
+			tid().is_vcpu = true;
+
+		}
+
+		~Vcpu_thread()
+		{
+			using namespace Nova;
+
+			revoke(Obj_crd(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2));
+			Genode::cap_selector_allocator()->
+				free(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2);
+
+			/* allocate selectors for ~Thread */
+			tid().exc_pt_sel = Genode::cap_selector_allocator()->
+				alloc(NUM_INITIAL_PT_LOG2);
+		}
+
+		Genode::addr_t exc_base() { return tid().exc_pt_sel; }
+
+		void start() {
+ 			this->Thread_base::start();
+
+			using namespace Genode;
+			/*
+			 * Request native EC thread cap and put it next to the
+			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
+			 */
+			addr_t sel_ec = tid().exc_pt_sel + Nova::SM_SEL_EC + 1;
+
+			Nova_cpu_connection cpu;
+			/* Use selector next to SM cap to retrieve EC cap */
+			cpu.rcv_window(sel_ec);
+
+			Native_capability ec_cap = cpu.native_cap(_thread_cap);
+
+			if (!ec_cap.valid() || sel_ec != ec_cap.local_name())
+				Logging::panic("Could not collocate EC cap");
+
+		}
+
+		void entry() { }
+};
+
+class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
                         public StaticReceiver<Vcpu_dispatcher>
 {
 	private:
 
 		/**
-		 * Stack size of vCPU event handler
-		 */
-		enum { STACK_SIZE = 4096 };
-
-		/**
 		 * Pointer to corresponding VCPU model
 		 */
 		VCpu * const _vcpu;
+
+		Vcpu_thread _vcpu_thread;
 
 		/**
 		 * Guest-physical memory
@@ -190,29 +256,6 @@ class Vcpu_dispatcher : Genode::Thread_base,
 		 * Motherboard representing the inter-connections of all device models
 		 */
 		Motherboard &_motherboard;
-
-		/**
-		 * Base of portal window where the handlers for virtualization events
-		 * will be registered. This window will be passed to the vCPU EC at
-		 * creation time.
-		 */
-		Nova::mword_t const _ev_pt_sel_base;
-
-		/**
-		 * Size of portal window used for virtualization events, in log2
-		 */
-		enum { EV_PT_WINDOW_SIZE_LOG2 = 8 };
-
-		/**
-		 * Capability selector used for the VCPU's execution context
-		 */
-		Genode::addr_t const _sm_sel;
-		Genode::addr_t const _ec_sel;
-
-		/**
-		 * Capability selector used for the VCPU's scheduling context
-		 */
-		Genode::addr_t const _sc_sel;
 
 
 		/***************
@@ -225,11 +268,10 @@ class Vcpu_dispatcher : Genode::Thread_base,
 		static void _free_sel(Nova::mword_t sel, Genode::size_t num_caps_log2 = 0) {
 			Genode::cap_selector_allocator()->free(sel, num_caps_log2); }
 
-		static Nova::mword_t _pd_sel() {
-			return Genode::cap_selector_allocator()->pd_sel(); }
+		static Nova::mword_t _pd_sel() { return 0; }
 
 		static ::Utcb *_utcb_of_myself() {
-			return (::Utcb *)Thread_base::myself()->utcb(); }
+			return (::Utcb *)Genode::Thread_base::myself()->utcb(); }
 
 
 		/***********************************
@@ -262,7 +304,7 @@ class Vcpu_dispatcher : Genode::Thread_base,
 			if (skip == SKIP)
 				_skip_instruction(msg);
 
-			SemaphoreGuard guard(_lock);
+			Genode::Lock::Guard guard(global_lock);
 
 			/**
 			 * Send the message to the VCpu.
@@ -333,13 +375,14 @@ class Vcpu_dispatcher : Genode::Thread_base,
 				Logging::printf("NPT mapping (base=0x%lx, order=%d hotspot=0x%lx)\n",
 				                crd.base(), crd.order(), hotspot);
 
-			Nova::Utcb * u = (Nova::Utcb *)utcb;
-			u->set_msg_word(0);
-			u->append_item(crd, hotspot, false, true);
-
 			/* EPT violation during IDT vectoring? */
 			if (utcb->inj_info & 0x80000000)
 				Logging::panic("EPT violation during IDT vectoring - not handled\n");
+
+			Nova::Utcb * u = (Nova::Utcb *)utcb;
+			u->set_msg_word(0);
+			if (!u->append_item(crd, hotspot, false, true))
+				Logging::printf("Could not map everything");
 
 			return true;
 		}
@@ -354,7 +397,7 @@ class Vcpu_dispatcher : Genode::Thread_base,
 			CpuMessage msg(is_in, static_cast<CpuState *>(utcb), io_order, port, &utcb->eax, utcb->mtd);
 			_skip_instruction(msg);
 			{
-				SemaphoreGuard l(_lock);
+				Genode::Lock::Guard l(global_lock);
 				if (!_vcpu->executor.send(msg, true))
 					Logging::panic("nobody to execute %s at %x:%x\n", __func__, msg.cpu->cs.sel, msg.cpu->eip);
 			}
@@ -430,7 +473,7 @@ class Vcpu_dispatcher : Genode::Thread_base,
 		static void _portal_entry()
 		{
 			/* obtain this pointer of the event handler */
-			Thread_base *myself = Thread_base::myself();
+			Genode::Thread_base *myself = Genode::Thread_base::myself();
 			Vcpu_dispatcher *vd = static_cast<Vcpu_dispatcher *>(myself);
 
 			/* call event-specific handler function */
@@ -444,73 +487,108 @@ class Vcpu_dispatcher : Genode::Thread_base,
 		 * Register virtualization event handler
 		 */
 		template <unsigned EV, void (Vcpu_dispatcher::*FUNC)()>
-		void _register_handler(Nova::Mtd mtd)
+		void _register_handler(Genode::addr_t exc_base, Nova::Mtd mtd)
 		{
-			/* let the compiler generate an instance of a portal entry */
+			/*
+			 * Let the compiler generate an instance of a portal
+			 * entry
+			 */
 			void (*portal_entry)() = &_portal_entry<EV, FUNC>;
 
-			Nova::create_pt(_ev_pt_sel_base + EV, _pd_sel(),
-			                _tid.ec_sel, mtd, (Nova::mword_t)portal_entry);
+			using namespace Genode;
+
+			/* Create the portal at the desired selector index */
+			Cap_connection conn;
+			conn.rcv_window(exc_base + EV);
+
+			Native_capability thread(tid().ec_sel);
+			Native_capability handler =
+				conn.alloc(thread, (Nova::mword_t)portal_entry,
+				           mtd.value());
+
+			if (!handler.valid() ||
+			    exc_base + EV != handler.local_name())
+				Logging::panic("Could not get EC cap");
 		}
 
 	public:
 
-		Vcpu_dispatcher(VCpu         *vcpu,
-		                Guest_memory &guest_memory,
-		                Motherboard  &motherboard,
-		                bool          has_svm,
-		                unsigned      cpu_number)
+		Vcpu_dispatcher(VCpu                   *vcpu,
+		                Guest_memory           &guest_memory,
+		                Motherboard            &motherboard,
+		                Genode::Cap_connection &cap_session,
+		                bool                   has_svm,
+		                unsigned               cpu_number)
 		:
-			Genode::Thread_base("vcpu_handler", STACK_SIZE),
 			_vcpu(vcpu),
+			_vcpu_thread("vCPU thread"),
 			_guest_memory(guest_memory),
-			_motherboard(motherboard),
-			_ev_pt_sel_base(_alloc_sel(EV_PT_WINDOW_SIZE_LOG2)),
-			_sm_sel(_alloc_sel(1)),
-			_ec_sel(_sm_sel + 1),
-			_sc_sel(_alloc_sel())
+			_motherboard(motherboard)
 		{
+
+			using namespace Genode;
+
+			/* create new pager object and assign it to the new thread */
+			Pager_capability pager_cap =
+				env()->rm_session()->add_client(_thread_cap);
+			if (!pager_cap.valid())
+				throw Cpu_session::Thread_creation_failed();
+
+			if (env()->cpu_session()->set_pager(_thread_cap, pager_cap))
+				throw Cpu_session::Thread_creation_failed();
+
+			addr_t thread_sp = (addr_t)&_context->stack[-4];
+			Genode::Nova_cpu_connection cpu;
+			cpu.start_exc_base_vcpu(_thread_cap, 0, thread_sp,
+			                        _tid.exc_pt_sel);
+
+			request_event_portal(pager_cap, _tid.exc_pt_sel,
+			                     Nova::PT_SEL_PAGE_FAULT);
+			request_event_portal(pager_cap, _tid.exc_pt_sel,
+		    	                 Nova::SM_SEL_EC);
+
+			/**
+			 * Request native thread cap, _thread_cap only a token.
+			 * The native thread cap is required to attach new rpc objects
+			 * (to create portals bound to the ec)
+			 */
+			Native_capability ec_cap = cpu.native_cap(_thread_cap);
+			_tid.ec_sel = ec_cap.local_name();
+
+			/* init utcb of dispatcher thread */
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(&_context->utcb);
+			utcb->set_msg_word(0);
+			utcb->crd_xlt = Nova::Crd(0);
+			utcb->crd_rcv = Nova::Crd(0);
+
 			using namespace Nova;
-
-			/*
-			 * Stack and UTCB of local EC used as VCPU event handler
-			 */
-			mword_t *const sp   = (mword_t * const)_context->stack;
-			mword_t  const utcb = (mword_t) &_context->utcb;
-
-			/*
-			 * XXX: Propagate the specified CPU number. For now, we ignore
-			 *      the 'cpu_number' argument.
-			 */
-
-			/*
-			 * Create local EC used handling virtualization events. This EC has
-			 * is executed with the CPU time donated by the guest OS.
-			 */
-			enum { CPU_NUMBER = 0, GLOBAL_NO = false };
-			if (create_ec(_tid.ec_sel, _pd_sel(),
-			              CPU_NUMBER, utcb, (mword_t)sp,
-			              _tid.exc_pt_sel, GLOBAL_NO))
-				PERR("create_ec failed while creating the handler EC");
-
 
 			/* shortcuts for common message-transfer descriptors */
 			Mtd const mtd_all(Mtd::ALL);
 			Mtd const mtd_cpuid(Mtd::EIP | Mtd::ACDB | Mtd::IRQ);
 			Mtd const mtd_irq(Mtd::IRQ);
 			/*
-			 * Register VCPU SVM event handlers
+			 * Register vCPU event handlers
 			 */
 			typedef Vcpu_dispatcher This;
 			if (has_svm) {
+				Genode::addr_t exc_base =
+					_vcpu_thread.exc_base();
 
-				_register_handler<0x72, &This::_svm_cpuid>   (mtd_cpuid);
-				_register_handler<0x7b, &This::_svm_ioio>    (mtd_all);
-				_register_handler<0x7c, &This::_svm_msr>     (mtd_all);
-				_register_handler<0xfc, &This::_svm_npt>     (mtd_all);
-				_register_handler<0xfd, &This::_svm_invalid> (mtd_all);
-				_register_handler<0xfe, &This::_svm_startup> (mtd_all);
-				_register_handler<0xff, &This::_recall>      (mtd_irq);
+				_register_handler<0x72, &This::_svm_cpuid>
+					(exc_base, mtd_cpuid);
+				_register_handler<0x7b, &This::_svm_ioio>
+					(exc_base, mtd_all);
+				_register_handler<0x7c, &This::_svm_msr>
+					(exc_base, mtd_all);
+				_register_handler<0xfc, &This::_svm_npt>
+					(exc_base, mtd_all);
+				_register_handler<0xfd, &This::_svm_invalid>
+					(exc_base, mtd_all);
+				_register_handler<0xfe, &This::_svm_startup>
+					(exc_base, mtd_all);
+				_register_handler<0xff, &This::_recall>
+					(exc_base, mtd_irq);
 
 			} else {
 
@@ -520,27 +598,8 @@ class Vcpu_dispatcher : Genode::Thread_base,
 				Logging::panic("no SVM available, sorry");
 			}
 
-			/*
-			 * Create semaphore used as mechanism for blocking the VCPU
-			 */
-			if (create_sm(_sm_sel, _pd_sel(), 0))
-				PERR("create_rm returned failed while creating VCPU");
-
-			/*
-			 * Create EC for virtual CPU. The virtual CPU is a global EC
-			 * because it executes on an own budget of CPU time.
-			 */
-			enum { GLOBAL_YES = true, UTCB_VCPU = 0 };
-			if (create_ec(_ec_sel, _pd_sel(), CPU_NUMBER, UTCB_VCPU,
-			              0, _ev_pt_sel_base, GLOBAL_YES))
-				PERR("create_ec failed while creating VCPU");
-
-			/*
-			 * Fuel the VCPU with CPU time by attaching a scheduling context to
-			 * it.
-			 */
-			if (create_sc(_sc_sel, _pd_sel(), _ec_sel, Nova::Qpd()))
-				PERR("create_sc failed while creating VCPU");
+			/* let vCPU run */
+			_vcpu_thread.start();
 
 			/* handle cpuid overrides */
 			vcpu->executor.add(this, receive_static<CpuMessage>);
@@ -549,37 +608,32 @@ class Vcpu_dispatcher : Genode::Thread_base,
 		/**
 		 * Destructor
 		 */
-		~Vcpu_dispatcher()
-		{
-			_free_sel(_ev_pt_sel_base, EV_PT_WINDOW_SIZE_LOG2);
-			_free_sel(_ec_sel, 0);
-			_free_sel(_sc_sel, 0);
-		}
+		~Vcpu_dispatcher() { }
 
 		/**
 		 * Unused member of the 'Thread_base' interface
 		 *
-		 * Similarly to how 'Rpc_entrypoints' are handled, a 'Vcpu_dispatcher'
-		 * comes with a custom initialization procedure, which does not call
-		 * the thread's normal entry function. Instread, the thread's EC gets
-		 * associated with several portals, each for handling a specific
-		 * virtualization event.
+		 * Similarly to how 'Rpc_entrypoints' are handled, a
+		 * 'Vcpu_dispatcher' comes with a custom initialization
+		 * procedure, which does not call the thread's normal entry
+		 * function. Instead, the thread's EC gets associated with
+		 * several portals, each for handling a specific virtualization
+		 * event.
 		 */
 		void entry() { }
 
 		/**
 		 * Return capability selector of the VCPU's SM and EC
 		 *
-		 * The returned number corresponds to the VCPU's semaphore selector.
-		 * The consecutive number corresponds to the EC. The number returned by
-		 * this function is used by the VMM code as a unique identifyer of the
-		 * VCPU. I.e., it gets passed as arguments for 'MessageHostOp'
-		 * operations.
-		 *
-		 * XXX: Couldn't we just use the 'Vcpu_dispatcher' as unique
-		 *      identifier instead?
+		 * The returned number corresponds to the VCPU's semaphore
+		 * selector. The consecutive number corresponds to the EC. The
+		 * number returned by this function is used by the VMM code as
+		 * a unique identifier of the VCPU. I.e., it gets passed as
+		 * arguments for 'MessageHostOp' operations.
 		 */
-		Nova::mword_t sm_ec_sel_base() const { return _sm_sel; }
+		Nova::mword_t sel_sm_ec() {
+			return _vcpu_thread.exc_base() + Nova::SM_SEL_EC;
+		}
 
 
 		/***********************************
@@ -658,15 +712,17 @@ class Machine : public StaticReceiver<Machine>
 			case MessageHostOp::OP_VCPU_CREATE_BACKEND:
 				{
 					Logging::printf("OP_VCPU_CREATE_BACKEND\n");
+
+					static Genode::Cap_connection cap_session;
 					/*
 					 * XXX determine real CPU number, hardcoded CPU 0 for now
 					 */
 					enum { CPU_NUMBER = 0 };
 					Vcpu_dispatcher *vcpu_dispatcher =
-						new Vcpu_dispatcher(msg.vcpu, _guest_memory, _motherboard,
+						new Vcpu_dispatcher(msg.vcpu, _guest_memory, _motherboard, cap_session,
 						                    _hip->has_svm(), CPU_NUMBER);
 
-					msg.value = vcpu_dispatcher->sm_ec_sel_base();
+					msg.value = vcpu_dispatcher->sel_sm_ec();
 					return true;
 				}
 
@@ -686,11 +742,11 @@ class Machine : public StaticReceiver<Machine>
 				{
 					Logging::printf("OP_VCPU_BLOCK\n");
 
-					_lock.up();
+					global_lock.lock();
 					Logging::printf("going to block\n");
 					bool res = (Nova::sm_ctrl(msg.value, Nova::SEMAPHORE_DOWN) == 0);
-					Logging::printf("woke up from vcpu sem, block on _lock\n");
-					_lock.down();
+					Logging::printf("woke up from vcpu sem, block on global_lock\n");
+					global_lock.unlock();
 					return res;
 				}
 
@@ -966,7 +1022,7 @@ class Machine : public StaticReceiver<Machine>
 			MessageLegacy msg2(MessageLegacy::RESET, 0);
 			_motherboard.bus_legacy.send_fifo(msg2);
 
-			_lock.up();
+			global_lock.unlock();
 			Logging::printf("INIT done\n");
 		}
 
@@ -980,10 +1036,6 @@ class Machine : public StaticReceiver<Machine>
 int main(int argc, char **argv)
 {
 	Genode::printf("--- Vancouver VMM started ---\n");
-
-	_lock = Semaphore(Genode::cap_selector_allocator()->alloc());
-	if (Nova::create_sm(_lock.sm(), Genode::cap_selector_allocator()->pd_sel(), 0))
-		PWRN("_lock creation failed");
 
 	static Boot_module_provider
 		boot_modules(Genode::config()->xml_node().sub_node("multiboot"));
