@@ -22,8 +22,6 @@
 #include <nova/syscalls.h>
 #include <nova/util.h>
 
-extern int main_thread_running_semaphore();
-
 namespace Genode {
 
 	__attribute__((noreturn)) inline void sleep_forever()
@@ -31,8 +29,8 @@ namespace Genode {
 		using namespace Nova;
 
 		Thread_base *myself = Thread_base::myself();
-		addr_t sem = myself ? myself->tid().exc_pt_sel + SM_SEL_EC :
-		       main_thread_running_semaphore();
+		addr_t sem = myself ? myself->tid().exc_pt_sel + SM_SEL_EC : SM_SEL_EC;
+
 		while (1) {
 			if (Nova::sm_ctrl(sem, SEMAPHORE_DOWNZERO))
 				nova_die();
