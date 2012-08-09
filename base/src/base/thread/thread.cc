@@ -143,10 +143,8 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 		ds_cap = env_context_area_ram_session()->alloc(ds_size);
 		addr_t attach_addr = ds_addr - Native_config::context_area_virtual_base();
 		env_context_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size);
-
-	} catch (Ram_session::Alloc_failed) {
-		throw Stack_alloc_failed();
 	}
+	catch (Ram_session::Alloc_failed) { throw Stack_alloc_failed(); }
 
 	/*
 	 * Now the thread context is backed by memory, so it is safe to access its

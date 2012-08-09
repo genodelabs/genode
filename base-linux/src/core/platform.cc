@@ -19,6 +19,7 @@
 #include "core_env.h"
 
 /* Linux includes */
+#include <linux_socket.h>
 #include <linux_syscalls.h>
 #include <linux_rpath.h>
 
@@ -60,3 +61,17 @@ void Core_parent::exit(int exit_value)
 {
 	lx_exit_group(exit_value);
 }
+
+
+/*****************************
+ ** Support for IPC library **
+ *****************************/
+
+namespace Genode {
+
+	Native_connection_state server_socket_pair()
+	{
+		return lx_server_socket_pair(Thread_base::myself()->tid().tid);
+	}
+}
+

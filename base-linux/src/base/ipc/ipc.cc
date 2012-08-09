@@ -31,13 +31,10 @@
 #include <base/ipc.h>
 #include <base/thread.h>
 #include <base/blocking.h>
+#include <base/env.h>
+#include <linux_cpu_session/linux_cpu_session.h>
 
 /* Linux includes */
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <errno.h>
-
 #include <linux_socket.h>
 #include <linux_syscalls.h>
 
@@ -219,6 +216,20 @@ void Ipc_server::_reply_wait()
 }
 
 
+namespace Genode {
+
+	/*
+	 * Helper for obtaining a bound and connected socket pair
+	 *
+	 * For core, the implementation is just a wrapper around
+	 * 'lx_server_socket_pair()'. For all other processes, the implementation
+	 * requests the socket pair from the Env::CPU session interface using a
+	 * Linux-specific interface extension.
+	 */
+	Native_connection_state server_socket_pair();
+}
+
+
 Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 :
 	Ipc_istream(rcv_msg),
@@ -238,10 +249,10 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 		throw Ipc_server_multiple_instance();
 	}
 
-	_rcv_cs = lx_server_socket_pair(Thread_base::myself());
-
-	if (thread)
+	if (thread) {
+		_rcv_cs = server_socket_pair();
 		thread->tid().is_ipc_server = true;
+	}
 
 	/* override capability initialization performed by 'Ipc_istream' */
 	*static_cast<Native_capability *>(this) =

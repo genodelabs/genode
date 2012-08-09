@@ -16,6 +16,7 @@
 #include <base/thread.h>
 #include <base/snprintf.h>
 #include <base/sleep.h>
+#include <linux_cpu_session/linux_cpu_session.h>
 
 /* Linux syscall bindings */
 #include <linux_syscalls.h>
@@ -50,7 +51,10 @@ static void thread_start(void *)
 }
 
 
-void Thread_base::_init_platform_thread() { }
+void Thread_base::_init_platform_thread()
+{
+	_thread_cap = env()->cpu_session()->create_thread(_context->name);
+}
 
 
 void Thread_base::_deinit_platform_thread()
@@ -103,14 +107,10 @@ void Thread_base::start()
 	_tid.tid = lx_create_thread(thread_start, thread_sp, this);
 	_tid.pid = lx_getpid();
 
-	/*
-	 * Inform core about the new thread by calling create_thread and encoding
-	 * the thread's PID in the thread-name argument.
-	 */
-	char name_and_pid[Cpu_session::THREAD_NAME_LEN + 2*16];
-	snprintf(name_and_pid, sizeof(name_and_pid), "%s:0x%x:0x%x",
-	         _context->name, _tid.tid, _tid.pid);
-	_thread_cap = env()->cpu_session()->create_thread(name_and_pid);
+	/* inform core about the new thread and process ID of the new thread */
+	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(env()->cpu_session());
+	if (cpu)
+		cpu->thread_id(_thread_cap, _tid.pid, _tid.tid);
 }
 
 

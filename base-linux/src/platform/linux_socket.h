@@ -24,6 +24,13 @@
 #include <base/blocking.h>
 #include <base/snprintf.h>
 
+/* Linux includes */
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <errno.h>
+
+/* Genode bindings to Linux kernel */
 #include <linux_rpath.h>
 #include <linux_syscalls.h>
 
@@ -342,7 +349,7 @@ class Connect_failed       { };
  * \throw Bind_failed
  * \throw Connect_failed
  */
-static Genode::Native_connection_state lx_server_socket_pair(Genode::Thread_base *thread)
+static inline Genode::Native_connection_state lx_server_socket_pair(long thread_id)
 {
 	Genode::Native_connection_state ncs;
 
@@ -350,10 +357,10 @@ static Genode::Native_connection_state lx_server_socket_pair(Genode::Thread_base
 	 * Main thread uses 'Ipc_server' for 'sleep_forever()' only. No need for
 	 * binding.
 	 */
-	if (!thread)
+	if (thread_id == -1)
 		return ncs;
 
-	Uds_addr addr(thread->tid().tid);
+	Uds_addr addr(thread_id);
 
 	/*
 	 * Create server-side socket
@@ -391,6 +398,12 @@ static Genode::Native_connection_state lx_server_socket_pair(Genode::Thread_base
 	int const tid = lookup_tid_by_client_socket(ncs.client_sd);
 	Genode::ep_sd_registry()->associate(ncs.client_sd, tid);
 
+	/*
+	 * Wipe Unix domain socket from the file system. It will live as long as
+	 * there exist references to it in the form of file descriptors.
+	 */
+	lx_unlink(addr.sun_path);
+
 	return ncs;
 }
 
@@ -398,9 +411,9 @@ static Genode::Native_connection_state lx_server_socket_pair(Genode::Thread_base
 /**
  * Utility: Send request to server and wait for reply
  */
-static void lx_call(int dst_sd,
-                    Genode::Msgbuf_base &send_msgbuf, size_t send_msg_len,
-                    Genode::Msgbuf_base &recv_msgbuf)
+static inline void lx_call(int dst_sd,
+                           Genode::Msgbuf_base &send_msgbuf, size_t send_msg_len,
+                           Genode::Msgbuf_base &recv_msgbuf)
 {
 	int ret;
 	Message send_msg(send_msgbuf.buf, send_msg_len);
@@ -426,7 +439,8 @@ static void lx_call(int dst_sd,
 
 	ret = lx_sendmsg(dst_sd, send_msg.msg(), 0);
 	if (ret < 0) {
-		PRAW("lx_sendmsg failed with %d in lx_call()", ret);
+		PRAW("[%d] lx_sendmsg to sd %d failed with %d in lx_call()",
+		     lx_getpid(), dst_sd, ret);
 		throw Genode::Ipc_error();
 	}
 
@@ -437,7 +451,7 @@ static void lx_call(int dst_sd,
 
 	ret = lx_recvmsg(reply_channel[LOCAL_SOCKET], recv_msg.msg(), 0);
 	if (ret < 0) {
-		PRAW("lx_recvmsg failed with %d in lx_call()", ret);
+		PRAW("[%d] lx_recvmsg failed with %d in lx_call()", lx_getpid(), ret);
 		throw Genode::Ipc_error();
 	}
 
@@ -454,8 +468,8 @@ static void lx_call(int dst_sd,
  *
  * \return  socket descriptor of reply capability
  */
-static int lx_wait(Genode::Native_connection_state &cs,
-                   Genode::Msgbuf_base &recv_msgbuf)
+static inline int lx_wait(Genode::Native_connection_state &cs,
+                          Genode::Msgbuf_base &recv_msgbuf)
 {
 	Message msg(recv_msgbuf.buf, recv_msgbuf.size());
 
@@ -478,9 +492,9 @@ static int lx_wait(Genode::Native_connection_state &cs,
 /**
  * Utility: Send reply to client
  */
-static void lx_reply(int reply_socket,
-                     Genode::Msgbuf_base &send_msgbuf,
-                     size_t msg_len)
+static inline void lx_reply(int reply_socket,
+                            Genode::Msgbuf_base &send_msgbuf,
+                            size_t msg_len)
 {
 	Message msg(send_msgbuf.buf, msg_len);
 

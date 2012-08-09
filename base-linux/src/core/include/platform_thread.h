@@ -29,6 +29,11 @@ namespace Genode {
 			unsigned long _pid;
 			char          _name[32];
 
+			/**
+			 * Unix-domain socket pair bound to the thread
+			 */
+			Native_connection_state _ncs;
+
 		public:
 
 			/**
@@ -60,6 +65,24 @@ namespace Genode {
 			int           state(Thread_state *state_dst) { return 0; }
 			const char   *name() { return _name; }
 			void          affinity(unsigned) { }
+
+			/**
+			 * Register process ID and thread ID of thread
+			 */
+			void thread_id(int pid, int tid) { _pid = pid, _tid = tid; }
+
+			/**
+			 * Return client-side socket descriptor
+			 *
+			 * For more information, please refer to the comments in
+			 * 'linux_cpu_session/linux_cpu_session.h'.
+			 */
+			int client_sd();
+
+			/**
+			 * Return server-side socket descriptor
+			 */
+			int server_sd();
 	};
 }
 
