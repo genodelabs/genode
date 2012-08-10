@@ -20,7 +20,7 @@
 #include <pd_session_component.h>
 
 /* Linux includes */
-#include <linux_syscalls.h>
+#include <core_linux_syscalls.h>
 
 using namespace Genode;
 

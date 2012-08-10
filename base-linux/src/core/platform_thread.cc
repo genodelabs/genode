@@ -18,10 +18,7 @@
 
 /* local includes */
 #include "platform_thread.h"
-
-/* Linux syscall helper */
-#include <linux_syscalls.h>
-#include <linux_socket.h>
+#include "server_socket_pair.h"
 
 using namespace Genode;
 
@@ -59,7 +56,7 @@ int Platform_thread::client_sd()
 {
 	/* construct socket pair on first call */
 	if (_ncs.client_sd == -1)
-		_ncs = lx_server_socket_pair(_tid);
+		_ncs = create_server_socket_pair(_tid);
 
 	return _ncs.client_sd;
 }

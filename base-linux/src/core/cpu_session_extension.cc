@@ -8,7 +8,7 @@
 #include <cpu_session_component.h>
 
 /* Linux includes */
-#include <linux_socket.h>
+#include <core_linux_syscalls.h>
 
 using namespace Genode;
 

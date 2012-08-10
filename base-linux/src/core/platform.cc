@@ -17,11 +17,10 @@
 /* local includes */
 #include "platform.h"
 #include "core_env.h"
+#include "server_socket_pair.h"
 
 /* Linux includes */
-#include <linux_socket.h>
-#include <linux_syscalls.h>
-#include <linux_rpath.h>
+#include <core_linux_syscalls.h>
 
 
 using namespace Genode;
@@ -44,7 +43,7 @@ Platform::Platform()
 	lx_sigaction(2, signal_handler);
 
 	/* create resource directory under /tmp */
-	lx_mkdir(lx_rpath(), S_IRWXU);
+	lx_mkdir(resource_path(), S_IRWXU);
 
 	_ram_alloc.add_range((addr_t)_some_mem, sizeof(_some_mem));
 }
@@ -56,6 +55,7 @@ void Platform::wait_for_exit()
 	try { _wait_for_exit_lock.lock(); }
 	catch (Blocking_canceled) { };
 }
+
 
 void Core_parent::exit(int exit_value)
 {
@@ -71,7 +71,7 @@ namespace Genode {
 
 	Native_connection_state server_socket_pair()
 	{
-		return lx_server_socket_pair(Thread_base::myself()->tid().tid);
+		return create_server_socket_pair(Thread_base::myself()->tid().tid);
 	}
 }
 

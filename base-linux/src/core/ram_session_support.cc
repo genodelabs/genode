@@ -18,11 +18,11 @@
 #include <base/snprintf.h>
 
 /* local includes */
-#include "ram_session_component.h"
+#include <ram_session_component.h>
+#include <resource_path.h>
 
 /* Linux syscall bindings */
-#include <linux_syscalls.h>
-#include <linux_rpath.h>
+#include <core_linux_syscalls.h>
 
 
 using namespace Genode;
@@ -34,8 +34,8 @@ void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
 {
 	char fname[Linux_dataspace::FNAME_LEN];
 
-	/* create file using a unique file name in 'lx_rpath' */
-	snprintf(fname, sizeof(fname), "%s/ds-%d", lx_rpath(), ram_ds_cnt++);
+	/* create file using a unique file name in the resource path */
+	snprintf(fname, sizeof(fname), "%s/ds-%d", resource_path(), ram_ds_cnt++);
 	lx_unlink(fname);
 	int const fd = lx_open(fname, O_CREAT|O_RDWR|O_TRUNC|LX_O_CLOEXEC, S_IRWXU);
 	lx_ftruncate(fd, ds->size());

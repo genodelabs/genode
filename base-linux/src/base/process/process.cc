@@ -63,7 +63,7 @@ extern char **lx_environ;
  */
 static const char *get_env(const char *key)
 {
-	Genode::size_t key_len = strlen(key);
+	Genode::size_t key_len = Genode::strlen(key);
 	for (char **curr = lx_environ; curr && *curr; curr++)
 		if ((Genode::strcmp(*curr, key, key_len) == 0) && (*curr)[key_len] == '=')
 			return (const char *)(*curr + key_len + 1);

@@ -1,5 +1,5 @@
 /*
- * \brief  Linux system-call wrappers
+ * \brief  Linux system-call bindings
  * \author Norman Feske
  * \date   2008-10-22
  *
@@ -7,8 +7,8 @@
  * interface.
  *
  * From within the framework libraries, we have to use the Linux syscall
- * interface directly rather than relying on convenient libC functions to be
- * able to link this part of the framework to a custom libC. Otherwise, we
+ * interface directly rather than relying on convenient libc functions to be
+ * able to link this part of the framework to a custom libc. Otherwise, we
  * would end up with very nasty cyclic dependencies when using framework
  * functions such as IPC from the libC back end.
  *
@@ -36,13 +36,32 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sched.h>
-#include <sys/stat.h>
 #include <sys/syscall.h>
-#include <sys/fcntl.h>
 
 /* Genode includes */
 #include <util/string.h>
+#include <base/printf.h>
 
+
+/***********************************
+ ** Low-level debugging utilities **
+ ***********************************/
+
+extern "C" void wait_for_continue(void);
+extern "C" int raw_write_str(const char *str);
+
+#define PRAW(fmt, ...)                                             \
+	do {                                                           \
+		char str[128];                                             \
+		Genode::snprintf(str, sizeof(str),                         \
+		                 ESC_ERR fmt ESC_END "\n", ##__VA_ARGS__); \
+		raw_write_str(str);                                        \
+	} while (0)
+
+
+/*********************************************************
+ ** System-call bindings implemented in syscall library **
+ *********************************************************/
 
 extern "C" long lx_syscall(int number, ...);
 extern "C" int  lx_clone(int (*fn)(void *), void *child_stack,
@@ -65,21 +84,9 @@ inline int lx_close(int fd)
 }
 
 
-inline int lx_dup(int fd)
-{
-	return lx_syscall(SYS_dup, fd);
-}
-
-
 inline int lx_dup2(int fd, int to)
 {
 	return lx_syscall(SYS_dup2, fd, to);
-}
-
-
-inline int lx_unlink(const char *fname)
-{
-	return lx_syscall(SYS_unlink, fname);
 }
 
 
@@ -97,34 +104,10 @@ inline int lx_socketcall(int call, unsigned long *args)
 	return res;
 }
 
-
-inline int lx_socket(int domain, int type, int protocol)
-{
-	unsigned long args[3] = { domain, type, protocol };
-	return lx_socketcall(SYS_SOCKET, args);
-}
-
-
 inline int lx_socketpair(int domain, int type, int protocol, int sd[2])
 {
 	unsigned long args[4] = { domain, type, protocol, (unsigned long)sd };
 	return lx_socketcall(SYS_SOCKETPAIR, args);
-}
-
-
-inline int lx_bind(int sockfd, const struct sockaddr *addr,
-                   socklen_t addrlen)
-{
-	unsigned long args[3] = { sockfd, (unsigned long)addr, addrlen };
-	return lx_socketcall(SYS_BIND, args);
-}
-
-
-inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
-                      socklen_t addrlen)
-{
-	unsigned long args[3] = { sockfd, (unsigned long)serv_addr, addrlen };
-	return lx_socketcall(SYS_CONNECT, args);
 }
 
 
@@ -149,25 +132,6 @@ inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
 }
 
 #else
-
-inline int lx_socket(int domain, int type, int protocol)
-{
-	return lx_syscall(SYS_socket, domain, type, protocol);
-}
-
-inline int lx_bind(int sockfd, const struct sockaddr *addr,
-                   socklen_t addrlen)
-{
-	return lx_syscall(SYS_bind, sockfd, addr, addrlen);
-}
-
-
-inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
-                      socklen_t addrlen)
-{
-	return lx_syscall(SYS_connect, sockfd, serv_addr, addrlen);
-}
-
 
 inline int lx_getpeername(int s, struct sockaddr *name, socklen_t *namelen)
 {
@@ -208,12 +172,6 @@ inline void lx_exit_group(int status)
 
 /* O_CLOEXEC is a GNU extension so we provide it here */
 enum { LX_O_CLOEXEC = 02000000 };
-
-inline int lx_open(const char *pathname, int flags, mode_t mode = 0)
-{
-	return lx_syscall(SYS_open, pathname, flags, mode);
-}
-
 
 inline void *lx_mmap(void *start, Genode::size_t length, int prot, int flags,
                      int fd, off_t offset)
@@ -259,36 +217,6 @@ inline Genode::addr_t lx_vm_reserve(Genode::addr_t base, Genode::size_t size)
 		return ((Genode::addr_t)res == base) ? base : ~0;
 	else
 		return (Genode::addr_t)res;
-}
-
-
-/*******************************************************
- ** Functions used by core's ram-session support code **
- *******************************************************/
-
-inline int lx_mkdir(char const *pathname, mode_t mode)
-{
-	return lx_syscall(SYS_mkdir, pathname, mode);
-}
-
-
-inline int lx_ftruncate(int fd, unsigned long length)
-{
-	return lx_syscall(SYS_ftruncate, fd, length);
-}
-
-
-/*******************************************************
- ** Functions used by core's rom-session support code **
- *******************************************************/
-
-inline int lx_stat(const char *path, struct stat64 *buf)
-{
-#ifdef _LP64
-	return lx_syscall(SYS_stat, path, buf);
-#else
-	return lx_syscall(SYS_stat64, path, buf);
-#endif
 }
 
 
@@ -351,17 +279,6 @@ inline int lx_sigaction(int signum, void (*handler)(int))
 	lx_sigemptyset(&act.mask);
 
 	return lx_syscall(SYS_rt_sigaction, signum, &act, 0UL, _NSIG/8);
-}
-
-
-/**
- * Send signal to process
- *
- * This function is used by core to kill processes.
- */
-inline int lx_kill(int pid, int signal)
-{
-	return lx_syscall(SYS_kill, pid, signal);
 }
 
 
@@ -482,5 +399,6 @@ inline bool lx_sigsetmask(int signum, bool state)
 	lx_syscall(SYS_rt_sigprocmask, state ? SIG_UNBLOCK : SIG_BLOCK, &sigset, &old_sigmask, _NSIG/8);
 	return old_sigmask.is_set(signum);
 }
+
 
 #endif /* _PLATFORM__LINUX_SYSCALLS_H_ */

@@ -16,7 +16,8 @@
  */
 
 /* Linux includes */
-#include <linux_syscalls.h>
+#include <core_linux_syscalls.h>
+#include <sys/fcntl.h>
 
 /* Genode includes */
 #include <linux_dataspace/linux_dataspace.h>
