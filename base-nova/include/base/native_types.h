@@ -70,6 +70,7 @@ namespace Genode {
 	class Native_capability
 	{
 		public:
+
 			typedef Nova::Obj_crd Dst;
 
 			struct Raw
@@ -83,6 +84,7 @@ namespace Genode {
 			};
 
 		private:
+
 			struct _Raw
 			{
 				Dst    dst;
@@ -98,6 +100,7 @@ namespace Genode {
 			addr_t _rcv_window;
 
 			enum { INVALID_INDEX = ~0UL };
+
 		protected:
 
 			explicit
@@ -106,17 +109,26 @@ namespace Genode {
 			  _rcv_window(INVALID_INDEX) {}
 
 		public:
+
 			/**
 			 * Constructors
 			 */
+
 			Native_capability()
-			: _cap(), _trans_map(true), _ptr(0),
-			  _rcv_window(INVALID_INDEX) {}
+			: _cap(), _trans_map(true), _ptr(0), _rcv_window(INVALID_INDEX) {}
 
 			explicit
 			Native_capability(addr_t sel, unsigned rights = 0x1f)
-			: _cap(sel, rights), _trans_map(true), _ptr(0),
-			  _rcv_window(INVALID_INDEX) {}
+			{
+				if (sel == INVALID_INDEX)
+					_cap = _Raw();
+				else
+					_cap = _Raw(sel, rights);
+
+				_trans_map = true;
+				_ptr = 0;
+			  	_rcv_window = INVALID_INDEX;
+			}
 
 			Native_capability(const Native_capability &o)
 			: _cap(o._cap), _trans_map(o._trans_map), _ptr(o._ptr),
@@ -142,11 +154,7 @@ namespace Genode {
 			 * Check whether the selector of the Native_cap and 
 			 * the capability type is valid.
 			 */
-			bool valid() const
-			{
-				return !_cap.dst.is_null() &&
-				       _cap.dst.base() != INVALID_INDEX;
-			}
+			bool valid() const { return !_cap.dst.is_null(); }
 
 			Dst dst()   const { return _cap.dst; }
 
@@ -191,7 +199,7 @@ namespace Genode {
 			 */
 			static Native_capability invalid_cap()
 			{
-				return Native_capability(INVALID_INDEX);
+				return Native_capability();
 			}
 
 			/**
