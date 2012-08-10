@@ -22,12 +22,6 @@
 if {[have_spec linux]} {
 	puts "Run script does not support Linux."; exit 0 }
 
-#
-# XXX: Currently, we have no NIC driver for 64-bit
-#
-if {[have_spec 64bit]} {
-	puts "Run script does not support 64-bit platforms."; exit 0 }
-
 requires_installation_of lynx
 
 #
@@ -65,7 +59,7 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="512K"/>
+		<resource name="RAM" quantum="568K"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
