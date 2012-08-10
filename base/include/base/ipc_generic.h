@@ -421,6 +421,14 @@ namespace Genode {
 			 */
 			void _call();
 
+			/**
+			 * Set return value if call to server failed
+			 */
+			void ret(int retval)
+			{
+				*reinterpret_cast<int *>(&_rcvbuf[sizeof(umword_t)]) = retval;
+			}
+
 		public:
 
 			/**

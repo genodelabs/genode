@@ -144,10 +144,11 @@ void Ipc_client::_call()
 
 	/* establish the mapping via a portal traversal */
 	uint8_t res = Nova::call(Ipc_ostream::_dst.local_name());
-	if (res) {
+	if (res != Nova::NOVA_OK) {
 		/* If an error occurred, reset word&item count (not done by kernel). */
 		utcb->set_msg_word(0);
-		PERR("call returned %u", res);
+		/* set return value for ipc_generic part if call failed */
+		ret(ERR_INVALID_OBJECT);
 	}
 
 	_rcv_msg->post_ipc(utcb);
