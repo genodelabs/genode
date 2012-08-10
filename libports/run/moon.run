@@ -15,6 +15,7 @@ install_config {
 		<service name="LOG"/>
 		<service name="IO_PORT"/>
 		<service name="IRQ"/>
+		<service name="CPU"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
