@@ -39,6 +39,7 @@ namespace Genode {
 			size_t         _size;               /* size of dataspace in bytes */
 			addr_t         _addr;               /* meaningless on linux       */
 			Filename       _fname;              /* filename for mmap          */
+			int            _fd;                 /* file descriptor            */
 			bool           _writable;           /* false if read-only         */
 
 			/* Holds the dataspace owner if a distinction between owner and
@@ -53,14 +54,14 @@ namespace Genode {
 			Dataspace_component(size_t size, addr_t addr,
 			                    bool /* write_combined */, bool writable,
 			                    Dataspace_owner * owner)
-			: _size(size), _addr(addr), _writable(writable),
+			: _size(size), _addr(addr), _fd(-1), _writable(writable),
 			  _owner(owner) { }
 
 			/**
 			 * Default constructor returns invalid dataspace
 			 */
-			Dataspace_component() : _size(0), _addr(0), _writable(false),
-			                        _owner(0) { }
+			Dataspace_component()
+			: _size(0), _addr(0), _fd(-1), _writable(false), _owner(0) { }
 
 			/**
 			 * This constructor is only provided for compatibility
@@ -69,19 +70,28 @@ namespace Genode {
 			Dataspace_component(size_t size, addr_t core_local_addr,
 			                    addr_t phys_addr, bool write_combined,
 			                    bool writable, Dataspace_owner * _owner)
-				: _size(size), _addr(phys_addr), _owner(_owner)
+			:
+				_size(size), _addr(phys_addr), _fd(-1), _owner(_owner)
 			{
 				PWRN("Should only be used for IOMEM and not within Linux.");
+				_fname.buf[0] = 0;
 			}
 
 			/**
-			 * Define/request corresponding filename of dataspace
+			 * Define corresponding filename of dataspace
 			 *
-			 * To use dataspaces as shared memory objects on Linux, we have to
-			 * assign a file to each dataspace. This way, multiple Linux process
-			 * can mmap this file.
+			 * The file name is only relevant for ROM dataspaces that should
+			 * be executed via execve.
 			 */
 			void fname(const char *fname) { strncpy(_fname.buf, fname, sizeof(_fname.buf)); }
+
+			/**
+			 * Assign file descriptor to dataspace
+			 *
+			 * The file descriptor assigned to the dataspace will be enable
+			 * processes outside of core to mmap the dataspace.
+			 */
+			void fd(int fd) { _fd = fd; }
 
 			/**
 			 * Check if dataspace is owned by a specified object
@@ -102,6 +112,13 @@ namespace Genode {
 			 ****************************************/
 
 			Filename fname() { return _fname; }
+
+			Untyped_capability fd()
+			{
+				typedef Untyped_capability::Dst Dst;
+				enum { DUMMY_LOCAL_NAME = 0 };
+				return Untyped_capability(Dst(_fd), DUMMY_LOCAL_NAME);
+			}
 	};
 }
 

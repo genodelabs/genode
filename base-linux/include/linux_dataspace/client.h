@@ -40,7 +40,8 @@ namespace Genode {
 		 ** Linux-specific dataspace interface **
 		 ****************************************/
 
-		Filename fname() { return call<Rpc_fname>(); }
+		Filename           fname() { return call<Rpc_fname>(); }
+		Untyped_capability fd()    { return call<Rpc_fd>(); }
 	};
 }
 

@@ -46,29 +46,30 @@ static void *map_local(Dataspace_capability ds, Genode::size_t size,
                        addr_t offset, bool use_local_addr, addr_t local_addr,
                        bool executable)
 {
-	Linux_dataspace::Filename fname = Linux_dataspace_client(ds).fname();
-	fname.buf[sizeof(fname.buf) - 1] = 0;
+	int  const  fd        = Linux_dataspace_client(ds).fd().dst().socket;
+	bool const  writable  = Dataspace_client(ds).writable();
 
-	bool writable = Dataspace_client(ds).writable();
-	int fd = lx_open(fname.buf, (writable ? O_RDWR : O_RDONLY) | LX_O_CLOEXEC);
-	if (fd < 0) {
-		PERR("map_local: Could not open file \"%s\"", fname.buf);
-		throw Rm_session::Invalid_dataspace();
-	}
+	int  const  flags     = MAP_SHARED | (use_local_addr ? MAP_FIXED : 0);
+	int  const  prot      = PROT_READ
+	                      | (writable   ? PROT_WRITE : 0)
+	                      | (executable ? PROT_EXEC  : 0);
+	void * const addr_in  = use_local_addr ? (void*)local_addr : 0;
+	void * const addr_out = lx_mmap(addr_in, size, prot, flags, fd, offset);
 
-	int   flags = MAP_SHARED | (use_local_addr ? MAP_FIXED : 0);
-	int   prot  = PROT_READ | (writable ? PROT_WRITE : 0) | (executable ? PROT_EXEC : 0);
-	void *addr  = lx_mmap(use_local_addr ? (void*)local_addr : 0, size,
-	                      prot, flags, fd, offset);
-
+	/*
+	 * We can close the file after calling mmap. The Linux kernel will still
+	 * keep the file mapped. By immediately closing the file descriptor, we
+	 * won't need to keep track of dataspace file descriptors within the
+	 * process.
+	 */
 	lx_close(fd);
 
-	if (((long)addr < 0) && ((long)addr > -4095)) {
-		PERR("map_local: return value of mmap is %ld", (long)addr);
+	if (((long)addr_out < 0) && ((long)addr_out > -4095)) {
+		PERR("map_local: return value of mmap is %ld", (long)addr_out);
 		throw Rm_session::Region_conflict();
 	}
 
-	return addr;
+	return addr_out;
 }
 
 

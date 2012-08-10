@@ -38,6 +38,7 @@
 #include <sched.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/fcntl.h>
 
 /* Genode includes */
 #include <util/string.h>

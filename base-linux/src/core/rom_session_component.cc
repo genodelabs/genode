@@ -45,15 +45,15 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 : _ds_ep(ds_ep)
 {
 	/* extract filename from session arguments */
-	char fname_buf[Linux_dataspace::FNAME_LEN];
-	Arg_string::find_arg(args, "filename").string(fname_buf, sizeof(fname_buf), "");
+	char fname[Linux_dataspace::FNAME_LEN];
+	Arg_string::find_arg(args, "filename").string(fname, sizeof(fname), "");
 
 	/* only files inside the current working directory are allowed */
-	for (const char *c = fname_buf; *c; c++)
+	for (const char *c = fname; *c; c++)
 		if (*c == '/')
 			throw Root::Invalid_args();
 
-	Genode::size_t fsize = file_size(fname_buf);
+	Genode::size_t const fsize = file_size(fname);
 
 	/* use invalid capability as default value */
 	_ds_cap = Rom_dataspace_capability();
@@ -62,8 +62,11 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 	if (fsize == 0)
 		throw Root::Invalid_args();
 
+	int const fd = lx_open(fname, O_RDONLY | LX_O_CLOEXEC, S_IRUSR | S_IXUSR);
+
 	_ds = Dataspace_component(fsize, 0, false, false, 0);
-	_ds.fname(fname_buf);
+	_ds.fd(fd);
+	_ds.fname(fname);
 
 	Dataspace_capability ds_cap = _ds_ep->manage(&_ds);
 	_ds_cap = static_cap_cast<Rom_dataspace>(ds_cap);
@@ -73,4 +76,8 @@ Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
 Rom_session_component::~Rom_session_component()
 {
 	_ds_ep->dissolve(&_ds);
+
+	int const fd = _ds.fd().dst().socket;
+	if (fd != -1)
+		lx_close(fd);
 }

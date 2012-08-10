@@ -32,24 +32,32 @@ static int ram_ds_cnt = 0;  /* counter for creating unique dataspace IDs */
 
 void Ram_session_component::_export_ram_ds(Dataspace_component *ds)
 {
-	char fname_buf[Linux_dataspace::FNAME_LEN];
+	char fname[Linux_dataspace::FNAME_LEN];
 
-	/* assign filename to dataspace */
-	snprintf(fname_buf, sizeof(fname_buf), "%s/ds-%d", lx_rpath(), ram_ds_cnt++);
-
-	ds->fname(fname_buf);
-
-	/* create new file representing the dataspace */
-	lx_unlink(fname_buf);
-	int fd = lx_open(fname_buf, O_CREAT | O_RDWR | O_TRUNC | LX_O_CLOEXEC, S_IRWXU);
+	/* create file using a unique file name in 'lx_rpath' */
+	snprintf(fname, sizeof(fname), "%s/ds-%d", lx_rpath(), ram_ds_cnt++);
+	lx_unlink(fname);
+	int const fd = lx_open(fname, O_CREAT|O_RDWR|O_TRUNC|LX_O_CLOEXEC, S_IRWXU);
 	lx_ftruncate(fd, ds->size());
-	lx_close(fd);
+
+	/* remember file descriptor in dataspace component object */
+	ds->fd(fd);
+
+	/*
+	 * Wipe the file from the Linux file system. The kernel will still keep the
+	 * then unnamed file around until the last reference to the file will be
+	 * gone (i.e., an open file descriptor referring to the file). A process
+	 * w/o the right file descriptor won't be able to open and access the file.
+	 */
+	lx_unlink(fname);
 }
 
 
 void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
 {
-	lx_unlink(ds->fname().buf);
+	int const fd = ds->fd().dst().socket;
+	if (fd != -1)
+		lx_close(fd);
 }
 
 
