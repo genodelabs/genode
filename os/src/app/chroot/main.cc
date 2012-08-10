@@ -145,9 +145,8 @@ int main(int, char **argv)
 {
 	using namespace Genode;
 
-	static char     chroot_path[MAX_PATH_LEN];
-	static char        cwd_path[MAX_PATH_LEN];
-	static char genode_tmp_path[MAX_PATH_LEN];
+	static char chroot_path[MAX_PATH_LEN];
+	static char    cwd_path[MAX_PATH_LEN];
 
 	/*
 	 * Read configuration
@@ -167,16 +166,12 @@ int main(int, char **argv)
 
 	getcwd(cwd_path, sizeof(cwd_path));
 
-	uid_t const uid = getuid();
-	snprintf(genode_tmp_path, sizeof(genode_tmp_path), "/tmp/genode-%d", uid);
-
 	/*
 	 * Print diagnostic information
 	 */
 	if (verbose) {
-		PINF("work directory:  %s", cwd_path);
-		PINF("chroot path:     %s", chroot_path);
-		PINF("genode tmp path: %s", genode_tmp_path);
+		PINF("work directory: %s", cwd_path);
+		PINF("chroot path:    %s", chroot_path);
 	}
 
 	/*
@@ -197,7 +192,6 @@ int main(int, char **argv)
 	 * environment.
 	 */
 	mirror_path_to_chroot(chroot_path, cwd_path);
-	mirror_path_to_chroot(chroot_path, genode_tmp_path);
 
 	printf("changing root to %s ...\n", chroot_path);
 
