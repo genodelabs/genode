@@ -6,10 +6,14 @@
 #
 
 #
-# Only Genode/Fiasco.OC supports all the tested features at this time
+# Only Genode/Fiasco.OC and Genode/NOVA supports all the tested features
+# at this time
 #
 
-assert_spec foc
+if {![have_spec foc] && ![have_spec nova]} {
+	 puts "Run script requires foc or nova"; exit 0
+}
+
 
 #
 # Build
