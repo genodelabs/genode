@@ -24,7 +24,7 @@ static Genode::size_t dataspace_size(Dataspace_capability ds)
 	if (ds.valid())
 		return Dataspace_client(ds).size();
 
-	return Local_interface::deref(ds)->size();
+	return Dataspace_capability::deref(ds)->size();
 }
 
 
@@ -33,12 +33,7 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 	if (ds.valid())
 		return false;
 
-	try {
-		Local_interface::deref(ds); }
-	catch (Local_interface::Non_local_capability) {
-		return false; }
-
-	return true;
+	return Dataspace_capability::deref(ds) != 0;
 }
 
 
@@ -161,7 +156,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 
 		if (is_sub_rm_session(ds)) {
 
-			Dataspace *ds_if = Local_interface::deref<Dataspace>(ds);
+			Dataspace *ds_if = Dataspace_capability::deref(ds);
 
 			Rm_session_mmap *rm = dynamic_cast<Rm_session_mmap *>(ds_if);
 
@@ -279,7 +274,7 @@ void Platform_env::Rm_session_mmap::detach(Rm_session::Local_addr local_addr)
 	 */
 	if (is_sub_rm_session(region.dataspace())) {
 
-		Dataspace *ds_if = Local_interface::deref<Dataspace>(region.dataspace());
+		Dataspace *ds_if = Dataspace_capability::deref(region.dataspace());
 		Rm_session_mmap *rm = dynamic_cast<Rm_session_mmap *>(ds_if);
 		if (rm)
 			rm->_base = 0;

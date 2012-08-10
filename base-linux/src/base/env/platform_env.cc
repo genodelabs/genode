@@ -38,7 +38,7 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 		Rm_session_mmap *rm = new (env()->heap())
 		                      Rm_session_mmap(true, size);
 
-		return Local_interface::capability(rm);
+		return Session_capability::local_cap(rm);
 	}
 
 	return Parent_client::session(service_name, args);
@@ -58,13 +58,9 @@ void Platform_env::Local_parent::close(Session_capability session)
 	/*
 	 * Detect capability to local RM session
 	 */
-	try {
-		Capability<Rm_session_mmap> rm =
-			static_cap_cast<Rm_session_mmap>(session);
+	Capability<Rm_session_mmap> rm = static_cap_cast<Rm_session_mmap>(session);
 
-		destroy(env()->heap(), Local_interface::deref(rm));
-
-	} catch (Local_interface::Non_local_capability) { }
+	destroy(env()->heap(), Capability<Rm_session_mmap>::deref(rm));
 }
 
 

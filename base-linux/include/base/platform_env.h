@@ -23,7 +23,6 @@
 #include <base/env.h>
 #include <base/printf.h>
 #include <util/misc_math.h>
-#include <base/local_interface.h>
 #include <base/heap.h>
 #include <parent/client.h>
 #include <ram_session/client.h>
@@ -149,12 +148,10 @@ namespace Genode {
 
 
 			/*
-			 * On Linux, we use a local region manager session
-			 * that attaches dataspaces via mmap to the local
-			 * address space.
+			 * On Linux, we use a local region manager session that attaches
+			 * dataspaces via mmap to the local address space.
 			 */
-			class Rm_session_mmap : public Local_interface,
-			                        public Rm_session,
+			class Rm_session_mmap : public Rm_session,
 			                        public Dataspace
 			{
 				private:
@@ -239,7 +236,7 @@ namespace Genode {
 					 */
 					Dataspace_capability dataspace()
 					{
-						return Local_interface::capability(this);
+						return Dataspace_capability::local_cap(this);
 					}
 			};
 
