@@ -180,6 +180,7 @@ struct Plugin : Libc::Plugin
 	int connect(Libc::File_descriptor *sockfdo,
 	            const struct sockaddr *addr,
 	            socklen_t addrlen);
+	int fcntl(Libc::File_descriptor *sockfdo, int cmd, long val);
 	void freeaddrinfo(struct ::addrinfo *res);
 	int getaddrinfo(const char *node, const char *service,
 	                const struct ::addrinfo *hints,
@@ -309,6 +310,25 @@ int Plugin::connect(Libc::File_descriptor *sockfdo,
                          socklen_t addrlen)
 {
 	return lwip_connect(get_lwip_fd(sockfdo), (struct lwip_sockaddr*)addr, addrlen);
+}
+
+
+int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
+{
+	int s = get_lwip_fd(sockfdo);
+	int result = -1;
+
+	switch (cmd) {
+	case F_GETFL:
+	case F_SETFL:
+		result = lwip_fcntl(s, cmd, val);
+		break;
+	default:
+		PERR("unsupported fcntl() request");
+		break;
+	}
+
+	return result;
 }
 
 
