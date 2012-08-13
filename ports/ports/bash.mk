@@ -17,5 +17,5 @@ $(DOWNLOAD_DIR)/$(BASH_TGZ):
 
 $(CONTRIB_DIR)/$(BASH): $(DOWNLOAD_DIR)/$(BASH_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
-	$(VERBOSE)patch -N -p0 < src/noux-pkg/bash/build.patch
+	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(BASH) -N -p1 < src/noux-pkg/bash/build.patch
 

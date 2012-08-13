@@ -1,6 +1,6 @@
-diff -ru bash-4.1/builtins/Makefile.in _bash-4.1/builtins/Makefile.in
---- contrib/bash-4.1/builtins/Makefile.in	2009-05-30 06:34:30.000000000 +0200
-+++ contrib/bash-4.1/builtins/Makefile.in	2011-02-02 22:03:49.000000000 +0100
+diff --git a/builtins/Makefile.in b/builtins/Makefile.in
+--- a/builtins/Makefile.in
++++ b/builtins/Makefile.in
 @@ -68,7 +68,7 @@
  LDFLAGS_FOR_BUILD = @LDFLAGS_FOR_BUILD@ $(LOCAL_LDFLAGS) $(CFLAGS_FOR_BUILD)
  LOCAL_LDFLAGS = @LOCAL_LDFLAGS@
@@ -10,9 +10,23 @@ diff -ru bash-4.1/builtins/Makefile.in _bash-4.1/builtins/Makefile.in
  
  BASHINCDIR = ${topdir}/include
  
-diff -ru bash-4.1/lib/intl/l10nflist.c _bash-4.1/lib/intl/l10nflist.c
---- contrib/bash-4.1/lib/intl/l10nflist.c	2009-01-04 20:32:30.000000000 +0100
-+++ contrib/bash-4.1/lib/intl/l10nflist.c	2011-02-02 21:55:34.000000000 +0100
+diff --git a/configure b/configure
+--- a/configure
++++ b/configure
+@@ -28398,8 +28398,8 @@
+ else
+   if test "$cross_compiling" = yes; then
+   { $as_echo "$as_me:$LINENO: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to no" >&5
+-$as_echo "$as_me: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to no" >&2;}
+-    bash_cv_getcwd_malloc=no
++$as_echo "$as_me: WARNING: cannot check whether getcwd allocates memory when cross-compiling -- defaulting to yes" >&2;}
++    bash_cv_getcwd_malloc=yes
+ 
+ else
+   cat >conftest.$ac_ext <<_ACEOF
+diff --git a/lib/intl/l10nflist.c b/lib/intl/l10nflist.c
+--- a/lib/intl/l10nflist.c
++++ b/lib/intl/l10nflist.c
 @@ -33,7 +33,7 @@
  #include <string.h>
  
@@ -22,9 +36,9 @@ diff -ru bash-4.1/lib/intl/l10nflist.c _bash-4.1/lib/intl/l10nflist.c
  #endif
  #include <ctype.h>
  #include <sys/types.h>
-diff -u bash-4.1/shell.c /home/no/src/genode/ports/contrib/bash-4.1/shell.c
---- contrib/bash-4.1/shell.c	2009-11-19 16:05:54.000000000 +0100
-+++ contrib/bash-4.1/shell.c	2011-02-23 14:09:24.000000000 +0100
+diff --git a/shell.c b/shell.c
+--- a/shell.c
++++ b/shell.c
 @@ -364,6 +364,12 @@
    env = environ;
  #endif /* __OPENNT */
