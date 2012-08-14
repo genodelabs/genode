@@ -103,6 +103,10 @@ SECTIONS
      LONG(0xffffffff);
      LONG(0xffffffff);
      LONG(0xffffffff);
+     LONG(0xffffffff);
+     LONG(0xffffffff);
+     LONG(0xffffffff);
+     LONG(0xffffffff);
   } : rw
 
   /* Exception handling  */

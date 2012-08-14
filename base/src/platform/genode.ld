@@ -63,6 +63,12 @@ SECTIONS
 		LONG(0xffffffff);
 		_parent_cap_local_name = .;
 		LONG(0xffffffff);
+		LONG(0xffffffff);
+		LONG(0xffffffff);
+		LONG(0xffffffff);
+		LONG(0xffffffff);
+		LONG(0xffffffff);
+		LONG(0xffffffff);
 
 		/*
 		 * Platform-specific entry for Fiasco.OC.
