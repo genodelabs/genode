@@ -133,9 +133,27 @@ inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
 
 #else
 
-inline int lx_getpeername(int s, struct sockaddr *name, socklen_t *namelen)
+inline int lx_socketpair(int domain, int type, int protocol, int sd[2])
 {
-	return lx_syscall(SYS_getpeername, s, name, namelen);
+	return lx_syscall(SYS_socketpair, domain, type, protocol, (unsigned long)sd);
+}
+
+
+inline int lx_sendmsg(int sockfd, const struct msghdr *msg, int flags)
+{
+	return lx_syscall(SYS_sendmsg, sockfd, msg, flags);
+}
+
+
+inline int lx_recvmsg(int sockfd, struct msghdr *msg, int flags)
+{
+	return lx_syscall(SYS_recvmsg, sockfd, msg, flags);
+}
+
+
+inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
+{
+	return lx_syscall(SYS_getpeername, sockfd, name, namelen);
 }
 
 /* TODO add missing socket system calls */
