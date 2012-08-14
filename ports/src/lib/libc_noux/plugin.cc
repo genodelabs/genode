@@ -1356,7 +1356,7 @@ namespace {
 	{
 		Genode::size_t sum_recv_count = 0;
 
-		while (len) {
+		while (len > 0) {
 			Genode::size_t curr_len =
 				Genode::min(len, sizeof(sysio()->recv_in.buf));
 
@@ -1368,11 +1368,12 @@ namespace {
 				return -1;
 			}
 
-			Genode::memcpy(buf, sysio()->recv_in.buf, sysio()->recv_out.len);
+			Genode::memcpy((char *)buf + sum_recv_count,
+			               sysio()->recv_in.buf, sysio()->recv_out.len);
 
 			sum_recv_count += sysio()->recv_out.len;
 
-			if (sysio()->recv_out.len < sysio()->recv_in.len)
+			if (sysio()->recv_out.len < curr_len)
 				break;
 
 			if (sysio()->recv_out.len <= len)
@@ -1390,8 +1391,7 @@ namespace {
 	{
 		Genode::size_t sum_recvfrom_count = 0;
 
-
-		while (len) {
+		while (len > 0) {
 			Genode::size_t curr_len = Genode::min(len, sizeof(sysio()->recvfrom_in.buf));
 
 			sysio()->recv_in.fd = noux_fd(fd->context);
@@ -1412,11 +1412,12 @@ namespace {
 					       sysio()->recvfrom_in.addrlen);
 
 
-			Genode::memcpy(buf, sysio()->recvfrom_in.buf, sysio()->recvfrom_out.len);
+			Genode::memcpy((char *)buf + sum_recvfrom_count,
+			               sysio()->recvfrom_in.buf, sysio()->recvfrom_out.len);
 
 			sum_recvfrom_count += sysio()->recvfrom_out.len;
 
-			if (sysio()->recvfrom_out.len < sysio()->recvfrom_in.len)
+			if (sysio()->recvfrom_out.len < curr_len)
 				break;
 
 			if (sysio()->recvfrom_out.len <= len)
