@@ -464,6 +464,7 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	if {$wait_for_re == "forever"} { interact $pid }
 	expect {
 		-re $wait_for_re { }
+		eof     { puts stderr "Error: Qemu died unexpectedly";   exit -3 }
 		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
 	}
 	set output $expect_out(buffer)
