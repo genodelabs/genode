@@ -25,5 +25,13 @@ void __attribute__((constructor)) init_loopback(void)
 	/* make sure the libc_lwip plugin has been created */
 	create_lwip_plugin();
 
-	lwip_loopback_init();
+	/**
+	 * As of lwip-1.4.x this is not needed anymore because lwip
+	 * now always creates a loopback device. This plug-in will
+	 * be removed in the future but for now keep it around so
+	 * we currently do not need to update the other targets that
+	 * depend on it.
+	 *
+	 * lwip_loopback_init();
+	 */
 }
