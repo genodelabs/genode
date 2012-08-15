@@ -245,7 +245,7 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t rid)
 	{
-		mword_t dummy1, dummy2;
+		mword_t dummy1 = 0, dummy2 = 0;
 		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, dev, rid, dummy1, dummy2);
 	}
 
