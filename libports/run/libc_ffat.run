@@ -10,6 +10,9 @@ if {[catch { exec which mkfs.vfat } ]} {
 if {[have_spec linux]} {
 	puts "Run script does not support this platform"; exit }
 
+if {[have_spec 64bit]} {
+	puts "ATAPI driver does not support 64 bit."; exit 0 }
+
 #
 # Build
 #
