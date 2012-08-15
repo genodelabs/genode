@@ -1,61 +1,62 @@
 /*
- * \brief  CORE-specific instance of the PD session interface for Linux
+ * \brief  Linux-specific PD session
  * \author Norman Feske
- * \date   2006-08-14
- *
- * On Linux, we use a pd session only for keeping the information about the
- * existence of protection domains to enable us to destruct all pds of a whole
- * subtree. A pd is killed by CORE when closing the corresponding pd session.
- * The PID of the process is passed to CORE as an argument of the session
- * construction.
+ * \date   2012-08-15
  */
 
 /*
- * Copyright (C) 2006-2012 Genode Labs GmbH
+ * Copyright (C) 2012 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__LINUX__PD_SESSION_COMPONENT_H_
-#define _CORE__INCLUDE__LINUX__PD_SESSION_COMPONENT_H_
+#ifndef _CORE__INCLUDE__PD_SESSION_COMPONENT_H_
+#define _CORE__INCLUDE__PD_SESSION_COMPONENT_H_
 
 /* Genode includes */
-#include <util/arg_string.h>
-#include <base/printf.h>
 #include <base/rpc_server.h>
-#include <pd_session/pd_session.h>
+#include <linux_pd_session/linux_pd_session.h>
 
-/* local includes */
-#include "platform.h"
+/* core includes */
+#include <platform_pd.h>
 
 namespace Genode {
 
-	class Pd_session_component : public Rpc_object<Pd_session>
+	class Pd_session_component : public Rpc_object<Linux_pd_session, Pd_session_component>
 	{
 		private:
 
-			unsigned long _pid;
+			unsigned long      _pid;
+			Parent_capability  _parent;
+			Rpc_entrypoint    *_ds_ep;
 
 		public:
 
-			Pd_session_component(Rpc_entrypoint *thread_ep,
-			                     const char *args);
+			/**
+			 * Constructor
+			 *
+			 * \param ds_ep  entrypoint where the dataspaces are managed
+			 */
+			Pd_session_component(Rpc_entrypoint *ds_ep, const char *args);
 
 			~Pd_session_component();
 
 
-			/****************************/
-			/** Pd session interface **/
-			/****************************/
+			/**************************
+			 ** PD session interface **
+			 **************************/
 
-			/*
-			 * This interface is not functional on Linux.
-			 */
+			int bind_thread(Thread_capability);
+			int assign_parent(Parent_capability parent);
 
-			int bind_thread(Thread_capability thread);
-			int assign_parent(Parent_capability);
+
+			/******************************
+			 ** Linux-specific extension **
+			 ******************************/
+
+			void start(Capability<Dataspace> binary, Name const &name);
 	};
 }
 
-#endif /* _CORE__INCLUDE__LINUX__PD_SESSION_COMPONENT_H_ */
+#endif /* _CORE__INCLUDE__PD_SESSION_COMPONENT_H_ */

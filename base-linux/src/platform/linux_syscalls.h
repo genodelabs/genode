@@ -10,7 +10,7 @@
  * interface directly rather than relying on convenient libc functions to be
  * able to link this part of the framework to a custom libc. Otherwise, we
  * would end up with very nasty cyclic dependencies when using framework
- * functions such as IPC from the libC back end.
+ * functions such as IPC from the libc back end.
  *
  * The Linux syscall interface looks different for 32bit and 64bit system, in
  * particular regarding the socket interface. On 32bit systems, all socket
@@ -165,13 +165,6 @@ inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
  ** Functions used by the process library **
  *******************************************/
 
-inline int lx_execve(const char *filename, char *const argv[],
-                     char *const envp[])
-{
-	return lx_syscall(SYS_execve, filename, argv, envp);
-}
-
-
 inline void lx_exit(int status)
 {
 	lx_syscall(SYS_exit, status);
@@ -323,13 +316,6 @@ inline int lx_create_thread(void (*entry)(void *), void *stack, void *arg)
 	 * assembler binding without external libc references. Hence, we are safe
 	 * to rely on the glibc version of 'clone' here.
 	 */
-	return lx_clone((int (*)(void *))entry, stack, flags, arg);
-}
-
-
-inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
-{
-	int flags = CLONE_VFORK | SIGCHLD;
 	return lx_clone((int (*)(void *))entry, stack, flags, arg);
 }
 

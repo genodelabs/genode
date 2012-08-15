@@ -65,6 +65,13 @@ inline int lx_stat(const char *path, struct stat64 *buf)
  ** Process creation and destruction **
  **************************************/
 
+inline int lx_execve(const char *filename, char *const argv[],
+                     char *const envp[])
+{
+	return lx_syscall(SYS_execve, filename, argv, envp);
+}
+
+
 /**
  * Send signal to process
  *
@@ -73,6 +80,13 @@ inline int lx_stat(const char *path, struct stat64 *buf)
 inline int lx_kill(int pid, int signal)
 {
 	return lx_syscall(SYS_kill, pid, signal);
+}
+
+
+inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
+{
+	int flags = CLONE_VFORK | SIGCHLD;
+	return lx_clone((int (*)(void *))entry, stack, flags, arg);
 }
 
 

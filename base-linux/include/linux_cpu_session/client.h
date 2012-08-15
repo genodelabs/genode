@@ -79,4 +79,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _INCLUDE__CPU_SESSION__CLIENT_H_ */
+#endif /* _INCLUDE__LINUX_CPU_SESSION__CLIENT_H_ */
