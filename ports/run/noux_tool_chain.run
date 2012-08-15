@@ -229,9 +229,9 @@ lappend_if [have_spec pl11x] boot_modules pl11x_drv
 build_boot_image $boot_modules
 
 if {[have_spec x86_64]} {
-	append qemu_args " -m 500 "
+	append qemu_args " -m 512 "
 } else {
-        append qemu_args " -m 320 "
+	append qemu_args " -m 320 "
 }
 
 run_genode_until forever
