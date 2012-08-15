@@ -281,6 +281,11 @@ namespace Genode {
 			/* RM session representing the address space of the child */
 			Rm_session_capability   _rm;
 
+			/* Services where the RAM, CPU, and RM resources come from */
+			Service                &_ram_service;
+			Service                &_cpu_service;
+			Service                &_rm_service;
+
 			/* heap for child-specific allocations using the child's quota */
 			Heap                    _heap;
 
@@ -349,6 +354,20 @@ namespace Genode {
 				destroy(heap(), s);
 			}
 
+			/**
+			 * Return service interface targetting the parent
+			 *
+			 * The service returned by this function is used as default
+			 * provider for the RAM, CPU, and RM resources of the child. It is
+			 * solely used for targeting resource donations during
+			 * 'Parent::upgrade_quota()' calls.
+			 */
+			static Service *_parent_service()
+			{
+				static Parent_service parent_service("");
+				return &parent_service;
+			}
+
 		public:
 
 			/**
@@ -357,23 +376,38 @@ namespace Genode {
 			 * \param elf_ds       dataspace containing the binary
 			 * \param ram          RAM session with the child's quota
 			 * \param cpu          CPU session with the child's quota
+			 * \param rm           RM session representing the address space
+			 *                     of the child
 			 * \param entrypoint   server entrypoint to serve the parent interface
 			 * \param policy       child policy
+			 * \param ram_service  provider of the 'ram' session
+			 * \param cpu_service  provider of the 'cpu' session
+			 * \param rm_service   provider of the 'rm' session
 			 *
 			 * If assigning a separate entry point to each child, the host of
 			 * multiple children is able to handle a blocking invocation of
 			 * the parent interface of one child while still maintaining the
 			 * service to other children, each having an independent entry
 			 * point.
+			 *
+			 * The 'ram_service', 'cpu_service', and 'rm_service' arguments are
+			 * needed to direct quota upgrades referring to the resources of
+			 * the child environment. By default, we expect that these
+			 * resources are provided by the parent.
 			 */
 			Child(Dataspace_capability    elf_ds,
 			      Ram_session_capability  ram,
 			      Cpu_session_capability  cpu,
 			      Rm_session_capability   rm,
 			      Rpc_entrypoint         *entrypoint,
-			      Child_policy           *policy)
+			      Child_policy           *policy,
+			      Service                &ram_service = *_parent_service(),
+			      Service                &cpu_service = *_parent_service(),
+			      Service                &rm_service  = *_parent_service())
 			:
 				_ram(ram), _ram_session_client(ram), _cpu(cpu), _rm(rm),
+				_ram_service(ram_service), _cpu_service(cpu_service),
+				_rm_service(rm_service),
 				_heap(&_ram_session_client, env()->rm_session()),
 				_entrypoint(entrypoint),
 				_parent_cap(_entrypoint->manage(this)),
@@ -493,10 +527,23 @@ namespace Genode {
 
 			void upgrade(Session_capability to_session, Upgrade_args const &args)
 			{
-				Session *s = _session_pool.obj_by_cap(to_session);
+				Service *targeted_service = 0;
 
-				if (!s) {
-					PWRN("no session structure found - nothing to be done\n");
+				/* check of upgrade refers to an Env:: resource */
+				if (to_session.local_name() == _ram.local_name())
+					targeted_service = &_ram_service;
+				if (to_session.local_name() == _cpu.local_name())
+					targeted_service = &_cpu_service;
+				if (to_session.local_name() == _rm.local_name())
+					targeted_service = &_rm_service;
+
+				/* check if upgrade refers to server */
+				Session * const session = _session_pool.obj_by_cap(to_session);
+				if (session)
+					targeted_service = session->service();
+
+				if (!targeted_service) {
+					PWRN("could not lookup service for session upgrade");
 					return;
 				}
 
@@ -505,7 +552,8 @@ namespace Genode {
 					return;
 				}
 
-				size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
+				size_t const ram_quota =
+					Arg_string::find_arg(args.string(), "ram_quota").ulong_value(0);
 
 				/* transfer quota from client to ourself */
 				Transfer donation_from_child(ram_quota, _ram,
@@ -513,13 +561,14 @@ namespace Genode {
 
 				/* transfer session quota from ourself to the service provider */
 				Transfer donation_to_service(ram_quota, env()->ram_session_cap(),
-				                             s->service()->ram_session_cap());
+				                             targeted_service->ram_session_cap());
 
-				try { s->service()->upgrade(to_session, args.string()); }
+				try { targeted_service->upgrade(to_session, args.string()); }
 				catch (Service::Quota_exceeded) { throw Quota_exceeded(); }
 
 				/* remember new amount attached to the session */
-				s->upgrade_ram_quota(ram_quota);
+				if (session)
+					session->upgrade_ram_quota(ram_quota);
 
 				/* finish transaction */
 				donation_from_child.acknowledge();
