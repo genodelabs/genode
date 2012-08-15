@@ -5,14 +5,6 @@
 SDL = SDL-1.2.13
 SDL_DIR = $(REP_DIR)/contrib/$(SDL)
 
-#
-# XXX libSDL does not build on ARM because a compile-time assertion fails:
-#
-#
-# SDL_stdinc.h:133:1: error: size of array ‘SDL_dummy_enum’ is negative
-#
-REQUIRES = x86
-
 # build shared object
 SHARED_LIB = yes
 
@@ -33,11 +25,6 @@ SRC_C    = SDL.c \
            SDL_fatal.c
 
 INC_DIR  += $(REP_DIR)/src/lib/sdl
-#INC_DIR += $(REP_DIR)/include/SDL_genode \
-#           $(REP_DIR)/include/SDL_genode/SDL \
-#           $(REP_DIR)/include/SDL_contrib \
-#           $(REP_DIR)/include/SDL_contrib/SDL \
-#           $(REP_DIR)/src/lib/sdl/src \
 
 # stdlib files
 SRC_C   += SDL_getenv.c \
