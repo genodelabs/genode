@@ -1,0 +1,2 @@
+LIGHTTPD_VERSION = 1.4.31
+LIGHTTPD         = lighttpd-$(LIGHTTPD_VERSION)
