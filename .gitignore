@@ -38,6 +38,7 @@
 /libports/include/ncurses/MKterm.h.awk
 /libports/include/ncurses/capdefaults.c
 /libports/include/ncurses/curses.h
+/libports/include/ncurses/ncurses.h
 /libports/include/ncurses/hashed_db.h
 /libports/include/ncurses/hashsize.h
 /libports/include/ncurses/init_keytry.h
