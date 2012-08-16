@@ -1,0 +1,247 @@
+if {![have_spec x86]} {
+	puts "\nThis runscript is supported on the x86 architecture only\n"
+	exit 0
+}
+
+set build_components {
+	core init drivers/timer
+	noux/net lib/libc_noux
+	drivers/framebuffer drivers/pci drivers/input
+	drivers/nic
+	drivers/timer
+	server/terminal server/ram_fs
+	test/libports/ncurses
+	test/libports/readline
+	test/libports/zlib
+	noux-pkg/lighttpd
+}
+
+#
+# Build Noux packages only once
+#
+set noux_pkgs "bash coreutils vim"
+
+foreach pkg $noux_pkgs {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+build $build_components
+
+set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+puts $vimrc_fd {
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=}
+close $vimrc_fd
+
+# strip all binaries prior archiving
+set find_args ""
+foreach pkg $noux_pkgs { append find_args " bin/$pkg/" }
+exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
+
+# add bash as sh
+exec cp bin/bash/bin/bash bin/bash/bin/sh
+
+foreach pkg $noux_pkgs {
+	exec tar cf bin/$pkg.tar -h -C bin/$pkg . }
+
+# generate configuration for lighttpd
+proc lighttpd_config_path { } {
+	return "[genode_dir]/ports/contrib/lighttpd-1.4.31/doc/config" }
+
+exec mkdir -p bin/aux/etc/lighttpd
+exec sh -c "cp    [lighttpd_config_path]/*.conf bin/aux/etc/lighttpd"
+exec sh -c "cp -r [lighttpd_config_path]/conf.d bin/aux/etc/lighttpd"
+exec tar cvf bin/aux.tar -h -C bin/aux .
+
+exec tar cf bin/lighttpd.tar -h -C noux-pkg/lighttpd lighttpd_noux
+
+set noux_pkgs "$noux_pkgs aux"
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start> }
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="vesa_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec pl11x] config {
+	<start name="pl11x_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append config {
+	<start name="terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<config>
+			<keyboard layout="us"/>
+		</config>
+	</start>
+		<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<content>
+				<dir name="tmp" />
+				<dir name="www">
+					<inline name="hello.html">
+<html>
+	<head>
+		<title>Hello</title>
+	</head>
+	<body>
+		<p>Hello Genode!</p>
+		<b>I am bold ;-)</b>
+	</body>
+</html>
+					</inline>
+				</dir>
+				<dir name="home">
+					<inline name=".bash_profile">
+						lighttpd_noux -f /etc/lighttpd/lighttpd.conf -D;
+					</inline>
+				</dir>
+			</content>
+			<policy label="noux -> root" root="/" />
+			<policy label="noux -> home" root="/home" writeable="yes" />
+			<policy label="noux -> tmp"  root="/tmp"  writeable="yes" />
+			<policy label="noux -> www"  root="/www" />
+		</config>
+	</start>
+	<start name="noux">
+		<binary name="noux_net" />
+		<resource name="RAM" quantum="1G" />
+		<config>
+			<user name="baron" uid="1" gid="1">
+				<shell name="/bin/bash" />
+				<home name="/home" />
+			</user>
+			<fstab>
+}
+
+foreach pkg $noux_pkgs {
+	append config "				<tar name=\"$pkg.tar\" />" }
+
+append config {
+				<dir name="bin">
+					<tar name="lighttpd.tar" />
+				</dir>
+				<dir name="home">
+					<fs label="home" />
+				</dir>
+				<dir name="ram"> <fs label="root" /> </dir>
+				<dir name="tmp"> <fs label="tmp" /> </dir>
+				<dir name="srv">
+					<dir name="www">
+						<dir name="htdocs">
+							<fs label="www" />
+						</dir>
+					</dir>
+				</dir>
+
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="linux" />
+				<env name="HOME" value="/home" />
+				<arg value="--login" />
+			</start>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux_net nic_drv terminal ram_fs
+	libc.lib.so libm.lib.so libc_noux.lib.so
+	lwip.lib.so ncurses.lib.so
+	readline.lib.so zlib.lib.so libcrypto.lib.so libssl.lib.so
+	lighttpd.tar
+}
+
+foreach pkg $noux_pkgs {
+	lappend boot_modules "$pkg.tar" }
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules vesa_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec pl11x] boot_modules pl11x_drv
+
+build_boot_image $boot_modules
+
+if {[have_spec x86_64]} {
+	# bash.tar is really huge when built for x86_64
+	append qemu_args " -m 320 "
+}
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -redir tcp:5555::80 "
+
+run_genode_until forever
+
+#exec rm bin/bash.tar
+exec rm -rf bin/aux
