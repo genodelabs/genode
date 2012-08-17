@@ -1,0 +1,665 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 12.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+With Genode 12.08, the project focused on platform support. It enters the world
+of OMAP4-based ARM platforms, revived and vastly enhanced the support for the
+NOVA hypervisor, and becomes able to run directly on ARM platforms without the
+need for an underlying kernel.
+
+The new 'base-hw' platform is a deviation from Genode's traditional approach to
+complement existing kernels with user-land infrastructure. It completely leaves
+the separate kernel out of the picture and thereby dwarfs the base line of the
+trusted computing base of Genode-based systems to approximately the half. The
+new base platform is described in Section [Genode on naked ARM hardware].
+
+Speaking of base platforms, we are happy to have promoted the NOVA hypervisor
+to a first-class citizen among the base platforms. During the last months, this
+kernel underwent fundamental changes regarding its mode of development and its
+feature set. This prompted us to vastly improve Genode's support for this
+platform and leverage its unique features. If considering the use of Genode on
+x86-based hardware, NOVA has become a very attractive foundation. Section
+[Embracing the NOVA Hypervisor] describes the NOVA-specific changes.
+
+The improvement of platform support with the current release does not entail
+the base platforms only but extends to profound additions of device drivers, in
+particular for the ARM-based OMAP4 SoC as used on the popular Pandaboard. We
+are proud to announce the availability of device drivers for HDMI output,
+SD-card, USB HID, and networking for this platform.
+
+Beyond the low-level platform improvements, the new version comes with several
+new services, optimizations of existing components, and new ported libraries.
+In particular, the Noux runtime has reached a point where we can principally
+execute serious networking applications such as the Lynx web browser natively
+on Genode. Another example is the new FFAT-based file-system service, which
+makes persistent storage available via Genode's file-system interface. By
+combining this new service with existing components such as the partition
+service, Noux, or the file-system plugin of the libc, a lot of new application
+scenarios become available. Thanks to these new components, the framework has
+become able to perform on-target debugging via GDB running in Noux, or host
+the genode.org website via the lighttpd web server,
+
+
+:What about the road map?:
+
+Those of you who track the milestones laid out in our [http:/about/road-map - road map]
+may wonder how Genode 12.08 relates to the stated goals. In fact, several
+points of the road map haven't received the attention as originally planned.
+As an explanation, let us quote the paragraph right atop of the road-map page:
+"The road map is not fixed. If there is commercial interest of pushing the
+Genode technology to a certain direction, we are willing to revisit our plans."
+Well, this is what happened. So we traded the work on the tiled window manager,
+the Intel wireless driver, and SMP support for the work on the platform topics
+outlined above. Nevertheless, we stick to our overall plan to turn Genode into
+a general-purpose OS that is fit for use by its developers by the end of the
+year. If looking closely at the additions that come with the current release,
+it will become apparent how well they fit into the big picture.
+
+
+Genode on naked ARM hardware
+############################
+
+One of Genode's most distinguishing properties is the ability to use the framework
+on top of a range of different kernels. This way, users of the framework
+benefit from the wide variety of features provided by those kernels while
+only dealing with a single API and configuration concept. For example, we
+frequently find ourselves using the Linux kernel as base platform while
+developing services, interfaces, and protocol stacks. By being able to start
+Genode as a regular program, we effectively eliminate the reboot-time for each
+test run and enjoy using commodity debugging and profiling tools. On the other
+hand, if high security is a concern, NOVA and Fiasco.OC provide
+capability-based security at kernel-level. So the use of one of those kernels
+is desirable. Genode allows for switching between those vastly different
+kernels almost seamlessly.
+
+In general, a Genode system consists of a kernel, Genode's core, and the
+largely generic components on top of core. Core abstracts away the
+peculiarities of the respective kernel and provides a unified API to the
+components on top. From the application's point of view both kernel and core
+are always at the root of the process tree and thereby are a inherent part of
+the application's trusted computing base (TCB). The distinction of both
+programs is almost superficial.
+
+Since both the kernel and core must be ultimately trusted, the complexity of
+both programs is critical for each Genode-based system. On our quest for
+minimizing the TCB complexity so far, however, we did not question the role of
+the kernel as an inherent part of the TCB and focused our attention to the
+software stack on top. However, with more and more kernels entering the
+picture, we identified that there is typically a considerable overlap in
+functionality between kernel and core. For example, both need to know about
+address spaces and their relationship to physical memory objects. Most kernels
+keep track of memory mappings in an in-kernel database. Core also needs to keep
+track of this information. Consequently, we found several information
+replicated without a clear benefit. With this comes a seemingly significant
+redundancy of code for data structures, allocators, and utility functions.
+Furthermore, there exists a class of problems that must be solved by the kernel
+and core alike. In particular the resource management of dynamically allocated
+in-kernel objects respectively in-core objects. Whereas core uses Genode's
+resource-trading concept to solve this problem, most kernels lack a good
+solution for the management of in-kernel resources and are consequently prone
+to resource exhaustion problems.
+
+Out of these observations, the idea was born to explore the opportunities of
+merging both programs into one and thereby eliminating the redundancies. Our
+first attempt to go into this direction was the 'base-mb' platform, which
+enabled us to run Genode on the Xilinx MicroBlaze softcore CPU. With this
+experiment, we gained confidence that the approach is generally feasible. So we
+took on the challenge to implement the idea of a hybrid kernel/core on a more
+complex architecture namely ARM Cortex-A9.
+
+The 'base-hw' platform introduced with the current release is the intermediate
+result of our experiment. With this base platform, core plays the role of core
+and the kernel within one program. A few code paths that require execution in
+privileged mode are executed in kernel mode whereas most code paths are
+executed in user mode. Both user mode code and kernel mode code run in the same
+address space. The kernel portion merely provides a few basic mechanisms
+without performing complex operations such as dynamic memory allocations. For
+example, if core is requested to create a new thread via core's CPU session
+interface, the user-level code within core allocates a KTCB (kernel thread
+control block) and UTCB (user-level thread-control block) from the physical
+memory allocator and passes both physical addresses to the kernel function that
+spawns the actual thread. This way, we can employ Genode's resource-trading
+concept for managing typical kernel resources.
+
+The experiment turned out to be a great success. Traditionally, we would account
+at least 10,000 lines of code (LOC) for the kernel. Most kernels are actually
+much larger than that. Core comes at a complexity of another 10,000 LOC. So
+both kernel and core make up a base line of TCB complexity of more than 20,000
+LOC. By co-locating core with the kernel, we end up with a program of just
+about 13,000 LOC. The vast reduction of TCB complexity compared to having
+kernel and core as separate programs strikes us.
+
+The 'base-hw' version of core supports the complete Genode API covering support
+for user-level device drivers, synchronous RPCs, asynchronous notifications,
+shared memory, and managed dataspaces. It is thereby able to execute the
+sophisticated Genode scenarios on top including the GUI, the dynamic linker,
+and user-level device drivers. That said, we regard the current version still
+as work in progress. We successfully use it as an experimentation platform for
+ongoing research activities (i.e., for exploring ARM TrustZone) but some
+important features such as capability-based security are not yet implemented.
+
+:Using the base-hw platform:
+
+The new base platform is fully integrated with Genode's build system.
+When listing the supported base platforms via the 'tool/create_builddir' tool,
+you will see the new 'hw_panda_a2', 'hw_vea9x4', 'hw_pbxa9' choices of
+build-directory templates. The latter platform enables you to run a
+'base-hw' Genode system on Qemu.
+
+[http://genode.org/documentation/platforms/hw - Learn more about using the new base-hw platform...]
+
+For running Genode directly on the Pandaboard, please refer to the
+[http://genode.org/documentation/platforms/hw_panda_a2 - Pandaboard-specific documentation...]
+
+
+Embracing the NOVA Hypervisor
+#############################
+
+NOVA is a so-called microhypervisor for the x86 architecture. It combines the
+principles of microkernels with capability-based security and hardware-assisted
+virtualization. Among the various base platforms supported by Genode, NOVA's
+kernel interface stands out for being extremely minimalistic and orthogonal,
+even by microkernel standards.
+
+Genode has supported NOVA as base platform since 2010. But because we used NOVA
+solely for sporadic research activities and NOVA's lack of a regular release
+schedule, the framework's platform support received only little attention. This
+has changed now. NOVA's main developer Udo Steinberg moved from TU Dresden to
+Intel Labs where he leads the development of NOVA as a true Open-Source
+project. In fact, the code is now being hosted at GitHub:
+
+:[https://github.com/IntelLabs/NOVA]:
+  NOVA hypervisor at GitHub
+
+Since its move to GitHub, the hypervisor has already seen significant
+improvements. The repository is continuously updated, which enables us to stay
+in a close feedback loop with the NOVA developers. This change of how NOVA's
+development is conducted ignited our renewed interest in promoting this
+platform to a first-level citizen of our framework. The first noteworthy
+improvement is the recently added 64-bit support of NOVA. We enabled Genode to
+work with both variants of the kernel - 32 bit and 64 bit.
+
+But this was just the first step. The second major change addresses the
+allocation of kernel resources. Early versions of the hypervisor allowed each
+process to create kernel objects and thereby indirectly consume the limited
+memory resources of the kernel. This is perfectly fine for a research project
+but it becomes a potential denial-of-service problem in real-world use cases.
+For this reason, newer versions introduced the ability to retain the allocation
+of kernel objects within a trusted component only. In the Genode world, this
+component is naturally core. Even though NOVA still lacks a flexible concept for
+kernel-resource management as of now, Genode has become able to use NOVA
+without suffering the inherent resource management limitation. This is achieved
+because core is able to arbitrate the allocation of kernel resources.
+
+The third fundamental change is the abolishment of the last traces of global
+names in a NOVA-based Genode system. There are no thread IDs, object IDs, or
+any other kind of globally meaningful names. Each process has a local view on
+(a small part of) the system only. If a process interacts with another process,
+the kernel translates the references to remote objects from one namespace to
+the other. The security implications are eminent. First, a process can only
+interact with or refer to objects for which it has a name, which vastly reduces
+problems of ambient authority. Second, because the kernel translates names, it
+becomes impossible to forge object identities. If a process tried to pass a
+forged object reference to another process, the translation would simply fail,
+rendering the attack ineffective.
+
+The described changes do not come without issues, though. To make the NOVA
+kernel fit with Genode's requirements, minor patches of the hypervisor are
+needed. The patches are located at 'base-nova/patches/'. However, those patches
+are meant as interim solutions until we find mechanisms that fit well with the
+design of the hypervisor and also fulfil our requirements.
+
+So far, we greatly enjoyed the revived collaboration with the NOVA developers
+and congratulate Udo Steinberg for the new mode of development of the
+hypervisor.
+
+
+Base framework
+##############
+
+In the following, we describe changes of the base API that may affect users of
+the framework.
+
+:Allocation of DMA buffers:
+
+We extended the RAM session interface with the ability to allocate DMA buffers.
+The client specifies the type of RAM dataspace to allocate via the new 'cached'
+argument of the 'Ram_session::alloc()' function. By default, 'cached' is true,
+which corresponds to the common case and the original behavior. When setting
+'cached' to 'false', core takes the precautions needed to register the memory
+as uncached in the page table of each process that has the dataspace attached.
+
+Currently, the support for allocating DMA buffers is implemented for Fiasco.OC
+only. On x86 platforms, it is generally not needed. But on platforms with more
+relaxed cache coherence (such as ARM), user-level device drivers should always
+use uncacheable memory for DMA transactions.
+
+
+:MMIO framework improvements:
+
+As we find ourselves increasingly using the 'Register' and 'Mmio' templates
+provided by 'util/register.h' and 'util/mmio.h' for dealing with memory-mapped
+devices, we extended the utilities with support for 64-bit registers and a new
+interface for polling bit states. The latter functionality is provided by the
+new 'wait_for' function template. To decouple the MMIO-related utility code
+from an actual timer facility, the function takes a so-called 'delayer' functor
+as argument. This way the user of the MMIO framework is able to pick a timer
+facility that fits best with the device.
+
+
+:New 'memcpy' implementation:
+
+The memory-copy functions provided by 'util/string.h' are extremely simple
+and arguably slow, particularly on platforms where byte-wise copy operations
+are not supported by the CPU (i.e., ARM). Hence, we have added a CPU-specific
+memcpy function ('memcpy_cpu') to 'cpu/string.h', which enables us to
+provide optimized implementations. So far, we did so for the ARM architecture.
+
+
+Low-level OS infrastructure
+###########################
+
+FFat-based file-system service
+==============================
+
+With the previous release, we introduced Genode's file-system interface
+accompanied with a simple in-memory file-system service. With the addition of
+'ffat_fs', the current release adds the first persistent file system to the
+framework. The service is located at 'libports/src/server/ffat_fs'. It uses
+Genode's 'Block::Session' interface as back end. Therefore, it can be combined
+with any of Genode's block-device drivers and the partition service called
+'part_blk'. To see the new 'ffat_fs' service in action, please refer to the new
+'libports/run/libc_ffat_fs.run' script.
+
+On the course of our work on the 'ffat_fs' service, we enabled support for long
+file names in libffat and added 'lseek' support to the 'libc_ffat' plugin.
+
+
+TAR-based file-system service
+=============================
+
+The new 'tar_fs' service located at 'os/src/server/tar_fs' provides a read-only
+file-system session interface by reading data from a TAR archive, which, in
+turn, is fetched from a ROM service. By combining 'tar_fs' with the 'libc_fs'
+plugin, it becomes easy to provide customized pseudo file systems to individual
+Genode programs. For example, one instance of 'tar_fs' containing a static
+website and a web-server configuration can be provided as file system to a web
+server. The configuration is similar to the patterns known from the 'tar_rom'
+and 'ram_fs' servers:
+
+! <config>
+!   <archive name="tar_archive.tar" />
+!   <policy label="label_of_client" root="/rootdir/for/client" />
+! </config>
+
+The policy node allows for assigning different parts of one TAR archive to
+different clients. For a practical usage example of 'tar_fs', please refer to
+the 'libports/run/libc_fs_tar_fs.run' script.
+
+
+Terminal improvements
+=====================
+
+Our work on running a growing number of command-line-based Unix programs via
+Noux prompted us to improve our terminal implementation as needed. To ease
+debugging for terminal colors, we changed the previous default color scheme to
+fully saturated combinations of red, green, and blue. Albeit this looks quite
+painful on the eyes, it is easier to spot wrong colors when using a program
+that uses ncurses, for example Lynx. Furthermore, we added the handling of
+sgr0  and sgr escape sequences and thereby enabled Lynx to become almost
+usable when running within Noux.
+
+
+Terminal cross-link service
+===========================
+
+The 'Terminal::Session' interface gets increasingly popular within Genode.
+It is used by the UART drivers, the graphical terminal, GDB monitor, the TCP
+terminal, and Noux. For most of these programs, their respective client or
+server role is quite clear but we find ourselves tempted to combine components
+in unusual ways. For example, to let Noux run an instance of GDB, which operates
+on a terminal via a virtual character device. For remote debugging, GDB plays
+the role of a terminal client and the UART driver plays the role of the server.
+But when running GDB monitor on the same machine, GDB monitor will also
+expect to play the role of the client. In order to connect GDB monitor
+to a local instance of GDB, both of them being terminal clients, we need an
+adapter component. This is where the new terminal cross-link service enters
+the picture. It plays the role of a terminal server between exactly two
+clients. The output of one client ends up as input to the other and vice
+versa. Data sent to the server gets stored in a buffer of 4096 bytes (one
+buffer per client). As long as the data to be written fits into the buffer, the
+'write()' call returns immediately. If no more data fits into the buffer, the
+'write()' call blocks until the other client has consumed some of the data from
+the buffer via the 'read()' call. The 'read()' call never blocks. A signal
+receiver can be used to block until new data is ready for reading.
+
+The new terminal crosslink can be tested via the 'os/run/terminal_crosslink.run'
+script. It is also used for the just mentioned on-target debugging scenario
+demonstrated by the 'ports/run/noux_gdb.run' script.
+
+
+DMA-aware and optimized packet streams
+======================================
+
+Motivated by our work on OMAP4 platform support, we introduced API extensions
+for handling of DMA buffers to the following interfaces:
+
+:'Attached_ram_dataspace':
+
+The convenience utility for allocating and locally mapping a RAM dataspace
+has been enhanced with the 'cached' constructor argument, which is true
+by default. When using 'Attached_ram_dataspace' for allocating DMA buffers,
+this argument should be set to false.
+
+:Block and network packet stream:
+
+The 'Block::Session' and 'Nic::Session' interfaces use Genode's packet stream
+facility for transferring bulk payload between processes. A packet stream
+combines shared memory with asynchronous notifications and thereby facilitates
+the use of batched packet processing. To principally enable zero-copy semantics
+for device drivers, the packet-stream buffer is now explicitly allocated as DMA
+buffer. This clears the way to let the SD-card driver direct DMA transactions
+right into the packet stream buffer. Consequently, when attaching the SD-card
+driver directly to a file system, there is no copy of payload needed.
+
+The 'Nic::Session' interface has further been improved by using a fast
+bitmap allocator for allocations within the packet-stream buffer. This is
+possible because networking packets have the MTU size as an upper limit.
+In contrast to the 'Block::Session' interface where requests are relatively
+large, 'Nic::Session' packets are tiny, and thus, greatly benefit from the
+optimized allocator.
+
+
+Libraries and applications
+##########################
+
+C runtime
+=========
+
+:File I/O:
+
+We complemented our C runtime with support for the 'pread', 'pwrite', 'readv',
+and 'writev' functions. The 'pread' and 'pwrite' functions are shortcuts for
+randomly accessing different parts of a file. Under the hood, the functions are
+implemented via 'lseek' and 'read/write'. To provide the atomicity of the
+functions, a lock guard prevents the parallel execution of either or both
+functions if called concurrently by multiple threads. The 'readv' and 'writev'
+functions principally enable the chaining of multiple I/O requests.
+Furthermore, we added 'ftruncate', 'poll', and basic support for (read-only)
+mmapped files to the C runtime.
+
+:Libc RPC framework headers:
+
+Certain RPC headers of the libc are needed for compiling 'getaddrinfo.c'.
+Unfortunately that means we have to generate a few header files, which we do
+when we prepare the libc.
+
+
+New and updated 3rd-party libraries
+===================================
+
+:Expat:
+
+[http://expat.sourceforge.net - Expat] is an XML parsing library. The port of
+this library was motivated by our goal to use the GNU debugger for on-target
+debugging. GDB depends on this library.
+
+:MPC and GMP:
+
+We complemented our existing port of the
+[http://gmplib.org - GNU multiple precision arithmetic library (libgmp)] with
+support for the x86_64 and ARM architectures. This change combined with the
+port of the [http://www.multiprecision.org/index.php?prog=mpc - MPC library]
+enables us to build the Genode tool chain for these architectures.
+
+:OpenSSL:
+
+Our port of OpenSSL has been updated to version 1.0.1c. Because libcrypto
+provides certain optimized assembler functions, which unfortunately are not
+expressed with position-independent code, we removed this assembler code and
+build libcrypto with '-DOPENSSL_NO_ASM'. Because the assembler code is not
+needed anymore, its generation is also removed from 'openssl.mk'.
+
+:Light-weight IP stack (lwIP):
+
+We enabled the lwIP TCP/IP stack for 64-bit machines and updated the library to
+version 1.4.1-rc1. With the new version, the call of 'lwip_loopback_init' is
+not needed anymore because lwIP always creates a loopback device. Hence, we
+will be able to remove the 'libc_lwip_loopback' in the future. For now, we keep
+it around so we currently do not need to update the other targets that depend
+on it.
+
+:PCRE:
+
+[http://www.pcre.org/ - PCRE] is a library for parsing regular rexpressions. We
+require this library for our ongoing work on porting the lighttpd webserver.
+
+
+Lighttpd web server
+===================
+
+The [http://www.lighttpd.net/ - Lighttpd] web server has been added to the
+'ports' repository. The port runs as a native Genode application and ultimately
+clears the way to hosting the genode.org website on Genode. To test drive this
+scenario, please give the 'ports/run/genode_org.run' script a try.
+
+At the current stage, the port is still quite limited. For example, it does not
+make use of non-blocking sockets yet. But the 'genode_org.run' run script
+already showcases very well how simple a Genode-based web-server appliance can
+look like.
+
+
+Device drivers
+##############
+
+OMAP4 platform drivers
+======================
+
+:HDMI output:
+
+The new HDMI driver at 'os/src/drivers/framebuffer/omap4' implements Genode's
+'Framebuffer::Session' interface by using the HDMI output of OMAP4. The current
+version sets up a fixed XGA screen mode of 1024x768 with the RGB565 pixel
+format.
+
+
+:SD-card:
+
+The new SD card driver at 'os/src/drivers/sd_card/omap4' allows the use of a
+HDSD card with the Pandaboard as block service. The driver can be tested using
+the 'os/run/sd_card.run' script. Because it implements the generic
+'Block::Session' interface, it can be combined with a variety of other
+components such as 'part_blk' (for accessing individual partitions) or
+'ffat_fs' for accessing a VFAT file system on the SD card.
+
+The driver uses the master DMA facility of the OMAP4 SD-card controller, which
+yields to good performance at low CPU utilization. The throughput matches (and
+in some cases outperforms) the Linux kernel driver. In the current version,
+both modes of operation PIO and DMA are functional. However, PIO mode is
+retained for benchmarking purposes only and will possibly be removed to further
+simplify the driver.
+
+
+:USB HID:
+
+The OMAP4-based Pandaboard relies on USB for attaching input devices.
+Therefore, we need a complete USB stack to enable the interactive use of the
+board. Instead of implementing a USB driver from scratch, we built upon the USB
+driver introduced with the Genode release 12.05. This driver was ported from the
+Linux kernel.
+
+
+:Networking:
+
+The Pandaboard realizes network connectivity via the SMSC95xx chip attached to
+the USB controller. Therefore, we enhanced our USB driver with support for USB
+net and the smsc95xx driver. In addition to enabling the actual device-driver
+functionality, the USB stack has received much attention concerning performance
+optimizations. To speed up the allocation of SKBs, we replaced the former
+AVL-tree based allocator with a fast bitmap allocator. For anonymous
+allocations, we introduced a slab-based allocator. Furthermore, we introduced
+the distinction between memory objects that are subjected to DMA operations
+from non-DMA memory objects. The most profound conceptual optimization is the
+use of transmit bursts by the driver. The Linux kernel, which our driver
+originates from, does not provide an API for transmitting multiple packets as a
+burst. For our driver, however, this optimization opportunity opened up thanks
+to Genode's packet stream interface, which naturally facilitates the batching
+of networking packets. So the driver has all the information needed to create
+burst transactions.
+
+
+USB driver
+==========
+
+By testing our new USB driver on a variety of real PC hardware, we discovered
+several shortcomings, which we resolved. In particular, we added support for
+more than one UHCI controller, make sure that the 'PIRQ' bit in the legacy
+support register (PCI config space) of the UHCI controller is enabled and that
+the 'Trap on IRQ' bit is disabled.
+
+With those modifications in place, the USB driver works reliably on the tested
+platforms.
+
+
+Runtime environments
+####################
+
+Noux
+====
+
+Noux enables the easy reuse of unmodified GNU software on Genode by providing
+a Unix-like kernel interface as user-level service. Because Noux is pivotal for
+our plan to use Genode for productive work, we significantly enhanced and
+complemented its feature set.
+
+
+:Noux on ARM and x86_64:
+
+For keeping the scope of the development manageable, the initial version of
+Noux was tied to the x86_32 platform. This was not a principal limitation of
+the approach but rather an artificial restriction to keep us focused on
+functionality first. Now that Noux reaches a usable state, we desire to use it
+on platforms other than x86_32. The current release enables Noux for the 64-bit
+x86 and ARM architectures.
+
+The level of support is pretty far-reaching and even includes the building and
+execution of the Genode tool chain on those platforms. In the process of
+enabling these platforms, we updated the Noux package for GCC to version 4.6.1,
+which matches the version of the current Genode tool chain.
+
+
+:Terminal file system:
+
+Noux supports the concept of stacked file systems. The virtual file system
+is defined at the start of a Noux instance driven by the static Noux
+configuration. This way, arbitrary directory structures can be composed out
+of file-system sessions and TAR archives. The VFS concept allows for the
+easy addition of new file system types. To allow programs running in a Noux
+instance to communicate over a dedicated terminal session, we added a new
+file-system type that corresponds to a virtual character device node attached
+to a terminal session.
+
+
+:GDB running in the Noux environment:
+
+With the terminal file system in place, we are ready to execute GDB within
+Noux and let it talk to a GDB monitor instance over the terminal session
+interface. From GDB's point of view, the setup looks like a remote debugging
+session. But in reality both the debugging target and GDB reside in different
+subtrees of the same Genode system.
+
+
+:Executing shell scripts:
+
+By inspecting the program specified to the execve system call, Noux has become
+able to spawn scripts that use the '#!' syntax. If such a file is detected, it
+executes the specified interpreter instead and passes the arguments specified
+after the '#!' marker, followed by command-line arguments.
+
+
+:Networking support:
+
+Our work on porting various networking tools to Noux triggers us to steadily
+improve the networking support introduced with Genode 12.05. In particular, we
+added proper support for DNS resolving, which enables us to execute the
+command-line based Lynx web browser within Noux.
+
+
+:User information:
+
+Because there are certain programs, which need the information that is stored
+in 'struct passwd', we introduced configurable user information support to
+Noux. One can set the user information via the '<user>' node in the Noux
+config:
+
+! <config>
+!   <user name="baron" uid="1" gid="1">
+!     <shell name="/bin/bash" />
+!     <home name="/home" />
+!   </user>
+!   ...
+! </config>
+
+When '<user>' is not specified, default values are used. Currently these
+are 'root', 0, 0, '/bin/bash', '/'. Note that this is just a single user
+implementation because each Noux instance has only one user or rather one
+identity and there will be no complete multi-user support in Noux. If you need
+different users, just start new Noux instances for each of them.
+
+
+:New '/dev/null' and '/dev/zero' pseudo devices:
+
+These device are mandatory for most programs (well, at least null is required
+to be present for a POSIX compliant OS, which Noux is actually not). But for
+proper shell-script support we will need them anyway. Under the hood, both
+pseudo devices are implemented as individual file-systems and facilitate Noux's
+support for stacked file systems. The following example configuration snippet
+creates the pseudo devices under the '/dev' directory.
+
+! <config>
+!   <fstab>
+!     <dir name="dev" >
+!       <null /> <zero />
+!     </dir>
+!     ...
+!   <fstab>
+!   ...
+! </config>
+
+
+Vancouver
+=========
+
+The comprehensive rework of the NOVA base platform affected the Genode version
+of the Vancouver virtual machine monitor as this program used to speak directly
+to the NOVA kernel. Since no kernel objects can be created outside of core
+anymore, the Vancouver port had to be adjusted to solely use Genode interfaces.
+
+
+L4Linux
+=======
+
+To improve the stability and performance of L4Linux on OMAP4 platforms, we
+reworked parts of the Genode-specific stub drivers, in particular the
+networking code. Among the improvements are the use of a high-performance
+allocator for networking packets, improved IRQ safety of IPC calls (to
+the Genode world), and tweaks of the TCP rmem and wmem buffer sizes to
+achieve good TCP performance when running Linux with little memory.
+
+Furthermore, we added two ready-to-use run scripts residing within
+'ports-foc/run' as examples for executing L4Linux on the OMAP4-based
+Pandaboard. The 'linux_panda.run' script is meant as a blue print for
+experimentation. It integrates one instance of L4Linux with the native SD-card
+driver, the HDMI driver, and the USB HID input driver. The
+'two_linux_panda.run' script is a more elaborative example that executes two
+instances of L4Linux, a block-device test, and a simple web server. Each of
+the L4Linux instances accesses a different SD-card partition whereas the
+block-device test operates on a third partition.
+
+
