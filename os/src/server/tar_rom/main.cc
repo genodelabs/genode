@@ -82,8 +82,15 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 				Genode::ascii_to(_tar_addr + block_id*_BLOCK_LEN + _FIELD_SIZE_LEN,
 				                 &file_size, 8);
 
+				/* get name of tar record */
+				char const *record_filename = _tar_addr + block_id*_BLOCK_LEN;
+
+				/* skip leading dot of path if present */
+				if (record_filename[0] == '.' && record_filename[1] == '/')
+					record_filename++;
+
 				/* get infos about current file */
-				if (Genode::strcmp(_filename, _tar_addr + block_id*_BLOCK_LEN) == 0) {
+				if (Genode::strcmp(_filename, record_filename) == 0) {
 					_file_size = file_size;
 					_file_addr = _tar_addr + (block_id+1) * _BLOCK_LEN;
 					file_found = true;
