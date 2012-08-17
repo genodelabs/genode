@@ -58,6 +58,7 @@ namespace Libc {
 			virtual bool supports_socket(int domain, int type, int protocol);
 			virtual bool supports_stat(const char *path);
 			virtual bool supports_unlink(const char *path);
+			virtual bool supports_mmap();
 
 			virtual File_descriptor *accept(File_descriptor *,
 			                                struct ::sockaddr *addr,
@@ -98,6 +99,7 @@ namespace Libc {
 			virtual int mkdir(const char *pathname, mode_t mode);
 			virtual void *mmap(void *addr, ::size_t length, int prot, int flags,
 			                   File_descriptor *, ::off_t offset);
+			virtual int munmap(void *addr, ::size_t length);
 			virtual File_descriptor *open(const char *pathname, int flags);
 			virtual int pipe(File_descriptor *pipefd[2]);
 			virtual ssize_t read(File_descriptor *, void *buf, ::size_t count);

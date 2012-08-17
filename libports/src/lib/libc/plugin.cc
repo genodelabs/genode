@@ -110,6 +110,13 @@ bool Plugin::supports_unlink(const char*)
 	return false;
 }
 
+
+bool Plugin::supports_mmap()
+{
+	return false;
+}
+
+
 /**
  * Default implementations
  */
@@ -181,6 +188,7 @@ DUMMY(int, -1, getaddrinfo,  (const char *, const char *, const struct ::addrinf
 DUMMY(int, -1, mkdir,        (const char*, mode_t));
 DUMMY(void *, (void *)(-1), mmap, (void *addr, ::size_t length, int prot, int flags,
                                    File_descriptor *, ::off_t offset));
+DUMMY(int, -1, munmap,       (void *, ::size_t));
 DUMMY(int, -1, pipe,         (File_descriptor*[2]));
 DUMMY(int, -1, rename,       (const char *, const char *));
 DUMMY(int, -1, select,       (int, fd_set *, fd_set *, fd_set *, struct timeval *));
