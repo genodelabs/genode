@@ -34,9 +34,12 @@
 #include <sys/dirent.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <termios.h>
 
+/* libc-internal includes */
+#include <libc_mem_alloc.h>
 
 enum { verbose = false };
 
@@ -543,7 +546,8 @@ namespace {
 			bool supports_socket(int, int, int)              { return true; }
 			bool supports_freeaddrinfo(struct addrinfo *)    { return true; }
 			bool supports_getaddrinfo(const char *, const char *,
-						  struct addrinfo **)    { return true; }
+			                          struct addrinfo **)    { return true; }
+			bool supports_mmap()                             { return true; }
 
 			Libc::File_descriptor *open(char const *, int);
 			ssize_t write(Libc::File_descriptor *, const void *, ::size_t);
@@ -564,6 +568,9 @@ namespace {
 			int unlink(char const *path);
 			int rename(const char *oldpath, const char *newpath);
 			int mkdir(const char *path, mode_t mode);
+			void *mmap(void *addr, ::size_t length, int prot, int flags,
+			           Libc::File_descriptor *, ::off_t offset);
+			int munmap(void *addr, ::size_t length);
 
 			/* Network related functions */
 			Libc::File_descriptor *socket(int, int, int);
@@ -1089,6 +1096,42 @@ namespace {
 		return 0;
 	}
 
+	void *Plugin::mmap(void *addr_in, ::size_t length, int prot, int flags,
+	                   Libc::File_descriptor *fd, ::off_t offset)
+	{
+		if (prot != PROT_READ) {
+			PERR("mmap for prot=%x not supported", prot);
+			errno = EACCES;
+			return (void *)-1;
+		}
+
+		if (addr_in != 0) {
+			PERR("mmap for predefined address not supported");
+			errno = EINVAL;
+			return (void *)-1;
+		}
+
+		void *addr = Libc::mem_alloc()->alloc(length, PAGE_SHIFT);
+		if (addr == (void *)-1) {
+			errno = ENOMEM;
+			return (void *)-1;
+		}
+
+		if (::pread(fd->libc_fd, addr, length, offset) < 0) {
+			PERR("mmap could not obtain file content");
+			::munmap(addr, length);
+			errno = EACCES;
+			return (void *)-1;
+		}
+
+		return addr;
+	}
+
+	int Plugin::munmap(void *addr, ::size_t)
+	{
+		Libc::mem_alloc()->free(addr);
+		return 0;
+	}
 
 	Libc::File_descriptor *Plugin::socket(int domain, int type, int protocol)
 	{

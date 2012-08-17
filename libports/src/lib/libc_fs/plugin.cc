@@ -23,11 +23,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
 
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
 
+/* libc-internal includes */
+#include <libc_mem_alloc.h>
 
 static bool const verbose = false;
 
@@ -287,6 +291,8 @@ class Plugin : public Libc::Plugin
 				PDBG("path = %s", path);
 			return true;
 		}
+
+		bool supports_mmap() { return true; }
 
 		int chdir(const char *path)
 		{
@@ -702,6 +708,43 @@ class Plugin : public Libc::Plugin
 
 			PDBG("write returns %zd", count);
 			return count;
+		}
+
+		void *mmap(void *addr_in, ::size_t length, int prot, int flags,
+		           Libc::File_descriptor *fd, ::off_t offset)
+		{
+			if (prot != PROT_READ) {
+				PERR("mmap for prot=%x not supported", prot);
+				errno = EACCES;
+				return (void *)-1;
+			}
+
+			if (addr_in != 0) {
+				PERR("mmap for predefined address not supported");
+				errno = EINVAL;
+				return (void *)-1;
+			}
+
+			void *addr = Libc::mem_alloc()->alloc(length, PAGE_SHIFT);
+			if (addr == (void *)-1) {
+				errno = ENOMEM;
+				return (void *)-1;
+			}
+
+			if (::pread(fd->libc_fd, addr, length, offset) < 0) {
+				PERR("mmap could not obtain file content");
+				::munmap(addr, length);
+				errno = EACCES;
+				return (void *)-1;
+			}
+
+			return addr;
+		}
+
+		int munmap(void *addr, ::size_t)
+		{
+			Libc::mem_alloc()->free(addr);
+			return 0;
 		}
 };
 
