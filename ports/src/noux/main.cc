@@ -11,34 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/*
- * TODO
- *
- * ;- Child class
- * ;- Pass args and env to child
- * ;- Receive args by child
- * ;- run 'echo hello'
- * ;- run 'seq 10'
- * ;- skeleton of noux RPC interface
- * ;- run 'pwd'
- * ;- move _write->LOG to libc plugin
- * ;- stdio (implementation of _write)
- * ;- vfs
- * ;- TAR file system
- * ;- run 'ls -lRa' (dirent syscall)
- * ;- run 'cat' (read syscall)
- * ;- execve
- * ;- fork
- * ;- pipe
- * ;- read init binary from vfs
- * ;- import env into child (execve and fork)
- * ;- shell
- * - debug 'find'
- * ;- stacked file system infrastructure
- * ;- TMP file system
- * ;- RAM service using a common quota pool
- */
-
 /* Genode includes */
 #include <cap_session/connection.h>
 #include <os/config.h>
@@ -53,7 +25,7 @@
 #include <dir_file_system.h>
 
 
-enum { verbose_syscall = true };
+static bool trace_syscalls = false;
 
 
 namespace Noux {
@@ -64,12 +36,10 @@ namespace Noux {
 	void init_process_exited() { init_child = 0; }
 };
 
-
-extern "C" void wait_for_continue();
-
 extern void (*close_socket)(int);
 
 extern void init_network();
+
 
 /*****************************
  ** Noux syscall dispatcher **
@@ -77,7 +47,7 @@ extern void init_network();
 
 bool Noux::Child::syscall(Noux::Session::Syscall sc)
 {
-	if (verbose_syscall)
+	if (trace_syscalls)
 		Genode::printf("PID %d -> SYSCALL %s\n",
 		               pid(), Noux::Session::syscall_name(sc));
 
@@ -476,9 +446,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_SHUTDOWN:
 		case SYSCALL_CONNECT:
 		case SYSCALL_GETADDRINFO:
-			{
-				return _syscall_net(sc);
-			}
+
+			return _syscall_net(sc);
+
 		case SYSCALL_INVALID: break;
 		}
 	}
@@ -621,12 +591,18 @@ int main(int argc, char **argv)
 
 	static Genode::Cap_connection cap;
 
+	/* obtain global configuration */
+	try {
+		trace_syscalls = config()->xml_node().attribute("trace_syscalls").has_value("yes");
+	} catch (Xml_node::Nonexistent_attribute) { }
+
 	/* initialize virtual file system */
 	static Dir_file_system
 		root_dir(config()->xml_node().sub_node("fstab"));
 
 	/* initialize network */
 	init_network();
+
 	/*
 	 * Entrypoint used to virtualize child resources such as RAM, RM
 	 */
