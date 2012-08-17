@@ -127,7 +127,7 @@ class Table_wrapper
 		 */
 		void _map(size_t size)
 		{
-			_io_mem = new (env()->heap()) Io_mem_connection(_base, size + _offset());
+			_io_mem = new (env()->heap()) Io_mem_connection(_base - _offset(), size + _offset());
 			Io_mem_dataspace_capability io_ds = _io_mem->dataspace();
 			if (!io_ds.valid())
 				throw -1;
@@ -206,7 +206,11 @@ class Table_wrapper
 		Table_wrapper(addr_t base)
 		: _base(base), _io_mem(0), _table(0)
 		{
-			_map(0x1000);
+			/*
+			 * Try to map one page only, if table is on page boundary, map two pages
+			 */
+			size_t map_size = 0x1000 - _offset();
+			_map(map_size < 8 ? 0x1000 : map_size);
 
 			/* remap if table size is larger than current size */
 			if (_offset() + _table->size > 0x1000) {
