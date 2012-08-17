@@ -1,0 +1,133 @@
+#
+# \brief  Example for running lighttpd
+# \author Norman Feske
+# \date   2012-08-16
+#
+
+set build_components {
+	core init
+	drivers/pci
+	drivers/nic
+	drivers/timer
+	server/ram_fs
+	app/lighttpd
+}
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="CAP"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<policy label="lighttpd" root="/" />
+			<content>
+				<dir name="etc">
+					<dir name="lighttpd">
+						<inline name="lighttpd.conf">
+# lighttpd configuration
+server.port          = 80
+server.document-root = "/website"
+server.event-handler = "select"
+server.network-backend = "write"
+index-file.names     = (
+  "index.xhtml", "index.html", "index.htm"
+)
+mimetype.assign      = (
+  ".html"         =>      "text/html",
+  ".htm"          =>      "text/html"
+)
+						</inline>
+					</dir>
+				</dir>
+				<dir name="website">
+					<inline name="index.html">
+<html>
+	<head>
+		<title>Hello</title>
+	</head>
+	<body>
+		<p>Hello Genode!</p>
+		<b>I am bold ;-)</b>
+	</body>
+</html>
+					</inline>
+				</dir>
+			</content>
+		</config>
+	</start>
+	<start name="lighttpd">
+		<resource name="RAM" quantum="1G" />
+		<config>
+			<arg value="lighttpd" />
+			<arg value="-f" />
+			<arg value="/etc/lighttpd/lighttpd.conf" />
+			<arg value="-D" />
+		</config>
+	</start>}
+
+append config {
+</config>}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so nic_drv ram_fs
+	libc.lib.so libm.lib.so libc_fs.lib.so libc_log.lib.so
+	lwip.lib.so zlib.lib.so libcrypto.lib.so libssl.lib.so
+	lighttpd
+}
+
+# platform-specific modules
+lappend_if [have_spec pci] boot_modules pci_drv
+
+build_boot_image $boot_modules
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -redir tcp:5555::80 "
+append qemu_args " -nographic -serial mon:stdio "
+
+run_genode_until forever

@@ -1,0 +1,75 @@
+--- a/contrib/lighttpd-1.4.31/src/fdevent_poll.c.orig
++++ b/contrib/lighttpd-1.4.31/src/fdevent_poll.c
+@@ -193,7 +193,7 @@ int fdevent_poll_init(fdevents *ev) {
+ int fdevent_poll_init(fdevents *ev) {
+ 	UNUSED(ev);
+ 
+-	log_error_write(srv, __FILE__, __LINE__,
++	log_error_write(ev->srv, __FILE__, __LINE__,
+ 		"s", "poll is not supported, try to set server.event-handler = \"select\"");
+ 
+ 	return -1;
+--- a/contrib/lighttpd-1.4.31/src/http-header-glue.c.orig
++++ b/contrib/lighttpd-1.4.31/src/http-header-glue.c
+@@ -175,6 +175,7 @@ int http_response_redirect_to_directory(server *srv, connection *con) {
+ 			break;
+ #endif
+ 		case AF_INET:
++#if 0
+ 			if (NULL == (he = gethostbyaddr((char *)&our_addr.ipv4.sin_addr, sizeof(struct in_addr), AF_INET))) {
+ 				log_error_write(srv, __FILE__, __LINE__,
+ 						"SdS", "NOTICE: gethostbyaddr failed: ",
+@@ -184,6 +185,8 @@ int http_response_redirect_to_directory(server *srv, connection *con) {
+ 			} else {
+ 				buffer_append_string(o, he->h_name);
+ 			}
++#endif
++			buffer_append_string(o, inet_ntoa(our_addr.ipv4.sin_addr));
+ 			break;
+ 		default:
+ 			log_error_write(srv, __FILE__, __LINE__,
+--- a/contrib/lighttpd-1.4.31/src/network.c.orig
++++ b/contrib/lighttpd-1.4.31/src/network.c
+@@ -301,6 +301,7 @@ static int network_server_init(server *srv, buffer *host_token, specific_config
+ 		if (host == NULL) {
+ 			srv_socket->addr.ipv4.sin_addr.s_addr = htonl(INADDR_ANY);
+ 		} else {
++#if 0
+ 			struct hostent *he;
+ 			if (NULL == (he = gethostbyname(host))) {
+ 				log_error_write(srv, __FILE__, __LINE__,
+@@ -320,6 +321,7 @@ static int network_server_init(server *srv, buffer *host_token, specific_config
+ 			}
+ 
+ 			memcpy(&(srv_socket->addr.ipv4.sin_addr.s_addr), he->h_addr_list[0], he->h_length);
++#endif
+ 		}
+ 		srv_socket->addr.ipv4.sin_port = htons(port);
+ 
+--- a/contrib/lighttpd-1.4.31/src/fdevent.c.orig
++++ b/contrib/lighttpd-1.4.31/src/fdevent.c
+@@ -198,16 +198,23 @@ void * fdevent_get_context(fdevents *ev, int fd) {
+ }
+ 
+ int fdevent_fcntl_set(fdevents *ev, int fd) {
++#if 0
+ #ifdef FD_CLOEXEC
+ 	/* close fd on exec (cgi) */
+ 	fcntl(fd, F_SETFD, FD_CLOEXEC);
+ #endif
+-	if ((ev) && (ev->fcntl_set)) return ev->fcntl_set(ev, fd);
++	if ((ev) && (ev->fcntl_set)){
++		fprintf(stderr, "call ev->fcntl_set(ev, %d)\n", fd);
++		return ev->fcntl_set(ev, fd);
++	}
+ #ifdef O_NONBLOCK
++		fprintf(stderr, "call fcntl(ev, %d)\n", fd);
+ 	return fcntl(fd, F_SETFL, O_NONBLOCK | O_RDWR);
+ #else
+ 	return 0;
+ #endif
++#endif
++	return 0;
+ }
+ 
+ 

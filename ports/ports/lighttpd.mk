@@ -18,3 +18,4 @@ $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ):
 
 $(CONTRIB_DIR)/$(LIGHTTPD): $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+	$(VERBOSE)patch -N -p1 < src/app/lighttpd/disable_gethostbyaddr_fcntl.patch
