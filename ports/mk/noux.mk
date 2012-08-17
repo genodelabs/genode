@@ -77,7 +77,7 @@ endif
 endif
 
 NOUX_CONFIGURE_ARGS += --srcdir=$(NOUX_PKG_DIR)
-NOUX_CONFIGURE_ARGS += --prefix $(PWD)/install
+NOUX_CONFIGURE_ARGS += --prefix /
 
 CONFIG_GUESS_SCRIPT = $(NOUX_PKG_DIR)/config.guess)
 ifneq ($(wildcard $(CONFIG_GUESS_SCRIPT)),)
@@ -173,7 +173,7 @@ noux_built.tag: noux_env.sh Makefile
 
 noux_installed.tag: noux_built.tag
 	@$(MSG_INST)$(TARGET)
-	$(VERBOSE)$(MAKE) $(NOUX_MAKE_VERBOSE) install MAN= >> stdout.log 2>> stderr.log
+	$(VERBOSE)$(MAKE) $(NOUX_MAKE_VERBOSE) install DESTDIR=$(PWD)/install MAN= >> stdout.log 2>> stderr.log
 	$(VERBOSE)rm -f $(INSTALL_DIR)/$(TARGET)
 	$(VERBOSE)ln -sf $(PWD)/install $(INSTALL_DIR)/$(TARGET)
 	@touch $@
