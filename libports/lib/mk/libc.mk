@@ -2,8 +2,7 @@
 # C Library including string, locale
 #
 LIBS   = libc-string libc-locale libc-stdlib libc-stdio libc-gen libc-gdtoa \
-         libc-net libc-inet libc-stdtime libc-regex libc-compat libc-resolv \
-         libc-isc libc-nameser libc-setjmp
+         libc-inet libc-stdtime libc-regex libc-compat libc-setjmp
 
 LIBS  += timed_semaphore cxx
 
