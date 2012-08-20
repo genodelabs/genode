@@ -302,12 +302,11 @@ extern "C" int mkdir(const char *path, mode_t mode) {
 extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
                       int libc_fd, ::off_t offset)
 {
+
 	/* handle requests for anonymous memory */
 	if (!addr && libc_fd == -1) {
-		PDBG("call Libc::mem_alloc()->alloc(%zd)", length);
 		void *start = Libc::mem_alloc()->alloc(length, PAGE_SHIFT);
 		mmap_registry()->insert(start, length, 0);
-		PDBG("return addr %p", start);
 		return start;
 	}
 
@@ -324,7 +323,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 }
 
 
-extern "C" int munmap(void *start, size_t length)
+extern "C" int munmap(void *start, ::size_t length)
 {
 	if (!mmap_registry()->is_registered(start)) {
 		PWRN("munmap: could not lookup plugin for address %p", start);
@@ -339,12 +338,14 @@ extern "C" int munmap(void *start, size_t length)
 	 */
 	Plugin *plugin = mmap_registry()->lookup_plugin_by_addr(start);
 
-	if (!plugin) {
+	int ret = 0;
+	if (plugin)
+		ret = plugin->munmap(start, length);
+	else
 		Libc::mem_alloc()->free(start);
-		return 0;
-	}
 
-	return plugin->munmap(start, length);
+	mmap_registry()->remove(start);
+	return ret;
 }
 
 
