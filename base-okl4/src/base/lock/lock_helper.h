@@ -39,7 +39,7 @@ static inline void thread_yield() { Okl4::L4_Yield(); }
  *
  * \return true if the thread was in blocking state
  */
-static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
+static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
 {
 	using namespace Okl4;
 
