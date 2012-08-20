@@ -321,10 +321,10 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 	switch (cmd) {
 	case F_GETFL:
 	case F_SETFL:
-		result = lwip_fcntl(s, cmd, val);
+		result = lwip_fcntl(s, cmd, (val & O_NONBLOCK) ? -1 : O_NONBLOCK);
 		break;
 	default:
-		PERR("unsupported fcntl() request");
+		PERR("unsupported fcntl() request: %d", cmd);
 		break;
 	}
 
