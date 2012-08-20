@@ -23,6 +23,8 @@
 #include <tar_file_system.h>
 #include <fs_file_system.h>
 #include <terminal_file_system.h>
+#include <null_file_system.h>
+#include <zero_file_system.h>
 
 namespace Noux {
 
@@ -93,6 +95,18 @@ namespace Noux {
 
 					if (sub_node.has_type("terminal")) {
 						_append_file_system(new Terminal_file_system(sub_node));
+						continue;
+					}
+
+					if (sub_node.has_type("null")) {
+						_append_file_system(new Null_file_system());
+
+						continue;
+					}
+
+					if (sub_node.has_type("zero")) {
+						_append_file_system(new Zero_file_system());
+
 						continue;
 					}
 
