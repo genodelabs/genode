@@ -742,11 +742,10 @@ class Machine : public StaticReceiver<Machine>
 				{
 					Logging::printf("OP_VCPU_BLOCK\n");
 
-					global_lock.lock();
-					Logging::printf("going to block\n");
+					global_lock.unlock();
 					bool res = (Nova::sm_ctrl(msg.value, Nova::SEMAPHORE_DOWN) == 0);
 					Logging::printf("woke up from vcpu sem, block on global_lock\n");
-					global_lock.unlock();
+					global_lock.lock();
 					return res;
 				}
 
