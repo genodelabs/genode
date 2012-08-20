@@ -271,17 +271,31 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 	int   *dst     = in_fds.array;
 	size_t dst_len = Noux::Sysio::Select_fds::MAX_FDS;
 
-	in_fds.num_rd = marshal_fds(readfds, nfds, dst, dst_len);
+	/**
+	 * These variables are used in max_fds_exceeded() calculation, so
+	 * they need to be proper initialized.
+	 */
+	in_fds.num_rd = 0;
+	in_fds.num_wr = 0;
+	in_fds.num_ex = 0;
 
-	dst     += in_fds.num_rd;
-	dst_len -= in_fds.num_rd;
+	if (readfds != NULL) {
+		in_fds.num_rd = marshal_fds(readfds, nfds, dst, dst_len);
 
-	in_fds.num_wr = marshal_fds(writefds, nfds, dst, dst_len);
+		dst     += in_fds.num_rd;
+		dst_len -= in_fds.num_rd;
+	}
 
-	dst     += in_fds.num_wr;
-	dst_len -= in_fds.num_wr;
+	if (writefds != NULL) {
+		in_fds.num_wr = marshal_fds(writefds, nfds, dst, dst_len);
 
-	in_fds.num_ex = marshal_fds(exceptfds, nfds, dst, dst_len);
+		dst     += in_fds.num_wr;
+		dst_len -= in_fds.num_wr;
+	}
+
+	if (exceptfds != NULL) {
+		in_fds.num_ex = marshal_fds(exceptfds, nfds, dst, dst_len);
+	}
 
 	if (in_fds.max_fds_exceeded()) {
 		errno = ENOMEM;
@@ -294,14 +308,6 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 	if (timeout) {
 		sysio()->select_in.timeout.sec  = timeout->tv_sec;
 		sysio()->select_in.timeout.usec = timeout->tv_usec;
-
-		if (!sysio()->select_in.timeout.zero()) {
-//			PDBG("timeout=%d,%d -> replaced by zero timeout",
-//			     (int)timeout->tv_sec, (int)timeout->tv_usec);
-
-			sysio()->select_in.timeout.sec  = 0;
-			sysio()->select_in.timeout.usec = 0;
-		}
 	} else {
 		sysio()->select_in.timeout.set_infinite();
 	}
@@ -323,17 +329,28 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 	Noux::Sysio::Select_fds &out_fds = sysio()->select_out.fds;
 
 	int *src = out_fds.array;
+	int total_fds = 0;
 
-	unmarshal_fds(src, out_fds.num_rd, readfds);
-	src += out_fds.num_rd;
+	if (readfds != NULL) {
+		unmarshal_fds(src, out_fds.num_rd, readfds);
+		src += out_fds.num_rd;
+		total_fds += out_fds.num_rd;
+	}
 
-	unmarshal_fds(src, out_fds.num_wr, writefds);
-	src += out_fds.num_wr;
+	if (writefds != NULL) {
+		unmarshal_fds(src, out_fds.num_wr, writefds);
+		src += out_fds.num_wr;
+		total_fds += out_fds.num_wr;
+	}
 
-	unmarshal_fds(src, out_fds.num_ex, exceptfds);
+	if (exceptfds != NULL) {
+		unmarshal_fds(src, out_fds.num_ex, exceptfds);
+		/* exceptfds are currently ignored */
+	}
 
-	return out_fds.total_fds();
+	return total_fds;
 }
+
 
 #include <setjmp.h>
 #include <base/platform_env.h>

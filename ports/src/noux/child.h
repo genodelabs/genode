@@ -60,6 +60,12 @@ namespace Noux {
 	 */
 	Pid_allocator *pid_allocator();
 
+	/**
+	 * Return singleton instance of timeout scheduler
+	 */
+	class Timeout_scheduler;
+	Timeout_scheduler *timeout_scheduler();
+
 
 	class Child;
 

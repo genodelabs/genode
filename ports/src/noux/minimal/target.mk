@@ -1,5 +1,5 @@
 TARGET   = noux
-LIBS     = cxx env server process signal
+LIBS     = cxx env server process signal thread alarm
 SRC_CC   = main.cc dummy_net.cc
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(PRG_DIR)/../

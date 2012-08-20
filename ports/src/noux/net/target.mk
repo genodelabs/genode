@@ -1,5 +1,5 @@
 TARGET   = noux_net
-LIBS     = cxx env server process signal lwip
+LIBS     = cxx env server process signal lwip thread alarm
 
 LIBS    += libc libc_lwip
 

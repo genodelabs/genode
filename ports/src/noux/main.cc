@@ -14,6 +14,8 @@
 /* Genode includes */
 #include <cap_session/connection.h>
 #include <os/config.h>
+#include <os/alarm.h>
+#include <timer_session/connection.h>
 
 /* Noux includes */
 #include <child.h>
@@ -39,6 +41,75 @@ namespace Noux {
 extern void (*close_socket)(int);
 
 extern void init_network();
+
+
+/**
+ * Timeout thread for SYSCALL_SELECT
+ */
+
+namespace Noux {
+	using namespace Genode;
+
+	class Timeout_scheduler : Thread<4096>, public Alarm_scheduler
+	{
+		private:
+			Timer::Connection _timer;
+			Alarm::Time       _curr_time;
+
+			enum { TIMER_GRANULARITY_MSEC = 10 };
+
+			void entry()
+			{
+				for (;;) {
+					_timer.msleep(TIMER_GRANULARITY_MSEC);
+					Alarm_scheduler::handle(_curr_time);
+					_curr_time += TIMER_GRANULARITY_MSEC;
+				}
+			}
+
+		public:
+			Timeout_scheduler() : _curr_time(0) { start(); }
+
+			Alarm::Time curr_time() const { return _curr_time; }
+	};
+
+	struct Timeout_state
+	{
+		bool timed_out;
+
+		Timeout_state() : timed_out(false)  { }
+	};
+
+	class Timeout_alarm : public Alarm
+	{
+		private:
+			Timeout_state     *_state;
+			Semaphore         *_blocker;
+			Timeout_scheduler *_scheduler;
+
+		public:
+			Timeout_alarm(Timeout_state *st, Semaphore *blocker, Timeout_scheduler *scheduler, Time timeout)
+				:
+					_state(st),
+					_blocker(blocker),
+					_scheduler(scheduler)
+		{
+			_scheduler->schedule_absolute(this, _scheduler->curr_time() + timeout);
+			_state->timed_out = false;
+		}
+
+			void discard() { _scheduler->discard(this); }
+
+		protected:
+			bool on_alarm()
+			{
+				_state->timed_out = true;
+				_blocker->up();
+
+				return false;
+			}
+	};
+};
 
 
 /*****************************
@@ -231,6 +302,14 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_SELECT:
 			{
 				Sysio::Select_fds &in_fds = _sysio->select_in.fds;
+				size_t in_fds_total = in_fds.total_fds();
+
+				int _rd_array[in_fds_total];
+				int _wr_array[in_fds_total];
+
+				long timeout_sec     = _sysio->select_in.timeout.sec;
+				long timeout_usec    = _sysio->select_in.timeout.usec;
+				bool timeout_reached = false;
 
 				/*
 				 * Block for one action of the watched file descriptors
@@ -242,7 +321,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					 * unblock condition. Return if one I/O channel satisfies
 					 * the condition.
 					 */
-					for (Genode::size_t i = 0; i < in_fds.total_fds(); i++) {
+					size_t unblock_rd = 0;
+					size_t unblock_wr = 0;
+					size_t unblock_ex = 0;
+					
+					/* process read fds */
+					for (Genode::size_t i = 0; i < in_fds_total; i++) {
 
 						int fd = in_fds.array[i];
 						if (!fd_in_use(fd)) continue;
@@ -250,29 +334,50 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 						Shared_pointer<Io_channel> io = io_channel_by_fd(fd);
 
 						if (io->check_unblock(in_fds.watch_for_rd(i),
-						                      in_fds.watch_for_wr(i),
-						                      in_fds.watch_for_ex(i))) {
+								      in_fds.watch_for_wr(i),
+								      in_fds.watch_for_ex(i))) {
 
-							/*
-							 * Return single file descriptor that triggered the
-							 * unblocking. For now, only a single file
-							 * descriptor is returned on each call of select.
-							 */
-							Sysio::Select_fds &out_fds = _sysio->select_out.fds;
+							if (io->check_unblock(true, false, false)) {
+								_rd_array[unblock_rd++] = fd;
+							//	io->clear_unblock(true, false, false);
+							}
+							if (io->check_unblock(false, true, false)) {
+								_wr_array[unblock_wr++] = fd;
+							//	io->clear_unblock(false, true, false);
+							}
 
-							out_fds.array[0] = fd;
-							out_fds.num_rd   = io->check_unblock(true, false, false);
-							out_fds.num_wr   = io->check_unblock(false, true, false);
-							out_fds.num_ex   = io->check_unblock(false, false, true);
+							if (io->check_unblock(false, false, true)) {
+								unblock_ex++;
+							//	io->clear_unblock(false, false, true);
+							}
 
-							return true;
 						}
+					}
+
+					if (unblock_rd || unblock_wr || unblock_ex) {
+						for (size_t i = 0; i < unblock_rd; i++) {
+							_sysio->select_out.fds.array[i] = _rd_array[i];
+							_sysio->select_out.fds.num_rd = unblock_rd;
+						}
+						for (size_t i = 0; i < unblock_wr; i++) {
+							_sysio->select_out.fds.array[i] = _wr_array[i];
+							_sysio->select_out.fds.num_wr = unblock_wr;
+						}
+
+						_sysio->select_out.fds.num_ex = unblock_ex;
+
+						return true;
 					}
 
 					/*
 					 * Return if I/O channel triggered, but timeout exceeded
 					 */
-					if (_sysio->select_in.timeout.zero()) {
+					
+					if (_sysio->select_in.timeout.zero() || timeout_reached) {
+						/*
+						if (timeout_reached) PINF("timeout_reached");
+						else                 PINF("timeout.zero()");
+						*/
 						_sysio->select_out.fds.num_rd = 0;
 						_sysio->select_out.fds.num_wr = 0;
 						_sysio->select_out.fds.num_ex = 0;
@@ -292,9 +397,10 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					 *     conditions such as the destruction of the child.
 					 *     ...to be done.
 					 */
-					Wake_up_notifier notifiers[in_fds.total_fds()];
 
-					for (Genode::size_t i = 0; i < in_fds.total_fds(); i++) {
+					Wake_up_notifier notifiers[in_fds_total];
+
+					for (Genode::size_t i = 0; i < in_fds_total; i++) {
 						int fd = in_fds.array[i];
 						if (!fd_in_use(fd)) continue;
 
@@ -306,18 +412,42 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					/*
 					 * Block at barrier except when reaching the timeout
 					 */
-					_blocker.down();
+
+					if (!_sysio->select_in.timeout.infinite()) {
+						unsigned long to_msec = (timeout_sec * 1000) + (timeout_usec / 1000);
+						Timeout_state ts;
+						Timeout_alarm ta(&ts, &_blocker, Noux::timeout_scheduler(), to_msec);
+
+						/* block until timeout is reached or we were unblocked */
+						_blocker.down();
+
+						if (ts.timed_out) {
+							timeout_reached = 1;
+						}
+						else {
+							/*
+							 * We woke up before reaching the timeout,
+							 * so we discard the alarm
+							 */
+							ta.discard();
+						}
+					}
+					else {
+						/* let's block infinitely */
+						_blocker.down();
+					}
 
 					/*
 					 * Unregister barrier at watched I/O channels
 					 */
-					for (Genode::size_t i = 0; i < in_fds.total_fds(); i++) {
+					for (Genode::size_t i = 0; i < in_fds_total; i++) {
 						int fd = in_fds.array[i];
 						if (!fd_in_use(fd)) continue;
 
 						Shared_pointer<Io_channel> io = io_channel_by_fd(fd);
 						io->unregister_wake_up_notifier(&notifiers[i]);
 					}
+
 				}
 
 				return true;
@@ -567,6 +697,11 @@ Noux::Pid_allocator *Noux::pid_allocator()
 	return &inst;
 }
 
+Noux::Timeout_scheduler *Noux::timeout_scheduler()
+{
+	static Noux::Timeout_scheduler inst;
+	return &inst;
+}
 
 void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
