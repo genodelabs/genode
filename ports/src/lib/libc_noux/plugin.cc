@@ -37,6 +37,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <termios.h>
+#include <pwd.h>
 
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
@@ -92,6 +93,85 @@ enum { FS_BLOCK_SIZE = 1024 };
 /***********************************************
  ** Overrides of libc default implementations **
  ***********************************************/
+
+/**
+ * User information related functions
+ */
+extern "C" struct passwd *getpwuid(uid_t uid)
+{
+	static char name[Noux::Sysio::MAX_USERNAME_LEN];
+	static char shell[Noux::Sysio::MAX_SHELL_LEN];
+	static char home[Noux::Sysio::MAX_HOME_LEN];
+
+	static struct passwd pw = {
+		/* .pw_name    = */ name,
+		/* .pw_passwd  = */ "",
+		/* .pw_uid     = */ 0,
+		/* .pw_gid     = */ 0,
+		/* .pw_change  = */ 0,
+		/* .pw_class   = */ "",
+		/* .pw_gecos   = */ "",
+		/* .pw_dir     = */ home,
+		/* .pw_shell   = */ shell,
+		/* .pw_expire  = */ 0,
+		/* .pw_fields  = */ 0
+	};
+
+	sysio()->userinfo_in.uid = uid;
+	sysio()->userinfo_in.request = Noux::Sysio::USERINFO_GET_ALL;
+
+	if (!noux()->syscall(Noux::Session::SYSCALL_USERINFO)) {
+		return (struct passwd *)0;
+	}
+
+	/* SYSCALL_USERINFO assures that strings are always '\0' terminated */
+	Genode::memcpy(name,  sysio()->userinfo_out.name,  sizeof (sysio()->userinfo_out.name));
+	Genode::memcpy(home,  sysio()->userinfo_out.home,  sizeof (sysio()->userinfo_out.home));
+	Genode::memcpy(shell, sysio()->userinfo_out.shell, sizeof (sysio()->userinfo_out.shell));
+
+	pw.pw_uid = sysio()->userinfo_out.uid;
+	pw.pw_gid = sysio()->userinfo_out.gid;
+
+	return &pw;
+}
+
+
+extern "C" uid_t getgid()
+{
+	sysio()->userinfo_in.request = Noux::Sysio::USERINFO_GET_GID;
+
+	if (!noux()->syscall(Noux::Session::SYSCALL_USERINFO))
+		return 0;
+
+	uid_t gid = sysio()->userinfo_out.gid;
+	return gid;
+}
+
+
+extern "C" uid_t getegid()
+{
+	return getgid();
+}
+
+
+extern "C" uid_t getuid()
+{
+	sysio()->userinfo_in.request = Noux::Sysio::USERINFO_GET_UID;
+
+	if (!noux()->syscall(Noux::Session::SYSCALL_USERINFO))
+		return 0;
+
+	uid_t uid = sysio()->userinfo_out.uid;
+	PDBG("getuid(): %d", uid);
+	return uid;
+}
+
+
+extern "C" uid_t geteuid()
+{
+	return getuid();
+}
+
 
 extern "C" int __getcwd(char *dst, Genode::size_t dst_size)
 {

@@ -66,6 +66,12 @@ namespace Noux {
 	class Timeout_scheduler;
 	Timeout_scheduler *timeout_scheduler();
 
+	/**
+	 * Return singleton instance of user information
+	 */
+	class User_info;
+	User_info *user_info();
+
 
 	class Child;
 

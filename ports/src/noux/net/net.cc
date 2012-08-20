@@ -163,6 +163,7 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 		case SYSCALL_RENAME:
 		case SYSCALL_MKDIR:
 		case SYSCALL_FTRUNCATE:
+		case SYSCALL_USERINFO:
 			break;
 		case SYSCALL_SOCKET:
 			{

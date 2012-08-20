@@ -271,6 +271,18 @@ namespace Noux {
 			char             ai_canonname[255];
 		};
 
+		/**
+		 * user info defintions
+		 */
+		enum { USERINFO_GET_ALL = 0, USERINFO_GET_UID, USERINFO_GET_GID };
+		enum { MAX_USERNAME_LEN = 32 };
+		typedef char User[MAX_USERNAME_LEN];
+		enum { MAX_SHELL_LEN = 16 };
+		typedef char Shell[MAX_SHELL_LEN];
+		enum { MAX_HOME_LEN = 128 };
+		typedef char Home[MAX_HOME_LEN];
+		typedef unsigned int Uid;
+
 		enum General_error   { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
 		enum Stat_error      { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
 		enum Fchdir_error    { FCHDIR_ERR_NOT_DIR    = NUM_GENERAL_ERRORS };
@@ -400,6 +412,10 @@ namespace Noux {
 			                          Addrinfo hints;
 			                          Addrinfo res[MAX_ADDRINFO_RESULTS]; },
 			                        { int addr_num; });
+
+			SYSIO_DECL(userinfo, { int request; Uid uid; },
+			                     { User name; Uid uid; Uid gid; Shell shell;
+			                       Home home; });
 		};
 	};
 };

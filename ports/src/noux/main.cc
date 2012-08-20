@@ -25,6 +25,7 @@
 #include <dummy_input_io_channel.h>
 #include <pipe_io_channel.h>
 #include <dir_file_system.h>
+#include <user_info.h>
 
 
 static bool trace_syscalls = false;
@@ -562,6 +563,33 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			return _root_dir->mkdir(_sysio, Absolute_path(_sysio->mkdir_in.path,
 			                                              _env.pwd()).base());
 
+		case SYSCALL_USERINFO:
+			{
+				if (_sysio->userinfo_in.request == Sysio::USERINFO_GET_UID
+				    || _sysio->userinfo_in.request == Sysio::USERINFO_GET_GID) {
+					_sysio->userinfo_out.uid = Noux::user_info()->uid;
+					_sysio->userinfo_out.gid = Noux::user_info()->gid;
+
+					return true;
+				}
+
+				/*
+				 * Since NOUX supports exactly one user, return false if we
+				 * got a unknown uid.
+				 */
+				if (_sysio->userinfo_in.uid != Noux::user_info()->uid)
+					return false;
+
+				Genode::memcpy(_sysio->userinfo_out.name,  Noux::user_info()->name,  sizeof(Noux::user_info()->name));
+				Genode::memcpy(_sysio->userinfo_out.shell, Noux::user_info()->shell, sizeof(Noux::user_info()->shell));
+				Genode::memcpy(_sysio->userinfo_out.home,  Noux::user_info()->home,  sizeof(Noux::user_info()->home));
+
+				_sysio->userinfo_out.uid = user_info()->uid;
+				_sysio->userinfo_out.gid = user_info()->gid;
+
+				return true;
+			}
+
 		case SYSCALL_SOCKET:
 		case SYSCALL_GETSOCKOPT:
 		case SYSCALL_SETSOCKOPT:
@@ -697,11 +725,20 @@ Noux::Pid_allocator *Noux::pid_allocator()
 	return &inst;
 }
 
+
 Noux::Timeout_scheduler *Noux::timeout_scheduler()
 {
 	static Noux::Timeout_scheduler inst;
 	return &inst;
 }
+
+
+Noux::User_info* Noux::user_info()
+{
+	static Noux::User_info inst;
+	return &inst;
+}
+
 
 void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
@@ -734,6 +771,12 @@ int main(int argc, char **argv)
 	/* initialize virtual file system */
 	static Dir_file_system
 		root_dir(config()->xml_node().sub_node("fstab"));
+
+	/* set user information */
+	try {
+		user_info()->set_info(config()->xml_node().sub_node("user"));
+	}
+	catch (...) { }
 
 	/* initialize network */
 	init_network();
