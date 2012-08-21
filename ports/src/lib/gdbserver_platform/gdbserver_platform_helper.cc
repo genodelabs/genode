@@ -33,8 +33,6 @@ bool get_current_thread_state(Thread_state &thread_state)
 
 	ptid_t ptid = ((struct inferior_list_entry*)current_inferior)->id;
 
-	csc->state(csc->thread_cap(ptid.lwp), &thread_state);
-
-	return true;
+	return !csc->state(csc->thread_cap(ptid.lwp), &thread_state);
 }
 
