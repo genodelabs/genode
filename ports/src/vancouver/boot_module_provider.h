@@ -1,6 +1,7 @@
 /*
  * \brief  Back end used for obtaining multi-boot modules
  * \author Norman Feske
+ * \author Markus Partheymueller
  * \date   2011-11-20
  */
 
@@ -9,6 +10,11 @@
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
+ *
+ * Copyright (C) 2012 Intel Corporation    
+ * 
+ * Modifications are contributed under the terms and conditions of the
+ * GNU General Public License version 2.
  */
 
 #ifndef _BOOT_MODULE_PROVIDER_H_
@@ -103,6 +109,20 @@ class Boot_module_provider
 					env()->rm_session()->detach(src);
 
 					return src_len;
+				} else if (mod_node.has_type("inline")) {
+					/*
+                                         * Determine ROM file name, which is specified as 'name'
+                                         * attribute of the 'rom' node.
+                                         */
+					char name[MODULE_NAME_MAX_LEN];
+					mod_node.attribute("name").value(name, sizeof(name));
+
+					/*
+					 * Copy inline content directly to destination buffer
+					 */
+					Genode::memcpy(dst, mod_node.content_addr(), mod_node.content_size());
+
+					return mod_node.content_size();
 				}
 
 				PWRN("XML node %d in multiboot node has unexpected type",
@@ -135,7 +155,7 @@ class Boot_module_provider
 			try {
 				Xml_node mod_node = _multiboot_node.sub_node(module_index);
 
-				if (mod_node.has_type("rom")) {
+				if (mod_node.has_type("rom") || mod_node.has_type("inline")) {
 
 					size_t cmd_len = 0;
 
