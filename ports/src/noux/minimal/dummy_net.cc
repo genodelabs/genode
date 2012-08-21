@@ -16,6 +16,8 @@
 
 void (*close_socket)(int) = 0;
 
+void (*cleanup_socket_descriptors)() = 0;
+
 void init_network() { }
 
 bool Noux::Child::_syscall_net(Noux::Session::Syscall sc) { return false; }

@@ -33,6 +33,7 @@ using namespace Noux;
 
 void (*libc_select_notify)();
 void (*close_socket)(int);
+void (*cleanup_socket_descriptors)();
 
 /* set select() timeout to lwip's lowest possible value */
 struct timeval timeout = { 0, 10000 };
@@ -95,7 +96,15 @@ static void select_notify()
 
 static void _close_socket(int sd)
 {
-	Socket_descriptor_registry<Socket_io_channel>::instance()->remove_io_channel(sd);
+	if (Socket_descriptor_registry<Socket_io_channel>::instance()->sd_in_use(sd)) {
+		Socket_descriptor_registry<Socket_io_channel>::instance()->remove_io_channel(sd);
+	}
+}
+
+
+static void _cleanup_socket_descriptors()
+{
+	Socket_descriptor_registry<Socket_io_channel>::instance()->reset_all();
 }
 
 
@@ -121,6 +130,9 @@ void init_network()
 
 	if (!close_socket)
 		close_socket = _close_socket;
+
+	if (!cleanup_socket_descriptors)
+		cleanup_socket_descriptors = _cleanup_socket_descriptors;
 }
 
 /*********************************
