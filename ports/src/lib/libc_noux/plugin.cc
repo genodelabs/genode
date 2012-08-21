@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <pwd.h>
+#include <string.h>
 
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
@@ -103,14 +104,16 @@ extern "C" struct passwd *getpwuid(uid_t uid)
 	static char shell[Noux::Sysio::MAX_SHELL_LEN];
 	static char home[Noux::Sysio::MAX_HOME_LEN];
 
+	static char *empty = strdup("");
+
 	static struct passwd pw = {
 		/* .pw_name    = */ name,
-		/* .pw_passwd  = */ "",
+		/* .pw_passwd  = */ empty,
 		/* .pw_uid     = */ 0,
 		/* .pw_gid     = */ 0,
 		/* .pw_change  = */ 0,
-		/* .pw_class   = */ "",
-		/* .pw_gecos   = */ "",
+		/* .pw_class   = */ empty,
+		/* .pw_gecos   = */ empty,
 		/* .pw_dir     = */ home,
 		/* .pw_shell   = */ shell,
 		/* .pw_expire  = */ 0,
