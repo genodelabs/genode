@@ -117,12 +117,19 @@ namespace Noux {
 				return false;
 			}
 
-			size_t write(Sysio *sysio)
+			bool write(Sysio *sysio, size_t &count)
 			{
-				size_t written = ::write(_socket, sysio->write_in.chunk,
+				size_t result = ::write(_socket, sysio->write_in.chunk,
 				                         sysio->write_in.count);
 
-				return written;
+				if (result > -1) {
+					sysio->write_out.count = result;
+					count = result;
+
+					return true;
+				}
+
+				return false;
 			}
 
 			bool read(Sysio *sysio)
