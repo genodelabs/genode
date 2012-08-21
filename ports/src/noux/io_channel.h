@@ -71,6 +71,11 @@ namespace Noux {
 				return false; }
 
 			/**
+			 * Return true if the channel is set to non-blocking mode
+			 */
+			virtual bool is_nonblocking() { return false; }
+
+			/**
 			 * Register blocker for getting waked up on an I/O channel event
 			 *
 			 * This function is normally called by the to-be-blocked thread

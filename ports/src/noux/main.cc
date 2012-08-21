@@ -140,8 +140,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 					Shared_pointer<Io_channel> io = _lookup_channel(_sysio->write_in.fd);
 
-					if (!io->check_unblock(false, true, false))
-						_block_for_io_channel(io);
+					if (!io->is_nonblocking())
+						if (!io->check_unblock(false, true, false))
+							_block_for_io_channel(io);
 
 					/*
 					 * 'io->write' is expected to update 'write_out.count'
@@ -156,8 +157,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			{
 				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->read_in.fd);
 
-				while (!io->check_unblock(true, false, false))
-					_block_for_io_channel(io);
+				if (!io->is_nonblocking())
+					while (!io->check_unblock(true, false, false))
+						_block_for_io_channel(io);
 
 				io->read(_sysio);
 				return true;
