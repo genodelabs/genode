@@ -21,7 +21,8 @@ Connect the PandaBoard to your local Ethernet through its RJ45 connector.
 Additionally connect the PandaBoard to your machine through its COM port.
 Ensure that you have installed the genode tool chain that is available at:
 
-  [http://genode.org/download/tool-chain - Get the genode tool chain]
+:[http://genode.org/download/tool-chain]:
+  Get the genode tool chain]
 
 Ensure that '<GENODE_GCC_DIR>/bin/' is in your 'PATH' variable.
 Get the linaro U-Boot repository and compile U-Boot for PandaBoard:
