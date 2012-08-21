@@ -1034,6 +1034,12 @@ namespace {
 			sysio()->fcntl_in.cmd = Noux::Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS;
 			break;
 
+		case F_SETFL:
+			PINF("fcntl: F_SETFL for libc_fd=%d", fd->libc_fd);
+			sysio()->fcntl_in.cmd      = Noux::Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS;
+			sysio()->fcntl_in.long_arg = arg;
+			break;
+
 		default:
 			PERR("fcntl: unsupported command %d", cmd);
 			errno = EINVAL;
