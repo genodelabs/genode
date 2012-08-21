@@ -92,9 +92,10 @@ namespace Noux {
 		 */
 		struct Ioctl_in
 		{
-			enum Opcode { OP_UNDEFINED, OP_TIOCGWINSZ };
+			enum Opcode { OP_UNDEFINED, OP_TIOCGWINSZ, OP_FIONBIO };
 
 			Opcode request;
+			int argp;
 		};
 
 		/**

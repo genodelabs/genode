@@ -861,9 +861,18 @@ namespace {
 
 			break;
 
+		case FIONBIO:
+			{
+				if (verbose)
+					PDBG("FIONBIO - *argp=%d", *argp);
+
+				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_FIONBIO;
+				sysio()->ioctl_in.argp = argp ? *(int*)argp : 0;
+			}
+
 		default:
 
-			PWRN("unsupported ioctl (request=0x%x", request);
+			PWRN("unsupported ioctl (request=0x%x)", request);
 			break;
 		}
 
@@ -891,6 +900,9 @@ namespace {
 				winsize->ws_col = sysio()->ioctl_out.tiocgwinsz.columns;
 				return 0;
 			}
+
+		case FIONBIO:
+			return 0;
 
 		default:
 			return -1;
