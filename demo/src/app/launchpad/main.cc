@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 
 	/* if there exists no configuration, use defaults */
 	} catch (...) {
-		launchpad.add_launcher("testnit",      512*1024);
+		launchpad.add_launcher("testnit",      768*1024);
 		launchpad.add_launcher("scout",    11*1024*1024);
 		launchpad.add_launcher("launchpad", 6*1024*1024);
 		launchpad.add_launcher("nitlog",    1*1024*1024);
