@@ -211,15 +211,15 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE> {
 
 		Genode::addr_t exc_base() { return tid().exc_pt_sel; }
 
-		void start() {
+		void start(Genode::addr_t sel_ec) {
  			this->Thread_base::start();
 
 			using namespace Genode;
+
 			/*
 			 * Request native EC thread cap and put it next to the
 			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
 			 */
-			addr_t sel_ec = tid().exc_pt_sel + Nova::SM_SEL_EC + 1;
 
 			Nova_cpu_connection cpu;
 			/* Use selector next to SM cap to retrieve EC cap */
@@ -267,8 +267,6 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 
 		static void _free_sel(Nova::mword_t sel, Genode::size_t num_caps_log2 = 0) {
 			Genode::cap_selector_allocator()->free(sel, num_caps_log2); }
-
-		static Nova::mword_t _pd_sel() { return 0; }
 
 		static ::Utcb *_utcb_of_myself() {
 			return (::Utcb *)Genode::Thread_base::myself()->utcb(); }
@@ -545,7 +543,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			request_event_portal(pager_cap, _tid.exc_pt_sel,
 			                     Nova::PT_SEL_PAGE_FAULT);
 			request_event_portal(pager_cap, _tid.exc_pt_sel,
-		    	                 Nova::SM_SEL_EC);
+			                     Nova::SM_SEL_EC);
 
 			/**
 			 * Request native thread cap, _thread_cap only a token.
@@ -599,7 +597,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			}
 
 			/* let vCPU run */
-			_vcpu_thread.start();
+			_vcpu_thread.start(sel_sm_ec() + 1);
 
 			/* handle cpuid overrides */
 			vcpu->executor.add(this, receive_static<CpuMessage>);
@@ -632,7 +630,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		 * arguments for 'MessageHostOp' operations.
 		 */
 		Nova::mword_t sel_sm_ec() {
-			return _vcpu_thread.exc_base() + Nova::SM_SEL_EC;
+			return tid().exc_pt_sel + Nova::SM_SEL_EC;
 		}
 
 
