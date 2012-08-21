@@ -603,7 +603,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_GETPEERNAME:
 		case SYSCALL_SHUTDOWN:
 		case SYSCALL_CONNECT:
-		case SYSCALL_GETADDRINFO:
 
 			return _syscall_net(sc);
 

@@ -408,11 +408,6 @@ namespace Noux {
 			SYSIO_DECL(connect,     { int fd; struct sockaddr addr; socklen_t addrlen; },
 			                        { int result; });
 
-			SYSIO_DECL(getaddrinfo, { Hostname hostname; Servname servname;
-			                          Addrinfo hints;
-			                          Addrinfo res[MAX_ADDRINFO_RESULTS]; },
-			                        { int addr_num; });
-
 			SYSIO_DECL(userinfo, { int request; Uid uid; },
 			                     { User name; Uid uid; Uid gid; Shell shell;
 			                       Home home; });
