@@ -4,6 +4,44 @@
                                ===========
 
 
+Genode OS Framework release 12.08 | 2012-08-23
+##############################################
+
+| Version 12.08 introduces a way to execute the framework on bare ARM
+| hardware without the need for a separate kernel, adds comprehensive
+| device-driver support for the OMAP4 SoC, and revives NOVA as base platform.
+
+Succeeding the feature-rich version 12.05 released in May, Genode 12.08 focuses
+on enhancing the framework's platform support. With regard to the framework's
+supported kernels, we are happy to announce a new base platform called base-hw
+and the largely reworked support for the NOVA hypervisor. The new base-hw
+platform enables the execution of Genode on bare ARM hardware without the need
+for a separate kernel. Using this platform, the kernel's functionality is
+integrated with Genode's core into one program, leading to a significant
+reduction of software complexity at the root of the process tree. Among the
+existing base platforms, the NOVA hypervisor has received plenty of love.
+Motivated by NOVA's recent move to GitHub, we largely reworked the support for
+this base platform, enabling x86_64, adding object integrity protection,
+facilitating the use of process-local names only, and changing the way of how
+kernel resources are allocated. These changes combined promote NOVA to a
+first-class citizen among the supported kernels.
+
+The second string of development contained in the current release is the
+addition of comprehensive device drivers for the OMAP4 SoC. The new drivers
+cover HDMI output, SD-card access, USB HID, and networking. With the new
+device drivers in place, Genode can be leveraged on low-cost ARM platforms
+such as the popular Pandaboard.
+
+Besides low-level platform improvements, the current release comes with
+new functionality in the form of custom components and ported 3rd-party
+software. Among the additions are a FFAT-based file system service, the
+principal ability for on-target debugging, and a way to host the genode.org
+website on Genode.
+
+These and many more improvements are described in detail in the
+[http:/documentation/release-notes/12.08 - release notes of version 12.08...]
+
+
 NOVA Hypervisor supported on 64-bit x86 machines | 2012-07-27
 #############################################################
 
