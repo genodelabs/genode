@@ -116,13 +116,20 @@ void Thread_base::start()
 	/* create EC at core */
 	addr_t thread_sp = reinterpret_cast<addr_t>(&_context->stack[-4]);
 
-	Genode::Nova_cpu_connection cpu;
-	if (cpu.start_exc_base_vcpu(_thread_cap, (addr_t)_thread_start,
-	                            thread_sp, _tid.exc_pt_sel, _tid.is_vcpu))
+	Thread_state state(true);
+	state.sel_exc_base = _tid.exc_pt_sel;
+	state.is_vcpu      = _tid.is_vcpu;
+
+	if (env()->cpu_session()->state(_thread_cap, &state) ||
+	    env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start,
+	                                thread_sp))
 		throw Cpu_session::Thread_creation_failed();
-	
+
 	/* request native EC thread cap */ 
+	Genode::Nova_cpu_connection cpu;
 	Native_capability ec_cap = cpu.native_cap(_thread_cap);
+	if (!ec_cap.valid())
+		throw Cpu_session::Thread_creation_failed();
 	_tid.ec_sel = ec_cap.local_name();
 
 	using namespace Nova;

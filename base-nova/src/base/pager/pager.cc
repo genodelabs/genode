@@ -44,18 +44,21 @@ void Pager_object::_page_fault_handler()
 	int ret = obj->pager(ipc_pager);
 
 	if (ret) {
-		PWRN("unresolvable page-fault at address 0x%lx, ip=0x%lx",
-		     ipc_pager.fault_addr(), ipc_pager.fault_ip());
-
 		if (!obj->submit_exception_signal()) {
+			PWRN("unresolvable page-fault at address 0x%lx, ip=0x%lx",
+		    	 ipc_pager.fault_addr(), ipc_pager.fault_ip());
+
 			/* revoke paging capability, let thread die in kernel */
 			Nova::revoke(Obj_crd(obj->exc_pt_sel() + PT_SEL_PAGE_FAULT, 0),
 			             true);
 			obj->_state.dead = true;
-		}
+		} else
+			/* Somebody takes care don't die - just recall and block */
+			 obj->client_recall();
 
 		Utcb *utcb = (Utcb *)Thread_base::myself()->utcb();
 		utcb->set_msg_word(0);
+		utcb->mtd = 0;
 	}
 
 	ipc_pager.reply_and_wait_for_fault();
@@ -133,19 +136,27 @@ void Pager_object::_invoke_handler()
 
 void Pager_object::wake_up() { cancel_blocking(); }
 
-void Pager_object::cancel_blocking_client() {
+
+void Pager_object::client_cancel_blocking() {
 	uint8_t res = sm_ctrl(exc_pt_sel() + SM_SEL_EC_CLIENT, SEMAPHORE_UP);
 	if (res != NOVA_OK)
 		PWRN("cancel blocking failed");
 }
 
+
+uint8_t Pager_object::client_recall() {
+	return ec_ctrl(_state.sel_client_ec);
+}
+
+
 Pager_object::Pager_object(unsigned long badge)
 : Thread_base("pager", PF_HANDLER_STACK_SIZE), _badge(badge)
 {
-	_pt_cleanup      = cap_selector_allocator()->alloc();
-	_sm_state_notify = cap_selector_allocator()->alloc();
-	_state.valid     = false;
-	_state.dead      = false;
+	_pt_cleanup          = cap_selector_allocator()->alloc();
+	_sm_state_notify     = cap_selector_allocator()->alloc();
+	_state.valid         = false;
+	_state.dead          = false;
+	_state.sel_client_ec = ~0UL;
 
 	/* create portal for page-fault handler */
 	addr_t pd_sel = __core_pd_sel;

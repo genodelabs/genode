@@ -29,18 +29,6 @@ Cpu_session_component::native_cap(Thread_capability thread_cap)
 	return thread->platform_thread()->native_cap();
 }
 
-int
-Cpu_session_component::start_exc_base_vcpu(Thread_capability thread_cap,
-                                           addr_t ip, addr_t sp, 
-                                           addr_t exc_base, bool vcpu)
-{
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
-	if (!thread) return -1;
-
-	return thread->platform_thread()->start((void *)ip, (void *)sp,
-	                                        exc_base, vcpu);
-}
-
 Native_capability
 Cpu_session_component::pause_sync(Thread_capability target_thread_cap)
 {

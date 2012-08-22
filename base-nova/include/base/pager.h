@@ -59,6 +59,7 @@ namespace Genode {
 
 			struct {
 				struct Thread_state thread;
+				addr_t sel_client_ec;
 				bool valid;
 				bool dead;
 			} _state;
@@ -164,7 +165,10 @@ namespace Genode {
 			 * Cancel blocking in a lock so that recall exception can take
 			 * place.
 			 */
-			void cancel_blocking_client();
+			void    client_cancel_blocking();
+
+			uint8_t client_recall();
+			void    client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
 	};
 
 

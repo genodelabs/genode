@@ -147,8 +147,6 @@ namespace Genode {
 			 ** NOVA specific extensions **
 			 ***********************************/
 
-			int start_exc_base_vcpu(Thread_capability, addr_t,
-			                        addr_t, addr_t, bool);
 			Native_capability native_cap(Thread_capability);
 			Native_capability pause_sync(Thread_capability);
 	};

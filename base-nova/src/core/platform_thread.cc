@@ -41,7 +41,7 @@ void Platform_thread::set_cpu(unsigned int cpu_no)
 }
 
 
-int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
+int Platform_thread::start(void *ip, void *sp)
 {
 	using namespace Nova;
 
@@ -59,10 +59,10 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 	_pager->initial_eip((addr_t)ip);
 	if (!_is_main_thread) {
 		addr_t initial_sp = reinterpret_cast<addr_t>(sp);
-		addr_t utcb       = vcpu ? 0 : round_page(initial_sp);
+		addr_t utcb       = _is_vcpu ? 0 : round_page(initial_sp);
 
 		_pager->initial_esp(initial_sp);
-		if (exc_base == ~0UL) {
+		if (_sel_exc_base == ~0UL) {
 			PERR("exception base not specified");
 			return -3;
 		}
@@ -86,9 +86,11 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 		bool thread_global = ip;
 
 		res = create_ec(_sel_ec(), _pd->pd_sel(), _cpu_no, utcb,
-		                initial_sp, exc_base, thread_global);
+		                initial_sp, _sel_exc_base, thread_global);
 		if (res)
 			PERR("creation of new thread failed %u", res);
+
+		_pager->client_set_ec(_sel_ec());
 
 		return res ? -5 : 0;
 	}
@@ -175,13 +177,17 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 	 * becomes running immediately.
 	 */
 	_pd->assign_pd(pd_sel);
+	_pager->client_set_ec(_sel_ec());
 
 	/* Let the thread run */
 	res = create_sc(_sel_sc(), pd_sel, _sel_ec(), Qpd());
 	if (res) {
-		/* Reset pd cap since thread got not running and pd cap will
-		 * be revoked during cleanup*/
+		/**
+		 * Reset pd cap since thread got not running and pd cap will
+		 * be revoked during cleanup.
+		 */
 		_pd->assign_pd(~0UL);
+		_pager->client_set_ec(~0UL);
 
 		PERR("create_sc returned %d", res);
 		goto cleanup_ec;
@@ -215,7 +221,7 @@ Native_capability Platform_thread::pause()
 	Native_capability notify_sm = _pager->notify_sm();
 	if (!notify_sm.valid()) return notify_sm;
 
- 	if (Nova::ec_ctrl(_sel_ec()) != Nova::NOVA_OK)
+ 	if (_pager->client_recall() != Nova::NOVA_OK)
 		return Native_capability::invalid_cap();
 
 	/* If the thread is blocked in the its own SM, get him out */
@@ -233,6 +239,7 @@ void Platform_thread::resume()
 	if (res == NOVA_OK) return;
 
 	if (!_pager) return;
+
 	/* Thread was paused beforehand and blocked in pager - wake up pager */
 	_pager->wake_up();
 }
@@ -242,9 +249,24 @@ int Platform_thread::state(Thread_state *state_dst)
 {
 	if (!state_dst || !_pager) return -1;
 
-	int res = _pager->copy_thread_state(state_dst);
+	if (state_dst->transfer) {
+		/* Not permitted for main thread */
+		if (_is_main_thread) return -2;
+		/* You can do it only once */
+		if (_sel_exc_base != ~0UL) return -3;
+		/**
+		 * _sel_exc_base  exception base of thread in caller
+		 *                protection domain - not in Core !
+		 * _is_vcpu       If true it will run as vCPU,
+		 *                 otherwise it will be a thread.
+		 */
+		_sel_exc_base = state_dst->sel_exc_base;
+		_is_vcpu      = state_dst->is_vcpu;
 
-	return res;
+		return 0;
+	}
+
+	return  _pager->copy_thread_state(state_dst);
 }
 
 
@@ -252,7 +274,7 @@ void Platform_thread::cancel_blocking()
 {
 	if (!_pager) return;
 
-	_pager->cancel_blocking_client();
+	_pager->client_cancel_blocking();
 }
 
 
@@ -261,7 +283,7 @@ unsigned long Platform_thread::pager_object_badge() const { return ~0UL; }
 
 Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
 : _pd(0), _pager(0), _id_base(cap_selector_allocator()->alloc(1)),
-  _sel_exc_base(~0UL), _cpu_no(0), _is_main_thread(false) { }
+  _sel_exc_base(~0UL), _cpu_no(0), _is_main_thread(false), _is_vcpu(false) { }
 
 
 Platform_thread::~Platform_thread()
@@ -273,7 +295,7 @@ Platform_thread::~Platform_thread()
 	cap_selector_allocator()->free(_id_base, 1);
 
 	/* free exc_base used by main thread */
-	if (_sel_exc_base != ~0UL) {
+	if (_is_main_thread && _sel_exc_base != ~0UL) {
 		revoke(Obj_crd(_sel_exc_base, NUM_INITIAL_PT_LOG2));
 		cap_selector_allocator()->free(_sel_exc_base,
 		                               NUM_INITIAL_PT_LOG2);

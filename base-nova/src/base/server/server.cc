@@ -214,9 +214,13 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 			throw Cpu_session::Thread_creation_failed();
 
 		addr_t thread_sp = (addr_t)&_context->stack[-4];
-		Genode::Nova_cpu_connection cpu;
-		cpu.start_exc_base_vcpu(_thread_cap, 0, thread_sp,
-		                        _tid.exc_pt_sel);
+
+		Thread_state state(true);
+		state.sel_exc_base = _tid.exc_pt_sel;
+
+		if (env()->cpu_session()->state(_thread_cap, &state) ||
+		    env()->cpu_session()->start(_thread_cap, 0, thread_sp))
+			throw Cpu_session::Thread_creation_failed();
 
 		request_event_portal(pager_cap, _tid.exc_pt_sel,
 		                     Nova::PT_SEL_STARTUP);
@@ -232,7 +236,10 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		 * The native thread cap is required to attach new rpc objects
 		 * (to create portals bound to the ec)
 		 */
+		Genode::Nova_cpu_connection cpu;
 		Native_capability ec_cap = cpu.native_cap(_thread_cap);
+		if (!ec_cap.valid())
+			throw Cpu_session::Thread_creation_failed();
 		_tid.ec_sel = ec_cap.local_name();
 	}
 
