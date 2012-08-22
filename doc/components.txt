@@ -188,6 +188,9 @@ All block drivers implement the block-session interface defined at
   Driver for SD-cards connected via the PL180 device as found on the PBX-A9
   platform.
 
+:'os/src/drivers/sd_card/omap4':
+  Driver for SD-cards connected to the SD-card controller of the OMAP4 SoC.
+
 :'linux_drivers/src/drivers/usb':
   USB driver that makes USB storage devices available as block sessions.
   For an example of using this driver, refer to the run script at
@@ -217,6 +220,9 @@ defined at 'os/include/nic_session'.
 
 :'linux_drivers/src/drivers/madwifi':
   The MadWifi wireless stack ported from the Linux kernel.
+
+:'dde_linux/src/drivers/usb':
+  For the OMAP4 platform, the USB driver contains the networking driver.
 
 
 Resource multiplexers
@@ -248,6 +254,10 @@ subdirectory of a source repository.
   separate block session. For using this server, please refer to the run
   script at 'os/run/part_blk'.
 
+:File system: The FFAT file-system service allows multiple clients to
+  concurrently access the same FFAT-formatted block device. It is located
+  at 'libports/src/server/ffat_fs'.
+
 
 Protocol stacks
 ###############
@@ -276,7 +286,11 @@ Separate components:
   separate ROM session.
 
 :'os/src/server/ram_fs':
-  A file system implementation that keeps all data in memory.
+  A file-system implementation that keeps all data in memory.
+
+:'os/src/server/tar_fs':
+  A read-only file-system implementation that reads data from a TAR archive,
+  which, in turn, is provided by a ROM service.
 
 :'os/src/server/rom_loopdev':
   Provides the content of a ROM file as a block session, similar to the
@@ -296,6 +310,10 @@ Separate components:
 :'gems/src/server/tcp_terminal':
   Provides one or multiple terminal sessions over TCP connections.
   For further information, refer to 'gems/src/server/tcp_terminal/README'.
+
+:'os/src/server/terminal_crosslink':
+  The terminal crosslink service allows to terminal clients to talk to each
+  other.
 
 :'gems/src/server/http_block':
   A block service that fetches a virtual block device over the network from
@@ -391,6 +409,11 @@ located in their respective directory.
   Ports of popular commandline-based Unix software such as VIM, bash,
   coreutils, binutils, gcc, findutils, and netcat. The programs are supposed
   to be executed within the Noux runtime environment.
+
+:'ports/src/app/lighttpd':
+  Lighttpd is a fast and feature-rich web server. The port of lighttpd uses
+  a file-system session to access the website content and the web-server
+  configuration.
 
 
 Runtime environments
