@@ -322,6 +322,10 @@ class Plugin : public Libc::Plugin
 			}
 
 			file_system()->close(context(fd)->node_handle());
+
+			Genode::destroy(Genode::env()->heap(), context(fd));
+			Libc::file_descriptor_allocator()->free(fd);
+
 			return 0;
 		}
 
