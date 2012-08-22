@@ -74,35 +74,41 @@ The Genode source tree is composed of the following subdirectories:
   :'linux':
     Linux kernel (both x86_32 and x86_64)
 
-  :'pistachio':
-    L4ka::Pistachio kernel developed at University of Karlsruhe.
-    See [http://genode.org/community/wiki/GenodeOnL4kaPistachio]
-
-  :'fiasco':
-    L4/Fiasco kernel developed at University of Technology Dresden.
-    See [http://genode.org/community/wiki/GenodeOnL4Fiasco]
+  :'nova':
+    NOVA hypervisor developed at University of Technology Dresden
+    See [http://genode.org/documentation/platforms/nova]
 
   :'foc':
     Fiasco.OC is a modernized version of the Fiasco microkernel with a
     completely revised kernel interface fostering capability-based
     security. It is not compatible with L4/Fiasco.
-    See [http://genode.org/community/wiki/GenodeOnFiascoOC]
+    See [http://genode.org/documentation/platforms/foc]
+
+  :'hw':
+    The hw platform allows the execution of Genode on bare ARM hardware
+    without the need for a separate kernel. The kernel functionality is
+    included in core.
+    See [http://genode.org/documentation/platforms/hw]
 
   :'okl4':
     OKL4 kernel (x86_32 and ARM) developed at Open-Kernel-Labs.
-    See [http://genode.org/community/wiki/GenodeOnOKL4]
+    See [http://genode.org/documentation/platforms/okl4]
 
-  :'nova':
-    NOVA hypervisor developed at University of Technology Dresden
-    See [http://genode.org/community/wiki/GenodeOnNOVA]
+  :'pistachio':
+    L4ka::Pistachio kernel developed at University of Karlsruhe.
+    See [http://genode.org/documentation/platforms/pistachio]
+
+  :'fiasco':
+    L4/Fiasco kernel developed at University of Technology Dresden.
+    See [http://genode.org/documentation/platforms/fiasco]
 
   :'codezero':
     Codezero microkernel developed by B-Labs
-    See [http://genode.org/community/wiki/GenodeOnCodezero]
+    See [http://genode.org/documentation/platforms/codezero]
 
   :'mb':
     Support for running Genode natively on the MicroBlaze softcore CPU.
-    See [http://genode.org/community/wiki/GenodeOnMicroBlaze]
+    See [http://genode.org/documentation/platforms/microblaze]
 
   :'host':
     Pseudo platform documenting the interface between the generic and
