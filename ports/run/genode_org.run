@@ -1,0 +1,145 @@
+#
+# \brief  Example for hosting the genode.org website on Genode
+# \author Norman Feske
+# \date   2012-08-16
+#
+# This run script combines the lighttpd web server with the tar_fs file system
+# to host the genode.org website. When executed the first time, the genode.org
+# website is downloaded to 'bin/genode_org/website'. When the web server is up,
+# you may point your web browser to http://localhost:5555
+#
+
+set build_components {
+	core init
+	drivers/pci
+	drivers/nic
+	drivers/timer
+	server/tar_fs
+	app/lighttpd
+}
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="CAP"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+	<start name="tar_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<archive name="genode_org.tar" />
+			<policy label="lighttpd" root="/" />
+		</config>
+	</start>
+	<start name="lighttpd">
+		<resource name="RAM" quantum="1G" />
+		<config>
+			<arg value="lighttpd" />
+			<arg value="-f" />
+			<arg value="/etc/lighttpd/lighttpd.conf" />
+			<arg value="-D" />
+		</config>
+	</start>}
+
+append config {
+</config>}
+
+install_config $config
+
+#
+# Create TAR archive containting the web-server configuration and the
+# website content.
+#
+
+# lighttpd configuration
+exec mkdir -p bin/genode_org/etc/lighttpd
+set fd [open "bin/genode_org/etc/lighttpd/lighttpd.conf" w]
+puts $fd {
+server.port                    = 80
+server.document-root           = "/website"
+server.event-handler           = "select"
+server.network-backend         = "write"
+server.max-keep-alive-requests = 0
+index-file.names               = ( "index", "index.html", "index.htm" )
+mimetype.assign                = (
+                                   ".png"  => "image/png",
+                                   ".jpg"  => "image/jpeg",
+                                   ".jpeg" => "image/jpeg",
+                                   ".gif"  => "image/gif",
+                                   ".css"  => "text/css",
+                                   ".html" => "text/html",
+                                   ".htm"  => "text/html",
+                                   ""      => "text/html",
+                                 ) }
+close $fd
+
+# mirror of genode.org website
+if {![file exists bin/genode_org/website/index]} {
+	puts "mirroring genode.org website to bin/genode_org/website..."
+	exec mkdir -p bin/genode_org/website
+
+	# ignore wget errors
+	catch {
+		exec wget -nH -Lrc -P bin/genode_org/website http://genode.org
+	}
+}
+
+exec tar cfv bin/genode_org.tar -h -C bin/genode_org .
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so nic_drv tar_fs
+	libc.lib.so libm.lib.so libc_fs.lib.so libc_log.lib.so
+	lwip.lib.so zlib.lib.so libcrypto.lib.so libssl.lib.so
+	lighttpd genode_org.tar
+}
+
+# platform-specific modules
+lappend_if [have_spec pci] boot_modules pci_drv
+
+build_boot_image $boot_modules
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -redir tcp:5555::80 "
+append qemu_args " -nographic -serial mon:stdio "
+
+run_genode_until forever
