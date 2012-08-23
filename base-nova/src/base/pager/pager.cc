@@ -124,8 +124,18 @@ void Pager_object::_recall_handler()
 
 	obj->_state.valid = false;
 
+	bool singlestep_state = obj->_state.thread.eflags & 0x100UL;
+	if (obj->_state.singlestep && !singlestep_state) {
+		utcb->flags = obj->_state.thread.eflags | 0x100UL;
+		utcb->mtd = Nova::Mtd(Mtd::EFL).value();
+	} else
+	if (!obj->_state.singlestep && singlestep_state) {
+		utcb->flags = obj->_state.thread.eflags & ~0x100UL;
+		utcb->mtd = Nova::Mtd(Mtd::EFL).value();
+	} else
+		utcb->mtd = 0;
 	utcb->set_msg_word(0);
-	utcb->mtd = 0;
+	
 	reply(myself->stack_top());
 }
 
@@ -201,6 +211,7 @@ Pager_object::Pager_object(unsigned long badge)
 	_sm_state_notify     = cap_selector_allocator()->alloc();
 	_state.valid         = false;
 	_state.dead          = false;
+	_state.singlestep    = false;
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
 
 	/* Create portal for exception handlers 0x0 - 0xd */

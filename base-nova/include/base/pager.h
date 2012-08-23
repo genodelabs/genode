@@ -62,6 +62,7 @@ namespace Genode {
 				addr_t sel_client_ec;
 				bool valid;
 				bool dead;
+				bool singlestep;
 			} _state;
 
 			void _copy_state(Nova::Utcb * utcb);
@@ -173,6 +174,8 @@ namespace Genode {
 
 			uint8_t client_recall();
 			void    client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
+
+			void single_step(bool on) { _state.singlestep = on; }
 	};
 
 

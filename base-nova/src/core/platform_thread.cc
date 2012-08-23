@@ -294,6 +294,12 @@ void Platform_thread::cancel_blocking()
 	_pager->client_cancel_blocking();
 }
 
+void Platform_thread::single_step(bool on)
+{
+	if (!_pager) return;
+
+	_pager->single_step(on);
+}
 
 unsigned long Platform_thread::pager_object_badge() const
 {

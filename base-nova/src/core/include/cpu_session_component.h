@@ -137,6 +137,7 @@ namespace Genode {
 			int start(Thread_capability, addr_t, addr_t);
 			void pause(Thread_capability thread_cap);
 			void resume(Thread_capability thread_cap);
+			void single_step(Thread_capability thread_cap, bool enable);
 			void cancel_blocking(Thread_capability);
 			int name(Thread_capability, char *, size_t);
 			int state(Thread_capability, Thread_state *);

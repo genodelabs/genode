@@ -152,6 +152,8 @@ namespace Genode {
 					_sel_ec(), Obj_crd::RIGHT_EC_RECALL);
 			}
 
+			void single_step(bool on);
+
 	};
 }
 
