@@ -22,4 +22,4 @@ INC_DIR += $(PRG_DIR)
 INC_DIR += $(LIGHTTPD_DIR)/src
 
 LIBS += cxx env libc libm
-LIBS += libcrypto libssl zlib config_args
+LIBS += zlib config_args

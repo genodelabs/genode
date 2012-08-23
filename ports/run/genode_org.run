@@ -51,11 +51,26 @@ append_if [have_spec pci] config {
 		<provides><service name="PCI"/></provides>
 	</start>}
 
-append config {
+append_if [have_spec omap4] config {
+	<start name="usb_drv" priority="-1">
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<hid/>
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+	</start>}
+
+append_if [expr ![have_spec omap4]] config {
 	<start name="nic_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
-	</start>
+	</start>}
+
+append config {
 	<start name="tar_fs">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="File_system"/></provides>
@@ -125,14 +140,16 @@ exec tar cfv bin/genode_org.tar -h -C bin/genode_org .
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so nic_drv tar_fs
+	core init timer ld.lib.so tar_fs
 	libc.lib.so libm.lib.so libc_fs.lib.so libc_log.lib.so
-	lwip.lib.so zlib.lib.so libcrypto.lib.so libssl.lib.so
+	lwip.lib.so zlib.lib.so
 	lighttpd genode_org.tar
 }
 
 # platform-specific modules
-lappend_if [have_spec pci] boot_modules pci_drv
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec omap4]         boot_modules usb_drv
+lappend_if [expr ![have_spec omap4]] boot_modules nic_drv
 
 build_boot_image $boot_modules
 
