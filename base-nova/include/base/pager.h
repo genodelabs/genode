@@ -71,6 +71,10 @@ namespace Genode {
 			static void _invoke_handler();
 			static void _recall_handler();
 
+			__attribute__((regparm(1)))
+			static void _exception_handler(addr_t portal_id);
+
+			static Nova::Utcb * _check_handler(Thread_base *&, Pager_object *&);
 		public:
 
 			Pager_object(unsigned long badge);

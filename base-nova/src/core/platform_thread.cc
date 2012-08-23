@@ -62,7 +62,7 @@ int Platform_thread::start(void *ip, void *sp)
 		addr_t utcb       = _is_vcpu ? 0 : round_page(initial_sp);
 
 		_pager->initial_esp(initial_sp);
-		if (_sel_exc_base == ~0UL) {
+		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 			PERR("exception base not specified");
 			return -3;
 		}
@@ -95,7 +95,7 @@ int Platform_thread::start(void *ip, void *sp)
 		return res ? -5 : 0;
 	}
 
-	if (_sel_exc_base != ~0UL) {
+	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
 		PERR("thread already started");
 		return -6;
 	}
@@ -112,13 +112,11 @@ int Platform_thread::start(void *ip, void *sp)
 	addr_t sm_alloc_sel = _sel_exc_base + PD_SEL_CAP_LOCK;
 	addr_t sm_ec_sel    = _pager->exc_pt_sel() + SM_SEL_EC_CLIENT;
 
-	addr_t remap_src[] = { _pager->exc_pt_sel() + PT_SEL_PAGE_FAULT,
-	                       _pd->parent_pt_sel(),
+	addr_t remap_src[] = { _pd->parent_pt_sel(),
 	                       _pager->exc_pt_sel() + PT_SEL_STARTUP,
 	                       _pager->exc_pt_sel() + PT_SEL_RECALL,
 	                       sm_ec_sel };
-	addr_t remap_dst[] = { PT_SEL_PAGE_FAULT,
-	                       PT_SEL_PARENT,
+	addr_t remap_dst[] = { PT_SEL_PARENT,
 	                       PT_SEL_STARTUP,
 	                       PT_SEL_RECALL,
 	                       SM_SEL_EC };
@@ -135,16 +133,33 @@ int Platform_thread::start(void *ip, void *sp)
 		goto cleanup_base;
 	}
 
-	/* Remap portals to exception base window of first thread */
+	/* Remap exception portals for first thread */
+	if (map_local((Utcb *)Thread_base::myself()->utcb(),
+	              Obj_crd(_pager->exc_pt_sel(), 4),
+	              Obj_crd(_sel_exc_base, 4)))
+		goto cleanup_base;
+
+	if (map_local((Utcb *)Thread_base::myself()->utcb(),
+	              Obj_crd(_pager->exc_pt_sel() + 0x10, 3),
+	              Obj_crd(_sel_exc_base + 0x10, 3)))
+		goto cleanup_base;
+
+	if (map_local((Utcb *)Thread_base::myself()->utcb(),
+	              Obj_crd(_pager->exc_pt_sel() + 0x18, 1),
+	              Obj_crd(_sel_exc_base + 0x18, 1)))
+		goto cleanup_base;
+
+	if (PT_SEL_PARENT != 0x1a) {
+		PERR("PT_SEL_PARENT changed !! Adjust remap code !!");
+		goto cleanup_base;
+	}
+
+	/* Remap Genode specific, RECALL and STARTUP portals for first thread */
 	for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
-		/* locally map portals to initial portal window */
 		if (map_local((Utcb *)Thread_base::myself()->utcb(),
 		              Obj_crd(remap_src[i], 0),
-		              Obj_crd(_sel_exc_base + remap_dst[i], 0))) {
-			PERR("could not remap portal %lx->%lx",
-			     remap_src[i], remap_dst[i]);
+		              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
 			goto cleanup_base;
-		}
 	}
 
 	/* Create lock for cap allocator selector */
@@ -186,8 +201,8 @@ int Platform_thread::start(void *ip, void *sp)
 		 * Reset pd cap since thread got not running and pd cap will
 		 * be revoked during cleanup.
 		 */
-		_pd->assign_pd(~0UL);
-		_pager->client_set_ec(~0UL);
+		_pd->assign_pd(Native_thread::INVALID_INDEX);
+		_pager->client_set_ec(Native_thread::INVALID_INDEX);
 
 		PERR("create_sc returned %d", res);
 		goto cleanup_ec;
@@ -207,7 +222,7 @@ int Platform_thread::start(void *ip, void *sp)
 	revoke(Obj_crd(sm_ec_sel, 0));
 	revoke(Obj_crd(_sel_exc_base, NUM_INITIAL_PT_LOG2));
 	cap_selector_allocator()->free(_sel_exc_base, NUM_INITIAL_PT_LOG2);
-	_sel_exc_base = ~0UL;
+	_sel_exc_base = Native_thread::INVALID_INDEX;
 
 	return -7;
 }
@@ -252,8 +267,10 @@ int Platform_thread::state(Thread_state *state_dst)
 	if (state_dst->transfer) {
 		/* Not permitted for main thread */
 		if (_is_main_thread) return -2;
+
 		/* You can do it only once */
-		if (_sel_exc_base != ~0UL) return -3;
+		if (_sel_exc_base != Native_thread::INVALID_INDEX) return -3;
+
 		/**
 		 * _sel_exc_base  exception base of thread in caller
 		 *                protection domain - not in Core !
@@ -278,12 +295,16 @@ void Platform_thread::cancel_blocking()
 }
 
 
-unsigned long Platform_thread::pager_object_badge() const { return ~0UL; }
+unsigned long Platform_thread::pager_object_badge() const
+{
+	return Native_thread::INVALID_INDEX;
+}
 
 
 Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
 : _pd(0), _pager(0), _id_base(cap_selector_allocator()->alloc(1)),
-  _sel_exc_base(~0UL), _cpu_no(0), _is_main_thread(false), _is_vcpu(false) { }
+  _sel_exc_base(Native_thread::INVALID_INDEX), _cpu_no(0),
+  _is_main_thread(false), _is_vcpu(false) { }
 
 
 Platform_thread::~Platform_thread()
@@ -295,7 +316,7 @@ Platform_thread::~Platform_thread()
 	cap_selector_allocator()->free(_id_base, 1);
 
 	/* free exc_base used by main thread */
-	if (_is_main_thread && _sel_exc_base != ~0UL) {
+	if (_is_main_thread && _sel_exc_base != Native_thread::INVALID_INDEX) {
 		revoke(Obj_crd(_sel_exc_base, NUM_INITIAL_PT_LOG2));
 		cap_selector_allocator()->free(_sel_exc_base,
 		                               NUM_INITIAL_PT_LOG2);

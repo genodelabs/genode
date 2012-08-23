@@ -536,20 +536,28 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				throw Cpu_session::Thread_creation_failed();
 
 			addr_t thread_sp = (addr_t)&_context->stack[-4];
-			Genode::Nova_cpu_connection cpu;
-			cpu.start_exc_base_vcpu(_thread_cap, 0, thread_sp,
-			                        _tid.exc_pt_sel);
+			Thread_state state(true);
+			state.sel_exc_base = _tid.exc_pt_sel;
+
+			if (env()->cpu_session()->state(_thread_cap, &state) ||
+			    env()->cpu_session()->start(_thread_cap, 0, thread_sp))
+				throw Cpu_session::Thread_creation_failed();
+
+			/* Request exception portals for vCPU dispatcher */ 
+			for (unsigned i = 0; i < Nova::PT_SEL_PARENT; i++)
+				request_event_portal(pager_cap, _tid.exc_pt_sel, i);
 
 			request_event_portal(pager_cap, _tid.exc_pt_sel,
-			                     Nova::PT_SEL_PAGE_FAULT);
+		    	                 Nova::SM_SEL_EC);
 			request_event_portal(pager_cap, _tid.exc_pt_sel,
-			                     Nova::SM_SEL_EC);
+			                     Nova::PT_SEL_RECALL);
 
 			/**
 			 * Request native thread cap, _thread_cap only a token.
 			 * The native thread cap is required to attach new rpc objects
 			 * (to create portals bound to the ec)
 			 */
+			Genode::Nova_cpu_connection cpu;
 			Native_capability ec_cap = cpu.native_cap(_thread_cap);
 			_tid.ec_sel = ec_cap.local_name();
 

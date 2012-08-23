@@ -222,10 +222,11 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		    env()->cpu_session()->start(_thread_cap, 0, thread_sp))
 			throw Cpu_session::Thread_creation_failed();
 
+		for (unsigned i = 0; i < Nova::PT_SEL_PARENT; i++)
+			request_event_portal(pager_cap, _tid.exc_pt_sel, i);
+		
 		request_event_portal(pager_cap, _tid.exc_pt_sel,
 		                     Nova::PT_SEL_STARTUP);
-		request_event_portal(pager_cap, _tid.exc_pt_sel,
-		                     Nova::PT_SEL_PAGE_FAULT);
 		request_event_portal(pager_cap, _tid.exc_pt_sel,
 		                     Nova::SM_SEL_EC);
 		request_event_portal(pager_cap, _tid.exc_pt_sel,
