@@ -11,17 +11,21 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__NOVA_CPU_SESSION__CLIENT_H_
-#define _INCLUDE__NOVA_CPU_SESSION__CLIENT_H_
+#ifndef _INCLUDE__CPU_SESSION__CLIENT_H_
+#define _INCLUDE__CPU_SESSION__CLIENT_H_
 
-#include <cpu_session/client.h>
+#include <base/rpc_client.h>
+#include <base/thread.h>
+
+#include <cpu_session/capability.h>
+
 #include <nova_cpu_session/nova_cpu_session.h>
 
 namespace Genode {
 
-	struct Nova_cpu_session_client : Rpc_client<Nova_cpu_session>
+	struct Cpu_session_client : Rpc_client<Nova_cpu_session>
 	{
-		explicit Nova_cpu_session_client(Cpu_session_capability session)
+		explicit Cpu_session_client(Cpu_session_capability session)
 		: Rpc_client<Nova_cpu_session>(static_cap_cast<Nova_cpu_session>(session)) { }
 
 		Thread_capability create_thread(Name const &name, addr_t utcb = 0) {
@@ -46,8 +50,17 @@ namespace Genode {
 		int start(Thread_capability thread, addr_t ip, addr_t sp) {
 			return call<Rpc_start>(thread, ip, sp); }
 
-		void pause(Thread_capability thread) {
-			call<Rpc_pause>(thread); }
+		void pause(Thread_capability thread)
+		{
+			Native_capability block = call<Rpc_pause_sync>(thread);
+			if (!block.valid())
+				return;
+
+			Nova::sm_ctrl(block.local_name(), Nova::SEMAPHORE_DOWN);
+
+			Nova::revoke(Nova::Obj_crd(block.local_name(), 0));
+			cap_selector_allocator()->free(block.local_name(), 0);
+		}
 
 		void resume(Thread_capability thread) {
 			call<Rpc_resume>(thread); }
@@ -75,8 +88,12 @@ namespace Genode {
 			                                     exc_base, vcpu);
 		}
 
+		private:
+
+		Native_capability pause_sync(Thread_capability target) {
+			return Native_capability::invalid_cap(); }
 
 	};
 }
 
-#endif /* _INCLUDE__NOVA_CPU_SESSION__CLIENT_H_ */
+#endif /* _INCLUDE__CPU_SESSION__CLIENT_H_ */

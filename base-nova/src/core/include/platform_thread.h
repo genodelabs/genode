@@ -75,7 +75,7 @@ namespace Genode {
 			/**
 			 * Pause this thread
 			 */
-			void pause();
+			Native_capability pause();
 
 			/**
 			 * Resume this thread

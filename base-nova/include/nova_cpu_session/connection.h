@@ -14,12 +14,12 @@
 #ifndef _INCLUDE__NOVA_CPU_SESSION__CONNECTION_H_
 #define _INCLUDE__NOVA_CPU_SESSION__CONNECTION_H_
 
-#include <nova_cpu_session/client.h>
+#include <cpu_session/client.h>
 #include <base/connection.h>
 
 namespace Genode {
 
-	struct Nova_cpu_connection : Connection<Cpu_session>, Nova_cpu_session_client
+	struct Nova_cpu_connection : Connection<Cpu_session>, Cpu_session_client
 	{
 		/**
 		 * Constructor
@@ -33,7 +33,7 @@ namespace Genode {
 			Connection<Cpu_session>(
 				session("priority=0x%lx, ram_quota=32K, label=\"%s\"",
 				        priority, label)),
-			Nova_cpu_session_client(cap()) { }
+			Cpu_session_client(cap()) { }
 	};
 }
 

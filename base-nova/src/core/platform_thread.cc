@@ -200,7 +200,11 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 }
 
 
-void Platform_thread::pause() { PDBG("not implemented"); }
+Native_capability Platform_thread::pause()
+{
+	PDBG("not implemented");
+	return Native_capability::invalid_cap();
+}
 
 
 void Platform_thread::resume()

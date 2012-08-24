@@ -29,6 +29,9 @@ namespace Genode {
 		virtual
 		Native_capability native_cap(Thread_capability cap) = 0;
 
+		virtual
+		Native_capability pause_sync(Thread_capability) = 0;
+
 		/*********************
 		 ** RPC declaration **
 		 *********************/
@@ -37,9 +40,11 @@ namespace Genode {
 		           Thread_capability, addr_t, addr_t, addr_t, bool);
 		GENODE_RPC(Rpc_native_cap, Native_capability, native_cap,
 		           Thread_capability);
+		GENODE_RPC(Rpc_pause_sync, Native_capability, pause_sync,
+		           Thread_capability);
 
 		GENODE_RPC_INTERFACE_INHERIT(Cpu_session, Rpc_native_cap,
-		                             Rpc_start_exc_base_vcpu);
+		                             Rpc_start_exc_base_vcpu, Rpc_pause_sync);
 	};
 }
 

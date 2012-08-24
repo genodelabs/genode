@@ -40,3 +40,13 @@ Cpu_session_component::start_exc_base_vcpu(Thread_capability thread_cap,
 	return thread->platform_thread()->start((void *)ip, (void *)sp,
 	                                        exc_base, vcpu);
 }
+
+Native_capability
+Cpu_session_component::pause_sync(Thread_capability target_thread_cap)
+{
+	Cpu_thread_component *thread = _lookup_thread(target_thread_cap);
+	if (!thread || !thread->platform_thread())
+		return Native_capability::invalid_cap();
+
+	return thread->platform_thread()->pause();
+}
