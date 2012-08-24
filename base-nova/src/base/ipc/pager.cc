@@ -46,7 +46,7 @@ void Ipc_pager::wait_for_fault()
 	Nova::Utcb *utcb = (Nova::Utcb *)Thread_base::myself()->utcb();
 	_fault_type = (Pf_type)utcb->qual[0];
 	_fault_addr = utcb->qual[1];
-	_fault_ip   = utcb->eip;
+	_fault_ip   = utcb->ip;
 
 	if (verbose_page_fault)
 		print_page_fault(_fault_type, _fault_addr, _fault_ip);

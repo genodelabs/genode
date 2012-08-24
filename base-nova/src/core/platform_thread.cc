@@ -26,6 +26,7 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
+#include <nova/util.h>
 
 using namespace Genode;
 
@@ -69,11 +70,11 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 		/**
 		 * Create semaphore required for Genode locking.
 		 * It is created at the root pager exception base +
-		 * SM_SEL_EC_MAIN and can be later on requested by the thread
+		 * SM_SEL_EC_CLIENT and can be later on requested by the thread
 		 * the same way as STARTUP and PAGEFAULT portal.
 		 */
 		uint8_t res = Nova::create_sm(_pager->exc_pt_sel() +
-		                              SM_SEL_EC_MAIN,
+		                              SM_SEL_EC_CLIENT,
 		                              _pd->pd_sel(), 0);
 		if (res != Nova::NOVA_OK) {
 			PERR("creation of semaphore for new thread failed %u",
@@ -107,20 +108,32 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 
 	addr_t pd_core_sel  = Platform_pd::pd_core_sel();
 	addr_t sm_alloc_sel = _sel_exc_base + PD_SEL_CAP_LOCK;
-	addr_t sm_ec_sel    = _sel_exc_base + SM_SEL_EC;
+	addr_t sm_ec_sel    = _pager->exc_pt_sel() + SM_SEL_EC_CLIENT;
 
 	addr_t remap_src[] = { _pager->exc_pt_sel() + PT_SEL_PAGE_FAULT,
 	                       _pd->parent_pt_sel(),
-	                       _pager->exc_pt_sel() + PT_SEL_STARTUP };
+	                       _pager->exc_pt_sel() + PT_SEL_STARTUP,
+	                       _pager->exc_pt_sel() + PT_SEL_RECALL,
+	                       sm_ec_sel };
 	addr_t remap_dst[] = { PT_SEL_PAGE_FAULT,
 	                       PT_SEL_PARENT,
-	                       PT_SEL_STARTUP };
+	                       PT_SEL_STARTUP,
+	                       PT_SEL_RECALL,
+	                       SM_SEL_EC };
 	addr_t pd_sel;
 
 	Obj_crd initial_pts(_sel_exc_base, NUM_INITIAL_PT_LOG2);
 
 	uint8_t res;
 
+	/* Create lock for EC used by lock_helper */
+	res = create_sm(sm_ec_sel, pd_core_sel, 0);
+	if (res != NOVA_OK) {
+		PERR("could not create semaphore for new thread");
+		goto cleanup_base;
+	}
+
+	/* Remap portals to exception base window of first thread */
 	for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
 		/* locally map portals to initial portal window */
 		if (map_local((Utcb *)Thread_base::myself()->utcb(),
@@ -136,13 +149,6 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 	res = create_sm(sm_alloc_sel, pd_core_sel, 1);
 	if (res != NOVA_OK) {
 		PERR("could not create semaphore for capability allocator");
-		goto cleanup_base;
-	}
-
-	/* Create lock for EC used by lock_helper */
-	res = create_sm(sm_ec_sel, pd_core_sel, 0);
-	if (res != NOVA_OK) {
-		PERR("could not create semaphore for new thread");
 		goto cleanup_base;
 	}
 
@@ -192,6 +198,7 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 	cap_selector_allocator()->free(pd_sel, 0);
 
 	cleanup_base:
+	revoke(Obj_crd(sm_ec_sel, 0));
 	revoke(Obj_crd(_sel_exc_base, NUM_INITIAL_PT_LOG2));
 	cap_selector_allocator()->free(_sel_exc_base, NUM_INITIAL_PT_LOG2);
 	_sel_exc_base = ~0UL;
@@ -202,28 +209,51 @@ int Platform_thread::start(void *ip, void *sp, addr_t exc_base, bool vcpu)
 
 Native_capability Platform_thread::pause()
 {
-	PDBG("not implemented");
-	return Native_capability::invalid_cap();
+	if (!_pager)
+		return Native_capability::invalid_cap();
+
+	Native_capability notify_sm = _pager->notify_sm();
+	if (!notify_sm.valid()) return notify_sm;
+
+ 	if (Nova::ec_ctrl(_sel_ec()) != Nova::NOVA_OK)
+		return Native_capability::invalid_cap();
+
+	/* If the thread is blocked in the its own SM, get him out */
+	cancel_blocking();
+
+	return notify_sm;
 }
 
 
 void Platform_thread::resume()
 {
-	uint8_t res = Nova::create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
-	                              Nova::Qpd());
-	if (res)
-		PDBG("create_sc returned %u", res);
+	using namespace Nova;
+
+	uint8_t res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(), Qpd());
+	if (res == NOVA_OK) return;
+
+	if (!_pager) return;
+	/* Thread was paused beforehand and blocked in pager - wake up pager */
+	_pager->wake_up();
 }
 
 
 int Platform_thread::state(Thread_state *state_dst)
 {
-	PWRN("not implemented");
-	return -1;
+	if (!state_dst || !_pager) return -1;
+
+	int res = _pager->copy_thread_state(state_dst);
+
+	return res;
 }
 
 
-void Platform_thread::cancel_blocking() { PWRN("not implemented"); }
+void Platform_thread::cancel_blocking()
+{
+	if (!_pager) return;
+
+	_pager->cancel_blocking_client();
+}
 
 
 unsigned long Platform_thread::pager_object_badge() const { return ~0UL; }

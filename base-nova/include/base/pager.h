@@ -44,14 +44,31 @@ namespace Genode {
 			 */
 			Signal_context_capability _exception_sigh;
 
-			addr_t _pt_cleanup;  /* portal selector for object cleanup/destruction */
+  			/**
+			 * Portal selector for object cleanup/destruction
+			 */
+			addr_t _pt_cleanup;
+
+ 			/**
+			 * Semaphore selector to synchronize pause/state/resume operations
+			 */
+			addr_t _sm_state_notify;
 
 			addr_t _initial_esp;
 			addr_t _initial_eip;
 
+			struct {
+				struct Thread_state thread;
+				bool valid;
+				bool dead;
+			} _state;
+
+			void _copy_state(Nova::Utcb * utcb);
+
 			static void _page_fault_handler();
 			static void _startup_handler();
 			static void _invoke_handler();
+			static void _recall_handler();
 
 		public:
 
@@ -99,12 +116,14 @@ namespace Genode {
 			/**
 			 * Notify exception handler about the occurrence of an exception
 			 */
-			void submit_exception_signal()
+			bool submit_exception_signal()
 			{
-				if (!_exception_sigh.valid()) return;
+				if (!_exception_sigh.valid()) return false;
 
 				Signal_transmitter transmitter(_exception_sigh);
 				transmitter.submit();
+
+				return true;
 			}
 
 			/**
@@ -112,8 +131,40 @@ namespace Genode {
 			 */
 			addr_t handler_address()
 			{
-	                 	return reinterpret_cast<addr_t>(_invoke_handler);
+				return reinterpret_cast<addr_t>(_invoke_handler);
 			}
+
+			/**
+			 * Return semaphore to block on until state of a recall is
+			 * available.
+			 */
+			Native_capability notify_sm()
+			{
+				if (_state.valid)
+					return Native_capability::invalid_cap();
+				if (_state.dead)
+					return Native_capability::invalid_cap();
+
+				return Native_capability(_sm_state_notify);
+			}
+
+			/**
+			 * Copy thread state of recalled thread.
+			 */
+			int copy_thread_state(Thread_state * state_dst)
+			{
+				if (!state_dst || !_state.valid) return -1;
+
+				*state_dst = _state.thread;
+
+				return 0;
+			}
+
+			/**
+			 * Cancel blocking in a lock so that recall exception can take
+			 * place.
+			 */
+			void cancel_blocking_client();
 	};
 
 

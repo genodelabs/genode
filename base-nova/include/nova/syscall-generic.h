@@ -172,9 +172,12 @@ namespace Nova {
 
 			enum {
 				ACDB = 1 << 0,   /* eax, ecx, edx, ebx */
+				EBSD = 1 << 1,   /* ebp, esi, edi */
 				ESP  = 1 << 2,
 				EIP  = 1 << 3,
 				EFL  = 1 << 4,   /* eflags */
+				FSGS = 1 << 6,
+				CSSS = 1 << 7,
 				QUAL = 1 << 15,  /* exit qualification */
 				CTRL = 1 << 16,  /* execution controls */
 				INJ  = 1 << 17,  /* injection info */
@@ -384,9 +387,13 @@ namespace Nova {
 	 */
 	struct Utcb
 	{
-		mword_t  items;     /* number of untyped items uses lowest 16 bit, number of typed items uses bit 16-31, bit 32+ are ignored on 64bit */
-		Crd      crd_xlt;   /* receive capability-range descriptor for translation */
-		Crd      crd_rcv;   /* receive capability-range descriptor for delegation */
+		/**
+		 * Number of untyped items uses lowest 16 bit, number of typed items
+		 * uses bit 16-31, bit 32+ are ignored on 64bit
+		 */
+		mword_t items;
+		Crd     crd_xlt;   /* receive capability-range descriptor for translation */
+		Crd     crd_rcv;   /* receive capability-range descriptor for delegation */
 		mword_t tls;
 
 		/**
@@ -402,19 +409,39 @@ namespace Nova {
 
 			/* exception state */
 			struct {
-				mword_t mtd, instr_len, eip, eflags;
-				unsigned misc[4];
-				mword_t eax, ecx, edx, ebx;
-				mword_t esp, ebp, esi, edi;
+				mword_t mtd, instr_len, ip, flags;
+				unsigned intr_state, actv_state, inj_info, inj_error;
+				mword_t ax, cx, dx, bx;
+				mword_t sp, bp, si, di;
 #ifdef __x86_64__
-				mword_t rxx[8];
+				mword_t r8, r9, r10, r11, r12, r13, r14, r15;
 #endif
 				unsigned long long qual[2];  /* exit qualification */
 				unsigned ctrl[2];
 				unsigned long long tsc;
 				mword_t cr0, cr2, cr3, cr4;
-//				unsigned misc3[44];
-			};
+#ifdef __x86_64__
+				mword_t cr8, reserved;
+#endif
+				mword_t dr7, sysenter_cs, sysenter_sp, sysenter_ip;
+
+				struct {
+					unsigned short sel, ar;
+					unsigned limit;
+					mword_t  base;
+#ifdef __x86_32__
+					mword_t  reserved;	
+#endif
+				} es, cs, ss, ds, fs, gs, ldtr, tr;
+				struct {
+					unsigned reserved0;
+					unsigned limit;
+					mword_t  base;
+#ifdef __x86_32__
+					mword_t  reserved1;	
+#endif
+				} gdtr, idtr;
+			} __attribute__((packed));
 		};
 
 		struct Item {
@@ -499,9 +526,10 @@ namespace Nova {
 		PT_SEL_PAGE_FAULT = 0xe,
 		PT_SEL_PARENT     = 0x1a,  /* convention on Genode */
 		PT_SEL_STARTUP    = 0x1e,
+		PT_SEL_RECALL     = 0x1f,
 		PD_SEL            = 0x1b,
 		PD_SEL_CAP_LOCK   = 0x1c,  /* convention on Genode */
-		SM_SEL_EC_MAIN    = 0x1c,  /* convention on Genode */
+		SM_SEL_EC_CLIENT  = 0x1c,  /* convention on Genode */
 		SM_SEL_EC         = 0x1d,  /* convention on Genode */
 	};
 

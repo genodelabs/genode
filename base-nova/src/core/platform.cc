@@ -98,11 +98,11 @@ static void page_fault_handler()
 	Utcb *utcb = (Utcb *)CORE_PAGER_UTCB_ADDR;
 
 	addr_t pf_addr = utcb->qual[1];
-	addr_t pf_eip  = utcb->eip;
-	addr_t pf_esp  = utcb->esp;
+	addr_t pf_ip  = utcb->ip;
+	addr_t pf_sp  = utcb->sp;
 
 	printf("\nPAGE-FAULT IN CORE: ADDR %lx  IP %lx  SP %lx stack trace follows...\n",
-	       pf_addr, pf_eip, pf_esp);
+	       pf_addr, pf_ip, pf_sp);
 
 	/* dump stack trace */
 	struct Core_img
@@ -127,9 +127,9 @@ static void page_fault_handler()
 	};
 
 	int count = 1;
-	printf("  #%d %08lx %08lx\n", count++, pf_esp, pf_eip);
+	printf("  #%d %08lx %08lx\n", count++, pf_sp, pf_ip);
 
-	Core_img dump(pf_esp);
+	Core_img dump(pf_sp);
 	while (dump.ip_valid()) {
 		printf("  #%d %p %08lx\n", count++, dump.ip(), *dump.ip());
 		dump.next_ip();

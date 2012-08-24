@@ -132,6 +132,7 @@ void Thread_base::start()
 		request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
 		request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_PAGE_FAULT);
 		request_event_portal(pager_cap, _tid.exc_pt_sel, SM_SEL_EC);
+		request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_RECALL);
 	}
 
 	/* request creation of SC to let thread run*/

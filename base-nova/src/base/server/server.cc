@@ -224,6 +224,8 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		                     Nova::PT_SEL_PAGE_FAULT);
 		request_event_portal(pager_cap, _tid.exc_pt_sel,
 		                     Nova::SM_SEL_EC);
+		request_event_portal(pager_cap, _tid.exc_pt_sel,
+		                     Nova::PT_SEL_RECALL);
 
 		/**
 		 * Request native thread cap, _thread_cap only a token.
