@@ -32,8 +32,7 @@ namespace Genode {
 		/* configurable sizes of memory pools */
 		enum
 		{ 
-			MEM_POOL = 2 * 1024 * 1024,
-			DMA_POOL = 3 * 1024 * 1024,
+			MEM_POOL_SHARE = 3
 		};
 
 		private:
@@ -87,6 +86,12 @@ namespace Genode {
 				addr_t offset    = (addr_t)addr - zone_base;
 				return (void *)(_base + offset);
 			}
+
+			/**
+			 * Memory usable by back-end allocators
+			 */
+			static size_t _mem_avail() {
+				return env()->ram_session()->avail() - (1024 * 1024); }
 
 		public:
 
@@ -146,7 +151,7 @@ namespace Genode {
 			 */
 			static Mem* pool()
 			{
-				static Mem _p(MEM_POOL);
+				static Mem _p(_mem_avail() / MEM_POOL_SHARE);
 				return &_p;
 			}
 
@@ -156,7 +161,7 @@ namespace Genode {
 			 */
 			static Mem* dma()
 			{
-				static Mem _p(DMA_POOL, false);
+				static Mem _p(_mem_avail() - (_mem_avail() / MEM_POOL_SHARE), false);
 				return &_p;
 			}
 
