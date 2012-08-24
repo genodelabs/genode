@@ -774,7 +774,18 @@ namespace {
 			Genode::memcpy(sysio()->write_in.chunk, src, curr_count);
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_WRITE)) {
-				PERR("write error %d (fd %d)", sysio()->error.general, noux_fd(fd->context));
+				switch (sysio()->error.write) {
+				case Noux::Sysio::WRITE_ERR_AGAIN:       errno = EAGAIN;      break;
+				case Noux::Sysio::WRITE_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
+				case Noux::Sysio::WRITE_ERR_INVALID:     errno = EINVAL;      break;
+				case Noux::Sysio::WRITE_ERR_IO:          errno = EIO;         break;
+				default: 
+					if (sysio()->error.general == Noux::Sysio::ERR_FD_INVALID)
+						errno = EBADF;
+					else
+						errno = 0;
+					break;
+				}
 			}
 
 			count -= curr_count;
@@ -797,8 +808,18 @@ namespace {
 			sysio()->read_in.count = curr_count;
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_READ)) {
-				PERR("read error");
-				/* XXX set errno */
+				switch (sysio()->error.read) {
+				case Noux::Sysio::READ_ERR_AGAIN:       errno = EAGAIN;      break;
+				case Noux::Sysio::READ_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
+				case Noux::Sysio::READ_ERR_INVALID:     errno = EINVAL;      break;
+				case Noux::Sysio::READ_ERR_IO:          errno = EIO;         break;
+				default:
+					if (sysio()->error.general == Noux::Sysio::ERR_FD_INVALID)
+						errno = EBADF;
+					else
+						errno = 0;
+					break;
+				}
 				return -1;
 			}
 
@@ -1321,6 +1342,15 @@ namespace {
 		}
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_ACCEPT)) {
+			switch (sysio()->error.accept) {
+			case Noux::Sysio::ACCEPT_ERR_AGAIN:         errno = EAGAIN;      break;
+			case Noux::Sysio::ACCEPT_ERR_NO_MEMORY:     errno = ENOMEM;      break;
+			case Noux::Sysio::ACCEPT_ERR_INVALID:       errno = EINVAL;      break;
+			case Noux::Sysio::ACCEPT_ERR_NOT_SUPPORTED: errno = EOPNOTSUPP;  break;
+			case Noux::Sysio::ACCEPT_ERR_WOULD_BLOCK:   errno = EWOULDBLOCK; break;
+			default:                                    errno = 0;           break;
+			}
+
 			return 0;
 		}
 
@@ -1330,7 +1360,6 @@ namespace {
 		Libc::Plugin_context *context = noux_context(sysio()->accept_out.fd);
 		return Libc::file_descriptor_allocator()->alloc(this, context,
 				sysio()->accept_out.fd);
-
 	}
 
 
@@ -1343,7 +1372,13 @@ namespace {
 		sysio()->bind_in.addrlen = addrlen;
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_BIND)) {
-			errno = EACCES;
+			switch (sysio()->error.bind) {
+			case Noux::Sysio::BIND_ERR_ACCESS:      errno = EACCES;     break;
+			case Noux::Sysio::BIND_ERR_ADDR_IN_USE: errno = EADDRINUSE; break;
+			case Noux::Sysio::BIND_ERR_INVALID:     errno = EINVAL;     break;
+			case Noux::Sysio::BIND_ERR_NO_MEMORY:   errno = ENOMEM;     break;
+			default:                                errno = 0;          break;
+			}
 			return -1;
 		}
 
@@ -1360,7 +1395,14 @@ namespace {
 		sysio()->connect_in.addrlen = addrlen;
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_CONNECT)) {
-			/* XXX errno */
+			switch (sysio()->error.connect) {
+			case Noux::Sysio::CONNECT_ERR_AGAIN:        errno = EAGAIN;      break;
+			case Noux::Sysio::CONNECT_ERR_ALREADY:      errno = EALREADY;    break;
+			case Noux::Sysio::CONNECT_ERR_ADDR_IN_USE:  errno = EADDRINUSE;  break;
+			case Noux::Sysio::CONNECT_ERR_IN_PROGRESS:  errno = EINPROGRESS; break;
+			case Noux::Sysio::CONNECT_ERR_IS_CONNECTED: errno = EISCONN;     break;
+			default:                                    errno = 0;           break;
+			}
 			return -1;
 		}
 
@@ -1393,7 +1435,11 @@ namespace {
 		sysio()->listen_in.backlog = backlog;
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_LISTEN)) {
-			/* errno = EACCES; */
+			switch (sysio()->error.listen) {
+			case Noux::Sysio::LISTEN_ERR_ADDR_IN_USE:   errno = EADDRINUSE; break;
+			case Noux::Sysio::LISTEN_ERR_NOT_SUPPORTED: errno = EOPNOTSUPP; break;
+			default:                                    errno = 0;          break;
+			}
 			return -1;
 		}
 
@@ -1413,7 +1459,13 @@ namespace {
 			sysio()->recv_in.len = curr_len;
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_RECV)) {
-				/* XXX set errno */
+				switch (sysio()->error.recv) {
+				case Noux::Sysio::RECV_ERR_AGAIN:         errno = EAGAIN;      break;
+				case Noux::Sysio::RECV_ERR_WOULD_BLOCK:   errno = EWOULDBLOCK; break;
+				case Noux::Sysio::RECV_ERR_INVALID:       errno = EINVAL;      break;
+				case Noux::Sysio::RECV_ERR_NOT_CONNECTED: errno = ENOTCONN;    break;
+				default:                                  errno = 0;           break;
+				}
 				return -1;
 			}
 
@@ -1452,7 +1504,13 @@ namespace {
 				sysio()->recvfrom_in.addrlen = *addrlen;
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_RECVFROM)) {
-				/* XXX set errno */
+				switch (sysio()->error.recv) {
+				case Noux::Sysio::RECV_ERR_AGAIN:         errno = EAGAIN;      break;
+				case Noux::Sysio::RECV_ERR_WOULD_BLOCK:   errno = EWOULDBLOCK; break;
+				case Noux::Sysio::RECV_ERR_INVALID:       errno = EINVAL;      break;
+				case Noux::Sysio::RECV_ERR_NOT_CONNECTED: errno = ENOTCONN;    break;
+				default:                                  errno = 0;           break;
+				}
 				return -1;
 			}
 
@@ -1495,6 +1553,16 @@ namespace {
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_SEND)) {
 				PERR("write error %d", sysio()->error.general);
+				switch (sysio()->error.send) {
+				case Noux::Sysio::SEND_ERR_AGAIN:            errno = EAGAIN;      break;
+				case Noux::Sysio::SEND_ERR_WOULD_BLOCK:      errno = EWOULDBLOCK; break;
+				case Noux::Sysio::SEND_ERR_CONNECTION_RESET: errno = ECONNRESET;  break;
+				case Noux::Sysio::SEND_ERR_INVALID:          errno = EINVAL;      break;
+				case Noux::Sysio::SEND_ERR_IS_CONNECTED:     errno = EISCONN;     break;
+				case Noux::Sysio::SEND_ERR_NO_MEMORY:        errno = ENOMEM;      break;
+				default:                                     errno = 0;           break;
+				}
+				/* return foo */
 			}
 
 			len -= curr_len;
@@ -1510,7 +1578,7 @@ namespace {
 		int const orig_count = len;
 
 		if (addrlen > sizeof (sysio()->sendto_in.dest_addr)) {
-			/* XXX errno */
+			errno = 0; /* XXX */
 			return -1;
 		}
 
@@ -1535,6 +1603,15 @@ namespace {
 			}
 
 			if (!noux()->syscall(Noux::Session::SYSCALL_SENDTO)) {
+				switch (sysio()->error.send) {
+				case Noux::Sysio::SEND_ERR_AGAIN:            errno = EAGAIN;      break;
+				case Noux::Sysio::SEND_ERR_WOULD_BLOCK:      errno = EWOULDBLOCK; break;
+				case Noux::Sysio::SEND_ERR_CONNECTION_RESET: errno = ECONNRESET;  break;
+				case Noux::Sysio::SEND_ERR_INVALID:          errno = EINVAL;      break;
+				case Noux::Sysio::SEND_ERR_IS_CONNECTED:     errno = EISCONN;     break;
+				case Noux::Sysio::SEND_ERR_NO_MEMORY:        errno = ENOMEM;      break;
+				default:                                     errno = 0;           break;
+				}
 				return -1;
 			}
 
@@ -1552,6 +1629,10 @@ namespace {
 		sysio()->shutdown_in.how = how;
 
 		if (!noux()->syscall(Noux::Session::SYSCALL_SHUTDOWN)) {
+			switch (sysio()->error.shutdown) {
+			case Noux::Sysio::SHUTDOWN_ERR_NOT_CONNECTED: errno = ENOTCONN; break;
+			default:                                      errno = 0;        break;
+			}
 			return -1;
 		}
 

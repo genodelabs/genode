@@ -28,6 +28,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include <errno.h>
 
 
 namespace Noux {
@@ -119,7 +120,7 @@ namespace Noux {
 
 			bool write(Sysio *sysio, size_t &count)
 			{
-				size_t result = ::write(_socket, sysio->write_in.chunk,
+				ssize_t result = ::write(_socket, sysio->write_in.chunk,
 				                         sysio->write_in.count);
 
 				if (result > -1) {
@@ -127,6 +128,15 @@ namespace Noux {
 					count = result;
 
 					return true;
+				}
+
+				switch (errno) {
+				/* case EAGAIN:      sysio->error.read = Sysio::READ_ERR_AGAIN;       break; */
+				case EWOULDBLOCK: sysio->error.read = Sysio::READ_ERR_WOULD_BLOCK; break;
+				case EINVAL:      sysio->error.read = Sysio::READ_ERR_INVALID;     break;
+				case EIO:         sysio->error.read = Sysio::READ_ERR_IO;          break;
+				default:
+				                  PDBG("unhandled errno: %d", errno);              break;
 				}
 
 				return false;
@@ -138,10 +148,23 @@ namespace Noux {
 					Genode::min(sysio->read_in.count,
 					            sizeof(sysio->read_out.chunk));
 
-				sysio->read_out.count = ::read(_socket, sysio->read_out.chunk,
-				                               max_count);
+				ssize_t result = ::read(_socket, sysio->read_out.chunk, max_count);
 
-				return true;
+				if (result > -1) {
+					sysio->read_out.count = result;
+					return true;
+				}
+
+				switch (errno) {
+				/* case EAGAIN:      sysio->error.read = Sysio::READ_ERR_AGAIN;       break; */
+				case EWOULDBLOCK: sysio->error.read = Sysio::READ_ERR_WOULD_BLOCK; break;
+				case EINVAL:      sysio->error.read = Sysio::READ_ERR_INVALID;     break;
+				case EIO:         sysio->error.read = Sysio::READ_ERR_IO;          break;
+				default:
+						  PDBG("unhandled errno: %d", errno);              break;
+				}
+
+				return false;
 			}
 
 			bool socket(Sysio *sysio)
@@ -200,19 +223,58 @@ namespace Noux {
 					                  &sysio->accept_in.addrlen);
 				}
 
+				if (result == -1) {
+					switch (errno) {
+					/* case EAGAIN:      sysio->error.accept = Sysio::ACCEPT_ERR_AGAIN;         break; */
+					case ENOMEM:      sysio->error.accept = Sysio::ACCEPT_ERR_NO_MEMORY;     break;
+					case EINVAL:      sysio->error.accept = Sysio::ACCEPT_ERR_INVALID;       break;
+					case EOPNOTSUPP:  sysio->error.accept = Sysio::ACCEPT_ERR_NOT_SUPPORTED; break;
+					case EWOULDBLOCK: sysio->error.accept = Sysio::ACCEPT_ERR_WOULD_BLOCK;   break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
 				return result;
 			}
 
 			int bind(Sysio *sysio)
 			{
-				return ::bind(_socket, (const struct sockaddr *)&sysio->bind_in.addr,
-				              sysio->bind_in.addrlen);
+				int result = ::bind(_socket, (const struct sockaddr *)&sysio->bind_in.addr,
+				                    sysio->bind_in.addrlen);
+
+				if (result == -1) {
+					switch (errno) {
+					case EACCES:     sysio->error.bind = Sysio::BIND_ERR_ACCESS;      break;
+					case EADDRINUSE: sysio->error.bind = Sysio::BIND_ERR_ADDR_IN_USE; break;
+					case EINVAL:     sysio->error.bind = Sysio::BIND_ERR_INVALID;     break;
+					case ENOMEM:     sysio->error.bind = Sysio::BIND_ERR_NO_MEMORY;   break;
+					default:
+						PERR("unhandled errno: %d", errno); break;
+					}
+				}
+
+				return result;
 			}
 
 			int connect(Sysio *sysio)
 			{
-				return ::connect(_socket, (struct sockaddr *)&sysio->connect_in.addr,
-				                 sysio->connect_in.addrlen);
+				int result = ::connect(_socket, (struct sockaddr *)&sysio->connect_in.addr,
+				                       sysio->connect_in.addrlen);
+
+				if (result == -1) {
+					switch (errno) {
+					case EAGAIN:      sysio->error.connect = Sysio::CONNECT_ERR_AGAIN;        break;
+					case EALREADY:    sysio->error.connect = Sysio::CONNECT_ERR_ALREADY;      break;
+					case EADDRINUSE:  sysio->error.connect = Sysio::CONNECT_ERR_ADDR_IN_USE;  break;
+					case EINPROGRESS: sysio->error.connect = Sysio::CONNECT_ERR_IN_PROGRESS;  break;
+					case EISCONN:     sysio->error.connect = Sysio::CONNECT_ERR_IS_CONNECTED; break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
+				return result;
 			}
 
 			int getpeername(Sysio *sysio)
@@ -230,13 +292,36 @@ namespace Noux {
 
 			int listen(Sysio *sysio)
 			{
-				return ::listen(_socket, sysio->listen_in.backlog);
+				int result = ::listen(_socket, sysio->listen_in.backlog);
+
+				if (result == -1) {
+					switch (errno) {
+					case EADDRINUSE: sysio->error.listen = Sysio::LISTEN_ERR_ADDR_IN_USE;   break;
+					case EOPNOTSUPP: sysio->error.listen = Sysio::LISTEN_ERR_NOT_SUPPORTED; break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
+				return result;
 			}
 
 			ssize_t recv(Sysio *sysio)
 			{
-				return ::recv(_socket, sysio->recv_in.buf, sysio->recv_in.len,
-				               sysio->recv_in.flags);
+				ssize_t result = ::recv(_socket, sysio->recv_in.buf, sysio->recv_in.len, sysio->recv_in.flags);
+
+				if (result == -1) {
+					switch (errno) {
+					/*case EAGAIN:      sysio->error.recv = Sysio::RECV_ERR_AGAIN;            break; */
+					case EWOULDBLOCK: sysio->error.recv = Sysio::RECV_ERR_WOULD_BLOCK;      break;
+					case EINVAL:      sysio->error.recv = Sysio::RECV_ERR_INVALID;          break;
+					case ENOTCONN:    sysio->error.recv = Sysio::RECV_ERR_NOT_CONNECTED;    break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
+				return result;
 			}
 
 			ssize_t recvfrom(Sysio *sysio)
@@ -245,13 +330,39 @@ namespace Noux {
 				                            sysio->recv_in.flags, (struct sockaddr *)&sysio->recvfrom_in.src_addr,
 				                            &sysio->recvfrom_in.addrlen);
 
+				if (result == -1) {
+					switch (errno) {
+					/*case EAGAIN:      sysio->error.recv = Sysio::RECV_ERR_AGAIN;            break; */
+					case EWOULDBLOCK: sysio->error.recv = Sysio::RECV_ERR_WOULD_BLOCK;      break;
+					case EINVAL:      sysio->error.recv = Sysio::RECV_ERR_INVALID;          break;
+					case ENOTCONN:    sysio->error.recv = Sysio::RECV_ERR_NOT_CONNECTED;    break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
 				return result;
 			}
 
 			ssize_t send(Sysio *sysio)
 			{
-				return ::send(_socket, sysio->send_in.buf, sysio->send_in.len,
-				               sysio->send_in.flags);
+				ssize_t result = ::send(_socket, sysio->send_in.buf, sysio->send_in.len,
+				                        sysio->send_in.flags);
+
+				if (result == -1) {
+					switch (errno) {
+					/*case EAGAIN:      sysio->error.send = Sysio::SEND_ERR_AGAIN;            break; */
+					case EWOULDBLOCK: sysio->error.send = Sysio::SEND_ERR_WOULD_BLOCK;      break;
+					case ECONNRESET:  sysio->error.send = Sysio::SEND_ERR_CONNECTION_RESET; break;
+					case EINVAL:      sysio->error.send = Sysio::SEND_ERR_INVALID;          break;
+					case EISCONN:     sysio->error.send = Sysio::SEND_ERR_IS_CONNECTED;     break;
+					case ENOMEM:      sysio->error.send = Sysio::SEND_ERR_NO_MEMORY;        break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
+				return result;
 			}
 
 			ssize_t sendto(Sysio *sysio)
@@ -261,12 +372,35 @@ namespace Noux {
 				                          (const struct sockaddr *) &sysio->sendto_in.dest_addr,
 				                          sysio->sendto_in.addrlen);
 
+				if (result == -1) {
+					switch (errno) {
+					/*case EAGAIN:      sysio->error.send = Sysio::SEND_ERR_AGAIN;            break; */
+					case EWOULDBLOCK: sysio->error.send = Sysio::SEND_ERR_WOULD_BLOCK;      break;
+					case ECONNRESET:  sysio->error.send = Sysio::SEND_ERR_CONNECTION_RESET; break;
+					case EINVAL:      sysio->error.send = Sysio::SEND_ERR_INVALID;          break;
+					case EISCONN:     sysio->error.send = Sysio::SEND_ERR_IS_CONNECTED;     break;
+					case ENOMEM:      sysio->error.send = Sysio::SEND_ERR_NO_MEMORY;        break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
 				return result;
 			}
 
 			int shutdown(Sysio *sysio)
 			{
-				return ::shutdown(_socket, sysio->shutdown_in.how);
+				int result = ::shutdown(_socket, sysio->shutdown_in.how);
+
+				if (result == -1) {
+					switch (errno) {
+					case ENOTCONN: sysio->error.shutdown = Sysio::SHUTDOWN_ERR_NOT_CONNECTED; break;
+					default:
+						PDBG("unhandled errno: %d", errno); break;
+					}
+				}
+
+				return result;
 			}
 	};
 }

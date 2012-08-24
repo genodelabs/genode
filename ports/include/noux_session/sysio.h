@@ -299,6 +299,42 @@ namespace Noux {
 		                       MKDIR_ERR_NO_SPACE, MKDIR_ERR_NO_PERM,
 		                       MKDIR_ERR_NAME_TOO_LONG};
 
+		enum Read_error      { READ_ERR_AGAIN, READ_ERR_WOULD_BLOCK,
+		                       READ_ERR_INVALID, READ_ERR_IO };
+
+		enum Write_error     { WRITE_ERR_AGAIN, WRITE_ERR_WOULD_BLOCK,
+		                       WRITE_ERR_INVALID, WRITE_ERR_IO };
+
+		/**
+		 * Socket related errors
+		 */
+		enum Accept_error    { ACCEPT_ERR_AGAIN, ACCEPT_ERR_WOULD_BLOCK,
+		                       ACCEPT_ERR_INVALID, ACCEPT_ERR_NO_MEMORY,
+		                       ACCEPT_ERR_NOT_SUPPORTED };
+
+		enum Bind_error      { BIND_ERR_ACCESS, BIND_ERR_ADDR_IN_USE,
+		                       BIND_ERR_INVALID, BIND_ERR_NO_MEMORY };
+
+		enum Connect_error   { CONNECT_ERR_ACCESS, CONNECT_ERR_AGAIN,
+		                       CONNECT_ERR_ALREADY, CONNECT_ERR_CONN_REFUSED,
+		                       CONNECT_ERR_NO_PERM, CONNECT_ERR_ADDR_IN_USE,
+		                       CONNECT_ERR_IN_PROGRESS, CONNECT_ERR_IS_CONNECTED };
+
+		enum Listen_error    { LISTEN_ERR_ADDR_IN_USE, LISTEN_ERR_NOT_SUPPORTED };
+
+		enum Recv_error      { RECV_ERR_AGAIN, RECV_ERR_WOULD_BLOCK,
+		                       RECV_ERR_CONN_REFUSED, RECV_ERR_INVALID,
+		                       RECV_ERR_NOT_CONNECTED, RECV_ERR_NO_MEMORY };
+
+		enum Send_error      { SEND_ERR_AGAIN, SEND_ERR_WOULD_BLOCK,
+		                       SEND_ERR_CONNECTION_RESET, SEND_ERR_INVALID,
+		                       SEND_ERR_IS_CONNECTED, SEND_ERR_NO_MEMORY };
+
+		enum Shutdown_error  { SHUTDOWN_ERR_NOT_CONNECTED };
+
+		enum Socket_error    { SOCKET_ERR_ACCESS, SOCKET_ERR_NO_AF_SUPPORT,
+		                       SOCKET_ERR_INVALID, SOCKET_ERR_NO_MEMORY };
+
 		union {
 			General_error   general;
 			Stat_error      stat;
@@ -310,6 +346,16 @@ namespace Noux {
 			Unlink_error    unlink;
 			Rename_error    rename;
 			Mkdir_error     mkdir;
+			Read_error      read;
+			Write_error     write;
+			Accept_error    accept;
+			Bind_error      bind;
+			Connect_error   connect;
+			Listen_error    listen;
+			Recv_error      recv;
+			Send_error      send;
+			Shutdown_error  shutdown;
+			Socket_error    socket;
 		} error;
 
 		union {
