@@ -177,9 +177,21 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_STAT:
 		case SYSCALL_LSTAT: /* XXX implement difference between 'lstat' and 'stat' */
+			{
+				bool result = _root_dir->stat(_sysio, Absolute_path(_sysio->stat_in.path,
+			                                      _env.pwd()).base());
 
-			return _root_dir->stat(_sysio, Absolute_path(_sysio->stat_in.path,
-			                                             _env.pwd()).base());
+				/**
+ 				 * Instead of using the uid/gid given by the actual file system
+				 * we use the ones specificed in the config.
+				 */
+				if (result) {
+					_sysio->stat_out.st.uid = user_info()->uid;
+					_sysio->stat_out.st.gid = user_info()->gid;
+				}
+
+				return result;
+			}
 
 		case SYSCALL_FSTAT:
 
