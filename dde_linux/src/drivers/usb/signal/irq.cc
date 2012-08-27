@@ -71,6 +71,13 @@ class Irq_context : public Driver_context,
 		/* called by the DDE kit upon IRQ */
 		static void _dde_handler(void *irq)
 		{
+			/*
+			 * Make sure there is only one interrupt handled at a time, since dde_kit
+			 * will use one thread per IRQ
+			 */
+			static Genode::Lock handler_lock;
+			Genode::Lock::Guard guard(handler_lock);
+
 			/* unlock if main thread is waiting */
 			_irq_wait.unlock();
 
@@ -99,9 +106,6 @@ class Irq_context : public Driver_context,
 				if (h->handler(_irq, h->dev) != IRQ_HANDLED)
 					return handled;
 
-				if (!handled)
-					Routine::schedule_all();
-
 				handled = true;
 
 			} while (true);
@@ -117,13 +121,16 @@ class Irq_context : public Driver_context,
 			/* report IRQ to all clients */
 			for (Irq_handler *h = _handler_list.first(); h; h = h->next()) {
 
-				handled = _handle_one(h);
-				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u %p", _irq, handled, h->handler);
-				if (handled)
-					break;
+				handled |= _handle_one(h);
+				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u h: %p dev: %p", _irq, handled, h->handler, h->dev);
 			}
+
 			/* interrupt should be acked at device now */
 			_irq_sync.unlock();
+
+			if (handled)
+				Routine::schedule_all();
+
 			return handled;
 		}
 

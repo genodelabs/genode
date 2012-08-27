@@ -957,8 +957,6 @@ void breakpoint();
 /* our wait event implementation */
 void __wait_event(void);
 
-#define wait_event(wq, condition) \
-	({  dde_kit_printf("wait_event, not yet implemented\n"); 0; })
 
 #define _wait_event(condition) \
 	while(!(condition)) { \
@@ -966,6 +964,10 @@ void __wait_event(void);
 		if (!(condition))   \
 			msleep(1);        \
 	}                     \
+
+#define wait_event(wq, condition) \
+	({ _wait_event(condition); })
+
 
 #define _wait_event_timeout(condition, timeout) \
 ({ \

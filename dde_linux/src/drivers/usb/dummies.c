@@ -310,7 +310,7 @@ void pm_runtime_no_callbacks(struct device *dev) { TRACE; }
 
 int  device_init_wakeup(struct device *dev, bool val) { TRACE; return 0; }
 int  device_wakeup_enable(struct device *dev) { TRACE; return 0; }
-bool device_may_wakeup(struct device *dev) { TRACE; return 0; }
+bool device_may_wakeup(struct device *dev) { TRACE; return 1; }
 int  device_set_wakeup_enable(struct device *dev, bool enable) { TRACE; return 0; }
 bool device_can_wakeup(struct device *dev) { TRACE; return 0; }
 
