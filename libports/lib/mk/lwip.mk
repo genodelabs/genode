@@ -27,7 +27,7 @@ SRC_C   += etharp.c
 
 LIBS     = thread cxx alarm signal libc timed_semaphore
 
-D_OPTS   = ERRNO SO_REUSE LWIP_SO_RCVBUF RECV_BUFSIZE_DEFAULT=8192
+D_OPTS   = ERRNO
 D_OPTS  := $(addprefix -D,$(D_OPTS))
 CC_DEF  += $(D_OPTS)
 

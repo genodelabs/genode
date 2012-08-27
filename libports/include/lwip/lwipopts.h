@@ -31,6 +31,9 @@
 #define LWIP_NETIF_API              1  /* Network interface API */
 #define LWIP_NETIF_LOOPBACK         1  /* Looping back to same address? */
 #define LWIP_HAVE_LOOPIF            1  /* 127.0.0.1 support ? */
+#define LWIP_STATS                  0  /* disable stating */
+#define LWIP_RCVBUF                 1  /* enable SO_RCVBUF */
+#define SO_REUSE                    1  /* enable SO_REUSE */
 
 #if LWIP_DHCP
 #define LWIP_NETIF_STATUS_CALLBACK  1  /* callback function used by DHCP init */
@@ -47,7 +50,13 @@
 #define TCPIP_MBOX_SIZE           128
 
 #define TCP_MSS                  1460
-#define TCP_SND_BUF     (2 * TCP_MSS)
+#define TCP_WND                     (32 * TCP_MSS)
+#define TCP_SND_BUF                 (128 * TCP_MSS)
+#define TCP_SND_QUEUELEN            ((32 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
+
+#define RECV_BUFSIZE_DEFAULT        2147483647 /* this is actually INT_MAX, default value */
+
+#define PBUF_POOL_SIZE             32
 
 /*
  * We reduce the maximum segment lifetime from one minute to one second to
