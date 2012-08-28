@@ -62,6 +62,7 @@
 /libports/src/lib/openssl/x86_64/cpuid.s
 /libports/src/lib/openssl/x86_64/modexp512.s
 /libports/src/lib/openssl/x86_64/rc4_md5.s
+/libports/include/pcre
 /libports/include/python2.6
 /libports/include/qoost
 /libports/include/readline/keymaps.h
