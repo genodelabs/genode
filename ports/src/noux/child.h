@@ -295,7 +295,7 @@ namespace Noux {
 			      Signal_receiver  *sig_rec,
 			      Dir_file_system  *root_dir,
 			      Args              const &args,
-			      char const       *env,
+			      Sysio::Env        const &env,
 			      char const       *pwd,
 			      Cap_session      *cap_session,
 			      Service_registry &parent_services,

@@ -242,7 +242,6 @@ static bool serialize_string_array(char const * const * array, char *dst, Genode
 			return false;
 
 		Genode::strncpy(dst, array[i], dst_len);
-
 		dst += curr_len;
 		dst_len -= curr_len;
 	}
@@ -1697,38 +1696,16 @@ void init_libc_noux(void)
 	Genode::Dataspace_capability env_ds = env_rom.dataspace();
 	char *env_string = (char *)Genode::env()->rm_session()->attach(env_ds);
 
-	enum { ENV_MAX_SIZE       = 4096,
-	       ENV_MAX_ENTRIES    =  128,
-	       ENV_KEY_MAX_SIZE   =  256,
-	       ENV_VALUE_MAX_SIZE = 1024 };
-
-	static char  env_buf[ENV_MAX_SIZE];
+	enum { ENV_MAX_ENTRIES =  128 };
 	static char *env_array[ENV_MAX_ENTRIES];
 
 	unsigned num_entries = 0;  /* index within 'env_array' */
-	Genode::size_t i     = 0;  /* index within 'env_buf' */
 
-	while ((num_entries < ENV_MAX_ENTRIES - 2) && (i < ENV_MAX_SIZE)) {
-
-		Genode::Arg arg = Genode::Arg_string::first_arg(env_string);
-		if (!arg.valid())
-			break;
-
-		char key_buf[ENV_KEY_MAX_SIZE],
-		     value_buf[ENV_VALUE_MAX_SIZE];
-
-		arg.key(key_buf, sizeof(key_buf));
-		arg.string(value_buf, sizeof(value_buf), "");
-
-		env_array[num_entries++] = env_buf + i;
-		Genode::snprintf(env_buf + i, ENV_MAX_SIZE - i,
-		                 "%s=%s", key_buf, value_buf);
-
-		i += Genode::strlen(env_buf + i) + 1;
-
-		/* remove processed arg from 'env_string' */
-		Genode::Arg_string::remove_arg(env_string, key_buf);
+	while (*env_string && (num_entries < ENV_MAX_ENTRIES - 1)) {
+		env_array[num_entries++] = env_string;
+		env_string += (strlen(env_string) + 1);
 	}
+	env_array[num_entries] = 0;
 
 	/* register list of environment variables at libc 'environ' pointer */
 	environ = env_array;

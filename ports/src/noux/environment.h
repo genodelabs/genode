@@ -31,9 +31,7 @@ namespace Noux {
 	{
 		private:
 
-			enum { ENV_DS_SIZE = 4096 };
-
-			char *_env;
+			Sysio::Env *_env;
 
 			Pwd::Path _pwd_path;
 
@@ -42,19 +40,19 @@ namespace Noux {
 			/**
 			 * \param env  comma-separated list of environment variables
 			 */
-			Environment(char const *env) :
-				Attached_ram_dataspace(Genode::env()->ram_session(), ENV_DS_SIZE),
-				_env(local_addr<char>())
+			Environment(Sysio::Env const &env) :
+				Attached_ram_dataspace(Genode::env()->ram_session(), sizeof(Sysio::Env)),
+				_env(local_addr<Sysio::Env>())
 			{
-				strncpy(_env, env, ENV_DS_SIZE);
+				memcpy(_env, env, sizeof(Sysio::Env));
 			}
 
 			using Attached_ram_dataspace::cap;
 
 			/**
-			 * Return list of environment variables as comma-separated list
+			 * Return list of environment variables as zero-separated list
 			 */
-			char const *env() { return _env; }
+			Sysio::Env const &env() { return *_env; }
 
 
 			/*******************
@@ -67,26 +65,6 @@ namespace Noux {
 			{
 				_pwd_path.import(pwd);
 				_pwd_path.remove_trailing('/');
-
-				char quoted[Sysio::MAX_PATH_LEN];
-				Range_checked_index<unsigned> i(0, sizeof(quoted));
-
-				try {
-					char const *s = _pwd_path.base();
-					quoted[i++] = '"';
-					while (*s) {
-						if (*s == '"')
-							quoted[i++] = '/';
-						quoted[i++] = *s++;
-					}
-					quoted[i++] = '"';
-					quoted[i] = 0;
-				} catch (Index_out_of_range) {
-					PERR("Could not set PWD, buffer too small");
-					return;
-				}
-
-				Arg_string::set_arg(_env, ENV_DS_SIZE, "PWD", quoted);
 				PINF("changed current work directory to %s", _pwd_path.base());
 			}
 	};

@@ -20,6 +20,7 @@
 /* Noux includes */
 #include <child.h>
 #include <child_env.h>
+#include <noux_session/sysio.h>
 #include <vfs_io_channel.h>
 #include <terminal_io_channel.h>
 #include <dummy_input_io_channel.h>
@@ -674,42 +675,16 @@ static Noux::Args const &args_of_init_process()
 }
 
 
-static void quote(char *buf, Genode::size_t buf_len)
-{
-	/*
-	 * Make sure to leave space at the end of buffer for the finishing '"' and
-	 * the null-termination.
-	 */
-	char c = '"';
-	unsigned i = 0;
-	for (; c && (i + 2 < buf_len); i++)
-	{
-		/*
-		 * So shouldn't this have a special case for '"' characters inside the
-		 * string? This is actually not needed because such a string could
-		 * never be constructed via the XML config anyway. You can sneak in '"'
-		 * characters only by quoting them in the XML file. Then, however, they
-		 * are already quoted.
-		 */
-		char next_c = buf[i];
-		buf[i] = c;
-		c = next_c;
-	}
-	buf[i + 0] = '"';
-	buf[i + 1] = 0;
-}
-
-
 /**
  * Return string containing the environment variables of init
  *
- * The string is formatted according to the 'Genode::Arg_string' rules.
+ * The variable definitions are separated by zeros. The end of the string is
+ * marked with another zero.
  */
-static char const *env_string_of_init_process()
+static Noux::Sysio::Env &env_string_of_init_process()
 {
-	static char env_buf[4096];
-
-	Genode::Arg_string::set_arg(env_buf, sizeof(env_buf), "PWD", "\"/\"");
+	static Noux::Sysio::Env env;
+	int index = 0;
 
 	/* read environment variables for init process from config */
 	Genode::Xml_node start_node = Genode::config()->xml_node().sub_node("start");
@@ -720,15 +695,22 @@ static char const *env_string_of_init_process()
 
 			arg_node.attribute("name").value(name_buf, sizeof(name_buf));
 			arg_node.attribute("value").value(value_buf, sizeof(value_buf));
-			quote(value_buf, sizeof(value_buf));
 
-			Genode::Arg_string::set_arg(env_buf, sizeof(env_buf),
-			                            name_buf, value_buf);
+			Genode::size_t env_var_size = Genode::strlen(name_buf) +
+			                              Genode::strlen("=") +
+			                              Genode::strlen(value_buf) + 1;
+			if (index + env_var_size < sizeof(env)) {
+				Genode::snprintf(&env[index], env_var_size, "%s=%s", name_buf, value_buf);
+				index += env_var_size;
+			} else {
+				env[index] = 0;
+				break;
+			}
 		}
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
 
-	return env_buf;
+	return env;
 }
 
 

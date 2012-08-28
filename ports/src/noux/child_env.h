@@ -39,42 +39,12 @@ namespace Noux {
 
 			char const *_binary_name;
 			char        _args[ARGS_SIZE + MAX_LEN_INTERPRETER_LINE];
-			char        _env[Sysio::ENV_MAX_LEN];
+			Sysio::Env  _env;
 
-			/**
-			 * Deserialize environment variable buffer into a
-			 * null-terminated string. The source env buffer contains a
-			 * list of strings separated by single 0 characters. Each
-			 * string has the form "name=value" (w/o the quotes). The end
-			 * of the list is marked by an additional 0 character. The
-			 * resulting string is a null-terminated string containing a
-			 * comma-separated list of environment variables.
-			 */
 			void _process_env(Sysio::Env env)
 			{
-				/**
-				 * In the following loop, 'i' is the index into the source
-				 * buffer, 'j' is the index into the destination buffer, 'env'
-				 * is the destination.
-				 */
-				for (unsigned i = 0, j = 0; i < Sysio::ENV_MAX_LEN && env[i]; )
-				{
-					char const *src = &env[i];
-
-					/* prepend a comma in front of each entry except for the first one */
-					if (i) {
-						snprintf(_env + j, sizeof(_env) - j, ",");
-						j++;
-					}
-
-					snprintf(_env + j, sizeof(_env) - j, "%s", src);
-
-					/* skip null separator in source string */
-					i += strlen(src) + 1;
-					j += strlen(src);
-				}
+				memcpy(_env, env, sizeof(Sysio::Env));
 			}
-
 
 			/**
 			 * Handle the case that the given binary needs an interpreter
@@ -183,7 +153,7 @@ namespace Noux {
 
 			Args args() { return Args(_args, sizeof(_args)); }
 
-			char const *env() const { return _env; }
+			Sysio::Env const &env() const { return _env; }
 	};
 
 }
