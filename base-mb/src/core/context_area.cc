@@ -58,7 +58,7 @@ class Context_area_rm_session : public Rm_session
 			}
 
 			if (!map_local(ds->phys_addr(),
-			               (addr_t)local_addr + Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
+			               (addr_t)local_addr + Native_config::context_area_virtual_base(),
 			               ds->size() >> get_page_size_log2()))
 				return 0;
 

@@ -391,8 +391,8 @@ void Platform::_setup_basics()
 	_region_alloc.add_range(_vm_start, _vm_size);
 
 	/* preserve context area in core's virtual address space */
-	_region_alloc.remove_range(Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
-	                           Thread_base::CONTEXT_AREA_VIRTUAL_SIZE);
+	_region_alloc.remove_range(Native_config::context_area_virtual_base(),
+	                           Native_config::context_area_virtual_size());
 
 	/* I/O memory could be the whole user address space */
 	/* FIXME if the kernel helps to find out max address - use info here */

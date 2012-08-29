@@ -220,8 +220,8 @@ Genode::Platform::Platform() :
 	_core_mem_alloc.remove_range(img_base, img_size);
 
 	/* Preserve core's context area with page-granularity from allocation */
-	addr_t const ctxt_area_base  = trunc_page((addr_t)Thread_base::CONTEXT_AREA_VIRTUAL_BASE);
-	size_t const ctxt_area_size  = round_page((addr_t)Thread_base::CONTEXT_AREA_VIRTUAL_BASE);
+	addr_t const ctxt_area_base  = trunc_page((addr_t)Native_config::context_area_virtual_base());
+	size_t const ctxt_area_size  = round_page((addr_t)Native_config::context_area_virtual_base());
 	_core_mem_alloc.remove_range(ctxt_area_base, ctxt_area_size);
 
 	/* Preserve UART MMIO with page-granularity from allocation */

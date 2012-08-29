@@ -55,7 +55,6 @@ int Platform_thread::start(void *ip, void *sp)
 		return -2;
 	}
 
-	enum { PD_UTCB = 0x6000000 };
 	_pager->initial_eip((addr_t)ip);
 	if (!_is_main_thread) {
 		addr_t initial_sp = reinterpret_cast<addr_t>(sp);
@@ -104,7 +103,11 @@ int Platform_thread::start(void *ip, void *sp)
 	 * For the first thread of a new PD, use the initial stack pointer for
 	 * reporting the thread's UTCB address.
 	 */
-	_pager->initial_esp(PD_UTCB + get_page_size());
+	addr_t pd_utcb = Native_config::context_area_virtual_base() +
+	                 Native_config::context_area_virtual_size() -
+	                 get_page_size();
+
+	_pager->initial_esp(pd_utcb + get_page_size());
 
 	_sel_exc_base = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
 
@@ -180,7 +183,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	/* Create first thread in task */
 	enum { THREAD_GLOBAL = true };
-	res = create_ec(_sel_ec(), pd_sel, _cpu_no, PD_UTCB, 0, 0,
+	res = create_ec(_sel_ec(), pd_sel, _cpu_no, pd_utcb, 0, 0,
 	                THREAD_GLOBAL);
 	if (res) {
 		PERR("create_ec returned %d", res);

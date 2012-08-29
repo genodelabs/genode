@@ -43,9 +43,13 @@ namespace Genode {
 			enum {
 				THREAD_MAX      = (1 << 6),
 				UTCB_AREA_SIZE  = (THREAD_MAX * Fiasco::L4_UTCB_OFFSET),
-				UTCB_AREA_START = (Thread_base::CONTEXT_AREA_VIRTUAL_BASE +
-				                  THREAD_MAX * Thread_base::CONTEXT_VIRTUAL_SIZE)
 			};
+
+			addr_t utcb_area_start()
+			{
+				return (Native_config::context_area_virtual_base() +
+				       THREAD_MAX * Native_config::context_virtual_size());
+			}
 
 			Cap_mapping       _task;
 			Cap_mapping       _parent;

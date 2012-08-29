@@ -30,8 +30,8 @@ static inline void main_thread_bootstrap()
 	using namespace Genode;
 
 	/* reserve context area */
-	Genode::addr_t base = Thread_base::CONTEXT_AREA_VIRTUAL_BASE;
-	Genode::size_t size = Thread_base::CONTEXT_AREA_VIRTUAL_SIZE;
+	Genode::addr_t base = Native_config::context_area_virtual_base();
+	Genode::size_t size = Native_config::context_area_virtual_size();
 	if (lx_vm_reserve(base, size) != base)
 		PERR("reservation of context area [%lx,%lx) failed",
 		     (unsigned long) base, (unsigned long) base + size);

@@ -78,21 +78,6 @@ namespace Genode {
 			class Stack_too_large      : public Exception { };
 			class Stack_alloc_failed   : public Exception { };
 
-			/*
-			 * Thread-context area configuration.
-			 *
-			 * Please update platform-specific files after changing these
-			 * values, e.g., 'base-linux/src/platform/context_area.*.ld'.
-			 */
-			enum { CONTEXT_AREA_VIRTUAL_BASE = 0x40000000 };
-			enum { CONTEXT_AREA_VIRTUAL_SIZE = 0x10000000 };
-
-			/**
-			 * Size of virtual address region holding the context of one thread
-			 */
-			enum { CONTEXT_VIRTUAL_SIZE      = 0x00100000 };
-			enum { CONTEXT_VIRTUAL_BASE_MASK = ~(CONTEXT_VIRTUAL_SIZE - 1) };
-
 		private:
 
 			/**

@@ -73,7 +73,8 @@ void Thread_base::start()
 		Ram_dataspace_capability ds = env()->cpu_session()->utcb(_thread_cap);
 		size_t const size = sizeof(_context->utcb);
 		addr_t dst = Context_allocator::addr_to_base(_context) +
-		             CONTEXT_VIRTUAL_SIZE - size - CONTEXT_AREA_VIRTUAL_BASE;
+		             Native_config::context_virtual_size() - size -
+		             Native_config::context_area_virtual_base();
 		env_context_area_rm_session()->attach_at(ds, dst, size);
 	} catch (...) {
 		PERR("%s: Failed to attach UTCB", __PRETTY_FUNCTION__);

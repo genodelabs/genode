@@ -515,8 +515,8 @@ void Platform::_setup_basics()
 	/* configure core's virtual memory, exclude KIP, context area */
 	_region_alloc.add_range(_vm_start, _vm_size);
 	_region_alloc.remove_range((addr_t)kip, kip_size);
-	_region_alloc.remove_range(Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
-	                           Thread_base::CONTEXT_AREA_VIRTUAL_SIZE);
+	_region_alloc.remove_range(Native_config::context_area_virtual_base(),
+	                           Native_config::context_area_virtual_size());
 
 	/* remove KIP and MBI area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + kip_size), _region_alloc);

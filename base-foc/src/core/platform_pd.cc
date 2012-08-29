@@ -52,7 +52,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 			thread->_utcb = (l4_utcb_t*) (core_utcb_base() + i * L4_UTCB_OFFSET);
 		else
 			thread->_utcb =
-				reinterpret_cast<l4_utcb_t*>(UTCB_AREA_START + i * L4_UTCB_OFFSET);
+				reinterpret_cast<l4_utcb_t*>(utcb_area_start() + i * L4_UTCB_OFFSET);
 		Native_thread cap_offset   = THREADS_BASE_CAP + i * THREAD_CAP_SLOT;
 		thread->_gate.remote   = cap_offset + THREAD_GATE_CAP;
 		thread->_pager.remote  = cap_offset + THREAD_PAGER_CAP;
@@ -110,7 +110,7 @@ Platform_pd::Platform_pd()
 	for (unsigned i = 0; i < THREAD_MAX; i++)
 		_threads[i] = (Platform_thread*) 0;
 
-	l4_fpage_t utcb_area = l4_fpage(UTCB_AREA_START,
+	l4_fpage_t utcb_area = l4_fpage(utcb_area_start(),
 	                                log2<unsigned>(UTCB_AREA_SIZE), 0);
 	l4_msgtag_t tag = l4_factory_create_task(L4_BASE_FACTORY_CAP,
 	                                         _task.local.dst(), utcb_area);

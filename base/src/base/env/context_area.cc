@@ -19,12 +19,12 @@
 struct Context_area_rm_session : Genode::Rm_connection
 {
 	Context_area_rm_session()
-	: Genode::Rm_connection(0, Genode::Thread_base::CONTEXT_AREA_VIRTUAL_SIZE)
+	: Genode::Rm_connection(0, Genode::Native_config::context_area_virtual_size())
 	{
 		using namespace Genode;
 
-		addr_t local_base = Thread_base::CONTEXT_AREA_VIRTUAL_BASE;
-		size_t size       = Thread_base::CONTEXT_AREA_VIRTUAL_SIZE;
+		addr_t local_base = Native_config::context_area_virtual_base();
+		size_t size       = Native_config::context_area_virtual_size();
 
 		env()->rm_session()->attach_at(dataspace(), local_base, size);
 	}

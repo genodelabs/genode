@@ -264,8 +264,8 @@ Platform::Platform() :
 	_io_port_alloc.add_range(0, 0x10000);
 
 	/* preserve context area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->remove_range(Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
-	                                           Thread_base::CONTEXT_AREA_VIRTUAL_SIZE);
+	_core_mem_alloc.virt_alloc()->remove_range(Native_config::context_area_virtual_base(),
+	                                           Native_config::context_area_virtual_size());
 
 	_vm_start = 0x1000;
 	_vm_size  = 0xb0000000 - 0x1000;

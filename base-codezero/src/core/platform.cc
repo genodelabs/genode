@@ -250,8 +250,8 @@ Platform::Platform() :
 	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
 
 	/* preserve context area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->raw()->remove_range(Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
-	                                                  Thread_base::CONTEXT_AREA_VIRTUAL_SIZE);
+	_core_mem_alloc.virt_alloc()->raw()->remove_range(Native_config::context_area_virtual_base(),
+	                                                  Native_config::context_area_virtual_size());
 
 	/* remove used core memory from physical memory allocator */
 	_core_mem_alloc.phys_alloc()->remove_range(_lma_start, core_size);

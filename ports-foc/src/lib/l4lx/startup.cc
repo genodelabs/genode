@@ -15,6 +15,7 @@
 #include <base/elf.h>
 #include <base/env.h>
 #include <base/thread.h>
+#include <base/native_types.h>
 #include <dataspace/client.h>
 #include <rom_session/connection.h>
 #include <foc_cpu_session/connection.h>
@@ -125,8 +126,8 @@ static void register_reserved_areas()
 
 	size_t bin_sz = (addr_t)&_prog_img_end - (addr_t)&_prog_img_beg;
 	L4lx::Env::env()->rm()->reserve_range((addr_t)&_prog_img_beg, bin_sz, "Binary");
-	L4lx::Env::env()->rm()->reserve_range(Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
-	                                      Thread_base::CONTEXT_AREA_VIRTUAL_SIZE,
+	L4lx::Env::env()->rm()->reserve_range(Native_config::context_area_virtual_base(),
+	                                      Native_config::context_area_virtual_size(),
 	                                      "Thread Context Area");
 }
 

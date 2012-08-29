@@ -37,14 +37,15 @@ namespace Genode {
 
 Thread_base::Context *Thread_base::Context_allocator::base_to_context(addr_t base)
 {
-	addr_t result = base + CONTEXT_VIRTUAL_SIZE - sizeof(Context);
+	addr_t result = base + Native_config::context_virtual_size()
+	                - sizeof(Context);
 	return reinterpret_cast<Context *>(result);
 }
 
 
 addr_t Thread_base::Context_allocator::addr_to_base(void *addr)
 {
-	return ((addr_t)addr) & CONTEXT_VIRTUAL_BASE_MASK;
+	return ((addr_t)addr) & ~(Native_config::context_virtual_size() - 1);
 }
 
 
@@ -66,11 +67,12 @@ Thread_base::Context *Thread_base::Context_allocator::alloc(Thread_base *thread_
 	/*
 	 * Find slot in context area for the new context
 	 */
-	addr_t base = CONTEXT_AREA_VIRTUAL_BASE;
-	for (; _is_in_use(base); base += CONTEXT_VIRTUAL_SIZE) {
+	addr_t base = Native_config::context_area_virtual_base();
+	for (; _is_in_use(base); base += Native_config::context_virtual_size()) {
 
 		/* check upper bound of context area */
-		if (base >= CONTEXT_AREA_VIRTUAL_BASE + CONTEXT_AREA_VIRTUAL_SIZE)
+		if (base >= Native_config::context_area_virtual_base() +
+		    Native_config::context_area_virtual_size())
 			return 0;
 	}
 
@@ -118,7 +120,8 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	enum { PAGE_SIZE_LOG2 = 12 };
 	size_t ds_size = align_addr(stack_size, PAGE_SIZE_LOG2);
 
-	if (stack_size >= CONTEXT_VIRTUAL_SIZE - sizeof(Native_utcb) - (1 << PAGE_SIZE_LOG2))
+	if (stack_size >= Native_config::context_virtual_size() -
+	    sizeof(Native_utcb) - (1UL << PAGE_SIZE_LOG2))
 		throw Stack_too_large();
 
 	/*
@@ -126,8 +129,9 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	 *
 	 * The stack is always located at the top of the context.
 	 */
-	addr_t ds_addr = Context_allocator::addr_to_base(context) + CONTEXT_VIRTUAL_SIZE
-	               - ds_size;
+	addr_t ds_addr = Context_allocator::addr_to_base(context) +
+	                 Native_config::context_virtual_size() -
+	                 ds_size;
 
 	/* add padding for UTCB if defined for the platform */
 	if (sizeof(Native_utcb) >= (1 << PAGE_SIZE_LOG2))
@@ -137,7 +141,7 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	Ram_dataspace_capability ds_cap;
 	try {
 		ds_cap = env_context_area_ram_session()->alloc(ds_size);
-		addr_t attach_addr = ds_addr - CONTEXT_AREA_VIRTUAL_BASE;
+		addr_t attach_addr = ds_addr - Native_config::context_area_virtual_base();
 		env_context_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size);
 
 	} catch (Ram_session::Alloc_failed) {
@@ -158,7 +162,8 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 
 void Thread_base::_free_context()
 {
-	addr_t ds_addr = _context->stack_base - CONTEXT_AREA_VIRTUAL_BASE;
+	addr_t ds_addr = _context->stack_base -
+	                 Native_config::context_area_virtual_base();
 	Ram_dataspace_capability ds_cap = _context->ds_cap;
 	Genode::env_context_area_rm_session()->detach((void *)ds_addr);
 	Genode::env_context_area_ram_session()->free(ds_cap);
@@ -182,8 +187,9 @@ Thread_base *Thread_base::myself()
 	 * thread.
 	 */
 	addr_t sp = (addr_t)(&dummy);
-	if (sp <  CONTEXT_AREA_VIRTUAL_BASE
-	 || sp >= CONTEXT_AREA_VIRTUAL_BASE + CONTEXT_AREA_VIRTUAL_SIZE)
+	if (sp <  Native_config::context_area_virtual_base() ||
+	    sp >= Native_config::context_area_virtual_base() +
+	          Native_config::context_area_virtual_size())
 		return 0;
 
 	addr_t base = Context_allocator::addr_to_base(&dummy);

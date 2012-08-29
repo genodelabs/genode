@@ -218,7 +218,7 @@ Platform::Platform() :
 
 	/* define core's virtual address space */
 	addr_t virt_beg = get_page_size();
-	addr_t virt_end = Thread_base::CONTEXT_AREA_VIRTUAL_BASE;
+	addr_t virt_end = Native_config::context_area_virtual_base();
 	_core_mem_alloc.virt_alloc()->add_range(virt_beg,
 	                                        virt_end - virt_beg);
 
@@ -229,8 +229,8 @@ Platform::Platform() :
 	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
 
 	/* preserve context area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->remove_range(Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
-	                                           Thread_base::CONTEXT_AREA_VIRTUAL_SIZE);
+	_core_mem_alloc.virt_alloc()->remove_range(Native_config::context_area_virtual_base(),
+	                                           Native_config::context_area_virtual_size());
 
 	/* initialize core's physical-memory and I/O memory allocator */
 	_io_mem_alloc.add_range(0, ~0xfff);

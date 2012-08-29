@@ -38,24 +38,35 @@ namespace Genode {
 
 		private:
 
-			enum{
-				CONTEXT_AREA_BASE   = Thread_base::CONTEXT_AREA_VIRTUAL_BASE,
-				CONTEXT_AREA_SIZE   = Thread_base::CONTEXT_AREA_VIRTUAL_SIZE,
-				CONTEXT_AREA_TOP    = CONTEXT_AREA_BASE + CONTEXT_AREA_SIZE,
-				CONTEXT_SIZE        = Thread_base::CONTEXT_VIRTUAL_SIZE,
-				CONTEXT_BASE_MASK   = Thread_base::CONTEXT_VIRTUAL_BASE_MASK,
-				CONTEXT_OFFSET_MASK = ~CONTEXT_BASE_MASK,
-
-				MAX_CONTEXT_ID      = CONTEXT_AREA_SIZE/CONTEXT_SIZE-1
-			};
+			addr_t context_area_base() {
+				return Native_config::context_area_virtual_base();
+			}
+			addr_t context_area_size() {
+				return Native_config::context_area_virtual_size();
+			}
+			addr_t context_area_top() {
+				return context_area_base() + context_area_size();
+			}
+			addr_t context_size() {
+				return Native_config::context_virtual_size();
+			}
+			addr_t context_base_mask() {
+			 	return ~(Native_config::context_virtual_size() - 1);
+			}
+			addr_t context_offset_mask() {
+				return ~context_base_mask();
+			}
+			addr_t max_context_id {
+				return context_area_size()/context_size()-1;
+			}
 
 			Native_process_id _pid;
 
-			Native_thread_id owner_tid_by_context_id[MAX_CONTEXT_ID+1];
+			Native_thread_id owner_tid_by_context_id[max_context_id()+1];
 
 			void _free_context(Native_thread_id const & t)
 			{
-				for (Context_id cid = 0; cid <= MAX_CONTEXT_ID; cid++) {
+				for (Context_id cid = 0; cid <= max_context_id(); cid++) {
 					if (owner_tid_by_context_id[cid] == t) {
 						owner_tid_by_context_id[cid] = 0;
 					}
@@ -72,7 +83,7 @@ namespace Genode {
 			{
 				static bool const verbose = false;
 
-				if ((unsigned)User::MAX_THREAD_ID>(unsigned)MAX_CONTEXT_ID) {
+				if ((unsigned)User::MAX_THREAD_ID>(unsigned)max_context_id()) {
 					PERR("More threads allowed than context areas available");
 					return;
 				}
@@ -99,22 +110,22 @@ namespace Genode {
 
 			bool cid_if_context_address(addr_t a, Context_id* cid)
 			{
-				if (a < CONTEXT_AREA_BASE || a >= CONTEXT_AREA_TOP)
+				if (a < context_area_base() || a >= context_area_top())
 					return false;
 
-				addr_t context_base = a & CONTEXT_BASE_MASK;
-				*cid = (Context_id)((context_base-CONTEXT_AREA_BASE) / CONTEXT_SIZE);
+				addr_t context_base = a & context_base_mask();
+				*cid = (Context_id)((context_base-context_area_base()) / context_size());
 				return true;
 			}
 
 			Context *context(Context_id i)
 			{
-				return (Context*)(CONTEXT_AREA_BASE+(i+1)*CONTEXT_SIZE-sizeof(Context));
+				return (Context*)(context_area_base()+(i+1)*context_size()-sizeof(Context));
 			}
 
 			Context *context_by_tid(Native_thread_id tid)
 			{
-				for (unsigned cid = 0; cid <= MAX_CONTEXT_ID; cid++)
+				for (unsigned cid = 0; cid <= max_context_id(); cid++)
 					if (owner_tid_by_context_id[cid] == tid)
 						return context(cid);
 
@@ -128,7 +139,7 @@ namespace Genode {
 				if (!cid_if_context_address(a, &cid))
 					return false;
 
-				if (cid > MAX_CONTEXT_ID) {
+				if (cid > max_context_id()) {
 					PERR("Context ID %i out of range", (unsigned int)cid);
 					return false;
 				}
@@ -142,7 +153,7 @@ namespace Genode {
 				}
 
 				addr_t offset    = a & CONTEXT_OFFSET_MASK;
-				Context *context = (Context *)(CONTEXT_SIZE - sizeof(Context));
+				Context *context = (Context *)(context_size() - sizeof(Context));
 
 				if ((void*)offset >= &context->utcb) {
 					*cp = UTCB_AREA;
@@ -160,7 +171,7 @@ namespace Genode {
 			{
 				static bool const verbose = false;
 
-				if (cid > MAX_CONTEXT_ID)
+				if (cid > max_context_id())
 					return 0;
 
 				if (owner_tid_by_context_id[cid]){
@@ -182,21 +193,21 @@ namespace Genode {
 				 * First thread is assumed to be the main thread and gets last
 				 * context-area by convention
 				 */
-				if (!owner_tid_by_context_id[MAX_CONTEXT_ID]){
-					owner_tid_by_context_id[MAX_CONTEXT_ID] = tid;
+				if (!owner_tid_by_context_id[max_context_id()]){
+					owner_tid_by_context_id[max_context_id()] = tid;
 					if (verbose)
 						PDBG("Thread %i owns Context %i (0x%p) of Protection Domain %i",
-						     tid, MAX_CONTEXT_ID, context(MAX_CONTEXT_ID), _pid);
+						     tid, max_context_id(), context(max_context_id()), _pid);
 
-					return context(MAX_CONTEXT_ID);
+					return context(max_context_id());
 				}
 
-				for (unsigned i = 0; i <= MAX_CONTEXT_ID - 1; i++) {
+				for (unsigned i = 0; i <= max_context_id() - 1; i++) {
 					if (!owner_tid_by_context_id[i]) {
 						owner_tid_by_context_id[i] = tid;
 						if (verbose)
 							PDBG("Thread %i owns Context %i (0x%p) of Protection Domain %i",
-							     tid, MAX_CONTEXT_ID, context(MAX_CONTEXT_ID), _pid);
+							     tid, max_context_id(), context(max_context_id()), _pid);
 						return context(i);
 					}
 				}
@@ -236,7 +247,7 @@ namespace Genode {
 			 */
 			void free_context(Context_id const & c)
 			{
-				if (c > MAX_CONTEXT_ID) { return; }
+				if (c > max_context_id()) { return; }
 				owner_tid_by_context_id[c] = Kernel::INVALID_THREAD_ID;
 			}
 

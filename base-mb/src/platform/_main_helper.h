@@ -43,8 +43,8 @@ static void main_thread_bootstrap()
 	int volatile pid;
 	asm volatile ("mfs %0, rpid" : "=r"(pid) : :);
 	if (pid!=Roottask::PROTECTION_ID) {
-		_main_utcb_addr = (Native_utcb*)((Thread_base::CONTEXT_AREA_VIRTUAL_BASE
-		                + Thread_base::CONTEXT_AREA_VIRTUAL_SIZE)
+		_main_utcb_addr = (Native_utcb*)((Native_config::context_area_virtual_base()
+		                + Native_config::context_area_virtual_size())
 		                - sizeof(Native_utcb));
 	}
 

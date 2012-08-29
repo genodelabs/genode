@@ -46,7 +46,7 @@ class Context_area_rm_session : public Genode::Rm_session
 
 			/* convert context-area-relative to absolute virtual address */
 			addr_t addr = local_addr;
-			addr       += Thread_base::CONTEXT_AREA_VIRTUAL_BASE;
+			addr       += Native_config::context_area_virtual_base();
 
 			/* use anonymous mmap for allocating stack backing store */
 			int   flags = MAP_FIXED | MAP_ANONYMOUS | MAP_PRIVATE;

@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__NATIVE_TYPES_H_
 
 #include <base/native_capability.h>
+#include <base/stdint.h>
 
 /*
  * We cannot just include <semaphore.h> and <pthread.h> here
@@ -107,6 +108,24 @@ namespace Genode {
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef int Native_connection_state;  /* socket descriptor */
+
+	struct Native_config
+	{
+		/**
+		 * Thread-context area configuration.
+		 *
+		 * Please update platform-specific files after changing these
+		 * values, e.g., 'base-linux/src/platform/context_area.*.ld'.
+		 */
+		static addr_t context_area_virtual_base() { return 0x40000000UL; }
+		static addr_t context_area_virtual_size() { return 0x10000000UL; }
+
+		/**
+		 * Size of virtual address region holding the context of one thread
+		 */
+		static addr_t context_virtual_size() { return 0x00100000UL; }
+	};
+
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */

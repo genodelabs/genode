@@ -215,6 +215,21 @@ namespace Genode {
 	};
 
 	typedef int Native_connection_state;
+
+	struct Native_config
+	{
+		/**
+		 * Thread-context area configuration.
+		 */
+		static addr_t context_area_virtual_base() { return 0x40000000UL; }
+		static addr_t context_area_virtual_size() { return 0x10000000UL; }
+
+		/**
+		 * Size of virtual address region holding the context of one thread
+		 */
+		static addr_t context_virtual_size() { return 0x00100000UL; }
+	};
+
 }
 
 #endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */
