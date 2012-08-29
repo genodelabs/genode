@@ -58,7 +58,7 @@ namespace Genode {
 			 ** Cap_index_allocator interface **
 			 ***********************************/
 
-			Cap_index* alloc(size_t cnt)
+			Cap_index* alloc_range(size_t cnt)
 			{
 				Lock_guard<Spin_lock> guard(_lock);
 
@@ -80,7 +80,7 @@ namespace Genode {
 				return 0;
 			}
 
-			Cap_index* alloc(addr_t addr, size_t cnt)
+			Cap_index* alloc(addr_t addr)
 			{
 				Lock_guard<Spin_lock> guard(_lock);
 
@@ -89,17 +89,11 @@ namespace Genode {
 				 * address in capability space
 				 */
 				T* obj = reinterpret_cast<T*>(kcap_to_idx(addr));
-				T* ret = obj;
 
-				/* check whether the consecutive entries are in range and unused */
-				for (size_t i = 0; i < cnt; i++, obj++) {
-					if (obj < &_indices[0] || obj >= &_indices[SZ])
-						throw Index_out_of_bounds();
-					if (obj->used())
-						throw Region_conflict();
-					new (obj) T();
-				}
-				return ret;
+				if (obj < &_indices[0] || obj >= &_indices[SZ])
+					throw Index_out_of_bounds();
+
+				return new (obj) T();
 			}
 
 			void free(Cap_index* idx, size_t cnt)
@@ -121,6 +115,9 @@ namespace Genode {
 
 			Cap_index* kcap_to_idx(addr_t kcap) {
 				return &_indices[kcap >> Fiasco::L4_CAP_SHIFT]; }
+
+			bool static_idx(Cap_index *idx) {
+				return ((T*)idx) < &_indices[START_IDX]; }
 	};
 }
 

@@ -160,7 +160,13 @@ Pager_entrypoint::Pager_entrypoint(Cap_session           *cap_session,
 }
 
 
-void Pager_entrypoint::dissolve(Pager_object *obj) { remove(obj); }
+void Pager_entrypoint::dissolve(Pager_object *obj)
+{
+	/* cleanup at cap session */
+	_cap_session->free(obj->Object_pool<Pager_object>::Entry::cap());
+
+	remove(obj);
+}
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)

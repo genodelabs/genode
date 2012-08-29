@@ -28,19 +28,10 @@ enum { MAIN_THREAD_CAP_ID = 1 };
 static void main_thread_bootstrap() {
 	using namespace Genode;
 
-	/**
-	 * Unfortunately ldso calls this function twice. So the second time when
-	 * inserting the main thread's gate-capability an exception would be raised.
-	 * At least on ARM we got problems when raising an exception that early,
-	 * that's why we first check if the cap is already registered before
-	 * inserting it.
-	 */
-	Cap_index *idx = cap_map()->find(MAIN_THREAD_CAP_ID);
-	if (!idx) {
-		Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]      = MAIN_THREAD_CAP_ID;
-		Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = 0;
-		cap_map()->insert(MAIN_THREAD_CAP_ID, Fiasco::MAIN_THREAD_CAP)->inc();
-	}
+	Cap_index *i
+		= cap_map()->insert(MAIN_THREAD_CAP_ID, Fiasco::MAIN_THREAD_CAP);
+	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE] = (unsigned long) i;
+	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = 0;
 }
 
 

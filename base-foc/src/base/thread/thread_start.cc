@@ -29,9 +29,9 @@ void Thread_base::_deinit_platform_thread()
 {
 	using namespace Fiasco;
 
-	int id = l4_utcb_tcr_u(_context->utcb)->user[UTCB_TCR_BADGE];
+	Cap_index *i = (Cap_index*)l4_utcb_tcr_u(_context->utcb)->user[UTCB_TCR_BADGE];
+	cap_map()->remove(i);
 	env()->cpu_session()->kill_thread(_thread_cap);
-	cap_map()->remove(cap_map()->find(id));
 }
 
 
@@ -57,18 +57,9 @@ void Thread_base::start()
 	_tid = state.kcap;
 	_context->utcb = state.utcb;
 
-	try {
-		l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE]      = state.id;
-		l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
-
-		/* there might be leaks in the application */
-		cap_map()->remove(cap_map()->find(state.id));
-
-		/* we need to manually increase the reference counter here */
-		cap_map()->insert(state.id, state.kcap)->inc();
-	} catch(Cap_index_allocator::Region_conflict) {
-		PERR("could not insert id %x", state.id);
-	}
+	Cap_index *i = cap_map()->insert(state.id, state.kcap);
+	l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE]      = (unsigned long) i;
+	l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 	/* register initial IP and SP at core */
 	addr_t thread_sp = (addr_t)&_context->stack[-4];

@@ -103,20 +103,17 @@ namespace Genode
 			 * \return     pointer to first allocated object, or zero if
 			 *             out of entries
 			 */
-			virtual Cap_index* alloc(size_t cnt) = 0;
+			virtual Cap_index* alloc_range(size_t cnt) = 0;
 
 			/**
-			 * Allocate a range of Cap_index objects at a specific
+			 * Allocate a Cap_index object at a specific
 			 * point in the capability space
 			 *
 			 * \param  kcap                address in capability space
-			 * \param  cnt                 number of objects to allocate
 			 * \throw  Index_out_of_bounds if address is out of scope
-			 * \throw  Region_conflict     if capability space entry is used
-             * \return                     pointer to first allocated object,
-			 *                             or zero if out of entries
+             * \return                     pointer to allocated object
 			 */
-			virtual Cap_index* alloc(addr_t kcap, size_t cnt) = 0;
+			virtual Cap_index* alloc(addr_t kcap) = 0;
 
 			/**
 			 * Free a range of Cap_index objects
@@ -141,6 +138,14 @@ namespace Genode
 			 * \param kcap the address in the capability space
 			 */
 			virtual Cap_index* kcap_to_idx(addr_t kcap) = 0;
+
+			/**
+			 * Returns whether a Cap_index object is from the region
+			 * controlled by core, or not.
+			 *
+			 * \param idx pointer to the Cap_index object in question
+			 */
+			virtual bool static_idx(Cap_index *idx) = 0;
 	};
 
 
@@ -226,9 +231,7 @@ namespace Genode
 			 * Create and insert a new Cap_index with a specific capability id,
 			 * and location in capability space
 			 *
-			 * Allocation of the Cap_index is done via the global
-			 * Cap_index_allocator, which might throw exceptions that aren't
-			 * caught by this method
+			 * A previously existent entry with the same id gets removed!
 			 *
 			 * \param  id   the global capability id
 			 * \param  kcap address in capability space
@@ -239,7 +242,10 @@ namespace Genode
 
 			/**
 			 * Create and insert a new Cap_index with a specific capability id
-			 * and map from given kcap to newly allocated one
+			 * and map from given kcap to newly allocated one,
+			 * if the an entry with the same id exists already,
+			 * it is returned if it points to the same kernel-object,
+			 * or gets overridden if it's already invalid.
 			 *
 			 * Allocation of the Cap_index is done via the global
 			 * Cap_index_allocator, which might throw exceptions that aren't
@@ -247,12 +253,14 @@ namespace Genode
 			 *
 			 * \param  id the global capability id
 			 * \return    pointer to the new Cap_index object, or zero
-			 *            when allocation failed
+			 *            when allocation failed, or when a valid entry
+			 *            with the same id exists and it's kernel-object
+			 *            differs to the one given by kcap
 			 */
 			Cap_index* insert_map(int id, addr_t kcap);
 
 			/**
-			 * Remove a Cap_index object
+			 * Remove (resp. invalidate) a Cap_index object
 			 *
 			 * \param i pointer to Cap_index object to remove
 			 */

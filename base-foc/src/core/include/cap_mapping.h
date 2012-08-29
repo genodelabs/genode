@@ -55,11 +55,6 @@ namespace Genode {
 			 * \param task capability of task to map to
 			 */
 			void map(Native_task task);
-
-			/**
-			 * Unmap all child mappings
-			 */
-			void unmap();
 	};
 }
 

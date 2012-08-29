@@ -192,7 +192,7 @@ void Ipc_istream::_wait()
 Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 :
 	Ipc_unmarshaller(&rcv_msg->buf[0], rcv_msg->size()),
-	Native_capability(cap_map()->find(Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])),
+	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
 	_rcv_msg(rcv_msg)
 {
 	_read_offset = sizeof(l4_mword_t);

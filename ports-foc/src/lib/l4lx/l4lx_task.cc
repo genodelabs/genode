@@ -85,7 +85,7 @@ int l4lx_task_number_free(l4_cap_idx_t task)
 int l4lx_task_get_new_task(l4_cap_idx_t parent_id,
                            l4_cap_idx_t *id)
 {
-	*id = Genode::cap_idx_alloc()->alloc(1)->kcap();
+	*id = Genode::cap_idx_alloc()->alloc_range(1)->kcap();
 	return 0;
 }
 

@@ -54,6 +54,10 @@ Genode::addr_t Genode::Cap_index::kcap() {
 
 Genode::uint8_t Genode::Cap_index::inc()
 {
+	/* con't ref-count index that are controlled by core */
+	if (cap_idx_alloc()->static_idx(this))
+		return 1;
+
 	spinlock_lock(&_cap_index_spinlock);
 	Genode::uint8_t ret = ++_ref_cnt;
 	spinlock_unlock(&_cap_index_spinlock);
@@ -63,6 +67,10 @@ Genode::uint8_t Genode::Cap_index::inc()
 
 Genode::uint8_t Genode::Cap_index::dec()
 {
+	/* con't ref-count index that are controlled by core */
+	if (cap_idx_alloc()->static_idx(this))
+		return 1;
+
 	spinlock_lock(&_cap_index_spinlock);
 	Genode::uint8_t ret = --_ref_cnt;
 	spinlock_unlock(&_cap_index_spinlock);
@@ -76,14 +84,9 @@ Genode::uint8_t Genode::Cap_index::dec()
 
 Genode::Cap_index* Genode::Capability_map::find(int id)
 {
-	using namespace Genode;
+	Genode::Lock_guard<Spin_lock> guard(_lock);
 
-	Lock_guard<Spin_lock> guard(_lock);
-
-	Cap_index* i = 0;
-	if (_tree.first())
-		i = _tree.first()->find_by_id(id);
-	return i;
+	return _tree.first() ? _tree.first()->find_by_id(id) : 0;
 }
 
 
@@ -96,7 +99,7 @@ Genode::Cap_index* Genode::Capability_map::insert(int id)
 	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
 	       "Double insertion in cap_map()!");
 
-	Cap_index *i = cap_idx_alloc()->alloc(1);
+	Cap_index *i = cap_idx_alloc()->alloc_range(1);
 	if (i) {
 		i->id(id);
 		_tree.insert(i);
@@ -111,10 +114,12 @@ Genode::Cap_index* Genode::Capability_map::insert(int id, addr_t kcap)
 
 	Lock_guard<Spin_lock> guard(_lock);
 
-	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
-	       "Double insertion in cap_map()!");
+	/* remove potentially existent entry */
+	Cap_index *i = _tree.first() ? _tree.first()->find_by_id(id) : 0;
+	if (i)
+		_tree.remove(i);
 
-	Cap_index *i = cap_idx_alloc()->alloc(kcap, 1);
+	i = cap_idx_alloc()->alloc(kcap);
 	if (i) {
 		i->id(id);
 		_tree.insert(i);
@@ -130,11 +135,8 @@ Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
 
 	Lock_guard<Spin_lock> guard(_lock);
 
-	Cap_index* i = 0;
-
 	/* check whether capability id exists */
-	if (_tree.first())
-		i = _tree.first()->find_by_id(id);
+	Cap_index *i = _tree.first() ? _tree.first()->find_by_id(id) : 0;
 
 	/* if we own the capability already check whether it's the same */
 	if (i) {
@@ -147,38 +149,28 @@ Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
 			tag = l4_task_cap_valid(L4_BASE_TASK_CAP, i->kcap());
 			if (l4_msgtag_label(tag))
 				return 0;
+			else
+				/* it's invalid so remove it from the tree */
+				_tree.remove(i);
 		} else
 			/* they are equal so just return the one in the map */
 			return i;
-	} else {
-		/* the capability doesn't exists in the map so allocate a new one */
-		i = cap_idx_alloc()->alloc(1);
-		if (!i)
-			return 0;
-		i->id(id);
-		_tree.insert(i);
 	}
+
+	/* the capability doesn't exists in the map so allocate a new one */
+	i = cap_idx_alloc()->alloc_range(1);
+	if (!i)
+		return 0;
+
+	/* set it's id and insert it into the tree */
+	i->id(id);
+	_tree.insert(i);
 
 	/* map the given cap to our registry entry */
 	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
 				l4_obj_fpage(kcap, 0, L4_FPAGE_RWX),
 				i->kcap() | L4_ITEM_MAP | L4_MAP_ITEM_GRANT);
 	return i;
-}
-
-
-void Genode::Capability_map::remove(Genode::Cap_index* i)
-{
-	using namespace Genode;
-
-	Lock_guard<Spin_lock> guard(_lock);
-
-	if (i) {
-		Cap_index* e = _tree.first() ? _tree.first()->find_by_id(i->id()) : 0;
-		if (e == i)
-			_tree.remove(i);
-		cap_idx_alloc()->free(i, 1);
-	}
 }
 
 

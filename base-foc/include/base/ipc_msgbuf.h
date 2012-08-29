@@ -68,7 +68,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Msgbuf_base()
-			: _rcv_idx_base(cap_idx_alloc()->alloc(MAX_CAP_ARGS)), _label(0)
+			: _rcv_idx_base(cap_idx_alloc()->alloc_range(MAX_CAP_ARGS)), _label(0)
 			{
 				rcv_reset();
 				snd_reset();

@@ -88,16 +88,10 @@ namespace L4lx {
 				_tid = state.kcap;
 				_context->utcb = state.utcb;
 
-				try {
-					l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE]      = state.id;
-					l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
-					l4_utcb_tcr_u(state.utcb)->user[0] = state.kcap; /* L4X_UTCB_TCR_ID */
-
-					/* we need to manually increase the reference counter here */
-					cap_map()->insert(state.id, state.kcap)->inc();
-				} catch(Cap_index_allocator::Region_conflict) {
-					PERR("could not insert id %x", state.id);
-				}
+				Cap_index *i = cap_map()->insert(state.id, state.kcap);
+				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE] = (unsigned long) i;
+				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
+				l4_utcb_tcr_u(state.utcb)->user[0] = state.kcap; /* L4X_UTCB_TCR_ID */
 
 				/* register initial IP and SP at core */
 				addr_t stack = (addr_t)&_context->stack[-4];

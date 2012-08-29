@@ -71,21 +71,6 @@ void Cap_mapping::map(Native_thread_id task)
 }
 
 
-void Cap_mapping::unmap()
-{
-	using namespace Fiasco;
-
-	if (!local)
-		return;
-
-	l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
-	                                l4_obj_fpage(local->kcap(), 0, L4_FPAGE_RWX),
-	                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
-	if (l4_msgtag_has_error(tag))
-		PERR("unmapping cap failed");
-}
-
-
 Cap_mapping::Cap_mapping(bool alloc, Native_thread_id r)
 : local(alloc ? _get_cap() : 0), remote(r)
 {
@@ -105,7 +90,6 @@ Cap_mapping::Cap_mapping(Core_cap_index* i, Native_thread_id r)
 Cap_mapping::~Cap_mapping()
 {
 	if (local) {
-		unmap();
 		cap_map()->remove(local);
 	}
 }
@@ -164,6 +148,7 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 	} catch (Cap_id_allocator::Out_of_ids) {
 		PERR("Out of IDs");
 	}
+
 	return cap;
 }
 
@@ -189,15 +174,7 @@ void Cap_session_component::free(Native_capability cap)
 	if (idx->session() != this)
 		return;
 
-	l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
-	                                l4_obj_fpage(idx->kcap(), 0, L4_FPAGE_RWX),
-	                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
-	if (l4_msgtag_has_error(tag))
-		PERR("destruction of ipc-gate %lx failed!", (unsigned long) idx->kcap());
-
-	unsigned long id = idx->id();
-	cap_map()->remove(idx);
-	platform_specific()->cap_id_alloc()->free(id);
+	idx->dec();
 }
 
 
@@ -229,6 +206,32 @@ void Cap_id_allocator::free(unsigned long id)
 
 	if (id < CAP_ID_RANGE)
 		_id_alloc.free((void*)(id & CAP_ID_MASK), CAP_ID_OFFSET);
+}
+
+
+void Genode::Capability_map::remove(Genode::Cap_index* i)
+{
+	using namespace Genode;
+	using namespace Fiasco;
+
+	Lock_guard<Spin_lock> guard(_lock);
+
+	if (i) {
+		Core_cap_index* e = static_cast<Core_cap_index*>(_tree.first() ? _tree.first()->find_by_id(i->id()) : 0);
+		if (e == i) {
+
+			l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
+			                                l4_obj_fpage(i->kcap(), 0, L4_FPAGE_RWX),
+			                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);
+			if (l4_msgtag_has_error(tag))
+				PERR("destruction of ipc-gate %lx failed!", (unsigned long) i->kcap());
+
+
+			platform_specific()->cap_id_alloc()->free(i->id());
+			_tree.remove(i);
+		}
+		cap_idx_alloc()->free(i, 1);
+	}
 }
 
 

@@ -113,5 +113,6 @@ void Ipc_pager::acknowledge_wakeup()
 
 
 Ipc_pager::Ipc_pager()
-: Native_capability(cap_map()->find(Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])), _badge(0) { }
+: Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
+  _badge(0) { }
 
