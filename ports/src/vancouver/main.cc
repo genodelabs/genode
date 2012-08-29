@@ -667,7 +667,7 @@ class Machine : public StaticReceiver<Machine>
 		Clock                  _clock;
 		Motherboard            _motherboard;
 		TimeoutList<32, void>  _timeouts;
-		Guest_memory           _guest_memory;
+		Guest_memory          &_guest_memory;
 		Boot_module_provider  &_boot_modules;
 
 	public:
@@ -900,13 +900,13 @@ class Machine : public StaticReceiver<Machine>
 		/**
 		 * Constructor
 		 */
-		Machine(Boot_module_provider &boot_modules)
+		Machine(Boot_module_provider &boot_modules, Guest_memory &guest_memory)
 		:
 			_hip_rom("hypervisor_info_page"),
 			_hip(Genode::env()->rm_session()->attach(_hip_rom.dataspace())),
 			_clock(_hip->freq_tsc*1000),
 			_motherboard(&_clock, _hip),
-			_guest_memory(32*1024*1024 /* XXX hard-wired for now */),
+			_guest_memory(guest_memory),
 			_boot_modules(boot_modules)
 		{
 			_timeouts.init();
@@ -1040,12 +1040,14 @@ class Machine : public StaticReceiver<Machine>
 
 int main(int argc, char **argv)
 {
+	static Guest_memory guest_memory(32*1024*1024 /* XXX hard-wired for now */);
+
 	Genode::printf("--- Vancouver VMM started ---\n");
 
 	static Boot_module_provider
 		boot_modules(Genode::config()->xml_node().sub_node("multiboot"));
 
-	static Machine machine(boot_modules);
+	static Machine machine(boot_modules, guest_memory);
 
 	machine.setup_devices(Genode::config()->xml_node().sub_node("machine"));
 
