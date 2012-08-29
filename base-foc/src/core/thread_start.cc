@@ -50,7 +50,7 @@ void Thread_base::start()
 	pt->pager(platform_specific()->core_pager());
 
 	_context->utcb = pt->utcb();
-	l4_utcb_tcr_u(pt->utcb())->user[UTCB_TCR_BADGE]      = (unsigned long) pt->gate().local;
+	l4_utcb_tcr_u(pt->utcb())->user[UTCB_TCR_BADGE] = (unsigned long) pt->gate().local.idx();
 	l4_utcb_tcr_u(pt->utcb())->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 	pt->start((void *)_thread_start, _context->stack);

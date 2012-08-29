@@ -139,7 +139,7 @@ namespace Genode {
 			 * Return identification of thread when faulting
 			 */
 			unsigned long pager_object_badge() {
-				return (unsigned long) _thread.local->kcap(); }
+				return (unsigned long) _thread.local.dst(); }
 
 
 			/*******************************

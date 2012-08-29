@@ -60,11 +60,11 @@ void Cap_mapping::map(Native_thread_id task)
 {
 	using namespace Fiasco;
 
-	if (!local || !Fiasco::Capability::valid(remote))
+	if (!local.valid() || !Fiasco::Capability::valid(remote))
 		return;
 
 	l4_msgtag_t tag = l4_task_map(task, L4_BASE_TASK_CAP,
-	                              l4_obj_fpage(local->kcap(), 0, L4_FPAGE_RWX),
+	                              l4_obj_fpage(local.dst(), 0, L4_FPAGE_RWX),
 	                              ((l4_cap_idx_t)remote) | L4_ITEM_MAP);
 	if (l4_msgtag_has_error(tag))
 		PERR("mapping cap failed");
@@ -72,27 +72,11 @@ void Cap_mapping::map(Native_thread_id task)
 
 
 Cap_mapping::Cap_mapping(bool alloc, Native_thread_id r)
-: local(alloc ? _get_cap() : 0), remote(r)
-{
-	if (local)
-		local->inc();
-}
+: local(alloc ? _get_cap() : 0), remote(r) { }
 
 
-Cap_mapping::Cap_mapping(Core_cap_index* i, Native_thread_id r)
-: local(i), remote(r)
-{
-	if (local)
-		local->inc();
-}
-
-
-Cap_mapping::~Cap_mapping()
-{
-	if (local) {
-		cap_map()->remove(local);
-	}
-}
+Cap_mapping::Cap_mapping(Native_capability cap, Native_thread_id r)
+: local(cap), remote(r) { }
 
 
 /*****************************
@@ -115,7 +99,6 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 		Core_cap_index* ref = static_cast<Core_cap_index*>(ep.idx());
 
 		ASSERT(ref && ref->pt(), "No valid platform_thread");
-		ASSERT(ref->pt()->thread().local, "No valid platform_thread cap set");
 
 		/*
 		 * Allocate new id, and ipc-gate and set id as gate-label
@@ -131,7 +114,7 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 
 		l4_msgtag_t tag = l4_factory_create_gate(L4_BASE_FACTORY_CAP,
 		                                         idx->kcap(),
-		                                         ref->pt()->thread().local->kcap(), id);
+		                                         ref->pt()->thread().local.dst(), id);
 		if (l4_msgtag_has_error(tag)) {
 			PERR("l4_factory_create_gate failed!");
 			cap_map()->remove(idx);

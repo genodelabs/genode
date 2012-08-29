@@ -40,22 +40,22 @@ int Platform_thread::start(void *ip, void *sp)
 {
 	/* map the pager cap */
 	if (_platform_pd)
-		_pager.map(_platform_pd->native_task()->kcap());
+		_pager.map(_platform_pd->native_task().dst());
 
 	/* reserve utcb area and associate thread with this task */
 	l4_thread_control_start();
 	l4_thread_control_pager(_pager.remote);
 	l4_thread_control_exc_handler(_pager.remote);
-	l4_thread_control_bind(_utcb, _platform_pd->native_task()->kcap());
-	l4_msgtag_t tag = l4_thread_control_commit(_thread.local->kcap());
+	l4_thread_control_bind(_utcb, _platform_pd->native_task().dst());
+	l4_msgtag_t tag = l4_thread_control_commit(_thread.local.dst());
 	if (l4_msgtag_has_error(tag)) {
 		PWRN("l4_thread_control_commit for %lx failed!",
-		     (unsigned long) _thread.local->kcap());
+		     (unsigned long) _thread.local.dst());
 		return -1;
 	}
 
 	/* set ip and sp and run the thread */
-	tag = l4_thread_ex_regs(_thread.local->kcap(), (l4_addr_t) ip,
+	tag = l4_thread_ex_regs(_thread.local.dst(), (l4_addr_t) ip,
 	                        (l4_addr_t) sp, 0);
 	if (l4_msgtag_has_error(tag)) {
 		PWRN("l4_thread_ex_regs failed!");
@@ -91,7 +91,7 @@ void Platform_thread::pause()
 	 * The pager thread, which also acts as exception handler, will
 	 * leave the thread in exception state until, it gets woken again
 	 */
-	l4_thread_ex_regs_ret(_thread.local->kcap(), &_pager_obj->state.ip,
+	l4_thread_ex_regs_ret(_thread.local.dst(), &_pager_obj->state.ip,
 	                      &_pager_obj->state.sp, &flags);
 	bool in_syscall  = flags == 0;
 	_pager_obj->state.lock.unlock();
@@ -106,7 +106,7 @@ void Platform_thread::pause()
 		 * the requested thread, and stored its thread state
 		 */
 		while (exc == _pager_obj->state.exceptions && !_pager_obj->state.in_exception)
-			l4_thread_switch(_thread.local->kcap());
+			l4_thread_switch(_thread.local.dst());
 	}
 }
 
@@ -132,8 +132,8 @@ void Platform_thread::resume()
 void Platform_thread::bind(Platform_pd *pd)
 {
 	_platform_pd = pd;
-	_gate.map(pd->native_task()->kcap());
-	_irq.map(pd->native_task()->kcap());
+	_gate.map(pd->native_task().dst());
+	_irq.map(pd->native_task().dst());
 }
 
 
@@ -143,12 +143,12 @@ void Platform_thread::unbind()
 	l4_thread_control_start();
 	l4_thread_control_pager(_gate.remote);
 	l4_thread_control_exc_handler(_gate.remote);
-	if (l4_msgtag_has_error(l4_thread_control_commit(_thread.local->kcap())))
+	if (l4_msgtag_has_error(l4_thread_control_commit(_thread.local.dst())))
 		PWRN("l4_thread_control_commit for %lx failed!",
-		     (unsigned long) _thread.local->kcap());
+		     (unsigned long) _thread.local.dst());
 
 	/* now force it into a pagefault */
-	l4_thread_ex_regs(_thread.local->kcap(), 0, 0, L4_THREAD_EX_REGS_CANCEL);
+	l4_thread_ex_regs(_thread.local.dst(), 0, 0, L4_THREAD_EX_REGS_CANCEL);
 
 	_platform_pd = (Platform_pd*) 0;
 }
@@ -157,7 +157,7 @@ void Platform_thread::unbind()
 void Platform_thread::pager(Pager_object *pager_obj)
 {
 	_pager_obj   = pager_obj;
-	_pager.local = reinterpret_cast<Core_cap_index*>(pager_obj->cap().idx());
+	_pager.local = pager_obj->cap();
 }
 
 
@@ -167,7 +167,7 @@ int Platform_thread::state(Thread_state *state_dst)
 		*state_dst = _pager_obj->state;
 
 	state_dst->kcap = _gate.remote;
-	state_dst->id   = _gate.local->id();
+	state_dst->id   = _gate.local.local_name();
 	state_dst->utcb = _utcb;
 
 	return 0;
@@ -176,19 +176,19 @@ int Platform_thread::state(Thread_state *state_dst)
 
 void Platform_thread::cancel_blocking()
 {
-	l4_irq_trigger(_irq.local->kcap());
+	l4_irq_trigger(_irq.local.dst());
 }
 
 
 void Platform_thread::_create_thread()
 {
 	l4_msgtag_t tag = l4_factory_create_thread(L4_BASE_FACTORY_CAP,
-	                                           _thread.local->kcap());
+	                                           _thread.local.dst());
 	if (l4_msgtag_has_error(tag))
 		PERR("cannot create more thread kernel-objects!");
 
 	/* create initial gate for thread */
-	_gate.local = static_cast<Core_cap_index*>(Cap_session_component::alloc(0, _thread.local).idx());
+	_gate.local = Cap_session_component::alloc(0, _thread.local);
 }
 
 
@@ -196,23 +196,23 @@ void Platform_thread::_finalize_construction(const char *name, unsigned prio)
 {
 	/* create irq for new thread */
 	l4_msgtag_t tag = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
-	                                        _irq.local->kcap());
+	                                        _irq.local.dst());
 	if (l4_msgtag_has_error(tag))
 		PWRN("creating thread's irq failed");
 
 	/* attach thread to irq */
-	tag = l4_irq_attach(_irq.local->kcap(), 0, _thread.local->kcap());
+	tag = l4_irq_attach(_irq.local.dst(), 0, _thread.local.dst());
 	if (l4_msgtag_has_error(tag))
 		PWRN("attaching thread's irq failed");
 
 	/* set human readable name in kernel debugger */
 	strncpy(_name, name, sizeof(_name));
-	Fiasco::l4_debugger_set_object_name(_thread.local->kcap(), name);
+	Fiasco::l4_debugger_set_object_name(_thread.local.dst(), name);
 
 	/* set priority of thread */
 	prio = Cpu_session::scale_priority(DEFAULT_PRIORITY, prio);
 	l4_sched_param_t params = l4_sched_param(prio);
-	l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP, _thread.local->kcap(),
+	l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP, _thread.local.dst(),
 	                        &params);
 }
 
@@ -226,7 +226,7 @@ Platform_thread::Platform_thread(const char *name,
   _platform_pd(0),
   _pager_obj(0)
 {
-	_thread.local->pt(this);
+	((Core_cap_index*)_thread.local.idx())->pt(this);
 	_create_thread();
 	_finalize_construction(name, prio);
 }
@@ -235,13 +235,13 @@ Platform_thread::Platform_thread(const char *name,
 Platform_thread::Platform_thread(Core_cap_index* thread,
                                  Core_cap_index* irq, const char *name)
 : _core_thread(true),
-  _thread(thread, L4_BASE_THREAD_CAP),
-  _irq(irq),
+  _thread(Native_capability(thread), L4_BASE_THREAD_CAP),
+  _irq(Native_capability(irq)),
   _utcb(0),
   _platform_pd(0),
   _pager_obj(0)
 {
-	_thread.local->pt(this);
+	reinterpret_cast<Core_cap_index*>(_thread.local.idx())->pt(this);
 	_finalize_construction(name, 0);
 }
 
@@ -254,7 +254,7 @@ Platform_thread::Platform_thread(const char *name)
   _platform_pd(0),
   _pager_obj(0)
 {
-	_thread.local->pt(this);
+	((Core_cap_index*)_thread.local.idx())->pt(this);
 	_create_thread();
 	_finalize_construction(name, 0);
 }
@@ -262,6 +262,8 @@ Platform_thread::Platform_thread(const char *name)
 
 Platform_thread::~Platform_thread()
 {
+	_gate.local.idx()->dec();
+
 	/*
 	 * We inform our protection domain about thread destruction, which will end up in
 	 * Thread::unbind()

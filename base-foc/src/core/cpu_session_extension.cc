@@ -45,7 +45,7 @@ void Genode::Cpu_session_component::enable_vcpu(Genode::Thread_capability thread
 	Cpu_thread_component *thread = _lookup_thread(thread_cap);
 	if (!thread) return;
 
-	Native_thread tid = thread->platform_thread()->thread().local->kcap();
+	Native_thread tid = thread->platform_thread()->thread().local.dst();
 
 	l4_msgtag_t tag = l4_thread_vcpu_control(tid, vcpu_state);
 	if (l4_msgtag_has_error(tag))
@@ -63,7 +63,7 @@ Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
 	Cpu_thread_component *thread = _lookup_thread(cap);
 	if (!thread) return Native_capability();
 
-	return Native_capability(thread->platform_thread()->thread().local);
+	return thread->platform_thread()->thread().local;
 }
 
 
@@ -106,7 +106,7 @@ void Genode::Cpu_session_component::single_step(Genode::Thread_capability thread
 	Cpu_thread_component *thread = _lookup_thread(thread_cap);
 	if (!thread) return;
 
-	Native_thread tid = thread->platform_thread()->thread().local->kcap();
+	Native_thread tid = thread->platform_thread()->thread().local.dst();
 
 	enum { THREAD_SINGLE_STEP = 0x40000 };
 	int flags = enable ? THREAD_SINGLE_STEP : 0;

@@ -60,8 +60,8 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 
 		/* if it's no core-thread we have to map parent and pager gate cap */
 		if (!thread->core_thread()) {
-			_task.map(_task.local->kcap());
-			_parent.map(_task.local->kcap());
+			_task.map(_task.local.dst());
+			_parent.map(_task.local.dst());
 		}
 
 		/* inform thread about binding */
@@ -90,14 +90,14 @@ void Platform_pd::unbind_thread(Platform_thread *thread)
 int Platform_pd::assign_parent(Native_capability parent)
 {
 	if (!parent.valid()) return -1;
-	_parent.local  = reinterpret_cast<Core_cap_index*>(parent.idx());
+	_parent.local  = parent;
 	_parent.remote = PARENT_CAP;
 	return 0;
 }
 
 
 Platform_pd::Platform_pd(Core_cap_index* i)
-: _task(i, TASK_CAP)
+: _task(Native_capability(i), TASK_CAP)
 {
 	for (unsigned i = 0; i < THREAD_MAX; i++)
 		_threads[i] = (Platform_thread*) 0;
@@ -113,7 +113,7 @@ Platform_pd::Platform_pd()
 	l4_fpage_t utcb_area = l4_fpage(UTCB_AREA_START,
 	                                log2<unsigned>(UTCB_AREA_SIZE), 0);
 	l4_msgtag_t tag = l4_factory_create_task(L4_BASE_FACTORY_CAP,
-	                                         _task.local->kcap(), utcb_area);
+	                                         _task.local.dst(), utcb_area);
 	if (l4_msgtag_has_error(tag))
 		PERR("pd creation failed");
 }
