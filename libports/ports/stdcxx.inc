@@ -1,0 +1,2 @@
+STDCXX_VERSION = 4.6.1
+STDCXX         = stdcxx-$(STDCXX_VERSION)

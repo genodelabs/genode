@@ -51,6 +51,9 @@
 		extern "C++" { __gnu_cxx::__verbose_terminate_handler*; };
 
 		extern "C++" { std::terminate*; };
+		extern "C++" { std::bad_exception*; };
+		extern "C++" { std::exception*; };
+		extern "C++" { std::uncaught_exception*; };
 
 		/* x86 */
 		__cxa*;
