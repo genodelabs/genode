@@ -18,6 +18,7 @@
 /* libc includes */
 #include <errno.h>
 #include <string.h>
+#include <termios.h>
 
 /* Genode includes */
 #include <terminal_session/connection.h>
@@ -165,6 +166,16 @@ namespace {
 				return 0;
 			}
 
+			int fstat(Libc::File_descriptor *fd, struct stat *buf)
+			{
+				if (buf) {
+					Genode::memset(buf, 0, sizeof(struct stat));
+					buf->st_mode = S_IFCHR;
+				}
+				return 0;
+			}
+
+
 			bool supports_select(int nfds,
 			                     fd_set *readfds,
 			                     fd_set *writefds,
@@ -257,6 +268,21 @@ namespace {
 			 * Suppress dummy message of the default plugin function
 			 */
 			int fcntl(Libc::File_descriptor *, int cmd, long arg) { return -1; }
+
+			int ioctl(Libc::File_descriptor *, int request, char *argp)
+			{
+				struct termios *t = (struct termios*)argp;
+				switch (request) {
+				case TIOCGETA:
+					Genode::memset(t,0,sizeof(struct termios));
+					return 0;
+				case TIOCSETAW:
+					return 0;
+				case TIOCSETAF:
+					return 0;
+				}
+				return -1;
+			}
 	};
 
 } /* unnamed namespace */
