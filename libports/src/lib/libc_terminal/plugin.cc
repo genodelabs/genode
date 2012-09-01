@@ -275,6 +275,7 @@ namespace {
 				switch (request) {
 				case TIOCGETA:
 					Genode::memset(t,0,sizeof(struct termios));
+					t->c_lflag = ECHO;
 					return 0;
 				case TIOCSETAW:
 					return 0;
