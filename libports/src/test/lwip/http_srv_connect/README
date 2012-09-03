@@ -1,0 +1,2 @@
+This is just a simple test client for http_srv, that runs on the host
+system. Therefore it does not use the Genode buildsystem.
