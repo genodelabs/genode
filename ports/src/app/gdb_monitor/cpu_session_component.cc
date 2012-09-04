@@ -185,6 +185,18 @@ void Cpu_session_component::single_step(Thread_capability thread_cap, bool enabl
 }
 
 
+unsigned Cpu_session_component::num_cpus() const
+{
+	return _parent_cpu_session.num_cpus();
+}
+
+
+void Cpu_session_component::affinity(Thread_capability thread_cap, unsigned cpu)
+{
+	_parent_cpu_session.affinity(thread_cap, cpu);
+}
+
+
 Cpu_session_component::Cpu_session_component(Signal_receiver *exception_signal_receiver, const char *args)
 : _parent_cpu_session(env()->parent()->session<Cpu_session>(args)),
   _exception_signal_receiver(exception_signal_receiver)

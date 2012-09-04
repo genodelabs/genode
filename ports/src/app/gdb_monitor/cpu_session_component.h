@@ -69,6 +69,8 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		void exception_handler(Thread_capability         thread,
 		                       Signal_context_capability handler);
 		void single_step(Thread_capability thread, bool enable);
+		unsigned num_cpus() const;
+		void affinity(Thread_capability, unsigned);
 };
 
 #endif /* _CPU_SESSION_COMPONENT_H_ */

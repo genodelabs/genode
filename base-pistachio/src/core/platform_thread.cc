@@ -39,7 +39,7 @@ static const bool verbose2 = true;
 #define PT_DBG(args...) if (verbose) PDBG(args); else {}
 
 
-void Platform_thread::set_cpu(unsigned int cpu_no)
+void Platform_thread::affinity(unsigned int cpu_no)
 {
 	if (cpu_no >= L4_NumProcessors(get_kip())) {
 		PERR("Invalid processor number.");
@@ -98,7 +98,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	}
 
 	/* get the thread running on the right cpu */
-	set_cpu(cpu_no);
+	affinity(cpu_no);
 
 	/* assign priority */
 	if (!L4_Set_Priority(thread,

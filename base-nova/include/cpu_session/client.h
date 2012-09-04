@@ -80,6 +80,12 @@ namespace Genode {
 		Native_capability native_cap(Thread_capability cap) {
 			return call<Rpc_native_cap>(cap); }
 
+		unsigned num_cpus() const {
+			return call<Rpc_num_cpus>(); }
+
+		void affinity(Thread_capability thread, unsigned cpu) {
+			call<Rpc_affinity>(thread, cpu); }
+
 		private:
 
 		Native_capability pause_sync(Thread_capability target) {

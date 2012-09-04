@@ -180,6 +180,11 @@ void Platform_thread::cancel_blocking()
 }
 
 
+void Platform_thread::affinity(unsigned cpu)
+{
+}
+
+
 void Platform_thread::_create_thread()
 {
 	l4_msgtag_t tag = l4_factory_create_thread(L4_BASE_FACTORY_CAP,

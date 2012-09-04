@@ -92,9 +92,9 @@ namespace Genode {
 			unsigned long pager_object_badge() const;
 
 			/**
-			 * Set the executing CPU for this thread.
+			 * Set the executing CPU for this thread
 			 */
-			void set_cpu(unsigned int cpu_no);
+			void affinity(unsigned cpu);
 
 			/**
 			 * Get thread name

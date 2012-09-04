@@ -59,6 +59,7 @@ namespace Genode {
 			int           start(void *ip, void *sp) { return 0; }
 			int           state(Thread_state *state_dst) { return 0; }
 			const char   *name() { return _name; }
+			void          affinity(unsigned) { }
 	};
 }
 

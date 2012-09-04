@@ -67,6 +67,15 @@ namespace Genode {
 		void exception_handler(Thread_capability thread, Signal_context_capability handler) {
 			call<Rpc_exception_handler>(thread, handler); }
 
+		void single_step(Thread_capability thread, bool enable) {
+			call<Rpc_single_step>(thread, enable); }
+
+		unsigned num_cpus() const {
+			return call<Rpc_num_cpus>(); }
+
+		void affinity(Thread_capability thread, unsigned cpu) {
+			call<Rpc_affinity>(thread, cpu); }
+
 		void enable_vcpu(Thread_capability cap, addr_t vcpu_state) {
 			call<Rpc_enable_vcpu>(cap, vcpu_state); }
 

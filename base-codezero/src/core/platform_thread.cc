@@ -27,7 +27,7 @@ using namespace Genode;
 using namespace Codezero;
 
 
-void Platform_thread::set_cpu(unsigned int cpu_no)
+void Platform_thread::affinity(unsigned int cpu_no)
 {
 	PDBG("not yet implemented");
 }

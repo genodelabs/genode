@@ -81,7 +81,7 @@ Kernel::Utcb* Genode::physical_utcb(Native_thread_id tid)
 }
 
 
-void Platform_thread::set_cpu(unsigned int cpu_no) { PERR("not implemented"); }
+void Platform_thread::affinity(unsigned int cpu_no) { PERR("not implemented"); }
 
 
 void Platform_thread::cancel_blocking() { PERR("not implemented"); }

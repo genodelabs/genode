@@ -88,6 +88,11 @@ namespace Genode {
 			 * Return true if platform supports direct unmap (no mapping db)
 			 */
 			virtual bool supports_direct_unmap() const { return false; }
+
+			/**
+			 * Return number of physical CPUs present in the platform
+			 */
+			virtual unsigned num_cpus() const { return 1; }
 	};
 
 

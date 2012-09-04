@@ -111,6 +111,13 @@ namespace Genode {
 			 */
 			int state(Genode::Thread_state *state_dst);
 
+			/**
+			 * Set the executing CPU for this thread
+			 *
+			 * SMP is not supported on L4/Fiasco.
+			 */
+			void affinity(unsigned) { }
+
 
 			/************************
 			 ** Accessor functions **

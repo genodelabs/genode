@@ -130,9 +130,9 @@ namespace Genode {
 				return convert_native_thread_id_to_badge(_l4_thread_id); }
 
 			/**
-			 * Set the executing CPU for this thread.
+			 * Set the executing CPU for this thread
 			 */
-			void set_cpu(unsigned int cpu_no);
+			void affinity(unsigned cpu);
 
 
 			/**********************************

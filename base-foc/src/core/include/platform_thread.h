@@ -124,6 +124,11 @@ namespace Genode {
 			 */
 			int state(Genode::Thread_state *state_dst);
 
+			/**
+			 * Set the executing CPU for this thread
+			 */
+			void affinity(unsigned cpu);
+
 
 			/************************
 			 ** Accessor functions **

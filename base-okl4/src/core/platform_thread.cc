@@ -36,7 +36,7 @@ using namespace Genode;
 using namespace Okl4;
 
 
-void Platform_thread::set_cpu(unsigned int cpu_no)
+void Platform_thread::affinity(unsigned int cpu_no)
 {
 	PERR("not yet implemented");
 }

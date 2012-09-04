@@ -17,9 +17,10 @@
 #include <base/printf.h>
 #include <util/arg_string.h>
 
-/* Core includes */
+/* core includes */
 #include <cpu_session_component.h>
 #include <rm_session_component.h>
+#include <platform_generic.h>
 
 using namespace Genode;
 
@@ -159,6 +160,21 @@ void Cpu_session_component::exception_handler(Thread_capability         thread_c
 	if (!thread || !thread->platform_thread()->pager()) return;
 
 	thread->platform_thread()->pager()->exception_handler(sigh_cap);
+}
+
+
+unsigned Cpu_session_component::num_cpus() const
+{
+	return platform()->num_cpus();
+}
+
+
+void Cpu_session_component::affinity(Thread_capability thread_cap, unsigned cpu)
+{
+	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	if (!thread) return;
+
+	thread->platform_thread()->affinity(cpu);
 }
 
 

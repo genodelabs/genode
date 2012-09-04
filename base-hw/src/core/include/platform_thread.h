@@ -139,9 +139,9 @@ namespace Genode {
 			unsigned long pager_object_badge() { return _id; }
 
 			/**
-			 * Set the executing CPU for this thread.
+			 * Set the executing CPU for this thread
 			 */
-			void set_cpu(unsigned int cpu_no)
+			void affinity(unsigned cpu)
 			{
 				kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
 				while (1) ;
