@@ -129,6 +129,8 @@ namespace Genode {
 			Resources _resources;
 			Heap      _heap;
 
+			char _initial_junk[4 * 4096];
+
 		public:
 
 			/**
@@ -138,7 +140,8 @@ namespace Genode {
 			:
 				_parent_client(Genode::parent_cap()),
 				_resources(_parent_client),
-				_heap(&_resources.ram, &_resources.rm)
+				_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED,
+				      _initial_junk, sizeof(_initial_junk))
 			{ }
 
 			/**
