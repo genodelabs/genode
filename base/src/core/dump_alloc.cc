@@ -27,8 +27,8 @@ void Allocator_avl_base::Block::dump()
 void Allocator_avl_base::dump_addr_tree(Block *addr_node)
 {
 	bool top = false;
-	static unsigned mem_size;
-	static unsigned mem_avail;
+	static unsigned long mem_size;
+	static unsigned long mem_avail;
 
 	if (addr_node == 0) {
 		addr_node = _addr_tree.first();
@@ -52,7 +52,7 @@ void Allocator_avl_base::dump_addr_tree(Block *addr_node)
 		dump_addr_tree(addr_node->child(1));
 
 	if (top)
-		printf(" => mem_size=%u (%u MB) / mem_avail=%u (%u MB)\n",
+		printf(" => mem_size=%lu (%lu MB) / mem_avail=%lu (%lu MB)\n",
 		       mem_size, mem_size / 1024 / 1024,
 		       mem_avail, mem_avail / 1024 / 1024);
 }
