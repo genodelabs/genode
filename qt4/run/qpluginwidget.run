@@ -126,6 +126,7 @@ set boot_modules {
 	qnitpickerviewwidget.lib.so
 	qpluginwidget.lib.so
 	test-plugin.tar
+	stdcxx.lib.so
 }
 
 # platform-specific modules

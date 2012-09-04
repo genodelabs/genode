@@ -116,6 +116,7 @@ set boot_modules {
 	qt_ui_tools.lib.so
 	qt_xml.lib.so
 	zlib.lib.so
+	stdcxx.lib.so
 }
 
 # platform-specific modules

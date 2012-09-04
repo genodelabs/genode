@@ -112,6 +112,7 @@ set boot_modules {
 	qt_network.lib.so
 	qt_webcore.lib.so
 	zlib.lib.so
+	stdcxx.lib.so
 }
 
 # platform-specific modules

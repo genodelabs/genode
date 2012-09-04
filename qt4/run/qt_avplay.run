@@ -143,6 +143,7 @@ set boot_modules {
 	libc_rom.lib.so
 	avplay
 	mediafile
+	stdcxx.lib.so
 }
 
 # platform-specific modules
