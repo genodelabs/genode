@@ -87,7 +87,7 @@ void Platform::_preserve_page(addr_t phys_page)
  ** Core page-fault handler **
  *****************************/
 
-enum { CORE_PAGER_UTCB_ADDR = 0x50002000 };
+enum { CORE_PAGER_UTCB_ADDR = 0xbff02000 };
 
 
 /**
@@ -199,6 +199,14 @@ Platform::Platform() :
 	 * Now that we can access the I/O ports for comport 0, printf works...
 	 */
 
+	/* configure virtual address spaces */
+	_vm_base = get_page_size();
+#ifdef __x86_64__
+	_vm_size = 0x800000000000UL - _vm_base;
+#else
+	_vm_size = 0xc0000000UL - _vm_base;
+#endif
+
 	/* set up page fault handler for core - for debugging */
 	init_core_page_fault_handler();
 
@@ -217,10 +225,9 @@ Platform::Platform() :
 	addr_t mem_desc_base = ((addr_t)hip + hip->mem_desc_offset);
 
 	/* define core's virtual address space */
-	addr_t virt_beg = get_page_size();
-	addr_t virt_end = Native_config::context_area_virtual_base();
-	_core_mem_alloc.virt_alloc()->add_range(virt_beg,
-	                                        virt_end - virt_beg);
+	addr_t virt_beg = _vm_base;
+	addr_t virt_end = _vm_size;
+	_core_mem_alloc.virt_alloc()->add_range(virt_beg, virt_end - virt_beg);
 
 	/* exclude core image from core's virtual address allocator */
 	addr_t core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
@@ -232,8 +239,39 @@ Platform::Platform() :
 	_core_mem_alloc.virt_alloc()->remove_range(Native_config::context_area_virtual_base(),
 	                                           Native_config::context_area_virtual_size());
 
+	/* exclude utcb of core pager thread + empty guard pages before and after */
+	_core_mem_alloc.virt_alloc()->remove_range(CORE_PAGER_UTCB_ADDR - get_page_size(),
+	                                           get_page_size() * 3);
+
+	/* exclude utcb of echo thread + empty guard pages before and after */
+	_core_mem_alloc.virt_alloc()->remove_range(Echo::ECHO_UTCB_ADDR - get_page_size(),
+	                                           get_page_size() * 3);
+
+	/* exclude utcb of main thread and hip + empty guard pages before and after */
+	_core_mem_alloc.virt_alloc()->remove_range((addr_t)__main_thread_utcb - get_page_size(),
+	                                           get_page_size() * 4);
+
+	/* sanity checks */
+	addr_t check [] = {
+		reinterpret_cast<addr_t>(__main_thread_utcb), CORE_PAGER_UTCB_ADDR,
+		Echo::ECHO_UTCB_ADDR,
+	};
+
+	for (unsigned i = 0; i < sizeof(check) / sizeof(check[0]); i++) { 
+		if (Native_config::context_area_virtual_base() <= check[i] &&
+			check[i] < Native_config::context_area_virtual_base() +
+			Native_config::context_area_virtual_size())
+		{
+			PERR("overlapping area - [%lx, %lx) vs %lx",
+			     Native_config::context_area_virtual_base(),
+			     Native_config::context_area_virtual_base() +
+			     Native_config::context_area_virtual_size(), check[i]);
+			nova_die();
+ 		}
+	}
+ 
 	/* initialize core's physical-memory and I/O memory allocator */
-	_io_mem_alloc.add_range(0, ~0xfff);
+	_io_mem_alloc.add_range(0, ~0xfffUL);
 	Hip::Mem_desc *mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
@@ -338,10 +376,6 @@ Platform::Platform() :
 	/* export hypervisor info page as ROM module */
 	_rom_fs.insert(new (core_mem_alloc())
 	               Rom_module((addr_t)hip, get_page_size(), "hypervisor_info_page"));
-
-	/* configure non-core virtual address spaces as 2G-2G split */
-	_vm_base = get_page_size();
-	_vm_size = 2*1024*1024*1024UL - _vm_base;
 
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);

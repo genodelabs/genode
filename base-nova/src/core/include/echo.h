@@ -27,6 +27,10 @@ class Echo
 
 	public:
 
+		enum {
+			ECHO_UTCB_ADDR  = 0xbff00000,
+		};
+
 		/**
 		 * Constructor
 		 *

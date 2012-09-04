@@ -22,7 +22,6 @@
 #include <echo.h>
 
 enum {
-	ECHO_UTCB_ADDR  = 0x50000000,
 	ECHO_STACK_SIZE = 1024,
 	ECHO_CPU_NO     = 0,
 	ECHO_GLOBAL     = false,
@@ -85,4 +84,4 @@ Echo::Echo(Genode::addr_t utcb_addr)
 }
 
 
-Echo *echo() { static Echo inst(ECHO_UTCB_ADDR); return &inst; }
+Echo *echo() { static Echo inst(Echo::ECHO_UTCB_ADDR); return &inst; }
