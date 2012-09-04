@@ -221,7 +221,7 @@ namespace Genode {
 		/**
 		 * Thread-context area configuration.
 		 */
-		static addr_t context_area_virtual_base() { return 0x40000000UL; }
+		static addr_t context_area_virtual_base() { return 0xa0000000UL; }
 		static addr_t context_area_virtual_size() { return 0x10000000UL; }
 
 		/**
