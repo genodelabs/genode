@@ -31,6 +31,7 @@ extern "C" {
 FASTCALL Fiasco::l4_cap_idx_t l4x_cpu_thread_get_cap(int cpu);
 
 FASTCALL void l4lx_thread_init(void);
+FASTCALL void l4lx_thread_alloc_irq(Fiasco::l4_cap_idx_t c);
 FASTCALL l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
                                        unsigned cpu_nr,
                                        void *stack_pointer,

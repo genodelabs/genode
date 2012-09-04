@@ -24,8 +24,14 @@ extern "C" {
 
 FASTCALL void l4x_irq_save(unsigned long flags);
 FASTCALL void l4x_irq_restore(unsigned long flags);
+FASTCALL void l4x_migrate_lock(unsigned long flags);
+FASTCALL void l4x_migrate_unlock(unsigned long flags);
 FASTCALL unsigned long l4x_hz();
 FASTCALL int l4x_nr_irqs(void);
+
+FASTCALL unsigned l4x_cpu_physmap_get_id(unsigned);
+FASTCALL unsigned l4x_target_cpu(const struct cpumask*);
+FASTCALL void     l4x_cpumask_copy(struct irq_data*, const struct cpumask*);
 
 #define IRQ_SAFE(x) do { \
 	unsigned long flags = 0; \

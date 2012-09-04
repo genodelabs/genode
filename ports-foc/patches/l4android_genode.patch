@@ -171,6 +171,18 @@ index a5711ea..db5d812 100644
 +#define L4_EXTERNAL_FUNC(func) ;
  
  #endif /* __INCLUDE__ASM_L4__GENERIC__L4LIB_H__ */
+diff --git a/arch/l4/include/asm/l4lxapi/thread.h b/arch/l4/include/asm/l4lxapi/thread.h
+index db02c8c..0f75ba9 100644
+--- a/arch/l4/include/asm/l4lxapi/thread.h
++++ b/arch/l4/include/asm/l4lxapi/thread.h
+@@ -15,6 +15,7 @@
+  * \ingroup l4lxapi
+  */
+ 
++void l4lx_thread_alloc_irq(l4_cap_idx_t c);
+ 
+ /**
+  * \brief Initialize thread handling.
 diff --git a/arch/l4/kernel/arch-arm/traps.c b/arch/l4/kernel/arch-arm/traps.c
 index d6a3b4f..a44f5eb 100644
 --- a/arch/l4/kernel/arch-arm/traps.c
@@ -349,7 +361,7 @@ index 169f257..4e25408 100644
  
  	/* L4: Add NOTES so that .note.gnu.build-id is caught, because we do
 diff --git a/arch/l4/kernel/arch-x86/vmlinux.lds.S b/arch/l4/kernel/arch-x86/vmlinux.lds.S
-index 42ee2bc..1bbf018 100644
+index 42ee2bc..2e1e1db 100644
 --- a/arch/l4/kernel/arch-x86/vmlinux.lds.S
 +++ b/arch/l4/kernel/arch-x86/vmlinux.lds.S
 @@ -33,7 +33,7 @@ OUTPUT_FORMAT(CONFIG_OUTPUT_FORMAT, CONFIG_OUTPUT_FORMAT, CONFIG_OUTPUT_FORMAT)
@@ -413,7 +425,7 @@ index 42ee2bc..1bbf018 100644
  		/* bootstrapping code */
  		HEAD_TEXT
  #ifdef CONFIG_X86_32
-@@ -112,14 +128,28 @@ SECTIONS
+@@ -112,19 +128,55 @@ SECTIONS
  		ENTRY_TEXT
  		IRQENTRY_TEXT
  		*(.fixup)
@@ -445,7 +457,34 @@ index 42ee2bc..1bbf018 100644
  
  #if defined(CONFIG_DEBUG_RODATA)
  	/* .text should occupy whole number of pages */
-@@ -152,9 +182,33 @@ SECTIONS
+ 	. = ALIGN(PAGE_SIZE);
+ #endif
++
++	/*
++	 * because in Genode we collect all data.* entries in the data section
++	 * we have to put the per_cpu section before defining the data section
++	 * otherwise it's symbols would end up in the data section too.
++	 */
++#if !defined(CONFIG_X86_64) || !defined(CONFIG_SMP)
++	PERCPU_SECTION(INTERNODE_CACHE_BYTES)
++#endif
++
++	/*
++	 * smp_locks might be freed after init
++	 * start/end must be page aligned
++	 */
++	. = ALIGN(PAGE_SIZE);
++	.smp_locks : AT(ADDR(.smp_locks) - LOAD_OFFSET) {
++		__smp_locks = .;
++		*(.smp_locks)
++		. = ALIGN(PAGE_SIZE);
++		__smp_locks_end = .;
++	}
++
+ 	X64_ALIGN_DEBUG_RODATA_BEGIN
+ 	RO_DATA(PAGE_SIZE)
+ 	X64_ALIGN_DEBUG_RODATA_END
+@@ -152,9 +204,33 @@ SECTIONS
  		/* rarely changed data like cpu maps */
  		READ_MOSTLY_DATA(INTERNODE_CACHE_BYTES)
  
@@ -480,7 +519,37 @@ index 42ee2bc..1bbf018 100644
  
  #ifdef CONFIG_X86_64
  
-@@ -366,6 +420,7 @@ SECTIONS
+@@ -331,10 +407,6 @@ SECTIONS
+ 		EXIT_DATA
+ 	}
+ 
+-#if !defined(CONFIG_X86_64) || !defined(CONFIG_SMP)
+-	PERCPU_SECTION(INTERNODE_CACHE_BYTES)
+-#endif
+-
+ 	. = ALIGN(PAGE_SIZE);
+ 
+ 	/* freed after init ends here */
+@@ -342,18 +414,6 @@ SECTIONS
+ 		__init_end = .;
+ 	}
+ 
+-	/*
+-	 * smp_locks might be freed after init
+-	 * start/end must be page aligned
+-	 */
+-	. = ALIGN(PAGE_SIZE);
+-	.smp_locks : AT(ADDR(.smp_locks) - LOAD_OFFSET) {
+-		__smp_locks = .;
+-		*(.smp_locks)
+-		. = ALIGN(PAGE_SIZE);
+-		__smp_locks_end = .;
+-	}
+-
+ #ifdef CONFIG_X86_64
+ 	.data_nosave : AT(ADDR(.data_nosave) - LOAD_OFFSET) {
+ 		NOSAVE_DATA
+@@ -366,6 +426,7 @@ SECTIONS
  		__bss_start = .;
  		*(.bss..page_aligned)
  		*(.bss)
@@ -488,7 +557,7 @@ index 42ee2bc..1bbf018 100644
  		. = ALIGN(PAGE_SIZE);
  		__bss_stop = .;
  	}
-@@ -378,6 +433,7 @@ SECTIONS
+@@ -378,6 +439,7 @@ SECTIONS
  		__brk_limit = .;
  	}
  
@@ -555,7 +624,7 @@ index 302d211..8a8e96c 100644
  .p2align 12
  ENTRY(swapper_pg_dir)
 diff --git a/arch/l4/kernel/main.c b/arch/l4/kernel/main.c
-index d71a2b9..e1deb9b 100644
+index d71a2b9..59c512c 100644
 --- a/arch/l4/kernel/main.c
 +++ b/arch/l4/kernel/main.c
 @@ -305,7 +305,7 @@ static void l4x_configuration_sanity_check(const char *cmdline)
@@ -567,20 +636,34 @@ index d71a2b9..e1deb9b 100644
  	if (strstr(cmdline, "console=ttyLv")) {
  		LOG_printf("Console output set to ttyLvx but driver not compiled in.\n");
  		enter_kdebug("L4 serial driver not enabled");
-@@ -363,6 +363,12 @@ static void l4x_virt_to_phys_show(void)
+@@ -363,6 +363,26 @@ static void l4x_virt_to_phys_show(void)
  	}
  }
  
++static spinlock_t migrate_lock;
++
 +void          l4x_irq_save(unsigned long flags)    { local_irq_save(flags);    }
 +void          l4x_irq_restore(unsigned long flags) { local_irq_restore(flags); }
 +unsigned long l4x_hz(void)                         { return HZ;                }
 +int           l4x_nr_irqs(void)                    { return NR_IRQS;           }
++void l4x_migrate_lock(unsigned long flags) { spin_lock_irqsave(&migrate_lock, flags); }
++void l4x_migrate_unlock(unsigned long flags) { spin_unlock_irqrestore(&migrate_lock, fla
++
++unsigned l4x_target_cpu(const struct cpumask *dest)
++{
++	if (!cpumask_intersects(dest, cpu_online_mask))
++		return (unsigned) -1;
++	return cpumask_any_and(dest, cpu_online_mask);
++}
++
++void l4x_cpumask_copy(struct irq_data *data, const struct cpumask *dest) {
++	cpumask_copy(data->affinity, dest); }
 +
 +
  unsigned long l4x_virt_to_phys(volatile void * address)
  {
  	int i;
-@@ -375,14 +381,14 @@ unsigned long l4x_virt_to_phys(volatile void * address)
+@@ -375,14 +395,14 @@ unsigned long l4x_virt_to_phys(volatile void * address)
  			       + l4x_phys_virt_addrs[i].phys;
  	}
  
@@ -598,7 +681,7 @@ index d71a2b9..e1deb9b 100644
  
  	return __pa(address);
  }
-@@ -414,7 +420,7 @@ void *l4x_phys_to_virt(unsigned long address)
+@@ -414,7 +434,7 @@ void *l4x_phys_to_virt(unsigned long address)
  
  	/* Debugging check: don't miss a translation, can give nasty
  	 *                  DMA problems */
@@ -607,7 +690,7 @@ index d71a2b9..e1deb9b 100644
  	           __func__, address);
  	WARN_ON(1);
  
-@@ -532,7 +538,7 @@ int l4x_re_resolve_name(const char *name, l4_cap_idx_t *cap)
+@@ -532,7 +552,7 @@ int l4x_re_resolve_name(const char *name, l4_cap_idx_t *cap)
  
  	r = l4re_ns_query_srv(entry->cap, n + 1, *cap);
  	if (r) {
@@ -616,7 +699,7 @@ index d71a2b9..e1deb9b 100644
  		           name, l4sys_errtostr(r), r);
  		L4XV_U(f);
  		return -ENOENT;
-@@ -713,6 +719,7 @@ static const int at_exit_nr_of_functions
+@@ -713,6 +733,7 @@ static const int at_exit_nr_of_functions
  	= sizeof(at_exit_functions) / sizeof(at_exit_functions[0]);
  static int __current_exititem;
  
@@ -624,7 +707,7 @@ index d71a2b9..e1deb9b 100644
  static struct cxa_atexit_item *__next_atexit(void)
  {
  	if (__current_exititem >= at_exit_nr_of_functions) {
-@@ -721,20 +728,9 @@ static struct cxa_atexit_item *__next_atexit(void)
+@@ -721,20 +742,9 @@ static struct cxa_atexit_item *__next_atexit(void)
  	}
  	return &at_exit_functions[__current_exititem++];
  }
@@ -647,7 +730,7 @@ index d71a2b9..e1deb9b 100644
  
  void __cxa_finalize(void *dso_handle)
  {
-@@ -790,9 +786,19 @@ static inline int l4x_is_writable_area(unsigned long a)
+@@ -790,9 +800,19 @@ static inline int l4x_is_writable_area(unsigned long a)
  }
  static int l4x_forward_pf(l4_umword_t addr, l4_umword_t pc, int extra_write)
  {
@@ -667,7 +750,7 @@ index d71a2b9..e1deb9b 100644
  
  	do {
  		l4_msg_regs_t *mr = l4_utcb_mr_u(u);
-@@ -815,6 +821,7 @@ static int l4x_forward_pf(l4_umword_t addr, l4_umword_t pc, int extra_write)
+@@ -815,6 +835,7 @@ static int l4x_forward_pf(l4_umword_t addr, l4_umword_t pc, int extra_write)
  		// unresolvable page fault, we're supposed to trigger an
  		// exception
  		return 0;
@@ -675,7 +758,7 @@ index d71a2b9..e1deb9b 100644
  
  	return 1;
  }
-@@ -1054,7 +1061,7 @@ static void l4x_register_pointer_section(void *p_in_addr,
+@@ -1054,7 +1075,7 @@ static void l4x_register_pointer_section(void *p_in_addr,
  	addr = (l4_addr_t)p_in_addr;
  	size = 1;
  	if (l4re_rm_find(&addr, &size, &off, &flags, &ds)) {
@@ -684,7 +767,7 @@ index d71a2b9..e1deb9b 100644
  		l4re_rm_show_lists();
  		enter_kdebug("l4re_rm_find failed");
  		return;
-@@ -1254,7 +1261,7 @@ void __init l4x_setup_memory(char *cmdl,
+@@ -1254,7 +1275,7 @@ void __init l4x_setup_memory(char *cmdl,
  	                    0, "Main memory");
  
  	/* Reserve some part of the virtual address space for vmalloc */
@@ -693,7 +776,7 @@ index d71a2b9..e1deb9b 100644
  	if (l4re_rm_reserve_area(&l4x_vmalloc_memory_start,
  #ifdef CONFIG_X86_32
  	                          __VMALLOC_RESERVE,
-@@ -1381,6 +1388,10 @@ unsigned long l4x_get_isa_dma_memory_end(void)
+@@ -1381,6 +1402,10 @@ unsigned long l4x_get_isa_dma_memory_end(void)
  
  static void l4x_create_ugate(l4_cap_idx_t forthread, unsigned cpu)
  {
@@ -704,7 +787,7 @@ index d71a2b9..e1deb9b 100644
  	l4_msgtag_t r;
  
  	l4x_user_gate[cpu] = l4x_cap_alloc();
-@@ -1401,6 +1412,7 @@ static void l4x_create_ugate(l4_cap_idx_t forthread, unsigned cpu)
+@@ -1401,6 +1426,7 @@ static void l4x_create_ugate(l4_cap_idx_t forthread, unsigned cpu)
  		l4_debugger_set_object_name(l4x_user_gate[cpu], n);
  #endif
  	}
@@ -712,7 +795,23 @@ index d71a2b9..e1deb9b 100644
  }
  
  #ifdef CONFIG_HOTPLUG_CPU
-@@ -1890,11 +1902,11 @@ static inline void l4x_repnop_init(void) {}
+@@ -1607,11 +1633,15 @@ void l4x_cpu_ipi_setup(unsigned cpu)
+ 		l4x_exit_l4linux();
+ 	}
+ 
++#if 0
+ 	t = l4_factory_create_irq(l4re_env()->factory, c);
+ 	if (l4_error(t)) {
+ 		LOG_printf("Failed to create IRQ\n");
+ 		l4x_exit_l4linux();
+ 	}
++#else
++	l4lx_thread_alloc_irq(c);
++#endif
+ 
+ #ifdef CONFIG_L4_DEBUG_REGISTER_NAMES
+ 	l4_debugger_set_object_name(c, s);
+@@ -1890,11 +1920,11 @@ static inline void l4x_repnop_init(void) {}
  
  static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
  {
@@ -726,7 +825,27 @@ index d71a2b9..e1deb9b 100644
  	char overbooking = 0;
  	char *p;
  
-@@ -1964,6 +1976,8 @@ static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
+@@ -1907,9 +1937,10 @@ static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
+ 		}
+ 	}
+ 
+-
++#if 0
+ 	if (l4_error(l4_scheduler_info(l4re_env()->scheduler,
+ 	                               &max_cpus, &cs)) == L4_EOK) {
++#endif
+ 		if ((p = strstr(boot_command_line, "l4x_cpus_map="))) {
+ 			// l4x_cpus_map=0,1,2,3,4,...
+ 			// the list specifies the physical CPU for each
+@@ -1958,12 +1989,16 @@ static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
+ 			l4x_nr_cpus = v;
+ 
+ 		}
++#if 0
+ 	}
++#endif
+ #ifndef CONFIG_L4_VCPU
+ 	l4x_tamed_set_mapping(0, l4x_cpu_physmap_get_id(0));
  #endif
  
  #else /* UP */
@@ -735,7 +854,7 @@ index d71a2b9..e1deb9b 100644
  	if (l4_error(l4_scheduler_info(l4re_env()->scheduler,
  	                               &max_cpus, &cs)) == L4_EOK) {
  
-@@ -1973,6 +1987,8 @@ static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
+@@ -1973,6 +2008,8 @@ static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
  		l4x_cpu_physmap[0].phys_id = p;
  	}
  #endif
@@ -744,7 +863,7 @@ index d71a2b9..e1deb9b 100644
  
  	LOG_printf("CPU mapping (l:p)[%d]: ", l4x_nr_cpus);
  	for (i = 0; i < l4x_nr_cpus; i++)
-@@ -2018,6 +2034,7 @@ static long l4x_blink(int state)
+@@ -2018,6 +2055,7 @@ static long l4x_blink(int state)
  	printk("panic: going to sleep forever, bye\n");
  	L4XV_L(f);
  	LOG_printf("panic: going to sleep forever, bye\n");
@@ -752,7 +871,7 @@ index d71a2b9..e1deb9b 100644
  	l4_sleep_forever();
  	return 0;
  }
-@@ -2298,7 +2315,7 @@ static void l4x_scan_hw_resources(void)
+@@ -2298,7 +2336,7 @@ static void l4x_scan_hw_resources(void)
  	}
  }
  
@@ -761,7 +880,7 @@ index d71a2b9..e1deb9b 100644
  {
  	l4lx_thread_t main_id;
  	extern char _end[];
-@@ -2410,10 +2427,13 @@ int __init_refok L4_CV main(int argc, char **argv)
+@@ -2410,10 +2448,13 @@ int __init_refok L4_CV main(int argc, char **argv)
  
  	l4x_start_thread_id = l4re_env()->main_thread;
  
@@ -775,7 +894,7 @@ index d71a2b9..e1deb9b 100644
  
  #ifndef CONFIG_L4_VCPU
  #ifdef CONFIG_L4_TAMED
-@@ -3180,6 +3200,10 @@ static inline int l4x_handle_pagefault(unsigned long pfa, unsigned long ip,
+@@ -3180,6 +3221,10 @@ static inline int l4x_handle_pagefault(unsigned long pfa, unsigned long ip,
  		/* Not resolvable: Ooops */
  		LOG_printf("Non-resolvable page fault at %lx, ip %lx.\n", pfa, ip);
  		// will trigger an oops in caller
@@ -786,7 +905,7 @@ index d71a2b9..e1deb9b 100644
  		return 0;
  	}
  
-@@ -3560,7 +3584,9 @@ module_init(l4x_power_mgmt_init);
+@@ -3560,7 +3605,9 @@ module_init(l4x_power_mgmt_init);
  void exit(int code)
  {
  	__cxa_finalize(0);

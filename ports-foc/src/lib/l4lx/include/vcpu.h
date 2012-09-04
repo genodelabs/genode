@@ -20,6 +20,7 @@
 #include <base/thread.h>
 #include <base/cap_map.h>
 #include <foc_cpu_session/connection.h>
+#include <timer_session/connection.h>
 
 namespace Fiasco {
 #include <l4/sys/utcb.h>
@@ -37,6 +38,7 @@ namespace L4lx {
 			void                      (*_func)(void *data);
 			void                       *_data;
 			Genode::addr_t              _vcpu_state;
+			Timer::Connection           _timer;
 
 			static void _startup()
 			{
@@ -103,6 +105,11 @@ namespace L4lx {
 			}
 
 			Fiasco::l4_utcb_t *utcb() { return _context->utcb; };
+
+			Timer::Connection* timer() { return &_timer; }
+
+			void set_affinity(unsigned i) {
+				vcpu_connection()->affinity(_thread_cap, i); }
 	};
 
 }

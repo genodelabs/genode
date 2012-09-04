@@ -92,6 +92,12 @@ void l4lx_thread_name_set(l4_cap_idx_t thread, const char *name)
 
 void l4lx_thread_init(void) { }
 
+void l4lx_thread_alloc_irq(l4_cap_idx_t c)
+{
+	Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
+	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
+	            l4_obj_fpage(cap.dst(), 0, L4_FPAGE_RWX), c | L4_ITEM_MAP);
+}
 
 l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
                                  unsigned cpu_nr,
@@ -121,7 +127,9 @@ l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
 	Vcpu *vc = new (Genode::env()->heap()) Vcpu(name, thread_func,
 	                                            stack_data, 1024 * 64,
 	                                            (Genode::addr_t)addr);
+
 	vcpus[thread_id(vc->utcb())] = vc;
+	vc->set_affinity(l4x_cpu_physmap_get_id(cpu_nr));
 	return vc->utcb();
 }
 

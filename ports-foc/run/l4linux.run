@@ -89,7 +89,7 @@ append_if [have_spec lan9118] config {
 append config {
 	<start name="l4linux">
 		<resource name="RAM" quantum="128M"/>
-		<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz"/>
+		<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,0"/>
 	</start>
 </config>}
 
@@ -122,6 +122,7 @@ build_boot_image  [join $boot_modules " "]
 # Qemu
 #
 append qemu_args " -m 128 -nographic "
+append qemu_args " -smp 2,cores=2 "
 append qemu_args " -serial unix:/tmp/qemu-pipe,server,nowait "
 append qemu_args " -serial mon:stdio "
 append_if [have_spec     x86] qemu_args " -net nic,model=e1000 -net user "

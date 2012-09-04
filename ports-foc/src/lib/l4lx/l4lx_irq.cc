@@ -198,8 +198,45 @@ void l4lx_irq_dev_unmask(struct irq_data *data)
 int l4lx_irq_dev_set_affinity(struct irq_data *data,
                         const struct cpumask *dest, bool force)
 {
-	NOT_IMPLEMENTED;
-	return 0;
+	struct l4x_irq_desc_private *p =
+		(struct l4x_irq_desc_private*) irq_get_chip_data(data->irq);;
+
+	if (!p->irq_cap)
+		return 0;
+
+	unsigned target_cpu = l4x_target_cpu(dest);
+
+	if ((int)target_cpu == -1)
+		return 1;
+	if (target_cpu == p->cpu)
+        return 0;
+
+	unsigned long flags;
+	l4x_migrate_lock(flags);
+
+	{
+		Linux::Irq_guard guard;
+		if (l4_error(l4_irq_detach(p->irq_cap)))
+			PWRN("%02d: Unable to detach from IRQ\n", data->irq);
+	}
+
+	l4x_cpumask_copy(data, dest);
+	p->cpu = target_cpu;
+	PDBG("switched irq %d to cpu %d", data->irq, target_cpu);
+
+	{
+		Linux::Irq_guard guard;
+		l4_msgtag_t ret = l4_irq_attach(p->irq_cap, data->irq << 2,
+		                                l4x_cpu_thread_get_cap(p->cpu));
+		if (l4_error(ret))
+			PWRN("Attach to irq %lx failed with error %ld!", p->irq_cap, l4_error(ret));
+	}
+
+	if (p->enabled)
+		l4_irq_unmask(p->irq_cap);
+
+	l4x_migrate_unlock(flags);
+    return 0;
 }
 
 

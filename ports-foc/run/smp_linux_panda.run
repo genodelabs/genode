@@ -1,0 +1,168 @@
+assert_spec foc
+assert_spec platform_panda
+
+#
+# Build
+#
+build {
+	core
+	init
+	drivers/timer
+	drivers/framebuffer
+	drivers/usb
+	server/nitpicker
+	server/nit_fb
+	server/terminal
+	server/terminal_log
+	l4linux
+}
+
+create_boot_directory
+
+#
+# Config
+#
+set config  {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="fb_drv">
+		<binary name="omap4_fb_drv"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="10M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<hid/>
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Input">       <child name="usb_drv"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="linux">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="1" ypos="0" width="510" height="382"/>
+	</start>
+	<start name="ttyS0_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="513" ypos="0" width="510" height="758"/>
+	</start>
+	<start name="debug_fb">
+		<binary name="nit_fb"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<config xpos="1" ypos="385" width="510" height="376"/>
+	</start>
+	<start name="debug_term">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input">       <child name="debug_fb"/> </service>
+			<service name="Framebuffer"> <child name="debug_fb"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="debug_log">
+		<binary name="terminal_log" />
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="LOG"/></provides>
+		<route>
+			<service name="Terminal"> <child name="debug_term"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="ttyS0">
+		<binary name="terminal"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Input">       <child name="ttyS0_fb"/> </service>
+			<service name="Framebuffer"> <child name="ttyS0_fb"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="l4linux">
+		<resource name="RAM" quantum="96M"/>
+		<config args="mem=54M l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
+		<route>
+			<service name="Input">       <child name="linux"/>     </service>
+			<service name="Framebuffer"> <child name="linux"/>     </service>
+			<service name="LOG">         <child name="debug_log"/> </service>
+			<service name="Terminal">    <child name="ttyS0"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules {
+	core
+	init
+	timer
+	l4linux
+	initrd.gz
+	omap4_fb_drv
+	usb_drv
+	terminal
+	terminal_log
+	nitpicker
+	nit_fb
+}
+
+set uri "https://github.com/downloads/skalk/genode/busybox-initrd-arm-20120710.gz"
+
+if {![file exists bin/initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O bin/initrd.gz $uri
+}
+
+build_boot_image  [join $boot_modules " "]
+

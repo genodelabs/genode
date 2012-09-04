@@ -12,6 +12,7 @@
  */
 
 #include <base/printf.h>
+#include <vcpu.h>
 
 namespace Fiasco {
 #include <l4/util/util.h>
@@ -23,7 +24,13 @@ extern "C" {
 
 	void l4_sleep(int ms)
 	{
-		PWRN("%s: Not implemented yet!", __func__);
+		L4lx::Vcpu *vcpu = static_cast<L4lx::Vcpu*>(Genode::Thread_base::myself());
+		if (vcpu)
+			vcpu->timer()->msleep(ms);
+		else {
+			static Timer::Connection timer;
+			timer.msleep(ms);
+		}
 	}
 
 

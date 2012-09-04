@@ -1,27 +1,3 @@
-Index: arch/l4/Kconfig
-===================================================================
---- arch/l4/Kconfig	(revision 23)
-+++ arch/l4/Kconfig	(working copy)
-@@ -394,7 +394,19 @@
- config L4_USE_L4SHMC
- 	bool
- 
-+config SCREEN_GENODE
-+	bool
-+	select FB_CFB_FILLRECT
-+	select FB_CFB_COPYAREA
-+	select FB_CFB_IMAGEBLIT
-+	default y
- 
-+config SERIAL_GENODE
-+	bool
-+	default y
-+	select SERIAL_CORE
-+	select SERIAL_CORE_CONSOLE
-+
- # some delimiter (for .config)
- comment ""
- source "arch/l4/Kconfig.arch"
 Index: arch/l4/kernel/dispatch.c
 ===================================================================
 --- arch/l4/kernel/dispatch.c	(revision 23)
@@ -44,168 +20,6 @@ Index: arch/l4/kernel/dispatch.c
  		}
  	}
  }
-Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
-===================================================================
---- arch/l4/kernel/arch-x86/vmlinux.lds.S	(revision 23)
-+++ arch/l4/kernel/arch-x86/vmlinux.lds.S	(working copy)
-@@ -33,7 +33,7 @@
- 
- #ifdef CONFIG_X86_32
- OUTPUT_ARCH(i386)
--ENTRY(phys_startup_32)
-+ENTRY(_start)
- jiffies = jiffies_64;
- #else
- OUTPUT_ARCH(i386:x86-64)
-@@ -67,17 +67,10 @@
- 
- #endif
- 
--PHDRS {
--	text PT_LOAD FLAGS(5);          /* R_E */
--	data PT_LOAD FLAGS(6);          /* RW_ */
--#ifdef CONFIG_X86_64
--	user PT_LOAD FLAGS(5);          /* R_E */
--#ifdef CONFIG_SMP
--	percpu PT_LOAD FLAGS(6);        /* RW_ */
--#endif
--	init PT_LOAD FLAGS(7);          /* RWE */
--#endif
--	note PT_NOTE FLAGS(0);          /* ___ */
-+PHDRS
-+{
-+	ro   PT_LOAD;
-+	rw   PT_LOAD;
- }
- 
- SECTIONS
-@@ -97,6 +90,29 @@
- 	/*_stext = .;*/
- 	.text :  AT(ADDR(.text) - LOAD_OFFSET) {
- 		_text = .;
-+		_prog_img_beg = .;
-+
-+		/*
-+		 * Leave space for parent capability parameters at start of data
-+		 * section. The protection domain creator is reponsible for storing
-+		 * sane values here.
-+		 */
-+		_parent_cap = .;
-+		_parent_cap_thread_id = .;
-+		LONG(0xffffffff);
-+		_parent_cap_local_name = .;
-+		LONG(0xffffffff);
-+
-+		/*
-+		 * Platform-specific entry for Fiasco.OC.
-+		 *
-+		 * PIC-code compiled for Fiasco.OC, needs some PIC-compatible
-+		 * way to enter the kernel, the fixed address of the kernel
-+		 * entry code address needs to be found here.
-+		 */
-+		__l4sys_invoke_indirect = .;
-+		LONG(0xeacff000);
-+
- 		/* bootstrapping code */
- 		HEAD_TEXT
- #ifdef CONFIG_X86_32
-@@ -112,14 +128,28 @@
- 		ENTRY_TEXT
- 		IRQENTRY_TEXT
- 		*(.fixup)
-+		*(.text.*) /* put all Genode .text entries in here */
- 		*(.gnu.warning)
-+
-+		. = ALIGN(0x08);
-+
-+		_ctors_start = .;
-+		KEEP (*(.ctors))
-+		KEEP (*(SORT(.ctors.*)))
-+		KEEP (*(.init_array)) /* list of constructors specific for ARM eabi */
-+		_ctors_end = .;
-+		_dtors_start = .;
-+		KEEP (*(SORT(.dtors.*)))
-+		KEEP (*(.dtors))
-+		_dtors_end = .;
-+
- 		/* End of text section */
- 		_etext = .;
--	} :text = 0x9090
-+	} : rw
- 
--	NOTES :text :note
-+	NOTES :rw
- 
--	EXCEPTION_TABLE(16) :text = 0x9090
-+	.eh_frame_hdr : { *(.eh_frame_hdr) }
- 
- #if defined(CONFIG_DEBUG_RODATA)
- 	/* .text should occupy whole number of pages */
-@@ -152,10 +182,34 @@
- 		/* rarely changed data like cpu maps */
- 		READ_MOSTLY_DATA(INTERNODE_CACHE_BYTES)
- 
-+		*(.data.*) /* put all Genode .data entries in here */
-+
-+
- 		/* End of data section */
- 		_edata = .;
--	} :data
-+	} : rw
- 
-+	EXCEPTION_TABLE(16) : rw
-+
-+	/* exception frames for C++ */
-+	.eh_frame : {
-+		__eh_frame_start__ = .;
-+		KEEP (*(.eh_frame))
-+		LONG(0)
-+	} : rw
-+
-+	.init_array : {
-+		__init_array_start = .;
-+		KEEP (*(SORT(.init_array.*)))
-+		KEEP (*(.init_array))
-+		__init_array_end = .;
-+	}
-+
-+	.gcc_except_table : {
-+		KEEP(*(.gcc_except_table))
-+		KEEP(*(.gcc_except_table.*))
-+	}
-+
- #ifdef CONFIG_X86_64
- 
- #ifdef CONFIG_L4
-@@ -366,6 +420,7 @@
- 		__bss_start = .;
- 		*(.bss..page_aligned)
- 		*(.bss)
-+		*(.bss.*) /* put all Genode .bss entries in here */
- 		. = ALIGN(PAGE_SIZE);
- 		__bss_stop = .;
- 	}
-@@ -378,6 +433,7 @@
- 		__brk_limit = .;
- 	}
- 
-+	_prog_img_end = .;
- 	_end = .;
- 
-         STABS_DEBUG
-Index: arch/l4/kernel/arch-x86/x86_init.c
-===================================================================
---- arch/l4/kernel/arch-x86/x86_init.c	(revision 23)
-+++ arch/l4/kernel/arch-x86/x86_init.c	(working copy)
-@@ -38,7 +38,7 @@
- struct x86_init_ops x86_init __initdata = {
- 
- 	.resources = {
--		.probe_roms		= probe_roms,
-+		.probe_roms		= x86_init_noop,
- 		.reserve_resources	= reserve_standard_io_resources,
- 		.memory_setup		= l4x_memory_setup,
- 	},
 Index: arch/l4/kernel/arch-arm/dispatch.c
 ===================================================================
 --- arch/l4/kernel/arch-arm/dispatch.c	(revision 23)
@@ -397,6 +211,225 @@ Index: arch/l4/kernel/arch-arm/traps.c
  }
  #endif
  
+Index: arch/l4/kernel/arch-x86/x86_init.c
+===================================================================
+--- arch/l4/kernel/arch-x86/x86_init.c	(revision 23)
++++ arch/l4/kernel/arch-x86/x86_init.c	(working copy)
+@@ -38,7 +38,7 @@
+ struct x86_init_ops x86_init __initdata = {
+ 
+ 	.resources = {
+-		.probe_roms		= probe_roms,
++		.probe_roms		= x86_init_noop,
+ 		.reserve_resources	= reserve_standard_io_resources,
+ 		.memory_setup		= l4x_memory_setup,
+ 	},
+Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
+===================================================================
+--- arch/l4/kernel/arch-x86/vmlinux.lds.S	(revision 23)
++++ arch/l4/kernel/arch-x86/vmlinux.lds.S	(working copy)
+@@ -33,7 +33,7 @@
+ 
+ #ifdef CONFIG_X86_32
+ OUTPUT_ARCH(i386)
+-ENTRY(phys_startup_32)
++ENTRY(_start)
+ jiffies = jiffies_64;
+ #else
+ OUTPUT_ARCH(i386:x86-64)
+@@ -67,17 +67,10 @@
+ 
+ #endif
+ 
+-PHDRS {
+-	text PT_LOAD FLAGS(5);          /* R_E */
+-	data PT_LOAD FLAGS(6);          /* RW_ */
+-#ifdef CONFIG_X86_64
+-	user PT_LOAD FLAGS(5);          /* R_E */
+-#ifdef CONFIG_SMP
+-	percpu PT_LOAD FLAGS(6);        /* RW_ */
+-#endif
+-	init PT_LOAD FLAGS(7);          /* RWE */
+-#endif
+-	note PT_NOTE FLAGS(0);          /* ___ */
++PHDRS
++{
++	ro   PT_LOAD;
++	rw   PT_LOAD;
+ }
+ 
+ SECTIONS
+@@ -97,6 +90,29 @@
+ 	/*_stext = .;*/
+ 	.text :  AT(ADDR(.text) - LOAD_OFFSET) {
+ 		_text = .;
++		_prog_img_beg = .;
++
++		/*
++		 * Leave space for parent capability parameters at start of data
++		 * section. The protection domain creator is reponsible for storing
++		 * sane values here.
++		 */
++		_parent_cap = .;
++		_parent_cap_thread_id = .;
++		LONG(0xffffffff);
++		_parent_cap_local_name = .;
++		LONG(0xffffffff);
++
++		/*
++		 * Platform-specific entry for Fiasco.OC.
++		 *
++		 * PIC-code compiled for Fiasco.OC, needs some PIC-compatible
++		 * way to enter the kernel, the fixed address of the kernel
++		 * entry code address needs to be found here.
++		 */
++		__l4sys_invoke_indirect = .;
++		LONG(0xeacff000);
++
+ 		/* bootstrapping code */
+ 		HEAD_TEXT
+ #ifdef CONFIG_X86_32
+@@ -112,19 +128,55 @@
+ 		ENTRY_TEXT
+ 		IRQENTRY_TEXT
+ 		*(.fixup)
++		*(.text.*) /* put all Genode .text entries in here */
+ 		*(.gnu.warning)
++
++		. = ALIGN(0x08);
++
++		_ctors_start = .;
++		KEEP (*(.ctors))
++		KEEP (*(SORT(.ctors.*)))
++		KEEP (*(.init_array)) /* list of constructors specific for ARM eabi */
++		_ctors_end = .;
++		_dtors_start = .;
++		KEEP (*(SORT(.dtors.*)))
++		KEEP (*(.dtors))
++		_dtors_end = .;
++
+ 		/* End of text section */
+ 		_etext = .;
+-	} :text = 0x9090
++	} : rw
+ 
+-	NOTES :text :note
++	NOTES :rw
+ 
+-	EXCEPTION_TABLE(16) :text = 0x9090
++	.eh_frame_hdr : { *(.eh_frame_hdr) }
+ 
+ #if defined(CONFIG_DEBUG_RODATA)
+ 	/* .text should occupy whole number of pages */
+ 	. = ALIGN(PAGE_SIZE);
+ #endif
++
++	/*
++	 * because in Genode we collect all data.* entries in the data section
++	 * we have to put the per_cpu section before defining the data section
++	 * otherwise it's symbols would end up in the data section too.
++	 */
++#if !defined(CONFIG_X86_64) || !defined(CONFIG_SMP)
++	PERCPU_SECTION(INTERNODE_CACHE_BYTES)
++#endif
++
++	/*
++	 * smp_locks might be freed after init
++	 * start/end must be page aligned
++	 */
++	. = ALIGN(PAGE_SIZE);
++	.smp_locks : AT(ADDR(.smp_locks) - LOAD_OFFSET) {
++		__smp_locks = .;
++		*(.smp_locks)
++		. = ALIGN(PAGE_SIZE);
++		__smp_locks_end = .;
++	}
++
+ 	X64_ALIGN_DEBUG_RODATA_BEGIN
+ 	RO_DATA(PAGE_SIZE)
+ 	X64_ALIGN_DEBUG_RODATA_END
+@@ -152,10 +204,34 @@
+ 		/* rarely changed data like cpu maps */
+ 		READ_MOSTLY_DATA(INTERNODE_CACHE_BYTES)
+ 
++		*(.data.*) /* put all Genode .data entries in here */
++
++
+ 		/* End of data section */
+ 		_edata = .;
+-	} :data
++	} : rw
+ 
++	EXCEPTION_TABLE(16) : rw
++
++	/* exception frames for C++ */
++	.eh_frame : {
++		__eh_frame_start__ = .;
++		KEEP (*(.eh_frame))
++		LONG(0)
++	} : rw
++
++	.init_array : {
++		__init_array_start = .;
++		KEEP (*(SORT(.init_array.*)))
++		KEEP (*(.init_array))
++		__init_array_end = .;
++	}
++
++	.gcc_except_table : {
++		KEEP(*(.gcc_except_table))
++		KEEP(*(.gcc_except_table.*))
++	}
++
+ #ifdef CONFIG_X86_64
+ 
+ #ifdef CONFIG_L4
+@@ -331,10 +407,6 @@
+ 		EXIT_DATA
+ 	}
+ 
+-#if !defined(CONFIG_X86_64) || !defined(CONFIG_SMP)
+-	PERCPU_SECTION(INTERNODE_CACHE_BYTES)
+-#endif
+-
+ 	. = ALIGN(PAGE_SIZE);
+ 
+ 	/* freed after init ends here */
+@@ -342,18 +414,6 @@
+ 		__init_end = .;
+ 	}
+ 
+-	/*
+-	 * smp_locks might be freed after init
+-	 * start/end must be page aligned
+-	 */
+-	. = ALIGN(PAGE_SIZE);
+-	.smp_locks : AT(ADDR(.smp_locks) - LOAD_OFFSET) {
+-		__smp_locks = .;
+-		*(.smp_locks)
+-		. = ALIGN(PAGE_SIZE);
+-		__smp_locks_end = .;
+-	}
+-
+ #ifdef CONFIG_X86_64
+ 	.data_nosave : AT(ADDR(.data_nosave) - LOAD_OFFSET) {
+ 		NOSAVE_DATA
+@@ -366,6 +426,7 @@
+ 		__bss_start = .;
+ 		*(.bss..page_aligned)
+ 		*(.bss)
++		*(.bss.*) /* put all Genode .bss entries in here */
+ 		. = ALIGN(PAGE_SIZE);
+ 		__bss_stop = .;
+ 	}
+@@ -378,6 +439,7 @@
+ 		__brk_limit = .;
+ 	}
+ 
++	_prog_img_end = .;
+ 	_end = .;
+ 
+         STABS_DEBUG
 Index: arch/l4/kernel/head.S
 ===================================================================
 --- arch/l4/kernel/head.S	(revision 23)
@@ -433,19 +466,34 @@ Index: arch/l4/kernel/main.c
  	if (strstr(cmdline, "console=ttyLv")) {
  		LOG_printf("Console output set to ttyLvx but driver not compiled in.\n");
  		enter_kdebug("L4 serial driver not enabled");
-@@ -363,6 +363,11 @@
+@@ -363,6 +363,26 @@
  	}
  }
  
++static spinlock_t migrate_lock;
++
 +void          l4x_irq_save(unsigned long flags)    { local_irq_save(flags);    }
 +void          l4x_irq_restore(unsigned long flags) { local_irq_restore(flags); }
 +unsigned long l4x_hz(void)                         { return HZ;                }
 +int           l4x_nr_irqs(void)                    { return NR_IRQS;           }
++void l4x_migrate_lock(unsigned long flags) { spin_lock_irqsave(&migrate_lock, flags); }
++void l4x_migrate_unlock(unsigned long flags) { spin_unlock_irqrestore(&migrate_lock, flags);}
++
++unsigned l4x_target_cpu(const struct cpumask *dest)
++{
++	if (!cpumask_intersects(dest, cpu_online_mask))
++		return (unsigned) -1;
++	return cpumask_any_and(dest, cpu_online_mask);
++}
++
++void l4x_cpumask_copy(struct irq_data *data, const struct cpumask *dest) {
++	cpumask_copy(data->affinity, dest); }
++
 +
  unsigned long l4x_virt_to_phys(volatile void * address)
  {
  	int i;
-@@ -375,14 +380,14 @@
+@@ -375,14 +395,14 @@
  			       + l4x_phys_virt_addrs[i].phys;
  	}
  
@@ -463,7 +511,7 @@ Index: arch/l4/kernel/main.c
  
  	return __pa(address);
  }
-@@ -414,7 +419,7 @@
+@@ -414,7 +434,7 @@
  
  	/* Debugging check: don't miss a translation, can give nasty
  	 *                  DMA problems */
@@ -472,7 +520,7 @@ Index: arch/l4/kernel/main.c
  	           __func__, address);
  	WARN_ON(1);
  
-@@ -532,7 +537,7 @@
+@@ -532,7 +552,7 @@
  
  	r = l4re_ns_query_srv(entry->cap, n + 1, *cap);
  	if (r) {
@@ -481,7 +529,7 @@ Index: arch/l4/kernel/main.c
  		           name, l4sys_errtostr(r), r);
  		L4XV_U(f);
  		return -ENOENT;
-@@ -713,6 +718,7 @@
+@@ -713,6 +733,7 @@
  	= sizeof(at_exit_functions) / sizeof(at_exit_functions[0]);
  static int __current_exititem;
  
@@ -489,7 +537,7 @@ Index: arch/l4/kernel/main.c
  static struct cxa_atexit_item *__next_atexit(void)
  {
  	if (__current_exititem >= at_exit_nr_of_functions) {
-@@ -721,21 +727,10 @@
+@@ -721,21 +742,10 @@
  	}
  	return &at_exit_functions[__current_exititem++];
  }
@@ -513,7 +561,7 @@ Index: arch/l4/kernel/main.c
  void __cxa_finalize(void *dso_handle)
  {
  	register int i = __current_exititem;
-@@ -790,10 +785,20 @@
+@@ -790,10 +800,20 @@
  }
  static int l4x_forward_pf(l4_umword_t addr, l4_umword_t pc, int extra_write)
  {
@@ -534,7 +582,7 @@ Index: arch/l4/kernel/main.c
  	do {
  		l4_msg_regs_t *mr = l4_utcb_mr_u(u);
  		mr->mr[0] = addr | (extra_write ? 2 : 0);
-@@ -815,6 +820,7 @@
+@@ -815,6 +835,7 @@
  		// unresolvable page fault, we're supposed to trigger an
  		// exception
  		return 0;
@@ -542,7 +590,7 @@ Index: arch/l4/kernel/main.c
  
  	return 1;
  }
-@@ -1054,7 +1060,7 @@
+@@ -1054,7 +1075,7 @@
  	addr = (l4_addr_t)p_in_addr;
  	size = 1;
  	if (l4re_rm_find(&addr, &size, &off, &flags, &ds)) {
@@ -551,7 +599,7 @@ Index: arch/l4/kernel/main.c
  		l4re_rm_show_lists();
  		enter_kdebug("l4re_rm_find failed");
  		return;
-@@ -1254,7 +1260,7 @@
+@@ -1254,7 +1275,7 @@
  	                    0, "Main memory");
  
  	/* Reserve some part of the virtual address space for vmalloc */
@@ -560,7 +608,7 @@ Index: arch/l4/kernel/main.c
  	if (l4re_rm_reserve_area(&l4x_vmalloc_memory_start,
  #ifdef CONFIG_X86_32
  	                          __VMALLOC_RESERVE,
-@@ -1381,6 +1387,10 @@
+@@ -1381,6 +1402,10 @@
  
  static void l4x_create_ugate(l4_cap_idx_t forthread, unsigned cpu)
  {
@@ -571,7 +619,7 @@ Index: arch/l4/kernel/main.c
  	l4_msgtag_t r;
  
  	l4x_user_gate[cpu] = l4x_cap_alloc();
-@@ -1401,6 +1411,7 @@
+@@ -1401,6 +1426,7 @@
  		l4_debugger_set_object_name(l4x_user_gate[cpu], n);
  #endif
  	}
@@ -579,7 +627,23 @@ Index: arch/l4/kernel/main.c
  }
  
  #ifdef CONFIG_HOTPLUG_CPU
-@@ -1890,8 +1901,10 @@
+@@ -1607,11 +1633,15 @@
+ 		l4x_exit_l4linux();
+ 	}
+ 
++#if 0
+ 	t = l4_factory_create_irq(l4re_env()->factory, c);
+ 	if (l4_error(t)) {
+ 		LOG_printf("Failed to create IRQ\n");
+ 		l4x_exit_l4linux();
+ 	}
++#else
++	l4lx_thread_alloc_irq(c);
++#endif
+ 
+ #ifdef CONFIG_L4_DEBUG_REGISTER_NAMES
+ 	l4_debugger_set_object_name(c, s);
+@@ -1890,8 +1920,10 @@
  
  static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
  {
@@ -590,7 +654,40 @@ Index: arch/l4/kernel/main.c
  	unsigned i;
  
  #ifdef CONFIG_SMP
-@@ -1964,6 +1977,8 @@
+@@ -1907,9 +1939,10 @@
+ 		}
+ 	}
+ 
+-
++#if 0
+ 	if (l4_error(l4_scheduler_info(l4re_env()->scheduler,
+ 	                               &max_cpus, &cs)) == L4_EOK) {
++#endif
+ 		if ((p = strstr(boot_command_line, "l4x_cpus_map="))) {
+ 			// l4x_cpus_map=0,1,2,3,4,...
+ 			// the list specifies the physical CPU for each
+@@ -1931,10 +1964,12 @@
+ 					LOG_printf("ERROR: Error parsing l4x_cpus_map option\n");
+ 					return 1;
+ 				}
++#if 0
+ 				if (!l4x_cpu_check_pcpu(pcpu, max_cpus)) {
+ 					LOG_printf("ERROR: pCPU%d not found\n", pcpu);
+ 					return 1;
+ 				}
++#endif
+ 				l4x_cpu_physmap[l4x_nr_cpus].phys_id = pcpu;
+ 				for (i = 0; i < l4x_nr_cpus; ++i)
+ 					overbooking |=
+@@ -1958,12 +1993,16 @@
+ 			l4x_nr_cpus = v;
+ 
+ 		}
++#if 0
+ 	}
++#endif
+ #ifndef CONFIG_L4_VCPU
+ 	l4x_tamed_set_mapping(0, l4x_cpu_physmap_get_id(0));
  #endif
  
  #else /* UP */
@@ -599,7 +696,7 @@ Index: arch/l4/kernel/main.c
  	if (l4_error(l4_scheduler_info(l4re_env()->scheduler,
  	                               &max_cpus, &cs)) == L4_EOK) {
  
-@@ -1973,6 +1988,8 @@
+@@ -1973,6 +2012,8 @@
  		l4x_cpu_physmap[0].phys_id = p;
  	}
  #endif
@@ -608,7 +705,7 @@ Index: arch/l4/kernel/main.c
  
  	LOG_printf("CPU mapping (l:p)[%d]: ", l4x_nr_cpus);
  	for (i = 0; i < l4x_nr_cpus; i++)
-@@ -2018,6 +2035,7 @@
+@@ -2018,6 +2059,7 @@
  	printk("panic: going to sleep forever, bye\n");
  	L4XV_L(f);
  	LOG_printf("panic: going to sleep forever, bye\n");
@@ -616,7 +713,7 @@ Index: arch/l4/kernel/main.c
  	l4_sleep_forever();
  	return 0;
  }
-@@ -2298,7 +2316,7 @@
+@@ -2298,7 +2340,7 @@
  	}
  }
  
@@ -625,7 +722,7 @@ Index: arch/l4/kernel/main.c
  {
  	l4lx_thread_t main_id;
  	extern char _end[];
-@@ -2410,10 +2428,13 @@
+@@ -2410,10 +2452,13 @@
  
  	l4x_start_thread_id = l4re_env()->main_thread;
  
@@ -639,7 +736,7 @@ Index: arch/l4/kernel/main.c
  
  #ifndef CONFIG_L4_VCPU
  #ifdef CONFIG_L4_TAMED
-@@ -3180,6 +3201,10 @@
+@@ -3180,6 +3225,10 @@
  		/* Not resolvable: Ooops */
  		LOG_printf("Non-resolvable page fault at %lx, ip %lx.\n", pfa, ip);
  		// will trigger an oops in caller
@@ -650,7 +747,7 @@ Index: arch/l4/kernel/main.c
  		return 0;
  	}
  
-@@ -3560,7 +3585,9 @@
+@@ -3560,7 +3609,9 @@
  void exit(int code)
  {
  	__cxa_finalize(0);
@@ -660,6 +757,64 @@ Index: arch/l4/kernel/main.c
  	LOG_printf("Still alive, going zombie???\n");
  	l4_sleep_forever();
  }
+Index: arch/l4/Kconfig
+===================================================================
+--- arch/l4/Kconfig	(revision 23)
++++ arch/l4/Kconfig	(working copy)
+@@ -394,7 +394,19 @@
+ config L4_USE_L4SHMC
+ 	bool
+ 
++config SCREEN_GENODE
++	bool
++	select FB_CFB_FILLRECT
++	select FB_CFB_COPYAREA
++	select FB_CFB_IMAGEBLIT
++	default y
+ 
++config SERIAL_GENODE
++	bool
++	default y
++	select SERIAL_CORE
++	select SERIAL_CORE_CONSOLE
++
+ # some delimiter (for .config)
+ comment ""
+ source "arch/l4/Kconfig.arch"
+Index: arch/l4/include/asm/generic/l4lib.h
+===================================================================
+--- arch/l4/include/asm/generic/l4lib.h	(revision 23)
++++ arch/l4/include/asm/generic/l4lib.h	(working copy)
+@@ -3,6 +3,7 @@
+ 
+ #include <linux/stringify.h>
+ 
++#if 0
+ #ifdef ARCH_arm
+ #define L4_EXTERNAL_FUNC(func) \
+ 	asm(".section \".data.l4externals.str\"                         \n" \
+@@ -58,5 +59,8 @@
+ 	    ".previous                                                  \n" \
+ 	   )
+ #endif
++#endif
+ 
++#define L4_EXTERNAL_FUNC(func) ;
++
+ #endif /* __INCLUDE__ASM_L4__GENERIC__L4LIB_H__ */
+Index: arch/l4/include/asm/l4lxapi/thread.h
+===================================================================
+--- arch/l4/include/asm/l4lxapi/thread.h	(revision 23)
++++ arch/l4/include/asm/l4lxapi/thread.h	(working copy)
+@@ -24,6 +24,8 @@
+  */
+ void l4lx_thread_init(void);
+ 
++void l4lx_thread_alloc_irq(l4_cap_idx_t c);
++
+ /**
+  * \brief Create a thread.
+  * \ingroup thread
 Index: arch/l4/boot/Makefile
 ===================================================================
 --- arch/l4/boot/Makefile	(revision 23)
@@ -826,27 +981,6 @@ Index: arch/l4/Makefile
  
  server:
  	$(Q)$(MAKE) $(build)=arch/l4/server
-Index: arch/l4/include/asm/generic/l4lib.h
-===================================================================
---- arch/l4/include/asm/generic/l4lib.h	(revision 23)
-+++ arch/l4/include/asm/generic/l4lib.h	(working copy)
-@@ -3,6 +3,7 @@
- 
- #include <linux/stringify.h>
- 
-+#if 0
- #ifdef ARCH_arm
- #define L4_EXTERNAL_FUNC(func) \
- 	asm(".section \".data.l4externals.str\"                         \n" \
-@@ -58,5 +59,8 @@
- 	    ".previous                                                  \n" \
- 	   )
- #endif
-+#endif
- 
-+#define L4_EXTERNAL_FUNC(func) ;
-+
- #endif /* __INCLUDE__ASM_L4__GENERIC__L4LIB_H__ */
 Index: drivers/tty/serial/l4ser.c
 ===================================================================
 --- drivers/tty/serial/l4ser.c	(revision 23)

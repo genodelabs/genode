@@ -17,6 +17,7 @@ SRC_CC  += env.cc \
            l4_re_c_rm.cc \
            l4_re_c_util_cap.cc \
            l4_re_env.cc \
+           l4_util_atomic.cc \
            l4_util_cpu.cc \
            l4_util_kip.cc \
            l4_util_util.cc \
