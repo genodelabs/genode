@@ -28,11 +28,15 @@ requires_installation_of lynx
 # Build
 #
 
-build {
+set build_components {
 	core init
 	drivers/pci drivers/timer drivers/nic
 	test/lwip/http_srv
 }
+
+lappend_if [have_spec omap4] build_components drivers/usb
+
+build $build_components
 
 create_boot_directory
 
@@ -62,13 +66,26 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Nic"/> </provides>
-	</start>
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="2M"/>
 	</start> }
+
+append_if [have_spec omap4] config {
+	<start name="usb_drv" priority="-1">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+	</start>}
+
+append_if [expr ![have_spec omap4]] config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
 
 append_if [have_spec pci] config {
 	<start name="pci_drv">
@@ -89,12 +106,13 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	nic_drv
 	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 # platform-specific modules
-lappend_if [have_spec pci] boot_modules pci_drv
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec omap4]         boot_modules usb_drv
+lappend_if [expr ![have_spec omap4]] boot_modules nic_drv
 
 build_boot_image $boot_modules
 

@@ -28,7 +28,7 @@ extern "C" {
 /* Genode includes */
 #include <base/thread.h>
 #include <base/printf.h>
-#include <base/allocator_avl.h>
+#include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 
 
@@ -43,6 +43,16 @@ class Nic_receiver_thread : public Genode::Thread<8192>
 		Packet_descriptor _rx_packet; /* actual packet received */
 		struct netif     *_netif;     /* LwIP network interface structure */
 
+		void _tx_ack(bool block = false)
+		{
+			/* check for acknowledgements */
+			while (nic()->tx()->ack_avail() || block) {
+				Packet_descriptor acked_packet = nic()->tx()->get_acked_packet();
+				nic()->tx()->release_packet(acked_packet);
+				block = false;
+			}
+		}
+
 	public:
 
 		Nic_receiver_thread(Nic::Connection *nic, struct netif *netif)
@@ -51,6 +61,29 @@ class Nic_receiver_thread : public Genode::Thread<8192>
 		void entry();
 		Nic::Connection  *nic() { return _nic; };
 		Packet_descriptor rx_packet() { return _rx_packet; };
+
+		Packet_descriptor alloc_tx_packet(Genode::size_t size)
+		{
+			while (true) {
+				try {
+					Packet_descriptor packet = nic()->tx()->alloc_packet(size);
+					return packet;
+				} catch(Nic::Session::Tx::Source::Packet_alloc_failed) {
+					/* packet allocator exhausted, wait for acknowledgements */
+					_tx_ack(true);
+				}
+			}
+		}
+
+		void submit_tx_packet(Packet_descriptor packet)
+		{
+			nic()->tx()->submit_packet(packet);
+			/* check for acknowledgements */
+			_tx_ack();
+		}
+
+		char *content(Packet_descriptor packet) {
+			return nic()->tx()->packet_content(packet); }
 };
 
 
@@ -81,39 +114,26 @@ extern "C" {
 	low_level_output(struct netif *netif, struct pbuf *p)
 	{
 		Nic_receiver_thread *th = reinterpret_cast<Nic_receiver_thread*>(netif->state);
-		Nic::Connection *nic    = th->nic();
 
 #if ETH_PAD_SIZE
 		pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
 #endif
-		try {
-			Packet_descriptor tx_packet = nic->tx()->alloc_packet(p->tot_len);
-			char *tx_content            = nic->tx()->packet_content(tx_packet);
+		Packet_descriptor tx_packet = th->alloc_tx_packet(p->tot_len);
+		char *tx_content            = th->content(tx_packet);
 
-			/*
-			 * Iterate through all pbufs and
-			 * copy payload into packet's payload
-			 */
-			for(struct pbuf *q = p; q != NULL; q = q->next) {
-				char *src = (char*) q->payload;
-				for (unsigned i = 0; i < q->len; i++)
-					tx_content[i] = src[i];
-				tx_content += q->len;
-			}
-
-			/* Submit packet */
-			nic->tx()->submit_packet(tx_packet);
-		} catch(Nic::Session::Tx::Source::Packet_alloc_failed)
-		{
-			PWRN("Packets to NIC were dropped!");
-			return ERR_MEM;
+		/*
+		 * Iterate through all pbufs and
+		 * copy payload into packet's payload
+		 */
+		for(struct pbuf *q = p; q != NULL; q = q->next) {
+			char *src = (char*) q->payload;
+			Genode::memcpy(tx_content, src, q->len);
+			tx_content += q->len;
 		}
 
-		/* Check for acknowledgements */
-		while (nic->tx()->ack_avail()) {
-			Packet_descriptor acked_packet = nic->tx()->get_acked_packet();
-			nic->tx()->release_packet(acked_packet);
-		}
+		/* Submit packet */
+		th->submit_tx_packet(tx_packet);
+
 #if ETH_PAD_SIZE
 		pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
 #endif
@@ -156,10 +176,10 @@ extern "C" {
 			 */
 			for(struct pbuf *q = p; q != 0; q = q->next) {
 				char *dst = (char*)q->payload;
-				for(unsigned i=0; i < q->len; ++i)
-					dst[i] = rx_content[i];
+				Genode::memcpy(dst, rx_content, q->len);
 				rx_content += q->len;
 			}
+
 #if ETH_PAD_SIZE
 			pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
 #endif
@@ -222,12 +242,18 @@ extern "C" {
 		LWIP_ASSERT("netif != NULL", (netif != NULL));
 
 		/* Initialize nic-session */
-		Allocator_avl *tx_block_alloc = new (env()->heap())
-			Allocator_avl(env()->heap());
+		enum {
+			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+			RX_BUF_SIZE = Nic::Session::RX_QUEUE_SIZE * PACKET_SIZE,
+			TX_BUF_SIZE = Nic::Session::TX_QUEUE_SIZE * PACKET_SIZE,
+		};
+
+		Nic::Packet_allocator *tx_block_alloc = new (env()->heap())
+		                                        Nic::Packet_allocator(env()->heap());
 
 		Nic::Connection *nic = 0;
 		try {
-			nic = new (env()->heap()) Nic::Connection(tx_block_alloc);
+			nic = new (env()->heap()) Nic::Connection(tx_block_alloc, TX_BUF_SIZE, RX_BUF_SIZE);
 		} catch (Parent::Service_denied) {
 			destroy(env()->heap(), tx_block_alloc);
 			return ERR_IF;

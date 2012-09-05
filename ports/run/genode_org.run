@@ -18,6 +18,8 @@ set build_components {
 	app/lighttpd
 }
 
+lappend_if [have_spec omap4] build_components drivers/usb
+
 build $build_components
 
 create_boot_directory
