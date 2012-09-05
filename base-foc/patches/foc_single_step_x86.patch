@@ -1,8 +1,8 @@
 Index: kernel/fiasco/src/Kconfig
 ===================================================================
---- kernel/fiasco/src/Kconfig	(revision 38)
+--- kernel/fiasco/src/Kconfig	(revision 40)
 +++ kernel/fiasco/src/Kconfig	(working copy)
-@@ -694,6 +694,14 @@
+@@ -685,6 +685,14 @@
  	  prevent some P4 processors from being overheated. This option
  	  requires a working timer IRQ to wakeup getchar periodically.
  
@@ -19,11 +19,11 @@ Index: kernel/fiasco/src/Kconfig
  	default WARN_WARNING
 Index: kernel/fiasco/src/kern/ia32/config-ia32.cpp
 ===================================================================
---- kernel/fiasco/src/kern/ia32/config-ia32.cpp	(revision 38)
+--- kernel/fiasco/src/kern/ia32/config-ia32.cpp	(revision 40)
 +++ kernel/fiasco/src/kern/ia32/config-ia32.cpp	(working copy)
-@@ -98,6 +98,12 @@
-   static const bool kinfo_timer_uses_rdtsc = false;
- #endif
+@@ -86,6 +86,12 @@
+ //  static const bool hlt_works_ok = false;
+   static bool hlt_works_ok;
  
 +#ifdef CONFIG_USER_SINGLE_STEP
 +  static const bool user_single_step = true;
@@ -31,12 +31,12 @@ Index: kernel/fiasco/src/kern/ia32/config-ia32.cpp
 +  static const bool user_single_step = false;
 +#endif
 +
-   static const bool old_sigma0_adapter_hack = false;
- 
    // the default uart to use for serial console
+   static const unsigned default_console_uart = 1;
+   static const unsigned default_console_uart_baudrate = 115200;
 Index: kernel/fiasco/src/kern/ia32/32/entry-native.S
 ===================================================================
---- kernel/fiasco/src/kern/ia32/32/entry-native.S	(revision 38)
+--- kernel/fiasco/src/kern/ia32/32/entry-native.S	(revision 40)
 +++ kernel/fiasco/src/kern/ia32/32/entry-native.S	(working copy)
 @@ -46,6 +46,30 @@
  	jmp	slowtraps
@@ -69,9 +69,9 @@ Index: kernel/fiasco/src/kern/ia32/32/entry-native.S
  	.p2align 4
  	.globl	entry_vec01_debug
  entry_vec01_debug:
-@@ -55,6 +79,15 @@
- 	cmpl	$VAL__MEM_LAYOUT__TCBS_END, %esp
- 	jbe	2f
+@@ -59,6 +83,15 @@
+ 	cmpl	$entry_sys_fast_ipc_log, (%esp)
+ 	je	2f
  #endif
 +
 +	/* test if trap was raised within kernel */
@@ -85,7 +85,7 @@ Index: kernel/fiasco/src/kern/ia32/32/entry-native.S
  1:	pushl	$0
  	pushl	$1
  	pusha
-@@ -214,11 +247,17 @@
+@@ -227,11 +260,17 @@
  	.p2align(4)
  	.global entry_sys_fast_ipc_c
  entry_sys_fast_ipc_c:
@@ -105,18 +105,9 @@ Index: kernel/fiasco/src/kern/ia32/32/entry-native.S
  	// that the thread is ex_regs'd before we leave with sysexit.
 Index: kernel/fiasco/src/kern/ia32/thread-ia32.cpp
 ===================================================================
---- kernel/fiasco/src/kern/ia32/thread-ia32.cpp	(revision 38)
+--- kernel/fiasco/src/kern/ia32/thread-ia32.cpp	(revision 40)
 +++ kernel/fiasco/src/kern/ia32/thread-ia32.cpp	(working copy)
-@@ -196,12 +196,19 @@
-   Address ip;
-   int from_user = ts->cs() & 3;
- 
-+  //if (ts->_trapno != 3)
-+  //  LOG_MSG_3VAL(this, "trap", ts->_trapno, from_user, ts->ip());
-+
-   if (EXPECT_FALSE(ts->_trapno == 0xee)) //debug IPI
-     {
-       Ipi::eoi(Ipi::Debug);
+@@ -189,6 +189,10 @@
        goto generic_debug;
      }
  
@@ -127,7 +118,7 @@ Index: kernel/fiasco/src/kern/ia32/thread-ia32.cpp
    if (from_user && _space.user_mode())
      {
        if (ts->_trapno == 14 && Kmem::is_io_bitmap_page_fault(ts->_cr2))
-@@ -521,7 +528,8 @@
+@@ -438,7 +442,8 @@
    // thread (not alien) and it's a debug trap,
    // debug traps for aliens are always reflected as exception IPCs
    if (!(state() & Thread_alien)
@@ -137,7 +128,7 @@ Index: kernel/fiasco/src/kern/ia32/thread-ia32.cpp
      return 0; // we do not handle this
  
    if (ts->_trapno == 3)
-@@ -574,6 +582,11 @@
+@@ -491,6 +496,11 @@
      }
  }
  
@@ -147,12 +138,16 @@ Index: kernel/fiasco/src/kern/ia32/thread-ia32.cpp
 +{}
 +
  //----------------------------------------------------------------------------
- IMPLEMENTATION [ia32]:
+ IMPLEMENTATION [(ia32,amd64,ux) && !io]:
  
-@@ -586,6 +599,16 @@
-   _gs = _fs = Utcb_init::utcb_segment();
- }
- 
+@@ -819,3 +829,16 @@
+ int
+ Thread::call_nested_trap_handler(Trap_state *)
+ { return -1; }
++
++//---------------------------------------------------------------------------
++IMPLEMENTATION [ia32]:
++
 +IMPLEMENT inline
 +void
 +Thread::user_single_step(bool enable)
@@ -162,15 +157,11 @@ Index: kernel/fiasco/src/kern/ia32/thread-ia32.cpp
 +
 +  regs()->flags(enable ? user_flags() | EFLAGS_TF : user_flags() & ~EFLAGS_TF);
 +}
-+
- //----------------------------------------------------------------------------
- IMPLEMENTATION [amd64]:
- 
 Index: kernel/fiasco/src/kern/thread_object.cpp
 ===================================================================
---- kernel/fiasco/src/kern/thread_object.cpp	(revision 38)
+--- kernel/fiasco/src/kern/thread_object.cpp	(revision 40)
 +++ kernel/fiasco/src/kern/thread_object.cpp	(working copy)
-@@ -524,6 +524,8 @@
+@@ -520,6 +520,8 @@
    if (o_ip) *o_ip = user_ip();
    if (o_flags) *o_flags = user_flags();
  
@@ -181,9 +172,9 @@ Index: kernel/fiasco/src/kern/thread_object.cpp
    if (!(ops & Exr_cancel) && (state() & Thread_in_exception))
 Index: kernel/fiasco/src/kern/thread.cpp
 ===================================================================
---- kernel/fiasco/src/kern/thread.cpp	(revision 38)
+--- kernel/fiasco/src/kern/thread.cpp	(revision 40)
 +++ kernel/fiasco/src/kern/thread.cpp	(working copy)
-@@ -70,6 +70,7 @@
+@@ -72,6 +72,7 @@
    {
      Exr_cancel            = 0x10000,
      Exr_trigger_exception = 0x20000,
@@ -191,7 +182,7 @@ Index: kernel/fiasco/src/kern/thread.cpp
    };
  
    enum Vcpu_ctl_flags
-@@ -137,6 +138,8 @@
+@@ -139,6 +140,8 @@
  
    inline Mword user_flags() const;
  
@@ -202,9 +193,9 @@ Index: kernel/fiasco/src/kern/thread.cpp
    static void handle_remote_requests_irq() asm ("handle_remote_cpu_requests");
 Index: kernel/fiasco/src/kern/arm/thread-arm.cpp
 ===================================================================
---- kernel/fiasco/src/kern/arm/thread-arm.cpp	(revision 38)
+--- kernel/fiasco/src/kern/arm/thread-arm.cpp	(revision 40)
 +++ kernel/fiasco/src/kern/arm/thread-arm.cpp	(working copy)
-@@ -549,6 +549,10 @@
+@@ -590,6 +590,10 @@
    return (v[insn >> 28] >> (psr >> 28)) & 1;
  }
  
@@ -217,9 +208,9 @@ Index: kernel/fiasco/src/kern/arm/thread-arm.cpp
  
 Index: kernel/fiasco/src/kern/ppc32/thread-ppc32.cpp
 ===================================================================
---- kernel/fiasco/src/kern/ppc32/thread-ppc32.cpp	(revision 38)
+--- kernel/fiasco/src/kern/ppc32/thread-ppc32.cpp	(revision 40)
 +++ kernel/fiasco/src/kern/ppc32/thread-ppc32.cpp	(working copy)
-@@ -307,6 +307,10 @@
+@@ -308,6 +308,10 @@
      }
  }
  

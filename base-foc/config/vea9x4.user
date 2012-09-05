@@ -31,13 +31,13 @@ CONFIG_CPU_ARMV6PLUS=y
 # CONFIG_PLATFORM_TYPE_kirkwood is not set
 # CONFIG_PLATFORM_TYPE_omap3_am33xx is not set
 # CONFIG_PLATFORM_TYPE_omap3evm is not set
-CONFIG_PLATFORM_TYPE_pandaboard=y
+# CONFIG_PLATFORM_TYPE_pandaboard is not set
 # CONFIG_PLATFORM_TYPE_rv is not set
 # CONFIG_PLATFORM_TYPE_rv_pbx is not set
-# CONFIG_PLATFORM_TYPE_rv_vexpress is not set
+CONFIG_PLATFORM_TYPE_rv_vexpress=y
 # CONFIG_PLATFORM_TYPE_tegra2 is not set
 # CONFIG_PLATFORM_TYPE_custom is not set
-CONFIG_PLATFORM_TYPE="pandaboard"
+CONFIG_PLATFORM_TYPE="rv_vexpress"
 # CONFIG_USE_DROPS_STDDIR is not set
 # CONFIG_USE_DICE is not set
 CONFIG_DROPS_STDDIR="/path/to/l4re"

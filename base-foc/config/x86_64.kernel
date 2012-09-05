@@ -1,5 +1,5 @@
 #
-# Automatically generated make config: don't edit
+# Automatically generated file; DO NOT EDIT.
 # Fiasco configuration
 #
 
@@ -19,15 +19,14 @@ CONFIG_AMD64_K8=y
 # CONFIG_SCHED_PIT is not set
 # CONFIG_SCHED_RTC is not set
 CONFIG_SCHED_APIC=y
-# CONFIG_SCHED_HPET is not set
 # CONFIG_WORKAROUND_AMD_FPU_LEAK is not set
 
 #
 # Kernel options
 #
+# CONFIG_MP is not set
 CONFIG_CONTEXT_4K=y
-CONFIG_IO_PROT=y
-# CONFIG_IO_PROT_IOPL_3 is not set
+# CONFIG_IO_PROT is not set
 # CONFIG_FINE_GRAINED_CPUTIME is not set
 CONFIG_SCHED_FIXED_PRIO=y
 
@@ -38,7 +37,6 @@ CONFIG_INLINE=y
 # CONFIG_NDEBUG is not set
 CONFIG_NO_FRAME_PTR=y
 CONFIG_STACK_DEPTH=y
-# CONFIG_ALLOW_RO_TEXT is not set
 # CONFIG_LIST_ALLOC_SANITY is not set
 # CONFIG_BEFORE_IRET_SANITY is not set
 # CONFIG_IRQ_SPINNER is not set
@@ -61,7 +59,6 @@ CONFIG_CC="gcc"
 CONFIG_CXX="g++"
 CONFIG_HOST_CC="gcc"
 CONFIG_HOST_CXX="g++"
-# CONFIG_VERBOSE is not set
 # CONFIG_MAINTAINER_MODE is not set
 CONFIG_LABEL=""
 # CONFIG_EXPERIMENTAL is not set

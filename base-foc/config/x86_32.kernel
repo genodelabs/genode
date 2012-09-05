@@ -1,7 +1,6 @@
 #
-# Automatically generated make config: don't edit
+# Automatically generated file; DO NOT EDIT.
 # Fiasco configuration
-# Wed Sep 14 14:33:24 2011
 #
 
 #
@@ -27,18 +26,17 @@ CONFIG_IA32_586=y
 # CONFIG_IA32_K8 is not set
 # CONFIG_IA32_K10 is not set
 # CONFIG_CPU_VIRT is not set
-CONFIG_SCHED_PIT=y
-# CONFIG_SCHED_RTC is not set
-# CONFIG_SCHED_APIC is not set
+CONFIG_SCHED_APIC=y
 # CONFIG_WORKAROUND_AMD_FPU_LEAK is not set
 CONFIG_REGPARM3=y
 
 #
 # Kernel options
 #
+CONFIG_MP=y
+CONFIG_MP_MAX_CPUS=4
 CONFIG_CONTEXT_4K=y
 CONFIG_IO_PROT=y
-# CONFIG_IO_PROT_IOPL_3 is not set
 # CONFIG_SYNC_TSC is not set
 # CONFIG_FINE_GRAINED_CPUTIME is not set
 CONFIG_SCHED_FIXED_PRIO=y
@@ -48,9 +46,8 @@ CONFIG_SCHED_FIXED_PRIO=y
 #
 CONFIG_INLINE=y
 # CONFIG_NDEBUG is not set
-# CONFIG_NO_FRAME_PTR is not set
+CONFIG_NO_FRAME_PTR=y
 # CONFIG_STACK_DEPTH is not set
-# CONFIG_ALLOW_RO_TEXT is not set
 # CONFIG_LIST_ALLOC_SANITY is not set
 # CONFIG_BEFORE_IRET_SANITY is not set
 # CONFIG_IRQ_SPINNER is not set
@@ -75,7 +72,6 @@ CONFIG_CC="gcc"
 CONFIG_CXX="g++"
 CONFIG_HOST_CC="gcc"
 CONFIG_HOST_CXX="g++"
-# CONFIG_VERBOSE is not set
 # CONFIG_MAINTAINER_MODE is not set
 CONFIG_LABEL=""
 # CONFIG_EXPERIMENTAL is not set

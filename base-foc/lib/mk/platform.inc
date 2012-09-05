@@ -56,7 +56,9 @@ $(BUILD_BASE_DIR)/l4/.kconfig: $(REP_DIR)/contrib
 	     VERBOSE="$(VERBOSE)" SYSTEM_TARGET="$(CROSS_DEV_PREFIX)"
 
 PKGS = ldscripts \
+       libgcc-pure \
        l4sys \
+       libgcc \
        libsigma0 \
        libvcpu/include
 

@@ -175,12 +175,10 @@ proc build_boot_image_arm {binaries} {
 			puts $fh "module   genode/$binary" } }
 	close $fh
 
-	set gen_img_cmd "cd [l4_dir]/source/pkg/bootstrap/server/src && "
-	append gen_img_cmd "make O=[l4_dir] E=genode "
-	append gen_img_cmd "BOOTSTRAP_DO_UIMAGE= BOOTSTRAP_DO_RAW_IMAGE= "
-	append gen_img_cmd "BOOTSTRAP_MODULES_LIST=[pwd]/[run_dir]/modules.list "
-	append gen_img_cmd "BOOTSTRAP_SEARCH_PATH=[pwd]/[run_dir]:[file dirname [fiasco]]:[l4_dir] "
-	append gen_img_cmd "SYSTEM_TARGET=[cross_dev_prefix]"
+	set gen_img_cmd "make -C [l4_dir]/source O=[l4_dir] E=genode "
+	append gen_img_cmd "MODULES_LIST=[pwd]/[run_dir]/modules.list "
+	append gen_img_cmd "MODULE_SEARCH_PATH=[pwd]/[run_dir]:[file dirname [fiasco]]:[l4_dir] "
+	append gen_img_cmd "SYSTEM_TARGET=[cross_dev_prefix] elfimage"
 
 	set pid [eval "spawn sh -c \"$gen_img_cmd\""]
 	expect { eof { } }

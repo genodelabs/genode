@@ -7,7 +7,7 @@
 VERBOSE    ?= @
 ECHO        = @echo
 SVN_URI     = http://svn.tudos.org/repos/oc/tudos/trunk
-SVN_REV     = 38
+SVN_REV     = 40
 CONTRIB_DIR = contrib
 PATCHES     = $(shell find patches -name *.patch)
 
@@ -23,6 +23,8 @@ SVN_TARGETS = tools/preprocess \
               l4/pkg/l4sys \
               l4/pkg/l4util \
               l4/pkg/ldscripts \
+              l4/pkg/libgcc-pure \
+              l4/pkg/libgcc \
               l4/pkg/libsigma0 \
               l4/pkg/sigma0 \
               l4/pkg/uclibc-headers \

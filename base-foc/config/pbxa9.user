@@ -1,7 +1,6 @@
 #
-# Automatically generated make config: don't edit
+# Automatically generated file; DO NOT EDIT.
 # L4Re Configuration
-# Thu Jul 14 16:26:37 2011
 #
 # CONFIG_BUILD_ARCH_x86 is not set
 # CONFIG_BUILD_ARCH_amd64 is not set
@@ -24,22 +23,21 @@ CONFIG_CPU_ARM_ARMV7A=y
 # CONFIG_CPU_ARM_ARMV7R is not set
 CONFIG_CPU_ARMV6KPLUS=y
 CONFIG_CPU_ARMV6PLUS=y
-
-#
-# Platform
-#
-# CONFIG_PLATFORM_ARM_integrator is not set
-CONFIG_PLATFORM_ARM_rv=y
-# CONFIG_PLATFORM_ARM_imx21 is not set
-# CONFIG_PLATFORM_ARM_imx51 is not set
-# CONFIG_PLATFORM_ARM_omap3evm is not set
-# CONFIG_PLATFORM_ARM_beagleboard is not set
-# CONFIG_PLATFORM_ARM_pandaboard is not set
-# CONFIG_PLATFORM_ARM_tegra2 is not set
-# CONFIG_PLATFORM_ARM_custom is not set
-CONFIG_ARM_PLATFORM_TYPE="rv"
-CONFIG_RAM_BASE=0x0
-CONFIG_RAM_SIZE_MB=256
+# CONFIG_PLATFORM_TYPE_beagleboard is not set
+# CONFIG_PLATFORM_TYPE_imx21 is not set
+# CONFIG_PLATFORM_TYPE_imx35 is not set
+# CONFIG_PLATFORM_TYPE_imx51 is not set
+# CONFIG_PLATFORM_TYPE_integrator is not set
+# CONFIG_PLATFORM_TYPE_kirkwood is not set
+# CONFIG_PLATFORM_TYPE_omap3_am33xx is not set
+# CONFIG_PLATFORM_TYPE_omap3evm is not set
+# CONFIG_PLATFORM_TYPE_pandaboard is not set
+# CONFIG_PLATFORM_TYPE_rv is not set
+CONFIG_PLATFORM_TYPE_rv_pbx=y
+# CONFIG_PLATFORM_TYPE_rv_vexpress is not set
+# CONFIG_PLATFORM_TYPE_tegra2 is not set
+# CONFIG_PLATFORM_TYPE_custom is not set
+CONFIG_PLATFORM_TYPE="rv_pbx"
 # CONFIG_USE_DROPS_STDDIR is not set
 # CONFIG_USE_DICE is not set
 CONFIG_DROPS_STDDIR="/path/to/l4re"
@@ -61,4 +59,4 @@ CONFIG_INT_LD_NAME_SWITCH=y
 # CONFIG_BID_GENERATE_MAPFILE is not set
 # CONFIG_BID_BUILD_DOC is not set
 # CONFIG_RELEASE_MODE is not set
-CONFIG_LABEL=""
+CONFIG_MAKECONFS_ADD=""

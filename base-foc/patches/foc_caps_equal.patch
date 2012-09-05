@@ -1,15 +1,15 @@
 Index: kernel/fiasco/src/kern/task.cpp
 ===================================================================
---- kernel/fiasco/src/kern/task.cpp	(revision 38)
+--- kernel/fiasco/src/kern/task.cpp	(revision 40)
 +++ kernel/fiasco/src/kern/task.cpp	(working copy)
-@@ -508,10 +508,12 @@
+@@ -488,10 +488,12 @@
    if (obj_a.special() || obj_b.special())
      return commit_result(obj_a.special_cap() == obj_b.special_cap());
  
--  Obj_space::Capability c_a = obj_space()->lookup(obj_a.cap());
--  Obj_space::Capability c_b = obj_space()->lookup(obj_b.cap());
-+  Kobject_iface* ki_a = obj_space()->lookup(obj_a.cap()).obj();
-+  Kobject_iface* ki_b = obj_space()->lookup(obj_b.cap()).obj();
+-  Obj_space::Capability c_a = lookup(obj_a.cap());
+-  Obj_space::Capability c_b = lookup(obj_b.cap());
++  Kobject_iface* ki_a = lookup(obj_a.cap()).obj();
++  Kobject_iface* ki_b = lookup(obj_b.cap()).obj();
 +  Address a_a = ki_a ? ki_a->kobject_start_addr() : 0;
 +  Address a_b = ki_b ? ki_b->kobject_start_addr() : 0;
  
