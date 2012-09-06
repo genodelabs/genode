@@ -684,30 +684,33 @@ class Plugin : public Libc::Plugin
 
 				size_t curr_packet_size = Genode::min(remaining_count, max_packet_size);
 
-				/*
-				 * XXX handle 'Packet_alloc_failed' exception'
-				 */
-				File_system::Packet_descriptor
-					packet(source.alloc_packet(curr_packet_size),
-					       static_cast<File_system::Packet_ref *>(context(fd)),
-					       context(fd)->node_handle(),
-					       File_system::Packet_descriptor::WRITE,
-					       curr_packet_size,
-					       context(fd)->seek_offset());
+				try {
+					File_system::Packet_descriptor
+						packet(source.alloc_packet(curr_packet_size),
+							   static_cast<File_system::Packet_ref *>(context(fd)),
+							   context(fd)->node_handle(),
+							   File_system::Packet_descriptor::WRITE,
+							   curr_packet_size,
+							   context(fd)->seek_offset());
 
-				/* mark context as having an operation in flight */
-				context(fd)->in_flight = true;
+					/* mark context as having an operation in flight */
+					context(fd)->in_flight = true;
 
-				/* copy-in payload into packet */
-				memcpy(source.packet_content(packet), buf, curr_packet_size);
+					/* copy-in payload into packet */
+					memcpy(source.packet_content(packet), buf, curr_packet_size);
 
-				/* pass packet to server side */
-				source.submit_packet(packet);
+					/* pass packet to server side */
+					source.submit_packet(packet);
 
-				/* prepare next iteration */
-				context(fd)->advance_seek_offset(curr_packet_size);
-				buf = (void *)((Genode::addr_t)buf + curr_packet_size);
-				remaining_count -= curr_packet_size;
+					/* prepare next iteration */
+					context(fd)->advance_seek_offset(curr_packet_size);
+					buf = (void *)((Genode::addr_t)buf + curr_packet_size);
+					remaining_count -= curr_packet_size;
+				} catch (File_system::Session::Tx::Source::Packet_alloc_failed) {
+					do {
+						wait_for_acknowledgement(source);
+					} while (context(fd)->in_flight);
+				}
 			}
 
 			PDBG("write returns %zd", count);
