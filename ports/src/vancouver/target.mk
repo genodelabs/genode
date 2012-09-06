@@ -35,7 +35,7 @@ INC_DIR += $(NOVA_INCLUDE_DIR)
 
 CC_WARN += -Wno-parentheses
 
-LD_TEXT_ADDR = 0x50000000
+LD_TEXT_ADDR = 0xb0000000
 
 vpath %.cc $(VANCOUVER_DIR)
 vpath %.cc $(CONTRIB_DIR)

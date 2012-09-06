@@ -56,7 +56,7 @@ append config {
 	</start>
 	<start name="vancouver">
 		<binary name="vancouver"/>
-		<resource name="RAM" quantum="64M"/>
+		<resource name="RAM" quantum="65M"/>
 		<config>
 			<machine>
 				<mem start="0x0" end="0xa0000"/>

@@ -33,6 +33,8 @@
 #include <base/cap_sel_alloc.h>
 #include <base/thread.h>
 #include <base/rpc_server.h>
+#include <base/native_types.h>
+#include <util/misc_math.h>
 #include <rom_session/connection.h>
 #include <rm_session/connection.h>
 #include <cap_session/connection.h>
@@ -95,17 +97,10 @@ class Guest_memory
 		 * part of the address space, which contains the shadow of the VCPU's
 		 * physical memory.
 		 */
-		enum { RESERVATION_START = 0,
-		       RESERVATION_SIZE  = 0x10000000 };
-
 		Genode::Rm_connection _reservation;
 
-		/*
-		 * RAM used as backing store for guest-physical memory
-		 */
-		enum { DS_LOCAL_START = 0x20000000 };
-
 		Genode::Ram_dataspace_capability _ds;
+
 		char *_local_addr;
 
 	public:
@@ -133,21 +128,28 @@ class Guest_memory
 		 */
 		Guest_memory(Genode::size_t backing_store_size)
 		:
-			_reservation(RESERVATION_START, RESERVATION_SIZE),
+			_reservation(0, backing_store_size),
 			_ds(Genode::env()->ram_session()->alloc(backing_store_size)),
-			_local_addr(Genode::env()->rm_session()->attach_at(_ds, DS_LOCAL_START)),
+			_local_addr(0),
 			remaining_size(backing_store_size)
 		{
-			/*
-			 * Attach reservation to the beginning of the local address space.
-			 * We leave out the very first page because core denies the
-			 * attachment of anything at the zero page.
-			 */
-			Genode::env()->rm_session()->attach_at(_reservation.dataspace(),
-			                                       PAGE_SIZE, 0, PAGE_SIZE);
+			try {
 
-			Logging::printf("local base of guest-physical memory is 0x%p\n",
-			                backing_store_local_base());
+				/*
+				 * Attach reservation to the beginning of the local address space.
+				 * We leave out the very first page because core denies the
+				 * attachment of anything at the zero page.
+				 */
+				Genode::env()->rm_session()->attach_at(_reservation.dataspace(),
+				                                       PAGE_SIZE, 0, PAGE_SIZE);
+
+				/*
+				 * RAM used as backing store for guest-physical memory
+				 */
+				_local_addr = Genode::env()->rm_session()->attach(_ds);
+
+			} catch (Genode::Rm_session::Region_conflict) { }
+
 		}
 
 		~Guest_memory()
@@ -156,7 +158,7 @@ class Guest_memory
 			Genode::env()->rm_session()->detach((void *)PAGE_SIZE);
 
 			/* detach and free backing store */
-			Genode::env()->rm_session()->detach((void *)DS_LOCAL_START);
+			Genode::env()->rm_session()->detach((void *)_local_addr);
 			Genode::env()->ram_session()->free(_ds);
 		}
 
@@ -515,8 +517,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		                Guest_memory           &guest_memory,
 		                Motherboard            &motherboard,
 		                Genode::Cap_connection &cap_session,
-		                bool                   has_svm,
-		                unsigned               cpu_number)
+		                bool                   has_svm)
 		:
 			_vcpu(vcpu),
 			_vcpu_thread("vCPU thread"),
@@ -720,13 +721,11 @@ class Machine : public StaticReceiver<Machine>
 					Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
 					static Genode::Cap_connection cap_session;
-					/*
-					 * XXX determine real CPU number, hardcoded CPU 0 for now
-					 */
-					enum { CPU_NUMBER = 0 };
+
 					Vcpu_dispatcher *vcpu_dispatcher =
-						new Vcpu_dispatcher(msg.vcpu, _guest_memory, _motherboard, cap_session,
-						                    _hip->has_svm(), CPU_NUMBER);
+						new Vcpu_dispatcher(msg.vcpu, _guest_memory,
+						                    _motherboard, cap_session,
+						                    _hip->has_svm());
 
 					msg.value = vcpu_dispatcher->sel_sm_ec();
 					return true;
@@ -1037,12 +1036,46 @@ class Machine : public StaticReceiver<Machine>
 		}
 };
 
+extern unsigned long _prog_img_beg;  /* begin of program image (link address) */
+extern unsigned long _prog_img_end;  /* end of program image */
 
 int main(int argc, char **argv)
 {
-	static Guest_memory guest_memory(32*1024*1024 /* XXX hard-wired for now */);
+	Genode::printf("--- Vancouver VMM starting ---\n");
 
-	Genode::printf("--- Vancouver VMM started ---\n");
+	/* request max available memory */
+	Genode::addr_t vm_size = Genode::env()->ram_session()->avail();
+	/* reserve some memory for the VMM */
+	vm_size -= 256 * 1024;
+	/* calculate max memory for the VM */
+	vm_size = vm_size & ~((1UL << PAGE_SIZE_LOG2) - 1);
+
+	static Guest_memory guest_memory(vm_size);
+
+	/* diagnostic messages */
+	Genode::printf("[0x%08lx, 0x%08lx) - %lu MiB - guest physical memory\n",
+	               0, vm_size, vm_size / 1024 / 1024);
+
+	if (guest_memory.backing_store_local_base())
+		Genode::printf("[0x%08p, 0x%08lx) - VMM local base of guest-physical"
+		               " memory\n", guest_memory.backing_store_local_base(),
+	    	           (Genode::addr_t)guest_memory.backing_store_local_base() +
+	        	       vm_size);
+
+	Genode::printf("[0x%08lx, 0x%08lx) - Genode thread context area\n", 
+	                Genode::Native_config::context_area_virtual_base(),
+	                Genode::Native_config::context_area_virtual_base() +
+	                Genode::Native_config::context_area_virtual_size());
+
+	Genode::printf("[0x%08lx, 0x%08lx) - VMM program image\n", 
+	               (Genode::addr_t)&_prog_img_beg,
+	               (Genode::addr_t)&_prog_img_end);
+
+	if (!guest_memory.backing_store_local_base()) {
+		Genode::printf("Not enough space (0x%lx) left for VMM, VM image"
+		               " to large\n", vm_size);
+		return 1;
+	}
 
 	static Boot_module_provider
 		boot_modules(Genode::config()->xml_node().sub_node("multiboot"));
