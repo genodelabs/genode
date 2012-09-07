@@ -94,13 +94,19 @@ void *heap_alloc(unsigned int size)
 
 void *operator new[](unsigned int size)
 {
-	return heap_alloc(size);
+	void * addr = heap_alloc(size);
+	if (addr)
+		Genode::memset(addr, 0, size);
+
+	return addr;
 }
 
 
 void *operator new[](unsigned int size, unsigned int align)
 {
 	void *res = heap_alloc(size + align);
+	if (res)
+		Genode::memset(res, 0, size + align);
 	void *aligned_res = (void *)(((Genode::addr_t)res & ~(align - 1)) + align);
 	return aligned_res;
 }
@@ -108,7 +114,10 @@ void *operator new[](unsigned int size, unsigned int align)
 
 void *operator new (unsigned int size)
 {
-	return heap_alloc(size);
+	void * addr = heap_alloc(size);
+	if (addr)
+		Genode::memset(addr, 0, size);
+	return addr;
 }
 
 
