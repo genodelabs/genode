@@ -337,43 +337,105 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			msg.cpu->mtd = msg.mtr_out;
 		}
 
+  		/**
+		 * Get position of the least significant 1 bit.
+  		 * bsf is undefined for value == 0.
+		 */
+  		Genode::addr_t bsf(Genode::addr_t value) {
+			return __builtin_ctz(value); }
+
+		bool max_map_crd(Nova::Mem_crd &crd, Genode::addr_t vmm_start,
+		                 Genode::addr_t vm_start, Genode::addr_t size,
+		                 Genode::addr_t vm_fault)
+		{ 
+			Nova::Mem_crd crd_save = crd;
+
+			retry:
+
+			/* lookup whether page is mapped and its size */
+			Nova::uint8_t ret = Nova::lookup(crd);
+			if (ret != Nova::NOVA_OK)
+				return false;
+
+			/* page is not mapped, touch it */
+			if (crd.is_null()) {
+				crd = crd_save;
+				Genode::touch_read((unsigned char volatile *)crd.addr());
+				goto retry;
+			}
+
+			/* cut-set crd region and vmm region */
+			Genode::addr_t cut_start = Genode::max(vmm_start, crd.base());
+			Genode::addr_t cut_size  = Genode::min(vmm_start + size,
+			                           crd.base() + (1UL << crd.order())) -
+			                           cut_start;
+
+			/* calculate minimal order of page to be mapped */
+			Genode::addr_t map_page  = vmm_start + vm_fault - vm_start;
+			Genode::addr_t map_order = bsf(vm_fault | map_page | cut_size);
+
+			Genode::addr_t hotspot = 0;
+
+			/* calculate maximal aligned order of page to be mapped */
+			do {
+				crd = Nova::Mem_crd(map_page, map_order,
+					                Nova::Rights(true, true, true));
+
+				map_order += 1;
+				map_page  &= ~((1UL << map_order) - 1);
+				hotspot    = vm_start + map_page - vmm_start;
+			}
+			while (cut_start <= map_page &&
+			      ((map_page + (1UL << map_order)) <= (cut_start + cut_size)) &&
+			      !(hotspot & ((1UL << map_order) - 1)));
+			
+			return true;
+		}
+
 		bool _handle_map_memory(bool need_unmap)
 		{
 			Utcb *utcb = _utcb_of_myself();
-			Genode::addr_t const fault_addr = utcb->qual[1];
-
-			MessageMemRegion mem_region(fault_addr >> 12);
+			Genode::addr_t const vm_fault_addr = utcb->qual[1];
 
 			if (verbose_npt)
-				Logging::printf("--> request mapping at 0x%lx\n", fault_addr);
+				Logging::printf("--> request mapping at 0x%lx\n", vm_fault_addr);
 
-			if (!_motherboard.bus_memregion.send(mem_region, true) || !mem_region.ptr)
+			MessageMemRegion mem_region(vm_fault_addr >> PAGE_SIZE_LOG2);
+
+			if (!_motherboard.bus_memregion.send(mem_region, true) || 
+			    !mem_region.ptr)
 				return false;
 
 			if (verbose_npt)
-				Logging::printf("MemRegion: page=%lx, start_page=%lx, count=%lx, ptr=%p\n",
-				                mem_region.page, mem_region.start_page, mem_region.count, mem_region.ptr);
+				Logging::printf("VM page 0x%lx in [0x%lx:0x%lx),"
+				                " VMM area: [0x%lx:0x%lx)\n",
+				                mem_region.page, mem_region.start_page,
+				                mem_region.start_page + mem_region.count,
+				                (Genode::addr_t)mem_region.ptr >> PAGE_SIZE_LOG2,
+				                ((Genode::addr_t)mem_region.ptr >> PAGE_SIZE_LOG2)
+				                + mem_region.count);
 
-			Genode::addr_t src = (Genode::addr_t)_guest_memory.backing_store_local_base() +
-			                    (mem_region.page << PAGE_SIZE_LOG2);
-			Genode::touch_read((unsigned char volatile *)src);
+			Genode::addr_t vmm_memory_base =
+				reinterpret_cast<Genode::addr_t>(mem_region.ptr);
+			Genode::addr_t vmm_memory_fault = vmm_memory_base +
+				(vm_fault_addr - (mem_region.start_page << PAGE_SIZE_LOG2));
 
-			Nova::Mem_crd crd(src >> PAGE_SIZE_LOG2, 32 - PAGE_SIZE_LOG2,
+			Nova::Mem_crd crd(vmm_memory_fault >> PAGE_SIZE_LOG2, 0,
 			                  Nova::Rights(true, true, true));
 
-			Nova::uint8_t ret = Nova::lookup(crd);
-
-			if (verbose_npt)
-				Logging::printf("looked up crd (base=0x%lx, order=%ld)\n",
-				                crd.base(), crd.order());
+			if (!max_map_crd(crd, vmm_memory_base >> PAGE_SIZE_LOG2,
+			                 mem_region.start_page,
+			                 mem_region.count, mem_region.page))
+				Logging::panic("mapping failed");
 
 			if (need_unmap)
 				Logging::panic("_handle_map_memory: need_unmap not handled, yet\n");
 
-			Nova::mword_t hotspot = mem_region.page << 12;
+			Genode::addr_t hotspot = (mem_region.start_page << PAGE_SIZE_LOG2)
+			                         + crd.addr() - vmm_memory_base;
 
 			if (verbose_npt)
-				Logging::printf("NPT mapping (base=0x%lx, order=%d hotspot=0x%lx)\n",
+				Logging::printf("NPT mapping (base=0x%lx, order=%d, hotspot=0x%lx)\n",
 				                crd.base(), crd.order(), hotspot);
 
 			/* EPT violation during IDT vectoring? */
@@ -412,7 +474,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		void _svm_npt()
 		{
 			Utcb *utcb = _utcb_of_myself();
-			MessageMemRegion msg(utcb->qual[1] >> 12);
+			MessageMemRegion msg(utcb->qual[1] >> PAGE_SIZE_LOG2);
 			if (!_handle_map_memory(utcb->qual[0] & 1))
 				_svm_invalid();
 		}
