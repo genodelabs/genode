@@ -157,8 +157,12 @@ namespace Noux {
 		{
 			switch (sysio->lseek_in.whence) {
 			case Sysio::LSEEK_SET: _fh->_seek = sysio->lseek_in.offset; break;
-			case Sysio::LSEEK_CUR:  break;
-			case Sysio::LSEEK_END: _fh->_seek = size(sysio); break;
+			case Sysio::LSEEK_CUR: _fh->_seek += sysio->lseek_in.offset; break;
+			case Sysio::LSEEK_END:
+				off_t offset = sysio->lseek_in.offset;
+				sysio->fstat_in.fd = sysio->lseek_in.fd;
+				_fh->_seek = size(sysio) + offset;
+				break;
 			}
 			sysio->lseek_out.offset = _fh->_seek;
 			return true;
