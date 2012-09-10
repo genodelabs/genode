@@ -46,9 +46,10 @@ namespace Genode {
 			Platform_pd  *_platform_pd;    /* protection domain thread
 			                                 is bound to */
 			Pager_object *_pager_obj;
+			unsigned      _prio;
 
 			void _create_thread(void);
-			void _finalize_construction(const char *name, unsigned prio);
+			void _finalize_construction(const char *name);
 			bool _in_syscall(Fiasco::l4_umword_t flags);
 
 		public:

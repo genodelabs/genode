@@ -182,6 +182,12 @@ void Platform_thread::cancel_blocking()
 
 void Platform_thread::affinity(unsigned cpu)
 {
+	l4_sched_param_t params = l4_sched_param(_prio);
+	params.affinity         = l4_sched_cpu_set(cpu, 0, 1);
+	l4_msgtag_t tag = l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP,
+	                                          _thread.local.dst(), &params);
+	if (l4_error(tag))
+		PWRN("setting affinity of %lx to %d failed!", _thread.local.dst(), cpu);
 }
 
 
@@ -197,7 +203,7 @@ void Platform_thread::_create_thread()
 }
 
 
-void Platform_thread::_finalize_construction(const char *name, unsigned prio)
+void Platform_thread::_finalize_construction(const char *name)
 {
 	/* create irq for new thread */
 	l4_msgtag_t tag = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
@@ -215,8 +221,7 @@ void Platform_thread::_finalize_construction(const char *name, unsigned prio)
 	Fiasco::l4_debugger_set_object_name(_thread.local.dst(), name);
 
 	/* set priority of thread */
-	prio = Cpu_session::scale_priority(DEFAULT_PRIORITY, prio);
-	l4_sched_param_t params = l4_sched_param(prio);
+	l4_sched_param_t params = l4_sched_param(_prio);
 	l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP, _thread.local.dst(),
 	                        &params);
 }
@@ -229,11 +234,12 @@ Platform_thread::Platform_thread(const char *name,
   _irq(true),
   _utcb(0),
   _platform_pd(0),
-  _pager_obj(0)
+  _pager_obj(0),
+  _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, prio))
 {
 	((Core_cap_index*)_thread.local.idx())->pt(this);
 	_create_thread();
-	_finalize_construction(name, prio);
+	_finalize_construction(name);
 }
 
 
@@ -244,10 +250,11 @@ Platform_thread::Platform_thread(Core_cap_index* thread,
   _irq(Native_capability(irq)),
   _utcb(0),
   _platform_pd(0),
-  _pager_obj(0)
+  _pager_obj(0),
+  _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
 {
 	reinterpret_cast<Core_cap_index*>(_thread.local.idx())->pt(this);
-	_finalize_construction(name, 0);
+	_finalize_construction(name);
 }
 
 
@@ -257,11 +264,12 @@ Platform_thread::Platform_thread(const char *name)
   _irq(true),
   _utcb(0),
   _platform_pd(0),
-  _pager_obj(0)
+  _pager_obj(0),
+  _prio(Cpu_session::scale_priority(DEFAULT_PRIORITY, 0))
 {
 	((Core_cap_index*)_thread.local.idx())->pt(this);
 	_create_thread();
-	_finalize_construction(name, 0);
+	_finalize_construction(name);
 }
 
 
