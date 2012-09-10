@@ -148,7 +148,7 @@ namespace Noux {
 		size_t size(Sysio *sysio)
 		{
 			if (fstat(sysio))
-				return sysio->stat_out.st.size;
+				return sysio->fstat_out.st.size;
 
 			return 0;
 		}
