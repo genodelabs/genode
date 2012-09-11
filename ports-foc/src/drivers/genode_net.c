@@ -16,6 +16,7 @@
 #include <linux/errno.h>
 #include <linux/inet.h>
 #include <linux/init.h>
+#include <linux/interrupt.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/module.h>

@@ -36,9 +36,10 @@ namespace L4lx {
 		private:
 
 			void                      (*_func)(void *data);
-			void                       *_data;
+			unsigned long               _data;
 			Genode::addr_t              _vcpu_state;
 			Timer::Connection           _timer;
+			unsigned                    _cpu_nr;
 
 			static void _startup()
 			{
@@ -50,23 +51,23 @@ namespace L4lx {
 		protected:
 
 			void entry() {
-				_func(_data);
+				_func(&_data);
 				Genode::sleep_forever();
 			}
 
 		public:
 
-			Vcpu(const char                 *name,
+			Vcpu(const char                 *str,
 			     void                      (*func)(void *data),
-			     void                       *data,
+			     unsigned long              *data,
 			     Genode::size_t              stack_size,
-			     Genode::addr_t              vcpu_state)
-			: Genode::Thread_base(name, stack_size),
+			     Genode::addr_t              vcpu_state,
+			     unsigned                    cpu_nr)
+			: Genode::Thread_base(str, stack_size),
 			  _func(func),
-			  _data(data),
-			  _vcpu_state(vcpu_state) { start(); }
-
-			void start()
+			  _data(data ? *data : 0),
+			  _vcpu_state(vcpu_state),
+			  _cpu_nr(cpu_nr)
 			{
 				using namespace Genode;
 				using namespace Fiasco;
@@ -94,6 +95,11 @@ namespace L4lx {
 				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE] = (unsigned long) i;
 				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 				l4_utcb_tcr_u(state.utcb)->user[0] = state.kcap; /* L4X_UTCB_TCR_ID */
+			}
+
+			void start()
+			{
+				using namespace Genode;
 
 				/* register initial IP and SP at core */
 				addr_t stack = (addr_t)&_context->stack[-4];
@@ -102,7 +108,13 @@ namespace L4lx {
 
 				if (_vcpu_state)
 					vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
+
+				set_affinity(_cpu_nr);
 			}
+
+			Genode::addr_t sp() {
+				return ((Genode::addr_t)&_context->stack[-4]) & ~0xf; }
+			Genode::addr_t ip() { return (Genode::addr_t)_startup; }
 
 			Fiasco::l4_utcb_t *utcb() { return _context->utcb; };
 

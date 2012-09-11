@@ -33,7 +33,7 @@ extern void* l4lx_kinfo;
 
 extern "C" {
 
-	l4re_env_cap_entry_t const * l4re_get_env_cap_l(char const *name,
+	l4re_env_cap_entry_t const * l4re_env_get_cap_l(char const *name,
 	                                                unsigned l,
 	                                                l4re_env_t const *e)
 	{

@@ -38,51 +38,6 @@ unsigned int l4lx_irq_max = l4x_nr_irqs();
 
 extern l4_kernel_info_t *l4lx_kinfo;
 
-void timer_irq_thread(void *data)
-{
-	l4_timeout_t                 to;
-	l4_kernel_clock_t            pint;
-	l4_utcb_t                   *u = l4_utcb();
-	struct l4x_irq_desc_private *p =
-		(struct l4x_irq_desc_private*) irq_get_chip_data(TIMER_IRQ);
-
-	pint = l4lx_kinfo->clock;
-	for (;;) {
-		pint += 1000000 / l4x_hz();
-
-		if (pint > l4lx_kinfo->clock) {
-			l4_rcv_timeout(l4_timeout_abs_u(pint, 1, u), &to);
-			l4_ipc_receive(L4_INVALID_CAP, u, to);
-		}
-
-		if (l4_error(l4_irq_trigger(p->irq_cap)) != -1)
-			PWRN("IRQ timer trigger failed\n");
-	}
-}
-
-
-static unsigned int startup_timer(struct l4x_irq_desc_private *p)
-{
-	char          name[15];
-	int           cpu = 0;//smp_processor_id();
-
-	unsigned long flags = 0;
-	l4x_irq_save(flags);
-
-	Genode::snprintf(name, sizeof(name), "timer.i%d", TIMER_IRQ);
-
-	static Genode::Native_capability timer_cap = L4lx::vcpu_connection()->alloc_irq();
-	p->irq_cap = timer_cap.dst();
-	p->cpu     = 0;
-
-	l4lx_thread_create(timer_irq_thread, cpu, 0, 0, 0, 0, 0, name);
-	l4x_irq_save(flags);
-
-	l4lx_irq_dev_enable(irq_get_irq_data(TIMER_IRQ));
-	return 1;
-}
-
-
 extern "C" {
 
 FASTCALL l4_cap_idx_t l4x_have_irqcap(int irqnum);
@@ -107,9 +62,6 @@ unsigned int l4lx_irq_dev_startup(struct irq_data *data)
 	if (DEBUG)
 		PDBG("irq=%d", irq);
 
-	if (irq == TIMER_IRQ)
-		return startup_timer(p);
-
 	/* First test whether a capability has been registered with
 	 * this IRQ number */
 	p->irq_cap = l4x_have_irqcap(irq);
@@ -117,6 +69,7 @@ unsigned int l4lx_irq_dev_startup(struct irq_data *data)
 		PERR("Invalid irq cap!");
 		return 0;
 	}
+
 	l4lx_irq_dev_enable(data);
 	return 1;
 }

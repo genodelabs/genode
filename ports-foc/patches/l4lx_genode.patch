@@ -1,8 +1,33 @@
+Index: arch/l4/Kconfig
+===================================================================
+--- arch/l4/Kconfig	(revision 25)
++++ arch/l4/Kconfig	(working copy)
+@@ -235,6 +235,20 @@
+ 	help
+ 	  Support for (virtual) TPMs provided by the L4 service STPM of TUD:OS.
+ 
++config SCREEN_GENODE
++	bool
++	select FB_CFB_FILLRECT
++	select FB_CFB_COPYAREA
++	select FB_CFB_IMAGEBLIT
++	default y
++
++config SERIAL_GENODE
++	bool
++	default y
++	select SERIAL_CORE
++	select SERIAL_CORE_CONSOLE
++
++
+ endmenu # stub drivers
+ 
+ menu "Debugging options"
 Index: arch/l4/kernel/dispatch.c
 ===================================================================
---- arch/l4/kernel/dispatch.c	(revision 23)
+--- arch/l4/kernel/dispatch.c	(revision 25)
 +++ arch/l4/kernel/dispatch.c	(working copy)
-@@ -274,7 +274,7 @@
+@@ -271,7 +271,7 @@
                  return 0;
  
  	if (l4_msgtag_is_page_fault(tag)) {
@@ -11,7 +36,7 @@ Index: arch/l4/kernel/dispatch.c
  		/* No exception IPC, it's a page fault, but shouldn't happen */
  		goto out_fail;
  	}
-@@ -694,7 +694,7 @@
+@@ -695,7 +695,7 @@
  			enter_kdebug("non hybrid in idle?!");
  		} else {
  			if (unlikely(l4x_handle_async_event(label, utcb, tag)))
@@ -20,24 +45,11 @@ Index: arch/l4/kernel/dispatch.c
  		}
  	}
  }
-Index: arch/l4/kernel/arch-arm/dispatch.c
-===================================================================
---- arch/l4/kernel/arch-arm/dispatch.c	(revision 23)
-+++ arch/l4/kernel/arch-arm/dispatch.c	(working copy)
-@@ -66,7 +66,7 @@
- };
- 
- 
--#if 1
-+#if 0
- #define TBUF_LOG_IDLE(x)        TBUF_DO_IT(x)
- #define TBUF_LOG_WAKEUP_IDLE(x)	TBUF_DO_IT(x)
- #define TBUF_LOG_USER_PF(x)     TBUF_DO_IT(x)
 Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
 ===================================================================
---- arch/l4/kernel/arch-arm/vmlinux.lds.S	(revision 23)
+--- arch/l4/kernel/arch-arm/vmlinux.lds.S	(revision 25)
 +++ arch/l4/kernel/arch-arm/vmlinux.lds.S	(working copy)
-@@ -36,6 +36,12 @@
+@@ -47,6 +47,12 @@
  jiffies = jiffies_64 + 4;
  #endif
  
@@ -49,13 +61,19 @@ Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
 +
  SECTIONS
  {
- #ifdef CONFIG_XIP_KERNEL
-@@ -46,6 +52,19 @@
+ 	/*
+@@ -82,14 +88,32 @@
+ 	}
  
- 	.init : {			/* Init code and data		*/
- 		_stext = .;
-+		_prog_img_beg = .;
+ #ifdef CONFIG_XIP_KERNEL
+-	. = XIP_VIRT_ADDR(CONFIG_XIP_PHYS_ADDR);
++	. = XIP_VIRT_ADDR(CONFIG_XIP_PHYS_ADDR) - 4096;
+ #else
+-	. = PAGE_OFFSET + TEXT_OFFSET;
++	. = PAGE_OFFSET + TEXT_OFFSET - 4096;
+ #endif
 +
++	.parent : {
 +		/*
 +		 * Leave space for parent capability parameters at start of data
 +		 * section. The protection domain creator is reponsible for storing
@@ -66,39 +84,28 @@ Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
 +		LONG(0xffffffff);
 +		_parent_cap_local_name = .;
 +		LONG(0xffffffff);
-+
- 		_sinittext = .;
- 			HEAD_TEXT
- 			INIT_TEXT
-@@ -80,7 +99,7 @@
- 		INIT_DATA
- 		ARM_EXIT_KEEP(EXIT_DATA)
- #endif
--	}
 +	} : rw
- 
- 	PERCPU_SECTION(32)
- 
-@@ -126,6 +145,7 @@
++
++	. = ALIGN(4096);
++
+ 	.head.text : {
++		_prog_img_beg = .;
+ 		_text = .;
+ 		HEAD_TEXT
+ 	}
++
+ 	.text : {			/* Real text segment		*/
+ 		_stext = .;		/* Text and read-only data	*/
+ 			__exception_text_start = .;
+@@ -104,6 +128,7 @@
  #ifdef CONFIG_MMU
  			*(.fixup)
  #endif
 +			*(.text.*) /* put all Genode .text entries in here */
  			*(.gnu.warning)
- 			*(.rodata)
- 			*(.rodata.*)
-@@ -134,8 +154,9 @@
- 		. = ALIGN(4);
- 		*(.got)			/* Global offset table		*/
- 			ARM_CPU_KEEP(PROC_INFO)
--	}
- 
-+	} : rw
-+
- 	RO_DATA(PAGE_SIZE)
- 
- #ifdef CONFIG_ARM_UNWIND
-@@ -155,6 +176,42 @@
+ 			*(.glue_7)
+ 			*(.glue_7t)
+@@ -136,6 +161,42 @@
  	}
  #endif
  
@@ -140,8 +147,8 @@ Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
 +
  	_etext = .;			/* End of text and rodata section */
  
- #ifdef CONFIG_XIP_KERNEL
-@@ -204,8 +261,10 @@
+ #ifndef CONFIG_XIP_KERNEL
+@@ -240,8 +301,10 @@
  		DATA_DATA
  		CONSTRUCTORS
  
@@ -153,7 +160,7 @@ Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
  	_edata_loc = __data_loc + SIZEOF(.data);
  
  #ifdef CONFIG_HAVE_TCM
-@@ -267,10 +326,20 @@
+@@ -303,10 +366,20 @@
  
  	NOTES
  
@@ -174,12 +181,12 @@ Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
 +	_prog_img_end = .;
  	_end = .;
  
- 	/* L4: Add NOTES so that .note.gnu.build-id is caught, because we do
+ 	STABS_DEBUG
 Index: arch/l4/kernel/arch-arm/traps.c
 ===================================================================
---- arch/l4/kernel/arch-arm/traps.c	(revision 23)
+--- arch/l4/kernel/arch-arm/traps.c	(revision 25)
 +++ arch/l4/kernel/arch-arm/traps.c	(working copy)
-@@ -66,6 +66,7 @@
+@@ -68,6 +68,7 @@
  		dump_mem("", "Exception stack", frame + 4, frame + 4 + sizeof(struct pt_regs));
  }
  
@@ -187,7 +194,7 @@ Index: arch/l4/kernel/arch-arm/traps.c
  #ifndef CONFIG_ARM_UNWIND
  /*
   * Stack pointers should always be within the kernels view of
-@@ -81,6 +82,7 @@
+@@ -83,6 +84,7 @@
  	return 0;
  }
  #endif
@@ -195,7 +202,7 @@ Index: arch/l4/kernel/arch-arm/traps.c
  
  /*
   * Dump out the contents of some memory nicely...
-@@ -170,6 +172,7 @@
+@@ -172,6 +174,7 @@
  #else
  static void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
  {
@@ -203,7 +210,7 @@ Index: arch/l4/kernel/arch-arm/traps.c
  	unsigned int fp, mode;
  	int ok = 1;
  
-@@ -201,6 +204,7 @@
+@@ -203,6 +206,7 @@
  
  	if (ok)
  		c_backtrace(fp, mode);
@@ -213,9 +220,9 @@ Index: arch/l4/kernel/arch-arm/traps.c
  
 Index: arch/l4/kernel/arch-x86/x86_init.c
 ===================================================================
---- arch/l4/kernel/arch-x86/x86_init.c	(revision 23)
+--- arch/l4/kernel/arch-x86/x86_init.c	(revision 25)
 +++ arch/l4/kernel/arch-x86/x86_init.c	(working copy)
-@@ -38,7 +38,7 @@
+@@ -42,7 +42,7 @@
  struct x86_init_ops x86_init __initdata = {
  
  	.resources = {
@@ -226,7 +233,7 @@ Index: arch/l4/kernel/arch-x86/x86_init.c
  	},
 Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
 ===================================================================
---- arch/l4/kernel/arch-x86/vmlinux.lds.S	(revision 23)
+--- arch/l4/kernel/arch-x86/vmlinux.lds.S	(revision 25)
 +++ arch/l4/kernel/arch-x86/vmlinux.lds.S	(working copy)
 @@ -33,7 +33,7 @@
  
@@ -237,29 +244,25 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  jiffies = jiffies_64;
  #else
  OUTPUT_ARCH(i386:x86-64)
-@@ -67,17 +67,10 @@
- 
+@@ -68,15 +68,8 @@
  #endif
  
--PHDRS {
+ PHDRS {
 -	text PT_LOAD FLAGS(5);          /* R_E */
 -	data PT_LOAD FLAGS(6);          /* RW_ */
 -#ifdef CONFIG_X86_64
--	user PT_LOAD FLAGS(5);          /* R_E */
 -#ifdef CONFIG_SMP
 -	percpu PT_LOAD FLAGS(6);        /* RW_ */
 -#endif
 -	init PT_LOAD FLAGS(7);          /* RWE */
 -#endif
 -	note PT_NOTE FLAGS(0);          /* ___ */
-+PHDRS
-+{
 +	ro   PT_LOAD;
 +	rw   PT_LOAD;
  }
  
  SECTIONS
-@@ -97,6 +90,29 @@
+@@ -96,6 +89,29 @@
  	/*_stext = .;*/
  	.text :  AT(ADDR(.text) - LOAD_OFFSET) {
  		_text = .;
@@ -289,7 +292,7 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  		/* bootstrapping code */
  		HEAD_TEXT
  #ifdef CONFIG_X86_32
-@@ -112,19 +128,55 @@
+@@ -111,19 +127,55 @@
  		ENTRY_TEXT
  		IRQENTRY_TEXT
  		*(.fixup)
@@ -348,7 +351,7 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  	X64_ALIGN_DEBUG_RODATA_BEGIN
  	RO_DATA(PAGE_SIZE)
  	X64_ALIGN_DEBUG_RODATA_END
-@@ -152,10 +204,34 @@
+@@ -151,10 +203,34 @@
  		/* rarely changed data like cpu maps */
  		READ_MOSTLY_DATA(INTERNODE_CACHE_BYTES)
  
@@ -383,8 +386,8 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
 +
  #ifdef CONFIG_X86_64
  
- #ifdef CONFIG_L4
-@@ -331,10 +407,6 @@
+ 	. = ALIGN(PAGE_SIZE);
+@@ -273,10 +349,6 @@
  		EXIT_DATA
  	}
  
@@ -395,7 +398,7 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  	. = ALIGN(PAGE_SIZE);
  
  	/* freed after init ends here */
-@@ -342,18 +414,6 @@
+@@ -284,18 +356,6 @@
  		__init_end = .;
  	}
  
@@ -414,7 +417,7 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  #ifdef CONFIG_X86_64
  	.data_nosave : AT(ADDR(.data_nosave) - LOAD_OFFSET) {
  		NOSAVE_DATA
-@@ -366,6 +426,7 @@
+@@ -308,6 +368,7 @@
  		__bss_start = .;
  		*(.bss..page_aligned)
  		*(.bss)
@@ -422,7 +425,7 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  		. = ALIGN(PAGE_SIZE);
  		__bss_stop = .;
  	}
-@@ -378,6 +439,7 @@
+@@ -320,6 +381,7 @@
  		__brk_limit = .;
  	}
  
@@ -430,9 +433,48 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  	_end = .;
  
          STABS_DEBUG
+Index: arch/l4/kernel/timer.c
+===================================================================
+--- arch/l4/kernel/timer.c	(revision 25)
++++ arch/l4/kernel/timer.c	(working copy)
+@@ -225,12 +225,16 @@
+ 		return -ENOMEM;
+ 	}
+ 
++#if 0
+ 	r = L4XV_FN_i(l4_error(l4_factory_create_irq(l4re_env()->factory,
+ 	                                             timer_irq_cap)));
+ 	if (r) {
+ 		printk(KERN_ERR "l4timer: Failed to create irq: %d\n", r);
+ 		goto out1;
+ 	}
++#else
++	l4lx_thread_alloc_irq(timer_irq_cap);
++#endif
+ 
+ 	if ((irq = l4x_register_irq(timer_irq_cap)) < 0) {
+ 		r = -ENOMEM;
+@@ -238,6 +242,7 @@
+ 	}
+ 
+ 	printk("l4timer: Using IRQ%d\n", irq);
++	LOG_printf("l4timer: Using IRQ%d\n", irq);
+ 
+ 	setup_irq(irq, &l4timer_irq);
+ 
+@@ -279,7 +284,9 @@
+ 	l4x_unregister_irq(irq);
+ out2:
+ 	L4XV_FN_v(l4re_util_cap_release(timer_irq_cap));
++#if 0
+ out1:
++#endif
+ 	l4x_cap_free(timer_irq_cap);
+ 	return r;
+ }
 Index: arch/l4/kernel/head.S
 ===================================================================
---- arch/l4/kernel/head.S	(revision 23)
+--- arch/l4/kernel/head.S	(revision 25)
 +++ arch/l4/kernel/head.S	(working copy)
 @@ -53,6 +53,7 @@
  .previous
@@ -455,9 +497,9 @@ Index: arch/l4/kernel/head.S
  ENTRY(swapper_pg_dir)
 Index: arch/l4/kernel/main.c
 ===================================================================
---- arch/l4/kernel/main.c	(revision 23)
+--- arch/l4/kernel/main.c	(revision 25)
 +++ arch/l4/kernel/main.c	(working copy)
-@@ -305,7 +305,7 @@
+@@ -280,7 +280,7 @@
  	}
  #endif
  
@@ -466,9 +508,9 @@ Index: arch/l4/kernel/main.c
  	if (strstr(cmdline, "console=ttyLv")) {
  		LOG_printf("Console output set to ttyLvx but driver not compiled in.\n");
  		enter_kdebug("L4 serial driver not enabled");
-@@ -363,6 +363,26 @@
- 	}
+@@ -381,6 +381,26 @@
  }
+ 
  
 +static spinlock_t migrate_lock;
 +
@@ -493,34 +535,30 @@ Index: arch/l4/kernel/main.c
  unsigned long l4x_virt_to_phys(volatile void * address)
  {
  	int i;
-@@ -375,14 +395,14 @@
- 			       + l4x_phys_virt_addrs[i].phys;
- 	}
- 
--	l4x_virt_to_phys_show();
-+//	l4x_virt_to_phys_show();
- 	/* Whitelist: */
+@@ -405,10 +425,10 @@
  
  	/* Debugging check: don't miss a translation, can give nasty
  	 *                  DMA problems */
 -	l4x_printf("%s: Could not translate virt. address %p\n",
 +	LOG_printf("%s: Could not translate virt. address %p\n",
  	           __func__, address);
+-	l4x_virt_to_phys_show();
 -	WARN_ON(1);
-+//	WARN_ON(1);
++	//l4x_virt_to_phys_show();
++	//WARN_ON(1);
  
  	return __pa(address);
  }
-@@ -414,7 +434,7 @@
+@@ -439,7 +459,7 @@
  
  	/* Debugging check: don't miss a translation, can give nasty
  	 *                  DMA problems */
 -	l4x_printf("%s: Could not translate phys. address 0x%lx\n",
 +	LOG_printf("%s: Could not translate phys. address 0x%lx\n",
  	           __func__, address);
+ 	l4x_virt_to_phys_show();
  	WARN_ON(1);
- 
-@@ -532,7 +552,7 @@
+@@ -558,7 +578,7 @@
  
  	r = l4re_ns_query_srv(entry->cap, n + 1, *cap);
  	if (r) {
@@ -529,7 +567,7 @@ Index: arch/l4/kernel/main.c
  		           name, l4sys_errtostr(r), r);
  		L4XV_U(f);
  		return -ENOENT;
-@@ -713,6 +733,7 @@
+@@ -742,6 +762,7 @@
  	= sizeof(at_exit_functions) / sizeof(at_exit_functions[0]);
  static int __current_exititem;
  
@@ -537,7 +575,7 @@ Index: arch/l4/kernel/main.c
  static struct cxa_atexit_item *__next_atexit(void)
  {
  	if (__current_exititem >= at_exit_nr_of_functions) {
-@@ -721,21 +742,10 @@
+@@ -750,21 +771,10 @@
  	}
  	return &at_exit_functions[__current_exititem++];
  }
@@ -560,8 +598,8 @@ Index: arch/l4/kernel/main.c
 -
  void __cxa_finalize(void *dso_handle)
  {
- 	register int i = __current_exititem;
-@@ -790,10 +800,20 @@
+ 	const int verbose = 0;
+@@ -819,10 +829,20 @@
  }
  static int l4x_forward_pf(l4_umword_t addr, l4_umword_t pc, int extra_write)
  {
@@ -582,7 +620,7 @@ Index: arch/l4/kernel/main.c
  	do {
  		l4_msg_regs_t *mr = l4_utcb_mr_u(u);
  		mr->mr[0] = addr | (extra_write ? 2 : 0);
-@@ -815,6 +835,7 @@
+@@ -844,6 +864,7 @@
  		// unresolvable page fault, we're supposed to trigger an
  		// exception
  		return 0;
@@ -590,16 +628,7 @@ Index: arch/l4/kernel/main.c
  
  	return 1;
  }
-@@ -1054,7 +1075,7 @@
- 	addr = (l4_addr_t)p_in_addr;
- 	size = 1;
- 	if (l4re_rm_find(&addr, &size, &off, &flags, &ds)) {
--		LOG_printf("Cannot anything at %p?!", p_in_addr);
-+		LOG_printf("Cannot anything at %p\n?!", p_in_addr);
- 		l4re_rm_show_lists();
- 		enter_kdebug("l4re_rm_find failed");
- 		return;
-@@ -1254,7 +1275,7 @@
+@@ -1283,7 +1304,7 @@
  	                    0, "Main memory");
  
  	/* Reserve some part of the virtual address space for vmalloc */
@@ -608,7 +637,7 @@ Index: arch/l4/kernel/main.c
  	if (l4re_rm_reserve_area(&l4x_vmalloc_memory_start,
  #ifdef CONFIG_X86_32
  	                          __VMALLOC_RESERVE,
-@@ -1381,6 +1402,10 @@
+@@ -1416,6 +1437,10 @@
  
  static void l4x_create_ugate(l4_cap_idx_t forthread, unsigned cpu)
  {
@@ -618,8 +647,8 @@ Index: arch/l4/kernel/main.c
 +#if 0
  	l4_msgtag_t r;
  
- 	l4x_user_gate[cpu] = l4x_cap_alloc();
-@@ -1401,6 +1426,7 @@
+ 	l4x_user_gate[cpu] = l4x_cap_alloc_noctx();
+@@ -1436,6 +1461,7 @@
  		l4_debugger_set_object_name(l4x_user_gate[cpu], n);
  #endif
  	}
@@ -627,7 +656,7 @@ Index: arch/l4/kernel/main.c
  }
  
  #ifdef CONFIG_HOTPLUG_CPU
-@@ -1607,11 +1633,15 @@
+@@ -1641,11 +1667,15 @@
  		l4x_exit_l4linux();
  	}
  
@@ -643,18 +672,20 @@ Index: arch/l4/kernel/main.c
  
  #ifdef CONFIG_L4_DEBUG_REGISTER_NAMES
  	l4_debugger_set_object_name(c, s);
-@@ -1890,8 +1920,10 @@
+@@ -1906,8 +1936,12 @@
  
  static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
  {
 +#ifdef CONFIG_SMP
  	l4_umword_t max_cpus = 1;
++#if 0
  	l4_sched_cpu_set_t cs = l4_sched_cpu_set(0, 0, 0);
++#endif
 +#endif
  	unsigned i;
  
  #ifdef CONFIG_SMP
-@@ -1907,9 +1939,10 @@
+@@ -1923,9 +1957,10 @@
  		}
  	}
  
@@ -666,7 +697,7 @@ Index: arch/l4/kernel/main.c
  		if ((p = strstr(boot_command_line, "l4x_cpus_map="))) {
  			// l4x_cpus_map=0,1,2,3,4,...
  			// the list specifies the physical CPU for each
-@@ -1931,10 +1964,12 @@
+@@ -1947,10 +1982,12 @@
  					LOG_printf("ERROR: Error parsing l4x_cpus_map option\n");
  					return 1;
  				}
@@ -679,7 +710,7 @@ Index: arch/l4/kernel/main.c
  				l4x_cpu_physmap[l4x_nr_cpus].phys_id = pcpu;
  				for (i = 0; i < l4x_nr_cpus; ++i)
  					overbooking |=
-@@ -1958,12 +1993,16 @@
+@@ -1974,12 +2011,16 @@
  			l4x_nr_cpus = v;
  
  		}
@@ -696,7 +727,7 @@ Index: arch/l4/kernel/main.c
  	if (l4_error(l4_scheduler_info(l4re_env()->scheduler,
  	                               &max_cpus, &cs)) == L4_EOK) {
  
-@@ -1973,6 +2012,8 @@
+@@ -1989,6 +2030,8 @@
  		l4x_cpu_physmap[0].phys_id = p;
  	}
  #endif
@@ -705,7 +736,7 @@ Index: arch/l4/kernel/main.c
  
  	LOG_printf("CPU mapping (l:p)[%d]: ", l4x_nr_cpus);
  	for (i = 0; i < l4x_nr_cpus; i++)
-@@ -2018,6 +2059,7 @@
+@@ -2034,6 +2077,7 @@
  	printk("panic: going to sleep forever, bye\n");
  	L4XV_L(f);
  	LOG_printf("panic: going to sleep forever, bye\n");
@@ -713,16 +744,16 @@ Index: arch/l4/kernel/main.c
  	l4_sleep_forever();
  	return 0;
  }
-@@ -2298,7 +2340,7 @@
- 	}
+@@ -2302,7 +2346,7 @@
+ 	LOG_printf("Device scan done.\n");
  }
  
 -int __init_refok L4_CV main(int argc, char **argv)
 +int __init_refok L4_CV linux_main(int argc, char **argv)
  {
  	l4lx_thread_t main_id;
- 	extern char _end[];
-@@ -2410,10 +2452,13 @@
+ 	struct l4lx_thread_start_info_t si;
+@@ -2414,10 +2458,13 @@
  
  	l4x_start_thread_id = l4re_env()->main_thread;
  
@@ -736,7 +767,7 @@ Index: arch/l4/kernel/main.c
  
  #ifndef CONFIG_L4_VCPU
  #ifdef CONFIG_L4_TAMED
-@@ -3180,6 +3225,10 @@
+@@ -3223,6 +3270,10 @@
  		/* Not resolvable: Ooops */
  		LOG_printf("Non-resolvable page fault at %lx, ip %lx.\n", pfa, ip);
  		// will trigger an oops in caller
@@ -747,7 +778,7 @@ Index: arch/l4/kernel/main.c
  		return 0;
  	}
  
-@@ -3560,7 +3609,9 @@
+@@ -3419,7 +3470,9 @@
  void exit(int code)
  {
  	__cxa_finalize(0);
@@ -757,33 +788,9 @@ Index: arch/l4/kernel/main.c
  	LOG_printf("Still alive, going zombie???\n");
  	l4_sleep_forever();
  }
-Index: arch/l4/Kconfig
-===================================================================
---- arch/l4/Kconfig	(revision 23)
-+++ arch/l4/Kconfig	(working copy)
-@@ -394,7 +394,19 @@
- config L4_USE_L4SHMC
- 	bool
- 
-+config SCREEN_GENODE
-+	bool
-+	select FB_CFB_FILLRECT
-+	select FB_CFB_COPYAREA
-+	select FB_CFB_IMAGEBLIT
-+	default y
- 
-+config SERIAL_GENODE
-+	bool
-+	default y
-+	select SERIAL_CORE
-+	select SERIAL_CORE_CONSOLE
-+
- # some delimiter (for .config)
- comment ""
- source "arch/l4/Kconfig.arch"
 Index: arch/l4/include/asm/generic/l4lib.h
 ===================================================================
---- arch/l4/include/asm/generic/l4lib.h	(revision 23)
+--- arch/l4/include/asm/generic/l4lib.h	(revision 25)
 +++ arch/l4/include/asm/generic/l4lib.h	(working copy)
 @@ -3,6 +3,7 @@
  
@@ -804,9 +811,9 @@ Index: arch/l4/include/asm/generic/l4lib.h
  #endif /* __INCLUDE__ASM_L4__GENERIC__L4LIB_H__ */
 Index: arch/l4/include/asm/l4lxapi/thread.h
 ===================================================================
---- arch/l4/include/asm/l4lxapi/thread.h	(revision 23)
+--- arch/l4/include/asm/l4lxapi/thread.h	(revision 25)
 +++ arch/l4/include/asm/l4lxapi/thread.h	(working copy)
-@@ -24,6 +24,8 @@
+@@ -32,6 +32,8 @@
   */
  void l4lx_thread_init(void);
  
@@ -817,7 +824,7 @@ Index: arch/l4/include/asm/l4lxapi/thread.h
   * \ingroup thread
 Index: arch/l4/boot/Makefile
 ===================================================================
---- arch/l4/boot/Makefile	(revision 23)
+--- arch/l4/boot/Makefile	(revision 25)
 +++ arch/l4/boot/Makefile	(working copy)
 @@ -10,7 +10,7 @@
  	$(call if_changed,objcopy)
@@ -841,9 +848,9 @@ Index: arch/l4/boot/Makefile
  		   -Wall -fno-strict-aliasing -O2 -pipe \
 Index: arch/l4/lib/pte.c
 ===================================================================
---- arch/l4/lib/pte.c	(revision 23)
+--- arch/l4/lib/pte.c	(revision 25)
 +++ arch/l4/lib/pte.c	(working copy)
-@@ -19,7 +19,10 @@
+@@ -18,7 +18,10 @@
  #include <l4/sys/task.h>
  #include <l4/sys/kdebug.h>
  #include <l4/re/consts.h>
@@ -854,7 +861,7 @@ Index: arch/l4/lib/pte.c
  static void l4x_flush_page(struct mm_struct *mm,
                             unsigned long address,
                             unsigned long vaddr,
-@@ -78,7 +81,7 @@
+@@ -77,7 +80,7 @@
  	if (mm && !l4_is_invalid_cap(mm->context.task)) {
  		L4XV_V(f);
  		if (!mm->context.task)
@@ -863,7 +870,7 @@ Index: arch/l4/lib/pte.c
  		/* Direct flush in the child, use virtual address in the
  		 * child address space */
  		L4XV_L(f);
-@@ -94,10 +97,11 @@
+@@ -93,10 +96,11 @@
  		tag = l4_task_unmap(L4RE_THIS_TASK_CAP,
  			            l4_fpage(address & PAGE_MASK, size, flush_rights),
  			            L4_FP_OTHER_SPACES);
@@ -878,11 +885,11 @@ Index: arch/l4/lib/pte.c
  #ifdef ARCH_arm
 Index: arch/l4/Makefile
 ===================================================================
---- arch/l4/Makefile	(revision 23)
+--- arch/l4/Makefile	(revision 25)
 +++ arch/l4/Makefile	(working copy)
-@@ -170,6 +170,12 @@
- # prevent gcc from generating any FP code by mistake
+@@ -163,6 +163,12 @@
  KBUILD_CFLAGS += $(call cc-option,-mno-sse -mno-mmx -mno-sse2 -mno-3dnow,)
+ KBUILD_CFLAGS += $(call cc-option,-mno-avx,)
  
 +#
 +# Prevent the gcc from linking Linux memmove into compiler-generated
@@ -893,7 +900,7 @@ Index: arch/l4/Makefile
  endif
  
  ifeq ($(BASEARCH),arm)
-@@ -252,6 +258,8 @@
+@@ -243,6 +249,8 @@
  
  endif
  
@@ -902,7 +909,7 @@ Index: arch/l4/Makefile
  
  # -----------------------------------------------
  
-@@ -274,14 +282,15 @@
+@@ -265,14 +273,15 @@
  L4LX_E_L-$(CONFIG_L4_TCG_STPM)     += stpm-client
  L4LX_E_L-$(CONFIG_L4_FERRET)       += ferret
  
@@ -915,15 +922,15 @@ Index: arch/l4/Makefile
 +#		  -I$(L4OBJ)/include/$(L4_MK_API) \
 +#		  -I$(L4OBJ)/include
  
- head-y := arch/l4/kernel/head.o arch/l4/kernel/init_task.o
+ head-y := arch/l4/kernel/head.o
  
 -libs-y				+= arch/l4/lib/arch-$(BASEARCH)/	\
 +libs-y				+= arch/l4/lib/arch-$(BASEARCH)/
-+#	\
++#\
  				   arch/l4/l4lxlib/generic/		\
  				   arch/l4/l4lxlib/$(BASEENV)/
  
-@@ -299,7 +308,7 @@
+@@ -291,7 +300,7 @@
  
  core-y += arch/l4/
  
@@ -932,31 +939,30 @@ Index: arch/l4/Makefile
  
  L4_REQUIRED_MODS		:= libc_be_minimal_log_io \
                                     libc_minimal libc_minimal_l4re \
-@@ -315,15 +324,16 @@
+@@ -307,15 +316,17 @@
  $(error Aborting.)
  endif
  
--libs-y				+= -Bstatic $(L4_LIBDIRS) -ll4sys -ll4sys-direct
+-libs-y				+= -Bstatic $(L4_LIBDIRS) -ll4sys -ll4sys-direct -lgcc-l4
++libs-y				+= -Bstatic $(L4_LIBDIRS)
++#-ll4sys -ll4sys-direct -lgcc-l4
 +libs-y				+= $(GENODE_LIBS)
  export L4INC L4_REQUIRED_MODS
  
 -LDFLAGS_vmlinux  =  \
 -  --defsym __L4_KIP_ADDR__=$(L4_BID_KIP_ADDR) \
--  --defsym __l4sys_invoke_direct=$(L4_BID_KIP_ADDR)+$(L4_BID_KIP_OFFS_SYS_INVOKE) \
--  --defsym __l4sys_debugger_direct=$(L4_BID_KIP_ADDR)+$(L4_BID_KIP_OFFS_SYS_DEBUGGER)
 +LDFLAGS_vmlinux  =  -nostdlib
 +#  --defsym __L4_KIP_ADDR__=$(L4_BID_KIP_ADDR) \
-+  -nostdlib
-+#--defsym __l4sys_invoke_direct=$(L4_BID_KIP_ADDR)+$(L4_BID_KIP_OFFS_SYS_INVOKE) \
-+  --defsym __l4sys_debugger_direct=$(L4_BID_KIP_ADDR)+$(L4_BID_KIP_OFFS_SYS_DEBUGGER) \
+   --defsym __l4sys_invoke_direct=$(L4_BID_KIP_ADDR)+$(L4_BID_KIP_OFFS_SYS_INVOKE) \
+   --defsym __l4sys_debugger_direct=$(L4_BID_KIP_ADDR)+$(L4_BID_KIP_OFFS_SYS_DEBUGGER)
  
 -KBUILD_CPPFLAGS	+= -Iarch/l4/include/asm/l4-arch \
 +KBUILD_CPPFLAGS	+= $(GENODE_INCLUDES) -Iarch/l4/include/asm/l4-arch \
- 		   -I$(src)/arch/$(LINSRCARCH)/include \
- 		   -Iarch/l4/include/asm/$(LINSRCARCH)-arch \
- 		   -Iarch/l4/include/asm/orig-arch \
-@@ -342,6 +352,8 @@
- KBUILD_CPPFLAGS += -DTEXT_OFFSET=0x0100000
+ 		   -Iarch/$(LINSRCARCH)/include/generated \
+ 		   $(if $(PLATFORMNAME),-I$(src)/arch/l4/include/asm/mach-$(LINSRCARCH)/$(PLATFORMNAME)) \
+ 		   $(if $(PLATFORMNAME),-I$(src)/arch/l4/include/asm/plat-$(LINSRCARCH)/$(PLATFORMNAME)) \
+@@ -337,6 +348,8 @@
+ KBUILD_CPPFLAGS += -DTEXT_OFFSET=0x01000000
  endif
  
 +drivers-y += arch/l4/drivers/
@@ -964,7 +970,7 @@ Index: arch/l4/Makefile
  all: lImage
  
  boot := arch/l4/boot
-@@ -350,11 +362,11 @@
+@@ -345,11 +358,11 @@
  	$(Q)$(MAKE) $(build)=$(boot) $@
  
  check_for_l4defs:
@@ -983,7 +989,7 @@ Index: arch/l4/Makefile
  	$(Q)$(MAKE) $(build)=arch/l4/server
 Index: drivers/tty/serial/l4ser.c
 ===================================================================
---- drivers/tty/serial/l4ser.c	(revision 23)
+--- drivers/tty/serial/l4ser.c	(revision 25)
 +++ drivers/tty/serial/l4ser.c	(working copy)
 @@ -22,10 +22,12 @@
  #include <linux/serial.h>
@@ -998,33 +1004,30 @@ Index: drivers/tty/serial/l4ser.c
  #include <asm/generic/setup.h>
  #include <asm/generic/cap_alloc.h>
  #include <asm/generic/util.h>
-@@ -128,7 +130,10 @@
+@@ -118,7 +120,7 @@
+ 	int c;
  
  	if (port->x_char) {
- 		L4XV_L(f);
-+#if 0
- 		l4_vcon_write(l4port->vcon_cap, &port->x_char, 1);
-+#endif
-+		LOG_printf("%c", port->x_char);
- 		L4XV_U(f);
+-		L4XV_FN_v(l4_vcon_write(l4port->vcon_cap, &port->x_char, 1));
++		L4XV_FN_v(l4_vcon_write(LOG_printf("%c", port->x_char));
  		port->icount.tx++;
  		port->x_char = 0;
-@@ -140,7 +145,14 @@
+ 		return;
+@@ -128,7 +130,12 @@
+ 		c = CIRC_CNT_TO_END(xmit->head, xmit->tail, UART_XMIT_SIZE);
  		if (c > L4_VCON_WRITE_SIZE)
  			c = L4_VCON_WRITE_SIZE;
- 		L4XV_L(f);
-+#if 0
- 		l4_vcon_write(l4port->vcon_cap, &xmit->buf[xmit->tail], c);
-+#endif
+-		L4XV_FN_v(l4_vcon_write(l4port->vcon_cap, &xmit->buf[xmit->tail], c));
++ 		L4XV_L(f);
 +		char *ptr = (char*)&xmit->buf[xmit->tail], old = ptr[c];
 +		ptr[c] = 0;
 +		LOG_printf("%s", ptr);
 +		ptr[c] = old;
-+
- 		L4XV_U(f);
++ 		L4XV_U(f);
  		xmit->tail = (xmit->tail + c) & (UART_XMIT_SIZE - 1);
  		port->icount.tx += c;
-@@ -260,7 +272,7 @@
+ 	}
+@@ -247,7 +254,7 @@
  	if (l4ser_port[num].inited)
  		return 0;
  	l4ser_port[num].inited = 1;
@@ -1033,47 +1036,33 @@ Index: drivers/tty/serial/l4ser.c
  	if ((r = l4x_re_resolve_name(name, &l4ser_port[num].vcon_cap))) {
  		if (num == 0)
  			l4ser_port[num].vcon_cap = l4re_env()->log;
-@@ -301,11 +313,13 @@
- 		L4XV_U(f);
- 		return -EIO;
- 	}
--
-+#endif
+@@ -285,7 +292,7 @@
  	vcon_attr.i_flags = 0;
  	vcon_attr.o_flags = 0;
  	vcon_attr.l_flags = 0;
-+#if 0
- 	l4_vcon_set_attr(l4ser_port[num].vcon_cap, &vcon_attr);
-+#endif
- 	L4XV_U(f);
+-	L4XV_FN_v(l4_vcon_set_attr(l4ser_port[num].vcon_cap, &vcon_attr));
++//	L4XV_FN_v(l4_vcon_set_attr(l4ser_port[num].vcon_cap, &vcon_attr));
  
  	l4ser_port[num].port.uartclk   = 3686400;
-@@ -349,7 +363,14 @@
+ 	l4ser_port[num].port.ops       = &l4ser_pops;
+@@ -326,7 +333,13 @@
+ 		unsigned c = count;
  		if (c > L4_VCON_WRITE_SIZE)
  			c = L4_VCON_WRITE_SIZE;
- 		L4XV_L(f);
-+#if 0
- 		l4_vcon_write(l4ser_port[co->index].vcon_cap, s, c);
-+#endif
+-		L4XV_FN_v(l4_vcon_write(l4ser_port[co->index].vcon_cap, s, c));
++ 		L4XV_L(f);
 +		char *ptr = (char*)s, old = ptr[c];
 +		ptr[c] = 0;
 +		LOG_printf("%s", ptr);
 +		ptr[c] = old;
 +
- 		L4XV_U(f);
++ 		L4XV_U(f);
  		count -= c;
  	} while (count);
-@@ -396,6 +417,7 @@
- 	int ret, i;
- 
- 	printk(KERN_INFO "L4 serial driver\n");
-+	LOG_printf("L4 serial driver\n");
- 
- 	if (l4ser_init_port(0, PORT0_NAME))
- 		return -ENODEV;
+ }
 Index: include/asm-generic/vmlinux.lds.h
 ===================================================================
---- include/asm-generic/vmlinux.lds.h	(revision 23)
+--- include/asm-generic/vmlinux.lds.h	(revision 25)
 +++ include/asm-generic/vmlinux.lds.h	(working copy)
 @@ -371,6 +371,7 @@
  		VMLINUX_SYMBOL(__start___modver) = .;			\

@@ -8,8 +8,8 @@ VERBOSE        ?= @
 ECHO            = @echo
 TARGET         ?= l4linux
 
-PATCH-l4linux   = $(addprefix patches/,l4lx_genode.patch icmp_align.patch tcp_mem.patch)
-REV-l4linux     = 23
+PATCH-l4linux   = $(addprefix patches/,l4lx_genode.patch icmp_align.patch)
+REV-l4linux     = 25
 REPO-l4linux    = http://svn.tudos.org/repos/oc/l4linux/trunk
 
 PATCH-l4android = patches/l4android_genode.patch
@@ -95,6 +95,7 @@ clean: clean-$(TARGET)
 clean-l4linux: $(REAL_CONTRIB_DIR)/$(TARGET)
 	$(VERBOSE)svn revert -R $(REAL_CONTRIB_DIR)/l4linux
 	$(VERBOSE)svn stat $(REAL_CONTRIB_DIR)/l4linux | sed -e 's/? //' | xargs rm -f
+	$(VERBOSE)svn up -r $(REV-l4linux) -N $(REAL_CONTRIB_DIR)/l4linux
 
 clean-l4android: $(REAL_CONTRIB_DIR)/$(TARGET)
 	$(VERBOSE)cd $(REAL_CONTRIB_DIR)/l4android; git checkout -f

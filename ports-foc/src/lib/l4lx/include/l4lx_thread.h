@@ -24,6 +24,11 @@ namespace Fiasco {
 
 typedef Fiasco::l4_utcb_t *l4lx_thread_t;
 
+struct l4lx_thread_start_info_t {
+	Fiasco::l4_cap_idx_t l4cap;
+	Fiasco::l4_umword_t ip, sp;
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,12 +38,14 @@ FASTCALL Fiasco::l4_cap_idx_t l4x_cpu_thread_get_cap(int cpu);
 FASTCALL void l4lx_thread_init(void);
 FASTCALL void l4lx_thread_alloc_irq(Fiasco::l4_cap_idx_t c);
 FASTCALL l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
-                                       unsigned cpu_nr,
-                                       void *stack_pointer,
-                                       void *stack_data, unsigned stack_data_size,
-                                       int prio,
-                                       Fiasco::l4_vcpu_state_t **vcpu_state,
-                                       const char *name);
+                                 unsigned cpu_nr,
+                                 void *stack_pointer,
+                                 void *stack_data, unsigned stack_data_size,
+                                 Fiasco::l4_cap_idx_t l4cap, int prio,
+                                 Fiasco::l4_vcpu_state_t **vcpu_state,
+                                 const char *name,
+                                 struct l4lx_thread_start_info_t *deferstart);
+FASTCALL int l4lx_thread_start(struct l4lx_thread_start_info_t *startinfo);
 FASTCALL int l4lx_thread_is_valid(l4lx_thread_t t);
 FASTCALL Fiasco::l4_cap_idx_t l4lx_thread_get_cap(l4lx_thread_t t);
 FASTCALL void l4lx_thread_pager_change(Fiasco::l4_cap_idx_t thread,

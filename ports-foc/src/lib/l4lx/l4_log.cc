@@ -33,7 +33,7 @@ extern "C" {
 
 	void LOG_vprintf(const char *format, va_list list)
 	{
-		PWRN("%s: Not implemented yet!", __func__);
+		Genode::vprintf(format, list);
 	}
 
 

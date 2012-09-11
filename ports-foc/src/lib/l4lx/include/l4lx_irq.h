@@ -30,9 +30,11 @@ struct l4x_irq_desc_private {
 
 struct irq_data {
 	unsigned int     irq;
+	unsigned long    hwirq;
 	unsigned int     node;
 	unsigned int     state_use_accessors;
 	struct irq_chip *chip;
+	struct irq_domain       *domain;
 	void            *handler_data;
 	void            *chip_data;
 };
