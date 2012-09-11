@@ -559,9 +559,14 @@ extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
 extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
 	if (verbose)
-		PDBG("gettimeofdaye called - not implemented");
-	errno = EINVAL;
-	return -1;
+		PDBG("gettimeofday() called - not implemented");
+
+	if (tv) {
+		tv->tv_sec = 0;
+		tv->tv_usec = 0;
+	}
+
+	return 0;
 }
 
 
