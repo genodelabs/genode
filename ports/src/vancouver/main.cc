@@ -1039,9 +1039,24 @@ class Machine : public StaticReceiver<Machine>
 extern unsigned long _prog_img_beg;  /* begin of program image (link address) */
 extern unsigned long _prog_img_end;  /* end of program image */
 
+namespace Genode {
+
+	Rm_session *env_context_area_rm_session();
+
+}
+
 int main(int argc, char **argv)
 {
 	Genode::printf("--- Vancouver VMM starting ---\n");
+
+	/**
+	 * XXX Invoke env_context_rm_session to make sure the virtual region of
+	 *     the context area is reserved at core. Typically this happens when
+	 *     the first time a thread is allocated.
+	 *     Unfortunately, beforehand the VMM tries to grab the same region for
+	 *     large VM sizes.
+	 */
+	Genode::env_context_area_rm_session();
 
 	/* request max available memory */
 	Genode::addr_t vm_size = Genode::env()->ram_session()->avail();
