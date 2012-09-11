@@ -62,8 +62,9 @@ enum {
 };
 
 
-enum { verbose_npt = false };
-enum { verbose_io  = false };
+enum { verbose_debug = false };
+enum { verbose_npt   = false };
+enum { verbose_io    = false };
 
 
 /**
@@ -686,7 +687,8 @@ class Machine : public StaticReceiver<Machine>
 			 */
 			case MessageHostOp::OP_GUEST_MEM:
 
-				Logging::printf("OP_GUEST_MEM value=0x%lx\n", msg.value);
+				if (verbose_debug)
+					Logging::printf("OP_GUEST_MEM value=0x%lx\n", msg.value);
 
 				if (msg.value >= _guest_memory.remaining_size) {
 					msg.value = 0;
@@ -694,8 +696,9 @@ class Machine : public StaticReceiver<Machine>
 					msg.len = _guest_memory.remaining_size - msg.value;
 					msg.ptr = _guest_memory.backing_store_local_base() + msg.value;
 				}
-				Logging::printf(" -> len=0x%lx, ptr=0x%p\n",
-				                msg.len, msg.ptr);
+				if (verbose_debug)
+					Logging::printf(" -> len=0x%lx, ptr=0x%p\n",
+				    	            msg.len, msg.ptr);
 				return true;
 
 			/**
@@ -703,7 +706,8 @@ class Machine : public StaticReceiver<Machine>
 			 */
 			case MessageHostOp::OP_ALLOC_FROM_GUEST:
 
-				Logging::printf("OP_ALLOC_FROM_GUEST\n");
+				if (verbose_debug)
+					Logging::printf("OP_ALLOC_FROM_GUEST\n");
 
 				if (msg.value > _guest_memory.remaining_size)
 					return false;
@@ -712,13 +716,15 @@ class Machine : public StaticReceiver<Machine>
 
 				msg.phys = _guest_memory.remaining_size;
 
-				Logging::printf("-> allocated from guest %08lx+%lx\n",
-				                _guest_memory.remaining_size, msg.value);
+				if (verbose_debug)
+					Logging::printf("-> allocated from guest %08lx+%lx\n",
+					                _guest_memory.remaining_size, msg.value);
 				return true;
 
 			case MessageHostOp::OP_VCPU_CREATE_BACKEND:
 				{
-					Logging::printf("OP_VCPU_CREATE_BACKEND\n");
+					if (verbose_debug)
+						Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
 					static Genode::Cap_connection cap_session;
 
@@ -733,7 +739,8 @@ class Machine : public StaticReceiver<Machine>
 
 			case MessageHostOp::OP_VCPU_RELEASE:
 
-				Logging::printf("OP_VCPU_RELEASE\n");
+				if (verbose_debug)
+					Logging::printf("OP_VCPU_RELEASE\n");
 
 				if (msg.len) {
 					if (Nova::sm_ctrl(msg.value, Nova::SEMAPHORE_UP) != 0) {
@@ -745,11 +752,13 @@ class Machine : public StaticReceiver<Machine>
 
 			case MessageHostOp::OP_VCPU_BLOCK:
 				{
-					Logging::printf("OP_VCPU_BLOCK\n");
+					if (verbose_debug)
+						Logging::printf("OP_VCPU_BLOCK\n");
 
 					global_lock.unlock();
 					bool res = (Nova::sm_ctrl(msg.value, Nova::SEMAPHORE_DOWN) == 0);
-					Logging::printf("woke up from vcpu sem, block on global_lock\n");
+					if (verbose_debug)
+						Logging::printf("woke up from vcpu sem, block on global_lock\n");
 					global_lock.lock();
 					return res;
 				}
@@ -827,13 +836,15 @@ class Machine : public StaticReceiver<Machine>
 
 		bool receive(MessageConsole &msg)
 		{
-			Logging::printf("MessageConsole\n");
+			if (verbose_debug)
+				Logging::printf("MessageConsole\n");
 			return true;
 		}
 
 		bool receive(MessageDisk &msg)
 		{
-			PDBG("MessageDisk");
+			if (verbose_debug)
+				PDBG("MessageDisk");
 			return false;
 		}
 
@@ -842,13 +853,15 @@ class Machine : public StaticReceiver<Machine>
 			switch (msg.type) {
 			case MessageTimer::TIMER_NEW:
 
-				Logging::printf("TIMER_NEW\n");
+				if (verbose_debug)
+					Logging::printf("TIMER_NEW\n");
 				msg.nr = _timeouts.alloc();
 				return true;
 
 			case MessageTimer::TIMER_REQUEST_TIMEOUT:
 
-				Logging::printf("TIMER_REQUEST_TIMEOUT\n");
+				if (verbose_debug)
+					Logging::printf("TIMER_REQUEST_TIMEOUT\n");
 				_timeouts.request(msg.nr, msg.abstime);
 				return true;
 
@@ -859,31 +872,36 @@ class Machine : public StaticReceiver<Machine>
 
 		bool receive(MessageTime &msg)
 		{
-			Logging::printf("MessageTime - not implemented\n");
+			if (verbose_debug)
+				Logging::printf("MessageTime - not implemented\n");
 			return false;
 		}
 
 		bool receive(MessageNetwork &msg)
-		{
-			PDBG("MessageNetwork");
+		{	
+			if (verbose_debug)
+				PDBG("MessageNetwork");
 			return false;
 		}
 
 		bool receive(MessageVirtualNet &msg)
 		{
-			PDBG("MessageVirtualNet");
+			if (verbose_debug)
+				PDBG("MessageVirtualNet");
 			return false;
 		}
 
 		bool receive(MessagePciConfig &msg)
 		{
-			PDBG("MessagePciConfig");
+			if (verbose_debug)
+				PDBG("MessagePciConfig");
 			return false;
 		}
 
 		bool receive(MessageAcpi &msg)
 		{
-			PDBG("MessageAcpi");
+			if (verbose_debug)
+				PDBG("MessageAcpi");
 			return false;
 		}
 
@@ -1092,12 +1110,16 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	Genode::printf("\n--- Setup VM ---\n");
+
 	static Boot_module_provider
 		boot_modules(Genode::config()->xml_node().sub_node("multiboot"));
 
 	static Machine machine(boot_modules, guest_memory);
 
 	machine.setup_devices(Genode::config()->xml_node().sub_node("machine"));
+
+	Genode::printf("\n--- Booting VM ---\n");
 
 	machine.boot();
 
