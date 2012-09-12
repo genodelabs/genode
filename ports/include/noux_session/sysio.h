@@ -284,6 +284,11 @@ namespace Noux {
 		typedef char Home[MAX_HOME_LEN];
 		typedef unsigned int Uid;
 
+		/**
+		 * time/clock definitions
+		 */
+		enum Clock_Id        { CLOCK_ID_SECOND };
+
 		enum General_error   { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
 		enum Stat_error      { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
 		enum Fcntl_error     { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
@@ -337,6 +342,13 @@ namespace Noux {
 		enum Socket_error    { SOCKET_ERR_ACCESS, SOCKET_ERR_NO_AF_SUPPORT,
 		                       SOCKET_ERR_INVALID, SOCKET_ERR_NO_MEMORY };
 
+		enum Clock_error     { CLOCK_ERR_INVALID, CLOCK_ERR_FAULT, CLOCK_ERR_NO_PERM };
+
+		enum Utimes_error    { UTIMES_ERR_ACCESS, UTIMES_ERR_FAUL, UTIMES_ERR_EIO,
+		                       UTIMES_ERR_NAME_TOO_LONG, UTIMES_ERR_NO_ENTRY,
+		                       UTIMES_ERR_NOT_DIRECTORY, UTIMES_ERR_NO_PERM,
+		                       UTIMES_ERR_READ_ONLY };
+
 		union {
 			General_error   general;
 			Stat_error      stat;
@@ -359,6 +371,8 @@ namespace Noux {
 			Send_error      send;
 			Shutdown_error  shutdown;
 			Socket_error    socket;
+			Clock_error     clock;
+			Utimes_error    utimes;
 		} error;
 
 		union {
@@ -462,6 +476,14 @@ namespace Noux {
 			SYSIO_DECL(userinfo, { int request; Uid uid; },
 			                     { User name; Uid uid; Uid gid; Shell shell;
 			                       Home home; });
+
+			SYSIO_DECL(gettimeofday, { }, { unsigned long sec; unsigned int usec; });
+
+			SYSIO_DECL(clock_gettime, { Clock_Id clock_id; },
+			                          { unsigned long sec; unsigned long nsec; });
+
+			SYSIO_DECL(utimes,      { Path path; unsigned long sec; unsigned long usec; },
+			                        { });
 		};
 	};
 };

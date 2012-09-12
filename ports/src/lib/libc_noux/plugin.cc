@@ -456,21 +456,52 @@ extern "C" pid_t _wait4(pid_t pid, int *status, int options,
 
 extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
-	if (verbose)
-		PDBG("clock_gettime called - not implemented");
-	errno = EINVAL;
-	return -1;
+	/* we currently only support CLOCK_SECOND */
+	switch (clk_id) {
+	case CLOCK_SECOND:
+		sysio()->clock_gettime_in.clock_id = Noux::Sysio::CLOCK_ID_SECOND;
+		break;
+	default:
+		/* let's save the trip to noux and return directly */
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (!noux()->syscall(Noux::Session::SYSCALL_CLOCK_GETTIME)) {
+		switch (sysio()->error.clock) {
+		case Noux::Sysio::CLOCK_ERR_INVALID: errno = EINVAL; break;
+		default:                             errno = 0;      break;
+		}
+
+		return -1;
+	}
+
+	tp->tv_sec = sysio()->clock_gettime_out.sec;
+	tp->tv_nsec = sysio()->clock_gettime_out.nsec;
+
+	return 0;
 }
 
 
 extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-	if (verbose)
-		PDBG("gettimeofday() called - not implemented");
+	if (!noux()->syscall(Noux::Session::SYSCALL_GETTIMEOFDAY)) {
+		errno = EINVAL;
+		return -1;
+	}
 
-	if (tv) {
-		tv->tv_sec = 0;
-		tv->tv_usec = 0;
+	tv->tv_sec  = sysio()->gettimeofday_out.sec;
+	tv->tv_usec = sysio()->gettimeofday_out.usec;
+
+	return 0;
+}
+
+
+extern "C" int utimes(const char* path, const struct timeval *times)
+{
+	if (!noux()->syscall(Noux::Session::SYSCALL_UTIMES)) {
+		errno = EINVAL;
+		return -1;
 	}
 
 	return 0;

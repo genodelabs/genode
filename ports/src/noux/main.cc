@@ -70,7 +70,7 @@ namespace Noux {
 			}
 
 		public:
-			Timeout_scheduler() : _curr_time(0) { start(); }
+			Timeout_scheduler(unsigned long curr_time) : _curr_time(curr_time) { start(); }
 
 			Alarm::Time curr_time() const { return _curr_time; }
 	};
@@ -595,6 +595,70 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				return true;
 			}
 
+		case SYSCALL_GETTIMEOFDAY:
+			{
+				/**
+				 * Since the timeout_scheduler thread is started after noux it
+				 * basicly returns the eleapsed time since noux was started. We
+				 * abuse this timer to provide a more useful implemenation of
+				 * gettimeofday() to make certain programs (e.g. ping(1)) happy.
+				 * Note: this is just a short-term solution because Genode currently
+				 * lacks a proper time interface (there is a RTC driver however, but
+				 * there is no interface for it).
+				 */
+				unsigned long time = Noux::timeout_scheduler()->curr_time();
+
+				_sysio->gettimeofday_out.sec  = (time / 1000);
+				_sysio->gettimeofday_out.usec = (time % 1000) * 1000;
+
+				return true;
+			}
+
+		case SYSCALL_CLOCK_GETTIME:
+			{
+				/**
+				 * It's the same procedure as in SYSCALL_GETTIMEOFDAY.
+				 */
+				unsigned long time = Noux::timeout_scheduler()->curr_time();
+
+				switch (_sysio->clock_gettime_in.clock_id) {
+
+				/* CLOCK_SECOND is used by time(3) in the libc. */
+				case Sysio::CLOCK_ID_SECOND:
+					{
+						_sysio->clock_gettime_out.sec    = (time / 1000);
+						_sysio->clock_gettime_out.nsec   = 0;
+
+						return true;
+					}
+
+				default:
+					{
+						_sysio->clock_gettime_out.sec  = 0;
+						_sysio->clock_gettime_out.nsec = 0;
+						_sysio->error.clock            = Sysio::CLOCK_ERR_INVALID;
+
+						return false;
+					}
+
+				}
+
+				return false;
+
+			}
+
+		case SYSCALL_UTIMES:
+			{
+				/**
+				 * This systemcall is currently not implemented because we lack
+				 * the needed mechanisms in most file-systems.
+				 *
+				 * But we return true anyway to keep certain programs, e.g. make
+				 * happy.
+				 */
+				return true;
+			}
+
 		case SYSCALL_SOCKET:
 		case SYSCALL_GETSOCKOPT:
 		case SYSCALL_SETSOCKOPT:
@@ -713,7 +777,7 @@ Noux::Pid_allocator *Noux::pid_allocator()
 
 Noux::Timeout_scheduler *Noux::timeout_scheduler()
 {
-	static Noux::Timeout_scheduler inst;
+	static Noux::Timeout_scheduler inst(0);
 	return &inst;
 }
 

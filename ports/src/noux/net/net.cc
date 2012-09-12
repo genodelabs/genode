@@ -176,6 +176,9 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 		case SYSCALL_READLINK:
 		case SYSCALL_SYMLINK:
 		case SYSCALL_USERINFO:
+		case SYSCALL_GETTIMEOFDAY:
+		case SYSCALL_CLOCK_GETTIME:
+		case SYSCALL_UTIMES:
 			break;
 		case SYSCALL_SOCKET:
 			{
