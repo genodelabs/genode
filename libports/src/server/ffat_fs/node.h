@@ -7,6 +7,9 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
+/* Genode includes */
+#include <os/path.h>
+
 /* ffat includes */
 namespace Ffat { extern "C" {
 #include <ffat/ff.h>
@@ -14,25 +17,19 @@ namespace Ffat { extern "C" {
 
 namespace File_system {
 
+	typedef Genode::Path<_MAX_LFN + 1> Absolute_path;
+
 	class Node
 	{
 		protected:
 
-			char _name[_MAX_LFN + 1];
+			Absolute_path _name;
 
 		public:
 
-			Node(const char *name)
-			{
-				strncpy(_name, name, sizeof(_name));
+			Node(const char *name) : _name(name) { }
 
-				/* remove any trailing slashes, except for "/" */
-				size_t index = strlen(_name) - 1;
-				while ((index > 0) && (_name[index] == '/'))
-					_name[index--] = 0;
-			}
-
-			char const *name() const { return _name; }
+			char const *name() { return _name.base(); }
 
 			/*
 			 * A generic Node object can be created to represent a file or

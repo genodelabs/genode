@@ -214,15 +214,6 @@ namespace File_system {
 				}
 			}
 
-			/**
-			 * Return true if both '_root.name()' and 'path'
-			 * are "/"
-			 */
-			bool is_ffat_root(const char *path)
-			{
-				return (is_root(_root.name()) && is_root(path));
-			}
-
 		public:
 
 			/**
@@ -292,14 +283,21 @@ namespace File_system {
 				if ((mode == WRITE_ONLY) || (mode == READ_WRITE))
 					ffat_flags |= FA_WRITE;
 
-				f_chdir(_root.name());
-				f_chdir(&_handle_registry.lookup(dir_handle)->name()[1]);
+				Absolute_path absolute_path(_root.name());
 
-				FRESULT res = f_open(&ffat_fil, name.string(), ffat_flags);
+				try {
+					absolute_path.append(_handle_registry.lookup(dir_handle)->name());
+					absolute_path.append("/");
+					absolute_path.append(name.string());
+				} catch (Path_base::Path_too_long) {
+					throw Invalid_name();
+				}
+
+				FRESULT res = f_open(&ffat_fil, absolute_path.base(), ffat_flags);
 
 				switch(res) {
 					case FR_OK: {
-						File *file_node = new (env()->heap()) File(name.string());
+						File *file_node = new (env()->heap()) File(absolute_path.base());
 						file_node->ffat_fil(ffat_fil);
 						return _handle_registry.alloc(file_node);
 					}
@@ -362,14 +360,21 @@ namespace File_system {
 
 				using namespace Ffat;
 
-				f_chdir(_root.name());
+				Absolute_path absolute_path(_root.name());
+
+				try {
+					absolute_path.append(dir_node->name());
+					absolute_path.remove_trailing('/');
+				} catch (Path_base::Path_too_long) {
+					throw Name_too_long();
+				}
 
 				if (create) {
 
 					if (is_root(dir_node->name()))
 						throw Node_already_exists();
 
-					FRESULT res = f_mkdir(&dir_node->name()[1]);
+					FRESULT res = f_mkdir(absolute_path.base());
 
 					try {
 						switch(res) {
@@ -417,7 +422,7 @@ namespace File_system {
 				}
 
 				Ffat::DIR ffat_dir;
-				FRESULT f_opendir_res = f_opendir(&ffat_dir, &dir_node->name()[1]);
+				FRESULT f_opendir_res = f_opendir(&ffat_dir, absolute_path.base());
 
 				try {
 					switch(f_opendir_res) {
@@ -465,18 +470,22 @@ namespace File_system {
 
 				Ffat_lock_guard ffat_lock_guard(_ffat_lock);
 
-				if (!valid_path(path.string()) &&
-				    !valid_filename(path.string()))
+				if (!valid_path(path.string()))
 					throw Lookup_failed();
 
-				/*
-				 * The Node constructor removes trailing slashes,
-				 * except for "/"
-				 */
-				Node *node = new (env()->heap()) Node(path.string());
+				Absolute_path absolute_path(_root.name());
+
+				try {
+					absolute_path.append(path.string());
+					absolute_path.remove_trailing('/');
+				} catch (Path_base::Path_too_long) {
+					throw Lookup_failed();
+				}
+
+				Node *node = new (env()->heap()) Node(absolute_path.base());
 
 				/* f_stat() does not work for "/" */
-				if (!is_ffat_root(node->name())) {
+				if (!is_root(node->name())) {
 
 					using namespace Ffat;
 
@@ -485,17 +494,7 @@ namespace File_system {
 					file_info.lfname = 0;
 					file_info.lfsize = 0;
 
-					FRESULT res;
-
-					/*
-					 * f_stat() does not work on an empty relative name,
-					 * so in this case the absolute root name is used
-					 */
-					if (!is_root(node->name())) {
-						f_chdir(_root.name());
-						res = f_stat(&node->name()[1], &file_info);
-					} else
-						res = f_stat(_root.name(), &file_info);
+					FRESULT res = f_stat(node->name(), &file_info);
 
 					try {
 						switch(res) {
@@ -601,30 +600,15 @@ namespace File_system {
 
 				using namespace Ffat;
 
-				const char *ffat_name;
-
-				/*
-				 * f_stat() does not work on an empty relative name,
-				 * so in this case the absolute root name is used
-				 */
-				if (!is_root(node->name())) {
-					f_chdir(_root.name());
-					if (node->name()[0] == '/')
-						ffat_name = &node->name()[1];
-					else
-						ffat_name = node->name();
-				} else
-					ffat_name = _root.name();
-
 				/* f_stat() does not work for the '/' directory */
-				if (!is_ffat_root(node->name())) {
+				if (!is_root(node->name())) {
 
 					FILINFO ffat_file_info;
 					/* the long file name is not used in this function */
 					ffat_file_info.lfname = 0;
 					ffat_file_info.lfsize = 0;
 
-					FRESULT res = f_stat(ffat_name, &ffat_file_info);
+					FRESULT res = f_stat(node->name(), &ffat_file_info);
 
 					switch(res) {
 						case FR_OK:
@@ -681,7 +665,7 @@ namespace File_system {
 					/* determine the number of directory entries */
 
 					Ffat::DIR ffat_dir;
-					FRESULT f_opendir_res = f_opendir(&ffat_dir, ffat_name);
+					FRESULT f_opendir_res = f_opendir(&ffat_dir, node->name());
 
 					if (f_opendir_res != FR_OK)
 						return status;
@@ -721,11 +705,17 @@ namespace File_system {
 
 				using namespace Ffat;
 
-				f_chdir(_root.name());
+				Absolute_path absolute_path(_root.name());
 
-				f_chdir(&_handle_registry.lookup(dir_handle)->name()[1]);
+				try {
+					absolute_path.append(_handle_registry.lookup(dir_handle)->name());
+					absolute_path.append("/");
+					absolute_path.append(name.string());
+				} catch (Path_base::Path_too_long) {
+					throw Invalid_name();
+				}
 
-				FRESULT res = f_unlink(name.string());
+				FRESULT res = f_unlink(absolute_path.base());
 
 				switch(res) {
 					case FR_OK:
@@ -847,28 +837,26 @@ namespace File_system {
 				if (!valid_filename(to_name.string()))
 					throw Invalid_name();
 
-				Directory *from_dir = _handle_registry.lookup(from_dir_handle);
-				Directory *to_dir = _handle_registry.lookup(to_dir_handle);
+				Absolute_path absolute_from_path(_root.name());
+				Absolute_path absolute_to_path(_root.name());
+
+				try {
+					absolute_from_path.append(_handle_registry.lookup(from_dir_handle)->name());
+					absolute_from_path.append("/");
+					absolute_from_path.append(from_name.string());
+					absolute_to_path.append(_handle_registry.lookup(to_dir_handle)->name());
+					absolute_to_path.append("/");
+					absolute_to_path.append(to_name.string());
+				} catch (Path_base::Path_too_long) {
+					throw Invalid_name();
+				}
+
+				PDBGV("from_path = %s", absolute_from_path.base());
+				PDBGV("to_path = %s", absolute_to_path.base());
 
 				using namespace Ffat;
 
-				f_chdir(_root.name());
-
-				char from_path[2*(_MAX_LFN + 1)];
-				char to_path[2*(_MAX_LFN + 1)];
-
-				strncpy(from_path, &from_dir->name()[1], _MAX_LFN);
-				strncpy(&from_path[strlen(from_path)], "/", 2);
-				strncpy(&from_path[strlen(from_path)], from_name.string(), _MAX_LFN + 1);
-
-				strncpy(to_path, &to_dir->name()[1], _MAX_LFN);
-				strncpy(&to_path[strlen(to_path)], "/", 2);
-				strncpy(&to_path[strlen(to_path)], to_name.string(), _MAX_LFN + 1);
-
-				PDBGV("from_path = %s", from_path);
-				PDBGV("to_path = %s", to_path);
-
-				FRESULT res = f_rename(from_path, to_path);
+				FRESULT res = f_rename(absolute_from_path.base(), absolute_to_path.base());
 
 				switch(res) {
 					case FR_OK:
