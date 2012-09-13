@@ -163,6 +163,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 						_block_for_io_channel(io);
 
 				io->read(_sysio);
+				if (_sysio->read_out.count == -1)
+					return false;
+
 				return true;
 			}
 
