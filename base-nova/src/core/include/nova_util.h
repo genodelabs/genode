@@ -122,17 +122,21 @@ inline int map_local(Nova::Utcb *utcb,
 		 * size (and are always zero).
 		 */
 		size_t order = get_page_size_log2();
-		for (; order < 32 && !(common_bits & (1 << order)); order++);
+		for (; order < 32 && !(common_bits & (1UL << order)); order++);
 
 		/*
 		 * Look if flexpage fits into both 'from' and 'to' address range
 		 */
 
-		if (from_curr + (1 << order) > from_end)
+		if ((from_end - from_curr) < (1UL << order))
 			order = log2(from_end - from_curr);
 
-		if (to_curr + (1 << order) > to_end)
+		if ((to_end - to_curr) < (1UL << order))
 			order = log2(to_end - to_curr);
+
+		if (verbose_local_map)
+			Genode::printf("::map_local: order %lx %lx:%lx %lx:%lx\n",
+		     	           order, from_curr, from_end, to_curr, to_end);
 
 		int const res = map_local(utcb,
 		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), rwx),
@@ -141,7 +145,7 @@ inline int map_local(Nova::Utcb *utcb,
 		if (res) return res;
 
 		/* advance offset by current flexpage size */
-		offset += (1 << order);
+		offset += (1UL << order);
 	}
 	return 0;
 }
