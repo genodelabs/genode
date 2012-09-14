@@ -64,8 +64,7 @@ namespace Noux {
 
 			File_descriptor_registry()
 			{
-				for (unsigned i = 0; i < MAX_FILE_DESCRIPTORS; i++)
-					_reset_fd(i);
+				flush();
 			}
 
 			/**
@@ -109,6 +108,13 @@ namespace Noux {
 					return Shared_pointer<Io_channel>();
 				}
 				return _fds[fd].io_channel;
+			}
+
+			void flush()
+			{
+				/* close all file descriptors */
+				for (unsigned i = 0; i < MAX_FILE_DESCRIPTORS; i++)
+					_reset_fd(i);
 			}
 	};
 }

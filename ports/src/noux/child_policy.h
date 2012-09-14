@@ -19,6 +19,7 @@
 
 /* Noux includes */
 #include <family_member.h>
+#include <file_descriptor_registry.h>
 #include <local_noux_service.h>
 #include <local_rm_service.h>
 
@@ -39,6 +40,7 @@ namespace Noux {
 			Local_rm_service                   &_local_rm_service;
 			Service_registry                   &_parent_services;
 			Family_member                      &_family_member;
+			File_descriptor_registry           &_file_descriptor_registry;
 			Signal_context_capability           _exit_context_cap;
 			Ram_session                        &_ref_ram_session;
 
@@ -53,6 +55,7 @@ namespace Noux {
 			             Local_rm_service         &local_rm_service,
 			             Service_registry         &parent_services,
 			             Family_member            &family_member,
+			             File_descriptor_registry &file_descriptor_registry,
 			             Signal_context_capability exit_context_cap,
 			             Ram_session              &ref_ram_session)
 			:
@@ -65,6 +68,7 @@ namespace Noux {
 				_local_rm_service(local_rm_service),
 				_parent_services(parent_services),
 				_family_member(family_member),
+				_file_descriptor_registry(file_descriptor_registry),
 				_exit_context_cap(exit_context_cap),
 				_ref_ram_session(ref_ram_session)
 			{ }
@@ -106,6 +110,13 @@ namespace Noux {
 			void exit(int exit_value)
 			{
 				PINF("child %s exited with exit value %d", _name, exit_value);
+
+				/*
+				 * Close all open file descriptors. This is necessary to unblock
+				 * the parent if it is trying to read from a pipe (connected to
+				 * the child) before calling 'wait4()'.
+				 */
+				_file_descriptor_registry.flush();
 
 				_family_member.wakeup_parent(exit_value);
 

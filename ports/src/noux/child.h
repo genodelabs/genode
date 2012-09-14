@@ -325,7 +325,7 @@ namespace Noux {
 				_child_policy(name, _binary_ds, _args.cap(), _env.cap(),
 				              _entrypoint, _local_noux_service,
 				              _local_rm_service, _parent_services,
-				              *this, _exit_context_cap, _resources.ram),
+				              *this, *this, _exit_context_cap, _resources.ram),
 				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy)
 			{
