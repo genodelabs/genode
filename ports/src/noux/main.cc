@@ -162,11 +162,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					while (!io->check_unblock(true, false, false))
 						_block_for_io_channel(io);
 
-				io->read(_sysio);
-				if (_sysio->read_out.count == -1)
-					return false;
-
-				return true;
+				return io->read(_sysio);
 			}
 
 		case SYSCALL_FTRUNCATE:
