@@ -26,6 +26,8 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -33,89 +35,39 @@
 
 namespace Noux {
 
-	class Socket_io_channel : public Io_channel
+	class Socket_io_channel_backend : public Io_channel_backend
 	{
 		private:
 
 			int _socket;
 
-			enum { UNBLOCK_READ   = 0x1,
-			       UNBLOCK_WRITE  = 0x2,
-			       UNBLOCK_EXCEPT = 0x4 };
-
-			int _unblock;
-
 		public:
 
-			Socket_io_channel()
+			Socket_io_channel_backend()
 			:
-				_socket(-1),
-				_unblock(0)
+				_socket(-1)
 			{ }
 
-			Socket_io_channel(int s)
+			Socket_io_channel_backend(int s)
 			:
-				_socket(s),
-				_unblock(0)
+				_socket(s)
 			{ }
 
-			~Socket_io_channel()
+			~Socket_io_channel_backend()
 			{
-				if (_socket != -1)
+				if (_socket != -1) {
 					::shutdown(_socket, SHUT_RDWR);
-			}
-
-			int get_socket() const
-			{
-				return _socket;
-			}
-
-			void set_unblock(bool rd, bool wr, bool ex)
-			{
-				if (rd)
-					_unblock |= UNBLOCK_READ;
-				if (wr)
-					_unblock |= UNBLOCK_WRITE;
-				if (ex)
-					_unblock |= UNBLOCK_EXCEPT;
-			}
-
-			bool fstat(Sysio *sysio) { return false; }
-
-			bool fcntl(Sysio *sysio)
-			{
-				switch (sysio->fcntl_in.cmd) {
-
-				case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
-				case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS:
-				{
-					int result = ::fcntl(_socket, sysio->fcntl_in.cmd,
-					                     sysio->fcntl_in.long_arg);
-
-					sysio->fcntl_out.result = result;
-					return true;
-				}
-				default:
-					PWRN("invalid fcntl command: %d", sysio->fcntl_in.cmd);
-					sysio->error.fcntl = Sysio::FCNTL_ERR_CMD_INVALID;
-
-					return false;
+					::close(_socket);
 				}
 			}
 
-			bool dirent(Sysio *sysio)           { return false; }
+			int type() const { return 1; }
 
-			bool check_unblock(bool rd, bool wr, bool ex) const
-			{
-				if (_unblock & UNBLOCK_READ)
-					return true;
-				if (_unblock & UNBLOCK_WRITE)
-					return true;
-				if (_unblock & UNBLOCK_EXCEPT)
-					return true;
+			int socket() const { return _socket; }
 
-				return false;
-			}
+			/**
+			 * Io_channel interface implementation (only needed methods)
+			 */
 
 			bool write(Sysio *sysio, size_t &count)
 			{
@@ -135,7 +87,8 @@ namespace Noux {
 				case EINVAL:      sysio->error.read = Sysio::READ_ERR_INVALID;     break;
 				case EIO:         sysio->error.read = Sysio::READ_ERR_IO;          break;
 				default:
-				                  PDBG("unhandled errno: %d", errno);              break;
+					PDBG("unhandled errno: %d", errno);
+					break;
 				}
 
 				return false;
@@ -143,9 +96,7 @@ namespace Noux {
 
 			bool read(Sysio *sysio)
 			{
-				size_t const max_count =
-					Genode::min(sysio->read_in.count,
-					            sizeof(sysio->read_out.chunk));
+				size_t const max_count = Genode::min(sysio->read_in.count, sizeof(sysio->read_out.chunk));
 
 				ssize_t result = ::read(_socket, sysio->read_out.chunk, max_count);
 
@@ -160,55 +111,105 @@ namespace Noux {
 				case EINVAL:      sysio->error.read = Sysio::READ_ERR_INVALID;     break;
 				case EIO:         sysio->error.read = Sysio::READ_ERR_IO;          break;
 				default:
-						  PDBG("unhandled errno: %d", errno);              break;
+					PDBG("unhandled errno: %d", errno);
+					break;
 				}
 
 				return false;
 			}
 
-			bool socket(Sysio *sysio)
+			bool fcntl(Sysio *sysio)
 			{
-				_socket = ::socket(sysio->socket_in.domain,
-				                   sysio->socket_in.type,
-				                   sysio->socket_in.protocol);
+				int cmd = -1;
+				switch (sysio->fcntl_in.cmd) {
 
-				return (_socket == -1) ? false : true;
-			}
-
-			bool getsockopt(Sysio *sysio)
-			{
-				int result = ::getsockopt(_socket, sysio->getsockopt_in.level,
-				                          sysio->getsockopt_in.optname,
-				                          sysio->getsockopt_in.optval,
-				                          &sysio->getsockopt_in.optlen);
-
-				return (result == -1) ? false : true;
-			}
-
-			bool setsockopt(Sysio *sysio)
-			{
-				/*
-				 * Filter options out because lwip only supports several socket
-				 * options. Therefore for now we silently return 0 and notify
-				 * the user via debug message.
-				 */
-				switch (sysio->setsockopt_in.optname) {
-				case SO_DEBUG:
-				case SO_LINGER:
-				case SO_REUSEADDR:
-
-					PWRN("SOL_SOCKET option '%d' is currently not supported, however we report success",
-					     sysio->setsockopt_in.optname);
-					return true;
+				case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS: cmd = F_GETFL; break;
+				case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS: cmd = F_SETFL; break;
+				default:
+					PDBG("invalid fcntl command: %d", sysio->fcntl_in.cmd);
+					     sysio->error.fcntl = Sysio::FCNTL_ERR_CMD_INVALID;
+					return false;
 				}
 
-				int result = ::setsockopt(_socket, sysio->setsockopt_in.level,
-				                          sysio->setsockopt_in.optname,
-				                          sysio->setsockopt_in.optval,
-				                          sysio->setsockopt_in.optlen);
+				int result = ::fcntl(_socket, cmd, sysio->fcntl_in.long_arg);
 
-				return (result == -1) ? false : true;
+				sysio->fcntl_out.result = result;
+				return true;
 			}
+
+			bool dirent(Sysio *sysio)           { return false; }
+
+			bool ioctl(Sysio *sysio)
+			{
+				int request;
+
+				switch (sysio->ioctl_in.request) {
+
+				case Sysio::Ioctl_in::OP_FIONBIO: request = FIONBIO; break;
+				default:
+					PDBG("invalid ioctl request: %d", sysio->ioctl_in.request);
+					return false;
+				}
+				int result = ::ioctl(_socket, request, NULL);
+
+				return result ? false : true;
+			}
+
+			bool check_unblock(bool rd, bool wr, bool ex) const
+			{
+				fd_set readfds;
+				fd_set writefds;
+				fd_set exceptfds;
+				int ready;
+
+				/**
+				 * The timeout will be overriden in libc's select() function
+				 * but we still need a valid pointer because libc's select()
+				 * will block forever otherwise.
+				 */
+				struct timeval timeout = { 0, 0 };
+				
+				FD_ZERO(&readfds);
+				FD_ZERO(&writefds);
+				FD_ZERO(&exceptfds);
+				
+				FD_SET(_socket, &readfds);
+				FD_SET(_socket, &writefds);
+				FD_SET(_socket, &exceptfds);
+
+				ready = ::select(_socket + 1, &readfds, &writefds, &exceptfds, &timeout);
+				
+				if (ready > 0) {
+					if (rd) {
+						if (FD_ISSET(_socket, &readfds))
+							return true;
+					}
+
+					if (wr) {
+						if (FD_ISSET(_socket, &writefds))
+							return true;
+					}
+
+					if (ex) {
+						if (FD_ISSET(_socket, &exceptfds))
+							return true;
+					}
+				}
+
+				/**
+				 * HACK: Since lwip won't mark fds as writable, even if they
+				 *       are, if asked multiple times we return true in this
+				 *       case. Hopefully that won't break any time soon.
+				 */
+				if (wr)
+					return true;
+
+				return false;
+			}
+
+			/**
+			 * Socket methods
+			 */
 
 			int accept(Sysio *sysio)
 			{
@@ -230,7 +231,8 @@ namespace Noux {
 					case EOPNOTSUPP:  sysio->error.accept = Sysio::ACCEPT_ERR_NOT_SUPPORTED; break;
 					case EWOULDBLOCK: sysio->error.accept = Sysio::ACCEPT_ERR_WOULD_BLOCK;   break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
 
@@ -249,7 +251,8 @@ namespace Noux {
 					case EINVAL:     sysio->error.bind = Sysio::BIND_ERR_INVALID;     break;
 					case ENOMEM:     sysio->error.bind = Sysio::BIND_ERR_NO_MEMORY;   break;
 					default:
-						PERR("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
 
@@ -269,7 +272,8 @@ namespace Noux {
 					case EINPROGRESS: sysio->error.connect = Sysio::CONNECT_ERR_IN_PROGRESS;  break;
 					case EISCONN:     sysio->error.connect = Sysio::CONNECT_ERR_IS_CONNECTED; break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
 
@@ -282,11 +286,14 @@ namespace Noux {
 				                     (socklen_t *)&sysio->getpeername_in.addrlen);
 			}
 
-			bool ioctl(Sysio *sysio)
+			bool getsockopt(Sysio *sysio)
 			{
-				int result = ::ioctl(_socket, sysio->ioctl_in.request, NULL);
+				int result = ::getsockopt(_socket, sysio->getsockopt_in.level,
+				                          sysio->getsockopt_in.optname,
+				                          sysio->getsockopt_in.optval,
+				                          &sysio->getsockopt_in.optlen);
 
-				return result ? false : true;
+				return (result == -1) ? false : true;
 			}
 
 			int listen(Sysio *sysio)
@@ -298,7 +305,8 @@ namespace Noux {
 					case EADDRINUSE: sysio->error.listen = Sysio::LISTEN_ERR_ADDR_IN_USE;   break;
 					case EOPNOTSUPP: sysio->error.listen = Sysio::LISTEN_ERR_NOT_SUPPORTED; break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
 
@@ -316,9 +324,12 @@ namespace Noux {
 					case EINVAL:      sysio->error.recv = Sysio::RECV_ERR_INVALID;          break;
 					case ENOTCONN:    sysio->error.recv = Sysio::RECV_ERR_NOT_CONNECTED;    break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
+
+				sysio->recv_out.len = result;
 
 				return result;
 			}
@@ -336,11 +347,37 @@ namespace Noux {
 					case EINVAL:      sysio->error.recv = Sysio::RECV_ERR_INVALID;          break;
 					case ENOTCONN:    sysio->error.recv = Sysio::RECV_ERR_NOT_CONNECTED;    break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
 
+				sysio->recvfrom_out.len = result;
+
 				return result;
+			}
+
+			bool setsockopt(Sysio *sysio)
+			{
+				/*
+				 * Filter options out because lwip only supports several socket
+				 * options. Therefore for now we silently return 0 and notify
+				 * the user via debug message.
+				 */
+				switch (sysio->setsockopt_in.optname) {
+				case SO_DEBUG:
+				case SO_LINGER:
+					PWRN("SOL_SOCKET option '%d' is currently not supported, however we report success",
+					     sysio->setsockopt_in.optname);
+					return true;
+				}
+
+				int result = ::setsockopt(_socket, sysio->setsockopt_in.level,
+				                          sysio->setsockopt_in.optname,
+				                          sysio->setsockopt_in.optval,
+				                          sysio->setsockopt_in.optlen);
+
+				return (result == -1) ? false : true;
 			}
 
 			ssize_t send(Sysio *sysio)
@@ -357,9 +394,12 @@ namespace Noux {
 					case EISCONN:     sysio->error.send = Sysio::SEND_ERR_IS_CONNECTED;     break;
 					case ENOMEM:      sysio->error.send = Sysio::SEND_ERR_NO_MEMORY;        break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
+
+				sysio->send_out.len = result;
 
 				return result;
 			}
@@ -380,9 +420,12 @@ namespace Noux {
 					case EISCONN:     sysio->error.send = Sysio::SEND_ERR_IS_CONNECTED;     break;
 					case ENOMEM:      sysio->error.send = Sysio::SEND_ERR_NO_MEMORY;        break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
+
+				sysio->sendto_out.len = result;
 
 				return result;
 			}
@@ -395,12 +438,80 @@ namespace Noux {
 					switch (errno) {
 					case ENOTCONN: sysio->error.shutdown = Sysio::SHUTDOWN_ERR_NOT_CONNECTED; break;
 					default:
-						PDBG("unhandled errno: %d", errno); break;
+						PDBG("unhandled errno: %d", errno);
+						break;
 					}
 				}
 
 				return result;
 			}
+
+			bool socket(Sysio *sysio)
+			{
+				_socket = ::socket(sysio->socket_in.domain,
+				                   sysio->socket_in.type,
+				                   sysio->socket_in.protocol);
+
+				return (_socket == -1) ? false : true;
+			}
+	};
+
+	class Socket_io_channel : public Io_channel
+	{
+		private:
+
+
+			Socket_io_channel_backend *_backend;
+
+		public:
+
+			Socket_io_channel()
+			:
+				_backend(new (env()->heap()) Socket_io_channel_backend())
+			{ }
+
+			Socket_io_channel(int s)
+			:
+				_backend(new (env()->heap()) Socket_io_channel_backend(s))
+			{ }
+
+			~Socket_io_channel()
+			{
+				destroy(env()->heap(), _backend);
+			}
+
+			/**
+			 * Io_channel interface (only needed methods)
+			 */
+
+			Io_channel_backend *backend() { return _backend; }
+
+			bool write(Sysio *sysio, size_t &count)
+			{
+				return _backend->write(sysio, count);
+			}
+
+			bool read(Sysio *sysio)
+			{
+				return _backend->read(sysio);
+			}
+
+			bool fcntl(Sysio* sysio)
+			{
+				return _backend->fcntl(sysio);
+			}
+
+			bool ioctl(Sysio *sysio)
+			{
+				return _backend->ioctl(sysio);
+			}
+
+			bool check_unblock(bool rd, bool wr, bool ex) const
+			{
+				return _backend->check_unblock(rd, wr, ex);
+			}
+
+
 	};
 }
 

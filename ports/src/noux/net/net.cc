@@ -15,14 +15,15 @@
 /* Genode includes */
 #include <cap_session/connection.h>
 #include <dataspace/client.h>
+#include <base/lock.h>
 
 #include <lwip/genode.h>
 
 /* Noux includes */
 #include <child.h>
-#include <socket_descriptor_registry.h>
 #include <socket_io_channel.h>
 #include <shared_pointer.h>
+#include <io_receptor_registry.h>
 
 /* Libc includes */
 #include <sys/select.h>
@@ -32,79 +33,30 @@
 using namespace Noux;
 
 void (*libc_select_notify)();
-void (*close_socket)(int);
-void (*cleanup_socket_descriptors)();
 
-/* set select() timeout to lwip's lowest possible value */
-struct timeval timeout = { 0, 10000 };
+/* helper macro for casting the backend */
+#define GET_SOCKET_IO_CHANNEL_BACKEND(backend, name) \
+	Socket_io_channel_backend *name = \
+	dynamic_cast<Socket_io_channel_backend*>(backend)
 
+static Genode::Lock _select_notify_lock;
 
 /**
  * This callback function is called from lwip via the libc_select_notify
  * function pointer if an event occurs.
  */
-
 static void select_notify()
 {
-	fd_set readfds;
-	fd_set writefds;
-	fd_set exceptfds;
-	int ready;
+	/*
+	 * The function could be called multiple times while actually
+	 * still running.
+	 */
+	Genode::Lock::Guard guard(_select_notify_lock);
 
-	FD_ZERO(&readfds);
-	FD_ZERO(&writefds);
-	FD_ZERO(&exceptfds);
-
-	/* for now set each currently used socket descriptor true */
-	for (int sd = 0; sd < MAX_SOCKET_DESCRIPTORS; sd++) {
-		if (Socket_descriptor_registry<Socket_io_channel>::instance()->sd_in_use(sd)) {
-			int real_sd = Socket_descriptor_registry<Socket_io_channel>::instance()->io_channel_by_sd(sd)->get_socket();
-
-			FD_SET(real_sd, &readfds);
-			FD_SET(real_sd, &writefds);
-			FD_SET(real_sd, &exceptfds);
-		}
+	for (Io_receptor *r = io_receptor_registry()->first();
+	     r != 0; r = r->next()) {
+		r->check_and_wakeup();
 	}
-
-	ready = ::select(MAX_SOCKET_DESCRIPTORS, &readfds, &writefds, &exceptfds, &timeout);
-
-	/* if any socket is ready for reading */
-	if (ready > 0) {
-		for (int sd = 0; sd < MAX_SOCKET_DESCRIPTORS; sd++) {
-			if (Socket_descriptor_registry<Socket_io_channel>::instance()->sd_in_use(sd)) {
-				int real_sd = Socket_descriptor_registry<Socket_io_channel>::instance()->io_channel_by_sd(sd)->get_socket();
-
-				if (FD_ISSET(real_sd, &readfds)
-					|| FD_ISSET(real_sd, &writefds)
-					|| FD_ISSET(real_sd, &exceptfds)) {
-					Shared_pointer<Socket_io_channel> sio = Socket_descriptor_registry<Socket_io_channel>::instance()->io_channel_by_sd(sd);
-
-					if (FD_ISSET(real_sd, &readfds))
-						sio->set_unblock(true, false, false);
-					if (FD_ISSET(real_sd, &writefds))
-						sio->set_unblock(false, true, false);
-					if (FD_ISSET(real_sd, &exceptfds))
-						sio->set_unblock(false, false, true);
-
-					sio->invoke_all_notifiers();
-				}
-			}
-		}
-	}
-}
-
-
-static void _close_socket(int sd)
-{
-	if (Socket_descriptor_registry<Socket_io_channel>::instance()->sd_in_use(sd)) {
-		Socket_descriptor_registry<Socket_io_channel>::instance()->remove_io_channel(sd);
-	}
-}
-
-
-static void _cleanup_socket_descriptors()
-{
-	Socket_descriptor_registry<Socket_io_channel>::instance()->reset_all();
 }
 
 
@@ -127,22 +79,11 @@ void init_network()
 
 	if (!libc_select_notify)
 		libc_select_notify = select_notify;
-
-	if (!close_socket)
-		close_socket = _close_socket;
-
-	if (!cleanup_socket_descriptors)
-		cleanup_socket_descriptors = _cleanup_socket_descriptors;
 }
 
 /*********************************
  ** Noux net syscall dispatcher **
  *********************************/
-
-#define GET_SOCKET_IO_CHANNEL(fd, handle)                      \
-	Shared_pointer<Io_channel> io = _lookup_channel(fd);   \
-	Shared_pointer<Socket_io_channel> handle =             \
-		io.dynamic_pointer_cast<Socket_io_channel>();
 
 bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 {
@@ -184,7 +125,9 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 			{
 				Socket_io_channel *socket_io_channel = new Socket_io_channel();
 
-				if (!socket_io_channel->socket(_sysio)) {
+				GET_SOCKET_IO_CHANNEL_BACKEND(socket_io_channel->backend(), backend);
+
+				if (!backend->socket(_sysio)) {
 					delete socket_io_channel;
 					return false;
 				}
@@ -193,155 +136,112 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 
 				_sysio->socket_out.fd = add_io_channel(io_channel);
 
-				/* add socket to registry */
-				Socket_descriptor_registry<Socket_io_channel>::instance()->add_io_channel(io_channel.dynamic_pointer_cast<Socket_io_channel>(),
-						_sysio->socket_out.fd);
-
 				return true;
 			}
 		case SYSCALL_GETSOCKOPT:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->getsockopt_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->getsockopt_in.fd);
 
-				if (!socket_io_channel->getsockopt(_sysio))
-					return false;
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return true;
+				return backend->getsockopt(_sysio);
 			}
 		case SYSCALL_SETSOCKOPT:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->setsockopt_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->setsockopt_in.fd);
 
-				if (!socket_io_channel->setsockopt(_sysio)) {
-					return false;
-				}
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return true;
+				return backend->setsockopt(_sysio);
 			}
 		case SYSCALL_ACCEPT:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->accept_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->accept_in.fd);
 
-				int new_socket = socket_io_channel->accept(_sysio);
-				if (new_socket == -1)
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
+
+				int socket = backend->accept(_sysio);
+				if (socket == -1)
 					return false;
 
-				Socket_io_channel *new_socket_io_channel = new Socket_io_channel(new_socket);
-				Shared_pointer<Io_channel> channel(new_socket_io_channel, Genode::env()->heap());
+				Socket_io_channel *socket_io_channel = new Socket_io_channel(socket);
+				Shared_pointer<Io_channel> io_channel(socket_io_channel, Genode::env()->heap());
 
-				_sysio->accept_out.fd = add_io_channel(channel);
-
-				/* add new socket to registry */
-				Socket_descriptor_registry<Socket_io_channel>::instance()->add_io_channel(channel.dynamic_pointer_cast<Socket_io_channel>(),
-					_sysio->accept_out.fd);
+				_sysio->accept_out.fd = add_io_channel(io_channel);
 
 				return true;
 			}
 		case SYSCALL_BIND:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->bind_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->bind_in.fd);
 
-				if (socket_io_channel->bind(_sysio) == -1)
-					return false;
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return true;
+				return (backend->bind(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_LISTEN:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->listen_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->listen_in.fd);
 
-				if (socket_io_channel->listen(_sysio) == -1)
-					return false;
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				return true;
+				return (backend->listen(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_SEND:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->send_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->send_in.fd);
 
-				ssize_t len = socket_io_channel->send(_sysio);
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				if (len == -1)
-					return false;
-
-				_sysio->send_out.len = len;
-
-				return true;
+				return (backend->send(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_SENDTO:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->sendto_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->sendto_in.fd);
 
-				ssize_t len = socket_io_channel->sendto(_sysio);
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				if (len == -1)
-					return false;
-
-				_sysio->sendto_out.len = len;
-
-				return true;
+				return (backend->sendto(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_RECV:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->recv_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->recv_in.fd);
 
-				ssize_t len = socket_io_channel->recv(_sysio);
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				if (len == -1)
-					return false;
-
-				_sysio->recv_out.len = len;
-
-				return true;
+				return (backend->recv(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_RECVFROM:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->recvfrom_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->recvfrom_in.fd);
 
-				ssize_t len = socket_io_channel->recvfrom(_sysio);
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				if (len == -1)
-					return false;
-
-				_sysio->recvfrom_out.len = len;
-
-				return true;
+				return (backend->recvfrom(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_GETPEERNAME:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->getpeername_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->getpeername_in.fd);
 
-				int res = socket_io_channel->getpeername(_sysio);
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				if (res == -1)
-					return false;
-
-				return true;
+				return (backend->getpeername(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_SHUTDOWN:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->shutdown_in.fd, socket_io_channel)
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->shutdown_in.fd);
 
-				int res = socket_io_channel->shutdown(_sysio);
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				if (res == -1)
-					return false;
-
-				/* remove sd from registry */
-				_close_socket(_sysio->shutdown_in.fd);
-
-				return true;
+				return (backend->shutdown(_sysio) == -1) ? false : true;
 			}
 		case SYSCALL_CONNECT:
 			{
-				GET_SOCKET_IO_CHANNEL(_sysio->connect_in.fd, socket_io_channel);
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->connect_in.fd);
 
-				int res = socket_io_channel->connect(_sysio);
+				GET_SOCKET_IO_CHANNEL_BACKEND(io->backend(), backend);
 
-				if (res == -1)
-					return false;
-
-				return true;
+				return (backend->connect(_sysio) == -1) ? false : true;
 			}
 	}
 

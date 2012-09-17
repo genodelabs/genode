@@ -38,9 +38,8 @@ namespace Noux {
 
 	bool is_init_process(Child *child) { return child == init_child; }
 	void init_process_exited() { init_child = 0; }
-};
 
-extern void (*close_socket)(int);
+};
 
 extern void init_network();
 
@@ -230,13 +229,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_CLOSE:
 			{
-				/**
-				 * We have to explicitly close Socket_io_channel fd's because
-				 * these are currently handled separately.
-				 */
-				if (close_socket)
-					close_socket(_sysio->close_in.fd);
-
 				remove_io_channel(_sysio->close_in.fd);
 				return true;
 			}

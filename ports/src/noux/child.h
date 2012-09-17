@@ -31,8 +31,6 @@
 #include <cpu_session_component.h>
 #include <child_policy.h>
 
-extern void (*cleanup_socket_descriptors)();
-
 namespace Noux {
 
 	/**
@@ -73,7 +71,6 @@ namespace Noux {
 	 */
 	class User_info;
 	User_info *user_info();
-
 
 	class Child;
 
@@ -338,10 +335,6 @@ namespace Noux {
 
 			~Child()
 			{
-				/* short-cut to close all remaining open sd's if the child exits */
-				if (cleanup_socket_descriptors)
-					cleanup_socket_descriptors();
-
 				_sig_rec->dissolve(&_execve_cleanup_dispatcher);
 				_sig_rec->dissolve(&_exit_dispatcher);
 
