@@ -59,7 +59,7 @@ set config  {
 		<provides><service name="Block"/></provides>
 	</start>
 	<start name="usb_drv">
-		<resource name="RAM" quantum="6M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides>
 			<service name="Input"/>
 			<service name="Nic"/>
