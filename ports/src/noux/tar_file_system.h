@@ -344,11 +344,12 @@ namespace Noux {
 						PDBG("unhandled record type %d", record->type());
 				}
 
-				sysio->stat_out.st.mode  = mode;
-				sysio->stat_out.st.size  = record->size();
-				sysio->stat_out.st.uid   = record->uid();
-				sysio->stat_out.st.gid   = record->gid();
-				sysio->stat_out.st.inode = (unsigned long)record;
+				memset(&sysio->stat_out.st, 0, sizeof(sysio->stat_out.st));
+				sysio->stat_out.st.mode   = mode;
+				sysio->stat_out.st.size   = record->size();
+				sysio->stat_out.st.uid    = record->uid();
+				sysio->stat_out.st.gid    = record->gid();
+				sysio->stat_out.st.inode  = (unsigned long)record;
 				return true;
 			}
 

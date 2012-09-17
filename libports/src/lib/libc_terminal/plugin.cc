@@ -162,7 +162,10 @@ namespace {
 				 * This is important, i.e., to convince the gdbserver code to
 				 * cooperate with us.
 				 */
-				if (buf) buf->st_mode = S_IFCHR;
+				if (buf) {
+					Genode::memset(buf, 0, sizeof(struct stat));
+					buf->st_mode = S_IFCHR;
+				}
 				return 0;
 			}
 

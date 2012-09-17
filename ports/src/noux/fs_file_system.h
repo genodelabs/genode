@@ -189,6 +189,8 @@ namespace Noux {
 					return false;
 				}
 
+				memset(&sysio->stat_out.st, 0, sizeof(sysio->stat_out.st));
+
 				sysio->stat_out.st.size = status.size;
 
 				sysio->stat_out.st.mode = Sysio::STAT_MODE_FILE | 0777;
