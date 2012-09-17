@@ -37,6 +37,7 @@ class Boot_module_provider
 		 * Exception class
 		 */
 		class Destination_buffer_too_small { };
+		class Module_loading_failed { };
 
 		/**
 		 * Constructor
@@ -107,10 +108,13 @@ class Boot_module_provider
 				PWRN("XML node %d in multiboot node has unexpected type",
 				     module_index);
 
-				return 0;
+				throw Module_loading_failed();
 			}
 			catch (Xml_node::Nonexistent_sub_node) { }
 			catch (Xml_node::Nonexistent_attribute) { }
+			catch (...) {
+				throw Module_loading_failed();
+			}
 
 			/*
 			 * We should get here only if there are XML parsing errors

@@ -847,7 +847,11 @@ class Machine : public StaticReceiver<Machine>
 					try {
 						data_len = _boot_modules.data(index, data_dst, dst_len);
 					} catch (Boot_module_provider::Destination_buffer_too_small) {
-						Logging::printf("could not load module, destination buffer too small\n");
+						Logging::panic("could not load module, destination buffer too small\n");
+						return false;
+					} catch (Boot_module_provider::Module_loading_failed) {
+						Logging::panic("could not load module %d,"
+						               " unknown reason\n", index);
 						return false;
 					}
 
