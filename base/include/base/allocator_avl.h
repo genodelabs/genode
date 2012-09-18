@@ -257,13 +257,15 @@ namespace Genode {
 	{
 		private:
 
+			enum { SLAB_BLOCK_SIZE = 256 * sizeof(addr_t) };
+
 			/*
 			 * Pump up the Block class with custom meta-data type
 			 */
 			class Block : public Allocator_avl_base::Block, public BMDT { };
 
-			Tslab<Block,1024> _metadata;    /* meta-data allocator            */
-			char _initial_md_block[1024];   /* first (static) meta-data block */
+			Tslab<Block,SLAB_BLOCK_SIZE> _metadata;  /* meta-data allocator            */
+			char _initial_md_block[SLAB_BLOCK_SIZE]; /* first (static) meta-data block */
 
 		public:
 
