@@ -59,7 +59,7 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="568K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
