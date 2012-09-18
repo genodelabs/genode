@@ -136,7 +136,7 @@ namespace Net {
 				/* if udp length is odd, append a zero byte */
 				if (length() & 1) {
 					Genode::uint8_t last[] =
-						{ *(Genode::uint8_t*)this + (length()-1), 0 };
+						{ *((Genode::uint8_t*)this + (length()-1)), 0 };
 					sum += bswap(*(Genode::uint16_t*)&last);
 				}
 
