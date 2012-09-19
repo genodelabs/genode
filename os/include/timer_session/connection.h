@@ -28,7 +28,8 @@ namespace Timer {
 			 * we donate two pages. One of them is used as stack for the
 			 * timer thread and the other page holds the session meta data.
 			 */
-			Genode::Connection<Session>(session("ram_quota=8K")),
+			Genode::Connection<Session>(session("ram_quota=%zd",
+			                                    sizeof(Genode::addr_t)*2048)),
 
 			Session_client(cap())
 		{ }

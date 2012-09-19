@@ -55,7 +55,7 @@ static Fiasco::l4_timeout_s mus_to_timeout(unsigned int mus)
 
 namespace Timer {
 
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = 1024 * sizeof(Genode::addr_t) };
 
 	/**
 	 * Timer session
