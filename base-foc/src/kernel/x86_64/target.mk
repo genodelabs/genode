@@ -1,5 +1,4 @@
 REQUIRES      = x86 64bit
-FIASCO_DIR    = $(REP_DIR)/contrib/kernel/fiasco
-KERNEL_CONFIG = $(FIASCO_DIR)/src/templates/globalconfig.out.amd64-mp
+KERNEL_CONFIG = $(REP_DIR)/config/x86_64.kernel
 
 -include $(PRG_DIR)/../target.inc
