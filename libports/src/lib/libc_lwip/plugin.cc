@@ -272,7 +272,6 @@ Libc::File_descriptor *Plugin::accept(Libc::File_descriptor *sockfdo,
 	int lwip_fd = lwip_accept(get_lwip_fd(sockfdo), (struct lwip_sockaddr*)addr, addrlen);
 
 	if (lwip_fd == -1) {
-		PERR("lwip_accept() failed");
 		return 0;
 	}
 

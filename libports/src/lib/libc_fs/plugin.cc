@@ -176,7 +176,9 @@ static inline Plugin_context *context(Libc::File_descriptor *fd)
 static void wait_for_acknowledgement(File_system::Session::Tx::Source &source)
 {
 	::File_system::Packet_descriptor packet = source.get_acked_packet();
-	PDBG("got acknowledgement for packet of size %zd", packet.size());
+	
+	if (verbose)
+		PDBG("got acknowledgement for packet of size %zd", packet.size());
 
 	static_cast<Plugin_context *>(packet.ref())->in_flight = false;
 
@@ -224,7 +226,7 @@ static void obtain_stat_for_node(File_system::Node_handle node_handle,
 
 	buf->st_mtime = mktime(&tm);
 
-	if (buf->st_mtime == -1)
+	if (buf->st_mtime == -1 && verbose)
 		PERR("mktime() returned -1, the file modification time reported by stat() will be incorrect");
 }
 
@@ -317,7 +319,8 @@ class Plugin : public Libc::Plugin
 		{
 			/* wait for the completion of all operations of the context */
 			while (context(fd)->in_flight) {
-				PDBG("wait_for_acknowledgement");
+				if (verbose)
+					PDBG("wait_for_acknowledgement");
 				wait_for_acknowledgement(*file_system()->tx());
 			}
 
@@ -331,7 +334,6 @@ class Plugin : public Libc::Plugin
 
 		int fcntl(Libc::File_descriptor *, int cmd, long arg)
 		{
-			PDBG("not implemented");
 			/* libc's opendir() fails if fcntl() returns -1, so we return 0 here */
 			if (verbose)
 				PDBG("fcntl() called - not yet implemented");
@@ -353,7 +355,6 @@ class Plugin : public Libc::Plugin
 
 		int fstatfs(Libc::File_descriptor *, struct statfs *buf)
 		{
-			PDBG("not implemented");
 			/* libc's opendir() fails if _fstatfs() returns -1, so we return 0 here */
 			if (verbose)
 				PDBG("_fstatfs() called - not yet implemented");
@@ -362,7 +363,8 @@ class Plugin : public Libc::Plugin
 
 		int fsync(Libc::File_descriptor *fd)
 		{
-			PDBG("not implemented");
+			if (verbose)
+				PDBG("not implemented");
 			return -1;
 		}
 
@@ -495,7 +497,8 @@ class Plugin : public Libc::Plugin
 			 * Probe for an existing directory to open
 			 */
 			try {
-				PDBG("open dir '%s'", path.str);
+				if (verbose)
+					PDBG("open dir '%s'", path.str);
 				File_system::Dir_handle const handle =
 					file_system()->dir(path.str, false);
 
@@ -572,7 +575,8 @@ class Plugin : public Libc::Plugin
 
 		int rename(const char *oldpath, const char *newpath)
 		{
-			PDBG("not implemented");
+			if (verbose)
+				PDBG("not implemented");
 			return -1;
 		}
 
@@ -647,7 +651,8 @@ class Plugin : public Libc::Plugin
 
 		int stat(const char *pathname, struct stat *buf)
 		{
-			PDBG("stat %s", pathname);
+			if (verbose)
+				PDBG("stat %s", pathname);
 			Canonical_path path(pathname);
 
 			try {
@@ -713,7 +718,8 @@ class Plugin : public Libc::Plugin
 				}
 			}
 
-			PDBG("write returns %zd", count);
+			if (verbose)
+				PDBG("write returns %zd", count);
 			return count;
 		}
 

@@ -19,9 +19,6 @@
 extern "C" __attribute__((weak))
 int clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
-	if (clk_id != CLOCK_MONOTONIC)
-		PWRN("Unsupported clk_id, using CLOCK_MONOTONIC instead.");
-
 	Genode::Alarm::Time time = Genode::Timeout_thread::alarm_timer()->time();
 
 	if (tp) {
