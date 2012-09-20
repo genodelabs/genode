@@ -92,7 +92,7 @@ CC_WARN   ?= -Wall
 #
 # Aggregate compiler options that are common for C and C++
 #
-CC_OPT += $(CC_OPT_NOSTDINC) -g $(CC_MARCH) $(CC_OLEVEL) $(CC_OPT_DEP) $(CC_WARN) $(CC_OPT_CHECKCC)
+CC_OPT += $(CC_OPT_NOSTDINC) -g $(CC_MARCH) $(CC_OLEVEL) $(CC_OPT_DEP) $(CC_WARN)
 
 #
 # Incorporate source-file-specific compiler options

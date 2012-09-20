@@ -71,20 +71,6 @@ select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard 
 
 include $(BASE_DIR)/mk/global.mk
 
-#
-# Some compilers do not support the compiler arguments that we use with 'gcc'
-# and, consequently, spit errors. Hence, we have to check if the compiler
-# arguments are supported and drop them in the other case. We cache the result
-# of the check in the CC_OPT_CHECKCC variable. The caching improves the build
-# performance by 5 to 10 percent.
-#
-checkcc = $(shell if $(CUSTOM_CC) $(1) -o /dev/null -xc - <<< 'int main(void){return 0;}' &> /dev/null; then echo "$(1)" ; fi ;)
-
-CC_OPT_CHECKCC  = $(call checkcc, -static)
-CC_OPT_CHECKCC += $(call checkcc, -fno-stack-protector)
-
-export CC_OPT_CHECKCC
-
 export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-name`)/include
 
 #
