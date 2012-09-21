@@ -177,9 +177,9 @@ namespace Genode {
 			 */
 			void _canonicalize()
 			{
+				strip_superfluous_slashes(_path);
 				strip_superfluous_dotslashes(_path);
 				strip_double_dot_dirs(_path);
-				strip_superfluous_slashes(_path);
 				remove_trailing('.', _path);
 			}
 
