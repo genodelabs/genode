@@ -31,15 +31,15 @@ namespace Genode {
 	 */
 	template <typename T>
 	static inline T _align_mask(T align) {
-		return ~((1 << align) - 1); }
+		return ~(((T)1 << align) - 1); }
 
 	template <typename T>
 	static inline T _align_offset(T align) {
-		return   (1 << align) - 1;  }
+		return   ((T)1 << align) - 1;  }
 
 	template <typename T>
 	static inline T align_addr(T addr, int align) {
-		return (addr + _align_offset(align)) & _align_mask(align); }
+		return (addr + _align_offset(align)) & _align_mask((T)align); }
 
 
 	/**
@@ -52,7 +52,7 @@ namespace Genode {
 	{
 		if (!value) return -1;
 		for (int i = 8 * sizeof(value) - 1; i >= 0; --i)
-			if ((1 << i) & value) return i;
+			if (((T)1 << i) & value) return i;
 
 		return -1;
 	}
