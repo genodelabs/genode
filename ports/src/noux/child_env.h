@@ -128,10 +128,12 @@ namespace Noux {
 
 				/* append interpreter arguments to argument buffer */
 				size_t interpreter_args_len = eol - interpreter_line_cursor;
-				Genode::strncpy(&_args[args_buf_cursor],
-				                &binary_addr[interpreter_line_cursor],
-				                interpreter_args_len + 1);
-				args_buf_cursor += interpreter_args_len + 1;
+				if (interpreter_args_len > 0) {
+					Genode::strncpy(&_args[args_buf_cursor],
+									&binary_addr[interpreter_line_cursor],
+									interpreter_args_len + 1);
+					args_buf_cursor += interpreter_args_len + 1;
+				}
 
 				/* append script arguments to argument buffer */
 				Genode::memcpy(&_args[args_buf_cursor],

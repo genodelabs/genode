@@ -101,12 +101,18 @@ append config {
 			<content>
 				<dir name="home">
 					<dir name="user">
-						<inline name=".bash_profile">/home/test_script correct</inline>
-						<inline name="test_script">#!/bin/make -f
+						<inline name=".bash_profile">
+							/home/test_script1 correct
+							/home/test_script2 "execution of test_script2 succeeded"
+						</inline>
+						<inline name="test_script1">#!/bin/make -f
 wrong:
-	@echo "wrong target"
+	@echo "execution of test_script1 failed"
 correct:
-	@echo "correct target"
+	@echo "execution of test_script1 succeeded"
+						</inline>
+						<inline name="test_script2">#!/bin/bash
+echo "$1"
 						</inline>
 					</dir>
 				</dir>
