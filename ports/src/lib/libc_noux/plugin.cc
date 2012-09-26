@@ -1152,7 +1152,7 @@ namespace {
 
 			case Noux::Sysio::ERR_FD_INVALID:
 				errno = EBADF;
-				PERR("dirent: ERR_FD_INVALID");
+				PERR("lseek: ERR_FD_INVALID");
 				return -1;
 
 			case Noux::Sysio::NUM_GENERAL_ERRORS: return -1;
