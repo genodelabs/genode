@@ -23,6 +23,7 @@
 #include <timer.h>
 #include <ring_buffer.h>
 #include <thread.h>
+#include <verbose.h>
 
 
 namespace Lwip {
@@ -352,12 +353,13 @@ extern "C" {
 	{
 		if(global_mutex()->thread != Genode::Thread_base::myself())
 			return;
-		if(global_mutex()->counter > 0)
+		if(global_mutex()->counter > 1)
 			global_mutex()->counter--;
 		else {
+			global_mutex()->counter = 0;
 			global_mutex()->thread = 0;
 			global_mutex()->lock.unlock();
-			}
+		}
 	}
 
 
@@ -456,7 +458,8 @@ extern "C" {
 				_mbox->add(msg);
 				return;
 			} catch (Mailbox::Overflow) {
-				PWRN("Overflow exception!");
+				if (verbose)
+					PWRN("Overflow exception!");
 			} catch (...) {
 				PERR("Unknown Exception occured!");
 			}
@@ -481,7 +484,8 @@ extern "C" {
 			_mbox->add(msg);
 			return ERR_OK;
 		} catch (Mailbox::Overflow) {
-			PWRN("Overflow exception!");
+			if (verbose)
+				PWRN("Overflow exception!");
 		} catch (...) {
 			PERR("Unknown Exception occured!");
 		}

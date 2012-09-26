@@ -54,7 +54,7 @@ append_if [have_spec pci] config {
 	</start>}
 
 append_if [have_spec omap4] config {
-	<start name="usb_drv" priority="-1">
+	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides>
 			<service name="Input"/>

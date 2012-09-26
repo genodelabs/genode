@@ -23,6 +23,7 @@ extern "C" {
 #include <netif/etharp.h>
 #include <netif/ppp_oe.h>
 #include <nic.h>
+#include <verbose.h>
 }
 
 /* Genode includes */
@@ -217,7 +218,8 @@ extern "C" {
 		if (p == NULL) return;
 
 		if (netif->input(p, netif) != ERR_OK) {
-			PERR("genode_netif_input: input error");
+			if (verbose)
+				PERR("genode_netif_input: input error");
 			pbuf_free(p);
 			p = 0;
 		}
