@@ -187,9 +187,10 @@ namespace Noux {
 			{
 				path = _sub_path(path);
 
+				sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
+
 				/* path does not match directory name */
 				if (!path) {
-					sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
 					return false;
 				}
 
@@ -209,12 +210,24 @@ namespace Noux {
 				 * The given path refers to one of our sub directories.
 				 * Propagate the request into our file systems.
 				 */
-				for (File_system *fs = _first_file_system; fs; fs = fs->next)
-					if (fs->stat(sysio, path))
+				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+					if (fs->stat(sysio, path)) {
 						return true;
+					} else {
+						/*
+						 * Keep the most meaningful error code. When using
+						 * stacked file systems, most child file systems will
+						 * eventually return 'STAT_ERR_NO_ENTRY' (or leave
+						 * the error code unchanged). If any of those file
+						 * systems has anything more interesting to tell,
+						 * return this information.
+						 */
+						if (sysio->error.stat != Sysio::STAT_ERR_NO_ENTRY)
+							return false;
+					}
+				}
 
 				/* none of our file systems felt responsible for the path */
-				sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
 				return false;
 			}
 
@@ -410,9 +423,10 @@ namespace Noux {
 			{
 				path = _sub_path(path);
 
+				sysio->error.unlink = Sysio::UNLINK_ERR_NO_ENTRY;
+
 				/* path does not match directory name */
 				if (!path) {
-					sysio->error.unlink = Sysio::UNLINK_ERR_NO_ENTRY;
 					return false;
 				}
 
@@ -431,35 +445,35 @@ namespace Noux {
 				 * systems. If at least one unlink operation succeeded, we
 				 * return success.
 				 */
-				bool unlink_ret = false;
-				Sysio::Unlink_error error = Sysio::UNLINK_ERR_NO_ENTRY;
 				for (File_system *fs = _first_file_system; fs; fs = fs->next)
 					if (fs->unlink(sysio, path)) {
-						unlink_ret = true;
+						return true;
 					} else {
 						/*
 						 * Keep the most meaningful error code. When using
 						 * stacked file systems, most child file systems will
-						 * eventually return 'UNLINK_ERR_NO_ENTRY'. If any of
-						 * those file systems has anything more interesting to
-						 * tell (in particular 'UNLINK_ERR_NO_PERM'), return
+						 * eventually return 'UNLINK_ERR_NO_ENTRY' (or leave
+						 * the error code unchanged). If any of those file
+						 * systems has anything more interesting to tell
+						 * (in particular 'UNLINK_ERR_NO_PERM'), return
 						 * this information.
 						 */
 						if (sysio->error.unlink != Sysio::UNLINK_ERR_NO_ENTRY)
-							error = sysio->error.unlink;
+							return false;
 					}
 
-				sysio->error.unlink = error;
-				return unlink_ret;
+				/* none of our file systems could successfully unlink the path */
+				return false;
 			}
 
 			bool rename(Sysio *sysio, char const *from_path, char const *to_path)
 			{
 				from_path = _sub_path(from_path);
 
+				sysio->error.rename = Sysio::RENAME_ERR_NO_ENTRY;
+
 				/* path does not match directory name */
 				if (!from_path) {
-					sysio->error.rename = Sysio::RENAME_ERR_NO_ENTRY;
 					return false;
 				}
 
@@ -483,9 +497,22 @@ namespace Noux {
 				}
 
 				/* path refers to any of our sub file systems */
-				for (File_system *fs = _first_file_system; fs; fs = fs->next)
-					if (fs->rename(sysio, from_path, to_path))
+				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+					if (fs->rename(sysio, from_path, to_path)) {
 						return true;
+					} else {
+						/*
+						 * Keep the most meaningful error code. When using
+						 * stacked file systems, most child file systems will
+						 * eventually return 'RENAME_ERR_NO_ENTRY' (or leave
+						 * the error code unchanged). If any of those file
+						 * systems has anything more interesting to tell,
+						 * return this information.
+						 */
+						if (sysio->error.rename != Sysio::RENAME_ERR_NO_ENTRY)
+							return false;
+					}
+				}
 
 				/* none of our file systems could successfully rename the path */
 				return false;
@@ -495,9 +522,10 @@ namespace Noux {
 			{
 				path = _sub_path(path);
 
+				sysio->error.mkdir = Sysio::MKDIR_ERR_NO_ENTRY;
+
 				/* path does not match directory name */
 				if (!path) {
-					sysio->error.mkdir = Sysio::MKDIR_ERR_NO_ENTRY;
 					return false;
 				}
 
@@ -511,9 +539,22 @@ namespace Noux {
 				}
 
 				/* path refers to any of our sub file systems */
-				for (File_system *fs = _first_file_system; fs; fs = fs->next)
-					if (fs->mkdir(sysio, path))
+				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+					if (fs->mkdir(sysio, path)) {
 						return true;
+					} else {
+						/*
+						 * Keep the most meaningful error code. When using
+						 * stacked file systems, most child file systems will
+						 * eventually return 'MKDIR_ERR_NO_ENTRY' (or leave
+						 * the error code unchanged). If any of those file
+						 * systems has anything more interesting to tell,
+						 * return this information.
+						 */
+						if (sysio->error.mkdir != Sysio::MKDIR_ERR_NO_ENTRY)
+							return false;
+					}
+				}
 
 				/* none of our file systems could create the directory */
 				return false;
