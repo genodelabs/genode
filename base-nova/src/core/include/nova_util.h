@@ -56,11 +56,12 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 
 	/* establish the mapping via a portal traversal during reply phase */
 	Nova::uint8_t res = Nova::call(echo()->pt_sel());
-	if (res != 0 || utcb->msg_words() != 1 || !utcb->msg[0]) {
-		PERR("Failure - map_local 0x%lx:%lu:%u->0x%lx:%lu:%u - call result=%x utcb=%x:%lx !!!",
+	if (res != Nova::NOVA_OK || utcb->msg_words() != 1 || !utcb->msg[0]) {
+		PERR("Failure - map_local 0x%lx:%lu:%u->0x%lx:%lu:%u - call result=%x"
+		     " utcb=%x:%lx !!! %p %u",
 		     src_crd.addr(), src_crd.order(), src_crd.type(),
 		     dst_crd.addr(), dst_crd.order(), dst_crd.type(),
-		     res, utcb->msg_words(), utcb->msg[0]);
+		     res, utcb->msg_words(), utcb->msg[0], utcb, kern_pd);
 		return res > 0 ? res : -1;
 	}
 	/* clear receive window */

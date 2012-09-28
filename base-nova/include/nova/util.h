@@ -23,8 +23,8 @@ inline void nova_die(const char * text = 0)
 	/*
 	 * If thread is de-constructed the sessions are already gone.
 	 * Be careful when enabling printf here.
-         */
-    	while (1)
+	 */
+	while (1)
 		asm volatile ("ud2a" : : "a"(text));
 }
 

@@ -76,9 +76,7 @@
 		l4_atomic_cmpxchg;
 
 		/* Nova */
-		__main_thread_utcb;
 		__first_free_cap_selector;
-		__local_pd_sel;
 
 		extern "C++" {
 			main_thread_utcb*;

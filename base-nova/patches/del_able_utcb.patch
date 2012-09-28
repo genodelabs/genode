@@ -1,0 +1,45 @@
+diff --git a/src/ec.cpp b/src/ec.cpp
+index 5d5a66c..a69cfef 100644
+--- a/src/ec.cpp
++++ b/src/ec.cpp
+@@ -64,6 +64,8 @@ Ec::Ec (Pd *own, mword sel, Pd *p, void (*f)(), unsigned c, unsigned e, mword u,
+ 
+         trace (TRACE_SYSCALL, "EC:%p created (PD:%p CPU:%#x UTCB:%#lx ESP:%lx EVT:%#x)", this, p, c, u, s, e);
+ 
++        pd->insert_utcb (u, Buddy::ptr_to_phys(utcb) >> 12);
++
+     } else {
+ 
+         regs.dst_portal = NUM_VMI - 2;
+diff --git a/src/space_mem.cpp b/src/space_mem.cpp
+index 5341836..60e2fdc 100644
+--- a/src/space_mem.cpp
++++ b/src/space_mem.cpp
+@@ -132,12 +132,12 @@ void Space_mem::insert_root (uint64 s, uint64 e, mword a)
+     }
+ }
+ 
+-bool Space_mem::insert_utcb (mword b)
++bool Space_mem::insert_utcb (mword b, mword phys)
+ {
+     if (!b)
+         return true;
+ 
+-    Mdb *mdb = new Mdb (this, 0, b >> PAGE_BITS, 0);
++    Mdb *mdb = new Mdb (this, phys, b >> PAGE_BITS, 0, 0x3);
+ 
+     if (tree_insert (mdb))
+         return true;
+diff --git a/include/space_mem.h b/include/space_mem.h
+index e155dad..1584395 100644
+--- a/include/space_mem.h
++++ b/include/space_mem.h
+@@ -68,7 +68,7 @@ class Space_mem : public Space
+         INIT
+         void insert_root (uint64, uint64, mword = 0x7);
+ 
+-        bool insert_utcb (mword);
++        bool insert_utcb (mword, mword = 0);
+ 
+         void update (Mdb *, mword = 0);
+ 

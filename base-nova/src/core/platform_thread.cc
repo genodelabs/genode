@@ -55,12 +55,10 @@ int Platform_thread::start(void *ip, void *sp)
 		return -2;
 	}
 
-	_pager->initial_eip((addr_t)ip);
 	if (!_is_main_thread) {
 		addr_t initial_sp = reinterpret_cast<addr_t>(sp);
 		addr_t utcb       = _is_vcpu ? 0 : round_page(initial_sp);
 
-		_pager->initial_esp(initial_sp);
 		if (_sel_exc_base == Native_thread::INVALID_INDEX) {
 			PERR("exception base not specified");
 			return -3;
@@ -72,12 +70,10 @@ int Platform_thread::start(void *ip, void *sp)
 		 * SM_SEL_EC_CLIENT and can be later on requested by the thread
 		 * the same way as STARTUP and PAGEFAULT portal.
 		 */
-		uint8_t res = Nova::create_sm(_pager->exc_pt_sel() +
-		                              SM_SEL_EC_CLIENT,
-		                              _pd->pd_sel(), 0);
+		addr_t  sm  = _pager->exc_pt_sel() + SM_SEL_EC_CLIENT;
+		uint8_t res = Nova::create_sm(sm, _pd->pd_sel(), 0);
 		if (res != Nova::NOVA_OK) {
-			PERR("creation of semaphore for new thread failed %u",
-			     res);
+			PERR("creation of semaphore for new thread failed %u", res);
 			return -4;
 		}
 
@@ -86,12 +82,17 @@ int Platform_thread::start(void *ip, void *sp)
 
 		res = create_ec(_sel_ec(), _pd->pd_sel(), _cpu_no, utcb,
 		                initial_sp, _sel_exc_base, thread_global);
-		if (res)
+		if (res != Nova::NOVA_OK) {
+			revoke(Obj_crd(sm, 0));
 			PERR("creation of new thread failed %u", res);
+			return -5;
+		}
 
+		_pager->initial_eip((addr_t)ip);
+		_pager->initial_esp(initial_sp);
 		_pager->client_set_ec(_sel_ec());
 
-		return res ? -5 : 0;
+		return 0;
 	}
 
 	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
@@ -106,8 +107,6 @@ int Platform_thread::start(void *ip, void *sp)
 	addr_t pd_utcb = Native_config::context_area_virtual_base() +
 	                 Native_config::context_area_virtual_size() -
 	                 get_page_size();
-
-	_pager->initial_esp(pd_utcb + get_page_size());
 
 	_sel_exc_base = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
 
@@ -176,7 +175,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	/* create task */
 	res = create_pd(pd_sel, pd_core_sel, initial_pts);
-	if (res) {
+	if (res != NOVA_OK) {
 		PERR("create_pd returned %d", res);
 		goto cleanup_pd;
 	}
@@ -185,7 +184,7 @@ int Platform_thread::start(void *ip, void *sp)
 	enum { THREAD_GLOBAL = true };
 	res = create_ec(_sel_ec(), pd_sel, _cpu_no, pd_utcb, 0, 0,
 	                THREAD_GLOBAL);
-	if (res) {
+	if (res != NOVA_OK) {
 		PERR("create_ec returned %d", res);
 		goto cleanup_pd;
 	}
@@ -196,16 +195,20 @@ int Platform_thread::start(void *ip, void *sp)
 	 */
 	_pd->assign_pd(pd_sel);
 	_pager->client_set_ec(_sel_ec());
+	_pager->initial_eip((addr_t)ip);
+	_pager->initial_esp((addr_t)sp);
 
 	/* Let the thread run */
 	res = create_sc(_sel_sc(), pd_sel, _sel_ec(), Qpd());
-	if (res) {
+	if (res != NOVA_OK) {
 		/**
 		 * Reset pd cap since thread got not running and pd cap will
 		 * be revoked during cleanup.
 		 */
 		_pd->assign_pd(Native_thread::INVALID_INDEX);
 		_pager->client_set_ec(Native_thread::INVALID_INDEX);
+		_pager->initial_eip(0);
+		_pager->initial_esp(0);
 
 		PERR("create_sc returned %d", res);
 		goto cleanup_ec;

@@ -20,13 +20,12 @@
 
 using namespace Genode;
 
-/**
- * Location of the main thread's UTCB, initialized by the startup code
- */
-Nova::mword_t __main_thread_utcb;
-
-
-Native_utcb *main_thread_utcb() { return (Native_utcb *)__main_thread_utcb; }
+Native_utcb *main_thread_utcb()
+{
+	return reinterpret_cast<Native_utcb *>(
+	       Native_config::context_area_virtual_base() +
+	       Native_config::context_area_virtual_size() - Nova::PAGE_SIZE_BYTE);
+}
 
 
 addr_t main_thread_running_semaphore() { return Nova::SM_SEL_EC; }
