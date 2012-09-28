@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <drivers/board/vea9x4.h>
+#include <drivers/board.h>
 #include <drivers/cpu/cortex_a9/core.h>
 #include <drivers/pic/pl390_base.h>
 
@@ -26,7 +26,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Vea9x4::LOCAL_DDR2_BASE, Vea9x4::LOCAL_DDR2_SIZE }
+		{ Board::LOCAL_DDR2_BASE, Board::LOCAL_DDR2_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -50,7 +50,7 @@ Native_region * Platform::_core_only_irq_regions(unsigned const i)
 		{ Cortex_a9::PRIVATE_TIMER_IRQ, 1 },
 
 		/* Core UART */
-		{ Vea9x4::PL011_0_IRQ, 1 }
+		{ Board::PL011_0_IRQ, 1 }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -60,8 +60,8 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Vea9x4::SMB_CS7_BASE, Vea9x4::SMB_CS7_SIZE },
-		{ Vea9x4::SMB_CS0_TO_CS6_BASE, Vea9x4::SMB_CS0_TO_CS6_SIZE }
+		{ Board::SMB_CS7_BASE, Board::SMB_CS7_SIZE },
+		{ Board::SMB_CS0_TO_CS6_BASE, Board::SMB_CS0_TO_CS6_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -72,11 +72,11 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* Core timer and PIC */
-		{ Vea9x4::CORTEX_A9_PRIVATE_MEM_BASE,
-		  Vea9x4::CORTEX_A9_PRIVATE_MEM_SIZE },
+		{ Board::CORTEX_A9_PRIVATE_MEM_BASE,
+		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* Core UART */
-		{ Vea9x4::PL011_0_MMIO_BASE, Vea9x4::PL011_0_MMIO_SIZE }
+		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

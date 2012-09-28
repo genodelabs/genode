@@ -11,15 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__BOARD__PBXA9_H_
-#define _INCLUDE__DRIVERS__BOARD__PBXA9_H_
+#ifndef _INCLUDE__DRIVERS__BOARD_H_
+#define _INCLUDE__DRIVERS__BOARD_H_
 
 namespace Genode
 {
 	/**
 	 * Driver for the Realview PBXA9 board
 	 */
-	struct Pbxa9
+	struct Board
 	{
 		enum
 		{
@@ -51,28 +51,13 @@ namespace Genode
 			PL011_0_IRQ       = 44,
 
 			/* timer */
-			SP804_0_MMIO_BASE = SOUTHBRIDGE_APB_BASE + 0x11000,
-			SP804_0_MMIO_SIZE = 4*1024,
-			SP804_0_IRQ       = 36,
-			SP804_0_CLOCK     = 1*1000*1000,
-
-			SP804_1_MMIO_BASE = SOUTHBRIDGE_APB_BASE + 0x12000,
-			SP804_1_MMIO_SIZE = 4*1024,
-			SP804_1_IRQ       = 37,
-			SP804_1_CLOCK     = 1*1000*1000,
-
-			SP804_2_MMIO_BASE = SOUTHBRIDGE_APB_BASE + 0x18000,
-			SP804_2_MMIO_SIZE = 4*1024,
-			SP804_2_IRQ       = 73,
-			SP804_2_CLOCK     = 1*1000*1000,
-
-			SP804_3_MMIO_BASE = SOUTHBRIDGE_APB_BASE + 0x19000,
-			SP804_3_MMIO_SIZE = 4*1024,
-			SP804_3_IRQ       = 74,
-			SP804_3_CLOCK     = 1*1000*1000,
+			SP804_0_1_MMIO_BASE = SOUTHBRIDGE_APB_BASE + 0x11000,
+			SP804_0_1_MMIO_SIZE = 4*1024,
+			SP804_0_1_IRQ       = 36,
+			SP804_0_1_CLOCK     = 1*1000*1000,
 		};
 	};
 }
 
-#endif /* _INCLUDE__DRIVERS__BOARD__PBXA9_H_ */
+#endif /* _INCLUDE__DRIVERS__BOARD_H_ */
 

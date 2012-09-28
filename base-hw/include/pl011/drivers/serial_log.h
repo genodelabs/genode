@@ -33,8 +33,8 @@ namespace Genode
 			 * \param baud_rate  targeted transfer baud-rate
 			 */
 			Serial_log(unsigned const baud_rate) :
-				Pl011_base(Board::LOG_PL011_MMIO_BASE,
-				           Board::LOG_PL011_CLOCK, baud_rate)
+				Pl011_base(Board::PL011_0_MMIO_BASE,
+				           Board::PL011_0_CLOCK, baud_rate)
 			{ }
 	};
 }

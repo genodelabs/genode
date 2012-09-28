@@ -17,7 +17,7 @@ REQUIRES += hw_vea9x4
 LIBS += cxx server env alarm
 
 # Add include paths
-INC_DIR  += $(PRG_DIR) $(PRG_DIR)/../ $(PRG_DIR)/../../nova/
+INC_DIR  += $(PRG_DIR)/../ $(PRG_DIR)/../pbxa9 $(PRG_DIR)/../../nova/
 
 # Declare source paths
 vpath main.cc $(PRG_DIR)/../..

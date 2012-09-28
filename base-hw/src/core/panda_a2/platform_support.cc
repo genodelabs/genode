@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <drivers/board/panda_a2.h>
+#include <drivers/board.h>
 #include <drivers/cpu/cortex_a9/core.h>
 #include <drivers/pic/pl390_base.h>
 
@@ -26,8 +26,8 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Panda_a2::EMIF1_EMIF2_CS0_SDRAM_BASE,
-		  Panda_a2::EMIF1_EMIF2_CS0_SDRAM_SIZE }
+		{ Board::EMIF1_EMIF2_CS0_SDRAM_BASE,
+		  Board::EMIF1_EMIF2_CS0_SDRAM_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -51,7 +51,7 @@ Native_region * Platform::_core_only_irq_regions(unsigned const i)
 		{ Cortex_a9::PRIVATE_TIMER_IRQ, 1 },
 
 		/* core UART */
-		{ Panda_a2::TL16C750_3_IRQ, 1 }
+		{ Board::TL16C750_3_IRQ, 1 }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -61,8 +61,8 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Panda_a2::L4_PER_BASE, Panda_a2::L4_PER_SIZE },
-		{ Panda_a2::L4_CFG_BASE, Panda_a2::L4_CFG_SIZE }
+		{ Board::L4_PER_BASE, Board::L4_PER_SIZE },
+		{ Board::L4_CFG_BASE, Board::L4_CFG_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -73,11 +73,11 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* core timer and PIC */
-		{ Panda_a2::CORTEX_A9_PRIVATE_MEM_BASE,
-		  Panda_a2::CORTEX_A9_PRIVATE_MEM_SIZE },
+		{ Board::CORTEX_A9_PRIVATE_MEM_BASE,
+		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* core UART */
-		{ Panda_a2::TL16C750_3_MMIO_BASE, Panda_a2::TL16C750_3_MMIO_SIZE }
+		{ Board::TL16C750_3_MMIO_BASE, Board::TL16C750_3_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

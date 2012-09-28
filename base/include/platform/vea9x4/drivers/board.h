@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__BOARD__VEA9X4_H_
-#define _INCLUDE__DRIVERS__BOARD__VEA9X4_H_
+#ifndef _INCLUDE__DRIVERS__BOARD_H_
+#define _INCLUDE__DRIVERS__BOARD_H_
 
 namespace Genode
 {
@@ -21,7 +21,7 @@ namespace Genode
 	 *
 	 * Implies the uATX motherboard and the CoreTile Express A9X4 daughterboard
 	 */
-	struct Vea9x4
+	struct Board
 	{
 		enum
 		{
@@ -59,5 +59,5 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__DRIVERS__BOARD__VEA9X4_H_ */
+#endif /* _INCLUDE__DRIVERS__BOARD_H_ */
 

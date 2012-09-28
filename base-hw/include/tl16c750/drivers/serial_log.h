@@ -33,8 +33,8 @@ namespace Genode
 			 * \param baud_rate  targeted transfer baud-rate
 			 */
 			Serial_log(unsigned const baud_rate) :
-				Tl16c750_base(Board::LOG_TL16C750_MMIO_BASE,
-				              Board::LOG_TL16C750_CLOCK, baud_rate)
+				Tl16c750_base(Board::TL16C750_3_MMIO_BASE,
+				              Board::TL16C750_3_CLOCK, baud_rate)
 			{ }
 	};
 }
