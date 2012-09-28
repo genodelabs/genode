@@ -28,6 +28,20 @@
 namespace Noux {
 
 	/**
+	 * Input/output channel backend that is used for calling
+	 * different methos which does not belong to the original
+	 * interface, e.g. network methods.
+	 */
+	class Io_channel_backend
+	{
+		public:
+
+			virtual ~Io_channel_backend() { }
+
+			virtual int type() const { return -1; }
+	};
+
+	/**
 	 * Input/output channel interface
 	 */
 	class Io_channel : public Reference_counter
@@ -48,6 +62,8 @@ namespace Noux {
 			Io_channel() : close_on_execve(false) { }
 
 			virtual ~Io_channel() { }
+
+			virtual Io_channel_backend* backend() { return 0; }
 
 			virtual bool     write(Sysio *sysio, size_t &count) { return false; }
 			virtual bool      read(Sysio *sysio)                { return false; }
