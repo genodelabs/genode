@@ -136,7 +136,7 @@ inline int map_local(Nova::Utcb *utcb,
 			order = log2(to_end - to_curr);
 
 		if (verbose_local_map)
-			Genode::printf("::map_local: order %lx %lx:%lx %lx:%lx\n",
+			Genode::printf("::map_local: order %zx %lx:%lx %lx:%lx\n",
 		     	           order, from_curr, from_end, to_curr, to_end);
 
 		int const res = map_local(utcb,
