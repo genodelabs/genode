@@ -279,6 +279,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				    absolute_path.base(), binary_ds, _sysio->execve_in.args,
 				    _sysio->execve_in.env);
 
+				_root_dir->release(absolute_path.base(), binary_ds);
+
 				try {
 					Child *child = new Child(child_env.binary_name(),
 					                         parent(),
