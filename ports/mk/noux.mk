@@ -111,7 +111,7 @@ NOUX_LIBS_A  = $(filter %.a, $(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS_SO = $(filter %.so,$(sort $(LINK_ITEMS)) $(EXT_OBJECTS) $(LIBGCC))
 NOUX_LIBS += $(NOUX_LIBS_A) $(NOUX_LIBS_SO) $(NOUX_LIBS_A)
 
-NOUX_ENV += CC='$(CC)' CXX='$(CXX)' LD='$(LD)' AR='$(AR)' STRIP='$(STRIP)' LIBS='$(NOUX_LIBS)' \
+NOUX_ENV += CC='$(CC)' CXX='$(CXX)' LD='$(LD)' AR='$(AR)' NM='$(NM)' RANLIB='$(RANLIB)' STRIP='$(STRIP)' LIBS='$(NOUX_LIBS)' \
             LDFLAGS='$(NOUX_LDFLAGS)' CFLAGS='$(NOUX_CFLAGS)' \
             CPPFLAGS='$(NOUX_CPPFLAGS)' CXXFLAGS='$(NOUX_CXXFLAGS)'
 
@@ -135,8 +135,11 @@ noux_env.sh:
 	$(VERBOSE)rm -f $@
 	$(VERBOSE)echo "export CC='$(CC)'" >> $@
 	$(VERBOSE)echo "export CXX='$(CXX)'" >> $@
-	$(VERBOSE)echo "export AR='$(AR)'" >> $@
 	$(VERBOSE)echo "export LD='$(LD)'" >> $@
+	$(VERBOSE)echo "export AR='$(AR)'" >> $@
+	$(VERBOSE)echo "export NM='$(NM)'" >> $@
+	$(VERBOSE)echo "export RANLIB='$(RANLIB)'" >> $@
+	$(VERBOSE)echo "export STRIP='$(STRIP)'" >> $@
 	$(VERBOSE)echo "export CPPFLAGS='$(NOUX_CPPFLAGS)'" >> $@
 	$(VERBOSE)echo "export CFLAGS='$(NOUX_CFLAGS)'" >> $@
 	$(VERBOSE)echo "export CXXFLAGS='$(NOUX_CXXFLAGS)'" >> $@
