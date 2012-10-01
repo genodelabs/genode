@@ -45,12 +45,6 @@ extern long __initial_sp;
 
 
 /**
- * First available capability selector for custom use
- */
-extern int __first_free_cap_selector;
-
-
-/**
  * Pointer to the UTCB of the main thread
  */
 Utcb *__main_thread_utcb;
@@ -182,9 +176,6 @@ Platform::Platform() :
 	/* register UTCB of main thread */
 	__main_thread_utcb = (Utcb *)(__initial_sp - get_page_size());
 
-	/* register start of usable capability range */
-	__first_free_cap_selector = hip->sel_exc + hip->sel_gsi + 3;
-
 	/* set core pd selector */
 	__core_pd_sel = hip->sel_exc;
 
@@ -199,6 +190,12 @@ Platform::Platform() :
 	/*
 	 * Now that we can access the I/O ports for comport 0, printf works...
 	 */
+
+	/* sanity checks */
+	if (hip->sel_exc + 3 > NUM_INITIAL_PT_RESERVED) {
+		printf("configuration error\n");
+		nova_die();
+	}
 
 	/* configure virtual address spaces */
 	_vm_base = get_page_size();

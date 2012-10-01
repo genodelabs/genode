@@ -75,9 +75,6 @@
 		__l4_sys_direct_sycalls;
 		l4_atomic_cmpxchg;
 
-		/* Nova */
-		__first_free_cap_selector;
-
 		extern "C++" {
 			main_thread_utcb*;
 		};

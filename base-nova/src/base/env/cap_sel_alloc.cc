@@ -26,13 +26,6 @@ using namespace Genode;
 
 
 /**
- * First available capability selector for custom use
- *
- * Must be initialized by the startup code
- */
-int __first_free_cap_selector;
-
-/**
  * Low-level lock to protect the allocator
  *
  * We cannot use a normal Genode lock because this lock is used by code
@@ -99,17 +92,16 @@ Cap_selector_allocator::Cap_selector_allocator()
 	/* initialize lock */
 	alloc_lock();
 
-	/* the first free selector is used for the lock */
-	Bit_allocator::_reserve(0, __first_free_cap_selector + 1);
+	/**
+	 * The first selectors are reserved for exception portals and special
+	 * purpose usage as defined in the nova syscall header file
+	 */
+	Bit_allocator::_reserve(0, Nova::NUM_INITIAL_PT_RESERVED);
 }
 
 
 namespace Genode {
 
-	/**
-	 * This function must not be called prior the initialization of
-	 * '__first_free_cap_selector'.
-	 */
 	Cap_selector_allocator *cap_selector_allocator()
 	{
 		static Cap_selector_allocator inst;
