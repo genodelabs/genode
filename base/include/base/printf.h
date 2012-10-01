@@ -64,19 +64,21 @@ namespace Genode {
  */
 
 /**
- * Print debug message with function name
- */
-#define PDBG(fmt, ...) \
-	Genode::printf("%s: " ESC_DBG fmt ESC_END "\n", \
-	               __PRETTY_FUNCTION__, ##__VA_ARGS__ )
-
-/**
  * Suppress debug messages in release version
  */
 #ifdef GENODE_RELEASE
-#undef PDBG
-#define PDBG(fmt, ...)
+#define DO_PDBG false
+#else
+#define DO_PDBG true
 #endif /* GENODE_RELEASE */
+
+/**
+ * Print debug message with function name
+ */
+#define PDBG(fmt, ...) \
+	if (DO_PDBG) \
+		Genode::printf("%s: " ESC_DBG fmt ESC_END "\n", \
+		               __PRETTY_FUNCTION__, ##__VA_ARGS__ )
 
 /**
  * Print log message
