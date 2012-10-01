@@ -112,7 +112,7 @@ Native_region * Platform::_core_only_ram_regions(unsigned const i)
 Platform::Platform() :
 	_core_mem_alloc(0),
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
-	_irq_alloc(core_mem_alloc()), _vm_base(0), _vm_size(0xffff0000)
+	_irq_alloc(core_mem_alloc()), _vm_base(0x1000), _vm_size(0xfffef000)
 {
 	/*
 	 * Initialise platform resource allocators.
