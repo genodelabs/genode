@@ -15,7 +15,7 @@
 #define _SRC__CORE__PANDA_A2__SOFTWARE_TLB_H_
 
 /* Genode includes */
-#include <drivers/cpu/cortex_a9/section_table.h>
+#include <cortex_a9/cpu/section_table.h>
 
 /**
  * Software TLB controls

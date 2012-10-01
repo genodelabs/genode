@@ -21,11 +21,54 @@ namespace Genode {
 
 	struct Cpu_state
 	{
-		addr_t ip;
-		addr_t sp;
-		addr_t r[13];
-		addr_t lr;
-		addr_t cpsr;
+		/**
+		 * Native exception types
+		 */
+		enum Cpu_exception {
+			RESET                  = 1,
+			UNDEFINED_INSTRUCTION  = 2,
+			SUPERVISOR_CALL        = 3,
+			PREFETCH_ABORT         = 4,
+			DATA_ABORT             = 5,
+			INTERRUPT_REQUEST      = 6,
+			FAST_INTERRUPT_REQUEST = 7,
+			MAX_CPU_EXCEPTION      = FAST_INTERRUPT_REQUEST,
+		};
+
+		enum { MAX_GPR = 13 };
+
+		addr_t r[MAX_GPR]; /* r0-r12 - general purpose        */
+		addr_t sp;         /* r13 - stack pointer             */
+		addr_t lr;         /* r14 - link register             */
+		addr_t ip;         /* r15 - instruction pointer       */
+		addr_t cpsr;       /* current program status register */
+		Cpu_exception cpu_exception;   /* last exception */
+	};
+
+
+	struct Cpu_state_modes : Cpu_state
+	{
+		/**
+		 * Common banked registers for exception modes
+		 */
+		struct Mode_state {
+
+			enum Mode {
+				UND,   /* Undefined      */
+				SVC,   /* Supervisor     */
+				ABORT, /* Abort          */
+				IRQ,   /* Interrupt      */
+				FIQ,   /* Fast Interrupt */
+				MAX
+			};
+
+			uint32_t sp;   /* banked stack pointer */
+			uint32_t lr;   /* banked link register */
+			uint32_t spsr; /* saved program status register */
+		};
+
+		Mode_state mode[Mode_state::MAX]; /* exception mode registers   */
+		uint32_t   fiq_r[5];              /* fast-interrupt mode r8-r12 */
 	};
 }
 

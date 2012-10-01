@@ -11,14 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_
-#define _INCLUDE__DRIVERS__CPU__CORTEX_A9__CORE_H_
+#ifndef _INCLUDE__CORTEX_A9__CPU__CORE_H_
+#define _INCLUDE__CORTEX_A9__CPU__CORE_H_
 
 /* Genode includes */
 #include <util/register.h>
 #include <util/mmio.h>
 #include <drivers/board.h>
-#include <drivers/cpu/cortex_a9/timer.h>
+#include <cpu/cpu_state.h>
+#include <cortex_a9/cpu/timer.h>
 
 namespace Genode
 {
@@ -409,65 +410,12 @@ namespace Genode
 			}
 		};
 
-		/**
-		 * An execution state
-		 */
-		struct Context
+
+		struct Context : Cpu_state
 		{
-			enum {
-				MAX_GPR = 15,
-				MAX_CPU_EXCEPTION = 7,
-			};
-
-			/**
-			 * Native exception types
-			 */
-			enum Cpu_exception {
-				RESET = 1,
-				UNDEFINED_INSTRUCTION = 2,
-				SUPERVISOR_CALL = 3,
-				PREFETCH_ABORT = 4,
-				DATA_ABORT = 5,
-				INTERRUPT_REQUEST = 6,
-				FAST_INTERRUPT_REQUEST = 7,
-			};
-
-			/* general purpose register backups, offsets 0*4 .. 15*4 */
-			uint32_t r0,  r1,  r2,  r3,  r4, r5, r6, r7,
-			         r8,  r9, r10, r11, r12, r13, r14, r15;
-
-			uint32_t psr; /* program status register backup, offset 16*4 */
-			uint32_t contextidr; /* contextidr register backup, offset 17*4 */
-			uint32_t cpu_exception; /* native type of last exception,
-			                         * offset 18*4 */
+			uint32_t contextidr;    /* contextidr register backup, offset 18*4 */
 			uint32_t section_table; /* base address of applied section table,
 			                         * offset 19*4 */
-
-			/**
-			 * Read a general purpose register
-			 *
-			 * \param   id  ID of the targeted register
-			 * \param   r   Holds register value if this returns 1
-			 */
-			bool get_gpr(unsigned id, unsigned & r) const
-			{
-				if (id > MAX_GPR) return 0;
-				r = *(&r0 + id);
-				return 1;
-			}
-
-			/**
-			 * Override a general purpose register
-			 *
-			 * \param   id  ID of the targeted register
-			 * \param   r   Has been written to register if this returns 1
-			 */
-			bool set_gpr(unsigned id, unsigned const r)
-			{
-				if (id > MAX_GPR) return 0;
-				*(&r0 + id) = r;
-				return 1;
-			}
 
 			/***************
 			 ** Accessors **
@@ -479,15 +427,41 @@ namespace Genode
 			Section_table * software_tlb() const {
 				return (Section_table *)section_table; }
 
-			void instruction_ptr(addr_t const p) { r15 = p; }
+			void instruction_ptr(addr_t const p) { ip = p; }
 
-			addr_t instruction_ptr() const { return r15; }
+			addr_t instruction_ptr() const { return ip; }
 
-			void return_ptr(addr_t const p) { r14 = p; }
+			void return_ptr(addr_t const p) { lr = p; }
 
-			void stack_ptr(addr_t const p) { r13 = p; }
+			void stack_ptr(addr_t const p) { sp = p; }
 
 			void protection_domain(unsigned const id) { contextidr = id; }
+
+			/**
+			 * Read a general purpose register
+			 *
+			 * \param   id  ID of the targeted register
+			 * \param   v   Holds register value if this returns 1
+			 */
+			bool get_gpr(unsigned id, unsigned & v) const
+			{
+				if (id >= MAX_GPR) return 0;
+				v = r[id];
+				return 1;
+			}
+
+			/**
+			 * Override a general purpose register
+			 *
+			 * \param   id  ID of the targeted register
+			 * \param   v   Has been written to register if this returns 1
+			 */
+			bool set_gpr(unsigned id, unsigned const v)
+			{
+				if (id >= MAX_GPR) return 0;
+				r[id] = v;
+				return 1;
+			}
 		};
 
 		/**
@@ -495,6 +469,7 @@ namespace Genode
 		 */
 		struct User_context : Context
 		{
+
 			/**
 			 * Constructor
 			 */
@@ -502,30 +477,30 @@ namespace Genode
 			{
 				/* Execute in usermode with IRQ's enabled and FIQ's and
 				 * asynchronous aborts disabled */
-				psr = Cpsr::M::bits(Cpsr::M::USER) | Cpsr::F::bits(1) |
-				      Cpsr::I::bits(0) | Cpsr::A::bits(1);
+				cpsr = Cpsr::M::bits(Cpsr::M::USER) | Cpsr::F::bits(1) |
+				       Cpsr::I::bits(0) | Cpsr::A::bits(1);
 			}
 
 			/***************************************************
 			 ** Communication between user and context holder **
 			 ***************************************************/
 
-			void user_arg_0(unsigned const arg) { r0 = arg; }
-			void user_arg_1(unsigned const arg) { r1 = arg; }
-			void user_arg_2(unsigned const arg) { r2 = arg; }
-			void user_arg_3(unsigned const arg) { r3 = arg; }
-			void user_arg_4(unsigned const arg) { r4 = arg; }
-			void user_arg_5(unsigned const arg) { r5 = arg; }
-			void user_arg_6(unsigned const arg) { r6 = arg; }
-			void user_arg_7(unsigned const arg) { r7 = arg; }
-			unsigned user_arg_0() const { return r0; }
-			unsigned user_arg_1() const { return r1; }
-			unsigned user_arg_2() const { return r2; }
-			unsigned user_arg_3() const { return r3; }
-			unsigned user_arg_4() const { return r4; }
-			unsigned user_arg_5() const { return r5; }
-			unsigned user_arg_6() const { return r6; }
-			unsigned user_arg_7() const { return r7; }
+			void user_arg_0(unsigned const arg) { r[0] = arg; }
+			void user_arg_1(unsigned const arg) { r[1] = arg; }
+			void user_arg_2(unsigned const arg) { r[2] = arg; }
+			void user_arg_3(unsigned const arg) { r[3] = arg; }
+			void user_arg_4(unsigned const arg) { r[4] = arg; }
+			void user_arg_5(unsigned const arg) { r[5] = arg; }
+			void user_arg_6(unsigned const arg) { r[6] = arg; }
+			void user_arg_7(unsigned const arg) { r[7] = arg; }
+			unsigned user_arg_0() const { return r[0]; }
+			unsigned user_arg_1() const { return r[1]; }
+			unsigned user_arg_2() const { return r[2]; }
+			unsigned user_arg_3() const { return r[3]; }
+			unsigned user_arg_4() const { return r[4]; }
+			unsigned user_arg_5() const { return r[5]; }
+			unsigned user_arg_6() const { return r[6]; }
+			unsigned user_arg_7() const { return r[7]; }
 
 			/**
 			 * Determine wich type of exception occured on this context lastly
@@ -638,11 +613,7 @@ namespace Genode
 		static bool secure_mode_active()
 		{
 			if (!Board::CORTEX_A9_SECURITY_EXTENSION) return 0;
-			if (Cpsr::M::get(Cpsr::read()) != Cpsr::M::MONITOR)
-			{
-				return !Scr::Ns::get(Scr::read());
-			}
-			return 1;
+			return !Scr::Ns::get(Scr::read());
 		}
 
 		/**

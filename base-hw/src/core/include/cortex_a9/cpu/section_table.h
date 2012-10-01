@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <util/register.h>
 #include <base/printf.h>
-#include <drivers/cpu/cortex_a9/core.h>
+#include <cortex_a9/cpu/core.h>
 
 namespace Genode
 {

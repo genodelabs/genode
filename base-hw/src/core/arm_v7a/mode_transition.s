@@ -41,7 +41,7 @@
 
 	/* load kernel contextidr */
 	adr sp, _mt_kernel_context_begin
-	ldr sp, [sp, #17*4]
+	ldr sp, [sp, #18*4]
 	mcr p15, 0, sp, c13, c0, 1
 	_flush_branch_predictor
 
@@ -81,7 +81,7 @@
 
 	/* save type of exception that interrupted the user */
 	mov r0, #\exception_type
-	str r0, [sp, #18*4]
+	str r0, [sp, #17*4]
 
 	/*
 	 * Switch to supervisor mode
@@ -165,7 +165,7 @@
 			ldmia sp, {sp,lr}^
 
 			/* get user contextidr and section table */
-			ldr sp, [lr, #17*4]
+			ldr sp, [lr, #18*4]
 			ldr lr, [lr, #19*4]
 
 			/********************************************************

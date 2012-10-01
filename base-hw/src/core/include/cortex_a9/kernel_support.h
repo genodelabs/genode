@@ -14,9 +14,9 @@
 #ifndef _CORE__INCLUDE__CORTEX_A9__KERNEL_SUPPORT_H_
 #define _CORE__INCLUDE__CORTEX_A9__KERNEL_SUPPORT_H_
 
-/* Genode includes */
-#include <drivers/cpu/cortex_a9/core.h>
-#include <drivers/pic/pl390_base.h>
+/* Core includes */
+#include <cortex_a9/cpu/core.h>
+#include <pic/pl390_base.h>
 
 /**
  * CPU driver

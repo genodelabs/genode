@@ -13,11 +13,11 @@
 
 /* Genode includes */
 #include <drivers/board.h>
-#include <drivers/cpu/cortex_a9/core.h>
-#include <drivers/pic/pl390_base.h>
 
 /* Core includes */
 #include <platform.h>
+#include <cortex_a9/cpu/core.h>
+#include <pic/pl390_base.h>
 
 using namespace Genode;
 
