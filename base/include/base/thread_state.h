@@ -16,7 +16,7 @@
 #ifndef _INCLUDE__BASE__THREAD_STATE_H_
 #define _INCLUDE__BASE__THREAD_STATE_H_
 
-#include <base/cpu_state.h>
+#include <cpu/cpu_state.h>
 
 namespace Genode {
 
