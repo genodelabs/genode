@@ -47,7 +47,6 @@
 /* NOVA userland includes */
 #include <nul/vcpu.h>
 #include <nul/motherboard.h>
-#include <sys/semaphore.h>
 #include <sys/hip.h>
 
 /* local includes */
@@ -950,13 +949,6 @@ class Machine : public StaticReceiver<Machine>
 			return false;
 		}
 
-		bool receive(MessageVirtualNet &msg)
-		{
-			if (verbose_debug)
-				PDBG("MessageVirtualNet");
-			return false;
-		}
-
 		bool receive(MessagePciConfig &msg)
 		{
 			if (verbose_debug)
@@ -1001,8 +993,7 @@ class Machine : public StaticReceiver<Machine>
 			_motherboard.bus_timer.add   (this, receive_static<MessageTimer>);
 			_motherboard.bus_time.add    (this, receive_static<MessageTime>);
 			_motherboard.bus_network.add (this, receive_static<MessageNetwork>);
-			_motherboard.bus_vnet.add    (this, receive_static<MessageVirtualNet>);
-			_motherboard.bus_hwpcicfg.add(this, receive_static<MessagePciConfig>);
+			_motherboard.bus_hwpcicfg.add(this, receive_static<MessageHwPciConfig>);
 			_motherboard.bus_acpi.add    (this, receive_static<MessageAcpi>);
 			_motherboard.bus_legacy.add  (this, receive_static<MessageLegacy>);
 		}

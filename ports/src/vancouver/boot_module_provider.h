@@ -93,7 +93,7 @@ class Boot_module_provider
 					/*
 					 * Copy content to destination buffer
 					 */
-					memcpy(dst, src, src_len);
+					Genode::memcpy(dst, src, src_len);
 
 					/*
 					 * Detach ROM dataspace from local address space. The ROM

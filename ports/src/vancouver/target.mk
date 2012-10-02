@@ -1,8 +1,8 @@
 TARGET = vancouver
 
-CONTRIB_DIR = $(REP_DIR)/contrib/vancouver-0.4
+CONTRIB_DIR = $(REP_DIR)/contrib/vancouver-git
 VANCOUVER_DIR = $(CONTRIB_DIR)/vancouver
-NOVA_INCLUDE_DIR = $(REP_DIR)/contrib/vancouver-0.4/base/include
+NOVA_INCLUDE_DIR = $(REP_DIR)/contrib/vancouver-git/base/include
 
 REQUIRES = nova x86_32
 
@@ -25,7 +25,7 @@ SERVICE_SRC_CC  += hostsink.cc
 
 SRC_CC += $(filter-out $(FILTER_OUT),$(addprefix model/,$(MODEL_SRC_CC)))
 SRC_CC += $(filter-out $(FILTER_OUT),$(addprefix executor/,$(EXECUTOR_SRC_CC)))
-SRC_CC += base/service/hostsink.cc
+SRC_CC += base/service/hostsink.cc base/lib/runtime/string.cc
 
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(VANCOUVER_DIR)/model
