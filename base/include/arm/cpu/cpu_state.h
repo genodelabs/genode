@@ -25,14 +25,14 @@ namespace Genode {
 		 * Native exception types
 		 */
 		enum Cpu_exception {
-			RESET                  = 1,
-			UNDEFINED_INSTRUCTION  = 2,
-			SUPERVISOR_CALL        = 3,
-			PREFETCH_ABORT         = 4,
-			DATA_ABORT             = 5,
-			INTERRUPT_REQUEST      = 6,
-			FAST_INTERRUPT_REQUEST = 7,
-			MAX_CPU_EXCEPTION      = FAST_INTERRUPT_REQUEST,
+			RESET,
+			UNDEFINED_INSTRUCTION,
+			SUPERVISOR_CALL,
+			PREFETCH_ABORT,
+			DATA_ABORT,
+			INTERRUPT_REQUEST,
+			FAST_INTERRUPT_REQUEST,
+			MAX_CPU_EXCEPTION,
 		};
 
 		enum { MAX_GPR = 13 };
@@ -62,13 +62,13 @@ namespace Genode {
 				MAX
 			};
 
-			uint32_t sp;   /* banked stack pointer */
-			uint32_t lr;   /* banked link register */
-			uint32_t spsr; /* saved program status register */
+			addr_t spsr; /* saved program status register */
+			addr_t sp;   /* banked stack pointer */
+			addr_t lr;   /* banked link register */
 		};
 
 		Mode_state mode[Mode_state::MAX]; /* exception mode registers   */
-		uint32_t   fiq_r[5];              /* fast-interrupt mode r8-r12 */
+		addr_t     fiq_r[5];              /* fast-interrupt mode r8-r12 */
 	};
 }
 

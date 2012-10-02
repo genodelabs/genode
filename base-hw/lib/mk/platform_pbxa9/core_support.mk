@@ -7,6 +7,8 @@
 # declare location of core files that are board specific
 BOARD_DIR = $(REP_DIR)/src/core/pbxa9
 
+SRC_CC    = trustzone.cc
+
 # include generic part of core support
 include $(REP_DIR)/lib/mk/core_support.inc
 

@@ -1,5 +1,5 @@
 /*
- * \brief   Parts of platform that are specific to PBXA9
+ * \brief   Platform implementations specific for base-hw and VEA9X4
  * \author  Martin Stein
  * \date    2012-04-27
  */
@@ -14,10 +14,10 @@
 /* Genode includes */
 #include <drivers/board.h>
 
-/* core includes */
+/* Core includes */
 #include <platform.h>
-#include <cortex_a9/cpu/core.h>
 #include <pic/pl390_base.h>
+#include <cortex_a9/cpu/core.h>
 
 using namespace Genode;
 
@@ -26,7 +26,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::NORTHBRIDGE_DDR_0_BASE, Board::NORTHBRIDGE_DDR_0_SIZE }
+		{ Board::SRAM_BASE, Board::SRAM_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -36,7 +36,10 @@ Native_region * Platform::_irq_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ 0, Pl390_base::MAX_INTERRUPT_ID + 1 }
+		{ 0, 34 },
+		{ 37, 3 },
+		{ 46, 1 },
+		{ 49, Pl390_base::MAX_INTERRUPT_ID - 49 }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -46,10 +49,10 @@ Native_region * Platform::_core_only_irq_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		/* core timer */
+		/* Core timer */
 		{ Cortex_a9::PRIVATE_TIMER_IRQ, 1 },
 
-		/* core UART */
+		/* Core UART */
 		{ Board::PL011_0_IRQ, 1 }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
@@ -60,8 +63,11 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::SOUTHBRIDGE_APB_BASE, Board::SOUTHBRIDGE_APB_SIZE },
-		{ Board::NORTHBRIDGE_AHB_BASE, Board::NORTHBRIDGE_AHB_SIZE }
+		{ Board::SMB_CS7_BASE, Board::SMB_CS7_SIZE },
+		{ Board::SMB_CS0_TO_CS6_BASE, Board::SMB_CS0_TO_CS6_SIZE },
+		{ Board::LOCAL_DDR2_BASE, Board::LOCAL_DDR2_SIZE },
+		{ Board::TZASC_MMIO_BASE, Board::TZASC_MMIO_SIZE },
+		{ Board::TZPC_MMIO_BASE, Board::TZPC_MMIO_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -71,10 +77,11 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		/* core timer and PIC */
-		{ Board::CORTEX_A9_PRIVATE_MEM_BASE, Board::CORTEX_A9_PRIVATE_MEM_SIZE },
+		/* Core timer and PIC */
+		{ Board::CORTEX_A9_PRIVATE_MEM_BASE,
+		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
-		/* core UART */
+		/* Core UART */
 		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;

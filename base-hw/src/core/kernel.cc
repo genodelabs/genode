@@ -24,6 +24,7 @@
 
 /* Genode includes */
 #include <base/signal.h>
+#include <cpu/cpu_state.h>
 #include <util/fifo.h>
 #include <util/avl_tree.h>
 
@@ -32,11 +33,11 @@
 #include <platform_thread.h>
 #include <assert.h>
 #include <software_tlb.h>
+#include <trustzone.h>
 
 using namespace Kernel;
 
 /* get core configuration */
-extern Genode::addr_t _call_after_kernel;
 extern Genode::Native_utcb * _main_utcb;
 extern int _kernel_stack_high;
 extern "C" void CORE_MAIN();
@@ -45,8 +46,8 @@ extern "C" void CORE_MAIN();
 extern int _mode_transition_begin;
 extern int _mode_transition_end;
 extern int _mt_user_entry_pic;
-extern int _mt_kernel_entry_pic;
-extern Genode::addr_t _mt_user_context_ptr;
+extern int _mon_vm_entry;
+extern Genode::addr_t _mt_context_ptr;
 extern Genode::addr_t _mt_kernel_context_begin;
 extern Genode::addr_t _mt_kernel_context_end;
 
@@ -72,6 +73,7 @@ namespace Kernel
 		MAX_THREADS = 256,
 		MAX_SIGNAL_RECEIVERS = 256,
 		MAX_SIGNAL_CONTEXTS = 256,
+		MAX_VMS = 4,
 	};
 
 	/**
@@ -710,16 +712,18 @@ namespace Kernel
 			}
 	};
 
+
+	class Schedule_context;
+
 	/**
-	 * Provides the mode transition PIC in a configurable and mappable manner
+	 * Controls the mode transition code
 	 *
-	 * Initially there exists only the code that switches between kernelmode
-	 * and usermode. It must be present in a continuous region that is located
-	 * at an arbitray RAM address. Its size must not exceed the smallest page
-	 * size supported by the MMU. The Code must be position independent. This
-	 * control then duplicates the code to an aligned region and declares a
-	 * virtual region, where the latter has to be mapped to in every PD, to
-	 * ensure appropriate kernel invokation on CPU interrupts.
+	 * The code that switches between kernel/user mode must not exceed the
+	 * smallest page size supported by the MMU. The Code must be position
+	 * independent. This code has to be mapped to in every PD, to ensure
+	 * appropriate kernel invokation on CPU interrupts.
+	 * This class controls the settings like kernel, user, and vm states
+	 * that are handled by the PIC mode transition code.
 	 */
 	struct Mode_transition_control
 	{
@@ -731,32 +735,14 @@ namespace Kernel
 			ALIGNM_LOG2 = SIZE_LOG2,
 		};
 
-		/* writeable, page-aligned backing store */
-		char _payload[SIZE] __attribute__((aligned(1 << ALIGNM_LOG2)));
-
-		/* labels within the aligned mode transition PIC */
-		Cpu::Context * * const _user_context_ptr;
-		Cpu::Context * const _kernel_context;
 		addr_t const _virt_user_entry;
-		addr_t const _virt_kernel_entry;
 
 		/**
 		 * Constructor
 		 */
 		Mode_transition_control() :
-			_user_context_ptr((Cpu::Context * *)((addr_t)_payload +
-			                  ((addr_t)&_mt_user_context_ptr -
-			                  (addr_t)&_mode_transition_begin))),
-
-			_kernel_context((Cpu::Context *)((addr_t)_payload +
-			                ((addr_t)&_mt_kernel_context_begin -
-			                (addr_t)&_mode_transition_begin))),
-
 			_virt_user_entry(VIRT_BASE + ((addr_t)&_mt_user_entry_pic -
-			                 (addr_t)&_mode_transition_begin)),
-
-			_virt_kernel_entry(VIRT_BASE + ((addr_t)&_mt_kernel_entry_pic -
-			                   (addr_t)&_mode_transition_begin))
+			                 (addr_t)&_mode_transition_begin))
 		{
 			/* check if mode transition PIC fits into aligned region */
 			addr_t const pic_begin = (addr_t)&_mode_transition_begin;
@@ -768,37 +754,28 @@ namespace Kernel
 			addr_t const kc_begin = (addr_t)&_mt_kernel_context_begin;
 			addr_t const kc_end = (addr_t)&_mt_kernel_context_end;
 			size_t const kc_size = kc_end - kc_begin;
-			assert(sizeof(Cpu::Context) <= kc_size)
-
-			/* fetch mode transition PIC */
-			unsigned * dst = (unsigned *)_payload;
-			unsigned * src = (unsigned *)pic_begin;
-			while ((addr_t)src < pic_end) *dst++ = *src++;
+			assert(sizeof(Cpu::Context) <= kc_size);
 
 			/* try to set CPU exception entry accordingly */
-			assert(!Cpu::exception_entry_at(_virt_kernel_entry))
+			assert(!Cpu::exception_entry_at(VIRT_BASE));
 		}
-
-		/**
-		 * Set next usermode-context pointer
-		 */
-		void user_context(Cpu::Context * const c) { *_user_context_ptr = c; }
 
 		/**
 		 * Fetch next kernelmode context
 		 */
-		void fetch_kernel_context(Cpu::Context * const c)
-		{ *_kernel_context = *c; }
+		void fetch_kernel_context(Cpu::Context * const c) {
+			memcpy(&_mt_kernel_context_begin, c, sizeof(Cpu::Context)); }
 
 		/**
 		 * Page aligned physical base of the mode transition PIC
 		 */
-		addr_t phys_base() { return (addr_t)_payload; }
+		addr_t phys_base() { return (addr_t)&_mode_transition_begin; }
 
 		/**
-		 * Virtual pointer to the usermode entry PIC
+		 * Jump to the usermode entry PIC
 		 */
-		addr_t virt_user_entry() { return _virt_user_entry; }
+		void virt_user_entry() {
+			((void(*)(void))_virt_user_entry)(); }
 	};
 
 
@@ -1093,9 +1070,17 @@ namespace Kernel
 	static Timer * timer() { static Timer _object; return &_object; }
 
 
-	class Thread;
+	class Schedule_context;
 
-	typedef Scheduler<Thread> Cpu_scheduler;
+	typedef Scheduler<Schedule_context> Cpu_scheduler;
+
+	class Schedule_context : public Cpu_scheduler::Entry
+	{
+		public:
+
+			virtual void handle_exception() = 0;
+			virtual void scheduled_next() = 0;
+	};
 
 
 	/**
@@ -1116,15 +1101,23 @@ namespace Kernel
 	unsigned core_id() { return core()->id(); }
 
 
+	class Thread;
+
+	void handle_pagefault(Thread * const);
+	void handle_syscall(Thread * const);
+	void handle_interrupt(void);
+	void handle_invalid_excpt(void);
+
+
 	/**
 	 * Kernel object that represents a Genode thread
 	 */
 	class Thread : public Cpu::User_context,
 	               public Object<Thread, MAX_THREADS>,
-	               public Cpu_scheduler::Entry,
+	               public Schedule_context,
+	               public Fifo<Thread>::Element,
 	               public Ipc_node,
-	               public Irq_owner,
-	               public Fifo<Thread>::Element
+	               public Irq_owner
 	{
 		enum State { STOPPED, ACTIVE, AWAIT_IPC, AWAIT_RESUMPTION,
 		             AWAIT_IRQ, AWAIT_SIGNAL };
@@ -1132,20 +1125,21 @@ namespace Kernel
 		Platform_thread * const _platform_thread; /* userland object wich
 		                                           * addresses this thread */
 		State _state; /* thread state, description given at the beginning */
-		Pagefault _pagefault; /* last pagefault triggered by this thread */
-		Thread * _pager; /* gets informed if thread throws a pagefault */
-		unsigned _pd_id; /* ID of the PD this thread runs on */
-		Native_utcb * _phys_utcb; /* physical UTCB base */
-		Native_utcb * _virt_utcb; /* virtual UTCB base */
 
 		/**
-		 * Resume execution of thread
+		 * Resume execution
 		 */
 		void _activate()
 		{
 			cpu_scheduler()->insert(this);
 			_state = ACTIVE;
 		}
+
+		Pagefault _pagefault; /* last pagefault triggered by this thread */
+		Thread * _pager; /* gets informed if thread throws a pagefault */
+		unsigned _pd_id; /* ID of the PD this thread runs on */
+		Native_utcb * _phys_utcb; /* physical UTCB base */
+		Native_utcb * _virt_utcb; /* virtual UTCB base */
 
 		public:
 
@@ -1275,6 +1269,32 @@ namespace Kernel
 				_activate();
 			}
 
+			void handle_exception()
+			{
+				switch(cpu_exception) {
+				case SUPERVISOR_CALL:
+					handle_syscall(this);
+					return;
+				case PREFETCH_ABORT:
+				case DATA_ABORT:
+					handle_pagefault(this);
+					return;
+				case INTERRUPT_REQUEST:
+				case FAST_INTERRUPT_REQUEST:
+					handle_interrupt();
+					return;
+				default:
+					handle_invalid_excpt();
+				}
+			}
+
+			void scheduled_next() {
+				/* set context pointer for mode switch */
+				_mt_context_ptr = (addr_t)static_cast<Genode::Cpu_state*>(this);
+
+				/* jump to user entry assembler path */
+				mtc()->virt_user_entry();
+			}
 
 			/***************
 			 ** Accessors **
@@ -1323,6 +1343,7 @@ namespace Kernel
 	};
 
 	class Signal_receiver;
+
 
 	/**
 	 * Specific signal type, owned by a receiver, can be triggered asynchr.
@@ -1410,6 +1431,57 @@ namespace Kernel
 			}
 	};
 
+
+	class Vm : public Object<Vm, MAX_VMS>,
+	           public Schedule_context
+	{
+		private:
+
+			Genode::Cpu_state_modes * const _state;
+			Signal_context * const          _context;
+
+		public:
+
+			void * operator new (size_t, void * p) { return p; }
+
+			/**
+			 * Constructor
+			 */
+			Vm(Genode::Cpu_state_modes * const state,
+			   Signal_context * const context)
+			: _state(state), _context(context) { }
+
+			void run() {
+				cpu_scheduler()->insert(this); }
+
+
+			/**********************
+			 ** Schedule_context **
+			 **********************/
+
+			void handle_exception()
+			{
+				switch(_state->cpu_exception) {
+				case Genode::Cpu_state::INTERRUPT_REQUEST:
+				case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
+					handle_interrupt();
+					return;
+				default:
+					cpu_scheduler()->remove(this);
+					_context->trigger_signal(1);
+				}
+			}
+
+			void scheduled_next() {
+				/* set context pointer for mode switch */
+				_mt_context_ptr = (addr_t)_state;
+
+				/* jump to assembler path */
+				((void(*)(void))&_mon_vm_entry)();
+			}
+	};
+
+
 	/**
 	 * Access to static CPU scheduler
 	 */
@@ -1449,18 +1521,19 @@ namespace Kernel
 	size_t signal_context_size()  { return sizeof(Signal_context); }
 	size_t signal_receiver_size() { return sizeof(Signal_receiver); }
 	unsigned pd_alignm_log2()     { return Pd::ALIGNM_LOG2; }
+	size_t vm_size()              { return sizeof(Vm); }
 
 
 	/**
 	 * Handle the occurence of an unknown exception
 	 */
-	void handle_invalid_excpt(Thread * const) { assert(0); }
+	void handle_invalid_excpt() { assert(0); }
 
 
 	/**
 	 * Handle an interrupt request
 	 */
-	void handle_interrupt(Thread * const)
+	void handle_interrupt()
 	{
 		/* determine handling for specific interrupt */
 		unsigned irq;
@@ -1886,7 +1959,48 @@ namespace Kernel
 		assert(c);
 
 		/* trigger signal at context */
-		c->trigger_signal(user->user_arg_2());
+		c->trigger_signal(1);
+	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_new_vm(Thread * const user)
+	{
+		/* check permissions */
+		assert(user->pd_id() == core_id());
+
+		/* dispatch arguments */
+		void * const allocator = (void * const)user->user_arg_1();
+		Genode::Cpu_state_modes * const state =
+			(Genode::Cpu_state_modes * const)user->user_arg_2();
+		Signal_context * const context =
+			Signal_context::pool()->object(user->user_arg_3());
+		assert(context);
+
+		/* create vm */
+		Vm * const vm = new (allocator) Vm(state, context);
+
+		/* return vm id */
+		user->user_arg_0((Syscall_ret)vm->id());
+	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_run_vm(Thread * const user)
+	{
+		/* check permissions */
+		assert(user->pd_id() == core_id());
+
+		/* get targeted vm via its id */
+		Vm * const vm = Vm::pool()->object(user->user_arg_1());
+		assert(vm);
+
+		/* run targeted vm */
+		vm->run();
 	}
 
 
@@ -1928,6 +2042,8 @@ namespace Kernel
 			/* 22         */ do_await_signal,
 			/* 23         */ do_submit_signal,
 			/* 24         */ do_delete_thread,
+			/* 25         */ do_new_vm,
+			/* 26         */ do_run_vm,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 
@@ -1954,29 +2070,11 @@ extern "C" void kernel()
 		/* update how much time the last user has consumed */
 		user_time = timer_value < user_time ? user_time - timer_value : 0;
 
-		/* map exception types to exception-handler functions */
-		typedef void (*Exception_handler)(Thread * const);
-		static Exception_handler const handle_excpt[] =
-		{
-			/* exception ID */ /* handler */
-			/*--------------*/ /*---------*/
-			/* 0            */ handle_invalid_excpt,
-			/* 1            */ handle_interrupt,
-			/* 2            */ handle_pagefault,
-			/* 3            */ handle_syscall
-		};
 		/* handle exception that interrupted the last user */
-		Thread * const user = cpu_scheduler()->current_entry();
-		enum { MAX_EXCPT = sizeof(handle_excpt)/sizeof(handle_excpt[0]) - 1 };
-		unsigned const e = user->exception();
-		if (e > MAX_EXCPT) handle_invalid_excpt(user);
-		else handle_excpt[e](user);
+		cpu_scheduler()->current_entry()->handle_exception();
 
 	/* kernel initialization */
 	} else {
-
-		/* tell the code that called kernel, what to do when kernel returns */
-		_call_after_kernel = mtc()->virt_user_entry();
 
 		/* compose core address space */
 		addr_t a = 0;
@@ -2001,7 +2099,6 @@ extern "C" void kernel()
 		/* compose kernel CPU context */
 		static Cpu::Context kernel_context;
 		kernel_context.instruction_ptr((addr_t)kernel);
-		kernel_context.return_ptr(mtc()->virt_user_entry());
 		kernel_context.stack_ptr((addr_t)&_kernel_stack_high);
 
 		/* add kernel to the core PD */
@@ -2009,6 +2106,9 @@ extern "C" void kernel()
 
 		/* offer the final kernel context to the mode transition page */
 		mtc()->fetch_kernel_context(&kernel_context);
+
+		/* TrustZone initialization code */
+		trustzone_initialization(pic());
 
 		/* switch to core address space */
 		Cpu::enable_mmu(core(), core_id());
@@ -2028,12 +2128,14 @@ extern "C" void kernel()
 		initial_call = false;
 	}
 	/* offer next user context to the mode transition PIC */
-	Thread * const next = cpu_scheduler()->next_entry(user_time);
-	mtc()->user_context(next);
+	Schedule_context* const next = cpu_scheduler()->next_entry(user_time);
 
 	/* limit user mode execution in time */
 	timer()->start_one_shot(user_time);
 	pic()->unmask(Timer::IRQ);
+
+	/* will jump to the context related mode-switch */
+	next->scheduled_next();
 }
 
 

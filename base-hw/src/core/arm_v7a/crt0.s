@@ -42,22 +42,12 @@
 		ldr sp, =_kernel_stack_high
 		bl kernel
 
-		/* jump to code that kernel has designated for when he has returned */
-		ldr r1, =_call_after_kernel
-		ldr r1, [r1]
-		add pc, r1, #0
-
 	/* handle for dynamic symbol objects */
 	.align 3
 	.global __dso_handle
 	__dso_handle: .long 0
 
 .section .bss
-
-	/* instruction pointer wich gets loaded when kernel returns */
-	.align 3
-	.global _call_after_kernel
-	_call_after_kernel:  .long 0
 
 	/* kernel stack */
 	.align 3

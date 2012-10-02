@@ -7,6 +7,8 @@
 # declare location of core files that are board specific
 BOARD_DIR = $(REP_DIR)/src/core/panda_a2
 
+SRC_CC    = trustzone.cc
+
 # include generic parts of core support
 include $(REP_DIR)/lib/mk/core_support.inc
 

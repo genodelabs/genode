@@ -473,13 +473,7 @@ namespace Genode
 			/**
 			 * Constructor
 			 */
-			User_context()
-			{
-				/* Execute in usermode with IRQ's enabled and FIQ's and
-				 * asynchronous aborts disabled */
-				cpsr = Cpsr::M::bits(Cpsr::M::USER) | Cpsr::F::bits(1) |
-				       Cpsr::I::bits(0) | Cpsr::A::bits(1);
-			}
+			User_context(void);
 
 			/***************************************************
 			 ** Communication between user and context holder **
@@ -501,33 +495,6 @@ namespace Genode
 			unsigned user_arg_5() const { return r[5]; }
 			unsigned user_arg_6() const { return r[6]; }
 			unsigned user_arg_7() const { return r[7]; }
-
-			/**
-			 * Determine wich type of exception occured on this context lastly
-			 *
-			 * \return  0  If the exception is unknown by the kernel
-			 *          1  If the exception is an interrupt
-			 *          2  If the exception is a pagefault
-			 *          3  If the exception is a syscall
-			 */
-			unsigned exception() const
-			{
-				/* map all CPU-exception types to kernel-exception types */
-				enum { INVALID = 0, INTERRUPT = 1, PAGEFAULT = 2, SYSCALL = 3 };
-				static unsigned cpu_excpt_to_excpt[MAX_CPU_EXCEPTION + 1] = {
-					INVALID,   /* 0 */
-					INVALID,   /* 1 */
-					INVALID,   /* 2 */
-					SYSCALL,   /* 3 */
-					PAGEFAULT, /* 4 */
-					PAGEFAULT, /* 5 */
-					INTERRUPT, /* 6 */
-					INVALID    /* 7 */
-				};
-				/* determine exception type */
-				if (cpu_exception > MAX_CPU_EXCEPTION) return INVALID;
-				return cpu_excpt_to_excpt[cpu_exception];
-			}
 
 			/**
 			 * Does a pagefault exist and originate from a lack of translation?
@@ -683,6 +650,31 @@ namespace Genode
 			asm volatile ("mcr p15, 0, %[asid], c8, c7, 2 \n"
 			              :: [asid]"r"(Contextidr::Asid::masked(process_id)) : );
 			flush_branch_prediction();
+		}
+
+
+		/******************************
+		 **  Trustzone specific API  **
+		 ******************************/
+
+		/**
+		 * Set the exception-vector's base-address for the monitor mode
+		 * software stack.
+		 *
+		 * \param addr  address of the exception vector's base
+		 */
+		static inline void mon_exception_entry_at(addr_t addr)
+		{
+			asm volatile ("mcr p15, 0, %0, c12, c0, 1" : : "r" (addr));
+		}
+
+		/**
+		 * Enable access of co-processors cp10 and cp11 from non-secure mode.
+		 */
+		static inline void allow_coprocessor_nonsecure(void)
+		{
+			uint32_t val = (1 << 10) | (1 << 11);
+			asm volatile ("mcr p15, 0, %0, c1, c1, 2" : : "r" (val));
 		}
 	};
 }

@@ -1,7 +1,7 @@
 #
-# \brief   Platform implementations specific for base-hw and Panda A2
-# \author  Martin Stein
-# \date    2012-05-10
+# \brief   Platform implementations specific for base-hw and PBXA9
+# \author  Stefan Kalkowski
+# \date    2012-10-04
 #
 
 # add include paths
@@ -13,5 +13,5 @@ SRC_CC += platform_services.cc platform_support.cc
 
 # declare source paths
 vpath platform_services.cc $(BASE_DIR)/src/core
-vpath platform_support.cc  $(REP_DIR)/src/core/panda_a2
+vpath platform_support.cc  $(REP_DIR)/src/core/pbxa9
 

@@ -36,7 +36,6 @@ SRC_CC += _main.cc \
           platform.cc \
           platform_pd.cc \
           platform_thread.cc \
-          platform_services.cc \
           ram_session_component.cc \
           ram_session_support.cc \
           rm_session_component.cc \
@@ -52,7 +51,6 @@ vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
-vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)

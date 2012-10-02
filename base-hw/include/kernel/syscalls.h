@@ -68,6 +68,10 @@ namespace Kernel
 		NEW_SIGNAL_CONTEXT = 21,
 		AWAIT_SIGNAL = 22,
 		SUBMIT_SIGNAL = 23,
+
+		/* vm specific */
+		NEW_VM = 25,
+		RUN_VM = 26,
 	};
 
 	/**
@@ -83,6 +87,7 @@ namespace Kernel
 	Genode::size_t pd_size();
 	Genode::size_t signal_context_size();
 	Genode::size_t signal_receiver_size();
+	Genode::size_t vm_size();
 
 	/**
 	 * Get alignment constraints of the kernel objects
@@ -433,6 +438,37 @@ namespace Kernel
 	 */
 	inline void submit_signal(unsigned long context_id, int num)
 	{ syscall(SUBMIT_SIGNAL, (Syscall_arg)context_id, (Syscall_arg)num); }
+
+
+	/**
+	 * Create a new vm that is stopped initially
+	 *
+	 * \param dst          physical base of an appropriate portion of memory
+	 *                     that is thereupon allocated to the kernel
+	 * \param state        location of the cpu state of the VM
+	 * \param context_id   ID of the targeted signal context
+	 *
+	 * \retval >0  ID of the new vm
+	 * \retval  0  if no new vm was created
+	 *
+	 * Restricted to core threads. Regaining of the supplied memory is not
+	 * supported by now.
+	 */
+	inline int new_vm(void * const dst, void * const state,
+	                  unsigned long context_id)
+	{
+		return syscall(NEW_VM, (Syscall_arg)dst, (Syscall_arg)state,
+		               (Syscall_arg)context_id);
+	}
+
+
+	/**
+	 * Execute a virtual-machine (again)
+	 *
+	 * \param id  ID of the targeted vm
+	 */
+	inline void run_vm(unsigned long const id = 0) {
+		syscall(RUN_VM, (Syscall_arg)id); }
 }
 
 #endif /* _INCLUDE__KERNEL__SYSCALLS_H_ */

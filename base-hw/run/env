@@ -199,15 +199,16 @@ proc build_boot_image {binaries} {
 	}
 
 	# preserve stand-alone core for debugging
-	exec mv core/core core/core.standalone
+	exec cp -L bin/core core/core.standalone
 
 	# apply the new 'boot_modules.s' to 'core' to create single boot image
 	apply_boot_modules_to_core $boot_modules
-	exec mv core/core [run_dir]/image.elf
+	exec cp -L bin/core [run_dir]/image.elf
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
 	# remove stripped binaries and retrieve stand-alone core
-	exec mv core/core.standalone core/core
+	exec cp core/core.standalone bin/core
+	exec rm core/core.standalone
 	exec rm -r [run_dir]/genode
 }
 

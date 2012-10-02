@@ -26,6 +26,7 @@ namespace Genode
 		enum
 		{
 			/* static memory bus */
+			SMB_CS2_BASE = 0x48000000,
 			SMB_CS7_BASE = 0x10000000,
 			SMB_CS7_SIZE = 0x20000,
 			SMB_CS0_TO_CS6_BASE = 0x40000000,
@@ -46,6 +47,14 @@ namespace Genode
 			/* clocks */
 			TCREF_CLOCK = 66670*1000,
 
+			/* TrustZone Address Space Controller */
+			TZASC_MMIO_BASE = 0x100ec000,
+			TZASC_MMIO_SIZE = 0x1000,
+
+			/* TrustZone Protection Controller */
+			TZPC_MMIO_BASE = 0x100e6000,
+			TZPC_MMIO_SIZE = 0x1000,
+
 			/* CPU */
 			CORTEX_A9_PRIVATE_MEM_BASE = 0x1e000000,
 			CORTEX_A9_PRIVATE_MEM_SIZE = 0x2000,
@@ -55,6 +64,10 @@ namespace Genode
 			/* RAM */
 			LOCAL_DDR2_BASE = 0x60000000,
 			LOCAL_DDR2_SIZE = 0x40000000,
+
+			/* SRAM */
+			SRAM_BASE = SMB_CS2_BASE,
+			SRAM_SIZE = 0x01ffffff,
 		};
 	};
 }

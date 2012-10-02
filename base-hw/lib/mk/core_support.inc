@@ -12,9 +12,10 @@ INC_DIR += $(BOARD_DIR) $(REP_DIR)/src/core/include $(REP_DIR)/include \
 CC_OPT += -DCORE_MAIN=_main
 
 # add C++ sources
-SRC_CC += platform_support.cc kernel.cc rm_session_support.cc
+SRC_CC += kernel.cc rm_session_support.cc kernel_support.cc trustzone.cc
+
+LIBS += platform_support
 
 # declare source paths
-vpath platform_support.cc $(BOARD_DIR)
-vpath %                   $(REP_DIR)/src/core
+vpath %.cc $(REP_DIR)/src/core
 

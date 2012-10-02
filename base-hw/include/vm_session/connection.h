@@ -33,7 +33,7 @@ namespace Genode {
 		              long priority = Cpu_session::DEFAULT_PRIORITY,
 		              unsigned long affinity = 0)
 		: Connection<Vm_session>(
-			session("priority=0x%lx, affinity=0x%lx, ram_quota=8K, label=\"%s\"",
+			session("priority=0x%lx, affinity=0x%lx, ram_quota=16K, label=\"%s\"",
 			        priority, affinity, label)),
 		  Vm_session_client(cap()) { }
 	};
