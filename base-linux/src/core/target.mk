@@ -7,6 +7,7 @@ GEN_CORE_DIR  = $(BASE_DIR)/src/core
 SRC_CC        = main.cc \
                 platform.cc \
                 platform_thread.cc \
+                platform_services.cc \
                 ram_session_component.cc \
                 ram_session_support.cc \
                 rom_session_component.cc \
@@ -14,7 +15,6 @@ SRC_CC        = main.cc \
                 cpu_session_support.cc \
                 pd_session_component.cc \
                 io_mem_session_component.cc \
-                io_port_session_component.cc \
                 signal_session_component.cc \
                 signal_source_component.cc \
                 thread.cc \
@@ -32,6 +32,7 @@ vpath main.cc                     $(GEN_CORE_DIR)
 vpath thread.cc                   $(BASE_DIR)/src/base/thread
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
+vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath debug.cc                    $(REP_DIR)/src/base/env

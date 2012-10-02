@@ -30,9 +30,9 @@
 #include <pd_root.h>
 #include <log_root.h>
 #include <io_mem_root.h>
-#include <io_port_root.h>
 #include <irq_root.h>
 #include <signal_root.h>
+#include <platform_services.h>
 
 using namespace Genode;
 
@@ -173,7 +173,6 @@ int main()
 	static Log_root     log_root     (e, &sliced_heap);
 	static Io_mem_root  io_mem_root  (e, e, platform()->io_mem_alloc(),
 	                                  platform()->ram_alloc(), &sliced_heap);
-	static Io_port_root io_port_root (core_env()->cap_session(), platform()->io_port_alloc(), &sliced_heap);
 	static Irq_root     irq_root     (core_env()->cap_session(),
 	                                  platform()->irq_alloc(), &sliced_heap);
 	static Signal_root  signal_root  (&sliced_heap, core_env()->cap_session());
@@ -191,7 +190,6 @@ int main()
 		Local_service(Pd_session::service_name(),      &pd_root),
 		Local_service(Log_session::service_name(),     &log_root),
 		Local_service(Io_mem_session::service_name(),  &io_mem_root),
-		Local_service(Io_port_session::service_name(), &io_port_root),
 		Local_service(Irq_session::service_name(),     &irq_root),
 		Local_service(Signal_session::service_name(),  &signal_root)
 	};
@@ -199,6 +197,9 @@ int main()
 	/* make our local services known to service pool */
 	for (unsigned i = 0; i < sizeof(ls) / sizeof(Local_service); i++)
 		local_services.insert(&ls[i]);
+
+	/* make platform-specific services known to service pool */
+	platform_add_local_services(e, &sliced_heap, &local_services);
 
 	PDBG("--- start init ---");
 

@@ -19,6 +19,7 @@ SRC_CC       = \
                platform_thread.cc \
                platform_pd.cc \
                platform.cc \
+               platform_services.cc \
                core_mem_alloc.cc \
                dataspace_component.cc \
                rm_session_component.cc \
@@ -51,6 +52,7 @@ vpath io_mem_session_support.cc    $(GEN_CORE_DIR)
 vpath dataspace_component.cc       $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath dump_alloc.cc                $(GEN_CORE_DIR)
+vpath platform_services.cc         $(GEN_CORE_DIR)/x86
 vpath context_area.cc              $(GEN_CORE_DIR)
 vpath %.cc                         $(REP_DIR)/src/core
 vpath thread.cc                    $(BASE_DIR)/src/base/thread

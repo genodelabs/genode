@@ -22,27 +22,40 @@ INC_DIR += $(REP_DIR)/src/core/include $(REP_DIR)/include \
            $(BASE_DIR)/include
 
 # add C++ sources
-SRC_CC += main.cc _main.cc ram_session_component.cc \
-          ram_session_support.cc rom_session_component.cc \
-          pd_session_component.cc io_mem_session_component.cc \
-          io_mem_session_support.cc thread.cc platform_pd.cc platform.cc \
-          platform_thread.cc dataspace_component.cc rm_session_component.cc \
-          io_port_session_component.cc \
-          irq_session_component.cc signal_session_component.cc \
-          dump_alloc.cc cpu_session_component.cc \
-          cpu_session_support.cc console.cc
+SRC_CC += _main.cc \
+          console.cc \
+          cpu_session_component.cc \
+          cpu_session_support.cc \
+          dataspace_component.cc \
+          dump_alloc.cc \
+          io_mem_session_component.cc \
+          io_mem_session_support.cc \
+          irq_session_component.cc \
+          main.cc \
+          pd_session_component.cc \
+          platform.cc \
+          platform_pd.cc \
+          platform_thread.cc \
+          platform_services.cc \
+          ram_session_component.cc \
+          ram_session_support.cc \
+          rm_session_component.cc \
+          rom_session_component.cc \
+          signal_session_component.cc \
+          thread.cc
 
 # declare file locations
 vpath _main.cc                    $(BASE_DIR)/src/platform
-vpath main.cc                     $(GEN_CORE_DIR)
-vpath ram_session_component.cc    $(GEN_CORE_DIR)
-vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
-vpath pd_session_component.cc     $(GEN_CORE_DIR)
-vpath rm_session_component.cc     $(GEN_CORE_DIR)
+vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
-vpath dataspace_component.cc      $(GEN_CORE_DIR)
+vpath main.cc                     $(GEN_CORE_DIR)
+vpath pd_session_component.cc     $(GEN_CORE_DIR)
+vpath platform_services.cc        $(GEN_CORE_DIR)
+vpath ram_session_component.cc    $(GEN_CORE_DIR)
+vpath rm_session_component.cc     $(GEN_CORE_DIR)
+vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath console.cc                  $(REP_DIR)/src/base
 vpath %                           $(REP_DIR)/src/core

@@ -19,6 +19,7 @@ SRC_CC       = main.cc \
                thread_bootstrap.cc \
                platform_thread.cc \
                platform_pd.cc \
+               platform_services.cc \
                platform.cc \
                dataspace_component.cc \
                rm_session_component.cc \

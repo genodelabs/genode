@@ -21,10 +21,10 @@ SRC_CC       = main.cc \
                platform_thread.cc \
                platform_pd.cc \
                platform.cc \
+               platform_services.cc \
                dataspace_component.cc \
                rm_session_component.cc \
                rm_session_support.cc \
-               io_port_session_component.cc \
                irq_session_component.cc \
                signal_session_component.cc \
                signal_source_component.cc \

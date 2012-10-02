@@ -6,5 +6,5 @@ INC_DIR  += $(REP_DIR)/src/core/include/arm
 
 LD_TEXT_ADDR = 0x60490000
 
-vpath io_port_session_component.cc $(GEN_CORE_DIR)/arm
+vpath platform_services.cc $(GEN_CORE_DIR)
 
