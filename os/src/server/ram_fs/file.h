@@ -93,8 +93,8 @@ namespace File_system {
 			{
 				if (size < _chunk.used_size())
 					_chunk.truncate(size);
-				else
-					_length = size;
+
+				_length = size;
 			}
 	};
 }
