@@ -52,8 +52,16 @@ namespace Genode {
 
 		private:
 
-			template <typename T> void _out_unsigned(T value, unsigned base = 10, int pad = 0);
-			template <typename T> void _out_signed(T value, unsigned base = 10);
+			template <typename T> void _out_unsigned(T value,
+			                                         unsigned base = 10,
+			                                         int pad = 0,
+			                                         bool zeropad = false,
+			                                         bool leftjustify = false);
+			template <typename T> void _out_signed(T value, unsigned base = 10,
+			                                       int pad = 0,
+			                                       bool zeropad = false,
+			                                       bool leftjustify = false,
+			                                       bool plussign = false);
 	};
 }
 
