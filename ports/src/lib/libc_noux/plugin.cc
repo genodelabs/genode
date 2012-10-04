@@ -176,6 +176,20 @@ extern "C" uid_t geteuid()
 }
 
 
+extern "C" int dup(int ofd)
+{
+	sysio()->dup2_in.fd = ofd;
+	sysio()->dup2_in.to_fd = -1;
+
+	if (!noux()->syscall(Noux::Session::SYSCALL_DUP2)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	return sysio()->dup2_out.fd;
+}
+
+
 /**
  * Utility to copy-out syscall results to buf struct
  *

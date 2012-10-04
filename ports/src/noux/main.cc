@@ -549,8 +549,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_DUP2:
 			{
-				add_io_channel(io_channel_by_fd(_sysio->dup2_in.fd),
-				               _sysio->dup2_in.to_fd);
+				int fd = add_io_channel(io_channel_by_fd(_sysio->dup2_in.fd),
+				                        _sysio->dup2_in.to_fd);
+
+				_sysio->dup2_out.fd = fd;
+
 				return true;
 			}
 

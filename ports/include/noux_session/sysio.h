@@ -423,7 +423,7 @@ namespace Noux {
 			                        { int pid; int status; });
 			SYSIO_DECL(pipe,        { }, { int fd[2]; });
 
-			SYSIO_DECL(dup2,        { int fd; int to_fd; }, { });
+			SYSIO_DECL(dup2,        { int fd; int to_fd; }, { int fd; });
 
 			SYSIO_DECL(unlink,      { Path path; }, { });
 
