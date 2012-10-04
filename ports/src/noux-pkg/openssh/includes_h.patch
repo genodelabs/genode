@@ -1,0 +1,12 @@
+--- openssh-6.1p1/includes.h.orig	2012-11-14 16:18:25.970072293 +0100
++++ openssh-6.1p1/includes.h	2012-11-14 16:18:48.860209365 +0100
+@@ -18,7 +18,8 @@
+ 
+ #include "config.h"
+ 
+-#define _GNU_SOURCE /* activate extra prototypes for glibc */
++/* already defined by noux.mk */
++//#define _GNU_SOURCE /* activate extra prototypes for glibc */
+ 
+ #include <sys/types.h>
+ #include <sys/socket.h> /* For CMSG_* */
