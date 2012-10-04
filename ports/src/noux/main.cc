@@ -807,6 +807,13 @@ Noux::Io_receptor_registry * Noux::io_receptor_registry()
 }
 
 
+Terminal::Connection *Noux::terminal()
+{
+	static Terminal::Connection _inst;
+	return &_inst;
+}
+
+
 void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
 
@@ -869,17 +876,15 @@ int main(int argc, char **argv)
 	                             resources_ep,
 	                             false);
 
-	static Terminal::Connection terminal;
-
 	/*
 	 * I/O channels must be dynamically allocated to handle cases where the
 	 * init program closes one of these.
 	 */
 	typedef Terminal_io_channel Tio; /* just a local abbreviation */
 	Shared_pointer<Io_channel>
-		channel_0(new Tio(terminal, Tio::STDIN,  sig_rec), Genode::env()->heap()),
-		channel_1(new Tio(terminal, Tio::STDOUT, sig_rec), Genode::env()->heap()),
-		channel_2(new Tio(terminal, Tio::STDERR, sig_rec), Genode::env()->heap());
+		channel_0(new Tio(*Noux::terminal(), Tio::STDIN,  sig_rec), Genode::env()->heap()),
+		channel_1(new Tio(*Noux::terminal(), Tio::STDOUT, sig_rec), Genode::env()->heap()),
+		channel_2(new Tio(*Noux::terminal(), Tio::STDERR, sig_rec), Genode::env()->heap());
 
 	init_child->add_io_channel(channel_0, 0);
 	init_child->add_io_channel(channel_1, 1);
