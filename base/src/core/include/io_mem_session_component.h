@@ -62,7 +62,8 @@ namespace Genode {
 				Dataspace_attr(size_t s, addr_t cla, addr_t pa, bool write_combined,
 				               addr_t req_base)
 				:
-					size(s), core_local_addr(cla), phys_addr(pa), req_base(req_base) { }
+					size(s), core_local_addr(cla), phys_addr(pa),
+					write_combined(write_combined), req_base(req_base) { }
 			};
 
 			struct Io_dataspace_component : Dataspace_component
