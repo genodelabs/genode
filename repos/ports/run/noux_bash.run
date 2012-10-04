@@ -24,7 +24,7 @@ lappend_if [have_spec gpio] build_components drivers/gpio
 #
 # Build Noux packages only once
 #
-foreach pkg {bash coreutils vim diffutils} {
+foreach pkg {bash coreutils vim diffutils less} {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -50,6 +50,7 @@ exec tar cfv bin/bash.tar      -h -C bin/bash .
 exec tar cfv bin/coreutils.tar -h -C bin/coreutils .
 exec tar cfv bin/vim.tar       -h -C bin/vim .
 exec tar cfv bin/diffutils.tar -h -C bin/diffutils .
+exec tar cfv bin/less.tar      -h -C bin/less .
 
 create_boot_directory
 
@@ -137,6 +138,12 @@ append config {
 					<dir name="user">
 						<!-- just a place holder -->
 						<rom name="timer" />
+						<inline name="diff_me_a.txt">
+Hello world ?!
+						</inline>
+						<inline name="diff_me_b.txt">
+Hello world !!
+						</inline>
 					</dir>
 				</dir>
 			</content>
@@ -153,6 +160,7 @@ append config {
 				<tar name="coreutils.tar" />
 				<tar name="vim.tar" />
 				<tar name="diffutils.tar" />
+				<tar name="less.tar" />
 				<tar name="bash.tar" />
 
 				<!-- Example of how to impose policy onto a file system
@@ -189,7 +197,7 @@ install_config $config
 set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so
-	bash.tar coreutils.tar diffutils.tar vim.tar
+	bash.tar coreutils.tar diffutils.tar less.tar vim.tar
 	rtc_drv
 }
 
