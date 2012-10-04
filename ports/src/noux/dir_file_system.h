@@ -26,6 +26,8 @@
 #include <null_file_system.h>
 #include <zero_file_system.h>
 #include <stdio_file_system.h>
+#include <random_file_system.h>
+
 
 namespace Noux {
 
@@ -113,6 +115,11 @@ namespace Noux {
 
 					if (sub_node.has_type("stdio")) {
 						_append_file_system(new Stdio_file_system(sub_node));
+						continue;
+					}
+
+					if (sub_node.has_type("random")) {
+						_append_file_system(new Random_file_system(0, 0));
 						continue;
 					}
 
