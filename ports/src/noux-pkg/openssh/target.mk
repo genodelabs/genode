@@ -21,6 +21,8 @@ NOUX_CONFIGURE_ARGS += --disable-ip6 \
                        --sbindir=/bin \
                        --libexecdir=/bin
 
+NOUX_INSTALL_TARGET  = install
+
 LIBS += libcrypto libssl zlib libc_resolv
 
 noux_built.tag: Makefile Makefile_patch
