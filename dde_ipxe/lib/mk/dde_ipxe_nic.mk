@@ -5,7 +5,7 @@ LIBS = dde_kit dde_ipxe_support
 
 SRC_C = nic.c dde.c dummies.c
 
-SRC_C += $(addprefix core/, iobuf.c)
+SRC_C += $(addprefix core/, iobuf.c string.c)
 SRC_C += $(addprefix arch/x86/core/, x86_string.c)
 SRC_C += $(addprefix arch/i386/core/, rdtsc_timer.c)
 SRC_C += $(addprefix net/, ethernet.c netdevice.c nullnet.c eth_slow.c)

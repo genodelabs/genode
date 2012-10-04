@@ -20,7 +20,6 @@ void netdev_settings_operations() { TRACE; }
 void dbg_autocolourise(unsigned long id) { }
 void dbg_decolourise() { }
 void strerror() { TRACE; }
-int strcmp(const char *s1, const char *s2) { TRACE; return 0; }
 
 /* for eepro100.c */
 void init_spi_bit_basher() { TRACE; }
