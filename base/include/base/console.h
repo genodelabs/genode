@@ -56,12 +56,15 @@ namespace Genode {
 			                                         unsigned base = 10,
 			                                         int pad = 0,
 			                                         bool zeropad = false,
-			                                         bool leftjustify = false);
+			                                         bool leftjustify = false,
+			                                         bool prefix = false,
+			                                         bool uppercase = false);
 			template <typename T> void _out_signed(T value, unsigned base = 10,
 			                                       int pad = 0,
 			                                       bool zeropad = false,
 			                                       bool leftjustify = false,
-			                                       bool plussign = false);
+			                                       bool plussign = false,
+			                                       bool uppercase = false);
 	};
 }
 
