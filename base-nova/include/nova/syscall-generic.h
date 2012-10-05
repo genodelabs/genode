@@ -123,6 +123,22 @@ namespace Nova {
 
 		bool has_feature_vmx() const { return feature_flags & (1 << 1); }
 		bool has_feature_svm() const { return feature_flags & (1 << 2); }
+
+		unsigned cpu_max() const {
+			return (mem_desc_offset - cpu_desc_offset) / cpu_desc_size; }
+
+		unsigned cpus() const {
+			unsigned cpu_num = 0;
+			const char * cpu_desc =
+				reinterpret_cast<const char *>(this) + cpu_desc_offset;
+
+			for (unsigned i = 0; i < cpu_max(); i++) {
+				if ((*cpu_desc) & 0x1) cpu_num++;
+				cpu_desc += cpu_desc_size; 
+			}
+
+			return cpu_num;
+		}
 	} __attribute__((packed));
 
 

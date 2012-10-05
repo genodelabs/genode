@@ -42,6 +42,9 @@ namespace Genode {
 			const addr_t _vm_base;
 			size_t _vm_size;
 
+			/* available CPUs */
+			unsigned _cpus;
+
 			addr_t _map_page(addr_t const phys_page, addr_t const pages,
 			                 bool const extra_page);
 			void _unmap_page(addr_t const phys, addr_t const virt,
@@ -71,6 +74,7 @@ namespace Genode {
 
 			void wait_for_exit();
 			bool supports_unmap() { return true; }
+			unsigned num_cpus() const { return _cpus; }
 
 
 			/*******************

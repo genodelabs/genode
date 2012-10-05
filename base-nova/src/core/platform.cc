@@ -289,12 +289,15 @@ static void init_core_page_fault_handler()
 Platform::Platform() :
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
-	_vm_base(0x1000), _vm_size(0)
+	_vm_base(0x1000), _vm_size(0), _cpus(1)
 {
 	Hip  *hip  = (Hip *)__initial_sp;
 	/* check for right API version */
 	if (hip->api_version != 6)
 		nova_die();
+
+	/* determine number of available CPUs */
+	_cpus = hip->cpus();
 
 	/* register UTCB of main thread */
 	__main_thread_utcb = (Utcb *)(__initial_sp - get_page_size());
@@ -338,6 +341,7 @@ Platform::Platform() :
 	if (verbose_boot_info) {
 		printf("Hypervisor %s VMX\n", hip->has_feature_vmx() ? "features" : "does not feature");
 		printf("Hypervisor %s SVM\n", hip->has_feature_svm() ? "features" : "does not feature");
+		printf("Hypervisor reports %u CPU%c\n", _cpus, _cpus > 1 ? 's' : ' ');
 	}
 
 	/* initialize core allocators */
