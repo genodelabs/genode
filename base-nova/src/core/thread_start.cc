@@ -30,13 +30,13 @@
 using namespace Genode;
 
 
-/**
- * This function is called for constructing server activations and pager
- * objects. It allocates capability selectors for the thread's execution
- * context and a synchronization-helper semaphore needed for 'Lock'.
- */
 void Thread_base::_init_platform_thread()
 {
+	/*
+	 * This function is called for constructing server activations and pager
+	 * objects. It allocates capability selectors for the thread's execution
+	 * context and a synchronization-helper semaphore needed for 'Lock'.
+	 */
 	using namespace Nova;
 
 	_tid.ec_sel     = cap_selector_allocator()->alloc();
@@ -48,18 +48,6 @@ void Thread_base::_init_platform_thread()
 	uint8_t res = create_sm(rs_sel, pd_sel, 0);
 	if (res != NOVA_OK) {
 		PERR("create_sm returned %u", res);
-		throw Cpu_session::Thread_creation_failed();
-	}
-
-	addr_t sp   = reinterpret_cast<addr_t>(&_context->stack[-4]);
-	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
-
-	/* create local EC */
-	enum { CPU_NO = 0, GLOBAL = false };
-	res = create_ec(_tid.ec_sel, pd_sel, CPU_NO,
-	                utcb, sp, _tid.exc_pt_sel, GLOBAL);
-	if (res != NOVA_OK) {
-		PERR("%p - create_ec returned %d", this, res);
 		throw Cpu_session::Thread_creation_failed();
 	}
 }
@@ -84,9 +72,25 @@ void Thread_base::_deinit_platform_thread()
 void Thread_base::start()
 {
 	/*
-	 * On NOVA, core never starts regular threads.
+	 * On NOVA, core almost nerver starts regular threads. This simply creates a
+	 * local EC
 	 */
+	using namespace Nova;
+
+	addr_t sp   = reinterpret_cast<addr_t>(&_context->stack[-4]);
+	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
+	addr_t pd_sel   = Platform_pd::pd_core_sel();
+
+	/* create local EC */
+	enum { CPU_NO = 0, GLOBAL = false };
+	uint8_t res = create_ec(_tid.ec_sel, pd_sel, CPU_NO,
+	                        utcb, sp, _tid.exc_pt_sel, GLOBAL);
+	if (res != NOVA_OK) {
+		PERR("%p - create_ec returned %d", this, res);
+		throw Cpu_session::Thread_creation_failed();
+	}
 }
+
 
 void Thread_base::cancel_blocking()
 {

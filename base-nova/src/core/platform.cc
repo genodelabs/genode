@@ -134,24 +134,44 @@ static void page_fault_handler()
 }
 
 
+static addr_t core_pager_stack_top()
+{
+	enum { STACK_SIZE = 4*1024 };
+	static char stack[STACK_SIZE];
+	return (addr_t)&stack[STACK_SIZE - sizeof(addr_t)];
+}
+
+
+/**
+ * Startup handler for core threads
+ */
+static void startup_handler()
+{
+	Utcb *utcb = (Utcb *)CORE_PAGER_UTCB_ADDR;
+
+	/* initial IP is on stack */
+	utcb->ip = *reinterpret_cast<addr_t *>(utcb->sp);
+	utcb->mtd = Mtd::EIP | Mtd::ESP;
+	utcb->set_msg_word(0);
+
+	reply((void*)core_pager_stack_top());
+}
+
+
 static void init_core_page_fault_handler()
 {
 	/* create echo EC */
 	enum {
-		STACK_SIZE = 4*1024,
 		CPU_NO     = 0,
 		GLOBAL     = false,
 		EXC_BASE   = 0
 	};
 
-	static char stack[STACK_SIZE];
-
-	addr_t sp = (addr_t)&stack[STACK_SIZE - sizeof(addr_t)];
 	addr_t ec_sel = cap_selector_allocator()->alloc();
 
 	uint8_t ret = create_ec(ec_sel, __core_pd_sel, CPU_NO,
-	                        CORE_PAGER_UTCB_ADDR, (addr_t)sp, EXC_BASE,
-	                        GLOBAL);
+	                        CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
+	                        EXC_BASE, GLOBAL);
 	if (ret)
 		PDBG("create_ec returned %u", ret);
 
@@ -159,6 +179,11 @@ static void init_core_page_fault_handler()
 	create_pt(PT_SEL_PAGE_FAULT, __core_pd_sel, ec_sel,
 	          Mtd(Mtd::QUAL | Mtd::ESP | Mtd::EIP),
 	          (addr_t)page_fault_handler);
+
+	/* startup portal for global core threads */
+	create_pt(PT_SEL_STARTUP, __core_pd_sel, ec_sel,
+	          Mtd(Mtd::EIP | Mtd::ESP),
+	          (addr_t)startup_handler);
 }
 
 

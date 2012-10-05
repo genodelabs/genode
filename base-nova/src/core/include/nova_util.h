@@ -137,7 +137,7 @@ inline int map_local(Nova::Utcb *utcb,
 
 		if (verbose_local_map)
 			Genode::printf("::map_local: order %zx %lx:%lx %lx:%lx\n",
-		     	           order, from_curr, from_end, to_curr, to_end);
+			               order, from_curr, from_end, to_curr, to_end);
 
 		int const res = map_local(utcb,
 		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), rwx),

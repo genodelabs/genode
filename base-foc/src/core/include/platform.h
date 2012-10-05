@@ -129,9 +129,10 @@ namespace Genode {
 			Core_pager *core_pager();
 
 			/**
-			 * Set interrupt mode (e.g., level or edge)
+			 * Set interrupt trigger/polarity (e.g., level or edge, high or low)
 			 */
-			static void setup_irq_mode(unsigned irq_number);
+			static void setup_irq_mode(unsigned irq_number, unsigned trigger, 
+			                           unsigned polarity);
 
 			/**
 			 * Constructor

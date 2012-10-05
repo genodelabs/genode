@@ -14,6 +14,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <irq_session/irq_session.h>
 
 #include "platform.h"
 #include "util.h"
@@ -45,12 +46,28 @@ void Genode::Platform::_setup_io_port_alloc()
 }
 
 
-void Genode::Platform::setup_irq_mode(unsigned irq_number)
+void Genode::Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
+                                      unsigned polarity)
 {
 	using namespace Fiasco;
 
-	/* set IRQ below 16 to edge/high and others to level/low */
-	l4_umword_t mode = irq_number < 16 ? L4_IRQ_F_POS_EDGE : L4_IRQ_F_LEVEL_LOW;
+	/*
+	* Translate ACPI interrupt mode (trigger/polarity) to Fiasco APIC
+	 * values. Default is edge/high for IRQs < 16 and level low for IRQs > 16
+	 */
+	l4_umword_t mode;
+	mode  = (trigger == Irq_session::TRIGGER_LEVEL) ||
+	        (irq_number > 15 && trigger == Irq_session::TRIGGER_UNCHANGED)
+	        ? L4_IRQ_F_LEVEL : L4_IRQ_F_EDGE;
+
+	mode |= (polarity == Irq_session::POLARITY_LOW) ||
+	        (irq_number > 15 && polarity == Irq_session::POLARITY_UNCHANGED)
+	        ? L4_IRQ_F_NEG   : L4_IRQ_F_POS;
+
+
+	/*
+	 * Set mode
+	 */
 	if (l4_error(l4_icu_set_mode(L4_BASE_ICU_CAP, irq_number, mode)))
 		PERR("Setting mode for  IRQ%u failed", irq_number);
 }

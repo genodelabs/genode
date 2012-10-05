@@ -243,6 +243,11 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 			throw Cpu_session::Thread_creation_failed();
 		_tid.ec_sel = ec_cap.local_name();
 	}
+	else
+		/**
+		 * Required for core threads (creates local EC)
+		 */
+		Thread_base::start();
 
 	_rcv_buf.rcv_prepare_pt_sel_window((Nova::Utcb *)&_context->utcb);
 

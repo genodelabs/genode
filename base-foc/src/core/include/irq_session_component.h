@@ -23,48 +23,13 @@
 
 namespace Genode {
 
+	class Irq_proxy_component;
+
 	class Irq_session_component : public Rpc_object<Irq_session>,
 	                              public List<Irq_session_component>::Element
 	{
 		private:
 
-			class Interrupt : public Avl_node<Interrupt>
-			{
-				private:
-
-					Cap_index* _cap;
-					Semaphore  _sem;
-
-				public:
-
-					unsigned number;
-
-					Interrupt();
-
-					bool higher(Interrupt *n);
-					Interrupt* find_by_num(unsigned num);
-
-					Native_thread capability() { return _cap->kcap(); }
-					Semaphore*    semaphore()  { return &_sem;        }
-			};
-
-
-			class Interrupt_handler : public Thread<4096>
-			{
-				private:
-
-					Interrupt_handler() { start(); }
-
-					void entry();
-
-				public:
-
-					static Native_thread handler_cap();
-			};
-
-
-			Interrupt                _irq;
-			Range_allocator         *_irq_alloc;
 
 			/*
 			 * Each IRQ session uses a dedicated server activation
@@ -73,8 +38,7 @@ namespace Genode {
 			Rpc_entrypoint           _ep;
 
 			Irq_session_capability   _irq_cap;
-
-			static Avl_tree<Interrupt>* _irqs();
+			Irq_proxy_component     *_proxy;
 
 		public:
 

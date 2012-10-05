@@ -214,6 +214,9 @@ Pager_object::Pager_object(unsigned long badge)
 	_state.singlestep    = false;
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
 
+	/* creates local EC */
+	Thread_base::start();
+
 	/* Create portal for exception handlers 0x0 - 0xd */
 	for (unsigned i = 0; i < PT_SEL_PAGE_FAULT; i++) {
 		res = create_pt(exc_pt_sel() + i, pd_sel, _tid.ec_sel,

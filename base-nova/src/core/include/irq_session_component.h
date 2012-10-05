@@ -22,13 +22,12 @@
 
 namespace Genode {
 
+	class Irq_proxy_component;
+
 	class Irq_session_component : public Rpc_object<Irq_session>,
 	                              public List<Irq_session_component>::Element
 	{
 		private:
-
-			unsigned         _irq_number;
-			Range_allocator *_irq_alloc;
 
 			/*
 			 * Each IRQ session uses a dedicated server activation
@@ -36,6 +35,7 @@ namespace Genode {
 			enum { STACK_SIZE = 2048 };
 			Rpc_entrypoint         _ep;
 			Irq_session_capability _irq_cap;
+			Irq_proxy_component   *_proxy;
 
 		public:
 
