@@ -255,14 +255,15 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_EXECVE:
 			{
-				Dataspace_capability binary_ds = _root_dir->dataspace(_sysio->execve_in.filename);
+				Dataspace_capability binary_ds =
+					_root_dir->dataspace(_sysio->execve_in.filename);
 
 				if (!binary_ds.valid())
 					throw Child::Binary_does_not_exist();
 
-				Child_env<sizeof(_sysio->execve_in.args)> child_env(
-						_sysio->execve_in.filename, binary_ds, _sysio->execve_in.args,
-				    _sysio->execve_in.env);
+				Child_env<sizeof(_sysio->execve_in.args)>
+					child_env(_sysio->execve_in.filename, binary_ds,
+					          _sysio->execve_in.args, _sysio->execve_in.env);
 
 				_root_dir->release(_sysio->execve_in.filename, binary_ds);
 

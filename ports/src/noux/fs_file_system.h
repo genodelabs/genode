@@ -310,11 +310,17 @@ namespace Noux {
 				Directory_entry const *entry =
 					(Directory_entry *)source.packet_content(packet);
 
-				Sysio::Dirent_type type;
+				/*
+				 * The default value has no meaning because the switch below
+				 * assigns a value in each possible branch. But it is needed to
+				 * keep the compiler happy.
+				 */
+				Sysio::Dirent_type type = Sysio::DIRENT_TYPE_END;
+
 				switch (entry->type) {
-				case Directory_entry::TYPE_DIRECTORY: type = Sysio::DIRENT_TYPE_DIRECTORY;  break;
-				case Directory_entry::TYPE_FILE:      type = Sysio::DIRENT_TYPE_FILE;       break;
-				case Directory_entry::TYPE_SYMLINK:   type = Sysio::DIRENT_TYPE_SYMLINK;    break;
+				case Directory_entry::TYPE_DIRECTORY: type = Sysio::DIRENT_TYPE_DIRECTORY; break;
+				case Directory_entry::TYPE_FILE:      type = Sysio::DIRENT_TYPE_FILE;      break;
+				case Directory_entry::TYPE_SYMLINK:   type = Sysio::DIRENT_TYPE_SYMLINK;   break;
 				}
 
 				sysio->dirent_out.entry.type   = type;

@@ -115,8 +115,8 @@ namespace Noux {
 				/* copy interpreter name into argument buffer */
 				unsigned int args_buf_cursor = 0;
 				Genode::strncpy(&_args[args_buf_cursor],
-								&binary_addr[interpreter_name_start],
-								interpreter_name_len + 1);
+				                &binary_addr[interpreter_name_start],
+				                interpreter_name_len + 1);
 				_binary_name = &_args[args_buf_cursor];
 				args_buf_cursor += interpreter_name_len + 1;
 
@@ -130,8 +130,8 @@ namespace Noux {
 				size_t interpreter_args_len = eol - interpreter_line_cursor;
 				if (interpreter_args_len > 0) {
 					Genode::strncpy(&_args[args_buf_cursor],
-									&binary_addr[interpreter_line_cursor],
-									interpreter_args_len + 1);
+					                &binary_addr[interpreter_line_cursor],
+					                interpreter_args_len + 1);
 					args_buf_cursor += interpreter_args_len + 1;
 				}
 
@@ -157,7 +157,6 @@ namespace Noux {
 
 			Sysio::Env const &env() const { return _env; }
 	};
-
 }
 
 #endif /* _NOUX__CHILD_ENV_H_ */

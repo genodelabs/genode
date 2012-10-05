@@ -39,7 +39,7 @@ namespace Noux {
 			bool _is_device_zero_file(const char *path)
 			{
 				return (strlen(path) == (strlen(_filename()) + 1)) &&
-					   (strcmp(&path[1], _filename()) == 0);
+				       (strcmp(&path[1], _filename()) == 0);
 			}
 
 		public:

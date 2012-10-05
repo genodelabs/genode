@@ -39,7 +39,7 @@ namespace Noux {
 		virtual bool   unlink(Sysio *sysio, char const *path) = 0;
 		virtual bool readlink(Sysio *sysio, char const *path) = 0;
 		virtual bool   rename(Sysio *sysio, char const *from_path,
-		                                  char const *to_path) = 0;
+		                                    char const *to_path) = 0;
 		virtual bool    mkdir(Sysio *sysio, char const *path) = 0;
 		virtual bool  symlink(Sysio *sysio, char const *path) = 0;
 

@@ -190,9 +190,8 @@ namespace Noux {
 				sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
 
 				/* path does not match directory name */
-				if (!path) {
+				if (!path)
 					return false;
-				}
 
 				/*
 				 * If path equals directory name, return information about the
@@ -274,6 +273,7 @@ namespace Noux {
 					sysio->dirent_out.entry.fileno = 1;
 				} else
 					sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_END;
+
 				return true;
 			}
 
@@ -283,6 +283,7 @@ namespace Noux {
 
 				if (_is_root()) {
 					return _dirent_of_file_systems(sysio, path, index);
+
 				} else {
 
 					if (strcmp(path, "/") == 0)
@@ -426,9 +427,8 @@ namespace Noux {
 				sysio->error.unlink = Sysio::UNLINK_ERR_NO_ENTRY;
 
 				/* path does not match directory name */
-				if (!path) {
+				if (!path)
 					return false;
-				}
 
 				/*
 				 * Prevent unlinking if path equals directory name defined
@@ -473,9 +473,8 @@ namespace Noux {
 				sysio->error.readlink = Sysio::READLINK_ERR_NO_ENTRY;
 
 				/* path does not match directory name */
-				if (!path) {
+				if (!path)
 					return false;
-				}
 
 				/* path refers to any of our sub file systems */
 				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
@@ -506,9 +505,8 @@ namespace Noux {
 				sysio->error.rename = Sysio::RENAME_ERR_NO_ENTRY;
 
 				/* path does not match directory name */
-				if (!from_path) {
+				if (!from_path)
 					return false;
-				}
 
 				/*
 				 * Prevent renaming if path equals directory name defined
@@ -533,6 +531,7 @@ namespace Noux {
 				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 					if (fs->rename(sysio, from_path, to_path)) {
 						return true;
+
 					} else {
 						/*
 						 * Keep the most meaningful error code. When using
@@ -558,9 +557,8 @@ namespace Noux {
 				sysio->error.symlink = Sysio::SYMLINK_ERR_NO_ENTRY;
 
 				/* path does not match directory name */
-				if (!path) {
+				if (!path)
 					return false;
-				}
 
 				/*
 				 * Prevent symlink of path that equals directory name defined
@@ -575,6 +573,7 @@ namespace Noux {
 				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 					if (fs->symlink(sysio, path)) {
 						return true;
+
 					} else {
 						/*
 						 * Keep the most meaningful error code. When using
@@ -600,9 +599,8 @@ namespace Noux {
 				sysio->error.mkdir = Sysio::MKDIR_ERR_NO_ENTRY;
 
 				/* path does not match directory name */
-				if (!path) {
+				if (!path)
 					return false;
-				}
 
 				/*
 				 * Prevent mkdir of path that equals directory name defined

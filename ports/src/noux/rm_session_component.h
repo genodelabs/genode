@@ -61,7 +61,7 @@ namespace Noux {
 				Region *curr = _regions.first();
 				for (; curr; curr = curr->next()) {
 					if (curr->contains(local_addr))
-					    return curr;
+						return curr;
 				}
 				return 0;
 			}

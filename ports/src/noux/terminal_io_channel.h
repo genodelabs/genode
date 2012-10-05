@@ -120,16 +120,11 @@ namespace Noux {
 			switch (sysio->fcntl_in.cmd) {
 
 			case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
-			{
 				sysio->fcntl_out.result = 0;
 				return true;
-			}
 
 			default:
-			{
 				return false;
-			}
-
 			}
 
 			return false;

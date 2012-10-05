@@ -24,6 +24,7 @@
 namespace Noux {
 
 	struct User_info {
+
 		public:
 
 			char name[Sysio::MAX_USERNAME_LEN];
