@@ -151,7 +151,7 @@ void Ipc_server::_prepare_next_reply_wait()
 	_read_offset = sizeof(long);
 
 	/* read client thread id from request buffer */
-	long tid;
+	long tid = 0;
 	if (_reply_needed) {
 		_read_from_buf(tid);
 		Ipc_ostream::_dst = Native_capability(tid, 0); /* only _tid member is used */
