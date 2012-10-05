@@ -17,42 +17,10 @@
 #include <dataspace/client.h>
 #include <base/printf.h>
 #include <base/sleep.h>
-#include <root/component.h>
+#include <os/static_root.h>
 
 /* local includes */
 #include <driver.h>
-
-
-/**
- * Root interface that hands out a statically created session
- */
-template <typename SESSION_TYPE>
-class Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION_TYPE> >
-{
-	private:
-
-		typedef Genode::Capability<SESSION_TYPE> Session_capability;
-
-		Session_capability _session;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param session  session to be provided to the client
-		 */
-		Static_root(Session_capability session) : _session(session) { }
-
-
-		/********************
-		 ** Root interface **
-		 ********************/
-
-		Genode::Session_capability session(Genode::Root::Session_args const &args) { return _session; }
-		void upgrade(Genode::Session_capability, Genode::Root::Upgrade_args const &) { }
-		void close(Genode::Session_capability) { }
-};
 
 
 namespace Framebuffer {

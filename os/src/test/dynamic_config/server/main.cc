@@ -15,48 +15,12 @@
  */
 
 /* Genode includes */
-#include <base/rpc_server.h>
 #include <base/signal.h>
-#include <root/root.h>
 #include <os/attached_ram_dataspace.h>
+#include <os/static_root.h>
 #include <timer_session/connection.h>
 #include <rom_session/rom_session.h>
 #include <cap_session/connection.h>
-
-/**
- * Root interface that hands out a statically created session
- */
-template <typename SESSION_TYPE>
-class Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION_TYPE> >
-{
-	private:
-
-		typedef Genode::Capability<SESSION_TYPE> Session_capability;
-
-		Session_capability _session;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param session  session to be provided to the client
-		 */
-		Static_root(Session_capability session) : _session(session) { }
-
-
-		/********************
-		 ** Root interface **
-		 ********************/
-
-		Genode::Session_capability session(Genode::Root::Session_args const &)
-		{
-			return _session;
-		}
-
-		void upgrade(Genode::Session_capability, Genode::Root::Upgrade_args const &) { }
-		void close(Genode::Session_capability) { }
-};
 
 
 /*
