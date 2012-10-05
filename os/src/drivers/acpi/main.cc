@@ -38,6 +38,37 @@ namespace Irq {
 	 */
 	class Root : public Irq_session
 	{
+		private:
+
+			Genode::Irq_session::Trigger _mode2trigger(unsigned mode)
+			{
+				enum { EDGE = 0x4, LEVEL = 0xc };
+
+				switch (mode & 0xc) {
+					case EDGE:
+						return Genode::Irq_session::TRIGGER_EDGE;
+					case LEVEL:
+						return Genode::Irq_session::TRIGGER_LEVEL;
+					default:
+						return Genode::Irq_session::TRIGGER_UNCHANGED;
+				}
+			}
+
+			Genode::Irq_session::Polarity _mode2polarity(unsigned mode)
+			{
+				using namespace Genode;
+				enum { HIGH = 0x1, LOW = 0x3 };
+
+				switch (mode & 0x3) {
+					case HIGH:
+						return Genode::Irq_session::POLARITY_HIGH;
+					case LOW:
+						return Genode::Irq_session::POLARITY_LOW;
+					default:
+						return Genode::Irq_session::POLARITY_UNCHANGED;
+				}
+			}
+
 		public:
 
 			/**
@@ -52,11 +83,12 @@ namespace Irq {
 				long irq_number = Arg_string::find_arg(args.string(), "irq_number").long_value(-1);
 
 				/* check for 'MADT' overrides */
-				irq_number = Acpi::override(irq_number);
+				unsigned mode;
+				irq_number = Acpi::override(irq_number, &mode);
 
 				/* allocate IRQ at parent*/
 				try {
-					Irq_connection irq(irq_number);
+					Irq_connection irq(irq_number, _mode2trigger(mode), _mode2polarity(mode));
 					irq.on_destruction(Irq_connection::KEEP_OPEN);
 					return irq.cap();
 				} catch (...) { throw Root::Unavailable(); }

@@ -28,6 +28,17 @@ namespace Genode {
 
 	struct Irq_session : Session
 	{
+
+		/**
+		 * Interrupt trigger
+		 */
+		enum Trigger { TRIGGER_UNCHANGED = 0, TRIGGER_LEVEL, TRIGGER_EDGE };
+
+		/**
+		 * Interrupt trigger polarity
+		 */
+		enum Polarity { POLARITY_UNCHANGED = 0, POLARITY_HIGH, POLARITY_LOW };
+
 		static const char *service_name() { return "IRQ"; }
 
 		virtual ~Irq_session() { }

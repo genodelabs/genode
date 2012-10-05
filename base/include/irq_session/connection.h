@@ -24,13 +24,17 @@ namespace Genode {
 		/**
 		 * Constructor
 		 *
-		 * \param irq  physical interrupt number
+		 * \param irq      physical interrupt number
+		 * \param trigger  interrupt trigger (e.g., level/edge)
+		 * \param polarity interrupt trigger polarity (e.g., low/high)
 		 */
-		Irq_connection(unsigned irq)
+		Irq_connection(unsigned irq,
+		               Irq_session::Trigger  trigger  = Irq_session::TRIGGER_UNCHANGED,
+		               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED)
 		:
 			Connection<Irq_session>(
-				session("ram_quota=4K, irq_number=%u", irq)),
-
+				session("ram_quota=4K, irq_number=%u, irq_trigger=%u, irq_polarity=%u",
+				        irq, trigger, polarity)),
 			Irq_session_client(cap())
 		{ }
 	};

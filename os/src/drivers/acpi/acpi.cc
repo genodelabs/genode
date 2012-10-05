@@ -95,6 +95,7 @@ class Irq_override : public List<Irq_override>::Element
 
 		bool     match(uint32_t irq) const { return irq == _irq; }
 		uint32_t gsi()               const { return _gsi; }
+		uint32_t flags()             const { return _flags; }
 };
 
 
@@ -196,8 +197,7 @@ class Table_wrapper
 
 				Apic_override *o = static_cast<Apic_override *>(apic);
 				
-				if (verbose)
-					PDBG("Found IRQ %u -> GSI %u", o->irq, o->gsi);
+				PINF("MADT IRQ %u -> GSI %u flags: %x", o->irq, o->gsi, o->flags);
 				
 				Irq_override::list()->insert(new (env()->heap()) Irq_override(o->irq, o->gsi, o->flags));
 			}
@@ -944,7 +944,6 @@ class Acpi_table
 					}
 
 					if (table.is_madt()) {
-						if (verbose)
 							PDBG("Found MADT");
 
 						table.parse_madt();
@@ -1127,7 +1126,7 @@ void Acpi::rewrite_irq(Pci::Session_capability &session)
 	if (Element::supported_acpi_format())
 		PINF("ACPI table format is supported by this driver");
 	else {
-		PERR("ACPI table format not supported (is too old) by this driver");
+		PWRN("ACPI table format not supported will not rewrite GSIs");
 		return;
 	}
 
@@ -1161,11 +1160,14 @@ void Acpi::rewrite_irq(Pci::Session_capability &session)
 /**
  * Search override structures
  */
-unsigned Acpi::override(unsigned irq)
+unsigned Acpi::override(unsigned irq, unsigned *mode)
 {
 	for (Irq_override *i = Irq_override::list()->first(); i; i = i->next())
-		if (i->match(irq))
+		if (i->match(irq)) {
+			*mode = i->flags();
 			return i->gsi();
-	
+		}
+
+	*mode = 0;
 	return irq;
 }

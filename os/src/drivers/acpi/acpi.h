@@ -29,7 +29,7 @@ class Acpi
 		/**
 		 * Return override GSI for IRQ
 		 */
-		static unsigned override(unsigned irq);
+		static unsigned override(unsigned irq, unsigned *mode);
 };
 
 #endif /* _ACPI_H_ */
