@@ -261,9 +261,34 @@ namespace File_system {
 				return _handle_registry.alloc(file);
 			}
 
-			Symlink_handle symlink(Dir_handle, Name const &name, bool create)
+			Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 			{
-				return Symlink_handle(-1);
+				if (!valid_name(name.string()))
+					throw Invalid_name();
+
+				Directory *dir = _handle_registry.lookup_and_lock(dir_handle);
+				Node_lock_guard dir_guard(*dir);
+
+				if (create) {
+
+					if (!_writable)
+						throw Permission_denied();
+
+					if (dir->has_sub_node_unsynchronized(name.string()))
+						throw Node_already_exists();
+
+					try {
+						Symlink * const symlink = new (env()->heap())
+						                    Symlink(name.string());
+
+						dir->adopt_unsynchronized(symlink);
+					}
+					catch (Allocator::Out_of_memory) { throw No_space(); }
+				}
+
+				Symlink *symlink = dir->lookup_and_lock_symlink(name.string());
+				Node_lock_guard file_guard(*symlink);
+				return _handle_registry.alloc(symlink);
 			}
 
 			Dir_handle dir(Path const &path, bool create)
@@ -343,6 +368,7 @@ namespace File_system {
 				}
 				Symlink *symlink = dynamic_cast<Symlink *>(node);
 				if (symlink) {
+					s.size = symlink->length();
 					s.mode = File_system::Status::MODE_SYMLINK;
 					return s;
 				}

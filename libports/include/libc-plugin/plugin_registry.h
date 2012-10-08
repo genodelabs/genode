@@ -25,7 +25,8 @@ namespace Libc {
 	{
 		public:
 		
-			Plugin *get_plugin_for_chdir(const char *path);
+			Plugin *get_plugin_for_execve(char const *filename, char *const argv[],
+		                                  char *const envp[]);
 			Plugin *get_plugin_for_freeaddrinfo(struct addrinfo *res);
 			Plugin *get_plugin_for_getaddrinfo(const char *node, const char *service,
 			                                   const struct addrinfo *hints,
@@ -33,9 +34,11 @@ namespace Libc {
 			Plugin *get_plugin_for_mkdir(const char *path, mode_t mode);
 			Plugin *get_plugin_for_open(const char *pathname, int flags);
 			Plugin *get_plugin_for_pipe();
+			Plugin *get_plugin_for_readlink(const char *path, char *buf, size_t bufsiz);
 			Plugin *get_plugin_for_rename(const char *oldpath, const char *newpath);
 			Plugin *get_plugin_for_socket(int domain, int type, int protocol);
 			Plugin *get_plugin_for_stat(const char *path, struct stat *);
+			Plugin *get_plugin_for_symlink(const char *oldpath, const char *newpath);
 			Plugin *get_plugin_for_unlink(const char *path);
 	};
 

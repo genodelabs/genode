@@ -22,7 +22,6 @@
 
 /* Noux includes */
 #include <noux_session/sysio.h>
-#include <pwd.h>
 #include <shared_pointer.h>
 #include <wake_up_notifier.h>
 
@@ -55,7 +54,6 @@ namespace Noux {
 			virtual bool     fstat(Sysio *sysio)                { return false; }
 			virtual bool ftruncate(Sysio *sysio)                { return false; }
 			virtual bool     fcntl(Sysio *sysio)                { return false; }
-			virtual bool    fchdir(Sysio *sysio, Pwd *pwd)      { return false; }
 			virtual bool    dirent(Sysio *sysio)                { return false; }
 			virtual bool     ioctl(Sysio *sysio)                { return false; }
 			virtual bool     lseek(Sysio *sysio)                { return false; }

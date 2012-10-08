@@ -68,7 +68,12 @@ install_config $config
 
 exec mkdir -p bin/libc_fs_tar_fs/testdir/testdir
 exec echo -n "a single line of text" > bin/libc_fs_tar_fs/testdir/testdir/test.tst
-exec tar cfv bin/libc_fs_tar_fs.tar -h -C bin/libc_fs_tar_fs .
+exec mkdir -p bin/libc_fs_tar_fs/testdir/a
+exec mkdir -p bin/libc_fs_tar_fs/testdir/c
+exec ln -sf /a bin/libc_fs_tar_fs/testdir/c/d
+exec ln -sf /c bin/libc_fs_tar_fs/testdir/e
+exec echo -n "a single line of text" > bin/libc_fs_tar_fs/testdir/a/b
+exec tar cfv bin/libc_fs_tar_fs.tar -C bin/libc_fs_tar_fs .
 
 #
 # Boot modules

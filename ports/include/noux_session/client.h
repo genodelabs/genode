@@ -34,9 +34,11 @@ namespace Noux {
 
 			bool syscall(Syscall sc)
 			{
+				static bool verbose = false;
+
 				bool result = call<Rpc_syscall>(sc);
 
-				if (result == false)
+				if ((result == false) && verbose)
 					PERR("syscall %s failed", syscall_name(sc));
 
 				return result;

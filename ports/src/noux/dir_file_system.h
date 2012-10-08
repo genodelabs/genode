@@ -466,6 +466,39 @@ namespace Noux {
 				return false;
 			}
 
+			bool readlink(Sysio *sysio, char const *path)
+			{
+				path = _sub_path(path);
+
+				sysio->error.readlink = Sysio::READLINK_ERR_NO_ENTRY;
+
+				/* path does not match directory name */
+				if (!path) {
+					return false;
+				}
+
+				/* path refers to any of our sub file systems */
+				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+					if (fs->readlink(sysio, path)) {
+						return true;
+					} else {
+						/*
+						 * Keep the most meaningful error code. When using
+						 * stacked file systems, most child file systems will
+						 * eventually return 'READLINK_ERR_NO_ENTRY' (or leave
+						 * the error code unchanged). If any of those file
+						 * systems has anything more interesting to tell,
+						 * return this information.
+						 */
+						if (sysio->error.readlink != Sysio::READLINK_ERR_NO_ENTRY)
+							return false;
+					}
+				}
+
+				/* none of our file systems could read the link */
+				return false;
+			}
+
 			bool rename(Sysio *sysio, char const *from_path, char const *to_path)
 			{
 				from_path = _sub_path(from_path);
@@ -515,6 +548,48 @@ namespace Noux {
 				}
 
 				/* none of our file systems could successfully rename the path */
+				return false;
+			}
+
+			bool symlink(Sysio *sysio, char const *path)
+			{
+				path = _sub_path(path);
+
+				sysio->error.symlink = Sysio::SYMLINK_ERR_NO_ENTRY;
+
+				/* path does not match directory name */
+				if (!path) {
+					return false;
+				}
+
+				/*
+				 * Prevent symlink of path that equals directory name defined
+				 * via the static fstab configuration.
+				 */
+				if (strlen(path) == 0) {
+					sysio->error.symlink = Sysio::SYMLINK_ERR_EXISTS;
+					return false;
+				}
+
+				/* path refers to any of our sub file systems */
+				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+					if (fs->symlink(sysio, path)) {
+						return true;
+					} else {
+						/*
+						 * Keep the most meaningful error code. When using
+						 * stacked file systems, most child file systems will
+						 * eventually return 'SYMLINK_ERR_NO_ENTRY' (or leave
+						 * the error code unchanged). If any of those file
+						 * systems has anything more interesting to tell,
+						 * return this information.
+						 */
+						if (sysio->error.symlink != Sysio::SYMLINK_ERR_NO_ENTRY)
+							return false;
+					}
+				}
+
+				/* none of our file systems could create the symlink */
 				return false;
 			}
 

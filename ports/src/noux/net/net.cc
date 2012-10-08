@@ -150,7 +150,6 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 		/**
 		 * Keep compiler from complaining
 		 */
-		case SYSCALL_GETCWD:
 		case SYSCALL_WRITE:
 		case SYSCALL_READ:
 		case SYSCALL_STAT:
@@ -162,7 +161,6 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 		case SYSCALL_IOCTL:
 		case SYSCALL_LSEEK:
 		case SYSCALL_DIRENT:
-		case SYSCALL_FCHDIR:
 		case SYSCALL_EXECVE:
 		case SYSCALL_SELECT:
 		case SYSCALL_FORK:
@@ -175,6 +173,8 @@ bool Noux::Child::_syscall_net(Noux::Session::Syscall sc)
 		case SYSCALL_RENAME:
 		case SYSCALL_MKDIR:
 		case SYSCALL_FTRUNCATE:
+		case SYSCALL_READLINK:
+		case SYSCALL_SYMLINK:
 		case SYSCALL_USERINFO:
 			break;
 		case SYSCALL_SOCKET:

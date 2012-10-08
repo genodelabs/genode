@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/printf.h>
+#include <os/path.h>
 
 /* libc includes */
 #include <errno.h>
@@ -131,7 +132,6 @@ class Plugin : public Libc::Plugin
 			File_plugin_context *file_plugin_context =
 				dynamic_cast<File_plugin_context*>(context(fd));
 			if (!file_plugin_context) {
-				PERR("_get_ffat_file() called for a directory");
 				return 0;
 			}
 			return file_plugin_context->ffat_file();
@@ -142,7 +142,6 @@ class Plugin : public Libc::Plugin
 			Directory_plugin_context *directory_plugin_context =
 				dynamic_cast<Directory_plugin_context*>(context(fd));
 			if (!directory_plugin_context) {
-				PERR("_get_ffat_dir() called for a regular file");
 				return 0;
 			}
 			return directory_plugin_context->ffat_dir();
@@ -173,13 +172,6 @@ class Plugin : public Libc::Plugin
 		/*
 		 * TODO: decide if the file named <path> shall be handled by this plugin
 		 */
-
-		bool supports_chdir(const char *path)
-		{
-			if (verbose)
-				PDBG("path = %s", path);
-			return true;
-		}
 
 		bool supports_mkdir(const char *path, mode_t)
 		{
@@ -216,39 +208,20 @@ class Plugin : public Libc::Plugin
 			return true;
 		}
 
-		int chdir(const char *path)
-		{
-			using namespace Ffat;
-
-			FRESULT res = f_chdir(path);
-
-			switch(res) {
-				case FR_OK:
-					return 0;
-				case FR_NO_PATH:
-				case FR_INVALID_NAME:
-				case FR_INVALID_DRIVE:
-					errno = ENOENT;
-					return -1;
-				case FR_NOT_READY:
-				case FR_DISK_ERR:
-				case FR_INT_ERR:
-				case FR_NOT_ENABLED:
-				case FR_NO_FILESYSTEM:
-					errno = EIO;
-					return -1;
-				default:
-					/* not supposed to occur according to the libffat documentation */
-					PERR("f_chdir() returned an unexpected error code");
-					return -1;
-			}
-		}
-
 		int close(Libc::File_descriptor *fd)
 		{
 			using namespace Ffat;
 
-			FRESULT res = f_close(_get_ffat_file(fd));
+			FIL *ffat_file = _get_ffat_file(fd);
+
+			if (!ffat_file){
+				/* directory */
+				Genode::destroy(Genode::env()->heap(), context(fd));
+				Libc::file_descriptor_allocator()->free(fd);
+				return 0;
+			}
+
+			FRESULT res = f_close(ffat_file);
 
 			Genode::destroy(Genode::env()->heap(), context(fd));
 			Libc::file_descriptor_allocator()->free(fd);
@@ -646,6 +619,14 @@ class Plugin : public Libc::Plugin
 			file_info.lfname = 0;
 			file_info.lfsize = 0;
 
+			::memset(buf, 0, sizeof(struct stat));
+
+			/* 'f_stat()' does not work for the '/' directory */
+			if (strcmp(path, "/") == 0) {
+				buf->st_mode |= S_IFDIR;
+				return 0;
+			}
+
 			FRESULT res = f_stat(path, &file_info);
 
 			switch(res) {
@@ -669,8 +650,6 @@ class Plugin : public Libc::Plugin
 					PERR("f_stat() returned an unexpected error code");
 					return -1;
 			}
-
-			::memset(buf, 0, sizeof(struct stat));
 
 			/* convert FILINFO to struct stat */
 			buf->st_size = file_info.fsize;

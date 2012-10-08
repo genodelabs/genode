@@ -34,12 +34,14 @@ namespace Noux {
 
 		virtual Vfs_handle *open(Sysio *sysio, char const *path) = 0;
 
-		virtual bool   stat(Sysio *sysio, char const *path) = 0;
-		virtual bool dirent(Sysio *sysio, char const *path, off_t index) = 0;
-		virtual bool unlink(Sysio *sysio, char const *path) = 0;
-		virtual bool rename(Sysio *sysio, char const *from_path,
+		virtual bool     stat(Sysio *sysio, char const *path) = 0;
+		virtual bool   dirent(Sysio *sysio, char const *path, off_t index) = 0;
+		virtual bool   unlink(Sysio *sysio, char const *path) = 0;
+		virtual bool readlink(Sysio *sysio, char const *path) = 0;
+		virtual bool   rename(Sysio *sysio, char const *from_path,
 		                                  char const *to_path) = 0;
-		virtual bool  mkdir(Sysio *sysio, char const *path) = 0;
+		virtual bool    mkdir(Sysio *sysio, char const *path) = 0;
+		virtual bool  symlink(Sysio *sysio, char const *path) = 0;
 
 		/**
 		 * Return number of directory entries located at given path

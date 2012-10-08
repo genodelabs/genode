@@ -103,7 +103,6 @@ namespace Noux {
 				}
 			}
 
-			bool fchdir(Sysio *sysio, Pwd *pwd) { return false; }
 			bool dirent(Sysio *sysio)           { return false; }
 
 			bool check_unblock(bool rd, bool wr, bool ex) const

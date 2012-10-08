@@ -101,13 +101,13 @@ int main(int argc, char *argv[])
 		}
 
 		/* test 'pread()' and 'pwrite()' */
-		CALL_AND_CHECK(fd, open(file_name2, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(fd, open(file_name2, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name2);
 		/* write "a single line of" */
 		CALL_AND_CHECK(count, pwrite(fd, pattern, (pattern_size - 6), 0), (size_t)count == (pattern_size - 6), "");
 		/* write "line of text" at offset 9 */
 		CALL_AND_CHECK(count, pwrite(fd, &pattern[9], (pattern_size - 9), 9), (size_t)count == (pattern_size - 9), "");
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
-		CALL_AND_CHECK(fd, open(file_name2, O_RDONLY), fd >= 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(fd, open(file_name2, O_RDONLY), fd >= 0, "file_name=%s", file_name2);
 		memset(buf, 0, sizeof(buf));
 		/* read "single line of text" from offset 2 */
 		CALL_AND_CHECK(count, pread(fd, buf, sizeof(buf), 2), (size_t)count == (pattern_size - 2), "");
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 		}
 
 		/* test 'readv()' and 'writev()' */
-		CALL_AND_CHECK(fd, open(file_name3, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(fd, open(file_name3, O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", file_name3);
 		struct iovec iov[2];
 		/* write "a single line" */
 		iov[0].iov_base = (void*)pattern;
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 		iov[1].iov_len = pattern_size - 8;
 		CALL_AND_CHECK(count, writev(fd, iov, 2), (size_t)count == (pattern_size + 5), "");
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
-		CALL_AND_CHECK(fd, open(file_name3, O_RDONLY), fd >= 0, "file_name=%s", file_name);
+		CALL_AND_CHECK(fd, open(file_name3, O_RDONLY), fd >= 0, "file_name=%s", file_name3);
 		memset(buf, 0, sizeof(buf));
 		/* read "a single line" */
 		iov[0].iov_base = buf;
@@ -186,6 +186,37 @@ int main(int argc, char *argv[])
 		CALL_AND_CHECK(ret, stat(file_name4, &stat_buf),
 		               (ret == 0) && (stat_buf.st_size == 0),
 		               "file_name=%s", file_name4);
+
+		/* test 'fchdir()' */
+		CALL_AND_CHECK(ret, chdir("/"), ret == 0, "");
+		CALL_AND_CHECK(fd, open(dir_name, O_RDONLY), fd >= 0, "dir_name=%s", dir_name);
+		CALL_AND_CHECK(ret, fchdir(fd), ret == 0, "");
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+		CALL_AND_CHECK(ret, stat(file_name, &stat_buf), ret == 0, "file_name=%s", file_name);
+
+		/* test symbolic links */
+		if ((symlink("/", "/symlinks_supported") == 0) || (errno != ENOSYS)) {
+			CALL_AND_CHECK(ret, mkdir("/a", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/a");
+			CALL_AND_CHECK(ret, mkdir("/c", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/c");
+			CALL_AND_CHECK(ret, symlink("/a", "/c/d"),
+			               ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/c/d");
+			CALL_AND_CHECK(ret, symlink("/c", "/e"), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/e");
+
+			CALL_AND_CHECK(fd, open("/a/b", O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", "/a/b");
+			CALL_AND_CHECK(count, write(fd, pattern, pattern_size), (size_t)count == pattern_size, "");
+			CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+
+			CALL_AND_CHECK(fd, open("/e/d/b", O_RDONLY), fd >= 0, "file_name=%s", "/e/d/b");
+			CALL_AND_CHECK(count, read(fd, buf, sizeof(buf)), (size_t)count == pattern_size, "");
+			CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+			printf("content of file: \"%s\"\n", buf);
+			if (strcmp(buf, pattern) != 0) {
+				printf("unexpected content of file\n");
+				return -1;
+			} else {
+				printf("file content is correct\n");
+			}
+		}
 
 		if (i < (iterations - 1))
 			sleep(2);

@@ -227,7 +227,7 @@ namespace Genode {
 				_import(path, pwd);
 			}
 
-			void import(char const *path) { _import(path); }
+			void import(char const *path, char const *pwd = 0) { _import(path, pwd); }
 
 			char  *base() { return _path; }
 			size_t max_len() { return _path_max_len; }

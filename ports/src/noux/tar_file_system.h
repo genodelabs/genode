@@ -389,9 +389,33 @@ namespace Noux {
 
 			bool unlink(Sysio *, char const *) { return false; }
 
+			bool readlink(Sysio *sysio, char const *path)
+			{
+				Lookup_exact lookup_criterion(path);
+
+				Record *record = _lookup(&lookup_criterion);
+
+				if (!record || (record->type() != Record::TYPE_SYMLINK)) {
+					sysio->error.readlink = Sysio::READLINK_ERR_NO_ENTRY;
+					return false;
+				}
+
+				size_t const count = min(sysio->readlink_in.bufsiz,
+				                         min(sizeof(sysio->readlink_out.chunk),
+				                             (size_t)100));
+
+				memcpy(sysio->readlink_out.chunk, record->linked_name(), count);
+
+				sysio->readlink_out.count = count;
+
+				return true;
+			}
+
 			bool rename(Sysio *, char const *, char const *) { return false; }
 
 			bool mkdir(Sysio *, char const *) { return false; }
+
+			bool symlink(Sysio *, char const *) { return false; }
 
 			size_t num_dirent(char const *path)
 			{

@@ -42,7 +42,8 @@ int Plugin::priority()
 }
 
 
-bool Plugin::supports_chdir(const char *path)
+bool Plugin::supports_execve(char const *filename, char *const argv[],
+                             char *const envp[])
 {
 	return false;
 }
@@ -80,6 +81,12 @@ bool Plugin::supports_pipe()
 }
 
 
+bool Plugin::supports_readlink(const char *path, char *buf, size_t bufsiz)
+{
+	return false;
+}
+
+
 bool Plugin::supports_rename(const char *, const char *)
 {
 	return false;
@@ -105,6 +112,12 @@ bool Plugin::supports_stat(const char*)
 }
 
 
+bool Plugin::supports_symlink(const char*, const char *)
+{
+	return false;
+}
+
+
 bool Plugin::supports_unlink(const char*)
 {
 	return false;
@@ -116,19 +129,6 @@ bool Plugin::supports_mmap()
 	return false;
 }
 
-
-/**
- * Default implementations
- */
-
-int Plugin::chdir(const char *path)
-{
-	Libc::File_descriptor *fd = open(path, 0 /* no rights necessary */);
-	bool success = ((fd != NULL)
-			and (fchdir(fd) == 0)
-			and (close(fd)  == 0));
-	return success ? 0 : -1;
-}
 
 /**
  * Generate dummy member function of Plugin class
@@ -157,7 +157,6 @@ DUMMY(int,     -1, close,         (File_descriptor *));
 DUMMY(int,     -1, connect,       (File_descriptor *, const struct sockaddr *, socklen_t));
 DUMMY(int,     -1, dup2,          (File_descriptor *, File_descriptor *new_fd));
 DUMMY(int,     -1, fstatfs,       (File_descriptor *, struct statfs *));
-DUMMY(int,     -1, fchdir,        (File_descriptor *));
 DUMMY(int,     -1, fcntl,         (File_descriptor *, int cmd, long arg));
 DUMMY(int,     -1, fstat,         (File_descriptor *, struct stat *));
 DUMMY(int,     -1, fsync,         (File_descriptor *));
@@ -183,6 +182,7 @@ DUMMY(ssize_t, -1, write,         (File_descriptor *, const void *, ::size_t));
 /*
  * Misc
  */
+DUMMY(int, -1, execve,       (char const *, char *const[], char *const[]));
 DUMMY(void,  , freeaddrinfo, (struct ::addrinfo *));
 DUMMY(int, -1, getaddrinfo,  (const char *, const char *, const struct ::addrinfo *, struct ::addrinfo **));
 DUMMY(int, -1, mkdir,        (const char*, mode_t));
@@ -190,7 +190,9 @@ DUMMY(void *, (void *)(-1), mmap, (void *addr, ::size_t length, int prot, int fl
                                    File_descriptor *, ::off_t offset));
 DUMMY(int, -1, munmap,       (void *, ::size_t));
 DUMMY(int, -1, pipe,         (File_descriptor*[2]));
+DUMMY(ssize_t, -1, readlink, (const char *, char *, size_t));
 DUMMY(int, -1, rename,       (const char *, const char *));
 DUMMY(int, -1, select,       (int, fd_set *, fd_set *, fd_set *, struct timeval *));
 DUMMY(int, -1, stat,         (const char*, struct stat*));
+DUMMY(int, -1, symlink,      (const char*, const char*));
 DUMMY(int, -1, unlink,       (const char*));

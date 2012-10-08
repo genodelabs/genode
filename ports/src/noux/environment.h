@@ -13,27 +13,19 @@
 
 /* Genode includes */
 #include <util/string.h>
-#include <util/arg_string.h>
 #include <os/attached_ram_dataspace.h>
 #include <base/printf.h>
 
 /* Noux includes */
 #include <path.h>
-#include <pwd.h>
-#include <range_checked_index.h>
 
 namespace Noux {
 
-	/**
-	 * Front-end for PWD environment variable
-	 */
-	class Environment : private Attached_ram_dataspace, public Pwd
+	class Environment : private Attached_ram_dataspace
 	{
 		private:
 
 			Sysio::Env *_env;
-
-			Pwd::Path _pwd_path;
 
 		public:
 
@@ -53,19 +45,5 @@ namespace Noux {
 			 * Return list of environment variables as zero-separated list
 			 */
 			Sysio::Env const &env() { return *_env; }
-
-
-			/*******************
-			 ** Pwd interface **
-			 *******************/
-
-			char const *pwd() { return _pwd_path.base(); }
-
-			void pwd(char const *pwd)
-			{
-				_pwd_path.import(pwd);
-				_pwd_path.remove_trailing('/');
-				PINF("changed current work directory to %s", _pwd_path.base());
-			}
 	};
 }

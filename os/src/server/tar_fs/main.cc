@@ -25,6 +25,7 @@
 #include <file.h>
 #include <lookup.h>
 #include <node_handle_registry.h>
+#include <symlink.h>
 #include <util.h>
 
 
@@ -278,10 +279,45 @@ namespace File_system {
 				return _handle_registry.alloc(file_node);
 			}
 
-			Symlink_handle symlink(Dir_handle, Name const &name, bool create)
+			Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 			{
-				/* not supported */
-				return Symlink_handle(-1);
+				PDBGV("_root = %s, dir_name = %s, name = %s, create = %d",
+ 				      _root.record()->name(),
+				      _handle_registry.lookup(dir_handle)->record()->name(),
+				      name.string(),
+				      create);
+
+				if (!valid_filename(name.string()))
+					throw Lookup_failed();
+
+				if (create)
+					throw Permission_denied();
+
+				Directory *dir = _handle_registry.lookup(dir_handle);
+
+				Absolute_path abs_path(dir->record()->name());
+				try {
+					abs_path.append("/");
+					abs_path.append(name.base());
+				} catch (Path_base::Path_too_long) {
+					throw Name_too_long();
+				}
+
+				PDBGV("abs_path = %s", abs_path.base());
+
+				Lookup_exact lookup_criterion(abs_path.base());
+				Record *record = _lookup(&lookup_criterion);
+
+				if (!record) {
+					PERR("Could not find record for %s", abs_path.base());
+					throw Lookup_failed();
+				}
+
+				if (record->type() != Record::TYPE_SYMLINK)
+					throw Lookup_failed();
+
+				Symlink *symlink_node = new (env()->heap()) Symlink(record);
+				return _handle_registry.alloc(symlink_node);
 			}
 
 			Dir_handle dir(Path const &path, bool create)

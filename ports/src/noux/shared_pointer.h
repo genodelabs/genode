@@ -22,7 +22,6 @@
 
 /* Noux includes */
 #include <noux_session/sysio.h>
-#include <pwd.h>
 
 namespace Noux {
 

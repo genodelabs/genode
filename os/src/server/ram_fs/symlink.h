@@ -16,21 +16,27 @@ namespace File_system {
 	{
 		private:
 
-			Name _link_to;
+			char _link_to[MAX_PATH_LEN];
 
 		public:
 
+			Symlink(char const *name) { Node::name(name); }
+
 			size_t read(char *dst, size_t len, seek_off_t seek_offset)
 			{
-				PDBG("not implemented");
-				return 0;
+				size_t count = min(len, sizeof(_link_to) + 1);
+				Genode::strncpy(dst, _link_to, count);
+				return count;
 			}
 
 			size_t write(char const *src, size_t len, seek_off_t seek_offset)
 			{
-				PDBG("not implemented");
-				return 0;
+				size_t count = min(len, sizeof(_link_to) + 1);
+				Genode::strncpy(_link_to, src, count);
+				return count;
 			}
+
+			file_size_t length() const { return strlen(_link_to) + 1; }
 	};
 }
 

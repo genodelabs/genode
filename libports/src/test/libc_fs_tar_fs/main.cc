@@ -98,6 +98,18 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		/* test symbolic links */
+		CALL_AND_CHECK(fd, open("/e/d/b", O_RDONLY), fd >= 0, "file_name=%s", "/e/d/b");
+		CALL_AND_CHECK(count, read(fd, buf, sizeof(buf)), (size_t)count == pattern_size, "");
+		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
+		printf("content of file: \"%s\"\n", buf);
+		if (strcmp(buf, pattern) != 0) {
+			printf("unexpected content of file\n");
+			return -1;
+		} else {
+			printf("file content is correct\n");
+		}
+
 		if (i < (iterations - 1))
 			sleep(2);
 	}

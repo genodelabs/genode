@@ -127,12 +127,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 	try {
 		switch (sc) {
 
-		case SYSCALL_GETCWD:
-
-			Genode::strncpy(_sysio->getcwd_out.path, _env.pwd(),
-			                sizeof(_sysio->getcwd_out.path));
-			return true;
-
 		case SYSCALL_WRITE:
 			{
 				size_t const count_in = _sysio->write_in.count;
@@ -178,8 +172,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_STAT:
 		case SYSCALL_LSTAT: /* XXX implement difference between 'lstat' and 'stat' */
 			{
-				bool result = _root_dir->stat(_sysio, Absolute_path(_sysio->stat_in.path,
-			                                      _env.pwd()).base());
+				bool result = _root_dir->stat(_sysio, _sysio->stat_in.path);
 
 				/**
  				 * Instead of using the uid/gid given by the actual file system
@@ -211,13 +204,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_OPEN:
 			{
-				Absolute_path absolute_path(_sysio->open_in.path, _env.pwd());
-
-				Vfs_handle *vfs_handle = _root_dir->open(_sysio, absolute_path.base());
+				Vfs_handle *vfs_handle = _root_dir->open(_sysio, _sysio->open_in.path);
 				if (!vfs_handle)
 					return false;
 
-				char const *leaf_path = _root_dir->leaf_path(absolute_path.base());
+				char const *leaf_path = _root_dir->leaf_path(_sysio->open_in.path);
 
 				/*
 				 * File descriptors of opened directories are handled by
@@ -226,10 +217,10 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 * root.
 				 */
 				if (vfs_handle->ds() == _root_dir)
-					leaf_path = absolute_path.base();
+					leaf_path = _sysio->open_in.path;
 
 				Shared_pointer<Io_channel>
-					channel(new Vfs_io_channel(absolute_path.base(),
+					channel(new Vfs_io_channel(_sysio->open_in.path,
 					                           leaf_path, _root_dir, vfs_handle),
 					        Genode::env()->heap());
 
@@ -262,24 +253,18 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 			return _lookup_channel(_sysio->dirent_in.fd)->dirent(_sysio);
 
-		case SYSCALL_FCHDIR:
-
-			return _lookup_channel(_sysio->fchdir_in.fd)->fchdir(_sysio, &_env);
-
 		case SYSCALL_EXECVE:
 			{
-				Absolute_path absolute_path(_sysio->execve_in.filename, _env.pwd());
-
-				Dataspace_capability binary_ds = _root_dir->dataspace(absolute_path.base());
+				Dataspace_capability binary_ds = _root_dir->dataspace(_sysio->execve_in.filename);
 
 				if (!binary_ds.valid())
 					throw Child::Binary_does_not_exist();
 
 				Child_env<sizeof(_sysio->execve_in.args)> child_env(
-				    absolute_path.base(), binary_ds, _sysio->execve_in.args,
+						_sysio->execve_in.filename, binary_ds, _sysio->execve_in.args,
 				    _sysio->execve_in.env);
 
-				_root_dir->release(absolute_path.base(), binary_ds);
+				_root_dir->release(_sysio->execve_in.filename, binary_ds);
 
 				try {
 					Child *child = new Child(child_env.binary_name(),
@@ -289,7 +274,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					                         _root_dir,
 					                         child_env.args(),
 					                         child_env.env(),
-					                         _env.pwd(),
 					                         _cap_session,
 					                         _parent_services,
 					                         _resources.ep,
@@ -490,7 +474,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _root_dir,
 				                         _args,
 				                         _env.env(),
-				                         _env.pwd(),
 				                         _cap_session,
 				                         _parent_services,
 				                         _resources.ep,
@@ -564,20 +547,25 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_UNLINK:
 
-			return _root_dir->unlink(_sysio, Absolute_path(_sysio->unlink_in.path,
-			                                               _env.pwd()).base());
+			return _root_dir->unlink(_sysio, _sysio->unlink_in.path);
+
+		case SYSCALL_READLINK:
+
+			return _root_dir->readlink(_sysio, _sysio->readlink_in.path);
+
 
 		case SYSCALL_RENAME:
 
-			return _root_dir->rename(_sysio, Absolute_path(_sysio->rename_in.from_path,
-			                                               _env.pwd()).base(),
-			                                 Absolute_path(_sysio->rename_in.to_path,
-			                                               _env.pwd()).base());
+			return _root_dir->rename(_sysio, _sysio->rename_in.from_path,
+			                                 _sysio->rename_in.to_path);
 
 		case SYSCALL_MKDIR:
 
-			return _root_dir->mkdir(_sysio, Absolute_path(_sysio->mkdir_in.path,
-			                                              _env.pwd()).base());
+			return _root_dir->mkdir(_sysio, _sysio->mkdir_in.path);
+
+		case SYSCALL_SYMLINK:
+
+			return _root_dir->symlink(_sysio, _sysio->symlink_in.newpath);
 
 		case SYSCALL_USERINFO:
 			{
@@ -793,7 +781,6 @@ int main(int argc, char **argv)
 	                             &root_dir,
 	                             args_of_init_process(),
 	                             env_string_of_init_process(),
-	                             "/",
 	                             &cap,
 	                             parent_services,
 	                             resources_ep,

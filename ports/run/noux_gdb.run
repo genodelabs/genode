@@ -51,13 +51,20 @@ foreach test_binary $test_binaries {
 }
 
 # tar archive for the source code of the GDB monitor test
+# currently, directories need to have their own tar records 
 
+exec mkdir -p bin/test-gdb_monitor-src
 foreach test_binary $test_binaries {
 	set source_files [ exec [cross_dev_prefix]objdump -dl bin/$test_binary | grep "^/.*:.*" | sed -e "s/:.*//" | uniq ]
 	foreach source_file $source_files {
-		if [file exists $source_file] { exec tar ufvhP bin/test-gdb_monitor-src.tar $source_file }
+		if [file exists $source_file] {
+			set dirname [ exec dirname $source_file]
+			exec mkdir -p bin/test-gdb_monitor-src$dirname
+			exec ln -sf  $source_file bin/test-gdb_monitor-src$source_file
+		}
 	}
 }
+exec tar chf bin/test-gdb_monitor-src.tar -C bin/test-gdb_monitor-src .
 
 create_boot_directory
 

@@ -169,6 +169,12 @@ namespace Noux {
 				return false;
 			}
 
+			bool readlink(Sysio *sysio, char const *path)
+			{
+				/* not supported */
+				return false;
+			}
+
 			bool rename(Sysio *sysio, char const *from_path, char const *to_path)
 			{
 				/* not supported */
@@ -176,6 +182,12 @@ namespace Noux {
 			}
 
 			bool mkdir(Sysio *sysio, char const *path)
+			{
+				/* not supported */
+				return false;
+			}
+
+			bool symlink(Sysio *sysio, char const *path)
 			{
 				/* not supported */
 				return false;
@@ -205,7 +217,7 @@ namespace Noux {
 				return true;
 			}
 
-			bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) { return false; }
+			bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) { return true; }
 	};
 }
 

@@ -18,7 +18,6 @@
 #include <io_channel.h>
 #include <file_system.h>
 #include <dir_file_system.h>
-#include <pwd.h>
 
 namespace Noux {
 
@@ -85,22 +84,6 @@ namespace Noux {
 				sysio->error.fcntl = Sysio::FCNTL_ERR_CMD_INVALID;
 				return false;
 			};
-		}
-
-		bool fchdir(Sysio *sysio, Pwd *pwd)
-		{
-			sysio->fstat_in.fd = sysio->fchdir_in.fd;
-
-			fstat(sysio);
-
-			if ((sysio->fstat_out.st.mode & Sysio::STAT_MODE_DIRECTORY) !=
-				Sysio::STAT_MODE_DIRECTORY) {
-				sysio->error.fchdir = Sysio::FCHDIR_ERR_NOT_DIR;
-				return false;
-			}
-
-			pwd->pwd(_path.base());
-			return true;
 		}
 
 		/*

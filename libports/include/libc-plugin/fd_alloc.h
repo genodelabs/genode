@@ -16,6 +16,12 @@
 #define _LIBC_PLUGIN__FD_ALLOC_H_
 
 #include <base/allocator_avl.h>
+#include <base/printf.h>
+#include <os/path.h>
+
+/* libc includes */
+#include <stdlib.h>
+#include <string.h>
 
 #include <libc-plugin/plugin.h>
 
@@ -28,12 +34,29 @@ namespace Libc {
 	 */
 	class Plugin_context { };
 
+	enum { ANY_FD = -1 };
 
 	struct File_descriptor
 	{
 		int             libc_fd;
+		char           *fd_path;    /* for 'fchdir()' */
 		Plugin         *plugin;
 		Plugin_context *context;
+
+		void path(char const *newpath)
+		{
+			if (newpath) {
+				size_t path_size = ::strlen(newpath) + 1;
+				fd_path = (char*)malloc(path_size);
+				if (!fd_path) {
+					PERR("could not allocate path buffer for libc_fd %d%s",
+					     libc_fd, libc_fd == ANY_FD ? " (any)" : "");
+					return;
+				}
+				::memcpy(fd_path, newpath, path_size);
+			} else
+				fd_path = 0;
+		}
 	};
 
 

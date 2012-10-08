@@ -77,13 +77,18 @@ namespace {
 
 			bool supports_open(const char *path, int flags)
 			{
-				return _probe_rom(path);
+				return _probe_rom(&path[1]);
+			}
+
+			bool supports_stat(const char *path)
+			{
+				return _probe_rom(&path[1]);
 			}
 
 			Libc::File_descriptor *open(const char *pathname, int flags)
 			{
 				Plugin_context *context = new (Genode::env()->heap())
-				                          Plugin_context(pathname);
+				                          Plugin_context(&pathname[1]);
 				return Libc::file_descriptor_allocator()->alloc(this, context);
 			}
 
@@ -91,6 +96,16 @@ namespace {
 			{
 				Genode::destroy(Genode::env()->heap(), context(fd));
 				Libc::file_descriptor_allocator()->free(fd);
+				return 0;
+			}
+
+			int stat(const char *path, struct stat *buf)
+			{
+				Genode::Rom_connection rom(&path[1]);
+
+				memset(buf, 0, sizeof(struct stat));
+				buf->st_mode = S_IFREG;
+				buf->st_size = Genode::Dataspace_client(rom.dataspace()).size();
 				return 0;
 			}
 
@@ -140,7 +155,7 @@ namespace {
 
 				case SEEK_SET:
 
-					if (offset > rom->size()) {
+					if (offset > (::off_t)rom->size()) {
 						errno = EINVAL;
 						return (::off_t)(-1);
 					}

@@ -26,6 +26,8 @@ namespace Noux {
 
 	class Fs_file_system : public File_system
 	{
+		enum { verbose = false };
+
 		private:
 
 			Lock _lock;
@@ -83,6 +85,70 @@ namespace Noux {
 
 				~Fs_handle_guard() { _fs.close(_handle); }
 			};
+
+			size_t _read(::File_system::Node_handle node_handle, void *buf,
+			             size_t count, size_t seek_offset)
+			{
+				::File_system::Session::Tx::Source &source = *_fs.tx();
+
+				size_t const max_packet_size = source.bulk_buffer_size() / 2;
+				count = min(max_packet_size, count);
+
+				::File_system::Packet_descriptor
+					packet(source.alloc_packet(count),
+					       0,
+					       node_handle,
+					       ::File_system::Packet_descriptor::READ,
+					       count,
+					       seek_offset);
+
+				/* pass packet to server side */
+				source.submit_packet(packet);
+				source.get_acked_packet();
+
+				memcpy(buf, source.packet_content(packet), count);
+
+				/*
+				 * XXX check if acked packet belongs to request,
+				 *     needed for thread safety
+				 */
+
+				source.release_packet(packet);
+
+				return count;
+			}
+
+			size_t _write(::File_system::Node_handle node_handle,
+			              const char *buf, size_t count, size_t seek_offset)
+			{
+				::File_system::Session::Tx::Source &source = *_fs.tx();
+
+				size_t const max_packet_size = source.bulk_buffer_size() / 2;
+				count = min(max_packet_size, count);
+
+				::File_system::Packet_descriptor
+					packet(source.alloc_packet(count),
+					       0,
+					       node_handle,
+					       ::File_system::Packet_descriptor::WRITE,
+					       count,
+					       seek_offset);
+
+				memcpy(source.packet_content(packet), buf, count);
+
+				/* pass packet to server side */
+				source.submit_packet(packet);
+				source.get_acked_packet();
+
+				/*
+				 * XXX check if acked packet belongs to request,
+				 *     needed for thread safety
+				 */
+
+				source.release_packet(packet);
+
+				return count;
+			}
 
 		public:
 
@@ -185,7 +251,8 @@ namespace Noux {
 					Fs_handle_guard node_guard(_fs, node);
 					status = _fs.status(node);
 				} catch (...) {
-					PWRN("stat failed for path '%s'", path);
+					if (verbose)
+						PDBG("stat failed for path '%s'", path);
 					return false;
 				}
 
@@ -284,6 +351,40 @@ namespace Noux {
 				return true;
 			}
 
+			bool readlink(Sysio *sysio, char const *path)
+			{
+				/*
+				 * Canonicalize path (i.e., path must start with '/')
+				 */
+				Absolute_path abs_path(path);
+				abs_path.strip_last_element();
+
+				Absolute_path symlink_name(path);
+				symlink_name.keep_only_last_element();
+
+				Sysio::Readlink_error error = Sysio::READLINK_ERR_NO_ENTRY;
+				try {
+					::File_system::Dir_handle dir_handle = _fs.dir(abs_path.base(), false);
+					Fs_handle_guard from_dir_guard(_fs, dir_handle);
+
+					::File_system::Symlink_handle symlink_handle =
+					    _fs.symlink(dir_handle, symlink_name.base() + 1, false);
+					Fs_handle_guard symlink_guard(_fs, symlink_handle);
+
+					sysio->readlink_out.count = _read(symlink_handle,
+					                                  sysio->readlink_out.chunk,
+					                                  min(sysio->readlink_in.bufsiz,
+					                                      sizeof(sysio->readlink_out.chunk)),
+					                                  0);
+
+					return true;
+				} catch (...) { }
+
+				sysio->error.readlink = error;
+
+				return false;
+			}
+
 			bool rename(Sysio *sysio, char const *from_path, char const *to_path)
 			{
 				Absolute_path from_dir_path(from_path);
@@ -334,6 +435,40 @@ namespace Noux {
 				catch (::File_system::No_space)            { error = Sysio::MKDIR_ERR_NO_SPACE; }
 
 				sysio->error.mkdir = error;
+				return false;
+			}
+
+			bool symlink(Sysio *sysio, char const *path)
+			{
+				/*
+				 * Canonicalize path (i.e., path must start with '/')
+				 */
+				Absolute_path abs_path(path);
+				abs_path.strip_last_element();
+
+				Absolute_path symlink_name(path);
+				symlink_name.keep_only_last_element();
+
+				Sysio::Symlink_error error = Sysio::SYMLINK_ERR_NO_ENTRY;
+				try {
+					::File_system::Dir_handle dir_handle = _fs.dir(abs_path.base(), false);
+					Fs_handle_guard from_dir_guard(_fs, dir_handle);
+
+					::File_system::Symlink_handle symlink_handle =
+					    _fs.symlink(dir_handle, symlink_name.base() + 1, true);
+					Fs_handle_guard symlink_guard(_fs, symlink_handle);
+
+					_write(symlink_handle, sysio->symlink_in.oldpath,
+					       strlen(sysio->symlink_in.oldpath) + 1, 0);
+					return true;
+				}
+				catch (::File_system::Invalid_handle)      { error = Sysio::SYMLINK_ERR_NO_ENTRY; }
+				catch (::File_system::Node_already_exists) { error = Sysio::SYMLINK_ERR_EXISTS; }
+				catch (::File_system::Invalid_name)        { error = Sysio::SYMLINK_ERR_NAME_TOO_LONG; }
+				catch (::File_system::Lookup_failed)       { error = Sysio::SYMLINK_ERR_NO_ENTRY; }
+
+				sysio->error.symlink = error;
+
 				return false;
 			}
 
@@ -401,7 +536,8 @@ namespace Noux {
 				bool const create = sysio->open_in.mode & Sysio::OPEN_MODE_CREATE;
 
 				if (create)
-					PDBG("creation of file %s requested", file_name.base() + 1);
+					if (verbose)
+						PDBG("creation of file %s requested", file_name.base() + 1);
 
 				Sysio::Open_error error = Sysio::OPEN_ERR_UNACCESSIBLE;
 
@@ -443,35 +579,12 @@ namespace Noux {
 			{
 				Fs_vfs_handle const *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
-				::File_system::Session::Tx::Source &source = *_fs.tx();
+				size_t const count = min(sizeof(sysio->write_in.chunk),
+				                         sysio->write_in.count);
 
-				size_t const max_packet_size = source.bulk_buffer_size() / 2;
-				size_t const count = min(max_packet_size,
-				                         min(sizeof(sysio->write_in.chunk),
-				                             sysio->write_in.count));
-
-				::File_system::Packet_descriptor
-					packet(source.alloc_packet(count),
-					       0,
-					       handle->file_handle(),
-					       ::File_system::Packet_descriptor::WRITE,
-					       count,
-					       handle->seek());
-
-				memcpy(source.packet_content(packet), sysio->write_in.chunk, count);
-
-				/* pass packet to server side */
-				source.submit_packet(packet);
-				source.get_acked_packet();
-
-				sysio->write_out.count = count;
-
-				/*
-				 * XXX check if acked packet belongs to request,
-				 *     needed for thread safety
-				 */
-
-				source.release_packet(packet);
+				sysio->write_out.count = _write(handle->file_handle(),
+				                                sysio->write_in.chunk, count,
+				                                handle->seek());
 
 				return true;
 			}
@@ -486,36 +599,14 @@ namespace Noux {
 				size_t const file_bytes_left = file_size >= handle->seek()
 				                             ? file_size  - handle->seek() : 0;
 
-				::File_system::Session::Tx::Source &source = *_fs.tx();
+				size_t const count = min(file_bytes_left,
+				                         min(sizeof(sysio->read_out.chunk),
+				                             sysio->read_in.count));
 
-				size_t const max_packet_size = source.bulk_buffer_size() / 2;
-				size_t const count = min(max_packet_size,
-				                         min(file_bytes_left,
-				                             min(sizeof(sysio->read_out.chunk),
-				                                 sysio->read_in.count)));
+				sysio->read_out.count = _read(handle->file_handle(),
+				                              sysio->read_out.chunk,
+				                              count, handle->seek());
 
-				::File_system::Packet_descriptor
-					packet(source.alloc_packet(count),
-					       0,
-					       handle->file_handle(),
-					       ::File_system::Packet_descriptor::READ,
-					       count,
-					       handle->seek());
-
-				/* pass packet to server side */
-				source.submit_packet(packet);
-				source.get_acked_packet();
-
-				memcpy(sysio->read_out.chunk, source.packet_content(packet), count);
-
-				sysio->read_out.count = count;
-
-				/*
-				 * XXX check if acked packet belongs to request,
-				 *     needed for thread safety
-				 */
-
-				source.release_packet(packet);
 				return true;
 			}
 

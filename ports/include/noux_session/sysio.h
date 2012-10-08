@@ -286,18 +286,20 @@ namespace Noux {
 
 		enum General_error   { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
 		enum Stat_error      { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
-		enum Fchdir_error    { FCHDIR_ERR_NOT_DIR    = NUM_GENERAL_ERRORS };
 		enum Fcntl_error     { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
 		enum Ftruncate_error { FTRUNCATE_ERR_NO_PERM = NUM_GENERAL_ERRORS };
 		enum Open_error      { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM,
 		                       OPEN_ERR_EXISTS };
 		enum Execve_error    { EXECVE_NONEXISTENT    = NUM_GENERAL_ERRORS };
 		enum Unlink_error    { UNLINK_ERR_NO_ENTRY, UNLINK_ERR_NO_PERM };
+		enum Readlink_error  { READLINK_ERR_NO_ENTRY };
 		enum Rename_error    { RENAME_ERR_NO_ENTRY, RENAME_ERR_CROSS_FS,
 		                       RENAME_ERR_NO_PERM };
 		enum Mkdir_error     { MKDIR_ERR_EXISTS,   MKDIR_ERR_NO_ENTRY,
 		                       MKDIR_ERR_NO_SPACE, MKDIR_ERR_NO_PERM,
 		                       MKDIR_ERR_NAME_TOO_LONG};
+		enum Symlink_error   { SYMLINK_ERR_EXISTS, SYMLINK_ERR_NO_ENTRY,
+		                       SYMLINK_ERR_NAME_TOO_LONG};
 
 		enum Read_error      { READ_ERR_AGAIN, READ_ERR_WOULD_BLOCK,
 		                       READ_ERR_INVALID, READ_ERR_IO };
@@ -338,14 +340,15 @@ namespace Noux {
 		union {
 			General_error   general;
 			Stat_error      stat;
-			Fchdir_error    fchdir;
 			Fcntl_error     fcntl;
 			Ftruncate_error ftruncate;
 			Open_error      open;
 			Execve_error    execve;
 			Unlink_error    unlink;
+			Readlink_error  readlink;
 			Rename_error    rename;
 			Mkdir_error     mkdir;
+			Symlink_error   symlink;
 			Read_error      read;
 			Write_error     write;
 			Accept_error    accept;
@@ -360,12 +363,12 @@ namespace Noux {
 
 		union {
 
-			SYSIO_DECL(getcwd,      { }, { Path path; });
-
 			SYSIO_DECL(write,       { int fd; size_t count; Chunk chunk; },
 			                        { size_t count; });
 
 			SYSIO_DECL(stat,        { Path path; }, { Stat st; });
+
+			SYSIO_DECL(symlink,     { Path oldpath; Path newpath; }, { });
 
 			SYSIO_DECL(fstat,       { int fd; }, { Stat st; });
 
@@ -385,10 +388,11 @@ namespace Noux {
 
 			SYSIO_DECL(dirent,      { int fd; }, { Dirent entry; });
 
-			SYSIO_DECL(fchdir,      { int fd; }, { });
-
 			SYSIO_DECL(read,        { int fd; size_t count; },
 			                        { Chunk chunk; size_t count; });
+
+			SYSIO_DECL(readlink,    { Path path; size_t bufsiz; },
+			                        { Chunk chunk; ssize_t count; });
 
 			SYSIO_DECL(execve,      { Path filename; Args args; Env env; }, { });
 

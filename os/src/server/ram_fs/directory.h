@@ -83,7 +83,8 @@ namespace File_system {
 				/* try to find entry that matches the first path element */
 				Node *sub_node = _entries.first();
 				for (; sub_node; sub_node = sub_node->next())
-					if (strcmp(sub_node->name(), path, i) == 0)
+					if ((strlen(sub_node->name()) == i) &&
+						(strcmp(sub_node->name(), path, i) == 0))
 						break;
 
 				if (!sub_node)
@@ -136,6 +137,18 @@ namespace File_system {
 				File *file = dynamic_cast<File *>(node);
 				if (file)
 					return file;
+
+				node->unlock();
+				throw Lookup_failed();
+			}
+
+			Symlink *lookup_and_lock_symlink(char const *path)
+			{
+				Node *node = lookup_and_lock(path);
+
+				Symlink *symlink = dynamic_cast<Symlink *>(node);
+				if (symlink)
+					return symlink;
 
 				node->unlock();
 				throw Lookup_failed();
