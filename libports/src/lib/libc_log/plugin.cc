@@ -20,6 +20,7 @@
 
 /* libc includes */
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 
 /* interface to 'log_console' */
@@ -50,6 +51,14 @@ namespace {
 				_stdout(Libc::file_descriptor_allocator()->alloc(this, &_context, 1)),
 				_stderr(Libc::file_descriptor_allocator()->alloc(this, &_context, 2))
 			{ }
+
+			int fcntl(Libc::File_descriptor *fd, int cmd, long arg)
+			{
+				switch (cmd) {
+					case F_GETFL: return O_WRONLY;
+					default: PERR("fcntl(): command %d not supported", cmd); return -1;
+				}
+			}
 
 			/*
 			 * We provide fstat here because printf inqueries _fstat about stdout

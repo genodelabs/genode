@@ -76,6 +76,9 @@ class Plugin_context : public Libc::Plugin_context,
 
 		File_system::Node_handle _node_handle;
 
+		int _fd_flags;
+		int _status_flags;
+
 		/**
 		 * Current file position if manually seeked, or ~0 for append mode
 		 */
@@ -86,15 +89,30 @@ class Plugin_context : public Libc::Plugin_context,
 		bool in_flight;
 
 		Plugin_context(File_system::File_handle handle)
-		: _type(TYPE_FILE), _node_handle(handle), _seek_offset(~0), in_flight(false) { }
+		: _type(TYPE_FILE), _node_handle(handle), _fd_flags(0),
+		  _status_flags(0), _seek_offset(~0), in_flight(false) { }
 
 		Plugin_context(File_system::Dir_handle handle)
-		: _type(TYPE_DIR), _node_handle(handle), _seek_offset(0), in_flight(false) { }
+		: _type(TYPE_DIR), _node_handle(handle), _fd_flags(0),
+		  _status_flags(0), _seek_offset(0), in_flight(false) { }
 
 		Plugin_context(File_system::Symlink_handle handle)
-		: _type(TYPE_SYMLINK), _node_handle(handle), _seek_offset(~0), in_flight(false) { }
+		: _type(TYPE_SYMLINK), _node_handle(handle), _fd_flags(0),
+		  _status_flags(0), _seek_offset(~0), in_flight(false) { }
 
 		File_system::Node_handle node_handle() const { return _node_handle; }
+
+		/**
+		 * Set/get file descriptor flags
+		 */
+		void fd_flags(int flags) { _fd_flags = flags; }
+		int fd_flags() { return _fd_flags; }
+
+		/**
+		 * Set/get file status status flags
+		 */
+		void status_flags(int flags) { _status_flags = flags; }
+		int status_flags() { return _status_flags; }
 
 		/**
 		 * Return true of handle is append mode
@@ -284,12 +302,14 @@ class Plugin : public Libc::Plugin
 			return 0;
 		}
 
-		int fcntl(Libc::File_descriptor *, int cmd, long arg)
+		int fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 		{
-			/* libc's opendir() fails if fcntl() returns -1, so we return 0 here */
-			if (verbose)
-				PDBG("fcntl() called - not yet implemented");
-			return 0;
+			switch (cmd) {
+				case F_GETFD: return context(fd)->fd_flags();
+				case F_SETFD: context(fd)->fd_flags(arg); return 0;
+				case F_GETFL: return context(fd)->status_flags();
+				default: PERR("fcntl(): command %d not supported", cmd); return -1;
+			}
 		}
 
 		int fstat(Libc::File_descriptor *fd, struct stat *buf)
@@ -505,6 +525,8 @@ class Plugin : public Libc::Plugin
 
 				Plugin_context *context = new (Genode::env()->heap())
 					Plugin_context(handle);
+
+				context->status_flags(flags);
 
 				Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
 				if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1))

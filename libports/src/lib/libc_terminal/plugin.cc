@@ -17,6 +17,7 @@
 
 /* libc includes */
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 #include <termios.h>
 
@@ -99,12 +100,25 @@ namespace {
 	 * notifications about data available for reading are delivered to
 	 * the 'Read_sigh' thread, which cares about unblocking 'select()'.
 	 */
-	struct Plugin_context : Libc::Plugin_context, Terminal::Connection
+	class Plugin_context : public Libc::Plugin_context, public Terminal::Connection
 	{
-		Plugin_context()
-		{
-			read_avail_sigh(read_sigh());
-		}
+		private:
+
+			int _status_flags;
+
+		public:
+
+			Plugin_context()
+			: _status_flags(0)
+			{
+				read_avail_sigh(read_sigh());
+			}
+
+			/**
+			 * Set/get file status status flags
+			 */
+			void status_flags(int flags) { _status_flags = flags; }
+			int status_flags() { return _status_flags; }
 	};
 
 
@@ -145,6 +159,7 @@ namespace {
 			Libc::File_descriptor *open(const char *pathname, int flags)
 			{
 				Plugin_context *context = new (Genode::env()->heap()) Plugin_context;
+				context->status_flags(flags);
 				return Libc::file_descriptor_allocator()->alloc(this, context);
 			}
 
@@ -275,10 +290,13 @@ namespace {
 				}
 			}
 
-			/**
-			 * Suppress dummy message of the default plugin function
-			 */
-			int fcntl(Libc::File_descriptor *, int cmd, long arg) { return -1; }
+			int fcntl(Libc::File_descriptor *fd, int cmd, long arg)
+			{
+				switch (cmd) {
+					case F_GETFL: return context(fd)->status_flags();
+					default: PERR("fcntl(): command %d not supported", cmd); return -1;
+				}
+			}
 
 			int ioctl(Libc::File_descriptor *, int request, char *argp)
 			{

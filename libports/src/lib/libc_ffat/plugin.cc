@@ -51,10 +51,13 @@ class Plugin_context : public Libc::Plugin_context
 	private:
 
 		char *_filename; /* needed for fstat() */
+		int   _fd_flags;
+		int   _status_flags;
 
 	public:
 
 		Plugin_context(const char *filename)
+		: _fd_flags(0), _status_flags(0)
 		{
 			if (verbose)
 				PDBG("new context at %p", this);
@@ -68,6 +71,18 @@ class Plugin_context : public Libc::Plugin_context
 		}
 
 		const char *filename() { return _filename; }
+
+		/**
+		 * Set/get file descriptor flags
+		 */
+		void fd_flags(int flags) { _fd_flags = flags; }
+		int fd_flags() { return _fd_flags; }
+
+		/**
+		 * Set/get file status status flags
+		 */
+		void status_flags(int flags) { _status_flags = flags; }
+		int status_flags() { return _status_flags; }
 };
 
 
@@ -242,12 +257,14 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		int fcntl(Libc::File_descriptor *, int cmd, long arg)
+		int fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 		{
-			/* libc's opendir() fails if fcntl() returns -1, so we return 0 here */
-			if (verbose)
-				PDBG("fcntl() called - not yet implemented");
-			return 0;
+			switch (cmd) {
+				case F_GETFD: return context(fd)->fd_flags();
+				case F_SETFD: context(fd)->fd_flags(arg); return 0;
+				case F_GETFL: return context(fd)->status_flags();
+				default: PERR("fcntl(): command %d not supported", cmd); return -1;
+			}
 		}
 
 		int fstat(Libc::File_descriptor *fd, struct stat *buf)
@@ -478,6 +495,7 @@ class Plugin : public Libc::Plugin
 				case FR_OK: {
 					Plugin_context *context = new (Genode::env()->heap())
 						File_plugin_context(pathname, ffat_file);
+					context->status_flags(flags);
 					Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
 					if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1))
 						return 0;
@@ -497,6 +515,7 @@ class Plugin : public Libc::Plugin
 						case FR_OK: {
 							Plugin_context *context = new (Genode::env()->heap())
 								Directory_plugin_context(pathname, ffat_dir);
+							context->status_flags(flags);
 							Libc::File_descriptor *f =
 								Libc::file_descriptor_allocator()->alloc(this, context);
 							if (verbose)

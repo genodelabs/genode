@@ -813,8 +813,15 @@ extern "C" int unlink(const char *path)
 }
 
 
-extern "C" ssize_t _write(int libc_fd, const void *buf, ::size_t count) {
-	FD_FUNC_WRAPPER(write, libc_fd, buf, count); }
+extern "C" ssize_t _write(int libc_fd, const void *buf, ::size_t count)
+{
+	int flags = fcntl(libc_fd, F_GETFL);
+
+	if ((flags != -1) && (flags & O_APPEND))
+		lseek(libc_fd, 0, SEEK_END);
+
+	FD_FUNC_WRAPPER(write, libc_fd, buf, count);
+}
 
 
 extern "C" ssize_t write(int libc_fd, const void *buf, ::size_t count) {
