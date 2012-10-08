@@ -15,9 +15,6 @@ D_OPTS := $(addprefix -D,$(D_OPTS))
 F_OPTS := $(addprefix -f,$(F_OPTS))
 CC_DEF += $(F_OPTS) $(D_OPTS)
 
-# libc back-end
-SRC_CC = libc_plugin.cc libc_plugin_init.cc
-
 #        python.c
 #
 SRC_C = \

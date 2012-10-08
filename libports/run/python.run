@@ -57,7 +57,7 @@ exec cp [genode_dir]/libports/src/test/python/hello.py bin/
 # generic modules
 set boot_modules {
 	core init
-	ld.lib.so libc.lib.so libc_log.lib.so libm.lib.so python.lib.so
+	ld.lib.so libc.lib.so libc_log.lib.so libc_rom.lib.so libm.lib.so python.lib.so
 	test-python
 	hello.py
 }
