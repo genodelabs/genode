@@ -697,8 +697,17 @@ namespace Kernel
 			 * Ensures that we have a unique ID and
 			 * can be found through the static object pool.
 			 */
-			Object() : Pool::Entry(_id_alloc()->alloc())
-			{ pool()->insert(static_cast<T *>(this)); }
+			Object() : Pool::Entry(_id_alloc()->alloc()) {
+				pool()->insert(static_cast<T *>(this)); }
+
+			/**
+			 * Destructor
+			 */
+			~Object()
+			{
+				pool()->remove(static_cast<T *>(this));
+				_id_alloc()->free(Pool::Entry::id());
+			}
 	};
 
 	/**
@@ -1539,6 +1548,23 @@ namespace Kernel
 		user->user_arg_0((Syscall_ret)t->id());
 	}
 
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_delete_thread(Thread * const user)
+	{
+		/* check permissions */
+		assert(user->pd_id() == core_id());
+
+		/* get targeted thread */
+		unsigned thread_id = (unsigned)user->user_arg_1();
+		Thread * const thread = Thread::pool()->object(thread_id);
+		assert(thread);
+
+		/* destroy thread */
+		thread->~Thread();
+	}
+
 
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
@@ -1901,6 +1927,7 @@ namespace Kernel
 			/* 21         */ do_new_signal_context,
 			/* 22         */ do_await_signal,
 			/* 23         */ do_submit_signal,
+			/* 24         */ do_delete_thread,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 

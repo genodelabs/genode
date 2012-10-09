@@ -13,6 +13,7 @@ install_config {
 			<service name="PD"/>
 			<service name="IRQ"/>
 			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
 			<service name="SIGNAL"/>
 			<service name="LOG"/>
 		</parent-provides>

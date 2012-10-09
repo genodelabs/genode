@@ -31,8 +31,6 @@ namespace Genode {
 	class Rm_client;
 	class Platform_thread;
 
-	size_t kernel_thread_size();
-
 	/**
 	 * Userland interface for the management of kernel thread-objects
 	 */
@@ -51,11 +49,17 @@ namespace Genode {
 		Software_tlb *           _software_tlb;
 		Ram_dataspace_capability _utcb;
 		char                     _name[NAME_MAX_LEN];
+		void *                   _kernel_thread;
 
 		/**
 		 * Common construction part
 		 */
 		void _init();
+
+		/*
+		 * Check if this thread will attach its UTCB by itself
+		 */
+		bool _attaches_utcb_by_itself();
 
 		public:
 
@@ -72,6 +76,11 @@ namespace Genode {
 			 */
 			Platform_thread(const char * name, unsigned int priority,
 			                addr_t utcb);
+
+			/**
+			 * Destructor
+			 */
+			~Platform_thread();
 
 			/**
 			 * Join PD identified by 'pd_id'
@@ -123,15 +132,6 @@ namespace Genode {
 				while (1) ;
 				return -1;
 			};
-
-			/**
-			 * Destructor
-			 */
-			~Platform_thread()
-			{
-				kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
-				while (1) ;
-			}
 
 			/**
 			 * Return unique identification of this thread as faulter

@@ -35,6 +35,7 @@ namespace Kernel
 
 		/* execution control */
 		NEW_THREAD = 1,
+		DELETE_THREAD = 24,
 		START_THREAD = 2,
 		PAUSE_THREAD = 3,
 		RESUME_THREAD = 4,
@@ -134,12 +135,23 @@ namespace Kernel
 	 * \retval >0  ID of the new thread
 	 * \retval  0  if no new thread was created
 	 *
-	 * Restricted to core threads. Regaining of the supplied memory is not
-	 * supported by now.
+	 * Restricted to core threads. Regaining of the supplied memory can be done
+	 * through 'delete_thread'.
 	 */
 	inline int new_thread(void * const dst, Genode::Platform_thread * const pt)
 	{ return syscall(NEW_THREAD, (Syscall_arg)dst, (Syscall_arg)pt); }
 
+	/**
+	 * Delete an existing thread
+	 *
+	 * \param id  kernel name of the targeted thread
+	 *
+	 * Restricted to core threads. After calling this, the memory that was
+	 * granted beforehand by 'new_thread' to kernel for managing this thread
+	 * is freed again.
+	 */
+	inline void delete_thread(unsigned thread_id) {
+		syscall(DELETE_THREAD, (Syscall_arg)thread_id); }
 
 	/**
 	 * Start thread with a given context and let it participate in CPU scheduling

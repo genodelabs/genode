@@ -50,7 +50,17 @@ void Thread_base::_init_platform_thread() { }
 
 
 void Thread_base::_deinit_platform_thread()
-{ env()->cpu_session()->kill_thread(_thread_cap); }
+{
+	/* detach UTCB */
+	size_t const size = sizeof(_context->utcb);
+	addr_t utcb = Context_allocator::addr_to_base(_context) +
+	              Native_config::context_virtual_size() - size -
+	              Native_config::context_area_virtual_base();
+	env_context_area_rm_session()->detach(utcb);
+
+	/* destroy object at the CPU session */
+	env()->cpu_session()->kill_thread(_thread_cap);
+}
 
 
 void Thread_base::start()

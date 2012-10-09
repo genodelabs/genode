@@ -21,6 +21,44 @@ using namespace Genode;
 namespace Kernel { unsigned core_id(); }
 
 
+bool Platform_thread::_attaches_utcb_by_itself()
+{
+	/*
+	 * If this is a main thread outside of core it'll not manage its
+	 * virtual context area by itself, as it is done for other threads
+	 * through a sub RM-session.
+	 */
+	return _pd_id == Kernel::core_id() || !_main_thread;
+}
+
+
+Platform_thread::~Platform_thread()
+{
+	/* detach UTCB if main thread outside core */
+	if (!_attaches_utcb_by_itself()) {
+		assert(_rm_client);
+		Rm_session_component * const rm = _rm_client->member_rm_session();
+		rm->detach(_virt_utcb);
+	}
+	/* free UTCB */
+	if (_pd_id == Kernel::core_id()) {
+		Range_allocator * const ram = platform()->ram_alloc();
+		ram->free((void *)_phys_utcb, sizeof(Native_utcb));
+	} else {
+		Ram_session_component * const ram =
+			dynamic_cast<Ram_session_component *>(core_env()->ram_session());
+		assert(ram);
+		ram->free(_utcb);
+	}
+	/* destroy object at the kernel */
+	Kernel::delete_thread(_id);
+
+	/* free kernel object space */
+	Range_allocator * ram = platform()->ram_alloc();
+	ram->free(&_kernel_thread, Kernel::thread_size());
+}
+
+
 Platform_thread::Platform_thread(const char * name,
                                  Thread_base * const thread_base,
                                  unsigned long const stack_size,
@@ -85,10 +123,9 @@ int Platform_thread::join_pd(unsigned long const pd_id,
 void Platform_thread::_init()
 {
 	/* create kernel object */
-	void * kernel_thread;
 	Range_allocator * ram = platform()->ram_alloc();
-	assert(ram->alloc(Kernel::thread_size(), &kernel_thread));
-	_id = Kernel::new_thread(kernel_thread, this);
+	assert(ram->alloc(Kernel::thread_size(), &_kernel_thread));
+	_id = Kernel::new_thread(_kernel_thread, this);
 	assert(_id);
 }
 
@@ -98,13 +135,8 @@ int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 	/* check thread attributes */
 	assert(_pd_id);
 
-	/*
-	 * If this is a main thread outside of core it'll not manage its
-	 * virtual context area by itself, as it is done for other threads
-	 * through a sub RM-session. Therefore we attach the UTCB to its
-	 * address space before it gets started.
-	 */
-	if (_pd_id != Kernel::core_id() && _main_thread)
+	/* attach UTCB if the thread can't do this by itself */
+	if (!_attaches_utcb_by_itself())
 	{
 		/*
 		 * Declare page aligned virtual UTCB outside the context area.

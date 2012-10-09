@@ -149,10 +149,7 @@ namespace Timer {
 				_session_cap(_entrypoint.manage(this)),
 				_barrier(Genode::Cancelable_lock::LOCKED),
 				_wake_up_alarm(&_barrier)
-			{
-				PDBG("created new session component, _session_cap.valid=%d",
-				 _session_cap.valid());
-			}
+			{ }
 
 			/**
 			 * Destructor
