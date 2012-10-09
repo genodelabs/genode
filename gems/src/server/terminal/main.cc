@@ -20,58 +20,25 @@
 #include <timer_session/connection.h>
 #include <cap_session/connection.h>
 #include <root/component.h>
-#include <os/ring_buffer.h>
 #include <os/attached_ram_dataspace.h>
-#include <input/keycodes.h>
 #include <input/event.h>
 #include <os/config.h>
 
+/* terminal includes */
 #include <terminal/decoder.h>
 #include <terminal/types.h>
+#include <terminal/scancode_tracker.h>
+#include <terminal/keymaps.h>
+#include <terminal/cell_array.h>
+#include <terminal_session/terminal_session.h>
 
+/* nitpicker graphic back end */
 #include <nitpicker_gfx/font.h>
 #include <nitpicker_gfx/color.h>
 #include <nitpicker_gfx/pixel_rgb565.h>
 
-#include <terminal_session/terminal_session.h>
 
 static bool const verbose = false;
-
-enum { READ_BUFFER_SIZE = 4096 };
-
-class Read_buffer : public Ring_buffer<unsigned char, READ_BUFFER_SIZE>
-{
-	private:
-
-		Genode::Signal_context_capability _sigh_cap;
-
-	public:
-
-		/**
-		 * Register signal handler for read-avail signals
-		 */
-		void sigh(Genode::Signal_context_capability cap)
-		{
-			_sigh_cap = cap;
-		}
-
-		/**
-		 * Add element into read buffer and emit signal
-		 */
-		void add(unsigned char c)
-		{
-			Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
-
-			if (_sigh_cap.valid())
-				Genode::Signal_transmitter(_sigh_cap).submit();
-		}
-
-		void add(char const *str)
-		{
-			while (*str)
-				add(*str++);
-		}
-};
 
 
 inline Pixel_rgb565 blend(Pixel_rgb565 src, int alpha)
@@ -96,6 +63,7 @@ inline Pixel_rgb565 mix(Pixel_rgb565 p1, Pixel_rgb565 p2, int alpha)
 	res.pixel = blend(p1, 264 - alpha).pixel + blend(p2, alpha).pixel;
 	return res;
 }
+
 
 static Color color_palette[2*8];
 
@@ -179,123 +147,6 @@ struct Char_cell
 };
 
 
-class Char_cell_array
-{
-	private:
-
-		unsigned           _num_cols;
-		unsigned           _num_lines;
-		Genode::Allocator *_alloc;
-		Char_cell        **_array;
-		bool              *_line_dirty;
-
-		typedef Char_cell *Char_cell_line;
-
-		void _clear_line(Char_cell_line line)
-		{
-			for (unsigned col = 0; col < _num_cols; col++)
-				*line++ = Char_cell();
-		}
-
-		void _mark_lines_as_dirty(int start, int end)
-		{
-			for (int line = start; line <= end; line++)
-				_line_dirty[line] = true;
-		}
-
-		void _scroll_vertically(int start, int end, bool up)
-		{
-			/* rotate lines of the scroll region */
-			Char_cell_line yanked_line = _array[up ? start : end];
-
-			if (up) {
-				for (int line = start; line <= end - 1; line++)
-					_array[line] = _array[line + 1];
-			} else {
-				for (int line = end; line >= start + 1; line--)
-					_array[line] = _array[line - 1];
-			}
-
-			_clear_line(yanked_line);
-
-			_array[up ? end: start] = yanked_line;
-
-			_mark_lines_as_dirty(start, end);
-		}
-
-	public:
-
-		Char_cell_array(unsigned num_cols, unsigned num_lines,
-		                Genode::Allocator *alloc)
-		:
-			_num_cols(num_cols),
-			_num_lines(num_lines),
-			_alloc(alloc)
-		{
-			_array = new (alloc) Char_cell_line[num_lines];
-
-			_line_dirty = new (alloc) bool[num_lines];
-			for (unsigned i = 0; i < num_lines; i++)
-				_line_dirty[i] = false;
-
-			for (unsigned i = 0; i < num_lines; i++)
-				_array[i] = new (alloc) Char_cell[num_cols];
-		}
-
-		void set_cell(int column, int line, Char_cell cell)
-		{
-			_array[line][column] = cell;
-			_line_dirty[line] = true;
-		}
-
-		Char_cell get_cell(int column, int line)
-		{
-			return _array[line][column];
-		}
-
-		bool line_dirty(int line) { return _line_dirty[line]; }
-
-		void mark_line_as_clean(int line)
-		{
-			_line_dirty[line] = false;
-		}
-
-		void scroll_up(int region_start, int region_end)
-		{
-			_scroll_vertically(region_start, region_end, true);
-		}
-
-		void scroll_down(int region_start, int region_end)
-		{
-			_scroll_vertically(region_start, region_end, false);
-		}
-
-		void clear(int region_start, int region_end)
-		{
-			for (int line = region_start; line <= region_end; line++)
-				_clear_line(_array[line]);
-
-			_mark_lines_as_dirty(region_start, region_end);
-		}
-
-		void cursor(Terminal::Position pos, bool enable, bool mark_dirty = false)
-		{
-			Char_cell &cell = _array[pos.y][pos.x];
-
-			if (enable)
-				cell.set_cursor();
-			else
-				cell.clear_cursor();
-
-			if (mark_dirty)
-				_line_dirty[pos.y] = true;
-		}
-
-		unsigned num_cols()  { return _num_cols; }
-		unsigned num_lines() { return _num_lines; }
-};
-
-
 class Char_cell_array_character_screen : public Terminal::Character_screen
 {
 	private:
@@ -304,16 +155,16 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		                         CURSOR_VISIBLE,
 		                         CURSOR_VERY_VISIBLE };
 
-		Char_cell_array    &_char_cell_array;
-		Terminal::Boundary  _boundary;
-		Terminal::Position  _cursor_pos;
-		int                 _color_index;
-		bool                _inverse;
-		bool                _highlight;
-		Cursor_visibility   _cursor_visibility;
-		int                 _region_start;
-		int                 _region_end;
-		int                 _tab_size;
+		Cell_array<Char_cell> &_char_cell_array;
+		Terminal::Boundary     _boundary;
+		Terminal::Position     _cursor_pos;
+		int                    _color_index;
+		bool                   _inverse;
+		bool                   _highlight;
+		Cursor_visibility      _cursor_visibility;
+		int                    _region_start;
+		int                    _region_end;
+		int                    _tab_size;
 
 		enum { DEFAULT_COLOR_INDEX = 7, DEFAULT_TAB_SIZE = 8 };
 
@@ -348,7 +199,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 	public:
 
-		Char_cell_array_character_screen(Char_cell_array &char_cell_array)
+		Char_cell_array_character_screen(Cell_array<Char_cell> &char_cell_array)
 		:
 			_char_cell_array(char_cell_array),
 			_boundary(_char_cell_array.num_cols(), _char_cell_array.num_lines()),
@@ -492,15 +343,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_cursor_pos = Terminal::Position(x, y);
 		}
 
-		void cuu1()
-		{
-			PWRN("not implemented");
-		}
-
-		void dch(int)
-		{
-			PDBG("not implemented");
-		}
+		void cuu1()   { PWRN("not implemented"); }
+		void dch(int) { PDBG("not implemented"); }
 
 		void dl(int num_lines)
 		{
@@ -532,10 +376,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				_char_cell_array.set_cell(x, _cursor_pos.y, Char_cell());
 		}
 
-		void el1()
-		{
-			PDBG("not implemented");
-		}
+		void el1() { PDBG("not implemented"); }
 
 		void home()
 		{
@@ -552,15 +393,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_cursor_pos.x = Genode::min(_boundary.width - 1, _cursor_pos.x);
 		}
 
-		void hts()
-		{
-			PDBG("not implemented");
-		}
-
-		void ich(int)
-		{
-			PDBG("not implemented");
-		}
+		void hts()    { PDBG("not implemented"); }
+		void ich(int) { PDBG("not implemented"); }
 
 		void il(int value)
 		{
@@ -577,40 +411,18 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_char_cell_array.cursor(_cursor_pos, true);
 		}
 
-		void oc()
-		{
-			PDBG("not implemented");
-		}
+		void oc() { PDBG("not implemented"); }
 
 		void op()
 		{
 			_color_index = DEFAULT_COLOR_INDEX;
 		}
 
-		void rc()
-		{
-			PDBG("not implemented");
-		}
-
-		void ri()
-		{
-			PDBG("not implemented");
-		}
-
-		void ris()
-		{
-			PDBG("not implemented");
-		}
-
-		void rmam()
-		{
-			PDBG("not implemented");
-		}
-
-		void rmir()
-		{
-			PDBG("not implemented");
-		}
+		void rc()   { PDBG("not implemented"); }
+		void ri()   { PDBG("not implemented"); }
+		void ris()  { PDBG("not implemented"); }
+		void rmam() { PDBG("not implemented"); }
+		void rmir() { PDBG("not implemented"); }
 
 		void setab(int value)
 		{
@@ -637,45 +449,14 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			sgr(0);
 		}
 
-		void sc()
-		{
-			PDBG("not implemented");
-		}
-
-		void smam()
-		{
-			PDBG("not implemented");
-		}
-
-		void smir()
-		{
-			PDBG("not implemented");
-		}
-
-		void tbc()
-		{
-			PDBG("not implemented");
-		}
-
-		void u6(int, int)
-		{
-			PDBG("not implemented");
-		}
-
-		void u7()
-		{
-			PDBG("not implemented");
-		}
-
-		void u8()
-		{
-			PDBG("not implemented");
-		}
-
-		void u9()
-		{
-			PDBG("not implemented");
-		}
+		void sc()         { PDBG("not implemented"); }
+		void smam()       { PDBG("not implemented"); }
+		void smir()       { PDBG("not implemented"); }
+		void tbc()        { PDBG("not implemented"); }
+		void u6(int, int) { PDBG("not implemented"); }
+		void u7()         { PDBG("not implemented"); }
+		void u8()         { PDBG("not implemented"); }
+		void u9()         { PDBG("not implemented"); }
 
 		void vpa(int y)
 		{
@@ -738,11 +519,11 @@ inline void draw_glyph(Color                fg_color,
 
 
 template <typename PT>
-static void convert_char_array_to_pixels(Char_cell_array   *cell_array,
-                                         PT                *fb_base,
-                                         unsigned           fb_width,
-                                         unsigned           fb_height,
-                                         Font_family const &font_family)
+static void convert_char_array_to_pixels(Cell_array<Char_cell> *cell_array,
+                                         PT                    *fb_base,
+                                         unsigned               fb_width,
+                                         unsigned               fb_height,
+                                         Font_family const     &font_family)
 {
 	Font const &regular_font = *font_family.font(Font_family::REGULAR);
 	unsigned glyph_height = regular_font.img_h,
@@ -856,7 +637,7 @@ namespace Terminal {
 			 */
 			Genode::Lock _lock;
 
-			Char_cell_array                  _char_cell_array;
+			Cell_array<Char_cell>            _char_cell_array;
 			Char_cell_array_character_screen _char_cell_array_character_screen;
 			Terminal::Decoder                _decoder;
 
@@ -1067,291 +848,6 @@ namespace Terminal {
 }
 
 
-enum {
-	BS  =   8,
-	ESC =  27,
-	TAB =   9,
-	LF  =  10,
-	UE  = 252,   /* 'ü' */
-	AE  = 228,   /* 'ä' */
-	OE  = 246,   /* 'ö' */
-	PAR = 167,   /* '§' */
-	DEG = 176,   /* '°' */
-	SS  = 223,   /* 'ß' */
-};
-
-
-static unsigned char usenglish_keymap[128] = {
-	 0 ,ESC,'1','2','3','4','5','6','7','8','9','0','-','=', BS,TAB,
-	'q','w','e','r','t','y','u','i','o','p','[',']', LF, 0 ,'a','s',
-	'd','f','g','h','j','k','l',';','\'','`', 0, '\\' ,'z','x','c','v',
-	'b','n','m',',','.','/', 0 , 0 , 0 ,' ', 0 , 0 , 0 , 0 , 0 , 0 ,
-	 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'7','8','9','-','4','5','6','+','1',
-	'2','3','0',',', 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	 LF, 0 ,'/', 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-};
-
-
-/**
- * Mapping from ASCII value to another ASCII value when shift is pressed
- *
- * The table does not contain mappings for control characters. The table
- * entry 0 corresponds to ASCII value 32.
- */
-static unsigned char usenglish_shift[256 - 32] = {
-	/*  32 */ ' ', 0 , 0,  0 , 0 , 0 , 0 ,'"', 0 , 0 , 0 , 0 ,'<','_','>','?',
-	/*  48 */ ')','!','@','#','$','%','^','&','*','(', 0 ,':', 0 ,'+', 0 , 0 ,
-	/*  64 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/*  80 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'{','|','}', 0 , 0 ,
-	/*  96 */ '~','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
-	/* 112 */ 'P','Q','R','S','T','U','V','W','X','Y','Z', 0 ,'\\', 0 , 0 , 0 ,
-};
-
-
-static unsigned char german_keymap[128] = {
-	 0 ,ESC,'1','2','3','4','5','6','7','8','9','0', SS, 39, BS,TAB,
-	'q','w','e','r','t','z','u','i','o','p', UE,'+', LF, 0 ,'a','s',
-	'd','f','g','h','j','k','l', OE, AE,'^', 0 ,'#','y','x','c','v',
-	'b','n','m',',','.','-', 0 ,'*', 0 ,' ', 0 , 0 , 0 , 0 , 0 , 0 ,
-	 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'7','8','9','-','4','5','6','+','1',
-	'2','3','0',',', 0 , 0 ,'<', 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	 LF, 0 ,'/', 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-};
-
-
-/**
- * Mapping from ASCII value to another ASCII value when shift is pressed
- *
- * The table does not contain mappings for control characters. The table
- * entry 0 corresponds to ASCII value 32.
- */
-static unsigned char german_shift[256 - 32] = {
-	/*  32 */ ' ', 0 , 0, 39 , 0 , 0 , 0 ,'`', 0 , 0 , 0 ,'*',';','_',':', 0 ,
-	/*  48 */ '=','!','"',PAR,'$','%','&','/','(',')', 0 , 0 ,'>', 0 , 0 , 0 ,
-	/*  64 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/*  80 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,DEG, 0 ,
-	/*  96 */  0 ,'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
-	/* 112 */ 'P','Q','R','S','T','U','V','W','X','Y','Z', 0 , 0 , 0 , 0 , 0 ,
-	/* 128 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 144 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 160 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 176 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 192 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 208 */  0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'?',
-};
-
-
-/**
- * Mapping from ASCII value to another ASCII value when altgr is pressed
- */
-static unsigned char german_altgr[256 - 32] = {
-	/*  32 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'~', 0 , 0 , 0 , 0 ,
-	/*  48 */'}', 0 ,178,179, 0 , 0 , 0 ,'{','[',']', 0 , 0 ,'|', 0 , 0 , 0 ,
-	/*  64 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/*  80 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/*  96 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 112 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 128 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 144 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 160 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 176 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 192 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-	/* 208 */ 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,'\\',
-};
-
-
-/**
- * Mapping from ASCII value to value reported when control is pressed
- *
- * The table starts with ASCII value 32.
- */
-static unsigned char control[256 - 32] = {
-	/*  32 */  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	/*  48 */  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	/*  64 */  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	/*  80 */  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-	/*  96 */  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
-	/* 112 */ 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  0,  0,  0,  0,  0,  0,
-};
-
-
-/**
- * State machine that translates keycode sequences to terminal characters
- */
-class Scancode_tracker
-{
-	private:
-
-		/**
-		 * Tables containing the scancode-to-character mapping
-		 */
-		unsigned char const *_keymap;
-		unsigned char const *_shift;
-		unsigned char const *_altgr;
-
-		/**
-		 * Current state of modifer keys
-		 */
-		bool _mod_shift;
-		bool _mod_control;
-		bool _mod_altgr;
-
-		/**
-		 * Currently pressed key, or 0 if no normal key (one that can be
-		 * encoded in a single 'char') is pressed
-		 */
-		unsigned char _last_character;
-
-		/**
-		 * Currently pressed special key (a key that corresponds to an escape
-		 * sequence), or no if no special key is pressed
-		 */
-		char const *_last_sequence;
-
-		/**
-		 * Convert keycode to terminal character
-		 */
-		unsigned char _keycode_to_latin1(int keycode)
-		{
-			if (keycode >= 112) return 0;
-
-			unsigned ch = _keymap[keycode];
-
-			if (ch < 32)
-				return ch;
-
-			/* all ASCII-to-ASCII table start at index 32 */
-			if (_mod_shift || _mod_control || _mod_altgr) {
-				ch -= 32;
-
-				/*
-				 * 'ch' is guaranteed to be in the range 0..223. So it is safe to
-				 * use it as index into the ASCII-to-ASCII tables.
-				 */
-
-				if (_mod_shift)
-					return _shift[ch];
-
-				if (_mod_control)
-					return control[ch];
-
-				if (_altgr && _mod_altgr)
-					return _altgr[ch];
-			}
-
-			return ch;
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param keymap table for keycode-to-character mapping
-		 * \param shift  table for character-to-character mapping used when
-		 *               Shift is pressed
-		 * \param altgr  table for character-to-character mapping with AltGr
-		 *               is pressed
-		 */
-		Scancode_tracker(unsigned char const *keymap,
-		                 unsigned char const *shift,
-		                 unsigned char const *altgr)
-		:
-			_keymap(keymap),
-			_shift(shift),
-			_altgr(altgr),
-			_mod_shift(false),
-			_mod_control(false),
-			_mod_altgr(false),
-			_last_character(0),
-			_last_sequence(0)
-		{ };
-
-		/**
-		 * Submit key event to state machine
-		 *
-		 * \param press  true on press event, false on release event
-		 */
-		void submit(int keycode, bool press)
-		{
-			/* track modifier keys */
-			switch (keycode) {
-			case Input::KEY_LEFTSHIFT:
-			case Input::KEY_RIGHTSHIFT:
-				_mod_shift = press;
-				break;
-
-			case Input::KEY_LEFTCTRL:
-			case Input::KEY_RIGHTCTRL:
-				_mod_control = press;
-				break;
-
-			case Input::KEY_RIGHTALT:
-				_mod_altgr = press;
-
-			default:
-				break;
-			}
-
-			/* reset information about the currently pressed key */
-			_last_character = 0;
-			_last_sequence  = 0;
-
-			if (!press) return;
-
-			/* convert key codes to ASCII */
-			_last_character = _keycode_to_latin1(keycode);
-
-			/* handle special key to be represented by an escape sequence */
-			if (!_last_character) {
-				switch (keycode) {
-				case Input::KEY_DOWN:     _last_sequence = "\E[B";   break;
-				case Input::KEY_UP:       _last_sequence = "\E[A";   break;
-				case Input::KEY_RIGHT:    _last_sequence = "\E[C";   break;
-				case Input::KEY_LEFT:     _last_sequence = "\E[D";   break;
-				case Input::KEY_HOME:     _last_sequence = "\E[1~";  break;
-				case Input::KEY_INSERT:   _last_sequence = "\E[2~";  break;
-				case Input::KEY_DELETE:   _last_sequence = "\E[3~";  break;
-				case Input::KEY_END:      _last_sequence = "\E[4~";  break;
-				case Input::KEY_PAGEUP:   _last_sequence = "\E[5~";  break;
-				case Input::KEY_PAGEDOWN: _last_sequence = "\E[6~";  break;
-				case Input::KEY_F1:       _last_sequence = "\E[[A";  break;
-				case Input::KEY_F2:       _last_sequence = "\E[[B";  break;
-				case Input::KEY_F3:       _last_sequence = "\E[[C";  break;
-				case Input::KEY_F4:       _last_sequence = "\E[[D";  break;
-				case Input::KEY_F5:       _last_sequence = "\E[[E";  break;
-				case Input::KEY_F6:       _last_sequence = "\E[17~"; break;
-				case Input::KEY_F7:       _last_sequence = "\E[18~"; break;
-				case Input::KEY_F8:       _last_sequence = "\E[19~"; break;
-				case Input::KEY_F9:       _last_sequence = "\E[20~"; break;
-				case Input::KEY_F10:      _last_sequence = "\E[21~"; break;
-				case Input::KEY_F11:      _last_sequence = "\E[23~"; break;
-				case Input::KEY_F12:      _last_sequence = "\E[24~"; break;
-				}
-			}
-		}
-
-		/**
-		 * Output currently pressed key to read buffer
-		 */
-		void emit_current_character(Read_buffer &read_buffer)
-		{
-			if (_last_character)
-				read_buffer.add(_last_character);
-
-			if (_last_sequence)
-				read_buffer.add(_last_sequence);
-		}
-
-		/**
-		 * Return true if there is a currently pressed key
-		 */
-		bool valid() const
-		{
-			return (_last_sequence || _last_character);
-		}
-};
-
 
 int main(int, char **)
 {
@@ -1376,7 +872,7 @@ int main(int, char **)
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
 	/* input read buffer */
-	static Read_buffer read_buffer;
+	static Terminal::Read_buffer read_buffer;
 
 	/* initialize color palette */
 	color_palette[0] = Color(  0,   0,   0);  /* black */
@@ -1437,8 +933,8 @@ int main(int, char **)
 	static int const repeat_rate  =  25;
 	static int       repeat_cnt   =   0;
 
-	unsigned char *keymap = usenglish_keymap;
-	unsigned char *shift  = usenglish_shift;
+	unsigned char *keymap = Terminal::usenglish_keymap;
+	unsigned char *shift  = Terminal::usenglish_shift;
 	unsigned char *altgr  = 0;
 
 	/*
@@ -1448,13 +944,14 @@ int main(int, char **)
 		if (config()->xml_node().sub_node("keyboard")
 		                        .attribute("layout").has_value("de")) {
 
-			keymap = german_keymap;
-			shift  = german_shift;
-			altgr  = german_altgr;
+			keymap = Terminal::german_keymap;
+			shift  = Terminal::german_shift;
+			altgr  = Terminal::german_altgr;
 		}
 	} catch (...) { }
 
-	static Scancode_tracker scancode_tracker(keymap, shift, altgr);
+	static Terminal::Scancode_tracker
+		scancode_tracker(keymap, shift, altgr, Terminal::control);
 
 	while (1) {
 
