@@ -97,20 +97,32 @@ inline Pixel_rgb565 mix(Pixel_rgb565 p1, Pixel_rgb565 p2, int alpha)
 	return res;
 }
 
-/*
- * Font initialization
- */
-extern char _binary_mono_tff_start;
-
-static Font mono_font   (&_binary_mono_tff_start);
-
-static Font *fonts[4] = { &mono_font, &mono_font,
-                          &mono_font, &mono_font };
-
-enum Font_face { FONT_REGULAR, FONT_ITALIC, FONT_BOLD, FONT_BOLD_ITALIC };
-
-
 static Color color_palette[2*8];
+
+
+class Font_family
+{
+	private:
+
+		Font const &_regular;
+
+	public:
+
+		enum Face { REGULAR, ITALIC, BOLD, BOLD_ITALIC };
+
+		Font_family(Font const &regular /* ...to be extended */ )
+		: _regular(regular) { }
+
+		/**
+		 * Return font for specified face
+		 *
+		 * For now, we do not support font faces other than regular.
+		 */
+		Font const *font(Face) const { return &_regular; }
+
+		unsigned cell_width()  const { return _regular.str_w("m"); }
+		unsigned cell_height() const { return _regular.str_h("m"); }
+};
 
 
 struct Char_cell
@@ -125,7 +137,8 @@ struct Char_cell
 
 	Char_cell() : attr(0), ascii(0) { }
 
-	Char_cell(unsigned char c, Font_face f, int colidx, bool inv, bool highlight)
+	Char_cell(unsigned char c, Font_family::Face f,
+	          int colidx, bool inv, bool highlight)
 	:
 		attr(f | (colidx & ATTR_COLIDX_MASK)
 		       | (inv ? ATTR_INVERSE : 0)
@@ -133,11 +146,11 @@ struct Char_cell
 		ascii(c)
 	{ }
 
-	Font_face font_face() const { return (Font_face)(attr & 0x3); }
+	Font_family::Face font_face() const { return (Font_family::Face)(attr & 0x3); }
 
-	int  colidx()  const { return attr & ATTR_COLIDX_MASK; }
-	bool inverse() const { return attr & ATTR_INVERSE;     }
-	bool highlight()  const { return attr & ATTR_HIGHLIGHT;   }
+	int  colidx()    const { return attr & ATTR_COLIDX_MASK; }
+	bool inverse()   const { return attr & ATTR_INVERSE;     }
+	bool highlight() const { return attr & ATTR_HIGHLIGHT;   }
 
 	Color fg_color() const
 	{
@@ -380,7 +393,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			if (c.ascii() > 0x10) {
 				Cursor_guard guard(*this);
 				_char_cell_array.set_cell(_cursor_pos.x, _cursor_pos.y,
-				                          Char_cell(c.ascii(), FONT_REGULAR,
+				                          Char_cell(c.ascii(), Font_family::REGULAR,
 				                          _color_index, _inverse, _highlight));
 				_cursor_pos.x++;
 			}
@@ -502,7 +515,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 			for (int i = 0; i < v; i++, _cursor_pos.x++)
 				_char_cell_array.set_cell(_cursor_pos.x, _cursor_pos.y,
-				                          Char_cell(' ', FONT_REGULAR,
+				                          Char_cell(' ', Font_family::REGULAR,
 				                          _color_index, _inverse, _highlight));
 		}
 
@@ -725,13 +738,15 @@ inline void draw_glyph(Color                fg_color,
 
 
 template <typename PT>
-static void convert_char_array_to_pixels(Char_cell_array *cell_array,
-                                         PT              *fb_base,
-                                         unsigned         fb_width,
-                                         unsigned         fb_height)
+static void convert_char_array_to_pixels(Char_cell_array   *cell_array,
+                                         PT                *fb_base,
+                                         unsigned           fb_width,
+                                         unsigned           fb_height,
+                                         Font_family const &font_family)
 {
-	unsigned glyph_height = mono_font.img_h,
-	         glyph_step_x = mono_font.wtab['m'];
+	Font const &regular_font = *font_family.font(Font_family::REGULAR);
+	unsigned glyph_height = regular_font.img_h,
+	         glyph_step_x = regular_font.wtab['m'];
 
 	unsigned y = 0;
 	for (unsigned line = 0; line < cell_array->num_lines(); line++) {
@@ -745,15 +760,15 @@ static void convert_char_array_to_pixels(Char_cell_array *cell_array,
 			for (unsigned column = 0; column < cell_array->num_cols(); column++) {
 
 				Char_cell      cell  = cell_array->get_cell(column, line);
-				Font          *font  = fonts[cell.font_face()];
+				Font const    *font  = font_family.font(cell.font_face());
 				unsigned char  ascii = cell.ascii;
 
 				if (ascii == 0)
 					ascii = ' ';
 
-				unsigned char *glyph_base  = font->img + font->otab[ascii];
+				unsigned char const *glyph_base  = font->img + font->otab[ascii];
 
-				unsigned glyph_width = mono_font.wtab[ascii];
+				unsigned glyph_width = regular_font.wtab[ascii];
 
 				if (x + glyph_width >= fb_width) break;
 
@@ -845,7 +860,9 @@ namespace Terminal {
 			Char_cell_array_character_screen _char_cell_array_character_screen;
 			Terminal::Decoder                _decoder;
 
-			Terminal::Position _last_cursor_pos;
+			Terminal::Position               _last_cursor_pos;
+
+			Font_family const               *_font_family;
 
 			/**
 			 * Initialize framebuffer-related attributes
@@ -868,7 +885,8 @@ namespace Terminal {
 			Session_component(Read_buffer             *read_buffer,
 			                  Framebuffer::Session    *framebuffer,
 			                  Genode::size_t           io_buffer_size,
-			                  Flush_callback_registry &flush_callback_registry)
+			                  Flush_callback_registry &flush_callback_registry,
+			                  Font_family const       &font_family)
 			:
 				_read_buffer(read_buffer), _framebuffer(framebuffer),
 				_flush_callback_registry(flush_callback_registry),
@@ -877,8 +895,8 @@ namespace Terminal {
 				_fb_ds_cap(_init_fb()),
 
 				/* take size of space character as character cell size */
-				_char_width(mono_font.str_w("m")),
-				_char_height(mono_font.str_h("m")),
+				_char_width(font_family.cell_width()),
+				_char_height(font_family.cell_height()),
 
 				/* compute number of characters fitting on the framebuffer */
 				_columns(_fb_mode.width()/_char_width),
@@ -887,7 +905,9 @@ namespace Terminal {
 				_fb_addr(Genode::env()->rm_session()->attach(_fb_ds_cap)),
 				_char_cell_array(_columns, _lines, Genode::env()->heap()),
 				_char_cell_array_character_screen(_char_cell_array),
-				_decoder(_char_cell_array_character_screen)
+				_decoder(_char_cell_array_character_screen),
+
+				_font_family(&font_family)
 			{
 				using namespace Genode;
 
@@ -913,7 +933,8 @@ namespace Terminal {
 				convert_char_array_to_pixels<Pixel_rgb565>(&_char_cell_array,
 				                                           (Pixel_rgb565 *)_fb_addr,
 				                                           _fb_mode.width(),
-				                                           _fb_mode.height());
+				                                           _fb_mode.height(),
+				                                          *_font_family);
 
 				
 				int first_dirty_line =  10000,
@@ -1003,6 +1024,7 @@ namespace Terminal {
 			Read_buffer             *_read_buffer;
 			Framebuffer::Session    *_framebuffer;
 			Flush_callback_registry &_flush_callback_registry;
+			Font_family const       &_font_family;
 
 		protected:
 
@@ -1019,7 +1041,8 @@ namespace Terminal {
 					new (md_alloc()) Session_component(_read_buffer,
 					                                   _framebuffer,
 					                                   io_buffer_size,
-					                                   _flush_callback_registry);
+					                                   _flush_callback_registry,
+					                                   _font_family);
 				return session;
 			}
 
@@ -1032,11 +1055,13 @@ namespace Terminal {
 			               Genode::Allocator       *md_alloc,
 			               Read_buffer             *read_buffer,
 			               Framebuffer::Session    *framebuffer,
-			               Flush_callback_registry &flush_callback_registry)
+			               Flush_callback_registry &flush_callback_registry,
+			               Font_family const       &font_family)
 			:
 				Genode::Root_component<Session_component>(ep, md_alloc),
 				_read_buffer(read_buffer), _framebuffer(framebuffer),
-				_flush_callback_registry(flush_callback_registry)
+				_flush_callback_registry(flush_callback_registry),
+				_font_family(font_family)
 			{ }
 	};
 }
@@ -1354,14 +1379,14 @@ int main(int, char **)
 	static Read_buffer read_buffer;
 
 	/* initialize color palette */
-	color_palette[0] = Color(  0,   0,   0);	/* black */
-	color_palette[1] = Color(255,   0,   0);	/* red */
-	color_palette[2] = Color(  0, 255,   0);	/* green */
-	color_palette[3] = Color(255, 255,   0);	/* yellow */
-	color_palette[4] = Color(  0,   0, 255);	/* blue */
-	color_palette[5] = Color(255,   0, 255);	/* magenta */
-	color_palette[6] = Color(  0, 255, 255);	/* cyan */
-	color_palette[7] = Color(255, 255, 255);	/* white */
+	color_palette[0] = Color(  0,   0,   0);  /* black */
+	color_palette[1] = Color(255,   0,   0);  /* red */
+	color_palette[2] = Color(  0, 255,   0);  /* green */
+	color_palette[3] = Color(255, 255,   0);  /* yellow */
+	color_palette[4] = Color(  0,   0, 255);  /* blue */
+	color_palette[5] = Color(255,   0, 255);  /* magenta */
+	color_palette[6] = Color(  0, 255, 255);  /* cyan */
+	color_palette[7] = Color(255, 255, 255);  /* white */
 
 	/* the upper portion of the palette contains highlight colors */
 	for (int i = 0; i < 8; i++) {
@@ -1370,12 +1395,39 @@ int main(int, char **)
 		color_palette[i + 8] = col;
 	}
 
+	/* built-in fonts */
+	extern char _binary_notix_8_tff_start;
+	extern char _binary_terminus_12_tff_start;
+	extern char _binary_terminus_16_tff_start;
+
+	/* pick font according to config file */
+	char const *font_data = &_binary_terminus_16_tff_start;
+	try {
+		size_t font_size = 16;
+		config()->xml_node().sub_node("font")
+		                    .attribute("size").value(&font_size);
+
+		switch (font_size) {
+		case  8: font_data = &_binary_notix_8_tff_start;     break;
+		case 12: font_data = &_binary_terminus_12_tff_start; break;
+		case 16: font_data = &_binary_terminus_16_tff_start; break;
+		default: break;
+		}
+	} catch (...) { }
+
+	static Font font(font_data);
+	static Font_family font_family(font);
+
+	printf("cell size is %dx%d\n", (int)font_family.cell_width(),
+	                               (int)font_family.cell_height());
+
 	static Terminal::Flush_callback_registry flush_callback_registry;
 
 	/* create root interface for service */
 	static Terminal::Root_component root(&ep, &sliced_heap,
 	                                     &read_buffer, &framebuffer,
-	                                     flush_callback_registry);
+	                                     flush_callback_registry,
+	                                     font_family);
 
 	/* announce service at our parent */
 	env()->parent()->announce(ep.manage(&root));
@@ -1393,8 +1445,6 @@ int main(int, char **)
 	 * Read keyboard layout from config file
 	 */
 	try {
-		using namespace Genode;
-
 		if (config()->xml_node().sub_node("keyboard")
 		                        .attribute("layout").has_value("de")) {
 

@@ -1,8 +1,3 @@
-if {[have_spec linux]} {
-	puts "\nLinux not supported because of missing UART driver\n"
-	exit 0
-}
-
 build {
 	core init drivers/timer
 	server/terminal test/terminal_echo
@@ -72,6 +67,10 @@ append config {
 		<start name="terminal">
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Terminal"/></provides>
+			<config>
+				<!-- supported built-in font sizes are 8, 12, and 16 -->
+				<font size="12" />
+			</config>
 		</start>
 		<start name="test-terminal_echo">
 			<resource name="RAM" quantum="1M"/>
