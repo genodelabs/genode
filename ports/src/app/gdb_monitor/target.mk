@@ -10,7 +10,8 @@ INC_DIR += $(GDB_CONTRIB_DIR)/include \
            $(PRG_DIR)/gdbserver \
            $(PRG_DIR)
 
-LIBS    =  env signal libc libc_log libc_terminal libc_lock_pipe lock process server gdbserver_platform gdbserver_libc_support
+LIBS    =  env signal libc libc_log libc_terminal libc_lock_pipe lock child \
+           server gdbserver_platform gdbserver_libc_support
 
 SRC_C   =  event-loop.c \
            i386-low.c \

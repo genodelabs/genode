@@ -11,7 +11,7 @@ TARGET = core
 STARTUP_LIB = startup_core
 
 # add library dependencies
-LIBS += cxx raw_ipc heap process pager lock console signal raw_server \
+LIBS += cxx raw_ipc heap child pager lock console signal raw_server \
         syscall startup_core core_support
 
 # add include paths

@@ -1,6 +1,6 @@
 TARGET        = core
 REQUIRES      = linux
-LIBS          = cxx ipc heap core_printf process lock raw_server syscall rpath
+LIBS          = cxx ipc heap core_printf child lock raw_server syscall rpath
 
 GEN_CORE_DIR  = $(BASE_DIR)/src/core
 

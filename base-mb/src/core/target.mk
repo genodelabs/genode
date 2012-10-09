@@ -1,5 +1,5 @@
 TARGET = core
-LIBS   = kernel_core cxx ipc heap printf_microblaze process pager lock \
+LIBS   = kernel_core cxx ipc heap printf_microblaze child pager lock \
          raw_signal raw_server
 
 STARTUP_LIB = kernel_core

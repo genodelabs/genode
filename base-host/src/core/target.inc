@@ -1,5 +1,5 @@
 TARGET       = core
-LIBS         = cxx ipc heap core_printf process pager lock \
+LIBS         = cxx ipc heap core_printf child pager lock \
                raw_signal raw_server
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core

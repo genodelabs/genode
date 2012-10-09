@@ -1,3 +1,3 @@
 TARGET = test-rmfault
 SRC_CC = main.cc
-LIBS   = cxx env server signal process
+LIBS   = cxx env server signal child
