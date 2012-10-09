@@ -35,19 +35,27 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 		Nova::Mem_crd crd(core_local_base >> 12, 32, rwx);
 		Nova::lookup(crd);
 
-		if (crd.is_null()) {
-			PERR("Invalid unmap at local: %08lx virt: %08lx",
-			     core_local_base, core_local_base + core_to_virt);
-			return;
+		if (!crd.is_null()) {
+
+			if (verbose)
+				PINF("Unmapping local: %08lx virt: %08lx base: %lx order: %lx size: %lx is null: %d",
+				     core_local_base, core_local_base + core_to_virt, crd.base(), crd.order(),
+				     (0x1000UL << crd.order()), crd.is_null());
+
+			unmap_local(crd, false);
+
+			core_local_base = (crd.base() << 12)       /* base address of mapping */
+			                + (0x1000 << crd.order()); /* size of mapping */
+		} else {
+
+			/* This can happen if the region has never been touched */
+
+			if (verbose)
+				PINF("Nothing mapped at local: %08lx virt: %08lx",
+					core_local_base, core_local_base + core_to_virt);
+
+			core_local_base += 0x1000;
 		}
-
-		if (verbose)
-			PINF("Lookup core_addr: %08lx base: %lx order: %lx is null %d", core_local_base, crd.base(), crd.order(), crd.is_null());
-
-		unmap_local(crd, false);
-
-		core_local_base = (crd.base() << 12)       /* base address of mapping */
-		                + (0x1000 << crd.order()); /* size of mapping */
 
 		if (core_local_base > core_local_end)
 			return;
