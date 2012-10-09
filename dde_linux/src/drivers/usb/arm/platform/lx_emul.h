@@ -19,7 +19,7 @@
 
 enum {
 	SZ_1K = 0x00000400,
-	SZ_4K = 0x00001000a,
+	SZ_4K = 0x00001000,
 };
 
 struct platform_device
