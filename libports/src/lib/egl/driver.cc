@@ -128,7 +128,7 @@ class Pipe_buffer : public pipe_buffer
 		/**
 		 * Destructor
 		 */
-		~Pipe_buffer() { free(_data); }
+		~Pipe_buffer() { align_free(_data); }
 
 		void *data() const { return _data; }
 };
