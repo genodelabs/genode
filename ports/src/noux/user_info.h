@@ -23,33 +23,24 @@
 
 namespace Noux {
 
+	using namespace Genode;
+
 	struct User_info {
 
 		public:
 
-			char name[Sysio::MAX_USERNAME_LEN];
+			char  name[Sysio::MAX_USERNAME_LEN];
 			char shell[Sysio::MAX_SHELL_LEN];
-			char home[Sysio::MAX_HOME_LEN];
+			char  home[Sysio::MAX_HOME_LEN];
 
 			unsigned int uid;
 			unsigned int gid;
 
-		private:
-
-			void _dup_str(char *dest, const char *src)
-			{
-				Genode::size_t len = Genode::strlen(src);
-				Genode::memcpy(dest, src, len);
-				dest[len] = '\0';
-			}
-
-		public:
-
 			User_info() : uid(0), gid(0)
 			{
-				_dup_str(name,  "root");
-				_dup_str(home,  "/");
-				_dup_str(shell, "/bin/bash");
+				strncpy(name,  "root",      sizeof(name));
+				strncpy(home,  "/",         sizeof(home));
+				strncpy(shell, "/bin/bash", sizeof(shell));
 			}
 
 			void set_info(Genode::Xml_node user_info_node)
