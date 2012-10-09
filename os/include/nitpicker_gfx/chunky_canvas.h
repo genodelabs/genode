@@ -82,7 +82,7 @@ class Chunky_canvas : public Canvas
 
 			if (!str || !font) return;
 
-			unsigned char *src = font->img;
+			unsigned char const *src = font->img;
 			int d, h = font->img_h;
 
 			/* check top clipping */
@@ -110,11 +110,11 @@ class Chunky_canvas : public Canvas
 			/* draw glyphs */
 			for ( ; *str && (x <= _clip.x2()); str++) {
 
-				int            w     = font->wtab[*str];
-				int            start = max(0, _clip.x1() - x);
-				int            end   = min(w - 1, _clip.x2() - x);
-				PT            *d     = dst + x;
-				unsigned char *s     = src + font->otab[*str];
+				int                  w     = font->wtab[*str];
+				int                  start = max(0, _clip.x1() - x);
+				int                  end   = min(w - 1, _clip.x2() - x);
+				PT                  *d     = dst + x;
+				unsigned char const *s     = src + font->otab[*str];
 
 				for (int j = 0; j < h; j++, s += font->img_w, d += _size.w())
 					for (int i = start; i <= end; i++)
