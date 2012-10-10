@@ -1,11 +1,13 @@
 /*
  * \brief  Launchpad child management
  * \author Norman Feske
+ * \author Markus Partheymueller
  * \date   2006-09-01
  */
 
 /*
  * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2012 Intel Corporation
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -43,8 +45,8 @@ Launchpad::Launchpad(unsigned long initial_quota)
 		"IRQ", "ROM", "LOG", "SIGNAL",
 
 		/* services expected to got started by init */
-		"Nitpicker", "Init", "Timer", "PCI",
-		
+		"Nitpicker", "Init", "Timer", "PCI", "Block", "Nic", "Rtc",
+
 		0 /* null-termination */
 	};
 	for (unsigned i = 0; names[i]; i++)
