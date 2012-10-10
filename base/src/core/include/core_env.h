@@ -163,6 +163,12 @@ namespace Genode {
 				return 0;
 			}
 
+
+			Cpu_session_capability cpu_session_cap() {
+				PWRN("not implemented");
+				return Cpu_session_capability();
+			}
+
 			Pd_session *pd_session()
 			{
 				PWRN("not implemented");

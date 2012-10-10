@@ -61,6 +61,8 @@ class Minimal_env : public Genode::Env
 
 		Genode::Ram_session_capability ram_session_cap() {
 			return Genode::Ram_session_capability(); }
+		Genode::Cpu_session_capability cpu_session_cap() {
+			return Genode::Cpu_session_capability(); }
 };
 
 

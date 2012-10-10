@@ -407,6 +407,12 @@ void Child::exit(int exit_value)
 }
 
 
+Thread_capability Child::main_thread_cap() const
+{
+	return _process.main_thread_cap();
+}
+
+
 Child::Child(Dataspace_capability    elf_ds,
              Ram_session_capability  ram,
              Cpu_session_capability  cpu,

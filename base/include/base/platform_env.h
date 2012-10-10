@@ -112,6 +112,7 @@ namespace Genode {
 			{
 				Ram_session_capability       ram_cap;
 				Expanding_ram_session_client ram;
+				Cpu_session_capability       cpu_cap;
 				Cpu_session_client           cpu;
 				Expanding_rm_session_client  rm;
 				Pd_session_client            pd;
@@ -120,7 +121,8 @@ namespace Genode {
 				:
 					ram_cap(static_cap_cast<Ram_session>(parent.session("Env::ram_session", ""))),
 					ram(ram_cap),
-					cpu(static_cap_cast<Cpu_session>(parent.session("Env::cpu_session", ""))),
+					cpu_cap(static_cap_cast<Cpu_session>(parent.session("Env::cpu_session", ""))),
+					cpu(cpu_cap),
 					rm(static_cap_cast<Rm_session>(parent.session("Env::rm_session", ""))),
 					pd(static_cap_cast<Pd_session>(parent.session("Env::pd_session", "")))
 				{ }
@@ -168,6 +170,7 @@ namespace Genode {
 			Ram_session            *ram_session()     { return &_resources.ram; }
 			Ram_session_capability  ram_session_cap() { return  _resources.ram_cap; }
 			Cpu_session            *cpu_session()     { return &_resources.cpu; }
+			Cpu_session_capability  cpu_session_cap() { return  _resources.cpu_cap; }
 			Rm_session             *rm_session()      { return &_resources.rm; }
 			Pd_session             *pd_session()      { return &_resources.pd; }
 			Allocator              *heap()            { return &_heap; }

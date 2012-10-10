@@ -22,6 +22,7 @@
 #include <rm_session/rm_session.h>
 #include <ram_session/ram_session.h>
 #include <cpu_session/cpu_session.h>
+#include <cpu_session/capability.h>
 #include <pd_session/pd_session.h>
 #include <base/allocator.h>
 #include <base/snprintf.h>
@@ -56,6 +57,7 @@ namespace Genode {
 			 * This session is used to create threads.
 			 */
 			virtual Cpu_session *cpu_session() = 0;
+			virtual Cpu_session_capability cpu_session_cap() = 0;
 
 			/**
 			 * Region manager session of the program
