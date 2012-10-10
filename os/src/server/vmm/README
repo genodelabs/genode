@@ -1,0 +1,17 @@
+This is a small example virtual machine monitor, that uses the base-hw kernel
+as TrustZone micro-hypervisor on the ARM Versatile Express CT A9x4 platform.
+The VMM configures TrustZone Protection Controller and Address Space Controller
+in a way, that allows a guest to access nearly all devices, and the DDR-RAM.
+Only few resources needed by the kernel (timer, SRAM) aren't accessable by the
+virtual-machine.
+
+Moreover, the VMM prepares the guest memory with a Linux image, and ramdisk,
+and boots it. For the Linux guest to work properly a small patch, and tweaked
+configuration is needed. Please checkout the following branch to test it:
+
+  https://github.com/skalk/linux/tree/vexpress-tz
+
+To build linux do:
+
+! make ARCH=arm CROSS_COMPILE=<path_to_cross_compiler> vexpress_tz_defconfig
+! make ARCH=arm CROSS_COMPILE=<path_to_cross_compiler>

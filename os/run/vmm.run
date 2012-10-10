@@ -1,0 +1,39 @@
+#
+# \brief  Virtual-machine monitor demo
+# \author Stefan Kalkowski
+# \date   2012-06-25
+#
+
+if {![have_spec trustzone]} {
+	puts "\nThe VMM support base-hw for Versatile Express with TrustZone support only\n"
+	exit 0
+}
+
+build "core init server/vmm"
+create_boot_directory
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="VM"/>
+	</parent-provides>
+	<default-route>
+		<any-service><any-child/><parent/></any-service>
+	</default-route>
+	<start name="vmm">
+		<resource name="RAM" quantum="4M"/>
+	</start>
+</config>
+}
+
+build_boot_image "core init vmm linux initrd.gz"
