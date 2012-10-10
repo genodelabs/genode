@@ -54,6 +54,8 @@ namespace Genode {
 			enum { STACK_SIZE=1024 };
 
 			Thread_capability _cap;               /* Genodes thread capability */
+			Okl4::L4_ThreadId_t _tid;
+
 			char              _stack[STACK_SIZE]; /* stack for startup code */
 
 		public:
@@ -65,6 +67,11 @@ namespace Genode {
 			void* stack_addr() { return (void*)&_stack[STACK_SIZE-1]; };
 
 			static void entry();
+
+			void set_tid(Okl4::L4_ThreadId_t tid) { _tid = tid; }
+
+			Okl4::L4_ThreadId_t tid() { return _tid; }
+
 	};
 
 
@@ -88,6 +95,8 @@ namespace Genode {
 			 * Get the global list of OKLinux kernel threads
 			 */
 			static Oklx_thread_list *thread_list();
+
+			Oklx_kernel_thread * first() { return _threads.first(); }
     };
 
 

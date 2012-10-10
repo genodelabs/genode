@@ -164,9 +164,8 @@ int l4lx_irq_dev_set_affinity(struct irq_data *data,
 	if (target_cpu == p->cpu)
         return 0;
 
-	unsigned long flags;
+	unsigned long flags = 0;
 	l4x_migrate_lock(&flags);
-
 	{
 		Linux::Irq_guard guard;
 		if (l4_error(l4_irq_detach(p->irq_cap)))

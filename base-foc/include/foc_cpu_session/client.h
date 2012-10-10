@@ -34,12 +34,6 @@ namespace Genode {
 		void kill_thread(Thread_capability thread) {
 			call<Rpc_kill_thread>(thread); }
 
-		Thread_capability first() {
-			return call<Rpc_first>(); }
-
-		Thread_capability next(Thread_capability curr) {
-			return call<Rpc_next>(curr); }
-
 		int set_pager(Thread_capability thread, Pager_capability pager) {
 			return call<Rpc_set_pager>(thread, pager); }
 

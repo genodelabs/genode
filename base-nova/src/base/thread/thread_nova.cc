@@ -126,7 +126,7 @@ void Thread_base::start()
 		throw Cpu_session::Thread_creation_failed();
 
 	/* request native EC thread cap */ 
-	Genode::Nova_cpu_connection cpu;
+	Genode::Cpu_session_client cpu(env()->cpu_session_cap());
 	Native_capability ec_cap = cpu.native_cap(_thread_cap);
 	if (!ec_cap.valid())
 		throw Cpu_session::Thread_creation_failed();

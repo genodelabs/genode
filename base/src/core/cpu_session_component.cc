@@ -25,7 +25,8 @@
 using namespace Genode;
 
 
-Thread_capability Cpu_session_component::create_thread(Name const &name, addr_t utcb)
+Thread_capability Cpu_session_component::create_thread(Name const &name,
+                                                       addr_t utcb)
 {
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
 	Lock::Guard slab_lock_guard(_thread_alloc_lock);
@@ -67,28 +68,6 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 	if (!thread) return;
 
 	_unsynchronized_kill_thread(thread);
-}
-
-
-Thread_capability Cpu_session_component::first()
-{
-	Lock::Guard lock_guard(_thread_list_lock);
-
-	return _thread_list.first() ? _thread_list.first()->cap()
-	                            : Thread_capability();
-}
-
-
-Thread_capability Cpu_session_component::next(Thread_capability thread_cap)
-{
-	Lock::Guard lock_guard(_thread_list_lock);
-
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
-
-	if (!thread || !thread->next())
-		return Thread_capability();
-
-	return Thread_capability(thread->next()->cap());
 }
 
 
@@ -152,9 +131,9 @@ int Cpu_session_component::state(Thread_capability thread_cap,
 	return thread->platform_thread()->state(state_dst);
 }
 
-
-void Cpu_session_component::exception_handler(Thread_capability         thread_cap,
-                                              Signal_context_capability sigh_cap)
+void
+Cpu_session_component::exception_handler(Thread_capability         thread_cap,
+                                         Signal_context_capability sigh_cap)
 {
 	Cpu_thread_component *thread = _lookup_thread(thread_cap);
 	if (!thread || !thread->platform_thread()->pager()) return;

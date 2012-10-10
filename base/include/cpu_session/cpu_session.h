@@ -83,16 +83,6 @@ namespace Genode {
 			virtual void kill_thread(Thread_capability thread) = 0;
 
 			/**
-			 * Retrieve thread list of CPU session
-			 *
-			 * The next() function returns an invalid capability if the
-			 * specified thread does not exists or if it is the last one
-			 * of the CPU session.
-			 */
-			virtual Thread_capability first() = 0;
-			virtual Thread_capability next(Thread_capability curr) = 0;
-
-			/**
 			 * Set paging capabilities for thread
 			 *
 			 * \param thread  thread to configure
@@ -213,8 +203,6 @@ namespace Genode {
 			                 Name const &, addr_t);
 			GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb, Thread_capability);
 			GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
-			GENODE_RPC(Rpc_first, Thread_capability, first,);
-			GENODE_RPC(Rpc_next, Thread_capability, next, Thread_capability);
 			GENODE_RPC(Rpc_set_pager, int, set_pager, Thread_capability, Pager_capability);
 			GENODE_RPC(Rpc_start, int, start, Thread_capability, addr_t, addr_t);
 			GENODE_RPC(Rpc_pause, void, pause, Thread_capability);
@@ -238,8 +226,6 @@ namespace Genode {
 			typedef Meta::Type_tuple<Rpc_create_thread,
 			        Meta::Type_tuple<Rpc_utcb,
 			        Meta::Type_tuple<Rpc_kill_thread,
-			        Meta::Type_tuple<Rpc_first,
-			        Meta::Type_tuple<Rpc_next,
 			        Meta::Type_tuple<Rpc_set_pager,
 			        Meta::Type_tuple<Rpc_start,
 			        Meta::Type_tuple<Rpc_pause,
@@ -251,7 +237,7 @@ namespace Genode {
 			        Meta::Type_tuple<Rpc_num_cpus,
 			        Meta::Type_tuple<Rpc_affinity,
 			                         Meta::Empty>
-			        > > > > > > > > > > > > > > Rpc_functions;
+			        > > > > > > > > > > > > Rpc_functions;
 	};
 }
 

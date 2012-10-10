@@ -35,29 +35,17 @@ static Thread_capability oklx_pager_cap; /* cap to the Linux main thread */
  */
 static Thread_capability my_cap()
 {
-	/*
-	 * Get the thread-list of the cpu_session containing
-	 * all OKLinux kernel threads
-	 */
-	Thread_capability invalid, cap =
-		Oklx_thread_list::thread_list()->cpu()->first();
+	Okl4::L4_Word_t tid = thread_myself();                                      
 
-	/* Get the OKL4 thread id of the active thread */
-	Okl4::L4_Word_t tid = thread_myself();
-	Thread_state state;
-
-	/*
-	 * Now, iterate through the thread-list and return the cap of the thread
-	 * withe same OKL4 thread id as the active one
-	 */
-	while(cap.valid())
-	{
-		Oklx_thread_list::thread_list()->cpu()->state(cap, &state);
-		if(tid == state.tid.raw)
-			return cap;
-		cap = Oklx_thread_list::thread_list()->cpu()->next(cap);
+	Oklx_kernel_thread * thread = Genode::Oklx_thread_list::thread_list()->first();
+	while (thread) {
+		if (thread->tid().raw == tid)
+			return thread->cap();
+		thread = thread->next();
 	}
-	return invalid;
+
+	/* invalid cap */
+	return Thread_capability(); 
 }
 
 
@@ -91,6 +79,7 @@ L4_ThreadId_t Oklx_thread_list::add()
 		/* Get the OKL4 thread id of the new thread */
 		Thread_state state;
 		_cpu.state(cap,&state);
+		thd->set_tid(state.tid);
 
 		/* Acknowledge startup and return */
 		L4_Send(state.tid);

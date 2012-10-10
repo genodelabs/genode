@@ -93,12 +93,6 @@ namespace Noux {
 			void kill_thread(Thread_capability thread) {
 				_cpu.kill_thread(thread); }
 
-			Thread_capability first() {
-				return _cpu.first(); }
-
-			Thread_capability next(Thread_capability curr) {
-				return _cpu.next(curr); }
-
 			int set_pager(Thread_capability thread,
 			              Pager_capability  pager) {
 			    return _cpu.set_pager(thread, pager); }

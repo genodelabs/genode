@@ -159,19 +159,19 @@ namespace Genode {
 
 			Cpu_session *cpu_session()
 			{
-				PWRN("not implemented");
+				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return 0;
 			}
 
 
 			Cpu_session_capability cpu_session_cap() {
-				PWRN("not implemented");
+				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return Cpu_session_capability();
 			}
 
 			Pd_session *pd_session()
 			{
-				PWRN("not implemented");
+				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return 0;
 			}
 	};

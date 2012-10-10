@@ -108,7 +108,7 @@ extern "C" {
 	int genode_config_audio()
 	{
 		try {
-			Genode::Xml_node _node = node("audio");
+			node("audio");
 			return 1;
 		} catch (Genode::Xml_node::Invalid_syntax) {
 			PWRN("Malformed entry in Linux config.");
@@ -121,7 +121,7 @@ extern "C" {
 	int genode_config_nic()
 	{
 		try {
-			Genode::Xml_node _node = node("nic");
+			node("nic");
 			return 1;
 		} catch (Genode::Xml_node::Invalid_syntax) {
 			PWRN("Malformed entry in Linux config.");
@@ -133,7 +133,7 @@ extern "C" {
 	int genode_config_block()
 	{
 		try {
-			Genode::Xml_node _node = node("block");
+			node("block");
 			return 1;
 		} catch (Genode::Xml_node::Invalid_syntax) {
 			PWRN("Malformed entry in Linux config.");

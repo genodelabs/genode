@@ -131,8 +131,6 @@ namespace Genode {
 			Ram_dataspace_capability utcb(Thread_capability thread);
 
 			void kill_thread(Thread_capability);
-			Thread_capability first();
-			Thread_capability next(Thread_capability);
 			int set_pager(Thread_capability, Pager_capability);
 			int start(Thread_capability, addr_t, addr_t);
 			void pause(Thread_capability thread_cap);
