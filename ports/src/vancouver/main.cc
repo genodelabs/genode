@@ -1,10 +1,8 @@
 /*
  * \brief  Vancouver main program for Genode
  * \author Norman Feske
+ * \author Markus Partheymueller
  * \date   2011-11-18
- *
- * This code is partially based on 'vancouver.cc' that comes with the NOVA
- * userland.
  *
  * Important remark about debugging output:
  *
@@ -21,9 +19,16 @@
 
 /*
  * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2012 Intel Corporation
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
+ *
+ * The code is partially based on the Vancouver VMM, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ *
+ * Modifications by Intel Corporation are contributed under the terms and
+ * conditions of the GNU General Public License version 2.
  */
 
 /* Genode includes */
@@ -186,12 +191,12 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE> {
 		{
 			/* release pre-allocated selectors of Thread */
 			Genode::cap_selector_allocator()->
-				free(tid().exc_pt_sel,
+			        free(tid().exc_pt_sel,
 				     Nova::NUM_INITIAL_PT_LOG2);
 
 			/* allocate correct number of selectors */
 			tid().exc_pt_sel = Genode::cap_selector_allocator()->
-				alloc(VCPU_EXC_BASE_LOG2);
+			        alloc(VCPU_EXC_BASE_LOG2);
 
 			/* tell generic thread code that this becomes a vCPU */
 			tid().is_vcpu = true;
@@ -204,16 +209,17 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE> {
 
 			revoke(Obj_crd(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2));
 			Genode::cap_selector_allocator()->
-				free(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2);
+			        free(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2);
 
 			/* allocate selectors for ~Thread */
 			tid().exc_pt_sel = Genode::cap_selector_allocator()->
-				alloc(NUM_INITIAL_PT_LOG2);
+			        alloc(NUM_INITIAL_PT_LOG2);
 		}
 
 		Genode::addr_t exc_base() { return tid().exc_pt_sel; }
 
-		void start(Genode::addr_t sel_ec) {
+		void start(Genode::addr_t sel_ec)
+		{
  			this->Thread_base::start();
 
 			using namespace Genode;
@@ -341,12 +347,12 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
   		 * bsf is undefined for value == 0.
 		 */
   		Genode::addr_t bsf(Genode::addr_t value) {
-			return __builtin_ctz(value); }
+		        return __builtin_ctz(value); }
 
 		bool max_map_crd(Nova::Mem_crd &crd, Genode::addr_t vmm_start,
 		                 Genode::addr_t vm_start, Genode::addr_t size,
 		                 Genode::addr_t vm_fault)
-		{ 
+		{
 			Nova::Mem_crd crd_save = crd;
 
 			retry:
@@ -415,9 +421,9 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				                + mem_region.count);
 
 			Genode::addr_t vmm_memory_base =
-				reinterpret_cast<Genode::addr_t>(mem_region.ptr);
+			        reinterpret_cast<Genode::addr_t>(mem_region.ptr);
 			Genode::addr_t vmm_memory_fault = vmm_memory_base +
-				(vm_fault_addr - (mem_region.start_page << PAGE_SIZE_LOG2));
+			        (vm_fault_addr - (mem_region.start_page << PAGE_SIZE_LOG2));
 
 			Nova::Mem_crd crd(vmm_memory_fault >> PAGE_SIZE_LOG2, 0,
 			                  Nova::Rights(true, true, true));
@@ -436,6 +442,8 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			if (verbose_npt)
 				Logging::printf("NPT mapping (base=0x%lx, order=%d, hotspot=0x%lx)\n",
 				                crd.base(), crd.order(), hotspot);
+
+			utcb->mtd = 0;
 
 			/* EPT violation during IDT vectoring? */
 			if (utcb->inj_info & 0x80000000)
@@ -463,8 +471,11 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				if (!_vcpu->executor.send(msg, true))
 					Logging::panic("nobody to execute %s at %x:%x\n", __func__, msg.cpu->cs.sel, msg.cpu->eip);
 			}
+
+			utcb->mtd = msg.mtr_out;
 		}
 
+		/* SVM portal functions */
 		void _svm_startup()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
@@ -513,6 +524,13 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			_handle_vcpu(SKIP, CpuMessage::TYPE_CPUID);
 		}
 
+		void _svm_hlt()
+		{
+			Utcb *utcb = _utcb_of_myself();
+			utcb->inst_len = 1;
+			_vmx_hlt();
+		}
+
 		void _svm_msr()
 		{
 			_svm_invalid();
@@ -521,6 +539,106 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		void _recall()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
+		}
+
+		/* VMX portal functions */
+		void _vmx_triple()
+		{
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_TRIPLE);
+		}
+
+		void _vmx_init()
+		{
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_INIT);
+		}
+
+		void _vmx_irqwin()
+		{
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
+		}
+
+		void _vmx_hlt()
+		{
+			_handle_vcpu(SKIP, CpuMessage::TYPE_HLT);
+		}
+
+		void _vmx_rdtsc()
+		{
+			_handle_vcpu(SKIP, CpuMessage::TYPE_RDTSC);
+		}
+
+		void _vmx_vmcall()
+		{
+			Utcb *utcb = _utcb_of_myself();
+			utcb->eip += utcb->inst_len;
+		}
+
+		void _vmx_pause()
+		{
+			Utcb *utcb = _utcb_of_myself();
+			CpuMessage msg(CpuMessage::TYPE_SINGLE_STEP, static_cast<CpuState *>(utcb), utcb->mtd);
+			_skip_instruction(msg);
+		}
+
+		void _vmx_invalid()
+		{
+			Utcb *utcb = _utcb_of_myself();
+			utcb->efl |= 2;
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
+			utcb->mtd |= MTD_RFLAGS;
+		}
+
+		void _vmx_startup()
+		{
+			Utcb *utcb = _utcb_of_myself();
+		        _handle_vcpu(NO_SKIP, CpuMessage::TYPE_HLT);
+		        utcb->mtd |= MTD_CTRL;
+		        utcb->ctrl[0] = 0;
+		        utcb->ctrl[1] = 0;
+		}
+
+		void _vmx_recall()
+		{
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
+		}
+
+		void _vmx_ioio()
+		{
+			Utcb *utcb = _utcb_of_myself();
+			unsigned order;
+			if (utcb->qual[0] & 0x10) {
+				Logging::panic("invalid gueststate intel - not implemented\n");
+			} else {
+				order = utcb->qual[0] & 7;
+				if (order > 2) order = 2;
+		        }
+
+			_handle_io(utcb->qual[0] & 8, order, utcb->qual[0] >> 16);
+		}
+
+		void _vmx_mmio()
+		{
+			Utcb *utcb = _utcb_of_myself();
+
+		        if (!_handle_map_memory(utcb->qual[0] & 0x38))
+		          /* this is an access to MMIO */
+		          _handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
+
+		}
+
+		void _vmx_cpuid()
+		{
+			_handle_vcpu(SKIP, CpuMessage::TYPE_CPUID);
+		}
+
+		void _vmx_msr_read()
+		{
+			_handle_vcpu(SKIP, CpuMessage::TYPE_RDMSR);
+		}
+
+		void _vmx_msr_write()
+		{
+			_handle_vcpu(SKIP, CpuMessage::TYPE_WRMSR);
 		}
 
 		/**
@@ -579,7 +697,8 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		                Guest_memory           &guest_memory,
 		                Motherboard            &motherboard,
 		                Genode::Cap_connection &cap_session,
-		                bool                   has_svm)
+		                bool                   has_svm,
+		                bool                   has_vmx)
 		:
 			_vcpu(vcpu),
 			_vcpu_thread("vCPU thread"),
@@ -606,7 +725,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			if (env()->cpu_session()->start(_thread_cap, 0, thread_sp))
 				throw Cpu_session::Thread_creation_failed();
 
-			/* Request exception portals for vCPU dispatcher */ 
+			/* Request exception portals for vCPU dispatcher */
 			for (unsigned i = 0; i < Nova::PT_SEL_PARENT; i++)
 				request_event_portal(pager_cap, _tid.exc_pt_sel, i);
 
@@ -644,27 +763,67 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				Genode::addr_t exc_base =
 					_vcpu_thread.exc_base();
 
+				_register_handler<0x64, &This::_vmx_irqwin>
+					(exc_base, MTD_IRQ);
 				_register_handler<0x72, &This::_svm_cpuid>
-					(exc_base, mtd_cpuid);
+					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_IRQ);
+				_register_handler<0x78, &This::_svm_hlt>
+					(exc_base, MTD_RIP_LEN | MTD_IRQ);
 				_register_handler<0x7b, &This::_svm_ioio>
-					(exc_base, mtd_all);
+					(exc_base, MTD_RIP_LEN | MTD_QUAL | MTD_GPR_ACDB | MTD_STATE);
 				_register_handler<0x7c, &This::_svm_msr>
-					(exc_base, mtd_all);
+					(exc_base, MTD_ALL);
+				_register_handler<0x7f, &This::_vmx_triple>
+					(exc_base, MTD_ALL);
 				_register_handler<0xfc, &This::_svm_npt>
-					(exc_base, mtd_all);
+					(exc_base, MTD_ALL);
 				_register_handler<0xfd, &This::_svm_invalid>
-					(exc_base, mtd_all);
+					(exc_base, MTD_ALL);
 				_register_handler<0xfe, &This::_svm_startup>
-					(exc_base, mtd_all);
+					(exc_base, MTD_ALL);
 				_register_handler<0xff, &This::_recall>
-					(exc_base, mtd_irq);
+					(exc_base, MTD_IRQ);
 
+			} else if (has_vmx) {
+				Genode::addr_t exc_base =
+					_vcpu_thread.exc_base();
+
+				_register_handler<2, &This::_vmx_triple>
+					(exc_base, MTD_ALL);
+				_register_handler<3, &This::_vmx_init>
+					(exc_base, MTD_ALL);
+				_register_handler<7, &This::_vmx_irqwin>
+					(exc_base, MTD_IRQ);
+				_register_handler<10, &This::_vmx_cpuid>
+					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_STATE);
+				_register_handler<12, &This::_vmx_hlt>
+					(exc_base, MTD_RIP_LEN | MTD_IRQ);
+				_register_handler<16, &This::_vmx_rdtsc>
+					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_STATE);
+				_register_handler<18, &This::_vmx_vmcall>
+					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB);
+				_register_handler<30, &This::_vmx_ioio>
+					(exc_base, MTD_RIP_LEN | MTD_QUAL | MTD_GPR_ACDB | MTD_STATE | MTD_RFLAGS);
+				_register_handler<31, &This::_vmx_msr_read>
+					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_SYSENTER | MTD_STATE);
+				_register_handler<32, &This::_vmx_msr_write>
+					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_SYSENTER | MTD_STATE);
+				_register_handler<33, &This::_vmx_invalid>
+					(exc_base, MTD_ALL);
+				_register_handler<40, &This::_vmx_pause>
+					(exc_base, MTD_RIP_LEN | MTD_STATE);
+				_register_handler<48, &This::_vmx_mmio>
+					(exc_base, MTD_ALL);
+				_register_handler<0xfe, &This::_vmx_startup>
+					(exc_base, MTD_IRQ);
+				_register_handler<0xff, &This::_vmx_recall>
+					(exc_base, MTD_IRQ | MTD_RIP_LEN | MTD_GPR_ACDB | MTD_GPR_BSD);
 			} else {
 
 				/*
-				 * XXX: to be done, for now, we only support SVM
+				 * We need Hardware Virtualization Features.
 				 */
-				Logging::panic("no SVM available, sorry");
+				Logging::panic("no SVM/VMX available, sorry");
 			}
 
 			/* let vCPU run */
@@ -700,7 +859,8 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		 * a unique identifier of the VCPU. I.e., it gets passed as
 		 * arguments for 'MessageHostOp' operations.
 		 */
-		Nova::mword_t sel_sm_ec() {
+		Nova::mword_t sel_sm_ec()
+		{
 			return tid().exc_pt_sel + Nova::SM_SEL_EC;
 		}
 
@@ -792,7 +952,7 @@ class Machine : public StaticReceiver<Machine>
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(msg.vcpu, _guest_memory,
 						                    _motherboard, cap_session,
-						                    _hip->has_svm());
+						                    _hip->has_svm(), _hip->has_vmx());
 
 					msg.value = vcpu_dispatcher->sel_sm_ec();
 					return true;
@@ -877,7 +1037,7 @@ class Machine : public StaticReceiver<Machine>
 					 * Copy command line to guest RAM
 					 */
 					Genode::size_t const cmdline_len =
-						_boot_modules.cmdline(index, data_dst + cmdline_offset,
+					        _boot_modules.cmdline(index, data_dst + cmdline_offset,
 					                          dst_len - cmdline_offset);
 
 					/*
@@ -1152,12 +1312,12 @@ int main(int argc, char **argv)
 		               (Genode::addr_t)guest_memory.backing_store_local_base() +
 		               vm_size);
 
-	Genode::printf("[0x%08lx, 0x%08lx) - Genode thread context area\n", 
+	Genode::printf("[0x%08lx, 0x%08lx) - Genode thread context area\n",
 	                Genode::Native_config::context_area_virtual_base(),
 	                Genode::Native_config::context_area_virtual_base() +
 	                Genode::Native_config::context_area_virtual_size());
 
-	Genode::printf("[0x%08lx, 0x%08lx) - VMM program image\n", 
+	Genode::printf("[0x%08lx, 0x%08lx) - VMM program image\n",
 	               (Genode::addr_t)&_prog_img_beg,
 	               (Genode::addr_t)&_prog_img_end);
 
