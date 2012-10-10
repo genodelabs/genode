@@ -37,6 +37,9 @@ namespace Genode {
 			call<Rpc_upgrade>(to_session, args); }
 
 		void close(Session_capability session) { call<Rpc_close>(session); }
+
+		Thread_capability main_thread_cap() const {
+			return call<Rpc_main_thread>(); }
 	};
 }
 

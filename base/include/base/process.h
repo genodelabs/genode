@@ -86,6 +86,8 @@ namespace Genode {
 			}
 
 			Pd_session_capability pd_session_cap() const { return _pd.cap(); }
+
+			Thread_capability main_thread_cap() const { return _thread0_cap; }
 	};
 }
 

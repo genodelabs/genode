@@ -17,6 +17,7 @@
 #include <base/exception.h>
 #include <base/rpc.h>
 #include <base/rpc_args.h>
+#include <base/thread.h>
 #include <session/capability.h>
 #include <root/capability.h>
 
@@ -128,6 +129,10 @@ namespace Genode {
 		 */
 		virtual void close(Session_capability session) = 0;
 
+		/**
+		 * Provide thread_cap of main thread
+		 */
+		virtual Thread_capability main_thread_cap() const = 0;
 
 		/*********************
 		 ** RPC declaration **
@@ -143,9 +148,10 @@ namespace Genode {
 		                 GENODE_TYPE_LIST(Quota_exceeded),
 		                 Session_capability, Upgrade_args const &);
 		GENODE_RPC(Rpc_close, void, close, Session_capability);
+		GENODE_RPC(Rpc_main_thread, Thread_capability, main_thread_cap);
 
 		GENODE_RPC_INTERFACE(Rpc_exit, Rpc_announce, Rpc_session, Rpc_upgrade,
-		                     Rpc_close);
+		                     Rpc_close, Rpc_main_thread);
 	};
 }
 

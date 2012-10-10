@@ -53,8 +53,16 @@ namespace Genode {
 				throw Quota_exceeded();
 			}
 
-			void close(Session_capability) {
-				PDBG("implement me, please"); }
+			void close(Session_capability)
+			{
+				PDBG("implement me, please");
+			}
+
+			Thread_capability main_thread_cap() const
+			{
+				PDBG("implement me, please");
+				return Thread_capability();
+			}
 	};
 }
 

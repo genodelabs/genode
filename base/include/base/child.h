@@ -265,6 +265,7 @@ namespace Genode {
 			void upgrade(Session_capability, Upgrade_args const &);
 			void close(Session_capability);
 			void exit(int);
+			Thread_capability main_thread_cap() const;
 	};
 }
 
