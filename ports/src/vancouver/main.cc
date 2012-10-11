@@ -59,7 +59,7 @@
 /* local includes */
 #include <device_model_registry.h>
 #include <boot_module_provider.h>
-
+#include <console.h>
 
 enum {
 	PAGE_SIZE_LOG2 = 12UL,
@@ -80,6 +80,8 @@ enum { verbose_io    = false };
  */
 Genode::Lock global_lock(Genode::Lock::LOCKED);
 Genode::Lock timeouts_lock(Genode::Lock::UNLOCKED);
+
+volatile bool console_init = false;
 
 
 /* Timer Service */
@@ -167,8 +169,12 @@ class Guest_memory
 		Genode::Rm_connection _reservation;
 
 		Genode::Ram_dataspace_capability _ds;
+		Genode::Ram_dataspace_capability _fb_ds;
+
+		Genode::size_t _fb_size;
 
 		char *_local_addr;
+		char *_fb_addr;
 
 	public:
 
@@ -193,12 +199,15 @@ class Guest_memory
 		 *                            used as guest-physical and device memory,
 		 *                            allocated from core's RAM service
 		 */
-		Guest_memory(Genode::size_t backing_store_size)
+		Guest_memory(Genode::size_t backing_store_size, Genode::size_t fb_size)
 		:
+			_fb_size(fb_size),
 			_reservation(0, backing_store_size),
-			_ds(Genode::env()->ram_session()->alloc(backing_store_size)),
+			_ds(Genode::env()->ram_session()->alloc(backing_store_size-fb_size)),
+			_fb_ds(Genode::env()->ram_session()->alloc(fb_size)),
 			_local_addr(0),
-			remaining_size(backing_store_size)
+			_fb_addr(0),
+			remaining_size(backing_store_size-fb_size)
 		{
 			try {
 
@@ -208,14 +217,16 @@ class Guest_memory
 				 * attachment of anything at the zero page.
 				 */
 				Genode::env()->rm_session()->attach_at(_reservation.dataspace(),
-				                                       PAGE_SIZE, 0, PAGE_SIZE);
+				                               PAGE_SIZE, 0, PAGE_SIZE);
 
 				/*
 				 * RAM used as backing store for guest-physical memory
 				 */
 				_local_addr = Genode::env()->rm_session()->attach(_ds);
+				_fb_addr = Genode::env()->rm_session()->attach_at(_fb_ds,
+				        ((Genode::addr_t) _local_addr)+backing_store_size-fb_size);
 
-			} catch (Genode::Rm_session::Region_conflict) { }
+			} catch (Genode::Rm_session::Region_conflict) {  }
 
 		}
 
@@ -227,6 +238,9 @@ class Guest_memory
 			/* detach and free backing store */
 			Genode::env()->rm_session()->detach((void *)_local_addr);
 			Genode::env()->ram_session()->free(_ds);
+
+			Genode::env()->rm_session()->detach((void *)_fb_addr);
+			Genode::env()->ram_session()->free(_fb_ds);
 		}
 
 		/**
@@ -236,6 +250,18 @@ class Guest_memory
 		{
 			return _local_addr;
 		}
+
+		/**
+		 * Return pointer to lo locally mapped fb backing store
+		 */
+		char *backing_store_fb_local_base()
+		{
+			return _fb_addr;
+		}
+
+		Genode::size_t fb_size() { return _fb_size; }
+
+		Genode::Dataspace_capability fb_ds() { return _fb_ds;  }
 };
 
 class Vcpu_thread : Genode::Thread<STACK_SIZE> {
@@ -446,7 +472,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			/* calculate maximal aligned order of page to be mapped */
 			do {
 				crd = Nova::Mem_crd(map_page, map_order,
-				                    Nova::Rights(true, true, true));
+				                    crd_save.rights());
 
 				map_order += 1;
 				map_page  &= ~((1UL << map_order) - 1);
@@ -455,7 +481,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			while (cut_start <= map_page &&
 			      ((map_page + (1UL << map_order)) <= (cut_start + cut_size)) &&
 			      !(hotspot & ((1UL << map_order) - 1)));
-			
+
 			return true;
 		}
 
@@ -469,7 +495,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 
 			MessageMemRegion mem_region(vm_fault_addr >> PAGE_SIZE_LOG2);
 
-			if (!_motherboard.bus_memregion.send(mem_region, true) || 
+			if (!_motherboard.bus_memregion.send(mem_region, false) ||
 			    !mem_region.ptr)
 				return false;
 
@@ -487,8 +513,17 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			Genode::addr_t vmm_memory_fault = vmm_memory_base +
 			        (vm_fault_addr - (mem_region.start_page << PAGE_SIZE_LOG2));
 
+			bool read=true, write=true, execute=true;
+                        /* XXX: Not yet supported by Vancouver.
+			if (mem_region.attr == (DESC_TYPE_MEM | DESC_RIGHT_R)) {
+				if (verbose_npt)
+					Logging::printf("Mapping readonly to %p (err:%x, attr:%x)\n",
+						vm_fault_addr, utcb->qual[0], mem_region.attr);
+				write = execute = false;
+			}*/
+
 			Nova::Mem_crd crd(vmm_memory_fault >> PAGE_SIZE_LOG2, 0,
-			                  Nova::Rights(true, true, true));
+			                  Nova::Rights(read, write, execute));
 
 			if (!max_map_crd(crd, vmm_memory_base >> PAGE_SIZE_LOG2,
 			                 mem_region.start_page,
@@ -962,6 +997,8 @@ class Machine : public StaticReceiver<Machine>
 		Boot_module_provider  &_boot_modules;
 		Alarm_thread          *_alarm_thread;
 
+		bool                   _alloc_fb_mem; /* For detecting FB alloc message */
+
 	public:
 
 		/*********************************************
@@ -980,12 +1017,22 @@ class Machine : public StaticReceiver<Machine>
 				if (verbose_debug)
 					Logging::printf("OP_GUEST_MEM value=0x%lx\n", msg.value);
 
+				if (_alloc_fb_mem) {
+					msg.len = _guest_memory.fb_size();
+					msg.ptr = _guest_memory.backing_store_local_base();
+					_alloc_fb_mem = false;
+					Logging::printf(" -> len=0x%lx, ptr=0x%p\n",
+					                msg.len, msg.ptr);
+					return true;
+				}
+
 				if (msg.value >= _guest_memory.remaining_size) {
 					msg.value = 0;
 				} else {
 					msg.len = _guest_memory.remaining_size - msg.value;
 					msg.ptr = _guest_memory.backing_store_local_base() + msg.value;
 				}
+
 				if (verbose_debug)
 					Logging::printf(" -> len=0x%lx, ptr=0x%p\n",
 				    	            msg.len, msg.ptr);
@@ -998,6 +1045,12 @@ class Machine : public StaticReceiver<Machine>
 
 				if (verbose_debug)
 					Logging::printf("OP_ALLOC_FROM_GUEST\n");
+
+				if (msg.value == _guest_memory.fb_size()) {
+					_alloc_fb_mem = true;
+					msg.phys = _guest_memory.remaining_size;
+					return true;
+				}
 
 				if (msg.value > _guest_memory.remaining_size)
 					return false;
@@ -1122,17 +1175,10 @@ class Machine : public StaticReceiver<Machine>
 				}
 
 			default:
-				
+
 				PWRN("HostOp %d not implemented", msg.type);
 				return false;
 			}
-		}
-
-		bool receive(MessageConsole &msg)
-		{
-			if (verbose_debug)
-				Logging::printf("MessageConsole\n");
-			return true;
 		}
 
 		bool receive(MessageDisk &msg)
@@ -1231,7 +1277,6 @@ class Machine : public StaticReceiver<Machine>
 
 			/* register host operations, called back by the VMM */
 			_motherboard.bus_hostop.add  (this, receive_static<MessageHostOp>);
-			_motherboard.bus_console.add (this, receive_static<MessageConsole>);
 			_motherboard.bus_disk.add    (this, receive_static<MessageDisk>);
 			_motherboard.bus_timer.add   (this, receive_static<MessageTimer>);
 			_motherboard.bus_time.add    (this, receive_static<MessageTime>);
@@ -1348,6 +1393,8 @@ class Machine : public StaticReceiver<Machine>
 			Logging::printf("INIT done\n");
 		}
 
+		Motherboard& get_mb() { return _motherboard; }
+
 		~Machine()
 		{
 			Genode::env()->rm_session()->detach(_hip);
@@ -1379,11 +1426,21 @@ int main(int argc, char **argv)
 	/* request max available memory */
 	Genode::addr_t vm_size = Genode::env()->ram_session()->avail();
 	/* reserve some memory for the VMM */
-	vm_size -= 256 * 1024;
+	vm_size -= 8 * 1024 * 1024;
 	/* calculate max memory for the VM */
 	vm_size = vm_size & ~((1UL << PAGE_SIZE_LOG2) - 1);
 
-	static Guest_memory guest_memory(vm_size);
+	/* Find out framebuffer size (default: 4 MiB) */
+	Genode::addr_t fb_size = 4*1024*1024;
+	try {
+		Genode::Xml_node node = Genode::config()->xml_node().sub_node("vga");
+		Genode::Xml_node::Attribute arg = node.attribute("fb_size");
+		unsigned long val;
+                arg.value(&val);
+		fb_size = val*1024;
+	} catch (...) {	}
+
+	static Guest_memory guest_memory(vm_size, fb_size);
 
 	/* diagnostic messages */
 	Genode::printf("[0x%08lx, 0x%08lx) - %lu MiB - guest physical memory\n",
@@ -1416,6 +1473,12 @@ int main(int argc, char **argv)
 		boot_modules(Genode::config()->xml_node().sub_node("multiboot"));
 
 	static Machine machine(boot_modules, guest_memory);
+
+	/* Create Console Thread */
+	Vancouver_console vcon(machine.get_mb(), fb_size, guest_memory.fb_ds());
+
+	/* Wait for services */
+	while (!console_init);
 
 	machine.setup_devices(Genode::config()->xml_node().sub_node("machine"));
 

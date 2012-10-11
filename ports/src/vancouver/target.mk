@@ -10,8 +10,10 @@ ifeq ($(wildcard $(VANCOUVER_DIR)),)
 REQUIRES += prepare_ports_vancouver
 endif
 
-LIBS  += cxx env thread alarm signal server
+LIBS  += cxx env blit thread alarm signal server
 SRC_CC = main.cc nova_user_env.cc device_model_registry.cc
+SRC_CC += console.cc keyboard.cc
+SRC_BIN = mono.tff
 
 #
 # '82576vfmmio.inc' is apparently missing from the NOVA userland distribution.
