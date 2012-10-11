@@ -1,6 +1,7 @@
 /*
  * \brief  Meta-data registry about the device models of Vancouver
  * \author Norman Feske
+ * \author Markus Partheymueller
  * \date   2011-11-18
  */
 
@@ -9,6 +10,11 @@
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
+ *
+ * Copyright (C) 2012 Intel Corporation    
+ * 
+ * Modifications are contributed under the terms and conditions of the
+ * GNU General Public License version 2.
  */
 
 /* local includes */
@@ -71,6 +77,8 @@ MODEL_INFO(vga,     "io_base",   "fb_size")
 MODEL_INFO(pmtimer, "io_port")
 
 MODEL_INFO(pcihostbridge, "bus_num", "bus_count", "io_base", "mem_base")
+
+MODEL_INFO(i82576vf, "promisc", "mem_mmio", "mem_msix", "txpoll_us", "rx_map")
 
 MODEL_INFO_NO_ARG(vbios_disk)
 MODEL_INFO_NO_ARG(vbios_keyboard)
