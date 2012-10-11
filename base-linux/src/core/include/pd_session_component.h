@@ -27,7 +27,10 @@ namespace Genode {
 	{
 		private:
 
+			enum { LABEL_MAX_LEN = 1024 };
+
 			unsigned long      _pid;
+			char               _label[LABEL_MAX_LEN];
 			Parent_capability  _parent;
 			Rpc_entrypoint    *_ds_ep;
 
@@ -55,7 +58,7 @@ namespace Genode {
 			 ** Linux-specific extension **
 			 ******************************/
 
-			void start(Capability<Dataspace> binary, Name const &name);
+			void start(Capability<Dataspace> binary);
 	};
 }
 

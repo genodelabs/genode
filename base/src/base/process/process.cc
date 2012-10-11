@@ -174,9 +174,10 @@ Process::Process(Dataspace_capability    elf_ds_cap,
                  Cpu_session_capability  cpu_session_cap,
                  Rm_session_capability   rm_session_cap,
                  Parent_capability       parent_cap,
-                 const char             *name,
+                 char const             *name,
                  char *const             argv[])
 :
+	_pd(name),
 	_cpu_session_client(cpu_session_cap),
 	_rm_session_client(rm_session_cap)
 {

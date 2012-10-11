@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <util/arg_string.h>
 #include <base/printf.h>
 #include <base/snprintf.h>
 
@@ -78,8 +79,13 @@ static const char *get_env(const char *key)
  ** PD session interface **
  **************************/
 
-Pd_session_component::Pd_session_component(Rpc_entrypoint *ds_ep, const char *)
-: _pid(0), _ds_ep(ds_ep) { }
+Pd_session_component::Pd_session_component(Rpc_entrypoint *ep, const char *args)
+:
+	_pid(0), _ds_ep(ep)
+{
+	Arg_string::find_arg(args, "label").string(_label, sizeof(_label),
+	                                           "<unlabeled>");
+}
 
 
 Pd_session_component::~Pd_session_component()
@@ -100,10 +106,11 @@ int Pd_session_component::assign_parent(Parent_capability parent)
 }
 
 
-void Pd_session_component::start(Capability<Dataspace> binary, Name const &name)
+void Pd_session_component::start(Capability<Dataspace> binary)
 {
 	/* lookup binary dataspace */
-	Dataspace_component *ds = reinterpret_cast<Dataspace_component *>(_ds_ep->obj_by_cap(binary));
+	Dataspace_component *ds =
+		reinterpret_cast<Dataspace_component *>(_ds_ep->obj_by_cap(binary));
 
 	if (!ds) {
 		PERR("could not lookup binary, aborted PD startup");
@@ -128,8 +135,9 @@ void Pd_session_component::start(Capability<Dataspace> binary, Name const &name)
 	                &envbuf[3][0], &envbuf[4][0], 0 };
 
 	/* prefix name of Linux program (helps killing some zombies) */
-	char pname_buf[9 + Linux_dataspace::FNAME_LEN];
-	snprintf(pname_buf, sizeof(pname_buf), "[Genode] %s", name.string());
+	char const *prefix = "[Genode] ";
+	char pname_buf[sizeof(_label) + sizeof(prefix)];
+	snprintf(pname_buf, sizeof(pname_buf), "%s%s", prefix, _label);
 	char *argv_buf[2];
 	argv_buf[0] = pname_buf;
 	argv_buf[1] = 0;

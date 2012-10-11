@@ -21,16 +21,14 @@ namespace Genode {
 
 	struct Linux_pd_session : Pd_session
 	{
-		typedef Rpc_in_buffer<64> Name;
-
-		void start(Capability<Dataspace> binary, Name const &name);
+		void start(Capability<Dataspace> binary);
 
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
-		GENODE_RPC(Rpc_start, void, start, Capability<Dataspace>, Name const &);
+		GENODE_RPC(Rpc_start, void, start, Capability<Dataspace>);
 		GENODE_RPC_INTERFACE_INHERIT(Pd_session, Rpc_start);
 	};
 }

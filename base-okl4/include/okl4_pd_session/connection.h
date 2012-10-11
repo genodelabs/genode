@@ -21,18 +21,9 @@ namespace Genode {
 
 	struct Pd_connection : Connection<Pd_session>, Okl4_pd_session_client
 	{
-		/**
-		 * Constructor
-		 *
-		 * \param args  additional session arguments
-		 */
-		Pd_connection(const char *args = 0)
+		Pd_connection()
 		:
-			Connection<Pd_session>(
-				session("ram_quota=4K%s%s",
-				        args ? ", " : "",
-				        args ? args : "")),
-
+			Connection<Pd_session>(session("ram_quota=4K")),
 			Okl4_pd_session_client(cap())
 		{ }
 	};

@@ -35,8 +35,8 @@ namespace Genode {
 		 * Linux-specific extension **
 		 *****************************/
 
-		void start(Capability<Dataspace> binary, Name const &name) {
-			call<Rpc_start>(binary, name); }
+		void start(Capability<Dataspace> binary) {
+			call<Rpc_start>(binary); }
 	};
 }
 

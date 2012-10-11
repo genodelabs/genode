@@ -57,9 +57,10 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
                  Cpu_session_capability cpu_session_cap,
                  Rm_session_capability  rm_session_cap,
                  Parent_capability      parent_cap,
-                 const char            *name,
+                 char const            *name,
                  char *const            argv[])
 :
+	_pd(name),
 	_cpu_session_client(Cpu_session_capability()),
 	_rm_session_client(Rm_session_capability())
 {
@@ -75,7 +76,7 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
 	Linux_pd_session_client lx_pd(static_cap_cast<Linux_pd_session>(_pd.cap()));
 
 	lx_pd.assign_parent(parent_cap);
-	lx_pd.start(elf_data_ds_cap, name);
+	lx_pd.start(elf_data_ds_cap);
 }
 
 

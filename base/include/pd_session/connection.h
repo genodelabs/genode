@@ -24,15 +24,11 @@ namespace Genode {
 		/**
 		 * Constructor
 		 *
-		 * \param args  additional session arguments
+		 * \param label  session label
 		 */
-		Pd_connection(const char *args = 0)
+		Pd_connection(const char *label = "")
 		:
-			Connection<Pd_session>(
-				session("ram_quota=4K%s%s",
-				        args ? ", " : "",
-				        args ? args : "")),
-
+			Connection<Pd_session>(session("ram_quota=4K, label=\"%s\"", label)),
 			Pd_session_client(cap())
 		{ }
 	};
