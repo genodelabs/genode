@@ -107,7 +107,7 @@ void l4lx_irq_dev_enable(struct irq_data *data)
 	if (DEBUG)
 		PDBG("irq=%d cap=%lx", data->irq, p->irq_cap);
 
-	l4x_irq_save(flags);
+	l4x_irq_save(&flags);
 	l4_msgtag_t ret = l4_irq_attach(p->irq_cap, data->irq << 2,
 	                                l4x_cpu_thread_get_cap(p->cpu));
 	if (l4_error(ret))
@@ -165,7 +165,7 @@ int l4lx_irq_dev_set_affinity(struct irq_data *data,
         return 0;
 
 	unsigned long flags;
-	l4x_migrate_lock(flags);
+	l4x_migrate_lock(&flags);
 
 	{
 		Linux::Irq_guard guard;

@@ -22,9 +22,9 @@
 extern "C" {
 #endif
 
-FASTCALL void l4x_irq_save(unsigned long flags);
+FASTCALL void l4x_irq_save(unsigned long *flags);
 FASTCALL void l4x_irq_restore(unsigned long flags);
-FASTCALL void l4x_migrate_lock(unsigned long flags);
+FASTCALL void l4x_migrate_lock(unsigned long *flags);
 FASTCALL void l4x_migrate_unlock(unsigned long flags);
 FASTCALL unsigned long l4x_hz();
 FASTCALL int l4x_nr_irqs(void);
@@ -35,7 +35,7 @@ FASTCALL void     l4x_cpumask_copy(struct irq_data*, const struct cpumask*);
 
 #define IRQ_SAFE(x) do { \
 	unsigned long flags = 0; \
-	l4x_irq_save(flags); \
+	l4x_irq_save(&flags); \
 	x; \
 	l4x_irq_restore(flags); \
 } while(0)
@@ -56,7 +56,7 @@ namespace Linux {
 
 		public:
 
-			Irq_guard() : _flags(0) { l4x_irq_save(_flags);    }
+			Irq_guard() : _flags(0) { l4x_irq_save(&_flags);   }
 			~Irq_guard()            { l4x_irq_restore(_flags); }
 	};
 }

@@ -159,14 +159,11 @@ int l4lx_task_delete_task(l4_cap_idx_t task, unsigned option)
 {
 	using namespace L4lx;
 
-	unsigned long flags = 0;
-	l4x_irq_save(flags);
+	Linux::Irq_guard guard;
 
 	Task *entry = Env::env()->tasks()->find_by_ref(task);
 	Env::env()->tasks()->remove(entry);
 	destroy(Genode::env()->heap(), entry);
-
-	l4x_irq_restore(flags);
 	return 1;
 }
 

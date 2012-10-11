@@ -514,11 +514,11 @@ Index: arch/l4/kernel/main.c
  
 +static spinlock_t migrate_lock;
 +
-+void          l4x_irq_save(unsigned long flags)    { local_irq_save(flags);    }
++void          l4x_irq_save(unsigned long *flags)    { local_irq_save(*flags);    }
 +void          l4x_irq_restore(unsigned long flags) { local_irq_restore(flags); }
 +unsigned long l4x_hz(void)                         { return HZ;                }
 +int           l4x_nr_irqs(void)                    { return NR_IRQS;           }
-+void l4x_migrate_lock(unsigned long flags) { spin_lock_irqsave(&migrate_lock, flags); }
++void l4x_migrate_lock(unsigned long *flags) { spin_lock_irqsave(&migrate_lock, *flags); }
 +void l4x_migrate_unlock(unsigned long flags) { spin_unlock_irqrestore(&migrate_lock, flags);}
 +
 +unsigned l4x_target_cpu(const struct cpumask *dest)
