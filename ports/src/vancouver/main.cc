@@ -64,6 +64,7 @@
 #include <boot_module_provider.h>
 #include <vancouver_console.h>
 #include <vancouver_network.h>
+#include <vancouver_disk.h>
 
 enum {
 	PAGE_SIZE_LOG2 = 12UL,
@@ -92,6 +93,7 @@ Genode::Lock global_lock(Genode::Lock::LOCKED);
 Genode::Lock timeouts_lock(Genode::Lock::UNLOCKED);
 
 volatile bool console_init = false;
+volatile bool disk_init = false;
 
 /* Timer Service */
 using Genode::Thread;
@@ -1556,8 +1558,12 @@ int main(int argc, char **argv)
 	/* Create Console Thread */
 	Vancouver_console vcon(machine.get_mb(), fb_size, guest_memory.fb_ds());
 
+	/* Create Disk Thread */
+	Vancouver_disk vdisk(machine.get_mb(), 	guest_memory.backing_store_local_base(),
+						guest_memory.backing_store_fb_local_base());
+
 	/* Wait for services */
-	while (!console_init);
+	while (!console_init || !disk_init);
 
 	machine.setup_devices(Genode::config()->xml_node().sub_node("machine"));
 

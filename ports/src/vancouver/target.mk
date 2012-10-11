@@ -12,7 +12,7 @@ endif
 
 LIBS  += cxx env blit thread alarm signal server
 SRC_CC = main.cc nova_user_env.cc device_model_registry.cc
-SRC_CC += vancouver_console.cc vancouver_keyboard.cc vancouver_network.cc
+SRC_CC += vancouver_console.cc vancouver_keyboard.cc vancouver_network.cc vancouver_disk.cc
 SRC_BIN = mono.tff
 
 #
