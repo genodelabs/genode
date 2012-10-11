@@ -182,6 +182,7 @@ noux_installed.tag: noux_built.tag
 	@touch $@
 
 $(TARGET): noux_installed.tag
+	@touch $@
 
 #
 # The clean rule is expected to be executed within the 3rd-party build
