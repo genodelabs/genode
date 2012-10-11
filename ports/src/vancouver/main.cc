@@ -43,6 +43,8 @@
 #include <rom_session/connection.h>
 #include <rm_session/connection.h>
 #include <cap_session/connection.h>
+#include <base/allocator_avl.h>
+#include <nic_session/connection.h>
 #include <os/config.h>
 #include <os/alarm.h>
 #include <timer_session/connection.h>
@@ -60,6 +62,7 @@
 #include <device_model_registry.h>
 #include <boot_module_provider.h>
 #include <console.h>
+#include <network.h>
 
 enum {
 	PAGE_SIZE_LOG2 = 12UL,
@@ -72,6 +75,12 @@ enum { verbose_debug = false };
 enum { verbose_npt   = false };
 enum { verbose_io    = false };
 
+static Genode::Native_utcb utcb_backup;
+Genode::Lock *utcb_lock()
+{
+	static Genode::Lock inst;
+	return &inst;
+}
 
 /**
  * Semaphore used as global lock
@@ -983,6 +992,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		}
 };
 
+const void * _forward_pkt;
 
 class Machine : public StaticReceiver<Machine>
 {
@@ -998,6 +1008,8 @@ class Machine : public StaticReceiver<Machine>
 		Alarm_thread          *_alarm_thread;
 
 		bool                   _alloc_fb_mem; /* For detecting FB alloc message */
+
+		Nic::Session          *_nic;
 
 	public:
 
@@ -1173,7 +1185,38 @@ class Machine : public StaticReceiver<Machine>
 
 					return true;
 				}
+			case MessageHostOp::OP_GET_MAC:
+				{
+					Genode::Allocator_avl * tx_block_alloc =
+					        new Genode::Allocator_avl(Genode::env()->heap());
 
+					try {
+						_nic = new Nic::Connection(tx_block_alloc);
+					} catch (...) {
+						Logging::printf("No NIC connection possible!\n");
+						return false;
+					}
+
+					PINF("Our mac address is %2x:%2x:%2x:%2x:%2x:%2x\n",
+					        _nic->mac_address().addr[0],
+					        _nic->mac_address().addr[1],
+					        _nic->mac_address().addr[2],
+					        _nic->mac_address().addr[3],
+					        _nic->mac_address().addr[4],
+					        _nic->mac_address().addr[5]
+					);
+					msg.mac = ((Genode::uint64_t)_nic->mac_address().addr[0] & 0xff) << 40 |
+					          ((Genode::uint64_t)_nic->mac_address().addr[1] & 0xff) << 32 |
+					          ((Genode::uint64_t)_nic->mac_address().addr[2] & 0xff) << 24 |
+					          ((Genode::uint64_t)_nic->mac_address().addr[3] & 0xff) << 16 |
+					          ((Genode::uint64_t)_nic->mac_address().addr[4] & 0xff) << 8 |
+					          ((Genode::uint64_t)_nic->mac_address().addr[5] & 0xff);
+
+					/* Start receiver thread for this MAC */
+					Vancouver_network * netreceiver = new Vancouver_network(_motherboard, _nic);
+
+					return true;
+				}
 			default:
 
 				PWRN("HostOp %d not implemented", msg.type);
@@ -1233,9 +1276,47 @@ class Machine : public StaticReceiver<Machine>
 
 		bool receive(MessageNetwork &msg)
 		{
-			if (verbose_debug)
-				PDBG("MessageNetwork");
-			return false;
+			if (msg.type != MessageNetwork::PACKET) return false;
+
+			Genode::Lock::Guard guard(*utcb_lock());
+			utcb_backup = *Genode::Thread_base::myself()->utcb();
+
+			if (msg.buffer == _forward_pkt) {
+				/* don't end in an endless forwarding loop */
+				return false;
+			}
+
+			/* allocate transmit packet */
+			Packet_descriptor tx_packet;
+			try {
+				tx_packet = _nic->tx()->alloc_packet(msg.len);
+			} catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
+				PERR("tx packet alloc failed");
+				return false;
+			}
+
+			/* fill packet with content */
+			char *tx_content = _nic->tx()->packet_content(tx_packet);
+			_forward_pkt = tx_content;
+			for (unsigned i = 0; i < msg.len; i++) {
+				tx_content[i] = msg.buffer[i];
+			}
+			_nic->tx()->submit_packet(tx_packet);
+
+			/* wait for acknowledgement */
+			Packet_descriptor ack_tx_packet = _nic->tx()->get_acked_packet();
+
+			if (ack_tx_packet.size()   != tx_packet.size()
+			 || ack_tx_packet.offset() != tx_packet.offset()) {
+				PERR("unexpected acked packet");
+			}
+
+			/* release sent packet to free the space in the tx communication buffer */
+			_nic->tx()->release_packet(tx_packet);
+
+			*Genode::Thread_base::myself()->utcb() = utcb_backup;
+
+			return true;
 		}
 
 		bool receive(MessagePciConfig &msg)
