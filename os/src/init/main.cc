@@ -162,9 +162,9 @@ int main(int, char **)
 		for (;; start_node = start_node.next("start")) {
 
 			children.insert(new (Genode::env()->heap())
-							Child(start_node, default_route_node, &children,
-								  read_prio_levels_log2(),
-								  &parent_services, &child_services, &cap));
+			                Child(start_node, default_route_node, &children,
+			                      read_prio_levels_log2(),
+			                      &parent_services, &child_services, &cap));
 
 			if (start_node.is_last("start")) break;
 		}
