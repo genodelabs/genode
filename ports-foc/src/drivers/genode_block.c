@@ -93,9 +93,16 @@ static void genode_blk_request(struct request_queue *q)
 			local_irq_restore(flags);
 			local_irq_enable();
 
-			/* block until new responses are available */
 			dev->stopped = 1;
+
+			/*
+			 * This function is called with the request queue lock held, unlock to
+			 * enable VCPU IRQs
+			 */
+			spin_unlock_irq(q->queue_lock);
+			/* block until new responses are available */
 			down(&dev->queue_wait);
+			spin_lock_irq(q->queue_lock);
 
 			/* start_queue needs disabled interrupts */
 			local_irq_save(flags);
