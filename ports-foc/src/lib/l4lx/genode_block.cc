@@ -271,6 +271,8 @@ extern "C" {
 	void* genode_block_request(unsigned idx, unsigned long sz,
 	                           void *req, unsigned long *offset)
 	{
+		Linux::Irq_guard guard;
+
 		if (idx >= genode_block_count()) {
 			PWRN("Invalid index!");
 			return 0;
@@ -291,6 +293,8 @@ extern "C" {
 	void genode_block_submit(unsigned idx, unsigned long queue_offset,
 	                         unsigned long size, unsigned long disc_offset, int write)
 	{
+		Linux::Irq_guard guard;
+
 		if (idx >= genode_block_count()) {
 			PWRN("Invalid index!");
 			return;
