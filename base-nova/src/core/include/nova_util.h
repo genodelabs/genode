@@ -151,5 +151,56 @@ inline int map_local(Nova::Utcb *utcb,
 	return 0;
 }
 
+/**
+ * Unmap pages from the local address space
+ *
+ * \param utcb        UTCB of the main thread
+ * \param start       local virtual address
+ * \param num_pages   number of pages to unmap
+ */
+inline void unmap_local(Nova::Utcb *utcb,
+                        Genode::addr_t start,
+                        Genode::size_t num_pages)
+{
+	if (verbose_local_map)
+		Genode::printf("::unmap_local: from %lx, %zd pages\n",
+		               start, num_pages);
+
+	using namespace Nova;
+	using namespace Genode;
+	Rights const rwx(true, true, true);
+
+	Genode::addr_t end = start + (num_pages << get_page_size_log2()) - 1;
+
+	while (true) {
+		Nova::Mem_crd crd(start >> 12, 32, rwx);
+		Nova::lookup(crd);
+
+		if (!crd.is_null()) {
+
+			if (verbose_local_map)
+				PINF("Unmapping local: %08lx base: %lx order: %lx size: %lx is null: %d",
+				     start, crd.base(), crd.order(),
+				     (0x1000UL << crd.order()), crd.is_null());
+
+			unmap_local(crd, true);
+
+			start = (crd.base() << 12)       /* base address of mapping */
+			      + (0x1000 << crd.order()); /* size of mapping */
+		} else {
+
+			/* This can happen if the region has never been touched */
+
+			if (verbose_local_map)
+				PINF("Nothing mapped at local: %08lx", start);
+
+			start += 0x1000;
+		}
+
+		if (start > end)
+			return;
+	}
+}
+
 
 #endif /* _NOVA_UTIL_H_ */

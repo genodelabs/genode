@@ -30,15 +30,27 @@ namespace Genode {
 	 * the physical address space.
 	 *
 	 * \param from_phys  physical source address
-	 * \param to_addr    core-local destination address
+	 * \param to_virt    core-local destination address
 	 * \param num_pages  number of pages to map
 	 *
 	 * \return true on success
 	 */
 	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages)
 	{
-		return ::map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
-		                   from_phys, to_virt, num_pages, true);
+		return (::map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+		                    from_phys, to_virt, num_pages, true) == 0);
+	}
+
+	/**
+	 * Unmap pages locally within core
+	 *
+	 * \param virt       core-local address
+	 * \param num_pages  number of pages to unmap
+	 */
+	inline void unmap_local(addr_t virt, size_t num_pages)
+	{
+		::unmap_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+		               virt, num_pages);
 	}
 }
 

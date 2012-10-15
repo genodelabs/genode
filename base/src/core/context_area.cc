@@ -42,6 +42,8 @@ static Dataspace_component *context_ds[MAX_CORE_CONTEXTS];
  */
 class Context_area_rm_session : public Rm_session
 {
+	enum { verbose = false };
+
 	public:
 
 		/**
@@ -59,18 +61,52 @@ class Context_area_rm_session : public Rm_session
 				return (addr_t)0;
 			}
 
-			if (!map_local(ds->phys_addr(), (addr_t)local_addr +
-			               Native_config::context_area_virtual_base(),
-			               ds->size() >> get_page_size_log2()))
+			addr_t core_local_addr = Native_config::context_area_virtual_base() +
+			                         (addr_t)local_addr;
+
+			if (verbose)
+				PDBG("core_local_addr = %lx, phys_addr = %lx, size = 0x%zx",
+				     core_local_addr, ds->phys_addr(), ds->size());
+
+			if (!map_local(ds->phys_addr(), core_local_addr,
+			               ds->size() >> get_page_size_log2())) {
+				PERR("could not map phys %lx at local %lx", ds->phys_addr(), core_local_addr);
 				return (addr_t)0;
+			}
+
+			ds->assign_core_local_addr((void*)core_local_addr);
 
 			return local_addr;
 		}
 
 		void detach(Local_addr local_addr)
 		{
-			printf("context area detach from 0x%p - not implemented\n",
-			       (void *)local_addr);
+			addr_t core_local_addr = Native_config::context_area_virtual_base() +
+			                         (addr_t)local_addr;
+
+			Dataspace_component *ds = 0;
+
+			/* find the dataspace component for the given address */
+			for (unsigned i = 0; i < MAX_CORE_CONTEXTS; i++) {
+				if (context_ds[i] &&
+					(core_local_addr >= context_ds[i]->core_local_addr()) &&
+				    (core_local_addr < (context_ds[i]->core_local_addr() +
+				                        context_ds[i]->size()))) {
+					ds = context_ds[i];
+					break;
+				}
+			}
+
+			if (!ds) {
+				PERR("dataspace for core context does not exist");
+				return;
+			}
+
+			if (verbose)
+				PDBG("core_local_addr = %lx, phys_addr = %lx, size = 0x%zx",
+				     ds->core_local_addr(), ds->phys_addr(), ds->size());
+
+			Genode::unmap_local(ds->core_local_addr(), ds->size() >> get_page_size_log2());
 		}
 
 		Pager_capability add_client(Thread_capability) {
@@ -86,6 +122,8 @@ class Context_area_rm_session : public Rm_session
 
 class Context_area_ram_session : public Ram_session
 {
+	enum { verbose = false };
+
 	public:
 
 		Ram_dataspace_capability alloc(size_t size, bool cached)
@@ -110,6 +148,9 @@ class Context_area_ram_session : public Ram_session
 				return Ram_dataspace_capability();
 			}
 
+			if (verbose)
+				PDBG("phys_base = %p, size = 0x%zx", phys_base, size);
+
 			context_ds[i] = new (platform()->core_mem_alloc())
 				Dataspace_component(size, 0, (addr_t)phys_base, false, true, 0);
 
@@ -117,7 +158,26 @@ class Context_area_ram_session : public Ram_session
 			return static_cap_cast<Ram_dataspace>(cap);
 		}
 
-		void free(Ram_dataspace_capability ds) { PDBG("not yet implemented"); }
+		void free(Ram_dataspace_capability ds)
+		{
+			Dataspace_component *dataspace_component =
+				dynamic_cast<Dataspace_component*>(Dataspace_capability::deref(ds));
+
+			for (unsigned i = 0; i < MAX_CORE_CONTEXTS; i++)
+				if (context_ds[i] == dataspace_component) {
+					context_ds[i] = 0;
+					break;
+				}
+
+			void *phys_addr = (void*)dataspace_component->phys_addr();
+			size_t size = dataspace_component->size();
+
+			if (verbose)
+				PDBG("phys_addr = %p, size = 0x%zx", phys_addr, size);
+
+			destroy(platform()->core_mem_alloc(), dataspace_component);
+			platform_specific()->ram_alloc()->free(phys_addr, size);
+		}
 
 		int ref_account(Ram_session_capability ram_session) { return 0; }
 

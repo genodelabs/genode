@@ -76,6 +76,17 @@ namespace Genode {
 		}
 		return true;
 	}
+
+	/**
+	 * Unmap pages locally within core
+	 *
+	 * \param virt       core-local address
+	 * \param num_pages  number of pages to unmap
+	 */
+	inline void unmap_local(addr_t virt, size_t num_pages)
+	{
+		PERR("unmap_local() called - not implemented yet");
+	}
 }
 
 #endif /* _CORE__INCLUDE__MAP_LOCAL_H_ */
