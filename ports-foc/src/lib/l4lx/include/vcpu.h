@@ -35,7 +35,7 @@ namespace L4lx {
 	{
 		private:
 
-			void                      (*_func)(void *data);
+			L4_CV void                (*_func)(void *data);
 			unsigned long               _data;
 			Genode::addr_t              _vcpu_state;
 			Timer::Connection           _timer;
@@ -58,7 +58,7 @@ namespace L4lx {
 		public:
 
 			Vcpu(const char                 *str,
-			     void                      (*func)(void *data),
+			     L4_CV void                (*func)(void *data),
 			     unsigned long              *data,
 			     Genode::size_t              stack_size,
 			     Genode::addr_t              vcpu_state,
