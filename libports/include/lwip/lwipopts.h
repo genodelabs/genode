@@ -32,7 +32,7 @@
 #define LWIP_NETIF_LOOPBACK         1  /* Looping back to same address? */
 #define LWIP_HAVE_LOOPIF            1  /* 127.0.0.1 support ? */
 #define LWIP_STATS                  0  /* disable stating */
-#define LWIP_RCVBUF                 1  /* enable SO_RCVBUF */
+#define LWIP_SO_RCVBUF              1  /* enable SO_RCVBUF */
 #define SO_REUSE                    1  /* enable SO_REUSE */
 
 #if LWIP_DHCP
