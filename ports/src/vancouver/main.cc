@@ -446,8 +446,14 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			utcb->mtd = 0;
 
 			/* EPT violation during IDT vectoring? */
-			if (utcb->inj_info & 0x80000000)
-				Logging::panic("EPT violation during IDT vectoring - not handled\n");
+			if (utcb->inj_info & 0x80000000) {
+				utcb->mtd |= MTD_INJ;
+				Logging::printf("EPT violation during IDT vectoring.\n");
+				CpuMessage _win(CpuMessage::TYPE_CALC_IRQWINDOW, static_cast<CpuState *>(utcb), utcb->mtd);
+				_win.mtr_out = MTD_INJ;
+				if (!_vcpu->executor.send(_win, true))
+					Logging::panic("nobody to execute %s at %x:%x\n", __func__, utcb->cs.sel, utcb->eip);
+			}
 
 			Nova::Utcb * u = (Nova::Utcb *)utcb;
 			u->set_msg_word(0);
