@@ -1,0 +1,1 @@
+REPOSITORIES  = $(GENODE_DIR)/base-foc

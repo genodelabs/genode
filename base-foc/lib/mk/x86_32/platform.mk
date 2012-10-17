@@ -1,7 +1,7 @@
 #
 # Configuration for L4 build system (for kernel-bindings, sigma0, bootstrap).
 #
-L4_CONFIG = $(call select_from_repositories,contrib/l4/mk/defconfig/config.x86)
+L4_CONFIG = $(call select_from_repositories,config/x86_32.user)
 
 #
 # Create mirror for architecture-specific L4sys header files
