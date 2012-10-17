@@ -29,7 +29,20 @@ enum { verbose_ram_ds = false };
 using namespace Genode;
 
 void Ram_session_component::_export_ram_ds(Dataspace_component *ds) { }
-void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds) { }
+
+void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
+{
+	size_t page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
+
+	unmap_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+	            ds->core_local_addr(),
+	            page_rounded_size >> get_page_size_log2());
+
+	platform()->region_alloc()->free((void*)ds->core_local_addr(),
+	                                 page_rounded_size);
+
+	ds->assign_core_local_addr(0);
+}
 
 void Ram_session_component::_clear_ds(Dataspace_component *ds)
 {

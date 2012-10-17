@@ -36,9 +36,6 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
 	if (!ds)
 		throw Invalid_dataspace();
 
-	if (size == 0)
-		size = ds->size();
-
 	if (use_local_addr) {
 		PERR("Parameter 'use_local_addr' not supported within core");
 		return 0UL;
