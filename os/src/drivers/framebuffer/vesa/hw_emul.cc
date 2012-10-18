@@ -128,7 +128,8 @@ static bool handle_pci_port_write(unsigned short port, T val)
 			unsigned devfn = (val >> 8) & 0xffff;
 			if (devfn != pci_card()->devfn()) {
 				if (verbose)
-					PWRN("accessing unknown PCI device %x", devfn);
+					PWRN("accessing unknown PCI device %02x:%02x.%x",
+					     devfn >> 8, (devfn >> 3) & 0x1f, devfn & 0x7);
 				pci_cfg_addr_valid = false;
 				return true;
 			}
