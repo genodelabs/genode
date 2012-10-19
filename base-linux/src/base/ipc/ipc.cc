@@ -76,6 +76,8 @@ static int lookup_tid_by_client_socket(int sd)
 
 	struct Prefix_len
 	{
+		typedef Genode::size_t size_t;
+
 		size_t const len;
 
 		static int _init_len(char const *s)
@@ -123,6 +125,8 @@ namespace {
 			enum { MAX_SDS_PER_MSG = Genode::Msgbuf_base::MAX_CAPS_PER_MSG };
 
 		private:
+
+			typedef Genode::size_t size_t;
 
 			msghdr      _msg;
 			sockaddr_un _addr;
@@ -226,7 +230,7 @@ static void extract_sds_from_message(unsigned start_index, Message const &msg,
  * Send request to server and wait for reply
  */
 static inline void lx_call(int dst_sd,
-                           Genode::Msgbuf_base &send_msgbuf, size_t send_msg_len,
+                           Genode::Msgbuf_base &send_msgbuf, Genode::size_t send_msg_len,
                            Genode::Msgbuf_base &recv_msgbuf)
 {
 	int ret;
@@ -308,7 +312,7 @@ static inline int lx_wait(Genode::Native_connection_state &cs,
  */
 static inline void lx_reply(int reply_socket,
                             Genode::Msgbuf_base &send_msgbuf,
-                            size_t msg_len)
+                            Genode::size_t msg_len)
 {
 	Message msg(send_msgbuf.buf, msg_len);
 
