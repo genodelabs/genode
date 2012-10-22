@@ -58,7 +58,7 @@ static inline void *alloc_from_slab(size_t size)
 	else if (alloc_size <= 20480)
 		p = dde_kit_slab_alloc(slabs[SLAB_20480]);
 	else
-		LOG("allocation of size %d too big", size);
+		LOG("allocation of size %zd too big", size);
 
 	if (p) {
 		*p = alloc_size;
@@ -202,7 +202,7 @@ void iounmap(volatile const void *io_addr)
 
 void * ioremap(unsigned long bus_addr, size_t len)
 {
-	LOG("bus_addr = %p len = %x", (void *)bus_addr, len);
+	LOG("bus_addr = %p len = %zx", (void *)bus_addr, len);
 	dde_kit_addr_t vaddr;
 
 	int ret = dde_kit_request_mem(bus_addr, len, 0, &vaddr);

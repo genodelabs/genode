@@ -16,9 +16,7 @@ SRC_C += $(addprefix drivers/net/, pcnet32.c intel.c eepro100.c realtek.c mii.c)
 
 INC_DIR += $(LIB_DIR)/include \
            $(CONTRIB_DIR)/include $(CONTRIB_DIR) \
-           $(CONTRIB_DIR)/arch/x86/include \
-           $(CONTRIB_DIR)/arch/i386/include \
-           $(CONTRIB_DIR)/arch/i386/include/pcbios
+           $(CONTRIB_DIR)/arch/x86/include
 
 CC_WARN = -Wall -Wno-address
 CC_OPT += $(addprefix -fno-builtin-, putchar toupper tolower)
@@ -38,3 +36,5 @@ vpath dde.c     $(LIB_DIR)
 vpath dummies.c $(LIB_DIR)
 
 vpath %.c       $(CONTRIB_DIR)
+
+# vi: set ft=make :
