@@ -16,6 +16,7 @@
 #include <base/allocator_avl.h>
 #include <block_session/connection.h>
 #include <os/config.h>
+#include <util/assert.h>
 
 #include <vcpu.h>
 #include <linux.h>
@@ -44,7 +45,7 @@ namespace {
 			};
 
 
-			enum { MAX = 128 };
+			enum { MAX = Block::Session::TX_QUEUE_SIZE };
 
 			Req_entry _cache[MAX];
 
@@ -61,20 +62,16 @@ namespace {
 			void insert(void *packet, void *request)
 			{
 				int idx = _find(0);
-				if (idx < 0)
-					PERR("Req cache is full!");
-				else
-					_cache[idx] = Req_entry(packet, request);
+				ASSERT(idx >= 0, "Req cache full!");
+
+				_cache[idx] = Req_entry(packet, request);
 			}
 
 			void remove(void *packet, void **request)
 			{
 				int idx = _find(packet);
+				ASSERT(idx >= 0, "Req cache entry not found!");
 
-				if (idx < 0) {
-					*request = 0;
-					PERR("Req cache entry not found!");
-				}
 				*request = _cache[idx].req;
 				_cache[idx].pkt = 0;
 				_cache[idx].req = 0;
