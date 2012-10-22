@@ -16,6 +16,7 @@
 
 #include <base/cap_map.h>
 #include <base/native_types.h>
+#include <util/assert.h>
 
 namespace Genode {
 
@@ -77,6 +78,7 @@ namespace Genode {
 						return &_indices[i];
 					}
 				}
+				ASSERT(0, "cap index allocation failed");
 				return 0;
 			}
 
@@ -90,8 +92,10 @@ namespace Genode {
 				 */
 				T* obj = reinterpret_cast<T*>(kcap_to_idx(addr));
 
-				if (obj < &_indices[0] || obj >= &_indices[SZ])
+				if (obj < &_indices[0] || obj >= &_indices[SZ]) {
+					ASSERT(0, "cap index out of bounds");
 					throw Index_out_of_bounds();
+				}
 
 				return new (obj) T();
 			}
@@ -103,8 +107,10 @@ namespace Genode {
 				T* obj = static_cast<T*>(idx);
 				for (size_t i = 0; i < cnt; obj++, i++) {
 					/* range check given pointer address */
-					if (obj < &_indices[0] || obj >= &_indices[SZ])
+					if (obj < &_indices[0] || obj >= &_indices[SZ]) {
+						ASSERT(0, "cap index out of bounds");
 						throw Index_out_of_bounds();
+					}
 					delete obj;
 				}
 			}
