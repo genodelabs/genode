@@ -8,7 +8,7 @@
 VERBOSE     ?= @
 ECHO         = @echo
 GIT_URL      = git://git.ipxe.org/ipxe.git
-GIT_REV      = 174df77359f22f3be2169e9bb04e8018015b5e94
+GIT_REV      = 34a81da0c8dd47628a7408cd3f8d8a926d1ecbee
 CONTRIB_DIR  = contrib
 PATCH_FILE   = patches/dde_ipxe.patch
 
@@ -37,7 +37,10 @@ help:
 $(CONTRIB_DIR)/.git:
 	$(VERBOSE)git clone $(GIT_URL) $(CONTRIB_DIR)
 
-prepare: $(CONTRIB_DIR)/.git clean
+fetch: $(CONTRIB_DIR)/.git
+	$(VERBOSE)cd $(CONTRIB_DIR); git fetch origin
+
+prepare: fetch clean
 	$(ECHO) "apply patch to '$(CONTRIB_DIR)/'"
 	$(VERBOSE)patch -p1 -d $(CONTRIB_DIR) -i $(realpath $(PATCH_FILE))
 	$(ECHO)
@@ -60,3 +63,5 @@ clean:
 
 cleanall:
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)
+
+.PHONY: cleanall clean update-patch prepare fetch help

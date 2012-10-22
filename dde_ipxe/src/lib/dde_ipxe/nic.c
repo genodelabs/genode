@@ -55,22 +55,18 @@ static dde_ipxe_nic_rx_cb rx_callback;
  * Known iPXE driver structures (located in the driver binaries)
  */
 extern struct pci_driver
-	e1000_82540_driver, e1000_82541_driver, e1000_82542_driver, e1000_82543_driver,
-	e1000e_80003es2lan_driver, e1000e_82571_driver, e1000e_ich8lan_driver,
-//	ifec_driver,
-//	rtl8139_driver,
-//	nepci_driver,
+	realtek_driver,
+	ifec_driver,
+	intel_driver,
 	pcnet32_driver;
 
 /**
  * Driver database (used for probing)
  */
 static struct pci_driver *pci_drivers[] = {
-	&e1000_82540_driver, &e1000_82541_driver, &e1000_82542_driver, &e1000_82543_driver,
-	&e1000e_80003es2lan_driver, &e1000e_82571_driver, &e1000e_ich8lan_driver,
-//	&ifec_driver,
-//	&rtl8139_driver,
-//	&nepci_driver,
+	&realtek_driver,
+	&ifec_driver,
+	&intel_driver,
 	&pcnet32_driver
 };
 

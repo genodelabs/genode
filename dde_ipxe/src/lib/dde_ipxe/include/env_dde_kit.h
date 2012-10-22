@@ -36,6 +36,12 @@ static inline void outl(uint32_t data, volatile uint32_t *io_addr)
 }
 
 
+static inline uint8_t readb(volatile uint8_t *io_addr)
+{
+	return *io_addr;
+}
+
+
 static inline uint16_t readw(volatile uint16_t *io_addr)
 {
 	return *io_addr;
@@ -45,6 +51,12 @@ static inline uint16_t readw(volatile uint16_t *io_addr)
 static inline uint32_t readl(volatile uint32_t *io_addr)
 {
 	return *io_addr;
+}
+
+
+static inline void writeb(uint8_t data, volatile uint8_t *io_addr)
+{
+	*io_addr = data;
 }
 
 

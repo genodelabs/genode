@@ -15,15 +15,10 @@
 
 int snprintf(char *buf, __SIZE_TYPE__ size, const char *fmt, ...) { TRACE; return 0; }
 
-void clear_settings() { TRACE; }
+void clear_settings()             { TRACE; }
 void netdev_settings_operations() { TRACE; }
-void dbg_autocolourise(unsigned long id) { }
-void dbg_decolourise() { }
-void strerror() { TRACE; }
 
-/* for eepro100.c */
-void init_spi_bit_basher() { TRACE; }
-void nvs_read() { TRACE; }
-void threewire_detect_address_len() { TRACE; }
-void threewire_read() { TRACE; }
-void threewire_write() { TRACE; }
+/* for drivers/net/realtek.c */
+void nvo_init()       { TRACE; }
+void register_nvo()   { TRACE; }
+void unregister_nvo() { TRACE; }
