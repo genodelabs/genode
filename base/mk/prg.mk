@@ -190,7 +190,7 @@ $(TARGET): $(LINK_ITEMS) $(wildcard $(LD_SCRIPTS))
 	$(VERBOSE)libs=$(LIB_CACHE_DIR); $(LD_CMD) -o $@
 
 $(INSTALL_DIR)/$(TARGET): $(TARGET)
-	$(VERBOSE)ln -sf `pwd`/$(TARGET) $@
+	$(VERBOSE)ln -sf $(CURDIR)/$(TARGET) $@
 else
 $(TARGET):
 $(INSTALL_DIR)/$(TARGET): $(TARGET)

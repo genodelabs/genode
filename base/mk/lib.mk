@@ -174,5 +174,5 @@ $(LIB_SO): $(STATIC_LIBS) $(OBJECTS) $(wildcard $(LD_SCRIPT_SO))
 	                $(LIBGCC)
 
 $(INSTALL_SO):
-	$(VERBOSE)ln -sf `pwd`/$(LIB_SO) $@
+	$(VERBOSE)ln -sf $(CURDIR)/$(LIB_SO) $@
 

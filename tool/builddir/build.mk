@@ -37,9 +37,8 @@
 
 -include etc/build.conf
 
-PWD            := $(shell pwd)
-BUILD_BASE_DIR := $(PWD)
-INSTALL_DIR    := $(PWD)/bin
+BUILD_BASE_DIR := $(CURDIR)
+INSTALL_DIR    := $(CURDIR)/bin
 
 export BASE_DIR         ?= ../base
 export REPOSITORIES     ?= $(BASE_DIR:%base=%base-linux) $(BASE_DIR)
