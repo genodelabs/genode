@@ -16,6 +16,7 @@
 #include <nic_session/nic_session.h>
 #include <cap_session/connection.h>
 #include <os/config.h>
+#include <nic/xml_node.h>
 #include <util/xml_node.h>
 
 #include <lx_emul.h>
@@ -566,39 +567,6 @@ struct sk_buff *skb_dequeue(struct sk_buff_head *list)
 /**********************
  ** linux/inerrupt.h **
  **********************/
-
-namespace Genode {
-
-	/**
-	 * Convert ASCII string to mac address
-	 */
-	template <>
-	inline size_t ascii_to<Nic::Mac_address>(char const *s, Nic::Mac_address* mac, unsigned)
-	{
-		enum { 
-			HEX     = true,
-		};
-	
-		if(strlen(s) < MAC_LEN)
-			throw -1;
-	
-		char mac_str[6];
-		for (int i = 0; i < ETH_ALEN; i++) {
-			int hi = i * 3;
-			int lo = hi + 1;
-	
-			if (!is_digit(s[hi], HEX) || !is_digit(s[lo], HEX))
-				throw -1;
-	
-			mac_str[i] = (digit(s[hi], HEX) << 4) | digit(s[lo], HEX);
-		}
-	
-		Genode::memcpy(mac->addr, mac_str, ETH_ALEN);
-	
-		return MAC_LEN;
-	}
-}
-
 
 static void snprint_mac(char *buf, char *mac)
 {

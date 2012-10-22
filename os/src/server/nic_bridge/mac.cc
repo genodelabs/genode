@@ -18,4 +18,4 @@
  * it's likely, that we will have no clashes here.
  * (e.g. Linux uses 02:00... for its tap-devices.)
  */
-const Net::Ethernet_frame::Mac_address Net::Mac_allocator::_mac_addr_base(0x02);
+Net::Ethernet_frame::Mac_address Net::Mac_allocator::mac_addr_base(0x02);

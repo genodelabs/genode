@@ -1,0 +1,17 @@
+The nic_bridge provides multiple sessions of the 'Nic' service while
+using a single 'Nic' session for forwarding requests. For proper working
+it implements some kind of the 'proxy arp' protocol (rfc1027). That
+means it allocates a MAC address for each client. Whenever a client
+sends a packet it changes the sender MAC address to the one it hold
+available for the client. Moreover, it monitors DHCP packets, and
+tracks which IP address is used by which client. Whenever ARP packets
+come from the outside it will answer them with the corresponding MAC
+address.
+
+By adding the following attribute to the 'nic_bridge' config node:
+
+! <config mac="02:02:02:02:02:00"/>
+
+one can define the first MAC address from which the nic_brigde
+will allocate MACs for it's clients. Note: that the least relevant
+byte will be ignored always starting from 0.

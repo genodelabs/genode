@@ -28,9 +28,6 @@ namespace Net {
 	{
 		private:
 
-			/* reference MAC address */
-			static const Ethernet_frame::Mac_address _mac_addr_base;
-
 			/* limit available MAC addresses to one byte range */
 			enum { MSB_MAX = 0xFF };
 
@@ -47,6 +44,9 @@ namespace Net {
 			class Alloc_failed : Genode::Exception {};
 
 
+			/* reference MAC address */
+			static Ethernet_frame::Mac_address mac_addr_base;
+
 			Mac_allocator() { Genode::memset(&_msbs, 0, sizeof(_msbs)); }
 
 
@@ -61,7 +61,7 @@ namespace Net {
 				for (int i=0; i < MSB_MAX; i++) {
 					if (!_msbs[i].used) {
 						_msbs[i].used = 1;
-						Ethernet_frame::Mac_address mac = _mac_addr_base;
+						Ethernet_frame::Mac_address mac = mac_addr_base;
 						mac.addr[5] = i;
 						return mac;
 					}

@@ -17,6 +17,8 @@
 #include <cap_session/connection.h>
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
+#include <nic/xml_node.h>
+#include <os/config.h>
 
 #include "packet_handler.h"
 #include "component.h"
@@ -37,6 +39,14 @@ int main(int, char **)
 		RX_BUF_SIZE = Nic::Session::RX_QUEUE_SIZE * PACKET_SIZE,
 		TX_BUF_SIZE = Nic::Session::TX_QUEUE_SIZE * PACKET_SIZE
 	};
+
+	/* read MAC address prefix from config file */
+	try {
+		Nic::Mac_address mac;
+		Genode::config()->xml_node().attribute("mac").value(&mac);
+		Genode::memcpy(&Net::Mac_allocator::mac_addr_base, &mac,
+		               sizeof(Net::Mac_allocator::mac_addr_base));
+	} catch(...) {}
 
 	Root_capability nic_root_cap;
 	try {
