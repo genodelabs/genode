@@ -132,7 +132,7 @@ build_boot_image  [join $boot_modules " "]
 # Qemu
 #
 append qemu_args " -m 128 -nographic "
-append qemu_args " -serial unix:/tmp/qemu-pipe,server,nowait "
+append qemu_args " -serial file:kdb.log "
 append qemu_args " -serial mon:stdio "
 append_if [have_spec     x86] qemu_args " -smp 2,cores=2 "
 append_if [have_spec     x86] qemu_args " -net nic,model=e1000 -net user "
@@ -153,4 +153,4 @@ expect {
 }
 
 puts "Test succeeded"
-exec rm bin/initrd.gz
+exec rm bin/initrd.gz kdb.log
