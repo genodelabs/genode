@@ -1,0 +1,96 @@
+/*
+ * \brief   Platform implementations specific for base-hw and i.MX31
+ * \author  Norman Feske
+ * \date    2012-08-30
+ */
+
+/*
+ * Copyright (C) 2012 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* Genode includes */
+#include <drivers/board.h>
+#include <imx31/pic.h>
+
+/* core includes */
+#include <platform.h>
+
+using namespace Genode;
+
+
+Native_region * Platform::_ram_regions(unsigned const i)
+{
+	static Native_region _regions[] =
+	{
+		{ Board::CSD0_SDRAM_BASE, Board::CSD0_SDRAM_SIZE }
+	};
+	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+}
+
+
+Native_region * Platform::_irq_regions(unsigned const i)
+{
+	static Native_region _regions[] =
+	{
+		{ 0, Imx31::Pic::MAX_INTERRUPT_ID + 1 }
+	};
+	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+}
+
+
+Native_region * Platform::_core_only_irq_regions(unsigned const i)
+{
+	static Native_region _regions[] =
+	{
+		/* core timer */
+		{ Board::EPIT_1_IRQ, 1 },
+
+		/* core UART */
+		{ Board::UART_1_IRQ, 1 }
+	};
+	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+}
+
+
+Native_region * Platform::_mmio_regions(unsigned const i)
+{
+	static Native_region _regions[] =
+	{
+		/*
+		 * The address range below 0x30000000 is used for secure ROM, ROM, and
+		 * internal RAM.
+		 */
+		{ 0x30000000, 0x50000000 },
+		/*
+		 * The address range between 0x8000000 and 0x9fffffff is designated for
+		 * SDRAM. The remaining address range is populated with peripherals.
+		 */
+		{ 0xa0000000, 0x24000000 }
+	};
+	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+}
+
+
+Native_region * Platform::_core_only_mmio_regions(unsigned const i)
+{
+	static Native_region _regions[] =
+	{
+		/* core UART */
+		{ Board::UART_1_MMIO_BASE, Board::UART_1_MMIO_SIZE },
+
+		/* core timer */
+		{ Board::EPIT_1_MMIO_BASE, Board::EPIT_1_MMIO_SIZE },
+
+		/* interrupt controller */
+		{ Board::AVIC_MMIO_BASE, Board::AVIC_MMIO_SIZE },
+
+		/* bus interface controller */
+		{ Board::AIPS_1_MMIO_BASE, Board::AIPS_1_MMIO_SIZE },
+		{ Board::AIPS_2_MMIO_BASE, Board::AIPS_2_MMIO_SIZE },
+	};
+	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
+}
+

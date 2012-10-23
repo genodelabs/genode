@@ -14,11 +14,6 @@
 /* Core includes */
 #include <kernel_support.h>
 
+Cpu::User_context::User_context() {
+	cpsr = Psr::init_user_with_trustzone(); }
 
-Genode::Cortex_a9::User_context::User_context()
-{
-	/* Execute in usermode with FIQ's enabled and IRQ's and
-	 * asynchronous aborts disabled */
-	cpsr = Cpsr::M::bits(Cpsr::M::USER) | Cpsr::F::bits(0) |
-	       Cpsr::I::bits(1) | Cpsr::A::bits(1);
-}

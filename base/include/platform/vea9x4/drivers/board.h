@@ -59,7 +59,6 @@ namespace Genode
 			CORTEX_A9_PRIVATE_MEM_BASE = 0x1e000000,
 			CORTEX_A9_PRIVATE_MEM_SIZE = 0x2000,
 			CORTEX_A9_CLOCK = TCREF_CLOCK,
-			CORTEX_A9_SECURITY_EXTENSION = 1,
 
 			/* RAM */
 			LOCAL_DDR2_BASE = 0x60000000,
@@ -68,6 +67,8 @@ namespace Genode
 			/* SRAM */
 			SRAM_BASE = SMB_CS2_BASE,
 			SRAM_SIZE = 0x01ffffff,
+
+			SECURITY_EXTENSION = 1,
 		};
 	};
 }

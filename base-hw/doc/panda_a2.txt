@@ -1,7 +1,7 @@
 
-        ======================================================
-        Getting started with 'genode/base-hw' on PandaBoard A2
-        ======================================================
+            ===============================================
+            Getting started with 'base-hw' on PandaBoard A2
+            ===============================================
 
 
                             Martin Stein
@@ -9,9 +9,11 @@
 Abstract
 ########
 
-This is a short tutorial that depicts a handy way to get a Genode ELF image,
-build with 'base-hw', started on the PandaBoard A2. It is dedicated to common
-Linux systems, but all examples originate from a Ubuntu 10.10.
+This is a short tutorial that depicts a handy way to get a Genode ELF-image,
+build with 'base-hw', started on the PandaBoard A2. For informations
+about how to build Genode images with 'base-hw', have a look at
+'<GENODE_DIR>/base-hw/doc/hw.txt'. This tutorial is dedicated to common
+Linux systems, but all examples originate from a Ubuntu 11.10.
 
 
 Tutorial
@@ -22,10 +24,10 @@ Additionally connect the PandaBoard to your machine through its COM port.
 Ensure that you have installed the genode tool chain that is available at:
 
 :[http://genode.org/download/tool-chain]:
-  Get the genode tool chain]
+  Genode tool-chain
 
-Ensure that '<GENODE_GCC_DIR>/bin/' is in your 'PATH' variable.
-Get the linaro U-Boot repository and compile U-Boot for PandaBoard:
+Ensure that '<GENODE_TOOL_CHAIN_DIR>/bin/' is in your 'PATH' variable.
+Get the Linaro U-Boot repository and compile U-Boot for PandaBoard:
 
 ! git clone git://git.linaro.org/boot/u-boot-linaro-stable.git
 ! cd <UBOOT_DIR>
@@ -40,32 +42,32 @@ the array elements separately.
 
 Now install the following packages to communicate with the PandaBoard:
 
-! sudo apt-get install tftp-hpa minicom
+! apt-get install tftp-hpa minicom
 
 Open '/etc/default/tftpd-hpa' with a text editor and ensure that it has
 the following content:
 
-! # /etc/default/tftpd-hpa
 ! TFTP_USERNAME="tftp"
 ! TFTP_DIRECTORY="/var/lib/tftpboot"
 ! TFTP_ADDRESS="0.0.0.0:69"
 ! TFTP_OPTIONS="-l"
 
-Tell U-Boot wich image to load on boot command:
+Tell TFTP wich image to provide:
 
 ! cd /var/lib/tftpboot/
 ! ln -s <GENODE_BOOT_ELF> image.elf
 
+Where '<GENODE_BOOT_ELF>' is the absolute path of the targeted ELF image.
 Start TFTP to enable the upload of the image:
 
-! sudo service tftp-hpa restart
+! service tftp-hpa restart
 
 Start Minicom in configuration mode:
 
 ! minicom -s
 
-Go to 'Serial port setting' and ensure that the device is set the
-TTY of the COM port you've conntected PandaBoard with, in my case it was
+Go to 'Serial port setting' and ensure that the device is set to the
+TTY of the COM port you've conntected PandaBoard with. In my case it was
 '/dev/ttyS0'. Configure the other settings for a baud rate of '115200',
 8 bit char length, no parity and 1 stop bit. Quit Minicom and start
 it once more:
@@ -78,9 +80,8 @@ Mount your SD-card and copy the U-Boot files to its boot partition:
 
 Unmount the SD card and insert it into the appropriate PandaBoard slot.
 Plug in the power connector or push the 'S1' button if the PandaBoard is
-already powered.
-
-Minicom should now show the following message:
+already powered. Minicom should now show the following message below some
+bootloader info:
 
 ! Hit any key to stop autoboot:
 
@@ -89,8 +90,8 @@ image via ethernet:
 
 ! usb start; dhcp; bootelf 0x82000000
 
-Now the ELF image should start correctly and offer some debug output in
-minicom. You can now boot further images by redirecting the link
-'/var/lib/tftpboot/image.elf' accordingly, restarting your pandaboard
-and instructing 'uboot' again as described above.
+Now your Genode scenario should start and offer its debug output
+in Minicom. You can boot other images by redirecting the link
+'/var/lib/tftpboot/image.elf' accordingly, restarting your PandaBoard
+and instructing U-boot again as described above.
 

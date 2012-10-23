@@ -152,8 +152,8 @@ namespace Genode {
 				_load_initrd();
 				_prepare_atag();
 				_state->cpsr = 0x93; /* SVC mode and IRQs disabled */
-				_state->r[1] = 2272; /* MACH_TYPE vexpress board   */
-				_state->r[2] = _ram.base() + ATAG_OFFSET; /* ATAG addr */
+				_state->r1   = 2272; /* MACH_TYPE vexpress board   */
+				_state->r2   = _ram.base() + ATAG_OFFSET; /* ATAG addr */
 				_vm_con.exception_handler(sig_cap);
 			}
 
@@ -168,8 +168,19 @@ namespace Genode {
 				      "data_abort", "irq", "fiq" };
 
 				printf("Cpu state:\n");
-				for (unsigned i = 0; i<13; i++)
-					printf("  r%x        = %08lx\n", i, _state->r[i]);
+				printf("  r0        = %08lx\n", _state->r0);
+				printf("  r1        = %08lx\n", _state->r1);
+				printf("  r2        = %08lx\n", _state->r2);
+				printf("  r3        = %08lx\n", _state->r3);
+				printf("  r4        = %08lx\n", _state->r4);
+				printf("  r5        = %08lx\n", _state->r5);
+				printf("  r6        = %08lx\n", _state->r6);
+				printf("  r7        = %08lx\n", _state->r7);
+				printf("  r8        = %08lx\n", _state->r8);
+				printf("  r9        = %08lx\n", _state->r9);
+				printf("  r10       = %08lx\n", _state->r10);
+				printf("  r11       = %08lx\n", _state->r11);
+				printf("  r12       = %08lx\n", _state->r12);
 				printf("  sp        = %08lx\n", _state->sp);
 				printf("  lr        = %08lx\n", _state->lr);
 				printf("  ip        = %08lx\n", _state->ip);
@@ -220,8 +231,8 @@ namespace Genode {
 					DVI_MODE = 0xc0b00000
 				};
 
-				uint32_t ctrl = _vm->state()->r[2];
-				uint32_t data = _vm->state()->r[0];
+				uint32_t ctrl = _vm->state()->r2;
+				uint32_t data = _vm->state()->r0;
 
 				switch(ctrl) {
 				case OSC1:
@@ -241,25 +252,25 @@ namespace Genode {
 
 			void _handle_hypervisor_call()
 			{
-				switch (_vm->state()->r[1]) {
+				switch (_vm->state()->r1) {
 				case SP810_ENABLE:
 					_sp810.enable_timer0();
 					_sp810.enable_timer1();
 					break;
 				case CPU_ID:
-					_vm->state()->r[0] = 0x0c000191; // Coretile A9 ID
+					_vm->state()->r0 = 0x0c000191; // Coretile A9 ID
 					break;
 				case SYS_COUNTER:
-					_vm->state()->r[0] = _sys.counter();
+					_vm->state()->r0 = _sys.counter();
 					break;
 				case MISC_FLAGS:
-					_vm->state()->r[0] = _sys.misc_flags();
+					_vm->state()->r0 = _sys.misc_flags();
 					break;
 				case SYS_CTRL:
 					_sys_ctrl();
 					break;
 				case MCI_STATUS:
-					_vm->state()->r[0] = _sys.mci_status();
+					_vm->state()->r0 = _sys.mci_status();
 					break;
 				default:
 					PERR("Unknown hypervisor call!");

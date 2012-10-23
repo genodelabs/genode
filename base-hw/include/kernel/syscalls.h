@@ -15,7 +15,7 @@
 #define _INCLUDE__KERNEL__SYSCALLS_H_
 
 /* Genode includes */
-#include <base/syscall.h>
+#include <base/syscall_types.h>
 
 class Software_tlb;
 
@@ -35,7 +35,7 @@ namespace Kernel
 
 		/* execution control */
 		NEW_THREAD = 1,
-		DELETE_THREAD = 24,
+		DELETE_THREAD = 26,
 		START_THREAD = 2,
 		PAUSE_THREAD = 3,
 		RESUME_THREAD = 4,
@@ -70,9 +70,44 @@ namespace Kernel
 		SUBMIT_SIGNAL = 23,
 
 		/* vm specific */
-		NEW_VM = 25,
-		RUN_VM = 26,
+		NEW_VM = 24,
+		RUN_VM = 25,
 	};
+
+	/*****************************************************************
+	 ** Syscall with 1 to 6 arguments                               **
+	 **                                                             **
+	 ** These functions must not be inline to ensure that objects,  **
+	 ** wich are referenced by arguments, are tagged as "used" even **
+	 ** though only the pointer gets handled in here.               **
+	 *****************************************************************/
+
+	Syscall_ret syscall(Syscall_arg arg_0);
+
+	Syscall_ret syscall(Syscall_arg arg_0,
+	                    Syscall_arg arg_1);
+
+	Syscall_ret syscall(Syscall_arg arg_0,
+	                    Syscall_arg arg_1,
+	                    Syscall_arg arg_2);
+
+	Syscall_ret syscall(Syscall_arg arg_0,
+	                    Syscall_arg arg_1,
+	                    Syscall_arg arg_2,
+	                    Syscall_arg arg_3);
+
+	Syscall_ret syscall(Syscall_arg arg_0,
+	                    Syscall_arg arg_1,
+	                    Syscall_arg arg_2,
+	                    Syscall_arg arg_3,
+	                    Syscall_arg arg_4);
+
+	Syscall_ret syscall(Syscall_arg arg_0,
+	                    Syscall_arg arg_1,
+	                    Syscall_arg arg_2,
+	                    Syscall_arg arg_3,
+	                    Syscall_arg arg_4,
+	                    Syscall_arg arg_5);
 
 	/**
 	 * Virtual range of the mode transition region in every PD
@@ -107,8 +142,8 @@ namespace Kernel
 	 * Restricted to core threads. Regaining of the supplied memory is not
 	 * supported by now.
 	 */
-	inline int new_pd(void * const dst)
-	{ return syscall(NEW_PD, (Syscall_arg)dst); }
+	inline int new_pd(void * const dst) {
+		return syscall(NEW_PD, (Syscall_arg)dst); }
 
 
 	/**

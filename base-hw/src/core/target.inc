@@ -8,11 +8,11 @@
 TARGET = core
 
 # use core specific startup library
-STARTUP_LIB = startup_core
+STARTUP_LIB = core_support
 
 # add library dependencies
-LIBS += cxx raw_ipc heap child pager lock console signal raw_server \
-        syscall startup_core core_support
+LIBS += cxx raw_ipc heap child process pager lock console signal raw_server \
+        syscall core_support
 
 # add include paths
 GEN_CORE_DIR = $(BASE_DIR)/src/core

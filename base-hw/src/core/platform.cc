@@ -142,6 +142,10 @@ Platform::Platform() :
 		printf("-------------------\n");
 		_io_mem_alloc.raw()->dump_addr_tree();
 		printf("\n");
+		printf("IRQ allocator\n");
+		printf("-------------------\n");
+		_irq_alloc.raw()->dump_addr_tree();
+		printf("\n");
 		printf("ROM filesystem\n");
 		printf("--------------\n");
 		_rom_fs.print_fs();

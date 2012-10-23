@@ -2,6 +2,7 @@
  * \brief  CPU state
  * \author Norman Feske
  * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2011-05-06
  */
 
@@ -15,37 +16,44 @@
 #ifndef _INCLUDE__ARM__CPU__CPU_STATE_H_
 #define _INCLUDE__ARM__CPU__CPU_STATE_H_
 
+/* Genode includes */
 #include <base/stdint.h>
 
 namespace Genode {
 
+	/**
+	 * Basic CPU state
+	 */
 	struct Cpu_state
 	{
 		/**
 		 * Native exception types
 		 */
 		enum Cpu_exception {
-			RESET,
-			UNDEFINED_INSTRUCTION,
-			SUPERVISOR_CALL,
-			PREFETCH_ABORT,
-			DATA_ABORT,
-			INTERRUPT_REQUEST,
-			FAST_INTERRUPT_REQUEST,
-			MAX_CPU_EXCEPTION,
+			RESET                  = 1,
+			UNDEFINED_INSTRUCTION  = 2,
+			SUPERVISOR_CALL        = 3,
+			PREFETCH_ABORT         = 4,
+			DATA_ABORT             = 5,
+			INTERRUPT_REQUEST      = 6,
+			FAST_INTERRUPT_REQUEST = 7,
 		};
 
-		enum { MAX_GPR = 13 };
-
-		addr_t r[MAX_GPR]; /* r0-r12 - general purpose        */
-		addr_t sp;         /* r13 - stack pointer             */
-		addr_t lr;         /* r14 - link register             */
-		addr_t ip;         /* r15 - instruction pointer       */
-		addr_t cpsr;       /* current program status register */
-		Cpu_exception cpu_exception;   /* last exception */
+		/**
+		 * Registers
+		 */
+		addr_t r0, r1, r2, r3, r4, r5, r6,
+		       r7, r8, r9, r10, r11, r12; /* general purpose register 0..12 */
+		addr_t sp;                        /* stack pointer */
+		addr_t lr;                        /* link register */
+		addr_t ip;                        /* instruction pointer */
+		addr_t cpsr;                      /* current program status register */
+		addr_t cpu_exception;             /* last hardware exception */
 	};
 
-
+	/**
+	 * Extend CPU state by banked registers
+	 */
 	struct Cpu_state_modes : Cpu_state
 	{
 		/**

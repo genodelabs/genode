@@ -47,9 +47,9 @@ extern int _mode_transition_begin;
 extern int _mode_transition_end;
 extern int _mt_user_entry_pic;
 extern int _mon_vm_entry;
-extern Genode::addr_t _mt_context_ptr;
-extern Genode::addr_t _mt_kernel_context_begin;
-extern Genode::addr_t _mt_kernel_context_end;
+extern Genode::addr_t _mt_client_context_ptr;
+extern Genode::addr_t _mt_master_context_begin;
+extern Genode::addr_t _mt_master_context_end;
 
 namespace Kernel
 {
@@ -68,7 +68,7 @@ namespace Kernel
 	/* kernel configuration */
 	enum {
 		DEFAULT_STACK_SIZE = 1*1024*1024,
-		USER_TIME_SLICE_MS = 10,
+		USER_TIME_SLICE_MS = 100,
 		MAX_PDS = 256,
 		MAX_THREADS = 256,
 		MAX_SIGNAL_RECEIVERS = 256,
@@ -720,17 +720,17 @@ namespace Kernel
 	 *
 	 * The code that switches between kernel/user mode must not exceed the
 	 * smallest page size supported by the MMU. The Code must be position
-	 * independent. This code has to be mapped to in every PD, to ensure
+	 * independent. This code has to be mapped in every PD, to ensure
 	 * appropriate kernel invokation on CPU interrupts.
-	 * This class controls the settings like kernel, user, and vm states
-	 * that are handled by the PIC mode transition code.
+	 * This class controls the settings like kernel, user, and VM states
+	 * that are handled by the mode transition PIC.
 	 */
 	struct Mode_transition_control
 	{
 		enum {
-			SIZE_LOG2 = Cpu::MIN_PAGE_SIZE_LOG2,
+			SIZE_LOG2 = Software_tlb::MIN_PAGE_SIZE_LOG2,
 			SIZE = 1 << SIZE_LOG2,
-			VIRT_BASE = Cpu::HIGHEST_EXCEPTION_ENTRY,
+			VIRT_BASE = Cpu::EXCEPTION_ENTRY,
 			VIRT_END = VIRT_BASE + SIZE,
 			ALIGNM_LOG2 = SIZE_LOG2,
 		};
@@ -751,20 +751,17 @@ namespace Kernel
 			assert(pic_size <= SIZE);
 
 			/* check if kernel context fits into the mode transition */
-			addr_t const kc_begin = (addr_t)&_mt_kernel_context_begin;
-			addr_t const kc_end = (addr_t)&_mt_kernel_context_end;
+			addr_t const kc_begin = (addr_t)&_mt_master_context_begin;
+			addr_t const kc_end = (addr_t)&_mt_master_context_end;
 			size_t const kc_size = kc_end - kc_begin;
 			assert(sizeof(Cpu::Context) <= kc_size);
-
-			/* try to set CPU exception entry accordingly */
-			assert(!Cpu::exception_entry_at(VIRT_BASE));
 		}
 
 		/**
 		 * Fetch next kernelmode context
 		 */
-		void fetch_kernel_context(Cpu::Context * const c) {
-			memcpy(&_mt_kernel_context_begin, c, sizeof(Cpu::Context)); }
+		void fetch_master_context(Cpu::Context * const c) {
+			memcpy(&_mt_master_context_begin, c, sizeof(Cpu::Context)); }
 
 		/**
 		 * Page aligned physical base of the mode transition PIC
@@ -836,7 +833,7 @@ namespace Kernel
 			void append_context(Cpu::Context * const c)
 			{
 				c->protection_domain(id());
-				c->software_tlb((Software_tlb *)this);
+				c->software_tlb((addr_t)static_cast<Software_tlb *>(this));
 			}
 	};
 
@@ -1125,6 +1122,11 @@ namespace Kernel
 		Platform_thread * const _platform_thread; /* userland object wich
 		                                           * addresses this thread */
 		State _state; /* thread state, description given at the beginning */
+		Pagefault _pagefault; /* last pagefault triggered by this thread */
+		Thread * _pager; /* gets informed if thread throws a pagefault */
+		unsigned _pd_id; /* ID of the PD this thread runs on */
+		Native_utcb * _phys_utcb; /* physical UTCB base */
+		Native_utcb * _virt_utcb; /* virtual UTCB base */
 
 		/**
 		 * Resume execution
@@ -1134,12 +1136,6 @@ namespace Kernel
 			cpu_scheduler()->insert(this);
 			_state = ACTIVE;
 		}
-
-		Pagefault _pagefault; /* last pagefault triggered by this thread */
-		Thread * _pager; /* gets informed if thread throws a pagefault */
-		unsigned _pd_id; /* ID of the PD this thread runs on */
-		Native_utcb * _phys_utcb; /* physical UTCB base */
-		Native_utcb * _virt_utcb; /* virtual UTCB base */
 
 		public:
 
@@ -1288,9 +1284,10 @@ namespace Kernel
 				}
 			}
 
-			void scheduled_next() {
+			void scheduled_next()
+			{
 				/* set context pointer for mode switch */
-				_mt_context_ptr = (addr_t)static_cast<Genode::Cpu_state*>(this);
+				_mt_client_context_ptr = (addr_t)static_cast<Genode::Cpu_state*>(this);
 
 				/* jump to user entry assembler path */
 				mtc()->virt_user_entry();
@@ -1343,7 +1340,6 @@ namespace Kernel
 	};
 
 	class Signal_receiver;
-
 
 	/**
 	 * Specific signal type, owned by a receiver, can be triggered asynchr.
@@ -1472,9 +1468,10 @@ namespace Kernel
 				}
 			}
 
-			void scheduled_next() {
+			void scheduled_next()
+			{
 				/* set context pointer for mode switch */
-				_mt_context_ptr = (addr_t)_state;
+				_mt_client_context_ptr = (addr_t)_state;
 
 				/* jump to assembler path */
 				((void(*)(void))&_mon_vm_entry)();
@@ -1959,7 +1956,7 @@ namespace Kernel
 		assert(c);
 
 		/* trigger signal at context */
-		c->trigger_signal(1);
+		c->trigger_signal(user->user_arg_2());
 	}
 
 
@@ -2041,9 +2038,9 @@ namespace Kernel
 			/* 21         */ do_new_signal_context,
 			/* 22         */ do_await_signal,
 			/* 23         */ do_submit_signal,
-			/* 24         */ do_delete_thread,
-			/* 25         */ do_new_vm,
-			/* 26         */ do_run_vm,
+			/* 24         */ do_new_vm,
+			/* 25         */ do_run_vm,
+			/* 26         */ do_delete_thread,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 
@@ -2054,13 +2051,17 @@ namespace Kernel
 	}
 }
 
+/**
+ * Prepare the system for the first run of 'kernel'
+ */
+extern "C" void init_phys_kernel() {
+	Cpu::init_phys_kernel(); }
 
 /**
  * Kernel main routine
  */
 extern "C" void kernel()
 {
-	unsigned const timer_value = timer()->stop();
 	static unsigned user_time = 0;
 	static bool initial_call = true;
 
@@ -2068,6 +2069,7 @@ extern "C" void kernel()
 	if (!initial_call)
 	{
 		/* update how much time the last user has consumed */
+		unsigned const timer_value = timer()->stop_one_shot();
 		user_time = timer_value < user_time ? user_time - timer_value : 0;
 
 		/* handle exception that interrupted the last user */
@@ -2082,7 +2084,7 @@ extern "C" void kernel()
 		{
 			/* map everything except the mode transition region */
 			enum {
-				SIZE_LOG2 = Software_tlb::MAX_TRANSL_SIZE_LOG2,
+				SIZE_LOG2 = Software_tlb::MAX_PAGE_SIZE_LOG2,
 				SIZE = 1 << SIZE_LOG2,
 			};
 			if (mtc()->VIRT_END <= a || mtc()->VIRT_BASE > (a + SIZE - 1))
@@ -2098,20 +2100,20 @@ extern "C" void kernel()
 		}
 		/* compose kernel CPU context */
 		static Cpu::Context kernel_context;
-		kernel_context.instruction_ptr((addr_t)kernel);
-		kernel_context.stack_ptr((addr_t)&_kernel_stack_high);
+		kernel_context.ip = (addr_t)kernel;
+		kernel_context.sp = (addr_t)&_kernel_stack_high;
 
 		/* add kernel to the core PD */
 		core()->append_context(&kernel_context);
 
 		/* offer the final kernel context to the mode transition page */
-		mtc()->fetch_kernel_context(&kernel_context);
+		mtc()->fetch_master_context(&kernel_context);
 
 		/* TrustZone initialization code */
 		trustzone_initialization(pic());
 
 		/* switch to core address space */
-		Cpu::enable_mmu(core(), core_id());
+		Cpu::init_virt_kernel((addr_t)static_cast<Software_tlb *>(core()), core_id());
 
 		/* create the core main thread */
 		static Native_utcb cm_utcb;
@@ -2120,7 +2122,7 @@ extern "C" void kernel()
 		static Thread core_main((Platform_thread *)0);
 		_main_utcb = &cm_utcb;
 		enum { CM_STACK_SIZE = sizeof(cm_stack)/sizeof(cm_stack[0]) + 1 };
-		core_main.start((void *)&CORE_MAIN,
+		core_main.start((void *)CORE_MAIN,
 		                (void *)&cm_stack[CM_STACK_SIZE - 1],
 		                0, core_id(), &cm_utcb, &cm_utcb);
 
@@ -2128,7 +2130,7 @@ extern "C" void kernel()
 		initial_call = false;
 	}
 	/* offer next user context to the mode transition PIC */
-	Schedule_context* const next = cpu_scheduler()->next_entry(user_time);
+	Schedule_context * const next = cpu_scheduler()->next_entry(user_time);
 
 	/* limit user mode execution in time */
 	timer()->start_one_shot(user_time);
@@ -2167,19 +2169,19 @@ int Thread::start(void *ip, void *sp, unsigned cpu_no,
 }
 
 
-void Thread::init_context(void * const ip, void * const sp,
+void Thread::init_context(void * const instr_p, void * const stack_p,
                                   unsigned const pd_id)
 {
 	/* basic thread state */
-	stack_ptr((addr_t)sp);
-	instruction_ptr((addr_t)ip);
+	sp = (addr_t)stack_p;
+	ip = (addr_t)instr_p;
 
 	/* join a pd */
 	_pd_id = pd_id;
 	Pd * const pd = Pd::pool()->object(_pd_id);
 	assert(pd)
 	protection_domain(pd_id);
-	software_tlb(pd);
+	software_tlb((addr_t)static_cast<Software_tlb *>(pd));
 }
 
 
@@ -2191,10 +2193,8 @@ void Thread::pagefault(addr_t const va, bool const w)
 
 	/* inform pager through IPC */
 	assert(_pager);
-	Software_tlb * const tlb =
-	static_cast<Software_tlb *>(software_tlb());
-	_pagefault =
-	Pagefault(id(), tlb, instruction_ptr(), va, w);
+	Software_tlb * const tlb = (Software_tlb *)software_tlb();
+	_pagefault = Pagefault(id(), tlb, ip, va, w);
 	Ipc_node::send_note(_pager, &_pagefault, sizeof(_pagefault));
 }
 

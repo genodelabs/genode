@@ -1,5 +1,5 @@
 /*
- * \brief  Base driver for the ARM PL390 interrupt controller
+ * \brief  Programmable interrupt controller for core
  * \author Martin stein
  * \date   2011-10-26
  */
@@ -11,19 +11,20 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__PIC__PL390_BASE_H_
-#define _INCLUDE__DRIVERS__PIC__PL390_BASE_H_
+#ifndef _INCLUDE__CORTEX_A9__PIC_H_
+#define _INCLUDE__CORTEX_A9__PIC_H_
 
 /* Genode includes */
 #include <util/mmio.h>
-#include <base/printf.h>
 
-namespace Genode
+namespace Cortex_a9
 {
+	using namespace Genode;
+
 	/**
-	 * Base driver for the ARM PL390 interrupt controller
+	 * Programmable interrupt controller for core
 	 */
-	class Pl390_base
+	class Pic
 	{
 		public:
 
@@ -41,7 +42,7 @@ namespace Genode
 			 */
 			struct Distr : public Mmio
 			{
-				Distr(addr_t const base) : Mmio(base) { }
+				Distr() : Mmio(Cortex_a9::Cpu::PL390_DISTRIBUTOR_MMIO_BASE) { }
 
 				/**
 				 * Distributor control register
@@ -145,7 +146,7 @@ namespace Genode
 			 */
 			struct Cpu : public Mmio
 			{
-				Cpu(addr_t const base) : Mmio(base) { }
+				Cpu() : Mmio(Cortex_a9::Cpu::PL390_CPU_MMIO_BASE) { }
 
 				/**
 				 * CPU interface control register
@@ -160,7 +161,7 @@ namespace Genode
 					struct Enable_ns : Bitfield<1,1> { };
 					struct Ack_ctl   : Bitfield<2,1> { };
 					struct Fiq_en    : Bitfield<3,1> { };
-					struct Cbpr      : Bitfield<4,1> { };
+					struct Sbpr      : Bitfield<4,1> { };
 				};
 
 				/**
@@ -221,11 +222,8 @@ namespace Genode
 			/**
 			 * Constructor, all interrupts get masked
 			 */
-			Pl390_base(addr_t const distributor, addr_t const cpu_interface) :
-				_distr(distributor),
-				_cpu(cpu_interface),
-				_max_interrupt(_distr.max_interrupt()),
-				_last_taken_request(SPURIOUS_ID) { }
+			Pic() : _max_interrupt(_distr.max_interrupt()),
+			        _last_taken_request(SPURIOUS_ID) { }
 
 			/**
 			 * Get the ID of the last interrupt request
@@ -270,10 +268,8 @@ namespace Genode
 			/**
 			 * Unmask interrupt 'i'
 			 */
-			void unmask(unsigned const i)
-			{
-				_distr.write<Distr::Icdiser::Set_enable>(1, i);
-			}
+			void unmask(unsigned const i) {
+				_distr.write<Distr::Icdiser::Set_enable>(1, i); }
 
 			/**
 			 * Mask all interrupts
@@ -287,12 +283,10 @@ namespace Genode
 			/**
 			 * Mask interrupt 'i'
 			 */
-			void mask(unsigned const i)
-			{
-				_distr.write<Distr::Icdicer::Clear_enable>(1, i);
-			}
+			void mask(unsigned const i) {
+				_distr.write<Distr::Icdicer::Clear_enable>(1, i); }
 	};
 }
 
-#endif /* _INCLUDE__DRIVERS__PIC__PL390_BASE_H_ */
+#endif /* _INCLUDE__CORTEX_A9__PIC_H_ */
 

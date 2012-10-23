@@ -21,8 +21,6 @@ namespace Genode
 {
 	/**
 	 * Basic driver for the ARM SP804 timer
-	 *
-	 * Uses only timer module 0.
 	 */
 	template <unsigned long CLK>
 	class Sp804_base : public Mmio

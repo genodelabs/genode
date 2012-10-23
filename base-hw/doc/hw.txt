@@ -5,14 +5,21 @@
 
                             Martin Stein
 
-
-The 'base-hw' repository provides an implementation of Genodes core that runs
-directly on hardware, without an intermediate third-party kernel. Currently it
-runs on the ARM platforms Realview PBXA9, Versatile Express A9X4 and
-PandaBoard A2.
+Abstract
+########
 
 This document provides brief instructions about building and booting Genode
-directly on hardware.
+with the 'base-hw' repository. The 'base-hw' repository provides an
+implementation of the Genode core that runs directly on hardware, without an
+intermediate third-party kernel. It supports a limited range of target boards.
+For further target specific informations, have a look at
+'<GENODE_DIR>/base-hw/doc/<TARGET>.txt' where '<TARGET>'
+is one of the following:
+
+'pbxa9'    - Realview PBXA9
+'vea9x4'   - Versatile Express A9X4
+'imx31'    - Freescale i.MX31
+'panda_a2' - PandaBoard A2
 
 
 Prerequisites
@@ -35,6 +42,7 @@ need Qemu for ARM emulations to run them on your machine:
 
 ! apt-get install qemu-kvm-extras
 
+
 Building Genode to run directly on hardware
 ###########################################
 
@@ -46,11 +54,22 @@ The current version of the Genode source code is available at this page:
 Now, go to a directory where you want the Genode build directory to
 remain. Use the helper script in the 'tool' directory of the Genode
 source tree to create the initial build environment. You need to state the
-build directory you want to create, and the hardware system to run
-Genode on. Choose 'hw_pbxa9', 'hw_vea9x4', or 'hw_panda_a2' depending on the
-hardware system you aim at.
+build directory you want to create, and the hardware target to run Genode on.
 
-! <genode-dir>/tool/create_builddir hw_pbxa9 BUILD_DIR=<build-dir>
+! <genode-dir>/tool/create_builddir hw_<TARGET> BUILD_DIR=<build-dir>
+
+Where '<TARGET>' is one of the following, depending on the hardware system
+you aim at:
+
+'pbxa9'    - Realview PBXA9
+'vea9x4'   - Versatile Express A9X4
+'imx31'    - Freescale i.MX31
+'panda_a2' - PandaBoard A2
+
+Please notice that not all of these targets might be emulateable with Qemu.
+To be on the safe side use 'pbxa9'. For informations about how to boot
+'base-hw' images on real hardware have a look at
+'<GENODE_DIR>/base-hw/doc/<TARGET>.txt'.
 
 Now, go to the newly created build directory make a test:
 
@@ -60,8 +79,4 @@ Now, go to the newly created build directory make a test:
 This will build the Genode components that are needed to run a simple test
 with 3 nested init programs, and than execute it via Qemu.
 
-For further informations according to the specific hardware systems, have
-look into the other documentations:
-
-! base-hw/doc/<system>.txt
 

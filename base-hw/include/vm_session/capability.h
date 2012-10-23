@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__VM_SESSION__CAPABILITY_H_
 #define _INCLUDE__VM_SESSION__CAPABILITY_H_
 
+/* Genode includes */
 #include <base/capability.h>
 #include <vm_session/vm_session.h>
 

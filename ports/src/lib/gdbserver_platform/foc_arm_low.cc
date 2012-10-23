@@ -89,19 +89,19 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 	} else {
 		switch((enum reg_index)regno)
 		{
-			case R0: *reg_content = thread_state.r[0]; PDBG("R0 = %8lx", *reg_content); return 0;
-			case R1: *reg_content = thread_state.r[1]; PDBG("R1 = %8lx", *reg_content); return 0;
-			case R2: *reg_content = thread_state.r[2]; PDBG("R2 = %8lx", *reg_content); return 0;
-			case R3: *reg_content = thread_state.r[3]; PDBG("R3 = %8lx", *reg_content); return 0;
-			case R4: *reg_content = thread_state.r[4]; PDBG("R4 = %8lx", *reg_content); return 0;
-			case R5: *reg_content = thread_state.r[5]; PDBG("R5 = %8lx", *reg_content); return 0;
-			case R6: *reg_content = thread_state.r[6]; PDBG("R6 = %8lx", *reg_content); return 0;
-			case R7: *reg_content = thread_state.r[7]; PDBG("R7 = %8lx", *reg_content); return 0;
-			case R8: *reg_content = thread_state.r[8]; PDBG("R8 = %8lx", *reg_content); return 0;
-			case R9: *reg_content = thread_state.r[9]; PDBG("R9 = %8lx", *reg_content); return 0;
-			case R10: *reg_content = thread_state.r[10]; PDBG("R10 = %8lx", *reg_content); return 0;
-			case R11: *reg_content = thread_state.r[11]; PDBG("FP = %8lx", *reg_content); return 0;
-			case R12: *reg_content = thread_state.r[12]; PDBG("R12 = %8lx", *reg_content); return 0;
+			case R0: *reg_content = thread_state.r0; PDBG("R0 = %8lx", *reg_content); return 0;
+			case R1: *reg_content = thread_state.r1; PDBG("R1 = %8lx", *reg_content); return 0;
+			case R2: *reg_content = thread_state.r2; PDBG("R2 = %8lx", *reg_content); return 0;
+			case R3: *reg_content = thread_state.r3; PDBG("R3 = %8lx", *reg_content); return 0;
+			case R4: *reg_content = thread_state.r4; PDBG("R4 = %8lx", *reg_content); return 0;
+			case R5: *reg_content = thread_state.r5; PDBG("R5 = %8lx", *reg_content); return 0;
+			case R6: *reg_content = thread_state.r6; PDBG("R6 = %8lx", *reg_content); return 0;
+			case R7: *reg_content = thread_state.r7; PDBG("R7 = %8lx", *reg_content); return 0;
+			case R8: *reg_content = thread_state.r8; PDBG("R8 = %8lx", *reg_content); return 0;
+			case R9: *reg_content = thread_state.r9; PDBG("R9 = %8lx", *reg_content); return 0;
+			case R10: *reg_content = thread_state.r10; PDBG("R10 = %8lx", *reg_content); return 0;
+			case R11: *reg_content = thread_state.r11; PDBG("FP = %8lx", *reg_content); return 0;
+			case R12: *reg_content = thread_state.r12; PDBG("R12 = %8lx", *reg_content); return 0;
 			case SP: *reg_content = thread_state.sp; PDBG("SP = %8lx", *reg_content); return 0;
 			case LR: *reg_content = thread_state.lr; PDBG("LR = %8lx", *reg_content); return 0;
 			case PC: *reg_content = thread_state.ip; PDBG("PC = %8lx", *reg_content); return 0;

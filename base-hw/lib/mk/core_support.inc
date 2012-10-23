@@ -14,6 +14,7 @@ CC_OPT += -DCORE_MAIN=_main
 # add C++ sources
 SRC_CC += kernel.cc rm_session_support.cc kernel_support.cc trustzone.cc
 
+# add library dependencies
 LIBS += platform_support
 
 # declare source paths

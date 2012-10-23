@@ -14,6 +14,7 @@
 /* Core includes */
 #include <trustzone.h>
 #include <kernel_support.h>
+#include <base/printf.h>
 
 /* monitor exception vector address */
 extern int _mon_kernel_entry;

@@ -15,12 +15,12 @@
 #define _SRC__CORE__PANDA_A2__SOFTWARE_TLB_H_
 
 /* Genode includes */
-#include <cortex_a9/cpu/section_table.h>
+#include <arm/v7/section_table.h>
 
 /**
  * Software TLB controls
  */
-class Software_tlb : public Genode::Section_table { };
+class Software_tlb : public Arm_v7::Section_table { };
 
 #endif /* _SRC__CORE__PANDA_A2__SOFTWARE_TLB_H_ */
 

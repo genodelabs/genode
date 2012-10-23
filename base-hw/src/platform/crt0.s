@@ -17,19 +17,6 @@
 	.global _start
 	_start:
 
-		/* zero-fill BSS segment but don't pollute thread-entry arguments */
-		.extern _bss_start
-		ldr r4, =_bss_start
-		.extern _bss_end
-		ldr r3, =_bss_end
-		mov r2, #0
-		sub r3, r3, #4
-		1:
-		str r2, [r4]
-		add r4, r4, #4
-		cmp r4, r3
-		bne 1b
-
 		/* fetch thread-entry arguments to their destinations in BSS */
 		ldr r1, =_main_utcb
 		str r0, [r1]
@@ -38,8 +25,7 @@
 		ldr sp, =_main_stack_high
 		.extern _main
 		bl _main
-		1:
-		b 1b
+		1: b 1b
 
 	/* dynamic symbol object handle */
 	.align 3

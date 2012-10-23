@@ -1,5 +1,5 @@
 /*
- * \brief  Connection to VM service
+ * \brief  Connection to VM a service
  * \author Stefan Kalkowski
  * \date   2012-10-02
  */
@@ -18,8 +18,11 @@
 #include <cpu_session/cpu_session.h>
 #include <base/connection.h>
 
-namespace Genode {
-
+namespace Genode
+{
+	/**
+	 * Connection to a VM service
+	 */
 	struct Vm_connection : Connection<Vm_session>, Vm_session_client
 	{
 		/**

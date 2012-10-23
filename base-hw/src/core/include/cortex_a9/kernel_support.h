@@ -14,68 +14,27 @@
 #ifndef _CORE__INCLUDE__CORTEX_A9__KERNEL_SUPPORT_H_
 #define _CORE__INCLUDE__CORTEX_A9__KERNEL_SUPPORT_H_
 
-/* Core includes */
-#include <cortex_a9/cpu/core.h>
-#include <pic/pl390_base.h>
+/* core includes */
+#include <cortex_a9/cpu.h>
+#include <cortex_a9/timer.h>
+#include <cortex_a9/no_trustzone/pic.h>
 
 /**
  * CPU driver
  */
-class Cpu : public Genode::Cortex_a9 { };
+class Cpu : public Cortex_a9::Cpu { };
 
 namespace Kernel
 {
-	/* import Genode types */
-	typedef Genode::Cortex_a9 Cortex_a9;
-	typedef Genode::Pl390_base Pl390_base;
-
 	/**
-	 * Kernel interrupt-controller
+	 * Programmable interrupt controller
 	 */
-	class Pic : public Pl390_base
-	{
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Pic() : Pl390_base(Cortex_a9::PL390_DISTRIBUTOR_MMIO_BASE,
-			                   Cortex_a9::PL390_CPU_MMIO_BASE)
-			{
-				/* disable device */
-				_distr.write<Distr::Icddcr::Enable>(0);
-				_cpu.write<Cpu::Iccicr::Enable>(0);
-				mask();
-
-				/* supported priority range */
-				unsigned const min_prio = _distr.min_priority();
-				unsigned const max_prio = _distr.max_priority();
-
-				/* configure every shared peripheral interrupt */
-				for (unsigned i=MIN_SPI; i <= _max_interrupt; i++)
-				{
-					_distr.write<Distr::Icdicr::Edge_triggered>(0, i);
-					_distr.write<Distr::Icdipr::Priority>(max_prio, i);
-					_distr.write<Distr::Icdiptr::Cpu_targets>(Distr::Icdiptr::Cpu_targets::ALL, i);
-				}
-
-				/* disable the priority filter */
-				_cpu.write<Cpu::Iccpmr::Priority>(min_prio);
-
-				/* disable preemption of interrupt handling by interrupts */
-				_cpu.write<Cpu::Iccbpr::Binary_point>(
-					Cpu::Iccbpr::Binary_point::NO_PREEMPTION);
-
-				/* enable device */
-				_distr.write<Distr::Icddcr::Enable>(1);
-				_cpu.write<Cpu::Iccicr::Enable>(1);
-			}
-	};
+	class Pic : public Cortex_a9_no_trustzone::Pic { };
 
 	/**
 	 * Kernel timer
 	 */
-	class Timer : public Cortex_a9::Private_timer { };
+	class Timer : public Cortex_a9::Timer { };
 }
 
 #endif /* _CORE__INCLUDE__CORTEX_A9__KERNEL_SUPPORT_H_ */

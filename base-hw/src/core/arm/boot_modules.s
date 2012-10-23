@@ -1,5 +1,5 @@
 /*
- * \brief  Dummy version of a boot modules file to enable a 'core' standalone image
+ * \brief  Dummy boot-modules-file to enable a 'core' standalone image
  * \author Martin Stein
  * \date   2011-12-16
  */
@@ -31,3 +31,4 @@ _boot_module_headers_end:
 
 .global _boot_modules_end
 _boot_modules_end:
+

@@ -1,5 +1,5 @@
 /*
- * \brief   Driver for Cortex A9 section tables as software TLB
+ * \brief   Driver for ARM section tables
  * \author  Martin Stein
  * \date    2012-02-22
  */
@@ -11,20 +11,21 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__CPU__CORTEX_A9__SECTION_TABLE_H_
-#define _INCLUDE__DRIVERS__CPU__CORTEX_A9__SECTION_TABLE_H_
+#ifndef _INCLUDE__ARM__SECTION_TABLE_H_
+#define _INCLUDE__ARM__SECTION_TABLE_H_
 
 /* Genode includes */
 #include <util/register.h>
 #include <base/printf.h>
-#include <cortex_a9/cpu/core.h>
 
-namespace Genode
+namespace Arm
 {
+	using namespace Genode;
+
 	/**
 	 * Check if 'p' is aligned to 1 << 'alignm_log2'
 	 */
-	bool inline aligned(addr_t const a, unsigned long const alignm_log2)
+	inline bool aligned(addr_t const a, unsigned long const alignm_log2)
 	{
 		return a == ((a >> alignm_log2) << alignm_log2);
 	}
@@ -53,7 +54,6 @@ namespace Genode
 		};
 	};
 
-
 	/**
 	 * Permission configuration according to given access rights
 	 *
@@ -77,7 +77,7 @@ namespace Genode
 			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS),
 
 			Ap_1_0::bits(Ap_1_0::USER_NO_ACCESS) |              /* -k */
-			         Ap_2::bits(Ap_2::KERNEL_RO_ACCESS) }, {
+			Ap_2::bits(Ap_2::KERNEL_RO_ACCESS) }, {
 
 			Ap_1_0::bits(Ap_1_0::KERNEL_AND_USER_SAME_ACCESS) | /* w- */
 			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS),
@@ -91,11 +91,11 @@ namespace Genode
 	}
 
 	/**
-	 * Cortex A9 second level translation table
+	 * Second level translation table
 	 *
 	 * A table is dedicated to either secure or non-secure mode. All
-	 * translations done by this table apply domain 0. They are not shareable
-	 * and have zero-filled memory region attributes.
+	 * translations done by this table apply to domain 0. They are not
+	 * shareable and have zero-filled memory region attributes.
 	 */
 	class Page_table
 	{
@@ -198,32 +198,6 @@ namespace Genode
 			};
 
 			/**
-			 * Large page descriptor structure
-			 *
-			 * Must always occur as group of 16 consecutive copies, this groups
-			 * must be aligned on a 16 word boundary (Represents 64KB = 16 *
-			 * Small page size)
-			 */
-			struct Large_page : Descriptor
-			{
-				enum { VIRT_SIZE_LOG2 = _64KB_LOG2,
-					   VIRT_SIZE = 1 << VIRT_SIZE_LOG2,
-					   VIRT_BASE_MASK = ~((1 << VIRT_SIZE_LOG2) - 1) };
-
-				struct B        : Bitfield<2, 1> { };   /* part of the memory region attributes */
-				struct C        : Bitfield<3, 1> { };   /* part of the memory region attributes */
-				struct Ap_1_0   : Bitfield<4, 2>,       /* access permission bits [1:0] */
-				                  Ap_1_0_bitfield { };
-				struct Ap_2     : Bitfield<9, 1>,       /* access permission bits [2] */
-				                  Ap_2_bitfield { };
-				struct S        : Bitfield<10, 1> { };  /* shareable bit */
-				struct Ng       : Bitfield<11, 1> { };  /* not global bit */
-				struct Tex      : Bitfield<12, 3> { };  /* part of the memory region attributes */
-				struct Xn       : Bitfield<15, 1> { };  /* execute never bit */
-				struct Pa_31_16 : Bitfield<16, 16> { }; /* physical address bits [31:16] */
-			};
-
-			/**
 			 * Small page descriptor structure
 			 */
 			struct Small_page : Descriptor
@@ -234,17 +208,17 @@ namespace Genode
 					VIRT_BASE_MASK = ~((1 << VIRT_SIZE_LOG2) - 1)
 				};
 
-				struct Xn       : Bitfield<0, 1> { };   /* execute never bit */
-				struct B        : Bitfield<2, 1> { };   /* part of the memory region attributes */
-				struct C        : Bitfield<3, 1> { };   /* part of the memory region attributes */
-				struct Ap_1_0   : Bitfield<4, 2>,       /* access permission bits [1:0] */
+				struct Xn       : Bitfield<0, 1> { };   /* execute never */
+				struct B        : Bitfield<2, 1> { };   /* mem region attr. */
+				struct C        : Bitfield<3, 1> { };   /* mem region attr. */
+				struct Ap_1_0   : Bitfield<4, 2>,       /* access permission */
 				                  Ap_1_0_bitfield { };
-				struct Tex      : Bitfield<6, 3> { };   /* part of the memory region attributes */
-				struct Ap_2     : Bitfield<9, 1>,       /* access permission bits [2] */
+				struct Tex      : Bitfield<6, 3> { };   /* mem region attr. */
+				struct Ap_2     : Bitfield<9, 1>,       /* access permission */
 				                  Ap_2_bitfield { };
 				struct S        : Bitfield<10, 1> { };  /* shareable bit */
 				struct Ng       : Bitfield<11, 1> { };  /* not global bit */
-				struct Pa_31_12 : Bitfield<12, 20> { }; /* physical address bits [31:12] */
+				struct Pa_31_12 : Bitfield<12, 20> { }; /* physical base */
 			};
 
 			/*
@@ -259,12 +233,11 @@ namespace Genode
 			/**
 			 * Get entry index by virtual offset
 			 *
-			 * \param i   is overridden with the resulting index
+			 * \param i   is overridden with the index if call returns 0
 			 * \param vo  virtual offset relative to the virtual table base
 			 *
 			 * \retval  0  on success
-			 * \retval <0  If virtual offset couldn't be resolved.
-			 *             In this case 'i' reside invalid
+			 * \retval <0  translation failed
 			 */
 			int _index_by_vo (unsigned long & i, addr_t const vo) const
 			{
@@ -286,13 +259,12 @@ namespace Genode
 			Page_table()
 			{
 				/* check table alignment */
-				if (!aligned((addr_t)this, ALIGNM_LOG2)
-				    || (addr_t)this != (addr_t)_entries)
+				if (!aligned((addr_t)this, ALIGNM_LOG2) ||
+				    (addr_t)this != (addr_t)_entries)
 				{
 					PDBG("Insufficient table alignment");
 					while (1) ;
 				}
-
 				/* start with an empty table */
 				for (unsigned i = 0; i <= MAX_INDEX; i++)
 					Descriptor::invalidate(_entries[i]);
@@ -341,9 +313,9 @@ namespace Genode
 				{
 					/* compose new descriptor value */
 					Descriptor::access_t entry =
-						access_permission_bits<Small_page>(w, x, k)
-						| Small_page::Ng::bits(!g)
-						| Small_page::Pa_31_12::masked(pa);
+						access_permission_bits<Small_page>(w, x, k) |
+						Small_page::Ng::bits(!g) |
+						Small_page::Pa_31_12::masked(pa);
 					Descriptor::type(entry, Descriptor::SMALL_PAGE);
 
 					/* check if we can we write to the targeted entry */
@@ -375,7 +347,7 @@ namespace Genode
 			 *              represented by this table
 			 * \param size  region size
 			 */
-			void remove_region (addr_t const vo, size_t const size)
+			void remove_region(addr_t const vo, size_t const size)
 			{
 				/* traverse all possibly affected entries */
 				addr_t residual_vo = vo;
@@ -389,30 +361,28 @@ namespace Genode
 					if (_index_by_vo(i, residual_vo)) return;
 
 					/* update current entry and recalculate residual region */
-					switch (Descriptor::type(_entries[i]))
-					{
-					case Descriptor::FAULT:
-					{
+					switch (Descriptor::type(_entries[i])) {
+
+					case Descriptor::FAULT: {
+
 						residual_vo = (residual_vo & Fault::VIRT_BASE_MASK)
 						              + Fault::VIRT_SIZE;
-						break;
-					}
-					case Descriptor::SMALL_PAGE:
-					{
+						break; }
+
+					case Descriptor::SMALL_PAGE: {
+
 						residual_vo = (residual_vo & Small_page::VIRT_BASE_MASK)
 						              + Small_page::VIRT_SIZE;
 						Descriptor::invalidate(_entries[i]);
-						break;
-					}
-					case Descriptor::LARGE_PAGE:
-					{
+						break; }
+
+					case Descriptor::LARGE_PAGE: {
+
 						PDBG("Removal of large pages not implemented");
 						while (1) ;
-						break;
-					}
+						break; }
 					}
 				}
-				return;
 			}
 
 			/**
@@ -429,13 +399,13 @@ namespace Genode
 	} __attribute__((aligned(1<<Page_table::ALIGNM_LOG2)));
 
 	/**
-	 * Cortex A9 first level translation table
+	 * First level translation table
 	 *
 	 * A table is dedicated to either secure or non-secure mode. All
-	 * translations done by this table apply domain 0. They are not shareable
-	 * and have zero-filled memory region attributes. The size of this table is
-	 * fixed to such a value that this table translates a space wich is
-	 * addressable by 32 bit.
+	 * translations done by this table apply to domain 0. They are not
+	 * shareable and have zero-filled memory region attributes. The size
+	 * of this table is fixed to such a value that this table translates
+	 * a space wich is addressable by 32 bit.
 	 */
 	class Section_table
 	{
@@ -443,6 +413,8 @@ namespace Genode
 			_16KB_LOG2 = 14,
 			_1MB_LOG2 = 20,
 			_16MB_LOG2 = 24,
+
+			DOMAIN = 0,
 		};
 
 		public:
@@ -458,11 +430,9 @@ namespace Genode
 
 				MAX_COSTS_PER_TRANSLATION = sizeof(Page_table),
 
-				MAX_TRANSL_SIZE_LOG2 = 20,
-				MIN_TRANSL_SIZE_LOG2 = 12,
+				MAX_PAGE_SIZE_LOG2 = 20,
+				MIN_PAGE_SIZE_LOG2 = 12,
 			};
-
-		protected:
 
 			/**
 			 * A first level translation descriptor
@@ -474,8 +444,8 @@ namespace Genode
 				 */
 				enum Type { FAULT, PAGE_TABLE, SECTION, SUPERSECTION };
 
-				struct Type_1 : Bitfield<0, 2> { };  /* entry type encoding 1 */
-				struct Type_2 : Bitfield<18, 1> { }; /* entry type encoding 2 */
+				struct Type_1 : Bitfield<0, 2> { };  /* entry type code 1 */
+				struct Type_2 : Bitfield<18, 1> { }; /* entry type code 2 */
 
 				/**
 				 * Get descriptor type of 'v'
@@ -538,43 +508,23 @@ namespace Genode
 			 */
 			struct Page_table_descriptor : Descriptor
 			{
-				struct Ns       : Bitfield<3, 1> { };   /* non-secure bit */
-				struct Domain   : Bitfield<5, 4> { };   /* domain field */
-				struct Pa_31_10 : Bitfield<10, 22> { }; /* physical address bits [31:10] */
+				struct Domain   : Bitfield<5, 4> { };   /* domain */
+				struct Pa_31_10 : Bitfield<10, 22> { }; /* physical base */
+
+				/**
+				 * Compose descriptor value
+				 */
+				static access_t create(Page_table * const pt)
+				{
+						access_t v = Domain::bits(DOMAIN) |
+						             Pa_31_10::masked((addr_t)pt);
+						Descriptor::type(v, Descriptor::PAGE_TABLE);
+						return v;
+				}
 			};
 
 			/**
-			 * Supersection-descriptor structure
-			 *
-			 * Must always occur as group of 16 consecutive copies, this groups
-			 * must be aligned on a 16 word boundary.
-			 */
-			struct Supersection : Descriptor
-			{
-				enum {
-					VIRT_SIZE_LOG2 = _16MB_LOG2,
-					VIRT_SIZE = 1 << VIRT_SIZE_LOG2,
-					VIRT_BASE_MASK = ~((1 << VIRT_SIZE_LOG2) - 1)
-				};
-
-				struct B        : Bitfield<2, 1> { };  /* part of the memory region attributes */
-				struct C        : Bitfield<3, 1> { };  /* part of the memory region attributes */
-				struct Xn       : Bitfield<4, 1> { };  /* execute never bit */
-				struct Pa_39_36 : Bitfield<5, 4> { };  /* extendend physical address bits [39:36] */
-				struct Ap_1_0   : Bitfield<10, 2>,     /* access permission bits [1:0] */
-				                  Ap_1_0_bitfield { };
-				struct Tex      : Bitfield<12, 3> { }; /* part of the memory region attributes */
-				struct Ap_2     : Bitfield<15, 1>,     /* access permission bits [2] */
-				                  Ap_2_bitfield { };
-				struct S        : Bitfield<16, 1> { }; /* shareable bit */
-				struct Ng       : Bitfield<17, 1> { }; /* not global bit */
-				struct Ns       : Bitfield<19, 1> { }; /* non-secure bit */
-				struct Pa_35_32 : Bitfield<20, 4> { }; /* extendend physical address bits [35:32] */
-				struct Pa_31_24 : Bitfield<24, 8> { }; /* physical address bits [31:24] */
-			};
-
-			/**
-			 * Section-descriptor structure
+			 * Section translation descriptor
 			 */
 			struct Section : Descriptor
 			{
@@ -584,28 +534,41 @@ namespace Genode
 					VIRT_BASE_MASK = ~((1 << VIRT_SIZE_LOG2) - 1)
 				};
 
-				struct B        : Bitfield<2, 1> { }; /* part of the memory region attributes */
-				struct C        : Bitfield<3, 1> { }; /* part of the memory region attributes */
-				struct Xn       : Bitfield<4, 1> { }; /* execute never bit */
-				struct Domain   : Bitfield<5, 4> { }; /* domain field */
-				struct Ap_1_0   : Bitfield<10, 2>,    /* access permission bits [1:0] */
+				struct B        : Bitfield<2, 1> { };   /* mem. region attr. */
+				struct C        : Bitfield<3, 1> { };   /* mem. region attr. */
+				struct Xn       : Bitfield<4, 1> { };   /* execute never bit */
+				struct Domain   : Bitfield<5, 4> { };   /* domain */
+				struct Ap_1_0   : Bitfield<10, 2>,      /* access permission */
 				                  Ap_1_0_bitfield { };
-				struct Tex      : Bitfield<12, 3> { }; /* part of the memory region attributes */
-				struct Ap_2     : Bitfield<15, 1>,     /* access permission bits [2] */
+				struct Tex      : Bitfield<12, 3> { };  /* mem. region attr. */
+				struct Ap_2     : Bitfield<15, 1>,      /* access permission */
 				                  Ap_2_bitfield { };
-				struct S        : Bitfield<16, 1> { };  /* shareable bit */
-				struct Ng       : Bitfield<17, 1> { };  /* not global bit */
-				struct Ns       : Bitfield<19, 1> { };  /* non-secure bit */
-				struct Pa_31_20 : Bitfield<20, 12> { }; /* physical address bits [31:20] */
+				struct S        : Bitfield<16, 1> { };  /* shared */
+				struct Ng       : Bitfield<17, 1> { };  /* not global */
+				struct Pa_31_20 : Bitfield<20, 12> { }; /* physical base */
+
+				/**
+				 * Compose descriptor value
+				 */
+				static access_t create(bool const w, bool const x,
+				                       bool const k, bool const g,
+				                       addr_t const pa)
+				{
+					access_t v = access_permission_bits<Section>(w, x, k) |
+					             Domain::bits(DOMAIN) |
+					             Ng::bits(!g) |
+					             Pa_31_20::masked(pa);
+					Descriptor::type(v, Descriptor::SECTION);
+					return v;
+				}
 			};
+
+		protected:
 
 			/* table payload, must be the first member of this class */
 			Descriptor::access_t _entries[SIZE/sizeof(Descriptor::access_t)];
 
 			enum { MAX_INDEX = sizeof(_entries) / sizeof(_entries[0]) - 1 };
-
-			/* if this table dedicated to secure mode or to non-secure mode */
-			bool _secure;
 
 			/**
 			 * Get entry index by virtual offset
@@ -628,18 +591,17 @@ namespace Genode
 		public:
 
 			/**
-			 * Constructor for a table that adopts current secure mode status
+			 * Constructor
 			 */
-			Section_table() : _secure(Cortex_a9::secure_mode_active())
+			Section_table()
 			{
-				/* check table alignment */
+				/* check for appropriate positioning of the table */
 				if (!aligned((addr_t)this, ALIGNM_LOG2)
 				    || (addr_t)this != (addr_t)_entries)
 				{
 					PDBG("Insufficient table alignment");
 					while (1) ;
 				}
-
 				/* start with an empty table */
 				for (unsigned i = 0; i <= MAX_INDEX; i++)
 					Descriptor::invalidate(_entries[i]);
@@ -657,6 +619,8 @@ namespace Genode
 			/**
 			 * Insert one atomic translation into this table
 			 *
+			 * \param ST           platform specific section-table type
+			 * \param st           platform specific section table
 			 * \param vo           offset of the virtual region represented
 			 *                     by the translation within the virtual
 			 *                     region represented by this table
@@ -691,19 +655,23 @@ namespace Genode
 			 * spans the the same virtual range and is not a link to another
 			 * table level.
 			 */
+			template <typename ST>
 			unsigned long insert_translation(addr_t const vo, addr_t const pa,
 			                                 unsigned long const size_log2,
 			                                 bool const w, bool const x,
 			                                 bool const k, bool const g,
+			                                 ST * const st,
 			                                 void * const extra_space = 0)
 			{
+				typedef typename ST::Section Section;
+				typedef typename ST::Page_table_descriptor Page_table_descriptor;
+
 				/* validate virtual address */
 				unsigned long i;
 				if (_index_by_vo (i, vo)) {
 					PDBG("Invalid virtual offset");
 					while (1) ;
 				}
-
 				/* select descriptor type by translation size */
 				if (size_log2 < Section::VIRT_SIZE_LOG2)
 				{
@@ -723,11 +691,9 @@ namespace Genode
 						}
 						/* create and link page table */
 						pt = new (extra_space) Page_table();
-						_entries[i] = Page_table_descriptor::Ns::bits(!_secure)
-						              | Page_table_descriptor::Pa_31_10::masked((addr_t)pt);
-						Descriptor::type(_entries[i], Descriptor::PAGE_TABLE);
+						_entries[i] = Page_table_descriptor::create(pt, st);
 					}
-					/* Request additional memory to create a page table */
+					/* request additional memory to create a page table */
 					else return Page_table::SIZE_LOG2;
 
 					/* insert translation */
@@ -738,12 +704,8 @@ namespace Genode
 				if (size_log2 == Section::VIRT_SIZE_LOG2)
 				{
 					/* compose section descriptor */
-					Descriptor::access_t entry =
-						access_permission_bits<Section>(w, x, k)
-						| Section::Ns::bits(!_secure)
-						| Section::Ng::bits(!g)
-						| Section::Pa_31_20::masked(pa);
-					Descriptor::type(entry, Descriptor::SECTION);
+					Descriptor::access_t entry = Section::create(w, x, k,
+					                                             g, pa, st);
 
 					/* check if we can we write to the targeted entry */
 					if (Descriptor::valid(_entries[i]))
@@ -774,7 +736,7 @@ namespace Genode
 			 *              represented by this table
 			 * \param size  region size
 			 */
-			void remove_region (addr_t const vo, size_t const size)
+			void remove_region(addr_t const vo, size_t const size)
 			{
 				/* traverse all possibly affected entries */
 				addr_t residual_vo = vo;
@@ -806,7 +768,7 @@ namespace Genode
 						                     - Section::Pa_31_20::masked(residual_vo);
 						pt->remove_region(pt_vo, residual_size);
 
-						/* Recalculate residual region */
+						/* recalculate residual region */
 						residual_vo = (residual_vo & Page_table::VIRT_BASE_MASK)
 						              + Page_table::VIRT_SIZE;
 						break;
@@ -834,6 +796,7 @@ namespace Genode
 			 * \param base  base of regained mem portion if method returns 1
 			 * \param s     size of regained mem portion if method returns 1
 			 *
+			 * \retval 1  successfully regained memory
 			 * \retval 0  no more memory to regain
 			 */
 			bool regain_memory (void * & base, size_t & s)
@@ -860,5 +823,5 @@ namespace Genode
 	} __attribute__((aligned(1<<Section_table::ALIGNM_LOG2)));
 }
 
-#endif /* _INCLUDE__DRIVERS__CPU__CORTEX_A9__SECTION_TABLE_H_ */
+#endif /* _INCLUDE__ARM__SECTION_TABLE_H_ */
 
