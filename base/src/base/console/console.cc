@@ -60,6 +60,9 @@ class Format_command
 		int    base;           /* base of numeric arguments               */
 		int    zeropad   : 1;  /* pad with zero instead of space          */
 		int    uppercase : 1;  /* use upper case for hex numbers          */
+		int    leftjustify : 1;/* left justify instead of right (default) */
+		int    plussign  : 1;  /* show plus sign of positive result       */
+		int    hexprefix : 1;  /* show 0, 0x, 0X for 'o', 'x' or 'X'      */
 		int    consumed;       /* nb of consumed format string characters */
 
 		/**
@@ -78,6 +81,21 @@ class Format_command
 			/* check for command begin and eat the character */
 			if (format[consumed] != '%') return;
 			if (!format[++consumed]) return;
+
+			/* left justify output (right justification is default) */
+			leftjustify = (format[consumed] == '-');
+			if (leftjustify)
+				consumed ++;
+
+			/* print '+' sign for positive values */
+			plussign   = (format[consumed] == '+');
+			if (plussign)
+				consumed ++;
+
+			/* print '0x' when used with 'x' */
+			hexprefix  = (format[consumed] == '#');
+			if (hexprefix)
+				consumed ++;
 
 			/* heading zero indicates zero-padding */
 			zeropad = (format[consumed] == '0');
@@ -160,7 +178,8 @@ static char ascii(int digit, int uppercase = 0)
  * Output signed value with the specified base
  */
 template <typename T>
-void Console::_out_signed(T value, unsigned base)
+void Console::_out_signed(T value, unsigned base, int pad, bool zeropad,
+                          bool leftjustify, bool plussign, bool uppercase)
 {
 	/**
 	 * for base 8, the number of digits is the number of value bytes times 3
@@ -178,21 +197,49 @@ void Console::_out_signed(T value, unsigned base)
 	int i = 0;
 
 	/* handle zero as special case */
-	if (value == 0)
+	if (value == 0) {
 		buf[i++] = ascii(0);
+		pad--;
+	}
 
 	/* fill buffer starting with the least significant digits */
 	else
-		for (; value > 0; value /= base)
-			buf[i++] = ascii(value % base);
+		for (; value > 0; value /= base, pad--)
+			buf[i++] = ascii(value % base, uppercase);
 
-	/* add sign to buffer for negative values */
-	if (neg)
+	/* add sign to buffer for negative zero padded values */
+	if (neg) {
+		if (zeropad || leftjustify)
+			_out_char('-');
+		pad--;
+	}
+	/* add plus sign to buffer if requested for positive values */
+	if (plussign && !neg) {
+		if (zeropad || leftjustify)
+			_out_char('+');
+		pad--;
+	}
+
+	/* add padding zeros */
+	if (zeropad || !leftjustify)
+		for (; pad-- > 0; )
+			_out_char(zeropad ? ascii(0) : ' ');
+
+	/* add sign to buffer for negative -not zero padded- values */
+	if (!leftjustify && neg && !zeropad)
 		_out_char('-');
+	/* add sign to buffer for positive -not zero padded- values */
+	if (!leftjustify && plussign && !neg && !zeropad)
+		_out_char('+');
 
 	/* output buffer in reverse order */
 	for (; i--; )
 		_out_char(buf[i]);
+
+	/* add subsequent spaces if left justified */
+	if (leftjustify && !zeropad)
+		for (; pad-- > 0; )
+			_out_char(' ');
 }
 
 
@@ -200,7 +247,8 @@ void Console::_out_signed(T value, unsigned base)
  * Output unsigned value with the specified base and padding
  */
 template <typename T>
-void Console::_out_unsigned(T value, unsigned base, int pad)
+void Console::_out_unsigned(T value, unsigned base, int pad, bool zeropad,
+                            bool leftjustify, bool prefix, bool uppercase)
 {
 	/**
 	 * for base 8, the number of digits is the number of value bytes times 3
@@ -218,16 +266,40 @@ void Console::_out_unsigned(T value, unsigned base, int pad)
 	}
 
 	/* fill buffer starting with the least significant digits */
-	for (; value > 0; value /= base, pad--)
-		buf[i++] = ascii(value % base);
+	else
+		for (; value > 0; value /= base, pad--)
+			buf[i++] = ascii(value % base, uppercase);
+
+	if (prefix)
+		pad -= base > 8 ? 2 : 1;
+
+	/* add hex prefix if left justified or zero padded */
+	if (prefix && (zeropad || leftjustify)) {
+		_out_char('0');
+		if (base > 8)
+			_out_char(uppercase ? 'X' : 'x');
+	}
 
 	/* add padding zeros */
-	for (; pad-- > 0; )
-		_out_char(ascii(0));
+	if (zeropad || !leftjustify)
+		for (; pad-- > 0; )
+			_out_char(zeropad ? ascii(0) : ' ');
+
+	/* add hex prefix if right justified and non zero padded */
+	if (prefix && !zeropad && !leftjustify) {
+		_out_char('0');
+		if (base > 8)
+			_out_char(uppercase ? 'X' : 'x');
+	}
 
 	/* output buffer in reverse order */
 	for (; i--; )
 		_out_char(buf[i]);
+
+	/* add subsequent spaces if left justified */
+	if (leftjustify && !zeropad)
+		for (; pad-- > 0; )
+			_out_char(' ');
 }
 
 
@@ -270,7 +342,8 @@ void Console::vprintf(const char *format, va_list list)
 
 				case Format_command::LONG_LONG:
 
-					numeric_arg = va_arg(list, long long);
+					numeric_arg = (cmd.type == Format_command::UINT) ?
+						(long long)va_arg(list, unsigned long long) : va_arg(list, long long);
 					break;
 
 				case Format_command::LONG:
@@ -298,15 +371,23 @@ void Console::vprintf(const char *format, va_list list)
 			case Format_command::INT:
 
 				if (cmd.length == Format_command::LONG_LONG)
-					_out_signed<long long>(numeric_arg, cmd.base);
+					_out_signed<long long>(numeric_arg, cmd.base, cmd.padding,
+					                       cmd.zeropad, cmd.leftjustify,
+					                       cmd.plussign, cmd.uppercase);
 				else
-					_out_signed<long>(numeric_arg, cmd.base);
+					_out_signed<long>(numeric_arg, cmd.base, cmd.padding,
+					                  cmd.zeropad, cmd.leftjustify,
+					                  cmd.plussign, cmd.uppercase);
 				break;
 
 			case Format_command::UINT:
 
 				if (cmd.length == Format_command::LONG_LONG) {
-					_out_unsigned<unsigned long long>(numeric_arg, cmd.base, cmd.padding);
+					_out_unsigned<unsigned long long>(numeric_arg, cmd.base,
+					                                  cmd.padding, cmd.zeropad,
+					                                  cmd.leftjustify,
+					                                  cmd.hexprefix,
+					                                  cmd.uppercase);
 					break;
 				}
 
@@ -314,7 +395,10 @@ void Console::vprintf(const char *format, va_list list)
 
 			case Format_command::PTR:
 
-				_out_unsigned<unsigned long>(numeric_arg, cmd.base, cmd.padding);
+				_out_unsigned<unsigned long>(numeric_arg, cmd.base,
+				                             cmd.padding, cmd.zeropad,
+				                             cmd.leftjustify, cmd.hexprefix,
+				                             cmd.uppercase);
 				break;
 
 			case Format_command::CHAR:
