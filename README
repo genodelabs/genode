@@ -147,8 +147,13 @@ The Genode source tree is composed of the following subdirectories:
 
 :'dde_ipxe':
 
-  This source-code repository contains the device driver environment for
+  This source-code repository contains the device-driver environment for
   executing drivers of the iPXE project.
+
+:'dde_oss':
+
+  This source-code repository contains the device-driver environment for the
+  audio drivers of the Open Sound System (OSS).
 
 :'qt4':
 

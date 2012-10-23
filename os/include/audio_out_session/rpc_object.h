@@ -25,7 +25,7 @@ namespace Audio_out {
 
 	class Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_object>
 	{
-		private:
+		protected:
 
 			Packet_stream_tx::Rpc_object<Channel> _channel;
 

@@ -16,6 +16,11 @@
 #REPOSITORIES += $(GENODE_DIR)/linux_drivers
 
 #
+# Drivers ported from the Open Sound System
+#
+#REPOSITORIES += $(GENODE_DIR)/dde_oss
+
+#
 # Drivers ported from iPXE
 #
 #REPOSITORIES += $(GENODE_DIR)/dde_ipxe
