@@ -68,8 +68,13 @@ class Irq_handler : Dde_kit::Thread, public Avl_node<Irq_handler>
 		:
 			Dde_kit::Thread(_compose_thread_name(irq)), _irq_number(irq),
 			_irq(irq), _handler(handler), _init(init), _priv(priv),
-			_shared(shared), _handle_irq(1)
-		{ start(); }
+			_shared(shared), _handle_irq(1), _lock(Lock::LOCKED)
+		{
+			start();
+
+			/* wait until thread is started */
+			Lock::Guard guard(_lock);
+		}
 
 		/** Enable IRQ handling */
 		void enable()
@@ -92,6 +97,9 @@ class Irq_handler : Dde_kit::Thread, public Avl_node<Irq_handler>
 
 			/* call user init function before doing anything else here */
 			if (_init) _init(_priv);
+
+			/* unblock creating thread */
+			_lock.unlock();
 
 			while (1) {
 				_irq.wait_for_irq();
