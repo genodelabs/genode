@@ -47,7 +47,9 @@ namespace Genode
 			EMIF1_EMIF2_CS0_SDRAM_BASE = 0x80000000,
 			EMIF1_EMIF2_CS0_SDRAM_SIZE = 0x40000000,
 
+			/* misc */
 			SECURITY_EXTENSION = 0,
+			SYS_CLK            = 38400000,
 		};
 	};
 }

@@ -5,12 +5,13 @@
 #
 
 # denote wich specs are also fullfilled by this spec
-SPECS += cortex_a9 tl16c750 omap44xx
+SPECS += cortex_a9 tl16c750 omap4 platform_panda
 
 # add repository relative include paths
 REP_INC_DIR += include/platform/panda_a2
 
 # include implied specs
+include $(call select_from_repositories,mk/spec-platform_panda.mk)
 include $(call select_from_repositories,mk/spec-cortex_a9.mk)
 include $(call select_from_repositories,mk/spec-tl16c750.mk)
 

@@ -895,7 +895,7 @@ namespace Kernel
 				/* update current entry */
 				ENTRY_T * e = _entries.head();
 				if (!e) {
-					t = _idle->Entry::_time;
+					t = _lap_time;
 					return _idle;
 				}
 				e->Entry::_consume(t);
@@ -1422,7 +1422,7 @@ namespace Kernel
 			void add_pending_context(Signal_context * const c)
 			{
 				assert(c->_receiver == this);
-				_pending_contexts.enqueue(c);
+				if(!c->is_enqueued()) _pending_contexts.enqueue(c);
 				_listen();
 			}
 	};

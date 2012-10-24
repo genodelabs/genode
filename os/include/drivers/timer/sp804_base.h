@@ -169,8 +169,8 @@ namespace Genode
 			/**
 			 * Translate microseconds to a native timer value
 			 */
-			static unsigned long us_to_tics(unsigned long const tics) {
-				return tics / TICS_PER_US; }
+			static unsigned long us_to_tics(unsigned long const us) {
+				return us * TICS_PER_US; }
 
 			/**
 			 * Translate native timer value to microseconds
