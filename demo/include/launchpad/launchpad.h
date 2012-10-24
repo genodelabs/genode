@@ -42,7 +42,7 @@ class Launchpad_child_policy : public Init::Traditional_child_policy
 		:
 			Init::Traditional_child_policy(name, server, parent_services,
 			                               child_services, config_ds,
-			                               binary_ds, 0, 0, parent_entrypoint)
+			                               binary_ds, 0, 0, 0, parent_entrypoint)
 		{ }
 
 		Genode::Service *resolve_session_request(const char *service_name,

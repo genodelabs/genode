@@ -10,7 +10,7 @@ if {![have_spec linux]} { puts "Run script requires Linux"; exit 0 }
 # Build
 #
 
-build { core init app/chroot drivers/timer/linux test/timer
+build { core init drivers/timer/linux test/timer
         server/loader test/chroot_loader }
 
 if {[catch { exec which setcap }]} {
@@ -62,12 +62,9 @@ proc chroot_path { id } { return "/tmp/chroot-test-$id" }
 
 proc chroot_cwd_path { id } { return "[chroot_path $id][pwd]/[run_dir]" }
 
-proc chroot_genode_tmp_path { id } { return "[chroot_path $id]/tmp/genode-[exec id -u]" }
-
 proc cleanup_chroot { } {
 	foreach id { 1 2 } {
 		catch { exec sudo umount -l [chroot_cwd_path $id] }
-		catch { exec sudo umount -l [chroot_genode_tmp_path $id] }
 		catch { exec sudo umount -l [chroot_path $id]/lib }
 		catch { exec sudo umount -l [chroot_path $id]/lib64 }
 		catch { exec rm -rf [chroot_path $id] }
@@ -88,16 +85,16 @@ install_config $config
 # run directory into the chroot environment. If the directory entries
 # were symlinks, those would point to nowhere within the chroot.
 #
-foreach binary { core init chroot timer loader test-chroot_loader test-timer} {
+foreach binary { core init timer loader test-chroot_loader test-timer} {
 	exec cp -H  bin/$binary [run_dir] }
 
 #
-# Grant chroot permission to 'chroot' tool
+# Grant chroot permission to 'core'
 #
 # CAP_SYS_ADMIN is needed for bind mounting genode runtime directories
 # CAP_SYS_CHROOT is needed to perform the chroot syscall
 #
-exec sudo setcap cap_sys_admin,cap_sys_chroot=ep [run_dir]/chroot
+exec sudo setcap cap_sys_admin,cap_sys_chroot=ep [run_dir]/core
 
 #
 # Setup chroot environment
@@ -129,7 +126,7 @@ if {[regexp -all -- {--- timer test ---} $output] != 6} {
 	exit 2
 }
 
-if {![regexp -- {chroot-1 -> test-timer] wait 2/10} $output]} {
+if {![regexp -- {init-1 -> test-timer] wait 2/10} $output]} {
 	puts stderr "Long-running timer test has made too little progress"
 	exit 3
 }

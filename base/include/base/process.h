@@ -58,7 +58,7 @@ namespace Genode {
 			 * \param parent        parent of the new protection domain
 			 * \param name          name of protection domain (can be used
 			 *                      in debugging)
-			 * \param argv          not used
+			 * \param root          optional chroot path (only on Linux)
 			 *
 			 * The dataspace 'elf_data_ds' can be read-only.
 			 *
@@ -70,8 +70,8 @@ namespace Genode {
 			        Cpu_session_capability  cpu_session,
 			        Rm_session_capability   rm_session,
 			        Parent_capability       parent,
-			        const char             *name,
-			        char *const             argv[]);
+			        char const             *name,
+			        char const             *root = "");
 
 			/**
 			 * Destructor

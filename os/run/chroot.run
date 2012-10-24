@@ -10,7 +10,7 @@ if {![have_spec linux]} { puts "Run script requires Linux"; exit 0 }
 # Build
 #
 
-build { core init app/chroot drivers/timer/linux test/timer }
+build { core init drivers/timer/linux test/timer }
 
 if {[catch { exec which setcap }]} {
 	puts stderr "Error: setcap not available, please install the libcap2-bin package"
@@ -42,27 +42,8 @@ set config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="chroot">
+		<start name="test-timer" root="chroot_path">
 			<resource name="RAM" quantum="1G"/>
-			<config verbose="yes">
-				<root path="chroot_path" />
-				<parent-provides>
-					<service name="ROM"/>
-					<service name="LOG"/>
-					<service name="CAP"/>
-					<service name="RAM"/>
-					<service name="CPU"/>
-					<service name="RM"/>
-					<service name="PD"/>
-					<service name="Timer"/>
-				</parent-provides>
-				<default-route>
-					<any-service> <parent/> </any-service>
-				</default-route>
-				<start name="test-timer">
-					<resource name="RAM" quantum="1G"/>
-				</start>
-			</config>
 		</start>
 	</config>
 }
@@ -91,16 +72,16 @@ install_config $config
 # run directory into the chroot environment. If the directory entries
 # were symlinks, those would point to nowhere within the chroot.
 #
-foreach binary { core init chroot timer test-timer } {
+foreach binary { core init timer test-timer } {
 	exec cp -H  bin/$binary [run_dir] }
 
 #
-# Grant chroot permission to 'chroot' tool
+# Grant chroot permission to core
 #
 # CAP_SYS_ADMIN is needed for bind mounting genode runtime directories
 # CAP_SYS_CHROOT is needed to perform the chroot syscall
 #
-exec sudo setcap cap_sys_admin,cap_sys_chroot=ep [run_dir]/chroot
+exec sudo setcap cap_sys_admin,cap_sys_chroot=ep [run_dir]/core
 
 #
 # Setup chroot environment
@@ -111,8 +92,8 @@ cleanup_chroot
 exec mkdir -p [chroot_path]
 exec mkdir -p [chroot_path]/lib
 
-# bind mount '/lib' as need libc within the chroot environment
-exec sudo mount --bind /lib [chroot_path]/lib
+# bind mount '/lib' as we need ldso and libc within the chroot environment
+exec sudo mount --bind /lib  [chroot_path]/lib
 
 #
 # Execute test case

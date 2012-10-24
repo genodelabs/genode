@@ -27,10 +27,12 @@ namespace Genode {
 	{
 		private:
 
-			enum { LABEL_MAX_LEN = 1024 };
+			enum { LABEL_MAX_LEN     = 1024 };
+			enum { ROOT_PATH_MAX_LEN =  512 };
 
 			unsigned long      _pid;
 			char               _label[LABEL_MAX_LEN];
+			char               _root[ROOT_PATH_MAX_LEN];
 			Parent_capability  _parent;
 			Rpc_entrypoint    *_ds_ep;
 

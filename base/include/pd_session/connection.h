@@ -25,10 +25,15 @@ namespace Genode {
 		 * Constructor
 		 *
 		 * \param label  session label
+		 * \param root   chroot path (only on Linux)
 		 */
-		Pd_connection(const char *label = "")
+		Pd_connection(char const *label = "", char const *root = "")
 		:
-			Connection<Pd_session>(session("ram_quota=4K, label=\"%s\"", label)),
+			Connection<Pd_session>(session("ram_quota=4K, label=\"%s\"%s%s%s",
+			                               label,
+			                               (root && root[0]) ? ", root=\"" : "",
+			                               (root && root[0]) ? root        : "",
+			                               (root && root[0]) ? "\""        : "")),
 			Pd_session_client(cap())
 		{ }
 	};

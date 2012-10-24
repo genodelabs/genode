@@ -41,8 +41,8 @@ namespace Loader {
 		void view_ready_sigh(Signal_context_capability sigh) {
 			call<Rpc_view_ready_sigh>(sigh); }
 
-		void start(Name const &binary, Name const &label = "") {
-			call<Rpc_start>(binary, label); }
+		void start(Name const &binary, Name const &label = "", Path const &root = "") {
+			call<Rpc_start>(binary, label, root); }
 
 		Nitpicker::View_capability view() {
 			return call<Rpc_view>(); }

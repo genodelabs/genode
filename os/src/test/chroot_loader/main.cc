@@ -48,14 +48,11 @@ static char const *chroot_path_of_dynamic_test()
  **********/
 
 /**
- * Return format string used as template for the subsystem configuration.
- *
- * Note the format-string argument used for inserting the chroot path.
+ * Return subsystem configuration.
  */
-static char const *config_template()
+static char const *subsystem_config()
 {
 	return "<config verbose=\"yes\">\n"
-	       "  <root path=\"%s\" />\n"
 	       "  <parent-provides>\n"
 	       "    <service name=\"ROM\"/>\n"
 	       "    <service name=\"LOG\"/>\n"
@@ -90,7 +87,7 @@ class Chroot_subsystem
 		/**
 		 * Import data as ROM module into the subsystem-specific ROM service
 		 */
-		void _import_rom_module(char const *name, void *ptr, Genode::size_t size)
+		void _import_rom_module(char const *name, void const *ptr, Genode::size_t size)
 		{
 			using namespace Genode;
 
@@ -113,20 +110,17 @@ class Chroot_subsystem
 			using namespace Genode;
 
 			/*
-			 * Generate Genode configuration of the new subsystem and import
-			 * it into the subsystem's loader session as a ROM module named
-			 * "config".
+			 * Import subsystem's configuration into the subsystem's loader
+			 * session as a ROM module named "config".
 			 */
-			char buf[strlen(chroot_path) + strlen(config_template()) + 1];
-			snprintf(buf, sizeof(buf), config_template(), chroot_path);
-
-			_import_rom_module("config", buf, strlen(buf) + 1);
+			_import_rom_module("config", subsystem_config(),
+			                   strlen(subsystem_config()) + 1);
 
 			/*
 			 * Name of the Genode binary is start as the root of the new
 			 * subsystem.
 			 */
-			char const *chroot_binary_name = "chroot";
+			char const *binary_name = "init";
 
 			/*
 			 * Generate unique label name using a counter
@@ -136,10 +130,12 @@ class Chroot_subsystem
 			 * for validating the test in the run script.
 			 */
 			static int cnt = 0;
-			snprintf(_label, sizeof(_label), "%s-%d", chroot_binary_name, ++cnt);
+			snprintf(_label, sizeof(_label), "%s-%d", binary_name, ++cnt);
 
 			/* start execution of new subsystem */
-			_loader.start(chroot_binary_name, Loader::Session::Name(_label));
+			_loader.start(binary_name,
+			              Loader::Session::Name(_label),
+			              Loader::Session::Path(chroot_path));
 		}
 };
 

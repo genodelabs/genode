@@ -93,6 +93,11 @@ namespace Genode {
 		 * transfers.
 		 */
 		virtual Ram_session *ref_ram_session() { return env()->ram_session(); }
+
+		/**
+		 * Return root path of the child's PD session (only used on Linux)
+		 */
+		virtual char const *root() const { return ""; }
 	};
 
 

@@ -262,6 +262,29 @@ as LOG output. To enable the verbose mode, assign the value "yes" to the
 'verbose' attribute of the '<config>' node.
 
 
+Executing children in chroot environments on Linux
+==================================================
+
+On the Linux base platform, each process started by init can be assigned to
+a chroot environment by specifying the new root location as 'root' attribute
+to the corresponding '<start>' node. Root environments can be nested. The
+root path of a nested init instance will be appended to the root path of
+the outer instance.
+
+When using the chroot mechanism, core will mirror the current working
+directory within the chroot environment via the a bind mount operation. This
+step is needed to enable execve to obtain the ELF binary of the new process.
+
+In order to use the chroot mechanism when starting Genode's core as a non-root
+user process, the core executable must be equipped with the 'CAP_SYS_ADMIN' and
+'CAP_SYS_CHROOT' capabilities. 'CAP_SYS_ADMIN' is needed for bind mounting.
+'CAP_SYS_CHROOT' is needed to perform the 'chroot' syscall:
+
+! sudo setcap cap_sys_admin,cap_sys_chroot=ep core
+
+For an example of using chroot, please refer to the 'os/run/chroot.run' script.
+
+
 Using the configuration concept
 ###############################
 

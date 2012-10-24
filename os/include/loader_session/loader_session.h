@@ -54,6 +54,7 @@ namespace Loader {
 		};
 
 		typedef Genode::Rpc_in_buffer<64>  Name;
+		typedef Genode::Rpc_in_buffer<128> Path;
 
 		static const char *service_name() { return "Loader"; }
 
@@ -121,7 +122,8 @@ namespace Loader {
 		 * \throw Rom_module_does_not_exist  if the specified binary could
 		 *                                   not obtained as ROM module
 		 */
-		virtual void start(Name const &binary, Name const &label = "") = 0;
+		virtual void start(Name const &binary, Name const &label = "",
+		                   Path const &root = "") = 0;
 
 		/**
 		 * Return first nitpicker view created by the loaded subsystem
@@ -152,7 +154,7 @@ namespace Loader {
 		GENODE_RPC(Rpc_view_ready_sigh, void, view_ready_sigh, Signal_context_capability);
 		GENODE_RPC_THROW(Rpc_start, void, start,
 		                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
-		                 Name const &, Name const &);
+		                 Name const &, Name const &, Path const &);
 		GENODE_RPC_THROW(Rpc_view, Nitpicker::View_capability, view,
 		                 GENODE_TYPE_LIST(View_does_not_exist));
 		GENODE_RPC(Rpc_view_geometry, View_geometry, view_geometry);

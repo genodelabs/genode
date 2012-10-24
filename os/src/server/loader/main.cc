@@ -244,7 +244,7 @@ namespace Loader {
 				_nitpicker_service.view_ready_sigh = sigh;
 			}
 
-			void start(Name const &binary_name, Name const &label)
+			void start(Name const &binary_name, Name const &label, Path const &root)
 			{
 				if (_child) {
 					PWRN("cannot start subsystem twice");
@@ -257,9 +257,10 @@ namespace Loader {
 
 				try {
 					_child = new (&_md_alloc)
-						Child(binary_name.string(), label.string(), _ep,
-						      _ram_session_client, ram_quota, _parent_services,
-						      _rom_service, _nitpicker_service, _width, _height);
+						Child(binary_name.string(), label.string(),
+						      root.string(), _ep, _ram_session_client,
+						      ram_quota, _parent_services, _rom_service,
+						      _nitpicker_service, _width, _height);
 				}
 				catch (Genode::Parent::Service_denied) {
 					throw Rom_module_does_not_exist(); }

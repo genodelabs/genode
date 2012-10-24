@@ -63,6 +63,53 @@ namespace Init {
 	};
 
 
+	/**
+	 * Policy for prepending the chroot path of the child
+	 *
+	 * This policy is effective only on the Linux base platform.
+	 *
+	 * By applying this policy, the chroot path of the child gets supplied
+	 * to PD session requests.
+	 */
+	class Child_policy_prepend_chroot_path
+	{
+		private:
+
+			char const *_root_prefix;
+
+		public:
+
+			Child_policy_prepend_chroot_path(const char *root_prefix)
+			: _root_prefix(root_prefix) { }
+
+			/**
+			 * Filter arguments of session request
+			 *
+			 * This function prepends the '_root' to the 'root' session
+			 * argument of PD sessions initiated through the child (not the
+			 * child's PD session).
+			 */
+			void filter_session_args(const char *session, char *args,
+			                         Genode::size_t args_len)
+			{
+				using namespace Genode;
+
+				if (strcmp(session, "PD") != 0)
+					return;
+
+				char path_buf[Parent::Session_args::MAX_SIZE];
+				Arg_string::find_arg(args, "root").string(path_buf, sizeof(path_buf), "");
+
+				char value_buf[Parent::Session_args::MAX_SIZE];
+				Genode::snprintf(value_buf, sizeof(value_buf),
+				                 "\"%s%s\"",
+				                 _root_prefix, path_buf);
+
+				Arg_string::set_arg(args, args_len, "root", value_buf);
+			}
+	};
+
+
 	class Child_policy_handle_cpu_priorities
 	{
 		/* priority parameters */
@@ -237,6 +284,8 @@ namespace Init {
 			enum { NAME_LEN = 64 };
 			char _name[NAME_LEN];
 
+			char const *_root;
+
 			Genode::Server                    *_server;
 			Genode::Service_registry          *_parent_services;
 			Genode::Service_registry          *_child_services;
@@ -260,8 +309,10 @@ namespace Init {
 			                         Genode::Dataspace_capability binary_ds,
 			                         long                         prio_levels_log2,
 			                         long                         priority,
+			                         char const                  *root,
 			                         Genode::Rpc_entrypoint      *parent_entrypoint)
 			:
+				_root(root),
 				_server(server),
 				_parent_services(parent_services),
 				_child_services(child_services),
@@ -270,8 +321,10 @@ namespace Init {
 				_labeling_policy(_name),
 				_priority_policy(prio_levels_log2, priority),
 				_config_policy("config", config_ds, _parent_entrypoint),
-				_binary_policy("binary", binary_ds, _parent_entrypoint) {
-				Genode::strncpy(_name, name, sizeof(_name)); }
+				_binary_policy("binary", binary_ds, _parent_entrypoint)
+			{
+				Genode::strncpy(_name, name, sizeof(_name));
+			}
 
 			const char *name() const { return _name; }
 

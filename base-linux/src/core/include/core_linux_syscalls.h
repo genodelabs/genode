@@ -90,6 +90,35 @@ inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
 }
 
 
+/*********************
+ ** Chroot handling **
+ *********************/
+
+inline int lx_chroot(const char *path)
+{
+	return lx_syscall(SYS_chroot, path);
+}
+
+
+inline int lx_getcwd(char *dst, size_t dst_len)
+{
+	return lx_syscall(SYS_getcwd, dst, dst_len);
+}
+
+
+inline int lx_bindmount(char const *source, char const *target)
+{
+	enum { MS_BIND = 4096 };
+	return lx_syscall(SYS_mount, source, target, 0, MS_BIND, 0);
+}
+
+
+inline int lx_umount(char const *target)
+{
+	return lx_syscall(SYS_umount, target);
+}
+
+
 /********************************************
  ** Communication over Unix-domain sockets **
  ********************************************/
