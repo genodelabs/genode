@@ -30,6 +30,8 @@
 #include <ram_session_component.h>
 #include <cpu_session_component.h>
 #include <child_policy.h>
+#include <io_receptor_registry.h>
+
 
 namespace Noux {
 
@@ -71,6 +73,11 @@ namespace Noux {
 	 */
 	class User_info;
 	User_info *user_info();
+
+	/**
+	 * Return singleton instance of Io_receptor_registry
+	 */
+	Io_receptor_registry *io_receptor_registry();
 
 	class Child;
 
