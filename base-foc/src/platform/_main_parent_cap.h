@@ -32,8 +32,10 @@ namespace Genode {
 		 * Update local name after a parent capability got reloaded via
 		 * 'Platform_env::reload_parent_cap()'.
 		 */
-		if (i->id() != raw->local_name)
-			i->id(raw->local_name);
+		if (i->id() != raw->local_name) {
+			cap_map()->remove(i);
+			i = cap_map()->insert(raw->local_name, Fiasco::PARENT_CAP);
+		}
 
 		return reinterpret_cap_cast<Parent>(Native_capability(i));
 	}
