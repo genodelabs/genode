@@ -19,6 +19,13 @@ typedef void (*ld_hook)(void);
 static ld_hook _lctors_start[1] SECTION("_mark_ctors_start") = BEG;
 static ld_hook _lctors_end[1]   SECTION("_mark_ctors_end")   = END;
 
+/*
+ * '__dso_handle' needs to be defined in the main program and in each shared
+ * object. Because ld.lib.so is both of them, '__dso_handle' is weak here.
+ */
+void *__dso_handle __attribute__((__visibility__("hidden")))
+                   __attribute__((weak))                     = &__dso_handle;
+
 /* called by dynamic linker on library startup (ld-genode.so) */
 extern "C" {
 	void _init(void) __attribute__((used,section(".init")));
