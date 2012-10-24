@@ -68,6 +68,7 @@ namespace Kernel
 		NEW_SIGNAL_CONTEXT = 21,
 		AWAIT_SIGNAL = 22,
 		SUBMIT_SIGNAL = 23,
+		SIGNAL_PENDING = 27,
 
 		/* vm specific */
 		NEW_VM = 24,
@@ -463,6 +464,15 @@ namespace Kernel
 	 */
 	inline void await_signal(unsigned long receiver_id)
 	{ syscall(AWAIT_SIGNAL, (Syscall_arg)receiver_id); }
+
+
+	/**
+	 * Get summarized state of all contexts of a signal receiver
+	 *
+	 * \param receiver_id  ID of the targeted receiver kernel-object
+	 */
+	inline bool signal_pending(unsigned long receiver_id) {
+		return syscall(SIGNAL_PENDING, (Syscall_arg)receiver_id); }
 
 
 	/**

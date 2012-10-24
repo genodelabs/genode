@@ -62,7 +62,10 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		{ Board::L4_PER_BASE, Board::L4_PER_SIZE },
-		{ Board::L4_CFG_BASE, Board::L4_CFG_SIZE }
+		{ Board::L4_CFG_BASE, Board::L4_CFG_SIZE },
+		{ Board::DSS_MMIO_BASE, Board::DSS_MMIO_SIZE },
+		{ Board::DISPC_MMIO_BASE, Board::DISPC_MMIO_SIZE },
+		{ Board::HDMI_MMIO_BASE, Board::HDMI_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

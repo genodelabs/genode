@@ -46,6 +46,8 @@ class Irq_context : public Driver_context,
 {
 	private:
 
+		typedef Genode::List<Irq_context>::Element LE;
+
 		unsigned int                      _irq;          /* IRQ number */
 		Genode::List<Irq_handler>         _handler_list; /* List of registered handlers */
 		Genode::Signal_context_capability _ctx_cap;      /* capability for this context */
@@ -61,7 +63,8 @@ class Irq_context : public Driver_context,
 		 */
 		static Irq_context *_find_ctx(unsigned int irq)
 		{
-			for (Irq_context *i = _list()->first(); i; i = i->next())
+
+			for (Irq_context *i = _list()->first(); i; i = i->LE::next())
 				if (i->_irq == irq)
 					return i;
 
@@ -172,7 +175,7 @@ class Irq_context : public Driver_context,
 		static bool check_irq()
 		{
 			bool handled = false;
-			for (Irq_context *i = _list()->first(); i; i = i->next())
+			for (Irq_context *i = _list()->first(); i; i = i->LE::next())
 				handled |= i->_handle();
 
 			return handled;

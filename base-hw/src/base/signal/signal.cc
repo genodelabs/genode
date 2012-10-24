@@ -106,6 +106,9 @@ Signal Signal_receiver::wait_for_signal()
 }
 
 
+bool Signal_receiver::pending() { return Kernel::signal_pending(_cap.dst()); }
+
+
 void Signal_receiver::dissolve(Signal_context * const c)
 {
 	/* check if the context is managed by us */

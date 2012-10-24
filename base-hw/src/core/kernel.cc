@@ -1417,6 +1417,11 @@ namespace Kernel
 			}
 
 			/**
+			 * If any of our contexts is pending
+			 */
+			bool pending() { return !_pending_contexts.empty(); }
+
+			/**
 			 * Recognize that one of our contexts was triggered
 			 */
 			void add_pending_context(Signal_context * const c)
@@ -1948,6 +1953,21 @@ namespace Kernel
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
 	 */
+	void do_signal_pending(Thread * const user)
+	{
+		/* lookup receiver */
+		unsigned rid = user->user_arg_2();
+		Signal_receiver * const r = Signal_receiver::pool()->object(rid);
+		assert(r);
+
+		/* set return value */
+		user->user_arg_0(r->pending());
+	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
 	void do_submit_signal(Thread * const user)
 	{
 		/* lookup context */
@@ -2041,6 +2061,7 @@ namespace Kernel
 			/* 24         */ do_new_vm,
 			/* 25         */ do_run_vm,
 			/* 26         */ do_delete_thread,
+			/* 27         */ do_signal_pending,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 

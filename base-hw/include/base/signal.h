@@ -157,6 +157,11 @@ namespace Genode
 			Signal_context_capability manage(Signal_context * const c);
 
 			/**
+			 * If any of our signal contexts is pending
+			 */
+			bool pending();
+
+			/**
 			 * Let a context 'c' no longer be managed by us
 			 */
 			void dissolve(Signal_context * const c);
