@@ -83,8 +83,8 @@ namespace Noux {
 
 			~Rm_session_component()
 			{
-				Region *curr = 0;
-				for (; curr; curr = curr->next())
+				Region *curr;
+				while ((curr = _regions.first()))
 					detach(curr->local_addr);
 			}
 
