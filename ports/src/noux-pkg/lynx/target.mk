@@ -11,7 +11,7 @@ NOUX_CONFIGURE_ARGS = --with-ssl \
 #
 NOUX_CFLAGS += -D__BSD_VISIBLE
 
-LIBS += ncurses zlib libssl libc_resolv
+LIBS += ncurses zlib libssl libcrypto libc_resolv
 
 #
 # Make the zlib linking test succeed
