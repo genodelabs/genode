@@ -410,6 +410,11 @@ inline int lx_create_thread(void (*entry)(void *), void *stack, void *arg)
 
 inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
 {
+	/*
+	 * Prevent children from becoming zombies. (SIG_IGN = 1)
+	 */
+	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
+
 	int flags = CLONE_VFORK | SIGCHLD;
 	return lx_clone((int (*)(void *))entry, stack, flags, arg);
 }
