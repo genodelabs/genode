@@ -1,6 +1,6 @@
 VANCOUVER_REV     = a7f4c2de42247e7a7c6ddb27a48f8a7d93d469ba
 VANCOUVER         = vancouver-git
-VANCOUVER_URL     = git://github.com/TUD-OS/NUL.git
+VANCOUVER_URL     = https://github.com/TUD-OS/NUL.git
 
 #
 # Check for tools
