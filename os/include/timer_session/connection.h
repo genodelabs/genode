@@ -19,20 +19,61 @@
 
 namespace Timer {
 
-	struct Connection : Genode::Connection<Session>, Session_client
+	class Connection : public Genode::Connection<Session>, public Session_client
 	{
-		Connection()
-		:
-			/*
-			 * Because the timer service uses one thread per timer session,
-			 * we donate two pages. One of them is used as stack for the
-			 * timer thread and the other page holds the session meta data.
-			 */
-			Genode::Connection<Session>(session("ram_quota=%zd",
-			                                    sizeof(Genode::addr_t)*2048)),
+		private:
 
-			Session_client(cap())
-		{ }
+			Lock                      _lock;
+			Signal_receiver           _sig_rec;
+			Signal_context            _default_sigh_ctx;
+			Signal_context_capability _default_sigh_cap;
+			Signal_context_capability _custom_sigh_cap;
+
+		public:
+
+			Connection()
+			:
+				Genode::Connection<Session>(session("ram_quota=8K")),
+				Session_client(cap()),
+				_default_sigh_cap(_sig_rec.manage(&_default_sigh_ctx))
+			{
+				/* register default signal handler */
+				sigh(_default_sigh_cap);
+			}
+
+			~Connection() { _sig_rec.dissolve(&_default_sigh_ctx); }
+
+			/*
+			 * Intercept 'sigh' to keep track of customized signal handlers
+			 */
+			void sigh(Signal_context_capability sigh)
+			{
+				_custom_sigh_cap = sigh;
+				Session_client::sigh(_custom_sigh_cap);
+			}
+
+			void usleep(unsigned us)
+			{
+				/* serialize sleep calls issued by different threads */
+				Lock::Guard guard(_lock);
+
+				/* temporarily install to the default signal handler */
+				if (_custom_sigh_cap.valid())
+					sigh(_default_sigh_cap);
+
+				/* trigger timeout at default signal handler */
+				trigger_once(us);
+				_sig_rec.wait_for_signal();
+
+				/* revert custom signal handler if registered */
+				if (_custom_sigh_cap.valid())
+					sigh(_custom_sigh_cap);
+			}
+
+			void msleep(unsigned ms)
+			{
+				usleep(1000*ms);
+			}
 	};
 }
 

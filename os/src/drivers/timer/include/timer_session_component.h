@@ -47,8 +47,8 @@ namespace Timer {
 	 * we are able to answer those requests from here (by calling the
 	 * 'handle()' function of the alarm scheduler).
 	 */
-	class Irq_dispatcher_component : public Genode::Rpc_object<Irq_dispatcher,
-	                                                           Irq_dispatcher_component>
+	class Irq_dispatcher_component : public Rpc_object<Irq_dispatcher,
+	                                                   Irq_dispatcher_component>
 	{
 		private:
 
@@ -95,24 +95,21 @@ namespace Timer {
 
 
 	/**
-	 * Alarm for answering a sleep request
+	 * Alarm for answering an oneshot timeout request
 	 */
 	class Wake_up_alarm : public Genode::Alarm
 	{
 		private:
 
-			Genode::Native_capability  _reply_cap;
-			Genode::Rpc_entrypoint    *_entrypoint;
+			Signal_context_capability _sigh;
+			bool                      _periodic;
 
 		public:
 
-			Wake_up_alarm(Genode::Rpc_entrypoint *ep) : _entrypoint(ep) { }
+			Wake_up_alarm() : _periodic(false) { }
 
-			/**
-			 * Set reply target to wake up when the alarm triggers
-			 */
-			void reply_cap(Genode::Native_capability reply_cap) {
-				_reply_cap = reply_cap; }
+			void sigh(Signal_context_capability sigh) { _sigh = sigh; }
+			void periodic(bool periodic) { _periodic = periodic; }
 
 
 			/*********************
@@ -126,10 +123,9 @@ namespace Timer {
 			 */
 			bool on_alarm()
 			{
-				_entrypoint->explicit_reply(_reply_cap, 0);
+				Signal_transmitter(_sigh).submit();
 
-				/* do not re-schedule */
-				return 0;
+				return _periodic;
 			}
 	};
 
@@ -184,15 +180,20 @@ namespace Timer {
 			}
 
 			/**
-			 * Called from the 'msleep' function executed by the server activation
+			 * Called from the '_trigger' function executed by the server activation
 			 */
 			void schedule_timeout(Genode::Alarm *alarm, Genode::Alarm::Time timeout)
 			{
-				Genode::Alarm::Time now = _platform_timer->curr_time();
+				Alarm::Time now = _platform_timer->curr_time();
 				schedule_absolute(alarm, now + timeout);
 
 				/* interrupt current 'wait_for_timeout' */
 				_platform_timer->schedule_timeout(0);
+			}
+
+			unsigned long curr_time() const
+			{
+				return _platform_timer->curr_time();
 			}
 	};
 
@@ -200,26 +201,30 @@ namespace Timer {
 	/**
 	 * Timer session
 	 */
-	class Session_component : public Genode::Rpc_object<Session>,
-	                          public Genode::List<Session_component>::Element
+	class Session_component : public Rpc_object<Session>,
+	                          public List<Session_component>::Element
 	{
 		private:
 
-			Timeout_scheduler      *_timeout_scheduler;
-			Genode::Rpc_entrypoint *_entrypoint;
-			Wake_up_alarm           _wake_up_alarm;
+			Timeout_scheduler  &_timeout_scheduler;
+			Wake_up_alarm       _wake_up_alarm;
+			unsigned long const _initial_time;
+
+			void _trigger(unsigned us, bool periodic)
+			{
+				_wake_up_alarm.periodic(periodic);
+				_timeout_scheduler.schedule_timeout(&_wake_up_alarm, us);
+			}
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Session_component(Timeout_scheduler      *ts,
-			                  Genode::Rpc_entrypoint *ep)
+			Session_component(Timeout_scheduler &ts)
 			:
 				_timeout_scheduler(ts),
-				_entrypoint(ep),
-				_wake_up_alarm(ep)
+				_initial_time(_timeout_scheduler.curr_time())
 			{ }
 
 			/**
@@ -227,7 +232,7 @@ namespace Timer {
 			 */
 			~Session_component()
 			{
-				_timeout_scheduler->discard(&_wake_up_alarm);
+				_timeout_scheduler.discard(&_wake_up_alarm);
 			}
 
 
@@ -235,24 +240,29 @@ namespace Timer {
 			 ** Timer session interface **
 			 *****************************/
 
-			void msleep(unsigned ms)
+			void trigger_once(unsigned us)
 			{
-				usleep(1000*ms);
+				_trigger(us, false);
 			}
 
-			void usleep(unsigned us)
+			void trigger_periodic(unsigned us)
 			{
-				_wake_up_alarm.reply_cap(_entrypoint->reply_dst());
-				_timeout_scheduler->schedule_timeout(&_wake_up_alarm, us);
-
-				/*
-				 * Prevent the server activation from immediately answering the
-				 * current call. The caller of 'msleep' will be unblocked via
-				 * 'Rpc_entrypoint::explicit_reply' when its timeout alarm
-				 * triggers.
-				 */
-				_entrypoint->omit_reply();
+				_trigger(us, true);
 			}
+
+			void sigh(Signal_context_capability sigh)
+			{
+				_wake_up_alarm.sigh(sigh);
+			}
+
+			unsigned long elapsed_ms() const
+			{
+				unsigned long const now = _timeout_scheduler.curr_time();
+				return now - _initial_time;
+			}
+
+			void msleep(unsigned) { /* never called at the server side */ }
+			void usleep(unsigned) { /* never called at the server side */ }
 	};
 }
 

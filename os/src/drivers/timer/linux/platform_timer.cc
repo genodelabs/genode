@@ -34,7 +34,7 @@ unsigned long Platform_timer::max_timeout()
 }
 
 
-unsigned long Platform_timer::curr_time()
+unsigned long Platform_timer::curr_time() const
 {
 	struct timeval tv;
 	lx_gettimeofday(&tv, 0);

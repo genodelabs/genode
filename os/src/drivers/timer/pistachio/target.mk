@@ -1,7 +1,7 @@
 TARGET   = timer
 SRC_CC   = main.cc platform_timer.cc
 REQUIRES = pistachio
-LIBS     = cxx server env alarm
+LIBS     = cxx server env alarm signal
 
 INC_DIR  = $(PRG_DIR)/../include $(PRG_DIR)/../include_periodic
 

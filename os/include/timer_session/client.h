@@ -26,9 +26,11 @@ namespace Timer {
 		explicit Session_client(Session_capability session)
 		: Genode::Rpc_client<Session>(session) { }
 
-		void msleep(unsigned ms) { call<Rpc_msleep>(ms); }
+		void trigger_once(unsigned us) { call<Rpc_trigger_once>(us); }
 
-		void usleep(unsigned us) { call<Rpc_usleep>(us); }
+		void trigger_periodic(unsigned us) { call<Rpc_trigger_periodic>(us); }
+
+		void sigh(Signal_context_capability sigh) { call<Rpc_sigh>(sigh); }
 
 		unsigned long elapsed_ms() const { return call<Rpc_elapsed_ms>(); }
 	};

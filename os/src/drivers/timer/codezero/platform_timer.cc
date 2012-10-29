@@ -26,7 +26,7 @@ using namespace Codezero;
 unsigned long Platform_timer::max_timeout() { return 1000; }
 
 
-unsigned long Platform_timer::curr_time()
+unsigned long Platform_timer::curr_time() const
 {
 	Genode::Lock::Guard lock_guard(_lock);
 	return _curr_time_usec;

@@ -61,9 +61,9 @@ class Platform_timer
 
 		Genode::Io_port_connection _io_port;
 		Genode::Irq_connection     _timer_irq;
-		unsigned long              _curr_time_usec;
-		unsigned long              _counter_init_value;
-		Genode::Lock               _update_curr_time_lock;
+		unsigned long mutable      _curr_time_usec;
+		unsigned long mutable      _counter_init_value;
+		Genode::Lock  mutable      _update_curr_time_lock;
 
 		/**
 		 * Set PIT counter value
@@ -117,15 +117,21 @@ class Platform_timer
 		 * This function has to be executed regulary,
 		 * at least all max_timeout() usecs.
 		 */
-		unsigned long curr_time()
+		unsigned long curr_time() const
 		{
 			Genode::Lock::Guard lock(_update_curr_time_lock);
 
 			unsigned long curr_counter, passed_ticks;
 
-			/* read PIT count and status */
+			/*
+			 * Read PIT count and status
+			 *
+			 * Reading the PIT registers via port I/O is a non-const operation.
+			 * Since 'curr_time' is declared as const, however, we need to
+			 * explicitly override the const-ness of the 'this' pointer.
+			 */
 			bool wrapped;
-			curr_counter = _read_counter(&wrapped);
+			curr_counter = const_cast<Platform_timer *>(this)->_read_counter(&wrapped);
 
 			/* determine the time since we looked at the counter */
 			if (wrapped)

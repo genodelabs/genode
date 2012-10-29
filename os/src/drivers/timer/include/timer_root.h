@@ -29,14 +29,14 @@ namespace Timer {
 	{
 		private:
 
-			Platform_timer          _platform_timer;
-			Timeout_scheduler       _timeout_scheduler;
-			Genode::Rpc_entrypoint *_entrypoint;
+			Platform_timer    _platform_timer;
+			Timeout_scheduler _timeout_scheduler;
 
 		protected:
 
 			Session_component *_create_session(const char *args)
 			{
+				PLOG("args='%s'", args);
 				Genode::size_t ram_quota = Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 				if (ram_quota < sizeof(Session_component)) {
@@ -45,7 +45,7 @@ namespace Timer {
 				}
 
 				return new (md_alloc())
-					Session_component(&_timeout_scheduler, _entrypoint);
+					Session_component(_timeout_scheduler);
 			}
 
 		public:
@@ -61,8 +61,7 @@ namespace Timer {
 			               Genode::Cap_session            *cap)
 			:
 				Genode::Root_component<Session_component>(session_ep, md_alloc),
-				_timeout_scheduler(&_platform_timer, session_ep),
-				_entrypoint(session_ep)
+				_timeout_scheduler(&_platform_timer, session_ep)
 			{ }
 	};
 }

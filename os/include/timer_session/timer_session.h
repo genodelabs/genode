@@ -16,9 +16,12 @@
 #ifndef _INCLUDE__TIMER_SESSION__TIMER_SESSION_H_
 #define _INCLUDE__TIMER_SESSION__TIMER_SESSION_H_
 
+#include <base/signal.h>
 #include <session/session.h>
 
 namespace Timer {
+
+	using namespace Genode;
 
 	struct Session : Genode::Session
 	{
@@ -27,36 +30,49 @@ namespace Timer {
 		virtual ~Session() { }
 
 		/**
-		 * Sleep number of milliseconds
+		 * Program single timeout (in microseconds)
 		 */
-		virtual void msleep(unsigned ms) = 0;
+		virtual void trigger_once(unsigned us) = 0;
 
 		/**
-		 * Sleep number of microseconds
+		 * Program periodic timeout (in microseconds)
 		 */
-		virtual void usleep(unsigned us) = 0;
+		virtual void trigger_periodic(unsigned us) = 0;
+
+		/**
+		 * Register timeout signal handler
+		 */
+		virtual void sigh(Signal_context_capability sigh) = 0;
 
 		/**
 		 * Return number of elapsed milliseconds since session creation
 		 */
-		virtual unsigned long elapsed_ms() const
-		{
-			/*
-			 * XXX Remove default implementation by implementing the
-			 *     interface in all timer variants.
-			 */
-			return 0; }
+		virtual unsigned long elapsed_ms() const = 0;
+
+		/**
+		 * Client-side convenience function for sleeping the specified number
+		 * of milliseconds
+		 */
+		virtual void msleep(unsigned ms) = 0;
+
+		/**
+		 * Client-side convenience function for sleeping the specified number
+		 * of microseconds
+		 */
+		virtual void usleep(unsigned us) = 0;
 
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
-		GENODE_RPC(Rpc_msleep, void, msleep, unsigned);
-		GENODE_RPC(Rpc_usleep, void, usleep, unsigned);
+		GENODE_RPC(Rpc_trigger_once, void, trigger_once, unsigned);
+		GENODE_RPC(Rpc_trigger_periodic, void, trigger_periodic, unsigned);
+		GENODE_RPC(Rpc_sigh, void, sigh, Genode::Signal_context_capability);
 		GENODE_RPC(Rpc_elapsed_ms, unsigned long, elapsed_ms);
 
-		GENODE_RPC_INTERFACE(Rpc_msleep, Rpc_usleep, Rpc_elapsed_ms);
+		GENODE_RPC_INTERFACE(Rpc_trigger_once, Rpc_trigger_periodic,
+		                     Rpc_sigh, Rpc_elapsed_ms);
 	};
 }
 

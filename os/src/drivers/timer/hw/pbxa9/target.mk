@@ -14,10 +14,10 @@ SRC_CC += main.cc
 REQUIRES += hw_pbxa9
 
 # Add libraries
-LIBS += cxx server env alarm
+LIBS += cxx server env alarm signal
 
 # Add include paths
-INC_DIR += $(PRG_DIR) $(PRG_DIR)/../ $(PRG_DIR)/../../nova/
+INC_DIR += $(PRG_DIR) $(PRG_DIR)/../ $(PRG_DIR)/../../include
 
 # Declare source paths
 vpath main.cc $(PRG_DIR)/../..

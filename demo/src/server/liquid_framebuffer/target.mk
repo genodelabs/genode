@@ -1,5 +1,5 @@
 TARGET   = liquid_fb
-LIBS     = scout_widgets
+LIBS     = scout_widgets signal
 SRC_CC   = main.cc services.cc
 INC_DIR += $(REP_DIR)/src/app/scout/include \
            $(REP_DIR)/src/app/scout/include/genode \

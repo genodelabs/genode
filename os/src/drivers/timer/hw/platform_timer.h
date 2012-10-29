@@ -30,19 +30,21 @@ class Platform_timer : public Platform_timer_base,
 
 		enum { MAX_TIMER_IRQS_PER_MS = 1 };
 
-		unsigned long const _max_timeout_us; /* Maximum timeout in microsecs */
-		unsigned long _curr_time_us; /* Accumulate already measured timeouts */
-		unsigned long _init_value; /* Mark last processed timer value */
-		Genode::Lock _update_curr_time_lock; /* Serialize curr_time access */
+		unsigned long   const _max_timeout_us;        /* maximum timeout in microsecs */
+		unsigned long mutable _curr_time_us;          /* accumulate already measured timeouts */
+		unsigned long mutable _init_value;            /* mark last processed timer value */
+		Genode::Lock  mutable _update_curr_time_lock; /* serialize curr_time access */
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Platform_timer() : Irq_connection(Platform_timer_base::IRQ),
-		                   _max_timeout_us(tics_to_us(max_value())),
-		                   _curr_time_us(0), _init_value(0)
+		Platform_timer()
+		:
+			Irq_connection(Platform_timer_base::IRQ),
+			_max_timeout_us(tics_to_us(max_value())),
+			_curr_time_us(0), _init_value(0)
 		{ }
 
 		/**
@@ -51,22 +53,22 @@ class Platform_timer : public Platform_timer_base,
 		 * This function has to be executed regulary,
 		 * at least all max_timeout() us.
 		 */
-		unsigned long curr_time()
+		unsigned long curr_time() const
 		{
-			/* Serialize updates on timeout counter */
+			/* serialize updates on timeout counter */
 			Genode::Lock::Guard lock(_update_curr_time_lock);
 
-			/* Get time that passed since last time we've read the timer */
+			/* get time that passed since last time we've read the timer */
 			bool wrapped;
 			unsigned long const v = value(wrapped);
 			unsigned long passed_time;
 			if (wrapped) passed_time = _init_value + max_value() - v;
 			else passed_time = _init_value - v;
 
-			/* Update initial value for subsequent calculations */
+			/* update initial value for subsequent calculations */
 			_init_value = v;
 
-			/* Refresh our timeout counter and return it */
+			/* refresh our timeout counter and return it */
 			_curr_time_us += tics_to_us(passed_time);
 			return _curr_time_us;
 		}
@@ -83,19 +85,23 @@ class Platform_timer : public Platform_timer_base,
 		 */
 		void schedule_timeout(unsigned long timeout_us)
 		{
-			/* Serialize updates on timeout counter */
+			/* serialize updates on timeout counter */
 			Genode::Lock::Guard lock(_update_curr_time_lock);
 
-			/* Constraint timout value with our maximum IRQ rate
-			 * and the maximum possible timout */
+			/*
+			 * Constrain timout value with our maximum IRQ rate and the maximum
+			 * possible timeout.
+			 */
 			if (timeout_us < 1000/MAX_TIMER_IRQS_PER_MS)
 				timeout_us = 1000/MAX_TIMER_IRQS_PER_MS;
 			if (timeout_us > _max_timeout_us)
 				timeout_us = _max_timeout_us;
 
-			/* Once the timer runs, one can wait for the its IRQ and update our
+			/*
+			 * Once the timer runs, one can wait for its IRQ and update our
 			 * timeout counter through 'curr_time()' (We rely on the fact that
-			 * this is done at least one time in every max-timeout period) */
+			 * this is done at least one time in every max-timeout period)
+			 */
 			_init_value = us_to_tics(timeout_us);
 			run_and_wrap(_init_value);
 		}
