@@ -637,6 +637,11 @@ namespace Genode {
 			Overload_selector() { }
 		};
 
+		/**
+		 * Convert boolean value to type
+		 */
+		template <bool VALUE> struct Bool_to_type { enum { V = VALUE }; };
+
 	} /* namespace Meta */
 }
 

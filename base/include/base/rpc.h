@@ -80,7 +80,8 @@
 #define GENODE_RPC_INTERFACE_INHERIT(base, ...) \
 	typedef ::Genode::Meta::Append<base::Rpc_functions, \
 	                               GENODE_TYPE_LIST(__VA_ARGS__) >::Type \
-		Rpc_functions;
+		Rpc_functions; \
+	typedef base Rpc_inherited_interface;
 
 
 namespace Genode {
@@ -282,6 +283,25 @@ namespace Genode {
 	struct Rpc_interface_msg_size {
 		typedef typename RPC_IF::Rpc_functions Rpc_functions;
 		enum { Value = Rpc_function_list_msg_size<Rpc_functions, MSG_TYPE>::Value }; };
+
+
+	/**
+	 * Determine if a RPC interface is inherited
+	 */
+	template <typename INTERFACE>
+	struct Rpc_interface_is_inherited
+	{
+		typedef char yes[1];
+		typedef char  no[2];
+
+		template <typename IF>
+		static yes &test(typename IF::Rpc_inherited_interface *);
+
+		template <typename>
+		static no &test(...);
+
+		enum { VALUE = sizeof(test<INTERFACE>(0)) == sizeof(yes) };
+	};
 }
 
 #endif /* _INCLUDE__BASE__RPC_H_ */
