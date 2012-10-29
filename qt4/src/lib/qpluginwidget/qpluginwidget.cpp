@@ -184,8 +184,8 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 		_pc->commit_rom_module("config");
 	}
 
-	Signal_receiver sig_rec;
 	Signal_context sig_ctx;
+	Signal_receiver sig_rec;
 
 	_pc->view_ready_sigh(sig_rec.manage(&sig_ctx));
 	_pc->constrain_geometry(_max_width, _max_height);
