@@ -13,7 +13,7 @@
 
 #include <base/snprintf.h>
 #include <timer_session/connection.h>
-#include <terminal_session/connection.h>
+#include <uart_session/connection.h>
 
 
 using namespace Genode;
@@ -22,14 +22,14 @@ int main()
 {
 	printf("--- UART test started ---\n");
 
-	static Timer::Connection    timer;
-	static Terminal::Connection terminal;
+	static Timer::Connection timer;
+	static Uart::Connection  uart;
 
 	for (unsigned i = 0; ; ++i) {
 
 		static char buf[100];
 		int n = snprintf(buf, sizeof(buf), "UART test message %d\n", i);
-		terminal.write(buf, n);
+		uart.write(buf, n);
 
 		timer.msleep(2000);
 	}

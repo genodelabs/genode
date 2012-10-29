@@ -22,10 +22,10 @@
 #include <io_port_session/connection.h>
 
 /* local includes */
-#include "terminal_driver.h"
+#include "uart_driver.h"
 
 
-class I8250 : public Terminal::Driver, public Genode::Irq_handler
+class I8250 : public Uart::Driver, public Genode::Irq_handler
 {
 	private:
 
@@ -84,7 +84,7 @@ class I8250 : public Terminal::Driver, public Genode::Irq_handler
 			_inb<MSR>();
 		}
 
-		Terminal::Char_avail_callback &_char_avail_callback;
+		Uart::Char_avail_callback &_char_avail_callback;
 
 		enum { IRQ_STACK_SIZE = 4096 };
 		Genode::Irq_activation _irq_activation;
@@ -95,7 +95,7 @@ class I8250 : public Terminal::Driver, public Genode::Irq_handler
 		 * Constructor
 		 */
 		I8250(unsigned port_base, int irq_number, unsigned baud,
-		      Terminal::Char_avail_callback &callback)
+		      Uart::Char_avail_callback &callback)
 		:
 			_port_base(port_base),
 			_io_port(port_base, 0xf),

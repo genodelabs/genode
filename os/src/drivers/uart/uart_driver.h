@@ -11,10 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TERMINAL_DRIVER_H_
-#define _TERMINAL_DRIVER_H_
+#ifndef _UART_DRIVER_H_
+#define _UART_DRIVER_H_
 
-namespace Terminal {
+namespace Uart {
 
 	/**
 	 * Functor, called by 'Driver' when data is ready for reading
@@ -27,7 +27,7 @@ namespace Terminal {
 	struct Driver
 	{
 		/**
-		 * Write character to terminal
+		 * Write character to UART
 		 */
 		virtual void put_char(char c) = 0;
 
@@ -37,7 +37,7 @@ namespace Terminal {
 		virtual bool char_avail() = 0;
 
 		/**
-		 * Read character from terminal
+		 * Read character from UART
 		 */
 		virtual char get_char() = 0;
 	};
@@ -72,4 +72,4 @@ namespace Terminal {
 
 }
 
-#endif /* _TERMINAL_DRIVER_H_ */
+#endif /* _UART_DRIVER_H_ */

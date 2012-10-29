@@ -20,7 +20,7 @@
 
 /* local includes */
 #include "pl011.h"
-#include "terminal_component.h"
+#include "uart_component.h"
 
 
 int main(int argc, char **argv)
@@ -30,9 +30,9 @@ int main(int argc, char **argv)
 	printf("--- PL011 UART driver started ---\n");
 
 	/**
-	 * Factory used by 'Terminal::Root' at session creation/destruction time
+	 * Factory used by 'Uart::Root' at session creation/destruction time
 	 */
-	struct Pl011_driver_factory : Terminal::Driver_factory
+	struct Pl011_driver_factory : Uart::Driver_factory
 	{
 		Pl011 *created[PL011_NUM];
 
@@ -45,15 +45,15 @@ int main(int argc, char **argv)
 				created[i] = 0;
 		}
 
-		Terminal::Driver *create(unsigned index,
-		                         Terminal::Char_avail_callback &callback)
+		Uart::Driver *create(unsigned index,
+		                     Uart::Char_avail_callback &callback)
 		{
 			/*
 			 * We assume the underlying kernel uses UART0 and, therefore, start at
 			 * index 1 for the user-level driver.
 			 */
 			if (index < 1 || index >= PL011_NUM)
-				throw Terminal::Driver_factory::Not_available();
+				throw Uart::Driver_factory::Not_available();
 
 			Pl011_uart *cfg  = &pl011_uart[index];
 			Pl011      *uart =  created[index];
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 			return uart;
 		}
 
-		void destroy(Terminal::Driver *driver) { /* TODO */ }
+		void destroy(Uart::Driver *driver) { /* TODO */ }
 
 	} driver_factory;
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "uart_ep");
 
-	static Terminal::Root uart_root(&ep, env()->heap(), driver_factory);
+	static Uart::Root uart_root(&ep, env()->heap(), driver_factory);
 	env()->parent()->announce(ep.manage(&uart_root));
 
 	sleep_forever();

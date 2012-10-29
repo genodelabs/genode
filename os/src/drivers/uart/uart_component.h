@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _TERMINAL_COMPONENT_H_
-#define _TERMINAL_COMPONENT_H_
+#ifndef _UART_COMPONENT_H_
+#define _UART_COMPONENT_H_
 
 /* Genode includes */
 #include <base/rpc_server.h>
@@ -20,16 +20,16 @@
 #include <os/session_policy.h>
 #include <os/attached_ram_dataspace.h>
 #include <root/component.h>
-#include <terminal_session/terminal_session.h>
+#include <uart_session/uart_session.h>
 
 /* local includes */
-#include "terminal_driver.h"
+#include "uart_driver.h"
 
-namespace Terminal {
+namespace Uart {
 
 	using namespace Genode;
 
-	class Session_component : public Rpc_object<Terminal::Session,
+	class Session_component : public Rpc_object<Uart::Session,
 	                                            Session_component>
 	{
 		private:
@@ -45,7 +45,7 @@ namespace Terminal {
 			/**
 			 * Functor informing the client about new data to read
 			 */
-			struct Char_avail_callback : Terminal::Char_avail_callback
+			struct Char_avail_callback : Uart::Char_avail_callback
 			{
 				Genode::Signal_context_capability sigh;
 
@@ -57,21 +57,31 @@ namespace Terminal {
 
 			} _char_avail_callback;
 
-			Terminal::Driver_factory &_driver_factory;
-			Terminal::Driver         &_driver;
+			Uart::Driver_factory &_driver_factory;
+			Uart::Driver         &_driver;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Session_component(Terminal::Driver_factory &driver_factory,
+			Session_component(Uart::Driver_factory &driver_factory,
 			                  unsigned index)
 			:
 				_io_buffer(Genode::env()->ram_session(), IO_BUFFER_SIZE),
 				_driver_factory(driver_factory),
 				_driver(*_driver_factory.create(index, _char_avail_callback))
 			{ }
+
+
+			/****************************
+			 ** Uart session interface **
+			 ****************************/
+
+			void baud_rate(Genode::size_t bits_per_second)
+			{
+				PWRN("Setting the baud rate is not supported.");
+			}
 
 
 			/********************************
@@ -174,4 +184,4 @@ namespace Terminal {
 	};
 }
 
-#endif /* _TERMINAL_COMPONENT_H_ */
+#endif /* _UART_COMPONENT_H_ */

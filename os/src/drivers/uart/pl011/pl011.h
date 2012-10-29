@@ -22,9 +22,9 @@
 #include <os/attached_io_mem_dataspace.h>
 
 /* local includes */
-#include "terminal_driver.h"
+#include "uart_driver.h"
 
-class Pl011 : public Terminal::Driver, public Genode::Irq_handler
+class Pl011 : public Uart::Driver, public Genode::Irq_handler
 {
 	private:
 
@@ -78,7 +78,7 @@ class Pl011 : public Terminal::Driver, public Genode::Irq_handler
 		Genode::Attached_io_mem_dataspace  _io_mem;
 		Genode::uint32_t volatile         *_base;
 
-		Terminal::Char_avail_callback &_char_avail_callback;
+		Uart::Char_avail_callback &_char_avail_callback;
 
 		enum { IRQ_STACK_SIZE = 4096 };
 		Genode::Irq_activation _irq_activation;
@@ -100,7 +100,7 @@ class Pl011 : public Terminal::Driver, public Genode::Irq_handler
 		 */
 		Pl011(Genode::addr_t mmio_base, Genode::size_t mmio_size,
 		      unsigned ibrd, unsigned fbrd, int irq_number,
-		      Terminal::Char_avail_callback &callback)
+		      Uart::Char_avail_callback &callback)
 		:
 			_io_mem(mmio_base, mmio_size),
 			_base(_io_mem.local_addr<unsigned volatile>()),
