@@ -48,6 +48,9 @@ namespace Loader {
 		{
 			int width, height;
 			int buf_x, buf_y;
+
+			View_geometry(): width(0), height(0), buf_x(0), buf_y() {}
+			View_geometry(int w, int h, int x, int y): width(w), height(h), buf_x(x), buf_y(y) {}
 		};
 
 		typedef Genode::Rpc_in_buffer<64>  Name;
