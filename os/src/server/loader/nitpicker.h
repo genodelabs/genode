@@ -270,11 +270,11 @@ namespace Nitpicker {
 			 */
 			Loader::Session::View_geometry loader_view_geometry()
 			{
-				Loader::Session::View_geometry result = {
+				Loader::Session::View_geometry result(
 					min(_proxy_view.w(), _fb_width),
 					min(_proxy_view.h(), _fb_height),
 					_proxy_view.buf_x(),
-					_proxy_view.buf_y() };
+					_proxy_view.buf_y());
 
 				return result;
 			}
