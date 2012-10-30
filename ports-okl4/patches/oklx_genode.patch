@@ -2995,6 +2995,18 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/kernel/vmlinux.lds.S contrib/arch/l4/kernel
 +  ro       PT_LOAD;
 +  rw       PT_LOAD;
  }
+diff -urNpB kernel-2.6.23-v2/arch/l4/lib/checksum.c contrib/arch/l4/lib/checksum.c
+--- kernel-2.6.23-v2/arch/l4/lib/checksum.c
++++ contrib/arch/l4/lib/checksum.c
+@@ -85,7 +85,7 @@ out:
+ /*
+  * computes a partial checksum, e.g. for TCP/UDP fragments
+  */
+-__wsum csum_partial(const void *buff, int len, __wsum sum)
++asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum)
+ {
+ 	unsigned int result = do_csum(buff, len);
+ 
 diff -urNpB kernel-2.6.23-v2/arch/l4/mm/mmu.c contrib/arch/l4/mm/mmu.c
 --- kernel-2.6.23-v2/arch/l4/mm/mmu.c
 +++ contrib/arch/l4/mm/mmu.c
@@ -3096,6 +3108,20 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/sys-i386/signal.c contrib/arch/l4/sys-i386/
  }
  
  asmlinkage int sys_sigreturn(struct pt_regs *regs)
+diff -urNpB kernel-2.6.23-v2/arch/l4/sys-i386/syscalls.c contrib/arch/l4/sys-i386/syscalls.c
+--- kernel-2.6.23-v2/arch/l4/sys-i386/syscalls.c
++++ contrib/arch/l4/sys-i386/syscalls.c
+@@ -10,8 +10,8 @@
+ 
+ #define __NR_Linux	0
+ 
+-extern long sys_mmap2(unsigned long addr, unsigned long len, unsigned long prot,
+-		     unsigned long flags, unsigned long fd, unsigned long pgoff);
++extern asmlinkage long sys_mmap2(unsigned long addr, unsigned long len, unsigned long prot,
++		                 unsigned long flags, unsigned long fd, unsigned long pgoff);
+ 
+ 
+ unsigned int l4_i386_abi_syscall_start = 0;
 diff -urNpB kernel-2.6.23-v2/block/cfq-iosched.c contrib/block/cfq-iosched.c
 --- kernel-2.6.23-v2/block/cfq-iosched.c
 +++ contrib/block/cfq-iosched.c
@@ -3264,6 +3290,18 @@ diff -urNpB kernel-2.6.23-v2/include/asm-l4/signal_l4.h contrib/include/asm-l4/s
  l4_work_pending_preempt(struct pt_regs *regs)
  {
  	int restart = 0;
+diff -urNpB kernel-2.6.23-v2/include/asm-l4/system.h contrib/include/asm-l4/system.h
+--- kernel-2.6.23-v2/include/asm-l4/system.h
++++ contrib/include/asm-l4/system.h
+@@ -8,7 +8,7 @@
+ #include <linux/irqflags.h>
+ 
+ struct task_struct;
+-extern asmlinkage void *__switch_to(struct task_struct *prev, struct task_struct *next);
++extern void *__switch_to(struct task_struct *prev, struct task_struct *next);
+ 
+ #include <l4/kdebug.h>
+ #include <l4/thread.h>
 diff -urNpB kernel-2.6.23-v2/include/asm-l4/uaccess.h contrib/include/asm-l4/uaccess.h
 --- kernel-2.6.23-v2/include/asm-l4/uaccess.h
 +++ contrib/include/asm-l4/uaccess.h
@@ -3276,6 +3314,38 @@ diff -urNpB kernel-2.6.23-v2/include/asm-l4/uaccess.h contrib/include/asm-l4/uac
  
  #endif
  
+diff -urNpB kernel-2.6.23-v2/include/asm-l4/unistd.h contrib/include/asm-l4/unistd.h
+--- kernel-2.6.23-v2/include/asm-l4/unistd.h
++++ contrib/include/asm-l4/unistd.h
+@@ -30,19 +30,19 @@
+ 
+ asmlinkage long sys_wait4(pid_t pid, int __user *stat_addr,
+ 				int options, struct rusage __user *ru);
+-extern long sys_open(const char *filename, int flags, int mode);
+-extern long sys_dup(unsigned int fildes);
+-extern long sys_close(unsigned int fd);
++extern asmlinkage long sys_open(const char *filename, int flags, int mode);
++extern asmlinkage long sys_dup(unsigned int fildes);
++extern asmlinkage long sys_close(unsigned int fd);
+ extern int __execve(char *file, char **argv, char **env);
+ extern int sys_execve(char *file, char **argv, char **env);
+-extern long sys_setsid(void);
+-extern long sys_mount(char *dev_name, char *dir_name, char *type, 
++extern asmlinkage long sys_setsid(void);
++extern asmlinkage long sys_mount(char *dev_name, char *dir_name, char *type, 
+ 		      unsigned long flags, void *data);
+-extern long sys_select(int n, fd_set *inp, fd_set *outp, fd_set *exp, 
++extern asmlinkage long sys_select(int n, fd_set *inp, fd_set *outp, fd_set *exp, 
+ 		       struct timeval *tvp);
+-extern off_t sys_lseek(unsigned int fd, off_t offset, unsigned int origin);
+-extern ssize_t sys_read(unsigned int fd, char __user *buf, size_t count);
+-extern ssize_t sys_write(unsigned int fd, const char __user *buf, size_t count);
++extern asmlinkage off_t sys_lseek(unsigned int fd, off_t offset, unsigned int origin);
++extern asmlinkage ssize_t sys_read(unsigned int fd, char __user *buf, size_t count);
++extern asmlinkage ssize_t sys_write(unsigned int fd, const char __user *buf, size_t count);
+ 
+ #define KERNEL_CALL(ret_t, sys, args...)           \
+           mm_segment_t fs = get_fs();             \
 diff -urNpB kernel-2.6.23-v2/kernel/mutex.c contrib/kernel/mutex.c
 --- kernel-2.6.23-v2/kernel/mutex.c
 +++ contrib/kernel/mutex.c
