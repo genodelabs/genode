@@ -232,15 +232,19 @@ GCC_CONFIG += $(GCC_CONFIG_$(PLATFORM))
 #
 # Configure options passed to gcc
 #
-# The 't-linux' tmake file is needed to let the tool chain use 'unwind-dw2-fde-glibc',
-# needed for the exception handling on Genode in the presence of shared libraries.
-#
 HOST_CONFIG_ARGS = $(CONFIG_QUIET) \
                    host_xm_include_list=$(LINK_SPEC_H_$(PLATFORM)) \
                    tmake_file='t-slibgcc'
 
-# passed to target components such as libgcc, libstdc++
+#
+# Passed to target components such as libgcc, libstdc++
+#
+# The 't-slibgcc' tmake file is needed to have libgcc_eh.a built.
+# The 't-eh-dw2-dip' tmake file is needed to let the tool chain use 'unwind-dw2-fde-dip.c',
+# needed for the exception handling on Genode in the presence of shared libraries.
+#
 TARGET_CONFIG_ARGS = $(CONFIG_QUIET) \
+                     tmake_file='t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver' \
                      extra_parts='crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o'
 
 # compile libsupc++ as position-independent code
@@ -337,7 +341,7 @@ $(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure: $(DOWNLOAD_DIR)/mpc-$(MPC_VERSION).
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR)
 
 $(CONTRIB_DIR)/gcc-$(GCC_VERSION): $(addprefix $(DOWNLOAD_DIR)/,gcc-$(GCC_VERSION).tar.bz2)
-	$(ECHO) "$(BRIGHT_COL)unpacking gcc and g++...$(DEFAULT_COL)"
+	$(ECHO) "$(BRIGHT_COL)unpacking gcc...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(CONTRIB_DIR)
 	$(VERBOSE)for i in $^ ; do tar xfj $$i -C $(CONTRIB_DIR) ;done
 	$(VERBOSE)touch $@
