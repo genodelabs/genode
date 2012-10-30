@@ -818,7 +818,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 			bool result = false;
 
 			/* wait until command is completed, return false on timeout */
-			for (unsigned long i; i < 1000*1000; i++) {
+			for (unsigned long i = 0; i < 1000*1000; i++) {
 				Stat::access_t const stat = read<Stat>();
 				if (Stat::Erri::get(stat)) {
 					PWRN("SD command error");
