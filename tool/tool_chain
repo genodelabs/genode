@@ -60,7 +60,7 @@ MPC_DOWNLOAD_URL     ?= http://www.multiprecision.org/mpc/download
 # Tool versions and install location
 #
 
-GCC_VERSION       = 4.6.1
+GCC_VERSION       = 4.7.1
 BINUTILS_VERSION  = 2.21.1
 GDB_VERSION       = 7.3.1
 GMP_VERSION       = 5.0.2
@@ -89,6 +89,7 @@ VERBOSE     = @
 
 AUTOCONF_gcc_4.4.5 = autoconf2.59
 AUTOCONF_gcc_4.6.1 = autoconf2.64
+AUTOCONF_gcc_4.7.1 = autoconf2.64
 
 AUTOCONF = $(AUTOCONF_gcc_$(GCC_VERSION))
 
@@ -215,6 +216,8 @@ LD_PREFIX            = -Wl,
 LD_DEFSYM_DUMMY_LIBC = $(addprefix $(LD_PREFIX)--defsym=,$(addsuffix =0,$(DUMMY_LIBC_SYMS)))
 
 GCC_CONFIG += $(COMMON_CONFIG) \
+			  --enable-languages=c,c++,go --disable-libgo \
+			  --enable-targets=all \
               --with-gnu-as --with-gnu-ld --disable-tls --disable-threads \
               --disable-libstdcxx-pch \
               --enable-shared \
@@ -234,14 +237,14 @@ GCC_CONFIG += $(GCC_CONFIG_$(PLATFORM))
 #
 HOST_CONFIG_ARGS = $(CONFIG_QUIET) \
                    host_xm_include_list=$(LINK_SPEC_H_$(PLATFORM)) \
-                   tmake_file='t-slibgcc-elf-ver t-slibgcc-nolc-override t-linux'
+                   tmake_file='t-slibgcc'
 
 # passed to target components such as libgcc, libstdc++
 TARGET_CONFIG_ARGS = $(CONFIG_QUIET) \
                      extra_parts='crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o'
 
 # compile libsupc++ as position-independent code
-TARGET_CONFIG_ARGS += LIBSUPCXX_PICFLAGS='-prefer-pic'
+TARGET_CONFIG_ARGS += PIC_CXXFLAGS='-prefer-pic'
 
 GCC_INSTALL_RULE = install-strip
 ifeq ($(GCC_VERSION),4.4.5)
@@ -305,13 +308,9 @@ $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2): $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading binutils...$(DEFAULT_COL)"
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BINUTILS_DOWNLOAD_URL)/$(BINUTILS_DOWNLOAD_TBZ2) && touch $@
 
-$(DOWNLOAD_DIR)/gcc-core-$(GCC_VERSION).tar.bz2: $(DOWNLOAD_DIR)
+$(DOWNLOAD_DIR)/gcc-$(GCC_VERSION).tar.bz2: $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading gcc...$(DEFAULT_COL)"
-	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GCC_DOWNLOAD_URL)/gcc-$(GCC_VERSION)/gcc-core-$(GCC_VERSION).tar.bz2 && touch $@
-
-$(DOWNLOAD_DIR)/gcc-g++-$(GCC_VERSION).tar.bz2: $(DOWNLOAD_DIR)
-	$(ECHO) "$(BRIGHT_COL)downloading g++...$(DEFAULT_COL)"
-	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GCC_DOWNLOAD_URL)/gcc-$(GCC_VERSION)/gcc-g++-$(GCC_VERSION).tar.bz2 && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GCC_DOWNLOAD_URL)/gcc-$(GCC_VERSION)/gcc-$(GCC_VERSION).tar.bz2 && touch $@
 
 $(DOWNLOAD_DIR)/gmp-$(GMP_VERSION).tar.bz2: $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading gmp...$(DEFAULT_COL)"
@@ -337,7 +336,7 @@ $(CONTRIB_DIR)/mpc-$(MPC_VERSION)/configure: $(DOWNLOAD_DIR)/mpc-$(MPC_VERSION).
 	$(ECHO) "$(BRIGHT_COL)unpacking mpc...$(DEFAULT_COL)"
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR)
 
-$(CONTRIB_DIR)/gcc-$(GCC_VERSION): $(addprefix $(DOWNLOAD_DIR)/,gcc-core-$(GCC_VERSION).tar.bz2 gcc-g++-$(GCC_VERSION).tar.bz2)
+$(CONTRIB_DIR)/gcc-$(GCC_VERSION): $(addprefix $(DOWNLOAD_DIR)/,gcc-$(GCC_VERSION).tar.bz2)
 	$(ECHO) "$(BRIGHT_COL)unpacking gcc and g++...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(CONTRIB_DIR)
 	$(VERBOSE)for i in $^ ; do tar xfj $$i -C $(CONTRIB_DIR) ;done
@@ -471,8 +470,7 @@ clean:
 
 cleanall: clean
 	rm -rf $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2)
-	rm -rf $(DOWNLOAD_DIR)/gcc-core-$(GCC_VERSION).tar.bz2
-	rm -rf $(DOWNLOAD_DIR)/gcc-g++-$(GCC_VERSION).tar.bz2
+	rm -rf $(DOWNLOAD_DIR)/gcc-$(GCC_VERSION).tar.bz2
 
 #
 # Install rules

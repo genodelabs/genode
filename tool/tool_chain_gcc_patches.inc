@@ -12,9 +12,10 @@ $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure:: $(CONTRIB_DIR)/gcc-$(GCC_VERSION)
 	@#
 	$(VERBOSE)sed -i "/^tmake_file=$$/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config.gcc
 	$(VERBOSE)sed -i "/^extra_parts=$$/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config.gcc
-	$(VERBOSE)sed -i "/^extra_parts=$$/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libgcc/config.host
-	$(VERBOSE)sed -i "/^EXTRA_PARTS=/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config/i386/t-i386elf
-	$(VERBOSE)sed -i "/^EXTRA_MULTILIB_PARTS *=/s/^/#/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/gcc/config/arm/t-arm-elf
+	$(VERBOSE)sed -i "s/^tmake_file=$$/&\"t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver\"/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libgcc/config.host
+	$(VERBOSE)sed -i "s/^extra_parts=$$/&\"crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o\"/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libgcc/config.host
+	$(VERBOSE)sed -i "s/^libgcov-objects = .*/libgcov-objects = /" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libgcc/Makefile.in
+	$(VERBOSE)sed -i "s/-lc//" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libgcc/config/t-{libunwind-elf,slibgcc}
 	@#
 	@# Let 'config.gcc' expand our already populated 'tmake_file' variable rather
 	@# than making a hard assignment. This is needed for the ARM platform because
@@ -83,10 +84,10 @@ $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/configure:: $(CONTRIB_DIR)/gcc-$(GCC_VERSION)
 	@# in text relocations. Because for base tool chains, no 'dynamic_linker'
 	@# is defined (see 'libtool.m4'), 'dynamic_linker' is set to 'no', which
 	@# results in 'can_build_shared = no', which, in turn , results
-	@# in 'enable_shared = no', which, in turn, sets 'LIBSUPCXX_PICFLAGS' to
+	@# in 'enable_shared = no', which, in turn, sets 'PIC_CXXFLAGS' to
 	@# nothing rather then '-prefer-pic'.
 	@#
-	$(VERBOSE)sed -i "/LIBSUPCXX_PICFLAGS=$$/s/LIB/__LIB/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libstdc++-v3/configure.ac
+	$(VERBOSE)sed -i "/PIC_CXXFLAGS=$$/s/PIC/__PIC/" $(CONTRIB_DIR)/gcc-$(GCC_VERSION)/libstdc++-v3/configure.ac
 	@#
 	@# Re-generate configure scripts
 	@#
