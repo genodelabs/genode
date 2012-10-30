@@ -1,5 +1,5 @@
-BINUTILS      = binutils-2.21.1
-BINUTILS_TBZ2 = binutils-2.21.1a.tar.bz2
+BINUTILS      = binutils-2.22
+BINUTILS_TBZ2 = $(BINUTILS).tar.bz2
 BINUTILS_URL  = ftp://ftp.fu-berlin.de/gnu/binutils/$(BINUTILS_TBZ2)
 
 #

@@ -1,9 +1,8 @@
-GCC_VERSION  = 4.6.1
+GCC_VERSION  = 4.7.2
 GCC          = gcc-$(GCC_VERSION)
 GCC_URL      = ftp://ftp.fu-berlin.de/gnu/gcc
 
-GCC_CORE_TGZ = gcc-core-$(GCC_VERSION).tar.gz
-GCC_CXX_TGZ  = gcc-g++-$(GCC_VERSION).tar.gz
+GCC_TGZ = gcc-$(GCC_VERSION).tar.gz
 
 #
 # Interface to top-level prepare Makefile
@@ -16,11 +15,8 @@ prepare:: $(CONTRIB_DIR)/$(GCC)/configure
 # Port-specific local rules
 #
 
-$(DOWNLOAD_DIR)/$(GCC_CORE_TGZ):
-	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_CORE_TGZ) && touch $@
-
-$(DOWNLOAD_DIR)/$(GCC_CXX_TGZ):
-	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_CXX_TGZ) && touch $@
+$(DOWNLOAD_DIR)/$(GCC_TGZ):
+	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_TGZ) && touch $@
 
 #
 # Utilities
@@ -41,7 +37,7 @@ ifeq ($(shell which autogen)),)
 $(error Need to have 'autogen' installed.)
 endif
 
-$(CONTRIB_DIR)/$(GCC): $(DOWNLOAD_DIR)/$(GCC_CORE_TGZ) $(DOWNLOAD_DIR)/$(GCC_CXX_TGZ)
+$(CONTRIB_DIR)/$(GCC): $(DOWNLOAD_DIR)/$(GCC_TGZ)
 	$(VERBOSE)for i in $^ ; do tar xfz $$i -C $(CONTRIB_DIR) ;done
 
 include ../tool/tool_chain_gcc_patches.inc

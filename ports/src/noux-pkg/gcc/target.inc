@@ -3,7 +3,7 @@ PWD = $(shell pwd)
 NOUX_CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                       --target=$(GCC_TARGET) \
                       --with-gnu-as --with-gnu-ld --disable-tls --disable-threads --disable-lto \
-                      --disable-multilib
+                      --disable-multilib --disable-sjlj-exceptions --enable-languages=c,c++
 
 #
 # Configure options passed to gcc
