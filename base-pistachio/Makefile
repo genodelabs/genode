@@ -26,7 +26,7 @@ $(call check_tool,autoconf)
 #
 # Determine python version to use for CML2
 #
-PYTHON2 := $(notdir $(lastword $(shell which python2 python2.{4,5,6,7,8})))
+PYTHON2 := $(notdir $(lastword $(shell which python2 $(addprefix python2.,4 5 6 7 8))))
 ifeq ($(PYTHON2),)
 prepare: python_not_installed
 python_not_installed:
