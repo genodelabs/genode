@@ -1,10 +1,12 @@
 include $(REP_DIR)/lib/import/import-av.inc
 
 TARGET = avplay
-SRC_C = avplay.c cmdutils.c libc_dummies.c
-LIBS += avfilter avformat swscale sdl libc libc_log libc_rom config_args
+SRC_C  = avplay.c cmdutils.c libc_dummies.c
+LIBS  += avfilter avformat avcodec avutil swscale
+LIBS  += sdl libc libm libc_log libc_rom config_args
 
-CC_WARN += -Wno-parentheses -Wno-switch -Wno-uninitialized -Wno-format-zero-length -Wno-pointer-sign
+CC_WARN += -Wno-parentheses -Wno-switch -Wno-uninitialized \
+           -Wno-format-zero-length -Wno-pointer-sign
 
 # config.h
 INC_DIR += $(REP_DIR)/src/lib/libav
