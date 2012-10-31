@@ -1,5 +1,5 @@
---- contrib/binutils-2.21.1/ld/Makefile.in~	2010-11-05 11:34:22.000000000 +0100
-+++ contrib/binutils-2.21.1/ld/Makefile.in	2011-02-03 23:45:08.000000000 +0100
+--- contrib/binutils-2.22/ld/Makefile.in~	2010-11-05 11:34:22.000000000 +0100
++++ contrib/binutils-2.22/ld/Makefile.in	2011-02-03 23:45:08.000000000 +0100
 @@ -848,7 +848,7 @@
  # 
  # Build a dummy plugin using libtool.
