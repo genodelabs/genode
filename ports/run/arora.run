@@ -105,6 +105,7 @@ set boot_modules {
 	dejavusans.lib.so
 	freetype.lib.so
 	libc_lock_pipe.lib.so
+	stdcxx.lib.so
 	qt_core.lib.so
 	qt_gui.lib.so
 	qt_jscore.lib.so
