@@ -12,6 +12,7 @@
  */
 
 #include <base/allocator_avl.h>
+#include <base/printf.h>
 
 using namespace Genode;
 
@@ -327,6 +328,10 @@ void Allocator_avl_base::free(void *addr)
 
 	addr_t new_addr = b->addr();
 	size_t new_size = b->size();
+
+	if (new_addr != (addr_t)addr)
+		PERR("%s: given address (0x%p) is not the block start address (0x%lx)",
+		     __PRETTY_FUNCTION__, addr, new_addr);
 
 	_destroy_block(b);
 
