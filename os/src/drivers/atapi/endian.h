@@ -16,11 +16,11 @@
 template <typename T>
 inline T bswap32(T x)
 {
-	char v[4] = {
-		(x & 0xff000000) >> 24,
-		(x & 0x00ff0000) >> 16,
-		(x & 0x0000ff00) >>  8,
-		(x & 0x000000ff) >>  0,
+	unsigned char v[4] = {
+		(unsigned char)((x & 0xff000000) >> 24),
+		(unsigned char)((x & 0x00ff0000) >> 16),
+		(unsigned char)((x & 0x0000ff00) >>  8),
+		(unsigned char)((x & 0x000000ff) >>  0),
 	};
 	return *(T *)v;
 }

@@ -12,7 +12,7 @@
  */
 
 static struct {
-	short w, h, pixels[16][16];
+	unsigned short w, h, pixels[16][16];
 } big_mouse = {
 	16,16,
 	{
