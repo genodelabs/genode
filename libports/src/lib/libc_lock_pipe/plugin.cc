@@ -142,14 +142,12 @@ namespace {
 			}
 			Genode::memset(_buffer, 0, PIPE_BUF_SIZE);
 
-			_lock_state = (Genode::Cancelable_lock::State*)
-				malloc(sizeof(Genode::Cancelable_lock::State));
+			_lock_state = new (Genode::env()->heap())
+			                  Genode::Cancelable_lock::State(Genode::Lock::LOCKED);
 
 			if (!_lock_state) {
 				PERR("pipe lock_state allocation failed");
 			}
-
-			*_lock_state = Genode::Lock::LOCKED;
 
 			_lock = new (Genode::env()->heap()) Genode::Lock(*_lock_state);
 			if (!_lock) {
@@ -173,7 +171,7 @@ namespace {
 			context(_partner)->set_partner(0);
 		} else {
 			/* partner fd is already destroyed -> free shared resources */
-			destroy(Genode::env()->heap(), _buffer);
+			free(_buffer);
 			destroy(Genode::env()->heap(), _lock);
 			destroy(Genode::env()->heap(), _lock_state);
 		}
