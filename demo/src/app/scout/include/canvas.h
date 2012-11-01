@@ -35,7 +35,7 @@ class Canvas
 		/**
 		 * Define clipping rectangle
 		 */
-		void clip(int x, int y, int w, int h)
+		void clip(int x, int y, unsigned w, unsigned h)
 		{
 			/* calculate left-top and right-bottom points of clipping rectangle */
 			_clip_x1 = x;
