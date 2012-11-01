@@ -560,13 +560,15 @@ static void test_resources()
 		{ 0xdfd0, 16, false},
 	};
 
-	for (unsigned i = 0; i < MAX_ROUNDS; ++i)
-		if (round[i].req)
+	for (unsigned i = 0; i < MAX_ROUNDS; ++i) {
+		if (round[i].req) {
 			PDBG("mreq [%04lx,%04lx) => %d",
 			     round[i].a, round[i].a + round[i].s, dde_kit_request_io(round[i].a, round[i].s));
-		else
+		} else {
 			PDBG("mrel [%04lx,%04lx) => %d",
 			     round[i].a, round[i].a + round[i].s, dde_kit_release_io(round[i].a, round[i].s));
+		}
+	}
 
 	dde_kit_addr_t vaddr; int ret;
 
