@@ -127,7 +127,7 @@ inline int lx_umount(char const *target)
 
 inline int lx_socket(int domain, int type, int protocol)
 {
-	unsigned long args[3] = { domain, type, protocol };
+	long args[3] = { domain, type, protocol };
 	return lx_socketcall(SYS_SOCKET, args);
 }
 
@@ -135,7 +135,7 @@ inline int lx_socket(int domain, int type, int protocol)
 inline int lx_bind(int sockfd, const struct sockaddr *addr,
                    socklen_t addrlen)
 {
-	unsigned long args[3] = { sockfd, (unsigned long)addr, addrlen };
+	long args[3] = { sockfd, (long)addr, (long)addrlen };
 	return lx_socketcall(SYS_BIND, args);
 }
 
@@ -143,7 +143,7 @@ inline int lx_bind(int sockfd, const struct sockaddr *addr,
 inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
                       socklen_t addrlen)
 {
-	unsigned long args[3] = { sockfd, (unsigned long)serv_addr, addrlen };
+	long args[3] = { sockfd, (long)serv_addr, (long)addrlen };
 	return lx_socketcall(SYS_CONNECT, args);
 }
 

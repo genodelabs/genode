@@ -98,7 +98,7 @@ inline int lx_dup2(int fd, int to)
 
 #ifdef SYS_socketcall
 
-inline int lx_socketcall(int call, unsigned long *args)
+inline int lx_socketcall(int call, long *args)
 {
 	int res = lx_syscall(SYS_socketcall, call, args);
 	return res;
@@ -106,28 +106,28 @@ inline int lx_socketcall(int call, unsigned long *args)
 
 inline int lx_socketpair(int domain, int type, int protocol, int sd[2])
 {
-	unsigned long args[4] = { domain, type, protocol, (unsigned long)sd };
+	long args[4] = { domain, type, protocol, (long)sd };
 	return lx_socketcall(SYS_SOCKETPAIR, args);
 }
 
 
 inline int lx_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-	unsigned long args[3] = { sockfd, (unsigned long)msg, flags };
+	long args[3] = { sockfd, (long)msg, flags };
 	return lx_socketcall(SYS_SENDMSG, args);
 }
 
 
 inline int lx_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
-	unsigned long args[3] = { sockfd, (unsigned long)msg, flags };
+	long args[3] = { sockfd, (long)msg, flags };
 	return lx_socketcall(SYS_RECVMSG, args);
 }
 
 
 inline int lx_getpeername(int sockfd, struct sockaddr *name, socklen_t *namelen)
 {
-	unsigned long args[3] = { sockfd, (unsigned long)name, (unsigned long)namelen };
+	long args[3] = { sockfd, (long)name, (long)namelen };
 	return lx_socketcall(SYS_GETPEERNAME, args);
 }
 
