@@ -209,7 +209,7 @@ class Genode::Irq_proxy : public THREAD,
 
 			/* try to create proxy */
 			if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number) != Range_allocator::ALLOC_OK)
-				return false;
+				return 0;
 
 			PROXY *new_proxy = new (env()->heap()) PROXY(irq_number);
 			proxies.insert(new_proxy);
