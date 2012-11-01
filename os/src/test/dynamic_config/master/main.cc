@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <os/config.h>
 #include <os/slave.h>
 #include <timer_session/connection.h>
 #include <cap_session/connection.h>
