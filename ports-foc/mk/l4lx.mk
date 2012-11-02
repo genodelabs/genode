@@ -36,6 +36,7 @@ $(L4LX_BINARY): $(L4LX_CONFIG)
 	               -C $(REP_DIR)/contrib/$(LX_TARGET) \
 	               O=$(L4LX_BUILD) \
 	               CROSS_COMPILE="$(CROSS_DEV_PREFIX)" \
+	               CC="$(CC)" \
 	               KBUILD_VERBOSE=$(VERBOSE_LX_MK) \
 	               V=$(VERBOSE_LX_MK) \
 	               GENODE_INCLUDES="$(addprefix -I,$(INC_DIR))" \
