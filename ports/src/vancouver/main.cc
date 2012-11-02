@@ -49,6 +49,7 @@
 #include <os/alarm.h>
 #include <timer_session/connection.h>
 #include <nova_cpu_session/connection.h>
+#include <rtc_session/connection.h>
 
 /* NOVA includes that come with Genode */
 #include <nova/syscalls.h>
@@ -56,6 +57,7 @@
 /* NOVA userland includes */
 #include <nul/vcpu.h>
 #include <nul/motherboard.h>
+#include <nul/service_timer.h>
 #include <sys/hip.h>
 
 /* local includes */
@@ -1012,6 +1014,7 @@ class Machine : public StaticReceiver<Machine>
 		bool                   _alloc_fb_mem; /* For detecting FB alloc message */
 
 		Nic::Session          *_nic;
+		Rtc::Session          *_rtc;
 
 	public:
 
@@ -1269,9 +1272,26 @@ class Machine : public StaticReceiver<Machine>
 
 		bool receive(MessageTime &msg)
 		{
-			// XXX: Use RTC time
-			msg.wallclocktime = 0;
-			msg.timestamp = 0;
+			Genode::Lock::Guard guard(*utcb_lock());
+			utcb_backup = *Genode::Thread_base::myself()->utcb();
+
+			if (!_rtc) {
+				try {
+					_rtc = new Rtc::Connection;
+				} catch (...) {
+					Logging::printf("No RTC present, returning dummy time.\n");
+					msg.wallclocktime = msg.timestamp = 0;
+
+				        *Genode::Thread_base::myself()->utcb() = utcb_backup;
+
+					return true;
+				}
+			}
+			msg.wallclocktime = _rtc->get_current_time();
+			Logging::printf("Got time %llx\n", msg.wallclocktime);
+			msg.timestamp = _motherboard.clock()->clock(TimerProtocol::WALLCLOCK_FREQUENCY);
+
+		        *Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 			return true;
 		}
