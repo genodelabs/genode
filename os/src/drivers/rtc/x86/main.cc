@@ -1,13 +1,13 @@
-/**
+/*
  * \brief  Simple real-time-clock driver
  * \author Christian Helmuth
+ * \author Markus Partheymueller
  * \date   2007-04-18
- *
- * The current version just reads the RTC and logs the time.
  */
 
 /*
  * Copyright (C) 2007-2013 Genode Labs GmbH
+ * Copyright (C) 2012 Intel Corporation
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -15,11 +15,85 @@
 
 /* Genode */
 #include <base/env.h>
+#include <base/sleep.h>
+#include <base/rpc_server.h>
+#include <root/component.h>
+#include <cap_session/connection.h>
+#include <rtc_session/rtc_session.h>
 #include <base/printf.h>
 #include <io_port_session/connection.h>
 
 using namespace Genode;
 
+/**
+ * Time helper
+ */
+bool is_leap_year(int year)
+{
+	if (((year & 3) || !((year % 100) != 0)) && (year % 400 != 0)) return false;
+	return true;
+}
+
+/**
+ * Return UNIX time from given date and time.
+ */
+uint64_t mktime(int day, int mon, int year, int hour, int minutes, int seconds)
+{
+	bool jan_mar = mon < 3;
+	uint64_t ret = 0;
+	ret += (367*(10+mon))/12;
+	ret += jan_mar*2;
+	ret -= 719866;
+	ret += day;
+	ret += jan_mar * is_leap_year(year);
+	ret += 365*year;
+	ret += year/4;
+	ret -= year/100;
+	ret += year/400;
+	ret *= 24;
+	ret += hour;
+	ret *= 60;
+	ret += minutes;
+	ret *= 60;
+	ret += seconds;
+
+	return ret;
+}
+
+static uint64_t get_rtc_time();
+
+namespace Rtc {
+
+	class Session_component : public Genode::Rpc_object<Session>
+	{
+		public:
+			uint64_t get_current_time()
+			{
+				uint64_t ret = get_rtc_time();
+				PINF("Time is: %llx\n", ret);
+				return ret;
+			}
+
+	};
+
+	class Root_component : public Genode::Root_component<Session_component>
+	{
+		protected:
+
+			Session_component *_create_session(const char *args)
+			{
+				PDBG("RTC: creating session\n");
+				return new (md_alloc()) Session_component();
+			}
+		public:
+			Root_component(Genode::Rpc_entrypoint *ep,
+			               Genode::Allocator *allocator)
+			: Genode::Root_component<Session_component>(ep, allocator)
+			{
+				PDBG("RTC: creating root component\n");
+			}
+        };
+}
 
 /*
  * Our RTC port session
@@ -100,7 +174,7 @@ static inline void cmos_write(unsigned char val, unsigned char addr)
 /**
  * Get current time from CMOS and initialize values.
  */
-static void get_rtc_time(void)
+static uint64_t get_rtc_time(void)
 {
 	unsigned year, mon, day, hour, min, sec;
 	int i;
@@ -139,6 +213,8 @@ static void get_rtc_time(void)
 	if ((year += 1900) < 1970) year += 100;
 
 	PDBG("Date:%02d.%02d.%04d Time:%02d:%02d:%02d\n", day, mon, year, hour, min, sec);
+
+	return mktime(day, mon, year, hour, min, sec) * 1000000UL;
 }
 
 
@@ -147,7 +223,15 @@ int main(int argc, char **argv)
 	static Io_port_connection ports(RTC_PORT_BASE, RTC_PORT_SIZE);
 	rtc_ports = &ports;
 
-	get_rtc_time();
+	Cap_connection cap;
+	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+
+	enum { STACK_SIZE = 1024*sizeof(size_t) };
+	static Rpc_entrypoint ep(&cap, STACK_SIZE, "rtc_ep");
+	static Rtc::Root_component rtc_root(&ep, &sliced_heap);
+	env()->parent()->announce(ep.manage(&rtc_root));
+
+	sleep_forever();
 
 	return 0;
 }
