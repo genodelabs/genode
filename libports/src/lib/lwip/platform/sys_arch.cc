@@ -189,6 +189,8 @@ extern "C" {
 				/* no IP address - no networking */
 				return 1;
 #endif /* LWIP_DHCP */
+			} else {
+				netif_set_up(&netif);
 			}
 		} catch (Nic_not_availble) {
 			PWRN("NIC not available, loopback is used as default");
