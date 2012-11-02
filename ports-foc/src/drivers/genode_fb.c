@@ -240,8 +240,9 @@ static struct fb_ops genodefb_ops = {
  **  Input callbacks  **
  ***********************/
 
-void input_event_callback (void *dev, unsigned int type,
-                           unsigned int code, int value)
+void FASTCALL
+input_event_callback (void *dev, unsigned int type,
+                      unsigned int code, int value)
 {
 	struct input_dev *input_dev = (struct input_dev*) dev;
 

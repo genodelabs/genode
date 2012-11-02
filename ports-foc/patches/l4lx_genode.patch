@@ -887,20 +887,22 @@ Index: arch/l4/Makefile
 ===================================================================
 --- arch/l4/Makefile	(revision 25)
 +++ arch/l4/Makefile	(working copy)
-@@ -163,6 +163,12 @@
+@@ -163,6 +163,14 @@
  KBUILD_CFLAGS += $(call cc-option,-mno-sse -mno-mmx -mno-sse2 -mno-3dnow,)
  KBUILD_CFLAGS += $(call cc-option,-mno-avx,)
  
 +#
-+# Prevent the gcc from linking Linux memmove into compiler-generated
++# Prevent the gcc from linking Linux functions into compiler-generated
 +# Genode stuff.
 +#
-+KBUILD_CFLAGS += -Dmemmove=lx_memmove
++KBUILD_CFLAGS += -Dmemmove=lx_memmove -Dmemset=lx_memset -Dmemcpy=lx_memcpy
++KBUILD_CFLAGS += -Dstrlen=lx_strlen -Dabort=lx_abort
++
 +
  endif
  
  ifeq ($(BASEARCH),arm)
-@@ -243,6 +249,8 @@
+@@ -243,6 +251,8 @@
  
  endif
  
@@ -909,7 +911,7 @@ Index: arch/l4/Makefile
  
  # -----------------------------------------------
  
-@@ -265,14 +273,15 @@
+@@ -265,14 +275,15 @@
  L4LX_E_L-$(CONFIG_L4_TCG_STPM)     += stpm-client
  L4LX_E_L-$(CONFIG_L4_FERRET)       += ferret
  
@@ -930,7 +932,7 @@ Index: arch/l4/Makefile
  				   arch/l4/l4lxlib/generic/		\
  				   arch/l4/l4lxlib/$(BASEENV)/
  
-@@ -291,7 +300,7 @@
+@@ -291,7 +302,7 @@
  
  core-y += arch/l4/
  
@@ -939,7 +941,7 @@ Index: arch/l4/Makefile
  
  L4_REQUIRED_MODS		:= libc_be_minimal_log_io \
                                     libc_minimal libc_minimal_l4re \
-@@ -307,15 +316,17 @@
+@@ -307,15 +318,17 @@
  $(error Aborting.)
  endif
  
@@ -961,7 +963,7 @@ Index: arch/l4/Makefile
  		   -Iarch/$(LINSRCARCH)/include/generated \
  		   $(if $(PLATFORMNAME),-I$(src)/arch/l4/include/asm/mach-$(LINSRCARCH)/$(PLATFORMNAME)) \
  		   $(if $(PLATFORMNAME),-I$(src)/arch/l4/include/asm/plat-$(LINSRCARCH)/$(PLATFORMNAME)) \
-@@ -337,6 +348,8 @@
+@@ -337,6 +350,8 @@
  KBUILD_CPPFLAGS += -DTEXT_OFFSET=0x01000000
  endif
  
@@ -970,7 +972,7 @@ Index: arch/l4/Makefile
  all: lImage
  
  boot := arch/l4/boot
-@@ -345,11 +358,11 @@
+@@ -345,11 +360,11 @@
  	$(Q)$(MAKE) $(build)=$(boot) $@
  
  check_for_l4defs:
@@ -987,6 +989,54 @@ Index: arch/l4/Makefile
  
  server:
  	$(Q)$(MAKE) $(build)=arch/l4/server
+Index: arch/x86/lib/memcpy_32.c
+===================================================================
+--- arch/x86/lib/memcpy_32.c	(revision 25)
++++ arch/x86/lib/memcpy_32.c	(working copy)
+@@ -1,8 +1,13 @@
+ #include <linux/string.h>
+ #include <linux/module.h>
+ 
++#ifdef NOT_GENODE
+ #undef memcpy
+ #undef memset
++#else
++#undef lx_memcpy
++#undef lx_memset
++#endif /* NOT_GENODE */
+ 
+ void *memcpy(void *to, const void *from, size_t n)
+ {
+Index: arch/x86/include/asm/string_32.h
+===================================================================
+--- arch/x86/include/asm/string_32.h	(revision 25)
++++ arch/x86/include/asm/string_32.h	(working copy)
+@@ -179,8 +179,12 @@
+ #ifndef CONFIG_KMEMCHECK
+ 
+ #if (__GNUC__ >= 4)
++#ifdef NOT_GENODE
+ #define memcpy(t, f, n) __builtin_memcpy(t, f, n)
+ #else
++#define lx_memcpy(t, f, n) __memcpy(t, f, n)
++#endif
++#else
+ #define memcpy(t, f, n)				\
+ 	(__builtin_constant_p((n))		\
+ 	 ? __constant_memcpy((t), (f), (n))	\
+@@ -322,8 +326,12 @@
+ 
+ #define __HAVE_ARCH_MEMSET
+ #if (__GNUC__ >= 4)
++#ifdef NOT_GENODE
+ #define memset(s, c, count) __builtin_memset(s, c, count)
+ #else
++#define lx_memset(s, c, count) __memset(s, c, count)
++#endif
++#else
+ #define memset(s, c, count)						\
+ 	(__builtin_constant_p(c)					\
+ 	 ? __constant_c_x_memset((s), (0x01010101UL * (unsigned char)(c)), \
 Index: drivers/tty/serial/l4ser.c
 ===================================================================
 --- drivers/tty/serial/l4ser.c	(revision 25)

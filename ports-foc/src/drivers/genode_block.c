@@ -129,8 +129,9 @@ static void genode_blk_request(struct request_queue *q)
 }
 
 
-static void genode_end_request(void *request, short write,
-                               void *buf, unsigned long sz) {
+static void FASTCALL
+genode_end_request(void *request, short write,
+                   void *buf, unsigned long sz) {
 	struct request *req = (struct request*) request;
 	struct genode_blk_device *dev = req->rq_disk->private_data;
 	char *ptr = (char*) buf;

@@ -29,8 +29,9 @@
 static struct net_device *net_dev;
 
 
-static void genode_net_receive_packet(void* dev_addr, void *addr,
-                                      unsigned long size)
+static void FASTCALL
+genode_net_receive_packet(void* dev_addr, void *addr,
+                          unsigned long size)
 {
 	struct net_device       *dev   = (struct net_device *) dev_addr;
 	struct net_device_stats *stats = (struct net_device_stats*) netdev_priv(dev);
