@@ -26,7 +26,7 @@ $(DOWNLOAD_DIR)/$(LWIP_TGZ):
 $(CONTRIB_DIR)/$(LWIP): $(DOWNLOAD_DIR)/$(LWIP_TGZ)
 	$(VERBOSE)tar xvzf $< -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)find ./src/lib/lwip/ -name "*.patch" |\
-		xargs -ixxx sh -c "patch -p0 -r - -N -d $(CONTRIB_DIR) < xxx" || true
+		xargs -ixxx sh -c "patch -p1 -r - -N -d $(CONTRIB_DIR)/$(LWIP) < xxx" || true
 
 include/lwip/lwip:
 	$(VERBOSE)mkdir -p $@
