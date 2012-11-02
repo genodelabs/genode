@@ -93,7 +93,11 @@ void Signal_session_component::submit(Signal_context_capability context_cap,
 	           (_context_ep->obj_by_cap(context_cap));
 
 	if (!context) {
-		PWRN("invalid signal-context capability");
+		/*
+		 * We do not use PWRN() to enable the build system to suppress this
+		 * warning in release mode (SPECS += release).
+		 */
+		PDBG("invalid signal-context capability");
 		return;
 	}
 
