@@ -2,6 +2,7 @@
  * \brief  Instance of the timer session interface
  * \author Norman Feske
  * \author Stefan Kalkowski
+ * \author Markus Partheymueller
  * \date   2010-01-30
  */
 
@@ -10,6 +11,11 @@
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
+ *
+ * Copyright (C) 2012 Intel Corporation    
+ * 
+ * Modifications are contributed under the terms and conditions of the
+ * Genode Contributor's Agreement executed by Intel.
  */
 
 #ifndef _TIMER_SESSION_COMPONENT_
@@ -118,6 +124,13 @@ namespace Timer {
 				using namespace Fiasco;
 
 				l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(1000*ms)));
+			}
+
+			void usleep(unsigned us)
+			{
+				using namespace Fiasco;
+
+				l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(us)));
 			}
 
 			unsigned long elapsed_ms() const
