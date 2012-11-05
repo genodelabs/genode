@@ -115,7 +115,7 @@ inline int lx_bindmount(char const *source, char const *target)
 
 inline int lx_umount(char const *target)
 {
-	return lx_syscall(SYS_umount, target);
+	return lx_syscall(SYS_umount2, target, 0);
 }
 
 
