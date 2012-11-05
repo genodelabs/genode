@@ -241,7 +241,15 @@ static void unmarshal_fds(int *src_fds, size_t src_fds_len, fd_set *dst_fds)
 {
 	if (!dst_fds) return;
 
-	FD_ZERO(dst_fds);
+	/**
+	 * Calling FD_ZERO will not work because it will try to reset sizeof (fd_set)
+	 * which is typically 128 bytes but dst_fds might by even less bytes large if
+	 * it was allocated dynamically. So we will reset the fd_set manually which
+	 * will work fine as long as we are using FreeBSDs libc - another libc however
+	 * might use a different struct.
+	 */
+	for (size_t i = 0; i < src_fds_len; i++)
+		dst_fds->__fds_bits[i] = 0;
 
 	for (size_t i = 0; i < src_fds_len; i++)
 		FD_SET(src_fds[i], dst_fds);
