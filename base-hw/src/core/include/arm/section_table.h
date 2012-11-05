@@ -91,6 +91,35 @@ namespace Arm
 	}
 
 	/**
+	 * Wether support for caching is already enabled
+	 *
+	 * FIXME: Normally all ARM platforms should support caching,
+	 *        but for some 'base_hw' misses support by now.
+	 */
+	inline bool cache_support();
+
+	/**
+	 * Memory region attributes for the translation descriptor 'T'
+	 */
+	template <typename T>
+	static typename T::access_t memory_region_attr(bool const d, bool const c)
+	{
+		typedef typename T::Tex Tex;
+		typedef typename T::C C;
+		typedef typename T::B B;
+
+		/*
+		 * FIXME: upgrade to write-back & write-allocate when !d & c
+		 */
+		if(d)     return Tex::bits(2) | C::bits(0) | B::bits(0);
+		if(cache_support()) {
+			if(c) return Tex::bits(6) | C::bits(1) | B::bits(0);
+			      return Tex::bits(4) | C::bits(0) | B::bits(0);
+		}
+		          return Tex::bits(4) | C::bits(0) | B::bits(0);
+	}
+
+	/**
 	 * Second level translation table
 	 *
 	 * A table is dedicated to either secure or non-secure mode. All
@@ -219,6 +248,23 @@ namespace Arm
 				struct S        : Bitfield<10, 1> { };  /* shareable bit */
 				struct Ng       : Bitfield<11, 1> { };  /* not global bit */
 				struct Pa_31_12 : Bitfield<12, 20> { }; /* physical base */
+
+				/**
+				 * Compose descriptor value
+				 */
+				static access_t create(bool const w, bool const x,
+				                       bool const k, bool const g,
+				                       bool const d, bool const c,
+				                       addr_t const pa)
+				{
+					access_t v = access_permission_bits<Small_page>(w, x, k) |
+					             memory_region_attr<Small_page>(d, c) |
+					             Ng::bits(!g) |
+					             S::bits(0) |
+					             Pa_31_12::masked(pa);
+					Descriptor::type(v, Descriptor::SMALL_PAGE);
+					return v;
+				}
 			};
 
 			/*
@@ -292,6 +338,8 @@ namespace Arm
 			 * \param x          see 'Section_table::insert_translation'
 			 * \param k          see 'Section_table::insert_translation'
 			 * \param g          see 'Section_table::insert_translation'
+			 * \param d          see 'Section_table::insert_translation'
+			 * \param c          see 'Section_table::insert_translation'
 			 *
 			 * This method overrides an existing translation in case
 			 * that it spans the the same virtual range and is not
@@ -300,7 +348,8 @@ namespace Arm
 			void insert_translation(addr_t const vo, addr_t const pa,
 			                        unsigned long const size_log2,
 			                        bool const w, bool const x,
-			                        bool const k, bool const g)
+			                        bool const k, bool const g,
+			                        bool const d, bool const c)
 			{
 				/* validate virtual address */
 				unsigned long i;
@@ -312,11 +361,8 @@ namespace Arm
 				if (size_log2 == Small_page::VIRT_SIZE_LOG2)
 				{
 					/* compose new descriptor value */
-					Descriptor::access_t entry =
-						access_permission_bits<Small_page>(w, x, k) |
-						Small_page::Ng::bits(!g) |
-						Small_page::Pa_31_12::masked(pa);
-					Descriptor::type(entry, Descriptor::SMALL_PAGE);
+					Descriptor::access_t const entry =
+						Small_page::create(w, x, k, g, d, c, pa);
 
 					/* check if we can we write to the targeted entry */
 					if (Descriptor::valid(_entries[i]))
@@ -552,10 +598,13 @@ namespace Arm
 				 */
 				static access_t create(bool const w, bool const x,
 				                       bool const k, bool const g,
+				                       bool const d, bool const c,
 				                       addr_t const pa)
 				{
 					access_t v = access_permission_bits<Section>(w, x, k) |
+					             memory_region_attr<Section>(d, c) |
 					             Domain::bits(DOMAIN) |
+					             S::bits(0) |
 					             Ng::bits(!g) |
 					             Pa_31_20::masked(pa);
 					Descriptor::type(v, Descriptor::SECTION);
@@ -635,6 +684,8 @@ namespace Arm
 			 *                     in user mode, while in kernel mode this
 			 *                     translation grants any type of access.
 			 * \param g            if the translation applies to all spaces
+			 * \param d            wether 'pa' addresses device IO-memory
+			 * \param c            if access shall be cacheable
 			 * \param extra_space  If > 0, it must point to a portion of
 			 *                     size-aligned memory space wich may be used
 			 *                     furthermore by the table for the incurring
@@ -660,6 +711,7 @@ namespace Arm
 			                                 unsigned long const size_log2,
 			                                 bool const w, bool const x,
 			                                 bool const k, bool const g,
+			                                 bool const d, bool const c,
 			                                 ST * const st,
 			                                 void * const extra_space = 0)
 			{
@@ -698,14 +750,14 @@ namespace Arm
 
 					/* insert translation */
 					pt->insert_translation(vo - Section::Pa_31_20::masked(vo),
-					                       pa, size_log2, w, x, k, g);
+					                       pa, size_log2, w, x, k, g, d, c);
 					return 0;
 				}
 				if (size_log2 == Section::VIRT_SIZE_LOG2)
 				{
 					/* compose section descriptor */
-					Descriptor::access_t entry = Section::create(w, x, k,
-					                                             g, pa, st);
+					Descriptor::access_t const entry =
+						Section::create(w, x, k, g, d, c, pa, st);
 
 					/* check if we can we write to the targeted entry */
 					if (Descriptor::valid(_entries[i]))

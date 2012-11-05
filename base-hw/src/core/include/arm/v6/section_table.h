@@ -55,10 +55,12 @@ namespace Arm_v6
 				 */
 				static access_t create(bool const w, bool const x,
 				                       bool const k, bool const g,
+				                       bool const d, bool const c,
 				                       addr_t const pa,
 				                       Section_table *)
 				{
-					return Arm::Section_table::Section::create(w, x, k, g, pa) |
+					return Arm::Section_table::Section::create(w, x, k, g,
+					                                           d, c, pa) |
 					       P::bits(0);
 				}
 			};
@@ -72,14 +74,20 @@ namespace Arm_v6
 			                                 unsigned long const size_log2,
 			                                 bool const w, bool const x,
 			                                 bool const k, bool const g,
+			                                 bool const d, bool const c,
 			                                 void * const extra_space = 0)
 			{
 				return Arm::Section_table::
 				insert_translation<Section_table>(vo, pa, size_log2, w,
-				                                  x, k, g, this, extra_space);
+				                                  x, k, g, d, c, this,
+				                                  extra_space);
 			}
 	};
 }
+
+
+bool Arm::cache_support() { return 0; }
+
 
 #endif /* _INCLUDE__ARM_V6__SECTION_TABLE_H_ */
 

@@ -59,10 +59,11 @@ namespace Arm_v7
 				 */
 				static access_t create(bool const w, bool const x,
 				                       bool const k, bool const g,
+				                       bool const d, bool const c,
 				                       addr_t const pa,
 				                       Section_table * const st)
 				{
-					return Arm::Section_table::Section::create(w, x, k, g, pa) |
+					return Arm::Section_table::Section::create(w, x, k, g, d, c, pa) |
 					       Ns::bits(!st->secure());
 				}
 			};
@@ -88,11 +89,13 @@ namespace Arm_v7
 			                                 unsigned long const size_log2,
 			                                 bool const w, bool const x,
 			                                 bool const k, bool const g,
+			                                 bool const d, bool const c,
 			                                 void * const extra_space = 0)
 			{
 				return Arm::Section_table::
 				insert_translation<Section_table>(vo, pa, size_log2, w,
-				                                  x, k, g, this, extra_space);
+				                                  x, k, g, d, c, this,
+				                                  extra_space);
 			}
 
 			/***************
@@ -102,6 +105,10 @@ namespace Arm_v7
 			bool secure() { return _secure; }
 	};
 }
+
+
+bool Arm::cache_support() { return 1; }
+
 
 #endif /* _INCLUDE__ARM_V7__SECTION_TABLE_H_ */
 

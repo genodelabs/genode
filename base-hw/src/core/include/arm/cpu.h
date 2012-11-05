@@ -56,9 +56,17 @@ namespace Arm
 		{
 			struct M : Bitfield<0,1> { };  /* enable MMU */
 			struct A : Bitfield<1,1> { };  /* strict data addr. alignment on */
-			struct C : Bitfield<2,1> { };  /* enable L1 data cache */
+			struct C : Bitfield<2,1> { };  /* enable data cache */
 			struct Z : Bitfield<11,1> { }; /* enable program flow prediction */
-			struct I : Bitfield<12,1> { }; /* enable L1 instruction-cache */
+			struct I : Bitfield<12,1> { }; /* enable instruction caches */
+
+			/*
+			 * These must be set all ones
+			 */
+			struct Static1 : Bitfield<3,4> { };
+			struct Static2 : Bitfield<16,1> { };
+			struct Static3 : Bitfield<18,1> { };
+			struct Static4 : Bitfield<22,2> { };
 
 			struct V : Bitfield<13,1> /* select exception-entry base */
 			{
@@ -80,15 +88,18 @@ namespace Arm
 			struct Ee : Bitfield<25,1> { }; /* raise CPSR.E on exceptions */
 
 			/**
-			 * Value for the switch to virtual mode in kernel
+			 * Common bitfield values for all modes
 			 */
-			static access_t init_virt_kernel()
+			static access_t common()
 			{
-				return M::bits(1) |
+				return Static1::bits(~0) |
+				       Static2::bits(~0) |
+				       Static3::bits(~0) |
+				       Static4::bits(~0) |
 				       A::bits(0) |
-				       C::bits(0) |
+				       C::bits(1) |
 				       Z::bits(0) |
-				       I::bits(0) |
+				       I::bits(1) |
 				       V::bits(V::XFFFF0000) |
 				       Rr::bits(Rr::RANDOM) |
 				       Fi::bits(0) |
@@ -97,21 +108,16 @@ namespace Arm
 			}
 
 			/**
+			 * Value for the switch to virtual mode in kernel
+			 */
+			static access_t init_virt_kernel() {
+				return common() | M::bits(1); }
+
+			/**
 			 * Value for the initial kernel entry
 			 */
-			static access_t init_phys_kernel()
-			{
-				return M::bits(0) |
-				       A::bits(0) |
-				       C::bits(0) |
-				       Z::bits(0) |
-				       I::bits(0) |
-				       V::bits(V::XFFFF0000) |
-				       Rr::bits(Rr::RANDOM) |
-				       Fi::bits(0) |
-				       Ve::bits(Ve::FIXED) |
-				       Ee::bits(0);
-			}
+			static access_t init_phys_kernel() {
+				return common() | M::bits(0); }
 
 			/**
 			 * Read register value
@@ -126,10 +132,8 @@ namespace Arm
 			/**
 			 * Write register value
 			 */
-			static void write(access_t const v)
-			{
-				asm volatile ("mcr p15, 0, %[v], c1, c0, 0" :: [v]"r"(v) : );
-			}
+			static void write(access_t const v) {
+				asm volatile ("mcr p15, 0, %[v], c1, c0, 0" :: [v]"r"(v) : ); }
 		};
 
 		/**

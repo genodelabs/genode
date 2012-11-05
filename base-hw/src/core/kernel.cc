@@ -801,11 +801,11 @@ namespace Kernel
 			Pd()
 			{
 				/* try to add translation for mode transition region */
-				enum Mtc_attributes { W = 1, X = 1, K = 1, G = 1 };
+				enum Mtc_attributes { W = 1, X = 1, K = 1, G = 1, D = 0, C = 1 };
 				unsigned const slog2 = insert_translation(mtc()->VIRT_BASE,
 				                                          mtc()->phys_base(),
 				                                          mtc()->SIZE_LOG2,
-				                                          W, X, K, G);
+				                                          W, X, K, G, D, C);
 
 				/* extra space needed to translate mode transition region */
 				if (slog2)
@@ -822,7 +822,7 @@ namespace Kernel
 
 					/* translate mode transition region globally */
 					insert_translation(mtc()->VIRT_BASE, mtc()->phys_base(),
-					                   mtc()->SIZE_LOG2, W, X, K, G,
+					                   mtc()->SIZE_LOG2, W, X, K, G, D, C,
 					                   (void *)aligned_es);
 				}
 			}
@@ -2109,11 +2109,8 @@ extern "C" void kernel()
 				SIZE = 1 << SIZE_LOG2,
 			};
 			if (mtc()->VIRT_END <= a || mtc()->VIRT_BASE > (a + SIZE - 1))
-			{
-				/* map 1:1 with rwx permissions */
-				if (core()->insert_translation(a, a, SIZE_LOG2, 1, 1, 0, 0))
-					assert(0);
-			}
+				assert(!core()->insert_translation(a, a, SIZE_LOG2, 1, 1, 0, 0, 1, 0));
+
 			/* check condition to continue */
 			addr_t const next_a = a + SIZE;
 			if (next_a > a) a = next_a;
