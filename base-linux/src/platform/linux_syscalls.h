@@ -57,8 +57,8 @@ extern "C" int  lx_clone(int (*fn)(void *), void *child_stack,
 inline Genode::uint16_t lx_bswap16(Genode::uint16_t x)
 {
 	char v[2] = {
-		(x & 0xff00) >>  8,
-		(x & 0x00ff) >>  0,
+		(char)((x & 0xff00) >> 8),
+		(char)((x & 0x00ff) >> 0),
 	};
 	return *(Genode::uint16_t *)v;
 }
@@ -67,10 +67,10 @@ inline Genode::uint16_t lx_bswap16(Genode::uint16_t x)
 inline Genode::uint32_t lx_bswap32(Genode::uint32_t x)
 {
 	char v[4] = {
-		(x & 0xff000000) >> 24,
-		(x & 0x00ff0000) >> 16,
-		(x & 0x0000ff00) >>  8,
-		(x & 0x000000ff) >>  0,
+		(char)((x & 0xff000000) >> 24),
+		(char)((x & 0x00ff0000) >> 16),
+		(char)((x & 0x0000ff00) >>  8),
+		(char)((x & 0x000000ff) >>  0),
 	};
 	return *(Genode::uint32_t *)v;
 }

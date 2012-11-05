@@ -20,7 +20,7 @@ extern "C" {
 
 extern "C" void dde_kit_print(const char *msg)
 {
-	Genode::printf(msg);
+	Genode::printf("%s", msg);
 }
 
 
