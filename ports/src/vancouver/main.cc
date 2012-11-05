@@ -44,6 +44,8 @@
 #include <rm_session/connection.h>
 #include <cap_session/connection.h>
 #include <os/config.h>
+#include <os/alarm.h>
+#include <timer_session/connection.h>
 #include <nova_cpu_session/connection.h>
 
 /* NOVA includes that come with Genode */
@@ -77,6 +79,66 @@ enum { verbose_io    = false };
  * Used for startup synchronization and coarse-grained locking.
  */
 Genode::Lock global_lock(Genode::Lock::LOCKED);
+Genode::Lock timeouts_lock(Genode::Lock::UNLOCKED);
+
+
+/* Timer Service */
+using Genode::Thread;
+using Genode::Alarm_scheduler;
+using Genode::Alarm;
+
+class Alarm_thread : Thread<4096>, public Alarm_scheduler
+{
+	private:
+
+		Timer::Connection      _timer;
+		Alarm::Time            _curr_time;   /* jiffies value */
+
+		Motherboard           &_motherboard;
+		TimeoutList<32, void> &_timeouts;
+
+		/**
+		 * Thread entry function
+		 */
+		void entry()
+		{
+			while (true) {
+				unsigned long long now = _motherboard.clock()->time();
+				unsigned nr;
+
+				timeouts_lock.lock();
+
+				while ((nr = _timeouts.trigger(now))) {
+
+					MessageTimeout msg(nr, _timeouts.timeout());
+
+					if (_timeouts.cancel(nr) < 0)
+						Logging::printf("Timeout not cancelled.\n");
+
+					timeouts_lock.unlock();
+
+					_motherboard.bus_timeout.send(msg);
+
+					timeouts_lock.lock();
+				}
+
+				timeouts_lock.unlock();
+
+				_timer.usleep(1000);
+			}
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Alarm_thread(Motherboard &mb, TimeoutList<32, void> &timeouts)
+		: _curr_time(0), _motherboard(mb), _timeouts(timeouts) { start(); }
+
+		Alarm::Time curr_time() { return _curr_time; }
+		unsigned long long curr_time_long() { return _motherboard.clock()->time(); }
+};
 
 
 /**
@@ -898,6 +960,7 @@ class Machine : public StaticReceiver<Machine>
 		TimeoutList<32, void>  _timeouts;
 		Guest_memory          &_guest_memory;
 		Boot_module_provider  &_boot_modules;
+		Alarm_thread          *_alarm_thread;
 
 	public:
 
@@ -1086,14 +1149,26 @@ class Machine : public StaticReceiver<Machine>
 
 				if (verbose_debug)
 					Logging::printf("TIMER_NEW\n");
+
+				if (_alarm_thread == NULL) {
+					Logging::printf("Creating alarm thread\n");
+					_alarm_thread = new Alarm_thread(_motherboard, _timeouts);
+				}
+
+				timeouts_lock.lock();
 				msg.nr = _timeouts.alloc();
+				timeouts_lock.unlock();
+
 				return true;
 
 			case MessageTimer::TIMER_REQUEST_TIMEOUT:
+				timeouts_lock.lock();
 
-				if (verbose_debug)
-					Logging::printf("TIMER_REQUEST_TIMEOUT\n");
-				_timeouts.request(msg.nr, msg.abstime);
+				if (_timeouts.request(msg.nr, msg.abstime) < 0)
+					Logging::printf("Could not program timeout.\n");
+
+				timeouts_lock.unlock();
+
 				return true;
 
 			default:
@@ -1103,13 +1178,15 @@ class Machine : public StaticReceiver<Machine>
 
 		bool receive(MessageTime &msg)
 		{
-			if (verbose_debug)
-				Logging::printf("MessageTime - not implemented\n");
-			return false;
+			// XXX: Use RTC time
+			msg.wallclocktime = 0;
+			msg.timestamp = 0;
+
+			return true;
 		}
 
 		bool receive(MessageNetwork &msg)
-		{	
+		{
 			if (verbose_debug)
 				PDBG("MessageNetwork");
 			return false;

@@ -2,11 +2,13 @@
  * \brief  Instance of the timer session interface
  * \author Norman Feske
  * \author Stefan Kalkowski
+ * \author Markus Partheymueller
  * \date   2010-01-30
  */
 
 /*
  * Copyright (C) 2010-2013 Genode Labs GmbH
+ * Copyright (C) 2012 Intel Corporation
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -118,6 +120,13 @@ namespace Timer {
 				using namespace Fiasco;
 
 				l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(1000*ms)));
+			}
+
+			void usleep(unsigned us)
+			{
+				using namespace Fiasco;
+
+				l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(us)));
 			}
 
 			unsigned long elapsed_ms() const

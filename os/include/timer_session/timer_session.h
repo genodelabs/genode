@@ -1,11 +1,13 @@
 /*
  * \brief  Timer session interface
  * \author Norman Feske
+ * \author Markus Partheymueller
  * \date   2006-08-15
  */
 
 /*
  * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2012 Intel Corporation
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -30,6 +32,11 @@ namespace Timer {
 		virtual void msleep(unsigned ms) = 0;
 
 		/**
+		 * Sleep number of microseconds
+		 */
+		virtual void usleep(unsigned us) = 0;
+
+		/**
 		 * Return number of elapsed milliseconds since session creation
 		 */
 		virtual unsigned long elapsed_ms() const
@@ -46,9 +53,10 @@ namespace Timer {
 		 *********************/
 
 		GENODE_RPC(Rpc_msleep, void, msleep, unsigned);
+		GENODE_RPC(Rpc_usleep, void, usleep, unsigned);
 		GENODE_RPC(Rpc_elapsed_ms, unsigned long, elapsed_ms);
 
-		GENODE_RPC_INTERFACE(Rpc_msleep, Rpc_elapsed_ms);
+		GENODE_RPC_INTERFACE(Rpc_msleep, Rpc_usleep, Rpc_elapsed_ms);
 	};
 }
 
