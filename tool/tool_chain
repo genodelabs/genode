@@ -216,8 +216,8 @@ LD_PREFIX            = -Wl,
 LD_DEFSYM_DUMMY_LIBC = $(addprefix $(LD_PREFIX)--defsym=,$(addsuffix =0,$(DUMMY_LIBC_SYMS)))
 
 GCC_CONFIG += $(COMMON_CONFIG) \
-			  --enable-languages=c,c++,go --disable-libgo \
-			  --enable-targets=all \
+              --enable-languages=c,c++,go --disable-libgo \
+              --enable-targets=all \
               --with-gnu-as --with-gnu-ld --disable-tls --disable-threads \
               --disable-libstdcxx-pch \
               --enable-shared \
