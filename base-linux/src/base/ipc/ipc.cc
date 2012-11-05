@@ -68,7 +68,14 @@ Genode::Ep_socket_descriptor_registry *Genode::ep_sd_registry()
  */
 static int lookup_tid_by_client_socket(int sd)
 {
-	sockaddr_un name;
+	/*
+	 * Synchronize calls so that the large 'sockaddr_un' can be allocated
+	 * in the BSS rather than the stack.
+	 */
+	Lock lock;
+	Lock::Guard guard(lock);
+
+	static sockaddr_un name;
 	socklen_t name_len = sizeof(name);
 	int ret = lx_getpeername(sd, (sockaddr *)&name, &name_len);
 	if (ret < 0)

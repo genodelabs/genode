@@ -33,6 +33,18 @@ Platform_thread::Platform_thread(const char *name, unsigned, addr_t)
 }
 
 
+Platform_thread::~Platform_thread()
+{
+	ep_sd_registry()->disassociate(_ncs.client_sd);
+
+	if (_ncs.client_sd)
+		lx_close(_ncs.client_sd);
+
+	if (_ncs.server_sd)
+		lx_close(_ncs.server_sd);
+}
+
+
 void Platform_thread::cancel_blocking()
 {
 	PDBG("send cancel-blocking signal to %ld\n", _tid);

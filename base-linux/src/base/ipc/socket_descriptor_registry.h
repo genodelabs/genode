@@ -60,6 +60,8 @@ class Genode::Socket_descriptor_registry
 			Entry(int fd, int global_id) : fd(fd), global_id(global_id) { }
 
 			bool is_free() const { return fd == -1; }
+
+			void mark_as_free() { fd = -1; }
 		};
 
 		Entry _entries[MAX_FDS];
@@ -70,6 +72,15 @@ class Genode::Socket_descriptor_registry
 		{
 			for (unsigned i = 0; i < MAX_FDS; i++)
 				if (_entries[i].is_free())
+					return _entries[i];
+
+			throw Limit_reached();
+		}
+
+		Entry &_find_entry_by_fd(int fd)
+		{
+			for (unsigned i = 0; i < MAX_FDS; i++)
+				if (_entries[i].fd == fd)
 					return _entries[i];
 
 			throw Limit_reached();
@@ -110,6 +121,13 @@ class Genode::Socket_descriptor_registry
 
 			Entry &entry = _find_free_entry();
 			entry = Entry(sd, global_id);
+		}
+
+		void disassociate(int sd)
+		{
+			Genode::Lock::Guard guard(_lock);
+
+			_find_entry_by_fd(sd).mark_as_free();
 		}
 
 		/**

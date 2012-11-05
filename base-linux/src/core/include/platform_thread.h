@@ -41,6 +41,8 @@ namespace Genode {
 			 */
 			Platform_thread(const char *name, unsigned priority, addr_t);
 
+			~Platform_thread();
+
 			/**
 			 * Cancel currently blocking operation
 			 */
