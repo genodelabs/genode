@@ -62,7 +62,8 @@ static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
  *************/
 
 Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
-                 bool write_combined, unsigned l2size, bool rw)
+                 bool write_combined, bool io_mem,
+                 unsigned l2size, bool rw)
 :
 	_fpage(L4_FpageLog2(dst_addr, l2size)),
 	/*

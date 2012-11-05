@@ -81,7 +81,7 @@ namespace Genode {
 
 				Resolution(addr_t   virtual_page_address,
 				           addr_t   physical_page_address,
-				           bool     write_combined,
+				           bool     write_combined, bool io_mem,
 				           unsigned size_log2 = DEFAULT_SIZE_LOG2,
 				           bool     writeable = DEFAULT_WRITEABLE)
 				: _valid(true)

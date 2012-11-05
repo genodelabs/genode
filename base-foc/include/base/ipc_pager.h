@@ -46,7 +46,8 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
-			        bool write_combined, unsigned l2size = L4_LOG2_PAGESIZE,
+			        bool write_combined, bool io_mem,
+			        unsigned l2size = L4_LOG2_PAGESIZE,
 			        bool rw = true, bool grant = false)
 			: _dst_addr(dst_addr), _src_addr(src_addr),
 			  _write_combined(write_combined), _log2size(l2size),

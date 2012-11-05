@@ -43,7 +43,8 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t map_addr,
-			        bool write_combined, unsigned size_log2 = PAGE_SIZE_LOG2,
+			        bool write_combined, bool io_mem,
+			        unsigned size_log2 = PAGE_SIZE_LOG2,
 			        bool rw = true)
 			:
 				_dst_addr(dst_addr), _core_local_addr(map_addr),

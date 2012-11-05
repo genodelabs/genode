@@ -37,7 +37,8 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
-			        bool write_combined, unsigned l2size = PAGE_SIZE_LOG2,
+			        bool write_combined, bool io_mem,
+			        unsigned l2size = PAGE_SIZE_LOG2,
 			        bool rw = true)
 			:
 				_from_phys_addr(src_addr),

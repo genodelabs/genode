@@ -256,6 +256,7 @@ int Rm_client::pager(Ipc_pager &pager)
 	Mapping mapping(dst_fault_area.base(),
 	                src_fault_area.base(),
 	                src_dataspace->write_combined(),
+	                src_dataspace->is_io_mem(),
 	                map_size_log2,
 	                src_dataspace->writable());
 
