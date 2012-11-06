@@ -843,6 +843,11 @@ namespace Arm
 			}
 
 			/**
+			 * Get base address for hardware table walk
+			 */
+			addr_t base() const { return (addr_t)_entries; }
+
+			/**
 			 * Get a portion of memory that is no longer used by this table
 			 *
 			 * \param base  base of regained mem portion if method returns 1

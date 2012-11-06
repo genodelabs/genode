@@ -782,13 +782,34 @@ namespace Kernel
 	static Mode_transition_control * mtc()
 	{ static Mode_transition_control _object; return &_object; }
 
+	/**
+	 * Ensures that PDs align their TLB data for hardware table walks
+	 */
+	class Pd_base
+	{
+		Software_tlb _tlb;
+
+		public:
+
+			/**
+			 * Alignment that instances of this class need
+			 */
+			static unsigned alignm_log2() { return Software_tlb::ALIGNM_LOG2; }
+
+			/***************
+			 ** Accessors **
+			 ***************/
+
+			Software_tlb * tlb() { return &_tlb; }
+	};
 
 	/**
 	 * Kernel object that represents a Genode PD
 	 */
-	class Pd : public Object<Pd, MAX_PDS>,
-	           public Software_tlb
+	class Pd : public Pd_base,
+	           public Object<Pd, MAX_PDS>
 	{
+
 		/* keep ready memory for size aligned extra costs at construction */
 		enum { EXTRA_SPACE_SIZE = 2*Software_tlb::MAX_COSTS_PER_TRANSLATION };
 		char _extra_space[EXTRA_SPACE_SIZE];
@@ -802,10 +823,11 @@ namespace Kernel
 			{
 				/* try to add translation for mode transition region */
 				enum Mtc_attributes { W = 1, X = 1, K = 1, G = 1, D = 0, C = 1 };
-				unsigned const slog2 = insert_translation(mtc()->VIRT_BASE,
-				                                          mtc()->phys_base(),
-				                                          mtc()->SIZE_LOG2,
-				                                          W, X, K, G, D, C);
+				unsigned const slog2 =
+					tlb()->insert_translation(mtc()->VIRT_BASE,
+					                          mtc()->phys_base(),
+					                          mtc()->SIZE_LOG2,
+					                          W, X, K, G, D, C);
 
 				/* extra space needed to translate mode transition region */
 				if (slog2)
@@ -821,9 +843,11 @@ namespace Kernel
 					assert(aligned_es >= es && aligned_es_end <= es_end)
 
 					/* translate mode transition region globally */
-					insert_translation(mtc()->VIRT_BASE, mtc()->phys_base(),
-					                   mtc()->SIZE_LOG2, W, X, K, G, D, C,
-					                   (void *)aligned_es);
+					tlb()->insert_translation(mtc()->VIRT_BASE,
+					                          mtc()->phys_base(),
+					                          mtc()->SIZE_LOG2,
+					                          W, X, K, G, D, C,
+					                          (void *)aligned_es);
 				}
 			}
 
@@ -833,7 +857,7 @@ namespace Kernel
 			void append_context(Cpu::Context * const c)
 			{
 				c->protection_domain(id());
-				c->software_tlb((addr_t)static_cast<Software_tlb *>(this));
+				c->software_tlb(tlb()->base());
 			}
 	};
 
@@ -1522,7 +1546,7 @@ namespace Kernel
 	size_t pd_size()              { return sizeof(Pd); }
 	size_t signal_context_size()  { return sizeof(Signal_context); }
 	size_t signal_receiver_size() { return sizeof(Signal_receiver); }
-	unsigned pd_alignm_log2()     { return Pd::ALIGNM_LOG2; }
+	unsigned pd_alignm_log2()     { return Pd::alignm_log2(); }
 	size_t vm_size()              { return sizeof(Vm); }
 
 
@@ -1667,8 +1691,7 @@ namespace Kernel
 		Pd::Pool * const pp = Pd::pool();
 		Pd * const pd = pp->object(t->pd_id());
 		assert(pd);
-		Software_tlb * const tlb = static_cast<Software_tlb *>(pd);
-		user->user_arg_0((Syscall_ret)tlb);
+		user->user_arg_0((Syscall_ret)pd->tlb());
 	}
 
 
@@ -2109,8 +2132,8 @@ extern "C" void kernel()
 				SIZE = 1 << SIZE_LOG2,
 			};
 			if (mtc()->VIRT_END <= a || mtc()->VIRT_BASE > (a + SIZE - 1))
-				assert(!core()->insert_translation(a, a, SIZE_LOG2, 1, 1, 0, 0, 1, 0));
-
+				assert(!core()->tlb()->insert_translation(a, a, SIZE_LOG2,
+				                                          1, 1, 0, 0, 1, 0));
 			/* check condition to continue */
 			addr_t const next_a = a + SIZE;
 			if (next_a > a) a = next_a;
@@ -2131,7 +2154,7 @@ extern "C" void kernel()
 		trustzone_initialization(pic());
 
 		/* switch to core address space */
-		Cpu::init_virt_kernel((addr_t)static_cast<Software_tlb *>(core()), core_id());
+		Cpu::init_virt_kernel(core()->tlb()->base(), core_id());
 
 		/* create the core main thread */
 		static Native_utcb cm_utcb;
@@ -2199,7 +2222,7 @@ void Thread::init_context(void * const instr_p, void * const stack_p,
 	Pd * const pd = Pd::pool()->object(_pd_id);
 	assert(pd)
 	protection_domain(pd_id);
-	software_tlb((addr_t)static_cast<Software_tlb *>(pd));
+	software_tlb(pd->tlb()->base());
 }
 
 
