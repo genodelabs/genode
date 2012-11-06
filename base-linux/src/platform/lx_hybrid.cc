@@ -40,6 +40,8 @@ int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
 extern char **environ;
 extern char **lx_environ;
 
+static void empty_signal_handler(int) { }
+
 /*
  * This function must be called before any other static constructor in the Genode
  * application, so it gets the highest priority (lowest priority number >100)
@@ -47,6 +49,12 @@ extern char **lx_environ;
 __attribute__((constructor(101))) void lx_hybrid_init()
 {
 	lx_environ = environ;
+
+	/*
+	 * Set signal handler such that canceled system calls get not
+	 * transparently retried after a signal gets received.
+	 */
+	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 }
 
 /*
@@ -156,9 +164,6 @@ namespace Genode {
 		{ }
 	};
 }
-
-
-static void empty_signal_handler(int) { }
 
 
 /**
