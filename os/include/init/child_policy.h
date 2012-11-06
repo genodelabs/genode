@@ -94,18 +94,22 @@ namespace Init {
 			{
 				using namespace Genode;
 
-				if (strcmp(session, "PD") != 0)
+				/*
+				 * Specify 'Genode' namespace to remove possible ambiguity of
+				 * 'strcmp' when including the header along with libc headers.
+				 */
+				if (Genode::strcmp(session, "PD") != 0)
 					return;
 
-				char path_buf[Parent::Session_args::MAX_SIZE];
-				Arg_string::find_arg(args, "root").string(path_buf, sizeof(path_buf), "");
+				char path[Parent::Session_args::MAX_SIZE];
+				Arg_string::find_arg(args, "root").string(path, sizeof(path), "");
 
-				char value_buf[Parent::Session_args::MAX_SIZE];
-				Genode::snprintf(value_buf, sizeof(value_buf),
+				char value[Parent::Session_args::MAX_SIZE];
+				Genode::snprintf(value, sizeof(value),
 				                 "\"%s%s\"",
-				                 _root_prefix, path_buf);
+				                 _root_prefix, path);
 
-				Arg_string::set_arg(args, args_len, "root", value_buf);
+				Arg_string::set_arg(args, args_len, "root", value);
 			}
 	};
 
