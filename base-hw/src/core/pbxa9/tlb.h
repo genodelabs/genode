@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SRC__CORE__PBXA9__SOFTWARE_TLB_H_
-#define _SRC__CORE__PBXA9__SOFTWARE_TLB_H_
+#ifndef _SRC__CORE__PBXA9__TLB_H_
+#define _SRC__CORE__PBXA9__TLB_H_
 
 /* core includes */
 #include <arm/v7/section_table.h>
@@ -20,7 +20,7 @@
 /**
  * Software TLB controls
  */
-class Software_tlb : public Arm_v7::Section_table { };
+class Tlb : public Arm_v7::Section_table { };
 
-#endif /* _SRC__CORE__PBXA9__SOFTWARE_TLB_H_ */
+#endif /* _SRC__CORE__PBXA9__TLB_H_ */
 

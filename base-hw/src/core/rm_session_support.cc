@@ -19,7 +19,7 @@
 #include <platform.h>
 #include <platform_thread.h>
 #include <assert.h>
-#include <software_tlb.h>
+#include <tlb.h>
 
 using namespace Genode;
 
@@ -34,7 +34,7 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 	/* get software TLB of the thread that we serve */
 	Platform_thread * const pt = Kernel::get_thread(badge());
 	assert(pt);
-	Software_tlb * const tlb = pt->software_tlb();
+	Tlb * const tlb = pt->tlb();
 	assert(tlb);
 
 	/* update all translation caches */
@@ -58,7 +58,7 @@ void Ipc_pager::resolve_and_wait_for_fault()
 	assert(_mapping.valid());
 
 	/* do we need extra space to resolve pagefault? */
-	Software_tlb * const tlb = _pagefault.software_tlb;
+	Tlb * const tlb = _pagefault.tlb;
 	enum { X = 1, K = 0, G = 0 };
 	bool c = !_mapping.write_combined && !_mapping.io_mem;
 	bool d = _mapping.io_mem;

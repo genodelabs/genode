@@ -47,11 +47,11 @@ namespace Genode
 	 */
 	struct Pagefault
 	{
-		unsigned long  thread_id; /* thread ID of the faulter */
-		Software_tlb * software_tlb; /* TLB to wich the faulter is assigned */
-		addr_t         virt_ip; /* the faulters virtual instruction pointer */
+		unsigned long  thread_id;    /* thread ID of the faulter */
+		Tlb *          tlb;          /* TLB to wich the faulter is assigned */
+		addr_t         virt_ip;      /* the faulters virtual instruction pointer */
 		addr_t         virt_address; /* virtual fault address */
-		bool           write; /* write access attempted at fault? */
+		bool           write;        /* write access attempted at fault? */
 
 		/**
 		 * Placement new operator
@@ -66,10 +66,10 @@ namespace Genode
 		/**
 		 * Construct valid pagefault
 		 */
-		Pagefault(unsigned const tid, Software_tlb * const sw_tlb,
+		Pagefault(unsigned const tid, Tlb * const tlb,
 		          addr_t const vip, addr_t const va, bool const w)
 		:
-			thread_id(tid), software_tlb(sw_tlb), virt_ip(vip),
+			thread_id(tid), tlb(tlb), virt_ip(vip),
 			virt_address(va), write(w)
 		{ }
 

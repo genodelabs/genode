@@ -475,9 +475,9 @@ namespace Arm
 			 ** Accessors **
 			 ***************/
 
-			void software_tlb(addr_t const st) { section_table = st; }
+			void tlb(addr_t const st) { section_table = st; }
 
-			addr_t software_tlb() const { return section_table; }
+			addr_t tlb() const { return section_table; }
 
 			void protection_domain(unsigned const id) { cidr = id; }
 		};

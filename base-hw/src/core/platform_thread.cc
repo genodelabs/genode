@@ -153,8 +153,8 @@ int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 		catch (...) { assert(0); }
 	}
 	/* let thread participate in CPU scheduling */
-	_software_tlb = Kernel::start_thread(this, ip, sp, cpu_no);
-	return _software_tlb ? 0 : -1;
+	_tlb = Kernel::start_thread(this, ip, sp, cpu_no);
+	return _tlb ? 0 : -1;
 }
 
 

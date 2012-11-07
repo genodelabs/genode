@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SRC__CORE__IMX31__SOFTWARE_TLB_H_
-#define _SRC__CORE__IMX31__SOFTWARE_TLB_H_
+#ifndef _SRC__CORE__IMX31__TLB_H_
+#define _SRC__CORE__IMX31__TLB_H_
 
 /* Genode includes */
 #include <arm/v6/section_table.h>
@@ -20,7 +20,7 @@
 /**
  * Software TLB controls
  */
-class Software_tlb : public Arm_v6::Section_table { };
+class Tlb : public Arm_v6::Section_table { };
 
-#endif /* _SRC__CORE__IMX31__SOFTWARE_TLB_H_ */
+#endif /* _SRC__CORE__IMX31__TLB_H_ */
 

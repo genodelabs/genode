@@ -46,7 +46,7 @@ namespace Genode {
 		bool                     _main_thread;
 		Native_utcb *            _phys_utcb;
 		Native_utcb *            _virt_utcb;
-		Software_tlb *           _software_tlb;
+		Tlb *           _tlb;
 		Ram_dataspace_capability _utcb;
 		char                     _name[NAME_MAX_LEN];
 		void *                   _kernel_thread;
@@ -176,7 +176,7 @@ namespace Genode {
 
 			Ram_dataspace_capability utcb() const { return _utcb; }
 
-			Software_tlb * software_tlb() const { return _software_tlb; }
+			Tlb * tlb() const { return _tlb; }
 	};
 }
 

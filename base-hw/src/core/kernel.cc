@@ -32,7 +32,7 @@
 #include <kernel_support.h>
 #include <platform_thread.h>
 #include <assert.h>
-#include <software_tlb.h>
+#include <tlb.h>
 #include <trustzone.h>
 
 using namespace Kernel;
@@ -728,7 +728,7 @@ namespace Kernel
 	struct Mode_transition_control
 	{
 		enum {
-			SIZE_LOG2 = Software_tlb::MIN_PAGE_SIZE_LOG2,
+			SIZE_LOG2 = Tlb::MIN_PAGE_SIZE_LOG2,
 			SIZE = 1 << SIZE_LOG2,
 			VIRT_BASE = Cpu::EXCEPTION_ENTRY,
 			VIRT_END = VIRT_BASE + SIZE,
@@ -787,20 +787,20 @@ namespace Kernel
 	 */
 	class Pd_base
 	{
-		Software_tlb _tlb;
+		Tlb _tlb;
 
 		public:
 
 			/**
 			 * Alignment that instances of this class need
 			 */
-			static unsigned alignm_log2() { return Software_tlb::ALIGNM_LOG2; }
+			static unsigned alignm_log2() { return Tlb::ALIGNM_LOG2; }
 
 			/***************
 			 ** Accessors **
 			 ***************/
 
-			Software_tlb * tlb() { return &_tlb; }
+			Tlb * tlb() { return &_tlb; }
 	};
 
 	/**
@@ -811,7 +811,7 @@ namespace Kernel
 	{
 
 		/* keep ready memory for size aligned extra costs at construction */
-		enum { EXTRA_SPACE_SIZE = 2*Software_tlb::MAX_COSTS_PER_TRANSLATION };
+		enum { EXTRA_SPACE_SIZE = 2*Tlb::MAX_COSTS_PER_TRANSLATION };
 		char _extra_space[EXTRA_SPACE_SIZE];
 
 		public:
@@ -857,7 +857,7 @@ namespace Kernel
 			void append_context(Cpu::Context * const c)
 			{
 				c->protection_domain(id());
-				c->software_tlb(tlb()->base());
+				c->tlb(tlb()->base());
 			}
 	};
 
@@ -2128,7 +2128,7 @@ extern "C" void kernel()
 		{
 			/* map everything except the mode transition region */
 			enum {
-				SIZE_LOG2 = Software_tlb::MAX_PAGE_SIZE_LOG2,
+				SIZE_LOG2 = Tlb::MAX_PAGE_SIZE_LOG2,
 				SIZE = 1 << SIZE_LOG2,
 			};
 			if (mtc()->VIRT_END <= a || mtc()->VIRT_BASE > (a + SIZE - 1))
@@ -2222,7 +2222,7 @@ void Thread::init_context(void * const instr_p, void * const stack_p,
 	Pd * const pd = Pd::pool()->object(_pd_id);
 	assert(pd)
 	protection_domain(pd_id);
-	software_tlb(pd->tlb()->base());
+	tlb(pd->tlb()->base());
 }
 
 
@@ -2234,8 +2234,7 @@ void Thread::pagefault(addr_t const va, bool const w)
 
 	/* inform pager through IPC */
 	assert(_pager);
-	Software_tlb * const tlb = (Software_tlb *)software_tlb();
-	_pagefault = Pagefault(id(), tlb, ip, va, w);
+	_pagefault = Pagefault(id(), (Tlb *)tlb(), ip, va, w);
 	Ipc_node::send_note(_pager, &_pagefault, sizeof(_pagefault));
 }
 

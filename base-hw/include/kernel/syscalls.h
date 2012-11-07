@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/syscall_types.h>
 
-class Software_tlb;
+class Tlb;
 
 namespace Genode
 {
@@ -201,21 +201,19 @@ namespace Kernel
 	 * \param ip  initial instruction pointer
 	 * \param sp  initial stack pointer
 	 *
-	 * \retval >0  success, return value is the software TLB of the thread
+	 * \retval >0  success, return value is the TLB of the thread
 	 * \retval  0  the targeted thread wasn't started or was already started
 	 *             when this gets called (in both cases it remains untouched)
 	 *
 	 * Restricted to core threads.
 	 */
-	inline Software_tlb *
+	inline Tlb *
 	start_thread(Genode::Platform_thread * const phys_pt, void * ip, void * sp,
 	             unsigned int cpu_no)
 	{
-		return (Software_tlb *)syscall(START_THREAD,
-		                               (Syscall_arg)phys_pt,
-		                               (Syscall_arg)ip,
-		                               (Syscall_arg)sp,
-		                               (Syscall_arg)cpu_no);
+		return (Tlb *)syscall(START_THREAD, (Syscall_arg)phys_pt,
+		                      (Syscall_arg)ip, (Syscall_arg)sp,
+		                      (Syscall_arg)cpu_no);
 	}
 
 
