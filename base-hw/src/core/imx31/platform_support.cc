@@ -25,7 +25,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::CSD0_SDRAM_BASE, Board::CSD0_SDRAM_SIZE }
+		{ Board::RAM_0_BASE, Board::RAM_0_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

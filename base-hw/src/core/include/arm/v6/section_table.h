@@ -82,6 +82,21 @@ namespace Arm_v6
 				                                  x, k, g, d, c, this,
 				                                  extra_space);
 			}
+
+			/**
+			 * Insert translations for given area, do not permit displacement
+			 *
+			 * \param vo  virtual offset within this table
+			 * \param s   area size
+			 * \param d   wether area maps device IO memory
+			 * \param c   wether area maps cacheable memory
+			 */
+			void translate_dpm_off(addr_t vo, size_t s,
+			                       bool const d, bool const c)
+			{
+				Arm::Section_table::
+				translate_dpm_off<Section_table>(vo, s, d, c, this);
+			}
 	};
 }
 

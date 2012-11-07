@@ -26,8 +26,11 @@ namespace Genode
 	struct Board
 	{
 		enum {
-			CSD0_SDRAM_BASE = 0x80000000,
-			CSD0_SDRAM_SIZE = 0x10000000,
+			RAM_0_BASE = 0x80000000,
+			RAM_0_SIZE = 0x20000000,
+
+			MMIO_0_BASE = 0x30000000,
+			MMIO_0_SIZE = 0x50000000,
 
 			UART_1_IRQ       = 45,
 			UART_1_MMIO_BASE = 0x43f90000,

@@ -1,5 +1,5 @@
 /*
- * \brief  Software TLB controls specific for the Versatile VEA9X4
+ * \brief  SW controls for the translation lookaside-buffer
  * \author Martin Stein
  * \date   2012-04-23
  */
@@ -15,12 +15,48 @@
 #define _SRC__CORE__VEA9X4__TLB_H_
 
 /* Genode includes */
+#include <drivers/board.h>
+
+/* core includes */
 #include <arm/v7/section_table.h>
 
 /**
- * Software TLB controls
+ * Software TLB-controls
  */
-class Tlb : public Arm_v7::Section_table { };
+class Tlb : public Arm_v7::Section_table
+{
+	public:
+
+		/**
+		 * Placement new
+		 */
+		void * operator new (Genode::size_t, void * p) { return p; }
+};
+
+/**
+ * TLB of core
+ *
+ * Must ensure that core never gets a pagefault.
+ */
+class Core_tlb : public Tlb
+{
+	public:
+
+		Core_tlb()
+		{
+			using namespace Genode;
+
+			/* map RAM */
+			translate_dpm_off(Board::RAM_0_BASE, Board::RAM_0_SIZE, 0, 1);
+			translate_dpm_off(Board::RAM_1_BASE, Board::RAM_1_SIZE, 0, 1);
+			translate_dpm_off(Board::RAM_2_BASE, Board::RAM_2_SIZE, 0, 1);
+			translate_dpm_off(Board::RAM_3_BASE, Board::RAM_3_SIZE, 0, 1);
+
+			/* map MMIO */
+			translate_dpm_off(Board::MMIO_0_BASE, Board::MMIO_0_SIZE, 1, 0);
+			translate_dpm_off(Board::MMIO_1_BASE, Board::MMIO_1_SIZE, 1, 0);
+		}
+};
 
 #endif /* _SRC__CORE__VEA9X4__TLB_H_ */
 

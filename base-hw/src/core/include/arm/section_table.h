@@ -232,9 +232,10 @@ namespace Arm
 			struct Small_page : Descriptor
 			{
 				enum {
-					VIRT_SIZE_LOG2 = _4KB_LOG2,
-					VIRT_SIZE = 1 << VIRT_SIZE_LOG2,
-					VIRT_BASE_MASK = ~((1 << VIRT_SIZE_LOG2) - 1)
+					VIRT_SIZE_LOG2   = _4KB_LOG2,
+					VIRT_SIZE        = 1 << VIRT_SIZE_LOG2,
+					VIRT_OFFSET_MASK = (1 << VIRT_SIZE_LOG2) - 1,
+					VIRT_BASE_MASK   = ~(VIRT_OFFSET_MASK),
 				};
 
 				struct Xn       : Bitfield<0, 1> { };   /* execute never */
@@ -442,6 +443,22 @@ namespace Arm
 				return true;
 			}
 
+			/**
+			 * Get next translation size log2 by area constraints
+			 *
+			 * \param vo  virtual offset within this table
+			 * \param s   area size
+			 */
+			static unsigned
+			translation_size_l2(addr_t const vo, size_t const s)
+			{
+				off_t const o = vo & Small_page::VIRT_OFFSET_MASK;
+				if (!o && s >= Small_page::VIRT_SIZE)
+					return Small_page::VIRT_SIZE_LOG2;
+				PDBG("Insufficient alignment or size");
+				while (1) ;
+			}
+
 	} __attribute__((aligned(1<<Page_table::ALIGNM_LOG2)));
 
 	/**
@@ -575,9 +592,10 @@ namespace Arm
 			struct Section : Descriptor
 			{
 				enum {
-					VIRT_SIZE_LOG2 = _1MB_LOG2,
-					VIRT_SIZE = 1 << VIRT_SIZE_LOG2,
-					VIRT_BASE_MASK = ~((1 << VIRT_SIZE_LOG2) - 1)
+					VIRT_SIZE_LOG2   = _1MB_LOG2,
+					VIRT_SIZE        = 1 << VIRT_SIZE_LOG2,
+					VIRT_OFFSET_MASK = (1 << VIRT_SIZE_LOG2) - 1,
+					VIRT_BASE_MASK   = ~(VIRT_OFFSET_MASK),
 				};
 
 				struct B        : Bitfield<2, 1> { };   /* mem. region attr. */
@@ -877,6 +895,49 @@ namespace Arm
 				}
 				return false;
 			}
+
+			/**
+			 * Get next translation size log2 by area constraints
+			 *
+			 * \param vo  virtual offset within this table
+			 * \param s   area size
+			 */
+			static unsigned
+			translation_size_l2(addr_t const vo, size_t const s)
+			{
+				off_t const o = vo & Section::VIRT_OFFSET_MASK;
+				if (!o && s >= Section::VIRT_SIZE)
+					return Section::VIRT_SIZE_LOG2;
+				return Page_table::translation_size_l2(o, s);
+			}
+
+			/**
+			 * Insert translations for given area, do not permit displacement
+			 *
+			 * \param vo  virtual offset within this table
+			 * \param s   area size
+			 * \param d   wether area maps device IO memory
+			 * \param c   wether area maps cacheable memory
+			 */
+			template <typename ST>
+			void translate_dpm_off(addr_t vo, size_t s,
+			                       bool const d, bool const c, ST * st)
+			{
+				unsigned tsl2 = translation_size_l2(vo, s);
+				size_t ts     = 1 << tsl2;
+				while (1) {
+					if(st->insert_translation(vo, vo, tsl2, 1,1,0,0,d,c)) {
+						PDBG("Displacement not permitted");
+						return;
+					}
+					vo += ts;
+					s = ts < s ? s - ts : 0;
+					if (!s) break;
+					tsl2 = translation_size_l2(vo, s);
+					ts   = 1 << tsl2;
+				}
+			}
+
 	} __attribute__((aligned(1<<Section_table::ALIGNM_LOG2)));
 }
 

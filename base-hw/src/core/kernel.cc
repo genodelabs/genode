@@ -783,32 +783,11 @@ namespace Kernel
 	{ static Mode_transition_control _object; return &_object; }
 
 	/**
-	 * Ensures that PDs align their TLB data for hardware table walks
-	 */
-	class Pd_base
-	{
-		Tlb _tlb;
-
-		public:
-
-			/**
-			 * Alignment that instances of this class need
-			 */
-			static unsigned alignm_log2() { return Tlb::ALIGNM_LOG2; }
-
-			/***************
-			 ** Accessors **
-			 ***************/
-
-			Tlb * tlb() { return &_tlb; }
-	};
-
-	/**
 	 * Kernel object that represents a Genode PD
 	 */
-	class Pd : public Pd_base,
-	           public Object<Pd, MAX_PDS>
+	class Pd : public Object<Pd, MAX_PDS>
 	{
+		Tlb * const _tlb;
 
 		/* keep ready memory for size aligned extra costs at construction */
 		enum { EXTRA_SPACE_SIZE = 2*Tlb::MAX_COSTS_PER_TRANSLATION };
@@ -819,7 +798,7 @@ namespace Kernel
 			/**
 			 * Constructor
 			 */
-			Pd()
+			Pd(Tlb * const t) : _tlb(t)
 			{
 				/* try to add translation for mode transition region */
 				enum Mtc_attributes { W = 1, X = 1, K = 1, G = 1, D = 0, C = 1 };
@@ -859,6 +838,12 @@ namespace Kernel
 				c->protection_domain(id());
 				c->tlb(tlb()->base());
 			}
+
+			/***************
+			 ** Accessors **
+			 ***************/
+
+			Tlb * tlb() { return _tlb; }
 	};
 
 	/**
@@ -1113,7 +1098,12 @@ namespace Kernel
 	/**
 	 * Static kernel PD that describes core
 	 */
-	static Pd * core() { static Pd _object; return &_object; }
+	static Pd * core()
+	{
+		static Core_tlb tlb;
+		static Pd _pd(&tlb);
+		return &_pd;
+	}
 
 
 	/**
@@ -1543,10 +1533,10 @@ namespace Kernel
 	 * Get attributes of the kernel objects
 	 */
 	size_t thread_size()          { return sizeof(Thread); }
-	size_t pd_size()              { return sizeof(Pd); }
+	size_t pd_size()              { return sizeof(Tlb) + sizeof(Pd); }
 	size_t signal_context_size()  { return sizeof(Signal_context); }
 	size_t signal_receiver_size() { return sizeof(Signal_receiver); }
-	unsigned pd_alignm_log2()     { return Pd::alignm_log2(); }
+	unsigned pd_alignm_log2()     { return Tlb::ALIGNM_LOG2; }
 	size_t vm_size()              { return sizeof(Vm); }
 
 
@@ -1618,9 +1608,11 @@ namespace Kernel
 		/* check permissions */
 		assert(user->pd_id() == core_id());
 
-		/* create PD */
+		/* create TLB and PD */
 		void * dst = (void *)user->user_arg_1();
-		Pd * const pd = new (dst) Pd();
+		Tlb * const tlb = new (dst) Tlb();
+		dst = (void *)((addr_t)dst + sizeof(Tlb));
+		Pd * const pd = new (dst) Pd(tlb);
 
 		/* return success */
 		user->user_arg_0(pd->id());
@@ -2122,23 +2114,6 @@ extern "C" void kernel()
 	/* kernel initialization */
 	} else {
 
-		/* compose core address space */
-		addr_t a = 0;
-		while (1)
-		{
-			/* map everything except the mode transition region */
-			enum {
-				SIZE_LOG2 = Tlb::MAX_PAGE_SIZE_LOG2,
-				SIZE = 1 << SIZE_LOG2,
-			};
-			if (mtc()->VIRT_END <= a || mtc()->VIRT_BASE > (a + SIZE - 1))
-				assert(!core()->tlb()->insert_translation(a, a, SIZE_LOG2,
-				                                          1, 1, 0, 0, 1, 0));
-			/* check condition to continue */
-			addr_t const next_a = a + SIZE;
-			if (next_a > a) a = next_a;
-			else break;
-		}
 		/* compose kernel CPU context */
 		static Cpu::Context kernel_context;
 		kernel_context.ip = (addr_t)kernel;

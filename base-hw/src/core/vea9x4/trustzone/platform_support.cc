@@ -26,7 +26,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::SRAM_BASE, Board::SRAM_SIZE }
+		{ Board::RAM_3_BASE, Board::RAM_3_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -63,9 +63,9 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::SMB_CS7_BASE, Board::SMB_CS7_SIZE },
-		{ Board::SMB_CS0_TO_CS6_BASE, Board::SMB_CS0_TO_CS6_SIZE },
-		{ Board::LOCAL_DDR2_BASE, Board::LOCAL_DDR2_SIZE },
+		{ Board::MMIO_0_BASE, Board::MMIO_0_SIZE },
+		{ Board::MMIO_1_BASE, Board::MMIO_1_SIZE },
+		{ 0x60000000, 0x40000000 },
 		{ Board::TZASC_MMIO_BASE, Board::TZASC_MMIO_SIZE },
 		{ Board::TZPC_MMIO_BASE, Board::TZPC_MMIO_SIZE },
 	};
