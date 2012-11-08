@@ -32,7 +32,7 @@
 #define _GLIBCXX_CXX_CONFIG_H 1
 
 // The current version of the C++ library in compressed ISO date format.
-#define __GLIBCXX__ 20110627
+#define __GLIBCXX__ 20120920
 
 // Macros for various attributes.
 //   _GLIBCXX_PURE
@@ -52,10 +52,9 @@
 # define _GLIBCXX_NORETURN __attribute__ ((__noreturn__))
 #endif
 
+// See below for C++
 #ifndef _GLIBCXX_NOTHROW
-# ifdef __cplusplus
-#  define _GLIBCXX_NOTHROW throw()
-# else
+# ifndef __cplusplus
 #  define _GLIBCXX_NOTHROW __attribute__((__nothrow__))
 # endif
 #endif
@@ -99,6 +98,23 @@
 # endif
 #endif
 
+// Macro for noexcept, to support in mixed 03/0x mode.
+#ifndef _GLIBCXX_NOEXCEPT
+# ifdef __GXX_EXPERIMENTAL_CXX0X__
+#  define _GLIBCXX_NOEXCEPT noexcept
+#  define _GLIBCXX_USE_NOEXCEPT noexcept
+#  define _GLIBCXX_THROW(_EXC)
+# else
+#  define _GLIBCXX_NOEXCEPT
+#  define _GLIBCXX_USE_NOEXCEPT throw()
+#  define _GLIBCXX_THROW(_EXC) throw(_EXC)
+# endif
+#endif
+
+#ifndef _GLIBCXX_NOTHROW
+# define _GLIBCXX_NOTHROW _GLIBCXX_USE_NOEXCEPT
+#endif
+
 // Macro for extern template, ie controling template linkage via use
 // of extern keyword on template declaration. As documented in the g++
 // manual, it inhibits all implicit instantiations and is used
@@ -132,6 +148,8 @@
       namespace __detail { }
     }
 
+    namespace tr2 { }
+    
     namespace decimal { }
 
     namespace chrono { }
@@ -162,41 +180,45 @@ namespace std
 
 
 // Defined if inline namespaces are used for versioning.
-# define _GLIBCXX_INLINE_VERSION 0
+# define _GLIBCXX_INLINE_VERSION 0 
 
 // Inline namespace for symbol versioning.
 #if _GLIBCXX_INLINE_VERSION
+
 namespace std
 {
-  inline namespace _6 { }
+  inline namespace __7 { }
 
-  namespace rel_ops { inline namespace _6 { } }
+  namespace rel_ops { inline namespace __7 { } }
 
   namespace tr1
   {
-    inline namespace _6 { }
-    namespace placeholders { inline namespace _6 { } }
-    namespace regex_constants { inline namespace _6 { } }
-    namespace __detail { inline namespace _6 { } }
+    inline namespace __7 { }
+    namespace placeholders { inline namespace __7 { } }
+    namespace regex_constants { inline namespace __7 { } }
+    namespace __detail { inline namespace __7 { } }
   }
 
-  namespace decimal { inline namespace _6 { } }
+  namespace tr2
+  { inline namespace __7 { } }
 
-  namespace chrono { inline namespace _6 { } }
-  namespace placeholders { inline namespace _6 { } }
-  namespace regex_constants { inline namespace _6 { } }
-  namespace this_thread { inline namespace _6 { } }
+  namespace decimal { inline namespace __7 { } }
 
-  namespace __detail { inline namespace _6 { } }
-  namespace __regex { inline namespace _6 { } }
+  namespace chrono { inline namespace __7 { } }
+  namespace placeholders { inline namespace __7 { } }
+  namespace regex_constants { inline namespace __7 { } }
+  namespace this_thread { inline namespace __7 { } }
+
+  namespace __detail { inline namespace __7 { } }
+  namespace __regex { inline namespace __7 { } }
 }
 
 namespace __gnu_cxx
 {
-  inline namespace _6 { }
-  namespace __detail { inline namespace _6 { } }
+  inline namespace __7 { }
+  namespace __detail { inline namespace __7 { } }
 }
-# define _GLIBCXX_BEGIN_NAMESPACE_VERSION namespace _6 {
+# define _GLIBCXX_BEGIN_NAMESPACE_VERSION namespace __7 {
 # define _GLIBCXX_END_NAMESPACE_VERSION }
 #else
 # define _GLIBCXX_BEGIN_NAMESPACE_VERSION
@@ -213,7 +235,7 @@ namespace std
   namespace __cxx1998
   {
 #if _GLIBCXX_INLINE_VERSION
- inline namespace _6 { }
+ inline namespace __7 { }
 #endif
   }
 
@@ -268,7 +290,7 @@ namespace std
 # define _GLIBCXX_END_NAMESPACE_CONTAINER \
 	 } _GLIBCXX_END_NAMESPACE_VERSION
 # undef _GLIBCXX_EXTERN_TEMPLATE
-#  define _GLIBCXX_EXTERN_TEMPLATE 1 -1
+# define _GLIBCXX_EXTERN_TEMPLATE -1
 #endif
 
 #ifdef _GLIBCXX_PARALLEL
@@ -469,7 +491,7 @@ namespace std
 /* #undef _GLIBCXX_HAVE_CEILL */
 
 /* Define to 1 if you have the <complex.h> header file. */
-/* #undef _GLIBCXX_HAVE_COMPLEX_H */
+#define _GLIBCXX_HAVE_COMPLEX_H 1
 
 /* Define to 1 if you have the `cosf' function. */
 /* #undef _GLIBCXX_HAVE_COSF */
@@ -487,13 +509,16 @@ namespace std
 #define _GLIBCXX_HAVE_DLFCN_H 1
 
 /* Define if EBADMSG exists. */
-/* #undef _GLIBCXX_HAVE_EBADMSG */
+#define _GLIBCXX_HAVE_EBADMSG 1
 
 /* Define if ECANCELED exists. */
-/* #undef _GLIBCXX_HAVE_ECANCELED */
+#define _GLIBCXX_HAVE_ECANCELED 1
+
+/* Define if ECHILD exists. */
+#define _GLIBCXX_HAVE_ECHILD 1
 
 /* Define if EIDRM exists. */
-/* #undef _GLIBCXX_HAVE_EIDRM */
+#define _GLIBCXX_HAVE_EIDRM 1
 
 /* Define to 1 if you have the <endian.h> header file. */
 /* #undef _GLIBCXX_HAVE_ENDIAN_H */
@@ -502,7 +527,10 @@ namespace std
 /* #undef _GLIBCXX_HAVE_ENODATA */
 
 /* Define if ENOLINK exists. */
-/* #undef _GLIBCXX_HAVE_ENOLINK */
+#define _GLIBCXX_HAVE_ENOLINK 1
+
+/* Define if ENOSPC exists. */
+#define _GLIBCXX_HAVE_ENOSPC 1
 
 /* Define if ENOSR exists. */
 /* #undef _GLIBCXX_HAVE_ENOSR */
@@ -514,22 +542,31 @@ namespace std
 /* #undef _GLIBCXX_HAVE_ENOTRECOVERABLE */
 
 /* Define if ENOTSUP exists. */
-/* #undef _GLIBCXX_HAVE_ENOTSUP */
+#define _GLIBCXX_HAVE_ENOTSUP 1
 
 /* Define if EOVERFLOW exists. */
-/* #undef _GLIBCXX_HAVE_EOVERFLOW */
+#define _GLIBCXX_HAVE_EOVERFLOW 1
 
 /* Define if EOWNERDEAD exists. */
 /* #undef _GLIBCXX_HAVE_EOWNERDEAD */
 
+/* Define if EPERM exists. */
+#define _GLIBCXX_HAVE_EPERM 1
+
 /* Define if EPROTO exists. */
-/* #undef _GLIBCXX_HAVE_EPROTO */
+#define _GLIBCXX_HAVE_EPROTO 1
 
 /* Define if ETIME exists. */
 /* #undef _GLIBCXX_HAVE_ETIME */
 
+/* Define if ETIMEDOUT exists. */
+#define _GLIBCXX_HAVE_ETIMEDOUT 1
+
 /* Define if ETXTBSY exists. */
-/* #undef _GLIBCXX_HAVE_ETXTBSY */
+#define _GLIBCXX_HAVE_ETXTBSY 1
+
+/* Define if EWOULDBLOCK exists. */
+#define _GLIBCXX_HAVE_EWOULDBLOCK 1
 
 /* Define to 1 if you have the <execinfo.h> header file. */
 /* #undef _GLIBCXX_HAVE_EXECINFO_H */
@@ -547,7 +584,7 @@ namespace std
 /* #undef _GLIBCXX_HAVE_FABSL */
 
 /* Define to 1 if you have the <fenv.h> header file. */
-/* #undef _GLIBCXX_HAVE_FENV_H */
+#define _GLIBCXX_HAVE_FENV_H 1
 
 /* Define to 1 if you have the `finite' function. */
 /* #undef _GLIBCXX_HAVE_FINITE */
@@ -588,9 +625,8 @@ namespace std
 /* Define if _Unwind_GetIPInfo is available. */
 #define _GLIBCXX_HAVE_GETIPINFO 1
 
-/* Define if gthr-default.h exists (meaning that threading support is
-   enabled). */
-/* #undef _GLIBCXX_HAVE_GTHR_DEFAULT */
+/* Define if gets is available in <stdio.h>. */
+#define _GLIBCXX_HAVE_GETS 1
 
 /* Define to 1 if you have the `hypot' function. */
 /* #undef _GLIBCXX_HAVE_HYPOT */
@@ -605,16 +641,20 @@ namespace std
 /* #undef _GLIBCXX_HAVE_ICONV */
 
 /* Define to 1 if you have the <ieeefp.h> header file. */
-/* #undef _GLIBCXX_HAVE_IEEEFP_H */
+#define _GLIBCXX_HAVE_IEEEFP_H 1
 
 /* Define if int64_t is available in <stdint.h>. */
-/* #undef _GLIBCXX_HAVE_INT64_T */
+#define _GLIBCXX_HAVE_INT64_T 1
 
 /* Define if int64_t is a long. */
-/* #undef _GLIBCXX_HAVE_INT64_T_LONG */
+#ifdef __x86_64__
+#define _GLIBCXX_HAVE_INT64_T_LONG 1
+#endif
 
 /* Define if int64_t is a long long. */
-/* #undef _GLIBCXX_HAVE_INT64_T_LONG_LONG */
+#ifndef __x86_64__
+#define _GLIBCXX_HAVE_INT64_T_LONG_LONG 1
+#endif
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define _GLIBCXX_HAVE_INTTYPES_H 1
@@ -638,10 +678,10 @@ namespace std
 /* #undef _GLIBCXX_HAVE_ISNANL */
 
 /* Defined if iswblank exists. */
-/* #undef _GLIBCXX_HAVE_ISWBLANK */
+#define _GLIBCXX_HAVE_ISWBLANK 1
 
 /* Define if LC_MESSAGES is available in <locale.h>. */
-/* #undef _GLIBCXX_HAVE_LC_MESSAGES */
+#define _GLIBCXX_HAVE_LC_MESSAGES 1
 
 /* Define to 1 if you have the `ldexpf' function. */
 /* #undef _GLIBCXX_HAVE_LDEXPF */
@@ -686,13 +726,13 @@ namespace std
 /* #undef _GLIBCXX_HAVE_LOGL */
 
 /* Define to 1 if you have the <machine/endian.h> header file. */
-/* #undef _GLIBCXX_HAVE_MACHINE_ENDIAN_H */
+#define _GLIBCXX_HAVE_MACHINE_ENDIAN_H 1
 
 /* Define to 1 if you have the <machine/param.h> header file. */
-/* #undef _GLIBCXX_HAVE_MACHINE_PARAM_H */
+#define _GLIBCXX_HAVE_MACHINE_PARAM_H 1
 
 /* Define if mbstate_t exists in wchar.h. */
-/* #undef _GLIBCXX_HAVE_MBSTATE_T */
+#define _GLIBCXX_HAVE_MBSTATE_T 1
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define _GLIBCXX_HAVE_MEMORY_H 1
@@ -751,8 +791,11 @@ namespace std
 /* Define to 1 if you have the `sqrtl' function. */
 /* #undef _GLIBCXX_HAVE_SQRTL */
 
+/* Define to 1 if you have the <stdalign.h> header file. */
+#define _GLIBCXX_HAVE_STDALIGN_H 1
+
 /* Define to 1 if you have the <stdbool.h> header file. */
-/* #undef _GLIBCXX_HAVE_STDBOOL_H */
+#define _GLIBCXX_HAVE_STDBOOL_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define _GLIBCXX_HAVE_STDINT_H 1
@@ -764,7 +807,7 @@ namespace std
 /* #undef _GLIBCXX_HAVE_STRERROR_L */
 
 /* Define if strerror_r is available in <string.h>. */
-/* #undef _GLIBCXX_HAVE_STRERROR_R */
+#define _GLIBCXX_HAVE_STRERROR_R 1
 
 /* Define to 1 if you have the <strings.h> header file. */
 #define _GLIBCXX_HAVE_STRINGS_H 1
@@ -786,13 +829,13 @@ namespace std
 /* #undef _GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT */
 
 /* Define to 1 if you have the <sys/filio.h> header file. */
-/* #undef _GLIBCXX_HAVE_SYS_FILIO_H */
+#define _GLIBCXX_HAVE_SYS_FILIO_H 1
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
-/* #undef _GLIBCXX_HAVE_SYS_IOCTL_H */
+#define _GLIBCXX_HAVE_SYS_IOCTL_H 1
 
 /* Define to 1 if you have the <sys/ipc.h> header file. */
-/* #undef _GLIBCXX_HAVE_SYS_IPC_H */
+#define _GLIBCXX_HAVE_SYS_IPC_H 1
 
 /* Define to 1 if you have the <sys/isa_defs.h> header file. */
 /* #undef _GLIBCXX_HAVE_SYS_ISA_DEFS_H */
@@ -801,10 +844,10 @@ namespace std
 /* #undef _GLIBCXX_HAVE_SYS_MACHINE_H */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
-/* #undef _GLIBCXX_HAVE_SYS_PARAM_H */
+#define _GLIBCXX_HAVE_SYS_PARAM_H 1
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
-/* #undef _GLIBCXX_HAVE_SYS_RESOURCE_H */
+#define _GLIBCXX_HAVE_SYS_RESOURCE_H 1
 
 /* Define to 1 if you have the <sys/sem.h> header file. */
 #define _GLIBCXX_HAVE_SYS_SEM_H 1
@@ -812,20 +855,23 @@ namespace std
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define _GLIBCXX_HAVE_SYS_STAT_H 1
 
+/* Define to 1 if you have the <sys/sysinfo.h> header file. */
+/* #undef _GLIBCXX_HAVE_SYS_SYSINFO_H */
+
 /* Define to 1 if you have the <sys/time.h> header file. */
-/* #undef _GLIBCXX_HAVE_SYS_TIME_H */
+#define _GLIBCXX_HAVE_SYS_TIME_H 1
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #define _GLIBCXX_HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if you have the <sys/uio.h> header file. */
-/* #undef _GLIBCXX_HAVE_SYS_UIO_H */
+#define _GLIBCXX_HAVE_SYS_UIO_H 1
 
 /* Define if S_IFREG is available in <sys/stat.h>. */
 /* #undef _GLIBCXX_HAVE_S_IFREG */
 
 /* Define if S_IFREG is available in <sys/stat.h>. */
-/* #undef _GLIBCXX_HAVE_S_ISREG */
+#define _GLIBCXX_HAVE_S_ISREG 1
 
 /* Define to 1 if you have the `tanf' function. */
 /* #undef _GLIBCXX_HAVE_TANF */
@@ -840,7 +886,7 @@ namespace std
 /* #undef _GLIBCXX_HAVE_TANL */
 
 /* Define to 1 if you have the <tgmath.h> header file. */
-/* #undef _GLIBCXX_HAVE_TGMATH_H */
+#define _GLIBCXX_HAVE_TGMATH_H 1
 
 /* Define to 1 if the target supports thread-local storage. */
 /* #undef _GLIBCXX_HAVE_TLS */
@@ -849,25 +895,25 @@ namespace std
 #define _GLIBCXX_HAVE_UNISTD_H 1
 
 /* Defined if vfwscanf exists. */
-/* #undef _GLIBCXX_HAVE_VFWSCANF */
+#define _GLIBCXX_HAVE_VFWSCANF 1
 
 /* Defined if vswscanf exists. */
-/* #undef _GLIBCXX_HAVE_VSWSCANF */
+#define _GLIBCXX_HAVE_VSWSCANF 1
 
 /* Defined if vwscanf exists. */
-/* #undef _GLIBCXX_HAVE_VWSCANF */
+#define _GLIBCXX_HAVE_VWSCANF 1
 
 /* Define to 1 if you have the <wchar.h> header file. */
 #define _GLIBCXX_HAVE_WCHAR_H 1
 
 /* Defined if wcstof exists. */
-/* #undef _GLIBCXX_HAVE_WCSTOF */
+#define _GLIBCXX_HAVE_WCSTOF 1
 
 /* Define to 1 if you have the <wctype.h> header file. */
 #define _GLIBCXX_HAVE_WCTYPE_H 1
 
 /* Define if writev is available in <sys/uio.h>. */
-/* #undef _GLIBCXX_HAVE_WRITEV */
+#define _GLIBCXX_HAVE_WRITEV 1
 
 /* Define to 1 if you have the `_acosf' function. */
 /* #undef _GLIBCXX_HAVE__ACOSF */
@@ -1090,7 +1136,7 @@ namespace std
 /* #undef SIZEOF_INT */
 
 /* The size of `long', as computed by sizeof. */
-// #define SIZEOF_LONG 4
+/* #undef SIZEOF_LONG */
 
 /* The size of `short', as computed by sizeof. */
 /* #undef SIZEOF_SHORT */
@@ -1104,25 +1150,15 @@ namespace std
 /* Version number of package */
 /* #undef _GLIBCXX_VERSION */
 
-/* Define if builtin atomic operations for bool are supported on this host. */
-/* #undef _GLIBCXX_ATOMIC_BUILTINS_1 */
-
-/* Define if builtin atomic operations for short are supported on this host.
-   */
-/* #undef _GLIBCXX_ATOMIC_BUILTINS_2 */
-
-/* Define if builtin atomic operations for int are supported on this host. */
-/* #undef _GLIBCXX_ATOMIC_BUILTINS_4 */
-
-/* Define if builtin atomic operations for long long are supported on this
-   host. */
-/* #undef _GLIBCXX_ATOMIC_BUILTINS_8 */
+/* Define if the compiler supports C++11 atomics. */
+#define _GLIBCXX_ATOMIC_BUILTINS 1
 
 /* Define to use concept checking code from the boost libraries. */
 /* #undef _GLIBCXX_CONCEPT_CHECKS */
 
-/* Define if a fully dynamic basic_string is wanted. */
-/* #undef _GLIBCXX_FULLY_DYNAMIC_STRING */
+/* Define to 1 if a fully dynamic basic_string is wanted, 0 to disable,
+   undefined for platform defaults */
+#define _GLIBCXX_FULLY_DYNAMIC_STRING 0
 
 /* Define if gthreads library is available. */
 /* #undef _GLIBCXX_HAS_GTHREADS */
@@ -1133,13 +1169,17 @@ namespace std
 /* Define if compatibility should be provided for -mlong-double-64. */
 
 /* Define if ptrdiff_t is int. */
+#ifndef __x86_64__
 #define _GLIBCXX_PTRDIFF_T_IS_INT 1
+#endif
 
 /* Define if using setrlimit to set resource limits during "make check" */
 /* #undef _GLIBCXX_RES_LIMITS */
 
 /* Define if size_t is unsigned int. */
-// #define _GLIBCXX_SIZE_T_IS_UINT 1
+#ifndef __x86_64__
+#define _GLIBCXX_SIZE_T_IS_UINT 1
+#endif
 
 /* Define if the compiler is configured for setjmp/longjmp exceptions. */
 /* #undef _GLIBCXX_SJLJ_EXCEPTIONS */
@@ -1184,15 +1224,15 @@ namespace std
 
 /* Define if C99 functions in <ctype.h> should be imported in <tr1/cctype> in
    namespace std::tr1. */
-/* #undef _GLIBCXX_USE_C99_CTYPE_TR1 */
+#define _GLIBCXX_USE_C99_CTYPE_TR1 1
 
 /* Define if C99 functions in <fenv.h> should be imported in <tr1/cfenv> in
    namespace std::tr1. */
-/* #undef _GLIBCXX_USE_C99_FENV_TR1 */
+#define _GLIBCXX_USE_C99_FENV_TR1 1
 
 /* Define if C99 functions in <inttypes.h> should be imported in
    <tr1/cinttypes> in namespace std::tr1. */
-/* #undef _GLIBCXX_USE_C99_INTTYPES_TR1 */
+#define _GLIBCXX_USE_C99_INTTYPES_TR1 1
 
 /* Define if wchar_t C99 functions in <inttypes.h> should be imported in
    <tr1/cinttypes> in namespace std::tr1. */
@@ -1200,7 +1240,7 @@ namespace std
 
 /* Define if C99 functions or macros in <math.h> should be imported in <cmath>
    in namespace std. */
-/* #undef _GLIBCXX_USE_C99_MATH */
+#define _GLIBCXX_USE_C99_MATH 1
 
 /* Define if C99 functions or macros in <math.h> should be imported in
    <tr1/cmath> in namespace std::tr1. */
@@ -1208,7 +1248,7 @@ namespace std
 
 /* Define if C99 types in <stdint.h> should be imported in <tr1/cstdint> in
    namespace std::tr1. */
-/* #undef _GLIBCXX_USE_C99_STDINT_TR1 */
+#define _GLIBCXX_USE_C99_STDINT_TR1 1
 
 /* Defined if clock_gettime has monotonic clock support. */
 /* #undef _GLIBCXX_USE_CLOCK_MONOTONIC */
@@ -1220,8 +1260,21 @@ namespace std
    this host. */
 /* #undef _GLIBCXX_USE_DECIMAL_FLOAT */
 
+/* Define if __float128 is supported on this host. */
+#ifndef __ARM_EABI__
+#define _GLIBCXX_USE_FLOAT128 1
+#endif
+
 /* Defined if gettimeofday is available. */
-/* #undef _GLIBCXX_USE_GETTIMEOFDAY */
+#define _GLIBCXX_USE_GETTIMEOFDAY 1
+
+/* Define if get_nprocs is available in <sys/sysinfo.h>. */
+/* #undef _GLIBCXX_USE_GET_NPROCS */
+
+/* Define if __int128 is supported on this host. */
+#ifdef __x86_64__
+#define _GLIBCXX_USE_INT128 1
+#endif
 
 /* Define if LFS support is available. */
 /* #undef _GLIBCXX_USE_LFS */
@@ -1235,6 +1288,9 @@ namespace std
 /* Define if NLS translations are to be used. */
 /* #undef _GLIBCXX_USE_NLS */
 
+/* Define if pthreads_num_processors_np is available in <pthread.h>. */
+/* #undef _GLIBCXX_USE_PTHREADS_NUM_PROCESSORS_NP */
+
 /* Define if /dev/random and /dev/urandom are available for the random_device
    of TR1 (Chapter 5.1). */
 /* #undef _GLIBCXX_USE_RANDOM_TR1 */
@@ -1242,8 +1298,35 @@ namespace std
 /* Defined if sched_yield is available. */
 /* #undef _GLIBCXX_USE_SCHED_YIELD */
 
+/* Define if _SC_NPROCESSORS_ONLN is available in <unistd.h>. */
+#define _GLIBCXX_USE_SC_NPROCESSORS_ONLN 1
+
+/* Define if _SC_NPROC_ONLN is available in <unistd.h>. */
+/* #undef _GLIBCXX_USE_SC_NPROC_ONLN */
+
+/* Define if sysctl(), CTL_HW and HW_NCPU are available in <sys/sysctl.h>. */
+/* #undef _GLIBCXX_USE_SYSCTL_HW_NCPU */
+
 /* Define if code specialized for wchar_t should be used. */
-/* #undef _GLIBCXX_USE_WCHAR_T */
+#define _GLIBCXX_USE_WCHAR_T 1
+
+/* Define to 1 if mutex_timedlock is available. */
+#define _GTHREAD_USE_MUTEX_TIMEDLOCK 1
+
+/* Define if all C++ overloads are available in <math.h>.  */
+#if __cplusplus >= 199711L
+/* #undef __CORRECT_ISO_CPP_MATH_H_PROTO1 */
+#endif
+
+/* Define if only double std::abs(double) is available in <math.h>.  */
+#if __cplusplus >= 199711L
+/* #undef __CORRECT_ISO_CPP_MATH_H_PROTO2 */
+#endif
+
+/* Define if all C++ overloads are available in <stdlib.h>.  */
+#if __cplusplus >= 199711L
+/* #undef __CORRECT_ISO_CPP_STDLIB_H_PROTO */
+#endif
 
 #if defined (_GLIBCXX_HAVE__ACOSF) && ! defined (_GLIBCXX_HAVE_ACOSF)
 # define _GLIBCXX_HAVE_ACOSF 1
