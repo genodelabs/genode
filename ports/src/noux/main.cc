@@ -349,14 +349,14 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 						 */
 						for (size_t i = 0; i < unblock_rd; i++) {
 							_sysio->select_out.fds.array[i] = _rd_array[i];
-							_sysio->select_out.fds.num_rd = unblock_rd;
 						}
+						_sysio->select_out.fds.num_rd = unblock_rd;
 
 						/* XXX could use a pointer to select_out.fds.array instead */
 						for (size_t j = unblock_rd, i = 0; i < unblock_wr; i++, j++) {
 							_sysio->select_out.fds.array[j] = _wr_array[i];
-							_sysio->select_out.fds.num_wr = unblock_wr;
 						}
+						_sysio->select_out.fds.num_wr = unblock_wr;
 
 						/* exception fds are currently not considered */
 						_sysio->select_out.fds.num_ex = unblock_ex;
