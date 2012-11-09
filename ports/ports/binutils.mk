@@ -17,5 +17,4 @@ $(DOWNLOAD_DIR)/$(BINUTILS_TBZ2):
 
 $(CONTRIB_DIR)/$(BINUTILS): $(DOWNLOAD_DIR)/$(BINUTILS_TBZ2)
 	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@
-	$(VERBOSE)patch -N -p0 < src/noux-pkg/binutils/build.patch
 
