@@ -5,11 +5,11 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  Makefile.in        |    7 +++++++
- configure          |    2 +-
- gcc/Makefile.in    |    2 +-
+ configure          |    1 +
+ gcc/Makefile.in    |    6 +++---
  gcc/configure      |    1 +
  libgcc/Makefile.in |    2 +-
- 5 files changed, 11 insertions(+), 3 deletions(-)
+ 5 files changed, 13 insertions(+), 4 deletions(-)
 
 diff --git a/Makefile.in b/Makefile.in
 index 1cb2117..84759de 100644
@@ -58,7 +58,7 @@ index 1cb2117..84759de 100644
  	'GCJ=$$(GCJ_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
  	'GFORTRAN=$$(GFORTRAN_FOR_TARGET) $$(XGCC_FLAGS_FOR_TARGET) $$(TFLAGS)' \
 diff --git a/configure b/configure
-index a8a49b7..5359750 100755
+index 88ec0e7..dfb4906 100755
 --- a/configure
 +++ b/configure
 @@ -642,6 +642,7 @@ LDFLAGS_FOR_TARGET
@@ -69,16 +69,8 @@ index a8a49b7..5359750 100755
  DEBUG_PREFIX_CFLAGS_FOR_TARGET
  SYSROOT_CFLAGS_FOR_TARGET
  stage1_languages
-@@ -2691,7 +2692,6 @@ target_libraries="target-libgcc \
- 		target-newlib \
- 		target-libgomp \
- 		target-libitm \
--		target-libstdc++-v3 \
- 		target-libmudflap \
- 		target-libssp \
- 		target-libquadmath \
 diff --git a/gcc/Makefile.in b/gcc/Makefile.in
-index 5c3514d..44f9a3d 100644
+index 5c3514d..9345bc3 100644
 --- a/gcc/Makefile.in
 +++ b/gcc/Makefile.in
 @@ -745,7 +745,7 @@ BUILD_LINKERFLAGS = $(BUILD_CFLAGS)
@@ -90,11 +82,22 @@ index 5c3514d..44f9a3d 100644
  
  # Actual name to use when installing a native compiler.
  GCC_INSTALL_NAME := $(shell echo gcc|sed '$(program_transform_name)')
+@@ -1015,8 +1015,8 @@ BUILD_LIBDEPS= $(BUILD_LIBIBERTY)
+ 
+ # How to link with both our special library facilities
+ # and the system's installed libraries.
+-LIBS = @LIBS@ libcommon.a $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) \
+-	$(LIBDECNUMBER) $(HOST_LIBS)
++LIBS = libcommon.a $(CPPLIB) $(LIBINTL) $(LIBICONV) $(LIBIBERTY) \
++	$(LIBDECNUMBER) $(HOST_LIBS) @LIBS@
+ BACKENDLIBS = $(CLOOGLIBS) $(PPLLIBS) $(GMPLIBS) $(PLUGINLIBS) $(HOST_LIBS) \
+ 	$(ZLIB)
+ # Any system libraries needed just for GNAT.
 diff --git a/gcc/configure b/gcc/configure
-index 11ef13b..e0b3770 100755
+index a211e83..f6abc2e 100755
 --- a/gcc/configure
 +++ b/gcc/configure
-@@ -11357,6 +11357,7 @@ else
+@@ -11397,6 +11397,7 @@ else
  	saved_CFLAGS="${CFLAGS}"
  	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
  	LDFLAGS="${LDFLAGS_FOR_BUILD}" \
@@ -103,7 +106,7 @@ index 11ef13b..e0b3770 100755
  		--enable-languages=${enable_languages-all} \
  		--target=$target_alias --host=$build_alias --build=$build_alias
 diff --git a/libgcc/Makefile.in b/libgcc/Makefile.in
-index 8bdeb5e..9a14992 100644
+index d64c9e0..adae105 100644
 --- a/libgcc/Makefile.in
 +++ b/libgcc/Makefile.in
 @@ -224,7 +224,7 @@ endif

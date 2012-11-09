@@ -12,13 +12,20 @@ NOUX_CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
 # needed for the exception handling on Genode in the presence of shared libraries.
 #
 HOST_CONFIG_ARGS = host_xm_include_list=$(LINK_SPEC_H_$(PLATFORM)) \
-                   tmake_file='t-slibgcc-elf-ver t-slibgcc-nolc-override t-linux'
+                   tmake_file='t-slibgcc'
 
-# passed to target components such as libgcc, libstdc++
-TARGET_CONFIG_ARGS = extra_parts='crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o'
+#
+# Passed to target components such as libgcc, libstdc++
+#
+# The 't-slibgcc' tmake file is needed to have libgcc_eh.a built.
+# The 't-eh-dw2-dip' tmake file is needed to let the tool chain use 'unwind-dw2-fde-dip.c',
+# needed for the exception handling on Genode in the presence of shared libraries.
+#
+TARGET_CONFIG_ARGS = tmake_file='t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver' \
+                     extra_parts='crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o'
 
 # compile libsupc++ as position-independent code
-TARGET_CONFIG_ARGS += LIBSUPCXX_PICFLAGS='-prefer-pic'
+TARGET_CONFIG_ARGS += PIC_CXXFLAGS='-prefer-pic'
 
 
 NOUX_ENV += host_configargs="$(HOST_CONFIG_ARGS)" \
