@@ -34,27 +34,33 @@ class Tlb : public Arm_v7::Section_table
 };
 
 /**
+ * Board specific mapping attributes
+ */
+struct Page_flags : Arm::Page_flags { };
+
+typedef Arm::page_flags_t page_flags_t;
+
+/**
  * TLB of core
- *
- * Must ensure that core never gets a pagefault.
  */
 class Core_tlb : public Tlb
 {
 	public:
 
+		/**
+		 * Constructor
+		 *
+		 * Must ensure that core never gets a pagefault.
+		 */
 		Core_tlb()
 		{
 			using namespace Genode;
-
-			/* map RAM */
-			translate_dpm_off(Board::RAM_0_BASE, Board::RAM_0_SIZE, 0, 1);
-			translate_dpm_off(Board::RAM_1_BASE, Board::RAM_1_SIZE, 0, 1);
-			translate_dpm_off(Board::RAM_2_BASE, Board::RAM_2_SIZE, 0, 1);
-			translate_dpm_off(Board::RAM_3_BASE, Board::RAM_3_SIZE, 0, 1);
-
-			/* map MMIO */
-			translate_dpm_off(Board::MMIO_0_BASE, Board::MMIO_0_SIZE, 1, 0);
-			translate_dpm_off(Board::MMIO_1_BASE, Board::MMIO_1_SIZE, 1, 0);
+			map_core_area(Board::RAM_0_BASE, Board::RAM_0_SIZE, 0);
+			map_core_area(Board::RAM_1_BASE, Board::RAM_1_SIZE, 0);
+			map_core_area(Board::RAM_2_BASE, Board::RAM_2_SIZE, 0);
+			map_core_area(Board::RAM_3_BASE, Board::RAM_3_SIZE, 0);
+			map_core_area(Board::MMIO_0_BASE, Board::MMIO_0_SIZE, 1);
+			map_core_area(Board::MMIO_1_BASE, Board::MMIO_1_SIZE, 1);
 		}
 };
 

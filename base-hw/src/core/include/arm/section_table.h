@@ -23,6 +23,45 @@ namespace Arm
 	using namespace Genode;
 
 	/**
+	 * Map app-specific mem attributes to a TLB-specific POD
+	 */
+	struct Page_flags : Register<8>
+	{
+		struct W : Bitfield<0, 1> { }; /* writeable */
+		struct X : Bitfield<1, 1> { }; /* executable */
+		struct K : Bitfield<2, 1> { }; /* privileged */
+		struct G : Bitfield<3, 1> { }; /* global */
+		struct D : Bitfield<4, 1> { }; /* device */
+		struct C : Bitfield<5, 1> { }; /* cacheable */
+
+		/**
+		 * Create flag POD for Genode pagers
+		 */
+		static access_t
+		resolve_and_wait_for_fault(bool const writeable,
+		                           bool const write_combined,
+		                           bool const io_mem) {
+			return W::bits(writeable) | X::bits(1) | K::bits(0) | G::bits(0) |
+			       D::bits(io_mem) | C::bits(!write_combined & !io_mem); }
+
+		/**
+		 * Create flag POD for kernel when it creates the core space
+		 */
+		static access_t map_core_area(bool const io_mem) {
+			return W::bits(1) | X::bits(1) | K::bits(0) | G::bits(0) |
+			       D::bits(io_mem) | C::bits(!io_mem); }
+
+		/**
+		 * Create flag POD for the mode transition region
+		 */
+		static access_t mode_transition() {
+			return W::bits(1) | X::bits(1) | K::bits(1) | G::bits(1) |
+			       D::bits(0) | C::bits(1); }
+	};
+
+	typedef Page_flags::access_t page_flags_t;
+
+	/**
 	 * Check if 'p' is aligned to 1 << 'alignm_log2'
 	 */
 	inline bool aligned(addr_t const a, unsigned long const alignm_log2)
@@ -65,11 +104,10 @@ namespace Arm
 	 * \return  descriptor value with requested perms and the rest left zero
 	 */
 	template <typename T>
-	static typename T::access_t access_permission_bits(bool const w,
-	                                                   bool const x,
-	                                                   bool const k)
+	static typename T::access_t
+	access_permission_bits(page_flags_t const flags)
 	{
-		/* lookup table for AP bitfield values according to 'w' and 'k' */
+		/* lookup table for AP bitfield values according to 'w' and 'k' flag */
 		typedef typename T::Ap_1_0 Ap_1_0;
 		typedef typename T::Ap_2 Ap_2;
 		static typename T::access_t const ap_bits[2][2] = {{
@@ -85,9 +123,10 @@ namespace Arm
 			Ap_1_0::bits(Ap_1_0::USER_NO_ACCESS) |              /* wk */
 			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS) }
 		};
-		/* combine XN and AP bitfield values according to 'w', 'x' and 'k' */
+		/* combine XN and AP bitfield values according to the flags */
 		typedef typename T::Xn Xn;
-		return Xn::bits(!x) | ap_bits[w][k];
+		return Xn::bits(!Page_flags::X::get(flags)) |
+		       ap_bits[Page_flags::W::get(flags)][Page_flags::K::get(flags)];
 	}
 
 	/**
@@ -102,7 +141,7 @@ namespace Arm
 	 * Memory region attributes for the translation descriptor 'T'
 	 */
 	template <typename T>
-	static typename T::access_t memory_region_attr(bool const d, bool const c)
+	static typename T::access_t memory_region_attr(page_flags_t const flags)
 	{
 		typedef typename T::Tex Tex;
 		typedef typename T::C C;
@@ -111,12 +150,14 @@ namespace Arm
 		/*
 		 * FIXME: upgrade to write-back & write-allocate when !d & c
 		 */
-		if(d)     return Tex::bits(2) | C::bits(0) | B::bits(0);
+		if(Page_flags::D::get(flags))
+			    return Tex::bits(2) | C::bits(0) | B::bits(0);
 		if(cache_support()) {
-			if(c) return Tex::bits(6) | C::bits(1) | B::bits(0);
-			      return Tex::bits(4) | C::bits(0) | B::bits(0);
+			if(Page_flags::C::get(flags))
+				return Tex::bits(6) | C::bits(1) | B::bits(0);
+			    return Tex::bits(4) | C::bits(0) | B::bits(0);
 		}
-		          return Tex::bits(4) | C::bits(0) | B::bits(0);
+		        return Tex::bits(4) | C::bits(0) | B::bits(0);
 	}
 
 	/**
@@ -253,16 +294,13 @@ namespace Arm
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(bool const w, bool const x,
-				                       bool const k, bool const g,
-				                       bool const d, bool const c,
+				static access_t create(page_flags_t const flags,
 				                       addr_t const pa)
 				{
-					access_t v = access_permission_bits<Small_page>(w, x, k) |
-					             memory_region_attr<Small_page>(d, c) |
-					             Ng::bits(!g) |
-					             S::bits(0) |
-					             Pa_31_12::masked(pa);
+					access_t v = access_permission_bits<Small_page>(flags) |
+					             memory_region_attr<Small_page>(flags) |
+					             Ng::bits(!Page_flags::G::get(flags)) |
+					             S::bits(0) | Pa_31_12::masked(pa);
 					Descriptor::type(v, Descriptor::SMALL_PAGE);
 					return v;
 				}
@@ -335,12 +373,7 @@ namespace Arm
 			 * \param pa         base of the physical backing store
 			 * \param size_log2  log2(Size of the translated region),
 			 *                   must be supported by this table
-			 * \param w          see 'Section_table::insert_translation'
-			 * \param x          see 'Section_table::insert_translation'
-			 * \param k          see 'Section_table::insert_translation'
-			 * \param g          see 'Section_table::insert_translation'
-			 * \param d          see 'Section_table::insert_translation'
-			 * \param c          see 'Section_table::insert_translation'
+			 * \param flags      mapping flags
 			 *
 			 * This method overrides an existing translation in case
 			 * that it spans the the same virtual range and is not
@@ -348,9 +381,7 @@ namespace Arm
 			 */
 			void insert_translation(addr_t const vo, addr_t const pa,
 			                        unsigned long const size_log2,
-			                        bool const w, bool const x,
-			                        bool const k, bool const g,
-			                        bool const d, bool const c)
+			                        page_flags_t const flags)
 			{
 				/* validate virtual address */
 				unsigned long i;
@@ -363,7 +394,7 @@ namespace Arm
 				{
 					/* compose new descriptor value */
 					Descriptor::access_t const entry =
-						Small_page::create(w, x, k, g, d, c, pa);
+						Small_page::create(flags, pa);
 
 					/* check if we can we write to the targeted entry */
 					if (Descriptor::valid(_entries[i]))
@@ -614,16 +645,13 @@ namespace Arm
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(bool const w, bool const x,
-				                       bool const k, bool const g,
-				                       bool const d, bool const c,
+				static access_t create(page_flags_t const flags,
 				                       addr_t const pa)
 				{
-					access_t v = access_permission_bits<Section>(w, x, k) |
-					             memory_region_attr<Section>(d, c) |
-					             Domain::bits(DOMAIN) |
-					             S::bits(0) |
-					             Ng::bits(!g) |
+					access_t v = access_permission_bits<Section>(flags) |
+					             memory_region_attr<Section>(flags) |
+					             Domain::bits(DOMAIN) | S::bits(0) |
+					             Ng::bits(!Page_flags::G::get(flags)) |
 					             Pa_31_20::masked(pa);
 					Descriptor::type(v, Descriptor::SECTION);
 					return v;
@@ -693,17 +721,7 @@ namespace Arm
 			 *                     region represented by this table
 			 * \param pa           base of the physical backing store
 			 * \param size_log2    size log2 of the translated region
-			 * \param w            if one can write trough this translation
-			 * \param x            if one can execute trough this translation
-			 * \param k            If set to 1, the given permissions apply
-			 *                     in kernel mode, while in user mode this
-			 *                     translations grants no type of access.
-			 *                     If set to 0, the given permissions apply
-			 *                     in user mode, while in kernel mode this
-			 *                     translation grants any type of access.
-			 * \param g            if the translation applies to all spaces
-			 * \param d            wether 'pa' addresses device IO-memory
-			 * \param c            if access shall be cacheable
+			 * \param flags        mapping flags
 			 * \param extra_space  If > 0, it must point to a portion of
 			 *                     size-aligned memory space wich may be used
 			 *                     furthermore by the table for the incurring
@@ -727,9 +745,7 @@ namespace Arm
 			template <typename ST>
 			unsigned long insert_translation(addr_t const vo, addr_t const pa,
 			                                 unsigned long const size_log2,
-			                                 bool const w, bool const x,
-			                                 bool const k, bool const g,
-			                                 bool const d, bool const c,
+			                                 page_flags_t const flags,
 			                                 ST * const st,
 			                                 void * const extra_space = 0)
 			{
@@ -768,14 +784,14 @@ namespace Arm
 
 					/* insert translation */
 					pt->insert_translation(vo - Section::Pa_31_20::masked(vo),
-					                       pa, size_log2, w, x, k, g, d, c);
+					                       pa, size_log2, flags);
 					return 0;
 				}
 				if (size_log2 == Section::VIRT_SIZE_LOG2)
 				{
 					/* compose section descriptor */
 					Descriptor::access_t const entry =
-						Section::create(w, x, k, g, d, c, pa, st);
+						Section::create(flags, pa, st);
 
 					/* check if we can we write to the targeted entry */
 					if (Descriptor::valid(_entries[i]))
@@ -914,25 +930,30 @@ namespace Arm
 			/**
 			 * Insert translations for given area, do not permit displacement
 			 *
-			 * \param vo  virtual offset within this table
-			 * \param s   area size
-			 * \param d   wether area maps device IO memory
-			 * \param c   wether area maps cacheable memory
+			 * \param vo     virtual offset within this table
+			 * \param s      area size
+			 * \param flags  mapping flags
 			 */
 			template <typename ST>
-			void translate_dpm_off(addr_t vo, size_t s,
-			                       bool const d, bool const c, ST * st)
+			void map_core_area(addr_t vo, size_t s, bool io_mem, ST * st)
 			{
+				/* initialize parameters */
+				page_flags_t const flags = Page_flags::map_core_area(io_mem);
 				unsigned tsl2 = translation_size_l2(vo, s);
-				size_t ts     = 1 << tsl2;
-				while (1) {
-					if(st->insert_translation(vo, vo, tsl2, 1,1,0,0,d,c)) {
+				size_t ts = 1 << tsl2;
+
+				/* walk through the area and map all offsets */
+				while (1)
+				{
+					/* map current offset without displacement */
+					if(st->insert_translation(vo, vo, tsl2, flags)) {
 						PDBG("Displacement not permitted");
 						return;
 					}
+					/* update parameters for next round or exit */
 					vo += ts;
 					s = ts < s ? s - ts : 0;
-					if (!s) break;
+					if (!s) return;
 					tsl2 = translation_size_l2(vo, s);
 					ts   = 1 << tsl2;
 				}

@@ -57,16 +57,17 @@ void Ipc_pager::resolve_and_wait_for_fault()
 	/* valid mapping? */
 	assert(_mapping.valid());
 
-	/* do we need extra space to resolve pagefault? */
+	/* prepare mapping */
 	Tlb * const tlb = _pagefault.tlb;
-	enum { X = 1, K = 0, G = 0 };
-	bool c = !_mapping.write_combined && !_mapping.io_mem;
-	bool d = _mapping.io_mem;
+	page_flags_t const flags =
+	Page_flags::resolve_and_wait_for_fault(_mapping.writable,
+	                                       _mapping.write_combined,
+	                                       _mapping.io_mem);
 
 	/* insert mapping into TLB */
-	unsigned sl2 = tlb->insert_translation(_mapping.virt_address,
-	               _mapping.phys_address, _mapping.size_log2,
-	               _mapping.writable, X, K, G, d, c);
+	unsigned sl2;
+	sl2 = tlb->insert_translation(_mapping.virt_address, _mapping.phys_address,
+	                              _mapping.size_log2, flags);
 	if (sl2)
 	{
 		/* try to get some natural aligned space */
@@ -76,8 +77,7 @@ void Ipc_pager::resolve_and_wait_for_fault()
 		/* try to translate again with extra space */
 		sl2 = tlb->insert_translation(_mapping.virt_address,
 		                              _mapping.phys_address,
-		                              _mapping.size_log2,
-		                              _mapping.writable, X, K, G, d, c, space);
+		                              _mapping.size_log2, flags, space);
 		assert(!sl2);
 	}
 	/* try to wake up faulter */

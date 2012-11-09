@@ -801,12 +801,11 @@ namespace Kernel
 			Pd(Tlb * const t) : _tlb(t)
 			{
 				/* try to add translation for mode transition region */
-				enum Mtc_attributes { W = 1, X = 1, K = 1, G = 1, D = 0, C = 1 };
+				page_flags_t const flags = Page_flags::mode_transition();
 				unsigned const slog2 =
 					tlb()->insert_translation(mtc()->VIRT_BASE,
 					                          mtc()->phys_base(),
-					                          mtc()->SIZE_LOG2,
-					                          W, X, K, G, D, C);
+					                          mtc()->SIZE_LOG2, flags);
 
 				/* extra space needed to translate mode transition region */
 				if (slog2)
@@ -824,8 +823,7 @@ namespace Kernel
 					/* translate mode transition region globally */
 					tlb()->insert_translation(mtc()->VIRT_BASE,
 					                          mtc()->phys_base(),
-					                          mtc()->SIZE_LOG2,
-					                          W, X, K, G, D, C,
+					                          mtc()->SIZE_LOG2, flags,
 					                          (void *)aligned_es);
 				}
 			}

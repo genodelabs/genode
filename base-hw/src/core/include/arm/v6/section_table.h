@@ -53,14 +53,10 @@ namespace Arm_v6
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(bool const w, bool const x,
-				                       bool const k, bool const g,
-				                       bool const d, bool const c,
-				                       addr_t const pa,
-				                       Section_table *)
+				static access_t create(Arm::page_flags_t const flags,
+				                       addr_t const pa, Section_table *)
 				{
-					return Arm::Section_table::Section::create(w, x, k, g,
-					                                           d, c, pa) |
+					return Arm::Section_table::Section::create(flags, pa) |
 					       P::bits(0);
 				}
 			};
@@ -70,33 +66,25 @@ namespace Arm_v6
 			 *
 			 * For details see 'Arm::Section_table::insert_translation'
 			 */
-			unsigned long insert_translation(addr_t const vo, addr_t const pa,
-			                                 unsigned long const size_log2,
-			                                 bool const w, bool const x,
-			                                 bool const k, bool const g,
-			                                 bool const d, bool const c,
-			                                 void * const extra_space = 0)
-			{
+			unsigned long
+			insert_translation(addr_t const vo, addr_t const pa,
+			                   unsigned long const size_log2,
+			                   Arm::page_flags_t const flags,
+			                   void * const extra_space = 0) {
 				return Arm::Section_table::
-				insert_translation<Section_table>(vo, pa, size_log2, w,
-				                                  x, k, g, d, c, this,
-				                                  extra_space);
-			}
+				insert_translation<Section_table>(vo, pa, size_log2, flags,
+				                                  this, extra_space); }
 
 			/**
 			 * Insert translations for given area, do not permit displacement
 			 *
-			 * \param vo  virtual offset within this table
-			 * \param s   area size
-			 * \param d   wether area maps device IO memory
-			 * \param c   wether area maps cacheable memory
+			 * \param vo      virtual offset within this table
+			 * \param s       area size
+			 * \param io_mem  wether the area maps MMIO
 			 */
-			void translate_dpm_off(addr_t vo, size_t s,
-			                       bool const d, bool const c)
-			{
-				Arm::Section_table::
-				translate_dpm_off<Section_table>(vo, s, d, c, this);
-			}
+			void map_core_area(addr_t vo, size_t s, bool const io_mem) {
+				Arm::Section_table::map_core_area<Section_table>(vo, s, io_mem,
+				                                                 this); }
 	};
 }
 
