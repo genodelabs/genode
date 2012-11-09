@@ -39,6 +39,7 @@ namespace Kernel
 		START_THREAD = 2,
 		PAUSE_THREAD = 3,
 		RESUME_THREAD = 4,
+		RESUME_FAULTER = 28,
 		GET_THREAD = 5,
 		CURRENT_THREAD_ID = 6,
 		YIELD_THREAD = 7,
@@ -245,6 +246,15 @@ namespace Kernel
 	 */
 	inline int resume_thread(unsigned long const id = 0)
 	{ return syscall(RESUME_THREAD, id); }
+
+
+	/**
+	 * Continue thread after a pagefault that could be resolved
+	 *
+	 * \param id  ID of the targeted thread
+	 */
+	inline void resume_faulter(unsigned long const id = 0) {
+		syscall(RESUME_FAULTER, id); }
 
 
 	/**

@@ -80,8 +80,8 @@ void Ipc_pager::resolve_and_wait_for_fault()
 		                              _mapping.size_log2, flags, space);
 		assert(!sl2);
 	}
-	/* try to wake up faulter */
-	assert(!Kernel::resume_thread(_pagefault.thread_id));
+	/* wake up faulter */
+	Kernel::resume_faulter(_pagefault.thread_id);
 
 	/* wait for next page fault */
 	wait_for_fault();

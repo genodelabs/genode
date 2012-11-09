@@ -1729,6 +1729,31 @@ namespace Kernel
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
 	 */
+	void do_resume_faulter(Thread * const user)
+	{
+		/* get targeted thread */
+		Thread * const t = Thread::pool()->object(user->user_arg_1());
+		assert(t);
+
+		/* check permissions */
+		assert(user->pd_id() == core_id() || user->pd_id() == t->pd_id());
+
+		/*
+		 * Writeback the TLB entry that resolves the fault.
+		 * This is a substitution for write-through-flagging
+		 * the memory that holds the TLB data, because the latter
+		 * is not feasible in core space.
+		 */
+		Cpu::flush_caches();
+
+		/* resume targeted thread */
+		t->resume();
+	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
 	void do_yield_thread(Thread * const user)
 	{
 		/* get targeted thread */
@@ -2075,6 +2100,7 @@ namespace Kernel
 			/* 25         */ do_run_vm,
 			/* 26         */ do_delete_thread,
 			/* 27         */ do_signal_pending,
+			/* 28         */ do_resume_faulter,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 
