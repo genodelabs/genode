@@ -144,6 +144,7 @@ ret_type Plugin::name args \
 /*
  * Functions returning a 'File_descriptor'
  */
+DUMMY(File_descriptor *, 0, dup,    (File_descriptor *));
 DUMMY(File_descriptor *, 0, open,   (const char *, int));
 DUMMY(File_descriptor *, 0, socket, (int, int, int));
 DUMMY(File_descriptor *, 0, accept, (File_descriptor *, struct sockaddr *, socklen_t *));

@@ -76,6 +76,7 @@ namespace Libc {
 			virtual int connect(File_descriptor *,
 			                    const struct ::sockaddr *addr,
 			                    socklen_t addrlen);
+			virtual File_descriptor *dup(File_descriptor*);
 			virtual int dup2(File_descriptor *, File_descriptor *new_fd);
 			virtual int execve(char const *filename, char *const argv[],
 			                   char *const envp[]);

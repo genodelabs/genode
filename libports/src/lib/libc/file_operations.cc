@@ -320,6 +320,20 @@ extern "C" int _connect(int libc_fd, const struct sockaddr *addr,
 }
 
 
+extern "C" int _dup(int libc_fd)
+{
+	File_descriptor *fd = libc_fd_to_fd(libc_fd, "dup");
+	File_descriptor *ret_fd = (fd && fd->plugin) ? fd->plugin->dup(fd) : 0;
+	return ret_fd ? ret_fd->libc_fd : INVALID_FD;
+}
+
+
+extern "C" int dup(int libc_fd)
+{
+	return _dup(libc_fd);
+}
+
+
 extern "C" int _dup2(int libc_fd, int new_libc_fd)
 {
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "dup2");
