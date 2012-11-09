@@ -176,20 +176,6 @@ extern "C" uid_t geteuid()
 }
 
 
-extern "C" int dup(int ofd)
-{
-	sysio()->dup2_in.fd = ofd;
-	sysio()->dup2_in.to_fd = -1;
-
-	if (!noux()->syscall(Noux::Session::SYSCALL_DUP2)) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	return sysio()->dup2_out.fd;
-}
-
-
 /**
  * Utility to copy-out syscall results to buf struct
  *
@@ -616,6 +602,7 @@ namespace {
 			Libc::File_descriptor *open(char const *, int);
 			ssize_t write(Libc::File_descriptor *, const void *, ::size_t);
 			int close(Libc::File_descriptor *);
+			Libc::File_descriptor *dup(Libc::File_descriptor*);
 			int dup2(Libc::File_descriptor *, Libc::File_descriptor *);
 			int execve(char const *filename, char *const argv[],
 			           char *const envp[]);
@@ -1022,6 +1009,23 @@ namespace {
 			pipefd[i] = Libc::file_descriptor_allocator()->alloc(this, context, sysio()->pipe_out.fd[i]);
 		}
 		return 0;
+	}
+
+
+	Libc::File_descriptor *Plugin::dup(Libc::File_descriptor* fd)
+	{
+		sysio()->dup2_in.fd    = noux_fd(fd->context);
+		sysio()->dup2_in.to_fd = -1;
+
+		if (!noux()->syscall(Noux::Session::SYSCALL_DUP2)) {
+			PERR("dup error");
+			/* XXX set errno */
+			return 0;
+		}
+
+		Libc::Plugin_context *context = noux_context(sysio()->dup2_out.fd);
+		return Libc::file_descriptor_allocator()->alloc(this, context,
+		                                                sysio()->dup2_out.fd);
 	}
 
 
