@@ -369,6 +369,9 @@ namespace Terminal {
 				 || (_escape_stack[5].type  != Escape_stack::Entry::NUMBER))
 					return false;
 
+				int const p1      = _escape_stack[1].value;
+				int const p2      = _escape_stack[2].value;
+				int const p3      = _escape_stack[3].value;
 				int const command = _escape_stack[6].value;
 
 				switch (command) {
@@ -378,7 +381,7 @@ namespace Terminal {
 					 * Currently returning true w/o actually handling the
 					 * sequence
 					 */
-					PDBG("Sequence '[X;Y;Zm' is not implemented");
+					PDBG("Sequence '[%d;%d;%d%c' is not implemented", p1, p2, p3, command);
 					return true;
 				default: return false;
 				}

@@ -97,32 +97,36 @@ struct Char_cell
 {
 	unsigned char attr;
 	unsigned char ascii;
+	unsigned char color;
 
 	enum { ATTR_COLIDX_MASK = 0x07,
 	       ATTR_CURSOR      = 0x10,
 	       ATTR_INVERSE     = 0x20,
 	       ATTR_HIGHLIGHT   = 0x40 };
 
+	enum { COLOR_MASK = 0x3f }; /* 111111 */
+
 	Char_cell() : attr(0), ascii(0) { }
 
 	Char_cell(unsigned char c, Font_family::Face f,
 	          int colidx, bool inv, bool highlight)
 	:
-		attr(f | (colidx & ATTR_COLIDX_MASK)
-		       | (inv ? ATTR_INVERSE : 0)
+		attr(f | (inv ? ATTR_INVERSE : 0)
 		       | (highlight ? ATTR_HIGHLIGHT : 0)),
-		ascii(c)
+		ascii(c),
+		color(colidx & COLOR_MASK)
 	{ }
 
 	Font_family::Face font_face() const { return (Font_family::Face)(attr & 0x3); }
 
-	int  colidx()    const { return attr & ATTR_COLIDX_MASK; }
-	bool inverse()   const { return attr & ATTR_INVERSE;     }
-	bool highlight() const { return attr & ATTR_HIGHLIGHT;   }
+	int  colidx_fg() const { return color        & ATTR_COLIDX_MASK; }
+	int  colidx_bg() const { return (color >> 3) & ATTR_COLIDX_MASK; }
+	bool inverse()   const { return attr         & ATTR_INVERSE;     }
+	bool highlight() const { return attr         & ATTR_HIGHLIGHT;   }
 
 	Color fg_color() const
 	{
-		Color col = color_palette[colidx() + (highlight() ? 8 : 0)];
+		Color col = color_palette[colidx_fg() + (highlight() ? 8 : 0)];
 
 		if (inverse())
 			col = Color(col.r/2, col.g/2, col.b/2);
@@ -132,12 +136,12 @@ struct Char_cell
 
 	Color bg_color() const
 	{
-		Color col = color_palette[colidx() + (highlight() ? 8 : 0)];
+		Color col = color_palette[colidx_bg() + (highlight() ? 8 : 0)];
 
 		if (inverse())
 			return Color((col.r + 255)/2, (col.g + 255)/2, (col.b + 255)/2);
-		else
-			return Color(0, 0, 0);
+
+		return col;
 	}
 
 	void set_cursor()   { attr |=  ATTR_CURSOR; }
@@ -158,6 +162,10 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		Cell_array<Char_cell> &_char_cell_array;
 		Terminal::Boundary     _boundary;
 		Terminal::Position     _cursor_pos;
+		/**
+		 * Color index contains the fg color in the first 3 bits
+		 * and the bg color in the second 3 bits (0bbbbfff).
+		 */
 		int                    _color_index;
 		bool                   _inverse;
 		bool                   _highlight;
@@ -166,7 +174,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		int                    _region_end;
 		int                    _tab_size;
 
-		enum { DEFAULT_COLOR_INDEX = 7, DEFAULT_TAB_SIZE = 8 };
+		enum { DEFAULT_COLOR_INDEX_BG = 0, DEFAULT_COLOR_INDEX = 7, DEFAULT_TAB_SIZE = 8 };
 
 		struct Cursor_guard
 		{
@@ -415,7 +423,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void op()
 		{
-			_color_index = DEFAULT_COLOR_INDEX;
+			_color_index = DEFAULT_COLOR_INDEX | (DEFAULT_COLOR_INDEX_BG << 3);
 		}
 
 		void rc()   { PDBG("not implemented"); }
@@ -426,12 +434,15 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void setab(int value)
 		{
-			_inverse = (value != 0);
+			//_inverse = (value != 0);
+			_color_index &= ~0x38; /* clear 111000 */
+			_color_index |= (((value == 9) ? DEFAULT_COLOR_INDEX_BG : value) << 3);
 		}
 
 		void setaf(int value)
 		{
-			_color_index = value;
+			_color_index &= ~0x7; /* clear 000111 */
+			_color_index |= (value == 9) ? DEFAULT_COLOR_INDEX : value;
 		}
 
 		void sgr(int value)
@@ -441,7 +452,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 			/* sgr 0 is the command to reset all attributes, including color */
 			if (value == 0)
-				_color_index = DEFAULT_COLOR_INDEX;
+				_color_index = DEFAULT_COLOR_INDEX | (DEFAULT_COLOR_INDEX_BG << 3);
 		}
 
 		void sgr0()
