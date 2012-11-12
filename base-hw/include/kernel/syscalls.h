@@ -43,8 +43,8 @@ namespace Kernel
 		GET_THREAD = 5,
 		CURRENT_THREAD_ID = 6,
 		YIELD_THREAD = 7,
-		READ_REGISTER = 18,
-		WRITE_REGISTER = 19,
+		READ_THREAD_STATE = 18,
+		WRITE_THREAD_STATE = 19,
 
 		/* interprocess communication */
 		REQUEST_AND_WAIT = 8,
@@ -380,41 +380,31 @@ namespace Kernel
 
 
 	/**
-	 * Get the current value of a register of a specific CPU context
+	 * Copy the current state of a thread to the callers UTCB
 	 *
-	 * \param thread_id  ID of the thread that owns the targeted context
-	 * \param reg_id     platform-specific ID of the targeted register
+	 * \param thread_id  ID of the targeted thread
 	 *
 	 * Restricted to core threads. One can also read from its own context,
 	 * or any thread that is active in the meantime. In these cases
-	 * be aware of the fact, that the result reflects the context
+	 * be aware of the fact, that the result reflects the thread
 	 * state that were backed at the last kernel entry of the thread.
+	 * The copy might be incoherent when this function returns because
+	 * the caller might get scheduled away before then.
 	 */
-	inline unsigned long read_register(unsigned long const thread_id,
-	                                   unsigned long const reg_id)
-	{
-		return syscall(READ_REGISTER, (Syscall_arg)thread_id,
-		               (Syscall_arg)reg_id);
-	}
+	inline void read_thread_state(unsigned const thread_id) {
+		syscall(READ_THREAD_STATE, (Syscall_arg)thread_id); }
 
 
 	/**
-	 * Write a value to a register of a specific CPU context
+	 * Override the state of a thread with the callers UTCB content
 	 *
-	 * \param thread_id  ID of the thread that owns the targeted context
-	 * \param reg_id     platform-specific ID of the targeted register
-	 * \param value      value that shall be written to the register
+	 * \param thread_id  ID of the targeted thread
 	 *
 	 * Restricted to core threads. One can also write to its own context, or
 	 * to that of a thread that is active in the meantime.
 	 */
-	inline void write_register(unsigned long const thread_id,
-	                           unsigned long const reg_id,
-	                           unsigned long const value)
-	{
-		syscall(WRITE_REGISTER, (Syscall_arg)thread_id, (Syscall_arg)reg_id,
-		        (Syscall_arg)value);
-	}
+	inline void write_thread_state(unsigned const thread_id) {
+		syscall(WRITE_THREAD_STATE, (Syscall_arg)thread_id); }
 
 
 	/**

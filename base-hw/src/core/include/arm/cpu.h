@@ -480,6 +480,52 @@ namespace Arm
 			addr_t tlb() const { return section_table; }
 
 			void protection_domain(unsigned const id) { cidr = id; }
+
+			/**
+			 * Copy CPU state data to 'c'
+			 */
+			void read_cpu_state(Cpu_state * const s)
+			{
+				s->r0  = r0;
+				s->r1  = r1;
+				s->r2  = r2;
+				s->r3  = r3;
+				s->r4  = r4;
+				s->r5  = r5;
+				s->r6  = r6;
+				s->r7  = r7;
+				s->r8  = r8;
+				s->r9  = r9;
+				s->r10 = r10;
+				s->r11 = r11;
+				s->r12 = r12;
+				s->sp  = sp;
+				s->lr  = lr;
+				s->ip  = ip;
+			}
+
+			/**
+			 * Override CPU state with data from 'c'
+			 */
+			void write_cpu_state(Cpu_state * const s)
+			{
+				r0  = s->r0;
+				r1  = s->r1;
+				r2  = s->r2;
+				r3  = s->r3;
+				r4  = s->r4;
+				r5  = s->r5;
+				r6  = s->r6;
+				r7  = s->r7;
+				r8  = s->r8;
+				r9  = s->r9;
+				r10 = s->r10;
+				r11 = s->r11;
+				r12 = s->r12;
+				sp  = s->sp;
+				lr  = s->lr;
+				ip  = s->ip;
+			}
 		};
 
 		/**
@@ -512,66 +558,6 @@ namespace Arm
 			unsigned user_arg_5() const { return r5; }
 			unsigned user_arg_6() const { return r6; }
 			unsigned user_arg_7() const { return r7; }
-
-			/**
-			 * Read a general purpose register
-			 *
-			 * \param   id  ID of the targeted register
-			 * \param   v   Holds register value if this returns 1
-			 */
-			bool get_gpr(unsigned id, unsigned & v) const
-			{
-				switch(id)
-				{
-				case 0:  v = r0;  return 1;
-				case 1:  v = r1;  return 1;
-				case 2:  v = r2;  return 1;
-				case 3:  v = r3;  return 1;
-				case 4:  v = r4;  return 1;
-				case 5:  v = r5;  return 1;
-				case 6:  v = r6;  return 1;
-				case 7:  v = r7;  return 1;
-				case 8:  v = r8;  return 1;
-				case 9:  v = r9;  return 1;
-				case 10: v = r10; return 1;
-				case 11: v = r11; return 1;
-				case 12: v = r12; return 1;
-				case 13: v = sp;  return 1;
-				case 14: v = lr;  return 1;
-				case 15: v = ip;  return 1;
-				}
-				return 0;
-			}
-
-			/**
-			 * Override a general purpose register
-			 *
-			 * \param   id  ID of the targeted register
-			 * \param   v   Has been written to register if this returns 1
-			 */
-			bool set_gpr(unsigned id, unsigned const v)
-			{
-				switch(id)
-				{
-				case 0:  r0 = v;  return 1;
-				case 1:  r1 = v;  return 1;
-				case 2:  r2 = v;  return 1;
-				case 3:  r3 = v;  return 1;
-				case 4:  r4 = v;  return 1;
-				case 5:  r5 = v;  return 1;
-				case 6:  r6 = v;  return 1;
-				case 7:  r7 = v;  return 1;
-				case 8:  r8 = v;  return 1;
-				case 9:  r9 = v;  return 1;
-				case 10: r10 = v; return 1;
-				case 11: r11 = v; return 1;
-				case 12: r12 = v; return 1;
-				case 13: sp = v;  return 1;
-				case 14: lr = v;  return 1;
-				case 15: ip = v;  return 1;
-				}
-				return 0;
-			}
 
 			/**
 			 * Check if a pagefault has occured due to a translation miss

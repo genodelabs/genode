@@ -27,6 +27,7 @@
 #include <cpu/cpu_state.h>
 #include <util/fifo.h>
 #include <util/avl_tree.h>
+#include <base/thread_state.h>
 
 /* core includes */
 #include <kernel_support.h>
@@ -54,6 +55,7 @@ extern Genode::addr_t _mt_master_context_end;
 namespace Kernel
 {
 	/* import Genode types */
+	typedef Genode::Thread_state Thread_state;
 	typedef Genode::size_t size_t;
 	typedef Genode::addr_t addr_t;
 	typedef Genode::umword_t umword_t;
@@ -1899,37 +1901,26 @@ namespace Kernel
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
 	 */
-	void do_read_register(Thread * const user)
+	void do_read_thread_state(Thread * const user)
 	{
-		/* check permissions */
 		assert(user->pd_id() == core_id());
-
-		/* get targeted thread */
 		Thread * const t = Thread::pool()->object(user->user_arg_1());
-		assert(t);
-
-		/* return requested register */
-		unsigned gpr;
-		assert(t->get_gpr(user->user_arg_2(), gpr));
-		user->user_arg_0(gpr);
+		if (!t) PDBG("Targeted thread unknown");
+		Thread_state * const ts = (Thread_state *)user->phys_utcb()->base();
+		t->Cpu::Context::read_cpu_state(ts);
 	}
 
 
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
 	 */
-	void do_write_register(Thread * const user)
+	void do_write_thread_state(Thread * const user)
 	{
-		/* check permissions */
 		assert(user->pd_id() == core_id());
-
-		/* get targeted thread */
 		Thread * const t = Thread::pool()->object(user->user_arg_1());
-		assert(t);
-
-		/* write to requested register */
-		unsigned const gpr = user->user_arg_3();
-		assert(t->set_gpr(user->user_arg_2(), gpr));
+		if (!t) PDBG("Targeted thread unknown");
+		Thread_state * const ts = (Thread_state *)user->phys_utcb()->base();
+		t->Cpu::Context::write_cpu_state(ts);
 	}
 
 
@@ -2090,8 +2081,8 @@ namespace Kernel
 			/* 15         */ do_await_irq,
 			/* 16         */ do_free_irq,
 			/* 17         */ do_print_char,
-			/* 18         */ do_read_register,
-			/* 19         */ do_write_register,
+			/* 18         */ do_read_thread_state,
+			/* 19         */ do_write_thread_state,
 			/* 20         */ do_new_signal_receiver,
 			/* 21         */ do_new_signal_context,
 			/* 22         */ do_await_signal,
