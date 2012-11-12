@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <cpu_session/cpu_session.h>
 
 /* core includes */
 #include <platform_thread.h>
@@ -45,10 +46,17 @@ void Platform_thread::resume()
 }
 
 
-int Platform_thread::state(Thread_state *state_dst)
+void Platform_thread::state(Thread_state s)
 {
-	PWRN("not implemented");
-	return -1;
+	PDBG("Not implemented");
+	throw Cpu_session::State_access_failed();
+}
+
+
+Thread_state Platform_thread::state()
+{
+	PDBG("Not implemented");
+	throw Cpu_session::State_access_failed();
 }
 
 

@@ -18,6 +18,7 @@
 
 #include <base/pager.h>
 #include <base/thread_state.h>
+#include <cpu_session/cpu_session.h>
 
 namespace Genode {
 
@@ -64,7 +65,19 @@ namespace Genode {
 			Pager_object *pager() { return 0; }
 			void          pager(Pager_object *) { }
 			int           start(void *ip, void *sp) { return 0; }
-			int           state(Thread_state *state_dst) { return 0; }
+
+			Thread_state state()
+			{
+				PDBG("Not implemented");
+				throw Cpu_session::State_access_failed();
+			}
+
+			void state(Thread_state)
+			{
+				PDBG("Not implemented");
+				throw Cpu_session::State_access_failed();
+			}
+
 			const char   *name() { return _name; }
 			void          affinity(unsigned) { }
 

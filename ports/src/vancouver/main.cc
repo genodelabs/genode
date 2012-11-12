@@ -378,7 +378,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			/* calculate maximal aligned order of page to be mapped */
 			do {
 				crd = Nova::Mem_crd(map_page, map_order,
-					                Nova::Rights(true, true, true));
+				                    Nova::Rights(true, true, true));
 
 				map_order += 1;
 				map_page  &= ~((1UL << map_order) - 1);
@@ -586,24 +586,24 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			_guest_memory(guest_memory),
 			_motherboard(motherboard)
 		{
-
 			using namespace Genode;
 
 			/* create new pager object and assign it to the new thread */
-			Pager_capability pager_cap =
+			Pager_capability const pager_cap =
 				env()->rm_session()->add_client(_thread_cap);
+
 			if (!pager_cap.valid())
 				throw Cpu_session::Thread_creation_failed();
 
 			if (env()->cpu_session()->set_pager(_thread_cap, pager_cap))
 				throw Cpu_session::Thread_creation_failed();
 
-			addr_t thread_sp = (addr_t)&_context->stack[-4];
-			Thread_state state(true);
-			state.sel_exc_base = _tid.exc_pt_sel;
+			env()->cpu_session()->state(_thread_cap,
+			                            Thread_state(false, _tid.exc_pt_sel));
 
-			if (env()->cpu_session()->state(_thread_cap, &state) ||
-			    env()->cpu_session()->start(_thread_cap, 0, thread_sp))
+			addr_t const thread_sp = (addr_t)&_context->stack[-4];
+
+			if (env()->cpu_session()->start(_thread_cap, 0, thread_sp))
 				throw Cpu_session::Thread_creation_failed();
 
 			/* Request exception portals for vCPU dispatcher */ 
@@ -611,7 +611,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				request_event_portal(pager_cap, _tid.exc_pt_sel, i);
 
 			request_event_portal(pager_cap, _tid.exc_pt_sel,
-		    	                 Nova::SM_SEL_EC);
+			                     Nova::SM_SEL_EC);
 			request_event_portal(pager_cap, _tid.exc_pt_sel,
 			                     Nova::PT_SEL_RECALL);
 
@@ -1149,8 +1149,8 @@ int main(int argc, char **argv)
 	if (guest_memory.backing_store_local_base())
 		Genode::printf("[0x%08p, 0x%08lx) - VMM local base of guest-physical"
 		               " memory\n", guest_memory.backing_store_local_base(),
-	    	           (Genode::addr_t)guest_memory.backing_store_local_base() +
-	        	       vm_size);
+		               (Genode::addr_t)guest_memory.backing_store_local_base() +
+		               vm_size);
 
 	Genode::printf("[0x%08lx, 0x%08lx) - Genode thread context area\n", 
 	                Genode::Native_config::context_area_virtual_base(),

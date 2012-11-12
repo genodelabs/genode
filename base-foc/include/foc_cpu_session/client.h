@@ -55,8 +55,11 @@ namespace Genode {
 			return -1;
 		}
 
-		int state(Thread_capability thread, Thread_state *dst_state) {
-			return call<Rpc_state>(thread, dst_state); }
+		Thread_state state(Thread_capability thread) {
+			return call<Rpc_get_state>(thread); }
+
+		void state(Thread_capability thread, Thread_state const &state) {
+			call<Rpc_set_state>(thread, state); }
 
 		void exception_handler(Thread_capability thread, Signal_context_capability handler) {
 			call<Rpc_exception_handler>(thread, handler); }

@@ -86,8 +86,7 @@ namespace L4lx {
 				vcpu_connection()->set_pager(_thread_cap, pager_cap);
 
 				/* get gate-capability and badge of new thread */
-				Thread_state state;
-				vcpu_connection()->state(_thread_cap, &state);
+				Thread_state state = vcpu_connection()->state(_thread_cap);
 				_tid = state.kcap;
 				_context->utcb = state.utcb;
 

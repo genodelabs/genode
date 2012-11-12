@@ -18,6 +18,7 @@
 #include <platform_pd.h>
 #include <kernel/syscalls.h>
 #include "include/platform.h"
+#include <cpu_session/cpu_session.h>
 
 static bool const verbose = 0;
 
@@ -87,10 +88,17 @@ void Platform_thread::affinity(unsigned int cpu_no) { PERR("not implemented"); }
 void Platform_thread::cancel_blocking() { PERR("not implemented"); }
 
 
-int Platform_thread::state(Thread_state *state_dst)
+void Platform_thread::state(Thread_state s)
 {
-	PERR("not implemented");
-	return -1;
+	PDBG("Not implemented");
+	throw Cpu_session::State_access_failed();
+}
+
+
+Thread_state Platform_thread::state()
+{
+	PDBG("Not implemented");
+	throw Cpu_session::State_access_failed();
 }
 
 

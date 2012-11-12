@@ -29,8 +29,8 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 {
 	Thread_state thread_state;
 
-	if (!get_current_thread_state(thread_state))
-		return 0;
+	try { thread_state = get_current_thread_state(); }
+	catch (...) { return 0; }
 
 	switch((enum reg_index)regno)
 	{

@@ -130,7 +130,8 @@ namespace Genode {
 			void resume(Thread_capability thread_cap);
 			void cancel_blocking(Thread_capability);
 			int name(Thread_capability, char *, size_t);
-			int state(Thread_capability, Thread_state *);
+			Thread_state state(Thread_capability);
+			void state(Thread_capability, Thread_state const &);
 			void exception_handler(Thread_capability, Signal_context_capability);
 			unsigned num_cpus() const;
 			void affinity(Thread_capability, unsigned);

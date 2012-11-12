@@ -99,14 +99,16 @@ namespace Genode {
 			void unbind();
 
 			/**
-			 * Request thread state
+			 * Override thread state with 's'
 			 *
-			 * \param  state_dst  destination state buffer
-			 *
-			 * \retval  0 successful
-			 * \retval -1 thread state not accessible
+			 * \throw Cpu_session::State_access_failed
 			 */
-			int state(Genode::Thread_state *state_dst);
+			void state(Thread_state s);
+
+			/**
+			 * Read thread state
+			 */
+			Thread_state state();
 
 
 			/************************

@@ -14,6 +14,9 @@
 #ifndef GDBSERVER_PLATFORM_HELPER_H
 #define GDBSERVER_PLATFORM_HELPER_H
 
-bool get_current_thread_state(Genode::Thread_state &thread_state);
+/**
+ * \throw Cpu_session::State_access_failed
+ */
+Genode::Thread_state get_current_thread_state();
 
 #endif /* GDBSERVER_PLATFORM_HELPER_H */

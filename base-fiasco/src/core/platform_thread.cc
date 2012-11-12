@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <util/string.h>
+#include <cpu_session/cpu_session.h>
 
 /* core includes */
 #include <platform_thread.h>
@@ -101,8 +102,17 @@ void Platform_thread::unbind()
 }
 
 
-int Platform_thread::state(Thread_state *state_dst)
+void Platform_thread::state(Thread_state s)
 {
+	PDBG("Not implemented");
+	throw Cpu_session::State_access_failed();
+}
+
+
+Thread_state Platform_thread::state()
+{
+	Thread_state s;
+
 	l4_umword_t   old_eflags, ip, sp;
 	l4_threadid_t thread      = _l4_thread_id;
 	l4_threadid_t pager       = L4_INVALID_ID;
@@ -117,10 +127,10 @@ int Platform_thread::state(Thread_state *state_dst)
 		PWRN("old eflags == ~0 on ex_regs %x.%x", (int)thread.id.task, (int)thread.id.lthread);
 
 	/* fill thread state structure */
-	state_dst->ip = ip;
-	state_dst->sp = sp;
+	s.ip = ip;
+	s.sp = sp;
 
-	return 0;
+	return s;
 }
 
 

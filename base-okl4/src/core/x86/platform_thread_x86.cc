@@ -23,9 +23,10 @@ using namespace Genode;
 using namespace Okl4;
 
 
-int Platform_thread::state(Thread_state *state_dst)
+Thread_state Platform_thread::state()
 {
-	state_dst->tid = _l4_thread_id;
+	Thread_state s;
+	s.tid = _l4_thread_id;
 
 	L4_Copy_regs_to_mrs(_l4_thread_id);
 
@@ -42,16 +43,23 @@ int Platform_thread::state(Thread_state *state_dst)
 		MR_EAX    = 9,
 	};
 
-	L4_StoreMR(MR_EIP,    &state_dst->ip);
-	L4_StoreMR(MR_EFLAGS, &state_dst->eflags);
-	L4_StoreMR(MR_EDI,    &state_dst->edi);
-	L4_StoreMR(MR_ESI,    &state_dst->esi);
-	L4_StoreMR(MR_EBP,    &state_dst->ebp);
-	L4_StoreMR(MR_ESP,    &state_dst->sp);
-	L4_StoreMR(MR_EBX,    &state_dst->ebx);
-	L4_StoreMR(MR_EDX,    &state_dst->edx);
-	L4_StoreMR(MR_ECX,    &state_dst->ecx);
-	L4_StoreMR(MR_EAX,    &state_dst->eax);
+	L4_StoreMR(MR_EIP,    &s.ip);
+	L4_StoreMR(MR_EFLAGS, &s.eflags);
+	L4_StoreMR(MR_EDI,    &s.edi);
+	L4_StoreMR(MR_ESI,    &s.esi);
+	L4_StoreMR(MR_EBP,    &s.ebp);
+	L4_StoreMR(MR_ESP,    &s.sp);
+	L4_StoreMR(MR_EBX,    &s.ebx);
+	L4_StoreMR(MR_EDX,    &s.edx);
+	L4_StoreMR(MR_ECX,    &s.ecx);
+	L4_StoreMR(MR_EAX,    &s.eax);
 
-	return 0;
+	return s;
 }
+
+void Platform_thread::state(Thread_state)
+{
+	PDBG("Not implemented");
+	throw Cpu_session::State_access_failed();
+}
+

@@ -162,8 +162,17 @@ void Platform_thread::unbind()
 }
 
 
-int Platform_thread::state(Thread_state *state_dst)
+void Platform_thread::state(Thread_state)
 {
+	PDBG("Not implemented");
+	throw Cpu_session::State_access_failed();
+}
+
+
+Thread_state Platform_thread::state()
+{
+	Thread_state s;
+
 	L4_Word_t     dummy;
 	L4_ThreadId_t dummy_tid;
 	L4_Word_t ip, sp;
@@ -177,9 +186,9 @@ int Platform_thread::state(Thread_state *state_dst)
 	                     0, 0, 0, 0, L4_nilthread,
 	                     &dummy, &sp, &ip, &dummy, &dummy,
 	                     &dummy_tid);
-	state_dst->ip = ip;
-	state_dst->sp = sp;
-	return 0;
+	s.ip = ip;
+	s.sp = sp;
+	return s;
 }
 
 

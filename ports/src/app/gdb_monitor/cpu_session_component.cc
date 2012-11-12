@@ -165,10 +165,16 @@ void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
 }
 
 
-int Cpu_session_component::state(Thread_capability thread_cap,
-                                 Thread_state *state_dst)
+void Cpu_session_component::state(Thread_capability thread_cap,
+                                 Thread_state const &state)
 {
-	return _parent_cpu_session.state(thread_cap, state_dst);
+	_parent_cpu_session.state(thread_cap, state);
+}
+
+
+Thread_state Cpu_session_component::state(Thread_capability thread_cap)
+{
+	return _parent_cpu_session.state(thread_cap);
 }
 
 

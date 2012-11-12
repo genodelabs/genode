@@ -53,7 +53,8 @@ void Thread_base::start()
 
 	/* get gate-capability and badge of new thread */
 	Thread_state state;
-	env()->cpu_session()->state(_thread_cap, &state);
+	try { state = env()->cpu_session()->state(_thread_cap); }
+	catch (...) { throw Cpu_session::Thread_creation_failed(); }
 	_tid = state.kcap;
 	_context->utcb = state.utcb;
 

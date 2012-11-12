@@ -65,7 +65,8 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		void resume(Thread_capability thread_cap);
 		void cancel_blocking(Thread_capability);
 		int name(Thread_capability, char *, Genode::size_t);
-		int state(Thread_capability, Thread_state *);
+		Thread_state state(Thread_capability);
+		void state(Thread_capability, Thread_state const &);
 		void exception_handler(Thread_capability         thread,
 		                       Signal_context_capability handler);
 		void single_step(Thread_capability thread, bool enable);

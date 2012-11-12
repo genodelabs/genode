@@ -215,11 +215,12 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 
 		addr_t thread_sp = (addr_t)&_context->stack[-4];
 
-		Thread_state state(true);
+		Thread_state state;
 		state.sel_exc_base = _tid.exc_pt_sel;
 
-		if (env()->cpu_session()->state(_thread_cap, &state) ||
-		    env()->cpu_session()->start(_thread_cap, 0, thread_sp))
+		try { env()->cpu_session()->state(_thread_cap, state); }
+		catch(...) { throw Cpu_session::Thread_creation_failed(); }
+		if (env()->cpu_session()->start(_thread_cap, 0, thread_sp))
 			throw Cpu_session::Thread_creation_failed();
 
 		for (unsigned i = 0; i < Nova::PT_SEL_PARENT; i++)

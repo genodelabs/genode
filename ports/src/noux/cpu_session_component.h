@@ -95,7 +95,7 @@ namespace Noux {
 
 			int set_pager(Thread_capability thread,
 			              Pager_capability  pager) {
-			    return _cpu.set_pager(thread, pager); }
+				return _cpu.set_pager(thread, pager); }
 
 			int start(Thread_capability thread, addr_t ip, addr_t sp)
 			{
@@ -115,12 +115,15 @@ namespace Noux {
 			void cancel_blocking(Thread_capability thread) {
 				_cpu.cancel_blocking(thread); }
 
-			int state(Thread_capability thread, Thread_state *dst) {
-				return _cpu.state(thread, dst); }
+			Thread_state state(Thread_capability thread) {
+				return _cpu.state(thread); }
+
+			void state(Thread_capability thread, Thread_state const &state) {
+				_cpu.state(thread, state); }
 
 			void exception_handler(Thread_capability         thread,
 			                       Signal_context_capability handler) {
-			    _cpu.exception_handler(thread, handler); }
+				_cpu.exception_handler(thread, handler); }
 
 			void single_step(Thread_capability thread, bool enable) {
 				_cpu.single_step(thread, enable); }
