@@ -19,11 +19,6 @@
 
 namespace Genode
 {
-	enum {
-		ASCII_LINE_FEED = 10,
-		ASCII_CARRIAGE_RETURN = 13,
-	};
-
 	/**
 	 * Base driver Texas instruments TL16C750 UART module
 	 *
@@ -218,10 +213,6 @@ namespace Genode
 			{
 				/* wait as long as the transmission buffer is full */
 				while (!read<Uart_lsr::Tx_fifo_empty>()) ;
-
-				/* auto complete new line commands */
-				if (c == ASCII_LINE_FEED)
-					write<Uart_thr::Thr>(ASCII_CARRIAGE_RETURN);
 
 				/* transmit character */
 				write<Uart_thr::Thr>(c);
