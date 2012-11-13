@@ -30,7 +30,7 @@ using namespace Genode;
 
 static const bool verbose = false;
 
-#define PT_DBG(args...) if (verbose) PDBG(args); else {}
+#define PT_DBG(args...) if (verbose) { PDBG(args); } else { }
 
 
 /**************************

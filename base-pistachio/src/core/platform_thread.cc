@@ -36,7 +36,7 @@ using namespace Pistachio;
 static const bool verbose = false;
 static const bool verbose2 = true;
 
-#define PT_DBG(args...) if (verbose) PDBG(args); else {}
+#define PT_DBG(args...) if (verbose) { PDBG(args); } else { }
 
 
 void Platform_thread::affinity(unsigned int cpu_no)
