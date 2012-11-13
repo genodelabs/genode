@@ -55,7 +55,7 @@ set config {
 		<resource name="RAM" quantum="4M"/>
 		<config>
 			<target name="test-gdb_monitor"/>
-			<preserve name="RAM" quantum="2M"/>
+			<preserve name="RAM" quantum="3M"/>
 		</config>
 	</start>
 </config>
