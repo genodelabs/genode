@@ -39,7 +39,7 @@ namespace Genode {
 
 			Single_client() : _used(0) { }
 
-			void aquire(const char *args)
+			void aquire(const char *)
 			{
 				if (_used)
 					throw Root::Unavailable();
@@ -56,7 +56,7 @@ namespace Genode {
 	 */
 	struct Multiple_clients
 	{
-		void aquire(const char *args) { }
+		void aquire(const char *) { }
 		void release() { }
 	};
 
@@ -146,7 +146,7 @@ namespace Genode {
 			 * \param args     description of additional resources in the
 			 *                 same format as used at session creation
 			 */
-			virtual void _upgrade_session(SESSION_TYPE *session, const char *args) { }
+			virtual void _upgrade_session(SESSION_TYPE *, const char *) { }
 
 			virtual void _destroy_session(SESSION_TYPE *session) {
 				destroy(_md_alloc, session); }

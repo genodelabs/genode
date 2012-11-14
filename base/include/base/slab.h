@@ -248,7 +248,7 @@ namespace Genode {
 			bool   alloc(size_t, void **);
 			void   free(void *addr, size_t) { free(addr); }
 			size_t consumed();
-			size_t overhead(size_t size) { return _block_size/_num_elem; }
+			size_t overhead(size_t) { return _block_size/_num_elem; }
 			bool   need_size_for_free() const { return false; }
 	};
 }

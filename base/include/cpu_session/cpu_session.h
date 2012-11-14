@@ -159,7 +159,7 @@ namespace Genode {
 			 * \param thread  thread to set into single step mode
 			 * \param enable  true = enable single-step mode; false = disable
 			 */
-			virtual void single_step(Thread_capability thread, bool enable) {}
+			virtual void single_step(Thread_capability, bool) {}
 
 			/**
 			 * Return number of CPUs available via the CPU session
