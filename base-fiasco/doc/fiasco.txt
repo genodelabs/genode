@@ -28,6 +28,7 @@ Tools
 
 * Gawk
 * Bison
+* Byacc
 * Python
 
 
