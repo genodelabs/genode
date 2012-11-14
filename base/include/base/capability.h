@@ -64,7 +64,7 @@ namespace Genode {
 			                       Meta::Overload_selector<Rpc_arg_inout>) const;
 
 			template <typename T>
-			void _unmarshal_result(Ipc_client &, T &arg,
+			void _unmarshal_result(Ipc_client &, T &,
 			                       Meta::Overload_selector<Rpc_arg_in>) const { }
 
 			/**

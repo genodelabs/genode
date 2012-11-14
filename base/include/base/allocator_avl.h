@@ -241,7 +241,7 @@ namespace Genode {
 			 * The 'sizeof(umword_t)' represents the overhead of the meta-data
 			 * slab allocator.
 			 */
-			size_t overhead(size_t size) { return sizeof(Block) + sizeof(umword_t); }
+			size_t overhead(size_t) { return sizeof(Block) + sizeof(umword_t); }
 
 			bool need_size_for_free() const { return false; }
 	};
