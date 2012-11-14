@@ -109,7 +109,7 @@ namespace Noux {
 
 			public:
 
-				Tar_vfs_handle(File_system *fs, int status_flags, Record *record)
+				Tar_vfs_handle(File_system *fs, int status_flags, Record const *record)
 				: Vfs_handle(fs, fs, status_flags), _record(record)
 				{ }
 
@@ -117,85 +117,189 @@ namespace Noux {
 		};
 
 
-		struct Lookup_criterion { virtual bool match(char const *path) = 0; };
-
-
 		/**
-		 * Return portion of 'path' without leading slashes and dots
+		 * path element token
 		 */
-		static char const *_skip_leading_slashes_dots(char const *path)
+
+		struct Scanner_policy_path_element
 		{
-			while (*path == '.' || *path == '/')
-				path++;
-
-			return path;
-		}
-
-
-		static void _remove_trailing_slashes(char *str)
-		{
-			size_t len = 0;
-			while ((len = strlen(str)) && (str[len - 1] == '/'))
-				str[len - 1] = 0;
-		}
-
-
-		struct Lookup_exact : public Lookup_criterion
-		{
-			Absolute_path _match_path;
-
-			Lookup_exact(char const *match_path)
-			: _match_path(match_path)
+			static bool identifier_char(char c, unsigned /* i */)
 			{
-				_match_path.remove_trailing('/');
-			}
-
-			bool match(char const *path)
-			{
-				Absolute_path test_path(path);
-				test_path.remove_trailing('/');
-				return _match_path.equals(test_path);
+				return (c != '/') && (c != 0);
 			}
 		};
 
 
-		/**
-		 * Lookup the Nth record in the specified path
-		 */
-		struct Lookup_member_of_path : public Lookup_criterion
+		typedef Genode::Token<Scanner_policy_path_element> Path_element_token;
+
+
+		struct Node : List<Node>, List<Node>::Element
 		{
-			Absolute_path _dir_path;
-			int const index;
-			int cnt;
+			char const *name;
+			Record const *record;
 
-			Lookup_member_of_path(char const *dir_path, int index)
-			: _dir_path(dir_path), index(index), cnt(0)
+			Node(char const *name, Record const *record) : name(name), record(record) { }
+
+			Node *lookup(char const *name)
 			{
-				_dir_path.remove_trailing('/');
+				Absolute_path lookup_path(name);
+
+				if (verbose)
+					PDBG("lookup_path = %s", lookup_path.base());
+
+				Node *parent_node = this;
+				Node *child_node;
+
+				Path_element_token t(lookup_path.base());
+
+				while (t) {
+
+					if (t.type() != Path_element_token::IDENT) {
+							t = t.next();
+							continue;
+					}
+
+					char path_element[Sysio::MAX_PATH_LEN];
+
+					t.string(path_element, sizeof(path_element));
+
+					if (verbose)
+						PDBG("path_element = %s", path_element);
+
+					for (child_node = parent_node->first(); child_node; child_node = child_node->next()) {
+						if (verbose)
+							PDBG("comparing with node %s", child_node->name);
+						if (strcmp(child_node->name, path_element) == 0) {
+							if (verbose)
+								PDBG("found matching child node");
+							parent_node = child_node;
+							break;
+						}
+					}
+
+					if (!child_node)
+						return 0;
+
+					t = t.next();
+				}
+
+				return parent_node;
 			}
 
-			bool match(char const *path)
+
+			Node *lookup_child(int index)
 			{
-				Absolute_path test_path(path);
+				for (Node *child_node = first(); child_node; child_node = child_node->next(), index--) {
+					if (index == 0)
+						return child_node;
+				}
 
-				if (!test_path.strip_prefix(_dir_path.base()))
-					return false;
-
-				if (!test_path.has_single_element())
-					return false;
-
-				cnt++;
-
-				/* match only if index is reached */
-				if (cnt - 1 != index)
-					return false;
-
-				return true;
+				return 0;
 			}
+
+
+			size_t num_dirent()
+			{
+				size_t count = 0;
+				for (Node *child_node = first(); child_node; child_node = child_node->next(), count++) ;
+				return count;
+			}
+
+		} _root_node;
+
+
+		/*
+		 *  Create a Node for a tar record and insert it into the node list
+		 */
+		class Add_node_action
+		{
+			private:
+
+				Node &_root_node;
+
+			public:
+
+				Add_node_action(Node &root_node) : _root_node(root_node) { }
+
+				void operator()(Record const *record)
+				{
+					Absolute_path current_path(record->name());
+
+					if (verbose)
+						PDBG("current_path = %s", current_path.base());
+
+					char path_element[Sysio::MAX_PATH_LEN];
+
+					Path_element_token t(current_path.base());
+
+					Node *parent_node = &_root_node;
+					Node *child_node;
+
+					while(t) {
+
+						if (t.type() != Path_element_token::IDENT) {
+								t = t.next();
+								continue;
+						}
+
+						Absolute_path remaining_path(t.start());
+
+						t.string(path_element, sizeof(path_element));
+
+						for (child_node = parent_node->first(); child_node; child_node = child_node->next()) {
+							if (strcmp(child_node->name, path_element) == 0)
+								break;
+						}
+
+						if (child_node) {
+
+							if (verbose)
+								PDBG("found node for %s", path_element);
+
+							if (remaining_path.has_single_element()) {
+								/* Found a node for the record to be inserted.
+								 * This is usually a directory node without
+								 * record. */
+								child_node->record = record;
+							}
+						} else {
+							if (remaining_path.has_single_element()) {
+
+								if (verbose)
+									PDBG("creating node for %s", path_element);
+
+								/*
+								 * TODO: find 'path_element' in 'record->name'
+								 * and use the location in the record as name
+								 * pointer to save some memory
+								 */
+								size_t name_size = strlen(path_element) + 1;
+								char *name = (char*)env()->heap()->alloc(name_size);
+								strncpy(name, path_element, name_size);
+								child_node = new (env()->heap()) Node(name, record);
+							} else {
+
+								if (verbose)
+									PDBG("creating node without record for %s", path_element);
+
+								/* create a directory node without record */
+								size_t name_size = strlen(path_element) + 1;
+								char *name = (char*)env()->heap()->alloc(name_size);
+								strncpy(name, path_element, name_size);
+								child_node = new (env()->heap()) Node(name, 0);
+							}
+							parent_node->insert(child_node);
+						}
+
+						parent_node = child_node;
+						t = t.next();
+					}
+				}
 		};
 
 
-		Record *_lookup(Lookup_criterion *criterion)
+		template <typename Tar_record_action>
+		void _for_each_tar_record_do(Tar_record_action tar_record_action)
 		{
 			/* measure size of archive in blocks */
 			unsigned block_id = 0, block_cnt = _tar_size/Record::BLOCK_LEN;
@@ -205,9 +309,7 @@ namespace Noux {
 
 				Record *record = (Record *)(_tar_base + block_id*Record::BLOCK_LEN);
 
-				/* get infos about current file */
-				if (criterion->match(record->name()))
-					return record;
+				tar_record_action(record);
 
 				size_t file_size = record->size();
 
@@ -226,21 +328,19 @@ namespace Noux {
 					if (*(_tar_base + (block_id*Record::BLOCK_LEN + 1)) == 0x00)
 						break;
 			}
-
-			return 0;
 		}
 
 
 		struct Num_dirent_cache
 		{
 			Lock             lock;
-			Tar_file_system &tar_fs;
+			Node            &root_node;
 			bool             valid;              /* true after first lookup */
 			char             key[256];           /* key used for lookup */
 			size_t           cached_num_dirent;  /* cached value */
 
-			Num_dirent_cache(Tar_file_system &tar_fs)
-			: tar_fs(tar_fs), valid(false), cached_num_dirent(0) { }
+			Num_dirent_cache(Node &root_node)
+			: root_node(root_node), valid(false), cached_num_dirent(0) { }
 
 			size_t num_dirent(char const *path)
 			{
@@ -248,11 +348,11 @@ namespace Noux {
 
 				/* check for cache miss */
 				if (!valid || strcmp(path, key) != 0) {
-
-					Lookup_member_of_path lookup_criterion(path, ~0);
-					tar_fs._lookup(&lookup_criterion);
+					Node *node = root_node.lookup(path);
+					if (!node)
+						return 0;
 					strncpy(key, path, sizeof(key));
-					cached_num_dirent = lookup_criterion.cnt;
+					cached_num_dirent = node->num_dirent();
 					valid = true;
 				}
 				return cached_num_dirent;
@@ -267,10 +367,13 @@ namespace Noux {
 				_rom_name(config), _rom(_rom_name.name),
 				_tar_base(env()->rm_session()->attach(_rom.dataspace())),
 				_tar_size(Dataspace_client(_rom.dataspace()).size()),
-				_cached_num_dirent(*this)
+				_root_node("", 0),
+				_cached_num_dirent(_root_node)
 			{
 				PINF("tar archive '%s' local at %p, size is %zd",
 				     _rom_name.name, _tar_base, _tar_size);
+
+				_for_each_tar_record_do(Add_node_action(_root_node));
 			}
 
 
@@ -283,23 +386,31 @@ namespace Noux {
 				/*
 				 * Walk hardlinks until we reach a file
 				 */
-				Record *record = 0;
+				Record const *record = 0;
 				for (;;) {
-					Lookup_exact lookup_criterion(path);
-					record = _lookup(&lookup_criterion);
-					if (!record)
+					Node *node = _root_node.lookup(path);
+
+					if (!node)
 						return Dataspace_capability();
 
-					if (record->type() == Record::TYPE_HARDLINK) {
-						path = record->linked_name();
-						continue;
+					record = node->record;
+
+					if (record) {
+						if (record->type() == Record::TYPE_HARDLINK) {
+							path = record->linked_name();
+							continue;
+						}
+
+						if (record->type() == Record::TYPE_FILE)
+							break;
+
+						PERR("TAR record \"%s\" has unsupported type %d",
+						     record->name(), record->type());
 					}
 
-					if (record->type() == Record::TYPE_FILE)
-						break;
-
 					PERR("TAR record \"%s\" has unsupported type %d",
-					     record->name(), record->type());
+					     path, Record::TYPE_DIR);
+
 					return Dataspace_capability();
 				}
 
@@ -325,31 +436,45 @@ namespace Noux {
 
 			bool stat(Sysio *sysio, char const *path)
 			{
-				Lookup_exact lookup_criterion(path);
-				Record *record = _lookup(&lookup_criterion);
-				if (!record) {
+				if (verbose)
+					PDBG("path = %s", path);
+
+				Node *node = _root_node.lookup(path);
+
+				if (!node) {
 					sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
 					return false;
 				}
 
-				/* convert TAR record modes to stat modes */
-				unsigned mode = record->mode();
-				switch (record->type()) {
-				case Record::TYPE_FILE:    mode |= Sysio::STAT_MODE_FILE; break;
-				case Record::TYPE_SYMLINK: mode |= Sysio::STAT_MODE_SYMLINK; break;
-				case Record::TYPE_DIR:     mode |= Sysio::STAT_MODE_DIRECTORY; break;
+				memset(&sysio->stat_out.st, 0, sizeof(sysio->stat_out.st));
 
-				default:
+				Record const *record = node->record;
+
+				if (record) {
+					/* convert TAR record modes to stat modes */
+					unsigned mode = record->mode();
+					switch (record->type()) {
+					case Record::TYPE_FILE:    mode |= Sysio::STAT_MODE_FILE; break;
+					case Record::TYPE_SYMLINK: mode |= Sysio::STAT_MODE_SYMLINK; break;
+					case Record::TYPE_DIR:     mode |= Sysio::STAT_MODE_DIRECTORY; break;
+
+					default:
+						if (verbose)
+							PDBG("unhandled record type %d", record->type());
+					}
+
+					sysio->stat_out.st.mode   = mode;
+					sysio->stat_out.st.size   = record->size();
+					sysio->stat_out.st.uid    = record->uid();
+					sysio->stat_out.st.gid    = record->gid();
+				} else {
 					if (verbose)
-						PDBG("unhandled record type %d", record->type());
+						PDBG("found a virtual directoty node");
+					sysio->stat_out.st.mode   = Sysio::STAT_MODE_DIRECTORY;
 				}
 
-				memset(&sysio->stat_out.st, 0, sizeof(sysio->stat_out.st));
-				sysio->stat_out.st.mode   = mode;
-				sysio->stat_out.st.size   = record->size();
-				sysio->stat_out.st.uid    = record->uid();
-				sysio->stat_out.st.gid    = record->gid();
-				sysio->stat_out.st.inode  = (unsigned long)record;
+				sysio->stat_out.st.inode  = (unsigned long)node;
+
 				return true;
 			}
 
@@ -357,32 +482,37 @@ namespace Noux {
 			{
 				Lock::Guard guard(_lock);
 
-				Lookup_member_of_path lookup_criterion(path, index);
-				Record *record = _lookup(&lookup_criterion);
-				if (!record) {
+				Node *node = _root_node.lookup(path);
+
+				if (!node)
+					return false;
+
+				node = node->lookup_child(index);
+
+				if (!node) {
 					sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_END;
 					return true;
 				}
 
-				sysio->dirent_out.entry.fileno = (unsigned long)record;
+				sysio->dirent_out.entry.fileno = (unsigned long)node;
 
-				switch (record->type()) {
-				case 0: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_FILE;      break;
-				case 2: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_SYMLINK;   break;
-				case 5: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY; break;
+				Record const *record = node->record;
 
-				default:
-					if (verbose)
-						PDBG("unhandled record type %d", record->type());
+				if (record) {
+					switch (record->type()) {
+					case 0: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_FILE;      break;
+					case 2: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_SYMLINK;   break;
+					case 5: sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY; break;
+
+					default:
+						if (verbose)
+							PDBG("unhandled record type %d", record->type());
+					}
 				}
 
-				Absolute_path absolute_path(record->name());
-				absolute_path.keep_only_last_element();
-				absolute_path.remove_trailing('/');
-
 				strncpy(sysio->dirent_out.entry.name,
-				        absolute_path.base() + 1,
-				        sizeof(sysio->dirent_out.entry.name));
+						node->name,
+						sizeof(sysio->dirent_out.entry.name));
 
 				return true;
 			}
@@ -391,9 +521,8 @@ namespace Noux {
 
 			bool readlink(Sysio *sysio, char const *path)
 			{
-				Lookup_exact lookup_criterion(path);
-
-				Record *record = _lookup(&lookup_criterion);
+				Node *node = _root_node.lookup(path);
+				Record const *record = node ? node->record : 0;
 
 				if (!record || (record->type() != Record::TYPE_SYMLINK)) {
 					sysio->error.readlink = Sysio::READLINK_ERR_NO_ENTRY;
@@ -424,9 +553,14 @@ namespace Noux {
 
 			bool is_directory(char const *path)
 			{
-				Lookup_exact lookup_criterion(path);
-				Record const * record = _lookup(&lookup_criterion);
-				return record && (record->type() == Record::TYPE_DIR);
+				Node *node = _root_node.lookup(path);
+
+				if (!node)
+					return false;
+
+				Record const *record = node->record;
+
+				return record ? (record->type() == Record::TYPE_DIR) : true;
 			}
 
 			char const *leaf_path(char const *path)
@@ -436,20 +570,18 @@ namespace Noux {
 				 * case, return the whole path, which is relative to the root
 				 * of this file system.
 				 */
-				Lookup_exact lookup_criterion(path);
-				Record const * record = _lookup(&lookup_criterion);
-				return record ? path : 0;
+				Node *node = _root_node.lookup(path);
+				return node ? path : 0;
 			}
 
 			Vfs_handle *open(Sysio *sysio, char const *path)
 			{
 				Lock::Guard guard(_lock);
 
-				Lookup_exact lookup_criterion(path);
-				Record *record = 0;
-				if ((record = _lookup(&lookup_criterion)))
+				Node *node = _root_node.lookup(path);
+				if (node)
 					return new (env()->heap())
-						Tar_vfs_handle(this, 0, record);
+						Tar_vfs_handle(this, 0, node->record);
 
 				sysio->error.open = Sysio::OPEN_ERR_UNACCESSIBLE;
 				return 0;
