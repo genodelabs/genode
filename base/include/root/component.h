@@ -186,13 +186,15 @@ namespace Genode {
 				 * the size of the session object.
 				 */
 				size_t ram_quota = Arg_string::find_arg(args.string(), "ram_quota").long_value(0);
-				size_t const remaining_ram_quota = ram_quota - sizeof(SESSION_TYPE) -
-				                                   md_alloc()->overhead(sizeof(SESSION_TYPE));
-				if (remaining_ram_quota < 0) {
+				size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
+
+				if (needed > ram_quota) {
 					PERR("Insufficient ram quota, provided=%zd, required=%zd",
-					     ram_quota, sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE)));
+					     ram_quota, needed);
 					throw Root::Quota_exceeded();
 				}
+
+				size_t const remaining_ram_quota = ram_quota - needed;
 
 				/*
 				 * Deduce ram quota needed for allocating the session object from the
