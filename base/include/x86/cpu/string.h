@@ -25,7 +25,7 @@ namespace Genode
 	 *
 	 * \return      Number of bytes not copied
 	 */
-	inline size_t memcpy_cpu(void *dst, const void *src, size_t size) {
+	inline size_t memcpy_cpu(void *, const void *, size_t size) {
 		return size; }
 }
 

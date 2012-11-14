@@ -61,7 +61,7 @@ namespace Genode {
 				_read_args(is, args._2);
 			}
 
-			void _read_args(Ipc_istream &is, Meta::Empty) { }
+			void _read_args(Ipc_istream &, Meta::Empty) { }
 
 			template <typename ARG_LIST>
 			void _write_results(Ipc_ostream &os, ARG_LIST &args)
@@ -72,7 +72,7 @@ namespace Genode {
 				_write_results(os, args._2);
 			}
 
-			void _write_results(Ipc_ostream &os, Meta::Empty) { }
+			void _write_results(Ipc_ostream &, Meta::Empty) { }
 
 			template <typename RPC_FUNCTION, typename EXC_TL>
 			Rpc_exception_code _do_serve(typename RPC_FUNCTION::Server_args &args,
