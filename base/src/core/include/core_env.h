@@ -113,7 +113,7 @@ namespace Genode {
 
 			typedef Synchronized_ram_session<Ram_session_component> Core_ram_session;
 
-			enum { ENTRYPOINT_STACK_SIZE = 8*1024 };
+			enum { ENTRYPOINT_STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
 			Core_parent                  _core_parent;
 			Cap_session_component        _cap_session;
