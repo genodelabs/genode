@@ -68,7 +68,7 @@ class Bomb_child : private Bomb_child_resources,
 		/*
 		 * Entry point used for serving the parent interface
 		 */
-		enum { STACK_SIZE = 8*1024 };
+		enum { STACK_SIZE =  2048 * sizeof(Genode::addr_t) };
 		Genode::Rpc_entrypoint _entrypoint;
 
 		Genode::Child             _child;
@@ -90,7 +90,7 @@ class Bomb_child : private Bomb_child_resources,
 			_parent_services(parent_services) {
 			_entrypoint.activate(); }
 
-		~Bomb_child() { PDBG("called"); }
+		~Bomb_child() { PLOG("%s", __PRETTY_FUNCTION__); }
 
 
 		/****************************
@@ -232,11 +232,11 @@ int main(int argc, char **argv)
 	unsigned long avail = env()->ram_session()->avail();
 	long amount = (avail - demand) / children;
 	if (amount < (children * demand)) {
-		PDBG("I'm a leaf node.");
+		PLOG("I'm a leaf node.");
 		sleep_forever();
 	}
 
-	while (1) {
+	for (unsigned round = 1; ; ++round) {
 		for (unsigned i = children; i; --i)
 			start_child("bomb", &cap, amount, &parent_services);
 
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
 		if (!timer()) sleep_forever();
 
 		timer()->msleep(2000);
-		PDBG("It's time to kill all my children...");
+		PINF("[%03d] It's time to kill all my children...", round);
 
 		while (1) {
 			Bomb_child *c;
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 			else break;
 		}
 
-		PDBG("Done.");
+		PINF("Done.");
 	}
 
 	sleep_forever();
