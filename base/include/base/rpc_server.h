@@ -318,6 +318,8 @@ namespace Genode {
 			Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 			               char const *name, bool start_on_construction = true);
 
+			~Rpc_entrypoint();
+
 			/**
 			 * Associate RPC object with the entry point
 			 */

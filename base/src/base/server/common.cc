@@ -104,3 +104,19 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	if (start_on_construction)
 		activate();
 }
+
+
+Rpc_entrypoint::~Rpc_entrypoint()
+{
+	typedef Object_pool<Rpc_object_base> Pool;
+
+	if (Pool::first()) {
+		PWRN("Object pool not empty in %s", __func__);
+
+		/* dissolve all objects - objects are not destroyed! */
+		while (Rpc_object_base *obj = Pool::first())
+			_dissolve(obj);
+	}
+
+	_ipc_server->~Ipc_server();
+}
