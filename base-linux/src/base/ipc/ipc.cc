@@ -46,6 +46,28 @@
 using namespace Genode;
 
 
+namespace Genode {
+
+	/*
+	 * Helper for obtaining a bound and connected socket pair
+	 *
+	 * For core, the implementation is just a wrapper around
+	 * 'lx_server_socket_pair()'. For all other processes, the implementation
+	 * requests the socket pair from the Env::CPU session interface using a
+	 * Linux-specific interface extension.
+	 */
+	Native_connection_state server_socket_pair();
+
+	/*
+	 * Helper to destroy the server socket pair
+	 *
+	 * For core, this is a no-op. For all other processes, the server and client
+	 * sockets are closed.
+	 */
+	void destroy_server_socket_pair(Native_connection_state const &ncs);
+}
+
+
 /******************************
  ** File-descriptor registry **
  ******************************/
@@ -390,7 +412,20 @@ Ipc_istream::Ipc_istream(Msgbuf_base *rcv_msg)
 { }
 
 
-Ipc_istream::~Ipc_istream() { }
+Ipc_istream::~Ipc_istream()
+{
+	/*
+	 * The association of the capability (client) socket must be invalidated on
+	 * server destruction. We implement it here as the IPC server currently has
+	 * no destructor. We have the plan to remove Ipc_istream and Ipc_ostream
+	 * in the future and, then, move this into the server destructor.
+	 *
+	 * IPC clients have -1 as client_sd and need no disassociation.
+	 */
+	if (_rcv_cs.client_sd != -1)
+		Genode::ep_sd_registry()->disassociate(_rcv_cs.client_sd);
+	destroy_server_socket_pair(_rcv_cs);
+}
 
 
 /****************
@@ -500,20 +535,6 @@ void Ipc_server::_reply_wait()
 		lx_reply(Ipc_ostream::_dst.dst().socket, *_snd_msg, _write_offset);
 
 	_wait();
-}
-
-
-namespace Genode {
-
-	/*
-	 * Helper for obtaining a bound and connected socket pair
-	 *
-	 * For core, the implementation is just a wrapper around
-	 * 'lx_server_socket_pair()'. For all other processes, the implementation
-	 * requests the socket pair from the Env::CPU session interface using a
-	 * Linux-specific interface extension.
-	 */
-	Native_connection_state server_socket_pair();
 }
 
 

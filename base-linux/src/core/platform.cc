@@ -73,5 +73,16 @@ namespace Genode {
 	{
 		return create_server_socket_pair(Thread_base::myself()->tid().tid);
 	}
+
+	void destroy_server_socket_pair(Native_connection_state const &ncs)
+	{
+		/*
+		 * As entrypoints in core are never destructed, this function is only
+		 * called on IPC-client destruction. In this case, it's a no-op in core
+		 * as well as in Genode processes.
+		 */
+		if (ncs.server_sd != -1 || ncs.client_sd != -1)
+			PERR("%s called for IPC server which should never happen", __func__);
+	}
 }
 

@@ -14,8 +14,10 @@
 #include <util/arg_string.h>
 #include <base/platform_env.h>
 #include <base/thread.h>
+#include <linux_syscalls.h>
 
 using namespace Genode;
+
 
 /********************************
  ** Platform_env::Local_parent **
@@ -123,5 +125,12 @@ namespace Genode {
 			ncs.client_sd = cpu->client_sd(thread->cap()).dst().socket;
 		}
 		return ncs;
+	}
+
+	void destroy_server_socket_pair(Native_connection_state const &ncs)
+	{
+		/* close local file descriptor if it is valid */
+		if (ncs.server_sd != -1) lx_close(ncs.server_sd);
+		if (ncs.client_sd != -1) lx_close(ncs.client_sd);
 	}
 }
