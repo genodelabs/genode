@@ -26,6 +26,7 @@
 #include <base/signal.h>
 #include <base/rpc_server.h>
 #include <util/list.h>
+#include <util/fifo.h>
 
 /* core includes */
 #include <platform.h>
@@ -101,7 +102,7 @@ namespace Genode {
 	 * be able to handle faults by arbitrary clients (not only its own
 	 * clients), it maintains the list head of faulters.
 	 */
-	class Rm_faulter : public List<Rm_faulter>::Element
+	class Rm_faulter : public Fifo<Rm_faulter>::Element
 	{
 		private:
 
@@ -268,7 +269,7 @@ namespace Genode {
 			                                                detach, pagefaults */
 			List<Rm_region_ref>           _regions;      /* region list for destruction */
 
-			List<Rm_faulter>              _faulters;     /* list of threads that faulted at
+			Fifo<Rm_faulter>              _faulters;     /* list of threads that faulted at
 			                                                the region-manager session and wait
 			                                                for fault resolution */
 			List<Rm_client>               _clients;      /* list of RM clients using this RM

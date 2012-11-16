@@ -22,11 +22,6 @@ namespace Genode {
 	template <typename QT>
 	class Fifo
 	{
-		private:
-
-			QT *_head;  /* oldest element */
-			QT *_tail;  /* newest element */
-
 		public:
 
 			class Element
@@ -46,7 +41,17 @@ namespace Genode {
 					 * Return true is fifo element is enqueued in a fifo
 					 */
 					bool is_enqueued() { return _is_enqueued; }
+
+					/**
+					 * Return next element in queue
+					 */
+					QT *next() const { return _next; }
 			};
+
+		private:
+
+			QT      *_head;  /* oldest element */
+			Element *_tail;  /* newest element */
 
 		public:
 
@@ -61,6 +66,42 @@ namespace Genode {
 			 * Start with an empty list.
 			 */
 			Fifo(): _head(0), _tail(0) { }
+
+			/**
+			 * Return first queue element
+			 */
+			QT *head() const { return _head; }
+
+			/**
+			 * Remove element explicitely from queue
+			 */
+			void remove(QT *qe)
+			{
+				if (empty()) return;
+
+				/* if specified element is the first of the queue */
+				if (qe == _head) {
+					_head = qe->Element::_next;
+					if (!_head) _tail  = 0;
+				}
+				else {
+
+					/* search specified element in the queue */
+					Element *e = _head;
+					while (e->_next && (e->_next != qe))
+						e = e->_next;
+
+					/* element is not member of the queue */
+					if (!e->_next) return;
+
+					/* e->_next is the element to remove, skip it in list */
+					e->Element::_next = e->Element::_next->Element::_next;
+					if (!e->Element::_next) _tail = e;
+				}
+
+				qe->Element::_next = 0;
+				qe->Element::_is_enqueued = 0;
+			}
 
 			/**
 			 * Attach element at the end of the queue
@@ -89,9 +130,10 @@ namespace Genode {
 				QT *result = _head;
 
 				/* check if queue has only one last element */
-				if (_head == _tail)
-					_head = _tail = 0;
-				else
+				if (_head == _tail) {
+					_head = 0;
+					_tail = 0;
+				} else
 					_head = _head->Fifo::Element::_next;
 
 				/* mark fifo queue element as free */

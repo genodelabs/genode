@@ -413,9 +413,9 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 		     dsc, dsc->phys_addr(), dsc->size(), offset, (addr_t)r, (addr_t)r + size);
 
 	/* check if attach operation resolves any faulting region-manager clients */
-	for (Rm_faulter *faulter = _faulters.first(); faulter; ) {
+	for (Rm_faulter *faulter = _faulters.head(); faulter; ) {
 
-		/* remeber next pointer before possibly removing current list element */
+		/* remember next pointer before possibly removing current list element */
 		Rm_faulter *next = faulter->next();
 
 		if (faulter->fault_in_addr_range((addr_t)r, size)) {
@@ -643,7 +643,7 @@ void Rm_session_component::fault(Rm_faulter *faulter, addr_t pf_addr,
 	faulter->fault(this, Rm_session::State(pf_type, pf_addr));
 
 	/* enqueue faulter */
-	_faulters.insert(faulter);
+	_faulters.enqueue(faulter);
 
 	/* issue fault signal */
 	_fault_notifier.submit();
@@ -671,7 +671,7 @@ Rm_session::State Rm_session_component::state()
 	Lock::Guard lock_guard(_lock);
 
 	/* pick one of the currently faulted threads */
-	Rm_faulter *faulter = _faulters.first();
+	Rm_faulter *faulter = _faulters.head();
 
 	/* return ready state if there are not current faulters */
 	if (!faulter)
@@ -741,7 +741,7 @@ Rm_session_component::~Rm_session_component()
 	_ds_ep->dissolve(&_ds);
 
 	/* remove all faulters with pending page faults at this rm session */
-	while (Rm_faulter *faulter = _faulters.first()) {
+	while (Rm_faulter *faulter = _faulters.head()) {
 		_lock.unlock();
 		faulter->dissolve_from_faulting_rm_session();
 		_lock.lock();
