@@ -306,7 +306,7 @@ inline int lx_tgkill(int pid, int tid, int signal)
 }
 
 
-inline int lx_create_thread(void (*entry)(void *), void *stack, void *arg)
+inline int lx_create_thread(void (*entry)(), void *stack, void *arg)
 {
 	int flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND
 	          | CLONE_THREAD | CLONE_SYSVSEM;

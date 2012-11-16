@@ -24,7 +24,7 @@ using namespace Genode;
 static void empty_signal_handler(int) { }
 
 
-static void thread_start(void *)
+void Thread_base::_thread_start()
 {
 	/*
 	 * Set signal handler such that canceled system calls get not
@@ -52,7 +52,7 @@ void Thread_base::start()
 {
 	/* align initial stack to 16 byte boundary */
 	void *thread_sp = (void *)((addr_t)(_context->stack) & ~0xf);
-	_tid.tid = lx_create_thread(thread_start, thread_sp, this);
+	_tid.tid = lx_create_thread(Thread_base::_thread_start, thread_sp, this);
 	_tid.pid = lx_getpid();
 }
 

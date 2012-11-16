@@ -195,10 +195,17 @@ Thread_base *Thread_base::myself()
 }
 
 
+void Thread_base::join()
+{
+	_join_lock.lock();
+}
+
+
 Thread_base::Thread_base(const char *name, size_t stack_size)
 :
 	_list_element(this),
-	_context(_alloc_context(stack_size))
+	_context(_alloc_context(stack_size)),
+	_join_lock(Lock::LOCKED)
 {
 	strncpy(_context->name, name, sizeof(_context->name));
 	_init_platform_thread();

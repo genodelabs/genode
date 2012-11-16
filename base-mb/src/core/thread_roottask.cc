@@ -58,6 +58,7 @@ void Thread_base::_thread_start()
 	PDBG("Thread returned, tid=%i, pid=%i",
 	     myself()->tid(), Roottask::PROTECTION_ID);
 
+	Thread_base::myself()->_join_lock.unlock();
 	Genode::sleep_forever();
 }
 

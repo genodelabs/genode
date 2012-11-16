@@ -254,6 +254,11 @@ namespace Genode {
 			 */
 			Native_thread _tid;
 
+			/**
+			 * Lock used for synchronizing the finalization of the thread
+			 */
+			Genode::Lock _join_lock;
+
 		public:
 
 			/**
@@ -335,6 +340,14 @@ namespace Genode {
 			 * 0 when called by the main thread.
 			 */
 			Native_utcb *utcb();
+
+			/**
+			 * Block until the thread leaves the 'entry' function
+			 *
+			 * Join must not be called more than once. Subsequent calls have
+			 * undefined behaviour.
+			 */
+			void join();
 	};
 
 

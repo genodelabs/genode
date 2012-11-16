@@ -131,15 +131,25 @@ namespace Genode {
 	struct Thread_meta_data
 	{
 		/**
+		 * Lock with the initial state set to LOCKED
+		 */
+		struct Barrier : Lock { Barrier() : Lock(Lock::LOCKED) { } };
+
+		/**
 		 * Used to block the constructor until the new thread has initialized
 		 * 'id'
 		 */
-		Lock construct_lock;
+		Barrier construct_lock;
 
 		/**
 		 * Used to block the new thread until 'start' is called
 		 */
-		Lock start_lock;
+		Barrier start_lock;
+
+		/**
+		 * Used to block the 'join()' function until the 'entry()' is done
+		 */
+		Barrier join_lock;
 
 		/**
 		 * Filled out by 'thread_start' function in the context of the new
@@ -155,13 +165,9 @@ namespace Genode {
 		/**
 		 * Constructor
 		 *
-		 * \param thread_base  associated 'Thread_base' object
+		 * \param thread  associated 'Thread_base' object
 		 */
-		Thread_meta_data(Thread_base *thread_base)
-		:
-			construct_lock(Lock::LOCKED), start_lock(Lock::LOCKED),
-			thread_base(thread_base)
-		{ }
+		Thread_meta_data(Thread_base *thread) : thread_base(thread) { }
 	};
 }
 
@@ -224,6 +230,8 @@ static void *thread_start(void *arg)
 	meta_data->start_lock.lock();
 
 	Thread_base::myself()->entry();
+
+	meta_data->join_lock.unlock();
 	return 0;
 }
 
@@ -286,8 +294,15 @@ void Thread_base::start()
 }
 
 
+void Thread_base::join()
+{
+	_tid.meta_data->join_lock.lock();
+}
+
+
 Thread_base::Thread_base(const char *name, size_t stack_size)
-: _list_element(this)
+:
+	_list_element(this)
 {
 	_tid.meta_data = new (env()->heap()) Thread_meta_data(this);
 
@@ -325,13 +340,9 @@ void Thread_base::cancel_blocking()
 
 Thread_base::~Thread_base()
 {
-	{
-		int const ret = pthread_cancel(_tid.meta_data->pt);
-		if (ret)
-			PWRN("pthread_cancel unexpectedly returned with %d", ret);
-	}
+	bool const needs_join = (pthread_cancel(_tid.meta_data->pt) == 0);
 
-	{
+	if (needs_join) {
 		int const ret = pthread_join(_tid.meta_data->pt, 0);
 		if (ret)
 			PWRN("pthread_join unexpectedly returned with %d (errno=%d)",
