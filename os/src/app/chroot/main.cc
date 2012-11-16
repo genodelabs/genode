@@ -206,6 +206,12 @@ int main(int, char **argv)
 		return 4;
 	}
 
+	if (chdir(cwd_path)) {
+		PERR("chdir to %s failed (errno=%d:%s)", cwd_path,
+		     errno, strerror(errno));
+		return 5;
+	}
+
 	execve("init", argv, environ);
 
 	PERR("execve failed with errno=%d", errno);
