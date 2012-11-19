@@ -31,5 +31,6 @@ libssl.a:
 libz.a:
 	$(VERBOSE)$(AR) -rc $@
 
+NOUX_INSTALL_TARGET = install
 
 include $(REP_DIR)/mk/noux.mk

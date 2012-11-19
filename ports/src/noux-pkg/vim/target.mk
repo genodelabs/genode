@@ -25,6 +25,8 @@ NOUX_CONFIGURE_ARGS += vim_cv_getcwd_broken=no
 NOUX_CONFIGURE_ARGS += vim_cv_stat_ignores_slash=no
 NOUX_CONFIGURE_ARGS += vim_cv_memmove_handles_overlap=yes
 
+NOUX_INSTALL_TARGET = install
+
 LIBS += ncurses
 
 include $(REP_DIR)/mk/noux.mk

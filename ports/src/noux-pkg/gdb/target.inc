@@ -9,4 +9,6 @@ LIBS += ncurses expat
 
 NOUX_PKG_DIR = $(wildcard $(REP_DIR)/contrib/gdb-*)
 
+NOUX_INSTALL_TARGET = install
+
 include $(REP_DIR)/mk/noux.mk
