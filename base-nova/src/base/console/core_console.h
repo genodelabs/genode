@@ -1,6 +1,7 @@
 /*
  * \brief  Console backend for NOVA
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2009-12-28
  */
 
@@ -18,15 +19,13 @@
 /* NOVA includes */
 #include <nova/syscalls.h>
 
-typedef unsigned char uint8_t;
-
 
 /**
  * Read byte from I/O port
  */
-inline uint8_t inb(unsigned short port)
+inline Genode::uint8_t inb(Genode::uint16_t port)
 {
-	uint8_t res;
+	Genode::uint8_t res;
 	asm volatile ("inb %%dx, %0" :"=a"(res) :"Nd"(port));
 	return res;
 }
@@ -35,7 +34,7 @@ inline uint8_t inb(unsigned short port)
 /**
  * Write byte to I/O port
  */
-inline void outb(unsigned short port, uint8_t val)
+inline void outb(Genode::uint16_t port, Genode::uint8_t val)
 {
 	asm volatile ("outb %b0, %w1" : : "a" (val), "Nd" (port));
 }
@@ -44,14 +43,14 @@ inline void outb(unsigned short port, uint8_t val)
 /**
  * Definitions of PC serial ports
  */
-enum Comport { COMPORT_0, COMPORT_1, COMPORT_2, COMPORT_3 };
-
 enum {
-//	COMPORT_0_BASE = 0x1010,  /* comport of serial PCI card */
-	COMPORT_0_BASE = 0x3f8,   /* default comport 0, used wiht Qemu */
-	COMPORT_1_BASE = 0x2f8,
-	COMPORT_2_BASE = 0x3e8,
-	COMPORT_3_BASE = 0x2e8,
+	MAP_ADDR_BDA       = 0x1000,
+
+	BDA_SERIAL_BASE_COM1 = 0x400,
+	BDA_EQUIPMENT_WORD   = 0x410,
+	BDA_EQUIPMENT_SERIAL_COUNT_MASK  = 0x7,
+	BDA_EQUIPMENT_SERIAL_COUNT_SHIFT = 9,
+
 	COMPORT_DATA_OFFSET   = 0,
 	COMPORT_STATUS_OFFSET = 5,
 
@@ -65,8 +64,11 @@ enum {
  *
  * Based on 'init_serial' of L4ka::Pistachio's 'kdb/platform/pc99/io.cc'
  */
-static void init_comport(unsigned short port, unsigned baud)
+static void init_comport(Genode::uint16_t port, unsigned baud)
 {
+	if (!port)
+		return;
+
 	const unsigned
 		IER  = port + 1,
 		EIR  = port + 2,
@@ -98,17 +100,15 @@ static void init_comport(unsigned short port, unsigned baud)
 /**
  * Output character to serial port
  */
-inline void serial_out_char(Comport comport, uint8_t c)
+inline void serial_out_char(Genode::uint16_t comport, Genode::uint8_t c)
 {
-	static int io_port[] = { COMPORT_0_BASE, COMPORT_1_BASE,
-	                         COMPORT_2_BASE, COMPORT_3_BASE };
-
 	/* wait until serial port is ready */
-	uint8_t ready = STATUS_THR_EMPTY;
-	while ((inb(io_port[comport] + COMPORT_STATUS_OFFSET) & ready) != ready);
+	Genode::uint8_t ready = STATUS_THR_EMPTY;
+	while ((inb(comport + COMPORT_STATUS_OFFSET) & ready) != ready);
 
 	/* output character */
-	outb(io_port[comport] + COMPORT_DATA_OFFSET, c);
+	outb(comport + COMPORT_DATA_OFFSET, c);
+
 }
 
 
@@ -116,18 +116,42 @@ namespace Genode {
 
 	class Core_console : public Console
 	{
+		private:
+
+			uint16_t _comport;
+
 		protected:
 
 			void _out_char(char c)
 			{
+				if (!_comport)
+					return;
+
 				if (c == '\n')
-					serial_out_char(COMPORT_0, '\r');
-				serial_out_char(COMPORT_0, c);
+					serial_out_char(_comport, '\r');
+				serial_out_char(_comport, c);
 			}
 
 		public:
 
-			Core_console() { init_comport(COMPORT_0_BASE, 115200); }
+			Core_console() : _comport(0)
+			{
+				/**
+				 * Read BDA (Bios Data Area) to obtain I/O ports of COM
+				 * interfaces. The page must be mapped by the platform code !
+				 */
+				char * map_bda = reinterpret_cast<char *>(MAP_ADDR_BDA);
+				uint16_t serial_count = *reinterpret_cast<uint16_t *>(map_bda + BDA_EQUIPMENT_WORD);
+				serial_count >>= BDA_EQUIPMENT_SERIAL_COUNT_SHIFT;
+				serial_count &= BDA_EQUIPMENT_SERIAL_COUNT_MASK;
+
+				if (serial_count > 0)
+					_comport = *reinterpret_cast<uint16_t *>(
+					            map_bda + BDA_SERIAL_BASE_COM1);
+
+				init_comport(_comport, 115200);
+
+			}
 	};
 }
 

@@ -74,8 +74,12 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 static inline int unmap_local(Nova::Crd crd, bool self = true) {
 	return Nova::revoke(crd, self); }
 
+inline int
+map_local_phys_to_virt(Nova::Utcb *utcb, Nova::Crd src, Nova::Crd dst) {
+	return map_local(utcb, src, dst, true); }
 
-inline int map_local_one_to_one(Nova::Utcb *utcb, Nova::Crd crd) {
+inline int
+map_local_one_to_one(Nova::Utcb *utcb, Nova::Crd crd) {
 	return map_local(utcb, crd, crd, true); }
 
 
