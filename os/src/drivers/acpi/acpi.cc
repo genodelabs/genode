@@ -39,6 +39,17 @@ struct Apic_struct
 	Apic_struct *next() { return reinterpret_cast<Apic_struct *>((uint8_t *)this + length); }
 } __attribute__((packed));
 
+struct Mcfg_struct
+{
+	uint64_t base;
+	uint16_t pci_seg;
+	uint8_t  pci_bus_start;
+	uint8_t  pci_bus_end;
+	uint32_t reserved;
+
+	Mcfg_struct *next() {
+		return reinterpret_cast<Mcfg_struct *>((uint8_t *)this + sizeof(*this)); }
+} __attribute__((packed));
 
 /* ACPI spec 5.2.12.5 */
 struct Apic_override : Apic_struct
@@ -68,6 +79,10 @@ struct Generic
 	/* MADT acpi structures */
 	Apic_struct *apic_struct() { return reinterpret_cast<Apic_struct *>(&creator_rev + 3); }
 	Apic_struct *end()         { return reinterpret_cast<Apic_struct *>(signature + size); }
+
+	/* MCFG ACPI stucture */
+	Mcfg_struct *mcfg_struct() { return reinterpret_cast<Mcfg_struct *>(&creator_rev + 3); }
+	Mcfg_struct *mcfg_end()    { return reinterpret_cast<Mcfg_struct *>(signature + size); }
 } __attribute__((packed));
 
 
@@ -187,6 +202,11 @@ class Table_wrapper
 		bool is_madt() { return _cmp("APIC"); }
 
 		/**
+		 * Is this a MCFG table
+		 */
+		bool is_mcfg() { return _cmp("MCFG"); }
+
+		/**
 		 * Look for DSDT and SSDT tables
 		 */
 		bool is_searched() const { return _cmp("DSDT") || _cmp("SSDT"); }
@@ -206,6 +226,15 @@ class Table_wrapper
 				PINF("MADT IRQ %u -> GSI %u flags: %x", o->irq, o->gsi, o->flags);
 				
 				Irq_override::list()->insert(new (env()->heap()) Irq_override(o->irq, o->gsi, o->flags));
+			}
+		}
+
+		void parse_mcfg()  const
+		{
+			Mcfg_struct *mcfg = _table->mcfg_struct();
+			for (; mcfg < _table->mcfg_end(); mcfg = mcfg->next()) {
+				PINF("MCFG BASE 0x%llx seg %02x bus %02x-%02x", mcfg->base,
+				     mcfg->pci_seg, mcfg->pci_bus_start, mcfg->pci_bus_end);
 			}
 		}
 
@@ -927,9 +956,15 @@ class Acpi_table
 					}
 
 					if (table.is_madt()) {
-							PDBG("Found MADT");
+						PDBG("Found MADT");
 
 						table.parse_madt();
+					}
+
+					if (table.is_mcfg()) {
+						PDBG("Found MCFG");
+
+						table.parse_mcfg();
 					}
 				}
 
