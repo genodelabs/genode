@@ -1202,7 +1202,10 @@ namespace Kernel
 			 */
 			int resume()
 			{
-				assert (_state == AWAIT_RESUMPTION || _state == ACTIVE)
+				if (_state != AWAIT_RESUMPTION && _state != ACTIVE) {
+					PDBG("Unexpected thread state");
+					return -1;
+				}
 				cpu_scheduler()->insert(this);
 				if (_state == ACTIVE) return 1;
 				_state = ACTIVE;
