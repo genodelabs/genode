@@ -36,7 +36,7 @@ namespace Genode {
 			/**
 			 * Virtual address range usable by non-core processes
 			 */
-			addr_t _vm_base;
+			const addr_t _vm_base;
 			size_t _vm_size;
 
 			void _preserve_page(addr_t phys_page);

@@ -194,7 +194,7 @@ static void init_core_page_fault_handler()
 Platform::Platform() :
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
-	_vm_base(0), _vm_size(0)
+	_vm_base(0x2000), _vm_size(0)
 {
 	Hip  *hip  = (Hip *)__initial_sp;
 
@@ -211,6 +211,11 @@ Platform::Platform() :
 	/* locally map the whole I/O port range */
 	enum { ORDER_64K = 16 };
 	map_local_one_to_one(__main_thread_utcb, Io_crd(0, ORDER_64K));
+	/* map BDA region, core_console reads out serial i/o ports at 0x400 */
+	map_local_phys_to_virt(__main_thread_utcb,
+	                       Mem_crd(0x0, 0, Rights(true, false, false)),
+	                       Mem_crd(0x1, 0, Rights(true, false, false)));
+	
 
 	/*
 	 * Now that we can access the I/O ports for comport 0, printf works...
@@ -223,7 +228,6 @@ Platform::Platform() :
 	}
 
 	/* configure virtual address spaces */
-	_vm_base = get_page_size();
 #ifdef __x86_64__
 	_vm_size = 0x800000000000UL - _vm_base;
 #else
