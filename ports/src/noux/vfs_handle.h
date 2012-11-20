@@ -79,6 +79,7 @@ namespace Noux {
 					bool     write(Sysio *sysio, Vfs_handle *handle) { return _msg("write"); }
 					bool      read(Sysio *sysio, Vfs_handle *handle) { return _msg("read"); }
 					bool ftruncate(Sysio *sysio, Vfs_handle *handle) { return _msg("ftruncate"); }
+					bool     ioctl(Sysio *sysio, Vfs_handle *handle) { return _msg("ioctl"); }
 				};
 				static Pseudo_file_io_service fs;
 				return &fs;

@@ -27,6 +27,12 @@ namespace Noux {
 		virtual bool     write(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
 		virtual bool      read(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
 		virtual bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) = 0;
+
+		/**
+		 * This method is only needed in file-systems which actually implement
+		 * a device and is therefore false by default.
+		 */
+		virtual bool     ioctl(Sysio *sysio, Vfs_handle *vfs_handle) { return false; }
 	};
 }
 

@@ -136,6 +136,11 @@ namespace Noux {
 			return 0;
 		}
 
+		bool ioctl(Sysio *sysio)
+		{
+			return _fh->fs()->ioctl(sysio, _fh);
+		}
+
 		bool lseek(Sysio *sysio)
 		{
 			switch (sysio->lseek_in.whence) {
