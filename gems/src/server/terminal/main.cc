@@ -106,7 +106,7 @@ struct Char_cell
 
 	enum { COLOR_MASK = 0x3f }; /* 111111 */
 
-	Char_cell() : attr(0), ascii(0) { }
+	Char_cell() : attr(0), ascii(0), color(0) { }
 
 	Char_cell(unsigned char c, Font_family::Face f,
 	          int colidx, bool inv, bool highlight)
