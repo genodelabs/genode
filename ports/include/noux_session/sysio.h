@@ -92,7 +92,10 @@ namespace Noux {
 		 */
 		struct Ioctl_in
 		{
-			enum Opcode { OP_UNDEFINED, OP_TIOCGWINSZ, OP_FIONBIO };
+			enum Opcode { OP_UNDEFINED, OP_TIOCGWINSZ, OP_TIOCSETAF,
+			              OP_TIOCSETAW, OP_FIONBIO };
+
+			enum Val    { VAL_NULL, VAL_ECHO, VAL_ECHONL };
 
 			Opcode request;
 			int argp;
@@ -312,6 +315,8 @@ namespace Noux {
 		enum Write_error     { WRITE_ERR_AGAIN, WRITE_ERR_WOULD_BLOCK,
 		                       WRITE_ERR_INVALID, WRITE_ERR_IO };
 
+		enum Ioctl_error     { IOCTL_ERR_INVALID, IOCTL_ERR_NOTTY };
+
 		/**
 		 * Socket related errors
 		 */
@@ -363,6 +368,7 @@ namespace Noux {
 			Symlink_error   symlink;
 			Read_error      read;
 			Write_error     write;
+			Ioctl_error     ioctl;
 			Accept_error    accept;
 			Bind_error      bind;
 			Connect_error   connect;

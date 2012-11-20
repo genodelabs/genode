@@ -951,6 +951,34 @@ namespace {
 
 			break;
 
+		case TIOCSETAF:
+			{
+				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_TIOCSETAF;
+
+				::termios *termios = (::termios *)argp;
+
+				/**
+				 * For now only enabling/disabling of ECHO is supported
+				 */
+				if (termios->c_lflag & (ECHO | ECHONL)) {
+					sysio()->ioctl_in.argp = (Noux::Sysio::Ioctl_in::VAL_ECHO |
+					                          Noux::Sysio::Ioctl_in::VAL_ECHONL);
+				}
+				else {
+					sysio()->ioctl_in.argp = Noux::Sysio::Ioctl_in::VAL_NULL;
+				}
+
+				break;
+			}
+
+		case TIOCSETAW:
+			{
+				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_TIOCSETAW;
+				sysio()->ioctl_in.argp = argp ? *(int*)argp : 0;
+
+				break;
+			}
+
 		case FIONBIO:
 			{
 				if (verbose)
@@ -958,6 +986,8 @@ namespace {
 
 				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_FIONBIO;
 				sysio()->ioctl_in.argp = argp ? *(int*)argp : 0;
+
+				break;
 			}
 
 		default:
@@ -973,8 +1003,12 @@ namespace {
 
 		/* perform syscall */
 		if (!noux()->syscall(Noux::Session::SYSCALL_IOCTL)) {
-			PERR("ioctl error");
-			/* XXX set errno */
+			switch (sysio()->error.ioctl) {
+			case Noux::Sysio::IOCTL_ERR_INVALID: errno = EINVAL; break;
+			case Noux::Sysio::IOCTL_ERR_NOTTY:   errno = ENOTTY; break;
+			default: errno = 0; break;
+			}
+
 			return -1;
 		}
 
@@ -990,6 +1024,9 @@ namespace {
 				winsize->ws_col = sysio()->ioctl_out.tiocgwinsz.columns;
 				return 0;
 			}
+		case TIOCSETAF:
+		case TIOCSETAW:
+			return 0;
 
 		case FIONBIO:
 			return 0;
