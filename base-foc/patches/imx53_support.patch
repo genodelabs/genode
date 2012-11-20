@@ -1,0 +1,231 @@
+From ea7d759fa88778f0f481fbecac3077b8f474527f Mon Sep 17 00:00:00 2001
+From: Nikolay Golikov <decaprox@gmail.com>
+Date: Tue, 4 Sep 2012 17:51:47 +0400
+Subject: [PATCH] Added Freescale i.MX53 platform support
+
+---
+ src/kernel/fiasco/src/kern/arm/bsp/imx/Kconfig     |    8 ++++++
+ src/kernel/fiasco/src/kern/arm/bsp/imx/Modules     |    5 ++++
+ .../src/kern/arm/bsp/imx/bootstrap-arm-imx.cpp     |    2 +-
+ .../fiasco/src/kern/arm/bsp/imx/config-arm-imx.cpp |    4 +++
+ .../src/kern/arm/bsp/imx/mem_layout-arm-imx.cpp    |   26 ++++++++++++++++++++
+ .../fiasco/src/kern/arm/bsp/imx/pic-arm-imx51.cpp  |    4 +--
+ .../fiasco/src/kern/arm/bsp/imx/reset-arm-imx.cpp  |    2 +-
+ .../src/kern/arm/bsp/imx/timer-arm-imx_epit.cpp    |    2 +-
+ .../fiasco/src/kern/arm/bsp/imx/uart-imx.cpp       |    4 +--
+ src/l4/pkg/bootstrap/server/src/Make.rules         |    1 +
+ src/l4/pkg/bootstrap/server/src/platform/imx.cc    |    3 +++
+ 11 files changed, 54 insertions(+), 7 deletions(-)
+
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/Kconfig kernel/fiasco/src/kern/arm/bsp/imx/Kconfig
+index 6348b4f..61e090d 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/Kconfig
++++ kernel/fiasco/src/kern/arm/bsp/imx/Kconfig
+@@ -25,6 +25,13 @@ config PF_IMX_51
+ 	help
+ 	  Choose for i.MX51
+ 
++config PF_IMX_53
++	bool "i.MX53"
++	depends on PF_IMX
++	select CAN_ARM_CPU_CORTEX_A8
++	help
++	  Choose for i.MX53
++
+ endchoice
+ 
+ config PF_IMX_RAM_PHYS_BASE
+@@ -32,3 +39,4 @@ config PF_IMX_RAM_PHYS_BASE
+ 	default 0xc0000000 if PF_IMX_21
+ 	default 0x80000000 if PF_IMX_35
+ 	default 0x90000000 if PF_IMX_51
++	default 0x70000000 if PF_IMX_53
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/Modules kernel/fiasco/src/kern/arm/bsp/imx/Modules
+index 7f3021f..78b1ed2 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/Modules
++++ kernel/fiasco/src/kern/arm/bsp/imx/Modules
+@@ -7,9 +7,12 @@ PREPROCESS_PARTS	+= $(if $(CONFIG_PF_IMX_21),imx21 kern_start_0xd)
+ PREPROCESS_PARTS	+= $(if $(CONFIG_PF_IMX_35),imx35 imx_epit)
+ PREPROCESS_PARTS	+= $(if $(CONFIG_PF_IMX_51),imx51 imx_epit \
+                                                     pic_gic pic_gic_mxc_tzic)
++PREPROCESS_PARTS	+= $(if $(CONFIG_PF_IMX_53),imx53 imx_epit \
++                                                    pic_gic pic_gic_mxc_tzic)
+ CONFIG_KERNEL_LOAD_ADDR := $(CONFIG_PF_IMX_RAM_PHYS_BASE)
+ 
+ INTERFACES_KERNEL     += $(if $(CONFIG_PF_IMX_51),gic)
++INTERFACES_KERNEL     += $(if $(CONFIG_PF_IMX_53),gic)
+ 
+ uart_IMPL             += uart-imx
+ config_IMPL           += config-arm-imx
+@@ -17,10 +20,12 @@ mem_layout_IMPL       += mem_layout-arm-imx
+ pic_IMPL              += $(if $(CONFIG_PF_IMX_21),pic-arm-imx)
+ pic_IMPL              += $(if $(CONFIG_PF_IMX_35),pic-arm-imx)
+ pic_IMPL              += $(if $(CONFIG_PF_IMX_51),pic-gic pic-arm-imx51)
++pic_IMPL              += $(if $(CONFIG_PF_IMX_53),pic-gic pic-arm-imx51)
+ bootstrap_IMPL        += bootstrap-arm-imx
+ timer_IMPL            += $(if $(CONFIG_PF_IMX_21),timer-arm-imx21)
+ timer_IMPL            += $(if $(CONFIG_PF_IMX_35),timer-arm-imx_epit)
+ timer_IMPL            += $(if $(CONFIG_PF_IMX_51),timer-arm-imx_epit)
++timer_IMPL            += $(if $(CONFIG_PF_IMX_53),timer-arm-imx_epit)
+ timer_tick_IMPL       += timer_tick-single-vector
+ kernel_uart_IMPL      += kernel_uart-arm-imx
+ reset_IMPL            += reset-arm-imx
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/bootstrap-arm-imx.cpp kernel/fiasco/src/kern/arm/bsp/imx/bootstrap-arm-imx.cpp
+index b3023a8..427abc8 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/bootstrap-arm-imx.cpp
++++ kernel/fiasco/src/kern/arm/bsp/imx/bootstrap-arm-imx.cpp
+@@ -25,7 +25,7 @@ enum {
+ }
+ 
+ //-----------------------------------------------------------------------------
+-IMPLEMENTATION [arm && imx51]:
++IMPLEMENTATION [arm && (imx51 || imx53)]:
+ void
+ map_hw(void *pd)
+ {
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/config-arm-imx.cpp kernel/fiasco/src/kern/arm/bsp/imx/config-arm-imx.cpp
+index d431214..ef19534 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/config-arm-imx.cpp
++++ kernel/fiasco/src/kern/arm/bsp/imx/config-arm-imx.cpp
+@@ -9,3 +9,7 @@
+ INTERFACE [arm && imx51]:
+ 
+ #define TARGET_NAME "i.MX51"
++
++INTERFACE [arm && imx53]:
++
++#define TARGET_NAME "i.MX53"
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/mem_layout-arm-imx.cpp kernel/fiasco/src/kern/arm/bsp/imx/mem_layout-arm-imx.cpp
+index b86b2b0..5d44072 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/mem_layout-arm-imx.cpp
++++ kernel/fiasco/src/kern/arm/bsp/imx/mem_layout-arm-imx.cpp
+@@ -90,3 +90,29 @@
+     Gic_dist_phys_base   = 0xe0000000,
+   };
+ };
++
++
++INTERFACE [arm && imx && imx53]: // ---------------------------------------
++
++EXTENSION class Mem_layout
++{
++public:
++  enum Virt_layout_imx53 {
++    Timer_map_base       = 0xef1ac000,
++    Uart_map_base        = 0xef1bc000,
++    Watchdog_map_base    = 0xef198000,
++    Gic_cpu_map_base     = 0,
++    Gic_dist_map_base    = 0xef2fc000,
++    Uart_base            = Uart_map_base,
++  };
++
++  enum Phys_layout_imx53 {
++    Device_phys_base_1   = 0x53f00000,
++    Device_phys_base_2   = 0x0ff00000,
++
++    Watchdog_phys_base   = 0x53f98000, // wdog1
++    Timer_phys_base      = 0x53fac000, // epit1
++    Uart_phys_base       = 0x53fbc000, // uart1
++    Gic_dist_phys_base   = 0x0fffc000,
++  };
++};
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/pic-arm-imx51.cpp kernel/fiasco/src/kern/arm/bsp/imx/pic-arm-imx51.cpp
+index 02ec945..e4ae3ef 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/pic-arm-imx51.cpp
++++ kernel/fiasco/src/kern/arm/bsp/imx/pic-arm-imx51.cpp
+@@ -1,9 +1,9 @@
+-INTERFACE [arm && pic_gic && imx51]:
++INTERFACE [arm && pic_gic && (imx51 || imx53)]:
+ 
+ #include "gic.h"
+ 
+ // ------------------------------------------------------------------------
+-IMPLEMENTATION [arm && pic_gic && imx51]:
++IMPLEMENTATION [arm && pic_gic && (imx51 || imx53)]:
+ 
+ #include "irq_mgr_multi_chip.h"
+ #include "kmem.h"
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/reset-arm-imx.cpp kernel/fiasco/src/kern/arm/bsp/imx/reset-arm-imx.cpp
+index 7e7776f..e3f9277 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/reset-arm-imx.cpp
++++ kernel/fiasco/src/kern/arm/bsp/imx/reset-arm-imx.cpp
+@@ -25,7 +25,7 @@ void __attribute__ ((noreturn))
+ }
+ 
+ // ------------------------------------------------------------------------
+-IMPLEMENTATION [arm && (imx35 || imx51)]:
++IMPLEMENTATION [arm && (imx35 || imx51 || imx53)]:
+ 
+ #include "io.h"
+ #include "kmem.h"
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/timer-arm-imx_epit.cpp kernel/fiasco/src/kern/arm/bsp/imx/timer-arm-imx_epit.cpp
+index 2231f5a..03f5468 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/timer-arm-imx_epit.cpp
++++ kernel/fiasco/src/kern/arm/bsp/imx/timer-arm-imx_epit.cpp
+@@ -39,7 +39,7 @@
+ };
+ 
+ 
+-INTERFACE [arm && imx51]: // ----------------------------------------------
++INTERFACE [arm && (imx51 || imx53)]: // ----------------------------------------------
+ 
+ EXTENSION class Timer
+ {
+diff --git kernel/fiasco/src/kern/arm/bsp/imx/uart-imx.cpp kernel/fiasco/src/kern/arm/bsp/imx/uart-imx.cpp
+index 2f55d22..e04ec24 100644
+--- kernel/fiasco/src/kern/arm/bsp/imx/uart-imx.cpp
++++ kernel/fiasco/src/kern/arm/bsp/imx/uart-imx.cpp
+@@ -25,7 +25,7 @@ IMPLEMENT L4::Uart *Uart::uart()
+   return &uart;
+ }
+ 
+-IMPLEMENTATION [imx51]:
++IMPLEMENTATION [imx51 || imx53]:
+ 
+ #include "uart_imx.h"
+ 
+@@ -37,7 +37,7 @@ IMPLEMENT L4::Uart *Uart::uart()
+   return &uart;
+ }
+ 
+-IMPLEMENTATION [imx21 || imx35 || imx51]:
++IMPLEMENTATION [imx21 || imx35 || imx51 || imx53]:
+ 
+ #include "mem_layout.h"
+ 
+diff --git l4/pkg/bootstrap/server/src/Make.rules l4/pkg/bootstrap/server/src/Make.rules
+index c6760f6..0872102 100644
+--- l4/pkg/bootstrap/server/src/Make.rules
++++ l4/pkg/bootstrap/server/src/Make.rules
+@@ -75,6 +75,7 @@ SUPPORT_CC_arm-tegra2      := platform/tegra2.cc
+ SUPPORT_CC_arm-imx21       := platform/imx.cc
+ SUPPORT_CC_arm-imx35       := platform/imx.cc
+ SUPPORT_CC_arm-imx51       := platform/imx.cc
++SUPPORT_CC_arm-imx53       := platform/imx.cc
+ SUPPORT_CC_arm-om          := platform/om.cc
+ SUPPORT_CC_arm-kirkwood    := platform/kirkwood.cc
+ DEFAULT_RELOC_arm-imx21    := 0x00200000  # because of blob
+diff --git l4/pkg/bootstrap/server/src/platform/imx.cc l4/pkg/bootstrap/server/src/platform/imx.cc
+index 628103e..70d8602 100644
+--- l4/pkg/bootstrap/server/src/platform/imx.cc
++++ l4/pkg/bootstrap/server/src/platform/imx.cc
+@@ -36,6 +36,9 @@ class Platform_arm_imx : public Platform_single_region_ram
+ #elif defined(PLATFORM_TYPE_imx51)
+     static L4::Io_register_block_mmio r(0x73fbc000);
+     static L4::Uart_imx51 _uart;
++#elif defined(PLATFORM_TYPE_imx53)
++    static L4::Io_register_block_mmio r(0x53fbc000);
++    static L4::Uart_imx51 _uart;
+ #else
+ #error Which platform type?
+ #endif
+Index: l4/mk/platforms/imx53.conf
+===================================================================
+--- l4/mk/platforms/imx53.conf	(revision 0)
++++ l4/mk/platforms/imx53.conf	(revision 0)
+@@ -0,0 +1,4 @@
++PLATFORM_NAME        = "Freescale i.MX53"
++PLATFORM_ARCH        = arm
++PLATFORM_RAM_BASE    = 0x70000000
++PLATFORM_RAM_SIZE_MB = 1024
+\ No newline at end of file
