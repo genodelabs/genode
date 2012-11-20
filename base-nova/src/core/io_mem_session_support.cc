@@ -51,9 +51,10 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 	}
 
 	/* map the dataspace's physical pages to local addresses */
+	const Nova::Rights rights(true, true, true);
 	map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
 	          base, (addr_t)virt_addr,
-	          page_rounded_size >> get_page_size_log2(), true);
+	          page_rounded_size >> get_page_size_log2(), rights, true);
 
 	return (addr_t)virt_addr;
 }

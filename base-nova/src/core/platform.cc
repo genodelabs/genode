@@ -385,7 +385,8 @@ Platform::Platform() :
 			PERR("could not locally map multi-boot module");
 
 		int res = map_local(__main_thread_utcb, mem_desc->addr, (addr_t)core_local_addr,
-		                    round_page(mem_desc->size) >> get_page_size_log2(), true);
+		                    round_page(mem_desc->size) >> get_page_size_log2(),
+		                    Nova::Rights(true, true, true), true);
 		if (res)
 			PERR("map_local failed res=%d", res);
 
@@ -413,7 +414,7 @@ Platform::Platform() :
 
 	/* remap main utcb to default utbc address */
 	if (map_local(__main_thread_utcb, (addr_t)__main_thread_utcb,
-	              (addr_t)main_thread_utcb(), 1)) {
+	              (addr_t)main_thread_utcb(), 1, Nova::Rights(true, true, true))) {
 		PERR("could not remap main threads utcb");
 		nova_die();
 	}
@@ -435,7 +436,8 @@ bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr,
                                                           unsigned size_log2)
 {
 	map_local((Utcb *)Thread_base::myself()->utcb(), phys_addr,
-	          virt_addr, 1 << (size_log2 - get_page_size_log2()), true);
+	          virt_addr, 1 << (size_log2 - get_page_size_log2()),
+	          Rights(true, true, true), true);
 	return true;
 }
 

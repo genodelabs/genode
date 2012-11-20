@@ -35,10 +35,12 @@ namespace Genode {
 	 *
 	 * \return true on success
 	 */
-	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages)
+	inline bool map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
+	                      bool read = true, bool write = true, bool exec = true)
 	{
 		return (::map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
-		                    from_phys, to_virt, num_pages, true) == 0);
+		                    from_phys, to_virt, num_pages,
+		                    Nova::Rights(read, write, exec), true) == 0);
 	}
 
 	/**
