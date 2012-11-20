@@ -165,6 +165,18 @@ namespace Noux {
 					return true;
 				}
 
+			case Sysio::Ioctl_in::OP_TIOCSETAF:
+				{
+					PDBG("OP_TIOCSETAF not implemented");
+					return false;
+				}
+
+			case Sysio::Ioctl_in::OP_TIOCSETAW:
+				{
+					PDBG("OP_TIOCSETAW not implemented");
+					return false;
+				}
+
 			default:
 
 				PDBG("invalid ioctl request %d", sysio->ioctl_in.request);
