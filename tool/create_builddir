@@ -27,7 +27,7 @@ usage:
 	@echo "                  'nova_x86_64'"
 	@echo "                  'codezero_vpb926'"
 	@echo "                  'mb_s3a_starter_kit'"
-	@echo "                  'hw_panda_a2'"
+	@echo "                  'hw_panda'"
 	@echo "                  'hw_vea9x4'"
 	@echo "                  'hw_pbxa9'"
 	@echo "                  'foc_x86_32'"
@@ -132,7 +132,7 @@ endif
 #
 # Add ARM drivers repositories to ARM build directories
 #
-ifeq ($(filter-out foc_panda,$(PLATFORM)),)
+ifeq ($(filter-out foc_panda hw_panda,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_arm >> $@
 endif
@@ -186,8 +186,8 @@ hw_pbxa9::
 hw_vea9x4::
 	@echo "SPECS = genode hw_vea9x4" > $(BUILD_DIR)/etc/specs.conf
 
-hw_panda_a2::
-	@echo "SPECS = genode hw_panda_a2" > $(BUILD_DIR)/etc/specs.conf
+hw_panda::
+	@echo "SPECS = genode hw_panda" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf

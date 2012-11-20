@@ -5,7 +5,7 @@
 #
 
 # declare wich specs must be given to build this target
-REQUIRES += platform_panda_a2
+REQUIRES += platform_panda
 
 # include less specific target parts
 include $(REP_DIR)/src/core/target.inc

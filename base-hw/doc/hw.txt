@@ -19,7 +19,7 @@ is one of the following:
 'pbxa9'    - Realview PBXA9
 'vea9x4'   - Versatile Express A9X4
 'imx31'    - Freescale i.MX31
-'panda_a2' - PandaBoard A2
+'panda'    - PandaBoard A2
 
 
 Prerequisites
@@ -64,7 +64,7 @@ you aim at:
 'pbxa9'    - Realview PBXA9
 'vea9x4'   - Versatile Express A9X4
 'imx31'    - Freescale i.MX31
-'panda_a2' - PandaBoard A2
+'panda'    - PandaBoard A2
 
 Please notice that not all of these targets might be emulateable with Qemu.
 To be on the safe side use 'pbxa9'. For informations about how to boot

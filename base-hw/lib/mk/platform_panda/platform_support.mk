@@ -13,5 +13,5 @@ SRC_CC += platform_services.cc platform_support.cc
 
 # declare source paths
 vpath platform_services.cc $(BASE_DIR)/src/core
-vpath platform_support.cc  $(REP_DIR)/src/core/panda_a2
+vpath platform_support.cc  $(REP_DIR)/src/core/panda
 
