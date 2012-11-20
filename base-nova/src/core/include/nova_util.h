@@ -94,6 +94,7 @@ map_local_one_to_one(Nova::Utcb *utcb, Nova::Crd crd) {
 inline int map_local(Nova::Utcb *utcb,
                      Genode::addr_t from_start, Genode::addr_t to_start,
                      Genode::size_t num_pages,
+                     Nova::Rights const &permission,
                      bool kern_pd = false)
 {
 	if (verbose_local_map)
@@ -102,7 +103,6 @@ inline int map_local(Nova::Utcb *utcb,
 
 	using namespace Nova;
 	using namespace Genode;
-	Rights const rwx(true, true, true);
 
 	size_t const size = num_pages << get_page_size_log2();
 
@@ -144,8 +144,8 @@ inline int map_local(Nova::Utcb *utcb,
 			               order, from_curr, from_end, to_curr, to_end);
 
 		int const res = map_local(utcb,
-		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), rwx),
-		                          Mem_crd((to_curr   >> 12), order - get_page_size_log2(), rwx),
+		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), permission),
+		                          Mem_crd((to_curr   >> 12), order - get_page_size_log2(), permission),
 		                          kern_pd);
 		if (res) return res;
 
