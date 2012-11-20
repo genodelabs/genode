@@ -11,10 +11,11 @@
 #
 proc install_pxe_bootloader_to_run_dir { } {
         exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
+        exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
 }
 
 ##
-# Read the location of the Pistachio user directory from 'etc/pistachio.conf'
+# Read the location of the NOVA kernel directory from 'etc/nova.conf'
 #
 proc nova_kernel { } {
 	global _nova_kernel
@@ -85,7 +86,8 @@ proc build_boot_image {binaries} {
 	# Generate pulsar config file
 	#
 	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
-	puts $fh " exec /hypervisor serial spinner"
+	puts $fh " exec /boot/bender"
+	puts $fh " load /hypervisor serial"
 	puts $fh " load /genode/core"
 	puts $fh " load /genode/config"
 	foreach binary $binaries {
