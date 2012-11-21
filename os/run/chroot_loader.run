@@ -58,16 +58,15 @@ set config {
 	</config>
 }
 
-proc chroot_path { id } { return "/tmp/chroot-test-$id" }
-
+proc chroot_path     { id } { return "/tmp/chroot-test-$id" }
 proc chroot_cwd_path { id } { return "[chroot_path $id][pwd]/[run_dir]" }
 
 proc cleanup_chroot { } {
+
 	foreach id { 1 2 } {
-		catch { exec sudo umount -l [chroot_cwd_path $id] }
-		catch { exec sudo umount -l [chroot_path $id]/lib }
-		catch { exec sudo umount -l [chroot_path $id]/lib64 }
-		catch { exec rm -rf [chroot_path $id] }
+		umount_and_rmdir [chroot_cwd_path $id]
+		umount_and_rmdir [chroot_path $id]/lib
+		umount_and_rmdir [chroot_path $id]/lib64
 	}
 }
 

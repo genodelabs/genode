@@ -53,10 +53,9 @@ proc chroot_cwd_path        { } { return "[chroot_path][pwd]/[run_dir]" }
 proc chroot_genode_tmp_path { } { return "[chroot_path]/tmp/genode-[exec id -u]" }
 
 proc cleanup_chroot { } {
-	catch { exec sudo umount -l [chroot_cwd_path] }
-	catch { exec sudo umount -l [chroot_genode_tmp_path] }
-	catch { exec sudo umount -l [chroot_path]/lib }
-	exec rm -rf [chroot_path]
+	umount_and_rmdir [chroot_cwd_path]
+	umount_and_rmdir [chroot_path]/lib
+	umount_and_rmdir [chroot_path]/lib64
 }
 
 # replace 'chroot_path' marker in config with actual path
