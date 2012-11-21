@@ -195,11 +195,25 @@ static bool setup_chroot_environment(char const *chroot_path)
  */
 struct Execve_args
 {
-	char  const *filename;
-	char  const *root;
-	char *const *argv;
-	char *const *envp;
-	int          parent_sd;
+	char         const *filename;
+	char         const *root;
+	char       * const *argv;
+	char       * const *envp;
+	unsigned int const  uid;
+	unsigned int const  gid;
+	int          const parent_sd;
+
+	Execve_args(char   const *filename,
+	            char   const *root,
+	            char * const *argv,
+	            char * const *envp,
+	            unsigned int  uid,
+	            unsigned int  gid,
+	            int           parent_sd)
+	:
+		filename(filename), root(root), argv(argv), envp(envp),
+		uid(uid), gid(gid), parent_sd(parent_sd)
+	{ }
 };
 
 
@@ -240,6 +254,25 @@ static int _exec_child(Execve_args *arg)
 			PERR("chdir to new chroot failed");
 			return -1;
 		}
+	}
+
+	/*
+	 * Set UID and GID
+	 *
+	 * We must set the GID prior setting the UID because setting the GID won't
+	 * be possible anymore once we set the UID to non-root.
+	 */
+	if (arg->gid) {
+		int const ret = lx_setgid(arg->gid);
+		if (ret)
+			PWRN("Could not set PID %d (%s) to GID %u (error %d)",
+			     lx_getpid(), arg->filename, arg->gid, ret);
+	}
+	if (arg->uid) {
+		int const ret = lx_setuid(arg->uid);
+		if (ret)
+			PWRN("Could not set PID %d (%s) to UID %u (error %d)",
+			     lx_getpid(), arg->filename, arg->uid, ret);
 	}
 
 	return lx_execve(arg->filename, arg->argv, arg->envp);
@@ -288,6 +321,15 @@ Pd_session_component::Pd_session_component(Rpc_entrypoint *ep, const char *args)
 	_gid = Arg_string::find_arg(args, "gid").ulong_value(0);
 
 	bool const is_chroot = (Genode::strcmp(_root, "") != 0);
+
+	/*
+	 * If a UID is specified but no GID, we use the UID as GID. This way, a
+	 * configuration error where the UID is defined but the GID is left
+	 * undefined won't result in the execution of the new process with the
+	 * root user's GID.
+	 */
+	if (_gid == 0)
+		_gid = _uid;
 
 	/*
 	 * Print Linux-specific session arguments if specified
@@ -375,7 +417,8 @@ void Pd_session_component::start(Capability<Dataspace> binary)
 	 * Argument frame as passed to 'clone'. Because, we can only pass a single
 	 * pointer, all arguments are embedded within the 'execve_args' struct.
 	 */
-	Execve_args arg = { filename.buf, _root, argv_buf, env, _parent.dst().socket };
+	Execve_args arg(filename.buf, _root, argv_buf, env, _uid, _gid,
+	                _parent.dst().socket);
 
 	_pid = lx_create_process((int (*)(void *))_exec_child,
 	                         stack + STACK_SIZE - sizeof(umword_t), &arg);
