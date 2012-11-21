@@ -94,9 +94,15 @@ inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
  ** Chroot handling **
  *********************/
 
-inline int lx_chroot(const char *path)
+inline int lx_chroot(char const *path)
 {
 	return lx_syscall(SYS_chroot, path);
+}
+
+
+inline int lx_chdir(char const *path)
+{
+	return lx_syscall(SYS_chdir, path);
 }
 
 

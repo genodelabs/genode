@@ -212,11 +212,17 @@ static int _exec_child(Execve_args *arg)
 
 	/* change to chroot environment */
 	if (arg->root && arg->root[0]) {
+		char cwd[1024];
 
 		PDBG("arg->root='%s'", arg->root);
 
 		if (setup_chroot_environment(arg->root) == false) {
 			PERR("Could not setup chroot environment");
+			return -1;
+		}
+
+		if (!lx_getcwd(cwd, sizeof(cwd))) {
+			PERR("Failed to getcwd");
 			return -1;
 		}
 
@@ -226,6 +232,12 @@ static int _exec_child(Execve_args *arg)
 		int ret = lx_chroot(arg->root);
 		if (ret < 0) {
 			PERR("Syscall chroot failed (errno %d)", ret);
+			return -1;
+		}
+
+		ret = lx_chdir(cwd);
+		if (ret < 0) {
+			PERR("chdir to new chroot failed");
 			return -1;
 		}
 	}
