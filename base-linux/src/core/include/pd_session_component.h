@@ -33,6 +33,8 @@ namespace Genode {
 			unsigned long      _pid;
 			char               _label[LABEL_MAX_LEN];
 			char               _root[ROOT_PATH_MAX_LEN];
+			unsigned           _uid;
+			unsigned           _gid;
 			Parent_capability  _parent;
 			Rpc_entrypoint    *_ds_ep;
 

@@ -299,29 +299,12 @@ namespace Init {
 			} _name;
 
 			/**
-			 * Path of the child's chroot environment (on Linux)
+			 * Platform-specific PD-session arguments
 			 */
-			struct Root
+			struct Pd_args : Genode::Native_pd_args
 			{
-				/*
-				 * XXX dimension ROOT_PATH_LEN depending on the platform
-				 */
-				enum { ROOT_PATH_LEN = 256 };
-				char path[ROOT_PATH_LEN];
-
-				/**
-				 * Constructor
-				 */
-				Root(Genode::Xml_node start_node)
-				{
-					path[0] = 0;
-
-					try {
-						start_node.attribute("root").value(path, sizeof(path)); }
-					catch (Genode::Xml_node::Nonexistent_attribute) { }
-				}
-
-			} _root;
+				Pd_args(Genode::Xml_node start_node);
+			} _pd_args;
 
 			/**
 			 * Resources assigned to the child
@@ -394,7 +377,7 @@ namespace Init {
 			Init::Child_policy_provide_rom_file      _config_policy;
 			Init::Child_policy_provide_rom_file      _binary_policy;
 			Init::Child_policy_redirect_rom_file     _configfile_policy;
-			Init::Child_policy_prepend_chroot_path   _chroot_policy;
+			Init::Child_policy_pd_args               _pd_args_policy;
 
 		public:
 
@@ -411,7 +394,7 @@ namespace Init {
 				_default_route_node(default_route_node),
 				_name_registry(name_registry),
 				_name(start_node, name_registry),
-				_root(start_node),
+				_pd_args(start_node),
 				_resources(start_node, _name.unique, prio_levels_log2),
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false),
 				_binary_rom(_name.file, _name.unique),
@@ -426,7 +409,7 @@ namespace Init {
 				_config_policy("config", _config.dataspace(), &_entrypoint),
 				_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
 				_configfile_policy("config", _config.filename()),
-				_chroot_policy(_root.path)
+				_pd_args_policy(&_pd_args)
 			{
 				using namespace Genode;
 
@@ -576,7 +559,7 @@ namespace Init {
 				_labeling_policy.  filter_session_args(service, args, args_len);
 				_priority_policy.  filter_session_args(service, args, args_len);
 				_configfile_policy.filter_session_args(service, args, args_len);
-				_chroot_policy.    filter_session_args(service, args, args_len);
+				_pd_args_policy.   filter_session_args(service, args, args_len);
 			}
 
 			bool announce_service(const char             *service_name,
@@ -599,7 +582,7 @@ namespace Init {
 				return true;
 			}
 
-			char const *root() const { return _root.path; }
+			Genode::Native_pd_args const *pd_args() const { return &_pd_args; }
 	};
 }
 

@@ -1,0 +1,59 @@
+#
+# \brief  Test for supplying Linux-specific PD-session arguments to core
+# \author Norman Feske
+# \date   2012-11-21
+#
+
+build "core init test/printf"
+
+assert_spec linux
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RAM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="init" uid="11">
+			<resource name="RAM" quantum="10M"/>
+			<config>
+				<parent-provides>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test-printf" root="/tmp/somewhere" uid="33" gid="44">
+					<resource name="RAM" quantum="10M"/>
+				</start>
+			</config>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-printf"
+
+#
+# The chroot to '/tmp/somewhere' is expected to fail. We just want to validate
+# that the PD-session arguments are properly propagated into core. Hence, we
+# can take the error message as exit condition of the test run.
+#
+run_genode_until {chroot path does not point to valid directory} 10
+
+# keep only the lines containing the relevant core output
+grep_output {^  .*:}
+
+compare_output_to {
+uid:  11
+root: /tmp/somewhere
+uid:  11
+gid:  44
+}
+

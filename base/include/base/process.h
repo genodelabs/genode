@@ -57,8 +57,9 @@ namespace Genode {
 			 * \param rm_session    RM session for the new protection domain
 			 * \param parent        parent of the new protection domain
 			 * \param name          name of protection domain (can be used
-			 *                      in debugging)
-			 * \param root          optional chroot path (only on Linux)
+			 *                      for debugging)
+			 * \param pd_args       platform-specific arguments supplied to
+			 *                      the PD session of the process
 			 *
 			 * The dataspace 'elf_data_ds' can be read-only.
 			 *
@@ -71,7 +72,7 @@ namespace Genode {
 			        Rm_session_capability   rm_session,
 			        Parent_capability       parent,
 			        char const             *name,
-			        char const             *root = "");
+			        Native_pd_args const   *args = 0);
 
 			/**
 			 * Destructor

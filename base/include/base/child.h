@@ -95,9 +95,12 @@ namespace Genode {
 		virtual Ram_session *ref_ram_session() { return env()->ram_session(); }
 
 		/**
-		 * Return root path of the child's PD session (only used on Linux)
+		 * Return platform-specific PD-session arguments
+		 *
+		 * This function is used on Linux to supply additional PD-session
+		 * argument to core, i.e., the chroot path, the UID, and the GID.
 		 */
-		virtual char const *root() const { return ""; }
+		virtual Native_pd_args const *pd_args() const { return 0; }
 	};
 
 

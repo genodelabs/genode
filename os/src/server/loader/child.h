@@ -36,10 +36,7 @@ namespace Loader {
 				Label(char const *l) { strncpy(string, l, sizeof(string)); }
 			} _label;
 
-			struct Path {
-				char string[Session::Path::MAX_SIZE];
-				Path(char const *l) { strncpy(string, l, sizeof(string)); }
-			} _root;
+			Native_pd_args _pd_args;
 
 			Rpc_entrypoint &_ep;
 
@@ -75,9 +72,9 @@ namespace Loader {
 
 			Rom_session_client _binary_rom_session;
 
-			Init::Child_policy_provide_rom_file    _binary_policy;
-			Init::Child_policy_enforce_labeling    _labeling_policy;
-			Init::Child_policy_prepend_chroot_path _chroot_policy;
+			Init::Child_policy_provide_rom_file _binary_policy;
+			Init::Child_policy_enforce_labeling _labeling_policy;
+			Init::Child_policy_pd_args          _pd_args_policy;
 
 			int _max_width, _max_height;
 
@@ -97,19 +94,20 @@ namespace Loader {
 
 		public:
 
-			Child(char const *binary_name,
-			      char const *label,
-			      char const *root,
-			      Rpc_entrypoint &ep,
-			      Ram_session_client &ram_session_client,
-			      size_t ram_quota,
-			      Service_registry &parent_services,
-			      Service &local_rom_service,
-			      Service &local_nitpicker_service,
-			      int max_width, int max_height)
+			Child(char           const *binary_name,
+			      char           const *label,
+			      Native_pd_args const &pd_args,
+			      Rpc_entrypoint       &ep,
+			      Ram_session_client   &ram_session_client,
+			      size_t                ram_quota,
+			      Service_registry     &parent_services,
+			      Service              &local_rom_service,
+			      Service              &local_nitpicker_service,
+			      int                   max_width,
+			      int                   max_height)
 			:
 				_label(label),
-				_root(root),
+				_pd_args(pd_args),
 				_ep(ep),
 				_resources(_label.string, ram_session_client, ram_quota),
 				_parent_services(parent_services),
@@ -118,7 +116,7 @@ namespace Loader {
 				_binary_rom_session(_rom_session(binary_name)),
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string),
-				_chroot_policy(_root.string),
+				_pd_args_policy(&_pd_args),
 				_max_width(max_width), _max_height(max_height),
 				_child(_binary_rom_session.dataspace(),
 				       _resources.ram.cap(), _resources.cpu.cap(),
@@ -135,13 +133,13 @@ namespace Loader {
 			 ** Child-policy interface **
 			 ****************************/
 
-			const char *name() const { return _label.string; }
-			char const *root() const { return _root.string; }
+			char           const *name()    const { return _label.string; }
+			Native_pd_args const *pd_args() const { return &_pd_args; }
 
 			void filter_session_args(char const *service, char *args, size_t args_len)
 			{
 				_labeling_policy.filter_session_args(service, args, args_len);
-				_chroot_policy.  filter_session_args(service, args, args_len);
+				_pd_args_policy. filter_session_args(service, args, args_len);
 
 				if (!strcmp(service, "Nitpicker")) {
 

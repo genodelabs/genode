@@ -123,7 +123,7 @@ namespace Loader {
 		 *                                   not obtained as ROM module
 		 */
 		virtual void start(Name const &binary, Name const &label = "",
-		                   Path const &root = "") = 0;
+		                   Native_pd_args const &pd_args = Native_pd_args()) = 0;
 
 		/**
 		 * Return first nitpicker view created by the loaded subsystem
@@ -154,7 +154,7 @@ namespace Loader {
 		GENODE_RPC(Rpc_view_ready_sigh, void, view_ready_sigh, Signal_context_capability);
 		GENODE_RPC_THROW(Rpc_start, void, start,
 		                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
-		                 Name const &, Name const &, Path const &);
+		                 Name const &, Name const &, Native_pd_args const &);
 		GENODE_RPC_THROW(Rpc_view, Nitpicker::View_capability, view,
 		                 GENODE_TYPE_LIST(View_does_not_exist));
 		GENODE_RPC(Rpc_view_geometry, View_geometry, view_geometry);

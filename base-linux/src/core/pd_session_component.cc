@@ -274,11 +274,32 @@ static const char *get_env(const char *key)
 
 Pd_session_component::Pd_session_component(Rpc_entrypoint *ep, const char *args)
 :
-	_pid(0), _ds_ep(ep)
+	_pid(0), _uid(0), _gid(0), _ds_ep(ep)
 {
 	Arg_string::find_arg(args, "label").string(_label, sizeof(_label),
 	                                           "<unlabeled>");
+
+	/*
+	 * Read Linux-specific session arguments
+	 */
 	Arg_string::find_arg(args, "root").string(_root, sizeof(_root), "");
+
+	_uid = Arg_string::find_arg(args, "uid").ulong_value(0);
+	_gid = Arg_string::find_arg(args, "gid").ulong_value(0);
+
+	bool const is_chroot = (Genode::strcmp(_root, "") != 0);
+
+	/*
+	 * Print Linux-specific session arguments if specified
+	 *
+	 * This output used for the automated 'lx_pd_args' test.
+	 */
+	if (is_chroot || _uid || _gid)
+		printf("PD session for '%s'\n", _label);
+
+	if (is_chroot) printf("  root: %s\n", _root);
+	if (_uid)      printf("  uid:  %u\n", _uid);
+	if (_gid)      printf("  gid:  %u\n", _gid);
 }
 
 

@@ -431,7 +431,7 @@ Child::Child(Dataspace_capability    elf_ds,
 	_parent_cap(_entrypoint->manage(this)),
 	_policy(policy),
 	_server(ram),
-	_process(elf_ds, ram, cpu, rm, _parent_cap, policy->name(), policy->root())
+	_process(elf_ds, ram, cpu, rm, _parent_cap, policy->name(), policy->pd_args())
 { }
 
 

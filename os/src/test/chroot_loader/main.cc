@@ -135,7 +135,7 @@ class Chroot_subsystem
 			/* start execution of new subsystem */
 			_loader.start(binary_name,
 			              Loader::Session::Name(_label),
-			              Loader::Session::Path(chroot_path));
+			              Native_pd_args(chroot_path, 0, 0));
 		}
 };
 

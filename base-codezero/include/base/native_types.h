@@ -130,6 +130,8 @@ namespace Genode {
 		 */
 		static addr_t context_virtual_size() { return 0x00100000UL; }
 	};
+
+	struct Native_pd_args { };
 }
 
 

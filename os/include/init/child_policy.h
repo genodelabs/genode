@@ -64,53 +64,25 @@ namespace Init {
 
 
 	/**
-	 * Policy for prepending the chroot path of the child
+	 * Policy for handling platform-specific PD-session arguments
 	 *
-	 * This policy is effective only on the Linux base platform.
-	 *
-	 * By applying this policy, the chroot path of the child gets supplied
-	 * to PD session requests.
+	 * This policy is used onthe Linux base platform for prepending the chroot
+	 * path of the child. By applying this policy, the chroot path of the child
+	 * gets supplied to PD session requests.
 	 */
-	class Child_policy_prepend_chroot_path
+	class Child_policy_pd_args
 	{
 		private:
 
-			char const *_root_prefix;
+			Genode::Native_pd_args const *_pd_args;
 
 		public:
 
-			Child_policy_prepend_chroot_path(const char *root_prefix)
-			: _root_prefix(root_prefix) { }
+			Child_policy_pd_args(Genode::Native_pd_args const *pd_args)
+			: _pd_args(pd_args) { }
 
-			/**
-			 * Filter arguments of session request
-			 *
-			 * This function prepends the '_root' to the 'root' session
-			 * argument of PD sessions initiated through the child (not the
-			 * child's PD session).
-			 */
 			void filter_session_args(const char *session, char *args,
-			                         Genode::size_t args_len)
-			{
-				using namespace Genode;
-
-				/*
-				 * Specify 'Genode' namespace to remove possible ambiguity of
-				 * 'strcmp' when including the header along with libc headers.
-				 */
-				if (Genode::strcmp(session, "PD") != 0)
-					return;
-
-				char path[Parent::Session_args::MAX_SIZE];
-				Arg_string::find_arg(args, "root").string(path, sizeof(path), "");
-
-				char value[Parent::Session_args::MAX_SIZE];
-				Genode::snprintf(value, sizeof(value),
-				                 "\"%s%s\"",
-				                 _root_prefix, path);
-
-				Arg_string::set_arg(args, args_len, "root", value);
-			}
+			                         Genode::size_t args_len);
 	};
 
 
