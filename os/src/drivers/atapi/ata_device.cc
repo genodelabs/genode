@@ -123,40 +123,56 @@ void Ata::Device::read_capacity()
 void Ata::Device::read(unsigned long block_nr,
                        unsigned long count, off_t offset) {
 
-	if (dma_enabled()) {
+	while (count > 0) {
+		unsigned long c = count > 255 ? 255 : count;
 
-		if (verbose)
-			PDBG("DMA read: block %lu, count %lu, offset: %08lx, base: %08lx",
-			      block_nr, count, offset, _base_addr);
+		if (dma_enabled()) {
 
-		if (dma_pci_lba28(dev_num(), CMD_READ_DMA, 0, count, block_nr,
-		                 (unsigned char *)(_base_addr + offset), count))
-			throw Io_error();
+			if (verbose)
+				PDBG("DMA read: block %lu, c %lu, offset: %08lx, base: %08lx",
+					 block_nr, c, offset, _base_addr);
+
+			if (dma_pci_lba28(dev_num(), CMD_READ_DMA, 0, c, block_nr,
+							  (unsigned char *)(_base_addr + offset), c))
+				throw Io_error();
+		}
+		else
+			if (reg_pio_data_in_lba28(dev_num(), CMD_READ_SECTORS, 0, c, block_nr,
+									  (unsigned char *)(_base_addr + offset), c, 0))
+				throw Io_error();
+
+		count    -= c;
+		block_nr += c;
+		offset   += c * block_size();
 	}
-	else
-		if (reg_pio_data_in_lba28(dev_num(), CMD_READ_SECTORS, 0, count, block_nr,
-		                          (unsigned char *)(_base_addr + offset), count, 0))
-			throw Io_error();
 }
 
 
 void Ata::Device::write(unsigned long block_nr,
                         unsigned long count, off_t offset) {
 
-	if (dma_enabled()) {
+	while (count > 0) {
+		unsigned long c = count > 255 ? 255 : count;
 
-		if (verbose)
-			PDBG("DMA read: block %lu, count %lu, offset: %08lx, base: %08lx",
-			      block_nr, count, offset, _base_addr);
+		if (dma_enabled()) {
 
-		if (dma_pci_lba28(dev_num(), CMD_WRITE_DMA, 0, count, block_nr,
-		                 (unsigned char *)(_base_addr + offset), count))
-			throw Io_error();
+			if (verbose)
+				PDBG("DMA read: block %lu, c %lu, offset: %08lx, base: %08lx",
+					 block_nr, c, offset, _base_addr);
+
+			if (dma_pci_lba28(dev_num(), CMD_WRITE_DMA, 0, c, block_nr,
+							  (unsigned char *)(_base_addr + offset), c))
+				throw Io_error();
+		}
+		else
+			if (reg_pio_data_out_lba28(dev_num(), CMD_WRITE_SECTORS, 0, c, block_nr,
+									   (unsigned char *)(_base_addr + offset), c, 0))
+				throw Io_error();
+
+		count    -= c;
+		block_nr += c;
+		offset   += c * block_size();
 	}
-	else
-		if (reg_pio_data_out_lba28(dev_num(), CMD_WRITE_SECTORS, 0, count, block_nr,
-		                           (unsigned char *)(_base_addr + offset), count, 0))
-			throw Io_error();
 }
 
 
