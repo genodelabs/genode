@@ -61,8 +61,9 @@ extern unsigned _prog_img_beg, _prog_img_end;
  */
 addr_t __core_pd_sel;
 
+
 /**
- * Map preserved physical page for the exclusive read-only use by core
+ * Map preserved physical page for the exclusive read-execute-only used by core
  */
 addr_t Platform::_map_page(addr_t phys_page, addr_t pages)
 {
@@ -75,12 +76,13 @@ addr_t Platform::_map_page(addr_t phys_page, addr_t pages)
 	addr_t core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 	int res = map_local(__main_thread_utcb, phys_page << get_page_size_log2(),
 	                    core_local_addr, pages,
-	                    Nova::Rights(true, true, true), true);
+	                    Nova::Rights(true, false, true), true);
 	if (res)
 		PERR("map_local failed res=%d", res);
 
 	return res ? 0 : core_local_addr;
 }
+
 
 /*****************************
  ** Core page-fault handler **
@@ -395,6 +397,10 @@ Platform::Platform() :
 		/* adjust module addr if it is not page aligned */
 		core_local_addr += mem_desc->addr - trunc_page(mem_desc->addr);
 
+		printf("map multi-boot module: physical 0x%8lx -> [0x%8lx-0x%8lx) - ",
+		       (addr_t)mem_desc->addr, (addr_t)core_local_addr,
+		       (addr_t)(core_local_addr + mem_desc->size));
+
 		/* check if cmd line is part of the module pages, don't map it twice */
 		addr_t aux;
 		if (trunc_page(mem_desc->addr) <= mem_desc->aux &&
@@ -410,18 +416,11 @@ Platform::Platform() :
 		}
 		const char *name = commandline_to_basename(reinterpret_cast<char *>(aux));
 
-		printf("map multi-boot module: physical 0x%8lx -> [0x%8lx-0x%8lx) - %s\n",
-		       (addr_t)mem_desc->addr, (addr_t)core_local_addr,
-		       (addr_t)(core_local_addr + mem_desc->size), name);
+		printf("%s\n", name);
 
 		Rom_module *rom_module = new (core_mem_alloc())
 		                         Rom_module(core_local_addr, mem_desc->size, name);
 		_rom_fs.insert(rom_module);
-
-		/* zero remainder of last ROM page */
-		size_t count = 0x1000 - rom_module->size() % 0x1000;
-		if (count != 0x1000)
-			memset(reinterpret_cast<void *>(rom_module->addr() + rom_module->size()), 0, count);
 
 	}
 
@@ -438,7 +437,7 @@ Platform::Platform() :
 
 	/* remap main utcb to default utbc address */
 	if (map_local(__main_thread_utcb, (addr_t)__main_thread_utcb,
-	              (addr_t)main_thread_utcb(), 1, Nova::Rights(true, true, true))) {
+	              (addr_t)main_thread_utcb(), 1, Rights(true, true, false))) {
 		PERR("could not remap main threads utcb");
 		nova_die();
 	}
