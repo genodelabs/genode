@@ -53,7 +53,7 @@ namespace Noux {
 		enum { ARGS_MAX_LEN = 3*1024 };
 		typedef char Args[ARGS_MAX_LEN];
 
-		enum { ENV_MAX_LEN  = 3*1024 };
+		enum { ENV_MAX_LEN  = 4*1024 };
 		typedef char Env[ENV_MAX_LEN];
 
 		typedef __SIZE_TYPE__ size_t;
