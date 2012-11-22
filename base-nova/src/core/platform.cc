@@ -62,21 +62,25 @@ extern unsigned _prog_img_beg, _prog_img_end;
 addr_t __core_pd_sel;
 
 /**
- * Preserve physical page for the exclusive (read-only) use by core
+ * Map preserved physical page for the exclusive read-only use by core
  */
-void Platform::_preserve_page(addr_t phys_page)
+addr_t Platform::_map_page(addr_t phys_page, addr_t pages)
 {
-	/* locally map page one-to-one */
-	map_local_one_to_one(__main_thread_utcb,
-	                     Mem_crd(phys_page, 0,
-	                             Rights(true, true, false)));
+	/* set an invalid address */
+	void * core_local_ptr = 0;
+	if (!region_alloc()->alloc(pages << get_page_size_log2(),
+	                           &core_local_ptr))
+		return 0;
 
-	/* remove page with command line from physical-memory allocator */
-	addr_t addr = phys_page*get_page_size();
-	_core_mem_alloc.phys_alloc()->remove_range(addr, get_page_size());
-	_core_mem_alloc.virt_alloc()->remove_range(addr, get_page_size());
+	addr_t core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+	int res = map_local(__main_thread_utcb, phys_page << get_page_size_log2(),
+	                    core_local_addr, pages,
+	                    Nova::Rights(true, true, true), true);
+	if (res)
+		PERR("map_local failed res=%d", res);
+
+	return res ? 0 : core_local_addr;
 }
-
 
 /*****************************
  ** Core page-fault handler **
@@ -304,7 +308,8 @@ Platform::Platform() :
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
 		if (verbose_boot_info)
-			printf("detected physical memory: 0x%llx - 0x%llx\n", mem_desc->addr, mem_desc->size);
+			printf("detected physical memory: 0x%16llx - size: 0x%llx\n",
+			        mem_desc->addr, mem_desc->size);
 
 		/* skip regions above 4G on 32 bit, no op on 64 bit */
 		if (mem_desc->addr > ~0UL) continue;
@@ -318,7 +323,7 @@ Platform::Platform() :
 			size = trunc_page(mem_desc->addr + mem_desc->size) - base;
 
 		if (verbose_boot_info)
-			printf("use      physical memory: 0x%lx - 0x%zx\n", base, size);
+			printf("use      physical memory: 0x%16lx - size: 0x%zx\n", base, size);
 
 		_io_mem_alloc.remove_range(base, size);
 		_core_mem_alloc.phys_alloc()->add_range(base, size);
@@ -358,12 +363,14 @@ Platform::Platform() :
 		curr_cmd_line_page = mem_desc->aux >> get_page_size_log2();
 		if (curr_cmd_line_page == prev_cmd_line_page) continue;
 
-		_preserve_page(curr_cmd_line_page);
+		ram_alloc()->remove_range(curr_cmd_line_page << get_page_size_log2(),
+		                          get_page_size());
 		prev_cmd_line_page = curr_cmd_line_page;
 	}
 
 	/* preserve page following the last multi-boot command line */
-	_preserve_page(curr_cmd_line_page + 1);
+	ram_alloc()->remove_range((curr_cmd_line_page + 1) << get_page_size_log2(),
+	                           get_page_size());
 
 	/*
 	 * From now on, it is save to use the core allocators...
@@ -371,27 +378,44 @@ Platform::Platform() :
 
 	/* build ROM file system */
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
+	prev_cmd_line_page = 0, curr_cmd_line_page = 0;
+	addr_t mapped_cmd_line = 0;
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type != Hip::Mem_desc::MULTIBOOT_MODULE) continue;
 		if (!mem_desc->addr || !mem_desc->size || !mem_desc->aux) continue;
 
-		addr_t aux = mem_desc->aux;
+		addr_t core_local_addr =
+			_map_page(trunc_page(mem_desc->addr) >> get_page_size_log2(),
+		              (round_page(mem_desc->addr + mem_desc->size) -
+			          trunc_page(mem_desc->addr)) >> get_page_size_log2());
+		if (!core_local_addr) {
+			PERR("could not map multi boot module");
+			nova_die();
+		}
+		/* adjust module addr if it is not page aligned */
+		core_local_addr += mem_desc->addr - trunc_page(mem_desc->addr);
+
+		/* check if cmd line is part of the module pages, don't map it twice */
+		addr_t aux;
+		if (trunc_page(mem_desc->addr) <= mem_desc->aux &&
+		    mem_desc->aux < round_page(mem_desc->addr + mem_desc->size)) {
+			aux = core_local_addr + (mem_desc->aux - mem_desc->addr);
+		} else {	
+			curr_cmd_line_page     = mem_desc->aux >> get_page_size_log2();
+			if (curr_cmd_line_page != prev_cmd_line_page) {
+				mapped_cmd_line = _map_page(curr_cmd_line_page, 2);
+				prev_cmd_line_page = curr_cmd_line_page;
+			}
+			aux = mapped_cmd_line + (mem_desc->aux - trunc_page(mem_desc->aux));
+		}
 		const char *name = commandline_to_basename(reinterpret_cast<char *>(aux));
-		printf("detected multi-boot module: %s 0x%lx-0x%lx\n", name,
-		       (long)mem_desc->addr, (long)(mem_desc->addr + mem_desc->size - 1));
 
-		void *core_local_addr = (void*)0x234;
-		if (!region_alloc()->alloc(round_page(mem_desc->size), &core_local_addr))
-			PERR("could not locally map multi-boot module");
-
-		int res = map_local(__main_thread_utcb, mem_desc->addr, (addr_t)core_local_addr,
-		                    round_page(mem_desc->size) >> get_page_size_log2(),
-		                    Nova::Rights(true, true, true), true);
-		if (res)
-			PERR("map_local failed res=%d", res);
+		printf("map multi-boot module: physical 0x%8lx -> [0x%8lx-0x%8lx) - %s\n",
+		       (addr_t)mem_desc->addr, (addr_t)core_local_addr,
+		       (addr_t)(core_local_addr + mem_desc->size), name);
 
 		Rom_module *rom_module = new (core_mem_alloc())
-		                         Rom_module((addr_t)core_local_addr, mem_desc->size, name);
+		                         Rom_module(core_local_addr, mem_desc->size, name);
 		_rom_fs.insert(rom_module);
 
 		/* zero remainder of last ROM page */
