@@ -439,40 +439,54 @@ namespace Noux {
 				if (verbose)
 					PDBG("path = %s", path);
 
-				Node *node = _root_node.lookup(path);
+				Node const *node = 0;
+				Record const *record = 0;
 
-				if (!node) {
-					sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
-					return false;
+				/*
+				 * Walk hardlinks until we reach a file
+				 */
+				for (;;) {
+					node = _root_node.lookup(path);
+
+					if (!node) {
+						sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
+						return false;
+					}
+
+					record = node->record;
+
+					if (record) {
+						if (record->type() == Record::TYPE_HARDLINK) {
+							path = record->linked_name();
+							continue;
+						} else
+							break;
+					} else {
+						if (verbose)
+							PDBG("found a virtual directoty node");
+						memset(&sysio->stat_out.st, 0, sizeof(sysio->stat_out.st));
+						sysio->stat_out.st.mode   = Sysio::STAT_MODE_DIRECTORY;
+						return true;
+					}
+				}
+
+				/* convert TAR record modes to stat modes */
+				unsigned mode = record->mode();
+				switch (record->type()) {
+				case Record::TYPE_FILE:     mode |= Sysio::STAT_MODE_FILE; break;
+				case Record::TYPE_SYMLINK:  mode |= Sysio::STAT_MODE_SYMLINK; break;
+				case Record::TYPE_DIR:      mode |= Sysio::STAT_MODE_DIRECTORY; break;
+
+				default:
+					if (verbose)
+						PDBG("unhandled record type %d", record->type());
 				}
 
 				memset(&sysio->stat_out.st, 0, sizeof(sysio->stat_out.st));
-
-				Record const *record = node->record;
-
-				if (record) {
-					/* convert TAR record modes to stat modes */
-					unsigned mode = record->mode();
-					switch (record->type()) {
-					case Record::TYPE_FILE:    mode |= Sysio::STAT_MODE_FILE; break;
-					case Record::TYPE_SYMLINK: mode |= Sysio::STAT_MODE_SYMLINK; break;
-					case Record::TYPE_DIR:     mode |= Sysio::STAT_MODE_DIRECTORY; break;
-
-					default:
-						if (verbose)
-							PDBG("unhandled record type %d", record->type());
-					}
-
-					sysio->stat_out.st.mode   = mode;
-					sysio->stat_out.st.size   = record->size();
-					sysio->stat_out.st.uid    = record->uid();
-					sysio->stat_out.st.gid    = record->gid();
-				} else {
-					if (verbose)
-						PDBG("found a virtual directoty node");
-					sysio->stat_out.st.mode   = Sysio::STAT_MODE_DIRECTORY;
-				}
-
+				sysio->stat_out.st.mode   = mode;
+				sysio->stat_out.st.size   = record->size();
+				sysio->stat_out.st.uid    = record->uid();
+				sysio->stat_out.st.gid    = record->gid();
 				sysio->stat_out.st.inode  = (unsigned long)node;
 
 				return true;
