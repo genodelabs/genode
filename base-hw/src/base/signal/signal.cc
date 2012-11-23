@@ -35,12 +35,26 @@ static Signal_connection * signal_connection()
  *********************/
 
 
-Signal_receiver::Signal_receiver() :
-	_cap(signal_connection()->alloc_receiver())
+Signal_receiver::Signal_receiver()
 {
-	if (!_cap.valid()) {
-		PERR("%s: Failed to create receiver", __PRETTY_FUNCTION__);
-		while (1) ;
+	/* create a kernel object that corresponds to the receiver */
+	bool session_upgraded = 0;
+	Signal_connection * const s = signal_connection();
+	while (1) {
+		try {
+			_cap = s->alloc_receiver();
+			break;
+		} catch (Signal_session::Out_of_metadata)
+		{
+			/* upgrade session quota and try again, but only once */
+			if (session_upgraded) {
+				PDBG("Failed to alloc signal receiver");
+				break;
+			}
+			PINF("upgrade quota donation for Signal session");
+			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
+			session_upgraded = 1;
+		}
 	}
 }
 
@@ -75,6 +89,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 		} catch (Signal_session::Out_of_metadata)
 		{
 			/* upgrade session quota and try again, but only once */
+			PINF("upgrade quota donation for Signal session");
 			if (session_upgraded) return Signal_context_capability();
 			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
 			session_upgraded = 1;
