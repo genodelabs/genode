@@ -4,6 +4,24 @@
                                ===========
 
 
+How Genode came to the Pandaboard | 2012-11-23
+##############################################
+
+| In the just published experience report, the Genode developers
+| provide insights into the process of porting the framework to
+| a new hardware platform, namely the popular Pandaboard.
+
+The new article
+[http:/documentation/articles/pandaboard - "How Genode came to the Pandaboard"]
+describes the steps to bring various peripherals such as HDMI output, networking,
+and SD-cards to live. Additionally, the report takes the reader along the
+long-winding road of performance optimizations. For those who are eager to
+try out running Genode on the Pandaboard, the article presents a example
+scenario that may serve as a good starting point.
+
+Learn more about [http:/documentation/articles/pandaboard - how Genode came to the Pandaboard...]
+
+
 Genode OS Framework release 12.08 | 2012-08-23
 ##############################################
 
