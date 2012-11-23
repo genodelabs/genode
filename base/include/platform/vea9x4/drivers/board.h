@@ -39,7 +39,7 @@ namespace Genode
 			RAM_2_BASE = 0x84000000,
 			RAM_2_SIZE = 0x1c000000,
 			RAM_3_BASE = 0x48000000,
-			RAM_3_SIZE = 0x01ffffff,
+			RAM_3_SIZE = 0x02000000,
 
 			/* UART */
 			PL011_0_MMIO_BASE = MMIO_0_BASE + 0x9000,
