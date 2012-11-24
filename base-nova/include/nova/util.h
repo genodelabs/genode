@@ -28,6 +28,7 @@ inline void nova_die(const char * text = 0)
 		asm volatile ("ud2a" : : "a"(text));
 }
 
+
 inline void request_event_portal(Genode::Native_capability cap,
                                  Genode::addr_t exc_base, Genode::addr_t event)
 {
@@ -50,6 +51,5 @@ inline void request_event_portal(Genode::Native_capability cap,
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
 }
-
 
 #endif /* _NOVA__INCLUDE__UTIL_H_ */

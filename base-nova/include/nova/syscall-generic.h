@@ -67,18 +67,18 @@ namespace Nova {
 	/**
 	 * NOVA status codes returned by system-calls
 	 */
-        enum Status
-        {
-            NOVA_OK             = 0,
-            NOVA_IPC_TIMEOUT    = 1,
-            NOVA_IPC_ABORT      = 2,
-            NOVA_INV_HYPERCALL  = 3,
-            NOVA_INV_SELECTOR   = 4,
-            NOVA_INV_PARAMETER  = 5,
-            NOVA_INV_FEATURE    = 6,
-            NOVA_INV_CPU_NUMBER = 7,
-            NOVA_INVD_DEVICE_ID = 8,
-        };
+	enum Status
+	{
+		NOVA_OK             = 0,
+		NOVA_IPC_TIMEOUT    = 1,
+		NOVA_IPC_ABORT      = 2,
+		NOVA_INV_HYPERCALL  = 3,
+		NOVA_INV_SELECTOR   = 4,
+		NOVA_INV_PARAMETER  = 5,
+		NOVA_INV_FEATURE    = 6,
+		NOVA_INV_CPU_NUMBER = 7,
+		NOVA_INVD_DEVICE_ID = 8,
+	};
 
 	/**
 	 * Hypervisor information page
