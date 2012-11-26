@@ -55,7 +55,8 @@ void Rpc_entrypoint::entry()
 	 */
 	_delay_start.lock();
 
-	while (1) {
+	while (!_exit_handler.exit) {
+
 		int opcode = 0;
 
 		srv >> IPC_REPLY_WAIT >> opcode;
@@ -87,4 +88,12 @@ void Rpc_entrypoint::entry()
 		_curr_obj->unlock();
 		_curr_obj = 0;
 	}
+
+	/* answer exit call, thereby wake up '~Rpc_entrypoint' */
+	srv << IPC_REPLY;
+
+	/* defer the destruction of 'Ipc_server' until '~Rpc_entrypoint' is ready */
+	_delay_exit.lock();
+
+
 }

@@ -270,14 +270,32 @@ namespace Genode {
 			 */
 			static void _activation_entry();
 
+			struct Exit
+			{
+				GENODE_RPC(Rpc_exit, void, _exit);
+				GENODE_RPC_INTERFACE(Rpc_exit);
+			};
+
+			struct Exit_handler : Rpc_object<Exit, Exit_handler>
+			{
+				int exit;
+
+				Exit_handler() : exit(false) { }
+
+				void _exit() { exit = true; }
+			};
+
 		protected:
 
 			Ipc_server      *_ipc_server;
-			Rpc_object_base *_curr_obj;       /* currently dispatched RPC object    */
-			Lock             _curr_obj_lock;  /* for the protection of '_curr_obj'  */
-			Lock             _cap_valid;      /* thread startup synchronization     */
-			Lock             _delay_start;    /* delay start of request dispatching */
-			Cap_session     *_cap_session;    /* for creating capabilities          */
+			Rpc_object_base *_curr_obj;       /* currently dispatched RPC object       */
+			Lock             _curr_obj_lock;  /* for the protection of '_curr_obj'     */
+			Lock             _cap_valid;      /* thread startup synchronization        */
+			Lock             _delay_start;    /* delay start of request dispatching    */
+			Lock             _delay_exit;     /* delay destructor until server settled */
+			Cap_session     *_cap_session;    /* for creating capabilities             */
+			Exit_handler     _exit_handler;
+			Capability<Exit> _exit_cap;
 
 			/**
 			 * Back-end function to associate RPC object with the entry point
