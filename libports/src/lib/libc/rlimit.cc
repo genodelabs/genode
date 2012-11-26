@@ -17,7 +17,7 @@
 
 #include "libc_debug.h"
 
-extern "C" int getrlimit(int resource, struct rlimit *rlim)
+extern "C" int __attribute__((weak)) getrlimit(int resource, struct rlimit *rlim)
 {
 	/*
 	 * The pthread init code on Linux calls getrlimit
