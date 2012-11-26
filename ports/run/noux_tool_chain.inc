@@ -1,20 +1,11 @@
 #
-# Uncomment the following line when working on the binutils source code. Otherwise,
-# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+# Configuration variables for the platform-specific run scripts:
 #
-#exec rm -rf noux-pkg/binutils bin/binutils
-
+# $platform          - name of the platform passed to the 'create_builddir' script
+# $platform_base_dir - name of the platform-specific Genode base directory
+# $platform_cmds     - platform-specific shell commands to be executed at startup
+# $platform_pkgs     - names of platform-specific tar archives without the '.tar' extension
 #
-# Uncomment the following line when working on the GCC source code. Otherwise,
-# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
-#
-#exec rm -rf noux-pkg/gcc bin/gcc
-
-#
-# Uncomment the following line when working on the make source code. Otherwise,
-# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
-#
-#exec rm -rf noux-pkg/make bin/make
 
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
@@ -43,7 +34,7 @@ if {[have_spec x86]} {
 #
 # Build Noux packages only once
 #
-set noux_pkgs "bash coreutils vim findutils make $binutils $gcc"
+set noux_pkgs "bash coreutils vim findutils make which $binutils $gcc"
 
 foreach pkg $noux_pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
@@ -63,11 +54,20 @@ close $vimrc_fd
 
 # strip all binaries prior archiving
 set find_args ""
-foreach pkg $noux_pkgs { append find_args " bin/$pkg/" }
-exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
+foreach pkg $noux_pkgs { append find_args " bin/$pkg" }
+exec sh -c "find $find_args -type f | (xargs [cross_dev_prefix]strip -g || true) 2>/dev/null"
+
+exec ln -sf bash bin/bash/bin/sh
 
 foreach pkg $noux_pkgs {
 	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
+
+set genode_repositories "tool base $platform_base_dir os demo"
+foreach rep $genode_repositories { append genode_repositories_filter_out_find " -not -name $rep " }
+set genode_repositories_filter_out [exec sh -c "find $genode_dir -mindepth 1 -maxdepth 1 $genode_repositories_filter_out_find -printf \"%f \""]
+foreach rep $genode_repositories_filter_out { append genode_repositories_filter_out_tar " --exclude=./$rep " }
+set tar_command "tar cfv bin/genode.tar $genode_repositories_filter_out_tar -C $genode_dir ."
+eval exec $tar_command
 
 create_boot_directory
 
@@ -136,31 +136,28 @@ append config {
 		</config>
 	</start>
 	<start name="ram_fs">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="100M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-
-			<!-- preload RAM file system with some ROM images -->
 			<content>
-				<dir name="tmp">
-					<inline name="a.c">int main(int argc, char **argv) { return 0; }</inline>
-					<inline name="Makefile"> }
-append config "
-SHELL=/bin/bash
-all:
-	${tool_prefix}gcc $cc_march -v -c a.c -o a.o
-"
-append config {
-					</inline>
-				</dir>
 				<dir name="home">
 					<dir name="user">
 						<inline name=".bash_profile">
-							cd /tmp; make; }
-append config "${tool_prefix}readelf -a a.o"
+							cp /bin/make /usr/bin/
+							cp /bin/echo /usr/bin/
+							cp /bin/mkdir /usr/bin/
+}
+append config "						/genode/tool/create_builddir $platform BUILD_DIR=/home/build"
 append config {
-						</inline>
+							cd /home/build
+							echo "CROSS_DEV_PREFIX=genode-x86-" > etc/tools.conf }
+append config "                                         $platform_cmds"
+append config {					</inline>
 					</dir>
+				</dir>
+				<dir name="tmp" />
+				<dir name="usr">
+					<dir name="bin" />
 				</dir>
 			</content>
 
@@ -168,6 +165,7 @@ append config {
 			<policy label="noux -> root" root="/" />
 			<policy label="noux -> home" root="/home/user" writeable="yes" />
 			<policy label="noux -> tmp"  root="/tmp"       writeable="yes" />
+			<policy label="noux -> usr"  root="/usr"       writeable="yes" />
 		</config>
 	</start>
 	<start name="noux">
@@ -176,25 +174,40 @@ append config {
 			<fstab> }
 
 foreach pkg $noux_pkgs {
-	append config "				<tar name=\"$pkg.tar\" />" }
+	append config "		<tar name=\"$pkg.tar\" />" }
 
-append config {
-				<!-- Example of how to impose policy onto a file system
-				     session. The label attached to the 'fs' node is used
-				     as a key to select the policy of 'ram_fs' -->
+append config {			<dir name="platform"> }
+foreach pkg $platform_pkgs {
+	append config "			<dir name=\"$pkg\">
+						<tar name=\"$pkg.tar\" />
+					</dir>" }
 
-				<dir name="home"> <fs label="home" /> </dir>
+append config {			</dir>
 
-				<!-- The entirety of ram_fs is mounted within the '/ram'
-				     directory. -->
+				<dir name="genode">
+					<tar name="genode.tar" />
+				</dir>
 
-				<dir name="ram"> <fs label="root" /> </dir>
-				<dir name="tmp"> <fs label="tmp" /> </dir>
+				<dir name="dev">
+					<null />
+				</dir>
 
+				<dir name="home">
+					<fs label="home" />
+				</dir>
+
+				<dir name="tmp">
+					<fs label="tmp" />
+				</dir>
+
+				<dir name="usr">
+					<fs label="usr" />
+				</dir>
 			</fstab>
 			<start name="/bin/bash">
 				<env name="TERM" value="linux" />
 				<env name="HOME" value="/home" />
+				<env name="PATH" value="/bin" />
 				<arg value="--login" />
 			</start>
 		</config>
@@ -219,6 +232,10 @@ append boot_modules { gmp.lib.so mpfr.lib.so mpc.lib.so }
 foreach pkg $noux_pkgs {
 	lappend boot_modules "$pkg.tar" }
 
+append boot_modules { genode.tar }
+
+foreach pkg $platform_pkgs { append boot_modules "$pkg.tar" }
+
 # platform-specific modules
 lappend_if [have_spec linux] boot_modules fb_sdl
 lappend_if [have_spec pci]   boot_modules pci_drv
@@ -228,12 +245,6 @@ lappend_if [have_spec pl11x] boot_modules pl11x_drv
 
 build_boot_image $boot_modules
 
-if {[have_spec x86_64]} {
-	append qemu_args " -m 512 "
-} else {
-	append qemu_args " -m 320 "
-}
+append qemu_args " -m 768 "
 
 run_genode_until forever
-
-exec rm bin/bash.tar
