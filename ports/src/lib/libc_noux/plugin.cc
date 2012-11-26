@@ -35,6 +35,7 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <termios.h>
 #include <pwd.h>
@@ -173,6 +174,13 @@ extern "C" uid_t getuid()
 extern "C" uid_t geteuid()
 {
 	return getuid();
+}
+
+
+extern "C" int getrlimit(int resource, struct rlimit *rlim)
+{
+	PDBG("not implemented");
+	return -1;
 }
 
 
