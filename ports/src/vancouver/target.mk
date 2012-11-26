@@ -34,6 +34,7 @@ INC_DIR += $(VANCOUVER_DIR)/include
 INC_DIR += $(NOVA_INCLUDE_DIR)
 
 CC_WARN += -Wno-parentheses
+CC_CXX_OPT += -std=gnu++11
 
 LD_TEXT_ADDR = 0xb0000000
 
