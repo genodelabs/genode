@@ -46,6 +46,15 @@ Platform::Platform()
 	lx_mkdir(resource_path(), S_IRWXU);
 
 	_ram_alloc.add_range((addr_t)_some_mem, sizeof(_some_mem));
+
+	/*
+	 * Occupy the socket handle that will be used to propagate the parent
+	 * capability new processes. Otherwise, there may be the chance that the
+	 * parent capability as supplied by the process creator will be assigned to
+	 * this handle, which would result in a 'dup2' syscall taking
+	 * PARENT_SOCKET_HANDLE as both source and target descriptor.
+	 */
+	lx_dup2(0, PARENT_SOCKET_HANDLE);
 }
 
 

@@ -83,6 +83,12 @@ Genode::Ep_socket_descriptor_registry *Genode::ep_sd_registry()
  ** Communication over Unix-domain sockets **
  ********************************************/
 
+enum {
+	LX_EINTR        = 4,
+	LX_ECONNREFUSED = 111
+};
+
+
 /**
  * Utility: Return thread ID to which the given socket is directed to
  *
@@ -242,14 +248,18 @@ static void extract_sds_from_message(unsigned start_index, Message const &msg,
 
 		int const sd = msg.socket_at_index(i);
 		int const id = lookup_tid_by_client_socket(sd);
-		int const existing_sd = Genode::ep_sd_registry()->lookup_fd_by_global_id(id);
 
-		if (existing_sd >= 0) {
+		int const associated_sd = Genode::ep_sd_registry()->try_associate(sd, id);
+
+		buf.append_cap(associated_sd);
+
+		if ((associated_sd >= 0) && (associated_sd != sd)) {
+
+			/*
+			 * The association already existed under a different name, use
+			 * already associated socket descriptor and and drop 'sd'.
+			 */
 			lx_close(sd);
-			buf.append_cap(existing_sd);
-		} else {
-			Genode::ep_sd_registry()->associate(sd, id);
-			buf.append_cap(sd);
 		}
 	}
 }
@@ -265,20 +275,43 @@ static inline void lx_call(int dst_sd,
 	int ret;
 	Message send_msg(send_msgbuf.buf, send_msg_len);
 
-	/* create reply channel */
-	enum { LOCAL_SOCKET  = 0, REMOTE_SOCKET = 1 };
-	int reply_channel[2];
+	/*
+	 * Create reply channel
+	 *
+	 * The reply channel will be closed when leaving the scope of 'lx_call'.
+	 */
+	struct Reply_channel
+	{
+		enum { LOCAL_SOCKET = 0, REMOTE_SOCKET = 1 };
+		int sd[2];
 
-	ret = lx_socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0, reply_channel);
-	if (ret < 0) {
-		PRAW("lx_socketpair failed with %d", ret);
-		throw Genode::Ipc_error();
-	}
+		Reply_channel()
+		{
+			sd[LOCAL_SOCKET] = -1; sd[REMOTE_SOCKET] = -1;
+
+			int ret = lx_socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0, sd);
+			if (ret < 0) {
+				PRAW("[%d] lx_socketpair failed with %d", lx_getpid(), ret);
+				throw Genode::Ipc_error();
+			}
+		}
+
+		~Reply_channel()
+		{
+			for (unsigned i = 0; i < 2; i++)
+			if (sd[0] != -1)
+				lx_close(sd[i]);
+		}
+
+		int local_socket()  const { return sd[LOCAL_SOCKET];  }
+		int remote_socket() const { return sd[REMOTE_SOCKET]; }
+
+	} reply_channel;
 
 	/* assemble message */
 
 	/* marshal reply capability */
-	send_msg.marshal_socket(reply_channel[REMOTE_SOCKET]);
+	send_msg.marshal_socket(reply_channel.remote_socket());
 
 	/* marshal capabilities contained in 'send_msgbuf' */
 	for (unsigned i = 0; i < send_msgbuf.used_caps(); i++)
@@ -296,17 +329,18 @@ static inline void lx_call(int dst_sd,
 	Message recv_msg(recv_msgbuf.buf, recv_msgbuf.size());
 	recv_msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
-	ret = lx_recvmsg(reply_channel[LOCAL_SOCKET], recv_msg.msg(), 0);
+	ret = lx_recvmsg(reply_channel.local_socket(), recv_msg.msg(), 0);
+
+	/* system call got interrupted by a signal */
+	if (ret == -LX_EINTR)
+		throw Genode::Blocking_canceled();
+
 	if (ret < 0) {
 		PRAW("[%d] lx_recvmsg failed with %d in lx_call()", lx_getpid(), ret);
 		throw Genode::Ipc_error();
 	}
 
 	extract_sds_from_message(0, recv_msg, recv_msgbuf);
-
-	/* destroy reply channel */
-	lx_close(reply_channel[LOCAL_SOCKET]);
-	lx_close(reply_channel[REMOTE_SOCKET]);
 }
 
 
@@ -323,6 +357,11 @@ static inline int lx_wait(Genode::Native_connection_state &cs,
 	msg.accept_sockets(Message::MAX_SDS_PER_MSG);
 
 	int ret = lx_recvmsg(cs.server_sd, msg.msg(), 0);
+
+	/* system call got interrupted by a signal */
+	if (ret == -LX_EINTR)
+		throw Genode::Blocking_canceled();
+
 	if (ret < 0) {
 		PRAW("lx_recvmsg failed with %d in lx_wait(), sd=%d", ret, cs.server_sd);
 		throw Genode::Ipc_error();
@@ -352,10 +391,15 @@ static inline void lx_reply(int reply_socket,
 		msg.marshal_socket(send_msgbuf.cap(i));
 
 	int ret = lx_sendmsg(reply_socket, msg.msg(), 0);
-	if (ret < 0)
-		PRAW("lx_sendmsg failed with %d in lx_reply()", ret);
 
-	lx_close(reply_socket);
+	/* ignore reply send error caused by disappearing client */
+	if (ret >= 0 || ret == -LX_ECONNREFUSED) {
+		lx_close(reply_socket);
+		return;
+	}
+
+	if (ret < 0)
+		PRAW("[%d] lx_sendmsg failed with %d in lx_reply()", lx_getpid(), ret);
 }
 
 
@@ -422,9 +466,21 @@ Ipc_istream::~Ipc_istream()
 	 *
 	 * IPC clients have -1 as client_sd and need no disassociation.
 	 */
-	if (_rcv_cs.client_sd != -1)
+	if (_rcv_cs.client_sd != -1) {
 		Genode::ep_sd_registry()->disassociate(_rcv_cs.client_sd);
+
+		/*
+		 * Reset thread role to non-server such that we can enter 'sleep_forever'
+		 * without getting a warning.
+		 */
+		Thread_base *thread = Thread_base::myself();
+		if (thread)
+			thread->tid().is_ipc_server = false;
+	}
+
 	destroy_server_socket_pair(_rcv_cs);
+	_rcv_cs.client_sd = -1;
+	_rcv_cs.server_sd = -1;
 }
 
 
@@ -552,7 +608,8 @@ Ipc_server::Ipc_server(Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
 	 */
 
 	if (thread && thread->tid().is_ipc_server) {
-		PRAW("unexpected multiple instantiation of Ipc_server by one thread");
+		PRAW("[%d] unexpected multiple instantiation of Ipc_server by one thread",
+		     lx_gettid());
 		struct Ipc_server_multiple_instance { };
 		throw Ipc_server_multiple_instance();
 	}

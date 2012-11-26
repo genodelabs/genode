@@ -86,64 +86,64 @@ class Genode::Socket_descriptor_registry
 			throw Limit_reached();
 		}
 
-		bool _is_registered(int global_id) const
-		{
-			for (unsigned i = 0; i < MAX_FDS; i++)
-				if (_entries[i].global_id == global_id)
-					return true;
-
-			return false;
-		}
-
-	public:
-
-		/**
-		 * Register association of socket descriptor and its corresponding ID
-		 *
-		 * \throw Limit_reached
-		 * \throw Aliased_global_id  if global ID is already registered
-		 */
-		void associate(int sd, int global_id)
-		{
-			Genode::Lock::Guard guard(_lock);
-
-			/* ignore invalid capabilities */
-			if (sd == -1 || global_id == -1)
-				return;
-
-			/*
-			 * Check for potential aliasing
-			 *
-			 * We allow any global ID to be present in the registry only once.
-			 */
-			if (_is_registered(global_id))
-				throw Aliased_global_id();
-
-			Entry &entry = _find_free_entry();
-			entry = Entry(sd, global_id);
-		}
-
-		void disassociate(int sd)
-		{
-			Genode::Lock::Guard guard(_lock);
-
-			_find_entry_by_fd(sd).mark_as_free();
-		}
-
 		/**
 		 * Lookup file descriptor that belongs to specified global ID
 		 *
 		 * \return file descriptor or -1 if lookup failed
 		 */
-		int lookup_fd_by_global_id(int global_id) const
+		int _lookup_fd_by_global_id(int global_id) const
 		{
-			Genode::Lock::Guard guard(_lock);
-
 			for (unsigned i = 0; i < MAX_FDS; i++)
 				if (_entries[i].global_id == global_id)
 					return _entries[i].fd;
 
 			return -1;
+		}
+
+	public:
+
+		void disassociate(int sd)
+		{
+			Genode::Lock::Guard guard(_lock);
+
+			for (unsigned i = 0; i < MAX_FDS; i++)
+				if (_entries[i].fd == sd) {
+					_entries[i].mark_as_free();
+					return;
+				}
+		}
+
+		/**
+		 * Try to associate socket descriptor with corresponding ID
+		 *
+		 * \return socket descriptor associated with the ID
+		 * \throw  Limit_reached
+		 *
+		 * If the ID was already associated, the return value is the originally
+		 * registered socket descriptor. In this case, the caller should drop
+		 * the new socket descriptor and use the one returned by this function.
+		 */
+		int try_associate(int sd, int global_id)
+		{
+			/* ignore invalid capabilities */
+			if (sd == -1)
+				return sd;
+
+			/* ignore invalid capabilities */
+			if (sd == -1 || global_id == -1)
+				return sd;
+
+			Genode::Lock::Guard guard(_lock);
+
+			int const existing_sd = _lookup_fd_by_global_id(global_id);
+
+			if (existing_sd < 0) {
+				Entry &entry = _find_free_entry();
+				entry = Entry(sd, global_id);
+				return sd;
+			} else {
+				return existing_sd;
+			}
 		}
 };
 

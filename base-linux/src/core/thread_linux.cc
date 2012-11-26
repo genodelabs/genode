@@ -38,6 +38,7 @@ void Thread_base::_thread_start()
 	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
 
 	Thread_base::myself()->entry();
+	Thread_base::myself()->_join_lock.unlock();
 	sleep_forever();
 }
 
