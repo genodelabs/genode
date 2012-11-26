@@ -22,6 +22,7 @@
 #define _INCLUDE__OS__ATTACHED_RAM_DATASPACE_H_
 
 #include <ram_session/ram_session.h>
+#include <util/touch.h>
 #include <base/env.h>
 
 namespace Genode {
@@ -60,6 +61,23 @@ namespace Genode {
 				} catch (Rm_session::Attach_failed) {
 					_ram_session->free(_ds);
 					throw;
+				}
+
+				/*
+				 * Eagerly map dataspace if used for DMA
+				 *
+				 * On some platforms, namely Fiasco.OC on ARMv7, the handling
+				 * of page faults interferes with the caching attributes used
+				 * for uncached DMA memory. See issue #452 for more details
+				 * (https://github.com/genodelabs/genode/issues/452). As a
+				 * work-around for this issues, we eagerly map the whole
+				 * dataspace before writing actual content to it.
+				 */
+				if (!_cached) {
+					enum { PAGE_SIZE = 4096 };
+					unsigned char volatile *base = (unsigned char volatile *)_local_addr;
+					for (size_t i = 0; i < _size; i += PAGE_SIZE)
+						touch_read_write(base + i);
 				}
 			}
 
