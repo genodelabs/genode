@@ -58,6 +58,8 @@ bool inline Elf_binary::_dynamic_check_compat(unsigned type)
 		case PT_PHDR:
 		case PT_GNU_EH_FRAME:
 		case PT_GNU_STACK:
+		case PT_GNU_RELRO:
+		case PT_TLS:
 		case PT_NOTE:
 			return true;
 		default:
