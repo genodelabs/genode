@@ -73,14 +73,11 @@ namespace {
 			                const struct ::addrinfo *hints,
 			                struct ::addrinfo **res)
 			{
-				PDBG("libc_resolv getaddrinfo() called");
 				return ::libc_getaddrinfo(node, service, hints, res);
 			}
 
 			void freeaddrinfo(struct ::addrinfo *res)
 			{
-				PDBG("libc_resolv freeaddrinfo() called");
-
 				return ::libc_freeaddrinfo(res);
 			}
 

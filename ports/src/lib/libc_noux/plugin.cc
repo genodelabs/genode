@@ -165,7 +165,7 @@ extern "C" uid_t getuid()
 		return 0;
 
 	uid_t uid = sysio()->userinfo_out.uid;
-	PDBG("getuid(): %d", uid);
+
 	return uid;
 }
 
