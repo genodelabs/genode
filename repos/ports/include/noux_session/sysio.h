@@ -283,7 +283,9 @@ namespace Noux {
 		enum Connect_error   { CONNECT_ERR_ACCESS, CONNECT_ERR_AGAIN,
 		                       CONNECT_ERR_ALREADY, CONNECT_ERR_CONN_REFUSED,
 		                       CONNECT_ERR_NO_PERM, CONNECT_ERR_ADDR_IN_USE,
-		                       CONNECT_ERR_IN_PROGRESS, CONNECT_ERR_IS_CONNECTED };
+		                       CONNECT_ERR_IN_PROGRESS, CONNECT_ERR_IS_CONNECTED,
+		                       CONNECT_ERR_RESET, CONNECT_ERR_ABORTED,
+		                       CONNECT_ERR_NO_ROUTE };
 
 		enum Listen_error    { LISTEN_ERR_ADDR_IN_USE, LISTEN_ERR_NOT_SUPPORTED };
 

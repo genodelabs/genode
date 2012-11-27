@@ -266,11 +266,15 @@ namespace Noux {
 
 				if (result == -1) {
 					switch (errno) {
-					case EAGAIN:      sysio->error.connect = Sysio::CONNECT_ERR_AGAIN;        break;
-					case EALREADY:    sysio->error.connect = Sysio::CONNECT_ERR_ALREADY;      break;
-					case EADDRINUSE:  sysio->error.connect = Sysio::CONNECT_ERR_ADDR_IN_USE;  break;
-					case EINPROGRESS: sysio->error.connect = Sysio::CONNECT_ERR_IN_PROGRESS;  break;
-					case EISCONN:     sysio->error.connect = Sysio::CONNECT_ERR_IS_CONNECTED; break;
+					case EAGAIN:       sysio->error.connect = Sysio::CONNECT_ERR_AGAIN;        break;
+					case EALREADY:     sysio->error.connect = Sysio::CONNECT_ERR_ALREADY;      break;
+					case EADDRINUSE:   sysio->error.connect = Sysio::CONNECT_ERR_ADDR_IN_USE;  break;
+					case EINPROGRESS:  sysio->error.connect = Sysio::CONNECT_ERR_IN_PROGRESS;  break;
+					case EISCONN:      sysio->error.connect = Sysio::CONNECT_ERR_IS_CONNECTED; break;
+					case ECONNRESET:   sysio->error.connect = Sysio::CONNECT_ERR_RESET;        break;
+					case ECONNABORTED: sysio->error.connect = Sysio::CONNECT_ERR_ABORTED;      break;
+					case EHOSTUNREACH: sysio->error.connect = Sysio::CONNECT_ERR_NO_ROUTE;     break;
+
 					default:
 						PDBG("unhandled errno: %d", errno);
 						break;
