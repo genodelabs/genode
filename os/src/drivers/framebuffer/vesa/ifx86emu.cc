@@ -321,22 +321,33 @@ static int map_code_area(void)
 template <typename T>
 static T X86API read(X86emu::u32 addr)
 {
-	T ret = *X86emu::virt_addr<T>(addr);
+    /*
+     * Access the last byte of the T value, before actually reading the value.
+     *
+     * If the value of the address is crossing the current region boundary,
+     * the region behind the boundary will be allocated. Both regions will be
+     * merged and can be attached to a different virtual address then when
+     * only accessing the first bytes of the value.
+     */
+	T * ret = X86emu::virt_addr<T>(addr + sizeof(T) - 1);
+	ret = X86emu::virt_addr<T>(addr);
 
 	if (verbose_mem) {
-		unsigned v = ret;
+		unsigned v = *ret;
 		PLOG(" io_mem: read  [%p,%p) val 0x%ux",
 		     reinterpret_cast<void*>(addr),
 		     reinterpret_cast<void*>(addr + sizeof(T)), v);
 	}
 
-	return ret;
+	return *ret;
 }
 
 
 template <typename T>
 static void X86API write(X86emu::u32 addr, T val)
 {
+	/* see description of 'read' function */
+	X86emu::virt_addr<T>(addr + sizeof(T) - 1);
 	*X86emu::virt_addr<T>(addr) = val;
 
 	if (verbose_mem) {
