@@ -211,7 +211,6 @@ Platform::Platform() :
 	__core_pd_sel = hip->sel_exc;
 
 	/* create lock used by capability allocator */
-	Nova::create_sm(Nova::PD_SEL_CAP_LOCK, __core_pd_sel, 1);
 	Nova::create_sm(Nova::SM_SEL_EC, __core_pd_sel, 0);
 
 	/* locally map the whole I/O port range */

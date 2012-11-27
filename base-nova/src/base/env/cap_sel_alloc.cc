@@ -24,48 +24,12 @@
 
 using namespace Genode;
 
-
-/**
- * Low-level lock to protect the allocator
- *
- * We cannot use a normal Genode lock because this lock is used by code
- * executed prior the initialization of Genode.
- */
-class Alloc_lock
-{
-	private:
-
-		addr_t _sm_cap;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param sm_cap  capability selector for the used semaphore
-		 */
-		Alloc_lock() : _sm_cap(Nova::PD_SEL_CAP_LOCK) { }
-
-		void lock()
-		{
-			if (Nova::sm_ctrl(_sm_cap, Nova::SEMAPHORE_DOWN))
-				nova_die();
-		}
-
-		void unlock()
-		{
-			if (Nova::sm_ctrl(_sm_cap, Nova::SEMAPHORE_UP))
-				nova_die();
-		}
-};
-
-
 /**
  * Return lock used to protect capability selector allocations
  */
-static Alloc_lock *alloc_lock()
+static Genode::Lock *alloc_lock()
 {
-	static Alloc_lock alloc_lock_inst;
+	static Genode::Lock alloc_lock_inst;
 	return &alloc_lock_inst;
 }
 
@@ -83,7 +47,6 @@ void Cap_selector_allocator::free(addr_t cap, size_t num_caps_log2)
 	alloc_lock()->lock();
 	Bit_allocator::free(cap, num_caps_log2);
 	alloc_lock()->unlock();
-
 }
 
 
