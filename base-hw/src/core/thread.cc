@@ -84,6 +84,12 @@ void Thread_base::start()
 }
 
 
+void Thread_base::join()
+{
+	_join_lock.lock();
+}
+
+
 void Thread_base::cancel_blocking()
 {
 	kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
