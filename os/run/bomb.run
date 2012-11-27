@@ -1,0 +1,12 @@
+build "core init test/bomb drivers/timer"
+
+create_boot_directory
+
+install_config [exec cat "[genode_dir]/os/config/bomb"]
+
+build_boot_image "core init bomb timer"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until forever
+
