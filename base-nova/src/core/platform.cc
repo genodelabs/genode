@@ -200,7 +200,7 @@ static void init_core_page_fault_handler()
 Platform::Platform() :
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
-	_vm_base(0x2000), _vm_size(0)
+	_vm_base(0x1000), _vm_size(0)
 {
 	Hip  *hip  = (Hip *)__initial_sp;
 
@@ -216,10 +216,11 @@ Platform::Platform() :
 	/* locally map the whole I/O port range */
 	enum { ORDER_64K = 16 };
 	map_local_one_to_one(__main_thread_utcb, Io_crd(0, ORDER_64K));
-	/* map BDA region, core_console reads out serial i/o ports at 0x400 */
+	/* map BDA region, console reads IO ports at BDA_VIRT_ADDR + 0x400 */
+	enum { BDA_PHY = 0x0U, BDA_VIRT = 0x1U, BDA_VIRT_ADDR = 0x1000U };
 	map_local_phys_to_virt(__main_thread_utcb,
-	                       Mem_crd(0x0, 0, Rights(true, false, false)),
-	                       Mem_crd(0x1, 0, Rights(true, false, false)));
+	                       Mem_crd(BDA_PHY,  0, Rights(true, false, false)),
+	                       Mem_crd(BDA_VIRT, 0, Rights(true, false, false)));
 	
 
 	/*
@@ -262,31 +263,34 @@ Platform::Platform() :
 	_core_mem_alloc.virt_alloc()->add_range(virt_beg, virt_end - virt_beg);
 
 	/* exclude core image from core's virtual address allocator */
-	addr_t core_virt_beg = trunc_page((addr_t)&_prog_img_beg),
-	                       core_virt_end = round_page((addr_t)&_prog_img_end);
+	addr_t core_virt_beg = trunc_page((addr_t)&_prog_img_beg);
+	addr_t core_virt_end = round_page((addr_t)&_prog_img_end);
 	size_t core_size     = core_virt_end - core_virt_beg;
-	_core_mem_alloc.virt_alloc()->remove_range(core_virt_beg, core_size);
+	region_alloc()->remove_range(core_virt_beg, core_size);
+
+	/* preserve Bios Data Area (BDA) in core's virtual address space */
+	region_alloc()->remove_range(BDA_VIRT_ADDR, 0x1000);
 
 	/* preserve context area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->remove_range(Native_config::context_area_virtual_base(),
-	                                           Native_config::context_area_virtual_size());
+	region_alloc()->remove_range(Native_config::context_area_virtual_base(),
+	                             Native_config::context_area_virtual_size());
 
 	/* exclude utcb of core pager thread + empty guard pages before and after */
-	_core_mem_alloc.virt_alloc()->remove_range(CORE_PAGER_UTCB_ADDR - get_page_size(),
-	                                           get_page_size() * 3);
+	region_alloc()->remove_range(CORE_PAGER_UTCB_ADDR - get_page_size(),
+	                             get_page_size() * 3);
 
 	/* exclude utcb of echo thread + empty guard pages before and after */
-	_core_mem_alloc.virt_alloc()->remove_range(Echo::ECHO_UTCB_ADDR - get_page_size(),
-	                                           get_page_size() * 3);
+	region_alloc()->remove_range(Echo::ECHO_UTCB_ADDR - get_page_size(),
+	                             get_page_size() * 3);
 
 	/* exclude utcb of main thread and hip + empty guard pages before and after */
-	_core_mem_alloc.virt_alloc()->remove_range((addr_t)__main_thread_utcb - get_page_size(),
-	                                           get_page_size() * 4);
+	region_alloc()->remove_range((addr_t)__main_thread_utcb - get_page_size(),
+	                             get_page_size() * 4);
 
 	/* sanity checks */
 	addr_t check [] = {
 		reinterpret_cast<addr_t>(__main_thread_utcb), CORE_PAGER_UTCB_ADDR,
-		Echo::ECHO_UTCB_ADDR,
+		Echo::ECHO_UTCB_ADDR, BDA_VIRT_ADDR
 	};
 
 	for (unsigned i = 0; i < sizeof(check) / sizeof(check[0]); i++) { 
