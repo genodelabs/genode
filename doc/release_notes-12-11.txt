@@ -1,0 +1,735 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 12.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+The central theme of version 12.11 of the Genode OS Framework is
+self-hosting Genode on Genode. With self-hosting, we understand the execution of the
+entire Genode build system within the Genode environment. There are two motivations
+for pursing this line of work. First, it is a fundamental prerequisite for the
+Genode developers to move towards using Genode as a day-to-day OS. Of course,
+this prerequisite could be realized using one of the available virtualization
+solutions. For example, we could run L4Linux on top of Genode on the Fiasco.OC
+kernel and use the Genode build system from within an L4Linux instance.
+However, this defeats the primary incentive behind Genode to reduce system
+complexity. By having both Genode and L4Linux in the picture, we would indeed
+increase the overall complexity in configuring, maintaining, and using the
+system. Therefore, we would largely prefer to remove the complex Linux user
+land from the picture. The second motivation is to prove that the framework and
+underlying base platforms are suited and stable enough for real-world use.
+If the system is not able to handle a workload like the build system,
+there is little point in arguing about the added value of having a
+microkernel-based system over current commodity OSes such as GNU/Linux.
+
+We are happy to have reached the state where we can execute the unmodified
+Genode build system directly on Genode running on a microkernel. As the
+build system is based on GNU utilities and the GNU compiler collection,
+significant effort went into the glue between those tools and the Genode API.
+Section [Building Genode on Genode] provides insights into the way we achieved
+the goal and the current state of affairs.
+
+Along with the work on bringing the build system to Genode came numerous
+stability improvements and optimizations all over the place, reaching from the
+respective kernels, over the C runtime, the file-system implementations, memory
+allocators, up to the actual programs the tool chain is composed of. Speaking
+of the tool chain, the official Genode tool chain has been updated from GCC
+version 4.6.1 to version 4.7.2. Thereby, all 3rd-party code packages were
+subjected to testing and fixing activities.
+
+For running the build system, the project currently focuses on NOVA and
+Fiasco.OC as base platforms. However, our custom kernel platform for the ARM
+architecture has also received significant improvements. With added support for
+Freescale i.MX and Texas Instruments OMAP4, this platform proved to be very
+well adaptable to new SoCs whereas new cache handling brings welcome
+performance improvements. Furthermore, we have added experimental support for
+ARM TrustZone technology, which principally enables the execution of Genode in
+the so-called secure world of TrustZone while executing Linux in the so-called
+normal world.
+
+As we discovered the increasing interest in using Genode as a middleware
+solution on Linux, we largely revisited the support for this kernel platform
+and discovered amazing new ways to align the concept of Genode with the
+mechanisms provided by the Linux kernel. Section [Linux] provides a summary
+of the new approaches taken for supporting this platform.
+
+Functionality-wise, the new version introduces support for audio drivers of
+the Open Sound System, a new OMAP4 GPIO driver, improvements of the graphical
+terminal, and the initial port of an SSH client.
+
+
+Building Genode on Genode
+#########################
+
+On the Genode developer's way towards using Genode as a day-to-day OS, the
+ability to execute the Genode build system within the Genode environment is a
+pivotal step - a step that is highly challenging because the build system is
+based on the tight interplay of many GNU programs. Among those
+programs are GNU make, coreutils, findutils, binutils, gcc, and bash. Even
+though there is a large track record of individual programs and libraries ported
+to the environment, those programs used to be self-sustaining applications that
+require only little interaction with other programs. In contrast, the build
+system relies on many utilities working together using mechanisms such as
+files, pipes, output redirection, and execve. The Genode base system does not
+come with any of those mechanisms let alone the subtle semantics of the POSIX
+interface as expected by those utilities. Being true to microkernel principles,
+Genode's API has a far lower abstraction level and is much more rigid in scope.
+
+To fill the gap between the requirements of the build system and the bare
+Genode mechanisms, the Noux runtime environment was created. Noux is a Genode
+process that acts like a Unix kernel. When started, it creates a child process,
+which plays a similar role as the init process of Unix. This process communicates
+via RPC messages to Noux. Using those messages, the process can perform all the
+operations normally provided by a classical Unix kernel. When executed under
+Noux, a process can even invoke functionalities such as fork and execve, which
+would normally contradict with Genode's principles of resource management.
+
+Over the course of the past year, more and more programs have been ported to
+the Noux environment. Thereby, the semantics provided by Noux have been
+successively refined so that those program behave as expected. This was an
+iterative process. For example, at the beginning, Noux did not consider the
+differences between 'lstat' and 'stat' as they did not matter for the first
+batch of GNU programs ported to Noux. As soon as the programs got more
+sophisticated, such shortcuts had to be replaced by the correct semantics. The
+Genode build system is by far the most complex scenario exposed to Noux so far.
+It revealed many shortcomings by both functionality implemented in Noux or the
+C runtime as well as the underlying base platforms. So it proved to be a great
+testing ground for analysing and improving those platform details. Therefore,
+the secondary effects of self-hosting Genode on Genode in terms of stability
+turned out to be extremely valuable.
+
+The release comes with two ready-to-use run scripts for building bootable
+system images that are able to execute the Genode tool chain, one for targeting
+NOVA and one for targeting Fiasco.OC. Those run scripts are located at
+'ports/run/' and called 'noux_tool_chain_nova.run' and 'noux_tool_chain_foc.run'
+respectively. Each of those run scripts can be executed on either of those base
+platforms. For example, by executing 'noux_tool_chain_nova' on Fiasco.OC, the
+image will run Genode on Fiasco.OC and the tool chain will build binaries for
+NOVA. When started, a build directory will be created at '/home/build'.
+The Genode source code is located at '/genode'. In the '/bin' directory,
+there are all the GNU programs needed to execute the tool chain. For
+taking a look into the source code, 'vim' is available. To build core,
+change to the build directory '/home/build' and issue 'make core'.
+
+On Fiasco.OC, the complete Genode demo scenario can be compiled. On NOVA, the
+incomplete life-time management of kernel objects will still result in an
+out-of-memory error of the kernel. This kernel issue is currently being worked
+on. Executing the tool chain on either of those platforms is still relatively
+slow as extensive trace output is being generated and no actions have been taken to
+optimize the performance so far. There are many opportunities for such
+optimizations, which will be taken on as the next step.
+
+
+Base framework
+##############
+
+Genode's base framework has received new support for extending session
+interfaces and gained improvements with regard to interrupt handling on the x86
+platform. At the API level, there are minor changes related to the CPU session
+and 'Range_allocator' interfaces.
+
+
+Support for specializing session interfaces
+===========================================
+
+With increasingly sophisticated application scenarios comes the desire to
+extend Genode's existing session interface with new functionality. For example,
+the 'Terminal::Session' interface covers plain read and write operations. It is
+implemented by services such as a graphical terminal, the telnet-like TCP
+terminal, or UART drivers. However, for the latter category, the breadth of the
+interface is severely limited as UART drivers tend to supplement the read / write
+interface with additional control functions, e.g., for setting the baud rate.
+
+One way to go would be to extend the existing 'Terminal::Session' interface
+with those control functions. However, these functions would be meaningless for
+most implementations. Some of those other implementations may even desire their
+own share of additions. In the longer term, this approach might successively
+broaden the interface and each implementation will cover a subset only.
+
+Because Genode aspires to keep interfaces as low-complex as possible while, at
+the same time, it wants to accommodate the growing sophistication of usage
+scenarios, we need a solution that scales. The solution turns out to be
+strikingly simple. The RPC framework already supports the inheritance of RPC
+interfaces. So it is possible to model the problem such that a new
+'Uart::Session' interface derived from the existing 'Terminal::Session' will
+be the host of UART-specific functionality. The only piece missing is the
+propagation of both 'Uart' and 'Terminal' through the parent interface while
+announcing the service. To spare the work of manually announcing the chain of
+inherited interfaces from the implementor, the 'Parent::announce()' function has
+been enhanced to automatically announce all service types implemented by the
+announced interface. This way, a UART driver will always announce a "Uart"
+and a "Terminal" service.
+
+
+Improved interrupt handling
+===========================
+
+To accommodate modern x86 platforms, the session arguments of core's IRQ
+service have been supplemented with the IRQ mode. There are two degrees of
+freedom, namely the trigger (level / edge) and polarity (high / low). Thanks to
+this addition, device drivers have become able to supply their knowledge of
+devices to core.
+
+In system scenarios with many peripherals, in particular when using the USB
+driver, IRQ lines are shared between devices. Until now, Genode supported
+shared interrupts for the OKL4 base platform only. To also cover the other
+x86 kernels, we have generalized the interrupt sharing code and enabled this
+feature on Fiasco.OC and NOVA.
+
+
+Revised CPU session interface
+=============================
+
+We revisited the CPU session interface, removed no-longer used functions and
+added support for assigning threads to CPUs.
+
+The original CPU session interface contained functions for iterating through
+the threads of a session. This interface was originally motivated by an
+experimental statistical profiling tool that was developed at an early stage of
+Genode. In the meanwhile, we discovered that the virtualization of the CPU
+session interface is much more elegant to cover this use case than the
+thread-iterator interface. Because the iteration has no transactional
+semantics, it was unsafe to use it anyway.
+
+To enable the use of multiple CPUs on multi-processor systems, the CPU
+session interface has been enhanced with two functions, namely 'affinity'
+and 'num_cpus'. The interface extension principally allows the assignment of
+individual threads to CPUs. It is currently implemented on Fiasco.OC only.
+On all other base platforms, 'num_cpus' returns one CPU. Note that on
+the Linux platform, multiple CPUs will be used transparently.
+
+The 'Cpu_session::state' function has been split into two functions, one
+for retrieving information and one for propagating state information. The
+prior interface was less explicit about the semantics of the 'state' function
+as it took a non-const pointer to a 'Thread_state' object as argument.
+
+
+Platform-tailored protection domains
+====================================
+
+Genode tries to provide a uniform API across all the different base platforms.
+Yet, it also strives to make genuine platform features available to the
+users of the framework. Examples for such features are the virtualization
+support of the NOVA hypervisor or the special support for paravirtualizing
+Linux on Fiasco.OC. Another example is the security model as found on the Linux
+platform. Even though the security mechanisms of plain Linux are not as strong
+as Genode's capability concept on a conceptual level, we still want to leverage
+the available facilities such as user IDs and chroot as far as possible.
+Consequently, we need a way to assign platform-specific properties to PD
+sessions. With the new 'Native_pd_args' type introduced into
+'base/native_types.h', there is now a way to express those platform-specific
+concerns. This type is now used at all the places that deal with the creation
+of protection domains such as 'Process', 'Child', and the loader.
+
+
+Revised 'Range_allocator' interface
+===================================
+
+The handling of allocation errors has been refined in order to distinguish
+different error conditions, in particular out-of-metadata and out-of-memory
+conditions. The user of the allocator might want to handle both cases
+differently. Hence we return an 'Alloc_return' value as result. In prior
+versions, this type was just an enum value. With the new version, the type has
+been changed to a class. This makes the differentiation of error conditions at
+the caller side more robust because, in contrast to enum values, typed objects
+don't get implicitly converted to bool values.
+
+
+Low-level OS infrastructure
+###########################
+
+New UART session interface
+==========================
+
+To accommodate UART specific extensions of the 'Terminal::Session' interface,
+in particular setting the baud rate, we introduced the new 'Uart::Session'
+interface and changed the existing UART drivers to implement this
+interface instead of the 'Terminal::Session' interface. Because 'Uart::Session'
+inherits the 'Terminal::Session' interface, 'Uart' services announce both
+"Uart" and "Terminal" at their parent.
+
+
+New GPIO session interface
+==========================
+
+Embedded SoCs such as OMAP4 provide many general-purpose I/O pins, which can be
+used for different purposes depending on the board where they are soldered on.
+For example, the Pandaboard uses such GPIO pins to detect the presence of a
+HDMI plug or control the power supply for the USB. If only one driver deals
+with GPIO pins, the GPIO programming can reside in the driver. However, if
+multiple drivers are used, the GPIO device resources cannot be handed out to
+more than one driver. This scenario calls for the creation of a GPIO driver as
+a separate component, which intermediates (and potentially multiplexes) the
+access to the physical GPIO pins. The new 'Gpio::Session' interface allows one
+or multiple clients to configure I/O pins, request states, as well as to
+register for events happening on the pins.
+
+
+Terminal
+========
+
+The graphical terminal has been enhanced with support for different built-in
+font sizes and background-color handling.
+
+In addition to those functional changes, the implementation has been decomposed
+into several parts that thereby became reusable. Those parts comprise the
+handling of key mappings, decoding the VT character stream, and the handling of
+the character array. These functionalities are now available at
+'gems/include/terminal'.
+
+
+Libraries and applications
+##########################
+
+C runtime
+=========
+
+:Allocator optimized for small-object allocations:
+
+To optimize the performance of workloads that depend on a large number of small
+dynamic memory allocations, in particular the lwIP TCP/IP stack, we replaced
+the memory allocator of the libc with a more sophisticated strategy. Until now,
+the libc used 'Genode::Heap' as allocator. This implementation is an
+AVL-tree-based best-fit allocator that is optimized for low code complexity
+rather than performance for small allocations. The observation of the allocator
+usage pattern of lwIP prompted us to replace the original libc malloc/free with
+a version that uses slab allocators for small objects and relies on the
+'Genode::Heap' for large objects only.
+
+:Symbolic links:
+
+Because part of our ongoing refinements of the Noux runtime is the provision of
+symbolic links, support for symbolic links was added in the libc, libc plugins,
+and file system servers.
+
+
+lwIP
+====
+
+We updated the light-weight IP stack to version STABLE-1.4.1. Additionally,
+the following optimizations were conducted to improve its performance and
+robustness.
+
+We reduced the maximum segment lifetime from one minute to one second to avoid
+queuing up PCBs in TIME-WAIT state. This is the state, PCBs end up after
+closing a TCP connection socket at the server side. The number of PCBs in this
+state is apparently not limited by the value of 'MEMP_NUM_TCP_PCB'. One
+allocation costs around 160 bytes. If clients connect to the server at a high
+rate, those allocations accumulate quickly and thereby may exhaust the memory
+of the server. By reducing the segment lifetime, PCBs in TIME-WAIT state are
+cleaned up from the 'tcp_tw_pcbs' queue in a more timely fashion (by
+'tcp_slowtmr()').
+
+To prevent the TCP/IP stack from artificially throttling TCP throughput,
+we adjusted lwIP's TCP_SND_BUF size.
+
+From our work on optimizing the NIC stub-code performance of L4Linux as
+described [http://genode.org/documentation/articles/pandaboard - here],
+we learned that the use of a NIC-specific packet allocator for the
+packet-stream interface is beneficial. At the lwIP back end, we still relied on
+the original general-purpose allocator. Hence, we improved the lwIP back-end
+code by using the bitmap-based 'Nic::Packet_allocator' allocator instead.
+
+
+Standard C++ library
+====================
+
+Genode used to rely on the standard C++ library that comes with the tool chain.
+However, this mechanism was prone to inconsistencies of the types defined in
+the header files used at compile time of the tool chain and the types provided
+by our libc. By building the C++ standard library as part of the Genode build
+process, such inconsistencies cannot happen anymore. The current version of the
+C++ standard library corresponds to GCC 4.7.2.
+
+Note that the patch changes the meaning of the 'stdcxx' library for users that
+happened to rely on 'stdcxx' for hybrid Linux/Genode applications. For such
+uses, the original mechanism is still available, in the renamed form of
+'toolchain_stdcxx'.
+
+
+Device drivers
+##############
+
+Open Sound System
+=================
+
+Genode tries to re-use existing device drivers as much as possible using an
+approach called device-driver environment (DDE). A DDE is a library that
+emulates the environment of the original driver by translating device accesses
+to the Genode API. There are many success stories of drivers successfully ported
+to the framework this way. For example, using DDE-Linux, we are able to use the
+Linux USB stack. Using DDE-ipxe, we are able to use iPXE networking drivers.
+With Genode 12.11 we extend our arsenal of DDEs with DDE-OSS, which is a
+device-driver environment for the audio drivers of the Open Sound System (OSS).
+
+:Website of the Open Sound System:
+
+  [http://http://www.4front-tech.com]
+
+The new 'dde_oss' contains all the pieces needed to use Intel HDA, AC97, and
+ES1370 audio cards on Genode. On first use, the 3rd-party code can be
+downloaded by issuing 'make prepare' from within the 'dde_oss' source-code
+repository. Also, you need to make sure to add the 'dde_oss' repository to your
+'REPOSITORIES' variable in 'etc/build.conf'.
+
+An OSS demo configuration can be found under 'run/oss.run' and can be started
+via 'make run/oss' from a Genode build directory. Be sure to adjust the
+'filename' tag of the 'audio0' program. The file has to reside under
+'<build-dir>/bin/'. The file format is header-less two-channel float-32 at
+44100 Hz. You may use the 'sox' utility to create these audio files:
+
+! sox -c 2 -r 44100 foo.mp3 foo.f32
+
+
+OMAP4 GPIO driver
+=================
+
+The new OMAP4 GPIO driver is the first implementation of the just introduced
+'Gpio::Session' interface. The driver supports two ways of interacting
+with GPIO pins, by providing a static configuration, or by interacting with a
+session interface at runtime. An example for a static configuration looks as
+follows:
+
+! <config>
+!   <gpio num="121" mode="I"/>
+!   <gpio num="7" mode="O" value="0"/>
+!   <gpio num="8" mode="O" value="0"/>
+! </config>
+
+The driver is located at 'os/src/drivers/gpio/omap4'. As reference for using
+the driver, please refer to the 'os/run/gpio_drv.run' script.
+
+Thanks to Ivan Loskutov of Ksys-Labs for contributing the session interface
+and the driver!
+
+
+iPXE networking drivers
+=======================
+
+We updated our device-driver environment for iPXE networking drivers to a
+recent git revision and enabled support for the x86_64 architecture.
+Currently, the driver covers Intel gigabit ethernet (e1000, e1000e, igb),
+Intel eepro100, and Realtek 8139/8169.
+
+
+Runtime environments
+####################
+
+Noux
+====
+
+The Noux runtime environment has received plenty of love thanks to the
+aspiration to execute the Genode build system.
+
+:Time:
+
+The build system uses GNU make, which depends on time stamps of files. We do
+not necessarily need a real clock. A monotonic increasing virtual time is
+enough. To provide such a virtual time, the libc was enhanced with basic
+support for functions like 'gettimeofday', 'clock_gettime', and 'utimes'. As
+there is currently no interface to obtain the real-world time in Genode, Noux
+simulates a pseudo real-time clock using a jiffies-counting thread. This
+limited degree of support for time is apparently sufficient to trick tools like
+ping, find, and make into working as desired.
+
+:Improved networking support:
+
+The Noux/net version of Noux extends the Noux runtime with the BSD-socket
+interface by using the lwIP stack. This version of Noux multiplexes the
+BSD-socket interface of lwIP to multiple Noux programs, each having a different
+socket-descriptor name space and the principal ability to use blocking calls
+such as 'select'. The code for multiplexing the lwIP stack among multiple Noux
+processes has been improved to cover corner cases exposed by sophisticated
+network clients, i.e., openssh.
+
+:Directory cache for the TAR file system:
+
+The original version of the TAR file system required a search in all TAR
+records for each file lookup. This takes a long time when composing a large
+directory tree out of multiple TAR archives stacked together. This is the case
+for the Genode build-system scenario where we have all the files of the GNU
+tools as well as the Genode source tree. Searching through thousands of records
+for each call of 'stat' quickly becomes a scalability issue. Therefore, we
+introduced a TAR indexing mechanism that scans each TAR file only once at the
+startup of Noux and generates a tree structure representing the directory
+layout. Looking up files using this index is quick.
+
+:New packages:
+
+With Genode-12.11, new 3rd-party packages have become available, namely
+OpenSSH, the 'which' command, and all tool-chain components in their current
+version. OpenSSH is still at an experimental stage. The run script at
+'ports/run/noux_net_openssh_interactive.run' demonstrates how SSH can be used
+to login into a remote machine.
+
+:New pseudo file systems:
+
+The new 'stdio' and 'random' file systems are intended to represent the pseudo
+devices '/dev/random' and '/dev/tty' on Noux. Both are needed to run OpenSSH.
+Note that the 'Arc4random' class, on which the random file system is based on,
+currently _does not collect enough_ random bytes! It should not be used for
+security-critical applications.
+
+
+L4Linux
+=======
+
+The paravirtualized L4Linux kernel for the Fiasco.OC platform was updated to
+SVN revision 25, which matches the Fiasco.OC SVN revision 40. We further
+improved the integration of L4Linux with Genode by optimizing the stub drivers
+for block devices and networking, and added principal support for running
+L4Linux on SMP platforms.
+
+
+Platforms
+#########
+
+NOVA
+====
+
+Genode follows the steady development of the NOVA microhypervisor very closely.
+The kernel used by the framework corresponds to the current state of the master
+branch of IntelLabs/NOVA.
+
+
+:Improvements towards GDB support:
+
+The NOVA-specific implementation of the CPU session interface has been improved
+to accommodate the requirements posed by GDB. In particular, the 'pause',
+'resume', 'state', and 'single_step' functions have been implemented. Those
+functions can be used to manipulate the execution and register state of
+threads. Under the hood, NOVA's 'recall' feature is used to implement these
+mechanisms. By issuing a 'recall' for a given thread, the targeted thread is
+forced into an exception. In the exception, the current state of the thread can
+be obtained and its execution can be halted/paused.
+
+
+:Maximizing contiguous virtual space:
+
+To enable the Vancouver virtual machine monitor to hand out large amounts of
+guest memory, we optimized core's virtual address space to retain large and
+naturally aligned contiguous memory regions. For non-core processes, the
+thread-context area that contains the stacks of Genode threads has been moved
+to the end of the available virtual address space.
+
+
+:Life-time management of kernel resources:
+
+We improved the life-time management of kernel resources, in particular
+capabilities, within Genode. Still the management of such kernel resources
+is not on par with the Fiasco.OC version, partially because of missing
+kernel functionality. This is an ongoing topic that is being worked on.
+
+
+:Using the BIOS data area (BDA) to get serial I/O ports on x86:
+
+If the I/O ports for the comport are non default (default is 0x3f8), we had to
+specify manually the correct I/O ports in the source code. To avoid the need
+for source-code modifications when changing test machines, we changed the core
+console to read the BDA and use the first serial interface that is available.
+If no serial interface is available, no device configuration will be
+undertaken. The BDA can be populated via a multi-boot chain loader. Bender is
+such a chain loader that can detect serial ports accessible via PCI and writes
+the I/O ports to the Bios Data area (BDA). These values get then picked up by
+core.
+
+
+Fiasco.OC
+=========
+
+The Fiasco.OC kernel has been updated to the SVN revision 40. The update improves
+SMP support and comes with various bug fixes. There is no noteworthy change
+with regard to the kernel interface. We extended the number of supported
+Fiasco.OC-based platforms for Genode by including the Freescale i.MX53.
+
+To enable the use of multiple CPUs by Genode processes, the CPU session
+interface has been enhanced to support configuring the affinity of threads with
+CPUs. We changed the default kernel configuration for x86 and ARM to
+enable SMP support and adapted L4Linux to use the new interface.
+
+
+Execution on bare hardware (base-hw)
+====================================
+
+The development of our custom platform for executing Genode directly on bare
+hardware with no kernel underneath went full steam ahead during the release
+cycle.
+
+:Pandaboard:
+
+The in-kernel drivers needed to accommodate the Pandaboard, more specifically
+the timer and interrupt controller, are now supported. So the Pandaboard can be
+used with both 'base-hw' and 'base-foc'. Also, the higher-level platform
+drivers for USB, HDMI, and SD-card that were introduced with the previous
+release, are equally functional on both platforms.
+
+:Freescale i.MX31:
+
+We added principal support for the Freescale i.MX line of SoCs taking the
+ARMv6-based i.MX31 as starting point. As of now, the degree of support is
+limited to the devices needed by the kernel to operate. Pure software-based
+scenarios are able to work, i.e., the nested init run script executes
+successfully.
+
+:TrustZone support:
+
+The new VM session interface of core provides a way to execute software
+in the normal world of a TrustZone system whereas Genode runs in the secure
+world. From Genode's point of view, the normal world looks like a virtual
+machine. Each time, the normal world produces a fault or issues a secure
+monitor call, control gets transferred to the virtual machine monitor, which is
+a normal user-level Genode process. The base-hw kernel has been enhanced to
+perform world switches between the secure and normal world and with the ability
+to handle fast interrupts (FIQs) in addition to normal interrupts. The latter
+extension is needed to assign a subset of devices to either of both worlds.
+
+Currently, the only TrustZone capable platform is the ARM CoreTile Express
+CA9x4 for the Versatile Express board. For a virtual machine working properly
+on top, some platform resources must be reserved. Therefore, there exist two
+flavours of this platform now, one with the 'trustzone' spec-variable enabled
+and one without. If 'trustzone' is specified, most platform resources (DDR-RAM,
+and most IRQs) are reserved for the normal world and not available to the
+secure Genode world.
+
+:Memory attributes and caching:
+
+We successively activated various levels of caching and improved the handling
+of caching attributes propagated into the page tables. These changes resulted
+in a significant boost in performance on non-emulated platforms.
+
+
+Linux
+=====
+
+The Linux version of Genode was originally meant as a vehicle for rapid
+development. It allows the framework components including core to be executed
+as plain Linux processes. But in contrast to normal Linux programs, which
+use the glibc, Genode's components interact with the kernel directly without
+any C runtime other than what comes with Genode. We use the Linux version on a
+regular basis to implement platform-agnostic functionality and protocols. Most
+of Genode's code (except for device drivers) falls in this category. Because
+the Linux version was meant as a mere tool, however, we haven't put much
+thought into the principle way to implementing Genode's security concept on
+this platform. Threads used to communicate over globally accessible Unix-domain
+sockets and memory objects were represented as globally accessible files within
+'/tmp'.
+
+That said, even though Linux was not meant as a primary platform for Genode in
+the first place, Genode can bring additional value to Linux. When considering
+the implementation of a component-based system on Linux, there are several
+possible approaches to take. For example, components may use DBus to
+communicate, or components could pick from the manifold Unix mechanisms such as
+named pipes, files, sysv-shared memory, signals, and others. Unfortunately
+those mechanisms are not orthogonal and most of them live in the global name
+space of the virtual file system. Whereas those mechanisms are principally able
+to let processes communicate, questions about how processes get to know each
+other, access-control policy, synchronization of the startup of processes are
+left to the developer.
+
+Genode, on the other hand, does provide an API for letting components
+communicate but also answers those tricky questions concerning the composition
+of components. This makes Genode an interesting option to build component based
+applications, even on Linux. However, when used in such a context, the
+limitations of the original Linux support need resolutions. Therefore, the
+current release comes with a largely revised platform support for the Linux
+base platform.
+
+The changes can be summarized as follows:
+
+:Using file descriptors as communication addresses:
+
+Genode's synchronous RPC framework was using Unix domain sockets. Each RPC
+entrypoint was represented by a pair of named files, one for sending and one
+for receiving messages. In the new version, inter-process communication is
+performed via file descriptors only.
+
+:Transfer of communication rights via RPC only:
+
+Capabilities used to be represented as a pair of the destination thread ID and
+a global object ID. The thread ID has been replaced by a file descriptor that
+points to the corresponding RPC entrypoint. When capabilities are transferred
+as RPC arguments, those file descriptors are transferred via SCM rights
+messages. This is in line with Genode's way of capability-based delegation of
+access rights.
+
+:Core-only creation of communication channels:
+
+Communication channels used to be created locally by each process. The naming
+of those channels was a mere convention. In contrast, now, communication
+channels are created by core only and do not reside on the Linux virtual file
+system. When creating an RPC entrypoint, core creates a socket pair and hands
+out both ends to the creator of the entrypoint.
+
+:Restricted access to memory objects:
+
+Access to dataspace content was performed by mmap'ing a file. For a given
+dataspace, the file name could be requested at core via a Linux-specific RPC
+call. Now, core holds the file descriptors of all dataspaces, which are
+actually unlinked files. A process that is in possession of a dataspace
+capability can request the file descriptor for the content from core and mmap
+the file locally. This way, access to memory objects is subjected to the
+delegation of dataspace capabilities.
+
+:Core-local process creation:
+
+Genode used to create new processes by directly forking from the respective
+Genode parent using the process library. The forking process created a PD
+session at core merely for propagating the PID of the new process into core
+(for later destruction). This traditional mechanism has the following
+disadvantages:
+
+First, the PID reported by the creating process to core cannot easily be
+validated by core. Therefore core has to trust the PD client to not specify a
+PID of an existing process, which would happen to be killed once the PD session
+gets destructed. Second, there is no way for a Genode process to detect the
+failure of any of its grandchildren. The immediate parent of a faulting process
+could use the SIGCHLD-and-waitpid mechanism to observe its children but this
+mechanism does not work transitively.
+
+By performing the process creation exclusively within core, all Genode
+processes become immediate child processes of core. Hence, core can respond to
+failures of any of those processes and reflect such conditions via core's
+session interfaces. Furthermore, the PID associated to a PD session is locally
+known within core and cannot be forged anymore. In fact, there is actually no
+need at all to make processes aware of any PIDs of other processes.
+
+:Handling of chroot, user IDs, and group IDs:
+
+With the move of the process creation into core, the original chroot trampoline
+mechanism implemented in 'os/src/app/chroot' does not work anymore. A process
+could simply escape the chroot environment by spawning a new process via core's
+PD service. Therefore, chroot support has been integrated into core and the
+chroot policy becomes a mandatory part of the process creation. For each process
+created by core, core checks for a 'root' argument of the PD session. If a path
+is present, core takes the precautions needed to execute the new process in the
+specified chroot environment.
+
+This conceptual change implies minor changes with respect to the Genode API and
+the configuration of the init process. The API changes are the enhancement of
+the 'Genode::Child' and 'Genode::Process' constructors to take the root path as
+argument. Init supports the specification of a chroot per process by specifying
+the new 'root' attribute to the '<start>' node of the process. In line with
+these changes, the 'Loader::Session::start' function has been enhanced with the
+additional (optional) PD argument.
+
+In line with how the chroot path can be propagated into core, core has become
+able to assign customized UIDs and GIDs to individual Genode processes or whole
+Genode subsystems. The new 'base-linux/run/lx_uid.run' script contains an
+example of how to use the feature.
+
+
+Build system and tools
+######################
+
+The current release comes with a new tool chain based on GCC 4.7.2 and binutils
+2.22. The tool-chain upgrade involved adapting the Genode code base and fixing
+various issues in 3rd-party software. To obtain the new tool chain, please
+refer to the tool-chain website:
+
+:Genode tool chain:
+
+  [http://genode.org/download/tool-chain]
