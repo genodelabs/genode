@@ -51,7 +51,7 @@ append config {
 			<gpio num="8" mode="O" value="0"/>
 		</config>
 	</start>
-	<start name="omap4_gpio_drv">
+	<start name="test-omap4_gpio_drv">
 		<resource name="RAM" quantum="1M"/>
 	</start>
 </config>}
