@@ -14,6 +14,7 @@ install_config {
 		<service name="CAP"/>
 		<service name="LOG"/>
 		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
 		<service name="IRQ"/>
 		<service name="CPU"/>
 	</parent-provides>
