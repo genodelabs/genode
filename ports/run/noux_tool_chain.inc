@@ -146,13 +146,17 @@ append config {
 							cp /bin/make /usr/bin/
 							cp /bin/echo /usr/bin/
 							cp /bin/mkdir /usr/bin/
+							echo "creating build directory..."
 }
 append config "						/genode/tool/create_builddir $platform BUILD_DIR=/home/build"
 append config {
 							cd /home/build
-							echo "CROSS_DEV_PREFIX=genode-x86-" > etc/tools.conf }
+}
+append config "						echo \"CROSS_DEV_PREFIX=$tool_prefix\" > etc/tools.conf"
 append config "                                         $platform_cmds"
-append config {					</inline>
+append config {
+							echo "now you can type, for example, \"make core\""
+						</inline>
 					</dir>
 				</dir>
 				<dir name="tmp" />
