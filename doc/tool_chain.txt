@@ -14,9 +14,9 @@ Genode.
 Recommended development platform
 ################################
 
-We currently use [http://www.ubuntu.com/ - Ubuntu] 10.04 LTS and 11.04 on
-servers and client machines. Hence, Genode should always build without trouble
-on these platforms.
+We currently use [http://www.ubuntu.com/ - Ubuntu] 12.04 LTS on servers and
+client machines. Hence, Genode should always build without trouble on these
+platforms.
 
 
 Unified tool chain
@@ -25,24 +25,22 @@ Unified tool chain
 Starting with Genode version 11.11, there is a unified tool chain for all base
 platforms and supported CPU architectures (x86_32, x86_64, and ARM). For Genode
 development, we highly recommend the use of the official Genode tool chain. It
-can be obtained in two ways: as pre-compiled binaries (for Linux-based x86_32
-host systems), or manually compiled:
+can be obtained in two ways: as pre-compiled binaries or manually compiled:
 
 :Pre-compiled:
-  Our pre-compiled tool chain is runnable on Linux/x86_32. The archive will be
-  extracted to '/usr/local/genode-gcc'. To extract the archive, use the
-  following command:
-  ! sudo tar xPfj genode-toolchain-<version>.tar.bz2
+  Our pre-compiled tool chain is runnable on Linux x86_32 and x86_64. The
+  archives for both versions will be extracted to '/usr/local/genode-gcc'. To
+  extract the archive, use the following command:
+  ! sudo tar xPfj genode-toolchain-<version>-<arch>.tar.bz2
   The use of the 'P' option ensures that the tool chain will be installed at
   the correct absolute path.
   [http://sourceforge.net/projects/genode/files/genode-toolchain/ - Download the pre-compiled tool chain...]
 
 :Compile from source:
-  For those of you who prefer compiling the tool chain from source or for
-  obtaining a tool chain for x86_64, we provide a tool for downloading,
-  building, and installing the Genode tool chain. You find the tool in Genode's
-  source tree at 'tool/tool_chain'. For usage instructions, just start the tool
-  without arguments.
+  For those of you who prefer compiling the tool chain from source, we provide
+  a tool for downloading, building, and installing the Genode tool chain. You
+  find the tool in Genode's source tree at 'tool/tool_chain'. For usage
+  instructions, just start the tool without arguments.
 
 In both cases, the tool chain will be installed to '/usr/local/genode-gcc'. All
 tools are prefixed with 'genode-x86-' or 'genode-arm-' respectively such that
@@ -59,16 +57,18 @@ see a valid reason not to use it, please contact us (e.g., via the mailing
 list).
 
 
-Gentoo Portage overlay
-######################
-
-For Gentoo users, there exist a Portage overlay, which includes the Genode
-toolchain.
-
-:[https://github.com/blitz/blitz-overlay]:
-  Portage overlay for using the Genode tool chain on Gentoo
-
-You'll find the toolchain under sys-devel/genode-toolchain.
+; XXX The Gentoo Portage overlay must be update to the new tool chain
+;
+;Gentoo Portage overlay
+;######################
+;
+;For Gentoo users, there exist a Portage overlay, which includes the Genode
+;toolchain.
+;
+;:[https://github.com/blitz/blitz-overlay]:
+;  Portage overlay for using the Genode tool chain on Gentoo
+;
+;You'll find the toolchain under sys-devel/genode-toolchain.
 
 
 Background information - Why do we need a special tool chain?
@@ -128,8 +128,8 @@ chain for arbitrary architectures, which brings us two immediate benefits. We
 do no longer have to rely on the CodeSourcery tool chain for ARM. There is now
 a 'genode-arm' tool chain using the same compiler configuration as used on x86.
 The second benefit is the use of multiarch libs on the x86 platform. The
-genode-x86 tool chain can be used for both x86_32 and x86_64, the latter being
-the default.
+genode-x86 tool chain can be used for both x86_32 and x86_64 as build target,
+the latter being the default.
 
 Since we introduced GDB support into Genode, we added GDB in addition to GCC
 and binutils to the Genode tool chain. The version is supposed to match the one
