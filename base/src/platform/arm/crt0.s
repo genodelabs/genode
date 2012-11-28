@@ -36,3 +36,10 @@ _stack_low:
 	.globl	_stack_high
 _stack_high:
 
+	/*
+	 * Symbol referenced by ldso's crt0.s, which is needed by base-hw only.
+	 * It is defined here merely to resolve the symbol for non-base-hw
+	 * platforms.
+	 */
+	 .globl _main_utcb
+	_main_utcb: .long 0

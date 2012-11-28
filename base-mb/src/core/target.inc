@@ -17,6 +17,7 @@ SRC_CC       = \
                platform.cc \
                platform_services.cc \
                platform_thread.cc \
+               cpu_session_support.cc \
                ram_session_component.cc \
                ram_session_support.cc \
                rm_session_component.cc \

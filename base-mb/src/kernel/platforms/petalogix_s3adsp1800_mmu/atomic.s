@@ -11,8 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-.include "linker_commands.s"
-
 .global _atomic_cmpxchg
 
 
@@ -24,7 +22,10 @@
  * it is bothsides aligned - so that no common functions could gain
  * interruptsave status because it were linked inside this page too
  */
-_BEGIN_ATOMIC_OPS
+.section ".Atomic_ops"
+.global _atomic_ops_begin
+.align 12
+_atomic_ops_begin:
 
 /**
  * Atomic compare and exchange, see cmpxchg
@@ -86,7 +87,7 @@ _atomic_syscall_yield:
 	addik  r1, r1, +2*4
 	bri _atomic_cmpxchg_yield_return
 
-_END_ATOMIC_OPS
-
-
+.global _atomic_ops_end
+.align 12
+_atomic_ops_end:
 

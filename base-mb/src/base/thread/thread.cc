@@ -31,6 +31,8 @@ namespace Genode {
 	Ram_session *env_context_area_ram_session();
 }
 
+static addr_t context_virtual_base_mask() {
+	return ~(Native_config::context_virtual_size() - 1); }
 
 /******************************
  ** Thread-context allocator **
@@ -45,7 +47,7 @@ Thread_base::Context *Thread_base::Context_allocator::base_to_context(addr_t bas
 
 addr_t Thread_base::Context_allocator::addr_to_base(void *addr)
 {
-	return ((addr_t)addr) & CONTEXT_VIRTUAL_BASE_MASK;
+	return ((addr_t)addr) & context_virtual_base_mask();
 }
 
 
@@ -205,3 +207,9 @@ Thread_base::~Thread_base()
 	_deinit_platform_thread();
 	_free_context();
 }
+
+void Thread_base::join()
+{
+	_join_lock.lock();
+}
+

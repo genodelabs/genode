@@ -14,12 +14,6 @@
  */
 
 
-.include "special_registers.s"
-.include "errors.s"
-.include "exec_context.s"
-.include "linker_commands.s"
-
-
 /* We have to know wich userland context was the last that was executed */
 .extern _userland_context
 
@@ -83,7 +77,9 @@
 .macro _BLOCKING_TYPE_IS_INTERRUPT__USES_R3_R15
 	addi r3, r0, 1
 	lwi r15, r0, _userland_context
-	_SAVE_BLOCKING_TYPE_TO_CONTEXT__USES_R3_R15
+
+	/* _SAVE_BLOCKING_TYPE_TO_CONTEXT__USES_R3_R15 */
+	swi r3, r15, 37*4
 .endm
 
 
@@ -103,7 +99,9 @@
 .macro _BLOCKING_TYPE_IS_EXCEPTION__USES_R3_R15
 	addi r3, r0, 2
 	lwi r15, r0, _userland_context
-	_SAVE_BLOCKING_TYPE_TO_CONTEXT__USES_R3_R15
+
+	/* _SAVE_BLOCKING_TYPE_TO_CONTEXT__USES_R3_R15 */
+	swi r3, r15, 37*4
 .endm
 
 
@@ -117,22 +115,68 @@
 .macro _BLOCKING_TYPE_IS_SYSCALL__USES_R3_R15
 	addi r3, r0, 3
 	lwi r15, r0, _userland_context
-	_SAVE_BLOCKING_TYPE_TO_CONTEXT__USES_R3_R15
+
+	/* _SAVE_BLOCKING_TYPE_TO_CONTEXT__USES_R3_R15 */
+	swi r3, r15, 37*4
 .endm
 
 
 .macro _BACKUP_PRESTORED_CONTEXT__USES_R2_TO_R31
 	lwi r15, r0, _userland_context
 
-	_SAVE_R2_TO_R13_TO_CONTEXT__USES_R2_TO_R13_R15
-	_SAVE_R18_TO_R31_TO_CONTEXT__TO_R15_R18_TO_R31
+	/* _SAVE_R2_TO_R13_TO_CONTEXT__USES_R2_TO_R13_R15 */
+	swi r2,  r15,  2*4
+	swi r3,  r15,  3*4
+	swi r4,  r15,  4*4
+	swi r5,  r15,  5*4
+	swi r6,  r15,  6*4
+	swi r7,  r15,  7*4
+	swi r8,  r15,  8*4
+	swi r9,  r15,  9*4
+	swi r10, r15, 10*4
+	swi r11, r15, 11*4
+	swi r12, r15, 12*4
+	swi r13, r15, 13*4
 
-	_SAVE_RPID_TO_CONTEXT__USES_R3_R15
-	_SAVE_RMSR_TO_CONTEXT__USES_R3_R15
-	_SAVE_RESR_TO_CONTEXT__USES_R3_R15
-	_SAVE_REAR_TO_CONTEXT__USES_R3_R15
+	/* _SAVE_R18_TO_R31_TO_CONTEXT__TO_R15_R18_TO_R31 */
+	swi r18, r15, 18*4
+	swi r19, r15, 19*4
+	swi r20, r15, 20*4
+	swi r21, r15, 21*4
+	swi r22, r15, 22*4
+	swi r23, r15, 23*4
+	swi r24, r15, 24*4
+	swi r25, r15, 25*4
+	swi r26, r15, 26*4
+	swi r27, r15, 27*4
+	swi r28, r15, 28*4
+	swi r29, r15, 29*4
+	swi r30, r15, 30*4
+	swi r31, r15, 31*4
 
-	_SAVE_PRESTORED_R1_R15_RPC_TO_CONTEXT__USES_R3_R15
+	/* _SAVE_RPID_TO_CONTEXT__USES_R3_R15 */
+	mfs r3, rpid
+	swi r3, r15, 36*4
+
+	/* _SAVE_RMSR_TO_CONTEXT__USES_R3_R15 */
+	mfs r3, rmsr
+	swi r3, r15, 33*4
+
+	/* _SAVE_RESR_TO_CONTEXT__USES_R3_R15 */
+	mfs r3, resr
+	swi r3, r15, 35*4
+
+	/* _SAVE_REAR_TO_CONTEXT__USES_R3_R15 */
+	mfs r3, rear
+	swi r3, r15, 34*4
+
+	/* _SAVE_PRESTORED_R1_R15_RPC_TO_CONTEXT__USES_R3_R15 */
+	lwi r3, r0, _prestored_r1
+	swi r3, r15,  1*4
+	lwi r3, r0, _prestored_r15
+	swi r3, r15,  15*4
+	lwi r3, r0, _prestored_rpc
+	swi r3, r15,  32*4
 .endm
 
 
@@ -145,9 +189,8 @@
 .endm
 
 
-
-
-_BEGIN_READABLE_EXECUTABLE
+/* _BEGIN_READABLE_EXECUTABLE */
+.section ".text"
 
 	_interrupt_entry:
 
@@ -197,13 +240,21 @@ _BEGIN_READABLE_EXECUTABLE
 
 
 
-_BEGIN_READABLE_WRITEABLE
+/* _BEGIN_READABLE_WRITEABLE */
+.section ".bss"
 
 	.global _current_context_label
 	.align 4
 	_current_context_label: .space 1*4
 
-	_VARIABLES_TO_WRITE_EXEC_CONTEXT
+	/* _VARIABLES_TO_WRITE_EXEC_CONTEXT */
+	.align 4
+	_prestored_r1:  .space 4
+	.align 4
+	_prestored_r15: .space 4
+	.align 4
+	_prestored_rpc: .space 4
+
 	_MAY_BE_VERBOSE_VARIABLES
 
 

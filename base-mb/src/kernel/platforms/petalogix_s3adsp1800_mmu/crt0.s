@@ -4,9 +4,6 @@
  * \date   21.06.2010
  */
 
-.include "linker_commands.s"
-.include "errors.s"
-
 .extern _main
 
 .global _main_utcb_addr
@@ -22,7 +19,10 @@
 .endm
 
 
-_BEGIN_ELF_ENTRY_CODE
+/* _BEGIN_ELF_ENTRY_CODE */
+.global _start
+.section ".Elf_entry"
+_start:
 
 	_INIT_MAIN_UTCB
 	_INIT_MAIN_STACK
@@ -30,10 +30,12 @@ _BEGIN_ELF_ENTRY_CODE
 	bralid r15, _main
 	or r0, r0, r0
 
-	_ERROR_NOTHING_LEFT_TO_CALL_BY_CRT0
+	/* _ERROR_NOTHING_LEFT_TO_CALL_BY_CRT0 */
+	brai 0x99000001
 
 
-_BEGIN_READABLE_WRITEABLE
+/* _BEGIN_READABLE_WRITEABLE */
+.section ".bss"
 
 	.align 4
 	_main_utcb_addr: .space 1*4

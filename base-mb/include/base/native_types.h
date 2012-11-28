@@ -46,16 +46,22 @@ namespace Genode {
 
 	struct Native_config
 	{
+		enum {
+			CONTEXT_AREA_VIRTUAL_BASE = 0x40000000,
+			CONTEXT_AREA_VIRTUAL_SIZE = 0x10000000,
+			CONTEXT_VIRTUAL_SIZE = 0x00100000,
+		};
+
 		/**
 		 * Thread-context area configuration.
 		 */
-		static addr_t context_area_virtual_base() { return 0x40000000UL; }
-		static addr_t context_area_virtual_size() { return 0x10000000UL; }
+		static addr_t context_area_virtual_base() { return CONTEXT_AREA_VIRTUAL_BASE; }
+		static addr_t context_area_virtual_size() { return CONTEXT_AREA_VIRTUAL_SIZE; }
 
 		/**
 		 * Size of virtual address region holding the context of one thread
 		 */
-		static addr_t context_virtual_size() { return 0x00100000UL; }
+		static addr_t context_virtual_size() { return CONTEXT_VIRTUAL_SIZE; }
 	};
 
 	struct Native_pd_args { };

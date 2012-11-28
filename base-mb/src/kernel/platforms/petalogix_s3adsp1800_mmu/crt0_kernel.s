@@ -11,10 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* platform includes */
-.include "errors.s"
-.include "linker_commands.s"
-
 /*
  * To be compatible to crt0.s for common programs,
  * the following labels are used for roottasks main-thread
@@ -73,15 +69,20 @@
 
 /* linker links this section to kernelbase + offset 0 */
 
-_BEGIN_ELF_ENTRY_CODE
+/* _BEGIN_ELF_ENTRY_CODE */
+.global _start
+.section ".Elf_entry"
+_start:
 
 	_CALL_KERNEL__USES_R15
 	_CALL_AFTER_KERNEL__USES_R3_R15
-	_ERROR_NOTHING_LEFT_TO_CALL_BY_CRT0
+
+	/* ERROR_NOTHING_LEFT_TO_CALL_BY_CRT0 */
+	brai 0x99000001
 
 
-
-_BEGIN_READABLE_WRITEABLE
+/* _BEGIN_READABLE_WRITEABLE */
+.section ".bss"
 
 	.align 4
 	_main_utcb_addr:    .space 4*1

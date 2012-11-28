@@ -49,7 +49,7 @@ class Context_area_rm_session : public Rm_session
 		 */
 		Local_addr attach(Dataspace_capability ds_cap,
 		                  size_t size, off_t offset,
-		                  bool use_local_addr, Local_addr local_addr)
+		                  bool use_local_addr, Local_addr local_addr, bool)
 		{
 			Dataspace_component *ds = context_ds[ds_cap.local_name()];
 			if (!ds) {
@@ -105,7 +105,7 @@ class Context_area_ram_session : public Ram_session
 			}
 
 			context_ds[i] = new (platform()->core_mem_alloc())
-				Dataspace_component(size, 0, (addr_t)phys_base, false, true);
+				Dataspace_component(size, 0, (addr_t)phys_base, false, true, 0);
 
 			/*
 			 * We do not manage the dataspace via an entrypoint because it will
