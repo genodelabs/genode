@@ -35,7 +35,7 @@ namespace Genode
 		size_t s_align = (size_t)s & 0x3;
 
 		/* at least 32 bytes, 4 byte aligned, same alignment */
-		if (size < 32 || (d_align | s_align) || (d_align ^ s_align))
+		if (size < 32 || (d_align ^ s_align))
 			return size;
 
 		/* copy to 4 byte alignment */
