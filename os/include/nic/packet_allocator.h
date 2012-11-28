@@ -72,8 +72,9 @@ namespace Nic {
 				return 0;
 			}
 
-			bool alloc_aligned(Genode::size_t size, void **out_addr, int) {
-				return alloc(size, out_addr); }
+			Alloc_return alloc_aligned(Genode::size_t size, void **out_addr, int) {
+				return alloc(size, out_addr) ? Alloc_return::OK
+				                             : Alloc_return::RANGE_CONFLICT; }
 
 			bool alloc(Genode::size_t size, void **out_addr)
 			{ 
@@ -120,8 +121,8 @@ namespace Nic {
 			int remove_range(Genode::addr_t, Genode::size_t) { return 0;}
 			Genode::size_t avail() { return 0; }
 			bool valid_addr(Genode::addr_t) { return 0; }
-			Genode::Range_allocator::Alloc_return alloc_addr(Genode::size_t, Genode::addr_t) {
-				return OUT_OF_METADATA; }
+			Alloc_return alloc_addr(Genode::size_t, Genode::addr_t) {
+				return Alloc_return(Alloc_return::OUT_OF_METADATA); }
 	};
 };
 

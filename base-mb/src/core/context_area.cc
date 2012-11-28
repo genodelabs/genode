@@ -98,8 +98,8 @@ class Context_area_ram_session : public Ram_session
 			/* allocate physical memory */
 			size = round_page(size);
 			void *phys_base;
-			if (!platform_specific()->ram_alloc()->alloc_aligned(size, &phys_base,
-			                                                     get_page_size_log2())) {
+			if (platform_specific()->ram_alloc()->alloc_aligned(size, &phys_base,
+			                                                    get_page_size_log2()).is_error()) {
 				PERR("could not allocate backing store for new context");
 				return Ram_dataspace_capability();
 			}

@@ -4,7 +4,7 @@ SPEC_BASE_DIR = $(REP_DIR)/src/base
 
 
 SRC_CC       = \
-               context_area.cc
+               context_area.cc \
                core_rm_session.cc \
                cpu_session_component.cc \
                dataspace_component.cc \

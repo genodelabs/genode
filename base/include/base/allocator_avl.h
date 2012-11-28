@@ -215,7 +215,7 @@ namespace Genode {
 
 			int          add_range(addr_t base, size_t size);
 			int          remove_range(addr_t base, size_t size);
-			bool         alloc_aligned(size_t size, void **out_addr, int align = 0);
+			Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0);
 			Alloc_return alloc_addr(size_t size, addr_t addr);
 			void         free(void *addr);
 			size_t       avail();
@@ -227,7 +227,7 @@ namespace Genode {
 			 *************************/
 
 			bool alloc(size_t size, void **out_addr) {
-				return Allocator_avl_base::alloc_aligned(size, out_addr); }
+				return (Allocator_avl_base::alloc_aligned(size, out_addr).is_ok()); }
 
 			void free(void *addr, size_t) { free(addr); }
 

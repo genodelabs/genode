@@ -51,16 +51,16 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 	}
 
 	/* allocate region */
-	switch (_io_mem_alloc->alloc_addr(req_size, req_base)) {
-	case Range_allocator::RANGE_CONFLICT:
+	switch (_io_mem_alloc->alloc_addr(req_size, req_base).value) {
+	case Range_allocator::Alloc_return::RANGE_CONFLICT:
 		PERR("I/O memory [%lx,%lx) not available", base, base + size);
 		return Dataspace_attr();
 
-	case Range_allocator::OUT_OF_METADATA:
+	case Range_allocator::Alloc_return::OUT_OF_METADATA:
 		PERR("I/O memory allocator ran out of meta data");
 		return Dataspace_attr();
 
-	case Range_allocator::ALLOC_OK: break;
+	case Range_allocator::Alloc_return::OK: break;
 	}
 
 	/* request local mapping */

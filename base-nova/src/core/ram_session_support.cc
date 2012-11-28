@@ -63,7 +63,7 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 	size_t align_log2 = log2(ds->size());
 	for (; align_log2 >= get_page_size_log2(); align_log2--) {
 		if (platform()->region_alloc()->alloc_aligned(page_rounded_size,
-		                                              &virt_addr, align_log2)) {
+		                                              &virt_addr, align_log2).is_ok()) {
 			virt_alloc_succeeded = true;
 			break;
 		}

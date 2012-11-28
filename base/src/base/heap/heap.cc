@@ -61,7 +61,7 @@ int Heap::Dataspace_pool::expand(size_t size, Range_allocator *alloc)
 	alloc->add_range((addr_t)local_addr, size);
 
 	/* now that we have new backing store, allocate Dataspace structure */
-	if (!alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2)) {
+	if (alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2).is_error()) {
 		PWRN("could not allocate meta data - this should never happen");
 		return -1;
 	}
@@ -84,7 +84,7 @@ int Heap::quota_limit(size_t new_quota_limit)
 
 bool Heap::_try_local_alloc(size_t size, void **out_addr)
 {
-	if (!_alloc.alloc_aligned(size, out_addr, 2))
+	if (_alloc.alloc_aligned(size, out_addr, 2).is_error())
 		return false;
 
 	_quota_used += size;

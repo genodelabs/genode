@@ -60,11 +60,11 @@ Genode::Thread_base::Context * Roottask::physical_context(Genode::Native_thread_
 	if(!_context[tid]) {
 
 		/* Allocate new context */
-		if(!Genode::platform_specific()->
-		    core_mem_alloc()->
-		    alloc_aligned(aligned_size,
-		                  (void**)&_context[tid],
-		                  CONTEXT_PAGE_SIZE_LOG2))
+		if (Genode::platform_specific()
+		    ->core_mem_alloc()
+		      ->alloc_aligned(aligned_size,
+		                      (void**)&_context[tid],
+		                      CONTEXT_PAGE_SIZE_LOG2).is_error())
 		{
 			PERR("Allocate memory for a new stack- and misc-area failed");
 			return 0;
@@ -185,7 +185,7 @@ void Genode::Platform::_optimize_init_img_rom(long int & base, size_t const & si
 	/* Search for location where text-segment would be mapable 
 	 * with pages of size INIT_TEXT_SEGM_ALIGN */
 	if (_core_mem_alloc.alloc_aligned(size + 2*INIT_TEXT_SEGM_ALIGN,
-	                                  (void**)&base, INIT_TEXT_SEGM_ALIGN_LOG2)) 
+	                                  (void**)&base, INIT_TEXT_SEGM_ALIGN_LOG2).is_ok())
 	{
 		/* Found better location so move */
 		base = base + INIT_TEXT_SEGM_ALIGN - ELF_HEADER_SIZE;

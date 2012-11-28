@@ -102,13 +102,13 @@ Io_port_session_component::Io_port_session_component(Range_allocator *io_port_al
 	unsigned size = Arg_string::find_arg(args, "io_port_size").ulong_value(0);
 
 	/* allocate region (also checks out-of-bounds regions) */
-	switch (io_port_alloc->alloc_addr(size, base)) {
+	switch (io_port_alloc->alloc_addr(size, base).value) {
 
-	case Range_allocator::RANGE_CONFLICT:
+	case Range_allocator::Alloc_return::RANGE_CONFLICT:
 		PERR("I/O port [%x,%x) not available", base, base + size);
 		throw Root::Invalid_args();
 
-	case Range_allocator::OUT_OF_METADATA:
+	case Range_allocator::Alloc_return::OUT_OF_METADATA:
 		PERR("I/O port allocator ran out of meta data");
 
 		/*
@@ -117,7 +117,7 @@ Io_port_session_component::Io_port_session_component(Range_allocator *io_port_al
 		 */
 		throw Root::Invalid_args();
 
-	case Range_allocator::ALLOC_OK: break;
+	case Range_allocator::Alloc_return::OK: break;
 	}
 
 	if (verbose)

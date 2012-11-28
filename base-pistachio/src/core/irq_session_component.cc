@@ -110,7 +110,7 @@ Irq_session_component::Irq_session_component(Cap_session     *cap_session,
 
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
 	if (irq_number == -1 || !irq_alloc ||
-	    irq_alloc->alloc_addr(1, irq_number) != Range_allocator::ALLOC_OK) {
+	    irq_alloc->alloc_addr(1, irq_number).is_error()) {
 		PERR("unavailable IRQ %lx requested", irq_number);
 
 		/* FIXME error condition -> exception */

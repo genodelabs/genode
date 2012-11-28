@@ -71,6 +71,27 @@ namespace Genode {
 
 					return (addr_t)0;
 				}
+
+				Pager_capability add_client(Thread_capability thread)
+				{
+					bool try_again = false;
+					do {
+						try {
+							return Rm_session_client::add_client(thread);
+						} catch (Rm_session::Out_of_metadata) {
+
+							/* give up if the error occurred a second time */
+							if (try_again)
+								break;
+
+							PINF("upgrade quota donation for Env::RM session");
+							env()->parent()->upgrade(_cap, "ram_quota=8K");
+							try_again = true;
+						}
+					} while (try_again);
+
+					return Pager_capability();
+				}
 		};
 
 		class Expanding_ram_session_client : public Ram_session_client

@@ -172,7 +172,7 @@ namespace Genode {
 			void *alloc(size_t size, int zone = -1, int align = 2)
 			{
 				void *addr;
-				if (!_range.alloc_aligned(size, &addr, align)) {
+				if (_range.alloc_aligned(size, &addr, align).is_error()) {
 					PERR("Memory allocation of %zu bytes failed", size);
 					return 0;
 				}

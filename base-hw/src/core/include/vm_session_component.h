@@ -45,8 +45,8 @@ namespace Genode {
 			{
 				addr_t addr;
 				if (_ds_size() > *ram_quota ||
-					!_ram_alloc->alloc_aligned(_ds_size(), (void**)&addr,
-					                           get_page_size_log2()))
+					_ram_alloc->alloc_aligned(_ds_size(), (void**)&addr,
+					                          get_page_size_log2()).is_error())
 					throw Root::Quota_exceeded();
 				*ram_quota -= _ds_size();
 				return addr;

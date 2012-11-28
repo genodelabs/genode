@@ -44,8 +44,8 @@ Irq_session_component::Irq_session_component(Cap_session     *cap_session,
 	_attached(false)
 {
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
-	if (!_irq_alloc || (irq_number == -1)||
-	    _irq_alloc->alloc_addr(1, irq_number) != Range_allocator::ALLOC_OK) 
+	if (!_irq_alloc || (irq_number == -1) ||
+	    _irq_alloc->alloc_addr(1, irq_number).is_error())
 	{
 		PERR("unavailable IRQ %lx requested", irq_number);
 		return;

@@ -72,7 +72,7 @@ Platform_thread::Platform_thread(const char * name,
 	/* create UTCB for a core thread */
 	Range_allocator * const ram = platform()->ram_alloc();
 	assert(ram->alloc_aligned(sizeof(Native_utcb), (void **)&_phys_utcb,
-	                          MIN_MAPPING_SIZE_LOG2));
+	                          MIN_MAPPING_SIZE_LOG2).is_ok());
 	_virt_utcb = _phys_utcb;
 
 	/* common constructor parts */

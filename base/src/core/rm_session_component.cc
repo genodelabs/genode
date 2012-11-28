@@ -350,15 +350,15 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 	/* allocate region for attachment */
 	void *r = 0;
 	if (use_local_addr) {
-		switch (_map.alloc_addr(size, local_addr)) {
+		switch (_map.alloc_addr(size, local_addr).value) {
 
-		case Range_allocator::OUT_OF_METADATA:
+		case Range_allocator::Alloc_return::OUT_OF_METADATA:
 			throw Out_of_metadata();
 
-		case Range_allocator::RANGE_CONFLICT:
+		case Range_allocator::Alloc_return::RANGE_CONFLICT:
 			throw Region_conflict();
 
-		case Range_allocator::ALLOC_OK:
+		case Range_allocator::Alloc_return::OK:
 			r = local_addr;
 			break;
 		}
@@ -381,8 +381,15 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 				continue;
 
 			/* try allocating the align region */
-			if (_map.alloc_aligned(size, &r, align_log2))
+			Range_allocator::Alloc_return alloc_return =
+				_map.alloc_aligned(size, &r, align_log2);
+
+			if (alloc_return.is_ok())
 				break;
+			else if (alloc_return.value == Range_allocator::Alloc_return::OUT_OF_METADATA) {
+				_map.free(r);
+				throw Out_of_metadata();
+			}
 		}
 
 		if (align_log2 < get_page_size_log2()) {
@@ -569,7 +576,7 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 
 	Rm_client *cl;
 	try { cl = new(&_client_slab) Rm_client(this, badge); }
-	catch (Allocator::Out_of_memory) { throw Out_of_memory(); }
+	catch (Allocator::Out_of_memory) { throw Out_of_metadata(); }
 
 	_clients.insert(cl);
 

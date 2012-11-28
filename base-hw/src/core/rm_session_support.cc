@@ -72,7 +72,7 @@ void Ipc_pager::resolve_and_wait_for_fault()
 	{
 		/* try to get some natural aligned space */
 		void * space;
-		assert(platform()->ram_alloc()->alloc_aligned(1<<sl2, &space, sl2));
+		assert(platform()->ram_alloc()->alloc_aligned(1<<sl2, &space, sl2).is_ok());
 
 		/* try to translate again with extra space */
 		sl2 = tlb->insert_translation(_mapping.virt_address,

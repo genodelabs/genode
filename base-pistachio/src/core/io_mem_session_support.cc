@@ -83,11 +83,10 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 
 		/* find appropriate region for mapping */
 		void *result = 0;
-		platform()->region_alloc()->alloc_aligned(size, &result, alignment);
-		local_base = (addr_t)result;
-
-		if (!local_base)
+		if (platform()->region_alloc()->alloc_aligned(size, &result, alignment).is_error())
 			PERR("alloc_aligned failed!");
+
+		local_base = (addr_t)result;
 	}
 
 	if (verbose)

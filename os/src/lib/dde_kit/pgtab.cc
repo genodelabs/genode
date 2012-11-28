@@ -115,7 +115,7 @@ extern "C" void dde_kit_pgtab_set_region_with_size(void *virt, dde_kit_addr_t ph
 	map    = virt_to_phys_map();
 	region = Mem_region(reinterpret_cast<addr_t>(virt), size, phys);
 
-	if (map->alloc_addr(size, reinterpret_cast<addr_t>(virt)) == Range_allocator::ALLOC_OK)
+	if (map->alloc_addr(size, reinterpret_cast<addr_t>(virt)).is_ok())
 		map->metadata(virt, region);
 	else
 		PWRN("virt->phys mapping for [%lx,%lx) failed",
@@ -125,7 +125,7 @@ extern "C" void dde_kit_pgtab_set_region_with_size(void *virt, dde_kit_addr_t ph
 	map    = phys_to_virt_map();
 	region = Mem_region(phys, size, reinterpret_cast<addr_t>(virt));
 
-	if (map->alloc_addr(size, phys) == Range_allocator::ALLOC_OK)
+	if (map->alloc_addr(size, phys).is_ok())
 		map->metadata(reinterpret_cast<void *>(phys), region);
 	else
 		PWRN("phys->virt mapping for [%lx,%lx) failed", phys, phys + size);

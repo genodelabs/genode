@@ -59,7 +59,10 @@ void __attribute__((constructor)) init()
 extern "C" void *alloc_memblock(size_t size, size_t align)
 {
 	void *ptr;
-	allocator()->alloc_aligned(size, &ptr, log2(align));
+	if (allocator()->alloc_aligned(size, &ptr, log2(align)).is_error()) {
+		PERR("memory allocation failed in alloc_memblock");
+		return 0;
+	};
 	return ptr;
 }
 

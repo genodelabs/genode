@@ -208,7 +208,7 @@ namespace Genode {
 				return _alloc.remove_range(base, size);
 			}
 
-			bool alloc_aligned(size_t size, void **out_addr, int align = 0)
+			Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0)
 			{
 				Lock::Guard lock_guard(*_lock);
 				return _alloc.alloc_aligned(size, out_addr, align);

@@ -100,7 +100,6 @@ namespace Genode {
 		class Out_of_metadata   : public Attach_failed { };
 
 		class Invalid_thread    : public Exception { };
-		class Out_of_memory     : public Exception { };
 
 		/**
 		 * Destructor
@@ -156,7 +155,7 @@ namespace Genode {
 		 *
 		 * \param thread  thread that will be paged
 		 * \throw         Invalid_thread
-		 * \throw         Out_of_memory
+		 * \throw         Out_of_metadata
 		 * \return        capability to be used for handling page faults
 		 *
 		 * This method must be called at least once to establish a valid
@@ -191,7 +190,7 @@ namespace Genode {
 		                 Dataspace_capability, size_t, off_t, bool, Local_addr, bool);
 		GENODE_RPC(Rpc_detach, void, detach, Local_addr);
 		GENODE_RPC_THROW(Rpc_add_client, Pager_capability, add_client,
-		                 GENODE_TYPE_LIST(Invalid_thread, Out_of_memory),
+		                 GENODE_TYPE_LIST(Invalid_thread, Out_of_metadata),
 		                 Thread_capability);
 		GENODE_RPC(Rpc_fault_handler, void, fault_handler, Signal_context_capability);
 		GENODE_RPC(Rpc_state, State, state);

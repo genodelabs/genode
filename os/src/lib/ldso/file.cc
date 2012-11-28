@@ -61,9 +61,9 @@ namespace Genode {
 			{
 				addr_t addr = vaddr;
 
-				if (addr && (_range.alloc_addr(size, addr) != Range_allocator::ALLOC_OK))
+				if (addr && (_range.alloc_addr(size, addr).is_error()))
 					throw Region_conflict();
-				else if (!addr && !_range.alloc_aligned(size, (void **)&addr, 12))
+				else if (!addr && _range.alloc_aligned(size, (void **)&addr, 12).is_error())
 					throw Region_conflict();
 
 				return addr;

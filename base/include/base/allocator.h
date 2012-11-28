@@ -133,6 +133,23 @@ namespace Genode {
 			virtual int remove_range(addr_t base, size_t size) = 0;
 
 			/**
+			 * Return value of allocation functons
+			 *
+			 * 'OK'              on success, or
+			 * 'OUT_OF_METADATA' if meta-data allocation failed, or
+			 * 'RANGE_CONFLICT'  if no fitting address range is found
+			 */
+			struct Alloc_return
+			{
+				enum Value { OK = 0, OUT_OF_METADATA = -1, RANGE_CONFLICT = -2 };
+				Value const value;
+				Alloc_return(Value value) : value(value) { }
+
+				bool is_ok()    const { return value == OK; }
+				bool is_error() const { return !is_ok(); }
+			};
+
+			/**
 			 * Allocate block
 			 *
 			 * \param size      size of new block
@@ -140,11 +157,8 @@ namespace Genode {
 			 *                  undefined in the error case
 			 * \param align     alignment of new block specified
 			 *                  as the power of two
-			 * \return          true on success
 			 */
-			virtual bool alloc_aligned(size_t size, void **out_addr, int align = 0) = 0;
-
-			enum Alloc_return { ALLOC_OK = 0, OUT_OF_METADATA = -1, RANGE_CONFLICT = -2 };
+			virtual Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0) = 0;
 
 			/**
 			 * Allocate block at address

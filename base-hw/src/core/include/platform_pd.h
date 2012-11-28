@@ -52,7 +52,7 @@ namespace Genode
 				void * kernel_pd;
 				Range_allocator * ram = platform()->ram_alloc();
 				assert(ram->alloc_aligned(Kernel::pd_size(), &kernel_pd,
-				                          Kernel::pd_alignm_log2()));
+				                          Kernel::pd_alignm_log2()).is_ok())
 
 				/* create kernel object */
 				_id = Kernel::new_pd(kernel_pd);

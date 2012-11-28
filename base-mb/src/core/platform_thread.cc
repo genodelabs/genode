@@ -64,11 +64,11 @@ Kernel::Utcb* Genode::physical_utcb(Native_thread_id tid)
 	}
 
 	if(!phys_utcb[tid]) {
-		if (!platform_specific()->
-		           core_mem_alloc()->
-		           alloc_aligned(sizeof(Kernel::Utcb), 
-		                         (void**)&phys_utcb[tid], 
-		                         Kernel::Utcb::ALIGNMENT_LOG2))
+		if (platform_specific()->
+		          core_mem_alloc()->
+		          alloc_aligned(sizeof(Kernel::Utcb), 
+		                        (void**)&phys_utcb[tid], 
+		                        Kernel::Utcb::ALIGNMENT_LOG2).is_error())
 		{
 			PERR("Allocate memory for a new UTCB failed");
 			return 0;

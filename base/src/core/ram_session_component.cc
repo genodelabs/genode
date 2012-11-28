@@ -145,7 +145,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 	void *ds_addr = 0;
 	bool alloc_succeeded = false;
 	for (size_t align_log2 = log2(ds_size); align_log2 >= 12; align_log2--) {
-		if (_ram_alloc->alloc_aligned(ds_size, &ds_addr, align_log2)) {
+		if (_ram_alloc->alloc_aligned(ds_size, &ds_addr, align_log2).is_ok()) {
 			alloc_succeeded = true;
 			break;
 		}

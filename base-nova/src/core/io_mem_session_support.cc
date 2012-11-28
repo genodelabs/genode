@@ -43,8 +43,8 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 
 	/* allocate range in core's virtual address space */
 	void *virt_addr;
-	if (!platform()->region_alloc()->alloc_aligned(page_rounded_size,
-	                                               &virt_addr, alignment)) {
+	if (platform()->region_alloc()->alloc_aligned(page_rounded_size,
+	                                               &virt_addr, alignment).is_error()) {
 		PERR("Could not allocate virtual address range in core of size %zd\n",
 		     page_rounded_size);
 		return 0;
