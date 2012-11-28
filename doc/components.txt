@@ -78,7 +78,7 @@ Platform devices
 UART devices
 ============
 
-The UART device drivers implement the terminal-session interface.
+The UART device drivers implement the UART-session interface.
 
 :'os/src/drivers/uart/pl011':
   Driver for the PL011 UART as found on many ARM-based platforms.
@@ -170,6 +170,10 @@ All audio-output drivers implement the audio session interface defined at
 :'os/src/drivers/audio_out/linux':
   Uses ALSA as back-end on the Linux base platform.
 
+:'dde_oss/src/drivers/oss':
+  Sound drivers for the most common PC sound hardware, ported from the
+  Open Sound System project.
+
 :'linux_drivers/src/drivers/audio_out':
   Sound drivers for the most common PC sound hardware, ported from the Linux
   kernel.
@@ -223,6 +227,13 @@ defined at 'os/include/nic_session'.
 
 :'dde_linux/src/drivers/usb':
   For the OMAP4 platform, the USB driver contains the networking driver.
+
+
+General-purpose I/O drivers
+===========================
+
+:'os/src/drivers/gpio/omap4':
+  Driver for accessing the GPIO pins of OMAP4 platforms.
 
 
 Resource multiplexers
@@ -338,6 +349,9 @@ Libraries:
   Connects the standard input and output from/to Genode's terminal session
   interface.
 
+:'libports/lib/mk/stdcxx':
+  Standard C++ library
+
 :'libports/lib/mk/gallium' + 'linux_drivers/lib/mk/gpu_i915_drv':
   Translates the OpenGL API to a framebuffer session using the MESA OpenGL
   stack and the Intel GEM GPU driver.
@@ -444,5 +458,3 @@ Runtime environments
   of Genode subsystems via a session interface. For further information,
   refer to 'os/src/server/loader/README'.
 
-:'os/src/app/chroot': A helper for the Linux base platforms that makes the
-  Linux chroot mechanism usable for Genode systems.
