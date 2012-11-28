@@ -11,7 +11,7 @@
  *
  * ! lower address
  * !   ...
- * !   ============================ <- aligned at 'CONTEXT_VIRTUAL_SIZE'
+ * !   ============================ <- aligned at the virtual context size
  * !
  * !             empty
  * !
@@ -23,7 +23,7 @@
  * !    additional context members
  * !   ----------------------------
  * !              UTCB
- * !   ============================ <- aligned at 'CONTEXT_VIRTUAL_SIZE'
+ * !   ============================ <- aligned at the virtual context size
  * !   ...
  * ! higher address
  *
@@ -90,8 +90,7 @@ namespace Genode {
 			/**
 			 * Thread context located within the thread-context area
 			 *
-			 * The end of a thread context is placed at a boundary aligned at
-			 * 'CONTEXT_VIRTUAL_SIZE'.
+			 * The end of a thread context is placed virtual size aligned.
 			 */
 			struct Context
 			{
