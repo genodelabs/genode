@@ -50,7 +50,7 @@ namespace Noux {
 		enum { CHUNK_SIZE = 7*1024 };
 		typedef char Chunk[CHUNK_SIZE];
 
-		enum { ARGS_MAX_LEN = 3*1024 };
+		enum { ARGS_MAX_LEN = 4*1024 };
 		typedef char Args[ARGS_MAX_LEN];
 
 		enum { ENV_MAX_LEN  = 4*1024 };
