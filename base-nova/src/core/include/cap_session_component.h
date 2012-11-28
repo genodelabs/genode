@@ -29,26 +29,43 @@ namespace Genode {
 
 			static long _unique_id_cnt;
 
-			static Lock &_lock()
+			class Cap_object : public Native_capability,
+			                   public List<Cap_object>::Element
 			{
-				static Lock static_lock;
-				return static_lock;
-			}
+				public:
+
+					Cap_object(addr_t cap_sel) : Native_capability(cap_sel) {}
+			};
+
+			Tslab<Cap_object, 128> _cap_slab;
+			List<Cap_object>       _cap_list;
+			Lock                   _cap_lock;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Cap_session_component(Allocator *md_alloc, const char *args) { }
+			Cap_session_component(Allocator *md_alloc, const char *args)
+				:
+				_cap_slab(md_alloc) { }
 
 			/**
 			 * Destructor
 			 */
-			~Cap_session_component() { }
+			~Cap_session_component()
+			{
+				Lock::Guard cap_lock(_cap_lock);
 
-			Native_capability alloc(Native_capability ep,
-			                        addr_t entry,
+				for (Cap_object *obj; (obj = _cap_list.first()); ) {
+					Nova::revoke(Nova::Obj_crd(obj->local_name(), 0));
+					/* XXX cap_selector free up */
+					_cap_list.remove(obj);
+					destroy(&_cap_slab, obj);
+				}
+			}
+
+			Native_capability alloc(Native_capability ep, addr_t entry,
 			                        addr_t mtd)
 			{
 				addr_t pt_sel = cap_selector_allocator()->alloc(0);
@@ -56,10 +73,19 @@ namespace Genode {
 				addr_t ec_sel = ep.local_name();
 				
 				using namespace Nova;
-				
+		
+				Lock::Guard cap_lock(_cap_lock);
+
+				/* create cap object */
+				Cap_object * pt_cap = new (&_cap_slab) Cap_object(pt_sel);
+				if (!pt_cap)
+					return Native_capability::invalid_cap();
+
+				_cap_list.insert(pt_cap);
+
 				/* create portal */
-				uint8_t res = create_pt(pt_sel, pd_sel, ec_sel,
-				                        Mtd(mtd), entry);
+				uint8_t res = create_pt(pt_sel, pd_sel, ec_sel, Mtd(mtd),
+				                        entry);
 				if (res == NOVA_OK)
 					return Native_capability(pt_sel);
 
@@ -68,6 +94,9 @@ namespace Genode {
 				     ec_sel, ep.local_name(),
 				     entry, mtd, pt_sel, res);
 				
+				_cap_list.remove(pt_cap);
+				destroy(&_cap_slab, pt_cap);
+
 				/* cleanup unused selectors */	
 				cap_selector_allocator()->free(pt_sel, 0);
 
@@ -76,7 +105,22 @@ namespace Genode {
 				return Native_capability::invalid_cap();
 			}
 
-			void free(Native_capability cap) { }
+			void free(Native_capability cap) {
+				if (!cap.valid()) return;
+
+				Lock::Guard cap_lock(_cap_lock);
+
+				for (Cap_object *obj = _cap_list.first(); obj ; obj = obj->next()) {
+					if (cap.local_name() == obj->local_name()) {
+						Nova::revoke(Nova::Obj_crd(obj->local_name(), 0));
+						/* XXX cap_selector free up */
+						_cap_list.remove(obj);
+						destroy(&_cap_slab, obj);
+						return;
+					}
+				}
+				PDBG("invalid cap object");
+ 			}
 	};
 }
 
