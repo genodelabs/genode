@@ -37,6 +37,16 @@ namespace Genode {
 
 		public:
 
+			/**
+			 * Constructor
+			 */
+			Cap_session_component(Allocator *md_alloc, const char *args) { }
+
+			/**
+			 * Destructor
+			 */
+			~Cap_session_component() { }
+
 			Native_capability alloc(Native_capability ep,
 			                        addr_t entry,
 			                        addr_t mtd)

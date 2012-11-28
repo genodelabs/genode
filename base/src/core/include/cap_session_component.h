@@ -33,6 +33,8 @@ namespace Genode {
 
 		public:
 
+			Cap_session_component(Allocator *md_alloc, const char *args) {}
+
 			Native_capability alloc(Native_capability ep)
 			{
 				Lock::Guard lock_guard(_lock());

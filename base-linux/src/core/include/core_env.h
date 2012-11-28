@@ -160,6 +160,7 @@ namespace Genode {
 				Platform_env_base(Ram_session_capability(),
 				                  Cpu_session_capability(),
 				                  Pd_session_capability()),
+				_cap_session(platform()->core_mem_alloc(), "ram_quota=4K"),
 				_entrypoint(&_cap_session),
 				_ram_session(&_entrypoint, &_entrypoint,
 				             platform()->ram_alloc(), platform()->core_mem_alloc(),

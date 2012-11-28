@@ -129,6 +129,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Core_env() :
+				_cap_session(platform()->core_mem_alloc(), "ram_quota=4K"),
 				_entrypoint(&_cap_session, ENTRYPOINT_STACK_SIZE, "entrypoint"),
 				_rm_session(&_entrypoint),
 				_ram_session(&_entrypoint, &_entrypoint,

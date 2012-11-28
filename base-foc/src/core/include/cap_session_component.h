@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
+#include <base/allocator.h>
 
 namespace Genode {
 
@@ -26,6 +27,8 @@ namespace Genode {
 			static long _unique_id_cnt; /* TODO: remove this from generic core code */
 
 		public:
+
+			Cap_session_component(Allocator *md_alloc, const char *args) {}
 
 			Native_capability alloc(Native_capability ep);
 
