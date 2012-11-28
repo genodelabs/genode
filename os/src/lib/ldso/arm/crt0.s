@@ -17,9 +17,13 @@
 	.globl _start_ldso
 _start_ldso:
 
+	ldr r2, .initial_utcb
+	str r0, [r2]
+
 	ldr  sp, .initial_sp
 	bl init_rtld
 	b    _main
 
-	.initial_sp: .word _stack_high
+	.initial_sp:   .word _stack_high
+	.initial_utcb: .word _main_utcb
 
