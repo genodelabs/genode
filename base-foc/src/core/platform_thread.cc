@@ -157,7 +157,10 @@ void Platform_thread::unbind()
 void Platform_thread::pager(Pager_object *pager_obj)
 {
 	_pager_obj   = pager_obj;
-	_pager.local = pager_obj->cap();
+	if (_pager_obj)
+		_pager.local = pager_obj->cap();
+	else
+		_pager.local = Native_capability();
 }
 
 

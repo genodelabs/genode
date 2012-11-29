@@ -81,6 +81,8 @@ int Cpu_session_component::set_pager(Thread_capability thread_cap,
 	if (!p) return -2;
 
 	thread->platform_thread()->pager(p);
+	p->thread_cap(thread->cap());
+   
 	return 0;
 }
 

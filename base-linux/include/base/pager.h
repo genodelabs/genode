@@ -20,14 +20,26 @@
 #include <base/signal.h>
 #include <pager/capability.h>
 #include <cap_session/cap_session.h>
+#include <thread/capability.h>
 
 namespace Genode {
 
 	struct Pager_object
 	{
+		Thread_capability _thread_cap;
+
 		virtual ~Pager_object() { }
 
 		void exception_handler(Signal_context_capability) { }
+
+		public:
+
+			/**
+			 * Remember thread cap so that rm_session can tell thread that
+			 * rm_client is gone.
+			 */
+			Thread_capability thread_cap() { return _thread_cap; } const
+			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
 	};
 
 	class Pager_activation_base { };

@@ -65,6 +65,8 @@ namespace Genode {
 				bool singlestep;
 			} _state;
 
+			Thread_capability _thread_cap;
+
 			void _copy_state(Nova::Utcb * utcb);
 
 			static void _page_fault_handler();
@@ -176,6 +178,13 @@ namespace Genode {
 			void    client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
 
 			void single_step(bool on) { _state.singlestep = on; }
+
+			/**
+			 * Remember thread cap so that rm_session can tell thread that
+			 * rm_client is gone.
+			 */
+			Thread_capability thread_cap() { return _thread_cap; } const
+			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
 	};
 
 

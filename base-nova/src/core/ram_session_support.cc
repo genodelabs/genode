@@ -34,6 +34,10 @@ void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds)
 {
 	size_t page_rounded_size = (ds->size() + get_page_size() - 1) & get_page_mask();
 
+	if (verbose_ram_ds)
+		printf("-- revoke - ram ds size=0x%8zx phys 0x%8lx has core-local addr 0x%8lx - thread 0x%8p\n",
+		       page_rounded_size, ds->phys_addr(), ds->core_local_addr(), Thread_base::myself()->utcb());
+
 	unmap_local((Nova::Utcb *)Thread_base::myself()->utcb(),
 	            ds->core_local_addr(),
 	            page_rounded_size >> get_page_size_log2());
@@ -76,8 +80,8 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 	}
 
 	if (verbose_ram_ds)
-		printf("-- ram ds size=%zx phys %lx has core-local addr %p\n",
-		       page_rounded_size, ds->phys_addr(), virt_addr);
+		printf("-- map    - ram ds size=0x%8zx phys 0x%8lx has core-local addr 0x%8p - thread 0x%8p\n",
+		       page_rounded_size, ds->phys_addr(), virt_addr, Thread_base::myself()->utcb());
 
 	/* map the dataspace's physical pages to local addresses */
 	const Nova::Rights rights(true, true, true);

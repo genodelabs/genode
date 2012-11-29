@@ -756,6 +756,15 @@ Rm_session_component::~Rm_session_component()
 
 	/* remove all clients */
 	while (Rm_client *cl = _client_slab.raw()->first_object()) {
+		Thread_capability thread_cap = cl->thread_cap();                        
+		if (thread_cap.valid()) {                                               
+			/* lookup thread and reset pager pointer */
+			Cpu_thread_component *cpu_thread = dynamic_cast<Cpu_thread_component *>
+			                                   (_thread_ep->obj_by_cap(thread_cap));
+			if (cpu_thread)                                                     
+				cpu_thread->platform_thread()->pager(0);                        
+		}                                                                       
+
 		_lock.unlock();
 		cl->dissolve_from_faulting_rm_session();
 		this->dissolve(cl);

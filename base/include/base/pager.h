@@ -43,6 +43,8 @@ namespace Genode {
 			 */
 			unsigned long _badge;
 
+			Thread_capability _thread_cap;
+
 			/**
 			 * User-level signal handler registered for this pager object via
 			 * 'Cpu_session::exception_handler()'.
@@ -97,6 +99,13 @@ namespace Genode {
 				Signal_transmitter transmitter(_exception_sigh);
 				transmitter.submit();
 			}
+
+			/**
+			 * Remember thread cap so that rm_session can tell thread that
+			 * rm_client is gone.
+			 */
+			Thread_capability thread_cap() { return _thread_cap; } const
+			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
 	};
 
 	/**
