@@ -4,6 +4,39 @@
                                ===========
 
 
+Genode OS Framework release 12.11 | 2012-11-29
+##############################################
+
+| With version 12.11, Genode has become able to execute the Genode build system
+| directly on microkernels, introduces audio drivers based on the Open Sound
+| System project, and largely revisits the platform mechanisms used on Linux.
+
+We are excited to report on a real break-through towards using Genode as our
+day-to-day OS. The just released version 12.11 of the Genode OS Framework bears
+the fruit of the extensive effort to enable the execution of the entire build
+system within the genuine Genode environment. On the course of this work, we
+improved the whole software stack ranging from the underlying kernels, over the
+framework infrastructure, third-party libraries, up to the actual tool-chain
+utilities. In the process, the official Genode tool chain has been updated
+to GCC 4.7.2.
+
+In addition to the primary topic of self-hosting Genode, the release largely
+revisits and improves the existing base platforms. The Linux platform support
+has been almost reinvented to accommodate the use of the framework as an
+attractive middleware solution on Linux. Our custom kernel platform for ARM
+hardware gained new SoC support for Freescale i.MX and Texas Instruments OMAP4.
+The NOVA, Fiasco.OC, and L4ka::Pistachio kernels have been updated and improved.
+
+With the addition of the new device driver environment for the Open Sound
+System, Genode users on the x86 platform have a new option for driving popular
+sound hardware. For users of the ARM-based OMAP4 platform, a new GPIO driver
+clears the way towards building more sophisticated system scenarios.
+
+To learn more details and background information about the current release,
+please continue with reading the
+[http:/documentation/release-notes/12.11 - release notes of version 12.11...]
+
+
 How Genode came to the Pandaboard | 2012-11-23
 ##############################################
 
