@@ -74,3 +74,5 @@ clean: $(addprefix clean-,$(PKG))
 
 cleanall: clean
 	$(VERBOSE)rm -rf $(DOWNLOAD_DIR)
+
+.NOTPARALLEL:

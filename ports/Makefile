@@ -79,3 +79,4 @@ clean::
 cleanall: clean
 	$(VERBOSE)rm -rf $(DOWNLOAD_DIR)
 
+.NOTPARALLEL:
