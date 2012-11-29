@@ -125,6 +125,36 @@ namespace Genode {
 				}
 		};
 
+		class Expanding_cpu_session_client : public Cpu_session_client
+		{
+			Cpu_session_capability _cap;
+
+			public:
+
+				Expanding_cpu_session_client(Cpu_session_capability cap)
+				: Cpu_session_client(cap), _cap(cap) { }
+
+				Thread_capability create_thread(Name const &name, addr_t utcb) {
+					bool try_again = false;
+					do {
+						try {
+							return Cpu_session_client::create_thread(name, utcb);
+						} catch (Cpu_session::Out_of_metadata) {
+
+							/* give up if the error occurred a second time */
+							if (try_again)
+								break;
+
+							PINF("upgrade quota donation for Env::CPU session");
+							env()->parent()->upgrade(_cap, "ram_quota=8K");
+							try_again = true;
+						}
+					} while (try_again);
+
+					return Thread_capability();
+				}
+		};
+
 		private:
 
 			Parent_client _parent_client;
@@ -134,7 +164,7 @@ namespace Genode {
 				Ram_session_capability       ram_cap;
 				Expanding_ram_session_client ram;
 				Cpu_session_capability       cpu_cap;
-				Cpu_session_client           cpu;
+				Expanding_cpu_session_client cpu;
 				Expanding_rm_session_client  rm;
 				Pd_session_client            pd;
 

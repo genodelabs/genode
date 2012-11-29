@@ -122,6 +122,11 @@ namespace Genode {
 			 */
 			~Cpu_session_component();
 
+			/**
+			 * Register quota donation at allocator guard
+			 */
+			void upgrade_ram_quota(size_t ram_quota) { _md_alloc.upgrade(ram_quota); }
+
 
 			/***************************
 			 ** CPU session interface **

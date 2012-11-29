@@ -49,6 +49,7 @@ namespace Genode {
 
 			class Thread_creation_failed : public Exception { };
 			class State_access_failed : public Exception { };
+			class Out_of_metadata : public Exception { };
 
 			static const char *service_name() { return "CPU"; }
 
@@ -67,6 +68,7 @@ namespace Genode {
 			 * \param   utcb  Base of the UTCB that will be used by the thread
 			 * \return        capability representing the new thread
 			 * \throw         Thread_creation_failed
+			 * \throw         Out_of_metadata
 			 */
 			virtual Thread_capability create_thread(Name const &name,
 			                                        addr_t utcb = 0) = 0;
@@ -208,7 +210,7 @@ namespace Genode {
 			 *********************/
 
 			GENODE_RPC_THROW(Rpc_create_thread, Thread_capability, create_thread,
-			                 GENODE_TYPE_LIST(Thread_creation_failed),
+			                 GENODE_TYPE_LIST(Thread_creation_failed, Out_of_metadata),
 			                 Name const &, addr_t);
 			GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb, Thread_capability);
 			GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);

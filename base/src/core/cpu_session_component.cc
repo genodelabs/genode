@@ -36,7 +36,7 @@ Thread_capability Cpu_session_component::create_thread(Name const &name,
 		thread = new(&_thread_alloc) Cpu_thread_component(name.string(),
 		                                                  _priority, utcb);
 	} catch (Allocator::Out_of_memory) {
-		throw Thread_creation_failed();
+		throw Out_of_metadata();
 	}
 
 	_thread_list.insert(thread);
