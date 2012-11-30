@@ -114,7 +114,7 @@ void Ipc_pager::wait_for_fault()
 
 			/* resume faulter, send ack to RM and get the next message */
 			Kernel::resume_thread(msg->pager_object->badge());
-			s = Kernel::reply_and_wait(0);
+			s = Kernel::reply(0, 1);
 			continue; }
 
 		default: {

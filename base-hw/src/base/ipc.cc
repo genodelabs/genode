@@ -194,11 +194,7 @@ void Ipc_server::_wait()
 }
 
 
-void Ipc_server::_reply()
-{
-	kernel_log() << __PRETTY_FUNCTION__ << ": Unexpected call\n";
-	while (1) ;
-}
+void Ipc_server::_reply() { Kernel::reply(_write_offset, 0); }
 
 
 void Ipc_server::_reply_wait()
@@ -212,7 +208,7 @@ void Ipc_server::_reply_wait()
 	/* send reply and receive next request */
 	copy_msgbuf_to_utcb(_snd_msg, _write_offset,
 	                    Ipc_ostream::_dst.local_name());
-	copy_utcb_to_msgbuf(_rcv_msg, Kernel::reply_and_wait(_write_offset));
+	copy_utcb_to_msgbuf(_rcv_msg, Kernel::reply(_write_offset, 1));
 
 	/* update server state */
 	_prepare_next_reply_wait();

@@ -48,7 +48,7 @@ namespace Kernel
 
 		/* interprocess communication */
 		REQUEST_AND_WAIT = 8,
-		REPLY_AND_WAIT = 9,
+		REPLY = 9,
 		WAIT_FOR_REQUEST = 10,
 
 		/* management of resource protection-domains */
@@ -310,14 +310,17 @@ namespace Kernel
 
 
 	/**
-	 * Send reply of the last received request and wait for next request
+	 * Reply to last IPC request
 	 *
-	 * \param size  reply-message size (beginning with the callers UTCB base)
+	 * \param size           reply size (beginning with the callers UTCB base)
+	 * \param await_request  if the call shall await and fetch next request
 	 *
-	 * \return  size of received request (beginning with the callers UTCB base)
+	 * \return  request size (beginning with the callers UTCB base)
+	 *          if await_request was set
 	 */
-	inline unsigned long reply_and_wait(unsigned long const size)
-	{ return (unsigned long)syscall(REPLY_AND_WAIT, size); }
+	inline unsigned long reply(unsigned long const size,
+	                           bool const await_request) {
+		return (unsigned long)syscall(REPLY, size, await_request); }
 
 
 	/**

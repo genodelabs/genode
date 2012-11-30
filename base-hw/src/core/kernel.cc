@@ -531,25 +531,19 @@ namespace Kernel
 			}
 
 			/**
-			 * Reply last request if there's any and await next request
+			 * Reply to last request if there's any
 			 *
 			 * \param reply_base  base of the reply payload
 			 * \param reply_size  size of the reply payload
-			 * \param inbuf_base  base of the request buffer
-			 * \param inbuf_size  size of the request buffer
 			 */
-			inline void send_reply_await_request(void * const reply_base,
-			                                     size_t const reply_size,
-			                                     void * const inbuf_base,
-			                                     size_t const inbuf_size)
+			inline void send_reply(void * const reply_base,
+			                       size_t const reply_size)
 			{
 				/* reply to the last request if we have to */
 				if (_state == PREPARE_REPLY) {
 					_inbuf.origin->_receive_reply(reply_base, reply_size);
 					_state = INACTIVE;
 				}
-				/* await next request */
-				await_request(inbuf_base, inbuf_size);
 			}
 
 			/**
@@ -1232,13 +1226,15 @@ namespace Kernel
 			}
 
 			/**
-			 * Reply to the last request and await the next one
+			 * Reply to the last request
 			 */
-			void reply_and_wait(size_t const size)
+			void reply(size_t const size, bool const await_request)
 			{
-				Ipc_node::send_reply_await_request(phys_utcb()->base(), size,
-				                                   phys_utcb()->base(),
-				                                   phys_utcb()->size());
+				Ipc_node::send_reply(phys_utcb()->base(), size);
+				if (await_request)
+					Ipc_node::await_request(phys_utcb()->base(),
+					                        phys_utcb()->size());
+				else user_arg_0(0);
 			}
 
 			/**
@@ -1828,8 +1824,8 @@ namespace Kernel
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
 	 */
-	void do_reply_and_wait(Thread * const user)
-	{ user->reply_and_wait((size_t)user->user_arg_1()); }
+	void do_reply(Thread * const user) {
+		user->reply((size_t)user->user_arg_1(), (bool)user->user_arg_2()); }
 
 
 	/**
@@ -2075,7 +2071,7 @@ namespace Kernel
 			/*  6         */ do_current_thread_id,
 			/*  7         */ do_yield_thread,
 			/*  8         */ do_request_and_wait,
-			/*  9         */ do_reply_and_wait,
+			/*  9         */ do_reply,
 			/* 10         */ do_wait_for_request,
 			/* 11         */ do_set_pager,
 			/* 12         */ do_update_pd,
