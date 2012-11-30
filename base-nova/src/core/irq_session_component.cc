@@ -75,10 +75,21 @@ class Irq_thread : public Thread_base
 				throw Cpu_session::Thread_creation_failed();
 			}
 
-			/* map startup portal from main thread */
-			map_local((Utcb *)Thread_base::myself()->utcb(),
-			          Obj_crd(PT_SEL_STARTUP, 0),
-			          Obj_crd(_tid.exc_pt_sel + PT_SEL_STARTUP, 0));
+			/* remap startup portal from main thread */
+			if (map_local((Utcb *)Thread_base::myself()->utcb(),
+			              Obj_crd(PT_SEL_STARTUP, 0),
+			              Obj_crd(_tid.exc_pt_sel + PT_SEL_STARTUP, 0))) {
+				PERR("could not create startup portal");
+				throw Cpu_session::Thread_creation_failed();
+			}
+
+			/* remap debugging page fault portal for core threads */
+			if (map_local((Utcb *)Thread_base::myself()->utcb(),
+			              Obj_crd(PT_SEL_PAGE_FAULT, 0),
+			              Obj_crd(_tid.exc_pt_sel + PT_SEL_PAGE_FAULT, 0))) {
+				PERR("could not create page fault portal");
+				throw Cpu_session::Thread_creation_failed();
+			}
 
 			/* create SC */
 			unsigned sc_sel = cap_selector_allocator()->alloc();

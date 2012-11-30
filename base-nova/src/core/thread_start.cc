@@ -72,7 +72,7 @@ void Thread_base::_deinit_platform_thread()
 void Thread_base::start()
 {
 	/*
-	 * On NOVA, core almost nerver starts regular threads. This simply creates a
+	 * On NOVA, core almost never starts regular threads. This simply creates a
 	 * local EC
 	 */
 	using namespace Nova;
@@ -86,7 +86,14 @@ void Thread_base::start()
 	uint8_t res = create_ec(_tid.ec_sel, pd_sel, CPU_NO,
 	                        utcb, sp, _tid.exc_pt_sel, GLOBAL);
 	if (res != NOVA_OK) {
-		PERR("%p - create_ec returned %d", this, res);
+		PERR("create_ec returned %d", res);
+		throw Cpu_session::Thread_creation_failed();
+	}
+
+	if (map_local(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
+	              Obj_crd(PT_SEL_PAGE_FAULT, 0),
+	              Obj_crd(_tid.exc_pt_sel + PT_SEL_PAGE_FAULT, 0))) {
+		PERR("could not create page fault portal");
 		throw Cpu_session::Thread_creation_failed();
 	}
 }

@@ -227,13 +227,16 @@ Pager_object::Pager_object(unsigned long badge)
 		}
 	}
 
+	/* threads in core get default page fault handler assigned, revoke it */
+	if (_tid.ec_sel != Native_thread::INVALID_INDEX)
+		revoke(Obj_crd(exc_pt_sel() + PT_SEL_PAGE_FAULT, 0));
+
 	/* create portal for page-fault handler */
 	res = create_pt(exc_pt_sel() + PT_SEL_PAGE_FAULT, pd_sel,
 	                _tid.ec_sel, Mtd(Mtd::QUAL | Mtd::EIP),
 	                (mword_t)_page_fault_handler);
 	if (res) {
-		PERR("could not create page-fault portal, error = %u\n",
-		     res);
+		PERR("could not create page-fault portal, error = %u\n", res);
 		class Create_page_fault_pt_failed { };
 		throw Create_page_fault_pt_failed();
 	}
