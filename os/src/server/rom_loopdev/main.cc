@@ -14,6 +14,7 @@
 #include <base/exception.h>
 #include <base/printf.h>
 #include <base/sleep.h>
+#include <base/semaphore.h>
 #include <base/allocator_avl.h>
 #include <root/component.h>
 #include <os/config.h>
