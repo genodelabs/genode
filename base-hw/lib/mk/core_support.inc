@@ -5,7 +5,8 @@
 #
 
 # add include paths
-INC_DIR += $(BOARD_DIR) $(REP_DIR)/src/core/include $(REP_DIR)/include \
+INC_DIR += $(REP_DIR)/src/core/ \
+           $(BOARD_DIR) $(REP_DIR)/src/core/include $(REP_DIR)/include \
            $(BASE_DIR)/src/core/include $(BASE_DIR)/include
 
 # set entry point of core's first thread

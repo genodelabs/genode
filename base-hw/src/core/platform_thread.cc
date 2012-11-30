@@ -52,10 +52,6 @@ Platform_thread::~Platform_thread()
 	}
 	/* destroy object at the kernel */
 	Kernel::delete_thread(_id);
-
-	/* free kernel object space */
-	Range_allocator * ram = platform()->ram_alloc();
-	ram->free(&_kernel_thread, Kernel::thread_size());
 }
 
 
@@ -122,9 +118,6 @@ int Platform_thread::join_pd(unsigned long const pd_id,
 
 void Platform_thread::_init()
 {
-	/* create kernel object */
-	Range_allocator * ram = platform()->ram_alloc();
-	assert(ram->alloc(Kernel::thread_size(), &_kernel_thread));
 	_id = Kernel::new_thread(_kernel_thread, this);
 	assert(_id);
 }

@@ -20,6 +20,7 @@
 #include <kernel/syscalls.h>
 #include <kernel/log.h>
 #include <base/thread.h>
+#include <kernel/thread.h>
 
 /* core includes */
 #include <assert.h>
@@ -47,10 +48,10 @@ namespace Genode {
 		bool                     _main_thread;
 		Native_utcb *            _phys_utcb;
 		Native_utcb *            _virt_utcb;
-		Tlb *           _tlb;
+		Tlb *                    _tlb;
 		Ram_dataspace_capability _utcb;
 		char                     _name[NAME_MAX_LEN];
-		void *                   _kernel_thread;
+		char                     _kernel_thread[sizeof(Kernel::Thread)];
 
 		/**
 		 * Common construction part

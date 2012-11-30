@@ -16,7 +16,9 @@ LIBS += cxx raw_ipc heap child process pager lock console signal raw_server \
 
 # add include paths
 GEN_CORE_DIR = $(BASE_DIR)/src/core
-INC_DIR += $(REP_DIR)/src/core/include $(REP_DIR)/include \
+INC_DIR += $(PRG_DIR) \
+           $(REP_DIR)/src/core \
+           $(REP_DIR)/src/core/include $(REP_DIR)/include \
            $(REP_DIR)/src/platform $(GEN_CORE_DIR)/include \
            $(BASE_DIR)/src/platform $(BASE_DIR)/src/core/include \
            $(BASE_DIR)/include

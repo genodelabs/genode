@@ -25,14 +25,10 @@
 /* Genode includes */
 #include <base/signal.h>
 #include <cpu/cpu_state.h>
-#include <util/fifo.h>
-#include <util/avl_tree.h>
 #include <base/thread_state.h>
 
 /* core includes */
-#include <kernel_support.h>
 #include <platform_thread.h>
-#include <assert.h>
 #include <tlb.h>
 #include <trustzone.h>
 
@@ -56,253 +52,7 @@ namespace Kernel
 {
 	/* import Genode types */
 	typedef Genode::Thread_state Thread_state;
-	typedef Genode::size_t size_t;
-	typedef Genode::addr_t addr_t;
 	typedef Genode::umword_t umword_t;
-	typedef Genode::Signal Signal;
-	typedef Genode::Pagefault Pagefault;
-	typedef Genode::Native_utcb Native_utcb;
-	typedef Genode::Platform_thread Platform_thread;
-	template <typename T> class Fifo : public Genode::Fifo<T> { };
-	template <typename T> class Avl_node : public Genode::Avl_node<T> { };
-	template <typename T> class Avl_tree : public Genode::Avl_tree<T> { };
-
-	/* kernel configuration */
-	enum {
-		DEFAULT_STACK_SIZE = 1*1024*1024,
-		USER_TIME_SLICE_MS = 100,
-		MAX_PDS = 256,
-		MAX_THREADS = 256,
-		MAX_SIGNAL_RECEIVERS = 256,
-		MAX_SIGNAL_CONTEXTS = 256,
-		MAX_VMS = 4,
-	};
-
-	/**
-	 * Double connected list
-	 *
-	 * \param _ENTRY_T  list entry type
-	 */
-	template <typename _ENTRY_T>
-	class Double_list
-	{
-		private:
-
-			_ENTRY_T * _head;
-			_ENTRY_T * _tail;
-
-		public:
-
-			/**
-			 * Provide 'Double_list'-entry compliance by inheritance
-			 */
-			class Entry
-			{
-				friend class Double_list<_ENTRY_T>;
-
-				private:
-
-					_ENTRY_T * _next;
-					_ENTRY_T * _prev;
-					Double_list<_ENTRY_T> * _list;
-
-				public:
-
-					/**
-					 * Constructor
-					 */
-					Entry() : _next(0), _prev(0), _list(0) { }
-
-
-					/***************
-					 ** Accessors **
-					 ***************/
-
-					_ENTRY_T * next() const { return _next; }
-
-					_ENTRY_T * prev() const { return _prev; }
-			};
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * Start with an empty list.
-			 */
-			Double_list(): _head(0), _tail(0) { }
-
-			/**
-			 * Insert entry from behind into list
-			 */
-			void insert_tail(_ENTRY_T * const e)
-			{
-				/* avoid leaking lists */
-				if (e->Entry::_list)
-					e->Entry::_list->remove(e);
-
-				/* update new entry */
-				e->Entry::_prev = _tail;
-				e->Entry::_next = 0;
-				e->Entry::_list = this;
-
-				/* update previous entry or _head */
-				if (_tail) _tail->Entry::_next = e;  /* List was not empty */
-				else       _head = e;                /* List was empty */
-				           _tail = e;
-			}
-
-			/**
-			 * Remove specific entry from list
-			 */
-			void remove(_ENTRY_T * const e)
-			{
-				/* sanity checks */
-				if (!_head || e->Entry::_list != this) return;
-
-				/* update next entry or _tail */
-				if (e != _tail) e->Entry::_next->Entry::_prev = e->Entry::_prev;
-				else _tail = e->Entry::_prev;
-
-				/* update previous entry or _head */
-				if (e != _head) e->Entry::_prev->Entry::_next = e->Entry::_next;
-				else _head = e->Entry::_next;
-
-				/* update removed entry */
-				e->Entry::_list = 0;
-			}
-
-			/**
-			 * Remove head from list and return it
-			 */
-			_ENTRY_T * remove_head()
-			{
-				/* sanity checks */
-				if (!_head) return 0;
-
-				/* update _head */
-				_ENTRY_T * const e = _head;
-				_head = e->Entry::_next;
-
-				/* update next entry or _tail */
-				if (_head) _head->Entry::_prev = 0;
-				else _tail = 0;
-
-				/* update removed entry */
-				e->Entry::_list = 0;
-				return e;
-			}
-
-			/**
-			 * Remove head from list and insert it at the end
-			 */
-			void head_to_tail()
-			{
-				/* sanity checks */
-				if (!_head || _head == _tail) return;
-
-				/* remove entry */
-				_ENTRY_T * const e = _head;
-				_head = _head->Entry::_next;
-				e->Entry::_next = 0;
-				_head->Entry::_prev = 0;
-
-				/* insert entry */
-				_tail->Entry::_next = e;
-				e->Entry::_prev = _tail;
-				_tail = e;
-			}
-
-
-			/***************
-			 ** Accessors **
-			 ***************/
-
-			_ENTRY_T * head() const { return _head; }
-
-			_ENTRY_T * tail() const { return _tail; }
-	};
-
-	/**
-	 * Map unique sortable IDs to object pointers
-	 *
-	 * \param OBJECT_T  object type that should be inherited
-	 *                  from 'Object_pool::Entry'
-	 */
-	template <typename _OBJECT_T>
-	class Object_pool
-	{
-		typedef _OBJECT_T Object;
-
-		public:
-
-			enum { INVALID_ID = 0 };
-
-			/**
-			 * Provide 'Object_pool'-entry compliance by inheritance
-			 */
-			class Entry : public Avl_node<Entry>
-			{
-				protected:
-
-					unsigned long _id;
-
-				public:
-
-					/**
-					 * Constructors
-					 */
-					Entry(unsigned long const id) : _id(id) { }
-
-					/**
-					 * Find entry with 'object_id' within this AVL subtree
-					 */
-					Entry * find(unsigned long const object_id)
-					{
-						if (object_id == id()) return this;
-						Entry * const subtree = Avl_node<Entry>::child(object_id > id());
-						return subtree ? subtree->find(object_id) : 0;
-					}
-
-					/**
-					 * ID of this object
-					 */
-					unsigned long const id() const { return _id; }
-
-
-					/************************
-					 * 'Avl_node' interface *
-					 ************************/
-
-					bool higher(Entry *e) { return e->id() > id(); }
-			};
-
-		private:
-
-			Avl_tree<Entry> _tree;
-
-		public:
-
-			/**
-			 * Add 'object' to pool
-			 */
-			void insert(Object * const object) { _tree.insert(object); }
-
-			/**
-			 * Remove 'object' from pool
-			 */
-			void remove(Object * const object) { _tree.remove(object); }
-
-			/**
-			 * Lookup object
-			 */
-			Object * object(unsigned long const id)
-			{
-				Entry * object = _tree.first();
-				return (Object *)(object ? object->find(id) : 0);
-			}
-	};
-
 
 	/**
 	 * Copy 'size' successive bytes from 'src_base' to 'dst_base'
@@ -314,401 +64,147 @@ namespace Kernel
 			*(umword_t *)((addr_t)dst_base + off) =
 				*(umword_t *)((addr_t)src_base + off);
 	}
+}
 
 
-	/**
-	 * Sends requests to other IPC nodes, accumulates request announcments,
-	 * provides serial access to them and replies to them if expected.
-	 * Synchronizes communication.
-	 *
-	 * IPC node states:
-	 *
-	 *         +----------+                               +---------------+                             +---------------+
-	 * --new-->| inactive |--send-request-await-reply---->| await reply   |               +--send-note--| prepare reply |
-	 *         |          |<--receive-reply---------------|               |               |             |               |
-	 *         |          |                               +---------------+               +------------>|               |
-	 *         |          |<--request-is-a-note-------+---request-is-not-a-note------------------------>|               |
-	 *         |          |                           |   +---------------+                             |               |
-	 *         |          |--await-request------------+-->| await request |<--send-reply-await-request--|               |
-	 *         |          |--send-reply-await-request-+-->|               |--announce-request-+-------->|               |
-	 *         |          |--send-note--+             |   +---------------+                   |         |               |
-	 *         |          |             |      request|available                              |         |               |
-	 *         |          |<------------+             |                                       |         |               |
-	 *         |          |<--request-is-a-note-------+---request-is-not-a-note---------------|-------->|               |
-	 *         |          |<--request-is-a-note-----------------------------------------------+         |               |
-	 *         +----------+                 +-------------------------+                                 |               |
-	 *                                      | prepare and await reply |<--send-request-and-await-reply--|               |
-	 *                                      |                         |--receive-reply----------------->|               |
-	 *                                      +-------------------------+                                 +---------------+
-	 *
-	 * State model propagated to deriving classes:
-	 *
-	 *         +--------------+                               +----------------+
-	 * --new-->| has received |--send-request-await-reply---->| awaits receipt |
-	 *         |              |--await-request------------+-->|                |
-	 *         |              |                           |   |                |
-	 *         |              |<--request-available-------+   |                |
-	 *         |              |--send-reply-await-request-+-->|                |
-	 *         |              |--send-note--+             |   |                |
-	 *         |              |             |             |   |                |
-	 *         |              |<------------+             |   |                |
-	 *         |              |<--request-available-------+   |                |
-	 *         |              |<--announce-request------------|                |
-	 *         |              |<--receive-reply---------------|                |
-	 *         +--------------+                               +----------------+
-	 */
-	class Ipc_node
-	{
-		/**
-		 * IPC node states as depicted initially
-		 */
-		enum State
-		{
-			INACTIVE = 1,
-			AWAIT_REPLY = 2,
-			AWAIT_REQUEST = 3,
-			PREPARE_REPLY = 4,
-			PREPARE_AND_AWAIT_REPLY = 5,
-		};
+void Kernel::Ipc_node::_receive_request(Message_buf * const r)
+{
+	/* assertions */
+	assert(r->size <= _inbuf.size);
 
-		/**
-		 * Describes the buffer for incoming or outgoing messages
-		 */
-		struct Message_buf : public Fifo<Message_buf>::Element
-		{
-			void * base;
-			size_t size;
-			Ipc_node * origin;
-		};
+	/* fetch message */
+	copy_range(r->base, _inbuf.base, r->size);
+	_inbuf.size = r->size;
+	_inbuf.origin = r->origin;
 
-		Fifo<Message_buf> _request_queue; /* requests that waits to be
-		                                   * received by us */
-		Message_buf _inbuf; /* buffers message we have received lastly */
-		Message_buf _outbuf; /* buffers the message we aim to send */
-		State _state; /* current node state */
-
-		/**
-		 * Buffer next request from request queue in 'r' to handle it
-		 */
-		inline void _receive_request(Message_buf * const r)
-		{
-			/* assertions */
-			assert(r->size <= _inbuf.size);
-
-			/* fetch message */
-			copy_range(r->base, _inbuf.base, r->size);
-			_inbuf.size = r->size;
-			_inbuf.origin = r->origin;
-
-			/* update state */
-			_state = r->origin->_awaits_reply() ? PREPARE_REPLY :
-			                                      INACTIVE;
-		}
-
-		/**
-		 * Receive a given reply if one is expected
-		 *
-		 * \param base  base of the reply payload
-		 * \param size  size of the reply payload
-		 */
-		inline void _receive_reply(void * const base, size_t const size)
-		{
-			/* assertions */
-			assert(_awaits_reply());
-			assert(size <= _inbuf.size);
-
-			/* receive reply */
-			copy_range(base, _inbuf.base, size);
-			_inbuf.size = size;
-
-			/* update state */
-			if (_state != PREPARE_AND_AWAIT_REPLY) _state = INACTIVE;
-			else _state = PREPARE_REPLY;
-			_has_received(_inbuf.size);
-		}
-
-		/**
-		 * Insert 'r' into request queue, buffer it if we were waiting for it
-		 */
-		inline void _announce_request(Message_buf * const r)
-		{
-			/* directly receive request if we've awaited it */
-			if (_state == AWAIT_REQUEST) {
-				_receive_request(r);
-				_has_received(_inbuf.size);
-				return;
-			}
-			/* cannot receive yet, so queue request */
-			_request_queue.enqueue(r);
-		}
-
-		/**
-		 * Wether we expect to receive a reply message
-		 */
-		bool _awaits_reply()
-		{
-			return _state == AWAIT_REPLY ||
-			       _state == PREPARE_AND_AWAIT_REPLY;
-		}
-
-		public:
-
-			/**
-			 * Construct an initially inactive IPC node
-			 */
-			inline Ipc_node() : _state(INACTIVE)
-			{
-				_inbuf.size = 0;
-				_outbuf.size = 0;
-			}
-
-			/**
-			 * Destructor
-			 */
-			virtual ~Ipc_node() { }
-
-			/**
-			 * Send a request and wait for the according reply
-			 *
-			 * \param dest        targeted IPC node
-			 * \param req_base    base of the request payload
-			 * \param req_size    size of the request payload
-			 * \param inbuf_base  base of the reply buffer
-			 * \param inbuf_size  size of the reply buffer
-			 */
-			inline void send_request_await_reply(Ipc_node * const dest,
-			                                     void * const req_base,
-			                                     size_t const req_size,
-			                                     void * const inbuf_base,
-			                                     size_t const inbuf_size)
-			{
-				/* assertions */
-				assert(_state == INACTIVE || _state == PREPARE_REPLY);
-
-				/* prepare transmission of request message */
-				_outbuf.base = req_base;
-				_outbuf.size = req_size;
-				_outbuf.origin = this;
-
-				/* prepare reception of reply message */
-				_inbuf.base = inbuf_base;
-				_inbuf.size = inbuf_size;
-
-				/* update state */
-				if (_state != PREPARE_REPLY) _state = AWAIT_REPLY;
-				else _state = PREPARE_AND_AWAIT_REPLY;
-				_awaits_receipt();
-
-				/* announce request */
-				dest->_announce_request(&_outbuf);
-			}
-
-			/**
-			 * Wait until a request has arrived and load it for handling
-			 *
-			 * \param inbuf_base  base of the request buffer
-			 * \param inbuf_size  size of the request buffer
-			 */
-			inline void await_request(void * const inbuf_base,
-			                          size_t const inbuf_size)
-			{
-				/* assertions */
-				assert(_state == INACTIVE);
-
-				/* prepare receipt of request */
-				_inbuf.base = inbuf_base;
-				_inbuf.size = inbuf_size;
-
-				/* if anybody already announced a request receive it */
-				if (!_request_queue.empty()) {
-					_receive_request(_request_queue.dequeue());
-					_has_received(_inbuf.size);
-					return;
-				}
-				/* no request announced, so wait */
-				_state = AWAIT_REQUEST;
-				_awaits_receipt();
-			}
-
-			/**
-			 * Reply to last request if there's any
-			 *
-			 * \param reply_base  base of the reply payload
-			 * \param reply_size  size of the reply payload
-			 */
-			inline void send_reply(void * const reply_base,
-			                       size_t const reply_size)
-			{
-				/* reply to the last request if we have to */
-				if (_state == PREPARE_REPLY) {
-					_inbuf.origin->_receive_reply(reply_base, reply_size);
-					_state = INACTIVE;
-				}
-			}
-
-			/**
-			 * Send a notification and stay inactive
-			 *
-			 * \param dest        targeted IPC node
-			 * \param note_base   base of the note payload
-			 * \param note_size   size of the note payload
-			 *
-			 * The caller must ensure that the note payload remains
-			 * until it is buffered by the targeted node.
-			 */
-			inline void send_note(Ipc_node * const dest,
-			                      void * const note_base,
-			                      size_t const note_size)
-			{
-				/* assert preconditions */
-				assert(_state == INACTIVE || _state == PREPARE_REPLY);
-
-				/* announce request message, our state says: No reply needed */
-				_outbuf.base = note_base;
-				_outbuf.size = note_size;
-				_outbuf.origin = this;
-				dest->_announce_request(&_outbuf);
-			}
-
-		private:
-
-			/**
-			 * IPC node waits for a message to receive to its inbuffer
-			 */
-			virtual void _awaits_receipt() = 0;
-
-			/**
-			 * IPC node has received a message in its inbuffer
-			 *
-			 * \param s  size of the message
-			 */
-			virtual void _has_received(size_t const s) = 0;
-	};
-
-	/**
-	 * Manage allocation of a static set of IDs
-	 *
-	 * \param _SIZE  How much IDs shall be assignable simultaneously
-	 */
-	template <unsigned _SIZE>
-	class Id_allocator
-	{
-		enum { MIN = 1, MAX = _SIZE };
-
-		bool _free[MAX + 1]; /* assignability bitmap */
-		unsigned _first_free_id; /* hint to optimze access */
-
-		/**
-		 * Update first free ID after assignment
-		 */
-		void _first_free_id_assigned()
-		{
-			_first_free_id++;
-			while (_first_free_id <= MAX) {
-				if (_free[_first_free_id]) break;
-				_first_free_id++;
-			}
-		}
-
-		/**
-		 * Validate ID
-		 */
-		bool _valid_id(unsigned const id) const
-		{ return id >= MIN && id <= MAX; }
-
-		public:
-
-			/**
-			 * Constructor, makes all IDs unassigned
-			 */
-			Id_allocator() : _first_free_id(MIN)
-			{ for (unsigned i = MIN; i <= MAX; i++) _free[i] = 1; }
-
-			/**
-			 * Allocate an unassigned ID
-			 *
-			 * \return  ID that has been allocated by the call
-			 */
-			unsigned alloc()
-			{
-				if (!_valid_id(_first_free_id)) assert(0);
-				_free[_first_free_id] = 0;
-				unsigned const id = _first_free_id;
-				_first_free_id_assigned();
-				return id;
-			}
-
-			/**
-			 * Free a given ID
-			 */
-			void free(unsigned const id)
-			{
-				if (!_valid_id(id)) return;
-				_free[id] = 1;
-				if (id < _first_free_id) _first_free_id = id;
-			}
-	};
-
-	/**
-	 * Provides kernel object management for 'T'-objects if 'T' derives from it
-	 */
-	template <typename T, unsigned MAX_INSTANCES>
-	class Object : public Object_pool<T>::Entry
-	{
-		typedef Id_allocator<MAX_INSTANCES> Id_alloc;
-
-		/**
-		 * Allocator for unique IDs for all instances of 'T'
-		 */
-		static Id_alloc * _id_alloc()
-		{
-			static Id_alloc _id_alloc;
-			return &_id_alloc;
-		}
-
-		public:
-
-			typedef Object_pool<T> Pool;
-
-			/**
-			 * Gets every instance of 'T' by its ID
-			 */
-			static Pool * pool()
-			{
-				static Pool _pool;
-				return &_pool;
-			}
-
-			/**
-			 * Placement new
-			 *
-			 * Kernel objects are normally constructed on a memory
-			 * donation so we must be enabled to place them explicitly.
-			 */
-			void * operator new (size_t, void * p) { return p; }
-
-		protected:
-
-			/**
-			 * Constructor
-			 *
-			 * Ensures that we have a unique ID and
-			 * can be found through the static object pool.
-			 */
-			Object() : Pool::Entry(_id_alloc()->alloc()) {
-				pool()->insert(static_cast<T *>(this)); }
-
-			/**
-			 * Destructor
-			 */
-			~Object()
-			{
-				pool()->remove(static_cast<T *>(this));
-				_id_alloc()->free(Pool::Entry::id());
-			}
-	};
+	/* update state */
+	_state = r->origin->_awaits_reply() ? PREPARE_REPLY :
+	                                      INACTIVE;
+}
 
 
+void Kernel::Ipc_node::_receive_reply(void * const base, size_t const size)
+{
+	/* assertions */
+	assert(_awaits_reply());
+	assert(size <= _inbuf.size);
+
+	/* receive reply */
+	copy_range(base, _inbuf.base, size);
+	_inbuf.size = size;
+
+	/* update state */
+	if (_state != PREPARE_AND_AWAIT_REPLY) _state = INACTIVE;
+	else _state = PREPARE_REPLY;
+	_has_received(_inbuf.size);
+}
+
+
+void Kernel::Ipc_node::_announce_request(Message_buf * const r)
+{
+	/* directly receive request if we've awaited it */
+	if (_state == AWAIT_REQUEST) {
+		_receive_request(r);
+		_has_received(_inbuf.size);
+		return;
+	}
+	/* cannot receive yet, so queue request */
+	_request_queue.enqueue(r);
+}
+
+
+bool Kernel::Ipc_node::_awaits_reply()
+{
+	return _state == AWAIT_REPLY ||
+	       _state == PREPARE_AND_AWAIT_REPLY;
+}
+
+
+Kernel::Ipc_node::Ipc_node() : _state(INACTIVE)
+{
+	_inbuf.size = 0;
+	_outbuf.size = 0;
+}
+
+
+void Kernel::Ipc_node::send_request_await_reply(Ipc_node * const dest,
+                                                void * const     req_base,
+                                                size_t const     req_size,
+                                                void * const     inbuf_base,
+                                                size_t const     inbuf_size)
+{
+	/* assertions */
+	assert(_state == INACTIVE || _state == PREPARE_REPLY);
+
+	/* prepare transmission of request message */
+	_outbuf.base = req_base;
+	_outbuf.size = req_size;
+	_outbuf.origin = this;
+
+	/* prepare reception of reply message */
+	_inbuf.base = inbuf_base;
+	_inbuf.size = inbuf_size;
+
+	/* update state */
+	if (_state != PREPARE_REPLY) _state = AWAIT_REPLY;
+	else _state = PREPARE_AND_AWAIT_REPLY;
+	_awaits_receipt();
+
+	/* announce request */
+	dest->_announce_request(&_outbuf);
+}
+
+
+void Kernel::Ipc_node::await_request(void * const inbuf_base,
+                                     size_t const inbuf_size)
+{
+	/* assertions */
+	assert(_state == INACTIVE);
+
+	/* prepare receipt of request */
+	_inbuf.base = inbuf_base;
+	_inbuf.size = inbuf_size;
+
+	/* if anybody already announced a request receive it */
+	if (!_request_queue.empty()) {
+		_receive_request(_request_queue.dequeue());
+		_has_received(_inbuf.size);
+		return;
+	}
+	/* no request announced, so wait */
+	_state = AWAIT_REQUEST;
+	_awaits_receipt();
+}
+
+
+void Kernel::Ipc_node::send_reply(void * const reply_base,
+                                  size_t const reply_size)
+{
+	/* reply to the last request if we have to */
+	if (_state == PREPARE_REPLY) {
+		_inbuf.origin->_receive_reply(reply_base, reply_size);
+		_state = INACTIVE;
+	}
+}
+
+
+void Kernel::Ipc_node::send_note(Ipc_node * const dest,
+                                 void * const     note_base,
+                                 size_t const     note_size)
+{
+	/* assert preconditions */
+	assert(_state == INACTIVE || _state == PREPARE_REPLY);
+
+	/* announce request message, our state says: No reply needed */
+	_outbuf.base = note_base;
+	_outbuf.size = note_size;
+	_outbuf.origin = this;
+	dest->_announce_request(&_outbuf);
+}
+
+
+namespace Kernel
+{
 	class Schedule_context;
 
 	/**
@@ -840,224 +336,61 @@ namespace Kernel
 			Tlb * tlb() { return _tlb; }
 	};
 
-	/**
-	 * Simple round robin scheduler for 'ENTRY_T' typed clients
-	 */
-	template <typename ENTRY_T>
-	class Scheduler
-	{
-		public:
-
-			/**
-			 * Base class for 'ENTRY_T' to support scheduling
-			 */
-			class Entry : public Double_list<ENTRY_T>::Entry
-			{
-				friend class Scheduler<ENTRY_T>;
-
-				unsigned _time; /* time wich remains for current lap */
-
-				/**
-				 * Apply consumption of 'time'
-				 */
-				void _consume(unsigned const time)
-				{ _time = _time > time ? _time - time : 0; }
-
-				public:
-
-					/**
-					 * Constructor
-					 */
-					Entry() : _time(0) { }
-			};
-
-		protected:
-
-			ENTRY_T * const _idle; /* Default entry, can't be removed */
-			Double_list<ENTRY_T> _entries; /* List of entries beside '_idle' */
-			unsigned const _lap_time; /* Time that an entry gets for one
-			                           * scheduling lap to consume */
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Scheduler(ENTRY_T * const idle, unsigned const lap_time)
-			: _idle(idle), _lap_time(lap_time) { assert(_lap_time && _idle); }
-
-			/**
-			 * Returns the entry wich shall scheduled next
-			 *
-			 * \param t  At the call it contains the time, wich was consumed
-			 *           by the last entry. At the return it is updated to
-			 *           the next timeslice.
-			 */
-			ENTRY_T * next_entry(unsigned & t)
-			{
-				/* update current entry */
-				ENTRY_T * e = _entries.head();
-				if (!e) {
-					t = _lap_time;
-					return _idle;
-				}
-				e->Entry::_consume(t);
-
-				/* lookup entry with time > 0, refresh depleted timeslices */
-				while (!e->Entry::_time) {
-					e->Entry::_time = _lap_time;
-					_entries.head_to_tail();
-					e = _entries.head();
-				}
-
-				/* return next entry and appropriate portion of time */
-				t = e->Entry::_time;
-				return e;
-			}
-
-			/**
-			 * Get the currently scheduled entry
-			 */
-			ENTRY_T * current_entry() const {
-				return _entries.head() ? _entries.head() : _idle; }
-
-			/**
-			 * Ensure that 'e' does participate in scheduling afterwards
-			 */
-			void insert(ENTRY_T * const e)
-			{
-				if (e == _idle) return;
-				e->Entry::_time = _lap_time;
-				_entries.insert_tail(e);
-			}
-
-			/**
-			 * Ensures that 'e' doesn't participate in scheduling afterwards
-			 */
-			void remove(ENTRY_T * const e) { _entries.remove(e); }
-
-			/**
-			 * Set remaining time of currently scheduled entry to 0
-			 */
-			void yield()
-			{
-				ENTRY_T * const e = _entries.head();
-				if (e) e->_time = 0;
-				return;
-			}
-	};
-
 
 	/**
 	 * Access to static interrupt-controller
 	 */
 	static Pic * pic() { static Pic _object; return &_object; }
+}
 
 
-	/**
-	 * Exclusive ownership and handling of one IRQ per instance at a max
-	 */
-	class Irq_owner : public Object_pool<Irq_owner>::Entry
-	{
-		/**
-		 * To get any instance of this class by its ID
-		 */
-		typedef Object_pool<Irq_owner> Pool;
-		static Pool * _pool() { static Pool _pool; return &_pool; }
+bool Kernel::Irq_owner::allocate_irq(unsigned const irq)
+{
+	/* Check if an allocation is needed and possible */
+	unsigned const id = irq_to_id(irq);
+	if (_id) return _id == id;
+	if (_pool()->object(id)) return 0;
 
-		/**
-		 * Is called when the IRQ we were waiting for has occured
-		 */
-		virtual void _received_irq() = 0;
-
-		/**
-		 * Is called when we start waiting for the occurence of an IRQ
-		 */
-		virtual void _awaits_irq() = 0;
-
-		public:
-
-			/**
-			 * Translate 'Irq_owner_pool'-entry ID to IRQ ID
-			 */
-			static unsigned id_to_irq(unsigned id) { return id - 1; }
-
-			/**
-			 * Translate IRQ ID to 'Irq_owner_pool'-entry ID
-			 */
-			static unsigned irq_to_id(unsigned irq) { return irq + 1; }
-
-			/**
-			 * Constructor
-			 */
-			Irq_owner() : Pool::Entry(0) { }
-
-			/**
-			 * Destructor
-			 */
-			virtual ~Irq_owner() { }
-
-			/**
-			 * Ensure that our 'receive_irq' gets called on IRQ 'irq'
-			 *
-			 * \return  wether the IRQ is allocated to the caller or not
-			 */
-			bool allocate_irq(unsigned const irq)
-			{
-				/* Check if an allocation is needed and possible */
-				unsigned const id = irq_to_id(irq);
-				if (_id) return _id == id;
-				if (_pool()->object(id)) return 0;
-
-				/* Let us own the IRQ, but mask it till we await it */
-				pic()->mask(irq);
-				_id = id;
-				_pool()->insert(this);
-				return 1;
-			}
-
-			/**
-			 * Release the ownership of the IRQ 'irq' if we own it
-			 *
-			 * \return  wether the IRQ is freed or not
-			 */
-			bool free_irq(unsigned const irq)
-			{
-				if (_id != irq_to_id(irq)) return 0;
-				_pool()->remove(this);
-				_id = 0;
-				return 1;
-			}
-
-			/**
-			 * If we own an IRQ, enable it and await 'receive_irq'
-			 */
-			void await_irq()
-			{
-				assert(_id);
-				unsigned const irq = id_to_irq(_id);
-				pic()->unmask(irq);
-				_awaits_irq();
-			}
-
-			/**
-			 * Denote occurence of an IRQ if we own it and awaited it
-			 */
-			void receive_irq(unsigned const irq)
-			{
-				assert(_id == irq_to_id(irq));
-				pic()->mask(irq);
-				_received_irq();
-			}
-
-			/**
-			 * Get owner of IRQ or 0 if the IRQ is not owned by anyone
-			 */
-			static Irq_owner * owner(unsigned irq)
-			{ return _pool()->object(irq_to_id(irq)); }
-	};
+	/* Let us own the IRQ, but mask it till we await it */
+	pic()->mask(irq);
+	_id = id;
+	_pool()->insert(this);
+	return 1;
+}
 
 
+bool Kernel::Irq_owner::free_irq(unsigned const irq)
+{
+	if (_id != irq_to_id(irq)) return 0;
+	_pool()->remove(this);
+	_id = 0;
+	return 1;
+}
+
+
+void Kernel::Irq_owner::await_irq()
+{
+	assert(_id);
+	unsigned const irq = id_to_irq(_id);
+	pic()->unmask(irq);
+	_awaits_irq();
+}
+
+
+void Kernel::Irq_owner::receive_irq(unsigned const irq)
+{
+	assert(_id == irq_to_id(irq));
+	pic()->mask(irq);
+	_received_irq();
+}
+
+
+Kernel::Irq_owner * Kernel::Irq_owner::owner(unsigned irq) {
+	return _pool()->object(irq_to_id(irq)); }
+
+
+namespace Kernel
+{
 	/**
 	 * Idle thread entry
 	 */
@@ -1068,19 +401,6 @@ namespace Kernel
 	 * Access to static kernel timer
 	 */
 	static Timer * timer() { static Timer _object; return &_object; }
-
-
-	class Schedule_context;
-
-	typedef Scheduler<Schedule_context> Cpu_scheduler;
-
-	class Schedule_context : public Cpu_scheduler::Entry
-	{
-		public:
-
-			virtual void handle_exception() = 0;
-			virtual void scheduled_next() = 0;
-	};
 
 
 	/**
@@ -1112,246 +432,129 @@ namespace Kernel
 	void handle_syscall(Thread * const);
 	void handle_interrupt(void);
 	void handle_invalid_excpt(void);
+}
 
 
-	/**
-	 * Kernel object that represents a Genode thread
-	 */
-	class Thread : public Cpu::User_context,
-	               public Object<Thread, MAX_THREADS>,
-	               public Schedule_context,
-	               public Fifo<Thread>::Element,
-	               public Ipc_node,
-	               public Irq_owner
-	{
-		enum State { STOPPED, ACTIVE, AWAIT_IPC, AWAIT_RESUMPTION,
-		             AWAIT_IRQ, AWAIT_SIGNAL };
-
-		Platform_thread * const _platform_thread; /* userland object wich
-		                                           * addresses this thread */
-		State _state; /* thread state, description given at the beginning */
-		Pagefault _pagefault; /* last pagefault triggered by this thread */
-		Thread * _pager; /* gets informed if thread throws a pagefault */
-		unsigned _pd_id; /* ID of the PD this thread runs on */
-		Native_utcb * _phys_utcb; /* physical UTCB base */
-		Native_utcb * _virt_utcb; /* virtual UTCB base */
-
-		/**
-		 * Resume execution
-		 */
-		void _activate()
-		{
-			cpu_scheduler()->insert(this);
-			_state = ACTIVE;
-		}
-
-		public:
-
-			void * operator new (size_t, void * p) { return p; }
-
-			/**
-			 * Constructor
-			 */
-			Thread(Platform_thread * const platform_thread) :
-				_platform_thread(platform_thread),
-				_state(STOPPED), _pager(0), _pd_id(0),
-				_phys_utcb(0), _virt_utcb(0)
-			{ }
-
-			/**
-			 * Start this thread
-			 *
-			 * \param ip      instruction pointer to start at
-			 * \param sp      stack pointer to use
-			 * \param cpu_no  target cpu
-			 *
-			 * \retval  0  successful
-			 * \retval -1  thread could not be started
-			 */
-			int start(void *ip, void *sp, unsigned cpu_no,
-			          unsigned const pd_id, Native_utcb * const phys_utcb,
-			          Native_utcb * const virt_utcb);
-
-			/**
-			 * Pause this thread
-			 */
-			void pause()
-			{
-				assert(_state == AWAIT_RESUMPTION || _state == ACTIVE);
-				cpu_scheduler()->remove(this);
-				_state = AWAIT_RESUMPTION;
-			}
-
-			/**
-			 * Stop this thread
-			 */
-			void stop()
-			{
-				cpu_scheduler()->remove(this);
-				_state = STOPPED;
-			}
-
-			/**
-			 * Resume this thread
-			 */
-			int resume()
-			{
-				if (_state != AWAIT_RESUMPTION && _state != ACTIVE) {
-					PDBG("Unexpected thread state");
-					return -1;
-				}
-				cpu_scheduler()->insert(this);
-				if (_state == ACTIVE) return 1;
-				_state = ACTIVE;
-				return 0;
-			}
-
-			/**
-			 * Send a request and await the reply
-			 */
-			void request_and_wait(Thread * const dest, size_t const size)
-			{
-				Ipc_node::send_request_await_reply(dest, phys_utcb()->base(),
-				                                   size, phys_utcb()->base(),
-				                                   phys_utcb()->size());
-			}
-
-			/**
-			 * Wait for any request
-			 */
-			void wait_for_request()
-			{
-				Ipc_node::await_request(phys_utcb()->base(),
-				                        phys_utcb()->size());
-			}
-
-			/**
-			 * Reply to the last request
-			 */
-			void reply(size_t const size, bool const await_request)
-			{
-				Ipc_node::send_reply(phys_utcb()->base(), size);
-				if (await_request)
-					Ipc_node::await_request(phys_utcb()->base(),
-					                        phys_utcb()->size());
-				else user_arg_0(0);
-			}
-
-			/**
-			 * Initialize our execution context
-			 *
-			 * \param ip     instruction pointer
-			 * \param sp     stack pointer
-			 * \param pd_id  identifies protection domain we're assigned to
-			 */
-			void init_context(void * const ip, void * const sp,
-			                  unsigned const pd_id);
-
-			/**
-			 * Handle a pagefault that originates from this thread
-			 *
-			 * \param va  Virtual fault address
-			 * \param w   Was it a write access?
-			 */
-			void pagefault(addr_t const va, bool const w);
-
-			/**
-			 * Get unique thread ID, avoid method ambiguousness
-			 */
-			unsigned id() const { return Object::id(); }
-
-			/**
-			 * Gets called when we await a signal at a signal receiver
-			 */
-			void await_signal()
-			{
-				cpu_scheduler()->remove(this);
-				_state = AWAIT_IRQ;
-			}
-
-			/**
-			 * Gets called when we have received a signal at a signal receiver
-			 */
-			void receive_signal(Signal const s)
-			{
-				*(Signal *)phys_utcb()->base() = s;
-				_activate();
-			}
-
-			void handle_exception()
-			{
-				switch(cpu_exception) {
-				case SUPERVISOR_CALL:
-					handle_syscall(this);
-					return;
-				case PREFETCH_ABORT:
-				case DATA_ABORT:
-					handle_pagefault(this);
-					return;
-				case INTERRUPT_REQUEST:
-				case FAST_INTERRUPT_REQUEST:
-					handle_interrupt();
-					return;
-				default:
-					handle_invalid_excpt();
-				}
-			}
-
-			void scheduled_next()
-			{
-				/* set context pointer for mode switch */
-				_mt_client_context_ptr = (addr_t)static_cast<Genode::Cpu_state*>(this);
-
-				/* jump to user entry assembler path */
-				mtc()->virt_user_entry();
-			}
-
-			/***************
-			 ** Accessors **
-			 ***************/
-
-			Platform_thread * platform_thread() const
-			{ return _platform_thread; }
-
-			void pager(Thread * const p) { _pager = p; }
-
-			unsigned pd_id() const { return _pd_id; }
-
-			Native_utcb * phys_utcb() const { return _phys_utcb; }
-
-		private:
+void Kernel::Thread::_activate()
+{
+	cpu_scheduler()->insert(this);
+	_state = ACTIVE;
+}
 
 
-			/**************
-			 ** Ipc_node **
-			 **************/
-
-			void _has_received(size_t const s)
-			{
-				user_arg_0(s);
-				if (_state != ACTIVE) _activate();
-			}
-
-			void _awaits_receipt()
-			{
-				cpu_scheduler()->remove(this);
-				_state = AWAIT_IPC;
-			}
+void Kernel::Thread::pause()
+{
+	assert(_state == AWAIT_RESUMPTION || _state == ACTIVE);
+	cpu_scheduler()->remove(this);
+	_state = AWAIT_RESUMPTION;
+}
 
 
-			/***************
-			 ** Irq_owner **
-			 ***************/
+void Kernel::Thread::stop()
+{
+	cpu_scheduler()->remove(this);
+	_state = STOPPED;
+}
 
-			void _received_irq() { _activate(); }
 
-			void _awaits_irq()
-			{
-				cpu_scheduler()->remove(this);
-				_state = AWAIT_IRQ;
-			}
-	};
+int Kernel::Thread::resume()
+{
+	if (_state != AWAIT_RESUMPTION && _state != ACTIVE) {
+		PDBG("Unexpected thread state");
+		return -1;
+	}
+	cpu_scheduler()->insert(this);
+	if (_state == ACTIVE) return 1;
+	_state = ACTIVE;
+	return 0;
+}
 
+
+void Kernel::Thread::request_and_wait(Thread * const dest, size_t const size) {
+	Ipc_node::send_request_await_reply(dest, phys_utcb()->base(),
+	                                   size, phys_utcb()->base(),
+	                                   phys_utcb()->size()); }
+
+
+void Kernel::Thread::wait_for_request() {
+	Ipc_node::await_request(phys_utcb()->base(),
+	                        phys_utcb()->size()); }
+
+
+void Kernel::Thread::reply(size_t const size, bool const await_request)
+{
+	Ipc_node::send_reply(phys_utcb()->base(), size);
+	if (await_request)
+		Ipc_node::await_request(phys_utcb()->base(),
+		                        phys_utcb()->size());
+	else user_arg_0(0);
+}
+
+
+void Kernel::Thread::await_signal()
+{
+	cpu_scheduler()->remove(this);
+	_state = AWAIT_IRQ;
+}
+
+
+void Kernel::Thread::receive_signal(Signal const s)
+{
+	*(Signal *)phys_utcb()->base() = s;
+	_activate();
+}
+
+
+void Kernel::Thread::handle_exception()
+{
+	switch(cpu_exception) {
+	case SUPERVISOR_CALL:
+		handle_syscall(this);
+		return;
+	case PREFETCH_ABORT:
+	case DATA_ABORT:
+		handle_pagefault(this);
+		return;
+	case INTERRUPT_REQUEST:
+	case FAST_INTERRUPT_REQUEST:
+		handle_interrupt();
+		return;
+	default:
+		handle_invalid_excpt();
+	}
+}
+
+
+void Kernel::Thread::scheduled_next()
+{
+	_mt_client_context_ptr = (addr_t)static_cast<Genode::Cpu_state*>(this);
+	mtc()->virt_user_entry();
+}
+
+
+void Kernel::Thread::_has_received(size_t const s)
+{
+	user_arg_0(s);
+	if (_state != ACTIVE) _activate();
+}
+
+
+void Kernel::Thread::_awaits_receipt()
+{
+	cpu_scheduler()->remove(this);
+	_state = AWAIT_IPC;
+}
+
+
+void Kernel::Thread::_awaits_irq()
+{
+	cpu_scheduler()->remove(this);
+	_state = AWAIT_IRQ;
+}
+
+
+namespace Kernel
+{
 	class Signal_receiver;
 
 	/**
