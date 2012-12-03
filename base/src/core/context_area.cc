@@ -163,6 +163,9 @@ class Context_area_ram_session : public Ram_session
 			Dataspace_component *dataspace_component =
 				dynamic_cast<Dataspace_component*>(Dataspace_capability::deref(ds));
 
+			if (!dataspace_component)
+				return;
+
 			for (unsigned i = 0; i < MAX_CORE_CONTEXTS; i++)
 				if (context_ds[i] == dataspace_component) {
 					context_ds[i] = 0;
