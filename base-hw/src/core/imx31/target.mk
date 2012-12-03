@@ -7,5 +7,8 @@
 # declare wich specs must be given to build this target
 REQUIRES = platform_imx31
 
+# add include paths
+INC_DIR += $(REP_DIR)/src/core/include/imx31
+
 # include less specific target parts
 include $(REP_DIR)/src/core/target.inc
