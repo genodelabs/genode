@@ -15,9 +15,9 @@
 #define _CORE__INCLUDE__CORTEX_A9__KERNEL_SUPPORT_H_
 
 /* core includes */
-#include <cortex_a9/cpu.h>
-#include <cortex_a9/timer.h>
-#include <cortex_a9/no_trustzone/pic.h>
+#include <cpu/cortex_a9.h>
+#include <timer/cortex_a9.h>
+#include <pic/cortex_a9_no_trustzone.h>
 
 /**
  * CPU driver

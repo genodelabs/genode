@@ -11,14 +11,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__CORTEX_A9__TIMER_H_
-#define _INCLUDE__CORTEX_A9__TIMER_H_
+#ifndef _TIMER__CORTEX_A9_H_
+#define _TIMER__CORTEX_A9_H_
 
 /* Genode includes */
 #include <util/mmio.h>
 
 /* core includes */
-#include <cortex_a9/cpu.h>
+#include <cpu/cortex_a9.h>
 
 namespace Cortex_a9
 {
@@ -127,5 +127,5 @@ namespace Cortex_a9
 	};
 }
 
-#endif /* _INCLUDE__CORTEX_A9__TIMER_H_ */
+#endif /* _TIMER__CORTEX_A9_H_ */
 

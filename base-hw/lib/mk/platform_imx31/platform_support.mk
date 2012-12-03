@@ -5,7 +5,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include \
+INC_DIR += $(REP_DIR)/src/core \
+           $(REP_DIR)/src/core/include \
            $(REP_DIR)/src/core/include/imx31 \
            $(BASE_DIR)/src/core/include
 

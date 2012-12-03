@@ -1,5 +1,5 @@
 /*
- * \brief   Driver for ARM section tables
+ * \brief   TLB driver for core
  * \author  Martin Stein
  * \date    2012-02-22
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM__SECTION_TABLE_H_
-#define _INCLUDE__ARM__SECTION_TABLE_H_
+#ifndef _TLB__ARM_H_
+#define _TLB__ARM_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -962,5 +962,5 @@ namespace Arm
 	} __attribute__((aligned(1<<Section_table::ALIGNM_LOG2)));
 }
 
-#endif /* _INCLUDE__ARM__SECTION_TABLE_H_ */
+#endif /* _TLB__ARM_H_ */
 

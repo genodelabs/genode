@@ -16,9 +16,9 @@
 #define _CORE__INCLUDE__IMX31__KERNEL_SUPPORT_H_
 
 /* Genode includes */
-#include <arm/v6/cpu.h>
-#include <imx31/timer.h>
-#include <imx31/pic.h>
+#include <cpu/arm_v6.h>
+#include <timer/imx31.h>
+#include <pic/imx31.h>
 
 struct Cpu : Arm_v6::Cpu { };
 

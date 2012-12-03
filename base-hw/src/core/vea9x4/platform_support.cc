@@ -16,8 +16,8 @@
 
 /* Core includes */
 #include <platform.h>
-#include <cortex_a9/cpu.h>
-#include <cortex_a9/no_trustzone/pic.h>
+#include <cpu/cortex_a9.h>
+#include <pic/cortex_a9_no_trustzone.h>
 
 using namespace Genode;
 

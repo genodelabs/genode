@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__CORTEX_A9__PIC_H_
-#define _INCLUDE__CORTEX_A9__PIC_H_
+#ifndef _PIC__CORTEX_A9_H_
+#define _PIC__CORTEX_A9_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -288,5 +288,5 @@ namespace Cortex_a9
 	};
 }
 
-#endif /* _INCLUDE__CORTEX_A9__PIC_H_ */
+#endif /* _PIC__CORTEX_A9_H_ */
 

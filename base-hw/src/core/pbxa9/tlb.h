@@ -18,7 +18,7 @@
 #include <drivers/board_base.h>
 
 /* core includes */
-#include <arm/v7/section_table.h>
+#include <tlb/arm_v7.h>
 
 /**
  * Software TLB-controls

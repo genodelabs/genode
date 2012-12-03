@@ -1,14 +1,14 @@
 /*
- * \brief  Board definitions for core
+ * \brief  Board driver for core
  * \author Martin Stein
  * \date   2012-11-01
  */
 
-#ifndef _INCLUDE__IMX31__DRIVERS__BOARD_H_
-#define _INCLUDE__IMX31__DRIVERS__BOARD_H_
+#ifndef _BOARD__IMX31_H_
+#define _BOARD__IMX31_H_
 
 /* Genode includes */
-#include <platform/imx31/drivers/board_base.h>
+#include <drivers/board_base.h>
 
 namespace Genode
 {
@@ -69,10 +69,13 @@ namespace Genode
 			}
 	};
 
+	/**
+	 * Board driver for core
+	 */
 	struct Board : Board_base
 	{
 		/**
-		 * static AIPS 1 instance
+		 * Static AIPS 1 instance
 		 */
 		static Aips * aips_1() { static Aips a(AIPS_1_MMIO_BASE); return &a; }
 
@@ -92,5 +95,4 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__IMX31__DRIVERS__BOARD_H_ */
-
+#endif /* _BOARD__IMX31_H_ */

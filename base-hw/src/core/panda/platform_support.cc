@@ -15,8 +15,8 @@
 #include <drivers/board_base.h>
 
 /* core includes */
-#include <cortex_a9/cpu.h>
-#include <cortex_a9/no_trustzone/pic.h>
+#include <cpu/cortex_a9.h>
+#include <pic/cortex_a9_no_trustzone.h>
 #include <platform.h>
 
 using namespace Genode;

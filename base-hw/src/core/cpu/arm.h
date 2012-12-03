@@ -1,5 +1,5 @@
 /*
- * \brief  Simple driver for the ARM core
+ * \brief  CPU driver for core
  * \author Martin stein
  * \date   2012-09-11
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM__CPU_H_
-#define _INCLUDE__ARM__CPU_H_
+#ifndef _CPU__ARM_H_
+#define _CPU__ARM_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -23,7 +23,7 @@ namespace Arm
 	using namespace Genode;
 
 	/**
-	 * ARM core
+	 * CPU driver for core
 	 */
 	struct Cpu
 	{
@@ -646,5 +646,5 @@ namespace Arm
 	};
 }
 
-#endif /* _INCLUDE__ARM__CPU_H_ */
+#endif /* _CPU__ARM_H_ */
 

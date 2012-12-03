@@ -1,5 +1,5 @@
 /*
- * \brief  Simple driver for the ARMv7 core
+ * \brief  CPU driver for core
  * \author Martin stein
  * \date   2011-11-03
  */
@@ -11,21 +11,21 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM_V7__CPU_H_
-#define _INCLUDE__ARM_V7__CPU_H_
+#ifndef _CPU__ARM_V7_H_
+#define _CPU__ARM_V7_H_
 
 /* Genode includes */
 #include <drivers/board_base.h>
 
 /* core includes */
-#include <arm/cpu.h>
+#include <cpu/arm.h>
 
 namespace Arm_v7
 {
 	using namespace Genode;
 
 	/**
-	 * ARMv7 core
+	 * CPU driver for core
 	 */
 	struct Cpu : Arm::Cpu
 	{
@@ -305,5 +305,5 @@ Arm::Cpu::Psr::access_t Arm::Cpu::Psr::init_user_with_trustzone()
 }
 
 
-#endif /* _INCLUDE__ARM_V7__CPU_H_ */
+#endif /* _CPU__ARM_V7_H_ */
 

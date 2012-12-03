@@ -1,6 +1,7 @@
 /*
- * \brief  Simple driver for the ARMv6 CPU core
+ * \brief  CPU driver for core
  * \author Norman Feske
+ * \author Martin stein
  * \date   2012-08-30
  */
 
@@ -11,22 +12,22 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM_V6__CPU_H_
-#define _INCLUDE__ARM_V6__CPU_H_
+#ifndef _CPU__ARM_V6_H_
+#define _CPU__ARM_V6_H_
 
 /* Genode includes */
-#include <drivers/board.h>
+#include <board/imx31.h>
 #include <base/printf.h>
 
 /* core includes */
-#include <arm/cpu.h>
+#include <cpu/arm.h>
 
 namespace Arm_v6
 {
 	using namespace Genode;
 
 	/**
-	 * ARMv6 core
+	 * CPU driver for core
 	 */
 	struct Cpu : Arm::Cpu
 	{
@@ -170,5 +171,5 @@ void Arm::Cpu::flush_data_caches() {
 	asm volatile ("mcr p15, 0, %[rd], c7, c14, 0" :: [rd]"r"(0) : ); }
 
 
-#endif /* _INCLUDE__ARM_V6__CPU_H_ */
+#endif /* _CPU__ARM_V6_H_ */
 

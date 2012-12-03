@@ -1,5 +1,5 @@
 /*
- * \brief   Driver for ARMv7 section tables
+ * \brief   TLB driver for core
  * \author  Martin Stein
  * \date    2012-02-22
  */
@@ -11,12 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM_V7__SECTION_TABLE_H_
-#define _INCLUDE__ARM_V7__SECTION_TABLE_H_
+#ifndef _TLB__ARM_V7_H_
+#define _TLB__ARM_V7_H_
 
 /* core includes */
-#include <arm/section_table.h>
-#include <arm/v7/cpu.h>
+#include <tlb/arm.h>
+#include <cpu/arm_v7.h>
 
 namespace Arm_v7
 {
@@ -115,5 +115,5 @@ namespace Arm_v7
 bool Arm::cache_support() { return 1; }
 
 
-#endif /* _INCLUDE__ARM_V7__SECTION_TABLE_H_ */
+#endif /* _TLB__ARM_V7_H_ */
 

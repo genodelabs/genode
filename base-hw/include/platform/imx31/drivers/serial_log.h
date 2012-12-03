@@ -15,7 +15,7 @@
 #define _INCLUDE__PLATFORM__IMX31__DRIVERS__SERIAL_LOG_H_
 
 /* Genode includes */
-#include <drivers/board.h>
+#include <imx31/board.h>
 #include <drivers/uart/imx31_uart_base.h>
 
 namespace Genode

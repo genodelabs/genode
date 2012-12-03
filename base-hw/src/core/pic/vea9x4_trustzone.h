@@ -11,12 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__VEA9X4_TRUSTZONE__PIC_H_
-#define _INCLUDE__VEA9X4_TRUSTZONE__PIC_H_
+#ifndef _PIC__VEA9X4_TRUSTZONE_H_
+#define _PIC__VEA9X4_TRUSTZONE_H_
 
 /* core includes */
-#include <cortex_a9/cpu.h>
-#include <cortex_a9/pic.h>
+#include <cpu/cortex_a9.h>
+#include <pic/cortex_a9.h>
 
 namespace Vea9x4_trustzone
 {
@@ -64,5 +64,5 @@ namespace Vea9x4_trustzone
 	};
 }
 
-#endif /* _INCLUDE__VEA9X4_TRUSTZONE__PIC_H_ */
+#endif /* _PIC__VEA9X4_TRUSTZONE_H_ */
 

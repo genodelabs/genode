@@ -11,12 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__CORTEX_A9__NO_TRUSTZONE__PIC_H_
-#define _INCLUDE__CORTEX_A9__NO_TRUSTZONE__PIC_H_
+#ifndef _PIC__CORTEX_A9_NO_TRUSTZONE_H_
+#define _PIC__CORTEX_A9_NO_TRUSTZONE_H_
 
 /* core includes */
-#include <cortex_a9/cpu.h>
-#include <cortex_a9/pic.h>
+#include <cpu/cortex_a9.h>
+#include <pic/cortex_a9.h>
 
 namespace Cortex_a9_no_trustzone
 {
@@ -66,5 +66,5 @@ namespace Cortex_a9_no_trustzone
 	};
 }
 
-#endif /* _INCLUDE__CORTEX_A9__NO_TRUSTZONE__PIC_H_ */
+#endif /* _PIC__CORTEX_A9_NO_TRUSTZONE_H_ */
 

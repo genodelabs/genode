@@ -12,8 +12,8 @@
  */
 
 /* Genode includes */
-#include <drivers/board.h>
-#include <imx31/pic.h>
+#include <board/imx31.h>
+#include <pic/imx31.h>
 
 /* core includes */
 #include <platform.h>

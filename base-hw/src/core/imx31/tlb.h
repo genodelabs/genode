@@ -15,8 +15,8 @@
 #define _SRC__CORE__IMX31__TLB_H_
 
 /* Genode includes */
-#include <arm/v6/section_table.h>
-#include <drivers/board.h>
+#include <tlb/arm_v6.h>
+#include <board/imx31.h>
 
 /**
  * Software TLB-controls

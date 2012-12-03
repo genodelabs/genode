@@ -15,9 +15,9 @@
 #define _SRC__CORE__VEA9X4__TRUSTZONE__KERNEL_SUPPORT_H_
 
 /* Core includes */
-#include <cortex_a9/cpu.h>
-#include <cortex_a9/timer.h>
-#include <vea9x4_trustzone/pic.h>
+#include <timer/cortex_a9.h>
+#include <cpu/cortex_a9.h>
+#include <pic/vea9x4_trustzone.h>
 
 /**
  * CPU driver

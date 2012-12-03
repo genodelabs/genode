@@ -12,12 +12,14 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__IMX31__PIC_H_
-#define _INCLUDE__IMX31__PIC_H_
+#ifndef _PIC__IMX31_H_
+#define _PIC__IMX31_H_
 
 /* Genode includes */
 #include <util/mmio.h>
-#include <drivers/board.h>
+
+/* core includes */
+#include <imx31/board.h>
 
 namespace Imx31
 {
@@ -193,5 +195,5 @@ namespace Imx31
 	};
 }
 
-#endif /* _INCLUDE__IMX31__PIC_H_ */
+#endif /* _PIC__IMX31_H_ */
 

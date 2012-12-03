@@ -5,7 +5,8 @@
 #
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/include \
+INC_DIR += $(REP_DIR)/src/core \
+           $(REP_DIR)/src/core/include \
            $(BASE_DIR)/src/core/include
 
 # avoid building of this lib with other platforms

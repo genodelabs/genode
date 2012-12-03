@@ -1,5 +1,5 @@
 /*
- * \brief  Simple driver for the Cortex A9
+ * \brief  CPU driver for core
  * \author Martin stein
  * \date   2011-11-03
  */
@@ -11,21 +11,21 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__CORTEX_A9__CPU_H_
-#define _INCLUDE__CORTEX_A9__CPU_H_
+#ifndef _CPU__CORTEX_A9_H_
+#define _CPU__CORTEX_A9_H_
 
 /* Genode includes */
 #include <drivers/board_base.h>
 
 /* core includes */
-#include <arm/v7/cpu.h>
+#include <cpu/arm_v7.h>
 
 namespace Cortex_a9
 {
 	using namespace Genode;
 
 	/**
-	 * Cortex A9 CPU
+	 * CPU driver for core
 	 */
 	struct Cpu : Arm_v7::Cpu
 	{
@@ -50,5 +50,5 @@ namespace Cortex_a9
 	};
 }
 
-#endif /* _INCLUDE__CORTEX_A9__CPU_H_ */
+#endif /* _CPU__CORTEX_A9_H_ */
 

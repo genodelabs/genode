@@ -1,5 +1,5 @@
 /*
- * \brief   Driver for ARMv6 section tables
+ * \brief   TLB driver for core
  * \author  Martin Stein
  * \date    2012-02-22
  */
@@ -11,11 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM_V6__SECTION_TABLE_H_
-#define _INCLUDE__ARM_V6__SECTION_TABLE_H_
+#ifndef _TLB__ARM_V6_H_
+#define _TLB__ARM_V6_H_
 
 /* core includes */
-#include <arm/section_table.h>
+#include <tlb/arm.h>
 
 namespace Arm_v6
 {
@@ -92,5 +92,5 @@ namespace Arm_v6
 bool Arm::cache_support() { return 0; }
 
 
-#endif /* _INCLUDE__ARM_V6__SECTION_TABLE_H_ */
+#endif /* _TLB__ARM_V6_H_ */
 
