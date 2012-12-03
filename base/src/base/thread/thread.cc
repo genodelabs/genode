@@ -142,7 +142,8 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	try {
 		ds_cap = env_context_area_ram_session()->alloc(ds_size);
 		addr_t attach_addr = ds_addr - Native_config::context_area_virtual_base();
-		env_context_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size);
+		if (attach_addr != (addr_t)env_context_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size))
+			throw Stack_alloc_failed(); 
 	}
 	catch (Ram_session::Alloc_failed) { throw Stack_alloc_failed(); }
 
