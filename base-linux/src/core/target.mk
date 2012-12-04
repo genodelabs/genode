@@ -21,7 +21,8 @@ SRC_CC        = main.cc \
                 thread.cc \
                 thread_linux.cc \
                 context_area.cc \
-                debug.cc
+                debug.cc \
+                rm_session_mmap.cc
 
 INC_DIR      += $(REP_DIR)/src/core/include \
                 $(GEN_CORE_DIR)/include \
@@ -38,4 +39,5 @@ vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath debug.cc                    $(REP_DIR)/src/base/env
+vpath rm_session_mmap.cc          $(REP_DIR)/src/base/env
 vpath %.cc                        $(PRG_DIR)

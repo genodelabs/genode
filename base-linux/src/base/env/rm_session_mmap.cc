@@ -19,15 +19,6 @@
 using namespace Genode;
 
 
-static Genode::size_t dataspace_size(Dataspace_capability ds)
-{
-	if (ds.valid())
-		return Dataspace_client(ds).size();
-
-	return Dataspace_capability::deref(ds)->size();
-}
-
-
 static bool is_sub_rm_session(Dataspace_capability ds)
 {
 	if (ds.valid())
@@ -37,12 +28,16 @@ static bool is_sub_rm_session(Dataspace_capability ds)
 }
 
 
-static void *map_local(Dataspace_capability ds, Genode::size_t size,
-                       addr_t offset, bool use_local_addr, addr_t local_addr,
-                       bool executable)
+void *
+Platform_env_base::Rm_session_mmap::_map_local(Dataspace_capability ds,
+                                               Genode::size_t       size,
+                                               addr_t               offset,
+                                               bool                 use_local_addr,
+                                               addr_t               local_addr,
+                                               bool                 executable)
 {
-	int  const  fd        = Linux_dataspace_client(ds).fd().dst().socket;
-	bool const  writable  = Dataspace_client(ds).writable();
+	int  const  fd        = _dataspace_fd(ds);
+	bool const  writable  = _dataspace_writable(ds);
 
 	int  const  flags     = MAP_SHARED | (use_local_addr ? MAP_FIXED : 0);
 	int  const  prot      = PROT_READ
@@ -60,7 +55,7 @@ static void *map_local(Dataspace_capability ds, Genode::size_t size,
 	lx_close(fd);
 
 	if (((long)addr_out < 0) && ((long)addr_out > -4095)) {
-		PERR("map_local: return value of mmap is %ld", (long)addr_out);
+		PERR("_map_local: return value of mmap is %ld", (long)addr_out);
 		throw Rm_session::Region_conflict();
 	}
 
@@ -97,8 +92,8 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 		throw Region_conflict();
 	}
 
-	size_t const remaining_ds_size = dataspace_size(ds) > (addr_t)offset
-	                               ? dataspace_size(ds) - (addr_t)offset : 0;
+	size_t const remaining_ds_size = _dataspace_size(ds) > (addr_t)offset
+	                               ? _dataspace_size(ds) - (addr_t)offset : 0;
 
 	/* determine size of virtual address region */
 	size_t const region_size = size ? min(remaining_ds_size, size)
@@ -148,7 +143,7 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 		 * and map it.
 		 */
 		if (_is_attached())
-			map_local(ds, region_size, offset, true, _base + (addr_t)local_addr, executable);
+			_map_local(ds, region_size, offset, true, _base + (addr_t)local_addr, executable);
 
 		return (void *)local_addr;
 
@@ -194,9 +189,9 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 				if (!region.used())
 					continue;
 
-				map_local(region.dataspace(), region.size(), region.offset(),
-				          true, rm->_base + region.start() + region.offset(),
-				          executable);
+				_map_local(region.dataspace(), region.size(), region.offset(),
+				           true, rm->_base + region.start() + region.offset(),
+				           executable);
 			}
 
 			return rm->_base;
@@ -208,8 +203,8 @@ Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
 			 *
 			 * Boring, a plain dataspace is attached to a root RM session.
 			 */
-			void *addr = map_local(ds, region_size, offset, use_local_addr,
-			                       local_addr, executable);
+			void *addr = _map_local(ds, region_size, offset, use_local_addr,
+			                        local_addr, executable);
 
 			_add_to_rmap(Region((addr_t)addr, offset, ds, region_size));
 

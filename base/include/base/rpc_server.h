@@ -399,6 +399,11 @@ namespace Genode {
 			 * answering the original call.
 			 */
 			void explicit_reply(Untyped_capability reply_cap, int return_value);
+
+			/**
+			 * Return true if the caller corresponds to the entrypoint called
+			 */
+			bool is_myself() const;
 	};
 }
 

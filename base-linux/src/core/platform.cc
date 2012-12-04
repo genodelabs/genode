@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/lock.h>
+#include <linux_dataspace/client.h>
 
 /* local includes */
 #include "platform.h"
@@ -26,7 +27,10 @@
 using namespace Genode;
 
 
-static char _some_mem[80*1024*1024];
+/**
+ * Memory pool used for for core-local meta data
+ */
+static char _core_mem[80*1024*1024];
 static Lock _wait_for_exit_lock(Lock::LOCKED);  /* exit() sync */
 
 
@@ -37,7 +41,7 @@ static void signal_handler(int signum)
 
 
 Platform::Platform()
-: _ram_alloc(0)
+: _core_mem_alloc(0)
 {
 	/* catch control-c */
 	lx_sigaction(2, signal_handler);
@@ -45,7 +49,7 @@ Platform::Platform()
 	/* create resource directory under /tmp */
 	lx_mkdir(resource_path(), S_IRWXU);
 
-	_ram_alloc.add_range((addr_t)_some_mem, sizeof(_some_mem));
+	_core_mem_alloc.add_range((addr_t)_core_mem, sizeof(_core_mem));
 
 	/*
 	 * Occupy the socket handle that will be used to propagate the parent
@@ -95,3 +99,46 @@ namespace Genode {
 	}
 }
 
+
+/****************************************************
+ ** Support for Platform_env_base::Rm_session_mmap **
+ ****************************************************/
+
+Genode::size_t
+Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
+{
+	if (!ds_cap.valid())
+		return Dataspace_capability::deref(ds_cap)->size();
+
+	/* use RPC if called from a different thread */
+	if (!core_env()->entrypoint()->is_myself())
+		return Dataspace_client(ds_cap).size();
+
+	/* use local function call if called from the entrypoint */
+	Dataspace *ds = core_env()->entrypoint()->lookup(ds_cap);
+	return ds ? ds->size() : 0;
+}
+
+
+int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
+{
+	if (!core_env()->entrypoint()->is_myself())
+		return Linux_dataspace_client(ds_cap).fd().dst().socket;
+
+	Capability<Linux_dataspace> lx_ds_cap = static_cap_cast<Linux_dataspace>(ds_cap);
+
+	Linux_dataspace *ds = core_env()->entrypoint()->lookup(lx_ds_cap);
+
+	return ds ? ds->fd().dst().socket : -1;
+}
+
+
+bool Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds_cap)
+{
+	if (!core_env()->entrypoint()->is_myself())
+		return Dataspace_client(ds_cap).writable();
+
+	Dataspace *ds = core_env()->entrypoint()->lookup(ds_cap);
+
+	return ds ? ds->writable() : false;
+}

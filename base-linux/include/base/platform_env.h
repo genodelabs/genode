@@ -31,7 +31,11 @@
 
 namespace Genode {
 
-	class Platform_env : public Env
+	/**
+	 * Common base class of the 'Platform_env' implementations for core and
+	 * non-core processes.
+	 */
+	class Platform_env_base : public Env
 	{
 		private:
 
@@ -146,6 +150,12 @@ namespace Genode {
 					}
 			};
 
+		protected:
+
+			/*
+			 * 'Rm_session_mmap' is 'protected' because it is instantiated by
+			 * 'Platform_env::Local_parent::session()'.
+			 */
 
 			/*
 			 * On Linux, we use a local region manager session that attaches
@@ -185,6 +195,36 @@ namespace Genode {
 					bool _is_attached() const { return _base > 0; }
 
 					void _add_to_rmap(Region const &);
+
+					/**
+					 * Map dataspace into local address space
+					 */
+					static void *_map_local(Dataspace_capability ds,
+					                        Genode::size_t       size,
+					                        addr_t               offset,
+					                        bool                 use_local_addr,
+					                        addr_t               local_addr,
+					                        bool                 executable);
+
+					/**
+					 * Determine size of dataspace
+					 *
+					 * For core, this function performs a local lookup of the
+					 * 'Dataspace_component' object. For non-core programs, the
+					 * dataspace size is determined via an RPC to core
+					 * (calling 'Dataspace::size()').
+					 */
+					static size_t _dataspace_size(Capability<Dataspace>);
+
+					/**
+					 * Determine file descriptor of dataspace
+					 */
+					static int _dataspace_fd(Capability<Dataspace>);
+
+					/**
+					 * Determine whether dataspace is writable
+					 */
+					static bool _dataspace_writable(Capability<Dataspace>);
 
 				public:
 
@@ -240,6 +280,7 @@ namespace Genode {
 					}
 			};
 
+		private:
 
 			class Expanding_ram_session_client : public Ram_session_client
 			{
@@ -273,6 +314,55 @@ namespace Genode {
 					}
 			};
 
+
+			/*******************************
+			 ** Platform-specific members **
+			 *******************************/
+
+			Ram_session_capability       _ram_session_cap;
+			Expanding_ram_session_client _ram_session_client;
+			Cpu_session_capability       _cpu_session_cap;
+			Linux_cpu_session_client     _cpu_session_client;
+			Rm_session_mmap              _rm_session_mmap;
+			Pd_session_client            _pd_session_client;
+
+		public:
+
+			/**
+			 * Constructor
+			 */
+			Platform_env_base(Ram_session_capability ram_cap,
+			                  Cpu_session_capability cpu_cap,
+			                  Pd_session_capability  pd_cap)
+			:
+				_ram_session_cap(ram_cap),
+				_ram_session_client(_ram_session_cap),
+				_cpu_session_cap(cpu_cap),
+				_cpu_session_client(static_cap_cast<Linux_cpu_session>(cpu_cap)),
+				_rm_session_mmap(false),
+				_pd_session_client(pd_cap)
+			{ }
+
+
+			/*******************
+			 ** Env interface **
+			 *******************/
+
+			Ram_session            *ram_session()     { return &_ram_session_client; }
+			Ram_session_capability  ram_session_cap() { return  _ram_session_cap; }
+			Rm_session             *rm_session()      { return &_rm_session_mmap; }
+			Linux_cpu_session      *cpu_session()     { return &_cpu_session_client; }
+			Cpu_session_capability  cpu_session_cap() { return  _cpu_session_cap; }
+			Pd_session             *pd_session()      { return &_pd_session_client; }
+	};
+
+
+	/**
+	 * 'Platform_env' used by all processes except for core
+	 */
+	class Platform_env : public Platform_env_base
+	{
+		private:
 
 			/**
 			 * Local interceptor of parent requests
@@ -308,62 +398,32 @@ namespace Genode {
 					Local_parent(Parent_capability parent_cap);
 			};
 
+			/**
+			 * Obtain singleton instance of parent interface
+			 */
+			static Local_parent &_parent();
+
+			Heap _heap;
+
 
 			/*************************************
 			 ** Linux-specific helper functions **
 			 *************************************/
 
-			/**
-			 * Read Unix environment variable as long value
-			 */
-			static unsigned long _get_env_ulong(const char *key);
-
-
-			Parent_capability _parent_cap()
-			{
-				long local_name = _get_env_ulong("parent_local_name");
-
-				/* produce typed capability manually */
-				typedef Native_capability::Dst Dst;
-				Dst const dst(PARENT_SOCKET_HANDLE);
-				return reinterpret_cap_cast<Parent>(Native_capability(dst, local_name));
-			}
-
-
-			/*******************************
-			 ** Platform-specific members **
-			 *******************************/
-
-			Local_parent                  _parent;
-			Ram_session_capability        _ram_session_cap;
-			Expanding_ram_session_client  _ram_session_client;
-			Cpu_session_capability        _cpu_session_cap;
-			Linux_cpu_session_client      _cpu_session_client;
-			Rm_session_mmap               _rm_session_mmap;
-			Pd_session_client             _pd_session_client;
-			Heap                          _heap;
-
 		public:
 
-			/**
-			 * Standard constructor
-			 */
 			Platform_env()
 			:
-				_parent(_parent_cap()),
-				_ram_session_cap(static_cap_cast<Ram_session>(parent()->session("Env::ram_session", ""))),
-				_ram_session_client(_ram_session_cap),
-				_cpu_session_cap(static_cap_cast<Cpu_session>(parent()->session("Env::cpu_session", ""))),
-				_cpu_session_client(static_cap_cast<Linux_cpu_session>(parent()->session("Env::cpu_session", ""))),
-				_rm_session_mmap(false),
-				_pd_session_client(static_cap_cast<Pd_session>(parent()->session("Env::pd_session", ""))),
-				_heap(&_ram_session_client, &_rm_session_mmap)
+				Platform_env_base(static_cap_cast<Ram_session>(_parent().session("Env::ram_session", "")),
+				                  static_cap_cast<Cpu_session>(_parent().session("Env::cpu_session", "")),
+				                  static_cap_cast<Pd_session> (_parent().session("Env::pd_session",  ""))),
+				_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session())
 			{ }
 
 			/**
 			 * Destructor
 			 */
-			~Platform_env() { parent()->exit(0); }
+			~Platform_env() { _parent().exit(0); }
 
 			/**
 			 * Reload parent capability and reinitialize environment resources
@@ -378,14 +438,8 @@ namespace Genode {
 			 ** Env interface **
 			 *******************/
 
-			Parent                 *parent()          { return &_parent; }
-			Ram_session            *ram_session()     { return &_ram_session_client; }
-			Ram_session_capability  ram_session_cap() { return  _ram_session_cap; }
-			Rm_session             *rm_session()      { return &_rm_session_mmap; }
-			Heap                   *heap()            { return &_heap; }
-			Linux_cpu_session      *cpu_session()     { return &_cpu_session_client; }
-			Cpu_session_capability  cpu_session_cap() { return  _cpu_session_cap; }
-			Pd_session             *pd_session()      { return &_pd_session_client; }
+			Parent *parent() { return &_parent(); }
+			Heap   *heap()   { return &_heap; }
 	};
 }
 

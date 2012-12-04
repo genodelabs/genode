@@ -91,6 +91,12 @@ void Rpc_entrypoint::activate()
 }
 
 
+bool Rpc_entrypoint::is_myself() const
+{
+	return (Thread_base::myself() == this);
+}
+
+
 Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
                                char const *name, bool start_on_construction)
 :

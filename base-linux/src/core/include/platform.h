@@ -31,7 +31,43 @@ namespace Genode {
 	{
 		private:
 
-			Synchronized_range_allocator<Allocator_avl> _ram_alloc;  /* RAM allocator */
+			/**
+			 * Allocator for core-internal meta data
+			 */
+			Synchronized_range_allocator<Allocator_avl> _core_mem_alloc;
+
+			/**
+			 * Allocator for pseudo physical memory
+			 */
+			struct Pseudo_ram_allocator : Range_allocator
+			{
+				bool alloc(size_t size, void **out_addr)
+				{
+					*out_addr = 0;
+					return true;
+				}
+
+				Alloc_return alloc_aligned(size_t, void **out_addr, int)
+				{
+					*out_addr = 0;
+					return Alloc_return::OK;
+				}
+
+				Alloc_return alloc_addr(size_t, addr_t)
+				{
+					return Alloc_return::OK;;
+				}
+
+				int    add_range(addr_t, size_t)    { return 0; }
+				int    remove_range(addr_t, size_t) { return 0; }
+				void   free(void *)                 { }
+				void   free(void *, size_t)         { }
+				size_t avail()                      { return ~0; }
+				bool   valid_addr(addr_t)           { return true; }
+				size_t overhead(size_t)             { return 0; }
+			};
+
+			Pseudo_ram_allocator _ram_alloc;
 
 		public:
 
@@ -45,7 +81,7 @@ namespace Genode {
 			 ** Generic platform interface **
 			 ********************************/
 
-			Range_allocator *core_mem_alloc() { return &_ram_alloc; }
+			Range_allocator *core_mem_alloc() { return &_core_mem_alloc; }
 			Range_allocator *ram_alloc()      { return &_ram_alloc; }
 			Range_allocator *io_mem_alloc()   { return 0; }
 			Range_allocator *io_port_alloc()  { return 0; }
