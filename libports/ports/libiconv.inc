@@ -1,0 +1,2 @@
+LIBICONV_VERSION = 1.14
+LIBICONV         = libiconv-$(LIBICONV_VERSION)
