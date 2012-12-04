@@ -99,11 +99,12 @@ static void page_fault_handler()
 	Utcb *utcb = (Utcb *)CORE_PAGER_UTCB_ADDR;
 
 	addr_t pf_addr = utcb->qual[1];
-	addr_t pf_ip  = utcb->ip;
-	addr_t pf_sp  = utcb->sp;
+	addr_t pf_ip   = utcb->ip;
+	addr_t pf_sp   = utcb->sp;
+	addr_t pf_type = utcb->qual[0];
 
-	printf("\nPAGE-FAULT IN CORE: ADDR %lx  IP %lx  SP %lx stack trace follows...\n",
-	       pf_addr, pf_ip, pf_sp);
+	print_page_fault("\nPAGE-FAULT IN CORE", pf_addr, pf_ip,
+	                 (Genode::Rm_session::Fault_type)pf_type, ~0UL);
 
 	/* dump stack trace */
 	struct Core_img
@@ -124,7 +125,7 @@ static void page_fault_handler()
 
 		addr_t *ip()       { return _ip; }
 		void    next_ip()  { _ip = ((addr_t *)*(_ip - 1)) + 1;}
-		bool    ip_valid() { return *_ip >= _beg && *_ip < _end; }
+		bool    ip_valid() { return (*_ip >= _beg) && (*_ip < _end); }
 	};
 
 	int count = 1;
