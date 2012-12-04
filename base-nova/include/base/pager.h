@@ -186,6 +186,15 @@ namespace Genode {
 			 */
 			Thread_capability thread_cap() { return _thread_cap; } const
 			void thread_cap(Thread_capability cap) { _thread_cap = cap; }
+
+			/**
+			 * Make sure nobody is in the handler anymore by doing an IPC to a
+			 * local cap pointing to same serving thread (if not running in the
+			 * context of the serving thread). When the call returns
+			 * we know that nobody is handled by this object anymore, because
+			 * all remotely available portals had been revoked beforehand.
+			 */
+			void cleanup_call();
 	};
 
 
