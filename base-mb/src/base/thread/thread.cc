@@ -164,9 +164,9 @@ void Thread_base::_free_context()
 {
 	addr_t ds_addr = _context->stack_base - Native_config::context_area_virtual_base();
 	Ram_dataspace_capability ds_cap = _context->ds_cap;
+	_context_allocator()->free(this);
 	Genode::env_context_area_rm_session()->detach((void *)ds_addr);
 	Genode::env_context_area_ram_session()->free(ds_cap);
-	_context_allocator()->free(this);
 }
 
 
