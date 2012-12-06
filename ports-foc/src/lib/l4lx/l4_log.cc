@@ -14,6 +14,8 @@
 /* Genode includes */
 #include <base/printf.h>
 
+#include <linux.h>
+
 namespace Fiasco {
 #include <l4/log/log.h>
 #include <l4/sys/kdebug.h>
@@ -25,6 +27,8 @@ extern "C" {
 
 	void LOG_printf(const char *format, ...)
 	{
+		Linux::Irq_guard guard;
+
 		va_list list;
 		va_start(list, format);
 		Genode::vprintf(format, list);
@@ -33,6 +37,8 @@ extern "C" {
 
 	void LOG_vprintf(const char *format, va_list list)
 	{
+		Linux::Irq_guard guard;
+
 		Genode::vprintf(format, list);
 	}
 

@@ -19,6 +19,10 @@
 #include <vcpu.h>
 #include <l4lx_thread.h>
 
+namespace Fiasco {
+#include <l4/sys/debugger.h>
+}
+
 using namespace Fiasco;
 
 enum {
@@ -86,7 +90,9 @@ extern "C" {
 
 void l4lx_thread_name_set(l4_cap_idx_t thread, const char *name)
 {
-	PWRN("%s: Not implemented yet!", __func__);
+	Linux::Irq_guard guard;
+
+	Fiasco::l4_debugger_set_object_name(thread, name);
 }
 
 
@@ -94,6 +100,8 @@ void l4lx_thread_init(void) { }
 
 void l4lx_thread_alloc_irq(l4_cap_idx_t c)
 {
+	Linux::Irq_guard guard;
+
 	Genode::Native_capability cap = L4lx::vcpu_connection()->alloc_irq();
 	l4_task_map(L4_BASE_TASK_CAP, L4_BASE_TASK_CAP,
 	            l4_obj_fpage(cap.dst(), 0, L4_FPAGE_RWX), c | L4_ITEM_MAP);
@@ -109,6 +117,8 @@ l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
                                  struct l4lx_thread_start_info_t *deferstart)
 {
 	using namespace L4lx;
+
+	Linux::Irq_guard guard;
 
 	if (DEBUG)
 		PDBG("func=%p cpu=%x stack=%p data=%p data_size=%x prio=%d name=%s",
@@ -146,6 +156,8 @@ l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
 
 int l4lx_thread_start(struct l4lx_thread_start_info_t *startinfo)
 {
+	Linux::Irq_guard guard;
+
 	if (DEBUG)
 		PDBG("ip=%lx sp=%lx", startinfo->ip, startinfo->sp);
 	L4lx::Vcpu *vc = (L4lx::Vcpu*) startinfo->l4cap;
@@ -156,6 +168,8 @@ int l4lx_thread_start(struct l4lx_thread_start_info_t *startinfo)
 
 void l4lx_thread_pager_change(l4_cap_idx_t thread, l4_cap_idx_t pager)
 {
+	Linux::Irq_guard guard;
+
 	if (DEBUG)
 		PDBG("Change pager of %lx to %lx", thread, pager);
 
@@ -169,18 +183,24 @@ void l4lx_thread_pager_change(l4_cap_idx_t thread, l4_cap_idx_t pager)
 
 void l4lx_thread_set_kernel_pager(l4_cap_idx_t thread)
 {
+	Linux::Irq_guard guard;
+
 	PWRN("%s: Not implemented yet!", __func__);
 }
 
 
 void l4lx_thread_shutdown(l4lx_thread_t u, void *v)
 {
+	Linux::Irq_guard guard;
+
 	PWRN("%s: Not implemented yet!", __func__);
 }
 
 
 int l4lx_thread_equal(l4_cap_idx_t t1, l4_cap_idx_t t2)
 {
+	Linux::Irq_guard guard;
+
 	PWRN("%s: Not implemented yet!", __func__);
 	return 0;
 }

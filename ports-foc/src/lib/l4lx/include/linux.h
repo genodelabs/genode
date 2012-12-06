@@ -15,8 +15,10 @@
 #define _L4LX__LINUX_H_
 
 #include <base/printf.h>
+#include <base/thread.h>
 
 #include <genode/linkage.h>
+#include <vcpu.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +31,7 @@ FASTCALL void l4x_migrate_unlock(unsigned long flags);
 FASTCALL unsigned long l4x_hz();
 FASTCALL int l4x_nr_irqs(void);
 
+FASTCALL unsigned l4x_smp_processor_id();
 FASTCALL unsigned l4x_cpu_physmap_get_id(unsigned);
 FASTCALL unsigned l4x_target_cpu(const struct cpumask*);
 FASTCALL void     l4x_cpumask_copy(struct irq_data*, const struct cpumask*);
@@ -53,11 +56,23 @@ namespace Linux {
 		private:
 
 			unsigned long _flags;
+			bool          _vcpu;
 
 		public:
 
-			Irq_guard() : _flags(0) { l4x_irq_save(&_flags);   }
-			~Irq_guard()            { l4x_irq_restore(_flags); }
+			Irq_guard()
+			: _flags(0),
+			  _vcpu(dynamic_cast<L4lx::Vcpu*>(Genode::Thread_base::myself()))
+			{
+				if (_vcpu)
+					l4x_irq_save(&_flags);
+			}
+
+			~Irq_guard()
+			{
+				if (_vcpu)
+					l4x_irq_restore(_flags);
+			}
 	};
 }
 #endif /* _L4LX__LINUX_H_ */

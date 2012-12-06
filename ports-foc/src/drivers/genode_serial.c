@@ -322,9 +322,13 @@ static int __init genode_serial_init(void)
 static void __exit genode_serial_exit(void)
 {
 	unsigned i;
+	unsigned long flags;
+
 	for (i = 0; i < genode_reg.nr; i++) {
 		uart_remove_one_port(&genode_reg, &genode_serial_port[i].port);
+		local_irq_save(flags);
 		genode_terminal_stop(i);
+		local_irq_restore(flags);
 	}
 	if (genode_reg.nr)
 		uart_unregister_driver(&genode_reg);
