@@ -42,8 +42,6 @@ Region* Region_manager::find_region(Genode::addr_t *addr, Genode::size_t *size)
 
 void* Region_manager::attach(Genode::Dataspace_capability cap, const char* name)
 {
-	Genode::Dataspace_client dsc(cap);
-
 	/* Put it in the dataspace tree */
 	L4lx::Dataspace *ds =
 		L4lx::Env::env()->dataspaces()->insert(name, cap);
