@@ -141,7 +141,7 @@ genode_end_request(void *request, short write,
 		}
 	}
 
-	blk_end_request_all(req, 0);
+	__blk_end_request_all(req, 0);
 
 	if (dev->stopped) {
 		dev->stopped = 0;
@@ -173,8 +173,11 @@ static struct block_device_operations genode_blk_ops = {
 
 static irqreturn_t event_interrupt(int irq, void *data)
 {
+	unsigned long flags;
 	struct genode_blk_device *dev = (struct genode_blk_device *)data;
+	spin_lock_irqsave(dev->queue->queue_lock, flags);
 	genode_block_collect_responses(dev->idx);
+	spin_unlock_irqrestore(dev->queue->queue_lock, flags);
 	return IRQ_HANDLED;
 }
 
