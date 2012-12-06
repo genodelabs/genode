@@ -141,18 +141,18 @@ extern "C" {
 		if (!genode_input_event)
 			return;
 
-		if ( mouse && keyboard && input()) {
-			int num = 0;
-			{
-				Linux::Irq_guard guard;
+		unsigned long flags;
+		l4x_irq_save(&flags);
 
-				num = input()->flush();
-			}
+		if ( mouse && keyboard && input()) {
+			int num = input()->flush();
+			l4x_irq_restore(flags);
 			for (int i = 0; i < num; i++) {
 				Input::Event ev = buffer()[i];
 				handle_event(mouse, keyboard, &ev);
 			}
-		}
+		} else
+			l4x_irq_restore(flags);
 	}
 
 } //extern "C"

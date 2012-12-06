@@ -41,6 +41,8 @@ extern "C" {
 
 	int genode_screen_count()
 	{
+		Linux::Irq_guard guard;
+
 		return framebuffer() ? 1 : 0;
 	}
 

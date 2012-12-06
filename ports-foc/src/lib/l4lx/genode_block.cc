@@ -189,6 +189,8 @@ extern "C" {
 	{
 		using namespace Genode;
 
+		Linux::Irq_guard guard;
+
 		static unsigned count = 0;
 		if (count == 0) {
 			try {
@@ -242,6 +244,8 @@ extern "C" {
 	void genode_block_register_callback(FASTCALL void (*func)(void*, short,
 	                                                 void*, unsigned long))
 	{
+		Linux::Irq_guard guard;
+
 		static Signal_thread thread(devices);
 		if (!end_request) {
 			end_request = func;
@@ -258,6 +262,9 @@ extern "C" {
 			PWRN("Invalid index!");
 			return;
 		}
+
+		Linux::Irq_guard guard;
+
 		*cnt      = devices[idx]->block_count();
 		*sz       = devices[idx]->block_size();
 		*queue_sz = devices[idx]->session()->tx()->bulk_buffer_size();
@@ -268,12 +275,12 @@ extern "C" {
 	void* genode_block_request(unsigned idx, unsigned long sz,
 	                           void *req, unsigned long *offset)
 	{
-		Linux::Irq_guard guard;
-
 		if (idx >= genode_block_count()) {
 			PWRN("Invalid index!");
 			return 0;
 		}
+
+		Linux::Irq_guard guard;
 
 		try {
 			Block::Connection *session = devices[idx]->session();
@@ -290,12 +297,13 @@ extern "C" {
 	void genode_block_submit(unsigned idx, unsigned long queue_offset,
 	                         unsigned long size, unsigned long disc_offset, int write)
 	{
-		Linux::Irq_guard guard;
-
 		if (idx >= genode_block_count()) {
 			PWRN("Invalid index!");
 			return;
 		}
+
+		Linux::Irq_guard guard;
+
 		Genode::size_t sector     = disc_offset / devices[idx]->block_size();
 		Genode::size_t sector_cnt = size / devices[idx]->block_size();
 		Block::Packet_descriptor p(Block::Packet_descriptor(queue_offset, size),
@@ -313,6 +321,9 @@ extern "C" {
 			return;
 		}
 
+		unsigned long flags;
+		l4x_irq_save(&flags);
+
 		Block::Connection *session = devices[idx]->session();
 		void *req;
 		while (session->tx()->ack_avail()) {
@@ -320,9 +331,13 @@ extern "C" {
 			void *addr = session->tx()->packet_content(packet);
 			bool write = packet.operation() == Block::Packet_descriptor::WRITE;
 			devices[idx]->cache()->remove(session->tx()->packet_content(packet), &req);
-			if (req && end_request)
+			if (req && end_request) {
+				l4x_irq_restore(flags);
 				end_request(req, write, addr, packet.size());
+				l4x_irq_save(&flags);
+			}
 			session->tx()->release_packet(packet);
 		}
+		l4x_irq_restore(flags);
 	}
 } // extern "C"
