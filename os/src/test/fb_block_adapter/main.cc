@@ -23,6 +23,7 @@
 #include <block_session/rpc_object.h>
 #include <framebuffer_session/connection.h>
 #include <timer_session/connection.h>
+#include <base/semaphore.h>
 
 static Genode::size_t fb_size = 0;  /* framebuffer size */
 static Genode::addr_t fb_addr = 0;  /* start address of framebuffer */
