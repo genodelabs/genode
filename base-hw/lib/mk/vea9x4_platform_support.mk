@@ -8,6 +8,9 @@
 INC_DIR += $(REP_DIR)/src/core/include \
            $(BASE_DIR)/src/core/include
 
+# avoid building of this lib with other platforms
+REQUIRES += platform_vea9x4
+
 SRC_CC = platform_support.cc platform_services.cc
 
 vpath platform_support.cc  $(REP_DIR)/src/core/vea9x4

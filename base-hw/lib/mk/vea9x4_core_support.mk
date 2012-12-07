@@ -4,6 +4,9 @@
 # \date    2012-10-10
 #
 
+# avoid building of this lib with other platforms
+REQUIRES += platform_vea9x4
+
 BOARD_DIR = $(REP_DIR)/src/core/vea9x4
 
 # include generic part of core support
