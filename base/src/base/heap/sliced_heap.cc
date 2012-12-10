@@ -70,9 +70,6 @@ Sliced_heap::~Sliced_heap()
 
 bool Sliced_heap::alloc(size_t size, void **out_addr)
 {
-	/* serialize access to block list */
-	Lock::Guard lock_guard(_lock);
-
 	/* allocation includes space for block meta data and is page-aligned */
 	size = align_addr(size + sizeof(Block), 12);
 
@@ -91,6 +88,9 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 		return false;
 	}
 
+	/* serialize access to block list */
+	Lock::Guard lock_guard(_lock);
+
 	Block *b = new(local_addr) Block(ds_cap, size);
 	_consumed += size;
 	_block_list.insert(b);
@@ -101,15 +101,21 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 
 void Sliced_heap::free(void *addr, size_t size)
 {
-	/* serialize access to block list */
-	Lock::Guard lock_guard(_lock);
+	Ram_dataspace_capability ds_cap;
+	void * local_addr;
+	{
+		/* serialize access to block list */
+		Lock::Guard lock_guard(_lock);
 
-	Block *b = Block::block(addr);
-	_block_list.remove(b);
-	_consumed -= b->size();
-	Ram_dataspace_capability ds_cap = b->ds_cap();
-	delete b;
-	_rm_session->detach(b);
+		Block *b = Block::block(addr);
+		_block_list.remove(b);
+		_consumed -= b->size();
+		ds_cap = b->ds_cap();
+		local_addr = b;
+		delete b;
+	}
+
+	_rm_session->detach(local_addr);
 	_ram_session->free(ds_cap);
 }
 
