@@ -26,7 +26,12 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
 
 append_if [have_spec sdl] config {
 	<start name="fb_sdl">
@@ -56,10 +61,6 @@ append_if [have_spec pl11x] config {
 	</start>}
 
 append_if [have_spec omap4] config {
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
 	<start name="omap4_fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
