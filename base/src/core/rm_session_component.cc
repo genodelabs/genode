@@ -293,6 +293,7 @@ void Rm_faulter::fault(Rm_session_component *faulting_rm_session,
 
 void Rm_faulter::dissolve_from_faulting_rm_session()
 {
+	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
 	if (_faulting_rm_session)
@@ -326,8 +327,7 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 	Lock::Guard lock_guard(_lock);
 
 	/* offset must be positive and page-aligned */
-	if (offset < 0
-	 || align_addr(offset, get_page_size_log2()) != offset)
+	if (offset < 0 || align_addr(offset, get_page_size_log2()) != offset)
 		throw Invalid_args();
 
 	/* check dataspace validity */
@@ -577,6 +577,8 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 	Rm_client *cl;
 	try { cl = new(&_client_slab) Rm_client(this, badge); }
 	catch (Allocator::Out_of_memory) { throw Out_of_metadata(); }
+	catch (Cpu_session::Thread_creation_failed) { throw Out_of_metadata(); }
+	catch (Thread_base::Stack_alloc_failed) { throw Out_of_metadata(); }
 
 	_clients.insert(cl);
 
