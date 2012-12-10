@@ -23,8 +23,8 @@
 #
 proc boot_modules_arm {{file} {binaries}} {
 
-	set load_store_alignm 0x3
-	set min_page_alignm   12
+	set load_store_align_l2 2
+	set min_page_align_l2  12
 
 	# introduce boot module headers
 	exec echo -e \
@@ -35,12 +35,12 @@ proc boot_modules_arm {{file} {binaries}} {
 		"\n" \
 		"\n.section .data" \
 		"\n" \
-		"\n.align ${load_store_alignm}" \
+		"\n.p2align ${load_store_align_l2}" \
 		"\n.global _boot_modules_begin" \
 		"\n_boot_modules_begin:" \
 		"\n.string \"GROM\"" \
 		"\n" \
-		"\n.align ${load_store_alignm}" \
+		"\n.p2align ${load_store_align_l2}" \
 		"\n.global _boot_module_headers_begin" \
 		"\n_boot_module_headers_begin:" > $file
 
@@ -66,7 +66,7 @@ proc boot_modules_arm {{file} {binaries}} {
 	foreach binary $binaries {
 		if {$binary == "core"} { continue }
 		exec echo -e \
-			".align ${load_store_alignm}" \
+			".p2align ${load_store_align_l2}" \
 			"\nmod${i}_name:" \
 			"\n.string \"${binary}\"" \
 			"\n.byte 0" \
@@ -79,7 +79,7 @@ proc boot_modules_arm {{file} {binaries}} {
 	foreach binary $binaries {
 		if {$binary == "core"} { continue }
 		exec echo -e \
-			".align ${min_page_alignm}" \
+			".p2align ${min_page_align_l2}" \
 			"\nmod${i}_start:" \
 			"\n.incbin \"[run_dir]/genode/${binary}\"" \
 			"\nmod${i}_end:" \
@@ -166,14 +166,6 @@ proc build {targets} {
 }
 
 
-proc install_config {config} {
-
-	set fh [open "bin/config" "WRONLY CREAT TRUNC"]
-	puts $fh $config
-	close $fh
-}
-
-
 proc create_boot_directory { } {
 
 	exec rm -rf [run_dir]
@@ -187,8 +179,7 @@ proc build_boot_image {binaries} {
 	copy_and_strip_genode_binaries_to_run_dir $binaries
 
 	# append init configuration if existent to the binaries
-	if {[file exists "bin/config"] == 1} {
-		exec cp bin/config [run_dir]/genode
+	if {[file exists "[run_dir]/genode/config"] == 1} {
 		append binaries " config"
 	}
 
@@ -196,6 +187,8 @@ proc build_boot_image {binaries} {
 	set boot_modules "[run_dir]/boot_modules.s"
 	if { [have_spec {arm}] } {
 		boot_modules_arm $boot_modules $binaries
+		puts "Boot_modules: ${boot_modules}"
+		exec cp ${boot_modules} /tmp/
 	}
 
 	# preserve stand-alone core for debugging
