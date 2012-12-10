@@ -112,6 +112,7 @@ proc enable_specific_boot_modules {file} {
 	exec rm -rf boot_modules.s
 	exec ln -s $file boot_modules.s
 	exec rm -rf var/libcache/boot_modules/boot_modules.o
+	exec find . -type f -name "core" -delete
 }
 
 
