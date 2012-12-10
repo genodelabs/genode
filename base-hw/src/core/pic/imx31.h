@@ -19,7 +19,7 @@
 #include <util/mmio.h>
 
 /* core includes */
-#include <imx31/board.h>
+#include <board.h>
 
 namespace Imx31
 {

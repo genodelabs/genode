@@ -16,11 +16,11 @@
 #define _CPU__ARM_V6_H_
 
 /* Genode includes */
-#include <board/imx31.h>
 #include <base/printf.h>
 
 /* core includes */
 #include <cpu/arm.h>
+#include <board.h>
 
 namespace Arm_v6
 {

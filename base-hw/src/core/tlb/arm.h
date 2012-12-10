@@ -59,8 +59,6 @@ namespace Arm
 			       D::bits(0) | C::bits(1); }
 	};
 
-	typedef Page_flags::access_t page_flags_t;
-
 	/**
 	 * Check if 'p' is aligned to 1 << 'alignm_log2'
 	 */
@@ -105,7 +103,7 @@ namespace Arm
 	 */
 	template <typename T>
 	static typename T::access_t
-	access_permission_bits(page_flags_t const flags)
+	access_permission_bits(Page_flags::access_t const flags)
 	{
 		/* lookup table for AP bitfield values according to 'w' and 'k' flag */
 		typedef typename T::Ap_1_0 Ap_1_0;
@@ -141,7 +139,8 @@ namespace Arm
 	 * Memory region attributes for the translation descriptor 'T'
 	 */
 	template <typename T>
-	static typename T::access_t memory_region_attr(page_flags_t const flags)
+	static typename T::access_t
+	memory_region_attr(Page_flags::access_t const flags)
 	{
 		typedef typename T::Tex Tex;
 		typedef typename T::C C;
@@ -294,7 +293,7 @@ namespace Arm
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(page_flags_t const flags,
+				static access_t create(Page_flags::access_t const flags,
 				                       addr_t const pa)
 				{
 					access_t v = access_permission_bits<Small_page>(flags) |
@@ -381,7 +380,7 @@ namespace Arm
 			 */
 			void insert_translation(addr_t const vo, addr_t const pa,
 			                        unsigned long const size_log2,
-			                        page_flags_t const flags)
+			                        Page_flags::access_t const flags)
 			{
 				/* validate virtual address */
 				unsigned long i;
@@ -645,7 +644,7 @@ namespace Arm
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(page_flags_t const flags,
+				static access_t create(Page_flags::access_t const flags,
 				                       addr_t const pa)
 				{
 					access_t v = access_permission_bits<Section>(flags) |
@@ -684,6 +683,11 @@ namespace Arm
 			}
 
 		public:
+
+			/**
+			 * Placement new
+			 */
+			void * operator new (size_t, void * p) { return p; }
 
 			/**
 			 * Constructor
@@ -745,7 +749,7 @@ namespace Arm
 			template <typename ST>
 			unsigned long insert_translation(addr_t const vo, addr_t const pa,
 			                                 unsigned long const size_log2,
-			                                 page_flags_t const flags,
+			                                 Page_flags::access_t const flags,
 			                                 ST * const st,
 			                                 void * const extra_space = 0)
 			{
@@ -938,7 +942,8 @@ namespace Arm
 			void map_core_area(addr_t vo, size_t s, bool io_mem, ST * st)
 			{
 				/* initialize parameters */
-				page_flags_t const flags = Page_flags::map_core_area(io_mem);
+				Page_flags::access_t const flags =
+					Page_flags::map_core_area(io_mem);
 				unsigned tsl2 = translation_size_l2(vo, s);
 				size_t ts = 1 << tsl2;
 

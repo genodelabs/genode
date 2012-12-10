@@ -14,11 +14,9 @@
 #ifndef _CPU__ARM_V7_H_
 #define _CPU__ARM_V7_H_
 
-/* Genode includes */
-#include <drivers/board_base.h>
-
 /* core includes */
 #include <cpu/arm.h>
+#include <board.h>
 
 namespace Arm_v7
 {

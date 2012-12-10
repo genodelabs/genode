@@ -8,4 +8,5 @@
 SRC_CC += ipc.cc
 
 # declare source paths
-vpath % $(REP_DIR)/src/base
+vpath ipc.cc $(REP_DIR)/src/base
+

@@ -17,11 +17,10 @@
 /* Genode includes */
 #include <base/syscall_types.h>
 
-class Tlb;
-
 namespace Genode
 {
 	class Platform_thread;
+	class Tlb;
 }
 
 namespace Kernel
@@ -208,13 +207,13 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline Tlb *
+	inline Genode::Tlb *
 	start_thread(Genode::Platform_thread * const phys_pt, void * ip, void * sp,
 	             unsigned int cpu_no)
 	{
-		return (Tlb *)syscall(START_THREAD, (Syscall_arg)phys_pt,
-		                      (Syscall_arg)ip, (Syscall_arg)sp,
-		                      (Syscall_arg)cpu_no);
+		return (Genode::Tlb *)syscall(START_THREAD, (Syscall_arg)phys_pt,
+		                              (Syscall_arg)ip, (Syscall_arg)sp,
+		                              (Syscall_arg)cpu_no);
 	}
 
 

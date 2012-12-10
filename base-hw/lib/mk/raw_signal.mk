@@ -11,5 +11,5 @@ SRC_CC += signal.cc
 LIBS += slab
 
 # declare source paths
-vpath % $(REP_DIR)/src/base/signal
+vpath signal.cc $(REP_DIR)/src/base/signal
 

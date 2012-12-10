@@ -15,7 +15,7 @@
 #define _INCLUDE__TL16C750__DRIVERS__SERIAL_LOG_H_
 
 /* Genode includes */
-#include <drivers/board_base.h>
+#include <board.h>
 #include <drivers/uart/tl16c750_base.h>
 
 namespace Genode
@@ -33,8 +33,8 @@ namespace Genode
 			 * \param baud_rate  targeted transfer baud-rate
 			 */
 			Serial_log(unsigned const baud_rate) :
-				Tl16c750_base(Board_base::TL16C750_3_MMIO_BASE,
-				              Board_base::TL16C750_CLOCK, baud_rate)
+				Tl16c750_base(Board::TL16C750_3_MMIO_BASE,
+				              Board::TL16C750_CLOCK, baud_rate)
 			{ }
 	};
 }

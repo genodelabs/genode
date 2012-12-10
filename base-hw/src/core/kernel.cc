@@ -293,7 +293,7 @@ namespace Kernel
 			Pd(Tlb * const t) : _tlb(t)
 			{
 				/* try to add translation for mode transition region */
-				page_flags_t const flags = Page_flags::mode_transition();
+				Page_flags::access_t const flags = Page_flags::mode_transition();
 				unsigned const slog2 =
 					tlb()->insert_translation(mtc()->VIRT_BASE,
 					                          mtc()->phys_base(),

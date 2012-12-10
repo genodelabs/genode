@@ -11,12 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <board/imx31.h>
-#include <pic/imx31.h>
-
 /* core includes */
 #include <platform.h>
+#include <board.h>
+#include <pic.h>
 
 using namespace Genode;
 

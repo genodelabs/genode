@@ -53,7 +53,7 @@ namespace Arm_v6
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(Arm::page_flags_t const flags,
+				static access_t create(Arm::Page_flags::access_t const flags,
 				                       addr_t const pa, Section_table *)
 				{
 					return Arm::Section_table::Section::create(flags, pa) |
@@ -69,7 +69,7 @@ namespace Arm_v6
 			unsigned long
 			insert_translation(addr_t const vo, addr_t const pa,
 			                   unsigned long const size_log2,
-			                   Arm::page_flags_t const flags,
+			                   Arm::Page_flags::access_t const flags,
 			                   void * const extra_space = 0) {
 				return Arm::Section_table::
 				insert_translation<Section_table>(vo, pa, size_log2, flags,

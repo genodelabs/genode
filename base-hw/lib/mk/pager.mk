@@ -8,4 +8,5 @@
 SRC_CC += pager.cc
 
 # declare source paths
-vpath % $(REP_DIR)/src/base
+vpath pager.cc $(REP_DIR)/src/base
+

@@ -1,5 +1,5 @@
 /*
- * \brief  SW controls for the translation lookaside-buffer
+ * \brief  Translation lookaside buffer
  * \author Martin Stein
  * \date   2012-04-23
  */
@@ -11,58 +11,40 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SRC__CORE__VEA9X4__TLB_H_
-#define _SRC__CORE__VEA9X4__TLB_H_
-
-/* Genode includes */
-#include <drivers/board_base.h>
+#ifndef _VEA9X4__TLB_H_
+#define _VEA9X4__TLB_H_
 
 /* core includes */
+#include <board.h>
 #include <tlb/arm_v7.h>
 
-/**
- * Software TLB-controls
- */
-class Tlb : public Arm_v7::Section_table
+namespace Genode
 {
-	public:
+	struct Page_flags : Arm::Page_flags { };
 
-		/**
-		 * Placement new
-		 */
-		void * operator new (Genode::size_t, void * p) { return p; }
-};
+	class Tlb : public Arm_v7::Section_table { };
 
-/**
- * Board specific mapping attributes
- */
-struct Page_flags : Arm::Page_flags { };
+	/**
+	 * Translation lookaside buffer of core
+	 */
+	class Core_tlb : public Tlb
+	{
+		public:
 
-typedef Arm::page_flags_t page_flags_t;
+			/**
+			 * Constructor - ensures that core never gets a pagefault
+			 */
+			Core_tlb()
+			{
+				map_core_area(Board::RAM_0_BASE, Board::RAM_0_SIZE, 0);
+				map_core_area(Board::RAM_1_BASE, Board::RAM_1_SIZE, 0);
+				map_core_area(Board::RAM_2_BASE, Board::RAM_2_SIZE, 0);
+				map_core_area(Board::RAM_3_BASE, Board::RAM_3_SIZE, 0);
+				map_core_area(Board::MMIO_0_BASE, Board::MMIO_0_SIZE, 1);
+				map_core_area(Board::MMIO_1_BASE, Board::MMIO_1_SIZE, 1);
+			}
+	};
+}
 
-/**
- * TLB of core
- */
-class Core_tlb : public Tlb
-{
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * Must ensure that core never gets a pagefault.
-		 */
-		Core_tlb()
-		{
-			using namespace Genode;
-			map_core_area(Board_base::RAM_0_BASE, Board_base::RAM_0_SIZE, 0);
-			map_core_area(Board_base::RAM_1_BASE, Board_base::RAM_1_SIZE, 0);
-			map_core_area(Board_base::RAM_2_BASE, Board_base::RAM_2_SIZE, 0);
-			map_core_area(Board_base::RAM_3_BASE, Board_base::RAM_3_SIZE, 0);
-			map_core_area(Board_base::MMIO_0_BASE, Board_base::MMIO_0_SIZE, 1);
-			map_core_area(Board_base::MMIO_1_BASE, Board_base::MMIO_1_SIZE, 1);
-		}
-};
-
-#endif /* _SRC__CORE__VEA9X4__TLB_H_ */
+#endif /* _VEA9X4__TLB_H_ */
 

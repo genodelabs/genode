@@ -19,7 +19,10 @@
 #include <util/avl_tree.h>
 
 /* core includes */
-#include <kernel_support.h>
+#include <cpu.h>
+#include <tlb.h>
+#include <pic.h>
+#include <timer.h>
 #include <assert.h>
 
 namespace Genode
@@ -29,6 +32,10 @@ namespace Genode
 
 namespace Kernel
 {
+	typedef Genode::Cpu             Cpu;
+	typedef Genode::Tlb             Tlb;
+	typedef Genode::Page_flags      Page_flags;
+	typedef Genode::Core_tlb        Core_tlb;
 	typedef Genode::addr_t          addr_t;
 	typedef Genode::size_t          size_t;
 	typedef Genode::Signal          Signal;

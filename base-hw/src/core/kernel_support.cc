@@ -12,7 +12,9 @@
  */
 
 /* core includes */
-#include <kernel_support.h>
+#include <cpu.h>
+
+using namespace Genode;
 
 Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
 

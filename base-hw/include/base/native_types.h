@@ -22,6 +22,7 @@
 namespace Genode
 {
 	class Platform_thread;
+	class Tlb;
 
 	typedef int volatile      Native_lock;
 	typedef Platform_thread * Native_thread;

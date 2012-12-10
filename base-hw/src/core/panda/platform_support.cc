@@ -11,13 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <drivers/board_base.h>
-
 /* core includes */
 #include <cpu/cortex_a9.h>
 #include <pic/cortex_a9_no_trustzone.h>
 #include <platform.h>
+#include <board.h>
 
 using namespace Genode;
 
@@ -26,7 +24,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board_base::RAM_0_BASE, Board_base::RAM_0_SIZE }
+		{ Board::RAM_0_BASE, Board::RAM_0_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -50,7 +48,7 @@ Native_region * Platform::_core_only_irq_regions(unsigned const i)
 		{ Cortex_a9::Cpu::PRIVATE_TIMER_IRQ, 1 },
 
 		/* core UART */
-		{ Board_base::TL16C750_3_IRQ, 1 }
+		{ Board::TL16C750_3_IRQ, 1 }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -60,11 +58,11 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board_base::MMIO_0_BASE, Board_base::MMIO_0_SIZE },
-		{ Board_base::MMIO_1_BASE, Board_base::MMIO_1_SIZE },
-		{ Board_base::DSS_MMIO_BASE, Board_base::DSS_MMIO_SIZE },
-		{ Board_base::DISPC_MMIO_BASE, Board_base::DISPC_MMIO_SIZE },
-		{ Board_base::HDMI_MMIO_BASE, Board_base::HDMI_MMIO_SIZE }
+		{ Board::MMIO_0_BASE, Board::MMIO_0_SIZE },
+		{ Board::MMIO_1_BASE, Board::MMIO_1_SIZE },
+		{ Board::DSS_MMIO_BASE, Board::DSS_MMIO_SIZE },
+		{ Board::DISPC_MMIO_BASE, Board::DISPC_MMIO_SIZE },
+		{ Board::HDMI_MMIO_BASE, Board::HDMI_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -75,11 +73,11 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* core timer and PIC */
-		{ Board_base::CORTEX_A9_PRIVATE_MEM_BASE,
-		  Board_base::CORTEX_A9_PRIVATE_MEM_SIZE },
+		{ Board::CORTEX_A9_PRIVATE_MEM_BASE,
+		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* core UART */
-		{ Board_base::TL16C750_3_MMIO_BASE, Board_base::TL16C750_MMIO_SIZE }
+		{ Board::TL16C750_3_MMIO_BASE, Board::TL16C750_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

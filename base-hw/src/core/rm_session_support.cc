@@ -59,7 +59,7 @@ void Ipc_pager::resolve_and_wait_for_fault()
 
 	/* prepare mapping */
 	Tlb * const tlb = _pagefault.tlb;
-	page_flags_t const flags =
+	Page_flags::access_t const flags =
 	Page_flags::resolve_and_wait_for_fault(_mapping.writable,
 	                                       _mapping.write_combined,
 	                                       _mapping.io_mem);
