@@ -11,15 +11,15 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__BOARD_H_
-#define _INCLUDE__DRIVERS__BOARD_H_
+#ifndef _INCLUDE__DRIVERS__BOARD_BASE_H_
+#define _INCLUDE__DRIVERS__BOARD_BASE_H_
 
 namespace Genode
 {
 	/**
 	 * Driver for the OMAP4 PandaBoard revision A2
 	 */
-	struct Board
+	struct Board_base
 	{
 		enum
 		{
@@ -70,5 +70,5 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__DRIVERS__BOARD_H_ */
+#endif /* _INCLUDE__DRIVERS__BOARD_BASE_H_ */
 

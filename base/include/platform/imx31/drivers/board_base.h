@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__PLATFORM__BOARD_H_
-#define _INCLUDE__PLATFORM__BOARD_H_
+#ifndef _INCLUDE__PLATFORM__BOARD_BASE_H_
+#define _INCLUDE__PLATFORM__BOARD_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -23,7 +23,7 @@ namespace Genode
 	/**
 	 * i.MX31 motherboard
 	 */
-	struct Board
+	struct Board_base
 	{
 		enum {
 			RAM_0_BASE = 0x80000000,
@@ -52,5 +52,5 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__PLATFORM__BOARD_H_ */
+#endif /* _INCLUDE__PLATFORM__BOARD_BASE_H_ */
 

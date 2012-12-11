@@ -15,7 +15,7 @@
 #define _INCLUDE__CORTEX_A9__CPU_H_
 
 /* Genode includes */
-#include <drivers/board.h>
+#include <drivers/board_base.h>
 
 /* core includes */
 #include <arm/v7/cpu.h>
@@ -32,17 +32,17 @@ namespace Cortex_a9
 		enum
 		{
 			/* common */
-			CLK = Board::CORTEX_A9_CLOCK, /* CPU interface clock */
+			CLK = Board_base::CORTEX_A9_CLOCK, /* CPU interface clock */
 			PERIPH_CLK = CLK,             /* clock for CPU internal components */
 
 			/* interrupt controller */
-			PL390_DISTRIBUTOR_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x1000,
+			PL390_DISTRIBUTOR_MMIO_BASE = Board_base::CORTEX_A9_PRIVATE_MEM_BASE + 0x1000,
 			PL390_DISTRIBUTOR_MMIO_SIZE = 0x1000,
-			PL390_CPU_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x100,
+			PL390_CPU_MMIO_BASE = Board_base::CORTEX_A9_PRIVATE_MEM_BASE + 0x100,
 			PL390_CPU_MMIO_SIZE = 0x100,
 
 			/* timer */
-			PRIVATE_TIMER_MMIO_BASE = Board::CORTEX_A9_PRIVATE_MEM_BASE + 0x600,
+			PRIVATE_TIMER_MMIO_BASE = Board_base::CORTEX_A9_PRIVATE_MEM_BASE + 0x600,
 			PRIVATE_TIMER_MMIO_SIZE = 0x10,
 			PRIVATE_TIMER_IRQ = 29,
 			PRIVATE_TIMER_CLK = PERIPH_CLK

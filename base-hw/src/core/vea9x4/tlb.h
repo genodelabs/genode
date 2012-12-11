@@ -15,7 +15,7 @@
 #define _SRC__CORE__VEA9X4__TLB_H_
 
 /* Genode includes */
-#include <drivers/board.h>
+#include <drivers/board_base.h>
 
 /* core includes */
 #include <arm/v7/section_table.h>
@@ -55,12 +55,12 @@ class Core_tlb : public Tlb
 		Core_tlb()
 		{
 			using namespace Genode;
-			map_core_area(Board::RAM_0_BASE, Board::RAM_0_SIZE, 0);
-			map_core_area(Board::RAM_1_BASE, Board::RAM_1_SIZE, 0);
-			map_core_area(Board::RAM_2_BASE, Board::RAM_2_SIZE, 0);
-			map_core_area(Board::RAM_3_BASE, Board::RAM_3_SIZE, 0);
-			map_core_area(Board::MMIO_0_BASE, Board::MMIO_0_SIZE, 1);
-			map_core_area(Board::MMIO_1_BASE, Board::MMIO_1_SIZE, 1);
+			map_core_area(Board_base::RAM_0_BASE, Board_base::RAM_0_SIZE, 0);
+			map_core_area(Board_base::RAM_1_BASE, Board_base::RAM_1_SIZE, 0);
+			map_core_area(Board_base::RAM_2_BASE, Board_base::RAM_2_SIZE, 0);
+			map_core_area(Board_base::RAM_3_BASE, Board_base::RAM_3_SIZE, 0);
+			map_core_area(Board_base::MMIO_0_BASE, Board_base::MMIO_0_SIZE, 1);
+			map_core_area(Board_base::MMIO_1_BASE, Board_base::MMIO_1_SIZE, 1);
 		}
 };
 

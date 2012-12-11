@@ -49,8 +49,8 @@ class Core_tlb : public Tlb
 
 		Core_tlb()
 		{
-			map_core_area(Board::RAM_0_BASE, Board::RAM_0_SIZE, 0);
-			map_core_area(Board::MMIO_0_BASE, Board::MMIO_0_SIZE, 1);
+			map_core_area(Genode::Board::RAM_0_BASE, Genode::Board::RAM_0_SIZE, 0);
+			map_core_area(Genode::Board::MMIO_0_BASE, Genode::Board::MMIO_0_SIZE, 1);
 		}
 };
 

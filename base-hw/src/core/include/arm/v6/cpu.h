@@ -135,7 +135,7 @@ namespace Arm_v6
 		 */
 		static void init_phys_kernel()
 		{
-			::Board::prepare_kernel();
+			Board::prepare_kernel();
 			Sctlr::write(Sctlr::init_phys_kernel());
 			flush_tlb();
 

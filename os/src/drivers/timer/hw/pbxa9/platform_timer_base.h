@@ -17,25 +17,25 @@
 /* Genode includes */
 #include <io_mem_session/connection.h>
 #include <drivers/timer/sp804_base.h>
-#include <drivers/board.h>
+#include <drivers/board_base.h>
 
 /**
  * Platform-timer base specific for base-hw and PBXA9
  */
 class Platform_timer_base :
 	public Genode::Io_mem_connection,
-	public Genode::Sp804_base<Genode::Board::SP804_0_1_CLOCK>
+	public Genode::Sp804_base<Genode::Board_base::SP804_0_1_CLOCK>
 {
 	public:
 
-		enum { IRQ = Genode::Board::SP804_0_1_IRQ };
+		enum { IRQ = Genode::Board_base::SP804_0_1_IRQ };
 
 		/**
 		 * Constructor
 		 */
 		Platform_timer_base() :
-			Io_mem_connection(Genode::Board::SP804_0_1_MMIO_BASE,
-			                  Genode::Board::SP804_0_1_MMIO_SIZE),
+			Io_mem_connection(Genode::Board_base::SP804_0_1_MMIO_BASE,
+			                  Genode::Board_base::SP804_0_1_MMIO_SIZE),
 
 			Sp804_base((Genode::addr_t)Genode::env()->rm_session()->
 			                           attach(dataspace()))

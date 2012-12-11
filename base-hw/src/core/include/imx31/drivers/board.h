@@ -8,12 +8,10 @@
 #define _INCLUDE__IMX31__DRIVERS__BOARD_H_
 
 /* Genode includes */
-#include <platform/imx31/drivers/board.h>
+#include <platform/imx31/drivers/board_base.h>
 
-namespace Imx31
+namespace Genode
 {
-	using namespace Genode;
-
 	/**
 	 * AHB-lite 2v6 to IP bus interface
 	 */
@@ -71,7 +69,7 @@ namespace Imx31
 			}
 	};
 
-	struct Board : Genode::Board
+	struct Board : Board_base
 	{
 		/**
 		 * static AIPS 1 instance
@@ -94,6 +92,5 @@ namespace Imx31
 	};
 }
 
-typedef Imx31::Board Board;
-
 #endif /* _INCLUDE__IMX31__DRIVERS__BOARD_H_ */
+

@@ -15,7 +15,7 @@
 #define _INCLUDE__ARM_V7__CPU_H_
 
 /* Genode includes */
-#include <drivers/board.h>
+#include <drivers/board_base.h>
 
 /* core includes */
 #include <arm/cpu.h>
@@ -194,7 +194,7 @@ namespace Arm_v7
 		 */
 		static bool secure_mode()
 		{
-			if (!Board::SECURITY_EXTENSION) return 0;
+			if (!Board_base::SECURITY_EXTENSION) return 0;
 			return !Cpu::Scr::Ns::get(Cpu::Scr::read());
 		}
 

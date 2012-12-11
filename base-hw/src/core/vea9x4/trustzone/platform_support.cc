@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <drivers/board.h>
+#include <drivers/board_base.h>
 
 /* Core includes */
 #include <platform.h>
@@ -26,7 +26,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::RAM_3_BASE, Board::RAM_3_SIZE }
+		{ Board_base::RAM_3_BASE, Board_base::RAM_3_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -53,7 +53,7 @@ Native_region * Platform::_core_only_irq_regions(unsigned const i)
 		{ Cortex_a9::Cpu::PRIVATE_TIMER_IRQ, 1 },
 
 		/* Core UART */
-		{ Board::PL011_0_IRQ, 1 }
+		{ Board_base::PL011_0_IRQ, 1 }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -63,11 +63,11 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::MMIO_0_BASE, Board::MMIO_0_SIZE },
-		{ Board::MMIO_1_BASE, Board::MMIO_1_SIZE },
+		{ Board_base::MMIO_0_BASE, Board_base::MMIO_0_SIZE },
+		{ Board_base::MMIO_1_BASE, Board_base::MMIO_1_SIZE },
 		{ 0x60000000, 0x40000000 },
-		{ Board::TZASC_MMIO_BASE, Board::TZASC_MMIO_SIZE },
-		{ Board::TZPC_MMIO_BASE, Board::TZPC_MMIO_SIZE },
+		{ Board_base::TZASC_MMIO_BASE, Board_base::TZASC_MMIO_SIZE },
+		{ Board_base::TZPC_MMIO_BASE, Board_base::TZPC_MMIO_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -78,11 +78,11 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* Core timer and PIC */
-		{ Board::CORTEX_A9_PRIVATE_MEM_BASE,
-		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
+		{ Board_base::CORTEX_A9_PRIVATE_MEM_BASE,
+		  Board_base::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* Core UART */
-		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE }
+		{ Board_base::PL011_0_MMIO_BASE, Board_base::PL011_0_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
