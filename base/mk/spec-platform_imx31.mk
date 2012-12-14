@@ -5,7 +5,7 @@
 #
 
 # denote wich specs are also fullfilled by this spec
-SPECS += arm_v6
+SPECS += arm_v6 epit
 
 # add repository relative include paths
 REP_INC_DIR += include/platform/imx31
