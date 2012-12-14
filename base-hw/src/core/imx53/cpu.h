@@ -1,7 +1,7 @@
 /*
- * \brief  Board driver for core
+ * \brief  CPU driver for core
  * \author Martin Stein
- * \date   2012-04-23
+ * \date   2012-12-14
  */
 
 /*
@@ -11,21 +11,19 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef _IMX53__CPU_H_
+#define _IMX53__CPU_H_
 
 /* core includes */
-#include <drivers/board_base.h>
+#include <cpu/arm_v7.h>
 
 namespace Genode
 {
-	class Board : public Board_base
-	{
-		public:
-
-			static void prepare_kernel() { }
-	};
+	/**
+	 * CPU driver for core
+	 */
+	class Cpu : public Arm_v7::Cpu { };
 }
 
-#endif /* _BOARD_H_ */
+#endif /* _IMX53__CPU_H_ */
 

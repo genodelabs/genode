@@ -31,6 +31,7 @@ usage:
 	@echo "                  'hw_vea9x4'"
 	@echo "                  'hw_pbxa9'"
 	@echo "                  'hw_imx31'"
+	@echo "                  'hw_imx53'"
 	@echo "                  'foc_x86_32'"
 	@echo "                  'foc_x86_64'"
 	@echo "                  'foc_pbxa9'"
@@ -196,6 +197,9 @@ hw_panda::
 
 hw_imx31::
 	@echo "SPECS = genode hw_imx31" > $(BUILD_DIR)/etc/specs.conf
+
+hw_imx53::
+	@echo "SPECS = genode hw_imx53" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
