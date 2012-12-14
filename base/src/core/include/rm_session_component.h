@@ -212,6 +212,7 @@ namespace Genode {
 
 			Rpc_entrypoint *_ds_ep;
 			Rpc_entrypoint *_thread_ep;
+			Rpc_entrypoint *_session_ep;
 
 			Allocator_guard    _md_alloc;
 			Signal_transmitter _fault_notifier;  /* notification mechanism for
@@ -239,24 +240,25 @@ namespace Genode {
 			{
 				private:
 
-					Rm_session_component *_rm_session_component;
+					Native_capability _rm_session_cap;
 
 				public:
 
 					/**
 					 * Constructor
 					 */
-					Rm_dataspace_component(Rm_session_component *rsc, size_t size)
+					Rm_dataspace_component(size_t size)
 					:
-						Dataspace_component(size, 0, false, false, 0),
-						_rm_session_component(rsc) { _managed = true; }
+						Dataspace_component(size, 0, false, false, 0)
+						{ _managed = true; }
 
 
 					/***********************************
 					 ** Dataspace component interface **
 					 ***********************************/
 
-					Rm_session_component *sub_rm_session() { return _rm_session_component; }
+					Native_capability sub_rm_session() { return _rm_session_cap; }
+					void sub_rm_session(Native_capability _cap) { _rm_session_cap = _cap; }
 			};
 
 
@@ -286,6 +288,7 @@ namespace Genode {
 			 */
 			Rm_session_component(Rpc_entrypoint   *ds_ep,
 			                     Rpc_entrypoint   *thread_ep,
+			                     Rpc_entrypoint   *session_ep,
 			                     Allocator        *md_alloc,
 			                     size_t            ram_quota,
 			                     Pager_entrypoint *pager_ep,
@@ -301,10 +304,11 @@ namespace Genode {
 			 *
 			 * \return true  lookup succeeded
 			 */
-			bool reverse_lookup(addr_t                dst_base,
-			                    Fault_area           *dst_fault_region,
-			                    Dataspace_component **src_dataspace,
-			                    Fault_area           *src_fault_region);
+			bool reverse_lookup(addr_t                 dst_base,
+			                    Fault_area            *dst_fault_region,
+			                    Dataspace_component  **src_dataspace,
+			                    Fault_area            *src_fault_region,
+			                    Rm_session_component **sub_rm_session);
 
 			/**
 			 * Register fault

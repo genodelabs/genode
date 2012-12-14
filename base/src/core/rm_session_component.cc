@@ -2,6 +2,7 @@
  * \brief  Implementation of the RM session interface
  * \author Christian Helmuth
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2006-07-17
  *
  * FIXME arg_string and quota missing
@@ -173,34 +174,59 @@ int Rm_client::pager(Ipc_pager &pager)
 		print_page_fault("page fault", pf_addr, pf_ip, pf_type, badge());
 
 	Rm_session_component            *curr_rm_session = member_rm_session();
-	addr_t                           curr_rm_base = 0;
-	Dataspace_component             *src_dataspace = 0;
+	Rm_session_component            *sub_rm_session  = 0; 
+	addr_t                           curr_rm_base    = 0;
+	Dataspace_component             *src_dataspace   = 0;
 	Rm_session_component::Fault_area src_fault_area;
 	Rm_session_component::Fault_area dst_fault_area(pf_addr);
 	bool lookup;
 
-	/* traverse potentially nested dataspaces until we hit a leaf dataspace */
 	unsigned level;
 	enum { MAX_NESTING_LEVELS = 5 };
-	for (level = 0; level < MAX_NESTING_LEVELS; level++) {
 
+	/* helper guard to release the rm_session lock on return */
+	class Guard {
+		private:
+
+			Rm_session_component ** _release_session;
+			unsigned * _level;
+
+		public:
+
+			explicit Guard(Rm_session_component ** rs, unsigned * level)
+			: _release_session(rs), _level(level) {}
+
+			~Guard() {
+				if ((*_level > 0) && (*_release_session))
+					(*_release_session)->release();
+			}
+	} release_guard(&curr_rm_session, &level);
+
+	/* traverse potentially nested dataspaces until we hit a leaf dataspace */
+	for (level = 0; level < MAX_NESTING_LEVELS; level++) {
 		lookup = curr_rm_session->reverse_lookup(curr_rm_base,
 		                                        &dst_fault_area,
 		                                        &src_dataspace,
-		                                        &src_fault_area);
-		if (!lookup)
-			break;
-
+		                                        &src_fault_area,
+		                                        &sub_rm_session);
 		/* check if we need to traverse into a nested dataspace */
-		Rm_session_component *sub_rm_session = src_dataspace->sub_rm_session();
 		if (!sub_rm_session)
 			break;
+
+		if (!lookup) {
+			sub_rm_session->release();
+			break;
+		}
 
 		/* set up next iteration */
 
 		curr_rm_base = dst_fault_area.fault_addr()
 		             - src_fault_area.fault_addr() + src_dataspace->map_src_addr();
+
+		if (level > 0)
+			curr_rm_session->release();
 		curr_rm_session = sub_rm_session;
+		sub_rm_session  = 0;
 	}
 
 	if (level == MAX_NESTING_LEVELS) {
@@ -624,7 +650,8 @@ void Rm_session_component::remove_client(Pager_capability pager_cap)
 bool Rm_session_component::reverse_lookup(addr_t                dst_base,
                                           Fault_area           *dst_fault_area,
                                           Dataspace_component **src_dataspace,
-                                          Fault_area           *src_fault_area)
+                                          Fault_area           *src_fault_area,
+                                          Rm_session_component **sub_rm_session)
 {
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
@@ -672,7 +699,16 @@ bool Rm_session_component::reverse_lookup(addr_t                dst_base,
 	/* constrain source fault area by the source dataspace dimensions */
 	src_fault_area->constrain(src_base, (*src_dataspace)->size());
 
-	return src_fault_area->valid() && dst_fault_area->valid();
+	bool lookup = src_fault_area->valid() && dst_fault_area->valid();
+
+	if (!lookup)
+		return lookup;
+
+	/* lookup and lock nested dataspace if required */
+	Native_capability session_cap = (*src_dataspace)->sub_rm_session();
+	*sub_rm_session = dynamic_cast<Rm_session_component *>(_session_ep->lookup_and_lock(session_cap));
+
+	return lookup;
 }
 
 
@@ -732,17 +768,18 @@ static Dataspace_capability _type_deduction_helper(Dataspace_capability cap) {
 
 Rm_session_component::Rm_session_component(Rpc_entrypoint   *ds_ep,
                                            Rpc_entrypoint   *thread_ep,
+                                           Rpc_entrypoint   *session_ep,
                                            Allocator        *md_alloc,
                                            size_t            ram_quota,
                                            Pager_entrypoint *pager_ep,
                                            addr_t            vm_start,
                                            size_t            vm_size)
 :
-	_ds_ep(ds_ep), _thread_ep(thread_ep),
+	_ds_ep(ds_ep), _thread_ep(thread_ep), _session_ep(session_ep),
 	_md_alloc(md_alloc, ram_quota),
 	_client_slab(&_md_alloc), _ref_slab(&_md_alloc),
 	_map(&_md_alloc), _pager_ep(pager_ep),
-	_ds(this, vm_size), _ds_cap(_type_deduction_helper(ds_ep->manage(&_ds)))
+	_ds(vm_size), _ds_cap(_type_deduction_helper(ds_ep->manage(&_ds)))
 {
 	/* configure managed VM area */
 	_map.add_range(vm_start, vm_size);

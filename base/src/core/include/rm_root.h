@@ -49,10 +49,31 @@ namespace Genode {
 				return new (md_alloc())
 				       Rm_session_component(_ds_ep,
 				                            _thread_ep,
+				                            this->ep(),
 				                            _md_alloc, ram_quota,
-				                           &_pager_ep,
-				                             start == ~0UL ? _vm_start : start,
-				                             size  ==  0   ? _vm_size  : size);
+				                            &_pager_ep,
+				                            start == ~0UL ? _vm_start : start,
+				                            size  ==  0   ? _vm_size  : size);
+			}
+
+			Session_capability session(Root::Session_args const &args)
+			{
+				Session_capability cap = Root_component<Rm_session_component>::session(args);
+
+				/* lookup rm_session_component object */
+				Object_pool<Rm_session_component>::Guard rm_session(ep()->lookup_and_lock(cap));
+				if (!rm_session)
+					/* should never happen */
+					return cap;
+
+				/**
+				 * Assign rm_session capability to dataspace component. It can
+				 * not be done beforehand because the dataspace_component is
+				 * constructed before the rm_session
+				 */
+				if (rm_session->dataspace_component())
+					rm_session->dataspace_component()->sub_rm_session(rm_session->cap());
+				return cap;
 			}
 
 			void _upgrade_session(Rm_session_component *rm, const char *args)

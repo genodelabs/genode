@@ -27,7 +27,6 @@
 namespace Genode {
 
 	class Rm_region;
-	class Rm_session_component;
 
 	/**
 	 * Deriving classes can own a dataspace to implement conditional behavior
@@ -117,9 +116,9 @@ namespace Genode {
 			/**
 			 * Return region-manager session corresponding to nested dataspace
 			 *
-			 * \retval  0  dataspace is not a nested dataspace
+			 * \retval  invalid capability if dataspace is not a nested one
 			 */
-			virtual Rm_session_component *sub_rm_session() { return 0; }
+			virtual Native_capability sub_rm_session() { return Dataspace_capability(); }
 
 			addr_t core_local_addr() const { return _core_local_addr; }
 			bool is_io_mem()         const { return _is_io_mem; }
