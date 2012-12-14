@@ -15,14 +15,21 @@
 #define _IMX31__TIMER_H_
 
 /* core includes */
-#include <timer/imx31.h>
+#include <drivers/timer/epit_base.h>
 
 namespace Kernel
 {
-	/**
-	 * Kernel timer
-	 */
-	class Timer : public Imx31::Timer { };
+	class Timer : public Genode::Epit_base
+	{
+		public:
+
+			enum { IRQ = Genode::Board::EPIT_1_IRQ };
+
+			/**
+			 * Constructor
+			 */
+			Timer() : Genode::Epit_base(Genode::Board::EPIT_1_MMIO_BASE) { }
+	};
 }
 
 #endif /* _IMX31__TIMER_H_ */
