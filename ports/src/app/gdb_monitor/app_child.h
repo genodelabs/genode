@@ -203,13 +203,13 @@ namespace Gdb_monitor {
 					{
 						using namespace Genode;
 
-						Child_session *session = _sessions.obj_by_cap(session_cap);
+						Child_session *session = _sessions.lookup_and_lock(session_cap);
 						if (!session) {
 							PERR("attempt to close unknown session");
 							return;
 						}
 						Genode::size_t ram_quota = session->ram_quota;
-						_sessions.remove(session);
+						_sessions.remove_locked(session);
 						destroy(env()->heap(), session);
 
 						_child_root.close(session_cap);

@@ -30,18 +30,22 @@ void Pager_activation_base::entry()
 	_cap_valid.unlock();
 
 	/* wait for the first pagefault */
-	pager.wait_for_fault();
+	bool reply = false;
 	while (1)
 	{
+		if (reply)
+			pager.resolve_and_wait_for_fault();
+		else
+			pager.wait_for_fault();
+
 		/* lookup pager object for the current faulter */
-		Pager_object * o = _ep ? _ep->obj_by_id(pager.badge()) : 0;
+		Object_pool<Pager_object>::Guard o(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
 		if (!o) {
 			PERR("%s:%d: Invalid pager object", __FILE__, __LINE__);
 			while (1) ;
 		}
 		/* let pager handle the pagefault, apply mapping, await pagefault */
-		if (o->pager(pager)) pager.wait_for_fault();
-		else pager.resolve_and_wait_for_fault();
+		reply = !o->pager(pager);
 	}
 }
 
@@ -55,7 +59,7 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *,
 : _activation(a) { _activation->ep(this); }
 
 
-void Pager_entrypoint::dissolve(Pager_object * const o) { remove(o); }
+void Pager_entrypoint::dissolve(Pager_object * const o) { remove_locked(o); }
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object * const o)

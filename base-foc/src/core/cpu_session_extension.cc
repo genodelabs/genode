@@ -40,9 +40,7 @@ void Genode::Cpu_session_component::enable_vcpu(Genode::Thread_capability thread
 	using namespace Genode;
 	using namespace Fiasco;
 
-	Lock::Guard lock_guard(_thread_list_lock);
-
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
 	Native_thread tid = thread->platform_thread()->thread().local.dst();
@@ -58,9 +56,7 @@ Genode::Cpu_session_component::native_cap(Genode::Thread_capability cap)
 {
 	using namespace Genode;
 
-	Lock::Guard lock_guard(_thread_list_lock);
-
-	Cpu_thread_component *thread = _lookup_thread(cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(cap));
 	if (!thread) return Native_capability();
 
 	return thread->platform_thread()->thread().local;
@@ -101,9 +97,7 @@ void Genode::Cpu_session_component::single_step(Genode::Thread_capability thread
 {
 	using namespace Genode;
 
-	Lock::Guard lock_guard(_thread_list_lock);
-
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
 	Native_thread tid = thread->platform_thread()->thread().local.dst();

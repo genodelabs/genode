@@ -107,7 +107,7 @@ namespace Noux {
 
 					Dataspace_capability ds;
 
-					Dataspace_info *info = _ds_registry.lookup_info(curr->ds);
+					Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(curr->ds));
 
 					if (info) {
 
@@ -163,7 +163,7 @@ namespace Noux {
 					return;
 				}
 
-				Dataspace_info *info = _ds_registry.lookup_info(region->ds);
+				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(region->ds));
 				if (!info) {
 					PERR("attempt to write to unknown dataspace type");
 					for (;;);

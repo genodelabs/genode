@@ -34,19 +34,26 @@ void Pager_activation_base::entry()
 	_cap = pager;
 	_cap_valid.unlock();
 
-	pager.wait_for_fault();
+	Pager_object * obj;
+	bool reply = false;
+
 	while (1) {
 
+		if (reply)
+			pager.reply_and_wait_for_fault();
+		else
+			pager.wait_for_fault();
+
 		/* lookup referenced object */
-		Pager_object *obj = _ep ? _ep->obj_by_id(pager.badge()) : 0;
+		Object_pool<Pager_object>::Guard _obj(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
+		obj   = _obj;
+		reply = false;
 
 		/* handle request */
 		if (obj) {
-			if (obj->pager(pager))
-				/* something strange occured - leave thread in pagefault */
-				pager.wait_for_fault();
-			else
-				pager.reply_and_wait_for_fault();
+			reply = !obj->pager(pager);
+			/* something strange occurred - leave thread in pagefault */
+			continue;
 		} else {
 
 			/* prevent threads outside of core to mess with our wake-up interface */
@@ -79,7 +86,6 @@ void Pager_activation_base::entry()
 				pager.set_reply_dst(obj->cap());
 				pager.acknowledge_wakeup();
 			}
-			pager.wait_for_fault();
 		}
 	};
 }
@@ -96,7 +102,7 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *, Pager_activation_base *a)
 
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
-	remove(obj);
+	remove_locked(obj);
 }
 
 

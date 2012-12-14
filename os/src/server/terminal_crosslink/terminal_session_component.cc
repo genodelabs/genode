@@ -44,7 +44,8 @@ Genode::Session_capability Session_component::cap()
 
 bool Session_component::belongs_to(Genode::Session_capability cap)
 {
-        return _ep.obj_by_cap(cap) == this;
+	Object_pool<Session_component>::Guard session(_ep.lookup_and_lock(cap));
+	return session == this;
 }
 
 

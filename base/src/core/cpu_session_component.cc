@@ -72,7 +72,8 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 {
 	Lock::Guard lock_guard(_thread_list_lock);
 
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Cpu_thread_component * thread =
+		dynamic_cast<Cpu_thread_component *>(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
 	_unsynchronized_kill_thread(thread);
@@ -82,10 +83,10 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 int Cpu_session_component::set_pager(Thread_capability thread_cap,
                                      Pager_capability  pager_cap)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return -1;
 
-	Pager_object *p = dynamic_cast<Pager_object *>(_pager_ep->obj_by_cap(pager_cap));
+	Object_pool<Pager_object>::Guard p(_pager_ep->lookup_and_lock(pager_cap));
 	if (!p) return -2;
 
 	thread->platform_thread()->pager(p);
@@ -99,7 +100,7 @@ int Cpu_session_component::set_pager(Thread_capability thread_cap,
 int Cpu_session_component::start(Thread_capability thread_cap,
                                  addr_t ip, addr_t sp)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return -1;
 
 	/*
@@ -114,7 +115,7 @@ int Cpu_session_component::start(Thread_capability thread_cap,
 
 void Cpu_session_component::pause(Thread_capability thread_cap)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
 	thread->platform_thread()->pause();
@@ -123,7 +124,7 @@ void Cpu_session_component::pause(Thread_capability thread_cap)
 
 void Cpu_session_component::resume(Thread_capability thread_cap)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
 	thread->platform_thread()->resume();
@@ -132,27 +133,28 @@ void Cpu_session_component::resume(Thread_capability thread_cap)
 
 void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
+	if (!thread) return;
 
-	if (thread)
-		thread->platform_thread()->cancel_blocking();
+	thread->platform_thread()->cancel_blocking();
 }
 
 
 Thread_state Cpu_session_component::state(Thread_capability thread_cap)
 {
-	Cpu_thread_component * thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) throw State_access_failed();
-	Thread_state state = thread->platform_thread()->state();
-	return state;
+
+	return thread->platform_thread()->state();
 }
 
 
 void Cpu_session_component::state(Thread_capability thread_cap,
                                   Thread_state const &state)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) throw State_access_failed();
+
 	thread->platform_thread()->state(state);
 }
 
@@ -178,7 +180,7 @@ Cpu_session_component::exception_handler(Thread_capability         thread_cap,
 		sigh_cap = _default_exception_handler;
 	}
 
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
 	thread->sigh(sigh_cap);
@@ -193,7 +195,7 @@ unsigned Cpu_session_component::num_cpus() const
 
 void Cpu_session_component::affinity(Thread_capability thread_cap, unsigned cpu)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
 	thread->platform_thread()->affinity(cpu);

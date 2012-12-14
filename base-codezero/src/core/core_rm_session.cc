@@ -30,7 +30,7 @@ Core_rm_session::attach(Dataspace_capability ds_cap, size_t size,
 {
 	using namespace Codezero;
 
-	Dataspace_component *ds = static_cast<Dataspace_component *>(_ds_ep->obj_by_cap(ds_cap));
+	Object_pool<Dataspace_component>::Guard ds(_ds_ep->lookup_and_lock(ds_cap));
 	if (!ds)
 		throw Invalid_dataspace();
 

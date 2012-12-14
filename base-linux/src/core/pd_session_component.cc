@@ -365,8 +365,7 @@ int Pd_session_component::assign_parent(Parent_capability parent)
 void Pd_session_component::start(Capability<Dataspace> binary)
 {
 	/* lookup binary dataspace */
-	Dataspace_component *ds =
-		reinterpret_cast<Dataspace_component *>(_ds_ep->obj_by_cap(binary));
+	Object_pool<Dataspace_component>::Guard ds(_ds_ep->lookup_and_lock(binary));
 
 	if (!ds) {
 		PERR("could not lookup binary, aborted PD startup");

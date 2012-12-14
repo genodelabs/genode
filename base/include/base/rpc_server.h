@@ -180,25 +180,9 @@ namespace Genode {
 
 	class Rpc_object_base : public Object_pool<Rpc_object_base>::Entry
 	{
-		private:
-
-			Lock _dispatch_lock;
-
 		public:
 
 			virtual ~Rpc_object_base() { }
-
-			/*
-			 * Serialize access with dispatch loop
-			 *
-			 * These methods are used for the destruction of server objects.
-			 * They are exclusively used by 'Server_activation_base::entry()'
-			 * and 'Rpc_entrypoint::dissolve()'. Never use this lock for other
-			 * purposes.
-			 */
-
-			void lock()   { _dispatch_lock.lock(); }
-			void unlock() { _dispatch_lock.unlock(); }
 
 			/**
 			 * Interface to be implemented by a derived class

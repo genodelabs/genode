@@ -126,13 +126,6 @@ namespace Genode {
 			{
 				enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 
-				template <typename T>
-				T *lookup(Capability<T> cap)
-				{
-					Rpc_object_base *obj = obj_by_cap(cap);
-					return obj ? dynamic_cast<T *>(obj) : 0;
-				}
-
 				Entrypoint(Cap_session *cap_session)
 				:
 					Rpc_entrypoint(cap_session, STACK_SIZE, "entrypoint")

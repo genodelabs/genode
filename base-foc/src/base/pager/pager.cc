@@ -56,7 +56,7 @@ void Pager_activation_base::entry()
 		}
 
 		/* lookup referenced object */
-		Pager_object *obj = _ep->obj_by_id(pager.badge());
+		Object_pool<Pager_object>::Guard obj(_ep->lookup_and_lock(pager.badge()));
 
 		/* the pager_object might be destroyed, while we got the message */
 		if (!obj) {
@@ -165,7 +165,7 @@ void Pager_entrypoint::dissolve(Pager_object *obj)
 	/* cleanup at cap session */
 	_cap_session->free(obj->Object_pool<Pager_object>::Entry::cap());
 
-	remove(obj);
+	remove_locked(obj);
 }
 
 

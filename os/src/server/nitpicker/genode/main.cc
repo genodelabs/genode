@@ -411,8 +411,7 @@ class View_component : public Genode::List<View_component>::Element,
 
 		int stack(Nitpicker::View_capability neighbor_cap, bool behind, bool redraw)
 		{
-			View_component *nvc;
-			nvc = dynamic_cast<View_component *>(_ep->obj_by_cap(neighbor_cap));
+			Genode::Object_pool<View_component>::Guard nvc(_ep->lookup_and_lock(neighbor_cap));
 
 			::View *neighbor_view = nvc ? nvc->view() : 0;
 
@@ -546,7 +545,7 @@ namespace Nitpicker {
 
 			void destroy_view(View_capability view_cap)
 			{
-				View_component *vc = dynamic_cast<View_component *>(_ep->obj_by_cap(view_cap));
+				View_component *vc = dynamic_cast<View_component *>(_ep->lookup_and_lock(view_cap));
 				if (!vc) return;
 
 				_view_stack->remove_view(vc->view());
@@ -558,7 +557,7 @@ namespace Nitpicker {
 			int background(View_capability view_cap)
 			{
 				if (_provides_default_bg) {
-					View_component *vc = dynamic_cast<View_component *>(_ep->obj_by_cap(view_cap));
+					Genode::Object_pool<View_component>::Guard vc(_ep->lookup_and_lock(view_cap));
 					vc->view()->background(true);
 					_view_stack->default_background(vc->view());
 					return 0;
@@ -568,7 +567,7 @@ namespace Nitpicker {
 				if (::Session::background()) ::Session::background()->background(false);
 
 				/* assign session background */
-				View_component *vc = dynamic_cast<View_component *>(_ep->obj_by_cap(view_cap));
+				Genode::Object_pool<View_component>::Guard vc(_ep->lookup_and_lock(view_cap));
 				::Session::background(vc->view());
 
 				/* switch background view to background mode */

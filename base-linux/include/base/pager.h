@@ -40,6 +40,9 @@ namespace Genode {
 		 */
 		Thread_capability thread_cap() { return _thread_cap; } const
 		void thread_cap(Thread_capability cap) { _thread_cap = cap; }
+
+		/* required by lookup_and_lock, provided by Object_pool::Entry normally */
+		void release() { }
 	};
 
 	class Pager_activation_base { };
@@ -47,7 +50,7 @@ namespace Genode {
 	{
 		Pager_entrypoint(Cap_session *, Pager_activation_base *) { }
 
-		Pager_object *obj_by_cap(Pager_capability) { return 0; }
+		Pager_object *lookup_and_lock(Pager_capability) { return 0; }
 	};
 	template <int FOO> class Pager_activation : public Pager_activation_base { };
 }

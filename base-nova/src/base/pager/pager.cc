@@ -352,6 +352,6 @@ void Pager_entrypoint::dissolve(Pager_object *obj)
 
 	cap_selector_allocator()->free(pager_pt.local_name(), 0);
 
-	remove(obj);
+	remove_locked(obj);
 }
 

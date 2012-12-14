@@ -165,7 +165,9 @@ namespace Timer {
 			 */
 			bool belongs_to(Genode::Session_capability cap)
 			{
-				return _entrypoint.obj_by_cap(cap) == this;
+				Genode::Object_pool<Session_component>::Guard
+					lcap(_entrypoint.lookup_and_lock(cap));
+				return lcap == this;
 			}
 
 			/**

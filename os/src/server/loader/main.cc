@@ -104,7 +104,7 @@ namespace Loader {
 				{
 					Lock::Guard guard(_lock);
 
-					Rpc_object_base *rom = _ep.obj_by_cap(session);
+					Rpc_object_base *rom = _ep.lookup_and_lock(session);
 
 					Rom_session_component *component =
 						dynamic_cast<Rom_session_component *>(rom);

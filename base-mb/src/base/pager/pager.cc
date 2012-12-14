@@ -29,30 +29,38 @@ void Pager_activation_base::entry()
 	_cap_valid.unlock();
 
 //	PINF("Ready for page faults");
-	pager.wait_for_fault();
+	Pager_object * obj;
+	bool reply = false;
+
 	while (1) {
 
+		if (reply)
+			pager.reply_and_wait_for_fault();
+		else
+			pager.wait_for_fault();
+
 		/* lookup referenced object */
-		Pager_object *obj = _ep ? _ep->obj_by_id(pager.badge()) : 0;
+		Object_pool<Pager_object>::Guard _obj(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
+		obj   = _obj;
+		reply = false;
 
 		/* handle request */
 		if (obj) {
 //			PINF("Pagefault request from a common pager object");
 
-			if (!pager.resolved()){
-				if (obj->pager(pager)){
-					/* something strange occured - leave thread in pagefault */
-//					PINF("Leave unresolved, wait for next page fault");
-					pager.wait_for_fault();
-				}
-				else{
-//					PINF("Resolved, reply and wait for next page fault");
-					pager.reply_and_wait_for_fault();
-				}
+			if (pager.resolved()) {
+				reply = true;
+				continue;
 			}
-			else{
-				pager.reply_and_wait_for_fault();
+
+			reply = !obj->pager(pager);
+			if (!reply) {
+				/* something strange occured - leave thread in pagefault */
+//				PINF("Leave unresolved, wait for next page fault");
+			} else {
+//				PINF("Resolved, reply and wait for next page fault");
 			}
+			continue;
 		}
 		else {
 //			PINF("Pagefault request from one of cores region manager sessions");
@@ -79,7 +87,6 @@ void Pager_activation_base::entry()
 			pager.acknowledge_wakeup();
 
 //			PINF("Wait for next page fault");
-			pager.wait_for_fault();
 		}
 	}
 }
@@ -96,7 +103,7 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *, Pager_activation_base *a)
 }
 
 
-void Pager_entrypoint::dissolve(Pager_object *obj) { remove(obj); }
+void Pager_entrypoint::dissolve(Pager_object *obj) { remove_locked(obj); }
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object *obj)

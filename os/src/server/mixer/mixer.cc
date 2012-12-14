@@ -235,8 +235,8 @@ namespace Audio_out {
 
 			void sync_session(Session_capability audio_out_session)
 			{
-				Session_component *sc = dynamic_cast<Session_component *>
-					(audio_out_ep()->obj_by_cap(audio_out_session));
+				Object_pool<Session_component>::Guard
+					sc(audio_out_ep()->lookup_and_lock(audio_out_session));
 
 				/* check if recipient is a valid session component */
 				if (!sc) return;

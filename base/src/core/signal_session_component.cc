@@ -71,10 +71,8 @@ Signal_context_capability Signal_session_component::alloc_context(long imprint)
 
 void Signal_session_component::free_context(Signal_context_capability context_cap)
 {
-	Signal_context_component *context;
-	context = dynamic_cast<Signal_context_component *>
-	          (_context_ep->obj_by_cap(context_cap));
-
+	Signal_context_component * context =
+		dynamic_cast<Signal_context_component *>(_context_ep->lookup_and_lock(context_cap));
 	if (!context) {
 		PWRN("specified signal-context capability has wrong type");
 		return;
@@ -88,10 +86,8 @@ void Signal_session_component::free_context(Signal_context_capability context_ca
 void Signal_session_component::submit(Signal_context_capability context_cap,
                                       unsigned                  cnt)
 {
-	Signal_context_component *context;
-	context = dynamic_cast<Signal_context_component *>
-	           (_context_ep->obj_by_cap(context_cap));
-
+	Object_pool<Signal_context_component>::Guard
+		context(_context_ep->lookup_and_lock(context_cap));
 	if (!context) {
 		/*
 		 * We do not use PWRN() to enable the build system to suppress this

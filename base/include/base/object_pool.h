@@ -1,6 +1,7 @@
 /*
  * \brief  Object pool - map ids to objects
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2006-06-26
  */
 
@@ -33,16 +34,57 @@ namespace Genode {
 	{
 		public:
 
+			class Guard
+			{
+				private:
+
+					OBJ_TYPE * _object;
+
+				public:
+					operator OBJ_TYPE*()    const { return _object; }
+					OBJ_TYPE * operator->() const { return _object; }
+					OBJ_TYPE * object()     const { return _object; }
+
+					template <class X>
+					explicit Guard(X * object) {
+						_object = dynamic_cast<OBJ_TYPE *>(object); }
+
+					~Guard()
+					{
+						if (!_object) return;
+
+						_object->release();
+					}
+			};
+
 			class Entry : public Avl_node<Entry>
 			{
 				private:
 
 					Untyped_capability _cap;
+					short int          _ref;
+					bool               _dead;
 
-					inline long _obj_id() { return _cap.local_name(); }
+					Lock               _entry_lock;
+
+					inline unsigned long _obj_id() { return _cap.local_name(); }
 
 					friend class Object_pool;
 					friend class Avl_tree<Entry>;
+
+					/**
+					 * Support functions for atomic lookup and lock
+					 * functionality of class Object_pool.
+					 */
+					void lock()   { _entry_lock.lock(); };
+					void unlock() { _entry_lock.unlock(); };
+
+					void add_ref() { _ref += 1; }
+					void del_ref() { _ref -= 1; }
+
+					bool is_dead(bool set_dead = false) {
+						return (set_dead ? (_dead = true) : _dead); }
+					bool is_ref_zero() { return _ref <= 0; } 
 
 				public:
 
@@ -51,8 +93,8 @@ namespace Genode {
 					/**
 					 * Constructors
 					 */
-					Entry() { }
-					Entry(Untyped_capability cap) : _cap(cap) { }
+					Entry() : _ref(0), _dead(false) { }
+					Entry(Untyped_capability cap) : _cap(cap), _ref(0), _dead(false) { }
 
 					/**
 					 * Avl_node interface
@@ -63,7 +105,7 @@ namespace Genode {
 					/**
 					 * Support for object pool
 					 */
-					Entry *find_by_obj_id(long obj_id)
+					Entry *find_by_obj_id(unsigned long obj_id)
 					{
 						if (obj_id == _obj_id()) return this;
 
@@ -78,6 +120,12 @@ namespace Genode {
 					void cap(Untyped_capability c) { _cap = c; }
 
 					Untyped_capability const cap() const { return _cap; }
+
+					/**
+					 * Function used - ideally - solely by the Guard.
+					 */
+					void release() { del_ref(); unlock(); }
+					void acquire() { lock(); add_ref();   }
 			};
 
 		private:
@@ -93,25 +141,49 @@ namespace Genode {
 				_tree.insert(obj);
 			}
 
-			void remove(OBJ_TYPE *obj)
+			void remove_locked(OBJ_TYPE *obj)
 			{
-				Lock::Guard lock_guard(_lock);
-				_tree.remove(obj);
+				obj->is_dead(true);
+				obj->del_ref();
+
+				while (true) {
+					obj->unlock();
+					{
+						Lock::Guard lock_guard(_lock);
+						if (obj->is_ref_zero()) {
+							_tree.remove(obj);
+							return;
+						}
+					}
+					obj->lock();
+				}
 			}
 
 			/**
 			 * Lookup object
 			 */
-			OBJ_TYPE *obj_by_id(long obj_id)
+			OBJ_TYPE *lookup_and_lock(addr_t obj_id)
 			{
-				Lock::Guard lock_guard(_lock);
-				Entry *obj = _tree.first();
-				return (OBJ_TYPE *)(obj ? obj->find_by_obj_id(obj_id) : 0);
+				OBJ_TYPE * obj_typed;
+				{
+					Lock::Guard lock_guard(_lock);
+					Entry *obj = _tree.first();
+					if (!obj) return 0;
+
+					obj_typed = (OBJ_TYPE *)obj->find_by_obj_id(obj_id);
+					if (!obj_typed || obj_typed->is_dead())
+						return 0;
+
+					obj_typed->add_ref();
+				}
+
+				obj_typed->lock();
+				return obj_typed;
 			}
 
-			OBJ_TYPE *obj_by_cap(Untyped_capability cap)
+			OBJ_TYPE *lookup_and_lock(Untyped_capability cap)
 			{
-				return obj_by_id(cap.local_name());
+				return lookup_and_lock(cap.local_name());
 			}
 
 			/**

@@ -21,8 +21,8 @@ using namespace Genode;
 
 void Pd_session_component::space_pager(Thread_capability thread)
 {
-	Cpu_thread_component *cpu_thread = dynamic_cast<Cpu_thread_component *>
-		(_thread_ep->obj_by_cap(thread));
+	Object_pool<Cpu_thread_component>::Guard
+		cpu_thread(_thread_ep->lookup_and_lock(thread));
 	if (!cpu_thread) return;
 	_pd.space_pager(cpu_thread->platform_thread());
 }

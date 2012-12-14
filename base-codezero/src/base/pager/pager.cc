@@ -27,43 +27,47 @@ void Pager_activation_base::entry()
 	_cap = pager;
 	_cap_valid.unlock();
 
-	pager.wait_for_fault();
+	bool reply = false;
+
 	while (1) {
 
+		if (reply)
+			pager.reply_and_wait_for_fault();
+		else
+			pager.wait_for_fault();
+
 		/* lookup referenced object */
-		Pager_object *obj = _ep ? _ep->obj_by_id(pager.badge()) : 0;
+		Object_pool<Pager_object>::Guard _obj(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
+		Pager_object * obj = _obj;
+		reply = false;
 
 		/* handle request */
 		if (obj) {
-			if (obj->pager(pager))
-				/* something strange occured - leave thread in pagefault */
-				pager.wait_for_fault();
-			else
-				pager.reply_and_wait_for_fault();
-		} else {
-
-			/*
-			 * We got a request from one of cores region-manager sessions
-			 * to answer the pending page fault of a resolved region-manager
-			 * client. Hence, we have to send the page-fault reply to the
-			 * specified thread and answer the call of the region-manager
-			 * session.
-			 *
-			 * When called from a region-manager session, we receive the
-			 * core-local address of the targeted pager object via the
-			 * first message word, which corresponds to the 'fault_ip'
-			 * argument of normal page-fault messages.
-			 */
-			obj = reinterpret_cast<Pager_object *>(pager.fault_ip());
-
-			/* send reply to the calling region-manager session */
-			pager.acknowledge_wakeup();
-
-			/* answer page fault of resolved pager object */
-			pager.set_reply_dst(obj->cap());
-			pager.acknowledge_wakeup();
-			pager.wait_for_fault();
+			reply = !obj->pager(pager);
+			/* something strange occurred - leave thread in pagefault */
+			continue;
 		}
+
+		/*
+		 * We got a request from one of cores region-manager sessions
+		 * to answer the pending page fault of a resolved region-manager
+		 * client. Hence, we have to send the page-fault reply to the
+		 * specified thread and answer the call of the region-manager
+		 * session.
+		 *
+		 * When called from a region-manager session, we receive the
+		 * core-local address of the targeted pager object via the
+		 * first message word, which corresponds to the 'fault_ip'
+		 * argument of normal page-fault messages.
+		 */
+		obj = reinterpret_cast<Pager_object *>(pager.fault_ip());
+
+		/* send reply to the calling region-manager session */
+		pager.acknowledge_wakeup();
+
+		/* answer page fault of resolved pager object */
+		pager.set_reply_dst(obj->cap());
+		pager.acknowledge_wakeup();
 	}
 }
 
@@ -79,7 +83,7 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *, Pager_activation_base *a)
 
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
-	remove(obj);
+	remove_locked(obj);
 }
 
 

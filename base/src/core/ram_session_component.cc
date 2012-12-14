@@ -26,9 +26,7 @@ static const bool verbose = false;
 
 addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
 {
-	Dataspace_component * const dsc =
-		dynamic_cast<Dataspace_component *>(_ds_ep->obj_by_cap(ds));
-
+	Object_pool<Dataspace_component>::Guard dsc(_ds_ep->lookup_and_lock(ds));
 	if (!dsc) throw Invalid_dataspace();
 	return dsc->phys_addr();
 }
@@ -201,7 +199,12 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 
 void Ram_session_component::free(Ram_dataspace_capability ds_cap)
 {
-	_free_ds(dynamic_cast<Dataspace_component *>(_ds_ep->obj_by_cap(ds_cap)));
+	Dataspace_component * ds =
+		dynamic_cast<Dataspace_component *>(_ds_ep->lookup_and_lock(ds_cap));
+	if (!ds)
+		return;
+
+	_free_ds(ds);
 }
 
 
@@ -210,8 +213,7 @@ int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 	/* the reference account cannot be defined twice */
 	if (_ref_account) return -2;
 
-	Ram_session_component *ref = dynamic_cast<Ram_session_component *>
-	                            (_ram_session_ep->obj_by_cap(ram_session_cap));
+	Object_pool<Ram_session_component>::Guard ref(_ram_session_ep->lookup_and_lock(ram_session_cap));
 
 	/* check if recipient is a valid Ram_session_component */
 	if (!ref) return -1;
@@ -231,9 +233,8 @@ int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap
 {
 	if (verbose)
 		PDBG("amount=%zd", amount);
-	Ram_session_component *dst = dynamic_cast<Ram_session_component *>
-	                            (_ram_session_ep->obj_by_cap(ram_session_cap));
 
+	Object_pool<Ram_session_component>::Guard dst(_ram_session_ep->lookup_and_lock(ram_session_cap));
 	return _transfer_quota(dst, amount);
 }
 

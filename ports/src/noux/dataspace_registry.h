@@ -92,7 +92,7 @@ namespace Noux {
 					if (!info)
 						return;
 
-					_pool.remove(info);
+					_pool.remove_locked(info);
 					destroy(env()->heap(), info);
 				}
 			}
@@ -104,12 +104,12 @@ namespace Noux {
 
 			void remove(Dataspace_info *info)
 			{
-				_pool.remove(info);
+				_pool.remove_locked(info);
 			}
 
 			Dataspace_info *lookup_info(Dataspace_capability ds_cap)
 			{
-				return _pool.obj_by_cap(ds_cap);
+				return _pool.lookup_and_lock(ds_cap);
 			}
 	};
 }

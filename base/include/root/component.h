@@ -223,9 +223,8 @@ namespace Genode {
 			{
 				if (!args.is_valid_string()) throw Root::Invalid_args();
 
-				SESSION_TYPE *s =
-					dynamic_cast<SESSION_TYPE *>(_ep->obj_by_cap(session));
-
+				typedef typename Object_pool<SESSION_TYPE>::Guard Object_guard;
+				Object_guard s(_ep->lookup_and_lock(session));
 				if (!s) return;
 
 				_upgrade_session(s, args.string());
@@ -233,9 +232,8 @@ namespace Genode {
 
 			void close(Session_capability session)
 			{
-				SESSION_TYPE *s = 
-					dynamic_cast<SESSION_TYPE *>(_ep->obj_by_cap(session));
-
+				SESSION_TYPE * s =
+					dynamic_cast<SESSION_TYPE *>(_ep->lookup_and_lock(session));
 				if (!s) return;
 
 				/* let the entry point forget the session object */

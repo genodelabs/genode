@@ -198,7 +198,7 @@ void Child::_add_session(Child::Session const &s)
 void Child::_remove_session(Child::Session *s)
 {
 	/* forget about this session */
-	_session_pool.remove(s);
+	_session_pool.remove_locked(s);
 	_session_list.remove(s);
 
 	/* return session quota to the ram session of the child */
@@ -303,7 +303,7 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 		targeted_service = &_rm_service;
 
 	/* check if upgrade refers to server */
-	Session * const session = _session_pool.obj_by_cap(to_session);
+	Object_pool<Session>::Guard session(_session_pool.lookup_and_lock(to_session));
 	if (session)
 		targeted_service = session->service();
 
@@ -350,7 +350,7 @@ void Child::close(Session_capability session_cap)
 	 || session_cap.local_name() == _process.pd_session_cap().local_name())
 		return;
 
-	Session *s = _session_pool.obj_by_cap(session_cap);
+	Session *s = _session_pool.lookup_and_lock(session_cap);
 
 	if (!s) {
 		PWRN("no session structure found");
