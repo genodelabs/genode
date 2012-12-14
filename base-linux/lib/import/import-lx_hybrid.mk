@@ -80,13 +80,13 @@ endif
 ifneq ($(filter hardening_tool_chain, $(SPECS)),)
 EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=Scrt1.o)
 EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crti.o)
-EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtbeginS.o)
-EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtendS.o)
+EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtbeginS.o)
+EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtendS.o)
 else
 EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crt1.o)
 EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crti.o)
-EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtbegin.o)
-EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtend.o)
+EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtbegin.o)
+EXT_OBJECTS += $(shell $(CUSTOM_CC) $(CC_MARCH) -print-file-name=crtend.o)
 endif
 EXT_OBJECTS += $(shell cc $(CC_MARCH) -print-file-name=crtn.o)
 EXT_OBJECTS += -lgcc -lgcc_s -lsupc++ -lc
