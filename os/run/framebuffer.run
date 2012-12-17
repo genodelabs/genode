@@ -2,7 +2,7 @@
 # Build
 #
 
-build { core init test/framebuffer drivers/framebuffer drivers/timer }
+build { core init test/framebuffer drivers/framebuffer drivers/pci drivers/timer }
 
 create_boot_directory
 

@@ -35,14 +35,11 @@ int main()
 	Framebuffer::Mode const fb_mode = fb.mode();
 
 	/* write pixeldata to framebuffer */
-	void * fb_base = env()->rm_session()->attach(fb_ds_cap);
-	unsigned j;
-	unsigned const fb_size = (unsigned)(mode.width()*mode.height())/2;
-	for(unsigned i = 0; i < fb_size; i++)
-	{
-		*(((unsigned volatile *)fb_base) + i) = j;
-		j++;
-	}
+	void           *fb_base = env()->rm_session()->attach(fb_ds_cap);
+	unsigned const  fb_size = (unsigned)(mode.width()*mode.height())/2;
+	for (unsigned i = 0; i < fb_size; i++)
+		*(((unsigned volatile *)fb_base) + i) = i;
+
 	fb.refresh(0, 0, fb_mode.width(), fb_mode.height());
 	printf("--- end ---\n");
 	while(1);
