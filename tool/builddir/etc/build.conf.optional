@@ -4,7 +4,7 @@
 ##
 
 #
-# Ports of popular open-source libraries and the C library
+# Ports of popular open-source libraries and the C library.
 #
 # Make sure to execute 'make prepare' in 'libports' prior building.
 #

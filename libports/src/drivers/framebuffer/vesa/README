@@ -2,16 +2,6 @@ This driver for x86 VBE 2.0 flat framebuffers was implemented by Sebastian
 Sumpf.
 
 
-Building instructions
-~~~~~~~~~~~~~~~~~~~~~
-
-* 'specs.conf': set 'SPECS' variable, enable at least the following specs:
-  'genode' 'fiasco'  'fiasco_x86'. Also,  add the location of the
-  'framebuffer_session' include files to your include search path, e.g.,
-  'INC_DIR += <genode dir>/demo/include'
-
-* Compile; the target will be called 'fb_drv' --> Good luck
-
 Config arguments
 ~~~~~~~~~~~~~~~~
 

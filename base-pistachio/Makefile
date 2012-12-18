@@ -1,5 +1,5 @@
 #
-# \brief  Checkout Pistachio and addtional needed tools (kickstart)
+# \brief  Checkout Pistachio and additional needed tools (kickstart)
 # \author Stefan Kalkowski
 # \date   2011-07-15
 #

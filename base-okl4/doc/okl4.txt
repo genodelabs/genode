@@ -47,6 +47,12 @@ from within the 'base-okl4' directory. The Makefile within this directory will
 take care of downloading the kernel's source code and applying the patches
 found at 'base-okl4/patches'.
 
+For the vesa driver on x86 the x86emu library is required and can be downloaded
+and prepared by invoking the following command from within the 'libports'
+directory:
+
+! make prepare PKG=x86emu
+
 To create a build directory for Genode running on OKL4, use the 'create_builddir'
 tool:
 

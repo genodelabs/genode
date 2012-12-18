@@ -531,3 +531,13 @@ void X86emu::print_regions()
 	printf("I/O memory regions:\n");
 	mem_region_db.print_regions();
 }
+
+void X86emu::printk(const char *format, ...)
+{
+	va_list list;
+	va_start(list, format);
+
+	vprintf(format, list);
+
+	va_end(list);
+}

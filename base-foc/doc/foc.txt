@@ -54,6 +54,12 @@ just do:
 
 This will install all necessary third-party source code in the 'contrib' folder.
 
+For the vesa driver on x86 the x86emu library is required and can be downloaded
+and prepared by invoking the following command from within the 'libports'
+directory:
+
+! make prepare PKG=x86emu
+
 Now, go to a directory where you want the Genode/Fiasco.OC build directory to
 remain. Use the helper script in the 'tool' directory of the Genode
 source tree to create the initial build environment. You need to state the

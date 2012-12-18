@@ -44,6 +44,12 @@ command from within the 'base-fiasco' directory:
 
 ! make prepare
 
+For the vesa driver on x86 the x86emu library is required and can be downloaded
+and prepared by invoking the following command from within the 'libports'
+directory:
+
+! make prepare PKG=x86emu
+
 This command will download a prepackaged version of the kernel tested
 with Genode. The build process of the kernel is integrated with Genode's
 build system. After creating a build directory using 'create_builddir'
