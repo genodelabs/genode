@@ -948,7 +948,7 @@ namespace Kernel
 		 * the memory that holds the TLB data, because the latter
 		 * is not feasible in core space.
 		 */
-		Cpu::flush_caches();
+		Cpu::tlb_insertions();
 
 		/* resume targeted thread */
 		t->resume();

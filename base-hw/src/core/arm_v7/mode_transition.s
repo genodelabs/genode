@@ -47,6 +47,7 @@
 	/* load kernel section table */
 	adr sp, _mt_master_context_begin
 	ldr sp, [sp, #19*4]
+	orr sp, sp, #0b1000000 /* set TTBR0 flags */
 	mcr p15, 0, sp, c2, c0, 0
 	isb
 	dsb
@@ -128,6 +129,7 @@
 	/* get user contextidr and section table */
 	ldr sp, [lr, #18*4]
 	ldr lr, [lr, #19*4]
+	orr lr, lr, #0b1000000 /* set TTBR0 flags */
 
 	/********************************************************
 	 ** From now on, until we leave kernel mode, we must   **

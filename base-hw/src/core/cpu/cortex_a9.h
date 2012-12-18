@@ -45,6 +45,13 @@ namespace Cortex_a9
 			PRIVATE_TIMER_IRQ = 29,
 			PRIVATE_TIMER_CLK = PERIPH_CLK
 		};
+
+		/**
+		 * Ensure that TLB insertions get applied
+		 *
+		 * Nothing to do because MMU uses caches on pagetable walks
+		 */
+		static void tlb_insertions() { }
 	};
 }
 

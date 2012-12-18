@@ -15,14 +15,14 @@
 #define _IMX53__CPU_H_
 
 /* core includes */
-#include <cpu/arm_v7.h>
+#include <cpu/cortex_a8.h>
 
 namespace Genode
 {
 	/**
 	 * CPU driver for core
 	 */
-	class Cpu : public Arm_v7::Cpu { };
+	class Cpu : public Cortex_a8::Cpu { };
 }
 
 #endif /* _IMX53__CPU_H_ */

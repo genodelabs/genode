@@ -170,11 +170,6 @@ namespace Arm
 		 */
 		struct Ttbr0 : Register<32>
 		{
-			struct Irgn_1 : Bitfield<0,1> /* inner cachable mode */
-			{
-				enum { NON_CACHEABLE = 0 };
-			};
-
 			struct S : Bitfield<1,1> { }; /* shareable */
 
 			struct Rgn : Bitfield<3, 2> /* outer cachable attributes */
@@ -209,7 +204,6 @@ namespace Arm
 			static access_t init_virt_kernel(addr_t const sect_table)
 			{
 				return S::bits(0) |
-				       Irgn_1::bits(Irgn_1::NON_CACHEABLE) |
 				       Rgn::bits(Rgn::NON_CACHEABLE) |
 				       Ba::masked((addr_t)sect_table);
 			}

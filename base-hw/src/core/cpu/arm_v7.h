@@ -124,10 +124,8 @@ namespace Arm_v7
 		{
 			struct Nos : Bitfield<6,1> { }; /* not outer shareable */
 
-			struct Irgn_0 : Bitfield<6,1> /* inner cachable mode */
-			{
-				enum { NON_CACHEABLE = 0 };
-			};
+			struct Irgn_1 : Bitfield<0,1> { }; /* inner cachable mode */
+			struct Irgn_0 : Bitfield<6,1> { }; /* inner cachable mode */
 
 			/**
 			 * Value for the switch to virtual mode in kernel
@@ -138,7 +136,8 @@ namespace Arm_v7
 			{
 				return Arm::Cpu::Ttbr0::init_virt_kernel(sect_table) |
 				       Nos::bits(0) |
-				       Irgn_0::bits(Irgn_0::NON_CACHEABLE);
+				       Irgn_1::bits(0) |
+				       Irgn_0::bits(1);
 			}
 		};
 

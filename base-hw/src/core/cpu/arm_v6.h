@@ -111,6 +111,11 @@ namespace Arm_v6
 		 */
 		struct Ttbr0 : Arm::Cpu::Ttbr0
 		{
+			struct C : Bitfield<0,1> /* inner cachable mode */
+			{
+				enum { NON_CACHEABLE = 0 };
+			};
+
 			struct P : Bitfield<2,1> { }; /* memory controller ECC enabled */
 
 			/**
@@ -121,7 +126,8 @@ namespace Arm_v6
 			static access_t init_virt_kernel(addr_t const sect_table)
 			{
 				return Arm::Cpu::Ttbr0::init_virt_kernel(sect_table) |
-				       P::bits(0);
+				       P::bits(0) |
+				       C::bits(C::NON_CACHEABLE);
 			}
 		};
 
@@ -163,6 +169,11 @@ namespace Arm_v6
 			Ttbcr::write(Ttbcr::init_virt_kernel());
 			Sctlr::write(Sctlr::init_virt_kernel());
 		}
+
+		/**
+		 * Ensure that TLB insertions get applied
+		 */
+		static void tlb_insertions() { flush_tlb(); }
 	};
 }
 
