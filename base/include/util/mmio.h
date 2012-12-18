@@ -162,7 +162,7 @@ namespace Genode
 					ITEM_WIDTH      = _ITEM_WIDTH,
 					ITEM_WIDTH_LOG2 = Item::WIDTH_LOG2,
 					MAX_INDEX       = ITEMS - 1,
-					ITEM_MASK       = (1 << ITEM_WIDTH) - 1,
+					ITEM_MASK       = (1ULL << ITEM_WIDTH) - 1,
 				};
 
 				/* analogous to 'Mmio::Register::Register_base' */
