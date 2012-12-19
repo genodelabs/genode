@@ -53,17 +53,6 @@ namespace Kernel
 	/* import Genode types */
 	typedef Genode::Thread_state Thread_state;
 	typedef Genode::umword_t umword_t;
-
-	/**
-	 * Copy 'size' successive bytes from 'src_base' to 'dst_base'
-	 */
-	inline void copy_range(void * const src_base, void * const dst_base,
-	                       size_t const size)
-	{
-		for (size_t off = 0; off < size; off += sizeof(umword_t))
-			*(umword_t *)((addr_t)dst_base + off) =
-				*(umword_t *)((addr_t)src_base + off);
-	}
 }
 
 
@@ -73,7 +62,7 @@ void Kernel::Ipc_node::_receive_request(Message_buf * const r)
 	assert(r->size <= _inbuf.size);
 
 	/* fetch message */
-	copy_range(r->base, _inbuf.base, r->size);
+	Genode::memcpy(_inbuf.base, r->base, r->size);
 	_inbuf.size = r->size;
 	_inbuf.origin = r->origin;
 
@@ -90,7 +79,7 @@ void Kernel::Ipc_node::_receive_reply(void * const base, size_t const size)
 	assert(size <= _inbuf.size);
 
 	/* receive reply */
-	copy_range(base, _inbuf.base, size);
+	Genode::memcpy(_inbuf.base, base, size);
 	_inbuf.size = size;
 
 	/* update state */
