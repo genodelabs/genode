@@ -24,7 +24,7 @@
 
 namespace Genode {
 
-	class Cap_selector_allocator : public Bit_allocator<4096> 
+	class Cap_selector_allocator : public Bit_allocator<2 * 4096> 
 	{
 		public:
 
