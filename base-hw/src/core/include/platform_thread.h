@@ -111,11 +111,7 @@ namespace Genode {
 			/**
 			 * Cancel currently blocking operation
 			 */
-			void cancel_blocking()
-			{
-				kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
-				while (1) ;
-			};
+			void cancel_blocking() { resume(); }
 
 			/**
 			 * Get raw thread state
@@ -143,11 +139,8 @@ namespace Genode {
 			/**
 			 * Set the executing CPU for this thread
 			 */
-			void affinity(unsigned cpu)
-			{
-				kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
-				while (1) ;
-			};
+			void affinity(unsigned cpu) {
+				kernel_log() << __PRETTY_FUNCTION__ << ": not implemented\n"; };
 
 
 			/***************
