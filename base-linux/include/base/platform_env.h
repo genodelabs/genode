@@ -199,12 +199,12 @@ namespace Genode {
 					/**
 					 * Map dataspace into local address space
 					 */
-					static void *_map_local(Dataspace_capability ds,
-					                        Genode::size_t       size,
-					                        addr_t               offset,
-					                        bool                 use_local_addr,
-					                        addr_t               local_addr,
-					                        bool                 executable);
+					void *_map_local(Dataspace_capability ds,
+					                 Genode::size_t       size,
+					                 addr_t               offset,
+					                 bool                 use_local_addr,
+					                 addr_t               local_addr,
+					                 bool                 executable);
 
 					/**
 					 * Determine size of dataspace
@@ -214,17 +214,17 @@ namespace Genode {
 					 * dataspace size is determined via an RPC to core
 					 * (calling 'Dataspace::size()').
 					 */
-					static size_t _dataspace_size(Capability<Dataspace>);
+					size_t _dataspace_size(Capability<Dataspace>);
 
 					/**
 					 * Determine file descriptor of dataspace
 					 */
-					static int _dataspace_fd(Capability<Dataspace>);
+					int _dataspace_fd(Capability<Dataspace>);
 
 					/**
 					 * Determine whether dataspace is writable
 					 */
-					static bool _dataspace_writable(Capability<Dataspace>);
+					bool _dataspace_writable(Capability<Dataspace>);
 
 				public:
 

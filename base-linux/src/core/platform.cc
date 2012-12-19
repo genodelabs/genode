@@ -111,8 +111,13 @@ Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap
 		return Dataspace_capability::deref(ds_cap)->size();
 
 	/* use RPC if called from a different thread */
-	if (!core_env()->entrypoint()->is_myself())
-		return Dataspace_client(ds_cap).size();
+	if (!core_env()->entrypoint()->is_myself()) {
+		/* release Rm_session_mmap::_lock during RPC */
+		_lock.unlock();
+		Genode::size_t size = Dataspace_client(ds_cap).size();
+		_lock.lock();
+		return size;
+	}
 
 	/* use local function call if called from the entrypoint */
 	Dataspace *ds = core_env()->entrypoint()->lookup(ds_cap);
@@ -122,8 +127,13 @@ Platform_env_base::Rm_session_mmap::_dataspace_size(Capability<Dataspace> ds_cap
 
 int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 {
-	if (!core_env()->entrypoint()->is_myself())
-		return Linux_dataspace_client(ds_cap).fd().dst().socket;
+	if (!core_env()->entrypoint()->is_myself()) {
+		/* release Rm_session_mmap::_lock during RPC */
+		_lock.unlock();
+		int socket = Linux_dataspace_client(ds_cap).fd().dst().socket;
+		_lock.lock();
+		return socket;
+	}
 
 	Capability<Linux_dataspace> lx_ds_cap = static_cap_cast<Linux_dataspace>(ds_cap);
 
@@ -135,8 +145,13 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 
 bool Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds_cap)
 {
-	if (!core_env()->entrypoint()->is_myself())
-		return Dataspace_client(ds_cap).writable();
+	if (!core_env()->entrypoint()->is_myself()) {
+		/* release Rm_session_mmap::_lock during RPC */
+		_lock.unlock();
+		bool writable = Dataspace_client(ds_cap).writable();
+		_lock.lock();
+		return writable;
+	}
 
 	Dataspace *ds = core_env()->entrypoint()->lookup(ds_cap);
 
