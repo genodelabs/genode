@@ -152,7 +152,7 @@ namespace Arm
 		if(cache_support()) {
 			if(Page_flags::C::get(flags))
 				return Tex::bits(5) | C::bits(0) | B::bits(1);
-			    return Tex::bits(4) | C::bits(0) | B::bits(0);
+			    return Tex::bits(6) | C::bits(1) | B::bits(0);
 		}
 		        return Tex::bits(4) | C::bits(0) | B::bits(0);
 	}
