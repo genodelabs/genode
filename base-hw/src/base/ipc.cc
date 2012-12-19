@@ -40,23 +40,23 @@ enum
 /**
  * Translate byte size 's' to size in words
  */
-static unsigned long size_in_words(unsigned long const s)
-{ return (s + sizeof(unsigned long) - 1) / sizeof(unsigned long); }
+static size_t size_in_words(size_t const s) {
+	return (s + sizeof(size_t) - 1) / sizeof(size_t); }
 
 
 /**
  * Copy message payload to message buffer
  */
 static void copy_utcb_to_msgbuf(Msgbuf_base * const receive_buffer,
-                                unsigned long const message_size)
+                                size_t const message_size)
 {
 	/* log data that is received via IPC */
 	enum { VERBOSE = 0 };
 
 	/* get pointers and message attributes */
-	Native_utcb * const   utcb          = Thread_base::myself()->utcb();
-	unsigned long * const msgbuf        = (unsigned long *)receive_buffer->buf;
-	unsigned long const   message_wsize = size_in_words(message_size);
+	Native_utcb * const utcb          = Thread_base::myself()->utcb();
+	unsigned * const    msgbuf        = (unsigned *)receive_buffer->buf;
+	size_t const        message_wsize = size_in_words(message_size);
 
 	/* assertions, avoid 'printf' in here, it may lead to infinite recursion */
 	if (message_wsize > size_in_words(utcb->size()))
@@ -74,16 +74,16 @@ static void copy_utcb_to_msgbuf(Msgbuf_base * const receive_buffer,
  * Copy message payload to the UTCB
  */
 static void copy_msgbuf_to_utcb(Msgbuf_base * const send_buffer,
-                                unsigned long const message_size,
-                                unsigned long const local_name)
+                                size_t const message_size,
+                                unsigned const local_name)
 {
 	/* log data that is send via IPC */
 	enum { VERBOSE = 0 };
 
 	/* get pointers and message attributes */
-	Native_utcb * const   utcb          = Thread_base::myself()->utcb();
-	unsigned long * const msgbuf        = (unsigned long *)send_buffer->buf;
-	unsigned long const   message_wsize = size_in_words(message_size);
+	Native_utcb * const utcb          = Thread_base::myself()->utcb();
+	unsigned * const    msgbuf        = (unsigned *)send_buffer->buf;
+	size_t const        message_wsize = size_in_words(message_size);
 
 	/* assertions, avoid 'printf' in here, it may lead to infinite recursion */
 	if (message_wsize > size_in_words(utcb->size()))
@@ -95,7 +95,7 @@ static void copy_msgbuf_to_utcb(Msgbuf_base * const send_buffer,
 	*utcb->word(0) = local_name;
 
 	/* write message payload */
-	for (unsigned long i = 1; i < message_wsize; i++)
+	for (unsigned i = 1; i < message_wsize; i++)
 		*utcb->word(i) = msgbuf[i];
 }
 

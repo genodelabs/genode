@@ -26,7 +26,7 @@ namespace Genode
 
 	typedef int volatile      Native_lock;
 	typedef Platform_thread * Native_thread;
-	typedef unsigned long     Native_thread_id;
+	typedef unsigned          Native_thread_id;
 	typedef int               Native_connection_state;
 
 	/* FIXME needs to be MMU dependent */
@@ -48,11 +48,11 @@ namespace Genode
 	 */
 	struct Pagefault
 	{
-		unsigned long  thread_id;    /* thread ID of the faulter */
-		Tlb *          tlb;          /* TLB to wich the faulter is assigned */
-		addr_t         virt_ip;      /* the faulters virtual instruction pointer */
-		addr_t         virt_address; /* virtual fault address */
-		bool           write;        /* write access attempted at fault? */
+		unsigned thread_id;    /* thread ID of the faulter */
+		Tlb *    tlb;          /* TLB to wich the faulter is assigned */
+		addr_t   virt_ip;      /* the faulters virtual instruction pointer */
+		addr_t   virt_address; /* virtual fault address */
+		bool     write;        /* write access attempted at fault? */
 
 		/**
 		 * Placement new operator
@@ -94,7 +94,7 @@ namespace Genode
 		/**
 		 * Get pointer to a specific word within the UTCB
 		 */
-		umword_t * word(unsigned long const index) { return &words[index]; }
+		umword_t * word(unsigned const index) { return &words[index]; }
 
 		/**
 		 * Get the base of the UTCB
@@ -104,7 +104,7 @@ namespace Genode
 		/**
 		 * Get the UTCB size
 		 */
-		unsigned long size() { return sizeof(bytes); }
+		size_t size() { return sizeof(bytes); }
 	};
 
 	struct Cap_dst_policy

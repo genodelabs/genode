@@ -41,9 +41,9 @@ namespace Genode {
 		enum { NAME_MAX_LEN = 32 };
 
 		Thread_base *            _thread_base;
-		unsigned long            _stack_size;
-		unsigned long            _pd_id;
-		unsigned long            _id;
+		size_t                   _stack_size;
+		unsigned                 _pd_id;
+		unsigned                 _id;
 		Rm_client *              _rm_client;
 		bool                     _main_thread;
 		Native_utcb *            _phys_utcb;
@@ -68,16 +68,14 @@ namespace Genode {
 			/**
 			 * Constructor for core threads
 			 */
-			Platform_thread(const char *        name,
-			                Thread_base * const thread_base,
-			                unsigned long const stack_size,
-			                unsigned long const pd_id);
+			Platform_thread(const char * name, Thread_base * const thread_base,
+			                size_t const stack_size, unsigned const pd_id);
 
 			/**
 			 * Constructor for threads outside of core
 			 */
-			Platform_thread(const char * name, unsigned int priority,
-			                addr_t utcb);
+			Platform_thread(const char * name, unsigned const priority,
+			                addr_t const utcb);
 
 			/**
 			 * Destructor
@@ -93,8 +91,7 @@ namespace Genode {
 			 * \retval  0  on success
 			 * \retval <0  otherwise
 			 */
-			int join_pd(unsigned long const pd_id,
-			            bool const main_thread);
+			int join_pd(unsigned const pd_id, bool const main_thread);
 
 			/**
 			 * Run this thread
@@ -141,7 +138,7 @@ namespace Genode {
 			/**
 			 * Return unique identification of this thread as faulter
 			 */
-			unsigned long pager_object_badge() { return _id; }
+			unsigned pager_object_badge() { return _id; }
 
 			/**
 			 * Set the executing CPU for this thread
@@ -163,11 +160,11 @@ namespace Genode {
 
 			Pager_object * pager() const;
 
-			unsigned long pd_id() const { return _pd_id; }
+			unsigned pd_id() const { return _pd_id; }
 
 			Native_thread_id id() const { return _id; }
 
-			unsigned long stack_size() const { return _stack_size; }
+			size_t stack_size() const { return _stack_size; }
 
 			Thread_base * thread_base()
 			{

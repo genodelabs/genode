@@ -106,15 +106,15 @@ namespace Cortex_a9
 			/**
 			 * Translate milliseconds to a native timer value
 			 */
-			static uint32_t ms_to_tics(unsigned long const ms) {
+			static uint32_t ms_to_tics(unsigned const ms) {
 				return ms * TICS_PER_MS; }
 
 			/**
 			 * Stop the timer and return last timer value
 			 */
-			unsigned long stop_one_shot()
+			unsigned stop_one_shot()
 			{
-				unsigned long const v = read<Counter>();
+				unsigned const v = read<Counter>();
 				_disable();
 				return v;
 			}

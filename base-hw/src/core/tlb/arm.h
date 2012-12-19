@@ -62,10 +62,8 @@ namespace Arm
 	/**
 	 * Check if 'p' is aligned to 1 << 'alignm_log2'
 	 */
-	inline bool aligned(addr_t const a, unsigned long const alignm_log2)
-	{
-		return a == ((a >> alignm_log2) << alignm_log2);
-	}
+	inline bool aligned(addr_t const a, size_t const alignm_log2) {
+		return a == ((a >> alignm_log2) << alignm_log2); }
 
 	/**
 	 * Common access permission [1:0] bitfield values
@@ -323,7 +321,7 @@ namespace Arm
 			 * \retval  0  on success
 			 * \retval <0  translation failed
 			 */
-			int _index_by_vo (unsigned long & i, addr_t const vo) const
+			int _index_by_vo (unsigned & i, addr_t const vo) const
 			{
 				if (vo > max_virt_offset()) return -1;
 				i = vo >> Small_page::VIRT_SIZE_LOG2;
@@ -379,11 +377,11 @@ namespace Arm
 			 * a link to another table level.
 			 */
 			void insert_translation(addr_t const vo, addr_t const pa,
-			                        unsigned long const size_log2,
+			                        size_t const size_log2,
 			                        Page_flags::access_t const flags)
 			{
 				/* validate virtual address */
-				unsigned long i;
+				unsigned i;
 				if (_index_by_vo (i, vo)) {
 					PDBG("Invalid virtual offset");
 					while (1) ;
@@ -428,7 +426,7 @@ namespace Arm
 			{
 				/* traverse all possibly affected entries */
 				addr_t residual_vo = vo;
-				unsigned long i;
+				unsigned i;
 				while (1)
 				{
 					/* check if anything is left over to remove */
@@ -675,7 +673,7 @@ namespace Arm
 			 * \retval <0  if virtual offset couldn't be resolved,
 			 *             in this case 'i' reside invalid
 			 */
-			int _index_by_vo(unsigned long & i, addr_t const vo) const
+			int _index_by_vo(unsigned & i, addr_t const vo) const
 			{
 				if (vo > max_virt_offset()) return -1;
 				i = vo >> Section::VIRT_SIZE_LOG2;
@@ -747,17 +745,17 @@ namespace Arm
 			 * table level.
 			 */
 			template <typename ST>
-			unsigned long insert_translation(addr_t const vo, addr_t const pa,
-			                                 unsigned long const size_log2,
-			                                 Page_flags::access_t const flags,
-			                                 ST * const st,
-			                                 void * const extra_space = 0)
+			size_t insert_translation(addr_t const vo, addr_t const pa,
+			                          size_t const size_log2,
+			                          Page_flags::access_t const flags,
+			                          ST * const st,
+			                          void * const extra_space = 0)
 			{
 				typedef typename ST::Section Section;
 				typedef typename ST::Page_table_descriptor Page_table_descriptor;
 
 				/* validate virtual address */
-				unsigned long i;
+				unsigned i;
 				if (_index_by_vo (i, vo)) {
 					PDBG("Invalid virtual offset");
 					while (1) ;
@@ -830,7 +828,7 @@ namespace Arm
 			{
 				/* traverse all possibly affected entries */
 				addr_t residual_vo = vo;
-				unsigned long i;
+				unsigned i;
 				while (1)
 				{
 					/* check if anything is left over to remove */

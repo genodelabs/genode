@@ -84,7 +84,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	Signal_connection * const s = signal_connection();
 	while (1) {
 		try {
-			c->_cap = s->alloc_context(_cap, (unsigned long)c);
+			c->_cap = s->alloc_context(_cap, (unsigned)c);
 			break;
 		} catch (Signal_session::Out_of_metadata)
 		{

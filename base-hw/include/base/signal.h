@@ -30,16 +30,16 @@ namespace Genode
 	 */
 	class Signal
 	{
-		unsigned long _imprint; /* receiver-local signal-context pointer */
-		int           _num; /* how often this signal has been triggered */
+		unsigned _imprint; /* receiver-local signal-context pointer */
+		int      _num; /* how often this signal has been triggered */
 
 		public:
 
 			/**
 			 * Construct valid signal
 			 */
-			Signal(unsigned long const imprint, int const num)
-			: _imprint(imprint), _num(num) { }
+			Signal(unsigned const imprint, int const num) :
+				_imprint(imprint), _num(num) { }
 
 			/***************
 			 ** Accessors **

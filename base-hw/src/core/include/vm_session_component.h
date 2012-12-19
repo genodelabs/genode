@@ -31,7 +31,7 @@ namespace Genode {
 
 			Rpc_entrypoint          *_ds_ep;
 			Range_allocator         *_ram_alloc;
-			unsigned long            _vm_id;
+			unsigned                 _vm_id;
 			void                    *_vm;
 			addr_t                   _ds_addr;
 			Dataspace_component      _ds;

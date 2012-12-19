@@ -25,6 +25,11 @@ namespace Genode
 
 namespace Kernel
 {
+	typedef Genode::Tlb             Tlb;
+	typedef Genode::addr_t          addr_t;
+	typedef Genode::size_t          size_t;
+	typedef Genode::Platform_thread Platform_thread;
+
 	/**
 	 * Unique opcodes of all syscalls supported by the kernel
 	 */
@@ -113,17 +118,17 @@ namespace Kernel
 	/**
 	 * Virtual range of the mode transition region in every PD
 	 */
-	Genode::addr_t mode_transition_virt_base();
-	Genode::size_t mode_transition_size();
+	addr_t mode_transition_virt_base();
+	size_t mode_transition_size();
 
 	/**
 	 * Get sizes of the kernel objects
 	 */
-	Genode::size_t thread_size();
-	Genode::size_t pd_size();
-	Genode::size_t signal_context_size();
-	Genode::size_t signal_receiver_size();
-	Genode::size_t vm_size();
+	size_t thread_size();
+	size_t pd_size();
+	size_t signal_context_size();
+	size_t signal_receiver_size();
+	size_t vm_size();
 
 	/**
 	 * Get alignment constraints of the kernel objects
@@ -162,8 +167,8 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void update_pd(unsigned long const pd_id)
-	{ syscall(UPDATE_PD, (Syscall_arg)pd_id); }
+	inline void update_pd(unsigned const pd_id) {
+		syscall(UPDATE_PD, (Syscall_arg)pd_id); }
 
 
 	/**
@@ -179,8 +184,9 @@ namespace Kernel
 	 * Restricted to core threads. Regaining of the supplied memory can be done
 	 * through 'delete_thread'.
 	 */
-	inline int new_thread(void * const dst, Genode::Platform_thread * const pt)
-	{ return syscall(NEW_THREAD, (Syscall_arg)dst, (Syscall_arg)pt); }
+	inline int
+	new_thread(void * const dst, Platform_thread * const pt) {
+		return syscall(NEW_THREAD, (Syscall_arg)dst, (Syscall_arg)pt); }
 
 	/**
 	 * Delete an existing thread
@@ -207,11 +213,10 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline Genode::Tlb *
-	start_thread(Genode::Platform_thread * const phys_pt, void * ip, void * sp,
-	             unsigned int cpu_no)
+	inline Tlb * start_thread(Platform_thread * const phys_pt, void * ip,
+	                          void * sp, unsigned cpu_no)
 	{
-		return (Genode::Tlb *)syscall(START_THREAD, (Syscall_arg)phys_pt,
+		return (Tlb *)syscall(START_THREAD, (Syscall_arg)phys_pt,
 		                              (Syscall_arg)ip, (Syscall_arg)sp,
 		                              (Syscall_arg)cpu_no);
 	}
@@ -229,8 +234,8 @@ namespace Kernel
 	 *
 	 * If the caller doesn't target itself, this is restricted to core threads.
 	 */
-	inline int pause_thread(unsigned long const id = 0)
-	{ return syscall(PAUSE_THREAD, id); }
+	inline int pause_thread(unsigned const id = 0) {
+		return syscall(PAUSE_THREAD, id); }
 
 
 	/**
@@ -243,8 +248,8 @@ namespace Kernel
 	 * \retval <0  if targeted thread doesn't participate in CPU
 	 *             scheduling after
 	 */
-	inline int resume_thread(unsigned long const id = 0)
-	{ return syscall(RESUME_THREAD, id); }
+	inline int resume_thread(unsigned const id = 0) {
+		return syscall(RESUME_THREAD, id); }
 
 
 	/**
@@ -252,7 +257,7 @@ namespace Kernel
 	 *
 	 * \param id  ID of the targeted thread
 	 */
-	inline void resume_faulter(unsigned long const id = 0) {
+	inline void resume_faulter(unsigned const id = 0) {
 		syscall(RESUME_FAULTER, id); }
 
 
@@ -262,8 +267,8 @@ namespace Kernel
 	 * \param id  if this thread ID is set and valid this will resume the
 	 *            targeted thread additionally
 	 */
-	inline void yield_thread(unsigned long const id = 0)
-	{ syscall(YIELD_THREAD, id); }
+	inline void yield_thread(unsigned const id = 0) {
+		syscall(YIELD_THREAD, id); }
 
 
 	/**
@@ -279,8 +284,8 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline Genode::Platform_thread * get_thread(unsigned long const id = 0)
-	{ return (Genode::Platform_thread *)syscall(GET_THREAD, id); }
+	inline Platform_thread * get_thread(unsigned const id = 0) {
+		return (Platform_thread *)syscall(GET_THREAD, id); }
 
 
 	/**
@@ -294,9 +299,8 @@ namespace Kernel
 	 * If the receiver exists, this blocks execution until a dedicated reply
 	 * message has been send by the receiver. The receiver may never do so.
 	 */
-	inline unsigned long request_and_wait(unsigned long const id,
-	                                      unsigned long const size)
-	{ return (unsigned long)syscall(REQUEST_AND_WAIT, id, size); }
+	inline size_t request_and_wait(unsigned const id, size_t const size) {
+		return (size_t)syscall(REQUEST_AND_WAIT, id, size); }
 
 
 	/**
@@ -304,8 +308,8 @@ namespace Kernel
 	 *
 	 * \return  size of received request (beginning with the callers UTCB base)
 	 */
-	inline unsigned long wait_for_request()
-	{ return (unsigned long)syscall(WAIT_FOR_REQUEST); }
+	inline size_t wait_for_request() {
+		return (size_t)syscall(WAIT_FOR_REQUEST); }
 
 
 	/**
@@ -317,9 +321,8 @@ namespace Kernel
 	 * \return  request size (beginning with the callers UTCB base)
 	 *          if await_request was set
 	 */
-	inline unsigned long reply(unsigned long const size,
-	                           bool const await_request) {
-		return (unsigned long)syscall(REPLY, size, await_request); }
+	inline size_t reply(size_t const size, bool const await_request) {
+		return (size_t)syscall(REPLY, size, await_request); }
 
 
 	/**
@@ -336,9 +339,8 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void set_pager(unsigned long const pager_id,
-	                      unsigned long const faulter_id)
-	{ syscall(SET_PAGER, pager_id, faulter_id); }
+	inline void set_pager(unsigned const pager_id, unsigned const faulter_id) {
+		syscall(SET_PAGER, pager_id, faulter_id); }
 
 	/**
 	 * Print a char 'c' to the kernels serial ouput
@@ -355,8 +357,8 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline bool allocate_irq(unsigned long const id)
-	{ return syscall(ALLOCATE_IRQ, (Syscall_arg)id); }
+	inline bool allocate_irq(unsigned const id) {
+		return syscall(ALLOCATE_IRQ, (Syscall_arg)id); }
 
 
 	/**
@@ -368,8 +370,8 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline bool free_irq(unsigned long const id)
-	{ return syscall(FREE_IRQ, (Syscall_arg)id); }
+	inline bool free_irq(unsigned const id)	{
+		return syscall(FREE_IRQ, (Syscall_arg)id); }
 
 
 	/**
@@ -420,8 +422,8 @@ namespace Kernel
 	 * Restricted to core threads. Regaining of the supplied memory is not
 	 * supported by now.
 	 */
-	inline unsigned long new_signal_receiver(void * dst)
-	{ return syscall(NEW_SIGNAL_RECEIVER, (Syscall_arg)dst); }
+	inline unsigned new_signal_receiver(void * dst) {
+		return syscall(NEW_SIGNAL_RECEIVER, (Syscall_arg)dst); }
 
 
 	/**
@@ -440,9 +442,8 @@ namespace Kernel
 	 * Core-only syscall. Regaining of the supplied memory is not
 	 * supported by now.
 	 */
-	inline unsigned long new_signal_context(void * dst,
-	                                        unsigned long receiver_id,
-	                                        unsigned long imprint)
+	inline unsigned new_signal_context(void * dst, unsigned receiver_id,
+	                                   unsigned imprint)
 	{
 		return syscall(NEW_SIGNAL_CONTEXT, (Syscall_arg)dst,
 		               (Syscall_arg)receiver_id, (Syscall_arg)imprint);
@@ -462,8 +463,8 @@ namespace Kernel
 	 * multiple contexts trigger simultanously there is no assertion about
 	 * wich thread receives the 'Signal' instance of wich context.
 	 */
-	inline void await_signal(unsigned long receiver_id)
-	{ syscall(AWAIT_SIGNAL, (Syscall_arg)receiver_id); }
+	inline void await_signal(unsigned receiver_id) {
+		syscall(AWAIT_SIGNAL, (Syscall_arg)receiver_id); }
 
 
 	/**
@@ -471,7 +472,7 @@ namespace Kernel
 	 *
 	 * \param receiver_id  ID of the targeted receiver kernel-object
 	 */
-	inline bool signal_pending(unsigned long receiver_id) {
+	inline bool signal_pending(unsigned receiver_id) {
 		return syscall(SIGNAL_PENDING, (Syscall_arg)receiver_id); }
 
 
@@ -481,26 +482,26 @@ namespace Kernel
 	 * \param context_id  ID of the targeted context kernel-object
 	 * \param num         how often the context shall be triggered by this call
 	 */
-	inline void submit_signal(unsigned long context_id, int num)
-	{ syscall(SUBMIT_SIGNAL, (Syscall_arg)context_id, (Syscall_arg)num); }
+	inline void submit_signal(unsigned context_id, int num) {
+		syscall(SUBMIT_SIGNAL, (Syscall_arg)context_id, (Syscall_arg)num); }
 
 
 	/**
-	 * Create a new vm that is stopped initially
+	 * Create a new virtual-machine that is stopped initially
 	 *
-	 * \param dst          physical base of an appropriate portion of memory
-	 *                     that is thereupon allocated to the kernel
-	 * \param state        location of the cpu state of the VM
-	 * \param context_id   ID of the targeted signal context
+	 * \param dst         physical base of an appropriate portion of memory
+	 *                    that is thereupon allocated to the kernel
+	 * \param state       location of the CPU state of the VM
+	 * \param context_id  ID of the targeted signal context
 	 *
-	 * \retval >0  ID of the new vm
-	 * \retval  0  if no new vm was created
+	 * \retval >0  ID of the new VM
+	 * \retval  0  if no new VM was created
 	 *
 	 * Restricted to core threads. Regaining of the supplied memory is not
 	 * supported by now.
 	 */
 	inline int new_vm(void * const dst, void * const state,
-	                  unsigned long context_id)
+	                  unsigned context_id)
 	{
 		return syscall(NEW_VM, (Syscall_arg)dst, (Syscall_arg)state,
 		               (Syscall_arg)context_id);
@@ -510,9 +511,11 @@ namespace Kernel
 	/**
 	 * Execute a virtual-machine (again)
 	 *
-	 * \param id  ID of the targeted vm
+	 * \param id  ID of the targeted VM
+	 *
+	 * Restricted to core threads.
 	 */
-	inline void run_vm(unsigned long const id = 0) {
+	inline void run_vm(unsigned const id = 0) {
 		syscall(RUN_VM, (Syscall_arg)id); }
 }
 

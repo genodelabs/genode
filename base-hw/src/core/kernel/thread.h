@@ -33,15 +33,11 @@ namespace Genode
 namespace Kernel
 {
 	typedef Genode::Cpu             Cpu;
-	typedef Genode::Tlb             Tlb;
 	typedef Genode::Page_flags      Page_flags;
 	typedef Genode::Core_tlb        Core_tlb;
-	typedef Genode::addr_t          addr_t;
-	typedef Genode::size_t          size_t;
 	typedef Genode::Signal          Signal;
 	typedef Genode::Pagefault       Pagefault;
 	typedef Genode::Native_utcb     Native_utcb;
-	typedef Genode::Platform_thread Platform_thread;
 
 	template <typename T> class Avl_tree : public Genode::Avl_tree<T> { };
 	template <typename T> class Avl_node : public Genode::Avl_node<T> { };
@@ -80,19 +76,19 @@ namespace Kernel
 			{
 				protected:
 
-					unsigned long _id;
+					unsigned _id;
 
 				public:
 
 					/**
 					 * Constructors
 					 */
-					Entry(unsigned long const id) : _id(id) { }
+					Entry(unsigned const id) : _id(id) { }
 
 					/**
 					 * Find entry with 'object_id' within this AVL subtree
 					 */
-					Entry * find(unsigned long const object_id)
+					Entry * find(unsigned const object_id)
 					{
 						if (object_id == id()) return this;
 						Entry * const subtree = Avl_node<Entry>::child(object_id > id());
@@ -102,7 +98,7 @@ namespace Kernel
 					/**
 					 * ID of this object
 					 */
-					unsigned long const id() const { return _id; }
+					unsigned id() const { return _id; }
 
 
 					/************************
@@ -131,7 +127,7 @@ namespace Kernel
 			/**
 			 * Lookup object
 			 */
-			Object * object(unsigned long const id)
+			Object * object(unsigned const id)
 			{
 				Entry * object = _tree.first();
 				return (Object *)(object ? object->find(id) : 0);

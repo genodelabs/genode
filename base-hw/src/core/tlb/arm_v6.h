@@ -66,9 +66,9 @@ namespace Arm_v6
 			 *
 			 * For details see 'Arm::Section_table::insert_translation'
 			 */
-			unsigned long
+			size_t
 			insert_translation(addr_t const vo, addr_t const pa,
-			                   unsigned long const size_log2,
+			                   size_t const size_log2,
 			                   Arm::Page_flags::access_t const flags,
 			                   void * const extra_space = 0) {
 				return Arm::Section_table::

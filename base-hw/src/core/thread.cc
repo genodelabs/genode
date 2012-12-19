@@ -75,9 +75,9 @@ Thread_base::~Thread_base()
 
 void Thread_base::start()
 {
-	size_t const stack_size = _tid->stack_size()/sizeof(unsigned long) + 1;
+	size_t const stack_size = _tid->stack_size()/sizeof(umword_t) + 1;
 	void * const stack_base = new (platform()->core_mem_alloc())
-	                          unsigned long [stack_size];
+	                              umword_t [stack_size];
 	void * sp = (void *)((addr_t)stack_base + _tid->stack_size());
 	void * ip = (void *)&thread_entry;
 	if (_tid->start(ip, sp)) PERR("Couldn't start thread");

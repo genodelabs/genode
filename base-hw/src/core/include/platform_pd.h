@@ -36,8 +36,8 @@ namespace Genode
 	 */
 	class Platform_pd
 	{
-		unsigned long     _id; /* ID of our kernel object */
-		Native_capability _parent; /* our parent interface */
+		unsigned          _id;          /* ID of our kernel object */
+		Native_capability _parent;      /* our parent interface */
 		Native_thread_id  _main_thread; /* the first thread that gets
 		                                 * executed in this PD */
 

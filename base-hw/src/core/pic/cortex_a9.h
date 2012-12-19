@@ -215,7 +215,7 @@ namespace Cortex_a9
 			} _cpu;
 
 			unsigned const _max_interrupt;
-			unsigned long _last_taken_request;
+			unsigned       _last_taken_request;
 
 		public:
 

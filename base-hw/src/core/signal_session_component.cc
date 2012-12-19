@@ -52,7 +52,7 @@ Signal_receiver_capability Signal_session_component::alloc_receiver()
 	size_t const s = Kernel::signal_receiver_size();
 	void * p;
 	if (!_receivers_slab.alloc(s, &p)) throw Out_of_metadata();
-	unsigned long const id = Kernel::new_signal_receiver(p);
+	unsigned const id = Kernel::new_signal_receiver(p);
 	if (!id) throw Out_of_metadata();
 
 	/* return reference to the new kernel-object */
@@ -63,13 +63,13 @@ Signal_receiver_capability Signal_session_component::alloc_receiver()
 
 Signal_context_capability
 Signal_session_component::alloc_context(Signal_receiver_capability r,
-                                        unsigned long imprint)
+                                        unsigned imprint)
 {
 	/* create context kernel-object */
 	size_t const s = Kernel::signal_context_size();
 	void * p;
 	if (!_contexts_slab.alloc(s, &p)) throw Out_of_metadata();
-	unsigned long const id = Kernel::new_signal_context(p, r.dst(), imprint);
+	unsigned const id = Kernel::new_signal_context(p, r.dst(), imprint);
 	if (!id) throw Out_of_metadata();
 
 	/* return reference to the new kernel-object */

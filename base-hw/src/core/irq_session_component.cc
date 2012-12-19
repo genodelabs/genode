@@ -52,8 +52,9 @@ Irq_session_component::Irq_session_component(Cap_session *     cap_session,
 	}
 	/* allocate IRQ */
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
-	if (irq_number == -1 || !irq_alloc ||
-	    irq_alloc->alloc_addr(1, irq_number).is_error()) {
+	if (irq_number < 0 || !irq_alloc ||
+	    irq_alloc->alloc_addr(1, irq_number).is_error())
+	{
 		PERR("Unavailable IRQ %lu requested", irq_number);
 		throw Root::Invalid_args();
 	}

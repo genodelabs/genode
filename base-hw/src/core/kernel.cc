@@ -58,9 +58,9 @@ namespace Kernel
 	 * Copy 'size' successive bytes from 'src_base' to 'dst_base'
 	 */
 	inline void copy_range(void * const src_base, void * const dst_base,
-	                       size_t size)
+	                       size_t const size)
 	{
-		for (unsigned long off = 0; off < size; off += sizeof(umword_t))
+		for (size_t off = 0; off < size; off += sizeof(umword_t))
 			*(umword_t *)((addr_t)dst_base + off) =
 				*(umword_t *)((addr_t)src_base + off);
 	}

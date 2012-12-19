@@ -57,8 +57,7 @@ Platform_thread::~Platform_thread()
 
 Platform_thread::Platform_thread(const char * name,
                                  Thread_base * const thread_base,
-                                 unsigned long const stack_size,
-                                 unsigned long const pd_id)
+                                 size_t const stack_size, unsigned const pd_id)
 :
 	_thread_base(thread_base), _stack_size(stack_size),
 	_pd_id(pd_id), _rm_client(0), _virt_utcb(0)
@@ -103,8 +102,7 @@ Platform_thread::Platform_thread(const char * name, unsigned int priority,
 }
 
 
-int Platform_thread::join_pd(unsigned long const pd_id,
-                             bool const main_thread)
+int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread)
 {
 	/* check if we're already in another PD */
 	if (_pd_id && _pd_id != pd_id) return -1;

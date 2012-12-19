@@ -43,8 +43,8 @@ namespace Genode
 
 		Signal_context_capability
 		alloc_context(Signal_receiver_capability const r,
-		              unsigned long const imprint)
-		{ return call<Rpc_alloc_context>(r, imprint); }
+		              unsigned const imprint) {
+			return call<Rpc_alloc_context>(r, imprint); }
 	};
 }
 

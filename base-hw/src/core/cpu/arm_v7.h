@@ -168,7 +168,7 @@ namespace Arm_v7
 		 * \param process_id     process ID of the initial address space
 		 */
 		static void init_virt_kernel(addr_t const section_table,
-		                             unsigned long const process_id)
+		                             unsigned const process_id)
 		{
 			Cidr::write(process_id);
 			Dacr::write(Dacr::init_virt_kernel());
