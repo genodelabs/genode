@@ -86,25 +86,17 @@ namespace Genode
 	struct Native_utcb
 	{
 		/* UTCB payload */
-		union {
-			char     bytes[1<<MIN_MAPPING_SIZE_LOG2];
-			umword_t words[sizeof(bytes)/sizeof(umword_t)];
-		};
-
-		/**
-		 * Get pointer to a specific word within the UTCB
-		 */
-		umword_t * word(unsigned const index) { return &words[index]; }
+		char payload[1<<MIN_MAPPING_SIZE_LOG2];
 
 		/**
 		 * Get the base of the UTCB
 		 */
-		void * base() { return (void *)bytes; }
+		void * base() { return payload; }
 
 		/**
 		 * Get the UTCB size
 		 */
-		size_t size() { return sizeof(bytes); }
+		size_t size() { return sizeof(payload); }
 	};
 
 	struct Cap_dst_policy
