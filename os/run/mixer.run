@@ -1,0 +1,144 @@
+#
+# Build
+#
+
+# generic components
+set build_components {
+	core init
+	drivers/timer
+	server/mixer
+	test/audio_out
+}
+
+# platform-specific components
+if {[have_spec linux]} {
+	lappend build_components drivers/audio_out
+} else {
+	lappend build_components drivers/pci
+	lappend build_components drivers/acpi
+	lappend build_components drivers/oss
+}
+
+build $build_components
+create_boot_directory
+
+
+#
+# Config
+#
+
+set config  {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<service name="Audio_out"> <child name="mixer"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+}
+
+if {![have_spec linux]} {
+	append config {
+		<start name="acpi">
+			<resource name="RAM" quantum="2M"/>
+			<binary name="acpi_drv"/>
+			<provides>
+				<service name="PCI"/>
+				<service name="IRQ" />
+			</provides>
+			<route>
+				<service name="PCI"> <any-child /> </service>
+				<any-service> <parent/> <any-child /> </any-service>
+			</route>
+		</start>
+		<start name="audio_out_drv">
+			<binary name="oss_drv" />
+			<resource name="RAM" quantum="6M"/>
+			<route>
+				<service name="IRQ"><child name="acpi" /></service>
+				<any-service> <parent /> <any-child /></any-service>
+			</route>
+			<provides>
+				<service name="Audio_out"/>
+			</provides>
+		</start>
+	}
+} else {
+	append config {
+		<start name="audio_out_drv">
+			<resource name="RAM" quantum="1M" />
+			<provides>
+				<service name="Audio_out" />
+			</provides>
+		</start>
+	}
+}
+
+append config {
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="mixer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Audio_out"/></provides>
+			<route>
+				<service name="Audio_out"> <child name="audio_out_drv"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+		<start name="audio0">
+			<binary name="test-audio_out"/>
+			<resource name="RAM" quantum="8M"/>
+			<config>
+				<filename>sample.raw</filename>
+				<filename>vogel.f32</filename>
+			</config>
+			<route>
+				<service name="Audio_out"> <child name="mixer"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	timer
+	test-audio_out
+	sample.raw
+	vogel.f32
+	mixer
+}
+
+# platform-specific components
+if {[have_spec linux]} {
+	lappend boot_modules audio_out_drv
+} else {
+	lappend boot_modules oss_drv
+	lappend boot_modules acpi_drv
+	lappend boot_modules pci_drv
+}
+
+build_boot_image $boot_modules
+append qemu_args "-m 256 -soundhw es1370 -nographic"
+run_genode_until forever

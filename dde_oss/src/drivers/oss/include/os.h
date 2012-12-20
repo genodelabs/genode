@@ -196,7 +196,7 @@ enum {
 #define GET_PROCESS_PID(p)  -1
 
 #define KERNEL_MALLOC(size) (dde_kit_large_malloc(size))
-#define	KERNEL_FREE(ptr)    (dde_kit_large_free(ptr))
+#define KERNEL_FREE(ptr)    (dde_kit_large_free(ptr))
 
 void * dma_alloc(oss_native_word *phys, size_t size);
 #define CONTIG_MALLOC(osdev, sz, memlimit, phaddr, handle) dma_alloc(phaddr, sz)

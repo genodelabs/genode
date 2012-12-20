@@ -1,6 +1,7 @@
 /*
  * \brief  Genode-specific audio backend
  * \author Christian Prochaska
+ * \author Sebastian Sumpf
  * \date   2012-03-13
  *
  * based on the dummy SDL audio driver
@@ -16,14 +17,12 @@
 #include <base/allocator_avl.h>
 #include <base/printf.h>
 #include <base/thread.h>
-#include <audio_out_session/connection.h>
+#include <audio_session/connection.h>
 #include <os/config.h>
 
+
 enum {
-	AUDIO_OUT_SAMPLE_SIZE = sizeof(float),
-	AUDIO_OUT_CHANNELS = 2,
-	AUDIO_OUT_FREQ = 44100,
-	AUDIO_OUT_SAMPLES = 1024,
+	AUDIO_CHANNELS = 2,
 };
 
 using Genode::env;
@@ -52,15 +51,11 @@ extern "C" {
 /* The tag name used by Genode audio */
 #define GENODEAUD_DRIVER_NAME "genode"
 
-typedef Audio_out::Session::Channel::Source Stream;
-
 
 struct SDL_PrivateAudioData {
-	Uint8 *mixbuf;
-	Uint32 mixlen;
-	Genode::Allocator_avl *block_alloc[AUDIO_OUT_CHANNELS];
-	Audio_out::Connection *audio_out[AUDIO_OUT_CHANNELS];
-	Stream *stream[AUDIO_OUT_CHANNELS];
+	Uint8             *mixbuf;
+	Uint32             mixlen;
+	Audio_out::Connection *audio[AUDIO_CHANNELS];
 };
 
 
@@ -82,7 +77,10 @@ static void read_config()
 	/* read volume from config file */
 	try {
 		unsigned int config_volume;
-		Genode::config()->xml_node().sub_node("sdl_audio_volume").attribute("value").value(&config_volume);
+
+		Genode::config()->xml_node().sub_node("sdl_audio_volume")
+			.attribute("value").value(&config_volume);
+
 		volume = (float)config_volume / 100;
 	}
 	catch (Genode::Config::Invalid) { }
@@ -108,10 +106,8 @@ static int GENODEAUD_Available(void)
 
 static void GENODEAUD_DeleteDevice(SDL_AudioDevice *device)
 {
-	for (int channel = 0; channel < AUDIO_OUT_CHANNELS; channel++) {
-		destroy(env()->heap(), device->hidden->audio_out[channel]);
-		destroy(env()->heap(), device->hidden->block_alloc[channel]);
-	}
+	for (int channel = 0; channel < AUDIO_CHANNELS; channel++)
+		destroy(env()->heap(), device->hidden->audio[channel]);
 
 	SDL_free(device->hidden);
 	SDL_free(device);
@@ -148,23 +144,19 @@ static SDL_AudioDevice *GENODEAUD_CreateDevice(int devindex)
 	_this->free = GENODEAUD_DeleteDevice;
 
 	/* connect to 'Audio_out' service */
-	for (int channel = 0; channel < AUDIO_OUT_CHANNELS; channel++) {
-		_this->hidden->block_alloc[channel] = new (env()->heap()) Allocator_avl(env()->heap());
+	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
 		try {
-			_this->hidden->audio_out[channel] = new (env()->heap())
-				Audio_out::Connection(channel_names[channel], _this->hidden->block_alloc[channel]);
-			_this->hidden->stream[channel] = _this->hidden->audio_out[channel]->stream();
+			_this->hidden->audio[channel] = new (env()->heap())
+				Audio_out::Connection(channel_names[channel]);
+			_this->hidden->audio[channel]->start();
 		} catch(Genode::Parent::Service_denied) {
 			PERR("Could not connect to 'Audio_out' service.");
-			destroy(env()->heap(), _this->hidden->block_alloc[channel]);
-			while(--channel > 0) {
-				destroy(env()->heap(), _this->hidden->audio_out[channel]);
-				destroy(env()->heap(), _this->hidden->block_alloc[channel]);
-			}
+
+			while(--channel > 0)
+				destroy(env()->heap(), _this->hidden->audio[channel]);
+
 			return NULL;
 		}
-		if (channel > 0)
-			_this->hidden->audio_out[channel]->sync_session(_this->hidden->audio_out[channel-1]->session_capability());
 	}
 
 	Genode::config()->sigh(signal_receiver()->manage(&config_signal_context));
@@ -183,27 +175,32 @@ AudioBootStrap GENODEAUD_bootstrap = {
 /* This function waits until it is possible to write a full sound buffer */
 static void GENODEAUD_WaitAudio(_THIS)
 {
-	for (int channel = 0; channel < AUDIO_OUT_CHANNELS; channel++)
-		while (_this->hidden->stream[channel]->ack_avail() ||
-		       !_this->hidden->stream[channel]->ready_to_submit()) {
-			_this->hidden->stream[channel]->release_packet(_this->hidden->stream[channel]->get_acked_packet());
-		}
+	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
+		Audio_out::Connection *connection = _this->hidden->audio[channel];
+
+		/* wait until allocation is possible */
+		if (connection->stream()->full())
+			connection->wait_for_alloc();
+	}
 }
 
 
 static void GENODEAUD_PlayAudio(_THIS)
 {
-	Packet_descriptor p[AUDIO_OUT_CHANNELS];
+	Audio_out::Packet *p[AUDIO_CHANNELS];
 
-	for (int channel = 0; channel < AUDIO_OUT_CHANNELS; channel++)
-		while (1)
+	for (int channel = 0; channel < AUDIO_CHANNELS; channel++)
+		while (1) {
+			Audio_out::Connection *connection = _this->hidden->audio[channel];
+
 			try {
-				p[channel] = _this->hidden->stream[channel]->alloc_packet(AUDIO_OUT_SAMPLE_SIZE * AUDIO_OUT_SAMPLES);
+				p[channel] = connection->stream()->alloc();
 				break;
-			} catch (Stream::Packet_alloc_failed) {
+			} catch (Audio_out::Stream::Alloc_failed) {
 				/* wait for next finished packet */
-				_this->hidden->stream[channel]->release_packet(_this->hidden->stream[channel]->get_acked_packet());
+				connection->wait_for_alloc();
 			}
+		}
 
 	if (signal_receiver()->pending()) {
 		signal_receiver()->wait_for_signal();
@@ -211,13 +208,13 @@ static void GENODEAUD_PlayAudio(_THIS)
 		read_config();
 	}
 
-	for (int sample = 0; sample < AUDIO_OUT_SAMPLES; sample++)
-		for (int channel = 0; channel < AUDIO_OUT_CHANNELS; channel++)
-			_this->hidden->stream[channel]->packet_content(p[channel])[sample] =
-				volume * (float)(((int16_t*)_this->hidden->mixbuf)[sample * AUDIO_OUT_CHANNELS + channel]) / 32768;
+	for (int sample = 0; sample < Audio_out::PERIOD; sample++)
+		for (int channel = 0; channel < AUDIO_CHANNELS; channel++)
+			p[channel]->content()[sample] =
+				volume * (float)(((int16_t*)_this->hidden->mixbuf)[sample * AUDIO_CHANNELS + channel]) / 32768;
 
-	for (int channel = 0; channel < AUDIO_OUT_CHANNELS; channel++)
-		_this->hidden->stream[channel]->submit_packet(p[channel]);
+	for (int channel = 0; channel < AUDIO_CHANNELS; channel++)
+		_this->hidden->audio[channel]->submit(p[channel]);
 }
 
 
@@ -243,10 +240,10 @@ static int GENODEAUD_OpenAudio(_THIS, SDL_AudioSpec *spec)
 	PDBG("requested samples = %u", spec->samples);
 	PDBG("requested size = %u", spec->size);
 
-	spec->channels = AUDIO_OUT_CHANNELS;
+	spec->channels = AUDIO_CHANNELS;
 	spec->format = AUDIO_S16LSB;
-	spec->freq = AUDIO_OUT_FREQ;
-	spec->samples = AUDIO_OUT_SAMPLES;
+	spec->freq = Audio_out::SAMPLE_RATE;
+	spec->samples = Audio_out::PERIOD;
 	SDL_CalculateAudioSpec(spec);
 
 	/* Allocate mixing buffer */

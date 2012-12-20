@@ -1,5 +1,5 @@
 /*
- * \brief  Audio-session-entry point
+ * \brief  Audio-out session entry point
  * \author Sebastian Sumpf
  * \date   2012-11-20
  */
@@ -19,7 +19,7 @@ extern "C" {
 #include <base/sleep.h>
 #include <root/component.h>
 #include <cap_session/connection.h>
-#include <audio_out_session/rpc_object.h>
+#include <audio_session/rpc_object.h>
 #include <util/misc_math.h>
 
 #include <audio.h>
@@ -27,202 +27,253 @@ extern "C" {
 
 using namespace Genode;
 
+
 static const bool verbose = false;
 static bool audio_out_active = false;
 
+enum Channel_number { LEFT, RIGHT, MAX_CHANNELS, INVALID = MAX_CHANNELS };
+
 
 namespace Audio_out {
-
-	class Session_component;
-
-	enum Channel_number { LEFT, RIGHT, MAX_CHANNELS, INVALID = MAX_CHANNELS };
-
+	class  Session_component;
+	class  Out;
+	class  Root;
+	struct Root_policy;
 	static Session_component *channel_acquired[MAX_CHANNELS];
+}
 
-	class Session_component : public Session_rpc_object
-	{
-		private:
 
-			Ram_dataspace_capability _ds;
-			Channel_number           _channel;
+class Audio_out::Session_component : public Audio_out::Session_rpc_object
+{
+	private:
 
-			Signal_dispatcher<Session_component> _process_packet_dispatcher;
+		Channel_number            _channel;
+		Signal_context_capability _ctx_cap;
+		Signal_transmitter        _signal;
 
-			Ram_dataspace_capability _alloc_dataspace(size_t size)
-			{
-				_ds = env()->ram_session()->alloc(size);
-				return _ds;
-			}
+	public:
 
-			void _process_packets(unsigned)
-			{
-				/* handle audio-out packets */
-				Session_component *left  = channel_acquired[LEFT],
-				                  *right = channel_acquired[RIGHT];
-				while (left->channel()->packet_avail() &&
-				       right->channel()->packet_avail() &&
-				       left->channel()->ready_to_ack()  &&
-				       right->channel()->ready_to_ack()) {
+		Session_component(Channel_number channel, Signal_context_capability ctx_cap)
+		:  Session_rpc_object(ctx_cap), _channel(channel), _ctx_cap(ctx_cap)
+		{
+			Audio_out::channel_acquired[_channel] = this;
+			_signal.context(ctx_cap);
+		}
 
-					/* get packets for channels */
-					Packet_descriptor p[MAX_CHANNELS];
-					static short data[2 * PERIOD];
-					p[LEFT] = left->channel()->get_packet();
-					p[RIGHT] = right->channel()->get_packet();
+		~Session_component()
+		{
+			Audio_out::channel_acquired[_channel] = 0;
+		}
 
-					/* convert float to S16LE */
-					for (int i = 0; i < 2 * PERIOD; i += 2) {
-						data[i] = left->channel()->packet_content(p[LEFT])[i / 2] * 32767;
-						data[i + 1] = right->channel()->packet_content(p[RIGHT])[i / 2] * 32767;
-					}
+		void start()
+		{
+			Session_rpc_object::start();
+			/* this will trigger Audio_out::Out::handle */
+			_signal.submit();
+		}
+};
 
-					if (verbose)
-						PDBG("play packet");
 
-					/* send to driver */
-					int err;
-					if (audio_out_active)
-						if ((err = audio_play(data, 4 * PERIOD)))
-							PWRN("Error %d during playback", err);
+class Audio_out::Out : public Driver_context
+{
+	private:
 
-					/* acknowledge packet to the client */
-					if (p[LEFT].valid())
-						left->channel()->acknowledge_packet(p[LEFT]);
+		bool _active() {
+			return  channel_acquired[LEFT] && channel_acquired[RIGHT] &&
+			        channel_acquired[LEFT]->active() && channel_acquired[RIGHT]->active();
+		}
 
-					if (p[RIGHT].valid())
-						right->channel()->acknowledge_packet(p[RIGHT]);
+		Stream *left()  { return channel_acquired[LEFT]->stream(); }
+		Stream *right() { return channel_acquired[RIGHT]->stream(); }
+
+		void _advance_position(Packet *l, Packet *r)
+		{
+			bool full_left = left()->full();
+			bool full_right = right()->full();
+
+			left()->pos(left()->packet_position(l));
+			right()->pos(right()->packet_position(r));
+
+			left()->increment_position();
+			right()->increment_position();
+
+			Session_component *channel_left  = channel_acquired[LEFT];
+			Session_component *channel_right = channel_acquired[RIGHT];
+
+			if (full_left)
+				channel_left->alloc_submit();
+
+			if (full_right)
+				channel_right->alloc_submit();
+
+			channel_left->progress_submit();
+			channel_right->progress_submit();
+		}
+
+		bool _play_packet()
+		{
+			Packet *p_left  = left()->get(left()->pos());
+			Packet *p_right = right()->get(right()->pos());
+
+			bool found = false;
+			for (int i = 0; i < QUEUE_SIZE; i++) {
+				if (p_left->valid() && p_right->valid()) {
+					found = true;
+					break;
 				}
+
+				p_left  = left()->next(p_left);
+				p_right = right()->next(p_right);
 			}
 
-		public:
+			if (!found)
+				return false;
 
-			Session_component(Channel_number channel, size_t buffer_size,
-			                  Rpc_entrypoint &ep, Signal_receiver &sig_rec)
-			: Session_rpc_object(_alloc_dataspace(buffer_size), ep), _channel(channel),
-			  _process_packet_dispatcher(sig_rec, *this,
-			                             &Session_component::_process_packets)
-			{
-				Audio_out::channel_acquired[_channel] = this;
-				Session_rpc_object::_channel.sigh_packet_avail(_process_packet_dispatcher);
-				Session_rpc_object::_channel.sigh_ready_to_ack(_process_packet_dispatcher);
+			/* convert float to S16LE */
+			static short data[2 * PERIOD];
+			for (int i = 0; i < 2 * PERIOD; i += 2) {
+				data[i] = p_left->content()[i / 2] * 32767;
+				data[i + 1] = p_right->content()[i / 2] * 32767;
 			}
 
-			~Session_component()
-			{
-				Audio_out::channel_acquired[_channel] = 0;
+			p_left->invalidate();
+			p_right->invalidate();
 
-				env()->ram_session()->free(_ds);
+			if (verbose)
+				PDBG("play packet");
+
+			/* send to driver */
+			int err;
+			if (audio_out_active)
+				if ((err = audio_play(data, 4 * PERIOD)))
+					PWRN("Error %d during playback", err);
+
+			p_left->mark_as_played();
+			p_right->mark_as_played();
+
+			_advance_position(p_left, p_right);
+
+			return true;
+		}
+
+
+	public:
+
+		void handle()
+		{
+			while (true) {
+				if (!_active()) {
+					//TODO: may stop device
+					return;
+				}
+
+				/* play one packet */
+				if (!_play_packet())
+					return;
+
+				/* give others a try */
+				Service_handler::s()->check_signal(false);
 			}
+		}
 
-			/*********************************
-			 ** Audio-out-session interface **
-			 *********************************/
+		const char *debug() { return "Audio out"; }
+};
 
-			void flush()
-			{
-				while (channel()->packet_avail())
-					channel()->acknowledge_packet(channel()->get_packet());
-			}
 
-			void sync_session(Session_capability audio_out_session) { }
+static bool channel_number_from_string(const char     *name,
+                                       Channel_number *out_number)
+{
+	static struct Names {
+		const char    *name;
+		Channel_number number;
+	} names[] = {
+		{ "left", LEFT }, { "front left", LEFT },
+		{ "right", RIGHT }, { "front right", RIGHT },
+		{ 0, INVALID }
 	};
 
-	static bool channel_number_from_string(const char     *name,
-	                                       Channel_number *out_number)
+	for (Names *n = names; n->name; ++n)
+		if (!Genode::strcmp(name, n->name)) {
+			*out_number = n->number;
+			return true;
+		}
+
+	return false;
+}
+
+
+/**
+ * Session creation policy for our service
+ */
+struct Audio_out::Root_policy
+{
+	void aquire(const char *args)
 	{
-		static struct Names {
-			const char    *name;
-			Channel_number number;
-		} names[] = {
-			{ "left", LEFT }, { "front left", LEFT },
-			{ "right", RIGHT }, { "front right", RIGHT },
-			{ 0, INVALID }
-		};
+		size_t ram_quota =
+			Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
+		size_t session_size =
+			align_addr(sizeof(Audio_out::Session_component), 12);
 
-		for (Names *n = names; n->name; ++n)
-			if (!Genode::strcmp(name, n->name)) {
-				*out_number = n->number;
-				return true;
-			}
+		if ((ram_quota < session_size) ||
+		    (sizeof(Stream) > ram_quota - session_size)) {
+			PERR("insufficient 'ram_quota', got %zd, need %zd",
+			     ram_quota, sizeof(Stream) + session_size);
+			throw ::Root::Quota_exceeded();
+		}
 
-		return false;
+		char channel_name[16];
+		Channel_number channel_number;
+		Arg_string::find_arg(args, "channel").string(channel_name,
+		                                             sizeof(channel_name),
+		                                             "left");
+		if (!channel_number_from_string(channel_name, &channel_number))
+			throw ::Root::Invalid_args();
+		if (Audio_out::channel_acquired[channel_number])
+			throw ::Root::Unavailable();
 	}
 
-	/**
-	 * Session creation policy for our service
-	 */
-	struct Root_policy
-	{
-		void aquire(const char *args)
-		{
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-			size_t buffer_size =
-				Arg_string::find_arg(args, "buffer_size").ulong_value(0);
-			size_t session_size =
-				align_addr(sizeof(Session_component), 12);
+	void release() { }
+};
 
-			if ((ram_quota < session_size) ||
-			    (buffer_size > ram_quota - session_size)) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, buffer_size + session_size);
-				throw Root::Quota_exceeded();
-			}
+
+namespace Audio_out {
+	typedef Root_component<Session_component, Root_policy> Root_component;
+}
+
+
+/**
+ * Root component, handling new session requests.
+ */
+class Audio_out::Root : public Audio_out::Root_component
+{
+	private:
+
+		Signal_context_capability _ctx_cap;
+
+	protected:
+
+		Session_component *_create_session(const char *args)
+		{
+			if (!audio_out_active)
+				throw Root::Unavailable();
 
 			char channel_name[16];
-			Channel_number channel_number;
+			Channel_number channel_number = INVALID;
 			Arg_string::find_arg(args, "channel").string(channel_name,
 			                                             sizeof(channel_name),
 			                                             "left");
-			if (!channel_number_from_string(channel_name, &channel_number))
-				throw Root::Invalid_args();
-			if (channel_acquired[channel_number])
-				throw Root::Unavailable();
+			channel_number_from_string(channel_name, &channel_number);
+
+			return new (md_alloc())
+				Session_component(channel_number, _ctx_cap);
 		}
 
-		void release() { }
-	};
+	public:
 
-	typedef Root_component<Session_component, Root_policy> Root_component;
-
-	/*
-	 * Root component, handling new session requests.
-	 */
-	class Root : public Root_component
-	{
-		private:
-
-			Rpc_entrypoint  &_channel_ep;
-			Signal_receiver &_sig_rec;
-
-		protected:
-
-			Session_component *_create_session(const char *args)
-			{
-				size_t buffer_size =
-					Arg_string::find_arg(args, "buffer_size").ulong_value(0);
-
-				if (!audio_out_active)
-					throw Root::Unavailable();
-
-				char channel_name[16];
-				Channel_number channel_number = INVALID;
-				Arg_string::find_arg(args, "channel").string(channel_name,
-				                                             sizeof(channel_name),
-				                                             "left");
-				channel_number_from_string(channel_name, &channel_number);
-
-				return new (md_alloc())
-					Session_component(channel_number, buffer_size, _channel_ep, _sig_rec);
-			}
-
-		public:
-
-			Root(Rpc_entrypoint &session_ep, Allocator *md_alloc, Signal_receiver &sig_rec)
-			: Root_component(&session_ep, md_alloc), _channel_ep(session_ep), _sig_rec(sig_rec)
-			{ }
-	};
-}
+		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc, Signal_context_capability ctx_cap)
+		: Root_component(session_ep, md_alloc), _ctx_cap(ctx_cap)
+		{ }
+};
 
 
 int main()
@@ -242,7 +293,8 @@ int main()
 	audio_out_active = audio_init() ? false : true;
 
 	if (audio_out_active) {
-		static Audio_out::Root audio_root(ep, env()->heap(), recv);
+		static Audio_out::Out out;
+		static Audio_out::Root audio_root(&ep, env()->heap(), recv.manage(&out));
 		env()->parent()->announce(ep.manage(&audio_root));
 	}
 

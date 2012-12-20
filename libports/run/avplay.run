@@ -1,9 +1,28 @@
+#
+# Build
+#
+
 build {
 	core init
 	drivers/timer
-	drivers/framebuffer drivers/pci drivers/input drivers/audio_out
-	app/avplay
+	drivers/framebuffer drivers/pci drivers/input drivers/oss
+	server/mixer
+	app/avplay drivers/acpi
 }
+
+#
+# Download media file
+#
+
+set media_url "ftp://ftp.untergrund.net/users/ae/dhstv/escape-chotro.mp4"
+if {![file exists bin/mediafile]} {
+	puts "downloading media file from $media_url"
+	catch { exec wget -O bin/mediafile $media_url }
+}
+
+#
+# Generate config
+#
 
 create_boot_directory
 
@@ -36,11 +55,28 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
-append_if [have_spec pci] config {
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="2M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+}
+
+append_if [expr [have_spec pci] && ![have_spec acpi]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="PCI"/>
+		</provides>
+	</start>
+}
 
 append_if [have_spec vesa] config {
 	<start name="vesa_drv">
@@ -59,10 +95,23 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-		<start name="audio_out_drv">
-			<resource name="RAM" quantum="2M"/>
-			<provides><service name="Audio_out"/></provides>
-		</start>
+	<start name="oss_drv">
+		<resource name="RAM" quantum="6M"/>
+		<route>
+			<any-service> <any-child /> <parent /></any-service>
+		</route>
+		<provides>
+			<service name="Audio_out"/>
+		</provides>
+	</start>
+	<start name="mixer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Audio_out"/></provides>
+		<route>
+			<service name="Audio_out"> <child name="oss_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
 	<start name="avplay">
 		<resource name="RAM" quantum="64M"/>
 		<config>
@@ -70,14 +119,23 @@ append config {
 			<arg value="mediafile"/>
 			<sdl_audio_volume value="100"/>
 		</config>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<service name="Audio_out"> <child name="mixer"/> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
 	</start>
 </config>
 }
 
 install_config $config
 
+#
+# Boot modules
+#
+
 set boot_modules {
-	core init timer audio_out_drv avplay
+	core init timer oss_drv mixer avplay
 	ld.lib.so libc.lib.so libc_log.lib.so libc_rom.lib.so libm.lib.so pthread.lib.so zlib.lib.so sdl.lib.so
 	avfilter.lib.so avutil.lib.so avcodec.lib.so avformat.lib.so swscale.lib.so
 	mediafile
@@ -85,6 +143,7 @@ set boot_modules {
 
 lappend_if [have_spec linux] boot_modules fb_sdl
 lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec pci]   boot_modules acpi_drv
 lappend_if [have_spec vesa]  boot_modules vesa_drv
 lappend_if [have_spec ps2]   boot_modules ps2_drv
 

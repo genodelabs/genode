@@ -22,6 +22,6 @@ int audio_init();
 /**
  * Play data of size
  */
-int audio_play(short *data, int size);
+int audio_play(short *data, unsigned size);
 
 #endif /* _INCLUDE__AUDIO_H_ */

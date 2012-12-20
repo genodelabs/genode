@@ -15,12 +15,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/allocator_avl.h>
+#include <audio_session/connection.h>
 #include <base/printf.h>
 #include <base/sleep.h>
-#include <base/thread.h>
-#include <audio_out_session/connection.h>
+#include <rom_session/connection.h>
+#include <dataspace/client.h>
 #include <os/config.h>
+
+
+using namespace Genode;
+
 
 using namespace Genode;
 using namespace Audio_out;
@@ -29,10 +33,11 @@ static const bool verbose = false;
 
 enum {
 	CHN_CNT      = 2,                      /* number of channels */
+	FRAME_SIZE   = sizeof(float),
 	PERIOD_CSIZE = FRAME_SIZE * PERIOD,    /* size of channel packet (bytes) */
 	PERIOD_FSIZE = CHN_CNT * PERIOD_CSIZE, /* size of period in file (bytes) */
-
 };
+
 
 static const char *channel_names[] = { "front left", "front right" };
 
@@ -41,22 +46,18 @@ class Track : Thread<8192>
 {
 	private:
 
-		typedef Audio_out::Session::Channel::Source Stream;
-
 		const char            *_file;
 		Audio_out::Connection *_audio_out[CHN_CNT];
-		Stream                *_stream[CHN_CNT];
 
 	public:
 
-		Track(const char *file, Allocator_avl *block_alloc[CHN_CNT]) : _file(file)
+		Track(const char *file) : Thread("track"), _file(file)
 		{
 			for (int i = 0; i < CHN_CNT; ++i) {
+				/* allocation signal for first channel only */
 				_audio_out[i] = new (env()->heap())
-				                Audio_out::Connection(channel_names[i], block_alloc[i]);
-				_stream[i]    = _audio_out[i]->stream();
-				if (i > 0)
-					_audio_out[i]->sync_session(_audio_out[i-1]->session_capability());
+				                Audio_out::Connection(channel_names[i],
+				                                      i == 0 ? true : false);
 			}
 		}
 
@@ -82,8 +83,9 @@ class Track : Thread<8192>
 				PDBG("%s size is %zu Bytes (attached to %p)",
 				     _file, ds_client.size(), base);
 
-			Packet_descriptor p[CHN_CNT];
-			size_t            file_size       = ds_client.size();
+			size_t file_size = ds_client.size();
+			for (int i = 0; i < CHN_CNT; ++i)
+				_audio_out[i]->start();
 
 			while (1) {
 
@@ -100,46 +102,40 @@ class Track : Thread<8192>
 					               ? (file_size - offset) / CHN_CNT / FRAME_SIZE
 					               : PERIOD;
 
-					for (int chn = 0; chn < CHN_CNT; ++chn)
-						while (1)
-							try {
-								p[chn] = _stream[chn]->alloc_packet(PERIOD_CSIZE);
-								break;
-							} catch (Stream::Packet_alloc_failed) {
-								/* wait for next finished packet */
-								_stream[chn]->release_packet(_stream[chn]->get_acked_packet());
-							}
+					Packet *p[CHN_CNT];
+					while (1)
+						try {
+							p[0] = _audio_out[0]->stream()->alloc();
+							break;
+						} catch (Audio_out::Stream::Alloc_failed) {
+							_audio_out[0]->wait_for_alloc();
+						}
+
+					unsigned pos = _audio_out[0]->stream()->packet_position(p[0]);
+					/* sync other channels with first one */
+					for (int chn = 1; chn < CHN_CNT; ++chn)
+						p[chn] = _audio_out[chn]->stream()->get(pos);
 
 					/* copy channel contents into sessions */
 					float *content = (float *)(base + offset);
 					for (unsigned c = 0; c < CHN_CNT * chunk; c += CHN_CNT)
 						for (int i = 0; i < CHN_CNT; ++i)
-							_stream[i]->packet_content(p[i])[c / 2] = content[c + i];
+							p[i]->content()[c / 2] = content[c + i];
 
 					/* handle last packet gracefully */
 					if (chunk < PERIOD) {
 						for (int i = 0; i < CHN_CNT; ++i)
-							memset((_stream[i]->packet_content(p[i]) + chunk),
+							memset(p[i]->content() + chunk,
 							       0, PERIOD_CSIZE - FRAME_SIZE * chunk);
 					}
 
 					if (verbose)
-						PDBG("%s submit packet %zu", _file, cnt);
+						PDBG("%s submit packet %zu", _file,
+						     _audio_out[0]->stream()->packet_position((p[0])));
 
-					for (int i = 0; i < CHN_CNT; ++i)
-						_stream[i]->submit_packet(p[i]);
-
-					for (int i = 0; i < CHN_CNT; ++i)
-						while (_stream[i]->ack_avail() ||
-						       !_stream[i]->ready_to_submit()) {
-							_stream[i]->release_packet(_stream[i]->get_acked_packet());
-						}
+					for (int i = 0; i < CHN_CNT; i++)
+						_audio_out[i]->submit(p[i]);
 				}
-
-				/* ack remaining packets */
-				for (int i = 0; i < CHN_CNT; ++i)
-						while (_stream[i]->ack_avail())
-							_stream[i]->release_packet(_stream[i]->get_acked_packet());
 			}
 		}
 
@@ -189,7 +185,7 @@ static int process_config(const char ***files)
 
 int main(int argc, char **argv)
 {
-	PDBG("--- Audio-out test ---\n");
+	PDBG("--- Audio_out test ---\n");
 
 	const char *defaults[] = { "1.raw", "2.raw" };
 	const char **files     = defaults;
@@ -203,11 +199,9 @@ int main(int argc, char **argv)
 	}
 
 	Track *track[cnt];
-	Allocator_avl *block_alloc[cnt][CHN_CNT];
+
 	for (int i = 0; i < cnt; ++i) {
-		for (int j = 0; j < CHN_CNT; ++j)
-			block_alloc[i][j] = new (env()->heap()) Allocator_avl(env()->heap());
-		track[i] = new (env()->heap()) Track(files[i], block_alloc[i]);
+		track[i] = new (env()->heap()) Track(files[i]);
 	}
 
 	/* start playback after constrution of all tracks */
@@ -217,3 +211,5 @@ int main(int argc, char **argv)
 	sleep_forever();
 	return 0;
 }
+
+

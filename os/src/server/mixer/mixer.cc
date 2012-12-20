@@ -1,14 +1,11 @@
 /*
- * \brief  Audio Mixer
+ * \brief  Audio_out Mixer
  * \author Sebastian Sumpf
- * \author Christian Helmuth
- * \author Stefan Kalkowski
- * \date   2009-12-02
+ * \date   2012-12-20
  *
- * The mixer supports up to MAX_TRACKS (virtual) two-channel stereo input
- * sessions and, therefore, provides audio-out sessions for "front left" and
- * "front right". The mixer itself uses two audio-out sessions - front left and
- * right.
+ * The mixer impelements the audio session on the server side. For each channel
+ * (currently 'left' and 'right' only) it supports multiple client sessions and
+ * mixes its input into a single client audio session.
  */
 
 /*
@@ -18,675 +15,401 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <base/lock.h>
 #include <base/env.h>
 #include <base/sleep.h>
-#include <base/semaphore.h>
-#include <base/allocator_avl.h>
-#include <util/misc_math.h>
 
-#include <root/component.h>
+#include <audio_session/rpc_object.h>
+#include <audio_session/connection.h>
 #include <cap_session/connection.h>
-#include <audio_out_session/rpc_object.h>
-#include <audio_out_session/connection.h>
+#include <root/component.h>
+#include <timer_session/connection.h>
 
 using namespace Genode;
 
-static const bool verbose = false;
-static bool audio_out_active = false;
-static Genode::Lock session_lock;
 
-static Rpc_entrypoint *audio_out_ep()
+static bool verbose = false;
+
+enum Channel_number { LEFT, RIGHT, MAX_CHANNELS };
+
+
+namespace Audio_out
 {
-	static Cap_connection cap;
-
-	enum { STACK_SIZE = 4096 };
-	static Rpc_entrypoint _audio_out_ep(&cap, STACK_SIZE, "audio_ep");
-
-	return &_audio_out_ep;
+	class Session_elem;
+	class Session_component;
+	class Root;
+	class Channel;
+	class Mixer;
 }
+
+
+static Audio_out::Channel *_channels[MAX_CHANNELS];
+
+
+static int channel_number_from_string(const char *name)
+{
+	static struct Names {
+		const char    *name;
+		Channel_number number;
+	} names[] = {
+		{ "left", LEFT }, { "front left", LEFT },
+		{ "right", RIGHT }, { "front right", RIGHT },
+		{ 0, MAX_CHANNELS }
+	};
+
+	for (Names *n = names; n->name; ++n)
+		if (!strcmp(name, n->name))
+			return n->number;
+
+		return -1;
+}
+
+
+/**
+ * Makes audio a list element
+ */
+struct Audio_out::Session_elem : Audio_out::Session_rpc_object,
+                                 List<Audio_out::Session_elem>::Element
+{
+	Session_elem(Signal_context_capability data_cap)
+	: Session_rpc_object(data_cap) { }
+};
+
+
+/**
+ * One channel containing multiple sessions
+ */
+class Audio_out::Channel
+{
+	private:
+
+		List<Session_elem> _list;
+
+	public:
+
+		void insert(Session_elem *session) {
+			_list.insert(session); }
+
+		Session_elem *first() {
+			return _list.first();
+		}
+};
+
+
+/**
+ * The mixer
+ */
+class Audio_out::Mixer : public Thread<1024 * sizeof(addr_t)>
+{
+	private:
+
+		Lock _sleep_lock;
+
+		Connection  _left;   /* left output */
+		Connection  _right;  /* right output */
+		Connection *_out[MAX_CHANNELS];
+
+		Signal_receiver *_data_recv; /* data availble signal receiver 
+		                               (send from clients) */
+
+		void _sleep() { _sleep_lock.lock(); }
+
+		Mixer()
+		:
+			Thread("mixer"),
+			_sleep_lock(Lock::LOCKED), _left("left", false, true),
+			_right("right", false, true)
+		{
+			_out[LEFT]  = &_left;
+			_out[RIGHT] = &_right;
+			start();
+		}
+
+		/* check for active sessions */
+		bool _check_active()
+		{
+			bool active = false;
+			for (int i = 0; i < MAX_CHANNELS; i++) {
+				Session_elem *session = _channels[i]->first();
+				while (session) {
+					active |= session->active();
+					session = session->next();
+				}
+			}
+			return active;
+		}
+
+		void _advance_session(Session_elem *session, unsigned pos)
+		{
+			if (session->stopped())
+				return;
+
+			Stream *stream = session->stream();
+			bool full = stream->full();
+
+			/* mark packets as played and icrement position pointer */
+			while (stream->pos() != pos) {
+				stream->get(stream->pos())->mark_as_played();
+				stream->increment_position();
+			}
+
+			/* send 'progress' sginal */
+			session->progress_submit();
+
+			/* send 'alloc' signal */
+			if (full)
+				session->alloc_submit();
+		}
+
+		/* advance 'positions' of all client sessions */
+		void _advance_position()
+		{
+			for (int i = 0; i < MAX_CHANNELS; i++) {
+				Session_elem *session = _channels[i]->first();
+				unsigned pos = _out[i]->stream()->pos();
+				while (session) {
+					_advance_session(session, pos);
+					session = session->next();
+				}
+			}
+		}
+
+		/* mix one packet */
+		void _mix_packet(Packet *out, Packet *in, bool clear)
+		{
+			/* when clear is set, set input an zero out remainder */
+			if (clear) {
+				out->content(in->content(), PERIOD);
+			} else {
+				/* mix */
+				for (int i = 0; i < PERIOD; i++) {
+					out->content()[i] += in->content()[i];
+
+					if (out->content()[i] > 1) out->content()[i] = 1;
+					if (out->content()[i] < -1) out->content()[i] = -1;
+				}
+			}
+			/* mark packet as processed */
+			in->invalidate();
+		}
+
+		/* get packet at offset */
+		Packet *session_packet(Session *session, unsigned offset)
+		{
+			Stream *s = session->stream();
+			return s->get(s->pos() + offset);
+		}
+
+		/* mix all session of one channel */
+		bool _mix_channel(Channel_number nr, unsigned out_pos, unsigned offset)
+		{
+			Stream *out_stream = _out[nr]->stream();
+			Packet *out        = out_stream->get(out_pos + offset);
+
+			bool clear = true;
+			bool mix_all = false;
+			bool out_valid = out->valid();
+
+			for (Session_elem *session = _channels[nr]->first();
+			     session;
+			     session = session->next()) {
+			
+				if (session->stopped())
+					continue;
+
+				Packet *in = session_packet(session, offset);
+
+				/*
+				 * When there already is an out packet, start over and mix
+				 * everything.
+				 */
+				if (in->valid() && out_valid && !mix_all) {
+					clear   = true;
+					mix_all = true;
+					session = _channels[nr]->first();
+					in = session_packet(session, offset);
+				}
+
+				/* skip if packet has been processed or was already played */
+				if ((!in->valid() && !mix_all) || in->played())
+					continue;
+
+				_mix_packet(out, in, clear);
+
+				if (verbose)
+					PDBG("mix: ch %u in %u -> out %u all %d o: %u",
+					     nr, session->stream()->packet_position(in),
+					     out_stream->packet_position(out), mix_all, offset);
+
+				clear = false;
+			}
+
+			return !clear;
+		}
+
+		void _mix()
+		{
+			unsigned pos[MAX_CHANNELS];
+			pos[LEFT] = _out[LEFT]->stream()->pos();
+			pos[RIGHT] = _out[RIGHT]->stream()->pos();
+
+			/*
+			 * Look for packets that are valid, mix channels in an alternating
+			 * way.
+			 */
+			for (int i = 0; i < QUEUE_SIZE; i++) {
+				bool mix_one = true;
+				for (int j = LEFT; j < MAX_CHANNELS; j++)
+					mix_one &= _mix_channel((Channel_number)j, pos[j], i);
+
+				if (mix_one) {
+					_out[LEFT]->submit(_out[LEFT]->stream()->get(pos[LEFT] + i));
+					_out[RIGHT]->submit(_out[RIGHT]->stream()->get(pos[RIGHT] + i));
+				}
+			}
+		}
+
+		#define FOREACH_CHANNEL(func) ({ \
+			for (int i = 0; i < MAX_CHANNELS; i++) \
+			_out[i]->func(); \
+		})
+		void _wait_for_progress() { FOREACH_CHANNEL(wait_for_progress); }
+		void _start()             { FOREACH_CHANNEL(start); }
+		void _stop()              { FOREACH_CHANNEL(stop); }
+		
+	public:
+
+		void entry()
+		{
+			_start();
+
+			while (true) {
+
+				if (!_check_active()) {
+					_stop();
+					_sleep();
+					_start();
+					continue;
+				}
+
+				_mix();
+
+				/* advance position of clients */
+				_advance_position();
+
+				if (!_left.stream()->empty())
+					_wait_for_progress();
+				else
+					_data_recv->wait_for_signal();
+			}
+		}
+
+		void wakeup() { _sleep_lock.unlock(); }
+
+		/* sync client position with output position */
+		void sync_pos(Channel_number channel, Stream *stream) {
+			stream->pos(_out[channel]->stream()->pos()); }
+
+		void data_recv(Signal_receiver *recv) { _data_recv = recv; }
+
+		static Mixer *m()
+		{
+			static Mixer _m;
+			return &_m;
+		}
+};
+
+
+class Audio_out::Session_component : public Audio_out::Session_elem
+{
+	private:
+
+		Channel_number _channel;
+
+	public:
+
+		Session_component(Channel_number            channel,
+		                  Signal_context_capability data_cap)
+		: Session_elem(data_cap), _channel(channel) { }
+
+		void start()
+		{
+			Session_rpc_object::start();
+			/* sync audio position with mixer */
+			Mixer::m()->sync_pos(_channel, stream());
+			Mixer::m()->wakeup();
+		}
+};
 
 
 namespace Audio_out {
-
-	enum { OUT_QUEUE_SIZE = 1 };
-
-	template <typename LT>
-	class Ring
-	{
-		private:
-
-			LT *_next;
-			LT *_prev;
-
-		public:
-
-			Ring()
-			: _next(static_cast<LT *>(this)),
-			  _prev(static_cast<LT *>(this)) { }
-
-			LT *next() { return _next; };
-			LT *prev() { return _prev; };
-
-			/**
-			 * Conflate with another ring.
-			 */
-			bool conflate(LT *le)
-			{
-				/* test whether the given ring is part of this one */
-				LT *e = static_cast<LT *>(this);
-				while (e->Ring::_next != this) {
-					if (e->Ring::_next == le)
-						return false;
-					e = e->Ring::_next;
-				}
-
-				/* wire this->next with le->prev */
-				_next->Ring::_prev = le->Ring::_prev;
-				le->Ring::_prev->Ring::_next = _next;
-				_next = le;
-				le->Ring::_prev = static_cast<LT *>(this);
-				return true;
-			}
-
-			/**
-			 * Remove this object from the ring.
-			 */
-			void remove()
-			{
-				_prev->Ring::_next = _next;
-				_next->Ring::_prev = _prev;
-				_next = static_cast<LT *>(this);
-				_prev = static_cast<LT *>(this);
-			}
-	};
-
-	enum Channel_number { LEFT, RIGHT, MAX_CHANNELS, INVALID = MAX_CHANNELS };
-
-	static bool channel_number_from_string(const char     *name,
-	                                       Channel_number *out_number)
-	{
-		static struct Names {
-			const char    *name;
-			Channel_number number;
-		} names[] = {
-			{ "left", LEFT }, { "front left", LEFT },
-			{ "right", RIGHT }, { "front right", RIGHT },
-			{ 0, INVALID }
-		};
-
-		for (Names *n = names; n->name; ++n)
-			if (!strcmp(name, n->name)) {
-				*out_number = n->number;
-				return true;
-			}
-
-		return false;
-	}
-
-	static const char * channel_string_from_number(Channel_number number)
-	{
-		static const char *names[MAX_CHANNELS + 1] = {
-			"front left", "front right", "invalid"
-		};
-
-		return names[number];
-	}
-
-	static Semaphore open_tracks;
-	static int       num_open_tracks[MAX_CHANNELS];
-
-	/*
-	 * The mixer uses only one signal receiver and context for all input
-	 * tracks.
-	 */
-	static Signal_receiver           avail_recv;
-	static Signal_context            avail_ctx;
-	static Signal_context_capability avail_cap(avail_recv.manage(&avail_ctx));
-
-	enum { MAX_TRACKS = 16 };
-
-
-	class Communication_buffer : Ram_dataspace_capability
-	{
-		public:
-
-			Communication_buffer(size_t size)
-			: Ram_dataspace_capability(env()->ram_session()->alloc(size))
-			{ }
-
-			~Communication_buffer() { env()->ram_session()->free(*this); }
-
-			Dataspace_capability dataspace() { return *this; }
-	};
-
-
-	class Session_component : public  List<Session_component>::Element,
-	                          public  Ring<Session_component>,
-	                          private Communication_buffer,
-	                          public  Session_rpc_object
-	{
-		private:
-
-			Channel_number _channel;
-
-		public:
-
-			Session_component(Channel_number channel, size_t buffer_size,
-			                  Rpc_entrypoint &ep)
-			:
-				Communication_buffer(buffer_size),
-				Session_rpc_object(Communication_buffer::dataspace(), ep),
-				_channel(channel)
-			{
-				if (verbose) PDBG("new session %p", this);
-
-				track_list()->insert(this);
-				num_open_tracks[_channel]++;
-
-				open_tracks.up();
-			}
-
-			~Session_component()
-			{
-				Genode::Lock::Guard lock_guard(session_lock);
-				open_tracks.down();
-
-				num_open_tracks[_channel]--;
-				track_list()->remove(this);
-				Ring<Session_component>::remove();
-
-				if (verbose) PDBG("session %p closed", this);
-			}
-
-			static List<Session_component> *track_list()
-			{
-				static List<Session_component> _track_list;
-				return &_track_list;
-			}
-
-			/*
-			 * We only need one central signal context within the mixer.
-			 */
-			Signal_context_capability _sigh_packet_avail()
-			{
-				return avail_cap;
-			}
-
-			Channel_number channel_number() const { return _channel; }
-
-			bool all_channel_packet_avail() {
-				if (!channel()->packet_avail())
-					return false;
-
-				Session_component *s = this;
-				while (s->Ring<Session_component>::next() != this) {
-					s = s->Ring<Session_component>::next();
-					if (!s->channel()->packet_avail())
-						return false;
-				}
-				return true;
-			}
-
-			void flush()
-			{
-				while (channel()->packet_avail())
-					channel()->acknowledge_packet(channel()->get_packet());
-			}
-
-			void sync_session(Session_capability audio_out_session)
-			{
-				Object_pool<Session_component>::Guard
-					sc(audio_out_ep()->lookup_and_lock(audio_out_session));
-
-				/* check if recipient is a valid session component */
-				if (!sc) return;
-
-				if (this->conflate(sc))
-					track_list()->remove(this);
-			}
-	};
-
-	/**
-	 * Session creation policy for our service
-	 */
-	struct Root_policy
-	{
-		void aquire(const char *args)
-		{
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-			size_t buffer_size =
-				Arg_string::find_arg(args, "buffer_size").ulong_value(0);
-			size_t session_size =
-				align_addr(sizeof(Session_component), 12);
-
-			if ((ram_quota < session_size) ||
-			    (buffer_size > ram_quota - session_size)) {
-				PERR("insufficient 'ram_quota', got %zd, need %zd",
-				     ram_quota, buffer_size + session_size);
-				throw Root::Quota_exceeded();
-			}
-
-			char channel_name[16];
-			Channel_number channel_number;
-			Arg_string::find_arg(args, "channel").string(channel_name,
-			                                             sizeof(channel_name),
-			                                             "left");
-			if (!channel_number_from_string(channel_name, &channel_number))
-				throw Root::Invalid_args();
-			if (!(num_open_tracks[channel_number] < MAX_TRACKS)) {
-				PERR("throw");
-				throw Root::Unavailable();
-			}
-		}
-
-		void release() { }
-	};
-
-	typedef Root_component<Session_component, Root_policy> Root_component;
-
-	class Root : public Root_component
-	{
-		private:
-
-			Rpc_entrypoint &_channel_ep;
-
-		protected:
-
-			Session_component *_create_session(const char *args)
-			{
-				size_t buffer_size =
-					Arg_string::find_arg(args, "buffer_size").ulong_value(0);
-
-				char channel_name[16];
-				Channel_number channel_number = INVALID;
-				Arg_string::find_arg(args, "channel").string(channel_name,
-				                                             sizeof(channel_name),
-				                                             "left");
-				channel_number_from_string(channel_name, &channel_number);
-
-				Session_component *session = new (md_alloc())
-				                             Session_component(channel_number, buffer_size,
-				                                               _channel_ep);
-
-				PDBG("Added new \"%s\" channel %d/%d",
-				     channel_name, num_open_tracks[channel_number], MAX_TRACKS);
-
-				return session;
-			}
-
-			public:
-
-				Root(Rpc_entrypoint *session_ep, Allocator *md_alloc)
-				: Root_component(session_ep, md_alloc), _channel_ep(*session_ep) { }
-	};
-
-	class Packet_cache
-	{
-		private:
-
-			class Track_packet;
-			class Channel_packet;
-
-
-			typedef Tslab<Track_packet,   1024> Track_packet_slab;
-			typedef Tslab<Channel_packet, 1024> Channel_packet_slab;
-
-			Track_packet_slab   _track_packet_slab;
-			Channel_packet_slab _channel_packet_slab;
-
-			Genode::Lock        _lock;
-
-
-			class Track_packet : public List<Track_packet>::Element
-			{
-				private:
-
-					Packet_descriptor       _packet;
-					Session::Channel::Sink *_sink;
-
-				public:
-
-					Track_packet(Packet_descriptor p,
-					             Session::Channel::Sink *sink)
-					: _packet(p), _sink(sink) {}
-
-
-					bool session_active()
-					{
-						for (Session_component *session = Session_component::track_list()->first();
-						     session;
-									session = session->List<Session_component>::Element::next())
-
-							for (Session_component *sc = session;
-							     true;
-							     sc = sc->Ring<Session_component>::next()) {
-								if (sc->channel() == _sink)
-									return true;
-
-								if (sc->Ring<Session_component>::next() == session)
-									break;
-							}
-
-							return false;
-					}
-
-					void acknowledge() {
-						if (session_active())
-							_sink->acknowledge_packet(_packet); }
-			};
-
-
-			class Channel_packet : public List<Channel_packet>::Element
-			{
-				private:
-
-					List<Track_packet> _track_packets;
-					Packet_descriptor  _packet;
-					Track_packet_slab *_slab;
-
-				public:
-
-					Channel_packet(Packet_descriptor p, Track_packet_slab *slab)
-					: _packet(p), _slab(slab) { }
-
-					void add(Track_packet *p) { _track_packets.insert(p); }
-
-					void acknowledge()
-					{
-						Track_packet *p = _track_packets.first();
-						while (p) {
-							p->acknowledge();
-							_track_packets.remove(p);
-							_slab->free(p);
-							p = _track_packets.first();
-						}
-					}
-
-					bool packet(Packet_descriptor p)
-					{
-						return p.size() == _packet.size() &&
-						       p.offset() == _packet.offset();
-					}
-			};
-
-
-			List<Channel_packet> _channel_packets[MAX_CHANNELS];
-			Connection          *_out_stream[MAX_CHANNELS];
-
-		public:
-
-			Packet_cache(Connection *output_stream[MAX_CHANNELS])
-			: _track_packet_slab(Genode::env()->heap()),
-			  _channel_packet_slab(Genode::env()->heap())
-			{
-				for (int chn = 0; chn < MAX_CHANNELS; ++chn)
-					_out_stream[chn] = output_stream[chn];
-			}
-
-			void ack_packets()
-			{
-				for (int chn = 0; chn < MAX_CHANNELS; ++chn) {
-					Session::Channel::Source *stream = _out_stream[chn]->stream();
-
-					Packet_descriptor p = stream->get_acked_packet();
-
-					if (verbose) PDBG("ack channel %d", chn);
-
-					Genode::Lock::Guard lock_guard(_lock);
-					Channel_packet *ch_packet = _channel_packets[chn].first();
-					while (ch_packet) {
-						if (ch_packet->packet(p)) {
-							ch_packet->acknowledge();
-							_channel_packets[chn].remove(ch_packet);
-							_channel_packet_slab.free(ch_packet);
-							break;
-						}
-						ch_packet = ch_packet->next();
-					}
-					stream->release_packet(p);
-				}
-			}
-
-			void put(Packet_descriptor p, Session::Channel::Sink **sinks,
-			         Packet_descriptor *cli_p, int count, int chn)
-			{
-				Genode::Lock::Guard lock_guard(_lock);
-
-				Channel_packet *ch_packet = new (&_channel_packet_slab)
-				                            Channel_packet(p, &_track_packet_slab);
-				for (int i = 0; i < count; ++i) {
-					Track_packet *t_packet = new (&_track_packet_slab)
-					                         Track_packet(cli_p[i], sinks[i]);
-					ch_packet->add(t_packet);
-				}
-				_channel_packets[chn].insert(ch_packet);
-			}
-	};
-
-	class Mixer : private Genode::Thread<4096>
-	{
-		private:
-
-			struct Mixer_packets
-			{
-				Session::Channel::Sink *sink[MAX_TRACKS];
-				Packet_descriptor       packet[MAX_TRACKS];
-				int                     count;
-			} _packets[MAX_CHANNELS];
-
-			Connection   *_out_stream[MAX_CHANNELS];
-			Semaphore     _packet_sema;   /* packets available */
-			Packet_cache *_cache;
-			Semaphore     _startup_sema;  /* thread startup sync */
-
-			class Receiver : private Genode::Thread<4096>
-			{
-				private:
-
-					Packet_cache *_cache;
-					Semaphore     _startup_sema;
-					Semaphore    *_packet_sema;
-
-					void entry()
-					{
-						/* indicate thread-startup completion */
-						_startup_sema.up();
-						while (true) {
-							_cache->ack_packets();
-							_packet_sema->up();
-						}
-					}
-
-				public:
-
-					Receiver(Packet_cache *cache, Semaphore *packet_sema)
-					: Genode::Thread<4096>("ack"), _cache(cache),
-					  _packet_sema(packet_sema)
-					{
-						if (audio_out_active) {
-							start();
-							_startup_sema.down();
-						}
-					}
-			};
-
-			Receiver _receiver;
-
-			bool _get_packets()
-			{
-				bool packet_avail = false;
-
-				for (int i = 0; i < MAX_CHANNELS; ++i)
-					_packets[i].count = 0;
-
-				for (Session_component *session = Session_component::track_list()->first();
-				     session;
-				     session = session->List<Session_component>::Element::next()) {
-
-					if (!session->all_channel_packet_avail())
-						continue;
-
-					for (Session_component *sc = session;
-					     true;
-					     sc = sc->Ring<Session_component>::next()) {
-						Channel_number chn = sc->channel_number();
-						int            cnt = _packets[chn].count;
-
-						_packets[chn].packet[cnt] = sc->channel()->get_packet();
-						_packets[chn].sink[cnt]   = sc->channel();
-
-						_packets[chn].count++;
-						packet_avail = true;
-
-						if (sc->Ring<Session_component>::next() == session)
-							break;
-					}
-				}
-
-				return packet_avail;
-			}
-
-			Packet_descriptor _mix_one_channel(Mixer_packets *packets,
-			                                   Session::Channel::Source *stream)
-			{
-				static int alloc_cnt, alloc_fail_cnt;
-				Packet_descriptor p;
-
-				while (1)
-					try {
-						p = stream->alloc_packet(FRAME_SIZE * PERIOD);
-						if (verbose)
-							alloc_cnt++;
-						break;
-					} catch (Session::Channel::Source::Packet_alloc_failed) {
-						PERR("Packet allocation failed %d %d",
-						     ++alloc_fail_cnt, alloc_cnt);
-					}
-
-				float *out = stream->packet_content(p);
-				for (int size = 0; size < PERIOD; ++size) {
-					float sample = 0;
-					for (int i = 0; i < packets->count; ++i) {
-						sample += packets->sink[i]->packet_content(packets->packet[i])[size];
-					}
-
-					if (sample > 1) sample = 1;
-					if (sample < -1) sample = -1;
-
-					out[size] = sample;
-				}
-
-				return p;
-			}
-
-			void _mix(Packet_descriptor p[MAX_CHANNELS])
-			{
-				/* block if no packets are available */
-				session_lock.lock();
-				while (!_get_packets()) {
-					session_lock.unlock();
-					avail_recv.wait_for_signal();
-					session_lock.lock();
-				}
-				_packet_sema.down();
-
-				/* mix packets */
-				for (int chn = 0; chn < MAX_CHANNELS; ++chn)
-					p[chn] = _mix_one_channel(&_packets[chn],
-					                          _out_stream[chn]->stream());
-				session_lock.unlock();
-
-				/* put packets into packet cache */
-				for (int chn = 0; chn < MAX_CHANNELS; ++chn)
-					_cache->put(p[chn], _packets[chn].sink, _packets[chn].packet,
-					            _packets[chn].count, chn);
-			}
-
-			void entry()
-			{
-				/* indicate thread-startup completion */
-				_startup_sema.up();
-
-				/* just acknowledge packets if we don't have an audio out stream */
-				while (!audio_out_active) {
-
-					while (!_get_packets())
-						avail_recv.wait_for_signal();
-
-					for (int chn = 0; chn < MAX_CHANNELS; ++chn)
-						for (int i = 0; i < _packets[chn].count; i++)
-							_packets[chn].sink[i]->acknowledge_packet(_packets[chn].packet[i]);
-				}
-
-				while (1) {
-					open_tracks.down();
-
-					/* check and mix sources */
-					Packet_descriptor p[MAX_CHANNELS];
-					_mix(p);
-
-					/* submit to out */
-					for (int chn = 0; chn < MAX_CHANNELS; ++chn) {
-						Session::Channel::Source *stream = _out_stream[chn]->stream();
-
-						stream->submit_packet(p[chn]);
-					}
-
-					if (verbose)
-						PDBG("packet submitted");
-
-					open_tracks.up();
-				}
-			}
-
-		public:
-
-			Mixer(Connection *output_stream[MAX_CHANNELS], Packet_cache *cache)
-			: Genode::Thread<4096>("tx"), _packet_sema(OUT_QUEUE_SIZE),
-			  _cache(cache), _receiver(cache, &_packet_sema)
-			{
-				for (int chn = 0; chn < MAX_CHANNELS; ++chn)
-					_out_stream[chn] = output_stream[chn];
-
-				/* synchronize with mixer thread startup */
-				start();
-				_startup_sema.down();
-			}
-	};
+	typedef Root_component<Session_component, Multiple_clients> Root_component;
 }
 
 
-int main(int argc, char **argv)
+class Audio_out::Root : public Audio_out::Root_component
 {
-	PDBG("-- Genode Audio Mixer --");
+	Signal_context_capability _data_cap;
 
-	using namespace Audio_out;
+	Session_component *_create_session(const char *args)
+	{
+		char channel_name[16];
+		Arg_string::find_arg(args, "channel").string(channel_name,
+		                                             sizeof(channel_name),
+		                                             "left");
+		size_t ram_quota =
+		Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 
-	/* setup audio-out connections for output */
-	static Audio_out::Connection *output_stream[MAX_CHANNELS];
+		size_t session_size = align_addr(sizeof(Session_component), 12);
 
-	try {
-		for (int i = 0; i < MAX_CHANNELS; ++i) {
-			Allocator_avl *block_alloc = new (env()->heap()) Allocator_avl(env()->heap());
-			output_stream[i] = new (env()->heap())
-				Audio_out::Connection(channel_string_from_number((Channel_number)i), block_alloc, OUT_QUEUE_SIZE * FRAME_SIZE * PERIOD + 0x400);
+		if ((ram_quota < session_size) ||
+		    (sizeof(Stream) > ram_quota - session_size)) {
+				PERR("insufficient 'ram_quota', got %zd, need %zd",
+				      ram_quota, sizeof(Stream) + session_size);
+				throw Root::Quota_exceeded();
 		}
-		audio_out_active = true;
-	} catch (...) {
-		PWRN("no audio driver found - dropping incoming packets");
+
+		int ch = channel_number_from_string(channel_name);
+		if (ch < 0)
+			throw Root::Invalid_args();
+
+		Session_component *session = new (md_alloc())
+		                             Session_component((Channel_number)ch, _data_cap);
+
+		PDBG("Added new \"%s\" nr: %u s: %p",channel_name, ch, session);
+		_channels[ch]->insert(session);
+		return session;
 	}
 
-	/* initialize packet cache */
-	static Packet_cache cache(output_stream);
+	public:
 
-	/* setup service */
-	static Audio_out::Root mixer_root(audio_out_ep(), env()->heap());
-	env()->parent()->announce(audio_out_ep()->manage(&mixer_root));
+		Root(Rpc_entrypoint           *session_ep,
+		     Signal_context_capability data_cap,
+		     Allocator                *md_alloc)
+		: Root_component(session_ep, md_alloc), _data_cap(data_cap) { }
+};
 
-	/* start mixer */
-	static Mixer mixer(output_stream, &cache);
+
+int main()
+{
+	static Cap_connection cap;
+	enum { STACK_SIZE = 1024 * sizeof(addr_t) }; 
+
+	for (int i = 0; i < MAX_CHANNELS; i++)
+		_channels[i] = new (env()->heap()) Audio_out::Channel();
+
+	static Signal_receiver data_recv;
+	static Signal_context  data_context;
+	static Signal_context_capability data_cap(data_recv.manage(&data_context));
+
+	/* start mixer thread */
+	Audio_out::Mixer::m()->data_recv(&data_recv);
+
+	static Rpc_entrypoint ep(&cap, STACK_SIZE, "audio_ep");
+	static Audio_out::Root root(&ep, data_cap, env()->heap());
+	env()->parent()->announce(ep.manage(&root));
 
 	sleep_forever();
 	return 0;
 }
+

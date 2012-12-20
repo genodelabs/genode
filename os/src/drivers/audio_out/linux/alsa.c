@@ -39,13 +39,13 @@ int audio_drv_init(void)
 	if ((err = snd_pcm_hw_params_set_format(playback_handle, hw_params, SND_PCM_FORMAT_S16_LE)) < 0)
 		return -5;
 
-	if ((err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params, &rate, 0)) < 0)
+	if ((err = snd_pcm_hw_params_set_rate(playback_handle, hw_params, rate, 0)) < 0)
 		return -6;
 
 	if ((err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, 2)) < 0)
 		return -7;
 
-	if ((err = snd_pcm_hw_params_set_period_size(playback_handle, hw_params, 4096, 0)) < 0)
+	if ((err = snd_pcm_hw_params_set_period_size(playback_handle, hw_params, 2048, 0)) < 0)
 		return -8;
 
 	if ((err = snd_pcm_hw_params_set_periods(playback_handle, hw_params, 4, 0)) < 0)

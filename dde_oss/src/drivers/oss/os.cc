@@ -350,7 +350,7 @@ int audio_init()
 	}
 
 	/* set fragment policy (TODO: make configurable) */
-	int policy = 8;
+	int policy = 1;
 	if (ioctl_dsp(SNDCTL_DSP_POLICY, &policy) == -1)
 		PERR("Error setting policy");
 
@@ -379,12 +379,12 @@ int audio_init()
 }
 
 
-int audio_play(short *data, int size)
+int audio_play(short *data, unsigned size)
 {
 		uio_t io = { (char *)data, size, UIO_WRITE };
 		int ret;
 
-	if ((ret = dsp_drv->write(0, 0, &io, size)) != size) 
+	if ((ret = dsp_drv->write(0, 0, &io, size)) != (int)size) 
 		PERR("Error writing data s: %d r: %d func %p", size, ret, dsp_drv->write);
 
 	Irq::check_irq();
