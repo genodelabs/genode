@@ -79,7 +79,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* core UART */
-		{ Board::TL16C750_3_MMIO_BASE, Board::TL16C750_3_MMIO_SIZE }
+		{ Board::TL16C750_3_MMIO_BASE, Board::TL16C750_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
