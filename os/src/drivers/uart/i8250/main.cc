@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 				created[i] = 0;
 		}
 
-		Uart::Driver *create(unsigned index,
+		Uart::Driver *create(unsigned index, unsigned baudrate,
 		                     Uart::Char_avail_callback &callback)
 		{
 			/*
@@ -72,14 +72,19 @@ int main(int argc, char **argv)
 			if (index < 1 || index >= UART_NUM)
 				throw Uart::Driver_factory::Not_available();
 
-			I8250 *uart =  created[index];
-
 			enum { BAUD = 115200 };
+			if (baudrate == 0)
+			{
+				PDBG("Baudrate is not defined. Use default 115200");
+				baudrate = BAUD;
+			}
+
+			I8250 *uart =  created[index];
 
 			if (!uart) {
 				uart = new (env()->heap())
 				       I8250(io_port_base(index), irq_number(index),
-				             BAUD, callback);
+							 baudrate, callback);
 
 				/* update 'created' table */
 				created[index] = uart;

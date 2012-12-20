@@ -96,6 +96,12 @@ class Omap_uart : public Genode::Tl16c750_base, public Uart::Driver, public Geno
 		bool char_avail() { return read<Uart_lsr::Rx_fifo_empty>(); }
 
 		char get_char() { return read<Uart_rhr::Rhr>(); }
+
+		void baud_rate(int bits_per_second)
+		{
+			_init(Genode::Board::TL16C750_CLOCK, bits_per_second);
+			_enable_rx_interrupt();
+		}
 };
 
 #endif /* _OMAP_UART_H_ */

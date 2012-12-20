@@ -48,11 +48,17 @@ int main(int argc, char **argv)
 				created[i] = 0;
 		}
 
-		Uart::Driver *create(unsigned index,
-		                     Uart::Char_avail_callback &callback)
+		Uart::Driver *create(unsigned index, unsigned baudrate,
+								 Uart::Char_avail_callback &callback)
 		{
 			if (index > UARTS_NUM)
 				throw Uart::Driver_factory::Not_available();
+			
+			if (baudrate == 0)
+			{
+				PDBG("Baudrate is not defined. Use default 115200");
+				baudrate = BAUD_115200;
+			}
 
 			Omap_uart_cfg *cfg  = &omap_uart_cfg[index];
 			Omap_uart     *uart =  created[index];
@@ -62,7 +68,7 @@ int main(int argc, char **argv)
 
 			if (!uart) {
 				uart = new (env()->heap())
-				       Omap_uart(uart_mmio, cfg->irq_number, BAUD_115200, callback);
+					Omap_uart(uart_mmio, cfg->irq_number, baudrate, callback);
 
 				/* update 'created' table */
 				created[index] = uart;

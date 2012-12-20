@@ -156,21 +156,10 @@ namespace Genode
 			{
 				struct Resetdone : Bitfield<0, 1> { };
 			};
-
-		public:
-			/**
-			 * Constructor
-			 *
-			 * \param  base       MMIO base address
-			 * \param  clock      reference clock
-			 * \param  baud_rate  targeted baud rate
-			 */
-			Tl16c750_base(addr_t const base, unsigned long const clock,
-			              unsigned long const baud_rate) : Mmio(base)
+			
+			void _init(unsigned long const clock, unsigned long const baud_rate)
 			{
-				/* reset and disable UART */
-				write<Uart_sysc::Softreset>(1);
-				while (!read<Uart_syss::Resetdone>()) ;
+				/* disable UART */
 				write<Uart_mdr1::Mode_select>(Uart_mdr1::Mode_select::DISABLED);
 
 				/* enable access to 'Uart_fcr' and 'Uart_ier' */
@@ -221,6 +210,23 @@ namespace Genode
 				 * control, thus according configurations are dispensable
 				 */
 				write<Uart_mdr1::Mode_select>(Uart_mdr1::Mode_select::UART_16X);
+			}
+
+		public:
+			/**
+			 * Constructor
+			 *
+			 * \param  base       MMIO base address
+			 * \param  clock      reference clock
+			 * \param  baud_rate  targeted baud rate
+			 */
+			Tl16c750_base(addr_t const base, unsigned long const clock,
+			              unsigned long const baud_rate) : Mmio(base)
+			{
+				/* reset and init UART */
+				write<Uart_sysc::Softreset>(1);
+				while (!read<Uart_syss::Resetdone>()) ;
+				_init(clock, baud_rate);
 			}
 
 			/**
