@@ -16,11 +16,15 @@
 #include <net/dhcp.h>
 #include <net/udp.h>
 
+#include <util/token.h>
+#include <util/string.h>
+
 #include "component.h"
 #include "vlan.h"
 
 using namespace Net;
 
+const int Session_component::verbose = 1;
 
 void Session_component::Tx_handler::acknowledge_last_one()
 {
@@ -110,13 +114,67 @@ void Session_component::_free_ipv4_node()
 }
 
 
+struct Scanner_policy_number
+{
+	static bool identifier_char(char c, unsigned  i )
+	{
+		return Genode::is_digit(c) && c !='.';
+	}
+};
+
+
+typedef ::Genode::Token<Scanner_policy_number> Token;
+
+
+Ipv4_packet::Ipv4_address Session_component::ip_from_string(const char *ip)
+{
+	Ipv4_packet::Ipv4_address ip_addr;
+
+	Token       t(ip);
+	char        tmpstr[4];
+	int         cnt = 0;
+	unsigned char ipb[4] = {0};
+
+	while(t) {
+
+		if (t.type() == Token::WHITESPACE || t[0] == '.') {
+			t = t.next();
+			continue;
+		}
+		t.string(tmpstr, sizeof(tmpstr));
+
+		unsigned long  tmpc = 0;
+		Genode::ascii_to(tmpstr, &tmpc, 10);
+
+		ipb[cnt] = tmpc & 0xFF;
+
+		t = t.next();
+
+		if (cnt == 4)
+			break;
+		cnt++;
+	}
+
+	if (cnt == 4) {
+		ip_addr.addr[0] = ipb[0];
+		ip_addr.addr[1] = ipb[1];
+		ip_addr.addr[2] = ipb[2];
+		ip_addr.addr[3] = ipb[3];
+	}
+	
+	return ip_addr;
+}
+
+
+
 Session_component::Session_component(Genode::Allocator          *allocator,
                                      Genode::size_t              amount,
                                      Genode::size_t              tx_buf_size,
                                      Genode::size_t              rx_buf_size,
                                      Ethernet_frame::Mac_address vmac,
                                      Nic::Connection            *session,
-                                     Genode::Rpc_entrypoint     &ep)
+                                     Genode::Rpc_entrypoint     &ep,
+                                     char                       *ip_addr)
 : Guarded_range_allocator(allocator, amount),
   Tx_rx_communication_buffers(tx_buf_size, rx_buf_size),
   Session_rpc_object(Tx_rx_communication_buffers::tx_ds(),
@@ -132,6 +190,25 @@ Session_component::Session_component(Genode::Allocator          *allocator,
 	/* start handler */
 	_tx_handler.start();
 	_tx_handler.wait_for_startup();
+
+	/* static ip parsing */
+	if (ip_addr != 0 && Genode::strlen(ip_addr)) {
+		
+		Ipv4_packet::Ipv4_address ip = ip_from_string(ip_addr);
+		
+		if (ip == Ipv4_packet::Ipv4_address()) {
+			PDBG("Empty or error ip address. Skipped.");
+		} else {
+			
+			set_ipv4_address(ip);
+
+			if (verbose)
+				PDBG("\nmac=%02x.%02x.%02x.%02x.%02x.%02x ip=%d.%d.%d.%d",
+					vmac.addr[0], vmac.addr[1], vmac.addr[2], vmac.addr[3], vmac.addr[4], vmac.addr[5],
+					ip.addr[0], ip.addr[1], ip.addr[2], ip.addr[3]
+				);
+		}
+	}
 }
 
 
