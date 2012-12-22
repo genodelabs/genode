@@ -253,7 +253,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context *context)
 			if (try_again)
 				break;
 
-			PINF("upgrade quota donation for SIGNAL session");
+			PINF("upgrading quota donation for SIGNAL session");
 			env()->parent()->upgrade(signal_connection()->cap(), "ram_quota=4K");
 			try_again = true;
 		}

@@ -63,7 +63,7 @@ namespace Genode {
 							if (try_again)
 								break;
 
-							PINF("upgrade quota donation for Env::RM session");
+							PINF("upgrading quota donation for Env::RM session");
 							env()->parent()->upgrade(_cap, "ram_quota=8K");
 							try_again = true;
 						}
@@ -84,7 +84,7 @@ namespace Genode {
 							if (try_again)
 								break;
 
-							PINF("upgrade quota donation for Env::RM session");
+							PINF("upgrading quota donation for Env::RM session");
 							env()->parent()->upgrade(_cap, "ram_quota=8K");
 							try_again = true;
 						}
@@ -115,7 +115,7 @@ namespace Genode {
 							if (try_again)
 								break;
 
-							PINF("upgrade quota donation for Env::RAM session");
+							PINF("upgrading quota donation for Env::RAM session");
 							env()->parent()->upgrade(_cap, "ram_quota=8K");
 							try_again = true;
 						}
@@ -145,7 +145,7 @@ namespace Genode {
 							if (try_again)
 								break;
 
-							PINF("upgrade quota donation for Env::CPU session");
+							PINF("upgrading quota donation for Env::CPU session");
 							env()->parent()->upgrade(_cap, "ram_quota=8K");
 							try_again = true;
 						}

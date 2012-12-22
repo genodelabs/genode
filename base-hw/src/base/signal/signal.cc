@@ -51,7 +51,7 @@ Signal_receiver::Signal_receiver()
 				PDBG("Failed to alloc signal receiver");
 				break;
 			}
-			PINF("upgrade quota donation for Signal session");
+			PINF("upgrading quota donation for Signal session");
 			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
 			session_upgraded = 1;
 		}
@@ -89,7 +89,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 		} catch (Signal_session::Out_of_metadata)
 		{
 			/* upgrade session quota and try again, but only once */
-			PINF("upgrade quota donation for Signal session");
+			PINF("upgrading quota donation for Signal session");
 			if (session_upgraded) return Signal_context_capability();
 			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
 			session_upgraded = 1;

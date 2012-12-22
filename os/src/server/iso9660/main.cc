@@ -132,7 +132,7 @@ namespace Iso {
 						if (try_again)
 							break;
 
-						PINF("upgrade quota donation for RM session");
+						PINF("upgrading quota donation for RM session");
 						Genode::env()->parent()->upgrade(_rm->cap(), "ram_quota=32K");
 						try_again = true;
 					}
