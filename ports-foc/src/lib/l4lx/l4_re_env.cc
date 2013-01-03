@@ -47,16 +47,19 @@ extern "C" {
 			Genode::size_t size = Genode::Dataspace_client(rom.dataspace()).size();
 			Genode::Dataspace_capability cap = Genode::env()->ram_session()->alloc(size);
 
-			void *dst = L4lx::Env::env()->rm()->attach(cap, "initrd");
+			void *dst = Genode::env()->rm_session()->attach(cap);
 			void *src = Genode::env()->rm_session()->attach(rom.dataspace());
 
 			Genode::memcpy(dst, src, size);
 			Genode::env()->rm_session()->detach(src);
+			Genode::env()->rm_session()->detach(dst);
 
 			l4re_env_cap_entry_t *entry = new (Genode::env()->heap())
 				l4re_env_cap_entry_t();
-			Region *r = Env::env()->rm()->find_region((Genode::addr_t*)&dst, &size);
-			entry->cap = r->ds()->ref();
+			Dataspace *ds = new (Genode::env()->heap())
+				Dataspace("initrd", size, cap);
+			Env::env()->dataspaces()->insert(ds);
+			entry->cap = ds->ref();
 			return entry;
 		} catch(Genode::Rom_connection::Rom_connection_failed) {
 			PWRN("File %s is missing", name);
