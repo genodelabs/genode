@@ -30,6 +30,8 @@
 #include <cpu_session_component.h>
 #include <child_policy.h>
 #include <io_receptor_registry.h>
+#include <destruct_queue.h>
+#include <destruct_dispatcher.h>
 
 
 namespace Noux {
@@ -83,63 +85,10 @@ namespace Noux {
 	bool is_init_process(Child *child);
 	void init_process_exited();
 
-
-	/**
-	 * Signal context used for child exit
-	 */
-	class Child_exit_dispatcher : public Signal_dispatcher_base
-	{
-		private:
-
-			Child *_child;
-
-		public:
-
-			Child_exit_dispatcher(Child *child) : _child(child) { }
-
-			void dispatch(unsigned)
-			{
-				if (is_init_process(_child)) {
-					PINF("init process exited");
-
-					/* trigger exit of main event loop */
-					init_process_exited();
-				} else {
-					/* destroy 'Noux::Child' */
-					destroy(env()->heap(), _child);
-
-					PINF("destroy %p", _child);
-					PINF("quota: avail=%zd, used=%zd",
-					     env()->ram_session()->avail(),
-					     env()->ram_session()->used());
-				}
-			}
-	};
-
-
-	/**
-	 * Signal context used for removing the child after having executed 'execve'
-	 */
-	class Child_execve_cleanup_dispatcher : public Signal_dispatcher_base
-	{
-		private:
-
-			Child *_child;
-
-		public:
-
-			Child_execve_cleanup_dispatcher(Child *child) : _child(child) { }
-
-			void dispatch(unsigned)
-			{
-				destroy(env()->heap(), _child);
-			}
-	};
-
-
 	class Child : public Rpc_object<Session>,
 	              public File_descriptor_registry,
-	              public Family_member
+	              public Family_member,
+	              public Destruct_queue::Element<Child>
 	{
 		private:
 
@@ -150,11 +99,10 @@ namespace Noux {
 			 */
 			Semaphore _blocker;
 
-			Child_exit_dispatcher     _exit_dispatcher;
-			Signal_context_capability _exit_context_cap;
-
-			Child_execve_cleanup_dispatcher _execve_cleanup_dispatcher;
-			Signal_context_capability       _execve_cleanup_context_cap;
+			Allocator                 *_alloc;
+			Destruct_queue            &_destruct_queue;
+			Destruct_dispatcher        _destruct_dispatcher;
+			Signal_context_capability  _destruct_context_cap;
 
 			Cap_session * const _cap_session;
 
@@ -292,24 +240,26 @@ namespace Noux {
 			 *                               looked up at the virtual file
 			 *                               system
 			 */
-			Child(char const       *name,
-			      Family_member    *parent,
-			      int               pid,
-			      Signal_receiver  *sig_rec,
-			      Dir_file_system  *root_dir,
-			      Args              const &args,
-			      Sysio::Env        const &env,
-			      Cap_session      *cap_session,
-			      Service_registry &parent_services,
-			      Rpc_entrypoint   &resources_ep,
-			      bool              forked)
+			Child(char const        *name,
+			      Family_member     *parent,
+			      int                pid,
+			      Signal_receiver   *sig_rec,
+			      Dir_file_system   *root_dir,
+			      Args               const &args,
+			      Sysio::Env         const &env,
+			      Cap_session       *cap_session,
+			      Service_registry  &parent_services,
+			      Rpc_entrypoint    &resources_ep,
+			      bool               forked,
+			      Allocator         *destruct_alloc,
+			      Destruct_queue    &destruct_queue)
 			:
 				Family_member(pid, parent),
+				Destruct_queue::Element<Child>(destruct_alloc),
 				_sig_rec(sig_rec),
-				_exit_dispatcher(this),
-				_exit_context_cap(sig_rec->manage(&_exit_dispatcher)),
-				_execve_cleanup_dispatcher(this),
-				_execve_cleanup_context_cap(sig_rec->manage(&_execve_cleanup_dispatcher)),
+				_destruct_queue(destruct_queue),
+				_destruct_dispatcher(_destruct_queue, this),
+				_destruct_context_cap(sig_rec->manage(&_destruct_dispatcher)),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
 				_resources(name, resources_ep, false),
@@ -327,7 +277,7 @@ namespace Noux {
 				_child_policy(name, _binary_ds, _args.cap(), _env.cap(),
 				              _entrypoint, _local_noux_service,
 				              _local_rm_service, _parent_services,
-				              *this, *this, _exit_context_cap, _resources.ram),
+				              *this, *this, _destruct_context_cap, _resources.ram),
 				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy)
 			{
@@ -341,8 +291,7 @@ namespace Noux {
 
 			~Child()
 			{
-				_sig_rec->dissolve(&_execve_cleanup_dispatcher);
-				_sig_rec->dissolve(&_exit_dispatcher);
+				_sig_rec->dissolve(&_destruct_dispatcher);
 
 				_entrypoint.dissolve(this);
 
@@ -364,7 +313,14 @@ namespace Noux {
 
 			void submit_exit_signal()
 			{
-				Signal_transmitter(_exit_context_cap).submit();
+				if (is_init_process(this)) {
+					PINF("init process exited");
+
+					/* trigger exit of main event loop */
+					init_process_exited();
+				} else {
+					Signal_transmitter(_destruct_context_cap).submit();
+				}
 			}
 
 			Ram_session_capability ram() const { return _resources.ram.cap(); }

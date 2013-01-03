@@ -41,7 +41,7 @@ namespace Noux {
 			Service_registry                   &_parent_services;
 			Family_member                      &_family_member;
 			File_descriptor_registry           &_file_descriptor_registry;
-			Signal_context_capability           _exit_context_cap;
+			Signal_context_capability           _destruct_context_cap;
 			Ram_session                        &_ref_ram_session;
 
 		public:
@@ -56,7 +56,7 @@ namespace Noux {
 			             Service_registry         &parent_services,
 			             Family_member            &family_member,
 			             File_descriptor_registry &file_descriptor_registry,
-			             Signal_context_capability exit_context_cap,
+			             Signal_context_capability destruct_context_cap,
 			             Ram_session              &ref_ram_session)
 			:
 				_name(strncpy(_name_buf, name, sizeof(_name_buf))),
@@ -69,7 +69,7 @@ namespace Noux {
 				_parent_services(parent_services),
 				_family_member(family_member),
 				_file_descriptor_registry(file_descriptor_registry),
-				_exit_context_cap(exit_context_cap),
+				_destruct_context_cap(destruct_context_cap),
 				_ref_ram_session(ref_ram_session)
 			{ }
 
@@ -122,7 +122,7 @@ namespace Noux {
 
 				/* handle exit of the init process */
 				if (_family_member.parent() == 0)
-					Signal_transmitter(_exit_context_cap).submit();
+					Signal_transmitter(_destruct_context_cap).submit();
 			}
 
 			Ram_session *ref_ram_session()

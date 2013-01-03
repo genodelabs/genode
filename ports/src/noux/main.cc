@@ -28,10 +28,11 @@
 #include <dir_file_system.h>
 #include <user_info.h>
 #include <io_receptor_registry.h>
+#include <destruct_queue.h>
 
 
 static bool trace_syscalls = false;
-
+static bool verbose_quota  = false;
 
 namespace Noux {
 
@@ -272,7 +273,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					                         _cap_session,
 					                         _parent_services,
 					                         _resources.ep,
-					                         false);
+					                         false,
+					                         env()->heap(),
+					                         _destruct_queue);
 
 					/* replace ourself by the new child at the parent */
 					parent()->remove(this);
@@ -281,7 +284,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					_assign_io_channels_to(child);
 
 					/* signal main thread to remove ourself */
-					Genode::Signal_transmitter(_execve_cleanup_context_cap).submit();
+					Genode::Signal_transmitter(_destruct_context_cap).submit();
 
 					/* start executing the new process */
 					child->start();
@@ -486,7 +489,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _cap_session,
 				                         _parent_services,
 				                         _resources.ep,
-				                         true);
+				                         true,
+				                         env()->heap(),
+				                         _destruct_queue);
 
 				Family_member::insert(child);
 
@@ -863,6 +868,7 @@ int main(int argc, char **argv)
 
 	/* create init process */
 	static Genode::Signal_receiver sig_rec;
+	static Destruct_queue destruct_queue;
 
 	init_child = new Noux::Child(name_of_init_process(),
 	                             0,
@@ -874,7 +880,9 @@ int main(int argc, char **argv)
 	                             &cap,
 	                             parent_services,
 	                             resources_ep,
-	                             false);
+	                             false,
+	                             env()->heap(),
+	                             destruct_queue);
 
 	/*
 	 * I/O channels must be dynamically allocated to handle cases where the
@@ -902,6 +910,13 @@ int main(int argc, char **argv)
 
 		for (unsigned i = 0; i < signal.num(); i++)
 			dispatcher->dispatch(1);
+
+		destruct_queue.flush();
+
+		if (verbose_quota)
+			PINF("quota: avail=%zd, used=%zd",
+				 env()->ram_session()->avail(),
+				 env()->ram_session()->used());
 	}
 
 	PINF("-- exiting noux ---");
