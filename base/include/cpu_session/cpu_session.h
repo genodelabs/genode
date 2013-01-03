@@ -147,6 +147,16 @@ namespace Genode {
 
 			/**
 			 * Register signal handler for exceptions of the specified thread
+			 *
+			 * If 'thread' is an invalid capability, the default exception
+			 * handler for the CPU session is set. This handler is used for
+			 * all threads that have no explicitly installed exception handler.
+			 * The new default signal handler will take effect for threads
+			 * created after the call.
+			 *
+			 * On Linux, this exception is delivered when the process triggers
+			 * a SIGCHLD. On other platforms, this exception is delivered on
+			 * the occurrence of CPU exceptions such as division by zero.
 			 */
 			virtual void exception_handler(Thread_capability         thread,
 			                               Signal_context_capability handler) = 0;

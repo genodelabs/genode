@@ -166,6 +166,11 @@ namespace Genode {
 
 		/**
 		 * Register signal handler for region-manager faults
+		 *
+		 * On Linux, this signal is never delivered because page-fault handling
+		 * is performed by the Linux kernel. On microkernel platforms,
+		 * unresolvable page faults (traditionally called segmentation fault)
+		 * will result in the delivery of the signal.
 		 */
 		virtual void fault_handler(Signal_context_capability handler) = 0;
 

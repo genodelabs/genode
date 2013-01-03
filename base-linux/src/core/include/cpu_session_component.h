@@ -47,15 +47,19 @@ namespace Genode {
 	{
 		private:
 
-			Platform_thread _platform_thread;
-
-			bool            _bound;            /* pd binding flag */
+			Platform_thread           _platform_thread;
+			bool                      _bound;            /* pd binding flag */
+			Signal_context_capability _sigh;             /* exception handler */
 
 		public:
 
-			Cpu_thread_component(const char *name, unsigned priority,
-			                     addr_t utcb)
-			: _platform_thread(name, priority, utcb), _bound(false) { }
+			Cpu_thread_component(const char *name, unsigned priority, addr_t utcb,
+			                     Signal_context_capability sigh)
+			:
+				_platform_thread(name, priority, utcb), _bound(false), _sigh(sigh)
+			{
+				update_exception_sigh();
+			}
 
 
 			/************************
@@ -65,6 +69,17 @@ namespace Genode {
 			inline Platform_thread * platform_thread() { return &_platform_thread; }
 			inline bool bound() const                  { return _bound; }
 			inline void bound(bool b)                  { _bound = b; }
+
+			void sigh(Signal_context_capability sigh)
+			{
+				sigh = sigh;
+				update_exception_sigh();
+			}
+
+			/**
+			 * Propagate exception handler to platform thread
+			 */
+			void update_exception_sigh();
 	};
 
 
@@ -82,6 +97,12 @@ namespace Genode {
 			unsigned                   _priority;          /* priority of threads
 			                                                  created with this
 			                                                  session */
+
+			/**
+			 * Exception handler that will be invoked unless overridden by a
+			 * call of 'Cpu_session::exception_handler'.
+			 */
+			Signal_context_capability _default_exception_handler;
 
 			/**
 			 * Lookup thread in CPU session by its capability
@@ -127,11 +148,9 @@ namespace Genode {
 			 ** CPU session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Name const &, addr_t utcb);
+			Thread_capability create_thread(Name const &, addr_t);
 			Ram_dataspace_capability utcb(Thread_capability thread);
 			void kill_thread(Thread_capability);
-			Thread_capability first();
-			Thread_capability next(Thread_capability);
 			int set_pager(Thread_capability, Pager_capability);
 			int start(Thread_capability, addr_t, addr_t);
 			void pause(Thread_capability thread_cap);

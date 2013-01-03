@@ -25,6 +25,13 @@
 using namespace Genode;
 
 
+void Cpu_thread_component::update_exception_sigh()
+{
+	if (platform_thread()->pager())
+		platform_thread()->pager()->exception_handler(_sigh);
+};
+
+
 Thread_capability Cpu_session_component::create_thread(Name const &name,
                                                        addr_t utcb)
 {
@@ -34,7 +41,8 @@ Thread_capability Cpu_session_component::create_thread(Name const &name,
 	Cpu_thread_component *thread = 0;
 	try {
 		thread = new(&_thread_alloc) Cpu_thread_component(name.string(),
-		                                                  _priority, utcb);
+		                                                  _priority, utcb,
+		                                                  _default_exception_handler);
 	} catch (Allocator::Out_of_memory) {
 		throw Out_of_metadata();
 	}
@@ -81,6 +89,7 @@ int Cpu_session_component::set_pager(Thread_capability thread_cap,
 	if (!p) return -2;
 
 	thread->platform_thread()->pager(p);
+
 	p->thread_cap(thread->cap());
    
 	return 0;
@@ -92,6 +101,12 @@ int Cpu_session_component::start(Thread_capability thread_cap,
 {
 	Cpu_thread_component *thread = _lookup_thread(thread_cap);
 	if (!thread) return -1;
+
+	/*
+	 * If an exception handler was installed prior to the call of 'set_pager',
+	 * we need to update the pager object with the current exception handler.
+	 */
+	thread->update_exception_sigh();
 
 	return thread->platform_thread()->start((void *)ip, (void *)sp);
 }
@@ -146,10 +161,27 @@ void
 Cpu_session_component::exception_handler(Thread_capability         thread_cap,
                                          Signal_context_capability sigh_cap)
 {
-	Cpu_thread_component *thread = _lookup_thread(thread_cap);
-	if (!thread || !thread->platform_thread()->pager()) return;
+	/*
+	 * By specifying an invalid thread capability, the caller sets the default
+	 * exception handler for the CPU session.
+	 */
+	if (!thread_cap.valid()) {
+		_default_exception_handler = sigh_cap;
+		return;
+	}
 
-	thread->platform_thread()->pager()->exception_handler(sigh_cap);
+	/*
+	 * If an invalid signal handler is specified for a valid thread, we revert
+	 * the signal handler to the CPU session's default signal handler.
+	 */
+	if (!sigh_cap.valid()) {
+		sigh_cap = _default_exception_handler;
+	}
+
+	Cpu_thread_component *thread = _lookup_thread(thread_cap);
+	if (!thread) return;
+
+	thread->sigh(sigh_cap);
 }
 
 

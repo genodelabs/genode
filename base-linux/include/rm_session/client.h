@@ -46,8 +46,15 @@ namespace Genode {
 		Pager_capability add_client(Thread_capability thread) {
 			return _local()->add_client(thread); }
 
-		void fault_handler(Signal_context_capability handler) {
-			return _local()->fault_handler(handler); }
+		void fault_handler(Signal_context_capability handler)
+		{
+			/*
+			 * On Linux, page faults are never reflected to RM clients. They
+			 * are always handled by the kernel. If a segmentation fault
+			 * occurs, this condition is being reflected as a CPU exception
+			 * to the handler registered via 'Cpu_session::exception_handler'.
+			 */
+		}
 
 		State state() {
 			return _local()->state(); }
