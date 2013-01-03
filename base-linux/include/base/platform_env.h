@@ -412,13 +412,10 @@ namespace Genode {
 
 		public:
 
-			Platform_env()
-			:
-				Platform_env_base(static_cap_cast<Ram_session>(_parent().session("Env::ram_session", "")),
-				                  static_cap_cast<Cpu_session>(_parent().session("Env::cpu_session", "")),
-				                  static_cap_cast<Pd_session> (_parent().session("Env::pd_session",  ""))),
-				_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session())
-			{ }
+			/**
+			 * Constructor
+			 */
+			Platform_env();
 
 			/**
 			 * Destructor

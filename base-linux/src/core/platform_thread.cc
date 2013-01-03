@@ -26,10 +26,60 @@ using namespace Genode;
 typedef Token<Scanner_policy_identifier_with_underline> Tid_token;
 
 
+/*******************************
+ ** Platform_thread::Registry **
+ *******************************/
+
+void Platform_thread::Registry::insert(Platform_thread *thread)
+{
+	Lock::Guard guard(_lock);
+	_list.insert(thread);
+}
+
+
+void Platform_thread::Registry::remove(Platform_thread *thread)
+{
+	Lock::Guard guard(_lock);
+	_list.remove(thread);
+}
+
+
+void Platform_thread::Registry::submit_exception(unsigned long pid)
+{
+	Lock::Guard guard(_lock);
+
+	/* traverse list to find 'Platform_thread' with matching PID */
+	for (Platform_thread *curr = _list.first(); curr; curr = curr->next()) {
+
+		if (curr->_tid == pid) {
+			Signal_context_capability sigh = curr->_pager._sigh;
+
+			if (sigh.valid())
+				Signal_transmitter(sigh).submit();
+
+			return;
+		}
+	}
+}
+
+
+Platform_thread::Registry *Platform_thread::_registry()
+{
+	static Platform_thread::Registry registry;
+	return &registry;
+}
+
+
+/*********************
+ ** Platform_thread **
+ *********************/
+
 Platform_thread::Platform_thread(const char *name, unsigned, addr_t)
 : _tid(-1), _pid(-1)
 {
 	strncpy(_name, name, min(sizeof(_name), strlen(name)));
+
+	_registry()->insert(this);
 }
 
 
@@ -42,6 +92,8 @@ Platform_thread::~Platform_thread()
 
 	if (_ncs.server_sd)
 		lx_close(_ncs.server_sd);
+
+	_registry()->remove(this);
 }
 
 

@@ -22,9 +22,38 @@
 
 namespace Genode {
 
-	class Platform_thread
+	class Platform_thread;
+
+	/*
+	 * We hold all Platform_thread objects in a list in order to be able to
+	 * reflect SIGCHLD as exception signals. When a SIGCHILD occurs, we
+	 * determine the PID of the terminated child process via 'waitpid'. We use
+	 * the list to find the 'Platform_thread' matching the TID, wherei, in
+	 * turn, we find the exception handler's 'Signal_context_capability'.
+	 */
+
+	class Platform_thread : public List<Platform_thread>::Element
 	{
 		private:
+
+			struct Registry
+			{
+				Lock                  _lock;
+				List<Platform_thread> _list;
+
+				void insert(Platform_thread *thread);
+				void remove(Platform_thread *thread);
+
+				/**
+				 * Trigger exception handler for 'Platform_thread' with matching PID.
+				 */
+				void submit_exception(unsigned long pid);
+			};
+
+			/**
+			 * Return singleton instance of 'Platform_thread::Registry'
+			 */
+			static Registry *_registry();
 
 			unsigned long _tid;
 			unsigned long _pid;
@@ -34,6 +63,12 @@ namespace Genode {
 			 * Unix-domain socket pair bound to the thread
 			 */
 			Native_connection_state _ncs;
+
+			/*
+			 * Dummy pager object that is solely used for storing the
+			 * 'Signal_context_capability' for the thread's exception handler.
+			 */
+			Pager_object _pager;
 
 		public:
 
@@ -62,7 +97,7 @@ namespace Genode {
 			/**
 			 * Dummy implementation of platform-thread interface
 			 */
-			Pager_object *pager() { return 0; }
+			Pager_object *pager() { return &_pager; }
 			void          pager(Pager_object *) { }
 			int           start(void *ip, void *sp) { return 0; }
 
@@ -98,6 +133,14 @@ namespace Genode {
 			 * Return server-side socket descriptor
 			 */
 			int server_sd();
+
+			/**
+			 * Notify Genode::Signal handler about sigchld
+			 */
+			static void submit_exception(int pid)
+			{
+				_registry()->submit_exception(pid);
+			}
 	};
 }
 

@@ -102,6 +102,20 @@ inline int lx_setgid(unsigned int gid)
 }
 
 
+/**
+ * Query PID of any terminated child
+ *
+ * This function is called be core after having received a SIGCHLD signal to
+ * determine the PID of a terminated Genode process.
+ *
+ * \return  PID of terminated process or -1 if no process was terminated
+ */
+inline int lx_pollpid()
+{
+	return lx_syscall(SYS_waitpid, -1 /* any PID */, (int *)0, 1 /* WNOHANG */);
+}
+
+
 /*********************
  ** Chroot handling **
  *********************/

@@ -31,8 +31,10 @@ using namespace Genode;
  * Memory pool used for for core-local meta data
  */
 static char _core_mem[80*1024*1024];
-static Lock _wait_for_exit_lock(Lock::LOCKED);  /* exit() sync */
-static bool _do_exit = false;
+
+
+static Lock _wait_for_exit_lock(Lock::LOCKED);  /* wakeup of '_wait_for_exit' */
+static bool _do_exit = false;                   /* exit condition */
 
 
 static void sigint_handler(int signum)
@@ -45,7 +47,6 @@ static void sigint_handler(int signum)
 static void sigchld_handler(int signnum)
 {
 	_wait_for_exit_lock.unlock();
-	raw_write_str("sigchld_handler called\n");
 }
 
 
@@ -93,11 +94,19 @@ void Platform::wait_for_exit()
 			return;
 
 		/*
-		 * If we received a SIGCHLD, we go through the list of our children to
-		 * catch any pending terminated children.
+		 * Reflect SIGCHLD as exception signal to the signal context of the CPU
+		 * session of the process. Because multiple children could have been
+		 * terminated, we iterate until 'pollpid' (wrapper around 'waitpid')
+		 * returns -1.
 		 */
+		for (;;) {
+			int const pid = lx_pollpid();
 
-		PINF("we should check for pending terminated children");
+			if (pid == -1)
+				break;
+
+			Platform_thread::submit_exception(pid);
+		}
 	}
 }
 
