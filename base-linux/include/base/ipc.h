@@ -19,10 +19,13 @@
 
 inline void Genode::Ipc_ostream::_marshal_capability(Genode::Native_capability const &cap)
 {
-	_write_to_buf(cap.local_name());
+	if (cap.valid()) {
+		_write_to_buf(cap.local_name());
 
-	if (cap.valid())
 		_snd_msg->append_cap(cap.dst().socket);
+	} else {
+		_write_to_buf(-1L);
+	}
 }
 
 
@@ -31,8 +34,17 @@ inline void Genode::Ipc_istream::_unmarshal_capability(Genode::Native_capability
 	long local_name =  0;
 	_read_from_buf(local_name);
 
-	int const socket = _rcv_msg->read_cap();
-	cap = Native_capability(Cap_dst_policy::Dst(socket), local_name);
+	if (local_name == -1) {
+
+		/* construct invalid capability */
+		cap = Genode::Native_capability();
+
+	} else {
+
+		/* construct valid capability */
+		int const socket = _rcv_msg->read_cap();
+		cap = Native_capability(Cap_dst_policy::Dst(socket), local_name);
+	}
 }
 
 #endif /* _INCLUDE__BASE__IPC_H_ */
