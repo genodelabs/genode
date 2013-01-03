@@ -27,15 +27,18 @@ static void empty_signal_handler(int) { }
 void Thread_base::_thread_start()
 {
 	/*
-	 * Set signal handler such that canceled system calls get not
-	 * transparently retried after a signal gets received.
+	 * Set signal handler such that canceled system calls get not transparently
+	 * retried after a signal gets received.
 	 */
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 
 	/*
-	 * Prevent children from becoming zombies. (SIG_IGN = 1)
+	 * Deliver SIGCHLD signals to no thread other than the main thread. Core's
+	 * main thread will handle the signals while executing the 'wait_for_exit'
+	 * function, which is known to not hold any locks that would interfere with
+	 * the handling of the signal.
 	 */
-	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
+	lx_sigsetmask(LX_SIGCHLD, false);
 
 	Thread_base::myself()->entry();
 	Thread_base::myself()->_join_lock.unlock();

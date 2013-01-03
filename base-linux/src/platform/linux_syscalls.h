@@ -237,6 +237,7 @@ inline Genode::addr_t lx_vm_reserve(Genode::addr_t base, Genode::size_t size)
  ***********************************************************************/
 
 enum {
+	LX_SIGINT    =  2,  /* used by core to catch Control-C */
 	LX_SIGUSR1   = 10,  /* used for cancel-blocking mechanism */
 	LX_SIGCHLD   = 17,  /* child process changed state, i.e., terminated */
 	LX_SIGCANCEL = 32,  /* accoring to glibc, this equals SIGRTMIN,

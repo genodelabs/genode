@@ -32,11 +32,20 @@ using namespace Genode;
  */
 static char _core_mem[80*1024*1024];
 static Lock _wait_for_exit_lock(Lock::LOCKED);  /* exit() sync */
+static bool _do_exit = false;
 
 
-static void signal_handler(int signum)
+static void sigint_handler(int signum)
 {
 	_wait_for_exit_lock.unlock();
+	_do_exit = true;
+}
+
+
+static void sigchld_handler(int signnum)
+{
+	_wait_for_exit_lock.unlock();
+	raw_write_str("sigchld_handler called\n");
 }
 
 
@@ -44,7 +53,10 @@ Platform::Platform()
 : _core_mem_alloc(0)
 {
 	/* catch control-c */
-	lx_sigaction(2, signal_handler);
+	lx_sigaction(LX_SIGINT, sigint_handler);
+
+	/* catch SIGCHLD */
+	lx_sigaction(LX_SIGCHLD, sigchld_handler);
 
 	/* create resource directory under /tmp */
 	lx_mkdir(resource_path(), S_IRWXU);
@@ -64,9 +76,29 @@ Platform::Platform()
 
 void Platform::wait_for_exit()
 {
-	/* block until exit condition is satisfied */
-	try { _wait_for_exit_lock.lock(); }
-	catch (Blocking_canceled) { };
+	for (;;) {
+
+		/*
+		 * Block until a signal occurs.
+		 */
+		try { _wait_for_exit_lock.lock(); }
+		catch (Blocking_canceled) { };
+
+		/*
+		 * Each time, the '_wait_for_exit_lock' gets unlocked, we could have
+		 * received either a SIGINT or SIGCHLD. If a SIGINT was received, the
+		 * '_exit' condition will be set.
+		 */
+		if (_do_exit)
+			return;
+
+		/*
+		 * If we received a SIGCHLD, we go through the list of our children to
+		 * catch any pending terminated children.
+		 */
+
+		PINF("we should check for pending terminated children");
+	}
 }
 
 

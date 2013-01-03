@@ -48,11 +48,6 @@ void Thread_base::_thread_start()
 	 */
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler);
 
-	/*
-	 * Prevent children from becoming zombies. (SIG_IGN = 1)
-	 */
-	lx_sigaction(LX_SIGCHLD, (void (*)(int))1);
-
 	Thread_base * const thread = Thread_base::myself();
 
 	/* inform core about the new thread and process ID of the new thread */

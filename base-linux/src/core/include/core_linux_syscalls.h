@@ -80,7 +80,12 @@ inline int lx_kill(int pid, int signal)
 
 inline int lx_create_process(int (*entry)(void *), void *stack, void *arg)
 {
-	int flags = CLONE_VFORK | SIGCHLD;
+	/*
+	 * The low byte of the flags denotes the signal to be sent to the parent
+	 * when the process terminates. We want core to receive SIGCHLD signals on
+	 * this condition.
+	 */
+	int const flags = CLONE_VFORK | LX_SIGCHLD;
 	return lx_clone((int (*)(void *))entry, stack, flags, arg);
 }
 
