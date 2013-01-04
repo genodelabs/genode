@@ -120,6 +120,54 @@ namespace Loader {
 				void upgrade(Session_capability session, const char *) { }
 			};
 
+			/**
+			 * Common base class of 'Local_cpu_service' and 'Local_rm_service'
+			 */
+			struct Intercepted_parent_service : Service
+			{
+				Signal_context_capability fault_sigh;
+
+				Intercepted_parent_service(char const *name) : Service(name) { }
+
+				void close(Session_capability session)
+				{
+					env()->parent()->close(session);
+				}
+
+				void upgrade(Session_capability session, const char *) { }
+			};
+
+			/**
+			 * Intercept CPU session requests to install default exception
+			 * handler
+			 */
+			struct Local_cpu_service : Intercepted_parent_service
+			{
+				Local_cpu_service() : Intercepted_parent_service("CPU") { }
+
+				Genode::Session_capability session(const char *args)
+				{
+					Capability<Cpu_session> cap = env()->parent()->session<Cpu_session>(args);
+					Cpu_session_client(cap).exception_handler(Thread_capability(), fault_sigh);
+					return cap;
+				}
+			};
+
+			/**
+			 * Intercept RM session requests to install default fault handler
+			 */
+			struct Local_rm_service : Intercepted_parent_service
+			{
+				Local_rm_service() : Intercepted_parent_service("RM") { }
+
+				Genode::Session_capability session(const char *args)
+				{
+					Capability<Rm_session> cap = env()->parent()->session<Rm_session>(args);
+					Rm_session_client(cap).fault_handler(fault_sigh);
+					return cap;
+				}
+			};
+
 			struct Local_nitpicker_service : Service
 			{
 				Rpc_entrypoint &ep;
@@ -172,7 +220,10 @@ namespace Loader {
 			Service_registry          _parent_services;
 			Rom_module_registry       _rom_modules;
 			Local_rom_service         _rom_service;
+			Local_cpu_service         _cpu_service;
+			Local_rm_service          _rm_service;
 			Local_nitpicker_service   _nitpicker_service;
+			Signal_context_capability _fault_sigh;
 			Child                    *_child;
 
 			/**
@@ -244,6 +295,26 @@ namespace Loader {
 				_nitpicker_service.view_ready_sigh = sigh;
 			}
 
+			void fault_sigh(Signal_context_capability sigh)
+			{
+				/*
+				 * CPU exception handler for CPU sessions originating from the
+				 * subsystem.
+				 */
+				_cpu_service.fault_sigh = sigh;
+
+				/*
+				 * RM fault handler for RM sessions originating from the
+				 * subsystem.
+				 */
+				_rm_service.fault_sigh = sigh;
+
+				/*
+				 * CPU exception and RM fault handler for the immediate child.
+				 */
+				_fault_sigh = sigh;
+			}
+
 			void start(Name const &binary_name, Name const &label,
 			           Genode::Native_pd_args const &pd_args)
 			{
@@ -261,7 +332,8 @@ namespace Loader {
 						Child(binary_name.string(), label.string(),
 						      pd_args, _ep, _ram_session_client,
 						      ram_quota, _parent_services, _rom_service,
-						      _nitpicker_service, _width, _height);
+						      _cpu_service, _rm_service, _nitpicker_service,
+						      _fault_sigh, _width, _height);
 				}
 				catch (Genode::Parent::Service_denied) {
 					throw Rom_module_does_not_exist(); }

@@ -19,7 +19,31 @@
 #include <rom_session/connection.h>
 #include <cpu_session/connection.h>
 #include <cap_session/connection.h>
+#include <loader_session/connection.h>
 
+
+/***************
+ ** Utilities **
+ ***************/
+
+static void wait_for_signal_for_context(Genode::Signal_receiver &sig_rec,
+                                        Genode::Signal_context const &sig_ctx)
+{
+	Genode::Signal s = sig_rec.wait_for_signal();
+
+	if (s.num() && s.context() == &sig_ctx) {
+		PLOG("got exception for child");
+	} else {
+		PERR("got unexpected signal while waiting for child");
+		class Unexpected_signal { };
+		throw Unexpected_signal();
+	}
+}
+
+
+/******************************************************************
+ ** Test for detecting the failure of an immediate child process **
+ ******************************************************************/
 
 class Test_child : public Genode::Child_policy
 {
@@ -40,18 +64,16 @@ class Test_child : public Genode::Child_policy
 				ram.ref_account(env()->ram_session_cap());
 				env()->ram_session()->transfer_quota(ram.cap(), CHILD_QUOTA);
 
-				/*
-				 * Register default exception handler by specifying an invalid
-				 * thread capability.
-				 */
+				/* register default exception handler */
 				cpu.exception_handler(Thread_capability(), sigh);
+
+				/* register handler for unresolvable page faults */
+				rm.fault_handler(sigh);
 			}
 		} _resources;
 
 		Genode::Rom_connection _elf;
-
-		Genode::Child _child;
-
+		Genode::Child          _child;
 		Genode::Parent_service _log_service;
 
 	public:
@@ -92,11 +114,11 @@ class Test_child : public Genode::Child_policy
 };
 
 
-int main(int argc, char **argv)
+void failsafe_child_test()
 {
 	using namespace Genode;
 
-	printf("--- failsafe test started ---\n");
+	printf("-- exercise failure detection of immediate child --\n");
 
 	/*
 	 * Entry point used for serving the parent interface
@@ -106,27 +128,26 @@ int main(int argc, char **argv)
 	Rpc_entrypoint ep(&cap, STACK_SIZE, "child");
 
 	/*
-	 * Signal receiver of CPU-session exception signals
+	 * Signal receiver and signal context for signals originating from the
+	 * children's CPU-session and RM session.
 	 */
-	static Signal_receiver sig_rec;
+	Signal_receiver sig_rec;
+	Signal_context  sig_ctx;
 
+	/*
+	 * Iteratively start a faulting program and detect the faults
+	 */
 	for (int i = 0; i < 5; i++) {
 
 		PLOG("create child %d", i);
 
-		Signal_context sig_ctx;
-		Signal_context_capability exception_sigh = sig_rec.manage(&sig_ctx);
+		/* create and start child process */
+		Test_child child(ep, "test-segfault", sig_rec.manage(&sig_ctx));
 
-		Test_child child(ep, "test-segfault", exception_sigh);
+		PLOG("wait_for_signal");
 
-		Signal s = sig_rec.wait_for_signal();
 
-		if (s.num() && s.context() == &sig_ctx) {
-			PLOG("got exception for child %d", i);
-		} else {
-			PERR("got unexpected signal while waiting for child %d", i);
-			return -2;
-		}
+		wait_for_signal_for_context(sig_rec, sig_ctx);
 
 		sig_rec.dissolve(&sig_ctx);
 
@@ -136,6 +157,130 @@ int main(int argc, char **argv)
 		 * beginning of the next iteration.
 		 */
 	}
+
+	printf("\n");
+}
+
+
+/******************************************************************
+ ** Test for detecting failures in a child started by the loader **
+ ******************************************************************/
+
+void failsafe_loader_child_test()
+{
+	using namespace Genode;
+
+	printf("-- exercise failure detection of loaded child --\n");
+
+	/*
+	 * Signal receiver and signal context for receiving faults originating from
+	 * the loader subsystem.
+	 */
+	static Signal_receiver sig_rec;
+	Signal_context sig_ctx;
+
+	for (int i = 0; i < 5; i++) {
+
+		PLOG("create loader session %d", i);
+
+		Loader::Connection loader(1024*1024);
+
+		/* register fault handler at loader session */
+		loader.fault_sigh(sig_rec.manage(&sig_ctx));
+
+		/* start subsystem */
+		loader.start("test-segfault");
+
+		wait_for_signal_for_context(sig_rec, sig_ctx);
+
+		sig_rec.dissolve(&sig_ctx);
+	}
+
+	printf("\n");
+}
+
+
+/***********************************************************************
+ ** Test for detecting failures in a grandchild started by the loader **
+ ***********************************************************************/
+
+void failsafe_loader_grand_child_test()
+{
+	using namespace Genode;
+
+	printf("-- exercise failure detection of loaded grand child --\n");
+
+	/*
+	 * Signal receiver and signal context for receiving faults originating from
+	 * the loader subsystem.
+	 */
+	static Signal_receiver sig_rec;
+	Signal_context sig_ctx;
+
+	for (int i = 0; i < 5; i++) {
+
+		PLOG("create loader session %d", i);
+
+		Loader::Connection loader(2024*1024);
+
+		/*
+		 * Install init config for subsystem into the loader session
+		 */
+		char const *config =
+			"<config>\n"
+			"  <parent-provides>\n"
+			"    <service name=\"ROM\"/>\n"
+			"    <service name=\"LOG\"/>\n"
+			"  </parent-provides>\n"
+			"  <default-route>\n"
+			"    <any-service> <parent/> <any-child/> </any-service>\n"
+			"  </default-route>\n"
+			"  <start name=\"test-segfault\">\n"
+			"    <resource name=\"RAM\" quantum=\"10M\"/>\n"
+			"  </start>\n"
+			"</config>";
+
+		size_t config_size = strlen(config);
+
+		Dataspace_capability config_ds =
+			loader.alloc_rom_module("config", config_size);
+
+		char *config_ds_addr = env()->rm_session()->attach(config_ds);
+		memcpy(config_ds_addr, config, config_size);
+		env()->rm_session()->detach(config_ds_addr);
+
+		loader.commit_rom_module("config");
+
+		/* register fault handler at loader session */
+		loader.fault_sigh(sig_rec.manage(&sig_ctx));
+
+		/* start subsystem */
+		loader.start("init", "init");
+
+		wait_for_signal_for_context(sig_rec, sig_ctx);
+
+		sig_rec.dissolve(&sig_ctx);
+	}
+
+	printf("\n");
+}
+
+
+/******************
+ ** Main program **
+ ******************/
+
+int main(int argc, char **argv)
+{
+	using namespace Genode;
+
+	printf("--- failsafe test started ---\n");
+
+	failsafe_child_test();
+
+	failsafe_loader_child_test();
+
+	failsafe_loader_grand_child_test();
 
 	printf("--- finished failsafe test ---\n");
 	return 0;

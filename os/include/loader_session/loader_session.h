@@ -117,6 +117,20 @@ namespace Loader {
 		virtual void view_ready_sigh(Signal_context_capability sigh) = 0;
 
 		/**
+		 * Register signal handler notified when a failure occurs in the
+		 * loaded subsystem.
+		 *
+		 * This signal is delivered if any child process of the subsystem
+		 * produces an unresolvable page fault, exists, or triggers a CPU
+		 * exception. (e.g., division by zero) For more information about
+		 * the possible types of faults, please refer to the documentation of
+		 * 'Rm_session::fault_handler' and 'Cpu_session::exception_handler'.
+		 *
+		 * This function should not be called after the 'start' function.
+		 */
+		virtual void fault_sigh(Signal_context_capability sigh) = 0;
+
+		/**
 		 * Start subsystem
 		 *
 		 * \throw Rom_module_does_not_exist  if the specified binary could
@@ -152,6 +166,7 @@ namespace Loader {
 		GENODE_RPC(Rpc_ram_quota, void, ram_quota, size_t);
 		GENODE_RPC(Rpc_constrain_geometry, void, constrain_geometry, int, int);
 		GENODE_RPC(Rpc_view_ready_sigh, void, view_ready_sigh, Signal_context_capability);
+		GENODE_RPC(Rpc_fault_sigh, void, fault_sigh, Signal_context_capability);
 		GENODE_RPC_THROW(Rpc_start, void, start,
 		                 GENODE_TYPE_LIST(Rom_module_does_not_exist),
 		                 Name const &, Name const &, Native_pd_args const &);
@@ -161,8 +176,8 @@ namespace Loader {
 
 		GENODE_RPC_INTERFACE(Rpc_alloc_rom_module, Rpc_commit_rom_module,
 		                     Rpc_ram_quota, Rpc_constrain_geometry,
-		                     Rpc_view_ready_sigh, Rpc_start, Rpc_view,
-		                     Rpc_view_geometry);
+		                     Rpc_view_ready_sigh, Rpc_fault_sigh, Rpc_start,
+		                     Rpc_view, Rpc_view_geometry);
 	};
 }
 

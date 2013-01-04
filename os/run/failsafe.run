@@ -8,7 +8,7 @@
 # Build
 #
 
-build { core init test/failsafe test/segfault }
+build { core init server/loader test/failsafe test/segfault }
 
 create_boot_directory
 
@@ -31,6 +31,10 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+		<start name="loader">
+			<resource name="RAM" quantum="10M"/>
+			<provides> <service name="Loader"/> </provides>
+		</start>
 		<start name="test-failsafe">
 			<resource name="RAM" quantum="10M"/>
 		</start>
@@ -42,7 +46,7 @@ install_config {
 #
 
 # generic modules
-set boot_modules { core init test-failsafe test-segfault }
+set boot_modules { core init loader test-failsafe test-segfault }
 
 build_boot_image $boot_modules
 
@@ -50,5 +54,7 @@ build_boot_image $boot_modules
 # Execute test case
 #
 
-run_genode_until "--- finished failsafe test ---.*\n" 10
+append qemu_args "-nographic -m 64"
+
+run_genode_until "--- finished failsafe test ---.*\n" 30
 
