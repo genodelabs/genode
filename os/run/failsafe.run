@@ -4,6 +4,11 @@
 # \date   2012-11-01
 #
 
+if {[have_spec pistachio]} {
+	puts "Pistachio is unsupported (see https://github.com/genodelabs/genode/issues/16)"
+	exit 0
+}
+
 #
 # Build
 #

@@ -16,3 +16,4 @@ lx_hybrid_exception
 lx_hybrid_pthread_ipc
 moon
 thread_join
+failsafe
