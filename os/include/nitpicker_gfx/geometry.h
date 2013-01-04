@@ -27,8 +27,8 @@ class Point
 		Point(int x, int y): _x(x), _y(y) { }
 		Point(): _x(0), _y(0) { }
 
-		int x() { return _x; }
-		int y() { return _y; }
+		int x() const { return _x; }
+		int y() const { return _y; }
 
 		/**
 		 * Operator for adding points
@@ -58,12 +58,12 @@ class Area
 		Area(int w, int h): _w(w), _h(h) { }
 		Area(): _w(0), _h(0) { }
 
-		int w() { return _w; }
-		int h() { return _h; }
+		int w() const { return _w; }
+		int h() const { return _h; }
 
-		bool valid() { return _w > 0 && _h > 0; }
+		bool valid() const { return _w > 0 && _h > 0; }
 
-		int num_pixels() { return _w*_h; }
+		int num_pixels() const { return _w*_h; }
 };
 
 
@@ -98,25 +98,25 @@ class Rect
 		/**
 		 * Accessors
 		 */
-		int   x1()   { return _p1.x(); }
-		int   y1()   { return _p1.y(); }
-		int   x2()   { return _p2.x(); }
-		int   y2()   { return _p2.y(); }
-		int   w()    { return _p2.x() - _p1.x() + 1; }
-		int   h()    { return _p2.y() - _p1.y() + 1; }
-		Point p1()   { return _p1; }
-		Point p2()   { return _p2; }
-		Area  area() { return Area(w(), h()); }
+		int   x1()   const { return _p1.x(); }
+		int   y1()   const { return _p1.y(); }
+		int   x2()   const { return _p2.x(); }
+		int   y2()   const { return _p2.y(); }
+		int   w()    const { return _p2.x() - _p1.x() + 1; }
+		int   h()    const { return _p2.y() - _p1.y() + 1; }
+		Point p1()   const { return _p1; }
+		Point p2()   const { return _p2; }
+		Area  area() const { return Area(w(), h()); }
 
 		/**
 		 * Return true if rectangle area is greater than zero
 		 */
-		bool valid() { return _p1.x() <= _p2.x() && _p1.y() <= _p2.y(); }
+		bool valid() const { return _p1.x() <= _p2.x() && _p1.y() <= _p2.y(); }
 
 		/**
 		 * Return true if area fits in rectangle
 		 */
-		bool fits(Area area) { return w() >= area.w() && h() >= area.h(); }
+		bool fits(Area area) const { return w() >= area.w() && h() >= area.h(); }
 
 		/**
 		 * Create new rectangle by intersecting two rectangles
