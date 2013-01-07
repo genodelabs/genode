@@ -100,11 +100,6 @@ namespace Genode {
 				long stack[];
 
 				/**
-				 * Pointer to corresponding 'Thread_base' object
-				 */
-				Thread_base *thread_base;
-
-				/**
 				 * Virtual address of the start of the stack
 				 *
 				 * This address is pointing to the begin of the dataspace used
@@ -112,6 +107,11 @@ namespace Genode {
 				 * managed by the kernel).
 				 */
 				addr_t stack_base;
+
+				/**
+				 * Pointer to corresponding 'Thread_base' object
+				 */
+				Thread_base *thread_base;
 
 				/**
 				 * Dataspace containing the backing store for the thread context
