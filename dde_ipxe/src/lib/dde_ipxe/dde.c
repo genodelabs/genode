@@ -27,8 +27,20 @@
 #include <ipxe/pci.h>
 #include <ipxe/settings.h>
 #include <ipxe/netdevice.h>
+#include <ipxe/timer2.h>
 
 #include "local.h"
+
+
+/***********************************
+ ** Wrapper to DDE support in C++ **
+ ***********************************/
+
+#include "dde_support.h"
+
+void *alloc_memblock(size_t size, size_t align, size_t offset) { return dde_alloc_memblock(size, align, offset); }
+void free_memblock(void *p, size_t size)                       { dde_free_memblock(p, size); }
+void timer2_udelay(unsigned long usecs)                        { dde_timer2_udelay(usecs); }
 
 /**********************************
  ** Memory pool in DDE kit slabs **

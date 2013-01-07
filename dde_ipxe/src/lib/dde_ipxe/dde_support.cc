@@ -20,6 +20,7 @@
 
 extern "C" {
 #include <dde_kit/pgtab.h>
+#include "dde_support.h"
 }
 
 using namespace Genode;
@@ -56,18 +57,19 @@ void __attribute__((constructor)) init()
 }
 
 
-extern "C" void *alloc_memblock(size_t size, size_t align)
+extern "C" void *dde_alloc_memblock(dde_kit_size_t size, dde_kit_size_t align, dde_kit_size_t offset)
 {
 	void *ptr;
 	if (allocator()->alloc_aligned(size, &ptr, log2(align)).is_error()) {
-		PERR("memory allocation failed in alloc_memblock");
+		PERR("memory allocation failed in alloc_memblock (size=%zd, align=%zx, offset=%zx)",
+		     size, align, offset);
 		return 0;
 	};
 	return ptr;
 }
 
 
-extern "C" void free_memblock(void *p, size_t size)
+extern "C" void dde_free_memblock(void *p, dde_kit_size_t size)
 {
 	allocator()->free(p, size);
 }
@@ -77,7 +79,7 @@ extern "C" void free_memblock(void *p, size_t size)
  ** Timer **
  ***********/
 
-extern "C" void timer2_udelay(unsigned long usecs)
+extern "C" void dde_timer2_udelay(unsigned long usecs)
 {
 	/*
 	 * This function is called only once during rdtsc calibration (usecs will be
