@@ -40,12 +40,13 @@ Signal_session_component::Signal_session_component(Rpc_entrypoint *source_ep,
 
 Signal_session_component::~Signal_session_component()
 {
+	/* remove _signal_source from entrypoint */
+	_source_ep->dissolve(&_source);
+
 	/* free all signal contexts */
 	while (Signal_context_component *r = _contexts_slab.first_object())
 		free_context(r->cap());
 
-	/* remove _signal_source from entrypoint */
-	_source_ep->dissolve(&_source);
 }
 
 
@@ -98,4 +99,9 @@ void Signal_session_component::submit(Signal_context_capability context_cap,
 	}
 
 	context->source()->submit(context, _ipc_ostream, cnt);
+}
+
+Signal_context_component::~Signal_context_component() {
+	if (is_enqueued() && _source)
+		_source->release(this);
 }

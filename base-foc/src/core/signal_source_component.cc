@@ -32,6 +32,12 @@ using namespace Genode;
  ** Signal-source component **
  *****************************/
 
+void Signal_source_component::release(Signal_context_component *context)
+{
+	if (context && context->is_enqueued())
+		_signal_queue.remove(context);
+}
+
 void Signal_source_component::submit(Signal_context_component *context,
                                      Ipc_ostream              *ostream,
                                      int                       cnt)

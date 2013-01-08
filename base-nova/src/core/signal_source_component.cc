@@ -30,6 +30,12 @@ using namespace Genode;
  ** Signal-source component **
  *****************************/
 
+void Signal_source_component::release(Signal_context_component *context)
+{
+	if (context && context->is_enqueued())
+		_signal_queue.remove(context);
+}
+
 void Signal_source_component::submit(Signal_context_component *context,
                                      Ipc_ostream              *ostream,
                                      int                       cnt)
@@ -41,8 +47,7 @@ void Signal_source_component::submit(Signal_context_component *context,
 		_signal_queue.enqueue(context);
 
 		/* wake up client */
-		Nova::sm_ctrl(_blocking_semaphore.local_name(),
-		              Nova::SEMAPHORE_UP);
+		Nova::sm_ctrl(_blocking_semaphore.local_name(), Nova::SEMAPHORE_UP);
 	}
 }
 
@@ -67,8 +72,7 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 {
 	/* initialized blocking semaphore */
 	addr_t sem_sel = cap_selector_allocator()->alloc();
-	uint8_t ret = Nova::create_sm(sem_sel,
-	                              Platform_pd::pd_core_sel(), 0);
+	uint8_t ret = Nova::create_sm(sem_sel, Platform_pd::pd_core_sel(), 0);
 	if (ret)
 		PERR("create_sm returned %u", ret);
 
