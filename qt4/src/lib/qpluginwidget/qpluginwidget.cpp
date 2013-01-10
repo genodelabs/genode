@@ -26,29 +26,29 @@ using namespace Genode;
 const char *config = " \
 <config> \
     <parent-provides> \
-		<service name=\"CAP\"/> \
-		<service name=\"CPU\"/> \
-	    <service name=\"LOG\"/> \
-		<service name=\"PD\"/> \
-		<service name=\"RAM\"/> \
-		<service name=\"RM\"/> \
-		<service name=\"ROM\"/> \
-		<service name=\"Timer\"/> \
-		<service name=\"Nitpicker\"/> \
+        <service name=\"CAP\"/> \
+        <service name=\"CPU\"/> \
+        <service name=\"LOG\"/> \
+        <service name=\"PD\"/> \
+        <service name=\"RAM\"/> \
+        <service name=\"RM\"/> \
+        <service name=\"ROM\"/> \
+        <service name=\"Timer\"/> \
+        <service name=\"Nitpicker\"/> \
     </parent-provides> \
     <default-route> \
         <any-service> <parent/> <any-child/> </any-service> \
     </default-route> \
-	<start name=\"tar_rom\"> \
-	    <resource name=\"RAM\" quantum=\"1M\"/> \
-		<provides> <service name=\"ROM\"/> </provides> \
-		<config> \
-		    <archive name=\"plugin.tar\"/> \
-		</config> \
-	</start> \
-	<start name=\"init\"> \
+    <start name=\"tar_rom\"> \
+        <resource name=\"RAM\" quantum=\"1M\"/> \
+        <provides> <service name=\"ROM\"/> </provides> \
+        <config> \
+            <archive name=\"plugin.tar\"/> \
+        </config> \
+    </start> \
+    <start name=\"init\"> \
         <resource name=\"RAM\" quantum=\"2G\"/> \
-		<configfile name=\"config.plugin\"/> \
+        <configfile name=\"config.plugin\"/> \
         <route> \
             <service name=\"ROM\"> \
                 <if-arg key=\"filename\" value=\"config.plugin\" /> \
@@ -95,7 +95,6 @@ PluginStarter::PluginStarter(QUrl plugin_url, QString &args,
   _qnam(0),
   _reply(0)
 {
-
 }
 
 
@@ -380,11 +379,11 @@ void QPluginWidget::pluginStartFinished()
 		vc = new Nitpicker::View_client(view);
 
 		setFixedSize((_max_width > -1) ? qMin(orig_w, _max_width) : orig_w,
-					 (_max_height > -1) ? qMin(orig_h, _max_height) : orig_h);
+		             (_max_height > -1) ? qMin(orig_h, _max_height) : orig_h);
 	} else {
 		_plugin_loading_error_string = _plugin_starter->plugin_loading_error_string();
 		setFixedSize((_max_width > -1) ? _max_width : 100,
-					 (_max_height > -1) ? _max_height : 100);
+		             (_max_height > -1) ? _max_height : 100);
 		cleanup();
 	}
 
