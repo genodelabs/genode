@@ -19,7 +19,7 @@ extern "C" {
 #include <base/sleep.h>
 #include <root/component.h>
 #include <cap_session/connection.h>
-#include <audio_session/rpc_object.h>
+#include <audio_out_session/rpc_object.h>
 #include <util/misc_math.h>
 
 #include <audio.h>

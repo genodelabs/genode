@@ -17,7 +17,7 @@
 #include <base/allocator_avl.h>
 #include <base/printf.h>
 #include <base/thread.h>
-#include <audio_session/connection.h>
+#include <audio_out_session/connection.h>
 #include <os/config.h>
 
 

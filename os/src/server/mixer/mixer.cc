@@ -19,8 +19,8 @@
 #include <base/env.h>
 #include <base/sleep.h>
 
-#include <audio_session/rpc_object.h>
-#include <audio_session/connection.h>
+#include <audio_out_session/rpc_object.h>
+#include <audio_out_session/connection.h>
 #include <cap_session/connection.h>
 #include <root/component.h>
 #include <timer_session/connection.h>

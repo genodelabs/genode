@@ -15,7 +15,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <audio_session/connection.h>
+#include <audio_out_session/connection.h>
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <rom_session/connection.h>
