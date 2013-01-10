@@ -290,13 +290,13 @@ void Rm_faulter::fault(Rm_session_component *faulting_rm_session,
 }
 
 
-void Rm_faulter::dissolve_from_faulting_rm_session()
+void Rm_faulter::dissolve_from_faulting_rm_session(Rm_session_component * caller)
 {
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
 	if (_faulting_rm_session)
-		_faulting_rm_session->discard_faulter(this);
+		_faulting_rm_session->discard_faulter(this, _faulting_rm_session != caller);
 
 	_faulting_rm_session = 0;
 }
@@ -588,6 +588,39 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 }
 
 
+void Rm_session_component::remove_client(Pager_capability pager_cap)
+{
+
+	Rm_client * cl = dynamic_cast<Rm_client *>(_pager_ep->lookup_and_lock(pager_cap));
+	if (!cl) return;
+
+	/*
+	 * Rm_client is derived from Pager_object. If the Pager_object is also
+	 * derived from Thread_base then the Rm_client object must be
+	 * destructed without holding the rm_session_object lock. The native
+	 * platform specific Thread_base implementation has to take care that
+	 * all in-flight page handling requests are finished before
+	 * destruction. (Either by waiting until the end of or by
+	 * <deadlock free> cancellation of the last in-flight request.
+	 * This operation can also require taking the rm_session_object lock.
+	 */
+	{
+		Lock::Guard lock_guard(_lock);
+		_clients.remove(cl);
+	}
+
+	/* call platform specific dissolve routines */
+	_pager_ep->dissolve(cl);
+
+	{
+		Lock::Guard lock_guard(_lock);
+		cl->dissolve_from_faulting_rm_session(this);
+	}
+
+	destroy(&_client_slab, cl);
+}
+
+
 bool Rm_session_component::reverse_lookup(addr_t                dst_base,
                                           Fault_area           *dst_fault_area,
                                           Dataspace_component **src_dataspace,
@@ -650,7 +683,7 @@ void Rm_session_component::fault(Rm_faulter *faulter, addr_t pf_addr,
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
-	/* remeber fault state in faulting thread */
+	/* remember fault state in faulting thread */
 	faulter->fault(this, Rm_session::State(pf_type, pf_addr));
 
 	/* enqueue faulter */
@@ -661,12 +694,13 @@ void Rm_session_component::fault(Rm_faulter *faulter, addr_t pf_addr,
 }
 
 
-void Rm_session_component::discard_faulter(Rm_faulter *faulter)
+void Rm_session_component::discard_faulter(Rm_faulter *faulter, bool do_lock)
 {
-	/* serialize access */
-	Lock::Guard lock_guard(_lock);
-
-	_faulters.remove(faulter);
+	if (do_lock) {
+		Lock::Guard lock_guard(_lock);
+		_faulters.remove(faulter);
+	} else
+		_faulters.remove(faulter);
 }
 
 
@@ -691,35 +725,6 @@ Rm_session::State Rm_session_component::state()
 	/* return fault information regarding the first faulter of the list */
 	return faulter->fault_state();
 }
-
-
-void Rm_session_component::dissolve(Rm_client *cl)
-{
-	{
-		Lock::Guard lock_guard(_lock);
-		_pager_ep->dissolve(cl);
-		_clients.remove(cl);
-	}
-
-	/*
-	 * Rm_client is derived from Pager_object. If the Pager_object is also
-	 * derived from Thread_base then the Rm_client object must be
-	 * destructed without holding the rm_session_object lock. The native
-	 * platform specific Thread_base implementation has to take care that
-	 * all in-flight page handling requests are finished before
-	 * destruction. (Either by waiting until the end of or by
-	 * <deadlock free> cancellation of the last in-flight request.
-	 * This operation can also require taking the rm_session_object lock.
-	 *
-	 * Since _client_slab insertion/deletion also must be performed
-	 * synchronized but can't be protected by the rm_session_object lock
-	 * because of the described potential dead_lock situation, we have
-	 * to use a synchronized allocator object to perform insertion and 
-	 * deletion of Rm_clients.
-	 */
-	destroy(&_client_slab, cl);
-}
-
 
 static Dataspace_capability _type_deduction_helper(Dataspace_capability cap) {
 	return cap; }
@@ -746,20 +751,48 @@ Rm_session_component::Rm_session_component(Rpc_entrypoint   *ds_ep,
 
 Rm_session_component::~Rm_session_component()
 {
-	_lock.lock();
+	/* dissolve all clients from pager entrypoint */
+	Rm_client *cl;
+	do {
+		{
+			Lock::Guard lock_guard(_lock);
+			cl = _clients.first();
+			if (!cl) break;
+
+			_clients.remove(cl);
+		}
+
+		/* call platform specific dissolve routines */
+		_pager_ep->dissolve(cl);
+	} while (cl);
+
+	/* detach all regions */
+	Rm_region_ref *ref;
+	do {
+		void * local_addr;
+		{
+			Lock::Guard lock_guard(_lock);
+			ref = _ref_slab.first_object();
+			if (!ref) break;
+			local_addr = reinterpret_cast<void *>(ref->region()->base());
+		}
+		detach(local_addr);
+	} while (ref);
 
 	/* revoke dataspace representation */
 	_ds_ep->dissolve(&_ds);
 
-	/* remove all faulters with pending page faults at this rm session */
-	while (Rm_faulter *faulter = _faulters.head()) {
-		_lock.unlock();
-		faulter->dissolve_from_faulting_rm_session();
-		_lock.lock();
-	}
+	/* serialize access */
+	_lock.lock();
 
-	/* remove all clients */
+	/* remove all faulters with pending page faults at this rm session */
+	while (Rm_faulter *faulter = _faulters.head())
+		faulter->dissolve_from_faulting_rm_session(this);
+
+	/* remove all clients, invalidate rm_client pointers in cpu_thread objects */
 	while (Rm_client *cl = _client_slab.raw()->first_object()) {
+		cl->dissolve_from_faulting_rm_session(this);
+
 		Thread_capability thread_cap = cl->thread_cap();
 		if (thread_cap.valid())
 			/* invalidate thread cap in rm_client object */
@@ -767,24 +800,16 @@ Rm_session_component::~Rm_session_component()
 
 		_lock.unlock();
 
-		cl->dissolve_from_faulting_rm_session();
-		this->dissolve(cl);
-
 		{
 			/* lookup thread and reset pager pointer */
 			Object_pool<Cpu_thread_component>::Guard
 				cpu_thread(_thread_ep->lookup_and_lock(thread_cap));
-			if (cpu_thread)
+			if (cpu_thread && (cpu_thread->platform_thread()->pager() == cl))
 				cpu_thread->platform_thread()->pager(0);
 		}
 
-		_lock.lock();
-	}
+		destroy(&_client_slab, cl);
 
-	/* detach all regions */
-	while (Rm_region_ref *r = _ref_slab.first_object()) {
-		_lock.unlock();
-		detach((void *)r->region()->base());
 		_lock.lock();
 	}
 

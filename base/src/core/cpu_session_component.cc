@@ -35,11 +35,9 @@ void Cpu_thread_component::update_exception_sigh()
 Thread_capability Cpu_session_component::create_thread(Name const &name,
                                                        addr_t utcb)
 {
-	Lock::Guard thread_list_lock_guard(_thread_list_lock);
-	Lock::Guard slab_lock_guard(_thread_alloc_lock);
-
 	Cpu_thread_component *thread = 0;
 	try {
+		Lock::Guard slab_lock_guard(_thread_alloc_lock);
 		thread = new(&_thread_alloc) Cpu_thread_component(name.string(),
 		                                                  _priority, utcb,
 		                                                  _default_exception_handler);
@@ -47,35 +45,30 @@ Thread_capability Cpu_session_component::create_thread(Name const &name,
 		throw Out_of_metadata();
 	}
 
+	Lock::Guard thread_list_lock_guard(_thread_list_lock);
 	_thread_list.insert(thread);
+
 	return _thread_ep->manage(thread);
 }
 
 
 void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *thread)
 {
-	Lock::Guard lock_guard(_thread_alloc_lock);
-
 	_thread_ep->dissolve(thread);
 	_thread_list.remove(thread);
 
-	/* If the thread is associated with a rm_session dissolve it */
-	Rm_client *rc = dynamic_cast<Rm_client*>(thread->platform_thread()->pager());
-	if (rc)
-		rc->member_rm_session()->dissolve(rc);
-
+	Lock::Guard lock_guard(_thread_alloc_lock);
 	destroy(&_thread_alloc, thread);
 }
 
 
 void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 {
-	Lock::Guard lock_guard(_thread_list_lock);
-
 	Cpu_thread_component * thread =
 		dynamic_cast<Cpu_thread_component *>(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
+	Lock::Guard lock_guard(_thread_list_lock);
 	_unsynchronized_kill_thread(thread);
 }
 
