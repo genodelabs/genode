@@ -154,16 +154,18 @@ codezero_vpb926::
 	@echo "SPECS += codezero_platform_vpb926" > $(BUILD_DIR)/etc/specs.conf
 
 foc_x86_32::
-	@echo "SPECS = genode foc_x86_32" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS  = genode foc_x86_32" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += acpi"             >> $(BUILD_DIR)/etc/specs.conf
 
 foc_x86_64::
 	@echo "SPECS = genode foc_x86_64" > $(BUILD_DIR)/etc/specs.conf
 
 nova_x86_32::
-	@echo "SPECS = genode nova_x86_32 x86_32" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS  = genode nova_x86_32" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS += acpi"              >> $(BUILD_DIR)/etc/specs.conf
 
 nova_x86_64::
-	@echo "SPECS = genode nova_x86_64 x86_64" > $(BUILD_DIR)/etc/specs.conf
+	@echo "SPECS = genode nova_x86_64" > $(BUILD_DIR)/etc/specs.conf
 
 foc_pbxa9::
 	@echo "SPECS = genode foc_pbxa9" > $(BUILD_DIR)/etc/specs.conf
