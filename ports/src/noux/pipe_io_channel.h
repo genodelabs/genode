@@ -207,7 +207,7 @@ namespace Noux {
 	};
 
 
-	class Pipe_sink_io_channel : public Io_channel, public Signal_dispatcher
+	class Pipe_sink_io_channel : public Io_channel, public Signal_dispatcher_base
 	{
 		private:
 
@@ -258,21 +258,21 @@ namespace Noux {
 				return true;
 			}
 
-			/*********************************
-			 ** Signal_dispatcher interface **
-			 *********************************/
+			/**************************************
+			 ** Signal_dispatcher_base interface **
+			 **************************************/
 
 			/**
 			 * Called by Noux main loop on the occurrence of new STDIN input
 			 */
-			void dispatch()
+			void dispatch(unsigned)
 			{
 				Io_channel::invoke_all_notifiers();
 			}
 	};
 
 
-	class Pipe_source_io_channel : public Io_channel, public Signal_dispatcher
+	class Pipe_source_io_channel : public Io_channel, public Signal_dispatcher_base
 	{
 		private:
 
@@ -320,14 +320,14 @@ namespace Noux {
 				return true;
 			}
 
-			/*********************************
-			 ** Signal_dispatcher interface **
-			 *********************************/
+			/**************************************
+			 ** Signal_dispatcher_base interface **
+			 **************************************/
 
 			/**
 			 * Called by Noux main loop on the occurrence of new STDIN input
 			 */
-			void dispatch()
+			void dispatch(unsigned)
 			{
 				Io_channel::invoke_all_notifiers();
 			}

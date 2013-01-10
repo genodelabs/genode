@@ -25,7 +25,7 @@
 
 namespace Noux {
 
-	struct Terminal_io_channel : Io_channel, Signal_dispatcher
+	struct Terminal_io_channel : Io_channel, Signal_dispatcher_base
 	{
 		Terminal::Session &terminal;
 		Signal_receiver   &sig_rec;
@@ -185,14 +185,14 @@ namespace Noux {
 		}
 
 
-		/*********************************
-		 ** Signal_dispatcher interface **
-		 *********************************/
+		/**************************************
+		 ** Signal_dispatcher_base interface **
+		 **************************************/
 
 		/**
 		 * Called by Noux main loop on the occurrence of new STDIN input
 		 */
-		void dispatch()
+		void dispatch(unsigned)
 		{
 			Io_channel::invoke_all_notifiers();
 		}

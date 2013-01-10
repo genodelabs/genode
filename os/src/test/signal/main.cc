@@ -133,7 +133,7 @@ class Handler : Thread<4096>
 					Signal signal = _receiver->wait_for_signal();
 
 					if (_verbose)
-						printf("handler %d got %d signal%s with context %p\n",
+						printf("handler %d got %u signal%s with context %p\n",
 						       _id,
 						       signal.num(),
 						       signal.num() == 1 ? "" : "s",
@@ -191,12 +191,12 @@ class Handler : Thread<4096>
 		/**
 		 * Return total number of received notifications
 		 */
-		unsigned receive_cnt() { return _receive_cnt; }
+		unsigned receive_cnt() const { return _receive_cnt; }
 
 		/**
 		 * Return total number of signal-handler activations
 		 */
-		unsigned activation_cnt() { return _activation_cnt; }
+		unsigned activation_cnt() const { return _activation_cnt; }
 };
 
 
@@ -242,7 +242,7 @@ class Id_signal_context : public Signal_context
 
 		Id_signal_context(int id) : _id(id) { }
 
-		int id() { return _id; }
+		int id() const { return _id; }
 };
 
 

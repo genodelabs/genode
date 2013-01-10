@@ -17,40 +17,6 @@
 
 #include "signal.h"
 
-template <typename T>
-class Signal_dispatcher : public Driver_context,
-                          public Genode::Signal_context_capability
-{
-	private:
-
-		T &obj;
-		void (T::*member) ();
-		Genode::Signal_receiver *sig_rec;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param sig_rec     signal receiver to associate the signal
-		 *                    handler with
-		 * \param obj,member  object and member function to call when
-		 *                    the signal occurs
-		 */
-		Signal_dispatcher(Genode::Signal_receiver *sig_rec,
-		                  T &obj, void (T::*member)())
-		:
-			Genode::Signal_context_capability(sig_rec->manage(this)),
-			obj(obj), member(member),
-			sig_rec(sig_rec)
-		{ }
-
-		~Signal_dispatcher() { sig_rec->dissolve(this); }
-
-		void handle() { (obj.*member)(); }
-		char const *debug() { return "Signal_dispatcher"; }
-};
-
 
 /**
  * Session components that overrides signal handlers
@@ -60,11 +26,11 @@ class Packet_session_component : public RPC
 {
 	private:
 
-		Signal_dispatcher<Packet_session_component> _process_packet_dispatcher;
+		Genode::Signal_dispatcher<Packet_session_component> _process_packet_dispatcher;
 
 	protected:
 
-		virtual void _process_packets() = 0;
+		virtual void _process_packets(unsigned) = 0;
 
 	public:
 
@@ -73,7 +39,7 @@ class Packet_session_component : public RPC
 		                         Genode::Signal_receiver      *sig_rec)
 		:
 			RPC(tx_ds, ep),
-			_process_packet_dispatcher(sig_rec, *this,
+			_process_packet_dispatcher(*sig_rec, *this,
 			                           &Packet_session_component::_process_packets)
 		{ 
 			/*
@@ -91,7 +57,7 @@ class Packet_session_component : public RPC
 		                         Genode::Signal_receiver      *sig_rec)
 		:
 			RPC(tx_ds, rx_ds, rx_buffer_alloc, ep),
-			_process_packet_dispatcher(sig_rec, *this,
+			_process_packet_dispatcher(*sig_rec, *this,
 			                           &Packet_session_component::_process_packets)
 		{ 
 			/*

@@ -52,7 +52,7 @@ namespace Genode {
 			friend class Signal_context;
 
 			Signal_context *_context;
-			int             _num;
+			unsigned        _num;
 
 			/**
 			 * Constructor
@@ -63,7 +63,7 @@ namespace Genode {
 			 *
 			 * Signal objects are constructed only by signal receivers.
 			 */
-			Signal(Signal_context *context, int num)
+			Signal(Signal_context *context, unsigned num)
 			: _context(context), _num(num)
 			{ }
 
@@ -82,7 +82,7 @@ namespace Genode {
 			/**
 			 * Return number of signals received from the same transmitter
 			 */
-			int num() { return _num; }
+			unsigned num() const { return _num; }
 	};
 
 	/**
@@ -191,7 +191,7 @@ namespace Genode {
 			 *
 			 * \param cnt  number of signals to submit at once
 			 */
-			void submit(int cnt = 1);
+			void submit(unsigned cnt = 1);
 	};
 
 
@@ -281,6 +281,61 @@ namespace Genode {
 			 * purposes.
 			 */
 			static void dispatch_signals(Signal_source *signal_source);
+	};
+
+
+	/**
+	 * Abstract interface to be implemented by signal dispatchers
+	 */
+	struct Signal_dispatcher_base : Signal_context
+	{
+		virtual void dispatch(unsigned num) = 0;
+	};
+
+
+	/**
+	 * Adapter for directing signals to member functions
+	 *
+	 * This utility associates member functions with signals. It is intended to
+	 * be used as a member variable of the class that handles incoming signals
+	 * of a certain type. The constructor takes a pointer-to-member to the
+	 * signal handling function as argument. If a signal is received at the
+	 * common signal reception code, this function will be invoked by calling
+	 * 'Signal_dispatcher_base::dispatch'.
+	 *
+	 * \param T  type of signal-handling class
+	 */
+	template <typename T>
+	class Signal_dispatcher : private Signal_dispatcher_base,
+	                          public  Signal_context_capability
+	{
+		private:
+
+			T &obj;
+			void (T::*member) (unsigned);
+			Signal_receiver &sig_rec;
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * \param sig_rec     signal receiver to associate the signal
+			 *                    handler with
+			 * \param obj,member  object and member function to call when
+			 *                    the signal occurs
+			 */
+			Signal_dispatcher(Signal_receiver &sig_rec,
+			                  T &obj, void (T::*member)(unsigned))
+			:
+				Signal_context_capability(sig_rec.manage(this)),
+				obj(obj), member(member),
+				sig_rec(sig_rec)
+			{ }
+
+			~Signal_dispatcher() { sig_rec.dissolve(this); }
+
+			void dispatch(unsigned num) { (obj.*member)(num); }
 	};
 }
 

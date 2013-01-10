@@ -128,7 +128,7 @@ namespace Nic {
 
 		protected:
 
-			void _process_packets()
+			void _process_packets(unsigned)
 			{
 				static sk_buff work_skb; /* dummy skb for fixup calls */
 				static Counter counter("TX");

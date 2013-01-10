@@ -55,7 +55,7 @@ class Pager : public Thread<8192>
 			while (true) {
 				Signal signal = _receiver.wait_for_signal();
 
-				for (int i = 0; i < signal.num(); i++)
+				for (unsigned i = 0; i < signal.num(); i++)
 					handle_fault();
 			}
 		}

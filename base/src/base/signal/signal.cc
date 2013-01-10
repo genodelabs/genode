@@ -179,7 +179,7 @@ void Signal_transmitter::context(Signal_context_capability context)
 }
 
 
-void Signal_transmitter::submit(int cnt)
+void Signal_transmitter::submit(unsigned cnt)
 {
 	signal_connection()->submit(_context, cnt);
 }
@@ -347,7 +347,7 @@ void Signal_receiver::local_submit(Signal ns)
 	 * counters. In the common case, the current signal is an invalid
 	 * signal with a counter value of zero.
 	 */
-	int num = context->_curr_signal.num() + ns.num();
+	unsigned num = context->_curr_signal.num() + ns.num();
 	context->_curr_signal = Signal(context, num);
 
 	/* wake up the receiver if the context becomes pending */

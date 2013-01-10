@@ -36,53 +36,6 @@ static bool const verbose = false;
 #define PDBGV(...) if (verbose) PDBG(__VA_ARGS__)
 
 
-/*************************************
- ** Helpers for dispatching signals **
- *************************************/
-
-namespace Genode {
-
-	struct Signal_dispatcher_base : Signal_context
-	{
-		virtual void dispatch(int num) = 0;
-	};
-
-
-	template <typename T>
-	class Signal_dispatcher : private Signal_dispatcher_base,
-	                          public  Signal_context_capability
-	{
-		private:
-
-			T &obj;
-			void (T::*member) (int);
-			Signal_receiver &sig_rec;
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param sig_rec     signal receiver to associate the signal
-			 *                    handler with
-			 * \param obj,member  object and member function to call when
-			 *                    the signal occurs
-			 */
-			Signal_dispatcher(Signal_receiver &sig_rec,
-			                  T &obj, void (T::*member)(int))
-			:
-				Signal_context_capability(sig_rec.manage(this)),
-				obj(obj), member(member),
-				sig_rec(sig_rec)
-			{ }
-
-			~Signal_dispatcher() { sig_rec.dissolve(this); }
-
-			void dispatch(int num) { (obj.*member)(num); }
-	};
-}
-
-
 /*************************
  ** File-system service **
  *************************/
@@ -167,7 +120,7 @@ namespace File_system {
 			 * Called by signal dispatcher, executed in the context of the main
 			 * thread (not serialized with the RPC functions)
 			 */
-			void _process_packets(int)
+			void _process_packets(unsigned)
 			{
 				while (tx_sink()->packet_avail()) {
 
@@ -241,7 +194,7 @@ namespace File_system {
 			                 Mode mode, bool create)
 			{
 				PDBGV("_root = %s, dir_name = %s, name = %s, create = %d",
- 				      _root.record()->name(),
+				      _root.record()->name(),
 				      _handle_registry.lookup(dir_handle)->record()->name(),
 				      name.string(),
 				      create);

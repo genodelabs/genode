@@ -51,7 +51,7 @@ namespace Block {
 
 		protected:
 
-			void _process_packets()
+			void _process_packets(unsigned)
 			{
 				while (tx_sink()->packet_avail())
 				{

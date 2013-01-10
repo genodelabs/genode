@@ -31,46 +31,6 @@ static const bool verbose = false;
 static bool audio_out_active = false;
 
 
-/**
- * Packet-stream signal dispatcher
- *
- * TODO: Move to generic code
- */
-template <typename T>
-class Signal_dispatcher : public Driver_context,
-                          public Genode::Signal_context_capability
-{
-	private:
-
-		T &obj;
-		void (T::*member) ();
-		Genode::Signal_receiver *sig_rec;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param sig_rec     signal receiver to associate the signal
-		 *                    handler with
-		 * \param obj,member  object and member function to call when
-		 *                    the signal occurs
-		 */
-		Signal_dispatcher(Genode::Signal_receiver *sig_rec,
-		                  T &obj, void (T::*member)())
-		:
-			Genode::Signal_context_capability(sig_rec->manage(this)),
-			obj(obj), member(member),
-			sig_rec(sig_rec)
-		{ }
-
-		~Signal_dispatcher() { sig_rec->dissolve(this); }
-
-		void handle() { (obj.*member)(); }
-		char const *debug() { return "Signal_dispatcher"; }
-};
-
-
 namespace Audio_out {
 
 	class Session_component;
@@ -94,7 +54,7 @@ namespace Audio_out {
 				return _ds;
 			}
 
-			void _process_packets()
+			void _process_packets(unsigned)
 			{
 				/* handle audio-out packets */
 				Session_component *left  = channel_acquired[LEFT],
@@ -137,7 +97,7 @@ namespace Audio_out {
 		public:
 
 			Session_component(Channel_number channel, size_t buffer_size,
-			                  Rpc_entrypoint &ep, Signal_receiver *sig_rec)
+			                  Rpc_entrypoint &ep, Signal_receiver &sig_rec)
 			: Session_rpc_object(_alloc_dataspace(buffer_size), ep), _channel(channel),
 			  _process_packet_dispatcher(sig_rec, *this,
 			                             &Session_component::_process_packets)
@@ -233,7 +193,7 @@ namespace Audio_out {
 		private:
 
 			Rpc_entrypoint  &_channel_ep;
-			Signal_receiver *_sig_rec;
+			Signal_receiver &_sig_rec;
 
 		protected:
 
@@ -258,8 +218,8 @@ namespace Audio_out {
 
 		public:
 
-			Root(Rpc_entrypoint *session_ep, Allocator *md_alloc, Signal_receiver *sig_rec)
-			: Root_component(session_ep, md_alloc), _channel_ep(*session_ep), _sig_rec(sig_rec)
+			Root(Rpc_entrypoint &session_ep, Allocator *md_alloc, Signal_receiver &sig_rec)
+			: Root_component(&session_ep, md_alloc), _channel_ep(session_ep), _sig_rec(sig_rec)
 			{ }
 	};
 }
@@ -282,7 +242,7 @@ int main()
 	audio_out_active = audio_init() ? false : true;
 
 	if (audio_out_active) {
-		static Audio_out::Root audio_root(&ep, env()->heap(), &recv);
+		static Audio_out::Root audio_root(ep, env()->heap(), recv);
 		env()->parent()->announce(ep.manage(&audio_root));
 	}
 

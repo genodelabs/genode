@@ -897,11 +897,11 @@ int main(int argc, char **argv)
 
 		Genode::Signal signal = sig_rec.wait_for_signal();
 
-		Signal_dispatcher *dispatcher =
-			static_cast<Signal_dispatcher *>(signal.context());
+		Signal_dispatcher_base *dispatcher =
+			static_cast<Signal_dispatcher_base *>(signal.context());
 
-		for (int i = 0; i < signal.num(); i++)
-			dispatcher->dispatch();
+		for (unsigned i = 0; i < signal.num(); i++)
+			dispatcher->dispatch(1);
 	}
 
 	PINF("-- exiting noux ---");

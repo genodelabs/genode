@@ -23,7 +23,6 @@
 /* Noux includes */
 #include <file_descriptor_registry.h>
 #include <dir_file_system.h>
-#include <signal_dispatcher.h>
 #include <noux_session/capability.h>
 #include <args.h>
 #include <environment.h>
@@ -88,7 +87,7 @@ namespace Noux {
 	/**
 	 * Signal context used for child exit
 	 */
-	class Child_exit_dispatcher : public Signal_dispatcher
+	class Child_exit_dispatcher : public Signal_dispatcher_base
 	{
 		private:
 
@@ -98,7 +97,7 @@ namespace Noux {
 
 			Child_exit_dispatcher(Child *child) : _child(child) { }
 
-			void dispatch()
+			void dispatch(unsigned)
 			{
 				if (is_init_process(_child)) {
 					PINF("init process exited");
@@ -121,7 +120,7 @@ namespace Noux {
 	/**
 	 * Signal context used for removing the child after having executed 'execve'
 	 */
-	class Child_execve_cleanup_dispatcher : public Signal_dispatcher
+	class Child_execve_cleanup_dispatcher : public Signal_dispatcher_base
 	{
 		private:
 
@@ -131,7 +130,7 @@ namespace Noux {
 
 			Child_execve_cleanup_dispatcher(Child *child) : _child(child) { }
 
-			void dispatch()
+			void dispatch(unsigned)
 			{
 				destroy(env()->heap(), _child);
 			}
