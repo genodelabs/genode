@@ -195,10 +195,10 @@ append config {
 			<resource name="RAM" quantum="1G"/>
 			<route>
 				<service name="Terminal">
-					<if-arg key="label" value="noux"/><child name="terminal_noux"/>
+					<if-arg key="label" value=""/><child name="terminal_noux"/>
 				</service>
 				<service name="Terminal">
-					<if-arg key="label" value="noux -> noux(terminal_fs)"/><child name="terminal_gdb"/>
+					<if-arg key="label" value="noux(terminal_fs)"/><child name="terminal_gdb"/>
 				</service>
 				<any-service><parent/><any-child/></any-service>
 			</route>

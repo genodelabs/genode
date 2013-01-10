@@ -97,10 +97,46 @@ namespace Init {
 
 
 	/**
+	 * Return sub string of label with the leading child name stripped out
+	 *
+	 */
+	inline char const *skip_label_prefix(char const *child_name, char const *label)
+	{
+		Genode::size_t const child_name_len = Genode::strlen(child_name);
+
+		/*
+		 * If the function was called with a valid "label" string, the
+		 * following condition should be always satisfied. See the
+		 * comment in 'service_node_args_condition_satisfied'.
+		 */
+		if (Genode::strcmp(child_name, label, child_name_len) == 0)
+			label += child_name_len;
+
+		/*
+		 * If the original label was empty, the 'Child_policy_enforce_labeling'
+		 * does not append a label separator after the child-name prefix. In
+		 * this case, we resulting label is empty.
+		 */
+		if (*label == 0)
+			return label;
+
+		/*
+		 * Skip label separator. This condition should be always satisfied.
+		 */
+		if (Genode::strcmp(" -> ", label, 4) == 0)
+			return label + 4;
+
+		PWRN("cannot skip label prefix while processing <if-arg>");
+		return label;
+	}
+
+
+	/**
 	 * Check if arguments satisfy the condition specified for the route
 	 */
 	inline bool service_node_args_condition_satisfied(Genode::Xml_node service_node,
-	                                                  const char *args)
+	                                                  const char *args,
+	                                                  char const *child_name)
 	{
 		try {
 			Genode::Xml_node if_arg = service_node.sub_node("if-arg");
@@ -112,6 +148,23 @@ namespace Init {
 
 			char arg_value[VALUE_MAX_LEN];
 			Genode::Arg_string::find_arg(args, key).string(arg_value, sizeof(arg_value), "");
+
+			PDBG("key='%s' value='%s' arg_value='%s'", key, value, arg_value);
+
+			/*
+			 * Skip child-name prefix if the key is the process "label".
+			 *
+			 * Because 'filter_session_args' is called prior the call of
+			 * 'resolve_session_request' from the 'Child::session' function,
+			 * 'args' contains the filtered arguments, in particular the label
+			 * prefixed with the child's name. For the 'if-args' declaration,
+			 * however, we want to omit specifying this prefix because the
+			 * session route is specific to the named start node anyway. So
+			 * the prefix information is redundant.
+			 */
+			if (Genode::strcmp("label", key) == 0)
+				return Genode::strcmp(value, skip_label_prefix(child_name, arg_value)) == 0;
+
 			return Genode::strcmp(value, arg_value) == 0;
 		} catch (...) { }
 
@@ -492,7 +545,7 @@ namespace Init {
 						if (!service_node_matches(service_node, service_name))
 							continue;
 
-						if (!service_node_args_condition_satisfied(service_node, args))
+						if (!service_node_args_condition_satisfied(service_node, args, name()))
 							continue;
 
 						Genode::Xml_node target = service_node.sub_node();
