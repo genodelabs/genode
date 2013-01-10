@@ -50,6 +50,29 @@ namespace Genode {
 
 
 	/**
+	 * Simple memmove
+	 *
+	 * \param dst   destination memory block
+	 * \param src   source memory block
+	 * \param size  number of bytes to move
+	 *
+	 * \return      pointer to destination memory block
+	 */
+	inline void *memmove(void *dst, const void *src, size_t size)
+	{
+		char *d = (char *)dst, *s = (char *)src;
+		size_t i;
+
+		if (s > d)
+			for (i = 0; i < size; i++, *d++ = *s++);
+		else
+			for (s += size - 1, d += size - 1, i = size; i-- > 0; *d-- = *s--);
+
+		return dst;
+	}
+
+
+	/**
 	 * Copy memory block
 	 *
 	 * \param dst   destination memory block
@@ -62,6 +85,10 @@ namespace Genode {
 	{
 		char *d = (char *)dst, *s = (char *)src;
 		size_t i;
+
+		/* check for overlap */
+		if ((d + size > s) && (s + size > d))
+			return memmove(dst, src, size);
 
 		/* try cpu specific version first */
 		if ((i = size - memcpy_cpu(dst, src, size)) == size)
@@ -84,13 +111,6 @@ namespace Genode {
 
 		return dst;
 	}
-
-
-	/**
-	 * Memmove wrapper for sophisticated overlapping-aware memcpy
-	 */
-	inline void *memmove(void *dst, const void *src, size_t size) {
-		return memcpy(dst, src, size); }
 
 
 	/**
