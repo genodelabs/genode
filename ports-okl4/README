@@ -39,16 +39,15 @@ directory of this repository.
 Block, net and audio driver
 ---------------------------
 
-OKLinux for Genode provides special drivers, that provide an audio-card,
-network-card and block-device to Linux applications. They are based on
-the block-, nic- and audio-out-session interface of Genode.
+OKLinux for Genode provides special drivers, that provide network-card and
+block-device to Linux applications. They are based on the block- and nic-session
+interfaces of Genode.
 
 The drivers are compiled in by default, but needs to be enabled in the
 XML configuration of OKLinux, like so:
 
 ! <config>
 !      <block/>
-!      <audio/>
 !      <nic/>
 ! </config>
 

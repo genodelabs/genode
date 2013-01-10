@@ -50,7 +50,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
  
  config MTD_IGMTD
  	tristate "Iguana virtual MTD device"
-@@ -69,13 +71,35 @@ config IG_AUDIO
+@@ -69,13 +71,30 @@ config IG_AUDIO
  config IG_TOUCH
  	bool "Compile Iguana virtual touch screen driver"
  	depends on INPUT && INPUT_TOUCHSCREEN
@@ -69,11 +69,6 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
 +	select FB_CFB_IMAGEBLIT
 +	default y
 +
-+config SND_GENODE
-+	bool
-+	select SND_PCM
-+	default y
-+
 +config BLOCK_GENODE
 +	bool
 +	select BLOCK
@@ -87,7 +82,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
  endmenu
  
  config GENERIC_HWEIGHT
-@@ -212,12 +236,12 @@ bool "Support for PLEB2 platform"
+@@ -212,12 +231,12 @@ bool "Support for PLEB2 platform"
  endchoice
  
  config NODES_SHIFT
@@ -103,7 +98,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
  	default 22
  #	default "7" if MPENTIUM4 || X86_GENERIC
  
-@@ -273,7 +297,7 @@ config CPU_HAS_LLDSCD
+@@ -273,7 +292,7 @@ config CPU_HAS_LLDSCD
  
  config GENERIC_CALIBRATE_DELAY
  	bool
@@ -112,7 +107,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
  
  config ISA
  	bool
-@@ -311,7 +335,7 @@ source "net/Kconfig"
+@@ -311,7 +330,7 @@ source "net/Kconfig"
  source "fs/Kconfig"
  config OKL4FS
      bool
@@ -121,7 +116,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
   
  source "drivers/mmc/Kconfig"
  
-@@ -360,17 +384,17 @@ source "drivers/mca/Kconfig"
+@@ -360,17 +379,17 @@ source "drivers/mca/Kconfig"
  
  endmenu
  
@@ -145,7 +140,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
  
  source "drivers/mtd/Kconfig"
  
-@@ -384,12 +408,24 @@ source "drivers/net/Kconfig"
+@@ -384,12 +403,24 @@ source "drivers/net/Kconfig"
  
  source "drivers/hid/Kconfig"
  
@@ -170,7 +165,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Kconfig contrib/arch/l4/Kconfig
  menu "Kernel hacking"
  
  source "lib/Kconfig.debug"
-@@ -397,7 +433,7 @@ source "lib/Kconfig.debug"
+@@ -397,7 +428,7 @@ source "lib/Kconfig.debug"
  config EARLY_PRINTK
  	bool "Early printk" if EMBEDDED
  	depends on L4KDB_CONSOLE
@@ -219,344 +214,14 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Makefile contrib/arch/l4/Makefile
 diff -urNpB kernel-2.6.23-v2/arch/l4/drivers/Makefile contrib/arch/l4/drivers/Makefile
 --- kernel-2.6.23-v2/arch/l4/drivers/Makefile
 +++ contrib/arch/l4/drivers/Makefile
-@@ -1,4 +1,7 @@
+@@ -1,4 +1,6 @@
 -obj-y := ig_ramdisk.o
 +obj-$(CONFIG_SCREEN_GENODE) += genode_fb.o
 +obj-$(CONFIG_BLOCK_GENODE)  += genode_block.o
-+obj-$(CONFIG_SND_GENODE)    += genode_audio.o
 +obj-$(CONFIG_NET_GENODE)    += genode_net.o
  obj-$(CONFIG_FB_IGVIRTUAL)  += ig_fb.o cfbcopyarea.o cfbfillrect.o cfbimgblt.o
  obj-$(CONFIG_L4KDB_CONSOLE) += l4kdb_console.o
  obj-$(CONFIG_IG_SERIAL) += ig_serial.o
-diff -urNpB kernel-2.6.23-v2/arch/l4/drivers/genode_audio.c contrib/arch/l4/drivers/genode_audio.c
---- kernel-2.6.23-v2/arch/l4/drivers/genode_audio.c
-+++ contrib/arch/l4/drivers/genode_audio.c
-@@ -0,0 +1,325 @@
-+/*
-+ *  Alsa soundcard driver for OKLinux/Genode
-+ *
-+ *  Stefan Kalkowski <kalkowski@genode-labs.com>
-+ */
-+
-+/*
-+ * Copyright (C) 2006-2009
-+ * Genode Labs, Feske & Helmuth Systementwicklung GbR
-+ *
-+ * This file is part of the Genode OS framework, which is distributed
-+ * under the terms of the GNU General Public License version 2.
-+ */
-+
-+#include <sound/driver.h>
-+#include <linux/init.h>
-+#include <linux/err.h>
-+#include <linux/platform_device.h>
-+#include <linux/slab.h>
-+#include <linux/time.h>
-+#include <linux/wait.h>
-+#include <linux/moduleparam.h>
-+#include <linux/module.h>
-+#include <sound/core.h>
-+#include <sound/control.h>
-+#include <sound/tlv.h>
-+#include <sound/pcm.h>
-+#include <sound/rawmidi.h>
-+#include <sound/initval.h>
-+
-+#include <genode/audio.h>
-+#include <genode/printf.h>
-+
-+#define DEBUG 0
-+
-+#define PDBG(args...) do {                         \
-+		if(DEBUG) {                                \
-+			genode_printf("%s(): ", __FUNCTION__); \
-+			genode_printf("\033[33m");             \
-+			genode_printf(args);                   \
-+			genode_printf("\033[0m\n");            \
-+		}                                          \
-+	} while(0)
-+
-+
-+static struct platform_device *platform_dev_ptr = 0;
-+static void                   *packet_cache     = 0;
-+static short                   stopped          = 1;
-+
-+static struct snd_pcm_hardware snd_genode_playback_props =
-+{
-+	.info             = SNDRV_PCM_INFO_INTERLEAVED,
-+	.formats          = SNDRV_PCM_FMTBIT_S16_LE,
-+	.rates            = SNDRV_PCM_RATE_44100,
-+	.rate_min         = 44100,
-+	.rate_max         = 44100,
-+	.channels_min     = 2,
-+	.channels_max     = 2,
-+};
-+
-+
-+static void snd_genode_period_elapsed_callback(unsigned long data)
-+{
-+	PDBG("Enter");
-+	snd_pcm_period_elapsed((struct snd_pcm_substream *)data);
-+}
-+
-+
-+/**********************
-+ * Callback functions *
-+ **********************/
-+
-+static int snd_genode_trigger(struct snd_pcm_substream *substream, int cmd)
-+{
-+	struct snd_pcm_runtime *runtime = substream->runtime;
-+	spinlock_t *lock = runtime->private_data;
-+	int err = 0;
-+
-+	spin_lock(lock);
-+	switch (cmd) {
-+	case SNDRV_PCM_TRIGGER_START:
-+	case SNDRV_PCM_TRIGGER_RESUME:
-+		PDBG("Start");
-+		genode_audio_trigger_start(snd_genode_period_elapsed_callback,
-+		                           (unsigned long)substream);
-+		break;
-+	case SNDRV_PCM_TRIGGER_STOP:
-+	case SNDRV_PCM_TRIGGER_SUSPEND:
-+		PDBG("Stop");
-+		genode_audio_trigger_stop();
-+		stopped = 1;
-+		break;
-+	default:
-+		PDBG("Unknown %d", cmd);
-+		err = -EINVAL;
-+		break;
-+	}
-+	spin_unlock(lock);
-+	return 0;
-+}
-+
-+
-+static int snd_genode_prepare(struct snd_pcm_substream *substream)
-+{
-+	PDBG("buffer_size=%lx count=%d", snd_pcm_lib_buffer_bytes(substream),
-+	     snd_pcm_lib_period_bytes(substream));
-+	genode_audio_prepare();
-+	return 0;
-+}
-+
-+
-+static snd_pcm_uframes_t snd_genode_pointer(struct snd_pcm_substream *substream)
-+{
-+	struct snd_pcm_runtime *runtime = substream->runtime;
-+	unsigned long v = genode_audio_position();
-+	unsigned long pos = bytes_to_frames(runtime, v) % runtime->buffer_size;
-+	PDBG("position=%lx", pos);
-+	return pos;
-+}
-+
-+
-+static void snd_genode_runtime_free(struct snd_pcm_runtime *runtime)
-+{
-+	spinlock_t *lock = (spinlock_t*) runtime->private_data;
-+	PDBG("Enter");
-+	kfree(lock);
-+	kfree(packet_cache);
-+}
-+
-+
-+static int snd_genode_hw_params(struct snd_pcm_substream *substream,
-+                                struct snd_pcm_hw_params *hw_params)
-+{
-+	PDBG("params_buffer_bytes=%lx", params_buffer_bytes(hw_params));
-+	return snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(hw_params));
-+}
-+
-+
-+static int snd_genode_hw_free(struct snd_pcm_substream *substream)
-+{
-+	PDBG("Enter");
-+	return snd_pcm_lib_free_pages(substream);
-+}
-+
-+
-+static int snd_genode_playback_open(struct snd_pcm_substream *substream)
-+{
-+	struct snd_pcm_runtime *runtime = substream->runtime;
-+	spinlock_t *lock;
-+
-+	PDBG("Enter");
-+
-+	if (!(lock = kmalloc(sizeof(spinlock_t), GFP_KERNEL)))
-+		return -ENOMEM;
-+	spin_lock_init(lock);
-+	runtime->private_data = lock;
-+	runtime->private_free = snd_genode_runtime_free;
-+
-+	runtime->hw                  = snd_genode_playback_props;
-+	runtime->hw.buffer_bytes_max = genode_audio_packet_count()
-+	                               * genode_audio_packet_size();
-+	runtime->hw.period_bytes_min = genode_audio_packet_size();
-+	runtime->hw.period_bytes_max = genode_audio_packet_size();
-+	runtime->hw.periods_min      = 1;
-+	runtime->hw.periods_max      = genode_audio_packet_count();
-+
-+	if (!(packet_cache = kmalloc(runtime->hw.buffer_bytes_max, GFP_KERNEL))) {
-+		kfree(lock);
-+		return -ENOMEM;
-+	}
-+
-+	return 0;
-+}
-+
-+
-+static int snd_genode_playback_close(struct snd_pcm_substream *substream)
-+{
-+	PDBG("Enter");
-+	return 0;
-+}
-+
-+
-+static int snd_genode_copy(struct snd_pcm_substream *substream,
-+                           int channel, snd_pcm_uframes_t pos,
-+                           void __user *buf, snd_pcm_uframes_t count)
-+{
-+	struct snd_pcm_runtime *runtime = substream->runtime;
-+	unsigned long size = frames_to_bytes(runtime, count);
-+	static snd_pcm_uframes_t position = 0;
-+
-+	if (stopped)
-+		stopped = 0;
-+	else
-+		if (position == pos)
-+			return 0;
-+	position = pos;
-+
-+	PDBG("copy=%lx %lx\n", pos, count);
-+	copy_from_user(packet_cache, buf, size);
-+	genode_audio_write(packet_cache, size);
-+	return 0;
-+}
-+
-+
-+static int snd_genode_silence(struct snd_pcm_substream *substream,
-+                              int channel, snd_pcm_uframes_t pos,
-+                              snd_pcm_uframes_t count)
-+{
-+	struct snd_pcm_runtime *runtime = substream->runtime;
-+	unsigned long size = frames_to_bytes(runtime, count);
-+
-+	PDBG("silence=%lx", size);
-+	genode_audio_fill_silence(size);
-+	return 0;
-+}
-+
-+
-+/****************************
-+ * Initialization functions *
-+ ****************************/
-+
-+#define SND_GENODE_DRIVER "snd_genode"
-+
-+
-+static struct snd_pcm_ops snd_genode_playback_ops = {
-+	.ioctl     = snd_pcm_lib_ioctl,
-+	.open      = snd_genode_playback_open,
-+	.close     = snd_genode_playback_close,
-+	.hw_params = snd_genode_hw_params,
-+	.hw_free   = snd_genode_hw_free,
-+	.prepare   = snd_genode_prepare,
-+	.trigger   = snd_genode_trigger,
-+	.pointer   = snd_genode_pointer,
-+	.copy      = snd_genode_copy,
-+	.silence   = snd_genode_silence,
-+};
-+
-+
-+static int __devinit snd_genode_probe(struct platform_device *devptr)
-+{
-+	int err = 0;
-+	struct snd_card *card;
-+	struct snd_pcm *pcm;
-+
-+	if(!(card = snd_card_new(0, SND_GENODE_DRIVER, THIS_MODULE, 0)))
-+		return -ENOMEM;
-+
-+	if ((err = snd_pcm_new(card, "Genode PCM", 0, 1, 0, &pcm)) < 0) {
-+		snd_card_free(card);
-+		return err;
-+	}
-+	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &snd_genode_playback_ops);
-+	pcm->info_flags = 0;
-+	strcpy(pcm->name, "Genode PCM");
-+	if((err = snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_CONTINUOUS,
-+	                                                snd_dma_continuous_data(GFP_KERNEL),
-+	                                                0, genode_audio_packet_count()
-+	                                                * genode_audio_packet_size())) < 0) {
-+		snd_card_free(card);
-+		return err;
-+	}
-+
-+	strcpy(card->driver, "Genode");
-+	strcpy(card->shortname, "Genode");
-+	sprintf(card->longname, "Genode %i", devptr->id + 1);
-+	snd_card_set_dev(card, &devptr->dev);
-+
-+	if (!(err = snd_card_register(card)))
-+		platform_set_drvdata(devptr, card);
-+	else {
-+		snd_card_free(card);
-+		return err;
-+	}
-+	return 0;
-+}
-+
-+
-+static int __devexit snd_genode_remove(struct platform_device *devptr)
-+{
-+	snd_card_free(platform_get_drvdata(devptr));
-+	platform_set_drvdata(devptr, 0);
-+	return 0;
-+}
-+
-+
-+static struct platform_driver snd_genode_driver = {
-+	.probe      = snd_genode_probe,
-+	.remove     = __devexit_p(snd_genode_remove),
-+	.driver     = {
-+		.name   = SND_GENODE_DRIVER
-+	},
-+};
-+
-+
-+static int __init alsa_card_genode_init(void)
-+{
-+	int err = 0;
-+
-+	if (!genode_audio_ready())
-+		return err;
-+
-+	if (!(err = platform_driver_register(&snd_genode_driver))) {
-+		platform_dev_ptr = platform_device_register_simple(SND_GENODE_DRIVER, 0, 0, 0);
-+		if (!platform_get_drvdata(platform_dev_ptr)) {
-+			platform_device_unregister(platform_dev_ptr);
-+			err = -ENODEV;
-+		}
-+	}
-+	return err;
-+}
-+
-+
-+static void __exit alsa_card_genode_exit(void)
-+{
-+	platform_device_unregister(platform_dev_ptr);
-+	platform_driver_unregister(&snd_genode_driver);
-+}
-+
-+module_init(alsa_card_genode_init);
-+module_exit(alsa_card_genode_exit);
-+
-+MODULE_AUTHOR("Stefan Kalkowski <stefan.kalkowski@genode-labs.com>");
-+MODULE_DESCRIPTION("Genode sound stub");
-+MODULE_LICENSE("GPL");
-+MODULE_SUPPORTED_DEVICE("{{ALSA,Genode sound stub}}");
 diff -urNpB kernel-2.6.23-v2/arch/l4/drivers/genode_block.c contrib/arch/l4/drivers/genode_block.c
 --- kernel-2.6.23-v2/arch/l4/drivers/genode_block.c
 +++ contrib/arch/l4/drivers/genode_block.c
@@ -2394,7 +2059,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/kernel/setup.c contrib/arch/l4/kernel/setup
 diff -urNpB kernel-2.6.23-v2/arch/l4/kernel/sys_genode.c contrib/arch/l4/kernel/sys_genode.c
 --- kernel-2.6.23-v2/arch/l4/kernel/sys_genode.c
 +++ contrib/arch/l4/kernel/sys_genode.c
-@@ -0,0 +1,433 @@
+@@ -0,0 +1,427 @@
 +#define timer_t	    	timer_t_linux
 +
 +#include <l4.h>
@@ -2419,9 +2084,6 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/kernel/sys_genode.c contrib/arch/l4/kernel/
 +#include <genode/lock.h>
 +#ifdef CONFIG_SCREEN_GENODE
 +#include <genode/input.h>
-+#endif
-+#ifdef CONFIG_SND_GENODE
-+#include <genode/audio.h>
 +#endif
 +#ifdef CONFIG_NET_GENODE
 +#include <genode/net.h>
@@ -2705,9 +2367,6 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/kernel/sys_genode.c contrib/arch/l4/kernel/
 +		genode_lock(timer_main_kernel_lock);
 +#ifdef CONFIG_SCREEN_GENODE
 +		genode_input_handle_events();
-+#endif
-+#ifdef CONFIG_SND_GENODE
-+		genode_audio_collect_acks();
 +#endif
 +#ifdef CONFIG_NET_GENODE
 +		genode_net_rx_receive();

@@ -1,8 +1,7 @@
 #
 # OKLinux support library
 #
-SRC_CC   = genode_audio.cc \
-           genode_block.cc \
+SRC_CC   = genode_block.cc \
            genode_config.cc \
            genode_exit.cc \
            genode_framebuffer.cc \
