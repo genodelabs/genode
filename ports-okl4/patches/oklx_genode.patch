@@ -571,7 +571,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/drivers/genode_block.c contrib/arch/l4/driv
 + */
 +
 +/*
-+ * Copyright (C) 2006-2012 Genode Labs GmbH
++ * Copyright (C) 2006-2013 Genode Labs GmbH
 + *
 + * This file is part of the Genode OS framework, which is distributed
 + * under the terms of the GNU General Public License version 2.
@@ -850,7 +850,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/drivers/genode_fb.c contrib/arch/l4/drivers
 + */
 +
 +/*
-+ * Copyright (C) 2010-2012 Genode Labs GmbH
++ * Copyright (C) 2010-2013 Genode Labs GmbH
 + *
 + * This file is part of the Genode OS framework, which is distributed
 + * under the terms of the GNU General Public License version 2.
@@ -1360,7 +1360,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/drivers/genode_net.c contrib/arch/l4/driver
 + */
 +
 +/*
-+ * Copyright (C) 2006-2012 Genode Labs GmbH
++ * Copyright (C) 2006-2013 Genode Labs GmbH
 + *
 + * This file is part of the Genode OS framework, which is distributed
 + * under the terms of the GNU General Public License version 2.
