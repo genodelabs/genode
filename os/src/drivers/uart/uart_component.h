@@ -164,11 +164,7 @@ namespace Uart {
 					unsigned uart_baudrate = 0;
 					try {
 						policy.attribute("baudrate").value(&uart_baudrate);
-					} catch (Xml_node::Nonexistent_attribute) {
-						PDBG("Missing \"baudrate\" attribute in policy definition");
-					}
-
-					PDBG("UART%d %d", uart_index, uart_baudrate);
+					} catch (Xml_node::Nonexistent_attribute) { }
 
 					return new (md_alloc())
 						Session_component(_driver_factory, uart_index, uart_baudrate);

@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 			enum { BAUD = 115200 };
 			if (baudrate == 0)
 			{
-				PDBG("Baudrate is not defined. Use default 115200");
+				PINF("Baudrate is not defined. Use default 115200");
 				baudrate = BAUD;
 			}
 
