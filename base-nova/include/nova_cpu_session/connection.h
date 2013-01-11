@@ -28,7 +28,7 @@ namespace Genode {
 		 * \param priority  designated priority of all threads created
 		 *                  with this CPU session
 		 */
-		Nova_cpu_connection(const char *label    = "", long        priority = DEFAULT_PRIORITY)
+		Nova_cpu_connection(const char *label    = "", long priority = DEFAULT_PRIORITY)
 		:
 			Connection<Cpu_session>(
 				session("priority=0x%lx, ram_quota=32K, label=\"%s\"",

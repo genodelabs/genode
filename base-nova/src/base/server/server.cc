@@ -26,6 +26,7 @@
 
 using namespace Genode;
 
+
 /***********************
  ** Server entrypoint **
  ***********************/
@@ -62,13 +63,11 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 	remove_locked(obj);
 
 	/*
-	 * The activation may execute a blocking operation
-	 * in a dispatch function. Before resolving the
-	 * corresponding object, we need to ensure that
-	 * it is no longer used by an activation. Therefore,
-	 * we to need cancel an eventually blocking operation
-	 * and let the activation leave the context of the
-	 * object.
+	 * The activation may execute a blocking operation in a dispatch function.
+	 * Before resolving the corresponding object, we need to ensure that it is
+	 * no longer used by an activation. Therefore, we to need cancel an
+	 * eventually blocking operation and let the activation leave the context
+	 * of the object.
 	 */
 	_leave_server_object(obj);
 
@@ -123,7 +122,9 @@ void Rpc_entrypoint::_activation_entry()
 		ep->_curr_obj = curr_obj;
 	}
 	if (!ep->_curr_obj) {
-		/* Badge is used to suppress error message solely.
+
+		/*
+		 * Badge is used to suppress error message solely.
 		 * It's non zero during cleanup call of an
 		 * rpc_object_base object, see _leave_server_object.
 		 */
@@ -205,7 +206,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	_delay_start(Lock::LOCKED),
 	_cap_session(cap_session)
 {
-	/**
+	/*
 	 * Create thread if we aren't running in core.
 	 *
 	 * For core this code can't be performed since the sessions aren't
@@ -242,7 +243,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		request_event_portal(pager_cap, _tid.exc_pt_sel,
 		                     Nova::PT_SEL_RECALL);
 
-		/**
+		/*
 		 * Request native thread cap, _thread_cap only a token.
 		 * The native thread cap is required to attach new rpc objects
 		 * (to create portals bound to the ec)
@@ -254,7 +255,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		_tid.ec_sel = ec_cap.local_name();
 	}
 	else
-		/**
+		/*
 		 * Required for core threads (creates local EC)
 		 */
 		Thread_base::start();

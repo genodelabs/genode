@@ -28,6 +28,7 @@ enum {
 	ECHO_EXC_BASE   = 0
 };
 
+
 inline void *echo_stack_top()
 {
 	static char echo_stack[ECHO_STACK_SIZE];

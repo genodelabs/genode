@@ -117,11 +117,11 @@ class Genode::Irq_proxy_component : public Irq_proxy<Irq_thread>
 		{
 			/* alloc slector where IRQ will be mapped */
 			_irq_sel = cap_selector_allocator()->alloc();
-		
+
 			/* since we run in APIC mode translate IRQ 0 (PIT) to 2 */
 			if (!_irq_number)
 				_irq_number = 2;
-	
+
 			/* map IRQ number to selector */
 			int ret = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
 			                    Nova::Obj_crd(platform_specific()->gsi_base_sel() + _irq_number, 0),
@@ -131,7 +131,7 @@ class Genode::Irq_proxy_component : public Irq_proxy<Irq_thread>
 				PERR("Could not map IRQ %ld", _irq_number);
 				return false;
 			}
-		
+
 			/* assign IRQ to CPU */
 			enum { CPU = 0 };
 			Nova::assign_gsi(_irq_sel, 0, CPU);

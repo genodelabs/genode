@@ -36,6 +36,7 @@ enum { verbose_boot_info = true };
 
 Native_utcb *main_thread_utcb();
 
+
 /**
  * Initial value of esp register, saved by the crt0 startup code
  *
@@ -304,7 +305,7 @@ Platform::Platform() :
 			     Native_config::context_area_virtual_base() +
 			     Native_config::context_area_virtual_size(), check[i]);
 			nova_die();
- 		}
+		}
 	}
  
 	/* initialize core's physical-memory and I/O memory allocator */
@@ -392,7 +393,7 @@ Platform::Platform() :
 
 		addr_t core_local_addr =
 			_map_page(trunc_page(mem_desc->addr) >> get_page_size_log2(),
-		              (round_page(mem_desc->addr + mem_desc->size) -
+			          (round_page(mem_desc->addr + mem_desc->size) -
 			          trunc_page(mem_desc->addr)) >> get_page_size_log2());
 		if (!core_local_addr) {
 			PERR("could not map multi boot module");
@@ -410,7 +411,7 @@ Platform::Platform() :
 		if (trunc_page(mem_desc->addr) <= mem_desc->aux &&
 		    mem_desc->aux < round_page(mem_desc->addr + mem_desc->size)) {
 			aux = core_local_addr + (mem_desc->aux - mem_desc->addr);
-		} else {	
+		} else {
 			curr_cmd_line_page     = mem_desc->aux >> get_page_size_log2();
 			if (curr_cmd_line_page != prev_cmd_line_page) {
 				mapped_cmd_line = _map_page(curr_cmd_line_page, 2);
@@ -425,7 +426,6 @@ Platform::Platform() :
 		Rom_module *rom_module = new (core_mem_alloc())
 		                         Rom_module(core_local_addr, mem_desc->size, name);
 		_rom_fs.insert(rom_module);
-
 	}
 
 	/* export hypervisor info page as ROM module */

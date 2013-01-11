@@ -22,6 +22,7 @@ namespace Genode {
 	class Bit_allocator
 	{
 		protected:
+
 			Bit_array<WORDS> _array;
 
 			void _reserve(addr_t bit_start, size_t const num_cap)
@@ -40,8 +41,7 @@ namespace Genode {
 
 				try {
 					/*
-					 * Throws exception if array is
-					 * accessed outside bounds
+					 * Throws exception if array is * accessed outside bounds
 					 */
 					while (true) {
 						if (_array.get(i, step)) {

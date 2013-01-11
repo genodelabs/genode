@@ -55,7 +55,7 @@ namespace Nova {
 
 		asm volatile ("syscall"
 		              : "+D" (status)
-			      :
+		              :
 		              : "rcx", "r11", "memory");
 		return status;
 	}
@@ -68,7 +68,7 @@ namespace Nova {
 
 		asm volatile ("syscall"
 		              : "+D" (status), "+S" (p1)
-			      : 
+		              :
 		              : "rcx", "r11", "memory");
 		if (p2) *p2 = p1;
 		return status;
@@ -125,7 +125,7 @@ namespace Nova {
 
 		asm volatile ("syscall"
 		              : "+D" (status), "+S"(p3), "+d"(p4)
-			      :
+		              :
 		              : "rcx", "r11", "memory");
 		return status;
 	}
@@ -173,6 +173,7 @@ namespace Nova {
 	{
 		return syscall_0(NOVA_EC_CTRL, 0, ec);
 	}
+
 
 	ALWAYS_INLINE
 	inline uint8_t create_sc(mword_t sc, mword_t pd, mword_t ec, Qpd qpd)

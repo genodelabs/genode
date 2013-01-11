@@ -44,12 +44,12 @@ namespace Genode {
 			 */
 			Signal_context_capability _exception_sigh;
 
-  			/**
+			/**
 			 * Portal selector for object cleanup/destruction
 			 */
 			addr_t _pt_cleanup;
 
- 			/**
+			/**
 			 * Semaphore selector to synchronize pause/state/resume operations
 			 */
 			addr_t _sm_state_notify;
@@ -57,7 +57,8 @@ namespace Genode {
 			addr_t _initial_esp;
 			addr_t _initial_eip;
 
-			struct {
+			struct
+			{
 				struct Thread_state thread;
 				addr_t sel_client_ec;
 				bool valid;

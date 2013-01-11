@@ -88,7 +88,6 @@ namespace Genode {
 			 * \return PD selector
 			 */
 			static addr_t pd_core_sel() { return __core_pd_sel; }
-
 	};
 }
 

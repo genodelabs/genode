@@ -21,22 +21,22 @@ using namespace Genode;
 
 void Pager_object::_copy_state(Nova::Utcb * utcb)
 {
-	_state.thread.rbp    = utcb->bp;
-	_state.thread.rax    = utcb->ax;
-	_state.thread.rbx    = utcb->bx;
-	_state.thread.rcx    = utcb->cx;
-	_state.thread.rdx    = utcb->dx;
-	_state.thread.rsi    = utcb->si;
-	_state.thread.rdi    = utcb->di;
+	_state.thread.rbp = utcb->bp;
+	_state.thread.rax = utcb->ax;
+	_state.thread.rbx = utcb->bx;
+	_state.thread.rcx = utcb->cx;
+	_state.thread.rdx = utcb->dx;
+	_state.thread.rsi = utcb->si;
+	_state.thread.rdi = utcb->di;
 
-	_state.thread.r8     = utcb->r8;
-	_state.thread.r9     = utcb->r9;
-	_state.thread.r10    = utcb->r10;
-	_state.thread.r11    = utcb->r11;
-	_state.thread.r12    = utcb->r12;
-	_state.thread.r13    = utcb->r13;
-	_state.thread.r14    = utcb->r14;
-	_state.thread.r15    = utcb->r15;
+	_state.thread.r8  = utcb->r8;
+	_state.thread.r9  = utcb->r9;
+	_state.thread.r10 = utcb->r10;
+	_state.thread.r11 = utcb->r11;
+	_state.thread.r12 = utcb->r12;
+	_state.thread.r13 = utcb->r13;
+	_state.thread.r14 = utcb->r14;
+	_state.thread.r15 = utcb->r15;
 
-	_state.thread.ss     = utcb->ss.sel;
+	_state.thread.ss  = utcb->ss.sel;
 }

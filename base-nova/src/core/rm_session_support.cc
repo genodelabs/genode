@@ -24,6 +24,7 @@ using namespace Genode;
 
 static const bool verbose = false;
 
+
 void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 {
 	addr_t const core_local_end = core_local_base + (size - 1);
@@ -48,7 +49,7 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 			                + (0x1000 << crd.order()); /* size of mapping */
 		} else {
 
-			/* This can happen if the region has never been touched */
+			/* this can happen if the region has never been touched */
 
 			if (verbose)
 				PINF("Nothing mapped at local: %08lx virt: %08lx",

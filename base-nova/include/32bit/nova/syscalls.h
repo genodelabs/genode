@@ -198,6 +198,7 @@ namespace Nova {
 		return syscall_0(NOVA_EC_CTRL, 0, ec);
 	}
 
+
 	ALWAYS_INLINE
 	inline uint8_t create_sc(unsigned sc, unsigned pd, unsigned ec, Qpd qpd)
 	{

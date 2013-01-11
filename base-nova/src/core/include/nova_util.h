@@ -155,6 +155,7 @@ inline int map_local(Nova::Utcb *utcb,
 	return 0;
 }
 
+
 /**
  * Unmap pages from the local address space
  *

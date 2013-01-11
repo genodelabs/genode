@@ -20,6 +20,7 @@
 
 using namespace Genode;
 
+
 /***************************
  ** Public object members **
  ***************************/

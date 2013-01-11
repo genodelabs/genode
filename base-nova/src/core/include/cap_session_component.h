@@ -29,12 +29,9 @@ namespace Genode {
 
 			static long _unique_id_cnt;
 
-			class Cap_object : public Native_capability,
-			                   public List<Cap_object>::Element
+			struct Cap_object : Native_capability, List<Cap_object>::Element
 			{
-				public:
-
-					Cap_object(addr_t cap_sel) : Native_capability(cap_sel) {}
+				Cap_object(addr_t cap_sel) : Native_capability(cap_sel) {}
 			};
 
 			Tslab<Cap_object, 128> _cap_slab;
@@ -47,8 +44,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Cap_session_component(Allocator *md_alloc, const char *args)
-				:
-				_cap_slab(md_alloc) { }
+			: _cap_slab(md_alloc) { }
 
 			/**
 			 * Destructor
@@ -71,9 +67,9 @@ namespace Genode {
 				addr_t pt_sel = cap_selector_allocator()->alloc(0);
 				addr_t pd_sel = Platform_pd::pd_core_sel();
 				addr_t ec_sel = ep.local_name();
-				
+
 				using namespace Nova;
-		
+
 				Lock::Guard cap_lock(_cap_lock);
 
 				/* create cap object */
@@ -105,7 +101,8 @@ namespace Genode {
 				return Native_capability::invalid_cap();
 			}
 
-			void free(Native_capability cap) {
+			void free(Native_capability cap)
+			{
 				if (!cap.valid()) return;
 
 				Lock::Guard cap_lock(_cap_lock);
@@ -120,7 +117,7 @@ namespace Genode {
 					}
 				}
 				PDBG("invalid cap object");
- 			}
+			}
 	};
 }
 

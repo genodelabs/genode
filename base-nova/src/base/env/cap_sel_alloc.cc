@@ -42,6 +42,7 @@ addr_t Cap_selector_allocator::alloc(size_t num_caps_log2)
 	return ret_base;
 }
 
+
 void Cap_selector_allocator::free(addr_t cap, size_t num_caps_log2)
 {
 	alloc_lock()->lock();

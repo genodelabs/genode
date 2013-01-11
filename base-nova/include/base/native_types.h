@@ -75,10 +75,11 @@ namespace Genode {
 
 			struct Raw
 			{
-				Dst    dst;
- 				/*
-				 * It is obsolete and unused in NOVA,
-				 * however still used by generic base part
+				Dst dst;
+
+				/*
+				 * It is obsolete and unused in NOVA, however still used by
+				 * generic base part
 				 */
 				addr_t local_name;
 			};
