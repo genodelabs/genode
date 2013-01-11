@@ -72,7 +72,7 @@ namespace Genode {
 
 			void sigh(Signal_context_capability sigh)
 			{
-				sigh = sigh;
+				_sigh = sigh;
 				update_exception_sigh();
 			}
 
