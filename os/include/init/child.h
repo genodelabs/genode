@@ -149,8 +149,6 @@ namespace Init {
 			char arg_value[VALUE_MAX_LEN];
 			Genode::Arg_string::find_arg(args, key).string(arg_value, sizeof(arg_value), "");
 
-			PDBG("key='%s' value='%s' arg_value='%s'", key, value, arg_value);
-
 			/*
 			 * Skip child-name prefix if the key is the process "label".
 			 *
