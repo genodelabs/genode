@@ -45,7 +45,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="usb_drv">
-		<resource name="RAM" quantum="6M"/>
+		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Input"/></provides>
 		<config>
 			<hid/>

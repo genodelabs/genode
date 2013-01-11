@@ -38,7 +38,7 @@ SRC_C += usb/usb-common.c
 SRC_C += $(addprefix usb/host/, ehci-hcd.c)
 
 # USB hid
-SRC_C += $(addprefix hid/usbhid/,hid-core.c hid-quirks.c usbmouse.c usbkbd.c)
+SRC_C += $(addprefix hid/usbhid/,hid-core.c hid-quirks.c)
 SRC_C += hid/hid-input.c hid/hid-core.c input/evdev.c input/input.c
 
 # USB storage

@@ -1,6 +1,28 @@
-diff -r a83abb859b41 drivers/net/usb/smsc95xx.c
---- a/drivers/net/usb/smsc95xx.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/net/usb/smsc95xx.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/hid/usbhid/hid-core.c b/drivers/hid/usbhid/hid-core.c
+--- a/drivers/hid/usbhid/hid-core.c	2012-01-26 01:39:32.000000000 +0100
++++ b/drivers/hid/usbhid/hid-core.c	2013-01-11 15:21:40.907579676 +0100
+@@ -789,7 +789,7 @@
+ 			&usbhid->inbuf_dma);
+ 	usbhid->outbuf = usb_alloc_coherent(dev, usbhid->bufsize, GFP_KERNEL,
+ 			&usbhid->outbuf_dma);
+-	usbhid->cr = kmalloc(sizeof(*usbhid->cr), GFP_KERNEL);
++	usbhid->cr = kmalloc(sizeof(*usbhid->cr), GFP_NOIO);
+ 	usbhid->ctrlbuf = usb_alloc_coherent(dev, usbhid->bufsize, GFP_KERNEL,
+ 			&usbhid->ctrlbuf_dma);
+ 	if (!usbhid->inbuf || !usbhid->outbuf || !usbhid->cr ||
+@@ -946,7 +946,7 @@
+ 		return -EINVAL;
+ 	}
+ 
+-	if (!(rdesc = kmalloc(rsize, GFP_KERNEL))) {
++	if (!(rdesc = kmalloc(rsize, GFP_NOIO))) {
+ 		dbg_hid("couldn't allocate rdesc memory\n");
+ 		return -ENOMEM;
+ 	}
+Only in b/drivers/hid/usbhid: hid-core.c~
+diff -ur a/drivers/net/usb/smsc95xx.c b/drivers/net/usb/smsc95xx.c
+--- a/drivers/net/usb/smsc95xx.c	2013-01-11 15:27:53.987584450 +0100
++++ b/drivers/net/usb/smsc95xx.c	2013-01-11 15:11:06.467571241 +0100
 @@ -65,7 +65,7 @@
  
  static int smsc95xx_read_reg(struct usbnet *dev, u32 index, u32 *data)
@@ -37,9 +59,9 @@ diff -r a83abb859b41 drivers/net/usb/smsc95xx.c
  
  	pdata = (struct smsc95xx_priv *)(dev->data[0]);
  	if (!pdata) {
-diff -r a83abb859b41 drivers/net/usb/usbnet.c
---- a/drivers/net/usb/usbnet.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/net/usb/usbnet.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/net/usb/usbnet.c b/drivers/net/usb/usbnet.c
+--- a/drivers/net/usb/usbnet.c	2013-01-11 15:27:53.991584496 +0100
++++ b/drivers/net/usb/usbnet.c	2013-01-11 15:11:06.467571241 +0100
 @@ -201,7 +201,7 @@
  	period = max ((int) dev->status->desc.bInterval,
  		(dev->udev->speed == USB_SPEED_HIGH) ? 7 : 3);
@@ -58,9 +80,9 @@ diff -r a83abb859b41 drivers/net/usb/usbnet.c
  
  		spin_lock_irq(&dev->txq.lock);
  		while ((res = usb_get_from_anchor(&dev->deferred))) {
-diff -r a83abb859b41 drivers/usb/core/config.c
---- a/drivers/usb/core/config.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/core/config.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/core/config.c b/drivers/usb/core/config.c
+--- a/drivers/usb/core/config.c	2013-01-11 15:27:53.991584496 +0100
++++ b/drivers/usb/core/config.c	2013-01-11 15:11:06.467571241 +0100
 @@ -689,7 +689,7 @@
  	if (!dev->rawdescriptors)
  		goto err2;
@@ -79,9 +101,10 @@ diff -r a83abb859b41 drivers/usb/core/config.c
  		if (!bigbuffer) {
  			result = -ENOMEM;
  			goto err;
-diff -r a83abb859b41 drivers/usb/core/devices.c
---- a/drivers/usb/core/devices.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/core/devices.c	Tue Aug 07 17:18:51 2012 +0200
+Only in b/drivers/usb/core: config.c~
+diff -ur a/drivers/usb/core/devices.c b/drivers/usb/core/devices.c
+--- a/drivers/usb/core/devices.c	2013-01-11 15:27:53.991584496 +0100
++++ b/drivers/usb/core/devices.c	2013-01-11 15:11:06.467571241 +0100
 @@ -505,7 +505,7 @@
  		return 0;
  	/* allocate 2^1 pages = 8K (on i386);
@@ -91,9 +114,9 @@ diff -r a83abb859b41 drivers/usb/core/devices.c
  	if (!pages_start)
  		return -ENOMEM;
  
-diff -r a83abb859b41 drivers/usb/core/hub.c
---- a/drivers/usb/core/hub.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/core/hub.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/core/hub.c b/drivers/usb/core/hub.c
+--- a/drivers/usb/core/hub.c	2013-01-11 15:27:53.991584496 +0100
++++ b/drivers/usb/core/hub.c	2013-01-11 15:11:06.471571243 +0100
 @@ -740,7 +740,7 @@
  			hcd = bus_to_hcd(hdev->bus);
  			if (hcd->driver->update_hub_device) {
@@ -146,9 +169,10 @@ diff -r a83abb859b41 drivers/usb/core/hub.c
  	if (buf == NULL) {
  		dev_err(&udev->dev, "no mem to re-read configs after reset\n");
  		/* assume the worst */
-diff -r a83abb859b41 drivers/usb/core/message.c
---- a/drivers/usb/core/message.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/core/message.c	Tue Aug 07 17:18:51 2012 +0200
+Only in b/drivers/usb/core: hub.c~
+diff -ur a/drivers/usb/core/message.c b/drivers/usb/core/message.c
+--- a/drivers/usb/core/message.c	2013-01-11 15:27:53.991584496 +0100
++++ b/drivers/usb/core/message.c	2013-01-11 15:11:06.471571243 +0100
 @@ -50,7 +50,7 @@
  	init_completion(&ctx.done);
  	urb->context = &ctx;
@@ -208,9 +232,9 @@ diff -r a83abb859b41 drivers/usb/core/message.c
  			if (!new_interfaces[n]) {
  				dev_err(&dev->dev, "Out of memory\n");
  				ret = -ENOMEM;
-diff -r a83abb859b41 drivers/usb/core/urb.c
---- a/drivers/usb/core/urb.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/core/urb.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/core/urb.c b/drivers/usb/core/urb.c
+--- a/drivers/usb/core/urb.c	2013-01-11 15:27:53.995584562 +0100
++++ b/drivers/usb/core/urb.c	2013-01-11 15:11:06.471571243 +0100
 @@ -266,7 +266,7 @@
   *
   * The general rules for how to decide which mem_flags to use
@@ -244,9 +268,9 @@ diff -r a83abb859b41 drivers/usb/core/urb.c
   *
   */
  int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
-diff -r a83abb859b41 drivers/usb/storage/alauda.c
---- a/drivers/usb/storage/alauda.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/alauda.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/alauda.c b/drivers/usb/storage/alauda.c
+--- a/drivers/usb/storage/alauda.c	2013-01-11 15:27:53.995584562 +0100
++++ b/drivers/usb/storage/alauda.c	2013-01-11 15:11:06.471571243 +0100
 @@ -448,8 +448,8 @@
  
  	num_zones = MEDIA_INFO(us).capacity >> (MEDIA_INFO(us).zoneshift
@@ -305,9 +329,9 @@ diff -r a83abb859b41 drivers/usb/storage/alauda.c
  	if (!us->extra) {
  		US_DEBUGP("init_alauda: Gah! Can't allocate storage for"
  			"alauda info struct!\n");
-diff -r a83abb859b41 drivers/usb/storage/datafab.c
---- a/drivers/usb/storage/datafab.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/datafab.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/datafab.c b/drivers/usb/storage/datafab.c
+--- a/drivers/usb/storage/datafab.c	2013-01-11 15:27:53.995584562 +0100
++++ b/drivers/usb/storage/datafab.c	2013-01-11 15:11:06.471571243 +0100
 @@ -174,7 +174,7 @@
  	// bounce buffer and the actual transfer buffer.
  
@@ -353,9 +377,9 @@ diff -r a83abb859b41 drivers/usb/storage/datafab.c
  		if (!us->extra) {
  			US_DEBUGP("datafab_transport:  Gah! "
  				  "Can't allocate storage for Datafab info struct!\n");
-diff -r a83abb859b41 drivers/usb/storage/jumpshot.c
---- a/drivers/usb/storage/jumpshot.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/jumpshot.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/jumpshot.c b/drivers/usb/storage/jumpshot.c
+--- a/drivers/usb/storage/jumpshot.c	2013-01-11 15:27:53.995584562 +0100
++++ b/drivers/usb/storage/jumpshot.c	2013-01-11 15:11:06.471571243 +0100
 @@ -188,7 +188,7 @@
  	// bounce buffer and the actual transfer buffer.
  
@@ -392,9 +416,9 @@ diff -r a83abb859b41 drivers/usb/storage/jumpshot.c
  		if (!us->extra) {
  			US_DEBUGP("jumpshot_transport:  Gah! Can't allocate storage for jumpshot info struct!\n");
  			return USB_STOR_TRANSPORT_ERROR;
-diff -r a83abb859b41 drivers/usb/storage/karma.c
---- a/drivers/usb/storage/karma.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/karma.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/karma.c b/drivers/usb/storage/karma.c
+--- a/drivers/usb/storage/karma.c	2013-01-11 15:27:53.995584562 +0100
++++ b/drivers/usb/storage/karma.c	2013-01-11 15:11:06.471571243 +0100
 @@ -182,11 +182,11 @@
  static int rio_karma_init(struct us_data *us)
  {
@@ -409,9 +433,9 @@ diff -r a83abb859b41 drivers/usb/storage/karma.c
  	if (!data->recv) {
  		kfree(data);
  		goto out;
-diff -r a83abb859b41 drivers/usb/storage/onetouch.c
---- a/drivers/usb/storage/onetouch.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/onetouch.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/onetouch.c b/drivers/usb/storage/onetouch.c
+--- a/drivers/usb/storage/onetouch.c	2013-01-11 15:27:53.995584562 +0100
++++ b/drivers/usb/storage/onetouch.c	2013-01-11 15:11:06.471571243 +0100
 @@ -163,7 +163,7 @@
  			usb_kill_urb(onetouch->irq);
  			break;
@@ -421,9 +445,9 @@ diff -r a83abb859b41 drivers/usb/storage/onetouch.c
  				dev_err(&onetouch->irq->dev->dev,
  					"usb_submit_urb failed\n");
  			break;
-diff -r a83abb859b41 drivers/usb/storage/realtek_cr.c
---- a/drivers/usb/storage/realtek_cr.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/realtek_cr.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/realtek_cr.c b/drivers/usb/storage/realtek_cr.c
+--- a/drivers/usb/storage/realtek_cr.c	2013-01-11 15:27:53.995584562 +0100
++++ b/drivers/usb/storage/realtek_cr.c	2013-01-11 15:11:06.471571243 +0100
 @@ -367,7 +367,7 @@
  	u8 cmnd[12] = { 0 };
  	u8 *buf;
@@ -451,9 +475,9 @@ diff -r a83abb859b41 drivers/usb/storage/realtek_cr.c
  	if (buf == NULL)
  		return USB_STOR_TRANSPORT_ERROR;
  
-diff -r a83abb859b41 drivers/usb/storage/sddr09.c
---- a/drivers/usb/storage/sddr09.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/sddr09.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/sddr09.c b/drivers/usb/storage/sddr09.c
+--- a/drivers/usb/storage/sddr09.c	2013-01-11 15:27:53.999584730 +0100
++++ b/drivers/usb/storage/sddr09.c	2013-01-11 15:11:06.475571244 +0100
 @@ -692,7 +692,7 @@
  		return result;
  	}
@@ -519,9 +543,9 @@ diff -r a83abb859b41 drivers/usb/storage/sddr09.c
  	if (!us->extra)
  		return -ENOMEM;
  	us->extra_destructor = sddr09_card_info_destructor;
-diff -r a83abb859b41 drivers/usb/storage/sddr55.c
---- a/drivers/usb/storage/sddr55.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/sddr55.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/sddr55.c b/drivers/usb/storage/sddr55.c
+--- a/drivers/usb/storage/sddr55.c	2013-01-11 15:27:53.999584730 +0100
++++ b/drivers/usb/storage/sddr55.c	2013-01-11 15:11:06.475571244 +0100
 @@ -216,7 +216,7 @@
  
  	len = min((unsigned int) sectors, (unsigned int) info->blocksize >>
@@ -569,9 +593,9 @@ diff -r a83abb859b41 drivers/usb/storage/sddr55.c
  		if (!us->extra)
  			return USB_STOR_TRANSPORT_ERROR;
  		us->extra_destructor = sddr55_card_info_destructor;
-diff -r a83abb859b41 drivers/usb/storage/shuttle_usbat.c
---- a/drivers/usb/storage/shuttle_usbat.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/shuttle_usbat.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/shuttle_usbat.c b/drivers/usb/storage/shuttle_usbat.c
+--- a/drivers/usb/storage/shuttle_usbat.c	2013-01-11 15:27:53.999584730 +0100
++++ b/drivers/usb/storage/shuttle_usbat.c	2013-01-11 15:11:06.475571244 +0100
 @@ -1068,7 +1068,7 @@
  	if (!us || !info)
  		return USB_STOR_TRANSPORT_ERROR;
@@ -617,9 +641,9 @@ diff -r a83abb859b41 drivers/usb/storage/shuttle_usbat.c
  	if (!us->extra) {
  		US_DEBUGP("init_usbat: Gah! Can't allocate storage for usbat info struct!\n");
  		return 1;
-diff -r a83abb859b41 drivers/usb/storage/transport.c
---- a/drivers/usb/storage/transport.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/transport.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/transport.c b/drivers/usb/storage/transport.c
+--- a/drivers/usb/storage/transport.c	2013-01-11 15:27:53.999584730 +0100
++++ b/drivers/usb/storage/transport.c	2013-01-11 15:11:06.475571244 +0100
 @@ -151,7 +151,7 @@
  	us->current_urb->transfer_dma = us->iobuf_dma;
  
@@ -638,9 +662,9 @@ diff -r a83abb859b41 drivers/usb/storage/transport.c
  	if (result) {
  		US_DEBUGP("usb_sg_init returned %d\n", result);
  		return USB_STOR_XFER_ERROR;
-diff -r a83abb859b41 drivers/usb/storage/uas.c
---- a/drivers/usb/storage/uas.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/uas.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/uas.c b/drivers/usb/storage/uas.c
+--- a/drivers/usb/storage/uas.c	2013-01-11 15:27:53.999584730 +0100
++++ b/drivers/usb/storage/uas.c	2013-01-11 15:11:06.475571244 +0100
 @@ -142,7 +142,7 @@
  		struct scsi_pointer *scp = (void *)cmdinfo;
  		struct scsi_cmnd *cmnd = container_of(scp,
@@ -650,9 +674,9 @@ diff -r a83abb859b41 drivers/usb/storage/uas.c
  	}
  }
  
-diff -r a83abb859b41 drivers/usb/storage/usb.c
---- a/drivers/usb/storage/usb.c	Tue Aug 07 17:17:03 2012 +0200
-+++ b/drivers/usb/storage/usb.c	Tue Aug 07 17:18:51 2012 +0200
+diff -ur a/drivers/usb/storage/usb.c b/drivers/usb/storage/usb.c
+--- a/drivers/usb/storage/usb.c	2013-01-11 15:27:53.999584730 +0100
++++ b/drivers/usb/storage/usb.c	2013-01-11 15:11:06.475571244 +0100
 @@ -409,7 +409,7 @@
  	usb_set_intfdata(intf, us);
  

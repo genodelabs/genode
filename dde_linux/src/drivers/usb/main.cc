@@ -38,8 +38,6 @@ extern "C" void subsys_input_init();
 extern "C" void module_evdev_init();
 extern "C" void module_hid_init();
 extern "C" void module_hid_init_core();
-extern "C" void module_usb_mouse_init();
-extern "C" void module_usb_kbd_init();
 extern "C" void module_usb_stor_init();
 
 extern "C" void start_input_service(void *ep);
@@ -66,8 +64,6 @@ static void init(Services *services)
 
 		/* HID */
 		module_hid_init();
-		module_usb_mouse_init();
-		module_usb_kbd_init();
 	}
 
 	/* host controller */
