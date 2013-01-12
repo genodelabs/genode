@@ -1,0 +1,2 @@
+This program is a special variant of 'nit_fb' that fades out the view when
+unfocused. For information about configuring it, refer to the README of nit_fb.
