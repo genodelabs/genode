@@ -1,6 +1,6 @@
 FREETYPE     = freetype-2.3.9
 FREETYPE_TGZ = $(FREETYPE).tar.gz
-FREETYPE_URL = http://mirrors.zerg.biz/nongnu/freetype/$(FREETYPE_TGZ)
+FREETYPE_URL = http://mirrors.zerg.biz/nongnu/freetype/freetype-old/$(FREETYPE_TGZ)
 
 #
 # Interface to top-level prepare Makefile
