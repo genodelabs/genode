@@ -119,6 +119,22 @@ long config_arg(const char *attr, long default_value)
 }
 
 
+struct Config_args
+{
+	long xpos, ypos, width, height;
+	unsigned refresh_rate;
+
+	Config_args()
+	:
+		xpos(config_arg("xpos",   0)),
+		ypos(config_arg("ypos",   0)),
+		width(config_arg("width",  0)),
+		height(config_arg("height", 0)),
+		refresh_rate(config_arg("refresh_rate", 0))
+	{ }
+};
+
+
 int main(int argc, char **argv)
 {
 	using namespace Genode;
@@ -126,9 +142,9 @@ int main(int argc, char **argv)
 	/*
 	 * Read arguments from config
 	 */
-	long view_x = config_arg("xpos",  0), view_y = config_arg("ypos",   0),
-	     view_w = config_arg("width", 0), view_h = config_arg("height", 0),
-	     refresh_rate = config_arg("refresh_rate", 0);
+	Config_args cfg;
+	long view_x = cfg.xpos,  view_y = cfg.ypos,
+	     view_w = cfg.width, view_h = cfg.height;
 
 	/*
 	 * Open Nitpicker session
@@ -144,8 +160,8 @@ int main(int argc, char **argv)
 		view_w = mode.width(), view_h = mode.height();
 	}
 
-	PINF("using xywh=(%ld,%ld,%ld,%ld) refresh_rate=%ld",
-	     view_x, view_y, view_w, view_h, refresh_rate);
+	PINF("using xywh=(%ld,%ld,%ld,%ld) refresh_rate=%u",
+	     view_x, view_y, view_w, view_h, cfg.refresh_rate);
 
 	/*
 	 * Create Nitpicker view and bring it to front
@@ -183,14 +199,45 @@ int main(int argc, char **argv)
 	env()->parent()->announce(ep.manage(&fb_root));
 	env()->parent()->announce(ep.manage(&input_root));
 
-	if (!refresh_rate)
-		sleep_forever();
+	/*
+	 * Register signal handler for config changes
+	 */
+	Signal_receiver sig_rec;
+	Signal_context sig_ctx;
+	config()->sigh(sig_rec.manage(&sig_ctx));
 
-	static Timer::Connection timer;
-	static Framebuffer::Session_client nit_fb(nitpicker.framebuffer_session());
-	while (true) {
-		timer.msleep(refresh_rate);
-		nit_fb.refresh(0, 0, view_w, view_h);
+	for (;;) {
+
+		bool reload_config = false;
+
+		if (!cfg.refresh_rate) {
+
+			sig_rec.wait_for_signal();
+			reload_config = true;
+
+		} else {
+
+			static Timer::Connection timer;
+			static Framebuffer::Session_client nit_fb(nitpicker.framebuffer_session());
+
+			timer.msleep(cfg.refresh_rate);
+			nit_fb.refresh(0, 0, view_w, view_h);
+
+			if (sig_rec.pending()) {
+				sig_rec.wait_for_signal();
+				reload_config = true;
+			}
+		}
+
+		if (reload_config) {
+			try {
+				config()->reload();
+				cfg = Config_args();
+				view.viewport(cfg.xpos, cfg.ypos, cfg.width, cfg.height, 0, 0, true);
+			} catch (...) {
+				PERR("Error while reloading config");
+			}
+		}
 	}
 	return 0;
 }
