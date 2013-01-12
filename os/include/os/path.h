@@ -229,7 +229,9 @@ namespace Genode {
 
 			void import(char const *path, char const *pwd = 0) { _import(path, pwd); }
 
-			char  *base() { return _path; }
+			char       *base()       { return _path; }
+			char const *base() const { return _path; }
+
 			size_t max_len() { return _path_max_len; }
 
 			void remove_trailing(char c) { remove_trailing(c, _path); }
