@@ -29,6 +29,8 @@ namespace File_system {
 
 		Node_handle() : value(-1) { }
 		Node_handle(int v) : value(v) { }
+
+		bool valid() const { return value != -1; }
 	};
 
 
@@ -273,6 +275,11 @@ namespace File_system {
 		virtual void move(Dir_handle, Name const &from,
 		                  Dir_handle, Name const &to) = 0;
 
+		/**
+		 * Register handler that should be notified on node changes
+		 */
+		virtual void sigh(Node_handle, Signal_context_capability sigh) = 0;
+
 
 		/*******************
 		 ** RPC interface **
@@ -307,6 +314,9 @@ namespace File_system {
 		GENODE_RPC_THROW(Rpc_move, void, move,
 		                 GENODE_TYPE_LIST(Permission_denied, Invalid_name, Lookup_failed),
 		                 Dir_handle, Name const &, Dir_handle, Name const &);
+		GENODE_RPC_THROW(Rpc_sigh, void, sigh,
+		                 GENODE_TYPE_LIST(Invalid_handle),
+		                 Node_handle, Signal_context_capability);
 
 		/*
 		 * Manual type-list definition, needed because the RPC interface
@@ -324,8 +334,9 @@ namespace File_system {
 		        Meta::Type_tuple<Rpc_unlink,
 		        Meta::Type_tuple<Rpc_truncate,
 		        Meta::Type_tuple<Rpc_move,
+		        Meta::Type_tuple<Rpc_sigh,
 		                         Meta::Empty>
-		        > > > > > > > > > > Rpc_functions;
+		        > > > > > > > > > > > Rpc_functions;
 	};
 }
 

@@ -46,6 +46,12 @@ namespace File_system {
 			Node *_nodes[MAX_NODE_HANDLES];
 
 			/**
+			 * Each open node handle can act as a listener to be informed about
+			 * node changes.
+			 */
+			Listener _listeners[MAX_NODE_HANDLES];
+
+			/**
 			 * Allocate node handle
 			 *
 			 * \throw Out_of_node_handles
@@ -90,8 +96,30 @@ namespace File_system {
 			{
 				Lock::Guard guard(_lock);
 
-				if (_in_range(handle.value))
-					_nodes[handle.value] = 0;
+				if (!_in_range(handle.value))
+					return;
+
+				/*
+				 * Notify listeners about the changed file.
+				 */
+				Node *node = dynamic_cast<Node *>(_nodes[handle.value]);
+				if (!node) { return; }
+
+				node->lock();
+				node->notify_listeners();
+
+				/*
+				 * De-allocate handle
+				 */
+				Listener &listener = _listeners[handle.value];
+
+				if (listener.valid())
+					node->remove_listener(&listener);
+
+				_nodes[handle.value] = 0;
+				listener = Listener();
+
+				node->unlock();
 			}
 
 			/**
@@ -122,10 +150,47 @@ namespace File_system {
 			{
 				Lock::Guard guard(_lock);
 
-				if (!_in_range(h1.value) || !_in_range(h2.value))
+				if (!_in_range(h1.value) || !_in_range(h2.value)) {
+					PDBG("refer_to_same_node -> Invalid_handle");
 					throw Invalid_handle();
+				}
 
 				return _nodes[h1.value] == _nodes[h2.value];
+			}
+
+			/**
+			 * Register signal handler to be notified of node changes
+			 */
+			void sigh(Node_handle handle, Signal_context_capability sigh)
+			{
+				Lock::Guard guard(_lock);
+
+				if (!_in_range(handle.value))
+					throw Invalid_handle();
+
+				Node *node = dynamic_cast<Node *>(_nodes[handle.value]);
+				if (!node) {
+					PDBG("Invalid_handle");
+					throw Invalid_handle();
+				}
+
+				node->lock();
+				Node_lock_guard node_lock_guard(*node);
+
+				Listener &listener = _listeners[handle.value];
+
+				/*
+				 * If there was already a handler registered for the node,
+				 * remove the old handler.
+				 */
+				if (listener.valid())
+					node->remove_listener(&listener);
+
+				/*
+				 * Register new handler
+				 */
+				listener = Listener(sigh);
+				node->add_listener(&listener);
 			}
 	};
 }

@@ -84,6 +84,8 @@ namespace File_system {
 				 * by zero chunks, which do not contribute to 'used_size()'.
 				 */
 				_length = max(_length, seek_offset + len);
+
+				mark_as_updated();
 				return 0;
 			}
 
@@ -95,6 +97,8 @@ namespace File_system {
 					_chunk.truncate(size);
 
 				_length = size;
+
+				mark_as_updated();
 			}
 	};
 }

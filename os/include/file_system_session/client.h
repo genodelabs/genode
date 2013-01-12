@@ -100,6 +100,10 @@ namespace File_system {
 				call<Rpc_move>(from_dir, from_name, to_dir, to_name);
 			}
 
+			void sigh(Node_handle node, Signal_context_capability sigh)
+			{
+				call<Rpc_sigh>(node, sigh);
+			}
 	};
 }
 

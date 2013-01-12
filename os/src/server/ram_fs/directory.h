@@ -43,12 +43,16 @@ namespace File_system {
 				 */
 				_entries.insert(node);
 				_num_entries++;
+
+				mark_as_updated();
 			}
 
 			void discard_unsynchronized(Node *node)
 			{
 				_entries.remove(node);
 				_num_entries--;
+
+				mark_as_updated();
 			}
 
 			Node *lookup_and_lock(char const *path, bool return_parent = false)

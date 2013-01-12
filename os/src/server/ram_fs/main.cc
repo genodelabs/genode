@@ -387,7 +387,27 @@ namespace File_system {
 
 					from_dir->discard_unsynchronized(node);
 					to_dir->adopt_unsynchronized(node);
+
+					/*
+					 * If the file was moved from one directory to another we
+					 * need to inform the new directory 'to_dir'. The original
+					 * directory 'from_dir' will always get notified (i.e.,
+					 * when just the file name was changed) below.
+					 */
+					to_dir->mark_as_updated();
+					to_dir->notify_listeners();
 				}
+
+				from_dir->mark_as_updated();
+				from_dir->notify_listeners();
+
+				node->mark_as_updated();
+				node->notify_listeners();
+			}
+
+			void sigh(Node_handle node_handle, Signal_context_capability sigh)
+			{
+				_handle_registry.sigh(node_handle, sigh);
 			}
 	};
 

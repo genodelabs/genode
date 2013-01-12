@@ -846,7 +846,11 @@ namespace File_system {
 						PERR("f_rename() returned an unexpected error code");
 						throw Lookup_failed();
 				}
+			}
 
+			void sigh(Node_handle, Genode::Signal_context_capability)
+			{
+				PWRN("File_system::Session::sigh not supported");
 			}
 	};
 

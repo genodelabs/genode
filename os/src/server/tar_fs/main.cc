@@ -419,6 +419,11 @@ namespace File_system {
 
 				throw Permission_denied();
 			}
+
+			void sigh(Node_handle, Genode::Signal_context_capability)
+			{
+				PWRN("File_system::Session::sigh not supported");
+			}
 	};
 
 
