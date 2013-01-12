@@ -1,0 +1,16 @@
+The 'fs_rom' server translates the 'File_system' session interface to the
+'ROM' session' interface. Each request for a ROM file is handled by looking
+up an equally named file on the file system. If no such file could be found,
+the server watches the file system for the creation of the corresponding file.
+Furthermore, the server reflects file changes as signals to the ROM session.
+
+Limitations
+-----------
+
+* Symbolic links are not handled
+* The server needs to allocate RAM for each requested file. The RAM is always
+  allocated from the RAM session of the server. The RAM quota consumed by the
+  server depends on the client requests and the size of the requested files.
+  Therefore, one instance of the server should not be used by untrusted clients
+  and critical clients at the same time. In such situations, multiple instances
+  of the server could be used.

@@ -292,6 +292,10 @@ Separate components:
   Provides each file contained in a tar file obtained via Genode's ROM session
   as separate ROM session.
 
+:'os/src/server/fs_rom':
+  Provides files stored in a file system as individual ROM sessions. Please
+  refer to 'os/src/server/fs_rom' for more information.
+
 :'os/src/server/iso9660':
   Provides each file of an ISO9660 file system accessed via a block session as
   separate ROM session.
