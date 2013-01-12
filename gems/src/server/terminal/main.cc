@@ -994,7 +994,7 @@ int main(int, char **)
 
 			bool press   = (event->type() == Input::Event::PRESS   ? true : false);
 			bool release = (event->type() == Input::Event::RELEASE ? true : false);
-			int  keycode =  event->keycode();
+			int  keycode =  event->code();
 
 			if (press || release)
 				scancode_tracker.submit(keycode, press);

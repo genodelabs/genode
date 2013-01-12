@@ -45,7 +45,7 @@ namespace Input {
  * Input event call-back function
  */
 static void input_callback(enum input_event_type type,
-                           unsigned keycode,
+                           unsigned code,
                            int absolute_x, int absolute_y,
                            int relative_x, int relative_y)
 {
@@ -58,7 +58,7 @@ static void input_callback(enum input_event_type type,
 	}
 
 	try {
-		ev_queue.add(Input::Event(t, keycode,
+		ev_queue.add(Input::Event(t, code,
 		                          absolute_x, absolute_y,
 		                          relative_x, relative_y));
 	} catch (Input_ring_buffer::Overflow) {

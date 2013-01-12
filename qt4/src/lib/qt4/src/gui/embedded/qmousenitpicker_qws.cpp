@@ -76,7 +76,7 @@ void QNitpickerMouseHandler::processMouseEvent(Input::Event *ev)
 
 	switch (ev->type()) {
 		case Input::Event::PRESS:
-			switch (ev->keycode()) {
+			switch (ev->code()) {
 				case Input::BTN_LEFT:
 					state |= Qt::LeftButton;
 					break;
@@ -95,7 +95,7 @@ void QNitpickerMouseHandler::processMouseEvent(Input::Event *ev)
 			}
 			break;
 		case Input::Event::RELEASE:
-			switch (ev->keycode()) {
+			switch (ev->code()) {
 				case Input::BTN_LEFT:
 					state &= ~Qt::LeftButton;
 					break;

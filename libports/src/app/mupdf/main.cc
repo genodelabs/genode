@@ -329,9 +329,9 @@ int main(int, char **)
 
 			if (ev.type() == Input::Event::PRESS && key_cnt == 1) {
 
-				PDBG("key %d pressed", ev.keycode());
+				PDBG("key %d pressed", ev.code());
 
-				int const ascii = keycode_to_ascii(ev.keycode());
+				int const ascii = keycode_to_ascii(ev.code());
 				if (ascii)
 					pdf_view.handle_key(ascii);
 			}

@@ -77,20 +77,17 @@ void QNitpickerInputHandler::readInputData()
 
 			Input::Event *ev = &ev_buf[i];
 
-//			qDebug() << "QNitpickerInputHandler: received input event: keycode == "
-//			         << ev->keycode();
-
-			if (ev->type() == Input::Event::MOTION ||
-				  ev->type() == Input::Event::WHEEL ||
-				  ev->keycode() == Input::BTN_LEFT ||
-          ev->keycode() == Input::BTN_RIGHT ||
-				  ev->keycode() == Input::BTN_MIDDLE) {
+			if (ev->type() == Input::Event::MOTION
+			 || ev->type() == Input::Event::WHEEL
+			 || ev->code() == Input::BTN_LEFT
+			 || ev->code() == Input::BTN_RIGHT
+			 || ev->code() == Input::BTN_MIDDLE) {
 
 #ifndef QT_NO_QWS_MOUSE_NITPICKER
 				mouse->processMouseEvent(ev);
 #endif
 
-			} else if (ev->keycode() < 128) {
+			} else if (ev->code() < 128) {
 
 #ifndef QT_NO_QWS_KEYBOARD_NITPICKER
 				keyboard->processKeyEvent(ev);

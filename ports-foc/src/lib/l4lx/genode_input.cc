@@ -107,18 +107,18 @@ extern "C" {
 			}
 		case Event::PRESS:
 			{
-				if (ev->keycode() < BTN_MISC)
-					genode_input_event(keyb, EV_KEY, ev->keycode(), 1);
+				if (ev->code() < BTN_MISC)
+					genode_input_event(keyb, EV_KEY, ev->code(), 1);
 				else
-					genode_input_event(mouse, EV_KEY, ev->keycode(), 1);
+					genode_input_event(mouse, EV_KEY, ev->code(), 1);
 				return;
 			}
 		case Event::RELEASE:
 			{
-				if (ev->keycode() < BTN_MISC)
-					genode_input_event(keyb, EV_KEY, ev->keycode(), 0);
+				if (ev->code() < BTN_MISC)
+					genode_input_event(keyb, EV_KEY, ev->code(), 0);
 				else
-					genode_input_event(mouse, EV_KEY, ev->keycode(), 0);
+					genode_input_event(mouse, EV_KEY, ev->code(), 0);
 				return;
 			}
 		case Event::WHEEL:

@@ -20,14 +20,27 @@ namespace Input {
 	{
 		public:
 
-			enum Type { INVALID, MOTION, PRESS, RELEASE, WHEEL, LEAVE };
+			enum Type { INVALID, MOTION, PRESS, RELEASE, WHEEL, FOCUS, LEAVE };
 
 		private:
 
 			Type _type;
-			int  _keycode;
-			int  _ax, _ay;
-			int  _rx, _ry;
+
+			/*
+			 * For PRESS and RELEASE events, '_code' contains the key code.
+			 * For FOCUS events, '_code' is set to 1 (focus) or 0 (unfocus).
+			 */
+			int _code;
+
+			/*
+			 * Absolute pointer position coordinates
+			 */
+			int _ax, _ay;
+
+			/*
+			 * Relative pointer motion vector
+			 */
+			int _rx, _ry;
 
 		public:
 
@@ -35,21 +48,21 @@ namespace Input {
 			 * Constructors
 			 */
 			Event():
-				_type(INVALID), _keycode(0), _ax(0), _ay(0), _rx(0), _ry(0) { }
+				_type(INVALID), _code(0), _ax(0), _ay(0), _rx(0), _ry(0) { }
 
-			Event(Type type, int keycode, int ax, int ay, int rx, int ry):
-				_type(type), _keycode(keycode),
+			Event(Type type, int code, int ax, int ay, int rx, int ry):
+				_type(type), _code(code),
 				_ax(ax), _ay(ay), _rx(rx), _ry(ry) { }
 
 			/**
 			 * Accessors
 			 */
-			Type type()    const { return _type; }
-			int  keycode() const { return _keycode; }
-			int  ax()      const { return _ax; }
-			int  ay()      const { return _ay; }
-			int  rx()      const { return _rx; }
-			int  ry()      const { return _ry; }
+			Type type() const { return _type; }
+			int  code() const { return _code; }
+			int  ax()   const { return _ax; }
+			int  ay()   const { return _ay; }
+			int  rx()   const { return _rx; }
+			int  ry()   const { return _ry; }
 
 			bool is_absolute_motion() const { return _type == MOTION && !_rx && !_ry; }
 			bool is_relative_motion() const { return _type == MOTION && (_rx || _ry); }

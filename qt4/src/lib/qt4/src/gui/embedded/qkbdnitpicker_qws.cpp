@@ -58,14 +58,12 @@ QNitpickerKeyboardHandler::~QNitpickerKeyboardHandler()
 
 void QNitpickerKeyboardHandler::processKeyEvent(Input::Event *ev)
 {
-//	qDebug() << "processKeyEvent(): keycode ==" << ev->keycode();
-	
-	int keycode = ev->keycode();
-	
+	int keycode = ev->code();
+
 	if (ev->type() == Input::Event::RELEASE) {
 		keycode |= 0x80;
 	}
-	
+
 	doKey(keycode);
 }
 

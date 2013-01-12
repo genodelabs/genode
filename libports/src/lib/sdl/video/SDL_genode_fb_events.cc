@@ -72,25 +72,25 @@ extern "C" {
 				SDL_PrivateMouseMotion(0, 1, curr.rx(), curr.ry());
 				break;
 			case Input::Event::PRESS:
-				if(curr.keycode() >= Input::BTN_MISC &&
-				   curr.keycode() <= Input::BTN_GEAR_UP)
+				if(curr.code() >= Input::BTN_MISC &&
+				   curr.code() <= Input::BTN_GEAR_UP)
 					SDL_PrivateMouseButton(SDL_PRESSED,
-					                       buttonmap[curr.keycode()],
+					                       buttonmap[curr.code()],
 					                       0, 0);
 				else
 					SDL_PrivateKeyboard(SDL_PRESSED,
-					                    Genode_Fb_TranslateKey(curr.keycode(),
+					                    Genode_Fb_TranslateKey(curr.code(),
 					                    &ksym));
 				break;
 			case Input::Event::RELEASE:
-				if(curr.keycode() >= Input::BTN_MISC &&
-				   curr.keycode() <= Input::BTN_GEAR_UP)
+				if(curr.code() >= Input::BTN_MISC &&
+				   curr.code() <= Input::BTN_GEAR_UP)
 					SDL_PrivateMouseButton(SDL_RELEASED,
-					                       buttonmap[curr.keycode()],
+					                       buttonmap[curr.code()],
 					                       0, 0);
 				else
 					SDL_PrivateKeyboard(SDL_RELEASED,
-					                    Genode_Fb_TranslateKey(curr.keycode(),
+					                    Genode_Fb_TranslateKey(curr.code(),
 					                    &ksym));
 				break;
 			case Input::Event::WHEEL:

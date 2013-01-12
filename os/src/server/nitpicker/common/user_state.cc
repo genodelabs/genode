@@ -51,12 +51,12 @@ void User_state::handle_event(Input::Event ev)
 	 * Mangle incoming events
 	 */
 
-	int keycode = ev.keycode();
+	int keycode = ev.code();
 	int ax = _mouse_pos.x(), ay = _mouse_pos.y();
 	int rx = 0, ry = 0; /* skip info about relative motion per default */
 
 	/* KEY_PRINT and KEY_SYSRQ both enter kill mode */
-	if ((ev.type() == Event::PRESS) && (ev.keycode() == KEY_SYSRQ))
+	if ((ev.type() == Event::PRESS) && (ev.code() == KEY_SYSRQ))
 		keycode = KEY_PRINT;
 
 	/* transparently handle absolute and relative motion events */
@@ -106,7 +106,7 @@ void User_state::handle_event(Input::Event ev)
 	 * Detect mouse press event in kill mode, used to select the session
 	 * to lock out.
 	 */
-	if (kill() && ev.type() == Event::PRESS && ev.keycode() == Input::BTN_LEFT) {
+	if (kill() && ev.type() == Event::PRESS && ev.code() == Input::BTN_LEFT) {
 		if (pointed_view && pointed_view->session())
 			lock_out_session(pointed_view->session());
 
@@ -120,15 +120,34 @@ void User_state::handle_event(Input::Event ev)
 
 		/* update focused view */
 		if (pointed_view != focused_view()
-		 && _mouse_button(ev.keycode())) {
+		 && _mouse_button(ev.code())) {
+
+			bool const focus_stays_in_session =
+				(_focused_view && pointed_view &&
+				 _focused_view->session() == pointed_view->session());
 
 			/*
-			 * Do not update the whole screen when clicking on another
-			 * view of the already focused session.
+			 * Update the whole screen when the focus change results in
+			 * changing the focus to another session.
 			 */
-			if (flat() && _focused_view && pointed_view
-			 && _focused_view->session() != pointed_view->session())
+			if (flat() && !focus_stays_in_session)
 				update_all = true;
+
+			/*
+			 * Notify both the old focussed session and the new one.
+			 */
+			if (!focus_stays_in_session) {
+
+				if (_focused_view) {
+					Input::Event unfocus_ev(Input::Event::FOCUS, 0, ax, ay, 0, 0);
+					_focused_view->session()->submit_input_event(&unfocus_ev);
+				}
+
+				if (pointed_view) {
+					Input::Event focus_ev(Input::Event::FOCUS, 1, ax, ay, 0, 0);
+					pointed_view->session()->submit_input_event(&focus_ev);
+				}
+			}
 
 			if (!flat() || !_focused_view || !pointed_view)
 				update_all = true;
@@ -137,9 +156,9 @@ void User_state::handle_event(Input::Event ev)
 		}
 
 		/* toggle kill and xray modes */
-		if (ev.keycode() == KILL_KEY || ev.keycode() == XRAY_KEY) {
+		if (ev.code() == KILL_KEY || ev.code() == XRAY_KEY) {
 
-			Mode::_mode ^= ev.keycode() == KILL_KEY ? KILL : XRAY;
+			Mode::_mode ^= ev.code() == KILL_KEY ? KILL : XRAY;
 			update_all = true;
 		}
 	}
@@ -186,7 +205,7 @@ void User_state::handle_event(Input::Event ev)
 
 	/* deliver press/release event to session with focused view */
 	if (ev.type() == Event::PRESS || ev.type() == Event::RELEASE)
-		if (!_masked_key(ev.keycode()) && focused_view())
+		if (!_masked_key(ev.code()) && focused_view())
 			focused_view()->session()->submit_input_event(&ev);
 }
 

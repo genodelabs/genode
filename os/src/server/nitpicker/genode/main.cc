@@ -513,7 +513,7 @@ namespace Nitpicker {
 				 */
 				Event e = *ev;
 				if (e.ax() || e.ay())
-					e = Event(e.type(), e.keycode(), e.ax(),
+					e = Event(e.type(), e.code(), e.ax(),
 					          max(0, e.ay() - v_offset()), e.rx(), e.ry());
 
 				_input_session_component.submit(&e);

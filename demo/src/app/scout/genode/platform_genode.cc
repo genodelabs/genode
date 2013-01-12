@@ -159,14 +159,14 @@ class Timer_thread : public Thread<4096>
 					_mx = e.ax();
 					_my = e.ay();
 					ev.assign(e.type() == Input::Event::PRESS ? Event::PRESS : Event::RELEASE,
-					          e.ax(), e.ay(), e.keycode());
+					          e.ax(), e.ay(), e.code());
 					_evqueue.add(&ev);
 				}
 
 				if (e.type() == Input::Event::MOTION) {
 					_mx = e.ax();
 					_my = e.ay();
-					ev.assign(Event::MOTION, e.ax(), e.ay(), e.keycode());
+					ev.assign(Event::MOTION, e.ax(), e.ay(), e.code());
 					_evqueue.add(&ev);
 				}
 			}

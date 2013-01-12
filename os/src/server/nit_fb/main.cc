@@ -97,7 +97,7 @@ namespace Input {
 
 					/* apply view offset to absolute motion events */
 					if (e.is_absolute_motion())
-						e = Event(e.type(), e.keycode(),
+						e = Event(e.type(), e.code(),
 						          e.ax() + _dx, e.ay() + _dy, 0, 0);
 					_to_ev_buf[i] = e;
 				}

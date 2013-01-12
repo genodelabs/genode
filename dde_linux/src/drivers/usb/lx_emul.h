@@ -3036,7 +3036,7 @@ struct input_handle;
  * Input event callback
  *
  * \param   type        input event type
- * \param   keycode     key code if type is EVENT_TYPE_PRESS or
+ * \param   code        key code if type is EVENT_TYPE_PRESS or
  *                      EVENT_TYPE_RELEASE
  * \param   absolute_x  absolute horizontal coordinate if type is
  *                      EVENT_TYPE_MOTION
@@ -3054,7 +3054,7 @@ struct input_handle;
  * 0.
  */
 typedef void (*genode_input_event_cb)(enum input_event_type type,
-                                      unsigned keycode,
+                                      unsigned code,
                                       int absolute_x, int absolute_y,
                                       int relative_x, int relative_y);
 
