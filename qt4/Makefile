@@ -15,10 +15,10 @@ REP_DIR := $(realpath .)
 
 include $(REP_DIR)/lib/mk/qt_version.inc
 
-QT4_URL = ftp://ftp.trolltech.com/qt/source
+QT4_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/source
 QT4_TGZ = $(QT4).tar.gz
 
-QTSCRIPTCLASSIC_URL = http://get.qt.nokia.com/qt/solutions/lgpl
+QTSCRIPTCLASSIC_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/solutions/lgpl
 QTSCRIPTCLASSIC     = qtscriptclassic-1.0_1-opensource
 QTSCRIPTCLASSIC_TGZ = $(QTSCRIPTCLASSIC).tar.gz
 
