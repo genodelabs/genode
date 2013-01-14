@@ -408,6 +408,15 @@ namespace Genode {
 			 * Unregister service
 			 */
 			void remove(Service *service) { _services.remove(service); }
+
+			/**
+			 * Unregister all services
+			 */
+			void remove_all()
+			{
+				while (_services.first())
+					remove(_services.first());
+			}
 	};
 }
 
