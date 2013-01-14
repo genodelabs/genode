@@ -13,6 +13,7 @@
 
 #include <base/printf.h>
 #include <base/signal.h>
+#include <base/sleep.h>
 #include <base/thread.h>
 #include <timer_session/connection.h>
 #include <cap_session/connection.h>
@@ -456,21 +457,25 @@ static void lazy_receivers_test()
 	transmitter_1.submit();
 	transmitter_2.submit();
 
-	Signal signal = rec_1.wait_for_signal();
-	printf("returned from wait_for_signal for receiver 1\n");
+	{
+		Signal signal = rec_1.wait_for_signal();
+		printf("returned from wait_for_signal for receiver 1\n");
 
-	signal = rec_2.wait_for_signal();
-	printf("returned from wait_for_signal for receiver 2\n");
+		signal = rec_2.wait_for_signal();
+		printf("returned from wait_for_signal for receiver 2\n");
+	}
 
 	printf("submit and receive signals with multiple receivers out of order\n");
 	transmitter_1.submit();
 	transmitter_2.submit();
 
-	signal = rec_2.wait_for_signal();
-	printf("returned from wait_for_signal for receiver 2\n");
+	{
+		Signal signal = rec_2.wait_for_signal();
+		printf("returned from wait_for_signal for receiver 2\n");
 
-	signal = rec_1.wait_for_signal();
-	printf("returned from wait_for_signal for receiver 1\n");
+		signal = rec_1.wait_for_signal();
+		printf("returned from wait_for_signal for receiver 1\n");
+	}
 
 	printf("TEST %d FINISHED\n", test_cnt);
 }
@@ -499,8 +504,10 @@ static void check_context_management()
 	sender->idle();
 
 	/* collect pending signals and dissolve context from receiver */
-	Signal signal = rec->wait_for_signal();
-	printf("got %d signal(s) from %p\n", signal.num(), signal.context());
+	{
+		Signal signal = rec->wait_for_signal();
+		printf("got %d signal(s) from %p\n", signal.num(), signal.context());
+	}
 	rec->dissolve(context);
 
 	/* let sender spin for some time */
@@ -516,6 +523,71 @@ static void check_context_management()
 
 
 /**
+ * Test if 'Signal_receiver::dissolve()' blocks as long as the signal context
+ * is still referenced by one or more 'Signal' objects
+ */
+
+static Lock signal_context_destroyer_lock(Lock::LOCKED);
+static bool signal_context_destroyed = false;
+
+class Signal_context_destroyer : public Thread<4096>
+{
+	private:
+
+		Signal_receiver *_receiver;
+		Signal_context  *_context;
+
+	public:
+
+		Signal_context_destroyer(Signal_receiver *receiver, Signal_context *context)
+		: _receiver(receiver), _context(context) { }
+
+		void entry()
+		{
+			signal_context_destroyer_lock.lock();
+			_receiver->dissolve(_context);
+			signal_context_destroyed = true;
+			destroy(env()->heap(), _context);
+		}
+};
+
+static void synchronized_context_destruction_test()
+{
+	Signal_receiver receiver;
+
+	Signal_context *context = new (env()->heap()) Signal_context;
+
+	Signal_transmitter transmitter(receiver.manage(context));
+	transmitter.submit();
+
+	Signal_context_destroyer signal_context_destroyer(&receiver, context);
+	signal_context_destroyer.start();
+
+	/* The signal context destroyer thread should not be able to destroy the
+	 * signal context during the 'Signal' objects life time. */
+	{
+		Signal signal = receiver.wait_for_signal();
+
+		/* let the signal context destroyer thread try to destroy the signal context */
+		signal_context_destroyer_lock.unlock();
+		timer.msleep(1000);
+
+		Signal signal_copy = signal;
+		Signal signal_copy2 = signal;
+
+		signal_copy = signal_copy2;
+
+		if (signal_context_destroyed) {
+			PERR("signal context destroyed too early");
+			sleep_forever();
+		}
+	}
+
+	signal_context_destroyer.join();
+}
+
+
+/**
  * Main program
  */
 int main(int, char **)
@@ -527,6 +599,7 @@ int main(int, char **)
 	stress_test();
 	lazy_receivers_test();
 	check_context_management();
+	synchronized_context_destruction_test();
 
 	printf("--- signalling test finished ---\n");
 	return 0;

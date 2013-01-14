@@ -48,42 +48,53 @@ namespace Genode {
 	{
 		private:
 
-			friend class Signal_receiver;
-			friend class Signal_context;
+			struct Data
+			{
+				Signal_context *context;
+				unsigned        num;
 
-			Signal_context *_context;
-			unsigned        _num;
+				/**
+				 * Constructor
+				 *
+				 * \param context  signal context specific for the
+				 *                 signal-receiver capability used for signal
+				 *                 transmission
+				 * \param num      number of signals received from the same
+				 *                 transmitter
+				 */
+				Data(Signal_context *context, unsigned num)
+				: context(context), num(num) { }
+
+				/**
+				 * Default constructor, representing an invalid signal
+				 */
+				Data() : context(0), num(0) { }
+
+			} _data;
 
 			/**
 			 * Constructor
 			 *
-			 * \param context  signal context specific for the signal-receiver
-			 *                 capability used for signal transmission
-			 * \param num      number of signals received from the same transmitter
-			 *
-			 * Signal objects are constructed only by signal receivers.
+			 * Signal objects are constructed by signal receivers only.
 			 */
-			Signal(Signal_context *context, unsigned num)
-			: _context(context), _num(num)
-			{ }
+			Signal(Data data);
+
+			friend class Signal_receiver;
+			friend class Signal_context;
+
+			void _dec_ref_and_unlock();
+			void _inc_ref();
 
 		public:
 
-			/**
-			 * Default constructor, creating an invalid signal
-			 */
-			Signal() : _context(0), _num(0) { }
+			Signal(Signal const &other);
+			Signal &operator=(Signal const &other);
+			~Signal();
 
-			/**
-			 * Return signal context
-			 */
-			Signal_context *context() { return _context; }
-
-			/**
-			 * Return number of signals received from the same transmitter
-			 */
-			unsigned num() const { return _num; }
+			Signal_context *context()       { return _data.context; }
+			unsigned        num()     const { return _data.num; }
 	};
+
 
 	/**
 	 * Signal context
@@ -115,9 +126,13 @@ namespace Genode {
 			 */
 			Signal_receiver *_receiver;
 
-			Lock   _lock;          /* protect '_curr_signal'         */
-			Signal _curr_signal;   /* most-currently received signal */
-			bool   _pending;       /* current signal is valid        */
+			Lock         _lock;          /* protect '_curr_signal'         */
+			Signal::Data _curr_signal;   /* most-currently received signal */
+			bool         _pending;       /* current signal is valid        */
+			unsigned int _ref_cnt;       /* number of references to this context */
+			Lock         _destroy_lock;  /* prevent destruction while the
+			                                context is in use */
+
 
 			/**
 			 * Capability assigned to this context after being assocated with
@@ -127,6 +142,7 @@ namespace Genode {
 			 */
 			Signal_context_capability _cap;
 
+			friend class Signal;
 			friend class Signal_receiver;
 			friend class Signal_context_registry;
 
@@ -137,7 +153,7 @@ namespace Genode {
 			 */
 			Signal_context()
 			: _receiver_le(this), _registry_le(this),
-			  _receiver(0), _pending(0) { }
+			  _receiver(0), _pending(0), _ref_cnt(0) { }
 
 			/**
 			 * Destructor
@@ -271,7 +287,7 @@ namespace Genode {
 			/**
 			 * Locally submit signal to the receiver
 			 */
-			void local_submit(Signal signal);
+			void local_submit(Signal::Data signal);
 
 			/**
 			 * Framework-internal signal-dispatcher

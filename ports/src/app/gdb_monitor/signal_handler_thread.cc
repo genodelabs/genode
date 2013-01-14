@@ -39,10 +39,8 @@ Signal_handler_thread::Signal_handler_thread(Signal_receiver *receiver)
 
 void Signal_handler_thread::entry()
 {
-	Signal s;
-
 	while(1) {
-		s = _signal_receiver->wait_for_signal();
+		Signal s = _signal_receiver->wait_for_signal();
 
 		if (verbose)
 			PDBG("received exception signal");

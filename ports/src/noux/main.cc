@@ -903,13 +903,19 @@ int main(int argc, char **argv)
 	/* handle asynchronous events */
 	while (init_child) {
 
-		Genode::Signal signal = sig_rec.wait_for_signal();
+		/*
+		 * limit the scope of the 'Signal' object, so the signal context may
+		 * get freed by the destruct queue
+		 */
+		{
+			Genode::Signal signal = sig_rec.wait_for_signal();
 
-		Signal_dispatcher_base *dispatcher =
-			static_cast<Signal_dispatcher_base *>(signal.context());
+			Signal_dispatcher_base *dispatcher =
+				static_cast<Signal_dispatcher_base *>(signal.context());
 
-		for (unsigned i = 0; i < signal.num(); i++)
-			dispatcher->dispatch(1);
+			for (unsigned i = 0; i < signal.num(); i++)
+				dispatcher->dispatch(1);
+		}
 
 		destruct_queue.flush();
 
