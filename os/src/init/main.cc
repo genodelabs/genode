@@ -90,12 +90,29 @@ namespace Init {
 			}
 
 			/**
+			 * Unregister child
+			 */
+			void remove(Child *child)
+			{
+				Child_list::remove(&child->_list_element);
+			}
+
+			/**
 			 * Start execution of all children
 			 */
-			void start() {
+			void start()
+			{
 				Genode::List_element<Child> *curr = first();
 				for (; curr; curr = curr->next())
 					curr->object()->start();
+			}
+
+			/**
+			 * Return any of the registered children, or 0 if no child exists
+			 */
+			Child *any()
+			{
+				return first() ? first()->object() : 0;
 			}
 
 
@@ -129,54 +146,97 @@ namespace Init {
 int main(int, char **)
 {
 	using namespace Init;
-
-	try {
-		config_verbose =
-			Genode::config()->xml_node().attribute("verbose").has_value("yes"); }
-	catch (...) { }
+	using namespace Genode;
 
 	/* look for dynamic linker */
 	try {
-		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
+		static Rom_connection rom("ld.lib.so");
+		Process::dynamic_linker(rom.dataspace());
 	} catch (...) { }
 
-	static Genode::Service_registry parent_services;
-	static Genode::Service_registry child_services;
-	static Child_registry           children;
-	static Genode::Cap_connection   cap;
+	static Service_registry parent_services;
+	static Service_registry child_services;
+	static Child_registry   children;
+	static Cap_connection   cap;
 
-	try { determine_parent_services(&parent_services); }
-	catch (...) { }
+	/*
+	 * Signal receiver for config changes
+	 */
+	Signal_receiver sig_rec;
+	Signal_context  sig_ctx;
+	config()->sigh(sig_rec.manage(&sig_ctx));
 
-	/* determine default route for resolving service requests */
-	Genode::Xml_node default_route_node("<empty/>");
-	try {
-		default_route_node =
-			Genode::config()->xml_node().sub_node("default-route"); }
-	catch (...) { }
+	for (;;) {
 
-	/* create children */
-	try {
-		Genode::Xml_node start_node = Genode::config()->xml_node().sub_node("start");
-		for (;; start_node = start_node.next("start")) {
+		try {
+			config_verbose =
+				config()->xml_node().attribute("verbose").has_value("yes"); }
+		catch (...) { }
 
-			children.insert(new (Genode::env()->heap())
-			                Child(start_node, default_route_node, &children,
-			                      read_prio_levels_log2(),
-			                      &parent_services, &child_services, &cap));
+		try { determine_parent_services(&parent_services); }
+		catch (...) { }
 
-			if (start_node.is_last("start")) break;
+		/* determine default route for resolving service requests */
+		Xml_node default_route_node("<empty/>");
+		try {
+			default_route_node =
+			config()->xml_node().sub_node("default-route"); }
+		catch (...) { }
+
+		/* create children */
+		try {
+			Xml_node start_node = config()->xml_node().sub_node("start");
+			for (;; start_node = start_node.next("start")) {
+
+				try {
+					children.insert(new (env()->heap())
+					                Init::Child(start_node, default_route_node,
+					                &children, read_prio_levels_log2(),
+					                &parent_services, &child_services, &cap));
+				}
+				catch (Rom_connection::Rom_connection_failed) {
+					/*
+					 * The binary does not exist. An error message is printed
+					 * by the Rom_connection constructor.
+					 */
+				}
+
+				if (start_node.is_last("start")) break;
+			}
+
+			/* start children */
+			children.start();
 		}
-	}
-	catch (Genode::Xml_node::Nonexistent_sub_node) {
-		PERR("No children to start");
+		catch (Xml_node::Nonexistent_sub_node) {
+			PERR("No children to start"); }
+		catch (Config::Invalid) {
+			PERR("No valid config found"); }
+		catch (Init::Child::Child_name_is_not_unique) { }
+
+		/*
+		 * Respond to config changes at runtime
+		 *
+		 * If the config gets updated to a new version, we kill the current
+		 * scenario and start again with the new config.
+		 */
+
+		/* wait for config change */
+		sig_rec.wait_for_signal();
+
+		/* kill all currently running children */
+		while (children.any()) {
+			Init::Child *child = children.any();
+			children.remove(child);
+			destroy(env()->heap(), child);
+		}
+
+		/* reset knowledge about parent services */
+		parent_services.remove_all();
+
+		/* reload config */
+		config()->reload();
 	}
 
-	/* start children */
-	children.start();
-
-	Genode::sleep_forever();
 	return 0;
 }
 

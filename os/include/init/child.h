@@ -295,6 +295,13 @@ namespace Init {
 
 	class Child : Genode::Child_policy
 	{
+		public:
+
+			/**
+			 * Exception type
+			 */
+			class Child_name_is_not_unique { };
+
 		private:
 
 			friend class Child_registry;
@@ -334,7 +341,6 @@ namespace Init {
 					/* check for a name confict with the other children */
 					if (!registry->is_unique(unique)) {
 						PERR("Child name \"%s\" is not unique", unique);
-						class Child_name_is_not_unique { };
 						throw Child_name_is_not_unique();
 					}
 
