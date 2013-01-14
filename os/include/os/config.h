@@ -29,6 +29,15 @@ namespace Genode {
 			Dataspace_capability _config_ds;
 			Xml_node             _config_xml;
 
+			Xml_node _config_xml_node()
+			{
+				if (_config_ds.valid())
+					return Xml_node(env()->rm_session()->attach(_config_ds),
+					                Genode::Dataspace_client(_config_ds).size());
+				else
+					return Xml_node("<config/>");
+			}
+
 		public:
 
 			/**
@@ -42,8 +51,7 @@ namespace Genode {
 			Config() :
 				_config_rom("config"),
 				_config_ds(_config_rom.dataspace()),
-				_config_xml(env()->rm_session()->attach(_config_ds),
-			                Genode::Dataspace_client(_config_ds).size())
+				_config_xml(_config_xml_node())
 			{ }
 
 			Xml_node xml_node() { return _config_xml; }
@@ -65,12 +73,13 @@ namespace Genode {
 			{
 				try {
 					/* re-acquire dataspace from ROM session */
-					env()->rm_session()->detach(_config_xml.addr());
+					if (_config_ds.valid())
+						env()->rm_session()->detach(_config_xml.addr());
+
 					_config_ds = _config_rom.dataspace();
 
 					/* re-initialize XML node with new config data */
-					_config_xml = Xml_node(env()->rm_session()->attach(_config_ds),
-					                       Genode::Dataspace_client(_config_ds).size());
+					_config_xml = _config_xml_node();
 
 				} catch (Genode::Xml_node::Invalid_syntax) {
 					PERR("Config file has invalid syntax");
