@@ -33,7 +33,8 @@ can be obtained in two ways: as pre-compiled binaries or manually compiled:
   extract the archive, use the following command:
   ! sudo tar xPfj genode-toolchain-<version>-<arch>.tar.bz2
   The use of the 'P' option ensures that the tool chain will be installed at
-  the correct absolute path.
+  the correct absolute path '/usr/local/genode-gcc' where the build system
+  expects it to reside by default.
   [http://sourceforge.net/projects/genode/files/genode-toolchain/ - Download the pre-compiled tool chain...]
 
 :Compile from source:
