@@ -33,6 +33,7 @@ const char *config = " \
         <service name=\"RAM\"/> \
         <service name=\"RM\"/> \
         <service name=\"ROM\"/> \
+        <service name=\"SIGNAL\"/> \
         <service name=\"Timer\"/> \
         <service name=\"Nitpicker\"/> \
     </parent-provides> \
