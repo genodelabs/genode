@@ -349,6 +349,8 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 {
 	private:
 
+		Genode::Cap_connection _cap_session;
+
 		/**
 		 * Pointer to corresponding VCPU model
 		 */
@@ -794,12 +796,11 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			using namespace Genode;
 
 			/* Create the portal at the desired selector index */
-			Cap_connection conn;
-			conn.rcv_window(exc_base + EV);
+			_cap_session.rcv_window(exc_base + EV);
 
 			Native_capability thread(tid().ec_sel);
 			Native_capability handler =
-				conn.alloc(thread, (Nova::mword_t)portal_entry,
+				_cap_session.alloc(thread, (Nova::mword_t)portal_entry,
 				           mtd.value());
 
 			if (!handler.valid() ||
@@ -812,7 +813,6 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		Vcpu_dispatcher(VCpu                   *vcpu,
 		                Guest_memory           &guest_memory,
 		                Motherboard            &motherboard,
-		                Genode::Cap_connection &cap_session,
 		                bool                   has_svm,
 		                bool                   has_vmx)
 		:
@@ -1086,11 +1086,9 @@ class Machine : public StaticReceiver<Machine>
 					if (verbose_debug)
 						Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
-					static Genode::Cap_connection cap_session;
-
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(msg.vcpu, _guest_memory,
-						                    _motherboard, cap_session,
+						                    _motherboard,
 						                    _hip->has_svm(), _hip->has_vmx());
 
 					msg.value = vcpu_dispatcher->sel_sm_ec();
