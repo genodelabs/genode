@@ -305,14 +305,22 @@ View *View_stack::find_view(Point p)
 
 void View_stack::remove_view(View *view)
 {
-	/* reset focused view if necessary */
-	_mode->forget(view);
-
 	/* remember geometry of view to remove */
 	Rect rect = _outline(view);
 
 	/* exclude view from view stack */
 	_views.remove(view);
+
+	/*
+	 * Reset focused and pointed-at view if necessary
+	 *
+	 * Thus must be done after calling '_views.remove' because the new focused
+	 * pointer is determined by traversing the view stack. If the to-be-removed
+	 * view would still be there, we would re-assign the old pointed-to view as
+	 * the current one, resulting in a dangling pointer right after the view
+	 * gets destructed by the caller of 'removed_view'.
+	 */
+	_mode->forget(view);
 
 	/* redraw area where the view was visible */
 	draw_rec(_first_view(), 0, 0, rect);
