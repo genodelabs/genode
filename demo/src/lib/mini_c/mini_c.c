@@ -66,7 +66,7 @@ void *calloc(unsigned nmemb, unsigned size)
 void *memcpy(void *dest, const void *src, unsigned n);
 */
 char *strcpy(char *dest, const char *src)
-	{ printf("%s: not implemented\n", __func__); return 0; }
+	{ return strncpy(dest, src, ~0); }
 char *strcat(char *dest, const char *src)
 	{ printf("%s: not implemented\n", __func__); return 0; }
 
