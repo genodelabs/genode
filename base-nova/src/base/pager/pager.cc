@@ -63,18 +63,7 @@ void Pager_object::_page_fault_handler()
 	int ret = obj->pager(ipc_pager);
 
 	if (ret) {
-		if (obj->submit_exception_signal())
-			/* Somebody takes care don't die - just recall and block */
-			obj->client_recall();
-		else {
-			PWRN("unresolvable page-fault at address 0x%lx, ip=0x%lx",
-		    	 ipc_pager.fault_addr(), ipc_pager.fault_ip());
-
-			/* revoke paging capability, let thread die in kernel */
-			Nova::revoke(Obj_crd(obj->exc_pt_sel() + PT_SEL_PAGE_FAULT, 0));
-			obj->_state.dead = true;
-		}
-
+		obj->client_recall();
 		utcb->set_msg_word(0);
 		utcb->mtd = 0;
 	}
@@ -88,11 +77,15 @@ void Pager_object::_exception_handler(addr_t portal_id)
 	Thread_base  *myself;
 	Pager_object *obj;
 	Utcb         *utcb = _check_handler(myself, obj);
+	addr_t fault_ip    = utcb->ip;
 
 	if (obj->submit_exception_signal()) 
 		/* Somebody takes care don't die - just recall and block */
 		obj->client_recall();
 	else {
+		PWRN("unresolvable exception at ip 0x%lx, exception portal 0x%lx",
+		     fault_ip, portal_id);
+
 		Nova::revoke(Obj_crd(portal_id, 0));
 		obj->_state.dead = true;
 	}
@@ -303,12 +296,15 @@ Pager_object::~Pager_object()
 	 */
 	revoke(Obj_crd(exc_pt_sel(), NUM_INITIAL_PT_LOG2), false);
 
-	/* Revoke semaphore cap to signal valid state after recall */
+	/* revoke semaphore cap to signal valid state after recall */
 	addr_t sm_cap = _sm_state_notify;
 	_sm_state_notify = Native_thread::INVALID_INDEX;
-	/* If pager is blocked wake him up */
+	/* wake up client blocked in a thread::pause call */
 	sm_ctrl(sm_cap, SEMAPHORE_UP);
 	revoke(Obj_crd(sm_cap, 0));
+
+	/* if pager is blocked wake him up */
+	wake_up();
 
 	/*
 	 * Make sure nobody is in the handler anymore by doing an IPC to a
