@@ -6,12 +6,18 @@ set build_components {
 	core init
 	drivers/timer drivers/framebuffer drivers/pci drivers/input drivers/nic
 	server/nitpicker
+	server/loader server/tar_rom server/nit_fb app/launchpad test/nitpicker
 	app/arora
 }
 
 build $build_components
 
 create_boot_directory
+
+#
+# Generate tar archives with plugin configurations
+#
+exec tar cf bin/nitpicker_plugin.tar -C [genode_dir]/ports/src/app/arora/demo/nitpicker_plugin config.plugin
 
 #
 # Generate config
@@ -82,6 +88,10 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 	</start>
+        <start name="loader">
+                <resource name="RAM" quantum="2M"/>
+                <provides><service name="Loader"/></provides>
+        </start>
 	<start name="arora">
 		<resource name="RAM" quantum="2G"/>
 	</start>
@@ -98,6 +108,11 @@ set boot_modules {
 	core init
 	timer nic_drv
 	nitpicker
+	loader
+	tar_rom
+	nit_fb
+	launchpad
+	testnit
 	arora
 	ld.lib.so
 	libc.lib.so libm.lib.so lwip.lib.so
@@ -116,6 +131,7 @@ set boot_modules {
 	qt_xml.lib.so
 	qnitpickerviewwidget.lib.so
 	qpluginwidget.lib.so
+	nitpicker_plugin.tar
 }
 
 
