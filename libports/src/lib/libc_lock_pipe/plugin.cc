@@ -17,6 +17,7 @@
 #include <util/misc_math.h>
 
 /* libc includes */
+#include <fcntl.h>
 #include <stdlib.h>
 
 /* libc plugin interface */
@@ -95,6 +96,7 @@ namespace {
 			                     struct timeval *timeout);
 
 			int close(Libc::File_descriptor *pipefdo);
+			int fcntl(Libc::File_descriptor *pipefdo, int cmd, long arg);
 			int pipe(Libc::File_descriptor *pipefdo[2]);
 			ssize_t read(Libc::File_descriptor *pipefdo, void *buf, ::size_t count);
 			int select(int nfds, fd_set *readfds, fd_set *writefds,
@@ -224,6 +226,19 @@ namespace {
 		Libc::file_descriptor_allocator()->free(pipefdo);
 
 		return 0;
+	}
+
+
+	int Plugin::fcntl(Libc::File_descriptor *pipefdo, int cmd, long arg)
+	{
+		switch (cmd) {
+			case F_GETFL:
+				if (is_write_end(pipefdo))
+					return O_WRONLY;
+				else
+					return O_RDONLY;
+			default: PERR("fcntl(): command %d not supported", cmd); return -1;
+		}
 	}
 
 
