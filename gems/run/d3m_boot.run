@@ -66,7 +66,7 @@ set config  {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="d3m">
-		<resource name="RAM" quantum="16M"/>
+		<resource name="RAM" quantum="26M"/>
 		<provides>
 			<service name="Input"/>
 			<service name="Nic"/>
