@@ -24,4 +24,4 @@ $(CONTRIB_DIR)/$(ARORA): $(DOWNLOAD_DIR)/$(ARORA_TGZ)
 	$(VERBOSE)patch -d $@ -p1 -i ../../src/app/arora/arora_bookmarks.patch
 	$(VERBOSE)patch -d $@ -p1 -i ../../src/app/arora/arora_disable_program_exit.patch
 	$(VERBOSE)patch -d $@ -p1 -i ../../src/app/arora/arora_startpage.patch
-
+	$(VERBOSE)patch -d $@ -p1 -i ../../src/app/arora/arora_disable_log_messages.patch

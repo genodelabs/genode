@@ -1,0 +1,14 @@
+diff --git a/src/main.cpp b/src/main.cpp
+index 94bece9..1be1bf7 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -24,6 +24,9 @@
+ #include "explorerstyle.h"
+ #endif
+ 
++/* disable "not implemented yet" messages */
++extern "C" void _sigprocmask() { }
++
+ int main(int argc, char **argv)
+ {
+     Q_INIT_RESOURCE(htmls);
