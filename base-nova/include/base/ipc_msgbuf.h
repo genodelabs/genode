@@ -54,7 +54,7 @@ namespace Genode {
 			struct {
 				addr_t   sel;
 				unsigned rights;
-				bool	 trans_map;
+				bool     trans_map;
 			} _snd_pt_sel [MAX_CAP_ARGS];
 
 			/**
@@ -280,32 +280,43 @@ namespace Genode {
 			 * rcv_window parameter, this function allocates a
 			 * fresh receive window and clears 'rcv_invalid'.
 			 */
-			void rcv_prepare_pt_sel_window(Nova::Utcb *utcb,
+			bool rcv_prepare_pt_sel_window(Nova::Utcb *utcb,
 			                               addr_t rcv_window = INVALID_INDEX)
 			{
-				/*
-				 * If a rcv_window was specified use solely
-				 * the selector specified by rcv_window.
-				 */
-				if (rcv_window != INVALID_INDEX) {
-					/* cleanup if this msgbuf was already used */
-					if (!rcv_invalid()) rcv_cleanup(false);
+				try {
+					/*
+					 * If a rcv_window was specified use solely
+					 * the selector specified by rcv_window.
+					 */
+					if (rcv_window != INVALID_INDEX) {
+						/* cleanup if this msgbuf was already used */
+						if (!rcv_invalid()) rcv_cleanup(false);
 
-					_rcv_pt_base = rcv_window;
-				} else {
-					if (rcv_invalid() || rcv_cleanup(true))
-						_rcv_pt_base = cap_selector_allocator()->alloc(MAX_CAP_ARGS_LOG2);
+						_rcv_pt_base = rcv_window;
+					} else {
+						if (rcv_invalid() || rcv_cleanup(true))
+							_rcv_pt_base = cap_selector_allocator()->alloc(MAX_CAP_ARGS_LOG2);
+					}
+
+					addr_t max = 0;
+					if (rcv_window == INVALID_INDEX)
+						max = MAX_CAP_ARGS_LOG2;
+
+					using namespace Nova;
+					/* setup receive window */
+					utcb->crd_rcv = Obj_crd(rcv_pt_base(), max);
+					/* open maximal translate window */
+					utcb->crd_xlt = Obj_crd(0, ~0UL);
+
+					return true;
+				} catch (Bit_array_out_of_indexes) {
+					using namespace Nova;
+					/* setup receive window */
+					utcb->crd_rcv = Obj_crd();
+					/* open maximal translate window */
+					utcb->crd_xlt = Obj_crd(0, ~0UL);
+					return false;
 				}
-
-				addr_t max = 0;
-				if (rcv_window == INVALID_INDEX)
-					max = MAX_CAP_ARGS_LOG2;
-
-				using namespace Nova;
-				/* setup receive window */
-				utcb->crd_rcv = Obj_crd(rcv_pt_base(), max);
-				/* open maximal translate window */
-				utcb->crd_xlt = Obj_crd(0, ~0UL);
 			}
 
 			/**
@@ -346,7 +357,7 @@ namespace Genode {
 						_rcv_pt_cap_free [cap.base() - rcv_pt_base()] = UNUSED_CAP;
 					}
 
- 					if (_rcv_pt_sel_max >= max) continue;
+					if (_rcv_pt_sel_max >= max) continue;
 
 					/* track the order of mapped and translated items */
 					if (cap.is_null()) {
@@ -368,7 +379,6 @@ namespace Genode {
 				if (max != MAX_CAP_ARGS)
 					_rcv_pt_base = INVALID_INDEX;
 			}
-
 	};
 
 

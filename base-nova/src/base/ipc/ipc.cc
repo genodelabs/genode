@@ -140,7 +140,11 @@ void Ipc_client::_call()
 		PERR("could not setup IPC");
 		return;
 	}
-	_rcv_msg->rcv_prepare_pt_sel_window(utcb, Ipc_ostream::_dst.rcv_window());
+
+	/* if we can't setup receive window, die in order to recognize the issue */
+	if (!_rcv_msg->rcv_prepare_pt_sel_window(utcb, Ipc_ostream::_dst.rcv_window()))
+		/* printf doesn't work here since for IPC also rcv_prepare* is used */
+		nova_die();
 
 	/* establish the mapping via a portal traversal */
 	uint8_t res = Nova::call(Ipc_ostream::_dst.local_name());

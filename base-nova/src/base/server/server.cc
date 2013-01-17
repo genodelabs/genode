@@ -105,7 +105,7 @@ void Rpc_entrypoint::_activation_entry()
 	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
 	ep->_rcv_buf.post_ipc(reinterpret_cast<Nova::Utcb *>(ep->utcb()));
 
-	/* destination of next reply */
+	/* destination of next reply - no effect on nova */
 	srv.dst(Native_capability(id_pt));
 
 	int opcode = 0;
@@ -116,11 +116,7 @@ void Rpc_entrypoint::_activation_entry()
 	srv.ret(ERR_INVALID_OBJECT);
 
 	/* atomically lookup and lock referenced object */
-	Rpc_object_base * curr_obj = ep->lookup_and_lock(id_pt);
-	{
-		Lock::Guard lock_guard(ep->_curr_obj_lock);
-		ep->_curr_obj = curr_obj;
-	}
+	ep->_curr_obj = ep->lookup_and_lock(id_pt);
 	if (!ep->_curr_obj) {
 
 		/*
@@ -133,21 +129,23 @@ void Rpc_entrypoint::_activation_entry()
 			     " return from call id_pt=%lx",
 			     id_pt);
 
-		srv << IPC_REPLY;
-	}
+	} else {
 
-	/* dispatch request */
-	try { srv.ret(ep->_curr_obj->dispatch(opcode, srv, srv)); }
-	catch (Blocking_canceled) { }
+		/* dispatch request */
+		try { srv.ret(ep->_curr_obj->dispatch(opcode, srv, srv)); }
+		catch (Blocking_canceled) { }
 
-	Rpc_object_base * tmp = ep->_curr_obj;
-	{
-		Lock::Guard lock_guard(ep->_curr_obj_lock);
+		Rpc_object_base * tmp = ep->_curr_obj;
 		ep->_curr_obj = 0;
-	}
-	tmp->release();
 
-	ep->_rcv_buf.rcv_prepare_pt_sel_window((Nova::Utcb *)ep->utcb());
+		tmp->release();
+	}
+
+	/* if we can't setup receive window, die in order to recognize the issue */
+	if (!ep->_rcv_buf.rcv_prepare_pt_sel_window((Nova::Utcb *)ep->utcb()))
+		/* printf doesn't work here since for IPC also rcv_prepare* is used */
+		nova_die();
+
 	srv << IPC_REPLY;
 }
 
