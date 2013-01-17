@@ -148,7 +148,10 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			_tar_addr(tar_addr), _filename(filename), _file_addr(0), _file_size(0),
 			_tar_size(tar_size),
 			_file_ds(_init_file_ds())
-		{ }
+		{
+			if (!_file_ds.valid())
+				throw Genode::Root::Invalid_args();
+		}
 
 		/**
 		 * Destructor
