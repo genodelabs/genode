@@ -90,11 +90,17 @@ void Thread_base::_deinit_platform_thread()
 	revoke(Mem_crd(utcb >> 12, 0, rwx));
 
 	/* de-announce thread */
-	env()->cpu_session()->kill_thread(_thread_cap);
+	if (_thread_cap.valid()) {
+		env()->cpu_session()->kill_thread(_thread_cap);
+		revoke(_thread_cap.local_name(), 0);
+		cap_selector_allocator()->free(_thread_cap.local_name(), 0);
+	}
 
-	revoke(_thread_cap.local_name(), 0);
-	cap_selector_allocator()->free(_thread_cap.local_name(), 0);
-
+	if (_pager_cap.valid()) {
+		env()->rm_session()->remove_client(_pager_cap);
+		revoke(_pager_cap.local_name(), 0);
+		cap_selector_allocator()->free(_pager_cap.local_name(), 0);
+	}
 }
 
 
@@ -106,12 +112,11 @@ void Thread_base::start()
 	using namespace Genode;
 
 	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap =
-		env()->rm_session()->add_client(_thread_cap);
-	if (!pager_cap.valid())
+	_pager_cap = env()->rm_session()->add_client(_thread_cap);
+	if (!_pager_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
-	if (env()->cpu_session()->set_pager(_thread_cap, pager_cap))
+	if (env()->cpu_session()->set_pager(_thread_cap, _pager_cap))
 		throw Cpu_session::Thread_creation_failed();
 
 	/* create EC at core */
@@ -139,11 +144,11 @@ void Thread_base::start()
 	/* request exception portals for normal threads */
 	if (!_tid.is_vcpu) {
 		for (unsigned i = 0; i < PT_SEL_PARENT; i++)
-			request_event_portal(pager_cap, _tid.exc_pt_sel, i);
+			request_event_portal(_pager_cap, _tid.exc_pt_sel, i);
 
-		request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
-		request_event_portal(pager_cap, _tid.exc_pt_sel, SM_SEL_EC);
-		request_event_portal(pager_cap, _tid.exc_pt_sel, PT_SEL_RECALL);
+		request_event_portal(_pager_cap, _tid.exc_pt_sel, PT_SEL_STARTUP);
+		request_event_portal(_pager_cap, _tid.exc_pt_sel, SM_SEL_EC);
+		request_event_portal(_pager_cap, _tid.exc_pt_sel, PT_SEL_RECALL);
 	}
 
 	/* request creation of SC to let thread run*/

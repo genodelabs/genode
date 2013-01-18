@@ -49,6 +49,7 @@ void Thread_base::_init_platform_thread()
 void Thread_base::_deinit_platform_thread()
 {
 	env()->cpu_session()->kill_thread(_thread_cap);
+	env()->rm_session()->remove_client(_pager_cap);
 }
 
 
@@ -63,8 +64,8 @@ void Thread_base::start()
 	env()->pd_session()->bind_thread(_thread_cap);
 
 	/* create new pager object and assign it to the new thread */
-	Pager_capability pager_cap = env()->rm_session()->add_client(_thread_cap);
-	env()->cpu_session()->set_pager(_thread_cap, pager_cap);
+	_pager_cap = env()->rm_session()->add_client(_thread_cap);
+	env()->cpu_session()->set_pager(_thread_cap, _pager_cap);
 
 	/* register initial IP and SP at core */
 	addr_t thread_sp = (addr_t)&_context->stack[-4];

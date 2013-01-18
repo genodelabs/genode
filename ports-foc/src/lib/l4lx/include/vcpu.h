@@ -81,9 +81,8 @@ namespace L4lx {
 				env()->pd_session()->bind_thread(_thread_cap);
 
 				/* create new pager object and assign it to the new thread */
-				Pager_capability pager_cap =
-					env()->rm_session()->add_client(_thread_cap);
-				vcpu_connection()->set_pager(_thread_cap, pager_cap);
+				_pager_cap = env()->rm_session()->add_client(_thread_cap);
+				vcpu_connection()->set_pager(_thread_cap, _pager_cap);
 
 				/* get gate-capability and badge of new thread */
 				Thread_state state = vcpu_connection()->state(_thread_cap);

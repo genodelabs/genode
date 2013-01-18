@@ -213,12 +213,11 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	 */
 	if (_tid.ec_sel == ~0UL) {
 		/* create new pager object and assign it to the new thread */
-		Pager_capability pager_cap =
-			env()->rm_session()->add_client(_thread_cap);
-		if (!pager_cap.valid())
+		_pager_cap = env()->rm_session()->add_client(_thread_cap);
+		if (!_pager_cap.valid())
 			throw Cpu_session::Thread_creation_failed();
 
-		if (env()->cpu_session()->set_pager(_thread_cap, pager_cap))
+		if (env()->cpu_session()->set_pager(_thread_cap, _pager_cap))
 			throw Cpu_session::Thread_creation_failed();
 
 		addr_t thread_sp = (addr_t)&_context->stack[-4];
@@ -232,13 +231,13 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 			throw Cpu_session::Thread_creation_failed();
 
 		for (unsigned i = 0; i < Nova::PT_SEL_PARENT; i++)
-			request_event_portal(pager_cap, _tid.exc_pt_sel, i);
+			request_event_portal(_pager_cap, _tid.exc_pt_sel, i);
 		
-		request_event_portal(pager_cap, _tid.exc_pt_sel,
+		request_event_portal(_pager_cap, _tid.exc_pt_sel,
 		                     Nova::PT_SEL_STARTUP);
-		request_event_portal(pager_cap, _tid.exc_pt_sel,
+		request_event_portal(_pager_cap, _tid.exc_pt_sel,
 		                     Nova::SM_SEL_EC);
-		request_event_portal(pager_cap, _tid.exc_pt_sel,
+		request_event_portal(_pager_cap, _tid.exc_pt_sel,
 		                     Nova::PT_SEL_RECALL);
 
 		/*

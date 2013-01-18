@@ -96,7 +96,8 @@ namespace Gdb_monitor {
 			                                Genode::off_t, bool, Local_addr, bool);
 			void             detach        (Local_addr);
 			Pager_capability add_client    (Thread_capability);
-			void             fault_handler (Signal_context_capability handler);
+			void             remove_client (Pager_capability);
+			void             fault_handler (Signal_context_capability);
 			State            state         ();
 			Dataspace_capability dataspace ();
 	};

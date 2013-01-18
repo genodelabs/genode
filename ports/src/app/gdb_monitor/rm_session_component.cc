@@ -118,6 +118,15 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 }
 
 
+void Rm_session_component::remove_client(Pager_capability pager)
+{
+	if (verbose)
+		PDBG("remove_client()");
+
+	return _parent_rm_session.remove_client(pager);
+}
+
+
 void Rm_session_component::fault_handler(Signal_context_capability handler)
 {
 	if (verbose)

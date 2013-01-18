@@ -230,6 +230,11 @@ namespace Noux {
 				return _rm.add_client(thread);
 			}
 
+			void remove_client(Pager_capability pager)
+			{
+				_rm.remove_client(pager);
+			}
+
 			void fault_handler(Signal_context_capability handler)
 			{
 				return _rm.fault_handler(handler);

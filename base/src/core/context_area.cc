@@ -112,6 +112,8 @@ class Context_area_rm_session : public Rm_session
 		Pager_capability add_client(Thread_capability) {
 			return Pager_capability(); }
 
+		void remove_client(Pager_capability) { }
+
 		void fault_handler(Signal_context_capability) { }
 
 		State state() { return State(); }

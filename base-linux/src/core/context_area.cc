@@ -65,6 +65,8 @@ class Context_area_rm_session : public Genode::Rm_session
 		Genode::Pager_capability add_client(Genode::Thread_capability) {
 			return Genode::Pager_capability(); }
 
+		void remove_client(Genode::Pager_capability) { }
+
 		void fault_handler(Genode::Signal_context_capability) { }
 
 		State state() { return State(); }

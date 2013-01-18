@@ -92,6 +92,11 @@ namespace Genode {
 
 					return Pager_capability();
 				}
+
+				void remove_client(Pager_capability pager)
+				{
+					Rm_session_client::remove_client(pager);
+				}
 		};
 
 		class Expanding_ram_session_client : public Ram_session_client

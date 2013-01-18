@@ -46,6 +46,9 @@ namespace Genode {
 		Pager_capability add_client(Thread_capability thread) {
 			return _local()->add_client(thread); }
 
+		void remove_client(Pager_capability pager) {
+			_local()->remove_client(pager); }
+
 		void fault_handler(Signal_context_capability handler)
 		{
 			/*

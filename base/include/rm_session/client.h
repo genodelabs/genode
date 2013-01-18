@@ -39,6 +39,9 @@ namespace Genode {
 		Pager_capability add_client(Thread_capability thread) {
 			return call<Rpc_add_client>(thread); }
 
+		void remove_client(Pager_capability pager) {
+			call<Rpc_remove_client>(pager); }
+
 		void fault_handler(Signal_context_capability handler) {
 			call<Rpc_fault_handler>(handler); }
 
