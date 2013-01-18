@@ -39,11 +39,11 @@ void Ram_session_component::_free_ds(Dataspace_component *ds)
 
 	size_t ds_size = ds->size();
 
-	/* destroy native shared memory representation */
-	_revoke_ram_ds(ds);
-
 	/* tell entry point to forget the dataspace */
 	_ds_ep->dissolve(ds);
+
+	/* destroy native shared memory representation */
+	_revoke_ram_ds(ds);
 
 	/* XXX: remove dataspace from all RM sessions */
 
@@ -54,6 +54,7 @@ void Ram_session_component::_free_ds(Dataspace_component *ds)
 	destroy(&_ds_slab, ds);
 
 	/* adjust payload */
+	Lock::Guard lock_guard(_ref_members_lock);
 	_payload -= ds_size;
 }
 
@@ -181,9 +182,6 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 	 */
 	_clear_ds(ds);
 
-	/* keep track of the used quota for actual payload */
-	_payload += ds_size;
-
 	if (verbose)
 		PDBG("ds_size=%zd, used_quota=%zd quota_limit=%zd",
 		     ds_size, used_quota(), _quota_limit);
@@ -192,6 +190,10 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 
 	/* create native shared memory representation of dataspace */
 	_export_ram_ds(ds);
+
+	Lock::Guard lock_guard(_ref_members_lock);
+	/* keep track of the used quota for actual payload */
+	_payload += ds_size;
 
 	return static_cap_cast<Ram_dataspace>(result);
 }
@@ -258,7 +260,7 @@ Ram_session_component::Ram_session_component(Rpc_entrypoint  *ds_ep,
 Ram_session_component::~Ram_session_component()
 {
 	/* destroy all dataspaces */
-	for (Dataspace_component *ds; (ds = _ds_slab.first_object()); _free_ds(ds));
+	for (Dataspace_component *ds; (ds = _ds_slab.raw()->first_object()); _free_ds(ds));
 
 	if (_payload != 0)
 		PWRN("Remaining payload of %zd in ram session to destroy", _payload);

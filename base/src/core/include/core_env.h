@@ -77,7 +77,6 @@ namespace Genode {
 
 			void free(Ram_dataspace_capability ds)
 			{
-				Lock::Guard lock_guard(_lock);
 				RAM_SESSION_IMPL::free(ds);
 			}
 
