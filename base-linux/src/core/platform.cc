@@ -96,7 +96,7 @@ void Platform::wait_for_exit()
 		/*
 		 * Reflect SIGCHLD as exception signal to the signal context of the CPU
 		 * session of the process. Because multiple children could have been
-		 * terminated, we iterate until 'pollpid' (wrapper around 'waitpid')
+		 * terminated, we iterate until 'pollpid' (wrapper around 'wait4')
 		 * returns -1.
 		 */
 		for (;;) {

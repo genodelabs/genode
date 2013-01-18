@@ -112,7 +112,7 @@ inline int lx_setgid(unsigned int gid)
  */
 inline int lx_pollpid()
 {
-	return lx_syscall(SYS_waitpid, -1 /* any PID */, (int *)0, 1 /* WNOHANG */);
+	return lx_syscall(SYS_wait4, -1 /* any PID */, (int *)0, 1 /* WNOHANG */, 0);
 }
 
 

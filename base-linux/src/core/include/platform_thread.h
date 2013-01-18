@@ -27,7 +27,7 @@ namespace Genode {
 	/*
 	 * We hold all Platform_thread objects in a list in order to be able to
 	 * reflect SIGCHLD as exception signals. When a SIGCHILD occurs, we
-	 * determine the PID of the terminated child process via 'waitpid'. We use
+	 * determine the PID of the terminated child process via 'wait4'. We use
 	 * the list to find the 'Platform_thread' matching the TID, wherei, in
 	 * turn, we find the exception handler's 'Signal_context_capability'.
 	 */
