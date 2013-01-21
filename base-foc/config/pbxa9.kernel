@@ -9,8 +9,8 @@
 # CONFIG_IA32 is not set
 # CONFIG_AMD64 is not set
 CONFIG_ARM=y
-CONFIG_PF_REALVIEW=y
 # CONFIG_PF_IMX is not set
+CONFIG_PF_REALVIEW=y
 # CONFIG_PF_S3C2410 is not set
 # CONFIG_PF_TEGRA2 is not set
 # CONFIG_PF_OMAP is not set
@@ -36,6 +36,7 @@ CONFIG_ARM_CORTEX_A9=y
 # CONFIG_ARM_CA9_ENABLE_SWP is not set
 # CONFIG_ARM_CACHE_L2CXX0 is not set
 CONFIG_FPU=y
+CONFIG_ARM_CPU_ERRATA=y
 
 #
 # Kernel options

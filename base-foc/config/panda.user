@@ -28,6 +28,7 @@ CONFIG_CPU_ARMV6PLUS=y
 # CONFIG_PLATFORM_TYPE_imx35 is not set
 # CONFIG_PLATFORM_TYPE_imx51 is not set
 # CONFIG_PLATFORM_TYPE_imx53 is not set
+# CONFIG_PLATFORM_TYPE_imx6 is not set
 # CONFIG_PLATFORM_TYPE_integrator is not set
 # CONFIG_PLATFORM_TYPE_kirkwood is not set
 # CONFIG_PLATFORM_TYPE_omap3_am33xx is not set

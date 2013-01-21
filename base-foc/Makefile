@@ -9,7 +9,7 @@ VERBOSE    ?= @
 ECHO        = @echo
 SVN_URI     = http://svn.tudos.org/repos/oc/tudos/trunk
 GIT_URI     = http://github.com/ssumpf/foc.git
-GIT_BRANCH  = r40
+GIT_BRANCH  = r42
 CONTRIB_DIR = contrib
 GNU_FIND   ?= find
 
@@ -40,6 +40,7 @@ SVN_TARGETS = tools/preprocess \
 check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 
 $(call check_tool,git)
+$(call check_tool,svn)
 $(call check_tool,$(GNU_FIND))
 
 #

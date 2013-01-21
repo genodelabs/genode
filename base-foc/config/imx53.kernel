@@ -9,8 +9,8 @@
 # CONFIG_IA32 is not set
 # CONFIG_AMD64 is not set
 CONFIG_ARM=y
-# CONFIG_PF_REALVIEW is not set
 CONFIG_PF_IMX=y
+# CONFIG_PF_REALVIEW is not set
 # CONFIG_PF_S3C2410 is not set
 # CONFIG_PF_TEGRA2 is not set
 # CONFIG_PF_OMAP is not set
@@ -22,6 +22,7 @@ CONFIG_BSP_NAME="imx"
 # CONFIG_PF_IMX_21 is not set
 # CONFIG_PF_IMX_35 is not set
 # CONFIG_PF_IMX_51 is not set
+# CONFIG_PF_IMX_6 is not set
 CONFIG_PF_IMX_53=y
 CONFIG_PF_IMX_RAM_PHYS_BASE=0x70000000
 CONFIG_ABI_VF=y
@@ -29,6 +30,7 @@ CONFIG_CAN_ARM_CPU_CORTEX_A8=y
 CONFIG_ARM_CORTEX_A8=y
 # CONFIG_ARM_ALIGNMENT_CHECK is not set
 # CONFIG_FPU is not set
+# CONFIG_ARM_CPU_ERRATA is not set
 
 #
 # Kernel options
