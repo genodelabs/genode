@@ -1,5 +1,5 @@
 TARGET   = acpi_drv
-REQUIRES = x86_32
+REQUIRES = x86
 SRC_CC   = main.cc acpi.cc
 LIBS     = cxx env server child
 

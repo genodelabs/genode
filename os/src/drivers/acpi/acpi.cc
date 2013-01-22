@@ -137,7 +137,7 @@ class Table_wrapper
 		}
 
 		/* return offset of '_base' to page boundary */
-		uint32_t _offset() const              { return (_base & 0xfff); }
+		addr_t _offset() const              { return (_base & 0xfff); }
 
 		/* compare table name with 'name' */
 		bool     _cmp(char const *name) const { return !memcmp(_table->signature, name, 4); }
@@ -154,9 +154,15 @@ class Table_wrapper
 		/**
 		 * Copy table data to 'ptr'
 		 */
-		void copy_entries(uint32_t *ptr)
+		template <typename T>
+		T * copy_entries(T &count)
 		{
-			memcpy(ptr, _table + 1, _table->size - sizeof(Generic));
+			addr_t size = _table->size - sizeof (Generic);
+			count = size / sizeof(T);
+
+			T * entries = new (env()->heap()) T [count];
+			memcpy(entries, _table + 1, size);
+			return entries;
 		}
 
 		/**
@@ -901,35 +907,14 @@ class Acpi_table
 			return 0;
 		}
 
-	public:
-
-		Acpi_table()
+		template <typename T>
+		void _parse_tables(T * entries, uint32_t count)
 		{
-			Io_mem_session_capability io_mem;
-			uint8_t *rsdp = _rsdp(io_mem);
-
-			if (verbose)
-				PDBG("RSDP %p", rsdp);
-
-			if (!rsdp)
-				return;
-
-			uint32_t rsdt_entries[36];
-			memset(rsdt_entries, 0, sizeof(uint32_t)*36);
-
-			{
-				/* table pointer at 16 byte offset in RSDP structure (5.2.5.3) */
-				Table_wrapper rsdt(*reinterpret_cast<uint32_t *>(rsdp + 0x10));
-				rsdt.copy_entries(rsdt_entries);
-			}
-
-			env()->parent()->close(io_mem);
-
 			/* search for SSDT and DSDT tables */
-			for (int i = 0; rsdt_entries[i]; i++) {
+			for (uint32_t i = 0; i < count; i++) {
 				uint32_t dsdt = 0;
 				{
-					Table_wrapper table(rsdt_entries[i]);
+					Table_wrapper table(entries[i]);
 					if (table.is_facp())
 						dsdt = *reinterpret_cast<uint32_t *>(table->signature + 40);
 
@@ -957,6 +942,75 @@ class Acpi_table
 						Element::parse(table.table());
 					}
 				}
+			}
+
+		}
+
+	public:
+
+		Acpi_table()
+		{
+			Io_mem_session_capability io_mem;
+
+			uint8_t * ptr_rsdp = _rsdp(io_mem);
+
+			struct rsdp {
+				char     signature[8];
+			    uint8_t  checksum;
+				char     oemid[6];
+				uint8_t  revision;
+				/* table pointer at 16 byte offset in RSDP structure (5.2.5.3) */
+				uint32_t rsdt;
+				/* With ACPI 2.0 */
+				uint32_t len;
+				uint64_t xsdt;
+				uint8_t  checksum_extended;
+			    uint8_t  reserved[3];
+			} __attribute__((packed)) * rsdp = reinterpret_cast<struct rsdp *>(ptr_rsdp);
+
+			if (!rsdp) {
+				if (verbose)
+					PDBG("No rsdp structure found");
+				return;
+			}
+
+			if (verbose) {
+				uint8_t oem[7];
+				memcpy(oem, rsdp->oemid, 6);
+				oem[6] = 0;
+				PDBG("ACPI revision %u of OEM '%s', rsdt:0x%x xsdt:0x%llx",
+				     rsdp->revision, oem, rsdp->rsdt, rsdp->xsdt);
+			}
+
+			if (rsdp->xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
+				/* running 64bit and xsdt is valid */
+				addr_t entries_count;
+				addr_t * entries;
+				{
+					Table_wrapper rsdt(rsdp->xsdt);
+					entries = rsdt.copy_entries(entries_count);
+				}
+
+				env()->parent()->close(io_mem);
+				_parse_tables(entries, entries_count);
+
+				if (entries)
+					env()->heap()->free(entries, 0);
+			} else {
+				/* running (32bit) or (64bit and xsdt isn't valid) */
+				uint32_t entries_count;
+				uint32_t * entries;
+
+				{
+					Table_wrapper rsdt(rsdp->rsdt);
+					entries = rsdt.copy_entries(entries_count);
+				}
+
+				env()->parent()->close(io_mem);
+				_parse_tables(entries, entries_count);
+
+				if (entries)
+					env()->heap()->free(entries, 0);
 			}
 		}
 };
