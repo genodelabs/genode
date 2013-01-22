@@ -154,19 +154,18 @@ namespace Genode {
 	/**
 	 * Compare memory blocks
 	 *
-	 * \retval 0  memory blocks are equal
-	 * \retval 1  memory blocks differ
-	 *
-	 * NOTE: This function is not fully compatible to the C standard.
+	 * \retval  0  memory blocks are equal
+	 * \retval <0  first memory block is less than second one
+	 * \retval >0  first memory block is greater than second one
 	 */
 	inline int memcmp(const void *p0, const void *p1, size_t size)
 	{
-		char *c0 = (char *)p0;
-		char *c1 = (char *)p1;
+		const unsigned char *c0 = (const unsigned char *)p0;
+		const unsigned char *c1 = (const unsigned char *)p1;
 
 		size_t i;
 		for (i = 0; i < size; i++)
-			if (c0[i] != c1[i]) return 1;
+			if (c0[i] != c1[i]) return c0[i] - c1[i];
 
 		return 0;
 	}
