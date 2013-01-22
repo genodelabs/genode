@@ -119,12 +119,12 @@ namespace Nova {
 
 	ALWAYS_INLINE
 	inline uint8_t syscall_5(Syscall s, uint8_t flags, mword_t sel,
-	                         mword_t p1, mword_t p2, mword_t &p3, mword_t &p4)
+	                         mword_t &p1, mword_t &p2)
 	{
 		mword_t status = rdi(s, flags, sel);
 
 		asm volatile ("syscall"
-		              : "+D" (status), "+S"(p3), "+d"(p4)
+		              : "+D" (status), "+S"(p1), "+d"(p2)
 		              :
 		              : "rcx", "r11", "memory");
 		return status;
@@ -226,7 +226,7 @@ namespace Nova {
 		mword_t status = rdi(NOVA_SC_CTRL, op, sm);
 		mword_t time_h;
 
-		uint8_t res = syscall_5(NOVA_SC_CTRL, op, sm, 0, 0, time_h, time);
+		uint8_t res = syscall_5(NOVA_SC_CTRL, op, sm, time_h, time);
 		asm volatile ("syscall"
 		              : "+D" (status), "=S"(time_h), "=d"(time)
 			      :
@@ -240,20 +240,15 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t assign_pci(mword_t pd, mword_t mem, mword_t rid)
 	{
-		return syscall_2(NOVA_ASSIGN_GSI, 0, pd, mem, rid);
+		return syscall_2(NOVA_ASSIGN_PCI, 0, pd, mem, rid);
 	}
 
 	ALWAYS_INLINE
-	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t rid)
+	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu, mword_t &msi_addr, mword_t &msi_data)
 	{
-		mword_t dummy1 = 0, dummy2 = 0;
-		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, dev, rid, dummy1, dummy2);
-	}
-
-	ALWAYS_INLINE
-	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t rid, mword_t &msi_addr, mword_t &msi_data)
-	{
-		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, dev, rid, msi_addr, msi_data);
+		msi_addr = dev;
+		msi_data = cpu;
+		return syscall_5(NOVA_ASSIGN_GSI, 0, sm, msi_addr, msi_data);
 	}
 }
 #endif /* _PLATFORM__NOVA_SYSCALLS_H_ */
