@@ -600,11 +600,14 @@ class Element : public List<Element>::Element
 			}
 		}
 
-		Element(uint8_t const *data, bool package_op4 = false)
+		Element(uint8_t const *data = 0, bool package_op4 = false)
 		:
 			_type(0), _size(0), _size_len(0), _name(0), _name_len(0), _bdf(0), _data(data),
 			_valid(false), _routed(false), _pci(0)
 		{
+			if (!data)
+				return;
+
 			/* special handle for four value packet */
 			if (package_op4) {
 				/* scan for data package with four entries */
@@ -662,11 +665,6 @@ class Element : public List<Element>::Element
 				return;
 			}
 		}
-
-		/**
-		 * Default constructor
-		 */
-		Element() : _valid(false) {}
 
 		/**
 		 * Copy constructor
