@@ -38,6 +38,7 @@ usage:
 	@echo "                  'foc_imx53'"
 	@echo "                  'foc_vea9x4'"
 	@echo "                  'foc_panda'"
+	@echo "                  'foc_arndale'"
 	@echo "                  'lx_hybrid_x86'"
 	@echo
 	@echo "  <build-dir>  is the location of the build directory to create"
@@ -135,7 +136,7 @@ endif
 #
 # Add ARM drivers repositories to ARM build directories
 #
-ifeq ($(filter-out foc_panda hw_panda foc_imx53,$(PLATFORM)),)
+ifeq ($(filter-out foc_panda foc_arndale hw_panda foc_imx53,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_arm >> $@
 endif
@@ -178,6 +179,9 @@ foc_panda::
 
 foc_imx53::
 	@echo "SPECS = genode foc_imx53" > $(BUILD_DIR)/etc/specs.conf
+
+foc_arndale::
+	@echo "SPECS = genode foc_arndale" > $(BUILD_DIR)/etc/specs.conf
 
 codezero_vpb926::
 	@echo "CODEZERO_DIR = $(GENODE_DIR)/base-codezero/contrib" > $(BUILD_DIR)/etc/codezero.conf
