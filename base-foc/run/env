@@ -105,6 +105,37 @@ proc bin_dir { } {
 	exit 1
 }
 
+#
+# Parse entry point address out of final elf image for u-boot
+#
+proc entrypoint { } {
+	global _entrypoint
+	set _entrypoint [exec [cross_dev_prefix]readelf -h [run_dir]/image.elf | grep "Entry point" | sed -e "s/.*Entry point address: *//"]
+	return $_entrypoint
+}
+
+
+#
+# Parse load address out of final elf image for u-boot
+#
+proc loadaddr { } {
+	global _loadaddr
+	set _loadaddr [regexp -inline -all -- {\S+} [exec [cross_dev_prefix]readelf -l [run_dir]/image.elf | grep -m 1 "LOAD"]]
+	return [lindex $_loadaddr 3]
+}
+
+
+#
+# Create an u-boot image if appropriated SPEC is set
+#
+proc build_boot_uimage { } {
+	if {[have_spec uboot]} {
+		exec [cross_dev_prefix]objcopy -O binary [run_dir]/image.elf [run_dir]/image.bin
+		exec gzip --best --force [run_dir]/image.bin
+		exec mkimage -A arm -O linux -T kernel -C gzip -a [loadaddr] -e [entrypoint] -d [run_dir]/image.bin.gz [run_dir]/uImage
+	}
+}
+
 
 proc build_boot_image_x86 {binaries} {
 
@@ -175,6 +206,7 @@ proc build_boot_image_arm {binaries} {
 			puts $fh "module   genode/$binary" } }
 	close $fh
 
+
 	set gen_img_cmd "make -C [l4_dir]/source O=[l4_dir] E=genode "
 	append gen_img_cmd "MODULES_LIST=[pwd]/[run_dir]/modules.list "
 	append gen_img_cmd "MODULE_SEARCH_PATH=[pwd]/[run_dir]:[file dirname [fiasco]]:[l4_dir] "
@@ -188,6 +220,7 @@ proc build_boot_image_arm {binaries} {
 	}
 
 	exec cp [bin_dir]/bootstrap.elf [run_dir]/image.elf
+	build_boot_uimage
 
 	puts "\nboot image: [run_dir]/image.elf\n"
 }
