@@ -12,8 +12,8 @@ PATCH-l4linux   = $(addprefix patches/,l4lx_genode.patch icmp_align.patch tcp_me
 REV-l4linux     = 25
 REPO-l4linux    = http://svn.tudos.org/repos/oc/l4linux/trunk
 
-PATCH-l4android = patches/l4android_genode.patch
-REV-l4android   = 90ca43bd629452ffd38d85fe8c976f069b5bb3d9
+PATCH-l4android = $(addprefix patches/,l4lx_genode.patch icmp_align.patch tcp_mem.patch android_binder.patch)
+REV-l4android   = bf83cc85e672bfafddc0fb85398129e427d6780f
 REPO-l4android  = git://git.l4android.org/kernel.git
 
 UPDATE_PATCH    = $(word 1, $(PATCH-$(TARGET)))
@@ -29,7 +29,7 @@ ifeq ($(TARGET), l4android)
 $(call check_tool,git)
 DIFF   = git diff
 UPDATE = cd $(REAL_CONTRIB_DIR)/l4android; git fetch; git reset --hard $(REV-l4android)
-PATCH  = patch -p1
+PATCH  = patch -p0
 else
 $(call check_tool,svn)
 FILTER_DIR = net
