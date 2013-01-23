@@ -69,7 +69,7 @@ class Omap_uart : public Genode::Tl16c750_base, public Uart::Driver, public Geno
 		Omap_uart(Genode::Attached_io_mem_dataspace *uart_mmio, int irq_number,
 		          unsigned baud_rate, Uart::Char_avail_callback &callback)
 		:
-			Tl16c750_base((Genode::addr_t)uart_mmio->local_addr<void>(), Genode::Board::TL16C750_CLOCK, baud_rate),
+			Tl16c750_base((Genode::addr_t)uart_mmio->local_addr<void>(), Genode::Board_base::TL16C750_CLOCK, baud_rate),
 			_uart_mmio(*uart_mmio),
 			_char_avail_callback(callback),
 			_irq_activation(irq_number, *this, IRQ_STACK_SIZE)
@@ -99,7 +99,7 @@ class Omap_uart : public Genode::Tl16c750_base, public Uart::Driver, public Geno
 
 		void baud_rate(int bits_per_second)
 		{
-			_init(Genode::Board::TL16C750_CLOCK, bits_per_second);
+			_init(Genode::Board_base::TL16C750_CLOCK, bits_per_second);
 			_enable_rx_interrupt();
 		}
 };
