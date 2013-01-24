@@ -1,0 +1,117 @@
+#
+# \brief  Test pong
+# \author Josef Soentgen
+# \date   2013-01-06
+#
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/pci drivers/timer drivers/nic
+	test/lwip/pingpong/server
+}
+
+lappend_if [have_spec omap4] build_components drivers/usb
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="test-ping_server">
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<argv verbose="1" listenip="0.0.0.0" />
+		</config>
+	</start> }
+
+append_if [have_spec omap4] config {
+	<start name="usb_drv" priority="-1">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<nic mac="2e:60:90:0c:4e:02" />
+		</config>
+	</start>}
+
+append_if [expr ![have_spec omap4]] config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so lwip.lib.so
+	test-ping_server
+}
+
+# platform-specific modules
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec omap4]         boot_modules usb_drv
+lappend_if [expr ![have_spec omap4]] boot_modules nic_drv
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+# qemu config
+append qemu_args " -m 128 -nographic "
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user "
+
+run_genode_until forever
+
+# vi: set ft=tcl :
