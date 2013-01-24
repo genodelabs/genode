@@ -101,7 +101,9 @@ void Signal_session_component::submit(Signal_context_capability context_cap,
 	context->source()->submit(context, _ipc_ostream, cnt);
 }
 
-Signal_context_component::~Signal_context_component() {
+
+Signal_context_component::~Signal_context_component()
+{
 	if (is_enqueued() && _source)
 		_source->release(this);
 }

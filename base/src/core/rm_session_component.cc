@@ -44,7 +44,6 @@ namespace Genode {
 		addr_t _upper_bound() const {
 			return (_size_log2 == ~0UL) ? ~0 : (_base + (1 << _size_log2) - 1); }
 
-
 		/**
 		 * Default constructor, constructs invalid fault area
 		 */

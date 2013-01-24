@@ -99,6 +99,7 @@ Io_mem_session_component::~Io_mem_session_component()
 {
 	if (verbose)
 		PDBG("I/O mem free [%lx,%lx)", _ds.phys_addr(), _ds.phys_addr() + _ds.size());
+
 	/* dissolve IO_MEM dataspace from service entry point */
 	_ds_ep->dissolve(&_ds);
 

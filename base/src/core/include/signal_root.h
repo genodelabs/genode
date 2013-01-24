@@ -38,6 +38,7 @@ namespace Genode {
 			Rpc_entrypoint *entrypoint() { return &_ep; }
 	};
 
+
 	class Signal_root : private Signal_handler,
 	                    public Root_component<Signal_session_component>
 	{

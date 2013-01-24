@@ -36,11 +36,11 @@ namespace Genode {
 				return new (md_alloc())
 					Cpu_session_component(_thread_ep, _pager_ep, _md_alloc, args); }
 
-            void _upgrade_session(Cpu_session_component *cpu, const char *args)
-            {
-                    size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
-                    cpu->upgrade_ram_quota(ram_quota);
-            }
+			void _upgrade_session(Cpu_session_component *cpu, const char *args)
+			{
+				size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+				cpu->upgrade_ram_quota(ram_quota);
+			}
 
 		public:
 

@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Core implementation of the CPU session/thread interfaces
  * \author Christian Helmuth
  * \date   2006-07-17

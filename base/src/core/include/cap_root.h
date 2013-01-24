@@ -25,7 +25,8 @@ namespace Genode {
 	class Cap_root : public Root_component<Cap_session_component>
 	{
 		private:
-			Allocator         *_md_alloc;
+
+			Allocator *_md_alloc;
 
 		protected:
 

@@ -31,6 +31,7 @@ void Signal_source_component::release(Signal_context_component *context)
 		_signal_queue.remove(context);
 }
 
+
 void Signal_source_component::submit(Signal_context_component *context,
                                      Ipc_ostream              *ostream,
                                      int                       cnt)
