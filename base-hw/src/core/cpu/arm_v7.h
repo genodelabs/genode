@@ -96,7 +96,7 @@ namespace Arm_v7
 			static access_t init_phys_kernel()
 			{
 				return base_value() |
-				       Arm::Cpu::Sctlr::init_virt_kernel() |
+				       Arm::Cpu::Sctlr::init_phys_kernel() |
 				       Sw::bits(0) |
 				       Ha::bits(0) |
 				       Nmfi::bits(0) |
