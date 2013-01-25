@@ -472,11 +472,13 @@ namespace Nova {
 		bool append_item(Crd crd, mword_t sel_hotspot,
 		                 bool kern_pd = false,
 		                 bool update_guest_pt = false,
-		                 bool translate_map = false)
+		                 bool translate_map = false,
+		                 bool dma_mem = false)
 		{
 			/* transfer items start at the end of the UTCB */
 			items += 1 << 16;
-			Item *item = reinterpret_cast<Item *>(this) + (PAGE_SIZE_BYTE / sizeof(struct Item)) - (items >> 16);
+			Item *item = reinterpret_cast<Item *>(this);
+			item += (PAGE_SIZE_BYTE / sizeof(struct Item)) - (items >> 16);
 
 			/* check that there is enough space left on UTCB */
 			if (msg + msg_words() >= reinterpret_cast<mword_t *>(item)) {
@@ -490,7 +492,13 @@ namespace Nova {
 			/* update guest page table */
 			unsigned g = update_guest_pt ? (1 << 10) : 0;
 
-			item->hotspot = crd.hotspot(sel_hotspot) | g | h | (translate_map ? 2 : 1);
+			/* mark memory dma able */
+			unsigned d = dma_mem ? (1 << 9) : 0;
+
+			/* set type of delegation, either 'map' or 'translate and map' */
+			unsigned m = translate_map ? 2 : 1;
+
+			item->hotspot = crd.hotspot(sel_hotspot) | g | h | d | m;
 			item->crd = crd.value();
 
 			return true;
