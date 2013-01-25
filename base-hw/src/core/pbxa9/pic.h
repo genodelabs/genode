@@ -15,15 +15,19 @@
 #define _PBXA9__PIC_H_
 
 /* core includes */
-#include <pic/cortex_a9_no_trustzone.h>
+#include <pic/cortex_a9.h>
 
 namespace Kernel
 {
 	/**
 	 * Interrupt controller for kernel
 	 */
-	class Pic : public Cortex_a9_no_trustzone::Pic { };
+	class Pic : public Cortex_a9::Pic { };
 }
+
+
+bool Arm_gic::Pic::_use_security_ext() { return 0; }
+
 
 #endif /* _PBXA9__PIC_H_ */
 

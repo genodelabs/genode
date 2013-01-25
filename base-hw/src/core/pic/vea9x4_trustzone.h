@@ -15,8 +15,8 @@
 #define _PIC__VEA9X4_TRUSTZONE_H_
 
 /* core includes */
-#include <cpu/cortex_a9.h>
-#include <pic/cortex_a9.h>
+#include <pic/arm_gic.h>
+#include <cpu.h>
 
 namespace Vea9x4_trustzone
 {
@@ -25,44 +25,50 @@ namespace Vea9x4_trustzone
 	/**
 	 * Programmable interrupt controller for core
 	 */
-	class Pic : public Cortex_a9::Pic
+	class Pic : public Arm_gic::Pic
 	{
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Pic()
+			Pic() : Arm_gic::Pic(Genode::Cpu::PL390_DISTRIBUTOR_MMIO_BASE,
+			                     Genode::Cpu::PL390_CPU_MMIO_BASE)
 			{
 				/* configure every shared peripheral interrupt */
 				for (unsigned i=MIN_SPI; i <= _max_interrupt; i++) {
-					_distr.write<Distr::Icdicr::Edge_triggered>(0, i);
-					_distr.write<Distr::Icdipr::Priority>(0, i);
-					_distr.write<Distr::Icdiptr::Cpu_targets>(Distr::Icdiptr::Cpu_targets::ALL, i);
+					_distr.write<Distr::Icfgr::Edge_triggered>(0, i);
+					_distr.write<Distr::Ipriorityr::Priority>(0, i);
+					_distr.write<Distr::Itargetsr::Cpu_targets>(
+						Distr::Itargetsr::ALL, i);
 				}
 
 				/* disable the priority filter */
-				_cpu.write<Cpu::Iccpmr::Priority>(0xff);
+				_cpu.write<Cpu::Pmr::Priority>(0xff);
 
 				/* signal secure IRQ via FIQ interface */
-				_cpu.write<Cpu::Iccicr>(Cpu::Iccicr::Enable_s::bits(1)  |
-				                        Cpu::Iccicr::Enable_ns::bits(1) |
-				                        Cpu::Iccicr::Fiq_en::bits(1));
+				_cpu.write<Cpu::Ctlr>(Cpu::Ctlr::Enable_grp0::bits(1)  |
+				                      Cpu::Ctlr::Enable_grp1::bits(1) |
+				                      Cpu::Ctlr::Fiq_en::bits(1));
 
 				/* use whole band of prios */
-				_cpu.write<Cpu::Iccbpr::Binary_point>(Cpu::Iccbpr::Binary_point::NO_PREEMPTION);
+				_cpu.write<Cpu::Bpr::Binary_point>(Cpu::Bpr::NO_PREEMPTION);
 
 				/* enable device */
-				_distr.write<Distr::Icddcr>(Distr::Icddcr::Enable::bits(1));
+				_distr.write<Distr::Ctlr>(Distr::Ctlr::Enable::bits(1));
 			}
 
 			/**
 			 * Mark interrupt 'i' unsecure
 			 */
 			void unsecure(unsigned const i) {
-				_distr.write<Distr::Icdisr::Nonsecure>(1, i); }
+				_distr.write<Distr::Igroupr::Group_status>(1, i); }
 	};
 }
+
+
+bool Arm_gic::Pic::_use_security_ext() { return 1; }
+
 
 #endif /* _PIC__VEA9X4_TRUSTZONE_H_ */
 

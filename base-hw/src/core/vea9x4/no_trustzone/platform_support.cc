@@ -12,8 +12,8 @@
  */
 
 /* core includes */
-#include <board.h>
 #include <platform.h>
+#include <board.h>
 #include <cpu.h>
 #include <pic.h>
 
@@ -37,7 +37,7 @@ Native_region * Platform::_irq_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ 0, Cortex_a9_no_trustzone::Pic::MAX_INTERRUPT_ID + 1 }
+		{ 0, Kernel::Pic::MAX_INTERRUPT_ID + 1 }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -48,7 +48,7 @@ Native_region * Platform::_core_only_irq_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		/* Core timer */
-		{ Cortex_a9::Cpu::PRIVATE_TIMER_IRQ, 1 },
+		{ Genode::Cpu::PRIVATE_TIMER_IRQ, 1 },
 
 		/* Core UART */
 		{ Board::PL011_0_IRQ, 1 }
