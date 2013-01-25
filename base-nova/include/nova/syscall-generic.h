@@ -464,6 +464,11 @@ namespace Nova {
 		unsigned msg_words() { return items & 0xffffU; }
 
 		/**
+		 * Return current number of message items on UTCB
+		 */
+		unsigned msg_items() { return items >> 16; }
+
+		/**
 		 * Append message-transfer item to message buffer
 		 *
 		 * \param exception  true to append the item to an exception reply
@@ -478,7 +483,7 @@ namespace Nova {
 			/* transfer items start at the end of the UTCB */
 			items += 1 << 16;
 			Item *item = reinterpret_cast<Item *>(this);
-			item += (PAGE_SIZE_BYTE / sizeof(struct Item)) - (items >> 16);
+			item += (PAGE_SIZE_BYTE / sizeof(struct Item)) - msg_items();
 
 			/* check that there is enough space left on UTCB */
 			if (msg + msg_words() >= reinterpret_cast<mword_t *>(item)) {

@@ -29,21 +29,23 @@ enum { verbose_local_map = false };
 
 
 /**
- * Establish a one-to-one mapping
+ * Establish a mapping
  *
  * \param utcb       UTCB of the calling EC
  * \param src_crd    capability range descriptor of source
  *                   resource to map locally
  * \param dst_crd    capability range descriptor of mapping
  *                   target
+ * \param kern_pd    Whether to map the items from the kernel or from core
+ * \param dma_mem    Whether the memory is usable for DMA or not
  *
- * This functions sends a mapping from the calling EC to the echo EC.
- * In order to successfully transfer the mapping, we have to open a
- * corresponding receive window at the echo EC.  We do this by poking
- * a receive-capability-range descriptor directly onto the echo UTCB.
+ * This functions sends a message from the calling EC to the echo EC.
+ * The calling EC opens a receive window and the echo EC creates a transfer
+ * item of the message and replies. The kernel will map during the reply
+ * from the echo EC to the calling EC.
  */
 static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
-                     bool kern_pd = false)
+                     bool kern_pd = false, bool dma_mem = false)
 {
 	/* open receive window at current EC */
 	utcb->crd_rcv = dst_crd;
@@ -52,16 +54,18 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 	utcb->msg[0] = src_crd.value();
 	utcb->msg[1] = 0;
 	utcb->msg[2] = kern_pd;
-	utcb->set_msg_word(3);
+	utcb->msg[3] = dma_mem;
+	utcb->set_msg_word(4);
 
 	/* establish the mapping via a portal traversal during reply phase */
 	Nova::uint8_t res = Nova::call(echo()->pt_sel());
-	if (res != Nova::NOVA_OK || utcb->msg_words() != 1 || !utcb->msg[0]) {
+	if (res != Nova::NOVA_OK || utcb->msg_words() != 1 || !utcb->msg[0] ||
+	    utcb->msg_items() != 1) {
 		PERR("Failure - map_local 0x%lx:%lu:%u->0x%lx:%lu:%u - call result=%x"
-		     " utcb=%x:%lx !!! %p %u",
+		     " utcb=%x:%x:%lx !!! utcb=%p kern=%u",
 		     src_crd.addr(), src_crd.order(), src_crd.type(),
-		     dst_crd.addr(), dst_crd.order(), dst_crd.type(),
-		     res, utcb->msg_words(), utcb->msg[0], utcb, kern_pd);
+		     dst_crd.addr(), dst_crd.order(), dst_crd.type(), res,
+		     utcb->msg_items(), utcb->msg_words(), utcb->msg[0], utcb, kern_pd);
 		return res > 0 ? res : -1;
 	}
 	/* clear receive window */
@@ -74,12 +78,11 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 static inline int unmap_local(Nova::Crd crd, bool self = true) {
 	return Nova::revoke(crd, self); }
 
-inline int
-map_local_phys_to_virt(Nova::Utcb *utcb, Nova::Crd src, Nova::Crd dst) {
+inline int map_local_phys_to_virt(Nova::Utcb *utcb, Nova::Crd src,
+                                  Nova::Crd dst) {
 	return map_local(utcb, src, dst, true); }
 
-inline int
-map_local_one_to_one(Nova::Utcb *utcb, Nova::Crd crd) {
+inline int map_local_one_to_one(Nova::Utcb *utcb, Nova::Crd crd) {
 	return map_local(utcb, crd, crd, true); }
 
 
@@ -95,7 +98,7 @@ inline int map_local(Nova::Utcb *utcb,
                      Genode::addr_t from_start, Genode::addr_t to_start,
                      Genode::size_t num_pages,
                      Nova::Rights const &permission,
-                     bool kern_pd = false)
+                     bool kern_pd = false, bool dma_mem = false)
 {
 	if (verbose_local_map)
 		Genode::printf("::map_local: from %lx to %lx, %zd pages from kernel %u\n",
@@ -146,7 +149,7 @@ inline int map_local(Nova::Utcb *utcb,
 		int const res = map_local(utcb,
 		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), permission),
 		                          Mem_crd((to_curr   >> 12), order - get_page_size_log2(), permission),
-		                          kern_pd);
+		                          kern_pd, dma_mem);
 		if (res) return res;
 
 		/* advance offset by current flexpage size */

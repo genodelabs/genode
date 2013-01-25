@@ -66,6 +66,8 @@ namespace Genode {
 				                     Nova::Rights(true, _rw, true));
 			}
 
+			bool  write_combined() { return _write_combined; };
+
 			addr_t dst_addr() { return _dst_addr; }
 	};
 

@@ -86,10 +86,17 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 		       page_rounded_size, ds->phys_addr(), virt_addr, Thread_base::myself()->utcb());
 
 	/* map the dataspace's physical pages to local addresses */
-	const Nova::Rights rights(true, true, true);
-	map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
-	          ds->phys_addr(), (addr_t)virt_addr,
-	          page_rounded_size >> get_page_size_log2(), rights, true);
+	const Nova::Rights rights(true, ds->writable(), true);
+	int res = map_local((Nova::Utcb *)Thread_base::myself()->utcb(),
+	                    ds->phys_addr(), (addr_t)virt_addr,
+	                    page_rounded_size >> get_page_size_log2(), rights,
+	                    true);
+
+	if (res) {
+		PERR("map failed - ram ds size=0x%8zx phys 0x%8lx, core-local 0x%8p\n",
+		     page_rounded_size, ds->phys_addr(), virt_addr);
+		return;
+	}
 
 	memset(virt_addr, 0, page_rounded_size);
 
