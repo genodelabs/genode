@@ -39,13 +39,10 @@ install_config {
 # Boot modules
 #
 
-exec cp test/lx_hybrid_ctors/libtestlib.so bin/
-
 # generic modules
 set boot_modules {
 	core init
 	test-lx_hybrid_ctors
-	libtestlib.so
 }
 
 build_boot_image $boot_modules
@@ -53,9 +50,6 @@ build_boot_image $boot_modules
 #
 # Execute test case
 #
-
-# qemu config
-append qemu_args "-nographic -m 64 "
 
 run_genode_until "child exited with exit value 0.*\n" 10
 
@@ -71,7 +65,5 @@ compare_output_to {
 	[init -> test-lx_hybrid_ctors] --- lx_hybrid global static constructor test ---
 	[init -> test-lx_hybrid_ctors] --- returning from main ---
 }
-
-exec rm bin/libtestlib.so
 
 # vi: set ft=tcl :
