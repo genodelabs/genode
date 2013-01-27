@@ -35,7 +35,7 @@ namespace File_system {
 		:
 			Genode::Connection<Session>(
 				session("ram_quota=%zd, tx_buf_size=%zd, label=\"%s\"",
-				        4*4096 + tx_buf_size, tx_buf_size, label)),
+				        4*1024*sizeof(long) + tx_buf_size, tx_buf_size, label)),
 			Session_client(cap(), tx_block_alloc) { }
 	};
 }
