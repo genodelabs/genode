@@ -1,4 +1,9 @@
 #
+# On OMAP4 where no PS/2 is available, we rely on USB HID
+#
+proc use_usb_input { } { return [expr ![have_spec ps2] && [have_spec usb]] }
+
+#
 # Uncomment the following line when working on the VIM source code. Otherwise,
 # the package may get recompiled, yet it does not get reinstalled into 'bin/'.
 #
@@ -6,10 +11,12 @@
 
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/framebuffer drivers/pci drivers/input drivers/usb
+	drivers/framebuffer drivers/pci drivers/input
 	server/terminal server/ram_fs
 	test/libports/ncurses
 }
+
+lappend_if [use_usb_input] build_components drivers/usb
 
 #
 # Build Noux packages only once
@@ -101,7 +108,7 @@ append_if [have_spec ps2] config {
 		<provides><service name="Input"/></provides>
 	</start> }
 
-append_if [expr ![have_spec ps2] && [have_spec usb]] config {
+append_if [use_usb_input] config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
@@ -189,7 +196,7 @@ lappend_if [have_spec vesa]  boot_modules vesa_drv
 lappend_if [have_spec ps2]   boot_modules ps2_drv
 lappend_if [have_spec pl11x] boot_modules pl11x_drv
 lappend_if [have_spec omap4] boot_modules omap4_fb_drv
-lappend_if [have_spec usb]   boot_modules usb_drv
+lappend_if [use_usb_input]   boot_modules usb_drv
 
 build_boot_image $boot_modules
 
