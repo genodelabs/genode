@@ -97,15 +97,15 @@ Platform_pd::Platform_pd(bool core)
 }
 
 
-Platform_pd::Platform_pd(signed pd_id, bool create) : _space_id(-1)
+Platform_pd::Platform_pd(signed pd_id, bool create) : _space_id(TASK_ID_INVALID)
 {
-	_space_id = -1;
+	_space_id = TASK_ID_INVALID;
 
 	/* mark all UTCBs of the new PD as free */
 	for (int i = 0; i < MAX_THREADS_PER_PD; i++)
 		utcb_in_use[i] = false;
 
-	struct task_ids ids = { -1, -1, -1 };
+	struct task_ids ids = { TASK_ID_INVALID, TASK_ID_INVALID, TASK_ID_INVALID };
 
 	int ret = l4_thread_control(THREAD_CREATE | TC_NEW_SPACE, &ids);
 	if (ret < 0) {

@@ -31,7 +31,7 @@ namespace Genode {
 			enum { UTCB_VIRT_BASE = 0x30000000 };
 			enum { UTCB_AREA_SIZE = MAX_THREADS_PER_PD*sizeof(struct Codezero::utcb) };
 
-			int _space_id;
+			unsigned _space_id;
 
 			bool utcb_in_use[MAX_THREADS_PER_PD];
 

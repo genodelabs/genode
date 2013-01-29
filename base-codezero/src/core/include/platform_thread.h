@@ -30,8 +30,8 @@ namespace Genode {
 
 			enum { PD_NAME_MAX_LEN = 64 };
 
-			int           _tid;   /* global codezero thread ID */
-			int           _space_id;
+			unsigned      _tid;   /* global codezero thread ID */
+			unsigned      _space_id;
 			addr_t        _utcb;
 			char          _name[PD_NAME_MAX_LEN];
 			Pager_object *_pager;
@@ -41,7 +41,7 @@ namespace Genode {
 			 *
 			 * This function is called from 'Platform_pd::bind_thread'.
 			 */
-			void _assign_physical_thread(int tid, int space_id, addr_t utcb) {
+			void _assign_physical_thread(unsigned tid, unsigned space_id, addr_t utcb) {
 				_tid = tid; _space_id = space_id; _utcb = utcb; }
 
 		public:

@@ -43,13 +43,13 @@ void Thread_base::_deinit_platform_thread() { }
  * \return           new thread ID, or
  *                   negative error code
  */
-inline int create_thread(int space_no,
+inline int create_thread(unsigned space_no,
                          void *sp, void *ip,
                          int pager_tid = 1)
 {
 	using namespace Codezero;
 
-	struct task_ids ids = { 1, space_no, TASK_ID_INVALID };
+	struct task_ids ids = { 1U, space_no, TASK_ID_INVALID };
 
 	/* allocate new thread at the kernel */
 	unsigned long flags = THREAD_CREATE | TC_SHARE_SPACE | TC_SHARE_GROUP;

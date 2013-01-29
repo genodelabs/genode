@@ -35,7 +35,7 @@ void Platform_thread::affinity(unsigned int cpu_no)
 
 int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 {
-	Native_thread_id pager = _pager ? _pager->cap().dst() : -1;
+	Native_thread_id pager = _pager ? _pager->cap().dst() : THREAD_INVALID;
 
 	/* setup thread context */
 	struct exregs_data exregs;
@@ -100,7 +100,7 @@ void Platform_thread::cancel_blocking()
 
 Platform_thread::Platform_thread(const char *name, unsigned, addr_t,
                                  int thread_id)
-: _tid(-1)
+: _tid(THREAD_INVALID)
 {
 	strncpy(_name, name, sizeof(_name));
 }
