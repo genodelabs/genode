@@ -331,72 +331,23 @@ int Plugin::fcntl(Libc::File_descriptor *sockfdo, int cmd, long val)
 }
 
 
+extern "C" void libc_freeaddrinfo(struct ::addrinfo *);
+
 void Plugin::freeaddrinfo(struct ::addrinfo *res)
 {
-	struct ::addrinfo *next;
-
-	while (res) {
-		if (res->ai_addr)
-			free(res->ai_addr);
-
-		if (res->ai_canonname)
-			free(res->ai_canonname);
-
-		next = res->ai_next;
-		free(res);
-		res = next;
-	}
+	return ::libc_freeaddrinfo(res);
 }
 
+
+extern "C" int libc_getaddrinfo(const char *, const char *,
+                                const struct ::addrinfo *,
+                                struct ::addrinfo **);
 
 int Plugin::getaddrinfo(const char *node, const char *service,
                              const struct ::addrinfo *hints,
                              struct ::addrinfo **res)
 {
-	struct lwip_addrinfo *lwip_res;
-	struct lwip_addrinfo *rp;
-	struct ::addrinfo *rp_new = 0;
-	int result;
-
-	result = lwip_getaddrinfo(node, service, (struct lwip_addrinfo*)hints, &lwip_res);
-
-	if (result == 0) {
-		for (rp = lwip_res; rp != 0; rp = rp->ai_next) {
-
-			if (!rp_new) {
-				/* first element */
-				rp_new = (struct ::addrinfo*)malloc(sizeof(struct ::addrinfo));
-				*res = rp_new;
-			} else {
-				rp_new->ai_next = (struct ::addrinfo*)malloc(sizeof(struct ::addrinfo));
-				rp_new = rp_new->ai_next;
-			}
-
-			rp_new->ai_flags     = rp->ai_flags;
-			rp_new->ai_family    = rp->ai_family;
-			rp_new->ai_socktype  = rp->ai_socktype;
-			rp_new->ai_protocol  = rp->ai_protocol;
-			rp_new->ai_addrlen   = rp->ai_addrlen;
-			if (rp->ai_addr) {
-				assert(sizeof(struct sockaddr) == sizeof(struct lwip_sockaddr));
-				rp_new->ai_addr  = (struct sockaddr*) malloc(sizeof(struct sockaddr));
-				::memcpy(rp_new->ai_addr, rp->ai_addr, sizeof(struct sockaddr));
-			} else {
-				rp_new->ai_addr  = 0;
-			}
-			if (rp->ai_canonname) {
-				rp_new->ai_canonname = (char*) malloc(::strlen(rp->ai_canonname) + 1);
-				strcpy(rp_new->ai_canonname, rp->ai_canonname);
-			} else {
-				rp_new->ai_canonname = 0;
-			}
-			rp_new->ai_next      = 0;
-		}
-
-		lwip_freeaddrinfo(lwip_res);
-	}
-
-	return result;
+	return ::libc_getaddrinfo(node, service, hints, res);
 }
 
 
