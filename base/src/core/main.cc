@@ -110,9 +110,9 @@ class Core_child : public Child_policy
 		Rpc_entrypoint _entrypoint;
 		enum { STACK_SIZE = 8*1024 };
 
-		Child _child;
+		Service_registry &_local_services;
 
-		Service_registry *_local_services;
+		Child _child;
 
 	public:
 
@@ -121,11 +121,14 @@ class Core_child : public Child_policy
 		 */
 		Core_child(Dataspace_capability elf_ds, Cap_session *cap_session,
 		           Ram_session_capability ram, Cpu_session_capability cpu,
-		           Rm_session_capability rm, Service_registry *services)
+		           Rm_session_capability rm, Service_registry &services)
 		:
 			_entrypoint(cap_session, STACK_SIZE, "init", false),
-			_child(elf_ds, ram, cpu, rm, &_entrypoint, this),
-			_local_services(services)
+			_local_services(services),
+			_child(elf_ds, ram, cpu, rm, &_entrypoint, this,
+			       *_local_services.find(Ram_session::service_name()),
+			       *_local_services.find(Cpu_session::service_name()),
+			       *_local_services.find(Rm_session::service_name()))
 		{
 			_entrypoint.activate();
 		}
@@ -139,7 +142,7 @@ class Core_child : public Child_policy
 
 		Service *resolve_session_request(const char *service, const char *)
 		{
-			return _local_services->find(service);
+			return _local_services.find(service);
 		}
 };
 
@@ -229,7 +232,7 @@ int main()
 	Core_child *init = new (env()->heap())
 		Core_child(Rom_session_client(init_rom_session_cap).dataspace(),
 		           core_env()->cap_session(), init_ram_session_cap,
-		           init_cpu.cap(), init_rm.cap(), &local_services);
+		           init_cpu.cap(), init_rm.cap(), local_services);
 
 	PDBG("--- init created, waiting for exit condition ---");
 	platform()->wait_for_exit();
