@@ -154,10 +154,12 @@ class Genode::Irq_proxy : public THREAD,
 		 */
 		void entry()
 		{
-			if (_associate()) {
-				_startup_lock.unlock();
+			bool const associate_suceeded = _associate();
+
+			_startup_lock.unlock();
+
+			if (associate_suceeded)
 				_loop();
-			}
 		}
 
 		/**
