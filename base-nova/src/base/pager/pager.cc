@@ -63,7 +63,16 @@ void Pager_object::_page_fault_handler()
 	int ret = obj->pager(ipc_pager);
 
 	if (ret) {
-		obj->client_recall();
+		if (obj->client_recall() != Nova::NOVA_OK) {
+			PERR("recall failed");
+
+			Native_capability pager_obj = obj->Object_pool<Pager_object>::Entry::cap();
+			revoke(pager_obj.dst(), true);
+
+			revoke(Obj_crd(obj->exc_pt_sel(), NUM_INITIAL_PT_LOG2), false);
+
+			obj->_state.dead = true;
+		}
 		utcb->set_msg_word(0);
 		utcb->mtd = 0;
 	}
@@ -79,9 +88,13 @@ void Pager_object::_exception_handler(addr_t portal_id)
 	Utcb         *utcb = _check_handler(myself, obj);
 	addr_t fault_ip    = utcb->ip;
 
-	if (obj->submit_exception_signal())
+	if (obj->submit_exception_signal()) {
 		/* somebody takes care don't die - just recall and block */
-		obj->client_recall();
+		if (obj->client_recall() != Nova::NOVA_OK) {
+			PERR("recall failed exception_handler");
+			nova_die();
+		}
+	}
 	else {
 		PWRN("unresolvable exception at ip 0x%lx, exception portal 0x%lx",
 		     fault_ip, portal_id);
