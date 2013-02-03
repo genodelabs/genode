@@ -102,3 +102,6 @@ endif
 
 # because we use the host compiler's libgcc, omit the Genode toolchain's version
 LD_LIBGCC =
+
+# use the host c++ for linking to find shared libraries in DT_RPATH library paths
+LD_CMD = c++
