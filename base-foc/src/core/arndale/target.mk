@@ -1,6 +1,6 @@
 include $(PRG_DIR)/../target.inc
 
-LD_TEXT_ADDR = 0x80140000
+LD_TEXT_ADDR = 0x80100000
 
 REQUIRES += arm foc_arndale
 SRC_CC   += arm/platform_arm.cc
