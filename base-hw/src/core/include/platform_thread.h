@@ -151,7 +151,7 @@ namespace Genode {
 
 			void pager(Pager_object * const pager);
 
-			Pager_object * pager() const;
+			Pager_object * pager();
 
 			unsigned pd_id() const { return _pd_id; }
 

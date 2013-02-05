@@ -160,9 +160,6 @@ void Platform_thread::pager(Pager_object * const pager)
 }
 
 
-Genode::Pager_object * Platform_thread::pager() const
-{
-	assert(_rm_client)
-	return static_cast<Pager_object *>(_rm_client);
-}
+Genode::Pager_object * Platform_thread::pager() {
+	return _rm_client ? static_cast<Pager_object *>(_rm_client) : 0; }
 
