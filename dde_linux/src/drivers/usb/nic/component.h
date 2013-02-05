@@ -178,12 +178,13 @@ namespace Nic {
 					if (!_tx_sink->ready_to_ack()) {
 						_wait_event(_tx_sink->ready_to_ack());
 					}
+
 					/* acknowledge to client */
 					_tx_sink->acknowledge_packet(packet);
 
-					/* check if we received any signals (don't block) */
-					if ((tx_cnt % 20) == 0)
-						Service_handler::s()->check_signal(false);
+					/* it's cooperative scheduling - be nice */
+					if (tx_cnt == 20)
+						break;
 				}
 
 				/* sumbit last skb */
@@ -197,6 +198,9 @@ namespace Nic {
 
 				/* release acknowledged packets */
 				_rx_ack(false);
+
+				if (_tx_sink->packet_avail())
+					Signal_transmitter(_tx.sigh_packet_avail()).submit();
 			}
 
 			void _rx_ack(bool block = true)
