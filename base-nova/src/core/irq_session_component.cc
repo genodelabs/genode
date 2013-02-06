@@ -91,6 +91,11 @@ class Irq_thread : public Thread_base
 				throw Cpu_session::Thread_creation_failed();
 			}
 
+			/* default: we don't accept any mappings or translations */
+			Utcb * utcb_obj = reinterpret_cast<Utcb *>(Thread_base::utcb());
+			utcb_obj->crd_rcv = Obj_crd();
+			utcb_obj->crd_xlt = Obj_crd();
+
 			/* create SC */
 			unsigned sc_sel = cap_selector_allocator()->alloc();
 			res = create_sc(sc_sel, pd_sel, _tid.ec_sel, Qpd());

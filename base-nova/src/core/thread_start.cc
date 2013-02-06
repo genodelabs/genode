@@ -77,9 +77,10 @@ void Thread_base::start()
 	 */
 	using namespace Nova;
 
-	addr_t sp   = reinterpret_cast<addr_t>(&_context->stack[-4]);
+	addr_t sp = reinterpret_cast<addr_t>(&_context->stack[-4]);
 	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
-	addr_t pd_sel   = Platform_pd::pd_core_sel();
+	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_context->utcb);
+	addr_t pd_sel = Platform_pd::pd_core_sel();
 
 	/* create local EC */
 	enum { CPU_NO = 0, GLOBAL = false };
@@ -89,6 +90,10 @@ void Thread_base::start()
 		PERR("create_ec returned %d", res);
 		throw Cpu_session::Thread_creation_failed();
 	}
+
+	/* default: we don't accept any mappings or translations */
+	utcb_obj->crd_rcv = Obj_crd();
+	utcb_obj->crd_xlt = Obj_crd();
 
 	if (map_local(reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb()),
 	              Obj_crd(PT_SEL_PAGE_FAULT, 0),

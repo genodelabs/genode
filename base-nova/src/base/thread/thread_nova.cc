@@ -151,6 +151,11 @@ void Thread_base::start()
 		request_event_portal(_pager_cap, _tid.exc_pt_sel, PT_SEL_RECALL);
 	}
 
+	/* default: we don't accept any mappings or translations */
+	Utcb * utcb_obj = reinterpret_cast<Utcb *>(utcb());
+	utcb_obj->crd_rcv = Obj_crd();
+	utcb_obj->crd_xlt = Obj_crd();
+
 	/* request creation of SC to let thread run*/
 	env()->cpu_session()->resume(_thread_cap);
 }
