@@ -27,23 +27,23 @@ using namespace Genode;
 /**
  * Return lock used to protect capability selector allocations
  */
-static Genode::Lock *alloc_lock()
+static Genode::Lock &alloc_lock()
 {
 	static Genode::Lock alloc_lock_inst;
-	return &alloc_lock_inst;
+	return alloc_lock_inst;
 }
 
 
 addr_t Cap_selector_allocator::alloc(size_t num_caps_log2)
 {
-	Lock::Guard(alloc_lock());
+	Lock::Guard guard(alloc_lock());
 	return Bit_allocator::alloc(num_caps_log2);
 }
 
 
 void Cap_selector_allocator::free(addr_t cap, size_t num_caps_log2)
 {
-	Lock::Guard(alloc_lock());
+	Lock::Guard guard(alloc_lock());
 	Bit_allocator::free(cap, num_caps_log2);
 }
 
