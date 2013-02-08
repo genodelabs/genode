@@ -107,24 +107,17 @@ void Cancelable_lock::lock()
 	 */
 	spinlock_lock(&_spinlock_state);
 	if (_owner != myself) {
-
-
-		/* check if we are the applicant to be waken up next */
-		Applicant *a = _owner.applicant_to_wake_up();
-		if (a && (*a == myself)) {
-
-			_owner.applicant_to_wake_up(myself.applicant_to_wake_up());
-
-		/* otherwise, go through the list of remaining applicants */
-		} else {
-
-			for (; a; a = a->applicant_to_wake_up()) {
-
-				/* remove reference to ourself from the applicants list */
-				if (a->applicant_to_wake_up() == &myself) {
-					a->applicant_to_wake_up(myself.applicant_to_wake_up());
-					break;
-				}
+		/*
+		 * Check if we are the applicant to be waken up next,
+		 * otherwise, go through the list of remaining applicants
+		 */
+		for (Applicant *a = &_owner; a; a = a->applicant_to_wake_up()) {
+			/* remove reference to ourself from the applicants list */
+			if (a->applicant_to_wake_up() == &myself) {
+				a->applicant_to_wake_up(myself.applicant_to_wake_up());
+				if (_last_applicant == &myself)
+					_last_applicant = a;
+				break;
 			}
 		}
 
