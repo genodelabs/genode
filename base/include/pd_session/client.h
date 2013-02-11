@@ -29,6 +29,8 @@ namespace Genode {
 
 		int assign_parent(Parent_capability parent) {
 			return call<Rpc_assign_parent>(parent); }
+
+		bool assign_pci(addr_t) { return false; }
 	};
 }
 

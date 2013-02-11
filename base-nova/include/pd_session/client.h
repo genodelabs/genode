@@ -27,9 +27,14 @@ namespace Genode {
 		int bind_thread(Thread_capability thread) {
 			return call<Rpc_bind_thread>(thread); }
 
-		int assign_parent(Parent_capability parent) {
+		int assign_parent(Parent_capability parent)
+		{
 			parent.solely_map();
-			return call<Rpc_assign_parent>(parent); }
+			return call<Rpc_assign_parent>(parent);
+		}
+
+		bool assign_pci(addr_t pci_config_memory_address) {
+			return call<Rpc_assign_pci>(pci_config_memory_address); }
 	};
 }
 

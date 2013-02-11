@@ -32,6 +32,7 @@ SRC_CC       = main.cc \
                echo.cc \
                dump_alloc.cc \
                cpu_session_extension.cc \
+               pd_session_extension.cc \
                core_printf.cc \
                pager.cc
 
