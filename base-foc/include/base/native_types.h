@@ -150,9 +150,9 @@ namespace Genode {
 	struct Native_config
 	{
 		/**
-		 * Thread-context area configuration.
+		 * Thread-context area configuration
 		 */
-		static addr_t context_area_virtual_base() { return 0x40000000UL; }
+		static addr_t context_area_virtual_base();
 		static addr_t context_area_virtual_size() { return 0x10000000UL; }
 
 		/**

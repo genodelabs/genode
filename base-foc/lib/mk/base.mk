@@ -9,7 +9,7 @@ LIBS += base-common
 SRC_CC += console/log_console.cc
 SRC_CC += env/env.cc env/context_area.cc env/reload_parent_cap.cc \
           env/cap_map_remove.cc env/cap_alloc.cc
-SRC_CC += thread/thread_start.cc
+SRC_CC += thread/thread_start.cc thread/thread_context_area.cc
 
 INC_DIR += $(BASE_DIR)/src/base/env
 

@@ -32,6 +32,7 @@ SRC_CC       = cap_session_component.cc \
                signal_session_component.cc \
                signal_source_component.cc \
                thread_start.cc \
+               thread_context_area.cc \
                core_printf.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
@@ -55,3 +56,4 @@ vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core
+vpath %.cc                        $(REP_DIR)/src/base/thread
