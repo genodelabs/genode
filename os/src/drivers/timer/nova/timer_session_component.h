@@ -1,6 +1,7 @@
 /*
  * \brief  Instance of the timer session interface
  * \author Norman Feske
+ * \author Markus Partheymueller
  * \date   2010-01-30
  */
 
@@ -9,6 +10,11 @@
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
+ *
+ * Copyright (C) 2012 Intel Corporation    
+ * 
+ * Modifications are contributed under the terms and conditions of the
+ * Genode Contributor's Agreement executed by Intel.
  */
 
 #ifndef _TIMER_SESSION_COMPONENT_
@@ -182,7 +188,12 @@ namespace Timer {
 
 			void msleep(unsigned ms)
 			{
-				_timeout_scheduler->schedule_timeout(&_wake_up_alarm, 1000*ms);
+				usleep(1000*ms);
+			}
+
+			void usleep(unsigned us)
+			{
+				_timeout_scheduler->schedule_timeout(&_wake_up_alarm, us);
 
 				/*
 				 * Prevent the server activation from immediately answering the
