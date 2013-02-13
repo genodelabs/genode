@@ -97,7 +97,7 @@ volatile bool console_init = false;
 volatile bool disk_init = false;
 
 
-/* Timer Service */
+/* timer service */
 using Genode::Thread;
 using Genode::Alarm_scheduler;
 using Genode::Alarm;
@@ -240,7 +240,6 @@ class Guest_memory
 				        ((Genode::addr_t) _local_addr)+backing_store_size-fb_size);
 
 			} catch (Genode::Rm_session::Region_conflict) {  }
-
 		}
 
 		~Guest_memory()
@@ -274,11 +273,12 @@ class Guest_memory
 
 		Genode::size_t fb_size() { return _fb_size; }
 
-		Genode::Dataspace_capability fb_ds() { return _fb_ds;  }
+		Genode::Dataspace_capability fb_ds() { return _fb_ds; }
 };
 
-class Vcpu_thread : Genode::Thread<STACK_SIZE> {
 
+class Vcpu_thread : Genode::Thread<STACK_SIZE>
+{
 	private:
 
 		/**
@@ -321,7 +321,7 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE> {
 
 		void start(Genode::addr_t sel_ec)
 		{
- 			this->Thread_base::start();
+			this->Thread_base::start();
 
 			using namespace Genode;
 
@@ -338,11 +338,11 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE> {
 
 			if (!ec_cap.valid() || sel_ec != ec_cap.local_name())
 				Logging::panic("Could not collocate EC cap");
-
 		}
 
 		void entry() { }
 };
+
 
 class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
                         public StaticReceiver<Vcpu_dispatcher>
@@ -445,11 +445,11 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			msg.cpu->mtd = msg.mtr_out;
 		}
 
-  		/**
+		/**
 		 * Get position of the least significant 1 bit.
-  		 * bsf is undefined for value == 0.
+		 * bsf is undefined for value == 0.
 		 */
-  		Genode::addr_t bsf(Genode::addr_t value) {
+		Genode::addr_t bsf(Genode::addr_t value) {
 		        return __builtin_ctz(value); }
 
 		bool max_map_crd(Nova::Mem_crd &crd, Genode::addr_t vmm_start,
@@ -561,10 +561,12 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			if (utcb->inj_info & 0x80000000) {
 				utcb->mtd |= MTD_INJ;
 				Logging::printf("EPT violation during IDT vectoring.\n");
-				CpuMessage _win(CpuMessage::TYPE_CALC_IRQWINDOW, static_cast<CpuState *>(utcb), utcb->mtd);
+				CpuMessage _win(CpuMessage::TYPE_CALC_IRQWINDOW,
+				                static_cast<CpuState *>(utcb), utcb->mtd);
 				_win.mtr_out = MTD_INJ;
 				if (!_vcpu->executor.send(_win, true))
-					Logging::panic("nobody to execute %s at %x:%x\n", __func__, utcb->cs.sel, utcb->eip);
+					Logging::panic("nobody to execute %s at %x:%x\n",
+					               __func__, utcb->cs.sel, utcb->eip);
 			}
 
 			Nova::Utcb * u = (Nova::Utcb *)utcb;
@@ -582,12 +584,14 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				                is_in, io_order, port);
 
 			Utcb *utcb = _utcb_of_myself();
-			CpuMessage msg(is_in, static_cast<CpuState *>(utcb), io_order, port, &utcb->eax, utcb->mtd);
+			CpuMessage msg(is_in, static_cast<CpuState *>(utcb), io_order,
+			               port, &utcb->eax, utcb->mtd);
 			_skip_instruction(msg);
 			{
 				Genode::Lock::Guard l(global_lock);
 				if (!_vcpu->executor.send(msg, true))
-					Logging::panic("nobody to execute %s at %x:%x\n", __func__, msg.cpu->cs.sel, msg.cpu->eip);
+					Logging::panic("nobody to execute %s at %x:%x\n",
+					               __func__, msg.cpu->cs.sel, msg.cpu->eip);
 			}
 
 			utcb->mtd = msg.mtr_out;
@@ -694,7 +698,8 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		void _vmx_pause()
 		{
 			Utcb *utcb = _utcb_of_myself();
-			CpuMessage msg(CpuMessage::TYPE_SINGLE_STEP, static_cast<CpuState *>(utcb), utcb->mtd);
+			CpuMessage msg(CpuMessage::TYPE_SINGLE_STEP,
+			               static_cast<CpuState *>(utcb), utcb->mtd);
 			_skip_instruction(msg);
 		}
 
@@ -709,10 +714,10 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		void _vmx_startup()
 		{
 			Utcb *utcb = _utcb_of_myself();
-		        _handle_vcpu(NO_SKIP, CpuMessage::TYPE_HLT);
-		        utcb->mtd |= MTD_CTRL;
-		        utcb->ctrl[0] = 0;
-		        utcb->ctrl[1] = 0;
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_HLT);
+			utcb->mtd |= MTD_CTRL;
+			utcb->ctrl[0] = 0;
+			utcb->ctrl[1] = 0;
 		}
 
 		void _vmx_recall()
@@ -729,7 +734,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			} else {
 				order = utcb->qual[0] & 7;
 				if (order > 2) order = 2;
-		        }
+			}
 
 			_handle_io(utcb->qual[0] & 8, order, utcb->qual[0] >> 16);
 		}
@@ -738,10 +743,9 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		{
 			Utcb *utcb = _utcb_of_myself();
 
-		        if (!_handle_map_memory(utcb->qual[0] & 0x38))
-		          /* this is an access to MMIO */
-		          _handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
-
+			if (!_handle_map_memory(utcb->qual[0] & 0x38))
+				/* this is an access to MMIO */
+				_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
 		}
 
 		void _vmx_cpuid()
@@ -800,11 +804,9 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 
 			Native_capability thread(tid().ec_sel);
 			Native_capability handler =
-				_cap_session.alloc(thread, (Nova::mword_t)portal_entry,
-				           mtd.value());
+				_cap_session.alloc(thread, (Nova::mword_t)portal_entry, mtd.value());
 
-			if (!handler.valid() ||
-			    exc_base + EV != handler.local_name())
+			if (!handler.valid() || exc_base + EV != handler.local_name())
 				Logging::panic("Could not get EC cap");
 		}
 
@@ -871,6 +873,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			Mtd const mtd_all(Mtd::ALL);
 			Mtd const mtd_cpuid(Mtd::EIP | Mtd::ACDB | Mtd::IRQ);
 			Mtd const mtd_irq(Mtd::IRQ);
+
 			/*
 			 * Register vCPU event handlers
 			 */
@@ -996,7 +999,9 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		}
 };
 
+
 const void * _forward_pkt;
+
 
 class Machine : public StaticReceiver<Machine>
 {
@@ -1052,7 +1057,7 @@ class Machine : public StaticReceiver<Machine>
 
 				if (verbose_debug)
 					Logging::printf(" -> len=0x%lx, ptr=0x%p\n",
-				    	            msg.len, msg.ptr);
+					                msg.len, msg.ptr);
 				return true;
 
 			/**
@@ -1215,7 +1220,7 @@ class Machine : public StaticReceiver<Machine>
 					          ((Genode::uint64_t)_nic->mac_address().addr[4] & 0xff) << 8 |
 					          ((Genode::uint64_t)_nic->mac_address().addr[5] & 0xff);
 
-					/* Start receiver thread for this MAC */
+					/* start receiver thread for this MAC */
 					Vancouver_network * netreceiver = new Vancouver_network(_motherboard, _nic);
 
 					return true;
@@ -1289,7 +1294,7 @@ class Machine : public StaticReceiver<Machine>
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
 			msg.timestamp = _motherboard.clock()->clock(TimerProtocol::WALLCLOCK_FREQUENCY);
 
-		        *Genode::Thread_base::myself()->utcb() = utcb_backup;
+			*Genode::Thread_base::myself()->utcb() = utcb_backup;
 
 			return true;
 		}
@@ -1502,14 +1507,12 @@ class Machine : public StaticReceiver<Machine>
 		}
 };
 
+
 extern unsigned long _prog_img_beg;  /* begin of program image (link address) */
 extern unsigned long _prog_img_end;  /* end of program image */
 
-namespace Genode {
+namespace Genode { Rm_session *env_context_area_rm_session(); }
 
-	Rm_session *env_context_area_rm_session();
-
-}
 
 int main(int argc, char **argv)
 {
@@ -1539,7 +1542,7 @@ int main(int argc, char **argv)
 		unsigned long val;
                 arg.value(&val);
 		fb_size = val*1024;
-	} catch (...) {	}
+	} catch (...) { }
 
 	static Guest_memory guest_memory(vm_size, fb_size);
 
@@ -1575,14 +1578,15 @@ int main(int argc, char **argv)
 
 	static Machine machine(boot_modules, guest_memory);
 
-	/* Create Console Thread */
+	/* create console thread */
 	Vancouver_console vcon(machine.get_mb(), fb_size, guest_memory.fb_ds());
 
-	/* Create Disk Thread */
-	Vancouver_disk vdisk(machine.get_mb(), 	guest_memory.backing_store_local_base(),
-						guest_memory.backing_store_fb_local_base());
+	/* create disk thread */
+	Vancouver_disk vdisk(machine.get_mb(),
+	                     guest_memory.backing_store_local_base(),
+	                     guest_memory.backing_store_fb_local_base());
 
-	/* Wait for services */
+	/* wait for services */
 	while (!console_init || !disk_init);
 
 	machine.setup_devices(Genode::config()->xml_node().sub_node("machine"));
