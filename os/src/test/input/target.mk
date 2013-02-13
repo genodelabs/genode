@@ -1,3 +1,3 @@
 TARGET = test-input
 SRC_CC = test.cc
-LIBS   = cxx env
+LIBS   = cxx env signal
