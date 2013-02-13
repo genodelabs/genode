@@ -4,7 +4,7 @@
  * \date   2010-08-26
  */
 
-#include <base/ipc_generic.h>
+#include <base/ipc.h>
 
 #include <string.h>
 

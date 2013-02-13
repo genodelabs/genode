@@ -25,6 +25,7 @@
 #include <base/ipc.h>
 #include <base/ipc_msgbuf.h>
 #include <base/thread.h>
+#include <util/assert.h>
 
 /* base-foc/src/base/lock */
 #include <lock_helper.h> /* for 'thread_get_my_native_id()' */
@@ -40,6 +41,66 @@ namespace Fiasco {
 
 using namespace Genode;
 using namespace Fiasco;
+
+
+/*****************************
+ ** IPC marshalling support **
+ *****************************/
+
+void Ipc_ostream::_marshal_capability(Native_capability const &cap)
+{
+	/* first transfer local capability value */
+	_write_to_buf(cap.local());
+
+	/* if it's a local capability we're done */
+	if (cap.local())
+		return;
+
+	if (cap.valid()) {
+		if (!l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst()))) {
+			_write_to_buf(0);
+			return;
+		}
+	}
+
+	/* transfer capability id */
+	_write_to_buf(cap.local_name());
+
+	/* only transfer kernel-capability if it's a valid one */
+	if (cap.valid())
+		_snd_msg->snd_append_cap_sel(cap.dst());
+
+	ASSERT(!cap.valid() ||
+	       l4_msgtag_label(l4_task_cap_valid(L4_BASE_TASK_CAP, cap.dst())),
+	       "Send invalid cap");
+}
+
+
+void Ipc_istream::_unmarshal_capability(Native_capability &cap)
+{
+	long value = 0;
+
+	/* get local capability pointer from message buffer */
+	_read_from_buf(value);
+
+	/* if it's a local capability, the pointer is marshalled in the id */
+	if (value) {
+		cap = Capability<Native_capability>::local_cap((Native_capability*)value);
+		return;
+	}
+
+	/* extract capability id from message buffer */
+	_read_from_buf(value);
+
+	/* if id is zero an invalid capability was transfered */
+	if (!value) {
+		cap = Native_capability();
+		return;
+	}
+
+	/* try to insert received capability in the map and return it */
+	cap = Native_capability(cap_map()->insert_map(value, _rcv_msg->rcv_cap_sel()));
+}
 
 
 /***************

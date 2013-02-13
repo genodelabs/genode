@@ -46,6 +46,41 @@
 using namespace Genode;
 
 
+/*****************************
+ ** IPC marshalling support **
+ *****************************/
+
+void Ipc_ostream::_marshal_capability(Native_capability const &cap)
+{
+	if (cap.valid()) {
+		_write_to_buf(cap.local_name());
+
+		_snd_msg->append_cap(cap.dst().socket);
+	} else {
+		_write_to_buf(-1L);
+	}
+}
+
+
+void Ipc_istream::_unmarshal_capability(Native_capability &cap)
+{
+	long local_name =  0;
+	_read_from_buf(local_name);
+
+	if (local_name == -1) {
+
+		/* construct invalid capability */
+		cap = Genode::Native_capability();
+
+	} else {
+
+		/* construct valid capability */
+		int const socket = _rcv_msg->read_cap();
+		cap = Native_capability(Cap_dst_policy::Dst(socket), local_name);
+	}
+}
+
+
 namespace Genode {
 
 	/*
