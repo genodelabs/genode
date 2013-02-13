@@ -363,7 +363,6 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 
 
 #include <setjmp.h>
-#include <base/platform_env.h>
 
 
 static jmp_buf fork_jmp_buf;
@@ -377,8 +376,7 @@ extern "C" void stdout_reconnect(); /* provided by 'log_console.cc' */
  */
 extern "C" void fork_trampoline()
 {
-	static_cast<Genode::Platform_env *>(Genode::env())
-		->reload_parent_cap(new_parent.dst, new_parent.local_name);
+	Genode::env()->reload_parent_cap(new_parent.dst, new_parent.local_name);
 
 	stdout_reconnect();
 	noux_connection()->reconnect();

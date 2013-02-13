@@ -18,14 +18,14 @@
 #ifndef _CORE__INCLUDE__CORE_ENV_H_
 #define _CORE__INCLUDE__CORE_ENV_H_
 
-/* Genode includes */
-#include <base/platform_env.h>
-
 /* core includes */
 #include <platform.h>
 #include <core_parent.h>
 #include <cap_session_component.h>
 #include <ram_session_component.h>
+
+/* internal base includes */
+#include <platform_env.h>
 
 
 namespace Genode {
@@ -195,6 +195,8 @@ namespace Genode {
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return 0;
 			}
+
+			void reload_parent_cap(Capability<Parent>::Dst, long) { }
 	};
 
 

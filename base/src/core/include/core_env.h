@@ -163,7 +163,6 @@ namespace Genode {
 				return 0;
 			}
 
-
 			Cpu_session_capability cpu_session_cap() {
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return Cpu_session_capability();
@@ -174,6 +173,8 @@ namespace Genode {
 				PWRN("%s:%u not implemented", __FILE__, __LINE__);
 				return 0;
 			}
+
+			void reload_parent_cap(Capability<Parent>::Dst, long) { }
 	};
 
 

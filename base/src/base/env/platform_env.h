@@ -202,19 +202,6 @@ namespace Genode {
 				      _initial_junk, sizeof(_initial_junk))
 			{ }
 
-			/**
-			 * Reload parent capability and reinitialize environment resources
-			 *
-			 * This function is solely used for implementing fork semantics.
-			 * After forking a process, the new child process is executed
-			 * within a copy of the address space of the forking process.
-			 * Thereby, the new process inherits the original 'Platform_env'
-			 * object of the forking process, which is meaningless in the
-			 * context of the new process. By calling this function, the new
-			 * process is able to reinitialize its 'Platform_env' with
-			 * meaningful capabilities obtained via its updated parent
-			 * capability.
-			 */
 			void reload_parent_cap(Native_capability::Dst, long);
 
 

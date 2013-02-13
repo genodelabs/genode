@@ -2,6 +2,7 @@ SRC_CC   = env.cc context_area.cc cap_map.cc cap_alloc.cc \
            reload_parent_cap.cc spin_lock.cc cap_map_remove.cc
 LIBS     = ipc heap log_console lock
 INC_DIR += $(REP_DIR)/src/base/lock $(BASE_DIR)/src/base/lock
+INC_DIR += $(BASE_DIR)/src/base/env
 
 vpath env.cc               $(BASE_DIR)/src/base/env
 vpath context_area.cc      $(BASE_DIR)/src/base/env

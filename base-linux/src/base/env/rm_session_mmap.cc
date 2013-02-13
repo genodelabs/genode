@@ -11,10 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/platform_env.h>
+/* Genode includes */
 #include <base/thread.h>
 #include <linux_dataspace/client.h>
 #include <linux_syscalls.h>
+
+/* local includes */
+#include <platform_env.h>
 
 using namespace Genode;
 
