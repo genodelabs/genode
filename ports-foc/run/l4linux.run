@@ -141,7 +141,7 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 -net user "
 #
 # Execute test case
 #
-run_genode_until {.*\/ #.*} 120
+run_genode_until {.*\/ #.*} 220
 
 # Wait for network to settle down
 send "sleep 5\n"
