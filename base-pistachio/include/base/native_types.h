@@ -23,8 +23,6 @@ namespace Pistachio {
 
 namespace Genode {
 
-	typedef volatile int Native_lock;
-
 	class Platform_thread;
 
 	typedef Pistachio::L4_ThreadId_t Native_thread_id;

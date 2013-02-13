@@ -26,7 +26,6 @@ namespace Genode {
 		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
-	typedef volatile int  Native_lock;
 	typedef int           Native_thread;
 	typedef Native_thread Native_thread_id;
 	typedef struct { }    Native_utcb;

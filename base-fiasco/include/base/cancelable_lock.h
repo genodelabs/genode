@@ -24,7 +24,7 @@ namespace Genode {
 	{
 		private:
 
-			Native_lock _native_lock;
+			int volatile _lock;
 
 		public:
 

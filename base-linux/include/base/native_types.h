@@ -29,21 +29,6 @@
 namespace Genode {
 
 	/**
-	 * Native lock type
-	 *
-	 * We are using a sleeping spinlock as lock implementation on Linux. This
-	 * is a temporary solution until we have implemented futex-based locking.
-	 * In a previous version, we have relied on POSIX semaphores as provided by
-	 * the glibc. However, relying on the glibc badly interferes with a custom
-	 * libc implementation. The glibc semaphore implementation expects to find
-	 * a valid pthread structure via the TLS pointer. We do not have such a
-	 * structure because we create threads via the 'clone' system call rather
-	 * than 'pthread_create'. Hence we have to keep the base framework clean
-	 * from glibc usage altogether.
-	 */
-	typedef volatile int Native_lock;
-
-	/**
 	 * Thread ID used in lock implementation
 	 *
 	 * Unfortunately, both - PID and TID - are needed for lx_tgkill() in

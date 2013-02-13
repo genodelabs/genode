@@ -37,7 +37,6 @@ namespace Fiasco {
 
 namespace Genode {
 
-	typedef volatile int         Native_lock;
 	typedef Fiasco::l4_cap_idx_t Native_thread_id;
 	typedef Fiasco::l4_cap_idx_t Native_thread;
 	typedef Fiasco::l4_cap_idx_t Native_task;

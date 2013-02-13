@@ -24,7 +24,6 @@ namespace Genode
 	class Platform_thread;
 	class Tlb;
 
-	typedef int volatile      Native_lock;
 	typedef Platform_thread * Native_thread;
 	typedef unsigned          Native_thread_id;
 	typedef int               Native_connection_state;
