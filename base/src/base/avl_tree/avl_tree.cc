@@ -117,6 +117,9 @@ void Avl_node_base::remove(Policy &policy)
 	Avl_node_base *lp = 0;
 	Avl_node_base *l  = _child[0];
 
+	if (!_parent)
+		PERR("Error: tried to remove AVL node that is not in an AVL tree");
+
 	if (l) {
 
 		/* find right-most node in left sub tree (l) */
@@ -157,6 +160,10 @@ void Avl_node_base::remove(Policy &policy)
 		lpp->_rebalance_subtree(lp, policy);
 		lp = lpp;
 	}
+
+	/* reset node pointers */
+	_child[LEFT] = _child[RIGHT] = 0;
+	_parent = 0;
 }
 
 
