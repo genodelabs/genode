@@ -50,7 +50,9 @@ namespace Genode
 			int num() { return _num; }
 	};
 
+
 	typedef List<Signal_context> Context_list;
+
 
 	/**
 	 * A specific signal type that a transmitter can target when it submits
@@ -83,6 +85,7 @@ namespace Genode
 			GENODE_RPC_INTERFACE();
 	};
 
+
 	/**
 	 * To submit signals to one specific context
 	 *
@@ -114,6 +117,7 @@ namespace Genode
 
 			void context(Signal_context_capability const c) { _context = c; }
 	};
+
 
 	/**
 	 * Manage multiple signal contexts and receive signals targeted to them
@@ -170,6 +174,61 @@ namespace Genode
 			 * Block on any signal that is triggered at one of our contexts
 			 */
 			Signal wait_for_signal();
+	};
+
+
+	/**
+	 * Abstract interface to be implemented by signal dispatchers
+	 */
+	struct Signal_dispatcher_base : Signal_context
+	{
+		virtual void dispatch(unsigned num) = 0;
+	};
+
+
+	/**
+	 * Adapter for directing signals to member functions
+	 *
+	 * This utility associates member functions with signals. It is intended to
+	 * be used as a member variable of the class that handles incoming signals
+	 * of a certain type. The constructor takes a pointer-to-member to the
+	 * signal handling function as argument. If a signal is received at the
+	 * common signal reception code, this function will be invoked by calling
+	 * 'Signal_dispatcher_base::dispatch'.
+	 *
+	 * \param T  type of signal-handling class
+	 */
+	template <typename T>
+	class Signal_dispatcher : private Signal_dispatcher_base,
+	                          public  Signal_context_capability
+	{
+		private:
+
+			T &obj;
+			void (T::*member) (unsigned);
+			Signal_receiver &sig_rec;
+
+		public:
+
+			/**
+			 * Constructor
+			 *
+			 * \param sig_rec     signal receiver to associate the signal
+			 *                    handler with
+			 * \param obj,member  object and member function to call when
+			 *                    the signal occurs
+			 */
+			Signal_dispatcher(Signal_receiver &sig_rec,
+			                  T &obj, void (T::*member)(unsigned))
+			:
+				Signal_context_capability(sig_rec.manage(this)),
+				obj(obj), member(member),
+				sig_rec(sig_rec)
+			{ }
+
+			~Signal_dispatcher() { sig_rec.dissolve(this); }
+
+			void dispatch(unsigned num) { (obj.*member)(num); }
 	};
 }
 
