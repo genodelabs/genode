@@ -24,7 +24,6 @@ SRC_CC       = \
                dataspace_component.cc \
                rm_session_component.cc \
                rm_session_support.cc \
-               io_port_session_component.cc \
                irq_session_component.cc \
                signal_session_component.cc \
                signal_source_component.cc \
@@ -45,7 +44,7 @@ vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
-vpath platform_serices.cc         $(GEN_CORE_DIR)
+vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
 vpath thread_bootstrap.cc         $(BASE_DIR)/src/base/thread
 vpath thread.cc                   $(BASE_DIR)/src/base/thread

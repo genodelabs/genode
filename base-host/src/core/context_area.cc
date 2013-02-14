@@ -30,7 +30,7 @@ class Context_area_rm_session : public Genode::Rm_session
 		 */
 		Local_addr attach(Genode::Dataspace_capability ds_cap,
 		                  Genode::size_t size, Genode::off_t offset,
-		                  bool use_local_addr, Local_addr local_addr)
+		                  bool use_local_addr, Local_addr local_addr, bool)
 		{
 			PWRN("not implemented");
 			return local_addr;
@@ -41,6 +41,8 @@ class Context_area_rm_session : public Genode::Rm_session
 
 		Genode::Pager_capability add_client(Genode::Thread_capability) {
 			return Genode::Pager_capability(); }
+
+		void remove_client(Genode::Pager_capability) { }
 
 		void fault_handler(Genode::Signal_context_capability) { }
 

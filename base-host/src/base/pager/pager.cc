@@ -37,7 +37,7 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *, Pager_activation_base *a)
 
 void Pager_entrypoint::dissolve(Pager_object *obj)
 {
-	remove(obj);
+	remove_locked(obj);
 }
 
 
@@ -53,5 +53,5 @@ Pager_capability Pager_entrypoint::manage(Pager_object *obj)
 	insert(obj);
 
 	/* return capability that uses the object id as badge */
-	return Pager_capability(cap);
+	return reinterpret_cap_cast<Pager_object>(cap);
 }

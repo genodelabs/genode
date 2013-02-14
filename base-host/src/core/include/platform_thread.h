@@ -86,9 +86,10 @@ namespace Genode {
 			 ************************/
 
 			/**
-			 * Set pager
+			 * Set/get pager
 			 */
 			void pager(Pager_object *pager) { }
+			Pager_object *pager() const { return 0; }
 
 			/**
 			 * Return identification of thread when faulting

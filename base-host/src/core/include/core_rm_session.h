@@ -30,12 +30,14 @@ namespace Genode {
 
 			Local_addr attach(Dataspace_capability ds_cap, size_t size=0,
 			                  off_t offset=0, bool use_local_addr = false,
-			                  Local_addr local_addr = 0);
+			                  Local_addr local_addr = 0, bool = false);
 
 			void detach(Local_addr local_addr) { }
 
 			Pager_capability add_client(Thread_capability thread) {
 				return Pager_capability(); }
+
+			void remove_client(Pager_capability) { }
 
 			void fault_handler(Signal_context_capability handler) { }
 
