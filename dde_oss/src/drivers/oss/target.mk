@@ -1,6 +1,6 @@
 TARGET      = oss_drv
 REQUIRES    = x86_32
-LIBS        = cxx env dde_kit signal server
+LIBS        = dde_kit
 CONTRIB_DIR = $(REP_DIR)/contrib
 
 

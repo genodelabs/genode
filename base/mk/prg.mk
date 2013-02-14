@@ -143,15 +143,13 @@ STATIC_LIBS := $(foreach l,$(FILTER_DEPS),$(LIB_CACHE_DIR)/$l/$l.lib.a)
 STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
 
 #
-# For hybrid Linux/Genode programs, prevent the linkage of the normal thread
-# library. Because such programs use the glibc, we map Genode's thread API
-# to 'pthreads' instead to improve inter-operability with native Linux
-# libraries. Furthermore, we do not need Genode's cxx library for such
-# programs because the cxx functionality is already provided by the glibc.
+# For hybrid Linux/Genode programs, prevent the linkage Genode's cxx, base,
+# and startup libraries because these functionalities are covered by the glibc
+# or by 'src/platform/lx_hybrid.cc'.
 #
 ifeq ($(USE_HOST_LD_SCRIPT),yes)
 STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/startup/startup.lib.a, $(STATIC_LIBS))
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/thread/thread.lib.a,   $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/base/base.lib.a,       $(STATIC_LIBS))
 STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/cxx/cxx.lib.a,         $(STATIC_LIBS))
 endif
 

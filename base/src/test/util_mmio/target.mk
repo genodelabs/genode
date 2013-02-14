@@ -11,4 +11,4 @@ TARGET = test-util_mmio
 SRC_CC += main.cc
 
 # Add libraries
-LIBS += cxx env thread
+LIBS += base

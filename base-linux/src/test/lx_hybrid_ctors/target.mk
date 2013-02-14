@@ -1,6 +1,6 @@
 TARGET = test-lx_hybrid_ctors
 SRC_CC = main.cc
-LIBS   = env lx_hybrid
+LIBS   = lx_hybrid
 
 TESTLIB_SO     = libtestlib.so
 TESTLIB_SRC_CC = testlib.cc

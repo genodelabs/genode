@@ -35,11 +35,6 @@ INC_DIR += $(CODEZERO_ABS_DIR)/conts/userlibs/libl4/include
 INC_DIR += $(CODEZERO_ABS_DIR)/conts/userlibs/libdev/uart/include
 
 #
-# Codezero-specific startup code
-#
-PRG_LIBS += startup
-
-#
 # Allow programs to test for the Codezero kernel
 #
 # This is needed by the 'pl050/irq_handler.h' to handle the interrupt semantics

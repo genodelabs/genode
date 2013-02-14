@@ -1,3 +1,3 @@
 TARGET = test-rm_session_mmap
-LIBS   = cxx env
+LIBS   = base
 SRC_CC = main.cc

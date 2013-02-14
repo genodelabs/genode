@@ -1,4 +1,4 @@
-LIBS      = cxx env ipc server blit signal
+LIBS      = base blit
 
 SRC_CC    = sky_texture.cc     startup.cc   \
             elements.cc        widgets.cc   \

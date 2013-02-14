@@ -23,12 +23,6 @@ INC_DIR += $(PISTACHIO_USER_BUILD_DIR)/include
 REP_INC_DIR += include/pistachio
 
 #
-# Startup code to be used when building a program
-#
-STARTUP_LIB ?= startup
-PRG_LIBS += $(STARTUP_LIB)
-
-#
 # Linker options
 #
 CXX_LINK_OPT += -L$(PISTACHIO_USER_BUILD_DIR)/lib

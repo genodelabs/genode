@@ -1,5 +1,5 @@
 TARGET   = usb_drv
-LIBS     = cxx env dde_kit server libc-setjmp signal
+LIBS     = dde_kit libc-setjmp
 SRC_CC   = main.cc lx_emul.cc irq.cc timer.cc event.cc storage.cc \
            input_component.cc nic.cc
 SRC_C    = dummies.c scsi.c evdev.c

@@ -1,5 +1,5 @@
 TARGET    = nic_bridge
-LIBS      = env cxx server net signal
+LIBS      = base net
 SRC_CC    = address_node.cc component.cc mac.cc \
             main.cc packet_handler.cc vlan.cc
 

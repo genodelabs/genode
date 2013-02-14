@@ -1,5 +1,10 @@
-SRC_CC = lx_hybrid.cc new_delete.cc
-LIBS  += syscall env
+SRC_CC += lx_hybrid.cc new_delete.cc
 
 vpath new_delete.cc $(BASE_DIR)/src/base/cxx
 vpath lx_hybrid.cc   $(REP_DIR)/src/platform
+
+# add parts of the base library that are shared with core
+LIBS += base-common
+
+# non-core parts of the base library (except for the startup code)
+include $(REP_DIR)/lib/mk/base.inc

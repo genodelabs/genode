@@ -1,10 +1,8 @@
 TARGET       = core
-REQUIRES     = fiasco
-LIBS         = cxx ipc heap core_printf child pager lock raw_signal raw_server
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC       = main.cc \
+SRC_CC      += main.cc \
                multiboot_info.cc \
                ram_session_component.cc \
                ram_session_support.cc \
@@ -14,9 +12,7 @@ SRC_CC       = main.cc \
                pd_session_component.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
-               thread.cc \
                thread_start.cc \
-               thread_bootstrap.cc \
                platform_thread.cc \
                platform_pd.cc \
                platform_services.cc \
@@ -29,10 +25,14 @@ SRC_CC       = main.cc \
                signal_session_component.cc \
                signal_source_component.cc \
                dump_alloc.cc \
-               context_area.cc
+               context_area.cc \
+               core_printf.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
-               $(GEN_CORE_DIR)/include
+               $(GEN_CORE_DIR)/include \
+               $(REP_DIR)/src/base/console
+
+LIBS        += base-common
 
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath multiboot_info.cc           $(GEN_CORE_DIR)
@@ -48,6 +48,5 @@ vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)
-vpath thread_bootstrap.cc         $(BASE_DIR)/src/base/thread
-vpath thread.cc                   $(BASE_DIR)/src/base/thread
+vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core

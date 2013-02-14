@@ -21,5 +21,5 @@ CC_WARN = -Wall -Wno-unused-variable -Wno-unused-function
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(LIGHTTPD_DIR)/src
 
-LIBS += cxx env libc libm
+LIBS += libc libm
 LIBS += zlib config_args

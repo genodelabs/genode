@@ -1,3 +1,3 @@
 TARGET = part_blk
-LIBS   = env cxx signal server
+LIBS   = base
 SRC_CC = main.cc back_end.cc

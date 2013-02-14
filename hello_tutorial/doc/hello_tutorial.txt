@@ -246,7 +246,7 @@ create a 'target.mk' file in 'src/hello/server':
 
 ! TARGET = hello_server
 ! SRC_CC = main.cc
-! LIBS   = cxx env server
+! LIBS   = base
 
 To tell the init process to start the new program, we have to add the following
 entry to Init's 'config' file, which is located at 'build/bin/config'.
@@ -389,7 +389,7 @@ Add a 'target.mk' file with the following content to 'src/hello/client/':
 
 ! TARGET = hello_client
 ! SRC_CC = main.cc
-! LIBS   = cxx env
+! LIBS   = base
 
 Add the following entries to your 'config' file:
 

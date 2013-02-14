@@ -1,3 +1,3 @@
-TARGET   = test-printf
-SRC_CC   = main.cc
-LIBS     = env
+TARGET = test-printf
+SRC_CC = main.cc
+LIBS   = base

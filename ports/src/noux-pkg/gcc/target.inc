@@ -61,7 +61,7 @@ libgmp.a libmpfr.a libmpc.a libc.a:
 
 Makefile: dummy_libs
 
-LIBS  += cxx env libc libm libc_noux
+LIBS  += libc libm libc_noux
 
 NOUX_PKG_DIR = $(wildcard $(REP_DIR)/contrib/gcc-*)
 

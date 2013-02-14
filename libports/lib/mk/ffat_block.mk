@@ -7,7 +7,7 @@ INC_DIR += $(REP_DIR)/src/lib/ffat/contrib
 SRC_C  = ff.c ccsbcs.c
 SRC_CC = diskio_block.cc
 
-LIBS = signal
+LIBS = base
 
 vpath % $(REP_DIR)/src/lib/ffat/
 vpath % $(REP_DIR)/contrib/ff007e/src

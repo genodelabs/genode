@@ -1,7 +1,7 @@
 #note: leave empty to disable debugging output
 DEBUG =
 
-LIBS = cxx ldso-arch startup
+LIBS = base ldso-arch
 
 SRC_S  = rtld_start.S
 SRC_C  = reloc.c rtld.c map_object.c xmalloc.c debug.c main.c  \

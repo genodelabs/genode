@@ -10,21 +10,8 @@ TARGET = core
 # set entry point of core's first thread
 CC_OPT += -DCORE_MAIN=_main
 
-# core brings its own startup code
-STARTUP_LIB =
-
 # add library dependencies
-LIBS += cxx \
-        raw_ipc \
-        heap \
-        child \
-        process \
-        pager \
-        lock \
-        console \
-        signal \
-        raw_server \
-        syscall
+LIBS += base-common
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core \
@@ -36,8 +23,7 @@ INC_DIR += $(REP_DIR)/src/core \
            $(BASE_DIR)/src/platform
 
 # add C++ sources
-SRC_CC += _main.cc \
-          console.cc \
+SRC_CC += console.cc \
           cpu_session_component.cc \
           cpu_session_support.cc \
           dataspace_component.cc \
@@ -59,7 +45,9 @@ SRC_CC += _main.cc \
           kernel.cc \
           rm_session_support.cc \
           kernel_support.cc \
-          trustzone.cc
+          trustzone.cc \
+          pager.cc \
+          _main.cc
 
 # declare file locations
 vpath _main.cc                    $(BASE_DIR)/src/platform
@@ -74,5 +62,7 @@ vpath rm_session_component.cc     $(BASE_DIR)/src/core
 vpath rom_session_component.cc    $(BASE_DIR)/src/core
 vpath dump_alloc.cc               $(BASE_DIR)/src/core
 vpath console.cc                  $(REP_DIR)/src/base
+vpath pager.cc                    $(REP_DIR)/src/base
+vpath _main.cc                    $(BASE_DIR)/src/platform
 vpath %                           $(REP_DIR)/src/core
 

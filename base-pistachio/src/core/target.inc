@@ -1,7 +1,6 @@
 TARGET       = core
 REQUIRES     = pistachio
-LIBS         = cxx ipc heap core_printf child pager lock \
-               raw_signal raw_server kip
+LIBS         = base-common
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
@@ -15,9 +14,7 @@ SRC_CC       = main.cc \
                pd_session_component.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
-               thread.cc \
                thread_start.cc \
-               thread_bootstrap.cc \
                platform_thread.cc \
                platform_pd.cc \
                platform.cc \
@@ -29,9 +26,12 @@ SRC_CC       = main.cc \
                signal_session_component.cc \
                signal_source_component.cc \
                dump_alloc.cc \
-               context_area.cc
+               context_area.cc \
+               core_printf.cc \
+               kip.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
+               $(REP_DIR)/src/base/console \
                $(GEN_CORE_DIR)/include
 
 vpath main.cc                     $(GEN_CORE_DIR)
@@ -47,6 +47,6 @@ vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)
-vpath thread_bootstrap.cc         $(BASE_DIR)/src/base/thread
-vpath thread.cc                   $(BASE_DIR)/src/base/thread
+vpath core_printf.cc              $(BASE_DIR)/src/base/console
+vpath kip.cc                      $(REP_DIR)/src/base/kip
 vpath %.cc                        $(REP_DIR)/src/core

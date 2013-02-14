@@ -31,6 +31,6 @@ SRC_CC  += env.cc \
 INC_DIR += $(REP_DIR)/include \
            $(REP_DIR)/src/lib/l4lx/include \
 
-LIBS     = cxx env thread signal
+LIBS     = base
 
 vpath %.cc $(REP_DIR)/src/lib/l4lx

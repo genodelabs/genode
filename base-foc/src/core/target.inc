@@ -1,13 +1,13 @@
 TARGET       = core
 REQUIRES     = foc
-LIBS         = cxx ipc heap core_printf child pager lock raw_signal raw_server
 
 LD_TEXT_ADDR = 0x500000
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC       = cap_map.cc \
-               cap_session_component.cc \
+LIBS        += base-common
+
+SRC_CC       = cap_session_component.cc \
                context_area.cc \
                cpu_session_component.cc \
                cpu_session_extension.cc \
@@ -31,15 +31,14 @@ SRC_CC       = cap_map.cc \
                rom_session_component.cc \
                signal_session_component.cc \
                signal_source_component.cc \
-               spin_lock.cc \
-               thread.cc \
-               thread_bootstrap.cc \
-               thread_start.cc
+               thread_start.cc \
+               core_printf.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
                $(REP_DIR)/src/base/lock \
-               $(BASE_DIR)/src/base/lock
+               $(BASE_DIR)/src/base/lock \
+               $(REP_DIR)/src/base/console
 
 vpath context_area.cc             $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
@@ -54,8 +53,5 @@ vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rm_session_component.cc     $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
-vpath cap_map.cc                  $(REP_DIR)/src/base/env
-vpath spin_lock.cc                $(REP_DIR)/src/base/env
-vpath thread.cc                   $(REP_DIR)/src/base/thread
-vpath thread_bootstrap.cc         $(REP_DIR)/src/base/thread
+vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath %.cc                        $(REP_DIR)/src/core

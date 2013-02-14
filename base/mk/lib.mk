@@ -125,6 +125,15 @@ $(LIB_A): $(OBJECTS)
 	$(VERBOSE)$(AR) -rc $@ $(OBJECTS)
 
 #
+# Prevent linkage of startup code against shared libraries except for ld.lib.so
+#
+ifdef SHARED_LIB
+ifneq ($(LIB),ld)
+override DEPS := $(filter-out startup.lib,$(DEPS))
+endif
+endif
+
+#
 # The 'sort' is needed to ensure the same link order regardless
 # of the find order, which uses to vary among different systems.
 #

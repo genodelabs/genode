@@ -1,7 +1,7 @@
 TARGET   = acpi_drv
 REQUIRES = x86
 SRC_CC   = main.cc acpi.cc
-LIBS     = cxx env server child
+LIBS     = base
 
 INC_DIR  = $(PRG_DIR)/..
 

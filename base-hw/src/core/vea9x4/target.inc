@@ -10,8 +10,7 @@ INC_DIR += $(REP_DIR)/src/core/vea9x4
 
 # add C++ sources
 SRC_CC  += platform_services.cc \
-           platform_support.cc \
-           syscall.cc
+           platform_support.cc
 
 # add assembly sources
 SRC_S += crt0.s \
@@ -31,7 +30,6 @@ endif
 
 # declare source paths
 vpath mode_transition.s $(REP_DIR)/src/core/arm_v7
-vpath syscall.cc        $(REP_DIR)/src/base/arm
 vpath crt0.s            $(REP_DIR)/src/core/arm
 
 # include less specific target parts

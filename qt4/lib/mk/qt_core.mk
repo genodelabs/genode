@@ -36,7 +36,7 @@ INC_DIR += $(REP_DIR)/include/qt4/QtCore/private \
            $(REP_DIR)/contrib/$(QT4)/include/QtCore/private \
            $(REP_DIR)/contrib/$(QT4)/src/3rdparty/harfbuzz/src
 
-LIBS += launchpad server cxx env thread zlib libc libm alarm libc_lock_pipe
+LIBS += launchpad zlib libc libm alarm libc_lock_pipe
 
 vpath % $(REP_DIR)/include/qt4/QtCore
 vpath % $(REP_DIR)/include/qt4/QtCore/private

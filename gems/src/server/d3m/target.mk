@@ -1,4 +1,4 @@
 TARGET   = d3m
 SRC_CC   = main.cc
-LIBS     = cxx env signal server child
+LIBS     = base
 INC_DIR += $(PRG_DIR)

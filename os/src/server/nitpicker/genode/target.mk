@@ -1,5 +1,5 @@
 TARGET   = nitpicker
-LIBS     = cxx env server blit signal
+LIBS     = base blit
 SRC_CC   = main.cc \
            view_stack.cc \
            view.cc \

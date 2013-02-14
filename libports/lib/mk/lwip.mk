@@ -25,7 +25,7 @@ SRC_C   += err.c api_lib.c api_msg.c netbuf.c netdb.c netifapi.c sockets.c \
 # Network interface files
 SRC_C   += etharp.c
 
-LIBS     = thread cxx alarm signal libc timed_semaphore
+LIBS     = alarm libc timed_semaphore
 
 D_OPTS   = ERRNO
 D_OPTS  := $(addprefix -D,$(D_OPTS))

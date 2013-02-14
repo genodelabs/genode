@@ -49,3 +49,14 @@ CC_OPT += -D__FreeBSD__=8
 # or 'sincosf', which is a GNU extension, not provided by our libc.
 #
 CC_OPT += -fno-builtin-sin -fno-builtin-cos -fno-builtin-sinf -fno-builtin-cosf
+
+#
+# Automatically add the base library for targets that use the libc
+#
+# We test for an empty 'LIB_MK' variable to determine whether we are currently
+# processing a library or a target. We only want to add the base library to
+# targets, not libraries.
+#
+ifeq ($(LIB_MK),)
+LIBS += base
+endif

@@ -1,6 +1,6 @@
 TARGET        = core
 REQUIRES      = linux
-LIBS          = cxx ipc heap core_printf child lock raw_server syscall raw_signal
+LIBS          = cxx base-common syscall startup
 
 GEN_CORE_DIR  = $(BASE_DIR)/src/core
 
@@ -18,17 +18,17 @@ SRC_CC        = main.cc \
                 io_mem_session_component.cc \
                 signal_session_component.cc \
                 signal_source_component.cc \
-                thread.cc \
                 thread_linux.cc \
                 context_area.cc \
-                debug.cc \
-                rm_session_mmap.cc
+                core_printf.cc \
+                thread.cc
 
 INC_DIR      += $(REP_DIR)/src/core/include \
                 $(GEN_CORE_DIR)/include \
                 $(REP_DIR)/src/platform \
                 $(REP_DIR)/src/base/ipc \
-                $(REP_DIR)/src/base/env
+                $(REP_DIR)/src/base/env \
+                $(REP_DIR)/src/base/console
 
 HOST_INC_DIR += /usr/include
 
@@ -43,12 +43,11 @@ LD_SCRIPT_STATIC = $(LD_SCRIPT_DEFAULT) \
 endif
 
 vpath main.cc                     $(GEN_CORE_DIR)
-vpath thread.cc                   $(BASE_DIR)/src/base/thread
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
-vpath debug.cc                    $(REP_DIR)/src/base/env
-vpath rm_session_mmap.cc          $(REP_DIR)/src/base/env
+vpath core_printf.cc              $(BASE_DIR)/src/base/console
+vpath thread.cc                   $(BASE_DIR)/src/base/thread
 vpath %.cc                        $(PRG_DIR)

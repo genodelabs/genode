@@ -4,9 +4,7 @@
 # These linked against 'ldso' and filtered out for dynamically
 # linked binaries
 #
-BASE_LIBS = alarm allocator_avl avl_tree cxx env heap \
-            ipc lock slab timed_semaphore thread signal \
-            log_console slab cap_copy
+BASE_LIBS = base-common base cxx timed_semaphore alarm
 
 #
 # Name of Genode's dynamic linker

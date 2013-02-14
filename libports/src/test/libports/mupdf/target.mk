@@ -1,5 +1,5 @@
 TARGET = test-mupdf
-LIBS   = cxx env mupdf
+LIBS   = libc mupdf
 SRC_CC = main.cc
 
 vpath main.cc $(PRG_DIR)/..

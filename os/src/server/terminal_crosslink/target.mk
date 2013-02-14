@@ -1,4 +1,3 @@
 TARGET   = terminal_crosslink
-SRC_CC   = main.cc \
-           terminal_session_component.cc
-LIBS     = cxx env server signal
+SRC_CC   = main.cc terminal_session_component.cc
+LIBS     = base

@@ -30,12 +30,6 @@ CC_OPT += -fPIC
 #
 CC_OPT += -DL4SYS_USE_UTCB_WRAP=1
 
-#
-# Startup code to be used when building a program
-#
-STARTUP_LIB ?= startup
-PRG_LIBS += $(STARTUP_LIB)
-
 all:
 
 #

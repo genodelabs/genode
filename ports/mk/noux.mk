@@ -31,7 +31,7 @@ TARGET ?= $(lastword $(subst /, ,$(PRG_DIR)))
 
 NOUX_PKG ?= $(TARGET)
 
-LIBS  += cxx env libc libm libc_noux
+LIBS  += libc libm libc_noux
 
 NOUX_PKG_DIR ?= $(wildcard $(REP_DIR)/contrib/$(NOUX_PKG)-*)
 

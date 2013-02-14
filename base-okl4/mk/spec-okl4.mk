@@ -30,12 +30,6 @@ MAKEFLAGS += -L
 INC_DIR += $(BUILD_BASE_DIR)/include
 
 #
-# Startup code to be used when building a program
-#
-STARTUP_LIB ?= startup
-PRG_LIBS    += $(STARTUP_LIB)
-
-#
 # Define maximum number of threads, needed by the OKL4 kernel headers
 #
 CC_OPT += -DCONFIG_MAX_THREAD_BITS=10

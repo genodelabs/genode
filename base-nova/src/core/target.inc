@@ -1,11 +1,9 @@
 TARGET       = core
-LIBS         = cxx ipc heap core_printf child pager lock \
-               raw_signal raw_server
+LIBS         = base-common
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC       = \
-               main.cc \
+SRC_CC       = main.cc \
                ram_session_component.cc \
                ram_session_support.cc \
                rom_session_component.cc \
@@ -14,7 +12,6 @@ SRC_CC       = \
                pd_session_component.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
-               thread.cc \
                thread_start.cc \
                platform_thread.cc \
                platform_pd.cc \
@@ -34,9 +31,12 @@ SRC_CC       = \
                context_area.cc \
                echo.cc \
                dump_alloc.cc \
-               cpu_session_extension.cc
+               cpu_session_extension.cc \
+               core_printf.cc \
+               pager.cc
 
 INC_DIR      = $(REP_DIR)/src/core/include \
+               $(REP_DIR)/src/base/console \
                $(GEN_CORE_DIR)/include
 
 vpath main.cc                      $(GEN_CORE_DIR)
@@ -54,7 +54,8 @@ vpath core_mem_alloc.cc            $(GEN_CORE_DIR)
 vpath dump_alloc.cc                $(GEN_CORE_DIR)
 vpath platform_services.cc         $(GEN_CORE_DIR)/x86
 vpath context_area.cc              $(GEN_CORE_DIR)
+vpath core_printf.cc               $(BASE_DIR)/src/base/console
 vpath %.cc                         $(REP_DIR)/src/core
-vpath thread.cc                    $(BASE_DIR)/src/base/thread
 vpath cap_sel_alloc.cc             $(REP_DIR)/src/base/env
 vpath main_thread.cc               $(REP_DIR)/src/base/env
+vpath pager.cc                     $(REP_DIR)/src/base/pager

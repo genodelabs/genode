@@ -1,4 +1,3 @@
-LIBS        = allocator_avl
 CXX_SRC_CC += misc.cc new_delete.cc malloc_free.cc exception.cc guard.cc unwind.cc
 
 vpath %.cc $(BASE_DIR)/src/base/cxx

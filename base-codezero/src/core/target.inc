@@ -1,10 +1,8 @@
 TARGET       = core
-LIBS         = cxx ipc heap core_printf child pager lock \
-               raw_signal raw_server
 
 GEN_CORE_DIR = $(BASE_DIR)/src/core
 
-SRC_CC       = \
+SRC_CC      += \
                main.cc \
                ram_session_component.cc \
                ram_session_support.cc \
@@ -14,9 +12,7 @@ SRC_CC       = \
                pd_session_component.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
-               thread.cc \
                thread_start.cc \
-               thread_bootstrap.cc \
                platform_thread.cc \
                platform_pd.cc \
                platform_services.cc \
@@ -30,10 +26,11 @@ SRC_CC       = \
                core_rm_session.cc \
                core_mem_alloc.cc \
                dump_alloc.cc \
-               context_area.cc \
-               utcb.cc
+               context_area.cc
 
-INC_DIR      = $(REP_DIR)/src/core/include \
+LIBS        += core_printf base-common
+
+INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
                $(REP_DIR)/include/codezero/dummies
 
@@ -53,6 +50,3 @@ vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
-vpath thread_bootstrap.cc         $(BASE_DIR)/src/base/thread
-vpath thread.cc                   $(BASE_DIR)/src/base/thread
-vpath utcb.cc                     $(REP_DIR)/src/base/env

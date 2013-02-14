@@ -1,7 +1,5 @@
 TARGET   = noux_net
-LIBS     = cxx env server child signal lwip thread alarm
-
-LIBS    += libc libc_lwip
+LIBS    += alarm libc libc_lwip
 
 SRC_CC   = main.cc net.cc
 
