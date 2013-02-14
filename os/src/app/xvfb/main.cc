@@ -13,6 +13,7 @@
 
 /* Linux includes */
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -52,10 +53,9 @@ int   config_force_top       = 1;
 static int    xvfb_width, xvfb_height;
 static Pixel *xvfb_addr;
 
-static Framebuffer::Session      *fb_session;
-static int                        fb_width, fb_height;
-static Framebuffer::Session::Mode fb_mode;
-static Pixel                     *fb_addr;
+static Framebuffer::Session *fb_session;
+static Framebuffer::Mode     fb_mode;
+static Pixel                *fb_addr;
 
 
 static Nitpicker::Session *nitpicker()
@@ -101,10 +101,10 @@ static bool read_config()
 static inline long convert_from_big_endian(long x)
 {
 	char v[4] = {
-		(x & 0xff000000) >> 24,
-		(x & 0x00ff0000) >> 16,
-		(x & 0x0000ff00) >>  8,
-		(x & 0x000000ff) >>  0,
+		(char)((x & 0xff000000) >> 24),
+		(char)((x & 0x00ff0000) >> 16),
+		(char)((x & 0x0000ff00) >>  8),
+		(char)((x & 0x000000ff) >>  0),
 	};
 	return *(long *)v;
 }
@@ -134,19 +134,19 @@ static void *mmap_file(const char *file_name)
 /**
  * Flush part of the Xvfb screen to the Nitpicker session
  */
-static void flush(int x, int y, int width, int height)
+static void flush(int x, int y, int width, int height, Framebuffer::Mode const &mode)
 {
 	/* clip arguments against framebuffer geometry */
 	if (x < 0) width  += x, x = 0;
 	if (y < 0) height += y, y = 0;
-	if (width  > fb_width  - x) width  = fb_width  - x;
-	if (height > fb_height - y) height = fb_height - y;
+	if (width  > mode.width()  - x) width  = mode.width()  - x;
+	if (height > mode.height() - y) height = mode.height() - y;
 
 	if (width <= 0 || height <= 0) return;
 
 	/* copy pixels from xvfb to the nitpicker buffer */
-	blit(xvfb_addr + x + xvfb_width*y, xvfb_width*sizeof(Pixel),
-	       fb_addr + x +   fb_width*y,   fb_width*sizeof(Pixel),
+	blit(xvfb_addr + x + xvfb_width*y,   xvfb_width*sizeof(Pixel),
+	       fb_addr + x + mode.width()*y, mode.width()*sizeof(Pixel),
 	     width*sizeof(Pixel), height);
 
 	/* refresh nitpicker views */
@@ -265,7 +265,7 @@ int main(int, char **)
 	static Input::Session_client input(nitpicker()->input_session());
 	fb_session = &fb;
 	fb_addr = Genode::env()->rm_session()->attach(fb.dataspace());
-	fb.info(&fb_width, &fb_height, &fb_mode);
+	fb_mode = fb.mode();
 
 	XWDFileHeader *xwd = (XWDFileHeader *)mmap_file(config_xvfb_file_name);
 	if (!xwd) return -1;
@@ -283,9 +283,9 @@ int main(int, char **)
 	xvfb_addr = (Pixel *)((long)xwd + convert_from_big_endian(xwd->header_size)
 	                                + convert_from_big_endian(xwd->ncolors)*sizeof(XWDColor));
 
-	if (xvfb_width != fb_width || xvfb_height != fb_height) {
+	if (xvfb_width != fb_mode.width() || xvfb_height != fb_mode.height()) {
 		Genode::printf("Error: Xvfb mode must equal the Nitpicker screen mode of %dx%d\n",
-		               fb_width, fb_height);
+		               fb_mode.width(), fb_mode.height());
 		return -3;
 	}
 
@@ -332,7 +332,7 @@ int main(int, char **)
 
 		if (pending_redraw.valid())
 			flush(pending_redraw.x(), pending_redraw.y(),
-			      pending_redraw.w(), pending_redraw.h());
+			      pending_redraw.w(), pending_redraw.h(), fb_mode);
 
 		timer.msleep(5);
 	}
