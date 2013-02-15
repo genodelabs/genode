@@ -39,7 +39,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 
 	/* setup thread context */
 	struct exregs_data exregs;
-	exregs.flags = 0;
+	memset(&exregs, 0, sizeof(exregs));
 	exregs_set_stack(&exregs, (unsigned long)sp);
 	exregs_set_pc   (&exregs, (unsigned long)ip);
 	exregs_set_pager(&exregs, pager.tid);

@@ -67,6 +67,7 @@ inline int create_thread(unsigned space_no,
 
 	/* setup thread context */
 	struct exregs_data exregs;
+	memset(&exregs, 0, sizeof(exregs));
 	exregs_set_stack(&exregs, (unsigned long)sp);
 	exregs_set_pc   (&exregs, (unsigned long)ip);
 	exregs_set_pager(&exregs, pager_tid);
