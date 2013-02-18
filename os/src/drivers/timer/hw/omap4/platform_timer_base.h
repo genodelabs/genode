@@ -143,7 +143,7 @@ namespace Genode
 		/**
 		 * Get remaining counting amount
 		 */
-		unsigned long _value() { return max_value() - read<Tcrr>(); }
+		unsigned long _value() const { return max_value() - read<Tcrr>(); }
 
 		/**
 		 * Apply counting amount
@@ -208,12 +208,12 @@ namespace Genode
 			/**
 			 * Maximum timeout value
 			 */
-			unsigned long max_value() { return Tcrr::max_value(); }
+			unsigned long max_value() const { return Tcrr::max_value(); }
 
 			/**
 			 * Translate timer tics to microseconds
 			 */
-			unsigned long tics_to_us(unsigned long const tics)
+			unsigned long tics_to_us(unsigned long const tics) const
 			{
 				float const us = tics * us_per_tic();
 				return (unsigned long)us;
@@ -231,7 +231,7 @@ namespace Genode
 			/**
 			 * Sample the timer counter and according wrapped status
 			 */
-			unsigned long value(bool & wrapped)
+			unsigned long value(bool & wrapped) const
 			{
 				Tcrr::access_t const v = _value();
 				wrapped = (bool)read<Irqstatus::Ovf_it_flag>();
