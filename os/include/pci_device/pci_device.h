@@ -15,6 +15,7 @@
 #define _INCLUDE__PCI_DEVICE__PCI_DEVICE_H_
 
 #include <base/rpc.h>
+#include <io_mem_session/io_mem_session.h>
 
 namespace Pci {
 

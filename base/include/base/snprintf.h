@@ -52,7 +52,7 @@ namespace Genode {
 			void _out_char(char c)
 			{
 				/* ensure to leave space for null-termination */
-				if (_w_offset > _dst_len - 2)
+				if (_w_offset + 2 > _dst_len)
 					return;
 
 				_dst[_w_offset++] = c;

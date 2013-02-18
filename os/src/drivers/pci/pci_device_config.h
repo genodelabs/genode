@@ -184,6 +184,29 @@ namespace Pci {
 				pci_config->write(_bus, _device, _function, address, value, size);
 			}
 	};
+
+	class Config_space : public Genode::List<Config_space>::Element
+	{
+		private:
+
+			Genode::uint32_t _bdf_start;
+			Genode::uint32_t _func_count;
+			Genode::addr_t   _base;
+
+		public:
+
+			Config_space(Genode::uint32_t bdf_start,
+			             Genode::uint32_t func_count, Genode::addr_t base)
+			:
+				_bdf_start(bdf_start), _func_count(func_count), _base(base) {}
+
+			Genode::addr_t lookup_config_space(Genode::uint32_t bdf)
+			{
+				if ((_bdf_start <= bdf) && (bdf <= _bdf_start + _func_count - 1))
+					return _base + (bdf << 12);
+				return 0;
+			}
+	};
 }
 
 #endif /* _DEVICE_CONFIG_H_ */

@@ -32,6 +32,9 @@ namespace Pci {
 
 		void release_device(Device_capability device) {
 			call<Rpc_release_device>(device); }
+
+		Genode::Io_mem_dataspace_capability config_extended(Device_capability device_cap) {
+			return call<Rpc_config_extended>(device_cap); }
 	};
 }
 

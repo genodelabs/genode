@@ -19,6 +19,8 @@
 #include <base/rpc_server.h>
 #include <base/printf.h>
 
+#include <io_mem_session/io_mem_session.h>
+
 #include "pci_device_config.h"
 
 namespace Pci {
@@ -28,18 +30,32 @@ namespace Pci {
 	{
 		private:
 
-			Device_config _device_config;
+			Device_config              _device_config;
+			Genode::addr_t             _config_space;
+			Genode::Io_mem_connection *_io_mem;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Device_component(Device_config device_config):
-				_device_config(device_config) { }
+			Device_component(Device_config device_config, Genode::addr_t addr)
+			:
+				_device_config(device_config), _config_space(addr),
+				_io_mem(0) { }
+
+			/****************************************
+			 ** Methods used solely by pci session **
+			 ****************************************/
 
 			Device_config config() { return _device_config; }
 
+			Genode::addr_t config_space() { return _config_space; }
+
+			void set_config_space(Genode::Io_mem_connection * io_mem) {
+				_io_mem = io_mem; }
+
+			Genode::Io_mem_connection * get_config_space() { return _io_mem; }
 
 			/**************************
 			 ** PCI-device interface **

@@ -49,16 +49,25 @@ namespace Pci {
 		 */
 		virtual void release_device(Device_capability device) = 0;
 
+		/**
+		 * Provide mapping to device configuration space of 4k, known as
+		 * "Enhanced Configuration Access Mechanism (ECAM) for PCI Express
+		 */
+		virtual Genode::Io_mem_dataspace_capability config_extended(Device_capability) = 0;
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
 		GENODE_RPC(Rpc_first_device, Device_capability, first_device);
-		GENODE_RPC(Rpc_next_device, Device_capability, next_device, Device_capability);
+		GENODE_RPC(Rpc_next_device, Device_capability, next_device,
+		           Device_capability);
 		GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
+		GENODE_RPC(Rpc_config_extended, Genode::Io_mem_dataspace_capability,
+		           config_extended, Device_capability);
 
-		GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device, Rpc_release_device);
+		GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,
+		                     Rpc_release_device, Rpc_config_extended);
 	};
 }
 

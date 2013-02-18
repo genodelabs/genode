@@ -17,6 +17,7 @@
 #include <pci_session/pci_session.h>
 #include <pci_device/pci_device.h>
 #include <base/rpc_client.h>
+#include <io_mem_session/io_mem_session.h>
 
 namespace Pci {
 
