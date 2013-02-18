@@ -1,6 +1,6 @@
 /*
  * \brief  Driver probing and registration
- * \author Sebasitian Sumpf
+ * \author Sebastian Sumpf
  * \date   2012-11-20
  */
 
@@ -32,7 +32,7 @@ class Driver
 
 		enum { MAX_DRIVER = 10 };
 
-		oss_driver *_drivers[MAX_DRIVER + 1]; /* reigsted drivers */
+		oss_driver *_drivers[MAX_DRIVER + 1]; /* registered drivers */
 
 		Driver()
 		{
@@ -75,6 +75,30 @@ class Driver
 			return  0;
 		}
 
+		/**
+		 * Scan pci bus for sound devices
+		 */
+		Pci::Device_capability _scan_pci(Pci::Device_capability const &prev,
+		                                 Pci::Connection &pci)
+		{
+			/* check for audio device class */
+			enum {
+				CLASS_MASK  = 0xff0000,
+				CLASS_MULTIMEDIA = 0x40000, /* class multimedia */
+			};
+
+			/*
+			 * Just test for multimedia class, since some devices (e.g., Intel
+			 * hda) do set the subclass to something different then audio (0x1).
+			 */
+
+			Pci::Device_capability cap;
+			cap = pci.next_device(prev, CLASS_MULTIMEDIA, CLASS_MASK);
+			if (prev.valid())
+				pci.release_device(prev);
+			return cap;
+		}
+
 	public:
 
 		static Driver *d()
@@ -104,55 +128,40 @@ class Driver
 		{
 			using namespace Genode;
 			Pci::Connection pci;
-			Pci::Device_capability cap = pci.first_device();
-			Pci::Device_capability old;
+			Pci::Device_capability cap;
 			oss_driver *driver = 0;
 
-			while (cap.valid()) {
-
+			while ((cap = _scan_pci(cap, pci)).valid())
+			{
 				Pci::Device_client client(cap);
 
-				/* check for audio device class */
-				enum {
-					CLASS_MASK  = 0xff0000,
-					CLASS_MULTIMEDIA = 0x40000, /* class multimedia */
-				};
+				if (!(driver = _probe_driver(cap)))
+					continue;
 
-				/*
-				 * Just test for multimedia class, since some devices (e.g., intel
-				 * hda) do set the subclass to something different then audio (0x1).
-				 */
-				bool audio = (client.class_code() & CLASS_MASK) == CLASS_MULTIMEDIA;
-				if (audio && (driver = _probe_driver(cap))) {
+				uint8_t bus, dev, func;
+				client.bus_address(&bus, &dev, &func);
 
-					uint8_t bus, dev, func;
-					client.bus_address(&bus, &dev, &func);
+				/* setup oss device */
+				oss_device_t *ossdev = new (env()->heap()) oss_device_t;
+				Genode::memset(ossdev, 0, sizeof(oss_device_t));
 
-					/* setup oss device */
-					oss_device_t *ossdev = new (env()->heap()) oss_device_t;
-					Genode::memset(ossdev, 0, sizeof(oss_device_t));
+				ossdev->bus = bus;
+				ossdev->dev = dev;
+				ossdev->fun = func;
 
-					ossdev->bus = bus;
-					ossdev->dev = dev;
-					ossdev->fun = func;
-
-					/* set I/O resources */
-					for (int i = 0; i < Pci::Device::NUM_RESOURCES; i++) {
-						Pci::Device::Resource res = client.resource(i);
-						ossdev->res[i].base = res.base();
-						ossdev->res[i].size = res.size();
-						ossdev->res[i].io = res.type() == Pci::Device::Resource::IO ? 1 : 0;
-					}
-
-					ossdev->drv = driver;
-
-					/* set quirks */
-					setup_quirks(driver);
-					driver->attach(ossdev);
+				/* set I/O resources */
+				for (int i = 0; i < Pci::Device::NUM_RESOURCES; i++) {
+					Pci::Device::Resource res = client.resource(i);
+					ossdev->res[i].base = res.base();
+					ossdev->res[i].size = res.size();
+					ossdev->res[i].io = res.type() == Pci::Device::Resource::IO ? 1 : 0;
 				}
-				old = cap;
-				cap = pci.next_device(cap);
-				pci.release_device(old);
+
+				ossdev->drv = driver;
+
+				/* set quirks */
+				setup_quirks(driver);
+				driver->attach(ossdev);
 			}
 		}
 };
