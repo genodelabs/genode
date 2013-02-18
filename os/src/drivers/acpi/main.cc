@@ -163,8 +163,9 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 		char const **_permitted_services() const
 		{
 			static char const *permitted_services[] = { "CPU", "CAP", "RM",
-			                                            "LOG", "IO_PORT",
-			                                            "SIGNAL", 0};
+			                                            "LOG", "IO_PORT", "PD",
+			                                            "ROM", "RAM", "SIGNAL",
+			                                            "IO_MEM", 0 };
 			return permitted_services;
 		};
 
