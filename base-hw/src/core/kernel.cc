@@ -487,9 +487,9 @@ void Kernel::Thread::await_signal()
 }
 
 
-void Kernel::Thread::receive_signal(Signal const s)
+void Kernel::Thread::received_signal()
 {
-	*(Signal *)phys_utcb()->base() = s;
+	assert(_state == AWAIT_IRQ);
 	_activate();
 }
 
@@ -554,25 +554,52 @@ namespace Kernel
 	{
 		friend class Signal_receiver;
 
-		Signal_receiver * const _receiver; /* the receiver that owns us */
-		unsigned const _imprint; /* every of our signals gets signed with */
-		unsigned _number; /* how often we got triggered */
+		Signal_receiver * const _receiver;  /* the receiver that owns us */
+		unsigned const          _imprint;   /* every outgoing signals gets
+		                                     * signed with this */
+		unsigned                _submits;   /* accumul. undelivered submits */
+		bool                    _await_ack; /* delivery ack pending */
+		Thread *                _killer;    /* awaits our destruction if >0 */
+
+		/**
+		 * Utility to deliver all remaining submits
+		 */
+		void _deliver();
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Signal_context(Signal_receiver * const r,
-			                 unsigned const imprint)
-			: _receiver(r), _imprint(imprint), _number(0) { }
+			Signal_context(Signal_receiver * const r, unsigned const imprint) :
+				_receiver(r), _imprint(imprint),
+				_submits(0), _await_ack(0), _killer(0) { }
 
 			/**
-			 * Trigger this context
+			 * Submit the signal
 			 *
-			 * \param number  how often this call triggers us at once
+			 * \param n  number of submits
 			 */
-			void trigger_signal(unsigned const number);
+			void submit(unsigned const n);
+
+			/**
+			 * Acknowledge delivery of signal
+			 */
+			void ack();
+
+			/**
+			 * Destruct or prepare to do it at next call of 'ack'
+			 */
+			void kill(Thread * const killer)
+			{
+				assert(!_killer);
+				_killer = killer;
+				if (_await_ack) {
+					_killer->kill_signal_context_blocks();
+					return;
+				}
+				this->~Signal_context();
+			}
 	};
 
 	/**
@@ -602,10 +629,13 @@ namespace Kernel
 				}
 				/* awake a listener and transmit signal info to it */
 				Thread * const t = _listeners.dequeue();
-				t->receive_signal(Signal(c->_imprint, c->_number));
+				Signal::Data data((Genode::Signal_context *)c->_imprint,
+				                  c->_submits);
+				*(Signal::Data *)t->phys_utcb()->base() = data;
+				t->received_signal();
 
 				/* reset context */
-				c->_number = 0;
+				c->_submits = 0;
 			}
 		}
 
@@ -627,12 +657,12 @@ namespace Kernel
 			bool pending() { return !_pending_contexts.empty(); }
 
 			/**
-			 * Recognize that one of our contexts was triggered
+			 * Recognize that 'c' wants to deliver
 			 */
-			void add_pending_context(Signal_context * const c)
+			void deliver(Signal_context * const c)
 			{
 				assert(c->_receiver == this);
-				if(!c->is_enqueued()) _pending_contexts.enqueue(c);
+				if (!c->is_enqueued()) _pending_contexts.enqueue(c);
 				_listen();
 			}
 	};
@@ -674,7 +704,7 @@ namespace Kernel
 					return;
 				default:
 					cpu_scheduler()->remove(this);
-					_context->trigger_signal(1);
+					_context->submit(1);
 				}
 			}
 
@@ -1193,12 +1223,37 @@ namespace Kernel
 		/* lookup context */
 		Signal_context * const c =
 			Signal_context::pool()->object(user->user_arg_1());
-		assert(c);
-
+		if(!c) {
+			PDBG("invalid signal-context capability");
+			return;
+		}
 		/* trigger signal at context */
-		c->trigger_signal(user->user_arg_2());
+		c->submit(user->user_arg_2());
 	}
 
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_ack_signal(Thread * const user)
+	{
+		Signal_context * const c =
+			Signal_context::pool()->object(user->user_arg_1());
+		assert(c);
+		c->ack();
+	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_kill_signal_context(Thread * const user)
+	{
+		Signal_context * const c =
+			Signal_context::pool()->object(user->user_arg_1());
+		assert(c);
+		c->kill(user);
+	}
 
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
@@ -1283,6 +1338,8 @@ namespace Kernel
 			/* 26         */ do_delete_thread,
 			/* 27         */ do_signal_pending,
 			/* 28         */ do_resume_faulter,
+			/* 29         */ do_ack_signal,
+			/* 30         */ do_kill_signal_context,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 
@@ -1385,8 +1442,7 @@ int Thread::start(void *ip, void *sp, unsigned cpu_no,
 	user_arg_0((unsigned)_virt_utcb);
 
 	/* start thread */
-	cpu_scheduler()->insert(this);
-	_state = ACTIVE;
+	_activate();
 	return 0;
 }
 
@@ -1420,19 +1476,50 @@ void Thread::pagefault(addr_t const va, bool const w)
 }
 
 
+void Thread::kill_signal_context_blocks()
+{
+	cpu_scheduler()->remove(this);
+	_state = KILL_SIGNAL_CONTEXT_BLOCKS;
+}
+
+
+void Thread::kill_signal_context_done()
+{
+	assert(_state == KILL_SIGNAL_CONTEXT_BLOCKS)
+	_activate();
+}
+
+
 /****************************
  ** Kernel::Signal_context **
  ****************************/
 
-
-void Signal_context::trigger_signal(unsigned const number)
+void Signal_context::_deliver()
 {
-	/* raise our number */
-	unsigned const old_nr = _number;
-	_number += number;
-	assert(old_nr <= _number);
+	if (!_submits) return;
+	_receiver->deliver(this);
+	_await_ack = 1;
+}
 
-	/* notify our receiver */
-	if (_number) _receiver->add_pending_context(this);
+
+void Signal_context::ack()
+{
+	_await_ack = 0;
+	if (!_killer) {
+		_deliver();
+		return;
+	}
+	_killer->kill_signal_context_done();
+	this->~Signal_context();
+}
+
+
+void Signal_context::submit(unsigned const n)
+{
+	assert(_submits < -1 - n);
+	if (_killer) return;
+	_submits += n;
+	if (_await_ack) return;
+	_deliver();
 }
 

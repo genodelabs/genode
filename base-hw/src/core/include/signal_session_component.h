@@ -61,6 +61,7 @@ namespace Genode
 			Signal_context_capability
 			alloc_context(Signal_receiver_capability const r,
 			              unsigned const imprint);
+			void free_context(Signal_context_capability context_cap);
 	};
 }
 

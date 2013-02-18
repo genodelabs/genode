@@ -775,7 +775,7 @@ namespace Kernel
 	               public Irq_owner
 	{
 		enum State { STOPPED, ACTIVE, AWAIT_IPC, AWAIT_RESUMPTION,
-		             AWAIT_IRQ, AWAIT_SIGNAL };
+		             AWAIT_IRQ, AWAIT_SIGNAL, KILL_SIGNAL_CONTEXT_BLOCKS };
 
 		Platform_thread * const _platform_thread; /* userland object wich
 		                                           * addresses this thread */
@@ -897,7 +897,7 @@ namespace Kernel
 			/**
 			 * Gets called when we have received a signal at a signal receiver
 			 */
-			void receive_signal(Signal const s);
+			void received_signal();
 
 			/**
 			 * Handle the exception that currently blocks this thread
@@ -909,6 +909,9 @@ namespace Kernel
 			 */
 			void scheduled_next();
 
+			void kill_signal_context_blocks();
+
+			void kill_signal_context_done();
 
 			/***************
 			 ** Accessors **

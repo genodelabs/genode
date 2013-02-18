@@ -71,9 +71,11 @@ namespace Kernel
 		/* asynchronous signalling */
 		NEW_SIGNAL_RECEIVER = 20,
 		NEW_SIGNAL_CONTEXT = 21,
+		KILL_SIGNAL_CONTEXT = 30,
 		AWAIT_SIGNAL = 22,
 		SUBMIT_SIGNAL = 23,
 		SIGNAL_PENDING = 27,
+		ACK_SIGNAL = 29,
 
 		/* vm specific */
 		NEW_VM = 24,
@@ -455,13 +457,14 @@ namespace Kernel
 	 *
 	 * \param receiver_id  ID of the targeted receiver kernel-object
 	 *
-	 * When this call returns, an instance of 'Signal' is located at the base
-	 * of the callers UTCB. It holds information about wich context was
-	 * triggered how often. It is granted that every occurence of a signal is
-	 * provided through this function, exactly till it gets delivered through
-	 * this function. If multiple threads listen at the same receiver and/or
-	 * multiple contexts trigger simultanously there is no assertion about
-	 * wich thread receives the 'Signal' instance of wich context.
+	 * When this call returns, an instance of 'Signal::Data' is located at the
+	 * base of the callers UTCB. It's granted that every occurence of a signal
+	 * is provided through this function, exactly till it gets delivered through
+	 * this function. If multiple threads listen at the same receiver, and/or
+	 * multiple contexts of the receiver trigger simultanously, there is no
+	 * assertion about wich thread receives, and from wich context. But
+	 * deliveries belonging to the same context are serialized through
+	 * 'ack_signal', to enable synchronization in 'kill_signal'.
 	 */
 	inline void await_signal(unsigned receiver_id) {
 		syscall(AWAIT_SIGNAL, (Syscall_arg)receiver_id); }
@@ -485,6 +488,29 @@ namespace Kernel
 	inline void submit_signal(unsigned context_id, int num) {
 		syscall(SUBMIT_SIGNAL, (Syscall_arg)context_id, (Syscall_arg)num); }
 
+	/**
+	 * Acknowledge the processing of the last signal of a signal context
+	 *
+	 * \param context_id  kernel name of the targeted signal context
+	 *
+	 * Should be called after all signal objects, that reference the targeted
+	 * signal context in userland are destructed. The signal context wont
+	 * deliver a new signal until the old signal is acknowledged.
+	 */
+	inline void ack_signal(unsigned context_id) {
+		syscall(ACK_SIGNAL, (Syscall_arg)context_id); }
+
+	/**
+	 * Destruct a signal context
+	 *
+	 * \param context_id  kernel name of the targeted signal context
+	 *
+	 * Blocks the caller until the last delivered signal of the targeted
+	 * context is acknowledged. Then the context gets destructed, losing
+	 * all submits that were not delivered when this syscall occured.
+	 */
+	inline void kill_signal_context(unsigned context_id) {
+		syscall(KILL_SIGNAL_CONTEXT, (Syscall_arg)context_id); }
 
 	/**
 	 * Create a new virtual-machine that is stopped initially

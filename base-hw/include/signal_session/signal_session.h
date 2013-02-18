@@ -78,6 +78,13 @@ namespace Genode
 		alloc_context(Signal_receiver_capability const r,
 		              unsigned const imprint) = 0;
 
+		/**
+		 * Free signal-context
+		 *
+		 * \param cap  capability of signal-context to release
+		 */
+		virtual void free_context(Signal_context_capability cap) = 0;
+
 		/*********************
 		 ** RPC declaration **
 		 *********************/
@@ -87,8 +94,11 @@ namespace Genode
 		GENODE_RPC_THROW(Rpc_alloc_context, Signal_context_capability,
 		                 alloc_context, GENODE_TYPE_LIST(Out_of_metadata),
 		                 Signal_receiver_capability, unsigned);
+		GENODE_RPC(Rpc_free_context, void, free_context,
+		           Signal_context_capability);
 
-		GENODE_RPC_INTERFACE(Rpc_alloc_receiver, Rpc_alloc_context);
+		GENODE_RPC_INTERFACE(Rpc_alloc_receiver, Rpc_alloc_context,
+		                     Rpc_free_context);
 	};
 }
 

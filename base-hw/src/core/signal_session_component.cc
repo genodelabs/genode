@@ -77,3 +77,9 @@ Signal_session_component::alloc_context(Signal_receiver_capability r,
 	return reinterpret_cap_cast<Signal_context>(c);
 }
 
+/**
+ * FIXME should regain the kernel-object memory from kernel
+ */
+void Signal_session_component::free_context(Signal_context_capability cap) {
+	PDBG("Not implemented"); }
+
