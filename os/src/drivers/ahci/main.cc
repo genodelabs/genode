@@ -770,6 +770,9 @@ class Ahci_driver : public Block::Driver
 			PERR("%s should not be called", __PRETTY_FUNCTION__);
 			throw Io_error();
 		}
+
+		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
+			return env()->ram_session()->alloc(size); }
 };
 
 

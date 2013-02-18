@@ -16,6 +16,7 @@
 
 #include <pci_device/pci_device.h>
 #include <session/session.h>
+#include <ram_session/ram_session.h>
 
 namespace Pci {
 
@@ -55,6 +56,11 @@ namespace Pci {
 		 */
 		virtual Genode::Io_mem_dataspace_capability config_extended(Device_capability) = 0;
 
+		/**
+		 * Allocate memory suitable for DMA.
+		 */
+		virtual Genode::Ram_dataspace_capability alloc_dma_buffer(Device_capability,
+		                                                          Genode::size_t) = 0;
 		/*********************
 		 ** RPC declaration **
 		 *********************/
@@ -65,9 +71,14 @@ namespace Pci {
 		GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
 		GENODE_RPC(Rpc_config_extended, Genode::Io_mem_dataspace_capability,
 		           config_extended, Device_capability);
+		GENODE_RPC_THROW(Rpc_alloc_dma_buffer, Genode::Ram_dataspace_capability,
+		                 alloc_dma_buffer,
+		                 GENODE_TYPE_LIST(Genode::Ram_session::Quota_exceeded),
+		                 Device_capability, Genode::size_t);
 
 		GENODE_RPC_INTERFACE(Rpc_first_device, Rpc_next_device,
-		                     Rpc_release_device, Rpc_config_extended);
+		                     Rpc_release_device, Rpc_config_extended,
+		                     Rpc_alloc_dma_buffer);
 	};
 }
 

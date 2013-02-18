@@ -18,6 +18,8 @@
 #include <base/exception.h>
 #include <base/stdint.h>
 
+#include <ram_session/ram_session.h>
+
 
 namespace Block {
 
@@ -91,6 +93,11 @@ namespace Block {
 		 * \return  true if DMA is enabled, false otherwise
 		 */
 		virtual bool dma_enabled() = 0;
+
+		/**
+		 * Allocate buffer which is suitable for DMA.
+		 */
+		virtual Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t) = 0;
 	};
 
 

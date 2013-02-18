@@ -104,25 +104,26 @@ namespace Block {
 					}
 			};
 
-			Driver_factory       &_driver_factory;
-			Driver               &_driver;
-			Dataspace_capability  _rq_ds;
-			Rq_thread             _rq_thread;
+			Driver_factory           &_driver_factory;
+			Driver                   &_driver;
+			Ram_dataspace_capability  _rq_ds;
+			Rq_thread                 _rq_thread;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Session_component(Dataspace_capability  rq_ds,
-			                  Driver_factory       &driver_factory,
-			                  Rpc_entrypoint       &ep)
+			Session_component(Ram_dataspace_capability  rq_ds,
+			                  Driver                   &driver,
+			                  Driver_factory           &driver_factory,
+			                  Rpc_entrypoint           &ep)
 			:
 				Session_rpc_object(rq_ds, ep),
 				_driver_factory(driver_factory),
-				_driver(*_driver_factory.create()),
+				_driver(driver),
 				_rq_ds(rq_ds),
-				_rq_thread(tx_sink(), _driver, Dataspace_client(rq_ds).phys_addr())
+				_rq_thread(tx_sink(), _driver, Dataspace_client(_rq_ds).phys_addr())
 			{ }
 
 			/**
@@ -188,9 +189,11 @@ namespace Block {
 					throw Root::Quota_exceeded();
 				}
 
+				Driver * driver = _driver_factory.create();
+				Ram_dataspace_capability ds_cap;
+				ds_cap = driver->alloc_dma_buffer(tx_buf_size);
 				return new (md_alloc())
-					Session_component(env()->ram_session()->alloc(tx_buf_size, false),
-					                  _driver_factory, _ep);
+					Session_component(ds_cap, *driver, _driver_factory, _ep);
 			}
 
 		public:

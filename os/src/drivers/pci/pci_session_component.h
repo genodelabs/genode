@@ -291,6 +291,10 @@ namespace Pci {
 
 				return io_mem->dataspace();
 			}
+
+			Genode::Ram_dataspace_capability alloc_dma_buffer(Device_capability device_cap,
+			                                                  Genode::size_t size) {
+				return Genode::env()->ram_session()->alloc(size, false); }
 	};
 
 
