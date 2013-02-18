@@ -352,9 +352,9 @@ class Ahci_device
 
 		enum Pci_config {
 			PCI_CFG_BMIBA_OFF   = 0x24, /* offset in PCI config space */
-			CLASS_MASS_STORAGE  = 0x10000,
-			SUBCLASS_AHCI       = 0x0600,
-			CLASS_MASK          = 0xffff00,
+			CLASS_MASS_STORAGE  = 0x10000U,
+			SUBCLASS_AHCI       = 0x0600U,
+			CLASS_MASK          = 0xffff00U,
 			AHCI_BASE_ID        = 0x5,  /* resource id of AHCI base addr <BAR 5> */
 			AHCI_INTR_OFF       = 0x3c, /* offset of interrupt information in config space */
 			AHCI_PORT_BASE      = 0x100,
@@ -379,32 +379,14 @@ class Ahci_device
 		static Pci::Device_capability _scan_pci(Pci::Connection &pci, Pci::Device_capability prev_device_cap)
 		{
 			Pci::Device_capability device_cap;
+			device_cap = pci.next_device(prev_device_cap,
+			                             CLASS_MASS_STORAGE | SUBCLASS_AHCI,
+			                             CLASS_MASK);
 
-			if (!prev_device_cap.valid())
-				device_cap = pci.first_device();
-			else
-				device_cap = pci.next_device(prev_device_cap);
-
-			while (device_cap.valid()) {
+			if (prev_device_cap.valid())
 				pci.release_device(prev_device_cap);
-				prev_device_cap = device_cap;
 
-				::Pci::Device_client device(device_cap);
-
-				if ((device.class_code() & CLASS_MASK)
-				    ==  (CLASS_MASS_STORAGE | SUBCLASS_AHCI)) {
-					PINF("Found AHCI HBA (Vendor ID: %04x Device ID: %04x Class: %08x)\n",
-					     device.vendor_id(), device.device_id(), device.class_code());
-
-					return device_cap;
-				}
-
-				device_cap = pci.next_device(prev_device_cap);
-			}
-
-			pci.release_device(prev_device_cap);
-
-			return Pci::Device_capability();
+			return device_cap;
 		}
 
 		/**
@@ -644,6 +626,10 @@ class Ahci_device
 
 				::Pci::Device_client * pci_device =
 					new(env()->heap()) ::Pci::Device_client(device_cap);
+
+				PINF("Found AHCI HBA (Vendor ID: %04x Device ID: %04x Class:"
+				     " %08x)\n", pci_device->vendor_id(),
+				     pci_device->device_id(), pci_device->class_code());
 
 				/* read and map base address of AHCI controller */
 				Pci::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
