@@ -43,41 +43,6 @@ class Pci_driver
 		enum Pci_config { IRQ = 0x3c, REV = 0x8, CMD = 0x4 };
 
 		/**
-		 * Match class code of device with driver id
-		 */
-		bool _match(pci_device_id const *id)
-		{
-			Pci::Device_client client(_cap);
-			if (!((id->device_class ^ client.class_code()) & id->class_mask)) {
-				_id = id;
-				return true;
-			}
-
-			return false;
-		}
-
-		/**
-		 * Match supported device ID of driver to this device
-		 */
-		bool _match()
-		{
-			pci_device_id const  *id = _drv->id_table;
-
-			if (!id)
-				return false;
-
-			while (id->vendor || id->subvendor || id->class_mask) {
-				if (_match(id)) {
-					dde_kit_log(DEBUG_PCI, "Device matched %p", this);
-					return true;
-				}
-				id++;
-			}
-
-			return false;
-		}
-
-		/**
 		 * Fill Linux device informations
 		 */
 		void _setup_pci_device()
@@ -168,14 +133,12 @@ class Pci_driver
 
 	public:
 
-		Pci_driver(pci_driver *drv, Pci::Device_capability cap)
-		: _drv(drv), _cap(cap), _id(0), _dev(0)
+		Pci_driver(pci_driver *drv, Pci::Device_capability cap,
+		           pci_device_id const * id)
+		: _drv(drv), _cap(cap), _id(id), _dev(0)
 		{
-			if (!_match())
-				throw -1;
-
 			if (!_probe())
-				throw -2;
+				throw -1;
 		}
 
 		~Pci_driver()
@@ -221,32 +184,42 @@ int pci_register_driver(struct pci_driver *drv)
 	dde_kit_log(DEBUG_PCI, "DRIVER name: %s", drv->name);
 	drv->driver.name = drv->name;
 
+	pci_device_id const  *id = drv->id_table;
+	if (!id)
+		return -ENODEV;
+
 	using namespace Genode;
 	Pci::Connection pci;
 
-	Pci::Device_capability cap = pci.first_device();
-	Pci::Device_capability old;
 	bool found = false;
-	while (cap.valid()) {
 
-		uint8_t bus, dev, func;
-		Pci::Device_client client(cap);
-		client.bus_address(&bus, &dev, &func);
-		dde_kit_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
+	while (id->vendor || id->subvendor || id->class_mask) {
 
-		Pci_driver *pci_drv = 0;
-		try {
-			pci_drv = new (env()->heap()) Pci_driver(drv, cap);
-			pci.on_destruction(Pci::Connection::KEEP_OPEN);
-			found = true;
-		} catch (...) {
-			destroy(env()->heap(), pci_drv);
-			pci_drv = 0;
+		Pci::Device_capability cap = pci.first_device(id->device_class,
+		                                              id->class_mask);
+		Pci::Device_capability old;
+		while (cap.valid()) {
+
+			uint8_t bus, dev, func;
+			Pci::Device_client client(cap);
+			client.bus_address(&bus, &dev, &func);
+			dde_kit_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
+
+			Pci_driver *pci_drv = 0;
+			try {
+				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
+				pci.on_destruction(Pci::Connection::KEEP_OPEN);
+				found = true;
+			} catch (...) {
+				destroy(env()->heap(), pci_drv);
+				pci_drv = 0;
+			}
+
+			old = cap;
+			cap = pci.next_device(cap, id->device_class, id->class_mask);
+			pci.release_device(old);
 		}
-
-		old = cap;
-		cap = pci.next_device(cap);
-		pci.release_device(old);
+		id++;
 	}
 
 	return found ? 0 : -ENODEV;
