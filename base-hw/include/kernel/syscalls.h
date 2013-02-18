@@ -515,7 +515,7 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void run_vm(unsigned const id = 0) {
+	inline void run_vm(unsigned const id) {
 		syscall(RUN_VM, (Syscall_arg)id); }
 }
 
