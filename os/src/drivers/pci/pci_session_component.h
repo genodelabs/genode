@@ -190,10 +190,13 @@ namespace Pci {
 			 ** PCI session interface **
 			 ***************************/
 
-			Device_capability first_device() {
-				return next_device(Device_capability()); }
+			Device_capability first_device(unsigned device_class,
+			                               unsigned class_mask) {
+				return next_device(Device_capability(), device_class, class_mask); }
 
-			Device_capability next_device(Device_capability prev_device)
+			Device_capability next_device(Device_capability prev_device,
+			                              unsigned device_class,
+			                              unsigned class_mask)
 			{
 				/*
 				 * Create the interface to the PCI config space.
@@ -210,27 +213,32 @@ namespace Pci {
 				 * If no valid device was specified for 'prev_device', start at
 				 * the beginning.
 				 */
-				int bus = 0, device = 0, function = 0;
+				int bus = 0, device = 0, function = -1;
 
 				if (prev) {
 					Device_config config = prev->config();
 					bus      = config.bus_number();
 					device   = config.device_number();
-					function = config.function_number() + 1;
+					function = config.function_number();
 				}
 
 				/*
-				 * Scan busses for devices.
+				 * Scan buses for devices.
 				 * If no device is found, return an invalid capability.
 				 */
 				Device_config config;
-				if (!_find_next(bus, device, function, &config, &config_access))
-					return Device_capability();
 
-				/* get new bdf values */
-				bus      = config.bus_number();
-				device   = config.device_number();
-				function = config.function_number();
+				do
+				{
+					function += 1;
+					if (!_find_next(bus, device, function, &config, &config_access))
+						return Device_capability();
+
+					/* get new bdf values */
+					bus      = config.bus_number();
+					device   = config.device_number();
+					function = config.function_number();
+				} while ((config.class_code() ^ device_class) & class_mask);
 
 				/* lookup if we have a extended pci config space */
 				Genode::addr_t config_space = lookup_config_space(bus, device,

@@ -24,11 +24,14 @@ namespace Pci {
 		Session_client(Session_capability session)
 		: Genode::Rpc_client<Session>(session) { }
 
-		Device_capability first_device() {
-			return call<Rpc_first_device>(); }
+		Device_capability first_device(unsigned device_class = 0,
+		                               unsigned class_mask = 0) { 
+			return call<Rpc_first_device>(device_class, class_mask); }
 
-		Device_capability next_device(Device_capability prev_device) {
-			return call<Rpc_next_device>(prev_device); }
+		Device_capability next_device(Device_capability prev_device,
+		                              unsigned device_class = 0,
+		                              unsigned class_mask = 0) { 
+			return call<Rpc_next_device>(prev_device, device_class, class_mask); }
 
 		void release_device(Device_capability device) {
 			call<Rpc_release_device>(device); }

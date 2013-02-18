@@ -31,7 +31,7 @@ namespace Pci {
 		/**
 		 * Find first accessible device
 		 */
-		virtual Device_capability first_device() = 0;
+		virtual Device_capability first_device(unsigned, unsigned) = 0;
 
 		/**
 		 * Find next accessible device
@@ -41,7 +41,8 @@ namespace Pci {
 		 * The 'prev_device' argument is used to iterate through all
 		 * devices.
 		 */
-		virtual Device_capability next_device(Device_capability prev_device) = 0;
+		virtual Device_capability next_device(Device_capability prev_device,
+		                                      unsigned, unsigned) = 0; 
 
 		/**
 		 * Free server-internal data structures representing the device
@@ -65,9 +66,10 @@ namespace Pci {
 		 ** RPC declaration **
 		 *********************/
 
-		GENODE_RPC(Rpc_first_device, Device_capability, first_device);
+		GENODE_RPC(Rpc_first_device, Device_capability, first_device,
+		           unsigned, unsigned);
 		GENODE_RPC(Rpc_next_device, Device_capability, next_device,
-		           Device_capability);
+		           Device_capability, unsigned, unsigned);
 		GENODE_RPC(Rpc_release_device, void, release_device, Device_capability);
 		GENODE_RPC(Rpc_config_extended, Genode::Io_mem_dataspace_capability,
 		           config_extended, Device_capability);
