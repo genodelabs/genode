@@ -198,48 +198,9 @@ Signal::Signal(Signal::Data data) : _data(data)
 }
 
 
-Signal::Signal(Signal const &other) : _data(other._data)
-{
-	_inc_ref();
-}
-
-
-Signal::~Signal()
-{
-	_dec_ref_and_unlock();
-}
-
-
-Signal &Signal::operator=(Signal const &other)
-{
-	if ((_data.context == other._data.context)
-	 && (_data.num     == other._data.num))
-		return *this;
-
-	_dec_ref_and_unlock();
-
-	_data.context = other._data.context;
-	_data.num     = other._data.num;
-
-	_inc_ref();
-
-	return *this;
-}
-
-
 /************************
  ** Signal transmitter **
  ************************/
-
-Signal_transmitter::Signal_transmitter(Signal_context_capability context)
-: _context(context) { }
-
-
-void Signal_transmitter::context(Signal_context_capability context)
-{
-	_context = context;
-}
-
 
 void Signal_transmitter::submit(unsigned cnt)
 {
@@ -272,16 +233,6 @@ Signal_receiver::Signal_receiver()
 {
 	/* make sure that the process-local signal handler thread is running */
 	signal_handler_thread();
-}
-
-
-Signal_receiver::~Signal_receiver()
-{
-	Lock::Guard list_lock_guard(_contexts_lock);
-
-	/* disassociate contexts from the receiver */
-	for (List_element<Signal_context> *le; (le = _contexts.first()); )
-		_unsynchronized_dissolve(le->object());
 }
 
 

@@ -20,8 +20,12 @@
 #include <base/semaphore.h>
 #include <signal_session/signal_session.h>
 
+/* only needed for base-hw */
+namespace Kernel { struct Signal_receiver; }
+
 namespace Genode {
 
+	class Signal_source;
 	class Signal_receiver;
 	class Signal_context;
 	class Signal_context_registry;
@@ -79,6 +83,7 @@ namespace Genode {
 			 */
 			Signal(Data data);
 
+		    friend class Kernel::Signal_receiver;
 			friend class Signal_receiver;
 			friend class Signal_context;
 
@@ -218,7 +223,17 @@ namespace Genode {
 	{
 		private:
 
-			Semaphore _signal_available;  /* signal(s) awaiting to be picked up */
+			/**
+			 * Semaphore used to indicate that signal(s) are ready to be picked
+			 * up. This is needed for platforms other than 'base-hw' only.
+			 */
+			Semaphore _signal_available;
+
+			/**
+			 * Provides the kernel-object name via the 'dst' method. This is
+			 * needed for 'base-hw' only.
+			 */
+			Signal_receiver_capability _cap;
 
 			/**
 			 * List of associated contexts

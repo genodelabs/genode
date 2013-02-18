@@ -18,7 +18,7 @@ SRC_CC += process/process.cc
 SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
 SRC_CC += env/spin_lock.cc env/cap_map.cc
-SRC_CC += signal/signal.cc
+SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/thread.cc thread/thread_bootstrap.cc
 

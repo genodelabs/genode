@@ -22,10 +22,12 @@
 namespace Genode {
 
 	class Signal_context;
+	class Signal_receiver;
 
 
-	typedef Capability<Signal_context> Signal_context_capability;
-	typedef Capability<Signal_source>  Signal_source_capability;
+	typedef Capability<Signal_receiver> Signal_receiver_capability;
+	typedef Capability<Signal_context>  Signal_context_capability;
+	typedef Capability<Signal_source>   Signal_source_capability;
 
 
 	struct Signal_session : Session

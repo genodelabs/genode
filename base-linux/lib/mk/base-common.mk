@@ -17,7 +17,7 @@ SRC_CC += process/process.cc
 SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
 SRC_CC += env/rm_session_mmap.cc env/debug.cc
-SRC_CC += signal/signal.cc
+SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc server/common.cc
 
 INC_DIR += $(REP_DIR)/src/base/lock $(BASE_DIR)/src/base/lock
