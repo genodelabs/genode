@@ -5,10 +5,13 @@
 set build_components {
 	core init
 	drivers/timer
-	drivers/pci
 	drivers/usb
 	test/input
 }
+
+lappend_if [have_spec acpi] build_components drivers/acpi
+lappend_if [have_spec pci]  build_components drivers/pci
+lappend_if [have_spec pci]  build_components drivers/pci/device_pd
 
 build $build_components
 
@@ -35,17 +38,35 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
+	</default-route>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="5M"/>
 		<provides><service name="PCI"/></provides>
-	</start>
+	</start>}
+
+append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="usb_drv">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="7M"/>
 		<provides><service name="Input"/></provides>
 		<config>
 			<hid/>
@@ -64,8 +85,12 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer pci_drv usb_drv test-input
+	core init timer usb_drv test-input
 }
+
+lappend_if [have_spec acpi] boot_modules acpi_drv
+lappend_if [have_spec pci]  boot_modules pci_drv
+lappend_if [have_spec nova] boot_modules pci_device_pd
 
 build_boot_image $boot_modules
 
