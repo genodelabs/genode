@@ -369,20 +369,24 @@ class Ahci_device
 		Ram_dataspace_capability  _ds;        /* backing-store of internal data structures */
 		Io_mem_session_capability _io_cap;    /* I/O mem cap */
 
+		::Pci::Connection        &_pci;
+		::Pci::Device_client     *_pci_device;
+		::Pci::Device_capability  _pci_device_cap;
+
 		/**
 		 * Return next PCI device
 		 */
-		static Pci::Device_capability _scan_pci(Pci::Connection *pci, Pci::Device_capability prev_device_cap)
+		static Pci::Device_capability _scan_pci(Pci::Connection &pci, Pci::Device_capability prev_device_cap)
 		{
 			Pci::Device_capability device_cap;
 
 			if (!prev_device_cap.valid())
-				device_cap = pci->first_device();
+				device_cap = pci.first_device();
 			else
-				device_cap = pci->next_device(prev_device_cap);
+				device_cap = pci.next_device(prev_device_cap);
 
 			while (device_cap.valid()) {
-				pci->release_device(prev_device_cap);
+				pci.release_device(prev_device_cap);
 				prev_device_cap = device_cap;
 
 				::Pci::Device_client device(device_cap);
@@ -395,10 +399,10 @@ class Ahci_device
 					return device_cap;
 				}
 
-				device_cap = pci->next_device(prev_device_cap);
+				device_cap = pci.next_device(prev_device_cap);
 			}
 
-			pci->release_device(prev_device_cap);
+			pci.release_device(prev_device_cap);
 
 			return Pci::Device_capability();
 		}
@@ -435,7 +439,7 @@ class Ahci_device
 		/**
 		 * Initialize port
 		 */
-		void _init()
+		void _init(::Pci::Device_client *pci_device)
 		{
 			uint32_t version = _ctrl->version();
 			PINF("AHCI Version: %x.%04x", (version >> 16), version && 0xffff);
@@ -450,7 +454,7 @@ class Ahci_device
 			PINF("\t64 Bit: %s", (caps & 0x80000000) ? "yes" : "no");
 
 			/* setup up AHCI data structures */
-			_setup_memory();
+			_setup_memory(pci_device);
 
 			/* check and possibly enable AHCI mode */
 			_ctrl->global_enable_ahci();
@@ -478,12 +482,12 @@ class Ahci_device
 			_ctrl->hba_interrupt_ack();
 
 			/* retrieve block count */
-			_identify_device();
+			_identify_device(pci_device);
 		}
 
-		void _setup_memory()
+		void _setup_memory(::Pci::Device_client *pci_device)
 		{
-			_ds = env()->ram_session()->alloc(0x1000);
+			_ds = alloc_dma_buffer(0x1000);
 			addr_t   phys = Dataspace_client(_ds).phys_addr();
 			uint8_t *virt = (uint8_t *)env()->rm_session()->attach(_ds);
 
@@ -509,14 +513,15 @@ class Ahci_device
 		/**
 		 * Execute ATA 'IDENTIFY DEVICE' command
 		 */
-		void _identify_device()
+		void _identify_device(Pci::Device_client *pci_device)
 		{
-			Ram_dataspace_capability ds = env()->ram_session()->alloc(0x1000);
+			Ram_dataspace_capability ds = alloc_dma_buffer(0x1000);
 			uint16_t *dev_info = (uint16_t *)env()->rm_session()->attach(ds);
 
 			enum { IDENTIFY_DEVICE = 0xec };
 			try {
-				_cmd_table->setup_command(IDENTIFY_DEVICE, 0, 0, Dataspace_client(ds).phys_addr());
+				addr_t phys = Dataspace_client(ds).phys_addr();
+				_cmd_table->setup_command(IDENTIFY_DEVICE, 0, 0, phys);
 				_execute_command();
 
 				/* XXX: just read 32 bit for now */
@@ -581,21 +586,21 @@ class Ahci_device
 			_port->hba_disable();
 		}
 
-		static void _disable_msi(::Pci::Device_client &pci)
+		static void _disable_msi(::Pci::Device_client *pci)
 		{
 			enum { PM_CAP_OFF = 0x34, MSI_CAP = 0x5, MSI_ENABLED = 0x1 };
-			uint8_t cap = pci.config_read(PM_CAP_OFF, ::Pci::Device::ACCESS_8BIT);
+			uint8_t cap = pci->config_read(PM_CAP_OFF, ::Pci::Device::ACCESS_8BIT);
 
 			/* iterate through cap pointers */
 			for (uint16_t val = 0; cap; cap = val >> 8) {
-				val = pci.config_read(cap, ::Pci::Device::ACCESS_16BIT);
+				val = pci->config_read(cap, ::Pci::Device::ACCESS_16BIT);
 
 				if ((val & 0xff) != MSI_CAP)
 					continue;
-				uint16_t msi = pci.config_read(cap + 2, ::Pci::Device::ACCESS_16BIT);
+				uint16_t msi = pci->config_read(cap + 2, ::Pci::Device::ACCESS_16BIT);
 
 				if (msi & MSI_ENABLED) {
-					pci.config_write(cap + 2, msi ^ MSI_CAP, ::Pci::Device::ACCESS_8BIT);
+					pci->config_write(cap + 2, msi ^ MSI_CAP, ::Pci::Device::ACCESS_8BIT);
 					PINF("Disabled MSIs %x", msi);
 				}
 			}
@@ -603,8 +608,11 @@ class Ahci_device
 
 	public:
 
-		Ahci_device(addr_t base, Io_mem_session_capability io_cap)
-		: _ctrl((Generic_ctrl *)base), _io_cap(io_cap) {}
+		Ahci_device(addr_t base, Io_mem_session_capability io_cap,
+		            Pci::Connection &pci)
+		:
+			_ctrl((Generic_ctrl *)base), _port(0), _irq(0), _cmd_list(0),
+			_cmd_table(0), _io_cap(io_cap), _pci(pci), _pci_device(0) {}
 
 		~Ahci_device()
 		{
@@ -618,6 +626,8 @@ class Ahci_device
 			env()->rm_session()->detach((void *)_ctrl);
 			env()->parent()->close(_io_cap);
 
+			/* XXX release _pci_device */
+
 			/* close IRQ session */
 			destroy(env()->heap(), _irq);
 		}
@@ -625,18 +635,18 @@ class Ahci_device
 		/**
 		 * Probe PCI-bus for AHCI and ATA-devices
 		 */
-		static Ahci_device *probe()
+		static Ahci_device *probe(Pci::Connection &pci)
 		{
-			Pci::Connection pci;
 			Pci::Device_capability device_cap;
 			Ahci_device *device;
 
-			while ((device_cap = _scan_pci(&pci, device_cap)).valid()) {
+			while ((device_cap = _scan_pci(pci, device_cap)).valid()) {
 
-				::Pci::Device_client pci_device(device_cap);
+				::Pci::Device_client * pci_device =
+					new(env()->heap()) ::Pci::Device_client(device_cap);
 
 				/* read and map base address of AHCI controller */
-				Pci::Device::Resource resource = pci_device.resource(AHCI_BASE_ID);
+				Pci::Device::Resource resource = pci_device->resource(AHCI_BASE_ID);
 
 				Io_mem_connection io(resource.base(), resource.size());
 				addr_t addr = (addr_t)env()->rm_session()->attach(io.dataspace());
@@ -648,21 +658,20 @@ class Ahci_device
 					PDBG("resource base: %x virt: %lx", resource.base(), addr);
 
 				/* create and test device */
-				device = new(env()->heap()) Ahci_device(addr, io.cap());
-
+				device = new(env()->heap()) Ahci_device(addr, io.cap(), pci);
 				if (device->_scan_ports()) {
 
 					io.on_destruction(Io_mem_connection::KEEP_OPEN);
 
 					/* read IRQ information */
-					unsigned long intr = pci_device.config_read(AHCI_INTR_OFF,
-					                                            ::Pci::Device::ACCESS_32BIT);
+					unsigned long intr = pci_device->config_read(AHCI_INTR_OFF,
+					                                             ::Pci::Device::ACCESS_32BIT);
 
 					if (verbose) {
 						PDBG("Interrupt pin: %lu line: %lu", (intr >> 8) & 0xff, intr & 0xff);
 
 						unsigned char bus, dev, func;
-						pci_device.bus_address(&bus, &dev, &func);
+						pci_device->bus_address(&bus, &dev, &func);
 						PDBG("Bus address: %x:%02x.%u (0x%x)", bus, dev, func, (bus << 8) | ((dev & 0x1f) << 3) | (func & 0x7));
 					}
 
@@ -670,18 +679,22 @@ class Ahci_device
 					_disable_msi(pci_device);
 
 					device->_irq = new(env()->heap()) Irq_connection(intr & 0xff);
-					pci.release_device(device_cap);
+					/* remember pci_device to be able to allocate ram memory which is dma able */
+					device->_pci_device_cap = device_cap;
+					device->_pci_device = pci_device;
+					/* trigger assignment of pci device to the ahci driver */
+					pci.config_extended(device_cap);
 
 					/* get device ready */
-					device->_init();
+					device->_init(pci_device);
 
 					return device;
 				}
 
+				destroy(env()->heap(), pci_device);
 				env()->rm_session()->detach(addr);
 				destroy(env()->heap(), device);
 			}
-
 			return 0;
 		}
 
@@ -711,6 +724,9 @@ class Ahci_device
 			_cmd_table->setup_command(WRITE_DMA_EXT, block_number, block_count, phys);
 			_execute_command();
 		}
+
+		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
+			return _pci.alloc_dma_buffer(_pci_device_cap, size); }
 };
 
 
@@ -721,6 +737,7 @@ class Ahci_driver : public Block::Driver
 {
 	private:
 
+		Pci::Connection _pci;
 		Ahci_device *_device;
 
 		void _sanity_check(size_t block_number, size_t count)
@@ -731,7 +748,7 @@ class Ahci_driver : public Block::Driver
 
 	public:
 
-		Ahci_driver() : _device(Ahci_device::probe()) {}
+		Ahci_driver() : _device(Ahci_device::probe(_pci)) { }
 
 		~Ahci_driver()
 		{
@@ -772,7 +789,7 @@ class Ahci_driver : public Block::Driver
 		}
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
-			return env()->ram_session()->alloc(size); }
+			return _device->alloc_dma_buffer(size); }
 };
 
 
