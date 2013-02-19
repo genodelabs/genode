@@ -41,12 +41,14 @@ the 'configfile' tag:
 		<service name="CPU"/>
 		<service name="RM"/>
 		<service name="PD"/>
+		<service name="SIGNAL"/>
 	</parent-provides>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 		<route>
-			<service name="CAP"> <parent/> </service>
+			<service name="CAP">    <parent/> </service>
+			<service name="SIGNAL"> <parent/> </service>
 		</route>
 	</start>
 	<start name="init">
@@ -54,25 +56,28 @@ the 'configfile' tag:
 		<config>
 			<parent-provides>
 				<service name="Timer"/>
+				<service name="SIGNAL"/>
 				<service name="LOG"/>
 			</parent-provides>
 			<start name="test-timer">
 				<resource name="RAM" quantum="1M"/>
 				<route>
-					<service name="Timer"> <parent/> </service>
-					<service name="LOG">   <parent/> </service>
+					<service name="Timer">  <parent/> </service>
+					<service name="LOG">    <parent/> </service>
+					<service name="SIGNAL"> <parent/> </service>
 				</route>
 			</start>
 		</config>
 		<route>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="LOG">   <parent/>             </service>
-			<service name="ROM">   <parent/>             </service>
-			<service name="RAM">   <parent/>             </service>
-			<service name="CAP">   <parent/>             </service>
-			<service name="CPU">   <parent/>             </service>
-			<service name="RM">    <parent/>             </service>
-			<service name="PD">    <parent/>             </service>
+			<service name="Timer">   <child name="timer"/> </service>
+			<service name="LOG">     <parent/>             </service>
+			<service name="ROM">     <parent/>             </service>
+			<service name="RAM">     <parent/>             </service>
+			<service name="CAP">     <parent/>             </service>
+			<service name="CPU">     <parent/>             </service>
+			<service name="RM">      <parent/>             </service>
+			<service name="PD">      <parent/>             </service>
+			<service name="SIGNAL"/> <parent/>             </service>
 		</route>
 	</start>
 </config>

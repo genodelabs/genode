@@ -38,13 +38,13 @@ append config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-                <start name="uart_drv">
-                        <resource name="RAM" quantum="1M"/>
-                        <provides><service name="Terminal"/></provides>
-                        <config>
-                                <policy label="noux" uart="1"/>
-                        </config>
-                </start>
+		<start name="uart_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Terminal"/></provides>
+			<config>
+				<policy label="noux" uart="1"/>
+			</config>
+		</start>
 		<start name="ram_fs">
 			<resource name="RAM" quantum="10M"/>
 			<provides><service name="File_system"/></provides>

@@ -41,19 +41,22 @@ illustrated by an example (the following config file can be used on Linux):
 !   <parent-provides>
 !     <service name="CAP"/>
 !     <service name="LOG"/>
+!     <service name="SIGNAL"/>
 !   </parent-provides>
 !   <start name="timer">
 !     <resource name="RAM" quantum="1M"/>
 !     <provides> <service name="Timer"/> </provides>
 !     <route>
-!       <service name="CAP"> <parent/> </service>
+!       <service name="CAP">    <parent/> </service>
+!       <service name="SIGNAL"> <parent/> </service>
 !     </route>
 !   </start>
 !   <start name="test-timer">
 !     <resource name="RAM" quantum="1M"/>
 !     <route>
-!       <service name="Timer"> <child name="timer"/> </service>
-!       <service name="LOG">   <parent/>             </service>
+!       <service name="Timer">  <child name="timer"/> </service>
+!       <service name="LOG">    <parent/>             </service>
+!       <service name="SIGNAL"> <parent/>             </service>
 !     </route>
 !   </start>
 ! </config>
@@ -88,11 +91,12 @@ route. Instead of specifying a list of single service routes targeting the same
 destination, the wildcard '<any-service>' becomes handy. For example, instead
 of specifying
 ! <route>
-!   <service name="ROM"> <parent/> </service>
-!   <service name="RAM"> <parent/> </service>
-!   <service name="RM">  <parent/> </service>
-!   <service name="PD">  <parent/> </service>
-!   <service name="CPU"> <parent/> </service>
+!   <service name="ROM">    <parent/> </service>
+!   <service name="RAM">    <parent/> </service>
+!   <service name="RM">     <parent/> </service>
+!   <service name="PD">     <parent/> </service>
+!   <service name="CPU">    <parent/> </service>
+!   <service name="SIGNAL"> <parent/> </service>
 ! </route>
 the following shortcut can be used:
 ! <route>
@@ -192,12 +196,14 @@ child is routed to the timer service started at the first-level init instance.
 !     <service name="CPU"/>
 !     <service name="RM"/>
 !     <service name="PD"/>
+!     <service name="SIGNAL"/>
 !   </parent-provides>
 !   <start name="timer">
 !     <resource name="RAM" quantum="1M"/>
 !     <provides><service name="Timer"/></provides>
 !     <route>
-!       <service name="CAP"> <parent/> </service>
+!       <service name="CAP">    <parent/> </service>
+!       <service name="SIGNAL"> <parent/> </service>
 !     </route>
 !   </start>
 !   <start name="init">
@@ -206,24 +212,27 @@ child is routed to the timer service started at the first-level init instance.
 !       <parent-provides>
 !         <service name="Timer"/>
 !         <service name="LOG"/>
+!         <service name="SIGNAL"/>
 !       </parent-provides>
 !       <start name="test-timer">
 !         <resource name="RAM" quantum="1M"/>
 !         <route>
-!           <service name="Timer"> <parent/> </service>
-!           <service name="LOG">   <parent/> </service>
+!           <service name="Timer">  <parent/> </service>
+!           <service name="LOG">    <parent/> </service>
+!           <service name="SIGNAL"> <parent/> </service>
 !         </route>
 !       </start>
 !     </config>
 !     <route>
-!       <service name="Timer"> <child name="timer"/> </service>
-!       <service name="LOG">   <parent/>             </service>
-!       <service name="ROM">   <parent/>             </service>
-!       <service name="RAM">   <parent/>             </service>
-!       <service name="CAP">   <parent/>             </service>
-!       <service name="CPU">   <parent/>             </service>
-!       <service name="RM">    <parent/>             </service>
-!       <service name="PD">    <parent/>             </service>
+!       <service name="Timer">  <child name="timer"/> </service>
+!       <service name="LOG">    <parent/>             </service>
+!       <service name="ROM">    <parent/>             </service>
+!       <service name="RAM">    <parent/>             </service>
+!       <service name="CAP">    <parent/>             </service>
+!       <service name="CPU">    <parent/>             </service>
+!       <service name="RM">     <parent/>             </service>
+!       <service name="PD">     <parent/>             </service>
+!       <service name="SIGNAL"> <parent/>             </service>
 !     </route>
 !   </start>
 ! </config>
