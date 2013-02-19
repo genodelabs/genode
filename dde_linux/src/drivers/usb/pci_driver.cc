@@ -18,6 +18,7 @@
 /* Linux includes */
 #include <lx_emul.h>
 
+#include "mem.h"
 
 struct  bus_type pci_bus_type;
 
@@ -179,6 +180,9 @@ class Pci_driver
  ** Linux interface **
  *********************/
 
+static Pci::Device_capability pci_device_cap;
+static Pci::Connection pci;
+
 int pci_register_driver(struct pci_driver *drv)
 {
 	dde_kit_log(DEBUG_PCI, "DRIVER name: %s", drv->name);
@@ -189,7 +193,6 @@ int pci_register_driver(struct pci_driver *drv)
 		return -ENODEV;
 
 	using namespace Genode;
-	Pci::Connection pci;
 
 	bool found = false;
 
@@ -207,9 +210,20 @@ int pci_register_driver(struct pci_driver *drv)
 
 			Pci_driver *pci_drv = 0;
 			try {
+				/*
+				 * Assign cap already here, since for probing already DMA
+				 * buffer is required and allocated by
+				 * Genode::Mem::alloc_dma_buffer(size_t size)
+				 */
+				pci_device_cap = cap;
+
+				/* probe device */
 				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
 				pci.on_destruction(Pci::Connection::KEEP_OPEN);
 				found = true;
+
+				/* trigger that the device get be assigned to the usb driver */
+				pci.config_extended(cap);
 			} catch (...) {
 				destroy(env()->heap(), pci_drv);
 				pci_drv = 0;
@@ -297,3 +311,10 @@ const char *pci_name(const struct pci_dev *pdev)
 	return "dummy";
 }
 
+Genode::Ram_dataspace_capability Genode::Mem::alloc_dma_buffer(size_t size)
+{
+	using namespace Genode;
+	Ram_dataspace_capability ram_cap = pci.alloc_dma_buffer(pci_device_cap,
+	                                                        size);
+	return ram_cap;
+}

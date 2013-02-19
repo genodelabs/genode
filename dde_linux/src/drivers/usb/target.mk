@@ -83,7 +83,7 @@ CC_OPT  += -DCONFIG_USB_EHCI_HCD_OMAP -DCONFIG_USB_EHCI_TT_NEWSCHED -DVERBOSE_DE
 INC_DIR += $(PRG_DIR)/arm
 INC_DIR += $(CONTRIB_DIR)/arch/arm/plat-omap/include
 SRC_C   += platform_device.c usbnet.c smsc95xx.c
-SRC_CC  += platform.cc
+SRC_CC  += platform.cc mem.cc
 vpath %.c  $(PRG_DIR)/arm/platform
 vpath %.cc $(PRG_DIR)/arm/platform
 vpath %.c  $(CONTRIB_DIR)/drivers/net/usb

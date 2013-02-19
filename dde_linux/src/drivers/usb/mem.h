@@ -48,12 +48,21 @@ namespace Genode {
 			Ram_dataspace_capability _ds_cap; /* backing store */
 
 			/**
+			 * Allocates memory which can be used for DMA.
+			 */
+			Genode::Ram_dataspace_capability alloc_dma_buffer(size_t size);
+
+			/**
 			 * Private constructor
 			 */
 			Mem(size_t size, bool cached = true)
 			: _size(size), _range(env()->heap()),_zone_count(0), _zone_alloc(0)
 			{
-				_ds_cap    = env()->ram_session()->alloc(_size, cached);
+				if (cached)
+					_ds_cap    = env()->ram_session()->alloc(_size, cached);
+				else
+					_ds_cap    = alloc_dma_buffer(_size);
+
 				_base_phys = Dataspace_client(_ds_cap).phys_addr();
 				_base      = (addr_t)env()->rm_session()->attach(_ds_cap);
 
