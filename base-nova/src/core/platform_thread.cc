@@ -305,7 +305,7 @@ void Platform_thread::single_step(bool on)
 
 unsigned long Platform_thread::pager_object_badge() const
 {
-	return Native_thread::INVALID_INDEX;
+	return reinterpret_cast<unsigned long>(_name);
 }
 
 
@@ -314,7 +314,9 @@ Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
 	_pd(0), _pager(0), _id_base(cap_selector_allocator()->alloc(1)),
 	_sel_exc_base(Native_thread::INVALID_INDEX), _cpu_no(0),
 	_is_main_thread(false), _is_vcpu(false)
-{ }
+{
+	strncpy(_name, name, sizeof(_name));
+}
 
 
 Platform_thread::~Platform_thread()

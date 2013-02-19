@@ -64,7 +64,11 @@ void Pager_object::_page_fault_handler()
 
 	if (ret) {
 		if (obj->client_recall() != Nova::NOVA_OK) {
-			PERR("recall failed");
+			char client_name[Context::NAME_LEN];
+			myself->name(client_name, sizeof(client_name));
+
+			PWRN("unresolvable page fault since recall failed, '%s'",
+			     client_name);
 
 			Native_capability pager_obj = obj->Object_pool<Pager_object>::Entry::cap();
 			revoke(pager_obj.dst(), true);
@@ -96,8 +100,11 @@ void Pager_object::_exception_handler(addr_t portal_id)
 		}
 	}
 	else {
-		PWRN("unresolvable exception at ip 0x%lx, exception portal 0x%lx",
-		     fault_ip, portal_id);
+		char client_name[Context::NAME_LEN];
+		myself->name(client_name, sizeof(client_name));
+
+		PWRN("unresolvable exception at ip 0x%lx, exception portal 0x%lx, "
+		     "'%s'", fault_ip, portal_id, client_name);
 
 		Nova::revoke(Obj_crd(portal_id, 0));
 		obj->_state.dead = true;
@@ -235,10 +242,14 @@ void Pager_object::cleanup_call()
 
 
 Pager_object::Pager_object(unsigned long badge)
-: Thread_base("pager", PF_HANDLER_STACK_SIZE), _badge(badge)
+: Thread_base("pager:", PF_HANDLER_STACK_SIZE), _badge(badge)
 {
 	class Create_exception_pt_failed { };
 	uint8_t res;
+
+	/* construct pager name out of client name */
+	strncpy(_context->name + 6, reinterpret_cast<char const *>(badge),
+	        sizeof(_context->name) - 6);
 
 	addr_t pd_sel        = __core_pd_sel;
 	_pt_cleanup          = cap_selector_allocator()->alloc();
