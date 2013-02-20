@@ -36,7 +36,7 @@
 
 #include <lx_emul.h>
 
-#include "scsi.h"
+#include <storage/scsi.h>
 
 #define DEBUG_SCSI 0
 
