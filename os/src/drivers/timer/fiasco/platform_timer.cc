@@ -15,11 +15,25 @@
 /* Genode includes */
 #include <util/misc_math.h>
 #include <base/printf.h>
+#include <os/attached_rom_dataspace.h>
 
 /* Fiasco includes */
 namespace Fiasco {
 #include <l4/sys/ipc.h>
+#include <l4/sys/kip.h>
 }
+
+/*
+ * On L4/Fiasco, the KIP layout is defined in 'kernel.h', which does not exist
+ * on Fiasco.OC. We test for 'L4_SYS_KIP_H__' to check for the L4/Fiasco case
+ * and include 'kernel.h'. This works because the Fiasco.OC headers do not use
+ * include guards ('L4_SYS_KIP_H__' is undefined on Fiasco.OC).
+ */
+#ifdef L4_SYS_KIP_H__
+namespace Fiasco {
+#include <l4/sys/kernel.h>
+}
+#endif /* L4_SYS_KIP_H__ */
 
 /* local includes */
 #include "timer_session_component.h"
@@ -54,19 +68,24 @@ static l4_timeout_s mus_to_timeout(unsigned long mus)
 unsigned long Platform_timer::max_timeout()
 {
 	Genode::Lock::Guard lock_guard(_lock);
-	return 1000*1000;
+
+	return 1000*1000*100;
 }
 
 
 unsigned long Platform_timer::curr_time() const
 {
 	Genode::Lock::Guard lock_guard(_lock);
-	return _curr_time_usec;
+
+	static Genode::Attached_rom_dataspace   kip_ds("l4v2_kip");
+	static Fiasco::l4_kernel_info_t * const kip =
+		kip_ds.local_addr<Fiasco::l4_kernel_info_t>();
+
+	return kip->clock;
 }
 
 
 void Platform_timer::_usleep(unsigned long usecs)
 {
 	l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(usecs)));
-	_curr_time_usec += usecs;
 }
