@@ -156,12 +156,15 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 		Genode::Root_capability _cap;
 		Genode::Rpc_entrypoint &_pci_ep;
 		Genode::Rpc_entrypoint &_irq_ep;
+		Genode::Lock _lock;
 
 	protected:
 
 		char const **_permitted_services() const
 		{
-			static char const *permitted_services[] = { "CPU", "CAP", "RM", "LOG", "IO_PORT", 0 };
+			static char const *permitted_services[] = { "CPU", "CAP", "RM",
+			                                            "LOG", "IO_PORT",
+			                                            "SIGNAL", 0};
 			return permitted_services;
 		};
 
@@ -178,7 +181,7 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 				session = static_cap_cast<Pci::Session>(Root_client(_cap).session(args));
 			} catch (...) { return; }
 
-			Acpi::rewrite_irq(session);
+			Acpi::configure_pci_devices(session);
 
 			/* announce PCI/IRQ services to parent */
 			static Pci::Root pci_root(*this);
@@ -195,7 +198,9 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 		Pci_policy(Genode::Rpc_entrypoint &slave_ep,
 		           Genode::Rpc_entrypoint &pci_ep,
 		           Genode::Rpc_entrypoint &irq_ep)
-		: Slave_policy("pci_drv", slave_ep), _pci_ep(pci_ep), _irq_ep(irq_ep)
+		:
+			Slave_policy("pci_drv", slave_ep, Genode::env()->ram_session()),
+			 _pci_ep(pci_ep), _irq_ep(irq_ep), _lock(Genode::Lock::LOCKED)
 		{ }
 
 		bool announce_service(const char             *service_name,
@@ -209,10 +214,18 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 
 			_cap = root;
 
-			/* connect session and start ACPI parsing */
-			_acpi_session();
+			/* unblock main thread blocked in wait_for_pci_drv */
+			_lock.unlock();
 
 			return true;
+		}
+
+		void wait_for_pci_drv() {
+			/* wait until pci drv is ready */
+			_lock.lock();
+
+			/* connect session and start ACPI parsing */
+			_acpi_session();
 		}
 
 		Genode::Root_capability root() { return _cap; }
@@ -224,6 +237,7 @@ int main(int argc, char **argv)
 	using namespace Genode;
 
 	enum { STACK_SIZE = 2*4096 };
+
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "acpi_ep");
 
@@ -234,7 +248,17 @@ int main(int argc, char **argv)
 	/* use 'pci_drv' as slave service */
 	static Rpc_entrypoint pci_ep(&cap, STACK_SIZE, "pci_slave");
 	static Pci_policy     pci_policy(pci_ep, ep, irq_ep);
+
+	/* generate config file for pci_drv */
+	char buf[256];
+	Acpi::create_pci_config_file(buf, sizeof(buf));
+	pci_policy.configure(buf);
+
+	/* use 'pci_drv' as slave service */
 	static Genode::Slave  pci_slave(pci_ep, pci_policy, 1024 * 1024);
+
+	/* wait until pci drv is online and then make the acpi work */
+	pci_policy.wait_for_pci_drv();
 
 	Genode::sleep_forever();
 	return 0;

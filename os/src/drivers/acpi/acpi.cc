@@ -115,6 +115,30 @@ class Irq_override : public List<Irq_override>::Element
 
 
 /**
+ * List that holds the result of the mcfg table parsing which are pointers
+ * to the extended pci config space - 4k for each device.
+ */
+class Pci_config_space : public List<Pci_config_space>::Element
+{
+	public:
+
+		uint32_t _bdf_start;
+		uint32_t _func_count;
+		addr_t   _base;
+
+		Pci_config_space(uint32_t bdf_start, uint32_t func_count, addr_t base)
+		:
+			_bdf_start(bdf_start), _func_count(func_count), _base(base) {}
+
+		static List<Pci_config_space> *list()
+		{
+			static List<Pci_config_space> _list;
+			return &_list;
+		}
+
+};
+
+/**
  * ACPI table wrapper that for mapping tables to this address space
  */
 class Table_wrapper
@@ -235,6 +259,14 @@ class Table_wrapper
 			for (; mcfg < _table->mcfg_end(); mcfg = mcfg->next()) {
 				PINF("MCFG BASE 0x%llx seg %02x bus %02x-%02x", mcfg->base,
 				     mcfg->pci_seg, mcfg->pci_bus_start, mcfg->pci_bus_end);
+
+				/* bus_count * up to 32 devices * 8 function per device * 4k */
+				uint32_t bus_count  = mcfg->pci_bus_end - mcfg->pci_bus_start + 1;
+				uint32_t func_count = bus_count * 32 * 8;
+				uint32_t bus_start  = mcfg->pci_bus_start * 32 * 8;
+
+				Pci_config_space::list()->insert(
+					new (env()->heap()) Pci_config_space(bus_start, func_count, mcfg->base));
 			}
 		}
 
@@ -867,6 +899,34 @@ class Element : public List<Element>::Element
 			}
 			throw -1;
 		}
+
+		static void create_config_file(char * text, size_t max)
+		{
+			Pci_config_space *e = Pci_config_space::list()->first();
+
+			int len = snprintf(text, max, "<config>");
+			text += len;
+			max  -= len;
+			for (; e; e = e->next())
+			{
+				using namespace Genode;
+				len   = snprintf(text, max, "<bdf><start>%u</start>", e->_bdf_start);
+				text += len;
+				max  -= len;
+				len   = snprintf(text, max, "<count>%u</count>"       , e->_func_count);
+				text += len;
+				max  -= len;
+				len   = snprintf(text, max, "<base>0x%lx</base></bdf>" , e->_base);
+				text += len;
+				max  -= len;
+			}
+			len = snprintf(text, max, "</config>");
+			text += len;
+			max  -= len;
+
+			if (max < 2)
+				PERR("config file could not be generated, buffer to small");
+		}
 };
 
 
@@ -960,7 +1020,6 @@ class Acpi_table
 
 						table.parse_madt();
 					}
-
 					if (table.is_mcfg()) {
 						PDBG("Found MCFG");
 
@@ -1200,22 +1259,38 @@ static void dump_rewrite(uint32_t bdf, uint8_t line, uint8_t gsi)
 	     (bdf >> 8), (bdf >> 3) & 0x1f, (bdf & 0x7), line, gsi);
 }
 
+/**
+ * Parse acpi table
+ */
+static void init_acpi_table() {
+	static Acpi_table table;
+}
+
+/**
+ * Create config file for pci_drv
+ */
+void Acpi::create_pci_config_file(char * config_space,
+		                          Genode::size_t config_space_max)
+{
+	init_acpi_table();
+	Element::create_config_file(config_space, config_space_max);
+}
 
 /**
  * Rewrite GSIs of PCI config space
  */
-void Acpi::rewrite_irq(Pci::Session_capability &session)
+void Acpi::configure_pci_devices(Pci::Session_capability &session)
 {
-	static Acpi_table table;
+	init_acpi_table();
 	static Pci_bridge bridge(session);
 
-	/* if no _PIC method could be found return */
-	if (Element::supported_acpi_format())
-		PINF("ACPI table format is supported by this driver");
-	else {
-		PWRN("ACPI table format not supported will not rewrite GSIs");
-		return;
-	}
+	/* if no _PIC method could be found don't rewrite */
+	bool acpi_rewrite = Element::supported_acpi_format();
+
+	if (acpi_rewrite)
+		PINF("ACPI table format is supported - rewrite GSIs");
+	else
+		PWRN("ACPI table format not supported - will not rewrite GSIs");
 
 	Pci::Session_client pci(session);
 	Pci::Device_capability device_cap = pci.first_device(), prev_device_cap;
@@ -1224,7 +1299,8 @@ void Acpi::rewrite_irq(Pci::Session_capability &session)
 		prev_device_cap = device_cap;
 		Pci_client device(device_cap);
 
-		if (!device.is_bridge()) {
+		/* rewrite IRQs */
+		if (acpi_rewrite && !device.is_bridge()) {
 			uint32_t device_bdf = device.bdf();
 			uint32_t bridge_bdf = Pci_bridge::bridge_bdf(device_bdf);
 			uint32_t irq_pin    = device.irq_pin();
@@ -1241,6 +1317,7 @@ void Acpi::rewrite_irq(Pci::Session_capability &session)
 		device_cap = pci.next_device(device_cap);
 		pci.release_device(prev_device_cap);
 	}
+
 }
 
 

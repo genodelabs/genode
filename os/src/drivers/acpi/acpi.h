@@ -22,14 +22,27 @@ class Acpi
 	public:
 
 		/**
-		 * Rewrite PCI-config space with GSIs found in ACPI tables
+		 * Constructor
 		 */
-		static void rewrite_irq(Pci::Session_capability &session);
+		Acpi();
+
+		/**
+		 * Generate config file for pci_drv containing pointers to the
+		 * extended PCI config space (since PCI Express)
+		 */
+		static void create_pci_config_file(char * config_space,
+		                                   Genode::size_t config_space_max);
+		
+		/**
+		 * Rewrite PCI-config space with GSIs found in ACPI tables.
+		 */
+		static void configure_pci_devices(Pci::Session_capability &session);
 
 		/**
 		 * Return override GSI for IRQ
 		 */
 		static unsigned override(unsigned irq, unsigned *mode);
+
 };
 
 #endif /* _ACPI_H_ */

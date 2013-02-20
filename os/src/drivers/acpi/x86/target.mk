@@ -1,4 +1,4 @@
-TARGET   = acpi_drv
+ TARGET   = acpi_drv
 REQUIRES = x86
 SRC_CC   = main.cc acpi.cc
 LIBS     = base
