@@ -7,9 +7,12 @@ if {![have_spec x86_32]} {
 # Build
 #
 set build_components {
-	core init drivers/timer drivers/pci drivers/acpi
-	drivers/ahci test/block
+	core init drivers/timer drivers/pci drivers/ahci test/block
 }
+
+lappend_if [have_spec acpi] build_components drivers/acpi
+lappend_if [have_spec pci]  build_components drivers/pci/device_pd
+
 build $build_components
 
 create_boot_directory
@@ -35,9 +38,11 @@ set config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
+	</default-route>}
+
+append_if [have_spec acpi] config {
 	<start name="acpi">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
@@ -47,7 +52,15 @@ set config {
 			<service name="PCI"> <any-child /> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-	</start>
+	</start>}
+
+append_if [expr ![have_spec acpi]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -60,8 +73,12 @@ set config {
 		<binary name="ahci_drv" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
-		<route>
-			<service name="IRQ"><child name="acpi" /></service>
+		<route>}
+
+append_if [have_spec acpi] config {
+			<service name="IRQ"><child name="acpi" /></service>}
+
+append config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>
@@ -72,8 +89,7 @@ set config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
-</config>
-}
+</config>}
 
 install_config $config
 
@@ -83,6 +99,10 @@ install_config $config
 
 set boot_modules {
 	core init timer pci_drv ahci_drv test-block acpi_drv
+}
+
+if {[have_spec nova]} {
+	append boot_modules {pci_device_pd}
 }
 
 build_boot_image $boot_modules
@@ -111,11 +131,9 @@ if { [file exists $disk_image] == 0 } then {
 run_genode_until "child exited with exit value 0.*\n" 10
 
 # pay only attention to the output of test-block
-grep_output {^\[init -> test-block}
+grep_output {^\[init -> test-block.*Comparing}
 
 compare_output_to {
-	[init -> test-block] --- AHCI block driver test ---
-	[init -> test-block] We have 20480 blocks with a size of 512 bytes (10 MB)
 	[init -> test-block] Comparing block 0000000000: success
 	[init -> test-block] Comparing block 0000000640: success
 	[init -> test-block] Comparing block 0000001280: success
