@@ -49,24 +49,25 @@ void Pci_device::config_write(unsigned char address, uint32_t val,
  ** PCI bus **
  *************/
 
-Pci_tree::Pci_tree()
+Pci_tree::Pci_tree(unsigned device_class, unsigned class_mask)
 {
 	/*
 	 * Iterate through all accessible devices and populate virtual
 	 * PCI bus tree.
 	 */
-	Pci::Device_capability prev_device_cap,
-	                            device_cap = _pci_drv.first_device();
+	Pci::Device_capability prev_device_cap;
+	Pci::Device_capability device_cap = _pci_drv.first_device(device_class,
+	                                                          class_mask);
 
 	while (device_cap.valid()) {
 
-		Pci_device *device = new (env()->heap())
-		                     Pci_device(device_cap);
+		Pci_device *device = new (env()->heap()) Pci_device(device_cap);
 
 		_devices.insert(device);
 
 		prev_device_cap = device_cap;
-		device_cap = _pci_drv.next_device(prev_device_cap);
+		device_cap = _pci_drv.next_device(prev_device_cap, device_class,
+		                                  class_mask);
 	}
 
 	if (verbose)

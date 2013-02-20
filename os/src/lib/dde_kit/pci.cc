@@ -31,9 +31,10 @@ extern "C" {
 static const bool verbose = false;
 
 
-static Dde_kit::Pci_tree *pci_tree()
+static Dde_kit::Pci_tree *pci_tree(unsigned device_class = 0,
+                                   unsigned class_mask = 0)
 {
-	static Dde_kit::Pci_tree _pci_tree;
+	static Dde_kit::Pci_tree _pci_tree(device_class, class_mask);
 
 	return &_pci_tree;
 }
@@ -141,10 +142,10 @@ extern "C" int dde_kit_pci_next_device(int *bus, int *dev, int *fun)
  ** Initialization **
  ********************/
 
-extern "C" void dde_kit_pci_init(void)
+extern "C" void dde_kit_pci_init(unsigned device_class, unsigned class_mask)
 {
 	try {
-		pci_tree();
+		pci_tree(device_class, class_mask);
 	} catch (...) {
 		PERR("PCI initialization failed");
 	}

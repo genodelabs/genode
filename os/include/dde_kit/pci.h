@@ -137,8 +137,28 @@ int dde_kit_pci_next_device(int *bus, int *dev, int *fun);
 
 /**
  * Initialize PCI subsystem
+ *
+ * The PCI subsystem can be instructed to request solely a specific PCI device
+ * or a specific PCI subset (one class or multiple). The parameters are
+ * described by the parameters device_class and class_mask, which are used to
+ * filter PCI class codes as described by the pseudo code:
+ *
+ * for each 'pci_device' out of 'all_pci_devices' try
+ * {
+ *    bool nohit = (pci_device.class_code() ^ device_class) & class_mask
+ *    if (!nohit)
+ *      use 'pci_device' with this PCI subsystem
+ * }
+ *
+ * If no restriction to the PCI subsystem should be applied, use 0 for the
+ * device_class and class_mask.
+ *
+ * \param device_class filter applied with 'bitwise XOR' operand to the class
+ *                     code of each PCI device
+ * \param class_mask   filter applied with 'bitwise AND' operand to the result
+ *                     out of device_class and PCI class code of each device
  */
-void dde_kit_pci_init(void);
+void dde_kit_pci_init(unsigned device_class, unsigned class_mask);
 
 
 #endif /* _INCLUDE__DDE_KIT__PCI_H_ */

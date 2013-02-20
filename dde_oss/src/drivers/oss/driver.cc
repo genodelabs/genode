@@ -30,14 +30,18 @@ class Driver
 {
 	private:
 
-		enum { MAX_DRIVER = 10 };
+		enum {
+			MAX_DRIVER = 10,
+			PCI_CLASS_MASK  = 0xff0000,
+			PCI_CLASS_MULTIMEDIA = 0x40000, /* class multimedia */
+		};
 
 		oss_driver *_drivers[MAX_DRIVER + 1]; /* registered drivers */
 
 		Driver()
 		{
 			Genode::memset(_drivers, 0, sizeof(oss_driver *) * (MAX_DRIVER + 1));
-			dde_kit_pci_init();
+			dde_kit_pci_init(PCI_CLASS_MULTIMEDIA, PCI_CLASS_MASK);
 		}
 
 		/**
@@ -81,19 +85,13 @@ class Driver
 		Pci::Device_capability _scan_pci(Pci::Device_capability const &prev,
 		                                 Pci::Connection &pci)
 		{
-			/* check for audio device class */
-			enum {
-				CLASS_MASK  = 0xff0000,
-				CLASS_MULTIMEDIA = 0x40000, /* class multimedia */
-			};
-
 			/*
 			 * Just test for multimedia class, since some devices (e.g., Intel
 			 * hda) do set the subclass to something different then audio (0x1).
 			 */
 
 			Pci::Device_capability cap;
-			cap = pci.next_device(prev, CLASS_MULTIMEDIA, CLASS_MASK);
+			cap = pci.next_device(prev, PCI_CLASS_MULTIMEDIA, PCI_CLASS_MASK);
 			if (prev.valid())
 				pci.release_device(prev);
 			return cap;

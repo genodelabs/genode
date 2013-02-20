@@ -478,7 +478,7 @@ static void test_pci()
 {
 	PDBG("=== starting PCI test ===");
 
-	dde_kit_pci_init();
+	dde_kit_pci_init(0, 0);
 
 	enum { BUS_MAX = 4, DEV_MAX = 8 };
 

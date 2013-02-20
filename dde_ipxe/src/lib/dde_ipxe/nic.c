@@ -293,7 +293,12 @@ int dde_ipxe_nic_init(void)
 {
 	dde_kit_init();
 	dde_kit_timer_init(0, 0);
-	dde_kit_pci_init();
+	enum {
+		CLASS_MASK  = 0xff0000,
+		CLASS_NETWORK = PCI_BASE_CLASS_NETWORK << 16
+	};
+	dde_kit_pci_init(CLASS_NETWORK, CLASS_MASK);
+
 	dde_kit_lock_init(&ipxe_lock);
 
 	slab_init();

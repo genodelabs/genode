@@ -198,7 +198,7 @@ namespace Dde_kit {
 
 		public:
 
-			Pci_tree();
+			Pci_tree(unsigned device_class, unsigned class_mask);
 
 			uint32_t config_read(int bus, int dev, int fun, unsigned char address,
 			                     Pci::Device::Access_size size)
