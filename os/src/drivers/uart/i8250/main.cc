@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 			if (!uart) {
 				uart = new (env()->heap())
 				       I8250(io_port_base(index), irq_number(index),
-							 baudrate, callback);
+				             baudrate, callback);
 
 				/* update 'created' table */
 				created[index] = uart;

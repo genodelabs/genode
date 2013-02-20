@@ -60,17 +60,79 @@ namespace Uart {
 			Uart::Driver_factory &_driver_factory;
 			Uart::Driver         &_driver;
 
+			Size _size;
+
+			unsigned char _poll_char()
+			{
+				while (!_driver.char_avail());
+				return _driver.get_char();
+			}
+
+			void _put_string(char const *s)
+			{
+				for (; *s; s++)
+					_driver.put_char(*s);
+			}
+
+			/**
+			 * Read ASCII number from UART
+			 *
+			 * \return character that terminates the sequence of digits
+			 */
+			unsigned char _read_number(unsigned &result)
+			{
+				result = 0;
+
+				for (;;) {
+					unsigned char c = _poll_char();
+
+					if (!is_digit(c))
+						return c;
+
+					result = result*10 + digit(c);
+				}
+			}
+
+			/**
+			 * Try to detect the size of the terminal
+			 */
+			Size _detect_size()
+			{
+				/* set cursor position to the max */
+				_put_string("\033[1;199r\033[199;199H");
+
+				/* flush incoming characters */
+				for (; _driver.char_avail(); _driver.get_char());
+
+				/* request cursor coordinates */
+				_put_string("\033[6n");
+
+				unsigned width = 0, height = 0;
+
+				if (_poll_char()         == 27
+				 && _poll_char()         == '['
+				 && _read_number(height) == ';'
+				 && _read_number(width)  == 'R') {
+
+					PINF("detected terminal size %dx%d", width, height);
+					return Size(width, height);
+				}
+
+				return Size(0, 0);
+			}
+
 		public:
 
 			/**
 			 * Constructor
 			 */
 			Session_component(Uart::Driver_factory &driver_factory,
-			                  unsigned index, unsigned baudrate)
+			                  unsigned index, unsigned baudrate, bool detect_size)
 			:
 				_io_buffer(Genode::env()->ram_session(), IO_BUFFER_SIZE),
 				_driver_factory(driver_factory),
-				_driver(*_driver_factory.create(index, baudrate, _char_avail_callback))
+				_driver(*_driver_factory.create(index, baudrate, _char_avail_callback)),
+				_size(detect_size ? _detect_size() : Size(0, 0))
 			{ }
 
 
@@ -88,7 +150,7 @@ namespace Uart {
 			 ** Terminal session interface **
 			 ********************************/
 
-			Size size() { return Size(0, 0); }
+			Size size() { return _size; }
 
 			bool avail() { return _driver.char_avail(); }
 
@@ -158,16 +220,21 @@ namespace Uart {
 				try {
 					Session_policy policy(args);
 
-					unsigned uart_index = 0;
-					policy.attribute("uart").value(&uart_index);
+					unsigned index = 0;
+					policy.attribute("uart").value(&index);
 
-					unsigned uart_baudrate = 0;
+					unsigned baudrate = 0;
 					try {
-						policy.attribute("baudrate").value(&uart_baudrate);
+						policy.attribute("baudrate").value(&baudrate);
+					} catch (Xml_node::Nonexistent_attribute) { }
+
+					bool detect_size = false;
+					try {
+						detect_size = policy.attribute("detect_size").has_value("yes");
 					} catch (Xml_node::Nonexistent_attribute) { }
 
 					return new (md_alloc())
-						Session_component(_driver_factory, uart_index, uart_baudrate);
+						Session_component(_driver_factory, index, baudrate, detect_size);
 
 				} catch (Xml_node::Nonexistent_attribute) {
 					PERR("Missing \"uart\" attribute in policy definition");
