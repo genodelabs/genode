@@ -109,10 +109,10 @@ SECTIONS
 	} : rw
 
 	.bss : {
-		_bss_start = .;
+		_bss_start = ALIGN(4);
 		*(.bss .bss.* .gnu.linkonce.b.* COMMON)
 	}
-	_bss_end = .;
+	_bss_end = ALIGN(4);
 	_prog_img_end = .;
 
 	/DISCARD/ : {

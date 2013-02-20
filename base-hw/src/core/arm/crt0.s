@@ -33,18 +33,19 @@
 		/* idle a little initially because 'u-boot' likes it this way */
 		_nop 8
 
-		/* zero-fill BSS segment */
+		/* zero-fill BSS segment, BSS boundaries must be aligned to 4 */
 		.extern _bss_start
 		.extern _bss_end
 		ldr r0, =_bss_start
 		ldr r1, =_bss_end
 		mov r2, #0
-		sub r1, r1, #4
 		1:
+		cmp r1, r0
+		ble 2f
 		str r2, [r0]
 		add r0, r0, #4
-		cmp r0, r1
-		bne 1b
+		b 1b
+		2:
 
 		/* enable C++ to prepare the first kernel run */
 		ldr sp, =_kernel_stack_high
@@ -57,7 +58,7 @@
 		bl kernel
 
 		/* catch erroneous kernel return */
-		2: b 2b
+		3: b 3b
 
 	/* handle for dynamic symbol objects */
 	.align 3
