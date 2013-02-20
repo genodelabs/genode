@@ -6,7 +6,7 @@
 
 LIBS += cxx syscall
 
-SRC_CC += ipc.cc ipc/ipc_marshal_cap
+SRC_CC += ipc.cc ipc/ipc_marshal_cap.cc
 SRC_CC += avl_tree/avl_tree.cc
 SRC_CC += allocator/slab.cc
 SRC_CC += allocator/allocator_avl.cc
