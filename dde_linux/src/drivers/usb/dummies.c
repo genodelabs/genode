@@ -383,6 +383,7 @@ void class_destroy(struct class *cls) { TRACE; }
  *****************************/
 
 void *platform_get_drvdata(const struct platform_device *pdev) { TRACE; return NULL; }
+void platform_set_drvdata(struct platform_device *pdev, void *data) { TRACE; }
 
 
 /********************
@@ -878,3 +879,19 @@ __wsum csum_partial(const void *buff, int len, __wsum wsum) { TRACE; return 0; }
 __sum16 csum_fold(__wsum sum) { TRACE; return 0; }
 
 
+/*****************
+ ** linux/clk.h **
+ *****************/
+
+struct clk { };
+
+struct clk *clk_get(struct device *dev, const char *id)
+{
+	static struct clk _c;
+	TRACE;
+	return &_c;
+}
+
+int    clk_enable(struct clk *clk) { TRACE; return 0; }
+void   clk_disable(struct clk *clk) { TRACE; }
+void   clk_put(struct clk *clk) { TRACE; }

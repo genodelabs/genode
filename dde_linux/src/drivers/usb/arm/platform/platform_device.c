@@ -52,6 +52,20 @@ int platform_driver_register(struct platform_driver *drv)
 	return driver_register(&drv->driver);
 }
 
+struct resource *platform_get_resource(struct platform_device *dev,
+                                       unsigned int type, unsigned int num)
+{
+	int i;
+
+	for (i = 0; i < dev->num_resources; i++) {
+		struct resource *r = &dev->resource[i];
+
+		if ((type & r->flags) && num-- == 0)
+			return r;
+	}
+
+	return NULL;
+}
 
 struct resource *platform_get_resource_byname(struct platform_device *dev,
                                               unsigned int type,
@@ -76,6 +90,12 @@ int platform_get_irq_byname(struct platform_device *dev, const char *name)
 	return r ? r->start : -1;
 }
 
+
+int platform_get_irq(struct platform_device *dev, unsigned int num)
+{
+	struct resource *r = platform_get_resource(dev, IORESOURCE_IRQ, 0);
+	return r ? r->start : -1;
+}
 
 int platform_device_register(struct platform_device *pdev)
 {

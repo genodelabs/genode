@@ -39,8 +39,8 @@ extern "C" {
 #if VERBOSE_LX_EMUL
 #define DEBUG_COMPLETION 0
 #define DEBUG_DMA        0
-#define DEBUG_DRIVER     0
-#define DEBUG_IRQ        0
+#define DEBUG_DRIVER     1
+#define DEBUG_IRQ        1
 #define DEBUG_KREF       0
 #define DEBUG_PCI        0
 #define DEBUG_SKB        0
@@ -675,6 +675,7 @@ int isprint(int);
 #define __devinit
 #define __devinitconst
 #define __devexit
+#define __devexit_p(x) x
 #define __exit
 
 #define __exit_p(x) x
@@ -1292,6 +1293,8 @@ struct device_driver {
 	const char      *mod_name;
 	int            (*probe)  (struct device *dev);
 	int            (*remove) (struct device *dev);
+
+	const struct dev_pm_ops *pm;
 };
 
 struct kobj_uevent_env;
@@ -1434,6 +1437,7 @@ void class_destroy(struct class *cls);
 
 struct platform_device;
 void *platform_get_drvdata(const struct platform_device *pdev);
+void platform_set_drvdata(struct platform_device *pdev, void *data);
 
 
 /*********************

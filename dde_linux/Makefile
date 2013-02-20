@@ -31,7 +31,8 @@ CONTENT += include/linux/usbdevice_fs.h include/asm-generic/ioctl.h
 
 # USB host-controller driver
 CONTENT_USB_HOST := ehci.h ehci-hcd.c ehci-hub.c ehci-dbg.c ehci-mem.c \
-                    ehci-omap.c ehci-q.c ehci-pci.c ehci-sched.c ehci-sysfs.c 
+                    ehci-omap.c ehci-q.c ehci-pci.c ehci-s5p.c ehci-sched.c \
+                    ehci-sysfs.c
 CONTENT_USB_HOST += ohci.h ohci-hcd.c ohci-hub.c ohci-dbg.c ohci-mem.c \
                     ohci-q.c ohci-pci.c ehci-lpm.c
 CONTENT_USB_HOST += uhci-hcd.h uhci-hcd.c uhci-debug.c uhci-q.c uhci-hub.c \
@@ -60,6 +61,10 @@ CONTENT += include/linux/input/mt.h
 CONTENT_NET = usbnet.c smsc95xx.c smsc95xx.h
 CONTENT    += $(addprefix drivers/net/usb/,$(CONTENT_NET))
 CONTENT    += include/linux/usb/usbnet.h
+
+# Arndale
+CONTENT_ARNDALE = ehci.h usb-phy.h
+CONTENT += $(addprefix arch/arm/plat-samsung/include/plat/,$(CONTENT_ARNDALE))
 
 #
 #

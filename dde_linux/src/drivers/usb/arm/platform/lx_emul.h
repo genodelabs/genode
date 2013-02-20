@@ -84,7 +84,10 @@ struct platform_driver {
 	const struct platform_device_id *id_table;
 };
 
+struct resource *platform_get_resource(struct platform_device *, unsigned, unsigned);
 struct resource *platform_get_resource_byname(struct platform_device *, unsigned int, const char *);
+
+int platform_get_irq(struct platform_device *, unsigned int);
 int platform_get_irq_byname(struct platform_device *, const char *);
 
 int platform_driver_register(struct platform_driver *);
@@ -133,5 +136,25 @@ struct regulator *regulator_get(struct device *dev, const char *id);
 
 int omap_usbhs_enable(struct device *dev);
 void omap_usbhs_disable(struct device *dev);
+
+
+/****************
+ ** linux/pm.h **
+ ****************/
+
+struct dev_pm_ops {
+	int (*suspend)(struct device *dev);
+	int (*resume)(struct device *dev);
+};
+
+
+/*****************
+ ** linux/clk.h **
+ *****************/
+
+struct clk *clk_get(struct device *, const char *);
+int    clk_enable(struct clk *);
+void   clk_disable(struct clk *);
+void   clk_put(struct clk *);
 
 #endif /* _ARM__PLATFORM__LX_EMUL_H_ */

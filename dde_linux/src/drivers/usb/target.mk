@@ -81,12 +81,21 @@ SRC_CC  += pci_driver.cc
 else ifeq ($(filter-out $(SPECS),platform_panda),)
 CC_OPT  += -DCONFIG_USB_EHCI_HCD_OMAP -DCONFIG_USB_EHCI_TT_NEWSCHED -DVERBOSE_DEBUG
 INC_DIR += $(PRG_DIR)/arm
-INC_DIR += $(CONTRIB_DIR)/arch/arm/plat-omap/include
 SRC_C   += platform_device.c usbnet.c smsc95xx.c
 SRC_CC  += platform.cc mem.cc
 vpath %.c  $(PRG_DIR)/arm/platform
 vpath %.cc $(PRG_DIR)/arm/platform
+vpath %.cc $(PRG_DIR)/arm/platform/platform_panda
 vpath %.c  $(CONTRIB_DIR)/drivers/net/usb
+
+else ifeq ($(filter-out $(SPECS),platform_arndale),)
+CC_OPT  += -DCONFIG_USB_EHCI_S5P -DCONFIG_USB_EHCI_TT_NEWSCHED
+INC_DIR += $(PRG_DIR)/arm
+INC_DIR += $(CONTRIB_DIR)/arch/arm/plat-samsung/include
+SRC_C   += platform_device.c
+SRC_CC  += platform.cc
+vpath %.c  $(PRG_DIR)/arm/platform
+vpath %.cc $(PRG_DIR)/arm/platform/platform_arndale
 
 #
 # Unsupported
