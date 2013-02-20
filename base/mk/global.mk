@@ -119,8 +119,8 @@ CC_ADA_OPT += $(CC_OLEVEL) $(CC_WARN)
 # Linker options
 #
 # Use '-gc-sections' by default but allow a platform to disable this feature by
-# defining 'LD_GC_SECTIONS' empty. This is needed for the microblaze tool chain
-# (gcc version 4.11 and binutils version 2.16), which happens to produce broken
+# defining 'LD_GC_SECTIONS' empty. This is needed for older tool chains (gcc
+# version 4.11 and binutils version 2.16), which happen to produce broken
 # code when '-gc-sections' is enabled.
 #
 LD_OPT_GC_SECTIONS ?= -gc-sections

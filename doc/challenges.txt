@@ -386,15 +386,6 @@ Platforms
   The goal of this project is to evaluate how small the Linux kernel can get
   when used as a microkernel.
 
-:Support for the Genode FPGA Graphics SoC platform:
-
-  With Genode 11.02, we introduced the first version of native support for the
-  MicroBlaze softcore CPU. With this foundation laid, we can proceed with
-  bringing GUI-based interactive Genode applications to FPGA-based SoC
-  platforms. As target SoC design, we aspire to use the open-source IP cores
-  provided by the
-  [http://genode-labs.com/products/fpga-graphics - Genode FPGA graphics project].
-
 :Support for the HelenOS/SPARTAN kernel:
 
   [http://www.helenos.org - HelenOS] is a microkernel-based multi-server OS

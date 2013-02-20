@@ -230,9 +230,6 @@ namespace Genode {
 			 */
 			void _deinit_platform_thread();
 
-			/* hook only used for microblaze kernel */
-			void _init_context(Context* c);
-
 		protected:
 
 			/**

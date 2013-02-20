@@ -14,13 +14,13 @@ the project's official website:
 
 The current implementation can be compiled for 8 different kernels: Linux,
 L4ka::Pistachio, L4/Fiasco, OKL4, NOVA, Fiasco.OC, Codezero, and a custom
-kernel for the MicroBlaze architecture. Whereas the Linux version serves us as
-development vehicle and enables us to rapidly develop the generic parts of the
-system, the actual target platforms of the framework are microkernels. There
-is no "perfect" microkernel - and neither should there be one. If a microkernel
-pretended to be fit for all use cases, it wouldn't be "micro". Hence, all
-microkernels differ in terms of their respective features, complexity, and
-supported hardware architectures.
+kernel for running Genode directly on ARM-based hardware. Whereas the Linux
+version serves us as development vehicle and enables us to rapidly develop the
+generic parts of the system, the actual target platforms of the framework are
+microkernels. There is no "perfect" microkernel - and neither should there be
+one. If a microkernel pretended to be fit for all use cases, it wouldn't be
+"micro". Hence, all microkernels differ in terms of their respective features,
+complexity, and supported hardware architectures.
 
 Genode allows the use of each of the kernels listed above with a rich set of
 device drivers, protocol stacks, libraries, and applications in a uniform way.
@@ -105,10 +105,6 @@ The Genode source tree is composed of the following subdirectories:
   :'codezero':
     Codezero microkernel developed by B-Labs
     See [http://genode.org/documentation/platforms/codezero]
-
-  :'mb':
-    Support for running Genode natively on the MicroBlaze softcore CPU.
-    See [http://genode.org/documentation/platforms/microblaze]
 
   :'host':
     Pseudo platform documenting the interface between the generic and

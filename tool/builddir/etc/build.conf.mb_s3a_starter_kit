@@ -1,2 +1,0 @@
-REPOSITORIES  = $(GENODE_DIR)/base-mb
-RUN_OPT      += --qemu qemu-mb_s3a_starter_kit

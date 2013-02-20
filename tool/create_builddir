@@ -26,7 +26,6 @@ usage:
 	@echo "                  'nova_x86_32'"
 	@echo "                  'nova_x86_64'"
 	@echo "                  'codezero_vpb926'"
-	@echo "                  'mb_s3a_starter_kit'"
 	@echo "                  'hw_panda'"
 	@echo "                  'hw_vea9x4'"
 	@echo "                  'hw_pbxa9'"
@@ -181,12 +180,6 @@ foc_imx53::
 
 codezero_vpb926::
 	@echo "CODEZERO_DIR = $(GENODE_DIR)/base-codezero/contrib" > $(BUILD_DIR)/etc/codezero.conf
-
-mb_s3a_starter_kit::
-	@echo "SPECS = genode mb_s3a_starter_kit" > $(BUILD_DIR)/etc/specs.conf
-
-mb_ml507::
-	@echo "SPECS = genode mb_ml507" > $(BUILD_DIR)/etc/specs.conf
 
 hw_pbxa9::
 	@echo "SPECS = genode hw_pbxa9" > $(BUILD_DIR)/etc/specs.conf
