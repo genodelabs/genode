@@ -4,14 +4,14 @@ build "core init"
 
 create_boot_directory
 
-install_config "[exec cat [genode_dir]/os/config/priority]"
+install_config "[exec cat [genode_dir]/os/src/init/config.priority]"
 
 build_boot_image "core init"
 
 append qemu_args "-nographic -m 256"
 
 # run genode until the init->init.2 process gives us a life sign
-run_genode_until "init.2.*abort called.*\n" 100
+run_genode_until "init.2.*No children to start.*\n" 100
 
 puts "dumping priorities using the kernel debugger..."
 
@@ -34,9 +34,9 @@ set output $expect_out(buffer)
 grep_output {^\[}
 
 compare_output_to {
-	[128]: (roottask) (activati) (pager) (ioport) (init) (init) (init.1) (init.1) (init.2) (init.11) (init.12)
-	[112]: (init.11)
-	[ 96]: (init.12) (init.121) {init.121}
-	[ 64]: (init.2)
+	[128]: (roottask) (entrypoi) (pager) (signal) (ioport) (init) {init} (signal h) (init.1) {init.1} (init.2) (signal h) (init.11) (init.12)
+	[112]: {init.11} (signal h)
+	[ 96]: {init.12} (signal h) (init.121) {init.121} (signal h)
+	[ 64]: {init.2} (signal h)
 }
 

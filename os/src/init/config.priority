@@ -32,6 +32,7 @@ nodes:
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
+		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -55,6 +56,7 @@ nodes:
 				<service name="RM"/>
 				<service name="CPU"/>
 				<service name="LOG"/>
+				<service name="SIGNAL"/>
 			</parent-provides>
 			<default-route>
 				<any-service> <parent/> <any-child/> </any-service>
@@ -70,6 +72,16 @@ nodes:
 				<binary name="init"/>
 				<resource name="RAM" quantum="2M"/>
 				<config>
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="CAP"/>
+						<service name="RM"/>
+						<service name="LOG"/>
+						<service name="SIGNAL"/>
+					</parent-provides>
+					<default-route>
+						<any-service> <parent/> </any-service>
+					</default-route>
 					<start name="init.121">
 						<binary name="init"/>
 						<resource name="RAM" quantum="768K"/>
