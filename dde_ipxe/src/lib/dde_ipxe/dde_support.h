@@ -17,8 +17,10 @@
 #include <dde_kit/types.h>
 
 
-void *dde_alloc_memblock(dde_kit_size_t size, dde_kit_size_t align, dde_kit_size_t offset);
+void *dde_alloc_memblock(dde_kit_size_t size, dde_kit_size_t align,
+                         dde_kit_size_t offset);
 void dde_free_memblock(void *p, dde_kit_size_t size);
 void dde_timer2_udelay(unsigned long usecs);
+int  dde_mem_init(int bus, int dev, int func);
 
 #endif /* _DDE_SUPPORT_H_ */

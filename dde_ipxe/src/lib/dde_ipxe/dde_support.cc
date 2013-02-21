@@ -14,64 +14,59 @@
 #include <base/allocator_avl.h>
 #include <base/env.h>
 #include <base/printf.h>
-#include <dataspace/client.h>
 #include <timer_session/connection.h>
 #include <util/misc_math.h>
 
 extern "C" {
-#include <dde_kit/pgtab.h>
+#include <dde_kit/pci.h>
 #include "dde_support.h"
 }
 
 using namespace Genode;
 
-/*******************************************
- ** Support for aligned memory allocation **
- *******************************************/
+/***************************************************
+ ** Support for aligned and DMA memory allocation **
+ ***************************************************/
 
 enum { BACKING_STORE_SIZE = 1024 * 1024 };
 
 
-Allocator_avl *allocator()
+static Allocator_avl& allocator()
 {
 	static Allocator_avl _avl(env()->heap());
-	return &_avl;
+	return _avl;
 }
 
-
-void __attribute__((constructor)) init()
+extern "C" int dde_mem_init(int bus, int dev, int func)
 {
 	try {
-		Dataspace_capability ds_cap = env()->ram_session()->alloc(BACKING_STORE_SIZE);
-		addr_t base = (addr_t)env()->rm_session()->attach(ds_cap);
-
+		addr_t base = dde_kit_pci_alloc_dma_buffer(bus, dev, func,
+		                                           BACKING_STORE_SIZE);
 		/* add to allocator */
-		allocator()->add_range(base, BACKING_STORE_SIZE);
-
-		/* add to DDE-kit page tables */
-		addr_t phys = Dataspace_client(ds_cap).phys_addr();
-		dde_kit_pgtab_set_region_with_size((void *)base, phys, BACKING_STORE_SIZE);
+		allocator().add_range(base, BACKING_STORE_SIZE);
 	} catch (...) {
-		PERR("Initialization of block memory failed!");
+		return false;
 	}
+
+	return true;
 }
 
-
-extern "C" void *dde_alloc_memblock(dde_kit_size_t size, dde_kit_size_t align, dde_kit_size_t offset)
+extern "C" void *dde_alloc_memblock(dde_kit_size_t size, dde_kit_size_t align,
+                                    dde_kit_size_t offset)
 {
 	void *ptr;
-	if (allocator()->alloc_aligned(size, &ptr, log2(align)).is_error()) {
-		PERR("memory allocation failed in alloc_memblock (size=%zd, align=%zx, offset=%zx)",
-		     size, align, offset);
+	if (allocator().alloc_aligned(size, &ptr, log2(align)).is_error()) {
+		PERR("memory allocation failed in alloc_memblock (size=%zd, align=%zx,"
+		     " offset=%zx)", size, align, offset);
 		return 0;
-	};
+	}
 	return ptr;
 }
 
 
 extern "C" void dde_free_memblock(void *p, dde_kit_size_t size)
 {
-	allocator()->free(p, size);
+	allocator().free(p, size);
 }
 
 
@@ -84,8 +79,8 @@ extern "C" void dde_timer2_udelay(unsigned long usecs)
 	/*
 	 * This function is called only once during rdtsc calibration (usecs will be
 	 * 10000, see dde.c 'udelay'. We do not use DDE timers here, since Genode's
-	 * timer connection is the precised one around.
+	 * timer connection is the most precise one around.
 	 */
 	Timer::Connection timer;
-	timer.msleep(usecs / 1000);
+	timer.usleep(usecs);
 }

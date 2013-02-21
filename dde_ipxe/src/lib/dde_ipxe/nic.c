@@ -27,6 +27,7 @@
 
 #include <dde_ipxe/nic.h>
 #include "local.h"
+#include "dde_support.h"
 
 /**
  * DDE iPXE mutual exclusion lock
@@ -310,8 +311,18 @@ int dde_ipxe_nic_init(void)
 	if (location == NO_DEVICE_FOUND)
 		return 0;
 
-	/* find and open iPXE NIC device */
+	/* find iPXE NIC device */
 	net_dev = find_netdev_by_location(BUS_TYPE_PCI, location);
+
+	/* initialize memory backend allocator for nic driver */
+	if (!dde_mem_init(PCI_BUS(net_dev->dev->desc.location),
+	                  PCI_SLOT(net_dev->dev->desc.location),
+	                  PCI_FUNC(net_dev->dev->desc.location))) {
+		LOG("initialization of block memory failed!");
+		return 0;
+	}
+
+	/* open iPXE NIC device */
 	if (netdev_open(net_dev)) {
 		LOG("opening device " FMT_BUSDEVFN " failed",
 		    PCI_BUS(net_dev->dev->desc.location),
