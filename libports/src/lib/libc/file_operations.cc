@@ -340,6 +340,9 @@ extern "C" int _dup2(int libc_fd, int new_libc_fd)
 	if (!fd || !fd->plugin)
 		return INVALID_FD;
 
+	if (libc_fd == new_libc_fd)
+		return libc_fd;
+
 	/*
 	 * Check if 'new_libc_fd' is already in use. If so, close it before
 	 * allocating it again.
