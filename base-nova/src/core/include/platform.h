@@ -42,7 +42,10 @@ namespace Genode {
 			const addr_t _vm_base;
 			size_t _vm_size;
 
-			addr_t _map_page(addr_t phys_page, addr_t pages);
+			addr_t _map_page(addr_t const phys_page, addr_t const pages,
+			                 bool const extra_page);
+			void _unmap_page(addr_t const phys, addr_t const virt,
+			                 addr_t const pages);
 
 		public:
 
