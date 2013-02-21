@@ -136,6 +136,19 @@ int dde_kit_pci_first_device(int *bus, int *dev, int *fun);
 int dde_kit_pci_next_device(int *bus, int *dev, int *fun);
 
 /**
+ * Allocate a DMA buffer and map it. If an IOMMU is available this functions
+ * takes care that DMA to this buffer for the given PCI device is permitted.
+ *
+ * \retval bus  bus number
+ * \retval dev  device number
+ * \retval fun  function number
+ * 
+ * \return 0 in case of failure, otherwise the virtual address of the buffer.
+ */
+dde_kit_addr_t dde_kit_pci_alloc_dma_buffer(int bus, int dev, int fun,
+                                            dde_kit_size_t size);
+
+/**
  * Initialize PCI subsystem
  *
  * The PCI subsystem can be instructed to request solely a specific PCI device

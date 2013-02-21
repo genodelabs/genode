@@ -40,12 +40,14 @@ namespace Dde_kit {
 
 		private:
 
-			Pci::Device_client _device;
-			unsigned short     _bdf;    /* bus:device:function */
+			Pci::Device_client     _device;
+			unsigned short         _bdf;    /* bus:device:function */
 
 		public:
 
-			Pci_device(Pci::Device_capability device_cap) : _device(device_cap)
+			Pci_device(Pci::Device_capability device_cap)
+			:
+				_device(device_cap)
 			{
 				unsigned char bus = ~0, dev = ~0, fun = ~0;
 
@@ -117,6 +119,14 @@ namespace Dde_kit {
 				     _device.vendor_id(), _device.device_id(), _device.base_class(), ht);
 
 				if (child(RIGHT)) child(RIGHT)->show();
+			}
+
+			Ram_dataspace_capability alloc_dma_buffer(Pci::Connection &pci_drv,
+			                                          size_t size)
+			{
+				/* trigger that the device gets assigned to this driver */
+				pci_drv.config_extended(_device);
+				return pci_drv.alloc_dma_buffer(_device, size);
 			}
 	};
 
@@ -240,6 +250,16 @@ namespace Dde_kit {
 				Pci_device *d = _lookup(Pci_device::knit_bdf(*bus, *dev, *fun));
 
 				_next_bdf(d, bus, dev, fun);
+			}
+
+			Ram_dataspace_capability alloc_dma_buffer(int bus, int dev,
+			                                          int fun, size_t size)
+			{
+				Lock::Guard lock_guard(_lock);
+
+				unsigned short bdf = Pci_device::knit_bdf(bus, dev, fun);
+
+				return _lookup(bdf)->alloc_dma_buffer(_pci_drv, size);
 			}
 	};
 }

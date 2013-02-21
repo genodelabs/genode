@@ -21,9 +21,11 @@
  */
 
 #include <base/printf.h>
+#include <dataspace/client.h>
 
 extern "C" {
 #include <dde_kit/pci.h>
+#include <dde_kit/pgtab.h>
 }
 
 #include "pci_tree.h"
@@ -137,6 +139,26 @@ extern "C" int dde_kit_pci_next_device(int *bus, int *dev, int *fun)
 	}
 }
 
+extern "C" dde_kit_addr_t dde_kit_pci_alloc_dma_buffer(int bus, int dev,
+                                                       int fun, 
+                                                       dde_kit_size_t size)
+{
+	try {
+		using namespace Genode;
+
+		Ram_dataspace_capability ram_cap;
+		ram_cap = pci_tree()->alloc_dma_buffer(bus, dev, fun, size);
+		addr_t base = (addr_t)env()->rm_session()->attach(ram_cap);
+
+		/* add to DDE-kit page tables */
+		addr_t phys = Dataspace_client(ram_cap).phys_addr();
+		dde_kit_pgtab_set_region_with_size((void *)base, phys, size);
+
+		return base;
+	} catch (...) {
+		return 0;
+	}
+}
 
 /********************
  ** Initialization **
