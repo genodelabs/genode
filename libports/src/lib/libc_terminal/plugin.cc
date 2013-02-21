@@ -142,8 +142,7 @@ namespace {
 			/**
 			 * Constructor
 			 */
-			Plugin()
-			{ }
+			Plugin() { }
 
 			bool supports_stat(const char *path)
 			{
@@ -298,7 +297,7 @@ namespace {
 				}
 			}
 
-			int ioctl(Libc::File_descriptor *, int request, char *argp)
+			int ioctl(Libc::File_descriptor *fd, int request, char *argp)
 			{
 				struct termios *t = (struct termios*)argp;
 				switch (request) {
@@ -310,8 +309,22 @@ namespace {
 					return 0;
 				case TIOCSETAF:
 					return 0;
+				case TIOCGWINSZ:
+					{
+						::winsize *winsize = (::winsize *)argp;
+						Terminal::Session::Size terminal_size = context(fd)->size();
+						winsize->ws_row = terminal_size.lines();
+						winsize->ws_col = terminal_size.columns();
+						return 0;
+					}
 				}
 				return -1;
+			}
+
+			int dup2(Libc::File_descriptor *fd, Libc::File_descriptor *new_fd)
+			{
+				new_fd->context = fd->context;
+				return new_fd->libc_fd;
 			}
 	};
 
