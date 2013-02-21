@@ -21,6 +21,7 @@
 
 /* core includes */
 #include <core_parent.h>
+#include <map_local.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
@@ -247,6 +248,14 @@ struct Region
 
 	Region() : start(0), end(0) { }
 	Region(addr_t s, addr_t e) : start(s), end(e) { }
+
+	/**
+	 * Returns true if the specified range intersects with the region
+	 */
+	bool intersects(addr_t base, size_t size) const
+	{
+		return (((base + size) > start) && (base < end));
+	}
 };
 
 
@@ -396,8 +405,13 @@ void Platform::_setup_mem_alloc()
 
 				} else {
 					region.start = addr; region.end = addr + size;
-					add_region(region, _ram_alloc);
-					add_region(region, _core_address_ranges());
+					if (!region.intersects(Native_config::context_area_virtual_base(),
+					                       Native_config::context_area_virtual_size())) {
+						add_region(region, _ram_alloc);
+						add_region(region, _core_address_ranges());
+					} else {
+						unmap_local(region.start, size >> get_page_size_log2());
+					}
 					remove_region(region, _io_mem_alloc);
 					remove_region(region, _region_alloc);
 				}
