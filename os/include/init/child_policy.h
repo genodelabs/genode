@@ -171,7 +171,7 @@ namespace Init {
 				Local_rom_service(Genode::Rom_session_capability rom_cap, bool valid)
 				: Genode::Service("ROM"), _rom_cap(rom_cap), _valid(valid) { }
 
-				Genode::Session_capability session(const char *args)
+				Genode::Session_capability session(const char * /*args*/)
 				{
 					if (!_valid)
 						throw Invalid_args();
@@ -179,7 +179,7 @@ namespace Init {
 					return _rom_cap;
 				}
 
-				void upgrade(Genode::Session_capability, const char *args) { }
+				void upgrade(Genode::Session_capability, const char * /*args*/) { }
 				void close(Genode::Session_capability) { }
 
 			} _local_rom_service;
@@ -339,7 +339,7 @@ namespace Init {
 			bool announce_service(const char              *service_name,
 			                      Genode::Root_capability  root,
 			                      Genode::Allocator       *alloc,
-			                      Genode::Server          *server)
+			                      Genode::Server          * /*server*/)
 			{
 				if (_child_services->find(service_name)) {
 					PWRN("%s: service %s is already registered",

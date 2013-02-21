@@ -47,15 +47,15 @@ namespace Genode {
 		 * \return  Service to be contacted for the new session, or
 		 *          0 if session request could not be resolved
 		 */
-		virtual Service *resolve_session_request(const char *service_name,
-		                                         const char *args)
+		virtual Service *resolve_session_request(const char * /*service_name*/,
+		                                         const char * /*args*/)
 		{ return 0; }
 
 		/**
 		 * Apply transformations to session arguments
 		 */
-		virtual void filter_session_args(const char *service,
-		                                 char *args, size_t args_len) { }
+		virtual void filter_session_args(const char * /*service*/,
+		                                 char * /*args*/, size_t /*args_len*/) { }
 
 		/**
 		 * Register a service provided by the child
@@ -67,10 +67,10 @@ namespace Genode {
 		 * \return       true if announcement succeeded, or false if
 		 *               child is not permitted to announce service
 		 */
-		virtual bool announce_service(const char            *name,
-		                              Root_capability        root,
-		                              Allocator             *alloc,
-		                              Server                *server)
+		virtual bool announce_service(const char            * /*name*/,
+		                              Root_capability         /*root*/,
+		                              Allocator             * /*alloc*/,
+		                              Server                * /*server*/)
 		{ return false; }
 
 		/**

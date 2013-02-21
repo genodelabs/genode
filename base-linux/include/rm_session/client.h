@@ -49,7 +49,7 @@ namespace Genode {
 		void remove_client(Pager_capability pager) {
 			_local()->remove_client(pager); }
 
-		void fault_handler(Signal_context_capability handler)
+		void fault_handler(Signal_context_capability /*handler*/)
 		{
 			/*
 			 * On Linux, page faults are never reflected to RM clients. They
