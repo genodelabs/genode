@@ -102,7 +102,7 @@ void Platform::wait_for_exit()
 		for (;;) {
 			int const pid = lx_pollpid();
 
-			if (pid == -1)
+			if (pid <= 0)
 				break;
 
 			Platform_thread::submit_exception(pid);
