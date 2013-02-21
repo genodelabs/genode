@@ -142,7 +142,7 @@ namespace Genode {
 			/**
 			 * Close session
 			 */
-			virtual void close(Session_capability session) { }
+			virtual void close(Session_capability /*session*/) { }
 
 			/**
 			 * Return server providing the service
