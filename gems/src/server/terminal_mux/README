@@ -1,0 +1,19 @@
+The terminal_mux server is able to provide multiple terminal sessions over one
+terminal-client session. The user can switch between the different sessions
+using a keyboard shortcut, which brings up an ncurses-based menu.
+
+The terminal sessions provided by terminal_mux implement (a subset of) the
+Linux terminal capabilities. By implementing the those capabilities, the server
+is interchangable with the graphical terminal ('gems/src/server/terminal').
+The terminal session used by the server is expected to by VT102 compliant.
+This way, terminal_mux can be connected via an UART driver with terminal
+programs such as minicom, which typically implement VT102 rather than the Linux
+terminal capabilities.
+
+When started, terminal_mux displays a menu with a list of currently present
+terminal sessions. The first line presents status information, in particular
+the label of the currently visible session. A terminal session can be selected
+by using the cursor keys and pressing return. Once selected, the user is able
+to interact with the corresponding terminal session. Returning to the menu is
+possible at any time by pressing control-x.
+

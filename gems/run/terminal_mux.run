@@ -1,0 +1,158 @@
+set build_components {
+	core init drivers/timer noux/minimal lib/libc_noux test/bomb
+	drivers/uart server/terminal_mux server/terminal_log
+	noux-pkg/vim
+}
+
+build $build_components
+
+exec tar cfv bin/vim.tar -h -C bin/vim .
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+		<start name="uart_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="Uart"/>
+				<service name="Terminal"/>
+			</provides>
+			<config>
+				<policy label="terminal_mux" uart="1" detect_size="yes"/>
+				<policy label="noux" uart="1" detect_size="yes"/>
+			</config>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+		<start name="terminal_mux">
+			<resource name="RAM" quantum="2M"/>
+			<provides>
+				<service name="Terminal"/>
+			</provides>
+			<route>
+				<any-service> <child name="uart_drv" /> <parent/> <any-child /> </any-service>
+			</route>
+		</start>
+		<start name="terminal_log">
+			<resource name="RAM" quantum="2M"/>
+			<provides>
+				<service name="LOG"/>
+			</provides>
+			<route>
+				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
+			</route>
+		</start>
+		<start name="noux">
+			<resource name="RAM" quantum="16M"/>
+			<config>
+				<fstab> <tar name="vim.tar" /> </fstab>
+				<start name="/bin/vim">
+					<env name="TERM" value="linux" />
+
+					<!-- Deactivate the loading of plugins. Otherwise, vim will
+					     attempt to use a sub shell for pattern matching -->
+					<arg value="--noplugin" />
+
+					<!-- Do not use swap file. Any attempt to create of would
+					     fail because we are on a read-only file system -->
+					<arg value="-n" />
+
+					<!-- Use the nocompatible mode, which is much nicer than
+					     the plain vi mode -->
+					<arg value="-N" />
+
+					<!-- Permanently display status bar -->
+					<arg value="--cmd" />
+					<arg value="set laststatus=2" />
+
+					<!-- Enable highlighted search results -->
+					<arg value="--cmd" />
+					<arg value="set hls" />
+
+				</start>
+			</config>
+			<route>
+				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
+			</route>
+		</start>
+		<start name="noux.2">
+			<binary name="noux"/>
+			<resource name="RAM" quantum="16M"/>
+			<config>
+				<fstab> <tar name="vim.tar" /> </fstab>
+				<start name="/bin/vim">
+					<env name="TERM" value="linux" />
+
+					<!-- Deactivate the loading of plugins. Otherwise, vim will
+					     attempt to use a sub shell for pattern matching -->
+					<arg value="--noplugin" />
+
+					<!-- Do not use swap file. Any attempt to create of would
+					     fail because we are on a read-only file system -->
+					<arg value="-n" />
+
+					<!-- Use the nocompatible mode, which is much nicer than
+					     the plain vi mode -->
+					<arg value="-N" />
+
+					<!-- Permanently display status bar -->
+					<arg value="--cmd" />
+					<arg value="set laststatus=2" />
+
+					<!-- Enable highlighted search results -->
+					<arg value="--cmd" />
+					<arg value="set hls" />
+
+				</start>
+			</config>
+			<route>
+				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
+			</route>
+		</start>
+	</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal_mux terminal_log uart_drv
+	libc.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
+	vim.tar
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 "
+#append qemu_args " -nographic -serial mon:stdio -serial file:/tmp/foo"
+append qemu_args " -nographic -serial file:/tmp/foo -serial mon:stdio"
+
+run_genode_until forever
+
+exec rm bin/vim.tar

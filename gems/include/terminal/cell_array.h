@@ -109,6 +109,11 @@ class Cell_array
 			_line_dirty[line] = false;
 		}
 
+		void mark_line_as_dirty(int line)
+		{
+			_line_dirty[line] = true;
+		}
+
 		void scroll_up(int region_start, int region_end)
 		{
 			_scroll_vertically(region_start, region_end, true);

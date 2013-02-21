@@ -1,0 +1,60 @@
+/*
+ * \brief  C++ wrapper for ncurses API
+ * \author Norman Feske
+ * \date   2013-02-21
+ */
+
+#ifndef _NCURSES_CXX_H_
+#define _NCURSES_CXX_H_
+
+class Ncurses
+{
+	private:
+
+		unsigned _columns;
+		unsigned _lines;
+
+	public:
+
+		class Window
+		{
+			private:
+
+				struct Ncurses_window;
+
+				friend class Ncurses;
+
+				Ncurses_window * const _window;
+
+				int _w;
+
+				Window(unsigned x, unsigned y, unsigned w, unsigned h);
+
+			public:
+
+				void move_cursor(unsigned x, unsigned y);
+
+				void print_char(unsigned long const c, bool highlight, bool inverse);
+
+				void refresh();
+
+				void erase();
+
+				void horizontal_line(int line);
+		};
+
+		Window *create_window(int x, int y, int w, int h);
+
+		void do_update();
+
+		Ncurses();
+
+		void cursor_visible(bool);
+
+		int read_character();
+
+		unsigned columns() const { return _columns; }
+		unsigned lines()   const { return _lines; }
+};
+
+#endif /* _NCURSES_CXX_H_ */
