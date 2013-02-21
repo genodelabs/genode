@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/rpc_server.h>
 #include <pd_session/pd_session.h>
+#include <util/arg_string.h>
 
 /* core includes */
 #include <platform_pd.h>
@@ -27,14 +28,32 @@ namespace Genode {
 	{
 		private:
 
+			/**
+			 * Read and store the PD label
+			 */
+			struct Label {
+
+				enum { MAX_LEN = 64 };
+				char string[MAX_LEN];
+
+				/**
+				 * Constructor
+				 */
+				Label(char const *args)
+				{
+					Arg_string::find_arg(args, "label").string(string, sizeof(string), "");
+				}
+
+			} const _label;
+
 			Platform_pd        _pd;
 			Parent_capability  _parent;
 			Rpc_entrypoint    *_thread_ep;
 
 		public:
 
-			Pd_session_component(Rpc_entrypoint *thread_ep, const char *args)
-			: _thread_ep(thread_ep) { }
+			Pd_session_component(Rpc_entrypoint *thread_ep, char const *args)
+			: _label(args), _pd(_label.string), _thread_ep(thread_ep) { }
 
 
 			/**************************/

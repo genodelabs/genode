@@ -489,7 +489,8 @@ Platform::Platform() :
 	Platform_pd::init();
 
 	/* setup pd object for core pd */
-	_core_pd = new(core_mem_alloc()) Platform_pd(myself.id.task, false);
+	_core_label[0] = 0;
+	_core_pd = new(core_mem_alloc()) Platform_pd(_core_label, myself.id.task, false);
 
 	/*
 	 * We setup the thread object for thread0 in core pd using a special

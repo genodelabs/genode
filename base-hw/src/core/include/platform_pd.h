@@ -41,13 +41,14 @@ namespace Genode
 		Native_capability _parent;      /* our parent interface */
 		Native_thread_id  _main_thread; /* the first thread that gets
 		                                 * executed in this PD */
+		char const *      _label;       /* PD-connection label */
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Platform_pd() : _main_thread(0)
+			Platform_pd(char const *label) : _main_thread(0), _label(label)
 			{
 				/* get some aligned space for the kernel object */
 				void * kernel_pd;

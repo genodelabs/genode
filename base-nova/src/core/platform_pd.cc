@@ -47,7 +47,7 @@ int Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(signed pd_id, bool create)
+Platform_pd::Platform_pd(char const *, signed pd_id, bool create)
 : _thread_cnt(0), _pd_sel(~0UL) { }
 
 

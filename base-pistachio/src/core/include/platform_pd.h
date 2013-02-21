@@ -183,7 +183,8 @@ namespace Genode {
 			 * Constructors
 			 */
 			Platform_pd(bool core);
-			Platform_pd(signed pd_id = PD_INVALID, bool create = true);
+			Platform_pd(char const *, signed pd_id = PD_INVALID,
+			            bool create = true);
 
 			/**
 			 * Destructor

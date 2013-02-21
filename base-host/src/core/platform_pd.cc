@@ -43,7 +43,7 @@ Platform_pd::Platform_pd(bool core)
 }
 
 
-Platform_pd::Platform_pd(signed pd_id, bool create)
+Platform_pd::Platform_pd(char const *, signed pd_id, bool create)
 {
 	PWRN("not yet implemented");
 }

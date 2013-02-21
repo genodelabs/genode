@@ -35,6 +35,7 @@ namespace Genode {
 			 */
 			typedef Synchronized_range_allocator<Allocator_avl> Phys_allocator;
 
+			char             _core_label[1];  /* to satisfy _core_pd */
 			Platform_pd     *_core_pd;        /* core protection domain object */
 			Phys_allocator   _ram_alloc;      /* RAM allocator */
 			Phys_allocator   _io_mem_alloc;   /* MMIO allocator */
