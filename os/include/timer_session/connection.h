@@ -38,7 +38,7 @@ namespace Timer {
 				_default_sigh_cap(_sig_rec.manage(&_default_sigh_ctx))
 			{
 				/* register default signal handler */
-				sigh(_default_sigh_cap);
+				Session_client::sigh(_default_sigh_cap);
 			}
 
 			~Connection() { _sig_rec.dissolve(&_default_sigh_ctx); }
@@ -59,7 +59,7 @@ namespace Timer {
 
 				/* temporarily install to the default signal handler */
 				if (_custom_sigh_cap.valid())
-					sigh(_default_sigh_cap);
+					Session_client::sigh(_default_sigh_cap);
 
 				/* trigger timeout at default signal handler */
 				trigger_once(us);
@@ -67,7 +67,7 @@ namespace Timer {
 
 				/* revert custom signal handler if registered */
 				if (_custom_sigh_cap.valid())
-					sigh(_custom_sigh_cap);
+					Session_client::sigh(_custom_sigh_cap);
 			}
 
 			void msleep(unsigned ms)
