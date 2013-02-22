@@ -20,6 +20,7 @@
 namespace Genode
 {
 	class Platform_thread;
+	class Platform_pd;
 	class Tlb;
 }
 
@@ -29,6 +30,7 @@ namespace Kernel
 	typedef Genode::addr_t          addr_t;
 	typedef Genode::size_t          size_t;
 	typedef Genode::Platform_thread Platform_thread;
+	typedef Genode::Platform_pd     Platform_pd;
 
 	/**
 	 * Unique opcodes of all syscalls supported by the kernel
@@ -143,6 +145,7 @@ namespace Kernel
 	 *
 	 * \param dst  physical base of an appropriate portion of memory
 	 *             that is thereupon allocated to the kernel
+	 * \param pd   core local Platform_pd object
 	 *
 	 * \retval >0  ID of the new PD
 	 * \retval  0  if no new PD was created
@@ -150,8 +153,8 @@ namespace Kernel
 	 * Restricted to core threads. Regaining of the supplied memory is not
 	 * supported by now.
 	 */
-	inline int new_pd(void * const dst) {
-		return syscall(NEW_PD, (Syscall_arg)dst); }
+	inline int new_pd(void * const dst, Platform_pd * const pd) {
+		return syscall(NEW_PD, (Syscall_arg)dst, (Syscall_arg)pd); }
 
 
 	/**

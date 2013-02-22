@@ -29,6 +29,7 @@
 
 /* core includes */
 #include <platform_thread.h>
+#include <platform_pd.h>
 #include <tlb.h>
 #include <trustzone.h>
 
@@ -268,7 +269,8 @@ namespace Kernel
 	 */
 	class Pd : public Object<Pd, MAX_PDS>
 	{
-		Tlb * const _tlb;
+		Tlb * const         _tlb;
+		Platform_pd * const _platform_pd;
 
 		/* keep ready memory for size aligned extra costs at construction */
 		enum { EXTRA_SPACE_SIZE = 2*Tlb::MAX_COSTS_PER_TRANSLATION };
@@ -279,7 +281,8 @@ namespace Kernel
 			/**
 			 * Constructor
 			 */
-			Pd(Tlb * const t) : _tlb(t)
+			Pd(Tlb * const t, Platform_pd * const platform_pd)
+			: _tlb(t), _platform_pd(platform_pd)
 			{
 				/* try to add translation for mode transition region */
 				Page_flags::access_t const flags = Page_flags::mode_transition();
@@ -322,7 +325,8 @@ namespace Kernel
 			 ** Accessors **
 			 ***************/
 
-			Tlb * tlb() { return _tlb; }
+			Tlb * const tlb() { return _tlb; }
+			Platform_pd * const platform_pd() { return _platform_pd; }
 	};
 
 
@@ -404,7 +408,7 @@ namespace Kernel
 	static Pd * core()
 	{
 		static Core_tlb tlb;
-		static Pd _pd(&tlb);
+		static Pd _pd(&tlb, 0);
 		return &_pd;
 	}
 
@@ -833,7 +837,7 @@ namespace Kernel
 		void * dst = (void *)user->user_arg_1();
 		Tlb * const tlb = new (dst) Tlb();
 		dst = (void *)((addr_t)dst + sizeof(Tlb));
-		Pd * const pd = new (dst) Pd(tlb);
+		Pd * const pd = new (dst) Pd(tlb, (Platform_pd *)user->user_arg_2());
 
 		/* return success */
 		user->user_arg_0(pd->id());
