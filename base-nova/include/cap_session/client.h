@@ -1,6 +1,7 @@
 /*
  * \brief  Client-side CAP session interface
  * \author Norman Feske
+ * \author Alexander Boettcher
  * \date   2006-07-10
  */
 
@@ -28,7 +29,17 @@ namespace Genode {
 		Native_capability alloc(Native_capability ep, addr_t entry = 0,
 		                        addr_t flags = 0)
 		{
-			return call<Rpc_alloc>(ep, entry, flags);
+			Native_capability cap = call<Rpc_alloc>(ep, entry, flags);
+
+			using namespace Nova;
+
+			/* set our local name */
+			if (NOVA_OK != pt_ctrl(cap.local_name(), cap.local_name()))
+				nova_die();
+			/* disable the feature for security reasons now */
+			revoke(Obj_crd(cap.local_name(), 0, Obj_crd::RIGHT_PT_CTRL));
+
+			return cap;
 		}
 
 		void free(Native_capability cap) { call<Rpc_free>(cap); }

@@ -187,11 +187,13 @@ static void init_core_page_fault_handler()
 	create_pt(PT_SEL_PAGE_FAULT, __core_pd_sel, ec_sel,
 	          Mtd(Mtd::QUAL | Mtd::ESP | Mtd::EIP),
 	          (addr_t)page_fault_handler);
+	revoke(Obj_crd(PT_SEL_PAGE_FAULT, 0, Obj_crd::RIGHT_PT_CTRL));
 
 	/* startup portal for global core threads */
 	create_pt(PT_SEL_STARTUP, __core_pd_sel, ec_sel,
 	          Mtd(Mtd::EIP | Mtd::ESP),
 	          (addr_t)startup_handler);
+	revoke(Obj_crd(PT_SEL_STARTUP, 0, Obj_crd::RIGHT_PT_CTRL));
 }
 
 

@@ -331,6 +331,8 @@ namespace Nova {
 
 			enum {
 				RIGHT_EC_RECALL = 0x1U,
+				RIGHT_PT_CTRL   = 0x1U,
+				RIGHT_PT_CALL   = 0x2U
 			};
 
 			Obj_crd() : Crd(0, 0)

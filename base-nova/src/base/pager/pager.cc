@@ -240,6 +240,16 @@ void Pager_object::cleanup_call()
 		     utcb, this->utcb(), res);
 }
 
+static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
+	                         addr_t eip)
+{
+	uint8_t res = create_pt(pt, pd, ec, mtd, eip);
+
+	if (res == NOVA_OK)
+		revoke(Obj_crd(pt, 0, Obj_crd::RIGHT_PT_CTRL));
+
+	return res;	
+}
 
 Pager_object::Pager_object(unsigned long badge)
 : Thread_base("pager:", PF_HANDLER_STACK_SIZE), _badge(badge)
@@ -264,8 +274,8 @@ Pager_object::Pager_object(unsigned long badge)
 
 	/* create portal for exception handlers 0x0 - 0xd */
 	for (unsigned i = 0; i < PT_SEL_PAGE_FAULT; i++) {
-		res = create_pt(exc_pt_sel() + i, pd_sel, _tid.ec_sel,
-		                Mtd(0), (addr_t)_exception_handler);
+		res = create_portal(exc_pt_sel() + i, pd_sel, _tid.ec_sel, Mtd(0),
+		                    (addr_t)_exception_handler);
 		if (res) {
 			PERR("could not create exception portal, error = %u\n", res);
 			throw Create_exception_pt_failed();
@@ -277,9 +287,8 @@ Pager_object::Pager_object(unsigned long badge)
 		revoke(Obj_crd(exc_pt_sel() + PT_SEL_PAGE_FAULT, 0));
 
 	/* create portal for page-fault handler */
-	res = create_pt(exc_pt_sel() + PT_SEL_PAGE_FAULT, pd_sel,
-	                _tid.ec_sel, Mtd(Mtd::QUAL | Mtd::EIP),
-	                (mword_t)_page_fault_handler);
+	res = create_portal(exc_pt_sel() + PT_SEL_PAGE_FAULT, pd_sel, _tid.ec_sel,
+	                    Mtd(Mtd::QUAL | Mtd::EIP), (mword_t)_page_fault_handler);
 	if (res) {
 		PERR("could not create page-fault portal, error = %u\n", res);
 		class Create_page_fault_pt_failed { };
@@ -288,8 +297,8 @@ Pager_object::Pager_object(unsigned long badge)
 
 	/* create portal for exception handlers 0xf - 0x19 */
 	for (unsigned i = PT_SEL_PAGE_FAULT + 1; i < PT_SEL_PARENT; i++) {
-		res = create_pt(exc_pt_sel() + i, pd_sel, _tid.ec_sel,
-		                Mtd(0), (addr_t)_exception_handler);
+		res = create_portal(exc_pt_sel() + i, pd_sel, _tid.ec_sel, Mtd(0),
+		                    (addr_t)_exception_handler);
 		if (res) {
 			PERR("could not create exception portal, error = %u\n", res);
 			throw Create_exception_pt_failed();
@@ -297,8 +306,8 @@ Pager_object::Pager_object(unsigned long badge)
 	}
 
 	/* create portal for startup handler */
-	res = create_pt(exc_pt_sel() + PT_SEL_STARTUP, pd_sel, _tid.ec_sel,
-	                Mtd(Mtd::ESP | Mtd::EIP), (mword_t)_startup_handler);
+	res = create_portal(exc_pt_sel() + PT_SEL_STARTUP, pd_sel, _tid.ec_sel,
+	                    Mtd(Mtd::ESP | Mtd::EIP), (mword_t)_startup_handler);
 	if (res) {
 		PERR("could not create startup portal, error = %u\n",
 		     res);
@@ -308,8 +317,8 @@ Pager_object::Pager_object(unsigned long badge)
 
 	/* create portal for recall handler */
 	Mtd mtd(Mtd::ESP | Mtd::EIP | Mtd::ACDB | Mtd::EFL | Mtd::EBSD | Mtd::FSGS);
-	res = create_pt(exc_pt_sel() + PT_SEL_RECALL, pd_sel, _tid.ec_sel,
-	                mtd, (addr_t)_recall_handler);
+	res = create_portal(exc_pt_sel() + PT_SEL_RECALL, pd_sel, _tid.ec_sel,
+	                    mtd, (addr_t)_recall_handler);
 	if (res) {
 		PERR("could not create recall portal, error = %u\n", res);
 		class Create_recall_pt_failed { };
@@ -317,8 +326,8 @@ Pager_object::Pager_object(unsigned long badge)
 	}
 
 	/* create portal for final cleanup call used during destruction */
-	res = create_pt(_pt_cleanup, pd_sel, _tid.ec_sel, Mtd(0),
-	                reinterpret_cast<addr_t>(_invoke_handler));
+	res = create_portal(_pt_cleanup, pd_sel, _tid.ec_sel, Mtd(0),
+	                    reinterpret_cast<addr_t>(_invoke_handler));
 	if (res) {
 		PERR("could not create pager cleanup portal, error = %u\n", res);
 		class Create_cleanup_pt_failed { };

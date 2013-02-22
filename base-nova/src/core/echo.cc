@@ -81,6 +81,7 @@ Echo::Echo(Genode::addr_t utcb_addr)
 	/* set up echo portal to ourself */
 	res = create_pt(_pt_sel, pd_sel, _ec_sel, Mtd(0), (mword_t)echo_reply);
 	if (res) { ((void (*)())(res*0x10001UL))(); }
+	revoke(Obj_crd(_pt_sel, 0, Obj_crd::RIGHT_PT_CTRL));
 
 	/* echo thread doesn't receive anything, it transfers items during reply */
 	utcb()->crd_rcv = utcb()->crd_xlt = 0;
