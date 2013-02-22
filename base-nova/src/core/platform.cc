@@ -205,6 +205,9 @@ Platform::Platform() :
 	_vm_base(0x1000), _vm_size(0)
 {
 	Hip  *hip  = (Hip *)__initial_sp;
+	/* check for right API version */
+	if (hip->api_version != 6)
+		nova_die();
 
 	/* register UTCB of main thread */
 	__main_thread_utcb = (Utcb *)(__initial_sp - get_page_size());

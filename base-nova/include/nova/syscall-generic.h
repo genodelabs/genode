@@ -59,9 +59,10 @@ namespace Nova {
 		NOVA_LOOKUP     = 0x8,
 		NOVA_EC_CTRL    = 0x9,
 		NOVA_SC_CTRL    = 0xa,
-		NOVA_SM_CTRL    = 0xb,
-		NOVA_ASSIGN_PCI = 0xc,
-		NOVA_ASSIGN_GSI = 0xd,
+		NOVA_PT_CTRL    = 0xb,
+		NOVA_SM_CTRL    = 0xc,
+		NOVA_ASSIGN_PCI = 0xd,
+		NOVA_ASSIGN_GSI = 0xe,
 	};
 
 	/**

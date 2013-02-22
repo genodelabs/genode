@@ -62,9 +62,10 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t syscall_1(Syscall s, uint8_t flags, mword_t p1, mword_t * p2 = 0)
+	inline uint8_t syscall_1(Syscall s, uint8_t flags, mword_t sel, mword_t p1,
+	                         mword_t * p2 = 0)
 	{
-		mword_t status = rdi(s, flags, 0);
+		mword_t status = rdi(s, flags, sel);
 
 		asm volatile ("syscall"
 		              : "+D" (status), "+S" (p1)
@@ -76,7 +77,8 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t syscall_2(Syscall s, uint8_t flags, mword_t sel, mword_t p1, mword_t p2)
+	inline uint8_t syscall_2(Syscall s, uint8_t flags, mword_t sel, mword_t p1,
+	                         mword_t p2)
 	{
 		mword_t status = rdi(s, flags, sel);
 
@@ -183,9 +185,22 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t create_pt(mword_t pt, mword_t pd, mword_t ec, Mtd mtd, mword_t rip)
+	inline uint8_t pt_ctrl(mword_t pt, mword_t pt_id)
 	{
-		return syscall_4(NOVA_CREATE_PT, 0, pt, pd, ec, mtd.value(), rip);
+		return syscall_1(NOVA_PT_CTRL, 0, pt, pt_id);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t create_pt(mword_t pt, mword_t pd, mword_t ec, Mtd mtd,
+	                         mword_t rip, bool id_equal_pt = true)
+	{
+		uint8_t res = syscall_4(NOVA_CREATE_PT, 0, pt, pd, ec, mtd.value(), rip);
+
+		if (!id_equal_pt || res != NOVA_OK)
+			return res;
+
+		return pt_ctrl(pt, pt);
 	}
 
 
@@ -199,7 +214,7 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t revoke(Crd crd, bool self = true)
 	{
-		return syscall_1(NOVA_REVOKE, self, crd.value());
+		return syscall_1(NOVA_REVOKE, self, 0, crd.value());
 	}
 
 
@@ -207,7 +222,7 @@ namespace Nova {
 	inline uint8_t lookup(Crd &crd)
 	{
 		mword_t crd_r;
-		uint8_t res=syscall_1(NOVA_LOOKUP, 0, crd.value(), &crd_r);
+		uint8_t res = syscall_1(NOVA_LOOKUP, 0, 0, crd.value(), &crd_r);
 		crd = Crd(crd_r);
 		return res;
 	}
@@ -243,8 +258,10 @@ namespace Nova {
 		return syscall_2(NOVA_ASSIGN_PCI, 0, pd, mem, rid);
 	}
 
+
 	ALWAYS_INLINE
-	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu, mword_t &msi_addr, mword_t &msi_data)
+	inline uint8_t assign_gsi(mword_t sm, mword_t dev, mword_t cpu,
+	                          mword_t &msi_addr, mword_t &msi_data)
 	{
 		msi_addr = dev;
 		msi_data = cpu;

@@ -67,9 +67,9 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t syscall_1(Syscall s, uint8_t flags, mword_t p1)
+	inline uint8_t syscall_1(Syscall s, uint8_t flags, unsigned sel, mword_t p1)
 	{
-		mword_t status = eax(s, flags, 0);
+		mword_t status = eax(s, flags, sel);
 
 		asm volatile ("  mov %%esp, %%ecx;"
 		              "  call 0f;"
@@ -222,9 +222,22 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t create_pt(unsigned pt, unsigned pd, unsigned ec, Mtd mtd, mword_t eip)
+	inline uint8_t pt_ctrl(mword_t pt, mword_t pt_id)
 	{
-		return syscall_4(NOVA_CREATE_PT, 0, pt, pd, ec, mtd.value(), eip);
+		return syscall_1(NOVA_PT_CTRL, 0, pt, pt_id);
+	}
+
+
+	ALWAYS_INLINE
+	inline uint8_t create_pt(unsigned pt, unsigned pd, unsigned ec, Mtd mtd,
+	                         mword_t eip, bool id_equal_pt = true)
+	{
+		uint8_t res = syscall_4(NOVA_CREATE_PT, 0, pt, pd, ec, mtd.value(), eip);
+
+		if (!id_equal_pt || res != NOVA_OK)
+			return res;
+
+		return pt_ctrl(pt, pt);
 	}
 
 
@@ -238,7 +251,7 @@ namespace Nova {
 	ALWAYS_INLINE
 	inline uint8_t revoke(Crd crd, bool self = true)
 	{
-		return syscall_1(NOVA_REVOKE, self, crd.value());
+		return syscall_1(NOVA_REVOKE, self, 0, crd.value());
 	}
 
 
