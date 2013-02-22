@@ -32,7 +32,7 @@ static Signal_connection *signal_connection()
  ** Process-wide connection to core's signal service **
  ******************************************************/
 
-enum { STACK_SIZE = 2*1024*sizeof(addr_t) };
+enum { STACK_SIZE = 4*1024*sizeof(addr_t) };
 
 class Signal_handler_thread : Thread<STACK_SIZE>, Lock
 {
