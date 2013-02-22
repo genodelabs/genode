@@ -1158,3 +1158,57 @@ Index: include/asm-generic/vmlinux.lds.h
  		. = ALIGN((align));					\
  		VMLINUX_SYMBOL(__end_rodata) = .;			\
  	}								\
+Index: arch/l4/kernel/tamed.c
+===================================================================
+--- arch/l4/kernel/tamed.c	(revision 25)
++++ arch/l4/kernel/tamed.c	(working copy)
+@@ -366,8 +366,12 @@
+ #ifdef CONFIG_L4_VCPU
+ void l4x_global_halt(void)
+ {
+-	l4vcpu_halt(l4x_vcpu_state_current(), l4x_utcb_current(),
+-	            do_vcpu_irq, l4x_srv_setup_recv_wrap);
++	l4vcpu_wait_for_event(l4x_vcpu_state_current(), l4x_utcb_current(),
++	                      do_vcpu_irq, l4x_srv_setup_recv_wrap);
++#ifdef CONFIG_X86
++	// on x86, interrupts are enabled after hlt
++	l4x_global_sti();
++#endif
+ }
+ EXPORT_SYMBOL(l4x_global_halt);
+ 
+Index: arch/l4/kernel/arch-x86/rtc.c
+===================================================================
+--- arch/l4/kernel/arch-x86/rtc.c	(revision 25)
++++ arch/l4/kernel/arch-x86/rtc.c	(working copy)
+@@ -163,6 +163,7 @@
+ /* Routines for accessing the CMOS RAM/RTC. */
+ unsigned char rtc_cmos_read(unsigned char addr)
+ {
++#ifdef NOT_GENODE
+ #ifndef CONFIG_L4_EXTERNAL_RTC
+ 	unsigned char val;
+ 
+@@ -175,17 +176,22 @@
+ #else
+ 	return 0;
+ #endif
++#else /* NOT_GENODE */
++	return 0;
++#endif /* NOT_GENODE */
+ }
+ EXPORT_SYMBOL(rtc_cmos_read);
+ 
+ void rtc_cmos_write(unsigned char val, unsigned char addr)
+ {
++#ifdef NOT_GENODE
+ #ifndef CONFIG_L4_EXTERNAL_RTC
+ 	lock_cmos_prefix(addr);
+ 	outb(addr, RTC_PORT(0));
+ 	outb(val, RTC_PORT(1));
+ 	lock_cmos_suffix(addr);
+ #endif
++#endif /* NOT_GENODE */
+ }
+ EXPORT_SYMBOL(rtc_cmos_write);
+ 
