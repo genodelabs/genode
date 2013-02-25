@@ -1060,7 +1060,8 @@ class Acpi_table
 				uint64_t xsdt;
 				uint8_t  checksum_extended;
 			    uint8_t  reserved[3];
-			} __attribute__((packed)) * rsdp = reinterpret_cast<struct rsdp *>(ptr_rsdp);
+			} __attribute__((packed));
+			struct rsdp * rsdp = reinterpret_cast<struct rsdp *>(ptr_rsdp);
 
 			if (!rsdp) {
 				if (verbose)
@@ -1076,16 +1077,20 @@ class Acpi_table
 				     rsdp->revision, oem, rsdp->rsdt, rsdp->xsdt);
 			}
 
-			if (rsdp->xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
+			addr_t const rsdt = rsdp->rsdt;
+			addr_t const xsdt = rsdp->xsdt;
+			/* drop rsdp io_mem mapping since rsdt/xsdt may overlap */
+			env()->parent()->close(io_mem);
+
+			if (xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */
 				addr_t entries_count;
 				addr_t * entries;
 				{
-					Table_wrapper rsdt(rsdp->xsdt);
-					entries = rsdt.copy_entries(entries_count);
+					Table_wrapper table(xsdt);
+					entries = table.copy_entries(entries_count);
 				}
 
-				env()->parent()->close(io_mem);
 				_parse_tables(entries, entries_count);
 
 				if (entries)
@@ -1096,11 +1101,10 @@ class Acpi_table
 				uint32_t * entries;
 
 				{
-					Table_wrapper rsdt(rsdp->rsdt);
-					entries = rsdt.copy_entries(entries_count);
+					Table_wrapper table(rsdt);
+					entries = table.copy_entries(entries_count);
 				}
 
-				env()->parent()->close(io_mem);
 				_parse_tables(entries, entries_count);
 
 				if (entries)
