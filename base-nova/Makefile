@@ -40,7 +40,10 @@ help::
 $(CONTRIB_DIR)/.git:
 	$(VERBOSE)git clone $(GIT_URL) $(CONTRIB_DIR)
 
+.PHONY: $(CONTRIB_DIR)
+
 $(CONTRIB_DIR): $(CONTRIB_DIR)/.git
+	$(VERBOSE)cd $(CONTRIB_DIR); git pull
 	$(VERBOSE)cd $(CONTRIB_DIR); git reset --hard $(GIT_REV); git checkout $(GIT_BRANCH)
 	$(ECHO) "applying patches to '$(CONTRIB_DIR)/'"
 	$(VERBOSE)for i in $(PATCHES); do patch -d $@ -p1 < $$i; done
