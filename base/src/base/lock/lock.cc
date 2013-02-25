@@ -25,13 +25,25 @@ using namespace Genode;
 int debug_lock_sleep_race_cnt;
 
 
+static inline Genode::Thread_base *invalid_thread_base()
+{
+	return (Genode::Thread_base*)~0;
+}
+
+
+static inline bool thread_base_valid(Genode::Thread_base *thread_base)
+{
+	return (thread_base != invalid_thread_base());
+}
+
+
 /********************
  ** Lock applicant **
  ********************/
 
 void Cancelable_lock::Applicant::wake_up()
 {
-	if (!thread_id_valid(_tid)) return;
+	if (!thread_base_valid(_thread_base)) return;
 
 	/*
 	 * Deal with the race that may occur in the 'lock' function between
@@ -40,11 +52,11 @@ void Cancelable_lock::Applicant::wake_up()
 
 	for (;;) {
 
-		if (thread_check_stopped_and_restart(_tid))
+		if (thread_check_stopped_and_restart(_thread_base))
 			return;
 
 		debug_lock_sleep_race_cnt++;  /* only for statistics */
-		thread_switch_to(_tid);
+		thread_switch_to(_thread_base);
 	}
 }
 
@@ -55,13 +67,13 @@ void Cancelable_lock::Applicant::wake_up()
 
 void Cancelable_lock::lock()
 {
-	Applicant myself(thread_get_my_native_id());
+	Applicant myself(Thread_base::myself());
 
 	spinlock_lock(&_spinlock_state);
 
 	/* reset ownership if one thread 'lock' twice */
 	if (_owner == myself)
-		_owner = Applicant(thread_invalid_id());
+		_owner = Applicant(invalid_thread_base());
 
 	if (cmpxchg(&_state, UNLOCKED, LOCKED)) {
 
@@ -149,7 +161,7 @@ void Cancelable_lock::unlock()
 	} else {
 
 		/* there is no further applicant, leave the lock alone */
-		_owner          = Applicant(thread_invalid_id());
+		_owner          = Applicant(invalid_thread_base());
 		_last_applicant = 0;
 		_state          = UNLOCKED;
 
@@ -163,7 +175,7 @@ Cancelable_lock::Cancelable_lock(Cancelable_lock::State initial)
 	_spinlock_state(SPINLOCK_UNLOCKED),
 	_state(UNLOCKED),
 	_last_applicant(0),
-	_owner(thread_invalid_id())
+	_owner(invalid_thread_base())
 {
 	if (initial == LOCKED)
 		lock();

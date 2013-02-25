@@ -25,6 +25,13 @@
 __attribute__((weak)) char **lx_environ = (char **)0;
 
 
+
+/**
+ * Natively aligned memory location used in the lock implementation
+ */
+int main_thread_futex_counter __attribute__((aligned(sizeof(Genode::addr_t))));
+
+
 static inline void main_thread_bootstrap()
 {
 	using namespace Genode;

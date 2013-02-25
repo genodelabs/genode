@@ -21,8 +21,6 @@ namespace Okl4 { extern "C" {
 #include <l4/thread.h>
 } }
 
-enum { L4_PAGEMASK = ~0xFFF };
-enum { L4_PAGESIZE = 0x1000 };
 
 namespace Okl4 {
 
@@ -30,21 +28,28 @@ namespace Okl4 {
 	 * Read global thread ID from user-defined handle and store it
 	 * into a designated UTCB entry.
 	 */
-	void copy_uregister_to_utcb()
+	L4_Word_t copy_uregister_to_utcb()
 	{
 		using namespace Okl4;
 
 		L4_Word_t my_global_id = L4_UserDefinedHandle();
 		__L4_TCR_Set_ThreadWord(Genode::UTCB_TCR_THREAD_WORD_MYSELF,
 		                        my_global_id);
+		return my_global_id;
 	}
 }
+
+
+Genode::Native_thread_id main_thread_tid;
 
 
 static void main_thread_bootstrap()
 {
 	/* copy thread ID to utcb */
-	Okl4::copy_uregister_to_utcb();
+	main_thread_tid.raw = Okl4::copy_uregister_to_utcb();
+
+	if (main_thread_tid.raw == 0) /* core */
+		main_thread_tid.raw = Okl4::L4_rootserver.raw;
 }
 
 #endif /* _PLATFORM___MAIN_HELPER_H_ */

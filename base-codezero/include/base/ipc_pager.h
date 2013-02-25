@@ -147,7 +147,7 @@ namespace Genode {
 			/**
 			 * Return badge for faulting thread
 			 */
-			unsigned long badge() const { return _last.tid; }
+			unsigned long badge() const { return _last; }
 
 			/**
 			 * Return true if page fault was a write fault

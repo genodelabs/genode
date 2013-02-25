@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/native_types.h>
+#include <base/thread.h>
 
 /* OKL4 includes */
 namespace Okl4 { extern "C" {
@@ -30,6 +31,9 @@ namespace Okl4 { extern "C" {
 static inline void thread_yield() { Okl4::L4_Yield(); }
 
 
+extern Genode::Native_thread_id main_thread_tid;
+
+
 /**
  * Custom ExchangeRegisters wrapper for waking up a thread
  *
@@ -39,13 +43,17 @@ static inline void thread_yield() { Okl4::L4_Yield(); }
  *
  * \return true if the thread was in blocking state
  */
-static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
+static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
 {
 	using namespace Okl4;
 
 	L4_Word_t dummy;
 	L4_ThreadId_t dummy_id;
 	L4_ThreadState_t state;
+
+	Genode::Native_thread_id tid = thread_base ?
+	                               thread_base->tid().l4id :
+	                               main_thread_tid;
 
 	L4_ExchangeRegisters(tid, L4_ExReg_Resume + L4_ExReg_AbortIPC, 0, 0, 0,
 	                     0, L4_nilthread, &state.raw, &dummy, &dummy, &dummy,
@@ -55,40 +63,14 @@ static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid
 }
 
 
-/*
- * XXX Avoid duplicating this function, see 'ipc.cc', 'pager.cc', and
- *     'irq_session_component.cc'
- */
-static inline Genode::Native_thread_id thread_get_my_native_id()
-{
-	Okl4::L4_ThreadId_t myself;
-	myself.raw = Okl4::__L4_TCR_ThreadWord(Genode::UTCB_TCR_THREAD_WORD_MYSELF);
-	return myself;
-}
-
-
-static inline Genode::Native_thread_id thread_invalid_id()
-{
-	return Okl4::L4_nilthread;
-}
-
-
-/**
- * Check if a native thread ID is initialized
- *
- * \return true if ID is initialized
- */
-static inline bool thread_id_valid(Genode::Native_thread_id tid)
-{
-	return (tid.raw != 0);
-}
-
-
 /**
  * Yield CPU time to the specified thread
  */
-static inline void thread_switch_to(Genode::Native_thread_id tid)
+static inline void thread_switch_to(Genode::Thread_base *thread_base)
 {
+	Genode::Native_thread_id tid = thread_base ?
+	                               thread_base->tid().l4id :
+	                               main_thread_tid;
 	Okl4::L4_ThreadSwitch(tid);
 }
 
@@ -98,5 +80,9 @@ static inline void thread_switch_to(Genode::Native_thread_id tid)
  */
 static inline void thread_stop_myself()
 {
-	Okl4::L4_Stop(thread_get_my_native_id());
+	Genode::Thread_base *myself = Genode::Thread_base::myself();
+	Genode::Native_thread_id tid = myself ?
+	                               myself->tid().l4id :
+	                               main_thread_tid;
+	Okl4::L4_Stop(tid);
 }

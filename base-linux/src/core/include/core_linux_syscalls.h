@@ -203,4 +203,20 @@ inline int lx_connect(int sockfd, const struct sockaddr *serv_addr,
 #endif /* SYS_socketcall */
 
 
+/******************************
+ ** Linux signal dispatching **
+ ******************************/
+
+inline int lx_pipe(int pipefd[2])
+{
+	return lx_syscall(SYS_pipe, pipefd);
+}
+
+
+inline int lx_read(int fd, void *buf, Genode::size_t count)
+{
+	return lx_syscall(SYS_read, fd, buf, count);
+}
+
+
 #endif /* _CORE__INCLUDE__CORE_LINUX_SYSCALLS_H_ */

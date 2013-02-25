@@ -59,9 +59,19 @@ extern "C" int printf(const char *format, ...)
  ** Startup-code helpers **
  **************************/
 
+
+Genode::Native_thread_id main_thread_tid;
+Codezero::l4_mutex       main_thread_running_lock;
+
+
 static void main_thread_bootstrap()
 {
 	Codezero::__l4_init();
+
+	main_thread_tid = Codezero::thread_myself();
+
+	Codezero::l4_mutex_init(&main_thread_running_lock);
+	Codezero::l4_mutex_lock(&main_thread_running_lock); /* block on first mutex lock */
 }
 
 #endif /* _PLATFORM___MAIN_HELPER_H_ */

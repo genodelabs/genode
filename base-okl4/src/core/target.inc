@@ -14,9 +14,7 @@ SRC_CC += main.cc \
           okl4_pd_session_component.cc \
           io_mem_session_component.cc \
           io_mem_session_support.cc \
-          thread.cc \
           thread_start.cc \
-          thread_bootstrap.cc \
           platform_thread.cc \
           platform_pd.cc \
           platform.cc \
@@ -54,8 +52,5 @@ vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
-vpath thread_bootstrap.cc         $(REP_DIR)/src/base/thread
-vpath thread_start.cc             $(BASE_DIR)/src/base/thread
-vpath thread.cc                   $(BASE_DIR)/src/base/thread
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 

@@ -150,11 +150,11 @@ void Ipc_pager::reply_and_wait_for_fault()
 
 	int ret = l4_map((void *)_reply_mapping.from_phys(),
 	                 (void *)_reply_mapping.to_virt(),
-	                 _reply_mapping.num_pages(), flags, _last.tid);
+	                 _reply_mapping.num_pages(), flags, _last);
 
 	/* wake up faulter if mapping succeeded */
 	if (ret < 0)
-		PERR("l4_map returned %d, putting thread %d to sleep", ret, _last.tid);
+		PERR("l4_map returned %d, putting thread %d to sleep", ret, _last);
 	else
 		acknowledge_wakeup();
 
@@ -166,7 +166,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 void Ipc_pager::acknowledge_wakeup()
 {
 	enum { SUCCESS = 0 };
-	l4_set_sender(_last.tid);
+	l4_set_sender(_last);
 	l4_ipc_return(SUCCESS);
 }
 

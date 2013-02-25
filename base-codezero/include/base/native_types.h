@@ -37,31 +37,7 @@ namespace Genode {
 		static void copy(void* dst, Native_capability_tpl<Cap_dst_policy>* src);
 	};
 
-	struct Native_thread_id
-	{
-		typedef Cap_dst_policy::Dst Dst;
-
-		Dst tid;
-
-		/**
-		 * Pointer to thread's running lock
-		 *
-		 * Once initialized (see 'lock_helper.h'), it will point to the
-		 * '_running_lock' field of the thread's 'Native_thread' structure,
-		 * which is part of the thread context. This member variable is
-		 * used by the lock implementation only.
-		 */
-		struct Codezero::l4_mutex *running_lock;
-
-		Native_thread_id() { }
-
-		/**
-		 * Constructor (used as implicit constructor)
-		 */
-		Native_thread_id(Dst l4id) : tid(l4id), running_lock(0) { }
-
-		Native_thread_id(Dst l4id, Codezero::l4_mutex *rl) : tid(l4id), running_lock(rl) { }
-	};
+	typedef Cap_dst_policy::Dst Native_thread_id;
 
 	struct Native_thread
 	{
@@ -110,9 +86,6 @@ namespace Genode {
 			Codezero::l4_mutex *running_lock() {
 				return (Codezero::l4_mutex *)&_running_lock; }
 	};
-
-	inline bool operator == (Native_thread_id t1, Native_thread_id t2) { return t1.tid == t2.tid; }
-	inline bool operator != (Native_thread_id t1, Native_thread_id t2) { return t1.tid != t2.tid; }
 
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 	typedef int Native_connection_state;

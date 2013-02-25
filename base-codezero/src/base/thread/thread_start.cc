@@ -39,11 +39,7 @@ void Thread_base::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread_base::_init_platform_thread()
-{
-	Codezero::l4_mutex_init(utcb()->running_lock());
-	Codezero::l4_mutex_lock(utcb()->running_lock()); /* block on first mutex lock */
-}
+void Thread_base::_init_platform_thread() { }
 
 
 void Thread_base::_deinit_platform_thread()

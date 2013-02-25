@@ -105,12 +105,14 @@ void Thread_base::start()
 	_tid.pt = new(platform()->core_mem_alloc()) Platform_thread(_context->name);
 
 	_tid.l4id = create_thread(1, &_context->stack[-4], (void *)&_thread_start);
-	if (_tid.l4id.tid < 0)
-		PERR("create_thread returned %d", _tid.l4id.tid);
+
+	if (_tid.l4id < 0)
+		PERR("create_thread returned %d", _tid.l4id);
 
 	if (verbose_thread_start)
 		printf("core started local thread \"%s\" with ID %d\n",
-		       _context->name, _tid.l4id.tid);
+		       _context->name, _tid.l4id);
+
 }
 
 

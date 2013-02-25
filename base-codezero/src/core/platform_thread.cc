@@ -42,7 +42,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	memset(&exregs, 0, sizeof(exregs));
 	exregs_set_stack(&exregs, (unsigned long)sp);
 	exregs_set_pc   (&exregs, (unsigned long)ip);
-	exregs_set_pager(&exregs, pager.tid);
+	exregs_set_pager(&exregs, pager);
 	exregs_set_utcb (&exregs, _utcb);
 
 	int ret = l4_exchange_registers(&exregs, _tid);

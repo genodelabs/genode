@@ -24,9 +24,15 @@ namespace Genode
 	class Platform_thread;
 	class Tlb;
 
-	typedef Platform_thread * Native_thread;
-	typedef unsigned          Native_thread_id;
-	typedef int               Native_connection_state;
+	typedef unsigned Native_thread_id;
+
+	struct Native_thread
+	{
+		Native_thread_id  tid;
+		Platform_thread  *pt;
+	};
+
+	typedef int Native_connection_state;
 
 	/* FIXME needs to be MMU dependent */
 	enum { MIN_MAPPING_SIZE_LOG2 = 12 };

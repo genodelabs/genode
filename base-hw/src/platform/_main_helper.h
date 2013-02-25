@@ -14,7 +14,16 @@
 #ifndef _SRC__PLATFORM__MAIN_HELPER_H_
 #define _SRC__PLATFORM__MAIN_HELPER_H_
 
-static void main_thread_bootstrap() { }
+#include <base/native_types.h>
+
+
+Genode::Native_thread_id main_thread_tid;
+
+
+static void main_thread_bootstrap()
+{
+	main_thread_tid = Kernel::current_thread_id();
+}
 
 #endif /* _SRC__PLATFORM__MAIN_HELPER_H_ */
 

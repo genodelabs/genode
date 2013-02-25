@@ -14,13 +14,22 @@
 #ifndef _PLATFORM___MAIN_HELPER_H_
 #define _PLATFORM___MAIN_HELPER_H_
 
+/* Pistachio includes */
+namespace Pistachio {
+#include <l4/thread.h>
+}
 
-/* Pistachio-specific definitions */
-enum { L4_PAGEMASK = ~0xFFF };
-enum { L4_PAGESIZE = 0x1000 };
+/* Genode includes */
+#include <base/native_types.h>
 
 
-static void main_thread_bootstrap() { }
+Genode::Native_thread_id main_thread_tid;
+
+
+static void main_thread_bootstrap()
+{
+	main_thread_tid = Pistachio::L4_Myself();
+}
 
 
 #endif /* _PLATFORM___MAIN_HELPER_H_ */

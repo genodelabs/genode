@@ -29,10 +29,9 @@
 namespace Genode {
 
 	/**
-	 * Thread ID used in lock implementation
+	 * Thread ID
 	 *
-	 * Unfortunately, both - PID and TID - are needed for lx_tgkill() in
-	 * thread_check_stopped_and_restart().
+	 * Unfortunately, both - PID and TID - are needed for lx_tgkill()
 	 */
 	struct Native_thread_id
 	{
@@ -63,6 +62,11 @@ namespace Genode {
 		bool is_ipc_server;
 
 		/**
+		 * Natively aligned memory location used in the lock implementation
+		 */
+		int futex_counter __attribute__((aligned(sizeof(Genode::addr_t))));
+
+		/**
 		 * Opaque pointer to additional thread-specific meta data
 		 *
 		 * This pointer is used by hybrid Linux/Genode program to maintain
@@ -71,7 +75,7 @@ namespace Genode {
 		 */
 		Thread_meta_data *meta_data;
 
-		Native_thread() : is_ipc_server(false), meta_data(0) { }
+		Native_thread() : is_ipc_server(false), futex_counter(0), meta_data(0) { }
 	};
 
 	inline bool operator == (Native_thread_id t1, Native_thread_id t2) {

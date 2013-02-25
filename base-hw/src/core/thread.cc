@@ -33,7 +33,7 @@ Native_utcb * Thread_base::utcb()
 	if (!this) { return _main_utcb; }
 
 	/* this isn't the main thread */
-	return _tid->phys_utcb();
+	return _tid.pt->phys_utcb();
 }
 
 
@@ -51,17 +51,18 @@ Thread_base * Thread_base::myself()
 }
 
 
-static void thread_entry()
+void Thread_base::_thread_start()
 {
 	/* this is never called by a main thread */
+	Thread_base::myself()->_thread_bootstrap();
 	Thread_base::myself()->entry();
 }
 
 
 Thread_base::Thread_base(const char *name, size_t stack_size)
-: _list_element(this), _tid(0)
+: _list_element(this)
 {
-	_tid = new (platform()->core_mem_alloc())
+	_tid.pt = new (platform()->core_mem_alloc())
 		Platform_thread(name, this, stack_size, Kernel::core_id());
 }
 
@@ -75,12 +76,12 @@ Thread_base::~Thread_base()
 
 void Thread_base::start()
 {
-	size_t const stack_size = _tid->stack_size()/sizeof(umword_t) + 1;
+	size_t const stack_size = _tid.pt->stack_size()/sizeof(umword_t) + 1;
 	void * const stack_base = new (platform()->core_mem_alloc())
 	                              umword_t [stack_size];
-	void * sp = (void *)((addr_t)stack_base + _tid->stack_size());
-	void * ip = (void *)&thread_entry;
-	if (_tid->start(ip, sp)) PERR("Couldn't start thread");
+	void * sp = (void *)((addr_t)stack_base + _tid.pt->stack_size());
+	void * ip = (void *)&_thread_start;
+	if (_tid.pt->start(ip, sp)) PERR("Couldn't start thread");
 }
 
 

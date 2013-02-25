@@ -33,20 +33,53 @@ using namespace Genode;
 static char _core_mem[80*1024*1024];
 
 
-static Lock _wait_for_exit_lock(Lock::LOCKED);  /* wakeup of '_wait_for_exit' */
-static bool _do_exit = false;                   /* exit condition */
+/*
+ * Basic semaphore implementation based on the 'pipe' syscall.
+ *
+ * This alternative implementation is needed to be able to wake up the
+ * blocked main thread from a signal handler executed by the same thread.
+ */
+class Pipe_semaphore
+{
+	private:
+
+		int  _pipefd[2];
+
+	public:
+
+		Pipe_semaphore()
+		{
+			lx_pipe(_pipefd);
+		}
+
+		void down()
+		{
+			char dummy;
+			while(lx_read(_pipefd[0], &dummy, 1) != 1);
+		}
+
+		void up()
+		{
+			char dummy;
+			while (lx_write(_pipefd[1], &dummy, 1) != 1);
+		}
+};
+
+
+static Pipe_semaphore _wait_for_exit_sem;  /* wakeup of '_wait_for_exit' */
+static bool           _do_exit = false;    /* exit condition */
 
 
 static void sigint_handler(int signum)
 {
-	_wait_for_exit_lock.unlock();
 	_do_exit = true;
+	_wait_for_exit_sem.up();
 }
 
 
 static void sigchld_handler(int signnum)
 {
-	_wait_for_exit_lock.unlock();
+	_wait_for_exit_sem.up();
 }
 
 
@@ -82,11 +115,10 @@ void Platform::wait_for_exit()
 		/*
 		 * Block until a signal occurs.
 		 */
-		try { _wait_for_exit_lock.lock(); }
-		catch (Blocking_canceled) { };
+		_wait_for_exit_sem.down();
 
 		/*
-		 * Each time, the '_wait_for_exit_lock' gets unlocked, we could have
+		 * Each time, the '_wait_for_exit_sem' gets unlocked, we could have
 		 * received either a SIGINT or SIGCHLD. If a SIGINT was received, the
 		 * '_exit' condition will be set.
 		 */

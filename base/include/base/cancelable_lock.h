@@ -15,10 +15,11 @@
 #define _INCLUDE__BASE__CANCELABLE_LOCK_H_
 
 #include <base/lock_guard.h>
-#include <base/native_types.h>
 #include <base/blocking.h>
 
 namespace Genode {
+
+	class Thread_base;
 
 	class Cancelable_lock
 	{
@@ -28,28 +29,28 @@ namespace Genode {
 			{
 				private:
 
-					Native_thread_id _tid;
-					Applicant       *_to_wake_up;
+					Thread_base *_thread_base;
+					Applicant   *_to_wake_up;
 
 				public:
 
-					explicit Applicant(Native_thread_id tid)
-					: _tid(tid), _to_wake_up(0) { }
+					explicit Applicant(Thread_base *thread_base)
+					: _thread_base(thread_base), _to_wake_up(0) { }
 
 					void applicant_to_wake_up(Applicant *to_wake_up) {
 						_to_wake_up = to_wake_up; }
 
 					Applicant *applicant_to_wake_up() { return _to_wake_up; }
 
-					Native_thread_id tid() { return _tid; }
+					Thread_base *thread_base() { return _thread_base; }
 
 					/**
 					 * Called from previous lock owner
 					 */
 					void wake_up();
 
-					bool operator == (Applicant &a) { return _tid == a.tid(); }
-					bool operator != (Applicant &a) { return _tid != a.tid(); }
+					bool operator == (Applicant &a) { return _thread_base == a.thread_base(); }
+					bool operator != (Applicant &a) { return _thread_base != a.thread_base(); }
 			};
 
 			/*

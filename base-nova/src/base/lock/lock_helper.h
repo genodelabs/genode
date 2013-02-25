@@ -44,49 +44,18 @@ Genode::Thread_base * __attribute__((weak)) Genode::Thread_base::myself()
 static inline void thread_yield() { }
 
 
-static inline bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
+static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
 {
-	Genode::addr_t sem = (tid.ec_sel == 0 && tid.exc_pt_sel == 0) ?
-	               main_thread_running_semaphore() :
-	               tid.exc_pt_sel + Nova::SM_SEL_EC;
+	Genode::addr_t sem = thread_base ?
+	                     thread_base->tid().exc_pt_sel + Nova::SM_SEL_EC :
+	                     main_thread_running_semaphore();
 
 	Nova::sm_ctrl(sem, Nova::SEMAPHORE_UP);
 	return true;
 }
 
 
-static inline Genode::Native_thread_id thread_get_my_native_id()
-{
-	/*
-	 * We encode the main thread as tid { 0, 0 } because we cannot
-	 * call 'main_thread_running_semaphore()' here.
-	 */
-	Genode::Thread_base *myself = Genode::Thread_base::myself();
-
-	if (myself == 0) {
-		Genode::Native_thread_id main_tid;
-		main_tid.ec_sel     = 0;
-		main_tid.exc_pt_sel = 0;
-		return main_tid;
-	} else
-		return myself->tid();
-}
-
-
-static inline Genode::Native_thread_id thread_invalid_id()
-{
-	Genode::Native_thread_id tid;
-	return tid;
-}
-
-
-static inline bool thread_id_valid(Genode::Native_thread_id tid)
-{
-	return !(tid.ec_sel == ~0UL && tid.exc_pt_sel == ~0UL);
-}
-
-
-static inline void thread_switch_to(Genode::Native_thread_id tid) { }
+static inline void thread_switch_to(Genode::Thread_base *thread_base) { }
 
 
 static inline void thread_stop_myself()
