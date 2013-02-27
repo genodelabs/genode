@@ -572,7 +572,7 @@ struct kmem_cache
 struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
                                      unsigned long falgs, void (*ctor)(void *))
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" obj_size=%d", name, size);
+	dde_kit_log(DEBUG_SLAB, "\"%s\" obj_size=%zd", name, size);
 
 	struct kmem_cache *cache;
 
@@ -643,7 +643,7 @@ void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
 {
 	dde_kit_addr_t map_addr;
 	if (dde_kit_request_mem(phys_addr, size, wc, &map_addr)) {
-		PERR("Failed to request I/O memory: [%x,%lx)", phys_addr, phys_addr + size);
+		PERR("Failed to request I/O memory: [%zx,%lx)", phys_addr, phys_addr + size);
 		return 0;
 	}
 
