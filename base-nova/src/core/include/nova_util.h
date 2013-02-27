@@ -172,10 +172,13 @@ inline int map_local(Nova::Utcb *utcb,
  * \param start       local virtual address
  * \param num_pages   number of pages to unmap
  * \param self        unmap from this pd or solely from other pds
+ * \param self        map from this pd or solely from other pds
+ * \param rights      rights to be revoked, default: all rwx
  */
 inline void unmap_local(Nova::Utcb *utcb, Genode::addr_t start,
                         Genode::size_t num_pages,
-                        bool const self = true)
+                        bool const self = true,
+                        Nova::Rights const rwx = Nova::Rights(true, true, true))
 {
 	using namespace Nova;
 	using namespace Genode;
@@ -189,8 +192,6 @@ inline void unmap_local(Nova::Utcb *utcb, Genode::addr_t start,
 
 	if (verbose_local_map)
 		PINF("Unmapping local: range 0x%lx+0x%zx", base, num_pages);
-
-	Nova::Rights const rwx = Nova::Rights(true, true, true);
 
 	while (num_pages) {
 		unsigned char const base_bit  = lsb_bit(base);

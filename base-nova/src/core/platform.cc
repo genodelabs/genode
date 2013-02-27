@@ -144,13 +144,13 @@ addr_t Platform::_map_page(addr_t const phys_page, addr_t const pages,
 
 	/* map first part */
 	int res = map_local(__main_thread_utcb, phys_addr, core_local_addr, pages,
-	                    Nova::Rights(true, false, true), true);
+	                    Nova::Rights(true, true, true), true);
 
 	/* map second part - if requested */
 	if (!res && extra_page)
 		res = map_local(__main_thread_utcb, phys_addr + size,
 	                    core_local_addr + size, 1,
-	                    Nova::Rights(true, false, false), true);
+	                    Nova::Rights(true, true, false), true);
 
 	return res ? 0 : core_local_addr;
 }
@@ -472,8 +472,8 @@ Platform::Platform() :
 	/*
 	 * Allocate ever an extra page behind the command line pointer. If it turns
 	 * out that this page is unused, because the command line was short enough,
-	 * the mapping is revoked and the virtual and physical regions are putted
-	 * back to the allocator.
+	 * the mapping is revoked and the virtual and physical regions are put back
+	 * to the allocator.
 	 */
 	mem_desc = (Hip::Mem_desc *)mem_desc_base;
 	prev_cmd_line_page = ~0UL, curr_cmd_line_page = 0;
@@ -509,6 +509,7 @@ Platform::Platform() :
 			       " - ", (addr_t)mem_desc->addr, (addr_t)core_local_addr,
 			       (addr_t)(core_local_addr + mem_desc->size));
 
+		char * name;
 		if (aux_in_rom_area) {
 			aux = core_local_addr + (mem_desc->aux - mem_desc->addr);
 			aux_len = strlen(reinterpret_cast<char const *>(aux)) + 1;
@@ -521,7 +522,14 @@ Platform::Platform() :
 				_unmap_page(overlap ? 0 : rom_mem_end,
 				            round_page(core_local_addr) + rom_mem_size, 1);
 			}
+
+			/* all behind rom module will be cleared, copy the command line */
+			char *name_tmp = commandline_to_basename(reinterpret_cast<char *>(aux));
+			name = new (core_mem_alloc()) char [aux_len];
+			memcpy(name, name_tmp, aux_len);
+
 		} else {
+
 			curr_cmd_line_page = mem_desc->aux >> get_page_size_log2();
 			if (curr_cmd_line_page != prev_cmd_line_page) {
 				int err = 1;
@@ -563,11 +571,24 @@ Platform::Platform() :
 			}
 			aux = mapped_cmd_line + (mem_desc->aux - trunc_page(mem_desc->aux));
 			aux_len = strlen(reinterpret_cast<char const *>(aux)) + 1;
+			name = commandline_to_basename(reinterpret_cast<char *>(aux));
+
 		}
-		const char *name = commandline_to_basename(reinterpret_cast<char *>(aux));
+
+		/* set zero out range */
+		addr_t const zero_out = core_local_addr + mem_desc->size;
+		/* zero out behind rom module */
+		memset(reinterpret_cast<void *>(zero_out), 0, round_page(zero_out) -
+		       zero_out);
 
 		printf("%s\n", name);
 
+		/* revoke write permission on rom module */
+		unmap_local(__main_thread_utcb, trunc_page(core_local_addr),
+		            rom_mem_size >> get_page_size_log2(), true,
+		            Nova::Rights(false, true, false));
+
+		/* create rom module */
 		Rom_module *rom_module = new (core_mem_alloc())
 		                         Rom_module(core_local_addr, mem_desc->size, name);
 		_rom_fs.insert(rom_module);
