@@ -30,10 +30,12 @@ set build_components {
 	server/nic_bridge
 	drivers/pci
 	drivers/input
-	drivers/usb
 	app/launchpad
 	server/nitlog
 }
+
+lappend_if [have_spec acpi]  build_components drivers/acpi
+lappend_if [have_spec pci]   build_components drivers/pci/device_pd
 
 build $build_components
 
@@ -170,14 +172,31 @@ append config {
 	<start name="rtc_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Rtc"/></provides>
-	</start>
+	</start>}
 
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="5M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="PCI"/></provides>
 		<route> <any-service><parent/></any-service> </route>
 	</start>
+}
 
+append config {
 	<start name="nic_drv">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Nic"/></provides>
@@ -247,7 +266,6 @@ set boot_modules {
 	pci_drv
 	nic_drv
 	nic_bridge
-	usb_drv
 	timer
 	rtc_drv
 	vancouver
@@ -256,6 +274,9 @@ set boot_modules {
 	nitlog
 	vm_linux.cfg
 }
+
+lappend_if [have_spec acpi]          boot_modules acpi_drv
+lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 set guest_os_binaries { munich bzImage ramdisk }
 
