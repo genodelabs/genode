@@ -2,6 +2,7 @@
  * \brief  NOVA-specific convenience functions
  * \author Norman Feske
  * \author Sebastian Sumpf
+ * \author Alexander Boettcher
  * \date   2010-01-19
  */
 
@@ -87,6 +88,20 @@ inline int map_local_one_to_one(Nova::Utcb *utcb, Nova::Crd crd) {
 
 
 /**
+ * Find least significant set bit in value
+ */
+inline unsigned char
+lsb_bit(unsigned long const &value, unsigned char const shift = 0)
+{
+	unsigned long const scan  = value >> shift;
+	if (scan == 0) return 0;
+
+	unsigned char pos = __builtin_ctzl(scan);
+	unsigned char res = shift ? pos + shift : pos;
+	return res;
+}
+
+/**
  * Remap pages in the local address space
  *
  * \param utcb        UTCB of the main thread
@@ -123,19 +138,10 @@ inline int map_local(Nova::Utcb *utcb,
 		 */
 		addr_t const common_bits = from_curr | to_curr;
 
-		/*
-		 * Find highest clear bit in 'diff', starting from the least
-		 * significant candidate. We can skip all bits lower then
-		 * 'get_page_size_log2()' because they are not relevant as flexpage
-		 * size (and are always zero).
-		 */
-		size_t order = get_page_size_log2();
-		for (; order < 32 && !(common_bits & (1UL << order)); order++);
+		/* find least set bit in common bits */
+		size_t order = lsb_bit(common_bits, get_page_size_log2());
 
-		/*
-		 * Look if flexpage fits into both 'from' and 'to' address range
-		 */
-
+		/* look if flexpage fits into both 'from' and 'to' address range */
 		if ((from_end - from_curr) < (1UL << order))
 			order = log2(from_end - from_curr);
 
@@ -165,48 +171,42 @@ inline int map_local(Nova::Utcb *utcb,
  * \param utcb        UTCB of the main thread
  * \param start       local virtual address
  * \param num_pages   number of pages to unmap
+ * \param self        unmap from this pd or solely from other pds
  */
-inline void unmap_local(Nova::Utcb *utcb,
-                        Genode::addr_t start,
-                        Genode::size_t num_pages)
+inline void unmap_local(Nova::Utcb *utcb, Genode::addr_t start,
+                        Genode::size_t num_pages,
+                        bool const self = true)
 {
-	if (verbose_local_map)
-		Genode::printf("::unmap_local: from %lx, %zd pages\n",
-		               start, num_pages);
-
 	using namespace Nova;
 	using namespace Genode;
-	Rights const rwx(true, true, true);
 
-	Genode::addr_t end = start + (num_pages << get_page_size_log2()) - 1;
+	Genode::addr_t base = start >> get_page_size_log2();
 
-	while (true) {
-		Nova::Mem_crd crd(start >> 12, 32, rwx);
-		Nova::lookup(crd);
+	if (start & (get_page_size() - 1)) {
+		PERR("unmap failed - unaligned address specified");
+		return;
+	}
 
-		if (!crd.is_null()) {
+	if (verbose_local_map)
+		PINF("Unmapping local: range 0x%lx+0x%zx", base, num_pages);
 
-			if (verbose_local_map)
-				PINF("Unmapping local: %08lx base: %lx order: %lx size: %lx is null: %d",
-				     start, crd.base(), crd.order(),
-				     (0x1000UL << crd.order()), crd.is_null());
+	Nova::Rights const rwx = Nova::Rights(true, true, true);
 
-			unmap_local(crd, true);
+	while (num_pages) {
+		unsigned char const base_bit  = lsb_bit(base);
+		unsigned char const order_bit = min(log2(num_pages), 31U);
+		unsigned char const order     = min(order_bit, base_bit);
 
-			start = (crd.base() << 12)       /* base address of mapping */
-			      + (0x1000 << crd.order()); /* size of mapping */
-		} else {
+		Mem_crd const crd(base, order, rwx);
 
-			/* This can happen if the region has never been touched */
+		if (verbose_local_map)
+			PINF("Unmapping local:       0x%lx+0x%lx", crd.base(),
+			     1UL << crd.order());
 
-			if (verbose_local_map)
-				PINF("Nothing mapped at local: %08lx", start);
+		unmap_local(crd, self);
 
-			start += 0x1000;
-		}
-
-		if (start > end)
-			return;
+		num_pages -= 1UL << order;
+		base      += 1UL << order;
 	}
 }
 
