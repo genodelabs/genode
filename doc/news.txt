@@ -7,8 +7,8 @@
 Genode OS Framework release 13.02 | 2013-02-28
 ##############################################
 
-! The version 13.02 takes a major leap with supporting the NOVA hypervisor by
-! fully embracing IOMMUs and NOVA's virtualization capabilities. Additionally,
+| The version 13.02 takes a major leap with supporting the NOVA hypervisor by
+| fully embracing IOMMUs and NOVA's virtualization capabilities. Additionally,
 | the framework enables the use of ARM Cortex A15, comes with a new audio
 | interface, and introduces file-system notifications.
 
