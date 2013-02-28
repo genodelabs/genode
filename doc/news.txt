@@ -4,6 +4,37 @@
                                ===========
 
 
+Genode OS Framework release 13.02 | 2013-02-28
+##############################################
+
+! The version 13.02 takes a major leap with supporting the NOVA hypervisor by
+! fully embracing IOMMUs and NOVA's virtualization capabilities. Additionally,
+| the framework enables the use of ARM Cortex A15, comes with a new audio
+| interface, and introduces file-system notifications.
+
+Following the tradition to focus the February release on platform improvements,
+we dedicated the release cycle of version 13.02 to bringing the NOVA platform
+to new heights, revisiting several framework internals, and exploring the
+Exynos 5250 SoC based on ARM Cortex A15.
+
+The work on the NOVA platform pursued three goals: Improving the kernel to make
+it fit for Genode's highly dynamic work loads, leveraging the IOMMU support
+provided by the kernel, and tightly integrating the Vancouver virtualization
+solution with the Genode environment. These improvements combined turn NOVA
+into an intriguing base platform for Genode on x86 machines. Besides the x86
+architecture, the framework receives new support for ARM Cortex A15 CPUs in the
+form of the Exynos 5250 SoC. We enabled Genode on this hardware platform using
+both our custom kernel as well as the Fiasco.OC kernel.
+
+Even though the current version is primarily focused on platform support, there
+are noteworthy functional improvements as well. A few highlights are a
+completely redesigned audio interface, added file-system notification
+capabilities, and a new fault-detection mechanism.
+
+These and many more improvements are described in elaborative detail in the
+[http:/documentation/release-notes/13.02 - release notes of version 13.02...]
+
+
 Road Map 2013 | 2013-01-15
 ##########################
 
