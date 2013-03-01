@@ -29,16 +29,42 @@ namespace Regulator {
 		unsigned mMax;
 		unsigned mNumLevelSteps;
 		unsigned mDelay;
+		unsigned mRefCount;
 
 	public:
 		const unsigned int id;
 		const char *name;
 
-		virtual bool enable(void) = 0;
-		virtual bool disable(void) = 0;
+		virtual bool raw_enable(void) = 0;
+		virtual bool raw_disable(void) = 0;
 		virtual bool is_enabled(void) = 0;
 		virtual enum regulator_state get_state(void) = 0;
 		virtual bool set_state(enum regulator_state state) = 0;
+		
+		virtual bool enable(void) {
+			mRefCount++;
+		
+			if (!is_enabled()) {
+				return raw_enable();
+			}
+
+			return true;
+		}
+
+		virtual bool disable(void) {
+			if (mRefCount) {
+				mRefCount--;
+			}
+			else if (!is_enabled()) {
+				PERR("trying to disable \'%s\' when already off", name);
+				return false;
+			}
+
+			if (!mRefCount) {
+				return raw_disable();
+			}
+			return true;
+		}
 		
 		virtual unsigned min_level(void) {
 			return mMin;
@@ -58,7 +84,7 @@ namespace Regulator {
 		}
 		
 		AbstractRegulator(unsigned id, const char* name) :
-			mMin(0), mMax(0), mNumLevelSteps(1), mDelay(0),
+			mMin(0), mMax(0), mNumLevelSteps(1), mDelay(0), mRefCount(0),
 			id(id), name(name) {}
 		virtual ~AbstractRegulator() {}
 	};
@@ -135,7 +161,6 @@ namespace Regulator {
 		virtual bool enable(unsigned regulator_id) {
 			AbstractRegulator *vreg = lookup(regulator_id);
 			if (!vreg) {
-				PINF("not found");
 				return false;
 			}
 			
@@ -145,7 +170,6 @@ namespace Regulator {
 		virtual bool disable(unsigned regulator_id) {
 			AbstractRegulator *vreg = lookup(regulator_id);
 			if (!vreg) {
-				PINF("not found");
 				return false;
 			}
 
