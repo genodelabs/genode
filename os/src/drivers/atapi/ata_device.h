@@ -45,6 +45,7 @@ namespace Ata {
 			unsigned                 _block_end;
 			unsigned                 _block_size;
 			Genode::addr_t           _base_addr;
+			bool                     _lba48;
 
 		protected:
 
