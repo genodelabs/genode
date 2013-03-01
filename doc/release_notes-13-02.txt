@@ -68,7 +68,7 @@ malicious driver could misuse the device to read and manipulate all parts of
 the memory, including the kernel.
 
 [image no_iommu]
-  Traditional machine with not IOMMU. Direct memory accesses issued by the
+  Traditional machine without IOMMU. Direct memory accesses issued by the
   disk controller are not subjected to the MMU. The disk controller can
   access the entity of memory present in the system.
 
