@@ -133,7 +133,7 @@ public:
 		return (val == TWL6030::CFG_STATE_ON) && (grp & TWL6030::GRP_P1);
 	}
 
-	virtual bool enable(void) {
+	virtual bool raw_enable(void) {
 		uint8_t grp;
 		if (!read_u8(TWL6030::VREG_GRP, &grp)) {
 			return false;
@@ -152,7 +152,7 @@ public:
 		return ret;
 	}
 
-	virtual bool disable(void) {
+	virtual bool raw_disable(void) {
 		uint8_t grp =
 			TWL6030::GRP_P1|TWL6030::GRP_P2|TWL6030::GRP_P3;
 
