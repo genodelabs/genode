@@ -295,7 +295,7 @@ extern "C" {
 
 
 	void genode_block_submit(unsigned idx, unsigned long queue_offset,
-	                         unsigned long size, unsigned long disc_offset, int write)
+	                         unsigned long size, unsigned long long disc_offset, int write)
 	{
 		if (idx >= genode_block_count()) {
 			PWRN("Invalid index!");

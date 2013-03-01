@@ -62,7 +62,7 @@ static void genode_blk_request(struct request_queue *q)
 	struct request *req;
 	unsigned long  queue_offset;
 	void          *buf;
-	unsigned long  offset;
+	unsigned long long  offset;
 	unsigned long  nbytes;
 	short          write;
 	struct genode_blk_device* dev;
@@ -155,7 +155,7 @@ static int genode_blk_getgeo(struct block_device *bdev, struct hd_geometry *geo)
 	struct genode_blk_device *dev  = bdev->bd_disk->private_data;
 	unsigned long             size = dev->blk_cnt * dev->blk_sz *
 	                                 (dev->blk_sz / KERNEL_SECTOR_SIZE);
-	geo->cylinders = size << 5;
+	geo->cylinders = size >> 7;
 	geo->heads     = 4;
 	geo->sectors   = 32;
 	return 0;
