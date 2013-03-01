@@ -1,4 +1,10 @@
-LIBC_DIR = $(REP_DIR)/contrib/libc-8.2.0
+#
+# We use 'select_from_repositories' rather than specifying the patch via
+# 'REP_DIR' to enable other repositories to include this file. For example,
+# this enables 'ports/lib/mk/seoul_libc_support.mk' to reuse the definitions.
+#
+
+LIBC_DIR = $(call select_from_repositories,contrib/libc-8.2.0)
 
 # local libc includes
 INC_DIR += $(LIBC_DIR)/libc/locale
@@ -24,4 +30,4 @@ CC_OPT += -DPIC
 #
 # Use libc import rules also for building the libc itself
 #
-include $(REP_DIR)/lib/import/import-libc.mk
+include $(call select_from_repositories,lib/import/import-libc.mk)
