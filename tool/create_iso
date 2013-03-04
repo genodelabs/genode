@@ -31,7 +31,7 @@ default help:
 # parameter 1  filename of ISO image
 # parameter 2  path of directory containing file tree for the ISO image
 #
-gen_iso_image = genisoimage -f -l -R -hide-rr-moved -jcharset utf8 \
+gen_iso_image = mkisofs     -f -l -R -hide-rr-moved -jcharset utf-8 \
                             -no-emul-boot -boot-load-size 4 -boot-info-table \
                             -b boot/isolinux/isolinux.bin \
                             -o $(1) $(2)
