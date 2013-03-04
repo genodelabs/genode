@@ -250,8 +250,6 @@ static inline int sigma0_req_region(addr_t *addr, unsigned log2size)
 
 	*addr = l4_utcb_mr()->mr[0] & (~0UL << L4_PAGESHIFT);
 
-	touch_rw((void *)addr, 1);
-
 	return 0;
 }
 
