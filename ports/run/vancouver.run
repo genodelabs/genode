@@ -117,8 +117,8 @@ puts $launchpad_cfg_fd {<config>
 				<config>
 					<animate>off</animate>
 					<x>10</x><y>10</y>
-					<width>640</width>
-					<height>480</height>
+					<width>800</width>
+					<height>600</height>
 				</config>
 			</start>
 
