@@ -17,6 +17,9 @@ build {
 	test/lwip/http_srv
 }
 
+lappend_if [have_spec acpi]  build_components drivers/acpi
+lappend_if [have_spec pci]   build_components drivers/pci/device_pd
+
 create_boot_directory
 
 #
@@ -58,7 +61,29 @@ set config {
 	</start>
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="2M"/>
-	</start> 
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="5M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
+
+append config {
 </config>
 }
 
@@ -74,6 +99,10 @@ set boot_modules {
 	usb_drv
 	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so test-lwip_httpsrv
 }
+
+lappend_if [have_spec acpi]          boot_modules acpi_drv
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 build_boot_image $boot_modules
 

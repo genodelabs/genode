@@ -20,10 +20,10 @@
 #include <util/string.h>
 
 /* Local includes */
-#include "mem.h"
 #include "routine.h"
 #include "signal.h"
 #include "lx_emul.h"
+#include "platform/lx_mem.h"
 
 /* DDE kit includes */
 extern "C" {
@@ -38,121 +38,217 @@ extern "C" {
 
 #if VERBOSE_LX_EMUL
 #define TRACE       dde_kit_printf("\033[35m%s\033[0m called\n",                __PRETTY_FUNCTION__)
-#define UNSUPPORTED dde_kit_printf("\033[31m%s\033[0m unsupported arguments\n", __PRETTY_FUNCTION__)
 #else
 #define TRACE
-#define UNSUPPORTED
 #endif
 
 namespace Genode {
-
-	class Slab_alloc : public Slab
-	{
-		private:
-			
-			Mem::Zone_alloc *_allocator;
-
-			size_t _calculate_block_size(size_t object_size)
-			{
-				size_t block_size = 8 * (object_size + sizeof(Slab_entry)) + sizeof(Slab_block);
-				return align_addr(block_size, 12);
-			}
-
-		public:
-
-			Slab_alloc(size_t object_size, Mem::Zone_alloc *allocator)
-			: Slab(object_size, _calculate_block_size(object_size), 0, allocator),
-			  _allocator(allocator) { }
-
-		inline void *alloc()
-		{
-			void *result;
-			return (Slab::alloc(slab_size(), &result) ? result : 0);
-		}
-
-		bool match(void const *addr) { return _allocator->match(addr); }
-		addr_t phys_addr(void const *addr) { return _allocator->phys_addr(addr); }
-	};
+	class Slab_backend_alloc;
+	class Slab_alloc;
 }
 
-
-class Malloc
+/**
+ * Back-end allocator for Genode's slab allocator
+ */
+class Genode::Slab_backend_alloc : public Genode::Allocator,
+                                   public Genode::Rm_connection
 {
 	private:
 
-		Genode::Mem *_pool;
-
-		enum { 
-			SLAB_START_LOG2 = 3,  /* 8 B */
-			SLAB_STOP_LOG2  = 16, /* 64 KB */
-			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1
+		enum {
+			VM_SIZE    = 10 * 1024 * 1024,     /* size of VM region to reserve */
+			BLOCK_SIZE = 768  * 1024,         /* 1 MB */
+			ELEMENTS   = VM_SIZE / BLOCK_SIZE, /* MAX number of dataspaces in VM */
 		};
 
-		/* slab allocator using Mem as back-end */
-		Genode::Slab_alloc *_allocator[NUM_SLABS];
+		addr_t                   _base;              /* virt. base address */
+		bool                     _cached;            /* non-/cached RAM */
+		Ram_dataspace_capability _ds_cap[ELEMENTS];  /* dataspaces to put in VM */
+		addr_t                   _ds_phys[ELEMENTS]; /* physical bases of dataspaces */
+		int                      _index;             /* current index in ds_cap */
+		Allocator_avl            _range;             /* manage allocations */
 
-		void _init_slabs()
+		bool _alloc_block()
 		{
-			using namespace Genode;
-			_pool->init_zones(NUM_SLABS);
-			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++) {
-				Mem::Zone_alloc *allocator = _pool->new_zone_allocator();
-				_allocator[i - SLAB_START_LOG2] = new (env()->heap()) Slab_alloc(1U << i, allocator);
+			if (_index == ELEMENTS) {
+				PERR("Slab-backend exhausted!");
+				return false;
 			}
-		}
 
-		/**
-		 * Return slab for 'struct dma_pool' of size
-		 */
-		int _dma_pool_slab(Genode::size_t size)
-		{
-			int msb = Genode::log2(size);
-			if (size > (1U << msb))
-				msb++;
+			try {
+				_ds_cap[_index] = Backend_memory::alloc(BLOCK_SIZE, _cached);
+				/* attach at index * BLOCK_SIZE */
+				Rm_connection::attach_at(_ds_cap[_index], _index * BLOCK_SIZE, BLOCK_SIZE, 0);
 
-			/* take next chunk */
-			return msb++;
+				/* lookup phys. address */
+				_ds_phys[_index] = Dataspace_client(_ds_cap[_index]).phys_addr();
+			} catch (...) { return false; }
+
+			/* return base + offset in VM area */
+			addr_t block_base = _base + (_index * BLOCK_SIZE);
+			++_index;
+
+			_range.add_range(block_base, BLOCK_SIZE);
+			return true;
 		}
 
 	public:
 
-		Malloc(Genode::Mem *pool) : _pool(pool) { _init_slabs(); }
-
-		/**
-		 * General purpose allcator
-		 */
-		static Malloc *mem()
+		Slab_backend_alloc(bool cached)
+		: Rm_connection(0, VM_SIZE), _cached(cached), _index(0),
+		  _range(env()->heap())
 		{
-			static Malloc _m(Genode::Mem::pool());
-			return &_m;
+			/* reserver attach us, anywere */
+			_base = env()->rm_session()->attach(dataspace());
 		}
 
 		/**
-		 * DMA allocator
+		 * Allocate 
 		 */
-		static Malloc *dma()
+		bool alloc(size_t size, void **out_addr)
 		{
-			static Malloc _m(Genode::Mem::dma());
-			return &_m;
+				bool done = _range.alloc(size, out_addr);
+
+				if (done)
+					return done;
+
+				done = _alloc_block();
+				if (!done) {
+					PERR("Backend allocator exhausted\n");
+					return false;
+				}
+
+				return _range.alloc(size, out_addr);
 		}
+
+		void   free(void *addr, size_t /* size */) { }
+		size_t overhead(size_t size) { return  0; }
 
 		/**
-		 * Alloc with alignment (uses back-end when alingment is > 2)
+		 * Return phys address for given virtual addr.
 		 */
-		void *alloc(Genode::size_t size, int align)
+		addr_t phys_addr(addr_t addr)
 		{
-			if (align <= 2)
-				return alloc(size);
+			if (addr < _base || addr >= (_base + VM_SIZE))
+				return ~0UL;
 
-			return _pool->alloc(size, -1, align);
+			int index = (addr - _base) / BLOCK_SIZE;
+
+			/* physical base of dataspace */
+			addr_t phys = _ds_phys[index];
+
+			if (!phys)
+				return ~0UL;
+
+			/* add offset */
+			phys += (addr - _base - (index * BLOCK_SIZE));
+			return phys;
 		}
 
+		addr_t start() const { return _base; }
+		addr_t end()   const { return _base + VM_SIZE - 1; }
+};
+
+
+/**
+ * Slab allocator using our back-end allocator
+ */
+class Genode::Slab_alloc : public Genode::Slab
+{
+	private:
+		
+		Slab_backend_alloc  *_allocator;
+
+		size_t _calculate_block_size(size_t object_size)
+		{
+			size_t block_size = 8 * (object_size + sizeof(Slab_entry)) + sizeof(Slab_block);
+			return align_addr(block_size, 12);
+		}
+
+	public:
+
+		Slab_alloc(size_t object_size, Slab_backend_alloc *allocator)
+		: Slab(object_size, _calculate_block_size(object_size), 0, allocator),
+		  _allocator(allocator) { }
+
+	inline addr_t alloc()
+	{
+		addr_t result;
+		return (Slab::alloc(slab_size(), (void **)&result) ? result : 0);
+	}
+
+	addr_t phys_addr(addr_t addr) { return _allocator->phys_addr(addr); }
+};
+
+
+/**
+ * Memory interface used used for Linux emulation
+ */
+class Malloc
+{
+	private:
+
+		enum {
+			SLAB_START_LOG2 = 3,  /* 8 B */
+			SLAB_STOP_LOG2  = 16, /* 64 KB */
+			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
+		};
+
+		typedef Genode::addr_t addr_t;
+		typedef Genode::Slab_alloc Slab_alloc;
+		typedef Genode::Slab_backend_alloc Slab_backend_alloc;
+
+		Slab_alloc         *_allocator[NUM_SLABS]; 
+		bool                _cached; /* cached or un-cached memory */
+		addr_t              _start;  /* VM region of this allocator */
+		addr_t              _end;
+
+		/**
+		 * Set 'value' at 'addr'
+		 */
+		void _set_at(addr_t addr, addr_t value) { *((addr_t *)addr) = value; }
+
+		/**
+		 * Retrieve slab index belonging to given address
+		 */
+		unsigned _slab_index(Genode::addr_t **addr)
+		{
+			using namespace Genode;
+			/* get index */
+			addr_t index = *(*addr - 1);
+
+			/*
+			 * If index large, we use aligned memory, retrieve beginning of slab entry
+			 * and read index from there
+			 */
+			if (index > 32) {
+				*addr = (addr_t *)*(*addr - 1);
+				index = *(*addr - 1);
+			}
+
+			return index;
+		}
+
+	public:
+
+		Malloc(Slab_backend_alloc *alloc, bool cached)
+		: _cached(cached), _start(alloc->start()), _end(alloc->end())
+		{
+			/* init slab allocators */
+			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++)
+				_allocator[i - SLAB_START_LOG2] = new (Genode::env()->heap())
+				                                  Slab_alloc(1U << i, alloc);
+		}
 
 		/**
 		 * Alloc in slabs
 		 */
-		void *alloc(Genode::size_t size)
+		void *alloc(Genode::size_t size, int align = 0, Genode::addr_t *phys = 0)
 		{
+			using namespace Genode;
+			/* += slab index + aligment size */
+			size += sizeof(addr_t) + (align > 2 ? (1 << align) : 0);
+
 			int msb = Genode::log2(size);
 
 			if (size > (1U << msb))
@@ -162,86 +258,74 @@ class Malloc
 				msb = SLAB_STOP_LOG2;
 
 			if (msb > SLAB_STOP_LOG2) {
-				PINF("Slab too large %u", 1U << msb);
-				return _pool->alloc(size);
+				PERR("Slab too large %u reqested %zu cached %d", 1U << msb, size, _cached);
+				return 0;
 			}
 
-			return _allocator[msb - SLAB_START_LOG2]->alloc();
-		}
-
-
-		/**
-		 * Free from slabs
-		 */
-		void free(void const *addr)
-		{
-
-			for (register unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++) {
-				Genode::Slab_alloc *slab = _allocator[i - SLAB_START_LOG2];
-				
-				if (!slab->match(addr))
-					continue;
-
-				slab->free((void *)addr);
-				return;
+			addr_t addr =  _allocator[msb - SLAB_START_LOG2]->alloc();
+			if (!addr) {
+				PERR("Failed to get slab for %u", 1 << msb);
+				return 0;
 			}
-			
-			_pool->free((void *)addr);
-		}
 
-		/**
-		 * Get phys addr
-		 */
-		Genode::addr_t phys_addr(void *addr)
-		{
-			for (register unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++) {
-				Genode::Slab_alloc *slab = _allocator[i - SLAB_START_LOG2];
-				
-				if (!slab->match(addr))
-					continue;
+			_set_at(addr, msb - SLAB_START_LOG2);
+			addr += sizeof(addr_t);
 
-				return slab->phys_addr(addr);
+			if (align > 2) {
+				/* save */
+				addr_t ptr = addr;
+				addr_t align_val = (1U << align);
+				addr_t align_mask = align_val - 2;
+				/* align */
+				addr = (addr + align_val) & ~align_mask;
+				/* write start address before aligned address */
+				_set_at(addr - sizeof(addr_t), ptr);
 			}
-			/* not found in slabs, try in back-end */
-			return _pool->phys_addr(addr);
+
+			if (phys)
+				*phys = _allocator[msb - SLAB_START_LOG2]->phys_addr(addr);
+			return (addr_t *)addr;
 		}
 
-
-		/**
-		 * Allocate aligned memory in slabs
-		 */
-		void *dma_pool_alloc(size_t size, int align, Genode::addr_t *dma)
+		void free(void const *a)
 		{
 			using namespace Genode;
+			addr_t *addr = (addr_t *)a;
 
-			int msb = _dma_pool_slab(size);
-			addr_t base = (addr_t)_allocator[msb - SLAB_START_LOG2]->alloc();
+			unsigned nr = _slab_index(&addr);
+			_allocator[nr]->free((void *)(addr - 1));
+		}
 
-			unsigned align_val = (1U << align);
-			unsigned align_mask = align_val - 1;
-
-			/* make room for pointer */
-			addr_t addr = base + sizeof(Genode::addr_t);
-
-			/* align */
-			addr = (addr + align_val - 1) & ~align_mask;
-			addr_t *ptr = (addr_t *)addr - 1;
-			*ptr = base;
-
-			*dma = phys_addr((void *)addr);
-			return (void *)addr;
+		Genode::addr_t phys_addr(void *a)
+		{
+			using namespace Genode;
+			addr_t *addr = (addr_t *)a;
+			return _allocator[_slab_index(&addr)]->phys_addr((addr_t)a);
 		}
 
 		/**
-		 * Free memory allocted with 'dma_pool_alloc'
+		 * Belongs given address to this allocator
 		 */
-		void dma_pool_free(size_t size, void *addr)
-		{
-			using namespace Genode;
+		bool inside(addr_t const addr) const { return (addr > _start) && (addr <= _end); }
 
-			int msb = _dma_pool_slab(size);
-			addr_t base = *((addr_t *)addr - 1);
-			_allocator[msb - SLAB_START_LOG2]->free((void *)base);
+		/**
+		 * Cached memory allocator
+		 */
+		static Malloc *mem()
+		{
+			static Slab_backend_alloc _b(true);
+			static Malloc _m(&_b, true);
+			return &_m;
+		}
+
+		/**
+		 * DMA allocator
+		 */
+		static Malloc *dma()
+		{
+			static Slab_backend_alloc _b(false);
+			static Malloc _m(&_b, false);
+			return &_m;
 		}
 };
 
@@ -280,6 +364,11 @@ void mutex_unlock(struct mutex *m) { if (m->lock) dde_kit_lock_unlock( m->lock);
 void *kmalloc(size_t size, gfp_t flags)
 {
 	void *addr = flags & GFP_NOIO ? Malloc::dma()->alloc(size) : Malloc::mem()->alloc(size);
+
+	unsigned long a = (unsigned long)addr;
+
+	if (a & 0x3)
+		PERR("Unaligned kmalloc %lx", a);
 	return addr;
 }
 
@@ -304,8 +393,11 @@ void *kcalloc(size_t n, size_t size, gfp_t flags)
 
 void kfree(const void *p)
 {
-	Malloc::mem()->free(p);
-	Malloc::dma()->free(p);
+	if (Malloc::mem()->inside((Genode::addr_t)p))
+		Malloc::mem()->free(p);
+	
+	if (Malloc::dma()->inside((Genode::addr_t)p))
+		Malloc::dma()->free(p);
 }
 
 
@@ -756,7 +848,7 @@ static Timer::Connection _timer;
 
 void udelay(unsigned long usecs)
 {
-	_timer.msleep(usecs < 1000 ? 1 : usecs / 1000);
+	_timer.usleep(usecs);
 }
 
 
@@ -807,25 +899,24 @@ void  dma_pool_destroy(struct dma_pool *d)
 
 void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 {
-	return Malloc::dma()->dma_pool_alloc(d->size, d->align, (Genode::addr_t*)dma);
+	return Malloc::dma()->alloc(d->size, d->align, (Genode::addr_t*)dma);
 }
 
 
 void  dma_pool_free(struct dma_pool *d, void *vaddr, dma_addr_t a)
 {
 	dde_kit_log(DEBUG_DMA, "free: addr %p, size: %zx", vaddr, d->size);
-	Malloc::dma()->dma_pool_free(d->size, vaddr);
+	Malloc::dma()->free(vaddr);
 }
 
 
 void *dma_alloc_coherent(struct device *, size_t size, dma_addr_t *dma, gfp_t)
 {
-	void *addr = Malloc::dma()->alloc(size, PAGE_SHIFT);
+	void *addr = Malloc::dma()->alloc(size, PAGE_SHIFT, dma);
 
 	if (!addr)
 		return 0;
 
-	*dma = (dma_addr_t)Malloc::dma()->phys_addr(addr);
 	dde_kit_log(DEBUG_DMA, "DMA pool alloc addr: %p size %zx align: %d, phys: %lx",
 	            addr, size, PAGE_SHIFT, *dma);
 	return addr;
@@ -852,6 +943,10 @@ dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
                                 struct dma_attrs *attrs)
 {
 	dma_addr_t phys = (dma_addr_t)Malloc::dma()->phys_addr(ptr);
+
+	if (phys == ~0UL)
+		PERR("translation virt->phys %p->%lx failed, return ip %p", ptr, phys,
+		     __builtin_return_address(0));
 
 	dde_kit_log(DEBUG_DMA, "virt: %p phys: %lx", ptr, phys);
 	return phys;

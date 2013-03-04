@@ -20,7 +20,6 @@
 #include <util/xml_node.h>
 
 #include <lx_emul.h>
-#include <mem.h>
 
 #include <nic/component.h>
 #include "signal.h"
@@ -69,7 +68,7 @@ class Skb
 			Genode::memset(_free, 0xff, sizeof(_free));
 
 			for (unsigned i = 0; i < ENTRIES; i++)
-				_buf[i].start = (unsigned char *)Genode::Mem::dma()->alloc(BUFFER);;
+				_buf[i].start = (unsigned char *)kmalloc(BUFFER, GFP_NOIO);
 		}
 
 		sk_buff *alloc()

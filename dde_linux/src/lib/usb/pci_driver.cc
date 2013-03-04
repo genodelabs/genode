@@ -17,8 +17,7 @@
 
 /* Linux includes */
 #include <lx_emul.h>
-
-#include "mem.h"
+#include <platform/lx_mem.h>
 
 struct  bus_type pci_bus_type;
 
@@ -311,10 +310,14 @@ const char *pci_name(const struct pci_dev *pdev)
 	return "dummy";
 }
 
-Genode::Ram_dataspace_capability Genode::Mem::alloc_dma_buffer(size_t size)
+Genode::Ram_dataspace_capability Backend_memory::alloc(Genode::addr_t size,
+                                                       bool cached)
 {
 	using namespace Genode;
-	Ram_dataspace_capability ram_cap = pci.alloc_dma_buffer(pci_device_cap,
-	                                                        size);
-	return ram_cap;
+
+	PERR("use it here %u", cached);
+	if (cached)
+		return env()->ram_session()->alloc(size, cached);
+	else
+		return pci.alloc_dma_buffer(pci_device_cap, size);
 }
