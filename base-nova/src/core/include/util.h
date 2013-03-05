@@ -39,10 +39,10 @@ namespace Genode {
 	                             Rm_session::Fault_type pf_type,
 	                             unsigned long faulter_badge)
 	{
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx)\n", msg,
+		printf("%s (%s pf_addr=%p pf_ip=%p from %02lx %s)\n", msg,
 		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",
 		       (void *)pf_addr, (void *)pf_ip,
-		       faulter_badge);
+		       faulter_badge, reinterpret_cast<char *>(faulter_badge));
 	}
 
 
