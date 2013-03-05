@@ -57,8 +57,13 @@ CONTENT_INPUT := input.c evdev.c input-compat.h
 CONTENT += $(addprefix drivers/input/,$(CONTENT_INPUT))
 CONTENT += include/linux/input/mt.h
 
-# Panda board usb network driver
-CONTENT_NET = usbnet.c smsc95xx.c smsc95xx.h
+# usb network driver
+CONTENT_NET = usbnet.c
+# Panda board
+CONTENT_NET += smsc95xx.c smsc95xx.h
+# Arndale board
+CONTENT_NET += asix.c
+
 CONTENT    += $(addprefix drivers/net/usb/,$(CONTENT_NET))
 CONTENT    += include/linux/usb/usbnet.h
 

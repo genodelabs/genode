@@ -531,7 +531,7 @@ size_t strlcat(char *dest, const char *src, size_t n)
 
 void  *kmemdup(const void *src, size_t len, gfp_t gfp)
 {
-	void *ptr = kmalloc(len, 0);
+	void *ptr = kmalloc(len, gfp);
 	memcpy(ptr, src, len);
 	return ptr;
 }

@@ -370,7 +370,7 @@ extern "C" int  module_smsc95xx_init();
 
 void platform_hcd_init(Services *services)
 {
-	/* register netowrk */
+	/* register network */
 	if (services->nic) {
 		module_usbnet_init();
 		module_smsc95xx_init();

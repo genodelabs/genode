@@ -136,9 +136,17 @@ static void arndale_ehci_init()
 
 
 extern "C" void module_ehci_hcd_init();
+extern "C" int  module_usbnet_init();
+extern "C" int  module_asix_init();
 
 void platform_hcd_init(Services *services)
 {
+	/* register network */
+	if (services->nic) {
+		module_usbnet_init();
+		module_asix_init();
+	}
+
 	/* register EHCI controller */
 	module_ehci_hcd_init();
 

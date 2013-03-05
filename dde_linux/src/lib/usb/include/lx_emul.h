@@ -426,6 +426,7 @@ enum {
 	EOPNOTSUPP   = 48,
 	EDOM         = 49,
 	ENOLINK      = 50,
+	EADDRNOTAVAIL= 51,
 };
 
 static inline bool IS_ERR(void *ptr) {
@@ -647,6 +648,7 @@ char * strsep(char **,const char *);
 char *strstr(const char *, const char *);
 char  *kstrdup(const char *s, gfp_t gfp);
 void  *kmemdup(const void *src, size_t len, gfp_t gfp);
+void  *memmove(void *, const void *, size_t);
 
 
 /*****************
@@ -690,6 +692,7 @@ int isprint(int);
 #define EXPORT_SYMBOL(x)
 #define EXPORT_SYMBOL_GPL(x)
 #define MODULE_AUTHOR(x)
+#define MODULE_VERSION(x)
 #define MODULE_DESCRIPTION(x)
 #define MODULE_LICENSE(x)
 #define MODULE_PARM_DESC(x, y)
@@ -2666,6 +2669,7 @@ struct sk_buff
 	__be16         protocol;
 	unsigned char *start;
 	unsigned char *end;
+	unsigned char *head;
 	unsigned char *data;
 	unsigned char *tail;
 	unsigned char *phys;
@@ -2704,6 +2708,13 @@ void skb_set_tail_pointer(struct sk_buff *, const int);
 struct sk_buff *skb_clone(struct sk_buff *, gfp_t);
 void skb_reserve(struct sk_buff *, int);
 
+static inline int skb_cloned(const struct sk_buff *skb) {
+	return skb->cloned; }
+static inline void skb_copy_to_linear_data(struct sk_buff *skb,
+                                           const void *from,
+                                           const unsigned int len) {
+	memcpy(skb->data, from, len); }
+
 struct sk_buff *skb_dequeue(struct sk_buff_head *);
 void skb_queue_head_init(struct sk_buff_head *);
 void skb_queue_tail(struct sk_buff_head *, struct sk_buff *);
@@ -2739,6 +2750,7 @@ struct ifreq { };
 
 enum {
 	ETH_ALEN    = 6,      /* octets in one ethernet addr */
+	ETH_HLEN    = 14,     /* total octets in header */
 	ETH_P_8021Q = 0x8100, /* 802.1Q VLAN Extended Header  */
 
 	ETH_FRAME_LEN = 1514,
@@ -2754,6 +2766,12 @@ enum {
 	ETHTOOL_GSET = 0x1,
 	ETHTOOL_FWVERS_LEN = 32,
 	ETHTOOL_BUSINFO_LEN = 32,
+
+	WAKE_PHY     = 0x1,
+	WAKE_MAGIC   = 0x20,
+
+	SPEED_100    = 100,
+	SPEED_1000   = 1000,
 };
 
 
@@ -2777,6 +2795,12 @@ struct ethtool_drvinfo
 	char    fw_version[ETHTOOL_FWVERS_LEN]; /* firmware version string */
 	char    bus_info[ETHTOOL_BUSINFO_LEN];  /* Bus info for this IF. */
 	                                        /* For PCI devices, use pci_name(pci_dev). */
+	u32     eedump_len;
+};
+
+struct ethtool_wolinfo {
+	u32 supported;
+	u32	wolopts;
 };
 
 struct ethhdr { };
@@ -2795,6 +2819,8 @@ struct ethtool_ops
 	int     (*set_eeprom)(struct net_device *, struct ethtool_eeprom *, u8 *);
 	u32     (*get_msglevel)(struct net_device *);
 	void    (*set_msglevel)(struct net_device *, u32);
+	void    (*get_wol)(struct net_device *, struct ethtool_wolinfo *);
+	int     (*set_wol)(struct net_device *, struct ethtool_wolinfo *);
 };
 
 __u32 ethtool_cmd_speed(const struct ethtool_cmd *ep);
@@ -2816,7 +2842,7 @@ u32 ethtool_op_get_link(struct net_device *);
 
 #if VERBOSE_LX_EMUL
 #define netif_dbg(priv, type, dev, fmt, args...) dde_kit_printf("netif_dbg: "  fmt, ## args)
-#define netdev_dbg(dev, fmt, args...)  dde_kit_printf("nedev_dbg: " fmt, ##args)
+#define netdev_dbg(dev, fmt, args...)  dde_kit_printf("netdev_dbg: " fmt, ##args)
 #else
 #define netif_dbg(priv, type, dev, fmt, args...)
 #define netdev_dbg(dev, fmt, args...)
@@ -2901,9 +2927,25 @@ struct netdev_hw_addr
 	unsigned char addr[MAX_ADDR_LEN];
 };
 
+enum netdev_state_t {
+	__LINK_STATE_START,
+	__LINK_STATE_PRESENT,
+	__LINK_STATE_NOCARRIER,
+	__LINK_STATE_LINKWATCH_PENDING,
+	__LINK_STATE_DORMANT,
+};
+
 #define netif_msg_tx_err(p) ({ printk("netif_msg_tx_err called not implemented\n"); 0; })
 #define netif_msg_rx_err(p) ({ printk("netif_msg_rx_err called not implemented\n"); 0; })
 #define netif_msg_tx_queued(p) ({ printk("netif_msg_tx_queued called not implemented\n"); 0; })
+static inline int netif_carrier_ok(const struct net_device *dev) {
+	return !test_bit(__LINK_STATE_NOCARRIER, &dev->state);
+}
+#define netif_carrier_on(p) ({ printk("netif_carrier_on called not implemented\n"); 0; })
+static inline unsigned netdev_mc_count(struct net_device * dev) {
+	printk("netdev_mc_count called not implemented\n");
+	return 0;
+}
 
 u32 netif_msg_init(int, int);
 
@@ -2933,10 +2975,14 @@ enum {
 	FLOW_CTRL_RX = 0x2,
 
 	MII_BMCR      = 0x0,
+	MII_PHYSID1   =	0x2,
+	MII_PHYSID2   = 0x3,
 	MII_ADVERTISE = 0x4,
 	MII_LPA       = 0x5,
+	MII_CTRL1000  =	0x9,
 
 	BMCR_RESET = 0x8000, /* reset to default state */
+	BMCR_ANENABLE =	0x1000, /* enable auto negotiation */
 
 	ADVERTISE_PAUSE_CAP  = 0x0400, /* try for pause */
 	ADVERTISE_CSMA       = 0x0001, /* only selector supported */
@@ -2945,6 +2991,7 @@ enum {
 	ADVERTISE_10FULL     = 0x0040,
 	ADVERTISE_100HALF    = 0x0080,
 	ADVERTISE_100FULL    = 0x0100,
+	ADVERTISE_1000FULL   = 0x0200,
 	ADVERTISE_ALL        = ADVERTISE_10HALF | ADVERTISE_10FULL |
 	                       ADVERTISE_100HALF | ADVERTISE_100FULL
 };
@@ -2957,6 +3004,8 @@ struct mii_if_info
 	struct net_device *dev;
 	int (*mdio_read) (struct net_device *dev, int phy_id, int location);
 	void (*mdio_write) (struct net_device *dev, int phy_id, int location, int val);
+
+	unsigned int supports_gmii : 1; /* are GMII registers supported? */
 };
 
 
@@ -3007,6 +3056,15 @@ struct net_device *alloc_etherdev(int);
 
 __wsum csum_partial(const void *, int, __wsum);
 __sum16 csum_fold(__wsum);
+
+/********************
+ ** linux/socket.h **
+ ********************/
+
+struct sockaddr {
+	unsigned short sa_family;
+	char           sa_data[14];
+};
 
 /**********************************
  ** Platform specific defintions **
