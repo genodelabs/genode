@@ -187,7 +187,7 @@ namespace Genode {
 			Resources _resources;
 			Heap      _heap;
 
-			char _initial_junk[4 * 4096];
+			char _initial_junk[sizeof(addr_t) * 4096];
 
 		public:
 
