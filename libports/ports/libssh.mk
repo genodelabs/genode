@@ -16,7 +16,7 @@ $(CONTRIB_DIR)/$(LIBSSH): clean-libssh
 # Port-specific local rules
 #
 $(DOWNLOAD_DIR)/$(LIBSSH_TGZ):
-	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBSSH_URL) && touch $@
+	$(VERBOSE)wget --no-check-certificate -c -P $(DOWNLOAD_DIR) $(LIBSSH_URL) && touch $@
 
 $(CONTRIB_DIR)/$(LIBSSH): $(DOWNLOAD_DIR)/$(LIBSSH_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
