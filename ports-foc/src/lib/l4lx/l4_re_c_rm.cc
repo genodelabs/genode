@@ -27,8 +27,10 @@ namespace Fiasco {
 
 using namespace Fiasco;
 
-static const bool DEBUG      = false; /* print usage of region map functions */
-static const bool DEBUG_FIND = false; /* print also usage of region map lookups */
+static const bool DEBUG        = false; /* print usage of region map functions */
+static const bool DEBUG_FIND   = false; /* print also usage of region map lookups */
+static const bool DEBUG_SEARCH = false; /* print also information about the
+                                           search for alternative address ranges */
 
 enum {
 	L4RE_SEARCH_FOR_REGION = 0x20,
@@ -67,8 +69,10 @@ extern "C" {
 	{
 		using namespace Genode;
 
+		void *original_start = *start;
+
 		if (DEBUG)
-			PDBG("start=%p size=%lx flags=%lx mem=%lx offs=%lx align=%x",
+			PDBG("start=%p size=%lx flags=%lx mem=%lx offs=%lx align=%u",
 			     *start, size, flags, mem, offs, align);
 
 		L4lx::Dataspace *ds = L4lx::Env::env()->dataspaces()->find_by_ref(mem);
@@ -77,11 +81,30 @@ extern "C" {
 			return -L4_ERANGE;
 		}
 
-		if(!L4lx::Env::env()->rm()->attach_at(ds, size, offs, *start)) {
-			if (flags & L4RE_SEARCH_FOR_REGION) /* search flag */
-				*start = L4lx::Env::env()->rm()->attach(ds);
-			else {
-				PWRN("Couldn't attach ds of size %lx at %p", size, *start);
+		while (!L4lx::Env::env()->rm()->attach_at(ds, size, offs, *start)) {
+			if (flags & L4RE_SEARCH_FOR_REGION) /* search flag */ {
+				/* the original start address might have a different alignment */
+				l4_addr_t start_addr = (l4_addr_t)*start;
+				l4_addr_t aligned_start_addr = align_addr(start_addr, align);
+				if (aligned_start_addr != start_addr) {
+					if (DEBUG_SEARCH)
+						PDBG("attach failed: start=%lx, trying %lx instead",
+							 start_addr, aligned_start_addr);
+					*start = (void*)aligned_start_addr;
+				} else {
+					if (start_addr <= ((addr_t)~0 - 2*(1 << align) + 1)) {
+						if (DEBUG_SEARCH)
+							PDBG("attach failed: start=%lx, trying %lx instead",
+								 start_addr, start_addr + (1 << align));
+						start_addr += (1 << align);
+						*start = (void*)start_addr;
+					} else {
+						PWRN("Couldn't attach ds of size 0x%lx at %p", size, original_start);
+						return -L4_ERANGE;
+					}
+				}
+			} else {
+				PWRN("Couldn't attach ds of size 0x%lx at %p", size, original_start);
 				return -L4_ERANGE;
 			}
 		}
@@ -116,7 +139,7 @@ extern "C" {
 	                         unsigned flags, unsigned char align)
 	{
 		if (DEBUG)
-			PDBG("*start=%lx size=%lx align=%x flags=%x",
+			PDBG("*start=%lx size=%lx align=%u flags=%x",
 			     *start, size, align, flags);
 
 		L4lx::Region *r = L4lx::Env::env()->rm()->reserve_range(size, align, *start);

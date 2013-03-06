@@ -1,64 +1,3 @@
-Index: arch/l4/boot/Makefile
-===================================================================
---- arch/l4/boot/Makefile	(revision 25)
-+++ arch/l4/boot/Makefile	(working copy)
-@@ -10,7 +10,7 @@
- 	$(call if_changed,objcopy)
- 	@echo '  Kernel: $@ is ready'
- 
--lImage: $(obj)/Image vmlinuz$(VMLINUZ_SUFFIX) l4linux$(VMLINUZ_SUFFIX)
-+lImage: $(obj)/Image
- 
- vmlinuz$(VMLINUZ_SUFFIX): ldrImage FORCE
- 	$(call if_changed,gzip)
-@@ -21,8 +21,8 @@
- 
- objects-y := ldr.o res.o image.o
- 
--include $(L4OBJ)/l4defs.mk.inc
--
-+#include $(L4OBJ)/l4defs.mk.inc
-+KBUILD_CFLAGS_i386 = -m32
- KBUILD_CFLAGS	:= $(filter-out -mregparm=3,$(KBUILD_CFLAGS)) \
-                    $(L4INC) -I$(L4OBJ)/include/uclibc \
- 		   -Wall -fno-strict-aliasing -O2 -pipe \
-Index: arch/l4/lib/pte.c
-===================================================================
---- arch/l4/lib/pte.c	(revision 25)
-+++ arch/l4/lib/pte.c	(working copy)
-@@ -18,7 +18,10 @@
- #include <l4/sys/task.h>
- #include <l4/sys/kdebug.h>
- #include <l4/re/consts.h>
-+#include <l4/log/log.h>
- 
-+extern void l4lx_memory_map_physical_page(unsigned long address);
-+
- static void l4x_flush_page(struct mm_struct *mm,
-                            unsigned long address,
-                            unsigned long vaddr,
-@@ -77,7 +80,7 @@
- 	if (mm && !l4_is_invalid_cap(mm->context.task)) {
- 		L4XV_V(f);
- 		if (!mm->context.task)
--			l4x_printf("%s: Ups, task == 0\n", __func__);
-+			LOG_printf("%s: Ups, task == 0\n", __func__);
- 		/* Direct flush in the child, use virtual address in the
- 		 * child address space */
- 		L4XV_L(f);
-@@ -93,10 +96,11 @@
- 		tag = l4_task_unmap(L4RE_THIS_TASK_CAP,
- 			            l4_fpage(address & PAGE_MASK, size, flush_rights),
- 			            L4_FP_OTHER_SPACES);
-+		l4lx_memory_map_physical_page(address);
- 		L4XV_U(f);
- 	}
- 	if (l4_error(tag))
--		l4x_printf("l4_task_unmap error %ld\n", l4_error(tag));
-+		LOG_printf("l4_task_unmap error %ld\n", l4_error(tag));
- }
- 
- #ifdef ARCH_arm
 Index: arch/l4/Makefile
 ===================================================================
 --- arch/l4/Makefile	(revision 25)
@@ -190,28 +129,6 @@ Index: arch/l4/Kconfig
  endmenu # stub drivers
  
  menu "Debugging options"
-Index: arch/l4/kernel/dispatch.c
-===================================================================
---- arch/l4/kernel/dispatch.c	(revision 25)
-+++ arch/l4/kernel/dispatch.c	(working copy)
-@@ -271,7 +271,7 @@
-                 return 0;
- 
- 	if (l4_msgtag_is_page_fault(tag)) {
--		l4x_printf("HYBRID PF!!\n");
-+		LOG_printf("HYBRID PF!!\n");
- 		/* No exception IPC, it's a page fault, but shouldn't happen */
- 		goto out_fail;
- 	}
-@@ -695,7 +695,7 @@
- 			enter_kdebug("non hybrid in idle?!");
- 		} else {
- 			if (unlikely(l4x_handle_async_event(label, utcb, tag)))
--				l4x_printf("Async return with error\n");
-+				LOG_printf("Async return with error\n");
- 		}
- 	}
- }
 Index: arch/l4/kernel/arch-arm/traps.c
 ===================================================================
 --- arch/l4/kernel/arch-arm/traps.c	(revision 25)
@@ -385,19 +302,53 @@ Index: arch/l4/kernel/arch-arm/vmlinux.lds.S
  	_end = .;
  
  	STABS_DEBUG
-Index: arch/l4/kernel/arch-x86/x86_init.c
+Index: arch/l4/kernel/arch-x86/rtc.c
 ===================================================================
---- arch/l4/kernel/arch-x86/x86_init.c	(revision 25)
-+++ arch/l4/kernel/arch-x86/x86_init.c	(working copy)
-@@ -42,7 +42,7 @@
- struct x86_init_ops x86_init __initdata = {
+--- arch/l4/kernel/arch-x86/rtc.c	(revision 25)
++++ arch/l4/kernel/arch-x86/rtc.c	(working copy)
+@@ -163,6 +163,7 @@
+ /* Routines for accessing the CMOS RAM/RTC. */
+ unsigned char rtc_cmos_read(unsigned char addr)
+ {
++#ifdef NOT_GENODE
+ #ifndef CONFIG_L4_EXTERNAL_RTC
+ 	unsigned char val;
  
- 	.resources = {
--		.probe_roms		= probe_roms,
-+		.probe_roms		= x86_init_noop,
- 		.reserve_resources	= reserve_standard_io_resources,
- 		.memory_setup		= l4x_memory_setup,
- 	},
+@@ -175,17 +176,22 @@
+ #else
+ 	return 0;
+ #endif
++#else /* NOT_GENODE */
++	return 0;
++#endif /* NOT_GENODE */
+ }
+ EXPORT_SYMBOL(rtc_cmos_read);
+ 
+ void rtc_cmos_write(unsigned char val, unsigned char addr)
+ {
++#ifdef NOT_GENODE
+ #ifndef CONFIG_L4_EXTERNAL_RTC
+ 	lock_cmos_prefix(addr);
+ 	outb(addr, RTC_PORT(0));
+ 	outb(val, RTC_PORT(1));
+ 	lock_cmos_suffix(addr);
+ #endif
++#endif /* NOT_GENODE */
+ }
+ EXPORT_SYMBOL(rtc_cmos_write);
+ 
+Index: arch/l4/kernel/arch-x86/dispatch.c
+===================================================================
+--- arch/l4/kernel/arch-x86/dispatch.c	(revision 25)
++++ arch/l4/kernel/arch-x86/dispatch.c	(working copy)
+@@ -749,6 +749,7 @@
+ 
+ 	TBUF_LOG_EXCP(fiasco_tbuf_log_3val("except ", TBUF_TID(t->user_thread_id), t->trap_nr, t->error_code));
+ 
++	fiasco_tbuf_log_3val("except ", t->trap_nr, regs->ip, 0);
+ 	if (l4x_deliver_signal(r_trapno(t, v), r_err(t, v)))
+ 		return 0; /* handled signal, reply */
+ 
 Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
 ===================================================================
 --- arch/l4/kernel/arch-x86/vmlinux.lds.S	(revision 25)
@@ -600,18 +551,19 @@ Index: arch/l4/kernel/arch-x86/vmlinux.lds.S
  	_end = .;
  
          STABS_DEBUG
-Index: arch/l4/kernel/arch-x86/dispatch.c
+Index: arch/l4/kernel/arch-x86/x86_init.c
 ===================================================================
---- arch/l4/kernel/arch-x86/dispatch.c	(revision 25)
-+++ arch/l4/kernel/arch-x86/dispatch.c	(working copy)
-@@ -749,6 +749,7 @@
+--- arch/l4/kernel/arch-x86/x86_init.c	(revision 25)
++++ arch/l4/kernel/arch-x86/x86_init.c	(working copy)
+@@ -42,7 +42,7 @@
+ struct x86_init_ops x86_init __initdata = {
  
- 	TBUF_LOG_EXCP(fiasco_tbuf_log_3val("except ", TBUF_TID(t->user_thread_id), t->trap_nr, t->error_code));
- 
-+	fiasco_tbuf_log_3val("except ", t->trap_nr, regs->ip, 0);
- 	if (l4x_deliver_signal(r_trapno(t, v), r_err(t, v)))
- 		return 0; /* handled signal, reply */
- 
+ 	.resources = {
+-		.probe_roms		= probe_roms,
++		.probe_roms		= x86_init_noop,
+ 		.reserve_resources	= reserve_standard_io_resources,
+ 		.memory_setup		= l4x_memory_setup,
+ 	},
 Index: arch/l4/kernel/timer.c
 ===================================================================
 --- arch/l4/kernel/timer.c	(revision 25)
@@ -808,13 +760,14 @@ Index: arch/l4/kernel/main.c
  
  	return 1;
  }
-@@ -1283,15 +1307,17 @@
+@@ -1283,16 +1307,19 @@
  	                    0, "Main memory");
  
  	/* Reserve some part of the virtual address space for vmalloc */
 -	l4x_vmalloc_memory_start = (unsigned long)l4x_main_memory_start;
 -	if (l4re_rm_reserve_area(&l4x_vmalloc_memory_start,
-+	l4x_vmalloc_memory_start = (unsigned long)l4x_main_memory_start + l4x_mainmem_size;
++	l4x_vmalloc_memory_start = ((((unsigned long)l4x_main_memory_start + l4x_mainmem_size) +
++	                              VMALLOC_OFFSET) & ~(VMALLOC_OFFSET - 1));
  #ifdef CONFIG_X86_32
 -	                          __VMALLOC_RESERVE,
 +	l4x_vmalloc_memory_size  = __VMALLOC_RESERVE;
@@ -825,13 +778,15 @@ Index: arch/l4/kernel/main.c
 -	                          VMALLOC_SIZE << 20,
 +	l4x_vmalloc_memory_size  = VMALLOC_SIZE << 20;
  #endif
+-	                          L4RE_RM_SEARCH_ADDR, PGDIR_SHIFT)) {
 +
 +	if (l4re_rm_reserve_area(&l4x_vmalloc_memory_start,
 +	                          l4x_vmalloc_memory_size,
- 	                          L4RE_RM_SEARCH_ADDR, PGDIR_SHIFT)) {
++	                          L4RE_RM_SEARCH_ADDR, ilog2(VMALLOC_OFFSET))) {
  		LOG_printf("%s: Error reserving vmalloc memory area!\n", __func__);
  		l4x_exit_l4linux();
-@@ -1305,7 +1331,7 @@
+ 	}
+@@ -1305,7 +1332,7 @@
  
  #ifdef ARCH_x86
  	// fixmap area
@@ -840,7 +795,7 @@ Index: arch/l4/kernel/main.c
  	if (l4re_rm_reserve_area(&l4x_fixmap_space_start,
  	                         __end_of_fixed_addresses * PAGE_SIZE,
  	                         L4RE_RM_SEARCH_ADDR, PAGE_SHIFT) < 0) {
-@@ -1416,6 +1442,10 @@
+@@ -1416,6 +1443,10 @@
  
  static void l4x_create_ugate(l4_cap_idx_t forthread, unsigned cpu)
  {
@@ -851,7 +806,7 @@ Index: arch/l4/kernel/main.c
  	l4_msgtag_t r;
  
  	l4x_user_gate[cpu] = l4x_cap_alloc_noctx();
-@@ -1436,6 +1466,7 @@
+@@ -1436,6 +1467,7 @@
  		l4_debugger_set_object_name(l4x_user_gate[cpu], n);
  #endif
  	}
@@ -859,7 +814,7 @@ Index: arch/l4/kernel/main.c
  }
  
  #ifdef CONFIG_HOTPLUG_CPU
-@@ -1641,11 +1672,15 @@
+@@ -1641,11 +1673,15 @@
  		l4x_exit_l4linux();
  	}
  
@@ -875,7 +830,7 @@ Index: arch/l4/kernel/main.c
  
  #ifdef CONFIG_L4_DEBUG_REGISTER_NAMES
  	l4_debugger_set_object_name(c, s);
-@@ -1906,8 +1941,12 @@
+@@ -1906,8 +1942,12 @@
  
  static int l4x_cpu_virt_phys_map_init(const char *boot_command_line)
  {
@@ -888,7 +843,7 @@ Index: arch/l4/kernel/main.c
  	unsigned i;
  
  #ifdef CONFIG_SMP
-@@ -1923,9 +1962,10 @@
+@@ -1923,9 +1963,10 @@
  		}
  	}
  
@@ -900,7 +855,7 @@ Index: arch/l4/kernel/main.c
  		if ((p = strstr(boot_command_line, "l4x_cpus_map="))) {
  			// l4x_cpus_map=0,1,2,3,4,...
  			// the list specifies the physical CPU for each
-@@ -1947,10 +1987,12 @@
+@@ -1947,10 +1988,12 @@
  					LOG_printf("ERROR: Error parsing l4x_cpus_map option\n");
  					return 1;
  				}
@@ -913,7 +868,7 @@ Index: arch/l4/kernel/main.c
  				l4x_cpu_physmap[l4x_nr_cpus].phys_id = pcpu;
  				for (i = 0; i < l4x_nr_cpus; ++i)
  					overbooking |=
-@@ -1974,12 +2016,16 @@
+@@ -1974,12 +2017,16 @@
  			l4x_nr_cpus = v;
  
  		}
@@ -930,7 +885,7 @@ Index: arch/l4/kernel/main.c
  	if (l4_error(l4_scheduler_info(l4re_env()->scheduler,
  	                               &max_cpus, &cs)) == L4_EOK) {
  
-@@ -1989,6 +2035,8 @@
+@@ -1989,6 +2036,8 @@
  		l4x_cpu_physmap[0].phys_id = p;
  	}
  #endif
@@ -939,7 +894,7 @@ Index: arch/l4/kernel/main.c
  
  	LOG_printf("CPU mapping (l:p)[%d]: ", l4x_nr_cpus);
  	for (i = 0; i < l4x_nr_cpus; i++)
-@@ -2034,6 +2082,7 @@
+@@ -2034,6 +2083,7 @@
  	printk("panic: going to sleep forever, bye\n");
  	L4XV_L(f);
  	LOG_printf("panic: going to sleep forever, bye\n");
@@ -947,7 +902,7 @@ Index: arch/l4/kernel/main.c
  	l4_sleep_forever();
  	return 0;
  }
-@@ -2302,7 +2351,7 @@
+@@ -2302,7 +2352,7 @@
  	LOG_printf("Device scan done.\n");
  }
  
@@ -956,7 +911,7 @@ Index: arch/l4/kernel/main.c
  {
  	l4lx_thread_t main_id;
  	struct l4lx_thread_start_info_t si;
-@@ -2414,10 +2463,13 @@
+@@ -2414,10 +2464,13 @@
  
  	l4x_start_thread_id = l4re_env()->main_thread;
  
@@ -970,7 +925,7 @@ Index: arch/l4/kernel/main.c
  
  #ifndef CONFIG_L4_VCPU
  #ifdef CONFIG_L4_TAMED
-@@ -3223,6 +3275,10 @@
+@@ -3223,6 +3276,10 @@
  		/* Not resolvable: Ooops */
  		LOG_printf("Non-resolvable page fault at %lx, ip %lx.\n", pfa, ip);
  		// will trigger an oops in caller
@@ -981,7 +936,7 @@ Index: arch/l4/kernel/main.c
  		return 0;
  	}
  
-@@ -3419,7 +3475,9 @@
+@@ -3419,7 +3476,9 @@
  void exit(int code)
  {
  	__cxa_finalize(0);
@@ -991,6 +946,69 @@ Index: arch/l4/kernel/main.c
  	LOG_printf("Still alive, going zombie???\n");
  	l4_sleep_forever();
  }
+Index: arch/l4/kernel/tamed.c
+===================================================================
+--- arch/l4/kernel/tamed.c	(revision 25)
++++ arch/l4/kernel/tamed.c	(working copy)
+@@ -366,8 +366,12 @@
+ #ifdef CONFIG_L4_VCPU
+ void l4x_global_halt(void)
+ {
+-	l4vcpu_halt(l4x_vcpu_state_current(), l4x_utcb_current(),
+-	            do_vcpu_irq, l4x_srv_setup_recv_wrap);
++	l4vcpu_wait_for_event(l4x_vcpu_state_current(), l4x_utcb_current(),
++	                      do_vcpu_irq, l4x_srv_setup_recv_wrap);
++#ifdef CONFIG_X86
++	// on x86, interrupts are enabled after hlt
++	l4x_global_sti();
++#endif
+ }
+ EXPORT_SYMBOL(l4x_global_halt);
+ 
+Index: arch/l4/kernel/dispatch.c
+===================================================================
+--- arch/l4/kernel/dispatch.c	(revision 25)
++++ arch/l4/kernel/dispatch.c	(working copy)
+@@ -121,6 +121,9 @@
+ {
+ 	unsigned long devmem;
+ 
++	printk("l4x_handle_dev_mem(%lx) called - currently not supported on Genode.\n", phy);
++	return 0;
++
+ #ifdef CONFIG_X86
+ 	if (phy > 0x80000000U) {
+ 		if (!(devmem = find_ioremap_entry(phy))
+@@ -271,7 +274,7 @@
+                 return 0;
+ 
+ 	if (l4_msgtag_is_page_fault(tag)) {
+-		l4x_printf("HYBRID PF!!\n");
++		LOG_printf("HYBRID PF!!\n");
+ 		/* No exception IPC, it's a page fault, but shouldn't happen */
+ 		goto out_fail;
+ 	}
+@@ -695,7 +698,7 @@
+ 			enter_kdebug("non hybrid in idle?!");
+ 		} else {
+ 			if (unlikely(l4x_handle_async_event(label, utcb, tag)))
+-				l4x_printf("Async return with error\n");
++				LOG_printf("Async return with error\n");
+ 		}
+ 	}
+ }
+Index: arch/l4/include/asm/arch-arm/pgtable.h
+===================================================================
+--- arch/l4/include/asm/arch-arm/pgtable.h	(revision 25)
++++ arch/l4/include/asm/arch-arm/pgtable.h	(working copy)
+@@ -42,6 +42,7 @@
+ 
+ #include <asm/api/api.h>
+ 
++#define VMALLOC_OFFSET  (8*1024*1024)
+ #define VMALLOC_SIZE    128
+ 
+ #define VMALLOC_START   l4x_vmalloc_memory_start
 Index: arch/l4/include/asm/generic/l4lib.h
 ===================================================================
 --- arch/l4/include/asm/generic/l4lib.h	(revision 25)
@@ -1025,6 +1043,92 @@ Index: arch/l4/include/asm/l4lxapi/thread.h
  /**
   * \brief Create a thread.
   * \ingroup thread
+Index: arch/l4/boot/Makefile
+===================================================================
+--- arch/l4/boot/Makefile	(revision 25)
++++ arch/l4/boot/Makefile	(working copy)
+@@ -10,7 +10,7 @@
+ 	$(call if_changed,objcopy)
+ 	@echo '  Kernel: $@ is ready'
+ 
+-lImage: $(obj)/Image vmlinuz$(VMLINUZ_SUFFIX) l4linux$(VMLINUZ_SUFFIX)
++lImage: $(obj)/Image
+ 
+ vmlinuz$(VMLINUZ_SUFFIX): ldrImage FORCE
+ 	$(call if_changed,gzip)
+@@ -21,8 +21,8 @@
+ 
+ objects-y := ldr.o res.o image.o
+ 
+-include $(L4OBJ)/l4defs.mk.inc
+-
++#include $(L4OBJ)/l4defs.mk.inc
++KBUILD_CFLAGS_i386 = -m32
+ KBUILD_CFLAGS	:= $(filter-out -mregparm=3,$(KBUILD_CFLAGS)) \
+                    $(L4INC) -I$(L4OBJ)/include/uclibc \
+ 		   -Wall -fno-strict-aliasing -O2 -pipe \
+Index: arch/l4/lib/pte.c
+===================================================================
+--- arch/l4/lib/pte.c	(revision 25)
++++ arch/l4/lib/pte.c	(working copy)
+@@ -18,7 +18,10 @@
+ #include <l4/sys/task.h>
+ #include <l4/sys/kdebug.h>
+ #include <l4/re/consts.h>
++#include <l4/log/log.h>
+ 
++extern void l4lx_memory_map_physical_page(unsigned long address);
++
+ static void l4x_flush_page(struct mm_struct *mm,
+                            unsigned long address,
+                            unsigned long vaddr,
+@@ -45,6 +48,12 @@
+ 		}
+ 	} else
+ #endif
++#ifdef NOT_GENODE
++		/*
++		 * Device memory is currently not supported on Genode. If this changes,
++		 * a check for overlapping 'low memory' and 'device memory' regions
++		 * must get added.
++		 */
+ 		if (address > 0x80000000UL) {
+ 		unsigned long remap;
+ 		remap = find_ioremap_entry(address);
+@@ -57,8 +66,10 @@
+ 			return;
+ 
+ 		address = remap;
++	} else
++#endif /* NOT_GENODE */
+ 
+-	} else if ((address & PAGE_MASK) == 0)
++	if ((address & PAGE_MASK) == 0)
+ 		address = PAGE0_PAGE_ADDRESS;
+ 
+ #if 0
+@@ -77,7 +88,7 @@
+ 	if (mm && !l4_is_invalid_cap(mm->context.task)) {
+ 		L4XV_V(f);
+ 		if (!mm->context.task)
+-			l4x_printf("%s: Ups, task == 0\n", __func__);
++			LOG_printf("%s: Ups, task == 0\n", __func__);
+ 		/* Direct flush in the child, use virtual address in the
+ 		 * child address space */
+ 		L4XV_L(f);
+@@ -93,10 +104,11 @@
+ 		tag = l4_task_unmap(L4RE_THIS_TASK_CAP,
+ 			            l4_fpage(address & PAGE_MASK, size, flush_rights),
+ 			            L4_FP_OTHER_SPACES);
++		l4lx_memory_map_physical_page(address);
+ 		L4XV_U(f);
+ 	}
+ 	if (l4_error(tag))
+-		l4x_printf("l4_task_unmap error %ld\n", l4_error(tag));
++		LOG_printf("l4_task_unmap error %ld\n", l4_error(tag));
+ }
+ 
+ #ifdef ARCH_arm
 Index: arch/x86/lib/memcpy_32.c
 ===================================================================
 --- arch/x86/lib/memcpy_32.c	(revision 25)
@@ -1158,57 +1262,3 @@ Index: include/asm-generic/vmlinux.lds.h
  		. = ALIGN((align));					\
  		VMLINUX_SYMBOL(__end_rodata) = .;			\
  	}								\
-Index: arch/l4/kernel/tamed.c
-===================================================================
---- arch/l4/kernel/tamed.c	(revision 25)
-+++ arch/l4/kernel/tamed.c	(working copy)
-@@ -366,8 +366,12 @@
- #ifdef CONFIG_L4_VCPU
- void l4x_global_halt(void)
- {
--	l4vcpu_halt(l4x_vcpu_state_current(), l4x_utcb_current(),
--	            do_vcpu_irq, l4x_srv_setup_recv_wrap);
-+	l4vcpu_wait_for_event(l4x_vcpu_state_current(), l4x_utcb_current(),
-+	                      do_vcpu_irq, l4x_srv_setup_recv_wrap);
-+#ifdef CONFIG_X86
-+	// on x86, interrupts are enabled after hlt
-+	l4x_global_sti();
-+#endif
- }
- EXPORT_SYMBOL(l4x_global_halt);
- 
-Index: arch/l4/kernel/arch-x86/rtc.c
-===================================================================
---- arch/l4/kernel/arch-x86/rtc.c	(revision 25)
-+++ arch/l4/kernel/arch-x86/rtc.c	(working copy)
-@@ -163,6 +163,7 @@
- /* Routines for accessing the CMOS RAM/RTC. */
- unsigned char rtc_cmos_read(unsigned char addr)
- {
-+#ifdef NOT_GENODE
- #ifndef CONFIG_L4_EXTERNAL_RTC
- 	unsigned char val;
- 
-@@ -175,17 +176,22 @@
- #else
- 	return 0;
- #endif
-+#else /* NOT_GENODE */
-+	return 0;
-+#endif /* NOT_GENODE */
- }
- EXPORT_SYMBOL(rtc_cmos_read);
- 
- void rtc_cmos_write(unsigned char val, unsigned char addr)
- {
-+#ifdef NOT_GENODE
- #ifndef CONFIG_L4_EXTERNAL_RTC
- 	lock_cmos_prefix(addr);
- 	outb(addr, RTC_PORT(0));
- 	outb(val, RTC_PORT(1));
- 	lock_cmos_suffix(addr);
- #endif
-+#endif /* NOT_GENODE */
- }
- EXPORT_SYMBOL(rtc_cmos_write);
- 

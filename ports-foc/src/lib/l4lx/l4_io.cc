@@ -71,7 +71,12 @@ extern "C" {
 		Io_mem_connection *iomem = new (env()->heap()) Io_mem_connection(phys, size);
 		L4lx::Dataspace *ds =
 			L4lx::Env::env()->dataspaces()->insert("iomem", iomem->dataspace());
-		L4lx::Env::env()->rm()->attach_at(ds, size, 0, (void*)virt);
+		if (!L4lx::Env::env()->rm()->attach_at(ds, size, 0, (void*)virt)) {
+			PERR("Could not reserve IO mem region at %lx", virt);
+			L4lx::Env::env()->dataspaces()->remove(ds);
+			destroy(env()->heap(), iomem);
+			return 1;
+		}
 		return 0;
 	}
 

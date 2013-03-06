@@ -15,6 +15,7 @@
 #include <base/printf.h>
 #include <rm_session/connection.h>
 #include <base/capability.h>
+#include <util/misc_math.h>
 
 /* L4lx includes */
 #include <env.h>
@@ -27,6 +28,8 @@ namespace Fiasco {
 
 using namespace L4lx;
 
+static const bool DEBUG_SEARCH = false; /* print information about the search
+                                           for alternative address ranges */
 
 Region* Region_manager::find_region(Genode::addr_t *addr, Genode::size_t *size)
 {
@@ -85,12 +88,6 @@ bool Region_manager::attach_at(Dataspace *ds, Genode::size_t size,
 		Genode::env()->rm_session()->attach(ds->cap(), size, offset,
 		                                    true, (Genode::addr_t) addr);
 	} catch(...) {
-		/*
-		 * This should happen only when Linux uses some special address,
-		 * already used by Genode's heap, for instance some iomem for
-		 * a directly used device.
-		 */
-		PERR("Region conflict at %p", addr);
 		return false;
 	}
 	metadata(addr, Region((Genode::addr_t)addr, ds->size(), ds));
@@ -103,25 +100,48 @@ Region* Region_manager::reserve_range(Genode::size_t size, int align,
 {
 	using namespace Genode;
 	void* addr = 0;
+	addr_t original_start = start;
 
 	while (true) {
+
+		Rm_connection *rmc = 0;
 
 		try {
 			/*
 			 * We attach a managed-dataspace as a placeholder to
 			 * Genode's region-map
 			 */
-			Rm_connection *rmc = new (env()->heap()) Rm_connection(0, size);
+			rmc = new (env()->heap()) Rm_connection(0, size);
 			addr = start ? env()->rm_session()->attach_at(rmc->dataspace(), start)
 			             : env()->rm_session()->attach(rmc->dataspace());
 			//PDBG("attach done addr=%p!", addr);
 			break;
 		} catch(Rm_session::Attach_failed e) {
-			PWRN("attach failed start=%lx", start);
-			if (start) /* attach with pre-defined address failed, so search one */
-				start = 0;
-			else
+			destroy(env()->heap(), rmc);
+			 /* attach with pre-defined address failed, so search one */
+			if (start) {
+				/* the original start address might have a different alignment */
+				addr_t aligned_start = align_addr(start, align);
+				if (aligned_start != start) {
+					if (DEBUG_SEARCH)
+						PDBG("attach failed: start=%lx, trying %lx instead",
+							 start, aligned_start);
+					start = aligned_start;
+				} else {
+					if (start <= ((addr_t)~0 - 2*(1 << align) + 1)) {
+						if (DEBUG_SEARCH)
+							PDBG("attach failed: start=%lx, trying %lx instead",
+								 start, start + (1 << align));
+						start += (1 << align);
+					} else {
+						PWRN("attach failed: start=%lx, size=0x%zx, align=%d", original_start, size, align);
+						return 0;
+					}
+				}
+			} else {
+				PWRN("attach failed: start=0, size=0x%zx, align=%d", size, align);
 				return 0;
+			}
 		}
 	}
 
