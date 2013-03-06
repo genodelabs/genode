@@ -25,3 +25,7 @@ $(CONTRIB_DIR)/$(LIBICONV): $(DOWNLOAD_DIR)/$(LIBICONV_TGZ)
 include/iconv:
 	$(VERBOSE)mkdir -p $@
 	$(VERBOSE)ln -sf ../../src/lib/libiconv/iconv.h $@
+
+clean-libiconv:
+	$(VERBOSE)rm -rf include/iconv
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(LIBICONV)
