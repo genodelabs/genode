@@ -43,6 +43,17 @@ namespace Genode {
 			void upgrade(size_t additional_amount) {
 				_amount += additional_amount; }
 
+			/**
+			 * Consume bytes without actually allocating them
+			 */
+			bool withdraw(size_t size)
+			{
+				if ((_amount - _consumed) < size)
+					return false;
+
+				_consumed += size;
+				return true;
+			}
 
 			/*************************
 			 ** Allocator interface **
