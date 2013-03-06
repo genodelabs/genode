@@ -25,7 +25,7 @@ SRC_C = \
 
 CC_OPT += -DHAVE_CONFIG_H
 
-LIBS += libc zlib libcrypto libssh
+LIBS += libc zlib libcrypto libssh libssl
 
 include $(REP_DIR)/lib/import/import-curl.mk
 
