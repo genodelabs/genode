@@ -69,7 +69,7 @@
 enum {
 	PAGE_SIZE_LOG2 = 12UL,
 	PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2,
-	STACK_SIZE     = 4096,
+	STACK_SIZE     = 1024*sizeof(Genode::addr_t),
 };
 
 
