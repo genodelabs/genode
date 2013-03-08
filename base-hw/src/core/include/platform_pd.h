@@ -20,6 +20,7 @@
 /* Core includes */
 #include <platform.h>
 #include <platform_thread.h>
+#include <address_space.h>
 
 namespace Kernel
 {
@@ -34,7 +35,7 @@ namespace Genode
 	/**
 	 * Platform specific part of a Genode protection domain
 	 */
-	class Platform_pd
+	class Platform_pd : public Address_space
 	{
 		unsigned          _id;          /* ID of our kernel object */
 		Native_capability _parent;      /* our parent interface */
@@ -77,9 +78,9 @@ namespace Genode
 				{
 					/* annotate that we've got a main thread from now on */
 					_main_thread = t->id();
-					return t->join_pd(_id, 1);
+					return t->join_pd(_id, 1, Address_space::weak_ptr());
 				}
-				return t->join_pd(_id, 0);
+				return t->join_pd(_id, 0, Address_space::weak_ptr());
 			}
 
 			/**
@@ -98,6 +99,13 @@ namespace Genode
 				_parent = parent;
 				return 0;
 			}
+
+
+			/*****************************
+			 ** Address-space interface **
+			 *****************************/
+
+			void flush(addr_t, size_t) { PDBG("not implemented"); }
 	};
 }
 

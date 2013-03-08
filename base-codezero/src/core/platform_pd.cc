@@ -67,7 +67,8 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 	}
 
 	addr_t utcb_addr = UTCB_VIRT_BASE + utcb_idx*sizeof(struct utcb);
-	thread->_assign_physical_thread(ids.tid, _space_id, utcb_addr);
+	thread->_assign_physical_thread(ids.tid, _space_id, utcb_addr,
+	                                this->Address_space::weak_ptr());
 	return 0;
 }
 

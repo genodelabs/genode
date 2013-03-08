@@ -73,6 +73,13 @@ unsigned long Platform_thread::pager_object_badge() const
 }
 
 
+Weak_ptr<Address_space> Platform_thread::address_space()
+{
+	PWRN("not implemented");
+	return Weak_ptr<Address_space>();
+}
+
+
 Platform_thread::Platform_thread(const char *name, unsigned, addr_t,
                                  int thread_id)
 {

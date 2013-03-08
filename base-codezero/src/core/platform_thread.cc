@@ -98,6 +98,12 @@ void Platform_thread::cancel_blocking()
 }
 
 
+Weak_ptr<Address_space> Platform_thread::address_space()
+{
+	return _address_space;
+}
+
+
 Platform_thread::Platform_thread(const char *name, unsigned, addr_t,
                                  int thread_id)
 : _tid(THREAD_INVALID)

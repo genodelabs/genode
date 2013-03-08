@@ -226,6 +226,12 @@ void Platform_thread::cancel_blocking()
 }
 
 
+Weak_ptr<Address_space> Platform_thread::address_space()
+{
+	return _platform_pd->Address_space::weak_ptr();
+}
+
+
 Platform_thread::Platform_thread(const char *name, unsigned prio, addr_t, int id)
 : _thread_id(id), _l4_thread_id(L4_nilthread), _priority(prio), _pager(0)
 {

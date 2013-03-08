@@ -545,7 +545,9 @@ void Rm_session_component::detach(Local_addr local_addr)
 	 * Go through all RM clients using the RM session. For each RM client, we
 	 * need to unmap the referred region from its virtual address space.
 	 */
-	for (Rm_client *rc = _clients.first(); rc; rc = rc->List<Rm_client>::Element::next()) {
+	Rm_client *prev_rc = 0;
+	Rm_client *rc = _clients.first();
+	for (; rc; rc = rc->List<Rm_client>::Element::next(), prev_rc = rc) {
 
 		/*
 		 * XXX Unmapping managed dataspaces on kernels, which take a core-
@@ -562,6 +564,23 @@ void Rm_session_component::detach(Local_addr local_addr)
 			PWRN("unmapping of managed dataspaces not yet supported");
 			break;
 		}
+
+		/*
+		 * Don't unmap from the same address space twice. If multiple threads
+		 * reside in one PD, each thread will have a corresponding 'Rm_client'
+		 * object. Consequenlty, an unmap operation referring to the PD is
+		 * issued multiple times, one time for each thread. By comparing the
+		 * membership to the thread's respective address spaces, we reduce
+		 * superfluous unmap operations.
+		 *
+		 * Note that the list of 'Rm_client' object may contain threads of
+		 * different address spaces in any order. So superfluous unmap
+		 * operations can still happen if 'Rm_client' objects of one PD are
+		 * interleaved with 'Rm_client' objects of another PD. In practice,
+		 * however, this corner case is rare.
+		 */
+		if (prev_rc && prev_rc->has_same_address_space(*rc))
+			continue;
 
 		rc->unmap(dsc->core_local_addr() + region->offset(),
 		          region->base(), region->size());
@@ -588,6 +607,7 @@ void Rm_session_component::detach(Local_addr local_addr)
 Pager_capability Rm_session_component::add_client(Thread_capability thread)
 {
 	unsigned long badge;
+	Weak_ptr<Address_space> address_space;
 
 	{
 		/* lookup thread and setup correct parameters */
@@ -597,13 +617,17 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 
 		/* determine identification of client when faulting */
 		badge = cpu_thread->platform_thread()->pager_object_badge();
+
+		address_space = cpu_thread->platform_thread()->address_space();
+		if (!Locked_ptr<Address_space>(address_space).is_valid())
+			throw Unbound_thread();
 	}
 
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
 	Rm_client *cl;
-	try { cl = new(&_client_slab) Rm_client(this, badge); }
+	try { cl = new(&_client_slab) Rm_client(this, badge, address_space); }
 	catch (Allocator::Out_of_memory) { throw Out_of_metadata(); }
 	catch (Cpu_session::Thread_creation_failed) { throw Out_of_metadata(); }
 	catch (Thread_base::Stack_alloc_failed) { throw Out_of_metadata(); }

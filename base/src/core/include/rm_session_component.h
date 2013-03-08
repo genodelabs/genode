@@ -32,9 +32,9 @@
 #include <platform.h>
 #include <dataspace_component.h>
 #include <util.h>
+#include <address_space.h>
 
 namespace Genode {
-
 
 	class Dataspace_component;
 	class Rm_session_component;
@@ -185,6 +185,10 @@ namespace Genode {
 	class Rm_client : public Pager_object, public Rm_member, public Rm_faulter,
 	                  public List<Rm_client>::Element
 	{
+		private:
+
+			Weak_ptr<Address_space> _address_space;
+
 		public:
 
 			/**
@@ -194,8 +198,11 @@ namespace Genode {
 			 * \param badge    pager-object badge used of identifying the client
 			 *                 when a page-fault occurs
 			 */
-			Rm_client(Rm_session_component *session, unsigned long badge) :
-				Pager_object(badge), Rm_member(session), Rm_faulter(this) { }
+			Rm_client(Rm_session_component *session, unsigned long badge,
+			          Weak_ptr<Address_space> &address_space)
+			:
+				Pager_object(badge), Rm_member(session), Rm_faulter(this),
+				_address_space(address_space) { }
 
 			int pager(Ipc_pager &pager);
 
@@ -203,6 +210,11 @@ namespace Genode {
 			 * Flush memory mappings for the specified virtual address range
 			 */
 			void unmap(addr_t core_local_base, addr_t virt_base, size_t size);
+
+			bool has_same_address_space(Rm_client const &other)
+			{
+				return other._address_space == _address_space;
+			}
 	};
 
 

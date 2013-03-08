@@ -19,6 +19,9 @@
 #include <base/thread_state.h>
 #include <base/native_types.h>
 
+/* core includes */
+#include <address_space.h>
+
 namespace Genode {
 
 	class Platform_pd;
@@ -79,6 +82,11 @@ namespace Genode {
 			 * \throw Cpu_session::State_access_failed
 			 */
 			Thread_state state();
+
+			/**
+			 * Return the address space to which the thread is bound
+			 */
+			Weak_ptr<Address_space> address_space();
 
 
 			/************************

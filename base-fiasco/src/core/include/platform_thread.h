@@ -21,6 +21,7 @@
 
 /* core includes */
 #include <platform_pd.h>
+#include <address_space.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -121,6 +122,11 @@ namespace Genode {
 			 * SMP is not supported on L4/Fiasco.
 			 */
 			void affinity(unsigned) { }
+
+			/**
+			 * Return the address space to which the thread is bound
+			 */
+			Weak_ptr<Address_space> address_space();
 
 
 			/************************

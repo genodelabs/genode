@@ -21,6 +21,7 @@
 
 /* core includes */
 #include <platform_pd.h>
+#include <address_space.h>
 
 /* Pistachio includes */
 namespace Pistachio {
@@ -113,6 +114,11 @@ namespace Genode {
 			 * Read thread state
 			 */
 			Thread_state state();
+
+			/**
+			 * Return the address space to which the thread is bound
+			 */
+			Weak_ptr<Address_space> address_space();
 
 
 			/************************

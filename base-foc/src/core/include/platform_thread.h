@@ -24,6 +24,7 @@
 #include <platform_pd.h>
 #include <cap_session_component.h>
 #include <cap_mapping.h>
+#include <address_space.h>
 
 namespace Genode {
 
@@ -133,6 +134,11 @@ namespace Genode {
 			 * Set the executing CPU for this thread
 			 */
 			void affinity(unsigned cpu);
+
+			/**
+			 * Return the address space to which the thread is bound
+			 */
+			Weak_ptr<Address_space> address_space();
 
 
 			/************************

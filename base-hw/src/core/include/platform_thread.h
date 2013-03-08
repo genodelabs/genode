@@ -24,6 +24,7 @@
 
 /* core includes */
 #include <assert.h>
+#include <address_space.h>
 
 namespace Genode {
 
@@ -43,6 +44,7 @@ namespace Genode {
 		Thread_base *            _thread_base;
 		size_t                   _stack_size;
 		unsigned                 _pd_id;
+		Weak_ptr<Address_space>  _address_space;
 		unsigned                 _id;
 		Rm_client *              _rm_client;
 		bool                     _main_thread;
@@ -91,7 +93,8 @@ namespace Genode {
 			 * \retval  0  on success
 			 * \retval <0  otherwise
 			 */
-			int join_pd(unsigned const pd_id, bool const main_thread);
+			int join_pd(unsigned const pd_id, bool const main_thread,
+			            Weak_ptr<Address_space> address_space);
 
 			/**
 			 * Run this thread
@@ -141,6 +144,11 @@ namespace Genode {
 			 */
 			void affinity(unsigned cpu) {
 				kernel_log() << __PRETTY_FUNCTION__ << ": not implemented\n"; };
+
+			/**
+			 * Return the address space to which the thread is bound
+			 */
+			Weak_ptr<Address_space> address_space();
 
 
 			/***************

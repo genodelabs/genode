@@ -27,6 +27,7 @@
 
 /* core includes */
 #include <cap_mapping.h>
+#include <address_space.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {
@@ -36,7 +37,7 @@ namespace Fiasco {
 namespace Genode {
 
 	class Platform_thread;
-	class Platform_pd
+	class Platform_pd : public Address_space
 	{
 		private:
 
@@ -97,11 +98,23 @@ namespace Genode {
 			 */
 			int assign_parent(Native_capability parent);
 
+
 			/*******************************
 			 ** Fiasco-specific Accessors **
 			 *******************************/
 
 			Native_capability native_task() { return _task.local; }
+
+
+			/*****************************
+			 ** Address-space interface **
+			 *****************************/
+
+			/*
+			 * On Fiasco.OC, we don't use directed unmap but rely on the
+			 * in-kernel mapping database. See 'rm_session_support.cc'.
+			 */
+			void flush(addr_t, size_t) { PDBG("not implemented"); }
 	};
 }
 

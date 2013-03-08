@@ -32,6 +32,12 @@ bool Platform_thread::_attaches_utcb_by_itself()
 }
 
 
+Weak_ptr<Address_space> Platform_thread::address_space()
+{
+	return _address_space;
+}
+
+
 Platform_thread::~Platform_thread()
 {
 	/* detach UTCB if main thread outside core */
@@ -102,14 +108,16 @@ Platform_thread::Platform_thread(const char * name, unsigned int priority,
 }
 
 
-int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread)
+int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
+                             Weak_ptr<Address_space> address_space)
 {
 	/* check if we're already in another PD */
 	if (_pd_id && _pd_id != pd_id) return -1;
 
 	/* denote configuration for start method */
-	_pd_id = pd_id;
-	_main_thread = main_thread;
+	_pd_id         = pd_id;
+	_main_thread   = main_thread;
+	_address_space = address_space;
 	return 0;
 }
 

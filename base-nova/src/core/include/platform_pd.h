@@ -15,6 +15,7 @@
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
 #include <platform_thread.h>
+#include <address_space.h>
 
 /*
  * Must be initialized by the startup code,
@@ -25,7 +26,7 @@ extern Genode::addr_t __core_pd_sel;
 namespace Genode {
 
 	class Platform_thread;
-	class Platform_pd
+	class Platform_pd : public Address_space
 	{
 		private:
 
@@ -88,6 +89,17 @@ namespace Genode {
 			 * \return PD selector
 			 */
 			static addr_t pd_core_sel() { return __core_pd_sel; }
+
+
+			/*****************************
+			 ** Address-space interface **
+			 *****************************/
+
+			/*
+			 * On NOVA, we don't use directed unmap but rely on the
+			 * in-kernel mapping database. See 'rm_session_support.cc'.
+			 */
+			void flush(addr_t, size_t) { PDBG("not implemented"); }
 	};
 }
 

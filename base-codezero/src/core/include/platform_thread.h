@@ -19,6 +19,9 @@
 #include <base/thread_state.h>
 #include <base/native_types.h>
 
+/* core includes */
+#include <address_space.h>
+
 namespace Genode {
 
 	class Platform_pd;
@@ -30,19 +33,25 @@ namespace Genode {
 
 			enum { PD_NAME_MAX_LEN = 64 };
 
-			unsigned      _tid;   /* global codezero thread ID */
-			unsigned      _space_id;
-			addr_t        _utcb;
-			char          _name[PD_NAME_MAX_LEN];
-			Pager_object *_pager;
+			unsigned                _tid;   /* global codezero thread ID */
+			unsigned                _space_id;
+			Weak_ptr<Address_space> _address_space;
+			addr_t                  _utcb;
+			char                    _name[PD_NAME_MAX_LEN];
+			Pager_object           *_pager;
 
 			/**
 			 * Assign physical thread ID and UTCB address to thread
 			 *
 			 * This function is called from 'Platform_pd::bind_thread'.
 			 */
-			void _assign_physical_thread(unsigned tid, unsigned space_id, addr_t utcb) {
-				_tid = tid; _space_id = space_id; _utcb = utcb; }
+			void _assign_physical_thread(unsigned tid, unsigned space_id,
+			                             addr_t utcb,
+			                             Weak_ptr<Address_space> address_space)
+			{
+				_tid = tid; _space_id = space_id; _utcb = utcb;
+				_address_space = address_space;
+			}
 
 		public:
 
@@ -99,6 +108,11 @@ namespace Genode {
 			 * \throw Cpu_session::State_access_failed
 			 */
 			Thread_state state();
+
+			/**
+			 * Return the address space to which the thread is bound
+			 */
+			Weak_ptr<Address_space> address_space();
 
 
 			/************************

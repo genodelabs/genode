@@ -16,6 +16,7 @@
 
 /* core includes */
 #include <platform_thread.h>
+#include <address_space.h>
 
 /* Codezero includes */
 #include <codezero/syscalls.h>
@@ -23,7 +24,7 @@
 namespace Genode {
 
 	class Platform_thread;
-	class Platform_pd
+	class Platform_pd : public Address_space
 	{
 		private:
 
@@ -36,7 +37,6 @@ namespace Genode {
 			bool utcb_in_use[MAX_THREADS_PER_PD];
 
 		public:
-
 
 			/**
 			 * Constructors
@@ -68,6 +68,13 @@ namespace Genode {
 			 * Assign parent interface to protection domain
 			 */
 			int assign_parent(Native_capability parent) { return 0; }
+
+
+			/*****************************
+			 ** Address-space interface **
+			 *****************************/
+
+			void flush(addr_t, size_t) { PDBG("not implemented"); }
 	};
 }
 

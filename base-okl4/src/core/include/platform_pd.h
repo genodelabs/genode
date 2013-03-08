@@ -14,7 +14,9 @@
 #ifndef _CORE__INCLUDE__PLATFORM_PD_H_
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
+/* core includes */
 #include <platform_thread.h>
+#include <address_space.h>
 
 namespace Okl4 { extern "C" {
 #include <l4/types.h>
@@ -23,7 +25,7 @@ namespace Okl4 { extern "C" {
 namespace Genode {
 
 	class Platform_thread;
-	class Platform_pd
+	class Platform_pd : public Address_space
 	{
 		private:
 
@@ -185,6 +187,13 @@ namespace Genode {
 			void space_pager(Platform_thread *pd);
 
 			int pd_id() const { return _pd_id; }
+
+
+			/*****************************
+			 ** Address-space interface **
+			 *****************************/
+
+			void flush(addr_t, size_t);
 	};
 }
 

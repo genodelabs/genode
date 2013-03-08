@@ -18,6 +18,7 @@
 #define _CORE__INCLUDE__PLATFORM_PD_H_
 
 #include <platform_thread.h>
+#include <address_space.h>
 
 namespace Fiasco {
 #include <l4/sys/types.h>
@@ -26,7 +27,7 @@ namespace Fiasco {
 namespace Genode {
 
 	class Platform_thread;
-	class Platform_pd
+	class Platform_pd : public Address_space
 	{
 		private:
 
@@ -176,6 +177,17 @@ namespace Genode {
 			int assign_parent(Native_capability parent) { return 0; }
 
 			int pd_id() const { return _pd_id; }
+
+
+			/*****************************
+			 ** Address-space interface **
+			 *****************************/
+
+			/*
+			 * On L4/Fiasco, we don't use directed unmap but rely on the
+			 * in-kernel mapping database. See 'rm_session_support.cc'.
+			 */
+			void flush(addr_t, size_t) { PDBG("not implemented"); }
 	};
 }
 

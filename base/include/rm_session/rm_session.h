@@ -100,6 +100,7 @@ namespace Genode {
 		class Out_of_metadata   : public Attach_failed { };
 
 		class Invalid_thread    : public Exception { };
+		class Unbound_thread    : public Exception { };
 
 		/**
 		 * Destructor
@@ -156,6 +157,7 @@ namespace Genode {
 		 * \param thread  thread that will be paged
 		 * \throw         Invalid_thread
 		 * \throw         Out_of_metadata
+		 * \throw         Unbound_thread
 		 * \return        capability to be used for handling page faults
 		 *
 		 * This method must be called at least once to establish a valid
