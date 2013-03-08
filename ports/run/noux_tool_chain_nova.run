@@ -10,3 +10,7 @@ set platform_pkgs     ""
 set platform_cmds     ""
 
 source ${genode_dir}/ports/run/noux_tool_chain.inc
+
+append qemu_args " -m 768 "
+
+run_genode_until forever
