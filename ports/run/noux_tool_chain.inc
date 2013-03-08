@@ -14,6 +14,9 @@ set build_components {
 	test/libports/ncurses
 }
 
+lappend_if [have_spec acpi]  build_components drivers/acpi
+lappend_if [have_spec pci]   build_components drivers/pci/device_pd
+
 set cc_march ""
 
 if {[have_spec arm]} {
@@ -103,10 +106,18 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="5M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
 	</start>}
 
 append_if [have_spec framebuffer] config {
@@ -114,6 +125,12 @@ append_if [have_spec framebuffer] config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
 
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
@@ -239,9 +256,9 @@ lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if [have_spec        acpi] boot_modules acpi_drv
+lappend_if [have_spec        nova] boot_modules pci_device_pd
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 768 "
-
-run_genode_until forever
+# vi: set ft=tcl :
