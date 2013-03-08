@@ -7,6 +7,13 @@
 #
 
 ##
+# Install files needed to boot via PXE
+#
+proc install_pxe_bootloader_to_run_dir { } {
+	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
+}
+
+##
 # Return the location of the Fiasco.OC user directory
 #
 proc l4_dir { } {
@@ -184,7 +191,22 @@ proc build_boot_image_x86 {binaries} {
 	puts $fh " vbeset 0x117 506070"
 	close $fh
 
+	install_pxe_bootloader_to_run_dir
 	create_iso_image_from_run_dir
+
+	#
+	# Generate pulsar config file
+	#
+	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+	puts $fh " exec /fiasco/bootstrap -modaddr=0x01100000"
+	puts $fh " load /fiasco/fiasco -serial_esc"
+	puts $fh " load /fiasco/sigma0"
+	puts $fh " load /genode/core"
+	puts $fh " load /genode/config"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh " load /genode/$binary" } }
+	close $fh
 }
 
 

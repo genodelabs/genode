@@ -7,6 +7,13 @@
 #
 
 ##
+# Install files needed to boot via PXE
+#
+proc install_pxe_bootloader_to_run_dir { } {
+	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
+}
+
+##
 # Get the base-okl4 repository
 #
 proc base_okl4_dir {} { return [repository_contains mk/spec-okl4.mk] }
@@ -178,6 +185,11 @@ proc build_boot_image {binaries} {
 	install_iso_bootloader_to_run_dir
 
 	#
+	# Install PXE bootloader pulsar
+	#
+	install_pxe_bootloader_to_run_dir
+
+	#
 	# Generate grub config file
 	#
 	# The core binary is part of the 'binaries' list but it must
@@ -193,6 +205,13 @@ proc build_boot_image {binaries} {
 	close $fh
 
 	create_iso_image_from_run_dir
+
+	#
+	# Generate pulsar config file
+	#
+	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+	puts $fh " exec /image.elf.gz"
+	close $fh
 }
 
 

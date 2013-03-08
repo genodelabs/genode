@@ -8,6 +8,14 @@
 
 
 ##
+# Install files needed to boot via PXE
+#
+proc install_pxe_bootloader_to_run_dir { } {
+	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
+}
+
+
+##
 # Read the location of the Pistachio user directory from 'etc/pistachio.conf'
 #
 proc pistachio_user_dir { } {
@@ -100,7 +108,28 @@ proc build_boot_image {binaries} {
 			puts $fh " module /genode/$binary" } }
 	close $fh
 
+	#
+	# Install PXE bootloader pulsar
+	#
+	install_pxe_bootloader_to_run_dir
+
 	create_iso_image_from_run_dir
+
+	#
+	# Generate pulsar config file
+	#
+	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
+	puts $fh " exec /pistachio/kickstart"
+	puts $fh " load /pistachio/kernel"
+	puts $fh " load /pistachio/sigma0"
+	puts $fh " load /genode/core"
+	puts $fh " load /genode/config"
+	puts $fh " load /genode/config"
+	foreach binary $binaries {
+		if {$binary != "core"} {
+			puts $fh " load /genode/$binary" } }
+	close $fh
+
 }
 
 
