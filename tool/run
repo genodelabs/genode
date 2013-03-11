@@ -472,6 +472,98 @@ proc spawn_qemu { wait_for_re timeout_value } {
 
 
 ##
+# Check whether AMT support is available
+#
+proc is_amt_available { } {
+	if {![have_spec x86]} { return false }
+
+	if {[info exists ::env(AMT_TEST_MACHINE_IP)] && 
+	    [info exists ::env(AMT_TEST_MACHINE_PWD)] &&
+		[have_installed amtterm] &&
+		[have_installed amttool]} {
+		return true;
+	}
+	puts "No support for Intel's AMT detected."
+	return false;
+}
+
+
+##
+# Execute scenario using Intel's AMT 
+#
+proc spawn_amt { wait_for_re timeout_value } {
+	if {![is_amt_available]} {
+		return }
+
+	#
+	# amttool expects in the environment variable AMT_PASSWORD the password
+	#
+	set ::env(AMT_PASSWORD) $::env(AMT_TEST_MACHINE_PWD)
+
+	#
+	# reset the box
+	#
+	set timeout 10
+	set exit_result 1
+
+	while { $exit_result != 0 } {
+ 		set time_start [ clock seconds ]
+		spawn amttool $::env(AMT_TEST_MACHINE_IP) reset
+		expect {
+			"host"  { send "y\r"; }
+			eof     { puts "Error: amttool died unexpectedly"; exit -4 }
+			timeout { puts "Error: amttool timed out"; exit -5 }
+		}
+		catch wait result
+ 		set time_end [ clock seconds ]
+		if {[expr $time_end - $time_start] <= 1} {
+			incr timeout -1
+		} else {
+	 		incr timeout [expr -1 * ($time_end - $time_start)]
+		}
+		if {$timeout < 0} {
+			set timeout 0
+		}
+		set exit_result [lindex $result 3]
+	}
+	sleep 5
+	
+	#
+	# grab output
+	#
+	set amtterm  "amtterm -u admin -p $::env(AMT_TEST_MACHINE_PWD) -v $::env(AMT_TEST_MACHINE_IP)"
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+	} else {
+		set timeout [expr $timeout_value + 30]
+	}
+	set exit_result 1
+
+	while { $exit_result != 0 } {
+ 		set time_start [ clock seconds ]
+		set pid [eval "spawn $amtterm"]
+		expect {
+			-re $wait_for_re { break }
+			eof     { continue }
+			timeout { puts "Error: Test execution timed out"; exit -2 }
+		}
+ 		catch wait result
+ 		set time_end [ clock seconds ]
+		if {[expr $time_end - $time_start] <= 1} {
+			incr timeout -1
+		} else {
+	 		incr timeout [expr -1 * ($time_end - $time_start)]
+		}
+		if {$timeout < 0} {
+			set timeout 0
+		}
+		set exit_result [lindex $result 3]
+	}
+	global output
+	set output $expect_out(buffer)
+}
+
+##
 # Determine terminal program
 #
 proc terminal { } {

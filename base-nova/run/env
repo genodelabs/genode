@@ -119,42 +119,9 @@ proc build_boot_image {binaries} {
 
 
 proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
-	# run qemu if no AMT information are found
-	if {![info exists ::env(AMT_TEST_MACHINE_IP)] ||
-	    ![info exists ::env(AMT_TEST_MACHINE_PWD)] } {
+	if {[is_amt_available]} {
+		spawn_amt $wait_for_re $timeout_value;
+	} else {
 		spawn_qemu $wait_for_re $timeout_value;
-		return
 	}
-
-	#
-	# amttool expects in the environment variable AMT_PASSWORD the password
-	#
-	set ::env(AMT_PASSWORD) $::env(AMT_TEST_MACHINE_PWD)
-
-	#
-	# reset the box
-	#
-	spawn amttool $::env(AMT_TEST_MACHINE_IP) reset
-	set timeout 10
-	expect {
-		"host"  { send "y\r" }
-		eof     { puts stderr "Error: amttool died unexpectedly"; exit -4 }
-		timeout { puts stderr "Error: amttool timed out"; exit -5 }
-	}
-	sleep 5
-
-	#
-	# grab output
-	#
-	set amtterm  "amtterm -u admin -p $::env(AMT_TEST_MACHINE_PWD) -v $::env(AMT_TEST_MACHINE_IP)"
-	set timeout [expr $timeout_value + 30]
-	set pid [eval "spawn $amtterm"]
-	if {$wait_for_re == "forever"} { interact $pid }
-	expect {
-		-re $wait_for_re { }
-		eof     { puts stderr "Error: amtterm died unexpectedly"; exit -3 }
-		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
-	}
-	global output
-	set output $expect_out(buffer)
 }
