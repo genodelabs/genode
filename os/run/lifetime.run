@@ -1,0 +1,36 @@
+build "core init drivers/timer test/lifetime"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="CPU"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="test-lifetime">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init timer test-lifetime"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "--- finished test-lifetime ---.*\n" 30
+
+puts "Test succeeded"
