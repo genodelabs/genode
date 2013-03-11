@@ -41,7 +41,7 @@ $(CONTRIB_DIR)/$(FFAT): $(DOWNLOAD_DIR)/$(FFAT_ZIP) include/ffat
 	$(VERBOSE)for i in $(FFAT_HEADERS); do \
 	  ln -sf ../../$(CONTRIB_DIR)/$(FFAT)/src/$$i include/ffat/; done
 	$(VERBOSE)rm $(addprefix $(CONTRIB_DIR)/$(FFAT)/src/,$(FFAT_DELETE))
-	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(FFAT) -p1 -i ../../src/lib/ffat/config.patch
+	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(FFAT) -p1 -i $(CURDIR)/src/lib/ffat/config.patch
 
 clean-ffat:
 	$(VERBOSE)rm -f  $(addprefix include/ffat/,$(FFAT_HEADERS))
