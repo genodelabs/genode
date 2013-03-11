@@ -40,7 +40,7 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="512K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="uart_drv">
@@ -58,7 +58,7 @@ set config {
 					<test_config_subnode/>
 				</config>
 			</target>
-			<preserve name="RAM" quantum="2M"/>
+			<preserve name="RAM" quantum="3M"/>
 		</config>
 	</start>
 </config>
