@@ -320,36 +320,47 @@ namespace Terminal {
 				 || (_escape_stack[3].type  != Escape_stack::Entry::NUMBER))
 					return false;
 
-				int const p1      = _escape_stack[1].value;
-				int const p2      = _escape_stack[3].value;
+				int const p[2]    = { _escape_stack[1].value,
+				                      _escape_stack[3].value };
 				int const command = _escape_stack[4].value;
 
 				switch (command) {
-				case 'r': return (_screen.csr(p1, p2), true);
-				case 'H': return (_screen.cup(p1, p2), true);
-				case 'm':
-					if ((p1 == 39) && (p2 == 49)) return (_screen.op(),   true);
-					if ((p1 == 0 || p1 == 1) && (p2 >= 30) && (p2 <= 37)) {
-						/*
-						 * p1 encodes attribute (see 'dircolors -p')
-						 *    0 -> normal
-						 *    1 -> bold (turn into highlight)
-						 *
-						 * p2 encodes color
-						 *    30...37 text colors
-						 *    40...47 background colors
-						 */
-						_screen.sgr(p1);
-						_screen.setaf(p2 - 30);
-						return true;
+				case 'r': return (_screen.csr(p[0], p[1]), true);
+				case 'H': return (_screen.cup(p[0], p[1]), true);
+				case 'm': {
+					bool result = false;
+
+					for (int i = 0; i < 2; i++) {
+
+						if (p[i] == 0) {
+							/* turn off all attributes */
+							_screen.sgr0();
+							result = true;
+
+						} else if (p[i] == 1) {
+							 /*
+							  * attribute
+							  *   1 bold (turn into highlight)
+							  */
+							_screen.sgr(p[i]);
+							result = true;
+
+						} else if ((p[i] >= 30) && (p[i] <= 37)) {
+							/*
+							 * color
+							 *   30...37 text colors
+							 *   40...47 background colors
+							 */
+							_screen.setaf(p[i] - 30);
+							return true;
+
+						} else if ((p[i] == 39) && (p[!i] == 49))
+							return (_screen.op(),   true);
+
 					}
-					if ((p1 == 0 && p2 == 10)) {
-						/* turn of all attributes */
-						_screen.sgr0();
-						return true;
-					}
-					return false;
-				case 'R': return (_screen.u6(p1, p2), true);
+					return result;
+				}
+				case 'R': return (_screen.u6(p[0], p[1]), true);
 				default: return false;
 				}
 			}
