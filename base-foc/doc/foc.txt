@@ -104,15 +104,9 @@ After that you can build and run L4Linux by issuing:
 ! make run/l4linux
 
 in your build directory. This run-script boots a single L4Linux instance into
-a minimal console environment. The script depends on an 'initrd.gz' archive,
-which has to reside in 'bin' in your build directory. You can find an example
-initramfs here:
-
-:[http://genode.org/files/release-11.05/l4lx/x86/initrd.gz]:
-  Initramfs archive for X86
-
-:[http://genode.org/files/release-11.05/l4lx/arm/initrd.gz]:
-  Initramfs archive for ARM
+a minimal console environment. After booting completes, the run-scripts tries
+to download the Genode project webpage via the 'wget' tool within the L4Linux
+environment. If all wents fine the run-script completes successfully.
 
 
 Integration of Fiasco.OC with Genode
