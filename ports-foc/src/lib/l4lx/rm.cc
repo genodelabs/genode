@@ -225,9 +225,9 @@ void Region_manager::map(void *phys)
 		Mapping *m = p->mappings()->first();
 		while (m) {
 			if (!m->writeable())
-				l4_touch_ro(phys, L4_LOG2_PAGESIZE);
+				l4_touch_ro(phys, L4_PAGESIZE);
 			else
-				l4_touch_rw(phys, L4_LOG2_PAGESIZE);
+				l4_touch_rw(phys, L4_PAGESIZE);
 
 			l4_fpage_t snd_fpage = m->writeable()
 				? l4_fpage((l4_addr_t)phys, L4_LOG2_PAGESIZE, L4_FPAGE_RW)
