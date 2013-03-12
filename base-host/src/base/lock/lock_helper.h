@@ -16,36 +16,19 @@
 
 /* Genode includes */
 #include <base/native_types.h>
+#include <base/thread.h>
 
 
 static inline void thread_yield() { }
 
 
-static bool thread_check_stopped_and_restart(Genode::Native_thread_id tid)
+static bool thread_check_stopped_and_restart(Genode::Thread_base *)
 {
 	return true;
 }
 
 
-static inline Genode::Native_thread_id thread_get_my_native_id()
-{
-	return -1;
-}
-
-
-static inline Genode::Native_thread_id thread_invalid_id()
-{
-	return -1;
-}
-
-
-static inline bool thread_id_valid(Genode::Native_thread_id tid)
-{
-	return false;
-}
-
-
-static inline void thread_switch_to(Genode::Native_thread_id tid)
+static inline void thread_switch_to(Genode::Thread_base *)
 { }
 
 
