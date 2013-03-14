@@ -93,7 +93,11 @@ void Platform_thread::pause()
 	 */
 	l4_thread_ex_regs_ret(_thread.local.dst(), &_pager_obj->state.ip,
 	                      &_pager_obj->state.sp, &flags);
-	bool in_syscall  = flags == 0;
+
+	/*
+	 * The thread state ("ready") is encoded in the lowest bit of the flags.
+	 */
+	bool in_syscall = (flags & 1) == 0;
 	_pager_obj->state.lock.unlock();
 
 	/**
