@@ -51,24 +51,29 @@ void Genode::Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
 {
 	using namespace Fiasco;
 
-	/* don't touch anything below IRQ 16 in the default case */
-	if (irq_number < 16 && trigger == Irq_session::TRIGGER_UNCHANGED &&
-	    polarity == Irq_session::TRIGGER_UNCHANGED)
-		return;
-
-	/*
-	* Translate ACPI interrupt mode (trigger/polarity) to Fiasco APIC
-	 * values. Default is level low for IRQs > 15
-	 */
 	l4_umword_t mode;
-	mode  = (trigger == Irq_session::TRIGGER_LEVEL) ||
-	        (irq_number > 15 && trigger == Irq_session::TRIGGER_UNCHANGED)
-	        ? L4_IRQ_F_LEVEL : L4_IRQ_F_EDGE;
 
-	mode |= (polarity == Irq_session::POLARITY_LOW) ||
-	        (irq_number > 15 && polarity == Irq_session::POLARITY_UNCHANGED)
-	        ? L4_IRQ_F_NEG   : L4_IRQ_F_POS;
+	/* set edge-high as default for legacy interrupts */
+	if (irq_number < 16
+	 && trigger  == Irq_session::TRIGGER_UNCHANGED
+	 && polarity == Irq_session::TRIGGER_UNCHANGED) {
 
+		mode = L4_IRQ_F_POS_EDGE;
+
+	} else {
+
+		/*
+		 * Translate ACPI interrupt mode (trigger/polarity) to Fiasco APIC
+		 * values. Default is level low for IRQs > 15
+		 */
+		mode  = (trigger == Irq_session::TRIGGER_LEVEL) ||
+		        (irq_number > 15 && trigger == Irq_session::TRIGGER_UNCHANGED)
+		        ? L4_IRQ_F_LEVEL : L4_IRQ_F_EDGE;
+
+		mode |= (polarity == Irq_session::POLARITY_LOW) ||
+		        (irq_number > 15 && polarity == Irq_session::POLARITY_UNCHANGED)
+		        ? L4_IRQ_F_NEG   : L4_IRQ_F_POS;
+	}
 
 	/*
 	 * Set mode
