@@ -59,13 +59,12 @@ namespace Genode
 			/**
 			 * Maximum timeout value
 			 */
-			unsigned long max_value() {
-				return read<Lr>(); }
+			unsigned long max_value() const { return read<Lr>(); }
 
 			/**
 			 * Translate timer tics to microseconds
 			 */
-			unsigned long tics_to_us(unsigned long const tics)
+			unsigned long tics_to_us(unsigned long const tics) const
 			{
 				float const us = tics * us_per_tic();
 				return (unsigned long)us;
@@ -83,7 +82,7 @@ namespace Genode
 			/**
 			 * Sample the timer counter and according wrapped status
 			 */
-			unsigned long value(bool & wrapped)
+			unsigned long value(bool & wrapped) const
 			{
 				unsigned long v = read<Cnt>();
 				wrapped = (bool)read<Sr::Ocif>();
