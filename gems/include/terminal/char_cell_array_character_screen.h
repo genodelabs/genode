@@ -282,7 +282,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		void ed()
 		{
 			/* clear to end of screen */
-			_char_cell_array.clear(_cursor_pos.y, _boundary.height - 1);
+			el();
+			_char_cell_array.clear(_cursor_pos.y + 1, _boundary.height - 1);
 		}
 
 		void el()
