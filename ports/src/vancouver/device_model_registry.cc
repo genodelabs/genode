@@ -43,11 +43,11 @@ Device_model_info::Device_model_info(char const *name, Create create,
  * Helper macro to create global 'Device_model_info' objects
  */
 #define MODEL_INFO(name, ...) \
-extern "C" void __parameter_##name##_function(Motherboard &, unsigned long *, \
+extern "C" void __parameter_##name##_fn(Motherboard &, unsigned long *, \
                                               const char *, unsigned); \
 static char const * name##_arg_names[] = { __VA_ARGS__ , 0 }; \
 static Device_model_info \
-	name##_model_info(#name, __parameter_##name##_function, name##_arg_names);
+	name##_model_info(#name, __parameter_##name##_fn, name##_arg_names);
 
 #define MODEL_INFO_NO_ARG(name) MODEL_INFO(name, 0)
 
@@ -80,8 +80,9 @@ MODEL_INFO(vga,     "io_base",   "fb_size")
 MODEL_INFO(pmtimer, "io_port")
 
 MODEL_INFO(pcihostbridge, "bus_num", "bus_count", "io_base", "mem_base")
-
-MODEL_INFO(i82576vf, "promisc", "mem_mmio", "mem_msix", "txpoll_us", "rx_map")
+#ifndef __x86_64__
+MODEL_INFO(intel82576vf, "promisc", "mem_mmio", "mem_msix", "txpoll_us", "rx_map")
+#endif
 MODEL_INFO(ahci, "mem", "irq", "bdf")
 MODEL_INFO(drive, "sigma0drive", "controller", "port")
 

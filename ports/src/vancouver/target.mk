@@ -1,35 +1,39 @@
 TARGET = vancouver
 
-CONTRIB_DIR = $(REP_DIR)/contrib/vancouver-git
-VANCOUVER_DIR = $(CONTRIB_DIR)/vancouver
-NOVA_INCLUDE_DIR = $(REP_DIR)/contrib/vancouver-git/base/include
+CONTRIB_DIR = $(REP_DIR)/contrib/seoul-git
+VANCOUVER_DIR = $(CONTRIB_DIR)
+GENODE_DIR = $(CONTRIB_DIR)/genode
+NOVA_INCLUDE_DIR = $(REP_DIR)/contrib/seoul-git/include
 
-REQUIRES = nova x86_32
+REQUIRES = nova
 
 ifeq ($(wildcard $(VANCOUVER_DIR)),)
 REQUIRES += prepare_ports_vancouver
 endif
 
-LIBS   += base blit alarm
+LIBS   += base blit alarm seoul_libc_support
 SRC_CC  = main.cc nova_user_env.cc device_model_registry.cc
 SRC_CC += console.cc keyboard.cc network.cc disk.cc
 SRC_BIN = mono.tff
 
 MODEL_SRC_CC    += $(notdir $(wildcard $(VANCOUVER_DIR)/model/*.cc))
 EXECUTOR_SRC_CC += $(notdir $(wildcard $(VANCOUVER_DIR)/executor/*.cc))
-SERVICE_SRC_CC  += hostsink.cc
+SERVICE_SRC_CC  += sink.cc
+
+ifneq ($(filter x86_64, $(SPECS)),)
+FILTER_OUT += model/intel82576vf.cc
+CC_CXX_OPT += -mcmodel=large
+endif
 
 SRC_CC += $(filter-out $(FILTER_OUT),$(addprefix model/,$(MODEL_SRC_CC)))
-SRC_CC += $(CONTRIB_DIR)/julian/model/82576vf.cc
 SRC_CC += $(filter-out $(FILTER_OUT),$(addprefix executor/,$(EXECUTOR_SRC_CC)))
-SRC_CC += base/service/hostsink.cc base/lib/runtime/string.cc
+SRC_CC += model/sink.cc
 
 INC_DIR += $(PRG_DIR)
-INC_DIR += $(CONTRIB_DIR)/julian/model
-INC_DIR += $(CONTRIB_DIR)/julian/include
+INC_DIR += $(PRG_DIR)/executor
 INC_DIR += $(VANCOUVER_DIR)/model
 INC_DIR += $(VANCOUVER_DIR)/executor
-INC_DIR += $(VANCOUVER_DIR)/include
+INC_DIR += $(VANCOUVER_DIR)/include $(GENODE_DIR)/include
 INC_DIR += $(NOVA_INCLUDE_DIR)
 
 CC_WARN += -Wno-parentheses

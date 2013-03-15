@@ -19,6 +19,7 @@
 
 /* NOVA userland includes */
 #include <service/logging.h>
+#include <service/memory.h>
 
 enum { verbose_memory_leak = false };
 
@@ -51,7 +52,7 @@ void Logging::printf(const char *format, ...)
 }
 
 
-void Logging::vprintf(const char *format, char *&)
+void Logging::vprintf(const char *format, va_list &ap)
 {
 	Genode::Lock::Guard guard(*printf_lock());
 
@@ -81,7 +82,7 @@ void Logging::panic(const char *format, ...)
 }
 
 
-void *heap_alloc(unsigned int size)
+void *heap_alloc(size_t size)
 {
 	void *res = Genode::env()->heap()->alloc(size);
 	if (res)
@@ -92,7 +93,7 @@ void *heap_alloc(unsigned int size)
 }
 
 
-void *operator new[](unsigned int size)
+void *operator new[](size_t size)
 {
 	void * addr = heap_alloc(size);
 	if (addr)
@@ -102,8 +103,9 @@ void *operator new[](unsigned int size)
 }
 
 
-void *operator new[](unsigned int size, unsigned int align)
+void *operator new[](size_t size, Aligned const alignment)
 {
+	unsigned int align = alignment.alignment;
 	void *res = heap_alloc(size + align);
 	if (res)
 		Genode::memset(res, 0, size + align);
@@ -112,7 +114,7 @@ void *operator new[](unsigned int size, unsigned int align)
 }
 
 
-void *operator new (unsigned int size)
+void *operator new (size_t size)
 {
 	void * addr = heap_alloc(size);
 	if (addr)
@@ -140,3 +142,13 @@ void do_exit(char const *msg)
 char __param_table_start;
 char __param_table_end;
 
+/* parameter support */
+#include <service/params.h>
+
+Genode::Fifo<Parameter> &Parameter::all_parameters()
+{
+  static Genode::Fifo<Parameter> _all_parameters;
+  return _all_parameters;
+}
+
+// EOF

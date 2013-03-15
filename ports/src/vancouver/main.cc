@@ -57,7 +57,6 @@
 /* NOVA userland includes */
 #include <nul/vcpu.h>
 #include <nul/motherboard.h>
-#include <nul/service_timer.h>
 #include <sys/hip.h>
 
 /* local includes */
@@ -1094,7 +1093,7 @@ class Machine : public StaticReceiver<Machine>
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(msg.vcpu, _guest_memory,
 						                    _motherboard,
-						                    _hip->has_svm(), _hip->has_vmx());
+						                    _hip->has_feature_svm(), _hip->has_feature_vmx());
 
 					msg.value = vcpu_dispatcher->sel_sm_ec();
 					return true;
@@ -1292,7 +1291,7 @@ class Machine : public StaticReceiver<Machine>
 			}
 			msg.wallclocktime = _rtc->get_current_time();
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
-			msg.timestamp = _motherboard.clock()->clock(TimerProtocol::WALLCLOCK_FREQUENCY);
+			msg.timestamp = _motherboard.clock()->clock(1000000U);
 
 			*Genode::Thread_base::myself()->utcb() = utcb_backup;
 
@@ -1374,7 +1373,7 @@ class Machine : public StaticReceiver<Machine>
 		:
 			_hip_rom("hypervisor_info_page"),
 			_hip(Genode::env()->rm_session()->attach(_hip_rom.dataspace())),
-			_clock(_hip->freq_tsc*1000),
+			_clock(_hip->tsc_freq*1000),
 			_motherboard(&_clock, _hip),
 			_guest_memory(guest_memory),
 			_boot_modules(boot_modules)
