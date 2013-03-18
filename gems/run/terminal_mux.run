@@ -46,7 +46,7 @@ append config {
 			<route> <any-service> <parent/> </any-service> </route>
 		</start>
 		<start name="terminal_mux">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="Terminal"/>
 			</provides>
