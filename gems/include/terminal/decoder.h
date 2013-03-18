@@ -261,7 +261,8 @@ namespace Terminal {
 				case 'g': return (p1 == 3) && (_screen.tbc(), true);
 				case 'G': return (_screen.hpa(p1), true);
 				case 'h': return (p1 == 4) && (_screen.smir(), true);
-				case 'K': return (p1 == 1) && (_screen.el1(),  true);
+				case 'K': return ((p1 == 0) && (_screen.el(),  true))
+				              || ((p1 == 1) && (_screen.el1(), true));
 				case 'l': return (p1 == 4) && (_screen.rmir(), true);
 				case 'L': return (_screen.il(p1), true);
 				case 'M': return (_screen.dl(p1), true);
