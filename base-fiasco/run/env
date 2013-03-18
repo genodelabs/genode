@@ -76,7 +76,11 @@ proc bin_dir { } {
 	exit 1
 }
 
+set fiasco_serial_esc_arg "-serial_esc "
+
 proc build_boot_image {binaries} {
+
+	global fiasco_serial_esc_arg
 
 	#
 	# Collect contents of the ISO image
@@ -108,7 +112,7 @@ proc build_boot_image {binaries} {
 	puts $fh "default 0"
 	puts $fh "\ntitle Genode on L4/Fiasco"
 	puts $fh " kernel /fiasco/bootstrap -serial -modaddr=0x02000000"
-	puts $fh " module /fiasco/fiasco -serial -serial_esc -jdb_cmd=JH"
+	puts $fh " module /fiasco/fiasco -serial -jdb_cmd=JH $fiasco_serial_esc_arg"
 	puts $fh " module /fiasco/sigma0"
 	puts $fh " module /genode/core"
 	puts $fh " module /genode/config"

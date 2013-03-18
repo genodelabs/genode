@@ -136,8 +136,11 @@ proc build_boot_uimage { } {
 	}
 }
 
+set fiasco_serial_esc_arg "-serial_esc "
 
 proc build_boot_image_x86 {binaries} {
+
+	global fiasco_serial_esc_arg
 
 	copy_and_strip_binaries $binaries
 
@@ -171,7 +174,7 @@ proc build_boot_image_x86 {binaries} {
 	puts $fh "default 0"
 	puts $fh "\ntitle Genode on Fiasco.OC"
 	puts $fh " kernel /fiasco/bootstrap -modaddr=0x01100000"
-	puts $fh " module /fiasco/fiasco -serial_esc"
+	puts $fh " module /fiasco/fiasco $fiasco_serial_esc_arg"
 	puts $fh " module /fiasco/sigma0"
 	puts $fh " module /genode/core"
 	puts $fh " module /genode/config"
@@ -187,6 +190,8 @@ proc build_boot_image_x86 {binaries} {
 
 proc build_boot_image_arm {binaries} {
 
+	global fiasco_serial_esc_arg
+
 	copy_and_strip_binaries $binaries
 
 	build "kernel sigma0 bootstrap"
@@ -198,7 +203,7 @@ proc build_boot_image_arm {binaries} {
 
 	puts $fh "modaddr 0x01100000\n"
 	puts $fh "entry    genode"
-	puts $fh "kernel   [fiasco] -serial_esc"
+	puts $fh "kernel   [fiasco] $fiasco_serial_esc_arg"
 	puts $fh "roottask genode/core"
 	puts $fh "module   genode/config"
 	foreach binary $binaries {

@@ -1,0 +1,89 @@
+#
+# \brief  Test for the KDB UART driver
+# \author Christian Prochaska
+# \date   2013-01-21
+#
+
+if {![have_spec foc] && ![have_spec fiasco]} {
+	puts "Run script only supports Fiasco/Fiasco.OC."; exit 0 }
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/timer
+	drivers/uart
+	test/terminal_echo
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="kdb_uart_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
+		<config>
+			<policy label="test-terminal_echo" uart="0" detect_size="yes"/>
+		</config>
+	</start>
+	<start name="test-terminal_echo">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	kdb_uart_drv
+	test-terminal_echo
+}
+
+set fiasco_serial_esc_arg ""
+
+build_boot_image $boot_modules
+
+#
+# Execute test
+#
+
+# qemu config
+append qemu_args " -m 128 -nographic "
+
+run_genode_until forever

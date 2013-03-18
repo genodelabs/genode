@@ -98,8 +98,11 @@ namespace Uart {
 			 */
 			Size _detect_size()
 			{
-				/* set cursor position to the max */
-				_put_string("\033[1;199r\033[199;199H");
+				/*
+				 * Set cursor position to (hopefully) exceed the terminal
+				 * dimensions.
+				 */
+				_put_string("\033[1;199r\033[199;255H");
 
 				/* flush incoming characters */
 				for (; _driver.char_avail(); _driver.get_char());
