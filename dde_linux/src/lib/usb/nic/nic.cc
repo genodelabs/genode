@@ -47,38 +47,46 @@ struct sk_buff *_alloc_skb(unsigned int size, bool tx = true);
 /**
  * Skb-bitmap allocator
  */
-template <unsigned ENTRIES, unsigned BUFFER>
 class Skb
 {
 	private:
 
-		enum {
-			IDX     = ENTRIES / 32,
-		};
+		unsigned const _entries;
 
-		sk_buff  _buf[ENTRIES];
-		unsigned _free[ENTRIES / sizeof(unsigned)];
+		sk_buff  *_buf;
+		unsigned *_free;
 		unsigned _idx;
 		bool     _wait_free;
 
+		enum { ENTRY_ELEMENT_SIZE = sizeof(_free[0]) * 8 };
+
 	public:
 
-		Skb() : _idx(0)
+		Skb(unsigned const entries, unsigned const buffer_size)
+		:
+			_entries(entries), _idx(0)
 		{
-			Genode::memset(_free, 0xff, sizeof(_free));
+			unsigned const size = _entries / sizeof(_free[0]);
 
-			for (unsigned i = 0; i < ENTRIES; i++)
-				_buf[i].start = (unsigned char *)kmalloc(BUFFER, GFP_NOIO);
+			_buf  = new (Genode::env()->heap()) sk_buff[_entries];
+			_free = new (Genode::env()->heap()) unsigned[size];
+
+			Genode::memset(_free, 0xff, size * sizeof(_free[0]));
+
+			for (unsigned i = 0; i < _entries; i++)
+				_buf[i].start = (unsigned char *)kmalloc(buffer_size, GFP_NOIO);
 		}
 
 		sk_buff *alloc()
 		{
-			for (register int i = 0; i < IDX; i++) {
+			unsigned const IDX = _entries / ENTRY_ELEMENT_SIZE;
+
+			for (register unsigned i = 0; i < IDX; i++) {
 				if (_free[_idx] != 0) {
 					unsigned msb = Genode::log2(_free[_idx]);
 					_free[_idx] ^= (1 << msb);
 
-					sk_buff *r = &_buf[(_idx * 32) + msb];
+					sk_buff *r = &_buf[(_idx * ENTRY_ELEMENT_SIZE) + msb];
 					r->data = r->start;
 					r->phys   = 0;
 					r->cloned = 0;
@@ -90,8 +98,9 @@ class Skb
 			}
 			
 
-			/* wait until some SKBs are fred */
+			/* wait until some SKBs are freed */
 			_wait_free = false;
+			PDBG("wait for free skbs ...");
 			_wait_event(_wait_free);
 
 			return alloc();
@@ -100,36 +109,28 @@ class Skb
 		void free(sk_buff *buf)
 		{
 			unsigned entry = buf - &_buf[0];
-			if (&_buf[0] >  buf || entry > ENTRIES)
+			if (&_buf[0] >  buf || entry > _entries)
 				return;
 
 			/* unblock waiting skb allocs */
 			_wait_free = true;
-			_idx = entry / 32;
-			_free[_idx] |= (1 << (entry % 32));
+			_idx = entry / ENTRY_ELEMENT_SIZE;
+			_free[_idx] |= (1 << (entry % ENTRY_ELEMENT_SIZE));
 		}
 };
 
 
-/* smsc95xx.c */
-enum { DEFAULT_HS_BURST_CAP_SIZE = 18944 };
-
-/* send/receive skb type */
-typedef Skb<50,DEFAULT_HS_BURST_CAP_SIZE> Tx_skb;
-typedef Skb<32, DEFAULT_HS_BURST_CAP_SIZE> Rx_skb;
-
-
 /* send/receive skb allocators */
-static Tx_skb *skb_tx()
+static Skb *skb_tx(unsigned const elements = 0, unsigned const buffer_size = 0)
 {
-	static Tx_skb _skb;
+	static Skb _skb(elements, buffer_size);
 	return &_skb;
 }
 
 
-static Rx_skb *skb_rx()
+static Skb *skb_rx(unsigned const elements = 0, unsigned const buffer_size = 0)
 {
-	static Rx_skb _skb;
+	static Skb _skb(elements, buffer_size);
 	return &_skb;
 }
 
@@ -149,18 +150,31 @@ class Nic_device : public Nic::Device
 {
 	public:
 
-		struct net_device *_ndev; /* Linux-net device */
+		struct net_device *_ndev;  /* Linux-net device */
 		fixup_t            _tx_fixup;
+		bool const         _burst;
 
 	public:
 
-		Nic_device(struct net_device *ndev) : _ndev(ndev)
+		Nic_device(struct net_device *ndev)
+		:
+			_ndev(ndev),
+			/* XXX should be configurable instead of guessing burst mode */
+			_burst(((usbnet *)netdev_priv(ndev))->rx_urb_size > 2048)
 		{
+			struct usbnet *dev = (usbnet *)netdev_priv(_ndev);
+
+			/* initialize skb allocators */
+			skb_rx(64, dev->rx_urb_size);
+			skb_tx(32, dev->rx_urb_size);
+
+			if (!burst()) return;
+
 			/*
-			 * Retrieve 'tx_fixup' funcion from driver and set it to zero, so it
-			 * cannot be called by the actual driver.
+			 * Retrieve 'tx_fixup' function from driver and set it to zero,
+			 * so it cannot be called by the actual driver. Required for
+			 * burst mode.
 			 */
-			struct usbnet *dev = (usbnet *)netdev_priv(ndev);
 			_tx_fixup = dev->driver_info->tx_fixup;
 			dev->driver_info->tx_fixup = 0;
 		}
@@ -194,7 +208,8 @@ class Nic_device : public Nic::Device
 		 */
 		sk_buff *alloc_skb()
 		{
-			sk_buff *skb = _alloc_skb(18944);
+			struct usbnet *dev = (usbnet *)netdev_priv(_ndev);
+			sk_buff *skb = _alloc_skb(dev->rx_urb_size);
 			skb->len = 0;
 			return skb;
 		}
@@ -259,7 +274,7 @@ class Nic_device : public Nic::Device
 			return m;
 		}
 
-		bool burst() { return true; }
+		bool burst() { return _burst; }
 };
 
 
