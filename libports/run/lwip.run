@@ -148,7 +148,17 @@ append qemu_args " -net user -redir tcp:5555::80 "
 
 run_genode_until {.*Start the server loop \.\.\..*} 30
 
-set uri "http://localhost:5555/"
+if [is_amt_available] {
+	set match_string "got IP address"
+	grep_output $match_string
+	unify_output {[\r\n\t]+} ""
+	unify_output {[\033]\[0m} ""
+	set pos [string first $match_string $output]
+	set ip_addr [string replace $output 0 [expr $pos+14]]
+	set uri "http://$ip_addr:80/"
+} else {
+	set uri "http://localhost:5555/"
+}
 
 puts "http server is up, try to query website $uri"
 
@@ -161,6 +171,6 @@ if {![regexp {Welcome to our lwIP HTTP server!} $website dummy]} {
 	exit 2;
 }
 
-puts "test succeeded"
+puts "Test succeeded"
 
 # vi: set ft=tcl :
