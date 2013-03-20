@@ -63,3 +63,4 @@ append qemu_args "-nographic -m 64"
 
 run_genode_until "--- finished failsafe test ---.*\n" 30
 
+puts "Test succeeded"

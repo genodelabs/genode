@@ -76,3 +76,5 @@ puts "[exec cat $noux_output_file]"
 
 exec rm bin/coreutils.tar
 exec rm $noux_output_file
+
+puts "Test succeeded"
