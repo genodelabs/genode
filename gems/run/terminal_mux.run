@@ -1,6 +1,17 @@
+#
+# \brief  Example for using the terminal_mux server over UART
+# \author Norman Feske
+# \date   2013-02-20
+#
+
+#
+# On Linux, we don't have a UART driver, on which this run script depends.
+#
+if {[have_spec linux]} { puts "Run script does not support Linux"; exit 0 }
+
 set build_components {
-	core init drivers/timer noux/minimal lib/libc_noux test/bomb
-	drivers/uart server/terminal_mux server/terminal_log
+	core init noux/minimal lib/libc_noux app/cli_monitor test/bomb test/signal
+	drivers/timer drivers/uart server/terminal_mux server/terminal_log
 	noux-pkg/vim
 }
 
@@ -63,68 +74,43 @@ append config {
 				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
 			</route>
 		</start>
-		<start name="noux">
-			<resource name="RAM" quantum="16M"/>
+		<start name="cli_monitor">
+			<resource name="RAM" quantum="1G"/>
 			<config>
-				<fstab> <tar name="vim.tar" /> </fstab>
-				<start name="/bin/vim">
-					<env name="TERM" value="linux" />
+				<subsystem name="noux" help="VIM executed in the noux runtime">
+					<resource name="RAM" quantum="16M"/>
+					<config>
+						<fstab> <tar name="vim.tar" /> </fstab>
+						<start name="/bin/vim">
+							<env name="TERM" value="linux" />
 
-					<!-- Deactivate the loading of plugins. Otherwise, vim will
-					     attempt to use a sub shell for pattern matching -->
-					<arg value="--noplugin" />
+							<!-- Deactivate the loading of plugins. Otherwise, vim will
+							     attempt to use a sub shell for pattern matching -->
+							<arg value="--noplugin" />
 
-					<!-- Do not use swap file. Any attempt to create of would
-					     fail because we are on a read-only file system -->
-					<arg value="-n" />
+							<!-- Do not use swap file. Any attempt to create of would
+							     fail because we are on a read-only file system -->
+							<arg value="-n" />
 
-					<!-- Use the nocompatible mode, which is much nicer than
-					     the plain vi mode -->
-					<arg value="-N" />
+							<!-- Use the nocompatible mode, which is much nicer than
+							     the plain vi mode -->
+							<arg value="-N" />
 
-					<!-- Permanently display status bar -->
-					<arg value="--cmd" />
-					<arg value="set laststatus=2" />
+							<!-- Permanently display status bar -->
+							<arg value="--cmd" />
+							<arg value="set laststatus=2" />
 
-					<!-- Enable highlighted search results -->
-					<arg value="--cmd" />
-					<arg value="set hls" />
+							<!-- Enable highlighted search results -->
+							<arg value="--cmd" />
+							<arg value="set hls" />
 
-				</start>
-			</config>
-			<route>
-				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
-			</route>
-		</start>
-		<start name="noux.2">
-			<binary name="noux"/>
-			<resource name="RAM" quantum="16M"/>
-			<config>
-				<fstab> <tar name="vim.tar" /> </fstab>
-				<start name="/bin/vim">
-					<env name="TERM" value="linux" />
-
-					<!-- Deactivate the loading of plugins. Otherwise, vim will
-					     attempt to use a sub shell for pattern matching -->
-					<arg value="--noplugin" />
-
-					<!-- Do not use swap file. Any attempt to create of would
-					     fail because we are on a read-only file system -->
-					<arg value="-n" />
-
-					<!-- Use the nocompatible mode, which is much nicer than
-					     the plain vi mode -->
-					<arg value="-N" />
-
-					<!-- Permanently display status bar -->
-					<arg value="--cmd" />
-					<arg value="set laststatus=2" />
-
-					<!-- Enable highlighted search results -->
-					<arg value="--cmd" />
-					<arg value="set hls" />
-
-				</start>
+						</start>
+					</config>
+				</subsystem>
+				<subsystem name="signal" help="signalling test program">
+					<resource name="RAM" quantum="5M" />
+					<binary name="test-signal" />
+				</subsystem>
 			</config>
 			<route>
 				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
@@ -143,6 +129,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so noux terminal_mux terminal_log uart_drv
+	test-signal cli_monitor
 	libc.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
 	vim.tar
 }
@@ -151,7 +138,7 @@ build_boot_image $boot_modules
 
 append qemu_args " -m 256 "
 #append qemu_args " -nographic -serial mon:stdio -serial file:/tmp/foo"
-append qemu_args " -nographic -serial file:/tmp/foo -serial mon:stdio"
+append qemu_args " -nographic -serial file:kdb.log -serial mon:stdio"
 
 run_genode_until forever
 
