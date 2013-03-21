@@ -1,0 +1,25 @@
+build "core init test/affinity"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-affinity">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-affinity"
+
+append qemu_args " -nographic -m 64 -smp 2,cores=2 "
+
+run_genode_until forever
