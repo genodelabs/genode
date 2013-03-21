@@ -315,7 +315,6 @@ Genode::Ram_dataspace_capability Backend_memory::alloc(Genode::addr_t size,
 {
 	using namespace Genode;
 
-	PERR("use it here %u", cached);
 	if (cached)
 		return env()->ram_session()->alloc(size, cached);
 	else
