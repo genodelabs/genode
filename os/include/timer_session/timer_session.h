@@ -36,6 +36,9 @@ namespace Timer {
 
 		/**
 		 * Program periodic timeout (in microseconds)
+		 *
+		 * The first period will be triggered after 'us' at the latest,
+		 * but it might be triggered earlier as well.
 		 */
 		virtual void trigger_periodic(unsigned us) = 0;
 

@@ -91,6 +91,34 @@ int main(int argc, char **argv)
 	main_timer.msleep(2000);
 	printf("timeout fired\n");
 
+	/* check periodic timeouts */
+	Signal_receiver           sig_rcv;
+	Signal_context            sig_cxt;
+	Signal_context_capability sig = sig_rcv.manage(&sig_cxt);
+	main_timer.sigh(sig);
+	enum { PTEST_TIME_US = 2000000 };
+	unsigned period_us = 500000, periods = PTEST_TIME_US / period_us, i = 0;
+	printf("start periodic timeouts\n");
+	for (unsigned j = 0; j < 5; j++) {
+		unsigned elapsed_ms = main_timer.elapsed_ms();
+		main_timer.trigger_periodic(period_us);
+		while (i < periods) {
+			Signal s = sig_rcv.wait_for_signal();
+			i += s.num();
+		}
+		elapsed_ms = main_timer.elapsed_ms() - elapsed_ms;
+		unsigned const min_ms = ((i - 1) * period_us) / 1000;
+		unsigned const max_ms = (i * period_us) / 1000;
+		if (min_ms > elapsed_ms || max_ms < elapsed_ms) {
+			PERR("Timing %u ms period %u times failed: %u ms (min %u, max %u)",
+			     period_us / 1000, i, elapsed_ms, min_ms, max_ms);
+			return -1;
+		}
+		printf("Done %u ms period %u times: %u ms (min %u, max %u)\n",
+		       period_us / 1000, i, elapsed_ms, min_ms, max_ms);
+		i = 0, period_us /= 2, periods = PTEST_TIME_US / period_us;
+	}
+
 	/* create timer clients with different periods */
 	for (unsigned period_msec = 1; period_msec < 28; period_msec++) {
 		Timer_client *tc = new (env()->heap()) Timer_client(period_msec);
