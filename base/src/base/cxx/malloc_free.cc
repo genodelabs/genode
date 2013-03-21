@@ -15,9 +15,39 @@
  */
 
 #include <base/env.h>
+#include <base/heap.h>
 #include <util/string.h>
 
 using namespace Genode;
+
+
+/**
+ * Return heap partition for the private use within the cxx library.
+ *
+ * If we used the 'env()->heap()' with the C++ runtime, we would run into a
+ * deadlock when a 'Ram_session::Alloc_failed' exception is thrown from within
+ * 'Heap::alloc'. For creating the exception object, the C++ runtime calls
+ * '__cxa_allocate_exception', which, in turn, calls 'malloc'. If our 'malloc'
+ * implementation called 'env()->heap()->alloc()', we would end up in a
+ * recursive attempt to obtain the 'env()->heap()' lock.
+ *
+ * By using a dedicated heap instance for the cxx library, we avoid this
+ * circular condition.
+ */
+static Heap *cxx_heap()
+{
+	/*
+	 * Exception frames are small (ca. 100 bytes). Hence, a small static
+	 * backing store suffices for the cxx heap partition in the normal
+	 * case. The 'env()->ram_session' is used only if the demand exceeds
+	 * the capacity of the 'initial_block'.
+	 */
+	static char initial_block[512];
+	static Heap heap(env()->ram_session(), env()->rm_session(),
+	                 Heap::UNLIMITED, initial_block, sizeof(initial_block));
+	return &heap;
+}
+
 
 typedef unsigned long Block_header;
 
@@ -35,7 +65,7 @@ extern "C" void *malloc(unsigned size)
 	 */
 	unsigned long real_size = size + sizeof(Block_header);
 	void *addr = 0;
-	if (!Genode::env()->heap()->alloc(real_size, &addr))
+	if (!cxx_heap()->alloc(real_size, &addr))
 		return 0;
 
 	*(Block_header *)addr = real_size;
@@ -56,7 +86,7 @@ extern "C" void free(void *ptr)
 	if (!ptr) return;
 
 	unsigned long *addr = ((unsigned long *)ptr) - 1;
-	Genode::env()->heap()->free(addr, *addr);
+	cxx_heap()->free(addr, *addr);
 }
 
 
