@@ -38,10 +38,8 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Thread_base::start()
+void Genode::Thread_base::_init_platform_thread()
 {
-	using namespace Fiasco;
-
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
@@ -49,6 +47,12 @@ void Thread_base::start()
 
 	/* assign thread to protection domain */
 	env()->pd_session()->bind_thread(_thread_cap);
+}
+
+
+void Thread_base::start()
+{
+	using namespace Fiasco;
 
 	/* create new pager object and assign it to the new thread */
 	_pager_cap = env()->rm_session()->add_client(_thread_cap);

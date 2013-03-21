@@ -27,6 +27,3 @@ void Genode::Thread_base::_thread_start()
 	Lock sleep_forever_lock(Lock::LOCKED);
 	sleep_forever_lock.lock();
 }
-
-
-void Genode::Thread_base::_init_platform_thread() { }
