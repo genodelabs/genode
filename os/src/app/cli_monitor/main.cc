@@ -25,6 +25,7 @@
 #include <line_editor.h>
 #include <command_line.h>
 #include <terminal_util.h>
+#include <extension.h>
 
 using Terminal::tprintf;
 using Genode::Xml_node;
@@ -534,6 +535,10 @@ int main(int argc, char **argv)
 	static Command_registry       commands;
 	static Child_registry         children;
 
+	/* initialize platform-specific commands */
+	init_extension(commands);
+
+	/* initialize generic commands */
 	commands.insert(new Help_command);
 	Kill_command kill_command(children);
 	commands.insert(&kill_command);
