@@ -201,6 +201,7 @@ set config  {
 			<service name="Framebuffer"> <child name="linux.1"/> </service>
 			<service name="Block">       <child name="part_blk"/> </service>
 			<service name="Nic">         <child name="nic_bridge"/> </service>
+			<service name="Timer">       <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -215,6 +216,7 @@ set config  {
 			<service name="Framebuffer"> <child name="linux.2"/> </service>
 			<service name="Block">       <child name="part_blk"/> </service>
 			<service name="Nic">         <child name="nic_bridge"/> </service>
+			<service name="Timer">       <child name="timer"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
