@@ -36,7 +36,6 @@ namespace Timer {
 
 			Session_component *_create_session(const char *args)
 			{
-				PLOG("args='%s'", args);
 				Genode::size_t ram_quota = Genode::Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
 				if (ram_quota < sizeof(Session_component)) {
