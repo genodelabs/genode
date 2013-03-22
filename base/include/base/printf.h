@@ -68,8 +68,10 @@ namespace Genode {
  */
 #ifdef GENODE_RELEASE
 #define DO_PDBG false
+#define DO_PWRN false
 #else
 #define DO_PDBG true
+#define DO_PWRN true
 #endif /* GENODE_RELEASE */
 
 /**
@@ -96,7 +98,8 @@ namespace Genode {
  * Print warning message
  */
 #define PWRN(fmt, ...) \
-	Genode::printf(ESC_WRN fmt ESC_END "\n", ##__VA_ARGS__ )
+	if (DO_PWRN) \
+		Genode::printf(ESC_WRN fmt ESC_END "\n", ##__VA_ARGS__ )
 
 /**
  * Print error message
