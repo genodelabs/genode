@@ -357,7 +357,6 @@ namespace Terminal {
 
 			Session_component *_create_session(const char *args)
 			{
-				PLOG("new session args=\"%s\"", args);
 				/*
 				 * XXX read I/O buffer size from args
 				 */
