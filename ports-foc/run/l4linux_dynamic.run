@@ -1,0 +1,287 @@
+assert_spec foc
+
+#
+# Build
+#
+set build_components {
+	core
+	init
+	drivers/usb
+	drivers/timer
+	drivers/uart
+	drivers/sd_card
+	server/terminal_mux
+	server/terminal_log
+	server/nic_bridge
+	server/part_blk
+	drivers/framebuffer
+	app/cli_monitor
+	test/affinity
+	test/input
+	test/lwip/http_srv
+	test/block
+	l4linux
+}
+
+build $build_components
+create_boot_directory
+
+#
+# Config
+#
+set config  {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="kdb_uart_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
+		<config>
+			<policy label="terminal_mux" uart="0" detect_size="yes"/>
+		</config>
+	</start>
+	<start name="terminal_mux">
+		<resource name="RAM" quantum="8M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Terminal"> <child name="kdb_uart_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="terminal_log">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="LOG"/>
+		</provides>
+		<route>
+			<service name="Terminal"> <child name="terminal_mux"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Input"/>
+		</provides>
+		<config>
+			<hid />
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="nic_bridge">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Nic"/></provides>
+		<route>
+			<service name="Nic"> <child name="usb_drv"/> </service>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="sd_card_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Block"/></provides>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="part_blk">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service><child name="sd_card_drv"/> <parent/><any-child/></any-service>
+		</route>
+		<config>
+			<policy label="cli_monitor -> block" partition="1"/>
+			<policy label="cli_monitor -> l4linux_block -> l4linux -> sda" partition="2"/>
+		</config>
+	</start>
+	<start name="cli_monitor">
+		<resource name="RAM" quantum="2G"/>
+		<config>
+			<subsystem name="l4linux" help="L4Linux with 100 MiB RAM">
+				<binary name="init"/>
+				<resource name="RAM" quantum="116M"/>
+				<config>
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="RAM"/>
+						<service name="CAP"/>
+						<service name="PD"/>
+						<service name="RM"/>
+						<service name="CPU"/>
+						<service name="LOG"/>
+						<service name="SIGNAL"/>
+						<service name="Timer"/>
+						<service name="Terminal"/>
+					</parent-provides>
+					<start name="l4linux">
+						<resource name="RAM" quantum="1G"/>
+						<config args="mem=100M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
+						<route> <any-service> <parent/> </any-service> </route>
+					</start>
+				</config>
+			</subsystem>
+			<subsystem name="l4linux_net" help="L4Linux with network">
+				<binary name="init"/>
+				<resource name="RAM" quantum="116M"/>
+				<config>
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="RAM"/>
+						<service name="CAP"/>
+						<service name="PD"/>
+						<service name="RM"/>
+						<service name="CPU"/>
+						<service name="LOG"/>
+						<service name="SIGNAL"/>
+						<service name="Timer"/>
+						<service name="Terminal"/>
+						<service name="Nic"/>
+					</parent-provides>
+					<start name="l4linux">
+						<resource name="RAM" quantum="1G"/>
+						<config args="mem=100M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
+						<route> <any-service> <parent/> </any-service> </route>
+					</start>
+				</config>
+			</subsystem>
+			<subsystem name="l4linux_block" help="L4Linux accessing the second partition">
+				<binary name="init"/>
+				<resource name="RAM" quantum="116M"/>
+				<config>
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="RAM"/>
+						<service name="CAP"/>
+						<service name="PD"/>
+						<service name="RM"/>
+						<service name="CPU"/>
+						<service name="LOG"/>
+						<service name="SIGNAL"/>
+						<service name="Timer"/>
+						<service name="Terminal"/>
+						<service name="Block"/>
+					</parent-provides>
+					<start name="l4linux">
+						<resource name="RAM" quantum="1G"/>
+						<config args="mem=100M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
+							<block label="sda" />
+						</config>
+						<route> <any-service> <parent/> </any-service> </route>
+					</start>
+				</config>
+			</subsystem>
+			<subsystem name="affinity" help="test execution on multiple CPUs">
+				<binary name="test-affinity"/>
+				<resource name="RAM" quantum="1M"/>
+			</subsystem>
+			<subsystem name="http" help="simple HTTP server">
+				<binary name="test-lwip_httpsrv"/>
+				<resource name="RAM" quantum="3M"/>
+			</subsystem>
+			<subsystem name="input" help="dump user input">
+				<binary name="test-input"/>
+				<resource name="RAM" quantum="1M"/>
+			</subsystem>
+			<subsystem name="block" help="block device test on first partition">
+				<binary name="test-block"/>
+				<resource name="RAM" quantum="1M" />
+			</subsystem>
+		</config>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<service name="Terminal"> <child name="terminal_mux"/> </service>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Block"> <child name="part_blk"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+}
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules {
+	core
+	init
+	timer
+	kdb_uart_drv
+	terminal_mux
+	terminal_log
+	ld.lib.so
+	libc.lib.so
+	libc_terminal.lib.so
+	libc_log.lib.so
+	lwip.lib.so
+	ncurses.lib.so
+	cli_monitor
+	l4linux
+	initrd.gz
+	test-affinity
+	usb_drv
+	test-input
+	test-lwip_httpsrv
+	nic_bridge
+	sd_card_drv
+	test-block
+	part_blk
+}
+
+if {[have_spec x86]} {
+	set uri "http://genode.org/files/release-11.11/l4lx/initrd-ia32.gz"
+} elseif {[have_spec arm]} {
+	set uri "http://genode.org/files/release-11.11/l4lx/initrd-arm.gz"
+}
+if {![file exists bin/initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O bin/initrd.gz $uri
+}
+
+set fiasco_serial_esc_arg ""
+
+build_boot_image  [join $boot_modules " "]
+
+#
+# Qemu
+#
+append qemu_args " -m 512 -nographic "
+append_if [have_spec     x86] qemu_args " -smp 2,cores=2 "
+
+#
+# Execute test case
+#
+run_genode_until forever
