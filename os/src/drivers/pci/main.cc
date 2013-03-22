@@ -80,8 +80,8 @@ int main(int argc, char **argv)
 	 * Initialize server entry point
 	 */
 	enum {
-		STACK_SIZE       = 2 * sizeof(addr_t)*1024,
-		PCI_DEVICE_PD_RAM_QUOTA = 512 * 1024,
+		STACK_SIZE              = 2 * sizeof(addr_t)*1024,
+		PCI_DEVICE_PD_RAM_QUOTA = sizeof(addr_t) * 128 * 1024,
 	};
 
 	static Cap_connection cap;
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 		static Rpc_entrypoint   device_pd_ep(&cap, STACK_SIZE, "device_pd_slave");
 		static Device_pd_policy device_pd_policy(device_pd_ep);
 		static Genode::Slave    device_pd_slave(device_pd_ep, device_pd_policy,
-	                                        PCI_DEVICE_PD_RAM_QUOTA);
+		                                        PCI_DEVICE_PD_RAM_QUOTA);
 		session_dev_pd = Genode::Root_client(device_pd_policy.root()).session("");
 	} catch (...) {
 		PWRN("PCI device protection domain for IOMMU support is not available");
