@@ -383,16 +383,28 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			}
 
 			Card_info card_info = _detect_mmc();
-#if 0
-			/* set to eight bit transfer Bit */
-			if (!setup_bus(CLK_DIV_52Mhz, _delayer))
+
+			/* switch frequency to high speed */
+			enum { EXT_CSD_HS_TIMING = 185 };
+			if (!issue_command(Mmc_switch(EXT_CSD_HS_TIMING, 1))) {
+				PERR("Error setting high speed frequency");
 				throw Detection_failed();
+			}
+
+			enum { EXT_CSD_BUS_WIDTH = 183 };
+			/* set card to 8 bit */
+			if (!issue_command(Mmc_switch(EXT_CSD_BUS_WIDTH, 2))) {
+				PERR("Error setting card bus width");
+				throw Detection_failed();
+			}
 
 			bus_width(BUS_WIDTH_8);
-			/*
-			 * TODO SD card: set bus width (on card) - 4 bit
-			 */
-#endif
+
+			/* set to eight bit transfer Bit */
+			if (!setup_bus(CLK_DIV_52Mhz, _delayer)) {
+				PERR("Error setting bus to high speed");
+				throw Detection_failed();
+			}
 
 			/*
 			 * Enable Interrupts data read timeout | data transfer done | response

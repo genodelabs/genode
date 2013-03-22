@@ -227,6 +227,25 @@ namespace Sd_card {
 		}
 	};
 
+	struct Mmc_switch : Command<6, RESPONSE_48_BIT>
+	{
+		enum { SWITCH_MODE_WRITE_BYTE = 0x3 };
+
+		struct Arg : Sd_card::Arg
+		{
+			struct Value : Bitfield<8,  8> { };
+			struct Index : Bitfield<16, 8> { };
+			struct Mode  : Bitfield<24, 8> { };
+		};
+
+		Mmc_switch(unsigned index, unsigned val)
+		{
+			Arg::Mode::set(arg,  SWITCH_MODE_WRITE_BYTE);
+			Arg::Index::set(arg, index);
+			Arg::Value::set(arg, val);
+		}
+	};
+
 	struct Sd_send_op_cond : Prefixed_command<41, RESPONSE_48_BIT>
 	{
 		struct Arg : Sd_card::Arg
