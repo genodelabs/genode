@@ -610,6 +610,7 @@ void Session_manager::activate_menu()
 	_menu.reset_selection();
 	_registry.to_front(&_menu);
 	_status_window.label(_menu.label());
+	_ncurses.clear_ok();
 	_menu.flush_all();
 }
 

@@ -45,6 +45,8 @@ class Ncurses
 
 		Window *create_window(int x, int y, int w, int h);
 
+		void clear_ok();
+
 		void do_update();
 
 		Ncurses();

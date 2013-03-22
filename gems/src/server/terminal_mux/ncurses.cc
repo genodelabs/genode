@@ -66,6 +66,12 @@ Ncurses::Window *Ncurses::create_window(int x, int y, int w, int h)
 }
 
 
+void Ncurses::clear_ok()
+{
+	clearok(stdscr, true);
+}
+
+
 void Ncurses::do_update()
 {
 	doupdate();
