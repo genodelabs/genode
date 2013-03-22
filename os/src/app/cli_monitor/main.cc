@@ -20,6 +20,7 @@
 #include <cpu_session/connection.h>
 #include <rm_session/connection.h>
 #include <cap_session/connection.h>
+#include <rom_session/connection.h>
 
 /* local includes */
 #include <line_editor.h>
@@ -521,6 +522,12 @@ static inline Command *lookup_command(char const *buf, Command_registry &registr
 
 int main(int argc, char **argv)
 {
+	/* look for dynamic linker */
+	try {
+		static Genode::Rom_connection rom("ld.lib.so");
+		Genode::Process::dynamic_linker(rom.dataspace());
+	} catch (...) { }
+
 	using Genode::Signal_context;
 	using Genode::Signal_receiver;
 
