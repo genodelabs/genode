@@ -134,6 +134,10 @@ class Cell_array
 
 		void cursor(Terminal::Position pos, bool enable, bool mark_dirty = false)
 		{
+			if (((unsigned)pos.x >= _num_cols) ||
+			    ((unsigned)pos.y >= _num_lines))
+				return;
+
 			CELL &cell = _array[pos.y][pos.x];
 
 			if (enable)
