@@ -22,26 +22,44 @@ namespace Fiasco {
 }
 
 
+static void clear_host_terminal()
+{
+	using namespace Fiasco;
+
+	outstring("\e[99S");  /* scroll up */
+	outstring("\e[99T");  /* scroll down */
+	outstring("\e[199A"); /* move cursor up */
+}
+
+
 struct Kdebug_command : Command
 {
 	Kdebug_command() : Command("kdebug", "enter kernel debugger (via serial console)") { }
 
 	void execute(Command_line &, Terminal::Session &terminal)
 	{
-		tprintf(terminal, "  Entering kernel debugger...\n");
-		tprintf(terminal, "  Press [g] to continue execution.\n");
-
 		using namespace Fiasco;
 
-		/*
-		 * Wait a bit to give the terminal a chance to print the usage
-		 * information before the kernel debugger takes over.
-		 */
-		l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, l4_timeout_rel(244, 11)));
+		/* let kernel debugger detect the screen size */
+		enter_kdebug("*#JS");
 
-		enter_kdebug("");
+		clear_host_terminal();
+		enter_kdebug("Entering kernel debugger... Press [?] for help");
+		clear_host_terminal();
+	}
+};
 
-		tprintf(terminal, "\n");
+
+struct Reboot_command : Command
+{
+	Reboot_command() : Command("reboot", "reboot machine") { }
+
+	void execute(Command_line &, Terminal::Session &terminal)
+	{
+		using namespace Fiasco;
+
+		clear_host_terminal();
+		enter_kdebug("*#^");
 	}
 };
 
@@ -50,4 +68,7 @@ void init_extension(Command_registry &commands)
 {
 	static Kdebug_command kdebug_command;
 	commands.insert(&kdebug_command);
+
+	static Reboot_command reboot_command;
+	commands.insert(&reboot_command);
 }
