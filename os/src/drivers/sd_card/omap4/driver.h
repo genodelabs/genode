@@ -121,8 +121,7 @@ class Block::Omap4_driver : public Block::Driver
 		bool dma_enabled() { return _use_dma; }
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
-			/* unused */
-			return Ram_dataspace_capability(); }
+			return Genode::env()->ram_session()->alloc(size, false); }
 };
 
 #endif /* _DRIVER_H_ */

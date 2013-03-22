@@ -3,4 +3,4 @@ REQUIRES = pl180
 SRC_CC   = main.cc
 LIBS     = base
 
-INC_DIR += $(PRG_DIR) $(PRG_DIR)/..
+INC_DIR += $(PRG_DIR)
