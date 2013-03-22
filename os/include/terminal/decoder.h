@@ -257,6 +257,7 @@ namespace Terminal {
 					if (starts_with_digit(4, p1))
 						return (_screen.setab(remove_first_digit(p1)), true);
 
+				case 'D': return (_screen.cub(p1), true);
 				case 'd': return (_screen.vpa(p1), true);
 				case 'g': return (p1 == 3) && (_screen.tbc(), true);
 				case 'G': return (_screen.hpa(p1), true);

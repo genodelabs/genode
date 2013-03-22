@@ -62,6 +62,11 @@ namespace Terminal {
 		virtual void csr(int, int) = 0;
 
 		/**
+		 * Move cursor backwards
+		 */
+		virtual void cub(int) = 0;
+
+		/**
 		 * Non-destructive space - move right #1 spaces
 		 */
 		virtual void cuf(int) = 0;

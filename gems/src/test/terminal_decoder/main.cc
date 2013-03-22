@@ -77,6 +77,10 @@ class Static_character_screen : public Terminal::Character_screen
 		{
 		}
 
+		void cub(int)
+		{
+		}
+
 		void cuf(int)
 		{
 			if (_cursor_pos.x >= _boundary.width)

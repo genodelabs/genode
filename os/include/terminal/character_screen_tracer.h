@@ -37,6 +37,7 @@ namespace Terminal {
 		CS_TRACE_OP(cvvis);
 		CS_TRACE_OP(cpr);
 		CS_TRACE_OP_2(csr);
+		CS_TRACE_OP_1(cub);
 		CS_TRACE_OP(cuf1);
 		CS_TRACE_OP_2(cup);
 		CS_TRACE_OP(cuu1);

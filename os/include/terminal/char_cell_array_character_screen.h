@@ -236,6 +236,14 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_region_end = Genode::max(_region_end, _region_start);
 		}
 
+		void cub(int dx)
+		{
+			Cursor_guard guard(*this);
+
+			_cursor_pos.x -= dx;
+			_cursor_pos.x = Genode::max(0, _cursor_pos.x);
+		}
+
 		void cuf(int dx)
 		{
 			Cursor_guard guard(*this);
