@@ -1,6 +1,7 @@
 /*
  * \brief  SD card protocol definitions
  * \author Norman Feske
+ * \author Sebastian Sumpf
  * \date   2012-07-06
  */
 
@@ -53,8 +54,10 @@ namespace Sd_card {
 
 		struct Version : Bitfield<126 - BIT_BASE, 2>
 		{
-			enum { HIGH_CAPACITY = 1 };
+			enum { HIGH_CAPACITY = 1, EXT_CSD = 3 };
 		};
+
+		struct Mmc_spec_vers : Bitfield<122 - BIT_BASE, 4> { };
 	};
 
 	struct Csd
@@ -63,6 +66,15 @@ namespace Sd_card {
 		Csd1::access_t csd1;
 		Csd2::access_t csd2;
 		Csd3::access_t csd3;
+	};
+
+
+	struct Ext_csd : Mmio
+	{
+		Ext_csd(addr_t base) : Mmio(base) { }
+
+		struct Revision     : Register<0xc0, 8>  { };
+		struct Sector_count : Register<0xd4, 32> { };
 	};
 
 	struct Arg : Register<32> { };
@@ -117,6 +129,11 @@ namespace Sd_card {
 		{
 			struct Rca : Bitfield<16, 16> { };
 		};
+
+		Send_relative_addr(unsigned rca = 0)
+		{
+			Response::Rca::set(arg, rca);
+		}
 	};
 
 	struct Select_card : Command<7, RESPONSE_48_BIT>
@@ -159,6 +176,9 @@ namespace Sd_card {
 			Arg::Rca::set(arg, rca);
 		}
 	};
+
+	struct Mmc_send_ext_csd : Command<8, RESPONSE_48_BIT_WITH_BUSY, TRANSFER_READ>
+	{ };
 
 	struct Set_block_count : Command<23, RESPONSE_48_BIT>
 	{
@@ -222,6 +242,30 @@ namespace Sd_card {
 		}
 	};
 
+	struct Mmc_send_op_cond : Command<1, RESPONSE_48_BIT>
+	{
+		struct Arg : Sd_card::Arg
+		{
+			/**
+			 * Operating condition register
+			 */
+			struct Ocr : Bitfield<0, 24> { };
+
+			/**
+			 * Host capacity support
+			 */
+			struct Hcs : Bitfield<30, 1> { };
+		};
+
+		Mmc_send_op_cond(unsigned ocr, bool hcs)
+		{
+			Arg::Ocr::set(arg, ocr);
+			Arg::Hcs::set(arg, hcs);
+		}
+	};
+
+	struct Stop_transmission : Command<12, RESPONSE_48_BIT> { };
+
 	struct Acmd_prefix : Command<55, RESPONSE_48_BIT>
 	{
 		struct Arg : Sd_card::Arg
@@ -281,6 +325,8 @@ namespace Sd_card {
 			virtual Csd _read_csd() = 0;
 
 			virtual unsigned _read_rca() = 0;
+
+			virtual size_t _read_ext_csd() { return 0; }
 
 		public:
 
@@ -361,6 +407,51 @@ namespace Sd_card {
 				}
 
 				return Card_info(rca, device_size / 2);
+			}
+
+			Card_info _detect_mmc()
+			{
+				if (!issue_command(All_send_cid())) {
+					PWRN("All_send_cid command failed");
+					throw Detection_failed();
+				}
+
+				unsigned const rca = 1;
+
+				if (!issue_command(Send_relative_addr(rca))) {
+					PERR("Send_relative_addr timed out");
+					throw Detection_failed();
+				}
+
+				if (!issue_command(Send_csd(rca))) {
+					PERR("Send_csd failed");
+					throw Detection_failed();
+				}
+
+				Csd const csd = _read_csd();
+
+				if (Csd3::Version::get(csd.csd3) != Csd3::Version::EXT_CSD) {
+					PERR("Csd version is not extented CSD");
+					throw Detection_failed();
+				}
+
+				if (Csd3::Mmc_spec_vers::get(csd.csd3) < 4) {
+					PERR("Csd specific version is less than 4");
+					throw Detection_failed();
+				}
+
+				if (!issue_command(Select_card(rca))) {
+					PERR("Select_card failed");
+					throw Detection_failed();
+				}
+
+				size_t device_size;
+				if(!(device_size = _read_ext_csd())) {
+					PERR("Could not read extented CSD");
+					throw Detection_failed();
+				}
+
+				return Card_info(rca, device_size);
 			}
 	};
 }

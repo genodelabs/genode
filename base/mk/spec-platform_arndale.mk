@@ -5,7 +5,7 @@
 #
 
 # denote specs that are fullfilled by this spec
-SPECS += cortex_a15
+SPECS += exynos5 cortex_a15
 
 # add repository relative paths
 REP_INC_DIR += include/platform/arndale \
