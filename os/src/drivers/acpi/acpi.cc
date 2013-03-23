@@ -23,10 +23,13 @@
 
 using namespace Genode;
 
-/* Enable debugging output */
+/* enable debugging output */
 static const bool verbose = false;
 
-/* Generic Apic structure */
+
+/**
+ * Generic Apic structure
+ */
 struct Apic_struct
 {
 	enum Types { SRC_OVERRIDE = 2 };
@@ -39,6 +42,7 @@ struct Apic_struct
 	Apic_struct *next() { return reinterpret_cast<Apic_struct *>((uint8_t *)this + length); }
 } __attribute__((packed));
 
+
 struct Mcfg_struct
 {
 	uint64_t base;
@@ -50,6 +54,7 @@ struct Mcfg_struct
 	Mcfg_struct *next() {
 		return reinterpret_cast<Mcfg_struct *>((uint8_t *)this + sizeof(*this)); }
 } __attribute__((packed));
+
 
 /* ACPI spec 5.2.12.5 */
 struct Apic_override : Apic_struct
@@ -128,15 +133,15 @@ class Pci_config_space : public List<Pci_config_space>::Element
 
 		Pci_config_space(uint32_t bdf_start, uint32_t func_count, addr_t base)
 		:
-			_bdf_start(bdf_start), _func_count(func_count), _base(base) {}
+			_bdf_start(bdf_start), _func_count(func_count), _base(base) { }
 
 		static List<Pci_config_space> *list()
 		{
 			static List<Pci_config_space> _list;
 			return &_list;
 		}
-
 };
+
 
 /**
  * ACPI table wrapper that for mapping tables to this address space
@@ -179,7 +184,7 @@ class Table_wrapper
 		addr_t _offset() const              { return (_base & 0xfff); }
 
 		/* compare table name with 'name' */
-		bool     _cmp(char const *name) const { return !memcmp(_table->signature, name, 4); }
+		bool _cmp(char const *name) const { return !memcmp(_table->signature, name, 4); }
 
 	public:
 
@@ -218,7 +223,7 @@ class Table_wrapper
 		/**
 		 * Is this the FACP table
 		 */
-		bool is_facp()     const { return _cmp("FACP");}
+		bool is_facp() const { return _cmp("FACP");}
 
 		/**
 		 * Is this a MADT table
@@ -249,7 +254,8 @@ class Table_wrapper
 				
 				PINF("MADT IRQ %u -> GSI %u flags: %x", o->irq, o->gsi, o->flags);
 				
-				Irq_override::list()->insert(new (env()->heap()) Irq_override(o->irq, o->gsi, o->flags));
+				Irq_override::list()->insert(new (env()->heap())
+					Irq_override(o->irq, o->gsi, o->flags));
 			}
 		}
 
@@ -270,8 +276,7 @@ class Table_wrapper
 			}
 		}
 
-		Table_wrapper(addr_t base)
-		: _base(base), _io_mem(0), _table(0)
+		Table_wrapper(addr_t base) : _base(base), _io_mem(0), _table(0)
 		{
 			/*
 			 * Try to map one page only, if table is on page boundary, map two pages
@@ -548,7 +553,6 @@ class Element : public List<Element>::Element
 
 				other = other->next();
 			}
-
 			return 0;
 		}
 
@@ -677,6 +681,7 @@ class Element : public List<Element>::Element
 
 			/* special handle for four value packet */
 			if (package_op4) {
+
 				/* scan for data package with four entries */
 				if (data[0] != PACKAGE_OP)
 					return;
@@ -691,6 +696,7 @@ class Element : public List<Element>::Element
 			}
 
 			switch (data[0]) {
+
 			case DEVICE:
 
 				data++; _data++;
@@ -707,6 +713,7 @@ class Element : public List<Element>::Element
 				_read_size();
 
 				if (_size) {
+
 					/* check if element is larger than parent */
 					Element *p = _parent();
 					for (; p; p = p->_parent())
@@ -721,7 +728,7 @@ class Element : public List<Element>::Element
 
 				_valid = true;
 
-			/* set absolute name of this element */
+				/* set absolute name of this element */
 				_set_name();
 				_type = data[0];
 
@@ -774,7 +781,8 @@ class Element : public List<Element>::Element
 			char n[_name_len + 1];
 			memcpy(n, _name, _name_len);
 			n[_name_len] = 0;
-			PDBG("Found package %x size %u name_len %u name: %s", _data[0], _size, _name_len, n);
+			PDBG("Found package %x size %u name_len %u name: %s",
+			     _data[0], _size, _name_len, n);
 		}
 
 	public:
@@ -821,7 +829,8 @@ class Element : public List<Element>::Element
 		 */
 		static void parse(Generic *table)
 		{
-			for (uint8_t const *data = table->data(); data < table->data() + table->size; data++) {
+			uint8_t const *data = table->data();
+			for (; data < table->data() + table->size; data++) {
 				Element e(data);
 
 				if (!e.valid() || !e._name_len)
@@ -892,7 +901,8 @@ class Element : public List<Element>::Element
 				Pci_routing *r = e->pci_list()->first();
 				for (; r; r = r->next()) {
 					if (r->match_bdf(device_bdf) && r->pin() == pin) {
-						if (verbose) PDBG("Found GSI: %u device : %x pin %u", r->gsi(), device_bdf, pin);
+						if (verbose) PDBG("Found GSI: %u device : %x pin %u",
+						                   r->gsi(), device_bdf, pin);
 						return r->gsi();
 					}
 				}
@@ -1257,28 +1267,33 @@ static void dump_bdf(uint32_t a, uint32_t b, uint32_t pin)
 		     (b >> 8), (b >> 3) & 0x1f, (b & 0x7), b, pin);
 }
 
+
 static void dump_rewrite(uint32_t bdf, uint8_t line, uint8_t gsi)
 {
 	PINF("Rewriting %02x:%02x.%u IRQ: %02u -> GSI: %02u",
 	     (bdf >> 8), (bdf >> 3) & 0x1f, (bdf & 0x7), line, gsi);
 }
 
+
 /**
  * Parse acpi table
  */
-static void init_acpi_table() {
+static void init_acpi_table()
+{
 	static Acpi_table table;
 }
+
 
 /**
  * Create config file for pci_drv
  */
 void Acpi::create_pci_config_file(char * config_space,
-		                          Genode::size_t config_space_max)
+                                  Genode::size_t config_space_max)
 {
 	init_acpi_table();
 	Element::create_config_file(config_space, config_space_max);
 }
+
 
 /**
  * Rewrite GSIs of PCI config space
