@@ -164,6 +164,12 @@ struct Dwmmc : Genode::Mmio
 		struct Fixed_burst : Bitfield<1, 1> { };
 		struct Idmac_enable : Bitfield<7, 1> { };
 	};
+
+	/**
+	 * Poll demant register
+	 */
+	struct Pldmnd : Register<0x84> { };
+
 	struct Idsts : Register<0x8c> { };
 	struct Idinten : Register<0x90, true> { };
 
@@ -177,9 +183,8 @@ struct Dwmmc : Genode::Mmio
 	 */
 	struct Clksel : Register<0x9c> { };
 
-	struct Emmc_ddr_req : Register<0x10c, true>
-	{
-	};
+	struct Emmc_ddr_req : Register<0x10c, true> { };
+
 	typedef Genode::size_t size_t;
 
 	void powerup()
@@ -275,9 +280,11 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 		{
 			enum Flags {
 				NONE = 0,
+				DIC  = 1 << 1,
 				LD   = 1 << 2,
 				FS   = 1 << 3,
 				CH   = 1 << 4,
+				ER   = 1 << 5,
 				OWN  = 1 << 31,
 			};
 
@@ -288,13 +295,15 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 			size_t set(size_t block_count, Genode::addr_t phys_addr, Flags flag)
 			{
-				flags  = OWN | CH | flag | (block_count <= 8 ? LD : 0);
-				bytes  = ((block_count < 8) ? block_count : 8) * BLOCK_SIZE;
+				enum  { MAX_BLOCKS = 8 };
+				flags  = OWN | flag | (block_count <= MAX_BLOCKS ? LD : (CH | DIC));
+				bytes  = ((block_count < MAX_BLOCKS) ? block_count : MAX_BLOCKS) * BLOCK_SIZE;
 				addr   = phys_addr;
-				next   = (unsigned)&next + sizeof(unsigned);
 
-				return block_count < 8 ? 0 : block_count  - 8;
+				return block_count < MAX_BLOCKS ? 0 : block_count  - MAX_BLOCKS;
 			}
+
+			void dump() { PDBG("this: %p f: %x bytes: %u, addr: %x next: %x", this, flags, bytes, addr, next); }
 		};
 
 		/*
@@ -429,10 +438,15 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 			Idmac_desc::Flags flags = Idmac_desc::FS;
 			size_t b = block_count;
-			for (int index = 0; b;
-			     index++, phys_addr += 0x1000, flags = Idmac_desc::NONE)
+			int index = 0;
+			for (index = 0; b;
+			     index++, phys_addr += 0x1000, flags = Idmac_desc::NONE) {
 				b = _idmac_desc[index].set(b, phys_addr, flags);
+				_idmac_desc[index].next = _idmac_desc_phys + ((index + 1) * sizeof(Idmac_desc));
+			}
 
+			_idmac_desc[index].next = (unsigned)_idmac_desc;
+			_idmac_desc[index].flags |= Idmac_desc::ER;
 			write<Dbaddr>(_idmac_desc_phys);
 
 			write<Ctrl::Dma_enable>(1);
@@ -443,6 +457,8 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 			write<Blksize>(BLOCK_SIZE);
 			write<Bytcnt>(BLOCK_SIZE * block_count);
+
+			write<Pldmnd>(1);
 
 			return true;
 		}
