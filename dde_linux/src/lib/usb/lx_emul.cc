@@ -801,6 +801,20 @@ long find_next_zero_bit_le(const void *addr,
  ** linux/byteorder/generic.h **
  *******************************/
 
+u16 get_unaligned_le16(const void *p)
+{
+	const struct __una_u16 *ptr = (const struct __una_u16 *)p;
+	return ptr->x;
+}
+
+
+u32 get_unaligned_le32(const void *p)
+{
+	const struct __una_u32 *ptr = (const struct __una_u32 *)p;
+	return ptr->x;
+}
+
+
 void put_unaligned_le32(u32 val, void *p)
 {
 	struct __una_u32 *ptr = (struct __una_u32 *)p;
@@ -810,7 +824,7 @@ void put_unaligned_le32(u32 val, void *p)
 
 u64 get_unaligned_le64(const void *p)
 {
-	struct __una_u64 *ptr = (struct __una_u64 *)p;
+	const struct __una_u64 *ptr = (const struct __una_u64 *)p;
 	return ptr->x;
 }
 

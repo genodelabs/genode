@@ -40,8 +40,9 @@ SRC_C += usb/usb-common.c
 SRC_C += $(addprefix usb/host/, ehci-hcd.c)
 
 # USB hid
-SRC_C += $(addprefix hid/usbhid/,hid-core.c hid-quirks.c)
-SRC_C += hid/hid-input.c hid/hid-core.c input/evdev.c input/input.c
+SRC_C += $(addprefix hid/usbhid/, hid-core.c hid-quirks.c)
+SRC_C += $(addprefix hid/,        hid-core.c hid-input.c hid-cherry.c)
+SRC_C += $(addprefix input/,      evdev.c input.c)
 
 # USB storage
 SRC_C += $(addprefix usb/storage/,scsiglue.c protocol.c transport.c usb.c \
@@ -99,3 +100,5 @@ vpath %.cc $(LIB_DIR)/input
 vpath %.cc $(LIB_DIR)/storage
 vpath %.c  $(LIB_DIR)/storage
 vpath %.cc $(LIB_DIR)/nic
+
+# vi: set ft=make :

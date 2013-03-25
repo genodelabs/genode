@@ -50,7 +50,7 @@ CONTENT += $(addprefix include/scsi/,scsi.h scsi_host.h)
 
 # USB hid driver
 CONTENT += drivers/hid/hid-input.c drivers/hid/hid-core.c drivers/hid/hid-ids.h
-CONTENT += drivers/hid/usbhid
+CONTENT += drivers/hid/hid-cherry.c drivers/hid/usbhid
 
 # needed by USB hid
 CONTENT_INPUT := input.c evdev.c input-compat.h

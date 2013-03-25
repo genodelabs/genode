@@ -43,14 +43,6 @@ int  atomic_inc_return(atomic_t *v) { TRACE; return 0; }
 
 
 /*******************************
- ** linux/byteorder/generic.h **
- *******************************/
-
-u16  get_unaligned_le16(const void *p) { TRACE; return 0; }
-u32  get_unaligned_le32(const void *p) { TRACE; return 0; }
-
-
-/*******************************
  ** linux/errno.h and friends **
  *******************************/
 

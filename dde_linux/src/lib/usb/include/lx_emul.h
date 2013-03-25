@@ -309,6 +309,7 @@ typedef enum irqreturn irqreturn_t;
 #define be32_to_cpup __be32_to_cpup
 
 
+struct __una_u16 { u16 x; } __attribute__((packed));
 struct __una_u32 { u32 x; } __attribute__((packed));
 struct __una_u64 { u64 x; } __attribute__((packed));
 
