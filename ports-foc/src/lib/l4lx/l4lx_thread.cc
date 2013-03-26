@@ -48,12 +48,12 @@ static l4_addr_t utcb_base_addr()
 	return _addr;
 }
 
-Genode::Foc_cpu_connection* L4lx::vcpu_connection()
+Genode::Foc_cpu_session_client* L4lx::vcpu_connection()
 {
 	using namespace Genode;
 
-	static Foc_cpu_connection _con;
-	return &_con;
+	static Foc_cpu_session_client _client(Genode::env()->cpu_session_cap());
+	return &_client;
 }
 
 
@@ -143,7 +143,7 @@ l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
 	vcpus[thread_id(vc->utcb())] = vc;
 
 	if (!deferstart)
-		vc->start();
+		vc->unblock();
 	else {
 		deferstart->l4cap = (l4_cap_idx_t) vc;
 		deferstart->sp    = (l4_umword_t)vc->sp();
@@ -161,7 +161,7 @@ int l4lx_thread_start(struct l4lx_thread_start_info_t *startinfo)
 	if (DEBUG)
 		PDBG("ip=%lx sp=%lx", startinfo->ip, startinfo->sp);
 	L4lx::Vcpu *vc = (L4lx::Vcpu*) startinfo->l4cap;
-	vc->start();
+	vc->unblock();
 	return 0;
 }
 

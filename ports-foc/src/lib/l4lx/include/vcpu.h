@@ -28,32 +28,19 @@ namespace Fiasco {
 
 namespace L4lx {
 
-	extern Genode::Foc_cpu_connection *vcpu_connection();
+	extern Genode::Foc_cpu_session_client *vcpu_connection();
 
 
 	class Vcpu : public Genode::Thread_base
 	{
 		private:
 
+			Genode::Lock                _lock;
 			L4_CV void                (*_func)(void *data);
 			unsigned long               _data;
 			Genode::addr_t              _vcpu_state;
 			Timer::Connection           _timer;
 			unsigned                    _cpu_nr;
-
-			static void _startup()
-			{
-				/* start thread function */
-				Vcpu* vcpu = reinterpret_cast<Vcpu*>(Genode::Thread_base::myself());
-				vcpu->entry();
-			}
-
-		protected:
-
-			void entry() {
-				_func(&_data);
-				Genode::sleep_forever();
-			}
 
 		public:
 
@@ -64,55 +51,37 @@ namespace L4lx {
 			     Genode::addr_t              vcpu_state,
 			     unsigned                    cpu_nr)
 			: Genode::Thread_base(str, stack_size),
+			  _lock(Genode::Cancelable_lock::LOCKED),
 			  _func(func),
 			  _data(data ? *data : 0),
 			  _vcpu_state(vcpu_state),
 			  _cpu_nr(cpu_nr)
+			  {
+				  start();
+
+				  /* set l4linux specific utcb entry: L4X_UTCB_TCR_ID */
+				  l4_utcb_tcr_u(utcb())->user[0] = tid();
+
+				  /* enable vcpu functionality respectively */
+				  if (_vcpu_state)
+					  vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
+
+				  /* set cpu affinity */
+				  set_affinity(_cpu_nr);
+			  }
+
+			void entry()
 			{
-				using namespace Genode;
-				using namespace Fiasco;
-
-				/* create thread at core */
-				char buf[48];
-				name(buf, sizeof(buf));
-				_thread_cap = vcpu_connection()->create_thread(buf);
-
-				/* assign thread to protection domain */
-				env()->pd_session()->bind_thread(_thread_cap);
-
-				/* create new pager object and assign it to the new thread */
-				_pager_cap = env()->rm_session()->add_client(_thread_cap);
-				vcpu_connection()->set_pager(_thread_cap, _pager_cap);
-
-				/* get gate-capability and badge of new thread */
-				Thread_state state = vcpu_connection()->state(_thread_cap);
-				_tid = state.kcap;
-				_context->utcb = state.utcb;
-
-				Cap_index *i = cap_map()->insert(state.id, state.kcap);
-				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_BADGE] = (unsigned long) i;
-				l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
-				l4_utcb_tcr_u(state.utcb)->user[0] = state.kcap; /* L4X_UTCB_TCR_ID */
+				_lock.lock();
+				_func(&_data);
+				Genode::sleep_forever();
 			}
 
-			void start()
-			{
-				using namespace Genode;
-
-				/* register initial IP and SP at core */
-				addr_t stack = (addr_t)&_context->stack[-4];
-				stack &= ~0xf;  /* align initial stack to 16 byte boundary */
-				vcpu_connection()->start(_thread_cap, (addr_t)_startup, stack);
-
-				if (_vcpu_state)
-					vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
-
-				set_affinity(_cpu_nr);
-			}
+			void unblock() { _lock.unlock(); }
 
 			Genode::addr_t sp() {
 				return ((Genode::addr_t)&_context->stack[-4]) & ~0xf; }
-			Genode::addr_t ip() { return (Genode::addr_t)_startup; }
+			Genode::addr_t ip() { return (Genode::addr_t)_func; }
 
 			Fiasco::l4_utcb_t *utcb() { return _context->utcb; };
 
