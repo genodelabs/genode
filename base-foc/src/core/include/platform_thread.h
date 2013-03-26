@@ -33,8 +33,11 @@ namespace Genode {
 	{
 		private:
 
+			enum State { DEAD, RUNNING };
+
 			friend class Platform_pd;
 
+			State         _state;
 			bool          _core_thread;
 			Cap_mapping   _thread;
 			Cap_mapping   _gate;

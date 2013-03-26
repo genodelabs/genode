@@ -54,6 +54,8 @@ int Platform_thread::start(void *ip, void *sp)
 		return -1;
 	}
 
+	_state = RUNNING;
+
 	/* set ip and sp and run the thread */
 	tag = l4_thread_ex_regs(_thread.local.dst(), (l4_addr_t) ip,
 	                        (l4_addr_t) sp, 0);
@@ -143,16 +145,18 @@ void Platform_thread::bind(Platform_pd *pd)
 
 void Platform_thread::unbind()
 {
-	/* first set the thread as its own pager */
-	l4_thread_control_start();
-	l4_thread_control_pager(_gate.remote);
-	l4_thread_control_exc_handler(_gate.remote);
-	if (l4_msgtag_has_error(l4_thread_control_commit(_thread.local.dst())))
-		PWRN("l4_thread_control_commit for %lx failed!",
-		     (unsigned long) _thread.local.dst());
+	if (_state == RUNNING) {
+		/* first set the thread as its own pager */
+		l4_thread_control_start();
+		l4_thread_control_pager(_gate.remote);
+		l4_thread_control_exc_handler(_gate.remote);
+		if (l4_msgtag_has_error(l4_thread_control_commit(_thread.local.dst())))
+			PWRN("l4_thread_control_commit for %lx failed!",
+				 (unsigned long) _thread.local.dst());
 
-	/* now force it into a pagefault */
-	l4_thread_ex_regs(_thread.local.dst(), 0, 0, L4_THREAD_EX_REGS_CANCEL);
+		/* now force it into a pagefault */
+		l4_thread_ex_regs(_thread.local.dst(), 0, 0, L4_THREAD_EX_REGS_CANCEL);
+	}
 
 	_platform_pd = (Platform_pd*) 0;
 }
@@ -249,7 +253,8 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 
 Platform_thread::Platform_thread(const char *name,
                                  unsigned    prio)
-: _core_thread(false),
+: _state(DEAD),
+  _core_thread(false),
   _thread(true),
   _irq(true),
   _utcb(0),
@@ -265,7 +270,8 @@ Platform_thread::Platform_thread(const char *name,
 
 Platform_thread::Platform_thread(Core_cap_index* thread,
                                  Core_cap_index* irq, const char *name)
-: _core_thread(true),
+: _state(RUNNING),
+  _core_thread(true),
   _thread(Native_capability(thread), L4_BASE_THREAD_CAP),
   _irq(Native_capability(irq)),
   _utcb(0),
@@ -279,7 +285,8 @@ Platform_thread::Platform_thread(Core_cap_index* thread,
 
 
 Platform_thread::Platform_thread(const char *name)
-: _core_thread(true),
+: _state(DEAD),
+  _core_thread(true),
   _thread(true),
   _irq(true),
   _utcb(0),
