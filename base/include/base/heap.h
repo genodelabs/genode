@@ -33,8 +33,8 @@ namespace Genode {
 		private:
 
 			enum {
-				MIN_CHUNK_SIZE =    4*1024,  /* in machine words */
-				MAX_CHUNK_SIZE = 1024*1024
+				MIN_CHUNK_SIZE =   4*1024,  /* in machine words */
+				MAX_CHUNK_SIZE = 256*1024
 			};
 
 			class Dataspace : public List<Dataspace>::Element
