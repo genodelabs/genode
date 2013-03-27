@@ -723,16 +723,19 @@ bool Rm_session_component::reverse_lookup(addr_t                dst_base,
 	/* constrain source fault area by the source dataspace dimensions */
 	src_fault_area->constrain(src_base, (*src_dataspace)->size());
 
-	bool lookup = src_fault_area->valid() && dst_fault_area->valid();
-
-	if (!lookup)
-		return lookup;
+	if (!src_fault_area->valid() || !dst_fault_area->valid())
+		return false;
 
 	/* lookup and lock nested dataspace if required */
 	Native_capability session_cap = (*src_dataspace)->sub_rm_session();
-	*sub_rm_session = dynamic_cast<Rm_session_component *>(_session_ep->lookup_and_lock(session_cap));
+	if (session_cap.valid()) {
+		*sub_rm_session = dynamic_cast<Rm_session_component *>(_session_ep->lookup_and_lock(session_cap));
+		return (*sub_rm_session != 0);
+	}
 
-	return lookup;
+	/* loop refer to leaf */
+	*sub_rm_session = 0;
+	return true;
 }
 
 
