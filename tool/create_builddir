@@ -120,7 +120,7 @@ $(BUILD_DIR)/Makefile:
 #
 # Add 'ports-foc' repository to Fiasco.OC build directory
 #
-ifeq ($(filter-out foc_x86_32 foc_imx53 foc_pbxa9 foc_vea9x4 foc_panda,$(PLATFORM)),)
+ifeq ($(filter-out foc_x86_32 foc_imx53 foc_pbxa9 foc_vea9x4 foc_panda foc_arndale,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).ports-foc >> $@
 endif
