@@ -29,6 +29,12 @@ Ncurses::Window::Window(unsigned x, unsigned y, unsigned w, unsigned h)
 { }
 
 
+Ncurses::Window::~Window()
+{
+	delwin(_window);
+}
+
+
 void Ncurses::Window::move_cursor(unsigned x, unsigned y)
 {
 	wmove(_window, y, x);
@@ -63,6 +69,12 @@ void Ncurses::Window::horizontal_line(int line)
 Ncurses::Window *Ncurses::create_window(int x, int y, int w, int h)
 {
 	return new (Genode::env()->heap()) Ncurses::Window(x, y, w, h);
+}
+
+
+void Ncurses::destroy_window(Ncurses::Window *window)
+{
+	Genode::destroy(Genode::env()->heap(), window);
 }
 
 

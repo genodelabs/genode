@@ -190,6 +190,7 @@ namespace Terminal {
 
 			Read_buffer _read_buffer;
 
+			Ncurses         &_ncurses;
 			Ncurses::Window &_window;
 
 			struct Label
@@ -223,6 +224,7 @@ namespace Terminal {
 			                  Session_manager &session_manager,
 			                  char const      *label)
 			:
+				_ncurses(ncurses),
 				_window(*ncurses.create_window(0, 1, ncurses.columns(), ncurses.lines() - 1)),
 				_label(label),
 				_session_manager(session_manager),
@@ -238,6 +240,7 @@ namespace Terminal {
 			~Session_component()
 			{
 				_session_manager.remove(this);
+				_ncurses.destroy_window(&_window);
 			}
 
 
@@ -406,6 +409,11 @@ class Status_window
 			_label[0] = 0;
 		}
 
+		~Status_window()
+		{
+			_ncurses.destroy_window(&_window);
+		}
+
 		void label(char const *label)
 		{
 			Genode::strncpy(_label, label, sizeof(_label));
@@ -500,6 +508,11 @@ class Menu : public Registry::Entry
 			_selected_idx(0),
 			_max_idx(0)
 		{ }
+
+		~Menu()
+		{
+			_ncurses.destroy_window(&_window);
+		}
 
 		void reset_selection() { _selected_idx = 0; }
 

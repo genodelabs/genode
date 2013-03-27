@@ -32,6 +32,8 @@ class Ncurses
 
 			public:
 
+				~Window();
+
 				void move_cursor(unsigned x, unsigned y);
 
 				void print_char(unsigned long const c, bool highlight, bool inverse);
@@ -44,6 +46,7 @@ class Ncurses
 		};
 
 		Window *create_window(int x, int y, int w, int h);
+		void destroy_window(Ncurses::Window *window);
 
 		void clear_ok();
 
