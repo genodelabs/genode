@@ -180,7 +180,7 @@ extern "C" {
 					PWRN("DHCP timed out!");
 					return 1;
 				}
-				PDBG("got IP address %d.%d.%d.%d",
+				PINF("got IP address %d.%d.%d.%d",
 				     ip4_addr1(&(netif.ip_addr)),
 				     ip4_addr2(&(netif.ip_addr)),
 				     ip4_addr3(&(netif.ip_addr)),
