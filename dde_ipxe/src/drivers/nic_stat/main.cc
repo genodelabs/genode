@@ -1,5 +1,5 @@
 /*
- * \brief  NIC driver based on iPXE
+ * \brief  NIC driver based on iPXE for performance measurements solely
  * \author Christian Helmuth
  * \date   2011-11-17
  */
@@ -17,6 +17,10 @@
 #include <base/printf.h>
 #include <cap_session/connection.h>
 #include <nic/component.h>
+
+#include <nic/stat.h>
+#include <nic/packet_allocator.h>
+#include <nic_session/connection.h>
 
 /* DDE */
 extern "C" {
@@ -36,7 +40,7 @@ namespace Ipxe {
 			                           const char *packet,
 			                           unsigned packet_len)
 			{
-				instance->rx_handler(packet, packet_len);
+				instance->rx_handler_stat(packet, packet_len);
 			}
 
 		private:
@@ -44,10 +48,13 @@ namespace Ipxe {
 			Nic::Mac_address      _mac_addr;
 			Nic::Rx_buffer_alloc &_alloc;
 
+			Timer::Connection _timer;
+			Nic::Measurement _stat;
+
 		public:
 
 			Driver(Nic::Rx_buffer_alloc &alloc)
-			: _alloc(alloc)
+			: _alloc(alloc), _stat(_timer)
 			{
 				PINF("--- init iPXE NIC");
 				int cnt = dde_ipxe_nic_init();
@@ -61,17 +68,26 @@ namespace Ipxe {
 				     _mac_addr.addr[0] & 0xff, _mac_addr.addr[1] & 0xff,
 				     _mac_addr.addr[2] & 0xff, _mac_addr.addr[3] & 0xff,
 				     _mac_addr.addr[4] & 0xff, _mac_addr.addr[5] & 0xff);
+
+				_stat.set_mac(_mac_addr.addr);
+			}
+
+			void rx_handler_stat(const char *packet, unsigned packet_len)
+			{
+				Genode::addr_t test = reinterpret_cast<Genode::addr_t>(packet);
+				void * buffer = reinterpret_cast<void *>(test);
+
+				Net::Ethernet_frame *eth =
+					new (buffer) Net::Ethernet_frame(packet_len);
+				_stat.data(eth, packet_len);
 			}
 
 			void rx_handler(const char *packet, unsigned packet_len)
 			{
-				try {
-					void *buffer = _alloc.alloc(packet_len);
-					Genode::memcpy(buffer, packet, packet_len);
-					_alloc.submit();
-				} catch (...) {
-					PDBG("failed to process received packet");	
-				}
+				void *buffer = _alloc.alloc(packet_len);
+				Genode::memcpy(buffer, packet, packet_len);
+
+				_alloc.submit();
 			}
 
 
@@ -86,7 +102,6 @@ namespace Ipxe {
 				if (dde_ipxe_nic_tx(1, packet, size))
 					PWRN("Sending packet failed!");
 			}
-
 
 			/******************************
 			 ** Irq_activation interface **
@@ -133,6 +148,15 @@ int main(int, char **)
 
 	static Nic::Root nic_root(&ep, env()->heap(), driver_factory);
 	env()->parent()->announce(ep.manage(&nic_root));
+
+/*
+    Genode::size_t           tx_buf_size = 64*1024;
+    Genode::size_t           rx_buf_size = 64*1024;
+	session("ram_quota=%zd, tx_buf_size=%zd, rx_buf_size=%zd",
+	        6*4096 + tx_buf_size + rx_buf_size,
+	        tx_buf_size, rx_buf_size))
+*/
+	nic_root.session("ram_quota=155648, tx_buf_size=65536, rx_buf_size=65536");
 
 	sleep_forever();
 	return 0;
