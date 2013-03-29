@@ -526,11 +526,25 @@ class Plugin : public Libc::Plugin
 				Plugin_context *context = new (Genode::env()->heap())
 					Plugin_context(handle);
 
+				/*
+				 * Prevent returning the file size as current seek offset
+				 * for files that are opened read only because this
+				 * behaviour is only useful for appending write operations
+				 * to files.
+				 *
+				 * XXX Improve handling of files opened in append mode.
+				 */
+				if ((flags & O_ACCMODE) == O_RDONLY)
+					context->seek_offset(0);
+
 				context->status_flags(flags);
 
 				Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->alloc(this, context);
-				if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1))
+				if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1)) {
+					Libc::file_descriptor_allocator()->free(fd);
+					destroy(Genode::env()->heap(), context);
 					return 0;
+				}
 				return fd;
 			}
 			catch (File_system::Lookup_failed) {
