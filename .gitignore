@@ -25,6 +25,7 @@
 /libports/include/KHR
 /libports/include/SDL
 /libports/include/ffat
+/libports/include/fribidi
 /libports/include/freetype
 /libports/include/ft2build.h
 /libports/include/jbig2dec
