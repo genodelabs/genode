@@ -23,6 +23,9 @@ extern "C" {
 #include "SDL_timer_c.h"
 
 
+static Uint32 jiffies = 0;
+
+
 void SDL_StartTicks(void)
 {
 }
@@ -30,8 +33,7 @@ void SDL_StartTicks(void)
 
 Uint32 SDL_GetTicks (void)
 {
-	printf("SDL_GetTicks() called - not implemented yet\n");
-	return 0;
+	return jiffies;
 }
 
 
@@ -56,6 +58,7 @@ static int RunTimer(void *unused)
 			SDL_ThreadedTimerCheck();
 		}
 		SDL_Delay(1);
+		jiffies++;
 	}
 	return(0);
 }
