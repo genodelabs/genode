@@ -38,18 +38,7 @@ class Block::Omap4_driver : public Block::Driver
 			/**
 			 * Implementation of 'Delayer' interface
 			 */
-			void usleep(unsigned us)
-			{
-				/* polling */
-				if (us == 0)
-					return;
-
-				unsigned ms = us / 1000;
-				if (ms == 0)
-					ms = 1;
-
-				Timer::Connection::msleep(ms);
-			}
+			void usleep(unsigned us) { Timer::Connection::usleep(us); }
 		} _delayer;
 
 		/* memory map */
