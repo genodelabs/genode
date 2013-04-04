@@ -41,8 +41,13 @@ namespace Genode
 
 			/* timer */
 			PWM_MMIO_BASE = 0x12dd0000,
+			PWM_MMIO_SIZE = 0x1000,
 			PWM_CLOCK     = 66000000,
 			PWM_IRQ_0     = 68,
+			MCT_MMIO_BASE = 0x101c0000,
+			MCT_MMIO_SIZE = 0x1000,
+			MCT_CLOCK     = 24000000,
+			MCT_IRQ_L0    = 152,
 
 			/* if board provides security extension */
 			SECURITY_EXTENSION = 1,

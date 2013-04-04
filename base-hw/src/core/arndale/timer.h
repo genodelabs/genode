@@ -16,24 +16,24 @@
 
 /* core includes */
 #include <board.h>
-#include <timer/exynos_pwm.h>
+#include <timer/exynos_mct.h>
 
 namespace Kernel
 {
 	/**
 	 * Kernel timer
 	 */
-	class Timer : public Exynos_pwm::Timer
+	class Timer : public Exynos_mct::Timer
 	{
 		public:
 
-			enum { IRQ = Genode::Board::PWM_IRQ_0 };
+			enum { IRQ = Genode::Board::MCT_IRQ_L0 };
 
 			/**
 			 * Constructor
 			 */
-			Timer() : Exynos_pwm::Timer(Genode::Board::PWM_MMIO_BASE,
-			                            Genode::Board::PWM_CLOCK) { }
+			Timer() : Exynos_mct::Timer(Genode::Board::MCT_MMIO_BASE,
+			                            Genode::Board::MCT_CLOCK) { }
 	};
 }
 
