@@ -66,6 +66,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		{ Board::GIC_CPU_MMIO_BASE, Board::GIC_CPU_MMIO_SIZE },
+		{ Board::MCT_MMIO_BASE, Board::MCT_MMIO_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
