@@ -142,13 +142,14 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so noux terminal_mux terminal_log uart_drv
+	core init timer ld.lib.so noux terminal_mux terminal_log
 	test-signal cli_monitor
 	libc.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
 	vim.tar
 }
 
-lappend_if [have_spec foc] boot_modules kdb_uart_drv
+lappend_if [expr ![have_spec foc]] boot_modules uart_drv
+lappend_if [have_spec foc]         boot_modules kdb_uart_drv
 
 set fiasco_serial_esc_arg ""
 
