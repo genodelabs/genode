@@ -1,17 +1,17 @@
-if {![have_spec x86_32]} {
-	puts "\nThe AHCI driver supports the x86_32 architecture only\n"
+if {![have_spec x86_32] && ![have_spec exynos5]} {
+	puts "\nThe AHCI driver supports x86_32 architecture and exynos5 only\n"
 	exit 0
 }
 
 #
 # Build
 #
-set build_components {
-	core init drivers/timer drivers/pci drivers/ahci test/block
-}
 
-lappend_if [have_spec acpi] build_components drivers/acpi
-lappend_if [have_spec pci]  build_components drivers/pci/device_pd
+set build_components { core init drivers/timer drivers/ahci test/block }
+
+lappend_if [have_spec x86_32] build_components drivers/pci
+lappend_if [have_spec acpi]   build_components drivers/acpi
+lappend_if [have_spec pci]    build_components drivers/pci/device_pd
 
 build $build_components
 
@@ -54,7 +54,7 @@ append_if [have_spec acpi] config {
 		</route>
 	</start>}
 
-append_if [expr ![have_spec acpi]] config {
+append_if [expr ![have_spec acpi] && [have_spec x86_32]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="PCI"/></provides>
@@ -64,13 +64,17 @@ append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-		<route>
-			<service name="IRQ"><child name="acpi" /></service>
+		<route>}
+
+append_if [have_spec acpi] config {
+			<service name="IRQ"><child name="acpi" /></service>}
+
+append config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>
 	<start name="ahci">
-		<binary name="ahci_drv" />
+		<binary name="ahci" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>}
@@ -97,13 +101,10 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules {
-	core init timer pci_drv ahci_drv test-block acpi_drv
-}
+set boot_modules { core init timer ahci test-block }
 
-if {[have_spec nova]} {
-	append boot_modules {pci_device_pd}
-}
+append_if [have_spec x86_32] boot_modules { pci_drv acpi_drv }
+append_if [have_spec nova]   boot_modules pci_device_pd
 
 build_boot_image $boot_modules
 
