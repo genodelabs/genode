@@ -54,12 +54,6 @@ struct Cpu_state : Register<16>
 	inline static void write(access_t & v) { cpu_state = v; }
 };
 
-struct A : public Mmio {
-
-	A(addr_t const base) : Mmio(base) { }
-
-};
-
 /**
  * Exemplary MMIO region type
  */
@@ -170,10 +164,11 @@ int compare_mem(uint8_t * base1, uint8_t * base2, size_t size)
  */
 int test_failed(unsigned test_id)
 {
-	PERR("Test ended, test %i failed", test_id);
+	printf("Test %i failed\n", test_id);
 	printf("  mmio_mem:  0x ");
 	dump_mem(mmio_mem, sizeof(mmio_mem));
 	printf("\n  cpu_state: 0x%4X\n", cpu_state);
+	printf("Test done\n");
 	return -1;
 }
 
@@ -405,7 +400,7 @@ int main()
 	if (compare_mem(mmio_mem, mmio_cmpr_15, sizeof(mmio_mem))) {
 		return test_failed(15); }
 
-	printf("Test ended successfully\n");
+	printf("Test done\n");
 	return 0;
 }
 

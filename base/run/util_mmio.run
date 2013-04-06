@@ -1,4 +1,12 @@
+#
+# Build
+#
+
 build "core init test/util_mmio"
+
+#
+# Boot image
+#
 
 create_boot_directory
 
@@ -16,7 +24,8 @@ install_config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-util_mmio">
+		<start name="test">
+			<binary name="test-util_mmio"/>
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
@@ -24,12 +33,20 @@ install_config {
 
 build_boot_image "core init test-util_mmio"
 
+#
+# Execution
+#
+
 append qemu_args "-nographic -m 64"
 
-run_genode_until {.*Test ended.*} 10
+run_genode_until "Test done.*\n" 10
 
-grep_output {\[init -\> test-util_mmio\]}
+#
+# Conclusion
+#
+
+grep_output {\[init -\> test\]}
 
 compare_output_to {
-	[init -> test-util_mmio] Test ended successfully
+	[init -> test] Test done
 }
