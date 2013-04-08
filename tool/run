@@ -418,9 +418,7 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	#
 	# Back out on platforms w/o Qemu support
 	#
-	if {[have_spec platform_panda] || [have_spec platform_arndale]}  {
-		puts stderr "skipping execution because platform is not supported by qemu"
-		return 0 }
+	if {![is_qemu_available]} { return 0 }
 
 	if {[have_spec x86_32]} { set qemu "qemu-system-i386" }
 	if {[have_spec x86_64]} { set qemu "qemu-system-x86_64" }
@@ -470,6 +468,16 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	set output $expect_out(buffer)
 }
 
+##
+# Check whether Qemu support is available
+#
+proc is_qemu_available { } {
+	if {[have_spec platform_panda] || [have_spec platform_arndale]}  {
+		puts stderr "skipping execution because platform is not supported by qemu"
+		return false
+	}
+	return true
+}
 
 ##
 # Check whether AMT support is available
@@ -481,19 +489,20 @@ proc is_amt_available { } {
 	    [info exists ::env(AMT_TEST_MACHINE_PWD)] &&
 		[have_installed amtterm] &&
 		[have_installed amttool]} {
-		return true;
+		return true
 	}
 	puts "No support for Intel's AMT detected."
-	return false;
+	return false
 }
 
 
 ##
 # Execute scenario using Intel's AMT 
 #
-proc spawn_amt { wait_for_re timeout_value } {
-	if {![is_amt_available]} {
-		return }
+proc spawn_amt { wait_for_re timeout_value} {
+	global spawn_id
+
+	if {![is_amt_available]} { return 0 }
 
 	#
 	# amttool expects in the environment variable AMT_PASSWORD the password
