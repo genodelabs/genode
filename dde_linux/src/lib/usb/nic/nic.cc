@@ -320,12 +320,21 @@ int register_netdev(struct net_device *ndev)
 int netif_running(const struct net_device *dev) { return dev->state & START; }
 int netif_device_present(struct net_device *dev) { return 1; }
 
+#ifdef GENODE_NET_STAT
+	#include <nic/stat.h>
+	static Timer::Connection _timer;
+	static Nic::Measurement  _stat(_timer);
+#endif
 
 int netif_rx(struct sk_buff *skb)
 {
 	if (_nic && _nic->session()) {
 		_nic->rx(skb);
 	}
+#ifdef GENODE_NET_STAT
+	else if (_nic)
+		_stat.data(new (skb->data) Net::Ethernet_frame(skb->len), skb->len);
+#endif
 
 	dev_kfree_skb(skb);
 	return NET_RX_SUCCESS;
@@ -621,5 +630,9 @@ void random_ether_addr(u8 *addr)
 	Genode::memcpy(addr, mac.addr, ETH_ALEN);
 	snprint_mac(str, mac.addr);
 	PINF("Using configured mac: %s", str);
+
+#ifdef GENODE_NET_STAT
+	_stat.set_mac(mac.addr);
+#endif
 }
 
