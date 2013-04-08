@@ -59,6 +59,18 @@ bool Session_component::Tx_handler::handle_arp(Ethernet_frame *eth, Genode::size
 		new (eth->data()) Arp_packet(size - sizeof(Ethernet_frame));
 	if (arp->ethernet_ipv4() &&
 		arp->opcode() == Arp_packet::REQUEST) {
+
+		/*
+		 * 'Gratuitous ARP' broadcast messages are used to announce newly created
+		 * IP<->MAC address mappings to other hosts. nic_bridge-internal hosts
+		 * would expect a nic_bridge-internal MAC address in this message, whereas
+		 * external hosts would expect the NIC's MAC address in this message.
+		 * The simplest solution to this problem is to just drop those messages,
+		 * since they are not really necessary.
+		 */
+		 if (arp->src_ip() == arp->dst_ip())
+			return false;
+
 		Ipv4_address_node *node = Vlan::vlan()->ip_tree()->first();
 		if (node)
 			node = node->find_by_address(arp->dst_ip());
