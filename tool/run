@@ -111,6 +111,7 @@ proc build_boot_image {binaries} { }
 #
 # \param  wait_for_re    regular expression that matches the test completion
 # \param  timeout_value  timeout in seconds
+# \param  spawn_id       spawn_id of a already running and spawned process
 # \global output         contains the core output (modified)
 #
 # If the function is called without any argument, Genode is executed in
@@ -122,7 +123,7 @@ proc build_boot_image {binaries} { }
 # This function must be implemented by the platform-specific test environment.
 # If not implemented, the program exits with the error code -3.
 #
-proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
+proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
 	puts stderr "Error: 'run_genode_until' is not implemented for this platform"
 	exit -3
 }
@@ -420,7 +421,7 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 
 	expect {
 		-i $running_spawn_id -re $wait_for_re { }
-		eof     { puts stderr "Error: Qemu died unexpectedly";   exit -3 }
+		eof     { puts stderr "Error: Spawned process died unexpectedly";   exit -3 }
 		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
 	}
 	set output $expect_out(buffer)
