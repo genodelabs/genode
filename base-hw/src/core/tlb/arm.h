@@ -133,14 +133,6 @@ namespace Arm
 	}
 
 	/**
-	 * Wether support for caching is already enabled
-	 *
-	 * FIXME: Normally all ARM platforms should support caching,
-	 *        but for some 'base_hw' misses support by now.
-	 */
-	inline bool cache_support();
-
-	/**
 	 * Memory region attributes for the translation descriptor 'T'
 	 */
 	template <typename T>

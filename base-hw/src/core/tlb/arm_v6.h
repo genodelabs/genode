@@ -89,9 +89,6 @@ namespace Arm_v6
 }
 
 
-bool Arm::cache_support() { return 0; }
-
-
 template <typename T>
 static typename T::access_t
 Arm::memory_region_attr(Arm::Page_flags::access_t const flags)
@@ -106,13 +103,10 @@ Arm::memory_region_attr(Arm::Page_flags::access_t const flags)
 	if(Arm::Page_flags::D::get(flags))
 		return 0;
 
-	if(cache_support()) {
-		if(Arm::Page_flags::C::get(flags))
-			return Tex::bits(5) | C::bits(0) | B::bits(1);
+	if(Arm::Page_flags::C::get(flags))
+		return Tex::bits(5) | C::bits(0) | B::bits(1);
 
-		return Tex::bits(6) | C::bits(1) | B::bits(0);
-	}
-	return Tex::bits(4) | C::bits(0) | B::bits(0);
+	return Tex::bits(6) | C::bits(1) | B::bits(0);
 }
 
 #endif /* _TLB__ARM_V6_H_ */
