@@ -123,7 +123,14 @@ Platform::Platform() :
 	unsigned const psl2 = get_page_size_log2();
 	init_alloc(&_core_mem_alloc, _ram_regions, _core_only_ram_regions, psl2);
 	init_alloc(&_irq_alloc, _irq_regions, _core_only_irq_regions);
-	init_alloc(&_io_mem_alloc, _mmio_regions, _core_only_mmio_regions, psl2);
+
+	/*
+	 * Use byte granuarity for MMIO regions because on some platforms, devices
+	 * driven by core share a physical page with devices driven outside of
+	 * core. Using byte granuarlity allows handing out the MMIO page to trusted
+	 * user-level device drivers.
+	 */
+	init_alloc(&_io_mem_alloc, _mmio_regions, _core_only_mmio_regions, 0);
 
 	/* add boot modules to ROM FS */
 	Bm_header * header = &_boot_module_headers_begin;

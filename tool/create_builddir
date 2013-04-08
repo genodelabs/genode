@@ -32,6 +32,7 @@ usage:
 	@echo "                  'hw_imx31'"
 	@echo "                  'hw_imx53'"
 	@echo "                  'hw_arndale'"
+	@echo "                  'hw_rpi'"
 	@echo "                  'foc_x86_32'"
 	@echo "                  'foc_x86_64'"
 	@echo "                  'foc_pbxa9'"
@@ -205,6 +206,9 @@ hw_imx53::
 
 hw_arndale::
 	@echo "SPECS = genode hw_arndale" > $(BUILD_DIR)/etc/specs.conf
+
+hw_rpi::
+	@echo "SPECS = genode hw_rpi" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf
