@@ -405,12 +405,31 @@ proc create_iso_image_from_run_dir { } {
 	}
 }
 
+##
+# Wait for a specific output of a already running spawned process
+#
+proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
+	global output
+
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+		interact $running_spawn_id
+	} else {
+		set timeout $timeout_value
+	}
+
+	expect {
+		-i $running_spawn_id -re $wait_for_re { }
+		eof     { puts stderr "Error: Qemu died unexpectedly";   exit -3 }
+		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+	}
+	set output $expect_out(buffer)
+}
 
 ##
 # Execute scenario using Qemu
 #
 proc spawn_qemu { wait_for_re timeout_value } {
-	global output
 	global qemu_args
 	global qemu
 	global spawn_id
@@ -457,15 +476,9 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	# on ARM, we supply the boot image as kernel
 	if {[have_spec arm]} { append qemu_args " -kernel [run_dir]/image.elf " }
 
-	set timeout $timeout_value
-	set pid [eval "spawn $qemu $qemu_args"]
-	if {$wait_for_re == "forever"} { interact $pid }
-	expect {
-		-re $wait_for_re { }
-		eof     { puts stderr "Error: Qemu died unexpectedly";   exit -3 }
-		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
-	}
-	set output $expect_out(buffer)
+	eval spawn $qemu $qemu_args
+	set qemu_spawn_id $spawn_id
+	wait_for_output $wait_for_re $timeout_value $qemu_spawn_id
 }
 
 ##
