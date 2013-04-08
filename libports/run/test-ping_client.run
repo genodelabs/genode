@@ -14,7 +14,7 @@ set build_components {
 	test/lwip/pingpong/client
 }
 
-lappend_if [have_spec omap4] build_components drivers/usb
+lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/usb
 
 build $build_components
 
@@ -45,15 +45,9 @@ set config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="test-ping_client">
-		<resource name="RAM" quantum="16M"/>
-		<config>
-			<argv verbose="1" serverip="10.0.0.190" startsize="1024" endsize="16384" />
-		</config>
 	</start> }
 
-append_if [have_spec omap4] config {
+append_if [expr [have_spec omap4] || [have_spec exynos5]] config {
 	<start name="usb_drv" priority="-1">
 		<resource name="RAM" quantum="12M"/>
 		<provides>
@@ -64,7 +58,7 @@ append_if [have_spec omap4] config {
 		</config>
 	</start>}
 
-append_if [expr ![have_spec omap4]] config {
+append_if [expr ![have_spec omap4] && ![have_spec exynos5]] config {
 	<start name="nic_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
@@ -72,9 +66,39 @@ append_if [expr ![have_spec omap4]] config {
 
 append_if [have_spec pci] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="PCI"/> </provides>
 	</start> }
+
+# establish serial connection with the server system
+spawn picocom -b 115200 /dev/ttyUSB0
+set server_spawn_id $spawn_id
+set timeout -1
+expect -i $server_spawn_id "Terminal ready"
+
+# get IP address from server
+expect {
+	-i $server_spawn_id
+	-re "got IP address (.*)\033.*\n" { set ip_addr $expect_out(1,string) }
+}
+puts "got server IP address: $ip_addr"
+
+append config {
+	<start name="test-ping_client_libc_lwip">
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<arg value="test-ping_client"/>
+			<arg value="-verbose"/>
+			<arg value="0"/>
+			<arg value="-startsize"/>
+			<arg value="1024"/>
+			<arg value="-endsize"/>
+			<arg value="1024"/>
+			<arg value="-serverip"/> }
+append config "
+			<arg value=\"$ip_addr\"/>
+		</config>
+	</start> "
 
 append config {
 </config>
@@ -89,8 +113,8 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so lwip.lib.so
-	test-ping_client
+	ld.lib.so libc.lib.so libc_log.lib.so lwip_nic_dhcp.lib.so lwip.lib.so
+	test-ping_client_libc_lwip
 }
 
 # platform-specific modules
@@ -112,6 +136,22 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user "
 
-run_genode_until forever
+expect -i $server_spawn_id "wait..."
+
+run_genode_until {Sucessfully connected to server.} 60
+
+expect -i $server_spawn_id "client 3 connected..."
+
+set time_start [clock milliseconds]
+
+set timeout -1
+expect {
+	-i $server_spawn_id
+	-re "received .*\n" { }
+}
+
+set time_end [clock milliseconds]
+
+puts "\nTest succeeded in [expr $time_end - $time_start] milliseconds."
 
 # vi: set ft=tcl :

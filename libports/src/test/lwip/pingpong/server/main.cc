@@ -12,20 +12,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/printf.h>
-#include <util/string.h>
-#include <os/config.h>
-
-#include <lwip/genode.h>
-
 /* libc includes */
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <stdlib.h>
+#include <stdio.h>
+
+#ifdef LWIP_NATIVE
+#include <lwip/genode.h>
+#endif
 
 #include "../pingpong.h"
 
@@ -37,19 +29,19 @@ announce(const char *addr)
 	int s;
 	struct sockaddr_in in_addr;
 
-	PLOG("Create new socket...");
+	printf("Create new socket...\n");
 	s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (s == -1) {
-		PERR("Could not create socket!");
+		printf("ERROR: Could not create socket!\n");
 		return -1;
 	}
 
-	PLOG("Bind socket to %d", Sport);
+	printf("Bind socket to %d\n", Sport);
 	in_addr.sin_port = htons(Sport);
 	in_addr.sin_family = AF_INET;
 	in_addr.sin_addr.s_addr = inet_addr(addr);
 	if ( bind(s, (struct sockaddr *)&in_addr, sizeof (in_addr)) == -1) {
-		PERR("Could not bind!");
+		printf("ERROR: Could not bind!\n");
 		close(s);
 		return -1;
 	}
@@ -69,9 +61,9 @@ recvping(const char *addr)
 	if (s == -1)
 		return -1;
 
-	PLOG("Listen on %s:%d...", addr, Sport);
+	printf("Listen on %s:%d...\n", addr, Sport);
 	if (listen(s, 5) == -1) {
-		PERR("Could not listen!");
+		printf("ERROR: Could not listen!\n");
 		close(s);
 		return -1;
 	}
@@ -80,19 +72,20 @@ recvping(const char *addr)
 		Packet p;
 		int act;
 		size_t packets;
+		ssize_t packet_size = 0;
 		ssize_t n;
 
-		PINF("wait...");
+		printf("wait...\n");
 		c = accept(s, &caddr, &lcaddr);
 		if (c == -1) {
-			PERR("Invalid socket from accept()!");
+			printf("ERROR: Invalid socket from accept()!\n");
 			continue;
 		}
-		PLOG("client %d connected...", c);
+		printf("client %d connected...\n", c);
 
 		p.d = (char *)malloc(Databuf);
 		if (p.d == NULL) {
-			PERR("Out of memeory!");
+			printf("ERROR: Out of memeory!\n");
 			close(c);
 			break;
 		}
@@ -100,14 +93,22 @@ recvping(const char *addr)
 		/* receive packets from client */
 		act = 1; packets = 0;
 		while (act) {
+
+			fd_set rfds;
+			FD_ZERO(&rfds);
+			FD_SET(c, &rfds);
+
+			if (select(c + 1, &rfds, NULL, NULL, NULL) == -1)
+				printf("ERROR: select() == -1\n");
+
 			n = recvpacket(c, &p, p.d, Databuf);
 			switch (n) {
 			case -1:
 				/* error */
-				PERR("recvpacket() == -1");
+				printf("ERROR: recvpacket() == -1\n");
 			case 0:
 				/* disconnect */
-				PERR("disconnect");
+				//printf("ERROR: disconnect\n");
 				close(c);
 				act = 0;
 				break;
@@ -115,14 +116,17 @@ recvping(const char *addr)
 				/* check if packet is vaid */
 				if (checkpacket(n, &p)) {
 					act = 0;
+				} else {
+					packets++;
+					packet_size = n;
 				}
 				break;
 			}
 
 			if (verbose)
-				PINF("%u	%d", p.h.id, n);
+				printf("%u	%d\n", p.h.id, n);
 		}
-		PINF("received packets: %u", packets);
+		printf("received %u packets of size %u\n", packets, packet_size);
 
 		free(p.d);
 	}
@@ -135,16 +139,20 @@ recvping(const char *addr)
 int
 main(int argc, char *argv[])
 {
-	char listenip[16];
+	char listenip[16] = "0.0.0.0";
 
+#ifdef LWIP_NATIVE
+	lwip_tcpip_init();
 	/* DHCP */
 	if (lwip_nic_init(0, 0, 0)) {
-		PERR("We got no IP address!");
+		printf("ERROR: We got no IP address!\n");
 		return 1;
 	}
+#endif
 
 	verbose = 0;
 
+#if 0
 	Genode::Xml_node argv_node = Genode::config()->xml_node().sub_node("argv");
 	try {
 		argv_node.attribute("listenip" ).value(listenip, sizeof(listenip));
@@ -153,6 +161,7 @@ main(int argc, char *argv[])
 		PERR("listenip was not specified!");
 		return 1;
 	}
+#endif
 
 	recvping(listenip);
 
