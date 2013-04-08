@@ -12,13 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/printf.h>
-
 /* libc includes */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdlib.h>
+#include <stdio.h>
 
 #include "pingpong.h"
 
@@ -36,7 +31,7 @@ checkpacket(size_t n, Packet *p)
 {
 	/* check size of received packet */
 	if (n != (sizeof (Packetheader) + p->h.dsize)) {
-		PERR("packetsize mismatch!");
+		printf("ERROR: packetsize mismatch!\n");
 		return -1;
 	}
 
@@ -44,13 +39,13 @@ checkpacket(size_t n, Packet *p)
 
 	/* check packet type */
 	if (p->h.type != Tping) {
-		PERR("wrong packet type!");
+		printf("ERROR: wrong packet type!\n");
 		return -1;
 	}
 
 	/* check payload */
 	if (p->d[p->h.dsize - 1] != (p->h.id % 128)) {
-		PERR("packet payload corrupt, expected: %d got: %d", (p->h.id % 128),
+		printf("ERROR: packet payload corrupt, expected: %d got: %d\n", (p->h.id % 128),
 		     p->d[p->h.dsize - 1]);
 		return -1;
 	}
@@ -72,11 +67,11 @@ sendpacket(int s, Packet *p)
 		sent = send(s, b + nh, sizeof (Packetheader) - nh, 0);
 		switch (sent) {
 		case -1:
-			PERR("send(Packetheader) == -1");
+			printf("ERROR: send(Packetheader) == -1\n");
 			return nh;
 			break;
 		case 0:
-			PERR("send(Packetheader) == 0, connection closed");
+			printf("ERROR: send(Packetheader) == 0, connection closed\n");
 			return nh;
 			break;
 		default:
@@ -92,11 +87,11 @@ sendpacket(int s, Packet *p)
 		sent = send(s, b + nd, dsize - nd, 0);
 		switch (sent) {
 		case -1:
-			PERR("send(data) == -1");
+			printf("ERROR: send(data) == -1\n");
 			return nd;
 			break;
 		case 0:
-			PERR("send(data) == 0, connection closed");
+			printf("ERROR: send(data) == 0, connection closed\n");
 			return nd;
 			break;
 		default:
@@ -121,12 +116,12 @@ recvpacket(int s, Packet *p, char *dbuf, size_t ldbuf)
 		r = recv(s, b + nh, sizeof (Packetheader) - nh, 0);
 		switch (r) {
 		case -1:
-			PERR("recv(Packetheader) == -1");
+			printf("ERROR: recv(Packetheader) == -1\n");
 			return nh;
 			break;
 		case 0:
 			/* disconnect */
-			PERR("recv(Packetheader) == 0, connection closed");
+			//printf("ERROR: recv(Packetheader) == 0, connection closed\n");
 			return nh;
 			break;
 		default:
@@ -136,7 +131,7 @@ recvpacket(int s, Packet *p, char *dbuf, size_t ldbuf)
 	}
 
 	if (p->h.dsize > ldbuf) {
-		PERR("packet payload is too large for dbuf!");
+		printf("ERROR: packet payload is too large for dbuf!\n");
 		return -1;
 	}
 
@@ -147,12 +142,12 @@ recvpacket(int s, Packet *p, char *dbuf, size_t ldbuf)
 		r = recv(s, dbuf + nd, dsize - nd, 0);
 		switch (r) {
 		case -1:
-			PERR("recv(data) == -1");
+			printf("ERROR: recv(data) == -1\n");
 			return nh + nd;
 			break;
 		case 0:
 			/* disconnect */
-			PERR("recv(data) == 0, connection closed");
+			printf("ERROR: recv(data) == 0, connection closed\n");
 			return nh + nd;
 			break;
 		default:

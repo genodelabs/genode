@@ -12,20 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/printf.h>
-#include <util/string.h>
-#include <os/config.h>
-
-#include <lwip/genode.h>
-
 /* libc includes */
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <stdlib.h>
+#include <stdio.h>
 
 #include "../pingpong.h"
 
@@ -37,30 +25,30 @@ dial(const char *addr)
 	int s;
 	struct sockaddr_in in_addr;
 
-	PLOG("Create new socket...");
+	printf("Create new socket...\n");
 	s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (s == -1) {
-		PERR("Could not create socket!");
+		printf("ERROR: Could not create socket!\n");
 		return -1;
 	}
 
-	PLOG("Connect to server %s:%d...", addr, Sport);
+	printf("Connect to server %s:%d...\n", addr, Sport);
 	in_addr.sin_port = htons(Sport);
 	in_addr.sin_family = AF_INET;
 	in_addr.sin_addr.s_addr = inet_addr(addr);
 	if (connect(s, (struct sockaddr *)&in_addr, sizeof (in_addr)) == -1) {
-		PERR("Could not connect to server!");
+		printf("ERROR: Could not connect to server!\n");
 		close(s);
 		return -1;
 	}
 
-	PLOG("Sucessful connected to server.");
+	printf("Sucessfully connected to server.\n");
 
 	return s;
 }
 
 int
-sendping(const char *addr, size_t dsize)
+sendping(const char *addr, size_t dsize, int count)
 {
 	Packet p;
 	int s;
@@ -75,24 +63,24 @@ sendping(const char *addr, size_t dsize)
 	p.h.dsize = dsize;
 	p.d = (char *)malloc(p.h.dsize);
 	if (p.d == NULL) {
-		PERR("Out of memory!");
+		printf("ERROR: Out of memory!\n");
 		return -1;
 	}
 
-	PINF("Try to send %d packets...", Numpackets);
-	for (i = 0; i < Numpackets; i++) {
+	printf("Trying to send %d packets...\n", count);
+	for (i = 0; i < count; i++) {
 		forgepacket(&p, i + 1);
 
 		n = sendpacket(s, &p);
 		if (n <= 0)
 			break;
 		if (n != (sizeof (Packetheader) + p.h.dsize)) {
-			PERR("size mismatch: %ld != %lu", n, sizeof (Packetheader) + p.h.dsize);
+			printf("ERROR: size mismatch: %ld != %lu\n", n, sizeof (Packetheader) + p.h.dsize);
 			break;
 		}
 
 		if (verbose)
-			PINF("%lu	%ld", p.h.id, n);
+			printf("%u	%ld\n", p.h.id, n);
 	}
 
 	close(s);
@@ -100,15 +88,15 @@ sendping(const char *addr, size_t dsize)
 
 	switch (n) {
 	case 0:
-		PERR("Disconnect, sent packets: %lu", i);
+		printf("Disconnect, sent packets: %lu\n", i);
 		return 0;
 		break;
 	case -1:
-		PERR("Error, sent packets: %lu", i);
+		printf("Error, sent packets: %lu\n", i);
 		return 1;
 		break;
 	default:
-		PINF("Sucessful, sent packets: %lu", i);
+		printf("Sucessful, sent packets: %lu\n", i);
 		return 0;
 		break;
 	}
@@ -120,21 +108,18 @@ sendping(const char *addr, size_t dsize)
 int
 main(int argc, char *argv[])
 {
-	char serverip[16];
+	char serverip[16] = "0.0.0.0";
 	unsigned int i;
 	unsigned int startsize, endsize;
-
-	/* DHCP */
-	if (lwip_nic_init(0, 0, 0)) {
-		PERR("We got no IP address!");
-		return 1;
-	}
+	unsigned int count;
 
 	/* default settings */
 	startsize = 1;
 	endsize   = 32768;
+	count     = 1024;
 	verbose   = 0;
 
+#if 0
 	Genode::Xml_node argv_node = Genode::config()->xml_node().sub_node("argv");
 	try {
 		argv_node.attribute("serverip" ).value(serverip, sizeof(serverip));
@@ -142,14 +127,26 @@ main(int argc, char *argv[])
 		argv_node.attribute("endsize").value( &endsize );
 		argv_node.attribute("verbose").value( &verbose );
 	} catch(...) { }
+#endif
+
+	for (int i = 1; i < argc; i += 2) {
+		if (strcmp(argv[i], "-serverip") == 0)
+			strncpy(serverip, argv[i+1], sizeof(serverip));
+		else if (strcmp(argv[i], "-startsize") == 0)
+			startsize = atoi(argv[i+1]);
+		else if (strcmp(argv[i], "-endsize") == 0)
+			endsize = atoi(argv[i+1]);
+		else if (strcmp(argv[i], "-count") == 0)
+			count = atoi(argv[i+1]);
+	}
 
 	if ((endsize + sizeof (Packetheader)) > Databuf) {
-		PERR("endsize is greater than the servers' data buffer");
+		printf("ERROR: endsize is greater than the servers' data buffer\n");
 		return 1;
 	}
 
 	for (i = startsize; i <= endsize; i <<= 1)
-		sendping(serverip, i);
+		sendping(serverip, i, count);
 
 	return 0;
 }
