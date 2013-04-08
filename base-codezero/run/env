@@ -83,6 +83,24 @@ proc build_boot_image {binaries} {
 }
 
 
-proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
-	spawn_qemu $wait_for_re $timeout_value }
+proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
+	#
+	# If a running_spawn_id is specified, wait for the expected output
+	#
+	if {$running_spawn_id != -1} {
+		wait_for_output $wait_for_re $timeout_value $running_spawn_id
+		return
+	}
 
+	#
+	# Try to use one of the supported backends for running the scripts
+	#
+	if {[is_qemu_available]} {
+		spawn_qemu $wait_for_re $timeout_value
+		return
+	}
+
+	global run_target
+	puts stderr "Error: Can't execute automatically on target '$run_target'"
+	exit -1
+}
