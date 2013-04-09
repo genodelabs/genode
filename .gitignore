@@ -19,6 +19,7 @@
 /dde_oss/download
 /libports/contrib
 /libports/download
+/libports/include/curl/
 /libports/include/EGL/egl.h
 /libports/include/EGL/eglext.h
 /libports/include/GL
@@ -28,12 +29,14 @@
 /libports/include/fribidi
 /libports/include/freetype
 /libports/include/ft2build.h
+/libports/include/iconv/
 /libports/include/jbig2dec
 /libports/include/libc-amd64/
 /libports/include/libc-arm/
 /libports/include/libc-i386/
 /libports/include/libc/
 /libports/include/libpng
+/libports/include/libssh/
 /libports/include/lua
 /libports/include/lwip/lwip
 /libports/include/lwip/netif
