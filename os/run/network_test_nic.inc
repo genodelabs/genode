@@ -168,7 +168,7 @@ if {![file exists bin/nic_drv_test_client]} {
 set cap_rights [exec getcap bin/nic_drv_test_client]
 if {![regexp cap_net_raw $cap_rights]} {
 	set sudo_command "sudo setcap cap_net_raw=ep bin/nic_drv_test_client"
-	puts "For sending raw packets cap_net_raw permission are required."
+	puts "For sending raw packets the Linux capability for cap_net_raw is required."
 	puts "Trying to execute: '$sudo_command'"
 	eval "exec $sudo_command"
 }
