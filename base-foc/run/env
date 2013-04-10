@@ -74,7 +74,7 @@ proc fiasco_external { } {
 ##
 # Reset the target system via the Fiasco.OC kernel debugger
 #
-proc reset { {spawn_id_arg -1} } {
+proc reset_target { {spawn_id_arg -1} } {
 	global spawn_id
 	if { $spawn_id_arg == -1 } {
 		set spawn_id_arg $spawn_id

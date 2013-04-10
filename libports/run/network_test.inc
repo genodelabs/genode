@@ -7,7 +7,7 @@
 #
 # Client parameters
 #
-set packet_payload_size 24
+set packet_payload_size 10
 set packet_count        1000000
 
 #
@@ -16,13 +16,16 @@ set packet_count        1000000
 
 set build_components {
 	core init
-	drivers/pci drivers/timer drivers/nic
+	drivers/timer drivers/nic
 	test/lwip/pingpong/server
 }
 
 lappend_if $use_nic_bridge build_components server/nic_bridge
 
 lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/usb
+lappend_if [have_spec acpi]  build_components drivers/acpi
+lappend_if [have_spec pci]   build_components drivers/pci/device_pd
+lappend_if [have_spec pci]   build_components drivers/pci
 
 build $build_components
 
@@ -104,9 +107,23 @@ append_if [expr ![have_spec omap4] && ![have_spec exynos5]] config {
 		<provides><service name="Nic"/></provides>
 	</start>}
 
-append_if [have_spec pci] config {
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="3M"/>
 		<provides> <service name="PCI"/> </provides>
 	</start> }
 
@@ -132,29 +149,26 @@ lappend boot_modules $test_server_name
 
 # platform-specific modules
 lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec acpi]          boot_modules acpi_drv
 lappend_if [expr [have_spec omap4] || [have_spec exynos5]] boot_modules usb_drv
 lappend_if [expr ![have_spec omap4] && ![have_spec exynos5]] boot_modules nic_drv
+lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 build_boot_image $boot_modules
 
-# establish serial connection with the server system
-spawn picocom -b 115200 /dev/ttyUSB0
-set server_spawn_id $spawn_id
-set timeout -1
-expect -i $server_spawn_id "Terminal ready"
-
-# reset the server system (if Fiasco.OC is already running)
-reset $server_spawn_id
-
 # get IP address from server
-expect {
-	-i $server_spawn_id
-	-re "got IP address (.*)\033.*\n" { set ip_addr $expect_out(1,string) }
-}
+set match_string "got IP address (.*)\033.*\n"
+run_genode_until $match_string 30
+set server_spawn_id $spawn_id
+
+regexp $match_string $output all ip_addr
 puts "got server IP address: $ip_addr"
 
-# wait until the server is ready
-expect -i $server_spawn_id "wait...*\n"
+set match_string "wait....*\n"
+if {![regexp $match_string $output] } {
+	# wait until the server is ready
+	run_genode_until $match_string 30 $server_spawn_id
+}
 
 # build the client
 set pingpong_dir $genode_dir/libports/src/test/lwip/pingpong
@@ -171,33 +185,39 @@ spawn bin/network_test_client \
 	-count $packet_count
 
 # wait until the client is connected to the server
-expect -i $server_spawn_id "client \[1|3\] connected..."
+run_genode_until "client \[1|3\] connected..." 60 $server_spawn_id
 
 # start counting the execution time
 set time_start [clock milliseconds]
 
 # wait until the server received all packets
-expect {
-	-i $server_spawn_id
-	-re "received .*\n" { }
-}
+run_genode_until "received .*\n" 600 $server_spawn_id
 
 # stop counting the execution time
 set time_end [clock milliseconds]
 
+# get received packet size and count from target
+set target_packet_size [regexp -inline {received [0-9]+ packets of size [0-9]+} $output]
+set target_packet_size [regexp -all -inline {[0-9]+} $target_packet_size]
+set target_packet_count [lindex $target_packet_size 0]
+set target_packet_size  [lindex $target_packet_size 1]
+
+# calculate troughput
 set milliseconds [expr $time_end - $time_start]
-set payload_total [expr $packet_count * $packet_payload_size]
+set payload_total [expr $target_packet_count * $target_packet_size]
 set payload_bytes_per_second [expr $payload_total * 1000 / $milliseconds ]
 
-set test_result "$milliseconds ms ($payload_bytes_per_second payload bytes per second)"
+
+puts "! PERF: $target_packet_size\_data [expr $payload_bytes_per_second * 8 / 1000 / 1000] MBit/s ok"
+
+set test_result "$milliseconds ms. payload ($target_packet_size Byte): $payload_bytes_per_second Byte/s"
 
 puts "\nTest succeeded in $test_result."
 
 # disconnect from server system
-send -i $server_spawn_id "\x01\x18" ;# Ctrl-A Ctrl-X
-expect {
-	-i $server_spawn_id
-	"Thanks for using picocom"
+if {[expr [have_spec omap4] || [have_spec exynos5]]} {
+	send -i $server_spawn_id "\x01\x18" ;# Ctrl-A Ctrl-X
+	run_genode_until "Thanks for using picocom" 60 $server_spawn_id
 }
 
 exec rm -f bin/network_test_client
