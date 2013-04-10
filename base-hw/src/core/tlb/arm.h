@@ -145,24 +145,7 @@ namespace Arm
 	 */
 	template <typename T>
 	static typename T::access_t
-	memory_region_attr(Page_flags::access_t const flags)
-	{
-		typedef typename T::Tex Tex;
-		typedef typename T::C C;
-		typedef typename T::B B;
-
-		/*
-		 * FIXME: upgrade to write-back & write-allocate when !d & c
-		 */
-		if(Page_flags::D::get(flags))
-			    return Tex::bits(2) | C::bits(0) | B::bits(0);
-		if(cache_support()) {
-			if(Page_flags::C::get(flags))
-				return Tex::bits(5) | C::bits(0) | B::bits(1);
-			    return Tex::bits(6) | C::bits(1) | B::bits(0);
-		}
-		        return Tex::bits(4) | C::bits(0) | B::bits(0);
-	}
+	memory_region_attr(Page_flags::access_t const flags);
 
 	/**
 	 * Second level translation table
