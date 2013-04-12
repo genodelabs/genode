@@ -18,12 +18,6 @@ proc clean_boot_modules { } {
 	exec rm -rf boot_modules.s var/libcache/boot_modules/boot_modules.o }
 
 
-#
-# Get target argument
-#
-proc target { } { return [get_cmd_arg --target "qemu"] }
-
-
 ##########################
 ## 'tool/run' interface ##
 ##########################
@@ -59,6 +53,7 @@ proc create_boot_directory { } {
 
 
 proc build_boot_image {binaries} {
+	global run_target
 
 	# strip binaries
 	copy_and_strip_genode_binaries_to_run_dir $binaries
@@ -178,7 +173,7 @@ proc build_boot_image {binaries} {
 	exec [cross_dev_prefix]strip $elf_img
 
 	# target specific ops
-	if {[target] == "uboot"} {
+	if {[regexp "uboot" $run_target]} {
 
 		# parse ELF entrypoint and load address
 		set entrypoint [exec [cross_dev_prefix]readelf -h $elf_img | \
@@ -205,6 +200,8 @@ proc build_boot_image {binaries} {
 
 
 proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
+	global run_target
+
 	#
 	# If a running_spawn_id is specified, wait for the expected output
 	#
@@ -216,20 +213,12 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 	#
 	# Try to use one of the supported backends for running the scripts
 	#
-#	if {[is_amt_available]} {
-#		spawn_amt $wait_for_re $timeout_value
-#		return
-#	}
-#	if {[is_qemu_available]} {
-#		spawn_qemu $wait_for_re $timeout_value
-#		return
-#	}
-
-	if {[target] == "qemu"} { spawn_qemu $wait_for_re $timeout_value
-	} else {
-		puts stderr "Error: Can't execute automatically on target '[target]'"
-		puts stderr "       Target might be: 'qemu'"
-		exit -1
+	if {[is_qemu_available]} {
+		spawn_qemu $wait_for_re $timeout_value
+		return
 	}
+
+	puts stderr "Error: Can't execute automatically on target '$run_target'"
+	exit -1
 }
 
