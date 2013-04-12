@@ -260,6 +260,10 @@ int dde_ipxe_nic_tx(unsigned if_index, const char *packet, unsigned packet_len)
 	struct io_buffer *iobuf = alloc_iob(packet_len);
 
 	LEAVE;
+
+	if (!iobuf)
+		return -1;
+
 	memcpy(iob_put(iobuf, packet_len), packet, packet_len);
 	ENTER;
 
