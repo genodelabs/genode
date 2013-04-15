@@ -199,6 +199,11 @@ class Packet_descriptor_queue
 		 * Return true if a single element is stored in the queue
 		 */
 		bool single_element() { return (_tail + 1)%QUEUE_SIZE == _head; }
+
+		/**
+		 * Return true if a single slot is left to be put into the queue
+		 */
+		bool single_slot_free() { return (_head + 2)%QUEUE_SIZE == _tail; }
 };
 
 
@@ -325,14 +330,12 @@ class Packet_descriptor_receiver
 		{
 			Genode::Lock::Guard lock_guard(_rx_queue_lock);
 
-			bool rx_queue_was_full = _rx_queue->full();
-
 			while (_rx_queue->empty())
 				_rx_ready.wait_for_signal();
 
 			*out_packet = _rx_queue->get();
 
-			if (rx_queue_was_full)
+			if (_rx_queue->single_slot_free())
 				_tx_ready.submit();
 		}
 };
