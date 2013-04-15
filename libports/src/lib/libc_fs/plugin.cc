@@ -511,8 +511,10 @@ class Plugin : public Libc::Plugin
 						handle = file_system()->file(dir_handle, basename.base() + 1, mode, create);
 						opened = true;
 					} catch (File_system::Node_already_exists) {
-						if (flags & O_EXCL)
-							throw File_system::Node_already_exists();
+						if (flags & O_EXCL) {
+							errno = EEXIST;
+							return 0;
+						}
 						/* try to open the existing file */
 						try {
 							handle = file_system()->file(dir_handle, basename.base() + 1, mode, false);
