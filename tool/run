@@ -486,6 +486,7 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	wait_for_output $wait_for_re $timeout_value $qemu_spawn_id
 }
 
+
 ##
 # Check whether Qemu support is available
 #
@@ -500,6 +501,7 @@ proc is_qemu_available { } {
 	}
 	return true
 }
+
 
 ##
 # Check whether AMT support is available
@@ -517,6 +519,18 @@ proc is_amt_available { } {
 	}
 	puts "No support for Intel's AMT detected."
 	return false
+}
+
+
+##
+# Check whether output is expected via a local attached serial device
+#
+proc is_serial_available { } {
+	global run_target
+
+	if {![regexp "serial" $run_target]} { return false }
+
+	return true
 }
 
 
@@ -595,6 +609,25 @@ proc spawn_amt { wait_for_re timeout_value} {
 	global output
 	set output $expect_out(buffer)
 }
+
+
+##
+# Execute scenario expecting output via serial device
+#
+proc spawn_serial { wait_for_re timeout_value} {
+	global spawn_id
+
+	if {$wait_for_re != "forever"} {
+		set timeout_value [expr $timeout_value + 30]
+	}
+
+	set serial_dev [get_cmd_arg --serial-dev "/dev/ttyUSB0"]
+
+	spawn picocom -b 115200 $serial_dev
+	set serial_spawn_id $spawn_id
+	wait_for_output $wait_for_re $timeout_value $serial_spawn_id
+}
+
 
 ##
 # Determine terminal program
