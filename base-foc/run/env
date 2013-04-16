@@ -298,4 +298,12 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 		spawn_qemu $wait_for_re $timeout_value
 		return
 	}
+	if {[is_serial_available]} {
+		spawn_serial $wait_for_re $timeout_value
+		return
+	}
+
+	global run_target
+	puts stderr "Error: Can't execute automatically on target '$run_target'"
+	exit -1
 }
