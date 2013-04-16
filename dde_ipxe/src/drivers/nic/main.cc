@@ -65,9 +65,13 @@ namespace Ipxe {
 
 			void rx_handler(const char *packet, unsigned packet_len)
 			{
-				void *buffer = _alloc.alloc(packet_len);
-				Genode::memcpy(buffer, packet, packet_len);
-				_alloc.submit();
+				try {
+					void *buffer = _alloc.alloc(packet_len);
+					Genode::memcpy(buffer, packet, packet_len);
+					_alloc.submit();
+				} catch (...) {
+					PDBG("failed to process received packet");	
+				}
 			}
 
 
