@@ -33,6 +33,8 @@
 #include <destruct_queue.h>
 #include <destruct_dispatcher.h>
 
+#include <local_cpu_service.h>
+#include <local_ram_service.h>
 
 namespace Noux {
 
@@ -176,6 +178,8 @@ namespace Noux {
 			Session_capability const _noux_session_cap;
 
 			Local_noux_service _local_noux_service;
+			Local_ram_service  _local_ram_service;
+			Local_cpu_service  _local_cpu_service;
 			Local_rm_service   _local_rm_service;
 			Service_registry  &_parent_services;
 
@@ -272,6 +276,8 @@ namespace Noux {
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
 				_local_noux_service(_noux_session_cap),
+				_local_ram_service(_entrypoint),
+				_local_cpu_service(_entrypoint, _resources.cpu.cpu_cap()),
 				_local_rm_service(_entrypoint, _resources.ds_registry),
 				_parent_services(parent_services),
 				_child_policy(name, _binary_ds, _args.cap(), _env.cap(),
@@ -279,7 +285,11 @@ namespace Noux {
 				              _local_rm_service, _parent_services,
 				              *this, *this, _destruct_context_cap, _resources.ram),
 				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
-				       _resources.rm.cap(), &_entrypoint, &_child_policy)
+				       _resources.rm.cap(), &_entrypoint, &_child_policy,
+				       /**
+				        * Override the implicit assignment to _parent_service
+				        */
+				       _local_ram_service, _local_cpu_service, _local_rm_service)
 			{
 				_args.dump();
 

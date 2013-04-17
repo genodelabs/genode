@@ -65,6 +65,7 @@ namespace Noux {
 				_cpu.start(_main_thread, ip, sp);
 			}
 
+			Cpu_session_capability cpu_cap() { return _cpu.cap(); }
 
 			/***************************
 			 ** Cpu_session interface **
