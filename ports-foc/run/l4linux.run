@@ -13,6 +13,7 @@ set build_components {
 
 lappend_if [have_spec     x86] build_components drivers/nic
 lappend_if [have_spec     pci] build_components drivers/pci
+lappend_if [have_spec    acpi] build_components drivers/acpi
 lappend_if [have_spec     ps2] build_components drivers/input/ps2
 lappend_if [have_spec lan9118] build_components drivers/nic
 
@@ -44,17 +45,31 @@ set config  {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="uart_drv">
+	<start name="kdb_uart_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Terminal"/></provides>
-		<config><policy label="l4linux" uart="1"/></config>
+		<config><policy label="l4linux" uart="0"/></config>
 	</start> }
 
-append_if [have_spec pci] config {
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start> }
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
@@ -66,13 +81,13 @@ append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
-	</start>}
+	</start> }
 
 append_if [have_spec x86] config {
 	<start name="nic_drv">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nic"/></provides>
-	</start>}
+	</start> }
 
 append_if [have_spec lan9118] config {
 	<start name="nic_drv">
@@ -82,28 +97,26 @@ append_if [have_spec lan9118] config {
 
 append config {
 	<start name="l4linux">
-		<resource name="RAM" quantum="128M"/>
-}
+		<resource name="RAM" quantum="128M"/> }
 
 append_if [have_spec x86] config {
-		<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
-}
+		<config args="mem=64M l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/> }
 
 append_if [have_spec arm] config {
-		<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz"/>
-}
+		<config args="mem=64M l4x_rd=initrd.gz"/> }
 
 append config {
 	</start>
-</config>}
+</config> }
 
 install_config $config
 
 #
 # Boot modules
 #
-set boot_modules { core init timer uart_drv l4linux initrd.gz }
+set boot_modules { core init timer kdb_uart_drv l4linux initrd.gz }
 lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec        acpi] boot_modules acpi_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         x86] boot_modules nic_drv
@@ -125,7 +138,6 @@ build_boot_image  [join $boot_modules " "]
 # Qemu
 #
 append qemu_args " -m 128 -nographic "
-append qemu_args " -serial file:kdb.log "
 append qemu_args " -serial mon:stdio "
 append_if [have_spec     x86] qemu_args " -smp 2,cores=2 "
 append_if [have_spec     x86] qemu_args " -net nic,model=e1000 -net user "
@@ -146,4 +158,4 @@ expect {
 }
 
 puts "Test succeeded"
-exec rm bin/initrd.gz kdb.log
+exec rm bin/initrd.gz
