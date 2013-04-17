@@ -60,14 +60,17 @@ enum usbhs_omap_port_mode
 	OMAP_EHCI_PORT_MODE_PHY,
 };
 
+struct regulator { };
 
 struct ehci_hcd_omap_platform_data
 {
 	enum usbhs_omap_port_mode  port_mode[OMAP3_HS_USB_PORTS];
+	int                        reset_gpio_port[OMAP3_HS_USB_PORTS];
 	struct regulator          *regulator[OMAP3_HS_USB_PORTS];
+	unsigned                   phy_reset;
+
 };
 
-struct regulator;
 
 
 /*****************************
@@ -156,5 +159,81 @@ struct clk *clk_get(struct device *, const char *);
 int    clk_enable(struct clk *);
 void   clk_disable(struct clk *);
 void   clk_put(struct clk *);
+struct clk *devm_clk_get(struct device *dev, const char *id);
+int    clk_prepare_enable(struct clk *);
+void   clk_disable_unprepare(struct clk *);
+
+
+/******************
+ ** linux/gpio.h **
+ ******************/
+
+enum { GPIOF_OUT_INIT_HIGH = 0x2 };
+
+bool gpio_is_valid(int);
+void gpio_set_value_cansleep(unsigned, int);
+int gpio_request_one(unsigned, unsigned long, const char *);
+
+/****************
+ ** linux/of.h **
+ ****************/
+
+#define of_match_ptr(ptr) NULL
+
+
+/*********************
+ ** linux/of_gpio.h **
+ *********************/
+
+int of_get_named_gpio(struct device_node *, const char *, int);
+
+
+/******************
+ ** linux/phy.h  **
+ ******************/
+
+enum {
+	MII_BUS_ID_SIZE = 17,
+	PHY_MAX_ADDR    = 32,
+	PHY_POLL        = -1,
+};
+
+
+#define PHY_ID_FMT "%s:%02x"
+
+struct mii_bus
+{
+	const char *name;
+	char id[MII_BUS_ID_SIZE];
+	int (*read)(struct mii_bus *bus, int phy_id, int regnum);
+	int (*write)(struct mii_bus *bus, int phy_id, int regnum, u16 val);
+	void *priv;
+	int *irq;
+};
+
+struct phy_device
+{
+	int speed;
+	int duplex;
+	int link;
+};
+
+struct mii_bus *mdiobus_alloc(void);
+int  mdiobus_register(struct mii_bus *bus);
+void mdiobus_unregister(struct mii_bus *bus);
+void mdiobus_free(struct mii_bus *bus);
+
+int  phy_mii_ioctl(struct phy_device *phydev, struct ifreq *ifr, int cmd);
+void phy_print_status(struct phy_device *phydev);
+int  phy_ethtool_sset(struct phy_device *phydev, struct ethtool_cmd *cmd);
+int  phy_ethtool_gset(struct phy_device *phydev, struct ethtool_cmd *cmd);
+int  phy_start_aneg(struct phy_device *phydev);
+void phy_stop(struct phy_device *phydev);
+int  genphy_resume(struct phy_device *phydev);
+
+struct phy_device * phy_connect(struct net_device *dev, const char *bus_id,
+                                void (*handler)(struct net_device *), u32 flags,
+                                phy_interface_t interface);
+void phy_disconnect(struct phy_device *phydev);
 
 #endif /* _ARM__PLATFORM__LX_EMUL_H_ */

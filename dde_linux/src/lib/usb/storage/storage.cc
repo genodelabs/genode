@@ -167,8 +167,9 @@ void scsi_add_device(struct scsi_device *sdev)
 	 * XXX  move to 'main'
 	 */
 	if (!announce) {
+		enum { STACK_SIZE = 1024 * sizeof(addr_t) };
 		static Cap_connection cap_stor;
-		static Rpc_entrypoint ep_stor(&cap_stor, 4096, "usb_stor_ep");
+		static Rpc_entrypoint ep_stor(&cap_stor, STACK_SIZE, "usb_stor_ep");
 		static Block::Root root(&ep_stor, env()->heap(), _signal->receiver(), device);
 		env()->parent()->announce(ep_stor.manage(&root));
 		announce = true;

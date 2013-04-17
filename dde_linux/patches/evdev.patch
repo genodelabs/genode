@@ -1,7 +1,7 @@
-diff -r 1d04c9c5fa8a drivers/input/evdev.c
---- a/drivers/input/evdev.c	Tue Apr 17 16:14:54 2012 +0200
-+++ b/drivers/input/evdev.c	Wed Apr 18 11:25:37 2012 +0200
-@@ -957,6 +957,9 @@
+diff -r 3e2b660685e7 drivers/input/evdev.c
+--- a/drivers/input/evdev.c	Wed Apr 17 11:36:09 2013 +0200
++++ b/drivers/input/evdev.c	Wed Apr 17 11:36:46 2013 +0200
+@@ -1008,6 +1008,9 @@
  	if (error)
  		goto err_cleanup_evdev;
  
@@ -11,12 +11,13 @@ diff -r 1d04c9c5fa8a drivers/input/evdev.c
  	return 0;
  
   err_cleanup_evdev:
-@@ -986,7 +989,7 @@
+@@ -1040,8 +1043,7 @@
  MODULE_DEVICE_TABLE(input, evdev_ids);
  
  static struct input_handler evdev_handler = {
 -	.event		= evdev_event,
+-	.events		= evdev_events,
 +	.event		= genode_evdev_event,
  	.connect	= evdev_connect,
  	.disconnect	= evdev_disconnect,
- 	.fops		= &evdev_fops,
+ 	.legacy_minors	= true,

@@ -54,11 +54,7 @@ static resource _ehci[] =
 /**
  * Port informations for platform device
  */
-static struct ehci_hcd_omap_platform_data _ehci_data
-{
-	{ OMAP_EHCI_PORT_MODE_PHY, OMAP_EHCI_PORT_MODE_NONE },
-	{ 0, 0 }
-};
+static struct ehci_hcd_omap_platform_data _ehci_data;
 
 
 /**
@@ -366,14 +362,14 @@ static void omap_ehci_init()
 
 extern "C" void module_ehci_hcd_init();
 extern "C" int  module_usbnet_init();
-extern "C" int  module_smsc95xx_init();
+extern "C" int  module_smsc95xx_driver_init();
 
 void platform_hcd_init(Services *services)
 {
 	/* register network */
 	if (services->nic) {
 		module_usbnet_init();
-		module_smsc95xx_init();
+		module_smsc95xx_driver_init();
 	}
 
 	/* register EHCI controller */
@@ -388,6 +384,11 @@ void platform_hcd_init(Services *services)
 	pdev->id   = 0;
 	pdev->num_resources = 2;
 	pdev->resource = _ehci;
+
+
+	_ehci_data.port_mode[0] =  OMAP_EHCI_PORT_MODE_PHY;
+	_ehci_data.port_mode[1] =  OMAP_EHCI_PORT_MODE_NONE;
+	_ehci_data.phy_reset = 0;
 	pdev->dev.platform_data = &_ehci_data;
 
 	/*

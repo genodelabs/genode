@@ -369,6 +369,8 @@ void *kmalloc(size_t size, gfp_t flags)
 
 	if (a & 0x3)
 		PERR("Unaligned kmalloc %lx", a);
+
+	//PDBG("Kmalloc: [%lx-%lx) from %p", a, a + size, __builtin_return_address(0));
 	return addr;
 }
 
@@ -662,6 +664,12 @@ void *ioremap(resource_size_t offset, unsigned long size)
 	return _ioremap(offset, size, 0);
 }
 
+void *devm_ioremap(struct device *dev, resource_size_t offset,
+                   unsigned long size)
+{
+	return ioremap(offset, size);
+}
+
 
 /********************
  ** linux/device.h **
@@ -672,7 +680,7 @@ void *ioremap(resource_size_t offset, unsigned long size)
  */
 class Driver : public Genode::List<Driver>::Element
 {
-	private:
+	public:
 
 		struct device_driver *_drv; /* Linux driver */
 
@@ -748,6 +756,7 @@ int device_add(struct device *dev)
 		if (driver->match(dev)) {
 			int ret = driver->probe(dev);
 			dde_kit_log(DEBUG_DRIVER, "Probe return %d", ret);
+
 			if (!ret)
 				return 0;
 		}
@@ -795,6 +804,13 @@ long find_next_zero_bit_le(const void *addr,
 	PERR("No zero bit findable");
 	return offset + size;
 }
+
+
+void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp)
+{
+	return kzalloc(size, gfp);
+}
+
 
 
 /*******************************

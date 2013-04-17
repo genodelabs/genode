@@ -20,7 +20,7 @@
 #include <lx_emul.h>
 
 /* Linux */
-#include <plat/ehci.h>
+#include <linux/platform_data/usb-ehci-s5p.h>
 
 using namespace Genode;
 
@@ -137,14 +137,14 @@ static void arndale_ehci_init()
 
 extern "C" void module_ehci_hcd_init();
 extern "C" int  module_usbnet_init();
-extern "C" int  module_asix_init();
+extern "C" int  module_asix_driver_init();
 
 void platform_hcd_init(Services *services)
 {
 	/* register network */
 	if (services->nic) {
 		module_usbnet_init();
-		module_asix_init();
+		module_asix_driver_init();
 	}
 
 	/* register EHCI controller */

@@ -14,7 +14,6 @@
 #include <signal.h>
 #include <lx_emul.h>
 
-
 static Signal_helper *_signal = 0;
 
 /**
@@ -237,4 +236,12 @@ int schedule_work(struct work_struct *work)
 {
 	Work::schedule((void *)work, false);
 	return 1;
+}
+
+
+bool queue_delayed_work(struct workqueue_struct *wq,
+                        struct delayed_work *dwork, unsigned long delay)
+{
+	Work::schedule((void *)dwork, true);
+	return true;
 }

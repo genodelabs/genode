@@ -367,6 +367,11 @@ struct sk_buff *alloc_skb(unsigned int size, gfp_t priority)
 	return skb;
 }
 
+struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int length)
+{
+	return _alloc_skb(length + NET_IP_ALIGN, false);
+}
+
 
 void dev_kfree_skb(struct sk_buff *skb)
 {
@@ -500,6 +505,12 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask)
 }
 
 
+int skb_header_cloned(const struct sk_buff *skb)
+{
+	return skb->cloned;
+}
+
+
 void skb_set_tail_pointer(struct sk_buff *skb, const int offset)
 {
 	skb->tail = skb->data + offset;
@@ -591,11 +602,11 @@ struct sk_buff *skb_dequeue(struct sk_buff_head *list)
  ** linux/inerrupt.h **
  **********************/
 
-static void snprint_mac(char *buf, char *mac)
+static void snprint_mac(u8 *buf, u8 *mac)
 {
 	for (int i = 0; i < ETH_ALEN; i++)
 	{
-		Genode::snprintf(&buf[i * 3], 3, "%02x", mac[i]);
+		Genode::snprintf((char *)&buf[i * 3], 3, "%02x", mac[i]);
 		if ((i * 3) < MAC_LEN)
 			buf[(i * 3) + 2] = ':';
 	}
@@ -604,11 +615,27 @@ static void snprint_mac(char *buf, char *mac)
 }
 
 
+/*************************
+ ** linux/etherdevice.h **
+ *************************/
+
+void eth_hw_addr_random(struct net_device *dev)
+{
+	random_ether_addr(dev->_dev_addr);
+}
+
+
+void eth_random_addr(u8 *addr)
+{
+	random_ether_addr(addr);
+}
+
+
 void random_ether_addr(u8 *addr)
 {
 	using namespace Genode;
-	char str[MAC_LEN + 1];
-	char fallback[] = { 0x2e, 0x60, 0x90, 0x0c, 0x4e, 0x01 };
+	u8 str[MAC_LEN + 1];
+	u8 fallback[] = { 0x2e, 0x60, 0x90, 0x0c, 0x4e, 0x01 };
 	Nic::Mac_address mac;
 
 	/* try using configured mac */
@@ -628,7 +655,7 @@ void random_ether_addr(u8 *addr)
 
 	/* use configured mac*/
 	Genode::memcpy(addr, mac.addr, ETH_ALEN);
-	snprint_mac(str, mac.addr);
+	snprint_mac(str, (u8 *)mac.addr);
 	PINF("Using configured mac: %s", str);
 
 #ifdef GENODE_NET_STAT

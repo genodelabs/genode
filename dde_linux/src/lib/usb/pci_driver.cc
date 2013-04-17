@@ -195,7 +195,13 @@ int pci_register_driver(struct pci_driver *drv)
 
 	bool found = false;
 
-	while (id->vendor || id->subvendor || id->class_mask) {
+	while (id->device_class || id->class_mask) {
+
+		if (id->device_class == (unsigned)PCI_ANY_ID) {
+				dde_kit_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
+				id++;
+				continue;
+		}
 
 		Pci::Device_capability cap = pci.first_device(id->device_class,
 		                                              id->class_mask);

@@ -28,6 +28,7 @@ void platform_execute(void *sp, void *func, void *arg)
 }
 
 extern "C" void module_ehci_hcd_init();
+extern "C" void module_ehci_pci_init();
 extern "C" void module_uhci_hcd_init();
 
 inline void platform_hcd_init(Services *s)
@@ -35,6 +36,7 @@ inline void platform_hcd_init(Services *s)
 
 	/* ehci_hcd should always be loaded before uhci_hcd and ohci_hcd, not after */
 	module_ehci_hcd_init();
+	module_ehci_pci_init();
 	module_uhci_hcd_init();
 }
 

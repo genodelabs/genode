@@ -9,32 +9,43 @@ VERBOSE     ?= @
 ECHO         = @echo
 PATCHES      := $(shell find patches -name \*.patch)
 
-LINUX      = linux-3.2.2
+LINUX      = linux-3.8.6
 LINUX_TBZ2 = $(LINUX).tar.bz2
 LINUX_URL  = http://www.kernel.org/pub/linux/kernel/v3.x/$(LINUX_TBZ2)
 
 # Linux utilities
 CONTENT += include/linux/list.h
-CONTENT += $(addprefix include/linux/,pci_ids.h pci_regs.h usb.h hid.h hiddev.h input.h mod_devicetable.h)
-CONTENT += $(addprefix include/linux/byteorder/,generic.h little_endian.h)
+CONTENT += $(addprefix include/linux/,pci_ids.h usb.h hid.h hiddev.h input.h mod_devicetable.h)
+CONTENT += include/linux/byteorder/generic.h
 CONTENT += include/linux/swab.h
+
 CONTENT += $(addprefix include/asm-generic/bitops/,__ffs.h non-atomic.h)
 
+CONTENT_UAPI  = byteorder/little_endian.h hid.h input.h pci_regs.h usb/ch11.h \
+                usb/ch9.h
+CONTENT_USB = ch9.h phy.h
+CONTENT    += $(addprefix include/uapi/linux/,$(CONTENT_UAPI))
+CONTENT    += $(addprefix include/linux/usb/,$(CONTENT_USB))
+CONTENT    += include/uapi/asm-generic/ioctl.h
+
 # USB core
-CONTENT += drivers/usb/core
+CONTENT_CORE = buffer.c config.c devices.c driver.c endpoint.c file.c generic.c \
+               hcd.c hcd-pci.c hub.c message.c notify.c quirks.c urb.c \
+               usb.c usb.h
+CONTENT += $(addprefix drivers/usb/core/,$(CONTENT_CORE))
 CONTENT += drivers/usb/usb-common.c
-CONTENT_INCLUDE_USB := ch11.h ch9.h ehci_def.h hcd.h input.h otg.h quirks.h storage.h
+CONTENT_INCLUDE_USB := ehci_def.h hcd.h input.h otg.h quirks.h storage.h
 CONTENT += $(addprefix include/linux/usb/,$(CONTENT_INCLUDE_USB))
 
 # needed by usb/core/devio.c
-CONTENT += include/linux/usbdevice_fs.h include/asm-generic/ioctl.h
+CONTENT += include/asm-generic/ioctl.h
 
 # USB host-controller driver
 CONTENT_USB_HOST := ehci.h ehci-hcd.c ehci-hub.c ehci-dbg.c ehci-mem.c \
                     ehci-omap.c ehci-q.c ehci-pci.c ehci-s5p.c ehci-sched.c \
-                    ehci-sysfs.c
+                    ehci-sysfs.c ehci-timer.c
 CONTENT_USB_HOST += ohci.h ohci-hcd.c ohci-hub.c ohci-dbg.c ohci-mem.c \
-                    ohci-q.c ohci-pci.c ehci-lpm.c
+                    ohci-q.c ohci-pci.c
 CONTENT_USB_HOST += uhci-hcd.h uhci-hcd.c uhci-debug.c uhci-q.c uhci-hub.c \
                     uhci-pci.c
 CONTENT_USB_HOST += pci-quirks.h pci-quirks.c xhci-ext-caps.h
@@ -49,7 +60,7 @@ CONTENT += $(addprefix drivers/scsi/,scsi.h scsi.c constants.c scsi_priv.h scsi_
 CONTENT += $(addprefix include/scsi/,scsi.h scsi_host.h)
 
 # USB hid driver
-CONTENT += drivers/hid/hid-input.c drivers/hid/hid-core.c drivers/hid/hid-ids.h
+CONTENT += drivers/hid/hid-input.c drivers/hid/hid-generic.c drivers/hid/hid-core.c drivers/hid/hid-ids.h
 CONTENT += drivers/hid/hid-cherry.c drivers/hid/usbhid
 
 # needed by USB hid
@@ -62,14 +73,15 @@ CONTENT_NET = usbnet.c
 # Panda board
 CONTENT_NET += smsc95xx.c smsc95xx.h
 # Arndale board
-CONTENT_NET += asix.c
+CONTENT_NET += asix_devices.c asix_common.c ax88172a.c asix.h
 
 CONTENT    += $(addprefix drivers/net/usb/,$(CONTENT_NET))
-CONTENT    += include/linux/usb/usbnet.h
+CONTENT    += include/linux/usb/usbnet.h include/linux/netdev_features.h
 
 # Arndale
 CONTENT_ARNDALE = ehci.h usb-phy.h
-CONTENT += $(addprefix arch/arm/plat-samsung/include/plat/,$(CONTENT_ARNDALE))
+CONTENT += arch/arm/plat-samsung/include/plat/usb-phy.h
+CONTENT += include/linux/platform_data/usb-ehci-s5p.h
 
 #
 #
@@ -102,6 +114,7 @@ $(CONTRIB_DIR)/.prepared: $(DOWNLOAD_DIR)/$(LINUX_TBZ2)
 	$(VERBOSE)touch $@
 	$(ECHO) "applying patches to '$(CONTRIB_DIR)/'"
 	$(VERBOSE)for i in $(PATCHES); do patch -d $(CONTRIB_DIR) -p1 < $$i; done
+	$(VERBOSE)ln -sf ../../uapi/linux/usb/ch11.h $(CONTRIB_DIR)/include/linux/usb/ch11.h
 
 
 $(DOWNLOAD_DIR):
