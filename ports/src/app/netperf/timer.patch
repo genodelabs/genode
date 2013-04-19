@@ -1,0 +1,14 @@
+--- ../netperf-orig/src/netlib.h	2013-04-19 09:47:05.618940425 +0200
++++ src/netlib.h	2013-04-19 09:50:36.042936062 +0200
+@@ -536,7 +536,11 @@
+ extern  void    dump_request();
+ extern  void    dump_addrinfo(FILE *dumploc, struct addrinfo *info,
+ 			      char *host, char *port, int family);
++#ifdef GENODE_BUILD
++static inline  void    start_timer(int time) { printf("%s: not supported\n", __FUNCTION__);}
++#else
+ extern  void    start_timer(int time);
++#endif
+ extern  void    stop_timer();
+ extern  void    cpu_start(int measure_cpu);
+ extern  void    cpu_stop(int measure_cpu, float *elapsed);

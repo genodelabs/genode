@@ -1,0 +1,163 @@
+#
+# \brief  Test for using netperf
+# \author Alexander Boettcher 
+# \date   2013-04-18
+#
+
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/pci drivers/timer drivers/nic
+	app/netperf
+}
+
+set use_usb_driver [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_driver [expr !$use_usb_driver]
+
+lappend_if $use_usb_driver   build_components drivers/usb
+lappend_if [have_spec acpi]  build_components drivers/acpi
+lappend_if [have_spec pci]   build_components drivers/pci/device_pd
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="netperf">
+		<resource name="RAM" quantum="3M"/>
+		<config>
+			<arg value="netserver"/>
+			<arg value="-D"/>
+			<arg value="-4"/>
+			<arg value="-f"/>
+		</config>
+	</start> }
+
+append_if $use_usb_driver config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+	</start>}
+
+append_if $use_nic_driver config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so libm.lib.so
+	lwip.lib.so libc_log.lib.so
+	netperf
+}
+
+# platform-specific modules
+lappend_if [have_spec acpi]          boot_modules acpi_drv
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if $use_usb_driver           boot_modules usb_drv
+lappend_if $use_nic_driver           boot_modules nic_drv
+lappend_if [have_spec nova]          boot_modules pci_device_pd
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+# qemu config
+append qemu_args " -m 128 "
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -redir tcp:12865::12865 "
+
+run_genode_until {.*and family AF_INET.*} 30
+
+
+if [is_qemu_available] {
+	set ip_addr "localhost"
+} else {
+	set match_string "got IP address (\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+)"
+	regexp $match_string $output all ip_addr
+	puts ""
+}
+
+spawn netperf -H $ip_addr -P 1 -v 2 -t TCP_STREAM
+set netperf_id $spawn_id
+
+run_genode_until "Segment" 60 $netperf_id
+
+# format output understandable for post proccessing scripts
+set throughput [regexp -all -inline {[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
+set throughput [regexp -all -inline {[0-9]+\.[0-9]+} $throughput]
+puts "! PERF: tcp_stream [lindex $throughput 1] MBit/s ok"
+
+puts "Test succeeded"
+# vi: set ft=tcl :
