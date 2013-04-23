@@ -9,9 +9,9 @@ VERBOSE     ?= @
 ECHO         = @echo
 PATCHES      := $(shell find patches -name \*.patch)
 
-LINUX      = linux-3.8.6
+LINUX      = linux-3.9-rc8
 LINUX_TBZ2 = $(LINUX).tar.bz2
-LINUX_URL  = http://www.kernel.org/pub/linux/kernel/v3.x/$(LINUX_TBZ2)
+LINUX_URL  = http://www.kernel.org/pub/linux/kernel/v3.x/testing/$(LINUX_TBZ2)
 
 # Linux utilities
 CONTENT += include/linux/list.h
@@ -30,8 +30,8 @@ CONTENT    += include/uapi/asm-generic/ioctl.h
 
 # USB core
 CONTENT_CORE = buffer.c config.c devices.c driver.c endpoint.c file.c generic.c \
-               hcd.c hcd-pci.c hub.c message.c notify.c quirks.c urb.c \
-               usb.c usb.h
+               hcd.c hcd-pci.c hub.h hub.c message.c notify.c quirks.c  port.c  \
+               urb.c usb.c usb.h
 CONTENT += $(addprefix drivers/usb/core/,$(CONTENT_CORE))
 CONTENT += drivers/usb/usb-common.c
 CONTENT_INCLUDE_USB := ehci_def.h hcd.h input.h otg.h quirks.h storage.h
@@ -78,8 +78,10 @@ CONTENT_NET += asix_devices.c asix_common.c ax88172a.c asix.h
 CONTENT    += $(addprefix drivers/net/usb/,$(CONTENT_NET))
 CONTENT    += include/linux/usb/usbnet.h include/linux/netdev_features.h
 
+# OMAP
+CONTENT    += include/linux/platform_data/usb-omap.h
+
 # Arndale
-CONTENT_ARNDALE = ehci.h usb-phy.h
 CONTENT += arch/arm/plat-samsung/include/plat/usb-phy.h
 CONTENT += include/linux/platform_data/usb-ehci-s5p.h
 

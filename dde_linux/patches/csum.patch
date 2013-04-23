@@ -1,7 +1,7 @@
-diff -r c094ecb374e9 drivers/net/usb/smsc95xx.c
---- a/drivers/net/usb/smsc95xx.c	Thu Apr 11 15:47:15 2013 +0200
-+++ b/drivers/net/usb/smsc95xx.c	Thu Apr 11 15:52:01 2013 +0200
-@@ -1747,7 +1747,13 @@
+diff -r d30e545c9a57 drivers/net/usb/smsc95xx.c
+--- a/drivers/net/usb/smsc95xx.c	Mon Apr 22 16:19:09 2013 +0200
++++ b/drivers/net/usb/smsc95xx.c	Mon Apr 22 16:19:46 2013 +0200
+@@ -1714,7 +1714,13 @@
  
  static void smsc95xx_rx_csum_offload(struct sk_buff *skb)
  {

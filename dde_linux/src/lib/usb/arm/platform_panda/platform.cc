@@ -17,6 +17,7 @@
 #include <util/mmio.h>
 
 #include <lx_emul.h>
+#include <linux/platform_data/usb-omap.h>
 
 using namespace Genode;
 
@@ -387,7 +388,7 @@ void platform_hcd_init(Services *services)
 
 
 	_ehci_data.port_mode[0] =  OMAP_EHCI_PORT_MODE_PHY;
-	_ehci_data.port_mode[1] =  OMAP_EHCI_PORT_MODE_NONE;
+	_ehci_data.port_mode[1] =  OMAP_USBHS_PORT_MODE_UNUSED;
 	_ehci_data.phy_reset = 0;
 	pdev->dev.platform_data = &_ehci_data;
 

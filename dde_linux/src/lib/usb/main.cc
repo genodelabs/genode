@@ -38,9 +38,9 @@ extern "C" void subsys_input_init();
 extern "C" void module_evdev_init();
 extern "C" void module_hid_init();
 extern "C" void module_hid_init_core();
-extern "C" void module_hid_init_generic();
+extern "C" void module_hid_generic_init();
 extern "C" void module_usb_stor_init();
-extern "C" void module_ch_init();
+extern "C" void module_ch_driver_init();
 
 extern "C" void start_input_service(void *ep);
 
@@ -67,8 +67,8 @@ static void init(Services *services)
 		/* HID */
 		module_hid_init_core();
 		module_hid_init();
-		module_hid_init_generic();
-		module_ch_init();
+		module_hid_generic_init();
+		module_ch_driver_init();
 	}
 
 	/* host controller */

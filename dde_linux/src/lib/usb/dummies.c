@@ -303,6 +303,9 @@ int sysfs_create_group(struct kobject *kobj,
                        const struct attribute_group *grp) { TRACE; return 0; }
 void sysfs_remove_group(struct kobject *kobj,
                         const struct attribute_group *grp) { TRACE; }
+int sysfs_create_link(struct kobject *kobj, struct kobject *target,
+                      const char *name) { TRACE; return 0; }
+void sysfs_remove_link(struct kobject *kobj, const char *name) { TRACE; }
 
 int fasync_helper(int fd, struct file * filp, int on, struct fasync_struct **fapp) { TRACE; return 0; }
 
@@ -326,6 +329,7 @@ void pm_runtime_no_callbacks(struct device *dev) { TRACE; }
 void pm_runtime_set_autosuspend_delay(struct device *dev, int delay) { TRACE; }
 int  pm_runtime_get_sync(struct device *dev) { TRACE; return 0; }
 int  pm_runtime_put_sync(struct device *dev) { TRACE; return 0; }
+int  pm_runtime_put(struct device *dev) { TRACE; return 0; }
 
 
 /***********************
@@ -337,6 +341,13 @@ int  device_wakeup_enable(struct device *dev) { TRACE; return 0; }
 bool device_may_wakeup(struct device *dev) { TRACE; return 1; }
 int  device_set_wakeup_enable(struct device *dev, bool enable) { TRACE; return 0; }
 bool device_can_wakeup(struct device *dev) { TRACE; return 0; }
+
+
+/********************
+ ** linux/pm_qos.h **
+ ********************/
+
+int dev_pm_qos_expose_flags(struct device *dev, s32 value) { TRACE; return 0; }
 
 
 /********************
@@ -483,6 +494,13 @@ int fasync_add_entry(int fd, struct file *filp, struct fasync_struct **fapp) { T
 const struct file_operations  simple_dir_operations;
 const struct inode_operations simple_dir_inode_operations;
 
+
+struct inode *file_inode(struct file *f)
+{
+	TRACE;
+	static struct inode _i;
+	return &_i;
+}
 
 /*******************
  ** linux/namei.h **
@@ -842,7 +860,6 @@ int skb_checksum_start_offset(const struct sk_buff *skb) { TRACE; return 0; }
 struct sk_buff *skb_copy_expand(const struct sk_buff *skb,
                                 int newheadroom, int newtailroom,
                                 gfp_t gfp_mask) { TRACE; return 0; }
-int skb_tailroom(const struct sk_buff *skb) { TRACE; return 0; }
 
 int skb_queue_empty(const struct sk_buff_head *list) { TRACE; return 1; }
 void skb_queue_purge(struct sk_buff_head *list) { TRACE; }
@@ -1031,7 +1048,7 @@ void phy_stop(struct phy_device *phydev) { TRACE; }
 int  genphy_resume(struct phy_device *phydev) { TRACE; return 0; }
 
 struct phy_device * phy_connect(struct net_device *dev, const char *bus_id,
-                                void (*handler)(struct net_device *), u32 flags,
+                                void (*handler)(struct net_device *),
                                 phy_interface_t interface) { TRACE; return 0; }
 void phy_disconnect(struct phy_device *phydev) { TRACE; }
 

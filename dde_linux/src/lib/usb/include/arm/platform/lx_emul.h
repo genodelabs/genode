@@ -48,30 +48,6 @@ enum {
 
 #define ULPI_SET(a) (a + 1)
 
-/*******************************************
- ** arch/arm/plat-omap/include/plat/usb.h **
- *******************************************/
-
-enum { OMAP3_HS_USB_PORTS = 2 };
-
-enum usbhs_omap_port_mode
-{
-	OMAP_EHCI_PORT_MODE_NONE,
-	OMAP_EHCI_PORT_MODE_PHY,
-};
-
-struct regulator { };
-
-struct ehci_hcd_omap_platform_data
-{
-	enum usbhs_omap_port_mode  port_mode[OMAP3_HS_USB_PORTS];
-	int                        reset_gpio_port[OMAP3_HS_USB_PORTS];
-	struct regulator          *regulator[OMAP3_HS_USB_PORTS];
-	unsigned                   phy_reset;
-
-};
-
-
 
 /*****************************
  ** linux/platform_device.h **
@@ -96,6 +72,8 @@ int platform_get_irq_byname(struct platform_device *, const char *);
 int platform_driver_register(struct platform_driver *);
 int platform_device_register(struct platform_device *);
 
+
+#define to_platform_device(x) container_of((x), struct platform_device, dev)
 
 /**********************
  ** asm/generic/io.h **
@@ -127,6 +105,7 @@ static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
  ** linux/regulator/consumer.h **
  ********************************/
 
+struct regulator { };
 int    regulator_enable(struct regulator *);
 int    regulator_disable(struct regulator *);
 void   regulator_put(struct regulator *regulator);
@@ -139,16 +118,6 @@ struct regulator *regulator_get(struct device *dev, const char *id);
 
 int omap_usbhs_enable(struct device *dev);
 void omap_usbhs_disable(struct device *dev);
-
-
-/****************
- ** linux/pm.h **
- ****************/
-
-struct dev_pm_ops {
-	int (*suspend)(struct device *dev);
-	int (*resume)(struct device *dev);
-};
 
 
 /*****************
@@ -232,8 +201,16 @@ void phy_stop(struct phy_device *phydev);
 int  genphy_resume(struct phy_device *phydev);
 
 struct phy_device * phy_connect(struct net_device *dev, const char *bus_id,
-                                void (*handler)(struct net_device *), u32 flags,
+                                void (*handler)(struct net_device *),
                                 phy_interface_t interface);
 void phy_disconnect(struct phy_device *phydev);
+
+
+/*******************************
+ ** linux/usb/samsung_usb_phy **
+ *******************************/
+
+enum samsung_usb_phy_type { USB_PHY_TYPE_HOST = 1 };
+
 
 #endif /* _ARM__PLATFORM__LX_EMUL_H_ */

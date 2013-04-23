@@ -60,7 +60,7 @@ extern "C" {
 #endif
 
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
-#define LINUX_VERSION_CODE KERNEL_VERSION(3,8,6)
+#define LINUX_VERSION_CODE KERNEL_VERSION(3,9,0)
 
 #define KBUILD_MODNAME "mod-noname"
 
@@ -403,65 +403,74 @@ struct page
  * Note that the codes do not correspond to those of the Linux kernel.
  */
 enum {
-	EINVAL       =  1,
-	ENODEV       =  2,
-	ENOMEM       =  3,
-	EFAULT       =  4,
-	EBADF        =  5,
-	EAGAIN       =  6,
-	ERESTARTSYS  =  7,
-	ENOSPC       =  8,
-	EIO          =  9,
-	EBUSY        = 10,
-	EPERM        = 11,
-	EINTR        = 12,
-	ENOMSG       = 13,
-	ECONNRESET   = 14,
-	ENOENT       = 15,
-	EHOSTUNREACH = 16,
-	ESRCH        = 17,
-	EPIPE        = 18,
-	ENODATA      = 19,
-	EREMOTEIO    = 20,
-	ENOTTY       = 21,
-	ENOIOCTLCMD  = 22,
-	EADDRINUSE   = 23,
-	ENFILE       = 23,
-	EXFULL       = 24,
-	EIDRM        = 25,
-	ESHUTDOWN    = 26,
-	EMSGSIZE     = 27,
-	E2BIG        = 28,
-	EINPROGRESS  = 29,
-	ESPIPE       = 29,
-	ETIMEDOUT    = 30,
-	ENOSYS       = 31,
-	ENOTCONN     = 32,
-	EPROTO       = 33,
-	ENOTSUPP     = 34,
-	EISDIR       = 35,
-	EEXIST       = 36,
-	ENOTEMPTY    = 37,
-	ENXIO        = 38,
-	ENOEXEC      = 39,
-	EXDEV        = 40,
-	EOVERFLOW    = 41,
-	ENOSR        = 42,
-	ECOMM        = 43,
-	EFBIG        = 44,
-	EILSEQ       = 45,
-	ETIME        = 46,
-	EALREADY     = 47,
-	EOPNOTSUPP   = 48,
-	EDOM         = 49,
-	ENOLINK      = 50,
-	EADDRNOTAVAIL= 51,
+	EINVAL        =  1,
+	ENODEV        =  2,
+	ENOMEM        =  3,
+	EFAULT        =  4,
+	EBADF         =  5,
+	EAGAIN        =  6,
+	ERESTARTSYS   =  7,
+	ENOSPC        =  8,
+	EIO           =  9,
+	EBUSY         = 10,
+	EPERM         = 11,
+	EINTR         = 12,
+	ENOMSG        = 13,
+	ECONNRESET    = 14,
+	ENOENT        = 15,
+	EHOSTUNREACH  = 16,
+	ESRCH         = 17,
+	EPIPE         = 18,
+	ENODATA       = 19,
+	EREMOTEIO     = 20,
+	ENOTTY        = 21,
+	ENOIOCTLCMD   = 22,
+	EADDRINUSE    = 23,
+	ENFILE        = 23,
+	EXFULL        = 24,
+	EIDRM         = 25,
+	ESHUTDOWN     = 26,
+	EMSGSIZE      = 27,
+	E2BIG         = 28,
+	EINPROGRESS   = 29,
+	ESPIPE        = 29,
+	ETIMEDOUT     = 30,
+	ENOSYS        = 31,
+	ENOTCONN      = 32,
+	EPROTO        = 33,
+	ENOTSUPP      = 34,
+	EISDIR        = 35,
+	EEXIST        = 36,
+	ENOTEMPTY     = 37,
+	ENXIO         = 38,
+	ENOEXEC       = 39,
+	EXDEV         = 40,
+	EOVERFLOW     = 41,
+	ENOSR         = 42,
+	ECOMM         = 43,
+	EFBIG         = 44,
+	EILSEQ        = 45,
+	ETIME         = 46,
+	EALREADY      = 47,
+	EOPNOTSUPP    = 48,
+	EDOM          = 49,
+	ENOLINK       = 50,
+	EADDRNOTAVAIL = 51,
+	EPROBE_DEFER  = 52,
 };
 
-static inline bool IS_ERR(void *ptr) {
+
+/*****************
+ ** linux/err.h **
+ *****************/
+
+static inline bool IS_ERR(void const *ptr) {
 	return (unsigned long)(ptr) > (unsigned long)(-1000); }
 
 long PTR_ERR(const void *ptr);
+
+static inline long IS_ERR_OR_NULL(const void *ptr) {
+	return !ptr || IS_ERR(ptr); }
 
 
 /*******************
@@ -1154,6 +1163,8 @@ extern struct task_struct *current;
 /* asm/processor.h */
 void cpu_relax(void);
 
+#define memalloc_noio_save() 0
+#define memalloc_noio_restore(x)
 
 /*********************
  ** linux/kthread.h **
@@ -1312,23 +1323,33 @@ int sysfs_create_group(struct kobject *kobj,
                        const struct attribute_group *grp);
 void sysfs_remove_group(struct kobject *kobj,
                         const struct attribute_group *grp);
+int sysfs_create_link(struct kobject *kobj, struct kobject *target,
+                      const char *name);
+void sysfs_remove_link(struct kobject *kobj, const char *name);
 
 
 /****************
  ** linux/pm.h **
  ****************/
 
+struct device;
+
 typedef struct pm_message { int event; } pm_message_t;
 
 struct dev_pm_info { bool is_prepared; };
 
+struct dev_pm_ops {
+	int (*suspend)(struct device *dev);
+	int (*resume)(struct device *dev);
+};
+
 #define PMSG_IS_AUTO(msg) 0
+
+enum { PM_EVENT_AUTO_SUSPEND = 0x402 };
 
 /************************
  ** linux/pm_runtime.h **
  ************************/
-
-struct device;
 
 int  pm_runtime_set_active(struct device *dev);
 void pm_suspend_ignore_children(struct device *dev, bool enable);
@@ -1343,6 +1364,7 @@ void pm_runtime_no_callbacks(struct device *dev);
 void pm_runtime_set_autosuspend_delay(struct device *dev, int delay);
 int  pm_runtime_get_sync(struct device *dev);
 int  pm_runtime_put_sync(struct device *dev);
+int  pm_runtime_put(struct device *dev);
 
 
 /***********************
@@ -1355,6 +1377,14 @@ bool device_may_wakeup(struct device *dev);
 int  device_set_wakeup_enable(struct device *dev, bool enable);
 bool device_can_wakeup(struct device *dev);
 
+
+/********************
+ ** linux/pm_qos.h **
+ ********************/
+
+ enum { PM_QOS_FLAG_NO_POWER_OFF = 1 };
+
+ int dev_pm_qos_expose_flags(struct device *dev, s32 value);
 
 /********************
  ** linux/device.h **
@@ -1416,6 +1446,7 @@ struct device_type {
 	void      (*release)(struct device *dev);
 	int       (*uevent)(struct device *dev, struct kobj_uevent_env *env);
 	char     *(*devnode)(struct device *dev, mode_t *mode);
+	const struct dev_pm_ops *pm;
 };
 
 struct class
@@ -1837,6 +1868,7 @@ extern const struct inode_operations simple_dir_inode_operations;
 static inline loff_t no_llseek(struct file *file, loff_t offset, int origin) {
 	 return -ESPIPE; }
 
+struct inode *file_inode(struct file *f);
 
 /*******************
  ** linux/namei.h **
@@ -2924,6 +2956,7 @@ bool skb_defer_rx_timestamp(struct sk_buff *);
 
 void dev_kfree_skb(struct sk_buff *);
 void dev_kfree_skb_any(struct sk_buff *);
+void kfree_skb(struct sk_buff *);
 
 
 /*********************

@@ -351,7 +351,8 @@ struct sk_buff *_alloc_skb(unsigned int size, bool tx)
 
 	size = (size + 3) & ~(0x3);
 
-	skb->tail     = skb->end = skb->start + size;
+	skb->end = skb->start + size;
+	skb->tail = skb->start;
 	skb->truesize = size;
 
 	return skb;
@@ -391,6 +392,8 @@ void dev_kfree_skb(struct sk_buff *skb)
 
 
 void dev_kfree_skb_any(struct sk_buff *skb) { dev_kfree_skb(skb); }
+
+void kfree_skb(struct sk_buff *skb) { dev_kfree_skb(skb); }
 
 
 /**
@@ -453,6 +456,13 @@ unsigned int skb_headroom(const struct sk_buff *skb)
 {
 	return skb->data - skb->start;
 }
+
+
+int skb_tailroom(const struct sk_buff *skb)
+{
+	return skb->end - skb->tail; 
+}
+
 
 
 /**

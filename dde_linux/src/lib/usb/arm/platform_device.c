@@ -15,8 +15,6 @@
 
 #define to_platform_driver(drv) (container_of((drv), struct platform_driver, \
                                  driver))
-#define to_platform_device(x) container_of((x), struct platform_device, dev)
-
 
 static int platform_match(struct device *dev, struct device_driver *drv)
 {

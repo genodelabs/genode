@@ -87,7 +87,6 @@ $(SRC_C:.c=.o) $(SRC_CC:.cc=.o): $(GEN_INCLUDES)
 # Add suffix, since there are two hid-core.c with the same module init function
 #
 hid/hid-core.o: MOD_SUFFIX="_core"
-hid/hid-generic.o: MOD_SUFFIX="_generic"
 
 $(GEN_INCLUDES):
 	$(VERBOSE)mkdir -p $(dir $@)
