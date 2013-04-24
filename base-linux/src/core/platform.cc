@@ -219,6 +219,20 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 	return ds ? ds->fd().dst().socket : -1;
 }
 
+void Platform_env_base::Rm_session_mmap::_dataspace_closed(Dataspace_capability ds_cap)
+{
+	if (core_env()->entrypoint()->is_myself()) {
+		Capability<Linux_dataspace> lx_ds_cap = static_cap_cast<Linux_dataspace>(ds_cap);
+
+		Object_pool<Rpc_object_base>::Guard
+			ds_rpc(core_env()->entrypoint()->lookup_and_lock(lx_ds_cap));
+		Dataspace_component * ds = dynamic_cast<Dataspace_component *>(&*ds_rpc);
+		if (ds) {
+			ds->fd(-1);
+		}
+	}
+}
+
 
 bool Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds_cap)
 {

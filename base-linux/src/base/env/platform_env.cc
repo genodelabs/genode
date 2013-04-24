@@ -43,6 +43,11 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Dataspace_capability ds)
 }
 
 
+void Platform_env_base::Rm_session_mmap::_dataspace_closed(Dataspace_capability)
+{
+}
+
+
 bool
 Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds)
 {

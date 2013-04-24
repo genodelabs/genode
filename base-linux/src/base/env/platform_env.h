@@ -222,6 +222,11 @@ namespace Genode {
 					int _dataspace_fd(Capability<Dataspace>);
 
 					/**
+					 * Mark the dataspace as closed
+					 */
+					void _dataspace_closed(Capability<Dataspace>);
+
+					/**
 					 * Determine whether dataspace is writable
 					 */
 					bool _dataspace_writable(Capability<Dataspace>);
