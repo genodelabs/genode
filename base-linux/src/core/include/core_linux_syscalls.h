@@ -41,6 +41,12 @@ inline int lx_unlink(const char *fname)
 }
 
 
+inline int lx_dup(int fd)
+{
+	return lx_syscall(SYS_dup, fd);
+}
+
+
 /*******************************************************
  ** Functions used by core's rom-session support code **
  *******************************************************/

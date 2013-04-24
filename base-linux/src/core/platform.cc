@@ -216,7 +216,16 @@ int Platform_env_base::Rm_session_mmap::_dataspace_fd(Capability<Dataspace> ds_c
 		ds_rpc(core_env()->entrypoint()->lookup_and_lock(lx_ds_cap));
 	Linux_dataspace * ds = dynamic_cast<Linux_dataspace *>(&*ds_rpc);
 
-	return ds ? ds->fd().dst().socket : -1;
+	/*
+	 * Return a duplicate of the dataspace file descriptor, which will be freed
+	 * immediately after mmap'ing the file (see 'Rm_session_mmap').
+	 *
+	 * Handing out the original file descriptor would result in the premature
+	 * release of the descriptor. So the descriptor could be reused (i.e., as a
+	 * socket descriptor during the RPC handling). When later destroying the
+	 * dataspace, the descriptor would unexpectedly be closed again.
+	 */
+	return ds ? lx_dup(ds->fd().dst().socket) : -1;
 }
 
 
