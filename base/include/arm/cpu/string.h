@@ -34,12 +34,13 @@ namespace Genode
 		size_t d_align = (size_t)d & 0x3;
 		size_t s_align = (size_t)s & 0x3;
 
-		/* at least 32 bytes, 4 byte aligned, same alignment */
-		if (size < 32 || (d_align ^ s_align))
+		/* only same alignments work for the following LDM/STM loop */
+		if (d_align != s_align)
 			return size;
 
 		/* copy to 4 byte alignment */
-		for (size_t i = 0; i < s_align; i++, *d++ = *s++, size--);
+		for (; (size > 0) && (s_align > 0) && (s_align < 4);
+		     s_align++, *d++ = *s++, size--);
 
 		/* copy 32 byte chunks */
 		for (; size >= 32; size -= 32) {
@@ -48,7 +49,6 @@ namespace Genode
 			              : "+r" (s), "+r" (d)
 			              :: "r3","r4","r5","r6","r7","r8","r9","r10");
 		}
-	
 		return size;
 	}
 }
