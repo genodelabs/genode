@@ -1,0 +1,76 @@
+Index: src/netserver.c
+===================================================================
+--- src/netserver.c	(revision 644)
++++ src/netserver.c	(working copy)
+@@ -567,7 +567,7 @@
+   int do_inet;
+   int no_name = 0;
+ #ifdef AF_INET6
+-  int do_inet6;
++  int do_inet6 = 0;
+ #endif
+ 
+   if (debug) {
+Index: src/nettest_omni.c
+===================================================================
+--- src/nettest_omni.c	(revision 644)
++++ src/nettest_omni.c	(working copy)
+@@ -3348,7 +3348,7 @@
+ get_transport_cong_control(SOCKET socket, int protocol, char cong_control[], int len)
+ {
+ #ifdef TCP_CONGESTION
+-  int my_len = len;
++  socklen_t my_len = len;
+   if (protocol != IPPROTO_TCP) {
+     strncpy(cong_control,"TCP Only",len);
+   }
+@@ -3477,7 +3477,7 @@
+ 
+   struct sockaddr_storage remote_addr;
+   struct sockaddr_storage my_addr;
+-  int                     remote_addr_len = sizeof(remote_addr);
++  netperf_socklen_t       remote_addr_len = sizeof(remote_addr);
+   netperf_socklen_t       my_addr_len = sizeof(my_addr);
+ 
+   SOCKET	data_socket;
+@@ -4892,11 +4892,11 @@
+ 
+   struct sockaddr_storage myaddr_in, peeraddr_in;
+   int peeraddr_set = 0;
+-  SOCKET s_listen, data_socket;
++  SOCKET s_listen, data_socket = -1;
+   netperf_socklen_t 	addrlen;
+ 
+-  struct ring_elt *send_ring;
+-  struct ring_elt *recv_ring;
++  struct ring_elt *send_ring = 0;
++  struct ring_elt *recv_ring = 0;
+ 
+   int	timed_out = 0;
+   int   pad_time = 0;
+Index: src/nettest_bsd.h
+===================================================================
+--- src/nettest_bsd.h	(revision 644)
++++ src/nettest_bsd.h	(working copy)
+@@ -617,7 +617,7 @@
+ extern int  get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr,
+ 					  int family,
+ 					  void *addr,
+-					  int *port);
++					  uint32_t *port);
+ extern void send_tcp_mss(char remote_host[]);
+ extern void send_tcp_stream(char remote_host[]);
+ extern void send_tcp_maerts(char remote_host[]);
+Index: src/nettest_bsd.c
+===================================================================
+--- src/nettest_bsd.c	(revision 644)
++++ src/nettest_bsd.c	(working copy)
+@@ -1066,7 +1066,7 @@
+ 
+ /* pull the port and address out of the sockaddr in host format */
+ int
+-get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr, int family, void *addr, int *port)
++get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr, int family, void *addr, uint32_t *port)
+ {
+   struct sockaddr_in *sin = (struct sockaddr_in *)sockaddr;
+ 

@@ -1,0 +1,25 @@
+Index: src/netlib.c
+===================================================================
+--- src/netlib.c	(revision 644)
++++ src/netlib.c	(working copy)
+@@ -844,6 +844,10 @@
+     exit(1);
+   }
+ 
++  /* On Genode libc port -1 is returned for sysconf(_SC_NPROCESSORS_ONLN) */
++  if (temp_cpus < 0)
++    temp_cpus = 1;
++  
+   return(temp_cpus);
+ 
+ }
+@@ -3059,7 +3063,9 @@
+ 	      (which == SEND_BUFFER) ? "SO_SNDBUF" : "SO_RCVBUF",
+ 	      errno);
+       fflush(where);
++#ifndef GENODE_BUILD
+       exit(1);
++#endif
+     }
+     if (debug > 1) {
+       fprintf(where, "netperf: set_sock_buffer: %s of %d requested.\n",

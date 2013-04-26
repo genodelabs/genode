@@ -23,7 +23,8 @@ $(CONTRIB_DIR)/$(NETPERF):
 checkout-netperf: $(CONTRIB_DIR)/$(NETPERF)
 
 apply_patches-netperf: checkout-netperf
-	$(VERBOSE)patch -d contrib/netperf -N -p0 < $(CURDIR)/src/app/netperf/timer.patch
+	$(VERBOSE)find $(CURDIR)/src/app/netperf/ -name "*.patch" |\
+		xargs -ixxx sh -c "patch -p0 -r - -N -d $(CONTRIB_DIR)/$(NETPERF) < xxx" || true
 	$(VERBOSE)echo '#define NETPERF_VERSION "$(NETPERF_VERSION)"' >$(CONTRIB_DIR)/$(NETPERF)/src/netperf_version.h
 
 prepare:: apply_patches-netperf
