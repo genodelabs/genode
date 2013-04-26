@@ -257,7 +257,7 @@
 #undef HAVE_SYS_SYSINFO_H
 
 /* Define to 1 if you have the <sys/time.h> header file. */
-#undef HAVE_SYS_TIME_H
+#define HAVE_SYS_TIME_H 1
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #define HAVE_SYS_TYPES_H 1
@@ -377,10 +377,10 @@
 #undef WANT_INTERVALS
 
 /* Define to one to migrate classic to OMNI tests. */
-#undef WANT_MIGRATION
+#define WANT_MIGRATION 1
 
 /* Define to one to include OMNI tests. */
-#undef WANT_OMNI
+#define WANT_OMNI 1
 
 /* Define to one to include SCTP tests. */
 #undef WANT_SCTP

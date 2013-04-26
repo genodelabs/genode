@@ -53,7 +53,7 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="netperf">
-		<resource name="RAM" quantum="3M"/>
+		<resource name="RAM" quantum="16M"/>
 		<config>
 			<arg value="netserver"/>
 			<arg value="-D"/>
@@ -136,9 +136,10 @@ append qemu_args " -m 128 "
 append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
-append qemu_args " -net user -redir tcp:12865::12865 "
+append qemu_args " -net user -redir tcp:12865::12865 -redir tcp:49153::49153 "
 
 run_genode_until {.*and family AF_INET.*} 30
+set serial_id $spawn_id
 
 
 if [is_qemu_available] {
@@ -149,7 +150,7 @@ if [is_qemu_available] {
 	puts ""
 }
 
-spawn netperf -H $ip_addr -P 1 -v 2 -t TCP_STREAM
+spawn netperf -H $ip_addr -P 1 -v 2 -t TCP_STREAM -c -C -- -S 0,65520 -P 49153,49153
 set netperf_id $spawn_id
 
 run_genode_until "Segment" 60 $netperf_id

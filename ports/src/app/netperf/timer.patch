@@ -1,5 +1,5 @@
---- ../netperf-orig/src/netlib.h	2013-04-19 09:47:05.618940425 +0200
-+++ src/netlib.h	2013-04-19 09:50:36.042936062 +0200
+--- src/netlib.h	(revision 644)
++++ src/netlib.h	(working copy)
 @@ -536,7 +536,11 @@
  extern  void    dump_request();
  extern  void    dump_addrinfo(FILE *dumploc, struct addrinfo *info,
