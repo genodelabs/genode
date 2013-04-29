@@ -333,9 +333,8 @@ static inline void lx_call(int dst_sd,
 
 		~Reply_channel()
 		{
-			for (unsigned i = 0; i < 2; i++)
-			if (sd[0] != -1)
-				lx_close(sd[i]);
+			if (sd[LOCAL_SOCKET]  != -1) lx_close(sd[LOCAL_SOCKET]);
+			if (sd[REMOTE_SOCKET] != -1) lx_close(sd[REMOTE_SOCKET]);
 		}
 
 		int local_socket()  const { return sd[LOCAL_SOCKET];  }
