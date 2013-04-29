@@ -1,2 +1,2 @@
-LWIP_VERSION = STABLE-1_4_1
+LWIP_VERSION = git
 LWIP         = lwip-$(LWIP_VERSION)

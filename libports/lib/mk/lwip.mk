@@ -13,10 +13,10 @@ SRC_CC   = nic.cc printf.cc sys_arch.cc
 
 # Core files
 SRC_C    = init.c mem.c memp.c netif.c pbuf.c stats.c udp.c raw.c sys.c \
-           tcp.c tcp_in.c tcp_out.c dhcp.c dns.c timers.c def.c
+           tcp.c tcp_in.c tcp_out.c dhcp.c dns.c timers.c def.c inet_chksum.c
 
 # IPv4 files
-SRC_C   += icmp.c inet.c ip_addr.c ip.c ip_frag.c inet_chksum.c
+SRC_C   += icmp.c  igmp.c  ip4_addr.c  ip4.c  ip_frag.c
 
 # API files
 SRC_C   += err.c api_lib.c api_msg.c netbuf.c netdb.c netifapi.c sockets.c \
