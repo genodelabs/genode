@@ -90,5 +90,24 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 
 
 Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
-: _entrypoint(ep) { }
+:
+	_entrypoint(ep), _finalizer(*this),
+	_finalizer_cap(_entrypoint->manage(&_finalizer))
+{ }
 
+
+Signal_source_component::~Signal_source_component()
+{
+	_finalizer_cap.call<Finalizer::Rpc_exit>();
+	_entrypoint->dissolve(&_finalizer);
+}
+
+
+void Signal_source_component::Finalizer_component::exit()
+{
+	if (!source._reply_cap.valid())
+		return;
+
+	source._entrypoint->explicit_reply(source._reply_cap, 0);
+	source._reply_cap = Untyped_capability();
+}

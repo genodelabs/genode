@@ -69,7 +69,9 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 
 
 Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
-: _entrypoint(ep)
+:
+	_entrypoint(ep), _finalizer(*this),
+	_finalizer_cap(_entrypoint->manage(&_finalizer))
 {
 	/* initialized blocking semaphore */
 	addr_t sem_sel = cap_selector_allocator()->alloc();
@@ -78,4 +80,21 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 		PERR("create_sm returned %u", ret);
 
 	_blocking_semaphore = Native_capability(sem_sel);
+}
+
+
+Signal_source_component::~Signal_source_component()
+{
+	_finalizer_cap.call<Finalizer::Rpc_exit>();
+	_entrypoint->dissolve(&_finalizer);
+}
+
+
+void Signal_source_component::Finalizer_component::exit()
+{
+	/*
+	 * On NOVA, the signal-source client does not use a blocking call
+	 * to wait for signals. Hence, we do not need to take care of
+	 * releasing the reply capability of such a call.
+	 */
 }

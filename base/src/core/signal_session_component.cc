@@ -46,7 +46,6 @@ Signal_session_component::~Signal_session_component()
 	/* free all signal contexts */
 	while (Signal_context_component *r = _contexts_slab.first_object())
 		free_context(r->cap());
-
 }
 
 

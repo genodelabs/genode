@@ -70,8 +70,10 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 
 
 Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
-: Signal_source_rpc_object(cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
-  _entrypoint(ep)
+:
+	Signal_source_rpc_object(cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
+	_entrypoint(ep), _finalizer(*this),
+	_finalizer_cap(_entrypoint->manage(&_finalizer))
 {
 	using namespace Fiasco;
 
@@ -79,4 +81,21 @@ Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 	                                        _blocking_semaphore.dst());
 	if (l4_error(res))
 		PERR("Allocation of irq object failed!");
+}
+
+
+Signal_source_component::~Signal_source_component()
+{
+	_finalizer_cap.call<Finalizer::Rpc_exit>();
+	_entrypoint->dissolve(&_finalizer);
+}
+
+
+void Signal_source_component::Finalizer_component::exit()
+{
+	/*
+	 * On Fiasco.OC, the signal-source client does not use a blocking call
+	 * to wait for signals. Hence, we do not need to take care of
+	 * releasing the reply capability of such a call.
+	 */
 }
