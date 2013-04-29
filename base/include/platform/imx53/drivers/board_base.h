@@ -103,7 +103,11 @@ namespace Genode
 			IIM_BASE           = 0x63f98000,
 			IIM_SIZE           = 0x00004000,
 
+			/* wether board provides security extension */
 			SECURITY_EXTENSION = 1,
+
+			/* CPU cache */
+			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 		};
 	};
 }

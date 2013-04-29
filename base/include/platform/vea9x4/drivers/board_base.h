@@ -69,7 +69,11 @@ namespace Genode
 			CORTEX_A9_PRIVATE_MEM_SIZE = 0x2000,
 			CORTEX_A9_CLOCK = TCREF_CLOCK,
 
+			/* wether board provides security extension */
 			SECURITY_EXTENSION = 1,
+
+			/* CPU cache */
+			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 		};
 	};
 }

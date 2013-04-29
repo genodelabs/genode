@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <kernel/syscalls.h>
 
 /* core includes */
 #include <ram_session_component.h>
@@ -27,5 +28,10 @@ void Ram_session_component::_revoke_ram_ds(Dataspace_component *ds) { }
 
 
 void Ram_session_component::_clear_ds (Dataspace_component * ds)
-{ memset((void *)ds->phys_addr(), 0, ds->size()); }
+{
+	memset((void *)ds->phys_addr(), 0, ds->size());
+
+	/* make the new DS-content visible to other PDs */
+	Kernel::update_region(ds->phys_addr(), ds->size());
+}
 

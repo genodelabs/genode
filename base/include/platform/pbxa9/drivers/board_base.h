@@ -63,6 +63,10 @@ namespace Genode
 			SP804_0_1_IRQ       = 36,
 			SP804_0_1_CLOCK     = 1000*1000,
 
+			/* CPU cache */
+			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
+
+			/* wether board provides security extension */
 			SECURITY_EXTENSION = 0,
 		};
 	};

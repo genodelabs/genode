@@ -35,6 +35,7 @@ namespace Genode
 
 			/* clocks */
 			MPU_DPLL_CLOCK = 200*1000*1000,
+			SYS_CLK        = 38400000,
 
 			/* UARTs */
 			TL16C750_1_MMIO_BASE = MMIO_0_BASE + 0x6a000,
@@ -83,9 +84,12 @@ namespace Genode
 			GPIO6_MMIO_SIZE = 0x1000,
 			GPIO6_IRQ       = 34 + 32,
 
-			/* misc */
+			/* CPU cache */
+			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
+
+			/* wether board provides security extension */
 			SECURITY_EXTENSION = 0,
-			SYS_CLK            = 38400000,
+
 		};
 	};
 }

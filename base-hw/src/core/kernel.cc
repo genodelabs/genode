@@ -1095,6 +1095,19 @@ namespace Kernel
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
 	 */
+	void do_update_region(Thread * const user)
+	{
+		assert(user->pd_id() == core_id());
+
+		/* FIXME we don't handle instruction caches by now */
+		Cpu::flush_data_cache_by_virt_region((addr_t)user->user_arg_1(),
+		                                     (size_t)user->user_arg_2());
+	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
 	void do_allocate_irq(Thread * const user)
 	{
 		assert(user->pd_id() == core_id());
@@ -1372,6 +1385,7 @@ namespace Kernel
 			/* 29         */ do_ack_signal,
 			/* 30         */ do_kill_signal_context,
 			/* 31         */ do_pause_vm,
+			/* 32         */ do_update_region,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 

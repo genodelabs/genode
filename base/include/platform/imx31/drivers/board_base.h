@@ -52,6 +52,9 @@ namespace Genode
 
 			AIPS_2_MMIO_BASE = 0x53F00000,
 			AIPS_2_MMIO_SIZE = 0x00004000,
+
+			/* CPU cache */
+			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 		};
 	};
 }

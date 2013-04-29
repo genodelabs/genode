@@ -18,6 +18,10 @@
 #include <util/register.h>
 #include <cpu/cpu_state.h>
 
+/* local includes */
+#include <board.h>
+#include <util.h>
+
 namespace Arm
 {
 	using namespace Genode;
@@ -636,6 +640,22 @@ namespace Arm
 		{
 			asm volatile ("mcr p15, 0, %[rd], c8, c7, 0" :: [rd]"r"(0) : );
 			flush_caches();
+		}
+
+		/*
+		 * Clean every data-cache entry within a region via MVA
+		 */
+		static void flush_data_cache_by_virt_region(addr_t base, size_t const size)
+		{
+			enum {
+				CACHE_LINE_SIZE        = 1 << Board::CACHE_LINE_SIZE_LOG2,
+				CACHE_LINE_ALIGNM_MASK = ~(CACHE_LINE_SIZE - 1),
+			};
+			addr_t const top = base + size;
+			base = base & CACHE_LINE_ALIGNM_MASK;
+			for (; base < top; base += CACHE_LINE_SIZE)
+				asm volatile ("mcr p15, 0, %[base], c7, c10, 1\n" /* DCCMVAC */
+				              :: [base] "r" (base) : );
 		}
 	};
 }

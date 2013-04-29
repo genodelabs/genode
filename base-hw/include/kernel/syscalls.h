@@ -60,6 +60,7 @@ namespace Kernel
 		/* management of resource protection-domains */
 		SET_PAGER = 11,
 		UPDATE_PD = 12,
+		UPDATE_REGION = 32,
 		NEW_PD = 13,
 
 		/* interrupt handling */
@@ -169,13 +170,27 @@ namespace Kernel
 	 * applied from the moment it returns to the userland. This syscall is
 	 * inappropriate in case that a PD wants to change its own configuration.
 	 * There's no need for this syscall after a configuration change that
-	 * can't affect the kernel and/or hardware caches.
+	 * can't affect the kernel- and/or hardware-caches.
 	 *
 	 * Restricted to core threads.
 	 */
 	inline void update_pd(unsigned const pd_id) {
 		syscall(UPDATE_PD, (Syscall_arg)pd_id); }
 
+	/**
+	 * Propagate memory-updates within a given virtual region
+	 *
+	 * \param base  virtual base of the region
+	 * \param size  size of the region
+	 *
+	 * If one updates a memory region and must ensure that the update
+	 * gets visible directly to other address spaces, this syscall does
+	 * the job.
+	 *
+	 * Restricted to core threads.
+	 */
+	inline void update_region(addr_t base, size_t size) {
+		syscall(UPDATE_REGION, (Syscall_arg)base, (Syscall_arg)size); }
 
 	/**
 	 * Create a new thread that is stopped initially

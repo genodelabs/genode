@@ -49,7 +49,10 @@ namespace Genode
 			MCT_CLOCK     = 24000000,
 			MCT_IRQ_L0    = 152,
 
-			/* if board provides security extension */
+			/* CPU cache */
+			CACHE_LINE_SIZE_LOG2 = 6,
+
+			/* wether board provides security extension */
 			SECURITY_EXTENSION = 1,
 		};
 	};
