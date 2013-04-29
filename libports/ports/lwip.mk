@@ -1,7 +1,7 @@
 include ports/lwip.inc
 
-LWIP_TGZ = $(LWIP).tar.gz
-LWIP_URL = http://git.savannah.gnu.org/cgit/lwip.git/snapshot/$(LWIP_TGZ)
+LWIP_URL = git://git.savannah.nongnu.org/lwip.git
+LWIP_REV = fe63f36656bd66b4051bdfab93e351a584337d7c
 
 #
 # Interface to top-level prepare Makefile
@@ -11,7 +11,8 @@ PORTS += $(LWIP)
 #
 # Check for tools
 #
-$(call check_tool,unzip)
+$(call check_tool, git)
+$(call check_tool, patch)
 
 prepare-lwip: $(CONTRIB_DIR)/$(LWIP) include/lwip/lwip include/lwip/netif
 
@@ -20,18 +21,24 @@ $(CONTRIB_DIR)/$(LWIP): clean-lwip
 #
 # Port-specific local rules
 #
-$(DOWNLOAD_DIR)/$(LWIP_TGZ):
-	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LWIP_URL) && touch $@
+$(DOWNLOAD_DIR)/$(LWIP)/.git:
+	$(VERBOSE)git clone $(LWIP_URL) $(DOWNLOAD_DIR)/$(LWIP) && \
+	cd download/$(LWIP) && \
+	git reset --hard $(LWIP_REV) && \
+	cd ../.. && touch $@
 
-$(CONTRIB_DIR)/$(LWIP): $(DOWNLOAD_DIR)/$(LWIP_TGZ)
-	$(VERBOSE)tar xvzf $< -C $(CONTRIB_DIR) && touch $@
+$(CONTRIB_DIR)/$(LWIP)/.git: $(DOWNLOAD_DIR)/$(LWIP)/.git
+	$(VERBOSE)git clone $(DOWNLOAD_DIR)/$(LWIP) $(CONTRIB_DIR)/$(LWIP)
 	$(VERBOSE)find ./src/lib/lwip/ -name "*.patch" |\
 		xargs -ixxx sh -c "patch -p1 -r - -N -d $(CONTRIB_DIR)/$(LWIP) < xxx" || true
+
+$(CONTRIB_DIR)/$(LWIP): $(CONTRIB_DIR)/$(LWIP)/.git
 
 include/lwip/lwip:
 	$(VERBOSE)mkdir -p $@
 	$(VERBOSE)ln -s $(addprefix ../../../, $(wildcard $(CONTRIB_DIR)/$(LWIP)/src/include/lwip/*.h)) -t $@
 	$(VERBOSE)ln -s $(addprefix ../../../, $(wildcard $(CONTRIB_DIR)/$(LWIP)/src/include/ipv4/lwip/*.h)) -t $@
+	$(VERBOSE)ln -s $(addprefix ../../../, $(wildcard $(CONTRIB_DIR)/$(LWIP)/src/include/ipv6/lwip/*.h)) -t $@
 
 include/lwip/netif:
 	$(VERBOSE)mkdir -p $@
