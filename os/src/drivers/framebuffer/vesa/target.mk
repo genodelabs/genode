@@ -1,4 +1,4 @@
-TARGET    = vesa_drv
+TARGET    = fb_drv
 REQUIRES  = vesa
 SRC_CC    = main.cc framebuffer.cc ifx86emu.cc hw_emul.cc
 CC_OPT   += -fomit-frame-pointer -DNO_SYS_HEADERS

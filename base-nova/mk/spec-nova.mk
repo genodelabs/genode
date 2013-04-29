@@ -3,7 +3,7 @@
 #
 
 SPECS += nova
-SPECS += pci ps2 vesa
+SPECS += pci ps2 vesa framebuffer
 
 #
 # Linker options that are specific for x86

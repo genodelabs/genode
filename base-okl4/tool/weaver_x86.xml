@@ -70,7 +70,7 @@
 		<memsection name="pci_drv"   file="pci_drv"   direct="true" />
 		<memsection name="nitlog"    file="nitlog"    direct="true" />
 		<memsection name="liquid_fb" file="liquid_fb" direct="true" />
-		<memsection name="vesa_drv"  file="vesa_drv"  direct="true" />
+		<memsection name="fb_drv"    file="fb_drv"    direct="true" />
 	</pd>
 
 </image>

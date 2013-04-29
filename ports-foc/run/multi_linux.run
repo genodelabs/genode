@@ -53,26 +53,11 @@ append_if [have_spec pci] config {
 		<provides><service name="PCI"/></provides>
 	</start>}
 
-append_if [have_spec vesa] config {
+append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
-		<binary name="vesa_drv"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start> }
-
-append_if [have_spec pl11x] config {
-	<start name="fb_drv">
-		<binary name="pl11x_drv"/>
-		<resource name="RAM" quantum="2M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start> }
-
-append_if [have_spec omap4] config {
-	<start name="fb_drv">
-		<binary name="omap4_fb_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
-	</start>}
+	</start> }
 
 append_if [have_spec ps2] config {
 	<start name="input_drv">
@@ -159,12 +144,10 @@ set boot_modules {
 	l4linux
 	initrd.gz
 }
-lappend_if [have_spec   pci] boot_modules pci_drv
-lappend_if [have_spec   ps2] boot_modules ps2_drv
-lappend_if [have_spec pl11x] boot_modules pl11x_drv
-lappend_if [have_spec  vesa] boot_modules vesa_drv
-lappend_if [have_spec omap4] boot_modules omap4_fb_drv
-lappend_if [have_spec   usb] boot_modules usb_drv
+lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec         usb] boot_modules usb_drv
 
 if {[have_spec x86]} {
 	set uri "https://github.com/downloads/skalk/genode/busybox-initrd-x86-20120618.gz"

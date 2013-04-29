@@ -3,7 +3,7 @@
 #
 
 SPECS += x86_32 fiasco
-SPECS += pci ps2 vesa
+SPECS += pci ps2 vesa framebuffer
 
 #
 # x86-specific L4v2/sys headers

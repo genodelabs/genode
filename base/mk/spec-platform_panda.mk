@@ -1,7 +1,7 @@
 #
 # Enable peripherals of the platform
 #
-SPECS += omap4 usb cortex_a9 tl16c750 platform_panda
+SPECS += omap4 usb cortex_a9 tl16c750 platform_panda framebuffer
 
 #
 # Pull in CPU specifics

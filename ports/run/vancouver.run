@@ -212,7 +212,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="vesa_drv">
+	<start name="fb_drv">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<route>
@@ -233,7 +233,7 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<route>
 			<service name="Timer">      <child name="timer"/></service>
-			<service name="Framebuffer"><child name="vesa_drv"/></service>
+			<service name="Framebuffer"><child name="fb_drv"/></service>
 			<service name="Input">      <child name="ps2_drv"/></service>
 			<any-service><parent/></any-service>
 		</route>
@@ -259,7 +259,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init
-	vesa_drv
+	fb_drv
 	nitpicker
 	liquid_fb
 	ps2_drv

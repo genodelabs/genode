@@ -1,7 +1,7 @@
 #
 # Enable peripherals of the platform
 #
-SPECS += pl050 pl11x ps2 pl180 lan9118 pl011
+SPECS += pl050 pl11x ps2 pl180 lan9118 pl011 framebuffer
 
 #
 # Pull in CPU specifics

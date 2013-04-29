@@ -1,4 +1,4 @@
-TARGET   = pl11x_drv
+TARGET   = fb_drv
 REQUIRES = pl11x platform_vea9x4
 SRC_CC   = main.cc video_memory.cc
 LIBS     = base

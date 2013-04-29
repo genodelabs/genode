@@ -212,7 +212,7 @@ subdirectory of the Genode build directory and the 'config' file is a copy of
 !  module /genode/timer
 !  module /genode/ps2_drv
 !  module /genode/pci_drv
-!  module /genode/vesa_drv
+!  module /genode/fb_drv
 !  module /genode/launchpad
 !  module /genode/nitpicker
 !  module /genode/liquid_fb

@@ -44,7 +44,6 @@ set config  {
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="fb_drv">
-		<binary name="omap4_fb_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>
@@ -105,7 +104,7 @@ set boot_modules {
 	part_blk
 	l4linux
 	initrd.gz
-	omap4_fb_drv
+	fb_drv
 	sd_card_drv
 	usb_drv
 }

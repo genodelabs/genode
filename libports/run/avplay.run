@@ -78,9 +78,9 @@ append_if [expr [have_spec pci] && ![have_spec acpi]] config {
 	</start>
 }
 
-append_if [have_spec vesa] config {
-	<start name="vesa_drv">
-		<resource name="RAM" quantum="1M"/>
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 
@@ -141,11 +141,11 @@ set boot_modules {
 	mediafile
 }
 
-lappend_if [have_spec linux] boot_modules fb_sdl
-lappend_if [have_spec pci]   boot_modules pci_drv
-lappend_if [have_spec pci]   boot_modules acpi_drv
-lappend_if [have_spec vesa]  boot_modules vesa_drv
-lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec       linux] boot_modules fb_sdl
+lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec         pci] boot_modules acpi_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec         ps2] boot_modules ps2_drv
 
 build_boot_image $boot_modules
 

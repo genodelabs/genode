@@ -82,15 +82,9 @@ append_if [have_spec pci] config {
 		<provides><service name="PCI"/></provides>
 	</start>}
 
-append_if [have_spec vesa] config {
-	<start name="vesa_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec pl11x] config {
-	<start name="pl11x_drv">
-		<resource name="RAM" quantum="2M"/>
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 
@@ -181,11 +175,10 @@ foreach pkg $noux_pkgs {
 	lappend boot_modules "$pkg.tar" }
 
 # platform-specific modules
-lappend_if [have_spec linux] boot_modules fb_sdl
-lappend_if [have_spec pci]   boot_modules pci_drv
-lappend_if [have_spec vesa]  boot_modules vesa_drv
-lappend_if [have_spec ps2]   boot_modules ps2_drv
-lappend_if [have_spec pl11x] boot_modules pl11x_drv
+lappend_if [have_spec       linux] boot_modules fb_sdl
+lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec         ps2] boot_modules ps2_drv
 
 build_boot_image $boot_modules
 

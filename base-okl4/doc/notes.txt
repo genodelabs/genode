@@ -814,7 +814,7 @@ following components:
   I/O-memory service in core, these requirements become satisfied.
 
 If all the hardware-access services within core are in place, we should be able
-to start 'vesa_drv', 'ps2_drv', 'nitpicker', 'launchpad'. Furthermore starting
+to start 'fb_drv', 'ps2_drv', 'nitpicker', 'launchpad'. Furthermore starting
 and killing of an additional 'testnit' process via the launchpad should work.
 However, we will observe that starting another instance of testnit after
 killing it will not work. In order to fully support restartable components,

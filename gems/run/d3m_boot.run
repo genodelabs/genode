@@ -94,7 +94,7 @@ exec touch [run_dir]/libc.lib.so
 #
 build_boot_image {
 	core init
-	pci_drv vesa_drv ps2_drv atapi_drv timer nic_drv usb_drv
+	pci_drv fb_drv ps2_drv atapi_drv timer nic_drv usb_drv
 	d3m iso9660 }
 
 #

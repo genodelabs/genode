@@ -49,7 +49,7 @@ set config  {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="PCI"/></provides>
 	</start>
-	<start name="vesa_drv">
+	<start name="fb_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config><!--<preinit/>--></config>
@@ -92,7 +92,7 @@ set boot_modules { }
 lappend boot_modules "core init"
 
 # drivers
-lappend boot_modules "pci_drv vesa_drv ps2_drv timer rom_loopdev"
+lappend boot_modules "pci_drv fb_drv ps2_drv timer rom_loopdev"
 
 # oklinux
 lappend boot_modules "vmlinux initrd.gz tinycore.img"

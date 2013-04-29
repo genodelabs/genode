@@ -3,7 +3,7 @@
 #
 
 SPECS += x86_32 okl4
-SPECS += pci ps2 vesa
+SPECS += pci ps2 vesa framebuffer
 
 #
 # Linker options specific for x86

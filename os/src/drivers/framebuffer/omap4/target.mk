@@ -4,7 +4,7 @@
 # \date   2012-05-02
 #
 
-TARGET   = omap4_fb_drv
+TARGET   = fb_drv
 REQUIRES = omap4
 SRC_CC   = main.cc
 LIBS     = base

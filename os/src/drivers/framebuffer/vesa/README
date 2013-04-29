@@ -10,7 +10,7 @@ Building instructions
   'framebuffer_session' include files to your include search path, e.g.,
   'INC_DIR += <genode dir>/demo/include'
 
-* Compile; the target will be called 'vesa_drv' --> Good luck
+* Compile; the target will be called 'fb_drv' --> Good luck
 
 Config arguments
 ~~~~~~~~~~~~~~~~

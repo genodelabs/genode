@@ -3,7 +3,7 @@ REP_INC_DIR += include/platform/vpb926
 #
 # Enable peripherals of the platform
 #
-SPECS += pl050 pl11x pl011 ps2
+SPECS += pl050 pl11x pl011 ps2 framebuffer
 
 #
 # Pull in CPU specifics
