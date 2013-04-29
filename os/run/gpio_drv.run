@@ -42,7 +42,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="omap4_gpio_drv">
+	<start name="gpio_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Gpio"/></provides>
 		<config>
@@ -66,7 +66,7 @@ install_config $config
 set boot_modules {
 	core init
 	timer
-	omap4_gpio_drv
+	gpio_drv
 	test-omap4_gpio_drv
 }
 

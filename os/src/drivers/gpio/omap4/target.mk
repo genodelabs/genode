@@ -1,4 +1,4 @@
-TARGET   = omap4_gpio_drv
+TARGET   = gpio_drv
 REQUIRES = omap4
 SRC_CC   = main.cc
 LIBS     = base
