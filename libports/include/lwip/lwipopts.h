@@ -20,7 +20,7 @@
 #define NO_SYS                      0  /* single-threaded? do not touch! */
 #define SYS_LIGHTWEIGHT_PROT        1  /* do we provide lightweight protection */
 #define LWIP_ARP                    1  /* ARP support */
-#define LWIP_RAW                    1  /* LwIP raw API */
+#define LWIP_RAW                    0  /* LwIP raw API */
 #define LWIP_UDP                    1  /* UDP support */
 #define LWIP_TCP                    1  /* TCP support */
 #define LWIP_DNS                    1  /* DNS support */
@@ -32,8 +32,13 @@
 #define LWIP_NETIF_LOOPBACK         1  /* Looping back to same address? */
 #define LWIP_HAVE_LOOPIF            1  /* 127.0.0.1 support ? */
 #define LWIP_STATS                  0  /* disable stating */
+#define LWIP_STATS_DISPLAY          0  /* disable stating display function */
 #define LWIP_SO_RCVBUF              1  /* enable SO_RCVBUF */
 #define SO_REUSE                    1  /* enable SO_REUSE */
+#define LWIP_WND_SCALE              1  /* enable window scaling */
+#define TCP_RCV_SCALE               2  /* receive scale factor IETF RFC 1323 */
+
+#define LWIP_CHECKSUM_ON_COPY       1  /* calculate checksum during memcpy */
 
 #if LWIP_DHCP
 #define LWIP_NETIF_STATUS_CALLBACK  1  /* callback function used by DHCP init */
@@ -50,13 +55,13 @@
 #define TCPIP_MBOX_SIZE           128
 
 #define TCP_MSS                  1460
-#define TCP_WND                     (32 * TCP_MSS)
-#define TCP_SND_BUF                 (128 * TCP_MSS > 65535 ? 65535 : 128 * TCP_MSS)
+#define TCP_WND                     (96 * TCP_MSS)
+#define TCP_SND_BUF                 (64 * TCP_MSS)
 #define TCP_SND_QUEUELEN            ((32 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 
 #define RECV_BUFSIZE_DEFAULT        2147483647 /* this is actually INT_MAX, default value */
 
-#define PBUF_POOL_SIZE             32
+#define PBUF_POOL_SIZE             96
 
 /*
  * We reduce the maximum segment lifetime from one minute to one second to
@@ -71,8 +76,8 @@
  */
 #define TCP_MSL 1000UL
 
-#define MEMP_NUM_SYS_TIMEOUT        8
-#define MEMP_NUM_TCP_PCB           64
+#define MEMP_NUM_SYS_TIMEOUT        16
+#define MEMP_NUM_TCP_PCB           128
 #define MEMP_NUM_NETCONN (MEMP_NUM_TCP_PCB + MEMP_NUM_UDP_PCB + MEMP_NUM_RAW_PCB + MEMP_NUM_TCP_PCB_LISTEN - 1)
 
 /********************
