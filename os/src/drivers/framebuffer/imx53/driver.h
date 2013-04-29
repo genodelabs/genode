@@ -9,12 +9,11 @@
 #include <os/attached_io_mem_dataspace.h>
 #include <io_mem_session/connection.h>
 #include <gpio_session/connection.h>
+#include <platform_session/connection.h>
 #include <util/mmio.h>
 
 /* local includes */
 #include <ipu.h>
-#include <src.h>
-#include <ccm.h>
 
 
 namespace Framebuffer {
@@ -27,18 +26,9 @@ class Framebuffer::Driver
 {
 	private:
 
-		/* Clocks control module */
-		Attached_io_mem_dataspace _ccm_mmio;
-		Ccm                       _ccm;
-
-		/* System reset controller registers */
-		Attached_io_mem_dataspace _src_mmio;
-		Src                       _src;
-
-		/* Image processing unit memory */
-		Attached_io_mem_dataspace _ipu_mmio;
+		Platform::Connection      _platform;
+		Attached_io_mem_dataspace _ipu_mmio; /* Image processing unit memory */
 		Ipu                       _ipu;
-
 		Gpio::Connection          _gpio;
 
 	public:
@@ -64,19 +54,13 @@ class Framebuffer::Driver
 
 
 		Driver()
-		: _ccm_mmio(Board_base::CCM_BASE, Board_base::CCM_SIZE),
-		  _ccm((addr_t)_ccm_mmio.local_addr<void>()),
-		  _src_mmio(Board_base::SRC_BASE, Board_base::SRC_SIZE),
-		  _src((addr_t)_src_mmio.local_addr<void>()),
-		  _ipu_mmio(Board_base::IPU_BASE, Board_base::IPU_SIZE),
+		: _ipu_mmio(Board_base::IPU_BASE, Board_base::IPU_SIZE),
 		  _ipu((addr_t)_ipu_mmio.local_addr<void>()) { }
 
 		bool init(addr_t phys_base)
 		{
-			/* reset ipu over src */
-			_src.write<Src::Ctrl_reg::Ipu_rst>(1);
-
-			_ccm.ipu_clk_enable();
+			/* enable IPU via platform driver */
+			_platform.enable(Platform::Session::IPU);
 
 			_ipu.init(WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, phys_base);
 
@@ -85,6 +69,5 @@ class Framebuffer::Driver
 			_gpio.direction_output(LCD_CONT_GPIO, true);
 			return true;
 		}
-
 };
 
