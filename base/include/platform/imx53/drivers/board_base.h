@@ -49,6 +49,9 @@ namespace Genode
 			IOMUXC_BASE        = 0x53fa8000,
 			IOMUXC_SIZE        = 0x00004000,
 
+			PWM2_BASE          = 0x53fb8000,
+			PWM2_SIZE          = 0x00004000,
+
 			IPU_ERR_IRQ        = 10,
 			IPU_SYNC_IRQ       = 11,
 			IPU_BASE           = 0x18000000,
@@ -59,6 +62,9 @@ namespace Genode
 
 			CCM_BASE           = 0x53FD4000,
 			CCM_SIZE           = 0x00004000,
+
+			IIM_BASE           = 0x63f98000,
+			IIM_SIZE           = 0x00004000,
 
 			SECURITY_EXTENSION = 1,
 		};

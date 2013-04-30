@@ -14,6 +14,7 @@
 
 /* local includes */
 #include <ipu.h>
+#include <pwm.h>
 
 
 namespace Framebuffer {
@@ -26,48 +27,68 @@ class Framebuffer::Driver
 {
 	private:
 
-		Platform::Connection      _platform;
-		Attached_io_mem_dataspace _ipu_mmio; /* Image processing unit memory */
-		Ipu                       _ipu;
-		Gpio::Connection          _gpio;
+		Platform::Connection              _platform;
+		Attached_io_mem_dataspace         _ipu_mmio;
+		Ipu                               _ipu;
+		Attached_io_mem_dataspace         _pwm_mmio;
+		Pwm                               _pwm;
+		Gpio::Connection                  _gpio;
+		Platform::Session::Board_revision _board;
+		size_t                            _width;
+		size_t                            _height;
 
 	public:
 
-		enum {
-			REFRESH          = 60,
-			WIDTH            = 800,
-			HEIGHT           = 480,
-			PIX_CLK          = 29850,
-			ROUND_PIX_CLK    = 38000,
-			LEFT_MARGIN      = 89,
-			RIGHT_MARGIN     = 104,
-			UPPER_MARGIN     = 10,
-			LOWER_MARGIN     = 10,
-			VSYNC_LEN        = 10,
-			HSYNC_LEN        = 10,
+		enum Resolutions {
+			QSB_WIDTH        = 800,
+			QSB_HEIGHT       = 480,
+			SMD_WIDTH        = 1024,
+			SMD_HEIGHT       = 768,
 			BYTES_PER_PIXEL  = 2,
-			FRAMEBUFFER_SIZE = WIDTH * HEIGHT * BYTES_PER_PIXEL,
+		};
 
+		enum Gpio_pins {
 			LCD_BL_GPIO      = 88,
 			LCD_CONT_GPIO    = 1,
 		};
 
-
 		Driver()
 		: _ipu_mmio(Board_base::IPU_BASE, Board_base::IPU_SIZE),
-		  _ipu((addr_t)_ipu_mmio.local_addr<void>()) { }
+		  _ipu((addr_t)_ipu_mmio.local_addr<void>()),
+		  _pwm_mmio(Board_base::PWM2_BASE, Board_base::PWM2_SIZE),
+		  _pwm((addr_t)_pwm_mmio.local_addr<void>()),
+		  _board(_platform.revision()),
+		  _width(_board == Platform::Session::QSB ? QSB_WIDTH : SMD_WIDTH),
+		  _height(_board == Platform::Session::QSB ? QSB_HEIGHT : SMD_HEIGHT) { }
 
 		bool init(addr_t phys_base)
 		{
 			/* enable IPU via platform driver */
 			_platform.enable(Platform::Session::IPU);
 
-			_ipu.init(WIDTH, HEIGHT, WIDTH * BYTES_PER_PIXEL, phys_base);
+			switch (_board) {
+			case Platform::Session::QSB:
+				_ipu.init(_width, _height, _width * BYTES_PER_PIXEL,
+				          phys_base, true);
 
-			/* Turn on lcd power */
-			_gpio.direction_output(LCD_BL_GPIO, true);
-			_gpio.direction_output(LCD_CONT_GPIO, true);
+				/* Turn display */
+				_gpio.direction_output(LCD_BL_GPIO, true);
+				_gpio.direction_output(LCD_CONT_GPIO, true);
+				break;
+			case Platform::Session::SMD:
+				_ipu.init(_width, _height, _width * BYTES_PER_PIXEL,
+				          phys_base, false);
+				_pwm.enable_display();
+				break;
+			default:
+				PERR("Unknown board revision!");
+				return false;
+			}
 			return true;
 		}
-};
 
+		Mode   mode() { return Mode(_width, _height, Mode::RGB565); }
+		size_t size() { return BYTES_PER_PIXEL * _width * _height;  }
+
+		Ipu &ipu() { return _ipu; }
+};

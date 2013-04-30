@@ -34,6 +34,16 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 		};
 
 		/**
+		 * Serial Clock Multiplexer Register 2
+		 */
+		struct Cscmr2 : Register<0x20, 32> {};
+
+		/**
+		 * D1 Clock Divider Register
+		 */
+		struct Cdcdr : Register<0x30, 32> {};
+
+		/**
 		 * Low power control register
 		 */
 		struct Clpcr : Register<0x54, 32>
@@ -41,7 +51,7 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 			struct Bypass_ipu_hs : Bitfield<18, 1> { };
 		};
 
-		struct Cccr5 : Register<0x7c, 32>
+		struct Ccgr5 : Register<0x7c, 32>
 		{
 			struct Ipu_clk_en : Bitfield<10, 2> { };
 		};
@@ -55,14 +65,16 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 
 		void ipu_clk_enable(void)
 		{
-			write<Cccr5::Ipu_clk_en>(3);
+			write<Ccgr5::Ipu_clk_en>(3);
 			write<Ccdr::Ipu_hs_mask>(0);
 			write<Clpcr::Bypass_ipu_hs>(0);
+			write<Cscmr2>(0xa2b32f0b);
+			write<Cdcdr>(0x14370092);
 		}
 
 		void ipu_clk_disable(void)
 		{
-			write<Cccr5::Ipu_clk_en>(0);
+			write<Ccgr5::Ipu_clk_en>(0);
 			write<Ccdr::Ipu_hs_mask>(1);
 			write<Clpcr::Bypass_ipu_hs>(1);
 		}

@@ -23,13 +23,20 @@ namespace Platform {
 	{
 		enum Device { IPU };
 
+		enum Board_revision {
+			SMD = 2,  /* Freescale i.MX53 SMD Tablet */
+			QSB = 3,  /* Freescale i.MX53 low-cost Quickstart board */
+			UNKNOWN,
+		};
+
 		static const char *service_name() { return "Platform"; }
 
 		virtual ~Session() { }
 
-		virtual void enable(Device dev)  = 0;
-		virtual void disable(Device dev) = 0;
+		virtual void enable(Device dev)   = 0;
+		virtual void disable(Device dev)  = 0;
 		virtual void clock_rate(Device dev, unsigned long rate) = 0;
+		virtual Board_revision revision() = 0;
 
 
 		/*********************
@@ -39,8 +46,10 @@ namespace Platform {
 		GENODE_RPC(Rpc_enable,     void, enable,     Device);
 		GENODE_RPC(Rpc_disable,    void, disable,    Device);
 		GENODE_RPC(Rpc_clock_rate, void, clock_rate, Device, unsigned long);
+		GENODE_RPC(Rpc_revision, Board_revision, revision);
 
-		GENODE_RPC_INTERFACE(Rpc_enable, Rpc_disable, Rpc_clock_rate);
+		GENODE_RPC_INTERFACE(Rpc_enable, Rpc_disable, Rpc_clock_rate,
+		                     Rpc_revision);
 	};
 }
 

@@ -18,8 +18,9 @@
 #include <root/component.h>
 #include <platform_session/platform_session.h>
 
-#include <iomux.h>
 #include <ccm.h>
+#include <iim.h>
+#include <iomux.h>
 #include <src.h>
 
 
@@ -33,17 +34,18 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 {
 	private:
 
-		Iomux &_iomux; /* I/O multiplexer device  */
-		Ccm   &_ccm;   /* clock control module    */
-		Src   &_src;   /* system reset controller */
+		Iim   &_iim;   /* IC identification module */
+		Iomux &_iomux; /* I/O multiplexer device   */
+		Ccm   &_ccm;   /* clock control module     */
+		Src   &_src;   /* system reset controller  */
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Session_component(Iomux &iomux, Ccm &ccm, Src &src)
-		: _iomux(iomux), _ccm(ccm), _src(src) {}
+		Session_component(Iim &iim, Iomux &iomux, Ccm &ccm, Src &src)
+		: _iim(iim), _iomux(iomux), _ccm(ccm), _src(src) {}
 
 
 		/**********************************
@@ -56,6 +58,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			case Session::IPU:
 				_src.reset_ipu();
 				_ccm.ipu_clk_enable();
+				_iomux.enable_di1();
 				break;
 			default:
 				PWRN("Invalid device");
@@ -80,6 +83,15 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 				PWRN("Invalid device");
 			};
 		}
+
+		Board_revision revision()
+		{
+			switch (_iim.revision()) {
+			case QSB: return QSB;
+			case SMD: return SMD;
+			};
+			return UNKNOWN;
+		}
 };
 
 
@@ -87,6 +99,7 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 {
 	private:
 
+		Iim   _iim;
 		Iomux _iomux;
 		Ccm   _ccm;
 		Src   _src;
@@ -94,7 +107,7 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 	protected:
 
 		Session_component *_create_session(const char *args) {
-			return new (md_alloc()) Session_component(_iomux, _ccm, _src); }
+			return new (md_alloc()) Session_component(_iim, _iomux, _ccm, _src); }
 
 	public:
 

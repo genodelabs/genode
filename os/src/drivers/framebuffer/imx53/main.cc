@@ -5,7 +5,7 @@
  */
 
 /* Genode includes */
-#include <framebuffer_session/framebuffer_session.h>
+#include <imx_framebuffer_session/imx_framebuffer_session.h>
 #include <cap_session/connection.h>
 #include <dataspace/client.h>
 #include <base/printf.h>
@@ -22,21 +22,25 @@ namespace Framebuffer {
 
 
 class Framebuffer::Session_component :
-	public Genode::Rpc_object<Framebuffer::Session>
+	public Genode::Rpc_object<Framebuffer::Imx_session>
 {
 	private:
 
 		size_t               _size;
 		Dataspace_capability _ds;
 		addr_t               _phys_base;
+		Mode                 _mode;
 
+		Ipu &_ipu;
 
 	public:
 
 		Session_component(Driver &driver)
-		: _size(Driver::FRAMEBUFFER_SIZE),
+		: _size(driver.size()),
 		  _ds(env()->ram_session()->alloc(_size, false)),
-		  _phys_base(Dataspace_client(_ds).phys_addr())
+		  _phys_base(Dataspace_client(_ds).phys_addr()),
+		  _mode(driver.mode()),
+		  _ipu(driver.ipu())
 		{
 			if (!driver.init(_phys_base)) {
 				PERR("Could not initialize display");
@@ -50,12 +54,14 @@ class Framebuffer::Session_component :
 		 **  Framebuffer::session interface  **
 		 **************************************/
 
-		Dataspace_capability dataspace() { return _ds; }
-		void release() { }
-		Mode mode() const {
-			return Mode(Driver::WIDTH, Driver::HEIGHT, Mode::RGB565); }
+		Dataspace_capability dataspace()                  { return _ds;   }
+		void release()                                    { }
+		Mode mode() const                                 { return _mode; }
 		void mode_sigh(Genode::Signal_context_capability) { }
-		void refresh(int, int, int, int) { }
+		void refresh(int, int, int, int)                  { }
+
+		void overlay(Genode::addr_t phys_base, int x, int y, int alpha) {
+			_ipu.overlay(phys_base, x, y, alpha); }
 };
 
 int main(int, char **)

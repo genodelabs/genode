@@ -29,6 +29,7 @@ namespace Platform {
 		void disable(Device dev) { call<Rpc_disable>(dev); }
 		void clock_rate(Device dev, unsigned long rate) {
 			call<Rpc_clock_rate>(dev, rate); }
+		Board_revision revision() { return call<Rpc_revision>(); }
 	};
 }
 

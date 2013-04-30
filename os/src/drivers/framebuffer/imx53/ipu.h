@@ -1,6 +1,7 @@
 /*
  * \brief  Image Processing Unit registers
- * \author Nikolay Golikov <nik@ksyslabs.org>
+ * \author Nikolay Golikov  <nik@ksyslabs.org>
+ * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
  * \date   2012-11-10
  */
 
@@ -14,311 +15,533 @@
 #include <os/attached_io_mem_dataspace.h>
 
 
-using namespace Genode;
-
-
-struct Ipu : Genode::Mmio
+class Ipu : Genode::Mmio
 {
-	enum {
-		REGS_OFF   = 0x06000000,
-		CPMEM_OFF  = 0x01000000,
-		IDMAC_CHAN = 23,
-	};
+	private:
+
+		enum { REGS_OFF = 0x6000000 };
+
+		struct Conf            : Register<0x0,   32> { };
+
+		template<unsigned NR>
+		struct Int_ctrl        : Register<0x3c+(NR*4), 32> { };
+
+		struct Srm_pri2 : Register<0xa4,  32>
+		{
+				struct Dp_m_srm : Bitfield<3,2> { enum { UPDATE_NOW = 1 }; };
+		};
+		struct Disp_gen             : Register<0xc4,  32> { };
+		struct Mem_rst              : Register<0xdc,  32> { };
+		struct Pm                   : Register<0xe0,  32> { };
+		struct Gpr                  : Register<0xe4,  32> { };
+		struct Ch_db_mode_sel0      : Register<0x150, 32> { };
+		struct Alt_ch_trb_mode_sel0 : Register<0x178, 32> { };
+		struct Cur_buf_0            : Register<0x23c, 32> { };
+		struct Triple_cur_buf_1     : Register<0x25c, 32> { };
+		struct Ch_buf0_rdy0         : Register<0x268, 32> { };
+		struct Ch_buf1_rdy0         : Register<0x270, 32> { };
 
 
-	struct Conf            : Register<0x0,   32> { };
-	struct Cur_buf_0       : Register<0x23c, 32> { };
-	struct Int_ctrl_5      : Register<0x4c,  32> { };
-	struct Int_ctrl_6      : Register<0x50,  32> { };
-	struct Int_ctrl_9      : Register<0x5c,  32> { };
-	struct Int_ctrl_10     : Register<0x60,  32> { };
-	struct Srm_pri2        : Register<0xa4,  32> { };
-	struct Disp_gen        : Register<0xc4,  32> { };
-	struct Mem_rst         : Register<0xdc,  32> { };
-	struct Ch_db_mode_sel0 : Register<0x150, 32> { };
+		/**************************************
+		 **  Image DMA controller registers  **
+		 **************************************/
 
-	/**
-	 * IDMAC cannel enable register
-	 */
-	struct Idmac_ch_en : Register_array<0x8004, 32, 32, 1>
-	{
-		struct Ch : Bitfield<0, 1> { };
-	};
+		enum Idmac_channels {
+			CHAN_DP_PRIMARY_MAIN = 23,
+			CHAN_DP_PRIMARY_AUXI = 27,
+			CHAN_DC_SYNC_FLOW    = 28
+		};
 
-	struct Idmac_ch_pri_1   : Register<0x8014,    32> { };
-	struct Dp_com_conf      : Register<0x18000,   32> { };
-	struct Gr_wnd_ctl_sync  : Register<0x18004,   32> { };
-	struct Di0_general      : Register<0x40000,   32> { };
-	struct Di0_bs_clkgen0   : Register<0x40004,   32> { };
-	struct Di0_bs_clkgen1   : Register<0x40008,   32> { };
-	struct Di0_sw_gen0_1    : Register<0x4000c,   32> { };
-	struct Di0_sw_gen0_2    : Register<0x40010,   32> { };
-	struct Di0_sw_gen0_3    : Register<0x40014,   32> { };
-	struct Di0_sw_gen0_4    : Register<0x40018,   32> { };
-	struct Di0_sw_gen0_5    : Register<0x4001c,   32> { };
-	struct Di0_sw_gen0_6    : Register<0x40020,   32> { };
-	struct Di0_sw_gen0_7    : Register<0x40024,   32> { };
-	struct Di0_sw_gen0_8    : Register<0x40028,   32> { };
-	struct Di0_sw_gen0_9    : Register<0x4002c,   32> { };
-	struct Di0_sw_gen1_1    : Register<0x40030,   32> { };
-	struct Di0_sw_gen1_2    : Register<0x40034,   32> { };
-	struct Di0_sw_gen1_3    : Register<0x40038,   32> { };
-	struct Di0_sw_gen1_4    : Register<0x4003c,   32> { };
-	struct Di0_sw_gen1_5    : Register<0x40040,   32> { };
-	struct Di0_sw_gen1_6    : Register<0x40044,   32> { };
-	struct Di0_sw_gen1_7    : Register<0x40048,   32> { };
-	struct Di0_sw_gen1_8    : Register<0x4004c,   32> { };
-	struct Di0_sw_gen1_9    : Register<0x40050,   32> { };
-	struct Di0_sync_as_gen  : Register<0x40054,   32> { };
-	struct Di0_dw_gen_1     : Register<0x40058,   32> { };
-	struct Di0_dw_set3_1    : Register<0x40118,   32> { };
-	struct Di0_stp_rep_1    : Register<0x40148,   32> { };
-	struct Di0_stp_rep_3    : Register<0x4014c,   32> { };
-	struct Di0_stp_rep_5    : Register<0x40150,   32> { };
-	struct Di0_stp_rep_7    : Register<0x40154,   32> { };
-	struct Di0_stp_rep_9    : Register<0x40158,   32> { };
-	struct Di0_pol          : Register<0x40164,   32> { };
-	struct Di0_scr_conf     : Register<0x40170,   32> { };
-	struct Dc_wr_ch_conf_1  : Register<0x5801c,   32> { };
-	struct Dc_wr_ch_conf_5  : Register<0x5805c,   32> { };
-	struct Dc_wr_ch_addr_5  : Register<0x58060,   32> { };
-	struct Dc_rl0_ch_5      : Register<0x58064,   32> { };
-	struct Dc_rl1_ch_5      : Register<0x58068,   32> { };
-	struct Dc_rl2_ch_5      : Register<0x5806c,   32> { };
-	struct Dc_rl3_ch_5      : Register<0x58070,   32> { };
-	struct Dc_rl4_ch_5      : Register<0x58074,   32> { };
-	struct Dc_gen           : Register<0x580d4,   32> { };
-	struct Dc_disp_conf2_0  : Register<0x580e8,   32> { };
-	struct Dc_map_conf_0    : Register<0x58108,   32> { };
-	struct Dc_map_conf_1    : Register<0x5810c,   32> { };
-	struct Dc_map_conf_2    : Register<0x58110,   32> { };
-	struct Dc_map_conf_15   : Register<0x58144,   32> { };
-	struct Dc_map_conf_16   : Register<0x58148,   32> { };
-	struct Dc_map_conf_17   : Register<0x5814c,   32> { };
-	struct Dc_map_conf_18   : Register<0x58150,   32> { };
-	struct Dc_map_conf_19   : Register<0x58154,   32> { };
-	struct Dc_map_conf_20   : Register<0x58158,   32> { };
-	struct Dc_map_conf_21   : Register<0x5815c,   32> { };
-	struct Dc_map_conf_22   : Register<0x58160,   32> { };
-	struct Dmfc_wr_chan     : Register<0x60004,   32> { };
-	struct Dmfc_wr_chan_def : Register<0x60008,   32> { };
-	struct Dmfc_dp_chan     : Register<0x6000c,   32> { };
-	struct Dmfc_dp_chan_def : Register<0x60010,   32> { };
-	struct Dmfc_general_1   : Register<0x60014,   32> { };
-	struct Dmfc_ic_ctrl     : Register<0x6001c,   32> { };
-	struct Dc_tmpl_low10    : Register<0x1080028, 32> { };
-	struct Dc_tmpl_high10   : Register<0x108002c, 32> { };
-	struct Dc_tmpl_low11    : Register<0x1080030, 32> { };
-	struct Dc_tmpl_high11   : Register<0x1080034, 32> { };
-	struct Dc_tmpl_low12    : Register<0x1080038, 32> { };
-	struct Dc_tmpl_high12   : Register<0x108003c, 32> { };
+		struct Idmac_ch_en : Register_array<0x8004, 32, 32, 1>
+		{
+				struct Ch : Bitfield<0, 1> { };
+		};
+
+		struct Idmac_ch_pri_1  : Register<0x8014, 32> { };
+
+		struct Idmac_wm_en : Register_array<0x801c, 32, 32, 1>
+		{
+				struct Ch : Bitfield<0, 1> { };
+		};
+
+		struct Idmac_ch_lock_en_1 : Register<0x8024, 32> { };
 
 
-	/**
-	 * IDMAC channel parametrs memory structure
-	 */
-	struct Cp_mem
-	{
-		Genode::uint32_t Data[5];
-		Genode::uint32_t Resetrved[3];
-	} _ch_cpmem[2];
+		/***********************************
+		 **  Display processor registers  **
+		 ***********************************/
 
-	void cpmem_set_field(Genode::uint8_t word, Genode::uint8_t bit,
-	                     Genode::uint8_t size, Genode::uint32_t value)
-	{
-		int i = (bit) / 32;
-		int off = (bit) % 32;
-		_ch_cpmem[word].Data[i] |= (value) << off;
-		if (((bit) + (size) - 1) / 32 > i) {
-			_ch_cpmem[word].Data[i + 1] |= (value) >> (off ? (32 - off) : 0);
+		struct Dp_com_conf     : Register<0x1040000, 32> { };
+		struct Dp_fg_pos_sync  : Register<0x1040008, 32> { };
+		struct Gr_wnd_ctl_sync : Register<0x1040004, 32> { };
+
+
+		/***********************************
+		 **  Display interface registers  **
+		 ***********************************/
+
+		template <Genode::off_t OFF>
+		struct Di
+		{
+			struct General        : Register<OFF+0x0,   32> { };
+			struct Bs_clkgen0     : Register<OFF+0x4,   32> { };
+			struct Bs_clkgen1     : Register<OFF+0x8,   32> { };
+			template <unsigned NR>
+			struct Sync_wave_gen0 : Register<0xc+OFF+(NR*4),  32> { };
+			template <unsigned NR>
+			struct Sync_wave_gen1 : Register<0x30+OFF+(NR*4), 32> { };
+
+				struct Sync_as_gen    : Register<OFF+0x54,  32> { };
+
+			template <unsigned NR>
+			struct Dw_gen         : Register<0x58 + OFF + (NR*4), 32> { };
+			template <unsigned NR>
+			struct Dw_set3        : Register<0x118 + OFF + (NR*4), 32> { };
+			template <unsigned NR>
+			struct Step_repeat    : Register<0x148 + OFF + (NR*4), 32> { };
+
+			struct Polarity       : Register<OFF+0x164, 32> { };
+			struct Scr_conf       : Register<OFF+0x170, 32> { };
+		};
+
+		typedef Di<0x40000> Di0;
+		typedef Di<0x48000> Di1;
+
+
+		/************************************
+		 **  Display controller registers  **
+		 ************************************/
+
+		struct Dc_wr_ch_conf_5  : Register<0x5805c, 32> { };
+		struct Dc_wr_ch_addr_5  : Register<0x58060, 32> { };
+		template <unsigned NR>
+		struct Dc_rl_ch_5       : Register<0x58064+(NR*4), 32> { };
+		struct Dc_gen           : Register<0x580d4, 32> { };
+		struct Dc_disp_conf2_0  : Register<0x580e8, 32> { };
+		struct Dc_disp_conf2_1  : Register<0x580ec, 32> { };
+		template <unsigned NR>
+		struct Dc_map_conf      : Register<0x58108+(NR*4), 32> { };
+		template <unsigned NR>
+		struct Dc_template      : Register<0x1080000+(NR*4), 32> { };
+
+
+		/***********************************************
+		 **  Display multi FIFO controller registers  **
+		 ***********************************************/
+
+		struct Dmfc_wr_chan     : Register<0x60004, 32> { };
+		struct Dmfc_wr_chan_def : Register<0x60008, 32> { };
+		struct Dmfc_dp_chan     : Register<0x6000c, 32> { };
+		struct Dmfc_dp_chan_def : Register<0x60010, 32> { };
+		struct Dmfc_general_1   : Register<0x60014, 32> { };
+		struct Dmfc_ic_ctrl     : Register<0x6001c, 32> { };
+
+
+		class Cp_mem
+		{
+			public:
+
+				enum { OFFSET  = 0x1000000 };
+
+				unsigned xv       : 10;  /* XV Virtual Coordinate */
+				unsigned yv       : 9;   /* YV Virtual Coordinate */
+				unsigned xb       : 13;  /* XB inner Block Coordinate */
+				unsigned yb       : 12;  /* YB inner Block Coordinate */
+				unsigned nsb_b    : 1;   /* New Sub Block */
+				unsigned cf       : 1;   /* Current Field */
+				unsigned sx       : 12;  /* Scroll X counter */
+				unsigned sy       : 11;  /* Scroll Y counter */
+				unsigned ns       : 10;  /* Number of Scroll */
+				unsigned sdx      : 7;   /* Scroll Delta X */
+				unsigned sm       : 10;  /* Scroll Max */
+				unsigned scc      : 1;   /* Scrolling Configuration */
+				unsigned sce      : 1;   /* Scrolling Enable */
+				unsigned sdy      : 7;   /* Scroll Delta Y */
+				unsigned sdrx     : 1;   /* Scroll Horizontal Direction */
+				unsigned sdry     : 1;   /* Scroll Vertical Direction */
+				unsigned bpp      : 3;   /* Bits per Pixel */
+				unsigned dec_sel  : 2;   /* Decode Address Select */
+				unsigned dim      : 1;   /* Access Dimension */
+				unsigned so       : 1;   /* Scan Order */
+				unsigned bndm     : 3;   /* Band Mode */
+				unsigned bm       : 2;   /* Block Mode */
+				unsigned rot      : 1;   /* Rotation */
+				unsigned hf       : 1;   /* Horizontal Flip */
+				unsigned vf       : 1;   /* Vertical Flip */
+				unsigned the      : 1;   /* Threshold Enable */
+				unsigned cap      : 1;   /* Conditional Access Polarity */
+				unsigned cae      : 1;   /* Conditional Access Enable */
+				unsigned fw       : 13;  /* Frame Width */
+				unsigned fh       : 12;  /* Frame Height */
+				unsigned res0     : 10;  /* reserved */
+				Genode::uint32_t res1[3];
+
+				unsigned eba0     : 29;  /* Ext Mem Buffer 0 Address */
+				unsigned eba1     : 29;  /* Ext Mem Buffer 1 Address */
+				unsigned ilo      : 20;  /* Interlace Offset */
+				unsigned npb      : 7;   /* Number of Pixels in Whole Burst Access */
+				unsigned pfs      : 4;   /* Pixel Format Select */
+				unsigned alu      : 1;   /* Alpha Used */
+				unsigned albm     : 3;   /* Alpha Channel Mapping */
+				unsigned id       : 2;   /* AXI ID */
+				unsigned th       : 7;   /* Threshold */
+				unsigned sly      : 14;  /* Stride Line */
+				unsigned wid0     : 3;   /* Width0 */
+				unsigned wid1     : 3;   /* Width1 */
+				unsigned wid2     : 3;   /* Width2 */
+				unsigned wid3     : 3;   /* Width3 */
+				unsigned off0     : 5;   /* Offset0 */
+				unsigned off1     : 5;   /* Offset1 */
+				unsigned off2     : 5;   /* Offset2 */
+				unsigned off3     : 5;   /* Offset3 */
+				unsigned sxys     : 1;   /* Select SX SY Set */
+				unsigned cre      : 1;   /* Conditional Read Enable */
+				unsigned dec_sel2 : 1;   /* Decode Address Select bit[2] */
+				unsigned res2     : 9;   /* reserved */
+				Genode::uint32_t res3[3];
+
+				Cp_mem() { Genode::memset(this, 0, sizeof(Cp_mem)); }
+
+				void * operator new(Genode::size_t size, void* addr) { return addr; }
+		} __attribute__((packed));
+
+
+		void _init_dma_channel(unsigned channel,
+		                       Genode::uint16_t width, Genode::uint16_t height,
+		                       Genode::uint32_t stride, Genode::addr_t phys_base)
+		{
+			void *dst =(void*)(base + Cp_mem::OFFSET + channel*sizeof(Cp_mem));
+			Cp_mem cpmem;
+
+			cpmem.fw   = width  - 1;
+			cpmem.fh   = height - 1;
+			cpmem.sly  = stride - 1;
+			cpmem.eba0 = phys_base >> 3;
+			cpmem.eba1 = phys_base >> 3;
+			cpmem.bpp  = 3;  /* corresponds to 16BPP      */
+			cpmem.pfs  = 7;  /* corresponds to RGB        */
+			cpmem.npb  = 31; /* 32 pixel per burst access */
+
+			/* red */
+			cpmem.wid0 = 4;
+			cpmem.off0 = 0;
+
+			/* green */
+			cpmem.wid1 = 5;
+			cpmem.off1 = 5;
+
+			/* blue */
+			cpmem.wid2 = 4;			cpmem.off2 = 11;
+
+			/* alpha */
+			cpmem.wid3 = 7;
+			cpmem.off3 = 16;
+
+			Genode::memcpy(dst, (void*)&cpmem, sizeof(Cp_mem));
 		}
-	}
 
-	/**
-	 * IPU initialization
-	 */
-	void init(Genode::uint16_t width, Genode::uint16_t height,
-	          Genode::uint32_t stride,
-	          Genode::addr_t phys_base)
-	{
-		/* Reset ipu memory */
-		write<Mem_rst>(0x807fffff);
-		while (read<Mem_rst>() & 0x80000000)
-			;
+
+		void _init_di0(Genode::uint16_t width, Genode::uint16_t height,
+		               Genode::uint32_t stride, Genode::addr_t phys_base)
+		{
+			/* set MCU_T to divide MCU access window into 2 */
+			write<Disp_gen>(0x1600000); // ?= 0x600000
+
+			/* link display controller events */
+			write<Dc_rl_ch_5<0> >(0x5030000);
+			write<Dc_rl_ch_5<2> >(0x602);
+			write<Dc_rl_ch_5<4> >(0x701);
+			write<Dc_rl_ch_5<0> >(0x5030000);
+			write<Dc_rl_ch_5<1> >(0x0);
+			write<Dc_rl_ch_5<1> >(0x0);
+			write<Dc_rl_ch_5<2> >(0x602);
+			write<Dc_rl_ch_5<3> >(0x0);
+			write<Dc_rl_ch_5<3> >(0x0);
+
+			write<Dc_wr_ch_conf_5>(0x2);
+			write<Dc_wr_ch_addr_5>(0x0);
+
+			write<Dc_gen>(0x84);
+
+
+			/*************************
+			 **  Display interface  **
+			 *************************/
+
+			/* clear DI */
+			write<Di0::General>(0x200000);
+
+			/* initialize display interface 0 */
+			write<Di0::Bs_clkgen0>(0x38);
+			write<Di0::Bs_clkgen1>(0x30000);
+			write<Di0::Dw_gen<0> >(0x2020300);
+			write<Di0::Dw_set3<0> >(0x60000);
+			write<Di0::Sync_wave_gen0<0> >(0x21310000);
+			write<Di0::Sync_wave_gen1<0> >(0x10000000);
+			write<Di0::Sync_wave_gen0<1> >(0x21310001);
+			write<Di0::Sync_wave_gen1<1> >(0x30141000);
+			write<Di0::Step_repeat<0> >(0x0);
+			write<Di0::Sync_wave_gen0<2> >(0x10520000);
+			write<Di0::Sync_wave_gen1<2> >(0x30142000);
+			write<Di0::Scr_conf>(0x20a);
+			write<Di0::Sync_wave_gen0<3> >(0x3010b);
+			write<Di0::Sync_wave_gen1<3> >(0x8000000);
+			write<Di0::Step_repeat<1> >(0x1e00000);
+			write<Di0::Sync_wave_gen0<4> >(0x10319);
+			write<Di0::Sync_wave_gen1<4> >(0xa000000);
+			write<Di0::Sync_wave_gen0<5> >(0x0);
+			write<Di0::Sync_wave_gen1<5> >(0x0);
+			write<Di0::Sync_wave_gen0<6> >(0x0);
+			write<Di0::Sync_wave_gen1<6> >(0x0);
+			write<Di0::Sync_wave_gen0<7> >(0x0);
+			write<Di0::Sync_wave_gen1<7> >(0x0);
+			write<Di0::Sync_wave_gen0<8> >(0x0);
+			write<Di0::Sync_wave_gen1<8> >(0x0);
+			write<Di0::Step_repeat<2> >(0x320);
+			write<Di0::Step_repeat<3> >(0x0);
+			write<Di0::Step_repeat<4> >(0x0);
+
+			/* write display connection microcode */
+			write<Dc_template<10> >(0x8885);
+			write<Dc_template<11> >(0x380);
+			write<Dc_template<12> >(0x8845);
+			write<Dc_template<13> >(0x380);
+			write<Dc_template<14> >(0x8805);
+			write<Dc_template<15> >(0x380);
+
+			write<Di0::General>(0x220000);
+			write<Di0::Sync_as_gen>(0x2002);
+			write<Di0::General>(0x200000);
+			write<Di0::Sync_as_gen>(0x4002);
+
+			write<Di0::Polarity>(0x10);
+			write<Dc_disp_conf2_0>(0x320);
+
+			/* init IDMAC channels */
+			_init_dma_channel(CHAN_DP_PRIMARY_MAIN, width, height, stride, phys_base);
+			_init_dma_channel(CHAN_DP_PRIMARY_AUXI, width, height, stride, phys_base);
+
+			/* round robin for simultaneous synchronous flows from DC & DP */
+			write<Dmfc_general_1>(0x3);
+
+			/* enable DP, DI0, DC, DMFC */
+			write<Conf>(0x660);
+
+			/* use double buffer for main DMA channel */
+			write<Ch_db_mode_sel0>(1 << CHAN_DP_PRIMARY_MAIN |
+								   1 << CHAN_DP_PRIMARY_AUXI);
+
+			/* buffer used by DMA channel is buffer 1 */
+			write<Cur_buf_0>(1 << CHAN_DP_PRIMARY_MAIN);
+
+			write<Dc_wr_ch_conf_5>(0x82);
+
+			/* Enable IDMAC channels */
+			write<Idmac_ch_en::Ch>(1, CHAN_DP_PRIMARY_MAIN);
+			write<Idmac_ch_en::Ch>(1, CHAN_DP_PRIMARY_AUXI);
+		}
+
+		void _init_di1(Genode::uint16_t width, Genode::uint16_t height,
+		               Genode::uint32_t stride, Genode::addr_t phys_base)
+		{
+			write<Disp_gen>(0x600000); //write<Disp_gen>(0x2400000);
+
+			write<Dp_com_conf>(0);
+			write<Srm_pri2::Dp_m_srm>(Srm_pri2::Dp_m_srm::UPDATE_NOW);
+
+			write<Dc_rl_ch_5<0> >(0x2030000);
+			write<Dc_rl_ch_5<1> >(0);
+			write<Dc_rl_ch_5<2> >(0x302);
+			write<Dc_rl_ch_5<3> >(0);
+			write<Dc_rl_ch_5<4> >(0x401);
+			write<Dc_wr_ch_conf_5>(0xe);
+			write<Dc_wr_ch_addr_5>(0x0);
+			write<Dc_gen>(0x84);
+
+			write<Conf>(0);
+
+			write<Di1::General>(0x200000);
+			write<Di1::General>(0x300000);
+
+			write<Di1::Bs_clkgen0>(0x10);
+			write<Di1::Bs_clkgen1>(0x10000);
+
+			write<Pm>(0x10101010);
+
+			write<Di1::Dw_gen<0> >(0x300);
+			write<Di1::Dw_set3<0> >(0x20000);
+			write<Di1::Sync_wave_gen0<0> >(0x29f90000);
+			write<Di1::Sync_wave_gen1<0> >(0x10000000);
+			write<Di1::Step_repeat<0> >(0x0);
+			write<Di1::Sync_wave_gen0<1> >(0x29f90001);
+			write<Di1::Sync_wave_gen1<1> >(0x30781000);
+			write<Di1::Step_repeat<0> >(0x0);
+			write<Di1::Sync_wave_gen0<2> >(0x192a0000);
+			write<Di1::Sync_wave_gen1<2> >(0x30142000);
+			write<Di1::Step_repeat<1> >(0x3000000);
+			write<Di1::Scr_conf>(0x325);
+			write<Di1::Sync_wave_gen0<3> >(0x300fb);
+			write<Di1::Sync_wave_gen1<3> >(0x8000000);
+			write<Di1::Step_repeat<1> >(0x3000000);
+			write<Di1::Sync_wave_gen0<4> >(0x108c1);
+			write<Di1::Sync_wave_gen1<4> >(0xa000000);
+			write<Di1::Step_repeat<2> >(0x400);
+			write<Di1::Sync_wave_gen0<6> >(0x29f90091);
+			write<Di1::Sync_wave_gen1<6> >(0x30781000);
+			write<Di1::Step_repeat<3> >(0x0);
+			write<Di1::Sync_wave_gen0<7> >(0x192a000a);
+			write<Di1::Sync_wave_gen1<7> >(0x30142000);
+			write<Di1::Step_repeat<3> >(0x0);
+			write<Di1::Sync_wave_gen0<5> >(0x0);
+			write<Di1::Sync_wave_gen1<5> >(0x0);
+			write<Di1::Sync_wave_gen0<8> >(0x0);
+			write<Di1::Sync_wave_gen1<8> >(0x0);
+			write<Di1::Step_repeat<4> >(0x0);
+			write<Di1::Step_repeat<2> >(0x400);
+
+			write<Di1::Sync_wave_gen0<5> >(0x90011);
+			write<Di1::Sync_wave_gen1<5> >(0x4000000);
+			write<Di1::Step_repeat<2> >(0x28a0400);
+
+			write<Dc_template<4> >(0x10885);
+			write<Dc_template<5> >(0x380);
+			write<Dc_template<6> >(0x845);
+			write<Dc_template<7> >(0x280);
+			write<Dc_template<8> >(0x10805);
+			write<Dc_template<9> >(0x380);
+
+			write<Di1::General>(0x6300000);
+			write<Di1::Sync_as_gen>(0x4000);
+
+			write<Di1::Polarity>(0x10);
+			write<Dc_disp_conf2_1>(0x400);
+
+			_init_dma_channel(CHAN_DP_PRIMARY_MAIN, width, height, stride, phys_base);
+			_init_dma_channel(CHAN_DP_PRIMARY_AUXI, width, height, stride, phys_base);
+
+			/* use double buffer for main DMA channel */
+			write<Ch_db_mode_sel0>(1 << CHAN_DP_PRIMARY_MAIN |
+								   1 << CHAN_DP_PRIMARY_AUXI);
+
+			/* buffer used by DMA channel is buffer 1 */
+			write<Cur_buf_0>(1 << CHAN_DP_PRIMARY_MAIN);
+
+			write<Conf>(0x6a0);
+
+			/* Enable IDMAC channels */
+			write<Idmac_ch_en::Ch>(1, CHAN_DP_PRIMARY_MAIN);
+			write<Idmac_ch_en::Ch>(1, CHAN_DP_PRIMARY_AUXI);
+
+			write<Idmac_wm_en>(1 << CHAN_DP_PRIMARY_MAIN |
+							   1 << CHAN_DP_PRIMARY_AUXI);
+
+			write<Dc_wr_ch_conf_5>(0x8e);
+
+			write<Disp_gen>(0x2600000);
+		}
+
+	public:
 
 		/**
-		 * Init display controller mappings
+		 * IPU initialization
 		 */
-		write<Dc_map_conf_0>(0x14830820);
-		write<Dc_map_conf_1>(0x2d4920e6);
-		write<Dc_map_conf_2>(0x39ac);
-		write<Dc_map_conf_15>(0xfff07ff);
-		write<Dc_map_conf_16>(0x5fc17ff);
-		write<Dc_map_conf_17>(0x11fc0bfc);
-		write<Dc_map_conf_18>(0x17ff0fff);
-		write<Dc_map_conf_19>(0x4f807ff);
-		write<Dc_map_conf_20>(0xff80afc);
-		write<Dc_map_conf_21>(0xdfc05fc);
-		write<Dc_map_conf_22>(0x15fc);
+		void init(Genode::uint16_t width, Genode::uint16_t height,
+		          Genode::uint32_t stride, Genode::addr_t phys_base,
+		          bool di0)
+		{
+			/* stop pixel clocks */
+			write<Di0::General>(0);
+			write<Di1::General>(0);
+
+			/* reset IPU memory buffers */
+			write<Mem_rst>(0x807fffff);
+			while (read<Mem_rst>() & 0x80000000) ;
+
+			/* initialize pixel format mappings for display controller */
+			write<Dc_map_conf< 0> >(0x14830820);
+			write<Dc_map_conf< 1> >(0x2d4920e6);
+			write<Dc_map_conf< 2> >(0x39ac);
+			write<Dc_map_conf<15> >(0xfff07ff);
+			write<Dc_map_conf<16> >(0x5fc17ff);
+			write<Dc_map_conf<17> >(0x11fc0bfc);
+			write<Dc_map_conf<18> >(0x17ff0fff);
+			write<Dc_map_conf<19> >(0x4f807ff);
+			write<Dc_map_conf<20> >(0xff80afc);
+			write<Dc_map_conf<21> >(0xdfc05fc);
+			write<Dc_map_conf<22> >(0x15fc);
+
+			/* clear interrupt control registers */
+			write<Int_ctrl<4> >(0);
+			write<Int_ctrl<5> >(0);
+			write<Int_ctrl<8> >(0);
+			write<Int_ctrl<9> >(0);
+
+			/* disable DMFC channel from image converter */
+			write<Dmfc_ic_ctrl>(0x2);
+
+			/* set DMFC FIFO for idma channels */
+			write<Dmfc_wr_chan>(0x90); /* channel CHAN_DC_SYNC_FLOW */
+			write<Dmfc_wr_chan_def>(0x202020f6);
+			write<Dmfc_dp_chan>(0x968a); /* channels CHAN_DP_PRIMARY_XXX */
+			write<Dmfc_dp_chan_def>(0x2020f6f6);
+			write<Dmfc_general_1>(0x3);
+
+			/* set idma channels 23, 27, 28 as high priority */
+			write<Idmac_ch_pri_1>(1 << CHAN_DP_PRIMARY_MAIN |
+			                      1 << CHAN_DP_PRIMARY_AUXI |
+			                      1 << CHAN_DC_SYNC_FLOW);
+
+			/*
+			 * generate 8 AXI bursts upon the assertion of DMA request
+			 * for our channels
+			 */
+			write<Idmac_ch_lock_en_1>(0x3f0000);
+
+			if (di0)
+				_init_di0(width, height, stride, phys_base);
+			else
+				_init_di1(width, height, stride, phys_base);
+
+
+			/************************
+			 **  overlay settings  **
+			 ************************/
+
+			write<Dp_com_conf>(1 << 0);
+			write<Srm_pri2::Dp_m_srm>(Srm_pri2::Dp_m_srm::UPDATE_NOW);
+
+			write<Dp_fg_pos_sync>(16);
+			write<Srm_pri2::Dp_m_srm>(Srm_pri2::Dp_m_srm::UPDATE_NOW);
+
+			write<Dp_com_conf>(1 << 0 | 1 << 2);
+			write<Srm_pri2::Dp_m_srm>(Srm_pri2::Dp_m_srm::UPDATE_NOW);
+
+			write<Gr_wnd_ctl_sync>(0xff000000);
+			write<Srm_pri2::Dp_m_srm>(Srm_pri2::Dp_m_srm::UPDATE_NOW);
+		}
+
+
+		void overlay(Genode::addr_t phys_base, int x, int y, int alpha)
+		{
+			volatile Genode::uint32_t *ptr = (volatile Genode::uint32_t*)
+				(base + Cp_mem::OFFSET + CHAN_DP_PRIMARY_AUXI*sizeof(Cp_mem));
+			ptr[8] = (((phys_base >> 3) & 0b111) << 29) | (phys_base >> 3);
+			ptr[9] = (phys_base >> 6);
+
+			write<Dp_fg_pos_sync>(x << 16 | y);
+			write<Srm_pri2::Dp_m_srm>(Srm_pri2::Dp_m_srm::UPDATE_NOW);
+
+			write<Gr_wnd_ctl_sync>(alpha << 24);
+			write<Srm_pri2::Dp_m_srm>(Srm_pri2::Dp_m_srm::UPDATE_NOW);
+		}
+
 
 		/**
-		 * Clear interrupt control registers
+		 * Constructor
+		 *
+		 * \param mmio_base base address of IPU
 		 */
-		write<Int_ctrl_5>(0x0);
-		write<Int_ctrl_6>(0x0);
-		write<Int_ctrl_9>(0x0);
-		write<Int_ctrl_10>(0x0);
-
-		/**
-		 * Init DMFC
-		 */
-		write<Dmfc_ic_ctrl>(0x2);
-		write<Dmfc_wr_chan>(0x90);
-		write<Dmfc_wr_chan_def>(0x202020f6);
-		write<Dmfc_dp_chan>(0x9694);
-		write<Dmfc_dp_chan_def>(0x2020f6f6);
-
-		write<Idmac_ch_pri_1>(0x18800000);
-		write<Gr_wnd_ctl_sync>(0x80000000);
-		write<Srm_pri2>(0x605080b);
-		write<Dp_com_conf>(0x4);
-		write<Srm_pri2>(0x605080b);
-
-		/**
-		 * Link display controller events
-		 */
-		write<Dc_rl0_ch_5>(0x5030000);
-		write<Dc_rl2_ch_5>(0x602);
-		write<Dc_rl4_ch_5>(0x701);
-		write<Dc_rl0_ch_5>(0x5030000);
-		write<Dc_rl1_ch_5>(0x0);
-		write<Dc_rl1_ch_5>(0x0);
-		write<Dc_rl2_ch_5>(0x602);
-		write<Dc_rl3_ch_5>(0x0);
-		write<Dc_rl3_ch_5>(0x0);
-
-		/**
-		 * Init display controller
-		 */
-		write<Dc_wr_ch_conf_5>(0x2);
-		write<Dc_wr_ch_addr_5>(0x0);
-		write<Dc_gen>(0x84);
-
-		write<Conf>(0x660);
-
-		/**
-		 * Init display interface
-		 */
-		write<Di0_bs_clkgen0>(0x38);
-		write<Di0_bs_clkgen1>(0x30000);
-		write<Di0_dw_gen_1>(0x2020300);
-		write<Di0_dw_set3_1>(0x60000);
-		write<Di0_sw_gen0_1>(0x21310000);
-		write<Di0_sw_gen1_1>(0x10000000);
-		write<Di0_sw_gen0_2>(0x21310001);
-		write<Di0_sw_gen1_2>(0x30141000);
-		write<Di0_stp_rep_1>(0x0);
-		write<Di0_sw_gen0_3>(0x10520000);
-		write<Di0_sw_gen1_3>(0x30142000);
-		write<Di0_scr_conf>(0x20a);
-		write<Di0_sw_gen0_4>(0x3010b);
-		write<Di0_sw_gen1_4>(0x8000000);
-		write<Di0_stp_rep_3>(0x1e00000);
-		write<Di0_sw_gen0_5>(0x10319);
-		write<Di0_sw_gen1_5>(0xa000000);
-		write<Di0_sw_gen0_6>(0x0);
-		write<Di0_sw_gen1_6>(0x0);
-		write<Di0_sw_gen0_7>(0x0);
-		write<Di0_sw_gen1_7>(0x0);
-		write<Di0_sw_gen0_8>(0x0);
-		write<Di0_sw_gen1_8>(0x0);
-		write<Di0_sw_gen0_9>(0x0);
-		write<Di0_sw_gen1_9>(0x0);
-		write<Di0_stp_rep_5>(0x320);
-		write<Di0_stp_rep_7>(0x0);
-		write<Di0_stp_rep_9>(0x0);
-
-		/**
-		 * Write display connection templates
-		 */
-		write<Dc_tmpl_low10>(0x8885);
-		write<Dc_tmpl_high10>(0x380);
-		write<Dc_tmpl_low11>(0x8845);
-		write<Dc_tmpl_high11>(0x380);
-		write<Dc_tmpl_low12>(0x8805);
-		write<Dc_tmpl_high12>(0x380);
-
-
-		write<Di0_general>(0x220000);
-		write<Di0_sync_as_gen>(0x2002);
-		write<Di0_general>(0x200000);
-		write<Di0_sync_as_gen>(0x4002);
-
-		write<Di0_pol>(0x10);
-		write<Dc_disp_conf2_0>(0x320);
-		write<Dmfc_general_1>(0x3);
-		write<Ch_db_mode_sel0>(0x800000);
-		write<Cur_buf_0>(0x800000);
-
-		write<Dc_wr_ch_conf_1>(0x4);
-		write<Dc_wr_ch_conf_5>(0x82);
-		write<Disp_gen>(0x1600000);
-
-		/**
-		 * Init IDMAC channel
-		 */
-		cpmem_set_field(0, 125, 13, width - 1);
-		cpmem_set_field(0, 138, 12, height - 1);
-		cpmem_set_field(1, 102, 14, stride - 1 );
-		cpmem_set_field(1, 0, 29, 0);
-		cpmem_set_field(1, 29, 29, phys_base >> 3);
-
-		/* bits/pixel */
-		cpmem_set_field(0, 107, 3, 3);
-
-		/* pixel format RGB565 */
-		cpmem_set_field(1, 85, 4, 7);
-
-		/* burst size */
-		cpmem_set_field(1, 78, 7, 15);
-
-
-		/*******************
-		 **  set packing  **
-		 *******************/
-
-		/* red */
-		cpmem_set_field(1, 116, 3, 4);
-		cpmem_set_field(1, 128, 5, 0);
-
-		/* green */
-		cpmem_set_field(1, 119, 3, 5);
-		cpmem_set_field(1, 133, 5, 5);
-
-		/* blue */
-		cpmem_set_field(1, 122, 3, 4);
-		cpmem_set_field(1, 138, 5, 11);
-
-		/* alpha */
-		cpmem_set_field(1, 125, 3, 7);
-		cpmem_set_field(1, 143, 5, 16);
-
-		cpmem_set_field(0, 46, 22, 0);
-		cpmem_set_field(0, 68, 22, 0);
-
-		Genode::memcpy((void *)(base + CPMEM_OFF + sizeof(_ch_cpmem) * IDMAC_CHAN),
-		               (void *)&_ch_cpmem, sizeof(_ch_cpmem));
-
-		write<Idmac_ch_en::Ch>(1, IDMAC_CHAN);
-}
-
-	/**
-	 * Constructor
-	 *
-	 * \param mmio_base base address of IPU
-	 */
-	Ipu(Genode::addr_t mmio_base)
-	: Genode::Mmio(mmio_base + REGS_OFF) { }
+		Ipu(Genode::addr_t mmio_base) : Genode::Mmio(mmio_base + REGS_OFF) { }
 };
 
 #endif /* _IPU_H_ */
