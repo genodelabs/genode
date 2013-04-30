@@ -110,6 +110,10 @@ struct Test_mmio : public Mmio
 		struct B : Bitfield<2,4> { };
 	};
 
+	struct Simple_array_1 : Register_array<0x0, 32, 2, 32> { };
+
+	struct Simple_array_2 : Register_array<0x2, 16, 4, 16> { };
+
 	struct Strict_reg : Register<0x0, 32, true>
 	{
 		struct A : Bitfield<3,2> { };
@@ -399,6 +403,20 @@ int main()
 	static uint8_t mmio_cmpr_15[MMIO_SIZE] = {0,0b11000000,0b10101010,0,0,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_15, sizeof(mmio_mem))) {
 		return test_failed(15); }
+
+	/**
+	 * Test 16, writing to simple register array
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	*(uint8_t*)((addr_t)mmio_mem + sizeof(uint16_t)) = 0xaa;
+	mmio.write<Test_mmio::Simple_array_1>(0x12345678, 0);
+	mmio.write<Test_mmio::Simple_array_1>(0x87654321, 1);
+
+	mmio.write<Test_mmio::Simple_array_2>(0xfedc, 0);
+	mmio.write<Test_mmio::Simple_array_2>(0xabcd, 2);
+	static uint8_t mmio_cmpr_16[MMIO_SIZE] = {0x78,0x56,0xdc,0xfe,0x21,0x43,0xcd,0xab};
+	if (compare_mem(mmio_mem, mmio_cmpr_16, sizeof(mmio_mem))) {
+	  return test_failed(16); }
 
 	printf("Test done\n");
 	return 0;

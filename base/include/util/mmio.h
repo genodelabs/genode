@@ -207,14 +207,28 @@ namespace Genode
 				 *                targeted by 'offset'.
 				 * \param index   index of the targeted array item
 				 */
-				static inline void access_dest(off_t & offset,
-				                               unsigned long & shift,
-				                               unsigned long const index)
+				static inline void dst(off_t & offset,
+				                       unsigned long & shift,
+				                       unsigned long const index)
 				{
 					unsigned long const bit_off = index << ITEM_WIDTH_LOG2;
 					offset  = (off_t) ((bit_off >> BYTE_WIDTH_LOG2)
 					          & ~(sizeof(access_t)-1) );
 					shift   = bit_off - ( offset << BYTE_WIDTH_LOG2 );
+					offset += OFFSET;
+				}
+
+				/**
+				 * Calc destination of a simple array-item access without shift
+				 *
+				 * \param offset  gets overridden with the offset of the the
+				 *                access destination, relative to the MMIO base
+				 * \param index   index of the targeted array item
+				 */
+				static inline void simple_dst(off_t & offset,
+				                              unsigned long const index)
+				{
+					offset  = (index << ITEM_WIDTH_LOG2) >> BYTE_WIDTH_LOG2;
 					offset += OFFSET;
 				}
 			};
@@ -337,13 +351,13 @@ namespace Genode
 				/* if item width equals access width we optimize the access */
 				off_t offset;
 				if (Array::ITEM_WIDTH == Array::ACCESS_WIDTH) {
-					offset = Array::OFFSET + (index << Array::ITEM_WIDTH_LOG2);
+					Array::simple_dst(offset, index);
 					return _read<access_t>(offset);
 
 				/* access width and item width differ */
 				} else {
 					long unsigned shift;
-					Array::access_dest(offset, shift, index);
+					Array::dst(offset, shift, index);
 					return (_read<access_t>(offset) >> shift) &
 					       Array::ITEM_MASK;
 				}
@@ -369,14 +383,13 @@ namespace Genode
 				/* optimize the access if item width equals access width */
 				off_t offset;
 				if (Array::ITEM_WIDTH == Array::ACCESS_WIDTH) {
-					offset = Array::OFFSET +
-					         (index << Array::ITEM_WIDTH_LOG2);
+					Array::simple_dst(offset, index);
 					_write<access_t>(offset, value);
 
 				/* access width and item width differ */
 				} else {
 					long unsigned shift;
-					Array::access_dest(offset, shift, index);
+					Array::dst(offset, shift, index);
 
 					/* insert new value into old register value */
 					access_t write_value;
