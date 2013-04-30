@@ -260,9 +260,12 @@ bool Plugin::supports_select(int nfds,
 }
 
 
-bool Plugin::supports_socket(int, int, int)
+bool Plugin::supports_socket(int domain, int, int)
 {
-	return true;
+	if (domain == AF_INET)
+		return true;
+
+	return false;
 }
 
 
