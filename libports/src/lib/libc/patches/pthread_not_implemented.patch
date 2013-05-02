@@ -1,0 +1,104 @@
+Print 'not implemented' message in pthread stubs
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ libc/gen/_pthread_stubs.c |   29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/libc/gen/_pthread_stubs.c b/libc/gen/_pthread_stubs.c
+index 063676f..c5112c5 100644
+--- libc/gen/_pthread_stubs.c
++++ libc/gen/_pthread_stubs.c
+@@ -30,9 +30,30 @@ __FBSDID("$FreeBSD$");
+ #include <signal.h>
+ #include <pthread.h>
+ #include <stdlib.h>
++#include <stdio.h>
+ 
+ #include "libc_private.h"
+ 
++#define ESC_DBG  "\033[33m"
++#define ESC_END  "\033[0m"
++
++/**
++ * Suppress debug messages in release version
++ */
++#ifdef GENODE_RELEASE
++#define DO_PDBG 0
++#else
++#define DO_PDBG 1
++#endif /* GENODE_RELEASE */
++
++/**
++ * Print debug message with function name
++ */
++#define PDBG(fmt, ...) \
++	if (DO_PDBG) \
++		printf("%s: " ESC_DBG fmt ESC_END "\n", \
++               __PRETTY_FUNCTION__, ##__VA_ARGS__ )
++
+ /*
+  * Weak symbols: All libc internal usage of these functions should
+  * use the weak symbol versions (_pthread_XXX).  If libpthread is
+@@ -138,12 +159,14 @@ pthread_func_entry_t __thr_jtable[PJT_MAX] = {
+ 	typedef ret (*FUNC_TYPE(name))(void);			\
+ 	static ret FUNC_EXP(name)(void)				\
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
+ 		return (func());				\
+ 	}							\
+ 	static ret FUNC_INT(name)(void)				\
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
+ 		return (func());				\
+@@ -157,12 +180,14 @@ pthread_func_entry_t __thr_jtable[PJT_MAX] = {
+ 	typedef ret (*FUNC_TYPE(name))(p0_type);		\
+ 	static ret FUNC_EXP(name)(p0_type p0)			\
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
+ 		return (func(p0));				\
+ 	}							\
+ 	static ret FUNC_INT(name)(p0_type p0)			\
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
+ 		return (func(p0));				\
+@@ -176,12 +201,14 @@ pthread_func_entry_t __thr_jtable[PJT_MAX] = {
+ 	typedef ret (*FUNC_TYPE(name))(p0_type, p1_type);	\
+ 	static ret FUNC_EXP(name)(p0_type p0, p1_type p1)	\
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
+ 		return (func(p0, p1));				\
+ 	}							\
+ 	static ret FUNC_INT(name)(p0_type p0, p1_type p1)	\
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
+ 		return (func(p0, p1));				\
+@@ -195,12 +222,14 @@ pthread_func_entry_t __thr_jtable[PJT_MAX] = {
+ 	typedef ret (*FUNC_TYPE(name))(p0_type, p1_type, p2_type); \
+ 	static ret FUNC_EXP(name)(p0_type p0, p1_type p1, p2_type p2) \
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
+ 		return (func(p0, p1, p2));			\
+ 	}							\
+ 	static ret FUNC_INT(name)(p0_type p0, p1_type p1, p2_type p2) \
+ 	{							\
++		PDBG("%s called, not implemented", #name);	\
+ 		FUNC_TYPE(name) func;				\
+ 		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
+ 		return (func(p0, p1, p2));			\
