@@ -225,7 +225,7 @@ int main()
 	/* transfer all left memory to init, but leave some memory left for core */
 	/* NOTE: exception objects thrown in core components are currently allocated on
 	         core's heap and not accounted by the component's meta data allocator */
-	Genode::size_t init_quota = platform()->ram_alloc()->avail() - 140*1024;
+	Genode::size_t init_quota = platform()->ram_alloc()->avail() - 172*1024;
 	env()->ram_session()->transfer_quota(init_ram_session_cap, init_quota);
 	PDBG("transferred %zd MB to init", init_quota / (1024*1024));
 
