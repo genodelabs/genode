@@ -109,7 +109,7 @@ mimetype.assign      = (
 	<start name="lighttpd">
 		<resource name="RAM" quantum="256M" />
 		<config>
-			<interface ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
+			<libc ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
 			<arg value="lighttpd" />
 			<arg value="-f" />
 			<arg value="/etc/lighttpd/lighttpd.conf" />

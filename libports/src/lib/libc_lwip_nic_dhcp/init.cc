@@ -27,11 +27,14 @@ extern "C" {
 
 
 extern void create_lwip_plugin();
+extern void create_etc_resolv_conf_plugin();
 
 
 void __attribute__((constructor)) init_nic_dhcp(void)
 {
 	PDBG("init_nic_dhcp()\n");
+
+	bool provide_etc_resolv_conf = true;
 
 	char ip_addr_str[16] = {0};
 	char netmask_str[16] = {0};
@@ -40,50 +43,57 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 	genode_int32_t ip_addr = 0;
 	genode_int32_t netmask = 0;
 	genode_int32_t gateway = 0;
-	
+
 	try {
-		Genode::Xml_node interface_node = Genode::config()->xml_node().sub_node("interface");
+		Genode::Xml_node libc_node = Genode::config()->xml_node().sub_node("libc");
 
 		try {
-			interface_node.attribute("ip_addr").value(ip_addr_str, sizeof(ip_addr_str));
-		}
-		catch(Genode::Xml_node::Nonexistent_attribute)
-		{
-			PERR("Missing \"ip_addr\" attribute. Ignore interface config.");
-			throw;
-		}
+			if (libc_node.attribute("resolv").has_value("no"))
+				provide_etc_resolv_conf = false;
+		} catch(...) { }
 
 		try {
-			interface_node.attribute("netmask").value(netmask_str, sizeof(netmask_str));
-		}
-		catch(Genode::Xml_node::Nonexistent_attribute)
-		{
-			PERR("Missing \"netmask\" attribute. Ignore interface config.");
-			throw;
-		}
+			libc_node.attribute("ip_addr").value(ip_addr_str, sizeof(ip_addr_str));
+		} catch(...) { }
 
 		try {
-			interface_node.attribute("gateway").value(gateway_str, sizeof(gateway_str));
-		}
-		catch(Genode::Xml_node::Nonexistent_attribute)
-		{
-			PERR("Missing \"gateway\" attribute. Ignore interface config.");
-			throw;
-		}
-		
-		PDBG("interface: ip_addr=%s netmask=%s gateway=%s ",
+			libc_node.attribute("netmask").value(netmask_str, sizeof(netmask_str));
+		} catch(...) { }
+
+		try {
+			libc_node.attribute("gateway").value(gateway_str, sizeof(gateway_str));
+		} catch(...) { }
+
+		/* either none or all 3 interface attributes must exist */
+		if ((strlen(ip_addr_str) != 0) ||
+		    (strlen(netmask_str) != 0) ||
+		    (strlen(gateway_str) != 0)) {
+			if (strlen(ip_addr_str) == 0) {
+				PERR("Missing \"ip_addr\" attribute. Ignoring network interface config.");
+				throw Genode::Xml_node::Nonexistent_attribute();
+			} else if (strlen(netmask_str) == 0) {
+				PERR("Missing \"netmask\" attribute. Ignoring network interface config.");
+				throw Genode::Xml_node::Nonexistent_attribute();
+			} else if (strlen(gateway_str) == 0) {
+				PERR("Missing \"gateway\" attribute. Ignoring network interface config.");
+				throw Genode::Xml_node::Nonexistent_attribute();
+			}
+		} else
+			throw -1;
+
+		PDBG("static network interface: ip_addr=%s netmask=%s gateway=%s ",
 		     ip_addr_str, netmask_str, gateway_str
 		);
 
-		genode_int32_t ip, nm, gw;
+		genode_uint32_t ip, nm, gw;
 		
 		ip = inet_addr(ip_addr_str);
 		nm = inet_addr(netmask_str);
 		gw = inet_addr(gateway_str);
 
 		if (ip == INADDR_NONE || nm == INADDR_NONE || gw == INADDR_NONE) {
-			PERR("Invalid interface config.");
-			throw;
+			PERR("Invalid network interface config.");
+			throw -1;
 		} else {
 			ip_addr = ip;
 			netmask = nm;
@@ -102,4 +112,7 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 	} catch (Genode::Parent::Service_denied) {
 		/* ignore for now */
 	}
+
+	if (provide_etc_resolv_conf)
+		create_etc_resolv_conf_plugin();
 }
