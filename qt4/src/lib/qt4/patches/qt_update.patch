@@ -1,0 +1,103 @@
+qt_update.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ configure                                      |   12 ++++++------
+ mkspecs/genode-g++/qmake.conf                  |    1 +
+ mkspecs/genode-g++/qplatformdefs.h             |    1 +
+ mkspecs/qws/genode-generic-g++/qmake.conf      |    1 +
+ mkspecs/qws/genode-generic-g++/qplatformdefs.h |    1 +
+ src/corelib/global/qconfig-genode.h            |    1 +
+ 6 files changed, 11 insertions(+), 6 deletions(-)
+ create mode 120000 mkspecs/genode-g++/qmake.conf
+ create mode 120000 mkspecs/genode-g++/qplatformdefs.h
+ create mode 120000 mkspecs/qws/genode-generic-g++/qmake.conf
+ create mode 120000 mkspecs/qws/genode-generic-g++/qplatformdefs.h
+ create mode 120000 src/corelib/global/qconfig-genode.h
+
+diff --git a/configure b/configure
+index e3d464b..259a128 100755
+--- a/configure
++++ b/configure
+@@ -793,14 +793,14 @@ CFG_WEBKIT=auto # (yes|no|auto|debug)
+ CFG_JAVASCRIPTCORE_JIT=auto
+ CFG_STACK_PROTECTOR_STRONG=auto
+ 
+-CFG_GFX_AVAILABLE="linuxfb transformed qvfb vnc multiscreen directfb"
++CFG_GFX_AVAILABLE="linuxfb transformed qvfb vnc multiscreen directfb nitpicker"
+ CFG_GFX_ON="linuxfb multiscreen"
+ CFG_GFX_PLUGIN_AVAILABLE=
+ CFG_GFX_PLUGIN=
+ CFG_GFX_OFF=
+-CFG_KBD_AVAILABLE="tty linuxinput qvfb"
++CFG_KBD_AVAILABLE="tty linuxinput qvfb nitpicker"
+ CFG_KBD_ON="tty"    #default, see QMakeVar above
+-CFG_MOUSE_AVAILABLE="pc linuxtp linuxinput tslib qvfb"
++CFG_MOUSE_AVAILABLE="pc linuxtp linuxinput tslib qvfb nitpicker"
+ CFG_MOUSE_ON="pc linuxtp"   #default, see QMakeVar above
+ 
+ if [ -f "$relpath/src/gui/embedded/qscreenqnx_qws.cpp" ]; then
+@@ -856,7 +856,7 @@ CFG_SSE4_1=auto
+ CFG_SSE4_2=auto
+ CFG_AVX=auto
+ CFG_REDUCE_RELOCATIONS=no
+-CFG_IPV6=auto
++CFG_IPV6=no
+ CFG_NAS=no
+ CFG_QWS_DEPTHS=all
+ CFG_USER_BUILD_KEY=
+@@ -869,10 +869,10 @@ CFG_ARMFPA=auto
+ CFG_IWMMXT=no
+ CFG_NEON=auto
+ CFG_CLOCK_GETTIME=auto
+-CFG_CLOCK_MONOTONIC=auto
++CFG_CLOCK_MONOTONIC=no
+ CFG_MREMAP=auto
+ CFG_GETADDRINFO=auto
+-CFG_IPV6IFNAME=auto
++CFG_IPV6IFNAME=no
+ CFG_GETIFADDRS=auto
+ CFG_INOTIFY=auto
+ CFG_RPATH=yes
+diff --git a/mkspecs/genode-g++/qmake.conf b/mkspecs/genode-g++/qmake.conf
+new file mode 120000
+index 0000000..a771e53
+--- /dev/null
++++ b/mkspecs/genode-g++/qmake.conf
+@@ -0,0 +1 @@
++/home/christian/projects/genode/genode/qt4/src/lib/qt4/mkspecs/genode-g++/qmake.conf
+\ No newline at end of file
+diff --git a/mkspecs/genode-g++/qplatformdefs.h b/mkspecs/genode-g++/qplatformdefs.h
+new file mode 120000
+index 0000000..16442bd
+--- /dev/null
++++ b/mkspecs/genode-g++/qplatformdefs.h
+@@ -0,0 +1 @@
++/home/christian/projects/genode/genode/qt4/src/lib/qt4/mkspecs/genode-g++/qplatformdefs.h
+\ No newline at end of file
+diff --git a/mkspecs/qws/genode-generic-g++/qmake.conf b/mkspecs/qws/genode-generic-g++/qmake.conf
+new file mode 120000
+index 0000000..1e8bd9b
+--- /dev/null
++++ b/mkspecs/qws/genode-generic-g++/qmake.conf
+@@ -0,0 +1 @@
++/home/christian/projects/genode/genode/qt4/src/lib/qt4/mkspecs/qws/genode-generic-g++/qmake.conf
+\ No newline at end of file
+diff --git a/mkspecs/qws/genode-generic-g++/qplatformdefs.h b/mkspecs/qws/genode-generic-g++/qplatformdefs.h
+new file mode 120000
+index 0000000..b0f6b49
+--- /dev/null
++++ b/mkspecs/qws/genode-generic-g++/qplatformdefs.h
+@@ -0,0 +1 @@
++/home/christian/projects/genode/genode/qt4/src/lib/qt4/mkspecs/qws/genode-generic-g++/qplatformdefs.h
+\ No newline at end of file
+diff --git a/src/corelib/global/qconfig-genode.h b/src/corelib/global/qconfig-genode.h
+new file mode 120000
+index 0000000..5309d22
+--- /dev/null
++++ b/src/corelib/global/qconfig-genode.h
+@@ -0,0 +1 @@
++../../../../../include/qt4/QtCore/qconfig-genode.h
+\ No newline at end of file

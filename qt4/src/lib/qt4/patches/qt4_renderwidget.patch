@@ -1,9 +1,17 @@
 - revert a change introduced in Qt 4.7 that caused the mouse mask not being updated when loading a Nitpicker plugin in Arora
 
-diff --git a/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp b/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp
---- a/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp
-+++ b/src/3rdparty/webkit/WebCore/rendering/RenderWidget.cpp
-@@ -265,6 +265,11 @@
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../Source/WebCore/rendering/RenderWidget.cpp      |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/3rdparty/webkit/Source/WebCore/rendering/RenderWidget.cpp b/src/3rdparty/webkit/Source/WebCore/rendering/RenderWidget.cpp
+index 5a00374..025f921 100644
+--- a/src/3rdparty/webkit/Source/WebCore/rendering/RenderWidget.cpp
++++ b/src/3rdparty/webkit/Source/WebCore/rendering/RenderWidget.cpp
+@@ -291,6 +291,11 @@ void RenderWidget::paint(PaintInfo& paintInfo, int tx, int ty)
      }
  
      if (m_widget) {

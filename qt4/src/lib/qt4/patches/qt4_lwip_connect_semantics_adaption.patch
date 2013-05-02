@@ -1,7 +1,17 @@
+qt4_lwip_connect_semantics_adaption.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/network/socket/qnativesocketengine_unix.cpp |   16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
 diff --git a/src/network/socket/qnativesocketengine_unix.cpp b/src/network/socket/qnativesocketengine_unix.cpp
+index b4e5126..9093abd 100644
 --- a/src/network/socket/qnativesocketengine_unix.cpp
 +++ b/src/network/socket/qnativesocketengine_unix.cpp
-@@ -388,6 +388,22 @@
+@@ -430,6 +430,22 @@ bool QNativeSocketEnginePrivate::nativeConnect(const QHostAddress &addr, quint16
          case EISCONN:
              socketState = QAbstractSocket::ConnectedState;
              break;

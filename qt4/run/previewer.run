@@ -112,6 +112,7 @@ set boot_modules {
 	qt_jscore.lib.so
 	qt_network.lib.so
 	qt_webcore.lib.so
+	qt_webkit.lib.so
 	zlib.lib.so
 	stdcxx.lib.so
 }

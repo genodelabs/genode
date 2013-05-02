@@ -31,6 +31,12 @@
 #  define QT_POINTER_SIZE 4
 #endif
 
+#if defined(QT_LINKED_OPENSSL) && defined(QT_NO_LINKED_OPENSSL)
+# undef QT_LINKED_OPENSSL
+#elif !defined(QT_LINKED_OPENSSL) && !defined(QT_NO_LINKED_OPENSSL)
+# define QT_LINKED_OPENSSL
+#endif
+
 #if defined(QT_NO_ACCESSIBILITY) && defined(QT_ACCESSIBILITY)
 # undef QT_NO_ACCESSIBILITY
 #elif !defined(QT_NO_ACCESSIBILITY) && !defined(QT_ACCESSIBILITY)
@@ -143,12 +149,6 @@
 # undef QT_NO_OPENGL
 #elif !defined(QT_NO_OPENGL) && !defined(QT_OPENGL)
 # define QT_NO_OPENGL
-#endif
-
-#if defined(QT_NO_OPENSSL) && defined(QT_OPENSSL)
-# undef QT_NO_OPENSSL
-#elif !defined(QT_NO_OPENSSL) && !defined(QT_OPENSSL)
-# define QT_NO_OPENSSL
 #endif
 
 #if defined(QT_NO_OPENVG) && defined(QT_OPENVG)

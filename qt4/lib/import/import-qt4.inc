@@ -10,7 +10,7 @@ QT4_REP_DIR := $(realpath $(dir $(QT4_REP_DIR))../..)
 
 include $(QT4_REP_DIR)/lib/mk/qt_version.inc
 
-QT4_INC_DIR := $(QT4_REP_DIR)/src/lib/qt4/mkspecs/qws/genode-x86-g++ \
+QT4_INC_DIR := $(QT4_REP_DIR)/src/lib/qt4/mkspecs/qws/genode-generic-g++ \
                $(QT4_REP_DIR)/include/qt4 \
                $(QT4_REP_DIR)/contrib/$(QT4)/include \
                $(QT4_REP_DIR)/include/qt4/QtCore \

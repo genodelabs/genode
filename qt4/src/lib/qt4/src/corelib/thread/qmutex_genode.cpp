@@ -52,7 +52,7 @@
 #include <timer_session/client.h>
 
 QMutexPrivate::QMutexPrivate(QMutex::RecursionMode mode)
-    : recursive(mode == QMutex::Recursive), contenders(0), owner(0), count(0)
+    : QMutexData(mode), maximumSpinTime(MaximumSpinTimeThreshold), averageWaitTime(0), owner(0), count(0)
 {
 }
 
@@ -60,24 +60,32 @@ QMutexPrivate::~QMutexPrivate()
 {
 }
 
-ulong QMutexPrivate::self()
-{ return (ulong) QThread::currentThreadId(); }
-
 bool QMutexPrivate::wait(int timeout)
 {
+	bool result;
+
+    if (contenders.fetchAndAddAcquire(1) == 0) {
+        // lock acquired without waiting
+        return true;
+    }
+
 	if (timeout == 0) {
-		return false; /* timed out */
+		result = false; /* timed out */
 	} else if (timeout < 0) {
 		sem.down();
-		return true; /* woken up */
+		result = true; /* woken up */
 	} else {
 		try {
 			sem.down(timeout);
+			result = true;
 		} catch(Genode::Timeout_exception) {
-			return false;
+			result = false;
 		}
-		return true;
 	}
+
+	contenders.deref();
+
+	return result;
 }
 
 void QMutexPrivate::wakeUp()

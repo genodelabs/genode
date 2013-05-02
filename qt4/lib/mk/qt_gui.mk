@@ -2,14 +2,12 @@ include $(REP_DIR)/lib/import/import-qt_gui.mk
 
 SHARED_LIB = yes
 
-# extracted from src/gui/Makefile
-QT_DEFINES += -DQT_BUILD_GUI_LIB -DQT_NO_USING_NAMESPACE -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_FAST_OPERATOR_PLUS -DQT_USE_FAST_CONCATENATION -DQT_NO_FONTCONFIG -DQT_NO_OPENTYPE -DQT_NO_STYLE_MAC -DQT_NO_STYLE_WINDOWSVISTA -DQT_NO_STYLE_WINDOWSXP -DQT_NO_STYLE_GTK -DQT_NO_STYLE_WINDOWSCE -DQT_NO_STYLE_WINDOWSMOBILE -DQT_NO_STYLE_S60 -DQ_INTERNAL_QAPP_SRC -DQT_NO_DEBUG -DQT_CORE_LIB
-QT_DEFINES += -DQT_NO_QWS_SIGNALHANDLER
-
 # use default warning level to avoid noise when compiling contrib code
 CC_WARN = -Wno-unused-but-set-variable -Wno-deprecated-declarations
 
 include $(REP_DIR)/lib/mk/qt_gui_generated.inc
+
+QT_DEFINES += -DQT_NO_QWS_SIGNALHANDLER
 
 # add Genode-specific sources
 QT_SOURCES += qkbdpc101_qws.cpp \
@@ -51,50 +49,12 @@ COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT = \
 # UI headers
 qfiledialog.o: ui_qfiledialog.h
 
+include $(REP_DIR)/lib/mk/qt.inc
+
 INC_DIR += $(REP_DIR)/include/qt4/QtGui/private \
-           $(REP_DIR)/contrib/$(QT4)/include/QtGui/private \
-           $(REP_DIR)/contrib/$(QT4)/src/3rdparty/harfbuzz/src
+           $(REP_DIR)/contrib/$(QT4)/include/QtGui/private
 
 LIBS += qt_core libpng zlib libc libm freetype jpeg
 
 vpath % $(REP_DIR)/include/qt4/QtGui
 vpath % $(REP_DIR)/include/qt4/QtGui/private
-
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/embedded
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/animation
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/effects
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/kernel
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/image
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/painting
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/text
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/styles
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/widgets
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/dialogs
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/accessible
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/itemviews
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/inputmethod
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/graphicsview
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/util
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/statemachine
-vpath % $(REP_DIR)/src/lib/qt4/src/gui/math3d
-
-
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/embedded
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/animation
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/effects
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/kernel
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/image
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/painting
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/text
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/styles
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/widgets
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/dialogs
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/accessible
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/itemviews
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/inputmethod
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/graphicsview
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/util
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/statemachine
-vpath % $(REP_DIR)/contrib/$(QT4)/src/gui/math3d
-
-include $(REP_DIR)/lib/mk/qt.inc

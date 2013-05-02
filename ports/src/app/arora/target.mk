@@ -31,7 +31,7 @@ HEADERS_FILTER_OUT = \
 
 QT_MAIN_STACK_SIZE = 768*1024
 
-LIBS += libm libc_lwip libc_lwip_nic_dhcp qpluginwidget qnitpickerviewwidget
+LIBS += libm libc_lwip libc_lwip_nic_dhcp libc_log qpluginwidget qnitpickerviewwidget
 
 RESOURCES += demo_html.qrc
 

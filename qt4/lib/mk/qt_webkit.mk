@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-qt_webcore.mk
+include $(REP_DIR)/lib/import/import-qt_webkit.mk
 
 SHARED_LIB = yes
 
@@ -13,8 +13,11 @@ CC_WARN = -Wno-deprecated-declarations
 
 CC_OPT_sqlite3 +=  -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
 
-include $(REP_DIR)/lib/mk/qt_webcore_generated.inc
+include $(REP_DIR)/lib/mk/qt_webkit_generated.inc
 
 include $(REP_DIR)/lib/mk/qt.inc
 
-LIBS += qt_jscore qt_network qt_core libc libm
+LIBS += qt_webcore qt_jscore qt_network qt_core libc libm
+
+vpath %.qrc $(REP_DIR)/contrib/$(QT4)/src/3rdparty/webkit/Source/WebCore
+vpath %.qrc $(REP_DIR)/contrib/$(QT4)/src/3rdparty/webkit/Source/WebCore/inspector/front-end

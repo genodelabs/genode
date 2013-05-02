@@ -1,7 +1,17 @@
+Don't quit the program if the last window gets closed.
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/gui/kernel/qwidget.cpp |   20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
 diff --git a/src/gui/kernel/qwidget.cpp b/src/gui/kernel/qwidget.cpp
+index 3a0261e..8667688 100644
 --- a/src/gui/kernel/qwidget.cpp
 +++ b/src/gui/kernel/qwidget.cpp
-@@ -7596,6 +7596,26 @@
+@@ -7929,6 +7929,26 @@ bool QWidgetPrivate::close_helper(CloseMode mode)
      QPointer<QWidget> that = q;
      QPointer<QWidget> parentWidget = q->parentWidget();
  

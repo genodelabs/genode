@@ -94,6 +94,7 @@ QThreadData *QThreadData::current()
 				QThreadPrivate::tls.insert(QThread::currentThreadId(), tls_elem);
 
 				data->thread = new QAdoptedThread(data);
+				data->threadId = QThread::currentThreadId();
 				data->deref();
 		}
     if (!QCoreApplicationPrivate::theMainThread)
@@ -136,7 +137,7 @@ void QThreadPrivate::createEventDispatcher(QThreadData *data)
 void QThreadPrivate::start(QThread *thr)
 {
 		thr->d_func()->thread_id = QThread::currentThreadId();
-	
+
 		QThread::setTerminationEnabled(false);
 		
     QThreadData *data = QThreadData::get2(thr);
@@ -221,7 +222,11 @@ Qt::HANDLE QThread::currentThreadId()
 */
 int QThread::idealThreadCount()
 {
-		return -1;
+		return 1;
+}
+
+void QThread::yieldCurrentThread()
+{
 }
 
 /*!

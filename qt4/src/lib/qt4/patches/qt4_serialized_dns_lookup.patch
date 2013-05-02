@@ -1,0 +1,26 @@
+Serialize DNS lookups
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+'getaddrinfo()' is currently not thread-safe on Genode
+---
+ src/network/kernel/qhostinfo.cpp |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/network/kernel/qhostinfo.cpp b/src/network/kernel/qhostinfo.cpp
+index 4a5589d..6725d43 100644
+--- a/src/network/kernel/qhostinfo.cpp
++++ b/src/network/kernel/qhostinfo.cpp
+@@ -543,7 +543,12 @@ QHostInfoLookupManager::QHostInfoLookupManager() : mutex(QMutex::Recursive), was
+ {
+     moveToThread(QCoreApplicationPrivate::mainThread());
+     connect(QCoreApplication::instance(), SIGNAL(destroyed()), SLOT(waitForThreadPoolDone()), Qt::DirectConnection);
++#ifdef Q_OS_GENODE
++    /* 'getaddrinfo()' is currently not thread-safe on Genode */
++    threadPool.setMaxThreadCount(1);
++#else
+     threadPool.setMaxThreadCount(5); // do 5 DNS lookups in parallel
++#endif
+ }
+ 
+ QHostInfoLookupManager::~QHostInfoLookupManager()

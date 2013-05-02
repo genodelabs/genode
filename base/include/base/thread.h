@@ -325,6 +325,13 @@ namespace Genode {
 			void *stack_top() { return &_context->stack[-1]; }
 
 			/**
+			 * Return base of stack
+			 *
+			 * \return  pointer to last stack element
+			 */
+			void *stack_base() { return (void*)_context->stack_base; }
+
+			/**
 			 * Return 'Thread_base' object corresponding to the calling thread
 			 *
 			 * \return  pointer to 'Thread_base' object, or

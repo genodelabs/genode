@@ -67,6 +67,7 @@
 #include <grp.h>
 #include <pwd.h>
 #include <signal.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -82,9 +83,12 @@
 #endif
 
 #define QT_USE_XOPEN_LFS_EXTENSIONS
-#include "../../../../../contrib/qt-everywhere-opensource-src-4.7.4/mkspecs/common/posix/qplatformdefs.h"
+#include "../../../../../contrib/qt-everywhere-opensource-src-4.8.4/mkspecs/common/posix/qplatformdefs.h"
 
+#undef QT_OPEN_LARGEFILE
 #undef QT_SOCKLEN_T
+
+#define QT_OPEN_LARGEFILE       0
 
 #if (defined(__GLIBC__) && (__GLIBC__ >= 2)) || defined(Q_OS_GENODE)
 #define QT_SOCKLEN_T            socklen_t

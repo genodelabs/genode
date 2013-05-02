@@ -217,6 +217,9 @@
 #ifndef QT_NO_SOUND
 #  define QT_NO_SOUND
 #endif
+#ifndef QT_NO_SYSTEMLOCALE
+#  define QT_NO_SYSTEMLOCALE
+#endif
 #ifndef QT_NO_SYSTEMSEMAPHORE
 #  define QT_NO_SYSTEMSEMAPHORE
 #endif

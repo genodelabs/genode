@@ -1,382 +1,103 @@
+QT_DEFINES += -DNDEBUG -DBUILDING_QT__=1 -DNDEBUG -DQT_ASCII_CAST_WARNINGS -DENABLE_XSLT=0 -DENABLE_WEB_TIMING=0 -DENABLE_JAVASCRIPT_DEBUGGER=1 -DENABLE_DATABASE=1 -DENABLE_EVENTSOURCE=1 -DENABLE_OFFLINE_WEB_APPLICATIONS=1 -DENABLE_DOM_STORAGE=1 -DENABLE_ICONDATABASE=1 -DENABLE_CHANNEL_MESSAGING=1 -DENABLE_DIRECTORY_UPLOAD=0 -DENABLE_FILE_SYSTEM=0 -DENABLE_QUOTA=0 -DENABLE_SQLITE=1 -DENABLE_DASHBOARD_SUPPORT=0 -DENABLE_FILTERS=1 -DENABLE_XPATH=1 -DENABLE_WCSS=0 -DENABLE_SHARED_WORKERS=1 -DENABLE_WORKERS=1 -DENABLE_XHTMLMP=0 -DENABLE_DETAILS=1 -DENABLE_METER_TAG=1 -DENABLE_PROGRESS_TAG=1 -DENABLE_BLOB=1 -DENABLE_NOTIFICATIONS=1 -DENABLE_INPUT_SPEECH=0 -DENABLE_INSPECTOR=1 -DENABLE_3D_RENDERING=1 -DENABLE_WEB_AUDIO=0 -DENABLE_WEBGL=0 -DENABLE_MEDIA_STATISTICS=0 -DENABLE_VIDEO_TRACK=0 -DENABLE_TOUCH_ICON_LOADING=0 -DENABLE_ANIMATION_API=0 -DENABLE_SVG=1 -DENABLE_SVG_FONTS=1 -DENABLE_SVG_FOREIGN_OBJECT=1 -DENABLE_SVG_ANIMATION=1 -DENABLE_SVG_AS_IMAGE=1 -DENABLE_SVG_USE=1 -DENABLE_DATALIST=1 -DENABLE_TILED_BACKING_STORE=1 -DENABLE_NETSCAPE_PLUGIN_API=0 -DWTF_USE_QT_BEARER=1 -DENABLE_TOUCH_EVENTS=1 -DENABLE_VIDEO=0 -DSQLITE_CORE -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_COMPLETE -DBUILDING_JavaScriptCore -DBUILDING_WTF -DBUILDING_WEBKIT -DQT_MAKEDLL -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB
+
+QT_INCPATH = \
+  mkspecs/qws/genode-generic-g++ \
+  src/3rdparty/sqlite \
+  src/3rdparty/webkit/include \
+  src/3rdparty/webkit/Source \
+  src/3rdparty/webkit/Source/JavaScriptCore \
+  src/3rdparty/webkit/Source/JavaScriptCore/API \
+  src/3rdparty/webkit/Source/JavaScriptCore/assembler \
+  src/3rdparty/webkit/Source/JavaScriptCore/bytecode \
+  src/3rdparty/webkit/Source/JavaScriptCore/bytecompiler \
+  src/3rdparty/webkit/Source/JavaScriptCore/debugger \
+  src/3rdparty/webkit/Source/JavaScriptCore/dfg \
+  src/3rdparty/webkit/Source/JavaScriptCore/ForwardingHeaders \
+  src/3rdparty/webkit/Source/JavaScriptCore/generated \
+  src/3rdparty/webkit/Source/JavaScriptCore/heap \
+  src/3rdparty/webkit/Source/JavaScriptCore/interpreter \
+  src/3rdparty/webkit/Source/JavaScriptCore/jit \
+  src/3rdparty/webkit/Source/JavaScriptCore/parser \
+  src/3rdparty/webkit/Source/JavaScriptCore/profiler \
+  src/3rdparty/webkit/Source/JavaScriptCore/runtime \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/symbian \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/unicode \
+  src/3rdparty/webkit/Source/JavaScriptCore/yarr \
+  src/3rdparty/webkit/Source/ThirdParty \
+  src/3rdparty/webkit/Source/WebCore \
+  src/3rdparty/webkit/Source/WebCore/accessibility \
+  src/3rdparty/webkit/Source/WebCore/bindings \
+  src/3rdparty/webkit/Source/WebCore/bindings/generic \
+  src/3rdparty/webkit/Source/WebCore/bindings/js \
+  src/3rdparty/webkit/Source/WebCore/bindings/js/specialization \
+  src/3rdparty/webkit/Source/WebCore/bridge \
+  src/3rdparty/webkit/Source/WebCore/bridge/c \
+  src/3rdparty/webkit/Source/WebCore/bridge/jsc \
+  src/3rdparty/webkit/Source/WebCore/bridge/qt \
+  src/3rdparty/webkit/Source/WebCore/css \
+  src/3rdparty/webkit/Source/WebCore/dom \
+  src/3rdparty/webkit/Source/WebCore/dom/default \
+  src/3rdparty/webkit/Source/WebCore/editing \
+  src/3rdparty/webkit/Source/WebCore/fileapi \
+  src/3rdparty/webkit/Source/WebCore/generated \
+  src/3rdparty/webkit/Source/WebCore/history \
+  src/3rdparty/webkit/Source/WebCore/html \
+  src/3rdparty/webkit/Source/WebCore/html/canvas \
+  src/3rdparty/webkit/Source/WebCore/html/parser \
+  src/3rdparty/webkit/Source/WebCore/html/shadow \
+  src/3rdparty/webkit/Source/WebCore/inspector \
+  src/3rdparty/webkit/Source/WebCore/loader \
+  src/3rdparty/webkit/Source/WebCore/loader/appcache \
+  src/3rdparty/webkit/Source/WebCore/loader/archive \
+  src/3rdparty/webkit/Source/WebCore/loader/cache \
+  src/3rdparty/webkit/Source/WebCore/loader/icon \
+  src/3rdparty/webkit/Source/WebCore/mathml \
+  src/3rdparty/webkit/Source/WebCore/notifications \
+  src/3rdparty/webkit/Source/WebCore/page \
+  src/3rdparty/webkit/Source/WebCore/page/animation \
+  src/3rdparty/webkit/Source/WebCore/page/qt \
+  src/3rdparty/webkit/Source/WebCore/platform \
+  src/3rdparty/webkit/Source/WebCore/platform/animation \
+  src/3rdparty/webkit/Source/WebCore/platform/audio \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/filters \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/filters/arm \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/texmap \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/transforms \
+  src/3rdparty/webkit/Source/WebCore/platform/image-decoders \
+  src/3rdparty/webkit/Source/WebCore/platform/leveldb \
+  src/3rdparty/webkit/Source/WebCore/platform/mock \
+  src/3rdparty/webkit/Source/WebCore/platform/network \
+  src/3rdparty/webkit/Source/WebCore/platform/network/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/sql \
+  src/3rdparty/webkit/Source/WebCore/platform/text \
+  src/3rdparty/webkit/Source/WebCore/platform/text/transcoder \
+  src/3rdparty/webkit/Source/WebCore/plugins \
+  src/3rdparty/webkit/Source/WebCore/rendering \
+  src/3rdparty/webkit/Source/WebCore/rendering/mathml \
+  src/3rdparty/webkit/Source/WebCore/rendering/style \
+  src/3rdparty/webkit/Source/WebCore/rendering/svg \
+  src/3rdparty/webkit/Source/WebCore/storage \
+  src/3rdparty/webkit/Source/WebCore/svg \
+  src/3rdparty/webkit/Source/WebCore/svg/animation \
+  src/3rdparty/webkit/Source/WebCore/svg/graphics \
+  src/3rdparty/webkit/Source/WebCore/svg/graphics/filters \
+  src/3rdparty/webkit/Source/WebCore/svg/properties \
+  src/3rdparty/webkit/Source/WebCore/testing \
+  src/3rdparty/webkit/Source/WebCore/testing/js \
+  src/3rdparty/webkit/Source/WebCore/webaudio \
+  src/3rdparty/webkit/Source/WebCore/websockets \
+  src/3rdparty/webkit/Source/WebCore/wml \
+  src/3rdparty/webkit/Source/WebCore/workers \
+  src/3rdparty/webkit/Source/WebCore/xml \
+  src/3rdparty/webkit/Source/WebKit/qt/Api \
+  src/3rdparty/webkit/Source/WebKit/qt/WebCoreSupport \
+
 QT_SOURCES = \
-  SVGNames.cpp \
-  SVGElementFactory.cpp \
-  JSSVGElementWrapperFactory.cpp \
-  XLinkNames.cpp \
-  JSCounter.cpp \
-  JSCSSCharsetRule.cpp \
-  JSCSSFontFaceRule.cpp \
-  JSCSSImportRule.cpp \
-  JSCSSMediaRule.cpp \
-  JSCSSPageRule.cpp \
-  JSCSSPrimitiveValue.cpp \
-  JSCSSRule.cpp \
-  JSCSSRuleList.cpp \
-  JSCSSStyleDeclaration.cpp \
-  JSCSSStyleRule.cpp \
-  JSCSSStyleSheet.cpp \
-  JSCSSValue.cpp \
-  JSCSSValueList.cpp \
-  JSCSSVariablesDeclaration.cpp \
-  JSCSSVariablesRule.cpp \
-  JSMediaList.cpp \
-  JSRect.cpp \
-  JSRGBColor.cpp \
-  JSStyleMedia.cpp \
-  JSStyleSheet.cpp \
-  JSStyleSheetList.cpp \
-  JSWebKitCSSKeyframeRule.cpp \
-  JSWebKitCSSKeyframesRule.cpp \
-  JSWebKitCSSMatrix.cpp \
-  JSWebKitCSSTransformValue.cpp \
-  JSAttr.cpp \
-  JSBeforeLoadEvent.cpp \
-  JSCharacterData.cpp \
-  JSClientRect.cpp \
-  JSClientRectList.cpp \
-  JSClipboard.cpp \
-  JSCDATASection.cpp \
-  JSComment.cpp \
-  JSCompositionEvent.cpp \
-  JSCustomEvent.cpp \
-  JSDocumentFragment.cpp \
-  JSDocument.cpp \
-  JSDocumentType.cpp \
-  JSDOMCoreException.cpp \
-  JSDOMImplementation.cpp \
-  JSElement.cpp \
-  JSEntity.cpp \
-  JSEntityReference.cpp \
-  JSErrorEvent.cpp \
-  JSEvent.cpp \
-  JSEventException.cpp \
-  JSKeyboardEvent.cpp \
-  JSMouseEvent.cpp \
-  JSMessageChannel.cpp \
-  JSMessageEvent.cpp \
-  JSMessagePort.cpp \
-  JSMutationEvent.cpp \
-  JSNamedNodeMap.cpp \
-  JSNode.cpp \
-  JSNodeFilter.cpp \
-  JSNodeIterator.cpp \
-  JSNodeList.cpp \
-  JSNotation.cpp \
-  JSOverflowEvent.cpp \
-  JSPageTransitionEvent.cpp \
-  JSPopStateEvent.cpp \
-  JSProcessingInstruction.cpp \
-  JSProgressEvent.cpp \
-  JSRangeException.cpp \
-  JSRange.cpp \
-  JSText.cpp \
-  JSTextEvent.cpp \
-  JSTouch.cpp \
-  JSTouchEvent.cpp \
-  JSTouchList.cpp \
-  JSTreeWalker.cpp \
-  JSUIEvent.cpp \
-  JSWebKitAnimationEvent.cpp \
-  JSWebKitTransitionEvent.cpp \
-  JSWheelEvent.cpp \
-  JSBlob.cpp \
-  JSWebGLArray.cpp \
-  JSWebGLArrayBuffer.cpp \
-  JSWebGLByteArray.cpp \
-  JSWebGLFloatArray.cpp \
-  JSCanvasGradient.cpp \
-  JSWebGLIntArray.cpp \
-  JSCanvasPattern.cpp \
-  JSCanvasRenderingContext.cpp \
-  JSCanvasRenderingContext2D.cpp \
-  JSWebGLActiveInfo.cpp \
-  JSWebGLBuffer.cpp \
-  JSWebGLContextAttributes.cpp \
-  JSWebGLFramebuffer.cpp \
-  JSWebGLProgram.cpp \
-  JSWebGLRenderbuffer.cpp \
-  JSWebGLRenderingContext.cpp \
-  JSWebGLShader.cpp \
-  JSWebGLShortArray.cpp \
-  JSWebGLTexture.cpp \
-  JSWebGLUniformLocation.cpp \
-  JSWebGLUnsignedByteArray.cpp \
-  JSWebGLUnsignedIntArray.cpp \
-  JSWebGLUnsignedShortArray.cpp \
-  JSDataGridColumn.cpp \
-  JSDataGridColumnList.cpp \
-  JSDOMFormData.cpp \
-  JSFile.cpp \
-  JSFileList.cpp \
-  JSHTMLAllCollection.cpp \
-  JSHTMLAudioElement.cpp \
-  JSHTMLAnchorElement.cpp \
-  JSHTMLAppletElement.cpp \
-  JSHTMLAreaElement.cpp \
-  JSHTMLBaseElement.cpp \
-  JSHTMLBaseFontElement.cpp \
-  JSHTMLBlockquoteElement.cpp \
-  JSHTMLBodyElement.cpp \
-  JSHTMLBRElement.cpp \
-  JSHTMLButtonElement.cpp \
-  JSHTMLCanvasElement.cpp \
-  JSHTMLCollection.cpp \
-  JSHTMLDataGridElement.cpp \
-  JSHTMLDataGridCellElement.cpp \
-  JSHTMLDataGridColElement.cpp \
-  JSHTMLDataGridRowElement.cpp \
-  JSHTMLDataListElement.cpp \
-  JSHTMLDirectoryElement.cpp \
-  JSHTMLDivElement.cpp \
-  JSHTMLDListElement.cpp \
-  JSHTMLDocument.cpp \
-  JSHTMLElement.cpp \
-  JSHTMLEmbedElement.cpp \
-  JSHTMLFieldSetElement.cpp \
-  JSHTMLFontElement.cpp \
-  JSHTMLFormElement.cpp \
-  JSHTMLFrameElement.cpp \
-  JSHTMLFrameSetElement.cpp \
-  JSHTMLHeadElement.cpp \
-  JSHTMLHeadingElement.cpp \
-  JSHTMLHRElement.cpp \
-  JSHTMLHtmlElement.cpp \
-  JSHTMLIFrameElement.cpp \
-  JSHTMLImageElement.cpp \
-  JSHTMLInputElement.cpp \
-  JSHTMLIsIndexElement.cpp \
-  JSHTMLLabelElement.cpp \
-  JSHTMLLegendElement.cpp \
-  JSHTMLLIElement.cpp \
-  JSHTMLLinkElement.cpp \
-  JSHTMLMapElement.cpp \
-  JSHTMLMarqueeElement.cpp \
-  JSHTMLMediaElement.cpp \
-  JSHTMLMenuElement.cpp \
-  JSHTMLMetaElement.cpp \
-  JSHTMLModElement.cpp \
-  JSHTMLObjectElement.cpp \
-  JSHTMLOListElement.cpp \
-  JSHTMLOptGroupElement.cpp \
-  JSHTMLOptionElement.cpp \
-  JSHTMLOptionsCollection.cpp \
-  JSHTMLParagraphElement.cpp \
-  JSHTMLParamElement.cpp \
-  JSHTMLPreElement.cpp \
-  JSHTMLProgressElement.cpp \
-  JSHTMLQuoteElement.cpp \
-  JSHTMLScriptElement.cpp \
-  JSHTMLSelectElement.cpp \
-  JSHTMLSourceElement.cpp \
-  JSHTMLStyleElement.cpp \
-  JSHTMLTableCaptionElement.cpp \
-  JSHTMLTableCellElement.cpp \
-  JSHTMLTableColElement.cpp \
-  JSHTMLTableElement.cpp \
-  JSHTMLTableRowElement.cpp \
-  JSHTMLTableSectionElement.cpp \
-  JSHTMLTextAreaElement.cpp \
-  JSHTMLTitleElement.cpp \
-  JSHTMLUListElement.cpp \
-  JSHTMLVideoElement.cpp \
-  JSImageData.cpp \
-  JSMediaError.cpp \
-  JSTextMetrics.cpp \
-  JSTimeRanges.cpp \
-  JSValidityState.cpp \
-  JSVoidCallback.cpp \
-  JSInjectedScriptHost.cpp \
-  JSInspectorBackend.cpp \
-  JSInspectorFrontendHost.cpp \
-  JSJavaScriptCallFrame.cpp \
-  JSDOMApplicationCache.cpp \
-  JSBarInfo.cpp \
-  JSConsole.cpp \
-  JSCoordinates.cpp \
-  JSDOMSelection.cpp \
-  JSDOMWindow.cpp \
-  JSEventSource.cpp \
-  JSGeolocation.cpp \
-  JSGeoposition.cpp \
-  JSHistory.cpp \
-  JSLocation.cpp \
-  JSNavigator.cpp \
-  JSPositionError.cpp \
-  JSScreen.cpp \
-  JSWebKitPoint.cpp \
-  JSWorkerNavigator.cpp \
-  JSPlugin.cpp \
-  JSMimeType.cpp \
-  JSPluginArray.cpp \
-  JSMimeTypeArray.cpp \
-  JSDatabase.cpp \
-  JSStorage.cpp \
-  JSStorageEvent.cpp \
-  JSSQLError.cpp \
-  JSSQLResultSet.cpp \
-  JSSQLResultSetRowList.cpp \
-  JSSQLTransaction.cpp \
-  JSSVGZoomEvent.cpp \
-  JSSVGAElement.cpp \
-  JSSVGAltGlyphElement.cpp \
-  JSSVGAngle.cpp \
-  JSSVGAnimateColorElement.cpp \
-  JSSVGAnimatedAngle.cpp \
-  JSSVGAnimatedBoolean.cpp \
-  JSSVGAnimatedEnumeration.cpp \
-  JSSVGAnimatedInteger.cpp \
-  JSSVGAnimatedLength.cpp \
-  JSSVGAnimatedLengthList.cpp \
-  JSSVGAnimatedNumber.cpp \
-  JSSVGAnimatedNumberList.cpp \
-  JSSVGAnimatedPreserveAspectRatio.cpp \
-  JSSVGAnimatedRect.cpp \
-  JSSVGAnimatedString.cpp \
-  JSSVGAnimatedTransformList.cpp \
-  JSSVGAnimateElement.cpp \
-  JSSVGAnimateTransformElement.cpp \
-  JSSVGAnimationElement.cpp \
-  JSSVGCircleElement.cpp \
-  JSSVGClipPathElement.cpp \
-  JSSVGColor.cpp \
-  JSSVGComponentTransferFunctionElement.cpp \
-  JSSVGCursorElement.cpp \
-  JSSVGDefsElement.cpp \
-  JSSVGDescElement.cpp \
-  JSSVGDocument.cpp \
-  JSSVGElement.cpp \
-  JSSVGElementInstance.cpp \
-  JSSVGElementInstanceList.cpp \
-  JSSVGEllipseElement.cpp \
-  JSSVGException.cpp \
-  JSSVGFEBlendElement.cpp \
-  JSSVGFEColorMatrixElement.cpp \
-  JSSVGFEComponentTransferElement.cpp \
-  JSSVGFECompositeElement.cpp \
-  JSSVGFEDiffuseLightingElement.cpp \
-  JSSVGFEDisplacementMapElement.cpp \
-  JSSVGFEDistantLightElement.cpp \
-  JSSVGFEFloodElement.cpp \
-  JSSVGFEFuncAElement.cpp \
-  JSSVGFEFuncBElement.cpp \
-  JSSVGFEFuncGElement.cpp \
-  JSSVGFEFuncRElement.cpp \
-  JSSVGFEGaussianBlurElement.cpp \
-  JSSVGFEImageElement.cpp \
-  JSSVGFEMergeElement.cpp \
-  JSSVGFEMergeNodeElement.cpp \
-  JSSVGFEMorphologyElement.cpp \
-  JSSVGFEOffsetElement.cpp \
-  JSSVGFEPointLightElement.cpp \
-  JSSVGFESpecularLightingElement.cpp \
-  JSSVGFESpotLightElement.cpp \
-  JSSVGFETileElement.cpp \
-  JSSVGFETurbulenceElement.cpp \
-  JSSVGFilterElement.cpp \
-  JSSVGFontElement.cpp \
-  JSSVGFontFaceElement.cpp \
-  JSSVGFontFaceFormatElement.cpp \
-  JSSVGFontFaceNameElement.cpp \
-  JSSVGFontFaceSrcElement.cpp \
-  JSSVGFontFaceUriElement.cpp \
-  JSSVGForeignObjectElement.cpp \
-  JSSVGGElement.cpp \
-  JSSVGGlyphElement.cpp \
-  JSSVGGradientElement.cpp \
-  JSSVGHKernElement.cpp \
-  JSSVGImageElement.cpp \
-  JSSVGLength.cpp \
-  JSSVGLengthList.cpp \
-  JSSVGLinearGradientElement.cpp \
-  JSSVGLineElement.cpp \
-  JSSVGMarkerElement.cpp \
-  JSSVGMaskElement.cpp \
-  JSSVGMatrix.cpp \
-  JSSVGMetadataElement.cpp \
-  JSSVGMissingGlyphElement.cpp \
-  JSSVGNumber.cpp \
-  JSSVGNumberList.cpp \
-  JSSVGPaint.cpp \
-  JSSVGPathElement.cpp \
-  JSSVGPathSegArcAbs.cpp \
-  JSSVGPathSegArcRel.cpp \
-  JSSVGPathSegClosePath.cpp \
-  JSSVGPathSegCurvetoCubicAbs.cpp \
-  JSSVGPathSegCurvetoCubicRel.cpp \
-  JSSVGPathSegCurvetoCubicSmoothAbs.cpp \
-  JSSVGPathSegCurvetoCubicSmoothRel.cpp \
-  JSSVGPathSegCurvetoQuadraticAbs.cpp \
-  JSSVGPathSegCurvetoQuadraticRel.cpp \
-  JSSVGPathSegCurvetoQuadraticSmoothAbs.cpp \
-  JSSVGPathSegCurvetoQuadraticSmoothRel.cpp \
-  JSSVGPathSeg.cpp \
-  JSSVGPathSegLinetoAbs.cpp \
-  JSSVGPathSegLinetoHorizontalAbs.cpp \
-  JSSVGPathSegLinetoHorizontalRel.cpp \
-  JSSVGPathSegLinetoRel.cpp \
-  JSSVGPathSegLinetoVerticalAbs.cpp \
-  JSSVGPathSegLinetoVerticalRel.cpp \
-  JSSVGPathSegList.cpp \
-  JSSVGPathSegMovetoAbs.cpp \
-  JSSVGPathSegMovetoRel.cpp \
-  JSSVGPatternElement.cpp \
-  JSSVGPoint.cpp \
-  JSSVGPointList.cpp \
-  JSSVGPolygonElement.cpp \
-  JSSVGPolylineElement.cpp \
-  JSSVGPreserveAspectRatio.cpp \
-  JSSVGRadialGradientElement.cpp \
-  JSSVGRectElement.cpp \
-  JSSVGRect.cpp \
-  JSSVGRenderingIntent.cpp \
-  JSSVGScriptElement.cpp \
-  JSSVGSetElement.cpp \
-  JSSVGStopElement.cpp \
-  JSSVGStringList.cpp \
-  JSSVGStyleElement.cpp \
-  JSSVGSVGElement.cpp \
-  JSSVGSwitchElement.cpp \
-  JSSVGSymbolElement.cpp \
-  JSSVGTextContentElement.cpp \
-  JSSVGTextElement.cpp \
-  JSSVGTextPathElement.cpp \
-  JSSVGTextPositioningElement.cpp \
-  JSSVGTitleElement.cpp \
-  JSSVGTransform.cpp \
-  JSSVGTransformList.cpp \
-  JSSVGTRefElement.cpp \
-  JSSVGTSpanElement.cpp \
-  JSSVGUnitTypes.cpp \
-  JSSVGUseElement.cpp \
-  JSSVGViewElement.cpp \
-  JSWebSocket.cpp \
-  JSAbstractWorker.cpp \
-  JSDedicatedWorkerContext.cpp \
-  JSSharedWorker.cpp \
-  JSSharedWorkerContext.cpp \
-  JSWorker.cpp \
-  JSWorkerContext.cpp \
-  JSWorkerLocation.cpp \
-  JSDOMParser.cpp \
-  JSXMLHttpRequest.cpp \
-  JSXMLHttpRequestException.cpp \
-  JSXMLHttpRequestProgressEvent.cpp \
-  JSXMLHttpRequestUpload.cpp \
-  JSXMLSerializer.cpp \
-  JSXPathNSResolver.cpp \
-  JSXPathException.cpp \
-  JSXPathExpression.cpp \
-  JSXPathResult.cpp \
-  JSXPathEvaluator.cpp \
-  JSXSLTProcessor.cpp \
-  CSSGrammar.cpp \
-  HTMLNames.cpp \
-  HTMLElementFactory.cpp \
-  JSHTMLElementWrapperFactory.cpp \
-  XMLNSNames.cpp \
-  XMLNames.cpp \
-  UserAgentStyleSheetsData.cpp \
-  XPathGrammar.cpp \
   AccessibilityImageMapLink.cpp \
   AccessibilityMediaControls.cpp \
   AccessibilityMenuList.cpp \
@@ -386,8 +107,10 @@ QT_SOURCES = \
   AccessibilityList.cpp \
   AccessibilityListBox.cpp \
   AccessibilityListBoxOption.cpp \
+  AccessibilityProgressIndicator.cpp \
   AccessibilityRenderObject.cpp \
   AccessibilityScrollbar.cpp \
+  AccessibilityScrollView.cpp \
   AccessibilitySlider.cpp \
   AccessibilityARIAGrid.cpp \
   AccessibilityARIAGridCell.cpp \
@@ -398,65 +121,97 @@ QT_SOURCES = \
   AccessibilityTableHeaderContainer.cpp \
   AccessibilityTableRow.cpp \
   AXObjectCache.cpp \
-  GCController.cpp \
+  ActiveDOMCallback.cpp \
+  RuntimeEnabledFeatures.cpp \
+  ScriptControllerBase.cpp \
+  CallbackFunction.cpp \
   DOMObjectHashTableMap.cpp \
   DOMWrapperWorld.cpp \
-  JSCallbackData.cpp \
+  GCController.cpp \
+  JSArrayBufferCustom.cpp \
   JSAttrCustom.cpp \
   JSCDATASectionCustom.cpp \
-  JSCanvasRenderingContextCustom.cpp \
-  JSCanvasRenderingContext2DCustom.cpp \
-  JSClipboardCustom.cpp \
-  JSConsoleCustom.cpp \
+  JSCSSFontFaceRuleCustom.cpp \
+  JSCSSImportRuleCustom.cpp \
+  JSCSSMediaRuleCustom.cpp \
+  JSCSSPageRuleCustom.cpp \
   JSCSSRuleCustom.cpp \
   JSCSSRuleListCustom.cpp \
   JSCSSStyleDeclarationCustom.cpp \
+  JSCSSStyleRuleCustom.cpp \
   JSCSSValueCustom.cpp \
+  JSCallbackData.cpp \
+  JSCanvasRenderingContext2DCustom.cpp \
+  JSCanvasRenderingContextCustom.cpp \
+  JSClipboardCustom.cpp \
+  JSConsoleCustom.cpp \
   JSCoordinatesCustom.cpp \
   JSCustomPositionCallback.cpp \
   JSCustomPositionErrorCallback.cpp \
   JSCustomVoidCallback.cpp \
   JSCustomXPathNSResolver.cpp \
-  JSDataGridColumnListCustom.cpp \
-  JSDataGridDataSource.cpp \
-  JSDebugWrapperSet.cpp \
-  JSDocumentCustom.cpp \
-  JSDocumentFragmentCustom.cpp \
+  JSDOMBinding.cpp \
   JSDOMFormDataCustom.cpp \
   JSDOMGlobalObject.cpp \
+  JSDOMImplementationCustom.cpp \
+  JSDOMMimeTypeArrayCustom.cpp \
+  JSDOMPluginArrayCustom.cpp \
+  JSDOMPluginCustom.cpp \
+  JSDOMStringMapCustom.cpp \
+  JSDOMTokenListCustom.cpp \
   JSDOMWindowBase.cpp \
   JSDOMWindowCustom.cpp \
   JSDOMWindowShell.cpp \
   JSDOMWrapper.cpp \
+  JSDataViewCustom.cpp \
+  JSDesktopNotificationsCustom.cpp \
+  JSDeviceMotionEventCustom.cpp \
+  JSDeviceOrientationEventCustom.cpp \
+  JSDocumentCustom.cpp \
   JSElementCustom.cpp \
+  JSErrorHandler.cpp \
   JSEventCustom.cpp \
-  JSEventSourceConstructor.cpp \
+  JSEventListener.cpp \
   JSEventSourceCustom.cpp \
   JSEventTarget.cpp \
   JSExceptionBase.cpp \
+  JSFileReaderCustom.cpp \
+  JSFloat32ArrayCustom.cpp \
   JSGeolocationCustom.cpp \
-  JSHistoryCustom.cpp \
+  JSHTMLAllCollectionCustom.cpp \
   JSHTMLAppletElementCustom.cpp \
   JSHTMLCanvasElementCustom.cpp \
-  JSHTMLAllCollectionCustom.cpp \
   JSHTMLCollectionCustom.cpp \
-  JSHTMLDataGridElementCustom.cpp \
   JSHTMLDocumentCustom.cpp \
   JSHTMLElementCustom.cpp \
   JSHTMLEmbedElementCustom.cpp \
   JSHTMLFormElementCustom.cpp \
   JSHTMLFrameElementCustom.cpp \
   JSHTMLFrameSetElementCustom.cpp \
-  JSHTMLIFrameElementCustom.cpp \
   JSHTMLInputElementCustom.cpp \
+  JSHTMLLinkElementCustom.cpp \
   JSHTMLObjectElementCustom.cpp \
   JSHTMLOptionsCollectionCustom.cpp \
+  JSHTMLOutputElementCustom.cpp \
   JSHTMLSelectElementCustom.cpp \
+  JSHTMLStyleElementCustom.cpp \
+  JSHistoryCustom.cpp \
   JSImageConstructor.cpp \
   JSImageDataCustom.cpp \
   JSInjectedScriptHostCustom.cpp \
+  JSInjectedScriptManager.cpp \
   JSInspectorFrontendHostCustom.cpp \
+  JSInt16ArrayCustom.cpp \
+  JSInt32ArrayCustom.cpp \
+  JSInt8ArrayCustom.cpp \
+  JSLazyEventListener.cpp \
   JSLocationCustom.cpp \
+  JSMainThreadExecState.cpp \
+  JSMediaListCustom.cpp \
+  JSMemoryInfoCustom.cpp \
+  JSMessageChannelCustom.cpp \
+  JSMessageEventCustom.cpp \
+  JSMessagePortCustom.cpp \
   JSNamedNodeMapCustom.cpp \
   JSNavigatorCustom.cpp \
   JSNodeCustom.cpp \
@@ -465,57 +220,59 @@ QT_SOURCES = \
   JSNodeIteratorCustom.cpp \
   JSNodeListCustom.cpp \
   JSOptionConstructor.cpp \
+  JSPluginElementFunctions.cpp \
+  JSProcessingInstructionCustom.cpp \
+  JSScriptProfileNodeCustom.cpp \
   JSStyleSheetCustom.cpp \
   JSStyleSheetListCustom.cpp \
   JSTextCustom.cpp \
+  JSTouchCustom.cpp \
+  JSTouchListCustom.cpp \
   JSTreeWalkerCustom.cpp \
-  JSWebKitCSSMatrixConstructor.cpp \
-  JSWebKitPointConstructor.cpp \
-  JSXMLHttpRequestConstructor.cpp \
+  JSUint16ArrayCustom.cpp \
+  JSUint32ArrayCustom.cpp \
+  JSUint8ArrayCustom.cpp \
+  JSWebKitAnimationCustom.cpp \
+  JSWebKitAnimationListCustom.cpp \
+  JSWebKitCSSKeyframeRuleCustom.cpp \
+  JSWebKitCSSKeyframesRuleCustom.cpp \
+  JSWebKitCSSMatrixCustom.cpp \
+  JSWebKitPointCustom.cpp \
   JSXMLHttpRequestCustom.cpp \
   JSXMLHttpRequestUploadCustom.cpp \
-  JSPluginCustom.cpp \
-  JSPluginArrayCustom.cpp \
-  JSMessageChannelConstructor.cpp \
-  JSMessageChannelCustom.cpp \
-  JSMessageEventCustom.cpp \
-  JSMessagePortCustom.cpp \
-  JSMimeTypeArrayCustom.cpp \
-  JSDOMBinding.cpp \
-  JSEventListener.cpp \
-  JSLazyEventListener.cpp \
-  JSPluginElementFunctions.cpp \
-  JSPopStateEventCustom.cpp \
-  JavaScriptProfile.cpp \
-  JavaScriptProfileNode.cpp \
-  ScriptArray.cpp \
+  PageScriptDebugServer.cpp \
+  ScheduledAction.cpp \
   ScriptCachedFrameData.cpp \
-  ScriptCallFrame.cpp \
-  ScriptCallStack.cpp \
+  ScriptCallStackFactory.cpp \
   ScriptController.cpp \
+  ScriptControllerQt.cpp \
   ScriptDebugServer.cpp \
   ScriptEventListener.cpp \
   ScriptFunctionCall.cpp \
+  ScriptGCEvent.cpp \
   ScriptObject.cpp \
-  ScriptProfiler.cpp \
+  ScriptProfile.cpp \
   ScriptState.cpp \
   ScriptValue.cpp \
-  ScheduledAction.cpp \
   SerializedScriptValue.cpp \
-  ScriptControllerBase.cpp \
   IdentifierRep.cpp \
   NP_jsobject.cpp \
-  npruntime.cpp \
-  runtime_array.cpp \
-  runtime_method.cpp \
-  runtime_object.cpp \
-  runtime_root.cpp \
   CRuntimeObject.cpp \
   c_class.cpp \
   c_instance.cpp \
   c_runtime.cpp \
   c_utility.cpp \
   BridgeJSC.cpp \
+  npruntime.cpp \
+  qt_class.cpp \
+  qt_instance.cpp \
+  qt_pixmapruntime.cpp \
+  qt_runtime.cpp \
+  runtime_array.cpp \
+  runtime_method.cpp \
+  runtime_object.cpp \
+  runtime_root.cpp \
+  WebCoreTestSupport.cpp \
   CSSBorderImageValue.cpp \
   CSSCanvasValue.cpp \
   CSSCharsetRule.cpp \
@@ -528,26 +285,30 @@ QT_SOURCES = \
   CSSFontFaceSource.cpp \
   CSSFunctionValue.cpp \
   CSSGradientValue.cpp \
-  CSSHelper.cpp \
   CSSImageValue.cpp \
   CSSImageGeneratorValue.cpp \
   CSSImportRule.cpp \
   CSSInheritedValue.cpp \
   CSSInitialValue.cpp \
+  CSSLineBoxContainValue.cpp \
   CSSMediaRule.cpp \
   CSSMutableStyleDeclaration.cpp \
+  CSSOMUtils.cpp \
   CSSPageRule.cpp \
   CSSParser.cpp \
   CSSParserValues.cpp \
   CSSPrimitiveValue.cpp \
+  CSSPrimitiveValueCache.cpp \
   CSSProperty.cpp \
   CSSPropertyLonghand.cpp \
+  CSSPropertySourceData.cpp \
   CSSReflectValue.cpp \
   CSSRule.cpp \
   CSSRuleList.cpp \
   CSSSelector.cpp \
   CSSSelectorList.cpp \
   CSSSegmentedFontFace.cpp \
+  CSSStyleApplyProperty.cpp \
   CSSStyleDeclaration.cpp \
   CSSStyleRule.cpp \
   CSSStyleSelector.cpp \
@@ -555,9 +316,6 @@ QT_SOURCES = \
   CSSTimingFunctionValue.cpp \
   CSSUnicodeRangeValue.cpp \
   CSSValueList.cpp \
-  CSSVariableDependentValue.cpp \
-  CSSVariablesDeclaration.cpp \
-  CSSVariablesRule.cpp \
   FontFamilyValue.cpp \
   FontValue.cpp \
   MediaFeatureNames.cpp \
@@ -565,6 +323,9 @@ QT_SOURCES = \
   MediaQuery.cpp \
   MediaQueryEvaluator.cpp \
   MediaQueryExp.cpp \
+  MediaQueryList.cpp \
+  MediaQueryListListener.cpp \
+  MediaQueryMatcher.cpp \
   RGBColor.cpp \
   ShadowValue.cpp \
   StyleBase.cpp \
@@ -579,10 +340,10 @@ QT_SOURCES = \
   ActiveDOMObject.cpp \
   Attr.cpp \
   Attribute.cpp \
+  BeforeProcessEvent.cpp \
   BeforeTextInsertedEvent.cpp \
   BeforeUnloadEvent.cpp \
   CDATASection.cpp \
-  CanvasSurface.cpp \
   CharacterData.cpp \
   CheckedRadioButtons.cpp \
   ChildNodeList.cpp \
@@ -596,24 +357,39 @@ QT_SOURCES = \
   ContainerNode.cpp \
   CSSMappedAttributeDeclaration.cpp \
   CustomEvent.cpp \
+  DecodedDataDocumentParser.cpp \
+  DeviceMotionController.cpp \
+  DeviceMotionData.cpp \
+  DeviceMotionEvent.cpp \
+  DeviceOrientation.cpp \
+  DeviceOrientationController.cpp \
+  DeviceOrientationEvent.cpp \
   Document.cpp \
   DocumentFragment.cpp \
+  DocumentMarkerController.cpp \
+  DocumentOrderedMap.cpp \
+  DocumentParser.cpp \
   DocumentType.cpp \
   DOMImplementation.cpp \
+  DOMStringList.cpp \
+  DOMStringMap.cpp \
+  DatasetDOMStringMap.cpp \
   DynamicNodeList.cpp \
   EditingText.cpp \
   Element.cpp \
-  Entity.cpp \
   EntityReference.cpp \
   ErrorEvent.cpp \
   Event.cpp \
+  EventContext.cpp \
+  EventDispatcher.cpp \
   EventNames.cpp \
   EventTarget.cpp \
+  EventQueue.cpp \
   ExceptionBase.cpp \
   ExceptionCode.cpp \
+  IconURL.cpp \
   InputElement.cpp \
   KeyboardEvent.cpp \
-  MappedAttribute.cpp \
   MessageChannel.cpp \
   MessageEvent.cpp \
   MessagePort.cpp \
@@ -621,8 +397,7 @@ QT_SOURCES = \
   MouseEvent.cpp \
   MouseRelatedEvent.cpp \
   MutationEvent.cpp \
-  NamedAttrMap.cpp \
-  NamedMappedAttrMap.cpp \
+  NamedNodeMap.cpp \
   NameNodeList.cpp \
   Node.cpp \
   NodeFilterCondition.cpp \
@@ -631,8 +406,10 @@ QT_SOURCES = \
   Notation.cpp \
   OptionGroupElement.cpp \
   OptionElement.cpp \
+  StaticHashSetNodeList.cpp \
   OverflowEvent.cpp \
   PageTransitionEvent.cpp \
+  PendingScript.cpp \
   PopStateEvent.cpp \
   Position.cpp \
   PositionIterator.cpp \
@@ -641,10 +418,14 @@ QT_SOURCES = \
   QualifiedName.cpp \
   Range.cpp \
   RegisteredEventListener.cpp \
+  ScopedEventQueue.cpp \
+  ScriptableDocumentParser.cpp \
   ScriptElement.cpp \
   ScriptExecutionContext.cpp \
+  ScriptRunner.cpp \
   SelectElement.cpp \
   SelectorNodeList.cpp \
+  ShadowRoot.cpp \
   SpaceSplitString.cpp \
   StaticNodeList.cpp \
   StyledElement.cpp \
@@ -656,17 +437,22 @@ QT_SOURCES = \
   TouchEvent.cpp \
   TouchList.cpp \
   Traversal.cpp \
+  TreeScope.cpp \
   TreeWalker.cpp \
   UIEvent.cpp \
   UIEventWithKeyState.cpp \
+  UserGestureIndicator.cpp \
+  UserTypingGestureIndicator.cpp \
   ViewportArguments.cpp \
   WebKitAnimationEvent.cpp \
   WebKitTransitionEvent.cpp \
   WheelEvent.cpp \
-  XMLTokenizer.cpp \
-  XMLTokenizerQt.cpp \
+  WindowEventContext.cpp \
+  XMLDocumentParser.cpp \
+  XMLDocumentParserQt.cpp \
   PlatformMessagePortChannel.cpp \
   AppendNodeCommand.cpp \
+  ApplyBlockElementCommand.cpp \
   ApplyStyleCommand.cpp \
   BreakBlockquoteCommand.cpp \
   CompositeEditCommand.cpp \
@@ -676,6 +462,7 @@ QT_SOURCES = \
   DeleteFromTextNodeCommand.cpp \
   DeleteSelectionCommand.cpp \
   EditCommand.cpp \
+  EditingStyle.cpp \
   Editor.cpp \
   EditorCommand.cpp \
   FormatBlockCommand.cpp \
@@ -690,6 +477,7 @@ QT_SOURCES = \
   InsertTextCommand.cpp \
   JoinTextNodesCommand.cpp \
   markup.cpp \
+  MarkupAccumulator.cpp \
   MergeIdenticalElementsCommand.cpp \
   ModifySelectionListLevel.cpp \
   MoveSelectionCommand.cpp \
@@ -701,11 +489,13 @@ QT_SOURCES = \
   ReplaceSelectionCommand.cpp \
   SelectionController.cpp \
   SetNodeAttributeCommand.cpp \
-  SmartReplace.cpp \
   SmartReplaceICU.cpp \
+  SpellChecker.cpp \
+  SpellingCorrectionController.cpp \
   SplitElementCommand.cpp \
   SplitTextNodeCommand.cpp \
   SplitTextNodeContainingElementCommand.cpp \
+  TextCheckingHelper.cpp \
   TextIterator.cpp \
   TypingCommand.cpp \
   UnlinkCommand.cpp \
@@ -713,63 +503,77 @@ QT_SOURCES = \
   VisibleSelection.cpp \
   visible_units.cpp \
   WrapContentsInDummySpanCommand.cpp \
-  BackForwardList.cpp \
+  Blob.cpp \
+  BlobURL.cpp \
+  File.cpp \
+  FileList.cpp \
+  FileReader.cpp \
+  FileReaderLoader.cpp \
+  FileReaderSync.cpp \
+  FileStreamProxy.cpp \
+  FileThread.cpp \
+  ThreadableBlobRegistry.cpp \
+  WebKitBlobBuilder.cpp \
+  BackForwardController.cpp \
+  BackForwardListImpl.cpp \
   CachedFrame.cpp \
   CachedPage.cpp \
   HistoryItem.cpp \
   HistoryItemQt.cpp \
   PageCache.cpp \
-  Blob.cpp \
-  CanvasGradient.cpp \
-  CanvasPattern.cpp \
-  CanvasPixelArray.cpp \
-  CanvasRenderingContext.cpp \
-  CanvasRenderingContext2D.cpp \
-  CanvasStyle.cpp \
+  BaseButtonInputType.cpp \
+  BaseCheckableInputType.cpp \
+  BaseDateAndTimeInputType.cpp \
+  BaseTextInputType.cpp \
+  ButtonInputType.cpp \
+  CheckboxInputType.cpp \
+  ClassList.cpp \
   CollectionCache.cpp \
-  DataGridColumn.cpp \
-  DataGridColumnList.cpp \
-  DateComponents.cpp \
-  DOMDataGridDataSource.cpp \
+  ColorInputType.cpp \
   DOMFormData.cpp \
-  File.cpp \
-  FileList.cpp \
+  DOMSettableTokenList.cpp \
+  DOMTokenList.cpp \
+  DOMURL.cpp \
+  DateInputType.cpp \
+  DateTimeInputType.cpp \
+  DateTimeLocalInputType.cpp \
+  EmailInputType.cpp \
+  FTPDirectoryDocument.cpp \
+  FileInputType.cpp \
+  FormAssociatedElement.cpp \
   FormDataList.cpp \
   HTMLAllCollection.cpp \
   HTMLAnchorElement.cpp \
   HTMLAppletElement.cpp \
   HTMLAreaElement.cpp \
+  HTMLBRElement.cpp \
   HTMLBaseElement.cpp \
   HTMLBaseFontElement.cpp \
   HTMLBlockquoteElement.cpp \
   HTMLBodyElement.cpp \
-  HTMLBRElement.cpp \
   HTMLButtonElement.cpp \
   HTMLCanvasElement.cpp \
   HTMLCollection.cpp \
-  HTMLDataGridElement.cpp \
-  HTMLDataGridCellElement.cpp \
-  HTMLDataGridColElement.cpp \
-  HTMLDataGridRowElement.cpp \
+  HTMLDListElement.cpp \
   HTMLDataListElement.cpp \
   HTMLDirectoryElement.cpp \
+  HTMLDetailsElement.cpp \
   HTMLDivElement.cpp \
-  HTMLDListElement.cpp \
   HTMLDocument.cpp \
   HTMLElement.cpp \
   HTMLEmbedElement.cpp \
   HTMLFieldSetElement.cpp \
   HTMLFontElement.cpp \
   HTMLFormCollection.cpp \
+  HTMLFormControlElement.cpp \
   HTMLFormElement.cpp \
-  HTMLFrameElementBase.cpp \
   HTMLFrameElement.cpp \
+  HTMLFrameElementBase.cpp \
   HTMLFrameOwnerElement.cpp \
   HTMLFrameSetElement.cpp \
-  HTMLFormControlElement.cpp \
+  HTMLHRElement.cpp \
   HTMLHeadElement.cpp \
   HTMLHeadingElement.cpp \
-  HTMLHRElement.cpp \
   HTMLHtmlElement.cpp \
   HTMLIFrameElement.cpp \
   HTMLImageElement.cpp \
@@ -777,24 +581,25 @@ QT_SOURCES = \
   HTMLInputElement.cpp \
   HTMLIsIndexElement.cpp \
   HTMLKeygenElement.cpp \
+  HTMLLIElement.cpp \
   HTMLLabelElement.cpp \
   HTMLLegendElement.cpp \
-  HTMLLIElement.cpp \
   HTMLLinkElement.cpp \
   HTMLMapElement.cpp \
   HTMLMarqueeElement.cpp \
   HTMLMenuElement.cpp \
   HTMLMetaElement.cpp \
+  HTMLMeterElement.cpp \
   HTMLModElement.cpp \
   HTMLNameCollection.cpp \
-  HTMLObjectElement.cpp \
   HTMLOListElement.cpp \
+  HTMLObjectElement.cpp \
   HTMLOptGroupElement.cpp \
   HTMLOptionElement.cpp \
   HTMLOptionsCollection.cpp \
+  HTMLOutputElement.cpp \
   HTMLParagraphElement.cpp \
   HTMLParamElement.cpp \
-  HTMLParser.cpp \
   HTMLParserErrorCodes.cpp \
   HTMLPlugInElement.cpp \
   HTMLPlugInImageElement.cpp \
@@ -804,6 +609,7 @@ QT_SOURCES = \
   HTMLScriptElement.cpp \
   HTMLSelectElement.cpp \
   HTMLStyleElement.cpp \
+  HTMLSummaryElement.cpp \
   HTMLTableCaptionElement.cpp \
   HTMLTableCellElement.cpp \
   HTMLTableColElement.cpp \
@@ -814,137 +620,244 @@ QT_SOURCES = \
   HTMLTableSectionElement.cpp \
   HTMLTextAreaElement.cpp \
   HTMLTitleElement.cpp \
-  HTMLTokenizer.cpp \
   HTMLUListElement.cpp \
   HTMLViewSourceDocument.cpp \
+  HiddenInputType.cpp \
   ImageData.cpp \
-  PreloadScanner.cpp \
+  ImageDocument.cpp \
+  ImageInputType.cpp \
+  InputType.cpp \
+  IsIndexInputType.cpp \
+  LabelsNodeList.cpp \
+  MediaDocument.cpp \
+  MonthInputType.cpp \
+  NumberInputType.cpp \
+  PasswordInputType.cpp \
+  PluginDocument.cpp \
+  RadioInputType.cpp \
+  RangeInputType.cpp \
+  ResetInputType.cpp \
+  SearchInputType.cpp \
   StepRange.cpp \
+  SubmitInputType.cpp \
+  TelephoneInputType.cpp \
+  TextDocument.cpp \
+  TextFieldInputType.cpp \
+  TextInputType.cpp \
+  TimeInputType.cpp \
+  URLInputType.cpp \
+  ValidationMessage.cpp \
   ValidityState.cpp \
+  WeekInputType.cpp \
+  ArrayBuffer.cpp \
+  ArrayBufferView.cpp \
+  CanvasGradient.cpp \
+  CanvasPattern.cpp \
+  CanvasPixelArray.cpp \
+  CanvasRenderingContext.cpp \
+  CanvasRenderingContext2D.cpp \
+  CanvasStyle.cpp \
+  DataView.cpp \
+  Float32Array.cpp \
+  Int16Array.cpp \
+  Int32Array.cpp \
+  Int8Array.cpp \
+  Uint16Array.cpp \
+  Uint32Array.cpp \
+  Uint8Array.cpp \
+  CSSPreloadScanner.cpp \
+  HTMLConstructionSite.cpp \
+  HTMLDocumentParser.cpp \
+  HTMLElementStack.cpp \
+  HTMLEntityParser.cpp \
+  HTMLEntitySearch.cpp \
+  HTMLFormattingElementList.cpp \
+  HTMLMetaCharsetParser.cpp \
+  HTMLParserIdioms.cpp \
+  HTMLParserScheduler.cpp \
+  HTMLPreloadScanner.cpp \
+  HTMLScriptRunner.cpp \
+  HTMLSourceTracker.cpp \
+  HTMLTokenizer.cpp \
+  HTMLTreeBuilder.cpp \
+  HTMLViewSourceParser.cpp \
+  TextDocumentParser.cpp \
+  TextViewSourceParser.cpp \
+  XSSFilter.cpp \
+  DetailsMarkerControl.cpp \
+  MediaControls.cpp \
+  MediaControlRootElement.cpp \
+  MeterShadowElement.cpp \
+  ProgressShadowElement.cpp \
+  SliderThumbElement.cpp \
+  TextControlInnerElements.cpp \
   ConsoleMessage.cpp \
+  DOMNodeHighlighter.cpp \
+  EventsCollector.cpp \
   InjectedScript.cpp \
   InjectedScriptHost.cpp \
-  InspectorBackend.cpp \
+  InjectedScriptManager.cpp \
+  InspectorAgent.cpp \
+  InspectorApplicationCacheAgent.cpp \
+  InspectorCSSAgent.cpp \
+  InspectorClient.cpp \
+  InspectorConsoleAgent.cpp \
   InspectorController.cpp \
+  InspectorDatabaseAgent.cpp \
   InspectorDatabaseResource.cpp \
+  InspectorDebuggerAgent.cpp \
   InspectorDOMAgent.cpp \
+  InspectorDOMDebuggerAgent.cpp \
+  InspectorDOMStorageAgent.cpp \
   InspectorDOMStorageResource.cpp \
-  InspectorFrontend.cpp \
   InspectorFrontendClientLocal.cpp \
   InspectorFrontendHost.cpp \
-  InspectorResource.cpp \
+  InspectorFrontendProxy.cpp \
+  InspectorInstrumentation.cpp \
+  InspectorPageAgent.cpp \
+  InspectorProfilerAgent.cpp \
+  InspectorResourceAgent.cpp \
+  InspectorRuntimeAgent.cpp \
+  InspectorState.cpp \
+  InspectorStyleSheet.cpp \
   InspectorTimelineAgent.cpp \
+  InspectorValues.cpp \
+  InspectorWorkerAgent.cpp \
+  PageDebuggerAgent.cpp \
+  ScriptArguments.cpp \
+  ScriptCallFrame.cpp \
+  ScriptCallStack.cpp \
   TimelineRecordFactory.cpp \
-  ArchiveFactory.cpp \
+  WorkerDebuggerAgent.cpp \
+  WorkerInspectorController.cpp \
   ArchiveResource.cpp \
   ArchiveResourceCollection.cpp \
-  Cache.cpp \
+  MemoryCache.cpp \
   CachedCSSStyleSheet.cpp \
   CachedFont.cpp \
   CachedImage.cpp \
   CachedResourceClientWalker.cpp \
   CachedResourceHandle.cpp \
+  CachedResourceRequest.cpp \
   CachedResource.cpp \
   CachedScript.cpp \
   CachedXSLStyleSheet.cpp \
   CrossOriginAccessControl.cpp \
   CrossOriginPreflightResultCache.cpp \
-  DocLoader.cpp \
+  CachedResourceLoader.cpp \
   DocumentLoader.cpp \
   DocumentThreadableLoader.cpp \
+  DocumentWriter.cpp \
   FormState.cpp \
+  FormSubmission.cpp \
   FrameLoader.cpp \
+  FrameLoaderStateMachine.cpp \
   HistoryController.cpp \
-  FTPDirectoryDocument.cpp \
   FTPDirectoryParser.cpp \
+  IconDatabaseBase.cpp \
   IconLoader.cpp \
-  ImageDocument.cpp \
   ImageLoader.cpp \
-  loader.cpp \
   MainResourceLoader.cpp \
-  MediaDocument.cpp \
   NavigationAction.cpp \
   NetscapePlugInStreamLoader.cpp \
+  PingLoader.cpp \
   PlaceholderDocument.cpp \
-  PluginDocument.cpp \
   PolicyCallback.cpp \
   PolicyChecker.cpp \
   ProgressTracker.cpp \
-  RedirectScheduler.cpp \
-  Request.cpp \
+  NavigationScheduler.cpp \
   ResourceLoader.cpp \
   ResourceLoadNotifier.cpp \
+  ResourceLoadScheduler.cpp \
+  SinkDocument.cpp \
+  SubframeLoader.cpp \
   SubresourceLoader.cpp \
-  TextDocument.cpp \
   TextResourceDecoder.cpp \
   ThreadableLoader.cpp \
+  Notification.cpp \
+  NotificationCenter.cpp \
   AnimationBase.cpp \
   AnimationController.cpp \
   CompositeAnimation.cpp \
   ImplicitAnimation.cpp \
   KeyframeAnimation.cpp \
+  WebKitAnimation.cpp \
+  WebKitAnimationList.cpp \
   BarInfo.cpp \
   Chrome.cpp \
   Console.cpp \
+  ContentSecurityPolicy.cpp \
   ContextMenuController.cpp \
+  Crypto.cpp \
   DOMSelection.cpp \
   DOMTimer.cpp \
   DOMWindow.cpp \
-  Navigator.cpp \
-  NavigatorBase.cpp \
   DragController.cpp \
   EventHandler.cpp \
   EventSource.cpp \
   FocusController.cpp \
   Frame.cpp \
+  FrameActionScheduler.cpp \
   FrameTree.cpp \
   FrameView.cpp \
   Geolocation.cpp \
   GeolocationController.cpp \
   GeolocationPositionCache.cpp \
+  GroupSettings.cpp \
   History.cpp \
   Location.cpp \
+  MemoryInfo.cpp \
   MouseEventWithHitTestResults.cpp \
+  Navigator.cpp \
+  NavigatorBase.cpp \
   OriginAccessEntry.cpp \
   Page.cpp \
   PageGroup.cpp \
   PageGroupLoadDeferrer.cpp \
+  PageSerializer.cpp \
+  Performance.cpp \
+  PerformanceNavigation.cpp \
+  PerformanceTiming.cpp \
   PluginHalter.cpp \
   PrintContext.cpp \
-  SecurityOrigin.cpp \
   Screen.cpp \
+  SecurityOrigin.cpp \
   Settings.cpp \
   SpatialNavigation.cpp \
+  SuspendableTimer.cpp \
   UserContentURLPattern.cpp \
   WindowFeatures.cpp \
-  XSSAuditor.cpp \
   PluginData.cpp \
-  PluginArray.cpp \
-  Plugin.cpp \
+  DOMPluginArray.cpp \
+  DOMPlugin.cpp \
   PluginMainThreadScheduler.cpp \
-  MimeType.cpp \
-  MimeTypeArray.cpp \
+  DOMMimeType.cpp \
+  DOMMimeTypeArray.cpp \
   Animation.cpp \
   AnimationList.cpp \
   Arena.cpp \
-  AtomicString.cpp \
   Base64.cpp \
   BidiContext.cpp \
+  Hyphenation.cpp \
+  LocalizedDateNone.cpp \
+  LocalizedNumberNone.cpp \
   ContentType.cpp \
-  ContextMenu.cpp \
   CrossThreadCopier.cpp \
-  CString.cpp \
-  DeprecatedPtrListImpl.cpp \
+  DateComponents.cpp \
+  DefaultLocalizationStrategy.cpp \
   DragData.cpp \
   DragImage.cpp \
   FileChooser.cpp \
+  FileStream.cpp \
+  FileSystem.cpp \
   GeolocationService.cpp \
-  RGBA32BufferQt.cpp \
+  ImageFrameQt.cpp \
   FontDescription.cpp \
   FontFallbackList.cpp \
   FontFamily.cpp \
   BitmapImage.cpp \
   Color.cpp \
+  ContextShadow.cpp \
   FloatPoint3D.cpp \
   FloatPoint.cpp \
   FloatQuad.cpp \
@@ -956,6 +869,7 @@ QT_SOURCES = \
   GeneratedImage.cpp \
   Gradient.cpp \
   GraphicsContext.cpp \
+  GraphicsLayer.cpp \
   GraphicsTypes.cpp \
   Image.cpp \
   ImageBuffer.cpp \
@@ -964,8 +878,10 @@ QT_SOURCES = \
   Path.cpp \
   PathTraversalState.cpp \
   Pattern.cpp \
-  Pen.cpp \
+  RoundedIntRect.cpp \
   SegmentedFontData.cpp \
+  ShadowBlur.cpp \
+  SVGGlyph.cpp \
   SimpleFontData.cpp \
   TiledBackingStore.cpp \
   AffineTransform.cpp \
@@ -978,13 +894,24 @@ QT_SOURCES = \
   SkewTransformOperation.cpp \
   TransformOperations.cpp \
   TranslateTransformOperation.cpp \
+  KillRingNone.cpp \
   KURL.cpp \
+  Language.cpp \
   Length.cpp \
+  LineEnding.cpp \
+  LevelDBDatabase.cpp \
+  LevelDBIterator.cpp \
   LinkHash.cpp \
   Logging.cpp \
   MIMETypeRegistry.cpp \
+  DeviceOrientationClientMock.cpp \
+  GeolocationClientMock.cpp \
   GeolocationServiceMock.cpp \
+  SpeechInputClientMock.cpp \
   AuthenticationChallengeBase.cpp \
+  BlobData.cpp \
+  BlobRegistryImpl.cpp \
+  BlobResourceHandle.cpp \
   Credential.cpp \
   FormData.cpp \
   FormDataBuilder.cpp \
@@ -992,23 +919,29 @@ QT_SOURCES = \
   HTTPParsers.cpp \
   NetworkStateNotifier.cpp \
   ProtectionSpace.cpp \
+  ProxyServer.cpp \
   ResourceErrorBase.cpp \
   ResourceHandle.cpp \
   ResourceRequestBase.cpp \
   ResourceResponseBase.cpp \
   RegularExpression.cpp \
+  RuntimeApplicationChecks.cpp \
+  SchemeRegistry.cpp \
+  ScrollableArea.cpp \
+  ScrollAnimator.cpp \
   Scrollbar.cpp \
   ScrollbarThemeComposite.cpp \
   ScrollView.cpp \
   SegmentedString.cpp \
   SharedBuffer.cpp \
+  SharedBufferCRLFLineReader.cpp \
   String.cpp \
-  StringBuilder.cpp \
-  StringImpl.cpp \
+  TextBoundaries.cpp \
   TextCodec.cpp \
   TextCodecLatin1.cpp \
   TextCodecUserDefined.cpp \
   TextCodecUTF16.cpp \
+  TextCodecUTF8.cpp \
   TextEncoding.cpp \
   TextEncodingDetectorNone.cpp \
   TextEncodingRegistry.cpp \
@@ -1017,10 +950,14 @@ QT_SOURCES = \
   ThreadTimers.cpp \
   Timer.cpp \
   UnicodeRange.cpp \
+  FontTranscoder.cpp \
+  UUID.cpp \
   Widget.cpp \
+  PlatformStrategies.cpp \
+  LocalizedStrings.cpp \
+  IFrameShimSupport.cpp \
   PluginDatabase.cpp \
   PluginDebug.cpp \
-  PluginInfoStore.cpp \
   PluginPackage.cpp \
   PluginStream.cpp \
   PluginView.cpp \
@@ -1043,30 +980,38 @@ QT_SOURCES = \
   RenderBoxModelObject.cpp \
   RenderBR.cpp \
   RenderButton.cpp \
+  RenderCombineText.cpp \
   RenderCounter.cpp \
-  RenderDataGrid.cpp \
+  RenderDetails.cpp \
+  RenderDetailsMarker.cpp \
   RenderEmbeddedObject.cpp \
   RenderFieldset.cpp \
   RenderFileUploadControl.cpp \
   RenderFlexibleBox.cpp \
   RenderFrame.cpp \
+  RenderFrameBase.cpp \
   RenderFrameSet.cpp \
   RenderHTMLCanvas.cpp \
+  RenderIFrame.cpp \
   RenderImage.cpp \
-  RenderImageGeneratedContent.cpp \
+  RenderImageResource.cpp \
+  RenderImageResourceStyleImage.cpp \
   RenderInline.cpp \
   RenderLayer.cpp \
+  RenderLayerBacking.cpp \
+  RenderLayerCompositor.cpp \
   RenderLineBoxList.cpp \
   RenderListBox.cpp \
   RenderListItem.cpp \
   RenderListMarker.cpp \
   RenderMarquee.cpp \
   RenderMenuList.cpp \
+  RenderMeter.cpp \
   RenderObject.cpp \
   RenderObjectChildList.cpp \
   RenderPart.cpp \
-  RenderPartObject.cpp \
   RenderProgress.cpp \
+  RenderQuote.cpp \
   RenderReplaced.cpp \
   RenderReplica.cpp \
   RenderRuby.cpp \
@@ -1077,6 +1022,7 @@ QT_SOURCES = \
   RenderScrollbarPart.cpp \
   RenderScrollbarTheme.cpp \
   RenderSlider.cpp \
+  RenderSummary.cpp \
   RenderTable.cpp \
   RenderTableCell.cpp \
   RenderTableCol.cpp \
@@ -1093,16 +1039,15 @@ QT_SOURCES = \
   RenderWidget.cpp \
   RenderWordBreak.cpp \
   RootInlineBox.cpp \
-  SVGRenderTreeAsText.cpp \
   ScrollBehavior.cpp \
-  TextControlInnerElements.cpp \
+  ShadowElement.cpp \
   TransformState.cpp \
-  BindingURI.cpp \
   ContentData.cpp \
   CounterDirectives.cpp \
   FillLayer.cpp \
   KeyframeList.cpp \
   NinePieceImage.cpp \
+  QuotesData.cpp \
   RenderStyle.cpp \
   ShadowData.cpp \
   StyleBackgroundData.cpp \
@@ -1118,22 +1063,19 @@ QT_SOURCES = \
   StyleSurroundData.cpp \
   StyleTransformData.cpp \
   StyleVisualData.cpp \
+  Internals.cpp \
   DOMParser.cpp \
   XMLHttpRequest.cpp \
   XMLHttpRequestProgressEventThrottle.cpp \
   XMLHttpRequestUpload.cpp \
   XMLSerializer.cpp \
   AccessibilityObjectQt.cpp \
-  ScriptControllerQt.cpp \
-  qt_class.cpp \
-  qt_instance.cpp \
-  qt_pixmapruntime.cpp \
-  qt_runtime.cpp \
   DragControllerQt.cpp \
   EventHandlerQt.cpp \
   FrameQt.cpp \
   TransformationMatrixQt.cpp \
   ColorQt.cpp \
+  ContextShadowQt.cpp \
   FontQt.cpp \
   FontPlatformDataQt.cpp \
   FloatPointQt.cpp \
@@ -1150,11 +1092,17 @@ QT_SOURCES = \
   PathQt.cpp \
   PatternQt.cpp \
   StillImageQt.cpp \
+  MIMESniffing.cpp \
+  CredentialStorageQt.cpp \
   ResourceHandleQt.cpp \
   ResourceRequestQt.cpp \
   DnsPrefetchHelper.cpp \
+  ProxyServerQt.cpp \
+  QtMIMETypeSniffer.cpp \
   QNetworkReplyHandler.cpp \
   EditorQt.cpp \
+  SmartReplaceQt.cpp \
+  Cursor.cpp \
   ClipboardQt.cpp \
   ContextMenuItemQt.cpp \
   ContextMenuQt.cpp \
@@ -1172,7 +1120,6 @@ QT_SOURCES = \
   SimpleFontDataQt.cpp \
   TileQt.cpp \
   KURLQt.cpp \
-  Localizations.cpp \
   MIMETypeRegistryQt.cpp \
   PasteboardQt.cpp \
   PlatformKeyboardEventQt.cpp \
@@ -1180,46 +1127,20 @@ QT_SOURCES = \
   PlatformScreenQt.cpp \
   PlatformTouchEventQt.cpp \
   PlatformTouchPointQt.cpp \
-  PopupMenuQt.cpp \
-  QtAbstractWebPopup.cpp \
   RenderThemeQt.cpp \
   ScrollbarQt.cpp \
   ScrollbarThemeQt.cpp \
   ScrollViewQt.cpp \
-  SearchPopupMenuQt.cpp \
   SharedTimerQt.cpp \
   SoundQt.cpp \
   LoggingQt.cpp \
-  StringQt.cpp \
+  LanguageQt.cpp \
   TemporaryLinkStubsQt.cpp \
   TextBoundariesQt.cpp \
   TextBreakIteratorQt.cpp \
   TextCodecQt.cpp \
   WheelEventQt.cpp \
   WidgetQt.cpp \
-  PluginDataQt.cpp \
-  QtFallbackWebPopup.cpp \
-  ChromeClientQt.cpp \
-  ContextMenuClientQt.cpp \
-  DragClientQt.cpp \
-  EditorClientQt.cpp \
-  EditCommandQt.cpp \
-  FrameLoaderClientQt.cpp \
-  InspectorClientQt.cpp \
-  qwebframe.cpp \
-  qgraphicswebview.cpp \
-  qwebpage.cpp \
-  qwebview.cpp \
-  qwebelement.cpp \
-  qwebhistory.cpp \
-  qwebsettings.cpp \
-  qwebhistoryinterface.cpp \
-  qwebplugindatabase.cpp \
-  qwebpluginfactory.cpp \
-  qwebsecurityorigin.cpp \
-  qwebdatabase.cpp \
-  qwebinspector.cpp \
-  qwebkitversion.cpp \
   PluginPackageNone.cpp \
   PluginViewNone.cpp \
   sqlite3.c \
@@ -1229,8 +1150,10 @@ QT_SOURCES = \
   SQLiteStatement.cpp \
   SQLiteTransaction.cpp \
   SQLValue.cpp \
+  AbstractDatabase.cpp \
   Database.cpp \
   DatabaseAuthorizer.cpp \
+  DatabaseSync.cpp \
   ChangeVersionWrapper.cpp \
   DatabaseTask.cpp \
   DatabaseThread.cpp \
@@ -1240,17 +1163,15 @@ QT_SOURCES = \
   SQLResultSet.cpp \
   SQLResultSetRowList.cpp \
   SQLStatement.cpp \
+  SQLStatementSync.cpp \
   SQLTransaction.cpp \
   SQLTransactionClient.cpp \
   SQLTransactionCoordinator.cpp \
-  JSCustomSQLStatementCallback.cpp \
+  SQLTransactionSync.cpp \
   JSCustomSQLStatementErrorCallback.cpp \
-  JSCustomSQLTransactionCallback.cpp \
-  JSCustomSQLTransactionErrorCallback.cpp \
-  JSDatabaseCallback.cpp \
-  JSDatabaseCustom.cpp \
   JSSQLResultSetRowListCustom.cpp \
   JSSQLTransactionCustom.cpp \
+  JSSQLTransactionSyncCustom.cpp \
   JSStorageCustom.cpp \
   LocalStorageTask.cpp \
   LocalStorageThread.cpp \
@@ -1263,16 +1184,16 @@ QT_SOURCES = \
   StorageNamespace.cpp \
   StorageNamespaceImpl.cpp \
   StorageSyncManager.cpp \
+  StorageTracker.cpp \
   IconDatabase.cpp \
   IconRecord.cpp \
   PageURLRecord.cpp \
-  JSAbstractWorkerCustom.cpp \
   JSDedicatedWorkerContextCustom.cpp \
-  JSWorkerConstructor.cpp \
   JSWorkerContextBase.cpp \
   JSWorkerContextCustom.cpp \
   JSWorkerCustom.cpp \
   WorkerScriptController.cpp \
+  WorkerScriptDebugServer.cpp \
   WorkerThreadableLoader.cpp \
   WorkerNavigator.cpp \
   AbstractWorker.cpp \
@@ -1285,7 +1206,6 @@ QT_SOURCES = \
   WorkerRunLoop.cpp \
   WorkerThread.cpp \
   WorkerScriptLoader.cpp \
-  JSSharedWorkerConstructor.cpp \
   JSSharedWorkerCustom.cpp \
   DefaultSharedWorkerRepository.cpp \
   SharedWorker.cpp \
@@ -1296,7 +1216,6 @@ QT_SOURCES = \
   XPathExpression.cpp \
   XPathExpressionNode.cpp \
   XPathFunctions.cpp \
-  XPathNamespace.cpp \
   XPathNodeSet.cpp \
   XPathNSResolver.cpp \
   XPathParser.cpp \
@@ -1307,27 +1226,99 @@ QT_SOURCES = \
   XPathUtil.cpp \
   XPathValue.cpp \
   XPathVariableReference.cpp \
+  DistantLightSource.cpp \
   FEBlend.cpp \
   FEColorMatrix.cpp \
   FEComponentTransfer.cpp \
   FEComposite.cpp \
+  FEConvolveMatrix.cpp \
+  FEDiffuseLighting.cpp \
+  FEDisplacementMap.cpp \
+  FEDropShadow.cpp \
+  FEFlood.cpp \
   FEGaussianBlur.cpp \
+  FELighting.cpp \
+  FEMerge.cpp \
+  FEMorphology.cpp \
+  FEOffset.cpp \
+  FESpecularLighting.cpp \
+  FETile.cpp \
+  FETurbulence.cpp \
   FilterEffect.cpp \
+  LightSource.cpp \
+  PointLightSource.cpp \
+  SpotLightSource.cpp \
   SourceAlpha.cpp \
   SourceGraphic.cpp \
+  FELightingNEON.cpp \
+  FEGaussianBlurNEON.cpp \
   NetworkStateNotifierQt.cpp \
   JSSVGElementInstanceCustom.cpp \
   JSSVGLengthCustom.cpp \
-  JSSVGMatrixCustom.cpp \
   JSSVGPathSegCustom.cpp \
-  JSSVGPathSegListCustom.cpp \
   SVGCSSComputedStyleDeclaration.cpp \
   SVGCSSParser.cpp \
   SVGCSSStyleSelector.cpp \
   SVGRenderStyle.cpp \
   SVGRenderStyleDefs.cpp \
-  SVGZoomEvent.cpp \
   PointerEventsHitRules.cpp \
+  RenderSVGPath.cpp \
+  SMILTime.cpp \
+  SMILTimeContainer.cpp \
+  SVGSMILElement.cpp \
+  SVGFEImage.cpp \
+  SVGFilter.cpp \
+  SVGFilterBuilder.cpp \
+  SVGImage.cpp \
+  SVGPathSegListPropertyTearOff.cpp \
+  RenderSVGBlock.cpp \
+  RenderSVGContainer.cpp \
+  RenderSVGForeignObject.cpp \
+  RenderSVGGradientStop.cpp \
+  RenderSVGHiddenContainer.cpp \
+  RenderSVGImage.cpp \
+  RenderSVGInline.cpp \
+  RenderSVGInlineText.cpp \
+  RenderSVGModelObject.cpp \
+  RenderSVGResource.cpp \
+  RenderSVGResourceClipper.cpp \
+  RenderSVGResourceContainer.cpp \
+  RenderSVGResourceFilter.cpp \
+  RenderSVGResourceFilterPrimitive.cpp \
+  RenderSVGResourceGradient.cpp \
+  RenderSVGResourceLinearGradient.cpp \
+  RenderSVGResourceMarker.cpp \
+  RenderSVGResourceMasker.cpp \
+  RenderSVGResourcePattern.cpp \
+  RenderSVGResourceRadialGradient.cpp \
+  RenderSVGResourceSolidColor.cpp \
+  RenderSVGRoot.cpp \
+  RenderSVGShadowTreeRootContainer.cpp \
+  RenderSVGTSpan.cpp \
+  RenderSVGText.cpp \
+  RenderSVGTextPath.cpp \
+  RenderSVGTransformableContainer.cpp \
+  RenderSVGViewportContainer.cpp \
+  SVGImageBufferTools.cpp \
+  SVGInlineFlowBox.cpp \
+  SVGInlineTextBox.cpp \
+  SVGMarkerLayoutInfo.cpp \
+  SVGRenderSupport.cpp \
+  SVGRenderTreeAsText.cpp \
+  SVGResources.cpp \
+  SVGResourcesCache.cpp \
+  SVGResourcesCycleSolver.cpp \
+  SVGRootInlineBox.cpp \
+  SVGShadowTreeElements.cpp \
+  SVGTextChunk.cpp \
+  SVGTextChunkBuilder.cpp \
+  SVGTextLayoutAttributes.cpp \
+  SVGTextLayoutAttributesBuilder.cpp \
+  SVGTextLayoutEngine.cpp \
+  SVGTextLayoutEngineBaseline.cpp \
+  SVGTextLayoutEngineSpacing.cpp \
+  SVGTextMetrics.cpp \
+  SVGTextQuery.cpp \
   SVGDocumentExtensions.cpp \
   SVGImageLoader.cpp \
   ColorDistance.cpp \
@@ -1335,8 +1326,6 @@ QT_SOURCES = \
   SVGAltGlyphElement.cpp \
   SVGAngle.cpp \
   SVGAnimateColorElement.cpp \
-  SVGAnimatedPathData.cpp \
-  SVGAnimatedPoints.cpp \
   SVGAnimateElement.cpp \
   SVGAnimateMotionElement.cpp \
   SVGAnimateTransformElement.cpp \
@@ -1358,9 +1347,11 @@ QT_SOURCES = \
   SVGFEColorMatrixElement.cpp \
   SVGFEComponentTransferElement.cpp \
   SVGFECompositeElement.cpp \
+  SVGFEConvolveMatrixElement.cpp \
   SVGFEDiffuseLightingElement.cpp \
   SVGFEDisplacementMapElement.cpp \
   SVGFEDistantLightElement.cpp \
+  SVGFEDropShadowElement.cpp \
   SVGFEFloodElement.cpp \
   SVGFEFuncAElement.cpp \
   SVGFEFuncBElement.cpp \
@@ -1409,18 +1400,19 @@ QT_SOURCES = \
   SVGNumberList.cpp \
   SVGPaint.cpp \
   SVGParserUtilities.cpp \
+  SVGPathBlender.cpp \
+  SVGPathBuilder.cpp \
+  SVGPathByteStreamBuilder.cpp \
+  SVGPathByteStreamSource.cpp \
   SVGPathElement.cpp \
-  SVGPathSegArc.cpp \
-  SVGPathSegClosePath.cpp \
-  SVGPathSegCurvetoCubic.cpp \
-  SVGPathSegCurvetoCubicSmooth.cpp \
-  SVGPathSegCurvetoQuadratic.cpp \
-  SVGPathSegCurvetoQuadraticSmooth.cpp \
-  SVGPathSegLineto.cpp \
-  SVGPathSegLinetoHorizontal.cpp \
-  SVGPathSegLinetoVertical.cpp \
+  SVGPathParser.cpp \
+  SVGPathParserFactory.cpp \
   SVGPathSegList.cpp \
-  SVGPathSegMoveto.cpp \
+  SVGPathSegListBuilder.cpp \
+  SVGPathSegListSource.cpp \
+  SVGPathStringBuilder.cpp \
+  SVGPathStringSource.cpp \
+  SVGPathTraversalStateBuilder.cpp \
   SVGPatternElement.cpp \
   SVGPointList.cpp \
   SVGPolyElement.cpp \
@@ -1457,61 +1449,11 @@ QT_SOURCES = \
   SVGUseElement.cpp \
   SVGViewElement.cpp \
   SVGViewSpec.cpp \
+  SVGVKernElement.cpp \
   SVGZoomAndPan.cpp \
-  SMILTime.cpp \
-  SMILTimeContainer.cpp \
-  SVGSMILElement.cpp \
-  SVGFEConvolveMatrix.cpp \
-  SVGFEDiffuseLighting.cpp \
-  SVGFEDisplacementMap.cpp \
-  SVGFEFlood.cpp \
-  SVGFEImage.cpp \
-  SVGFEMerge.cpp \
-  SVGFEMorphology.cpp \
-  SVGFEOffset.cpp \
-  SVGFESpecularLighting.cpp \
-  SVGFETile.cpp \
-  SVGFETurbulence.cpp \
-  SVGFilter.cpp \
-  SVGFilterBuilder.cpp \
-  SVGLightSource.cpp \
-  SVGImage.cpp \
-  SVGPaintServer.cpp \
-  SVGPaintServerGradient.cpp \
-  SVGPaintServerLinearGradient.cpp \
-  SVGPaintServerPattern.cpp \
-  SVGPaintServerRadialGradient.cpp \
-  SVGPaintServerSolid.cpp \
-  SVGResource.cpp \
-  SVGResourceFilter.cpp \
-  SVGResourceMarker.cpp \
-  RenderForeignObject.cpp \
-  RenderPath.cpp \
-  RenderSVGBlock.cpp \
-  RenderSVGContainer.cpp \
-  RenderSVGGradientStop.cpp \
-  RenderSVGHiddenContainer.cpp \
-  RenderSVGImage.cpp \
-  RenderSVGInline.cpp \
-  RenderSVGInlineText.cpp \
-  RenderSVGModelObject.cpp \
-  RenderSVGResourceClipper.cpp \
-  RenderSVGResourceMasker.cpp \
-  RenderSVGRoot.cpp \
-  RenderSVGShadowTreeRootContainer.cpp \
-  RenderSVGText.cpp \
-  RenderSVGTextPath.cpp \
-  RenderSVGTransformableContainer.cpp \
-  RenderSVGTSpan.cpp \
-  RenderSVGViewportContainer.cpp \
-  SVGCharacterLayoutInfo.cpp \
-  SVGInlineFlowBox.cpp \
-  SVGInlineTextBox.cpp \
-  SVGMarkerLayoutInfo.cpp \
-  SVGRenderSupport.cpp \
-  SVGRootInlineBox.cpp \
-  SVGShadowTreeElements.cpp \
+  SVGZoomEvent.cpp \
   JSJavaScriptCallFrameCustom.cpp \
+  ScriptProfiler.cpp \
   JavaScriptCallFrame.cpp \
   ApplicationCache.cpp \
   ApplicationCacheGroup.cpp \
@@ -1521,30 +1463,74 @@ QT_SOURCES = \
   DOMApplicationCache.cpp \
   ManifestParser.cpp \
   JSDOMApplicationCacheCustom.cpp \
-  WebSocket.cpp \
-  WebSocketChannel.cpp \
-  WebSocketHandshake.cpp \
-  WebSocketHandshakeRequest.cpp \
-  ThreadableWebSocketChannel.cpp \
-  SocketStreamErrorBase.cpp \
-  SocketStreamHandleBase.cpp \
-  SocketStreamHandleQt.cpp \
-  JSWebSocketCustom.cpp \
-  JSWebSocketConstructor.cpp \
-  WorkerThreadableWebSocketChannel.cpp \
-  GraphicsLayer.cpp \
   GraphicsLayerQt.cpp \
-  RenderLayerBacking.cpp \
-  RenderLayerCompositor.cpp \
-  moc_qwebplugindatabase_p.cpp \
-  moc_QtFallbackWebPopup.cpp \
-  moc_DnsPrefetchHelper.cpp \
-  moc_qwebframe.cpp \
-  moc_qwebhistoryinterface.cpp \
-  moc_qwebpluginfactory.cpp \
-  moc_qwebinspector.cpp \
-  qrc_WebCore.cpp \
-  qrc_WebKit.cpp
+  moc_QtMIMETypeSniffer.cpp \
+  moc_DnsPrefetchHelper.cpp
+
+QT_VPATH = \
+  src/3rdparty/sqlite \
+  src/3rdparty/webkit/Source/WebCore/accessibility \
+  src/3rdparty/webkit/Source/WebCore/accessibility/qt \
+  src/3rdparty/webkit/Source/WebCore/bindings \
+  src/3rdparty/webkit/Source/WebCore/bindings/generic \
+  src/3rdparty/webkit/Source/WebCore/bindings/js \
+  src/3rdparty/webkit/Source/WebCore/bridge \
+  src/3rdparty/webkit/Source/WebCore/bridge/c \
+  src/3rdparty/webkit/Source/WebCore/bridge/jsc \
+  src/3rdparty/webkit/Source/WebCore/bridge/qt \
+  src/3rdparty/webkit/Source/WebCore/css \
+  src/3rdparty/webkit/Source/WebCore/dom \
+  src/3rdparty/webkit/Source/WebCore/dom/default \
+  src/3rdparty/webkit/Source/WebCore/editing \
+  src/3rdparty/webkit/Source/WebCore/editing/qt \
+  src/3rdparty/webkit/Source/WebCore/fileapi \
+  src/3rdparty/webkit/Source/WebCore/history \
+  src/3rdparty/webkit/Source/WebCore/history/qt \
+  src/3rdparty/webkit/Source/WebCore/html \
+  src/3rdparty/webkit/Source/WebCore/html/canvas \
+  src/3rdparty/webkit/Source/WebCore/html/parser \
+  src/3rdparty/webkit/Source/WebCore/html/shadow \
+  src/3rdparty/webkit/Source/WebCore/inspector \
+  src/3rdparty/webkit/Source/WebCore/loader \
+  src/3rdparty/webkit/Source/WebCore/loader/appcache \
+  src/3rdparty/webkit/Source/WebCore/loader/archive \
+  src/3rdparty/webkit/Source/WebCore/loader/cache \
+  src/3rdparty/webkit/Source/WebCore/loader/icon \
+  src/3rdparty/webkit/Source/WebCore/notifications \
+  src/3rdparty/webkit/Source/WebCore/page \
+  src/3rdparty/webkit/Source/WebCore/page/animation \
+  src/3rdparty/webkit/Source/WebCore/page/qt \
+  src/3rdparty/webkit/Source/WebCore/platform \
+  src/3rdparty/webkit/Source/WebCore/platform/animation \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/filters \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/filters/arm \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/graphics/transforms \
+  src/3rdparty/webkit/Source/WebCore/platform/image-decoders/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/leveldb \
+  src/3rdparty/webkit/Source/WebCore/platform/mock \
+  src/3rdparty/webkit/Source/WebCore/platform/network \
+  src/3rdparty/webkit/Source/WebCore/platform/network/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/sql \
+  src/3rdparty/webkit/Source/WebCore/platform/text \
+  src/3rdparty/webkit/Source/WebCore/platform/text/qt \
+  src/3rdparty/webkit/Source/WebCore/platform/text/transcoder \
+  src/3rdparty/webkit/Source/WebCore/plugins \
+  src/3rdparty/webkit/Source/WebCore/rendering \
+  src/3rdparty/webkit/Source/WebCore/rendering/style \
+  src/3rdparty/webkit/Source/WebCore/rendering/svg \
+  src/3rdparty/webkit/Source/WebCore/storage \
+  src/3rdparty/webkit/Source/WebCore/svg \
+  src/3rdparty/webkit/Source/WebCore/svg/animation \
+  src/3rdparty/webkit/Source/WebCore/svg/graphics \
+  src/3rdparty/webkit/Source/WebCore/svg/graphics/filters \
+  src/3rdparty/webkit/Source/WebCore/svg/properties \
+  src/3rdparty/webkit/Source/WebCore/testing \
+  src/3rdparty/webkit/Source/WebCore/testing/js \
+  src/3rdparty/webkit/Source/WebCore/workers \
+  src/3rdparty/webkit/Source/WebCore/xml \
 
 # some source files need to be generated by moc from other source/header files before
 # they get #included again by the original source file in the compiling stage
@@ -1553,26 +1539,15 @@ QT_SOURCES = \
 # extracted from 'compiler_moc_header_make_all' target
 
 COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
+  moc_QtMIMETypeSniffer.cpp \
   moc_QNetworkReplyHandler.cpp \
-  moc_qwebplugindatabase_p.cpp \
-  moc_QtFallbackWebPopup.cpp \
-  moc_FrameLoaderClientQt.cpp \
   moc_DnsPrefetchHelper.cpp \
-  moc_NetworkStateNotifierPrivate.cpp \
-  moc_SocketStreamHandlePrivate.cpp \
-  moc_qwebframe.cpp \
-  moc_qgraphicswebview.cpp \
-  moc_qwebpage.cpp \
-  moc_qwebview.cpp \
-  moc_qwebhistoryinterface.cpp \
-  moc_qwebpluginfactory.cpp \
-  moc_qwebinspector.cpp
+  moc_NetworkStateNotifierPrivate.cpp
 
 # source files generated from existing source files ('%.moc: %.cpp' rule in spec-qt4.mk)
 # extracted from 'compiler_moc_source_make_all' rule
 
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
   SharedTimerQt.moc \
-  InspectorClientQt.moc \
   GraphicsLayerQt.moc
 

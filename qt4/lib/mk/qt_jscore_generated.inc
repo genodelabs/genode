@@ -1,9 +1,75 @@
+QT_DEFINES += -DNDEBUG -DBUILDING_QT__=1 -DNDEBUG -DQT_ASCII_CAST_WARNINGS -DBUILDING_JavaScriptCore -DBUILDING_WTF -DQT_NO_DEBUG -DQT_NETWORK_LIB -DQT_CORE_LIB
+
+QT_INCPATH = \
+  mkspecs/qws/genode-generic-g++ \
+  src/3rdparty/webkit/include \
+  src/3rdparty/webkit/Source \
+  src/3rdparty/webkit/Source/JavaScriptCore \
+  src/3rdparty/webkit/Source/JavaScriptCore/API \
+  src/3rdparty/webkit/Source/JavaScriptCore/assembler \
+  src/3rdparty/webkit/Source/JavaScriptCore/bytecode \
+  src/3rdparty/webkit/Source/JavaScriptCore/bytecompiler \
+  src/3rdparty/webkit/Source/JavaScriptCore/debugger \
+  src/3rdparty/webkit/Source/JavaScriptCore/dfg \
+  src/3rdparty/webkit/Source/JavaScriptCore/ForwardingHeaders \
+  src/3rdparty/webkit/Source/JavaScriptCore/generated \
+  src/3rdparty/webkit/Source/JavaScriptCore/heap \
+  src/3rdparty/webkit/Source/JavaScriptCore/interpreter \
+  src/3rdparty/webkit/Source/JavaScriptCore/jit \
+  src/3rdparty/webkit/Source/JavaScriptCore/parser \
+  src/3rdparty/webkit/Source/JavaScriptCore/profiler \
+  src/3rdparty/webkit/Source/JavaScriptCore/runtime \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/symbian \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/unicode \
+  src/3rdparty/webkit/Source/JavaScriptCore/yarr \
+  src/3rdparty/webkit/Source/ThirdParty \
+
 QT_SOURCES = \
-  pcre_compile.cpp \
-  pcre_exec.cpp \
-  pcre_tables.cpp \
-  pcre_ucp_searchfuncs.cpp \
-  pcre_xclass.cpp \
+  YarrInterpreter.cpp \
+  YarrPattern.cpp \
+  YarrSyntaxChecker.cpp \
+  Assertions.cpp \
+  ByteArray.cpp \
+  CryptographicallyRandomNumber.cpp \
+  CurrentTime.cpp \
+  DateMath.cpp \
+  dtoa.cpp \
+  DecimalNumber.cpp \
+  FastMalloc.cpp \
+  GOwnPtr.cpp \
+  GRefPtr.cpp \
+  HashTable.cpp \
+  MD5.cpp \
+  MainThread.cpp \
+  NullPtr.cpp \
+  OSRandomSource.cpp \
+  MainThreadQt.cpp \
+  StringQt.cpp \
+  ThreadingQt.cpp \
+  PageAllocationAligned.cpp \
+  PageBlock.cpp \
+  ParallelJobsGeneric.cpp \
+  RandomNumber.cpp \
+  RefCountedLeakCounter.cpp \
+  SHA1.cpp \
+  StackBounds.cpp \
+  TCSystemAlloc.cpp \
+  ThreadingNone.cpp \
+  Threading.cpp \
+  TypeTraits.cpp \
+  WTFThreadData.cpp \
+  AtomicString.cpp \
+  CString.cpp \
+  StringBuilder.cpp \
+  StringImpl.cpp \
+  StringStatics.cpp \
+  WTFString.cpp \
+  CollatorDefault.cpp \
+  CollatorICU.cpp \
+  UTF8.cpp \
+  OSAllocatorPosix.cpp \
   JSBase.cpp \
   JSCallbackConstructor.cpp \
   JSCallbackFunction.cpp \
@@ -15,7 +81,9 @@ QT_SOURCES = \
   JSValueRef.cpp \
   OpaqueJSString.cpp \
   ARMAssembler.cpp \
+  ARMv7Assembler.cpp \
   MacroAssemblerARM.cpp \
+  MacroAssemblerSH4.cpp \
   CodeBlock.cpp \
   JumpTable.cpp \
   Opcode.cpp \
@@ -23,28 +91,49 @@ QT_SOURCES = \
   StructureStubInfo.cpp \
   BytecodeGenerator.cpp \
   NodesCodegen.cpp \
+  ConservativeRoots.cpp \
+  HandleHeap.cpp \
+  HandleStack.cpp \
+  Heap.cpp \
+  MachineStackMarker.cpp \
+  MarkStack.cpp \
+  MarkStackPosix.cpp \
+  MarkStackSymbian.cpp \
+  MarkStackWin.cpp \
+  MarkedBlock.cpp \
+  MarkedSpace.cpp \
   DebuggerActivation.cpp \
   DebuggerCallFrame.cpp \
   Debugger.cpp \
+  DFGByteCodeParser.cpp \
+  DFGGraph.cpp \
+  DFGJITCodeGenerator.cpp \
+  DFGJITCompiler.cpp \
+  DFGNonSpeculativeJIT.cpp \
+  DFGOperations.cpp \
+  DFGSpeculativeJIT.cpp \
   CallFrame.cpp \
   Interpreter.cpp \
   RegisterFile.cpp \
   ExecutableAllocatorFixedVMPool.cpp \
-  ExecutableAllocatorPosix.cpp \
-  ExecutableAllocatorSymbian.cpp \
-  ExecutableAllocatorWin.cpp \
   ExecutableAllocator.cpp \
   JITArithmetic.cpp \
+  JITArithmetic32_64.cpp \
   JITCall.cpp \
+  JITCall32_64.cpp \
   JIT.cpp \
   JITOpcodes.cpp \
+  JITOpcodes32_64.cpp \
   JITPropertyAccess.cpp \
   JITPropertyAccess32_64.cpp \
   JITStubs.cpp \
+  ThunkGenerators.cpp \
+  JSParser.cpp \
   Lexer.cpp \
   Nodes.cpp \
   ParserArena.cpp \
   Parser.cpp \
+  SourceProviderCache.cpp \
   Profile.cpp \
   ProfileGenerator.cpp \
   ProfileNode.cpp \
@@ -57,7 +146,6 @@ QT_SOURCES = \
   BooleanObject.cpp \
   BooleanPrototype.cpp \
   CallData.cpp \
-  Collector.cpp \
   CommonIdentifiers.cpp \
   Completion.cpp \
   ConstructData.cpp \
@@ -73,8 +161,8 @@ QT_SOURCES = \
   Executable.cpp \
   FunctionConstructor.cpp \
   FunctionPrototype.cpp \
+  GCActivityCallback.cpp \
   GetterSetter.cpp \
-  GlobalEvalFunction.cpp \
   Identifier.cpp \
   InitializeThreading.cpp \
   InternalFunction.cpp \
@@ -87,11 +175,10 @@ QT_SOURCES = \
   JSGlobalData.cpp \
   JSGlobalObject.cpp \
   JSGlobalObjectFunctions.cpp \
-  JSImmediate.cpp \
   JSLock.cpp \
   JSNotAnObject.cpp \
-  JSNumberCell.cpp \
   JSObject.cpp \
+  JSObjectWithGlobalObject.cpp \
   JSONObject.cpp \
   JSPropertyNameIterator.cpp \
   JSStaticScopeObject.cpp \
@@ -101,10 +188,6 @@ QT_SOURCES = \
   JSWrapperObject.cpp \
   LiteralParser.cpp \
   Lookup.cpp \
-  MarkStackPosix.cpp \
-  MarkStackSymbian.cpp \
-  MarkStackWin.cpp \
-  MarkStack.cpp \
   MathObject.cpp \
   NativeErrorConstructor.cpp \
   NativeErrorPrototype.cpp \
@@ -117,46 +200,45 @@ QT_SOURCES = \
   PropertyDescriptor.cpp \
   PropertyNameArray.cpp \
   PropertySlot.cpp \
-  PrototypeFunction.cpp \
   RegExpConstructor.cpp \
   RegExp.cpp \
   RegExpObject.cpp \
   RegExpPrototype.cpp \
+  RegExpCache.cpp \
+  RopeImpl.cpp \
   ScopeChain.cpp \
   SmallStrings.cpp \
+  StrictEvalActivation.cpp \
   StringConstructor.cpp \
   StringObject.cpp \
   StringPrototype.cpp \
+  StringRecursionChecker.cpp \
   StructureChain.cpp \
   Structure.cpp \
   TimeoutChecker.cpp \
   UString.cpp \
-  UStringImpl.cpp \
-  Assertions.cpp \
-  ByteArray.cpp \
-  CurrentTime.cpp \
-  DateMath.cpp \
-  dtoa.cpp \
-  FastMalloc.cpp \
-  HashTable.cpp \
-  MainThread.cpp \
-  MainThreadQt.cpp \
-  ThreadingQt.cpp \
-  RandomNumber.cpp \
-  RefCountedLeakCounter.cpp \
-  RegisterFileAllocatorSymbian.cpp \
-  BlockAllocatorSymbian.cpp \
-  ThreadingNone.cpp \
-  Threading.cpp \
-  TypeTraits.cpp \
-  CollatorDefault.cpp \
-  CollatorICU.cpp \
-  UTF8.cpp \
-  RegexCompiler.cpp \
-  RegexInterpreter.cpp \
-  RegexJIT.cpp \
-  Grammar.cpp \
-  TCSystemAlloc.cpp 
+  YarrJIT.cpp 
+
+QT_VPATH = \
+  src/3rdparty/webkit/Source/JavaScriptCore/API \
+  src/3rdparty/webkit/Source/JavaScriptCore/assembler \
+  src/3rdparty/webkit/Source/JavaScriptCore/bytecode \
+  src/3rdparty/webkit/Source/JavaScriptCore/bytecompiler \
+  src/3rdparty/webkit/Source/JavaScriptCore/debugger \
+  src/3rdparty/webkit/Source/JavaScriptCore/dfg \
+  src/3rdparty/webkit/Source/JavaScriptCore/heap \
+  src/3rdparty/webkit/Source/JavaScriptCore/interpreter \
+  src/3rdparty/webkit/Source/JavaScriptCore/jit \
+  src/3rdparty/webkit/Source/JavaScriptCore/parser \
+  src/3rdparty/webkit/Source/JavaScriptCore/profiler \
+  src/3rdparty/webkit/Source/JavaScriptCore/runtime \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/gobject \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/qt \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/text \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/unicode \
+  src/3rdparty/webkit/Source/JavaScriptCore/wtf/unicode/icu \
+  src/3rdparty/webkit/Source/JavaScriptCore/yarr \
 
 # some source files need to be generated by moc from other source/header files before
 # they get #included again by the original source file in the compiling stage

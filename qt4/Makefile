@@ -9,29 +9,20 @@ VERBOSE     ?= @
 ECHO         = @echo
 DOWNLOAD_DIR = download
 CONTRIB_DIR  = contrib
-PATCHES_DIR  = ../../src/lib/qt4
+PATCHES_DIR  = src/lib/qt4/patches
 
 REP_DIR := $(realpath .)
 
 include $(REP_DIR)/lib/mk/qt_version.inc
 
-QT4_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/source
+QT4_URL = http://releases.qt-project.org/qt4/source
 QT4_TGZ = $(QT4).tar.gz
 
 QTSCRIPTCLASSIC_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/solutions/lgpl
 QTSCRIPTCLASSIC     = qtscriptclassic-1.0_1-opensource
 QTSCRIPTCLASSIC_TGZ = $(QTSCRIPTCLASSIC).tar.gz
 
-PATCHES = qt4_genode.patch \
-          qt4_nonblocking_sockets.patch \
-          qt4_no_search_for_resolv_lib.patch \
-          qt4_lwip_connect_semantics_adaption.patch \
-          previewer_example.patch \
-          textedit_example.patch \
-          qt4_no_exit_on_window_close.patch \
-          qt4_virtual_deletelater.patch \
-          qt4_renderwidget.patch \
-          qt4_include_time_h.patch
+PATCHES = $(shell cat $(PATCHES_DIR)/series)
 
 #
 # Utility to check if a tool is installed
@@ -57,7 +48,7 @@ $(CONTRIB_DIR)/$(QT4): $(CONTRIB_DIR) $(DOWNLOAD_DIR)/$(QT4_TGZ)
 	$(VERBOSE)tar xzf $(DOWNLOAD_DIR)/$(QT4_TGZ) -C $(CONTRIB_DIR)
 	$(VERBOSE)touch $(CONTRIB_DIR)/$(QT4)
 	$(VERBOSE)for p in $(PATCHES); do \
-	            patch -d $(CONTRIB_DIR)/$(QT4) -p1 -i $(PATCHES_DIR)/$$p; done
+	            patch -d $(CONTRIB_DIR)/$(QT4) -p1 -i ../../$(PATCHES_DIR)/$$p; done
 
 $(CONTRIB_DIR)/$(QTSCRIPTCLASSIC): $(CONTRIB_DIR) $(DOWNLOAD_DIR)/$(QTSCRIPTCLASSIC_TGZ)
 	$(VERBOSE)tar xzf $(DOWNLOAD_DIR)/$(QTSCRIPTCLASSIC_TGZ) -C $(CONTRIB_DIR)
