@@ -87,8 +87,6 @@ class Framebuffer::Driver
 			return true;
 		}
 
-		Mode   mode() { return Mode(_width, _height, Mode::RGB565); }
-		size_t size() { return BYTES_PER_PIXEL * _width * _height;  }
-
-		Ipu &ipu() { return _ipu; }
+		Mode mode() { return Mode(_width, _height, Mode::RGB565); }
+		Ipu &ipu()  { return _ipu; }
 };
