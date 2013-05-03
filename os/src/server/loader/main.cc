@@ -260,6 +260,15 @@ namespace Loader {
 			{
 				if (_child)
 					destroy(&_md_alloc, _child);
+
+				/*
+				 * The parent-service registry is populated by the 'Child'
+				 * on demand. Revert those allocations.
+				 */
+				while (Service *service = _parent_services.find_by_server(0)) {
+					_parent_services.remove(service);
+					destroy(env()->heap(), service);
+				}
 			}
 
 
