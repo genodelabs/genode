@@ -27,8 +27,9 @@ namespace Genode {
 		explicit Rm_session_client(Rm_session_capability session)
 		: Rpc_client<Rm_session>(session) { }
 
-		Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
-		                  bool use_local_addr, Local_addr local_addr,
+		Local_addr attach(Dataspace_capability ds, size_t size = 0,
+		                  off_t offset = 0, bool use_local_addr = false,
+		                  Local_addr local_addr = (void *)0,
 		                  bool executable = false)
 		{
 			return call<Rpc_attach>(ds, size, offset,
