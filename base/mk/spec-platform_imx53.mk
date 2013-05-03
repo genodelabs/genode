@@ -5,7 +5,7 @@
 #
 
 # denote wich specs are also fullfilled by this spec
-SPECS += cortex_a8 imx53 imx gpio
+SPECS += cortex_a8 imx53 imx gpio framebuffer
 
 # add repository relative include paths
 REP_INC_DIR += include/platform/imx53
