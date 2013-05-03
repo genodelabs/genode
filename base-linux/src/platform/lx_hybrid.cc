@@ -450,7 +450,12 @@ Thread_base::~Thread_base()
 			     ret, errno);
 	}
 
-	destroy(env()->heap(), _tid.meta_data);
+	Thread_meta_data_created *meta_data =
+		dynamic_cast<Thread_meta_data_created *>(_tid.meta_data);
+
+	if (meta_data)
+		destroy(env()->heap(), meta_data);
+
 	_tid.meta_data = 0;
 
 	/* inform core about the killed thread */
