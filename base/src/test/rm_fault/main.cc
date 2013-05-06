@@ -80,6 +80,7 @@ class Test_child : public Child_policy
 		Child _child;
 
 		Parent_service _log_service;
+		Parent_service _rm_service;
 
 	public:
 
@@ -94,7 +95,7 @@ class Test_child : public Child_policy
 		:
 			_entrypoint(cap, STACK_SIZE, "child", false),
 			_child(elf_ds, ram, cpu, rm, &_entrypoint, this),
-			_log_service("LOG")
+			_log_service("LOG"), _rm_service("RM")
 		{
 			/* start execution of the new child */
 			_entrypoint.activate();
@@ -111,8 +112,10 @@ class Test_child : public Child_policy
 
 		Service *resolve_session_request(const char *service, const char *)
 		{
-			/* forward log-session request to our parent */
-			return !strcmp(service, "LOG") ? &_log_service : 0;
+			/* forward white-listed session requests to our parent */
+			return !strcmp(service, "LOG") ? &_log_service
+			     : !strcmp(service, "RM")  ? &_rm_service
+			     : 0;
 		}
 
 		void filter_session_args(const char *service,

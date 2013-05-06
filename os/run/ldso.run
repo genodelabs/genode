@@ -17,7 +17,7 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<start name="test-ldso">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 		</start>
 	</config>
 }

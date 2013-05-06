@@ -34,6 +34,11 @@ using namespace Genode;
 extern int main(int argc, char **argv, char **envp);
 extern void init_exception_handling();  /* implemented in base/cxx */
 
+namespace Genode {
+	extern Rm_session *env_context_area_rm_session();
+}
+
+
 enum { ATEXIT_SIZE = 256 };
 
 
@@ -249,6 +254,9 @@ extern "C" int _main()
 	for (func = &_ctors_end; func != &_ctors_start; (*--func)());
 
 	/* now, it is save to call printf */
+
+	/* create the thread context area RM session */
+	env_context_area_rm_session();
 
 	/* call real main function */
 	int ret = main(genode_argc, genode_argv, genode_envp);

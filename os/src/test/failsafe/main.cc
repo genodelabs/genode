@@ -75,6 +75,7 @@ class Test_child : public Genode::Child_policy
 		Genode::Rom_connection _elf;
 		Genode::Child          _child;
 		Genode::Parent_service _log_service;
+		Genode::Parent_service _rm_service;
 
 	public:
 
@@ -89,7 +90,7 @@ class Test_child : public Genode::Child_policy
 			_elf(elf_name),
 			_child(_elf.dataspace(), _resources.ram.cap(),
 			       _resources.cpu.cap(), _resources.rm.cap(), &ep, this),
-			_log_service("LOG")
+			_log_service("LOG"), _rm_service("RM")
 		{ }
 
 
@@ -101,8 +102,10 @@ class Test_child : public Genode::Child_policy
 
 		Genode::Service *resolve_session_request(const char *service, const char *)
 		{
-			/* forward log-session request to our parent */
-			return !Genode::strcmp(service, "LOG") ? &_log_service : 0;
+			/* forward white-listed session requests to our parent */
+			return !Genode::strcmp(service, "LOG") ? &_log_service
+			     : !Genode::strcmp(service, "RM")  ? &_rm_service
+			     : 0;
 		}
 
 		void filter_session_args(const char *service,
@@ -230,6 +233,7 @@ void failsafe_loader_grand_child_test()
 			"<config>\n"
 			"  <parent-provides>\n"
 			"    <service name=\"ROM\"/>\n"
+			"    <service name=\"RM\"/>\n"
 			"    <service name=\"LOG\"/>\n"
 			"  </parent-provides>\n"
 			"  <default-route>\n"
