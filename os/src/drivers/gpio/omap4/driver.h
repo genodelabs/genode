@@ -1,6 +1,7 @@
 /*
  * \brief  Gpio driver for the OMAP4
  * \author Ivan Loskutov <ivan.loskutov@ksyslabs.org>
+ * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
  * \date   2012-06-23
  */
 
@@ -16,37 +17,28 @@
 #define _DRIVER_H_
 
 /* Genode includes */
-#include <os/attached_io_mem_dataspace.h>
+#include <drivers/board_base.h>
+#include <gpio/driver.h>
+#include <irq_session/connection.h>
 #include <timer_session/connection.h>
-#include <util/mmio.h>
-#include <base/signal.h>
 
 /* local includes */
 #include "gpio.h"
 
-
-namespace Gpio {
-	using namespace Genode;
-	class Driver;
-}
-
 static int verbose = 0;
 
-class Gpio::Driver
-{
-	public:
-		enum {
-			GPIO1_IRQ       = 29 + 32,
-			GPIO2_IRQ       = 30 + 32,
-			GPIO3_IRQ       = 31 + 32,
-			GPIO4_IRQ       = 32 + 32,
-			GPIO5_IRQ       = 33 + 32,
-			GPIO6_IRQ       = 34 + 32,
-		};
 
+class Omap4_driver : public Gpio::Driver
+{
 	private:
 
-		struct Timer_delayer : Timer::Connection, Mmio::Delayer
+		enum {
+			MAX_BANKS = 6,
+			MAX_PINS  = 32
+		};
+
+
+		struct Timer_delayer : Timer::Connection, Genode::Mmio::Delayer
 		{
 			/**
 			 * Implementation of 'Delayer' interface
@@ -54,384 +46,238 @@ class Gpio::Driver
 			void usleep(unsigned us) { Timer::Connection::usleep(us); }
 		} _delayer;
 
-		/* memory map */
-		enum {
-			GPIO1_MMIO_BASE = 0x4a310000,
-			GPIO1_MMIO_SIZE = 0x1000,
 
-			GPIO2_MMIO_BASE = 0x48055000,
-			GPIO2_MMIO_SIZE = 0x1000,
+		class Gpio_bank : public Genode::Thread<4096>
+		{
+			private:
 
-			GPIO3_MMIO_BASE = 0x48057000,
-			GPIO3_MMIO_SIZE = 0x1000,
+				Gpio_reg                          _reg;
+				Genode::Irq_connection            _irq;
+				Genode::Signal_context_capability _sig_cap[MAX_PINS];
+				bool                              _irq_enabled[MAX_PINS];
 
-			GPIO4_MMIO_BASE = 0x48059000,
-			GPIO4_MMIO_SIZE = 0x1000,
+			public:
 
-			GPIO5_MMIO_BASE = 0x4805b000,
-			GPIO5_MMIO_SIZE = 0x1000,
+				Gpio_bank(Genode::addr_t base, Genode::size_t size,
+				          unsigned irq)
+				: Genode::Thread<4096>("irq handler"),
+				  _reg(base, size), _irq(irq)
+				{
+					for (unsigned i = 0; i < MAX_PINS; i++)
+						_irq_enabled[i] = false;
+					start();
+				}
 
-			GPIO6_MMIO_BASE = 0x4805d000,
-			GPIO6_MMIO_SIZE = 0x1000,
+				void entry()
+				{
+					unsigned long status;
 
-			NR_GPIOS        = 6,
-			MAX_GPIOS       = 192,
+					while (true) {
+						_reg.write<Gpio_reg::Irqstatus_0>(0xffffffff);
+
+						_irq.wait_for_irq();
+
+						status = _reg.read<Gpio_reg::Irqstatus_0>();
+
+						for(unsigned i = 0; i < MAX_PINS; i++) {
+							if ((status & (1 << i)) && _irq_enabled[i] &&
+							    _sig_cap[i].valid())
+								Genode::Signal_transmitter(_sig_cap[i]).submit();
+						}
+					}
+				}
+
+				Gpio_reg* regs() { return &_reg; }
+
+				void irq(int pin, bool enable)
+				{
+					if (enable) {
+						_reg.write<Gpio_reg::Irqstatus_0>(1 << pin);
+						_reg.write<Gpio_reg::Irqstatus_set_0>(1 << pin);
+					}
+					else
+						_reg.write<Gpio_reg::Irqstatus_clr_0>(1 << pin);
+					_irq_enabled[pin] = enable;
+				}
+
+				void sigh(int pin, Genode::Signal_context_capability cap) {
+					_sig_cap[pin] = cap; }
 		};
 
 
-		Attached_io_mem_dataspace _gpio1_mmio;
-		Gpio_reg                  _gpio1;
-		Attached_io_mem_dataspace _gpio2_mmio;
-		Gpio_reg                  _gpio2;
-		Attached_io_mem_dataspace _gpio3_mmio;
-		Gpio_reg                  _gpio3;
-		Attached_io_mem_dataspace _gpio4_mmio;
-		Gpio_reg                  _gpio4;
-		Attached_io_mem_dataspace _gpio5_mmio;
-		Gpio_reg                  _gpio5;
-		Attached_io_mem_dataspace _gpio6_mmio;
-		Gpio_reg                  _gpio6;
+		static Gpio_bank _gpio_bank[MAX_BANKS];
 
-		Gpio_reg                  *_gpio_bank[NR_GPIOS];
+		int _gpio_bank_index(int gpio)  { return gpio >> 5;   }
+		int _gpio_index(int gpio)       { return gpio & 0x1f; }
 
-		bool                      irq_enabled[MAX_GPIOS];
-
-		Signal_context_capability _sign[MAX_GPIOS];
+		Omap4_driver()
+		{
+			for (int i = 0; i < MAX_BANKS; ++i) {
+				if (verbose)
+					PDBG("GPIO%d ctrl=%08x",
+						 i+1, _gpio_bank[i].regs()->read<Gpio_reg::Ctrl>());
+			}
+		}
 
 	public:
 
-		Driver();
+		static Omap4_driver& factory();
 
-		bool set_gpio_direction(int gpio, bool is_input);
-		bool set_gpio_dataout(int gpio, bool enable);
-		int  get_gpio_datain(int gpio);
-		bool set_gpio_debounce_enable(int gpio, bool enable);
-		bool set_gpio_debouncing_time(int gpio, unsigned int us);
-		bool set_gpio_falling_detect(int gpio, bool enable);
-		bool set_gpio_rising_detect(int gpio, bool enable);
-		bool set_gpio_irq_enable(int gpio, bool enable);
 
-		void register_signal(Signal_context_capability cap, int gpio)
+		/******************************
+		 **  Gpio::Driver interface  **
+		 ******************************/
+
+		void direction(unsigned gpio, bool input)
 		{
-			if (!_sign[gpio].valid())
-			{
-				_sign[gpio] = cap;
-			}
+			if (verbose) PDBG("gpio=%d input=%d", gpio, input);
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			gpio_reg->write<Gpio_reg::Oe>(input ? 1 : 0, _gpio_index(gpio));
 		}
 
-		void handle_event(int irq_number);
-
-	private:
-		Gpio_reg *_get_gpio_bank(int gpio)  { return _gpio_bank[gpio >> 5]; }
-		bool      _gpio_valid(int gpio)     { return (gpio < MAX_GPIOS) ? true : false; }
-		int       _get_gpio_index(int gpio) { return gpio & 0x1f; }
-
-
-		inline void _irq_signal_send(int gpio)
+		void write(unsigned gpio, bool level)
 		{
-			if (_sign[gpio].valid())
-			{
-				if (verbose)
-					PDBG("gpio=%d", gpio);
-				
-				Signal_transmitter transmitter(_sign[gpio]);
-				transmitter.submit();
-			}
+			if (verbose) PDBG("gpio=%d level=%d", gpio, level);
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+
+			if (level)
+				gpio_reg->write<Gpio_reg::Setdataout>(1 << _gpio_index(gpio));
+			else
+				gpio_reg->write<Gpio_reg::Cleardataout>(1 << _gpio_index(gpio));
 		}
 
-		inline void _irq_event(int gpio_bank, uint32_t status)
+		bool read(unsigned gpio)
 		{
-			for(int i=0; i<32; i++)
-			{
-				if ( (status & (1 << i)) && irq_enabled[(gpio_bank<<5) + i] )
-					_irq_signal_send( (gpio_bank<<5) + i );
-			}
+			if (verbose) PDBG("gpio=%d", gpio);
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			return gpio_reg->read<Gpio_reg::Datain>(_gpio_index(gpio));
 		}
 
-		void _handle_event_gpio1();
-		void _handle_event_gpio2();
-		void _handle_event_gpio3();
-		void _handle_event_gpio4();
-		void _handle_event_gpio5();
-		void _handle_event_gpio6();
+		void debounce_enable(unsigned gpio, bool enable)
+		{
+			if (verbose) PDBG("gpio=%d enable=%d", gpio, enable);
 
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			gpio_reg->write<Gpio_reg::Debounceenable>(enable ? 1 : 0,
+			                                          _gpio_index(gpio));
+		}
+
+		void debounce_time(unsigned gpio, unsigned long us)
+		{
+			if (verbose) PDBG("gpio=%d us=%ld", gpio, us);
+
+			unsigned char debounce;
+
+			if (us < 32)
+				debounce = 0x01;
+			else if (us > 7936)
+				debounce = 0xff;
+			else
+				debounce = (us / 0x1f) - 1;
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			gpio_reg->write<Gpio_reg::Debouncingtime::Time>(debounce);
+		}
+
+		void falling_detect(unsigned gpio)
+		{
+			if (verbose) PDBG("gpio=%d", gpio);
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			gpio_reg->write<Gpio_reg::Leveldetect0> (0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Leveldetect1> (0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Fallingdetect>(1, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Risingdetect> (0, _gpio_index(gpio));
+		}
+
+		void rising_detect(unsigned gpio)
+		{
+			if (verbose) PDBG("gpio=%d", gpio);
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			gpio_reg->write<Gpio_reg::Leveldetect0> (0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Leveldetect1> (0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Fallingdetect>(0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Risingdetect> (1, _gpio_index(gpio));
+		}
+
+		void high_detect(unsigned gpio)
+		{
+			if (verbose) PDBG("gpio=%d", gpio);
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			gpio_reg->write<Gpio_reg::Leveldetect0> (0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Leveldetect1> (1, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Fallingdetect>(0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Risingdetect> (0, _gpio_index(gpio));
+		}
+
+		void low_detect(unsigned gpio)
+		{
+			if (verbose) PDBG("gpio=%d", gpio);
+
+			Gpio_reg *gpio_reg = _gpio_bank[_gpio_bank_index(gpio)].regs();
+			gpio_reg->write<Gpio_reg::Leveldetect0> (1, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Leveldetect1> (0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Fallingdetect>(0, _gpio_index(gpio));
+			gpio_reg->write<Gpio_reg::Risingdetect> (0, _gpio_index(gpio));
+		}
+
+		void irq_enable(unsigned gpio, bool enable)
+		{
+			if (verbose) PDBG("gpio=%d enable=%d", gpio, enable);
+
+			_gpio_bank[_gpio_bank_index(gpio)].irq(_gpio_index(gpio), enable);
+		}
+
+		void register_signal(unsigned gpio,
+		                     Genode::Signal_context_capability cap)
+		{
+			if (verbose) PDBG("gpio=%d", gpio);
+
+			_gpio_bank[_gpio_bank_index(gpio)].sigh(_gpio_index(gpio), cap); }
+
+		void unregister_signal(unsigned gpio)
+		{
+			if (verbose) PDBG("gpio=%d", gpio);
+
+			Genode::Signal_context_capability cap;
+			_gpio_bank[_gpio_bank_index(gpio)].sigh(_gpio_index(gpio), cap);
+		}
+
+		bool gpio_valid(unsigned gpio) { return gpio < (MAX_PINS*MAX_BANKS); }
 };
 
 
-Gpio::Driver::Driver()
-:
-	_gpio1_mmio(GPIO1_MMIO_BASE, GPIO1_MMIO_SIZE),
-	_gpio1((addr_t)_gpio1_mmio.local_addr<void>()),
-	_gpio2_mmio(GPIO2_MMIO_BASE, GPIO2_MMIO_SIZE),
-	_gpio2((addr_t)_gpio2_mmio.local_addr<void>()),
-	_gpio3_mmio(GPIO3_MMIO_BASE, GPIO3_MMIO_SIZE),
-	_gpio3((addr_t)_gpio3_mmio.local_addr<void>()),
-	_gpio4_mmio(GPIO4_MMIO_BASE, GPIO4_MMIO_SIZE),
-	_gpio4((addr_t)_gpio4_mmio.local_addr<void>()),
-	_gpio5_mmio(GPIO5_MMIO_BASE, GPIO5_MMIO_SIZE),
-	_gpio5((addr_t)_gpio5_mmio.local_addr<void>()),
-	_gpio6_mmio(GPIO6_MMIO_BASE, GPIO6_MMIO_SIZE),
-	_gpio6((addr_t)_gpio6_mmio.local_addr<void>())
+Omap4_driver::Gpio_bank Omap4_driver::_gpio_bank[Omap4_driver::MAX_BANKS] = {
+	Gpio_bank(Genode::Board_base::GPIO1_MMIO_BASE,
+	          Genode::Board_base::GPIO1_MMIO_SIZE,
+	          Genode::Board_base::GPIO1_IRQ),
+	Gpio_bank(Genode::Board_base::GPIO2_MMIO_BASE,
+	          Genode::Board_base::GPIO2_MMIO_SIZE,
+	          Genode::Board_base::GPIO2_IRQ),
+	Gpio_bank(Genode::Board_base::GPIO3_MMIO_BASE,
+	          Genode::Board_base::GPIO3_MMIO_SIZE,
+	          Genode::Board_base::GPIO3_IRQ),
+	Gpio_bank(Genode::Board_base::GPIO4_MMIO_BASE,
+	          Genode::Board_base::GPIO4_MMIO_SIZE,
+	          Genode::Board_base::GPIO4_IRQ),
+	Gpio_bank(Genode::Board_base::GPIO5_MMIO_BASE,
+	          Genode::Board_base::GPIO5_MMIO_SIZE,
+	          Genode::Board_base::GPIO5_IRQ),
+	Gpio_bank(Genode::Board_base::GPIO6_MMIO_BASE,
+	          Genode::Board_base::GPIO6_MMIO_SIZE,
+	          Genode::Board_base::GPIO6_IRQ),
+};
+
+
+Omap4_driver& Omap4_driver::factory()
 {
-	_gpio_bank[0] = &_gpio1;
-	_gpio_bank[1] = &_gpio2;
-	_gpio_bank[2] = &_gpio3;
-	_gpio_bank[3] = &_gpio4;
-	_gpio_bank[4] = &_gpio5;
-	_gpio_bank[5] = &_gpio6;
-
-	for (int i = 0; i < NR_GPIOS; ++i)
-	{
-		uint32_t r = _gpio_bank[i]->read<Gpio_reg::Ctrl>();
-		if (verbose)
-			PDBG("GPIO%d ctrl=%08x", i+1, r);
-	}
-}
-
-
-bool Gpio::Driver::set_gpio_direction(int gpio, bool is_input)
-{
-	if (verbose)
-		PDBG("gpio=%d is_input=%d", gpio, is_input);
-
-	if (!_gpio_valid(gpio))
-		return false;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	uint32_t value = gpio_reg->read<Gpio_reg::Oe>();
-	if (is_input)
-		value |= (1 << _get_gpio_index(gpio));
-	else
-		value &= ~(1 << _get_gpio_index(gpio));
-	gpio_reg->write<Gpio_reg::Oe>(value);
-
-	return true;
-}
-
-
-bool Gpio::Driver::set_gpio_dataout(int gpio, bool enable)
-{
-	if (verbose)
-		PDBG("gpio=%d enable=%d", gpio, enable);
-
-	if (!_gpio_valid(gpio))
-		return false;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	if (enable)
-		gpio_reg->write<Gpio_reg::Setdataout>(1 << _get_gpio_index(gpio));
-	else
-		gpio_reg->write<Gpio_reg::Cleardataout>(1 << _get_gpio_index(gpio));
-
-	return true;
-}
-
-
-int Gpio::Driver::get_gpio_datain(int gpio)
-{
-	if (verbose)
-		PDBG("gpio=%d", gpio);
-
-	if (!_gpio_valid(gpio))
-		return -1;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	uint32_t value = gpio_reg->read<Gpio_reg::Datain>();
-
-	return (value & (1 << _get_gpio_index(gpio))) != 0 ;
-}
-
-
-bool Gpio::Driver::set_gpio_debounce_enable(int gpio, bool enable)
-{
-	if (verbose)
-		PDBG("gpio=%d enable=%d", gpio, enable);
-
-	if (!_gpio_valid(gpio))
-		return false;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	uint32_t value = gpio_reg->read<Gpio_reg::Debounceenable>();
-	if (enable)
-		value |= (1 << _get_gpio_index(gpio));
-	else
-		value &= ~(1 << _get_gpio_index(gpio));
-	gpio_reg->write<Gpio_reg::Debounceenable>(value);
-
-	return true;
-}
-
-
-bool Gpio::Driver::set_gpio_debouncing_time(int gpio, unsigned int us)
-{
-	if (verbose)
-		PDBG("gpio=%d us=%d", gpio, us);
-
-	if (!_gpio_valid(gpio))
-		return false;
-
-	unsigned char debounce;
-
-	if (us < 32)
-		debounce = 0x01;
-	else if (us > 7936)
-		debounce = 0xff;
-	else
-		debounce = (us / 0x1f) - 1;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	gpio_reg->write<Gpio_reg::Debouncingtime::Time>(debounce);
-
-	return true;
-}
-
-
-bool Gpio::Driver::set_gpio_falling_detect(int gpio, bool enable)
-{
-	if (verbose)
-		PDBG("gpio=%d enable=%d", gpio, enable);
-
-	if (!_gpio_valid(gpio))
-		return false;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	uint32_t value = gpio_reg->read<Gpio_reg::Fallingdetect>();
-	if (enable)
-		value |= (1 << _get_gpio_index(gpio));
-	else
-		value &= ~(1 << _get_gpio_index(gpio));
-	gpio_reg->write<Gpio_reg::Fallingdetect>(value);
-
-	return true;
-}
-
-
-bool Gpio::Driver::set_gpio_rising_detect(int gpio, bool enable)
-{
-	if (verbose)
-		PDBG("gpio=%d enable=%d", gpio, enable);
-
-	if (!_gpio_valid(gpio))
-		return false;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	uint32_t value = gpio_reg->read<Gpio_reg::Risingdetect>();
-	if (enable)
-		value |= (1 << _get_gpio_index(gpio));
-	else
-		value &= ~(1 << _get_gpio_index(gpio));
-	gpio_reg->write<Gpio_reg::Risingdetect>(value);
-
-	return true;
-}
-
-
-bool Gpio::Driver::set_gpio_irq_enable(int gpio, bool enable)
-{
-	if (verbose)
-		PDBG("gpio=%d enable=%d", gpio, enable);
-
-	if (!_gpio_valid(gpio))
-		return false;
-
-	Gpio_reg *gpio_reg = _get_gpio_bank(gpio);
-
-	if (enable)
-	{
-		gpio_reg->write<Gpio_reg::Irqstatus_0>(1 << _get_gpio_index(gpio));
-		gpio_reg->write<Gpio_reg::Irqstatus_set_0>(1 << _get_gpio_index(gpio));
-		irq_enabled[gpio] = true;
-	}
-	else
-	{
-		gpio_reg->write<Gpio_reg::Irqstatus_clr_0>(1 << _get_gpio_index(gpio));
-		irq_enabled[gpio] = false;
-	}
-
-	return true;
-}
-
-
-void Gpio::Driver::handle_event(int irq_number)
-{
-	if (verbose)
-		PDBG("IRQ #%d\n", irq_number-32);
-	switch(irq_number)
-	{
-		case GPIO1_IRQ: _handle_event_gpio1(); break;
-		case GPIO2_IRQ: _handle_event_gpio2(); break;
-		case GPIO3_IRQ: _handle_event_gpio3(); break;
-		case GPIO4_IRQ: _handle_event_gpio4(); break;
-		case GPIO5_IRQ: _handle_event_gpio5(); break;
-		case GPIO6_IRQ: _handle_event_gpio6(); break;
-	}
-}
-
-
-void Gpio::Driver::_handle_event_gpio1()
-{
-	int sts = _gpio1.read<Gpio_reg::Irqstatus_0>();
-	if (verbose)
-		PDBG("GPIO1 IRQSTATUS=%08x\n", sts);
-	_irq_event(0, sts);
-	_gpio1.write<Gpio_reg::Irqstatus_0>(0xffffffff);
-}
-
-
-void Gpio::Driver::_handle_event_gpio2()
-{
-	int sts = _gpio2.read<Gpio_reg::Irqstatus_0>();
-	if (verbose)
-		PDBG("GPIO2 IRQSTATUS=%08x\n", sts);
-	_irq_event(1, sts);
-	_gpio2.write<Gpio_reg::Irqstatus_0>(0xffffffff);
-}
-
-
-void Gpio::Driver::_handle_event_gpio3()
-{
-	int sts = _gpio3.read<Gpio_reg::Irqstatus_0>();
-	if (verbose)
-		PDBG("GPIO3 IRQSTATUS=%08x\n", sts);
-	_irq_event(2, sts);
-	_gpio3.write<Gpio_reg::Irqstatus_0>(0xffffffff);
-}
-
-
-void Gpio::Driver::_handle_event_gpio4()
-{
-	int sts = _gpio4.read<Gpio_reg::Irqstatus_0>();
-	if (verbose)
-		PDBG("GPIO4 IRQSTATUS=%08x\n", sts);
-	_irq_event(3, sts);
-	_gpio4.write<Gpio_reg::Irqstatus_0>(0xffffffff);
-}
-
-
-void Gpio::Driver::_handle_event_gpio5()
-{
-	int sts = _gpio5.read<Gpio_reg::Irqstatus_0>();
-	if (verbose)
-		PDBG("GPIO5 IRQSTATUS=%08x\n", sts);
-	_irq_event(4, sts);
-	_gpio5.write<Gpio_reg::Irqstatus_0>(0xffffffff);
-}
-
-
-void Gpio::Driver::_handle_event_gpio6()
-{
-	int sts = _gpio6.read<Gpio_reg::Irqstatus_0>();
-	if (verbose)
-		PDBG("GPIO6 IRQSTATUS=%08x\n", sts);
-	_irq_event(5, sts);
-	_gpio6.write<Gpio_reg::Irqstatus_0>(0xffffffff);
+	static Omap4_driver driver;
+	return driver;
 }
 
 #endif /* _DRIVER_H_ */

@@ -1,6 +1,7 @@
 /*
  * \brief  Connection to Gpio session
  * \author Ivan Loskutov <ivan.loskutov@ksyslabs.org>
+ * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
  * \date   2012-06-23
  */
 
@@ -22,11 +23,9 @@ namespace Gpio {
 
 	struct Connection : Genode::Connection<Session>, Session_client
 	{
-		Connection()
-		:
-			Genode::Connection<Session>(session("ram_quota=4K")),
-			Session_client(cap())
-		{ }
+		Connection(unsigned long gpio_pin)
+		: Genode::Connection<Session>(session("ram_quota=8K, gpio=%zd", gpio_pin)),
+		  Session_client(cap()) { }
 	};
 }
 

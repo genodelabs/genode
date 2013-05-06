@@ -1,6 +1,7 @@
 /*
  * \brief  Client-side Gpio session interface
  * \author Ivan Loskutov <ivan.loskutov@ksyslabs.org>
+ * \author Stefan Kalkowski <Stefan.kalkowski@genode-labs.com>
  * \date   2012-06-23
  */
 
@@ -25,56 +26,14 @@ namespace Gpio {
 		explicit Session_client(Session_capability session)
 		: Genode::Rpc_client<Session>(session) { }
 
-
-		void direction_output(int gpio, bool enable)
-		{
-			call<Rpc_direction_output>(gpio, enable);
-		}
-
-		void direction_input(int gpio)
-		{
-			call<Rpc_direction_input>(gpio);
-		}
-
-		void dataout(int gpio, bool enable)
-		{
-			call<Rpc_dataout>(gpio, enable);
-		}
-
-		int datain(int gpio)
-		{
-			return call<Rpc_datain>(gpio);
-		}
-
-		void debounce_enable(int gpio, bool enable)
-		{
-			call<Rpc_debounce_enable>(gpio, enable);
-		}
-
-		void debouncing_time(int gpio, unsigned int us)
-		{
-			call<Rpc_debouncing_time>(gpio, us);
-		}
-
-		void falling_detect(int gpio, bool enable)
-		{
-			call<Rpc_falling_detect>(gpio, enable);
-		}
-
-		void rising_detect(int gpio, bool enable)
-		{
-			call<Rpc_rising_detect>(gpio, enable);
-		}
-
-		void irq_enable(int gpio, bool enable)
-		{
-			call<Rpc_irq_enable>(gpio, enable);
-		}
-
-		void irq_sigh(Signal_context_capability cap, int gpio)
-		{
-			call<Rpc_irq_sigh>(cap, gpio);
-		}
+		void direction(Direction d)      { call<Rpc_direction>(d);       }
+		void write(bool level)           { call<Rpc_write>(level);       }
+		bool read()                      { return call<Rpc_read>();      }
+		void debouncing(unsigned int us) { call<Rpc_debouncing>(us);     }
+		void irq_type(Irq_type it)       { call<Rpc_irq_type>(it);       }
+		void irq_enable(bool enable)     { call<Rpc_irq_enable>(enable); }
+		void irq_sigh(Genode::Signal_context_capability cap) {
+			call<Rpc_irq_sigh>(cap); }
 	};
 }
 
