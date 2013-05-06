@@ -50,8 +50,8 @@ namespace Loader {
 				void _close(Rom_session_component *rom)
 				{
 					_ep.dissolve(rom);
-					destroy(&_md_alloc, rom);
 					_rom_sessions.remove(rom);
+					destroy(&_md_alloc, rom);
 				}
 
 				Local_rom_service(Rpc_entrypoint      &ep,
