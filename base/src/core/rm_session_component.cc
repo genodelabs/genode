@@ -75,7 +75,7 @@ namespace Genode {
 			addr_t base = 0;
 			for (size_t try_size_log2 = get_page_size_log2();
 			     try_size_log2 < sizeof(addr_t)*8 ; try_size_log2++) {
-				addr_t fpage_mask = ~((1 << try_size_log2) - 1);
+				addr_t fpage_mask = ~((1UL << try_size_log2) - 1);
 				addr_t try_base = _fault_addr & fpage_mask;
 
 				/* check lower bound of existing fault area */
@@ -401,7 +401,7 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 			 * store. The backing store would constrain the mapping size
 			 * anyway such that a higher alignment of the region is of no use.
 			 */
-			if (((dsc->map_src_addr() + offset) & ((1 << align_log2) - 1)) != 0)
+			if (((dsc->map_src_addr() + offset) & ((1UL << align_log2) - 1)) != 0)
 				continue;
 
 			/* try allocating the align region */

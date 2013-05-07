@@ -39,7 +39,7 @@ namespace Genode {
 
 	template <typename T>
 	static inline T align_addr(T addr, int align) {
-		return (addr + _align_offset(align)) & _align_mask((T)align); }
+		return (addr + _align_offset((T)align)) & _align_mask((T)align); }
 
 
 	/**

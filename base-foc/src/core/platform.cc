@@ -295,7 +295,7 @@ void Platform::_setup_mem_alloc()
 
 	for (unsigned i = 0; i < sizeof(log2_sizes)/sizeof(*log2_sizes); ++i) {
 		size_t log2_size = log2_sizes[i];
-		size_t size      = 1 << log2_size;
+		size_t size      = 1UL << log2_size;
 		int    err       = 0;
 		addr_t addr      = 0;
 		Region region;

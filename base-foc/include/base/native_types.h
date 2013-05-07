@@ -138,7 +138,7 @@ namespace Genode {
 			 **  Interface provided by all platforms  **
 			 *******************************************/
 
-			int   local_name() const { return _idx ? _idx->id() : 0;        }
+			long  local_name() const { return _idx ? _idx->id() : 0;        }
 			Dst   dst()        const { return _idx ? Dst(_idx->kcap()) : Dst(); }
 			bool  valid()      const { return (_idx != 0) && _idx->valid(); }
 			void *local()      const { return _ptr;                         }
