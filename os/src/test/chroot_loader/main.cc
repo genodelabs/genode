@@ -61,6 +61,7 @@ static char const *subsystem_config()
 	       "    <service name=\"CPU\"/>\n"
 	       "    <service name=\"RM\"/>\n"
 	       "    <service name=\"PD\"/>\n"
+	       "    <service name=\"SIGNAL\"/>\n"
 	       "    <service name=\"Timer\"/>\n"
 	       "  </parent-provides>\n"
 	       "  <default-route>\n"
