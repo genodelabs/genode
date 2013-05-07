@@ -36,6 +36,7 @@ SRC_CC += console.cc \
           platform.cc \
           platform_pd.cc \
           platform_thread.cc \
+          context_area.cc \
           ram_session_component.cc \
           ram_session_support.cc \
           rm_session_component.cc \
