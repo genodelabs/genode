@@ -20,6 +20,7 @@ install_config {
 			<service name="RM"/>
 			<service name="CPU"/>
 			<service name="ROM"/>
+			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service><parent/></any-service>
@@ -40,6 +41,7 @@ install_config {
 					<service name="LOG"/>
 					<service name="CAP"/>
 					<service name="ROM"/>
+					<service name="SIGNAL"/>
 				</parent-provides>
 				<default-route>
 					<any-service><parent/></any-service>
