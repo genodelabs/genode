@@ -56,11 +56,11 @@ namespace Ipxe {
 				PINF("--- init rx_callbacks");
 				dde_ipxe_nic_register_rx_callback(dde_rx_handler);
 
-				PINF("--- get MAC address");
 				dde_ipxe_nic_get_mac_addr(1, _mac_addr.addr);
-				PINF("    %02x:%02x:%02x:%02x:%02x:%02x",
-				     _mac_addr.addr[0], _mac_addr.addr[1], _mac_addr.addr[2],
-				     _mac_addr.addr[3], _mac_addr.addr[4], _mac_addr.addr[5]);
+				PINF("--- get MAC address %02x:%02x:%02x:%02x:%02x:%02x",
+				     _mac_addr.addr[0] & 0xff, _mac_addr.addr[1] & 0xff,
+				     _mac_addr.addr[2] & 0xff, _mac_addr.addr[3] & 0xff,
+				     _mac_addr.addr[4] & 0xff, _mac_addr.addr[5] & 0xff);
 			}
 
 			void rx_handler(const char *packet, unsigned packet_len)

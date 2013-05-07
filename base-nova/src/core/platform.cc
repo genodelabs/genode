@@ -525,8 +525,9 @@ Platform::Platform() :
 
 			/* all behind rom module will be cleared, copy the command line */
 			char *name_tmp = commandline_to_basename(reinterpret_cast<char *>(aux));
-			name = new (core_mem_alloc()) char [aux_len];
-			memcpy(name, name_tmp, aux_len);
+			unsigned name_tmp_size = aux_len - (name_tmp - reinterpret_cast<char *>(aux));
+			name = new (core_mem_alloc()) char [name_tmp_size];
+			memcpy(name, name_tmp, name_tmp_size);
 
 		} else {
 

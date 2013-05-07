@@ -13,6 +13,7 @@ set build_components {
 
 lappend_if [have_spec     x86] build_components drivers/nic
 lappend_if [have_spec     pci] build_components drivers/pci
+lappend_if [have_spec    acpi] build_components drivers/acpi
 lappend_if [have_spec     ps2] build_components drivers/input/ps2
 lappend_if [have_spec lan9118] build_components drivers/nic
 
@@ -44,17 +45,31 @@ set config  {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="uart_drv">
+	<start name="kdb_uart_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Terminal"/></provides>
-		<config><policy label="l4linux" uart="1"/></config>
+		<config><policy label="l4linux" uart="0"/></config>
 	</start> }
 
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides><service name="PCI"/></provides>
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
 	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
 
 append_if [have_spec vesa] config {
 	<start name="vesa_drv">
@@ -92,11 +107,11 @@ append config {
 }
 
 append_if [have_spec x86] config {
-		<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
+		<config args="mem=64M l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
 }
 
 append_if [have_spec arm] config {
-		<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz"/>
+		<config args="mem=64M l4x_rd=initrd.gz"/>
 }
 
 append config {
@@ -108,8 +123,9 @@ install_config $config
 #
 # Boot modules
 #
-set boot_modules { core init timer uart_drv l4linux initrd.gz }
+set boot_modules { core init timer kdb_uart_drv l4linux initrd.gz }
 lappend_if [have_spec     pci] boot_modules pci_drv
+lappend_if [have_spec    acpi] boot_modules acpi_drv
 lappend_if [have_spec     ps2] boot_modules ps2_drv
 lappend_if [have_spec   pl11x] boot_modules pl11x_drv
 lappend_if [have_spec    vesa] boot_modules vesa_drv
@@ -132,7 +148,6 @@ build_boot_image  [join $boot_modules " "]
 # Qemu
 #
 append qemu_args " -m 128 -nographic "
-append qemu_args " -serial file:kdb.log "
 append qemu_args " -serial mon:stdio "
 append_if [have_spec     x86] qemu_args " -smp 2,cores=2 "
 append_if [have_spec     x86] qemu_args " -net nic,model=e1000 -net user "
@@ -153,4 +168,4 @@ expect {
 }
 
 puts "Test succeeded"
-exec rm bin/initrd.gz kdb.log
+exec rm bin/initrd.gz

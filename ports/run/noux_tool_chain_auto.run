@@ -1,0 +1,29 @@
+#
+# \brief  Noux environment for building the Genode/NOVA demo scenario on Genode
+# \author Christian Prochaska
+# \date   2012-11-26
+#
+
+set platform          "nova_x86_32"
+set platform_base_dir "base-nova"
+set platform_pkgs     ""
+set platform_cmds     {
+                         make core &&
+                         exit 234
+} 
+
+source ${genode_dir}/ports/run/noux_tool_chain.inc
+
+append qemu_args " -m 768 "
+
+set time_start [ clock seconds ]
+
+run_genode_until {child /bin/bash exited with exit value 234} 600 
+
+set time_end [ clock seconds ]
+set git_info [ exec git --git-dir=$genode_dir/.git describe ]
+
+puts "Testing \" [ clock format $time_start -format "%Y-%m-%d %H:%M:%S"], commit: ($git_info)\" in : "
+puts "Testing \"all\" in printf.wv:"
+puts "! PERF: runtime [expr $time_end - $time_start ] seconds ok"
+puts "Test succeeded"

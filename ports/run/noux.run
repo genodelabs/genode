@@ -55,26 +55,30 @@ build_boot_image {
 	libc_noux.lib.so coreutils.tar
 }
 
-#
-# Redirect the output of Noux via the virtual serial port 1 into a file to be
-# dumped after the successful completion of the test.
-#
-set noux_output_file "noux_output.log"
+if {[is_qemu_available]} {
+	#
+	# Redirect the output of Noux via the virtual serial port 1 into a file to be
+	# dumped after the successful completion of the test.
+	#
+	set noux_output_file "noux_output.log"
 
-append qemu_args " -nographic"
-append qemu_args " -serial mon:stdio"
-append qemu_args " -serial file:$noux_output_file"
+	append qemu_args " -nographic"
+	append qemu_args " -serial mon:stdio"
+	append qemu_args " -serial file:$noux_output_file"
 
-if {[have_spec x86_64]} {
+	if {[have_spec x86_64]} {
         # coreutils.tar is really huge when built for x86_64
         append qemu_args " -m 300 "
+	}
 }
 
 run_genode_until "child /bin/ls exited with exit value 0.*\n" 30
 
-puts "[exec cat $noux_output_file]"
+if {[is_qemu_available]} {
+	puts "[exec cat $noux_output_file]"
 
-exec rm bin/coreutils.tar
-exec rm $noux_output_file
+	exec rm bin/coreutils.tar
+	exec rm $noux_output_file
+}
 
 puts "Test succeeded"

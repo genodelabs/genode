@@ -111,6 +111,7 @@ proc build_boot_image {binaries} { }
 #
 # \param  wait_for_re    regular expression that matches the test completion
 # \param  timeout_value  timeout in seconds
+# \param  spawn_id       spawn_id of a already running and spawned process
 # \global output         contains the core output (modified)
 #
 # If the function is called without any argument, Genode is executed in
@@ -122,7 +123,7 @@ proc build_boot_image {binaries} { }
 # This function must be implemented by the platform-specific test environment.
 # If not implemented, the program exits with the error code -3.
 #
-proc run_genode_until {{wait_for_re forever} {timeout_value 0}} {
+proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
 	puts stderr "Error: 'run_genode_until' is not implemented for this platform"
 	exit -3
 }
@@ -264,6 +265,10 @@ set cross_dev_prefix [get_cmd_arg --cross-dev-prefix ""]
 set specs            [get_cmd_arg --specs            ""]
 set repositories     [get_cmd_arg --repositories     ""]
 set qemu_args        [get_cmd_arg --qemu-args        ""]
+set run_target       [get_cmd_arg --target       "qemu"]
+set serial_dev       [get_cmd_arg --serial-dev "/dev/ttyUSB0"]
+
+
 
 #
 # Enable run scripts to extend 'qemu_arg' via 'append' without bothering
@@ -405,22 +410,40 @@ proc create_iso_image_from_run_dir { } {
 	}
 }
 
+##
+# Wait for a specific output of a already running spawned process
+#
+proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
+	global output
+
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+		interact $running_spawn_id
+	} else {
+		set timeout $timeout_value
+	}
+
+	expect {
+		-i $running_spawn_id -re $wait_for_re { }
+		eof     { puts stderr "Error: Spawned process died unexpectedly";   exit -3 }
+		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+	}
+	set output $expect_out(buffer)
+}
 
 ##
 # Execute scenario using Qemu
 #
 proc spawn_qemu { wait_for_re timeout_value } {
-	global output
 	global qemu_args
 	global qemu
 	global spawn_id
+	global run_target
 
 	#
 	# Back out on platforms w/o Qemu support
 	#
-	if {[have_spec platform_panda] || [have_spec platform_arndale]}  {
-		puts stderr "skipping execution because platform is not supported by qemu"
-		return 0 }
+	if {![is_qemu_available]} { return 0 }
 
 	if {[have_spec x86_32]} { set qemu "qemu-system-i386" }
 	if {[have_spec x86_64]} { set qemu "qemu-system-x86_64" }
@@ -449,7 +472,7 @@ proc spawn_qemu { wait_for_re timeout_value } {
 
 	# on x86, we support booting via pxe or iso image [default]
 	if {[have_spec x86]} {
-		if {[have_spec boot_pxe]} {
+		if {[regexp "qemu" $run_target] && [regexp "pxe" $run_target]} {
 			append qemu_args " -boot n -tftp [run_dir] -bootp boot/pulsar -no-reboot -no-shutdown "
 		} else {
 			append qemu_args " -cdrom [run_dir].iso "
@@ -459,15 +482,25 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	# on ARM, we supply the boot image as kernel
 	if {[have_spec arm]} { append qemu_args " -kernel [run_dir]/image.elf " }
 
-	set timeout $timeout_value
-	set pid [eval "spawn $qemu $qemu_args"]
-	if {$wait_for_re == "forever"} { interact $pid }
-	expect {
-		-re $wait_for_re { }
-		eof     { puts stderr "Error: Qemu died unexpectedly";   exit -3 }
-		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+	eval spawn $qemu $qemu_args
+	set qemu_spawn_id $spawn_id
+	wait_for_output $wait_for_re $timeout_value $qemu_spawn_id
+}
+
+
+##
+# Check whether Qemu support is available
+#
+proc is_qemu_available { } {
+	global run_target
+
+	if {![regexp "qemu" $run_target]} { return false }
+
+	if {[have_spec platform_panda] || [have_spec platform_arndale]}  {
+		puts stderr "skipping execution because platform is not supported by qemu"
+		return false
 	}
-	set output $expect_out(buffer)
+	return true
 }
 
 
@@ -475,25 +508,40 @@ proc spawn_qemu { wait_for_re timeout_value } {
 # Check whether AMT support is available
 #
 proc is_amt_available { } {
-	if {![have_spec x86]} { return false }
+	global run_target
+
+	if {![have_spec x86] || ![regexp "amt" $run_target]} { return false }
 
 	if {[info exists ::env(AMT_TEST_MACHINE_IP)] && 
 	    [info exists ::env(AMT_TEST_MACHINE_PWD)] &&
 		[have_installed amtterm] &&
 		[have_installed amttool]} {
-		return true;
+		return true
 	}
 	puts "No support for Intel's AMT detected."
-	return false;
+	return false
+}
+
+
+##
+# Check whether output is expected via a local attached serial device
+#
+proc is_serial_available { } {
+	global run_target
+
+	if {![regexp "serial" $run_target]} { return false }
+
+	return true
 }
 
 
 ##
 # Execute scenario using Intel's AMT 
 #
-proc spawn_amt { wait_for_re timeout_value } {
-	if {![is_amt_available]} {
-		return }
+proc spawn_amt { wait_for_re timeout_value} {
+	global spawn_id
+
+	if {![is_amt_available]} { return 0 }
 
 	#
 	# amttool expects in the environment variable AMT_PASSWORD the password
@@ -562,6 +610,59 @@ proc spawn_amt { wait_for_re timeout_value } {
 	global output
 	set output $expect_out(buffer)
 }
+
+
+##
+# Reset test machine via IP power plug NETIO-230B from Koukaam
+#
+proc power_plug_reset { } {
+	set server_ip "10.0.0.5"
+	set user_name "admin"
+	set password  "admin"
+	set power_port [get_cmd_arg --reset-port 1]
+
+	spawn telnet $server_ip 1234
+	expect "KSHELL V1.3"
+	send "login $user_name $password\n"
+	expect "250 OK"
+	send "port $power_port\n"
+	expect -re {250 [0-9]+.*\n}
+	regexp -all {[0-9]+} $expect_out(0,string) power_status
+	if {!$power_status} {
+		puts "port $power_port is off - switching it on"
+		send "port $power_port 1\n"
+		expect "250 OK"
+	} else {
+		puts "port $power_port is on - reset port"
+		send "port $power_port int\n"
+		expect "250 OK"
+	}
+}
+
+
+##
+# Execute scenario expecting output via serial device
+#
+proc spawn_serial { wait_for_re timeout_value} {
+	global spawn_id
+	global serial_dev
+	global run_target
+
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+	} else {
+		set timeout_value [expr $timeout_value + 30]
+	}
+
+	if {[regexp "reset" $run_target]} {
+		power_plug_reset
+	}
+	
+	spawn picocom -b 115200 $serial_dev
+	set serial_spawn_id $spawn_id
+	wait_for_output $wait_for_re $timeout_value $serial_spawn_id
+}
+
 
 ##
 # Determine terminal program

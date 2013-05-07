@@ -1,0 +1,157 @@
+#
+# \brief  Test ping
+# \author Josef Soentgen
+# \date   2013-01-06
+#
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/pci drivers/timer drivers/nic
+	test/lwip/pingpong/client
+}
+
+lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/usb
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start> }
+
+append_if [expr [have_spec omap4] || [have_spec exynos5]] config {
+	<start name="usb_drv" priority="-1">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<config>
+			<nic mac="2e:60:90:0c:4e:02" />
+		</config>
+	</start>}
+
+append_if [expr ![have_spec omap4] && ![have_spec exynos5]] config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
+
+# establish serial connection with the server system
+spawn picocom -b 115200 /dev/ttyUSB0
+set server_spawn_id $spawn_id
+set timeout -1
+expect -i $server_spawn_id "Terminal ready"
+
+# get IP address from server
+expect {
+	-i $server_spawn_id
+	-re "got IP address (.*)\033.*\n" { set ip_addr $expect_out(1,string) }
+}
+puts "got server IP address: $ip_addr"
+
+append config {
+	<start name="test-ping_client_libc_lwip">
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<arg value="test-ping_client"/>
+			<arg value="-verbose"/>
+			<arg value="0"/>
+			<arg value="-startsize"/>
+			<arg value="1024"/>
+			<arg value="-endsize"/>
+			<arg value="1024"/>
+			<arg value="-serverip"/> }
+append config "
+			<arg value=\"$ip_addr\"/>
+		</config>
+	</start> "
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so libc_log.lib.so lwip_nic_dhcp.lib.so lwip.lib.so
+	test-ping_client_libc_lwip
+}
+
+# platform-specific modules
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec omap4]         boot_modules usb_drv
+lappend_if [expr ![have_spec omap4]] boot_modules nic_drv
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+# qemu config
+append qemu_args " -m 128 -nographic "
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user "
+
+expect -i $server_spawn_id "wait..."
+
+run_genode_until {Sucessfully connected to server.} 60
+
+expect -i $server_spawn_id "client 3 connected..."
+
+set time_start [clock milliseconds]
+
+set timeout -1
+expect {
+	-i $server_spawn_id
+	-re "received .*\n" { }
+}
+
+set time_end [clock milliseconds]
+
+puts "\nTest succeeded in [expr $time_end - $time_start] milliseconds."
+
+# vi: set ft=tcl :
