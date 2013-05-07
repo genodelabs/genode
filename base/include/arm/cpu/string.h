@@ -1,5 +1,5 @@
 /*
- * \brief  Cpu specifi memcpy
+ * \brief  ARM-specific memcpy
  * \author Sebastian Sumpf
  * \author Stefan Kalkowski
  * \date   2012-08-02
