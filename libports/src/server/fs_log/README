@@ -1,0 +1,18 @@
+LOG server that writes log messages onto a file system.
+
+Using this component, log messages of different processes can be redirected
+to files on a file-system service. The assignment of processes to files can
+be expressed in the configuration as follows:
+
+! <start name="fs_log">
+!   <resource name="RAM" quantum="2M"/>
+!   <provides><service name="LOG"/></provides>
+!   <config>
+!     <policy label="noux"    file="/noux.log" />
+!     <policy label="noux ->" file="/noux_process.log" />
+!   </config>
+! </start>
+
+In this example, all messages originating from the noux process are directed
+to the file '/noux.log'. All messages originating from children of the noux
+process end up in the file '/noux_process.log'.

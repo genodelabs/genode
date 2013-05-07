@@ -314,6 +314,9 @@ Separate components:
 :'os/src/server/terminal_log':
   Adapter for forwarding LOG messages to a terminal session.
 
+:'libports/src/server/fs_log':
+  Adapter that writes LOG messages to files on a file system.
+
 :'demo/src/server/nitlog':
   Provides a LOG session, printing log output on screen via a nitpicker
   session.
