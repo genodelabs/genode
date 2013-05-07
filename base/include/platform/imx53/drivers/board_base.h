@@ -92,6 +92,14 @@ namespace Genode
 			CCM_BASE           = 0x53FD4000,
 			CCM_SIZE           = 0x00004000,
 
+			I2C_2_IRQ          = 63,
+			I2C_2_BASE         = 0x63fc4000,
+			I2C_2_SIZE         = 0x00004000,
+
+			I2C_3_IRQ          = 64,
+			I2C_3_BASE         = 0x53fec000,
+			I2C_3_SIZE         = 0x00004000,
+
 			IIM_BASE           = 0x63f98000,
 			IIM_SIZE           = 0x00004000,
 

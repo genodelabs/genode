@@ -75,7 +75,11 @@ append_if [have_spec imx53] config {
 		<provides><service name="Platform"/></provides>
 		<config/>
 	</start>
-}
+	<start name="input_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+		<config/>
+	</start> }
 
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
@@ -126,6 +130,7 @@ lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec usb]         boot_modules usb_drv
 lappend_if [have_spec gpio]        boot_modules gpio_drv
 lappend_if [have_spec imx53]       boot_modules platform_drv
+lappend_if [have_spec imx53]       boot_modules input_drv
 
 build_boot_image $boot_modules
 

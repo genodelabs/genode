@@ -21,7 +21,12 @@ namespace Platform {
 
 	struct Session : Genode::Session
 	{
-		enum Device { IPU };
+		enum Device {
+			IPU,
+			I2C_2,
+			I2C_3,
+			BUTTONS,
+		};
 
 		enum Board_revision {
 			SMD = 2,  /* Freescale i.MX53 SMD Tablet */

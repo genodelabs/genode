@@ -51,9 +51,16 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 			struct Bypass_ipu_hs : Bitfield<18, 1> { };
 		};
 
+		struct Ccgr1 : Register<0x6c, 32>
+		{
+			struct I2c_1 : Bitfield<18, 2> { };
+			struct I2c_2 : Bitfield<20, 2> { };
+			struct I2c_3 : Bitfield<22, 2> { };
+		};
+
 		struct Ccgr5 : Register<0x7c, 32>
 		{
-			struct Ipu_clk_en : Bitfield<10, 2> { };
+			struct Ipu : Bitfield<10, 2> { };
 		};
 
 	public:
@@ -61,11 +68,15 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 		Ccm()
 		: Genode::Attached_io_mem_dataspace(Genode::Board_base::CCM_BASE,
 		                                    Genode::Board_base::CCM_SIZE),
-		  Genode::Mmio((Genode::addr_t)local_addr<void>()) {}
+		  Genode::Mmio((Genode::addr_t)local_addr<void>()) { }
+
+		void i2c_1_enable(void) { write<Ccgr1::I2c_1>(3); }
+		void i2c_2_enable(void) { write<Ccgr1::I2c_2>(3); }
+		void i2c_3_enable(void) { write<Ccgr1::I2c_3>(3); }
 
 		void ipu_clk_enable(void)
 		{
-			write<Ccgr5::Ipu_clk_en>(3);
+			write<Ccgr5::Ipu>(3);
 			write<Ccdr::Ipu_hs_mask>(0);
 			write<Clpcr::Bypass_ipu_hs>(0);
 			write<Cscmr2>(0xa2b32f0b);
@@ -74,7 +85,7 @@ class Ccm : public Genode::Attached_io_mem_dataspace,
 
 		void ipu_clk_disable(void)
 		{
-			write<Ccgr5::Ipu_clk_en>(0);
+			write<Ccgr5::Ipu>(0);
 			write<Ccdr::Ipu_hs_mask>(1);
 			write<Clpcr::Bypass_ipu_hs>(1);
 		}

@@ -58,7 +58,18 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			case Session::IPU:
 				_src.reset_ipu();
 				_ccm.ipu_clk_enable();
-				_iomux.enable_di1();
+				_iomux.ipu_enable();
+				break;
+			case Session::I2C_2:
+				_ccm.i2c_2_enable();
+				_iomux.i2c_2_enable();
+				break;
+			case Session::I2C_3:
+				_ccm.i2c_3_enable();
+				_iomux.i2c_3_enable();
+				break;
+			case Session::BUTTONS:
+				_iomux.buttons_enable();
 				break;
 			default:
 				PWRN("Invalid device");
