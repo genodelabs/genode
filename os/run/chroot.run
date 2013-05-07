@@ -10,13 +10,26 @@ if {![have_spec linux]} { puts "Run script requires Linux"; exit 0 }
 # Build
 #
 
-build { core init drivers/timer/linux test/timer }
+build { core init drivers/timer test/timer }
 
 if {[catch { exec which setcap }]} {
 	puts stderr "Error: setcap not available, please install the libcap2-bin package"
 	return 0
 }
 
+#
+# Clean up remains of a potentially failed previous run
+#
+
+proc chroot_path            { } { return "/tmp/chroot-test" }
+proc chroot_cwd_path        { } { return "[chroot_path][pwd]/[run_dir]" }
+proc chroot_genode_tmp_path { } { return "[chroot_path]/tmp/genode-[exec id -u]" }
+
+proc cleanup_chroot { } {
+	umount_and_rmdir [chroot_cwd_path]
+	umount_and_rmdir [chroot_path]/lib
+	umount_and_rmdir [chroot_path]/lib64
+}
 
 create_boot_directory
 
@@ -34,6 +47,7 @@ set config {
 			<service name="CPU"/>
 			<service name="RM"/>
 			<service name="PD"/>
+			<service name="SIGNAL"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -46,16 +60,6 @@ set config {
 			<resource name="RAM" quantum="1G"/>
 		</start>
 	</config>
-}
-
-proc chroot_path            { } { return "/tmp/chroot-test" }
-proc chroot_cwd_path        { } { return "[chroot_path][pwd]/[run_dir]" }
-proc chroot_genode_tmp_path { } { return "[chroot_path]/tmp/genode-[exec id -u]" }
-
-proc cleanup_chroot { } {
-	umount_and_rmdir [chroot_cwd_path]
-	umount_and_rmdir [chroot_path]/lib
-	umount_and_rmdir [chroot_path]/lib64
 }
 
 # replace 'chroot_path' marker in config with actual path
