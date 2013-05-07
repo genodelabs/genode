@@ -266,6 +266,7 @@ set specs            [get_cmd_arg --specs            ""]
 set repositories     [get_cmd_arg --repositories     ""]
 set qemu_args        [get_cmd_arg --qemu-args        ""]
 set run_target       [get_cmd_arg --target       "qemu"]
+set serial_dev       [get_cmd_arg --serial-dev "/dev/ttyUSB0"]
 
 
 
@@ -612,17 +613,51 @@ proc spawn_amt { wait_for_re timeout_value} {
 
 
 ##
+# Reset test machine via IP power plug NETIO-230B from Koukaam
+#
+proc power_plug_reset { } {
+	set server_ip "10.0.0.5"
+	set user_name "admin"
+	set password  "admin"
+	set power_port [get_cmd_arg --reset-port 1]
+
+	spawn telnet $server_ip 1234
+	expect "KSHELL V1.3"
+	send "login $user_name $password\n"
+	expect "250 OK"
+	send "port $power_port\n"
+	expect -re {250 [0-9]+.*\n}
+	regexp -all {[0-9]+} $expect_out(0,string) power_status
+	if {!$power_status} {
+		puts "port $power_port is off - switching it on"
+		send "port $power_port 1\n"
+		expect "250 OK"
+	} else {
+		puts "port $power_port is on - reset port"
+		send "port $power_port int\n"
+		expect "250 OK"
+	}
+}
+
+
+##
 # Execute scenario expecting output via serial device
 #
 proc spawn_serial { wait_for_re timeout_value} {
 	global spawn_id
+	global serial_dev
+	global run_target
 
-	if {$wait_for_re != "forever"} {
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+	} else {
 		set timeout_value [expr $timeout_value + 30]
 	}
 
-	set serial_dev [get_cmd_arg --serial-dev "/dev/ttyUSB0"]
-
+	if {[regexp "reset" $run_target]} {
+		power_plug_reset
+	}
+	
 	spawn picocom -b 115200 $serial_dev
 	set serial_spawn_id $spawn_id
 	wait_for_output $wait_for_re $timeout_value $serial_spawn_id

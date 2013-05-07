@@ -280,6 +280,15 @@ proc build_boot_image_arm {binaries} {
 	build_boot_uimage
 
 	puts "\nboot image: [run_dir]/image.elf\n"
+
+	# set symbolic link to image.elf file in TFTP directory for PXE boot
+	if {[info exists ::env(PXE_TFTP_DIR_BASE)] &&
+	    [info exists ::env(PXE_TFTP_DIR_OFFSET)]} {
+		exec ln -sf "[pwd]/[run_dir]/image.elf" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)"
+		if {[have_spec uboot]} {
+			exec ln -sf "[pwd]/[run_dir]/uImage" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)/uImage"
+		}
+	}
 }
 
 
