@@ -32,7 +32,6 @@ class Framebuffer::Driver
 		Ipu                               _ipu;
 		Attached_io_mem_dataspace         _pwm_mmio;
 		Pwm                               _pwm;
-		Gpio::Connection                  _gpio;
 		Platform::Session::Board_revision _board;
 		size_t                            _width;
 		size_t                            _height;
@@ -68,13 +67,19 @@ class Framebuffer::Driver
 
 			switch (_board) {
 			case Platform::Session::QSB:
+				{
 				_ipu.init(_width, _height, _width * BYTES_PER_PIXEL,
 				          phys_base, true);
 
-				/* Turn display */
-				_gpio.direction_output(LCD_BL_GPIO, true);
-				_gpio.direction_output(LCD_CONT_GPIO, true);
+				/* turn display on */
+				Gpio::Connection gpio_bl(LCD_BL_GPIO);
+				gpio_bl.direction(Gpio::Session::OUT);
+				gpio_bl.write(true);
+				Gpio::Connection gpio_ct(LCD_CONT_GPIO);
+				gpio_ct.direction(Gpio::Session::OUT);
+				gpio_ct.write(true);
 				break;
+				}
 			case Platform::Session::SMD:
 				_ipu.init(_width, _height, _width * BYTES_PER_PIXEL,
 				          phys_base, false);
