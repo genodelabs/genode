@@ -418,7 +418,7 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 
 	if {$wait_for_re == "forever"} {
 		set timeout -1
-		interact $running_spawn_id
+		interact -i $running_spawn_id
 	} else {
 		set timeout $timeout_value
 	}
