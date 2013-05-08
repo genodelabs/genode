@@ -67,6 +67,7 @@ namespace Genode {
 			Dataspace_capability cpu_state(void) { return _ds_cap; }
 			void exception_handler(Signal_context_capability handler);
 			void run(void);
+			void pause(void);
 	};
 }
 

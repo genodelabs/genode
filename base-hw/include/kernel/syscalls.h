@@ -80,8 +80,9 @@ namespace Kernel
 		ACK_SIGNAL = 29,
 
 		/* vm specific */
-		NEW_VM = 24,
-		RUN_VM = 25,
+		NEW_VM   = 24,
+		RUN_VM   = 25,
+		PAUSE_VM = 31,
 	};
 
 	/*****************************************************************
@@ -546,6 +547,17 @@ namespace Kernel
 	 */
 	inline void run_vm(unsigned const id) {
 		syscall(RUN_VM, (Syscall_arg)id); }
+
+
+	/**
+	 * Stop execution of a virtual-machine
+	 *
+	 * \param id  ID of the targeted VM
+	 *
+	 * Restricted to core threads.
+	 */
+	inline void pause_vm(unsigned const id) {
+		syscall(PAUSE_VM, (Syscall_arg)id); }
 }
 
 #endif /* _INCLUDE__KERNEL__SYSCALLS_H_ */

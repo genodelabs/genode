@@ -41,8 +41,8 @@ namespace Genode
 		void exception_handler(Signal_context_capability handler) {
 			call<Rpc_exception_handler>(handler); }
 
-		void run() {
-			call<Rpc_run>(); }
+		void run()   { call<Rpc_run>();   }
+		void pause() { call<Rpc_pause>(); }
 	};
 }
 

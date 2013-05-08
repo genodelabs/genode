@@ -44,6 +44,16 @@ void Vm_session_component::run(void)
 }
 
 
+void Vm_session_component::pause(void)
+{
+	if (!_vm_id) {
+		PWRN("No exception handler registered!");
+		return;
+	}
+	Kernel::pause_vm(_vm_id);
+}
+
+
 Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
                                            Range_allocator *ram_alloc,
                                            size_t           ram_quota)

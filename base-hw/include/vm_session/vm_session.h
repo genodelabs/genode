@@ -46,6 +46,12 @@ namespace Genode {
 			 */
 			virtual void run(void) {}
 
+			/**
+			 * Stop execution of the VM
+			 */
+			virtual void pause(void) {}
+
+
 			/*********************
 			 ** RPC declaration **
 			 *********************/
@@ -54,7 +60,9 @@ namespace Genode {
 			GENODE_RPC(Rpc_exception_handler, void, exception_handler,
 			           Signal_context_capability);
 			GENODE_RPC(Rpc_run, void, run);
-			GENODE_RPC_INTERFACE(Rpc_cpu_state, Rpc_exception_handler, Rpc_run);
+			GENODE_RPC(Rpc_pause, void, pause);
+			GENODE_RPC_INTERFACE(Rpc_cpu_state, Rpc_exception_handler,
+			                     Rpc_run, Rpc_pause);
 	};
 }
 

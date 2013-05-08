@@ -691,8 +691,13 @@ namespace Kernel
 			   Signal_context * const context)
 			: _state(state), _context(context) { }
 
-			void run() {
-				cpu_scheduler()->insert(this); }
+
+			/**************************
+			 ** Vm_session interface **
+			 **************************/
+
+			void run()   { cpu_scheduler()->insert(this); }
+			void pause() { cpu_scheduler()->remove(this); }
 
 
 			/**********************
@@ -1301,6 +1306,23 @@ namespace Kernel
 
 
 	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_pause_vm(Thread * const user)
+	{
+		/* check permissions */
+		assert(user->pd_id() == core_id());
+
+		/* get targeted vm via its id */
+		Vm * const vm = Vm::pool()->object(user->user_arg_1());
+		assert(vm);
+
+		/* pause targeted vm */
+		vm->pause();
+	}
+
+
+	/**
 	 * Handle a syscall request
 	 *
 	 * \param user  thread that called the syscall
@@ -1344,6 +1366,7 @@ namespace Kernel
 			/* 28         */ do_resume_faulter,
 			/* 29         */ do_ack_signal,
 			/* 30         */ do_kill_signal_context,
+			/* 31         */ do_pause_vm,
 		};
 		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
 
