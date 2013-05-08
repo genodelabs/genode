@@ -70,8 +70,7 @@ namespace Genode {
 					return len;
 				}
 
-				printf("[init%s%s] %s", strcmp(_label, "") == 0 ? "" : " -> ",
-				                        _label, string);
+				printf("[%s] %s", _label, string);
 
 				/* if last character of string was not a line break, add one */
 				if ((len > 0) && (string[len - 1] != '\n'))
