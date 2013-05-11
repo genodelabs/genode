@@ -17,6 +17,7 @@
 #include <dataspace/client.h>
 #include <base/printf.h>
 #include <base/sleep.h>
+#include <os/config.h>
 #include <os/static_root.h>
 
 /* local includes */
@@ -33,7 +34,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 {
 	private:
 
-		Driver::Mode         _mode;
+		size_t _width;
+		size_t _height;
 		Driver::Format       _format;
 		size_t               _size;
 		Dataspace_capability _ds;
@@ -52,15 +54,17 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 	public:
 
-		Session_component(Driver &driver)
+		Session_component(Driver &driver, size_t width, size_t height,
+			Driver::Output output)
 		:
-			_mode(Driver::MODE_1024_768),
+			_width(width),
+			_height(height),
 			_format(Driver::FORMAT_RGB565),
-			_size(Driver::buffer_size(_mode, _format)),
+			_size(driver.buffer_size(width, height, _format)),
 			_ds(env()->ram_session()->alloc(_size, false)),
 			_phys_base(Dataspace_client(_ds).phys_addr())
 		{
-			if (!driver.init(_mode, _format, _phys_base)) {
+			if (!driver.init(width, height, _format, output, _phys_base)) {
 				PERR("Could not initialize display");
 				struct Could_not_initialize_display : Exception { };
 				throw Could_not_initialize_display();
@@ -77,8 +81,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		Mode mode() const
 		{
-			return Mode(Driver::width(_mode),
-			            Driver::height(_mode),
+			return Mode(_width,
+			            _height,
 			            _convert_format(_format));
 		}
 
@@ -92,6 +96,27 @@ int main(int, char **)
 {
 	using namespace Framebuffer;
 
+	size_t width = 1024;
+	size_t height = 768;
+	Driver::Output output = Driver::OUTPUT_HDMI;
+	try {
+		char out[5] = {}; 
+		Genode::Xml_node config_node = Genode::config()->xml_node();
+		config_node.attribute("width").value(&width);
+		config_node.attribute("height").value(&height);
+		config_node.attribute("output").value(out, sizeof(out));
+		if (!Genode::strcmp(out, "LCD")) {
+			output = Driver::OUTPUT_LCD;
+		}
+	}
+	catch (Genode::Xml_node::Nonexistent_attribute) {
+		PERR("incorrect configuration, aborting");
+		throw Root::Invalid_args();
+	}
+	catch (Genode::Xml_node::Nonexistent_sub_node) {
+		PDBG("using default configuration: HDMI@%dx%d", width, height);
+	}
+
 	static Driver driver;
 
 	/*
@@ -104,7 +129,7 @@ int main(int, char **)
 	/*
 	 * Let the entry point serve the framebuffer session and root interfaces
 	 */
-	static Session_component                 fb_session(driver);
+	static Session_component fb_session(driver, width, height, output);
 	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
 
 	/*

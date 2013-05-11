@@ -34,10 +34,14 @@ class Framebuffer::Driver
 {
 	public:
 
-		enum Mode { MODE_1024_768 };
 		enum Format { FORMAT_RGB565 };
+		enum Output { OUTPUT_LCD, OUTPUT_HDMI };
 
 	private:
+
+		bool _init_lcd(addr_t phys_base);
+
+		bool _init_hdmi(addr_t phys_base);
 
 		struct Timer_delayer : Timer::Connection, Mmio::Delayer
 		{
@@ -62,6 +66,10 @@ class Framebuffer::Driver
 		Attached_io_mem_dataspace _hdmi_mmio;
 		Hdmi                      _hdmi;
 
+		size_t _fb_width;
+		size_t _fb_height;
+		Format _fb_format;
+
 	public:
 
 		Driver();
@@ -74,28 +82,13 @@ class Framebuffer::Driver
 			return 0;
 		}
 
-		static size_t width(Mode mode)
+		size_t buffer_size(size_t width, size_t height, Format format)
 		{
-			switch (mode) {
-			case MODE_1024_768: return 1024;
-			}
-			return 0;
+			return bytes_per_pixel(format)*width*height;
 		}
 
-		static size_t height(Mode mode)
-		{
-			switch (mode) {
-			case MODE_1024_768: return 768;
-			}
-			return 0;
-		}
-
-		static size_t buffer_size(Mode mode, Format format)
-		{
-			return bytes_per_pixel(format)*width(mode)*height(mode);
-		}
-
-		bool init(Mode mode, Format format, addr_t phys_base);
+		bool init(size_t width, size_t height, Format format,
+			Output output, addr_t phys_base);
 };
 
 
@@ -108,13 +101,47 @@ Framebuffer::Driver::Driver()
 	_dispc((addr_t)_dispc_mmio.local_addr<void>()),
 
 	_hdmi_mmio(Board_base::HDMI_MMIO_BASE, Board_base::HDMI_MMIO_SIZE),
-	_hdmi((addr_t)_hdmi_mmio.local_addr<void>())
+	_hdmi((addr_t)_hdmi_mmio.local_addr<void>()),
+
+	_fb_width(0),
+	_fb_height(0),
+	_fb_format(FORMAT_RGB565)
 { }
 
 
-bool Framebuffer::Driver::init(Framebuffer::Driver::Mode   mode,
-                               Framebuffer::Driver::Format format,
-                               Framebuffer::addr_t         phys_base)
+bool Framebuffer::Driver::_init_lcd(Framebuffer::addr_t phys_base)
+{
+	/* disable LCD to allow editing configuration */
+	_dispc.write<Dispc::Control1::Lcd_enable>(0);
+
+	/* set load mode */
+	_dispc.write<Dispc::Config1::Load_mode>(Dispc::Config1::Load_mode::DATA_EVERY_FRAME);
+
+	_dispc.write<Dispc::Size_lcd::Width>(_fb_width - 1);
+	_dispc.write<Dispc::Size_lcd::Height>(_fb_height - 1);
+
+	Dispc::Gfx_attributes::access_t pixel_format = 0;
+	switch (_fb_format) {
+	case FORMAT_RGB565: pixel_format = Dispc::Gfx_attributes::Format::RGB16; break;
+	}
+	_dispc.write<Dispc::Gfx_attributes::Format>(pixel_format);
+
+	_dispc.write<Dispc::Gfx_ba0>(phys_base);
+	_dispc.write<Dispc::Gfx_ba1>(phys_base);
+
+	_dispc.write<Dispc::Gfx_size::Sizex>(_fb_width - 1);
+	_dispc.write<Dispc::Gfx_size::Sizey>(_fb_height - 1);
+
+	_dispc.write<Dispc::Global_buffer>(0x6d2240);
+	_dispc.write<Dispc::Gfx_attributes::Enable>(1);
+
+	_dispc.write<Dispc::Control1::Lcd_enable>(1);
+	_dispc.write<Dispc::Control1::Go_lcd>(1);
+
+	return true;
+}
+
+bool Framebuffer::Driver::_init_hdmi(Framebuffer::addr_t phys_base)
 {
 	/* enable display core clock and set divider to 1 */
 	_dispc.write<Dispc::Divisor::Lcd>(1);
@@ -182,8 +209,8 @@ bool Framebuffer::Driver::init(Framebuffer::Driver::Mode   mode,
 
 	_hdmi.write<Hdmi::Video_cfg::Packing_mode>(Hdmi::Video_cfg::Packing_mode::PACK_24B);
 
-	_hdmi.write<Hdmi::Video_size::X>(width(mode));
-	_hdmi.write<Hdmi::Video_size::Y>(height(mode));
+	_hdmi.write<Hdmi::Video_size::X>(_fb_height);
+	_hdmi.write<Hdmi::Video_size::Y>(_fb_width);
 
 	_hdmi.write<Hdmi::Video_cfg::Vsp>(0);
 	_hdmi.write<Hdmi::Video_cfg::Hsp>(0);
@@ -192,21 +219,22 @@ bool Framebuffer::Driver::init(Framebuffer::Driver::Mode   mode,
 
 	_dss.write<Dss::Ctrl::Venc_hdmi_switch>(Dss::Ctrl::Venc_hdmi_switch::HDMI);
 
-	_dispc.write<Dispc::Size_tv::Width>(width(mode) - 1);
-	_dispc.write<Dispc::Size_tv::Height>(height(mode) - 1);
+	_dispc.write<Dispc::Size_tv::Width>(_fb_width - 1);
+	_dispc.write<Dispc::Size_tv::Height>(_fb_height - 1);
 
 	_hdmi.write<Hdmi::Video_cfg::Start>(1);
 
 	Dispc::Gfx_attributes::access_t pixel_format = 0;
-	switch (format) {
+	switch (_fb_format) {
 	case FORMAT_RGB565: pixel_format = Dispc::Gfx_attributes::Format::RGB16; break;
 	}
 	_dispc.write<Dispc::Gfx_attributes::Format>(pixel_format);
 
+	_dispc.write<Dispc::Gfx_ba0>(phys_base);
 	_dispc.write<Dispc::Gfx_ba1>(phys_base);
 
-	_dispc.write<Dispc::Gfx_size::Sizex>(width(mode) - 1);
-	_dispc.write<Dispc::Gfx_size::Sizey>(height(mode) - 1);
+	_dispc.write<Dispc::Gfx_size::Sizex>(_fb_width - 1);
+	_dispc.write<Dispc::Gfx_size::Sizey>(_fb_height - 1);
 
 	_dispc.write<Dispc::Global_buffer>(0x6d2240);
 	_dispc.write<Dispc::Gfx_attributes::Enable>(1);
@@ -215,7 +243,6 @@ bool Framebuffer::Driver::init(Framebuffer::Driver::Mode   mode,
 	_dispc.write<Dispc::Gfx_attributes::Channelout2>(Dispc::Gfx_attributes::Channelout2::PRIMARY_LCD);
 
 	_dispc.write<Dispc::Control1::Tv_enable>(1);
-
 	_dispc.write<Dispc::Control1::Go_tv>(1);
 
 	if (!_dispc.wait_for<Dispc::Control1::Go_tv>(Dispc::Control1::Go_tv::HW_UPDATE_DONE, _delayer)) {
@@ -224,4 +251,28 @@ bool Framebuffer::Driver::init(Framebuffer::Driver::Mode   mode,
 	}
 
 	return true;
+}
+
+
+bool Framebuffer::Driver::init(size_t width, size_t height,
+                               Framebuffer::Driver::Format format,
+                               Output output,
+                               Framebuffer::addr_t phys_base)
+{
+	_fb_width = width;
+	_fb_height = height;
+	_fb_format = format;
+
+	bool ret = false;
+	switch (output) {
+		case OUTPUT_LCD:
+			ret = _init_lcd(phys_base);
+			break;
+		case OUTPUT_HDMI:
+			ret = _init_hdmi(phys_base);
+			break;
+		default:
+			PERR("Unknown output %d specified", output);
+	}
+	return ret;
 }
