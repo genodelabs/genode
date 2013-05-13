@@ -53,8 +53,8 @@ namespace Arm_v6
 				enum { LITTLE = 0 };
 			};
 
-			struct S  : Bitfield<8,1>  { }; /* enbale MMU protection */
-			struct R  : Bitfield<9,1>  { }; /* enbale ROM protection */
+			struct S  : Bitfield<8,1>  { }; /* enable MMU protection */
+			struct R  : Bitfield<9,1>  { }; /* enable ROM protection */
 			struct L4 : Bitfield<15,1> { }; /* raise T bit on LOAD-to-PC */
 			struct Dt : Bitfield<16,1> { }; /* global data TCM enable */
 			struct It : Bitfield<18,1> { }; /* global instruction TCM enable */
