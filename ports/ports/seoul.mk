@@ -41,7 +41,7 @@ EXECUTOR_DIR = $(CONTRIB_DIR)/$(SEOUL)/executor
 $(CONTRIB_DIR)/$(SEOUL)/.git: $(DOWNLOAD_DIR)/$(SEOUL)/.git
 	$(VERBOSE)git clone $(DOWNLOAD_DIR)/$(SEOUL) $(CONTRIB_DIR)/$(SEOUL)
 	@# fix python version in code generator scripts
-	$(VERBOSE)sed -i "s/env python2/env $(PYTHON2)/" $(I82576VF_DIR)/genreg.py
+	$(VERBOSE)sed -i "s/env python2/env $(PYTHON2)/" $(I82576VF_DIR)/genreg.py $(EXECUTOR_DIR)/build_instructions.py
 	@# call code generators
 	$(VERBOSE)cd $(EXECUTOR_DIR); \
                   ./build_instructions.py > instructions.inc
