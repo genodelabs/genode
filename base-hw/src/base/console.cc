@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Genode-console backend
  * \author Martin Stein
  * \date   2011-10-17
@@ -15,6 +15,9 @@
 #include <base/console.h>
 #include <base/printf.h>
 #include <drivers/serial_log.h>
+
+/* base-hw includes */
+#include "singleton.h"
 
 namespace Genode
 {
@@ -63,8 +66,7 @@ using namespace Genode;
  */
 static Platform_console * platform_console()
 {
-	static Platform_console static_platform_console;
-	return &static_platform_console;
+	return unsynchronized_singleton<Platform_console>();
 }
 
 

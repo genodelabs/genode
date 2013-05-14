@@ -106,7 +106,14 @@ namespace Arm
 		/* lookup table for AP bitfield values according to 'w' and 'k' flag */
 		typedef typename T::Ap_1_0 Ap_1_0;
 		typedef typename T::Ap_2 Ap_2;
-		static typename T::access_t const ap_bits[2][2] = {{
+
+		/*
+		 * Note: Don't make 'ap_bits' static to avoid implicit use of 'cmpxchg'
+		 * prior enabling the MMU.
+		 *
+		 * XXX Replace array with a simpler-to-grasp switch statement.
+		 */
+		typename T::access_t const ap_bits[2][2] = {{
 			Ap_1_0::bits(Ap_1_0::USER_RO_ACCESS) |              /* -- */
 			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS),
 

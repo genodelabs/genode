@@ -25,6 +25,9 @@
 #include <timer.h>
 #include <assert.h>
 
+/* base-hw includes */
+#include <singleton.h>
+
 namespace Genode
 {
 	class Platform_thread;
@@ -211,8 +214,7 @@ namespace Kernel
 		 */
 		static Id_alloc * _id_alloc()
 		{
-			static Id_alloc _id_alloc;
-			return &_id_alloc;
+			return unsynchronized_singleton<Id_alloc>();
 		}
 
 		public:
@@ -224,8 +226,7 @@ namespace Kernel
 			 */
 			static Pool * pool()
 			{
-				static Pool _pool;
-				return &_pool;
+				return unsynchronized_singleton<Pool>();
 			}
 
 			/**

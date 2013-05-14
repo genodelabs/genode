@@ -33,6 +33,9 @@
 #include <tlb.h>
 #include <trustzone.h>
 
+/* base-hw includes */
+#include <singleton.h>
+
 using namespace Kernel;
 
 /* get core configuration */
@@ -262,7 +265,7 @@ namespace Kernel
 	 * Static mode transition control
 	 */
 	static Mode_transition_control * mtc()
-	{ static Mode_transition_control _object; return &_object; }
+	{ return unsynchronized_singleton<Mode_transition_control>(); }
 
 	/**
 	 * Kernel object that represents a Genode PD
@@ -333,7 +336,7 @@ namespace Kernel
 	/**
 	 * Access to static interrupt-controller
 	 */
-	static Pic * pic() { static Pic _object; return &_object; }
+	static Pic * pic() { return unsynchronized_singleton<Pic>(); }
 }
 
 
@@ -407,9 +410,11 @@ namespace Kernel
 	 */
 	static Pd * core()
 	{
-		static Core_tlb tlb;
-		static Pd _pd(&tlb, 0);
-		return &_pd;
+		constexpr int tlb_align = 1 << Core_tlb::ALIGNM_LOG2;
+
+		Core_tlb *core_tlb = unsynchronized_singleton<Core_tlb, tlb_align>();
+		Pd       *pd       = unsynchronized_singleton<Pd>(core_tlb, nullptr);
+		return pd;
 	}
 
 
@@ -1420,6 +1425,12 @@ extern "C" void kernel()
 
 		/* switch to core address space */
 		Cpu::init_virt_kernel(core()->tlb()->base(), core_id());
+
+		/*
+		 * From this point on, it is safe to use 'cmpxchg', i.e., to create
+		 * singleton objects via the static-local object pattern. See
+		 * the comment in 'src/base/singleton.h'.
+		 */
 
 		/* create the core main thread */
 		static Native_utcb cm_utcb;
