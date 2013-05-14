@@ -6,6 +6,7 @@ install_config {
 	<config>
 		<parent-provides>
 			<service name="LOG"/>
+			<service name="RM"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> </any-service>
