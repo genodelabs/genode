@@ -165,7 +165,7 @@ proc execute_run_script { platform run_script } {
 	set fd [log_fd $platform $run_script]
 
 	if {[catch {
-		exec make -C [build_dir $platform] [file join run $run_script] >@ $fd
+		exec make -C [build_dir $platform] [file join run $run_script] >&@ $fd
 	}]} {
 		set return_value false
 	}
