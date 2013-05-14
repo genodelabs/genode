@@ -53,6 +53,7 @@ proc help { } {
 		                  [--enable-ccache]
 
 		  --force             replace test directory if it already exists
+		  --keep              keep test directroy if it already exists
 		  --cleanup           remove test directory at exit
 		  --stdout            print test output instead of writing log files
 		  --skip-clean-rules  skip cleanall tests, keep build-directory content
@@ -258,7 +259,8 @@ puts "make -j     : $make_jobs"
 # command-line arguments.
 #
 
-if {[file exists $test_dir] && ![get_cmd_switch --force]} {
+if {[file exists $test_dir] && ![get_cmd_switch --force] &&
+    ![get_cmd_switch --keep]} {
 	puts stderr "Error: test directory $test_dir already exists"
 	exit -3
 }
