@@ -34,7 +34,10 @@ set build_components {
 	test/lwip/http_srv
 }
 
-lappend_if [have_spec omap4] build_components drivers/usb
+set use_usb_driver [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_driver [expr !$use_usb_driver]
+
+lappend_if $use_usb_driver   build_components drivers/usb
 lappend_if [have_spec acpi]  build_components drivers/acpi
 lappend_if [have_spec pci]   build_components drivers/pci/device_pd
 
@@ -72,8 +75,8 @@ set config {
 		<resource name="RAM" quantum="3M"/>
 	</start> }
 
-append_if [have_spec omap4] config {
-	<start name="usb_drv" priority="-1">
+append_if $use_usb_driver config {
+	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides>
 			<service name="Nic"/>
@@ -83,7 +86,7 @@ append_if [have_spec omap4] config {
 		</config>
 	</start>}
 
-append_if [expr ![have_spec omap4]] config {
+append_if $use_nic_driver config {
 	<start name="nic_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
@@ -128,8 +131,8 @@ set boot_modules {
 # platform-specific modules
 lappend_if [have_spec acpi]          boot_modules acpi_drv
 lappend_if [have_spec pci]           boot_modules pci_drv
-lappend_if [have_spec omap4]         boot_modules usb_drv
-lappend_if [expr ![have_spec omap4]] boot_modules nic_drv
+lappend_if $use_usb_driver           boot_modules usb_drv
+lappend_if $use_nic_driver           boot_modules nic_drv
 lappend_if [have_spec nova]          boot_modules pci_device_pd
 
 build_boot_image $boot_modules
@@ -148,13 +151,12 @@ append qemu_args " -net user -redir tcp:5555::80 "
 
 run_genode_until {.*Start the server loop \.\.\..*} 30
 
-
 if [is_qemu_available] {
 	set uri "http://localhost:5555/"
 } else {
 	set match_string "got IP address (.*)\033.*\n"
-	run_genode_until $match_string 30 $server_spawn_id
-	regexp $match_string $output all ip_addr
+	regexp $match_string $output ip_addr
+	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $ip_addr ip_addr 
 
 	set uri "http://$ip_addr:80/"
 }
