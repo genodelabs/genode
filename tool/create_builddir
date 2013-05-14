@@ -72,7 +72,7 @@ BUILD_CONF_PLATFORM = $(BUILD_CONF).$(PLATFORM)
 $(BUILD_DIR)/etc:
 	@mkdir -p $@
 
-$(BUILD_DIR)/etc/build.conf::
+$(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
 	@echo "GENODE_DIR    = $(GENODE_ABS_DIR)" > $@
 	@echo 'BASE_DIR      = $$(GENODE_DIR)/base' >> $@
 
@@ -137,7 +137,7 @@ endif
 #
 # Add ARM drivers repositories to ARM build directories
 #
-ifeq ($(filter-out foc_panda foc_arndale hw_panda foc_imx53,$(PLATFORM)),)
+ifeq ($(filter-out foc_panda foc_arndale hw_panda hw_arndale foc_imx53,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_arm >> $@
 endif
