@@ -1,6 +1,7 @@
-ZLIB     = zlib-1.2.7
-ZLIB_TGZ = $(ZLIB).tar.gz
-ZLIB_URL = http://zlib.net/$(ZLIB_TGZ)
+ZLIB_VERSION = 1.2.8
+ZLIB         = zlib-$(ZLIB_VERSION)
+ZLIB_TGZ     = $(ZLIB).tar.gz
+ZLIB_URL     = http://downloads.sourceforge.net/project/libpng/zlib/$(ZLIB_VERSION)/$(ZLIB_TGZ)
 
 #
 # Interface to top-level prepare Makefile
