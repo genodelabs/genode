@@ -11,11 +11,14 @@ set build_components {
 	drivers/framebuffer
 	l4linux }
 
-lappend_if [have_spec     x86] build_components drivers/nic
+set use_usb_driver [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_driver [expr !$use_usb_driver && [expr [have_spec lan9118] || [have_spec x86]]]
+
+lappend_if $use_usb_driver     build_components drivers/usb
+lappend_if $use_nic_driver     build_components drivers/nic
 lappend_if [have_spec     pci] build_components drivers/pci
 lappend_if [have_spec    acpi] build_components drivers/acpi
 lappend_if [have_spec     ps2] build_components drivers/input/ps2
-lappend_if [have_spec lan9118] build_components drivers/nic
 
 build $build_components
 create_boot_directory
@@ -83,15 +86,22 @@ append_if [have_spec ps2] config {
 		<provides><service name="Input"/></provides>
 	</start> }
 
-append_if [have_spec x86] config {
+append_if $use_usb_driver config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Input"/>
+		</provides>
+		<config>
+			<nic />
+			<hid />
+		</config>
+	</start>}
+
+append_if $use_nic_driver config {
 	<start name="nic_drv">
 		<resource name="RAM" quantum="2M"/>
-		<provides><service name="Nic"/></provides>
-	</start> }
-
-append_if [have_spec lan9118] config {
-	<start name="nic_drv">
-		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nic"/></provides>
 	</start> }
 
@@ -119,8 +129,8 @@ lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec        acpi] boot_modules acpi_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         x86] boot_modules nic_drv
-lappend_if [have_spec     lan9118] boot_modules nic_drv
+lappend_if $use_nic_driver         boot_modules nic_drv
+lappend_if $use_usb_driver         boot_modules usb_drv
 
 if {[have_spec x86]} {
 	set uri "http://genode.org/files/release-11.11/l4lx/initrd-ia32.gz"
