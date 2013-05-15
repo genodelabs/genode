@@ -53,7 +53,7 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 	/* allocate region */
 	switch (_io_mem_alloc->alloc_addr(req_size, req_base).value) {
 	case Range_allocator::Alloc_return::RANGE_CONFLICT:
-		PERR("I/O memory [%lx,%lx) not available", base, base + size);
+		PERR("I/O memory [%lx,%lx) not available", req_base, req_base + req_size);
 		return Dataspace_attr();
 
 	case Range_allocator::Alloc_return::OUT_OF_METADATA:
