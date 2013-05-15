@@ -16,3 +16,5 @@ puts "lwip_nic_bridge:      $test_result_lwip_nic_bridge"
 puts "libc_lwip:            $test_result_libc_lwip"
 puts "libc_lwip_nic_bridge: $test_result_libc_lwip_nic_bridge"
 puts ""
+
+puts "Test succeeded"
