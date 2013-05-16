@@ -75,7 +75,7 @@ CONTENT_NET = usbnet.c
 # Panda board
 CONTENT_NET += smsc95xx.c smsc95xx.h
 # Arndale board
-CONTENT_NET += asix_devices.c asix_common.c ax88172a.c asix.h
+CONTENT_NET += asix_devices.c asix_common.c ax88172a.c ax88179_178a.c asix.h
 
 CONTENT    += $(addprefix drivers/net/usb/,$(CONTENT_NET))
 CONTENT    += include/linux/usb/usbnet.h include/linux/netdev_features.h

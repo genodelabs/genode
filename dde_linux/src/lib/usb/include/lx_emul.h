@@ -322,6 +322,7 @@ __u64 __swab64p(const __u64 *);
 #define cpu_to_le16p __cpu_to_le16p
 #define cpu_to_be16p __cpu_to_be16p
 #define cpu_to_le16  __cpu_to_le16
+#define cpu_to_le16s __cpu_to_le16s
 #define cpu_to_be16  __cpu_to_be16
 #define cpu_to_le32  __cpu_to_le32
 #define cpu_to_be32  __cpu_to_be32
@@ -2892,14 +2893,18 @@ int net_ratelimit(void);
 struct net_device;
 
 enum {
-	NET_IP_ALIGN      = 2,
-	CHECKSUM_COMPLETE = 2,
-	CHECKSUM_PARTIAL  = 3,
+	CHECKSUM_NONE        = 0,
+	CHECKSUM_UNNECESSARY = 1,
+	CHECKSUM_COMPLETE    = 2,
+	CHECKSUM_PARTIAL     = 3,
+
+	NET_IP_ALIGN         = 2,
 };
 
 struct skb_shared_info
 {
 	unsigned short nr_frags;
+	unsigned short gso_size;
 };
 
 struct sk_buff
@@ -2976,6 +2981,7 @@ void skb_set_tail_pointer(struct sk_buff *, const int);
 struct sk_buff *skb_clone(struct sk_buff *, gfp_t);
 void skb_reserve(struct sk_buff *, int);
 int skb_header_cloned(const struct sk_buff *);
+int skb_linearize(struct sk_buff *);
 
 
 struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int length);
@@ -3210,6 +3216,7 @@ struct net_device
 	unsigned int   mtu;
 	unsigned short needed_headroom;
 	unsigned short needed_tailroom;
+	unsigned char  perm_addr[MAX_ADDR_LEN];
 	unsigned char *dev_addr;
 	unsigned char  _dev_addr[ETH_ALEN];
 	unsigned long  trans_start;    /* Time (in jiffies) of last Tx */

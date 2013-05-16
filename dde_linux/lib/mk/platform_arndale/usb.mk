@@ -1,10 +1,10 @@
-SRC_C   += usbnet.c asix_devices.c asix_common.c ax88172a.c
+SRC_C   += usbnet.c asix_devices.c asix_common.c ax88172a.c ax88179_178a.c
 
 include $(REP_DIR)/lib/mk/usb.inc
 include $(REP_DIR)/lib/mk/arm/usb.inc
 
 CC_OPT  += -DCONFIG_USB_EHCI_S5P -DCONFIG_USB_EHCI_TT_NEWSCHED -DCONFIG_OF -DCONFIG_USB_DWC3_HOST \
-           -DCONFIG_USB_OTG_UTILS -DCONFIG_USB_XHCI_PLATFORM
+           -DCONFIG_USB_OTG_UTILS -DCONFIG_USB_XHCI_PLATFORM -DDWC3_QUIRK
 INC_DIR += $(CONTRIB_DIR)/arch/arm/plat-samsung/include
 SRC_CC  += platform.cc
 

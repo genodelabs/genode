@@ -149,40 +149,6 @@ static void arndale_ehci_init()
 }
 
 
-extern "C" void module_ehci_hcd_init();
-extern "C" void module_usbnet_init();
-extern "C" void module_asix_driver_init();
-extern "C" void module_dwc3_exynos_driver_init();
-extern "C" void module_dwc3_driver_init();
-extern "C" void module_xhci_hcd_init();
-
-void ehci_setup(Services *services)
-{
-	if (services->nic)
-		module_asix_driver_init();
-
-	/* register EHCI controller */
-	module_ehci_hcd_init();
-
-	/* setup controller */
-	arndale_ehci_init();
-
-	/* setup EHCI-controller platform device */
-	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);
-	pdev->name              = (char *)"s5p-ehci";
-	pdev->id                = 0;
-	pdev->num_resources     = 2;
-	pdev->resource          = _ehci;
-	pdev->dev.platform_data = &_ehci_data;
-
-	/*needed for DMA buffer allocation. See 'hcd_buffer_alloc' in 'buffer.c' */
-	static u64 dma_mask         = ~(u64)0;
-	pdev->dev.dma_mask          = &dma_mask;
-	pdev->dev.coherent_dma_mask = ~0;
-
-	platform_device_register(pdev);
-}
-
 struct Power : Genode::Mmio
 {
 	struct Usbdrd_phy_control : Register<0x704, 32> { };
@@ -194,6 +160,7 @@ struct Power : Genode::Mmio
 		write<Usbhost_phy_control>(1);
 	}
 };
+
 
 struct Phy_usb3 : Genode::Mmio
 {
@@ -305,6 +272,7 @@ struct Phy_usb3 : Genode::Mmio
 	}
 };
 
+
 static void arndale_xhci_init()
 {
 	/* enable power of USB3 */
@@ -316,13 +284,54 @@ static void arndale_xhci_init()
 	Phy_usb3 phy((addr_t)io_phy.local_addr<addr_t>());
 }
 
-void xhci_setup()
+
+extern "C" void module_ehci_hcd_init();
+extern "C" void module_usbnet_init();
+extern "C" void module_asix_driver_init();
+extern "C" void module_ax88179_178a_driver_init();
+extern "C" void module_dwc3_exynos_driver_init();
+extern "C" void module_dwc3_driver_init();
+extern "C" void module_xhci_hcd_init();
+
+
+void ehci_setup(Services *services)
 {
-	arndale_xhci_init();
+	if (services->nic)
+		module_asix_driver_init();
+
+	/* register EHCI controller */
+	module_ehci_hcd_init();
+
+	/* setup controller */
+	arndale_ehci_init();
+
+	/* setup EHCI-controller platform device */
+	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);
+	pdev->name              = (char *)"s5p-ehci";
+	pdev->id                = 0;
+	pdev->num_resources     = 2;
+	pdev->resource          = _ehci;
+	pdev->dev.platform_data = &_ehci_data;
+
+	/*needed for DMA buffer allocation. See 'hcd_buffer_alloc' in 'buffer.c' */
+	static u64 dma_mask         = ~(u64)0;
+	pdev->dev.dma_mask          = &dma_mask;
+	pdev->dev.coherent_dma_mask = ~0;
+
+	platform_device_register(pdev);
+}
+
+
+void xhci_setup(Services *services)
+{
+	if (services->nic)
+		module_ax88179_178a_driver_init();
 
 	module_dwc3_exynos_driver_init();
 	module_dwc3_driver_init();
 	module_xhci_hcd_init();
+
+	arndale_xhci_init();
 
 	/* setup DWC3-controller platform device */
 	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);
@@ -340,12 +349,13 @@ void xhci_setup()
 	platform_device_register(pdev);
 }
 
+
 void platform_hcd_init(Services *services)
 {
 	/* register network */
 	if (services->nic)
 		module_usbnet_init();
 
-	ehci_setup(services);
-	xhci_setup();
+	//ehci_setup(services);
+	xhci_setup(services);
 }
