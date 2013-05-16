@@ -10,7 +10,7 @@ CONTRIB_DIR := $(REP_DIR)/contrib
 DRIVERS_DIR := $(CONTRIB_DIR)/drivers
 USB_DIR     := $(DRIVERS_DIR)/usb
 
-CC_OLEVEL = -O0
+CC_OLEVEL = -O2
 
 #
 # The order of include-search directories is important, we need to look into

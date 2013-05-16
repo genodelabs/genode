@@ -77,6 +77,9 @@ int  roundup_pow_of_two(u32 n) { TRACE; return 0; }
 void print_hex_dump(const char *level, const char *prefix_str,
                     int prefix_type, int rowsize, int groupsize,
                     const void *buf, size_t len, bool ascii) { TRACE; }
+int printk_ratelimit() { TRACE; return 0; }
+bool printk_timed_ratelimit(unsigned long *caller_jiffies,
+                            unsigned int interval_msec) { TRACE; return false; }
 
 
 /**********************************
@@ -190,7 +193,8 @@ s64 ktime_us_delta(const ktime_t later, const ktime_t earlier) { TRACE; return 0
 
 int del_timer_sync(struct timer_list *timer) { TRACE; return 0; }
 unsigned long round_jiffies(unsigned long j) { TRACE; return 1; }
-
+void add_timer(struct timer_list *timer) { TRACE; }
+void set_timer_slack(struct timer_list *time, int slack_hz) { TRACE; }
 
 /*********************
  ** linux/hrtimer.h **
@@ -201,13 +205,6 @@ int hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
                            unsigned long delta_ns, const enum hrtimer_mode mode) { TRACE; return 0; }
 void hrtimer_init(struct hrtimer *timer, clockid_t clock_id, enum hrtimer_mode mode) { TRACE; }
 int hrtimer_cancel(struct hrtimer *timer) { TRACE; return 0; }
-
-
-/*******************
- ** linux/delay.h **
- *******************/
-
-void mdelay(unsigned long msecs) { TRACE; }
 
 
 /***********************
@@ -320,6 +317,8 @@ int  pm_runtime_set_active(struct device *dev) { TRACE; return 0; }
 void pm_suspend_ignore_children(struct device *dev, bool enable) { TRACE; }
 void pm_runtime_enable(struct device *dev) { TRACE; }
 void pm_runtime_disable(struct device *dev) { TRACE; }
+void pm_runtime_allow(struct device *dev) { TRACE; }
+void pm_runtime_forbid(struct device *dev) { TRACE; }
 void pm_runtime_set_suspended(struct device *dev) { TRACE; }
 void pm_runtime_get_noresume(struct device *dev) { TRACE; }
 void pm_runtime_put_noidle(struct device *dev) { TRACE; }
@@ -424,8 +423,10 @@ void devres_free(void *res) { TRACE; }
  *****************************/
 
 void *platform_get_drvdata(const struct platform_device *pdev) { TRACE; return NULL; }
-void platform_set_drvdata(struct platform_device *pdev, void *data) { TRACE; }
-
+void platform_set_drvdata(struct platform_device *pdev, void *data) { TRACE; printk("ret: %p\n", __builtin_return_address(0)); }
+int platform_device_del(struct platform_device *pdev) { TRACE; return 0; }
+int platform_device_put(struct platform_device *pdev) { TRACE; return 0; }
+void platform_device_unregister(struct platform_device *pdev) { TRACE; }
 
 /********************
  ** linux/dcache.h **
@@ -606,6 +607,7 @@ void free_irq(unsigned int i, void *p) { TRACE; }
  *********************/
 
 void synchronize_irq(unsigned int irq) { TRACE; }
+bool in_interrupt(void) { TRACE; return 1; }
 
 
 /*****************
@@ -1012,6 +1014,14 @@ u16 crc16(u16 crc, const u8 *buffer, size_t len) { TRACE; return 0; }
 u16 bitrev16(u16 in) { TRACE; return 0; }
 
 
+/************************
+ ** linux/radix-tree.h **
+ ************************/
+
+void *radix_tree_lookup(struct radix_tree_root *root, unsigned long index) { TRACE; return 0; }
+int radix_tree_insert(struct radix_tree_root *root, unsigned long index, void *item) { TRACE; return 0; }
+void *radix_tree_delete(struct radix_tree_root *root, unsigned long index) { TRACE; return 0; }
+
 /******************
  ** linux/gpio.h **
  ******************/
@@ -1033,6 +1043,8 @@ int gpio_request_one(unsigned gpio, unsigned long flags, const char *label) { TR
  ** linux/phy.h  **
  ******************/
 
+#include <linux/usb/phy.h>
+
 struct mii_bus *mdiobus_alloc(void) { TRACE; return 0; }
 int  mdiobus_register(struct mii_bus *bus) { TRACE; return 0; }
 void mdiobus_unregister(struct mii_bus *bus) { TRACE; }
@@ -1052,5 +1064,35 @@ struct phy_device * phy_connect(struct net_device *dev, const char *bus_id,
                                 phy_interface_t interface) { TRACE; return 0; }
 void phy_disconnect(struct phy_device *phydev) { TRACE; }
 
+#ifdef CONFIG_USB_OTG_UTILS
+struct usb_phy *devm_usb_get_phy_by_phandle(struct device *dev, 
+                                            const char *phandle, u8 index)
+{ TRACE; return 0; }
 
+
+struct usb_phy *devm_usb_get_phy(struct device *dev,
+                                 enum usb_phy_type type)
+{
+	static struct usb_phy _p;
+	TRACE;
+	return &_p;
+}
+#endif
+
+/****************
+ ** linux/of.h **
+ ****************/
+
+bool of_property_read_bool(const struct device_node *np, const char *propname) { TRACE; return false; }
+
+
+
+/******************************
+ ** drivers/usb/dwc3/debug.h **
+ ******************************/
+
+struct dwc3;
+
+int dwc3_debugfs_init(struct dwc3 *d){ SKIP;  return 0;  }
+void dwc3_debugfs_exit(struct dwc3 *d) { SKIP; }
 

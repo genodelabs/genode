@@ -57,7 +57,7 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 
 		enum {
 			VM_SIZE    = 10 * 1024 * 1024,     /* size of VM region to reserve */
-			BLOCK_SIZE = 768  * 1024,         /* 1 MB */
+			BLOCK_SIZE = 1024  * 1024,         /* 1 MB */
 			ELEMENTS   = VM_SIZE / BLOCK_SIZE, /* MAX number of dataspaces in VM */
 		};
 
@@ -156,8 +156,6 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 class Genode::Slab_alloc : public Genode::Slab
 {
 	private:
-		
-		Slab_backend_alloc  *_allocator;
 
 		size_t _calculate_block_size(size_t object_size)
 		{
@@ -168,16 +166,14 @@ class Genode::Slab_alloc : public Genode::Slab
 	public:
 
 		Slab_alloc(size_t object_size, Slab_backend_alloc *allocator)
-		: Slab(object_size, _calculate_block_size(object_size), 0, allocator),
-		  _allocator(allocator) { }
+		: Slab(object_size, _calculate_block_size(object_size), 0, allocator)
+    { }
 
 	inline addr_t alloc()
 	{
 		addr_t result;
 		return (Slab::alloc(slab_size(), (void **)&result) ? result : 0);
 	}
-
-	addr_t phys_addr(addr_t addr) { return _allocator->phys_addr(addr); }
 };
 
 
@@ -198,6 +194,7 @@ class Malloc
 		typedef Genode::Slab_alloc Slab_alloc;
 		typedef Genode::Slab_backend_alloc Slab_backend_alloc;
 
+		Slab_backend_alloc *_back_allocator;
 		Slab_alloc         *_allocator[NUM_SLABS]; 
 		bool                _cached; /* cached or un-cached memory */
 		addr_t              _start;  /* VM region of this allocator */
@@ -232,7 +229,8 @@ class Malloc
 	public:
 
 		Malloc(Slab_backend_alloc *alloc, bool cached)
-		: _cached(cached), _start(alloc->start()), _end(alloc->end())
+		: _back_allocator(alloc), _cached(cached), _start(alloc->start()),
+		  _end(alloc->end())
 		{
 			/* init slab allocators */
 			for (unsigned i = SLAB_START_LOG2; i <= SLAB_STOP_LOG2; i++)
@@ -275,7 +273,7 @@ class Malloc
 				/* save */
 				addr_t ptr = addr;
 				addr_t align_val = (1U << align);
-				addr_t align_mask = align_val - 2;
+				addr_t align_mask = align_val - 1;
 				/* align */
 				addr = (addr + align_val) & ~align_mask;
 				/* write start address before aligned address */
@@ -283,7 +281,7 @@ class Malloc
 			}
 
 			if (phys)
-				*phys = _allocator[msb - SLAB_START_LOG2]->phys_addr(addr);
+				*phys = _back_allocator->phys_addr(addr);
 			return (addr_t *)addr;
 		}
 
@@ -298,9 +296,7 @@ class Malloc
 
 		Genode::addr_t phys_addr(void *a)
 		{
-			using namespace Genode;
-			addr_t *addr = (addr_t *)a;
-			return _allocator[_slab_index(&addr)]->phys_addr((addr_t)a);
+			return _back_allocator->phys_addr((addr_t)a);
 		}
 
 		/**
@@ -648,7 +644,6 @@ void *_ioremap(resource_size_t phys_addr, unsigned long size, int wc)
 		PERR("Failed to request I/O memory: [%zx,%lx)", phys_addr, phys_addr + size);
 		return 0;
 	}
-
 	return (void *)map_addr;
 }
 
@@ -664,8 +659,16 @@ void *ioremap(resource_size_t offset, unsigned long size)
 	return _ioremap(offset, size, 0);
 }
 
+
 void *devm_ioremap(struct device *dev, resource_size_t offset,
                    unsigned long size)
+{
+	return ioremap(offset, size);
+}
+
+
+void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
+                           unsigned long size)
 {
 	return ioremap(offset, size);
 }
@@ -680,7 +683,7 @@ void *devm_ioremap(struct device *dev, resource_size_t offset,
  */
 class Driver : public Genode::List<Driver>::Element
 {
-	public:
+	private:
 
 		struct device_driver *_drv; /* Linux driver */
 
@@ -726,7 +729,7 @@ class Driver : public Genode::List<Driver>::Element
 			dev->driver = _drv;
 
 			if (dev->bus->probe) {
-				dde_kit_log(DEBUG_DRIVER, "Probing device bus");
+				dde_kit_log(DEBUG_DRIVER, "Probing device bus %p", dev->bus->probe);
 				return dev->bus->probe(dev);
 			} else if (_drv->probe) {
 				dde_kit_log(DEBUG_DRIVER, "Probing driver: %s", _drv->name);
@@ -824,6 +827,12 @@ u16 get_unaligned_le16(const void *p)
 }
 
 
+void put_unaligned_le16(u16 val, void *p)
+{
+	struct __una_u16 *ptr = (struct __una_u16 *)p;
+	ptr->x = val;
+}
+
 u32 get_unaligned_le32(const void *p)
 {
 	const struct __una_u32 *ptr = (const struct __una_u32 *)p;
@@ -883,6 +892,7 @@ void udelay(unsigned long usecs)
 
 
 void msleep(unsigned int msecs) { _timer.msleep(msecs); }
+void mdelay(unsigned long msecs) { msleep(msecs); }
 
 
 /*********************
@@ -929,7 +939,12 @@ void  dma_pool_destroy(struct dma_pool *d)
 
 void *dma_pool_alloc(struct dma_pool *d, gfp_t f, dma_addr_t *dma)
 {
-	return Malloc::dma()->alloc(d->size, d->align, (Genode::addr_t*)dma);
+	void *addr;
+	addr = dma_alloc_coherent(0, d->size, dma, 0);
+
+	dde_kit_log(DEBUG_DMA, "addr: %p size %zx align %x phys: %lx pool %p",
+	            addr, d->size, d->align, *dma, d);
+	return addr;
 }
 
 
@@ -996,6 +1011,7 @@ int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
                      int nents, enum dma_data_direction dir,
                      struct dma_attrs *attrs) { return nents; }
 
+int dma_set_mask(struct device *dev, u64 mask) { TRACE; return 0; }
 
 /*********************
  ** linux/kthread.h **
@@ -1064,6 +1080,16 @@ resource_size_t resource_size(const struct resource *res)
 	return res->end - res->start + 1;
 }
 
+struct resource * devm_request_mem_region(struct device *dev, resource_size_t start,
+                                          resource_size_t n, const char *name)
+{
+	struct resource *r = (struct resource *)kzalloc(sizeof(struct resource), GFP_KERNEL);
+	r->start = start;
+	r->end   = start + n - 1;
+	r->name  = name;
+
+	return r;
+}
 
 /****************
  ** Networking **

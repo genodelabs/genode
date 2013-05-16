@@ -326,11 +326,13 @@ __u64 __swab64p(const __u64 *);
 #define cpu_to_le32  __cpu_to_le32
 #define cpu_to_be32  __cpu_to_be32
 #define cpu_to_le32s __cpu_to_le32s
+#define cpu_to_le64  __cpu_to_le64
 #define le16_to_cpup __le16_to_cpup
 #define be16_to_cpup __be16_to_cpup
 #define le32_to_cpup __le32_to_cpup
 #define le32_to_cpus __le32_to_cpus
 #define be32_to_cpup __be32_to_cpup
+#define le64_to_cpu  __le64_to_cpu
 
 
 struct __una_u16 { u16 x; } __attribute__((packed));
@@ -338,6 +340,7 @@ struct __una_u32 { u32 x; } __attribute__((packed));
 struct __una_u64 { u64 x; } __attribute__((packed));
 
 u16 get_unaligned_le16(const void *p);
+void put_unaligned_le16(u16 val, void *p);
 
 void put_unaligned_le32(u32 val, void *p);
 u32  get_unaligned_le32(const void *p);
@@ -551,6 +554,23 @@ static inline size_t min(size_t a, size_t b) {
                   typeof (x) _x = (x); \
                   _x < 0 ? -_x : _x;  })
 
+#define lower_32_bits(n) ((u32)(n))
+#define upper_32_bits(n) ((u32)(((n) >> 16) >> 16))
+
+#define roundup(x, y) (                           \
+{                                                 \
+	const typeof(y) __y = y;                        \
+	(((x) + (__y - 1)) / __y) * __y;                \
+})
+
+#define clamp_val(val, min, max) ({             \
+        typeof(val) __val = (val);              \
+        typeof(val) __min = (min);              \
+        typeof(val) __max = (max);              \
+        __val = __val < __min ? __min: __val;   \
+        __val > __max ? __max: __val; })
+
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #define BUILD_BUG_ON(condition)
@@ -580,6 +600,13 @@ int kstrtouint(const char *s, unsigned int base, unsigned int *res);
 	((typeof(divisor))-1) > 0 || (__x) > 0) ? \
 	(((__x) + ((__d) / 2)) / (__d)) :         \
 	(((__x) - ((__d) / 2)) / (__d));          \
+})
+
+#define PTR_ALIGN(p, a) ({              \
+  unsigned long _p = (unsigned long)p;  \
+  _p = (_p + a - 1) & ~(a - 1);         \
+  p = (typeof(p))_p;                    \
+	p;                                    \
 })
 
 int strict_strtoul(const char *s, unsigned int base, unsigned long *res);
@@ -631,12 +658,8 @@ void print_hex_dump(const char *level, const char *prefix_str,
 #define pr_warning(fmt, ...) printk(KERN_WARNING fmt, ##__VA_ARGS__)
 #define pr_warn pr_warning
 
-#define printk_ratelimit() \
-	({ dde_kit_debug("printk_ratelimit called - not implemented\n"); (0); })
-
-static inline bool printk_timed_ratelimit(unsigned long *caller_jiffies,
-                                          unsigned int interval_msec) {
-	return false; }
+bool printk_ratelimit();
+bool printk_timed_ratelimit(unsigned long *, unsigned int);
 
 
 /**********************************
@@ -675,6 +698,14 @@ int ffs(int x);
 int fls(int x);
 
 #define for_each_set_bit(bit, addr, size) for ((bit) = 0; !bit; bit++, dev_err(0, "for_each_set_bit should not be called\n"))
+
+
+/*****************************************
+ ** asm-generic//bitops/const_hweight.h **
+ *****************************************/
+
+/* count number of 1s in 'w' */
+#define hweight32(w) __builtin_popcount((unsigned)w)
 
 
 /********************
@@ -929,6 +960,7 @@ struct timer_list {
 	void (*function)(unsigned long);
 	unsigned long data;
 	void *timer;
+	unsigned long expires;
 };
 
 void init_timer(struct timer_list *);
@@ -939,6 +971,9 @@ void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
                  unsigned long data);
 int timer_pending(const struct timer_list * timer);
 unsigned long round_jiffies(unsigned long j);
+
+void add_timer(struct timer_list *timer);
+void set_timer_slack(struct timer_list *time, int slack_hz);
 
 
 /*********************
@@ -1355,6 +1390,8 @@ int  pm_runtime_set_active(struct device *dev);
 void pm_suspend_ignore_children(struct device *dev, bool enable);
 void pm_runtime_enable(struct device *dev);
 void pm_runtime_disable(struct device *dev);
+void pm_runtime_allow(struct device *dev);
+void pm_runtime_forbid(struct device *dev);
 void pm_runtime_set_suspended(struct device *dev);
 void pm_runtime_get_noresume(struct device *dev);
 void pm_runtime_put_noidle(struct device *dev);
@@ -1410,6 +1447,9 @@ bool device_can_wakeup(struct device *dev);
 #define dev_printk(level, dev, format, arg...) \
 	dde_kit_printf("dev_printk: " format, ## arg)
 
+#define dev_warn_ratelimited(dev, format, arg...) \
+	dde_kit_printf("dev_warn_ratelimited: " format "\n", ## arg)
+
 enum {
 	BUS_NOTIFY_ADD_DEVICE = 0x00000001,
 	BUS_NOTIFY_DEL_DEVICE = 0x00000002,
@@ -1455,6 +1495,8 @@ struct class
 	char *(*devnode)(struct device *dev, mode_t *mode);
 };
 
+struct dma_parms;
+
 /* DEVICE */
 struct device {
 	const char                    *name;
@@ -1473,6 +1515,7 @@ struct device {
 	struct class                  *class;
 	void                          *driver_data;
 	struct device_node            *of_node;
+	struct device_dma_parameters  *dma_parms;
 };
 
 struct device_attribute {
@@ -1622,6 +1665,8 @@ void  dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
  *************************/
 
 #define DMA_BIT_MASK(n) (((n) == 64) ? ~0ULL : ((1ULL<<(n))-1))
+static inline int dma_set_coherent_mask(struct device *dev, u64 mask) { dev->coherent_dma_mask = mask; return 0; }
+int dma_set_mask(struct device *dev, u64 mask);
 
 /*********************
  ** linux/uaccess.h **
@@ -1985,13 +2030,16 @@ void *ioremap(resource_size_t offset, unsigned long size);
 void  iounmap(volatile void *addr);
 void *devm_ioremap(struct device *dev, resource_size_t offset,
                    unsigned long size);
+void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
+                           unsigned long size);
+
 
 /**
  * Map I/O memory write combined
  */
 void *ioremap_wc(resource_size_t phys_addr, unsigned long size);
 
-#define ioremap_nocache ioremap_wc
+#define ioremap_nocache ioremap
 
 #define writel(value, addr) (*(volatile uint32_t *)(addr) = (value))
 #define readl(addr) (*(volatile uint32_t *)(addr))
@@ -2036,6 +2084,9 @@ struct resource *request_region(resource_size_t start, resource_size_t n,
                                 const char *name);
 struct resource *request_mem_region(resource_size_t start, resource_size_t n,
                                     const char *name);
+struct resource * devm_request_mem_region(struct device *dev, resource_size_t start,
+                                          resource_size_t n, const char *name);
+
 
 void release_region(resource_size_t start, resource_size_t n);
 void release_mem_region(resource_size_t start, resource_size_t n);
@@ -2064,6 +2115,7 @@ void free_irq(unsigned int, void *);
  *********************/
 
 void synchronize_irq(unsigned int irq);
+bool in_interrupt(void);
 
 
 /*****************
@@ -3387,6 +3439,32 @@ typedef enum {
 	PHY_INTERFACE_MODE_MII = 1,
 } phy_interface_t;
 
+
+/************************
+ ** linux/usb/gadget.h **
+ ************************/
+
+struct usb_ep { };
+struct usb_request { };
+struct usb_gadget { };
+
+
+/****************
+ ** linux/of.h **
+ ****************/
+
+bool of_property_read_bool(const struct device_node *np, const char *propname);
+
+
+/************************
+ ** linux/radix-tree.h **
+ ************************/
+
+#define INIT_RADIX_TREE(root, mask) dde_kit_printf("INIT_RADIX_TREE not impelemnted\n")
+struct radix_tree_root { };
+void *radix_tree_lookup(struct radix_tree_root *root, unsigned long index);
+int   radix_tree_insert(struct radix_tree_root *, unsigned long, void *);
+void *radix_tree_delete(struct radix_tree_root *, unsigned long);
 
 /**********************************
  ** Platform specific defintions **

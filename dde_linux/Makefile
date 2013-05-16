@@ -48,7 +48,9 @@ CONTENT_USB_HOST += ohci.h ohci-hcd.c ohci-hub.c ohci-dbg.c ohci-mem.c \
                     ohci-q.c ohci-pci.c
 CONTENT_USB_HOST += uhci-hcd.h uhci-hcd.c uhci-debug.c uhci-q.c uhci-hub.c \
                     uhci-pci.c
-CONTENT_USB_HOST += pci-quirks.h pci-quirks.c xhci-ext-caps.h
+CONTENT_USB_HOST += xhci-dbg.c xhci-ext-caps.h xhci-hub.c xhci-mem.c \
+                    xhci-plat.c xhci-ring.c xhci.h xhci.c
+CONTENT_USB_HOST += pci-quirks.h pci-quirks.c
 CONTENT += $(addprefix drivers/usb/host/,$(CONTENT_USB_HOST))
 
 # USB storage driver
@@ -77,6 +79,11 @@ CONTENT_NET += asix_devices.c asix_common.c ax88172a.c asix.h
 
 CONTENT    += $(addprefix drivers/net/usb/,$(CONTENT_NET))
 CONTENT    += include/linux/usb/usbnet.h include/linux/netdev_features.h
+
+# DWC3 controller
+CONTENT_DWC3 = core.c core.h dwc3-exynos.c host.c io.h
+CONTENT     += $(addprefix drivers/usb/dwc3/,$(CONTENT_DWC3))
+CONTENT     += include/linux/platform_data/dwc3-exynos.h
 
 # OMAP
 CONTENT    += include/linux/platform_data/usb-omap.h
@@ -117,6 +124,8 @@ $(CONTRIB_DIR)/.prepared: $(DOWNLOAD_DIR)/$(LINUX_TBZ2)
 	$(ECHO) "applying patches to '$(CONTRIB_DIR)/'"
 	$(VERBOSE)for i in $(PATCHES); do patch -d $(CONTRIB_DIR) -p1 < $$i; done
 	$(VERBOSE)ln -sf ../../uapi/linux/usb/ch11.h $(CONTRIB_DIR)/include/linux/usb/ch11.h
+	$(VERBOSE)touch $(CONTRIB_DIR)/drivers/usb/dwc3/gadget.h
+	$(VERBOSE)touch $(CONTRIB_DIR)/drivers/usb/dwc3/debug.h
 
 
 $(DOWNLOAD_DIR):

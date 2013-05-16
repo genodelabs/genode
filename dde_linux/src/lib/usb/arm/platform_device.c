@@ -50,6 +50,7 @@ int platform_driver_register(struct platform_driver *drv)
 	return driver_register(&drv->driver);
 }
 
+
 struct resource *platform_get_resource(struct platform_device *dev,
                                        unsigned int type, unsigned int num)
 {
@@ -64,6 +65,7 @@ struct resource *platform_get_resource(struct platform_device *dev,
 
 	return NULL;
 }
+
 
 struct resource *platform_get_resource_byname(struct platform_device *dev,
                                               unsigned int type,
@@ -95,12 +97,75 @@ int platform_get_irq(struct platform_device *dev, unsigned int num)
 	return r ? r->start : -1;
 }
 
+
 int platform_device_register(struct platform_device *pdev)
 {
 	pdev->dev.bus  = &platform_bus_type;
 	pdev->dev.name = pdev->name;
 	/* XXX: Fill with magic value to see page fault */
-	pdev->dev.parent = (struct device *)0xaaaaaaaa;
+	if (!pdev->dev.parent)
+		pdev->dev.parent = (struct device *)0xaaaaaaaa;
 	device_add(&pdev->dev);
+	return 0;
+}
+
+
+struct platform_device *platform_device_alloc(const char *name, int id)
+{
+	struct platform_device *pdev = kzalloc(sizeof(struct platform_device), GFP_KERNEL);
+
+	if (!pdev)
+		return 0;
+
+	int len    = strlen(name);
+	pdev->name = kzalloc(len + 1, GFP_KERNEL);
+
+	if (!pdev->name) {
+		kfree(pdev);
+		return 0;
+	}
+
+	memcpy(pdev->name, name, len);
+	pdev->name[len] = 0;
+	pdev->id = id;
+
+	return pdev;
+}
+
+
+int platform_device_add_data(struct platform_device *pdev, const void *data,
+                             size_t size)
+{
+	void *d = NULL;
+
+	if (data && !(d = kmemdup(data, size, GFP_KERNEL)))
+		return -ENOMEM;
+
+	kfree(pdev->dev.platform_data);
+	pdev->dev.platform_data = d;
+
+	return 0;
+}
+
+
+int platform_device_add(struct platform_device *pdev)
+{
+	return platform_device_register(pdev);
+}
+
+int platform_device_add_resources(struct platform_device *pdev,
+                                  const struct resource *res, unsigned int num)
+{
+	struct resource *r = NULL;
+	
+	if (res) {
+		r = kmemdup(res, sizeof(struct resource) * num, GFP_KERNEL);
+		if (!r)
+			return -ENOMEM;
+	}
+
+	kfree(pdev->resource);
+	pdev->resource = r;
+	pdev->num_resources = num;
 	return 0;
 }

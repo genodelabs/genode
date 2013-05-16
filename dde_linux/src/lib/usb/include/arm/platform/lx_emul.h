@@ -24,7 +24,7 @@ enum {
 
 struct platform_device
 {
-	const char      *name;
+	char            *name;
 	int              id;
 	struct device    dev;
 	u32              num_resources;
@@ -53,6 +53,12 @@ enum {
  ** linux/platform_device.h **
  *****************************/
 
+#define module_platform_driver(__platform_driver) \
+        module_driver(__platform_driver, platform_driver_register, \
+                      platform_driver_unregister)
+
+enum { PLATFORM_DEVID_AUTO = -2 };
+
 struct platform_driver {
 	int (*probe)(struct platform_device *);
 	int (*remove)(struct platform_device *);
@@ -71,6 +77,18 @@ int platform_get_irq_byname(struct platform_device *, const char *);
 
 int platform_driver_register(struct platform_driver *);
 int platform_device_register(struct platform_device *);
+void platform_device_unregister(struct platform_device *);
+
+struct platform_device *platform_device_alloc(const char *name, int id);
+int platform_device_add_data(struct platform_device *pdev, const void *data,
+                             size_t size);
+int platform_device_add_resources(struct platform_device *pdev,
+                                  const struct resource *res, unsigned int num);
+
+int platform_device_add(struct platform_device *pdev);
+int platform_device_del(struct platform_device *pdev);
+
+int platform_device_put(struct platform_device *pdev);
 
 
 #define to_platform_device(x) container_of((x), struct platform_device, dev)
@@ -204,6 +222,13 @@ struct phy_device * phy_connect(struct net_device *dev, const char *bus_id,
                                 void (*handler)(struct net_device *),
                                 phy_interface_t interface);
 void phy_disconnect(struct phy_device *phydev);
+
+
+/*******************************
+ ** linux/usb/nop-usb-xceiv.h **
+ *******************************/
+
+struct nop_usb_xceiv_platform_data { int type; };
 
 
 /*******************************
