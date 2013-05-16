@@ -68,7 +68,7 @@ namespace Genode {
 				//if (write_combined)
 				//	_fpage.fp.cache = Fiasco::L4_FPAGE_BUFFERABLE;
 
-				unsigned char rights = _rw ? Fiasco::L4_FPAGE_RW : Fiasco::L4_FPAGE_RO;
+				unsigned char rights = _rw ? Fiasco::L4_FPAGE_RWX : Fiasco::L4_FPAGE_RX;
 				return Fiasco::l4_fpage(_src_addr, _log2size, rights);
 			}
 
