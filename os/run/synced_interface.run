@@ -1,0 +1,40 @@
+build "core init test/synced_interface"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="SIGNAL"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="test-synced_interface">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-synced_interface"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until {child exited with exit value 0} 10
+
+grep_output {-> test-synced_interface}
+
+compare_output_to {
+[init -> test-synced_interface] [33mlock[0m
+[init -> test-synced_interface] [33madding 13 + 14[0m
+[init -> test-synced_interface] [33munlock[0m
+[init -> test-synced_interface] [33mresult is 27[0m
+}
+
