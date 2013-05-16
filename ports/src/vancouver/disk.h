@@ -48,6 +48,7 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 			Genode::size_t              blk_cnt;
 		} _diskcon[MAX_DISKS];
 
+		Genode::Lock _startup_lock;
 		Motherboard &_mb;
 		char        *_backing_store_base;
 		char        *_backing_store_fb_base;

@@ -34,7 +34,6 @@ extern char _binary_mono_tff_start;
 Font default_font(&_binary_mono_tff_start);
 
 extern Genode::Lock global_lock;
-extern bool console_init;
 
 using Genode::env;
 using Genode::Dataspace_client;
@@ -195,7 +194,8 @@ void Vancouver_console::entry()
 	unsigned unchanged = 0;
 	bool cmp_even = 1;
 
-	console_init = true;
+	_startup_lock.unlock();
+
 	while (1) {
 		while (!input.is_pending()) {
 
@@ -304,8 +304,12 @@ void Vancouver_console::entry()
 Vancouver_console::Vancouver_console(Motherboard &mb, Genode::size_t vm_fb_size,
                                      Genode::Dataspace_capability fb_ds)
 :
+	_startup_lock(Genode::Lock::LOCKED),
 	_vm_fb_size(vm_fb_size), _mb(mb), _fb_size(0), _pixels(0), _guest_fb(0),
 	_regs(0), _fb_ds(fb_ds)
 {
 	start();
+
+	/* shake hands with console thread */
+	_startup_lock.lock();
 }

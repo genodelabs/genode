@@ -46,6 +46,7 @@ class Vancouver_console : public Thread<8192>, public StaticReceiver<Vancouver_c
 {
 	private:
 
+		Genode::Lock                 _startup_lock;
 		Motherboard                 &_mb;
 		short	                    *_pixels;
 		char 	                    *_guest_fb;
