@@ -29,8 +29,10 @@
 #include <block_session/connection.h>
 #include <util/string.h>
 
+/* local includes */
+#include <synced_motherboard.h>
+
 /* NOVA userland includes */
-#include <nul/motherboard.h>
 #include <host/dma.h>
 
 static const bool read_only = false;
@@ -48,17 +50,17 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 			Genode::size_t              blk_cnt;
 		} _diskcon[MAX_DISKS];
 
-		Genode::Lock _startup_lock;
-		Motherboard &_mb;
-		char        *_backing_store_base;
-		char        *_backing_store_fb_base;
+		Genode::Lock        _startup_lock;
+		Synced_motherboard &_motherboard;
+		char               *_backing_store_base;
+		char               *_backing_store_fb_base;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Vancouver_disk(Motherboard &mb,
+		Vancouver_disk(Synced_motherboard &,
 		               char * backing_store_base,
 		               char * backing_store_fb_base);
 
@@ -67,6 +69,8 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 		void entry();
 
 		bool receive(MessageDisk &msg);
+
+		void register_host_operations(Motherboard &);
 };
 
 #endif /* _DISK_H_ */

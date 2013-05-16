@@ -33,7 +33,6 @@
 extern char _binary_mono_tff_start;
 Font default_font(&_binary_mono_tff_start);
 
-extern Genode::Lock global_lock;
 
 using Genode::env;
 using Genode::Dataspace_client;
@@ -154,12 +153,6 @@ void Vancouver_console::entry()
 {
 	Logging::printf("Hello, this is VancouverConsole.\n");
 
-	/* register host operations */
-	_mb.bus_console.add(this, receive_static<MessageConsole>);
-	_mb.bus_memregion.add(this, receive_static<MessageMemRegion>);
-
-	/* create environment for input/output */
-
 	/*
 	 * Init sessions to the required external services
 	 */
@@ -187,7 +180,7 @@ void Vancouver_console::entry()
 	 */
 	unsigned long count = 0;
 	bool revoked = false;
-	Vancouver_keyboard vkeyb(_mb);
+	Vancouver_keyboard vkeyb(_motherboard);
 
 	Genode::uint64_t checksum1 = 0;
 	Genode::uint64_t checksum2 = 0;
@@ -234,15 +227,13 @@ void Vancouver_console::entry()
 					/* if we copy the same data 10 times, unmap the text buffer from guest */
 					if (unchanged == 10) {
 
-						/* protect against thread interference */
-						global_lock.lock();
+						Genode::Lock::Guard guard(_console_lock);
 
 						env()->rm_session()->detach((void *)_guest_fb);
 						env()->rm_session()->attach_at(_fb_ds, (Genode::addr_t)_guest_fb);
 						unchanged = 0;
 						fb_active = false;
 
-						global_lock.unlock();
 						Logging::printf("Deactivated text buffer loop.\n");
 					}
 				} else unchanged = 0;
@@ -252,8 +243,7 @@ void Vancouver_console::entry()
 
 				if (!revoked) {
 
-					/* protect against thread interference */
-					global_lock.lock();
+					Genode::Lock::Guard guard(_console_lock);
 
 					env()->rm_session()->detach((void *)_guest_fb);
 					env()->rm_session()->attach_at(framebuffer.dataspace(),
@@ -269,13 +259,11 @@ void Vancouver_console::entry()
 					}
 
 					revoked = true;
-
-					global_lock.unlock();
 				}
 			}
 			framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 
-			timer.msleep(10);
+			timer.msleep(100);
 		}
 
 		for (int i = 0, num_ev = input.flush(); i < num_ev; i++) {
@@ -284,7 +272,7 @@ void Vancouver_console::entry()
 			/* update mouse model (PS2) */
 			unsigned mouse = mouse_value(ev);
 			MessageInput msg(0x10001, mouse);
-			_mb.bus_input.send(msg);
+			_motherboard()->bus_input.send(msg);
 
 			if (ev->type() == Input::Event::PRESS)   {
 				if (ev->code() <= 0xee) {
@@ -301,11 +289,21 @@ void Vancouver_console::entry()
 }
 
 
-Vancouver_console::Vancouver_console(Motherboard &mb, Genode::size_t vm_fb_size,
+void Vancouver_console::register_host_operations(Motherboard &motherboard)
+{
+	motherboard.bus_console.  add(this, receive_static<MessageConsole>);
+	motherboard.bus_memregion.add(this, receive_static<MessageMemRegion>);
+}
+
+
+Vancouver_console::Vancouver_console(Synced_motherboard &mb,
+                                     Genode::Lock &console_lock,
+                                     Genode::size_t vm_fb_size,
                                      Genode::Dataspace_capability fb_ds)
 :
 	_startup_lock(Genode::Lock::LOCKED),
-	_vm_fb_size(vm_fb_size), _mb(mb), _fb_size(0), _pixels(0), _guest_fb(0),
+	_vm_fb_size(vm_fb_size), _motherboard(mb), _console_lock(console_lock),
+	_fb_size(0), _pixels(0), _guest_fb(0),
 	_regs(0), _fb_ds(fb_ds)
 {
 	start();

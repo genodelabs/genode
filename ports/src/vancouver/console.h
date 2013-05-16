@@ -29,8 +29,8 @@
 #include <timer_session/connection.h>
 #include <dataspace/client.h>
 
-/* NOVA userland includes */
-#include <nul/motherboard.h>
+/* local includes */
+#include <synced_motherboard.h>
 
 /* includes for I/O */
 #include <base/env.h>
@@ -47,13 +47,14 @@ class Vancouver_console : public Thread<8192>, public StaticReceiver<Vancouver_c
 	private:
 
 		Genode::Lock                 _startup_lock;
-		Motherboard                 &_mb;
-		short	                    *_pixels;
-		char 	                    *_guest_fb;
+		Synced_motherboard          &_motherboard;
+		Genode::Lock                &_console_lock;
+		short                       *_pixels;
+		char                        *_guest_fb;
 		unsigned long                _fb_size;
 		Genode::Dataspace_capability _fb_ds;
 		Genode::size_t               _vm_fb_size;
-		VgaRegs	                    *_regs;
+		VgaRegs                     *_regs;
 		Framebuffer::Mode            _fb_mode;
 
 	public:
@@ -62,13 +63,17 @@ class Vancouver_console : public Thread<8192>, public StaticReceiver<Vancouver_c
 		bool receive(MessageConsole &msg);
 		bool receive(MessageMemRegion &msg);
 
+		void register_host_operations(Motherboard &);
+
 		/* initialisation */
 		void entry();
 
 		/**
 		 * Constructor
 		 */
-		Vancouver_console(Motherboard &mb, Genode::size_t vm_fb_size,
+		Vancouver_console(Synced_motherboard &,
+		                  Genode::Lock &console_lock,
+		                  Genode::size_t vm_fb_size,
 		                  Genode::Dataspace_capability fb_ds);
 };
 

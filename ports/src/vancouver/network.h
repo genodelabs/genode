@@ -24,8 +24,8 @@
 /* Genode includes */
 #include <nic_session/connection.h>
 
-/* NOVA userland includes */
-#include <nul/motherboard.h>
+/* local includes */
+#include <synced_motherboard.h>
 
 using Genode::List;
 using Genode::Thread;
@@ -34,8 +34,8 @@ class Vancouver_network : public Thread<4096>
 {
 	private:
 
-		Motherboard  &_mb;
-		Nic::Session *_nic;
+		Synced_motherboard &_motherboard;
+		Nic::Session       *_nic;
 
 	public:
 
@@ -45,7 +45,7 @@ class Vancouver_network : public Thread<4096>
 		/**
 		 * Constructor
 		 */
-		Vancouver_network(Motherboard &mb, Nic::Session *nic);
+		Vancouver_network(Synced_motherboard &, Nic::Session *);
 };
 
 #endif /* _NETWORK_H_ */

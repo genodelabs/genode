@@ -31,15 +31,13 @@
 
 static Genode::Native_utcb utcb_backup;
 
-extern Genode::Lock timeouts_lock;
 
-
-Vancouver_disk::Vancouver_disk(Motherboard &mb,
+Vancouver_disk::Vancouver_disk(Synced_motherboard &mb,
                                char * backing_store_base,
                                char * backing_store_fb_base)
 :
 	_startup_lock(Genode::Lock::LOCKED),
-	_mb(mb), _backing_store_base(backing_store_base),
+	_motherboard(mb), _backing_store_base(backing_store_base),
 	_backing_store_fb_base(backing_store_fb_base)
 {
 	/* initialize struct with 0 size */
@@ -53,12 +51,15 @@ Vancouver_disk::Vancouver_disk(Motherboard &mb,
 }
 
 
+void Vancouver_disk::register_host_operations(Motherboard &motherboard)
+{
+	motherboard.bus_disk.add(this, receive_static<MessageDisk>);
+}
+
+
 void Vancouver_disk::entry()
 {
 	Logging::printf("Hello, this is Vancouver_disk.\n");
-
-	/* attach to disk bus */
-	_mb.bus_disk.add(this, receive_static<MessageDisk>);
 
 	_startup_lock.unlock();
 }
@@ -124,7 +125,7 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 			if (!read && !_diskcon[msg.disknr].ops.supported(Block::Packet_descriptor::WRITE)) {
 				MessageDiskCommit ro(msg.disknr, msg.usertag,
 				                     MessageDisk::DISK_STATUS_DEVICE);
-				_mb.bus_diskcommit.send(ro);
+				_motherboard()->bus_diskcommit.send(ro);
 				*Genode::Thread_base::myself()->utcb() = utcb_backup;
 				return true;
 			}
@@ -177,29 +178,26 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 					if (!p.succeeded()) {
 						Logging::printf("Operation failed.\n");
 						{
-							Genode::Lock::Guard guard(timeouts_lock);
 							MessageDiskCommit commit(msg.disknr, msg.usertag,
 							                         MessageDisk::DISK_STATUS_DEVICE);
-							_mb.bus_diskcommit.send(commit);
+							_motherboard()->bus_diskcommit.send(commit);
 							break;
 						}
 					}
 				}
 
 				{
-					Genode::Lock::Guard guard(timeouts_lock);
 					MessageDiskCommit commit(msg.disknr, msg.usertag,
 					                         MessageDisk::DISK_OK);
-					_mb.bus_diskcommit.send(commit);
+					_motherboard()->bus_diskcommit.send(commit);
 				}
 			} else {
 
 				Logging::printf("Operation failed.\n");
 				{
-					Genode::Lock::Guard guard(timeouts_lock);
 					MessageDiskCommit commit(msg.disknr, msg.usertag,
 					                         MessageDisk::DISK_STATUS_DEVICE);
-					_mb.bus_diskcommit.send(commit);
+					_motherboard()->bus_diskcommit.send(commit);
 				}
 			}
 

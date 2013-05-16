@@ -21,8 +21,8 @@
 #ifndef _KEYBOARD_H_
 #define _KEYBOARD_H_
 
-/* NOVA userland includes */
-#include <nul/motherboard.h>
+/* local includes */
+#include <synced_motherboard.h>
 
 /* includes for I/O */
 #include <base/env.h>
@@ -33,15 +33,15 @@ class Vancouver_keyboard
 {
 	private:
 
-		Motherboard &_mb;
-		unsigned     _flags;
+		Synced_motherboard &_motherboard;
+		unsigned            _flags;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Vancouver_keyboard(Motherboard &mb);
+		Vancouver_keyboard(Synced_motherboard &);
 
 		void handle_keycode_press(unsigned keycode);
 		void handle_keycode_release(unsigned keycode);

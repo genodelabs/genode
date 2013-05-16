@@ -24,8 +24,8 @@
 extern const void * _forward_pkt;
 
 
-Vancouver_network::Vancouver_network(Motherboard &mb, Nic::Session * nic)
-: _mb(mb), _nic(nic)
+Vancouver_network::Vancouver_network(Synced_motherboard &mb, Nic::Session *nic)
+: _motherboard(mb), _nic(nic)
 {
 	start();
 }
@@ -42,7 +42,7 @@ void Vancouver_network::entry()
 		char * rx_content = _nic->rx()->packet_content(rx_packet);
 		_forward_pkt = rx_content;
 		MessageNetwork msg((unsigned char *)rx_content, rx_packet.size(), 0);
-		_mb.bus_network.send(msg);
+		_motherboard()->bus_network.send(msg);
 		_forward_pkt = 0;
 
 		/* acknowledge received packet */

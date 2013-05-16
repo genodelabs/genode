@@ -25,11 +25,9 @@
 #include <host/keyboard.h>
 #include <nul/vcpu.h>
 
-extern Genode::Lock global_lock;
 
-
-Vancouver_keyboard::Vancouver_keyboard(Motherboard &mb)
-: _mb(mb), _flags(0) { }
+Vancouver_keyboard::Vancouver_keyboard(Synced_motherboard &mb)
+: _motherboard(mb), _flags(0) { }
 
 
 void Vancouver_keyboard::handle_keycode_press(unsigned keycode)
@@ -93,19 +91,18 @@ void Vancouver_keyboard::handle_keycode_press(unsigned keycode)
 
 		/* we send an empty event */
 		CpuEvent msg(VCpu::EVENT_DEBUG);
-		for (VCpu *vcpu = _mb.last_vcpu; vcpu; vcpu=vcpu->get_last())
+		for (VCpu *vcpu = _motherboard()->last_vcpu; vcpu; vcpu=vcpu->get_last())
 			vcpu->bus_event.send(msg);
 	}
 
 	/* reset */
 	else if ((_flags & KBFLAG_LWIN) && orig_keycode == Input::KEY_END) {
-		Genode::Lock::Guard guard(global_lock);
 		Logging::printf("Reset VM\n");
 		MessageLegacy msg2(MessageLegacy::RESET, 0);
-		_mb.bus_legacy.send_fifo(msg2);
+		_motherboard()->bus_legacy.send_fifo(msg2);
 	}
 
-	else _mb.bus_input.send(msg);
+	else _motherboard()->bus_input.send(msg);
 
 	_flags &= ~(KBFLAG_EXTEND0 | KBFLAG_RELEASE | KBFLAG_EXTEND1);
 }
@@ -165,7 +162,7 @@ void Vancouver_keyboard::handle_keycode_release(unsigned keycode)
 	}
 
 	MessageInput msg(0x10000, _flags | keycode);
-	_mb.bus_input.send(msg);
+	_motherboard()->bus_input.send(msg);
 
 	_flags &= ~(KBFLAG_EXTEND0 | KBFLAG_RELEASE | KBFLAG_EXTEND1);
 }
