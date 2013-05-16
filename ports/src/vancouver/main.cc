@@ -996,9 +996,28 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			if (msg.type != CpuMessage::TYPE_CPUID)
 				return false;
 
-			PDBG("CpuMessage::TYPE_CPUID - not implemented");
-			for (;;);
-			return false;
+			/*
+			 * Linux kernels with guest KVM support compiled in, executed
+			 * CPUID to query the presence of KVM.
+			 */
+			enum { CPUID_KVM_SIGNATURE = 0x40000000 };
+
+			switch (msg.cpuid_index) {
+
+			case CPUID_KVM_SIGNATURE:
+
+				msg.cpu->eax = 0;
+				msg.cpu->ebx = 0;
+				msg.cpu->ecx = 0;
+				msg.cpu->edx = 0;
+				break;
+
+			default:
+				PDBG("CpuMessage::TYPE_CPUID index %x ignored, return true)",
+				     msg.cpuid_index);
+			}
+
+			return true;
 		}
 };
 
