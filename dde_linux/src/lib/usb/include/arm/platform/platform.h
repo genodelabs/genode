@@ -18,8 +18,6 @@
 extern "C" {
 #endif
 
-#include <platform.h>
-
 static inline
 void platform_execute(void *sp, void *func, void *arg)
 {

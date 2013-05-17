@@ -12,6 +12,7 @@
  */
 
 #include <platform/platform.h>
+#include <platform.h>
 
 #include <io_mem_session/connection.h>
 #include <util/mmio.h>
@@ -367,6 +368,9 @@ extern "C" int  module_smsc95xx_driver_init();
 
 void platform_hcd_init(Services *services)
 {
+	if (!services->ehci)
+		return;
+
 	/* register network */
 	if (services->nic) {
 		module_usbnet_init();
@@ -381,7 +385,7 @@ void platform_hcd_init(Services *services)
 
 	/* setup EHCI-controller platform device */
 	platform_device *pdev = (platform_device *)kzalloc(sizeof(platform_device), 0);
-	pdev->name = "ehci-omap";
+	pdev->name = (char *)"ehci-omap";
 	pdev->id   = 0;
 	pdev->num_resources = 2;
 	pdev->resource = _ehci;

@@ -20,6 +20,7 @@
 /* Emulation */
 #include <platform/platform.h>
 #include <lx_emul.h>
+#include <platform.h>
 
 /* Linux */
 #include <linux/platform_data/usb-ehci-s5p.h>
@@ -356,6 +357,9 @@ void platform_hcd_init(Services *services)
 	if (services->nic)
 		module_usbnet_init();
 
-	//ehci_setup(services);
-	xhci_setup(services);
+	if (services->ehci)
+		ehci_setup(services);
+
+	if (services->xhci)
+		xhci_setup(services);
 }

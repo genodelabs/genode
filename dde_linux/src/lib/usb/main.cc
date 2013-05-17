@@ -18,14 +18,14 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <cap_session/connection.h>
-#include <os/config.h>
-#include <util/xml_node.h>
 
 #include <nic_session/nic_session.h>
+
 /* Local */
-#include "storage/component.h"
-#include "routine.h"
-#include "signal.h"
+#include <storage/component.h>
+#include <platform.h>
+#include <routine.h>
+#include <signal.h>
 
 extern "C" {
 #include <dde_kit/timer.h>
@@ -92,30 +92,8 @@ void start_usb_driver()
 
 	Services services;
 
-	try {
-		config()->xml_node().sub_node("hid");
+	if (services.hid)
 		start_input_service(&ep_hid);
-		services.hid = true;
-	} catch (Config::Invalid) {
-		PDBG("No <config> node found - not starting any USB services");
-		return;
-	} catch (Xml_node::Nonexistent_sub_node) {
-		PDBG("No <hid> config node found - not starting the USB HID (Input) service");
-	}
-
-	try {
-		config()->xml_node().sub_node("storage");
-		services.stor = true;
-	} catch (Xml_node::Nonexistent_sub_node) {
-		PDBG("No <storage> config node found - not starting the USB Storage (Block) service");
-	}
-
-	try {
-		config()->xml_node().sub_node("nic");
-		services.nic = true;
-	} catch (Xml_node::Nonexistent_sub_node) {
-		PDBG("No <nic> config node found - not starting the USB Nic (Network) service");
-	}
 
 	Timer::init(&recv);
 	Irq::init(&recv);

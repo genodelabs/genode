@@ -3,6 +3,19 @@ Device drivers ported from the Linux kernel
 USB
 ###
 
+Controller configuration
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The driver can be started using different or all USB controller types a platform
+offers (USB 1.0/2.0/3.0). Note that not all controllers are supported by all
+platforms.  Controllers can be enabled as attribute in the config node of the
+driver.  Supported attributes are: 'uhci', 'ehci', and 'xhci'.
+
+
+Configuration snippet to enable UHCI and EHCI
+
+! <config uhci="yes" ehci="yes">
+
 HID
 ~~~
 
@@ -13,7 +26,7 @@ Configuration snippet:
 !<start name="usb_drv">
 !  <resource name="RAM" quantum="3M"/>
 !  <provides><service name="Input"/></provides>
-!  <config>
+!  <config uhci="yes" ehci="yes" xhci="yes">
 !    <hid/>
 !  </config>
 !</start>
@@ -34,13 +47,11 @@ Configuration snippet:
 !  <resource name="RAM" quantum="2M"/>
 !  <provides> <service name="Block"/> </provides>
 !  <config><storage /></config>
-!</start>
+!</start uhci="yes">
 
 
 Network (Nic)
 ~~~~~~~~~~~~~
-
-Supported on PandaBoard only using the 'smsc95xx' driver.
 
 Configuration snippet:
 
@@ -50,7 +61,7 @@ Configuration snippet:
 !    <service name="Nic"/>
 !    <service name="Input"/>
 !  </provides>
-!  <config>
+!  <config ehci="yes" xhci="yes">
 !    <nic mac="2e:60:90:0c:4e:01" />
 !    <hid/>
 !  </config>
