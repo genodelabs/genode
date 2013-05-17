@@ -9,9 +9,9 @@ VERBOSE     ?= @
 ECHO         = @echo
 PATCHES      := $(shell find patches -name \*.patch)
 
-LINUX      = linux-3.9-rc8
+LINUX      = linux-3.9
 LINUX_TBZ2 = $(LINUX).tar.bz2
-LINUX_URL  = http://www.kernel.org/pub/linux/kernel/v3.x/testing/$(LINUX_TBZ2)
+LINUX_URL  = http://www.kernel.org/pub/linux/kernel/v3.x/$(LINUX_TBZ2)
 
 # Linux utilities
 CONTENT += include/linux/list.h
