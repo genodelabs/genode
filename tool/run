@@ -615,29 +615,58 @@ proc spawn_amt { wait_for_re timeout_value} {
 ##
 # Reset test machine via IP power plug NETIO-230B from Koukaam
 #
-proc power_plug_reset { } {
+proc power_plug_connect {} {
 	set server_ip "10.0.0.5"
 	set user_name "admin"
 	set password  "admin"
-	set power_port [get_cmd_arg --reset-port 1]
 
 	spawn telnet $server_ip 1234
-	expect "KSHELL V1.3"
-	send "login $user_name $password\n"
-	expect "250 OK"
-	send "port $power_port\n"
-	expect -re {250 [0-9]+.*\n}
+	set connection_id $spawn_id
+	expect -i $connection_id "KSHELL V1.3"
+	send -i $connection_id "login $user_name $password\n"
+	expect -i $connection_id "250 OK"
+
+	return $connection_id
+}
+
+proc power_plug_reset {} {
+	set power_port [get_cmd_arg --reset-port 1]
+
+	set connection_id [power_plug_connect]
+
+	send -i $connection_id "port $power_port\n"
+	expect -i $connection_id -re {250 [0-9]+.*\n}
 	regexp -all {[0-9]+} $expect_out(0,string) power_status
 	if {!$power_status} {
 		puts "port $power_port is off - switching it on"
-		send "port $power_port 1\n"
-		expect "250 OK"
+		send -i $connetion_id "port $power_port 1\n"
+		expect -i $connection_id "250 OK"
 	} else {
 		puts "port $power_port is on - reset port"
-		send "port $power_port int\n"
-		expect "250 OK"
+		send -i $connection_id "port $power_port int\n"
+		expect -i $connection_id "250 OK"
 	}
 }
+
+##
+# Overwrite exit handler to switch off power plug adapter at script exit
+#
+rename exit power_plug_off_exit
+proc exit {{status 0}} {
+	global run_target
+	if {[regexp "reset" $run_target]} {
+		set connection_id [power_plug_connect]
+
+		for { set i 0 } { $i < 4 } { incr i } {
+			puts "switch port $i off"
+			send -i $connection_id "port $i 0\n"
+			expect -i $connection_id "250 OK"
+		}
+	}
+
+	power_plug_off_exit $status
+}
+
 
 
 ##
