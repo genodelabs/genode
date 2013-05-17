@@ -8,7 +8,7 @@
 VERBOSE     ?= @
 ECHO         = @echo
 GIT_URL      = http://git.ipxe.org/ipxe.git
-GIT_REV      = 34a81da0c8dd47628a7408cd3f8d8a926d1ecbee
+GIT_REV      = c4bce43c3c4d3c5ebb2d926b58ad16dc9642c19d
 CONTRIB_DIR  = contrib
 PATCH_FILE   = patches/dde_ipxe.patch
 

@@ -28,10 +28,10 @@ index 655cbdc..a8016c8 100644
  /**
   * Assert a condition at run-time.
 diff --git a/src/include/compiler.h b/src/include/compiler.h
-index ed9af23..e8c62d7 100644
+index e555924..b430e37 100644
 --- a/src/include/compiler.h
 +++ b/src/include/compiler.h
-@@ -262,7 +262,7 @@ REQUEST_EXPANDED ( CONFIG_SYMBOL );
+@@ -263,7 +263,7 @@ REQUEST_EXPANDED ( CONFIG_SYMBOL );
  
  /** printf() for debugging */
  extern void __attribute__ (( format ( printf, 1, 2 ) ))
