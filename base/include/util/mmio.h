@@ -477,6 +477,30 @@ namespace Genode
 			};
 
 			/**
+			 * Wait until register 'T' contains the specified 'value'
+			 *
+			 * \param value         value to wait for
+			 * \param delayer       sleeping facility to be used when the
+			 *                      value is not reached yet
+			 * \param max_attempts  number of register probing attempts
+			 * \param us            number of microseconds between attempts
+			 */
+			template <typename T>
+			inline bool
+			wait_for(typename T::Register_base::access_t const value,
+			         Delayer & delayer,
+			         unsigned max_attempts = 500,
+			         unsigned us           = 1000)
+			{
+				typedef typename T::Register_base Register;
+				for (unsigned i = 0; i < max_attempts; i++, delayer.usleep(us))
+				{
+					if (read<Register>() == value) return true;
+				}
+				return false;
+			}
+
+			/**
 			 * Wait until bitfield 'T' contains the specified 'value'
 			 *
 			 * \param value         value to wait for
