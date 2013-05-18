@@ -56,6 +56,9 @@ class Vancouver_console : public Thread<8192>, public StaticReceiver<Vancouver_c
 		Genode::size_t               _vm_fb_size;
 		VgaRegs                     *_regs;
 		Framebuffer::Mode            _fb_mode;
+		bool                         _left, _middle, _right;
+
+		unsigned _input_to_ps2mouse(Input::Event const *);
 
 	public:
 

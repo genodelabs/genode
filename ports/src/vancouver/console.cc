@@ -1,6 +1,7 @@
 /*
  * \brief  Manager of all VM requested console functionality
  * \author Markus Partheymueller
+ * \author Norman Feske
  * \date   2012-07-31
  */
 
@@ -24,6 +25,7 @@
 
 /* Genode includes */
 #include <base/snprintf.h>
+#include <util/register.h>
 
 /* nitpicker graphics backend */
 #include <nitpicker_gfx/chunky_canvas.h>
@@ -40,39 +42,73 @@ using Genode::Dataspace_client;
 bool fb_active = true;
 
 
-static unsigned mouse_value(Input::Event * ev)
+/**
+ * Layout of PS/2 mouse packet
+ */
+struct Ps2_mouse_packet : Genode::Register<32>
 {
-	/* bit 3 is always set */
-	unsigned ret = 0x8;
+	struct Packet_size   : Bitfield<0, 3> { };
+	struct Left_button   : Bitfield<8, 1> { };
+	struct Middle_button : Bitfield<9, 1> { };
+	struct Right_button  : Bitfield<10, 1> { };
+	struct Rx_high       : Bitfield<12, 1> { };
+	struct Ry_high       : Bitfield<13, 1> { };
+	struct Rx_low        : Bitfield<16, 8> { };
+	struct Ry_low        : Bitfield<24, 8> { };
+};
 
-	/* signs and movements */
-	int x=0, y=0;
-	if (ev->rx() > 0) x = 1;
-	if (ev->rx() < 0) x = -1;
-	if (ev->ry() > 0) y = 1;
-	if (ev->ry() < 0) y = -1;
 
-	if (x > 0)
-		ret |= (1 << 8);
-	if (x < 0)
-		ret |= (0xfe << 8) | (1 << 4);
-	if (y < 0) /* nitpicker's negative is PS2 positive */
-		ret |= (1 << 16);
-	if (y > 0)
-		ret |= (0xfe << 16) | (1 << 5);
+static bool is_mouse_event(Input::Event const *ev)
+{
+	using Input::Event;
+	if (ev->type() == Event::PRESS || ev->type() == Event::RELEASE) {
+		if (ev->code() == Input::BTN_LEFT)   return true;
+		if (ev->code() == Input::BTN_MIDDLE) return true;
+		if (ev->code() == Input::BTN_RIGHT)  return true;
+	}
 
-	/* buttons */
-	ret |= ((ev->code() == Input::BTN_MIDDLE ? 1 : 0) << 2);
-	ret |= ((ev->code() == Input::BTN_RIGHT ? 1 : 0) << 1);
-	ret |= ((ev->code() == Input::BTN_LEFT ? 1 : 0) << 0);
+	if (ev->type() == Event::MOTION)
+		return true;
 
-	/* ps2mouse model expects 3 in the first byte */
-	return (ret << 8) | 0x3;
+	return false;
 }
 
-/*
- * Console implementation
+
+/**
+ * Convert Genode::Input event to PS/2 packet
+ *
+ * This function updates _left, _middle, and _right as a side effect.
  */
+unsigned Vancouver_console::_input_to_ps2mouse(Input::Event const *ev)
+{
+	/* track state of mouse buttons */
+	using Input::Event;
+	if (ev->type() == Event::PRESS || ev->type() == Event::RELEASE) {
+		bool const pressed = ev->type() == Event::PRESS;
+		if (ev->code() == Input::BTN_LEFT)   _left   = pressed;
+		if (ev->code() == Input::BTN_MIDDLE) _middle = pressed;
+		if (ev->code() == Input::BTN_RIGHT)  _right  = pressed;
+	}
+
+	/* clamp relative motion vector to bounds */
+	int const boundary = 200;
+	int const rx =  min(boundary, max(-boundary, ev->rx()));
+	int const ry = -min(boundary, max(-boundary, ev->ry()));
+
+	/* assemble PS/2 packet */
+	Ps2_mouse_packet::access_t packet = 0;
+	Ps2_mouse_packet::Packet_size::set  (packet, 3);
+	Ps2_mouse_packet::Left_button::set  (packet, _left);
+	Ps2_mouse_packet::Middle_button::set(packet, _middle);
+	Ps2_mouse_packet::Right_button::set (packet, _right);
+	Ps2_mouse_packet::Rx_high::set      (packet, (rx >> 8) & 1);
+	Ps2_mouse_packet::Ry_high::set      (packet, (ry >> 8) & 1);
+	Ps2_mouse_packet::Rx_low::set       (packet, rx & 0xff);
+	Ps2_mouse_packet::Ry_low::set       (packet, ry & 0xff);
+
+	return packet;
+}
+
 
 /* bus callbacks */
 
@@ -263,16 +299,17 @@ void Vancouver_console::entry()
 			}
 			framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 
-			timer.msleep(100);
+			timer.msleep(10);
 		}
 
 		for (int i = 0, num_ev = input.flush(); i < num_ev; i++) {
 			Input::Event *ev = &ev_buf[i];
 
 			/* update mouse model (PS2) */
-			unsigned mouse = mouse_value(ev);
-			MessageInput msg(0x10001, mouse);
-			_motherboard()->bus_input.send(msg);
+			if (is_mouse_event(ev)) {
+				MessageInput msg(0x10001, _input_to_ps2mouse(ev));
+				_motherboard()->bus_input.send(msg);
+			}
 
 			if (ev->type() == Input::Event::PRESS)   {
 				if (ev->code() <= 0xee) {
@@ -304,7 +341,8 @@ Vancouver_console::Vancouver_console(Synced_motherboard &mb,
 	_startup_lock(Genode::Lock::LOCKED),
 	_vm_fb_size(vm_fb_size), _motherboard(mb), _console_lock(console_lock),
 	_fb_size(0), _pixels(0), _guest_fb(0),
-	_regs(0), _fb_ds(fb_ds)
+	_regs(0), _fb_ds(fb_ds),
+	_left(false), _middle(false), _right(false)
 {
 	start();
 
