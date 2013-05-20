@@ -268,7 +268,7 @@ int main(int argc, char **argv)
 	static Genode::Slave  ps2_slave(ps2_ep, ps2_policy, 512*1024);
 
 	/* create USB driver */
-	char const *config = "<config><hid/><storage/></config>";
+	char const *config = "<config uhci=\"yes\" ehci=\"yes\"><hid/><storage/></config>";
 	static Rpc_entrypoint usb_ep(&cap, STACK_SIZE, "usb_slave");
 	static Usb_policy     usb_policy(usb_ep, input_source_registry,
 	                                 block_driver_registry, env()->ram_session(),
