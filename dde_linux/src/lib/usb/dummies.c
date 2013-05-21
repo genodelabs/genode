@@ -796,12 +796,6 @@ int scsi_get_resid(struct scsi_cmnd *cmd) { TRACE; return 0; }
 void scsi_report_bus_reset(struct Scsi_Host *shost, int channel) { TRACE; }
 void scsi_report_device_reset(struct Scsi_Host *shost, int channel, int target) { TRACE; }
 
-void scsi_eh_prep_cmnd(struct scsi_cmnd *scmd,
-                       struct scsi_eh_save *ses, unsigned char *cmnd,
-                       int cmnd_size, unsigned sense_bytes) { TRACE; }
-
-void scsi_eh_restore_cmnd(struct scsi_cmnd* scmd,
-                          struct scsi_eh_save *ses) { TRACE; }
 
 
 int scsi_normalize_sense(const u8 *sense_buffer, int sb_len,

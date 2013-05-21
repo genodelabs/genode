@@ -88,7 +88,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv pci_drv test-block
+	core init timer usb_drv test-block
 }
 
 lappend_if [have_spec acpi] boot_modules acpi_drv

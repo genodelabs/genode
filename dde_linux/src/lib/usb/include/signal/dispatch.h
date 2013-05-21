@@ -79,7 +79,7 @@ class Packet_session_component : public RPC
 	/**
 	 * Root component, handling new session requests
 	 */
-	template <typename ROOT_COMPONENT, typename SESSION_COMPONENT>
+	template <typename ROOT_COMPONENT, typename SESSION_COMPONENT, bool CACHED>
 	class Packet_root : public ROOT_COMPONENT
 	{
 		private:
@@ -122,8 +122,8 @@ class Packet_session_component : public RPC
 				}
 
 				return new (ROOT_COMPONENT::md_alloc())
-					SESSION_COMPONENT(env()->ram_session()->alloc(tx_buf_size),
-					                  env()->ram_session()->alloc(rx_buf_size),
+					SESSION_COMPONENT(env()->ram_session()->alloc(tx_buf_size, CACHED),
+					                  env()->ram_session()->alloc(rx_buf_size, CACHED),
 					                  _ep, _sig_rec, _device);
 			}
 

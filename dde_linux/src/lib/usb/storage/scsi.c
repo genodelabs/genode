@@ -65,17 +65,6 @@ struct Scsi_Host *scsi_host_alloc(struct scsi_host_template *t, int priv_size)
 	host->max_id = 8;
 	host->hostt = t;
 
-//	rval = scsi_setup_command_freelist(shost);
-//	if (rval)
-//		goto fail_kfree;
-
-//	shost->ehandler = kthread_run(scsi_error_handler, shost,
-//			"scsi_eh_%d", shost->host_no);
-//	if (IS_ERR(shost->ehandler)) {
-//		rval = PTR_ERR(shost->ehandler);
-//		goto fail_destroy_freelist;
-//	}
-
 	return host;
 }
 
@@ -136,6 +125,7 @@ struct scsi_cmnd *_scsi_alloc_command()
 	cmnd->sdb.table.sgl = (struct scatterlist *)kmalloc(sizeof(struct scatterlist), GFP_KERNEL);
 	cmnd->cmnd = kzalloc(MAX_COMMAND_SIZE, 0);
 	cmnd->sdb.table.sgl->page_link = (unsigned long) kzalloc(sizeof(struct page), 0);
+	cmnd->sense_buffer = kmalloc(SCSI_SENSE_BUFFERSIZE, GFP_KERNEL);
 	return cmnd;
 }
 
@@ -144,6 +134,7 @@ void _scsi_free_command(struct scsi_cmnd *cmnd)
 {
 	kfree((void *)cmnd->sdb.table.sgl->page_link);
 	kfree(cmnd->sdb.table.sgl);
+	kfree(cmnd->sense_buffer);
 	kfree(cmnd->cmnd);
 	kfree(cmnd);
 }
@@ -223,3 +214,22 @@ void scsi_scan_host(struct Scsi_Host *host)
 unsigned scsi_bufflen(struct scsi_cmnd *cmnd)           { return cmnd->sdb.length; }
 struct scatterlist *scsi_sglist(struct scsi_cmnd *cmnd) { return cmnd->sdb.table.sgl; }
 unsigned scsi_sg_count(struct scsi_cmnd *cmnd)          { return cmnd->sdb.table.nents; }
+
+
+/********************
+ ** scsi/scsi_eh.h **
+ *******************/
+
+void scsi_eh_prep_cmnd(struct scsi_cmnd *scmd,
+                       struct scsi_eh_save *ses, unsigned char *cmnd,
+                       int cmnd_size, unsigned sense_bytes)
+{
+	ses->cmd_len = scmd->cmd_len;
+}
+
+
+void scsi_eh_restore_cmnd(struct scsi_cmnd* scmd,
+                          struct scsi_eh_save *ses)
+{
+	scmd->cmd_len = ses->cmd_len;
+}

@@ -63,19 +63,22 @@ struct Services
 		}
 
 		try {
-			config()->xml_node().attribute("uhci").has_value("yes");
+			if (!config()->xml_node().attribute("uhci").has_value("yes"))
+				throw -1;
 			uhci = true;
 			PINF("Enabled UHCI (USB 1.0/1.1) support");
 		} catch (...) { }
 
 		try {
-			config()->xml_node().attribute("ehci").has_value("yes");
+			if (!config()->xml_node().attribute("ehci").has_value("yes"))
+				throw -1;
 			ehci = true;
 			PINF("Enabled EHCI (USB 2.0) support");
 		} catch (...) { }
 
 		try {
-			config()->xml_node().attribute("xhci").has_value("yes");
+			if (!config()->xml_node().attribute("xhci").has_value("yes"))
+				throw -1;
 			xhci = true;
 			PINF("Enabled XHCI (USB 3.0) support");
 		} catch (...) { }

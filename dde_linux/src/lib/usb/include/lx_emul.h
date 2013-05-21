@@ -2660,7 +2660,10 @@ unsigned int queue_max_hw_sectors(struct request_queue *q);
  ** scsi/scsi_eh.h **
  *******************/
 
-struct scsi_eh_save { };
+struct scsi_eh_save
+{
+	unsigned char cmd_len;
+};
 
 struct scsi_sense_hdr
 {

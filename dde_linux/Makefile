@@ -114,7 +114,7 @@ help:
 	$(ECHO) "cleanall - remove contib sources and downloaded archives"
 	$(ECHO)
 
-prepare: $(CONTRIB_DIR)/.prepared
+prepare: clean $(CONTRIB_DIR)/.prepared
 
 $(CONTRIB_DIR)/.prepared: Makefile
 $(CONTRIB_DIR)/.prepared: $(DOWNLOAD_DIR)/$(LINUX_TBZ2)

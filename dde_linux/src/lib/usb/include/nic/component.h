@@ -268,7 +268,7 @@ namespace Nic {
 	/**
 	 * Root component, handling new session requests
 	 */
-	class Root : public Packet_root<Root_component, Session_component>
+	class Root : public Packet_root<Root_component, Session_component, true>
 	{
 		public:
 
