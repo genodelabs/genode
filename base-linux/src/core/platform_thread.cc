@@ -77,7 +77,7 @@ Platform_thread::Registry *Platform_thread::_registry()
 Platform_thread::Platform_thread(const char *name, unsigned, addr_t)
 : _tid(-1), _pid(-1)
 {
-	strncpy(_name, name, min(sizeof(_name), strlen(name)));
+	strncpy(_name, name, min(sizeof(_name), strlen(name) + 1));
 
 	_registry()->insert(this);
 }
