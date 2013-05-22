@@ -85,7 +85,7 @@ set config  {
 			<service name="Nic"/>
 			<service name="Input"/>
 		</provides>
-		<config>
+		<config uhci="yes" ehci="yes" xhci="yes">
 			<hid />
 			<nic mac="2e:60:90:0c:4e:01" />
 		</config>

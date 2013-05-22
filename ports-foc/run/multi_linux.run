@@ -71,7 +71,7 @@ append_if [expr ![have_spec ps2] && [have_spec usb]] config {
 		<binary name="usb_drv"/>
 		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="Input"/> </provides>
-		<config> <hid/> </config>
+		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
 	</start> }
 
 append config {

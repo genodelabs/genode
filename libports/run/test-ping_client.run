@@ -53,7 +53,7 @@ append_if [expr [have_spec omap4] || [have_spec exynos5]] config {
 		<provides>
 			<service name="Nic"/>
 		</provides>
-		<config>
+		<config ehci="yes">
 			<nic mac="2e:60:90:0c:4e:02" />
 		</config>
 	</start>}
