@@ -21,6 +21,7 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <os/config.h>
+#include <timer_session/connection.h>
 
 volatile int dummy;
 
@@ -112,6 +113,7 @@ int main(int argc, char **argv)
 	 * Prefetch ROM files specified in the config
 	 */
 	try {
+		Timer::Connection timer;
 		Genode::Xml_node entry = config()->xml_node().sub_node("rom");
 		for (;;) {
 
@@ -130,6 +132,9 @@ int main(int argc, char **argv)
 
 			/* proceed with next XML node */
 			entry = entry.next("rom");
+
+			/* yield */
+			timer.msleep(1);
 		}
 	} catch (...) { }
 
