@@ -109,7 +109,8 @@ class Platform : public Screen_update
 		 * The specified area is relative to the screen
 		 * of the platform.
 		 */
-		void view_geometry(int x, int y, int w, int h, int do_redraw = 0);
+		void view_geometry(int x, int y, int w, int h, int do_redraw = 0,
+		                   int buf_x = 0, int buf_y = 0);
 
 		/**
 		 * Bring Scouts view ontop
@@ -123,6 +124,8 @@ class Platform : public Screen_update
 		int vy();
 		int vw();
 		int vh();
+		int vbx();
+		int vby();
 
 		/**
 		 * Get timer ticks in miilliseconds

@@ -39,7 +39,7 @@ static Timer::Session            *_timer;
 static unsigned long              _timer_tick;
 static int                        _init_flag;
 static bool                       _view_initialized;
-static int                        _vx, _vy, _vw, _vh;  /* view geometry */
+static int                        _vx, _vy, _vw, _vh, _vbx, _vby;  /* view geometry */
 
 
 /**
@@ -52,7 +52,8 @@ static Nitpicker::View_capability create_and_top_view()
 {
 	Nitpicker::View_capability cap = _nitpicker->create_view();
 	Nitpicker::View_client(cap).stack(Nitpicker::View_capability(), true, true);
-	Nitpicker::View_client(cap).viewport(_vx, _vy, _vw, _vh, 0, _flip_state ? -_scr_h : 0, true);
+	Nitpicker::View_client(cap).viewport(_vx - _vbx, _vy - _vby, _vw, _vh,
+	                                     _vbx, _flip_state ? _vby - _scr_h : _vby, true);
 	return cap;
 }
 
@@ -208,7 +209,7 @@ Platform::Platform(unsigned vx, unsigned vy, unsigned vw, unsigned vh,
                    unsigned max_vw, unsigned max_vh)
 : _max_vw(max_vw), _max_vh(max_vh)
 {
-	_vx = vx, _vy = vy, _vw = vw, _vh = vh;
+	_vx = vx, _vy = vy, _vw = vw, _vh = vh, _vbx = 0, _vby = 0;
 
 	Config::mouse_cursor = 0;
 	Config::browser_attr = 7;
@@ -284,7 +285,7 @@ void Platform::flip_buf_scr()
 	_flip_state ^= 1;
 
 	/* enable new foreground buffer by configuring the view port */
-	view_geometry(_vx, _vy, _vw, _vh);
+	view_geometry(_vx, _vy, _vw, _vh, false, _vbx, _vby);
 }
 
 
@@ -344,18 +345,23 @@ void Platform::top_view()
 /**
  * Report view geometry changes to Nitpicker.
  */
-void Platform::view_geometry(int x, int y, int w, int h, int do_redraw)
+void Platform::view_geometry(int x, int y, int w, int h, int do_redraw,
+                             int buf_x, int buf_y)
 {
-	_vx = x; _vy = y; _vw = w; _vh = h;
+	_vx = x; _vy = y; _vw = w; _vh = h; _vbx = buf_x, _vby = buf_y;
 	if (_view_initialized)
-		view()->viewport(_vx, _vy, _vw, _vh, 0, _flip_state ? -_scr_h : 0, do_redraw);
+		view()->viewport(_vx - _vbx, _vy - _vby, _vw, _vh,
+		                 _vbx,
+		                 _flip_state ? _vby - _scr_h : _vby, do_redraw);
 }
 
 
-int Platform::vx() { return _vx; }
-int Platform::vy() { return _vy; }
-int Platform::vw() { return _vw; }
-int Platform::vh() { return _vh; }
+int Platform::vx()  { return _vx; }
+int Platform::vy()  { return _vy; }
+int Platform::vw()  { return _vw; }
+int Platform::vh()  { return _vh; }
+int Platform::vbx() { return _vbx; }
+int Platform::vby() { return _vby; }
 
 
 /**

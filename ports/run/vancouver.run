@@ -114,12 +114,7 @@ puts $launchpad_cfg_fd {<config>
 				<route>
 					<any-service><parent/></any-service>
 				</route>
-				<config>
-					<animate>off</animate>
-					<x>10</x><y>10</y>
-					<width>800</width>
-					<height>600</height>
-				</config>
+				<config xpos="10" ypos="10" width="800" height="600" animate="off"/>
 			</start>
 
 			<start name="vancouver">

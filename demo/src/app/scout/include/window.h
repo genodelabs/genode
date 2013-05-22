@@ -71,7 +71,7 @@ class Window : public Parent_element
 		 * Move window to new position
 		 */
 		virtual void vpos(int x, int y) {
-			_pf->view_geometry(x, y, _pf->vw(), _pf->vh(), 1); }
+			_pf->view_geometry(x, y, _pf->vw(), _pf->vh(), 1, _pf->vbx(), _pf->vby()); }
 
 		/**
 		 * Define vertical scroll offset

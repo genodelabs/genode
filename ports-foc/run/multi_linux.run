@@ -106,14 +106,7 @@ append config {
 					</default-route>
 					<start name="liquid_fb">
 						<resource name="RAM" quantum="6M"/>
-						<config>
-							<animate>off</animate>
-							<x>400</x>
-							<y>270</y>
-							<width>300</width>
-							<height>200</height>
-							<title>Linux</title>
-						</config>
+						<config xpos="400" ypos="270" width="300" height="200" animate="off" title="Linux"/>
 						<provides>
 							<service name="Input"/>
 							<service name="Framebuffer"/>

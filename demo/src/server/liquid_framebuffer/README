@@ -3,23 +3,31 @@ running as a client of the Nitpicker GUI server. It supports the
 following configuration options. The example shows the default
 values.
 
-! <config>
+! <config
 !
 !   <!-- enable the animated background,
-!        valid values or 'on' and 'off' -->
-!   <animate>on</animate>
+!        valid values are 'on' and 'off' -->
+!   animate="on"
 !
 !   <!-- the initial window position and
 !        size of the virtual frame buffer -->
-!   <x>400</x>
-!   <y>270</y>
-!   <width>500</width>
-!   <height>400</height>
+!   xpos="400"
+!   ypos="270"
+!   width="500"
+!   height="400"
 !
 !   <!-- set the window title -->
-!   <title>Liquid Framebuffer</title>
+!   title="Liquid Framebuffer"
 !
-! </config>
+!   <!-- show a resize handle,
+!        valid values are 'on' and 'off' -->
+!   resize_handle="off"
+!
+!   <!-- show window decoration (title bar and borders),
+!        valid values are 'on' and 'off' -->
+!   decoration="on"
+!
+! />
 
 Because Liquid frame buffer creates the virtual frame-buffer window at
 start time, not at session-creation time, sufficient memory resources must

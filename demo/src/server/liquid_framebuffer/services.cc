@@ -14,7 +14,6 @@
 #include <base/env.h>
 #include <base/semaphore.h>
 #include <base/rpc_server.h>
-#include <cap_session/connection.h>
 #include <framebuffer_session/framebuffer_session.h>
 #include <input/component.h>
 
@@ -90,21 +89,16 @@ class Window_content : public Element
 		{
 			private:
 
-				Genode::Lock &_lock;
 				Event_queue  *_ev_queue;
 				int           _omx, _omy;
 				Element      *_element;
 
 			public:
 
-				Content_event_handler(Event_queue *ev_queue, Element *element,
-				                      Genode::Lock &lock)
+				Content_event_handler(Event_queue *ev_queue, Element *element)
 				:
-					_lock(lock), _ev_queue(ev_queue), _element(element) { }
+					_ev_queue(ev_queue), _element(element) { }
 
-				/*
-				 * Called from main program with taken lock for window content
-				 */
 				void handle(Event &ev)
 				{
 					int mx = ev.mx - _element->abs_x();
@@ -171,7 +165,6 @@ class Window_content : public Element
 
 		};
 
-		Genode::Lock                      _lock;
 		bool                              _config_alpha;
 		Content_event_handler             _ev_handler;
 		Fb_texture                       *_fb;
@@ -185,7 +178,7 @@ class Window_content : public Element
 		               bool config_alpha)
 		:
 			_config_alpha(config_alpha),
-			_ev_handler(ev_queue, this, _lock),
+			_ev_handler(ev_queue, this),
 			_fb(new (Genode::env()->heap()) Fb_texture(fb_w, fb_h, _config_alpha)),
 			_new_w(fb_w), _new_h(fb_h),
 			_wait_for_refresh(false)
@@ -196,35 +189,24 @@ class Window_content : public Element
 			event_handler(&_ev_handler);
 		}
 
-		/*
-		 * Accessors, called by the RPC entrypoint. Hence, the need for
-		 * locking.
-		 */
-
 		Genode::Dataspace_capability fb_ds_cap() {
-			Genode::Lock::Guard guard(_lock);
 			return _fb->ds.cap();
 		}
 
 		unsigned fb_w() {
-			Genode::Lock::Guard guard(_lock);
 			return _fb->w;
 		}
 		unsigned fb_h() {
-			Genode::Lock::Guard guard(_lock);
 			return _fb->h;
 		}
 
 		void mode_sigh(Genode::Signal_context_capability sigh)
 		{
-			Genode::Lock::Guard guard(_lock);
 			_mode_sigh = sigh;
 		}
 
 		void realloc_framebuffer()
 		{
-			Genode::Lock::Guard guard(_lock);
-
 			/* skip reallocation if size has not changed */
 			if (_new_w == _fb->w && _new_h == _fb->h)
 				return;
@@ -246,9 +228,6 @@ class Window_content : public Element
 
 		/**
 		 * Element interface
-		 *
-		 * Called indirectly by the Content_event_handler thread, which has
-		 * already taken the lock.
 		 */
 		void draw(Canvas *c, int x, int y)
 		{
@@ -264,18 +243,12 @@ class Window_content : public Element
 			if (_mode_sigh.valid())
 				Genode::Signal_transmitter(_mode_sigh).submit();
 		}
-
-		void lock()   { _lock.lock(); }
-		void unlock() { _lock.unlock(); }
 };
 
 
 static Window_content *_window_content;
 
 Element *window_content() { return _window_content; }
-
-void   lock_window_content() { _window_content->lock(); }
-void unlock_window_content() { _window_content->unlock(); }
 
 
 /***********************************************
@@ -342,24 +315,21 @@ namespace Framebuffer
 }
 
 
-void init_services(unsigned fb_w, unsigned fb_h, bool config_alpha)
+void init_window_content(unsigned fb_w, unsigned fb_h, bool config_alpha)
 {
-	using namespace Genode;
-
 	static Window_content content(fb_w, fb_h, &_ev_queue, config_alpha);
 	_window_content = &content;
+}
 
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "liquid_fb_ep");
+
+void init_services(Genode::Rpc_entrypoint &ep)
+{
+	using namespace Genode;
 
 	/*
 	 * Let the entry point serve the framebuffer and input root interfaces
 	 */
-	static Framebuffer::Root    fb_root(&ep, env()->heap(), content);
+	static Framebuffer::Root    fb_root(&ep, env()->heap(), *_window_content);
 	static       Input::Root input_root(&ep, env()->heap());
 
 	/*

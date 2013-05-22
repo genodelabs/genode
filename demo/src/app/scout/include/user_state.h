@@ -85,6 +85,15 @@ class User_state : public Parent_element
 		int vy() { return _vy; }
 
 		/**
+		 * Update the current view offset
+		 */
+		void update_view_offset()
+		{
+			_vx = _window->view_x();
+			_vy = _window->view_y();
+		}
+
+		/**
 		 * Apply input event to mouse focus state
 		 */
 		void handle_event(Event &ev)
@@ -112,8 +121,7 @@ class User_state : public Parent_element
 					_active = e;
 					_active->handle_event(ev);
 
-					_vx = _window->view_x();
-					_vy = _window->view_y();
+					update_view_offset();
 
 					_assign_mfocus(_root->find(ev.mx, ev.my), 1);
 
@@ -122,8 +130,7 @@ class User_state : public Parent_element
 				case Event::RELEASE:
 
 					if (_key_cnt == 0) {
-						_vx = _window->view_x();
-						_vy = _window->view_y();
+						update_view_offset();
 						_active = 0;
 						_assign_mfocus(e);
 					}
