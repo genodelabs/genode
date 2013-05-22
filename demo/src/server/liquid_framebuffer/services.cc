@@ -90,15 +90,21 @@ class Window_content : public Element
 		{
 			private:
 
-				Event_queue *_ev_queue;
-				int          _omx, _omy;
-				Element     *_element;
+				Genode::Lock &_lock;
+				Event_queue  *_ev_queue;
+				int           _omx, _omy;
+				Element      *_element;
 
 			public:
 
-				Content_event_handler(Event_queue *ev_queue, Element *element):
-					_ev_queue(ev_queue), _element(element) { }
+				Content_event_handler(Event_queue *ev_queue, Element *element,
+				                      Genode::Lock &lock)
+				:
+					_lock(lock), _ev_queue(ev_queue), _element(element) { }
 
+				/*
+				 * Called from main program with taken lock for window content
+				 */
 				void handle(Event &ev)
 				{
 					int mx = ev.mx - _element->abs_x();
@@ -124,66 +130,152 @@ class Window_content : public Element
 				}
 		};
 
-		unsigned                        _fb_w, _fb_h;
-		Genode::Attached_ram_dataspace  _fb_ds;
-		Pixel_rgb565                   *_pixel;
-		unsigned char                  *_alpha;
-		Texture_rgb565                  _fb_texture;
-		Content_event_handler           _ev_handler;
+		struct Fb_texture
+		{
+			unsigned                        w, h;
+			Genode::Attached_ram_dataspace  ds;
+			Pixel_rgb565                   *pixel;
+			unsigned char                  *alpha;
+			Texture_rgb565                  texture;
+
+			Fb_texture(unsigned w, unsigned h, bool config_alpha)
+			:
+				w(w), h(h),
+				ds(Genode::env()->ram_session(), w*h*sizeof(Pixel_rgb565)),
+				pixel(ds.local_addr<Pixel_rgb565>()),
+				alpha((unsigned char *)Genode::env()->heap()->alloc(w*h)),
+				texture(pixel, alpha, w, h)
+			{
+				int alpha_min = config_alpha ? 0 : 255;
+
+				/* init alpha channel */
+				for (unsigned y = 0; y < h; y++)
+					for (unsigned x = 0; x < w; x++) {
+
+						int v = (x * y + (w*h)/4) / w;
+						v = v + (x + y)/2;
+						int a = v & 0xff;
+						if (v & 0x100)
+							a = 255 - a;
+
+						a += (dither_matrix[y % dither_size][x % dither_size] - 127) >> 4;
+
+						alpha[y*w + x] = Genode::max(alpha_min, Genode::min(a, 255));
+					}
+			}
+
+			~Fb_texture()
+			{
+				Genode::env()->heap()->free(alpha, w*h);
+			}
+
+		};
+
+		Genode::Lock                      _lock;
+		bool                              _config_alpha;
+		Content_event_handler             _ev_handler;
+		Fb_texture                       *_fb;
+		unsigned                          _new_w, _new_h;
+		Genode::Signal_context_capability _mode_sigh;
+		bool                              _wait_for_refresh;
 
 	public:
 
 		Window_content(unsigned fb_w, unsigned fb_h, Event_queue *ev_queue,
 		               bool config_alpha)
 		:
-			_fb_w(fb_w), _fb_h(fb_h),
-			_fb_ds(Genode::env()->ram_session(), _fb_w*_fb_h*sizeof(Pixel_rgb565)),
-			_pixel(_fb_ds.local_addr<Pixel_rgb565>()),
-			_alpha((unsigned char *)Genode::env()->heap()->alloc(_fb_w*_fb_h)),
-			_fb_texture(_pixel, _alpha, _fb_w, _fb_h),
-			_ev_handler(ev_queue, this)
+			_config_alpha(config_alpha),
+			_ev_handler(ev_queue, this, _lock),
+			_fb(new (Genode::env()->heap()) Fb_texture(fb_w, fb_h, _config_alpha)),
+			_new_w(fb_w), _new_h(fb_h),
+			_wait_for_refresh(false)
 		{
-			_min_w = _fb_w;
-			_min_h = _fb_h;
-
-			int alpha_min = config_alpha ? 0 : 255;
-
-			/* init alpha channel */
-			for (unsigned y = 0; y < _fb_h; y++)
-				for (unsigned x = 0; x < _fb_w; x++) {
-
-					int v = (x * y + (_fb_w*_fb_h)/4) / _fb_w;
-					v = v + (x + y)/2;
-					int a = v & 0xff;
-					if (v & 0x100)
-						a = 255 - a;
-
-					a += (dither_matrix[y % dither_size][x % dither_size] - 127) >> 4;
-
-					_alpha[y*_fb_w + x] = Genode::max(alpha_min, Genode::min(a, 255));
-				}
+			_min_w = _fb->w;
+			_min_h = _fb->h;
 
 			event_handler(&_ev_handler);
 		}
 
-		/**
-		 * Accessors
+		/*
+		 * Accessors, called by the RPC entrypoint. Hence, the need for
+		 * locking.
 		 */
-		Genode::Dataspace_capability fb_ds_cap() { return _fb_ds.cap(); }
-		unsigned                     fb_w()      { return _fb_w; }
-		unsigned                     fb_h()      { return _fb_h; }
+
+		Genode::Dataspace_capability fb_ds_cap() {
+			Genode::Lock::Guard guard(_lock);
+			return _fb->ds.cap();
+		}
+
+		unsigned fb_w() {
+			Genode::Lock::Guard guard(_lock);
+			return _fb->w;
+		}
+		unsigned fb_h() {
+			Genode::Lock::Guard guard(_lock);
+			return _fb->h;
+		}
+
+		void mode_sigh(Genode::Signal_context_capability sigh)
+		{
+			Genode::Lock::Guard guard(_lock);
+			_mode_sigh = sigh;
+		}
+
+		void realloc_framebuffer()
+		{
+			Genode::Lock::Guard guard(_lock);
+
+			/* skip reallocation if size has not changed */
+			if (_new_w == _fb->w && _new_h == _fb->h)
+				return;
+
+			Genode::destroy(Genode::env()->heap(), _fb);
+
+			_fb = new (Genode::env()->heap())
+			      Fb_texture(_new_w, _new_h, _config_alpha);
+
+			/*
+			 * Suppress drawing of the texture until we received the next
+			 * refresh call from the client. This way, we avoid flickering
+			 * artifacts while continuously resizing the window.
+			 */
+			_wait_for_refresh = true;
+		}
+
+		void client_called_refresh() { _wait_for_refresh = false; }
 
 		/**
 		 * Element interface
+		 *
+		 * Called indirectly by the Content_event_handler thread, which has
+		 * already taken the lock.
 		 */
-		void draw(Canvas *c, int x, int y) {
-			c->draw_texture(&_fb_texture, _x + x, _y + y); }
+		void draw(Canvas *c, int x, int y)
+		{
+			if (!_wait_for_refresh)
+				c->draw_texture(&_fb->texture, _x + x, _y + y);
+		}
+
+		void format_fixed_size(int w, int h)
+		{
+			_new_w = w, _new_h = h;
+
+			/* notify framebuffer client about mode change */
+			if (_mode_sigh.valid())
+				Genode::Signal_transmitter(_mode_sigh).submit();
+		}
+
+		void lock()   { _lock.lock(); }
+		void unlock() { _lock.unlock(); }
 };
 
 
 static Window_content *_window_content;
 
 Element *window_content() { return _window_content; }
+
+void   lock_window_content() { _window_content->lock(); }
+void unlock_window_content() { _window_content->unlock(); }
 
 
 /***********************************************
@@ -194,39 +286,58 @@ namespace Framebuffer
 {
 	class Session_component : public Genode::Rpc_object<Session>
 	{
+		private:
+
+			Window_content &_window_content;
+
 		public:
 
-			Genode::Dataspace_capability dataspace() {
-				return _window_content->fb_ds_cap(); }
+			Session_component(Window_content &window_content)
+			: _window_content(window_content) { }
 
-			void release() { }
+			Genode::Dataspace_capability dataspace() {
+				return _window_content.fb_ds_cap(); }
+
+			void release() {
+				_window_content.realloc_framebuffer(); }
 
 			Mode mode() const
 			{
-				return Mode(_window_content->fb_w(), _window_content->fb_h(),
+				return Mode(_window_content.fb_w(), _window_content.fb_h(),
 				            Mode::RGB565);
 			}
 
-			void mode_sigh(Genode::Signal_context_capability) { }
+			void mode_sigh(Genode::Signal_context_capability sigh) {
+				_window_content.mode_sigh(sigh); }
 
-			void refresh(int x, int y, int w, int h) {
-				window_content()->redraw_area(x, y, w, h); }
+			void refresh(int x, int y, int w, int h)
+			{
+				_window_content.client_called_refresh();
+				_window_content.redraw_area(x, y, w, h);
+			}
 	};
 
 
 	class Root : public Genode::Root_component<Session_component>
 	{
+		private:
+
+			Window_content &_window_content;
+
 		protected:
 
 			Session_component *_create_session(const char *args) {
-				PDBG("creating framebuffer session");
-				return new (md_alloc()) Session_component(); }
+				return new (md_alloc()) Session_component(_window_content); }
 
 		public:
 
 			Root(Genode::Rpc_entrypoint *session_ep,
-			     Genode::Allocator      *md_alloc)
-			: Genode::Root_component<Session_component>(session_ep, md_alloc) { }
+			     Genode::Allocator      *md_alloc,
+			     Window_content         &window_content)
+			:
+				Genode::Root_component<Session_component>(session_ep, md_alloc),
+				_window_content(window_content)
+			{ }
 	};
 }
 
@@ -248,7 +359,7 @@ void init_services(unsigned fb_w, unsigned fb_h, bool config_alpha)
 	/*
 	 * Let the entry point serve the framebuffer and input root interfaces
 	 */
-	static Framebuffer::Root    fb_root(&ep, env()->heap());
+	static Framebuffer::Root    fb_root(&ep, env()->heap(), content);
 	static       Input::Root input_root(&ep, env()->heap());
 
 	/*

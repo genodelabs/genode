@@ -17,10 +17,13 @@
 #include "window.h"
 #include "titlebar.h"
 #include "sky_texture.h"
+#include "fade_icon.h"
 
 #define TITLEBAR_RGBA _binary_titlebar_rgba_start
+#define SIZER_RGBA    _binary_sizer_rgba_start
 
 extern unsigned char TITLEBAR_RGBA[];
+extern unsigned char SIZER_RGBA[];
 
 
 template <typename PT>
@@ -39,7 +42,9 @@ class Framebuffer_window : public Window
 		Titlebar<PT>              _titlebar;
 		Sky_texture<PT, 512, 512> _bg_texture;
 		int                       _bg_offset;
+		Fade_icon<PT, 32, 32>     _sizer;
 		Element                  *_content;
+		bool                      _config_alpha;
 
 	public:
 
@@ -49,7 +54,8 @@ class Framebuffer_window : public Window
 		Framebuffer_window(Platform       *pf,
 		                   Redraw_manager *redraw,
 		                   Element        *content,
-		                   const char     *name)
+		                   const char     *name,
+		                   bool            config_alpha)
 		:
 			Window(pf, redraw, content->min_w() + 2, content->min_h() + 1 + _TH),
 			_bg_offset(0), _content(content)
@@ -59,8 +65,14 @@ class Framebuffer_window : public Window
 			_titlebar.text(name);
 			_titlebar.event_handler(new Mover_event_handler(this));
 
+			/* resize handle */
+			_sizer.rgba(SIZER_RGBA);
+			_sizer.event_handler(new Sizer_event_handler(this));
+			_sizer.alpha(100);
+
 			append(&_titlebar);
 			append(_content);
+			append(&_sizer);
 
 			_min_w = max_w();
 			_min_h = max_h();
@@ -71,10 +83,23 @@ class Framebuffer_window : public Window
 		 */
 		void format(int w, int h)
 		{
+			w = (w > max_w()) ? max_w() : w;
+			h = (h > max_h()) ? max_h() : h;
 			_w = w;
 			_h = h;
 
-			Parent_element::_format_children(1, w);
+			int y = 0;
+
+			_titlebar.format_fixed_width(w);
+			_titlebar.geometry(1, y, _titlebar.min_w(), _titlebar.min_h());
+			y += _titlebar.min_h();
+
+			int const content_h = (h > y + 1) ? (h - y - 1) : 0;
+			int const content_w = w - 2;
+			_content->format_fixed_size(content_w, content_h);
+			_content->geometry(1, y, content_w, content_h);
+
+			_sizer.geometry(_w - 32, _h - 32, 32, 32);
 
 			pf()->view_geometry(pf()->vx(), pf()->vy(), _w, _h);
 			redraw()->size(_w, _h);
@@ -91,7 +116,8 @@ class Framebuffer_window : public Window
 		 */
 		void draw(Canvas *c, int x, int y)
 		{
-			_bg_texture.draw(c, 0, - _bg_offset);
+			if (_config_alpha)
+				_bg_texture.draw(c, 0, - _bg_offset);
 
 			::Parent_element::draw(c, x, y);
 

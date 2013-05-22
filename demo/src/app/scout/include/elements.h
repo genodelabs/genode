@@ -165,6 +165,11 @@ class Element
 		virtual void format_fixed_width(int w) { }
 
 		/**
+		 * Format element and all child elements to specified width and height
+		 */
+		virtual void format_fixed_size(int w, int h) { }
+
+		/**
 		 * Draw function
 		 *
 		 * This function must not be called directly.

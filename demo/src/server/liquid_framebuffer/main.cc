@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 
 	/* create instance of browser window */
 	static Framebuffer_window<Pixel_rgb565>
-		fb_win(&pf, &redraw, window_content(), config_title);
+		fb_win(&pf, &redraw, window_content(), config_title, config_alpha);
 
 	if (config_animate) {
 		static Background_animator fb_win_bg_anim(&fb_win);
@@ -181,8 +181,11 @@ int main(int argc, char **argv)
 	Event ev;
 	unsigned long curr_time, old_time;
 	curr_time = old_time = pf.timer_ticks();
+	lock_window_content();
 	do {
+		unlock_window_content();
 		pf.get_event(&ev);
+		lock_window_content();
 
 		if (ev.type != Event::WHEEL) {
 			ev.mx -= user_state.vx();

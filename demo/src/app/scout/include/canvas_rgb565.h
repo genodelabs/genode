@@ -86,9 +86,10 @@ class Texture_rgb565 : public Canvas::Texture
 {
 	private:
 
-		int            _w, _h;   /* size of texture */
-		unsigned char *_alpha;   /* alpha channel   */
-		Pixel_rgb565  *_pixel;   /* pixel data      */
+		int            _w, _h;           /* size of texture */
+		unsigned char *_alpha;           /* alpha channel   */
+		Pixel_rgb565  *_pixel;           /* pixel data      */
+		bool           _preallocated;
 
 	public:
 
@@ -96,23 +97,25 @@ class Texture_rgb565 : public Canvas::Texture
 		 * Constructor
 		 */
 		Texture_rgb565(int w, int h)
-		{
-			_w = w;
-			_h = h;
-			_alpha = (unsigned char *)scout_malloc(w*h);
-			_pixel = (Pixel_rgb565 *)scout_malloc(w*h*sizeof(Pixel_rgb565));
-		}
+		:
+			_w(w), _h(h),
+			_alpha((unsigned char *)scout_malloc(w*h)),
+			_pixel((Pixel_rgb565 *)scout_malloc(w*h*sizeof(Pixel_rgb565))),
+			_preallocated(false)
+		{ }
 
 		Texture_rgb565(Pixel_rgb565 *pixel, unsigned char *alpha, int w, int h):
-			_w(w), _h(h), _alpha(alpha), _pixel(pixel) { }
+			_w(w), _h(h), _alpha(alpha), _pixel(pixel), _preallocated(true) { }
 
 		/**
 		 * Destructor
 		 */
 		~Texture_rgb565()
 		{
-			scout_free(_alpha);
-			scout_free(_pixel);
+			if (!_preallocated) {
+				scout_free(_alpha);
+				scout_free(_pixel);
+			}
 			_w = _h = 0;
 		}
 

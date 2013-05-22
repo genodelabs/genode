@@ -19,5 +19,7 @@
 
 extern Element *window_content();
 extern void init_services(unsigned fb_w, unsigned fb_h, bool config_alpha);
+extern void lock_window_content();
+extern void unlock_window_content();
 
 #endif
