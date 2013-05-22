@@ -268,6 +268,9 @@ namespace Kernel
 	 * \retval >0  if syscall was successful and thread were already active
 	 * \retval <0  if targeted thread doesn't participate in CPU
 	 *             scheduling after
+	 *
+	 * If the targeted thread blocks for any event except a 'start_thread'
+	 * call this call cancels the blocking.
 	 */
 	inline int resume_thread(unsigned const id = 0) {
 		return syscall(RESUME_THREAD, id); }
@@ -524,12 +527,14 @@ namespace Kernel
 	 *
 	 * \param context_id  kernel name of the targeted signal context
 	 *
+	 * \return  wether the context could be destructed
+	 *
 	 * Blocks the caller until the last delivered signal of the targeted
 	 * context is acknowledged. Then the context gets destructed, losing
 	 * all submits that were not delivered when this syscall occured.
 	 */
-	inline void kill_signal_context(unsigned context_id) {
-		syscall(KILL_SIGNAL_CONTEXT, (Syscall_arg)context_id); }
+	inline bool kill_signal_context(unsigned context_id) {
+		return syscall(KILL_SIGNAL_CONTEXT, (Syscall_arg)context_id); }
 
 	/**
 	 * Create a new virtual-machine that is stopped initially

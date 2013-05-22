@@ -60,6 +60,14 @@ namespace Kernel
 }
 
 
+void Kernel::Ipc_node::cancel_waiting()
+{
+	if (_state == PREPARE_AND_AWAIT_REPLY) _state = PREPARE_REPLY;
+	if (_state == AWAIT_REPLY || _state == AWAIT_REQUEST) _state = INACTIVE;
+	return;
+}
+
+
 void Kernel::Ipc_node::_receive_request(Message_buf * const r)
 {
 	/* assertions */
@@ -79,9 +87,11 @@ void Kernel::Ipc_node::_receive_request(Message_buf * const r)
 void Kernel::Ipc_node::_receive_reply(void * const base, size_t const size)
 {
 	/* assertions */
-	assert(_awaits_reply());
 	assert(size <= _inbuf.size);
-
+	if (!_awaits_reply()) {
+		PDBG("discard unexpected IPC reply");
+		return;
+	}
 	/* receive reply */
 	Genode::memcpy(_inbuf.base, base, size);
 	_inbuf.size = size;
@@ -373,6 +383,10 @@ void Kernel::Irq_owner::await_irq()
 }
 
 
+void Kernel::Irq_owner::cancel_waiting() {
+	if (_id) pic()->mask(id_to_irq(_id)); }
+
+
 void Kernel::Irq_owner::receive_irq(unsigned const irq)
 {
 	assert(_id == irq_to_id(irq));
@@ -433,16 +447,16 @@ namespace Kernel
 }
 
 
-void Kernel::Thread::_activate()
+void Kernel::Thread::_schedule()
 {
 	cpu_scheduler()->insert(this);
-	_state = ACTIVE;
+	_state = SCHEDULED;
 }
 
 
 void Kernel::Thread::pause()
 {
-	assert(_state == AWAIT_RESUMPTION || _state == ACTIVE);
+	assert(_state == AWAIT_RESUMPTION || _state == SCHEDULED);
 	cpu_scheduler()->remove(this);
 	_state = AWAIT_RESUMPTION;
 }
@@ -451,20 +465,7 @@ void Kernel::Thread::pause()
 void Kernel::Thread::stop()
 {
 	cpu_scheduler()->remove(this);
-	_state = STOPPED;
-}
-
-
-int Kernel::Thread::resume()
-{
-	if (_state != AWAIT_RESUMPTION && _state != ACTIVE) {
-		PDBG("Unexpected thread state");
-		return -1;
-	}
-	cpu_scheduler()->insert(this);
-	if (_state == ACTIVE) return 1;
-	_state = ACTIVE;
-	return 0;
+	_state = AWAIT_START;
 }
 
 
@@ -489,17 +490,25 @@ void Kernel::Thread::reply(size_t const size, bool const await_request)
 }
 
 
-void Kernel::Thread::await_signal()
+void Kernel::Thread::await_signal(Kernel::Signal_receiver * receiver)
 {
 	cpu_scheduler()->remove(this);
-	_state = AWAIT_IRQ;
+	_state = AWAIT_SIGNAL;
+	_signal_receiver = receiver;
 }
 
 
 void Kernel::Thread::received_signal()
 {
+	assert(_state == AWAIT_SIGNAL);
+	_schedule();
+}
+
+
+void Kernel::Thread::_received_irq()
+{
 	assert(_state == AWAIT_IRQ);
-	_activate();
+	_schedule();
 }
 
 
@@ -533,7 +542,7 @@ void Kernel::Thread::scheduled_next()
 void Kernel::Thread::_has_received(size_t const s)
 {
 	user_arg_0(s);
-	if (_state != ACTIVE) _activate();
+	if (_state != SCHEDULED) _schedule();
 }
 
 
@@ -598,16 +607,19 @@ namespace Kernel
 
 			/**
 			 * Destruct or prepare to do it at next call of 'ack'
+			 *
+			 * \return  wether destruction is done
 			 */
-			void kill(Thread * const killer)
+			bool kill(Thread * const killer)
 			{
 				assert(!_killer);
 				_killer = killer;
 				if (_await_ack) {
 					_killer->kill_signal_context_blocks();
-					return;
+					return 0;
 				}
 				this->~Signal_context();
+				return 1;
 			}
 	};
 
@@ -655,10 +667,16 @@ namespace Kernel
 			 */
 			void add_listener(Thread * const t)
 			{
-				t->await_signal();
+				t->await_signal(this);
 				_listeners.enqueue(t);
 				_listen();
 			}
+
+			/**
+			 * Stop a thread from listening to our contexts
+			 */
+			void remove_listener(Thread * const t) {
+				_listeners.remove(t); }
 
 			/**
 			 * If any of our contexts is pending
@@ -1279,7 +1297,7 @@ namespace Kernel
 		Signal_context * const c =
 			Signal_context::pool()->object(user->user_arg_1());
 		assert(c);
-		c->kill(user);
+		user->user_arg_0(c->kill(user));
 	}
 
 	/**
@@ -1476,13 +1494,48 @@ extern "C" void kernel()
  ** Kernel::Thread **
  ********************/
 
+int Kernel::Thread::resume()
+{
+	switch (_state) {
+	case AWAIT_RESUMPTION:
+		_schedule();
+		return 0;
+	case SCHEDULED:
+		return 1;
+	case AWAIT_IPC:
+		PDBG("cancel IPC receipt");
+		Ipc_node::cancel_waiting();
+		_schedule();
+		return 0;
+	case AWAIT_IRQ:
+		PDBG("cancel IRQ receipt");
+		Irq_owner::cancel_waiting();
+		_schedule();
+		return 0;
+	case AWAIT_SIGNAL:
+		PDBG("cancel signal receipt");
+		_signal_receiver->remove_listener(this);
+		_schedule();
+		return 0;
+	case AWAIT_SIGNAL_CONTEXT_DESTRUCT:
+		PDBG("cancel signal context destruction");
+		_schedule();
+		return 0;
+	case AWAIT_START:
+	default:
+		PERR("unresumable state");
+		return -1;
+	}
+}
+
+
 int Thread::start(void *ip, void *sp, unsigned cpu_no,
                          unsigned const pd_id,
                          Native_utcb * const phys_utcb,
                          Native_utcb * const virt_utcb)
 {
 	/* check state and arguments */
-	assert(_state == STOPPED)
+	assert(_state == AWAIT_START)
 	assert(!cpu_no);
 
 	/* apply thread configuration */
@@ -1494,7 +1547,7 @@ int Thread::start(void *ip, void *sp, unsigned cpu_no,
 	user_arg_0((unsigned)_virt_utcb);
 
 	/* start thread */
-	_activate();
+	_schedule();
 	return 0;
 }
 
@@ -1531,14 +1584,18 @@ void Thread::pagefault(addr_t const va, bool const w)
 void Thread::kill_signal_context_blocks()
 {
 	cpu_scheduler()->remove(this);
-	_state = KILL_SIGNAL_CONTEXT_BLOCKS;
+	_state = AWAIT_SIGNAL_CONTEXT_DESTRUCT;
 }
 
 
 void Thread::kill_signal_context_done()
 {
-	assert(_state == KILL_SIGNAL_CONTEXT_BLOCKS)
-	_activate();
+	if (_state != AWAIT_SIGNAL_CONTEXT_DESTRUCT) {
+		PDBG("ignore unexpected signal-context destruction");
+		return;
+	}
+	user_arg_0(1);
+	_schedule();
 }
 
 

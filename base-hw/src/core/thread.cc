@@ -91,9 +91,5 @@ void Thread_base::join()
 }
 
 
-void Thread_base::cancel_blocking()
-{
-	kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
-	while (1) ;
-}
+void Thread_base::cancel_blocking() { _tid.pt->cancel_blocking(); }
 

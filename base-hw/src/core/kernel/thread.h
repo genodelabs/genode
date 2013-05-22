@@ -532,23 +532,26 @@ namespace Kernel
 	 * IPC node states:
 	 *
 	 *         +----------+                               +---------------+                             +---------------+
-	 * --new-->| inactive |--send-request-await-reply---->| await reply   |               +--send-note--| prepare reply |
+	 * --new-->| inactive |---send-request-await-reply--->| await reply   |               +--send-note--| prepare reply |
 	 *         |          |<--receive-reply---------------|               |               |             |               |
+	 *         |          |<--cancel-waiting--------------|               |               |             |               |
 	 *         |          |                               +---------------+               +------------>|               |
 	 *         |          |<--request-is-a-note-------+---request-is-not-a-note------------------------>|               |
-	 *         |          |<--------------------------(---not-await-request-----+                       |               |
-	 *         |          |                           |   +---------------+     |                       |               |
-	 *         |          |--await-request------------+-->| await request |<----+--send-reply-----------|               |
-	 *         |          |--send-reply---------+-----+-->|               |--announce-request-+-------->|               |
-	 *         |          |--send-note--+       |     |   +---------------+                   |         |               |
-	 *         |          |             |       | request available                           |         |               |
-	 *         |          |<------------+       |     |                                       |         |               |
-	 *         |          |<--not-await-request-+     |                                       |         |               |
-	 *         |          |<--request-is-a-note-------+---request-is-not-a-note---------------|-------->|               |
-	 *         |          |<--request-is-a-note-----------------------------------------------+         |               |
+	 *         |          |<--------------------------(---not-await-request---+                         |               |
+	 *         |          |                           |   +---------------+   |                         |               |
+	 *         |          |---await-request-----------+-->| await request |<--+--send-reply-------------|               |
+	 *         |          |<--cancel-waiting--------------|               |------announce-request--+--->|               |
+	 *         |          |---send-reply---------+----+-->|               |                        |    |               |
+	 *         |          |---send-note--+       |    |   +---------------+                        |    |               |
+	 *         |          |              |       |    |                                            |    |               |
+	 *         |          |<-------------+       |  request available                              |    |               |
+	 *         |          |<--not-await-request--+    |                                            |    |               |
+	 *         |          |<--request-is-a-note-------+-------------------request-is-not-a-note----(--->|               |
+	 *         |          |<--request-is-a-note----------------------------------------------------+    |               |
 	 *         +----------+                 +-------------------------+                                 |               |
 	 *                                      | prepare and await reply |<--send-request-and-await-reply--|               |
-	 *                                      |                         |--receive-reply----------------->|               |
+	 *                                      |                         |---receive-reply---------------->|               |
+	 *                                      |                         |---cancel-waiting--------------->|               |
 	 *                                      +-------------------------+                                 +---------------+
 	 *
 	 * State model propagated to deriving classes:
@@ -565,6 +568,7 @@ namespace Kernel
 	 *         |              |<--request-available-or-not-await-request--+   |                |
 	 *         |              |<--announce-request----------------------------|                |
 	 *         |              |<--receive-reply-------------------------------|                |
+	 *         |              |<--cancel-waiting------------------------------|                |
 	 *         +--------------+                                               +----------------+
 	 */
 	class Ipc_node
@@ -593,9 +597,9 @@ namespace Kernel
 
 		Fifo<Message_buf> _request_queue; /* requests that waits to be
 		                                   * received by us */
-		Message_buf _inbuf; /* buffers message we have received lastly */
+		Message_buf _inbuf;  /* buffers message we have received lastly */
 		Message_buf _outbuf; /* buffers the message we aim to send */
-		State _state; /* current node state */
+		State       _state;  /* current node state */
 
 		/**
 		 * Buffer next request from request queue in 'r' to handle it
@@ -690,6 +694,11 @@ namespace Kernel
 			void send_note(Ipc_node * const dest,
 			               void * const note_base,
 			               size_t const note_size);
+
+			/**
+			 * Stop waiting for a receipt if in a waiting state
+			 */
+			void cancel_waiting();
 	};
 
 	/**
@@ -755,6 +764,11 @@ namespace Kernel
 			void await_irq();
 
 			/**
+			 * Stop waiting for an IRQ if in a waiting state
+			 */
+			void cancel_waiting();
+
+			/**
 			 * Denote occurence of an IRQ if we own it and awaited it
 			 */
 			void receive_irq(unsigned const irq);
@@ -775,8 +789,16 @@ namespace Kernel
 	               public Ipc_node,
 	               public Irq_owner
 	{
-		enum State { STOPPED, ACTIVE, AWAIT_IPC, AWAIT_RESUMPTION,
-		             AWAIT_IRQ, AWAIT_SIGNAL, KILL_SIGNAL_CONTEXT_BLOCKS };
+		enum State
+		{
+			SCHEDULED,
+			AWAIT_START,
+			AWAIT_IPC,
+			AWAIT_RESUMPTION,
+			AWAIT_IRQ,
+			AWAIT_SIGNAL,
+			AWAIT_SIGNAL_CONTEXT_DESTRUCT,
+		};
 
 		Platform_thread * const _platform_thread; /* userland object wich
 		                                           * addresses this thread */
@@ -786,11 +808,13 @@ namespace Kernel
 		unsigned _pd_id; /* ID of the PD this thread runs on */
 		Native_utcb * _phys_utcb; /* physical UTCB base */
 		Native_utcb * _virt_utcb; /* virtual UTCB base */
+		Signal_receiver * _signal_receiver; /* receiver we are currently
+		                                     * listen to */
 
 		/**
 		 * Resume execution
 		 */
-		void _activate();
+		void _schedule();
 
 
 		/**************
@@ -806,7 +830,7 @@ namespace Kernel
 		 ** Irq_owner **
 		 ***************/
 
-		void _received_irq() { _activate(); }
+		void _received_irq();
 
 		void _awaits_irq();
 
@@ -819,8 +843,8 @@ namespace Kernel
 			 */
 			Thread(Platform_thread * const platform_thread) :
 				_platform_thread(platform_thread),
-				_state(STOPPED), _pager(0), _pd_id(0),
-				_phys_utcb(0), _virt_utcb(0)
+				_state(AWAIT_START), _pager(0), _pd_id(0),
+				_phys_utcb(0), _virt_utcb(0), _signal_receiver(0)
 			{ }
 
 			/**
@@ -891,9 +915,9 @@ namespace Kernel
 			unsigned id() const { return Object::id(); }
 
 			/**
-			 * Gets called when we await a signal at a signal receiver
+			 * Gets called when we await a signal at 'receiver'
 			 */
-			void await_signal();
+			void await_signal(Kernel::Signal_receiver * receiver);
 
 			/**
 			 * Gets called when we have received a signal at a signal receiver

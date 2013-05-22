@@ -99,6 +99,6 @@ void Thread_base::start()
 }
 
 
-void Thread_base::cancel_blocking()
-{ env()->cpu_session()->cancel_blocking(_thread_cap); }
+void Thread_base::cancel_blocking() {
+	env()->cpu_session()->cancel_blocking(_thread_cap); }
 
