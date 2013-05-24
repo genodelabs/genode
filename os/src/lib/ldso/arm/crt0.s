@@ -20,10 +20,14 @@ _start_ldso:
 	ldr r2, .initial_utcb
 	str r0, [r2]
 
-	ldr  sp, .initial_sp
+	ldr r2, .initial_sp
+	str sp, [r2]
+
+	ldr  sp, .stack_high
 	bl init_rtld
 	b    _main
 
-	.initial_sp:   .word _stack_high
+	.initial_sp:   .word __initial_sp
+	.stack_high:   .word _stack_high
 	.initial_utcb: .word _main_utcb
 

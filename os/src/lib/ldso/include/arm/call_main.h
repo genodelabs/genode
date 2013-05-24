@@ -18,7 +18,15 @@
 	 */
 void call_main(void (*func)(void))
 {
-	func();
+        extern long __initial_sp;
+
+        asm volatile ("mov %%sp, %0;"
+                      "bx %1;"
+                      :
+                      : "r" (__initial_sp),
+                        "r" (func)
+                      : "memory"
+                     );
 }
 
 #endif /* _ARM__CALL_MAIN_H_ */

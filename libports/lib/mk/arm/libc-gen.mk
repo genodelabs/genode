@@ -12,7 +12,4 @@ SRC_C  += $(filter-out $(FILTER_OUT_C),$(notdir $(wildcard $(LIBC_GEN_ARM_DIR)/*
 # fix missing include prefix for 'ucontext.h', should be 'sys/ucontext.h'
 CC_OPT_makecontext = -I$(REP_DIR)/include/libc/sys
 
-# needed to compile setjmp.S
-CC_OPT += -DSOFTFLOAT
-
 vpath % $(LIBC_GEN_ARM_DIR)

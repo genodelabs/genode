@@ -17,14 +17,24 @@
 	.globl _start
 _start:
 
-	ldr  sp, .initial_sp
+	ldr r4, .initial_sp
+	str sp, [r4]
+
+	ldr  sp, .stack_high
 	b    _main
 
-.initial_sp: .word _stack_high
+.initial_sp: .word __initial_sp
+.stack_high: .word _stack_high
 
+/*--------------------------------------------------*/
+        .data
 	.globl	__dso_handle
 __dso_handle:
 	.long	0
+
+	.globl  __initial_sp
+__initial_sp:
+	.long   0
 
 /*--- .bss (non-initialized data) ------------------*/
 .section ".bss"

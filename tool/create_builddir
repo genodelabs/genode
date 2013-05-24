@@ -20,6 +20,7 @@ usage:
 	@echo
 	@echo "  <platform>   can be:"
 	@echo "                  'linux_x86'"
+	@echo "                  'linux_arm'"
 	@echo "                  'fiasco_x86'"
 	@echo "                  'pistachio_x86'"
 	@echo "                  'okl4_x86'"
