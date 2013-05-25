@@ -1,6 +1,10 @@
-NCURSES     := ncurses-5.9
-NCURSES_TGZ := $(NCURSES).tar.gz
-NCURSES_URL := http://ftp.gnu.org/pub/gnu/ncurses/$(NCURSES_TGZ)
+NCURSES          := ncurses-5.9
+NCURSES_TGZ      := $(NCURSES).tar.gz
+NCURSES_SIG      := $(NCURSES_TGZ).sig
+NCURSES_BASE_URL := http://ftp.gnu.org/pub/gnu/ncurses
+NCURSES_URL      := $(NCURSES_BASE_URL)/$(NCURSES_TGZ)
+NCURSES_URL_SIG  := $(NCURSES_BASE_URL)/$(NCURSES_SIG)
+NCURSES_KEY      := GNU
 
 #
 # Interface to top-level prepare Makefile
@@ -38,6 +42,8 @@ $(NCURSES_GEN_SYMLINKS) $(NCURSES_GEN_FILES): $(CONTRIB_DIR)/$(NCURSES) src/lib/
 #
 $(DOWNLOAD_DIR)/$(NCURSES_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(NCURSES_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(NCURSES_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(NCURSES_TGZ) $(DOWNLOAD_DIR)/$(NCURSES_SIG) $(NCURSES_KEY)
 
 $(CONTRIB_DIR)/$(NCURSES): $(DOWNLOAD_DIR)/$(NCURSES_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

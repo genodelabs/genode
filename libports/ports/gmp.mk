@@ -1,6 +1,10 @@
-GMP      = gmp-4.3.2
-GMP_TBZ2 = $(GMP).tar.bz2
-GMP_URL  = ftp://ftp.gmplib.org/pub/$(GMP)/$(GMP_TBZ2)
+GMP          = gmp-4.3.2
+GMP_TBZ2     = $(GMP).tar.bz2
+GMP_SIG      = $(GMP_TBZ2).sig
+GMP_BASE_URL = ftp://ftp.gmplib.org/pub/$(GMP)
+GMP_URL      = $(GMP_BASE_URL)/$(GMP_TBZ2)
+GMP_URL_SIG  = $(GMP_BASE_URL)/$(GMP_SIG)
+GMP_KEY      = "73D46C3667461E4BD93972495D6D47DFDB899F46 343C2FF0FBEE5EC2EDBEF399F3599FF828C67298"
 
 #
 # Interface to top-level prepare Makefile
@@ -30,6 +34,8 @@ $(CONTRIB_DIR)/$(GMP): clean-gmp
 #
 $(DOWNLOAD_DIR)/$(GMP_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GMP_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GMP_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GMP_TBZ2) $(DOWNLOAD_DIR)/$(GMP_SIG) $(GMP_KEY)
 
 $(CONTRIB_DIR)/$(GMP): $(DOWNLOAD_DIR)/$(GMP_TBZ2)
 	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@

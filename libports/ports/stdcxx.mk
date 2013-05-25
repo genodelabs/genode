@@ -1,7 +1,11 @@
 include ports/stdcxx.inc
 
-STDCXX_TBZ2 = $(STDCXX).tar.bz2
-STDCXX_URL  = ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(STDCXX_VERSION)/gcc-$(STDCXX_VERSION).tar.bz2
+STDCXX_TBZ2     = $(STDCXX).tar.bz2
+STDCXX_SIG      = gcc-$(STDCXX_VERSION).tar.bz2.sig
+STDCXX_BASE_URL = ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(STDCXX_VERSION)
+STDCXX_URL      = $(STDCXX_BASE_URL)/gcc-$(STDCXX_VERSION).tar.bz2
+STDCXX_URL_SIG  = $(STDCXX_BASE_URL)/$(STDCXX_SIG)
+STDCXX_KEY      = GNU
 
 #
 # Interface to top-level prepare Makefile
@@ -40,6 +44,8 @@ $(CONTRIB_DIR)/$(STDCXX): clean-stdcxx
 #
 $(DOWNLOAD_DIR)/$(STDCXX_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) -O$@ $(STDCXX_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(STDCXX_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(STDCXX_TBZ2) $(DOWNLOAD_DIR)/$(STDCXX_SIG) $(STDCXX_KEY)
 
 $(CONTRIB_DIR)/$(STDCXX): $(DOWNLOAD_DIR)/$(STDCXX_TBZ2)
 	@#$(VERBOSE)tar xfj $< --transform "s/nova-userland/vancouver/" -C $(CONTRIB_DIR)

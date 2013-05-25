@@ -1,10 +1,14 @@
-OPENSSL_VERSION = 1.0.1c
-OPENSSL         = openssl-$(OPENSSL_VERSION)
-OPENSSL_TGZ     = $(OPENSSL).tar.gz
-OPENSSL_URL     = https://www.openssl.org/source/$(OPENSSL_TGZ)
+OPENSSL_VERSION  = 1.0.1c
+OPENSSL          = openssl-$(OPENSSL_VERSION)
+OPENSSL_TGZ      = $(OPENSSL).tar.gz
+OPENSSL_SIG      = $(OPENSSL_TGZ).asc
+OPENSSL_BASE_URL = https://www.openssl.org/source
+OPENSSL_URL      = $(OPENSSL_BASE_URL)/$(OPENSSL_TGZ)
+OPENSSL_URL_SIG  = $(OPENSSL_BASE_URL)/$(OPENSSL_SIG)
+OPENSSL_KEY      = "49A563D9 26BB437D F295C759 9C58A66D 2118CF83 F709453B 5A6A9B85"
 
 # local openssl src
-OPENSSL_SRC     = src/lib/openssl
+OPENSSL_SRC      = src/lib/openssl
 
 #
 # Interface to top-level prepare Makefile
@@ -20,6 +24,8 @@ prepare-openssl: $(CONTRIB_DIR)/$(OPENSSL) include/openssl generate_asm
 #
 $(DOWNLOAD_DIR)/$(OPENSSL_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSL_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSL_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(OPENSSL_TGZ) $(DOWNLOAD_DIR)/$(OPENSSL_SIG) $(OPENSSL_KEY)
 
 $(CONTRIB_DIR)/$(OPENSSL): $(DOWNLOAD_DIR)/$(OPENSSL_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

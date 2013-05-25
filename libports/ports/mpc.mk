@@ -1,7 +1,13 @@
 include lib/import/import-mpc.mk
 
-MPC_TGZ = $(MPC).tar.gz
-MPC_URL = http://www.multiprecision.org/mpc/download/$(MPC_TGZ)
+MPC_TGZ      = $(MPC).tar.gz
+MPC_SIG      = $(MPC_TGZ).asc
+MPC_BASE_URL = http://www.multiprecision.org/mpc/download
+MPC_URL      = $(MPC_BASE_URL)/$(MPC_TGZ)
+MPC_URL_SIG  = $(MPC_BASE_URL)/$(MPC_SIG)
+# see http://www.multiprecision.org/index.php?prog=mpc&page=download
+MPC_KEY      = AD17A21EF8AED8F1CC02DBD9F7D5C9BF765C61E3
+
 
 #
 # Interface to top-level prepare Makefile
@@ -19,6 +25,8 @@ $(CONTRIB_DIR)/$(MPC): clean-mpc
 #
 $(DOWNLOAD_DIR)/$(MPC_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(MPC_TGZ) $(DOWNLOAD_DIR)/$(MPC_SIG) $(MPC_KEY)
 
 $(CONTRIB_DIR)/$(MPC): $(DOWNLOAD_DIR)/$(MPC_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

@@ -1,6 +1,10 @@
-PYTHON     = python-2.6.4
-PYTHON_TGZ = Python-2.6.4.tgz
-PYTHON_URL = http://www.python.org/ftp/python/2.6.4/$(PYTHON_TGZ)
+PYTHON          = python-2.6.4
+PYTHON_TGZ      = Python-2.6.4.tgz
+PYTHON_SIG      = $(PYTHON_TGZ).asc
+PYTHON_BASE_URL = http://www.python.org/ftp/python/2.6.4
+PYTHON_URL      = $(PYTHON_BASE_URL)/$(PYTHON_TGZ)
+PYTHON_URL_SIG  = $(PYTHON_BASE_URL)/$(PYTHON_SIG)
+PYTHON_KEY      = 12EF3DC38047DA382D18A5B999CDEA9DA4135B38
 
 #
 # Interface to top-level prepare Makefile
@@ -16,6 +20,13 @@ $(CONTRIB_DIR)/$(PYTHON): clean-python
 #
 $(DOWNLOAD_DIR)/$(PYTHON_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PYTHON_URL) && touch $@
+	#
+	# As signatures are only provided for versions 2.7.3 and newer, the check
+	# is yet disabled. Just remove the comment sign once the newer version is
+	# used.
+	#
+	#$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PYTHON_URL_SIG) && touch $@
+	#$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(PYTHON_TGZ) $(DOWNLOAD_DIR)/$(PYTHON_SIG) $(PYTHON_KEY)
 
 $(CONTRIB_DIR)/$(PYTHON): $(DOWNLOAD_DIR)/$(PYTHON_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR)

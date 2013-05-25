@@ -1,7 +1,11 @@
 include ports/curl.inc
 
-CURL_TGZ = $(CURL).tar.gz
-CURL_URL = http://curl.haxx.se/download/$(CURL_TGZ)
+CURL_TGZ      = $(CURL).tar.gz
+CURL_SIG      = $(CURL_TGZ).asc
+CURL_BASE_URL = http://curl.haxx.se/download
+CURL_URL      = $(CURL_BASE_URL)/$(CURL_TGZ)
+CURL_URL_SIG  = $(CURL_BASE_URL)/$(CURL_SIG)
+CURL_KEY      = daniel@haxx.se
 
 #
 # Interface to top-level prepare Makefile
@@ -17,6 +21,8 @@ $(CONTRIB_DIR)/$(CURL): clean-curl
 #
 $(DOWNLOAD_DIR)/$(CURL_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(CURL_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(CURL_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(CURL_TGZ) $(DOWNLOAD_DIR)/$(CURL_SIG) $(CURL_KEY)
 
 $(CONTRIB_DIR)/$(CURL): $(DOWNLOAD_DIR)/$(CURL_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

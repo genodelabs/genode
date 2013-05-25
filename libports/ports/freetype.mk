@@ -1,6 +1,10 @@
-FREETYPE     = freetype-2.3.9
-FREETYPE_TGZ = $(FREETYPE).tar.gz
-FREETYPE_URL = http://mirrors.zerg.biz/nongnu/freetype/freetype-old/$(FREETYPE_TGZ)
+FREETYPE          = freetype-2.3.9
+FREETYPE_TGZ      = $(FREETYPE).tar.gz
+FREETYPE_SIG      = $(FREETYPE_TGZ).sig
+FREETYPE_BASE_URL = http://mirrors.zerg.biz/nongnu/freetype/freetype-old
+FREETYPE_URL      = $(FREETYPE_BASE_URL)/$(FREETYPE_TGZ)
+FREETYPE_URL_SIG  = $(FREETYPE_BASE_URL)/$(FREETYPE_SIG)
+FREETYPE_KEY      = wl@gnu.org
 
 #
 # Interface to top-level prepare Makefile
@@ -16,6 +20,8 @@ $(CONTRIB_DIR)/$(FREETYPE): clean-freetype
 #
 $(DOWNLOAD_DIR)/$(FREETYPE_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FREETYPE_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FREETYPE_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(FREETYPE_TGZ) $(DOWNLOAD_DIR)/$(FREETYPE_SIG) $(FREETYPE_KEY)
 
 $(CONTRIB_DIR)/$(FREETYPE): $(DOWNLOAD_DIR)/$(FREETYPE_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

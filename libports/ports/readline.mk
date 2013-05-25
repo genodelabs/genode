@@ -1,6 +1,10 @@
-READLINE     = readline-6.0
-READLINE_TGZ = $(READLINE).tar.gz
-READLINE_URL = ftp://ftp.gnu.org/gnu/readline/$(READLINE_TGZ)
+READLINE          = readline-6.0
+READLINE_TGZ      = $(READLINE).tar.gz
+READLINE_SIG      = $(READLINE_TGZ).sig
+READLINE_BASE_URL = ftp://ftp.gnu.org/gnu/readline
+READLINE_URL      = $(READLINE_BASE_URL)/$(READLINE_TGZ)
+READLINE_URL_SIG  = $(READLINE_BASE_URL)/$(READLINE_SIG)
+READLINE_KEY      = GNU
 
 #
 # Interface to top-level prepare Makefile
@@ -16,6 +20,8 @@ $(CONTRIB_DIR)/$(READLINE): clean-readline
 #
 $(DOWNLOAD_DIR)/$(READLINE_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(READLINE_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(READLINE_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(READLINE_TGZ) $(DOWNLOAD_DIR)/$(READLINE_SIG) $(READLINE_KEY)
 
 READLINE_HEADERS := rlstdc.h rltypedefs.h keymaps.h tilde.h
 

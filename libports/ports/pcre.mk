@@ -1,7 +1,11 @@
 include ports/pcre.inc
 
-PCRE_TBZ = $(PCRE).tar.bz2
-PCRE_URL = ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/$(PCRE_TBZ)
+PCRE_TBZ      = $(PCRE).tar.bz2
+PCRE_SIG      = $(PCRE_TBZ).sig
+PCRE_BASE_URL = ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre
+PCRE_URL      = $(PCRE_BASE_URL)/$(PCRE_TBZ)
+PCRE_URL_SIG  = $(PCRE_BASE_URL)/$(PCRE_SIG)
+PCRE_KEY      = ph10@cam.ac.uk
 
 #
 # Interface to top-level prepare Makefile
@@ -17,6 +21,8 @@ $(CONTRIB_DIR)/$(PCRE): clean-pcre
 #
 $(DOWNLOAD_DIR)/$(PCRE_TBZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PCRE_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PCRE_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(PCRE_TBZ) $(DOWNLOAD_DIR)/$(PCRE_SIG) $(PCRE_KEY)
 
 $(CONTRIB_DIR)/$(PCRE): $(DOWNLOAD_DIR)/$(PCRE_TBZ)
 	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@

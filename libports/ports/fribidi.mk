@@ -1,7 +1,13 @@
 include ports/fribidi.inc
 
-FRIBIDI_TBZ2 = $(FRIBIDI).tar.bz2
-FRIBIDI_URL  = http://fribidi.org/download/$(FRIBIDI_TBZ2)
+FRIBIDI_TBZ2     = $(FRIBIDI).tar.bz2
+FRIBIDI_SHA      = $(FRIBIDI_TBZ2).sha256
+FRIBIDI_SHA_SIG  = $(FRIBIDI_TBZ2).sha256.asc
+FRIBIDI_BASE_URL = http://fribidi.org/download
+FRIBIDI_URL      = $(FRIBIDI_BASE_URL)/$(FRIBIDI_TBZ2)
+FRIBIDI_URL_SHA  = $(FRIBIDI_BASE_URL)/$(FRIBIDI_SHA)
+FRIBIDI_URL_SIG  = $(FRIBIDI_BASE_URL)/$(FRIBIDI_SHA_SIG)
+FRIBIDI_KEY      = D3531115
 
 #
 # Interface to top-level prepare Makefile
@@ -17,6 +23,13 @@ $(CONTRIB_DIR)/$(FRIBIDI):clean-fribidi
 #
 $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL_SHA) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL_SIG) && touch $@
+	# XXX fribidi does NOT create a detached signature and thus the signature
+	# checking is useless !!! -- somebody should inform them
+	# see http://blog.terryburton.co.uk/2006/11/falling-into-trap-with-gpg.html
+	#$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(FRIBIDI_SHA) $(DOWNLOAD_DIR)/$(FRIBIDI_SHA_SIG) $(FRIBIDI_KEY)
+	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2) $(DOWNLOAD_DIR)/$(FRIBIDI_SHA) sha256
 
 $(CONTRIB_DIR)/$(FRIBIDI): $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2)
 	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@

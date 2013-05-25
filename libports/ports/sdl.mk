@@ -1,7 +1,11 @@
 include ports/sdl.inc
 
-SDL_TGZ = $(SDL).tar.gz
-SDL_URL = http://www.libsdl.org/release/$(SDL_TGZ)
+SDL_TGZ      = $(SDL).tar.gz
+SDL_SIG      = $(SDL_TGZ).sig
+SDL_BASE_URL = http://www.libsdl.org/release
+SDL_URL      = $(SDL_BASE_URL)/$(SDL_TGZ)
+SDL_URL_SIG  = $(SDL_BASE_URL)/$(SDL_SIG)
+SDL_KEY      = 1528635D8053A57F77D1E08630A59377A7763BE6
 
 #
 # Interface to top-level prepare Makefile
@@ -20,6 +24,8 @@ $(CONTRIB_DIR)/$(SDL): clean-sdl
 #
 $(DOWNLOAD_DIR)/$(SDL_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(SDL_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(SDL_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(SDL_TGZ) $(DOWNLOAD_DIR)/$(SDL_SIG) $(SDL_KEY)
 
 $(CONTRIB_DIR)/$(SDL): $(DOWNLOAD_DIR)/$(SDL_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

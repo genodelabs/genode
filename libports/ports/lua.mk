@@ -1,6 +1,7 @@
 LUA     = lua-5.1.5
 LUA_TGZ = $(LUA).tar.gz
 LUA_URL = http://www.lua.org/ftp/$(LUA_TGZ)
+LUA_SHA = b3882111ad02ecc6b972f8c1241647905cb2e3fc
 
 #
 # Interface to top-level prepare Makefile
@@ -18,6 +19,7 @@ $(CONTRIB_DIR)/$(LUA): clean-lua
 #
 $(DOWNLOAD_DIR)/$(LUA_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LUA_URL) && touch $@
+	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(LUA_TGZ) $(LUA_SHA) sha1
 
 $(CONTRIB_DIR)/$(LUA): $(DOWNLOAD_DIR)/$(LUA_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

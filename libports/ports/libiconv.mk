@@ -1,6 +1,10 @@
-LIBICONV     = libiconv-1.14
-LIBICONV_TGZ = $(LIBICONV).tar.gz
-LIBICONV_URL = http://ftp.gnu.org/pub/gnu/libiconv/$(LIBICONV_TGZ)
+LIBICONV          = libiconv-1.14
+LIBICONV_TGZ      = $(LIBICONV).tar.gz
+LIBICONV_SIG      = $(LIBICONV_TGZ).sig
+LIBICONV_BASE_URL = http://ftp.gnu.org/pub/gnu/libiconv
+LIBICONV_URL      = $(LIBICONV_BASE_URL)//$(LIBICONV_TGZ)
+LIBICONV_URL_SIG  = $(LIBICONV_BASE_URL)//$(LIBICONV_SIG)
+LIBICONV_KEY      = GNU
 
 #
 # Interface to top-level prepare Makefile
@@ -14,6 +18,8 @@ prepare-libiconv: $(CONTRIB_DIR)/$(LIBICONV) include/iconv
 #
 $(DOWNLOAD_DIR)/$(LIBICONV_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBICONV_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBICONV_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(LIBICONV_TGZ) $(DOWNLOAD_DIR)/$(LIBICONV_SIG) $(LIBICONV_KEY)
 
 $(CONTRIB_DIR)/$(LIBICONV): $(DOWNLOAD_DIR)/$(LIBICONV_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
