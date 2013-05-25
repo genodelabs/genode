@@ -15,6 +15,8 @@ DOWNLOAD_DIR = download
 CONTRIB_DIR  = contrib
 GNU_FIND     = find
 SHELL        = bash
+SIGVERIFIER  = $(PWD)/../tool/download_sigver
+HASHVERIFIER = $(PWD)/../tool/download_hashver
 
 #
 # Create download and contrib directory so that '<port>.mk' files
@@ -29,6 +31,10 @@ check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 
 $(call check_tool,wget)
 $(call check_tool,patch)
+$(call check_tool,gpg)
+$(call check_tool,md5sum)
+$(call check_tool,sha1sum)
+$(call check_tool,sha256sum)
 
 #
 # Include information about available ports
