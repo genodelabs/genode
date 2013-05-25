@@ -1,0 +1,131 @@
+#!/bin/bash
+#
+# \brief  Signature verification tool
+# \author Stephan Müller
+# \date   2013-05-24
+#
+
+# Script to be invoked as
+# $0 <file to be checked> <signature file> <source pubkeys>
+#
+# The source pubkey(s) is some ID that can be handled by gpg --search-keys
+# or --recv-keys
+# The special keyword of GNU as source pubkey implies the downloading of the GNU
+# key ring.
+#
+# Script returns 0 on success. Any other value is a failure.
+
+FILE=$1
+SIGFILE=$2
+shift;shift;
+PUBKEYSRC=$@
+
+#
+# Probe if a default keyserver is configured by the user. If not, fall back to
+# a predefined key server.
+#
+KEYSERVER=""
+if ! $(cat $HOME/.gnupg/gpg.conf | grep -v '^#.*' | grep -q keyserver); then
+    KEYSERVER="--keyserver hkp://keys.gnupg.net"
+fi
+
+# Get a particular key
+# \param key fingerprint to obtain
+get_gpg_key()
+{
+	key=$1
+
+	# check if key is present
+	gpg --list-key $key > /dev/null 2>&1
+	if [ $? -eq 0 ];then
+		return
+	fi
+	size=$(echo -n $key |wc -m)
+	if [ "$size" -eq 40 ]
+	then
+		# we have a full fingerprint
+		gpg $KEYSERVER --recv-keys $key
+	else
+		# we have some other ID
+		gpg $KEYSERVER --search-keys $key
+	fi
+}
+
+GNUURL="ftp://ftp.gnu.org/gnu/gnu-keyring.gpg"
+get_gnu_keys()
+{
+	sigfile=$1
+	sigdir=$(dirname $sigfile)
+
+	if [ ! -d "$sigdir" ]
+	then
+		echo "Directory $sigdir does not exist"
+		exit 1
+	fi
+
+	targetfile=$(basename $GNUURL)
+	if [ ! -f "$sigdir/$targetfile" ]
+	then
+		wget -c -P $sigdir $GNUURL
+	fi
+}
+
+# Get all keys handed in
+# \param array of keys to be searched
+get_all_keys()
+{
+	keys=$@
+
+	for i in $keys
+	do
+		get_gpg_key $i
+	done
+}
+
+# Verify the file
+# \param file to be verified
+# \param signature file
+#
+# function causes script to exit:
+#  return 0 implies all passed
+#  any other return code implies failure
+verify_file()
+{
+	file=$1
+	sigfile=$2
+
+	gpgargs=""
+	targetfile=$(basename $GNUURL)
+	sigdir=$(dirname $sigfile)
+	if [ -f "$sigdir/$targetfile" ]
+	then
+		gpgargs="--keyring $sigdir/$targetfile"
+	fi
+
+	if [ -z "$file" -o ! -f "$file" ]
+	then
+		echo "File $file not found"
+		exit 1
+	fi
+	if [ -z "$sigfile" -o ! -f "$sigfile" ]
+	then
+		echo "Signature file $sigfile not found"
+		exit 1
+	fi
+	gpg --verify $gpgargs $sigfile $file
+	if [ $? -ne 0 ]
+	then
+		echo "Signature check of file $file failed"
+		exit 1
+	fi
+	echo "Signature check of file $file passed"
+	exit 0
+}
+
+if [ "$PUBKEYSRC" = "GNU" ]
+then
+	get_gnu_keys $SIGFILE
+else
+	get_all_keys "$PUBKEYSRC"
+fi
+verify_file $FILE $SIGFILE
