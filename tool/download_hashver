@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+# \brief  Hash verification tool
+# \author Stephan Müller
+# \date   2013-05-24
+#
+
+# Script to be invoked as
+# $0 <file to be checked> <hash or hash file> <hash type>
+#
+# hash or hash file: The script checks whether the handed in value is a file --
+#                    if it is a file, it uses it with md5sum/sha1sum/sha256sum -c.
+#                    Otherwise, the value is used as a direct hash value.
+#
+# Hash type can be either: md5 sha1 sha256
+#
+# Script returns 0 on success. Any other value is a failure.
+
+FILE=$1
+HASH=$2
+HASHTYPE=$3
+
+verify_hashfile()
+{
+	file=$1
+	hashfile=$2
+	hashtype=$3
+
+	dirfile=$(dirname $file)
+	dirhash=$(dirname $file)
+	basehash=$(basename $hashfile)
+
+	#
+	# The tool is invoked with the file to be checked and the file holding the
+	# hashes. Thus, it cannot expect the hash file to be in the same directory
+	# as the file to be checked. But the problem is that the tools md5sum and
+	# Co expect the hash file in the local directory when you invoke the tool
+	# with -C. There is no way that you can provide a different location for
+	# the hash file.
+	#
+	# The code now tries to check whether the dirname of the file to be checked
+	# and the hash file are the same. If they are not, it creates a symlink to
+	# allow the tools to work. The trap ensures that in case of a termination
+	# (regular or otherwise), the symlink is removed such that there is no
+	# leftover from the script.
+	#
+	if [ "$dirfile" != "$dirhash" ];
+	then
+		trap "rm -f $dirfile/$basehash" 0 1 2 3 15
+		ln -s $hashfile $dirfile/
+	fi
+
+	cd $dirfile
+	ret=0
+	case "$hashtype" in
+		md5)
+			md5sum -c $basehash
+			ret=$?
+			;;
+		sha1)
+			sha1sum -c $basehash
+			ret=$?
+			;;
+		sha256)
+			sha256sum -c $basehash
+			ret=$?
+			;;
+		*)
+			echo "Wrong hash type $hashtype"
+			exit 1
+			;;
+	esac
+
+	if [ "$ret" -ne 0 ]
+	then
+		echo "Hash verification for file $file failed"
+		exit 1
+	fi
+	echo "Hash verification for file $file passed"
+	exit 0
+}
+
+# Verify the file
+# \param file to be verified
+# \param hash (file)
+#
+# function causes script to exit:
+#  return 0 implies all passed
+#  any other return code implies failure
+verify_file()
+{
+	file=$1
+	hash=$2
+	hashtype=$3
+
+	if [ -f "$hash" ]
+	then
+		verify_hashfile $file $hash $hashtype
+	fi
+	case "$hashtype" in
+		md5)
+			calchash=$(md5sum $file | cut -f1 -d" ")
+			;;
+		sha1)
+			calchash=$(sha1sum $file | cut -f1 -d" ")
+			;;
+		sha256)
+			calchash=$(sha256sum $file | cut -f1 -d" ")
+			;;
+		*)
+			echo "Wrong hash type $hashtype"
+			exit 1
+			;;
+	esac
+	if [ "$calchash" != "$hash" ]
+	then
+		echo -e "Hash verification for file $file failed:\ncalc hash: $calchash\nexp hash:  $hash"
+		exit 1
+	fi
+	
+	echo "Hash verification for file $file passed"
+	exit 0
+}
+
+verify_file $FILE $HASH $HASHTYPE
