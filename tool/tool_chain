@@ -69,6 +69,7 @@ MPC_VERSION       = 0.9
 INSTALL_LOCATION  = /usr/local/genode-gcc
 DOWNLOAD_DIR      = download
 CONTRIB_DIR       = contrib
+SIGVERIFIER       = $(GENODE_DIR)/tool/download_sigver
 
 BINUTILS_DOWNLOAD_TBZ2 = binutils-$(BINUTILS_VERSION).tar.bz2
 
@@ -130,6 +131,13 @@ endif
 #
 ifeq ($(shell which autogen)),)
 $(error Need to have 'autogen' installed.)
+endif
+
+#
+# Check if 'gpg' is installed
+#
+ifeq ($(shell which gpg)),)
+$(error Need to have 'gpg' installed.)
 endif
 
 #
@@ -311,22 +319,33 @@ $(DOWNLOAD_DIR):
 $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2): $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading binutils...$(DEFAULT_COL)"
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BINUTILS_DOWNLOAD_URL)/$(BINUTILS_DOWNLOAD_TBZ2) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BINUTILS_DOWNLOAD_URL)/$(BINUTILS_DOWNLOAD_TBZ2).sig && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2) $(DOWNLOAD_DIR)/$(BINUTILS_DOWNLOAD_TBZ2).sig GNU
 
 $(DOWNLOAD_DIR)/gcc-$(GCC_VERSION).tar.bz2: $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading gcc...$(DEFAULT_COL)"
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GCC_DOWNLOAD_URL)/gcc-$(GCC_VERSION)/gcc-$(GCC_VERSION).tar.bz2 && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GCC_DOWNLOAD_URL)/gcc-$(GCC_VERSION)/gcc-$(GCC_VERSION).tar.bz2.sig && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/gcc-$(GCC_VERSION).tar.bz2 $(DOWNLOAD_DIR)/gcc-$(GCC_VERSION).tar.bz2.sig GNU
 
 $(DOWNLOAD_DIR)/gmp-$(GMP_VERSION).tar.bz2: $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading gmp...$(DEFAULT_COL)"
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GMP_DOWNLOAD_URL)/gmp-$(GMP_VERSION).tar.bz2 && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GMP_DOWNLOAD_URL)/gmp-$(GMP_VERSION).tar.bz2.sig && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/gmp-$(GMP_VERSION).tar.bz2 $(DOWNLOAD_DIR)/gmp-$(GMP_VERSION).tar.bz2.sig GNU
 
 $(DOWNLOAD_DIR)/mpfr-$(MPFR_VERSION).tar.bz2: $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading mpfr...$(DEFAULT_COL)"
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPFR_DOWNLOAD_URL)/mpfr-$(MPFR_VERSION).tar.bz2 && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPFR_DOWNLOAD_URL)/mpfr-$(MPFR_VERSION).tar.bz2.sig && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/mpfr-$(MPFR_VERSION).tar.bz2 $(DOWNLOAD_DIR)/mpfr-$(MPFR_VERSION).tar.bz2.sig
 
 $(DOWNLOAD_DIR)/mpc-$(MPC_VERSION).tar.gz: $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading mpc...$(DEFAULT_COL)"
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_DOWNLOAD_URL)/mpc-$(MPC_VERSION).tar.gz && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_DOWNLOAD_URL)/mpc-$(MPC_VERSION).tar.gz.asc && touch $@
+	# GPG key from http://www.multiprecision.org/index.php?prog=mpc&page=download
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/mpc-$(MPC_VERSION).tar.gz $(DOWNLOAD_DIR)/mpc-$(MPC_VERSION).tar.gz.asc AD17A21EF8AED8F1CC02DBD9F7D5C9BF765C61E3
 
 $(CONTRIB_DIR)/gmp-$(GMP_VERSION)/configure: $(DOWNLOAD_DIR)/gmp-$(GMP_VERSION).tar.bz2
 	$(ECHO) "$(BRIGHT_COL)unpacking gmp...$(DEFAULT_COL)"
@@ -442,6 +461,8 @@ $(GCC_INSTALLED_BINARIES): $(GCC_BINARIES)
 $(DOWNLOAD_DIR)/gdb-$(GDB_VERSION).tar.bz2: $(DOWNLOAD_DIR)
 	$(ECHO) "$(BRIGHT_COL)downloading gdb...$(DEFAULT_COL)"
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_DOWNLOAD_URL)/gdb-$(GDB_VERSION).tar.bz2 && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_DOWNLOAD_URL)/gdb-$(GDB_VERSION).tar.bz2.sig && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/gdb-$(GDB_VERSION).tar.bz2 $(DOWNLOAD_DIR)/gdb-$(GDB_VERSION).tar.bz2.sig GNU
 
 $(CONTRIB_DIR)/gdb-$(GDB_VERSION): $(DOWNLOAD_DIR)/gdb-$(GDB_VERSION).tar.bz2
 	$(ECHO) "$(BRIGHT_COL)unpacking gdb...$(DEFAULT_COL)"
