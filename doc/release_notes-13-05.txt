@@ -1,0 +1,943 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 13.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+With Genode 13.05, we have diverged quite a bit from the feature-laden plans
+laid out in our [http://genode.org/about/road-map road map] as we realized
+that consolidating and optimizing the current feature set will have a more
+sustainable effect than functional enhancements at this point. In particular,
+we addressed the problem that the ever growing diversity of platforms imposes
+on the quality and coverage of testing. We also desired to extend our
+systematic testing efforts to real hardware platforms, and to have a mechanism
+for detecting performance regressions. Section
+[Automated quality-assurance testing] details how we approached these
+challenges, and how we went on analyzing Genode's network performance in
+particular.
+
+That said, we haven't completely restrained ourself from implementing new
+features. Closely related to test automation but very useful in other
+situations, we improved the terminal infrastructure in order to enable the
+interactive use of dynamic system scenarios in headless situations. Section
+[Terminal infrastructure] introduces a new command-line interface for managing
+Genode subsystems.
+
+With regard to platform support, the current release follows up on the
+hardware support added in the previous releases. For Samsung Exynos-5-based
+platforms, drivers for USB-3, fast-ethernet networking, gigabit networking,
+eMMC, and SATA have been added. For Freescale i.MX53-based devices, new
+drivers for display, touchscreen, and GPIO have become available. The
+OMAP4 display driver has been enhanced to cover both LCD displays and HDMI.
+Our custom base-hw kernel has been enabled on the Raspberry Pi
+board. Finally, Linux/ARM was added to accompany Linux/x86 as a fully usable
+Genode base platform.
+
+
+Automated quality-assurance testing
+###################################
+
+One of the greatest challenges of the Genode OS Framework is preventing
+regressions in the face of the growing number of supported platforms.
+The challenge stems from the fact that the space of Genode scenarios grow
+two-dimensional. On one axis, the software stack on top of Genode gets more
+and more complex, which calls for contiguous testing. On the other axis, there
+is a growing number of kernel and hardware platforms to support.
+In principle, there are even more dimensions, for example the diversity
+of tool chains or the diversity of the OS used on the development machine.
+Luckily, the problem of tool-chain diversity could be mitigated with the
+introduction of the Genode tool chain since version 11.11, which was a huge
+relief. However, the mentioned two dimensions cannot be avoided. Because
+manual testing of manifold scenarios of component compositions on top of many
+different kernels became infeasible, we automated the task of building and
+testing years ago.
+
+The automated builder checks out the staging branch of Genode, prepares
+the repositories that integrate 3rd-party code, and builds the software
+for 12 different kernel/platform combinations. Not all 3rd-party software
+packages are built for each combination though. But we make sure that each
+piece of software is exposed to different combinations of CPU architectures
+and kernels.
+
+The build test is accompanied with automated runtime tests of various
+run scripts on Qemu. Each run script listed in 'tool/autopilot.lst' is
+executed on each kernel using the autopilot tool. The tests range from
+stimulating low-level mechanisms (such as signal, timer, and ldso) to complex
+scenarios (such as testing networking with L4Linux, or running Noux).
+
+Both build and runtime tests are executed daily. If any of the
+tests fail, the Genode developers receive a notification email.
+Once all tests are passed, the staging branch can be merged into the master
+branch. This way, we spare the users of Genode to deal with intermediate
+problems introduced in the staging branch.
+
+The build and runtime tests have become a fundamental tool for our
+development work. With the growing variety of real hardware
+(as opposed to hardware emulated via Qemu), however, our existing solution
+was falling short. Even though our tests confirm that Genode is running
+happily on Qemu, they won't help us to detect regressions in our device
+drivers for non-Qemu hardware such as Pandaboard, Arndale, or modern PC
+hardware. Furthermore, we are increasingly focussing on performance
+considerations. In order to be a viable OS platform, Genode does not only need
+to be able to do networking, but networking performance must be on par with
+mainstream OSes. This raises the new challenge to extend our
+continuous-testing tools to become continuous-benchmarking tools. The ultimate
+goal is to monitor the performance of Genode on real hardware over long
+periods of development.
+
+In this release cycle, we attacked this problem in two steps. First, we
+enabled Genode's run tool to target not only Qemu but real hardware, with the
+premise that existing run scripts must not be changed. The second step is the
+creation of new run scripts that perform benchmarks in an automated fashion.
+By aggregating the results of this automatically executed benchmarks, we can
+correlate performance effects with commits in our code repository.
+
+
+Targeting real hardware via the run tool
+========================================
+
+In the following, we briefly describe the procedure to execute run scripts
+on native hardware, for both Intel-based x86 machines and ARM-based platforms.
+
+
+TFTP boot x86
+~~~~~~~~~~~~~
+
+The following description uses NOVA as an example to illustrate the usage.
+Other base platforms are supported as well and can be configured analogously.
+
+[http://os.inf.tu-dresden.de/~us15/pulsar/ - Pulsar] is a tiny boot loader
+that uses PXE to fetch boot images via TFTP over the network. On the x86
+architecture, Genode supports the automatic generation of Pulsar configuration
+files, which can be placed directly onto a TFTP server. Genode can be booted
+via Pulsar using the following steps:
+
+* On the x86 test machine, enable "PXE boot feature" in the BIOS.
+* When booting, the machine will look for a DHCP server announcing a TFTP server.
+  So you need to make sure to have both the DHCP server and the TFTP server
+  configured such that the 'pulsar' binary will be loaded as PXE binary.
+* After the PXE BIOS of the test machine has loaded and started the pulsar
+  binary, Pulsar will look on the TFTP server for a file called
+  'config-XX-XX-XX-XX-XX-XX', where the sequence of 'XX' corresponds to the
+  MAC address of the test machine.
+  For example, if the MAC of the network card is 01:02:03:04:05:06, Pulsar
+  would request a file called 'config-01-02-03-04-05-06'.
+* Using this configuration file, we direct Pulsar to the configuration
+  generated by the run tool. I.e., it should look as follows
+  ! root /tftpboot/nova
+  ! config config-00-00-00-00-00-00
+  The lines above tell pulsar to load another config file, which contains the
+  actual configuration. To instruct the run script to actually generate the
+  'config-00-00-00-00-00-00' file, set the following environment variables in
+  your shell prior executing the run script:
+  ! export PXE_TFTP_DIR_BASE=/tftpboot
+  ! export PXE_TFTP_DIR_OFFSET=/nova
+
+  The two-staged configuration of Pulsar may look overly complicated at first
+  sight but has the benefit that the run tool does not need to know the MAC
+  address of the test machine in order to generate the Pulsar configuration
+  file.
+
+* Create a symbolic link '/tftpboot/nova' pointing to the corresponding
+  Genode build directory.
+
+* The next time 'make run/printf' is invoked,
+  the run script will generate the 'config-00-00-00-00-00-00' in
+  '/tftpboot/nova'.
+
+* When rebooting the test machine, it will load and start the printf test.
+
+
+TFTP boot using U-Boot
+~~~~~~~~~~~~~~~~~~~~~~
+
+Configure your U-Boot boot loader to load the images via TFTP.
+
+The remainder of the procedure is similar to the description for x86 above.
+On ARM platforms, the run tool automatically generates the uBoot image and
+creates a symbolic link into the TFTP directory.
+
+* Pandaboard:
+
+  ! export PXE_TFTP_DIR_BASE=/tftpboot
+  ! export PXE_TFTP_DIR_OFFSET=/panda
+  ! ln -s <genode-build-dir> /tftpboot/panda
+  ! RUN_OPT="--target uboot" make run/printf
+
+* Arndale board:
+
+  ! export PXE_TFTP_DIR_BASE=/tftpboot
+  ! export PXE_TFTP_DIR_OFFSET=/arndale
+  ! ln -s <genode-build-dir> /tftpboot/panda
+  ! RUN_OPT="--target uboot" make run/printf
+
+
+
+Output and reset with Intel's AMT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most modern x86-based machines lack a COM port, which is normally used for
+kernel debug messages as well as LOG messages printed by Genode's core.
+However, Intel's Advanced Management Technology (AMT) can be used to obtain
+the serial output of the test machine and to reset the test machine. To use
+AMT with Genode's run tool, install the 'amtterm' package (version 1.3 is
+known to work well) and set the following environment variables, specifying
+the IP address of the test machine and the AMT password.
+
+! export AMT_TEST_MACHINE_IP=XXX.XXX.XXX.XXX
+! export AMT_TEST_MACHINE_PWD=XXXXXXXXX
+
+Via setting the RUN_OPT environment variable, we instruct the run tool to use
+AMT instead of Qemu. The following command will reset the test machine, the test
+machine will load the binaries of the printf run script via PXE, and we will be
+able to see the serial output of the test machine through Intel's AMT Serial
+Over Line (SOL),
+
+! RUN_OPT="--target amt" make run/printf
+
+
+Output via a COM port (UART)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the x86 test machine, Pandaboard or Arndale test board is connected
+via UART, the run tool can use a specified command to interact with it.
+
+For example, if the UART interface of the test machine is connected directly
+to the host machine at /dev/ttyUSB3, and the picocom tool is available,
+the following command can be used to establish a connection:
+
+! RUN_OPT="--target serial --serial-cmd \"picocom -b 115200 /dev/ttyUSB3\"" make run/printf
+
+Alternatively, if the board is connected to some remote machine, which exports
+the corresponding serial line via TCP/IP, the socat tool can be used for
+communicating with the remote test machine:
+
+! RUN_OPT="--target serial --serial-cmd \"socat - tcp:10.0.0.1:2000\"" make run/printf
+
+
+Reset via a IP power plug NETIO-230B from Koukaam
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+At Genode Labs, we use a NETIO-230B power plug to automate power-cycling ARM
+boards. This power plug can be controlled over the network. For example, if
+the Pandaboard is connected to power port 3, the following command will
+automatically turn on the board when the run script is started:
+
+! RUN_OPT="--target uboot --target reset --reset-port 2 --reset-ip 10.0.0.1 --reset-user admin --reset-passwd secret" make run/printf
+
+The '--target reset' option can be combined with '--target uboot' to
+instruct the run tool to boot via TFTP (as described above) and take care
+of power cycling. When the run script has finished, the specified port
+will be automatically switched off by the run tool.
+
+Of course, the IP address settings, as well as the actual user name and
+password, to access the NETIO-230B power plug, have to be adjusted accordingly.
+
+
+Automated benchmarking
+======================
+
+With the '--target' features added to the run tool, the road is paved to
+obtain benchmark results in an automated fashion. Currently, we are most
+interested in exploring the network-performance characteristics of Genode.
+
+Network performance can be explored at different levels. We started with
+looking at raw driver performance, then looked at the overhead of separating
+the network application from the device driver (and thereby introducing
+inter-process communication overhead), and finally explored the effects
+of the TCP/IP stack.
+
+For pursuing the packet-level performance measurements, we crafted a library
+called 'net-stat', which contains the application logic of a low-level
+benchmark operating at network-packet level. This library has been
+successively incorporated into the 'dde_ipxe' NIC driver and the 'usb_drv'
+(NIC driver via ethernet-over-USB) to measure the raw driver performance
+without any microkernel overhead or TCP/IP protocol overhead.
+
+To see the influence of the inter-process communication, namely the
+packet-stream interface employed by Genode's NIC-session interface,
+we implanted the same net-stat library into a NIC-session client. This
+experiment enables us to compare the operation of the NIC driver
+with the operation of a NIC driver separated from the NIC
+application.
+
+The raw networking tests can be executed automatically using the set
+of 'network_test_nic*.run' scripts located at 'os/run'.
+The scenario sends raw ethernet packets from the host machine to the
+target machine. Three tests are provided:
+The 'network_test_nic_raw.run' test measures the net-stat-instrumented driver
+(of usb_drv and net_drv respectively) to observe the raw receive performance.
+The 'network_test_nic_raw_client.run' test implements the benchmark in a
+NIC-session client connected to the NIC driver running as a separate
+component whereas the NIC driver is not instrumented.
+The 'network_test_nic_raw_bridge_client.run' test further adds a NIC bridge
+in-between the driver and the NIC-session client.
+
+In addition to analyzing the performance on a low level, we investigated
+the effects of TCP/IP for the application performance. This topic is
+covered in more detail in Section [TCP/IP performance].
+
+
+Terminal infrastructure
+#######################
+
+Closely related to the quality-assurance measures detailed in the previous
+section, there is the arising need to interact with increasingly complex system
+scenarios in headless settings. In particular when executing tests remotely on a
+development board, manual user-interaction via a GUI
+becomes impractical. We vastly prefer a low-bandwidth textual interface
+in such situations. But how should a textual user interface for dynamic
+systems comprised of many components look like? This is particularly difficult
+because most development boards are equipped with merely a single UART
+connector.
+
+On a normal Genode system, the UART connector is typically used
+by the kernel debugger to print debugging output, or for the interactive
+use of a debugger. This leaves no interface for interacting with Genode
+components. So how can we expose complex scenarios, such as concurrently
+running several instances of Genode subsystems, to the user?
+Our solution consists of three parts: A pseudo UART driver for Genode
+that uses the kernel debugger as back end, a terminal-multiplexing
+facility running on the reference platform, and a command-line based
+tool for interacting with Genode. By combining those, the user
+can interact with the kernel debugger, a Genode command line, and the
+consoles of executed Linux instances over a single serial connection.
+
+The pseudo UART driver called kdb_uart_drv is a Genode service that
+implements the 'Uart::Session' interface. Therefore, it can be combined
+with all components that use the 'Uart::Session' or the 'Terminal::Session'
+interfaces, for example the Noux runtime environment, the terminal_log
+service (for displaying LOG messages via the terminal interface), L4Linux, or
+programs linked against the 'libc_terminal' plugin. The kdb_uart_drv component
+is located at 'os/src/drivers/uart/kdb'. It does not access a real UART device
+but rather uses the user-level bindings of the kernel debugger to indirectly
+read and write data over the UART interface.
+
+[image kdb_uart_drv 65%]
+  The kdb_uart_drv driver used for sharing one UART among the kernel
+  debugger, core's LOG service, and a terminal client application
+  running on Genode.
+
+Figure [kdb_uart_drv] illustrates the relationship between the kernel
+debugger, core's LOG service, and kdb_uart_drv. Because write operations
+target the kernel debugger directly, core's LOG service gets bypassed. Output
+written to the kdb_uart_drv will directly appear at the terminal program of
+the host system. Because kdb_uart_drv has
+direct access to the host terminal, it can leverage all facilities of the host
+terminal, in particular various escape sequences for terminal manipulations.
+For reading from the kernel debugger, there is no way to block for UART input.
+Hence, the kdb_uart_drv periodically polls for new input with a period of 20
+milliseconds. If new input is available, the driver reads as many characters as
+available at once. So the runtime overhead of polling is negligible. To test
+kdb_uart_drv as individual component, there is a run script provided at
+'os/run/kdb_uart_drv.run'.
+
+Thanks to kdb_uart_drv, both the kernel debugger and Genode can
+share one single UART connection. So we have a principal way to let the user
+interact with a Genode component that uses the 'Terminal::Session' interface.
+However, typical system scenarios should accommodate not just a single program
+but multiple Linux instances and native Genode applications simultaneously,
+each requiring a dedicated 'Terminal::Session'. Hence, we need a way to
+multiplex the 'Terminal::Session' interface between those clients. Our
+multiplexing solution comes in the form of a component called terminal_mux,
+which we just introduced in the
+[http://genode.org/documentation/release-notes/13.02#New_terminal_multiplexer - previous release].
+It uses a single terminal connection to implement a text-based user interface
+to multiple virtual terminal consoles.
+
+[image terminal_mux 40%]
+  Operation of the terminal_mux service.
+
+Figure [terminal_mux] depicts the basic functioning of this component. For
+terminal_mux clients, the service implements the Linux terminal capabilities.
+For doing that, it shares large parts of the implementation of the existing
+Genode terminal program. For each client, terminal_mux renders the client
+output into a client-specific text-screen buffer. So any number of clients can
+perform output on terminal_mux concurrently. According to the selection by
+the user, terminal_mux periodically translates one client buffer (the
+foreground buffer) to escape sequences as understood by the host terminal. This
+translation is performed using the ncurses library. The user can pick the
+foreground buffer using an interactive menu that can be activated via the
+keyboard shortcut _Control-x_.
+
+By combining kdb_uart_drv with terminal_mux, we created a flexible way
+to let the user interact with many Genode applications. The last part
+missing for a real dynamic system is a text-based command interface to
+start and stop Genode subsystems. This functionality is provided by the
+new cli_monitor component located at 'os/src/app/cli_monitor'.
+It uses the 'Terminal::Session' interface to present a simple interactive
+command line with commands for starting and stopping Genode subsystems,
+entering the kernel debugger, and showing status information. It provides
+tab completion and inline help to make it easily explorable. The cli_monitor
+component is integrated in the scenario of the 'terminal_mux.run' script
+mentioned above. Because cli_command is a 'Terminal::Session' client, it can
+be interfaced with terminal_mux. This composition is illustrated by Figure
+[uart_overview].
+
+[image uart_overview 100%]
+  Overview of the terminal infrastructure as employed in the
+  demonstration scenario.
+
+Note that in some situations, e.g., when killing subsystems, the kernel, core,
+or the init process may print LOG messages. Because those messages are
+naturally not routed through terminal_log, they will interfere with the
+operation of terminal_mux and thereby result in visible inconsistencies.
+Pressing _Control-x_ will clear such artifacts. This will bring up the
+terminal_mux menu, which implicitly triggers the redraw of the entire terminal.
+
+
+Base framework
+##############
+
+The current release comes with incremental improvements of the MMIO framework
+API and a new utility to ease the synchronized accesses to otherwise
+unsynchronized class interfaces.
+
+:MMIO framework improvements:
+
+For native Genode device drivers, we consistently use our
+[http://genode.org/documentation/release-notes/12.02#MMIO_access_framework - MMIO framework API].
+These utilities help us to safeguard the access to individual bit fields of
+memory-mapped device registers and cleanly separate the declaration of device
+registers from the driver logic. During the increased use of the API, we
+observe that the 'Genode::Mmio' class template operates mostly on addresses
+that belong to dataspaces provided by core's IO_MEM service. Those dataspaces
+are typically obtained via the 'Attached_io_mem_dataspace' convenience class,
+which requests the dataspace and attaches it to the local address
+space at once. To further reduce repetitive code, we introduced the new
+'Attached_mmio' class (located at 'os/attached_mmio.h'), which handles the
+common case of making the content of a IO_MEM dataspace available through
+register definitions using the 'Mmio' utility. Furthermore, the MMIO framework
+API has been enhanced with a variant of the 'Mmio::wait_for()' function that
+waits for whole register values rather than bits.
+
+:Synchronized interfaces:
+
+Most Genode programs are multi-threaded, which makes the proper use of locks
+inevitable. For most data structures, Genode does not implicitly manage the
+locking but expects the user of the data structures to know what he is doing.
+This way, we can avoid the locking overhead if a data structure is known to be
+accessed by a single thread only. If accessed by multiple threads, we usually
+wrap such data structures within an accessor interface that takes care of the
+locking. For example, for the 'Allocator' interface, there exists a
+corresponding 'Synchronized_allocator' interface wrapper. This technique works
+well as long as the number of interfaces is low -- as is the case for Genode's
+base API. However, as the wrapper code is for the most part pretty dumb, we'd
+like to avoid it. Also, when using the Genode API to implement programs on
+top, we do not anticipate manually creating such accessor wrappers. To ease
+the creation of synchronized interfaces, we introduced the new
+'Synced_interface' class template. It takes a pointer to an existing interface
+and a lock as arguments. An instance of a 'Synced_interface' provides
+synchronized access to the wrapped interface functions via the 'operator ()'.
+Because the 'Synced_interface' does not provide any means to obtain the
+unsynchronized version of the interface, once wrapped, the interface cannot be
+misused by subsystems that get handed over a reference to a
+'Synced_interface'. To see how to employ this utility, please have a look of
+how we realize the synchronization within the Vancouver VMM (in particular,
+the access to the motherboard).
+
+
+Low-level OS infrastructure
+###########################
+
+TCP/IP performance
+==================
+
+On the course of the automated benchmarking described in Section
+[Automated quality-assurance testing], we conducted the following steps
+to enable benchmarks and to improve performance at the TCP/IP level.
+
+At application level, we desire to compare our network performance with the
+performance on GNU/Linux using commodity benchmarks. For this reason, netperf
+has been ported to run as native Genode using the lwIP stack. This benchmark
+allows us to systematically compare our results with those achieved by Linux.
+The port of netperf is available in the ports repository.
+
+In addition to running a commodity benchmark, we pursue synthetic benchmarks
+that model the behaviour of typical application scenarios, for example, a
+web server that receive many small requests. This is where the added
+'test-ping_client' and 'test-ping_server' tests come into play. The test
+is located at 'libports/src/test/lwip/pingpong'. It is used by the
+series of 'network_test_*.run' scripts located at 'libports/run'. The
+run scripts exercise the test in various scenarios and thereby allow us to
+systematically explore the impact of the libc and NIC bridge on the
+application performance.
+
+# Using raw lwIP without the libc
+# Like the first test, but with an instance of the NIC bridge in between the
+  test program and the driver.
+# Using lwIP with the libc socket bindings
+# Like the third test, but with NIC bridge added
+
+To keep track of the lwIP development more closely, we switched to the
+Git version of lwIP instead of using a source snapshot.
+
+Furthermore, we incorporated "window scaling" support (RFC 1323) into our
+version of lwIP as we identify the TCP window size as a limiting factor
+of the TCP throughput achieved via lwIP.
+
+
+C runtime
+=========
+
+We added support for "resolv" functionality to the libc_lwip_nic_dhcp plugin.
+Normally, a file called 'resolv.conf' is expected to be located at '/etc'.
+On Genode, however, we don't have a global file system, which makes this
+way of configuration cumbersome. To ease the provision of a simple default
+'resolv.conf' configuration, the plugin hands out the file as a virtual file.
+The configuration automatically provides the DNS server address acquired by
+lwIP via DHCP. If, for some reason, this policy is not desired, the feature
+can be disabled via:
+
+! <libc resolv="no" />
+
+*Note that the configuration of the C runtime has changed*
+
+To foster consistency of the libc configuration, we moved the static
+network "interface" attributes into the 'libc' XML node. A new configuration
+of static networking would look as follows:
+
+! <libc ip_addr="..." netmask="..." gateway="..." />
+
+
+Terminal
+========
+
+Genode's custom terminal implementation has been improved to better handle
+widely used escape sequences.
+The new version is able to handle two-argument SGR commands with
+attribute/color arguments in any order, and supports the ED, EL0, and
+CUB commands.
+
+Because the terminal classes do not rely on any 3rd-party code, they
+have been moved to the os repository at 'os/include/terminal'. This way,
+we can use those classes by other components of the os repository such
+as the new CLI monitor.
+
+
+FS-LOG service
+==============
+
+Using the new FS-LOG service residing at 'libports/os/src/server/fs_log', log
+messages of different processes can be redirected to files on a file-system
+service. The assignment of processes to files can be expressed in the
+configuration as follows:
+
+! <start name="fs_log">
+!   <resource name="RAM" quantum="2M"/>
+!   <provides><service name="LOG"/></provides>
+!   <config>
+!     <policy label="noux"    file="/noux.log" />
+!     <policy label="noux ->" file="/noux_process.log" />
+!   </config>
+! </start>
+
+In this example, all messages originating from the noux process are directed
+to the file '/noux.log'. All messages originating from children of the noux
+process end up in the file '/noux_process.log'.
+
+
+Liquid FB
+=========
+
+Liquid FB is a virtual framebuffer service that uses the nitpicker GUI
+server as back end. The virtual framebuffer is presented as a movable
+window with a title bar. Until now, we used it primarily for demonstration
+purposes, i.e., it is part of Genode's default demo scenario.
+
+Thanks to our forthcoming adaptation of Qt5 to Genode, which requires a
+very similar solution to interface Qt5's platform-abstraction layer (QPA) to
+Genode, liquid FB got in the spotlight of this release.
+
+First, we took the chance to update its configuration parameters to
+become more consistent with similar services such as nit_fb. As liquid_fb was
+originally conceived at a time when Genode's XML parser did not support
+XML attributes, its configuration syntax used to be a bit arcane. This
+has changed now. Apart from this cosmetic refinement, there are two prominent
+new features: Support for resizing the framebuffer window with the
+mouse and support for dynamic reconfiguration of the virtual framebuffer
+via Genode's configuration mechanism.
+
+When the liquid FB window gets resized by the user, the virtual framebuffer
+emits a mode-changed signal to its client, which, in turn can handle the
+event by re-acquiring the frame-buffer dataspace.
+
+The added support for dynamic reconfiguration allows for changing the
+properties of a liquid FB instance via Genode's configuration mechanism.
+For example, the window position and size can be manipulated this way.
+
+Furthermore, two new configuration options have been added. The
+'resize_handle' option shows or hides the resize handle widget at the
+lower-right window corner (by default, it is hidden). The 'decoration' option
+defines whether window decorations should be visible (default is yes). Both
+options can have the values "on" or "off".
+
+
+3rd-party libraries
+###################
+
+The following 3rd-party libraries have been added or updated:
+
+* To complement libSDL, we have added ports of SDL_ttf, SDL_image,
+  SDL_image, SDL_mixer, and SDL_loadso. Those additions to libSDL
+  are used by popular libSDL-based applications such as Tuxpaint.
+  They are now available at the libports repository.
+
+* GNU FriBidi 0.19.5 added to the libports repository
+
+* Qt4 updated to version 4.8.4
+
+* zlib updated to version 1.2.8
+
+
+Device drivers
+##############
+
+Unified driver names
+====================
+
+The growing diversity of supported hardware platforms calls for improved
+conventions of how to name device drivers. Otherwise, run scripts that are
+meant to support a wide range of platforms will eventually become more
+and more complicated due to platform-dependent conditional configuration
+snippets. For example, the default framebuffer drivers of the respective
+platforms used to be called "vesa_drv" (for x86), "omap4_fb_drv", or "pl11x_drv".
+In order to support the different platforms, run scripts that were otherwise
+platform-agnostic had to explicitly deal with those differences.
+
+To solve this issue, we introduced a generic SPEC values for device types, for
+which a default driver is expected to exist. If a platform features a
+framebuffer driver, it includes the SPEC value "framebuffer". On each
+platform, the default driver for the respective device has the same name. So
+each of "vesa_drv", "pl11x_drv", and "omap4_fb_drv" had been renamed to
+"fb_drv". This is possible because the use of those drivers is mutually
+exclusive.
+
+The same convention has been applied to GPIO drivers as well. The
+corresponding SPEC value is called "gpio". The driver binaries are called
+"gpio_drv".
+
+
+ATAPI
+=====
+
+LBA48 support has been added to the ATAPI driver. Thanks to Ivan Loskutov!
+
+
+KDB UART driver for L4/Fiasco and Fiasco.OC
+===========================================
+
+The new KDB UART driver at 'os/src/drivera/uart/kdb' uses the kernel debugger
+console as backend for input and output. This is useful in the case that only
+one UART is available as described in Section [Terminal infrastructure].
+Examples for using the kdb_uart_drv are available in the form of the run scripts
+'ports-foc/run/l4linux.run' and 'os/run/kdb_uart_drv.run'.
+
+
+Revised GPIO session interface
+==============================
+
+The original design of the GPIO session interface enabled the client of a
+single session to interact with any number GPIO pins. Each function of the
+interface took a GPIO number as first argument, which addressed the GPIO pin.
+
+To simplify the interface and to enable fine-grained GPIO-assignment policies,
+the interface has been changed to provide access to a single GPIO pin per
+session only. At session creation time, the client specifies a single GPIO
+pin, to which the session refers. This information can be evaluated for the
+session routing. So access-control policies can be easily implemented per GPIO
+pin. The server stores the pin as part of the session context and implicitly
+uses the pin for operations on the session interface.
+
+Furthermore, a generic driver interface for GPIO-class-device drivers
+has been introduced. The new interface at 'os/include/gpio' alleviates the
+need to implement the boilerplate code to interface the driver with Genode.
+The existing GPIO drivers for OMAP4 and i.MX53 are the first beneficiaries of
+these changes.
+
+
+Exynos 5 SoC
+============
+
+After principally enabling the Exynos 5 SoC platform in the previous
+release, we moved on with extending the device-driver coverage of this SoC. In
+particular, we addressed USB networking, XHCI (USB-3), Gigabit networking over
+USB-3, eMMC, and SATA.
+
+The development of those device drivers follows our rationale that guided our
+[http://genode.org/documentation/articles/pandaboard - previous work on the OMAP4 platform].
+For the USB driver, we employed the device-driver-environment (DDE) approach
+for reusing the Linux USB stack and the host controller drivers. In contrast,
+the eMMC and SATA drivers are built as genuine Genode drivers with no
+3rd-party code used.
+
+Technically, the addition of Exynos-5 support to our USB driver was
+an evolutionary step. It required us to add the corresponding EHCI
+controller and to supply a few additions to the device-driver
+environment. To simplify the driver, we decided to let the driver
+rely on the platform initialization as performed by the U-Boot boot
+loader. Since the initialization is performed during the boot process
+already, there is no need to do this work twice. Because the platforms
+supported by the USB driver become more and more diverse, we re-organized the
+internal structure of the 'dde_linux' repository to keep those platforms well
+separated. Furthermore, we reworked the memory management of the USB driver to
+improve the utilization of the available RAM. The new solution employs Genode's
+concept of managed dataspaces to manage a part of the local address-space
+layout manually. This helps us to implement a fast translation of driver-local
+virtual addresses to physical addresses as needed for issuing DMA requests.
+
+The eMMC driver builds upon our protocol implementation for the SD-card
+protocol, which was originally developed for the OMAP4 SD-card driver.
+Because we kept the SD-card protocol implementation well separated
+from the host-controller driver, it was possible to leverage parts of our
+existing work for the eMMC driver. Because the eMMC protocol is an extension
+of the SD-card protocol, however, we needed to enhance the protocol
+implementation accordingly. The extension comprises support for the
+MMC_SEND_EXT_CSD, MMC_SEND_OP_COND, and STOP_TRANSMISSION commands as well as
+the MMC detection. The host controller driver was implemented from scratch
+with the help of I/O access traces gathered from instrumenting the U-Boot boot
+loader and the Linux kernel. The driver operates the eMMC in high-speed, 8-bit
+mode at 52 MHz using DMA. The implementation can be found at
+'os/src/drivers/sd_card/exynos5'.
+
+The initial version of our new SATA driver for Exynos 5 has been implemented
+from the ground up. Even though it is at an early stage, it has been
+successfully tested with a UDMA-133 disk, e.g., our generic block test
+is passed and the disk can be attached as a block device to an instance of
+L4Linux.
+
+
+Freescale i.MX SoC
+==================
+
+The support for the Freescale i.MX53 SoC has been extended by a number of
+devices. All drivers reside in the os repository under the 'os/src/drivers'
+subdirectory.
+
+The general-purpose I/O (GPIO) driver located at 'gpio/imx53' implements the
+revised GPIO-session interface.
+
+The i.MX53 input driver provides support for the input devices featured on the
+i.MX53 SABRE tablet. The tablet uses an Egalaxy touchscreen and Freescale's
+MPR121 capacitative touch buttons. Both are supported by the new driver. The
+driver is located at 'input/imx53'.
+
+The new framebuffer driver for the i.MX53 quick-start board (QSB) as well as
+the SABRE tablet comes with special support for using the
+hardware overlay feature provided by the i.MX53 image processing unit (IPU)
+Access to the overlay is implemented via an IPU-specific extension
+of the framebuffer-session interface. To combine the driver well with
+nitpicker using alpha-channels, optional support for double-buffering
+is provided. The driver is located at 'framebuffer/imx53'.
+
+As an abstraction of platform features that need to be accessed by
+multiple drivers, a so-called platform driver has been introduced.
+The platform driver safeguards the access to global resources such
+as clocks and system-configuration bits. It can be found at 'platform/imx53'.
+
+
+OMAP4 SoC
+=========
+
+The OMAP4 framebuffer driver used to support HDMI only, which was used
+for connecting a display to the Pandaboard. To make the driver usable on
+phones and tablets, the driver has been enhanced to support LCD output. Thanks
+to Alexander Tarasikov for the patch and the insightful story about
+[http://allsoftwaresucks.blogspot.com/2013/05/porting-genode-to-commercial-hardware.html - porting Genode to the B&N Nook HD+ tablet]!
+
+
+USB
+===
+
+The USB driver of the 'dde_linux' repository has received substantial
+improvements both feature-wise and under the hood.
+
+First and foremost, the Linux device-driver environment, on which the
+driver is based on, has been updated from kernel version 3.2 to version
+3.9 as the latter version includes drivers for recent host controllers
+such as DWC3 out of the box.
+
+DWC3 is the host controller employed on the Exynos-5-based
+Arndale platform for USB 3. We added the support needed to operate this
+controller in XHCI mode and added support for Gigabit networking through
+the ASIX AX88179 Gigabit-Ethernet Adapter as well as USB storage support.
+
+Apart from extending the device-driver coverage, we revised the driver
+internally. The back-end allocators for DMA buffers and normal memory have been
+rewritten to allocate RAM more sparingly. Furthermore, we enabled the USB
+driver for 64-bit x86 machines and improved the support for HID keyboards,
+including the application of quirks to cherry keyboards.
+
+*Note the change of the USB configuration*
+
+With the addition of XHCI, the USB driver supports a growing number
+of host controllers. In some situations, it is desirable to constrain the
+driver to a subset of controllers only. For example, on the Arndale platform,
+we desire to use a dedicated USB stack for XHCI, which operates completely
+independent from the USB stack accessing USB-2. This way, gigabit networking
+over USB-3 won't interfere with the operation of USB-2. To make this
+possible, we added new configuration options to the USB driver.
+With the new scheme, host controllers must be explicitly enabled in the
+configuration. Supported config attributes are: 'uhci', 'ehci', and 'xhci'.
+For example, a configuration snippet to enable UHCI and EHCI looks as
+follows:
+! <config uhci="yes" ehci="yes">
+
+
+Updated iPXE device-driver environment
+======================================
+
+The iPXE device-driver environment was update to the most recent
+iPXE upstream Git version in order to benefit from upstream improvements
+of the Intel E1000 NIC driver.
+
+
+Runtime environments
+####################
+
+Vancouver VMM on NOVA
+=====================
+
+Vancouver is the user-level virtual-machine monitor that accompanies the
+NOVA hypervisor for hosting unmodified guest operating systems.
+
+The most active line of development is led by Julian Stecklina at TU Dresden
+via a fork called Seoul. In contrast to the original version of Vancouver,
+this fork is open for outside contributions. Hence, it represents an ideal
+platform for those parties with a stake in Vancouver to collaborate, i.e.,
+the NUL userland, the NOVA runtime environment of TUD, and Genode.
+
+In the current state of the transition, the Hip structure from Genode
+is reused. String functions, which were formerly taken from NUL are now
+provided by a stripped-down version of the C library called
+'seoul_libc_support'. The nul/config.h is replaced by just using a constant
+value in the one place where the file was needed.
+
+The Genode-specific back ends of Vancouver, as largely introduced with the
+previous Genode release, have been improved in several respects:
+
+* CPUID 0x40000000: This instruction is issued by Linux when the KVM
+  guest support is compiled in. We have to return deterministic values to let
+  the Linux kernel survive.
+
+* Replaced busy thread startup synchronization by proper locking.
+
+* New locking scheme: We replaced the error-prone manual locking with the
+  use of the freshly introduced 'Synced_interface' for the motherboard and the
+  VCPU dispatcher. Also, all globally visible locks have been removed. They are
+  explicitly passed to subsystems only when needed.
+
+* Improved PS/2 mouse back-end:
+  The previous version of the PS/2 mouse back end managed mouse-motion
+  events in a strange way, effectively throwing away most information
+  about the motion vector. Furthermore, the tracking of the mouse-button
+  states were missing. So drag-and-drop in a guest OS won't work. The new
+  version fixes those issues. For the transformation of input events to
+  PS/2 packets, the 'Genode::Register' facility is used, which greatly
+  simplifies the code.
+
+
+L4Linux on Fiasco.OC
+====================
+
+We improved the memory management of L4Linux on Genode in two ways.
+The first improvement is concerned about the upper limit of memory per Linux
+instance. The corresponding discussion can be found at
+[https://github.com/genodelabs/genode/issues/414 - issue #414].
+We changed our L4Re emulation library to match the semantics of the original
+L4Re more closely. Furthermore, we removed a heuristic in the L4Linux kernel,
+which assumed that all kernel-local addresses above 0x8000000 refer to device
+resources. In our version of L4Linux, there exist no MMIO resources. In
+contrary, the virtual addresses above this addresses are used for normal
+memory. By removing this artificial restriction with regard to the virtual
+memory layout of the L4Linux kernel, we can host a larger kernel memory area.
+
+The second improvement is concerned with the allocation of L4Linux
+memory at Genode's core. Until now, L4Linux used to allocate its memory
+as one contiguous RAM dataspace at core's RAM service. Core tries to
+naturally align the allocation to improve the likelihood for large-page
+mappings. So a dataspace is likely to be physically located at a
+power-of-two boundary larger or equal than the dataspace size. For example,
+the allocation of a 100 MiB RAM dataspace for a Linux instance will
+be located at a 128 MiB boundary. If multiple of such allocations happen
+sub-sequentially, this allocation strategy results in 28 MiB gaps between
+100 MiB dataspaces. This memory cannot be used for large contiguous
+allocations anymore. So even if the available memory capacity is far
+larger than 100 MiB, an allocation of a 100 MiB block may fail.
+To relieve this problem, we weakened the requirement for contiguous memory
+by assembling L4Linux memory from multiple chunks of small dataspaces.
+For example, by using a chunk size of 16 MiB, core's best-fit allocator
+will have a better chance to find a more suited position for allocation
+when aligning the block to a 16 MiB boundary compared to the allocation
+of a larger block. Furthermore, slack memory can be used more efficiently
+because smaller gaps (such as a 20 MiB gap) remain to be usable for L4Linux.
+The discussion of this topic and the individual patch can be found at
+[https://github.com/genodelabs/genode/issues/695 - issue #695].
+
+Furthermore, the L4Linux block driver has been improved to support large
+partitions.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Raspberry Pi
+~~~~~~~~~~~~
+
+Principal support for the Raspberry Pi platform has been added to the base-hw
+kernel. The popular Raspberry Pi board is based on an ARMv6 Broadcom BCM2835
+SoC. The current scope of the platform support comprises:
+
+* IRQ controller driver: Because the interrupt controller uses a cascade of
+  registers, we settled on the following IRQ enumeration scheme.
+  IRQ numbers 0..7 refer to the basic IRQs.
+  IRQ numbers 8..39 refer to GPU IRQs  0..31.
+  IRQ numbers 40..71 refer to GPU IRQs 32..63.
+
+* The kernel employs the so-called system timer for the preemptive scheduling.
+
+* Core's LOG messages are printed over the PL011-based UART.
+
+* The user-level timer driver uses the so-called ARM timer, which is a
+  slightly modified SP804 timer device.
+
+Up to this point, a few device driver are missing to use Genode on the
+Raspberry Pi in practice, most notably USB.
+
+To build and run Genode on the Raspberry Pi, create a new build directory
+via the 'create_builddir' tool, specifying 'hw_rpi' as platform.
+
+
+User-level timer driver for Arndale platform
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By adding our new Exynos 5250 PWM timer driver, the base-hw kernel can now
+be used for executing meaningful scenarios on the Arndale board including
+the USB stack and networking.
+
+
+Linux
+=====
+
+Until now, Genode on Linux supported x86-based platforms only.
+The newly added 'linux_arm' platform clears the way to run Genode directly on
+Linux-based ARM platforms. Genode's entire software stack is supported,
+including the dynamic linker, graphical applications, and Qt4.
+
+As a known limitations, the libc 'setjmp()'/'longjmp()' doesn't currently
+save/restore floating point registers.
+
+
+Build system and tools
+######################
+
+The run tool has been enhanced as detailed in Section
+[Automated quality-assurance testing].
+
