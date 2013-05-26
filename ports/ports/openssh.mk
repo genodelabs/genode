@@ -1,6 +1,10 @@
-OPENSSH     = openssh-6.1p1
-OPENSSH_TGZ = $(OPENSSH).tar.gz
-OPENSSH_URL = ftp://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/$(OPENSSH).tar.gz
+OPENSSH          = openssh-6.1p1
+OPENSSH_TGZ      = $(OPENSSH).tar.gz
+OPENSSH_SIG      = $(OPENSSH_TGZ).asc
+OPENSSH_BASE_URL = ftp://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/
+OPENSSH_URL      = $(OPENSSH_BASE_URL)/$(OPENSSH_TGZ)
+OPENSSH_URL_SIG  = $(OPENSSH_BASE_URL)/$(OPENSSH_SIG)
+OPENSSH_KEY      = 3981992A1523ABA079DBFC66CE8ECB0386FF9C48
 
 #
 # Interface to top-level prepare Makefile
@@ -14,6 +18,8 @@ prepare:: $(CONTRIB_DIR)/$(OPENSSH)
 #
 $(DOWNLOAD_DIR)/$(OPENSSH_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSH_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSH_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(OPENSSH_TGZ) $(DOWNLOAD_DIR)/$(OPENSSH_SIG) $(OPENSSH_KEY)
 
 $(CONTRIB_DIR)/$(OPENSSH): $(DOWNLOAD_DIR)/$(OPENSSH_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

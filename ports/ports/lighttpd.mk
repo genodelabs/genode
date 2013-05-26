@@ -1,7 +1,11 @@
 include ports/lighttpd.inc
 
-LIGHTTPD_TGZ = $(LIGHTTPD).tar.gz
-LIGHTTPD_URL = http://download.lighttpd.net/lighttpd/releases-1.4.x/$(LIGHTTPD_TGZ)
+LIGHTTPD_TGZ      = $(LIGHTTPD).tar.gz
+LIGHTTPD_SIG      = $(LIGHTTPD_TGZ).asc
+LIGHTTPD_BASE_URL = http://download.lighttpd.net/lighttpd/releases-1.4.x
+LIGHTTPD_URL      = $(LIGHTTPD_BASE_URL)/$(LIGHTTPD_TGZ)
+LIGHTTPD_URL_SIG  = $(LIGHTTPD_BASE_URL)/$(LIGHTTPD_SIG)
+LIGHTTPD_KEY      = stbuehler@lighttpd.net
 
 #
 # Interface to top-level prepare Makefile
@@ -15,6 +19,8 @@ prepare:: $(CONTRIB_DIR)/$(LIGHTTPD)
 #
 $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIGHTTPD_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIGHTTPD_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ) $(DOWNLOAD_DIR)/$(LIGHTTPD_SIG) $(LIGHTTPD_KEY)
 
 $(CONTRIB_DIR)/$(LIGHTTPD): $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@

@@ -1,8 +1,9 @@
-GCC_VERSION  = 4.7.2
-GCC          = gcc-$(GCC_VERSION)
-GCC_URL      = ftp://ftp.fu-berlin.de/gnu/gcc
-
-GCC_TGZ = gcc-$(GCC_VERSION).tar.gz
+GCC_VERSION = 4.7.2
+GCC         = gcc-$(GCC_VERSION)
+GCC_URL     = ftp://ftp.fu-berlin.de/gnu/gcc
+GCC_TGZ     = gcc-$(GCC_VERSION).tar.gz
+GCC_SIG     = $(GCC_TGZ).sig
+GCC_KEY     = GNU
 
 #
 # Interface to top-level prepare Makefile
@@ -17,6 +18,8 @@ prepare:: $(CONTRIB_DIR)/$(GCC)/configure
 
 $(DOWNLOAD_DIR)/$(GCC_TGZ):
 	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_TGZ) && touch $@
+	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GCC_TGZ) $(DOWNLOAD_DIR)/$(GCC_SIG) $(GCC_KEY)
 
 #
 # Utilities

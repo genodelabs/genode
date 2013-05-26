@@ -1,7 +1,9 @@
-GDB_VERSION  = 7.3.1
-GDB          = gdb-$(GDB_VERSION)
-GDB_URL      = ftp://ftp.fu-berlin.de/gnu/gdb
-GDB_TBZ2     = gdb-$(GDB_VERSION).tar.bz2
+GDB_VERSION = 7.3.1
+GDB         = gdb-$(GDB_VERSION)
+GDB_URL     = ftp://ftp.fu-berlin.de/gnu/gdb
+GDB_TBZ2    = gdb-$(GDB_VERSION).tar.bz2
+GDB_SIG     = $(GDB_TBZ2).sig
+GDB_KEY     = GNU
 
 # these files are only needed to generate other files in the preparation process
 GDB_CONTENT := gdb/regformats/regdat.sh \
@@ -51,6 +53,8 @@ prepare:: $(CONTRIB_DIR)/$(GDB)/configure generated_files
 
 $(DOWNLOAD_DIR)/$(GDB_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_URL)/$(GDB_TBZ2) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_URL)/$(GDB_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GDB_TBZ2) $(DOWNLOAD_DIR)/$(GDB_SIG) $(GDB_KEY)
 
 $(CONTRIB_DIR)/$(GDB): $(DOWNLOAD_DIR)/$(GDB_TBZ2)
 	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR)

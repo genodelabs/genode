@@ -1,6 +1,10 @@
-FINDUTILS     = findutils-4.4.2
-FINDUTILS_TGZ = $(FINDUTILS).tar.gz
-FINDUTILS_URL = http://ftp.gnu.org/pub/gnu/findutils/$(FINDUTILS_TGZ)
+FINDUTILS          = findutils-4.4.2
+FINDUTILS_TGZ      = $(FINDUTILS).tar.gz
+FINDUTILS_SIG      = $(FINDUTILS_TGZ).sig
+FINDUTILS_BASE_URL = http://ftp.gnu.org/pub/gnu/findutils
+FINDUTILS_URL      = $(FINDUTILS_BASE_URL)/$(FINDUTILS_TGZ)
+FINDUTILS_URL_SIG  = $(FINDUTILS_BASE_URL)/$(FINDUTILS_SIG)
+FINDUTILS_KEY      = GNU
 
 #
 # Interface to top-level prepare Makefile
@@ -14,6 +18,8 @@ prepare:: $(CONTRIB_DIR)/$(FINDUTILS)
 #
 $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FINDUTILS_URL) && touch $@
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FINDUTILS_URL_SIG) && touch $@
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ) $(DOWNLOAD_DIR)/$(FINDUTILS_SIG) $(FINDUTILS_KEY)
 
 $(CONTRIB_DIR)/$(FINDUTILS): $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
