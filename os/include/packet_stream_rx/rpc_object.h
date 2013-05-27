@@ -28,20 +28,10 @@ namespace Packet_stream_rx {
 			Genode::Capability<CHANNEL> _cap;
 			typename CHANNEL::Source    _source;
 
+			Genode::Signal_context_capability _sigh_ready_to_submit;
+			Genode::Signal_context_capability _sigh_ack_avail;
+
 		public:
-
-			/*
-			 * Accessors for server-side signal handlers
-			 *
-			 * The functions are virtual to enable derived classes to supply
-			 * custom handlers for data-flow signals.
-			 */
-
-			virtual Genode::Signal_context_capability sigh_ready_to_submit() {
-				return _source.sigh_ready_to_submit(); }
-
-			virtual Genode::Signal_context_capability sigh_ack_avail() {
-				return _source.sigh_ack_avail(); }
 
 			/**
 			 * Constructor
@@ -56,12 +46,55 @@ namespace Packet_stream_rx {
 			Rpc_object(Genode::Dataspace_capability  ds,
 			           Genode::Range_allocator      *buffer_alloc,
 			           Genode::Rpc_entrypoint       &ep)
-			: _ep(ep), _cap(_ep.manage(this)), _source(buffer_alloc, ds) { }
+			: _ep(ep), _cap(_ep.manage(this)), _source(buffer_alloc, ds),
+
+			  /* init signal handlers with default handlers of source */
+			  _sigh_ready_to_submit(_source.sigh_ready_to_submit()),
+			  _sigh_ack_avail(_source.sigh_ack_avail()) { }
 
 			/**
 			 * Destructor
 			 */
 			~Rpc_object() { _ep.dissolve(this); }
+
+			/*
+			 * The 'sigh_ack_avail()' and 'sigh_ready_to_submit()' functions
+			 * may be called at session-creation time to override the default
+			 * data-flow signal handlers as provided by the packet-stream source.
+			 * The default handlers let the server block in the event of data
+			 * congestion. By installing custom signal handlers, a server
+			 * implementation is able to avoid blocking for a single event by
+			 * facilitating the use of a select-like mode of operation.
+			 *
+			 * Note that calling these functions after the finished creation of
+			 * the session has no effect because the client queries the signal
+			 * handlers only once at session-creation time.
+			 */
+
+			/**
+			 * Override default handler for server-side ready-to-submit signals
+			 *
+			 * Must be called at constuction time only.
+			 */
+			void sigh_ready_to_submit(Genode::Signal_context_capability sigh) {
+				_sigh_ready_to_submit = sigh; }
+
+			/**
+			 * Override default handler for server-side ack-avail signals
+			 *
+			 * Must be called at constuction time only.
+			 */
+			void sigh_ack_avail(Genode::Signal_context_capability sigh) {
+				_sigh_ack_avail = sigh; }
+
+			typename CHANNEL::Source *source() { return &_source; }
+
+			Genode::Capability<CHANNEL> cap() const { return _cap; }
+
+
+			/*******************
+			 ** RPC functions **
+			 *******************/
 
 			Genode::Dataspace_capability dataspace() { return _source.dataspace(); }
 
@@ -71,9 +104,12 @@ namespace Packet_stream_rx {
 			void sigh_packet_avail(Genode::Signal_context_capability sigh) {
 				_source.register_sigh_packet_avail(sigh); }
 
-			typename CHANNEL::Source *source() { return &_source; }
+			virtual Genode::Signal_context_capability sigh_ready_to_submit() {
+				return _sigh_ready_to_submit; }
 
-			Genode::Capability<CHANNEL> cap() const { return _cap; }
+			virtual Genode::Signal_context_capability sigh_ack_avail() {
+				return _sigh_ack_avail; }
+
 	};
 }
 
