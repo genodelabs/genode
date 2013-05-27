@@ -36,8 +36,7 @@ int main(int, char **)
 
 	enum {
 		PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
-		RX_BUF_SIZE = Nic::Session::RX_QUEUE_SIZE * PACKET_SIZE,
-		TX_BUF_SIZE = Nic::Session::TX_QUEUE_SIZE * PACKET_SIZE
+		BUF_SIZE    = Nic::Session::QUEUE_SIZE * PACKET_SIZE,
 	};
 
 	/* read MAC address prefix from config file */
@@ -50,7 +49,7 @@ int main(int, char **)
 
 	Root_capability nic_root_cap;
 	try {
-		static Nic::Connection nic(&tx_block_alloc, TX_BUF_SIZE, RX_BUF_SIZE);
+		static Nic::Connection nic(&tx_block_alloc, BUF_SIZE, BUF_SIZE);
 		static Net::Rx_handler rx_handler(&nic);
 		static Net::Root       nic_root(&ep, env()->heap(), &nic);
 

@@ -39,7 +39,7 @@ namespace Nic {
 
 	struct Session : Genode::Session
 	{
-		enum { TX_QUEUE_SIZE = 256, RX_QUEUE_SIZE = 256 };
+		enum { QUEUE_SIZE = 256 };
 
 		/*
 		 * Types used by the client stub code and server implementation
@@ -47,16 +47,11 @@ namespace Nic {
 		 * The acknowledgement queue has always the same size as the submit
 		 * queue. We access the packet content as a char pointer.
 		 */
-		typedef Packet_stream_policy<Packet_descriptor,
-		                             TX_QUEUE_SIZE, TX_QUEUE_SIZE,
-		                             char> Tx_policy;
+		typedef Packet_stream_policy<Packet_descriptor, QUEUE_SIZE, QUEUE_SIZE,
+		                             char> Policy;
 
-		typedef Packet_stream_policy<Packet_descriptor,
-		                             RX_QUEUE_SIZE, RX_QUEUE_SIZE,
-		                             char> Rx_policy;
-
-		typedef Packet_stream_tx::Channel<Tx_policy> Tx;
-		typedef Packet_stream_rx::Channel<Rx_policy> Rx;
+		typedef Packet_stream_tx::Channel<Policy> Tx;
+		typedef Packet_stream_rx::Channel<Policy> Rx;
 
 		static const char *service_name() { return "Nic"; }
 
