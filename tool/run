@@ -266,7 +266,7 @@ set specs            [get_cmd_arg --specs            ""]
 set repositories     [get_cmd_arg --repositories     ""]
 set qemu_args        [get_cmd_arg --qemu-args        ""]
 set run_target       [get_cmd_arg --target       "qemu"]
-set serial_dev       [get_cmd_arg --serial-dev "/dev/ttyUSB0"]
+set serial_cmd       [get_cmd_arg --serial-cmd "picocom -b 115200 /dev/ttyUSB0"]
 
 
 
@@ -674,7 +674,7 @@ proc exit {{status 0}} {
 #
 proc spawn_serial { wait_for_re timeout_value} {
 	global spawn_id
-	global serial_dev
+	global serial_cmd
 	global run_target
 
 	if {$wait_for_re == "forever"} {
@@ -686,8 +686,8 @@ proc spawn_serial { wait_for_re timeout_value} {
 	if {[regexp "reset" $run_target]} {
 		power_plug_reset
 	}
-	
-	spawn picocom -b 115200 $serial_dev
+
+	eval spawn $serial_cmd
 	set serial_spawn_id $spawn_id
 	wait_for_output $wait_for_re $timeout_value $serial_spawn_id
 }
