@@ -616,9 +616,9 @@ proc spawn_amt { wait_for_re timeout_value} {
 # Reset test machine via IP power plug NETIO-230B from Koukaam
 #
 proc power_plug_connect {} {
-	set server_ip "10.0.0.5"
-	set user_name "admin"
-	set password  "admin"
+	set server_ip [get_cmd_arg --reset-ip 1]
+	set user_name [get_cmd_arg --reset-user 1]
+	set password  [get_cmd_arg --reset-passwd 1]
 
 	spawn telnet $server_ip 1234
 	set connection_id $spawn_id
