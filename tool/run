@@ -639,7 +639,7 @@ proc power_plug_reset {} {
 	regexp -all {[0-9]+} $expect_out(0,string) power_status
 	if {!$power_status} {
 		puts "port $power_port is off - switching it on"
-		send -i $connetion_id "port $power_port 1\n"
+		send -i $connection_id "port $power_port 1\n"
 		expect -i $connection_id "250 OK"
 	} else {
 		puts "port $power_port is on - reset port"
