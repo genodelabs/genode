@@ -40,17 +40,14 @@ namespace Net {
 			Mac_address_list  _mac_list;
 			Ipv4_address_tree _ip_tree;
 
-			Vlan() {}
-
 		public:
+
+			Vlan() {}
 
 			Mac_address_tree  *mac_tree() { return &_mac_tree; }
 			Mac_address_list  *mac_list() { return &_mac_list; }
 			Ipv4_address_tree *ip_tree()  { return &_ip_tree;  }
-
-			static Vlan *vlan();
 	};
-
 }
 
 #endif /* _VLAN_H_ */

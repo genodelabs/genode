@@ -16,44 +16,17 @@
 #include <net/dhcp.h>
 #include <net/udp.h>
 
-#include <util/token.h>
-#include <util/string.h>
-
+#include "env.h"
 #include "component.h"
+#include "nic.h"
 #include "vlan.h"
 
 using namespace Net;
 
-const int Session_component::verbose = 1;
-
-void Session_component::Tx_handler::acknowledge_last_one()
-{
-	if (!_tx_packet.valid())
-		return;
-
-	if (!_component->tx_sink()->ready_to_ack())
-		PDBG("need to wait until ready-for-ack");
-	_component->tx_sink()->acknowledge_packet(_tx_packet);
-}
+static const int verbose = 1;
 
 
-void Session_component::Tx_handler::next_packet(void** src, Genode::size_t *size)
-{
-	while (true) {
-		/* block for a new packet */
-		_tx_packet = _component->tx_sink()->get_packet();
-		if (!_tx_packet.valid()) {
-			PWRN("received invalid packet");
-			continue;
-		}
-		*src  = _component->tx_sink()->packet_content(_tx_packet);
-		*size = _tx_packet.size();
-		return;
-	}
-}
-
-
-bool Session_component::Tx_handler::handle_arp(Ethernet_frame *eth, Genode::size_t size)
+bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 {
 	Arp_packet *arp =
 		new (eth->data()) Arp_packet(size - sizeof(Ethernet_frame));
@@ -71,18 +44,18 @@ bool Session_component::Tx_handler::handle_arp(Ethernet_frame *eth, Genode::size
 		 if (arp->src_ip() == arp->dst_ip())
 			return false;
 
-		Ipv4_address_node *node = Vlan::vlan()->ip_tree()->first();
+		Ipv4_address_node *node = Env::vlan()->ip_tree()->first();
 		if (node)
 			node = node->find_by_address(arp->dst_ip());
 		if (!node) {
-			arp->src_mac(_mac);
+			arp->src_mac(Net::Env::nic()->mac());
 		}
 	}
 	return true;
 }
 
 
-bool Session_component::Tx_handler::handle_ip(Ethernet_frame *eth, Genode::size_t size)
+bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
 {
 	Ipv4_packet *ip =
 		new (eth->data()) Ipv4_packet(size - sizeof(Ethernet_frame));
@@ -104,130 +77,28 @@ bool Session_component::Tx_handler::handle_ip(Ethernet_frame *eth, Genode::size_
 }
 
 
-void Session_component::Tx_handler::finalize_packet(Ethernet_frame *eth,
+void Session_component::finalize_packet(Ethernet_frame *eth,
                                                     Genode::size_t size)
 {
-	Mac_address_node *node = Vlan::vlan()->mac_tree()->first();
+	Mac_address_node *node = Env::vlan()->mac_tree()->first();
 	if (node)
 		node = node->find_by_address(eth->dst());
 	if (node)
-		node->receive_packet((void*) eth, size);
-	else
-		send_to_nic(eth, size);
+		node->component()->send(eth, size);
+	else {
+		/* set our MAC as sender */
+		eth->src(Net::Env::nic()->mac());
+		Net::Env::nic()->send(eth, size);
+	}
 }
 
 
 void Session_component::_free_ipv4_node()
 {
 	if (_ipv4_node) {
-		Vlan::vlan()->ip_tree()->remove(_ipv4_node);
+		Env::vlan()->ip_tree()->remove(_ipv4_node);
 		destroy(this->guarded_allocator(), _ipv4_node);
 	}
-}
-
-
-struct Scanner_policy_number
-{
-	static bool identifier_char(char c, unsigned  i )
-	{
-		return Genode::is_digit(c) && c !='.';
-	}
-};
-
-
-typedef ::Genode::Token<Scanner_policy_number> Token;
-
-
-Ipv4_packet::Ipv4_address Session_component::ip_from_string(const char *ip)
-{
-	Ipv4_packet::Ipv4_address ip_addr;
-
-	Token       t(ip);
-	char        tmpstr[4];
-	int         cnt = 0;
-	unsigned char ipb[4] = {0};
-
-	while(t) {
-
-		if (t.type() == Token::WHITESPACE || t[0] == '.') {
-			t = t.next();
-			continue;
-		}
-		t.string(tmpstr, sizeof(tmpstr));
-
-		unsigned long  tmpc = 0;
-		Genode::ascii_to(tmpstr, &tmpc, 10);
-
-		ipb[cnt] = tmpc & 0xFF;
-
-		t = t.next();
-
-		if (cnt == 4)
-			break;
-		cnt++;
-	}
-
-	if (cnt == 4) {
-		ip_addr.addr[0] = ipb[0];
-		ip_addr.addr[1] = ipb[1];
-		ip_addr.addr[2] = ipb[2];
-		ip_addr.addr[3] = ipb[3];
-	}
-	
-	return ip_addr;
-}
-
-
-
-Session_component::Session_component(Genode::Allocator          *allocator,
-                                     Genode::size_t              amount,
-                                     Genode::size_t              tx_buf_size,
-                                     Genode::size_t              rx_buf_size,
-                                     Ethernet_frame::Mac_address vmac,
-                                     Nic::Connection            *session,
-                                     Genode::Rpc_entrypoint     &ep,
-                                     char                       *ip_addr)
-: Guarded_range_allocator(allocator, amount),
-  Tx_rx_communication_buffers(tx_buf_size, rx_buf_size),
-  Session_rpc_object(Tx_rx_communication_buffers::tx_ds(),
-                     Tx_rx_communication_buffers::rx_ds(),
-                     this->range_allocator(), ep),
-  _tx_handler(session, this),
-  _mac_node(vmac, this),
-  _ipv4_node(0)
-{
-	Vlan::vlan()->mac_tree()->insert(&_mac_node);
-	Vlan::vlan()->mac_list()->insert(&_mac_node);
-
-	/* start handler */
-	_tx_handler.start();
-	_tx_handler.wait_for_startup();
-
-	/* static ip parsing */
-	if (ip_addr != 0 && Genode::strlen(ip_addr)) {
-		
-		Ipv4_packet::Ipv4_address ip = ip_from_string(ip_addr);
-		
-		if (ip == Ipv4_packet::Ipv4_address()) {
-			PDBG("Empty or error ip address. Skipped.");
-		} else {
-			
-			set_ipv4_address(ip);
-
-			if (verbose)
-				PDBG("\nmac=%02x.%02x.%02x.%02x.%02x.%02x ip=%d.%d.%d.%d",
-					vmac.addr[0], vmac.addr[1], vmac.addr[2], vmac.addr[3], vmac.addr[4], vmac.addr[5],
-					ip.addr[0], ip.addr[1], ip.addr[2], ip.addr[3]
-				);
-		}
-	}
-}
-
-
-Session_component::~Session_component() {
-	Vlan::vlan()->mac_tree()->remove(&_mac_node);
-	Vlan::vlan()->mac_list()->remove(&_mac_node);
-	_free_ipv4_node();
 }
 
 
@@ -236,5 +107,54 @@ void Session_component::set_ipv4_address(Ipv4_packet::Ipv4_address ip_addr)
 	_free_ipv4_node();
 	_ipv4_node = new (this->guarded_allocator())
 		Ipv4_address_node(ip_addr, this);
-	Vlan::vlan()->ip_tree()->insert(_ipv4_node);
+	Net::Env::vlan()->ip_tree()->insert(_ipv4_node);
+}
+
+
+Session_component::Session_component(Genode::Allocator          *allocator,
+                                     Genode::size_t              amount,
+                                     Genode::size_t              tx_buf_size,
+                                     Genode::size_t              rx_buf_size,
+                                     Ethernet_frame::Mac_address vmac,
+                                     Genode::Rpc_entrypoint     &ep,
+                                     char                       *ip_addr)
+: Guarded_range_allocator(allocator, amount),
+  Tx_rx_communication_buffers(tx_buf_size, rx_buf_size),
+  Session_rpc_object(Tx_rx_communication_buffers::tx_ds(),
+                     Tx_rx_communication_buffers::rx_ds(),
+                     this->range_allocator(), ep),
+  _mac_node(vmac, this),
+  _ipv4_node(0)
+{
+	Env::vlan()->mac_tree()->insert(&_mac_node);
+	Env::vlan()->mac_list()->insert(&_mac_node);
+
+	/* static ip parsing */
+	if (ip_addr != 0 && Genode::strlen(ip_addr)) {
+		Ipv4_packet::Ipv4_address ip = Ipv4_packet::ip_from_string(ip_addr);
+
+		if (ip == Ipv4_packet::Ipv4_address()) {
+			PWRN("Empty or error ip address. Skipped.");
+		} else {
+			set_ipv4_address(ip);
+
+			if (verbose)
+				PDBG("\nmac=%02x.%02x.%02x.%02x.%02x.%02x ip=%d.%d.%d.%d",
+				     vmac.addr[0], vmac.addr[1], vmac.addr[2],
+			         vmac.addr[3], vmac.addr[4], vmac.addr[5],
+				     ip.addr[0], ip.addr[1], ip.addr[2], ip.addr[3]);
+		}
+	}
+
+	_tx.sigh_ready_to_ack(_sink_ack);
+	_tx.sigh_packet_avail(_sink_submit);
+	_rx.sigh_ack_avail(_source_ack);
+	_rx.sigh_ready_to_submit(_source_submit);
+}
+
+
+Session_component::~Session_component() {
+	Env::vlan()->mac_tree()->remove(&_mac_node);
+	Env::vlan()->mac_list()->remove(&_mac_node);
+	_free_ipv4_node();
 }

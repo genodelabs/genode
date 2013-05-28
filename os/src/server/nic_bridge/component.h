@@ -40,7 +40,7 @@ namespace Net {
 		private:
 
 			Genode::Allocator_guard _guarded_alloc;
-			Nic::Packet_allocator   _range_alloc;
+			::Nic::Packet_allocator _range_alloc;
 
 		public:
 
@@ -97,41 +97,15 @@ namespace Net {
 	 */
 	class Session_component : public  Guarded_range_allocator,
 	                          private Tx_rx_communication_buffers,
-	                          public  Nic::Session_rpc_object
+	                          public  ::Nic::Session_rpc_object,
+	                          public  Packet_handler
 	{
 		private:
 
-			class Tx_handler : public Packet_handler
-			{
-				private:
-
-					Packet_descriptor  _tx_packet;
-					Session_component *_component;
-
-					void acknowledge_last_one();
-					void next_packet(void** src, Genode::size_t *size);
-					bool handle_arp(Ethernet_frame *eth, Genode::size_t size);
-					bool handle_ip(Ethernet_frame *eth, Genode::size_t size);
-					void finalize_packet(Ethernet_frame *eth, Genode::size_t size);
-
-				public:
-
-					Tx_handler(Nic::Connection   *session,
-					           Session_component *component)
-					: Packet_handler(session), _component(component) {}
-			};
-
-
-			Tx_handler         _tx_handler;
 			Mac_address_node   _mac_node;
 			Ipv4_address_node *_ipv4_node;
-			Genode::Lock       _rx_lock;
-			
-			static const int   verbose;
 
 			void _free_ipv4_node();
-			
-			Ipv4_packet::Ipv4_address ip_from_string(const char *ip);
 
 		public:
 
@@ -150,25 +124,34 @@ namespace Net {
 			                  Genode::size_t              tx_buf_size,
 			                  Genode::size_t              rx_buf_size,
 			                  Ethernet_frame::Mac_address vmac,
-			                  Nic::Connection            *session,
 			                  Genode::Rpc_entrypoint     &ep,
 			                  char                       *ip_addr = 0);
 
 			~Session_component();
 
-			Nic::Session::Tx::Sink*   tx_sink()   { return _tx.sink();   }
-			Nic::Session::Rx::Source* rx_source() { return _rx.source(); }
-			Genode::Lock*             rx_lock()   { return &_rx_lock;    }
-
-			Nic::Mac_address mac_address()
+			::Nic::Mac_address mac_address()
 			{
-				Nic::Mac_address m;
+				::Nic::Mac_address m;
 				Mac_address_node::Address mac = _mac_node.addr();
 				Genode::memcpy(&m, mac.addr, sizeof(m.addr));
 				return m;
 			}
 
 			void set_ipv4_address(Ipv4_packet::Ipv4_address ip_addr);
+
+			/******************************
+			 ** Packet_handler interface **
+			 ******************************/
+
+			Packet_stream_sink< ::Nic::Session::Policy>   * sink()   {
+				return _tx.sink(); }
+
+			Packet_stream_source< ::Nic::Session::Policy> * source() {
+				return _rx.source(); }
+
+			bool handle_arp(Ethernet_frame *eth,      Genode::size_t size);
+			bool handle_ip(Ethernet_frame *eth,       Genode::size_t size);
+			void finalize_packet(Ethernet_frame *eth, Genode::size_t size);
 	};
 
 
@@ -182,7 +165,6 @@ namespace Net {
 			enum { verbose = 1 };
 
 			Mac_allocator           _mac_alloc;
-			Nic::Connection        *_session;
 			Genode::Rpc_entrypoint &_ep;
 
 		protected:
@@ -240,10 +222,8 @@ namespace Net {
 					                                          tx_buf_size,
 					                                          rx_buf_size,
 					                                          _mac_alloc.alloc(),
-					                                          _session,
 					                                          _ep,
-					                                          ip_addr
-															);
+					                                          ip_addr);
 				} catch(Mac_allocator::Alloc_failed) {
 					PWRN("Mac address allocation failed!");
 					return (Session_component*) 0;
@@ -253,10 +233,9 @@ namespace Net {
 		public:
 
 			Root(Genode::Rpc_entrypoint *session_ep,
-			     Genode::Allocator      *md_alloc,
-			     Nic::Connection        *session)
+			     Genode::Allocator      *md_alloc)
 			: Genode::Root_component<Session_component>(session_ep, md_alloc),
-			  _session(session), _ep(*session_ep) { }
+			  _ep(*session_ep) { }
 	};
 
 } /* namespace Net */

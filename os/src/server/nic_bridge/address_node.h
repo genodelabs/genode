@@ -65,14 +65,6 @@ namespace Net {
 			Address            addr()      { return _addr;      }
 			Session_component *component() { return _component; }
 
-			/**
-			 * Let this client node, receive a network-packet
-			 *
-			 * \param addr  start address of network packet
-			 * \param size  size of network packet
-			 */
-			void receive_packet(void *addr, Genode::size_t size);
-
 
 			/************************
 			 ** Avl node interface **

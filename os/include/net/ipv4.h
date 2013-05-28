@@ -57,6 +57,8 @@ namespace Net {
 			static const Ipv4_address CURRENT;    /* current network   */
 			static const Ipv4_address BROADCAST;  /* broadcast address */
 
+			static Ipv4_address ip_from_string(const char *ip);
+
 		private:
 
 			/************************
