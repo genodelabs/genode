@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <base/printf.h>
 
 namespace Genode
 {
@@ -24,61 +25,76 @@ namespace Genode
 		/**
 		 * Properties of integer types with a given bitwidth
 		 */
-		template <unsigned long _WIDTH> struct Uint_type;
+		template <unsigned long _WIDTH> struct Uint_width;
 
-		/***************************************************************
-		 ** Provide the integer type and the width as exponent to the **
-		 ** base of 2 for all supported widths in 'Uint_type'         **
-		 ***************************************************************/
-
-		template <> struct Uint_type<1>
+		template <> struct Uint_width<1>
 		{
 			typedef bool Type;
 			enum { WIDTH_LOG2 = 0 };
 
 			/**
-			 * Access widths, wich are dividers to the compound type width
+			 * Access widths wich are dividers to the compound type width
 			 */
 			template <unsigned long _DIVISOR_WIDTH> struct Divisor;
+
+			static inline void print_hex(bool const v) {
+				printf("%01x", v); }
 		};
 
-		template <> struct Uint_type<8> : Uint_type<1>
+		template <> struct Uint_width<8> : Uint_width<1>
 		{
 			typedef uint8_t Type;
 			enum { WIDTH_LOG2 = 3 };
+
+			static inline void print_hex(uint8_t const v) {
+				printf("%02x", v); }
 		};
 
-		template <> struct Uint_type<16> : Uint_type<8>
+		template <> struct Uint_width<16> : Uint_width<8>
 		{
 			typedef uint16_t Type;
 			enum { WIDTH_LOG2 = 4 };
+
+			static inline void print_hex(uint16_t const v) {
+				printf("%04x", v); }
 		};
 
-		template <> struct Uint_type<32> : Uint_type<16>
+		template <> struct Uint_width<32> : Uint_width<16>
 		{
 			typedef uint32_t Type;
 			enum { WIDTH_LOG2 = 5 };
+
+			static inline void print_hex (uint32_t const v) {
+				printf("%08x", v); }
 		};
 
-		template <> struct Uint_type<64> : Uint_type<32>
+		template <> struct Uint_width<64> : Uint_width<32>
 		{
 			typedef uint64_t Type;
 			enum { WIDTH_LOG2 = 6 };
+
+			static inline void print_hex(uint64_t const v) {
+				printf("%016llx", v); }
 		};
 
+		template <> struct Uint_width<1>::Divisor<1>   { enum { WIDTH_LOG2 = 0 }; };
+		template <> struct Uint_width<8>::Divisor<2>   { enum { WIDTH_LOG2 = 1 }; };
+		template <> struct Uint_width<8>::Divisor<4>   { enum { WIDTH_LOG2 = 2 }; };
+		template <> struct Uint_width<8>::Divisor<8>   { enum { WIDTH_LOG2 = 3 }; };
+		template <> struct Uint_width<16>::Divisor<16> { enum { WIDTH_LOG2 = 4 }; };
+		template <> struct Uint_width<32>::Divisor<32> { enum { WIDTH_LOG2 = 5 }; };
+		template <> struct Uint_width<64>::Divisor<64> { enum { WIDTH_LOG2 = 6 }; };
 
-		/********************************************************************
-		 ** Provide widths as exponents to the base of 2 for all supported **
-		 ** access widths in 'Uint_type::Divisor'                          **
-		 ********************************************************************/
+		/**
+		 * Reference 'Uint_width' through typenames
+		 */
+		template <typename _TYPE> struct Uint_type;
 
-		template <> struct Uint_type<1>::Divisor<1> { enum { WIDTH_LOG2 = 0 }; };
-		template <> struct Uint_type<8>::Divisor<2> { enum { WIDTH_LOG2 = 1 }; };
-		template <> struct Uint_type<8>::Divisor<4> { enum { WIDTH_LOG2 = 2 }; };
-		template <> struct Uint_type<8>::Divisor<8> { enum { WIDTH_LOG2 = 3 }; };
-		template <> struct Uint_type<16>::Divisor<16> { enum { WIDTH_LOG2 = 4 }; };
-		template <> struct Uint_type<32>::Divisor<32> { enum { WIDTH_LOG2 = 5 }; };
-		template <> struct Uint_type<64>::Divisor<64> { enum { WIDTH_LOG2 = 6 }; };
+		template <> struct Uint_type<bool>     : Uint_width<1> { };
+		template <> struct Uint_type<uint8_t>  : Uint_width<8> { };
+		template <> struct Uint_type<uint16_t> : Uint_width<16> { };
+		template <> struct Uint_type<uint32_t> : Uint_width<32> { };
+		template <> struct Uint_type<uint64_t> : Uint_width<64> { };
 	}
 
 	/**
@@ -96,11 +112,10 @@ namespace Genode
 	{
 		enum {
 			ACCESS_WIDTH      = _ACCESS_WIDTH,
-
-			ACCESS_WIDTH_LOG2 = Trait::Uint_type<ACCESS_WIDTH>::WIDTH_LOG2,
+			ACCESS_WIDTH_LOG2 = Trait::Uint_width<ACCESS_WIDTH>::WIDTH_LOG2,
 		};
 
-		typedef typename Trait::Uint_type<ACCESS_WIDTH>::Type access_t;
+		typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
 
 		/**
 		 * A bitregion within a register
