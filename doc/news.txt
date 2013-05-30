@@ -4,6 +4,38 @@
                                ===========
 
 
+Genode OS Framework release 13.05 | 2013-05-30
+##############################################
+
+| The highlights of version 13.05 are new tools for automated testing and
+| benchmarking including a suite of networking benchmarks, added device drivers
+| for the Samsung Exynos 5 and Freescale i.MX SoCs, and new components for
+| the operation of headless systems.
+
+The growing diversity of Genode base platforms, in particular the variety
+of ARM-based SoCs, calls for quality-assurance measures that go beyond unit
+testing and Qemu-based integration tests: Genode's base functionality
+including device drivers need to be continuously tested and measured on real
+hardware. To automate this task, version 13.05 introduces extensive tooling
+support including a suite of networking benchmarks that operates on different
+levels of the networking stack.
+
+Speaking of broadening the hardware support, the new version enhances the
+existing base of device drivers for ARM-based SoCs with support for SATA,
+USB-3, eMMC, and networking on Samsung Exynos 5, as well as support for LCD
+display and touch-screen devices on Freescale i.MX SoCs. Furthermore, it
+features basic support for the Broadcom BCM2835 SoC, which is the heart of the
+popular Raspberry Pi platform.
+
+Apart from the extended pool of device drivers, there is a new facility for
+capturing LOG data to files stored on a file system, a command-line based user
+interface for managing Genode subsystems, and the addition of Linux/ARM as
+Genode base platform.
+
+The full story behind these and many more changes is detailed in the
+[http:/documentation/release-notes/13.05 - release notes of version 13.05...]
+
+
 Genode OS Framework release 13.02 | 2013-02-28
 ##############################################
 
