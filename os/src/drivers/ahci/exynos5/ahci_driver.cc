@@ -24,8 +24,6 @@
 
 using namespace Genode;
 
-enum { VERBOSE = 1 };
-
 /**
  * Delayer for MMIO polling
  */
@@ -253,28 +251,11 @@ struct Fis
 		}
 
 		/**
-		 * Command FIS for ATA command 'read log ext'
-		 *
-		 * \param log  logical block address (LBA) of the LOG
-		 * \param cnt  LOG size in blocks
-		 */
-		void read_log_ext(uint64_t log, uint16_t cnt)
-		{
-			_init();
-			_cmd_h2d();
-			_obsolete_device();
-			_lba(log);
-			_count(cnt);
-
-			byte[2] = 0x2f; /* command */
-		}
-
-		/**
 		 * Command FIS for ATA command 'set features' with feature 'set transfer mode'
 		 *
 		 * \param transfer_mode  ID of targeted mode
 		 */
-		void set_transfer_mode(uint16_t transfer_mode)
+		void set_transfer_mode(uint8_t transfer_mode)
 		{
 			_init();
 			_cmd_h2d();
@@ -352,9 +333,10 @@ struct Fis
 		/**
 		 * Wether a PIO setup FIS was sucessfully received
 		 *
-		 * \param transfer_count  expected size of transfered data
+		 * \param transfer_size  size of transfered data
+		 * \param block_nr       LBA of transfered data (0 if it has no LBA)
 		 */
-		bool is_pio_setup(uint16_t transfer_count)
+		bool is_pio_setup(uint16_t transfer_size, uint64_t block_nr)
 		{
 			struct Flags : Register<8>
 			{
@@ -366,15 +348,21 @@ struct Fis
 			Flags::D::set(flags, 1);
 			Flags::I::set(flags, 1);
 
-			return byte[0]        == 0x5f  && /* type */
-			       byte[1]        == flags &&
-			       byte[2]        == 0x58  && /* old status */
-			       byte[3]        == 0     && /* error */
-			       lba()          == 0     &&
-			       byte[7]        == 0xa0  && /* device */
-			       count()        == 0xff  &&
-			       byte[15]       == 0x50  && /* new status */
-			       transfer_cnt() == transfer_count;
+			/*
+			 * FIXME
+			 * The count register is set differently for different
+			 * drives and i've no idea what it means in this context
+			 * but as long as all works fine i ignore it simply.
+			 * (WD2500BEVS: 0xff, SAMSUNG840PRO128GB: 0x1)
+			 */
+			return byte[0]        == 0x5f     && /* type */
+			       byte[1]        == flags    &&
+			       byte[2]        == 0x58     && /* old status */
+			       byte[3]        == 0        && /* error */
+			       lba()          == block_nr &&
+			       byte[7]        == 0xa0     && /* device */
+			       byte[15]       == 0x50     && /* new status */
+			       transfer_cnt() == transfer_size;
 		}
 
 		/**
@@ -384,16 +372,34 @@ struct Fis
 		 */
 		bool is_set_transfer_mode_reply(uint8_t transfer_mode)
 		{
-			return byte[0]  == 0x34          && /* type */
-			       byte[1]  == 0x40          &&
-			       byte[2]  == 0x50          &&
-			       byte[3]  == 0             &&
-			       lba()    == 0             &&
-			       byte[7]  == 0xa0          && /* device */
-			       byte[11] == 0             &&
-			       count()  == transfer_mode &&
-			       byte[14] == 0             &&
-			       byte[15] == 0;
+
+			/*
+			 * FIXME
+			 * I've no idea what most of these values stand for and
+			 * interpreting Linux seems to be the only way to change this.
+			 */
+			bool result = 0;
+			result = byte[0]  == 0x34 && /* type */
+			         byte[1]  == 0x40 &&
+			         byte[2]  == 0x50 &&
+			         byte[3]  == 0    &&
+			         lba()    == 0    &&
+			         byte[7]  == 0xa0 && /* device */
+			         byte[11] == 0    &&
+			         byte[14] == 0    &&
+			         byte[15] == 0;
+
+			/*
+			 * FIXME
+			 * Sometimes count is 0 and sometimes it equals the transfer
+			 * mode that was set but both seems to work.
+			 */
+			if (count() == 0)
+				printf("cleared transfer mode in reconfiguration reply\n");
+			else if (count() != transfer_mode)
+				result = 0;
+
+			return result;
 		}
 };
 
@@ -495,6 +501,8 @@ static Pmu * pmu() {
  */
 struct Sata_ahci : Attached_mmio
 {
+	enum { VERBOSE = 1 };
+
 	/* general config */
 	enum {
 		/* FIXME only with port multiplier support (sata_srst_pmp in Linux) */
@@ -518,12 +526,6 @@ struct Sata_ahci : Attached_mmio
 	enum {
 		REG_D2H_FIS_OFFSET  = 0x40,
 		PIO_SETUP_FIS_OFFSET = 0x20,
-	};
-
-	/* link debouncing config */
-	enum {
-		DEBOUNCE_TRIALS = 30,
-		STABLE_TRIALS   = 6,
 	};
 
 	/* modes when doing 'set features' with feature 'set transfer mode' */
@@ -572,7 +574,6 @@ struct Sata_ahci : Attached_mmio
 		struct Sdbs : Bitfield<3, 1> { };
 		struct Infs : Bitfield<26, 1> { };
 		struct Ifs  : Bitfield<27, 1> { };
-		struct Tfes : Bitfield<30, 1> { };
 	};
 	struct P0ie : Register<0x114, 32>
 	{
@@ -662,9 +663,11 @@ struct Sata_ahci : Attached_mmio
 	{ }
 
 	/**
-	 * Acknowledge port interrupts after a NCQ command
+	 * Clear all interrupts at port 0
+	 *
+	 * \return  value of P0IS before it was cleared
 	 */
-	P0is::access_t clear_p0_irqs()
+	P0is::access_t p0_clear_irqs()
 	{
 		P0is::access_t p0is = read<P0is>();
 		write<P0is>(p0is);
@@ -672,15 +675,15 @@ struct Sata_ahci : Attached_mmio
 	}
 
 	/**
-	 * Evaluate port interrupt states and according errors after a NCQ command
+	 * Evaluate port interrupt states and according errors after a command
 	 *
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int interpret_p0_irqs()
+	int p0_interpret_irqs()
 	{
 		/* ack interrupt states */
-		P0is::access_t p0is = clear_p0_irqs();
+		P0is::access_t p0is = p0_clear_irqs();
 		if (P0is::Sdbs::bits(1) == p0is) return 0;
 
 		/* interpret P0IS */
@@ -696,7 +699,7 @@ struct Sata_ahci : Attached_mmio
 		/* analyse P0SERR if there's an interface error */
 		if (if_error) {
 			printf("%s ", fatal ? "Fatal" : "Non-fatal");
-			P0serr::access_t p0serr = read<P0serr>();
+			P0serr::access_t p0serr = p0_clear_errors();
 			if (P0serr::Diag_b::get(p0serr)) {
 				printf("10 B to 8 B decode error\n");
 				return -1;
@@ -820,7 +823,8 @@ struct Sata_ahci : Attached_mmio
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int disable_p0_cmd_processing() {
+	int p0_disable_cmd_processing()
+	{
 		P0cmd::access_t p0cmd = read<P0cmd>();
 		if (P0cmd::St::get(p0cmd) || P0cmd::Cr::get(p0cmd)) {
 			write<P0cmd::St>(0);
@@ -835,7 +839,7 @@ struct Sata_ahci : Attached_mmio
 	/**
 	 * Start processing commands at port 0
 	 */
-	void enable_p0_cmd_processing()
+	void p0_enable_cmd_processing()
 	{
 		write<P0cmd::St>(1);
 		read<P0cmd>(); /* flush */
@@ -847,28 +851,28 @@ struct Sata_ahci : Attached_mmio
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int restart_p0_cmd_processing()
+	int p0_restart_cmd_processing()
 	{
-		if (disable_p0_cmd_processing()) return -1;
-		enable_p0_cmd_processing();
+		if (p0_disable_cmd_processing()) return -1;
+		p0_enable_cmd_processing();
 		return 0;
 	}
 
 	/**
 	 * Execute prepared command, wait for completion and acknowledge at port
 	 *
-	 * \param P0IS_BIT  state bit of the interrupt that should be raised
+	 * \param P0IS_BIT  state bit of the interrupt that's expected to be raised
 	 * \param tag       command slot ID
 	 *
 	 * \retval  0  call was successful
-	 * \retval <0  call failed, error code
+	 * \retval -1  call failed
 	 */
 	template <typename P0IS_BIT>
-	int issue_cmd_and_wait(unsigned tag)
+	int p0_issue_cmd(unsigned tag)
 	{
+		typedef typename P0IS_BIT::Bitfield_base P0is_bit;
 		write<P0ci>(1 << tag);
 		irq.wait_for_irq();
-		typedef typename P0IS_BIT::Bitfield_base P0is_bit;
 		if (!read<Is::Ips>()) {
 			PERR("ATA0 no IRQ raised");
 			return -1;
@@ -892,7 +896,7 @@ struct Sata_ahci : Attached_mmio
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int identify_p0_device()
+	int p0_identify_device()
 	{
 		/**
 		 * Device identification data
@@ -960,11 +964,11 @@ struct Sata_ahci : Attached_mmio
 		write_prd(prd, dev_id_phys, Device_id::SIZE);
 		addr_t cmd_slot = cl_virt + tag * CMD_SLOT_SIZE;
 		write_cmd_slot(cmd_slot, ct_phys + tag * CMD_TABLE_SIZE, 0, 0, 0, 1);
-		if (issue_cmd_and_wait<P0is::Pss>(tag)) return -1;
+		if (p0_issue_cmd<P0is::Pss>(tag)) return -1;
 
 		/* check if we received the requested data */
 		fis = (Fis *)(fb_virt + PIO_SETUP_FIS_OFFSET);
-		if (!fis->is_pio_setup(Device_id::SIZE)) {
+		if (!fis->is_pio_setup(Device_id::SIZE, 0)) {
 			PERR("Invalid PIO setup FIS");
 			return -1;
 		}
@@ -1010,7 +1014,7 @@ struct Sata_ahci : Attached_mmio
 		fis->read_native_max_addr();
 		addr_t cmd_slot = cl_virt + tag * CMD_SLOT_SIZE;
 		write_cmd_slot(cmd_slot, ct_phys + tag * CMD_TABLE_SIZE, 0, 0, 0, 0);
-		if (issue_cmd_and_wait<P0is::Dhrs>(tag)) return -1;
+		if (p0_issue_cmd<P0is::Dhrs>(tag)) return -1;
 
 		/* read received address */
 		fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
@@ -1024,85 +1028,15 @@ struct Sata_ahci : Attached_mmio
 	}
 
 	/**
-	 * Check out parameters of the DEVSLP feature of the port 0 device
+	 * Clear all port errors at port 0
 	 *
-	 * \retval  0  call was successful
-	 * \retval <0  call failed, error code
+	 * \return  value of P0SERR before it was cleared
 	 */
-	int read_p0_devslp_values()
+	P0serr::access_t p0_clear_errors()
 	{
-		/* create receive buffer DMA */
-		Ram_dataspace_capability dev_log_ds =
-			env()->ram_session()->alloc(0x1000, 0);;
-		addr_t dev_log_virt = (addr_t)env()->rm_session()->attach(dev_log_ds);
-		addr_t dev_log_phys = Dataspace_client(dev_log_ds).phys_addr();
-
-		/* prepare command 'read log ext' */
-		uint64_t log   = 0x830;
-		uint16_t count = BLOCKS_PER_LOG;
-		unsigned tag   = 31;
-		addr_t cmd_table = ct_virt + tag * CMD_TABLE_SIZE;
-		Fis * fis = (Fis *)cmd_table;
-		fis->read_log_ext(log, count);
-		unsigned prd_id = 0;
-		addr_t prd = cmd_table + CMD_TABLE_HEAD_SIZE + prd_id * PRD_SIZE;
-		write_prd(prd, dev_log_phys, BLOCKS_PER_LOG * BLOCK_SIZE);
-		addr_t cmd_slot = cl_virt + tag * CMD_SLOT_SIZE;
-		write_cmd_slot(cmd_slot, ct_phys + tag * CMD_TABLE_SIZE, 0, 0, 0, 1);
-
-		/* execute command */
-		write<P0ci>(1 << tag);
-		irq.wait_for_irq();
-		if (!read<Is::Ips>()) {
-			PERR("ATA0 no IRQ raised");
-			return -1;
-		}
-		if (read<P0is>() != P0is::Tfes::bits(1)) {
-			PERR("ATA0 expected P0IS to be %x (is %x)",
-			     P0is::Tfes::bits(1), read<P0is>());
-			return -1;
-		}
-		write<P0is::Tfes>(1);
-		write<P0serr>(read<P0serr>());
-
-		/* interprete device log */
-		struct Sata_settings
-		{
-			/* FIXME use register framework for shifts and masks */
-			enum {
-				DEVSLP_MDAT       = 0x30,
-				DEVSLP_MDAT_MASK  = 0x1F,
-				DEVSLP_DETO       = 0x31,
-				DEVSLP_VALID      = 0x37,
-				DEVSLP_VALID_MASK = 0x80,
-			};
-			uint8_t byte[BLOCK_SIZE];
-
-			/***************
-			 ** Accessors **
-			 ***************/
-
-			uint8_t devslp_mdat() {
-				return byte[DEVSLP_MDAT] & DEVSLP_MDAT_MASK; }
-
-			uint8_t devslp_deto() {  return byte[DEVSLP_DETO]; }
-
-			bool devslp_valid() {
-				return byte[DEVSLP_VALID] & DEVSLP_VALID_MASK; }
-		};
-		Sata_settings * settings = (Sata_settings *)dev_log_virt;
-		if (VERBOSE)
-			printf("ATA0 devslp-mdat %u -deto %u -valid %u\n",
-			       settings->devslp_mdat(), settings->devslp_deto(),
-			       settings->devslp_valid());
-
-		/* end command */
-		write<Is::Ips>(1);
-
-		/* destroy receive buffer DMA */
-		env()->rm_session()->detach(dev_log_virt);
-		env()->ram_session()->free(dev_log_ds);;
-		return 0;
+		P0serr::access_t const p0serr = read<P0serr>();
+		write<P0serr>(p0serr);
+		return p0serr;
 	}
 
 	/**
@@ -1113,7 +1047,7 @@ struct Sata_ahci : Attached_mmio
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int p0_transfer_mode(uint16_t mode)
+	int p0_transfer_mode(uint8_t mode)
 	{
 		/* do command 'set features' with feature 'set transfer mode' */
 		unsigned tag   = 31;
@@ -1122,7 +1056,7 @@ struct Sata_ahci : Attached_mmio
 		Fis * fis = (Fis *)cmd_table;
 		fis->set_transfer_mode(mode);
 		write_cmd_slot(cmd_slot, ct_phys + tag * CMD_TABLE_SIZE, 0, 0, 0, 0);
-		if (issue_cmd_and_wait<P0is::Dhrs>(tag)) return -1;
+		if (p0_issue_cmd<P0is::Dhrs>(tag)) return -1;
 
 		/* check answer */
 		fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
@@ -1138,10 +1072,10 @@ struct Sata_ahci : Attached_mmio
 	/**
 	 * Enable interrupt reception for port 0
 	 */
-	void thaw_p0()
+	void p0_enable_irqs()
 	{
 		/* clear IRQs */
-		clear_p0_irqs();
+		p0_clear_irqs();
 		write<Is>(1);
 
 		/* enable all IRQs we need */
@@ -1167,15 +1101,15 @@ struct Sata_ahci : Attached_mmio
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int soft_reset_p0()
+	int p0_soft_reset()
 	{
 		/* first soft reset FIS */
-		if (restart_p0_cmd_processing()) return -1;
+		if (p0_restart_cmd_processing()) return -1;
 		Fis * fis = (Fis *)ct_virt;
 		fis->soft_reset(0, SOFT_RESET_PMP);
 		write_cmd_slot(cl_virt, ct_phys, 0, 1, SOFT_RESET_PMP, 0);
 
-		/* we can't do issue_cmd_and_wait here - IRQ gets not triggered */
+		/* we can't do p0_issue_cmd here - IRQ gets not triggered */
 		write<P0ci>(1);
 		if (!wait_for<P0ci>(0, *delayer(), 500, 1000)) {
 			PERR("ATA0 failed to issue first soft-reset command");
@@ -1203,56 +1137,95 @@ struct Sata_ahci : Attached_mmio
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int hard_reset_p0()
+	int p0_hard_reset(bool const set_speed = 0,
+	                  P0sctl::access_t const speed = 0)
 	{
-		/* request for reset via P0SCTL and thereby check speed limits */
-		P0sctl::access_t p0sctl = read<P0sctl>();
-		if (P0sctl::Spd::get(p0sctl)) {
-			PERR("PORT0 driver proved without speed restrictions only");
-			return -1;
+		enum { IPM = 3 };
+		if (set_speed) {
+			/*
+			 * SATA spec doesn't provide much information about speed
+			 * reconfig. So turn off PHY meanwhile to be on the safe side.
+			 */
+			P0sctl::access_t p0sctl = read<P0sctl>();
+			P0sctl::Ipm::set(p0sctl, IPM);
+			P0sctl::Det::set(p0sctl, 4);
+			write<P0sctl>(p0sctl);
+
+			/* reconfigure speed */
+			p0sctl = read<P0sctl>();
+			P0sctl::Spd::set(p0sctl, speed);
+			write<P0sctl>(p0sctl);
 		}
-		P0sctl::Ipm::set(p0sctl, 3); /* disable PM transitions */
+		/* request for reset via P0SCTL */
+		P0sctl::access_t p0sctl = read<P0sctl>();
+		P0sctl::Ipm::set(p0sctl, IPM);
 		P0sctl::Det::set(p0sctl, 1);
 		write<P0sctl>(p0sctl);
 		read<P0sctl>(); /* flush */
 
 		/* wait until reset is done and end operation */
 		delayer()->usleep(1000);
-		write<P0sctl::Det>(0);
-		delayer()->usleep(200000); /* some PHY react badly without this */
+		unsigned trials = 10;
+		for (; trials; trials--)
+		{
+			/*
+			 * Some controllers need much time at this point.
+			 * Wait at least 200 ms to avoid bad behaviour
+			 * of some old PHY controllers.
+			 */
+			write<P0sctl::Det>(0);
+			delayer()->usleep(200000);
+			p0sctl = read<P0sctl>();
+			if (P0sctl::Det::get(p0sctl) == 0 &&
+			    P0sctl::Ipm::get(p0sctl) == 3) break;
+		}
+		if (!trials) {
+			PERR("PORT0 resume after hard reset failed");
+			return -1;
+		}
 		return 0;
 	}
 
 	/**
 	 * Debounce link at port 0
 	 *
+	 * \param trials    total amount of debouncing trials
+	 * \param trial_us  time to wait between two trials
+	 * \param stable    targeted amount of consecutive stable trials
+	 *
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 *
 	 * We give the port some time in order that the P0SSTS becomes stable
 	 * over multiple reads. The call is successful if the register gets
-	 * stable in time and with P0SSTS.DET = connection established.
+	 * stable in time and with P0SSTS.DET saying "connection established".
 	 */
-	int debounce_p0()
+	int p0_debounce(unsigned const trials, unsigned const trial_us,
+	                unsigned const stable)
 	{
-		unsigned trials = 0;
-		unsigned stable = 0;
+		unsigned t = 0; /* current trial */
+		unsigned s = 0; /* current amount of stable trials */
 		P0ssts::access_t old_det = read<P0ssts::Det>();
-		for (; trials < DEBOUNCE_TRIALS; trials++) {
-			delayer()->usleep(5000);
+		for (; t < trials; t++) {
+			delayer()->usleep(trial_us);
 			P0ssts::access_t new_det = read<P0ssts::Det>();
 			if (new_det == 3 && new_det == old_det) {
-				stable++;
-				if (stable >= STABLE_TRIALS) break;
-			} else stable = 0;
+				s++;
+				if (s >= stable) break;
+			} else s = 0;
 			old_det = new_det;
 		}
-		if (trials >= DEBOUNCE_TRIALS) {
-			PERR("PORT0 failed debouncing link");
+		if (t >= trials) {
+			printf("PORT0 failed debouncing\n");
 			return -1;
 		}
 		return 0;
 	}
+
+	/**
+	 * Disable interrupt reception for port 0
+	 */
+	void p0_disable_irqs() { write<P0ie>(0); }
 
 	/**
 	 * Get port 0 and its device ready for NCQ commands
@@ -1260,22 +1233,17 @@ struct Sata_ahci : Attached_mmio
 	 * \retval  0  call was successful
 	 * \retval <0  call failed, error code
 	 */
-	int init_p0()
+	int p0_init()
 	{
-		/* establish connection */
-		if (!wait_for<P0ssts::Det>(3, *delayer())) {
-			PERR("PORT0 connection establishment failed");
-			return -1;
-		}
 		/* disable command processing and FIS reception */
-		disable_p0_cmd_processing();
+		p0_disable_cmd_processing();
 		write<P0cmd::Fre>(0);
 		if (!wait_for<P0cmd::Fr>(0, *delayer(), 500, 1000)) {
 			PERR("PORT0 failed to stop FIS reception");
 			return -1;
 		}
 		/* clear all S-errors and interrupts */
-		write<P0serr>(read<P0serr>());
+		p0_clear_errors();
 		write<P0is>(read<P0is>());
 		write<Is::Ips>(1);
 
@@ -1295,31 +1263,80 @@ struct Sata_ahci : Attached_mmio
 		/* enable FIS reception and command processing */
 		write<P0cmd::Fre>(1);
 		read<P0cmd>();
-		enable_p0_cmd_processing();
+		p0_enable_cmd_processing();
 
 		/* disable port multiplier */
 		write<P0cmd::Pma>(0);
 
 		/* freeze AHCI */
-		write<P0ie>(0);
-		disable_p0_cmd_processing();
+		p0_disable_irqs();
+		p0_disable_cmd_processing();
 
 		/* clear D2H receive area */
 		Fis * fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
 		fis->clear_d2h_rx();
 
-		if (hard_reset_p0()) return -1;
-		if (debounce_p0())   return -1;
+		if (p0_hard_reset()) return -1;
 
-		/* clear all S-errors */
-		write<P0serr>(read<P0serr>());
+		/* try fast debouncing without speed limit first */
+		enum {
+			FAST_DBC_TRIAL_US = 5000,
+			SLOW_DBC_TRIAL_US = 25000,
+		};
+		unsigned dbc_trial_us      = FAST_DBC_TRIAL_US;
+		unsigned dbc_trials        = 50;
+		unsigned dbc_stable_trials = 10;
+		unsigned p0_speed_limit    = 0;
+		while (p0_debounce(dbc_trials, dbc_trial_us, dbc_stable_trials))
+		{
+			/* recover from debouncing error */
+			p0_clear_errors();
+			delayer()->usleep(10000);
+			if (read<Is>()) {
+				p0_clear_irqs();
+				write<Is>(read<Is>());
+			}
+			if (read<P0serr>()) {
+				PERR("PORT0 failed to recover from debouncing error");
+				return -1;
+			}
+
+			/*
+			 * FIXME
+			 * Linux cleared D2H FIS again at this point but it seemed not
+			 * to be necessary as all works fine without.
+			 */
+
+			/* try to lower settings for debouncing */
+			if (dbc_trial_us == SLOW_DBC_TRIAL_US && p0_speed_limit == 1) {
+				PERR("PORT0 debouncing failed with lowest settings");
+				return -1;
+			} else if (dbc_trial_us == SLOW_DBC_TRIAL_US) {
+				printf("PORT0 lower link speed and retry debouncing\n");
+				p0_speed_limit = 1;
+				if (p0_hard_reset(1, p0_speed_limit)) return -1;
+			} else {
+				printf("PORT0 retry debouncing slower\n");
+				dbc_trial_us = SLOW_DBC_TRIAL_US;
+				if (p0_hard_reset()) return -1;
+			}
+		}
+		p0_clear_errors();
 
 		/* check if device is ready */
 		if (!wait_for<P0tfd::Sts_bsy>(0, *delayer())) {
 			PERR("PORT0 device not ready");
 			return -1;
 		}
-		enable_p0_cmd_processing();
+		p0_enable_cmd_processing();
+
+		if (p0_soft_reset()) return -1;
+		p0_enable_irqs();
+		p0_clear_errors();
+
+		/* set ATAPI bit appropriatly */
+		write<P0cmd::Atapi>(0);
+		read<P0cmd>(); /* flush */
 
 		/* check device type (LBA[31:8] = 0 means ATA device) */
 		P0sig::access_t p0sig = read<P0sig>();
@@ -1333,12 +1350,12 @@ struct Sata_ahci : Attached_mmio
 		P0ssts::access_t p0ssts = read<P0ssts>();
 		switch(P0ssts::Spd::get(p0ssts)) {
 		case 1:  speed = "1.5";
-		         speed_supported = 1;
-		         break;
+				 speed_supported = 1;
+				 break;
 		case 2:  speed = "3";
-		         break;
+				 break;
 		case 3:  speed = "6";
-		         break;
+				 break;
 		default: speed = "?";
 		}
 		if (!speed_supported) {
@@ -1351,30 +1368,25 @@ struct Sata_ahci : Attached_mmio
 			return -1;
 		}
 		if (VERBOSE) printf("PORT0 connected, ATA device, %s Gbps\n", speed);
-		if (soft_reset_p0()) return -1;
-		thaw_p0();
 
-		/* clear all S-errors */
-		write<P0serr>(read<P0serr>());
-
-		/* set ATAPI bit appropriatly */
-		write<P0cmd::Atapi>(0);
-		read<P0cmd>(); /* flush */
-
-		if (identify_p0_device()) return -1;
+		if (p0_identify_device()) return -1;
 		if (p0_hides_blocks()) {
 			PERR("ATA0 drive hides blocks via HPA");
 			return -1;
 		}
 
 		/*
-		 * FIXME i have no idea what DEVSLP is and why we read out these values
+		 * FIXME
+		 * At this point Linux normally reads out the parameters of the
+		 * SATA DevSlp feature but the values are used only when it comes
+		 * to LPM wich wasn't needed at all in our use cases. Look for
+		 * 'ata_dev_configure' and 'ATA_LOG_DEVSLP_*' in Linux if you want 
+		 * to add this feature.
 		 */
-		if (read_p0_devslp_values())     return -1;
-		if (restart_p0_cmd_processing()) return -1;
-		if (p0_transfer_mode(UDMA_133))  return -1;
-		if (restart_p0_cmd_processing()) return -1;
-		if (read<P0serr>()) {
+
+		if (p0_transfer_mode(UDMA_133)) return -1;
+
+		if (p0_clear_errors()) {
 			PERR("ATA0 errors after initialization");
 			return -1;
 		}
@@ -1442,7 +1454,7 @@ struct Sata_ahci : Attached_mmio
 			PERR("ATA0 no IRQ raised");
 			return -1;
 		}
-		if (interpret_p0_irqs()) return -1;
+		if (p0_interpret_irqs()) return -1;
 		P0sntf::access_t pmn = read<P0sntf::Pmn>();
 		if (pmn) {
 			write<P0sntf::Pmn>(pmn);
@@ -1459,7 +1471,7 @@ struct Sata_ahci : Attached_mmio
 	}
 };
 
-Sata_ahci * sata_ahci() {
+static Sata_ahci * sata_ahci() {
 	static Sata_ahci sata_ahci;
 	return &sata_ahci;
 }
@@ -1469,6 +1481,8 @@ Sata_ahci * sata_ahci() {
  */
 struct I2c_interface : Attached_mmio
 {
+	enum { VERBOSE = 1 };
+
 	enum { TX_DELAY_US = 1 };
 
 	/********************************
@@ -1625,12 +1639,12 @@ struct I2c_sataphy : I2c_interface
 		cmu()->top.sata_phy_i2c(1);
 		if (send(msg, MSG_SIZE)) return -1;
 		cmu()->top.sata_phy_i2c(0);
-		if (VERBOSE) printf("SATA PHY 40-pins interface enabled\n");
+		if (VERBOSE) printf("SATA PHY 40-pin interface enabled\n");
 		return 0;
 	}
 
 	/**
-	 * Get I2C interface readyi for transmissions
+	 * Get I2C interface ready for transmissions
 	 */
 	void init()
 	{
@@ -1663,6 +1677,8 @@ static I2c_sataphy * i2c_sataphy() {
  */
 struct Sata_phy_ctrl : Attached_mmio
 {
+	enum { VERBOSE = 1 };
+
 	/********************************
 	 ** MMIO structure description **
 	 ********************************/
@@ -1671,7 +1687,7 @@ struct Sata_phy_ctrl : Attached_mmio
 	{
 		struct Global   : Bitfield<1, 1> { };
 		struct Non_link : Bitfield<0, 8> { };
-		struct Link     : Bitfield<16, 8> { };
+		struct Link     : Bitfield<16, 4> { };
 	};
 	struct Mode0 : Register<0x10, 32>
 	{
@@ -1759,7 +1775,7 @@ Ahci_driver::Ahci_driver()
 	pmu()->init_sata();
 	if (sata_phy_ctrl()->init()) throw Io_error();
 	if (sata_ahci()->init())     throw Io_error();
-	if (sata_ahci()->init_p0())  throw Io_error();
+	if (sata_ahci()->p0_init())  throw Io_error();
 }
 
 int Ahci_driver::_ncq_command(size_t const block_nr, size_t const block_cnt,
