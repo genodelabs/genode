@@ -6,15 +6,26 @@ if { [file exists ata.raw] == 0 } then {
 	catch { exec echo "2048,4096,c\n4096,16386,5\n0,0\n0,0\n6144,4096,c\n12288,8192,c\n" | sudo sfdisk -uS -f ata.raw }
 }
 
+set use_sd_card_drv [expr [have_spec omap4] || [have_spec exynos5] || [have_spec pl180]]
+set use_atapi_drv   [have_spec x86]
+
+
 #
 # Build
 #
 
 set build_components {
-	core init drivers/pci drivers/timer
-	drivers/atapi drivers/sd_card
-	server/part_blk test/part_blk
+	core init
+	drivers/timer
+	server/part_blk
+	test/part_blk
 }
+
+lappend_if [have_spec  pci] build_components drivers/pci
+lappend_if [have_spec acpi] build_components drivers/acpi
+lappend_if $use_atapi_drv   build_components drivers/atapi
+lappend_if $use_sd_card_drv build_components drivers/sd_card
+
 build $build_components
 
 create_boot_directory
@@ -45,53 +56,17 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-}
-
-# ATA driver on PCI
-append_if [have_spec pci] config {
-	<start name="pci">
-		<resource name="RAM" quantum="2M"/>
-		<binary name="pci_drv"/>
-		<provides><service name="PCI"/></provides>
-	</start>
-	<start name="atapi_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Block"/></provides>
-		<config ata="yes" />
-	</start>
 	<start name="part_blk">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
-			<any-service><child name="atapi_drv"/> <parent/><any-child/></any-service>
+			<any-service><child name="blk_drv"/> <parent/><any-child/></any-service>
 		</route>
 		<config>
 			<policy label="test-part1" partition="6"/>
 			<policy label="test-part2" partition="1"/>
 		</config>
 	</start>
-}
-
-# SD/MMC driver for PL180
-append_if [have_spec pl180] config {
-	<start name="sd_card_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Block"/></provides>
-	</start>
-	<start name="part_blk">
-		<resource name="RAM" quantum="10M" />
-		<provides><service name="Block" /></provides>
-		<route>
-			<any-service><child name="sd_card_drv"/> <parent/><any-child/></any-service>
-		</route>
-		<config>
-			<policy label="test-part1" partition="6"/>
-			<policy label="test-part2" partition="1"/>
-		</config>
-	</start>
-}
-
-append config {
 	<start name="test-part1">
 		<binary name="test-part"/>
 		<resource name="RAM" quantum="10M" />
@@ -108,8 +83,47 @@ append config {
 		</route>
 		<config pattern="0x33" />
 	</start>
-</config>
 }
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="5M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if $use_atapi_drv config {
+	<start name="blk_drv">
+	<binary name="atapi_drv"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Block"/> </provides>
+		<config ata="yes" />
+	</start>
+}
+
+append_if $use_sd_card_drv config {
+	<start name="blk_drv">
+		<binary name="sd_card_drv"/>
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Block"/></provides>
+	</start>
+}
+
+append config {
+</config> }
 
 install_config $config
 
@@ -121,8 +135,10 @@ set boot_modules {
 	core init timer part_blk test-part
 }
 
-append_if [have_spec pci]   boot_modules { pci_drv atapi_drv }
-append_if [have_spec pl180] boot_modules { sd_card_drv }
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec acpi]  boot_modules acpi_drv
+lappend_if $use_atapi_drv    boot_modules atapi_drv
+lappend_if $use_sd_card_drv  boot_modules sd_card_drv
 
 build_boot_image $boot_modules
 
@@ -131,8 +147,8 @@ build_boot_image $boot_modules
 #
 
 append qemu_args " -nographic -m 64 "
-append_if [have_spec   pci] qemu_args " -boot d -hda ata.raw "
-append_if [have_spec pl180] qemu_args " -drive file=ata.raw,if=sd "
+append_if $use_atapi_drv   qemu_args " -boot d -hda ata.raw "
+append_if $use_sd_card_drv qemu_args " -drive file=ata.raw,if=sd "
 
 run_genode_until "Success.*\n.*Success.*\n" 10
 

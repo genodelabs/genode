@@ -4,6 +4,9 @@
 # \date   2012-07-03
 #
 
+set use_sd_card_drv [expr [have_spec omap4] || [have_spec exynos5] || [have_spec pl180]]
+set use_atapi_drv   [have_spec x86]
+
 if {[catch { exec which mkfs.vfat } ]} {
         puts stderr "Error: mkfs.vfat not installed, aborting test"; exit }
 
@@ -14,16 +17,19 @@ if {[have_spec linux]} {
 # Build
 #
 
-build {
+set build_components {
 	core init
-	drivers/pci
-	drivers/atapi
 	drivers/timer
-	drivers/sd_card
 	server/ffat_fs
 	test/libc_fs
 }
 
+lappend_if [have_spec  pci] build_components drivers/pci
+lappend_if [have_spec acpi] build_components drivers/acpi
+lappend_if $use_atapi_drv   build_components drivers/atapi
+lappend_if $use_sd_card_drv build_components drivers/sd_card
+
+build $build_components
 create_boot_directory
 
 #
@@ -62,11 +68,27 @@ set config {
 	</start>
 }
 
-append_if [have_spec pci] config {
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="PCI"/> </provides>
-	</start>
+		<resource name="RAM" quantum="5M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if $use_atapi_drv config {
 	<start name="atapi_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Block"/> </provides>
@@ -74,7 +96,7 @@ append_if [have_spec pci] config {
 	</start>
 }
 
-append_if [expr [have_spec pl180] || [have_spec omap4]] config {
+append_if $use_sd_card_drv config {
 	<start name="sd_card_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
@@ -98,9 +120,10 @@ set boot_modules {
 	test-libc_fs
 }
 
-append_if [have_spec pci]   boot_modules { pci_drv atapi_drv }
-append_if [have_spec pl180] boot_modules { sd_card_drv }
-append_if [have_spec omap4] boot_modules { sd_card_drv }
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec acpi]  boot_modules acpi_drv
+lappend_if $use_atapi_drv    boot_modules atapi_drv
+lappend_if $use_sd_card_drv  boot_modules sd_card_drv
 
 build_boot_image $boot_modules
 
@@ -121,8 +144,8 @@ catch { exec sh -c $cmd }
 # Qemu
 #
 append qemu_args " -m 128 -nographic "
-append_if [have_spec   pci] qemu_args " -hda $disk_image -boot order=d "
-append_if [have_spec pl180] qemu_args " -drive file=$disk_image,if=sd,cache=writeback "
+append_if $use_atapi_drv   qemu_args " -hda $disk_image -boot order=d "
+append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,if=sd,cache=writeback "
 
 run_genode_until {.*child exited with exit value 0.*} 60
 

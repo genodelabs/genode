@@ -7,6 +7,11 @@ if {[have_spec foc] == 0} {
    exit 0
 }
 
+set use_usb_drv     [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_drv     [expr !$use_usb_drv]
+set use_atapi_drv   [have_spec x86]
+set use_sd_card_drv [expr [have_spec omap4] || [have_spec exynos5] || [have_spec pl180]]
+
 # generic components
 set build_components {
 	core
@@ -20,12 +25,13 @@ set build_components {
 	l4android
 }
 
-lappend_if [have_spec   x86]   build_components drivers/nic
-lappend_if [have_spec   x86]   build_components drivers/atapi
-lappend_if [have_spec pl180]   build_components drivers/sd_card
-lappend_if [have_spec lan9118] build_components drivers/nic/lan9118
-lappend_if [have_spec   pci]   build_components drivers/pci
-lappend_if [have_spec   ps2]   build_components drivers/input/ps2
+lappend_if [have_spec   pci] build_components drivers/pci
+lappend_if [have_spec  acpi] build_components drivers/acpi
+lappend_if [have_spec   ps2] build_components drivers/input/ps2
+lappend_if $use_usb_drv      build_components drivers/usb
+lappend_if $use_nic_drv      build_components drivers/nic
+lappend_if $use_atapi_drv    build_components drivers/atapi
+lappend_if $use_sd_card_drv  build_components drivers/sd_card
 
 build $build_components
 create_boot_directory
@@ -120,52 +126,6 @@ set config  {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-}
-
-append_if [have_spec x86] config {
-	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides><service name="Nic"/></provides>
-	</start>
-	<start name="atapi_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Block" /></provides>
-		<config ata="yes"/>
-	</start>}
-
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-		<config width="1024" height="768" depth="16" buffered="yes" />
-	</start> }
-
-append_if [have_spec lan9118] config {
-	<start name="nic_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nic"/></provides>
-	</start> }
-
-append_if [have_spec pl180] config {
-	<start name="sd_card_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Block"/></provides>
-	</start> }
-
-append_if [have_spec ps2] config {
-	<start name="input_drv">
-		<binary name="ps2_drv"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start>}
-
-append config {
 	<start name="l4android">
 		<resource name="RAM" quantum="512M"/>
 		<config args="mem=128M console=ttyS0 l4x_rd=root-ginger.gz">
@@ -178,7 +138,77 @@ append config {
 			<service name="LOG">         <child name="terminal_log"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="5M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if $use_usb_drv config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+			<service name="Input"/>
+		</provides>
+		<config uhci="yes" ehci="yes" xhci="yes">
+			<nic mac="2e:60:90:0c:4e:01" />
+			<hid/>
+		</config>
+	</start>}
+
+append_if $use_nic_drv config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
+
+append_if $use_atapi_drv config {
+	<start name="blk_drv">
+		<start name="atapi_drv"/>
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Block" /></provides>
+		<config ata="yes"/>
+	</start>}
+
+append_if $use_sd_card_drv config {
+	<start name="blk_drv">
+	    <binary name="sd_card_drv"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Block"/></provides>
+	</start>}
+
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+		<config width="1024" height="768" depth="16" output="HDMI" buffered="yes" />
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="input_drv">
+		<binary name="ps2_drv"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>}
+
+append config {
 </config>}
 
 install_config $config
@@ -200,13 +230,14 @@ set boot_modules {
 	root-ginger.gz
 }
 
-lappend_if [have_spec         x86] boot_modules nic_drv
-lappend_if [have_spec         x86] boot_modules atapi_drv
+lappend_if [have_spec        acpi] boot_modules acpi_drv
 lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec     lan9118] boot_modules nic_drv
-lappend_if [have_spec       pl180] boot_modules sd_card_drv
+lappend_if $use_usb_drv            boot_modules usb_drv
+lappend_if $use_nic_drv            boot_modules nic_drv
+lappend_if $use_atapi_drv          boot_modules atapi_drv
+lappend_if $use_sd_card_drv        boot_modules sd_card_drv
 
 if {[have_spec x86]} {
 	set initrd_uri "http://genode.org/files/release-11.11/l4lx/root-ia32-ginger.gz"
@@ -228,9 +259,10 @@ build_boot_image  [join $boot_modules " "]
 
 append qemu_args " -m 512 "
 append qemu_args " -serial mon:stdio "
-append_if [have_spec     x86] qemu_args " -hda bin/system-ginger.img "
+append_if $use_atapi_drv   qemu_args " -hda bin/system-ginger.img "
+append_if $use_sd_card_drv qemu_args " -drive file=bin/system-ginger.img,if=sd,cache=writeback "
 append_if [have_spec     x86] qemu_args " -net nic,model=e1000 "
-append_if [have_spec   pl180] qemu_args " -drive file=bin/system-ginger.img,if=sd,cache=writeback "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
-append qemu_args " -net user -redir tcp:5555::5555 "
+append_if $use_nic_drv        qemu_args " -net user -redir tcp:5555::5555 "
+
 run_genode_until forever
