@@ -23,13 +23,15 @@
  */
 class Ahci_driver : public Block::Driver
 {
+	enum { VERBOSE = 0 };
+
 	/* import Genode symbols */
 	typedef Genode::size_t size_t;
+	typedef Genode::uint64_t uint64_t;
 	typedef Genode::addr_t addr_t;
 	typedef Genode::Ram_dataspace_capability Ram_dataspace_capability;
 
-	int _ncq_command(size_t const block_nr, size_t const block_cnt,
-	                 addr_t const phys, bool const w);
+	int _ncq_command(uint64_t lba, unsigned cnt, addr_t phys, bool w);
 
 	public:
 

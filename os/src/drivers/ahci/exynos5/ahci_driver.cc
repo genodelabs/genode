@@ -21,6 +21,8 @@
 #include <util/mmio.h>
 #include <util/string.h>
 #include <dataspace/client.h>
+#include <regulator/consts.h>
+#include <regulator_session/connection.h>
 
 using namespace Genode;
 
@@ -366,13 +368,37 @@ struct Fis
 		}
 
 		/**
-		 * Wether reply to cmd. 'set transfer mode' was successfully received
+		 * Print out FIS content in three lines with two spaces indent
+		 */
+		void print()
+		{
+			printf("    0: 0x%02x", byte[ 0]);
+			printf("  1: 0x%02x", byte[ 1]);
+			printf("  2: 0x%02x", byte[ 2]);
+			printf("  3: 0x%02x", byte[ 3]);
+			printf("  4: 0x%02x", byte[ 4]);
+			printf("  5: 0x%02x", byte[ 5]);
+			printf("  6: 0x%02x", byte[ 6]);
+			printf("  7: 0x%02x\n", byte[ 7]);
+			printf("    8: 0x%02x", byte[ 8]);
+			printf("  9: 0x%02x", byte[ 9]);
+			printf(" 10: 0x%02x", byte[10]);
+			printf(" 11: 0x%02x", byte[11]);
+			printf(" 12: 0x%02x", byte[12]);
+			printf(" 13: 0x%02x", byte[13]);
+			printf(" 14: 0x%02x", byte[14]);
+			printf(" 15: 0x%02x\n", byte[15]);
+			printf("  lba: %llu", lba());
+			printf(" cnt: %u\n", count());
+		}
+
+		/**
+		 * Wether reply for 'set transfer mode' was successfully received
 		 *
 		 * \param transfer_mode  ID of transfer mode that should be set
 		 */
 		bool is_set_transfer_mode_reply(uint8_t transfer_mode)
 		{
-
 			/*
 			 * FIXME
 			 * I've no idea what most of these values stand for and
@@ -404,96 +430,285 @@ struct Fis
 };
 
 /**
- * Clock management unit
+ * I2C master interface
  */
-struct Cmu
+struct I2c_interface : Attached_mmio
 {
-	/**
-	 * Top part of the CMU
-	 */
-	struct Top : Attached_mmio
+	enum { VERBOSE = 0 };
+
+	enum { TX_DELAY_US = 1 };
+
+	/********************************
+	 ** MMIO structure description **
+	 ********************************/
+
+	struct Start_msg : Genode::Register<8>
 	{
-		/********************************
-		 ** MMIO structure description **
-		 ********************************/
+		struct Addr : Bitfield<1, 7> { };
+	};
+	struct Con : Register<0x0, 8>
+	{
+		struct Tx_prescaler : Bitfield<0, 4> { };
+		struct Irq_pending  : Bitfield<4, 1> { };
+		struct Irq_en       : Bitfield<5, 1> { };
+		struct Clk_sel      : Bitfield<6, 1> { };
+		struct Ack_en       : Bitfield<7, 1> { };
+	};
+	struct Stat : Register<0x4, 8>
+	{
+		struct Last_bit : Bitfield<0, 1> { };
+		struct Arbitr   : Bitfield<3, 1> { };
+		struct Txrx_en  : Bitfield<4, 1> { };
+		struct Busy     : Bitfield<5, 1> { };
+		struct Mode     : Bitfield<6, 2> { };
+	};
+	struct Add : Register<0x8, 8>
+	{
+		struct Slave_addr : Bitfield<0, 8> { };
+	};
+	struct Ds  : Register<0xc, 8> { };
+	struct Lc  : Register<0x10, 8>
+	{
+		struct Sda_out_delay : Bitfield<0, 2> { };
+		struct Filter_en     : Bitfield<2, 1> { };
+	};
 
-		struct Clk_src_mask_fsys : Register<0x340, 32>
-		{
-			struct Sata_mask : Bitfield<24, 1> { };
-		};
-		struct Clk_div_fsys0 : Register<0x548, 32>
-		{
-			struct Sata_ratio : Bitfield<20, 4> { };
-		};
-		struct Clk_gate_ip_fsys : Register<0x944, 32>
-		{
-			struct Pdma0         : Bitfield<1, 1> { };
-			struct Pdma1         : Bitfield<2, 1> { };
-			struct Sata          : Bitfield<6, 1> { };
-			struct Sata_phy_ctrl : Bitfield<24, 1> { };
-			struct Sata_phy_i2c  : Bitfield<25, 1> { };
-		};
+	/* single-word message that starts a multi-word message transfer */
+	Start_msg::access_t const start_msg;
 
-		/**
-		 * Constructor
-		 */
-		Top() : Attached_mmio(0x10020000, 0x10000) { }
+	/**
+	 * Constructor
+	 *
+	 * \param base        physical MMIO base
+	 * \param slave_addr  ID of the targeted slave
+	 */
+	I2c_interface(addr_t base, unsigned slave_addr)
+	: Attached_mmio(base, 0x10000),
+	  start_msg(Start_msg::Addr::bits(slave_addr))
+	{ }
 
-		/**
-		 * Switch clock enable for SATA PHY I2C interface
-		 *
-		 * \param on  switch
-		 */
-		void sata_phy_i2c(bool on) {
-			write<Clk_gate_ip_fsys::Sata_phy_i2c>(on); }
-
-		/**
-		 * Initialize clock config for SATA components
-		 */
-		void init_sata()
-		{
-			/* PDMA */
-			write<Clk_gate_ip_fsys::Pdma0>(1);
-			write<Clk_gate_ip_fsys::Pdma1>(1);
-
-			/* SATA PHY CTRL & SATA AHCI */
-			write<Clk_src_mask_fsys::Sata_mask>(1);
-			write<Clk_div_fsys0::Sata_ratio>(12);
-			write<Clk_gate_ip_fsys::Sata>(1);
-			write<Clk_gate_ip_fsys::Sata_phy_ctrl>(1);
+	/**
+	 * Wether acknowledgment for last transaction can be received
+	 */
+	bool ack_received()
+	{
+		for (unsigned i = 0; i < 3; i++) {
+			if (read<Con::Irq_pending>() && !read<Stat::Last_bit>()) return 1;
+			delayer()->usleep(TX_DELAY_US);
 		}
-	} top;
+		PERR("I2C ack not received");
+		return 0;
+	}
+
+	/**
+	 * Wether arbitration errors occured during the last transaction
+	 */
+	bool arbitration_error()
+	{
+		if (read<Stat::Arbitr>()) {
+			PERR("I2C arbitration failed");
+			return 1;
+		}
+		return 0;
+	}
+
+	/**
+	 * Let I2C master send a message to I2C slave
+	 *
+	 * \param msg       message base
+	 * \param msg_size  message size
+	 *
+	 * \retval  0  call was successful
+	 * \retval <0  call failed, error code
+	 */
+	int send(uint8_t * msg, size_t msg_size)
+	{
+		/* initiate message transfer */
+		if (!wait_for<Stat::Busy>(0, *delayer())) {
+			PERR("I2C busy");
+			return -1;
+		}
+		Stat::access_t stat = read<Stat>();
+		Stat::Txrx_en::set(stat, 1);
+		Stat::Mode::set(stat, 3);
+		write<Stat>(stat);
+		write<Ds>(start_msg);
+		delayer()->usleep(1000);
+		write<Con::Tx_prescaler>(11);
+		write<Stat::Busy>(1);
+
+		/* transmit message payload */
+		for (unsigned i = 0; i < msg_size; i++) {
+			if (!ack_received()) return -1;
+			write<Ds>(msg[i]);
+			delayer()->usleep(TX_DELAY_US);
+			write<Con::Irq_pending>(0);
+			if (arbitration_error()) return -1;
+		}
+		/* end message transfer */
+		if (!ack_received()) return -1;
+		write<Stat::Busy>(0);
+		write<Con::Irq_en>(0);
+		write<Con::Irq_pending>(0); /* FIXME fixup */
+		if (arbitration_error()) return -1;
+		if (!wait_for<Stat::Busy>(0, *delayer())) {
+			PERR("I2C end transfer failed");
+			return -1;
+		}
+		return 0;
+	}
 };
 
-static Cmu * cmu() {
-	static Cmu cmu;
-	return &cmu;
+/**
+ * I2C control interface of SATA PHY-layer controller
+ */
+struct I2c_sataphy : I2c_interface
+{
+	enum { SLAVE_ADDR = 0x38 };
+
+	/**
+	 * Constructor
+	 */
+	I2c_sataphy() : I2c_interface(0x121d0000, SLAVE_ADDR) { }
+
+	/**
+	 * Enable the 40-pin interface of the SATA PHY controller
+	 *
+	 * \retval  0  call was successful
+	 * \retval <0  call failed, error code
+	 */
+	int enable_40_pins()
+	{
+		/*
+		 * I2C message
+		 *
+		 * first byte:  set address
+		 * second byte: set data
+		 */
+		static uint8_t msg[] = { 0x3a, 0x0b };
+		enum { MSG_SIZE = sizeof(msg)/sizeof(msg[0]) };
+
+		/* send messaage */
+		if (send(msg, MSG_SIZE)) return -1;
+		if (VERBOSE) printf("SATA PHY 40-pin interface enabled\n");
+		return 0;
+	}
+
+	/**
+	 * Get I2C interface ready for transmissions
+	 */
+	void init()
+	{
+		write<Add::Slave_addr>(SLAVE_ADDR);
+
+		Con::access_t con = read<Con>();
+		Con::Irq_en::set(con, 1);
+		Con::Ack_en::set(con, 1);
+		Con::Clk_sel::set(con, 1);
+		Con::Tx_prescaler::set(con, 9);
+		write<Con>(con);
+
+		Lc::access_t lc = 0;
+		Lc::Sda_out_delay::set(lc, 3);
+		Lc::Filter_en::set(lc, 1);
+		write<Lc>(lc);
+	}
+};
+
+static I2c_sataphy * i2c_sataphy() {
+	static I2c_sataphy i2c_sataphy;
+	return &i2c_sataphy;
 }
 
 /**
- * Power management unit
+ * Classical control interface of SATA PHY-layer controller
  */
-struct Pmu : Attached_mmio
+struct Sata_phy_ctrl : Attached_mmio
 {
-	struct Sata_phy_control : Register<0x724, 32>
+	enum { VERBOSE = 0 };
+
+	/********************************
+	 ** MMIO structure description **
+	 ********************************/
+
+	struct Reset : Register<0x4, 32>
 	{
-		struct Enable : Bitfield<0, 1> { };
+		struct Global   : Bitfield<1, 1> { };
+		struct Non_link : Bitfield<0, 8> { };
+		struct Link     : Bitfield<16, 4> { };
+	};
+	struct Mode0 : Register<0x10, 32>
+	{
+		struct P0_phy_spdmode : Bitfield<0, 2> { };
+	};
+	struct Ctrl0 : Register<0x14, 32>
+	{
+		struct P0_phy_calibrated     : Bitfield<8, 1> { };
+		struct P0_phy_calibrated_sel : Bitfield<9, 1> { };
+	};
+	struct Phctrlm : Register<0xe0, 32>
+	{
+		struct High_speed : Bitfield<0, 1> { };
+		struct Ref_rate   : Bitfield<1, 1> { };
+	};
+	struct Phstatm : Register<0xf0, 32>
+	{
+		struct Pll_locked : Bitfield<0, 1> { };
 	};
 
 	/**
 	 * Constructor
 	 */
-	Pmu() : Attached_mmio(0x10040000, 0x10000) { }
+	Sata_phy_ctrl() : Attached_mmio(0x12170000, 0x10000) { }
 
 	/**
-	 * Power on SATA components
+	 * Initialize parts of SATA PHY that are controlled classically
+	 *
+	 * \retval  0  call was successful
+	 * \retval <0  call failed, error code
 	 */
-	void init_sata() { write<Sata_phy_control::Enable>(1); }
+	int init()
+	{
+		/* reset */
+		write<Reset>(0);
+		write<Reset::Non_link>(~0);
+		write<Reset::Link>(~0);
+		write<Reset::Global>(~0);
+
+		/* set up SATA phy generation 3 (6 Gb/s) */
+		Phctrlm::access_t phctrlm = read<Phctrlm>();
+		Phctrlm::Ref_rate::set(phctrlm, 0);
+		Phctrlm::High_speed::set(phctrlm, 1);
+		write<Phctrlm>(phctrlm);
+		Ctrl0::access_t ctrl0 = read<Ctrl0>();
+		Ctrl0::P0_phy_calibrated::set(ctrl0, 1);
+		Ctrl0::P0_phy_calibrated_sel::set(ctrl0, 1);
+		write<Ctrl0>(ctrl0);
+		write<Mode0::P0_phy_spdmode>(2);
+		if (i2c_sataphy()->enable_40_pins()) return -1;
+
+		/* Release reset */
+		write<Reset::Global>(0);
+		write<Reset::Global>(1);
+
+		/*
+		 * FIXME Linux reads this bit once only and continues
+		 *       directly, also with zero. So if we get an error
+		 *       at this point we should study the Linux behavior
+		 *       in more depth.
+		 */
+		if (!wait_for<Phstatm::Pll_locked>(1, *delayer())) {
+			PERR("PLL lock failed");
+			return -1;
+		}
+		if (VERBOSE) printf("SATA PHY initialized\n");
+		return 0;
+	}
 };
 
-static Pmu * pmu() {
-	static Pmu pmu;
-	return &pmu;
+static Sata_phy_ctrl * sata_phy_ctrl() {
+	static Sata_phy_ctrl sata_phy_ctrl;
+	return &sata_phy_ctrl;
 }
 
 /**
@@ -501,7 +716,7 @@ static Pmu * pmu() {
  */
 struct Sata_ahci : Attached_mmio
 {
-	enum { VERBOSE = 1 };
+	enum { VERBOSE = 0 };
 
 	/* general config */
 	enum {
@@ -664,7 +879,7 @@ struct Sata_ahci : Attached_mmio
 	unsigned dbc_stable_trials;
 
 	/* port 0 settings */
-	unsigned       p0_speed_limit;
+	unsigned p0_speed;
 	Irq_connection p0_irq;
 
 	/**
@@ -682,7 +897,13 @@ struct Sata_ahci : Attached_mmio
 	  dbc_trial_us(FAST_DBC_TRIAL_US),
 	  dbc_trials(50),
 	  dbc_stable_trials(5),
-	  p0_speed_limit(0),
+
+	  /*
+	   * FIXME At least Seagate Barracuda 1TB slows access with lots of errors
+	   *       when using 6 Gbps although debouncing succeeds. Thus we already
+	   *       start with 3 Gbps.
+	   */
+	  p0_speed(2),
 	  p0_irq(147)
 	{ }
 
@@ -699,55 +920,68 @@ struct Sata_ahci : Attached_mmio
 	}
 
 	/**
-	 * Evaluate port interrupt states and according errors after a command
+	 * Get port back ready after port IRQs were raised
 	 *
-	 * \retval  0  call was successful
-	 * \retval <0  call failed, error code
+	 * \param lba  holds current drive LBA if call returns 1
+	 *
+	 * \retval  0  no errors were detected during IRQ handling
+	 * \retval  1  port has been recovered from errors, lba denotes error point
+	 * \retval -1  errors occured and port couln't be recovered
 	 */
-	int p0_interpret_irqs()
+	int p0_handle_irqs(uint64_t & lba)
 	{
-		/* ack interrupt states */
-		P0is::access_t p0is = p0_clear_irqs();
+		/* ack interrupts and errors */
+		P0is::access_t   p0is   = p0_clear_irqs();
+		P0serr::access_t p0serr = p0_clear_errors();
+
+		/* leave if interrupts are just as expected */
 		if (p0is == P0is::Sdbs::bits(1)) return 0;
 		if (p0is == P0is::Dhrs::bits(1)) return 0;
 
-		/* interpret P0IS */
+		/* interpret unexpected interrupts */
 		bool interface_err = 0;
-		bool fatal         = 0;
+		bool fatal = 0;
 		if (P0is::Ifs::get(p0is)) {
 			interface_err = 1;
-			fatal = 1;
-		} else if (P0is::Infs::get(p0is)) interface_err = 1;
+			if (VERBOSE) fatal = 1;
+		} else if (P0is::Infs::get(p0is))
+			interface_err = 1;
 
-		/* analyse P0SERR if there's an interface error */
-		if (interface_err) {
-			if (fatal) printf("fatal ");
-			P0serr::access_t p0serr = p0_clear_errors();
-			if (P0serr::Diag_b::get(p0serr)) {
-				printf("10 B to 8 B decode error\n");
-				return -1;
+		/* print and handle known errors */
+		if (interface_err)
+		{
+			/* print errors */
+			if(VERBOSE) {
+				printf("handle");
+				if (fatal) printf(" fatal");
+				else printf(" non-fatal");
+				printf(" interface errors:\n");
+				if (P0serr::Diag_b::get(p0serr))
+					printf("  10 B to 8 B decode error\n");
+				if (P0serr::Err_p::get(p0serr))
+					printf("  protocol error\n");
+				if (P0serr::Diag_c::get(p0serr))
+					printf("  CRC error\n");
+				if (P0serr::Err_c::get(p0serr))
+					printf("  non-recovered persistent communication error\n");
+				if (P0serr::Diag_h::get(p0serr))
+					printf("  handshake error\n");
 			}
-			if (P0serr::Err_p::get(p0serr)) {
-				printf("protocol error\n");
-				return -2;
+			/* get error LBA */
+			Fis * fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
+			lba = fis->lba();
+
+			/* print reply FIS */
+			if (VERBOSE) {
+				printf("error report that was sent by the drive:\n");
+				fis->print();
 			}
-			if (P0serr::Diag_c::get(p0serr)) {
-				printf("CRC error\n");
-				return -3;
-			}
-			if (P0serr::Err_c::get(p0serr)) {
-				printf("non-recovered persistent communication error\n");
-				return -4;
-			}
-			if (P0serr::Diag_h::get(p0serr)) {
-				printf("handshake error\n");
-				return -5;
-			}
-			printf("unknown interface error\n");
-			return -6;
+			/* handle errors */
+			return p0_error_recovery() ? -1 : 1;
 		}
-		printf("unknown error (P0IS 0x%x)\n", p0is);
-		return -7;
+		/* complain about unkown errors */
+		PERR("unknown error (P0IS 0x%x P0SERR 0x%x)\n", p0is, p0serr);
+		return -1;
 	}
 
 	/**
@@ -795,19 +1029,18 @@ struct Sata_ahci : Attached_mmio
 		}
 		/* check interface speed */
 		char const * speed;
-		bool speed_support = 0;
 		switch(Cap::Iss::get(cap)) {
-		case 1:  speed = "1.5";
-		         break;
-		case 2:  speed = "3";
-		         break;
-		case 3:  speed = "6";
-		         speed_support = 1;
-		         break;
-		default: speed = "?";
-		}
-		if (!speed_support) {
-			PERR("SATA AHCI driver not proved with %s Gbps", speed);
+		case 1:
+			speed = "1.5";
+			break;
+		case 2:
+			speed = "3";
+			break;
+		case 3:
+			speed = "6";
+			break;
+		default:
+			PERR("SATA AHCI failed to get controller speed");
 			return -1;
 		}
 		/* check number of command slots */
@@ -1101,9 +1334,11 @@ struct Sata_ahci : Attached_mmio
 	 */
 	void p0_enable_irqs()
 	{
+		enum { PORT = 0 };
+
 		/* clear IRQs */
 		p0_clear_irqs();
-		write<Is>(1);
+		write<Is>(1 << PORT);
 
 		/* enable all IRQs we need */
 		P0ie::access_t p0ie = 0;
@@ -1142,7 +1377,7 @@ struct Sata_ahci : Attached_mmio
 			PERR("ATA0 failed to issue first soft-reset command");
 			return -1;
 		}
-		delayer()->usleep(1000); /* according to spec wait at least 5 us */
+		delayer()->usleep(5); /* according to spec wait at least 5 us */
 
 		/* second soft reset FIS */
 		fis->soft_reset(1, SOFT_RESET_PMP);
@@ -1151,7 +1386,7 @@ struct Sata_ahci : Attached_mmio
 		read<P0ci>(); /* this time simply flush because dynamic waiting not needed */
 
 		/* old devices might need 150 ms but newer specs say 2 ms */
-		if (!wait_for<P0tfd::Sts_bsy>(0, *delayer(), 75, 2000)) {
+		if (!wait_for<P0tfd::Sts_bsy>(0, *delayer(), 150, 1000)) {
 			PERR("ATA0 drive hangs in soft reset");
 			return -1;
 		}
@@ -1192,17 +1427,21 @@ struct Sata_ahci : Attached_mmio
 
 		/* wait until reset is done and end operation */
 		delayer()->usleep(1000);
-		unsigned trials = 10;
+		unsigned trials = 100;
 		for (; trials; trials--)
 		{
-			/*
-			 * Some controllers need much time at this point.
-			 * Wait at least 200 ms to avoid bad behaviour
-			 * of some old PHY controllers.
-			 */
 			write<P0sctl::Det>(0);
-			delayer()->usleep(200000);
+
+			/*
+			 * FIXME
+			 * Some PHY controllers need much time at this point.
+			 * Thus normally we should wait at least 200 ms to avoid
+			 * bad behaviour but as long as exynos5 does fine
+			 * we do it faster.
+			 */
+			delayer()->usleep(1000);
 			p0sctl = read<P0sctl>();
+
 			if (P0sctl::Det::get(p0sctl) == 0 &&
 			    P0sctl::Ipm::get(p0sctl) == 3) break;
 		}
@@ -1243,7 +1482,7 @@ struct Sata_ahci : Attached_mmio
 			old_det = new_det;
 		}
 		if (t >= trials) {
-			printf("PORT0 failed debouncing\n");
+			if (VERBOSE) printf("PORT0 failed debouncing\n");
 			return -1;
 		}
 		return 0;
@@ -1303,7 +1542,12 @@ struct Sata_ahci : Attached_mmio
 		Fis * fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
 		fis->clear_d2h_rx();
 
-		if (p0_hard_reset()) return -1;
+		/*
+		 * FIXME At least Seagate Barracuda 1TB slows access with lots of errors
+		 *       when using 6 Gbps although debouncing succeeds. Thus we
+		 *       override initial speed config.
+		 */
+		if (p0_hard_reset(1, p0_speed)) return -1;
 		if (p0_dynamic_debounce()) return -1;
 
 		/* check if device is ready */
@@ -1329,20 +1573,19 @@ struct Sata_ahci : Attached_mmio
 		}
 		/* check device speed */
 		char const * speed;
-		bool speed_supported = 0;
 		P0ssts::access_t p0ssts = read<P0ssts>();
 		switch(P0ssts::Spd::get(p0ssts)) {
-		case 1:  speed = "1.5";
-				 speed_supported = 1;
-				 break;
-		case 2:  speed = "3";
-				 break;
-		case 3:  speed = "6";
-				 break;
-		default: speed = "?";
-		}
-		if (!speed_supported) {
-			PERR("PORT0 driver not proved with %s Gbps", speed);
+		case 1:
+			speed = "1.5";
+			break;
+		case 2:
+			speed = "3";
+			break;
+		case 3:
+			speed = "6";
+			break;
+		default:
+			PERR("PORT0 failed to get port speed");
 			return -1;
 		}
 		/* check PM state of device */
@@ -1363,7 +1606,7 @@ struct Sata_ahci : Attached_mmio
 		 * At this point Linux normally reads out the parameters of the
 		 * SATA DevSlp feature but the values are used only when it comes
 		 * to LPM wich wasn't needed at all in our use cases. Look for
-		 * 'ata_dev_configure' and 'ATA_LOG_DEVSLP_*' in Linux if you want 
+		 * 'ata_dev_configure' and 'ATA_LOG_DEVSLP_*' in Linux if you want
 		 * to add this feature.
 		 */
 
@@ -1380,26 +1623,27 @@ struct Sata_ahci : Attached_mmio
 	/**
 	 * Do a NCQ command, wait until it is finished, and end it
 	 *
-	 * \param block_nr   logical block address (LBA) of first block
-	 * \param block_cnt  blocks to transfer
-	 * \param phys       physical adress of receive/send buffer DMA
-	 * \param w          1: write 0: read
+	 * \param lba   Logical block address of first block.
+	 *              Holds current error LBA if call returns 1.
+	 * \param cnt   blocks to transfer
+	 * \param phys  physical adress of receive/send buffer DMA
+	 * \param w     1: write 0: read
 	 *
-	 * \retval  0  call was successful
-	 * \retval -1  call failed, unrecoverable error
-	 * \retval -2  call failed, error recovered, retry possible
+	 * \retval  0  command finished without errors
+	 * \retval  1  port has been recovered from errors, lba denotes error point
+	 * \retval -1  errors occured and port couln't be recovered
 	 */
-	int ncq_command(size_t block_nr, size_t block_cnt, addr_t phys, bool w)
+	int ncq_command(uint64_t & lba, size_t cnt, addr_t phys, bool w)
 	{
 		/* set up command table entry */
 		unsigned tag = 0;
 		Fis * fis = (Fis *)(ct_virt + tag * CMD_TABLE_SIZE);
-		fis->fpdma_queued(w, block_nr, block_cnt, tag);
+		fis->fpdma_queued(w, lba, cnt, tag);
 
 		/* set up scatter/gather list */
 		addr_t prd_list = ct_virt + tag * CMD_TABLE_SIZE + CMD_TABLE_HEAD_SIZE;
 		uint8_t prdtl = 0;
-		if (write_prd_list(prd_list, phys, block_cnt, prdtl)) {
+		if (write_prd_list(prd_list, phys, cnt, prdtl)) {
 			PERR("failed to set up scatter/gather list");
 			return -1;
 		}
@@ -1413,29 +1657,22 @@ struct Sata_ahci : Attached_mmio
 		write<P0ci>(1 << tag);
 		p0_irq.wait_for_irq();
 
-		/* check command results */
-		if (!read<Is::Ips>()) {
-			PERR("ATA0 no IRQ raised");
-			return -1;
+		/* get port back ready and deteremine command state */
+		int ret = p0_handle_irqs(lba);
+		if (ret >= 0) {
+			P0sntf::access_t pmn = read<P0sntf::Pmn>();
+			if (pmn) {
+				write<P0sntf::Pmn>(pmn);
+				PERR("ATA0 PM notification after NCQ command");
+				return -1;
+			}
+			if (read<P0sact>()) {
+				PERR("ATA0 outstanding commands after NCQ command");
+				return -1;
+			}
+			write<Is::Ips>(1);
 		}
-		if (p0_interpret_irqs()) {
-			if (VERBOSE) printf("ATA0 recover from NCQ error\n");
-			if (p0_error_recovery()) return -1;
-			return -2;
-		}
-		P0sntf::access_t pmn = read<P0sntf::Pmn>();
-		if (pmn) {
-			write<P0sntf::Pmn>(pmn);
-			PERR("ATA0 PM notification after NCQ command");
-			return -1;
-		}
-		if (read<P0sact>()) {
-			PERR("ATA0 outstanding commands after NCQ command");
-			return -1;
-		}
-		/* end command */
-		write<Is::Ips>(1);
-		return 0;
+		return ret;
 	}
 
 	/**
@@ -1446,6 +1683,8 @@ struct Sata_ahci : Attached_mmio
 	 */
 	int p0_dynamic_debounce()
 	{
+		unsigned const initial_p0_speed = p0_speed;
+
 		/* try debouncing with presettings first */
 		while (p0_debounce(dbc_trials, dbc_trial_us, dbc_stable_trials))
 		{
@@ -1456,6 +1695,7 @@ struct Sata_ahci : Attached_mmio
 				p0_clear_irqs();
 				write<Is>(read<Is>());
 			}
+			p0_clear_errors();
 			if (read<P0serr>()) {
 				PERR("PORT0 failed to recover from debouncing error %x", read<P0serr>());
 				return -1;
@@ -1468,17 +1708,27 @@ struct Sata_ahci : Attached_mmio
 			 */
 
 			/* try to lower settings and retry debouncing */
-			if (dbc_trial_us == SLOW_DBC_TRIAL_US && p0_speed_limit == 1) {
+			if (dbc_trial_us == SLOW_DBC_TRIAL_US && p0_speed == 1) {
 				PERR("PORT0 debouncing failed with lowest settings");
 				return -1;
-			} else if (dbc_trial_us == SLOW_DBC_TRIAL_US) {
-				printf("PORT0 lower link speed and retry debouncing\n");
-				p0_speed_limit = 1;
-				if (p0_hard_reset(1, p0_speed_limit)) return -1;
+			} else if (p0_speed != 1) {
+				/*
+				 * If no speed limit is set, go to the most generous limit,
+				 * otherwise choose the next harder limit.
+				 */
+				if (VERBOSE) printf("PORT0 lower port speed\n");
+				if (p0_speed == 0) p0_speed = 3;
+				else p0_speed--;
+				if (p0_hard_reset(1, p0_speed)) return -1;
 			} else {
-				printf("PORT0 retry debouncing slower\n");
+				/*
+				 * Reset port speed and redo dynamic debouncing
+				 * but do it more gently this time.
+				 */
+				if (VERBOSE) printf("PORT0 retry debouncing more gently\n");
 				dbc_trial_us = SLOW_DBC_TRIAL_US;
-				if (p0_hard_reset()) return -1;
+				p0_speed = initial_p0_speed;
+				if (p0_hard_reset(1, p0_speed)) return -1;
 			}
 		}
 		p0_clear_errors();
@@ -1539,7 +1789,7 @@ struct Sata_ahci : Attached_mmio
 		Fis * fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
 		fis->clear_d2h_rx();
 
-		if (p0_hard_reset()) return -1;
+		if (p0_hard_reset())       return -1;
 		if (p0_dynamic_debounce()) return -1;
 
 		/* check if device is ready */
@@ -1579,7 +1829,7 @@ struct Sata_ahci : Attached_mmio
 		 * At this point Linux normally reads out the parameters of the
 		 * SATA DevSlp feature but the values are used only when it comes
 		 * to LPM wich wasn't needed at all in our use cases. Look for
-		 * 'ata_dev_configure' and 'ATA_LOG_DEVSLP_*' in Linux if you want 
+		 * 'ata_dev_configure' and 'ATA_LOG_DEVSLP_*' in Linux if you want
 		 * to add this feature.
 		 */
 
@@ -1633,293 +1883,6 @@ static Sata_ahci * sata_ahci() {
 	return &sata_ahci;
 }
 
-/**
- * I2C master interface
- */
-struct I2c_interface : Attached_mmio
-{
-	enum { VERBOSE = 1 };
-
-	enum { TX_DELAY_US = 1 };
-
-	/********************************
-	 ** MMIO structure description **
-	 ********************************/
-
-	struct Start_msg : Genode::Register<8>
-	{
-		struct Addr : Bitfield<1, 7> { };
-	};
-	struct Con : Register<0x0, 8>
-	{
-		struct Tx_prescaler : Bitfield<0, 4> { };
-		struct Irq_pending  : Bitfield<4, 1> { };
-		struct Irq_en       : Bitfield<5, 1> { };
-		struct Clk_sel      : Bitfield<6, 1> { };
-		struct Ack_en       : Bitfield<7, 1> { };
-	};
-	struct Stat : Register<0x4, 8>
-	{
-		struct Last_bit : Bitfield<0, 1> { };
-		struct Arbitr   : Bitfield<3, 1> { };
-		struct Txrx_en  : Bitfield<4, 1> { };
-		struct Busy     : Bitfield<5, 1> { };
-		struct Mode     : Bitfield<6, 2> { };
-	};
-	struct Add : Register<0x8, 8>
-	{
-		struct Slave_addr : Bitfield<0, 8> { };
-	};
-	struct Ds  : Register<0xc, 8> { };
-	struct Lc  : Register<0x10, 8>
-	{
-		struct Sda_out_delay : Bitfield<0, 2> { };
-		struct Filter_en     : Bitfield<2, 1> { };
-	};
-
-	/* single-word message that starts a multi-word message transfer */
-	Start_msg::access_t const start_msg;
-
-	/**
-	 * Constructor
-	 *
-	 * \param base        physical MMIO base
-	 * \param slave_addr  ID of the targeted slave
-	 */
-	I2c_interface(addr_t base, unsigned slave_addr)
-	: Attached_mmio(base, 0x10000),
-	  start_msg(Start_msg::Addr::bits(slave_addr))
-	{ }
-
-	/**
-	 * Wether acknowledgment for last transaction can be received
-	 */
-	bool ack_received()
-	{
-		for (unsigned i = 0; i < 3; i++) {
-			if (read<Con::Irq_pending>() && !read<Stat::Last_bit>()) return 1;
-			delayer()->usleep(TX_DELAY_US);
-		}
-		PERR("I2C ack not received");
-		return 0;
-	}
-
-	/**
-	 * Wether arbitration errors occured during the last transaction
-	 */
-	bool arbitration_error()
-	{
-		if (read<Stat::Arbitr>()) {
-			PERR("I2C arbitration failed");
-			return 1;
-		}
-		return 0;
-	}
-
-	/**
-	 * Let I2C master send a message to I2C slave
-	 *
-	 * \param msg       message base
-	 * \param msg_size  message size
-	 *
-	 * \retval  0  call was successful
-	 * \retval <0  call failed, error code
-	 */
-	int send(uint8_t * msg, size_t msg_size)
-	{
-		/* initiate message transfer */
-		if (!wait_for<Stat::Busy>(0, *delayer())) {
-			PERR("I2C busy");
-			return -1;
-		}
-		Stat::access_t stat = read<Stat>();
-		Stat::Txrx_en::set(stat, 1);
-		Stat::Mode::set(stat, 3);
-		write<Stat>(stat);
-		write<Ds>(start_msg);
-		delayer()->usleep(1000);
-		write<Con::Tx_prescaler>(11);
-		write<Stat::Busy>(1);
-
-		/* transmit message payload */
-		for (unsigned i = 0; i < msg_size; i++) {
-			if (!ack_received()) return -1;
-			write<Ds>(msg[i]);
-			delayer()->usleep(TX_DELAY_US);
-			write<Con::Irq_pending>(0);
-			if (arbitration_error()) return -1;
-		}
-		/* end message transfer */
-		if (!ack_received()) return -1;
-		write<Stat::Busy>(0);
-		write<Con::Irq_en>(0);
-		write<Con::Irq_pending>(0); /* FIXME fixup */
-		if (arbitration_error()) return -1;
-		if (!wait_for<Stat::Busy>(0, *delayer())) {
-			PERR("I2C end transfer failed");
-			return -1;
-		}
-		return 0;
-	}
-};
-
-/**
- * I2C control interface of SATA PHY-layer controller
- */
-struct I2c_sataphy : I2c_interface
-{
-	enum { SLAVE_ADDR = 0x38 };
-
-	/**
-	 * Constructor
-	 */
-	I2c_sataphy() : I2c_interface(0x121d0000, SLAVE_ADDR) { }
-
-	/**
-	 * Enable the 40-pin interface of the SATA PHY controller
-	 *
-	 * \retval  0  call was successful
-	 * \retval <0  call failed, error code
-	 */
-	int enable_40_pins()
-	{
-		/*
-		 * I2C message
-		 *
-		 * first byte:  set address
-		 * second byte: set data
-		 */
-		static uint8_t msg[] = { 0x3a, 0x0b };
-		enum { MSG_SIZE = sizeof(msg)/sizeof(msg[0]) };
-
-		/* send messaage */
-		cmu()->top.sata_phy_i2c(1);
-		if (send(msg, MSG_SIZE)) return -1;
-		cmu()->top.sata_phy_i2c(0);
-		if (VERBOSE) printf("SATA PHY 40-pin interface enabled\n");
-		return 0;
-	}
-
-	/**
-	 * Get I2C interface ready for transmissions
-	 */
-	void init()
-	{
-		cmu()->top.sata_phy_i2c(1);
-		write<Add::Slave_addr>(SLAVE_ADDR);
-
-		Con::access_t con = read<Con>();
-		Con::Irq_en::set(con, 1);
-		Con::Ack_en::set(con, 1);
-		Con::Clk_sel::set(con, 1);
-		Con::Tx_prescaler::set(con, 9);
-		write<Con>(con);
-
-		Lc::access_t lc = 0;
-		Lc::Sda_out_delay::set(lc, 3);
-		Lc::Filter_en::set(lc, 1);
-		write<Lc>(lc);
-
-		cmu()->top.sata_phy_i2c(0);
-	}
-};
-
-static I2c_sataphy * i2c_sataphy() {
-	static I2c_sataphy i2c_sataphy;
-	return &i2c_sataphy;
-}
-
-/**
- * Classical control interface of SATA PHY-layer controller
- */
-struct Sata_phy_ctrl : Attached_mmio
-{
-	enum { VERBOSE = 1 };
-
-	/********************************
-	 ** MMIO structure description **
-	 ********************************/
-
-	struct Reset : Register<0x4, 32>
-	{
-		struct Global   : Bitfield<1, 1> { };
-		struct Non_link : Bitfield<0, 8> { };
-		struct Link     : Bitfield<16, 4> { };
-	};
-	struct Mode0 : Register<0x10, 32>
-	{
-		struct P0_phy_spdmode : Bitfield<0, 2> { };
-	};
-	struct Ctrl0 : Register<0x14, 32>
-	{
-		struct P0_phy_calibrated     : Bitfield<8, 1> { };
-		struct P0_phy_calibrated_sel : Bitfield<9, 1> { };
-	};
-	struct Phctrlm : Register<0xe0, 32>
-	{
-		struct High_speed : Bitfield<0, 1> { };
-		struct Ref_rate   : Bitfield<1, 1> { };
-	};
-	struct Phstatm : Register<0xf0, 32>
-	{
-		struct Pll_locked : Bitfield<0, 1> { };
-	};
-
-	/**
-	 * Constructor
-	 */
-	Sata_phy_ctrl() : Attached_mmio(0x12170000, 0x10000) { }
-
-	/**
-	 * Initialize parts of SATA PHY that are controlled classically
-	 *
-	 * \retval  0  call was successful
-	 * \retval <0  call failed, error code
-	 */
-	int init()
-	{
-		/* reset */
-		write<Reset>(0);
-		write<Reset::Non_link>(~0);
-		write<Reset::Link>(~0);
-		write<Reset::Global>(~0);
-
-		/* set up SATA phy generation 3 (6 Gb/s) */
-		Phctrlm::access_t phctrlm = read<Phctrlm>();
-		Phctrlm::Ref_rate::set(phctrlm, 0);
-		Phctrlm::High_speed::set(phctrlm, 1);
-		write<Phctrlm>(phctrlm);
-		Ctrl0::access_t ctrl0 = read<Ctrl0>();
-		Ctrl0::P0_phy_calibrated::set(ctrl0, 1);
-		Ctrl0::P0_phy_calibrated_sel::set(ctrl0, 1);
-		write<Ctrl0>(ctrl0);
-		write<Mode0::P0_phy_spdmode>(2);
-		if (i2c_sataphy()->enable_40_pins()) return -1;
-
-		/* Release reset */
-		write<Reset::Global>(0);
-		write<Reset::Global>(1);
-
-		/*
-		 * FIXME Linux reads this bit once only and continues
-		 *       directly, also with zero. So if we get an error
-		 *       at this point we should study the Linux behavior
-		 *       in more depth.
-		 */
-		if (!wait_for<Phstatm::Pll_locked>(1, *delayer())) {
-			PERR("PLL lock failed");
-			return -1;
-		}
-		if (VERBOSE) printf("SATA PHY initialized\n");
-		return 0;
-	}
-};
-
-static Sata_phy_ctrl * sata_phy_ctrl() {
-	static Sata_phy_ctrl sata_phy_ctrl;
-	return &sata_phy_ctrl;
-}
-
 
 /*****************
  ** Ahci_driver **
@@ -1927,28 +1890,41 @@ static Sata_phy_ctrl * sata_phy_ctrl() {
 
 Ahci_driver::Ahci_driver()
 {
+	static Regulator::Connection clock_src(Regulator::CLK_SATA);
+	static Regulator::Connection power_src(Regulator::PWR_SATA);
+	clock_src.state(true);
+	power_src.state(true);
 	i2c_sataphy()->init();
-	cmu()->top.init_sata();
-	pmu()->init_sata();
 	if (sata_phy_ctrl()->init()) throw Io_error();
 	if (sata_ahci()->init())     throw Io_error();
 	if (sata_ahci()->p0_init())  throw Io_error();
 }
 
-int Ahci_driver::_ncq_command(size_t const block_nr, size_t const block_cnt,
-                              addr_t const phys, bool const w)
+int Ahci_driver::_ncq_command(uint64_t lba, unsigned cnt, addr_t phys, bool w)
 {
 	/* sanity check */
-	if (!block_cnt || (block_nr + block_cnt) > block_count()) {
+	if (!cnt || (lba + cnt) > block_count()) {
 		PERR("Sanity check failed on block driver command");
 		return -1;
 	}
+	/* if error occurs during command continue from error LBA */
+	int ret = 1;
+	while (1)
+	{
+		/* try to execute command */
+		uint64_t last_lba = lba;
+		ret = sata_ahci()->ncq_command(lba, cnt, phys, w);
+		if (ret != 1) break;
 
-	/* try multiple times to access the hardware */
-	int result = -2;
-	for (unsigned i = 0; result == -2 && i < 10; i++)
-		result = sata_ahci()->ncq_command(block_nr, block_cnt, phys, w);
-	return result;
+		/* calculate remaining area */
+		unsigned done_cnt = lba - last_lba;
+		cnt -= done_cnt;
+		phys += done_cnt * block_size();
+		if (VERBOSE)
+			printf("continue with blocks %llu..%llu after error\n",
+			       lba, lba + cnt - 1);
+	}
+	return ret;
 }
 
 size_t Ahci_driver::block_count() { return sata_ahci()->block_cnt; }
@@ -1968,3 +1944,4 @@ void Ahci_driver::write(size_t, size_t, char const *)
 	PERR("Not implemented");
 	throw Io_error();
 }
+
