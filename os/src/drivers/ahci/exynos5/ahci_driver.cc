@@ -277,26 +277,27 @@ struct Fis
 		void fpdma_queued(bool w, uint64_t block_nr,
 		                  uint16_t block_cnt, unsigned tag)
 		{
+			_init();
+			_cmd_h2d();
+			_feature(block_cnt);
+			_lba(block_nr);
+
 			struct Count : Register<16>
 			{
 				struct Tag : Bitfield<3, 5> { };
 			};
 			Count::access_t cnt = 0;
 			Count::Tag::set(cnt, tag);
-
-			struct Device : Register<8>
-			{
-				struct Fua : Bitfield<7, 1> { };
-			};
-			Device::access_t dev = 0x40;
-
-			_init();
-			_cmd_h2d();
-			_feature(block_cnt);
-			_lba(block_nr);
 			_count(cnt);
 
 			byte[2] = w ? 0x61 : 0x60; /* command */
+
+			struct Device : Register<8>
+			{
+				struct Lba_mode : Bitfield<6, 1> { };
+			};
+			Device::access_t dev = byte[7];
+			Device::Lba_mode::set(dev, 1);
 			byte[7] = dev;
 		}
 
@@ -312,21 +313,20 @@ struct Fis
 			_reg_h2d();
 			_obsolete_device();
 
+			struct Flags : Register<8>
+			{
+				struct Pmp : Bitfield<0, 4> { };  /* port multiplier port */
+			};
+			Flags::access_t flags = byte[1];
+			Flags::Pmp::set(flags, pmp);
+			byte[1] = flags;
+
 			struct Control : Register<8>
 			{
 				struct Softreset : Bitfield<2, 1> { };
 			};
 			Control::access_t ctl = byte[15];
 			Control::Softreset::set(ctl, !second);
-
-			struct Flags : Register<8>
-			{
-				struct Pmp : Bitfield<0, 4> { };  /* port multiplier port */
-			};
-			Flags::access_t flags = 0;
-			Flags::Pmp::set(flags, pmp);
-
-			byte[1]  = flags;
 			byte[15] = ctl;
 		}
 
@@ -528,6 +528,12 @@ struct Sata_ahci : Attached_mmio
 		PIO_SETUP_FIS_OFFSET = 0x20,
 	};
 
+	/* debouncing settings */
+	enum {
+		FAST_DBC_TRIAL_US = 5000,
+		SLOW_DBC_TRIAL_US = 25000,
+	};
+
 	/* modes when doing 'set features' with feature 'set transfer mode' */
 	enum { UDMA_133 = 0x46, };
 
@@ -627,9 +633,11 @@ struct Sata_ahci : Attached_mmio
 	{
 		struct Err_c  : Bitfield<9, 1> { };
 		struct Err_p  : Bitfield<10, 1> { };
+		struct Diag_n : Bitfield<16, 1> { };
 		struct Diag_b : Bitfield<19, 1> { };
 		struct Diag_c : Bitfield<21, 1> { };
 		struct Diag_h : Bitfield<22, 1> { };
+		struct Diag_x : Bitfield<26, 1> { };
 	};
 	struct P0sact : Register<0x134, 32, 1> { };
 	struct P0ci   : Register<0x138, 32, 1> { };
@@ -638,9 +646,11 @@ struct Sata_ahci : Attached_mmio
 		struct Pmn : Bitfield<0, 16> { };
 	};
 
-	Irq_connection       irq;     /* port 0 IRQ */
-	uint64_t             block_cnt;
-	Dataspace_capability ds;      /* working DMA */
+	/* device settings */
+	uint64_t block_cnt;
+
+	/* working-DMA structure */
+	Dataspace_capability ds;
 	addr_t               cl_phys; /* command list */
 	addr_t               cl_virt;
 	addr_t               fb_phys; /* FIS receive area */
@@ -648,18 +658,32 @@ struct Sata_ahci : Attached_mmio
 	addr_t               ct_phys; /* command table */
 	addr_t               ct_virt;
 
+	/* debouncing settings */
+	unsigned dbc_trial_us;
+	unsigned dbc_trials;
+	unsigned dbc_stable_trials;
+
+	/* port 0 settings */
+	unsigned       p0_speed_limit;
+	Irq_connection p0_irq;
+
 	/**
 	 * Constructor
 	 */
 	Sata_ahci()
 	: Attached_mmio(0x122f0000, 0x10000),
-	  irq(147), ds(env()->ram_session()->alloc(0x20000, 0)),
+	  ds(env()->ram_session()->alloc(0x20000, 0)),
 	  cl_phys(Dataspace_client(ds).phys_addr()),
 	  cl_virt(env()->rm_session()->attach(ds)),
 	  fb_phys(cl_phys + CMD_LIST_SIZE),
 	  fb_virt(cl_virt + CMD_LIST_SIZE),
 	  ct_phys(fb_phys + FIS_AREA_SIZE),
-	  ct_virt(fb_virt + FIS_AREA_SIZE)
+	  ct_virt(fb_virt + FIS_AREA_SIZE),
+	  dbc_trial_us(FAST_DBC_TRIAL_US),
+	  dbc_trials(50),
+	  dbc_stable_trials(5),
+	  p0_speed_limit(0),
+	  p0_irq(147)
 	{ }
 
 	/**
@@ -684,21 +708,20 @@ struct Sata_ahci : Attached_mmio
 	{
 		/* ack interrupt states */
 		P0is::access_t p0is = p0_clear_irqs();
-		if (P0is::Sdbs::bits(1) == p0is) return 0;
+		if (p0is == P0is::Sdbs::bits(1)) return 0;
+		if (p0is == P0is::Dhrs::bits(1)) return 0;
 
 		/* interpret P0IS */
-		bool if_error, fatal;
+		bool interface_err = 0;
+		bool fatal         = 0;
 		if (P0is::Ifs::get(p0is)) {
-			if_error = 1;
+			interface_err = 1;
 			fatal = 1;
-		} else if (P0is::Infs::get(p0is)) {
-			if_error = 1;
-			fatal = 0;
-		} else if_error = 0;
+		} else if (P0is::Infs::get(p0is)) interface_err = 1;
 
 		/* analyse P0SERR if there's an interface error */
-		if (if_error) {
-			printf("%s ", fatal ? "Fatal" : "Non-fatal");
+		if (interface_err) {
+			if (fatal) printf("fatal ");
 			P0serr::access_t p0serr = p0_clear_errors();
 			if (P0serr::Diag_b::get(p0serr)) {
 				printf("10 B to 8 B decode error\n");
@@ -723,7 +746,7 @@ struct Sata_ahci : Attached_mmio
 			printf("unknown interface error\n");
 			return -6;
 		}
-		printf("Unknown error (P0is 0x%x)\n", p0is);
+		printf("unknown error (P0IS 0x%x)\n", p0is);
 		return -7;
 	}
 
@@ -872,7 +895,7 @@ struct Sata_ahci : Attached_mmio
 	{
 		typedef typename P0IS_BIT::Bitfield_base P0is_bit;
 		write<P0ci>(1 << tag);
-		irq.wait_for_irq();
+		p0_irq.wait_for_irq();
 		if (!read<Is::Ips>()) {
 			PERR("ATA0 no IRQ raised");
 			return -1;
@@ -1004,8 +1027,12 @@ struct Sata_ahci : Attached_mmio
 
 	/**
 	 * Wether the port 0 device hides blocks via the HPA feature
+	 *
+	 * \retval  1  hides blocks
+	 * \retval  0  doesn't hide blocks
+	 * \retval -1  failed to determine
 	 */
-	bool p0_hides_blocks()
+	int p0_hides_blocks()
 	{
 		/* do command 'read native max addr' */
 		unsigned tag = 31;
@@ -1277,51 +1304,7 @@ struct Sata_ahci : Attached_mmio
 		fis->clear_d2h_rx();
 
 		if (p0_hard_reset()) return -1;
-
-		/* try fast debouncing without speed limit first */
-		enum {
-			FAST_DBC_TRIAL_US = 5000,
-			SLOW_DBC_TRIAL_US = 25000,
-		};
-		unsigned dbc_trial_us      = FAST_DBC_TRIAL_US;
-		unsigned dbc_trials        = 50;
-		unsigned dbc_stable_trials = 10;
-		unsigned p0_speed_limit    = 0;
-		while (p0_debounce(dbc_trials, dbc_trial_us, dbc_stable_trials))
-		{
-			/* recover from debouncing error */
-			p0_clear_errors();
-			delayer()->usleep(10000);
-			if (read<Is>()) {
-				p0_clear_irqs();
-				write<Is>(read<Is>());
-			}
-			if (read<P0serr>()) {
-				PERR("PORT0 failed to recover from debouncing error");
-				return -1;
-			}
-
-			/*
-			 * FIXME
-			 * Linux cleared D2H FIS again at this point but it seemed not
-			 * to be necessary as all works fine without.
-			 */
-
-			/* try to lower settings for debouncing */
-			if (dbc_trial_us == SLOW_DBC_TRIAL_US && p0_speed_limit == 1) {
-				PERR("PORT0 debouncing failed with lowest settings");
-				return -1;
-			} else if (dbc_trial_us == SLOW_DBC_TRIAL_US) {
-				printf("PORT0 lower link speed and retry debouncing\n");
-				p0_speed_limit = 1;
-				if (p0_hard_reset(1, p0_speed_limit)) return -1;
-			} else {
-				printf("PORT0 retry debouncing slower\n");
-				dbc_trial_us = SLOW_DBC_TRIAL_US;
-				if (p0_hard_reset()) return -1;
-			}
-		}
-		p0_clear_errors();
+		if (p0_dynamic_debounce()) return -1;
 
 		/* check if device is ready */
 		if (!wait_for<P0tfd::Sts_bsy>(0, *delayer())) {
@@ -1395,7 +1378,7 @@ struct Sata_ahci : Attached_mmio
 	}
 
 	/**
-	 * Do a NCQ command and wait until it is finished
+	 * Do a NCQ command, wait until it is finished, and end it
 	 *
 	 * \param block_nr   logical block address (LBA) of first block
 	 * \param block_cnt  blocks to transfer
@@ -1403,62 +1386,47 @@ struct Sata_ahci : Attached_mmio
 	 * \param w          1: write 0: read
 	 *
 	 * \retval  0  call was successful
-	 * \retval <0  call failed, error code
+	 * \retval -1  call failed, unrecoverable error
+	 * \retval -2  call failed, error recovered, retry possible
 	 */
 	int ncq_command(size_t block_nr, size_t block_cnt, addr_t phys, bool w)
 	{
-		/* set up FIS */
+		/* set up command table entry */
 		unsigned tag = 0;
 		Fis * fis = (Fis *)(ct_virt + tag * CMD_TABLE_SIZE);
 		fis->fpdma_queued(w, block_nr, block_cnt, tag);
 
 		/* set up scatter/gather list */
-		unsigned bytes = block_cnt * BLOCK_SIZE;
-		addr_t   prd   = ct_virt + tag * CMD_TABLE_SIZE +
-		                 CMD_TABLE_HEAD_SIZE;
-		unsigned prdtl = 0;
-		addr_t   seek  = phys;
-		while (1) {
-			if (bytes > BYTES_PER_PRD) {
-				write_prd(prd, seek, BYTES_PER_PRD);
-				seek  += BYTES_PER_PRD;
-				bytes -= BYTES_PER_PRD;
-				prd   += PRD_SIZE;
-				prdtl++;
-			} else {
-				if (bytes) {
-					write_prd(prd, seek, bytes);
-					seek  += bytes;
-					bytes -= 0;
-					prdtl++;
-				}
-				break;
-			}
-			if (prdtl == 0xff) {
-				PERR("Not enough PRDs available");
-				return -1;
-			}
+		addr_t prd_list = ct_virt + tag * CMD_TABLE_SIZE + CMD_TABLE_HEAD_SIZE;
+		uint8_t prdtl = 0;
+		if (write_prd_list(prd_list, phys, block_cnt, prdtl)) {
+			PERR("failed to set up scatter/gather list");
+			return -1;
 		}
-		/* set up command slot */
+		/* set up command list entry */
 		addr_t cmd_slot  = cl_virt + tag * CMD_SLOT_SIZE;
 		addr_t cmd_table = ct_phys + tag * CMD_TABLE_SIZE;
-		write_cmd_slot(cmd_slot, cmd_table, true, false, 0, prdtl);
+		write_cmd_slot(cmd_slot, cmd_table, w, 0, 0, prdtl);
 
 		/* issue command and wait for completion */
 		write<P0sact>(1 << tag);
 		write<P0ci>(1 << tag);
-		irq.wait_for_irq();
+		p0_irq.wait_for_irq();
 
 		/* check command results */
 		if (!read<Is::Ips>()) {
 			PERR("ATA0 no IRQ raised");
 			return -1;
 		}
-		if (p0_interpret_irqs()) return -1;
+		if (p0_interpret_irqs()) {
+			if (VERBOSE) printf("ATA0 recover from NCQ error\n");
+			if (p0_error_recovery()) return -1;
+			return -2;
+		}
 		P0sntf::access_t pmn = read<P0sntf::Pmn>();
 		if (pmn) {
 			write<P0sntf::Pmn>(pmn);
-			PERR("ATA0 PM notify after NCQ command");
+			PERR("ATA0 PM notification after NCQ command");
 			return -1;
 		}
 		if (read<P0sact>()) {
@@ -1468,6 +1436,195 @@ struct Sata_ahci : Attached_mmio
 		/* end command */
 		write<Is::Ips>(1);
 		return 0;
+	}
+
+	/**
+	 * Try debouncing, if it fails lower settings one by one till it succeeds
+	 *
+	 * \retval  0  debouncing succeeded with settings stored in member vars
+	 * \retval -1  failed to do successful debouncing
+	 */
+	int p0_dynamic_debounce()
+	{
+		/* try debouncing with presettings first */
+		while (p0_debounce(dbc_trials, dbc_trial_us, dbc_stable_trials))
+		{
+			/* recover from debouncing error */
+			p0_clear_errors();
+			delayer()->usleep(10000);
+			if (read<Is>()) {
+				p0_clear_irqs();
+				write<Is>(read<Is>());
+			}
+			if (read<P0serr>()) {
+				PERR("PORT0 failed to recover from debouncing error %x", read<P0serr>());
+				return -1;
+			}
+
+			/*
+			 * FIXME
+			 * Linux cleared D2H FIS again at this point but it seemed not
+			 * to be necessary as all works fine without.
+			 */
+
+			/* try to lower settings and retry debouncing */
+			if (dbc_trial_us == SLOW_DBC_TRIAL_US && p0_speed_limit == 1) {
+				PERR("PORT0 debouncing failed with lowest settings");
+				return -1;
+			} else if (dbc_trial_us == SLOW_DBC_TRIAL_US) {
+				printf("PORT0 lower link speed and retry debouncing\n");
+				p0_speed_limit = 1;
+				if (p0_hard_reset(1, p0_speed_limit)) return -1;
+			} else {
+				printf("PORT0 retry debouncing slower\n");
+				dbc_trial_us = SLOW_DBC_TRIAL_US;
+				if (p0_hard_reset()) return -1;
+			}
+		}
+		p0_clear_errors();
+		return 0;
+	}
+
+	/**
+	 * Rescue port 0 from an error that occured after port initialization
+	 *
+	 * \retval  0  call was successful
+	 * \retval <0  call failed, error code
+	 *
+	 * FIXME
+	 * This function is merely a trimmed version of 'p0_init' to keep
+	 * implementation costs low. Implement specialized methods to speed up
+	 * recovery.
+	 */
+	int p0_error_recovery()
+	{
+		/* disable command processing and FIS reception */
+		p0_disable_cmd_processing();
+		write<P0cmd::Fre>(0);
+		if (!wait_for<P0cmd::Fr>(0, *delayer(), 500, 1000)) {
+			PERR("PORT0 failed to stop FIS reception");
+			return -1;
+		}
+		/* clear all S-errors and interrupts */
+		p0_clear_errors();
+		write<P0is>(read<P0is>());
+		write<Is::Ips>(1);
+
+		/* activate */
+		write<Ghc::Ie>(1);
+		read<Ghc>();
+		P0cmd::access_t p0cmd = read<P0cmd>();
+		P0cmd::Sud::set(p0cmd, 1);
+		P0cmd::Pod::set(p0cmd, 1);
+		P0cmd::Icc::set(p0cmd, 1);
+		write<P0cmd>(p0cmd);
+
+		/* set up command-list- and FIS-DMA */
+		write<P0clb>(P0clb::Clb::masked(cl_phys));
+		write<P0fb>(P0fb::Fb::masked(fb_phys));
+
+		/* enable FIS reception and command processing */
+		write<P0cmd::Fre>(1);
+		read<P0cmd>();
+		p0_enable_cmd_processing();
+
+		/* disable port multiplier */
+		write<P0cmd::Pma>(0);
+
+		/* freeze AHCI */
+		p0_disable_irqs();
+		p0_disable_cmd_processing();
+
+		/* clear D2H receive area */
+		Fis * fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
+		fis->clear_d2h_rx();
+
+		if (p0_hard_reset()) return -1;
+		if (p0_dynamic_debounce()) return -1;
+
+		/* check if device is ready */
+		if (!wait_for<P0tfd::Sts_bsy>(0, *delayer())) {
+			PERR("PORT0 device not ready");
+			return -1;
+		}
+		p0_enable_cmd_processing();
+
+		if (p0_soft_reset()) return -1;
+		p0_enable_irqs();
+		p0_clear_errors();
+
+		/* set ATAPI bit appropriatly */
+		write<P0cmd::Atapi>(0);
+		read<P0cmd>(); /* flush */
+
+		/*
+		 * In contrast to 'p0_init' don't check static port parameters
+		 * like speed and device type at this point.
+		 */
+
+		/* check PM state of device */
+		P0ssts::access_t p0ssts = read<P0ssts>();
+		if (P0ssts::Ipm::get(p0ssts) != 1) {
+			PERR("PORT0 device not in active PM state");
+			return -1;
+		}
+
+		/*
+		 * In contrast to 'p0_init' don't check static device parameters
+		 * like device ID and native max address at this point.
+		 */
+
+		/*
+		 * FIXME
+		 * At this point Linux normally reads out the parameters of the
+		 * SATA DevSlp feature but the values are used only when it comes
+		 * to LPM wich wasn't needed at all in our use cases. Look for
+		 * 'ata_dev_configure' and 'ATA_LOG_DEVSLP_*' in Linux if you want 
+		 * to add this feature.
+		 */
+
+		/* In contrast to 'p0_init' don't set transfer mode at this point */
+
+		if (p0_clear_errors()) {
+			PERR("ATA0 errors after initialization");
+			return -1;
+		}
+		delayer()->usleep(10000);
+		return 0;
+	}
+
+	/**
+	 * Set up scatter/gather list for contiguous DMA
+	 *
+	 * \param list   virtual base of scatter/gather list
+	 * \param phys   physical base of DMA
+	 * \param cnt    DMA size in blocks
+	 * \param prdtl  gets overridden with list size in PRDs
+	 *
+	 * \return  size of DMA tail not written to the list due to size limit
+	 */
+	size_t write_prd_list(addr_t list, addr_t phys,
+	                      unsigned cnt, uint8_t & prdtl)
+	{
+		unsigned bytes = cnt * BLOCK_SIZE;
+		addr_t   prd   = list;
+		addr_t   seek  = phys;
+		while (1) {
+			if (bytes > BYTES_PER_PRD) {
+				write_prd(prd, seek, BYTES_PER_PRD);
+				seek  += BYTES_PER_PRD;
+				bytes -= BYTES_PER_PRD;
+				prd   += PRD_SIZE;
+				prdtl++;
+				if (prdtl == 0xff) return bytes;
+			} else {
+				if (bytes) {
+					write_prd(prd, seek, bytes);
+					prdtl++;
+				}
+				return 0;
+			}
+		}
 	}
 };
 
@@ -1787,8 +1944,11 @@ int Ahci_driver::_ncq_command(size_t const block_nr, size_t const block_cnt,
 		return -1;
 	}
 
-	/* hardware */
-	return sata_ahci()->ncq_command(block_nr, block_cnt, phys, w);
+	/* try multiple times to access the hardware */
+	int result = -2;
+	for (unsigned i = 0; result == -2 && i < 10; i++)
+		result = sata_ahci()->ncq_command(block_nr, block_cnt, phys, w);
+	return result;
 }
 
 size_t Ahci_driver::block_count() { return sata_ahci()->block_cnt; }
