@@ -132,9 +132,8 @@ void Ata::Device::read_capacity()
 		}
 	}
 
-	if (verbose)
-		PDBG("First block: %u last block %u, block size %u",
-		     _block_start, _block_end, _block_size);
+	PINF("First block: %u last block %u, block size %u",
+	     _block_start, _block_end, _block_size);
 }
 
 

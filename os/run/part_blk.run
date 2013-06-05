@@ -1,6 +1,15 @@
+#
+# \brief  Test of Block session interface provided by server/part_blk
+#
+
+if {![have_spec x86] || ![is_qemu_available]} {
+	puts "Run script is only supported on x86 and Qemu"; exit 0 }
+
+set block_count 20480
+
 if { [file exists ata.raw] == 0 } then {
 	# create empty block device file
-	catch { exec dd if=/dev/zero of=ata.raw bs=512 count=20480 }
+	catch { exec dd if=/dev/zero of=ata.raw bs=512 count=$block_count }
 	# create to tro primary partitions (one is extented) and two logical paritions
 	puts "using sfdisk to partition disk image, requires root privileges"
 	catch { exec echo "2048,4096,c\n4096,16386,5\n0,0\n0,0\n6144,4096,c\n12288,8192,c\n" | sudo sfdisk -uS -f ata.raw }
@@ -151,6 +160,14 @@ append_if $use_atapi_drv   qemu_args " -boot d -hda ata.raw "
 append_if $use_sd_card_drv qemu_args " -drive file=ata.raw,if=sd "
 
 run_genode_until "Success.*\n.*Success.*\n" 10
+
+# Check whether atapi_drv reports the right start and end sectors
+set sector_range [regexp -inline {First block: [0-9]+ last block [0-9]+} $output]
+set sector_range [regexp -all -inline {[0-9]+} $sector_range]
+if {[lindex $sector_range 0] != 0 || [lindex $sector_range 1] != [expr $block_count - 1]} {
+	puts "Error: block range mismatch, expected \[0-$block_count), got \[[lindex $sector_range 0]-[lindex $sector_range 1])"
+	exit 1
+}
 
 grep_output {^\[init -> test-part}
 unify_output {[0-9]} "x"
