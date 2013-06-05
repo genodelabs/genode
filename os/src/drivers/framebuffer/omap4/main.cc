@@ -109,11 +109,7 @@ int main(int, char **)
 			output = Driver::OUTPUT_LCD;
 		}
 	}
-	catch (Genode::Xml_node::Nonexistent_attribute) {
-		PERR("incorrect configuration, aborting");
-		throw Root::Invalid_args();
-	}
-	catch (Genode::Xml_node::Nonexistent_sub_node) {
+	catch (...) {
 		PDBG("using default configuration: HDMI@%dx%d", width, height);
 	}
 
