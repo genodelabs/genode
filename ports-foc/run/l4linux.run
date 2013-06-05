@@ -50,7 +50,10 @@ set config  {
 	</start>
 	<start name="kdb_uart_drv">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Terminal"/></provides>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
 		<config><policy label="l4linux" uart="0"/></config>
 	</start> }
 
@@ -93,8 +96,8 @@ append_if $use_usb_driver config {
 			<service name="Nic"/>
 			<service name="Input"/>
 		</provides>
-		<config uhci="yes" ehci="yes" xhci="yes">
-			<nic />
+		<config uhci="yes" ehci="yes">
+			<nic mac="2e:60:90:0c:4e:01"/>
 			<hid />
 		</config>
 	</start>}
