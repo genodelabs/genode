@@ -311,7 +311,8 @@ int main(int argc, char **argv)
 	redraw.root(&fb_win);
 
 	fb_win.parent(&user_state);
-	fb_win.format(fb_win.min_w(), fb_win.min_h());
+	fb_win.content_geometry(config_fb_x, config_fb_y,
+	                        config_fb_width, config_fb_height);
 
 	/* initialize server entry point */
 	enum { STACK_SIZE = 2*1024*sizeof(addr_t) };
