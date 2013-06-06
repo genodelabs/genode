@@ -52,7 +52,7 @@ static void *setup_stack(const char *name, long fd)
 	         (char*)fd,
 	         (char*)AT_NULL,                //AT terminator
 	};
-	
+
 	void *sp = malloc(sizeof(sp_argc) + sizeof(sp_argv) + (env_count * sizeof(long))
 	                  + sizeof(sp_at));
 	void *sp_tmp = sp;
@@ -88,6 +88,8 @@ int main(int argc, char **argv)
 	void *sp =  setup_stack(binary, (long)fd);
 
 	printf("Starting ldso ...\n");
+
+	/* this is usually '_start' */
 	func_ptr_type main_func = _rtld(sp, &exit_proc, &objp);
 
 	/* DEBUGGING
@@ -97,11 +99,11 @@ int main(int argc, char **argv)
 	*/
 	/* start loaded application */
 	printf("Starting application ... environ: %p\n", lx_environ);
-	
+
 	call_main(main_func);
 
 	exit_proc();
-	
+
 	printf("Exiting ldso\n");
 	return 0;
 }

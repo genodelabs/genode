@@ -19,11 +19,9 @@
 #include <linux_syscalls.h>
 
 /*
- * Define 'lx_environ' pointer that is supposed to be initialized by the
- * startup code.
+ * Define 'lx_environ' pointer.
  */
-__attribute__((weak)) char **lx_environ = (char **)0;
-
+char **lx_environ;
 
 
 /**
@@ -35,6 +33,20 @@ int main_thread_futex_counter __attribute__((aligned(sizeof(Genode::addr_t))));
 static inline void main_thread_bootstrap()
 {
 	using namespace Genode;
+
+	extern Genode::addr_t *__initial_sp;
+
+	/*
+	 * Initialize the 'lx_environ' pointer
+	 *
+	 * environ = &argv[argc + 1]
+	 * __initial_sp[0] = argc (always 1 in Genode)
+	 * __initial_sp[1] = argv[0]
+	 * __initial_sp[2] = NULL
+	 * __initial_sp[3] = environ
+	 *
+	 */
+	lx_environ = (char**)&__initial_sp[3];
 
 	/* reserve context area */
 	Genode::addr_t base = Native_config::context_area_virtual_base();

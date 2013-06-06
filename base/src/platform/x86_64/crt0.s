@@ -36,17 +36,8 @@ _start:
 	.ascii "_main() returned."
 2:	jmp  1b
 
-
-/*--------------------------------------------------*/
-	.data
-	.p2align 8
 	.globl	__dso_handle
-__dso_handle:
-	.quad	0
-
-	.globl	__initial_sp
-__initial_sp:
-	.quad	0
+__dso_handle: .quad 0
 
 /*--- .eh_frame (exception frames) -----------------*/
 /*
@@ -63,3 +54,7 @@ _stack_low:
 	.space	64*1024
 	.global	_stack_high
 _stack_high:
+
+	/* initial value of the RSP register */
+	.globl	__initial_sp
+__initial_sp: .space 8

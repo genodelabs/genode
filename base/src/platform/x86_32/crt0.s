@@ -33,16 +33,8 @@ _start:
 	.ascii "_main() returned."
 2:	jmp  1b
 
-
-/*--------------------------------------------------*/
-	.data
 	.globl	__dso_handle
-__dso_handle:
-	.long	0
-
-	.globl	__initial_sp
-__initial_sp:
-	.long	0
+__dso_handle: .long 0
 
 /*--- .eh_frame (exception frames) -----------------*/
 /*
@@ -59,3 +51,7 @@ _stack_low:
 	.space	64*1024
 	.global	_stack_high
 _stack_high:
+
+	/* initial value of the ESP register */
+	.globl	__initial_sp
+__initial_sp: .space 4

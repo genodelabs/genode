@@ -26,15 +26,8 @@ _start:
 .initial_sp: .word __initial_sp
 .stack_high: .word _stack_high
 
-/*--------------------------------------------------*/
-        .data
 	.globl	__dso_handle
-__dso_handle:
-	.long	0
-
-	.globl  __initial_sp
-__initial_sp:
-	.long   0
+__dso_handle: .long 0
 
 /*--- .bss (non-initialized data) ------------------*/
 .section ".bss"
@@ -46,10 +39,6 @@ _stack_low:
 	.globl	_stack_high
 _stack_high:
 
-	/*
-	 * Symbol referenced by ldso's crt0.s, which is needed by base-hw only.
-	 * It is defined here merely to resolve the symbol for non-base-hw
-	 * platforms.
-	 */
-	 .globl _main_utcb
-	_main_utcb: .long 0
+	/* initial value of the SP register */
+	.globl  __initial_sp
+__initial_sp: .space 4

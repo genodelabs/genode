@@ -13,9 +13,9 @@
 #ifndef _X86_32__CALL_MAIN_H_
 #define _X86_32__CALL_MAIN_H_
 
-	/**
-	 * Restore SP from initial sp and jump to entry function
-	 */
+/**
+ * Restore SP from initial sp and jump to entry function
+ */
 void call_main(void (*func)(void))
 {
 	extern long __initial_sp;

@@ -17,9 +17,6 @@
 	.globl _start_ldso
 _start_ldso:
 
-	ldr r2, .initial_utcb
-	str r0, [r2]
-
 	ldr r2, .initial_sp
 	str sp, [r2]
 
@@ -29,5 +26,4 @@ _start_ldso:
 
 	.initial_sp:   .word __initial_sp
 	.stack_high:   .word _stack_high
-	.initial_utcb: .word _main_utcb
 
