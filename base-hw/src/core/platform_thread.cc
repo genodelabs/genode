@@ -28,7 +28,7 @@ bool Platform_thread::_attaches_utcb_by_itself()
 	 * virtual context area by itself, as it is done for other threads
 	 * through a sub RM-session.
 	 */
-	return _pd_id == Kernel::core_id() || !_main_thread;
+	return _pd_id == Kernel::core_id() || !main_thread();
 }
 
 

@@ -848,18 +848,38 @@ namespace Kernel
 			{ }
 
 			/**
+			 * Prepare thread to get scheduled the first time
+			 *
+			 * \param ip         initial instruction pointer
+			 * \param sp         initial stack pointer
+			 * \param cpu_id     target cpu
+			 * \param pd_id      target protection-domain
+			 * \param utcb_phys  physical UTCB pointer
+			 * \param utcb_virt  virtual UTCB pointer
+			 */
+			void prepare_to_start(void * const        ip,
+			                      void * const        sp,
+			                      unsigned const      cpu_id,
+			                      unsigned const      pd_id,
+			                      Native_utcb * const utcb_phys,
+			                      Native_utcb * const utcb_virt);
+
+			/**
 			 * Start this thread
 			 *
-			 * \param ip      instruction pointer to start at
-			 * \param sp      stack pointer to use
-			 * \param cpu_no  target cpu
-			 *
-			 * \retval  0  successful
-			 * \retval -1  thread could not be started
+			 * \param ip         initial instruction pointer
+			 * \param sp         initial stack pointer
+			 * \param cpu_id     target cpu
+			 * \param pd_id      target protection-domain
+			 * \param utcb_phys  physical UTCB pointer
+			 * \param utcb_virt  virtual UTCB pointer
 			 */
-			int start(void *ip, void *sp, unsigned cpu_no,
-			          unsigned const pd_id, Native_utcb * const phys_utcb,
-			          Native_utcb * const virt_utcb);
+			void start(void * const        ip,
+			           void * const        sp,
+			           unsigned const      cpu_id,
+			           unsigned const      pd_id,
+			           Native_utcb * const utcb_phys,
+			           Native_utcb * const utcb_virt);
 
 			/**
 			 * Pause this thread
@@ -890,16 +910,6 @@ namespace Kernel
 			 * Reply to the last request
 			 */
 			void reply(size_t const size, bool const await_request);
-
-			/**
-			 * Initialize our execution context
-			 *
-			 * \param ip     instruction pointer
-			 * \param sp     stack pointer
-			 * \param pd_id  identifies protection domain we're assigned to
-			 */
-			void init_context(void * const ip, void * const sp,
-			                  unsigned const pd_id);
 
 			/**
 			 * Handle a pagefault that originates from this thread

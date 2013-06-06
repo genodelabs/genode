@@ -19,8 +19,8 @@
 	_start:
 
 		/* fetch thread-entry arguments to their destinations in BSS */
-		ldr r1, =_main_utcb
-		str r0, [r1]
+		ldr r0, =_main_utcb
+		str sp, [r0]
 
 		/* call _main routine */
 		ldr sp, =_stack_high

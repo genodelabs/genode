@@ -766,7 +766,15 @@ namespace Kernel
 			/* initialize idle thread */
 			void * sp;
 			sp = (void *)&idle_stack[sizeof(idle_stack)/sizeof(idle_stack[0])];
-			idle.init_context((void *)&idle_main, sp, core_id());
+
+			/*
+			 * Idle doesn't use its UTCB pointer, thus
+			 * utcb_phys = utcb_virt = 0 is save.
+			 * Base-hw doesn't support multiple cores, thus
+			 * cpu_no = 0 is ok. We don't use 'start' to avoid
+			 * recursive call of'cpu_scheduler'.
+			 */
+			idle.prepare_to_start((void *)&idle_main, sp, 0, core_id(), 0, 0);
 			initial = 0;
 		}
 		/* create scheduler with a permanent idle thread */
@@ -929,8 +937,7 @@ namespace Kernel
 		assert(t);
 
 		/* start thread */
-		assert(!t->start(ip, sp, cpu, pt->pd_id(),
-		                 pt->phys_utcb(), pt->virt_utcb()))
+		t->start(ip, sp, cpu, pt->pd_id(), pt->phys_utcb(), pt->virt_utcb());
 
 		/* return software TLB that the thread is assigned to */
 		Pd::Pool * const pp = Pd::pool();
@@ -1529,42 +1536,49 @@ int Kernel::Thread::resume()
 }
 
 
-int Thread::start(void *ip, void *sp, unsigned cpu_no,
-                         unsigned const pd_id,
-                         Native_utcb * const phys_utcb,
-                         Native_utcb * const virt_utcb)
+void Thread::prepare_to_start(void * const        ip,
+                              void * const        sp,
+                              unsigned const      cpu_id,
+                              unsigned const      pd_id,
+                              Native_utcb * const utcb_phys,
+                              Native_utcb * const utcb_virt)
 {
 	/* check state and arguments */
 	assert(_state == AWAIT_START)
-	assert(!cpu_no);
+	assert(!cpu_id);
 
-	/* apply thread configuration */
-	init_context(ip, sp, pd_id);
-	_phys_utcb = phys_utcb;
-	_virt_utcb = virt_utcb;
+	/* store thread parameters */
+	_phys_utcb = utcb_phys;
+	_virt_utcb = utcb_virt;
+	_pd_id     = pd_id;
 
-	/* offer thread-entry arguments */
-	user_arg_0((unsigned)_virt_utcb);
+	/* join a protection domain */
+	Pd * const pd = Pd::pool()->object(_pd_id);
+	assert(pd)
+	addr_t const tlb = pd->tlb()->base();
 
-	/* start thread */
-	_schedule();
-	return 0;
+	/* initialize CPU context */
+	if (!_platform_thread)
+		/* this is the main thread of core */
+		User_context::init_core_main_thread(ip, sp, tlb, pd_id);
+	else if (!_platform_thread->main_thread())
+		/* this is not a main thread */
+		User_context::init_thread(ip, sp, tlb, pd_id);
+	else
+		/* this is the main thread of a program other than core */
+		User_context::init_main_thread(ip, _virt_utcb, tlb, pd_id);
 }
 
 
-void Thread::init_context(void * const instr_p, void * const stack_p,
-                                  unsigned const pd_id)
+void Thread::start(void * const        ip,
+                   void * const        sp,
+                   unsigned const      cpu_id,
+                   unsigned const      pd_id,
+                   Native_utcb * const utcb_phys,
+                   Native_utcb * const utcb_virt)
 {
-	/* basic thread state */
-	sp = (addr_t)stack_p;
-	ip = (addr_t)instr_p;
-
-	/* join a pd */
-	_pd_id = pd_id;
-	Pd * const pd = Pd::pool()->object(_pd_id);
-	assert(pd)
-	protection_domain(pd_id);
-	tlb(pd->tlb()->base());
+	prepare_to_start(ip, sp, cpu_id, pd_id, utcb_phys, utcb_virt);
+	_schedule();
 }
 
 

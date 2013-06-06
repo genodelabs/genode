@@ -469,16 +469,6 @@ namespace Arm
 			uint32_t cidr;          /* context ID register backup */
 			uint32_t section_table; /* base address of applied section table */
 
-			/***************
-			 ** Accessors **
-			 ***************/
-
-			void tlb(addr_t const st) { section_table = st; }
-
-			addr_t tlb() const { return section_table; }
-
-			void protection_domain(unsigned const id) { cidr = id; }
-
 			/**
 			 * Copy CPU state data to 'c'
 			 */
@@ -524,6 +514,21 @@ namespace Arm
 				lr  = s->lr;
 				ip  = s->ip;
 			}
+
+			/**
+			 * Get base of assigned translation lookaside buffer
+			 */
+			addr_t tlb() const { return section_table; }
+
+			/**
+			 * Assign translation lookaside buffer
+			 */
+			void tlb(addr_t const st) { section_table = st; }
+
+			/**
+			 * Assign protection domain
+			 */
+			void protection_domain(unsigned const id) { cidr = id; }
 		};
 
 		/**
@@ -556,6 +561,62 @@ namespace Arm
 			unsigned user_arg_5() const { return r5; }
 			unsigned user_arg_6() const { return r6; }
 			unsigned user_arg_7() const { return r7; }
+
+			/**
+			 * Part of context init that is common for all types of threads
+			 */
+			void init_thread_common(void * const   instr_p,
+			                        addr_t const   tlb,
+			                        unsigned const pd_id)
+			{
+				ip = (addr_t)instr_p;
+				cidr = pd_id;
+				section_table = tlb;
+			}
+
+			/**
+			 * Init context of the first thread of core
+			 */
+			void init_core_main_thread(void * const   instr_p,
+			                           void * const   stack_p,
+			                           addr_t const   tlb,
+			                           unsigned const pd_id)
+			{
+				sp = (addr_t)stack_p;
+				init_thread_common(instr_p, tlb, pd_id);
+			}
+
+			/**
+			 * Init context of a thread that isn't first thread of a program
+			 */
+			void init_thread(void * const   instr_p,
+			                 void * const   stack_p,
+			                 addr_t const   tlb,
+			                 unsigned const pd_id)
+			{
+				sp = (addr_t)stack_p;
+				init_thread_common(instr_p, tlb, pd_id);
+			}
+
+			/**
+			 * Init context of the first thread of a program other than core
+			 */
+			void init_main_thread(void * const   instr_p,
+			                      void * const   utcb_virt,
+			                      addr_t const   tlb,
+			                      unsigned const pd_id)
+			{
+				/*
+				 * Normally threads receive their UTCB pointer through their
+				 * 'Thread_base' but the first thread of a program doesn't
+				 * have such object. Thus the kernel hands out the UTCB pointer
+				 * through the main threads initial CPU context. 'crt0.s' then
+				 * can save the received pointer to local mem before polluting
+				 * the CPU context.
+				 */
+				sp = (addr_t)utcb_virt;
+				init_thread_common(instr_p, tlb, pd_id);
+			}
 
 			/**
 			 * Check if a pagefault has occured due to a translation miss
