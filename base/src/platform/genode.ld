@@ -109,8 +109,10 @@ SECTIONS
 	} : rw
 
 	.bss : {
+		_bss_start = ALIGN(4);
 		*(.bss .bss.* .gnu.linkonce.b.* COMMON)
 	}
+	_bss_end = ALIGN(4);
 
 	/* end of program image -- must be after last section */
 	_prog_img_end = .;
