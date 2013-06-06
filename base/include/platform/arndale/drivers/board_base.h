@@ -38,6 +38,7 @@ namespace Genode
 			/* UART */
 			UART_2_MMIO_BASE = 0x12C20000,
 			UART_2_CLOCK     = 100000000,
+			UART_2_IRQ       = 85,
 
 			/* timer */
 			PWM_MMIO_BASE = 0x12dd0000,
