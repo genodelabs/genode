@@ -21,12 +21,15 @@ $(CONTRIB_DIR)/$(READLINE): clean-readline
 $(DOWNLOAD_DIR)/$(READLINE_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(READLINE_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(READLINE_URL_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(READLINE_TGZ).verified: $(DOWNLOAD_DIR)/$(READLINE_TGZ)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(READLINE_TGZ) $(DOWNLOAD_DIR)/$(READLINE_SIG) $(READLINE_KEY)
+	$(VERBOSE)touch $@
 
 READLINE_HEADERS := rlstdc.h rltypedefs.h keymaps.h tilde.h
 
-$(CONTRIB_DIR)/$(READLINE): $(DOWNLOAD_DIR)/$(READLINE_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(CONTRIB_DIR)/$(READLINE): $(DOWNLOAD_DIR)/$(READLINE_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	@# create symbolic links for public headers from contrib dir
 	$(VERBOSE)for i in $(READLINE_HEADERS); do \
 	  ln -sf ../../$(CONTRIB_DIR)/$(READLINE)/$$i include/readline/; done

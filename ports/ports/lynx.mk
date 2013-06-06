@@ -18,6 +18,8 @@ prepare:: $(CONTRIB_DIR)/$(LYNX)
 $(DOWNLOAD_DIR)/$(LYNX_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) -O $@ $(LYNX_URL) && touch $@
 	#$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LYNX_URL_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(LYNX_TGZ).verified: $(DOWNLOAD_DIR)/$(LYNX_TGZ)
 	#
 	# XXX The current source of the lynx tarball does not contain the signature
 	#     file. The official location contains the signature. Thus, upon
@@ -25,7 +27,8 @@ $(DOWNLOAD_DIR)/$(LYNX_TGZ):
 	#     enabled.
 	#
 	#$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(LYNX_TGZ) $(DOWNLOAD_DIR)/$(LYNX_SIG) $(LYNX_KEY)
+	$(VERBOSE)touch $@
 
-$(CONTRIB_DIR)/$(LYNX): $(DOWNLOAD_DIR)/$(LYNX_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(CONTRIB_DIR)/$(LYNX): $(DOWNLOAD_DIR)/$(LYNX_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/lynx/build.patch

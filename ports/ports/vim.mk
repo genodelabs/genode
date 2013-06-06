@@ -20,10 +20,13 @@ prepare:: $(CONTRIB_DIR)/$(VIM)
 #
 $(DOWNLOAD_DIR)/$(VIM_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(VIM_URL) && touch $@
-	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(VIM_TBZ2) $(VIM_MD5) md5
 
-$(CONTRIB_DIR)/$(VIM): $(DOWNLOAD_DIR)/$(VIM_TBZ2)
-	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR)
+$(DOWNLOAD_DIR)/$(VIM_TBZ2).verified: $(DOWNLOAD_DIR)/$(VIM_TBZ2)
+	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(VIM_TBZ2) $(VIM_MD5) md5
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(VIM): $(DOWNLOAD_DIR)/$(VIM_TBZ2).verified
+	$(VERBOSE)tar xfj $(<:.verified=) -C $(CONTRIB_DIR)
 	$(VERBOSE)mv $(CONTRIB_DIR)/vim73 $@ && touch $@
 	@#
 	@# Prevent configure script from breaking unconditionally

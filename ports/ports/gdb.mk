@@ -54,10 +54,13 @@ prepare:: $(CONTRIB_DIR)/$(GDB)/configure generated_files
 $(DOWNLOAD_DIR)/$(GDB_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_URL)/$(GDB_TBZ2) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_URL)/$(GDB_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GDB_TBZ2) $(DOWNLOAD_DIR)/$(GDB_SIG) $(GDB_KEY)
 
-$(CONTRIB_DIR)/$(GDB): $(DOWNLOAD_DIR)/$(GDB_TBZ2)
-	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR)
+$(DOWNLOAD_DIR)/$(GDB_TBZ2).verified: $(DOWNLOAD_DIR)/$(GDB_TBZ2)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GDB_TBZ2) $(DOWNLOAD_DIR)/$(GDB_SIG) $(GDB_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(GDB): $(DOWNLOAD_DIR)/$(GDB_TBZ2).verified
+	$(VERBOSE)tar xfj $(<:.verified=) -C $(CONTRIB_DIR)
 
 include ../tool/tool_chain_gdb_patches.inc
 

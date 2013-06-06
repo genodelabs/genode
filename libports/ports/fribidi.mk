@@ -25,14 +25,17 @@ $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL_SHA) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2).verified: $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2)
 	# XXX fribidi does NOT create a detached signature and thus the signature
 	# checking is useless !!! -- somebody should inform them
 	# see http://blog.terryburton.co.uk/2006/11/falling-into-trap-with-gpg.html
 	#$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(FRIBIDI_SHA) $(DOWNLOAD_DIR)/$(FRIBIDI_SHA_SIG) $(FRIBIDI_KEY)
 	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2) $(DOWNLOAD_DIR)/$(FRIBIDI_SHA) sha256
+	$(VERBOSE)touch $@
 
-$(CONTRIB_DIR)/$(FRIBIDI): $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2)
-	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@
+$(CONTRIB_DIR)/$(FRIBIDI): $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2).verified
+	$(VERBOSE)tar xfj $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
 FRIBIDI_INCLUDES = fribidi.h
 

@@ -19,10 +19,13 @@ $(CONTRIB_DIR)/$(LUA): clean-lua
 #
 $(DOWNLOAD_DIR)/$(LUA_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LUA_URL) && touch $@
-	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(LUA_TGZ) $(LUA_SHA) sha1
 
-$(CONTRIB_DIR)/$(LUA): $(DOWNLOAD_DIR)/$(LUA_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(LUA_TGZ).verified: $(DOWNLOAD_DIR)/$(LUA_TGZ)
+	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(LUA_TGZ) $(LUA_SHA) sha1
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(LUA): $(DOWNLOAD_DIR)/$(LUA_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
 LUA_INCLUDES = lua.h lauxlib.h luaconf.h lualib.h
 

@@ -26,10 +26,13 @@ $(CONTRIB_DIR)/$(MPC): clean-mpc
 $(DOWNLOAD_DIR)/$(MPC_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(MPC_TGZ) $(DOWNLOAD_DIR)/$(MPC_SIG) $(MPC_KEY)
 
-$(CONTRIB_DIR)/$(MPC): $(DOWNLOAD_DIR)/$(MPC_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(MPC_TGZ).verified: $(DOWNLOAD_DIR)/$(MPC_TGZ)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(MPC_TGZ) $(DOWNLOAD_DIR)/$(MPC_SIG) $(MPC_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(MPC): $(DOWNLOAD_DIR)/$(MPC_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
 include/mpc/mpc.h:
 	$(VERBOSE)mkdir -p $(dir $@)

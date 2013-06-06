@@ -20,8 +20,11 @@ prepare:: $(CONTRIB_DIR)/$(LIGHTTPD)
 $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIGHTTPD_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIGHTTPD_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ) $(DOWNLOAD_DIR)/$(LIGHTTPD_SIG) $(LIGHTTPD_KEY)
 
-$(CONTRIB_DIR)/$(LIGHTTPD): $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ).verified: $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ) $(DOWNLOAD_DIR)/$(LIGHTTPD_SIG) $(LIGHTTPD_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(LIGHTTPD): $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -N -p1 < src/app/lighttpd/disable_gethostbyaddr_fcntl.patch

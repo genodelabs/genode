@@ -25,10 +25,13 @@ $(CONTRIB_DIR)/$(SDL): clean-sdl
 $(DOWNLOAD_DIR)/$(SDL_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(SDL_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(SDL_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(SDL_TGZ) $(DOWNLOAD_DIR)/$(SDL_SIG) $(SDL_KEY)
 
-$(CONTRIB_DIR)/$(SDL): $(DOWNLOAD_DIR)/$(SDL_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(SDL_TGZ).verified: $(DOWNLOAD_DIR)/$(SDL_TGZ)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(SDL_TGZ) $(DOWNLOAD_DIR)/$(SDL_SIG) $(SDL_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(SDL): $(DOWNLOAD_DIR)/$(SDL_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)rm -f $@/include/SDL_config.h
 	$(VERBOSE)patch -p0 -i src/lib/sdl/SDL_video.patch
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(SDL) -p1 -i $(CURDIR)/src/lib/sdl/SDL_audio.patch

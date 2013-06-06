@@ -32,11 +32,14 @@ $(DOWNLOAD_DIR)/$(LIBAV_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL_SHA) && touch $@
 	#$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL_SIG) && touch $@
-	# XXX The following hash verification does not ensure authenticity
-	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(LIBAV_TGZ) $(DOWNLOAD_DIR)/$(LIBAV_SHA) sha1
 
-$(CONTRIB_DIR)/$(LIBAV): $(DOWNLOAD_DIR)/$(LIBAV_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(LIBAV_TGZ).verified: $(DOWNLOAD_DIR)/$(LIBAV_TGZ)
+	# XXX Hash verification of libav does not ensure authenticity
+	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(LIBAV_TGZ) $(DOWNLOAD_DIR)/$(LIBAV_SHA) sha1
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(LIBAV): $(DOWNLOAD_DIR)/$(LIBAV_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(LIBAV) -p1 -i $(CURDIR)/src/app/avplay/avplay.patch
 
 clean-libav:

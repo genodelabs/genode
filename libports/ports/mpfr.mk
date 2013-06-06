@@ -23,10 +23,13 @@ $(CONTRIB_DIR)/$(MPFR): clean-mpfr
 $(DOWNLOAD_DIR)/$(MPFR_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPFR_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPFR_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(MPFR_TGZ) $(DOWNLOAD_DIR)/$(MPFR_SIG) $(MPFR_KEY)
 
-$(CONTRIB_DIR)/$(MPFR): $(DOWNLOAD_DIR)/$(MPFR_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(MPFR_TGZ).verified: $(DOWNLOAD_DIR)/$(MPFR_TGZ)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(MPFR_TGZ) $(DOWNLOAD_DIR)/$(MPFR_SIG) $(MPFR_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(MPFR): $(DOWNLOAD_DIR)/$(MPFR_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
 include/mpfr/mpfr.h:
 	$(VERBOSE)mkdir -p $(dir $@)

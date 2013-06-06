@@ -22,10 +22,13 @@ $(CONTRIB_DIR)/$(PCRE): clean-pcre
 $(DOWNLOAD_DIR)/$(PCRE_TBZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PCRE_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PCRE_URL_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(PCRE_TBZ).verified: $(DOWNLOAD_DIR)/$(PCRE_TBZ)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(PCRE_TBZ) $(DOWNLOAD_DIR)/$(PCRE_SIG) $(PCRE_KEY)
+	$(VERBOSE)touch $@
 
 $(CONTRIB_DIR)/$(PCRE): $(DOWNLOAD_DIR)/$(PCRE_TBZ)
-	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@
+	$(VERBOSE)tar xfj $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
 include/pcre:
 	$(VERBOSE)mkdir -p $@

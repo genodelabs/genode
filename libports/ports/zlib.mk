@@ -18,10 +18,13 @@ $(CONTRIB_DIR)/$(ZLIB):clean-zlib
 #
 $(DOWNLOAD_DIR)/$(ZLIB_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(ZLIB_URL) && touch $@
-	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(ZLIB_TGZ) $(ZLIB_MD5) md5
 
-$(CONTRIB_DIR)/$(ZLIB): $(DOWNLOAD_DIR)/$(ZLIB_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(ZLIB_TGZ).verified: $(DOWNLOAD_DIR)/$(ZLIB_TGZ)
+	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(ZLIB_TGZ) $(ZLIB_MD5) md5
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(ZLIB): $(DOWNLOAD_DIR)/$(ZLIB_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
 ZLIB_INCLUDES = zconf.h zlib.h
 

@@ -19,7 +19,10 @@ prepare:: $(CONTRIB_DIR)/$(GCC)/configure
 $(DOWNLOAD_DIR)/$(GCC_TGZ):
 	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_TGZ) && touch $@
 	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(GCC_TGZ).verified: $(DOWNLOAD_DIR)/$(GCC_TGZ)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GCC_TGZ) $(DOWNLOAD_DIR)/$(GCC_SIG) $(GCC_KEY)
+	$(VERBOSE)touch $@
 
 #
 # Utilities
@@ -40,8 +43,8 @@ ifeq ($(shell which autogen)),)
 $(error Need to have 'autogen' installed.)
 endif
 
-$(CONTRIB_DIR)/$(GCC): $(DOWNLOAD_DIR)/$(GCC_TGZ)
-	$(VERBOSE)for i in $^ ; do tar xfz $$i -C $(CONTRIB_DIR) ;done
+$(CONTRIB_DIR)/$(GCC): $(DOWNLOAD_DIR)/$(GCC_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR)
 
 include ../tool/tool_chain_gcc_patches.inc
 

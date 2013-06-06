@@ -22,10 +22,13 @@ $(CONTRIB_DIR)/$(CURL): clean-curl
 $(DOWNLOAD_DIR)/$(CURL_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(CURL_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(CURL_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(CURL_TGZ) $(DOWNLOAD_DIR)/$(CURL_SIG) $(CURL_KEY)
 
-$(CONTRIB_DIR)/$(CURL): $(DOWNLOAD_DIR)/$(CURL_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(CURL_TGZ).verified: $(DOWNLOAD_DIR)/$(CURL_TGZ)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(CURL_TGZ) $(DOWNLOAD_DIR)/$(CURL_SIG) $(CURL_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(CURL): $(DOWNLOAD_DIR)/$(CURL_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)find ./src/lib/curl/ -name "*.patch" |\
 		xargs -ixxx sh -c "patch -p1 -r - -N -d $(CONTRIB_DIR)/$(CURL) < xxx" || true
 

@@ -19,10 +19,13 @@ prepare:: $(CONTRIB_DIR)/$(OPENSSH)
 $(DOWNLOAD_DIR)/$(OPENSSH_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSH_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSH_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(OPENSSH_TGZ) $(DOWNLOAD_DIR)/$(OPENSSH_SIG) $(OPENSSH_KEY)
 
-$(CONTRIB_DIR)/$(OPENSSH): $(DOWNLOAD_DIR)/$(OPENSSH_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(OPENSSH_TGZ).verified: $(DOWNLOAD_DIR)/$(OPENSSH_TGZ)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(OPENSSH_TGZ) $(DOWNLOAD_DIR)/$(OPENSSH_SIG) $(OPENSSH_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(OPENSSH): $(DOWNLOAD_DIR)/$(OPENSSH_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/openssh/monitor_fdpass.c.patch
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/openssh/sshconnect.h.patch
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/openssh/includes_h.patch

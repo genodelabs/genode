@@ -19,9 +19,12 @@ prepare:: $(CONTRIB_DIR)/$(BASH)
 $(DOWNLOAD_DIR)/$(BASH_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BASH_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BASH_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(BASH_TGZ) $(DOWNLOAD_DIR)/$(BASH_SIG) $(BASH_KEY)
 
-$(CONTRIB_DIR)/$(BASH): $(DOWNLOAD_DIR)/$(BASH_TGZ)
-	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
+$(DOWNLOAD_DIR)/$(BASH_TGZ).verified: $(DOWNLOAD_DIR)/$(BASH_TGZ)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(BASH_TGZ) $(DOWNLOAD_DIR)/$(BASH_SIG) $(BASH_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(BASH): $(DOWNLOAD_DIR)/$(BASH_TGZ).verified
+	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(BASH) -N -p1 < src/noux-pkg/bash/build.patch
 

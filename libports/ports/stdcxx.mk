@@ -45,11 +45,13 @@ $(CONTRIB_DIR)/$(STDCXX): clean-stdcxx
 $(DOWNLOAD_DIR)/$(STDCXX_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) -O$@ $(STDCXX_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(STDCXX_URL_SIG) && touch $@
-	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(STDCXX_TBZ2) $(DOWNLOAD_DIR)/$(STDCXX_SIG) $(STDCXX_KEY)
 
-$(CONTRIB_DIR)/$(STDCXX): $(DOWNLOAD_DIR)/$(STDCXX_TBZ2)
-	@#$(VERBOSE)tar xfj $< --transform "s/nova-userland/vancouver/" -C $(CONTRIB_DIR)
-	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) gcc-$(STDCXX_VERSION)/libstdc++-v3 \
+$(DOWNLOAD_DIR)/$(STDCXX_TBZ2).verified: $(DOWNLOAD_DIR)/$(STDCXX_TBZ2)
+	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(STDCXX_TBZ2) $(DOWNLOAD_DIR)/$(STDCXX_SIG) $(STDCXX_KEY)
+	$(VERBOSE)touch $@
+
+$(CONTRIB_DIR)/$(STDCXX): $(DOWNLOAD_DIR)/$(STDCXX_TBZ2).verified
+	$(VERBOSE)tar xfj $(<:.verified=) -C $(CONTRIB_DIR) gcc-$(STDCXX_VERSION)/libstdc++-v3 \
 	                     --transform "s/gcc-$(STDCXX_VERSION).libstdc++-v3/stdcxx-$(STDCXX_VERSION)/" && touch $@
 
 include/stdcxx:

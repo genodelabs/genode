@@ -35,10 +35,12 @@ $(CONTRIB_DIR)/$(GMP): clean-gmp
 $(DOWNLOAD_DIR)/$(GMP_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GMP_URL) && touch $@
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GMP_URL_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(GMP_TBZ2).verified: $(DOWNLOAD_DIR)/$(GMP_TBZ2)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GMP_TBZ2) $(DOWNLOAD_DIR)/$(GMP_SIG) $(GMP_KEY)
 
-$(CONTRIB_DIR)/$(GMP): $(DOWNLOAD_DIR)/$(GMP_TBZ2)
-	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@
+$(CONTRIB_DIR)/$(GMP): $(DOWNLOAD_DIR)/$(GMP_TBZ2).verified
+	$(VERBOSE)tar xfj $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
 include/gmp/gmp-impl.h:
 	$(VERBOSE)ln -sf ../../$(CONTRIB_DIR)/$(GMP)/gmp-impl.h $@
