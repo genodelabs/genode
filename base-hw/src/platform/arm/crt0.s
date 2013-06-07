@@ -33,6 +33,9 @@
 	.global __dso_handle
 	__dso_handle: .long 0
 
+	.global __initial_sp
+	__initial_sp: .long 0
+
 .section .bss
 
 	/* main-thread stack */
