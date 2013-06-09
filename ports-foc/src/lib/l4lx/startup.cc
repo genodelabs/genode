@@ -118,7 +118,7 @@ static void prepare_l4re_env()
 	env->mem_alloc       = L4_INVALID_CAP;
 	env->log             = L4_INVALID_CAP;
 	env->main_thread     = main_thread_cap.dst();
-	env->rm              = Fiasco::THREADS_BASE_CAP + Fiasco::THREAD_PAGER_CAP;
+	env->rm              = Fiasco::THREAD_AREA_BASE + Fiasco::THREAD_PAGER_CAP;
 }
 
 

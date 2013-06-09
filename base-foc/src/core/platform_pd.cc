@@ -53,7 +53,7 @@ int Platform_pd::bind_thread(Platform_thread *thread)
 		else
 			thread->_utcb =
 				reinterpret_cast<l4_utcb_t*>(utcb_area_start() + i * L4_UTCB_OFFSET);
-		Native_thread cap_offset   = THREADS_BASE_CAP + i * THREAD_CAP_SLOT;
+		Native_thread cap_offset   = THREAD_AREA_BASE + i * THREAD_AREA_SLOT;
 		thread->_gate.remote   = cap_offset + THREAD_GATE_CAP;
 		thread->_pager.remote  = cap_offset + THREAD_PAGER_CAP;
 		thread->_irq.remote    = cap_offset + THREAD_IRQ_CAP;
