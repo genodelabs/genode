@@ -18,9 +18,12 @@ prepare-libiconv: $(CONTRIB_DIR)/$(LIBICONV) include/iconv
 #
 $(DOWNLOAD_DIR)/$(LIBICONV_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBICONV_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(LIBICONV_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBICONV_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(LIBICONV_TGZ).verified: $(DOWNLOAD_DIR)/$(LIBICONV_TGZ)
+$(DOWNLOAD_DIR)/$(LIBICONV_TGZ).verified: $(DOWNLOAD_DIR)/$(LIBICONV_TGZ) \
+                                          $(DOWNLOAD_DIR)/$(LIBICONV_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(LIBICONV_TGZ) $(DOWNLOAD_DIR)/$(LIBICONV_SIG) $(LIBICONV_KEY)
 	$(VERBOSE)touch $@
 

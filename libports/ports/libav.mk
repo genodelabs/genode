@@ -30,10 +30,16 @@ $(CONTRIB_DIR)/$(LIBAV): clean-libav
 #
 $(DOWNLOAD_DIR)/$(LIBAV_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL) && touch $@
-	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL_SHA) && touch $@
-	#$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(LIBAV_TGZ).verified: $(DOWNLOAD_DIR)/$(LIBAV_TGZ)
+$(DOWNLOAD_DIR)/$(LIBAV_SHA):
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL_SHA) && touch $@
+
+$(DOWNLOAD_DIR)/$(LIBAV_SIG):
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LIBAV_URL_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(LIBAV_TGZ).verified: $(DOWNLOAD_DIR)/$(LIBAV_TGZ) \
+                                       $(DOWNLOAD_DIR)/$(LIBAV_SHA) \
+                                       $(DOWNLOAD_DIR)/$(LIBAV_SIG)
 	# XXX Hash verification of libav does not ensure authenticity
 	$(VERBOSE)$(HASHVERIFIER) $(DOWNLOAD_DIR)/$(LIBAV_TGZ) $(DOWNLOAD_DIR)/$(LIBAV_SHA) sha1
 	$(VERBOSE)touch $@

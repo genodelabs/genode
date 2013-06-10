@@ -44,9 +44,12 @@ $(CONTRIB_DIR)/$(STDCXX): clean-stdcxx
 #
 $(DOWNLOAD_DIR)/$(STDCXX_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) -O$@ $(STDCXX_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(STDCXX_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(STDCXX_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(STDCXX_TBZ2).verified: $(DOWNLOAD_DIR)/$(STDCXX_TBZ2)
+$(DOWNLOAD_DIR)/$(STDCXX_TBZ2).verified: $(DOWNLOAD_DIR)/$(STDCXX_TBZ2) \
+                                         $(DOWNLOAD_DIR)/$(STDCXX_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(STDCXX_TBZ2) $(DOWNLOAD_DIR)/$(STDCXX_SIG) $(STDCXX_KEY)
 	$(VERBOSE)touch $@
 

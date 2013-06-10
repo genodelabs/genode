@@ -18,9 +18,12 @@ prepare:: $(CONTRIB_DIR)/$(GCC)/configure
 
 $(DOWNLOAD_DIR)/$(GCC_TGZ):
 	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_TGZ) && touch $@
+
+$(DOWNLOAD_DIR)/$(GCC_SIG):
 	$(VERBOSE)wget -P $(DOWNLOAD_DIR) $(GCC_URL)/$(GCC)/$(GCC_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(GCC_TGZ).verified: $(DOWNLOAD_DIR)/$(GCC_TGZ)
+$(DOWNLOAD_DIR)/$(GCC_TGZ).verified: $(DOWNLOAD_DIR)/$(GCC_TGZ) \
+                                     $(DOWNLOAD_DIR)/$(GCC_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GCC_TGZ) $(DOWNLOAD_DIR)/$(GCC_SIG) $(GCC_KEY)
 	$(VERBOSE)touch $@
 

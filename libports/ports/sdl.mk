@@ -24,9 +24,12 @@ $(CONTRIB_DIR)/$(SDL): clean-sdl
 #
 $(DOWNLOAD_DIR)/$(SDL_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(SDL_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(SDL_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(SDL_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(SDL_TGZ).verified: $(DOWNLOAD_DIR)/$(SDL_TGZ)
+$(DOWNLOAD_DIR)/$(SDL_TGZ).verified: $(DOWNLOAD_DIR)/$(SDL_TGZ) \
+                                     $(DOWNLOAD_DIR)/$(SDL_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(SDL_TGZ) $(DOWNLOAD_DIR)/$(SDL_SIG) $(SDL_KEY)
 	$(VERBOSE)touch $@
 

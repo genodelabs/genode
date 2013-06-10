@@ -24,9 +24,12 @@ prepare-openssl: $(CONTRIB_DIR)/$(OPENSSL) include/openssl generate_asm
 #
 $(DOWNLOAD_DIR)/$(OPENSSL_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSL_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(OPENSSL_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(OPENSSL_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(OPENSSL_TGZ).verified: $(DOWNLOAD_DIR)/$(OPENSSL_TGZ)
+$(DOWNLOAD_DIR)/$(OPENSSL_TGZ).verified: $(DOWNLOAD_DIR)/$(OPENSSL_TGZ) \
+                                         $(DOWNLOAD_DIR)/$(OPENSSL_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(OPENSSL_TGZ) $(DOWNLOAD_DIR)/$(OPENSSL_SIG) $(OPENSSL_KEY)
 	$(VERBOSE)touch $@
 

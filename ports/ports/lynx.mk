@@ -17,7 +17,9 @@ prepare:: $(CONTRIB_DIR)/$(LYNX)
 #
 $(DOWNLOAD_DIR)/$(LYNX_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) -O $@ $(LYNX_URL) && touch $@
-	#$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LYNX_URL_SIG) && touch $@
+
+$(DOWNLOAD_DIR)/$(LYNX_SIG):
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(LYNX_URL_SIG) && touch $@
 
 $(DOWNLOAD_DIR)/$(LYNX_TGZ).verified: $(DOWNLOAD_DIR)/$(LYNX_TGZ)
 	#

@@ -23,10 +23,16 @@ $(CONTRIB_DIR)/$(FRIBIDI):clean-fribidi
 #
 $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(FRIBIDI_SHA):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL_SHA) && touch $@
+
+$(DOWNLOAD_DIR)/$(FRIBIDI_SHA_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(FRIBIDI_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2).verified: $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2)
+$(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2).verified: $(DOWNLOAD_DIR)/$(FRIBIDI_TBZ2) \
+                                          $(DOWNLOAD_DIR)/$(FRIBIDI_SHA) \
+                                          $(DOWNLOAD_DIR)/$(FRIBIDI_SHA_SIG)
 	# XXX fribidi does NOT create a detached signature and thus the signature
 	# checking is useless !!! -- somebody should inform them
 	# see http://blog.terryburton.co.uk/2006/11/falling-into-trap-with-gpg.html

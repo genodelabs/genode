@@ -26,9 +26,12 @@ $(CONTRIB_DIR)/$(LIBSSH): clean-libssh
 #
 $(DOWNLOAD_DIR)/$(LIBSSH_TGZ):
 	$(VERBOSE)wget --no-check-certificate -c -P $(DOWNLOAD_DIR) $(LIBSSH_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(LIBSSH_SIG):
 	$(VERBOSE)wget --no-check-certificate -c -P $(DOWNLOAD_DIR) $(LIBSSH_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(LIBSSH_TGZ).verified: $(DOWNLOAD_DIR)/$(LIBSSH_TGZ)
+$(DOWNLOAD_DIR)/$(LIBSSH_TGZ).verified: $(DOWNLOAD_DIR)/$(LIBSSH_TGZ) \
+                                        $(DOWNLOAD_DIR)/$(LIBSSH_SIG)
 	# XXX We have no key for libssh at the moment
 	#$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(LIBSSH_TGZ) $(DOWNLOAD_DIR)/$(LIBSSH_SIG) $(LIBSSH_KEY)
 	$(VERBOSE)touch $@

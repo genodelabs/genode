@@ -21,13 +21,15 @@ $(CONTRIB_DIR)/$(PYTHON): clean-python
 $(DOWNLOAD_DIR)/$(PYTHON_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PYTHON_URL) && touch $@
 
+$(DOWNLOAD_DIR)/$(PYTHON_SIG):
+	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PYTHON_URL_SIG) && touch $@
+
 $(DOWNLOAD_DIR)/$(PYTHON_TGZ).verified: $(DOWNLOAD_DIR)/$(PYTHON_TGZ)
 	#
 	# As signatures are only provided for versions 2.7.3 and newer, the check
 	# is yet disabled. Just remove the comment sign once the newer version is
 	# used.
 	#
-	#$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PYTHON_URL_SIG) && touch $@
 	#$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(PYTHON_TGZ) $(DOWNLOAD_DIR)/$(PYTHON_SIG) $(PYTHON_KEY)
 	$(VERBOSE)touch $@
 

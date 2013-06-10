@@ -25,9 +25,12 @@ $(CONTRIB_DIR)/$(MPC): clean-mpc
 #
 $(DOWNLOAD_DIR)/$(MPC_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(MPC_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPC_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(MPC_TGZ).verified: $(DOWNLOAD_DIR)/$(MPC_TGZ)
+$(DOWNLOAD_DIR)/$(MPC_TGZ).verified: $(DOWNLOAD_DIR)/$(MPC_TGZ) \
+                                     $(DOWNLOAD_DIR)/$(MPC_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(MPC_TGZ) $(DOWNLOAD_DIR)/$(MPC_SIG) $(MPC_KEY)
 	$(VERBOSE)touch $@
 

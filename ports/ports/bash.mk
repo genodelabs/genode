@@ -18,9 +18,12 @@ prepare:: $(CONTRIB_DIR)/$(BASH)
 #
 $(DOWNLOAD_DIR)/$(BASH_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BASH_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(BASH_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(BASH_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(BASH_TGZ).verified: $(DOWNLOAD_DIR)/$(BASH_TGZ)
+$(DOWNLOAD_DIR)/$(BASH_TGZ).verified: $(DOWNLOAD_DIR)/$(BASH_TGZ) \
+                                      $(DOWNLOAD_DIR)/$(BASH_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(BASH_TGZ) $(DOWNLOAD_DIR)/$(BASH_SIG) $(BASH_KEY)
 	$(VERBOSE)touch $@
 

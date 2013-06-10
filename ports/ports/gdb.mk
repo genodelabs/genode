@@ -53,9 +53,12 @@ prepare:: $(CONTRIB_DIR)/$(GDB)/configure generated_files
 
 $(DOWNLOAD_DIR)/$(GDB_TBZ2):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_URL)/$(GDB_TBZ2) && touch $@
+
+$(DOWNLOAD_DIR)/$(GDB_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GDB_URL)/$(GDB_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(GDB_TBZ2).verified: $(DOWNLOAD_DIR)/$(GDB_TBZ2)
+$(DOWNLOAD_DIR)/$(GDB_TBZ2).verified: $(DOWNLOAD_DIR)/$(GDB_TBZ2) \
+                                      $(DOWNLOAD_DIR)/$(GDB_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GDB_TBZ2) $(DOWNLOAD_DIR)/$(GDB_SIG) $(GDB_KEY)
 	$(VERBOSE)touch $@
 

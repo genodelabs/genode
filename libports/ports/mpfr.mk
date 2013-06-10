@@ -22,9 +22,12 @@ $(CONTRIB_DIR)/$(MPFR): clean-mpfr
 #
 $(DOWNLOAD_DIR)/$(MPFR_TGZ):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPFR_URL) && touch $@
+
+$(DOWNLOAD_DIR)/$(MPFR_SIG):
 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(MPFR_URL_SIG) && touch $@
 
-$(DOWNLOAD_DIR)/$(MPFR_TGZ).verified: $(DOWNLOAD_DIR)/$(MPFR_TGZ)
+$(DOWNLOAD_DIR)/$(MPFR_TGZ).verified: $(DOWNLOAD_DIR)/$(MPFR_TGZ) \
+                                      $(DOWNLOAD_DIR)/$(MPFR_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(MPFR_TGZ) $(DOWNLOAD_DIR)/$(MPFR_SIG) $(MPFR_KEY)
 	$(VERBOSE)touch $@
 
