@@ -61,6 +61,11 @@ This directory contains patches for the OKL4 kernel version 2.1.1-patch.9.
   console instead of sending an exception IPC to the userland. This patch
   fixes the problem by removing the code that invokes the debugger console.
 
+:'bda.patch':
+
+  This patch reads out the I/O port of the serial device from the BIOS data
+  area (on x86).
+
 Applying the patches
 --------------------
 

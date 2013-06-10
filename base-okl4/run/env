@@ -11,6 +11,7 @@
 #
 proc install_pxe_bootloader_to_run_dir { } {
 	exec cp [genode_dir]/tool/boot/pulsar [run_dir]/boot/pulsar
+	exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
 }
 
 ##
@@ -211,7 +212,8 @@ proc build_boot_image {binaries} {
 	set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 	# load okl4 at 256M to avoid overwritting binary, adjust by need
 	puts $fh " addr 0x10000000"
-	puts $fh " exec /image.elf"
+	puts $fh " exec /boot/bender"
+	puts $fh " load /image.elf"
 	close $fh
 
 	#

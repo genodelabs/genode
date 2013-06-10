@@ -1,0 +1,59 @@
+--- pistachio/platform/pc99/pistachio/kdb/io.cc	2013-06-10 11:34:34.607813369 +0200
++++ pistachio/platform/pc99/pistachio/kdb/io.cc	2013-06-10 11:32:02.607810593 +0200
+@@ -336,16 +336,23 @@
+ #define COMPORT         CONFIG_KDB_COMPORT
+ #define RATE            CONFIG_KDB_COMSPEED
+ 
++static unsigned short comport = COMPORT;
++
+ void Platform::serial_init(void)
+ {
+-#define IER     (COMPORT+1)
+-#define EIR     (COMPORT+2)
+-#define LCR     (COMPORT+3)
+-#define MCR     (COMPORT+4)
+-#define LSR     (COMPORT+5)
+-#define MSR     (COMPORT+6)
+-#define DLLO    (COMPORT+0)
+-#define DLHI    (COMPORT+1)
++    /* read BDA region to obtain I/O ports of serial device */
++    unsigned short comport_count = (*((unsigned short *)0x410) >> 9) & 0x7;
++    if (comport_count)
++        comport = *((unsigned short *)0x400);
++	
++#define IER     (comport+1)
++#define EIR     (comport+2)
++#define LCR     (comport+3)
++#define MCR     (comport+4)
++#define LSR     (comport+5)
++#define MSR     (comport+6)
++#define DLLO    (comport+0)
++#define DLHI    (comport+1)
+ 
+     out_u8(LCR, 0x80);          /* select bank 1        */
+     for (volatile int i = 10000000; i--; );
+@@ -367,8 +374,8 @@
+ 
+ void Platform::serial_putc(char c)
+ {
+-    while ((in_u8(COMPORT+5) & 0x60) == 0);
+-    out_u8(COMPORT,c);
++    while ((in_u8(comport+5) & 0x60) == 0);
++    out_u8(comport,c);
+     if (c == '\n')
+         Platform::serial_putc('\r');
+ 
+@@ -376,11 +383,11 @@
+ 
+ int Platform::serial_getc(bool can_block)
+ {
+-    if ((in_u8(COMPORT+5) & 0x01) == 0)
++    if ((in_u8(comport+5) & 0x01) == 0)
+     {
+         return -1;
+     }
+-    return (int) in_u8(COMPORT);
++    return (int) in_u8(comport);
+ }
+ 
+ DECLARE_CMD (cmd_dumpvga, arch, 'V', "screendump", "dump VGA screen contents");
