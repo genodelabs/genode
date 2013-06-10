@@ -1,7 +1,7 @@
-QOOST_VERSION = ce3d328928
+QOOST_VERSION = 2013-06-10
 QOOST         = qoost-$(QOOST_VERSION)
-QOOST_TBZ     = $(QOOST_VERSION).tar.bz2
-QOOST_URL     = http://qoost.hg.sourceforge.net/hgweb/qoost/qoost/archive/$(QOOST_TBZ)
+QOOST_TBZ     = $(QOOST).tar.bz2
+QOOST_URL     = https://downloads.sourceforge.net/project/qoost/$(QOOST_TBZ)
 
 #
 # Interface to top-level prepare Makefile
