@@ -23,7 +23,7 @@
 
 #define SKIP_VERBOSE    0
 
-#if VERBOSE_LX_EMUL
+#if DEBUG_TRACE
 #define TRACE dde_kit_printf("\033[32m%s\033[0m called, not implemented\n", __PRETTY_FUNCTION__)
 #else
 #define TRACE
@@ -383,6 +383,7 @@ void device_remove_file(struct device *dev,
                         const struct device_attribute *attr) { TRACE; }
 
 void put_device(struct device *dev) { TRACE; }
+struct device *get_device(struct device *dev) { TRACE; return dev; }
 
 void driver_unregister(struct device_driver *drv) { TRACE; }
 int  driver_attach(struct device_driver *drv) { TRACE; return 0; }
@@ -670,6 +671,8 @@ void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
                     enum dma_data_direction direction) { SKIP;; }
 
 int dma_mapping_error(struct device *dev, dma_addr_t dma_addr) { SKIP; return 0; }
+int dma_set_mask(struct device *dev, u64 mask) { TRACE; return 0; }
+
 
 /*****************
  ** linux/pid.h **
@@ -890,9 +893,10 @@ void netif_tx_wake_all_queues(struct net_device *dev) { TRACE; }
 void netif_device_attach(struct net_device *dev) { TRACE; }
 void unregister_netdev(struct net_device *dev) { TRACE; }
 void free_netdev(struct net_device *dev) { TRACE; }
-void netif_carrier_off(struct net_device *dev) { TRACE; }
 
 int netdev_mc_empty(struct net_device *dev) { TRACE; return 1; }
+unsigned netdev_mc_count(struct net_device * dev) { TRACE; return 1; }
+
 
 /*****************
  ** linux/mii.h **

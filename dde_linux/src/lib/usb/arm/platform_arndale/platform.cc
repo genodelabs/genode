@@ -294,6 +294,8 @@ extern "C" void module_dwc3_exynos_driver_init();
 extern "C" void module_dwc3_driver_init();
 extern "C" void module_xhci_hcd_init();
 
+extern "C" void module_asix_init();
+
 
 void ehci_setup(Services *services)
 {

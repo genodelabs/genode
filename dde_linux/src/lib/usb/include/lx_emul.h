@@ -32,32 +32,18 @@ extern "C" {
 #include <dde_kit/resources.h>
 
 
-#define VERBOSE_LX_EMUL  0
-
-
-#if VERBOSE_LX_EMUL
 #define DEBUG_COMPLETION 0
 #define DEBUG_DMA        0
-#define DEBUG_DRIVER     1
-#define DEBUG_IRQ        1
-#define DEBUG_KREF       0
-#define DEBUG_PCI        0
-#define DEBUG_SKB        0
-#define DEBUG_SLAB       0
-#define DEBUG_TIMER      0
-#define DEBUG_THREAD     0
-#else
-#define DEBUG_COMPLETION 0
 #define DEBUG_DRIVER     0
-#define DEBUG_DMA        0
 #define DEBUG_IRQ        0
 #define DEBUG_KREF       0
+#define DEBUG_PRINTK     0
 #define DEBUG_PCI        0
 #define DEBUG_SKB        0
 #define DEBUG_SLAB       0
 #define DEBUG_TIMER      0
 #define DEBUG_THREAD     0
-#endif
+#define DEBUG_TRACE      0
 
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 #define LINUX_VERSION_CODE KERNEL_VERSION(3,9,0)
@@ -500,15 +486,15 @@ enum {
 /*
  * Debug macros
  */
-#if VERBOSE_LX_EMUL
+#if DEBUG_PRINTK
 #define printk  dde_kit_printf
 #define vprintk dde_kit_vprintf
 #define panic   dde_kit_panic
-#else /* VERBOSE_LX_EMUL */
+#else
 #define printk(...)
 #define vprintk(...)
 #define panic(...)
-#endif /* VERBOSE_LX_EMUL */
+#endif
 
 /*
  * Bits and types
@@ -1439,7 +1425,7 @@ bool device_can_wakeup(struct device *dev);
 #define dev_err( dev, format, arg...) dde_kit_printf("dev_error: " format, ## arg)
 #define dev_notice(dev, format, arg...) dde_kit_printf("dev_notice: " format, ## arg)
 
-#if VERBOSE_LX_EMUL
+#if DEBUG_PRINTK
 #define dev_dbg(dev, format, arg...) dde_kit_printf("dev_dbg: " format, ## arg)
 #else
 #define dev_dbg( dev, format, arg...)
@@ -3148,7 +3134,7 @@ int ethtool_op_get_ts_info(struct net_device *, struct ethtool_ts_info *);
 
 #define netdev_for_each_mc_addr(a, b) if (0)
 
-#if VERBOSE_LX_EMUL
+#if DEBUG_PRINTK
 #define netif_dbg(priv, type, dev, fmt, args...) dde_kit_printf("netif_dbg: "  fmt, ## args)
 #define netdev_dbg(dev, fmt, args...)  dde_kit_printf("netdev_dbg: " fmt, ##args)
 #else
@@ -3247,21 +3233,18 @@ enum netdev_state_t {
 #define netif_msg_tx_err(p) ({ printk("netif_msg_tx_err called not implemented\n"); 0; })
 #define netif_msg_rx_err(p) ({ printk("netif_msg_rx_err called not implemented\n"); 0; })
 #define netif_msg_tx_queued(p) ({ printk("netif_msg_tx_queued called not implemented\n"); 0; })
-static inline int netif_carrier_ok(const struct net_device *dev) {
-	return !test_bit(__LINK_STATE_NOCARRIER, &dev->state);
-}
-#define netif_carrier_on(p) ({ printk("netif_carrier_on called not implemented\n"); 0; })
-static inline unsigned netdev_mc_count(struct net_device * dev) {
-	printk("netdev_mc_count called not implemented\n");
-	return 0;
-}
 
 u32 netif_msg_init(int, int);
 
 static inline void *netdev_priv(const struct net_device *dev) { return dev->priv; }
 
 int  netif_running(const struct net_device *);
+int  netif_carrier_ok(const struct net_device *dev);
 int  netif_device_present(struct net_device *);
+
+void netif_carrier_on(struct net_device *dev);
+void netif_carrier_off(struct net_device *dev);
+
 void netif_device_detach(struct net_device *);
 void netif_start_queue(struct net_device *);
 void netif_stop_queue(struct net_device *);
@@ -3271,9 +3254,9 @@ void unregister_netdev(struct net_device *);
 void free_netdev(struct net_device *);
 int  netif_rx(struct sk_buff *);
 void netif_tx_wake_all_queues(struct net_device *);
-void netif_carrier_off(struct net_device *);
 
 int netdev_mc_empty(struct net_device *);
+unsigned netdev_mc_count(struct net_device * dev);
 int register_netdev(struct net_device *);
 
 /*****************

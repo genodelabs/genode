@@ -36,12 +36,6 @@ extern "C" {
 }
 
 
-#if VERBOSE_LX_EMUL
-#define TRACE       dde_kit_printf("\033[35m%s\033[0m called\n",                __PRETTY_FUNCTION__)
-#else
-#define TRACE
-#endif
-
 namespace Genode {
 	class Slab_backend_alloc;
 	class Slab_alloc;
@@ -56,7 +50,7 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 	private:
 
 		enum {
-			VM_SIZE    = 10 * 1024 * 1024,     /* size of VM region to reserve */
+			VM_SIZE    = 24 * 1024 * 1024,     /* size of VM region to reserve */
 			BLOCK_SIZE = 1024  * 1024,         /* 1 MB */
 			ELEMENTS   = VM_SIZE / BLOCK_SIZE, /* MAX number of dataspaces in VM */
 		};
@@ -787,7 +781,6 @@ int dev_set_drvdata(struct device *dev, void *data)
 }
 
 
-struct device *get_device(struct device *dev) { TRACE; return dev; }
 const char *dev_name(const struct device *dev) { return dev->name; }
 
 
@@ -1011,7 +1004,6 @@ int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
                      int nents, enum dma_data_direction dir,
                      struct dma_attrs *attrs) { return nents; }
 
-int dma_set_mask(struct device *dev, u64 mask) { TRACE; return 0; }
 
 /*********************
  ** linux/kthread.h **

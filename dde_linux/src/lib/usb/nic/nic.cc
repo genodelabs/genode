@@ -32,7 +32,6 @@ extern "C" {
 static Signal_helper *_signal = 0;
 
 enum {
-	START     = 0x1, /* device flag */
 	HEAD_ROOM = 8,  /* head room in skb in bytes */
 	MAC_LEN   = 17,  /* 12 number and 6 colons */ 
 };
@@ -74,7 +73,7 @@ class Skb
 			Genode::memset(_free, 0xff, size * sizeof(_free[0]));
 
 			for (unsigned i = 0; i < _entries; i++)
-				_buf[i].start = (unsigned char *)kmalloc(buffer_size, GFP_NOIO);
+				_buf[i].start = (unsigned char *)kmalloc(buffer_size + NET_IP_ALIGN, GFP_NOIO);
 		}
 
 		sk_buff *alloc()
@@ -166,7 +165,7 @@ class Nic_device : public Nic::Device
 
 			/* initialize skb allocators */
 			skb_rx(64, dev->rx_urb_size);
-			skb_tx(32, dev->rx_urb_size);
+			skb_tx(64, dev->rx_urb_size);
 
 			if (!burst()) return;
 
@@ -294,6 +293,7 @@ int register_netdev(struct net_device *ndev)
 {
 	using namespace Genode;
 	static bool announce = false;
+	int err = -ENODEV;
 
 	Nic_device *nic = Nic_device::add(ndev);
 
@@ -305,20 +305,44 @@ int register_netdev(struct net_device *ndev)
 
 		announce = true;
 
-		ndev->state |= START;
-		int err = ndev->netdev_ops->ndo_open(ndev);
+		ndev->state |= 1 << __LINK_STATE_START;
+		netif_carrier_off(ndev);
+
+		if ((err = ndev->netdev_ops->ndo_open(ndev)))
+			return err;
+
+		if (ndev->netdev_ops->ndo_set_rx_mode)
+			ndev->netdev_ops->ndo_set_rx_mode(ndev);
+
 		_nic = nic;
 		env()->parent()->announce(ep_nic.manage(&root));
-
-		return err;
 	}
 
-	return -ENODEV;
+	return err;
 }
 
 
-int netif_running(const struct net_device *dev) { return dev->state & START; }
+int netif_running(const struct net_device *dev)
+{
+	return dev->state & (1 << __LINK_STATE_START);
+}
+
 int netif_device_present(struct net_device *dev) { return 1; }
+
+int netif_carrier_ok(const struct net_device *dev)
+{
+	return !(dev->state & (1 << __LINK_STATE_NOCARRIER));
+}
+
+void netif_carrier_on(struct net_device *dev)
+{
+	dev->state &= ~(1 << __LINK_STATE_NOCARRIER);
+}
+
+void netif_carrier_off(struct net_device *dev)
+{
+	dev->state |= 1 << __LINK_STATE_NOCARRIER;
+}
 
 #ifdef GENODE_NET_STAT
 	#include <nic/stat.h>
@@ -332,8 +356,13 @@ int netif_rx(struct sk_buff *skb)
 		_nic->rx(skb);
 	}
 #ifdef GENODE_NET_STAT
-	else if (_nic)
+	else if (_nic) {
+		try {
 		_stat.data(new (skb->data) Net::Ethernet_frame(skb->len), skb->len);
+		} catch(Net::Ethernet_frame::No_ethernet_frame) {
+			PWRN("No ether frame");
+		}
+	}
 #endif
 
 	dev_kfree_skb(skb);
@@ -370,7 +399,11 @@ struct sk_buff *alloc_skb(unsigned int size, gfp_t priority)
 
 struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int length)
 {
-	return _alloc_skb(length + NET_IP_ALIGN, false);
+	struct usbnet *d = (usbnet *)netdev_priv(dev);
+	struct sk_buff *s = _alloc_skb(length + NET_IP_ALIGN, false);
+	s->data += NET_IP_ALIGN;
+	s->tail += NET_IP_ALIGN;
+	return s;
 }
 
 
