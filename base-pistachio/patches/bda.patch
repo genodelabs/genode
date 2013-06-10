@@ -1,0 +1,70 @@
+diff --git a/kernel/kdb/platform/pc99/io.cc b/kernel/kdb/platform/pc99/io.cc
+index 9dedf7a..0a70b23 100644
+--- a/kernel/kdb/platform/pc99/io.cc
++++ b/kernel/kdb/platform/pc99/io.cc
+@@ -299,17 +299,23 @@ static char getc_screen (bool block)
+ **
+ */
+ 
++static unsigned short comport = COMPORT;
+ 
+ static void init_serial (void)
+ {
+-#define IER	(COMPORT+1)
+-#define EIR	(COMPORT+2)
+-#define LCR	(COMPORT+3)
+-#define MCR	(COMPORT+4)
+-#define LSR	(COMPORT+5)
+-#define MSR	(COMPORT+6)
+-#define DLLO	(COMPORT+0)
+-#define DLHI	(COMPORT+1)
++    /* read BDA region to obtain I/O ports of serial device */
++    unsigned short comport_count = (*((unsigned short *)0x410) >> 9) & 0x7;
++    if (comport_count)
++        comport = *((unsigned short *)0x400);
++
++#define IER	(comport+1)
++#define EIR	(comport+2)
++#define LCR	(comport+3)
++#define MCR	(comport+4)
++#define LSR	(comport+5)
++#define MSR	(comport+6)
++#define DLLO	(comport+0)
++#define DLHI	(comport+1)
+ 
+     out_u8(LCR, 0x80);		/* select bank 1	*/
+     for (volatile int i = 10000000; i--; );
+@@ -326,13 +332,14 @@ static void init_serial (void)
+     in_u8(MCR);
+     in_u8(LSR);
+     in_u8(MSR);
++
+ }
+ 
+ 
+ static void putc_serial (const char c)
+ {
+     while ((in_u8(LSR) & 0x20) == 0);
+-    out_u8(COMPORT,c);
++    out_u8(comport,c);
+     while ((in_u8(LSR) & 0x40) == 0);
+     if (c == '\n')
+ 	putc_serial('\r');
+@@ -357,7 +364,7 @@ static char getc_serial (bool block)
+ 	getc_blocked = false;
+ 	
+     }
+-    return in_u8(COMPORT);
++    return in_u8(comport);
+ }
+ 
+ #if defined(CONFIG_KDB_BREAKIN) 
+@@ -381,7 +388,7 @@ void kdebug_check_breakin (void)
+     } 
+ #endif
+ #if defined(CONFIG_KDB_BREAKIN_ESCAPE)
+-    if ((c & 0x01) && (in_u8(COMPORT) == 0x1b))
++    if ((c & 0x01) && (in_u8(comport) == 0x1b))
+ 	    enter_kdebug("breakin");
+ #endif
+     return;

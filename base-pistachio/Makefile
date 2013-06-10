@@ -53,6 +53,8 @@ $(CONTRIB_DIR):
 
 prepare: $(CONTRIB_DIR)
 	$(VERBOSE)cd $(CONTRIB_DIR); git fetch;  git reset --hard $(GIT_REV)
+	$(ECHO) "applying patches to '$(CONTRIB_DIR)/'"
+	$(VERBOSE)for i in $(PATCHES); do patch -d $(CONTRIB_DIR) -p1 < $$i; done
 	@# use GCC front end for as linker for the pistachio user land
 	$(VERBOSE)sed -i "/LD=/s/^.*$$/LD=\$$(CC)/" $(CONTRIB_DIR)/user/config.mk.in
 	@# add '-Wl,' prefix to '-melf_*' linker options
