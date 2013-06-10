@@ -15,8 +15,8 @@ DOWNLOAD_DIR = download
 CONTRIB_DIR  = contrib
 GNU_FIND     = find
 SHELL        = bash
-SIGVERIFIER  = $(PWD)/../tool/download_sigver
-HASHVERIFIER = $(PWD)/../tool/download_hashver
+SIGVERIFIER  = $(CURDIR)/../tool/download_sigver
+HASHVERIFIER = $(CURDIR)/../tool/download_hashver
 
 #
 # Create download and contrib directory so that '<port>.mk' files
