@@ -1,0 +1,15 @@
+--- fiasco/snapshot/kernel/fiasco/src/kern/kernel_uart.cpp	2008-07-30 13:19:01.000000000 +0200
++++ fiasco/snapshot/kernel/fiasco/src/kern/kernel_uart.cpp	2013-06-10 14:21:54.183996620 +0200
+@@ -72,6 +72,12 @@
+   if (  (s = strstr(cmdline, " -comport "))
+       ||(s = strstr(cmdline, " -comport=")))
+     p = strtoul(s + 10, 0, 0);
++  else
++    {
++      unsigned short bda_comports  = (*((unsigned short *)0x410) >> 9) & 0x7;
++      if (bda_comports)
++        p = *((unsigned short *)0x400);
++    }
+ 
+   if ((s = strstr(cmdline, " -comirq=")))
+     i = strtoul(s + 9, 0, 0);
