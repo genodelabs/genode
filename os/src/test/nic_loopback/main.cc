@@ -110,7 +110,7 @@ static bool batch_packets(Nic::Session *nic, unsigned num_packets)
 			signal_receiver.wait_for_signal();
 
 		/* produce as many packets as possible as one batch */
-		unsigned max_outstanding_requests = Nic::Session::RX_QUEUE_SIZE - 1;
+		unsigned max_outstanding_requests = Nic::Session::QUEUE_SIZE - 1;
 		while (nic->tx()->ready_to_submit()
 		    && tx_cnt < num_packets
 		    && tx_cnt - rx_cnt < max_outstanding_requests) {
