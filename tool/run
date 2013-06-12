@@ -655,13 +655,12 @@ rename exit power_plug_off_exit
 proc exit {{status 0}} {
 	global run_target
 	if {[regexp "reset" $run_target]} {
+		set power_port [get_cmd_arg --reset-port 1]
 		set connection_id [power_plug_connect]
 
-		for { set i 0 } { $i < 4 } { incr i } {
-			puts "switch port $i off"
-			send -i $connection_id "port $i 0\n"
-			expect -i $connection_id "250 OK"
-		}
+		puts "switch port $power_port off"
+		send -i $connection_id "port $power_port 0\n"
+		expect -i $connection_id "250 OK"
 	}
 
 	power_plug_off_exit $status
