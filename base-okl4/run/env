@@ -220,17 +220,15 @@ proc build_boot_image {binaries} {
 	# Generate pulsar config file pointing to the config file above.
 	#
 	if {[info exists ::env(PXE_TFTP_DIR_BASE)] && [info exists ::env(PXE_TFTP_DIR_OFFSET)]} {
-		set len [string length $::env(PXE_TFTP_DIR_BASE)]
-		set tmp [string range [pwd] 0 $len-1]
-		# if PXE_TFTP_DIR_BASE is part of pwd (autopilot) we don't need DIR_OFFSET
-		if ([string match $tmp $::env(PXE_TFTP_DIR_BASE)]) {
-			set tftp_local_offset [string range [pwd] $len [string length [pwd]]]
-		} else {
-			set tftp_local_offset $::env(PXE_TFTP_DIR_OFFSET)
+		exec ln -nfs "[pwd]" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)"
+
+		set tftp_base ""
+		if {[get_cmd_switch --tftp-absolute]} {
+			set tftp_base $::env(PXE_TFTP_DIR_BASE)
 		}
 
 		set fh [open "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)/config-00-00-00-00-00-00" "WRONLY CREAT TRUNC"]
-		puts $fh " root $tftp_local_offset/[run_dir]"
+		puts $fh " root $tftp_base$::env(PXE_TFTP_DIR_OFFSET)/[run_dir]"
 		puts $fh " config config-52-54-00-12-34-56"
 		close $fh
 	}
