@@ -81,11 +81,10 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 
 	if (!_diskcon[msg.disknr].blk_size) {
 
-		Genode::Allocator_avl * block_alloc = new Genode::Allocator_avl(Genode::env()->heap());
 		try {
+			Genode::Allocator_avl * block_alloc = new Genode::Allocator_avl(Genode::env()->heap());
 			_diskcon[msg.disknr].blk_con = new Block::Connection(block_alloc, 4*512*1024, label);
 		} catch (...) {
-
 			/* there is none. */
 			return false;
 		}
