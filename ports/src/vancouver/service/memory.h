@@ -16,8 +16,6 @@ struct Aligned {
         Aligned(size_t alignment) : alignment(alignment) {}
 };
 
-void *heap_alloc(size_t size);
-
 void *operator new[](size_t size);
 
 void *operator new[](size_t size, Aligned const alignment);

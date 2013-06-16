@@ -82,7 +82,7 @@ void Logging::panic(const char *format, ...)
 }
 
 
-void *heap_alloc(size_t size)
+static void *heap_alloc(size_t size)
 {
 	void *res = Genode::env()->heap()->alloc(size);
 	if (res)
@@ -90,6 +90,16 @@ void *heap_alloc(size_t size)
 
 	PERR("out of memory");
 	Genode::sleep_forever();
+}
+
+static void heap_free(void * ptr)
+{
+	if (Genode::env()->heap()->need_size_for_free()) {
+		PWRN("leaking memory");
+		return;
+	}
+
+	Genode::env()->heap()->free(ptr, 0);
 }
 
 
@@ -127,6 +137,11 @@ void operator delete[](void *ptr)
 {
 	if (verbose_memory_leak)
 		PWRN("delete[] not implemented");
+}
+
+void operator delete (void * ptr)
+{
+	heap_free(ptr);
 }
 
 
