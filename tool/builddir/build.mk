@@ -273,6 +273,7 @@ clean_libcache:
 
 clean_run:
 	$(VERBOSE)rm -rf var/run
+	$(VERBOSE)rm -rf config-00-00-00-00-00-00
 
 clean_gen_files:
 	$(VERBOSE)rm -f $(LIB_PROGRESS_LOG)
