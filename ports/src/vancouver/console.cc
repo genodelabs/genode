@@ -238,10 +238,9 @@ void Vancouver_console::entry()
 				for (int j=0; j<25; j++) {
 					for (int i=0; i<80; i++) {
 						Point where(i*8, j*15);
-						char character = *((char *) (_guest_fb+0x18000+j*80*2+i*2));
-						char colorvalue = *((char *) (_guest_fb+0x18000+j*80*2+i*2+1));
-						char buffer[2];
-						Genode::snprintf(buffer, 1, "%c", character);
+						char character = *((char *) (_guest_fb +(_regs->offset << 1) +j*80*2+i*2));
+						char colorvalue = *((char *) (_guest_fb+(_regs->offset << 1)+j*80*2+i*2+1));
+						char buffer[2]; buffer[0] = character; buffer[1] = 0;
 						char fg = colorvalue & 0xf;
 						if (fg == 0x8) fg = 0x7;
 						unsigned lum = ((fg & 0x8) >> 3)*127;
