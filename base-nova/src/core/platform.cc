@@ -515,7 +515,7 @@ Platform::Platform() :
 			aux_len = strlen(reinterpret_cast<char const *>(aux)) + 1;
 
 			/* if last page is unused, free it up */
-			if (aux + aux_len <= rom_mem_end) {
+			if (aux + aux_len <= round_page(core_local_addr) + rom_mem_size) {
 				bool overlap = intersects(rom_mem_end,
 				                          (Hip::Mem_desc *)mem_desc_base,
 				                          num_mem_desc);
