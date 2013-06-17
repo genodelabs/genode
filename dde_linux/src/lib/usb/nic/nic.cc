@@ -314,6 +314,10 @@ int register_netdev(struct net_device *ndev)
 		if (ndev->netdev_ops->ndo_set_rx_mode)
 			ndev->netdev_ops->ndo_set_rx_mode(ndev);
 
+/*
+		if(ndev->netdev_ops->ndo_change_mtu)
+			ndev->netdev_ops->ndo_change_mtu(ndev, 4000);
+*/
 		_nic = nic;
 		env()->parent()->announce(ep_nic.manage(&root));
 	}
@@ -399,7 +403,6 @@ struct sk_buff *alloc_skb(unsigned int size, gfp_t priority)
 
 struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int length)
 {
-	struct usbnet *d = (usbnet *)netdev_priv(dev);
 	struct sk_buff *s = _alloc_skb(length + NET_IP_ALIGN, false);
 	s->data += NET_IP_ALIGN;
 	s->tail += NET_IP_ALIGN;

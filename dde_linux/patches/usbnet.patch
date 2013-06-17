@@ -1,0 +1,37 @@
+diff -r b5bc236d605e drivers/net/usb/usbnet.c
+--- a/drivers/net/usb/usbnet.c	Mon Jun 17 10:27:00 2013 +0200
++++ b/drivers/net/usb/usbnet.c	Mon Jun 17 10:34:15 2013 +0200
+@@ -64,10 +64,29 @@
+  * is required, under load.  Jumbograms change the equation.
+  */
+ #define RX_MAX_QUEUE_MEMORY (60 * 1518)
+-#define	RX_QLEN(dev) (((dev)->udev->speed == USB_SPEED_HIGH) ? \
+-			(RX_MAX_QUEUE_MEMORY/(dev)->rx_urb_size) : 4)
+-#define	TX_QLEN(dev) (((dev)->udev->speed == USB_SPEED_HIGH) ? \
+-			(RX_MAX_QUEUE_MEMORY/(dev)->hard_mtu) : 4)
++inline unsigned RX_QLEN(struct usbnet *dev)
++{
++	switch(dev->udev->speed) {
++		case USB_SPEED_HIGH:
++			return RX_MAX_QUEUE_MEMORY/dev->rx_urb_size;
++		case USB_SPEED_SUPER:
++			return 16;
++		default:
++			return 4;
++		}
++}
++
++inline unsigned TX_QLEN(struct usbnet *dev)
++{
++	switch(dev->udev->speed) {
++		case USB_SPEED_HIGH:
++			return RX_MAX_QUEUE_MEMORY/dev->hard_mtu;
++		case USB_SPEED_SUPER:
++			return 16;
++		default:
++			return 4;
++	}
++}
+ 
+ // reawaken network queue this soon after stopping; else watchdog barks
+ #define TX_TIMEOUT_JIFFIES	(5*HZ)

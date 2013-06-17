@@ -171,6 +171,7 @@ namespace Nic {
 					} else {
 						/* send to driver */
 						_device->tx(virt, packet.size());
+						tx_cnt++;
 					}
 
 					counter.inc(packet.size());
