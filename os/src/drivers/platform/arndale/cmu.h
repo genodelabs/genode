@@ -17,52 +17,45 @@
 #include <regulator/consts.h>
 #include <regulator/driver.h>
 #include <drivers/board_base.h>
-#include <os/attached_io_mem_dataspace.h>
-#include <util/mmio.h>
+#include <os/attached_mmio.h>
 
 using namespace Regulator;
 
 
 class Cmu : public Regulator::Driver,
-            public Genode::Attached_io_mem_dataspace,
-            public Genode::Mmio
+            public Genode::Attached_mmio
 {
 	private:
+
+		static const Genode::uint16_t m_values[]; /* M values for frequencies */
+		static const Genode::uint8_t  p_values[]; /* P values for frequencies */
+		static const Genode::uint8_t  s_values[]; /* S values for frequencies */
+
+		template <unsigned OFF>
+		struct Pll_lock : Register<OFF, 32>
+		{
+			struct Pll_locktime : Register<OFF, 32>::template Bitfield<0, 20> { };
+
+			static Genode::uint32_t max_lock_time(Genode::uint8_t pdiv) {
+				return pdiv * 250; };
+		};
+
+		template <unsigned OFF>
+		struct Pll_con0 : Register<OFF, 32>
+		{
+			struct S      : Register<OFF, 32>::template Bitfield < 0,  3> { };
+			struct P      : Register<OFF, 32>::template Bitfield < 8,  6> { };
+			struct M      : Register<OFF, 32>::template Bitfield <16, 10> { };
+			struct Locked : Register<OFF, 32>::template Bitfield <29,  1> { };
+		};
 
 
 		/***********************
 		 ** CMU CPU registers **
 		 ***********************/
 
-		struct Apll_lock : Register<0x000, 32>
-		{
-			struct Pll_locktime : Bitfield <0, 20> { };
-
-			static access_t max_lock_time(access_t pdiv) { return pdiv * 250; };
-		};
-
-		struct Apll_con0 : Register<0x100, 32>
-		{
-			struct S : Bitfield <0, 3>
-			{
-				/* S values for frequencies 200 - 1700 */
-				static const Genode::uint8_t values[];
-			};
-
-			struct P : Bitfield <8, 6>
-			{
-				/* P values for frequencies 200 - 1700 */
-				static const Genode::uint8_t values[];
-			};
-
-			struct M : Bitfield <16, 10>
-			{
-				/* M values for frequencies 200 - 1700 */
-				static const Genode::uint16_t values[];
-			};
-
-			struct Locked : Bitfield <29, 1> { };
-		};
+		typedef Pll_lock<0>     Apll_lock;
+		typedef Pll_con0<0x100> Apll_con0;
 
 		struct Clk_src_cpu : Register<0x200, 32>
 		{
@@ -128,10 +121,81 @@ class Cmu : public Regulator::Driver,
 			}
 		};
 
+		typedef Pll_lock<0x4000> Mpll_lock;
+		typedef Pll_con0<0x4100> Mpll_con0;
 
-		/**
-		 * CPU frequency scaling function
-		 */
+		struct Clk_src_core1 : Register<0x4204, 32>
+		{
+			struct Mux_mpll_sel : Bitfield<8, 1> { enum { XXTI, MPLL_FOUT_RGT }; };
+		};
+
+
+		/***********************
+		 ** CMU TOP registers **
+		 ***********************/
+
+		struct Clk_src_top2 : Register<0x10218, 32>
+		{
+			struct Mux_mpll_user_sel : Bitfield<20, 1> { enum { XXTI, MOUT_MPLL}; };
+		};
+
+		struct Clk_src_fsys : Register<0x10244, 32>
+		{
+			struct Sata_sel     : Bitfield<24, 1> {
+				enum { SCLK_MPLL_USER, SCLK_BPLL_USER }; };
+			struct Usbdrd30_sel : Bitfield<28, 1> {
+				enum { SCLK_MPLL_USER, SCLK_CPLL }; };
+		};
+
+		struct Clk_src_mask_fsys : Register<0x10340, 32>
+		{
+			struct Sata_mask     : Bitfield<24, 1> { enum { MASK, UNMASK }; };
+			struct Usbdrd30_mask : Bitfield<28, 1> { enum { MASK, UNMASK }; };
+		};
+
+		struct Clk_div_fsys0 : Register<0x10548, 32>
+		{
+			struct Sata_ratio     : Bitfield<20, 4> { };
+			struct Usbdrd30_ratio : Bitfield<24, 4> { };
+		};
+
+		struct Clk_div_stat_fsys0 : Register<0x10648, 32>
+		{
+			struct Div_sata     : Bitfield<20, 1> {};
+			struct Div_usbdrd30 : Bitfield<24, 1> {};
+		};
+
+		struct Clk_gate_ip_fsys : Register<0x10944, 32>
+		{
+			struct Pdma0         : Bitfield<1,  1> { };
+			struct Pdma1         : Bitfield<2,  1> { };
+			struct Sata          : Bitfield<6,  1> { };
+			struct Usbdrd30      : Bitfield<19, 0> { };
+			struct Sata_phy_ctrl : Bitfield<24, 1> { };
+			struct Sata_phy_i2c  : Bitfield<25, 1> { };
+		};
+
+
+		/*************************
+		 ** CMU CDREX registers **
+		 *************************/
+
+		typedef Pll_lock<0x20010> Bpll_lock;
+		typedef Pll_con0<0x20110> Bpll_con0;
+
+		struct Pll_div2_sel : Register<0x20a24, 32>
+		{
+			struct Mpll_fout_sel : Bitfield<4, 1> {
+				enum { MPLL_FOUT_HALF, MPLL_FOUT }; };
+		};
+
+
+		/*******************
+		 ** CPU functions **
+		 *******************/
+
+		Cpu_clock_freq _cpu_freq;
+
 		void _cpu_clk_freq(Cpu_clock_freq freq)
 		{
 			/**
@@ -157,13 +221,13 @@ class Cmu : public Regulator::Driver,
 			       != Clk_mux_stat_cpu::Cpu_sel::SCLK_MPLL) ;
 
 			/* set lock time */
-			unsigned pdiv = Apll_con0::P::values[freq];
+			unsigned pdiv = p_values[freq];
 			write<Apll_lock::Pll_locktime>(Apll_lock::max_lock_time(pdiv));
 
 			/* change P, M, S values of APLL */
-			write<Apll_con0::P>(Apll_con0::P::values[freq]);
-			write<Apll_con0::M>(Apll_con0::M::values[freq]);
-			write<Apll_con0::S>(Apll_con0::S::values[freq]);
+			write<Apll_con0::P>(p_values[freq]);
+			write<Apll_con0::M>(m_values[freq]);
+			write<Apll_con0::S>(s_values[freq]);
 
 			while (!read<Apll_con0::Locked>()) ;
 
@@ -171,6 +235,80 @@ class Cmu : public Regulator::Driver,
 			write<Clk_src_cpu::Mux_cpu_sel>(Clk_src_cpu::Mux_cpu_sel::MOUT_APLL);
 			while (read<Clk_mux_stat_cpu::Cpu_sel>()
 			       != Clk_mux_stat_cpu::Cpu_sel::MOUT_APLL) ;
+
+			_cpu_freq = freq;
+		}
+
+
+		/********************
+		 ** SATA functions **
+		 ********************/
+
+		void _sata_enable()
+		{
+			/* enable I2C for SATA */
+			write<Clk_gate_ip_fsys::Sata_phy_i2c>(1);
+
+			/**
+			 * set SATA clock to 66 MHz (nothing else supported)
+			 * assuming 800 MHz from sclk_mpll_user, formula: sclk / (divider + 1)
+			 */
+			write<Clk_div_fsys0::Sata_ratio>(11); /*  */
+			while (read<Clk_div_stat_fsys0::Div_sata>()) ;
+
+			/* enable SATA and SATA Phy */
+			write<Clk_gate_ip_fsys::Sata>(1);
+			write<Clk_gate_ip_fsys::Sata_phy_ctrl>(1);
+			write<Clk_src_mask_fsys::Sata_mask>(1);
+		}
+
+		void _sata_disable()
+		{
+			/* disable I2C for SATA */
+			write<Clk_gate_ip_fsys::Sata_phy_i2c>(0);
+
+			/* disable SATA and SATA Phy */
+			write<Clk_gate_ip_fsys::Sata>(0);
+			write<Clk_gate_ip_fsys::Sata_phy_ctrl>(0);
+			write<Clk_src_mask_fsys::Sata_mask>(0);
+		}
+
+		bool _sata_enabled()
+		{
+			return read<Clk_gate_ip_fsys::Sata>() &&
+			       read<Clk_gate_ip_fsys::Sata_phy_ctrl>() &&
+			       read<Clk_src_mask_fsys::Sata_mask>();
+		}
+
+
+		/***********************
+		 ** USB 3.0 functions **
+		 ***********************/
+
+		void _usb30_enable()
+		{
+			/**
+			 * set USBDRD30 clock to 66 MHz
+			 * assuming 800 MHz from sclk_mpll_user, formula: sclk / (divider + 1)
+			 */
+			write<Clk_div_fsys0::Usbdrd30_ratio>(11); /*  */
+			while (read<Clk_div_stat_fsys0::Div_usbdrd30>()) ;
+
+			/* enable USBDRD30 clock */
+			write<Clk_gate_ip_fsys::Usbdrd30>(1);
+			write<Clk_src_mask_fsys::Usbdrd30_mask>(1);
+		}
+
+		void _usb30_disable()
+		{
+			write<Clk_gate_ip_fsys::Usbdrd30>(0);
+			write<Clk_src_mask_fsys::Usbdrd30_mask>(0);
+		}
+
+		bool _usb30_enabled()
+		{
+			return read<Clk_gate_ip_fsys::Usbdrd30>() &&
+			       read<Clk_src_mask_fsys::Usbdrd30_mask>();
 		}
 
 	public:
@@ -179,12 +317,23 @@ class Cmu : public Regulator::Driver,
 		 * Constructor
 		 */
 		Cmu()
-		: Genode::Attached_io_mem_dataspace(Genode::Board_base::CMU_MMIO_BASE,
-		                                    Genode::Board_base::CMU_MMIO_SIZE),
-			Mmio((Genode::addr_t)local_addr<void>())
+		: Genode::Attached_mmio(Genode::Board_base::CMU_MMIO_BASE,
+		                        Genode::Board_base::CMU_MMIO_SIZE),
+		  _cpu_freq(CPU_FREQ_1600)
 		{
-			/* set CPU to full speed */
-			_cpu_clk_freq(CPU_FREQ_1600);
+			_sata_disable();
+			_usb30_disable();
+
+			_cpu_clk_freq(_cpu_freq);
+
+			/**
+			 * Hard wiring of reference clocks
+			 */
+			write<Pll_div2_sel::Mpll_fout_sel>(Pll_div2_sel::Mpll_fout_sel::MPLL_FOUT_HALF);
+			write<Clk_src_core1::Mux_mpll_sel>(Clk_src_core1::Mux_mpll_sel::MPLL_FOUT_RGT);
+			write<Clk_src_top2::Mux_mpll_user_sel>(Clk_src_top2::Mux_mpll_user_sel::MOUT_MPLL);
+			write<Clk_src_fsys::Sata_sel>(Clk_src_fsys::Sata_sel::SCLK_MPLL_USER);
+			write<Clk_src_fsys::Usbdrd30_sel>(Clk_src_fsys::Usbdrd30_sel::SCLK_MPLL_USER);
 		}
 
 
@@ -201,6 +350,7 @@ class Cmu : public Regulator::Driver,
 					return;
 				}
 				_cpu_clk_freq(static_cast<Cpu_clock_freq>(level));
+				break;
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
@@ -209,6 +359,11 @@ class Cmu : public Regulator::Driver,
 		unsigned long level(Regulator_id id)
 		{
 			switch (id) {
+			case CLK_CPU:
+				return _cpu_freq;
+			case CLK_USB30:
+			case CLK_SATA:
+				return 66666666; /* 66 MHz */
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
@@ -218,6 +373,18 @@ class Cmu : public Regulator::Driver,
 		void set_state(Regulator_id id, bool enable)
 		{
 			switch (id) {
+			case CLK_SATA:
+				if (enable)
+					_sata_enable();
+				else
+					_sata_disable();
+				break;
+			case CLK_USB30:
+				if (enable)
+					_usb30_enable();
+				else
+					_usb30_disable();
+				break;
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
@@ -226,6 +393,10 @@ class Cmu : public Regulator::Driver,
 		bool state(Regulator_id id)
 		{
 			switch (id) {
+			case CLK_SATA:
+				return _sata_enabled();
+			case CLK_USB30:
+				return _usb30_enabled();
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
@@ -234,10 +405,10 @@ class Cmu : public Regulator::Driver,
 };
 
 
-const Genode::uint8_t Cmu::Apll_con0::S::values[]  = { 2, 1, 1, 0, 0, 0, 0, 0, 0 };
-const Genode::uint16_t Cmu::Apll_con0::M::values[] = { 100, 100, 200, 100, 125,
-                                                       150, 175, 200, 425 };
-const Genode::uint8_t Cmu::Apll_con0::P::values[]  = { 3, 3, 4, 3, 3, 3, 3, 3, 6 };
+const Genode::uint8_t  Cmu::s_values[] = { 2, 1, 1, 0, 0, 0, 0, 0, 0 };
+const Genode::uint16_t Cmu::m_values[] = { 100, 100, 200, 100, 125,
+                                           150, 175, 200, 425 };
+const Genode::uint8_t  Cmu::p_values[] = { 3, 3, 4, 3, 3, 3, 3, 3, 6 };
 const Genode::uint32_t Cmu::Clk_div_cpu0::values[] = { 0x1117710, 0x1127710, 0x1137710,
                                                        0x2147710, 0x2147710, 0x3157720,
                                                        0x4167720, 0x4177730, 0x5377730 };

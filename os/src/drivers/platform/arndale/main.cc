@@ -18,16 +18,23 @@
 #include <regulator/consts.h>
 
 #include <cmu.h>
+#include <pmu.h>
 
 
 struct Driver_factory : Regulator::Driver_factory
 {
 	Cmu _cmu;
+	Pmu _pmu;
 
 	Regulator::Driver &create(Regulator::Regulator_id id) {
 		switch (id) {
 		case Regulator::CLK_CPU:
+		case Regulator::CLK_SATA:
+		case Regulator::CLK_USB30:
 			return _cmu;
+		case Regulator::PWR_SATA:
+		case Regulator::PWR_USB30:
+			return _pmu;
 		default:
 			throw Root::Invalid_args(); /* invalid regulator */
 		};

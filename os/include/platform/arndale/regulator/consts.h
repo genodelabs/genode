@@ -20,6 +20,10 @@ namespace Regulator {
 
 	enum Regulator_id {
 		CLK_CPU,
+		CLK_SATA,
+		CLK_USB30,
+		PWR_SATA,
+		PWR_USB30,
 		MAX,
 		INVALID
 	};
@@ -30,7 +34,11 @@ namespace Regulator {
 	};
 
 	Regulator_name names[] = {
-		{ CLK_CPU, "clock-cpu" },
+		{ CLK_CPU,   "clock-cpu"    },
+		{ CLK_SATA,  "clock-sata"   },
+		{ CLK_USB30, "clock-usb3.0" },
+		{ PWR_SATA,  "power-sata"   },
+		{ PWR_USB30, "power-usb3.0" },
 	};
 
 	Regulator_id regulator_id_by_name(const char * name)
