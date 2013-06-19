@@ -14,6 +14,8 @@
 /* Genode */
 #include <os/attached_io_mem_dataspace.h>
 #include <io_mem_session/connection.h>
+#include <regulator/consts.h>
+#include <regulator_session/connection.h>
 #include <timer_session/connection.h>
 #include <util/mmio.h>
 
@@ -35,7 +37,6 @@ enum {
 	GPIO_BASE     = 0x11400000,
 	EHCI_IRQ      = 103,
 	DWC3_IRQ      = 104,
-	PM_BASE       = 0x10040000,
 };
 
 static resource _ehci[] =
@@ -150,19 +151,6 @@ static void arndale_ehci_init()
 }
 
 
-struct Power : Genode::Mmio
-{
-	struct Usbdrd_phy_control : Register<0x704, 32> { };
-	struct Usbhost_phy_control : Register<0x708, 32> { };
-
-	Power(addr_t const base) : Mmio(base)
-	{
-		write<Usbdrd_phy_control>(1);
-		write<Usbhost_phy_control>(1);
-	}
-};
-
-
 struct Phy_usb3 : Genode::Mmio
 {
 	struct Link_system : Register<0x4, 32>
@@ -251,7 +239,7 @@ struct Phy_usb3 : Genode::Mmio
 		/* set external clock */
 		Phy_clk_rst::Ref_clk_sel::set(clk, 3);
 		/* 24 MHz */
-		Phy_clk_rst::Fsel::set(clk, 0x5);
+		Phy_clk_rst::Fsel::set(clk, 0x2a);
 		Phy_clk_rst::Mpll_mult::set(clk, 0x68);
 		Phy_clk_rst::Ssc_ref_clk_sel::set(clk, 0x88);
 
@@ -276,9 +264,12 @@ struct Phy_usb3 : Genode::Mmio
 
 static void arndale_xhci_init()
 {
-	/* enable power of USB3 */
-	Attached_io_mem_dataspace io_pm(PM_BASE, 0x1000);
-	Power power((addr_t)io_pm.local_addr<addr_t>());
+	/* enable USB3 clock and power up */
+	Regulator::Connection reg_clk(Regulator::CLK_USB30);
+	reg_clk.set_state(true);
+
+	Regulator::Connection reg_pwr(Regulator::PWR_USB30);
+	reg_pwr.set_state(true);
 
 	/* setup PHY */
 	Attached_io_mem_dataspace io_phy(DWC3_PHY_BASE, 0x1000);
