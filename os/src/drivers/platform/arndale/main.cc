@@ -31,6 +31,7 @@ struct Driver_factory : Regulator::Driver_factory
 		case Regulator::CLK_CPU:
 		case Regulator::CLK_SATA:
 		case Regulator::CLK_USB30:
+		case Regulator::CLK_MMC0:
 			return _cmu;
 		case Regulator::PWR_SATA:
 		case Regulator::PWR_USB30:

@@ -47,6 +47,7 @@ class Cmu : public Regulator::Driver,
 			struct P      : Register<OFF, 32>::template Bitfield < 8,  6> { };
 			struct M      : Register<OFF, 32>::template Bitfield <16, 10> { };
 			struct Locked : Register<OFF, 32>::template Bitfield <29,  1> { };
+			struct Enable : Register<OFF, 32>::template Bitfield <31,  1> { };
 		};
 
 
@@ -121,6 +122,11 @@ class Cmu : public Regulator::Driver,
 			}
 		};
 
+
+		/************************
+		 ** CMU CORE registers **
+		 ************************/
+
 		typedef Pll_lock<0x4000> Mpll_lock;
 		typedef Pll_con0<0x4100> Mpll_con0;
 
@@ -129,10 +135,24 @@ class Cmu : public Regulator::Driver,
 			struct Mux_mpll_sel : Bitfield<8, 1> { enum { XXTI, MPLL_FOUT_RGT }; };
 		};
 
+		struct Clk_gate_ip_acp   : Register<0x8800, 32> { };
+		struct Clk_gate_ip_isp0  : Register<0xc800, 32> { };
+		struct Clk_gate_ip_isp1  : Register<0xc804, 32> { };
+		struct Clk_gate_sclk_isp : Register<0xc900, 32> { };
+
 
 		/***********************
 		 ** CMU TOP registers **
 		 ***********************/
+
+		typedef Pll_lock<0x10020> Cpll_lock;
+		typedef Pll_lock<0x10030> Epll_lock;
+		typedef Pll_lock<0x10040> Vpll_lock;
+		typedef Pll_lock<0x10050> Gpll_lock;
+		typedef Pll_con0<0x10120> Cpll_con0;
+		typedef Pll_con0<0x10130> Epll_con0;
+		typedef Pll_con0<0x10140> Vpll_con0;
+		typedef Pll_con0<0x10150> Gpll_con0;
 
 		struct Clk_src_top2 : Register<0x10218, 32>
 		{
@@ -149,6 +169,7 @@ class Cmu : public Regulator::Driver,
 
 		struct Clk_src_mask_fsys : Register<0x10340, 32>
 		{
+			struct Mmc0_mask     : Bitfield<0,  1> { enum { MASK, UNMASK }; };
 			struct Sata_mask     : Bitfield<24, 1> { enum { MASK, UNMASK }; };
 			struct Usbdrd30_mask : Bitfield<28, 1> { enum { MASK, UNMASK }; };
 		};
@@ -165,14 +186,33 @@ class Cmu : public Regulator::Driver,
 			struct Div_usbdrd30 : Bitfield<24, 1> {};
 		};
 
+		struct Clk_gate_ip_gscl  : Register<0x10920, 32> { };
+		struct Clk_gate_ip_disp1 : Register<0x10928, 32> { };
+		struct Clk_gate_ip_mfc   : Register<0x1092c, 32> { };
+		struct Clk_gate_ip_g3d   : Register<0x10930, 32> { };
+		struct Clk_gate_ip_gen   : Register<0x10934, 32> { };
+
 		struct Clk_gate_ip_fsys : Register<0x10944, 32>
 		{
 			struct Pdma0         : Bitfield<1,  1> { };
 			struct Pdma1         : Bitfield<2,  1> { };
 			struct Sata          : Bitfield<6,  1> { };
-			struct Usbdrd30      : Bitfield<19, 0> { };
+			struct Clk_sdmmc0    : Bitfield<12, 1> { };
+			struct Clk_usbhost20 : Bitfield<18, 1> { };
+			struct Usbdrd30      : Bitfield<19, 1> { };
 			struct Sata_phy_ctrl : Bitfield<24, 1> { };
 			struct Sata_phy_i2c  : Bitfield<25, 1> { };
+		};
+
+		struct Clk_gate_ip_peric : Register<0x10950, 32>
+		{
+			struct Clk_uart2 : Bitfield<2,  1> { };
+			struct Clk_pwm   : Bitfield<24, 1> { };
+		};
+
+		struct Clk_gate_block : Register<0x10980, 32>
+		{
+			struct Clk_gen : Bitfield<2, 1> { };
 		};
 
 
@@ -240,9 +280,9 @@ class Cmu : public Regulator::Driver,
 		}
 
 
-		/********************
-		 ** SATA functions **
-		 ********************/
+		/**********************
+		 ** Device functions **
+		 **********************/
 
 		void _sata_enable()
 		{
@@ -262,36 +302,13 @@ class Cmu : public Regulator::Driver,
 			write<Clk_src_mask_fsys::Sata_mask>(1);
 		}
 
-		void _sata_disable()
-		{
-			/* disable I2C for SATA */
-			write<Clk_gate_ip_fsys::Sata_phy_i2c>(0);
-
-			/* disable SATA and SATA Phy */
-			write<Clk_gate_ip_fsys::Sata>(0);
-			write<Clk_gate_ip_fsys::Sata_phy_ctrl>(0);
-			write<Clk_src_mask_fsys::Sata_mask>(0);
-		}
-
-		bool _sata_enabled()
-		{
-			return read<Clk_gate_ip_fsys::Sata>() &&
-			       read<Clk_gate_ip_fsys::Sata_phy_ctrl>() &&
-			       read<Clk_src_mask_fsys::Sata_mask>();
-		}
-
-
-		/***********************
-		 ** USB 3.0 functions **
-		 ***********************/
-
 		void _usb30_enable()
 		{
 			/**
 			 * set USBDRD30 clock to 66 MHz
 			 * assuming 800 MHz from sclk_mpll_user, formula: sclk / (divider + 1)
 			 */
-			write<Clk_div_fsys0::Usbdrd30_ratio>(11); /*  */
+			write<Clk_div_fsys0::Usbdrd30_ratio>(11);
 			while (read<Clk_div_stat_fsys0::Div_usbdrd30>()) ;
 
 			/* enable USBDRD30 clock */
@@ -299,16 +316,44 @@ class Cmu : public Regulator::Driver,
 			write<Clk_src_mask_fsys::Usbdrd30_mask>(1);
 		}
 
-		void _usb30_disable()
+		void _enable(Regulator_id id)
 		{
-			write<Clk_gate_ip_fsys::Usbdrd30>(0);
-			write<Clk_src_mask_fsys::Usbdrd30_mask>(0);
+			switch (id) {
+			case CLK_SATA:
+				_sata_enable();
+				break;
+			case CLK_USB30:
+				_usb30_enable();
+				break;
+			case CLK_MMC0:
+				write<Clk_gate_ip_fsys::Clk_sdmmc0>(1);
+				write<Clk_src_mask_fsys::Mmc0_mask>(1);
+				break;
+			default:
+				PWRN("Unsupported for %s", names[id].name);
+			}
 		}
 
-		bool _usb30_enabled()
+		void _disable(Regulator_id id)
 		{
-			return read<Clk_gate_ip_fsys::Usbdrd30>() &&
-			       read<Clk_src_mask_fsys::Usbdrd30_mask>();
+			switch (id) {
+			case CLK_SATA:
+				write<Clk_gate_ip_fsys::Sata_phy_i2c>(0);
+				write<Clk_gate_ip_fsys::Sata>(0);
+				write<Clk_gate_ip_fsys::Sata_phy_ctrl>(0);
+				write<Clk_src_mask_fsys::Sata_mask>(0);
+				break;
+			case CLK_USB30:
+				write<Clk_gate_ip_fsys::Usbdrd30>(0);
+				write<Clk_src_mask_fsys::Usbdrd30_mask>(0);
+				break;
+			case CLK_MMC0:
+				write<Clk_gate_ip_fsys::Clk_sdmmc0>(0);
+				write<Clk_src_mask_fsys::Mmc0_mask>(0);
+				break;
+			default:
+				PWRN("Unsupported for %s", names[id].name);
+			}
 		}
 
 	public:
@@ -321,13 +366,31 @@ class Cmu : public Regulator::Driver,
 		                        Genode::Board_base::CMU_MMIO_SIZE),
 		  _cpu_freq(CPU_FREQ_1600)
 		{
-			_sata_disable();
-			_usb30_disable();
+			/**
+			 * Close certain clock gates by default (~ 0.7 Watt reduction)
+			 */
+			write<Clk_gate_ip_acp>(0);
+			write<Clk_gate_ip_isp0>(0);
+			write<Clk_gate_ip_isp1>(0);
+			write<Clk_gate_sclk_isp>(0);
+            write<Clk_gate_ip_gscl>(0);
+			write<Clk_gate_ip_disp1>(0);
+			write<Clk_gate_ip_mfc>(0);
+			write<Clk_gate_ip_g3d>(0);
+			write<Clk_gate_ip_gen>(0);
+			write<Clk_gate_ip_fsys>(0);
+			write<Clk_gate_ip_peric>(Clk_gate_ip_peric::Clk_uart2::bits(1) |
+			                         Clk_gate_ip_peric::Clk_pwm::bits(1));
+			write<Clk_gate_block>(Clk_gate_block::Clk_gen::bits(1));
 
+
+			/**
+			 * Set default CPU frequency
+			 */
 			_cpu_clk_freq(_cpu_freq);
 
 			/**
-			 * Hard wiring of reference clocks
+			 * Hard wiring of certain reference clocks
 			 */
 			write<Pll_div2_sel::Mpll_fout_sel>(Pll_div2_sel::Mpll_fout_sel::MPLL_FOUT_HALF);
 			write<Clk_src_core1::Mux_mpll_sel>(Clk_src_core1::Mux_mpll_sel::MPLL_FOUT_RGT);
@@ -372,31 +435,25 @@ class Cmu : public Regulator::Driver,
 
 		void set_state(Regulator_id id, bool enable)
 		{
-			switch (id) {
-			case CLK_SATA:
-				if (enable)
-					_sata_enable();
-				else
-					_sata_disable();
-				break;
-			case CLK_USB30:
-				if (enable)
-					_usb30_enable();
-				else
-					_usb30_disable();
-				break;
-			default:
-				PWRN("Unsupported for %s", names[id].name);
-			}
+			if (enable)
+				_enable(id);
+			else
+				_disable(id);
 		}
 
 		bool state(Regulator_id id)
 		{
 			switch (id) {
 			case CLK_SATA:
-				return _sata_enabled();
+				return read<Clk_gate_ip_fsys::Sata>() &&
+				       read<Clk_gate_ip_fsys::Sata_phy_ctrl>() &&
+				       read<Clk_src_mask_fsys::Sata_mask>();
 			case CLK_USB30:
-				return _usb30_enabled();
+				return read<Clk_gate_ip_fsys::Usbdrd30>() &&
+				       read<Clk_src_mask_fsys::Usbdrd30_mask>();
+			case CLK_MMC0:
+				return read<Clk_gate_ip_fsys::Clk_sdmmc0>() &&
+				       read<Clk_src_mask_fsys::Mmc0_mask>();
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}

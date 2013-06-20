@@ -22,6 +22,7 @@ namespace Regulator {
 		CLK_CPU,
 		CLK_SATA,
 		CLK_USB30,
+		CLK_MMC0,
 		PWR_SATA,
 		PWR_USB30,
 		MAX,
@@ -37,6 +38,7 @@ namespace Regulator {
 		{ CLK_CPU,   "clock-cpu"    },
 		{ CLK_SATA,  "clock-sata"   },
 		{ CLK_USB30, "clock-usb3.0" },
+		{ CLK_MMC0,  "clock-mmc0"   },
 		{ PWR_SATA,  "power-sata"   },
 		{ PWR_USB30, "power-usb3.0" },
 	};

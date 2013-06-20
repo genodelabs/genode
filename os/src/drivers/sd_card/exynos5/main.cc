@@ -15,6 +15,7 @@
 #include <base/sleep.h>
 #include <base/printf.h>
 #include <cap_session/connection.h>
+#include <regulator_session/connection.h>
 
 /* local includes */
 #include <driver.h>
@@ -48,7 +49,8 @@ int main(int argc, char **argv)
 	enum { STACK_SIZE = 8192 };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "block_ep");
-
+	static Regulator::Connection mmc0_regulator(Regulator::CLK_MMC0);
+	mmc0_regulator.set_state(true);
 	static Block::Root block_root(&ep, env()->heap(), driver_factory);
 	env()->parent()->announce(ep.manage(&block_root));
 
