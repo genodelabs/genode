@@ -3212,6 +3212,7 @@ struct net_device
 	int            watchdog_timeo; /* used by dev_watchdog() */
 	struct device  dev;
 	void          *priv;
+	unsigned       net_ip_align;
 
 	struct phy_device *phydev;
 };

@@ -99,7 +99,7 @@ class Skb
 
 			/* wait until some SKBs are freed */
 			_wait_free = false;
-			PDBG("wait for free skbs ...");
+			//PDBG("wait for free skbs ...");
 			_wait_event(_wait_free);
 
 			return alloc();
@@ -164,8 +164,9 @@ class Nic_device : public Nic::Device
 			struct usbnet *dev = (usbnet *)netdev_priv(_ndev);
 
 			/* initialize skb allocators */
-			skb_rx(64, dev->rx_urb_size);
-			skb_tx(64, dev->rx_urb_size);
+			unsigned urb_cnt = dev->rx_urb_size <= 2048 ? 128 : 64;
+			skb_rx(urb_cnt, dev->rx_urb_size);
+			skb_tx(urb_cnt, dev->rx_urb_size);
 
 			if (!burst()) return;
 
@@ -404,8 +405,10 @@ struct sk_buff *alloc_skb(unsigned int size, gfp_t priority)
 struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int length)
 {
 	struct sk_buff *s = _alloc_skb(length + NET_IP_ALIGN, false);
-	s->data += NET_IP_ALIGN;
-	s->tail += NET_IP_ALIGN;
+	if (dev->net_ip_align) {
+		s->data += NET_IP_ALIGN;
+		s->tail += NET_IP_ALIGN;
+	}
 	return s;
 }
 
