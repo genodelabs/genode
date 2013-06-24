@@ -236,8 +236,44 @@ class Cmu : public Regulator::Driver,
 
 		Cpu_clock_freq _cpu_freq;
 
-		void _cpu_clk_freq(Cpu_clock_freq freq)
+		void _cpu_clk_freq(unsigned long level)
 		{
+			unsigned freq;
+			switch (level) {
+			case CPU_FREQ_200:
+				freq = 0;
+				break;
+			case CPU_FREQ_400:
+				freq = 1;
+				break;
+			case CPU_FREQ_600:
+				freq = 2;
+				break;
+			case CPU_FREQ_800:
+				freq = 3;
+				break;
+			case CPU_FREQ_1000:
+				freq = 4;
+				break;
+			case CPU_FREQ_1200:
+				freq = 5;
+				break;
+			case CPU_FREQ_1400:
+				freq = 6;
+				break;
+			case CPU_FREQ_1600:
+				freq = 7;
+				break;
+			case CPU_FREQ_1700:
+				freq = 8;
+				break;
+			default:
+				PWRN("Unsupported CPU frequency level %ld", level);
+				PWRN("Supported values are 200, 400, 600, 800 MHz");
+				PWRN("and 1, 1.2, 1.4, 1.6, 1.7 GHz");
+				return;
+			};
+
 			/**
 			 * change clock divider values
 			 */
@@ -276,7 +312,7 @@ class Cmu : public Regulator::Driver,
 			while (read<Clk_mux_stat_cpu::Cpu_sel>()
 			       != Clk_mux_stat_cpu::Cpu_sel::MOUT_APLL) ;
 
-			_cpu_freq = freq;
+			_cpu_freq = static_cast<Cpu_clock_freq>(level);
 		}
 
 
@@ -408,11 +444,7 @@ class Cmu : public Regulator::Driver,
 		{
 			switch (id) {
 			case CLK_CPU:
-				if (level >= CPU_FREQ_MAX) {
-					PWRN("level=%ld not supported", level);
-					return;
-				}
-				_cpu_clk_freq(static_cast<Cpu_clock_freq>(level));
+				_cpu_clk_freq(level);
 				break;
 			default:
 				PWRN("Unsupported for %s", names[id].name);

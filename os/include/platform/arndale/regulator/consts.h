@@ -60,18 +60,18 @@ namespace Regulator {
 	 ***************************************/
 
 	enum Cpu_clock_freq {
-		CPU_FREQ_200,
-		CPU_FREQ_400,
-		CPU_FREQ_600,
-		CPU_FREQ_800,
-		CPU_FREQ_1000,
-		CPU_FREQ_1200,
-		CPU_FREQ_1400,
-		CPU_FREQ_1600,
-		CPU_FREQ_1700, /* warning: 1700 not recommended by the reference manual
-		              we just insert this for performance measurement against
-		              Linux, which uses this overclocking */
-		CPU_FREQ_MAX
+		CPU_FREQ_200  = 200000000,
+		CPU_FREQ_400  = 400000000,
+		CPU_FREQ_600  = 600000000,
+		CPU_FREQ_800  = 800000000,
+		CPU_FREQ_1000 = 1000000000,
+		CPU_FREQ_1200 = 1200000000,
+		CPU_FREQ_1400 = 1400000000,
+		CPU_FREQ_1600 = 1600000000,
+		CPU_FREQ_1700 = 1700000000,
+		/* warning: 1700 not recommended by the reference manual
+		   we just insert this for performance measurement against
+		   Linux, which uses this overclocking */
 	};
 }
 
