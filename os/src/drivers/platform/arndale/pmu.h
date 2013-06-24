@@ -99,27 +99,38 @@ class Pmu : public Regulator::Driver,
 		}
 
 
-		/***********************
-		 ** USB 3.0 functions **
-		 ***********************/
-
-		void _usb30_enable()
+		void _enable(unsigned long id)
 		{
-			write<Usbdrd_phy_control::Enable>(1);
-			write<Usbhost_phy_control::Enable>(1);
+			switch (id) {
+			case PWR_USB30:
+				write<Usbdrd_phy_control::Enable>(1);
+				break;
+			case PWR_USB20:
+				write<Usbhost_phy_control::Enable>(1);
+				break;
+			case PWR_SATA :
+				write<Sata_phy_control::Enable>(1);
+				break;
+			default:
+				PWRN("Unsupported for %s", names[id].name);
+			}
 		}
 
-		void _usb30_disable()
+		void _disable(unsigned long id)
 		{
-			write<Usbdrd_phy_control::Enable>(0);
-			write<Usbhost_phy_control::Enable>(0);
-		}
-
-		bool _usb30_enabled()
-		{
-			return read<Usbdrd_phy_control::Enable>() &&
-			       read<Usbhost_phy_control::Enable>();
-
+			switch (id) {
+			case PWR_USB30:
+				write<Usbdrd_phy_control::Enable>(0);
+				break;
+			case PWR_USB20:
+				write<Usbhost_phy_control::Enable>(0);
+				break;
+			case PWR_SATA :
+				write<Sata_phy_control::Enable>(0);
+				break;
+			default:
+				PWRN("Unsupported for %s", names[id].name);
+			}
 		}
 
 	public:
@@ -176,29 +187,19 @@ class Pmu : public Regulator::Driver,
 
 		void state(Regulator_id id, bool enable)
 		{
-			switch (id) {
-			case PWR_USB30:
-				if (enable)
-					_usb30_enable();
-				else
-					_usb30_disable();
-				break;
-			case PWR_SATA :
-				if (enable)
-					write<Sata_phy_control::Enable>(1);
-				else
-					write<Sata_phy_control::Enable>(0);
-				break;
-			default:
-				PWRN("Unsupported for %s", names[id].name);
-			}
+			if (enable)
+				_enable(id);
+			else
+				_disable(id);
 		}
 
 		bool state(Regulator_id id)
 		{
 			switch (id) {
 			case PWR_USB30:
-				return _usb30_enabled();
+				return read<Usbdrd_phy_control::Enable>();
+			case PWR_USB20:
+				return read<Usbhost_phy_control::Enable>();
 			case PWR_SATA:
 				return read<Sata_phy_control::Enable>();
 			default:

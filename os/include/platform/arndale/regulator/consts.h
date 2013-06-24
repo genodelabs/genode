@@ -22,9 +22,11 @@ namespace Regulator {
 		CLK_CPU,
 		CLK_SATA,
 		CLK_USB30,
+		CLK_USB20,
 		CLK_MMC0,
 		PWR_SATA,
 		PWR_USB30,
+		PWR_USB20,
 		MAX,
 		INVALID
 	};
@@ -38,9 +40,11 @@ namespace Regulator {
 		{ CLK_CPU,   "clock-cpu"    },
 		{ CLK_SATA,  "clock-sata"   },
 		{ CLK_USB30, "clock-usb3.0" },
+		{ CLK_USB20, "clock-usb2.0" },
 		{ CLK_MMC0,  "clock-mmc0"   },
 		{ PWR_SATA,  "power-sata"   },
 		{ PWR_USB30, "power-usb3.0" },
+		{ PWR_USB20, "power-usb2.0" },
 	};
 
 	Regulator_id regulator_id_by_name(const char * name)

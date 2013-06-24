@@ -197,8 +197,8 @@ class Cmu : public Regulator::Driver,
 			struct Pdma0         : Bitfield<1,  1> { };
 			struct Pdma1         : Bitfield<2,  1> { };
 			struct Sata          : Bitfield<6,  1> { };
-			struct Clk_sdmmc0    : Bitfield<12, 1> { };
-			struct Clk_usbhost20 : Bitfield<18, 1> { };
+			struct Sdmmc0        : Bitfield<12, 1> { };
+			struct Usbhost20     : Bitfield<18, 1> { };
 			struct Usbdrd30      : Bitfield<19, 1> { };
 			struct Sata_phy_ctrl : Bitfield<24, 1> { };
 			struct Sata_phy_i2c  : Bitfield<25, 1> { };
@@ -361,8 +361,10 @@ class Cmu : public Regulator::Driver,
 			case CLK_USB30:
 				_usb30_enable();
 				break;
+			case CLK_USB20:
+				return write<Clk_gate_ip_fsys::Usbhost20>(1);
 			case CLK_MMC0:
-				write<Clk_gate_ip_fsys::Clk_sdmmc0>(1);
+				write<Clk_gate_ip_fsys::Sdmmc0>(1);
 				write<Clk_src_mask_fsys::Mmc0_mask>(1);
 				break;
 			default:
@@ -383,8 +385,10 @@ class Cmu : public Regulator::Driver,
 				write<Clk_gate_ip_fsys::Usbdrd30>(0);
 				write<Clk_src_mask_fsys::Usbdrd30_mask>(0);
 				break;
+			case CLK_USB20:
+				return write<Clk_gate_ip_fsys::Usbhost20>(0);
 			case CLK_MMC0:
-				write<Clk_gate_ip_fsys::Clk_sdmmc0>(0);
+				write<Clk_gate_ip_fsys::Sdmmc0>(0);
 				write<Clk_src_mask_fsys::Mmc0_mask>(0);
 				break;
 			default:
@@ -483,8 +487,10 @@ class Cmu : public Regulator::Driver,
 			case CLK_USB30:
 				return read<Clk_gate_ip_fsys::Usbdrd30>() &&
 				       read<Clk_src_mask_fsys::Usbdrd30_mask>();
+			case CLK_USB20:
+				return read<Clk_gate_ip_fsys::Usbhost20>();
 			case CLK_MMC0:
-				return read<Clk_gate_ip_fsys::Clk_sdmmc0>() &&
+				return read<Clk_gate_ip_fsys::Sdmmc0>() &&
 				       read<Clk_src_mask_fsys::Mmc0_mask>();
 			default:
 				PWRN("Unsupported for %s", names[id].name);

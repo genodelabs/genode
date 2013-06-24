@@ -125,6 +125,13 @@ static void arndale_ehci_init()
 {
 	enum Gpio_offset { D1 = 0x180, X3 = 0xc60 };
 
+	/* enable USB3 clock and power up */
+	Regulator::Connection reg_clk(Regulator::CLK_USB20);
+	reg_clk.state(true);
+
+	Regulator::Connection reg_pwr(Regulator::PWR_USB20);
+	reg_pwr.state(true);
+
 	/* reset hub via GPIO */
 	Io_mem_connection io_gpio(GPIO_BASE, 0x1000);
 	addr_t gpio_base = (addr_t)env()->rm_session()->attach(io_gpio.dataspace());
