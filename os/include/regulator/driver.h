@@ -23,10 +23,10 @@ namespace Regulator {
 	 */
 	struct Driver
 	{
-		virtual void set_level(Regulator_id id, unsigned long level) = 0;
-		virtual unsigned long level(Regulator_id id)                 = 0;
-		virtual void set_state(Regulator_id id, bool enable)         = 0;
-		virtual bool state(Regulator_id id)                          = 0;
+		virtual void level(Regulator_id id, unsigned long level) = 0;
+		virtual unsigned long level(Regulator_id id)             = 0;
+		virtual void state(Regulator_id id, bool enable)         = 0;
+		virtual bool state(Regulator_id id)                      = 0;
 	};
 
 

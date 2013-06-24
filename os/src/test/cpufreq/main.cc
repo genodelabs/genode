@@ -33,8 +33,8 @@ int main(int argc, char **argv)
 	while (true) {
 		timer.msleep(10000);
 		PINF("Setting CPU frequency %s", high ? "low" : "high");
-		cpu_regulator.set_level(high ? Regulator::CPU_FREQ_200
-		                             : Regulator::CPU_FREQ_1600);
+		cpu_regulator.level(high ? Regulator::CPU_FREQ_200
+		                         : Regulator::CPU_FREQ_1600);
 		high = !high;
 	}
 

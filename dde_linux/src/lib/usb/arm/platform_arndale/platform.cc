@@ -266,10 +266,10 @@ static void arndale_xhci_init()
 {
 	/* enable USB3 clock and power up */
 	Regulator::Connection reg_clk(Regulator::CLK_USB30);
-	reg_clk.set_state(true);
+	reg_clk.state(true);
 
 	Regulator::Connection reg_pwr(Regulator::PWR_USB30);
-	reg_pwr.set_state(true);
+	reg_pwr.state(true);
 
 	/* setup PHY */
 	Attached_io_mem_dataspace io_phy(DWC3_PHY_BASE, 0x1000);

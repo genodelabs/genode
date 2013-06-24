@@ -440,7 +440,7 @@ class Cmu : public Regulator::Driver,
 		 ** Regulator driver interface **
 		 ********************************/
 
-		void set_level(Regulator_id id, unsigned long level)
+		void level(Regulator_id id, unsigned long level)
 		{
 			switch (id) {
 			case CLK_CPU:
@@ -465,7 +465,7 @@ class Cmu : public Regulator::Driver,
 			return 0;
 		}
 
-		void set_state(Regulator_id id, bool enable)
+		void state(Regulator_id id, bool enable)
 		{
 			if (enable)
 				_enable(id);

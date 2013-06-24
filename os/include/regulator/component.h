@@ -53,10 +53,10 @@ class Regulator::Session_component : public Regulator::Session_rpc_object
 		 **  Regulator session interface  **
 		 ***********************************/
 
-		void set_level(unsigned long level) { _driver.set_level(_id, level);  }
-		unsigned long level()               { return _driver.level(_id);      }
-		void set_state(bool enable)         { _driver.set_state(_id, enable); }
-		bool state()                        { return _driver.state(_id);      }
+		void level(unsigned long level) { _driver.level(_id, level);  }
+		unsigned long level()           { return _driver.level(_id);  }
+		void state(bool enable)         { _driver.state(_id, enable); }
+		bool state()                    { return _driver.state(_id);  }
 };
 
 

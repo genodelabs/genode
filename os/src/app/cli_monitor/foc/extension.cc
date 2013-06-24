@@ -90,7 +90,7 @@ struct Cpufreq_command : Command
 		unsigned long f = 0;
 		Genode::ascii_to(freq, &f, 10);
 		tprintf(terminal, "set frequency to %ld Hz\n", f);
-		regulator.set_level(f);
+		regulator.level(f);
 	}
 };
 

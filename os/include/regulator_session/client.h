@@ -36,10 +36,10 @@ namespace Regulator {
 			 ** Regulator session interface **
 			 *********************************/
 
-			void set_level(unsigned long level) { call<Rpc_set_level>(level);  }
-			unsigned long level()               { return call<Rpc_level>();    }
-			void set_state(bool enable)         { call<Rpc_set_state>(enable); }
-			bool state()                        { return call<Rpc_state>();    }
+			void level(unsigned long level) { call<Rpc_set_level>(level);  }
+			unsigned long level()           { return call<Rpc_level>();    }
+			void state(bool enable)         { call<Rpc_set_state>(enable); }
+			bool state()                    { return call<Rpc_state>();    }
 	};
 }
 

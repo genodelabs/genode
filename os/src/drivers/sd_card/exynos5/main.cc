@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "block_ep");
 	static Regulator::Connection mmc0_regulator(Regulator::CLK_MMC0);
-	mmc0_regulator.set_state(true);
+	mmc0_regulator.state(true);
 	static Block::Root block_root(&ep, env()->heap(), driver_factory);
 	env()->parent()->announce(ep.manage(&block_root));
 

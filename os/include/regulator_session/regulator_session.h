@@ -27,31 +27,31 @@ namespace Regulator {
 		/**
 		 * Set regulator specific level
 		 */
-		virtual void set_level(unsigned long level) = 0;
+		virtual void level(unsigned long level) = 0;
 
 		/**
 		 * Returns current regulator level
 		 */
-		virtual unsigned long level()               = 0;
+		virtual unsigned long level() = 0;
 
 		/**
 		 * Enable/disable regulator
 		 */
-		virtual void set_state(bool enable)         = 0;
+		virtual void state(bool enable) = 0;
 
 		/**
 		 * Returns whether regulator is enabled or not
 		 */
-		virtual bool state()                        = 0;
+		virtual bool state() = 0;
 
 
 		/*******************
 		 ** RPC interface **
 		 *******************/
 
-		GENODE_RPC(Rpc_set_level, void, set_level, unsigned long);
+		GENODE_RPC(Rpc_set_level, void, level, unsigned long);
 		GENODE_RPC(Rpc_level, unsigned long, level);
-		GENODE_RPC(Rpc_set_state, void, set_state, bool);
+		GENODE_RPC(Rpc_set_state, void, state, bool);
 		GENODE_RPC(Rpc_state, bool, state);
 		GENODE_RPC_INTERFACE(Rpc_set_level, Rpc_level, Rpc_set_state, Rpc_state);
 	};

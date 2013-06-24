@@ -157,7 +157,7 @@ class Pmu : public Regulator::Driver,
 		 ** Regulator driver interface **
 		 ********************************/
 
-		void set_level(Regulator_id id, unsigned long level)
+		void level(Regulator_id id, unsigned long level)
 		{
 			switch (id) {
 			default:
@@ -174,7 +174,7 @@ class Pmu : public Regulator::Driver,
 			return 0;
 		}
 
-		void set_state(Regulator_id id, bool enable)
+		void state(Regulator_id id, bool enable)
 		{
 			switch (id) {
 			case PWR_USB30:
