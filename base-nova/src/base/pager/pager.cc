@@ -79,9 +79,13 @@ void Pager_object::_page_fault_handler()
 			obj->_state.dead = true;
 		}
 
-		if (ret == 1)
-			PDBG("unhandled page fault, address=0x%lx ip=0x%lx",
-			     ipc_pager.fault_addr(), ipc_pager.fault_ip());
+		if (ret == 1) {
+			char client_name[Context::NAME_LEN];
+			myself->name(client_name, sizeof(client_name));
+
+			PDBG("unhandled page fault, '%s' address=0x%lx ip=0x%lx",
+				 client_name, ipc_pager.fault_addr(), ipc_pager.fault_ip());
+		}
 
 		utcb->set_msg_word(0);
 		utcb->mtd = 0;
