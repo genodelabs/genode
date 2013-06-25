@@ -45,7 +45,11 @@ static void run_benchmark(Block::Driver  &driver,
                           Operation      &operation)
 {
 	using namespace Genode;
-
+	if (request_size > buffer_size) {
+		PERR("undersized buffer %u, need %u", buffer_size, buffer_size);
+		while (1) ;
+	}
+	size_t const block_count = request_size / driver.block_size();
 	/*
 	 * The goal is to get a test that took 2 s < time < 2.3 s,
 	 * thus we start with count = 32 and then adjust the count
@@ -55,26 +59,18 @@ static void run_benchmark(Block::Driver  &driver,
 	unsigned ms    = 0;
 	while (1)
 	{
-		/* calculate test parameters */
-		if (bytes > buffer_size) {
-			PERR("undersized buffer %u, need %u", buffer_size, bytes);
-			while (1) ;
-		}
 		size_t num_requests = bytes / request_size;
 
 		/* do measurement */
-		size_t const time_before_ms = timer.elapsed_ms();
-		for (size_t i = 0; i < num_requests; i++)
+		unsigned const time_before_ms = timer.elapsed_ms();
+		for (unsigned i = 0; i < num_requests; i++)
 		{
-			size_t const block_count  = request_size / driver.block_size();
-			addr_t const block_number = i*block_count;
-
+			addr_t const block_number = i * block_count;
 			operation(driver, block_number, block_count,
-					  buffer_phys + i*request_size,
-					  buffer_virt + i*request_size);
+			          buffer_phys, buffer_virt);
 		}
 		/* read results */
-		size_t const time_after_ms = timer.elapsed_ms();
+		unsigned const time_after_ms = timer.elapsed_ms();
 		ms = time_after_ms - time_before_ms;
 
 		/*
@@ -121,7 +117,7 @@ int main(int argc, char **argv)
 		1048576, 262144, 16384, 8192, 4096, 2048, 1024, 512, 0 };
 
 	/* total size of communication buffer */
-	size_t const buffer_size = 600*1024*1024;
+	size_t const buffer_size = 1024*1024;
 
 	/* allocate read/write buffer */
 	static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size,
@@ -158,9 +154,7 @@ int main(int argc, char **argv)
 	/*
 	 * Benchmark writing to SATA device
 	 *
-	 * We write back the content of the buffer, which we just filled during the
-	 * read benchmark. If both read and write succeed, the SATA device
-	 * will retain its original content.
+	 * Attention: Original data will be overridden on target drive
 	 */
 
 	printf("\n");
