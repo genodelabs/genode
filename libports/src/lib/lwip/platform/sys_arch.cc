@@ -578,6 +578,8 @@ extern "C" {
 		}
 	}
 
+	u32_t sys_now() {
+		return Genode::Timeout_thread::alarm_timer()->time(); }
 
 #if 0
 	/**************
