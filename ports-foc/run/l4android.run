@@ -7,10 +7,11 @@ if {[have_spec foc] == 0} {
    exit 0
 }
 
-set use_usb_drv     [expr [have_spec omap4] || [have_spec exynos5]]
-set use_nic_drv     [expr !$use_usb_drv]
-set use_atapi_drv   [have_spec x86]
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec exynos5] || [have_spec pl180]]
+set use_platform_drv [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+set use_usb_drv      [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_drv      [expr !$use_usb_drv]
+set use_atapi_drv    [have_spec x86]
+set use_sd_card_drv  [expr [have_spec omap4] || [have_spec exynos5] || [have_spec pl180]]
 
 # generic components
 set build_components {
@@ -32,6 +33,7 @@ lappend_if $use_usb_drv      build_components drivers/usb
 lappend_if $use_nic_drv      build_components drivers/nic
 lappend_if $use_atapi_drv    build_components drivers/atapi
 lappend_if $use_sd_card_drv  build_components drivers/sd_card
+lappend_if $use_platform_drv build_components drivers/platform
 
 build $build_components
 create_boot_directory
@@ -160,6 +162,14 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 		<provides><service name="PCI"/></provides>
 	</start>}
 
+append_if $use_platform_drv config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Regulator"/>
+		</provides>
+	</start>}
+
 append_if $use_usb_drv config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
@@ -238,6 +248,7 @@ lappend_if $use_usb_drv            boot_modules usb_drv
 lappend_if $use_nic_drv            boot_modules nic_drv
 lappend_if $use_atapi_drv          boot_modules atapi_drv
 lappend_if $use_sd_card_drv        boot_modules sd_card_drv
+lappend_if $use_platform_drv       boot_modules platform_drv
 
 if {[have_spec x86]} {
 	set initrd_uri "http://genode.org/files/release-11.11/l4lx/root-ia32-ginger.gz"

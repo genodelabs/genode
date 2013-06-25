@@ -9,9 +9,10 @@ set build_components {
 	test/input
 }
 
-lappend_if [have_spec acpi] build_components drivers/acpi
-lappend_if [have_spec pci]  build_components drivers/pci
-lappend_if [have_spec pci]  build_components drivers/pci/device_pd
+lappend_if [have_spec acpi]             build_components drivers/acpi
+lappend_if [have_spec pci]              build_components drivers/pci
+lappend_if [have_spec pci]              build_components drivers/pci/device_pd
+lappend_if [have_spec platform_arndale] build_components drivers/platform
 
 build $build_components
 
@@ -39,6 +40,12 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
+
+append_if [have_spec platform_arndale] config {
+		<start name="platform_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Regulator"/></provides>
+		</start>}
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
@@ -88,9 +95,10 @@ set boot_modules {
 	core init timer usb_drv test-input
 }
 
-lappend_if [have_spec acpi] boot_modules acpi_drv
-lappend_if [have_spec pci]  boot_modules pci_drv
-lappend_if [have_spec nova] boot_modules pci_device_pd
+lappend_if [have_spec acpi]             boot_modules acpi_drv
+lappend_if [have_spec pci]              boot_modules pci_drv
+lappend_if [have_spec nova]             boot_modules pci_device_pd
+lappend_if [have_spec platform_arndale] boot_modules platform_drv
 
 build_boot_image $boot_modules
 

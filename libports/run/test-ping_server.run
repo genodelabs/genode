@@ -15,6 +15,7 @@ set build_components {
 }
 
 lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/usb
+lappend_if [have_spec platform_arndale] build_components drivers/platform
 
 build $build_components
 
@@ -52,6 +53,12 @@ set config {
 			<argv verbose="0" listenip="0.0.0.0" />
 		</config>
 	</start> }
+
+append_if [have_spec platform_arndale] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+	</start>}
 
 append_if [expr [have_spec omap4] || [have_spec exynos5]] config {
 	<start name="usb_drv" priority="-1">
@@ -94,9 +101,10 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if [have_spec pci]           boot_modules pci_drv
-lappend_if [expr [have_spec omap4] || [have_spec exynos5]] boot_modules usb_drv
+lappend_if [have_spec pci]                                   boot_modules pci_drv
+lappend_if [expr [have_spec omap4] || [have_spec exynos5]]   boot_modules usb_drv
 lappend_if [expr ![have_spec omap4] && ![have_spec exynos5]] boot_modules nic_drv
+lappend_if [have_spec platform_arndale]                      boot_modules platform_drv
 
 build_boot_image $boot_modules
 

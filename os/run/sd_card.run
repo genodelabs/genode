@@ -5,11 +5,11 @@
 # generic components
 set build_components {
 	core init
-	drivers/platform
 	drivers/timer
 	drivers/sd_card
 	test/block
 }
+lappend_if [have_spec platform_arndale] build_components drivers/platform
 
 build $build_components
 create_boot_directory
@@ -35,12 +35,15 @@ set config  {
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+		</default-route> }
 
+append_if [have_spec platform_arndale] config {
 		<start name="platform_drv">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Regulator"/></provides>
-		</start>
+		</start>}
+
+append config {
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -52,8 +55,7 @@ set config  {
 		<start name="test-block">
 			<resource name="RAM" quantum="1M" />
 		</start>
-	</config>
-}
+	</config> }
 
 install_config $config
 
@@ -66,10 +68,10 @@ install_config $config
 set boot_modules {
 	core init
 	timer
-	platform_drv
 	sd_card_drv
 	test-block
 }
+lappend_if [have_spec platform_arndale] boot_modules platform_drv
 
 set disk_image "bin/sd_card.img"
 
