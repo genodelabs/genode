@@ -84,7 +84,7 @@ namespace {
 		private:
 
 			enum Dimensions {
-				TX_BUF_SIZE   = 1024 * 1024
+				TX_BUF_SIZE   = 5 * 1024 * 1024
 			};
 
 			Req_cache                  _cache;
