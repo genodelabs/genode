@@ -350,19 +350,39 @@ struct Fis
 			Flags::D::set(flags, 1);
 			Flags::I::set(flags, 1);
 
+			/**
+			 * ATA device register
+			 */
+			struct Device : Register<8>
+			{
+				struct Lba28_27_24 : Bitfield<0, 4> { }; // LBA[27..24] if LBA28 is used
+				struct Slave       : Bitfield<4, 1> { }; // 0: master 1: slave
+				struct Obsolete_0  : Bitfield<5, 1> { }; // = 1
+				struct Lba         : Bitfield<6, 1> { }; // FIXME: LBA flag does what?
+				struct Obsolete_1  : Bitfield<7, 1> { }; // = 1
+			};
+
 			/*
 			 * FIXME
 			 * The count register is set differently for different
 			 * drives and i've no idea what it means in this context
 			 * but as long as all works fine i ignore it simply.
 			 * (WD2500BEVS: 0xff, SAMSUNG840PRO128GB: 0x1)
+			 *
+			 * FIXME
+			 * LBA flag in device register is 1 for at least
+			 * OCZ Agility 3 120 GB but normally it is 0. Hopefully
+			 * ignoring it becomes not a problem in future.
 			 */
 			return byte[0]        == 0x5f     && /* type */
 			       byte[1]        == flags    &&
 			       byte[2]        == 0x58     && /* old status */
 			       byte[3]        == 0        && /* error */
 			       lba()          == block_nr &&
-			       byte[7]        == 0xa0     && /* device */
+			       Device::Lba28_27_24::get(byte[7]) == 0 &&
+			       Device::Slave::get(byte[7])       == 0 &&
+			       Device::Obsolete_0::get(byte[7])  == 1 &&
+			       Device::Obsolete_1::get(byte[7])  == 1 &&
 			       byte[15]       == 0x50     && /* new status */
 			       transfer_cnt() == transfer_size;
 		}
@@ -1226,6 +1246,7 @@ struct Sata_ahci : Attached_mmio
 		fis = (Fis *)(fb_virt + PIO_SETUP_FIS_OFFSET);
 		if (!fis->is_pio_setup(Device_id::SIZE, 0)) {
 			PERR("Invalid PIO setup FIS");
+			fis->print();
 			return -1;
 		}
 		/* interpret device ID */
@@ -1839,7 +1860,14 @@ struct Sata_ahci : Attached_mmio
 			PERR("ATA0 errors after initialization");
 			return -1;
 		}
-		delayer()->usleep(10000);
+
+		/*
+		 * FIXME
+		 * Linux waits 10 ms at this point in driver initialization
+		 * (this is not initialization but mimics it for error recovery)
+		 * but as long as all works fine we do it faster.
+		 */
+		delayer()->usleep(1000);
 		return 0;
 	}
 
