@@ -75,7 +75,8 @@ append_if [is_qemu_available] config {
 		</config>
 	</start>}
 
-append_if [expr ![is_qemu_available]] config {
+if {![is_qemu_available]} {
+append config {
 	<start name="tcp_terminal">
 		<resource name="RAM" quantum="2560K"/>
 		<provides> <service name="Terminal"/> </provides>
@@ -90,13 +91,16 @@ append_if [expr ![is_qemu_available]] config {
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nic"/></provides>
-		<route>
-			<service name="Nic">
-				<child name="usb_drv"/>
-			</service>
-			<any-service> <parent/> <any-child/> </any-service>
+		<route>}
+append_if $use_nic_driver config {
+			<service name="Nic"> <child name="nic_drv"/></service>}
+append_if $use_usb_driver config {
+			<service name="Nic"> <child name="usb_drv"/></service>}
+append config {
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>}
+}
 
 append_if $use_nic_driver config {
 	<start name="nic_drv">
@@ -119,8 +123,8 @@ append_if $use_usb_driver config {
 			<service name="Nic"/>
 			<service name="Input"/>
 		</provides>
-		<config uhci="yes" ehci="yes" xhci="yes">
-			<nic />
+		<config uhci="no" ehci="yes" xhci="no">
+			<nic mac="2e:60:90:0c:4e:03"/>
 		</config>
 	</start>}
 
@@ -222,12 +226,12 @@ if {[is_qemu_available]} {
 	exec telnet $serial_ip_addr 8888 > $noux_output_file &
 }
 
-sleep 2
+sleep 4
 
 puts "--- serial '$serial_ip_addr' noux '$noux_ip_addr'"
 exec echo -e "Hello Genode" | netcat $noux_ip_addr 5555
 
-sleep 2
+sleep 4
 
 set output [exec cat $noux_output_file]
 puts "output:\n$output\n"
