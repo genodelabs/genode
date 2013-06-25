@@ -19,8 +19,10 @@
 
 namespace Partition {
 
-	enum { MAX_PARTITIONS  = 32,      /* maximum supported paritions */
-	       MAX_PACKET_SIZE = 128*1024 /* see: '<block/connection.h>' */ };
+	enum {
+		MAX_PARTITIONS  = 32, /* maximum supported paritions */
+		MAX_PACKET_SIZE = 1024 * 1024
+    };
 
 	/**
 	 * The partition type
