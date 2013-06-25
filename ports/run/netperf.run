@@ -172,15 +172,30 @@ if [is_qemu_available] {
 	puts ""
 }
 
-spawn bin/netperf_host -H $ip_addr -P 1 -v 2 -t TCP_STREAM -c -C -- -S 0,65520 -P 49153,49153
+# start netperf client connecting to netperf server running native on Genode
+set packet_size 1024
+
+spawn bin/netperf_host -H $ip_addr -P 1 -v 2 -t TCP_STREAM -c -C -- -m $packet_size -S 0,65520 -P 49153,49153
 set netperf_id $spawn_id
 
 run_genode_until "Segment" 60 $netperf_id
 
 # format output understandable for post proccessing scripts
-set throughput [regexp -all -inline {[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
+set throughput [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
 set throughput [regexp -all -inline {[0-9]+\.[0-9]+} $throughput]
 puts "! PERF: tcp_stream [lindex $throughput 1] MBit/s ok"
 
-puts "Test succeeded"
+# calculate packets per second rate and print it
+set all_bytes [regexp -all -inline {([0-9]+[ ]+){5}} $output]
+set all_bytes [lindex $all_bytes 0 4]
+
+set elapsed_time [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+} $output]
+set elapsed_time [lindex $elapsed_time 0 3]
+
+puts "\ncalculation: overall bytes / size per packet / time = packets per second"
+puts -nonewline "             $all_bytes Bytes / $packet_size Bytes / $elapsed_time s = "
+puts "[format %8.0f [expr $all_bytes / $packet_size / $elapsed_time]] packets/s"
+
+
+puts "\nTest succeeded"
 # vi: set ft=tcl :
