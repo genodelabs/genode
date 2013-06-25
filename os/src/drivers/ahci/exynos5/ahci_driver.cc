@@ -902,6 +902,8 @@ struct Sata_ahci : Attached_mmio
 	unsigned p0_speed;
 	Irq_connection p0_irq;
 
+	enum { SATA_3_MAX_SPEED = 3 };
+
 	/**
 	 * Constructor
 	 */
@@ -917,13 +919,7 @@ struct Sata_ahci : Attached_mmio
 	  dbc_trial_us(FAST_DBC_TRIAL_US),
 	  dbc_trials(50),
 	  dbc_stable_trials(5),
-
-	  /*
-	   * FIXME At least Seagate Barracuda 1TB slows access with lots of errors
-	   *       when using 6 Gbps although debouncing succeeds. Thus we already
-	   *       start with 3 Gbps.
-	   */
-	  p0_speed(2),
+	  p0_speed(SATA_3_MAX_SPEED),
 	  p0_irq(147)
 	{ }
 
@@ -1563,11 +1559,6 @@ struct Sata_ahci : Attached_mmio
 		Fis * fis = (Fis *)(fb_virt + REG_D2H_FIS_OFFSET);
 		fis->clear_d2h_rx();
 
-		/*
-		 * FIXME At least Seagate Barracuda 1TB slows access with lots of errors
-		 *       when using 6 Gbps although debouncing succeeds. Thus we
-		 *       override initial speed config.
-		 */
 		if (p0_hard_reset(1, p0_speed)) return -1;
 		if (p0_dynamic_debounce()) return -1;
 
