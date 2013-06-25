@@ -59,7 +59,7 @@
 
 #define TCP_MSS                  1460
 #define TCP_WND                     (96 * TCP_MSS)
-#define TCP_SND_BUF                 (64 * TCP_MSS)
+#define TCP_SND_BUF                 (32 * TCP_MSS)
 #define TCP_SND_QUEUELEN            ((32 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 
 #define RECV_BUFSIZE_DEFAULT        2147483647 /* this is actually INT_MAX, default value */
