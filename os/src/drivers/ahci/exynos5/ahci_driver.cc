@@ -1914,9 +1914,9 @@ Ahci_driver::Ahci_driver()
 	clock_src.state(true);
 	power_src.state(true);
 	i2c_sataphy()->init();
-	if (sata_phy_ctrl()->init()) throw Io_error();
-	if (sata_ahci()->init())     throw Io_error();
-	if (sata_ahci()->p0_init())  throw Io_error();
+	if (sata_phy_ctrl()->init()) throw Root::Unavailable();
+	if (sata_ahci()->init())     throw Root::Unavailable();
+	if (sata_ahci()->p0_init())  throw Root::Unavailable();
 }
 
 int Ahci_driver::_ncq_command(uint64_t lba, unsigned cnt, addr_t phys, bool w)
