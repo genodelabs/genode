@@ -1,4 +1,1 @@
-SRC_CC   = extension.cc
-INC_DIR += $(REP_DIR)/src/app/cli_monitor
-
-vpath extension.cc $(REP_DIR)/src/app/cli_monitor/foc
+LIBS += foc_cli_monitor
