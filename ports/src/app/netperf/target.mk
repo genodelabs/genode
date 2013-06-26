@@ -1,4 +1,4 @@
-TARGET = netperf
+TARGET = netserver_genode
 
 CONTRIB_DIR = $(REP_DIR)/contrib/netperf
 
