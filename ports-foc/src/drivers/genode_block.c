@@ -27,6 +27,7 @@
 
 /* Genode support library includes */
 #include <genode/block.h>
+#include <genode/string.h>
 #include <l4/log/log.h>
 
 enum Geometry {
@@ -113,7 +114,7 @@ static void genode_blk_request(struct request_queue *q)
 
 			rq_for_each_segment(bvec, req, iter) {
 				void *buffer = page_address(bvec->bv_page) + bvec->bv_offset;
-				memcpy((void*)ptr, buffer, bvec->bv_len);
+				genode_memcpy((void*)ptr, buffer, bvec->bv_len);
 				ptr += bvec->bv_len;
 			}
 		}
@@ -136,7 +137,7 @@ genode_end_request(void *request, short write,
 
 		rq_for_each_segment(bvec, req, iter) {
 			void *buffer = page_address(bvec->bv_page) + bvec->bv_offset;
-			memcpy(buffer, (void*)ptr, bvec->bv_len);
+			genode_memcpy(buffer, (void*)ptr, bvec->bv_len);
 			ptr += bvec->bv_len;
 		}
 	}

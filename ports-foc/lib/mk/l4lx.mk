@@ -8,6 +8,7 @@ SRC_CC  += env.cc \
            genode_input.cc \
            genode_net.cc \
            genode_terminal.cc \
+           genode_string.cc \
            l4_io.cc \
            l4_log.cc \
            l4_re_c_dataspace.cc \
