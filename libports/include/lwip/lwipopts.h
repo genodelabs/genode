@@ -54,6 +54,13 @@
 
 #define MEM_LIBC_MALLOC             1
 #define MEMP_MEM_MALLOC             1
+#ifdef __x86_64__
+#define MEM_ALIGNMENT               8
+#else
+#define MEM_ALIGNMENT               4
+#endif
+#define ETH_PAD_SIZE                2
+
 #define DEFAULT_ACCEPTMBOX_SIZE   128
 #define TCPIP_MBOX_SIZE           128
 
