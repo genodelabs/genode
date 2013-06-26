@@ -178,7 +178,7 @@ set packet_size 1024
 set netperf_tests "TCP_STREAM TCP_MAERTS"
 
 foreach netperf_test $netperf_tests {
-	spawn bin/netperf_host -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- -m $packet_size -S 0,65520 -P 49153,49153
+	spawn bin/netperf_host -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- -m $packet_size -P 49153,49153
 	set netperf_id $spawn_id
 
 	run_genode_until "Segment" 60 $netperf_id
