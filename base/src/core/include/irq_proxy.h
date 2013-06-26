@@ -196,6 +196,12 @@ class Genode::Irq_proxy : public THREAD,
 			return true;
 		}
 
+		virtual void remove_sharer()
+		{
+			Lock::Guard lock_guard(_mutex);
+			--_num_sharers;
+		}
+
 		template <typename PROXY>
 		static PROXY *get_irq_proxy(long irq_number, Range_allocator *irq_alloc = 0)
 		{

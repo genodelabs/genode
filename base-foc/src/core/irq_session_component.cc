@@ -170,7 +170,7 @@ Irq_session_component::Irq_session_component(Cap_session     *cap_session,
 		PERR("Unavailable IRQ %lx requested", irq_number);
 		throw Root::Invalid_args();
 	}
-	
+
 	long irq_trigger = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
 	irq_trigger = irq_trigger == -1 ? 0 : irq_trigger;
 
@@ -216,10 +216,8 @@ void Irq_session_component::wait_for_irq()
 }
 
 
-Irq_session_component::~Irq_session_component()
-{
-	PERR("Implement me, immediately!");
-}
+Irq_session_component::~Irq_session_component() {
+	_proxy->remove_sharer(); }
 
 
 /***************************************
