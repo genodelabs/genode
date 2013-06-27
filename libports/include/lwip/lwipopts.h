@@ -66,7 +66,16 @@
 
 #define TCP_MSS                  1460
 #define TCP_WND                     (96 * TCP_MSS)
-#define TCP_SND_BUF                 (32 * TCP_MSS)
+
+/*
+ * The window scale option (http://tools.ietf.org/html/rfc1323) patch of lwIP
+ * definitely works solely for the receive window, not for the send window.
+ * Setting the send window size to the maximum of an 16bit value, 65535,
+ * or multiple of it (x * 65536 - 1) results in the same performance.
+ * Everything else decrease performance.
+ */
+#define TCP_SND_BUF                 (65535)
+
 #define TCP_SND_QUEUELEN            ((32 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 
 #define RECV_BUFSIZE_DEFAULT        128 * 1024
