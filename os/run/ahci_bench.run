@@ -1,66 +1,120 @@
+
+#
+# Select benchmark layer
+#
+# 0: driver internal
+# 1: native Genode app
+# 2: native Genode app with partition manager
+#
+set layer 0
+
 #
 # Build
 #
-
-build  {
+set build_components {
 	core init
 	drivers/timer
 	drivers/ahci
 	drivers/platform
 }
 
-create_boot_directory
+lappend_if [expr ($layer == 1 || $layer == 2)] build_components test/block_bench
+lappend_if [expr ($layer == 2)]                build_components server/part_blk
 
+build $build_components
+
+create_boot_directory
 
 #
 # Config
 #
 
-install_config {
-	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="RAM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="CAP"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="SIGNAL"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
+# basic config for all layers
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service><parent/><any-child/></any-service>
+	</default-route>
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start> }
 
-		<start name="platform_drv">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Regulator"/></provides>
-		</start>
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="ahci_bench">
-			<resource name="RAM" quantum="1G"/>
-			<provides><service name="Block"/></provides>
-		</start>
-	</config>
-}
+# start driver internal bench (wich a the driver itself) with layer 0
+append_if [expr $layer == 0] config {
+	<start name="ahci_bench">
+		<resource name="RAM" quantum="1G"/>
+		<provides><service name="Block"/></provides>
+	</start> }
 
+# start part_blk with layer 1
+append_if [expr $layer == 2] config {
+	<start name="part_blk">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<route>
+			<service name="Block"><child name="ahci" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config>
+			<policy label="test-block_bench" partition="0"/>
+		</config>
+	</start> }
+
+# start normal AHCI driver and bench app with layer 1 or 2
+append_if [expr ($layer == 1 || $layer == 2)] config {
+	<start name="ahci">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Block"/></provides>
+	</start>
+	<start name="test-block_bench">
+		<resource name="RAM" quantum="1G"/> }
+
+# if layer is 2 route block requests of bench app to part_blk
+append_if [expr $layer == 2] config {
+		<route>
+			<service name="Block"><child name="part_blk" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route> }
+
+# end start node of bench app if layer 1 or 2
+append_if [expr ($layer == 1 || $layer == 2)] config {
+	</start> }
+
+# end config
+append config {
+</config> }
+
+install_config $config
 
 #
 # Boot modules
 #
 
-build_boot_image {
-	core init
-	timer
-	platform_drv
-	ahci_bench
-}
+set boot_modules { core init timer platform_drv }
+
+lappend_if [expr ($layer == 0)]                boot_modules ahci_bench
+lappend_if [expr ($layer == 1 || $layer == 2)] boot_modules ahci
+lappend_if [expr ($layer == 1 || $layer == 2)] boot_modules test-block_bench
+lappend_if [expr ($layer == 2)]                boot_modules part_blk
+
+build_boot_image $boot_modules
 
 run_genode_until forever
 
-# vi: set ft=tcl :
