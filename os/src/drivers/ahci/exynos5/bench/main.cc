@@ -51,15 +51,19 @@ static void run_benchmark(Block::Driver  &driver,
 	}
 	size_t const block_count = request_size / driver.block_size();
 	/*
-	 * The goal is to get a test that took 2 s < time < 2.3 s,
-	 * thus we start with count = 32 and then adjust the count
+	 * The goal is to get 5 test repetitions that took 2 s < time < 2.3 s,
+	 * each. Thus we start with count = 32 and then adjust the count
 	 * for a retry if the test time is not in range.
 	 */
-	unsigned bytes = 64 * request_size;
-	unsigned ms    = 0;
+	unsigned tmp_bytes  = 64 * request_size;;
+	unsigned bytes      = 0;
+	unsigned ms         = 0;
+	unsigned reps       = 0;
+	float    sec        = 0;
+	float    mb_per_sec = 0;
 	while (1)
 	{
-		size_t num_requests = bytes / request_size;
+		size_t num_requests = tmp_bytes / request_size;
 
 		/* do measurement */
 		unsigned const time_before_ms = timer.elapsed_ms();
@@ -73,31 +77,35 @@ static void run_benchmark(Block::Driver  &driver,
 		unsigned const time_after_ms = timer.elapsed_ms();
 		ms = time_after_ms - time_before_ms;
 
-		/*
-		 * leave or adjust transfer amount according to measured time
-		 *
-		 * FIXME implement static inertia
-		 */
+		/* check if test time in range */
 		if (ms < 2000 || ms >= 2300) {
-			bytes = (((float) 2150 / ms) * bytes);
-			bytes &= 0xfffffe00; /* align to 512 byte blocks */
-			printf("retry with %u B\n", bytes);
-		} else break;
+			/*
+			 * adjust transfer amount according to measured time
+			 *
+			 * FIXME implement static inertia
+			 */
+			tmp_bytes = (((float) 2150 / ms) * tmp_bytes);
+			tmp_bytes &= 0xfffffe00; /* align to 512 byte blocks */
+		} else {
+			/* if new result is better than the last one do update */
+			float const tmp_mb         = ((float)tmp_bytes / 1000) / 1000;
+			float const tmp_sec        = (float)ms / 1000;
+			float const tmp_mb_per_sec = (float)tmp_mb / tmp_sec;
+			if (tmp_mb_per_sec > mb_per_sec) {
+				sec        = tmp_sec;
+				mb_per_sec = tmp_mb_per_sec;
+				bytes      = tmp_bytes;
+			}
+			/* check if we need more repetitions */
+			reps++;
+			if (reps == 5) break;
+		}
 	}
-	/* convert and print results */
-	float const    mb       = ((float)bytes / 1000) / 1000;
-	unsigned const mb_left  = mb;
-	unsigned const mb_right = 1000 * ((float)mb - mb_left);
-	float const    sec       = (float)ms / 1000;
-	unsigned const sec_left  = sec;
-	unsigned const sec_right = 1000 * ((float)sec - sec_left);
-	float const    mb_per_sec       = (float)mb / sec;
+	unsigned const sec_left         = sec;
+	unsigned const sec_right        = 1000 * ((float)sec - sec_left);
 	unsigned const mb_per_sec_left  = mb_per_sec;
-	unsigned const mb_per_sec_right = 1000 * ((float)mb_per_sec
-	                                          - mb_per_sec_left);
-	PLOG(" %10u  %10u  %10u.%03u  %u.%03u  %10u.%03u", request_size, bytes,
-	     mb_left, mb_right, sec_left, sec_right, mb_per_sec_left,
-	     mb_per_sec_right);
+	unsigned const mb_per_sec_right = 1000 * ((float)mb_per_sec - mb_per_sec_left);
+	PLOG(" %10u  %10u  %u.%03u  %10u.%03u", request_size, bytes, sec_left, sec_right, mb_per_sec_left, mb_per_sec_right);
 }
 
 
@@ -120,8 +128,7 @@ int main(int argc, char **argv)
 	size_t const buffer_size = 1024*1024;
 
 	/* allocate read/write buffer */
-	static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size,
-	                                     false);
+	static Attached_ram_dataspace buffer(env()->ram_session(), buffer_size, false);
 	char * const buffer_virt = buffer.local_addr<char>();
 	addr_t const buffer_phys = Dataspace_client(buffer.cap()).phys_addr();
 
