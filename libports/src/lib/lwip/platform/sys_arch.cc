@@ -629,4 +629,7 @@ extern "C" {
 	}
 #endif
 
+	void genode_memcpy(void * dst, const void *src, unsigned long size) {
+		Genode::memcpy(dst, src, size);
+	}
 } /* extern "C" */

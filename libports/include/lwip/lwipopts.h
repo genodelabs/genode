@@ -99,6 +99,9 @@
 #define MEMP_NUM_TCP_PCB           128
 #define MEMP_NUM_NETCONN (MEMP_NUM_TCP_PCB + MEMP_NUM_UDP_PCB + MEMP_NUM_RAW_PCB + MEMP_NUM_TCP_PCB_LISTEN - 1)
 
+void genode_memcpy(void * dst, const void *src, unsigned long size);
+#define MEMCPY(dst,src,len)             genode_memcpy(dst,src,len)
+
 /********************
  ** Debug settings **
  ********************/
