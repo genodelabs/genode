@@ -126,10 +126,10 @@ static void arndale_ehci_init()
 	enum Gpio_offset { D1 = 0x180, X3 = 0xc60 };
 
 	/* enable USB3 clock and power up */
-	Regulator::Connection reg_clk(Regulator::CLK_USB20);
+	static Regulator::Connection reg_clk(Regulator::CLK_USB20);
 	reg_clk.state(true);
 
-	Regulator::Connection reg_pwr(Regulator::PWR_USB20);
+	static Regulator::Connection reg_pwr(Regulator::PWR_USB20);
 	reg_pwr.state(true);
 
 	/* reset hub via GPIO */
@@ -272,10 +272,10 @@ struct Phy_usb3 : Genode::Mmio
 static void arndale_xhci_init()
 {
 	/* enable USB3 clock and power up */
-	Regulator::Connection reg_clk(Regulator::CLK_USB30);
+	static Regulator::Connection reg_clk(Regulator::CLK_USB30);
 	reg_clk.state(true);
 
-	Regulator::Connection reg_pwr(Regulator::PWR_USB30);
+	static Regulator::Connection reg_pwr(Regulator::PWR_USB30);
 	reg_pwr.state(true);
 
 	/* setup PHY */
