@@ -46,7 +46,11 @@ class Regulator::Session_component : public Regulator::Session_rpc_object
 		/**
 		 * Destructor
 		 */
-		~Session_component() { _driver_factory.destroy(_driver); }
+		~Session_component()
+		{
+			_driver.state(_id, false);
+			_driver_factory.destroy(_driver);
+		}
 
 
 		/***********************************
