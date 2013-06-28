@@ -31,6 +31,12 @@ struct Operation
 	                          char          *buffer_virt) = 0;
 };
 
+void print_bench_head()
+{
+	Genode::printf("\n");
+	Genode::printf("bytes/block       bytes    sec          MB/sec\n");
+	Genode::printf("----------------------------------------------\n");
+}
 
 /*
  * \param total_size    total number of bytes to read
@@ -138,9 +144,7 @@ int main(int argc, char **argv)
 
 	printf("read\n");
 	printf("~~~~\n");
-	printf("\n");
-	printf("bytes/block       bytes              MB    sec          MB/sec\n");
-	printf("--------------------------------------------------------------\n");
+	print_bench_head();
 
 	struct Read : Operation
 	{
@@ -167,9 +171,7 @@ int main(int argc, char **argv)
 	printf("\n");
 	printf("write\n");
 	printf("~~~~~\n");
-	printf("\n");
-	printf("bytes/block       bytes              MB    sec          MB/sec\n");
-	printf("--------------------------------------------------------------\n");
+	print_bench_head();
 
 	struct Write : Operation
 	{
