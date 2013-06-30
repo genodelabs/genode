@@ -1,4 +1,5 @@
 assert_spec foc
+assert_spec 32bit
 
 #
 # Build

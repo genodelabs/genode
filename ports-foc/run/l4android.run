@@ -1,11 +1,9 @@
+assert_spec foc
+assert_spec 32bit
+
 #
 # Build
 #
-
-if {[have_spec foc] == 0} {
-   puts "Runs on Fiasco.OC only"
-   exit 0
-}
 
 set use_platform_drv [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
 set use_usb_drv      [expr [have_spec omap4] || [have_spec exynos5]]
