@@ -30,6 +30,10 @@ lines:
 ! REPOSITORIES += $(GENODE_DIR)/ports-foc
 ! REPOSITORIES += $(GENODE_DIR)/dde_ipxe
 
+The dde_ipxe repository contains the networking drivers for Genode. Please make
+sure that you have followed the preparation steps for this repository as
+described in 'dde_ipxe/README'.
+
 Optionally, add an appropriate '-j' option to the make command in the same file:
 
 ! MAKE += -j4
