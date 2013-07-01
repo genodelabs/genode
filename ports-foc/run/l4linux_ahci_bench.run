@@ -114,11 +114,15 @@ set boot_modules {
 
 lappend_if $interpose_part_blk boot_modules part_blk
 
-set uri "https://github.com/m-stein/genode_related/raw/master/arndale/ahci_bench/l4lx/initrd.gz"
+set uri "http://genode.org/files/l4linux/initrd-ahci-bench.gz"
 if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
 	exec >& /dev/null wget -c -O bin/initrd.gz $uri
 }
+exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
+cd bin
+exec md5sum -c initrd.gz.md5
+cd ..
 
 set fiasco_serial_esc_arg ""
 

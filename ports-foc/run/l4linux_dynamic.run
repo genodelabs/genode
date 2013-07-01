@@ -367,7 +367,7 @@ if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
 	exec >& /dev/null wget -c -O bin/initrd.gz $uri
 }
-exec >& /dev/null wget -c -O bin/initrd.gz.md5 $uri.md5
+exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
 cd bin
 exec md5sum -c initrd.gz.md5
 cd ..

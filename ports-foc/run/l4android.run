@@ -263,6 +263,12 @@ if {![file exists bin/system-ginger.img]} {
 	puts "Download system image ..."
 	exec curl $system_uri > bin/system-ginger.img 2> /dev/null
 }
+exec >& /dev/null wget -O bin/root-ginger.gz.md5 $initrd_uri.md5
+exec >& /dev/null wget -O bin/system-ginger.img.md5 $system_uri.md5
+cd bin
+exec md5sum -c root-ginger.gz.md5
+exec md5sum -c system-ginger.img.md5
+cd ..
 
 build_boot_image  [join $boot_modules " "]
 

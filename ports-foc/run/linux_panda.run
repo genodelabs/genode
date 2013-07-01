@@ -115,12 +115,15 @@ set boot_modules {
 	usb_drv
 }
 
-set uri "https://github.com/downloads/skalk/genode/busybox-initrd-arm-20120710.gz"
-
+set uri "http://genode.org/files/l4linux/busybox-initrd-arm-20120710.gz"
 if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
 	exec >& /dev/null wget -c -O bin/initrd.gz $uri
 }
+exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
+cd bin
+exec md5sum -c initrd.gz.md5
+cd ..
 
 build_boot_image  [join $boot_modules " "]
 

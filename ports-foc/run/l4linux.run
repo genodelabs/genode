@@ -156,6 +156,10 @@ if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
 	exec >& /dev/null wget -c -O bin/initrd.gz $uri
 }
+exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
+cd bin
+exec md5sum -c initrd.gz.md5
+cd ..
 
 build_boot_image  [join $boot_modules " "]
 
@@ -183,4 +187,4 @@ expect {
 }
 
 puts "Test succeeded"
-exec rm bin/initrd.gz
+exec rm bin/initrd.gz bin/initrd.gz.md5

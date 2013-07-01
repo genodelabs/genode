@@ -130,6 +130,10 @@ if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
 	exec >& /dev/null wget -c -O bin/initrd.gz $uri
 }
+exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
+cd bin
+exec md5sum -c initrd.gz.md5
+cd ..
 
 build_boot_image  [join $boot_modules " "]
 
@@ -137,7 +141,7 @@ build_boot_image  [join $boot_modules " "]
 #
 # Execute test case
 #
-set ip_match "(\[0-9]{1,3})\.(\[0-9]{1,3})\.(\[0-9]{1,3})\.(\[0-9]{1,3})"
+set ip_match "(\[0-9]{1,3})\\.(\[0-9]{1,3})\\.(\[0-9]{1,3})\\.(\[0-9]{1,3})"
 
 #
 # Local IP
@@ -151,7 +155,7 @@ regexp $ip_match $ip_string ip_local
 #
 run_genode_until "Link status is: 1.*" 220
 set serial_id $spawn_id
-sleep 3
+sleep 8
 send "ip addr show dev eth0\n"
 run_genode_until "inet.*\n" 3 $serial_id
 regexp $ip_match $output ip_remote
