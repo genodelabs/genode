@@ -22,6 +22,7 @@ extern "C" {
 /* our local incarnation of sender and receiver */
 static Signal_helper *_signal = 0;
 static Genode::Lock   _irq_sync(Genode::Lock::LOCKED);
+static Genode::Lock   _irq_wait(Genode::Lock::LOCKED);
 
 /**
  * This contains the Linux-driver handlers
@@ -80,6 +81,9 @@ class Irq_context : public Driver_context,
 			static Genode::Lock handler_lock;
 			Genode::Lock::Guard guard(handler_lock);
 
+			/* unlock if main thread is waiting */
+			_irq_wait.unlock();
+
 			Irq_context *ctx = static_cast<Irq_context *>(irq);
 
 			/* set context & submit signal */
@@ -120,7 +124,7 @@ class Irq_context : public Driver_context,
 			/* report IRQ to all clients */
 			for (Irq_handler *h = _handler_list.first(); h; h = h->next()) {
 
-				if (_handle_one(h))
+				if ((handled = _handle_one(h)))
 					break;
 
 				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u h: %p dev: %p", _irq, handled, h->handler, h->dev);
@@ -188,6 +192,13 @@ void Irq::init(Genode::Signal_receiver *recv) {
 void Irq::check_irq()
 {
 	Irq_context::check_irq();
+}
+
+
+void Irq::wait_for_irq()
+{
+	while (!Irq_context::check_irq())
+		_irq_wait.lock();
 }
 
 

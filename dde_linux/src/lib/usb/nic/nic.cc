@@ -98,9 +98,8 @@ class Skb
 			
 
 			/* wait until some SKBs are freed */
-			_wait_free = false;
-			//PDBG("wait for free skbs ...");
-			_wait_event(_wait_free);
+			for (_wait_free = false; !_wait_free;)
+				Irq::wait_for_irq();
 
 			return alloc();
 		}

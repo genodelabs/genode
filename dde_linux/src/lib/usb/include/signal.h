@@ -116,6 +116,7 @@ namespace Irq
 {
 	void init(Genode::Signal_receiver *recv);
 	void check_irq();
+	void wait_for_irq();
 }
 
 namespace Event
