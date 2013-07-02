@@ -1,17 +1,43 @@
-The nic_bridge provides multiple sessions of the 'Nic' service while
-using a single 'Nic' session for forwarding requests. For proper working
-it implements some kind of the 'proxy arp' protocol (rfc1027). That
-means it allocates a MAC address for each client. Whenever a client
-sends a packet it changes the sender MAC address to the one it hold
-available for the client. Moreover, it monitors DHCP packets, and
-tracks which IP address is used by which client. Whenever ARP packets
-come from the outside it will answer them with the corresponding MAC
-address.
+The NIC bridge provides multiple sessions of the 'Nic' service while using a
+single 'Nic' session for forwarding requests. It implements a flavour of the
+Proxy-ARP protocol (rfc1027). That means it allocates a virtual MAC address for
+each client. Whenever a client sends a packet, NIC bridge changes the sender's
+MAC address to the one it memorized for the client. Moreover, it monitors DHCP
+packets, and tracks the IP addresses assigned to each of its clients. Whenever
+ARP packets come from the outside, NIC bridge will answer them with the
+corresponding MAC address.
 
-By adding the following attribute to the 'nic_bridge' config node:
-
+By adding a 'mac' attribute to the 'nic_bridge' config node: one can define the
+first MAC address from which the NIC bridge will allocate MACs for its clients.
+For example:
 ! <config mac="02:02:02:02:02:00"/>
+Note that the least relevant byte will be ignored. NIC bridge will use it for
+enumerating its clients, starting from 0.
 
-one can define the first MAC address from which the nic_brigde
-will allocate MACs for it's clients. Note: that the least relevant
-byte will be ignored always starting from 0.
+Normally, NIC bridge is expected to be used in scenarios where an DHCP server
+is available. However, there are situations where the use of static IPs for
+virtual NICs is useful. For example, when using the NIC bridge to create a
+virtual network between the lighttpd web server and the Arora web browser, both
+running as Genode processes without real network connectivity.
+
+The static IP can be configured per client of the NIC bridge using a '<policy>'
+node of the configuration. For example, the following policy assigns a static
+address to a client with the session label "lighttpd".
+!<start name="nic_bridge">
+!  ...
+!  <config>
+!    <policy label="lighttpd" ip_addr="10.0.2.55"/>
+!  </config>
+!</start>
+
+Of course, the client needs to configure its TCP/IP stack to use the assigned
+IP address. This can be done via configuration arguments examined by the
+'lwip_nic_dhcp' libc plugin. For the given example, the configuration for the
+lighttpd process would look as follows.
+!<start name="lighttpd">
+!  <config>
+!    <interface ip_addr="10.0.2.55"
+!               netmask="255.255.255.0"
+!               gateway="10.0.2.1"/>
+!  </config>
+!</start>
