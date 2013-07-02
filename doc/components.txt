@@ -114,7 +114,7 @@ input-session interfaces respectively.
   is made available to the driver via the SPECS machinery of the Genode build
   system.
 
-:'os/src/drivers/framebuffer/vesa':
+:'libports/src/drivers/framebuffer/vesa':
   Driver using VESA mode setting on x86 PCs. For more information, please refer
   to the README file in the driver directory.
 
