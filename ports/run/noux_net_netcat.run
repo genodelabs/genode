@@ -223,7 +223,7 @@ if {[is_qemu_available]} {
 	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $serial_ip_addr serial_ip_addr 
 
 	# connect to Genode target and reading log output via network connection
-	exec telnet $serial_ip_addr 8888 > $noux_output_file &
+	exec socat -u tcp:$serial_ip_addr:8888 OPEN:$noux_output_file,creat,append &
 }
 
 sleep 4
