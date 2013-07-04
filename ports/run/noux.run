@@ -77,8 +77,9 @@ run_genode_until "child /bin/ls exited with exit value 0.*\n" 30
 if {[is_qemu_available]} {
 	puts "[exec cat $noux_output_file]"
 
-	exec rm bin/coreutils.tar
 	exec rm $noux_output_file
 }
+
+exec rm bin/coreutils.tar
 
 puts "Test succeeded"
