@@ -27,6 +27,7 @@ static const int verbose = 0;
 using namespace Genode;
 
 Ata::Device::Device(unsigned base_cmd, unsigned base_ctrl)
+: _lba48(false), _host_protected_area(false)
 {
 	_pio = new(env()->heap()) Ata::Io_port(base_cmd, base_ctrl);
 }
@@ -77,15 +78,13 @@ void Ata::Device::probe_dma()
 	               0L,
 	               buffer,
 	               1L, 0 )) {
-		
-		
-		unsigned command_set = buffer[164] + (buffer[165] << 8) + (buffer[166] << 16) + (buffer[167] << 24);
-		_lba48 = false;
-		if  (command_set & (1 << 26) )
-			_lba48 = true;
-		Genode::printf( "LBA%d\n", _lba48 ? 48 : 28 );
 
+		/* check command set's LBA48 bit */
+		_lba48 = !!(buffer[167] & 0x4);
+		/* check for host protected area feature */
+		_host_protected_area = !!(buffer[165] & 0x4);
 
+		Genode::printf( "Adress mode is LBA%d\n", _lba48 ? 48 : 28 );
 		Genode::printf("UDMA Modes supported:\n");
 
 		for (int i = 0; i <= 5; i++) {
@@ -112,15 +111,27 @@ void Ata::Device::read_capacity()
 	_block_start = 0;
 	_block_size  = 512;
 
-	enum { CMD_NATIVE_MAX_ADDRESS = 0xf8 };
+	enum { 
+		CMD_NATIVE_MAX_ADDRESS     = 0xf8, /* LBA28 */
+		CMD_NATIVE_MAX_ADDRESS_EXT = 0x27, /* LBA48 */
+	};
 
-	if (_lba48) {
-		if (!reg_non_data_lba48(dev_num(), CMD_NATIVE_MAX_ADDRESS, 0, 1, 0UL, 0UL)) {
+	/*
+	 * If both LBA48 is enabled and host protected area feature is set, then NATIVE MAX
+	 * ADDRESS EXT becomes mandatory, use LBA28 otherwise
+	 */
+	if (_lba48 && _host_protected_area) {
+		if (!reg_non_data_lba48(dev_num(), CMD_NATIVE_MAX_ADDRESS_EXT, 0, 1, 0UL, 0UL)) {
 
 			_block_end  =  _pio->inb(CB_SN);              /* 0 - 7 */
 			_block_end |=  _pio->inb(CB_CL) << 8;         /* 8 - 15 */
 			_block_end |=  _pio->inb(CB_CH) << 16;        /* 16 - 23 */
-			_block_end |=  _pio->inb(CB_DH) << 24;        /* 24 - 31 */
+
+			/* read higher order LBA registers */
+			_pio->outb(CB_DC, CB_DC_HOB);
+			_block_end |=  _pio->inb(CB_SN) << 24;        /* 24 - 31 */
+			/* FIXME: read bits 32 - 47 */
+
 		}
 	} else {
 		if (!reg_non_data_lba28(dev_num(), CMD_NATIVE_MAX_ADDRESS, 0, 1, 0UL)) {
