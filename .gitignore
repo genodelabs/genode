@@ -104,6 +104,12 @@
 /libports/include/stdcxx-genode/bits/nested_exception.h
 /libports/include/stdcxx-genode/exception
 /libports/include/stdcxx-genode/new
+/libports/include/x86emu/stdint.h
+/libports/include/x86emu/stdio.h
+/libports/include/x86emu/stdlib.h
+/libports/include/x86emu/string.h
+/libports/include/x86emu/x86emu.h
+/libports/include/x86emu/x86emu/
 /libports/src/lib/gmp/mpn/asm-defs.m4
 /libports/src/lib/gmp/mpn/arm/hamdist.c
 /libports/src/lib/gmp/mpn/arm/popcount.c
