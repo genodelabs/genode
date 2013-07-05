@@ -28,6 +28,7 @@
 
 /* local includes */
 #include <disk.h>
+#include <utcb_guard.h>
 
 static Genode::Native_utcb utcb_backup;
 
@@ -67,7 +68,7 @@ void Vancouver_disk::entry()
 
 bool Vancouver_disk::receive(MessageDisk &msg)
 {
-	utcb_backup = *Genode::Thread_base::myself()->utcb();
+	Utcb_guard guard(utcb_backup);
 
 	if (msg.disknr >= MAX_DISKS)
 		Logging::panic("You configured more disks than supported.\n");
@@ -125,7 +126,6 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 				MessageDiskCommit ro(msg.disknr, msg.usertag,
 				                     MessageDisk::DISK_STATUS_DEVICE);
 				_motherboard()->bus_diskcommit.send(ro);
-				*Genode::Thread_base::myself()->utcb() = utcb_backup;
 				return true;
 			}
 
@@ -207,10 +207,8 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 	default:
 
 		Logging::printf("Got MessageDisk type %x\n", msg.type);
-		*Genode::Thread_base::myself()->utcb() = utcb_backup;
 		return false;
 	}
-	*Genode::Thread_base::myself()->utcb() = utcb_backup;
 	return true;
 }
 
