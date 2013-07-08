@@ -8,11 +8,33 @@ set route_nic "nic_bridge"
 set route_nic "usb_drv"
 }
 
-if {![file exists bin/netserver] ||  ![file exists bin/netperf]} {
-	puts "Please download netperf-2.4.4 and put 'netserver' and 'netperf' in your '<build_dir>/bin' folder."
-	puts "(ftp://ftp.netperf.org/netperf/archive/netperf-2.4.4.tar.bz2)"
-	exit 1
+set version "2.4.4"
+
+# sanity check that the right version is used
+set wrong_version [catch {
+	spawn netperf-$version -V
+	expect {
+		"Netperf version $version"  { }
+		eof { return }
+		timeout { return }
+	}
+	spawn netserver-$version -V
+	expect {
+		"Netperf version $version"  { }
+		eof { return }
+		timeout { return }
+	}
+}]
+
+if {$wrong_version} {
+	puts -nonewline "\nPlease compile a netperf client of version $version "
+	puts            "for your host system."
+	puts -nonewline "The sources are available via "
+	puts "ftp://ftp.netperf.org/netperf/archive/netperf-2.4.4.tar.bz2"
+	puts "Please name the binary netperf-$version and netserver-$version\n"
+	exit 1;
 }
+
 
 #
 # Build
@@ -168,7 +190,7 @@ puts "Using local IP: $ip_local remote IP: $ip_remote"
 #
 puts "Transmission test:"
 
-exec bin/netserver -p 8888 &
+exec netserver-$version -p 8888 &
 send "netperf -p 8888 -H $ip_local -t TCP_STREAM && uname\n"
 run_genode_until "Linux.*" 30 $serial_id
 
@@ -180,11 +202,11 @@ puts "\n\n"
 #
 puts "Receive test:"
 
-set results [exec bin/netperf -p 8888 -H $ip_remote  -t TCP_STREAM]
+set results [exec netperf-$version -p 8888 -H $ip_remote  -t TCP_STREAM]
 puts $results
 
 puts "Test succeeded"
 close -i $serial_id
-exec killall netserver
+exec killall netserver-$version
 
 # vi: set ft=tcl :
