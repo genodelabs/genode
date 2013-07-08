@@ -1,5 +1,5 @@
 #
-# \brief  Test using netperf with l4linux
+# \brief  Test using netperf with l4linux and bridge
 # \date   2013-07-08
 #
 
@@ -9,10 +9,10 @@ if {[is_qemu_available]} {
 }
 
 # network configuration
-set use_nic_bridge      0
+set use_nic_bridge      1
 
 set use_usb_11          "no"
-set use_usb_20          "yes"
-set use_usb_30          "no"
+set use_usb_20          "no"
+set use_usb_30          "yes"
 
 source ${genode_dir}/ports-foc/run/l4linux_netperf.inc

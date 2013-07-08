@@ -1,0 +1,218 @@
+#
+# \brief  Test using netperf with l4linux
+# \author Sebastian Sumpf
+# \date   2013-07-08
+#
+
+assert_spec foc_arndale
+
+if {$use_nic_bridge == 1} {
+set route_nic "nic_bridge"
+} else {
+set route_nic "usb_drv"
+}
+
+set version "2.4.4"
+
+# sanity check that the right version is used
+set wrong_version [catch {
+	spawn netperf-$version -V
+	expect {
+		"Netperf version $version"  { }
+		eof { return }
+		timeout { return }
+	}
+	spawn netserver-$version -V
+	expect {
+		"Netperf version $version"  { }
+		eof { return }
+		timeout { return }
+	}
+}]
+
+if {$wrong_version} {
+	puts -nonewline "\nPlease compile a netperf client of version $version "
+	puts            "for your host system."
+	puts -nonewline "The sources are available via "
+	puts "ftp://ftp.netperf.org/netperf/archive/netperf-2.4.4.tar.bz2"
+	puts "Please name the binary netperf-$version and netserver-$version\n"
+	exit 1;
+}
+
+
+#
+# Build
+#
+set build_components {
+	core
+	init
+	drivers/usb
+	drivers/timer
+	drivers/uart
+	drivers/platform
+	server/nic_bridge
+	l4linux
+}
+
+build $build_components
+create_boot_directory
+
+#
+# Config
+#
+set config  {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="kdb_uart_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Terminal"/></provides>
+		<config><policy label="l4linux" uart="0"/></config>
+	</start>
+	<start name="usb_drv">
+		<binary name="usb_drv"/>
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<hid />}
+append config "
+		<config uhci=\"$use_usb_11\" ehci=\"$use_usb_20\" xhci=\"$use_usb_30\">"
+append config {
+			<nic mac="2e:60:90:0c:4e:01" />
+		</config>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Regulator"/></provides>
+	</start>
+	<start name="l4linux">
+		<resource name="RAM" quantum="512M"/>
+		<config args="mem=400M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=1 l4x_cpus_map=0"/>
+		<route>
+	}
+	append config "\t\t<service name=\"Nic\"><child name=\"$route_nic\" /> </service>"
+	append config {
+			<any-service> <any-child /><parent/> </any-service>
+		</route>
+	</start>
+	}
+
+	append_if $use_nic_bridge config {
+	<start name="nic_bridge">
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Nic"/></provides>
+		<route>
+			<service name="Nic"> <child name="usb_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	}
+
+
+append config {
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules {
+	core
+	init
+	timer
+	l4linux
+	initrd.gz
+	usb_drv
+	nic_bridge
+	platform_drv
+	kdb_uart_drv
+}
+
+set uri "http://genode.org/files/l4linux/initrd-arm-netperf.gz"
+
+if {![file exists bin/initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O bin/initrd.gz $uri
+}
+exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
+cd bin
+exec md5sum -c initrd.gz.md5
+cd ..
+
+build_boot_image  [join $boot_modules " "]
+
+
+#
+# Execute test case
+#
+set ip_match "(\[0-9]{1,3})\\.(\[0-9]{1,3})\\.(\[0-9]{1,3})\\.(\[0-9]{1,3})"
+
+#
+# Local IP
+#
+set ip_string [ exec ip addr show dev eth0 ]
+regexp $ip_match $ip_string ip_local
+
+
+#
+# Remote IP
+#
+run_genode_until "Link status is: 1.*" 220
+set serial_id $spawn_id
+sleep 8
+send "ip addr show dev eth0\n"
+run_genode_until "inet.*\n" 3 $serial_id
+regexp $ip_match $output ip_remote
+
+puts "Using local IP: $ip_local remote IP: $ip_remote"
+
+
+#
+# TX (from board to local)
+#
+puts "Transmission test:"
+
+exec netserver-$version -p 8888 &
+send "netperf -p 8888 -H $ip_local -t TCP_STREAM && uname\n"
+run_genode_until "Linux.*" 30 $serial_id
+
+puts "\n\n"
+
+
+#
+# RX
+#
+puts "Receive test:"
+
+set results [exec netperf-$version -p 8888 -H $ip_remote  -t TCP_STREAM]
+puts $results
+
+puts "Test succeeded"
+close -i $serial_id
+exec killall netserver-$version
+
+# vi: set ft=tcl :

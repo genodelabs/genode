@@ -12,7 +12,7 @@ if {[is_qemu_available]} {
 set use_nic_bridge      0
 
 set use_usb_11          "no"
-set use_usb_20          "yes"
-set use_usb_30          "no"
+set use_usb_20          "no"
+set use_usb_30          "yes"
 
 source ${genode_dir}/ports-foc/run/l4linux_netperf.inc
