@@ -37,7 +37,12 @@ using namespace Genode;
 
 void Platform_thread::affinity(unsigned int cpu_no)
 {
-	PERR("not yet implemented");
+	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
+		PERR("Failure - affinity of thread could not be set");
+		return;
+	}
+
+	_cpu_no = cpu_no;
 }
 
 
