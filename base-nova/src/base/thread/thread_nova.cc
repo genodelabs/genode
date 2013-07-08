@@ -121,6 +121,7 @@ void Thread_base::start()
 
 	/* create EC at core */
 	addr_t thread_sp = reinterpret_cast<addr_t>(&_context->stack[-4]);
+	thread_sp &= ~0xf; /* align initial stack to 16 byte boundary */
 
 	Thread_state state;
 	state.sel_exc_base = _tid.exc_pt_sel;

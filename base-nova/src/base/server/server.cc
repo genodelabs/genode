@@ -252,11 +252,16 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 			throw Cpu_session::Thread_creation_failed();
 		_tid.ec_sel = ec_cap.local_name();
 	}
-	else
+	else {
+		enum { CPU_NO = 0 }; //XXX find out the boot cpu
+		/* tell thread starting code on which CPU to let run the server thread */
+		*reinterpret_cast<addr_t *>(stack_top()) = CPU_NO;
+
 		/*
 		 * Required for core threads (creates local EC)
 		 */
 		Thread_base::start();
+	}
 
 	/* create cleanup portal */
 	_cap = _cap_session->alloc(Native_capability(_tid.ec_sel),

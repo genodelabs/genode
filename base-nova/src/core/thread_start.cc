@@ -77,15 +77,17 @@ void Thread_base::start()
 	 */
 	using namespace Nova;
 
-	addr_t sp = reinterpret_cast<addr_t>(&_context->stack[-4]);
-	addr_t utcb = reinterpret_cast<addr_t>(&_context->utcb);
+	addr_t sp       = reinterpret_cast<addr_t>(&_context->stack[-4]);
+	sp             &= ~0xf; /* align initial stack to 16 byte boundary */
+	addr_t utcb     = reinterpret_cast<addr_t>(&_context->utcb);
 	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_context->utcb);
-	addr_t pd_sel = Platform_pd::pd_core_sel();
+	addr_t pd_sel   = Platform_pd::pd_core_sel();
+	addr_t cpu_no   = *reinterpret_cast<addr_t *>(stack_top());
 
 	/* create local EC */
-	enum { CPU_NO = 0, GLOBAL = false };
-	uint8_t res = create_ec(_tid.ec_sel, pd_sel, CPU_NO,
-	                        utcb, sp, _tid.exc_pt_sel, GLOBAL);
+	enum { LOCAL_THREAD = false };
+	uint8_t res = create_ec(_tid.ec_sel, pd_sel, cpu_no,
+	                        utcb, sp, _tid.exc_pt_sel, LOCAL_THREAD);
 	if (res != NOVA_OK) {
 		PERR("create_ec returned %d", res);
 		throw Cpu_session::Thread_creation_failed();

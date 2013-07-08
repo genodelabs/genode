@@ -275,6 +275,8 @@ Pager_object::Pager_object(unsigned long badge, unsigned affinity)
 	_state.singlestep    = false;
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
 
+	/* tell thread starting code on which CPU to let run the pager */
+	*reinterpret_cast<addr_t *>(stack_top()) = affinity;
 	/* creates local EC */
 	Thread_base::start();
 
