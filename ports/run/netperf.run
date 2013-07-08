@@ -9,18 +9,24 @@
 # Build
 #
 
-if {![file exists bin/netperf_host]} {
-	puts "\nPlease compile a netperf client of version 2.6.0 for your host system."
-	puts "The sources are available in 'ports/contrib/netperf'."
-	puts "Please copy the 'netperf' binary to '<build_dir>/bin/netperf_host'.\n"
-	exit 1
-}
+set version "2.6.0"
 
 # sanity check that the right version is used
-spawn bin/netperf_host -V
-expect {
-	{Netperf version 2.6.0}  { }
-	eof     { puts "\nError: unsupported netperf version.\n"; exit 1 }
+set wrong_version [catch {
+	spawn netperf-$version -V
+	expect {
+		{Netperf version 2.6.0}  { }
+		eof { return }
+		timeout { return }
+	}
+}]
+
+if {$wrong_version} {
+	puts -nonewline "\nPlease compile a netperf client of version $version "
+	puts "for your host system."
+	puts "The sources are available in 'ports/contrib/netperf'."
+	puts "Please name the binary netperf-$version\n"
+	exit 1;
 }
 
 # netperf configuration
@@ -218,7 +224,7 @@ if [is_qemu_available] {
 foreach netperf_test $netperf_tests {
 	puts "\n---------------------------- $netperf_test -----------------------"
 
-	spawn bin/netperf_host -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- -m $packet_size $force_ports
+	spawn netperf-$version -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- -m $packet_size $force_ports
 	set netperf_id $spawn_id
 
 	run_genode_until "Segment" 60 $netperf_id
