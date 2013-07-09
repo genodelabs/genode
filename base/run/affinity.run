@@ -1,3 +1,15 @@
+#
+# \brief  Test to start threads on all available CPUs
+# \author Norman Feske
+# \author Alexander Boettcher 
+#
+
+if {![have_spec nova] && ![have_spec foc]} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+
 build "core init test/affinity"
 
 create_boot_directory
@@ -20,6 +32,33 @@ install_config {
 
 build_boot_image "core init test-affinity"
 
-append qemu_args " -nographic -m 64 -smp 2,cores=2 "
+if {[is_qemu_available]} {
+	set want_cpus 4
+	set rounds "05"
+	append qemu_args "-nographic -m 64 -smp $want_cpus,cores=$want_cpus "
+} else {
+	set rounds "10"
+	if {[have_spec x86]} { set rounds "40" }
+}
 
-run_genode_until forever
+run_genode_until "Round $rounds:.*\n" 90
+
+set cpus [regexp -inline {Detected [0-9]+ CPU[ s].*\n} $output]
+set cpus [regexp -inline {[0-9]+} $cpus]
+
+if {[is_qemu_available]} {
+	if {$want_cpus != $cpus} {
+		puts "CPU count is not as expected: $want_cpus != $cpus"
+		exit 1;
+	}
+}
+
+set good_string {[init -> test-affinity] Round XX:}
+for {set i 0} {$i < $cpus} {incr i} {
+	append good_string "  A"
+}
+
+grep_output {\[init -\> test-affinity\] Round}
+unify_output {[0-9]+} "XX"
+
+compare_output_to $good_string
