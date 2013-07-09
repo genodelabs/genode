@@ -29,7 +29,14 @@ using namespace Codezero;
 
 void Platform_thread::affinity(unsigned int cpu_no)
 {
-	PDBG("not yet implemented");
+	PDBG("'%s' not yet implemented", __PRETTY_FUNCTION__);
+}
+
+
+unsigned Platform_thread::affinity()
+{
+	PDBG("'%s' not yet implemented", __PRETTY_FUNCTION__);
+	return 0;
 }
 
 

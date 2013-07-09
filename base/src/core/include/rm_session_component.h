@@ -197,12 +197,14 @@ namespace Genode {
 			 * \param session  RM session to which the client belongs
 			 * \param badge    pager-object badge used of identifying the client
 			 *                 when a page-fault occurs
+			 * \param affinity cpu affinity
 			 */
 			Rm_client(Rm_session_component *session, unsigned long badge,
-			          Weak_ptr<Address_space> &address_space)
+			          Weak_ptr<Address_space> &address_space,
+			          unsigned affinity)
 			:
-				Pager_object(badge), Rm_member(session), Rm_faulter(this),
-				_address_space(address_space) { }
+				Pager_object(badge, affinity), Rm_member(session),
+				Rm_faulter(this), _address_space(address_space) { }
 
 			int pager(Ipc_pager &pager);
 

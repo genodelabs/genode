@@ -58,7 +58,7 @@ namespace Genode {
 			 */
 			Thread_state state;
 
-			Pager_object(unsigned long badge) : _badge(badge) { }
+			Pager_object(unsigned long badge, unsigned affinity) : _badge(badge) { }
 			virtual ~Pager_object() { }
 
 			unsigned long badge() const { return _badge; }

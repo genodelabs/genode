@@ -142,6 +142,11 @@ namespace Genode {
 			 */
 			void affinity(unsigned cpu);
 
+			/**
+			 * Request the affinity of this thread
+			 */
+			unsigned affinity();
+
 
 			/**********************************
 			 ** Pistachio-specific Accessors **

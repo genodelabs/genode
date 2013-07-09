@@ -199,7 +199,7 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0() : Pager_object(0)
+Platform::Sigma0::Sigma0() : Pager_object(0, 0)
 {
 	cap(Native_capability(Pistachio::get_sigma0(), 0));
 }
@@ -214,7 +214,7 @@ Platform::Sigma0 *Platform::sigma0()
 
 Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 :
-	Platform_thread("core.pager"), Pager_object(0)
+	Platform_thread("core.pager"), Pager_object(0, 0)
 {
 	Platform_thread::pager(sigma0());
 

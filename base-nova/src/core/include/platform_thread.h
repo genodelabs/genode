@@ -132,6 +132,11 @@ namespace Genode {
 			void affinity(unsigned cpu);
 
 			/**
+			 * Get the executing CPU for this thread
+			 */
+			unsigned affinity();
+
+			/**
 			 * Get thread name
 			 */
 			const char *name() const { return "noname"; }

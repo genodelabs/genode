@@ -38,7 +38,14 @@ using namespace Okl4;
 
 void Platform_thread::affinity(unsigned int cpu_no)
 {
-	PERR("not yet implemented");
+	PERR("'%s' not yet implemented", __PRETTY_FUNCTION__);
+}
+
+
+unsigned Platform_thread::affinity()
+{
+	PERR("'%s' not yet implemented", __PRETTY_FUNCTION__);
+	return 0;
 }
 
 

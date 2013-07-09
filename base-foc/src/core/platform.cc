@@ -121,7 +121,7 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0)
+Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0, 0)
 {
 	/*
 	 * We use the Pager_object here in a slightly different manner,
@@ -132,7 +132,7 @@ Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0)
 
 
 Platform::Core_pager::Core_pager(Platform_pd *core_pd, Sigma0 *sigma0)
-: Platform_thread("core.pager"), Pager_object(0)
+: Platform_thread("core.pager"), Pager_object(0, 0)
 {
 	Platform_thread::pager(sigma0);
 

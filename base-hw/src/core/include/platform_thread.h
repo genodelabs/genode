@@ -155,6 +155,16 @@ namespace Genode {
 				kernel_log() << __PRETTY_FUNCTION__ << ": not implemented\n"; };
 
 			/**
+			 * Get the executing CPU for this thread
+			 */
+			unsigned affinity()
+			{
+				kernel_log() << __PRETTY_FUNCTION__ << ": not implemented\n";
+				return 0;
+			};
+
+
+			/**
 			 * Return the address space to which the thread is bound
 			 */
 			Weak_ptr<Address_space> address_space();

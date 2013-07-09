@@ -150,6 +150,8 @@ namespace Genode {
 			Rom_fs          *rom_fs()         { return &_rom_fs; }
 
 			void wait_for_exit();
+			unsigned num_cpus() const {
+				return L4_NumProcessors(Pistachio::get_kip()); }
 	};
 }
 

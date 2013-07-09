@@ -124,6 +124,11 @@ namespace Genode {
 			void affinity(unsigned) { }
 
 			/**
+			 * Request the affinity of this thread
+			 */
+			unsigned affinity() { return 0; }
+
+			/**
 			 * Return the address space to which the thread is bound
 			 */
 			Weak_ptr<Address_space> address_space();

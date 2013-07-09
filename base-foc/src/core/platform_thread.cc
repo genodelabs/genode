@@ -209,6 +209,13 @@ void Platform_thread::affinity(unsigned cpu)
 }
 
 
+unsigned Platform_thread::affinity()
+{
+	PERR("'%s' not yet implemented", __PRETTY_FUNCTION__);
+	return 0;
+}
+
+
 void Platform_thread::_create_thread()
 {
 	l4_msgtag_t tag = l4_factory_create_thread(L4_BASE_FACTORY_CAP,

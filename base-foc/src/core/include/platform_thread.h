@@ -139,6 +139,11 @@ namespace Genode {
 			void affinity(unsigned cpu);
 
 			/**
+			 * Get the executing CPU for this thread
+			 */
+			unsigned affinity();
+
+			/**
 			 * Return the address space to which the thread is bound
 			 */
 			Weak_ptr<Address_space> address_space();

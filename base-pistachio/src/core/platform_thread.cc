@@ -51,6 +51,13 @@ void Platform_thread::affinity(unsigned int cpu_no)
 }
 
 
+unsigned Platform_thread::affinity()
+{
+	PERR("'%s' not yet implemented", __PRETTY_FUNCTION__);
+	return 0;
+}
+
+
 int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 {
 	L4_ThreadId_t thread = _l4_thread_id;

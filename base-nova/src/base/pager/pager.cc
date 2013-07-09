@@ -257,7 +257,7 @@ static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
 	return res;	
 }
 
-Pager_object::Pager_object(unsigned long badge)
+Pager_object::Pager_object(unsigned long badge, unsigned affinity)
 : Thread_base("pager:", PF_HANDLER_STACK_SIZE), _badge(badge)
 {
 	class Create_exception_pt_failed { };
