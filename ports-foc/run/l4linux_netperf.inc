@@ -181,7 +181,7 @@ regexp $ip_match $ip_string ip_local
 #
 # Remote IP
 #
-run_genode_until "Link status is: 1.*" 220
+run_genode_until "netif_info: register.*\n" 60
 set serial_id $spawn_id
 sleep 8
 send "ip addr show dev eth0\n"
@@ -194,24 +194,52 @@ puts "Using local IP: $ip_local remote IP: $ip_remote"
 #
 # TX (from board to local)
 #
-puts "Transmission test:"
+puts "\nTransmission test:"
 
 exec netserver-$version -p 8888 &
-send "netperf -p 8888 -H $ip_local -t TCP_STREAM && uname\n"
+send "netperf -p 8888 -H $ip_local -c -C -t TCP_STREAM && uname\n"
 run_genode_until "Linux.*" 30 $serial_id
 
 puts "\n\n"
 
+# get throughput_tx from netperf output
+set throughput_tx [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
+set throughput_tx [regexp -all -inline {[0-9]+\.[0-9]+} $throughput_tx]
 
 #
 # RX
 #
 puts "Receive test:"
 
-set results [exec netperf-$version -p 8888 -H $ip_remote  -t TCP_STREAM]
+set results [exec netperf-$version -p 8888 -H $ip_remote -t TCP_STREAM]
 puts $results
 
-puts "Test succeeded"
+# get throughput from netperf output
+set throughput_rx [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $results]
+set throughput_rx [regexp -all -inline {[0-9]+\.[0-9]+} $throughput_rx]
+
+puts "\n"
+
+#
+# format output parseable for post proccessing scripts
+#
+puts -nonewline "! PERF: TCP_TX"
+if {$use_nic_bridge} { puts -nonewline "_bridge" }
+if {![string compare $use_usb_11 "yes"]} { puts -nonewline "_uhci" }
+if {![string compare $use_usb_20 "yes"]} { puts -nonewline "_ohci" }
+if {![string compare $use_usb_30 "yes"]} { puts -nonewline "_xhci" }
+puts "              [lindex $throughput_tx 1] MBit/s ok"
+
+puts -nonewline "! PERF: TCP_RX"
+if {$use_nic_bridge} { puts -nonewline "_bridge" }
+if {![string compare $use_usb_11 "yes"]} { puts -nonewline "_uhci" }
+if {![string compare $use_usb_20 "yes"]} { puts -nonewline "_ohci" }
+if {![string compare $use_usb_30 "yes"]} { puts -nonewline "_xhci" }
+puts "              [lindex $throughput_rx 1] MBit/s ok"
+
+exec rm bin/initrd.gz bin/initrd.gz.md5
+
+puts "\nTest succeeded"
 close -i $serial_id
 exec killall netserver-$version
 
