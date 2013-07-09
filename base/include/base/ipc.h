@@ -447,10 +447,8 @@ namespace Genode {
 			{
 				_call();
 				_read_from_buf(_result);
-				if (_result == ERR_INVALID_OBJECT) {
-					PERR("tried to call an invalid object");
+				if (_result == ERR_INVALID_OBJECT)
 					throw Ipc_error();
-				}
 				return *this;
 			}
 
