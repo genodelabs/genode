@@ -29,6 +29,23 @@ namespace Genode
 	 */
 	class Core_tlb : public Tlb
 	{
+		private:
+
+			/**
+			 * On Pandaboard the L2 cache needs to be disabled by a
+			 * TrustZone hypervisor call
+			 */
+			void _disable_outer_l2_cache()
+			{
+				asm volatile (
+					"stmfd sp!, {r0-r12} \n"
+					"mov   r0, #0        \n"
+					"ldr   r12, =0x102   \n"
+					"dsb                 \n"
+					"smc #0              \n"
+					"ldmfd sp!, {r0-r12}");
+			}
+
 		public:
 
 			/**
@@ -37,6 +54,13 @@ namespace Genode
 			Core_tlb()
 			{
 				using namespace Genode;
+
+				/*
+				 * Disable L2-cache by now, or we get into deep trouble with the MMU
+				 * not using the L2 cache
+				 */
+				_disable_outer_l2_cache();
+
 				map_core_area(Board::RAM_0_BASE, Board::RAM_0_SIZE, 0);
 				map_core_area(Board::MMIO_0_BASE, Board::MMIO_0_SIZE, 1);
 				map_core_area(Board::MMIO_1_BASE, Board::MMIO_1_SIZE, 1);

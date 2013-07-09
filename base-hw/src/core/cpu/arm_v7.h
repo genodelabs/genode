@@ -122,7 +122,7 @@ namespace Arm_v7
 		 */
 		struct Ttbr0 : Arm::Cpu::Ttbr0
 		{
-			struct Nos : Bitfield<6,1> { }; /* not outer shareable */
+			struct Nos : Bitfield<5,1> { }; /* not outer shareable */
 
 			struct Irgn_1 : Bitfield<0,1> { }; /* inner cachable mode */
 			struct Irgn_0 : Bitfield<6,1> { }; /* inner cachable mode */
