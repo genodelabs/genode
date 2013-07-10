@@ -326,7 +326,7 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
 :
 	_pd(0), _pager(0), _id_base(cap_selector_allocator()->alloc(1)),
-	_sel_exc_base(Native_thread::INVALID_INDEX), _cpu_no(0), //XXX find out boot CPU
+	_sel_exc_base(Native_thread::INVALID_INDEX), _cpu_no(boot_cpu()),
 	_is_main_thread(false), _is_vcpu(false)
 {
 	strncpy(_name, name, sizeof(_name));

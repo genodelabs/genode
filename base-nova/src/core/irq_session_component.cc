@@ -67,8 +67,8 @@ class Irq_thread : public Thread_base
 			*sp = reinterpret_cast<addr_t>(_thread_start);
 	
 			/* create global EC */
-			enum { CPU_NO = 0, GLOBAL = true };
-			uint8_t res = create_ec(_tid.ec_sel, pd_sel, CPU_NO,
+			enum { GLOBAL = true };
+			uint8_t res = create_ec(_tid.ec_sel, pd_sel, boot_cpu(),
 			                        utcb, (mword_t)sp, _tid.exc_pt_sel, GLOBAL);
 			if (res != NOVA_OK) {
 				PERR("%p - create_ec returned %d", this, res);
@@ -139,11 +139,10 @@ class Genode::Irq_proxy_component : public Irq_proxy<Irq_thread>
 			}
 
 			/* assign IRQ to CPU */
-			enum { CPU = 0 };
 			addr_t msi_addr = 0;
 			addr_t msi_data = 0;
-			uint8_t res = Nova::assign_gsi(_irq_sel, _dev_mem, CPU, msi_addr, msi_data);
-
+			uint8_t res = Nova::assign_gsi(_irq_sel, _dev_mem, boot_cpu(),
+			                               msi_addr, msi_data);
 			if (res != Nova::NOVA_OK)
 				PERR("Error: assign_pci failed -irq:dev:msi_addr:msi_data "
 				     "%lx:%lx:%lx:%lx", _irq_number, _dev_mem, msi_addr,

@@ -28,6 +28,24 @@
 
 enum { verbose_local_map = false };
 
+/**
+ * Return boot CPU number. It is required if threads in core should be placed
+ * on the same CPU as the main thread.
+ */
+inline Genode::addr_t boot_cpu()
+{
+	/**
+	 * Initial value of ax and di register, saved by the crt0 startup code
+	 * and SOLELY VALID in 'core' !!!
+	 *
+	 * For x86_32 - __initial_ax contains the number of the boot CPU.
+	 * For x86_64 - __initial_di contains the number of the boot CPU.
+	 */
+	extern Genode::addr_t __initial_ax;
+	extern Genode::addr_t __initial_di;
+
+	return (sizeof(void *) > 4) ? __initial_di : __initial_ax;
+}
 
 /**
  * Establish a mapping

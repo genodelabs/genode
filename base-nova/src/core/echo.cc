@@ -20,10 +20,10 @@
 
 /* local includes */
 #include <echo.h>
+#include <nova_util.h>
 
 enum {
 	ECHO_STACK_SIZE = 1024,
-	ECHO_CPU_NO     = 0,
 	ECHO_GLOBAL     = false,
 	ECHO_EXC_BASE   = 0
 };
@@ -72,8 +72,9 @@ Echo::Echo(Genode::addr_t utcb_addr)
 
 	/* create echo EC */
 	Genode::addr_t pd_sel = Genode::Platform_pd::pd_core_sel();
-	uint8_t res = create_ec(_ec_sel, pd_sel, ECHO_CPU_NO, utcb_addr,
-	                        (mword_t)echo_stack_top(), ECHO_EXC_BASE, ECHO_GLOBAL);
+	uint8_t res = create_ec(_ec_sel, pd_sel, boot_cpu(), utcb_addr,
+	                        reinterpret_cast<mword_t>(echo_stack_top()),
+	                        ECHO_EXC_BASE, ECHO_GLOBAL);
 
 	/* make error condition visible by raising an unhandled page fault */
 	if (res) { ((void (*)())(res*0x10000UL))(); }

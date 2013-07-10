@@ -84,6 +84,10 @@ void Thread_base::start()
 	addr_t pd_sel   = Platform_pd::pd_core_sel();
 	addr_t cpu_no   = *reinterpret_cast<addr_t *>(stack_top());
 
+	/* server code sets this value */
+	if (cpu_no == ~0UL)
+		cpu_no = boot_cpu();
+
 	/* create local EC */
 	enum { LOCAL_THREAD = false };
 	uint8_t res = create_ec(_tid.ec_sel, pd_sel, cpu_no,

@@ -253,9 +253,8 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		_tid.ec_sel = ec_cap.local_name();
 	}
 	else {
-		enum { CPU_NO = 0 }; //XXX find out the boot cpu
-		/* tell thread starting code on which CPU to let run the server thread */
-		*reinterpret_cast<addr_t *>(stack_top()) = CPU_NO;
+		/* tell thread starting code to use boot CPU */
+		*reinterpret_cast<addr_t *>(stack_top()) = ~0UL;
 
 		/*
 		 * Required for core threads (creates local EC)

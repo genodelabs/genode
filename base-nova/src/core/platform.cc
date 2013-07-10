@@ -38,8 +38,7 @@ Native_utcb *main_thread_utcb();
 
 
 /**
- * Initial value of esp register, saved by the crt0 startup code
- *
+ * Initial value of esp register, saved by the crt0 startup code.
  * This value contains the address of the hypervisor information page.
  */
 extern addr_t __initial_sp;
@@ -255,14 +254,13 @@ static void init_core_page_fault_handler()
 {
 	/* create echo EC */
 	enum {
-		CPU_NO     = 0,
 		GLOBAL     = false,
 		EXC_BASE   = 0
 	};
 
 	addr_t ec_sel = cap_selector_allocator()->alloc();
 
-	uint8_t ret = create_ec(ec_sel, __core_pd_sel, CPU_NO,
+	uint8_t ret = create_ec(ec_sel, __core_pd_sel, boot_cpu(),
 	                        CORE_PAGER_UTCB_ADDR, core_pager_stack_top(),
 	                        EXC_BASE, GLOBAL);
 	if (ret)
@@ -341,7 +339,8 @@ Platform::Platform() :
 	if (verbose_boot_info) {
 		printf("Hypervisor %s VMX\n", hip->has_feature_vmx() ? "features" : "does not feature");
 		printf("Hypervisor %s SVM\n", hip->has_feature_svm() ? "features" : "does not feature");
-		printf("Hypervisor reports %u CPU%c\n", _cpus, _cpus > 1 ? 's' : ' ');
+		printf("Hypervisor reports %u CPU%c - boot CPU is %lu\n",
+		       _cpus, _cpus > 1 ? 's' : ' ', boot_cpu());
 	}
 
 	/* initialize core allocators */
