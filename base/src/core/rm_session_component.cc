@@ -806,10 +806,11 @@ Rm_session_component::Rm_session_component(Rpc_entrypoint   *ds_ep,
 	_md_alloc(md_alloc, ram_quota),
 	_client_slab(&_md_alloc), _ref_slab(&_md_alloc),
 	_map(&_md_alloc), _pager_ep(pager_ep),
-	_ds(vm_size), _ds_cap(_type_deduction_helper(ds_ep->manage(&_ds)))
+	_ds(align_addr(vm_size, get_page_size_log2())),
+	_ds_cap(_type_deduction_helper(ds_ep->manage(&_ds)))
 {
 	/* configure managed VM area */
-	_map.add_range(vm_start, vm_size);
+	_map.add_range(vm_start, align_addr(vm_size, get_page_size_log2()));
 }
 
 
