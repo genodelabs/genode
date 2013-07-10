@@ -17,6 +17,8 @@
 
 _start:
 	mov %esp, __initial_sp
+	mov %eax, __initial_ax
+	mov %edi, __initial_di
 
 	/* XXX Switch to our own stack.  */
 	leal _stack_high, %esp
@@ -52,6 +54,10 @@ _stack_low:
 	.global	_stack_high
 _stack_high:
 
-	/* initial value of the ESP register */
+	/* initial value of the ESP, EAX and EDI register */
 	.globl	__initial_sp
+	.globl	__initial_ax
+	.globl	__initial_di
 __initial_sp: .space 4
+__initial_ax: .space 4
+__initial_di: .space 4
