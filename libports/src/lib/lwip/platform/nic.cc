@@ -263,7 +263,6 @@ extern "C" {
 		/* Setup receiver thread */
 		Nic_receiver_thread *th = new (env()->heap())
 			Nic_receiver_thread(nic, netif);
-		th->start();
 
 		/* Store receiver thread address in user-defined netif struct part */
 		netif->state      = (void*) th;
@@ -284,6 +283,8 @@ extern "C" {
 		Nic::Mac_address _mac = nic->mac_address();
 		for(int i=0; i<6; ++i)
 			netif->hwaddr[i] = _mac.addr[i];
+
+		th->start();
 
 		return ERR_OK;
 	}
