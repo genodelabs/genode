@@ -1,5 +1,5 @@
-if {[have_spec linux]} {
-	puts "\nLinux not supported because of missing UART driver\n"
+if {[expr [have_spec linux] || [have_spec platform_imx53]]} {
+	puts "\nPlatform not supported because of missing UART driver\n"
 	exit 0
 }
 
