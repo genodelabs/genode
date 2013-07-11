@@ -4,6 +4,12 @@
 # \date   2013-04-18
 #
 
+set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_driver      [expr !$use_usb_driver && ![have_spec platform_imx53]]
+set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+
+if {[expr !$use_usb_driver && !$use_nic_driver]} {
+	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 #
 # Build
@@ -34,9 +40,7 @@ set packet_size 1024
 set netperf_tests "TCP_STREAM TCP_MAERTS"
 
 # start run script generation 
-set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5]]
-set use_nic_driver      [expr !$use_usb_driver]
-set use_platform_driver [expr $use_usb_driver && [have_spec platform_arndale]]
+
 if {$use_usb_driver}    { set network_driver "usb_drv" }
 if {$use_nic_driver}    { set network_driver "nic_drv" }
 

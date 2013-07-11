@@ -1,7 +1,9 @@
-if {[have_spec linux]} {
-	puts "\nLinux not supported because of missing UART driver\n"
-	exit 0
-}
+set use_usb_driver   [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_driver   [expr !$use_usb_driver && ![have_spec platform_imx53] && ![have_spec linux]]
+set use_platform_drv [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+
+if {[expr !$use_usb_driver && !$use_nic_driver]} {
+	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 set build_components {
 	core init
@@ -11,10 +13,6 @@ set build_components {
 	noux/net lib/libc_noux
 	noux-pkg/netcat
 }
-
-set use_usb_driver   [expr [have_spec omap4] || [have_spec exynos5]]
-set use_nic_driver   [expr !$use_usb_driver]
-set use_platform_drv [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
 
 lappend_if $use_usb_driver     build_components drivers/usb
 lappend_if $use_nic_driver     build_components drivers/nic

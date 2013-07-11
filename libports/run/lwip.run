@@ -19,8 +19,11 @@
 # TODO: Add support for Linux via user-level networking (using the
 #       tun/tap proxy driver at os/src/drivers/nic/linux)
 #
-if {[have_spec linux]} {
-	puts "Run script does not support Linux."; exit 0 }
+set use_usb_driver [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_driver [expr !$use_usb_driver && ![have_spec platform_imx53] && ![have_spec linux]]
+
+if {[expr !$use_usb_driver && !$use_nic_driver]} {
+	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 requires_installation_of lynx
 
@@ -33,9 +36,6 @@ set build_components {
 	drivers/pci drivers/timer drivers/nic
 	test/lwip/http_srv
 }
-
-set use_usb_driver [expr [have_spec omap4] || [have_spec exynos5]]
-set use_nic_driver [expr !$use_usb_driver]
 
 lappend_if $use_usb_driver              build_components drivers/usb
 lappend_if [have_spec acpi]             build_components drivers/acpi
