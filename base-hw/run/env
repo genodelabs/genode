@@ -207,7 +207,8 @@ proc build_boot_image {binaries} {
 	}
 
 	# retrieve stand-alone core
-	exec mv core/core.standalone bin/core
+	exec cp core/core.standalone bin/core
+	exec rm core/core.standalone
 }
 
 
