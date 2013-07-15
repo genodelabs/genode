@@ -575,7 +575,7 @@ proc spawn_amt { wait_for_re timeout_value} {
 		set exit_result [lindex $result 3]
 	}
 	sleep 5
-	
+
 	#
 	# grab output
 	#
@@ -671,23 +671,33 @@ proc exit {{status 0}} {
 ##
 # Execute scenario expecting output via serial device
 #
-proc spawn_serial { wait_for_re timeout_value} {
+proc spawn_serial { wait_for_re timeout_value kernel_msg } {
 	global spawn_id
 	global serial_cmd
 	global run_target
 
-	if {$wait_for_re == "forever"} {
-		set timeout -1
-	} else {
-		set timeout_value [expr $timeout_value + 30]
+	set retry 3
+	while { $retry != 0 } {
+
+		if {[regexp "reset" $run_target]} {
+			power_plug_reset
+		}
+
+		eval spawn $serial_cmd
+		set serial_spawn_id $spawn_id
+
+		set timeout 30
+		expect {
+			$kernel_msg  { break; }
+			eof     { puts stderr "Serial command process died unexpectedly"; incr retry -1; }
+			timeout { puts stderr "Boot process timed out"; close; incr retry -1; }
+		}
+	}
+	if { $retry == 0 } {
+		puts stderr "Boot process failed 3 times in series. I give up!";
+		exit -1;
 	}
 
-	if {[regexp "reset" $run_target]} {
-		power_plug_reset
-	}
-
-	eval spawn $serial_cmd
-	set serial_spawn_id $spawn_id
 	wait_for_output $wait_for_re $timeout_value $serial_spawn_id
 }
 

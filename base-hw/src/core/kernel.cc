@@ -1448,6 +1448,8 @@ extern "C" void kernel()
 	/* kernel initialization */
 	} else {
 
+		Genode::printf("Kernel started!\n");
+
 		/* compose kernel CPU context */
 		static Cpu::Context kernel_context;
 		kernel_context.ip = (addr_t)kernel;
