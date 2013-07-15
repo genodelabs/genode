@@ -2949,11 +2949,6 @@ struct sk_buff_head
                        skb != (struct sk_buff *)(queue); \
                        skb = skb->next)
 
-#define skb_queue_walk_safe(queue, skb, tmp)                           \
-                            for (skb = (queue)->next, tmp = skb->next; \
-                            skb != (struct sk_buff *)(queue);          \
-                            skb = tmp, tmp = skb->next)
-
 struct skb_shared_info *skb_shinfo(struct sk_buff *);
 struct sk_buff *alloc_skb(unsigned int, gfp_t);
 unsigned char *skb_push(struct sk_buff *, unsigned int);

@@ -71,7 +71,7 @@ namespace Nic {
 		/**
 		 * Transmit data to driver
 		 */
-		virtual void tx(addr_t virt, size_t size) = 0;
+		virtual bool tx(addr_t virt, size_t size) = 0;
 
 		/**
 		 * Return mac address of device
@@ -123,8 +123,13 @@ namespace Nic {
 	{
 		private:
 
-			Device   *_device;   /* device this session is using */
-			Tx::Sink *_tx_sink;  /* client packet sink */
+			Device           *_device;   /* device this session is using */
+			Tx::Sink         *_tx_sink;  /* client packet sink */
+			bool              _tx_alloc; 
+			Packet_descriptor _tx_packet;
+
+			void _send_packet_avail_signal() {
+				Signal_transmitter(_tx.sigh_packet_avail()).submit(); }
 
 		protected:
 
@@ -141,7 +146,7 @@ namespace Nic {
 				/* submit received packets to lower layer */
 				while (_tx_sink->packet_avail())
 				{
-					Packet_descriptor packet = _tx_sink->get_packet();
+					Packet_descriptor packet = _tx_alloc ? _tx_sink->get_packet() : _tx_packet;
 					addr_t virt = (addr_t)_tx_sink->packet_content(packet);
 
 					if (_device->burst()) {
@@ -156,6 +161,16 @@ namespace Nic {
 
 							/* alloc new SKB */
 							skb = _device->alloc_skb();
+
+							if (!skb) {
+								_send_packet_avail_signal();
+								_tx_alloc = false;
+								_tx_packet = packet;
+								return;
+							}
+
+							_tx_alloc = true;
+
 							ptr = skb->data;
 							work_skb.data = 0;
 							_device->skb_fill(&work_skb, ptr, packet.size(), skb->end);
@@ -169,16 +184,21 @@ namespace Nic {
 						ptr       = work_skb.end;
 						skb->len += work_skb.truesize;
 					} else {
+
 						/* send to driver */
-						_device->tx(virt, packet.size());
+						if (!(_device->tx(virt, packet.size()))) {
+							_send_packet_avail_signal();
+							_tx_alloc  = false;
+							_tx_packet = packet;
+							return;
+						}
+
+						_tx_alloc = true;
+
 						tx_cnt++;
 					}
 
 					counter.inc(packet.size());
-
-					if (!_tx_sink->ready_to_ack()) {
-						_wait_event(_tx_sink->ready_to_ack());
-					}
 
 					/* acknowledge to client */
 					_tx_sink->acknowledge_packet(packet);
@@ -201,7 +221,7 @@ namespace Nic {
 				_rx_ack(false);
 
 				if (_tx_sink->packet_avail())
-					Signal_transmitter(_tx.sigh_packet_avail()).submit();
+					_send_packet_avail_signal();
 			}
 
 			void _rx_ack(bool block = true)

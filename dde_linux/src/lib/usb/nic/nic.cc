@@ -55,9 +55,8 @@ class Skb
 		sk_buff  *_buf;
 		unsigned *_free;
 		unsigned _idx;
-		bool     _wait_free;
 
-		enum { ENTRY_ELEMENT_SIZE = sizeof(_free[0]) * 8 };
+		enum { ENTRY_ELEMENT_SIZE = sizeof(unsigned) * 8 };
 
 	public:
 
@@ -65,12 +64,12 @@ class Skb
 		:
 			_entries(entries), _idx(0)
 		{
-			unsigned const size = _entries / sizeof(_free[0]);
+			unsigned const size = _entries / sizeof(unsigned);
 
-			_buf  = new (Genode::env()->heap()) sk_buff[_entries];
-			_free = new (Genode::env()->heap()) unsigned[size];
+			_buf  = (sk_buff *)kmalloc(sizeof(sk_buff) * _entries, GFP_KERNEL);
+			_free = (unsigned *)kmalloc(sizeof(unsigned) * size, GFP_KERNEL);
 
-			Genode::memset(_free, 0xff, size * sizeof(_free[0]));
+			Genode::memset(_free, 0xff, size * sizeof(unsigned));
 
 			for (unsigned i = 0; i < _entries; i++)
 				_buf[i].start = (unsigned char *)kmalloc(buffer_size + NET_IP_ALIGN, GFP_NOIO);
@@ -97,12 +96,7 @@ class Skb
 			}
 			
 
-			/* wait until some SKBs are freed */
-			_wait_free = false;
-			//PDBG("wait for free skbs ...");
-			_wait_event(_wait_free);
-
-			return alloc();
+			return 0;
 		}
 
 		void free(sk_buff *buf)
@@ -111,8 +105,6 @@ class Skb
 			if (&_buf[0] >  buf || entry > _entries)
 				return;
 
-			/* unblock waiting skb allocs */
-			_wait_free = true;
 			_idx = entry / ENTRY_ELEMENT_SIZE;
 			_free[_idx] |= (1 << (entry % ENTRY_ELEMENT_SIZE));
 		}
@@ -193,14 +185,19 @@ class Nic_device : public Nic::Device
 		/**
 		 * Submit packet to driver
 		 */
-		void tx(Genode::addr_t virt, Genode::size_t size)
+		bool tx(Genode::addr_t virt, Genode::size_t size)
 		{
-			sk_buff *skb = _alloc_skb(size + HEAD_ROOM);
+			sk_buff *skb;
+			
+			if (!(skb = _alloc_skb(size + HEAD_ROOM)))
+				return false;
+
 			skb->len     = size;
 			skb->data   += HEAD_ROOM;
 			Genode::memcpy(skb->data, (void *)virt, skb->len);
 
 			tx_skb(skb);
+			return true;
 		}
 
 		/**
@@ -209,7 +206,11 @@ class Nic_device : public Nic::Device
 		sk_buff *alloc_skb()
 		{
 			struct usbnet *dev = (usbnet *)netdev_priv(_ndev);
-			sk_buff *skb = _alloc_skb(dev->rx_urb_size);
+			sk_buff *skb;
+
+			if (!(skb = _alloc_skb(dev->rx_urb_size)))
+				return 0;
+
 			skb->len = 0;
 			return skb;
 		}
@@ -383,6 +384,9 @@ struct sk_buff *_alloc_skb(unsigned int size, bool tx)
 {
 	sk_buff *skb = tx ?  skb_tx()->alloc() : skb_rx()->alloc();
 
+	if (!skb)
+		return 0;
+
 	size = (size + 3) & ~(0x3);
 
 	skb->end = skb->start + size;
@@ -405,7 +409,7 @@ struct sk_buff *alloc_skb(unsigned int size, gfp_t priority)
 struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev, unsigned int length)
 {
 	struct sk_buff *s = _alloc_skb(length + NET_IP_ALIGN, false);
-	if (dev->net_ip_align) {
+	if (s && dev->net_ip_align) {
 		s->data += NET_IP_ALIGN;
 		s->tail += NET_IP_ALIGN;
 	}
@@ -543,7 +547,11 @@ void skb_trim(struct sk_buff *skb, unsigned int len)
  */
 struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask)
 {
-	sk_buff *c = alloc_skb(0, 0);
+	sk_buff *c;
+
+	if (!(c = alloc_skb(0,0)))
+		return 0;
+
 	unsigned char *start =  c->start;
 	*c = *skb;
 
@@ -587,20 +595,20 @@ struct skb_shared_info *skb_shinfo(struct sk_buff * /* skb */)
  */
 void skb_queue_head_init(struct sk_buff_head *list)
 {
+	static int count_x = 0;
 	list->prev = list->next = (sk_buff *)list;
 	list->qlen = 0;
 }
-
 
 /**
  * Add to tail of queue
  */
 void __skb_queue_tail(struct sk_buff_head *list, struct sk_buff *newsk)
 {
-	newsk->next = (sk_buff *)list;
-	newsk->prev  = list->prev;
+	newsk->next      = (sk_buff *)list;
+	newsk->prev      = list->prev;
 	list->prev->next = newsk;
-	list->prev = newsk;
+	list->prev       = newsk;
 	list->qlen++;
 }
 
@@ -614,19 +622,13 @@ void skb_queue_tail(struct sk_buff_head *list, struct sk_buff *newsk) {
  */
 void __skb_unlink(struct sk_buff *skb, struct sk_buff_head *list)
 {
-	sk_buff *l = (sk_buff *)list;
-	while (l->next != l) {
-		l = l->next;
+	if (!list->qlen)
+		return;
 
-		if (l == skb) {
-			l->prev->next = l->next;
-			l->next->prev = l->prev;
-			list->qlen--;
-			return;
-		}
-	}
-
-	PERR("SKB not found in __skb_unlink");
+	skb->prev->next = skb->next;
+	skb->next->prev = skb->prev;
+	skb->next = skb->prev = 0;
+	list->qlen--;
 }
 
 
@@ -635,13 +637,11 @@ void __skb_unlink(struct sk_buff *skb, struct sk_buff_head *list)
  */
 struct sk_buff *skb_dequeue(struct sk_buff_head *list)
 {
-	if (list->next == (sk_buff *)list)
+	if (list->qlen == 0)
 		return 0;
-
+	
 	sk_buff *skb = list->next;
-	list->next = skb->next;
-	list->next->prev = (sk_buff *)list;
-	list->qlen--;
+	__skb_unlink(skb, list);
 
 	return skb;
 }
