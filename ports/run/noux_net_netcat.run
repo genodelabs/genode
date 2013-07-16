@@ -211,8 +211,10 @@ if {[is_qemu_available]} {
 	append qemu_args " -net user -redir tcp:5555::5555 "
 
 	run_genode_until {.*got IP address.*\n} 60
+	set serial_id $spawn_id
 } else {
 	run_genode_until {\[init -> tcp_terminal\] listening on port 8888\.\.\.} 60
+	set serial_id $spawn_id
 
 	regexp {\[init -> noux_net\] .{1,5}got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output noux_ip_addr
 	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $noux_ip_addr noux_ip_addr 
@@ -221,18 +223,21 @@ if {[is_qemu_available]} {
 	regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $serial_ip_addr serial_ip_addr 
 
 	# connect to Genode target and reading log output via network connection
-	exec socat -u tcp:$serial_ip_addr:8888 OPEN:$noux_output_file,creat,append &
+
+	spawn socat -u tcp:$serial_ip_addr:8888 OPEN:$noux_output_file,creat,append
 }
 
 sleep 4
 
 puts "--- serial '$serial_ip_addr' noux '$noux_ip_addr'"
-exec echo -e "Hello Genode" | netcat $noux_ip_addr 5555
+exec echo -e "Hello Genode" | netcat $noux_ip_addr 5555 &
+
+run_genode_until {exited with exit value 1} 20 $serial_id
 
 sleep 4
 
 set output [exec cat $noux_output_file]
-puts "output:\n$output\n"
+puts "\noutput:\n$output\n"
 exec rm $noux_output_file
 
 exec rm bin/noux_netcat.tar
