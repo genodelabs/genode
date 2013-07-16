@@ -310,6 +310,31 @@ static inline void remove_region(Region r, Range_allocator &alloc)
 }
 
 
+static bool intersects_kip_archdep(Pistachio::L4_KernelInterfacePage_t *kip,
+                                   addr_t start, size_t size)
+{
+	using namespace Pistachio;
+
+	L4_Word_t num_desc = L4_NumMemoryDescriptors(kip);
+
+	for (L4_Word_t i = 0; i < num_desc; i++) {
+		L4_MemoryDesc_t *d = L4_MemoryDesc(kip, i);
+
+		enum { ARCH_DEPENDENT_MEM = 15 };
+		if (!L4_IsVirtual(d) && ((L4_Type(d) & 0xF) == ARCH_DEPENDENT_MEM)) {
+			if (L4_Low(d) <= start && start <= L4_High(d))
+				return true;
+			if (L4_Low(d) <= start+size-1 && start+size-1 <= L4_High(d))
+				return true;
+			if (L4_Low(d) <= start && start+size-1 <= L4_High(d))
+				return true;
+		}
+	}
+
+	return false;
+}
+
+
 static void dump_kip_memdesc(Pistachio::L4_KernelInterfacePage_t *kip)
 {
 	using namespace Pistachio;
@@ -407,12 +432,13 @@ void Platform::_setup_mem_alloc()
 
 				} else {
 					region.start = addr; region.end = addr + size;
-					if (!region.intersects(Native_config::context_area_virtual_base(),
-					                       Native_config::context_area_virtual_size())) {
+					if (region.intersects(Native_config::context_area_virtual_base(),
+					                      Native_config::context_area_virtual_size()) ||
+						intersects_kip_archdep(kip, addr, size)) {
+						unmap_local(region.start, size >> get_page_size_log2());
+					} else {
 						add_region(region, _ram_alloc);
 						add_region(region, _core_address_ranges());
-					} else {
-						unmap_local(region.start, size >> get_page_size_log2());
 					}
 					remove_region(region, _io_mem_alloc);
 					remove_region(region, _region_alloc);
