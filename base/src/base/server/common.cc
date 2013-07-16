@@ -120,6 +120,12 @@ Rpc_entrypoint::~Rpc_entrypoint()
 {
 	typedef Object_pool<Rpc_object_base> Pool;
 
+	/*
+	 * We have to make sure the server loop is running which is only the case
+	 * if the Rpc_entrypoint was actived before we execute the RPC call.
+	 */
+	_delay_start.unlock();
+
 	/* leave server loop */
 	_exit_cap.call<Exit::Rpc_exit>();
 
