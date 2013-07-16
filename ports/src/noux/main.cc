@@ -250,17 +250,33 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_EXECVE:
 			{
+				/*
+				 * We have to check the dataspace twice because the binary
+				 * could be a script that uses an interpreter which maybe
+				 * does not exist.
+				 */
 				Dataspace_capability binary_ds =
 					_root_dir->dataspace(_sysio->execve_in.filename);
 
-				if (!binary_ds.valid())
-					throw Child::Binary_does_not_exist();
+				if (!binary_ds.valid()) {
+					_sysio->error.execve = Sysio::EXECVE_NONEXISTENT;
+					return false;
+				}
 
 				Child_env<sizeof(_sysio->execve_in.args)>
 					child_env(_sysio->execve_in.filename, binary_ds,
 					          _sysio->execve_in.args, _sysio->execve_in.env);
 
 				_root_dir->release(_sysio->execve_in.filename, binary_ds);
+
+				binary_ds = _root_dir->dataspace(child_env.binary_name());
+
+				if (!binary_ds.valid()) {
+					_sysio->error.execve = Sysio::EXECVE_NONEXISTENT;
+					return false;
+				}
+
+				_root_dir->release(child_env.binary_name(), binary_ds);
 
 				try {
 					Child *child = new Child(child_env.binary_name(),
