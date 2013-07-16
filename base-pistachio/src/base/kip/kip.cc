@@ -18,12 +18,12 @@ using namespace Pistachio;
 #include <l4/kip.h>
 
 
-void *Pistachio::get_kip()
+L4_KernelInterfacePage_t *Pistachio::get_kip()
 {
-	static void *kip = 0;
+	static L4_KernelInterfacePage_t *kip = 0;
 
 	if (kip == 0)
-		kip = L4_KernelInterface();
+		kip = reinterpret_cast<L4_KernelInterfacePage_t *>(L4_KernelInterface());
 
 	return kip;
 }

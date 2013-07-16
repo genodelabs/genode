@@ -233,10 +233,10 @@ void Platform_pd::touch_utcb_space()
 {
 	L4_Word_t utcb_ptr;
 
-	void *kip = get_kip();
+	L4_KernelInterfacePage_t *kip = get_kip();
 	L4_ThreadId_t mylocalid = L4_MyLocalId();
 	utcb_ptr = *(L4_Word_t *) &mylocalid;
-	utcb_ptr &= ~(L4_UtcbAreaSize (get_kip()) - 1);
+	utcb_ptr &= ~(L4_UtcbAreaSize (kip) - 1);
 
 	/* store a pointer to core's utcb area */
 	_core_utcb_ptr = utcb_ptr;

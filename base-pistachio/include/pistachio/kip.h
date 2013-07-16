@@ -21,7 +21,7 @@ namespace Pistachio {
 	/**
 	 * Return a pointer to the kernel info page
 	 */
-	void *get_kip();
+	L4_KernelInterfacePage_t *get_kip();
 
 	unsigned int get_page_size_log2();
 
@@ -35,12 +35,12 @@ namespace Pistachio {
 	inline L4_ThreadId_t get_sigma0()
 	{
 		/* from l4/sigma0.h */
-		return L4_GlobalId (((L4_KernelInterfacePage_t *)get_kip())->ThreadInfo.X.UserBase, 1);
+		return L4_GlobalId (get_kip()->ThreadInfo.X.UserBase, 1);
 	}
 
 	inline unsigned int get_user_base()
 	{
-		return ((L4_KernelInterfacePage_t *)get_kip())->ThreadInfo.X.UserBase;
+		return get_kip()->ThreadInfo.X.UserBase;
 	}
 
 	inline unsigned int get_threadno_bits()

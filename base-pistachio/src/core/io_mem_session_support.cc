@@ -37,7 +37,7 @@ static const bool verbose = false;
 bool is_conventional_memory(addr_t base)
 {
 	using namespace Pistachio;
-	void *kip = get_kip();
+	L4_KernelInterfacePage_t *kip = get_kip();
 
 	/* I miss useful programming languages... */
 	for (L4_Word_t i = 0; i < L4_NumMemoryDescriptors(kip); i++) {

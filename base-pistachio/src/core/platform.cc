@@ -356,6 +356,8 @@ bool sigma0_req_region(addr_t *addr, unsigned log2size)
 
 void Platform::_setup_mem_alloc()
 {
+	Pistachio::L4_KernelInterfacePage_t *kip = Pistachio::get_kip();
+
 	/*
 	 * Completely map program image by touching all pages read-only to
 	 * prevent sigma0 from handing out those page as anonymous memory.
@@ -365,7 +367,7 @@ void Platform::_setup_mem_alloc()
 	end = (const char *)&_prog_img_end;
 	for ( ; beg < end; beg += get_page_size()) (void)(*beg);
 
-	Pistachio::L4_Word_t page_size_mask = Pistachio::L4_PageSizeMask(Pistachio::get_kip());
+	Pistachio::L4_Word_t page_size_mask = Pistachio::L4_PageSizeMask(kip);
 	unsigned int size_log2;
 
 	/*
@@ -449,7 +451,7 @@ void Platform::_setup_basics()
 		L4_Sigma0_GetPage(get_sigma0(), L4_Fpage(beg, get_page_size()));
 
 	/* store mapping base from received mapping */
-	L4_KernelInterfacePage_t *kip = (L4_KernelInterfacePage_t *)get_kip();
+	L4_KernelInterfacePage_t *kip = get_kip();
 
 	if (kip->magic != L4_MAGIC)
 		panic("we got something but not the KIP");
