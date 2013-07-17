@@ -23,24 +23,29 @@ CONFIG_CPU_ARM_ARMV7A=y
 # CONFIG_CPU_ARM_ARMV7R is not set
 CONFIG_CPU_ARMV6KPLUS=y
 CONFIG_CPU_ARMV6PLUS=y
-CONFIG_PLATFORM_TYPE_arndale=y
+# CONFIG_PLATFORM_TYPE_imx53 is not set
+# CONFIG_PLATFORM_TYPE_imx35 is not set
+# CONFIG_PLATFORM_TYPE_rv_pbx is not set
+CONFIG_PLATFORM_TYPE_exynos5=y
+# CONFIG_PLATFORM_TYPE_rv is not set
+# CONFIG_PLATFORM_TYPE_kirkwood is not set
+# CONFIG_PLATFORM_TYPE_pandaboard is not set
+# CONFIG_PLATFORM_TYPE_tegra3 is not set
+# CONFIG_PLATFORM_TYPE_tegra2 is not set
+# CONFIG_PLATFORM_TYPE_imx6 is not set
+# CONFIG_PLATFORM_TYPE_exynos4 is not set
+# CONFIG_PLATFORM_TYPE_omap3_am33xx is not set
+# CONFIG_PLATFORM_TYPE_rpi_b is not set
+# CONFIG_PLATFORM_TYPE_rv_vexpress_a15 is not set
+# CONFIG_PLATFORM_TYPE_imx51 is not set
+# CONFIG_PLATFORM_TYPE_omap3evm is not set
 # CONFIG_PLATFORM_TYPE_beagleboard is not set
 # CONFIG_PLATFORM_TYPE_imx21 is not set
-# CONFIG_PLATFORM_TYPE_imx35 is not set
-# CONFIG_PLATFORM_TYPE_imx51 is not set
-# CONFIG_PLATFORM_TYPE_imx53 is not set
-# CONFIG_PLATFORM_TYPE_imx6 is not set
-# CONFIG_PLATFORM_TYPE_integrator is not set
-# CONFIG_PLATFORM_TYPE_kirkwood is not set
-# CONFIG_PLATFORM_TYPE_omap3_am33xx is not set
-# CONFIG_PLATFORM_TYPE_omap3evm is not set
-# CONFIG_PLATFORM_TYPE_pandaboard is not set
-# CONFIG_PLATFORM_TYPE_rv is not set
-# CONFIG_PLATFORM_TYPE_rv_pbx is not set
 # CONFIG_PLATFORM_TYPE_rv_vexpress is not set
-# CONFIG_PLATFORM_TYPE_tegra2 is not set
+# CONFIG_PLATFORM_TYPE_rpi_a is not set
+# CONFIG_PLATFORM_TYPE_integrator is not set
 # CONFIG_PLATFORM_TYPE_custom is not set
-CONFIG_PLATFORM_TYPE="arndale"
+CONFIG_PLATFORM_TYPE="exynos5"
 # CONFIG_USE_DROPS_STDDIR is not set
 # CONFIG_USE_DICE is not set
 CONFIG_DROPS_STDDIR="/path/to/l4re"
