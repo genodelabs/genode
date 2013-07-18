@@ -22,6 +22,7 @@ set build_components {
 
 lappend_if $use_nic_bridge build_components server/nic_bridge
 
+lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/platform
 lappend_if [expr [have_spec omap4] || [have_spec exynos5]] build_components drivers/usb
 lappend_if [have_spec acpi]  build_components drivers/acpi
 lappend_if [have_spec pci]   build_components drivers/pci/device_pd
@@ -64,16 +65,16 @@ append_if $use_nic_bridge config {
 		<provides><service name="Nic"/></provides>
 		<route>
 			<service name="Nic"> }
-append_if [expr $use_nic_bridge && ([have_spec omap4] || [have_spec exynos5])] config {			
+append_if [expr $use_nic_bridge && ([have_spec omap4] || [have_spec exynos5])] config {
 				<child name="usb_drv"/> }
-append_if [expr $use_nic_bridge && (![have_spec omap4] && ![have_spec exynos5])] config {			
+append_if [expr $use_nic_bridge && (![have_spec omap4] && ![have_spec exynos5])] config {
 				<child name="nic_drv"/> }
 append_if $use_nic_bridge config {
 			</service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start> }
-	
+
 append config "
 	<start name=\"$test_server_name\">"
 append config {
@@ -89,13 +90,19 @@ append config {
 		</route>
 	</start> }
 
+append_if [have_spec exynos5] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Regulator"/></provides>
+	</start>}
+
 append_if [expr [have_spec omap4] || [have_spec exynos5]] config {
-	<start name="usb_drv" priority="-1">
+	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides>
 			<service name="Nic"/>
 		</provides>
-		<config>
+		<config ehci="yes">
 			<nic mac="2e:60:90:0c:4e:02" />
 			<!--<nic mac="aa:bb:cc:dd:ee:00" />-->
 		</config>
@@ -153,6 +160,7 @@ lappend_if [have_spec acpi]          boot_modules acpi_drv
 lappend_if [expr [have_spec omap4] || [have_spec exynos5]] boot_modules usb_drv
 lappend_if [expr ![have_spec omap4] && ![have_spec exynos5]] boot_modules nic_drv
 lappend_if [have_spec nova]          boot_modules pci_device_pd
+lappend_if [have_spec exynos5]       boot_modules platform_drv
 
 build_boot_image $boot_modules
 
@@ -176,7 +184,7 @@ exec g++ -o bin/network_test_client \
          $pingpong_dir/client/main.cc \
          $pingpong_dir/pingpong.cc \
          -I $pingpong_dir
-         
+
 # start the client
 spawn bin/network_test_client \
 	-serverip $ip_addr \
@@ -217,7 +225,6 @@ puts "\nTest succeeded in $test_result."
 # disconnect from server system
 if {[expr [have_spec omap4] || [have_spec exynos5]]} {
 	send -i $server_spawn_id "\x01\x18" ;# Ctrl-A Ctrl-X
-	run_genode_until "Thanks for using picocom" 60 $server_spawn_id
 }
 
 exec rm -f bin/network_test_client
