@@ -30,7 +30,7 @@ namespace Timer {
 		virtual ~Session() { }
 
 		/**
-		 * Program single timeout (in microseconds)
+		 * Program single timeout (relative from now in microseconds)
 		 */
 		virtual void trigger_once(unsigned us) = 0;
 
