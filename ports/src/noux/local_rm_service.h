@@ -133,6 +133,7 @@ namespace Noux {
 				/* release dataspace info */
 				Dataspace_info *info = _ds_registry.lookup_info(ds_cap);
 				if (info) {
+					info->dissolve_users();
 					_ds_registry.remove(info);
 					destroy(env()->heap(), info);
 				} else {

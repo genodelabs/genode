@@ -26,7 +26,7 @@ namespace Noux {
 	{
 		private:
 
-			Rpc_entrypoint         &_ep;
+			Rpc_entrypoint &_ep;
 
 		public:
 

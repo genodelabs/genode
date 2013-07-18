@@ -819,6 +819,18 @@ Terminal::Connection *Noux::terminal()
 }
 
 
+Genode::Dataspace_capability Noux::ldso_ds_cap()
+{
+	try {
+		static Genode::Rom_connection rom("ld.lib.so");
+		static Genode::Dataspace_capability ldso_ds = rom.dataspace();
+		return ldso_ds;
+	} catch (...) { }
+
+	return Genode::Dataspace_capability();
+}
+
+
 void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
 
@@ -828,11 +840,8 @@ int main(int argc, char **argv)
 	using namespace Noux;
 	PINF("--- noux started ---");
 
-	/* look for dynamic linker */
-	try {
-		static Genode::Rom_connection rom("ld.lib.so");
-		Genode::Process::dynamic_linker(rom.dataspace());
-	} catch (...) { }
+	/* register dynamic linker */
+	Genode::Process::dynamic_linker(ldso_ds_cap());
 
 	/* whitelist of service requests to be routed to the parent */
 	static Genode::Service_registry parent_services;

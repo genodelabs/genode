@@ -24,6 +24,8 @@
 
 namespace Noux {
 
+	static bool verbose_attach = false;
+
 	class Rm_session_component : public Rpc_object<Rm_session>
 	{
 		private:
@@ -31,17 +33,20 @@ namespace Noux {
 			/**
 			 * Record of an attached dataspace
 			 */
-			struct Region : List<Region>::Element
+			struct Region : List<Region>::Element, Dataspace_user
 			{
-				Dataspace_capability ds;
-				size_t               size;
-				off_t                offset;
-				addr_t               local_addr;
+				Rm_session_component &rm;
+				Dataspace_capability  ds;
+				size_t                size;
+				off_t                 offset;
+				addr_t                local_addr;
 
-				Region(Dataspace_capability ds, size_t size,
+				Region(Rm_session_component &rm,
+				       Dataspace_capability ds, size_t size,
 				       off_t offset, addr_t local_addr)
 				:
-					ds(ds), size(size), offset(offset), local_addr(local_addr)
+					rm(rm), ds(ds), size(size), offset(offset),
+					local_addr(local_addr)
 				{ }
 
 				/**
@@ -52,6 +57,13 @@ namespace Noux {
 					return (addr >= local_addr)
 					    && (addr <  local_addr + size);
 				}
+
+				Region *next_region()
+				{
+					return List<Region>::Element::next();
+				}
+
+				inline void dissolve(Dataspace_info &ds);
 			};
 
 			List<Region> _regions;
@@ -59,7 +71,7 @@ namespace Noux {
 			Region *_lookup_region_by_addr(addr_t local_addr)
 			{
 				Region *curr = _regions.first();
-				for (; curr; curr = curr->next()) {
+				for (; curr; curr = curr->next_region()) {
 					if (curr->contains(local_addr))
 						return curr;
 				}
@@ -103,7 +115,7 @@ namespace Noux {
 			            Dataspace_registry    &ds_registry,
 			            Rpc_entrypoint        &ep)
 			{
-				for (Region *curr = _regions.first(); curr; curr = curr->next()) {
+				for (Region *curr = _regions.first(); curr; curr = curr->next_region()) {
 
 					Dataspace_capability ds;
 
@@ -120,6 +132,9 @@ namespace Noux {
 						 */
 
 					} else {
+
+						PERR("replay: missing ds_info for dataspace at addr 0x%lx",
+						     curr->local_addr);
 
 						/*
 						 * If the dataspace is not a RAM dataspace, assume that
@@ -195,21 +210,35 @@ namespace Noux {
 				if (size == 0) 
 					size = Dataspace_client(ds).size() - offset;
 
-				/*
-				 * XXX look if we can identify the specified dataspace.
-				 *     Is it a dataspace allocated via 'Local_ram_session'?
-				 */
-
 				local_addr = _rm.attach(ds, size, offset,
 				                        use_local_addr, local_addr,
 				                        executable);
+
+				Region *region = new (env()->heap())
+				                 Region(*this, ds, size, offset, local_addr);
+
+				/* register region as user of RAM dataspaces */
+				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(ds));
+
+
+				if (info) {
+					info->register_user(*region);
+				} else {
+					if (verbose_attach) {
+						PWRN("Trying to attach unknown dataspace type");
+						PWRN("  ds_info@%p at 0x%lx size=%zd offset=0x%lx",
+						     info.object(), (long)local_addr,
+						     Dataspace_client(ds).size(), (long)offset);
+					}
+				}
 
 				/*
 				 * Record attachment for later replay (needed during
 				 * fork)
 				 */
-				_regions.insert(new (env()->heap())
-				                Region(ds, size, offset, local_addr));
+				_regions.insert(region);
+
+
 				return local_addr;
 			}
 
@@ -225,6 +254,11 @@ namespace Noux {
 				}
 
 				_regions.remove(region);
+
+				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(region->ds));
+				if (info)
+					info->unregister_user(*region);
+
 				destroy(env()->heap(), region);
 			}
 
@@ -253,6 +287,20 @@ namespace Noux {
 				return _rm.dataspace();
 			}
 	};
+
+
+	inline void Rm_session_component::Region::dissolve(Dataspace_info &ds)
+	{
+		/*
+		 * When this function is called, the 'ds' is already locked by the
+		 * caller. To prevent 'detach' from taking the lock twice
+		 * ('_ds_registry.lookup_info'), the temporarily release and re-acquire
+		 * the lock.
+		 */
+		ds.release();
+		rm.detach(local_addr);
+		ds.acquire();
+	}
 }
 
 #endif /* _NOUX__RM_SESSION_COMPONENT_H_ */

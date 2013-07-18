@@ -22,6 +22,7 @@
 #include <file_descriptor_registry.h>
 #include <local_noux_service.h>
 #include <local_rm_service.h>
+#include <local_rom_service.h>
 
 namespace Noux {
 
@@ -38,6 +39,7 @@ namespace Noux {
 			Init::Child_policy_provide_rom_file _env_policy;
 			Local_noux_service                 &_local_noux_service;
 			Local_rm_service                   &_local_rm_service;
+			Local_rom_service                  &_local_rom_service;
 			Service_registry                   &_parent_services;
 			Family_member                      &_family_member;
 			File_descriptor_registry           &_file_descriptor_registry;
@@ -53,6 +55,7 @@ namespace Noux {
 			             Rpc_entrypoint           &entrypoint,
 			             Local_noux_service       &local_noux_service,
 			             Local_rm_service         &local_rm_service,
+			             Local_rom_service        &local_rom_service,
 			             Service_registry         &parent_services,
 			             Family_member            &family_member,
 			             File_descriptor_registry &file_descriptor_registry,
@@ -66,6 +69,7 @@ namespace Noux {
 				_env_policy(   "env",    env_ds,    &entrypoint),
 				_local_noux_service(local_noux_service),
 				_local_rm_service(local_rm_service),
+				_local_rom_service(local_rom_service),
 				_parent_services(parent_services),
 				_family_member(family_member),
 				_file_descriptor_registry(file_descriptor_registry),
@@ -97,6 +101,12 @@ namespace Noux {
 				 */
 				if (strcmp(service_name, Rm_session::service_name()) == 0)
 					return &_local_rm_service;
+
+				/*
+				 * Check for local ROM service
+				 */
+				if (strcmp(service_name, Rom_session::service_name()) == 0)
+					return &_local_rom_service;
 
 				return _parent_services.find(service_name);
 			}

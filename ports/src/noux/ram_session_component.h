@@ -160,7 +160,9 @@ namespace Noux {
 					PERR("RAM free: dataspace lookup failed");
 					return;
 				}
-				
+
+				ds_info->dissolve_users();
+
 				_registry.remove(ds_info);
 				_list.remove(ds_info);
 				_used_quota -= ds_info->size();

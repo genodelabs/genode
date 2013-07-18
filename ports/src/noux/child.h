@@ -35,6 +35,7 @@
 
 #include <local_cpu_service.h>
 #include <local_ram_service.h>
+#include <local_rom_service.h>
 
 namespace Noux {
 
@@ -81,6 +82,11 @@ namespace Noux {
 	 * Return singleton instance of Io_receptor_registry
 	 */
 	Io_receptor_registry *io_receptor_registry();
+
+	/**
+	 * Return ELF binary of dynamic linker
+	 */
+	Dataspace_capability ldso_ds_cap();
 
 	class Child;
 
@@ -181,9 +187,17 @@ namespace Noux {
 			Local_ram_service  _local_ram_service;
 			Local_cpu_service  _local_cpu_service;
 			Local_rm_service   _local_rm_service;
+			Local_rom_service  _local_rom_service;
 			Service_registry  &_parent_services;
 
+			Static_dataspace_info _binary_ds_info;
+			Static_dataspace_info _sysio_ds_info;
+			Static_dataspace_info _ldso_ds_info;
+			Static_dataspace_info _args_ds_info;
+			Static_dataspace_info _env_ds_info;
+
 			Child_policy  _child_policy;
+
 			Genode::Child _child;
 
 			/**
@@ -270,8 +284,7 @@ namespace Noux {
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
 				_root_dir(root_dir),
-				_binary_ds(forked ? Dataspace_capability()
-				                  : root_dir->dataspace(name)),
+				_binary_ds(root_dir->dataspace(name)),
 				_sysio_ds(Genode::env()->ram_session(), SYSIO_DS_SIZE),
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
@@ -279,12 +292,20 @@ namespace Noux {
 				_local_ram_service(_entrypoint),
 				_local_cpu_service(_entrypoint, _resources.cpu.cpu_cap()),
 				_local_rm_service(_entrypoint, _resources.ds_registry),
+				_local_rom_service(_entrypoint, _resources.ds_registry),
 				_parent_services(parent_services),
+				_binary_ds_info(_resources.ds_registry, _binary_ds),
+				_sysio_ds_info(_resources.ds_registry, _sysio_ds.cap()),
+				_ldso_ds_info(_resources.ds_registry, ldso_ds_cap()),
+				_args_ds_info(_resources.ds_registry, _args.cap()),
+				_env_ds_info(_resources.ds_registry, _env.cap()),
 				_child_policy(name, _binary_ds, _args.cap(), _env.cap(),
 				              _entrypoint, _local_noux_service,
-				              _local_rm_service, _parent_services,
+				              _local_rm_service, _local_rom_service,
+				              _parent_services,
 				              *this, *this, _destruct_context_cap, _resources.ram),
-				_child(_binary_ds, _resources.ram.cap(), _resources.cpu.cap(),
+				_child(forked ? Dataspace_capability() : _binary_ds,
+				       _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy,
 				       /**
 				        * Override the implicit assignment to _parent_service
