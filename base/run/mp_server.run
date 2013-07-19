@@ -1,0 +1,78 @@
+#
+# \brief  Test to start and call RPC entrypoint on all available CPUs
+# \author Norman Feske
+# \author Alexander Boettcher 
+#
+
+if {![have_spec nova] && ![have_spec foc]} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+build "core init test/mp_server"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="CAP"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-server-mp">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-server-mp"
+
+if {[is_qemu_available]} {
+	set want_cpus 2
+	append qemu_args " -nographic -m 64 -smp $want_cpus,cores=$want_cpus "
+}
+
+# run the test
+run_genode_until {\[init -\> test-server-mp\] done.*\n} 20
+
+set cpus [regexp -inline {Detected [0-9]+ CPU[ s].*\n} $output]
+set cpus [regexp -inline {[0-9]+} $cpus]
+
+if {[is_qemu_available]} {
+	if {$want_cpus != $cpus} {
+		puts "CPU count is not as expected: $want_cpus != $cpus"
+		exit 1;
+	}
+}
+
+# pay only attention to the output of init and its children
+grep_output {^\[init }
+
+unify_output {transfer cap [a-f0-9]+} "transfer cap UNIFIED"
+unify_output {yes - idx [a-f0-9]+} "yes - idx UNIFIED"
+unify_output {\- received cap [a-f0-9]+} "- received cap UNIFIED"
+
+compare_output_to {
+	[init -> test-server-mp] --- test-mp_server started ---
+	[init -> test-server-mp] Detected 2 CPUs.
+	[init -> test-server-mp] call server on CPU 0
+	[init -> test-server-mp] function test_untyped: got value 0
+	[init -> test-server-mp] call server on CPU 1
+	[init -> test-server-mp] function test_untyped: got value 1
+	[init -> test-server-mp] call server on CPU 0 - transfer cap UNIFIED
+	[init -> test-server-mp] function test_cap: capability is valid ? yes - idx UNIFIED
+	[init -> test-server-mp] call server on CPU 1 - transfer cap UNIFIED
+	[init -> test-server-mp] function test_cap: capability is valid ? yes - idx UNIFIED
+	[init -> test-server-mp] call server on CPU 0 - transfer cap UNIFIED
+	[init -> test-server-mp] function test_cap_reply: capability is valid ? yes - idx UNIFIED
+	[init -> test-server-mp] got from server on CPU 0 - received cap UNIFIED
+	[init -> test-server-mp] call server on CPU 1 - transfer cap UNIFIED
+	[init -> test-server-mp] function test_cap_reply: capability is valid ? yes - idx UNIFIED
+	[init -> test-server-mp] got from server on CPU 1 - received cap UNIFIED
+	[init -> test-server-mp] done
+}
