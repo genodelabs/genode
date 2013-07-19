@@ -318,7 +318,8 @@ namespace Genode {
 			 * \param name         name of entrypoint thread
 			 */
 			Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
-			               char const *name, bool start_on_construction = true);
+			               char const *name, bool start_on_construction = true,
+			               unsigned affinity = ~0U);
 
 			~Rpc_entrypoint();
 

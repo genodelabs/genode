@@ -98,7 +98,8 @@ bool Rpc_entrypoint::is_myself() const
 
 
 Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
-                               char const *name, bool start_on_construction)
+                               char const *name, bool start_on_construction,
+                               unsigned affinity)
 :
 	Thread_base(name, stack_size),
 	_cap(Untyped_capability()),

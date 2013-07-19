@@ -198,7 +198,8 @@ void Rpc_entrypoint::activate()
 
 
 Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
-                               const char  *name, bool start_on_construction)
+                               const char  *name, bool start_on_construction,
+                               unsigned affinity)
 :
 	Thread_base(name, stack_size),
 	_curr_obj(start_on_construction ? 0 : (Rpc_object_base *)~0UL),
@@ -220,6 +221,10 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 
 		if (env()->cpu_session()->set_pager(_thread_cap, _pager_cap))
 			throw Cpu_session::Thread_creation_failed();
+
+		/* place new thread on the specified CPU - ~0UL means default CPU */
+		if (affinity != ~0UL)
+			env()->cpu_session()->affinity(_thread_cap, affinity);
 
 		addr_t thread_sp = (addr_t)&_context->stack[-4];
 
@@ -251,10 +256,11 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		if (!ec_cap.valid())
 			throw Cpu_session::Thread_creation_failed();
 		_tid.ec_sel = ec_cap.local_name();
-	}
-	else {
-		/* tell thread starting code to use boot CPU */
-		*reinterpret_cast<addr_t *>(stack_top()) = ~0UL;
+
+	} else {
+
+		/* tell thread starting code to use a specific CPU */
+		*reinterpret_cast<addr_t *>(stack_top()) = affinity;
 
 		/*
 		 * Required for core threads (creates local EC)
