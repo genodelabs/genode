@@ -1,2 +1,2 @@
-This directory contains patches for the NOVA microhypervisor @ github
-required for using this kernel with Genode.
+This directory contains patches for the Genode adjusted version of the NOVA
+microhypervisor @ github required for using this kernel with Genode.

@@ -72,7 +72,7 @@ directory:
 For creating a preconfigured build directory prepared for compiling Genode for
 NOVA, use the 'create_builddir' tool:
 
-! <genode-dir>/tool/create_builddir nova_x86 BUILD_DIR=<build-dir>
+! <genode-dir>/tool/create_builddir nova_x86_32 BUILD_DIR=<build-dir>
 
 This tool will create a fresh build directory at the location specified
 as 'BUILD_DIR'. Provided that you have installed the
@@ -120,11 +120,7 @@ on NOVA:
   All other Genode programs use Genode's generic linker script.
 
 * The Genode 'Capability' type consists of a portal selector expressing the
-  destination of a capability invocation and a global object ID expressing
-  the identity of the object when the capability is specified as an invocation
-  argument. In the latter case, the global ID is needed because of a limitation
-  of the current system-call interface. In the future, we are going to entirely
-  remove the global ID.
+  destination of a capability invocation.
 
 * Thread-local data such as the UTCB pointer is provided by the new thread
   context management introduced with the Genode release 10.02. It enables
@@ -132,7 +128,7 @@ on NOVA:
   pointer.
 
 * NOVA provides threads without time called local execution contexts (EC).
-  Local ECs are intended as server-side RPC handlers. The processing time
+  Local ECs are used as server-side RPC handlers. The processing time
   needed to perform RPC requests is provided by the client during the RPC call.
   This way, RPC semantics becomes very similar to function call semantics with
   regard to the accounting of CPU time. Genode already distinguishes normal
@@ -184,9 +180,6 @@ on NOVA:
   code for the signal interface and remains completely transparent at API
   level.
 
-  For the timer service, we currently use one thread per client to avoid the need
-  for out-of-order RPC processing.
-
 * Because NOVA provides no time source, we use the x86 PIT as user-level time
   source, similar as on OKL4.
 
@@ -206,26 +199,24 @@ Manually booting Genode on NOVA
 
 NOVA supports multi-boot-compliant boot loaders such as GRUB, Pulsar, or gPXE.
 For example, a GRUB configuration entry for booting the Genode demo scenario
-with NOVA looks as follows, whereas 'genode/' is a symbolic link to the 'bin/'
-subdirectory of the Genode build directory and the 'config' file is a copy of
-'os/config/demo'.
+with NOVA looks as follows, whereas 'genode/' is a symbolic link to the
+'var/run/demo/genode' directory created by invoking the 'demo' run script.
 
 ! title Genode demo scenario
-!  kernel /hypervisor noapic
+!  kernel /hypervisor iommu serial
 !  module /genode/core
+!  module /genode/config
 !  module /genode/init
-!  module /config/demo/config
 !  module /genode/timer
-!  module /genode/ps2_drv
-!  module /genode/pci_drv
-!  module /genode/fb_drv
-!  module /genode/launchpad
 !  module /genode/nitpicker
 !  module /genode/liquid_fb
-!  module /genode/nitlog
-!  module /genode/testnit
+!  module /genode/launchpad
 !  module /genode/scout
-
+!  module /genode/testnit
+!  module /genode/nitlog
+!  module /genode/pci_drv
+!  module /genode/ps2_drv
+!  module /genode/fb_drv
 
 Limitations
 ###########
@@ -235,26 +226,10 @@ scenario including several device drivers (PIT, PS/2, VESA, PCI) and the GUI.
 Still the NOVA support is not on par with some of the other platforms.
 The current limitations are:
 
-* No real-time priority support: NOVA supports priority-based scheduling
-  but, in the current version, it allows each thread to create scheduling
-  contexts with arbitrary scheduling parameters. This makes it impossible
-  to enforce priority assignment from a central point as facilitated with
-  Genode's priority concept.
+* Threads (ECs) can not be migrated to another CPU once started.
 
-* No multi-processor support: NOVA supports multi-processor CPUs through
-  binding each execution context (ECs) to a particular CPU. Because everyone
-  can create ECs, every process could use multiple CPUs. However, Genode's API
-  devises a more restrictive way of allocating and assigning resources. In
-  short, physical resource usage should be arbitrated by core and the creation
-  of physical ECs should be performed by core only. However, Remote EC creation
-  is not yet supported by NOVA. Even though, multiple CPU can be used with
-  Genode on NOVA right now by using NOVA system calls directly, there is no
-  support at the Genode API level.
+* For portals used as exception vectors for threads, the thread causing the
+  exception and the handler thread which is bound to the exception portal must
+  be on the same CPU.
 
-* No cancel-blocking semantics: The cancellation of locks is not support,
-  yet. Because of this missing functionality, applications can freeze
-  in situations where a subsystems that blocks for a service is attempted
-  to get destroyed.
-
-
-
+* Priorities for Genode threads are not supported.
