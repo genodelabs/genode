@@ -24,3 +24,4 @@ netperf_bridge
 l4linux_netperf
 l4linux_netperf_usb30
 l4linux_netperf_bridge
+noux_tool_chain_auto

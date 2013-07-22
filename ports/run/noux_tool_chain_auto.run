@@ -4,6 +4,18 @@
 # \date   2012-11-26
 #
 
+if {[is_qemu_available]} {
+	puts "\nAuto test running on Qemu is not recommented.\n"
+	exit
+}
+if {[have_spec pistachio]} {
+	puts "Pistachio is unsupported."
+	exit 0
+}
+
+assert_spec 32bit
+assert_spec x86
+
 set platform          "nova_x86_32"
 set platform_base_dir "base-nova"
 set platform_pkgs     ""
@@ -21,9 +33,17 @@ set time_start [ clock seconds ]
 run_genode_until {child /bin/bash exited with exit value 234} 600 
 
 set time_end [ clock seconds ]
-set git_info [ exec git --git-dir=$genode_dir/.git describe ]
+
+# cleanup created tars
+foreach pkg $noux_pkgs { exec rm -f bin/$pkg.tar }
+exec rm -f bin/genode.tar
+
+# print infos about run
+set git_info "unknown"
+catch { set git_info [exec git --git-dir=$genode_dir/.git describe ] }
 
 puts "Testing \" [ clock format $time_start -format "%Y-%m-%d %H:%M:%S"], commit: ($git_info)\" in : "
 puts "Testing \"all\" in printf.wv:"
 puts "! PERF: runtime [expr $time_end - $time_start ] seconds ok"
+
 puts "Test succeeded"
