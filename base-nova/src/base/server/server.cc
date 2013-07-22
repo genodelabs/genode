@@ -206,67 +206,22 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	_delay_start(Lock::LOCKED),
 	_cap_session(cap_session)
 {
-	/*
-	 * Create thread if we aren't running in core.
-	 *
-	 * For core this code can't be performed since the sessions aren't
-	 * setup in the early bootstrap phase of core. In core the thread
-	 * is created 'manually'.
-	 */
+	/* when not running in core set the affinity via cpu session */
 	if (_tid.ec_sel == Native_thread::INVALID_INDEX) {
-		/* create new pager object and assign it to the new thread */
-		_pager_cap = env()->rm_session()->add_client(_thread_cap);
-		if (!_pager_cap.valid())
-			throw Cpu_session::Thread_creation_failed();
 
-		if (env()->cpu_session()->set_pager(_thread_cap, _pager_cap))
-			throw Cpu_session::Thread_creation_failed();
-
-		/* place new thread on the specified CPU, if specified */
+		/* place new thread on the specified CPU */
 		if (location.valid())
 			env()->cpu_session()->affinity(_thread_cap, location);
 
-		addr_t thread_sp = (addr_t)&_context->stack[-4];
-
-		Thread_state state;
-		state.sel_exc_base = _tid.exc_pt_sel;
-
-		try { env()->cpu_session()->state(_thread_cap, state); }
-		catch(...) { throw Cpu_session::Thread_creation_failed(); }
-		if (env()->cpu_session()->start(_thread_cap, 0, thread_sp))
-			throw Cpu_session::Thread_creation_failed();
-
-		for (unsigned i = 0; i < Nova::PT_SEL_PARENT; i++)
-			request_event_portal(_pager_cap, _tid.exc_pt_sel, i);
-		
-		request_event_portal(_pager_cap, _tid.exc_pt_sel,
-		                     Nova::PT_SEL_STARTUP);
-		request_event_portal(_pager_cap, _tid.exc_pt_sel,
-		                     Nova::SM_SEL_EC);
-		request_event_portal(_pager_cap, _tid.exc_pt_sel,
-		                     Nova::PT_SEL_RECALL);
-
-		/*
-		 * Request native thread cap, _thread_cap only a token.
-		 * The native thread cap is required to attach new rpc objects
-		 * (to create portals bound to the ec)
-		 */
-		Genode::Nova_cpu_connection cpu;
-		Native_capability ec_cap = cpu.native_cap(_thread_cap);
-		if (!ec_cap.valid())
-			throw Cpu_session::Thread_creation_failed();
-		_tid.ec_sel = ec_cap.local_name();
-
+		/* magic value evaluated by thread_nova.cc to start a local thread */
+		_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
 	} else {
-
-		/* tell thread starting code to use a specific CPU */
+		/* tell affinity CPU in 'core' via stack */
 		reinterpret_cast<Affinity::Location *>(stack_top())[-1] = location;
-
-		/*
-		 * Required for core threads (creates local EC)
-		 */
-		Thread_base::start();
 	}
+
+	/* required to create a 'local' EC */
+	Thread_base::start();
 
 	/* create cleanup portal */
 	_cap = _cap_session->alloc(Native_capability(_tid.ec_sel),

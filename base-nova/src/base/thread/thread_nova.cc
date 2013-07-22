@@ -127,8 +127,14 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::start()
 {
-	if (_tid.ec_sel != ~0UL)
+	if (_tid.ec_sel < Native_thread::INVALID_INDEX - 1)
 		throw Cpu_session::Thread_creation_failed();
+
+	/*
+	 * Default: create global thread - ec.sel == INVALID_INDEX
+	 *          create  local thread - ec.sel == INVALID_INDEX - 1
+	 */ 
+	bool global = _tid.ec_sel == Native_thread::INVALID_INDEX;
 
 	using namespace Genode;
 
@@ -142,16 +148,19 @@ void Thread_base::start()
 
 	/* create EC at core */
 	addr_t thread_sp = reinterpret_cast<addr_t>(&_context->stack[-4]);
-	thread_sp &= ~0xf; /* align initial stack to 16 byte boundary */
+	thread_sp       &= ~0xfUL; /* align initial stack to 16 byte boundary */
 
 	Thread_state state;
 	state.sel_exc_base = _tid.exc_pt_sel;
 	state.is_vcpu      = _tid.is_vcpu;
 
+	/* local thread have no start instruction pointer - set via portal entry */
+	addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : 0;
+
 	try { env()->cpu_session()->state(_thread_cap, state); }
 	catch (...) { throw Cpu_session::Thread_creation_failed(); }
-	if (env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start,
-	                                thread_sp))
+
+	if (env()->cpu_session()->start(_thread_cap, thread_ip, thread_sp))
 		throw Cpu_session::Thread_creation_failed();
 
 	/* request native EC thread cap */ 
@@ -178,8 +187,9 @@ void Thread_base::start()
 		utcb_obj->crd_xlt = Obj_crd();
 	}
 
-	/* request creation of SC to let thread run*/
-	env()->cpu_session()->resume(_thread_cap);
+	if (global)
+		/* request creation of SC to let thread run*/
+		env()->cpu_session()->resume(_thread_cap);
 }
 
 
