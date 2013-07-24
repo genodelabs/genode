@@ -35,6 +35,7 @@ namespace Fiasco {
 #include <l4/sys/thread.h>
 #include <l4/sys/types.h>
 #include <l4/sys/utcb.h>
+#include <l4/sys/scheduler.h>
 
 static l4_kernel_info_t *kip;
 }
@@ -508,6 +509,29 @@ void Platform::wait_for_exit()
 	 * On Fiasco, Core never exits. So let us sleep forever.
 	 */
 	sleep_forever();
+}
+
+
+unsigned Platform::num_cpus() const {
+
+	using namespace Genode;
+	using namespace Fiasco;
+	
+	l4_sched_cpu_set_t cpus = l4_sched_cpu_set(0, 0, 1);
+	l4_umword_t cpus_max;
+	l4_msgtag_t res = l4_scheduler_info(L4_BASE_SCHEDULER_CAP, &cpus_max,
+	                                    &cpus);
+	if (l4_error(res)) {
+		PERR("could not detect number of CPUs - assuming 1 CPU");
+		return 1;
+	}
+
+	unsigned cpus_online = 0;
+	for (unsigned i = 0; i < sizeof(cpus.map) * 8; i++)
+		if ((cpus.map >> i) & 0x1)
+			cpus_online ++;
+		
+	return cpus_online;
 }
 
 

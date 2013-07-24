@@ -159,6 +159,7 @@ namespace Genode {
 			addr_t            vm_start() const { return _vm_start;       }
 			size_t            vm_size()  const { return _vm_size;        }
 			Rom_fs           *rom_fs()         { return &_rom_fs;        }
+			unsigned          num_cpus() const;
 
 			void wait_for_exit();
 	};
