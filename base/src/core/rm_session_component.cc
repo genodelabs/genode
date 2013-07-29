@@ -359,17 +359,15 @@ Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
 	Object_pool<Dataspace_component>::Guard dsc(_ds_ep->lookup_and_lock(ds_cap));
 	if (!dsc) throw Invalid_dataspace();
 
-	if (!size) {
+	if (!size)
 		size = dsc->size() - offset;
-
-		if (dsc->size() <= (size_t)offset) {
-			PWRN("size is 0");
-			throw Invalid_dataspace();
-		}
-	}
 
 	/* work with page granularity */
 	size = align_addr(size, get_page_size_log2());
+
+	/* deny creation of regions larger then the actual dataspace */
+	if (dsc->size() < size + offset)
+		throw Invalid_args();
 
 	/* allocate region for attachment */
 	void *r = 0;
