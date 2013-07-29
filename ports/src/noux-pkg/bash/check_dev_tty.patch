@@ -1,0 +1,25 @@
+Don't call 'check_dev_tty()'
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+The 'check_dev_tty()' function calls 'ttyname()', which calls the pthread
+stub function 'pthread_main_np()', which prints a 'not implemented'
+message. Calling 'check_dev_tty()' doesn't seem to be necessary, so this
+patch removes the call.
+---
+ shell.c |    2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/shell.c b/shell.c
+index 1cadd61..2dd99e3 100644
+--- a/shell.c
++++ b/shell.c
+@@ -392,8 +392,6 @@ main (argc, argv, env)
+ #  endif
+ #endif
+ 
+-  check_dev_tty ();
+-
+ #ifdef __CYGWIN__
+   _cygwin32_check_tmp ();
+ #endif /* __CYGWIN__ */
