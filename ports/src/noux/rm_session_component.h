@@ -189,8 +189,11 @@ namespace Noux {
 			                  Local_addr local_addr = (addr_t)0,
 			                  bool executable = false)
 			{
-				if (size == 0)
-					size = Dataspace_client(ds).size();
+				/*
+				 * Rm_session substracts offset from size if size is 0
+				 */
+				if (size == 0) 
+					size = Dataspace_client(ds).size() - offset;
 
 				/*
 				 * XXX look if we can identify the specified dataspace.
@@ -202,7 +205,7 @@ namespace Noux {
 				                        executable);
 
 				/*
-				 * Record attachement for later replay (needed during
+				 * Record attachment for later replay (needed during
 				 * fork)
 				 */
 				_regions.insert(new (env()->heap())
