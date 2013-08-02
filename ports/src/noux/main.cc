@@ -114,6 +114,23 @@ namespace Noux {
 				return false;
 			}
 	};
+
+	/**
+	 * This function is used to generate inode values from the given
+	 * path using the FNV-1a algorithm.
+	 */
+	inline uint32_t hash_path(const char *path, size_t len)
+	{
+		const unsigned char * p = reinterpret_cast<const unsigned char*>(path);
+		uint32_t hash = 2166136261U;
+
+		for (size_t i = 0; i < len; i++) {
+			hash ^= p[i];
+			hash *= 16777619;
+		}
+
+		return hash;
+	}
 };
 
 
@@ -195,23 +212,51 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_STAT:
 		case SYSCALL_LSTAT: /* XXX implement difference between 'lstat' and 'stat' */
 			{
+				/**
+				 * We calculate the inode by hashing the path because there is
+				 * no inode registry in noux.
+				 */
+				size_t   path_len  = strlen(_sysio->stat_in.path);
+				uint32_t path_hash = hash_path(_sysio->stat_in.path, path_len);
+
 				bool result = root_dir()->stat(_sysio, _sysio->stat_in.path);
 
 				/**
- 				 * Instead of using the uid/gid given by the actual file system
+				 * Instead of using the uid/gid given by the actual file system
 				 * we use the ones specificed in the config.
 				 */
 				if (result) {
 					_sysio->stat_out.st.uid = user_info()->uid;
 					_sysio->stat_out.st.gid = user_info()->gid;
+
+					_sysio->stat_out.st.inode = path_hash;
 				}
 
 				return result;
 			}
 
 		case SYSCALL_FSTAT:
+			{
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->fstat_in.fd);
 
-			return _lookup_channel(_sysio->fstat_in.fd)->fstat(_sysio);
+				bool result = io->fstat(_sysio);
+
+				if (result) {
+					Sysio::Path path;
+
+					/**
+					 * Only actual fd's are valid fstat targets.
+					 */
+					if (io->path(path, sizeof (path))) {
+						size_t path_len    = strlen(path);
+						uint32_t path_hash = hash_path(path, path_len);
+
+						_sysio->stat_out.st.inode = path_hash;
+					}
+				}
+
+				return result;
+			}
 
 		case SYSCALL_FCNTL:
 

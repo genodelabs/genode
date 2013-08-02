@@ -172,6 +172,14 @@ namespace Noux {
 			return _fh->fs()->check_unblock(_fh, rd, wr, ex);
 		}
 
+		bool path(char *path, size_t len)
+		{
+			strncpy(path, _path.base(), len);
+			path[len - 1] = '\0';
+
+			return true;
+		}
+
 		/**************************************
 		 ** Signal_dispatcher_base interface **
 		 **************************************/
@@ -183,7 +191,6 @@ namespace Noux {
 		{
 			Io_channel::invoke_all_notifiers();
 		}
-
 	};
 }
 

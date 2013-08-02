@@ -168,6 +168,14 @@ namespace Noux {
 				     h; h = h->next())
 					h->handle_interrupt();
 			}
+
+			/**
+			 * Get the path of the file associated with the I/O channel
+			 *
+			 * This function is used to simplify the implemenation of SYSCALL_FSTAT
+			 * and is only implemented by Vfs_io_channel.
+			 */
+			virtual bool path(char *path, size_t len) { return false; }
 	};
 }
 
