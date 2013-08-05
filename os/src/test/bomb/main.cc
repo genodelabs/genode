@@ -27,6 +27,9 @@
 #include <rm_session/connection.h>
 #include <timer_session/connection.h>
 
+#include <os/config.h>
+#include <util/xml_node.h>
+
 using namespace Genode;
 
 
@@ -213,6 +216,12 @@ Timer::Session *timer()
 
 int main(int argc, char **argv)
 {
+	unsigned long rounds = 5;
+
+	try {
+		config()->xml_node().attribute("rounds").value(&rounds);
+	} catch(...) { }
+
 	printf("--- bomb started ---\n");
 
 	/* connect to core's cap service used for creating parent capabilities */
@@ -236,7 +245,7 @@ int main(int argc, char **argv)
 		sleep_forever();
 	}
 
-	for (unsigned round = 1; ; ++round) {
+	for (unsigned round = 1; round < rounds ; ++round) {
 		for (unsigned i = children; i; --i)
 			start_child("bomb", &cap, amount, &parent_services);
 
@@ -258,8 +267,10 @@ int main(int argc, char **argv)
 			else break;
 		}
 
-		PINF("Done.");
+		PINF("[%03d] Done.", round);
 	}
+
+	PINF("Done. Going to sleep");
 
 	sleep_forever();
 	return 0;

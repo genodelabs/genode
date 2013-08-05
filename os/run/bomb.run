@@ -21,17 +21,19 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="512K"/>
+		<resource name="RAM" quantum="768K"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="bomb" priority="-1">
 		<resource name="RAM" quantum="2G"/>
+		<config rounds="20"/>
 	</start>
 </config>}
 
 build_boot_image "core init bomb timer"
 
-append qemu_args "-nographic -m 64"
+append qemu_args "-nographic -m 128"
 
-run_genode_until forever
+run_genode_until "Done\. Going to sleep\." 300
 
+puts "Test succeeded."
