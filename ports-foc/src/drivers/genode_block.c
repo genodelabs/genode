@@ -212,7 +212,7 @@ static int __init genode_blk_init(void)
 		blk_devs[drive].irq_cap = genode_block_irq_cap(drive);
 		if ((blk_devs[drive].irq = l4x_register_irq(blk_devs[drive].irq_cap)) < 0)
 			return -ENOMEM;
-		if ((err = request_irq(blk_devs[drive].irq, event_interrupt, IRQF_SAMPLE_RANDOM,
+		if ((err = request_irq(blk_devs[drive].irq, event_interrupt, 0,
 		                       "Genode block", &blk_devs[drive]))) {
 			printk(KERN_WARNING "%s: request_irq failed: %d\n", __func__, err);
 			return err;

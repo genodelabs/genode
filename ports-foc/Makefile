@@ -8,9 +8,9 @@ VERBOSE        ?= @
 ECHO            = @echo
 TARGET         ?= l4linux
 
-PATCH-l4linux   = $(addprefix patches/,l4lx_genode.patch icmp_align.patch tcp_mem.patch)
-REV-l4linux     = 25
-REPO-l4linux    = http://svn.tudos.org/repos/oc/l4linux/trunk
+PATCH-l4linux   =
+REV-l4linux     = r37-3.9.0
+REPO-l4linux    = https://github.com/ssumpf/l4linux.git
 
 PATCH-l4android = $(addprefix patches/,l4lx_genode.patch icmp_align.patch tcp_mem.patch android_binder.patch)
 REV-l4android   = bf83cc85e672bfafddc0fb85398129e427d6780f
@@ -32,10 +32,9 @@ UPDATE = cd $(REAL_CONTRIB_DIR)/l4android; git fetch; git reset --hard $(REV-l4a
 PATCH  = patch -p0
 else
 $(call check_tool,svn)
-FILTER_DIR = net
-DIFF_PATH  = $(filter-out $(FILTER_DIR),$(shell ls $(REAL_CONTRIB_DIR)/l4linux))
-DIFF       = svn diff $(DIFF_PATH)
-UPDATE     = svn up -r $(REV-l4linux)
+DIFF       = git diff
+UPDATE     = cd $(REAL_CONTRIB_DIR)/l4linux; git fetch origin; git checkout $(REV-l4linux); \
+             git rebase origin/$(REV-l4linux)
 PATCH      = patch -p0
 endif
 
@@ -80,7 +79,7 @@ $(CONTRIB_DIR):
 	$(VERBOSE)mkdir -p $@
 
 $(REAL_CONTRIB_DIR)/l4linux:
-	$(VERBOSE)svn co $(REPO-l4linux) -r $(REV-l4linux) $@
+	$(VERBOSE)git clone $(REPO-l4linux) $@
 
 $(REAL_CONTRIB_DIR)/l4android:
 	$(VERBOSE)git clone $(REPO-l4android) $@
@@ -93,9 +92,6 @@ clean: clean-$(TARGET)
 	$(VERBOSE)rm -f $(CONTRIB_DIR)/$(TARGET)/arch/l4/drivers
 
 clean-l4linux: $(REAL_CONTRIB_DIR)/$(TARGET)
-	$(VERBOSE)svn revert -R $(REAL_CONTRIB_DIR)/l4linux
-	$(VERBOSE)svn stat $(REAL_CONTRIB_DIR)/l4linux | sed -e 's/? //' | xargs rm -f
-	$(VERBOSE)svn up -r $(REV-l4linux) -N $(REAL_CONTRIB_DIR)/l4linux
 
 clean-l4android: $(REAL_CONTRIB_DIR)/$(TARGET)
 	$(VERBOSE)cd $(REAL_CONTRIB_DIR)/l4android; git checkout -f

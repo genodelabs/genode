@@ -143,9 +143,15 @@ void l4lx_irq_dev_mask(struct irq_data *data)
 }
 
 
+void l4lx_irq_dev_mask_ack(struct irq_data *data)
+{
+//	NOT_IMPLEMENTED;
+}
+
+
 void l4lx_irq_dev_unmask(struct irq_data *data)
 {
-	NOT_IMPLEMENTED;
+//	NOT_IMPLEMENTED;
 }
 
 

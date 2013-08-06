@@ -51,8 +51,8 @@ static void genode_serial_enable_ms(struct uart_port *port) { }
 
 
 static void genode_serial_rx_chars(struct uart_port *port) {
-	struct genode_uart_port *l4port = (struct genode_uart_port *)port;
-	struct tty_struct       *tty    = port->state->port.tty;
+	struct genode_uart_port *l4port   = (struct genode_uart_port *)port;
+	struct tty_port         *tty_port = &port->state->port;
 	unsigned long            flags;
 	unsigned int             flg;
 	char                     buf[64];
@@ -72,13 +72,13 @@ static void genode_serial_rx_chars(struct uart_port *port) {
 			if (uart_handle_sysrq_char(port, buf[i]))
 				continue;
 
-			tty_insert_flip_char(tty, buf[i], flg);
+			tty_insert_flip_char(tty_port, buf[i], flg);
 		}
 
 		if (cnt < sizeof(buf))
 			break;
 	}
-	tty_flip_buffer_push(tty);
+	tty_flip_buffer_push(tty_port);
 	return;
 }
 

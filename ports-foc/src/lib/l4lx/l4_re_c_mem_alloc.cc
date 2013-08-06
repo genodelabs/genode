@@ -90,6 +90,11 @@ extern "C" {
 	}
 
 
+	long l4re_ma_alloc_align(unsigned long size, l4re_ds_t const mem,
+	                         unsigned long flags, unsigned long align) {
+		return l4re_ma_alloc(size, mem, flags); }
+
+
 	long l4re_ma_free(l4re_ds_t const mem)
 	{
 		PWRN("%s: Not implemented yet!",__func__);

@@ -163,8 +163,7 @@ static int __init genode_net_init(void)
 	irq_cap = genode_net_irq_cap();
 	if ((irq = l4x_register_irq(irq_cap)) < 0)
 		return -ENOMEM;
-	if ((err = request_irq(irq, event_interrupt, IRQF_SAMPLE_RANDOM,
-	                       "Genode net", net_dev))) {
+	if ((err = request_irq(irq, event_interrupt, 0, "Genode net", net_dev))) {
 		printk(KERN_WARNING "%s: request_irq failed: %d\n", __func__, err);
 		return err;
 	}

@@ -168,7 +168,7 @@ int l4lx_task_delete_task(l4_cap_idx_t task, unsigned option)
 	Task *entry = Env::env()->tasks()->find_by_ref(task);
 	Env::env()->tasks()->remove(entry);
 	destroy(Genode::env()->heap(), entry);
-	return 1;
+	return 0;
 }
 
 }

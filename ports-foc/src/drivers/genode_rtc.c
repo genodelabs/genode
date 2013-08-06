@@ -89,7 +89,7 @@ static int genode_rtc_remove(struct platform_device *pdev)
 }
 
 
-static int __devinit genode_rtc_probe(struct platform_device *pdev)
+static int genode_rtc_probe(struct platform_device *pdev)
 {
 	int err;
 	struct genode_rtc *priv = kzalloc(sizeof(*priv), GFP_KERNEL);

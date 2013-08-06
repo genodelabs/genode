@@ -73,6 +73,7 @@ FASTCALL void l4lx_irq_timer_unmask(struct irq_data *data);
 FASTCALL int l4lx_irq_timer_set_affinity(struct irq_data *data,
                                          const struct cpumask *dest);
 FASTCALL void l4lx_irq_dev_enable(struct irq_data *data);
+FASTCALL void l4lx_irq_dev_mask_ack(struct irq_data *data);
 FASTCALL int l4x_alloc_irq_desc_data(int irq);
 
 #ifdef __cplusplus

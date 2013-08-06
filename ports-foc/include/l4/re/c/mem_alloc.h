@@ -32,6 +32,9 @@ enum l4re_ma_flags {
 L4_CV long l4re_ma_alloc(unsigned long size, l4re_ds_t const mem,
                          unsigned long flags);
 
+L4_CV long l4re_ma_alloc_align(unsigned long size, l4re_ds_t const mem,
+                               unsigned long flags, unsigned long align);
+
 L4_CV long l4re_ma_free(l4re_ds_t const mem);
 
 #ifdef __cplusplus

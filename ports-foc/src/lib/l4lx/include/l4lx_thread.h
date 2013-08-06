@@ -47,6 +47,8 @@ FASTCALL l4lx_thread_t l4lx_thread_create(L4_CV void (*thread_func)(void *data),
                                  struct l4lx_thread_start_info_t *deferstart);
 FASTCALL int l4lx_thread_start(struct l4lx_thread_start_info_t *startinfo);
 FASTCALL int l4lx_thread_is_valid(l4lx_thread_t t);
+FASTCALL void l4lx_thread_name_set(Fiasco::l4_cap_idx_t thread, const char *name);
+
 FASTCALL Fiasco::l4_cap_idx_t l4lx_thread_get_cap(l4lx_thread_t t);
 FASTCALL void l4lx_thread_pager_change(Fiasco::l4_cap_idx_t thread,
                                        Fiasco::l4_cap_idx_t pager);
