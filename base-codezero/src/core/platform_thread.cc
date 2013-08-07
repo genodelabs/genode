@@ -27,19 +27,6 @@ using namespace Genode;
 using namespace Codezero;
 
 
-void Platform_thread::affinity(unsigned int cpu_no)
-{
-	PDBG("'%s' not yet implemented", __PRETTY_FUNCTION__);
-}
-
-
-unsigned Platform_thread::affinity()
-{
-	PDBG("'%s' not yet implemented", __PRETTY_FUNCTION__);
-	return 0;
-}
-
-
 int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 {
 	Native_thread_id pager = _pager ? _pager->cap().dst() : THREAD_INVALID;

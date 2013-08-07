@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <thread/capability.h>
 #include <base/allocator.h>
+#include <base/affinity.h>
 
 /* core includes */
 #include <rom_fs.h>
@@ -91,8 +92,13 @@ namespace Genode {
 
 			/**
 			 * Return number of physical CPUs present in the platform
+			 *
+			 * The default implementation returns a single CPU.
 			 */
-			virtual unsigned num_cpus() const { return 1; }
+			virtual Affinity::Space affinity_space() const
+			{
+				return Affinity::Space(1);
+			}
 	};
 
 

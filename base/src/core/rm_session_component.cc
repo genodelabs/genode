@@ -605,7 +605,7 @@ void Rm_session_component::detach(Local_addr local_addr)
 Pager_capability Rm_session_component::add_client(Thread_capability thread)
 {
 	unsigned long badge;
-	unsigned affinity;
+	Affinity::Location location;
 	Weak_ptr<Address_space> address_space;
 
 	{
@@ -616,8 +616,9 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 
 		/* determine identification of client when faulting */
 		badge = cpu_thread->platform_thread()->pager_object_badge();
+
 		/* determine cpu affinity of client thread */
-		affinity = cpu_thread->platform_thread()->affinity();
+		location = cpu_thread->platform_thread()->affinity();
 
 		address_space = cpu_thread->platform_thread()->address_space();
 		if (!Locked_ptr<Address_space>(address_space).is_valid())
@@ -628,7 +629,7 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 	Lock::Guard lock_guard(_lock);
 
 	Rm_client *cl;
-	try { cl = new(&_client_slab) Rm_client(this, badge, address_space, affinity); }
+	try { cl = new(&_client_slab) Rm_client(this, badge, address_space, location); }
 	catch (Allocator::Out_of_memory) { throw Out_of_metadata(); }
 	catch (Cpu_session::Thread_creation_failed) { throw Out_of_metadata(); }
 	catch (Thread_base::Stack_alloc_failed) { throw Out_of_metadata(); }

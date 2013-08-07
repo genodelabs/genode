@@ -89,43 +89,44 @@ int main(int argc, char **argv)
 
 	printf("--- test-mp_server started ---\n");
 
-	unsigned cpus = env()->cpu_session()->num_cpus();
-	printf("Detected %u CPU%c.\n", cpus, cpus > 1 ? 's' : ' ');
+	Affinity::Space cpus = env()->cpu_session()->affinity_space();
+	printf("Detected %ux%u CPU%s\n",
+	       cpus.width(), cpus.height(), cpus.total() > 1 ? "s." : ".");
 
 	enum { STACK_SIZE = 4096 };
 
 	static Cap_connection cap;
-	Rpc_entrypoint ** eps = new (env()->heap()) Rpc_entrypoint*[cpus];
-	for (unsigned i = 0; i < cpus; i++)
+	Rpc_entrypoint ** eps = new (env()->heap()) Rpc_entrypoint*[cpus.total()];
+	for (unsigned i = 0; i < cpus.total(); i++)
 		eps[i] = new (env()->heap()) Rpc_entrypoint(&cap, STACK_SIZE, "rpc en",
-		                                            true, i);
+		                                            true, cpus.location_of_index(i));
 
 	/* XXX using the same object and putting it to different queues fails XXX */
-	Test::Component * components = new (env()->heap()) Test::Component[cpus];
+	Test::Component * components = new (env()->heap()) Test::Component[cpus.total()];
 
-	Test::Capability * caps = new (env()->heap()) Test::Capability[cpus];
-	for (unsigned i = 0; i < cpus; i++)
+	Test::Capability * caps = new (env()->heap()) Test::Capability[cpus.total()];
+	for (unsigned i = 0; i < cpus.total(); i++)
 		caps[i] = eps[i]->manage(&components[i]);
 
-	Test::Client ** clients = new (env()->heap()) Test::Client*[cpus];
-	for (unsigned i = 0; i < cpus; i++)
+	Test::Client ** clients = new (env()->heap()) Test::Client*[cpus.total()];
+	for (unsigned i = 0; i < cpus.total(); i++)
 		clients[i] = new (env()->heap()) Test::Client(caps[i]);
 
 	/* Test: Invoke RPC entrypoint on different CPUs */
-	for (unsigned i = 0; i < cpus; i++) {
+	for (unsigned i = 0; i < cpus.total(); i++) {
 		printf("call server on CPU %u\n", i);
 		clients[i]->test_untyped(i);
 	}
 
 	/* Test: Transfer a capability to RPC Entrypoints on different CPUs */
-	for (unsigned i = 0; i < cpus; i++) {
+	for (unsigned i = 0; i < cpus.total(); i++) {
 		Native_capability cap = caps[0];
 		printf("call server on CPU %u - transfer cap %lx\n", i, cap.local_name());
 		clients[i]->test_cap(cap);
 	}
 
 	/* Test: Transfer a capability to RPC Entrypoints and back */
-	for (unsigned i = 0; i < cpus; i++) {
+	for (unsigned i = 0; i < cpus.total(); i++) {
 		Native_capability cap  = caps[0];
 		printf("call server on CPU %u - transfer cap %lx\n", i, cap.local_name());
 		Native_capability rcap = clients[i]->test_cap_reply(cap);

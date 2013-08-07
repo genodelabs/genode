@@ -22,7 +22,7 @@ enum { STACK_SIZE = sizeof(long)*1024, COUNT_VALUE = 10 * 1024 * 1024 };
 
 struct Spinning_thread : Genode::Thread<STACK_SIZE>
 {
-	unsigned const _cpu_number;
+	Genode::Affinity::Location const _location;
 
 	Genode::uint64_t volatile cnt;
 
@@ -32,7 +32,8 @@ struct Spinning_thread : Genode::Thread<STACK_SIZE>
 	{
 		barrier.unlock();
 
-		PINF("thread started on CPU %u, spinning...", _cpu_number);
+		PINF("thread started on CPU %d,%d, spinning...",
+		     _location.xpos(), _location.ypos());
 
 		unsigned round = 0;
 
@@ -41,18 +42,18 @@ struct Spinning_thread : Genode::Thread<STACK_SIZE>
 
 			/* show a life sign every now and then... */
 			if (cnt % COUNT_VALUE == 0) {
-				PINF("thread on CPU %u keeps counting - round %u...\n",
-				     _cpu_number, round++);
+				PINF("thread on CPU %d,%d keeps counting - round %u...\n",
+				     _location.xpos(), _location.ypos(), round++);
 			}
 		}
 	}
 
-	Spinning_thread(unsigned cpu_number, char const *name)
+	Spinning_thread(Genode::Affinity::Location location, char const *name)
 	:
-		Genode::Thread<STACK_SIZE>(name), _cpu_number(cpu_number), cnt(0ULL),
+		Genode::Thread<STACK_SIZE>(name), _location(location), cnt(0ULL),
 		barrier(Genode::Lock::LOCKED)
 	{
-		Genode::env()->cpu_session()->affinity(Thread_base::cap(), cpu_number);
+		Genode::env()->cpu_session()->affinity(Thread_base::cap(), location);
 		start();
 	}
 };
@@ -64,19 +65,21 @@ int main(int argc, char **argv)
 
 	printf("--- test-affinity started ---\n");
 
-	unsigned cpus = env()->cpu_session()->num_cpus();
-	printf("Detected %u CPU%c.\n", cpus, cpus > 1 ? 's' : ' ');
+	Affinity::Space cpus = env()->cpu_session()->affinity_space();
+	printf("Detected %ux%u CPU%s\n",
+	       cpus.width(), cpus.height(), cpus.total() > 1 ? "s." : ".");
 
 	/* get some memory for the thread objects */
-	Spinning_thread ** threads = new (env()->heap()) Spinning_thread*[cpus];
-	uint64_t * thread_cnt = new (env()->heap()) uint64_t[cpus];
+	Spinning_thread ** threads = new (env()->heap()) Spinning_thread*[cpus.total()];
+	uint64_t * thread_cnt = new (env()->heap()) uint64_t[cpus.total()];
 
 	/* construct the thread objects */
-	for (unsigned i = 0; i < cpus; i++)
-		threads[i] = new (env()->heap()) Spinning_thread(i, "thread");
+	for (unsigned i = 0; i < cpus.total(); i++)
+		threads[i] = new (env()->heap())
+		             Spinning_thread(cpus.location_of_index(i), "thread");
 
 	/* wait until all threads are up and running */
-	for (unsigned i = 0; i < cpus; i++)
+	for (unsigned i = 0; i < cpus.total(); i++)
 		threads[i]->barrier.lock();
 
 	printf("Threads started on a different CPU each.\n");
@@ -89,7 +92,7 @@ int main(int argc, char **argv)
 
 	char const   text_cpu[] = "     CPU: ";
 	char const text_round[] = "Round %2u: ";
-	char * output_buffer = new (env()->heap()) char [sizeof(text_cpu) + 3 * cpus];
+	char * output_buffer = new (env()->heap()) char [sizeof(text_cpu) + 3 * cpus.total()];
 
 	for (;;) {
 		cnt++;
@@ -99,7 +102,7 @@ int main(int argc, char **argv)
 			char * output = output_buffer;
 			snprintf(output, sizeof(text_cpu), text_cpu);
 			output += sizeof(text_cpu) - 1;
-			for (unsigned i = 0; i < cpus; i++) {
+			for (unsigned i = 0; i < cpus.total(); i++) {
 				snprintf(output, 4, "%2u ", i);
 				output += 3;
 			}
@@ -109,7 +112,7 @@ int main(int argc, char **argv)
 			snprintf(output, sizeof(text_round), text_round, round);
 			output += sizeof(text_round) - 2;
 
-			for (unsigned i = 0; i < cpus; i++) {
+			for (unsigned i = 0; i < cpus.total(); i++) {
 				snprintf(output, 4, "%s ",
 				         thread_cnt[i] == threads[i]->cnt ? " D" : " A");
 				output += 3;

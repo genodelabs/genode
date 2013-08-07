@@ -43,7 +43,7 @@ namespace Genode {
 			size_t _vm_size;
 
 			/* available CPUs */
-			unsigned _cpus;
+			Affinity::Space _cpus;
 
 			addr_t _map_page(addr_t const phys_page, addr_t const pages,
 			                 bool const extra_page);
@@ -74,7 +74,8 @@ namespace Genode {
 
 			void wait_for_exit();
 			bool supports_unmap() { return true; }
-			unsigned num_cpus() const { return _cpus; }
+
+			Affinity::Space affinity_space() const { return _cpus; }
 
 
 			/*******************

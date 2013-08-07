@@ -58,7 +58,14 @@ namespace Genode {
 			 */
 			Thread_state state;
 
-			Pager_object(unsigned long badge, unsigned affinity) : _badge(badge) { }
+			/**
+			 * Constructor
+			 *
+			 * \param location  affinity of paged thread to physical CPU
+			 */
+			Pager_object(unsigned long badge, Affinity::Location location)
+			: _badge(badge) { }
+
 			virtual ~Pager_object() { }
 
 			unsigned long badge() const { return _badge; }

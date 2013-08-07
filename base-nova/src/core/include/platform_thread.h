@@ -32,17 +32,17 @@ namespace Genode {
 	{
 		private:
 
-			Platform_pd  *_pd;
-			Pager_object *_pager;
-			addr_t        _id_base;
-			addr_t        _sel_exc_base;
-			unsigned      _cpu_no;
-			bool          _is_main_thread;
-			bool          _is_vcpu;
-			char          _name[Thread_base::Context::NAME_LEN];
+			Platform_pd       *_pd;
+			Pager_object      *_pager;
+			addr_t             _id_base;
+			addr_t             _sel_exc_base;
+			Affinity::Location _location;
+			bool               _is_main_thread;
+			bool               _is_vcpu;
+			char               _name[Thread_base::Context::NAME_LEN];
 
-			addr_t _sel_ec()       { return _id_base; }
-			addr_t _sel_sc()       { return _id_base + 1; }
+			addr_t _sel_ec() const { return _id_base; }
+			addr_t _sel_sc() const { return _id_base + 1; }
 
 		public:
 
@@ -129,12 +129,12 @@ namespace Genode {
 			/**
 			 * Set the executing CPU for this thread
 			 */
-			void affinity(unsigned cpu);
+			void affinity(Affinity::Location location);
 
 			/**
 			 * Get the executing CPU for this thread
 			 */
-			unsigned affinity();
+			Affinity::Location affinity();
 
 			/**
 			 * Get thread name

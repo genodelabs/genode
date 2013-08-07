@@ -151,18 +151,12 @@ namespace Genode {
 			/**
 			 * Set the executing CPU for this thread
 			 */
-			void affinity(unsigned cpu) {
-				kernel_log() << __PRETTY_FUNCTION__ << ": not implemented\n"; };
+			void affinity(Affinity::Location) { }
 
 			/**
 			 * Get the executing CPU for this thread
 			 */
-			unsigned affinity()
-			{
-				kernel_log() << __PRETTY_FUNCTION__ << ": not implemented\n";
-				return 0;
-			};
-
+			Affinity::Location affinity() { return Affinity::Location(); };
 
 			/**
 			 * Return the address space to which the thread is bound

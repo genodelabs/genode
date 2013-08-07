@@ -60,11 +60,11 @@ namespace Genode {
 		void single_step(Thread_capability thread, bool enable) {
 			call<Rpc_single_step>(thread, enable); }
 
-		unsigned num_cpus() const {
-			return call<Rpc_num_cpus>(); }
+		Affinity::Space affinity_space() const {
+			return call<Rpc_affinity_space>(); }
 
-		void affinity(Thread_capability thread, unsigned cpu) {
-			call<Rpc_affinity>(thread, cpu); }
+		void affinity(Thread_capability thread, Affinity::Location location) {
+			call<Rpc_affinity>(thread, location); }
 	};
 }
 

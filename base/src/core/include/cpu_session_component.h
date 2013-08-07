@@ -149,8 +149,8 @@ namespace Genode {
 			Thread_state state(Thread_capability);
 			void state(Thread_capability, Thread_state const &);
 			void exception_handler(Thread_capability, Signal_context_capability);
-			unsigned num_cpus() const;
-			void affinity(Thread_capability, unsigned);
+			Affinity::Space affinity_space() const;
+			void affinity(Thread_capability, Affinity::Location);
 	};
 }
 

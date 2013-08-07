@@ -261,7 +261,7 @@ static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
 	return res;	
 }
 
-Pager_object::Pager_object(unsigned long badge, unsigned affinity)
+Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 : Thread_base("pager:", PF_HANDLER_STACK_SIZE), _badge(badge)
 {
 	class Create_exception_pt_failed { };
@@ -280,7 +280,8 @@ Pager_object::Pager_object(unsigned long badge, unsigned affinity)
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
 
 	/* tell thread starting code on which CPU to let run the pager */
-	*reinterpret_cast<addr_t *>(stack_top()) = affinity;
+	reinterpret_cast<Affinity::Location *>(stack_top())[-1] = location;
+
 	/* creates local EC */
 	Thread_base::start();
 

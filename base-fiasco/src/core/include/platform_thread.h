@@ -121,12 +121,12 @@ namespace Genode {
 			 *
 			 * SMP is not supported on L4/Fiasco.
 			 */
-			void affinity(unsigned) { }
+			void affinity(Affinity::Location) { }
 
 			/**
 			 * Request the affinity of this thread
 			 */
-			unsigned affinity() { return 0; }
+			Affinity::Location affinity() { return Affinity::Location(); }
 
 			/**
 			 * Return the address space to which the thread is bound

@@ -150,8 +150,15 @@ namespace Genode {
 			Rom_fs          *rom_fs()         { return &_rom_fs; }
 
 			void wait_for_exit();
-			unsigned num_cpus() const {
-				return L4_NumProcessors(Pistachio::get_kip()); }
+
+			Affinity::Space affinity_space() const
+			{
+				/*
+				 * Ignore topology of CPU nodes, just return a one-dimensional
+				 * affinity space.
+				 */
+				return Affinity::Space(L4_NumProcessors(Pistachio::get_kip()), 1);
+			}
 	};
 }
 

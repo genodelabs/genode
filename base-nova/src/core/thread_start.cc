@@ -77,20 +77,20 @@ void Thread_base::start()
 	 */
 	using namespace Nova;
 
-	addr_t sp       = reinterpret_cast<addr_t>(&_context->stack[-4]);
-	sp             &= ~0xf; /* align initial stack to 16 byte boundary */
-	addr_t utcb     = reinterpret_cast<addr_t>(&_context->utcb);
-	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_context->utcb);
-	addr_t pd_sel   = Platform_pd::pd_core_sel();
-	addr_t cpu_no   = *reinterpret_cast<addr_t *>(stack_top());
+	addr_t sp                   = reinterpret_cast<addr_t>(&_context->stack[-4]);
+	sp                         &= ~0xf; /* align initial stack to 16 byte boundary */
+	addr_t utcb                 = reinterpret_cast<addr_t>(&_context->utcb);
+	Utcb * utcb_obj             = reinterpret_cast<Utcb *>(&_context->utcb);
+	addr_t pd_sel               = Platform_pd::pd_core_sel();
+	Affinity::Location location = reinterpret_cast<Affinity::Location *>(stack_top())[-1];
 
 	/* server code sets this value */
-	if (cpu_no == ~0UL)
-		cpu_no = boot_cpu();
+	if (!location.valid())
+		location = Affinity::Location(boot_cpu(), 0);
 
 	/* create local EC */
 	enum { LOCAL_THREAD = false };
-	uint8_t res = create_ec(_tid.ec_sel, pd_sel, cpu_no,
+	uint8_t res = create_ec(_tid.ec_sel, pd_sel, location.xpos(),
 	                        utcb, sp, _tid.exc_pt_sel, LOCAL_THREAD);
 	if (res != NOVA_OK) {
 		PERR("create_ec returned %d", res);

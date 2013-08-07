@@ -4,7 +4,7 @@
 # \author Alexander Boettcher 
 #
 
-if {![have_spec nova] && ![have_spec foc]} {
+if {[have_spec platform_pbxa9] || (![have_spec nova] && ![have_spec foc])} {
 	puts "Platform is unsupported."
 	exit 0
 }
@@ -38,10 +38,11 @@ if {[is_qemu_available]} {
 }
 
 # run the test
-run_genode_until {\[init -\> test-server-mp\] done.*\n} 20
+run_genode_until {\[init -\> test-server-mp\] done.*\n} 60
 
-set cpus [regexp -inline {Detected [0-9]+ CPU[ s].*\n} $output]
-set cpus [regexp -inline {[0-9]+} $cpus]
+set cpus [regexp -inline {Detected [0-9x]+ CPU[ s]\.} $output]
+set cpus [regexp -all -inline {[0-9]+} $cpus]
+set cpus [expr [lindex $cpus 0] * [lindex $cpus 1]]
 
 if {[is_qemu_available]} {
 	if {$want_cpus != $cpus} {
@@ -59,7 +60,7 @@ unify_output {\- received cap [a-f0-9]+} "- received cap UNIFIED"
 
 compare_output_to {
 	[init -> test-server-mp] --- test-mp_server started ---
-	[init -> test-server-mp] Detected 2 CPUs.
+	[init -> test-server-mp] Detected 2x1 CPUs.
 	[init -> test-server-mp] call server on CPU 0
 	[init -> test-server-mp] function test_untyped: got value 0
 	[init -> test-server-mp] call server on CPU 1

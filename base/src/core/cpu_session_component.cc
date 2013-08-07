@@ -180,18 +180,19 @@ Cpu_session_component::exception_handler(Thread_capability         thread_cap,
 }
 
 
-unsigned Cpu_session_component::num_cpus() const
+Affinity::Space Cpu_session_component::affinity_space() const
 {
-	return platform()->num_cpus();
+	return platform()->affinity_space();
 }
 
 
-void Cpu_session_component::affinity(Thread_capability thread_cap, unsigned cpu)
+void Cpu_session_component::affinity(Thread_capability  thread_cap,
+                                     Affinity::Location location)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
-	thread->platform_thread()->affinity(cpu);
+	thread->platform_thread()->affinity(location);
 }
 
 

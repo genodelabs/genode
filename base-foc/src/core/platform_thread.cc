@@ -198,8 +198,12 @@ void Platform_thread::cancel_blocking()
 }
 
 
-void Platform_thread::affinity(unsigned cpu)
+void Platform_thread::affinity(Affinity::Location location)
 {
+	_location = location;
+
+	int const cpu = location.xpos();
+
 	l4_sched_param_t params = l4_sched_param(_prio);
 	params.affinity         = l4_sched_cpu_set(cpu, 0, 1);
 	l4_msgtag_t tag = l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP,
@@ -209,10 +213,9 @@ void Platform_thread::affinity(unsigned cpu)
 }
 
 
-unsigned Platform_thread::affinity()
+Affinity::Location Platform_thread::affinity()
 {
-	PERR("'%s' not yet implemented", __PRETTY_FUNCTION__);
-	return 0;
+	return _location;
 }
 
 

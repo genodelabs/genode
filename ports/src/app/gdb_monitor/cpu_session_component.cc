@@ -191,15 +191,16 @@ void Cpu_session_component::single_step(Thread_capability thread_cap, bool enabl
 }
 
 
-unsigned Cpu_session_component::num_cpus() const
+Affinity::Space Cpu_session_component::affinity_space() const
 {
-	return _parent_cpu_session.num_cpus();
+	return _parent_cpu_session.affinity_space();
 }
 
 
-void Cpu_session_component::affinity(Thread_capability thread_cap, unsigned cpu)
+void Cpu_session_component::affinity(Thread_capability thread_cap,
+                                     Affinity::Location location)
 {
-	_parent_cpu_session.affinity(thread_cap, cpu);
+	_parent_cpu_session.affinity(thread_cap, location);
 }
 
 

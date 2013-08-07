@@ -37,20 +37,22 @@ namespace Genode {
 
 			friend class Platform_pd;
 
-			State         _state;
-			bool          _core_thread;
-			Cap_mapping   _thread;
-			Cap_mapping   _gate;
-			Cap_mapping   _pager;
-			Cap_mapping   _irq;
-			Native_utcb   _utcb;
-			char          _name[32];       /* thread name that will be
-			                                 registered at the kernel
-			                                 debugger */
-			Platform_pd  *_platform_pd;    /* protection domain thread
-			                                 is bound to */
-			Pager_object *_pager_obj;
-			unsigned      _prio;
+			State              _state;
+			bool               _core_thread;
+			Cap_mapping        _thread;
+			Cap_mapping        _gate;
+			Cap_mapping        _pager;
+			Cap_mapping        _irq;
+			Native_utcb        _utcb;
+			char               _name[32];       /* thread name that will be
+			                                      registered at the kernel
+			                                      debugger */
+			Platform_pd       *_platform_pd;    /* protection domain thread
+			                                      is bound to */
+			Pager_object      *_pager_obj;
+			unsigned           _prio;
+
+			Affinity::Location _location;
 
 			void _create_thread(void);
 			void _finalize_construction(const char *name);
@@ -136,12 +138,12 @@ namespace Genode {
 			/**
 			 * Set the executing CPU for this thread
 			 */
-			void affinity(unsigned cpu);
+			void affinity(Affinity::Location location);
 
 			/**
 			 * Get the executing CPU for this thread
 			 */
-			unsigned affinity();
+			Affinity::Location affinity();
 
 			/**
 			 * Return the address space to which the thread is bound

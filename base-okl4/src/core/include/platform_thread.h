@@ -140,12 +140,12 @@ namespace Genode {
 			/**
 			 * Set the executing CPU for this thread
 			 */
-			void affinity(unsigned cpu);
+			void affinity(Affinity::Location) { }
 
 			/**
 			 * Request the affinity of this thread
 			 */
-			unsigned affinity();
+			Affinity::Location affinity() { return Affinity::Location(); }
 
 
 			/*****************************

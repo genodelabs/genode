@@ -35,18 +35,18 @@ using namespace Genode;
  ** Platform thread **
  *********************/
 
-void Platform_thread::affinity(unsigned int cpu_no)
+void Platform_thread::affinity(Affinity::Location location)
 {
 	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
 		PERR("Failure - affinity of thread could not be set");
 		return;
 	}
 
-	_cpu_no = cpu_no;
+	_location = location;
 }
 
 
-unsigned Platform_thread::affinity() { return _cpu_no; }
+Affinity::Location Platform_thread::affinity() { return _location; }
 
 
 int Platform_thread::start(void *ip, void *sp)
@@ -88,7 +88,7 @@ int Platform_thread::start(void *ip, void *sp)
 		/* ip == 0 means that caller will use the thread as worker */
 		bool thread_global = ip;
 
-		res = create_ec(_sel_ec(), _pd->pd_sel(), _cpu_no, utcb,
+		res = create_ec(_sel_ec(), _pd->pd_sel(), _location.xpos(), utcb,
 		                initial_sp, _sel_exc_base, thread_global);
 		if (res != Nova::NOVA_OK) {
 			revoke(Obj_crd(sm, 0));
@@ -182,7 +182,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	/* create first thread in task */
 	enum { THREAD_GLOBAL = true };
-	res = create_ec(_sel_ec(), pd_sel, _cpu_no, pd_utcb, 0, 0,
+	res = create_ec(_sel_ec(), pd_sel, _location.xpos(), pd_utcb, 0, 0,
 	                THREAD_GLOBAL);
 	if (res != NOVA_OK) {
 		PERR("create_ec returned %d", res);
@@ -326,7 +326,7 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
 :
 	_pd(0), _pager(0), _id_base(cap_selector_allocator()->alloc(1)),
-	_sel_exc_base(Native_thread::INVALID_INDEX), _cpu_no(boot_cpu()),
+	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0),
 	_is_main_thread(false), _is_vcpu(false)
 {
 	strncpy(_name, name, sizeof(_name));

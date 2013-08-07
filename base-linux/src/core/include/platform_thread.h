@@ -114,7 +114,7 @@ namespace Genode {
 			}
 
 			const char   *name() { return _name; }
-			void          affinity(unsigned) { }
+			void          affinity(Affinity::Location) { }
 
 			/**
 			 * Register process ID and thread ID of thread

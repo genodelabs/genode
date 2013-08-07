@@ -35,19 +35,21 @@ namespace Genode {
 	{
 		private:
 
-			int              _thread_id;      /* plain thread number */
-			Native_thread_id _l4_thread_id;   /* L4 thread ID */
-			char             _name[32];       /* thread name that will be
-			                                     registered at the kernel
-			                                     debugger */
-			Platform_pd     *_platform_pd;    /* protection domain thread
-			                                     is bound to */
-			unsigned         _priority;       /* thread priority */
-			Pager_object    *_pager;
+			int                _thread_id;      /* plain thread number */
+			Native_thread_id   _l4_thread_id;   /* L4 thread ID */
+			char               _name[32];       /* thread name that will be
+			                                       registered at the kernel
+			                                       debugger */
+			Platform_pd       *_platform_pd;    /* protection domain thread
+			                                       is bound to */
+			unsigned           _priority;       /* thread priority */
+			Pager_object      *_pager;
+
+			Affinity::Location _location;
 
 		public:
 
-			enum { THREAD_INVALID = -1 };     /* invalid thread number */
+			enum { THREAD_INVALID = -1 };       /* invalid thread number */
 			enum { DEFAULT_PRIORITY = 128 };
 
 			/**
@@ -140,12 +142,12 @@ namespace Genode {
 			/**
 			 * Set the executing CPU for this thread
 			 */
-			void affinity(unsigned cpu);
+			void affinity(Affinity::Location location);
 
 			/**
 			 * Request the affinity of this thread
 			 */
-			unsigned affinity();
+			Affinity::Location affinity();
 
 
 			/**********************************

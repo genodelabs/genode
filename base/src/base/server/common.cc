@@ -14,6 +14,7 @@
 #include <base/rpc_server.h>
 #include <base/rpc_client.h>
 #include <base/blocking.h>
+#include <base/env.h>
 
 using namespace Genode;
 
@@ -99,7 +100,7 @@ bool Rpc_entrypoint::is_myself() const
 
 Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
                                char const *name, bool start_on_construction,
-                               unsigned affinity)
+                               Affinity::Location location)
 :
 	Thread_base(name, stack_size),
 	_cap(Untyped_capability()),
@@ -107,6 +108,10 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 	_delay_exit(Lock::LOCKED),
 	_cap_session(cap_session)
 {
+	/* set CPU affinity, if specified */
+	if (location.valid())
+		env()->cpu_session()->affinity(Thread_base::cap(), location);
+
 	Thread_base::start();
 	_block_until_cap_valid();
 

@@ -81,14 +81,18 @@ namespace L4lx {
 
 			Genode::addr_t sp() {
 				return ((Genode::addr_t)&_context->stack[-4]) & ~0xf; }
+
 			Genode::addr_t ip() { return (Genode::addr_t)_func; }
 
 			Fiasco::l4_utcb_t *utcb() { return _context->utcb; };
 
 			Timer::Connection* timer() { return &_timer; }
 
-			void set_affinity(unsigned i) {
-				vcpu_connection()->affinity(_thread_cap, i); }
+			void set_affinity(unsigned i)
+			{
+				vcpu_connection()->affinity(_thread_cap,
+				                            Genode::Affinity::Location(i, 0));
+			}
 	};
 
 }

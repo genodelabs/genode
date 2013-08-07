@@ -287,15 +287,23 @@ static void init_core_page_fault_handler()
 Platform::Platform() :
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
-	_vm_base(0x1000), _vm_size(0), _cpus(1)
+	_vm_base(0x1000), _vm_size(0), _cpus(Affinity::Space(1,1))
 {
 	Hip  *hip  = (Hip *)__initial_sp;
 	/* check for right API version */
 	if (hip->api_version != 6)
 		nova_die();
 
-	/* determine number of available CPUs */
-	_cpus = hip->cpus();
+	/*
+	 * Determine number of available CPUs
+	 *
+	 * XXX As of now, we assume a one-dimensional affinity space, ignoring
+	 *     the y component of the affinity location. When adding support
+	 *     for two-dimensional affinity spaces, look out and adjust the use of
+	 *     'Platform_thread::_location' in 'platform_thread.cc'. Also look
+	 *     at the 'Thread_base::start' function in core/thread_start.cc.
+	 */
+	_cpus = Affinity::Space(hip->cpus(), 1);
 
 	/* register UTCB of main thread */
 	__main_thread_utcb = (Utcb *)(__initial_sp - get_page_size());
@@ -339,8 +347,8 @@ Platform::Platform() :
 	if (verbose_boot_info) {
 		printf("Hypervisor %s VMX\n", hip->has_feature_vmx() ? "features" : "does not feature");
 		printf("Hypervisor %s SVM\n", hip->has_feature_svm() ? "features" : "does not feature");
-		printf("Hypervisor reports %u CPU%c - boot CPU is %lu\n",
-		       _cpus, _cpus > 1 ? 's' : ' ', boot_cpu());
+		printf("Hypervisor reports %ux%u CPU%c - boot CPU is %lu\n",
+		       _cpus.width(), _cpus.height(), _cpus.total() > 1 ? 's' : ' ', boot_cpu());
 	}
 
 	/* initialize core allocators */

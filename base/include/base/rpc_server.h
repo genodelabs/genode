@@ -316,10 +316,11 @@ namespace Genode {
 			 *                     point
 			 * \param stack_size   stack size of entrypoint thread
 			 * \param name         name of entrypoint thread
+			 * \param location     CPU affinity
 			 */
 			Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 			               char const *name, bool start_on_construction = true,
-			               unsigned affinity = ~0U);
+			               Affinity::Location location = Affinity::Location());
 
 			~Rpc_entrypoint();
 

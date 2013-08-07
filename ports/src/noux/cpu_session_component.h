@@ -129,11 +129,11 @@ namespace Noux {
 			void single_step(Thread_capability thread, bool enable) {
 				_cpu.single_step(thread, enable); }
 
-			unsigned num_cpus() const {
-				return _cpu.num_cpus(); }
+			Affinity::Space affinity_space() const {
+				return _cpu.affinity_space(); }
 
-			void affinity(Thread_capability thread, unsigned cpu) {
-				_cpu.affinity(thread, cpu); }
+			void affinity(Thread_capability thread, Affinity::Location location) {
+				_cpu.affinity(thread, location); }
 	};
 }
 

@@ -121,7 +121,7 @@ static void _core_pager_loop()
 }
 
 
-Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0, 0)
+Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0, Affinity::Location())
 {
 	/*
 	 * We use the Pager_object here in a slightly different manner,
@@ -132,7 +132,7 @@ Platform::Sigma0::Sigma0(Cap_index* i) : Pager_object(0, 0)
 
 
 Platform::Core_pager::Core_pager(Platform_pd *core_pd, Sigma0 *sigma0)
-: Platform_thread("core.pager"), Pager_object(0, 0)
+: Platform_thread("core.pager"), Pager_object(0, Affinity::Location())
 {
 	Platform_thread::pager(sigma0);
 
@@ -512,11 +512,11 @@ void Platform::wait_for_exit()
 }
 
 
-unsigned Platform::num_cpus() const {
-
+Affinity::Space Platform::affinity_space() const
+{
 	using namespace Genode;
 	using namespace Fiasco;
-	
+
 	l4_sched_cpu_set_t cpus = l4_sched_cpu_set(0, 0, 1);
 	l4_umword_t cpus_max;
 	l4_msgtag_t res = l4_scheduler_info(L4_BASE_SCHEDULER_CAP, &cpus_max,
@@ -530,8 +530,12 @@ unsigned Platform::num_cpus() const {
 	for (unsigned i = 0; i < sizeof(cpus.map) * 8; i++)
 		if ((cpus.map >> i) & 0x1)
 			cpus_online ++;
-		
-	return cpus_online;
+
+	/*
+	 * Currently, we do not gather any information about the topology of CPU
+	 * nodes but just return a one-dimensional affinity space.
+	 */
+	return Affinity::Space(cpus_online, 1);
 }
 
 

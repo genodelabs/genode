@@ -81,7 +81,7 @@ namespace Genode {
 			static Nova::Utcb * _check_handler(Thread_base *&, Pager_object *&);
 		public:
 
-			Pager_object(unsigned long badge, unsigned affinity);
+			Pager_object(unsigned long badge, Affinity::Location location);
 
 			virtual ~Pager_object();
 

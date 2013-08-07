@@ -34,6 +34,7 @@
 #include <base/thread_state.h>
 #include <base/rpc_args.h>
 #include <base/signal.h>
+#include <base/affinity.h>
 #include <thread/capability.h>
 #include <pager/capability.h>
 #include <session/session.h>
@@ -173,17 +174,23 @@ namespace Genode {
 			virtual void single_step(Thread_capability, bool) {}
 
 			/**
-			 * Return number of CPUs available via the CPU session
+			 * Return affinity space of CPU nodes available to the CPU session
+			 *
+			 * The dimension of the affinity space as returned by this function
+			 * represent the physical CPUs that are available.
 			 */
-			virtual unsigned num_cpus() const = 0;
+			virtual Affinity::Space affinity_space() const = 0;
 
 			/**
-			 * Assign thread to a CPU
+			 * Define affinity of thread to one or multiple CPU nodes
 			 *
-			 * The 'cpu' argument is a CPU index starting at 0. It must be
-			 * smaller than the value returned by 'num_cpus()'.
+			 * In the normal case, a thread is assigned to a single CPU.
+			 * Specifying more than one CPU node is supposed to principally
+			 * allow a CPU service to balance the load of threads among
+			 * multiple CPUs.
 			 */
-			virtual void affinity(Thread_capability thread, unsigned cpu) = 0;
+			virtual void affinity(Thread_capability thread,
+			                      Affinity::Location affinity) = 0;
 
 			/**
 			 * Translate generic priority value to kernel-specific priority levels
@@ -238,8 +245,8 @@ namespace Genode {
 			GENODE_RPC(Rpc_exception_handler, void, exception_handler,
 			                                  Thread_capability, Signal_context_capability);
 			GENODE_RPC(Rpc_single_step, void, single_step, Thread_capability, bool);
-			GENODE_RPC(Rpc_num_cpus, unsigned, num_cpus);
-			GENODE_RPC(Rpc_affinity, void, affinity, Thread_capability, unsigned);
+			GENODE_RPC(Rpc_affinity_space, Affinity::Space, affinity_space);
+			GENODE_RPC(Rpc_affinity, void, affinity, Thread_capability, Affinity::Location);
 
 			/*
 			 * 'GENODE_RPC_INTERFACE' declaration done manually
@@ -261,7 +268,7 @@ namespace Genode {
 			        Meta::Type_tuple<Rpc_get_state,
 			        Meta::Type_tuple<Rpc_exception_handler,
 			        Meta::Type_tuple<Rpc_single_step,
-			        Meta::Type_tuple<Rpc_num_cpus,
+			        Meta::Type_tuple<Rpc_affinity_space,
 			        Meta::Type_tuple<Rpc_affinity,
 			                         Meta::Empty>
 			        > > > > > > > > > > > > > Rpc_functions;
