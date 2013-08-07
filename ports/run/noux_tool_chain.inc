@@ -37,7 +37,7 @@ if {[have_spec x86]} {
 #
 # Build Noux packages only once
 #
-set noux_pkgs "bash coreutils vim findutils make which $binutils $gcc"
+set noux_pkgs "bash coreutils vim grep sed findutils make which $binutils $gcc"
 
 foreach pkg $noux_pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
