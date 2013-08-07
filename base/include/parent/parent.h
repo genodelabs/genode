@@ -107,6 +107,7 @@ namespace Genode {
 			 *
 			 * \param service_name     name of the requested interface
 			 * \param args             session constructor arguments
+			 * \param affinity         preferred CPU affinity for the session
 			 *
 			 * \throw Service_denied   parent denies session request
 			 * \throw Quota_exceeded   our own quota does not suffice for
@@ -119,13 +120,15 @@ namespace Genode {
 			 * 'session()' template instead.
 			 */
 			virtual Session_capability session(Service_name const &service_name,
-			                                   Session_args const &args) = 0;
+			                                   Session_args const &args,
+			                                   Affinity     const &affinity = Affinity()) = 0;
 
 			/**
 			 * Create session to a service
 			 *
-			 * \param SESSION_TYPE  session interface type
-			 * \param args          session constructor arguments
+			 * \param SESSION_TYPE     session interface type
+			 * \param args             session constructor arguments
+			 * \param affinity         preferred CPU affinity for the session
 			 *
 			 * \throw Service_denied   parent denies session request
 			 * \throw Quota_exceeded   our own quota does not suffice for
@@ -135,9 +138,11 @@ namespace Genode {
 			 * \return                 capability to new session
 			 */
 			template <typename SESSION_TYPE>
-			Capability<SESSION_TYPE> session(Session_args const &args)
+			Capability<SESSION_TYPE> session(Session_args const &args,
+			                                 Affinity     const &affinity = Affinity())
 			{
-				Session_capability cap = session(SESSION_TYPE::service_name(), args);
+				Session_capability cap = session(SESSION_TYPE::service_name(),
+				                                 args, affinity);
 				return reinterpret_cap_cast<SESSION_TYPE>(cap);
 			}
 
@@ -176,7 +181,7 @@ namespace Genode {
 			           Service_name const &, Root_capability);
 			GENODE_RPC_THROW(Rpc_session, Session_capability, session,
 			                 GENODE_TYPE_LIST(Service_denied, Quota_exceeded, Unavailable),
-			                 Service_name const &, Session_args const &);
+			                 Service_name const &, Session_args const &, Affinity const &);
 			GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
 			                 GENODE_TYPE_LIST(Quota_exceeded),
 			                 Session_capability, Upgrade_args const &);

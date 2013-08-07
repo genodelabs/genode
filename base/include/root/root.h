@@ -17,6 +17,7 @@
 #include <base/exception.h>
 #include <base/rpc.h>
 #include <base/rpc_args.h>
+#include <base/affinity.h>
 #include <session/capability.h>
 
 namespace Genode {
@@ -46,7 +47,8 @@ namespace Genode {
 		 *
 		 * \return capability to new session
 		 */
-		virtual Session_capability session(Session_args const &args) = 0;
+		virtual Session_capability session(Session_args const &args,
+		                                   Affinity     const &affinity) = 0;
 
 		/**
 		 * Extend resource donation to an existing session
@@ -65,7 +67,7 @@ namespace Genode {
 
 		GENODE_RPC_THROW(Rpc_session, Session_capability, session,
 		                 GENODE_TYPE_LIST(Unavailable, Quota_exceeded, Invalid_args),
-		                 Session_args const &);
+		                 Session_args const &, Affinity const &);
 		GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
 		                 GENODE_TYPE_LIST(Invalid_args),
 		                 Session_capability, Upgrade_args const &);

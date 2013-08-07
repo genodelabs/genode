@@ -73,7 +73,8 @@ namespace Loader {
 						_close(_rom_sessions.first()); }
 				}
 
-				Genode::Session_capability session(const char *args)
+				Genode::Session_capability session(char     const *args,
+				                                   Affinity const &affinity)
 				{
 					/* try to find ROM module at local ROM service */
 					try {
@@ -97,7 +98,7 @@ namespace Loader {
 					} catch (...) { }
 
 					/* fall back to parent_rom_service */
-					return _parent_rom_service.session(args);
+					return _parent_rom_service.session(args, affinity);
 				}
 
 				void close(Session_capability session)
@@ -145,9 +146,10 @@ namespace Loader {
 			{
 				Local_cpu_service() : Intercepted_parent_service("CPU") { }
 
-				Genode::Session_capability session(const char *args)
+				Genode::Session_capability session(char     const *args,
+				                                   Affinity const &affinity)
 				{
-					Capability<Cpu_session> cap = env()->parent()->session<Cpu_session>(args);
+					Capability<Cpu_session> cap = env()->parent()->session<Cpu_session>(args, affinity);
 					Cpu_session_client(cap).exception_handler(Thread_capability(), fault_sigh);
 					return cap;
 				}
@@ -160,9 +162,10 @@ namespace Loader {
 			{
 				Local_rm_service() : Intercepted_parent_service("RM") { }
 
-				Genode::Session_capability session(const char *args)
+				Genode::Session_capability session(char     const *args,
+				                                   Affinity const &affinity)
 				{
-					Capability<Rm_session> cap = env()->parent()->session<Rm_session>(args);
+					Capability<Rm_session> cap = env()->parent()->session<Rm_session>(args, affinity);
 					Rm_session_client(cap).fault_handler(fault_sigh);
 					return cap;
 				}
@@ -195,7 +198,8 @@ namespace Loader {
 					destroy(&_md_alloc, open_session);
 				}
 
-				Genode::Session_capability session(const char *args)
+				Genode::Session_capability session(char     const *args,
+				                                   Affinity const &)
 				{
 					if (open_session)
 						throw Unavailable();

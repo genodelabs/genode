@@ -156,7 +156,8 @@ int main(int, char **)
 	        6*4096 + tx_buf_size + rx_buf_size,
 	        tx_buf_size, rx_buf_size))
 */
-	nic_root.session("ram_quota=155648, tx_buf_size=65536, rx_buf_size=65536");
+	nic_root.session("ram_quota=155648, tx_buf_size=65536, rx_buf_size=65536",
+	                 Affinity());
 
 	sleep_forever();
 	return 0;

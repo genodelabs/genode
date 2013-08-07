@@ -229,7 +229,8 @@ namespace Init {
 				}
 			}
 
-			Genode::Session_capability session(const char *args)
+			Genode::Session_capability session(const char *args,
+			                                   Genode::Affinity const &affinity)
 			{
 				/*
 				 * This function is called from the context of the client's
@@ -246,7 +247,7 @@ namespace Init {
 					_applicants_lock.unlock();
 
 				Genode::Session_capability cap;
-				try { cap = Genode::Root_client(_root).session(args); }
+				try { cap = Genode::Root_client(_root).session(args, affinity); }
 				catch (Genode::Root::Invalid_args)   { throw Invalid_args();   }
 				catch (Genode::Root::Unavailable)    { throw Unavailable();    }
 				catch (Genode::Root::Quota_exceeded) { throw Quota_exceeded(); }

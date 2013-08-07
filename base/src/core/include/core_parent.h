@@ -45,7 +45,8 @@ namespace Genode {
 				PDBG("implement me, please");
 			}
 
-			Session_capability session(Service_name const &, Session_args const &);
+			Session_capability session(Service_name const &, Session_args const &,
+			                           Affinity const &);
 
 			void upgrade(Session_capability, Upgrade_args const &)
 			{

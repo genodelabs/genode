@@ -41,7 +41,8 @@ namespace Terminal {
 
 		public:
 
-			Session_capability session(Root::Session_args const &args)
+			Session_capability session(Root::Session_args const &args,
+			                           Genode::Affinity   const &)
 			{
 				if (!(_session_state & FIRST_SESSION_OPEN)) {
 					_session_state |= FIRST_SESSION_OPEN;

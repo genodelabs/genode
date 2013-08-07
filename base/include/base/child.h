@@ -269,7 +269,8 @@ namespace Genode {
 			 **********************/
 
 			void announce(Service_name const &, Root_capability);
-			Session_capability session(Service_name const &, Session_args const &);
+			Session_capability session(Service_name const &, Session_args const &,
+			                           Affinity const &);
 			void upgrade(Session_capability, Upgrade_args const &);
 			void close(Session_capability);
 			void exit(int);

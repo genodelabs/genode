@@ -84,12 +84,13 @@ Platform_generic *Genode::platform() { return platform_specific(); }
  *************************/
 
 Session_capability Core_parent::session(Parent::Service_name const &name,
-                                        Parent::Session_args const &args)
+                                        Parent::Session_args const &args,
+                                        Affinity             const &affinity)
 {
 	Service *service = local_services.find(name.string());
 
 	if (service)
-		return service->session(args.string());
+		return service->session(args.string(), affinity);
 
 	PWRN("service_name=\"%s\" arg=\"%s\" not handled", name.string(), args.string());
 	return Session_capability();
@@ -235,7 +236,7 @@ int main()
 
 	/* create ram session for init and transfer some of our own quota */
 	Ram_session_capability init_ram_session_cap
-		= static_cap_cast<Ram_session>(ram_root.session("ram_quota=32K"));
+		= static_cap_cast<Ram_session>(ram_root.session("ram_quota=32K", Affinity()));
 	Ram_session_client(init_ram_session_cap).ref_account(env()->ram_session_cap());
 
 	Cpu_connection init_cpu("init");

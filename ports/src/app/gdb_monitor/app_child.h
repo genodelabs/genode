@@ -85,9 +85,10 @@ namespace Gdb_monitor {
 						_rm_root(entrypoint, md_alloc, managed_ds_map)
 					{ }
 
-					Genode::Session_capability session(const char *args)
+					Genode::Session_capability session(const char *args,
+					                                   Genode::Affinity const &affinity)
 					{
-						return _rm_root.session(args);
+						return _rm_root.session(args, affinity);
 					}
 
 					void upgrade(Genode::Session_capability, const char *) { }
@@ -102,7 +103,7 @@ namespace Gdb_monitor {
 			{
 				_entrypoint.manage(&_rm_root);
 				Capability<Rm_session> cap = static_cap_cast<Rm_session>
-				                             (_rm_root.session("ram_quota=64K"));
+				                             (_rm_root.session("ram_quota=64K", Affinity()));
 				Rm_session_client rm(cap);
 
 				rm.fault_handler(_gdb_stub_thread.exception_signal_receiver()->manage(new (env()->heap()) Signal_context()));
@@ -114,7 +115,7 @@ namespace Gdb_monitor {
 				_entrypoint.manage(&_cpu_root);
 				char args[64];
 				Genode::snprintf(args, sizeof(args), "ram_quota=32K, label=\"%s\"", _unique_name);
-				return static_cap_cast<Cpu_session>(_cpu_root.session(args));
+				return static_cap_cast<Cpu_session>(_cpu_root.session(args, Affinity()));
 			}
 
 			/**
@@ -172,7 +173,8 @@ namespace Gdb_monitor {
 					 ** Root interface **
 					 ********************/
 
-					Session_capability session(Session_args const &args)
+					Session_capability session(Session_args const &args,
+					                           Affinity const &affinity)
 					{
 						using namespace Genode;
 
@@ -183,7 +185,7 @@ namespace Gdb_monitor {
 						/* forward session quota to child */
 						env()->ram_session()->transfer_quota(_child_ram, ram_quota);
 
-						Session_capability cap = _child_root.session(args);
+						Session_capability cap = _child_root.session(args, affinity);
 
 						/*
 						 * Keep information about donated quota in '_sessions'

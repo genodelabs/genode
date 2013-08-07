@@ -24,8 +24,8 @@ namespace Genode {
 		explicit Root_client(Root_capability root)
 		: Rpc_client<Root>(root) { }
 
-		Session_capability session(Session_args const &args) {
-			return call<Rpc_session>(args); }
+		Session_capability session(Session_args const &args, Affinity const &affinity) {
+			return call<Rpc_session>(args, affinity); }
 
 		void upgrade(Session_capability session, Upgrade_args const &args) {
 			call<Rpc_upgrade>(session, args); }

@@ -30,8 +30,9 @@ namespace Genode {
 			call<Rpc_announce>(service, root); }
 
 		Session_capability session(Service_name const &service,
-		                           Session_args const &args) {
-			return call<Rpc_session>(service, args); }
+		                           Session_args const &args,
+		                           Affinity     const &affinity) {
+			return call<Rpc_session>(service, args, affinity); }
 
 		void upgrade(Session_capability to_session, Upgrade_args const &args) {
 			call<Rpc_upgrade>(to_session, args); }

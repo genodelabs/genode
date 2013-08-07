@@ -117,6 +117,8 @@ namespace Genode {
 			Space    _space;
 			Location _location;
 
+		public:
+
 			Affinity(Space const &space, Location const &location)
 			: _space(space), _location(location) { }
 

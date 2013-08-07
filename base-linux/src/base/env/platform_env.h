@@ -387,7 +387,8 @@ namespace Genode {
 					 **********************/
 
 					Session_capability session(Service_name const &,
-					                           Session_args const &);
+					                           Session_args const &,
+					                           Affinity     const & = Affinity());
 					void close(Session_capability);
 
 					/**

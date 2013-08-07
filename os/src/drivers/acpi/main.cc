@@ -74,7 +74,8 @@ namespace Irq {
 			/**
 			 * Remap IRQ number and create IRQ session at parent
 			 */
-			Genode::Session_capability session(Root::Session_args const &args)
+			Genode::Session_capability session(Root::Session_args const &args,
+			                                   Genode::Affinity   const &)
 			{
 				using namespace Genode;
 
@@ -127,7 +128,8 @@ namespace Pci {
 
 			Root(Provider &pci_provider) : _pci_provider(pci_provider) { }
 
-			Genode::Session_capability session(Session_args const &args)
+			Genode::Session_capability session(Session_args     const &args,
+			                                   Genode::Affinity const &affinity)
 			{
 				if (!args.is_valid_string()) throw Invalid_args();
 
@@ -135,7 +137,8 @@ namespace Pci {
 					throw Unavailable();
 
 				try {
-					return Genode::Root_client(_pci_provider.root()).session(args.string());
+					return Genode::Root_client(_pci_provider.root())
+					       .session(args.string(), affinity);
 				} catch (...) {
 					throw Unavailable();
 				}
@@ -179,7 +182,8 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 
 			try {
 				using namespace Genode;
-				session = static_cap_cast<Pci::Session>(Root_client(_cap).session(args));
+				session = static_cap_cast<Pci::Session>(Root_client(_cap)
+				          .session(args, Genode::Affinity()));
 			} catch (...) { return; }
 
 			Acpi::configure_pci_devices(session);

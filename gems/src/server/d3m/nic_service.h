@@ -40,7 +40,8 @@ namespace Nic {
 
 		public:
 
-			Genode::Session_capability session(Session_args const &args)
+			Genode::Session_capability session(Session_args     const &args,
+			                                   Genode::Affinity const &affinity)
 			{
 				if (!args.is_valid_string()) throw Invalid_args();
 
@@ -48,7 +49,8 @@ namespace Nic {
 					throw Unavailable();
 
 				try {
-					return Genode::Root_client(_nic_provider.root()).session(args.string());
+					return Genode::Root_client(_nic_provider.root())
+					       .session(args.string(), affinity);
 				} catch (...) {
 					throw Unavailable();
 				}

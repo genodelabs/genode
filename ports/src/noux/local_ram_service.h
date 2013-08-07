@@ -35,7 +35,7 @@ namespace Noux {
 				Service(Ram_session::service_name()), _ep(ep)
 			{ }
 
-			Genode::Session_capability session(const char *args)
+			Genode::Session_capability session(const char *args, Affinity const &)
 			{
 				PDBG("Implement me!");
 				return Genode::Session_capability();

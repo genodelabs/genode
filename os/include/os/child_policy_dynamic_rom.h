@@ -135,7 +135,9 @@ namespace Genode {
 			 ** Service interface **
 			 ***********************/
 
-			Session_capability session(const char *) { return _rom_session_cap; }
+			Session_capability session(const char *, Affinity const &) {
+				return _rom_session_cap; }
+
 			void upgrade(Session_capability, const char *) { }
 			void close(Session_capability) { }
 

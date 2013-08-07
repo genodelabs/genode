@@ -114,8 +114,8 @@ namespace Gdb_monitor {
 			: Service("ROM"), _root(entrypoint, md_alloc)
 			{ }
 
-			Capability<Session> session(char const *args) {
-				return _root.session(args); }
+			Capability<Session> session(char const *args, Affinity const &affinity) {
+				return _root.session(args, affinity); }
 
 			void upgrade(Capability<Session>, char const *) { }
 

@@ -126,13 +126,15 @@ namespace Genode {
 			/**
 			 * Create session
 			 *
-			 * \param args  session-construction arguments
+			 * \param args      session-construction arguments
+			 * \param affinity  preferred CPU affinity of session
 			 *
 			 * \throw Invalid_args
 			 * \throw Unavailable
 			 * \throw Quota_exceeded
 			 */
-			virtual Session_capability session(const char *args) = 0;
+			virtual Session_capability session(char const *args,
+			                                   Affinity const &affinity) = 0;
 
 			/**
 			 * Extend resource donation to an existing session
@@ -175,9 +177,9 @@ namespace Genode {
 			Local_service(const char *name, Root *root)
 			: Service(name), _root(root) { }
 
-			Session_capability session(const char *args)
+			Session_capability session(const char *args, Affinity const &affinity)
 			{
-				try { return _root->session(args); }
+				try { return _root->session(args, affinity); }
 				catch (Root::Invalid_args)   { throw Invalid_args(); }
 				catch (Root::Unavailable)    { throw Unavailable(); }
 				catch (Root::Quota_exceeded) { throw Quota_exceeded(); }
@@ -200,9 +202,9 @@ namespace Genode {
 
 			Parent_service(const char *name) : Service(name) { }
 
-			Session_capability session(const char *args)
+			Session_capability session(const char *args, Affinity const &affinity)
 			{
-				try { return env()->parent()->session(name(), args); }
+				try { return env()->parent()->session(name(), args, affinity); }
 				catch (Parent::Unavailable) {
 					PWRN("parent has no service \"%s\"", name());
 					throw Unavailable();
@@ -245,12 +247,12 @@ namespace Genode {
 
 			Server *server() const { return _server; }
 
-			Session_capability session(const char *args)
+			Session_capability session(const char *args, Affinity const &affinity)
 			{
 				if (!_root_cap.valid())
 					throw Unavailable();
 
-				try { return _root.session(args); }
+				try { return _root.session(args, affinity); }
 				catch (Root::Invalid_args)   { throw Invalid_args();   }
 				catch (Root::Unavailable)    { throw Unavailable();    }
 				catch (Root::Quota_exceeded) { throw Quota_exceeded(); }

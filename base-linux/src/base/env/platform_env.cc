@@ -56,7 +56,8 @@ Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds)
 
 Session_capability
 Platform_env::Local_parent::session(Service_name const &service_name,
-                                    Session_args const &args)
+                                    Session_args const &args,
+                                    Affinity     const &affinity)
 {
 	if (strcmp(service_name.string(),
 	    Rm_session::service_name()) == 0)
@@ -66,7 +67,7 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 				.ulong_value(~0);
 
 		if (size == 0)
-			return Parent_client::session(service_name, args);
+			return Parent_client::session(service_name, args, affinity);
 
 		Rm_session_mmap *rm = new (env()->heap())
 		                      Rm_session_mmap(true, size);
@@ -74,7 +75,7 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 		return Session_capability::local_cap(rm);
 	}
 
-	return Parent_client::session(service_name, args);
+	return Parent_client::session(service_name, args, affinity);
 }
 
 

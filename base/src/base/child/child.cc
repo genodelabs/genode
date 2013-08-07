@@ -242,7 +242,8 @@ void Child::announce(Parent::Service_name const &name, Root_capability root)
 
 
 Session_capability Child::session(Parent::Service_name const &name,
-                                  Parent::Session_args const &args)
+                                  Parent::Session_args const &args,
+                                  Affinity             const &affinity)
 {
 	if (!name.is_valid_string() || !args.is_valid_string()) throw Unavailable();
 
@@ -273,7 +274,7 @@ Session_capability Child::session(Parent::Service_name const &name,
 
 	/* create session */
 	Session_capability cap;
-	try { cap = service->session(_args); }
+	try { cap = service->session(_args, affinity); }
 	catch (Service::Invalid_args)   { throw Service_denied(); }
 	catch (Service::Unavailable)    { throw Service_denied(); }
 	catch (Service::Quota_exceeded) { throw Quota_exceeded(); }

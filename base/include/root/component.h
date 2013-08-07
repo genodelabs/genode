@@ -120,12 +120,25 @@ namespace Genode {
 			 * by 'Root_component' must be used for allocating the session
 			 * object.
 			 *
+			 * If the server implementation does not evaluate the session
+			 * affinity, it suffices to override the overload without the
+			 * affinity argument.
+			 *
 			 * \throw Allocator::Out_of_memory  typically caused by the
 			 *                                  meta-data allocator
 			 * \throw Root::Invalid_args        typically caused by the
 			 *                                  session-component constructor
 			 */
-			virtual SESSION_TYPE *_create_session(const char *args) = 0;
+			virtual SESSION_TYPE *_create_session(const char *args,
+			                                      Affinity const &)
+			{
+				return _create_session(args);
+			}
+
+			virtual SESSION_TYPE *_create_session(const char *args)
+			{
+				throw Root::Invalid_args();
+			}
 
 			/**
 			 * Inform session about a quota upgrade
@@ -175,7 +188,8 @@ namespace Genode {
 			 ** Root interface **
 			 ********************/
 
-			Session_capability session(Root::Session_args const &args)
+			Session_capability session(Root::Session_args const &args,
+			                           Affinity           const &affinity)
 			{
 				if (!args.is_valid_string()) throw Root::Invalid_args();
 
@@ -213,7 +227,7 @@ namespace Genode {
 				                    "ram_quota", ram_quota_buf);
 
 				SESSION_TYPE *s = 0;
-				try { s = _create_session(adjusted_args); }
+				try { s = _create_session(adjusted_args, affinity); }
 				catch (Allocator::Out_of_memory) { throw Root::Quota_exceeded(); }
 
 				return _ep->manage(s);

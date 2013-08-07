@@ -56,9 +56,9 @@ namespace Genode {
 				                            size  ==  0   ? _vm_size  : size);
 			}
 
-			Session_capability session(Root::Session_args const &args)
+			Session_capability session(Root::Session_args const &args, Affinity const &affinity)
 			{
-				Session_capability cap = Root_component<Rm_session_component>::session(args);
+				Session_capability cap = Root_component<Rm_session_component>::session(args, affinity);
 
 				/* lookup rm_session_component object */
 				Object_pool<Rm_session_component>::Guard rm_session(ep()->lookup_and_lock(cap));

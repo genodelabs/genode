@@ -42,7 +42,7 @@ namespace Noux {
 				_ds_registry(ds_registry)
 			{ }
 
-			Genode::Session_capability session(const char *args)
+			Genode::Session_capability session(const char *args, Affinity const &)
 			{
 				enum { NAME_MAX_LEN = 128 };
 				char name[NAME_MAX_LEN];

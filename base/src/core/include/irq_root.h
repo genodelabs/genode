@@ -56,7 +56,7 @@ namespace Genode {
 			 ** Root interface **
 			 ********************/
 
-			Session_capability session(Session_args const &args)
+			Session_capability session(Session_args const &args, Affinity const &affinity)
 			{
 				if (!args.is_valid_string()) throw Invalid_args();
 

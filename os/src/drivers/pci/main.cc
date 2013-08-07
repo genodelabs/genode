@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 		static Device_pd_policy device_pd_policy(device_pd_ep);
 		static Genode::Slave    device_pd_slave(device_pd_ep, device_pd_policy,
 		                                        PCI_DEVICE_PD_RAM_QUOTA);
-		session_dev_pd = Genode::Root_client(device_pd_policy.root()).session("");
+		session_dev_pd = Genode::Root_client(device_pd_policy.root()).session("", Affinity());
 	} catch (...) {
 		PWRN("PCI device protection domain for IOMMU support is not available");
 	}

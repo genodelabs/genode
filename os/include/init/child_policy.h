@@ -171,7 +171,8 @@ namespace Init {
 				Local_rom_service(Genode::Rom_session_capability rom_cap, bool valid)
 				: Genode::Service("ROM"), _rom_cap(rom_cap), _valid(valid) { }
 
-				Genode::Session_capability session(const char * /*args*/)
+				Genode::Session_capability session(char const * /*args*/,
+				                                   Genode::Affinity const &)
 				{
 					if (!_valid)
 						throw Invalid_args();

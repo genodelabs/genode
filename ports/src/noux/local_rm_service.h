@@ -103,7 +103,7 @@ namespace Noux {
 				_ds_registry(ds_registry)
 			{ }
 
-			Genode::Session_capability session(const char *args)
+			Genode::Session_capability session(const char *args, Affinity const &)
 			{
 				addr_t start = Arg_string::find_arg(args, "start").ulong_value(~0UL);
 				size_t size  = Arg_string::find_arg(args, "size").ulong_value(0);

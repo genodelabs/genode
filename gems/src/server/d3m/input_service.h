@@ -55,7 +55,8 @@ namespace Input {
 
 				try {
 					using namespace Genode;
-					return static_cap_cast<Session>(Root_client(root).session(args));
+					return static_cap_cast<Session>
+					       (Root_client(root).session(args, Genode::Affinity()));
 				} catch (...) {
 					throw Source_unavailable();
 				}

@@ -51,7 +51,9 @@ class Iso9660_boot_probe
 			Proxy_service(Genode::Session_capability session)
 			: Genode::Service("proxy"), _session(session) { }
 
-			Genode::Session_capability session(const char *) { return _session; }
+			Genode::Session_capability session(char             const *,
+			                                   Genode::Affinity const &)
+			{ return _session; }
 
 			void upgrade(Genode::Session_capability session, const char *) { }
 
@@ -127,7 +129,8 @@ class Iso9660_boot_probe
 	{
 		char const *args = "ram_quota=140K, tx_buf_size=128K";
 		Genode::Root_client root(_block_root);
-		return Genode::static_cap_cast<Block::Session>(root.session(args));
+		return Genode::static_cap_cast<Block::Session>
+		       (root.session(args, Genode::Affinity()));
 	}
 
 	/**
@@ -152,7 +155,7 @@ class Iso9660_boot_probe
 		char args[Genode::Root::Session_args::MAX_SIZE];
 		Genode::snprintf(args, sizeof(args), "ram_quota=4K, filename=\"%s\"",
 		                 boot_tag_name);
-		rom_root.session(args);
+		rom_root.session(args, Genode::Affinity());
 	}
 
 	public:
@@ -297,11 +300,12 @@ namespace Block {
 			Root(Driver_registry &driver_registry)
 			: _driver_registry(driver_registry) { }
 
-			Genode::Session_capability session(Genode::Root::Session_args const &args)
+			Genode::Session_capability session(Genode::Root::Session_args const &args,
+			                                   Genode::Affinity           const &affinity)
 			{
 				PDBG("\nsession requested args=\"%s\"", args.string());
 				Genode::Root_capability root = _driver_registry.root();
-				return Genode::Root_client(root).session(args);
+				return Genode::Root_client(root).session(args, affinity);
 			}
 
 			void upgrade(Genode::Session_capability,

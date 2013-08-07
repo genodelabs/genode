@@ -37,7 +37,7 @@ namespace Noux {
 				_cap(cap)
 			{ }
 
-			Genode::Session_capability session(const char *args)
+			Genode::Session_capability session(const char *args, Affinity const &)
 			{
 				PDBG("Implement me!");
 				return Genode::Session_capability();
