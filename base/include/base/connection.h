@@ -43,6 +43,20 @@ namespace Genode {
 
 			On_destruction _on_destruction;
 
+			Capability<SESSION_TYPE> _session(Affinity const &affinity,
+			                                  const char *format_args, va_list list)
+			{
+				char buf[FORMAT_STRING_SIZE];
+
+				String_console sc(buf, FORMAT_STRING_SIZE);
+				sc.vprintf(format_args, list);
+
+				va_end(list);
+
+				/* call parent interface with the resulting argument buffer */
+				return env()->parent()->session<SESSION_TYPE>(buf, affinity);
+			}
+
 		public:
 
 			/**
@@ -74,23 +88,26 @@ namespace Genode {
 			void on_destruction(On_destruction od) { _on_destruction = od; }
 
 			/**
-			 * Shortcut for env()->parent()->session() function
+			 * Shortcut for env()->parent()->session()
 			 */
 			Capability<SESSION_TYPE> session(const char *format_args, ...)
 			{
-				char buf[FORMAT_STRING_SIZE];
-
-				/* process format string */
 				va_list list;
 				va_start(list, format_args);
 
-				String_console sc(buf, FORMAT_STRING_SIZE);
-				sc.vprintf(format_args, list);
+				return _session(Affinity(), format_args, list);
+			}
 
-				va_end(list);
+			/**
+			 * Shortcut for env()->parent()->session()
+			 */
+			Capability<SESSION_TYPE> session(Affinity const &affinity,
+			                                 char     const *format_args, ...)
+			{
+				va_list list;
+				va_start(list, format_args);
 
-				/* call parent interface with the resulting argument buffer */
-				return env()->parent()->session<SESSION_TYPE>(buf);
+				return _session(affinity, format_args, list);
 			}
 	};
 }

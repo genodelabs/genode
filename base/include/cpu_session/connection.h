@@ -30,10 +30,12 @@ namespace Genode {
 		 * \param priority  designated priority of all threads created
 		 *                  with this CPU session
 		 */
-		Cpu_connection(const char *label = "", long priority = DEFAULT_PRIORITY)
+		Cpu_connection(char     const *label    = "",
+		               long            priority = DEFAULT_PRIORITY,
+		               Affinity const &affinity = Affinity())
 		:
 			Connection<Cpu_session>(
-				session("priority=0x%lx, ram_quota=32K, label=\"%s\"",
+				session(affinity, "priority=0x%lx, ram_quota=32K, label=\"%s\"",
 				        priority, label)),
 			Cpu_session_client(cap()) { }
 	};
