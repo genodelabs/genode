@@ -32,9 +32,11 @@ namespace Genode {
 
 		protected:
 
-			Cpu_session_component *_create_session(const char *args) {
+			Cpu_session_component *_create_session(char const *args,
+			                                       Affinity const &affinity) {
 				return new (md_alloc())
-					Cpu_session_component(_thread_ep, _pager_ep, _md_alloc, args); }
+					Cpu_session_component(_thread_ep, _pager_ep, _md_alloc,
+					                      args, affinity); }
 
 			void _upgrade_session(Cpu_session_component *cpu, const char *args)
 			{

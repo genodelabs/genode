@@ -103,6 +103,8 @@ namespace Genode {
 			unsigned                   _priority;          /* priority of threads
 			                                                  created with this
 			                                                  session */
+			Affinity::Location         _location;          /* CPU affinity of this 
+			                                                  session */
 
 			/**
 			 * Exception handler that will be invoked unless overridden by a
@@ -125,9 +127,10 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Cpu_session_component(Rpc_entrypoint   *thread_ep,
+			Cpu_session_component(Rpc_entrypoint *thread_ep,
 			                      Pager_entrypoint *pager_ep,
-			                      Allocator *md_alloc, const char *args);
+			                      Allocator *md_alloc, const char *args,
+			                      Affinity const &affinity);
 
 			/**
 			 * Destructor

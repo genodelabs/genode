@@ -182,7 +182,11 @@ Cpu_session_component::exception_handler(Thread_capability         thread_cap,
 
 Affinity::Space Cpu_session_component::affinity_space() const
 {
-	return platform()->affinity_space();
+	/*
+	 * Return affinity subspace as constrained by the CPU session
+	 * affinity.
+	 */
+	return Affinity::Space(_location.width(), _location.height());
 }
 
 
@@ -192,17 +196,35 @@ void Cpu_session_component::affinity(Thread_capability  thread_cap,
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
 
-	thread->platform_thread()->affinity(location);
+	/* convert session-local location to physical location */
+	int const x1 = location.xpos() + _location.xpos(),
+	          y1 = location.ypos() + _location.ypos(),
+	          x2 = location.xpos() + location.width(),
+	          y2 = location.ypos() + location.height();
+
+	int const clipped_x1 = max(_location.xpos(), x1),
+	          clipped_y1 = max(_location.ypos(), y1),
+	          clipped_x2 = max(_location.xpos() + (int)_location.width()  - 1, x2),
+	          clipped_y2 = max(_location.ypos() + (int)_location.height() - 1, y2);
+
+	thread->platform_thread()->affinity(Affinity::Location(clipped_x1, clipped_y1,
+	                                                       clipped_x2 - clipped_x1 + 1,
+	                                                       clipped_y2 - clipped_y1 + 1));
 }
 
 
-Cpu_session_component::Cpu_session_component(Rpc_entrypoint *thread_ep,
+Cpu_session_component::Cpu_session_component(Rpc_entrypoint   *thread_ep,
                                              Pager_entrypoint *pager_ep,
-                                             Allocator *md_alloc,
-                                             const char *args)
-: _thread_ep(thread_ep), _pager_ep(pager_ep),
-  _md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").long_value(0)),
-  _thread_alloc(&_md_alloc), _priority(0)
+                                             Allocator        *md_alloc,
+                                             char       const *args,
+                                             Affinity   const &affinity)
+:
+	_thread_ep(thread_ep), _pager_ep(pager_ep),
+	_md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").long_value(0)),
+	_thread_alloc(&_md_alloc), _priority(0),
+
+	/* map affinity to a location within the physical affinity space */
+	_location(affinity.scale_to(platform()->affinity_space()))
 {
 	Arg a = Arg_string::find_arg(args, "priority");
 	if (a.valid()) {
