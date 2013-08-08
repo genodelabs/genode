@@ -24,7 +24,7 @@ namespace Init { bool config_verbose = false; }
  ***************/
 
 /**
- * Read priority-levels declaration from config file
+ * Read priority-levels declaration from config
  */
 inline long read_prio_levels_log2()
 {
@@ -44,7 +44,26 @@ inline long read_prio_levels_log2()
 
 
 /**
- * Read parent-provided services from config file
+ * Read affinity-space parameters from config
+ *
+ * If no affinity space is declared, construct a space with a single element,
+ * width and height being 1. If only one of both dimensions is specified, the
+ * other dimension is set to 1.
+ */
+inline Genode::Affinity::Space read_affinity_space()
+{
+	using namespace Genode;
+	try {
+		Xml_node node = config()->xml_node().sub_node("affinity-space");
+		return Affinity::Space(node.attribute_value<unsigned long>("width",  1),
+		                       node.attribute_value<unsigned long>("height", 1));
+	} catch (...) {
+		return Affinity::Space(1, 1); }
+}
+
+
+/**
+ * Read parent-provided services from config
  */
 inline void determine_parent_services(Genode::Service_registry *services)
 {
@@ -192,6 +211,7 @@ int main(int, char **)
 					children.insert(new (env()->heap())
 					                Init::Child(start_node, default_route_node,
 					                &children, read_prio_levels_log2(),
+					                read_affinity_space(),
 					                &parent_services, &child_services, &cap));
 				}
 				catch (Rom_connection::Rom_connection_failed) {

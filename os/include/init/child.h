@@ -51,6 +51,37 @@ namespace Init {
 	}
 
 
+	inline Genode::Affinity::Location
+	read_affinity_location(Genode::Affinity::Space const &space,
+	                       Genode::Xml_node start_node)
+	{
+		typedef Genode::Affinity::Location Location;
+		try {
+			Genode::Xml_node node = start_node.sub_node("affinity");
+
+			/* if no position value is specified, select the whole row/column */
+			unsigned long const
+				default_width  = node.has_attribute("xpos") ? 1 : space.width(),
+				default_height = node.has_attribute("ypos") ? 1 : space.height();
+
+			unsigned long const
+				width  = node.attribute_value<unsigned long>("width",  default_width),
+				height = node.attribute_value<unsigned long>("height", default_height);
+
+			long const x1 = node.attribute_value<long>("xpos", 0),
+			           y1 = node.attribute_value<long>("ypos", 0),
+			           x2 = x1 + width  - 1,
+			           y2 = y1 + height - 1;
+
+			/* clip location to space boundary */
+			return Location(Genode::max(x1, 0L), Genode::max(y1, 0L),
+			                Genode::min((unsigned)(x2 - x1 + 1), space.width()),
+			                Genode::min((unsigned)(y2 - y1 + 1), space.height()));
+		}
+		catch (...) { return Location(0, 0, space.width(), space.height()); }
+	}
+
+
 	inline Genode::size_t read_ram_quota(Genode::Xml_node start_node)
 	{
 		Genode::Number_of_bytes ram_quota = 0;
@@ -371,19 +402,25 @@ namespace Init {
 			{
 				long                   prio_levels_log2;
 				long                   priority;
+				Genode::Affinity       affinity;
 				Genode::size_t         ram_quota;
 				Genode::Ram_connection ram;
 				Genode::Cpu_connection cpu;
 				Genode::Rm_connection  rm;
 
 				Resources(Genode::Xml_node start_node, const char *label,
-				          long prio_levels_log2)
+				          long prio_levels_log2,
+				          Genode::Affinity::Space const &affinity_space)
 				:
 					prio_levels_log2(prio_levels_log2),
 					priority(read_priority(start_node)),
+					affinity(affinity_space,
+					         read_affinity_location(affinity_space, start_node)),
 					ram_quota(read_ram_quota(start_node)),
 					ram(label),
-					cpu(label, priority*(Genode::Cpu_session::PRIORITY_LIMIT >> prio_levels_log2))
+					cpu(label,
+					    priority*(Genode::Cpu_session::PRIORITY_LIMIT >> prio_levels_log2),
+					    affinity)
 				{
 					/* deduce session costs from usable ram quota */
 					Genode::size_t session_donations = Genode::Rm_connection::RAM_QUOTA +
@@ -439,13 +476,14 @@ namespace Init {
 
 		public:
 
-			Child(Genode::Xml_node          start_node,
-			      Genode::Xml_node          default_route_node,
-			      Name_registry            *name_registry,
-			      long                      prio_levels_log2,
-			      Genode::Service_registry *parent_services,
-			      Genode::Service_registry *child_services,
-			      Genode::Cap_session      *cap_session)
+			Child(Genode::Xml_node              start_node,
+			      Genode::Xml_node              default_route_node,
+			      Name_registry                *name_registry,
+			      long                          prio_levels_log2,
+			      Genode::Affinity::Space const &affinity_space,
+			      Genode::Service_registry      *parent_services,
+			      Genode::Service_registry      *child_services,
+			      Genode::Cap_session           *cap_session)
 			:
 				_list_element(this),
 				_start_node(start_node),
@@ -453,7 +491,7 @@ namespace Init {
 				_name_registry(name_registry),
 				_name(start_node, name_registry),
 				_pd_args(start_node),
-				_resources(start_node, _name.unique, prio_levels_log2),
+				_resources(start_node, _name.unique, prio_levels_log2, affinity_space),
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false),
 				_binary_rom(_name.file, _name.unique),
 				_config(_resources.ram.cap(), start_node),
