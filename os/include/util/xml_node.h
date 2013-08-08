@@ -671,6 +671,40 @@ namespace Genode {
 					if (a.has_type(type))
 						return a;
 			}
+
+			/**
+			 * Shortcut for reading an attribute value from XML node
+			 *
+			 * \param type           attribute name
+			 * \param default_value  value returned if no attribute with the
+			 *                       name 'type' is present.
+			 * \return               attribute value or specified default value
+			 *
+			 * Without this shortcut, attribute values can be obtained by
+			 * 'node.attribute(...).value(...)' only. Because the attribute
+			 * lookup may throw a 'Nonexistent_attribute' exception, code that
+			 * reads optional attributes (those with default values) has to
+			 * handle the exception accordingly. Such code tends to become
+			 * clumsy, in particular when many attributes are processed in a
+			 * subsequent fashion. This function template relieves the XML node
+			 * user from implementing the exception handling manually.
+			 */
+			template <typename T>
+			inline T attribute_value(char const *type, T default_value) const
+			{
+				T result = default_value;
+				try { attribute(type).value(&result); } catch (...) { }
+				return result;
+			}
+
+			/**
+			 * Return true if attribute of specified type exists
+			 */
+			inline bool has_attribute(char const *type) const
+			{
+				try { attribute(type); return true; } catch (...) { }
+				return false;
+			}
 	};
 }
 
