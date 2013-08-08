@@ -27,9 +27,20 @@ namespace Genode
 	 */
 	class Signal_session_component : public Rpc_object<Signal_session>
 	{
-		Allocator_guard _md_alloc; /* Metadata allocator */
-		Slab _receivers_slab; /* SLAB to allocate receiver kernel-objects */
-		Slab _contexts_slab; /* SLAB to allocate context kernel-objects */
+		public:
+
+			enum {
+				RECEIVERS_SB_SIZE = 4096,
+				CONTEXTS_SB_SIZE  = 4096,
+			};
+
+		private:
+
+			Allocator_guard _md_alloc;
+			Slab            _receivers_slab;
+			Slab            _contexts_slab;
+			char            _initial_receivers_sb [RECEIVERS_SB_SIZE];
+			char            _initial_contexts_sb  [CONTEXTS_SB_SIZE];
 
 		public:
 

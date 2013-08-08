@@ -20,22 +20,14 @@
 
 using namespace Genode;
 
-enum {
-	RECEIVER_SLAB_CHUNK_SIZE = 32,
-	CONTEXT_SLAB_CHUNK_SIZE = 32,
-};
-
 
 Signal_session_component::Signal_session_component(Allocator * const md,
                                                    size_t const ram_quota) :
 	_md_alloc(md, ram_quota),
-	_receivers_slab(Kernel::signal_receiver_size(),
-	                RECEIVER_SLAB_CHUNK_SIZE * Kernel::signal_receiver_size(),
-	                0, &_md_alloc),
-
-	_contexts_slab(Kernel::signal_context_size(),
-	               CONTEXT_SLAB_CHUNK_SIZE * Kernel::signal_context_size(),
-	               0, &_md_alloc)
+	_receivers_slab(Kernel::signal_receiver_size(), RECEIVERS_SB_SIZE,
+	                (Slab_block *)&_initial_receivers_sb, &_md_alloc),
+	_contexts_slab(Kernel::signal_context_size(), CONTEXTS_SB_SIZE,
+	               (Slab_block *)&_initial_contexts_sb, &_md_alloc)
 { }
 
 

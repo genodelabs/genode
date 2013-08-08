@@ -92,15 +92,16 @@ Signal_receiver::Signal_receiver()
 	while (1) {
 		try {
 			_cap = s->alloc_receiver();
-			break;
+			return;
 		} catch (Signal_session::Out_of_metadata)
 		{
 			/* upgrade session quota and try again, but only once */
 			if (session_upgraded) {
-				PDBG("Failed to alloc signal receiver");
-				break;
+				PERR("failed to alloc signal receiver");
+				_cap = Signal_receiver_capability();
+				return;
 			}
-			PINF("upgrading quota donation for Signal session");
+			PINF("upgrading quota donation for SIGNAL session");
 			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
 			session_upgraded = 1;
 		}
@@ -149,20 +150,21 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	while (1) {
 		try {
 			c->_cap = s->alloc_context(_cap, (unsigned)c);
-			break;
+			c->_receiver = this;
+			_contexts.insert(&c->_receiver_le);
+			return c->_cap;
 		} catch (Signal_session::Out_of_metadata)
 		{
 			/* upgrade session quota and try again, but only once */
-			PINF("upgrading quota donation for Signal session");
-			if (session_upgraded) return Signal_context_capability();
+			if (session_upgraded) {
+				PERR("failed to alloc signal context");
+				return Signal_context_capability();
+			}
+			PINF("upgrading quota donation for SIGNAL session");
 			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
 			session_upgraded = 1;
 		}
 	}
-	/* assign the context to us */
-	c->_receiver = this;
-	_contexts.insert(&c->_receiver_le);
-	return c->_cap;
 }
 
 

@@ -23,7 +23,7 @@ namespace Genode {
 	{
 		Signal_connection()
 		:
-			Connection<Signal_session>(session("ram_quota=8K")),
+			Connection<Signal_session>(session("ram_quota=12K")),
 			Signal_session_client(cap())
 		{ }
 	};
