@@ -418,7 +418,13 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 
 	if {$wait_for_re == "forever"} {
 		set timeout -1
-		interact -i $running_spawn_id
+		interact {
+			\003 {
+				send_user "Expect: 'interact' received 'strg+c' and was cancelled\n";
+				exit
+			}
+			-i $running_spawn_id
+		}
 	} else {
 		set timeout $timeout_value
 	}
