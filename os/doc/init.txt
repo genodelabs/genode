@@ -252,6 +252,34 @@ any sub configuration can be placed in a separate file specified via the
 ! </start>
 
 
+Assigning subsystems to CPUs
+============================
+
+The assignment of subsystems to CPU nodes consists of two parts, the
+definition of the affinity space dimensions as used for the init process, and
+the association sub systems with affinity locations (relative to the affinity
+space). The affinity space is configured as a sub node of the config node. For
+example, the following declaration describes an affinity space of 4x2:
+
+! <config>
+!   ...
+!   <affinity_space width="4" height="2" />
+!   ...
+! </config>
+
+Subsystems can be constrained to parts of the affinity space using the
+'<affinity>' sub node of a '<start>' entry:
+
+! <config>
+!   ...
+!   <start name="loader">
+!     <affinity xpos="0" ypos="1" width="2" height="1" />
+!     ...
+!   </start>
+!   ...
+! </config>
+
+
 Priority support
 ================
 
