@@ -22,6 +22,22 @@ if {![is_qemu_available]} {
 	exit 0
 }
 
+if {[have_spec x86]} {
+	set qemu "qemu-system-i386"
+	if {[have_spec 64bit]} { set qemu "qemu-system-x86_64" }
+
+	set version [exec $qemu --version]
+	set version [regexp -inline {[0-9]+\.[0-9]+\.[0-9]+} $version]
+
+	if {$version >= 1.5} {
+		puts "Atapi driver on Qemu $version known to be not working.";
+		puts "For more details see Genode issue 827 on github";
+
+		puts stderr "Test requires 'fix for issue 827'"
+		exit 0;
+	}
+}
+
 #
 # Build
 #
