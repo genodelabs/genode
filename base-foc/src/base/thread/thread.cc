@@ -182,7 +182,8 @@ void Thread_base::name(char *dst, size_t dst_len)
 }
 
 
-Thread_base *Thread_base::myself() {
+Thread_base *Thread_base::myself()
+{
 	using namespace Fiasco;
 
 	return reinterpret_cast<Thread_base*>(l4_utcb_tcr()->user[UTCB_TCR_THREAD_OBJ]);

@@ -55,6 +55,7 @@
 #include <base/exception.h>
 #include <base/lock.h>
 #include <base/native_types.h>
+#include <base/trace/logger.h>
 #include <util/list.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
@@ -259,6 +260,17 @@ namespace Genode {
 			 */
 			Genode::Lock _join_lock;
 
+		private:
+
+			Trace::Logger _trace_logger;
+
+			/**
+			 * Return 'Trace::Logger' instance of calling thread
+			 *
+			 * This function is used by the tracing framework internally.
+			 */
+			static Trace::Logger *_logger();
+
 		public:
 
 			/**
@@ -355,6 +367,22 @@ namespace Genode {
 			 * undefined behaviour.
 			 */
 			void join();
+
+			/**
+			 * Log null-terminated string as trace event
+			 */
+			static void trace(char const *);
+
+			/**
+			 * Log binary data as trace event
+			 */
+			static void trace(char const *, size_t len);
+
+			/**
+			 * Log trace event as defined in base/trace.h
+			 */
+			template <typename EVENT>
+			static void trace(EVENT const *event) { _logger()->log(event); }
 	};
 
 

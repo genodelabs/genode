@@ -28,7 +28,7 @@ INC_DIR      += $(REP_DIR)/src/core/include \
                 $(REP_DIR)/src/platform \
                 $(REP_DIR)/src/base/ipc \
                 $(REP_DIR)/src/base/env \
-                $(REP_DIR)/src/base/console
+                $(REP_DIR)/src/base/console \
 
 HOST_INC_DIR += /usr/include
 
@@ -50,4 +50,5 @@ vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath thread.cc                   $(BASE_DIR)/src/base/thread
+vpath trace.cc                    $(BASE_DIR)/src/base/thread
 vpath %.cc                        $(PRG_DIR)

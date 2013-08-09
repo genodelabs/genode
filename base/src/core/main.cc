@@ -171,8 +171,15 @@ class Core_child : public Child_policy
  ** Core main **
  ***************/
 
+namespace Genode { extern bool inhibit_tracing; }
+
 int main()
 {
+	/**
+	 * Disable tracing within core because it is currently not fully implemented.
+	 */
+	inhibit_tracing = true;
+
 	PDBG("--- create local services ---");
 
 	/*

@@ -220,12 +220,18 @@ int    genode_argc = 1;
 char **genode_envp = 0;
 
 
+namespace Genode { extern bool inhibit_tracing; }
+
+
 /**
  * C entry function called by the crt0 startup code
  */
 extern "C" int _main()
 {
 	main_thread_bootstrap();
+
+	/* call env() explicitly to setup the environment */
+	(void*)env();
 
 	/* initialize exception handling */
 	init_exception_handling();
@@ -257,6 +263,9 @@ extern "C" int _main()
 
 	/* create the thread context area RM session */
 	env_context_area_rm_session();
+
+	/* enable tracing support */
+	inhibit_tracing = false;
 
 	/* call real main function */
 	int ret = main(genode_argc, genode_argv, genode_envp);

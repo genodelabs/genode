@@ -18,9 +18,11 @@ SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
 SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc
-SRC_CC += thread/thread.cc thread/thread_context.cc
+SRC_CC += thread/thread.cc thread/thread_context.cc thread/trace.cc
 
-INC_DIR += $(REP_DIR)/src/base/lock $(BASE_DIR)/src/base/lock
+INC_DIR +=  $(REP_DIR)/src/base/lock
+INC_DIR += $(BASE_DIR)/src/base/lock
+INC_DIR += $(BASE_DIR)/src/base/thread
 
 vpath %.cc  $(REP_DIR)/src/base
 vpath %.cc $(BASE_DIR)/src/base
