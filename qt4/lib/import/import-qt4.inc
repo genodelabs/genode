@@ -4,6 +4,8 @@
 ifeq ($(QT4_IMPORTED),)
 QT4_IMPORTED = true
 
+REQUIRES += qt4_deprecated
+
 # identify the qt4 repository by searching for a file that is unique for qt4
 QT4_REP_DIR := $(call select_from_repositories,lib/import/import-qt4.inc)
 QT4_REP_DIR := $(realpath $(dir $(QT4_REP_DIR))../..)
