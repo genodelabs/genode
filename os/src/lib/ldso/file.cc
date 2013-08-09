@@ -33,7 +33,7 @@ namespace Genode {
 		private:
 
 			/* size of dataspace */
-			enum { RESERVATION = 128 * 1024 * 1024 };
+			enum { RESERVATION = 160 * 1024 * 1024 };
 
 			addr_t        _base;  /* base address of dataspace */
 			Allocator_avl _range; /* VM range allocator */
