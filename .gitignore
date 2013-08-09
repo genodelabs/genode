@@ -30,6 +30,7 @@
 /libports/include/freetype
 /libports/include/ft2build.h
 /libports/include/iconv/
+/libports/include/icu/
 /libports/include/jbig2dec
 /libports/include/libc-amd64/
 /libports/include/libc-arm/
