@@ -104,6 +104,7 @@
 /libports/include/stdcxx-genode/bits/nested_exception.h
 /libports/include/stdcxx-genode/exception
 /libports/include/stdcxx-genode/new
+/libports/include/stdcxx-genode/typeinfo
 /libports/include/x86emu/stdint.h
 /libports/include/x86emu/stdio.h
 /libports/include/x86emu/stdlib.h
