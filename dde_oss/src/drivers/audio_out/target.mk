@@ -1,4 +1,4 @@
-TARGET      = oss_drv
+TARGET      = audio_out_drv
 REQUIRES    = x86_32
 LIBS        = dde_kit
 CONTRIB_DIR = $(REP_DIR)/contrib

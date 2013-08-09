@@ -11,7 +11,7 @@ if {![have_spec x86_32]} {
 set build_components {
 	core init
 	drivers/timer
-	drivers/oss
+	drivers/audio_out
 	drivers/pci
 	drivers/acpi
 	test/audio_out
@@ -61,7 +61,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="oss_drv">
+	<start name="audio_out_drv">
 		<resource name="RAM" quantum="6M"/>
 		<route>
 			<service name="IRQ"><child name="acpi" /></service>
@@ -78,7 +78,7 @@ append config {
 			<filename>sample.raw</filename>
 		</config>
 		<route>
-			<service name="Audio_out"> <child name="oss_drv"/> </service>
+			<service name="Audio_out"> <child name="audio_out_drv"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -91,7 +91,7 @@ install_config $config
 #
 
 set boot_modules {
-	core init timer pci_drv oss_drv acpi_drv sample.raw test-audio_out }
+	core init timer pci_drv audio_out_drv acpi_drv sample.raw test-audio_out }
 
 lappend_if [have_spec nova] boot_modules pci_device_pd
 
