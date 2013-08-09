@@ -222,6 +222,42 @@ namespace Genode {
 				return (prio*pf_prio_limit)/Cpu_session::PRIORITY_LIMIT;
 			}
 
+			/**
+			 * Request trace control dataspace
+			 *
+			 * The trace-control dataspace is used to propagate tracing
+			 * control information from core to the threads of a CPU session.
+			 *
+			 * The trace-control dataspace is accounted to the CPU session.
+			 */
+			virtual Dataspace_capability trace_control() = 0;
+
+			/**
+			 * Request index of a trace control block for given thread
+			 *
+			 * The trace control dataspace contains the control blocks for
+			 * all threads of the CPU session. Each thread gets assigned a
+			 * different index by the CPU service.
+			 */
+			virtual unsigned trace_control_index(Thread_capability thread) = 0;
+
+			/**
+			 * Request trace buffer for the specified thread
+			 *
+			 * The trace buffer is not accounted to the CPU session. It is
+			 * owned by a TRACE session.
+			 */
+			virtual Dataspace_capability trace_buffer(Thread_capability thread) = 0;
+
+			/**
+			 * Request trace policy
+			 *
+			 * The trace policy buffer is not accounted to the CPU session. It
+			 * is owned by a TRACE session.
+			 */
+			virtual Dataspace_capability trace_policy(Thread_capability thread) = 0;
+
+
 			/*********************
 			 ** RPC declaration **
 			 *********************/
@@ -247,6 +283,10 @@ namespace Genode {
 			GENODE_RPC(Rpc_single_step, void, single_step, Thread_capability, bool);
 			GENODE_RPC(Rpc_affinity_space, Affinity::Space, affinity_space);
 			GENODE_RPC(Rpc_affinity, void, affinity, Thread_capability, Affinity::Location);
+			GENODE_RPC(Rpc_trace_control, Dataspace_capability, trace_control);
+			GENODE_RPC(Rpc_trace_control_index, unsigned, trace_control_index, Thread_capability);
+			GENODE_RPC(Rpc_trace_buffer, Dataspace_capability, trace_buffer, Thread_capability);
+			GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy, Thread_capability);
 
 			/*
 			 * 'GENODE_RPC_INTERFACE' declaration done manually
@@ -270,8 +310,12 @@ namespace Genode {
 			        Meta::Type_tuple<Rpc_single_step,
 			        Meta::Type_tuple<Rpc_affinity_space,
 			        Meta::Type_tuple<Rpc_affinity,
+			        Meta::Type_tuple<Rpc_trace_control,
+			        Meta::Type_tuple<Rpc_trace_control_index,
+			        Meta::Type_tuple<Rpc_trace_buffer,
+			        Meta::Type_tuple<Rpc_trace_policy,
 			                         Meta::Empty>
-			        > > > > > > > > > > > > > Rpc_functions;
+			        > > > > > > > > > > > > > > > > > Rpc_functions;
 	};
 }
 

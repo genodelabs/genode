@@ -134,6 +134,18 @@ namespace Noux {
 
 			void affinity(Thread_capability thread, Affinity::Location location) {
 				_cpu.affinity(thread, location); }
+
+			Dataspace_capability trace_control() {
+				return _cpu.trace_control(); }
+
+			unsigned trace_control_index(Thread_capability thread) {
+				return _cpu.trace_control_index(thread); }
+
+			Dataspace_capability trace_buffer(Thread_capability thread) {
+				return _cpu.trace_buffer(thread); }
+
+			Dataspace_capability trace_policy(Thread_capability thread) {
+				return _cpu.trace_policy(thread); }
 	};
 }
 

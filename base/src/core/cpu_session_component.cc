@@ -213,6 +213,34 @@ void Cpu_session_component::affinity(Thread_capability  thread_cap,
 }
 
 
+Dataspace_capability Cpu_session_component::trace_control()
+{
+	/* not implemented */
+	return Dataspace_capability();
+}
+
+
+unsigned Cpu_session_component::trace_control_index(Thread_capability thread)
+{
+	/* not implemented */
+	return 0;
+}
+
+
+Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread)
+{
+	/* not implemented */
+	return Dataspace_capability();
+}
+
+
+Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread)
+{
+	/* not implemented */
+	return Dataspace_capability();
+}
+
+
 Cpu_session_component::Cpu_session_component(Rpc_entrypoint   *thread_ep,
                                              Pager_entrypoint *pager_ep,
                                              Allocator        *md_alloc,

@@ -73,6 +73,18 @@ namespace Genode {
 		void affinity(Thread_capability thread, Affinity::Location location) {
 			call<Rpc_affinity>(thread, location); }
 
+		Dataspace_capability trace_control() {
+			return call<Rpc_trace_control>(); }
+
+		unsigned trace_control_index(Thread_capability thread) {
+			return call<Rpc_trace_control_index>(thread); }
+
+		Dataspace_capability trace_buffer(Thread_capability thread) {
+			return call<Rpc_trace_buffer>(thread); }
+
+		Dataspace_capability trace_policy(Thread_capability thread) {
+			return call<Rpc_trace_policy>(thread); }
+
 		void enable_vcpu(Thread_capability cap, addr_t vcpu_state) {
 			call<Rpc_enable_vcpu>(cap, vcpu_state); }
 

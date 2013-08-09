@@ -204,6 +204,30 @@ void Cpu_session_component::affinity(Thread_capability thread_cap,
 }
 
 
+Dataspace_capability Cpu_session_component::trace_control()
+{
+	return _parent_cpu_session.trace_control();
+}
+
+
+unsigned Cpu_session_component::trace_control_index(Thread_capability thread)
+{
+	return _parent_cpu_session.trace_control_index(thread);
+}
+
+
+Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread)
+{
+	return _parent_cpu_session.trace_buffer(thread);
+}
+
+
+Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread)
+{
+	return _parent_cpu_session.trace_policy(thread);
+}
+
+
 Cpu_session_component::Cpu_session_component(Signal_receiver *exception_signal_receiver, const char *args)
 : _parent_cpu_session(env()->parent()->session<Cpu_session>(args)),
   _exception_signal_receiver(exception_signal_receiver)

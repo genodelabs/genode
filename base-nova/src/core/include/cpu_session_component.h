@@ -161,6 +161,10 @@ namespace Genode {
 			void exception_handler(Thread_capability, Signal_context_capability);
 			Affinity::Space affinity_space() const;
 			void affinity(Thread_capability, Affinity::Location);
+			Dataspace_capability trace_control();
+			unsigned trace_control_index(Thread_capability);
+			Dataspace_capability trace_buffer(Thread_capability);
+			Dataspace_capability trace_policy(Thread_capability);
 
 
 			/******************************
