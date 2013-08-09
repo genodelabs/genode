@@ -1,0 +1,24 @@
+arora_move_window.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/browserapplication.cpp |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/browserapplication.cpp b/src/browserapplication.cpp
+index 08a8e65..cb3a872 100644
+--- a/src/browserapplication.cpp
++++ b/src/browserapplication.cpp
+@@ -559,6 +559,10 @@ BrowserMainWindow *BrowserApplication::newMainWindow()
+     if (!m_mainWindows.isEmpty())
+         mainWindow()->m_autoSaver->saveIfNeccessary();
+     BrowserMainWindow *browser = new BrowserMainWindow();
++
++    browser->resize(790, 705);
++    browser->move(215, 6);
++
+     m_mainWindows.prepend(browser);
+     connect(this, SIGNAL(privacyChanged(bool)),
+             browser, SLOT(privacyChanged(bool)));

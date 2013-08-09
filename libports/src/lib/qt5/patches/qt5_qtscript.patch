@@ -1,0 +1,149 @@
+qt5_qtscript.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtbase/src/corelib/global/qglobal.h                |    6 +++++-
+ qtbase/src/corelib/kernel/qvariant_p.h             |    3 +++
+ .../JavaScriptCore/runtime/Collector.cpp           |   21 ++++++++++++++++++++
+ .../javascriptcore/JavaScriptCore/wtf/Assertions.h |   11 ++++++++++
+ .../javascriptcore/JavaScriptCore/wtf/Platform.h   |    5 +++++
+ 5 files changed, 45 insertions(+), 1 deletion(-)
+
+diff --git a/qtbase/src/corelib/global/qglobal.h b/qtbase/src/corelib/global/qglobal.h
+index 79e32fe..324c168 100644
+--- a/qtbase/src/corelib/global/qglobal.h
++++ b/qtbase/src/corelib/global/qglobal.h
+@@ -763,13 +763,17 @@ inline void qSwap(T &value1, T &value2)
+     swap(value1, value2);
+ }
+ 
++#ifndef Q_OS_GENODE
+ #if QT_DEPRECATED_SINCE(5, 0)
++#endif
++#else
++/* QtScript classic still needs these functions */
+ Q_CORE_EXPORT QT_DEPRECATED void *qMalloc(size_t size) Q_ALLOC_SIZE(1);
+ Q_CORE_EXPORT QT_DEPRECATED void qFree(void *ptr);
+ Q_CORE_EXPORT QT_DEPRECATED void *qRealloc(void *ptr, size_t size) Q_ALLOC_SIZE(2);
+ Q_CORE_EXPORT QT_DEPRECATED void *qMemCopy(void *dest, const void *src, size_t n);
+ Q_CORE_EXPORT QT_DEPRECATED void *qMemSet(void *dest, int c, size_t n);
+-#endif
++#endif /* Q_OS_GENODE */
+ Q_CORE_EXPORT void *qMallocAligned(size_t size, size_t alignment) Q_ALLOC_SIZE(1);
+ Q_CORE_EXPORT void *qReallocAligned(void *ptr, size_t size, size_t oldsize, size_t alignment) Q_ALLOC_SIZE(2);
+ Q_CORE_EXPORT void qFreeAligned(void *ptr);
+diff --git a/qtbase/src/corelib/kernel/qvariant_p.h b/qtbase/src/corelib/kernel/qvariant_p.h
+index 4ec049e..e5e8dc4 100644
+--- a/qtbase/src/corelib/kernel/qvariant_p.h
++++ b/qtbase/src/corelib/kernel/qvariant_p.h
+@@ -401,7 +401,10 @@ public:
+ 
+     void delegate(const void*)
+     {
++#ifndef Q_OS_GENODE
++    	/* this warning appears often when using the QtScript classic lib (tetrix), not sure if it is serious */
+         qWarning("Trying to create a QVariant instance of QMetaType::Void type, an invalid QVariant will be constructed instead");
++#endif
+         m_x->type = QMetaType::UnknownType;
+         m_x->is_shared = false;
+         m_x->is_null = !m_copy;
+diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
+index d5adbd7..d9dd773 100644
+--- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
++++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/runtime/Collector.cpp
+@@ -64,6 +64,13 @@
+ 
+ #include <OS.h>
+ 
++#elif OS(GENODE)
++
++#include <base/printf.h>
++#include <base/stdint.h>
++#include <util/misc_math.h>
++#include <thread_qt.h>
++
+ #elif OS(UNIX)
+ 
+ #include <stdlib.h>
+@@ -209,6 +216,15 @@ NEVER_INLINE CollectorBlock* Heap::allocateBlock()
+     void* address = _aligned_malloc(BLOCK_SIZE, BLOCK_SIZE);
+ #endif
+     memset(address, 0, BLOCK_SIZE);
++#elif OS(GENODE)
++    void* real_address = malloc(sizeof(Genode::addr_t) + BLOCK_SIZE + BLOCK_SIZE);
++    Genode::addr_t address = reinterpret_cast<Genode::addr_t>(real_address);
++    address += sizeof(Genode::addr_t);
++    address = Genode::align_addr(address, Genode::log2(BLOCK_SIZE));
++    address -= sizeof(Genode::addr_t);
++    *(Genode::addr_t*)address = (Genode::addr_t)real_address;
++    address += sizeof(Genode::addr_t);
++    memset(reinterpret_cast<void*>(address), 0, BLOCK_SIZE);
+ #elif HAVE(POSIX_MEMALIGN)
+     void* address;
+     posix_memalign(&address, BLOCK_SIZE, BLOCK_SIZE);
+@@ -299,6 +315,9 @@ NEVER_INLINE void Heap::freeBlockPtr(CollectorBlock* block)
+ #else
+     _aligned_free(block);
+ #endif
++#elif OS(GENODE)
++    void *real_address = (void*)*(Genode::addr_t*)((Genode::addr_t)block - sizeof(Genode::addr_t));
++    free(real_address);
+ #elif HAVE(POSIX_MEMALIGN)
+     free(block);
+ #else
+@@ -649,6 +668,8 @@ static inline void* currentThreadStackBase()
+     thread_info threadInfo;
+     get_thread_info(find_thread(NULL), &threadInfo);
+     return threadInfo.stack_end;
++#elif OS(GENODE)
++    return Genode::Thread_qt::myself()->stack_top();
+ #elif OS(UNIX)
+     AtomicallyInitializedStatic(Mutex&, mutex = *new Mutex);
+     MutexLocker locker(mutex);
+diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
+index 352a74b..6a1aea3 100644
+--- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
++++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Assertions.h
+@@ -44,6 +44,10 @@
+ 
+ #include "Platform.h"
+ 
++#if OS(GENODE)
++#include <base/printf.h>
++#endif
++
+ #if COMPILER(MSVC)
+ #include <stddef.h>
+ #else
+@@ -156,6 +160,13 @@ void WTFLogVerbose(const char* file, int line, const char* function, WTFLogChann
+     __DEBUGGER(); \
+     User::Panic(_L("Webkit CRASH"),0); \
+     } while(false)
++#elif OS(GENODE)
++#define CRASH() ( \
++	PERR("QtScript CRASH in '%s'", WTF_PRETTY_FUNCTION), \
++	PERR("  in %s:%d", __FILE__, __LINE__), \
++    *(int *)(uintptr_t)0xbbadbeef = 0, \
++    ((void(*)())0)() /* More reliable, but doesn't say BBADBEEF */ \
++)
+ #else
+ #define CRASH() do { \
+     *(int *)(uintptr_t)0xbbadbeef = 0; \
+diff --git a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h
+index d483806..e956b49 100644
+--- a/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h
++++ b/qtscript/src/3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h
+@@ -330,6 +330,11 @@
+ /* ==== OS() - underlying operating system; only to be used for mandated low-level services like 
+    virtual memory, not to choose a GUI toolkit ==== */
+ 
++/* OS(GENODE) - Genode */
++#ifdef __GENODE__
++#define WTF_OS_GENODE 1
++#endif
++
+ /* OS(ANDROID) - Android */
+ #ifdef ANDROID
+ #define WTF_OS_ANDROID 1

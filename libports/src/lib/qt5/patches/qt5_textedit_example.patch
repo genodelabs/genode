@@ -1,0 +1,100 @@
+qt5_textedit_example.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtbase/examples/widgets/richtext/textedit/main.cpp |   21 +++++++++++++++++++-
+ .../widgets/richtext/textedit/textedit.cpp         |   11 +++++-----
+ .../widgets/richtext/textedit/textedit.pro         |    4 ----
+ 3 files changed, 25 insertions(+), 11 deletions(-)
+
+diff --git a/qtbase/examples/widgets/richtext/textedit/main.cpp b/qtbase/examples/widgets/richtext/textedit/main.cpp
+index 196dbfc..2513df9 100644
+--- a/qtbase/examples/widgets/richtext/textedit/main.cpp
++++ b/qtbase/examples/widgets/richtext/textedit/main.cpp
+@@ -39,16 +39,35 @@
+ **
+ ****************************************************************************/
+ 
++/* Genode includes */
++#include <os/config.h>
++
++/* Qt includes */
+ #include "textedit.h"
+ #include <QApplication>
+ 
++/* disable "not implemented yet" messages */
++extern "C" void _sigprocmask() { }
++extern "C" void sigprocmask() { }
++
+ int main(int argc, char *argv[])
+ {
+     Q_INIT_RESOURCE(textedit);
+ 
++    unsigned int x = 300;
++    unsigned int y = 0;
++    unsigned int w = 700;
++    unsigned int h = 700;
++
++    try { Genode::config()->xml_node().attribute("xpos").value(&x); } catch (...) { }
++    try { Genode::config()->xml_node().attribute("ypos").value(&y); } catch (...) { }
++    try { Genode::config()->xml_node().attribute("width").value(&w); } catch (...) { }
++    try { Genode::config()->xml_node().attribute("height").value(&h); } catch (...) { }
++
+     QApplication a(argc, argv);
+     TextEdit mw;
+-    mw.resize(700, 800);
++    mw.move(x, y);
++    mw.resize(w, h);
+     mw.show();
+     return a.exec();
+ }
+diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.cpp b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
+index ae2bded..be98558 100644
+--- a/qtbase/examples/widgets/richtext/textedit/textedit.cpp
++++ b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
+@@ -476,7 +476,7 @@ void TextEdit::fileNew()
+ void TextEdit::fileOpen()
+ {
+     QString fn = QFileDialog::getOpenFileName(this, tr("Open File..."),
+-                                              QString(), tr("HTML-Files (*.htm *.html);;All Files (*)"));
++                                              QString("/"), tr("HTML-Files (*.htm *.html);;All Files (*)"));
+     if (!fn.isEmpty())
+         load(fn);
+ }
+@@ -495,15 +495,14 @@ bool TextEdit::fileSave()
+ 
+ bool TextEdit::fileSaveAs()
+ {
+-    QString fn = QFileDialog::getSaveFileName(this, tr("Save as..."), QString(),
+-                                              tr("ODF files (*.odt);;HTML-Files "
++    QString fn = QFileDialog::getSaveFileName(this, tr("Save as..."), QString("/"),
++                                              tr("HTML-Files "
+                                                  "(*.htm *.html);;All Files (*)"));
+     if (fn.isEmpty())
+         return false;
+-    if (!(fn.endsWith(".odt", Qt::CaseInsensitive)
+-          || fn.endsWith(".htm", Qt::CaseInsensitive)
++    if (!(fn.endsWith(".htm", Qt::CaseInsensitive)
+           || fn.endsWith(".html", Qt::CaseInsensitive))) {
+-        fn += ".odt"; // default
++        fn += ".html"; // default
+     }
+     setCurrentFileName(fn);
+     return fileSave();
+diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.pro b/qtbase/examples/widgets/richtext/textedit/textedit.pro
+index c32bf68..704f738 100644
+--- a/qtbase/examples/widgets/richtext/textedit/textedit.pro
++++ b/qtbase/examples/widgets/richtext/textedit/textedit.pro
+@@ -9,10 +9,6 @@ SOURCES         = textedit.cpp \
+                   main.cpp
+ 
+ RESOURCES += textedit.qrc
+-build_all:!build_pass {
+-    CONFIG -= build_all
+-    CONFIG += release
+-}
+ 
+ EXAMPLE_FILES = textedit.qdoc
+ 

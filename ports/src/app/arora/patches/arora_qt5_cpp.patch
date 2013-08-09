@@ -1,0 +1,867 @@
+arora_qt5_cpp.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/aboutdialog.cpp                                |    4 +-
+ src/adblock/adblockmodel.cpp                       |   13 +++++
+ src/adblock/adblocksubscription.cpp                |   13 +++++
+ src/autofilldialog.cpp                             |    5 ++
+ src/autofillmanager.cpp                            |   14 ++++++
+ src/bookmarks/bookmarksmanager.cpp                 |    8 +++
+ src/bookmarks/bookmarksmodel.cpp                   |    2 +
+ src/browserapplication.cpp                         |   14 +++++-
+ src/downloadmanager.cpp                            |    4 ++
+ src/history/history.cpp                            |   49 +++++++++++++++++++-
+ src/locationbar/locationbar.cpp                    |    2 +
+ src/locationbar/locationbarsiteicon.cpp            |    3 +
+ src/modelmenu.cpp                                  |    5 ++
+ src/modeltoolbar.cpp                               |    3 +
+ src/network/cookiejar/cookieexceptionsmodel.cpp    |    5 ++
+ src/network/cookiejar/cookiejar.cpp                |    2 +
+ src/network/cookiejar/cookiemodel.cpp              |    5 ++
+ .../cookiejar/networkcookiejar/networkcookiejar.h  |    2 +
+ .../networkcookiejar/networkcookiejar_p.h          |    2 +
+ src/network/networkaccessmanager.cpp               |   16 +++++++
+ src/network/networkdiskcache.cpp                   |    5 ++
+ src/opensearch/opensearchengine.cpp                |    8 +++
+ src/opensearch/opensearchenginemodel.cpp           |    5 ++
+ src/opensearch/opensearchmanager.cpp               |    4 ++
+ src/settings.cpp                                   |    8 ++-
+ src/tabbar.cpp                                     |    3 +
+ src/tabwidget.cpp                                  |    2 -
+ src/utils/networkaccessmanagerproxy_p.h            |    2 +
+ src/webview.cpp                                    |   14 ++++--
+ tools/cacheinfo/main.cpp                           |    5 ++
+ tools/htmlToXBel/main.cpp                          |    5 ++
+ 31 files changed, 220 insertions(+), 12 deletions(-)
+
+diff --git a/src/aboutdialog.cpp b/src/aboutdialog.cpp
+index 42e1c81..ce70df2 100644
+--- a/src/aboutdialog.cpp
++++ b/src/aboutdialog.cpp
+@@ -27,7 +27,9 @@
+ #include <qtextedit.h>
+ #include <qtextstream.h>
+ 
+-#if QT_VERSION >= 0x040600 || defined(WEBKIT_TRUNK)
++#if QT_VERSION >= 0x050000 || defined(WEBKIT_TRUNK)
++#include <qwebkitglobal.h>
++#elif QT_VERSION >= 0x040600
+ #include <qwebkitversion.h>
+ #endif
+ 
+diff --git a/src/adblock/adblockmodel.cpp b/src/adblock/adblockmodel.cpp
+index 1b5ba2d..f17e2a0 100644
+--- a/src/adblock/adblockmodel.cpp
++++ b/src/adblock/adblockmodel.cpp
+@@ -41,7 +41,12 @@ AdBlockModel::AdBlockModel(QObject *parent)
+ 
+ void AdBlockModel::rulesChanged()
+ {
++#if QT_VERSION >= 0x050000
++	beginResetModel();
++	endResetModel();
++#else
+     reset();
++#endif
+ }
+ 
+ const AdBlockRule AdBlockModel::rule(const QModelIndex &index) const
+@@ -67,7 +72,11 @@ QModelIndex AdBlockModel::index(AdBlockSubscription *subscription)
+     int row = m_manager->subscriptions().indexOf(subscription);
+     if (row < 0 || row >= m_manager->subscriptions().count())
+         return QModelIndex();
++#if QT_VERSION >= 0x050000
++    return createIndex(row, 0);
++#else
+     return createIndex(row, 0, 0);
++#endif
+ }
+ 
+ QVariant AdBlockModel::headerData(int section, Qt::Orientation orientation, int role) const
+@@ -159,7 +168,11 @@ QModelIndex AdBlockModel::parent(const QModelIndex &index) const
+         return QModelIndex();
+ 
+     int parentRow = m_manager->subscriptions().indexOf(parent);
++#if QT_VERSION >= 0x050000
++    return createIndex(parentRow, 0);
++#else
+     return createIndex(parentRow, 0, 0);
++#endif
+ }
+ 
+ Qt::ItemFlags AdBlockModel::flags(const QModelIndex &index) const
+diff --git a/src/adblock/adblocksubscription.cpp b/src/adblock/adblocksubscription.cpp
+index d28c590..539a9d2 100644
+--- a/src/adblock/adblocksubscription.cpp
++++ b/src/adblock/adblocksubscription.cpp
+@@ -37,6 +37,10 @@
+ #include <qnetworkreply.h>
+ #include <qtextstream.h>
+ 
++#if QT_VERSION >= 0x050000
++#include <QUrlQuery>
++#endif
++
+ // #define ADBLOCKSUBSCRIPTION_DEBUG
+ 
+ AdBlockSubscription::AdBlockSubscription(const QUrl &url, QObject *parent)
+@@ -58,10 +62,17 @@ void AdBlockSubscription::parseUrl(const QUrl &url)
+     if (url.path() != QLatin1String("subscribe"))
+         return;
+ 
++#if QT_VERSION >= 0x050000
++    m_title = QUrlQuery(url).queryItemValue(QLatin1String("title"));
++    m_enabled = QUrlQuery(url).queryItemValue(QLatin1String("enabled")) != QLatin1String("false");
++    m_location = QUrlQuery(url).queryItemValue(QLatin1String("location")).toUtf8();
++    QByteArray lastUpdateByteArray = QUrlQuery(url).queryItemValue(QLatin1String("lastUpdate")).toLatin1();
++#else
+     m_title = QUrl::fromPercentEncoding(url.encodedQueryItemValue("title"));
+     m_enabled = QUrl::fromPercentEncoding(url.encodedQueryItemValue("enabled")) != QLatin1String("false");
+     m_location = QUrl::fromPercentEncoding(url.encodedQueryItemValue("location")).toUtf8();
+     QByteArray lastUpdateByteArray = url.encodedQueryItemValue("lastUpdate");
++#endif
+     QString lastUpdateString = QUrl::fromPercentEncoding(lastUpdateByteArray);
+     m_lastUpdate = QDateTime::fromString(lastUpdateString, Qt::ISODate);
+     loadRules();
+@@ -82,7 +93,9 @@ QUrl AdBlockSubscription::url() const
+         queryItems.append(Query(QLatin1String("enabled"), QLatin1String("false")));
+     if (m_lastUpdate.isValid())
+         queryItems.append(Query(QLatin1String("lastUpdate"), m_lastUpdate.toString(Qt::ISODate)));
++#if !(QT_VERSION >= 0x050000)
+     url.setQueryItems(queryItems);
++#endif
+     return url;
+ }
+ 
+diff --git a/src/autofilldialog.cpp b/src/autofilldialog.cpp
+index 7e1acd1..d3cb89c 100644
+--- a/src/autofilldialog.cpp
++++ b/src/autofilldialog.cpp
+@@ -46,7 +46,12 @@ void AutoFillModel::autoFillChanged()
+ {
+     AutoFillManager *manager = BrowserApplication::instance()->autoFillManager();
+     m_forms = manager->forms();
++#if QT_VERSION >= 0x050000
++	beginResetModel();
++	endResetModel();
++#else
+     reset();
++#endif
+ }
+ 
+ QVariant AutoFillModel::headerData(int section, Qt::Orientation orientation, int role) const
+diff --git a/src/autofillmanager.cpp b/src/autofillmanager.cpp
+index b39e747..42e9519 100644
+--- a/src/autofillmanager.cpp
++++ b/src/autofillmanager.cpp
+@@ -43,6 +43,10 @@
+ #include <qwebpage.h>
+ #include <qwebsettings.h>
+ 
++#if QT_VERSION >= 0x050000
++#include <QUrlQuery>
++#endif
++
+ #include <qdebug.h>
+ 
+ // #define AUTOFILL_DEBUG
+@@ -90,7 +94,11 @@ void AutoFillManager::loadSettings()
+ 
+ QString AutoFillManager::autoFillDataFile()
+ {
++#if QT_VERSION >= 0x050000
++    QString fileName = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
++#else
+     QString fileName = QDesktopServices::storageLocation(QDesktopServices::DataLocation);
++#endif
+     fileName += QLatin1String("/autofill.dat");
+     return fileName;
+ }
+@@ -225,7 +233,11 @@ AutoFillManager::Form AutoFillManager::findForm(QWebPage *webPage, const QByteAr
+ {
+     Form form;
+     QUrl argsUrl = QUrl::fromEncoded(QByteArray("foo://bar.com/?" + outgoingData));
++#if QT_VERSION >= 0x050000
++    QList<QPair<QString, QString> > encodedArgs = QUrlQuery(argsUrl).queryItems();
++#else
+     QList<QPair<QString, QString> > encodedArgs = argsUrl.queryItems();
++#endif
+     QSet<QPair<QString, QString> > args;
+     // XXX Is there a Qt function to do this? (unencode '+' to ' ')
+     for (int i = 0; i < encodedArgs.count(); ++i) {
+@@ -291,7 +303,9 @@ AutoFillManager::Form AutoFillManager::findForm(QWebPage *webPage, const QByteAr
+ QUrl AutoFillManager::stripUrl(const QUrl &url)
+ {
+     QUrl cleanUrl = url;
++#if !(QT_VERSION >= 0x050000)
+     cleanUrl.setQueryItems(QList<QPair<QString, QString> >());
++#endif
+     cleanUrl.setFragment(QString());
+     cleanUrl.setUserInfo(QString());
+     return cleanUrl;
+diff --git a/src/bookmarks/bookmarksmanager.cpp b/src/bookmarks/bookmarksmanager.cpp
+index 8db5abf..d3a21e2 100644
+--- a/src/bookmarks/bookmarksmanager.cpp
++++ b/src/bookmarks/bookmarksmanager.cpp
+@@ -123,7 +123,11 @@ void BookmarksManager::load()
+         return;
+     m_loaded = true;
+ 
++#if QT_VERSION >= 0x050000
++    QString dir = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
++#else
+     QString dir = QDesktopServices::storageLocation(QDesktopServices::DataLocation);
++#endif
+     QString bookmarkFile = dir + QLatin1String("/bookmarks.xbel");
+     if (!QFile::exists(bookmarkFile))
+         bookmarkFile = QLatin1String(":defaultbookmarks.xbel");
+@@ -184,7 +188,11 @@ void BookmarksManager::save() const
+         return;
+ 
+     XbelWriter writer;
++#if QT_VERSION >= 0x050000
++    QString dir = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
++#else
+     QString dir = QDesktopServices::storageLocation(QDesktopServices::DataLocation);
++#endif
+     QString bookmarkFile = dir + QLatin1String("/bookmarks.xbel");
+     // Save root folder titles in English (i.e. not localized)
+     m_menu->title = QLatin1String(BOOKMARKMENU);
+diff --git a/src/bookmarks/bookmarksmodel.cpp b/src/bookmarks/bookmarksmodel.cpp
+index b6f2869..d137dc5 100644
+--- a/src/bookmarks/bookmarksmodel.cpp
++++ b/src/bookmarks/bookmarksmodel.cpp
+@@ -72,6 +72,8 @@
+ #include <qbuffer.h>
+ #include <qevent.h>
+ 
++#include <QMimeData>
++
+ BookmarksModel::BookmarksModel(BookmarksManager *bookmarkManager, QObject *parent)
+     : QAbstractItemModel(parent)
+     , m_endMacro(false)
+diff --git a/src/browserapplication.cpp b/src/browserapplication.cpp
+index c7c0d4b..75e9954 100644
+--- a/src/browserapplication.cpp
++++ b/src/browserapplication.cpp
+@@ -303,9 +303,15 @@ void BrowserApplication::quitBrowser()
+  */
+ void BrowserApplication::postLaunch()
+ {
++#if QT_VERSION >= 0x050000
++    QStandardPaths::StandardLocation location;
++    location = QStandardPaths::CacheLocation;
++    QString directory = QStandardPaths::writableLocation(location);
++#else
+     QDesktopServices::StandardLocation location;
+     location = QDesktopServices::CacheLocation;
+     QString directory = QDesktopServices::storageLocation(location);
++#endif
+     if (directory.isEmpty())
+         directory = QDir::homePath() + QLatin1String("/.") + QCoreApplication::applicationName();
+     QWebSettings::setIconDatabasePath(directory);
+@@ -356,7 +362,7 @@ void BrowserApplication::loadSettings()
+     QString standardFontFamily = defaultSettings->fontFamily(QWebSettings::StandardFont);
+     int standardFontSize = defaultSettings->fontSize(QWebSettings::DefaultFontSize);
+     QFont standardFont = QFont(standardFontFamily, standardFontSize);
+-    standardFont = qVariantValue<QFont>(settings.value(QLatin1String("standardFont"), standardFont));
++    standardFont = qvariant_cast<QFont>(settings.value(QLatin1String("standardFont"), standardFont));
+     defaultSettings->setFontFamily(QWebSettings::StandardFont, standardFont.family());
+     defaultSettings->setFontSize(QWebSettings::DefaultFontSize, standardFont.pointSize());
+     int minimumFontSize = settings.value(QLatin1String("minimumFontSize"),
+@@ -366,7 +372,7 @@ void BrowserApplication::loadSettings()
+     QString fixedFontFamily = defaultSettings->fontFamily(QWebSettings::FixedFont);
+     int fixedFontSize = defaultSettings->fontSize(QWebSettings::DefaultFixedFontSize);
+     QFont fixedFont = QFont(fixedFontFamily, fixedFontSize);
+-    fixedFont = qVariantValue<QFont>(settings.value(QLatin1String("fixedFont"), fixedFont));
++    fixedFont = qvariant_cast<QFont>(settings.value(QLatin1String("fixedFont"), fixedFont));
+     defaultSettings->setFontFamily(QWebSettings::FixedFont, fixedFont.family());
+     defaultSettings->setFontSize(QWebSettings::DefaultFixedFontSize, fixedFont.pointSize());
+ 
+@@ -657,7 +663,11 @@ QString BrowserApplication::installedDataDirectory()
+ 
+ QString BrowserApplication::dataFilePath(const QString &fileName)
+ {
++#if QT_VERSION >= 0x050000
++	QString directory = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
++#else
+     QString directory = QDesktopServices::storageLocation(QDesktopServices::DataLocation);
++#endif
+     if (directory.isEmpty())
+         directory = QDir::homePath() + QLatin1String("/.") + QCoreApplication::applicationName();
+     if (!QFile::exists(directory)) {
+diff --git a/src/downloadmanager.cpp b/src/downloadmanager.cpp
+index 84091f8..a5cfe06 100644
+--- a/src/downloadmanager.cpp
++++ b/src/downloadmanager.cpp
+@@ -468,7 +468,11 @@ DownloadManager::DownloadManager(QWidget *parent)
+ 
+     QSettings settings;
+     settings.beginGroup(QLatin1String("downloadmanager"));
++#if QT_VERSION >= 0x050000
++    QString defaultLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
++#else
+     QString defaultLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
++#endif
+     setDownloadDirectory(settings.value(QLatin1String("downloadDirectory"), defaultLocation).toString());
+ 
+     downloadsView->setShowGrid(false);
+diff --git a/src/history/history.cpp b/src/history/history.cpp
+index 23e4119..2f5916c 100644
+--- a/src/history/history.cpp
++++ b/src/history/history.cpp
+@@ -104,7 +104,12 @@ HistoryModel::HistoryModel(HistoryManager *history, QObject *parent)
+ 
+ void HistoryModel::historyReset()
+ {
++#if QT_VERSION >= 0x050000
++	beginResetModel();
++	endResetModel();
++#else
+     reset();
++#endif
+ }
+ 
+ void HistoryModel::entryAdded()
+@@ -535,7 +540,12 @@ void HistoryFilterModel::recalculateFrecencies()
+ void HistoryFilterModel::sourceReset()
+ {
+     m_loaded = false;
++#if QT_VERSION >= 0x050000
++    beginResetModel();
++    endResetModel();
++#else
+     reset();
++#endif
+ }
+ 
+ int HistoryFilterModel::rowCount(const QModelIndex &parent) const
+@@ -671,7 +681,14 @@ bool HistoryFilterModel::removeRows(int row, int count, const QModelIndex &paren
+             this, SLOT(sourceRowsRemoved(const QModelIndex &, int, int)));
+     m_loaded = false;
+     if (oldCount - count != rowCount())
++#if QT_VERSION >= 0x050000
++    {
++    	beginResetModel();
++    	endResetModel();
++    }
++#else
+         reset();
++#endif
+     return true;
+ }
+ 
+@@ -815,7 +832,11 @@ QModelIndex HistoryTreeModel::index(int row, int column, const QModelIndex &pare
+         return QModelIndex();
+ 
+     if (!parent.isValid())
++#if QT_VERSION >= 0x050000
++    	return createIndex(row, column);
++#else
+         return createIndex(row, column, 0);
++#endif
+     return createIndex(row, column, parent.row() + 1);
+ }
+ 
+@@ -824,7 +845,11 @@ QModelIndex HistoryTreeModel::parent(const QModelIndex &index) const
+     int offset = index.internalId();
+     if (offset == 0 || !index.isValid())
+         return QModelIndex();
++#if QT_VERSION >= 0x050000
++    return createIndex(offset - 1, 0);
++#else
+     return createIndex(offset - 1, 0, 0);
++#endif
+ }
+ 
+ bool HistoryTreeModel::hasChildren(const QModelIndex &parent) const
+@@ -864,13 +889,23 @@ void HistoryTreeModel::setSourceModel(QAbstractItemModel *newSourceModel)
+                 this, SLOT(sourceRowsRemoved(const QModelIndex &, int, int)));
+     }
+ 
++#if QT_VERSION >= 0x050000
++    beginResetModel();
++    endResetModel();
++#else
+     reset();
++#endif
+ }
+ 
+ void HistoryTreeModel::sourceReset()
+ {
+     m_sourceRowCache.clear();
++#if QT_VERSION >= 0x050000
++    beginResetModel();
++    endResetModel();
++#else
+     reset();
++#endif
+ }
+ 
+ void HistoryTreeModel::sourceRowsInserted(const QModelIndex &parent, int start, int end)
+@@ -879,7 +914,12 @@ void HistoryTreeModel::sourceRowsInserted(const QModelIndex &parent, int start,
+     Q_ASSERT(!parent.isValid());
+     if (start != 0 || start != end) {
+         m_sourceRowCache.clear();
+-        reset();
++#if QT_VERSION >= 0x050000
++		beginResetModel();
++		endResetModel();
++#else
++		reset();
++#endif
+         return;
+     }
+ 
+@@ -941,7 +981,12 @@ bool HistoryTreeModel::removeRows(int row, int count, const QModelIndex &parent)
+ void HistoryTreeModel::sourceRowsRemoved(const QModelIndex &parent, int start, int end)
+ {
+     if (!removingDown) {
+-        reset();
++#if QT_VERSION >= 0x050000
++		beginResetModel();
++		endResetModel();
++#else
++		reset();
++#endif
+         m_sourceRowCache.clear();
+         return;
+     }
+diff --git a/src/locationbar/locationbar.cpp b/src/locationbar/locationbar.cpp
+index c9f5335..3124797 100644
+--- a/src/locationbar/locationbar.cpp
++++ b/src/locationbar/locationbar.cpp
+@@ -31,6 +31,8 @@
+ #include <qpainter.h>
+ #include <qstyleoption.h>
+ 
++#include <QMimeData>
++
+ #include <qdebug.h>
+ 
+ LocationBar::LocationBar(QWidget *parent)
+diff --git a/src/locationbar/locationbarsiteicon.cpp b/src/locationbar/locationbarsiteicon.cpp
+index f594700..49b2f55 100644
+--- a/src/locationbar/locationbarsiteicon.cpp
++++ b/src/locationbar/locationbarsiteicon.cpp
+@@ -22,6 +22,9 @@
+ #include <qevent.h>
+ #include <qurl.h>
+ 
++#include <QDrag>
++#include <QMimeData>
++
+ #include "browserapplication.h"
+ #include "webview.h"
+ 
+diff --git a/src/modelmenu.cpp b/src/modelmenu.cpp
+index 4f95d09..0f052c3 100644
+--- a/src/modelmenu.cpp
++++ b/src/modelmenu.cpp
+@@ -69,6 +69,9 @@
+ #include <qapplication.h>
+ #include <qevent.h>
+ 
++#include <QDrag>
++#include <QMimeData>
++
+ #include <qdebug.h>
+ 
+ ModelMenu::ModelMenu(QWidget *parent)
+@@ -344,7 +347,7 @@ void ModelMenu::mouseMoveEvent(QMouseEvent *event)
+     if (drag->exec() == Qt::MoveAction) {
+         m_model->removeRow(idx.row(), m_root);
+ 
+-        if (!this->isAncestorOf(drag->target()))
++        if (!this->isAncestorOf(qobject_cast<QWidget*>(drag->target())))
+             close();
+         else
+             aboutToShow();
+diff --git a/src/modeltoolbar.cpp b/src/modeltoolbar.cpp
+index 12b77b9..800cd75 100644
+--- a/src/modeltoolbar.cpp
++++ b/src/modeltoolbar.cpp
+@@ -25,6 +25,9 @@
+ #include <qevent.h>
+ #include <qtoolbutton.h>
+ 
++#include <QDrag>
++#include <QMimeData>
++
+ ModelToolBar::ModelToolBar(QWidget *parent)
+     : QToolBar(parent)
+     , m_model(0)
+diff --git a/src/network/cookiejar/cookieexceptionsmodel.cpp b/src/network/cookiejar/cookieexceptionsmodel.cpp
+index 6e45d2a..93abbca 100644
+--- a/src/network/cookiejar/cookieexceptionsmodel.cpp
++++ b/src/network/cookiejar/cookieexceptionsmodel.cpp
+@@ -217,6 +217,11 @@ void CookieExceptionsModel::addHost(QString host, QStringList &add, QStringList
+     add.removeOne(otherRule);
+     remove1.removeOne(otherRule);
+     remove2.removeOne(otherRule);
++#if QT_VERSION >= 0x050000
++    beginResetModel();
++    endResetModel();
++#else
+     reset();
++#endif
+ }
+ 
+diff --git a/src/network/cookiejar/cookiejar.cpp b/src/network/cookiejar/cookiejar.cpp
+index 532600a..97b6b36 100644
+--- a/src/network/cookiejar/cookiejar.cpp
++++ b/src/network/cookiejar/cookiejar.cpp
+@@ -71,6 +71,8 @@
+ #include <qsettings.h>
+ #include <qurl.h>
+ 
++#include <QNetworkCookie>
++
+ #include <qdebug.h>
+ 
+ static const unsigned int JAR_VERSION = 23;
+diff --git a/src/network/cookiejar/cookiemodel.cpp b/src/network/cookiejar/cookiemodel.cpp
+index 391e2cc..318af47 100644
+--- a/src/network/cookiejar/cookiemodel.cpp
++++ b/src/network/cookiejar/cookiemodel.cpp
+@@ -196,5 +196,10 @@ void CookieModel::cookiesChanged()
+ {
+     if (m_cookieJar)
+         m_cookies = m_cookieJar->cookies();
++#if QT_VERSION >= 0x050000
++    beginResetModel();
++    endResetModel();
++#else
+     reset();
++#endif
+ }
+diff --git a/src/network/cookiejar/networkcookiejar/networkcookiejar.h b/src/network/cookiejar/networkcookiejar/networkcookiejar.h
+index 365b4a3..52d9c6e 100644
+--- a/src/network/cookiejar/networkcookiejar/networkcookiejar.h
++++ b/src/network/cookiejar/networkcookiejar/networkcookiejar.h
+@@ -39,6 +39,8 @@
+ 
+ #include <qnetworkcookie.h>
+ 
++#include <QNetworkCookieJar>
++
+ class NetworkCookieJarPrivate;
+ class NetworkCookieJar : public QNetworkCookieJar {
+     Q_OBJECT
+diff --git a/src/network/cookiejar/networkcookiejar/networkcookiejar_p.h b/src/network/cookiejar/networkcookiejar/networkcookiejar_p.h
+index ea35737..bb19aa1 100644
+--- a/src/network/cookiejar/networkcookiejar/networkcookiejar_p.h
++++ b/src/network/cookiejar/networkcookiejar/networkcookiejar_p.h
+@@ -37,6 +37,8 @@
+ #ifndef NETWORKCOOKIEJARPRIVATE_H
+ #define NETWORKCOOKIEJARPRIVATE_H
+ 
++#include <QNetworkCookie>
++
+ #include "trie_p.h"
+ 
+ QT_BEGIN_NAMESPACE
+diff --git a/src/network/networkaccessmanager.cpp b/src/network/networkaccessmanager.cpp
+index 7e99d46..9253a8e 100644
+--- a/src/network/networkaccessmanager.cpp
++++ b/src/network/networkaccessmanager.cpp
+@@ -212,7 +212,11 @@ void NetworkAccessManager::authenticationRequired(QNetworkReply *reply, QAuthent
+     passwordDialog.iconLabel->setPixmap(mainWindow->style()->standardIcon(QStyle::SP_MessageBoxQuestion, 0, mainWindow).pixmap(32, 32));
+ 
+     QString introMessage = tr("<qt>Enter username and password for \"%1\" at %2</qt>");
++#if QT_VERSION >= 0x050000
++    introMessage = introMessage.arg(auth->realm().toHtmlEscaped()).arg(reply->url().toString().toHtmlEscaped());
++#else
+     introMessage = introMessage.arg(Qt::escape(auth->realm())).arg(Qt::escape(reply->url().toString()));
++#endif
+     passwordDialog.introLabel->setText(introMessage);
+     passwordDialog.introLabel->setWordWrap(true);
+ 
+@@ -239,7 +243,11 @@ void NetworkAccessManager::proxyAuthenticationRequired(const QNetworkProxy &prox
+     proxyDialog.iconLabel->setPixmap(mainWindow->style()->standardIcon(QStyle::SP_MessageBoxQuestion, 0, mainWindow).pixmap(32, 32));
+ 
+     QString introMessage = tr("<qt>Connect to proxy \"%1\" using:</qt>");
++#if QT_VERSION >= 0x050000
++    introMessage = introMessage.arg(proxy.hostName().toHtmlEscaped());
++#else
+     introMessage = introMessage.arg(Qt::escape(proxy.hostName()));
++#endif
+     proxyDialog.introLabel->setText(introMessage);
+     proxyDialog.introLabel->setWordWrap(true);
+ 
+@@ -254,11 +262,19 @@ QString NetworkAccessManager::certToFormattedString(QSslCertificate cert)
+ {
+     QStringList message;
+     message << cert.subjectInfo(QSslCertificate::CommonName);
++#if QT_VERSION >= 0x050000
++    /* TODO */
++#else
+     message << tr("Issuer: %1").arg(cert.issuerInfo(QSslCertificate::CommonName));
++#endif
+     message << tr("Not valid before: %1").arg(cert.effectiveDate().toString());
+     message << tr("Valid until: %1").arg(cert.expiryDate().toString());
+ 
++#if QT_VERSION >= 0x050000
++    QMultiMap<QSsl::AlternativeNameEntryType, QString> names = cert.subjectAlternativeNames();
++#else
+     QMultiMap<QSsl::AlternateNameEntryType, QString> names = cert.alternateSubjectNames();
++#endif
+     if (names.count() > 0) {
+         QString list;
+         list += QLatin1String("<br />");
+diff --git a/src/network/networkdiskcache.cpp b/src/network/networkdiskcache.cpp
+index cfd0d77..adb5d92 100644
+--- a/src/network/networkdiskcache.cpp
++++ b/src/network/networkdiskcache.cpp
+@@ -37,8 +37,13 @@ NetworkDiskCache::NetworkDiskCache(QObject *parent)
+     : QNetworkDiskCache(parent)
+     , m_private(false)
+ {
++#if QT_VERSION >= 0x050000
++    QString diskCacheDirectory = QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
++                                + QLatin1String("/browser");
++#else
+     QString diskCacheDirectory = QDesktopServices::storageLocation(QDesktopServices::CacheLocation)
+                                 + QLatin1String("/browser");
++#endif
+     setCacheDirectory(diskCacheDirectory);
+     connect(BrowserApplication::instance(), SIGNAL(privacyChanged(bool)),
+             this, SLOT(privacyChanged(bool)));
+diff --git a/src/opensearch/opensearchengine.cpp b/src/opensearch/opensearchengine.cpp
+index 0332fc1..10058d1 100644
+--- a/src/opensearch/opensearchengine.cpp
++++ b/src/opensearch/opensearchengine.cpp
+@@ -202,6 +202,9 @@ void OpenSearchEngine::setSearchUrlTemplate(const QString &searchUrlTemplate)
+ */
+ QUrl OpenSearchEngine::searchUrl(const QString &searchTerm) const
+ {
++#if QT_VERSION >= 0x050000
++	return QUrl();
++#else
+     if (m_searchUrlTemplate.isEmpty())
+         return QUrl();
+ 
+@@ -215,6 +218,7 @@ QUrl OpenSearchEngine::searchUrl(const QString &searchTerm) const
+     }
+ 
+     return retVal;
++#endif
+ }
+ 
+ /*!
+@@ -254,6 +258,9 @@ void OpenSearchEngine::setSuggestionsUrlTemplate(const QString &suggestionsUrlTe
+ */
+ QUrl OpenSearchEngine::suggestionsUrl(const QString &searchTerm) const
+ {
++#if QT_VERSION >= 0x050000
++	return QUrl();
++#else
+     if (m_suggestionsUrlTemplate.isEmpty())
+         return QUrl();
+ 
+@@ -267,6 +274,7 @@ QUrl OpenSearchEngine::suggestionsUrl(const QString &searchTerm) const
+     }
+ 
+     return retVal;
++#endif
+ }
+ 
+ /*!
+diff --git a/src/opensearch/opensearchenginemodel.cpp b/src/opensearch/opensearchenginemodel.cpp
+index a35f1bb..8a2e2d6 100644
+--- a/src/opensearch/opensearchenginemodel.cpp
++++ b/src/opensearch/opensearchenginemodel.cpp
+@@ -172,6 +172,11 @@ QVariant OpenSearchEngineModel::headerData(int section, Qt::Orientation orientat
+ 
+ void OpenSearchEngineModel::enginesChanged()
+ {
++#if QT_VERSION >= 0x050000
++	QAbstractTableModel::beginResetModel();
++	QAbstractTableModel::endResetModel();
++#else
+     QAbstractTableModel::reset();
++#endif
+ }
+ 
+diff --git a/src/opensearch/opensearchmanager.cpp b/src/opensearch/opensearchmanager.cpp
+index d9bb0a2..9641ac8 100644
+--- a/src/opensearch/opensearchmanager.cpp
++++ b/src/opensearch/opensearchmanager.cpp
+@@ -297,7 +297,11 @@ void OpenSearchManager::restoreDefaults()
+ 
+ QString OpenSearchManager::enginesDirectory() const
+ {
++#if QT_VERSION >= 0x050000
++	QDir directory(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
++#else
+     QDir directory(QDesktopServices::storageLocation(QDesktopServices::DataLocation));
++#endif
+     return directory.filePath(QLatin1String("searchengines"));
+ }
+ 
+diff --git a/src/settings.cpp b/src/settings.cpp
+index 22b9e06..6082fd7 100644
+--- a/src/settings.cpp
++++ b/src/settings.cpp
+@@ -123,7 +123,11 @@ void SettingsDialog::loadDefaults()
+     m_fixedFont = QFont(fixedFontFamily, fixedFontSize);
+     fixedLabel->setText(QString(QLatin1String("%1 %2")).arg(m_fixedFont.family()).arg(m_fixedFont.pointSize()));
+ 
++#if QT_VERSION >= 0x050000
++    downloadsLocation->setText(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
++#else
+     downloadsLocation->setText(QDesktopServices::storageLocation(QDesktopServices::DesktopLocation));
++#endif
+ 
+     blockPopupWindows->setChecked(!defaultSettings->testAttribute(QWebSettings::JavascriptCanOpenWindows));
+     enableJavascript->setChecked(defaultSettings->testAttribute(QWebSettings::JavascriptEnabled));
+@@ -184,8 +188,8 @@ void SettingsDialog::loadFromSettings()
+ 
+     // Appearance
+     settings.beginGroup(QLatin1String("websettings"));
+-    m_fixedFont = qVariantValue<QFont>(settings.value(QLatin1String("fixedFont"), m_fixedFont));
+-    m_standardFont = qVariantValue<QFont>(settings.value(QLatin1String("standardFont"), m_standardFont));
++    m_fixedFont = qvariant_cast<QFont>(settings.value(QLatin1String("fixedFont"), m_fixedFont));
++    m_standardFont = qvariant_cast<QFont>(settings.value(QLatin1String("standardFont"), m_standardFont));
+ 
+     standardLabel->setText(QString(QLatin1String("%1 %2")).arg(m_standardFont.family()).arg(m_standardFont.pointSize()));
+     fixedLabel->setText(QString(QLatin1String("%1 %2")).arg(m_fixedFont.family()).arg(m_fixedFont.pointSize()));
+diff --git a/src/tabbar.cpp b/src/tabbar.cpp
+index b684be1..4e809cf 100644
+--- a/src/tabbar.cpp
++++ b/src/tabbar.cpp
+@@ -72,6 +72,9 @@
+ #include <qstyle.h>
+ #include <qurl.h>
+ 
++#include <QDrag>
++#include <QMimeData>
++
+ #include <qdebug.h>
+ 
+ TabShortcut::TabShortcut(int tab, const QKeySequence &key, QWidget *parent)
+diff --git a/src/tabwidget.cpp b/src/tabwidget.cpp
+index 7e5b0bf..060f513 100644
+--- a/src/tabwidget.cpp
++++ b/src/tabwidget.cpp
+@@ -389,7 +389,7 @@ WebView *TabWidget::makeNewTab(bool makeCurrent)
+     m_locationBars->setSizePolicy(locationBar->sizePolicy());
+ 
+ #ifndef AUTOTESTS
+-    QWidget::setTabOrder(locationBar, qFindChild<ToolbarSearch*>(BrowserMainWindow::parentWindow(this)));
++    QWidget::setTabOrder(locationBar, BrowserMainWindow::parentWindow(this)->findChild<ToolbarSearch*>());
+ #endif
+ 
+     // webview
+diff --git a/src/utils/networkaccessmanagerproxy_p.h b/src/utils/networkaccessmanagerproxy_p.h
+index 3779019..ad8e27e 100644
+--- a/src/utils/networkaccessmanagerproxy_p.h
++++ b/src/utils/networkaccessmanagerproxy_p.h
+@@ -31,6 +31,8 @@
+ 
+ #include <qnetworkcookie.h>
+ 
++#include <QNetworkCookieJar>
++
+ #include "networkaccessmanagerproxy.h"
+ 
+ class NetworkCookieJarProxy : public QNetworkCookieJar
+diff --git a/src/webview.cpp b/src/webview.cpp
+index 43eeeb9..ee45475 100644
+--- a/src/webview.cpp
++++ b/src/webview.cpp
+@@ -87,7 +87,7 @@
+ #include <qwebframe.h>
+ 
+ #if QT_VERSION >= 0x040600 || defined(WEBKIT_TRUNK)
+-#if !defined(QTWEBKIT_VERSION) || QTWEBKIT_VERSION < 0x020000
++#if (!defined(QTWEBKIT_VERSION) || QTWEBKIT_VERSION < 0x020000) && QT_VERSION < 0x050000
+ Q_DECLARE_METATYPE(QWebElement)
+ #endif
+ #include <qinputdialog.h>
+@@ -96,8 +96,12 @@ Q_DECLARE_METATYPE(QWebElement)
+ #include <qsettings.h>
+ #include <qtooltip.h>
+ #include <qwebelement.h>
++#if !(QT_VERSION >= 0x050000)
+ #include <qwindowsstyle.h>
+ #endif
++#endif
++
++#include <QMimeData>
+ 
+ #include <qdebug.h>
+ 
+@@ -112,7 +116,7 @@ WebView::WebView(QWidget *parent)
+ #endif
+ {
+     setPage(m_page);
+-#if QT_VERSION >= 0x040600
++#if (QT_VERSION >= 0x040600) && (QT_VERSION < 0x050000)
+     QPalette p;
+     if (p.color(QPalette::Window) != Qt::white) {
+         QWindowsStyle s;
+@@ -418,6 +422,9 @@ void WebView::searchRequested(QAction *action)
+ #if QT_VERSION >= 0x040600 || defined(WEBKIT_TRUNK)
+ void WebView::addSearchEngine()
+ {
++#if QT_VERSION >= 0x050000
++	return;
++#else
+     QAction *action = qobject_cast<QAction*>(sender());
+     if (!action)
+         return;
+@@ -506,6 +513,7 @@ void WebView::addSearchEngine()
+     engine->setImage(icon().pixmap(16, 16).toImage());
+ 
+     ToolbarSearch::openSearchManager()->addEngine(engine);
++#endif
+ }
+ #endif
+ 
+@@ -580,7 +588,7 @@ void WebView::loadFinished()
+ void WebView::loadUrl(const QUrl &url, const QString &title)
+ {
+     if (url.scheme() == QLatin1String("javascript")) {
+-        QString scriptSource = QUrl::fromPercentEncoding(url.toString(Q_FLAGS(QUrl::TolerantMode|QUrl::RemoveScheme)).toAscii());
++        QString scriptSource = QUrl::fromPercentEncoding(url.toString(Q_FLAGS(QUrl::TolerantMode|QUrl::RemoveScheme)).toLatin1());
+         QVariant result = page()->mainFrame()->evaluateJavaScript(scriptSource);
+         return;
+     }
+diff --git a/tools/cacheinfo/main.cpp b/tools/cacheinfo/main.cpp
+index 5e88ebc..46bb048 100644
+--- a/tools/cacheinfo/main.cpp
++++ b/tools/cacheinfo/main.cpp
+@@ -44,8 +44,13 @@ int main(int argc, char **argv)
+     }
+ 
+     NetworkDiskCache diskCache;
++#if QT_VERSION >= 0x050000
++    QString location = QStandardPaths::writableLocation(QStandardPaths::CacheLocation)
++            + QLatin1String("/browser/");
++#else
+     QString location = QDesktopServices::storageLocation(QDesktopServices::CacheLocation)
+             + QLatin1String("/browser/");
++#endif
+     diskCache.setCacheDirectory(location);
+ 
+     QNetworkCacheMetaData metaData;
+diff --git a/tools/htmlToXBel/main.cpp b/tools/htmlToXBel/main.cpp
+index 15c2ea5..40b6b00 100644
+--- a/tools/htmlToXBel/main.cpp
++++ b/tools/htmlToXBel/main.cpp
+@@ -20,6 +20,11 @@
+ #include <QtGui/QtGui>
+ #include <QtWebKit/QtWebKit>
+ 
++#if QT_VERSION >= 0x050000
++#include <QtWidgets/QtWidgets>
++#include <QtWebKitWidgets/QtWebKitWidgets>
++#endif
++
+ /*!
+     A tool to convert html bookmark files into the xbel format.
+ 

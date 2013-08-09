@@ -1,0 +1,36 @@
+qt5_qtbase_lwip_connect_semantics_adaption.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../network/socket/qnativesocketengine_unix.cpp    |   16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/qtbase/src/network/socket/qnativesocketengine_unix.cpp b/qtbase/src/network/socket/qnativesocketengine_unix.cpp
+index 4c94c4d..03c98fa 100644
+--- a/qtbase/src/network/socket/qnativesocketengine_unix.cpp
++++ b/qtbase/src/network/socket/qnativesocketengine_unix.cpp
+@@ -408,6 +408,22 @@ bool QNativeSocketEnginePrivate::nativeConnect(const QHostAddress &addr, quint16
+         case EISCONN:
+             socketState = QAbstractSocket::ConnectedState;
+             break;
++#ifdef Q_OS_GENODE
++        /* to have Arora get an error indication, socketState needs to change
++         * to "ConnectingState" before changing to "UnconnectedState" again
++         */
++        case ECONNABORTED:
++            if (socketState == QAbstractSocket::UnconnectedState) {
++                /* interpret ECONNABORTED as EINPROGRESS */
++                setError(QAbstractSocket::UnfinishedSocketOperationError, InvalidSocketErrorString);
++                socketState = QAbstractSocket::ConnectingState;
++            } else {
++                /* interpret ECONNABORTED as EHOSTUNREACH */
++                setError(QAbstractSocket::NetworkError, HostUnreachableErrorString);
++                socketState = QAbstractSocket::UnconnectedState;
++            }
++            break;
++#endif
+         case ECONNREFUSED:
+         case EINVAL:
+             setError(QAbstractSocket::ConnectionRefusedError, ConnectionRefusedErrorString);

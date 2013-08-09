@@ -1,0 +1,93 @@
+qt5_qpa.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ .../fontdatabases/basic/qbasicfontdatabase.cpp     |    9 +++++++++
+ .../input/evdevkeyboard/qevdevkeyboardhandler.cpp  |    9 ++++++---
+ .../input/evdevkeyboard/qevdevkeyboardhandler_p.h  |    2 ++
+ 3 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp b/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
+index 9b87418..aa25c6b 100644
+--- a/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
++++ b/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
+@@ -114,7 +114,16 @@ void QBasicFontDatabase::populateFontDatabase()
+     for (int i = 0; i < int(dir.count()); ++i) {
+         const QByteArray file = QFile::encodeName(dir.absoluteFilePath(dir[i]));
+ //        qDebug() << "looking at" << file;
++#ifdef Q_OS_GENODE
++        QByteArray data;
++        QFile f(file);
++        if (!f.open(QIODevice::ReadOnly))
++            continue;
++        data = f.readAll();
++        addTTFile(data, file);
++#else
+         addTTFile(QByteArray(), file);
++#endif
+     }
+ }
+ 
+diff --git a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
+index 26dc116..3d0e3e2 100644
+--- a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
++++ b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler.cpp
+@@ -49,7 +49,9 @@
+ #include <QCoreApplication>
+ #include <private/qcore_unix_p.h>
+ 
++#ifndef Q_OS_GENODE
+ #include <linux/input.h>
++#endif /* Q_OS_GENODE */
+ 
+ //#define QT_QPA_KEYMAP_DEBUG
+ 
+@@ -78,11 +80,12 @@ QEvdevKeyboardHandler::QEvdevKeyboardHandler(const QString &device, int fd, bool
+ 
+     if (keymapFile.isEmpty() || !loadKeymap(keymapFile))
+         unloadKeymap();
+-
++#ifndef Q_OS_GENODE
+     // socket notifier for events on the keyboard device
+     QSocketNotifier *notifier;
+     notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
+     connect(notifier, SIGNAL(activated(int)), this, SLOT(readKeycode()));
++#endif /* Q_OS_GENODE */
+ }
+ 
+ QEvdevKeyboardHandler::~QEvdevKeyboardHandler()
+@@ -92,7 +95,7 @@ QEvdevKeyboardHandler::~QEvdevKeyboardHandler()
+     if (m_fd >= 0)
+         qt_safe_close(m_fd);
+ }
+-
++#ifndef Q_OS_GENODE
+ QEvdevKeyboardHandler *QEvdevKeyboardHandler::create(const QString &device, const QString &specification)
+ {
+ #ifdef QT_QPA_KEYMAP_DEBUG
+@@ -218,7 +221,7 @@ void QEvdevKeyboardHandler::readKeycode()
+         }
+     }
+ }
+-
++#endif /* Q_OS_GENODE */
+ void QEvdevKeyboardHandler::processKeyEvent(int nativecode, int unicode, int qtcode,
+                                             Qt::KeyboardModifiers modifiers, bool isPress, bool autoRepeat)
+ {
+diff --git a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
+index 1065b05..b395d46 100644
+--- a/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
++++ b/qtbase/src/platformsupport/input/evdevkeyboard/qevdevkeyboardhandler_p.h
+@@ -161,8 +161,10 @@ public:
+         return qtmod;
+     }
+ 
++#ifndef Q_OS_GENODE
+ private slots:
+     void readKeycode();
++#endif /* Q_OS_GENODE */
+     KeycodeAction processKeycode(quint16 keycode, bool pressed, bool autorepeat);
+ 
+ private:

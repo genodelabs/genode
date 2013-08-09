@@ -1,0 +1,23 @@
+arora_disable_program_exit.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/browsermainwindow.cpp |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/browsermainwindow.cpp b/src/browsermainwindow.cpp
+index de787a6..a8f9798 100644
+--- a/src/browsermainwindow.cpp
++++ b/src/browsermainwindow.cpp
+@@ -536,7 +536,9 @@ void BrowserMainWindow::setupMenu()
+     else
+         connect(m_fileQuit, SIGNAL(triggered()), BrowserApplication::instance(), SLOT(quitBrowser()));
+     m_fileQuit->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Q));
++#if 0
+     m_fileMenu->addAction(m_fileQuit);
++#endif
+ 
+ #if QT_VERSION >= 0x040600 && defined(Q_WS_X11)
+     m_fileNewWindowAction->setIcon(QIcon::fromTheme(QLatin1String("window-new")));

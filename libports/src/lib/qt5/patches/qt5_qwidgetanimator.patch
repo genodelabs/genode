@@ -1,0 +1,32 @@
+qt5_qwidgetanimator.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtbase/src/widgets/widgets/qwidgetanimator.cpp |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/qtbase/src/widgets/widgets/qwidgetanimator.cpp b/qtbase/src/widgets/widgets/qwidgetanimator.cpp
+index bbd96ca..d3fbf92 100644
+--- a/qtbase/src/widgets/widgets/qwidgetanimator.cpp
++++ b/qtbase/src/widgets/widgets/qwidgetanimator.cpp
+@@ -74,7 +74,8 @@ void QWidgetAnimator::abort(QWidget *w)
+ void QWidgetAnimator::animationFinished()
+ {
+     QPropertyAnimation *anim = qobject_cast<QPropertyAnimation*>(sender());
+-    abort(static_cast<QWidget*>(anim->targetObject()));
++    if (anim)
++    	abort(static_cast<QWidget*>(anim->targetObject()));
+ }
+ #endif //QT_NO_ANIMATION
+ 
+@@ -92,7 +93,7 @@ void QWidgetAnimator::animate(QWidget *widget, const QRect &_final_geometry, boo
+ 
+ #ifndef QT_NO_ANIMATION
+     AnimationMap::const_iterator it = m_animation_map.constFind(widget);
+-    if (it != m_animation_map.constEnd() && (*it)->endValue().toRect() == final_geometry)
++    if (it != m_animation_map.constEnd() && (*it) && (*it)->endValue().toRect() == final_geometry)
+         return;
+ 
+     QPropertyAnimation *anim = new QPropertyAnimation(widget, "geometry", widget);

@@ -1,0 +1,39 @@
+arora_bookmarks.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/data/defaultbookmarks.xbel |   19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/src/data/defaultbookmarks.xbel b/src/data/defaultbookmarks.xbel
+index 5869929..e31aa17 100644
+--- a/src/data/defaultbookmarks.xbel
++++ b/src/data/defaultbookmarks.xbel
+@@ -1,6 +1,25 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <!DOCTYPE xbel>
+ <xbel version="1.0">
++
++    <bookmark href="http://kernel.org"> <title>Linux Kernel</title> </bookmark>
++    <bookmark href="http://os.inf.tu-dresden.de/fiasco/prev/"> <title>L4/Fiasco Kernel</title> </bookmark>
++    <bookmark href="http://l4dev.org"> <title>Codezero Kernel</title> </bookmark>
++    <bookmark href="http://hypervisor.org"> <title>NOVA Hypervisor</title> </bookmark>
++    <bookmark href="http://l4ka.org/projects/pistachio/"> <title>L4ka::Pistachio Kernel</title> </bookmark>
++    <bookmark href="http://wiki.ok-labs.com"> <title>OKL4 Kernel</title> </bookmark>
++
++    <separator/>
++
++    <bookmark href="http://www.phoronix.com"> <title>Phoronix</title> </bookmark>
++    <bookmark href="http://www.golem.de"> <title>Golem</title> </bookmark>
++    <bookmark href="http://osnews.com"> <title>OS-News</title> </bookmark>
++
++    <separator/>
++
++    <bookmark href="http://www.genode-labs.com"> <title>Genode Labs Company Website</title> </bookmark>
++    <bookmark href="http://genode.org"> <title>Genode.org Project Website</title> </bookmark>
++
+     <folder folded="yes">
+         <title>Bookmarks Bar</title>
+         <bookmark href="http://arora-browser.org/">

@@ -1,0 +1,38 @@
+#!/bin/sh
+
+../qt-everywhere-opensource-src-5.1.0/configure \
+    -opensource \
+    -confirm-license \
+    -qconfig genode \
+    -xplatform genode-g++ \
+    -no-qpa-platform-guard \
+    -qpa minimal \
+    -no-separate-debug-info \
+    -openssl-linked \
+    -no-accessibility \
+    -no-cups \
+    -no-dbus \
+    -no-iconv \
+    -no-largefile \
+    -no-nis \
+    -no-opengl \
+    -no-pkg-config \
+    -no-xcb \
+    -no-sse \
+    -no-sse2 \
+    -no-sse3 \
+    -no-ssse3 \
+    -no-sse4.1 \
+    -no-sse4.2 \
+    -no-avx \
+    -no-neon \
+    -make tools \
+    -nomake examples \
+    -nomake demos \
+
+#
+# notes
+#
+# - '-no-opengl' would prevent the generation of qtwebkit Makefiles
+#
+#

@@ -1,0 +1,472 @@
+qtscriptclassic_qt5.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/qscriptcontextinfo.cpp       |    2 -
+ src/qscriptecmafunction.cpp      |   12 ++++-----
+ src/qscriptengine_p.cpp          |   30 ++++++++++++++--------
+ src/qscriptextqobject.cpp        |   52 +++++++++++++++++---------------------
+ src/qscriptstring.cpp            |    1 -
+ src/qscriptsyntaxcheckresult_p.h |    2 +
+ src/qscriptvalue.cpp             |    4 +--
+ src/qscriptvalue.h               |    4 +--
+ src/qscriptvalue_p.h             |    1 -
+ src/qscriptvalueimpl_p.h         |    3 +-
+ 10 files changed, 55 insertions(+), 56 deletions(-)
+
+diff --git a/src/qscriptcontextinfo.cpp b/src/qscriptcontextinfo.cpp
+index ef080ff..df0e555 100644
+--- a/src/qscriptcontextinfo.cpp
++++ b/src/qscriptcontextinfo.cpp
+@@ -108,7 +108,6 @@ QT_BEGIN_NAMESPACE
+ QScriptContextInfoPrivate::QScriptContextInfoPrivate()
+     : q_ptr(0)
+ {
+-    ref = 0;
+     functionType = QScriptContextInfo::NativeFunction;
+     functionMetaIndex = -1;
+     functionStartLineNumber = -1;
+@@ -125,7 +124,6 @@ QScriptContextInfoPrivate::QScriptContextInfoPrivate(const QScriptContext *conte
+     : q_ptr(0)
+ {
+     Q_ASSERT(context);
+-    ref = 0;
+     functionType = QScriptContextInfo::NativeFunction;
+     functionMetaIndex = -1;
+     functionStartLineNumber = -1;
+diff --git a/src/qscriptecmafunction.cpp b/src/qscriptecmafunction.cpp
+index 7ba4596..fade83f 100644
+--- a/src/qscriptecmafunction.cpp
++++ b/src/qscriptecmafunction.cpp
+@@ -328,7 +328,7 @@ QScriptValueImpl Function::method_disconnect(QScriptContextPrivate *context, QSc
+         return context->throwError(QScriptContext::TypeError,
+             QString::fromLatin1("Function.prototype.disconnect: %0::%1 is not a signal")
+             .arg(QLatin1String(qtSignal->metaObject()->className()))
+-            .arg(QLatin1String(sig.signature())));
++            .arg(QLatin1String(sig.methodSignature())));
+     }
+ 
+     QScriptValueImpl receiver;
+@@ -357,7 +357,7 @@ QScriptValueImpl Function::method_disconnect(QScriptContextPrivate *context, QSc
+         return context->throwError(
+             QString::fromLatin1("Function.prototype.disconnect: failed to disconnect from %0::%1")
+             .arg(QLatin1String(qtSignal->metaObject()->className()))
+-            .arg(QLatin1String(sig.signature())));
++            .arg(QLatin1String(sig.methodSignature())));
+     }
+     return eng->undefinedValue();
+ #else
+@@ -399,20 +399,20 @@ QScriptValueImpl Function::method_connect(QScriptContextPrivate *context, QScrip
+         return context->throwError(QScriptContext::TypeError,
+             QString::fromLatin1("Function.prototype.connect: %0::%1 is not a signal")
+             .arg(QLatin1String(qtSignal->metaObject()->className()))
+-            .arg(QLatin1String(sig.signature())));
++            .arg(QLatin1String(sig.methodSignature())));
+     }
+ 
+     {
+         QList<int> overloads = qtSignal->overloadedIndexes();
+         if (!overloads.isEmpty()) {
+             overloads.append(qtSignal->initialIndex());
+-            QByteArray signature = sig.signature();
++            QByteArray signature = sig.methodSignature();
+             QString message = QString::fromLatin1("Function.prototype.connect: ambiguous connect to %0::%1(); candidates are\n")
+                               .arg(QLatin1String(qtSignal->metaObject()->className()))
+                               .arg(QLatin1String(signature.left(signature.indexOf('('))));
+             for (int i = 0; i < overloads.size(); ++i) {
+                 QMetaMethod mtd = meta->method(overloads.at(i));
+-                message.append(QString::fromLatin1("    %0\n").arg(QString::fromLatin1(mtd.signature())));
++                message.append(QString::fromLatin1("    %0\n").arg(QString::fromLatin1(mtd.methodSignature())));
+             }
+             message.append(QString::fromLatin1("Use e.g. object['%0'].connect() to connect to a particular overload")
+                            .arg(QLatin1String(signature)));
+@@ -446,7 +446,7 @@ QScriptValueImpl Function::method_connect(QScriptContextPrivate *context, QScrip
+         return context->throwError(
+             QString::fromLatin1("Function.prototype.connect: failed to connect to %0::%1")
+             .arg(QLatin1String(qtSignal->metaObject()->className()))
+-            .arg(QLatin1String(sig.signature())));
++            .arg(QLatin1String(sig.methodSignature())));
+     }
+     return eng->undefinedValue();
+ #else
+diff --git a/src/qscriptengine_p.cpp b/src/qscriptengine_p.cpp
+index d36b605..4e9076d 100644
+--- a/src/qscriptengine_p.cpp
++++ b/src/qscriptengine_p.cpp
+@@ -1436,7 +1436,6 @@ QScriptValueImpl QScriptEnginePrivate::create(int type, const void *ptr)
+ #endif
+ #ifndef QT_NO_QOBJECT
+         case QMetaType::QObjectStar:
+-        case QMetaType::QWidgetStar:
+             newQObject(&result, *reinterpret_cast<QObject* const *>(ptr));
+             break;
+ #endif
+@@ -1448,6 +1447,10 @@ QScriptValueImpl QScriptEnginePrivate::create(int type, const void *ptr)
+             }
+ 
+ #ifndef QT_NO_QOBJECT
++            else if (type == qMetaTypeId<QWidget*>()) {
++                newQObject(&result, *reinterpret_cast<QObject* const *>(ptr));
++            }
++
+             // lazy registration of some common list types
+             else if (type == qMetaTypeId<QObjectList>()) {
+                 qScriptRegisterSequenceMetaType<QObjectList>(q);
+@@ -1563,14 +1566,6 @@ bool QScriptEnginePrivate::convert(const QScriptValueImpl &value,
+             *reinterpret_cast<QObject* *>(ptr) = value.toQObject();
+             return true;
+         } break;
+-    case QMetaType::QWidgetStar:
+-        if (value.isQObject() || value.isNull()) {
+-            QObject *qo = value.toQObject();
+-            if (!qo || qo->isWidgetType()) {
+-                *reinterpret_cast<QWidget* *>(ptr) = reinterpret_cast<QWidget*>(qo);
+-                return true;
+-            }
+-        } break;
+ #endif
+     case QMetaType::QStringList:
+         if (value.isArray()) {
+@@ -1588,6 +1583,17 @@ bool QScriptEnginePrivate::convert(const QScriptValueImpl &value,
+             return true;
+         } break;
+     default:
++#ifndef QT_NO_QOBJECT
++    	if (type == qMetaTypeId<QWidget*>()) {
++            if (value.isQObject() || value.isNull()) {
++                QObject *qo = value.toQObject();
++                if (!qo || qo->isWidgetType()) {
++                    *reinterpret_cast<QWidget* *>(ptr) = reinterpret_cast<QWidget*>(qo);
++                    return true;
++                }
++            }
++    	}
++#endif
+     ;
+     }
+ 
+@@ -2609,6 +2615,7 @@ static QScriptValueImpl qsTranslate(QScriptContextPrivate *ctx, QScriptEnginePri
+     QString comment;
+     if (ctx->argumentCount() > 2)
+         comment = ctx->argument(2).toString();
++#if 0
+     QCoreApplication::Encoding encoding = QCoreApplication::CodecForTr;
+     if (ctx->argumentCount() > 3) {
+         QString encStr = ctx->argument(3).toString();
+@@ -2619,6 +2626,7 @@ static QScriptValueImpl qsTranslate(QScriptContextPrivate *ctx, QScriptEnginePri
+         else
+             return ctx->throwError(QString::fromLatin1("qsTranslate(): invalid encoding '%s'").arg(encStr));
+     }
++#endif
+     int n = -1;
+     if (ctx->argumentCount() > 4)
+         n = ctx->argument(4).toInt32();
+@@ -2628,7 +2636,7 @@ static QScriptValueImpl qsTranslate(QScriptContextPrivate *ctx, QScriptEnginePri
+     result = QCoreApplication::translate(context.toLatin1().constData(),
+                                          text.toLatin1().constData(),
+                                          comment.toLatin1().constData(),
+-                                         encoding, n);
++                                         n);
+ #else
+     result = text;
+ #endif
+@@ -2669,7 +2677,7 @@ static QScriptValueImpl qsTr(QScriptContextPrivate *ctx, QScriptEnginePrivate *e
+     result = QCoreApplication::translate(context.toLatin1().constData(),
+                                          text.toLatin1().constData(),
+                                          comment.toLatin1().constData(),
+-                                         QCoreApplication::CodecForTr, n);
++                                         n);
+ #else
+     result = text;
+ #endif
+diff --git a/src/qscriptextqobject.cpp b/src/qscriptextqobject.cpp
+index 06db925..cbf4e2a 100644
+--- a/src/qscriptextqobject.cpp
++++ b/src/qscriptextqobject.cpp
+@@ -98,9 +98,9 @@ namespace QScript {
+ class QObjectNotifyCaller : public QObject
+ {
+ public:
+-    void callConnectNotify(const char *signal)
++    void callConnectNotify(const QMetaMethod &signal)
+         { connectNotify(signal); }
+-    void callDisconnectNotify(const char *signal)
++    void callDisconnectNotify(const QMetaMethod &signal)
+         { disconnectNotify(signal); }
+ };
+ 
+@@ -135,7 +135,7 @@ public:
+ 
+ static inline QByteArray methodName(const QMetaMethod &method)
+ {
+-    QByteArray signature = method.signature();
++    QByteArray signature = method.methodSignature();
+     return signature.left(signature.indexOf('('));
+ }
+ 
+@@ -555,22 +555,22 @@ static void callQtMethod(QScriptContextPrivate *context, QMetaMethod::MethodType
+                 } else if (actual.isQObject()) {
+                     switch (tid) {
+                     case QMetaType::QObjectStar:
+-                    case QMetaType::QWidgetStar:
+                         // perfect
+                         break;
+                     default:
+-                        matchDistance += 10;
++                        if (tid != qMetaTypeId<QWidget*>())
++                            matchDistance += 10;
+                         break;
+                     }
+                 } else if (actual.isNull()) {
+                     switch (tid) {
+                     case QMetaType::VoidStar:
+                     case QMetaType::QObjectStar:
+-                    case QMetaType::QWidgetStar:
+                         // perfect
+                         break;
+                     default:
+-                        if (!argType.name().endsWith('*'))
++                        if (!argType.name().endsWith('*') &&
++                            (tid != qMetaTypeId<QWidget*>()))
+                             matchDistance += 10;
+                         break;
+                     }
+@@ -647,7 +647,7 @@ static void callQtMethod(QScriptContextPrivate *context, QMetaMethod::MethodType
+                 if (i > 0)
+                     message += QLatin1String("\n");
+                 QMetaMethod mtd = metaMethod(meta, callType, conversionFailed.at(i));
+-                message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.signature()));
++                message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.methodSignature()));
+             }
+             result = context->throwError(QScriptContext::TypeError, message);
+         } else if (!unresolved.isEmpty()) {
+@@ -674,7 +674,7 @@ static void callQtMethod(QScriptContextPrivate *context, QMetaMethod::MethodType
+                 if (i > 0)
+                     message += QLatin1String("\n");
+                 QMetaMethod mtd = metaMethod(meta, callType, tooFewArgs.at(i));
+-                message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.signature()));
++                message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.methodSignature()));
+             }
+             result = context->throwError(QScriptContext::SyntaxError, message);
+         }
+@@ -691,7 +691,7 @@ static void callQtMethod(QScriptContextPrivate *context, QMetaMethod::MethodType
+                     if (i > 0)
+                         message += QLatin1String("\n");
+                     QMetaMethod mtd = metaMethod(meta, callType, candidates.at(i).index);
+-                    message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.signature()));
++                    message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.methodSignature()));
+                 }
+                 result = context->throwError(QScriptContext::TypeError, message);
+             } else {
+@@ -847,7 +847,7 @@ bool ExtQObjectDataIterator::hasNext() const
+         for ( ; i < meta->methodCount(); ++i) {
+             QMetaMethod method = meta->method(i);
+             if (hasMethodAccess(method, i, inst->options)
+-                && !isObjectProperty(m_object, method.signature())) {
++                && !isObjectProperty(m_object, method.methodSignature())) {
+                 return true;
+             }
+         }
+@@ -909,9 +909,9 @@ void ExtQObjectDataIterator::next(QScript::Member *member)
+         for ( ; i < meta->methodCount(); ++i) {
+             QMetaMethod method = meta->method(i);
+             if (hasMethodAccess(method, i, inst->options)
+-                && !isObjectProperty(m_object, method.signature())) {
++                && !isObjectProperty(m_object, method.methodSignature())) {
+                 QMetaMethod method = meta->method(i);
+-                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(method.signature()));
++                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(method.methodSignature()));
+                 member->native(nameId, i,
+                                QScriptValue::QObjectMember
+                                | METHOD_ID);
+@@ -941,7 +941,7 @@ bool ExtQObjectDataIterator::hasPrevious() const
+         for ( ; i >= limit; --i) {
+             QMetaMethod method = meta->method(i);
+             if (hasMethodAccess(method, i, inst->options)
+-                && !isObjectProperty(m_object, method.signature())) {
++                && !isObjectProperty(m_object, method.methodSignature())) {
+                 return true;
+             }
+         }
+@@ -993,9 +993,9 @@ void ExtQObjectDataIterator::previous(QScript::Member *member)
+         for ( ; i >= limit; --i) {
+             QMetaMethod method = meta->method(i);
+             if (hasMethodAccess(method, i, inst->options)
+-                && !isObjectProperty(m_object, method.signature())) {
++                && !isObjectProperty(m_object, method.methodSignature())) {
+                 QMetaMethod method = meta->method(i);
+-                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(method.signature()));
++                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(method.methodSignature()));
+                 member->native(nameId, i,
+                                QScriptValue::QObjectMember
+                                | METHOD_ID);
+@@ -1508,7 +1508,7 @@ QScriptValueImpl QScript::ExtQObject::method_findChild(QScriptContextPrivate *co
+     if (Instance *instance = Instance::get(context->thisObject(), classInfo)) {
+         QObject *obj = instance->value;
+         QString name = context->argument(0).toString();
+-        QObject *child = qFindChild<QObject*>(obj, name);
++        QObject *child = obj->findChild<QObject*>(name);
+         QScriptEngine::QObjectWrapOptions opt = QScriptEngine::PreferExistingWrapperObject;
+         QScriptValueImpl result;
+         eng->newQObject(&result, child, QScriptEngine::QtOwnership, opt);
+@@ -1526,12 +1526,12 @@ QScriptValueImpl QScript::ExtQObject::method_findChildren(QScriptContextPrivate
+ #ifndef QT_NO_REGEXP
+         if (arg.isRegExp()) {
+             QRegExp re = arg.toRegExp();
+-            found = qFindChildren<QObject*>(obj, re);
++            found = obj->findChildren<QObject*>(re);
+         } else
+ #endif
+         {
+             QString name = arg.isUndefined() ? QString() : arg.toString();
+-            found = qFindChildren<QObject*>(obj, name);
++            found = obj->findChildren<QObject*>(name);
+         }
+         QScriptValueImpl result = eng->newArray(found.size());
+         QScriptEngine::QObjectWrapOptions opt = QScriptEngine::PreferExistingWrapperObject;
+@@ -1582,7 +1582,7 @@ static const char qt_meta_stringdata_QObjectConnectionManager[] = {
+ };
+ 
+ const QMetaObject QScript::QObjectConnectionManager::staticMetaObject = {
+-    { &QObject::staticMetaObject, qt_meta_stringdata_QObjectConnectionManager,
++    { &QObject::staticMetaObject, reinterpret_cast<const QByteArrayData *>(qt_meta_stringdata_QObjectConnectionManager),
+       qt_meta_data_QObjectConnectionManager, 0 }
+ };
+ 
+@@ -1684,7 +1684,7 @@ void QScript::QObjectConnectionManager::execute(int slotIndex, void **argv)
+                 } else {
+                     qWarning("QScriptEngine: Unable to handle unregistered datatype '%s' "
+                              "when invoking handler of signal %s::%s",
+-                             typeName.constData(), meta->className(), method.signature());
++                             typeName.constData(), meta->className(), method.methodSignature().constData());
+                     actual = eng->undefinedValue();
+                 }
+             } else {
+@@ -1758,10 +1758,7 @@ bool QScript::QObjectConnectionManager::addSignalHandler(
+     if (ok) {
+         cs.append(QScript::QObjectConnection(m_slotCounter++, receiver, function, senderWrapper));
+         QMetaMethod signal = sender->metaObject()->method(signalIndex);
+-        QByteArray signalString;
+-        signalString.append('2'); // signal code
+-        signalString.append(signal.signature());
+-        static_cast<QScript::QObjectNotifyCaller*>(sender)->callConnectNotify(signalString);
++        static_cast<QScript::QObjectNotifyCaller*>(sender)->callConnectNotify(signal);
+     }
+     return ok;
+ }
+@@ -1782,10 +1779,7 @@ bool QScript::QObjectConnectionManager::removeSignalHandler(
+             if (ok) {
+                 cs.remove(i);
+                 QMetaMethod signal = sender->metaObject()->method(signalIndex);
+-                QByteArray signalString;
+-                signalString.append('2'); // signal code
+-                signalString.append(signal.signature());
+-                static_cast<QScript::QObjectNotifyCaller*>(sender)->callDisconnectNotify(signalString);
++                static_cast<QScript::QObjectNotifyCaller*>(sender)->callDisconnectNotify(signal);
+             }
+             return ok;
+         }
+diff --git a/src/qscriptstring.cpp b/src/qscriptstring.cpp
+index 1ed7f33..2436061 100644
+--- a/src/qscriptstring.cpp
++++ b/src/qscriptstring.cpp
+@@ -88,7 +88,6 @@ QT_BEGIN_NAMESPACE
+ QScriptStringPrivate::QScriptStringPrivate()
+     : nameId(0), engine(0), q_ptr(0)
+ {
+-    ref = 0;
+ }
+ 
+ /*!
+diff --git a/src/qscriptsyntaxcheckresult_p.h b/src/qscriptsyntaxcheckresult_p.h
+index bd6ef51..ed32383 100644
+--- a/src/qscriptsyntaxcheckresult_p.h
++++ b/src/qscriptsyntaxcheckresult_p.h
+@@ -72,7 +72,7 @@ QT_BEGIN_NAMESPACE
+ class QScriptSyntaxCheckResultPrivate
+ {
+ public:
+-    QScriptSyntaxCheckResultPrivate() { ref = 0; }
++    QScriptSyntaxCheckResultPrivate() {}
+     ~QScriptSyntaxCheckResultPrivate() {}
+ 
+     QScriptSyntaxCheckResult::State state;
+diff --git a/src/qscriptvalue.cpp b/src/qscriptvalue.cpp
+index 7fa655e..5d3d875 100644
+--- a/src/qscriptvalue.cpp
++++ b/src/qscriptvalue.cpp
+@@ -347,7 +347,7 @@ QScriptValue::QScriptValue(QScriptEngine *engine, const char *val)
+     if (engine) {
+         QScriptValueImpl v;
+         QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(engine);
+-        eng_p->newString(&v, QString::fromAscii(val));
++        eng_p->newString(&v, QString::fromLatin1(val));
+         d_ptr = eng_p->registerValue(v);
+         d_ptr->ref.ref();
+     } else {
+@@ -453,7 +453,7 @@ QScriptValue::QScriptValue(const char *value)
+     : d_ptr(new QScriptValuePrivate)
+ {
+     d_ptr->value.m_type = QScript::LazyStringType;
+-    d_ptr->value.m_lazy_string_value = new QString(QString::fromAscii(value));
++    d_ptr->value.m_lazy_string_value = new QString(QString::fromLatin1(value));
+     d_ptr->ref.ref();
+ }
+ #endif
+diff --git a/src/qscriptvalue.h b/src/qscriptvalue.h
+index 726fc26..a9c9ae9 100644
+--- a/src/qscriptvalue.h
++++ b/src/qscriptvalue.h
+@@ -120,7 +120,7 @@ public:
+     QScriptValue(QScriptEngine *engine, qsreal val);
+     QScriptValue(QScriptEngine *engine, const QString &val);
+ #ifndef QT_NO_CAST_FROM_ASCII
+-    QT_ASCII_CAST_WARN_CONSTRUCTOR QScriptValue(QScriptEngine *engine, const char *val);
++    QT_ASCII_CAST_WARN QScriptValue(QScriptEngine *engine, const char *val);
+ #endif
+ 
+     QScriptValue(SpecialValue value);
+@@ -131,7 +131,7 @@ public:
+     QScriptValue(const QString &value);
+     QScriptValue(const QLatin1String &value);
+ #ifndef QT_NO_CAST_FROM_ASCII
+-    QT_ASCII_CAST_WARN_CONSTRUCTOR QScriptValue(const char *value);
++    QT_ASCII_CAST_WARN QScriptValue(const char *value);
+ #endif
+ 
+     QScriptValue &operator=(const QScriptValue &other);
+diff --git a/src/qscriptvalue_p.h b/src/qscriptvalue_p.h
+index 7d891ed..86b62e4 100644
+--- a/src/qscriptvalue_p.h
++++ b/src/qscriptvalue_p.h
+@@ -67,7 +67,6 @@ QT_BEGIN_NAMESPACE
+ inline QScriptValuePrivate::QScriptValuePrivate()
+ {
+     engine = 0;
+-    ref = 0;
+ }
+ 
+ inline QScriptValuePrivate::~QScriptValuePrivate()
+diff --git a/src/qscriptvalueimpl_p.h b/src/qscriptvalueimpl_p.h
+index cf2695b..72b3252 100644
+--- a/src/qscriptvalueimpl_p.h
++++ b/src/qscriptvalueimpl_p.h
+@@ -64,6 +64,7 @@
+ #include "qscriptcontextfwd_p.h"
+ 
+ #include <QtCore/QDateTime>
++#include <QtWidgets/QWidget>
+ 
+ QT_BEGIN_NAMESPACE
+ 
+@@ -348,7 +349,7 @@ inline QObject *QScriptValueImpl::toQObject() const
+         return data->value;
+     } else if (isVariant()) {
+         int type = variantValue().userType();
+-        if ((type == QMetaType::QObjectStar) || (type == QMetaType::QWidgetStar))
++        if ((type == QMetaType::QObjectStar) || (type == qMetaTypeId<QWidget*>()))
+             return *reinterpret_cast<QObject* const *>(variantValue().constData());
+     }
+ #endif

@@ -1,0 +1,22 @@
+qt5_qtbase_virtual_deletelater.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtbase/src/corelib/kernel/qobject.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/qtbase/src/corelib/kernel/qobject.h b/qtbase/src/corelib/kernel/qobject.h
+index aaa09fa..5e07216 100644
+--- a/qtbase/src/corelib/kernel/qobject.h
++++ b/qtbase/src/corelib/kernel/qobject.h
+@@ -389,7 +389,7 @@ public:
+         { return const_cast<QObject *>(this)->qt_metacast(classname) != 0; }
+ 
+ public Q_SLOTS:
+-    void deleteLater();
++    virtual void deleteLater();
+ 
+ protected:
+     QObject *sender() const;

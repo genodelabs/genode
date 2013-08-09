@@ -1,0 +1,123 @@
+qt5_tools.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Support out-of-tree build of Qt host tools.
+This patch should not be applied when running the Qt 'configure' script.
+---
+ qtbase/mkspecs/features/qt_build_config.prf |    2 +
+ qtbase/mkspecs/features/qt_functions.prf    |    2 +
+ qtbase/mkspecs/features/qt_module.prf       |    4 +-
+ qtbase/mkspecs/features/qt_tool.prf         |   54 ++++++++++++++-------------
+ 4 files changed, 31 insertions(+), 31 deletions(-)
+
+diff --git a/qtbase/mkspecs/features/qt_build_config.prf b/qtbase/mkspecs/features/qt_build_config.prf
+index a29e09c..32c8388 100644
+--- a/qtbase/mkspecs/features/qt_build_config.prf
++++ b/qtbase/mkspecs/features/qt_build_config.prf
+@@ -12,7 +12,7 @@
+ !contains(QMAKE_INTERNAL_INCLUDED_FILES, .*qmodule\\.pri) {
+     QMAKE_QT_MODULE = $$[QT_HOST_DATA/get]/mkspecs/qmodule.pri
+     !exists($$QMAKE_QT_MODULE)|!include($$QMAKE_QT_MODULE, "", true) {
+-        error("Cannot load qmodule.pri!")
++        debug(1, "Cannot load qmodule.pri!")
+     } else {
+         debug(1, "Loaded qmodule.pri from ($$QMAKE_QT_MODULE)")
+     }
+diff --git a/qtbase/mkspecs/features/qt_functions.prf b/qtbase/mkspecs/features/qt_functions.prf
+index bbbb5d3..62006ee 100644
+--- a/qtbase/mkspecs/features/qt_functions.prf
++++ b/qtbase/mkspecs/features/qt_functions.prf
+@@ -167,7 +167,7 @@ defineTest(qtAddModules) {
+ 
+         qtAddModule($$QTLIB, $$eval(QT.$${QTLIB}.want_private), $$2)
+     }
+-    !isEmpty(BAD_QT):error("Unknown module(s) in $$1: $$BAD_QT")
++    !isEmpty(BAD_QT):debug(1, "Unknown module(s) in $$1: $$BAD_QT")
+ 
+     export(using_privates)
+ }
+diff --git a/qtbase/mkspecs/features/qt_module.prf b/qtbase/mkspecs/features/qt_module.prf
+index 53a5499..035480d 100644
+--- a/qtbase/mkspecs/features/qt_module.prf
++++ b/qtbase/mkspecs/features/qt_module.prf
+@@ -21,7 +21,7 @@ load(qt_build_config) # loads qmodule.pri if hasn't been loaded already
+ 
+ isEmpty(MODULE):MODULE = $$section($$list($$basename(_PRO_FILE_)), ., 0, 0)
+ isEmpty(VERSION): VERSION = $$MODULE_VERSION
+-isEmpty(VERSION): error("Module does not define version.")
++isEmpty(VERSION): debug(1, "Module does not define version.")
+ 
+ # Compile as shared/DLL or static according to the option given to configure
+ # unless overridden. Host builds are always static
+@@ -53,7 +53,7 @@ else: \
+     MODULE_DEFINE = QT_$${ucmodule}_LIB
+ MODULE_DEFINES = $$MODULE_DEFINE $$MODULE_DEFINES
+ 
+-load(qt_module_pris)
++#load(qt_module_pris)
+ 
+ INCLUDEPATH *= $$eval(QT.$${MODULE}.includes) $$eval(QT.$${MODULE}.private_includes)
+ 
+diff --git a/qtbase/mkspecs/features/qt_tool.prf b/qtbase/mkspecs/features/qt_tool.prf
+index 9a6b963..30a2059 100644
+--- a/qtbase/mkspecs/features/qt_tool.prf
++++ b/qtbase/mkspecs/features/qt_tool.prf
+@@ -16,30 +16,30 @@ CONFIG += console
+ # If we are doing a prefix build, create a "module" pri which enables
+ # qtPrepareTool() to work with the non-installed build.
+ # Non-bootstrapped tools always need this because of the environment setup.
+-!build_pass:if(!host_build|!force_bootstrap|force_independent) {
+-    isEmpty(MODULE):MODULE = $$TARGET
+-
+-    !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, )
+-
+-    load(qt_build_paths)
+-
+-    load(resolve_target)
+-
+-    TOOL_PRI = $$MODULE_QMAKE_OUTDIR/mkspecs/modules/qt_tool_$${MODULE}.pri
+-
+-    TOOL_PRI_CONT = \
+-        "QT_TOOL.$${MODULE}.binary = $$QMAKE_RESOLVED_TARGET" \
+-        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")"
+-    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error("Aborting.")
+-
+-    # Then, inject the new tool into the current cache state
+-    !contains(QMAKE_INTERNAL_INCLUDED_FILES, $$TOOL_PRI) { # before the actual include()!
+-        added = $$TOOL_PRI
+-        cache(QMAKE_INTERNAL_INCLUDED_FILES, add transient, added)
+-        unset(added)
+-    }
+-    include($$TOOL_PRI)
+-    for(var, $$list(binary depends)): \
+-        cache(QT_TOOL.$${MODULE}.$$var, transient)
+-
+-}
++#!build_pass:if(!host_build|!force_bootstrap|force_independent) {
++#    isEmpty(MODULE):MODULE = $$TARGET
++#
++#    !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, )
++#
++#    load(qt_build_paths)
++#
++#    load(resolve_target)
++#
++#    TOOL_PRI = $$MODULE_QMAKE_OUTDIR/mkspecs/modules/qt_tool_$${MODULE}.pri
++#
++#    TOOL_PRI_CONT = \
++#        "QT_TOOL.$${MODULE}.binary = $$QMAKE_RESOLVED_TARGET" \
++#        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")"
++#    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error("Aborting.")
++#
++#    # Then, inject the new tool into the current cache state
++#    !contains(QMAKE_INTERNAL_INCLUDED_FILES, $$TOOL_PRI) { # before the actual include()!
++#        added = $$TOOL_PRI
++#        cache(QMAKE_INTERNAL_INCLUDED_FILES, add transient, added)
++#        unset(added)
++#    }
++#    include($$TOOL_PRI)
++#    for(var, $$list(binary depends)): \
++#        cache(QT_TOOL.$${MODULE}.$$var, transient)
++#
++#}

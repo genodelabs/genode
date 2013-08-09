@@ -1,0 +1,36 @@
+arora_startpage.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/tabwidget.cpp |    2 +-
+ src/webpage.cpp   |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/tabwidget.cpp b/src/tabwidget.cpp
+index 060f513..2c6a82a 100644
+--- a/src/tabwidget.cpp
++++ b/src/tabwidget.cpp
+@@ -829,7 +829,7 @@ QUrl TabWidget::guessUrlFromString(const QString &string)
+ 
+     if (url.scheme() == QLatin1String("about")
+         && url.path() == QLatin1String("home"))
+-        url = QUrl(QLatin1String("qrc:/startpage.html"));
++        url = QUrl(QLatin1String("qrc:/demo/intro.html"));
+ 
+     // QUrl::isValid() is too much tolerant.
+     // We actually want to check if the url conforms to the RFC, which QUrl::isValid() doesn't state.
+diff --git a/src/webpage.cpp b/src/webpage.cpp
+index 42daf7a..e2e7265 100644
+--- a/src/webpage.cpp
++++ b/src/webpage.cpp
+@@ -211,7 +211,7 @@ void WebPage::addExternalBinding(QWebFrame *frame)
+         frame = qobject_cast<QWebFrame*>(sender());
+ 
+         if (frame->url().scheme() == QLatin1String("qrc")
+-            && frame->url().path() == QLatin1String("/startpage.html")) {
++            && frame->url().path() == QLatin1String("/demo/intro.html")) {
+ 
+             if (!m_javaScriptAroraObject)
+                 m_javaScriptAroraObject = new JavaScriptAroraObject(this);

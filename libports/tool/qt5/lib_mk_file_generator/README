@@ -1,0 +1,10 @@
+The scripts in this directory have been used to generate the
+'lib/mk/qt5_*_generated.inc' files.
+
+Usage:
+
+- create a build directory in the 'contrib' directory
+- copy the scripts into this build directory
+- change into the build directory
+- execute the 'create_generated_incs' script
+- move the generated files into the 'lib/mk/' directory

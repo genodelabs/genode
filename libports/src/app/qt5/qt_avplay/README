@@ -1,0 +1,18 @@
+This directory contains a simple Qt-based media player which is actually a
+graphical user interface for the SDL-based 'avplay' media player from 'libav'.
+It starts 'avplay' as a child and shows its graphical output in a
+'QNitpickerViewWidget'. The widgets for controlling the player state send the
+according keyboard and mouse input events to 'avplay'.
+
+The 'qt_avplay' player supports the following configuration options:
+
+:'<mediafile name="..."/>:'
+  name of the media file to play
+
+:'<framebuffer_filter name="..." ram_quota="..."/>':
+
+  This node contains the name of a framebuffer filter service to filter the
+  video output. It may appear multiple times. If specified more than once, it
+  is possible to build a post-processing pipeline for the video display where
+  each processing stage is executed by a separate program.
+

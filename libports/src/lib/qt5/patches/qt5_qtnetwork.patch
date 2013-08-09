@@ -1,0 +1,68 @@
+qt5_qtnetwork.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtbase/src/network/access/qhttpnetworkreply.cpp |    8 ++++++++
+ qtbase/src/network/ssl/qsslconfiguration_p.h    |    9 +++++++++
+ qtbase/src/network/ssl/qsslsocket_openssl.cpp   |    3 +++
+ 3 files changed, 20 insertions(+)
+
+diff --git a/qtbase/src/network/access/qhttpnetworkreply.cpp b/qtbase/src/network/access/qhttpnetworkreply.cpp
+index eb8a886..1150088 100644
+--- a/qtbase/src/network/access/qhttpnetworkreply.cpp
++++ b/qtbase/src/network/access/qhttpnetworkreply.cpp
+@@ -238,8 +238,16 @@ void QHttpNetworkReply::setReadBufferSize(qint64 size)
+ 
+ bool QHttpNetworkReply::supportsUserProvidedDownloadBuffer()
+ {
++#ifdef Q_OS_GENODE
++	/*
++	 * Without this change Arora shows garbage when loading, for example,
++	 * www.genode.org
++	 */
++	return false;
++#else
+     Q_D(QHttpNetworkReply);
+     return (!d->isChunked() && !d->autoDecompress && d->bodyLength > 0 && d->statusCode == 200);
++#endif
+ }
+ 
+ void QHttpNetworkReply::setUserProvidedDownloadBuffer(char* b)
+diff --git a/qtbase/src/network/ssl/qsslconfiguration_p.h b/qtbase/src/network/ssl/qsslconfiguration_p.h
+index 54b7264..5702e01 100644
+--- a/qtbase/src/network/ssl/qsslconfiguration_p.h
++++ b/qtbase/src/network/ssl/qsslconfiguration_p.h
+@@ -81,7 +81,16 @@ class QSslConfigurationPrivate: public QSharedData
+ public:
+     QSslConfigurationPrivate()
+         : protocol(QSsl::SecureProtocols),
++#ifdef Q_OS_GENODE
++          /*
++           * With enabled peer verification, currently often a 'handshake error'
++           * occurs. This patch disables the peer verification until a fix for
++           * the handshake problem has been found.
++           */
++          peerVerifyMode(QSslSocket::VerifyNone),
++#else
+           peerVerifyMode(QSslSocket::AutoVerifyPeer),
++#endif
+           peerVerifyDepth(0),
+           allowRootCertOnDemandLoading(true),
+           peerSessionShared(false),
+diff --git a/qtbase/src/network/ssl/qsslsocket_openssl.cpp b/qtbase/src/network/ssl/qsslsocket_openssl.cpp
+index 675bd7d..647f3fd 100644
+--- a/qtbase/src/network/ssl/qsslsocket_openssl.cpp
++++ b/qtbase/src/network/ssl/qsslsocket_openssl.cpp
+@@ -445,7 +445,10 @@ bool QSslSocketPrivate::ensureLibraryLoaded()
+         if (q_SSL_library_init() != 1)
+             return false;
+         q_SSL_load_error_strings();
++#ifndef Q_OS_GENODE
++        /* FIXME: currently, on Genode this function causes 'exit(1)' */
+         q_OpenSSL_add_all_algorithms();
++#endif
+ 
+         // Initialize OpenSSL's random seed.
+         if (!q_RAND_status()) {

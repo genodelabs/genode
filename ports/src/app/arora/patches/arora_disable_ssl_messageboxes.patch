@@ -1,0 +1,47 @@
+arora_disable_ssl_message_boxes.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/network/networkaccessmanager.cpp |    8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/network/networkaccessmanager.cpp b/src/network/networkaccessmanager.cpp
+index 9253a8e..45e9786 100644
+--- a/src/network/networkaccessmanager.cpp
++++ b/src/network/networkaccessmanager.cpp
+@@ -316,6 +316,7 @@ void NetworkAccessManager::sslErrors(QNetworkReply *reply, const QList<QSslError
+     }
+ 
+     QString errors = errorStrings.join(QLatin1String("</li><li>"));
++#if 0
+     int ret = QMessageBox::warning(mainWindow,
+                            QCoreApplication::applicationName() + tr(" - SSL Errors"),
+                            tr("<qt>SSL Errors:"
+@@ -324,18 +325,25 @@ void NetworkAccessManager::sslErrors(QNetworkReply *reply, const QList<QSslError
+                               "Do you want to ignore these errors?</qt>").arg(reply->url().toString()).arg(errors),
+                            QMessageBox::Yes | QMessageBox::No,
+                            QMessageBox::No);
++#else
++    int ret = QMessageBox::Yes;
++#endif
+ 
+     if (ret == QMessageBox::Yes) {
+         if (ca_new.count() > 0) {
+             QStringList certinfos;
+             for (int i = 0; i < ca_new.count(); ++i)
+                 certinfos += certToFormattedString(ca_new.at(i));
++#if 0
+             ret = QMessageBox::question(mainWindow, QCoreApplication::applicationName(),
+                 tr("<qt>Certificates:<br/>"
+                    "%1<br/>"
+                    "Do you want to accept all these certificates?</qt>")
+                     .arg(certinfos.join(QString())),
+                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
++#else
++            ret = QMessageBox::Yes;
++#endif
+             if (ret == QMessageBox::Yes) {
+                 ca_merge += ca_new;
+ 

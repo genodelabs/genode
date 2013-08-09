@@ -1,0 +1,220 @@
+qt5_configuration.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ configure                                          |    2 -
+ qt.pro                                             |   42 ++++++++++----------
+ qtbase/configure                                   |    6 +--
+ qtbase/mkspecs/genode-g++/qmake.conf               |    1 
+ qtbase/mkspecs/genode-g++/qplatformdefs.h          |    1 
+ qtbase/src/corelib/global/qconfig-genode.h         |    1 
+ qtdeclarative/examples/quick/quick.pro             |    6 ++-
+ qtdeclarative/src/imports/imports.pro              |    2 -
+ qtdeclarative/tests/tests.pro                      |    4 +-
+ qtquick1/examples/declarative/declarative.pro      |    1 
+ qtwebkit/Tools/qmake/mkspecs/features/features.prf |    6 +--
+ 11 files changed, 39 insertions(+), 33 deletions(-)
+ create mode 120000 qtbase/mkspecs/genode-g++/qmake.conf
+ create mode 120000 qtbase/mkspecs/genode-g++/qplatformdefs.h
+ create mode 120000 qtbase/src/corelib/global/qconfig-genode.h
+
+diff --git a/configure b/configure
+index 9ba24b5..d0f1357 100755
+--- a/configure
++++ b/configure
+@@ -60,4 +60,4 @@ echo "+ cd .."
+ cd ..
+ 
+ echo "+ qtbase/bin/qmake $srcpath"
+-exec qtbase/bin/qmake "$srcpath"
++exec qtbase/bin/qmake -r "$srcpath"
+diff --git a/qt.pro b/qt.pro
+index 218701a..bb4c037 100644
+--- a/qt.pro
++++ b/qt.pro
+@@ -54,33 +54,33 @@ defineTest(addModule) {
+ # it may not build.
+ 
+ addModule(qtbase)
+-addModule(qtx11extras, qtbase)
+-addModule(qlalr, qtbase)
++#addModule(qtx11extras, qtbase)
++#addModule(qlalr, qtbase)
+ addModule(qtsvg, qtbase)
+ addModule(qtxmlpatterns, qtbase)
+ addModule(qtjsbackend, qtbase)
+ addModule(qtdeclarative, qtjsbackend, qtsvg qtxmlpatterns)
+-addModule(qtquickcontrols, qtdeclarative)
+-addModule(qtmultimedia, qtdeclarative)
+-addModule(qtactiveqt, qtbase)
+-addModule(qt3d, qtdeclarative)
+-addModule(qtjsondb, qtdeclarative)
+-addModule(qtsystems, qtbase, qtdeclarative qtjsondb)
+-addModule(qtlocation, qtbase, qt3d qtjsondb qtsystems qtmultimedia)
+-addModule(qtsensors, qtbase, qtdeclarative)
+-addModule(qtconnectivity, qtsystems)
+-addModule(qtfeedback, qtdeclarative, qtmultimedia)
+-addModule(qtpim, qtdeclarative, qtjsondb)
++#addModule(qtquickcontrols, qtdeclarative)
++#addModule(qtmultimedia, qtdeclarative)
++#addModule(qtactiveqt, qtbase)
++#addModule(qt3d, qtdeclarative)
++#addModule(qtjsondb, qtdeclarative)
++#addModule(qtsystems, qtbase, qtdeclarative qtjsondb)
++#addModule(qtlocation, qtbase, qt3d qtjsondb qtsystems qtmultimedia)
++#addModule(qtsensors, qtbase, qtdeclarative)
++#addModule(qtconnectivity, qtsystems)
++#addModule(qtfeedback, qtdeclarative, qtmultimedia)
++#addModule(qtpim, qtdeclarative, qtjsondb)
+ addModule(qtwebkit, qtdeclarative, qtlocation qtsensors, WebKit.pro)
+ addModule(qttools, qtbase, qtdeclarative qtactiveqt qtwebkit)
+ addModule(qtwebkit-examples, qtwebkit qttools)
+ addModule(qtimageformats, qtbase)
+-addModule(qtgraphicaleffects, qtdeclarative)
++#addModule(qtgraphicaleffects, qtdeclarative)
+ addModule(qtscript, qtbase)
+-addModule(qtquick1, qtscript, qtsvg qtxmlpatterns qtwebkit qttools)
+-addModule(qtdocgallery, qtdeclarative, qtjsondb)
+-!win32:!mac:addModule(qtwayland, qtbase, qtdeclarative)
+-addModule(qtserialport, qtbase)
+-addModule(qttranslations, qttools)
+-addModule(qtdoc, qtdeclarative)
+-addModule(qtqa, qtbase)
++#addModule(qtquick1, qtscript, qtsvg qtxmlpatterns qtwebkit qttools)
++#addModule(qtdocgallery, qtdeclarative, qtjsondb)
++#!win32:!mac:addModule(qtwayland, qtbase, qtdeclarative)
++#addModule(qtserialport, qtbase)
++#addModule(qttranslations, qttools)
++#addModule(qtdoc, qtdeclarative)
++#addModule(qtqa, qtbase)
+diff --git a/qtbase/configure b/qtbase/configure
+index d7c9674..f4198b8 100755
+--- a/qtbase/configure
++++ b/qtbase/configure
+@@ -857,10 +857,10 @@ CFG_XINERAMA=runtime
+ CFG_XFIXES=runtime
+ CFG_ZLIB=auto
+ CFG_SQLITE=qt
+-CFG_GIF=auto
++CFG_GIF=yes
+ CFG_PNG=yes
+ CFG_LIBPNG=auto
+-CFG_JPEG=auto
++CFG_JPEG=yes
+ CFG_LIBJPEG=auto
+ CFG_XCURSOR=runtime
+ CFG_XRANDR=runtime
+@@ -949,7 +949,7 @@ CFG_GETADDRINFO=auto
+ CFG_IPV6IFNAME=auto
+ CFG_GETIFADDRS=auto
+ CFG_INOTIFY=auto
+-CFG_EVENTFD=auto
++CFG_EVENTFD=no
+ CFG_RPATH=yes
+ CFG_FRAMEWORK=auto
+ CFG_MAC_HARFBUZZ=no
+diff --git a/qtbase/mkspecs/genode-g++/qmake.conf b/qtbase/mkspecs/genode-g++/qmake.conf
+new file mode 120000
+index 0000000..d4c4a25
+--- /dev/null
++++ b/qtbase/mkspecs/genode-g++/qmake.conf
+@@ -0,0 +1 @@
++../../../../../src/lib/qt5/qtbase/mkspecs/genode-g++/qmake.conf
+\ No newline at end of file
+diff --git a/qtbase/mkspecs/genode-g++/qplatformdefs.h b/qtbase/mkspecs/genode-g++/qplatformdefs.h
+new file mode 120000
+index 0000000..7d0c24b
+--- /dev/null
++++ b/qtbase/mkspecs/genode-g++/qplatformdefs.h
+@@ -0,0 +1 @@
++../../../../../src/lib/qt5/qtbase/mkspecs/genode-g++/qplatformdefs.h
+\ No newline at end of file
+diff --git a/qtbase/src/corelib/global/qconfig-genode.h b/qtbase/src/corelib/global/qconfig-genode.h
+new file mode 120000
+index 0000000..ca3b847
+--- /dev/null
++++ b/qtbase/src/corelib/global/qconfig-genode.h
+@@ -0,0 +1 @@
++../../../../../../src/lib/qt5/qtbase/src/corelib/global/qconfig-genode.h
+\ No newline at end of file
+diff --git a/qtdeclarative/examples/quick/quick.pro b/qtdeclarative/examples/quick/quick.pro
+index 311e264..b356a56 100644
+--- a/qtdeclarative/examples/quick/quick.pro
++++ b/qtdeclarative/examples/quick/quick.pro
+@@ -12,7 +12,6 @@ SUBDIRS = accessibility \
+             positioners \
+             righttoleft \
+             scenegraph \
+-            shadereffects \
+             text \
+             threading \
+             touchinteraction \
+@@ -29,6 +28,11 @@ qtHaveModule(widgets) {
+     SUBDIRS += embeddedinwidgets
+ }
+ 
++# OpenGL dependent examples
++qtHaveModule(opengl) {
++	SUBDIRS += shadereffects
++}
++
+ EXAMPLE_FILES = \
+     ui-components \
+     shared
+diff --git a/qtdeclarative/src/imports/imports.pro b/qtdeclarative/src/imports/imports.pro
+index 733c7c4..fb1a413 100644
+--- a/qtdeclarative/src/imports/imports.pro
++++ b/qtdeclarative/src/imports/imports.pro
+@@ -16,4 +16,4 @@ qtHaveModule(quick) {
+ 
+ qtHaveModule(xmlpatterns) : SUBDIRS += xmllistmodel
+ 
+-qtHaveModule(widgets) : SUBDIRS += widgets
++qtHaveModule(widgets),qtHaveModule(quick): SUBDIRS += widgets
+diff --git a/qtdeclarative/tests/tests.pro b/qtdeclarative/tests/tests.pro
+index 85e4f3a..9aa752b 100644
+--- a/qtdeclarative/tests/tests.pro
++++ b/qtdeclarative/tests/tests.pro
+@@ -1,2 +1,2 @@
+-TEMPLATE = subdirs
+-SUBDIRS +=  auto
++#TEMPLATE = subdirs
++#SUBDIRS +=  auto
+diff --git a/qtquick1/examples/declarative/declarative.pro b/qtquick1/examples/declarative/declarative.pro
+index 91378da..123539f 100644
+--- a/qtquick1/examples/declarative/declarative.pro
++++ b/qtquick1/examples/declarative/declarative.pro
+@@ -16,7 +16,6 @@ SUBDIRS = \
+     righttoleft \
+     rssnews \
+     samegame \
+-    shadereffects \
+     snake \
+     sqllocalstorage \
+     text \
+diff --git a/qtwebkit/Tools/qmake/mkspecs/features/features.prf b/qtwebkit/Tools/qmake/mkspecs/features/features.prf
+index ddbccf9..e4d3999 100644
+--- a/qtwebkit/Tools/qmake/mkspecs/features/features.prf
++++ b/qtwebkit/Tools/qmake/mkspecs/features/features.prf
+@@ -39,8 +39,8 @@ defineTest(detectFeatures) {
+ 
+     config_libxml2: WEBKIT_CONFIG += use_libxml2
+     config_libxslt: WEBKIT_CONFIG += xslt
+-    config_libzlib: WEBKIT_CONFIG += use_zlib
+-    config_libwebp: WEBKIT_CONFIG += use_webp
++    #config_libzlib: WEBKIT_CONFIG += use_zlib
++    #config_libwebp: WEBKIT_CONFIG += use_webp
+ 
+     # We can't use Qt's 3rdparty sources for libjpeg and libpng outside of qtbase, but if Qt
+     # is using the system libraries, use them to take advantage of the WebCore image decoders as well.
+@@ -81,7 +81,7 @@ defineTest(detectFeatures) {
+ 
+     # Enable the USE(3D_GRAPHICS) flag when QtOpenGL is enabled.
+     # Disable on Windows CE for now, as ANGLE won't compile.
+-    !wince*:contains(QT_CONFIG, opengl): WEBKIT_CONFIG += use_3d_graphics
++    #!wince*:contains(QT_CONFIG, opengl): WEBKIT_CONFIG += use_3d_graphics
+ 
+     # Temporarily disable FTPDIR on Windows CE (missing functions from time.h)
+     wince* {

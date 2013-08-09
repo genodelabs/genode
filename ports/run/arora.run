@@ -10,6 +10,13 @@ set build_components {
 	app/arora
 }
 
+#
+# Qt5-specific components to build
+#
+append_if [expr ![have_spec qt4_deprecated]] build_components {
+	server/liquid_framebuffer
+}
+
 build $build_components
 
 create_boot_directory
@@ -111,24 +118,57 @@ set boot_modules {
 	ld.lib.so
 	libc.lib.so libm.lib.so lwip.lib.so libc_log.lib.so
 	zlib.lib.so libpng.lib.so jpeg.lib.so libssl.lib.so libcrypto.lib.so
-	dejavusans.lib.so
 	freetype.lib.so
 	libc_lock_pipe.lib.so
 	stdcxx.lib.so
-	qt_core.lib.so
-	qt_gui.lib.so
-	qt_jscore.lib.so
-	qt_network.lib.so
-	qt_script.lib.so
-	qt_ui_tools.lib.so
-	qt_webcore.lib.so
-	qt_webkit.lib.so
-	qt_xml.lib.so
-	qnitpickerviewwidget.lib.so
-	qpluginwidget.lib.so
 	nitpicker_plugin.tar
 }
 
+if {[have_spec qt4_deprecated]} {
+	#
+	# Qt4-specific boot modules
+	#
+	append boot_modules {
+		dejavusans.lib.so
+		qt_core.lib.so
+		qt_gui.lib.so
+		qt_jscore.lib.so
+		qt_network.lib.so
+		qt_script.lib.so
+		qt_ui_tools.lib.so
+		qt_webcore.lib.so
+		qt_webkit.lib.so
+		qt_xml.lib.so
+		qnitpickerviewwidget.lib.so
+		qpluginwidget.lib.so
+	}
+} else {
+	#
+	# Qt5-specific boot modules
+	#
+	append boot_modules {
+		liquid_fb
+		icu.lib.so
+		pthread.lib.so
+		qt5_core.lib.so
+		qt5_dejavusans.lib.so
+		qt5_gui.lib.so
+		qt5_jscore.lib.so
+		qt5_network.lib.so
+		qt5_qnitpickerviewwidget.lib.so
+		qt5_qpluginwidget.lib.so
+		qt5_ui_tools.lib.so
+		qt5_webcore.lib.so
+		qt5_webkit.lib.so
+		qt5_xml.lib.so	
+		qt5_printsupport.lib.so
+		qt5_scriptclassic.lib.so
+		qt5_sql.lib.so
+		qt5_webkitwidgets.lib.so
+		qt5_widgets.lib.so
+		qt5_wtf.lib.so
+	}
+}
 
 # platform-specific modules
 lappend_if [have_spec       linux] boot_modules fb_sdl
@@ -138,7 +178,7 @@ lappend_if [have_spec         ps2] boot_modules ps2_drv
 
 build_boot_image $boot_modules
 
-append qemu_args " -m 256 "
+append qemu_args " -m 512 "
 
 append_if [have_spec x86]     qemu_args " -net nic,model=pcnet "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "

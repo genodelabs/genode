@@ -1,0 +1,53 @@
+arora_disable_adblock.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ src/adblock/adblockmanager.cpp |   26 ++++++++++++++------------
+ 1 file changed, 14 insertions(+), 12 deletions(-)
+
+diff --git a/src/adblock/adblockmanager.cpp b/src/adblock/adblockmanager.cpp
+index 959f880..964e988 100644
+--- a/src/adblock/adblockmanager.cpp
++++ b/src/adblock/adblockmanager.cpp
+@@ -48,7 +48,7 @@ AdBlockManager *AdBlockManager::s_adBlockManager = 0;
+ AdBlockManager::AdBlockManager(QObject *parent)
+     : QObject(parent)
+     , m_loaded(false)
+-    , m_enabled(true)
++    , m_enabled(false)
+     , m_saveTimer(new AutoSaver(this))
+     , m_adBlockDialog(0)
+     , m_adBlockNetwork(0)
+@@ -203,17 +203,19 @@ void AdBlockManager::load()
+     settings.beginGroup(QLatin1String("AdBlock"));
+     m_enabled = settings.value(QLatin1String("enabled"), m_enabled).toBool();
+ 
+-    QStringList defaultSubscriptions;
+-    defaultSubscriptions.append(QString::fromUtf8(customSubscriptionUrl().toEncoded()));
+-    defaultSubscriptions.append(QLatin1String("abp:subscribe?location=http://adblockplus.mozdev.org/easylist/easylist.txt&title=EasyList"));
+-
+-    QStringList subscriptions = settings.value(QLatin1String("subscriptions"), defaultSubscriptions).toStringList();
+-    foreach (const QString &subscription, subscriptions) {
+-        QUrl url = QUrl::fromEncoded(subscription.toUtf8());
+-        AdBlockSubscription *adBlockSubscription = new AdBlockSubscription(url, this);
+-        connect(adBlockSubscription, SIGNAL(rulesChanged()), this, SIGNAL(rulesChanged()));
+-        connect(adBlockSubscription, SIGNAL(changed()), this, SIGNAL(rulesChanged()));
+-        m_subscriptions.append(adBlockSubscription);
++    if (m_enabled) {
++        QStringList defaultSubscriptions;
++        defaultSubscriptions.append(QString::fromUtf8(customSubscriptionUrl().toEncoded()));
++        defaultSubscriptions.append(QLatin1String("abp:subscribe?location=http://adblockplus.mozdev.org/easylist/easylist.txt&title=EasyList"));
++
++        QStringList subscriptions = settings.value(QLatin1String("subscriptions"), defaultSubscriptions).toStringList();
++        foreach (const QString &subscription, subscriptions) {
++            QUrl url = QUrl::fromEncoded(subscription.toUtf8());
++            AdBlockSubscription *adBlockSubscription = new AdBlockSubscription(url, this);
++            connect(adBlockSubscription, SIGNAL(rulesChanged()), this, SIGNAL(rulesChanged()));
++            connect(adBlockSubscription, SIGNAL(changed()), this, SIGNAL(rulesChanged()));
++            m_subscriptions.append(adBlockSubscription);
++        }
+     }
+ }
+ 
