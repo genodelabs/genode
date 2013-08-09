@@ -63,6 +63,7 @@ checkout_base:
 ifeq ($(SVN_REV),)
 	$(error Syntax 'make checkout SVN_REV=<revision>')
 endif
+	$(VERBOSE)svn export -r $(SVN_REV) $(SVN_URI)/l4/COPYING-GPL-2 $(SVN_REV)
 	$(VERBOSE)svn co -r $(SVN_REV) --depth immediates $(SVN_URI) $(SVN_REV)
 	$(VERBOSE)svn co -r $(SVN_REV) --depth files $(SVN_URI)/l4 $(SVN_REV)/l4
 	$(VERBOSE)svn co -r $(SVN_REV) --depth files $(SVN_URI)/l4/pkg $(SVN_REV)/l4/pkg
