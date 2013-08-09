@@ -16,15 +16,58 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <os/timed_semaphore.h>
+#include <util/list.h>
 
 #include <errno.h>
 #include <pthread.h>
 
 using namespace Genode;
 
+static const bool verbose = false;
+
 extern "C" {
 
+	/* Thread */
+
+
 	enum { STACK_SIZE=64*1024 };
+
+
+	struct pthread_attr
+	{
+		pthread_t pthread;
+
+		pthread_attr() : pthread(0) { }
+	};
+
+
+	int pthread_attr_init(pthread_attr_t *attr)
+	{
+		if (!attr) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		*attr = new (env()->heap()) pthread_attr;
+
+		return 0;
+	}
+
+
+	int pthread_attr_destroy(pthread_attr_t *attr)
+	{
+		if (!attr || !*attr) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		destroy(env()->heap(), *attr);
+		*attr = 0;
+
+		return 0;
+	}
+
 
 	/*
 	 * This class is named 'struct pthread' because the 'pthread_t' type is
@@ -32,13 +75,19 @@ extern "C" {
 	 */
 	struct pthread : Thread<STACK_SIZE>
 	{
+		pthread_attr_t _attr;
 		void *(*_start_routine) (void *);
 		void *_arg;
 
-		pthread(void *(*start_routine) (void *), void *arg)
+		pthread(pthread_attr_t attr, void *(*start_routine) (void *), void *arg)
 		: Thread<STACK_SIZE>("pthread"),
+		  _attr(attr),
 		  _start_routine(start_routine),
-		  _arg(arg) { }
+		  _arg(arg)
+		{
+			if (_attr)
+				_attr->pthread = this;
+		}
 
 		void entry()
 		{
@@ -51,7 +100,7 @@ extern "C" {
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
-		pthread_t thread_obj = new (env()->heap()) pthread(start_routine, arg);
+		pthread_t thread_obj = new (env()->heap()) pthread(attr ? *attr : 0, start_routine, arg);
 
 		if (!thread_obj) {
 			errno = EAGAIN;
@@ -82,12 +131,411 @@ extern "C" {
 
 	pthread_t pthread_self(void)
 	{
-		static struct pthread main_thread(0, 0);
+		static struct pthread_attr main_thread_attr;
+		static struct pthread main_thread(&main_thread_attr, 0, 0);
 
-		pthread_t thread = static_cast<pthread_t>(Thread_base::myself());
+		Thread_base *myself = Thread_base::myself();
 
 		/* the main thread does not have a Genode thread object */
-		return thread ? thread : &main_thread;
+		if (!myself)
+			return &main_thread;
+
+		pthread_t pthread = dynamic_cast<pthread_t>(myself);
+
+		if (!pthread) {
+			if (verbose)
+				PDBG("pthread_self() possibly called from alien thread, returning &main_thread.");
+			return &main_thread;
+		}
+
+		return pthread;
 	}
 
+
+	int pthread_attr_getstack(const pthread_attr_t *attr,
+	                          void **stackaddr,
+	                          size_t *stacksize)
+	{
+		/* FIXME */
+		PWRN("pthread_attr_getstack() called, might not work correctly");
+
+		if (!attr || !*attr || !stackaddr || !stacksize) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		pthread_t pthread = (*attr)->pthread;
+
+		*stackaddr = pthread->stack_top();
+		*stacksize = (addr_t)pthread->stack_top() - (addr_t)pthread->stack_base();
+
+		return 0;
+	}
+
+
+	int pthread_attr_get_np(pthread_t pthread, pthread_attr_t *attr)
+	{
+		if (!attr) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		*attr = pthread->_attr;
+		return 0;
+	}
+
+
+	int pthread_equal(pthread_t t1, pthread_t t2)
+	{
+		return (t1 == t2);
+	}
+
+
+	int _pthread_main_np(void)
+	{
+		return (Thread_base::myself() == 0);
+	}
+
+
+	/* Mutex */
+
+
+	struct pthread_mutex_attr
+	{
+		int type;
+
+		pthread_mutex_attr() : type(PTHREAD_MUTEX_NORMAL) { }
+	};
+
+
+	struct pthread_mutex : Lock
+	{
+		pthread_mutex_attr mutexattr;
+
+		pthread_mutex(const pthread_mutexattr_t *__restrict attr)
+		{
+			if (attr && *attr)
+				mutexattr = **attr;
+		}
+	};
+
+
+	int pthread_mutexattr_init(pthread_mutexattr_t *attr)
+	{
+		if (!attr) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		*attr = new (env()->heap()) pthread_mutex_attr;
+
+		return 0;
+	}
+
+
+	int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+	{
+		if (!attr || !*attr) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		destroy(env()->heap(), *attr);
+		*attr = 0;
+
+		return 0;
+	}
+
+
+	int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
+	{
+		if (!attr || !*attr) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		(*attr)->type = type;
+
+		return 0;
+	}
+
+
+	int pthread_mutex_init(pthread_mutex_t *__restrict mutex,
+	                       const pthread_mutexattr_t *__restrict attr)
+	{
+		if (!mutex) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		*mutex = new (env()->heap()) pthread_mutex(attr);
+
+		return 0;
+	}
+
+
+	int pthread_mutex_destroy(pthread_mutex_t *mutex)
+	{
+		if ((!mutex) || (*mutex == PTHREAD_MUTEX_INITIALIZER)) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		destroy(env()->heap(), *mutex);
+		*mutex = PTHREAD_MUTEX_INITIALIZER;
+
+		return 0;
+	}
+
+
+	int pthread_mutex_lock(pthread_mutex_t *mutex)
+	{
+		if (!mutex) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
+			pthread_mutex_init(mutex, 0);
+
+		(*mutex)->lock();
+
+		return 0;
+	}
+
+
+	int pthread_mutex_unlock(pthread_mutex_t *mutex)
+	{
+		if (!mutex) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
+			pthread_mutex_init(mutex, 0);
+
+		(*mutex)->unlock();
+
+		return 0;
+	}
+
+
+	/* Condition variable */
+
+
+	/*
+	 * Implementation based on
+	 * http://web.archive.org/web/20010914175514/http://www-classic.be.com/aboutbe/benewsletter/volume_III/Issue40.html#Workshop
+	 */
+
+	struct pthread_cond
+	{
+		int num_waiters;
+		int num_signallers;
+		Lock counter_lock;
+		Timed_semaphore signal_sem;
+		Semaphore handshake_sem;
+
+		pthread_cond() : num_waiters(0), num_signallers(0) { }
+	};
+
+
+	int pthread_cond_init(pthread_cond_t *__restrict cond,
+	                      const pthread_condattr_t *__restrict attr)
+	{
+		if (!cond) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		*cond = new (env()->heap()) pthread_cond;
+
+		return 0;
+	}
+
+
+	static unsigned long timespec_to_ms(const struct timespec ts)
+	{
+		return (ts.tv_sec * 1000) + (ts.tv_nsec / (1000 * 1000));
+	}
+
+
+	int pthread_cond_timedwait(pthread_cond_t *__restrict cond,
+	                           pthread_mutex_t *__restrict mutex,
+	                           const struct timespec *__restrict abstime)
+	{
+		int result = 0;
+		Alarm::Time timeout = 0;
+
+		if (!cond || !*cond) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		pthread_cond *c = *cond;
+
+		c->counter_lock.lock();
+		c->num_waiters++;
+		c->counter_lock.unlock();
+
+		pthread_mutex_unlock(mutex);
+
+		if (!abstime)
+			c->signal_sem.down();
+		else {
+			struct timespec currtime;
+			clock_gettime(CLOCK_REALTIME, &currtime);
+			unsigned long abstime_ms = timespec_to_ms(*abstime);
+			unsigned long currtime_ms = timespec_to_ms(currtime);
+			if (abstime_ms > currtime_ms)
+				timeout = abstime_ms - currtime_ms;
+			try {
+				c->signal_sem.down(timeout);
+			} catch (Timeout_exception) {
+				errno = ETIMEDOUT;
+				result = -1;
+			}
+		}
+
+		c->counter_lock.lock();
+		if (c->num_signallers > 0) {
+			if (result == -1) /* timeout occured */
+				c->signal_sem.down();
+			c->handshake_sem.up();
+			--c->num_signallers;
+		}
+		c->num_waiters--;
+		c->counter_lock.unlock();
+
+		pthread_mutex_lock(mutex);
+
+		return result;
+	}
+
+
+	int pthread_cond_wait(pthread_cond_t *__restrict cond,
+	                      pthread_mutex_t *__restrict mutex)
+	{
+		return pthread_cond_timedwait(cond, mutex, 0);
+	}
+
+
+	int pthread_cond_signal(pthread_cond_t *cond)
+	{
+		if (!cond || !*cond) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		pthread_cond *c = *cond;
+
+		c->counter_lock.lock();
+		if (c->num_waiters > c->num_signallers) {
+		  ++c->num_signallers;
+		  c->signal_sem.up();
+		  c->counter_lock.unlock();
+		  c->handshake_sem.down();
+		} else
+		  c->counter_lock.unlock();
+
+	   return 0;
+	}
+
+
+	int pthread_cond_broadcast(pthread_cond_t *cond)
+	{
+		if (!cond || !*cond) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		pthread_cond *c = *cond;
+
+		c->counter_lock.lock();
+		if (c->num_waiters > c->num_signallers) {
+			int still_waiting = c->num_waiters - c->num_signallers;
+			c->num_signallers = c->num_waiters;
+			for (int i = 0; i < still_waiting; i++)
+				c->signal_sem.up();
+			c->counter_lock.unlock();
+			for (int i = 0; i < still_waiting; i++)
+				c->handshake_sem.down();
+		} else
+			c->counter_lock.unlock();
+
+		return 0;
+	}
+
+	/* TLS */
+
+
+	struct Key_element : List<Key_element>::Element
+	{
+		const void *thread_base;
+		const void *value;
+
+		Key_element(const void *thread_base, const void *value)
+		: thread_base(thread_base),
+		  value(value) { }
+	};
+
+
+	List<Key_element> key_list[PTHREAD_KEYS_MAX];
+
+
+	int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
+	{
+		static Lock key_list_lock;
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+
+		if (!key) {
+			errno = EINVAL;
+			return -1;
+		}
+
+		for (int k = 0; k < PTHREAD_KEYS_MAX; k++) {
+			/*
+			 * Find an empty key slot and insert an element for the current
+			 * thread to mark the key slot as used.
+			 */
+			if (!key_list[k].first()) {
+				Key_element *key_element = new (env()->heap()) Key_element(Thread_base::myself(), 0);
+				key_list[k].insert(key_element);
+				*key = k;
+				return 0;
+			}
+		}
+
+		errno = EAGAIN;
+		return -1;
+	}
+
+
+	int pthread_setspecific(pthread_key_t key, const void *value)
+	{
+		void *myself = Thread_base::myself();
+		for (Key_element *key_element = key_list[key].first(); key_element;
+		     key_element = key_element->next())
+			if (key_element->thread_base == myself) {
+				key_element->value = value;
+				return 0;
+			}
+
+		/* key element does not exist yet - create a new one */
+		Key_element *key_element = new (env()->heap()) Key_element(Thread_base::myself(), value);
+		key_list[key].insert(key_element);
+		return 0;
+	}
+
+
+	void *pthread_getspecific(pthread_key_t key)
+	{
+		void *myself = Thread_base::myself();
+		for (Key_element *key_element = key_list[key].first(); key_element;
+		     key_element = key_element->next())
+			if (key_element->thread_base == myself)
+				return (void*)(key_element->value);
+
+		return 0;
+	}
 }
