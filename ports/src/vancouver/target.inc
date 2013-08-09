@@ -5,7 +5,7 @@ VANCOUVER_DIR = $(CONTRIB_DIR)
 GENODE_DIR = $(CONTRIB_DIR)/genode
 NOVA_INCLUDE_DIR = $(REP_DIR)/contrib/seoul-git/include
 
-REQUIRES = nova
+REQUIRES += nova
 
 ifeq ($(wildcard $(VANCOUVER_DIR)),)
 REQUIRES += prepare_ports_vancouver
@@ -29,8 +29,8 @@ SRC_CC += $(filter-out $(FILTER_OUT),$(addprefix model/,$(MODEL_SRC_CC)))
 SRC_CC += $(filter-out $(FILTER_OUT),$(addprefix executor/,$(EXECUTOR_SRC_CC)))
 SRC_CC += model/sink.cc
 
-INC_DIR += $(PRG_DIR)
-INC_DIR += $(PRG_DIR)/executor
+INC_DIR += $(PRG_DIR)/..
+INC_DIR += $(PRG_DIR)/../executor
 INC_DIR += $(VANCOUVER_DIR)/model
 INC_DIR += $(VANCOUVER_DIR)/executor
 INC_DIR += $(VANCOUVER_DIR)/include $(GENODE_DIR)/include
@@ -39,7 +39,7 @@ INC_DIR += $(NOVA_INCLUDE_DIR)
 CC_WARN += -Wno-parentheses
 CC_CXX_OPT += -std=gnu++11
 
-LD_TEXT_ADDR = 0xb0000000
-
 vpath %.cc $(VANCOUVER_DIR)
 vpath %.cc $(CONTRIB_DIR)
+vpath %.cc $(PRG_DIR)/..
+vpath %.tff $(PRG_DIR)/..
