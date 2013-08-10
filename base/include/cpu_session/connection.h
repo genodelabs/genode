@@ -35,7 +35,7 @@ namespace Genode {
 		               Affinity const &affinity = Affinity())
 		:
 			Connection<Cpu_session>(
-				session(affinity, "priority=0x%lx, ram_quota=32K, label=\"%s\"",
+				session(affinity, "priority=0x%lx, ram_quota=36K, label=\"%s\"",
 				        priority, label)),
 			Cpu_session_client(cap()) { }
 	};

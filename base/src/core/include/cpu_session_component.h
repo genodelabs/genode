@@ -22,9 +22,11 @@
 #include <base/rpc_server.h>
 #include <cpu_session/cpu_session.h>
 
-/* Core includes */
+/* core includes */
 #include <cpu_thread_allocator.h>
 #include <platform_thread.h>
+#include <trace/control_area.h>
+#include <trace/source_registry.h>
 
 namespace Genode {
 
@@ -44,18 +46,33 @@ namespace Genode {
 	class Cpu_thread_component : public Rpc_object<Cpu_thread>,
 	                             public List<Cpu_thread_component>::Element
 	{
+		public:
+
+			typedef Trace::Session_label Session_label;
+			typedef Trace::Thread_name   Thread_name;
+
 		private:
 
+			Thread_name         const _name;
 			Platform_thread           _platform_thread;
 			bool                      _bound;            /* pd binding flag */
 			Signal_context_capability _sigh;             /* exception handler */
+			unsigned            const _trace_control_index;
+			Trace::Source             _trace_source;
 
 		public:
 
-			Cpu_thread_component(const char *name, unsigned priority, addr_t utcb,
-			                     Signal_context_capability sigh)
+			Cpu_thread_component(Session_label const &label,
+			                     Thread_name const &name,
+			                     unsigned priority, addr_t utcb,
+			                     Signal_context_capability sigh,
+			                     unsigned trace_control_index,
+			                     Trace::Control &trace_control)
 			:
-				_platform_thread(name, priority, utcb), _bound(false), _sigh(sigh)
+				_name(name),
+				_platform_thread(name.string(), priority, utcb), _bound(false),
+				_sigh(sigh), _trace_control_index(trace_control_index),
+				_trace_source(label, _name, trace_control)
 			{
 				update_exception_sigh();
 			}
@@ -65,9 +82,10 @@ namespace Genode {
 			 ** Accessor functions **
 			 ************************/
 
-			inline Platform_thread * platform_thread() { return &_platform_thread; }
-			inline bool bound() const                  { return _bound; }
-			inline void bound(bool b)                  { _bound = b; }
+			Platform_thread *platform_thread() { return &_platform_thread; }
+			bool             bound()     const { return _bound; }
+			void             bound(bool b)     { _bound = b; }
+			Trace::Source   *trace_source()    { return &_trace_source; }
 
 			void sigh(Signal_context_capability sigh)
 			{
@@ -79,13 +97,23 @@ namespace Genode {
 			 * Propagate exception handler to platform thread
 			 */
 			void update_exception_sigh();
+
+			/**
+			 * Return index within the CPU-session's trace control area
+			 */
+			unsigned trace_control_index() const { return _trace_control_index; }
 	};
 
 
 	class Cpu_session_component : public Rpc_object<Cpu_session>
 	{
+		public:
+
+			typedef Cpu_thread_component::Session_label Session_label;
+
 		private:
 
+			Session_label              _label;
 			Rpc_entrypoint            *_thread_ep;
 			Pager_entrypoint          *_pager_ep;
 			Allocator_guard            _md_alloc;          /* guarded meta-data allocator */
@@ -98,6 +126,8 @@ namespace Genode {
 			                                                  session */
 			Affinity::Location         _location;          /* CPU affinity of this 
 			                                                  session */
+			Trace::Source_registry    &_trace_sources;
+			Trace::Control_area        _trace_control_area;
 
 			/**
 			 * Exception handler that will be invoked unless overridden by a
@@ -120,10 +150,11 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Cpu_session_component(Rpc_entrypoint *thread_ep,
-			                      Pager_entrypoint *pager_ep,
-			                      Allocator *md_alloc, const char *args,
-			                      Affinity const &);
+			Cpu_session_component(Rpc_entrypoint         *thread_ep,
+			                      Pager_entrypoint       *pager_ep,
+			                      Allocator              *md_alloc,
+			                      Trace::Source_registry &trace_sources,
+			                      const char *args, Affinity const &affinity);
 
 			/**
 			 * Destructor
@@ -140,7 +171,7 @@ namespace Genode {
 			 ** CPU session interface **
 			 ***************************/
 
-			Thread_capability create_thread(Name const &, addr_t utcb);
+			Thread_capability create_thread(Name const &, addr_t);
 			Ram_dataspace_capability utcb(Thread_capability thread);
 			void kill_thread(Thread_capability);
 			int set_pager(Thread_capability, Pager_capability);

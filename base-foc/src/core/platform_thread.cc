@@ -261,8 +261,7 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(const char *name,
-                                 unsigned    prio)
+Platform_thread::Platform_thread(const char *name, unsigned prio, addr_t)
 : _state(DEAD),
   _core_thread(false),
   _thread(true),

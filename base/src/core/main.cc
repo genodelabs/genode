@@ -32,6 +32,7 @@
 #include <io_mem_root.h>
 #include <irq_root.h>
 #include <signal_root.h>
+#include <trace/root.h>
 #include <platform_services.h>
 
 using namespace Genode;
@@ -182,6 +183,9 @@ int main()
 
 	PDBG("--- create local services ---");
 
+	static Trace::Source_registry trace_sources;
+	static Trace::Policy_registry trace_policies;
+
 	/*
 	 * Initialize root interfaces for our services
 	 */
@@ -198,7 +202,8 @@ int main()
 	static Rom_root     rom_root     (e, e, platform()->rom_fs(), &sliced_heap);
 	static Rm_root      rm_root      (e, e, e, &sliced_heap, core_env()->cap_session(),
 	                                  platform()->vm_start(), platform()->vm_size());
-	static Cpu_root     cpu_root     (e, e, rm_root.pager_ep(), &sliced_heap);
+	static Cpu_root     cpu_root     (e, e, rm_root.pager_ep(), &sliced_heap,
+	                                  trace_sources);
 	static Pd_root      pd_root      (e, e, &sliced_heap);
 	static Log_root     log_root     (e, &sliced_heap);
 	static Io_mem_root  io_mem_root  (e, e, platform()->io_mem_alloc(),
@@ -206,6 +211,7 @@ int main()
 	static Irq_root     irq_root     (core_env()->cap_session(),
 	                                  platform()->irq_alloc(), &sliced_heap);
 	static Signal_root  signal_root  (&sliced_heap, core_env()->cap_session());
+	static Trace::Root  trace_root   (e, &sliced_heap, trace_sources, trace_policies);
 
 	/*
 	 * Play our role as parent of init and declare our services.
@@ -221,7 +227,8 @@ int main()
 		Local_service(Log_session::service_name(),     &log_root),
 		Local_service(Io_mem_session::service_name(),  &io_mem_root),
 		Local_service(Irq_session::service_name(),     &irq_root),
-		Local_service(Signal_session::service_name(),  &signal_root)
+		Local_service(Signal_session::service_name(),  &signal_root),
+		Local_service(Trace::Session::service_name(),  &trace_root)
 	};
 
 	/* make our local services known to service pool */

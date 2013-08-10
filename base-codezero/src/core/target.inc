@@ -23,6 +23,7 @@ SRC_CC      += \
                irq_session_component.cc \
                signal_session_component.cc \
                signal_source_component.cc \
+               trace_session_component.cc \
                core_rm_session.cc \
                core_mem_alloc.cc \
                dump_alloc.cc \
@@ -32,7 +33,8 @@ LIBS        += core_printf base-common
 
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
-               $(REP_DIR)/include/codezero/dummies
+               $(REP_DIR)/include/codezero/dummies \
+               $(BASE_DIR)/src/base/thread
 
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
@@ -45,6 +47,7 @@ vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
+vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath core_mem_alloc.cc           $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)

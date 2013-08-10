@@ -24,7 +24,8 @@ INC_DIR += $(REP_DIR)/src/core \
            $(REP_DIR)/src/base \
            $(BASE_DIR)/src/core/include \
            $(BASE_DIR)/include \
-           $(BASE_DIR)/src/platform
+           $(BASE_DIR)/src/platform \
+           $(BASE_DIR)/src/base/thread
 
 # add C++ sources
 SRC_CC += console.cc \
@@ -46,6 +47,7 @@ SRC_CC += console.cc \
           rm_session_component.cc \
           rom_session_component.cc \
           signal_session_component.cc \
+          trace_session_component.cc \
           thread.cc \
           kernel.cc \
           rm_session_support.cc \
@@ -65,6 +67,7 @@ vpath pd_session_component.cc     $(BASE_DIR)/src/core
 vpath ram_session_component.cc    $(BASE_DIR)/src/core
 vpath rm_session_component.cc     $(BASE_DIR)/src/core
 vpath rom_session_component.cc    $(BASE_DIR)/src/core
+vpath trace_session_component.cc  $(BASE_DIR)/src/core
 vpath dump_alloc.cc               $(BASE_DIR)/src/core
 vpath console.cc                  $(REP_DIR)/src/base
 vpath pager.cc                    $(REP_DIR)/src/base

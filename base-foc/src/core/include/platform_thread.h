@@ -65,7 +65,7 @@ namespace Genode {
 			/**
 			 * Constructor for non-core threads
 			 */
-			Platform_thread(const char *name, unsigned priority);
+			Platform_thread(const char *name, unsigned priority, addr_t);
 
 			/**
 			 * Constructor for core main-thread

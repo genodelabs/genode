@@ -32,21 +32,35 @@ void Cpu_thread_component::update_exception_sigh()
 };
 
 
-Thread_capability Cpu_session_component::create_thread(Name const &name,
-                                                       addr_t utcb)
+Thread_capability Cpu_session_component::create_thread(Name  const &name,
+                                                       addr_t       utcb)
 {
+	unsigned trace_control_index = 0;
+	if (!_trace_control_area.alloc(trace_control_index))
+		throw Out_of_metadata();
+
+	Trace::Control * const trace_control =
+		_trace_control_area.at(trace_control_index);
+
+	Trace::Thread_name thread_name(name.string());
+
 	Cpu_thread_component *thread = 0;
 	try {
 		Lock::Guard slab_lock_guard(_thread_alloc_lock);
-		thread = new(&_thread_alloc) Cpu_thread_component(name.string(),
+		thread = new(&_thread_alloc) Cpu_thread_component(_label,
+		                                                  thread_name,
 		                                                  _priority, utcb,
-		                                                  _default_exception_handler);
+		                                                  _default_exception_handler,
+		                                                  trace_control_index,
+		                                                  *trace_control);
 	} catch (Allocator::Out_of_memory) {
 		throw Out_of_metadata();
 	}
 
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
 	_thread_list.insert(thread);
+
+	_trace_sources.insert(thread->trace_source());
 
 	return _thread_ep->manage(thread);
 }
@@ -57,8 +71,14 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 	_thread_ep->dissolve(thread);
 	_thread_list.remove(thread);
 
+	_trace_sources.remove(thread->trace_source());
+
+	unsigned const trace_control_index = thread->trace_control_index();
+
 	Lock::Guard lock_guard(_thread_alloc_lock);
 	destroy(&_thread_alloc, thread);
+
+	_trace_control_area.free(trace_control_index);
 }
 
 
@@ -199,8 +219,8 @@ void Cpu_session_component::affinity(Thread_capability  thread_cap,
 	/* convert session-local location to physical location */
 	int const x1 = location.xpos() + _location.xpos(),
 	          y1 = location.ypos() + _location.ypos(),
-	          x2 = location.xpos() + location.width(),
-	          y2 = location.ypos() + location.height();
+	          x2 = location.xpos() +  location.width(),
+	          y2 = location.ypos() +  location.height();
 
 	int const clipped_x1 = max(_location.xpos(), x1),
 	          clipped_y1 = max(_location.ypos(), y1),
@@ -215,45 +235,69 @@ void Cpu_session_component::affinity(Thread_capability  thread_cap,
 
 Dataspace_capability Cpu_session_component::trace_control()
 {
-	/* not implemented */
-	return Dataspace_capability();
+	return _trace_control_area.dataspace();
 }
 
 
-unsigned Cpu_session_component::trace_control_index(Thread_capability thread)
+unsigned Cpu_session_component::trace_control_index(Thread_capability thread_cap)
 {
-	/* not implemented */
-	return 0;
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
+	if (!thread) return 0;
+
+	return thread->trace_control_index();
 }
 
 
-Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread)
+Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread_cap)
 {
-	/* not implemented */
-	return Dataspace_capability();
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
+	if (!thread) return Dataspace_capability();
+
+	return thread->trace_source()->buffer();
 }
 
 
-Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread)
+Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread_cap)
 {
-	/* not implemented */
-	return Dataspace_capability();
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
+	if (!thread) return Dataspace_capability();
+
+	return thread->trace_source()->policy();
 }
 
 
-Cpu_session_component::Cpu_session_component(Rpc_entrypoint   *thread_ep,
-                                             Pager_entrypoint *pager_ep,
-                                             Allocator        *md_alloc,
-                                             char       const *args,
-                                             Affinity   const &affinity)
+static size_t remaining_session_ram_quota(char const *args)
+{
+	/*
+	 * We don't need to consider an underflow here because
+	 * 'Cpu_root::_create_session' already checks for the condition.
+	 */
+	return Arg_string::find_arg(args, "ram_quota").long_value(0)
+	     - Trace::Control_area::SIZE;
+}
+
+
+Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
+                                             Pager_entrypoint       *pager_ep,
+                                             Allocator              *md_alloc,
+                                             Trace::Source_registry &trace_sources,
+                                             char             const *args,
+                                             Affinity         const &affinity)
 :
 	_thread_ep(thread_ep), _pager_ep(pager_ep),
-	_md_alloc(md_alloc, Arg_string::find_arg(args, "ram_quota").long_value(0)),
+	_md_alloc(md_alloc, remaining_session_ram_quota(args)),
 	_thread_alloc(&_md_alloc), _priority(0),
 
 	/* map affinity to a location within the physical affinity space */
-	_location(affinity.scale_to(platform()->affinity_space()))
+	_location(affinity.scale_to(platform()->affinity_space())),
+
+	_trace_sources(trace_sources)
 {
+	/* remember session label */
+	char buf[Session_label::MAX_SIZE];
+	Arg_string::find_arg(args, "label").string(buf, sizeof(buf), "");
+	_label = Session_label(buf);
+
 	Arg a = Arg_string::find_arg(args, "priority");
 	if (a.valid()) {
 		_priority = a.ulong_value(0);
@@ -277,3 +321,17 @@ Cpu_session_component::~Cpu_session_component()
 	for (Cpu_thread_component *thread; (thread = _thread_list.first()); )
 		_unsynchronized_kill_thread(thread);
 }
+
+
+/****************************
+ ** Trace::Source_registry **
+ ****************************/
+
+unsigned Trace::Source::_alloc_unique_id()
+{
+	static Lock lock;
+	static unsigned cnt;
+	Lock::Guard guard(lock);
+	return cnt++;
+}
+

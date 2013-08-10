@@ -26,17 +26,25 @@ namespace Genode {
 	{
 		private:
 
-			Rpc_entrypoint    *_thread_ep;
-			Pager_entrypoint  *_pager_ep;
-			Allocator         *_md_alloc;
+			Rpc_entrypoint         *_thread_ep;
+			Pager_entrypoint       *_pager_ep;
+			Allocator              *_md_alloc;
+			Trace::Source_registry &_trace_sources;
 
 		protected:
 
 			Cpu_session_component *_create_session(char const *args,
 			                                       Affinity const &affinity) {
+
+				size_t ram_quota =
+					Arg_string::find_arg(args, "ram_quota").long_value(0);
+
+				if (ram_quota < Trace::Control_area::SIZE)
+					throw Root::Quota_exceeded();
+
 				return new (md_alloc())
 					Cpu_session_component(_thread_ep, _pager_ep, _md_alloc,
-					                      args, affinity); }
+					                      _trace_sources, args, affinity); }
 
 			void _upgrade_session(Cpu_session_component *cpu, const char *args)
 			{
@@ -53,13 +61,15 @@ namespace Genode {
 			 * \param thread_ep    entry point for managing threads
 			 * \param md_alloc     meta data allocator to be used by root component
 			 */
-			Cpu_root(Rpc_entrypoint    *session_ep,
-			         Rpc_entrypoint    *thread_ep,
-			         Pager_entrypoint  *pager_ep,
-			         Allocator         *md_alloc)
+			Cpu_root(Rpc_entrypoint         *session_ep,
+			         Rpc_entrypoint         *thread_ep,
+			         Pager_entrypoint       *pager_ep,
+			         Allocator              *md_alloc,
+			         Trace::Source_registry &trace_sources)
 			:
 				Root_component<Cpu_session_component>(session_ep, md_alloc),
-				_thread_ep(thread_ep), _pager_ep(pager_ep), _md_alloc(md_alloc)
+				_thread_ep(thread_ep), _pager_ep(pager_ep), _md_alloc(md_alloc),
+				_trace_sources(trace_sources)
 			{ }
 	};
 }

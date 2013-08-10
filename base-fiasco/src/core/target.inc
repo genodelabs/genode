@@ -24,13 +24,15 @@ SRC_CC      += main.cc \
                irq_session_component.cc \
                signal_session_component.cc \
                signal_source_component.cc \
+               trace_session_component.cc \
                dump_alloc.cc \
                context_area.cc \
                core_printf.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
-               $(REP_DIR)/src/base/console
+               $(REP_DIR)/src/base/console \
+               $(BASE_DIR)/src/base/thread
 
 LIBS        += base-common
 
@@ -45,6 +47,7 @@ vpath io_mem_session_component.cc $(GEN_CORE_DIR)
 vpath io_mem_session_support.cc   $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
+vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)
 vpath dump_alloc.cc               $(GEN_CORE_DIR)
 vpath context_area.cc             $(GEN_CORE_DIR)

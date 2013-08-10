@@ -18,6 +18,7 @@ SRC_CC        = main.cc \
                 io_mem_session_component.cc \
                 signal_session_component.cc \
                 signal_source_component.cc \
+                trace_session_component.cc \
                 thread_linux.cc \
                 context_area.cc \
                 core_printf.cc \
@@ -29,6 +30,7 @@ INC_DIR      += $(REP_DIR)/src/core/include \
                 $(REP_DIR)/src/base/ipc \
                 $(REP_DIR)/src/base/env \
                 $(REP_DIR)/src/base/console \
+                $(BASE_DIR)/src/base/thread \
 
 HOST_INC_DIR += /usr/include
 
@@ -48,6 +50,7 @@ vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath platform_services.cc        $(GEN_CORE_DIR)
 vpath signal_session_component.cc $(GEN_CORE_DIR)
 vpath signal_source_component.cc  $(GEN_CORE_DIR)
+vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_printf.cc              $(BASE_DIR)/src/base/console
 vpath thread.cc                   $(BASE_DIR)/src/base/thread
 vpath trace.cc                    $(BASE_DIR)/src/base/thread
