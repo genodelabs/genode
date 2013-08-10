@@ -222,8 +222,10 @@ append config {
 if {!$use_fancy_stuff} {
 append config {
 	<start name="vancouver">
-		<binary name="vancouver"/>
-		<resource name="RAM" quantum="128M"/>
+		<binary name="vancouver"/>}
+append config "
+		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
+append config {
 		<route>
 			<service name="Timer"><child name="timer"/></service>}
 append_if [expr $use_nic_session && $use_nic_bridge] config {
@@ -239,6 +241,15 @@ append config {
 	</start> }
 }
 
+append_if $use_usb config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="7M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="yes" ehci="yes" xhci="yes">
+			<hid/>
+		</config>
+	</start>}
+
 append_if $use_fancy_stuff config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="8M"/>
@@ -249,32 +260,28 @@ append_if $use_fancy_stuff config {
 		</route>
 		<provides><service name="Nitpicker"/></provides>
 	</start>
-
 	<start name="launchpad">
-		<resource name="RAM" quantum="2500M"/>
+		<resource name="RAM" quantum="64000M"/>
 		<configfile name="launchpad-config"/>
 		<route>
 			<service name="Nic"><child name="nic_bridge"/></service>
 			<any-service><any-child/><parent/></any-service>
 		</route>
-	</start> }
-
-append_if $use_usb config {
-	<start name="usb_drv">
-		<resource name="RAM" quantum="7M"/>
-		<provides><service name="Input"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes">
-			<hid/>
-		</config>
 	</start>}
 
 append config {
 </config>}
 
+#
 # Generate Launchpad config file
-set launchpad_cfg_fd [open "bin/launchpad-config" w]
-puts $launchpad_cfg_fd {<config>
-	<launcher><ram_quota>288M</ram_quota><filename>init</filename>
+#
+if {$use_fancy_stuff} {
+	set launchpad_cfg_fd [open "bin/launchpad-config" w]
+
+	puts $launchpad_cfg_fd "<config>
+	<launcher><ram_quota>$memory_init</ram_quota><filename>init</filename>"
+
+	puts $launchpad_cfg_fd {
 		<config>
 			<parent-provides>
 				<service name="ROM"/>
@@ -321,10 +328,10 @@ puts $launchpad_cfg_fd {<config>
 				<configfile name="vm_linux.cfg"/>
 			</start>
 		</config>
-	</launcher>
-</config>}
-close $launchpad_cfg_fd
-
+	</launcher>}
+	puts $launchpad_cfg_fd {</config>}
+	close $launchpad_cfg_fd
+}
 
 install_config $config
 
@@ -364,16 +371,30 @@ lappend_if $use_fancy_stuff   boot_modules launchpad-config
 
 if {$use_multiboot} {
 	set guest_os_binary_missing 0
+	set binary_counter 0
 	foreach binary $guest_os_binaries {
 		if {![file exists bin/$binary]} {
 			puts stderr "Error: guest OS binary \"bin/$binary\" does not exist"
 			set guest_os_binary_missing 1
 		}
+
+		set sha1 [exec sha1sum bin/$binary]
+		set sha1 [regexp -inline {[0-9a-h]+} $sha1]
+		if {[string compare $sha1 [lindex $sha1_os_binaries $binary_counter]]} {
+			puts "SHA1 sum of binary does not match with expected one - abort"
+			puts "$binary $sha1 != [lindex $sha1_os_binaries $binary_counter]"
+			set guest_os_binary_missing 1
+		}
+		incr binary_counter 1
 	}
 
 	if {$guest_os_binary_missing} { exit 1 }
 
 	append boot_modules $guest_os_binaries
+}
+
+if {$use_usb} {
+	append qemu_args " -usb -usbdevice mouse -usbdevice keyboard "
 }
 
 build_boot_image $boot_modules
