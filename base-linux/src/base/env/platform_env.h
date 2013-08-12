@@ -293,7 +293,8 @@ namespace Genode {
 					Expanding_ram_session_client(Ram_session_capability cap)
 					: Ram_session_client(cap), _cap(cap) { }
 
-					Ram_dataspace_capability alloc(size_t size, bool cached) {
+					Ram_dataspace_capability alloc(size_t size, bool cached)
+					{
 						bool try_again;
 						do {
 							try_again = false;
@@ -316,6 +317,35 @@ namespace Genode {
 					}
 			};
 
+			class Expanding_cpu_session_client : public Linux_cpu_session_client
+			{
+				Cpu_session_capability _cap;
+
+				public:
+
+					Expanding_cpu_session_client(Cpu_session_capability cap)
+					: Linux_cpu_session_client(static_cap_cast<Linux_cpu_session>(cap)), _cap(cap) { }
+
+					Thread_capability create_thread(Name const &name, addr_t utcb = 0) {
+						bool try_again;
+						do {
+							try_again = false;
+							try {
+								return Linux_cpu_session_client::create_thread(name, utcb);
+							}
+							catch (Cpu_session::Out_of_metadata) {
+								if (try_again)
+									break;
+								PINF("upgrade quota donation for Env::CPU session");
+								env()->parent()->upgrade(_cap, "ram_quota=8K");
+								try_again = true;
+							}
+						} while (try_again);
+
+						return Thread_capability();
+					}
+			};
+
 
 			/*******************************
 			 ** Platform-specific members **
@@ -324,7 +354,7 @@ namespace Genode {
 			Ram_session_capability       _ram_session_cap;
 			Expanding_ram_session_client _ram_session_client;
 			Cpu_session_capability       _cpu_session_cap;
-			Linux_cpu_session_client     _cpu_session_client;
+			Expanding_cpu_session_client _cpu_session_client;
 			Rm_session_mmap              _rm_session_mmap;
 			Pd_session_client            _pd_session_client;
 
