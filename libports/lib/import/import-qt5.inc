@@ -4,6 +4,11 @@
 ifeq ($(QT5_IMPORTED),)
 QT5_IMPORTED = true
 
+# hook for selectively skipping qt5 builds by the buildbot
+ifneq ($(INHIBIT_QT5),)
+REQUIRES += removal_of_INHIBIT_QT5_env_var
+endif
+
 # identify the qt5 repository by searching for a file that is unique for qt5
 QT5_REP_DIR := $(call select_from_repositories,lib/import/import-qt5.inc)
 QT5_REP_DIR := $(realpath $(dir $(QT5_REP_DIR))../..)
