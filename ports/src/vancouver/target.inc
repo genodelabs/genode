@@ -21,7 +21,6 @@ EXECUTOR_SRC_CC += $(notdir $(wildcard $(VANCOUVER_DIR)/executor/*.cc))
 SERVICE_SRC_CC  += sink.cc
 
 ifneq ($(filter x86_64, $(SPECS)),)
-FILTER_OUT += model/intel82576vf.cc
 CC_CXX_OPT += -mcmodel=large
 endif
 
@@ -38,6 +37,8 @@ INC_DIR += $(NOVA_INCLUDE_DIR)
 
 CC_WARN += -Wno-parentheses
 CC_CXX_OPT += -std=gnu++11
+CC_CXX_OPT += -march=core2
+CC_CXX_OPT += -mssse3
 
 vpath %.cc $(VANCOUVER_DIR)
 vpath %.cc $(CONTRIB_DIR)

@@ -115,7 +115,7 @@ void *operator new[](size_t size)
 
 void *operator new[](size_t size, Aligned const alignment)
 {
-	unsigned int align = alignment.alignment;
+	size_t align = alignment.alignment;
 	void *res = heap_alloc(size + align);
 	if (res)
 		Genode::memset(res, 0, size + align);
