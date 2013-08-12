@@ -609,10 +609,11 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		{
 			Utcb *utcb = _utcb_of_myself();
 
-			if (utcb->qual[0] & 0x4)
-				Logging::panic("force_invalid_gueststate_amd(utcb) - not implemented\n");
-
-			else {
+			if (utcb->qual[0] & 0x4) {
+				Logging::printf("invalid gueststate\n");
+				utcb->ctrl[1] = 0;
+				utcb->mtd = MTD_CTRL;
+			} else {
 				unsigned order = ((utcb->qual[0] >> 4) & 7) - 1;
 
 				if (order > 2)
@@ -715,7 +716,10 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			Utcb *utcb = _utcb_of_myself();
 			unsigned order;
 			if (utcb->qual[0] & 0x10) {
-				Logging::panic("invalid gueststate intel - not implemented\n");
+				Logging::printf("invalid gueststate\n");
+				assert(utcb->mtd & MTD_RFLAGS);
+				utcb->efl &= ~2;
+				utcb->mtd = MTD_RFLAGS;
 			} else {
 				order = utcb->qual[0] & 7;
 				if (order > 2) order = 2;
