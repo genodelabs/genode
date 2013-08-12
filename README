@@ -127,7 +127,8 @@ The Genode source tree is composed of the following subdirectories:
   to Genode, most importantly the C library. The repository contains no
   upstream source code but means to download the code and adapt it to Genode.
   For instructions about how to use this mechanism, please consult the README
-  file at the top level of the repository.
+  file at the top level of the repository. Among the 3rd-party libraries
+  are Qt5, libSDL, freetype, Python, ncurses, Mesa, and libav.
 
 :'dde_linux':
 
@@ -155,7 +156,8 @@ The Genode source tree is composed of the following subdirectories:
 
   This source-code repository contains the Genode version of Qt4 framework.
   Please find more information about using Qt4 with Genode in the repository's
-  'README' file.
+  'README' file. Please note that the Qt4 support is deprecated. Use Qt5
+  as contained in 'libports' instead.
 
 :'ports':
 

@@ -393,6 +393,9 @@ Libraries:
 :'qt4':
   Qt4 framework, using nitpicker session and NIC session as back end.
 
+:'libports/lib/mk/qt5_*':
+  Qt5 framework, using nitpicker session and NIC session as back end.
+
 
 Applications
 ############
@@ -426,6 +429,9 @@ located in their respective directory.
 
 :'qt4/src/app/examples/':
   Several example applications that come with Qt4.
+
+:'libports/src/app/qt5':
+  Qt5 examples including qt_launchpad and qt_avplay.
 
 :'os/src/app/xvfb':
   Is a proxy application that enables the integration of a virtual X server
