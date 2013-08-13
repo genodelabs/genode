@@ -1,0 +1,54 @@
+Tell the compiler about 'edi' register changes
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Syscall binding functions which use '__L4_INDIRECT_CALL' need to tell the
+compiler that the 'edi' register gets modified. Since 'edi' is an input
+operand and input operands may not get added to the clobber list, this
+patch defines 'edi' also as an output operand instead.
+---
+ user/include/l4/ia32/syscalls.h |   10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/user/include/l4/ia32/syscalls.h b/user/include/l4/ia32/syscalls.h
+index a1d6caa..1088d63 100644
+--- a/user/include/l4/ia32/syscalls.h
++++ b/user/include/l4/ia32/syscalls.h
+@@ -295,6 +295,7 @@ L4_INLINE L4_MsgTag_t L4_Ipc (L4_ThreadId_t to,
+     L4_Word_t * utcb = __L4_X86_Utcb ();
+ 
+ #if defined(__pic__)
++    L4_Word_t dummy;
+     __L4_Indirect_t in;
+     in.edi      = (L4_Word_t)utcb;
+     in.sys_call = __L4_Ipc;
+@@ -311,8 +312,9 @@ L4_INLINE L4_MsgTag_t L4_Ipc (L4_ThreadId_t to,
+ 	"=S" (mr0),
+ 	"=a" (result),
+ 	"=d" (mr1),
+-	"=c" (mr2)
+-        
++	"=c" (mr2),
++	"=D" (dummy)
++
+ 	: /* inputs */
+ 	"S" (utcb[0]),
+ 	"a" (to.raw),
+@@ -370,6 +372,7 @@ L4_INLINE L4_MsgTag_t L4_Lipc (L4_ThreadId_t to,
+ 
+ #if defined(__pic__)
+ 
++    L4_Word_t dummy;
+     __L4_Indirect_t in;
+     in.edi      = (L4_Word_t)utcb;
+     in.sys_call = __L4_Lipc;
+@@ -386,7 +389,8 @@ L4_INLINE L4_MsgTag_t L4_Lipc (L4_ThreadId_t to,
+ 	"=S" (mr0),
+ 	"=a" (result),
+ 	"=d" (mr1),
+-	"=c" (mr2)
++	"=c" (mr2),
++	"=D" (dummy)
+ 
+ 	: /* inputs */
+ 	"S" (utcb[0]),
