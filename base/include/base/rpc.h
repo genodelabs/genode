@@ -46,6 +46,8 @@
 		static void serve(SERVER &server, Server_args &args, RET &ret) { \
 			::Genode::Meta::call_member<RET, SERVER, Server_args> \
 				(ret, server, args, &SERVER::func_name); } \
+		\
+		static const char* name() { return #func_name; } \
 	};
 
 /**

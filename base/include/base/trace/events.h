@@ -29,7 +29,7 @@ namespace Genode { namespace Trace {
 
 struct Genode::Trace::Rpc_call
 {
-	char         const *rpc_name;
+	char        const *rpc_name;
 	Msgbuf_base const &msg;
 
 	Rpc_call(char const *rpc_name, Msgbuf_base const &msg)
@@ -45,7 +45,7 @@ struct Genode::Trace::Rpc_call
 
 struct Genode::Trace::Rpc_returned
 {
-	char         const *rpc_name;
+	char        const *rpc_name;
 	Msgbuf_base const &msg;
 
 	Rpc_returned(char const *rpc_name, Msgbuf_base const &msg)
@@ -61,39 +61,33 @@ struct Genode::Trace::Rpc_returned
 
 struct Genode::Trace::Rpc_dispatch
 {
-	char            const *rpc_name;
-	Rpc_object_base const &obj;
-	Msgbuf_base    const &msg;
+	char const *rpc_name;
 
-	Rpc_dispatch(char const *rpc_name, Rpc_object_base const &obj,
-	             Msgbuf_base const &msg)
+	Rpc_dispatch(char const *rpc_name)
 	:
-		rpc_name(rpc_name), obj(obj), msg(msg)
+		rpc_name(rpc_name)
 	{
 		Thread_base::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.rpc_dispatch(dst, rpc_name, obj, msg); }
+		return policy.rpc_dispatch(dst, rpc_name); }
 };
 
 
 struct Genode::Trace::Rpc_reply
 {
-	char            const *rpc_name;
-	Rpc_object_base const &obj;
-	Msgbuf_base    const &msg;
+	char const *rpc_name;
 
-	Rpc_reply(char const *rpc_name, Rpc_object_base const &obj,
-	          Msgbuf_base const &msg)
+	Rpc_reply(char const *rpc_name)
 	:
-		rpc_name(rpc_name), obj(obj), msg(msg)
+		rpc_name(rpc_name)
 	{
 		Thread_base::trace(this);
 	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.rpc_reply(dst, rpc_name, obj, msg); }
+		return policy.rpc_reply(dst, rpc_name); }
 };
 
 
@@ -111,13 +105,18 @@ struct Genode::Trace::Signal_submit
 
 struct Genode::Trace::Signal_received
 {
-	Signal const &signal;;
+	Signal_context const &signal_context;
+	unsigned const num;
 
-	Signal_received(Signal const &signal) : signal(signal)
-	{ Thread_base::trace(this); }
+	Signal_received(Signal_context const &signal_context, unsigned num)
+	:
+		signal_context(signal_context), num(num)
+	{
+		Thread_base::trace(this);
+	}
 
 	size_t generate(Policy_module &policy, char *dst) const {
-		return policy.signal_received(dst, signal); }
+		return policy.signal_received(dst, signal_context, num); }
 };
 
 

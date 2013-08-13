@@ -19,7 +19,7 @@
 namespace Genode {
 
 	class Msgbuf_base;
-	class Signal;
+	class Signal_context;
 	class Rpc_object_base;
 
 	namespace Trace { class Policy_module; }
@@ -37,7 +37,7 @@ struct Genode::Trace::Policy_module
 	size_t (*rpc_dispatch)    (char *, char const *);
 	size_t (*rpc_reply)       (char *, char const *);
 	size_t (*signal_submit)   (char *, unsigned const);
-	size_t (*signal_received) (char *, Signal const &);
+	size_t (*signal_received) (char *, Signal_context const &, unsigned const);
 };
 
 #endif /* _INCLUDE__BASE__TRACE__POLICY_H_ */

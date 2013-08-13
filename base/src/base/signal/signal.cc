@@ -13,6 +13,7 @@
 
 #include <base/signal.h>
 #include <base/thread.h>
+#include <base/trace/events.h>
 #include <signal_session/connection.h>
 
 using namespace Genode;
@@ -204,6 +205,9 @@ Signal::Signal(Signal::Data data) : _data(data)
 
 void Signal_transmitter::submit(unsigned cnt)
 {
+	{
+		Trace::Signal_submit trace_event(cnt);
+	}
 	signal_connection()->submit(_context, cnt);
 }
 
@@ -334,6 +338,8 @@ Signal Signal_receiver::wait_for_signal()
 
 			if (result.num == 0)
 				PWRN("returning signal with num == 0");
+
+			Trace::Signal_received trace_event(*context, result.num);
 
 			/* return last received signal */
 			return result;

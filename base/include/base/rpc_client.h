@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__RPC_CLIENT_H_
 
 #include <base/ipc.h>
+#include <base/trace/events.h>
 
 namespace Genode {
 
@@ -120,8 +121,16 @@ namespace Genode {
 		ipc_client << opcode;
 		_marshal_args(ipc_client, args);
 
+		{
+			Trace::Rpc_call trace_event(IF::name(), call_buf);
+		}
+
 		/* perform RPC, unmarshal return value */
 		ipc_client << IPC_CALL >> ret;
+
+		{
+			Trace::Rpc_returned trace_event(IF::name(), reply_buf);
+		}
 
 		/* unmarshal RPC output arguments */
 		_unmarshal_results(ipc_client, args);

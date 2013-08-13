@@ -20,6 +20,7 @@
 #include <base/object_pool.h>
 #include <base/lock.h>
 #include <base/printf.h>
+#include <base/trace/events.h>
 #include <cap_session/cap_session.h>
 
 namespace Genode {
@@ -123,6 +124,10 @@ namespace Genode {
 					/* read arguments from istream */
 					_read_args(is, args.data());
 
+					{
+						Trace::Rpc_dispatch trace_event(This_rpc_function::name());
+					}
+
 					/*
 					 * Dispatch call to matching RPC base class, using
 					 * 'This_rpc_function' and the list of its exceptions to
@@ -134,6 +139,10 @@ namespace Genode {
 					Rpc_exception_code exc;
 					exc = _do_serve(args.data(), ret, Overload_selector<This_rpc_function, Exceptions>());
 					os << ret;
+
+					{
+						Trace::Rpc_reply trace_event(This_rpc_function::name());
+					}
 
 					/* write results to ostream 'os' */
 					_write_results(os, args.data());
