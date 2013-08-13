@@ -45,7 +45,10 @@ GDB_CONTENT := gdb/regformats/regdat.sh \
 #
 PORTS += $(GDB)
 
-prepare:: $(CONTRIB_DIR)/$(GDB)/configure generated_files
+prepare:: clean-gdb $(CONTRIB_DIR)/$(GDB)/configure generated_files
+
+clean-gdb:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(GDB)
 
 #
 # Port-specific local rules
