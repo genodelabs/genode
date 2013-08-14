@@ -15,7 +15,7 @@ REP_DIR := $(realpath .)
 
 include $(REP_DIR)/lib/mk/qt_version.inc
 
-QT4_URL = http://releases.qt-project.org/qt4/source
+QT4_URL = http://download.qt-project.org/archive/qt/4.8/4.8.4
 QT4_TGZ = $(QT4).tar.gz
 
 QTSCRIPTCLASSIC_URL = http://ftp.heanet.ie/mirrors/ftp.trolltech.com/pub/qt/solutions/lgpl
