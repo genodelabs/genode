@@ -1,0 +1,63 @@
+#
+# \brief  Test to affinity subspacing
+# \author Norman Feske
+#
+
+if {[have_spec platform_pbxa9] || (![have_spec nova] && ![have_spec foc])} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+
+build "core init test/affinity"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<affinity-space width="2" />
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="init">
+			<resource name="RAM" quantum="10M"/>
+			<!-- assign the right half of the available CPUs -->
+			<affinity xpos="1" width="1" />
+			<config>
+				<parent-provides>
+					<service name="LOG"/>
+					<service name="CPU"/>
+					<service name="RM"/>
+				</parent-provides>
+				<default-route>
+					<any-service> <parent/> </any-service>
+				</default-route>
+				<!-- assign the leftmost half of CPUs to test-affinity -->
+				<affinity-space width="2" />
+				<start name="test-affinity">
+					<resource name="RAM" quantum="2M"/>
+					<affinity xpos="0" width="1" />
+				</start>
+			</config>
+		</start>
+	</config>
+}
+
+append qemu_args " -nographic -m 64 -smp 8,cores=8 "
+
+build_boot_image "core init test-affinity"
+
+run_genode_until {.*Detected 2x1 CPUs.*} 60
+
+puts "Test succeeded"
+

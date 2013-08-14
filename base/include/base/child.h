@@ -74,6 +74,17 @@ namespace Genode {
 		{ return false; }
 
 		/**
+		 * Apply session affinity policy
+		 *
+		 * \param affinity  affinity passed along with a session request
+		 * \return          affinity subordinated to the child policy
+		 */
+		virtual Affinity filter_session_affinity(Affinity const &affinity)
+		{
+			return affinity;
+		}
+
+		/**
 		 * Unregister services that had been provided by the child
 		 */
 		virtual void unregister_services() { }

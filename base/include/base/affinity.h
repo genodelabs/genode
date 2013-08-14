@@ -69,6 +69,11 @@ namespace Genode {
 					unsigned height() const { return _height; }
 					unsigned total()  const { return _width*_height; }
 
+					Space multiply(Space const &other) const
+					{
+						return Space(_width*other.width(), _height*other.height());
+					}
+
 					/**
 					 * Return location of a single CPU of specified index
 					 */
@@ -110,6 +115,17 @@ namespace Genode {
 					unsigned width()  const { return _width; }
 					unsigned height() const { return _height; }
 					bool     valid()  const { return _width*_height > 0; }
+
+					Location multiply_position(Space const &space) const
+					{
+						return Location(_xpos*space.width(), _ypos*space.height(),
+						                _width, _height);
+					}
+
+					Location transpose(int dx, int dy) const
+					{
+						return Location(_xpos + dx, _ypos + dy, _width, _height);
+					}
 			};
 
 		private:

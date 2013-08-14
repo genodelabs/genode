@@ -658,6 +658,32 @@ namespace Init {
 				_pd_args_policy.   filter_session_args(service, args, args_len);
 			}
 
+			Genode::Affinity filter_session_affinity(Genode::Affinity const &session_affinity)
+			{
+				using namespace Genode;
+
+				/* check if no valid affinity space was specified */
+				if (session_affinity.space().total() == 0)
+					return session_affinity;
+
+				Affinity::Space    const &session_space    = session_affinity.space();
+				Affinity::Location const &session_location = session_affinity.location();
+
+				Affinity::Space    const &child_space    = _resources.affinity.space();
+				Affinity::Location const &child_location = _resources.affinity.location();
+
+				/* scale resolution of resulting space */
+				Affinity::Space space(child_space.multiply(session_space));
+
+				/* subordinate session affinity to child affinity subspace */
+				Affinity::Location location(child_location
+				                            .multiply_position(session_space)
+				                            .transpose(session_location.xpos(),
+				                                       session_location.ypos()));
+
+				return Affinity(space, location);
+			}
+
 			bool announce_service(const char             *service_name,
 			                      Genode::Root_capability root,
 			                      Genode::Allocator      *alloc,

@@ -257,6 +257,9 @@ Session_capability Child::session(Parent::Service_name const &name,
 	strncpy(_args, args.string(), sizeof(_args));
 	_policy->filter_session_args(name.string(), _args, sizeof(_args));
 
+	/* filter session affinity */
+	Affinity const filtered_affinity = _policy->filter_session_affinity(affinity);
+
 	/* transfer the quota donation from the child's account to ourself */
 	size_t ram_quota = Arg_string::find_arg(_args, "ram_quota").long_value(0);
 
@@ -274,7 +277,7 @@ Session_capability Child::session(Parent::Service_name const &name,
 
 	/* create session */
 	Session_capability cap;
-	try { cap = service->session(_args, affinity); }
+	try { cap = service->session(_args, filtered_affinity); }
 	catch (Service::Invalid_args)   { throw Service_denied(); }
 	catch (Service::Unavailable)    { throw Service_denied(); }
 	catch (Service::Quota_exceeded) { throw Quota_exceeded(); }
