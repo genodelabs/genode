@@ -353,6 +353,7 @@ class Element : public List<Element>::Element
 		uint32_t           _name_len; /* length of name in bytes */
 		uint32_t           _bdf;      /* bus device function */
 		uint8_t const     *_data;     /* pointer to the data section */
+		uint32_t           _para_len; /* parameters to be skipped */
 		bool               _valid;    /* true if this is a valid element */
 		bool               _routed;   /* has the PCI information been read */
 		List<Pci_routing> *_pci;      /* list of PCI routing elements for this element */
@@ -365,6 +366,9 @@ class Element : public List<Element>::Element
 
 		/* default signature length of ACPI elements */
 		enum { NAME_LEN = 4 };
+
+		/* ComputationalData - ACPI 19.2.3 */
+		enum { BYTE_PREFIX = 0xa, WORD_PREFIX = 0xb, DWORD_PREFIX = 0xc, QWORD_PREFIX=0xe };
 
 		/* return address of 'name' in Element */
 		uint8_t const *_name_addr() const { return _data + _size_len + 1; }
@@ -673,8 +677,8 @@ class Element : public List<Element>::Element
 
 		Element(uint8_t const *data = 0, bool package_op4 = false)
 		:
-			_type(0), _size(0), _size_len(0), _name(0), _name_len(0), _bdf(0), _data(data),
-			_valid(false), _routed(false), _pci(0)
+			_type(0), _size(0), _size_len(0), _name(0), _name_len(0), _bdf(0),
+			_data(data), _para_len(0), _valid(false), _routed(false), _pci(0)
 		{
 			if (!data)
 				return;
@@ -722,6 +726,7 @@ class Element : public List<Element>::Element
 				}
 
 			case DEVICE_NAME:
+				/* ACPI 19.2.5.1 - NameOp NameString DataRefObject */
 
 				if (!(_name_len = _read_name_len()))
 					return;
@@ -733,6 +738,15 @@ class Element : public List<Element>::Element
 				_type = data[0];
 
 				dump();
+
+				/* ACPI 19.2.3 DataRefObject */
+				switch (data[_name_len + 1]) {
+					case QWORD_PREFIX: _para_len += 4;
+					case DWORD_PREFIX: _para_len += 2;
+					case  WORD_PREFIX: _para_len += 1;
+					case  BYTE_PREFIX: _para_len += 1;
+					default: _para_len += 1;
+				}
 
 			default:
 
@@ -844,6 +858,11 @@ class Element : public List<Element>::Element
 
 				/* skip header */
 				data += e.size_len();
+				/* skip rest of structure if known */
+				if (e.is_device_name()) {
+					data += e._name_len > NAME_LEN ? NAME_LEN : e._name_len;
+					data += e._para_len;
+				}
 			}
 
 			parse_bdf();
