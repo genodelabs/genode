@@ -29,9 +29,8 @@ int main(int argc, char *argv[])
 
 	Qt_launchpad *launchpad = new Qt_launchpad(Genode::env()->ram_session()->quota());
 
-	launchpad->add_launcher("previewer", 25*1024*1024);
-	launchpad->add_launcher("textedit",  25*1024*1024);
-	launchpad->add_launcher("tetrix",    40*1024*1024);
+	launchpad->add_launcher("calculatorform", 30*1024*1024);
+	launchpad->add_launcher("tetrix",         40*1024*1024);
 
 	launchpad->move(300,100);
 	launchpad->show();

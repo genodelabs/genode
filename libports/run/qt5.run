@@ -12,7 +12,7 @@ build {
 	server/nitpicker
 	server/liquid_framebuffer
 	app/qt5/qt_launchpad
-	app/qt5/examples/textedit
+	app/qt5/examples/calculatorform
 	app/qt5/examples/tetrix
 }
 
@@ -117,7 +117,7 @@ set boot_modules {
 	qt5_ui_tools.lib.so
 	zlib.lib.so
 	stdcxx.lib.so
-	textedit
+	calculatorform
 	tetrix
 }
 
@@ -133,4 +133,3 @@ build_boot_image $boot_modules
 append qemu_args " -m 512"
 
 run_genode_until forever
-

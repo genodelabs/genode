@@ -10,7 +10,7 @@ build {
 	drivers/framebuffer
 	drivers/timer
 	server/nitpicker
-	app/examples/textedit
+	app/examples/calculatorform
 	app/examples/tetrix
 	app/qt_launchpad
 }
@@ -95,7 +95,7 @@ set boot_modules {
 	timer
 	nitpicker
 	qt_launchpad
-	textedit
+	calculatorform
 	tetrix
 	dejavusans.lib.so
 	freetype.lib.so

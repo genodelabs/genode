@@ -2,21 +2,28 @@
 # Build
 #
 
-build {
+set build_components {
 	core
 	init
-	drivers/input/ps2
-	drivers/pci
-	drivers/atapi
-	drivers/sd_card
 	drivers/framebuffer
 	drivers/timer
-	drivers/usb
-	server/ffat_fs
 	server/nitpicker
 	app/examples/textedit
 }
 
+set use_sd_card_driver [expr [have_spec omap4] || [have_spec exynos5]]
+set use_usb_driver     [expr [have_spec omap4] || [have_spec exynos5]]
+
+lappend_if $use_sd_card_driver build_components drivers/sd_card
+lappend_if $use_usb_driver     build_components drivers/usb
+lappend_if [have_spec     pci] build_components drivers/pci
+lappend_if [have_spec     pci] build_components drivers/atapi
+lappend_if [have_spec    acpi] build_components drivers/acpi
+lappend_if [have_spec     ps2] build_components drivers/input/ps2
+lappend_if [have_spec   linux] build_components server/ram_fs
+lappend_if [expr ![have_spec linux]] build_components server/ffat_fs
+
+build $build_components
 create_boot_directory
 
 #
@@ -62,7 +69,7 @@ append_if [have_spec pci] config {
 		<config ata="yes" />
 	</start>}
 
-append_if [expr [have_spec pl180] || [have_spec omap4]] config {
+append_if $use_sd_card_driver config {
 	<start name="sd_card_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
@@ -78,13 +85,34 @@ append_if [expr ![have_spec ps2] && [have_spec usb]] config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
+		<config> <hid/> </config>
 	</start>}
 
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
+	</start>}
+
+append_if [have_spec linux] config {
+	<start name="ram_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<!-- constrain sessions according to their labels -->
+			<policy label="textedit" root="/" writeable="yes" />
+			<policy label="textedit2" root="/" writeable="yes" />
+		</config>
+	</start>}
+
+append_if [expr ![have_spec linux]] config {
+	<start name="ffat_fs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<!-- constrain sessions according to their labels -->
+			<policy label="textedit" root="/" writeable="yes" />
+		</config>
 	</start>}
 
 append config {
@@ -95,14 +123,6 @@ append config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
-	</start>
-	<start name="ffat_fs">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="File_system"/></provides>
-		<config>
-			<!-- constrain sessions according to their labels -->
-			<policy label="textedit" root="/" writeable="yes" />
-		</config>
 	</start>
 	<start name="textedit">
 		<resource name="RAM" quantum="40M"/>
@@ -128,7 +148,6 @@ set boot_modules {
 	init
 	timer
 	nitpicker
-	ffat_fs
 	textedit
 	dejavusans.lib.so
 	freetype.lib.so
@@ -142,18 +161,19 @@ set boot_modules {
 	qt_core.lib.so
 	qt_gui.lib.so
 	zlib.lib.so
-	usb_drv
 	stdcxx.lib.so
 }
 
 # platform-specific modules
-lappend_if [have_spec linux]       boot_modules fb_sdl
-lappend_if [have_spec pci]         boot_modules pci_drv
-lappend_if [have_spec pci]         boot_modules atapi_drv
-lappend_if [have_spec ps2]         boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec omap4]       boot_modules sd_card_drv
-lappend_if [have_spec omap4]       boot_modules usb_drv
+lappend_if [have_spec linux]         boot_modules fb_sdl
+lappend_if [have_spec linux]         boot_modules ram_fs
+lappend_if [expr ![have_spec linux]] boot_modules ffat_fs
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec pci]           boot_modules atapi_drv
+lappend_if [have_spec ps2]           boot_modules ps2_drv
+lappend_if [have_spec framebuffer]   boot_modules fb_drv
+lappend_if $use_sd_card_driver       boot_modules sd_card_drv
+lappend_if $use_usb_driver           boot_modules usb_drv
 
 build_boot_image $boot_modules
 
