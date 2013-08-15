@@ -4,6 +4,47 @@
                                ===========
 
 
+Genode OS Framework release 13.08 | 2013-08-15
+##############################################
+
+| We celebrate our 5th anniversary with the addition of three major features:
+| Qt5 on all kernels, profound multi-processor support on the NOVA and
+| Fiasco.OC kernels, and light-weight tracing of inter-process communication.
+
+The availability of Qt has always been one of the features that made our
+framework attractive to the microkernel community. We have closely followed
+the development of Qt5 and greatly appreciate the direction the Qt developers
+are heading to. Now that Qt5 has reached a stable state, the time is right for
+Genode to make the switch from Qt4 to Qt5. With the fresh port of Qt version
+5.1 to Genode, Qt becomes available on the entirety of kernels supported by the
+framework.
+
+Component-based systems use to pose the difficulty of getting a holistic view
+on the system. The more complex the system scenarios become, the more
+inter-component communication takes place. Finding performance bottlenecks in
+such kinds of de-componentized systems tends to be much more challenging than
+in the world of monolithic systems. To overcome this challenge, the new
+version comes with tracing support deeply built into the framework. This
+facility is able to capture the interactions of Genode components between each
+other in a light-weight fashion with almost no side effects.
+
+As the third major addition, version 13.08 comes with substantial support for
+multi-processor systems, in particular for using Genode with the NOVA kernel.
+Within the NOVA developer community, this controversial topic has been
+discussed for several years. It seemed like NOVA's multi-processor model was
+inherently contradicting with the design of the Genode API. However, we have
+finally found a fairly elegant solution that makes multiple CPUs seamlessly
+available for Genode users on NOVA.
+
+Besides these highlights, the release comes with new SATA 3.0 and
+power-management drivers for the Samsung Exynos-5 SoC, updates the Fiasco.OC
+kernel and L4Linux, and introduces measures for verifying the integrity of
+downloaded 3rd-party source codes.
+
+Those and many more topics are presented in detail in the
+[http:/documentation/release-notes/13.08 - release documentation of version 13.08...]
+
+
 Genode OS Framework release 13.05 | 2013-05-30
 ##############################################
 
