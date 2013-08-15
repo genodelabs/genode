@@ -2,9 +2,9 @@ include ports/pcre.inc
 
 PCRE_TBZ      = $(PCRE).tar.bz2
 PCRE_SIG      = $(PCRE_TBZ).sig
-PCRE_BASE_URL = ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre
-PCRE_URL      = $(PCRE_BASE_URL)/$(PCRE_TBZ)
-PCRE_URL_SIG  = $(PCRE_BASE_URL)/$(PCRE_SIG)
+PCRE_BASE_URL = http://sourceforge.net/projects/pcre/files/pcre/$(PCRE_VERSION)
+PCRE_URL      = $(PCRE_BASE_URL)/$(PCRE_TBZ)/download
+PCRE_URL_SIG  = $(PCRE_BASE_URL)/$(PCRE_SIG)/download
 PCRE_KEY      = ph10@cam.ac.uk
 
 #
@@ -20,10 +20,10 @@ $(CONTRIB_DIR)/$(PCRE): clean-pcre
 # Port-specific local rules
 #
 $(DOWNLOAD_DIR)/$(PCRE_TBZ):
-	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PCRE_URL) && touch $@
+	$(VERBOSE)wget -c -O $(DOWNLOAD_DIR)/$(PCRE_TBZ) $(PCRE_URL) && touch $@
 
 $(DOWNLOAD_DIR)/$(PCRE_SIG):
-	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(PCRE_URL_SIG) && touch $@
+	$(VERBOSE)wget -c -O $(DOWNLOAD_DIR)/$(PCRE_SIG) $(PCRE_URL_SIG) && touch $@
 
 $(DOWNLOAD_DIR)/$(PCRE_TBZ).verified: $(DOWNLOAD_DIR)/$(PCRE_TBZ) \
                                       $(DOWNLOAD_DIR)/$(PCRE_SIG)
