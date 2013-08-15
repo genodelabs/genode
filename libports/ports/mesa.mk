@@ -2,7 +2,7 @@ MESA_VERSION = 7.8.1
 MESA         = MesaLib-$(MESA_VERSION)
 MESA_DIR     = Mesa-$(MESA_VERSION)
 MESA_TGZ     = $(MESA).tar.gz
-MESA_URL     = ftp://ftp.freedesktop.org/pub/mesa/7.8.1/$(MESA_TGZ)
+MESA_URL     = ftp://ftp.freedesktop.org/pub/mesa/older-versions/7.x/7.8.1/$(MESA_TGZ)
 
 #
 # Interface to top-level prepare Makefile
