@@ -72,6 +72,16 @@ you should revisit first when exploring the base platform. Additionally, most
 'base-<platform>' directories provide more in-depth information within their
 respective 'doc/' subdirectories.
 
+For the VESA driver on x86, the x86emu library is required and can be
+downloaded and prepared by invoking the following command from within the
+'libports' directory:
+
+! make prepare PKG=x86emu
+
+Also uncomment the following line in 'etc/build.conf'
+
+! REPOSITORIES += $(GENODE_DIR)/libports
+
 Now that the base platform is prepared, the 'create_builddir' tool can be used
 to create a build directory for your platform of choice by giving the platform
 as argument. To see the list of available platforms, execute 'create_builddir'
