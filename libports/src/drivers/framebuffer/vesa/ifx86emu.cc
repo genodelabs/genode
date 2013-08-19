@@ -180,7 +180,7 @@ class Region_database : public Avl_tree<Region>
 				insert(region);
 				return region;
 			} catch (...) {
-				PERR("Access to I/O region [%08lx,%08lx) denied", beg, end - beg);
+				PERR("Access to I/O region [%08lx,%08lx) denied", beg, end);
 				return 0;
 			}
 		}
