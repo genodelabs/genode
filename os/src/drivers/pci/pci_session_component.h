@@ -336,6 +336,9 @@ namespace Pci {
 			{
 				using namespace Genode;
 
+				/* check for config file first */
+				try { config(); } catch (...) { return; }
+
 				try {
 					unsigned i;
 
