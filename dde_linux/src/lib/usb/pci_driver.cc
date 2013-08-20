@@ -195,23 +195,24 @@ int pci_register_driver(struct pci_driver *drv)
 
 	bool found = false;
 
-	while (id->device_class || id->class_mask) {
+	while (id->device_class || id->class_mask || id->device_class) {
 
 		if (id->device_class == (unsigned)PCI_ANY_ID) {
-				dde_kit_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
-				id++;
-				continue;
+			dde_kit_log(DEBUG_PCI, "Skipping PCI_ANY_ID device class");
+			id++;
+			continue;
 		}
 
 		Pci::Device_capability cap = pci.first_device(id->device_class,
 		                                              id->class_mask);
-		Pci::Device_capability old;
 		while (cap.valid()) {
 
-			uint8_t bus, dev, func;
-			Pci::Device_client client(cap);
-			client.bus_address(&bus, &dev, &func);
-			dde_kit_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
+			if (DEBUG_PCI) {
+				uint8_t bus, dev, func;
+				Pci::Device_client client(cap);
+				client.bus_address(&bus, &dev, &func);
+				dde_kit_log(DEBUG_PCI, "bus: %x  dev: %x func: %x", bus, dev, func);
+			}
 
 			Pci_driver *pci_drv = 0;
 			try {
@@ -222,21 +223,23 @@ int pci_register_driver(struct pci_driver *drv)
 				 */
 				pci_device_cap = cap;
 
+				/* trigger that the device get be assigned to the usb driver */
+				pci.config_extended(cap);
+
 				/* probe device */
 				pci_drv = new (env()->heap()) Pci_driver(drv, cap, id);
 				pci.on_destruction(Pci::Connection::KEEP_OPEN);
 				found = true;
 
-				/* trigger that the device get be assigned to the usb driver */
-				pci.config_extended(cap);
 			} catch (...) {
 				destroy(env()->heap(), pci_drv);
 				pci_drv = 0;
 			}
 
-			old = cap;
+			Pci::Device_capability free_up = cap;
 			cap = pci.next_device(cap, id->device_class, id->class_mask);
-			pci.release_device(old);
+			if (!pci_drv)
+				pci.release_device(free_up);
 		}
 		id++;
 	}
