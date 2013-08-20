@@ -398,3 +398,6 @@ if {$use_usb} {
 }
 
 build_boot_image $boot_modules
+
+# A copy of the config is placed in the run folder.
+exec rm -f bin/vm_linux.cfg

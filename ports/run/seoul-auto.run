@@ -55,4 +55,8 @@ append qemu_args " -nographic "
 
 run_genode_until {\[init -\> vancouver\] VMM: #   Hello Genode world!} 300
 
+foreach binary $guest_os_binaries {
+	exec rm -f bin/$binary
+}
+
 puts "Test succeeded"
