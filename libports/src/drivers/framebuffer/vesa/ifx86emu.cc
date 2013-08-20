@@ -21,6 +21,7 @@
 
 #include <io_port_session/connection.h>
 #include <io_mem_session/connection.h>
+#include <pci_session/connection.h>
 
 #include "ifx86emu.h"
 #include "framebuffer.h"
@@ -506,6 +507,13 @@ uint16_t X86emu::x86emu_cmd(uint16_t eax, uint16_t ebx, uint16_t ecx,
 
 int X86emu::init(void)
 {
+	/*
+	 * Wait until Acpi/Pci driver initialization is done to avoid potentially 
+	 * concurrently accesses by this driver and the Acpi/Pci driver to the
+	 * graphic device (PCI config space).
+	 */
+	Pci::Connection conn;
+
 	if (map_code_area())
 		return -1;
 
