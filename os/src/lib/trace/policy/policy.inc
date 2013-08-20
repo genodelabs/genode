@@ -4,7 +4,7 @@
 # \date   2013-08-12
 #
 
-CXX_OPT = -g -ffreestanding -fPIC -fno-exceptions -fno-rtti  -nostdinc -nostdlib
+CXX_OPT = -g -ffreestanding -fno-exceptions -fno-rtti  -nostdinc -nostdlib
 
 LD_SCRIPT= $(PRG_DIR)/../policy.ld
 
@@ -13,7 +13,11 @@ LD_SCRIPT= $(PRG_DIR)/../policy.ld
 
 LIBS = platform
 
-%.o : %.cc
+table.o: table.cc
+	$(MSG_COMP)$@
+	$(VERBOSE)$(CXX) -c $(CC_MARCH) $(CXX_OPT) $(INCLUDES) $< -o $@
+
+policy.o: policy.cc
 	$(MSG_COMP)$@
 	$(VERBOSE)$(CXX) -c $(CC_MARCH) $(CXX_OPT) $(INCLUDES) $< -o $@
 
