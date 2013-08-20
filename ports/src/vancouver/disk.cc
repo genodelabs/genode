@@ -29,9 +29,11 @@
 #include <base/heap.h>
 #include <base/lock.h>
 
+/* VMM utility includes */
+#include <vmm/utcb_guard.h>
+
 /* local includes */
 #include <disk.h>
-#include <utcb_guard.h>
 
 /* Seoul includes */
 #include <host/dma.h>
@@ -51,12 +53,13 @@ static Genode::Heap * disk_heap() {
 
 
 Vancouver_disk::Vancouver_disk(Synced_motherboard &mb,
-                               char * backing_store_base,
-                               char * backing_store_fb_base)
+                               char         * backing_store_base,
+                               Genode::size_t backing_store_size)
 :
 	Thread("vmm_disk"),
-	_motherboard(mb), _backing_store_base(backing_store_base),
-	_backing_store_fb_base(backing_store_fb_base),
+	_motherboard(mb),
+	_backing_store_base(backing_store_base),
+	_backing_store_size(backing_store_size),
 	_tslab_msg(disk_heap()), _tslab_dma(disk_heap()), _tslab_avl(disk_heap())
 {
 	/* initialize struct with 0 size */
@@ -141,8 +144,8 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 					                  msg->dma[i].byteoffset + msg->physoffset;
 
 					// check for bounds
-					if (dma_addr >= _backing_store_fb_base ||
-					    dma_addr < _backing_store_base) {
+					if (dma_addr >= _backing_store_base + _backing_store_size
+					 || dma_addr < _backing_store_base) {
 						PERR("dma bounds violation");
 					} else
 						memcpy(dma_addr, source_addr + sector,
@@ -168,7 +171,7 @@ void Vancouver_disk::_signal_dispatch_entry(unsigned disknr)
 bool Vancouver_disk::receive(MessageDisk &msg)
 {
 	static Genode::Native_utcb utcb_backup;
-	Utcb_guard guard(utcb_backup);
+	Vmm::Utcb_guard guard(utcb_backup);
 
 	if (msg.disknr >= MAX_DISKS)
 		Logging::panic("You configured more disks than supported.\n");
@@ -290,8 +293,8 @@ bool Vancouver_disk::receive(MessageDisk &msg)
 				                  + msg_cpy->physoffset;
 
 				/* check for bounds */
-				if (dma_addr >= _backing_store_fb_base ||
-				    dma_addr < _backing_store_base) { 
+				if (dma_addr >= _backing_store_base + _backing_store_size
+				 || dma_addr < _backing_store_base) { 
 					/* drop allocated objects not needed in error case */
 					if (write)
 						destroy(&_tslab_dma, msg_cpy->dma);

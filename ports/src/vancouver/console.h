@@ -48,7 +48,7 @@ class Vancouver_console : public Thread<8192>, public StaticReceiver<Vancouver_c
 
 		Genode::Lock                 _startup_lock;
 		Synced_motherboard          &_motherboard;
-		Genode::Lock                &_console_lock;
+		Genode::Lock                 _console_lock;
 		short                       *_pixels;
 		char                        *_guest_fb;
 		unsigned long                _fb_size;
@@ -75,7 +75,6 @@ class Vancouver_console : public Thread<8192>, public StaticReceiver<Vancouver_c
 		 * Constructor
 		 */
 		Vancouver_console(Synced_motherboard &,
-		                  Genode::Lock &console_lock,
 		                  Genode::size_t vm_fb_size,
 		                  Genode::Dataspace_capability fb_ds);
 };

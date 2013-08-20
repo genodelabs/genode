@@ -96,8 +96,8 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 		} _diskcon[MAX_DISKS];
 
 		Synced_motherboard &_motherboard;
-		char               *_backing_store_base;
-		char               *_backing_store_fb_base;
+		char        * const _backing_store_base;
+		size_t        const _backing_store_size;
 
 		/* slabs for temporary holding DMADescriptor and MessageDisk objects */
 		typedef Genode::Tslab<MessageDisk, 128> MessageDisk_Slab;
@@ -127,8 +127,8 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 		 * Constructor
 		 */
 		Vancouver_disk(Synced_motherboard &,
-		               char * backing_store_base,
-		               char * backing_store_fb_base);
+		               char         * backing_store_base,
+		               Genode::size_t backing_store_size);
 
 		~Vancouver_disk();
 

@@ -1,5 +1,5 @@
 /*
- * \brief  Guard to save a utcb and restore it during Guard desctruction
+ * \brief  Guard to save a UTCB and restore it during guard destruction
  * \author Alexander Boettcher
  * \date   2013-07-05
  */
@@ -11,24 +11,33 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SEOUL_UTCB_GUARD_H_
-#define _SEOUL_UTCB_GUARD_H_
+#ifndef _INCLUDE__VMM__UTCB_GUARD_H_
+#define _INCLUDE__VMM__UTCB_GUARD_H_
 
+/* Genode includes */
 #include <base/printf.h>
+#include <util/string.h>
+
+/* NOVA syscalls */
 #include <nova/syscalls.h>
 
-class Utcb_guard {
 
+namespace Vmm {
+	using namespace Genode;
+	class Utcb_guard;
+}
+
+
+class Vmm::Utcb_guard
+{
 	private:
-		Genode::Native_utcb &_backup_utcb;
+
+		Native_utcb &_backup_utcb;
 
 	public:
 
-		Utcb_guard(Genode::Native_utcb &backup_utcb)
-		: _backup_utcb(backup_utcb)
+		Utcb_guard(Native_utcb &backup_utcb) : _backup_utcb(backup_utcb)
 		{
-			using namespace Genode;
-	
 			Nova::Utcb *utcb =
 				reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
 
@@ -37,13 +46,11 @@ class Utcb_guard {
 			Genode::memcpy(&_backup_utcb, utcb, len);
 
 			if (utcb->msg_items())
-				PWRN("Error: msg items on UTCB are not saved and restored !!!");
+				PWRN("Error: msg items on UTCB are not saved and restored!");
 		}
 
 		~Utcb_guard()
 		{
-			using namespace Genode;
-
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(&_backup_utcb);
 
 			unsigned header_len = (char *)utcb->msg - (char *)utcb;
@@ -52,4 +59,4 @@ class Utcb_guard {
 		}
 };
 
-#endif /* _SEOUL_UTCB_GUARD_H_ */
+#endif /* _INCLUDE__VMM__UTCB_GUARD_H_ */

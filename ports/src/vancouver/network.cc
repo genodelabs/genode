@@ -33,8 +33,6 @@ Vancouver_network::Vancouver_network(Synced_motherboard &mb, Nic::Session *nic)
 
 void Vancouver_network::entry()
 {
-	Logging::printf("Hello, this is the network receiver.\n");
-
 	while (true) {
 		Packet_descriptor rx_packet = _nic->rx()->get_packet();
 

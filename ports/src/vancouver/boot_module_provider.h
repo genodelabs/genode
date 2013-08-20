@@ -139,7 +139,8 @@ class Boot_module_provider
 			catch (Destination_buffer_too_small) {
 				PERR("Boot_module_provider: destination buffer too small"); }
 			catch (Genode::Rm_session::Attach_failed) {
-				PERR("Boot_module_provider: Rm_session::Attach_failed"); }
+				PERR("Boot_module_provider: Rm_session::Attach_failed");
+				throw Module_loading_failed(); }
 			catch (Genode::Rom_connection::Rom_connection_failed) {
 				PERR("Boot_module_provider: Rom_connection_failed"); }
 			catch (...) {

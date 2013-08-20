@@ -343,13 +343,12 @@ void Vancouver_console::register_host_operations(Motherboard &motherboard)
 
 
 Vancouver_console::Vancouver_console(Synced_motherboard &mb,
-                                     Genode::Lock &console_lock,
                                      Genode::size_t vm_fb_size,
                                      Genode::Dataspace_capability fb_ds)
 :
 	Thread("vmm_console"),
 	_startup_lock(Genode::Lock::LOCKED),
-	_vm_fb_size(vm_fb_size), _motherboard(mb), _console_lock(console_lock),
+	_vm_fb_size(vm_fb_size), _motherboard(mb),
 	_fb_size(0), _pixels(0), _guest_fb(0),
 	_regs(0), _fb_ds(fb_ds),
 	_left(false), _middle(false), _right(false)

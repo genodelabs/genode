@@ -33,15 +33,12 @@
 
 /* Genode includes */
 #include <util/touch.h>
-#include <base/printf.h>
 #include <base/sleep.h>
-#include <base/thread.h>
 #include <base/rpc_server.h>
 #include <base/native_types.h>
 #include <util/misc_math.h>
 #include <rom_session/connection.h>
 #include <rm_session/connection.h>
-#include <cap_session/connection.h>
 #include <base/allocator_avl.h>
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
@@ -50,6 +47,11 @@
 #include <os/synced_interface.h>
 #include <timer_session/connection.h>
 #include <rtc_session/connection.h>
+
+/* VMM utilities includes */
+#include <vmm/guest_memory.h>
+#include <vmm/vcpu_thread.h>
+#include <vmm/vcpu_dispatcher.h>
 
 /* NOVA includes that come with Genode */
 #include <nova/syscalls.h>
@@ -66,12 +68,6 @@
 #include <console.h>
 #include <network.h>
 #include <disk.h>
-
-enum {
-	PAGE_SIZE_LOG2 = 12UL,
-	PAGE_SIZE      = 1UL << PAGE_SIZE_LOG2,
-	STACK_SIZE     = 1024*sizeof(Genode::addr_t),
-};
 
 
 enum { verbose_debug = false };
@@ -158,16 +154,10 @@ class Guest_memory
 {
 	private:
 
-		/*
-		 * The '_reservation' is a managed dataspace that occupies the lower
-		 * part of the address space, which contains the shadow of the VCPU's
-		 * physical memory.
-		 */
-		Genode::Rm_connection _reservation;
-
 		Genode::Ram_dataspace_capability _ds;
 		Genode::Ram_dataspace_capability _fb_ds;
 
+		Genode::size_t _backing_store_size;
 		Genode::size_t _fb_size;
 
 		char *_local_addr;
@@ -198,8 +188,8 @@ class Guest_memory
 		 */
 		Guest_memory(Genode::size_t backing_store_size, Genode::size_t fb_size)
 		:
+			_backing_store_size(backing_store_size),
 			_fb_size(fb_size),
-			_reservation(0, backing_store_size),
 			_ds(Genode::env()->ram_session()->alloc(backing_store_size-fb_size)),
 			_fb_ds(Genode::env()->ram_session()->alloc(fb_size)),
 			_local_addr(0),
@@ -207,17 +197,6 @@ class Guest_memory
 			remaining_size(backing_store_size-fb_size)
 		{
 			try {
-				/* free up preliminary mapping to reserve lower address space */
-				Genode::env()->rm_session()->detach(PAGE_SIZE);
-
-				/*
-				 * Attach reservation to the beginning of the local address space.
-				 * We leave out the very first page because core denies the
-				 * attachment of anything at the zero page.
-				 */
-				Genode::env()->rm_session()->attach_at(_reservation.dataspace(),
-				                               PAGE_SIZE, 0, PAGE_SIZE);
-
 				/*
 				 * RAM used as backing store for guest-physical memory
 				 */
@@ -232,9 +211,6 @@ class Guest_memory
 
 		~Guest_memory()
 		{
-			/* detach reservation */
-			Genode::env()->rm_session()->detach((void *)PAGE_SIZE);
-
 			/* detach and free backing store */
 			Genode::env()->rm_session()->detach((void *)_local_addr);
 			Genode::env()->ram_session()->free(_ds);
@@ -251,6 +227,11 @@ class Guest_memory
 			return _local_addr;
 		}
 
+		Genode::size_t backing_store_size()
+		{
+			return _backing_store_size;
+		}
+
 		/**
 		 * Return pointer to lo locally mapped fb backing store
 		 */
@@ -265,75 +246,17 @@ class Guest_memory
 };
 
 
-class Vcpu_thread : Genode::Thread<STACK_SIZE>
-{
-	private:
-
-		/**
-		 * Log2 size of portal window used for virtualization events
-		 */
-		enum { VCPU_EXC_BASE_LOG2 = 8 };
-
-	public:
-
-		Vcpu_thread(char const * name) : Thread(name)
-		{
-			using namespace Genode;
-
-			/* release pre-allocated selectors of Thread */
-			cap_map()->remove(tid().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
-
-			/* allocate correct number of selectors */
-			tid().exc_pt_sel = cap_map()->insert(VCPU_EXC_BASE_LOG2);
-
-			/* tell generic thread code that this becomes a vCPU */
-			tid().is_vcpu = true;
-
-		}
-
-		~Vcpu_thread()
-		{
-			using namespace Genode;
-
-			Nova::revoke(Nova::Obj_crd(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2));
-			cap_map()->remove(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2, false);
-
-			/* allocate selectors for ~Thread */
-			tid().exc_pt_sel = cap_map()->insert(Nova::NUM_INITIAL_PT_LOG2);
-		}
-
-		Genode::addr_t exc_base() { return tid().exc_pt_sel; }
-
-		void start(Genode::addr_t sel_ec)
-		{
-			this->Thread_base::start();
-
-			using namespace Genode;
-
-			/*
-			 * Request native EC thread cap and put it next to the
-			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
-			 */
-			request_native_ec_cap(_pager_cap, sel_ec);
-		}
-
-		void entry() { }
-};
-
-
-class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
+class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
                         public StaticReceiver<Vcpu_dispatcher>
 {
 	private:
-
-		Genode::Cap_connection _cap_session;
 
 		/**
 		 * Pointer to corresponding VCPU model
 		 */
 		Genode::Synced_interface<VCpu> _vcpu;
 
-		Vcpu_thread _vcpu_thread;
+		Vmm::Vcpu_thread _vcpu_thread;
 
 		/**
 		 * Guest-physical memory
@@ -477,7 +400,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			if (verbose_npt)
 				Logging::printf("--> request mapping at 0x%lx\n", vm_fault_addr);
 
-			MessageMemRegion mem_region(vm_fault_addr >> PAGE_SIZE_LOG2);
+			MessageMemRegion mem_region(vm_fault_addr >> Vmm::PAGE_SIZE_LOG2);
 
 			if (!_motherboard()->bus_memregion.send(mem_region, false) ||
 			    !mem_region.ptr)
@@ -488,14 +411,14 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				                " VMM area: [0x%lx:0x%lx)\n",
 				                mem_region.page, mem_region.start_page,
 				                mem_region.start_page + mem_region.count,
-				                (Genode::addr_t)mem_region.ptr >> PAGE_SIZE_LOG2,
-				                ((Genode::addr_t)mem_region.ptr >> PAGE_SIZE_LOG2)
+				                (Genode::addr_t)mem_region.ptr >> Vmm::PAGE_SIZE_LOG2,
+				                ((Genode::addr_t)mem_region.ptr >> Vmm::PAGE_SIZE_LOG2)
 				                + mem_region.count);
 
 			Genode::addr_t vmm_memory_base =
 			        reinterpret_cast<Genode::addr_t>(mem_region.ptr);
 			Genode::addr_t vmm_memory_fault = vmm_memory_base +
-			        (vm_fault_addr - (mem_region.start_page << PAGE_SIZE_LOG2));
+			        (vm_fault_addr - (mem_region.start_page << Vmm::PAGE_SIZE_LOG2));
 
 			bool read=true, write=true, execute=true;
                         /* XXX: Not yet supported by Vancouver.
@@ -506,10 +429,10 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 				write = execute = false;
 			}*/
 
-			Nova::Mem_crd crd(vmm_memory_fault >> PAGE_SIZE_LOG2, 0,
+			Nova::Mem_crd crd(vmm_memory_fault >> Vmm::PAGE_SIZE_LOG2, 0,
 			                  Nova::Rights(read, write, execute));
 
-			if (!max_map_crd(crd, vmm_memory_base >> PAGE_SIZE_LOG2,
+			if (!max_map_crd(crd, vmm_memory_base >> Vmm::PAGE_SIZE_LOG2,
 			                 mem_region.start_page,
 			                 mem_region.count, mem_region.page))
 				Logging::panic("mapping failed");
@@ -517,7 +440,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			if (need_unmap)
 				Logging::panic("_handle_map_memory: need_unmap not handled, yet\n");
 
-			Genode::addr_t hotspot = (mem_region.start_page << PAGE_SIZE_LOG2)
+			Genode::addr_t hotspot = (mem_region.start_page << Vmm::PAGE_SIZE_LOG2)
 			                         + crd.addr() - vmm_memory_base;
 
 			if (verbose_npt)
@@ -574,7 +497,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		void _svm_npt()
 		{
 			Utcb *utcb = _utcb_of_myself();
-			MessageMemRegion msg(utcb->qual[1] >> PAGE_SIZE_LOG2);
+			MessageMemRegion msg(utcb->qual[1] >> Vmm::PAGE_SIZE_LOG2);
 			if (!_handle_map_memory(utcb->qual[0] & 1))
 				_svm_invalid();
 		}
@@ -711,7 +634,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			_handle_io(utcb->qual[0] & 8, order, utcb->qual[0] >> 16);
 		}
 
-		void _vmx_mmio()
+		void _vmx_ept()
 		{
 			Utcb *utcb = _utcb_of_myself();
 
@@ -736,73 +659,35 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		}
 
 		/**
-		 * Portal entry point entered on virtualization events
-		 *
-		 * For each event type used as argument of the '_register_handler'
-		 * function template, the compiler automatically generates a separate
-		 * instance of this function. The sole task of this function is to
-		 * call the 'Vcpu' member function corresponding to the event type.
-		 */
-		template <unsigned EV, void (Vcpu_dispatcher::*FUNC)()>
-		static void _portal_entry()
-		{
-			/* obtain this pointer of the event handler */
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
-			Vcpu_dispatcher *vd = static_cast<Vcpu_dispatcher *>(myself);
-
-			/* call event-specific handler function */
-			(vd->*FUNC)();
-
-			/* continue execution of the guest */
-			Nova::reply(myself->stack_top());
-		}
-
-		/**
-		 * Register virtualization event handler
+		 * Shortcut for calling 'Vmm::Vcpu_dispatcher::register_handler'
+		 * with 'Vcpu_dispatcher' as template argument
 		 */
 		template <unsigned EV, void (Vcpu_dispatcher::*FUNC)()>
 		void _register_handler(Genode::addr_t exc_base, Nova::Mtd mtd)
 		{
-			/*
-			 * Let the compiler generate an instance of a portal
-			 * entry
-			 */
-			void (*portal_entry)() = &_portal_entry<EV, FUNC>;
-
-			using namespace Genode;
-
-			/* Create the portal at the desired selector index */
-			_cap_session.rcv_window(exc_base + EV);
-
-			Native_capability thread(tid().ec_sel);
-			Native_capability handler =
-				_cap_session.alloc(thread, (Nova::mword_t)portal_entry, mtd.value());
-
-			if (!handler.valid() || exc_base + EV != handler.local_name())
-				Logging::panic("Could not get EC cap");
+			if (!register_handler<EV, Vcpu_dispatcher, FUNC>(exc_base, mtd))
+				PERR("could not register handler %lx", exc_base + EV);
 		}
+
+		enum { STACK_SIZE = 1024*sizeof(Genode::addr_t) };
 
 	public:
 
 		Vcpu_dispatcher(Genode::Lock           &vcpu_lock,
+		                Genode::Cap_connection &cap_connection,
 		                VCpu                   *unsynchronized_vcpu,
 		                Guest_memory           &guest_memory,
 		                Synced_motherboard     &motherboard,
-		                bool                   has_svm,
-		                bool                   has_vmx)
+		                bool                    has_svm,
+		                bool                    has_vmx)
 		:
-			Thread("vcpu_dispatcher"),
+			Vmm::Vcpu_dispatcher(STACK_SIZE, cap_connection),
 			_vcpu(vcpu_lock, unsynchronized_vcpu),
-			_vcpu_thread("vCPU thread"),
+			_vcpu_thread(STACK_SIZE),
 			_guest_memory(guest_memory),
 			_motherboard(motherboard)
 		{
 			using namespace Genode;
-
-			/* request creation of a 'local' EC */
-			_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
-			Thread_base::start();
-
 			using namespace Nova;
 
 			/* shortcuts for common message-transfer descriptors */
@@ -813,10 +698,10 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 			/*
 			 * Register vCPU event handlers
 			 */
+			Genode::addr_t const exc_base = _vcpu_thread.exc_base();
 			typedef Vcpu_dispatcher This;
+
 			if (has_svm) {
-				Genode::addr_t exc_base =
-					_vcpu_thread.exc_base();
 
 				_register_handler<0x64, &This::_vmx_irqwin>
 					(exc_base, MTD_IRQ);
@@ -840,8 +725,6 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 					(exc_base, MTD_IRQ);
 
 			} else if (has_vmx) {
-				Genode::addr_t exc_base =
-					_vcpu_thread.exc_base();
 
 				_register_handler<2, &This::_vmx_triple>
 					(exc_base, MTD_ALL);
@@ -867,7 +750,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 					(exc_base, MTD_ALL);
 				_register_handler<40, &This::_vmx_pause>
 					(exc_base, MTD_RIP_LEN | MTD_STATE);
-				_register_handler<48, &This::_vmx_mmio>
+				_register_handler<48, &This::_vmx_ept>
 					(exc_base, MTD_ALL);
 				_register_handler<0xfe, &This::_vmx_startup>
 					(exc_base, MTD_IRQ);
@@ -892,32 +775,6 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		 * Destructor
 		 */
 		~Vcpu_dispatcher() { }
-
-		/**
-		 * Unused member of the 'Thread_base' interface
-		 *
-		 * Similarly to how 'Rpc_entrypoints' are handled, a
-		 * 'Vcpu_dispatcher' comes with a custom initialization
-		 * procedure, which does not call the thread's normal entry
-		 * function. Instead, the thread's EC gets associated with
-		 * several portals, each for handling a specific virtualization
-		 * event.
-		 */
-		void entry() { }
-
-		/**
-		 * Return capability selector of the VCPU's SM and EC
-		 *
-		 * The returned number corresponds to the VCPU's semaphore
-		 * selector. The consecutive number corresponds to the EC. The
-		 * number returned by this function is used by the VMM code as
-		 * a unique identifier of the VCPU. I.e., it gets passed as
-		 * arguments for 'MessageHostOp' operations.
-		 */
-		Nova::mword_t sel_sm_ec()
-		{
-			return tid().exc_pt_sel + Nova::SM_SEL_EC;
-		}
 
 
 		/***********************************
@@ -964,6 +821,7 @@ class Machine : public StaticReceiver<Machine>
 
 		Genode::Rom_connection _hip_rom;
 		Hip * const            _hip;
+		Genode::Cap_connection _cap;
 		Clock                  _clock;
 		Genode::Lock           _motherboard_lock;
 		Motherboard            _unsynchronized_motherboard;
@@ -1002,7 +860,7 @@ class Machine : public StaticReceiver<Machine>
 					msg.len = _guest_memory.fb_size();
 					msg.ptr = _guest_memory.backing_store_local_base();
 					_alloc_fb_mem = false;
-					Logging::printf(" -> len=0x%lx, ptr=0x%p\n",
+					Logging::printf("_alloc_fb_mem -> len=0x%lx, ptr=0x%p\n",
 					                msg.len, msg.ptr);
 					return true;
 				}
@@ -1051,7 +909,9 @@ class Machine : public StaticReceiver<Machine>
 						Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
 					Vcpu_dispatcher *vcpu_dispatcher =
-						new Vcpu_dispatcher(_motherboard_lock, msg.vcpu,
+						new Vcpu_dispatcher(_motherboard_lock,
+						                    _cap,
+						                    msg.vcpu,
 						                    _guest_memory,
 						                    _motherboard,
 						                    _hip->has_feature_svm(), _hip->has_feature_vmx());
@@ -1128,7 +988,7 @@ class Machine : public StaticReceiver<Machine>
 					 * behind the module data, aligned on a page boundary.
 					 */
 					Genode::addr_t const cmdline_offset =
-						Genode::align_addr(data_len, PAGE_SIZE_LOG2);
+						Genode::align_addr(data_len, Vmm::PAGE_SIZE_LOG2);
 
 					if (cmdline_offset >= dst_len) {
 						Logging::printf("destination buffer too small for command line\n");
@@ -1479,77 +1339,80 @@ class Machine : public StaticReceiver<Machine>
 extern unsigned long _prog_img_beg;  /* begin of program image (link address) */
 extern unsigned long _prog_img_end;  /* end of program image */
 
-namespace Genode {
-	Rm_session *env_context_area_rm_session();
-
-	void __attribute__((constructor)) init_context_area_vmm() {
-		/**
-		 * XXX Invoke env_context_rm_session to make sure the virtual region of
-		 *     the context area is reserved at core. Typically this happens
-		 *     when the first time a thread is allocated. Unfortunately,
-		 *     beforehand the VMM may try to grab the same region for
-		 *     large VM sizes.
-		 */
-		env_context_area_rm_session();
-	}
-}
 
 int main(int argc, char **argv)
 {
-	/*
-	 * Reserve complete lower address space so that nobody else can take it.
-	 * When we found out how much memory we actually should use for the VM,
-	 * the reservation is adjusted to the real size.
-	 */
-	Genode::Rm_connection pre_reservation(0, Genode::Native_config::context_area_virtual_base());
-	Genode::env()->rm_session()->attach_at(pre_reservation.dataspace(),
-	                                       PAGE_SIZE, 0, PAGE_SIZE);
-
-	Genode::printf("--- Vancouver VMM starting ---\n");
-
-	/* request max available memory */
-	Genode::addr_t vm_size = Genode::env()->ram_session()->avail();
-	/* reserve some memory for the VMM */
-	vm_size -= 8 * 1024 * 1024;
-	/* calculate max memory for the VM */
-	vm_size = vm_size & ~((1UL << PAGE_SIZE_LOG2) - 1);
-
-	/* Find out framebuffer size (default: 4 MiB) */
 	Genode::addr_t fb_size = 4*1024*1024;
-	try {
-		Genode::Xml_node node = Genode::config()->xml_node().sub_node("vga");
-		Genode::Xml_node::Attribute arg = node.attribute("fb_size");
-		unsigned long val;
-                arg.value(&val);
-		fb_size = val*1024;
-	} catch (...) { }
+	Genode::addr_t vm_size;
 
+	{
+		/*
+		 * Reserve complete lower address space so that nobody else can take
+		 * it. The context area is moved as far as possible to a high virtual
+		 * address. So we can use its base address as upper bound. The
+		 * reservation will be dropped when this scope is left and re-acquired
+		 * with the actual VM size which is determined below inside this scope.
+		 */
+		Vmm::Virtual_reservation
+			reservation(Genode::Native_config::context_area_virtual_base());
+
+		Genode::printf("--- Vancouver VMM starting ---\n");
+
+		/* request max available memory */
+		vm_size = Genode::env()->ram_session()->avail();
+		/* reserve some memory for the VMM */
+		vm_size -= 8 * 1024 * 1024;
+		/* calculate max memory for the VM */
+		vm_size = vm_size & ~((1UL << Vmm::PAGE_SIZE_LOG2) - 1);
+
+		/* Find out framebuffer size (default: 4 MiB) */
+		try {
+			Genode::Xml_node node = Genode::config()->xml_node().sub_node("machine").sub_node("vga");
+			Genode::Xml_node::Attribute arg = node.attribute("fb_size");
+
+			unsigned long val;
+			arg.value(&val);
+			fb_size = val*1024;
+		} catch (...) { }
+	}
+
+	/* re-adjust reservation to actual VM size */
+	Vmm::Virtual_reservation reservation(vm_size);
+
+	/* setup guest memory */
 	static Guest_memory guest_memory(vm_size, fb_size);
-	/* free up temporary rm_session */
-	Genode::env()->parent()->close(pre_reservation.cap());
 
 	/* diagnostic messages */
-	Genode::printf("[0x%08lx, 0x%08lx) - %lu MiB - guest physical memory\n",
+	Genode::printf("[0x%012lx, 0x%012lx) - %lu MiB - VM accessible memory\n",
 	               0, vm_size, vm_size / 1024 / 1024);
 
 	if (guest_memory.backing_store_local_base())
-		Genode::printf("[0x%08p, 0x%08lx) - VMM local base of guest-physical"
-		               " memory\n", guest_memory.backing_store_local_base(),
-		               (Genode::addr_t)guest_memory.backing_store_local_base() +
-		               vm_size);
+		Genode::printf("[0x%012p, 0x%012p) - %lu MiB - VMM accessible shadow "
+		               "mapping of VM memory \n",
+		               guest_memory.backing_store_local_base(),
+		               guest_memory.backing_store_local_base() +
+		               guest_memory.remaining_size, vm_size / 1024 / 1024);
 
-	Genode::printf("[0x%08lx, 0x%08lx) - Genode thread context area\n",
+	if (guest_memory.backing_store_fb_local_base())
+		Genode::printf("[0x%012p, 0x%012p) - %lu MiB - VMM accessible "
+		               "framebuffer memory of VM\n",
+		               guest_memory.backing_store_fb_local_base(),
+		               guest_memory.backing_store_fb_local_base() + fb_size,
+		               fb_size / 1024 / 1024);
+
+	Genode::printf("[0x%012lx, 0x%012lx) - Genode thread context area\n",
 	                Genode::Native_config::context_area_virtual_base(),
 	                Genode::Native_config::context_area_virtual_base() +
 	                Genode::Native_config::context_area_virtual_size());
 
-	Genode::printf("[0x%08lx, 0x%08lx) - VMM program image\n",
+	Genode::printf("[0x%012lx, 0x%012lx) - VMM program image\n",
 	               (Genode::addr_t)&_prog_img_beg,
 	               (Genode::addr_t)&_prog_img_end);
 
-	if (!guest_memory.backing_store_local_base()) {
-		Genode::printf("Not enough space (0x%lx) left for VMM, VM image"
-		               " to large\n", vm_size);
+	if (!guest_memory.backing_store_local_base() ||
+		!guest_memory.backing_store_fb_local_base()) {
+		PERR("Not enough space left for %s - exit",
+		     guest_memory.backing_store_local_base() ? "framebuffer" : "VMM");
 		return 1;
 	}
 
@@ -1560,19 +1423,15 @@ int main(int argc, char **argv)
 
 	static Machine machine(boot_modules, guest_memory);
 
-	Genode::Lock fb_lock;
-
 	/* create console thread */
-	Vancouver_console vcon(machine.motherboard(),
-	                       fb_lock,
-	                       fb_size, guest_memory.fb_ds());
+	Vancouver_console vcon(machine.motherboard(), fb_size, guest_memory.fb_ds());
 
 	vcon.register_host_operations(machine.unsynchronized_motherboard());
 
 	/* create disk thread */
 	Vancouver_disk vdisk(machine.motherboard(),
 	                     guest_memory.backing_store_local_base(),
-	                     guest_memory.backing_store_fb_local_base());
+	                     guest_memory.backing_store_size());
 
 	vdisk.register_host_operations(machine.unsynchronized_motherboard());
 
