@@ -30,10 +30,21 @@ void Pci::Device_pd_component::attach_dma_mem(Genode::Ram_dataspace_capability d
 
 	Dataspace_client ds_client(ds_cap);
 
-	addr_t page = env()->rm_session()->attach_at(ds_cap, ds_client.phys_addr());
+	addr_t page = ~0UL;
+
+	try {
+		page = env()->rm_session()->attach_at(ds_cap, ds_client.phys_addr());
+	} catch (...) { }
+
 	/* sanity check */
-	if (page != ds_client.phys_addr())
-		throw Rm_session::Region_conflict();
+	if ((page == ~0UL) || (page != ds_client.phys_addr())) {
+		if (page != ~0UL)
+			env()->rm_session()->detach(page);
+
+		PERR("attachment of DMA memory @ %lx+%zx failed",
+		     ds_client.phys_addr(), ds_client.size());
+		return;
+	}
 
 	/* trigger mapping of whole memory area */
 	for (size_t rounds = (ds_client.size() + 1) / 4096; rounds;
