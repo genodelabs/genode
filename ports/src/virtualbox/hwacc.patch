@@ -1,0 +1,16 @@
++++ src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
+@@ -1273,6 +1279,14 @@
+     rc = CFGMR3InsertInteger(pRoot, "CSAMEnabled",    1);                           UPDATE_RC();
+ #endif
+ 
++    /* enable HW virtualization support */
++
++    PCFGMNODE pHWVirtExt = NULL;
++
++    rc = CFGMR3InsertNode(pRoot, "HWVirtExt", &pHWVirtExt);                         UPDATE_RC();
++    rc = CFGMR3InsertInteger(pHWVirtExt, "Enabled",      1);                        UPDATE_RC();
++    rc = CFGMR3InsertInteger(pHWVirtExt, "64bitEnabled", 0);                        UPDATE_RC();
++
+     /*
+      * PDM.
+      */

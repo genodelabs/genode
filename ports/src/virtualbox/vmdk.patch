@@ -1,0 +1,17 @@
++++ src/VBox/Storage/VMDK.cpp	2013-11-25 14:15:48.171143505 +0100
+@@ -6114,7 +6114,6 @@
+                         }
+                         pExtent->uGrainSectorAbs = uSectorExtentAbs;
+                         pExtent->uGrain = uSectorExtentRel / pExtent->cSectorsPerGrain;
+-                        Assert(uLBA == uSectorExtentRel);
+                     }
+                     memcpy(pvBuf, (uint8_t *)pExtent->pvGrain + VMDK_SECTOR2BYTE(uSectorInGrain), cbToRead);
+                 }
+@@ -6258,7 +6257,6 @@
+                      * which is somewhere between expensive and impossible. */
+                     rc = VERR_VD_VMDK_INVALID_STATE;
+                     pExtent->uGrainSectorAbs = 0;
+-                    AssertRC(rc);
+                 }
+                 else
+                 {

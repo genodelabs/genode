@@ -1,0 +1,9 @@
++++ src/VBox/Devices/PC/DrvACPI.cpp
+@@ -44,6 +44,7 @@
+ # include <IOKit/ps/IOPSKeys.h>
+ #endif
+ 
++#undef RT_OS_FREEBSD
+ #ifdef RT_OS_FREEBSD
+ # include <sys/ioctl.h>
+ # include <dev/acpica/acpiio.h>

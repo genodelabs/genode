@@ -1,0 +1,20 @@
+--- src/VBox/Devices/Graphics/BIOS/vbetables-gen.c.orig	2013-11-19 16:09:24.844195101 +0100
++++ src/VBox/Devices/Graphics/BIOS/vbetables-gen.c	2013-11-19 16:09:38.288364715 +0100
+@@ -13,6 +13,7 @@
+ 
+ ModeInfo modes[] = {
+     /* standard VESA modes */
++#if 0
+ { 640, 400, 8                          , 0x100},
+ { 640, 480, 8                          , 0x101},
+ { 800, 600, 4                          , 0x102},
+@@ -57,6 +58,9 @@
+ { 1152, 864, 16                      , 0x14a},
+ { 1152, 864, 24                      , 0x14b},
+ { 1152, 864, 32                      , 0x14c},
++#else
++{ 800, 600, 16                        , 0x111},
++#endif
+ { 0, },
+ };
+ 

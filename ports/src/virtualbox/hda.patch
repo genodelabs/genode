@@ -1,0 +1,53 @@
++++ src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
+@@ -158,6 +160,7 @@
+ static bool        g_fReleaseLog = true; /**< Set if we should open the release. */
+        const char *g_pszProgressString;
+        unsigned    g_uProgressPercent = ~0U;
++static bool        g_fOverlay= false;
+ 
+ 
+ /**
+@@ -715,6 +718,8 @@
+             g_fCSAM = false;
+ #endif /* VBOXSDL_ADVANCED_OPTIONS */
+         /* just show the help screen */
++        else if (strcmp(pszArg, "-overlay") == 0)
++            g_fOverlay = true;
+         else
+         {
+             SyntaxError("unrecognized argument '%s'\n", pszArg);
+@@ -1532,7 +1550,7 @@
+         rc = CFGMR3InsertNode(pLunL0,   "AttachedDriver", &pDrv);                   UPDATE_RC();
+         rc = CFGMR3InsertString(pDrv,   "Driver",         "VD");                    UPDATE_RC();
+         rc = CFGMR3InsertNode(pDrv,     "Config",         &pCfg);                   UPDATE_RC();
+-        rc = CFGMR3InsertString(pCfg,   "Path",           g_pszHdaFile);            UPDATE_RC();
++        rc = CFGMR3InsertString(pCfg,   "Type",           "HardDisk");              UPDATE_RC();
+ 
+         if (g_fHdaSpf)
+         {
+@@ -1541,13 +1559,23 @@
+         else
+         {
+             char *pcExt = RTPathExt(g_pszHdaFile);
+-            if ((pcExt) && (!strcmp(pcExt, ".vdi")))
++            if ((pcExt) && (!strcmp(pcExt, ".vdi") && !g_fOverlay))
+             {
+                 rc = CFGMR3InsertString(pCfg, "Format",       "VDI");               UPDATE_RC();
++                rc = CFGMR3InsertString(pCfg, "Path",         g_pszHdaFile);            UPDATE_RC();
+             }
+             else
+             {
+-                rc = CFGMR3InsertString(pCfg, "Format",       "VMDK");              UPDATE_RC();
++                /*
++                 * Use the overlay.vdi file to store differential changes.
++                 * Leave the VMDK file passed as argument unchanged.
++                 */
++                PCFGMNODE pParent = 0;
++                rc = CFGMR3InsertString(pCfg, "Format", "VDI");              UPDATE_RC();
++                rc = CFGMR3InsertString(pCfg, "Path",   "/ram/overlay.vdi");      UPDATE_RC();
++                rc = CFGMR3InsertNode(pCfg,   "Parent", &pParent);            UPDATE_RC();
++                rc = CFGMR3InsertString(pParent, "Format", "VDI");           UPDATE_RC();
++                rc = CFGMR3InsertString(pParent, "Path",   g_pszHdaFile);     UPDATE_RC();
+             }
+         }
+     }

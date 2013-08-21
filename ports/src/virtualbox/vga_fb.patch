@@ -1,0 +1,18 @@
++++ src/VBox/Devices/Graphics/DevVGA.cpp
+@@ -3468,9 +3475,15 @@
+     int         rc;
+     Assert(pThis);
+     Assert(GCPhys >= pThis->GCPhysVRAM);
++    Assert(GCPhys - pThis->GCPhysVRAM + cbBuf <= pThis->vram_size);
+     NOREF(pvPhys); NOREF(pvBuf); NOREF(cbBuf); NOREF(enmAccessType);
+ 
+-    rc = vgaLFBAccess(pVM, pThis, GCPhys, 0);
++    rc = VINF_SUCCESS;
++    size_t offset = 0;
++    while (RT_SUCCESS(rc) && offset < cbBuf) {
++        rc = vgaLFBAccess(pVM, pThis, GCPhys + offset, 0);
++        offset += 1UL << PAGE_SHIFT;
++    }
+     if (RT_SUCCESS(rc))
+         return VINF_PGM_HANDLER_DO_DEFAULT;
+     AssertMsg(rc <= VINF_SUCCESS, ("rc=%Rrc\n", rc));

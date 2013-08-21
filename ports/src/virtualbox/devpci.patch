@@ -1,0 +1,10 @@
++++ src/VBox/Devices/Bus/DevPCI.cpp
+@@ -2279,7 +2280,7 @@
+     /*
+      * Register I/O ports and save state.
+      */
+-    rc = PDMDevHlpIOPortRegister(pDevIns, 0x0cf8, 1, NULL, pciIOPortAddressWrite, pciIOPortAddressRead, NULL, NULL, "i440FX (PCI)");
++    rc = PDMDevHlpIOPortRegister(pDevIns, 0x0cf8, 4, NULL, pciIOPortAddressWrite, pciIOPortAddressRead, NULL, NULL, "i440FX (PCI)");
+     if (RT_FAILURE(rc))
+         return rc;
+     rc = PDMDevHlpIOPortRegister(pDevIns, 0x0cfc, 4, NULL, pciIOPortDataWrite, pciIOPortDataRead, NULL, NULL, "i440FX (PCI)");

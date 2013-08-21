@@ -1,0 +1,13 @@
++++ src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
+@@ -1481,6 +1489,11 @@
+     rc = CFGMR3InsertInteger(pCfg,  "IRQ",            4);                           UPDATE_RC();
+     rc = CFGMR3InsertInteger(pCfg,  "IOBase",         0x3f8);                       UPDATE_RC();
+ 
++/*    rc = CFGMR3InsertNode(pInst,    "LUN#0",          &pLunL0);                     UPDATE_RC();
++    rc = CFGMR3InsertString(pLunL0, "Driver",         "Host Serial");               UPDATE_RC();
++    rc = CFGMR3InsertNode(pLunL0,   "Config",         &pLunL1);                     UPDATE_RC();
++    rc = CFGMR3InsertString(pLunL1, "DevicePath",     "/dev/terminal");             UPDATE_RC();
++*/
+     rc = CFGMR3InsertNode(pDev,     "1",              &pInst);                      UPDATE_RC();
+     rc = CFGMR3InsertNode(pInst,    "Config",         &pCfg);                       UPDATE_RC();
+     rc = CFGMR3InsertInteger(pCfg,  "IRQ",            3);                           UPDATE_RC();

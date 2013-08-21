@@ -1,0 +1,20 @@
++++ src/VBox/Devices/Graphics/DevVGA.cpp	2013-12-09 10:33:02.168894689 +0100
+@@ -5885,7 +5889,7 @@
+     vgaR3Reset(pDevIns);
+ 
+     /* The PCI devices configuration. */
+-    PCIDevSetVendorId(  &pThis->Dev, 0x80ee);   /* PCI vendor, just a free bogus value */
++    PCIDevSetVendorId(  &pThis->Dev, 0x80ef);   /* PCI vendor, just a free bogus value */
+     PCIDevSetDeviceId(  &pThis->Dev, 0xbeef);
+     PCIDevSetClassSub(  &pThis->Dev,   0x00);   /* VGA controller */
+     PCIDevSetClassBase( &pThis->Dev,   0x03);
++++ src/VBox/Devices/VMMDev/VMMDev.cpp	2013-12-09 10:33:15.164894199 +0100
+@@ -3429,7 +3431,7 @@
+     pThis->pDevIns = pDevIns;
+ 
+     /* PCI vendor, just a free bogus value */
+-    PCIDevSetVendorId(&pThis->dev, 0x80ee);
++    PCIDevSetVendorId(&pThis->dev, 0x80ef);
+     /* device ID */
+     PCIDevSetDeviceId(&pThis->dev, 0xcafe);
+     /* class sub code (other type of system peripheral) */

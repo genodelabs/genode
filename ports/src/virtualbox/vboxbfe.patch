@@ -1,0 +1,47 @@
++++ src/VBox/Frontends/VBoxBFE/VirtualBoxBase.h
+@@ -24,10 +24,9 @@
+ # include <iprt/uuid.h>
+ #else
+ # include <VBox/com/defs.h>
++# include <VBox/com/assert.h>  // For the AssertComRC macro
+ #endif
+ 
+-#include <VBox/com/assert.h>  // For the AssertComRC macro
+-
+ #include <iprt/alloc.h>
+ #include <iprt/assert.h>
+ #include <iprt/critsect.h>
++++ src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
+@@ -1765,19 +1779,19 @@
+     /*
+      * VMM Device
+      */
+-    rc = CFGMR3InsertNode(pDevices, "VMMDev",         &pDev);                       UPDATE_RC();
+-    rc = CFGMR3InsertNode(pDev,     "0",              &pInst);                      UPDATE_RC();
+-    rc = CFGMR3InsertNode(pInst,    "Config",         &pCfg);                       UPDATE_RC();
+-    rc = CFGMR3InsertInteger(pInst, "Trusted",        1);           /* boolean */   UPDATE_RC();
+-    rc = CFGMR3InsertInteger(pInst, "PCIDeviceNo",    4);                           UPDATE_RC();
+-    rc = CFGMR3InsertInteger(pInst, "PCIFunctionNo",  0);                           UPDATE_RC();
+-    rc = CFGMR3InsertInteger(pCfg,  "RamSize",        g_u32MemorySizeMB * _1M);     UPDATE_RC();
+-
+-    /* the VMM device's Main driver */
+-    rc = CFGMR3InsertNode(pInst,    "LUN#0",          &pLunL0);                     UPDATE_RC();
+-    rc = CFGMR3InsertString(pLunL0, "Driver",        "HGCM");                 UPDATE_RC();
+-    rc = CFGMR3InsertNode(pLunL0,   "Config",        &pCfg);                        UPDATE_RC();
+-    rc = CFGMR3InsertInteger(pCfg,  "Object",        (uintptr_t)gVMMDev);           UPDATE_RC();
++//    rc = CFGMR3InsertNode(pDevices, "VMMDev",         &pDev);                       UPDATE_RC();
++//    rc = CFGMR3InsertNode(pDev,     "0",              &pInst);                      UPDATE_RC();
++//    rc = CFGMR3InsertNode(pInst,    "Config",         &pCfg);                       UPDATE_RC();
++//    rc = CFGMR3InsertInteger(pInst, "Trusted",        1);           /* boolean */   UPDATE_RC();
++//    rc = CFGMR3InsertInteger(pInst, "PCIDeviceNo",    4);                           UPDATE_RC();
++//    rc = CFGMR3InsertInteger(pInst, "PCIFunctionNo",  0);                           UPDATE_RC();
++//    rc = CFGMR3InsertInteger(pCfg,  "RamSize",        g_u32MemorySizeMB * _1M);     UPDATE_RC();
++//
++//    /* the VMM device's Main driver */
++//    rc = CFGMR3InsertNode(pInst,    "LUN#0",          &pLunL0);                     UPDATE_RC();
++//    rc = CFGMR3InsertString(pLunL0, "Driver",        "HGCM");                 UPDATE_RC();
++//    rc = CFGMR3InsertNode(pLunL0,   "Config",        &pCfg);                        UPDATE_RC();
++//    rc = CFGMR3InsertInteger(pCfg,  "Object",        (uintptr_t)gVMMDev);           UPDATE_RC();
+ 
+     /*
+      * AC'97 ICH audio

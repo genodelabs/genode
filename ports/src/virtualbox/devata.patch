@@ -1,0 +1,23 @@
++++ src/VBox/Devices/Storage/DevATA.cpp	2014-01-28 15:13:14.903523393 +0100
+@@ -4596,9 +4596,9 @@
+ 
+                     if ((u64ResetTimeStop - pCtl->u64ResetTime) >= 10)
+                     {
+-                        LogRel(("PIIX3 ATA LUN#%d: Async I/O thread probably stuck in operation, interrupting\n", s->iLUN));
++                        LogRel(("PIIX3 ATA LUN#%d: Async I/O thread probably stuck in operation, interrupting %llu %llu\n", s->iLUN, u64ResetTimeStop, pCtl->u64ResetTime));
+                         pCtl->u64ResetTime = u64ResetTimeStop;
+-                        RTThreadPoke(pCtl->AsyncIOThread);
++//                        RTThreadPoke(pCtl->AsyncIOThread);
+                     }
+                 }
+ #endif
+@@ -4699,6 +4699,9 @@
+         /* Save the timestamp we started the reset. */
+         pCtl->u64ResetTime = RTTimeMilliTS();
+ 
++        LogRel(("PIIX3 ATA ------------------------------------ reset time %llu\n",
++		        pCtl->u64ResetTime));
++
+         /* Issue the reset request now. */
+         ataAsyncIOPutRequest(pCtl, &g_ataResetARequest);
+ #else /* !IN_RING3 */

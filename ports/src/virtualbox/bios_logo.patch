@@ -1,0 +1,32 @@
++++ src/VBox/Devices/Graphics/DevVGA.cpp
+@@ -6024,10 +5984,10 @@
+ #endif /* VBOX_WITH_HGSMI */
+ 
+ #ifdef CONFIG_BOCHS_VBE
+-    rc = PDMDevHlpIOPortRegister(pDevIns,  0x1ce,  1, NULL, vgaIOPortWriteVBEIndex, vgaIOPortReadVBEIndex, NULL, NULL, "VGA/VBE - Index");
++    rc = PDMDevHlpIOPortRegister(pDevIns,  0x1ce,  2, NULL, vgaIOPortWriteVBEIndex, vgaIOPortReadVBEIndex, NULL, NULL, "VGA/VBE - Index");
+     if (RT_FAILURE(rc))
+         return rc;
+-    rc = PDMDevHlpIOPortRegister(pDevIns,  0x1cf,  1, NULL, vgaIOPortWriteVBEData, vgaIOPortReadVBEData, NULL, NULL, "VGA/VBE - Data");
++    rc = PDMDevHlpIOPortRegister(pDevIns,  0x1cf,  2, NULL, vgaIOPortWriteVBEData, vgaIOPortReadVBEData, NULL, NULL, "VGA/VBE - Data");
+     if (RT_FAILURE(rc))
+         return rc;
+ #endif /* CONFIG_BOCHS_VBE */
+@@ -6470,7 +6430,7 @@
+     /*
+      * Register I/O Port for the VBE BIOS Extra Data.
+      */
+-    rc = PDMDevHlpIOPortRegister(pDevIns, VBE_EXTRA_PORT, 1, NULL, vbeIOPortWriteVBEExtra, vbeIOPortReadVBEExtra, NULL, NULL, "VBE BIOS Extra Data");
++    rc = PDMDevHlpIOPortRegister(pDevIns, VBE_EXTRA_PORT, 2, NULL, vbeIOPortWriteVBEExtra, vbeIOPortReadVBEExtra, NULL, NULL, "VBE BIOS Extra Data");
+     if (RT_FAILURE(rc))
+         return rc;
+ #endif /* VBE_NEW_DYN_LIST */
+@@ -6478,7 +6438,7 @@
+     /*
+      * Register I/O Port for the BIOS Logo.
+      */
+-    rc = PDMDevHlpIOPortRegister(pDevIns, LOGO_IO_PORT, 1, NULL, vbeIOPortWriteCMDLogo, vbeIOPortReadCMDLogo, NULL, NULL, "BIOS Logo");
++    rc = PDMDevHlpIOPortRegister(pDevIns, LOGO_IO_PORT, 2, NULL, vbeIOPortWriteCMDLogo, vbeIOPortReadCMDLogo, NULL, NULL, "BIOS Logo");
+     if (RT_FAILURE(rc))
+         return rc;
+ 

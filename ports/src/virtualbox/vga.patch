@@ -1,0 +1,12 @@
++++ src/VBox/Devices/Graphics/DevVGA.cpp
+@@ -1845,6 +1846,10 @@
+                     dup9 = 0;
+                     if (ch >= 0xb0 && ch <= 0xdf && (s->ar[0x10] & 0x04))
+                         dup9 = 1;
++
++					if (bgcol == fgcol && fgcol == 0) {
++						fgcol = ~0U;
++					}
+                     vga_draw_glyph9(d1, linesize,
+                                     font_ptr, cheight, fgcol, bgcol, dup9);
+                 }

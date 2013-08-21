@@ -1,0 +1,28 @@
++++ src/VBox/Devices/VMMDev/VMMDev.cpp	2013-10-17 13:02:16.787071776 +0200
+@@ -1854,7 +1854,6 @@
+             }
+             break;
+         }
+-#endif /* VBOX_WITH_HGCM */
+ 
+         case VMMDevReq_HGCMCancel:
+         {
+@@ -1899,6 +1898,7 @@
+             }
+             break;
+         }
++#endif /* VBOX_WITH_HGCM */
+ 
+         case VMMDevReq_VideoAccelEnable:
+         {
+@@ -3341,8 +3341,10 @@
+     /* disabled statistics updating */
+     pThis->u32LastStatIntervalSize = 0;
+ 
++#ifdef VBOX_WITH_HGCM
+     /* Clear the "HGCM event enabled" flag so the event can be automatically reenabled.  */
+     pThis->u32HGCMEnabled = 0;
++#endif
+ 
+     /*
+      * Clear the event variables.
