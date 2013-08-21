@@ -65,6 +65,8 @@ struct Apic_override : Apic_struct
 	uint16_t flags;
 } __attribute__((packed));
 
+struct Dmar_struct_header;
+struct Dmar_struct;
 
 /* ACPI spec 5.2.6 */
 struct Generic
@@ -81,13 +83,59 @@ struct Generic
 
 	uint8_t const *data() { return reinterpret_cast<uint8_t *>(this); }
 
-	/* MADT acpi structures */
+	/* MADT ACPI structure */
 	Apic_struct *apic_struct() { return reinterpret_cast<Apic_struct *>(&creator_rev + 3); }
 	Apic_struct *end()         { return reinterpret_cast<Apic_struct *>(signature + size); }
 
-	/* MCFG ACPI stucture */
+	/* MCFG ACPI structure */
 	Mcfg_struct *mcfg_struct() { return reinterpret_cast<Mcfg_struct *>(&creator_rev + 3); }
 	Mcfg_struct *mcfg_end()    { return reinterpret_cast<Mcfg_struct *>(signature + size); }
+
+	/* DMAR Intel VT-d structures */
+	Dmar_struct_header *dmar_header() { return reinterpret_cast<Dmar_struct_header *>(this); }
+	Dmar_struct *dmar_struct() { return reinterpret_cast<Dmar_struct *>(&creator_rev + 4); }
+	Dmar_struct *dmar_end()    { return reinterpret_cast<Dmar_struct *>(signature + size); }
+} __attribute__((packed));
+
+
+/**
+ * DMA Remapping structures
+ */
+struct Dmar_struct_header : Generic
+{
+	enum { INTR_REMAP_MASK = 0x1U };
+
+	uint8_t width;
+	uint8_t flags;
+	uint8_t reserved[10];
+} __attribute__((packed));
+
+/* Reserved Memory Region Reporting structure - Intel VT-d IO Spec - 8.4. */
+struct Rmrr_struct
+{
+	uint16_t type;
+	uint16_t length;
+	uint16_t reserved;
+	uint16_t pci_segment;
+	uint64_t start;
+	uint64_t end;
+} __attribute__((packed));
+
+/* DMA Remapping Reporting structure - Intel VT-d IO Spec - 8.1. */
+struct Dmar_struct
+{
+	enum { DRHD= 0U, RMRR = 0x1U, ATSR = 0x2U, RHSA = 0x3U };
+	uint16_t type;
+	uint16_t length;
+	uint8_t  flags;
+	uint8_t  reserved;
+	uint16_t pci_segment;
+	uint64_t base;
+
+	Dmar_struct *next() {
+		return reinterpret_cast<Dmar_struct *>((uint8_t *)this + length); }
+
+	Rmrr_struct *rmrr() { return reinterpret_cast<Rmrr_struct *>(&base + 1); }
 } __attribute__((packed));
 
 
@@ -241,6 +289,11 @@ class Table_wrapper
 		bool is_searched() const { return _cmp("DSDT") || _cmp("SSDT"); }
 
 		/**
+		 * Is this a DMAR table
+		 */
+		bool is_dmar() { return _cmp("DMAR"); }
+
+		/**
 		 * Parse override structures
 		 */
 		void parse_madt()
@@ -274,6 +327,19 @@ class Table_wrapper
 				Pci_config_space::list()->insert(
 					new (env()->heap()) Pci_config_space(bus_start, func_count, mcfg->base));
 			}
+		}
+
+		void parse_dmar() const
+		{
+			Dmar_struct_header *head = _table->dmar_header();
+			PLOG("%u bit DMA physical addressable %s\n", head->width + 1,
+			     head->flags & Dmar_struct_header::INTR_REMAP_MASK ?
+			     ", IRQ remapping supported" : "");
+
+			Dmar_struct *dmar = _table->dmar_struct();
+			for (; dmar < _table->dmar_end(); dmar = dmar->next())
+				if (dmar->type == Dmar_struct::RMRR)
+					PLOG("RMRR: 0x%llx - DMA region reported by BIOS", dmar->base);
 		}
 
 		Table_wrapper(addr_t base) : _base(base), _io_mem(0), _table(0)
@@ -1053,6 +1119,11 @@ class Acpi_table
 						PDBG("Found MCFG");
 
 						table.parse_mcfg();
+					}
+					if (table.is_dmar()) {
+						PDBG("Found DMAR");
+
+						table.parse_dmar();
 					}
 				}
 
