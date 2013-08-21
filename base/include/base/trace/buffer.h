@@ -76,6 +76,10 @@ class Genode::Trace::Buffer
 
 		void commit(size_t len)
 		{
+			/* omit empty entries */
+			if (len == 0)
+				return;
+
 			_head_entry()->len = len;
 
 			/* advance head offset, wrap when reaching buffer boundary */
