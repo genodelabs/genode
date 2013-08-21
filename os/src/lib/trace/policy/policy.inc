@@ -4,7 +4,7 @@
 # \date   2013-08-12
 #
 
-CXX_OPT = -g -ffreestanding -fno-exceptions -fno-rtti  -nostdinc -nostdlib
+CXX_OPT = -g -ffreestanding -fPIC -fno-exceptions -fno-rtti -nostdinc -nostdlib -MMD
 
 LD_SCRIPT= $(PRG_DIR)/../policy.ld
 
@@ -23,7 +23,8 @@ policy.o: policy.cc
 
 $(TARGET_POLICY).elf: table.o policy.o
 	$(MSG_LINK)$@
-	$(VERBOSE)$(LD) $(LD_MARCH) -T $(LD_SCRIPT) -Ttext=0 $^ -o $@
+	$(VERBOSE)$(LD) $(LD_MARCH) -T $(LD_SCRIPT) -Ttext=0 \
+		$^ $(shell $(CXX) $(CC_MARCH) -print-libgcc-file-name) -o $@
 
 $(INSTALL_DIR)/$(TARGET_POLICY): $(TARGET_POLICY).elf
 	$(VERBOSE)$(OBJCOPY) -O binary $< $@
