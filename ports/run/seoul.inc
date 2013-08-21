@@ -21,8 +21,9 @@ set build_components {
 	vancouver
 	drivers/pci
 	drivers/input
-	drivers/framebuffer
 }
+
+if {$use_fancy_stuff} { set use_framebuffer 1 }
 
 lappend_if [have_spec acpi]     build_components drivers/acpi
 lappend_if [have_spec pci]      build_components drivers/pci/device_pd
@@ -31,6 +32,7 @@ lappend_if $use_block_ide       build_components drivers/atapi
 lappend_if $use_block_sata      build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
+lappend_if $use_framebuffer     build_components drivers/framebuffer
 lappend_if $use_fancy_stuff     build_components server/nitpicker
 lappend_if $use_fancy_stuff     build_components server/liquid_framebuffer
 lappend_if $use_fancy_stuff     build_components app/launchpad
@@ -207,7 +209,7 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 	</start>
 }
 
-append config {
+append_if $use_framebuffer config {
 	<start name="fb_drv">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
@@ -232,8 +234,9 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>}
 append_if [expr $use_nic_session && !$use_nic_bridge] config {
 			<service name="Nic"> <child name="nic_drv"/> </service>}
+append_if $use_framebuffer config {
+			<service name="Framebuffer"><child name="fb_drv"/></service>}
 append config {
-			<service name="Framebuffer"><child name="fb_drv"/></service>
 			<service name="Rtc"><child name="rtc_drv"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
@@ -343,7 +346,6 @@ install_config $config
 set boot_modules {
 	core init
 	pci_drv
-	fb_drv
 	timer
 	rtc_drv
 	vancouver
@@ -358,6 +360,7 @@ lappend_if $use_block_ide     boot_modules atapi_drv
 lappend_if $use_block_sata    boot_modules ahci
 lappend_if $use_nic_session   boot_modules nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
+lappend_if $use_framebuffer   boot_modules fb_drv
 lappend_if $use_fancy_stuff   boot_modules nitpicker
 lappend_if $use_fancy_stuff   boot_modules liquid_fb
 lappend_if $use_fancy_stuff   boot_modules launchpad

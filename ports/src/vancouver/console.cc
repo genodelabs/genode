@@ -187,25 +187,32 @@ bool Vancouver_console::receive(MessageMemRegion &msg)
 
 void Vancouver_console::entry()
 {
-	Logging::printf("Hello, this is VancouverConsole.\n");
-
 	/*
 	 * Init sessions to the required external services
 	 */
 	enum { CONFIG_ALPHA = false };
-	static Framebuffer::Connection framebuffer;
-	static Input::Connection       input;
-	static Timer::Connection       timer;
+
+	static Input::Connection  input;
+	static Timer::Connection  timer;
+	Framebuffer::Connection  *framebuffer = 0;
+
+	try {
+		framebuffer = new (env()->heap()) Framebuffer::Connection();
+	} catch (...) {
+		PERR("Headless mode - no framebuffer session available");
+		_startup_lock.unlock();
+		return;
+	}
 
 	Genode::Dataspace_capability ev_ds_cap = input.dataspace();
 
 	Input::Event *ev_buf = static_cast<Input::Event *>
 	                       (env()->rm_session()->attach(ev_ds_cap));
 
-	_fb_size = Dataspace_client(framebuffer.dataspace()).size();
-	_fb_mode = framebuffer.mode();
+	_fb_size = Dataspace_client(framebuffer->dataspace()).size();
+	_fb_mode = framebuffer->mode();
 
-	_pixels = env()->rm_session()->attach(framebuffer.dataspace());
+	_pixels = env()->rm_session()->attach(framebuffer->dataspace());
 
 	Chunky_canvas<Pixel_rgb565> canvas((Pixel_rgb565 *) _pixels,
 	                                   Area(_fb_mode.width(),
@@ -273,7 +280,7 @@ void Vancouver_console::entry()
 					}
 				} else {
 					unchanged = 0;
-					framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+					framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 				}
 
 				cmp_even = !cmp_even;
@@ -284,7 +291,7 @@ void Vancouver_console::entry()
 					Genode::Lock::Guard guard(_console_lock);
 
 					env()->rm_session()->detach((void *)_guest_fb);
-					env()->rm_session()->attach_at(framebuffer.dataspace(),
+					env()->rm_session()->attach_at(framebuffer->dataspace(),
 					                               (Genode::addr_t)_guest_fb);
 
 					/* if the VGA model expects a larger FB, pad to that size. */
@@ -298,7 +305,7 @@ void Vancouver_console::entry()
 
 					revoked = true;
 				}
-				framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+				framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 			}
 
 			timer.msleep(10);
