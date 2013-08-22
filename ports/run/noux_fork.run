@@ -41,7 +41,7 @@ install_config {
 		</start>
 		<start name="noux">
 			<resource name="RAM" quantum="1G"/>
-			<config>
+			<config verbose="yes">
 				<fstab> <tar name="noux_fork.tar" /> </fstab>
 				<start name="test-noux_fork"> </start>
 			</config>

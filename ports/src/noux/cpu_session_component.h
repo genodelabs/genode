@@ -84,7 +84,6 @@ namespace Noux {
 				}
 				_main_thread = _cpu.create_thread(name, utcb);
 
-				PINF("created main thread");
 				return _main_thread;
 			}
 

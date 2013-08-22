@@ -183,10 +183,19 @@ append config {
 			<policy label="noux -> usr"  root="/usr"       writeable="yes" />
 		</config>
 	</start>
+}
+
+append config {
 	<start name="noux">
 		<resource name="RAM" quantum="1G" />
-		<config>
-			<fstab> }
+}
+
+if {![info exists verbose_mode]} {set verbose_mode "yes"}
+append config " <config verbose=\"$verbose_mode\">"
+
+append config {
+			<fstab>
+}
 
 foreach pkg $noux_pkgs {
 	append config "		<tar name=\"$pkg.tar\" />" }

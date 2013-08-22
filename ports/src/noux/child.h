@@ -270,7 +270,8 @@ namespace Noux {
 			      Rpc_entrypoint    &resources_ep,
 			      bool               forked,
 			      Allocator         *destruct_alloc,
-			      Destruct_queue    &destruct_queue)
+			      Destruct_queue    &destruct_queue,
+			      bool               verbose)
 			:
 				Family_member(pid, parent),
 				Destruct_queue::Element<Child>(destruct_alloc),
@@ -303,7 +304,8 @@ namespace Noux {
 				              _entrypoint, _local_noux_service,
 				              _local_rm_service, _local_rom_service,
 				              _parent_services,
-				              *this, *this, _destruct_context_cap, _resources.ram),
+				              *this, *this, _destruct_context_cap,
+				              _resources.ram, verbose),
 				_child(forked ? Dataspace_capability() : _binary_ds,
 				       _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy,
@@ -312,7 +314,8 @@ namespace Noux {
 				        */
 				       _local_ram_service, _local_cpu_service, _local_rm_service)
 			{
-				_args.dump();
+				if (verbose)
+					_args.dump();
 
 				if (!forked && !_binary_ds.valid()) {
 					PERR("Lookup of executable \"%s\" failed", name);

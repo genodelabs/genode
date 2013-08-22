@@ -42,7 +42,7 @@ install_config {
 		</start>
 		<start name="noux">
 			<resource name="RAM" quantum="1G"/>
-			<config>
+			<config verbose="yes">
 				<fstab> <tar name="coreutils.tar" /> </fstab>
 				<start name="/bin/ls"> <arg value="-Rla"/> </start>
 			</config>
