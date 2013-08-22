@@ -214,7 +214,7 @@ class Genode::Trace::Subject
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
-			if (!source.is_valid())
+			if (source.is_valid())
 				source->disable();
 		}
 
