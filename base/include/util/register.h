@@ -20,7 +20,20 @@
 
 namespace Genode
 {
-	namespace Trait {
+	namespace Trait
+	{
+		/**
+		 * Round bit width up to an appropriate uint width or 0 if not feasible
+		 */
+		template <unsigned _WIDTH>
+		struct Raise_to_uint_width
+		{
+			enum { WIDTH = _WIDTH < 2  ? 1  :
+			               _WIDTH < 9  ? 8  :
+			               _WIDTH < 17 ? 16 :
+			               _WIDTH < 33 ? 32 :
+			               _WIDTH < 65 ? 64 : 0, };
+		};
 
 		/**
 		 * Properties of integer types with a given bitwidth
@@ -113,6 +126,7 @@ namespace Genode
 		enum {
 			ACCESS_WIDTH      = _ACCESS_WIDTH,
 			ACCESS_WIDTH_LOG2 = Trait::Uint_width<ACCESS_WIDTH>::WIDTH_LOG2,
+			BITFIELD_WIDTH    = ACCESS_WIDTH,
 		};
 
 		typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
@@ -135,8 +149,9 @@ namespace Genode
 				/**
 				 * Fetch template parameters
 				 */
-				SHIFT = _SHIFT,
-				WIDTH = _WIDTH,
+				SHIFT          = _SHIFT,
+				WIDTH          = _WIDTH,
+				BITFIELD_WIDTH = WIDTH,
 			};
 
 			/**
@@ -197,6 +212,54 @@ namespace Genode
 				reg |= (value & mask()) << SHIFT;
 			};
 		};
+	};
+
+	/**
+	 * Bitfield that is composed of 2 separate parts
+	 *
+	 * \param _BITS_X  Register, bitfield or/and bitset types the
+	 *                 bitset is composed of. The order of arguments
+	 *                 is also the order of bit significance starting
+	 *                 with the least.
+	 */
+	template <typename _BITS_0, typename _BITS_1>
+	struct Bitset_2
+	{
+		typedef _BITS_0 Bits_0;
+		typedef _BITS_1 Bits_1;
+		enum {
+			WIDTH          = Bits_0::BITFIELD_WIDTH +
+			                 Bits_1::BITFIELD_WIDTH,
+			BITFIELD_WIDTH = WIDTH,
+			ACCESS_WIDTH   = Trait::Raise_to_uint_width<WIDTH>::WIDTH,
+		};
+		typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
+		typedef Bitset_2<Bits_0, Bits_1> Bitset_2_base;
+	};
+
+	/**
+	 * Bitfield that is composed of 3 separate parts
+	 *
+	 * \param _BITS_X  Register, bitfield or/and bitset types the
+	 *                 bitset is composed of. The order of arguments
+	 *                 is also the order of bit significance starting
+	 *                 with the least.
+	 */
+	template <typename _BITS_0, typename _BITS_1, typename _BITS_2>
+	struct Bitset_3
+	{
+		typedef _BITS_0 Bits_0;
+		typedef _BITS_1 Bits_1;
+		typedef _BITS_2 Bits_2;
+		enum {
+			WIDTH          = Bits_0::BITFIELD_WIDTH +
+			                 Bits_1::BITFIELD_WIDTH +
+			                 Bits_2::BITFIELD_WIDTH,
+			BITFIELD_WIDTH = WIDTH,
+			ACCESS_WIDTH   = Trait::Raise_to_uint_width<WIDTH>::WIDTH,
+		};
+		typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
+		typedef Bitset_3<Bits_0, Bits_1, Bits_2> Bitset_3_base;
 	};
 }
 

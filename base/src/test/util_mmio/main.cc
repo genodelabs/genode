@@ -119,6 +119,22 @@ struct Test_mmio : public Mmio
 		struct A : Bitfield<3,2> { };
 		struct B : Bitfield<30,4> { };
 	};
+
+	struct Reg_0 : Register<0x1, 8> { };
+
+	struct Reg_1 : Register<0x2, 16>
+	{
+		struct Bits_0 : Bitfield<1, 3> { };
+		struct Bits_1 : Bitfield<12, 4> { };
+	};
+	struct Reg_2 : Register<0x4, 32>
+	{
+		struct Bits_0 : Bitfield<4, 5> { };
+		struct Bits_1 : Bitfield<17, 12> { };
+	};
+	struct My_bitset_2 : Bitset_2<Reg_1::Bits_0, Reg_0> { };
+	struct My_bitset_3 : Bitset_3<Reg_0, Reg_2::Bits_1, Reg_2::Bits_0> { };
+	struct My_bitset_4 : Bitset_2<My_bitset_2, Reg_2::Bits_0> { };
 };
 
 
@@ -416,7 +432,40 @@ int main()
 	mmio.write<Test_mmio::Simple_array_2>(0xabcd, 2);
 	static uint8_t mmio_cmpr_16[MMIO_SIZE] = {0x78,0x56,0xdc,0xfe,0x21,0x43,0xcd,0xab};
 	if (compare_mem(mmio_mem, mmio_cmpr_16, sizeof(mmio_mem))) {
-	  return test_failed(16); }
+		return test_failed(16); }
+
+	/**
+	 * Test 17, write and read a bitset with 2 parts
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	mmio.write<Test_mmio::My_bitset_2>(0x1234);
+	static uint8_t mmio_cmpr_17[MMIO_SIZE] = {0x00,0x46,0x08,0x00,0x00,0x00,0x00,0x00};
+	if (compare_mem(mmio_mem, mmio_cmpr_17, sizeof(mmio_mem)))
+		return test_failed(17);
+	if (mmio.read<Test_mmio::My_bitset_2>() != 0x234)
+		return test_failed(17);
+
+	/**
+	 * Test 18, write and read a bitset with 3 parts
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	mmio.write<Test_mmio::My_bitset_3>(0x12345678);
+	static uint8_t mmio_cmpr_18[MMIO_SIZE] = {0x00,0x78,0x00,0x00,0x30,0x00,0xac,0x08};
+	if (compare_mem(mmio_mem, mmio_cmpr_18, sizeof(mmio_mem)))
+		return test_failed(18);
+	if (mmio.read<Test_mmio::My_bitset_3>() != 0x345678)
+		return test_failed(18);
+
+	/**
+	 * Test 19, write and read a nested bitset
+	 */
+	zero_mem(mmio_mem, sizeof(mmio_mem));
+	mmio.write<Test_mmio::My_bitset_4>(0x5679);
+	static uint8_t mmio_cmpr_19[MMIO_SIZE] = {0x00,0xcf,0x02,0x00,0xa0,0x00,0x00,0x00};
+	if (compare_mem(mmio_mem, mmio_cmpr_19, sizeof(mmio_mem)))
+		return test_failed(19);
+	if (mmio.read<Test_mmio::My_bitset_4>() != 0x5679)
+		return test_failed(19);
 
 	printf("Test done\n");
 	return 0;

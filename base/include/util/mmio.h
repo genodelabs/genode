@@ -508,6 +508,67 @@ namespace Genode
 			}
 
 
+			/***********************
+			 ** Access to bitsets **
+			 ***********************/
+
+			/**
+			 * Read bitset 'T' (composed of 2 parts)
+			 */
+			template <typename T>
+			inline typename T::Bitset_2_base::access_t const read()
+			{
+				typedef typename T::Bitset_2_base::Bits_0 Bits_0;
+				typedef typename T::Bitset_2_base::Bits_1 Bits_1;
+				return  read<Bits_0>() |
+				       (read<Bits_1>() << Bits_0::BITFIELD_WIDTH);
+			}
+
+			/**
+			 * Override bitset 'T' (composed of 2 parts)
+			 *
+			 * \param v  value that shall be written
+			 */
+			template <typename T>
+			inline void write(typename T::Bitset_2_base::access_t v)
+			{
+				typedef typename T::Bitset_2_base::Bits_0 Bits_0;
+				typedef typename T::Bitset_2_base::Bits_1 Bits_1;
+				write<Bits_0>(v);
+				write<Bits_1>(v >> Bits_0::BITFIELD_WIDTH);
+			}
+
+			/**
+			 * Read bitset 'T' (composed of 3 parts)
+			 */
+			template <typename T>
+			inline typename T::Bitset_3_base::access_t const read()
+			{
+				typedef typename T::Bitset_3_base::Bits_0 Bits_0;
+				typedef typename T::Bitset_3_base::Bits_1 Bits_1;
+				typedef typename T::Bitset_3_base::Bits_2 Bits_2;
+				return  read<Bitset_2<Bits_0, Bits_1> >() |
+				       (read<Bits_2>() << (Bits_0::BITFIELD_WIDTH +
+				                           Bits_1::BITFIELD_WIDTH));
+			}
+
+			/**
+			 * Override bitset 'T' (composed of 3 parts)
+			 *
+			 * \param v  value that shall be written
+			 */
+			template <typename T>
+			inline void write(typename T::Bitset_3_base::access_t v)
+			{
+				typedef typename T::Bitset_3_base::Bits_0 Bits_0;
+				typedef typename T::Bitset_3_base::Bits_1 Bits_1;
+				typedef typename T::Bitset_3_base::Bits_2 Bits_2;
+				write<Bitset_2<Bits_0, Bits_1> >(v);
+				write<Bits_2>(v >> (Bits_0::BITFIELD_WIDTH +
+				                    Bits_1::BITFIELD_WIDTH));
+			}
+
+
 			/*********************************
 			 ** Polling for bitfield states **
 			 *********************************/
