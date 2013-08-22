@@ -45,6 +45,7 @@ namespace Noux {
 			File_descriptor_registry           &_file_descriptor_registry;
 			Signal_context_capability           _destruct_context_cap;
 			Ram_session                        &_ref_ram_session;
+			bool                                _verbose;
 
 		public:
 
@@ -60,7 +61,8 @@ namespace Noux {
 			             Family_member            &family_member,
 			             File_descriptor_registry &file_descriptor_registry,
 			             Signal_context_capability destruct_context_cap,
-			             Ram_session              &ref_ram_session)
+			             Ram_session              &ref_ram_session,
+			             bool                      verbose)
 			:
 				_name(strncpy(_name_buf, name, sizeof(_name_buf))),
 				_labeling_policy(_name),
@@ -74,7 +76,8 @@ namespace Noux {
 				_family_member(family_member),
 				_file_descriptor_registry(file_descriptor_registry),
 				_destruct_context_cap(destruct_context_cap),
-				_ref_ram_session(ref_ram_session)
+				_ref_ram_session(ref_ram_session),
+				_verbose(verbose)
 			{ }
 
 			const char *name() const { return _name; }
@@ -119,7 +122,8 @@ namespace Noux {
 
 			void exit(int exit_value)
 			{
-				PINF("child %s exited with exit value %d", _name, exit_value);
+				if (_verbose || (exit_value != 0))
+					PERR("child %s exited with exit value %d", _name, exit_value);
 
 				/*
 				 * Close all open file descriptors. This is necessary to unblock

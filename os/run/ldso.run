@@ -31,12 +31,8 @@ run_genode_until "child exited with exit value 0.*\n" 10
 # pay only attention to the output of init and its children
 grep_output {^\[init }
 
-unify_output {environ: [a-f0-9]+} "environ: <unified>"
-
 compare_output_to {
-	[init -> test-ldso] Starting ldso ...
-	[init -> test-ldso] Starting application ... environ: <unified>
-	[init -> test-ldso] 
+	[init -> test-ldso]
 	[init -> test-ldso] Static Geekings!
 	[init -> test-ldso] ================
 	[init -> test-ldso] Test read

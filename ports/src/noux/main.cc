@@ -31,8 +31,9 @@
 #include <destruct_queue.h>
 
 
+static const bool verbose_quota  = false;
 static bool trace_syscalls = false;
-static bool verbose_quota  = false;
+static bool verbose = false;
 
 namespace Noux {
 
@@ -291,7 +292,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					                         _resources.ep,
 					                         false,
 					                         env()->heap(),
-					                         _destruct_queue);
+					                         _destruct_queue,
+					                         verbose);
 
 					/* replace ourself by the new child at the parent */
 					parent()->remove(this);
@@ -507,7 +509,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         _resources.ep,
 				                         true,
 				                         env()->heap(),
-				                         _destruct_queue);
+				                         _destruct_queue,
+				                         verbose);
 
 				Family_member::insert(child);
 
@@ -543,7 +546,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					_sysio->wait4_out.status = exited->exit_status();
 					Family_member::remove(exited);
 
-					PINF("submit exit signal for PID %d", exited->pid());
+					if (verbose)
+						PINF("submit exit signal for PID %d", exited->pid());
 					static_cast<Child *>(exited)->submit_exit_signal();
 
 				} else {
@@ -871,6 +875,9 @@ int main(int argc, char **argv)
 	try {
 		trace_syscalls = config()->xml_node().attribute("trace_syscalls").has_value("yes");
 	} catch (Xml_node::Nonexistent_attribute) { }
+	try {
+		verbose = config()->xml_node().attribute("verbose").has_value("yes");
+	} catch (Xml_node::Nonexistent_attribute) { }
 
 	/* initialize virtual file system */
 	static Dir_file_system
@@ -907,7 +914,8 @@ int main(int argc, char **argv)
 	                             resources_ep,
 	                             false,
 	                             env()->heap(),
-	                             destruct_queue);
+	                             destruct_queue,
+	                             verbose);
 
 	/*
 	 * I/O channels must be dynamically allocated to handle cases where the
