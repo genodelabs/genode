@@ -271,9 +271,12 @@ void Vancouver_console::entry()
 
 						Logging::printf("Deactivated text buffer loop.\n");
 					}
-				} else unchanged = 0;
-				cmp_even = !cmp_even;
+				} else {
+					unchanged = 0;
+					framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+				}
 
+				cmp_even = !cmp_even;
 			} else if (_regs && _guest_fb && _regs->mode != 0) {
 
 				if (!revoked) {
@@ -295,8 +298,8 @@ void Vancouver_console::entry()
 
 					revoked = true;
 				}
+				framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 			}
-			framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 
 			timer.msleep(10);
 		}
