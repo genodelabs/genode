@@ -376,9 +376,10 @@ namespace Terminal {
 				}
 
 				int num_dirty_lines = last_dirty_line - first_dirty_line + 1;
-
-				_framebuffer->refresh(0, first_dirty_line*_char_height,
-				                      _fb_mode.width(), num_dirty_lines*_char_height);
+				if (num_dirty_lines > 0)
+					_framebuffer->refresh(0, first_dirty_line*_char_height,
+					                      _fb_mode.width(),
+					                      num_dirty_lines*_char_height);
 			}
 
 
