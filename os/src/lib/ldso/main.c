@@ -87,7 +87,9 @@ int main(int argc, char **argv)
 	/* build dummy stack */
 	void *sp =  setup_stack(binary, (long)fd);
 
+	/* DEBUGGING
 	printf("Starting ldso ...\n");
+	*/
 
 	/* this is usually '_start' */
 	func_ptr_type main_func = _rtld(sp, &exit_proc, &objp);
@@ -96,10 +98,11 @@ int main(int argc, char **argv)
 	char **p;
 	for(p = environ; *p; p++)
 		printf("env: %s\n", *p);
-	*/
-	/* start loaded application */
+	
 	printf("Starting application ... environ: %p\n", lx_environ);
+	*/
 
+	/* start loaded application */
 	call_main(main_func);
 
 	exit_proc();
