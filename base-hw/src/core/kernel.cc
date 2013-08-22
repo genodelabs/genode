@@ -532,7 +532,7 @@ void Kernel::Thread::handle_exception()
 }
 
 
-void Kernel::Thread::scheduled_next()
+void Kernel::Thread::proceed()
 {
 	_mt_client_context_ptr = (addr_t)static_cast<Genode::Cpu_state*>(this);
 	mtc()->virt_user_entry();
@@ -747,7 +747,7 @@ namespace Kernel
 				}
 			}
 
-			void scheduled_next()
+			void proceed()
 			{
 				/* set context pointer for mode switch */
 				_mt_client_context_ptr = (addr_t)_state;
@@ -785,9 +785,7 @@ namespace Kernel
 			initial = 0;
 		}
 		/* create scheduler with a permanent idle thread */
-		static unsigned const user_time_slice =
-		timer()->ms_to_tics(USER_TIME_SLICE_MS);
-		static Cpu_scheduler cpu_sched(&idle, user_time_slice);
+		static Cpu_scheduler cpu_sched(&idle);
 		return &cpu_sched;
 	}
 
@@ -827,8 +825,9 @@ namespace Kernel
 
 			case Timer::IRQ: {
 
-				/* clear interrupt at timer */
+				cpu_scheduler()->yield();
 				timer()->clear_interrupt();
+				timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
 				break; }
 
 			default: {
@@ -1439,18 +1438,13 @@ extern "C" void init_phys_kernel() {
  */
 extern "C" void kernel()
 {
-	static unsigned user_time = 0;
 	static bool initial_call = true;
 
 	/* an exception occured */
 	if (!initial_call)
 	{
-		/* update how much time the last user has consumed */
-		unsigned const timer_value = timer()->stop_one_shot();
-		user_time = timer_value < user_time ? user_time - timer_value : 0;
-
 		/* handle exception that interrupted the last user */
-		cpu_scheduler()->current_entry()->handle_exception();
+		cpu_scheduler()->head()->handle_exception();
 
 	/* kernel initialization */
 	} else {
@@ -1495,16 +1489,11 @@ extern "C" void kernel()
 		                0, core_id(), &cm_utcb, &cm_utcb);
 
 		/* kernel initialization finished */
+		timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
 		initial_call = false;
 	}
-	/* offer next user context to the mode transition PIC */
-	Schedule_context * const next = cpu_scheduler()->next_entry(user_time);
-
-	/* limit user mode execution in time */
-	timer()->start_one_shot(user_time);
-
 	/* will jump to the context related mode-switch */
-	next->scheduled_next();
+	cpu_scheduler()->head()->proceed();
 }
 
 

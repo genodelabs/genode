@@ -49,7 +49,7 @@ namespace Kernel
 	/* kernel configuration */
 	enum {
 		DEFAULT_STACK_SIZE = 1*1024*1024,
-		USER_TIME_SLICE_MS = 100,
+		USER_LAP_TIME_MS = 100,
 		MAX_PDS = 256,
 		MAX_THREADS = 256,
 		MAX_SIGNAL_RECEIVERS = 256,
@@ -412,102 +412,50 @@ namespace Kernel
 		public:
 
 			/**
-			 * Base class for 'ENTRY_T' to support scheduling
+			 * Provides schedulability through inheritance
 			 */
-			class Entry : public Double_list<ENTRY_T>::Entry
-			{
-				friend class Scheduler<ENTRY_T>;
-
-				unsigned _time; /* time wich remains for current lap */
-
-				/**
-				 * Apply consumption of 'time'
-				 */
-				void _consume(unsigned const time)
-				{ _time = _time > time ? _time - time : 0; }
-
-				public:
-
-					/**
-					 * Constructor
-					 */
-					Entry() : _time(0) { }
-			};
+			class Entry : public Double_list<ENTRY_T>::Entry { };
 
 		protected:
 
-			ENTRY_T * const _idle; /* Default entry, can't be removed */
-			Double_list<ENTRY_T> _entries; /* List of entries beside '_idle' */
-			unsigned const _lap_time; /* Time that an entry gets for one
-			                           * scheduling lap to consume */
+			/* gets scheduled when '_entries' is empty */
+			ENTRY_T * const _idle;
+
+			/* scheduling participants beside '_idle' */
+			Double_list<ENTRY_T> _entries;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Scheduler(ENTRY_T * const idle, unsigned const lap_time)
-			: _idle(idle), _lap_time(lap_time) { assert(_lap_time && _idle); }
+			Scheduler(ENTRY_T * const idle)
+			: _idle(idle) { assert(_idle); }
 
 			/**
-			 * Returns the entry wich shall scheduled next
-			 *
-			 * \param t  At the call it contains the time, wich was consumed
-			 *           by the last entry. At the return it is updated to
-			 *           the next timeslice.
+			 * Get currently scheduled entry
 			 */
-			ENTRY_T * next_entry(unsigned & t)
-			{
-				/* update current entry */
-				ENTRY_T * e = _entries.head();
-				if (!e) {
-					t = _lap_time;
-					return _idle;
-				}
-				e->Entry::_consume(t);
-
-				/* lookup entry with time > 0, refresh depleted timeslices */
-				while (!e->Entry::_time) {
-					e->Entry::_time = _lap_time;
-					_entries.head_to_tail();
-					e = _entries.head();
-				}
-
-				/* return next entry and appropriate portion of time */
-				t = e->Entry::_time;
-				return e;
-			}
-
-			/**
-			 * Get the currently scheduled entry
-			 */
-			ENTRY_T * current_entry() const {
+			ENTRY_T * head() const {
 				return _entries.head() ? _entries.head() : _idle; }
 
 			/**
-			 * Ensure that 'e' does participate in scheduling afterwards
+			 * End turn of currently scheduled entry
+			 */
+			void yield() { _entries.head_to_tail(); }
+
+			/**
+			 * Include 'e' in scheduling
 			 */
 			void insert(ENTRY_T * const e)
 			{
 				if (e == _idle) return;
-				e->Entry::_time = _lap_time;
 				_entries.insert_tail(e);
 			}
 
 			/**
-			 * Ensures that 'e' doesn't participate in scheduling afterwards
+			 * Exclude 'e' from scheduling
 			 */
 			void remove(ENTRY_T * const e) { _entries.remove(e); }
-
-			/**
-			 * Set remaining time of currently scheduled entry to 0
-			 */
-			void yield()
-			{
-				ENTRY_T * const e = _entries.head();
-				if (e) e->_time = 0;
-				return;
-			}
 	};
 
 	class Schedule_context;
@@ -521,7 +469,7 @@ namespace Kernel
 		public:
 
 			virtual void handle_exception() = 0;
-			virtual void scheduled_next() = 0;
+			virtual void proceed() = 0;
 	};
 
 	/**
@@ -942,7 +890,7 @@ namespace Kernel
 			/**
 			 * Continue executing this thread in userland
 			 */
-			void scheduled_next();
+			void proceed();
 
 			void kill_signal_context_blocks();
 

@@ -35,30 +35,12 @@ namespace Cortex_a9
 		struct Load : Register<0x0, 32> { };
 
 		/**
-		 * Timer counter value register
-		 */
-		struct Counter : Register<0x4, 32> { };
-
-		/**
 		 * Timer control register
 		 */
 		struct Control : Register<0x8, 32>
 		{
 			struct Timer_enable : Bitfield<0,1> { }; /* enable counting */
-			struct Auto_reload  : Bitfield<1,1> { }; /* reload at zero */
 			struct Irq_enable   : Bitfield<2,1> { }; /* unmask interrupt */
-			struct Prescaler    : Bitfield<8,8> { }; /* modify frequency */
-
-			/**
-			 * Configure for a one-shot
-			 */
-			static access_t init_one_shot()
-			{
-				return Timer_enable::bits(0) |
-				       Auto_reload::bits(0) |
-				       Irq_enable::bits(1) |
-				       Prescaler::bits(0);
-			}
 		};
 
 		/**
@@ -69,11 +51,6 @@ namespace Cortex_a9
 			struct Event : Bitfield<0,1> { }; /* if counter hit zero */
 		};
 
-		/**
-		 * Stop counting
-		 */
-		void _disable() { write<Control::Timer_enable>(0); }
-
 		public:
 
 			enum { IRQ = Cortex_a9::Cpu::PRIVATE_TIMER_IRQ };
@@ -83,20 +60,20 @@ namespace Cortex_a9
 			 */
 			Timer() : Mmio(Cortex_a9::Cpu::PRIVATE_TIMER_MMIO_BASE)
 			{
-				_disable();
+				write<Control::Timer_enable>(0);
 				clear_interrupt();
 			}
 
 			/**
-			 * Start a one-shot run
-			 * \param  tics  native timer value used to assess the delay
-			 *               of the timer interrupt as of the call
+			 * Start one-shot run with an IRQ delay of 'tics'
 			 */
 			inline void start_one_shot(uint32_t const tics)
 			{
 				/* reset timer */
 				clear_interrupt();
-				write<Control>(Control::init_one_shot());
+				Control::access_t control = 0;
+				Control::Irq_enable::set(control, 1);
+				write<Control>(control);
 
 				/* load timer and start decrementing */
 				write<Load>(tics);
@@ -104,26 +81,20 @@ namespace Cortex_a9
 			}
 
 			/**
-			 * Translate milliseconds to a native timer value
+			 * Translate 'ms' milliseconds to a native timer value
 			 */
-			static uint32_t ms_to_tics(unsigned const ms) {
-				return ms * TICS_PER_MS; }
-
-			/**
-			 * Stop the timer and return last timer value
-			 */
-			unsigned stop_one_shot()
+			static uint32_t ms_to_tics(unsigned const ms)
 			{
-				unsigned const v = read<Counter>();
-				_disable();
-				return v;
+				return ms * TICS_PER_MS;
 			}
 
 			/**
 			 * Clear interrupt output line
 			 */
-			void clear_interrupt() {
-				write<Interrupt_status::Event>(1); }
+			void clear_interrupt()
+			{
+				write<Interrupt_status::Event>(1);
+			}
 	};
 }
 

@@ -61,11 +61,6 @@ class Kernel::Timer : public Genode::Mmio
 			return (Board_base::SYSTEM_TIMER_CLOCK / 1000) * ms;
 		}
 
-		unsigned stop_one_shot()
-		{
-			return read<Clo>();
-		}
-
 		void clear_interrupt()
 		{
 			write<Cs::Status>(1);

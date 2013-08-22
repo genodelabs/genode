@@ -38,19 +38,6 @@ namespace Exynos_mct
 		{
 			struct Prescaler    : Bitfield<0, 8>  { };
 			struct Div_mux      : Bitfield<8, 3>  { };
-			struct Tick_mon_sel : Bitfield<11, 2> { };
-			struct Int_mon_sel  : Bitfield<13, 3> { };
-
-			/**
-			 * Initialization value
-			 */
-			static access_t init_value()
-			{
-				return Prescaler::bits(PRESCALER) |
-				       Div_mux::bits(DIV_MUX) |
-				       Tick_mon_sel::bits(0) |
-				       Int_mon_sel::bits(0);
-			}
 		};
 
 		/**
@@ -59,35 +46,34 @@ namespace Exynos_mct
 		struct L0_frcntb : Register<0x310, 32> { };
 
 		/**
-		 * Local timer 0 free running counter observation
-		 */
-		struct L0_frcnto : Register<0x314, 32> { };
-
-		/**
 		 * Local timer 0 configuration
 		 */
-		struct L0_tcon : Register<0x320, 32> {
+		struct L0_tcon : Register<0x320, 32>
+		{
 			struct Frc_start : Bitfield<3, 1> { };
 		};
 
 		/**
 		 * Local timer 0 expired status
 		 */
-		struct L0_int_cstat : Register<0x330, 32, true> {
+		struct L0_int_cstat : Register<0x330, 32, true>
+		{
 			struct Frcnt : Bitfield<1, 1> { };
 		};
 
 		/**
 		 * Local timer 0 interrupt enable
 		 */
-		struct L0_int_enb : Register<0x334, 32> {
+		struct L0_int_enb : Register<0x334, 32>
+		{
 			struct Frceie : Bitfield<1, 1> { };
 		};
 
 		/**
 		 * Local timer 0 write status
 		 */
-		struct L0_wstat : Register<0x340, 32, true> {
+		struct L0_wstat : Register<0x340, 32, true>
+		{
 			struct Frcntb : Bitfield<2, 1> { };
 			struct Tcon   : Bitfield<3, 1> { };
 		};
@@ -110,9 +96,11 @@ namespace Exynos_mct
 		/**
 		 * Start and stop counting
 		 */
-		void _run(bool const run) {
+		void _run(bool const run)
+		{
 			_acked_write<L0_tcon, L0_wstat::Tcon>
-				(L0_tcon::Frc_start::bits(run)); }
+				(L0_tcon::Frc_start::bits(run));
+		}
 
 		public:
 
@@ -122,15 +110,15 @@ namespace Exynos_mct
 			Timer(addr_t const base, unsigned const clk)
 			: Mmio(base), _tics_per_ms((float)clk / (PRESCALER + 1) / (1 << DIV_MUX) / 1000)
 			{
-				write<Mct_cfg>(Mct_cfg::init_value());
+				Mct_cfg::access_t mct_cfg = 0;
+				Mct_cfg::Prescaler::set(mct_cfg, PRESCALER);
+				Mct_cfg::Div_mux::set(mct_cfg, DIV_MUX);
+				write<Mct_cfg>(mct_cfg);
 				write<L0_int_enb>(L0_int_enb::Frceie::bits(1));
 			}
 
 			/**
-			 * Start a one-shot run
-			 *
-			 * \param  tics  native timer value used to assess the delay
-			 *               of the timer interrupt as of the call
+			 * Start one-shot run with an IRQ delay of 'tics'
 			 */
 			inline void start_one_shot(unsigned const tics)
 			{
@@ -140,15 +128,12 @@ namespace Exynos_mct
 			}
 
 			/**
-			 * Translate milliseconds to a native timer value
+			 * Translate 'ms' milliseconds to a native timer value
 			 */
-			unsigned ms_to_tics(unsigned const ms) {
-				return ms * _tics_per_ms; }
-
-			/**
-			 * Stop the timer and return last timer value
-			 */
-			unsigned stop_one_shot() { return read<L0_frcnto>(); }
+			unsigned ms_to_tics(unsigned const ms)
+			{
+				return ms * _tics_per_ms;
+			}
 
 			/**
 			 * Clear interrupt output line
