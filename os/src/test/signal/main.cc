@@ -51,10 +51,11 @@ class Sender : Thread<4096>
 						printf("submit signal %d\n", _submit_cnt);
 
 					_transmitter.submit();
-				}
 
-				if (_interval_ms)
-					_timer.msleep(_interval_ms);
+					if (_interval_ms)
+						_timer.msleep(_interval_ms);
+				} else
+					_timer.msleep(100);
 			}
 		}
 
