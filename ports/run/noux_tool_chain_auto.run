@@ -23,6 +23,7 @@ set platform_cmds     {
                          make core &&
                          exit 234
 } 
+set verbose_mode      "no"
 
 source ${genode_dir}/ports/run/noux_tool_chain.inc
 
