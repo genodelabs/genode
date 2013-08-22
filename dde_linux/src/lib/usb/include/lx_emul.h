@@ -1085,8 +1085,6 @@ void __wait_event(void);
 #define _wait_event(condition) \
 	while(!(condition)) { \
 		__wait_event();     \
-		if (!(condition))   \
-			msleep(1);        \
 	}                     \
 
 #define wait_event(wq, condition) \
@@ -1100,7 +1098,6 @@ void __wait_event(void);
 		__wait_event();     \
 		if (condition || _j <= jiffies)     \
 			break;          \
-		msleep(1); \
 	}  \
 })
 
