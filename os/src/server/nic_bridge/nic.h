@@ -34,16 +34,16 @@ class Net::Nic : public Net::Packet_handler
 			BUF_SIZE    = ::Nic::Session::QUEUE_SIZE * PACKET_SIZE,
 		};
 
-		::Nic::Packet_allocator _tx_block_alloc;
-		::Nic::Connection       _nic;
+		::Nic::Packet_allocator     _tx_block_alloc;
+		::Nic::Connection           _nic;
+		Ethernet_frame::Mac_address _mac;
 
 	public:
 
 		Nic();
 
-		::Nic::Connection *nic() { return &_nic; }
-
-		Ethernet_frame::Mac_address mac() { return _nic.mac_address().addr; }
+		::Nic::Connection          *nic() { return &_nic; }
+		Ethernet_frame::Mac_address mac() { return _mac; }
 
 
 		/******************************

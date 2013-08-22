@@ -127,7 +127,8 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 
 Net::Nic::Nic()
 : _tx_block_alloc(Genode::env()->heap()),
-  _nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE)
+  _nic(&_tx_block_alloc, BUF_SIZE, BUF_SIZE),
+  _mac(_nic.mac_address().addr)
 {
 	_nic.rx_channel()->sigh_ready_to_ack(_sink_ack);
 	_nic.rx_channel()->sigh_packet_avail(_sink_submit);
