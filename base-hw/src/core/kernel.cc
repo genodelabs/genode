@@ -584,6 +584,15 @@ namespace Kernel
 		 */
 		void _deliver();
 
+		/**
+		 * Called by receiver when all submits have been delivered
+		 */
+		void _delivered()
+		{
+			_submits = 0;
+			_await_ack = 1;
+		}
+
 		public:
 
 			/**
@@ -654,9 +663,7 @@ namespace Kernel
 				                  c->_submits);
 				*(Signal::Data *)t->phys_utcb()->base() = data;
 				t->received_signal();
-
-				/* reset context */
-				c->_submits = 0;
+				c->_delivered();
 			}
 		}
 
@@ -1623,12 +1630,12 @@ void Signal_context::_deliver()
 {
 	if (!_submits) return;
 	_receiver->deliver(this);
-	_await_ack = 1;
 }
 
 
 void Signal_context::ack()
 {
+	assert(_await_ack);
 	_await_ack = 0;
 	if (!_killer) {
 		_deliver();
