@@ -1457,6 +1457,9 @@ extern "C" void kernel()
 
 		Genode::printf("Kernel started!\n");
 
+		/* enable kernel timer */
+		pic()->unmask(Timer::IRQ);
+
 		/* compose kernel CPU context */
 		static Cpu::Context kernel_context;
 		kernel_context.ip = (addr_t)kernel;
@@ -1499,7 +1502,6 @@ extern "C" void kernel()
 
 	/* limit user mode execution in time */
 	timer()->start_one_shot(user_time);
-	pic()->unmask(Timer::IRQ);
 
 	/* will jump to the context related mode-switch */
 	next->scheduled_next();
