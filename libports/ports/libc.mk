@@ -222,6 +222,7 @@ LIBC_IMPORT_INCLUDES += include/libc/sys/_types.h \
                         include/libc/sys/param.h \
                         include/libc/sys/stdint.h \
                         include/libc/sys/event.h \
+                        include/libc/sys/disk.h \
                         include/libc/errno.h \
                         include/libc/sys/errno.h \
                         include/libc/sys/poll.h
