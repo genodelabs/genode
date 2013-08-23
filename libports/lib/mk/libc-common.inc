@@ -4,7 +4,8 @@
 # this enables 'ports/lib/mk/seoul_libc_support.mk' to reuse the definitions.
 #
 
-LIBC_DIR = $(call select_from_repositories,contrib/libc-8.2.0)
+LIBC_DIR     = $(call select_from_repositories,contrib/libc-8.2.0)
+LIBC_REP_DIR = $(realpath $(subst /contrib/libc-8.2.0,,$(LIBC_DIR)))
 
 # local libc includes
 INC_DIR += $(LIBC_DIR)/libc/locale
