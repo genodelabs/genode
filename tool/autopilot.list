@@ -1,3 +1,4 @@
+util_mmio
 ldso
 timer
 lwip
