@@ -88,7 +88,7 @@ namespace Libc {
 						_ram_session = ram, _rm_session = rm; }
 			};
 
-			Lock           _lock;
+			Lock   mutable _lock;
 			Dataspace_pool _ds_pool;      /* list of dataspaces */
 			Allocator_avl  _alloc;        /* local allocator    */
 			size_t         _chunk_size;
@@ -114,6 +114,7 @@ namespace Libc {
 
 			void *alloc(Genode::size_t size, Genode::size_t align_log2);
 			void free(void *ptr);
+			Genode::size_t size_at(void const *ptr) const;
 	};
 }
 
@@ -220,6 +221,16 @@ void Libc::Mem_alloc_impl::free(void *addr)
 
 	/* forward request to our local allocator */
 	_alloc.free(addr);
+}
+
+
+Genode::size_t Libc::Mem_alloc_impl::size_at(void const *addr) const
+{
+	/* serialize access of heap functions */
+	Lock::Guard lock_guard(_lock);
+
+	/* forward request to our local allocator */
+	return _alloc.size_at(addr);
 }
 
 

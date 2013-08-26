@@ -16,6 +16,7 @@ namespace Libc {
 	{
 		virtual void *alloc(Genode::size_t size, Genode::size_t align_log2) = 0;
 		virtual void free(void *ptr) = 0;
+		virtual Genode::size_t size_at(void const *ptr) const = 0;
 	};
 
 	/**
