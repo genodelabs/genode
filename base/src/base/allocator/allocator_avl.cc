@@ -339,6 +339,15 @@ void Allocator_avl_base::free(void *addr)
 }
 
 
+size_t Allocator_avl_base::size_at(void const *addr) const
+{
+	/* lookup corresponding block */
+	Block *b = _find_by_address(reinterpret_cast<addr_t>(addr));
+
+	return (b && b->used()) ? b->size() : 0;
+}
+
+
 bool Allocator_avl_base::any_block_addr(addr_t *out_addr)
 {
 	Block *b = _addr_tree.first();

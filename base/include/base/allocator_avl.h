@@ -232,6 +232,11 @@ namespace Genode {
 			void free(void *addr, size_t) { free(addr); }
 
 			/**
+			 * Return size of block at specified address
+			 */
+			size_t size_at(void const *addr) const;
+
+			/**
 			 * Return the memory overhead per Block
 			 *
 			 * The overhead is a rough estimation. If a block is somewhere
