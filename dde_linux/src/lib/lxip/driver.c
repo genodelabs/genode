@@ -1,0 +1,122 @@
+/**
+ * \brief  Back-end driver for IP stack
+ * \author Sebastian Sumpf
+ * \author Stefan Kalkowski
+ * \date   2013-09-04
+ */
+
+/*
+ * Copyright (C) 2013 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#include <linux/netdevice.h>
+#include <linux/etherdevice.h>
+
+#include <lx_emul.h>
+#include <nic.h>
+
+static struct net_device *_dev;
+
+static int driver_net_open(struct net_device *dev)
+{
+	printk("%s called\n",__func__);
+	_dev = dev;
+	return 0;
+}
+
+int driver_net_xmit(struct sk_buff *skb, struct net_device *dev)
+{
+	struct net_device_stats *stats = (struct net_device_stats*) netdev_priv(dev);
+	int len                        = skb->len;
+	void* addr                     = skb->data;
+
+	/* transmit to nic-session */
+	while (net_tx(addr, len)) {
+		/* tx queue is  full, could not enqueue packet */
+		printk("TX full\n");
+	}
+
+	dev_kfree_skb(skb);
+
+	/* save timestamp */
+	dev->trans_start = jiffies;
+
+	stats->tx_packets++;
+	stats->tx_bytes += len;
+
+ 	return NETDEV_TX_OK;
+}
+
+
+void net_driver_rx(void *addr, unsigned long size)
+{
+	struct net_device_stats *stats;
+
+	if (!_dev)
+		return;
+
+	stats = (struct net_device_stats*) netdev_priv(_dev);
+
+	/* allocate skb */
+	struct sk_buff *skb = dev_alloc_skb(size + 4);
+	if (!skb) {
+		printk(KERN_NOTICE "genode_net_rx: low on mem - packet dropped!\n");
+		stats->rx_dropped++;
+		return;
+	}
+
+	/* copy packet */
+	memcpy(skb_put(skb, size), addr, size);
+
+	skb->dev       = _dev;
+	skb->protocol  = eth_type_trans(skb, _dev);
+	skb->ip_summed = CHECKSUM_NONE;
+
+	netif_receive_skb(skb);
+
+	stats->rx_packets++;
+	stats->rx_bytes += size;
+}
+
+
+static const struct net_device_ops driver_net_ops =
+{
+	.ndo_open       = driver_net_open,
+	.ndo_start_xmit = driver_net_xmit,
+};
+
+
+static int driver_init(void)
+{
+	struct net_device *dev;
+	int err = -ENODEV;
+
+	dev = alloc_etherdev(0);
+
+	if (!(dev = alloc_etherdev(0)))
+		goto out;
+
+	dev->netdev_ops = &driver_net_ops;
+
+	/* set MAC */
+	net_mac(dev->dev_addr, ETH_ALEN);
+
+	if ((err = register_netdev(dev))) {
+		panic("driver: Could not register back-end %d\n", err);
+		goto out_free;
+	}
+
+	return 0;
+
+out_free:
+	free_netdev(dev);
+out:
+	return err;
+}
+
+module_init(driver_init);
+
+

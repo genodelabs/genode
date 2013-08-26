@@ -55,6 +55,7 @@ lappend_if $use_platform_driver build_components drivers/platform
 lappend_if $use_nic_bridge      build_components server/nic_bridge
 lappend_if [have_spec acpi]     build_components drivers/acpi
 lappend_if [have_spec pci]      build_components drivers/pci/device_pd
+lappend_if [have_spec gpio]     build_components drivers/gpio
 
 build $build_components
 
@@ -94,6 +95,13 @@ append_if $use_platform_driver config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Regulator"/></provides>
+	</start>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
 	</start>}
 
 append_if $use_nic_bridge config {
@@ -196,6 +204,7 @@ lappend_if $use_nic_bridge boot_modules nic_bridge
 lappend_if $use_platform_driver      boot_modules platform_drv
 lappend_if [have_spec acpi]          boot_modules acpi_drv
 lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec gpio]          boot_modules gpio_drv
 lappend_if $use_usb_driver           boot_modules usb_drv
 lappend_if $use_nic_driver           boot_modules nic_drv
 lappend_if [have_spec nova]          boot_modules pci_device_pd

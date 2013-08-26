@@ -1,0 +1,12 @@
+diff -r a4522abad72d net/ipv4/icmp.c
+--- a/net/ipv4/icmp.c	Tue Oct 15 12:18:08 2013 +0200
++++ b/net/ipv4/icmp.c	Tue Oct 15 12:18:33 2013 +0200
+@@ -787,7 +787,7 @@
+ 	if (!net->ipv4.sysctl_icmp_echo_ignore_all) {
+ 		struct icmp_bxm icmp_param;
+ 
+-		icmp_param.data.icmph	   = *icmp_hdr(skb);
++		memcpy(&icmp_param.data.icmph, icmp_hdr(skb), sizeof(struct icmphdr)); 
+ 		icmp_param.data.icmph.type = ICMP_ECHOREPLY;
+ 		icmp_param.skb		   = skb;
+ 		icmp_param.offset	   = 0;

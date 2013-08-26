@@ -17,7 +17,7 @@ CC_OLEVEL = -O2
 # 'contrib' before falling back to our custom 'lx_emul.h' header.
 #
 INC_DIR += $(LIB_INC_DIR)
-INC_DIR += $(CONTRIB_DIR)/include $(CONTRIB_DIR)
+INC_DIR += $(CONTRIB_DIR)/include $(CONTRIB_DIR)/include/uapi $(CONTRIB_DIR)
 
 CC_OPT += -U__linux__ -D__KERNEL__
 CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG
@@ -28,6 +28,7 @@ CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
 CC_C_OPT += -Wno-implicit-function-declaration -Wno-unused-but-set-variable \
             -Wno-pointer-sign
 
+CXX_OPT = -fpermissive
 #
 # Suffix of global 'module_init' function
 #
@@ -57,13 +58,13 @@ SRC_C += $(addprefix scsi/,scsi.c constants.c)
 # Determine the header files included by the contrib code. For each
 # of these header files we create a symlink to 'lx_emul.h'.
 #
-GEN_INCLUDES := $(shell grep -Rh "^\#include .*\/" $(CONTRIB_DIR) |\
-                        sed "s/^\#include *[<\"]\(.*\)[>\"].*/\1/" | sort | uniq)
+GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(CONTRIB_DIR) |\
+                        sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" | sort | uniq)
 
 #
 # Filter out original Linux headers that exist in the contrib directory
 #
-NO_GEN_INCLUDES := $(shell cd $(CONTRIB_DIR); find -name "*.h" | sed "s/.\///" | sed "s/.*include\///")
+NO_GEN_INCLUDES := $(shell cd $(CONTRIB_DIR)/include; find -name "*.h" | sed "s/.\///" | sed "s/.*include\///")
 GEN_INCLUDES    := $(filter-out $(NO_GEN_INCLUDES),$(GEN_INCLUDES))
 
 #

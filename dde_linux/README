@@ -74,3 +74,11 @@ cannot be accessed via the host controller making it impossible to retrieve the
 devices hardware address. If this is the case and no 'mac' attribute is given a
 fallback address will be assigned to the network device. Note that the fallback
 address will always be the same.
+
+LXIP
+####
+
+LXIP is a port of the Linux TCP/IP stack to Genode. It is build as a shared
+library named 'lxip.lib.so'. The IP stack can be interfaced using Genode's
+version of 'libc' by linking your application to 'lxip_libc' plugin in your
+'target.mk' file.

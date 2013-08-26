@@ -1,0 +1,30 @@
+diff -r 6e1a0ab143a5 net/core/skbuff.c
+--- a/net/core/skbuff.c	Fri Oct 18 12:02:45 2013 +0200
++++ b/net/core/skbuff.c	Fri Oct 18 12:04:07 2013 +0200
+@@ -419,23 +419,9 @@
+ 	unsigned int fragsz = SKB_DATA_ALIGN(length + NET_SKB_PAD) +
+ 			      SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
+ 
+-	if (fragsz <= PAGE_SIZE && !(gfp_mask & (__GFP_WAIT | GFP_DMA))) {
+-		void *data;
+-
+-		if (sk_memalloc_socks())
+-			gfp_mask |= __GFP_MEMALLOC;
+-
+-		data = __netdev_alloc_frag(fragsz, gfp_mask);
+-
+-		if (likely(data)) {
+-			skb = build_skb(data, fragsz);
+-			if (unlikely(!skb))
+-				put_page(virt_to_head_page(data));
+-		}
+-	} else {
+-		skb = __alloc_skb(length + NET_SKB_PAD, gfp_mask,
+-				  SKB_ALLOC_RX, NUMA_NO_NODE);
+-	}
++	skb = __alloc_skb(length + NET_SKB_PAD, gfp_mask,
++			  SKB_ALLOC_RX, NUMA_NO_NODE);
++
+ 	if (likely(skb)) {
+ 		skb_reserve(skb, NET_SKB_PAD);
+ 		skb->dev = dev;
