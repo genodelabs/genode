@@ -49,7 +49,7 @@ namespace Genode
 		                              bool const w) const
 		{
 			if (!VERBOSITY_AVAILABLE) return;
-			if (!_write_verbose) return;
+			if ((w && !_write_verbose) || (!w && !_read_verbose)) return;
 			printf("mmio %s 0x%p: 0x", w ? "write" : "read ", (void *)dst);
 			Trait::Uint_type<_ACCESS_T>::print_hex(v);
 			printf("\n");
