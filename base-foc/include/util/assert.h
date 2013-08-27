@@ -22,13 +22,13 @@ namespace Fiasco {
 
 #if 1
 #define ASSERT(e, s) \
-	do { if (!(e)) {								   \
-		Fiasco::outstring(ESC_ERR s ESC_END "\n");	   \
-		Fiasco::outstring(__FILE__ ":");			   \
-		Fiasco::outhex32((int)__LINE__);			   \
-		Fiasco::outstring("\n");					   \
-		enter_kdebug("ASSERT");				   \
-		}											   \
+	do { if (!(e)) {                               \
+		Fiasco::outstring(ESC_ERR s ESC_END "\n"); \
+		Fiasco::outstring(__FILE__ ":");           \
+		Fiasco::outdec(__LINE__);                  \
+		Fiasco::outstring("\n");                   \
+		enter_kdebug("ASSERT");                    \
+		}                                          \
 	} while(0)
 #else
 #define ASSERT(e, s)  do { } while (0)
