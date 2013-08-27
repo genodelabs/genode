@@ -49,14 +49,14 @@ namespace Regulator {
 
 	Regulator_id regulator_id_by_name(const char * name)
 	{
-		for (unsigned i = 0; i < MAX; i++)
+		for (unsigned i = 0; i < sizeof(names)/sizeof(names[0]); i++)
 			if (Genode::strcmp(names[i].name, name) == 0)
 				return names[i].id;
 		return INVALID;
 	}
 
 	const char * regulator_name_by_id(Regulator_id id)   {
-		return (id < MAX) ? names[id].name : 0; }
+		return (id < sizeof(names)/sizeof(names[0])) ? names[id].name : 0; }
 
 
 	/***************************************
