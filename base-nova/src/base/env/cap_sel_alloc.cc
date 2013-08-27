@@ -48,7 +48,7 @@ void Cap_selector_allocator::free(addr_t cap, size_t num_caps_log2)
 }
 
 
-Cap_selector_allocator::Cap_selector_allocator()
+Cap_selector_allocator::Cap_selector_allocator() : Bit_allocator()
 {
 	/* initialize lock */
 	alloc_lock();

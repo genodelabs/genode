@@ -23,6 +23,7 @@ namespace Genode {
 	{
 		protected:
 
+			addr_t           _next;
 			Bit_array<WORDS> _array;
 
 			void _reserve(addr_t bit_start, size_t const num_cap)
@@ -34,32 +35,40 @@ namespace Genode {
 
 		public:
 
+			Bit_allocator() : _next(0) { }
+
 			addr_t alloc(size_t const num_log2)
 			{
 				addr_t const step = 1UL << num_log2;
-				addr_t i = 0;
+				addr_t max = ~0UL;
 
-				try {
-					/*
-					 * Throws exception if array is * accessed outside bounds
-					 */
-					while (true) {
-						if (_array.get(i, step)) {
-							i += step;
-							continue;
+				do
+				{
+					try
+					{
+						/* throws exception if array is accessed outside bounds */
+						for (addr_t i = _next & ~(step - 1); i < max; i += step) {
+							if (_array.get(i, step))
+								continue;
+
+							_array.set(i, step);
+							_next = i + step;
+							return i;
 						}
-						_array.set(i, step);
-						return i;
-					}
-				} catch (Bit_array_invalid_index_access) {}
+					} catch (Bit_array_invalid_index_access) { }
+
+					max = _next;
+					_next = 0;
+
+				} while (max != 0);
 
 				throw Bit_array_out_of_indexes();
 			}
 
-			void free(addr_t const bit_start,
-			          size_t const num_log2)
+			void free(addr_t const bit_start, size_t const num_log2)
 			{
 				_array.clear(bit_start, 1UL << num_log2);
+				_next = bit_start;
 			}
 
 	};
