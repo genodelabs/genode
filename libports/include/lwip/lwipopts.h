@@ -41,12 +41,22 @@
 #define LWIP_WND_SCALE              1  /* enable window scaling */
 #define TCP_RCV_SCALE               2  /* receive scale factor IETF RFC 1323 */
 
-#define LWIP_CHECKSUM_ON_COPY       1  /* calculate checksum during memcpy */
-
 #if LWIP_DHCP
 #define LWIP_NETIF_STATUS_CALLBACK  1  /* callback function used by DHCP init */
 #endif
 
+/***********************************
+ ** Checksum calculation settings **
+ ***********************************/
+
+/* checksum calculation for outgoing packets can be disabled if the hardware supports it */
+#define CHECKSUM_GEN_IP             1  /* calculate checksum for outgoing IP packets */
+#define CHECKSUM_GEN_TCP            1  /* calculate checksum for outgoing TCP packets */
+
+#define CHECKSUM_CHECK_IP           1  /* check checksum of incoming IP packets */
+#define CHECKSUM_CHECK_TCP          1  /* check checksum of incoming TCP packets */
+
+#define LWIP_CHECKSUM_ON_COPY       1  /* calculate checksum during memcpy */
 
 /*********************
  ** Memory settings **
