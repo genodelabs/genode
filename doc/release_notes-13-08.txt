@@ -564,7 +564,7 @@ declaration describes an affinity space of 4x2:
 
 ! <config>
 !   ...
-!   <affinity_space width="4" height="2" />
+!   <affinity-space width="4" height="2" />
 !   ...
 ! </config>
 

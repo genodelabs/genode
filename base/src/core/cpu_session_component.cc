@@ -122,6 +122,13 @@ int Cpu_session_component::start(Thread_capability thread_cap,
 	 */
 	thread->update_exception_sigh();
 
+	/*
+	 * If no affinity location was set for this specific thread before,
+	 * we set the one which was defined for the whole CPU session.
+	 */
+	if (!thread->platform_thread()->affinity().valid())
+		thread->platform_thread()->affinity(_location);
+
 	return thread->platform_thread()->start((void *)ip, (void *)sp);
 }
 

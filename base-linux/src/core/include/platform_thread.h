@@ -114,7 +114,19 @@ namespace Genode {
 			}
 
 			const char   *name() { return _name; }
-			void          affinity(Affinity::Location) { }
+
+			/**
+			 * Set the executing CPU for this thread
+			 *
+			 * SMP is currently not directly supported on Genode/Linux
+			 * (but indirectly by the Linux kernel).
+			 */
+			void affinity(Affinity::Location) { }
+
+			/**
+			 * Request the affinity of this thread
+			 */
+			Affinity::Location affinity() { return Affinity::Location(); }
 
 			/**
 			 * Register process ID and thread ID of thread
