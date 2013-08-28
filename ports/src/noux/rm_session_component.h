@@ -218,17 +218,18 @@ namespace Noux {
 				                 Region(*this, ds, size, offset, local_addr);
 
 				/* register region as user of RAM dataspaces */
-				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(ds));
+				{
+					Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(ds));
 
-
-				if (info) {
-					info->register_user(*region);
-				} else {
-					if (verbose_attach) {
-						PWRN("Trying to attach unknown dataspace type");
-						PWRN("  ds_info@%p at 0x%lx size=%zd offset=0x%lx",
-						     info.object(), (long)local_addr,
-						     Dataspace_client(ds).size(), (long)offset);
+					if (info) {
+						info->register_user(*region);
+					} else {
+						if (verbose_attach) {
+							PWRN("Trying to attach unknown dataspace type");
+							PWRN("  ds_info@%p at 0x%lx size=%zd offset=0x%lx",
+						    	 info.object(), (long)local_addr,
+							     Dataspace_client(ds).size(), (long)offset);
+						}
 					}
 				}
 
@@ -244,8 +245,6 @@ namespace Noux {
 
 			void detach(Local_addr local_addr)
 			{
-				_rm.detach(local_addr);
-
 				Region *region = _lookup_region_by_addr(local_addr);
 				if (!region) {
 					PWRN("Attempt to detach unknown region at 0x%p",
@@ -255,11 +254,16 @@ namespace Noux {
 
 				_regions.remove(region);
 
-				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(region->ds));
-				if (info)
-					info->unregister_user(*region);
+				{
+					Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(region->ds));
+					if (info)
+						info->unregister_user(*region);
+				}
 
 				destroy(env()->heap(), region);
+
+				_rm.detach(local_addr);
+
 			}
 
 			Pager_capability add_client(Thread_capability thread)
@@ -291,15 +295,7 @@ namespace Noux {
 
 	inline void Rm_session_component::Region::dissolve(Dataspace_info &ds)
 	{
-		/*
-		 * When this function is called, the 'ds' is already locked by the
-		 * caller. To prevent 'detach' from taking the lock twice
-		 * ('_ds_registry.lookup_info'), the temporarily release and re-acquire
-		 * the lock.
-		 */
-		ds.release();
 		rm.detach(local_addr);
-		ds.acquire();
 	}
 }
 

@@ -73,6 +73,8 @@ namespace Noux {
 						user = _users.first();
 						if (!user)
 							break;
+
+						_users.remove(user);
 					}
 					user->dissolve(*this);
 				}
