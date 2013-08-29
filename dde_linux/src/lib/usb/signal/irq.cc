@@ -40,16 +40,15 @@ struct Irq_handler : Genode::List<Irq_handler>::Element
 /**
  * Signal context for IRQs
  */
-class Irq_context : public Driver_context,
-                    public Genode::List<Irq_context>::Element
+class Irq_context : public Genode::List<Irq_context>::Element
 {
 	private:
 
 		typedef Genode::List<Irq_context>::Element LE;
 
-		unsigned int                      _irq;          /* IRQ number */
-		Genode::List<Irq_handler>         _handler_list; /* List of registered handlers */
-		Genode::Signal_context_capability _ctx_cap;      /* capability for this context */
+		unsigned int                           _irq;          /* IRQ number */
+		Genode::List<Irq_handler>              _handler_list; /* List of registered handlers */
+		Genode::Signal_dispatcher<Irq_context> _dispatcher;
 
 		static Genode::List<Irq_context> *_list()
 		{
@@ -83,7 +82,7 @@ class Irq_context : public Driver_context,
 			Irq_context *ctx = static_cast<Irq_context *>(irq);
 
 			/* set context & submit signal */
-			_signal->sender()->context(ctx->_ctx_cap);
+			_signal->sender()->context(ctx->_dispatcher);
 			_signal->sender()->submit();
 
 			/* wait for interrupt to get acked at device side */
@@ -135,11 +134,13 @@ class Irq_context : public Driver_context,
 			return handled;
 		}
 
+		void _handle(unsigned) { _handle(); }
+
 	public:
 
 		Irq_context(unsigned int irq)
 		: _irq(irq),
-			_ctx_cap(_signal->receiver()->manage(this))
+		  _dispatcher(*_signal->receiver(), *this, &Irq_context::_handle)
 		{
 			/* register at DDE (shared) */
 			int ret = dde_kit_interrupt_attach(_irq, 0, 0, _dde_handler, this);
@@ -151,7 +152,6 @@ class Irq_context : public Driver_context,
 		}
 
 
-		inline void handle() { _handle(); }
 		const char *debug() { return "Irq_context"; }
 
 		/**

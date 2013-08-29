@@ -27,28 +27,22 @@ static Signal_helper *_signal = 0;
 /**
  * Signal context for time-outs
  */
-class Timer_context : public Driver_context
+class Timer_context
 {
 	private:
 
-		timer_list                       *_timer;     /* Linux timer */
-		dde_kit_timer                    *_dde_timer; /* DDE kit timer */
-		Genode::Signal_context_capability _ctx_cap;   /* Signal-context cap
-		                                                 for this timer */
+		timer_list                              *_timer;     /* Linux timer */
+		dde_kit_timer                           *_dde_timer; /* DDE kit timer */
+		Genode::Signal_dispatcher<Timer_context> _dispatcher;
+
+		/* call timer function */
+		void _handle(unsigned) { _timer->function(_timer->data); }
 
 	public:
 
 		Timer_context(timer_list *timer)
 		: _timer(timer), _dde_timer(0),
-			_ctx_cap(_signal->receiver()->manage(this)) { }
-
-		~Timer_context()
-		{
-			_signal->receiver()->dissolve(this);
-		}
-
-		/* call timer function */
-		void handle() { _timer->function(_timer->data); }
+		  _dispatcher(*_signal->receiver(), *this, &Timer_context::_handle) {}
 
 		/* schedule next timeout */
 		void schedule(unsigned long expires)
@@ -71,7 +65,7 @@ class Timer_context : public Driver_context
 		/**
 		 * Return internal signal cap
 		 */
-		Genode::Signal_context_capability cap() const  { return _ctx_cap; }
+		Genode::Signal_context_capability cap() const  { return _dispatcher; }
 
 		/**
 		 * Convert 'timer_list' to 'Timer_conext'

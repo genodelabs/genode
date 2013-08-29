@@ -21,22 +21,6 @@
 #include "routine.h"
 
 /**
- * Context base for IRQ, Timer, etc.
- */
-class Driver_context : public Genode::Signal_context
-{
-	public:
-
-		/**
-		 * Perform context operation
-		 */
-		virtual void handle() = 0;
-
-		virtual char const *debug() = 0;
-};
-
-
-/**
  * This singelton currently received all signals
  */
 class Service_handler
@@ -78,8 +62,7 @@ class Service_handler
 				Genode::Signal s = _receiver->wait_for_signal();
 
 				/* handle signal IRQ, timer, or event signals */
-				Driver_context *ctx = static_cast<Driver_context *>(s.context());
-				ctx->handle();
+				static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
 				block = false;
 			}
 		}

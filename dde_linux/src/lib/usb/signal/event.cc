@@ -19,15 +19,18 @@ static Signal_helper *_signal = 0;
 /**
  * Context for events
  */
-class Event_context : public Driver_context
+class Event_context
 {
 	private:
 
-		Genode::Signal_context_capability _ctx_cap;
-		
+		Genode::Signal_dispatcher<Event_context> _dispatcher;
+
+		void _handle(unsigned) {
+			Routine::schedule_all(); }
+
 		Event_context()
-		: _ctx_cap(_signal->receiver()->manage(this)) {
-			_signal->sender()->context(_ctx_cap); }
+		: _dispatcher(*_signal->receiver(), *this, &Event_context::_handle) {
+		  _signal->sender()->context(_dispatcher); }
 
 	public:
 
@@ -39,9 +42,6 @@ class Event_context : public Driver_context
 
 		void submit() {
 			_signal->sender()->submit(); }
-
-		void handle() {
-			Routine::schedule_all(); }
 
 		char const *debug() { return "Event_context"; }
 };
