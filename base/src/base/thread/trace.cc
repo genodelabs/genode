@@ -182,7 +182,6 @@ void Trace::Logger::init(Thread_capability thread)
 
 Trace::Logger::Logger()
 :
-	thread_cap(thread_cap),
 	control(0),
 	enabled(false),
 	policy_version(0),
