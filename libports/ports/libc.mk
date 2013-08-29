@@ -588,10 +588,10 @@ create_include_symlinks-libc: checkout-libc
 prepare-libc: apply_patches-libc libc_net_generate libc_rpc_generate create_include_symlinks-libc
 
 clean_include_symlinks-libc:
-	$(VERBOSE)find include -type l -delete
+	$(VERBOSE)-find include/libc{,-amd64,-arm,-i386} -type l -delete 2>/dev/null
 
 clean_include_subdirs-libc: clean_include_symlinks-libc
-	$(VERBOSE)find include -type d -empty -delete
+	$(VERBOSE)-find include/libc{,-amd64,-arm,-i386} -type d -empty -delete 2>/dev/null
 
 clean-libc: clean_include_subdirs-libc
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(LIBC)
