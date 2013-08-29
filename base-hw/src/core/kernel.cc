@@ -1640,7 +1640,7 @@ void Signal_context::ack()
 
 void Signal_context::submit(unsigned const n)
 {
-	assert(_submits < -1 - n);
+	assert(_submits < (unsigned)~0 - n);
 	if (_killer) return;
 	_submits += n;
 	if (_await_ack) return;
