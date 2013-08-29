@@ -852,12 +852,13 @@ namespace Kernel
 	void handle_pagefault(Thread * const user)
 	{
 		/* check out cause and attributes of abort */
-		addr_t va;
-		bool w;
-		assert(user->translation_miss(va, w));
+		addr_t virt_addr      = 0;
+		bool   write          = 0;
+		bool   is_transl_miss = user->translation_miss(virt_addr, write);
+		assert(is_transl_miss);
 
 		/* the user might be able to resolve the pagefault */
-		user->pagefault(va, w);
+		user->pagefault(virt_addr, write);
 	}
 
 

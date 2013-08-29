@@ -51,10 +51,12 @@ namespace Genode
 			Platform_pd(char const *label) : _main_thread(0), _label(label)
 			{
 				/* get some aligned space for the kernel object */
-				void * kernel_pd;
+				void * kernel_pd = 0;
 				Range_allocator * ram = platform()->ram_alloc();
-				assert(ram->alloc_aligned(Kernel::pd_size(), &kernel_pd,
-				                          Kernel::pd_alignm_log2()).is_ok())
+				bool kernel_pd_ok =
+					ram->alloc_aligned(Kernel::pd_size(), &kernel_pd,
+					                   Kernel::pd_alignm_log2()).is_ok();
+				assert(kernel_pd_ok);
 
 				/* create kernel object */
 				_id = Kernel::new_pd(kernel_pd, this);

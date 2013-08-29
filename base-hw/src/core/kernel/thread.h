@@ -183,7 +183,7 @@ namespace Kernel
 			 */
 			unsigned alloc()
 			{
-				if (!_valid_id(_first_free_id)) assert(0);
+				assert(_valid_id(_first_free_id));
 				_free[_first_free_id] = 0;
 				unsigned const id = _first_free_id;
 				_first_free_id_assigned();

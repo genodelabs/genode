@@ -70,14 +70,16 @@ void Ipc_pager::resolve_and_wait_for_fault()
 	                              _mapping.size_log2, flags);
 	if (sl2)
 	{
-		/* try to get some natural aligned space */
-		void * space;
-		assert(platform()->ram_alloc()->alloc_aligned(1<<sl2, &space, sl2).is_ok());
+		/* try to get some natural aligned RAM */
+		void * ram;
+		bool ram_ok = platform()->ram_alloc()->alloc_aligned(1<<sl2, &ram,
+		                                                     sl2).is_ok();
+		assert(ram_ok);
 
-		/* try to translate again with extra space */
+		/* try to translate again with extra RAM */
 		sl2 = tlb->insert_translation(_mapping.virt_address,
 		                              _mapping.phys_address,
-		                              _mapping.size_log2, flags, space);
+		                              _mapping.size_log2, flags, ram);
 		assert(!sl2);
 	}
 	/* wake up faulter */
