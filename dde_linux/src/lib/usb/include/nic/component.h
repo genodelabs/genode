@@ -123,10 +123,10 @@ namespace Nic {
 	{
 		private:
 
-			Device           *_device;   /* device this session is using */
-			Tx::Sink         *_tx_sink;  /* client packet sink */
-			bool              _tx_alloc; 
-			Packet_descriptor _tx_packet;
+			Device           *_device;    /* device this session is using */
+			Tx::Sink         *_tx_sink;   /* client packet sink */
+			bool              _tx_alloc;  /* get next packet from client or use _tx_packet */
+			Packet_descriptor _tx_packet; /* saved packet in case of driver errors */
 
 			void _send_packet_avail_signal() {
 				Signal_transmitter(_tx.sigh_packet_avail()).submit(); }
@@ -251,7 +251,8 @@ namespace Nic {
 				Nic::Packet_allocator(Genode::env()->heap()),
 				Packet_session_component(tx_ds, rx_ds, this,  ep, sig_rec),
 				_device(static_cast<Device *>(device)),
-				_tx_sink(Session_rpc_object::_tx.sink())
+				_tx_sink(Session_rpc_object::_tx.sink()),
+				_tx_alloc(true)
 				{ _device->session(this); }
 
 			Mac_address mac_address() { return _device->mac_address(); }
