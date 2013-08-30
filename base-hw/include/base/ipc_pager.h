@@ -106,8 +106,11 @@ namespace Genode
 
 			/**
 			 * Resolve current pagefault and wait for a new one
+			 *
+			 * \retval   0  succeeded
+			 * \retval !=0  failed
 			 */
-			void resolve_and_wait_for_fault();
+			int resolve_and_wait_for_fault();
 
 			/**
 			 * Request instruction pointer of current page fault

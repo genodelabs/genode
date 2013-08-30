@@ -18,10 +18,22 @@
 #include <rm_session_component.h>
 #include <platform.h>
 #include <platform_thread.h>
-#include <assert.h>
 #include <tlb.h>
 
 using namespace Genode;
+
+
+/**
+ * Try to regain administrative memory that isn't used anymore from 'tlb'
+ */
+static void regain_ram_from_tlb(Tlb * tlb)
+{
+	size_t s;
+	void * base;
+	while (tlb->regain_memory(base, s)) {
+		platform()->ram_alloc()->free(base, s);
+	}
+}
 
 
 /***************
@@ -33,18 +45,19 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
 {
 	/* get software TLB of the thread that we serve */
 	Platform_thread * const pt = Kernel::get_thread(badge());
-	assert(pt);
+	if (!pt) {
+		PERR("failed to get RM client-thread");
+		return;
+	}
 	Tlb * const tlb = pt->tlb();
-	assert(tlb);
-
+	if (!tlb) {
+		PERR("failed to get PD of RM client-thread");
+		return;
+	}
 	/* update all translation caches */
 	tlb->remove_region(virt_base, size);
 	Kernel::update_pd(pt->pd_id());
-
-	/* try to regain administrative memory that has been freed by unmap */
-	size_t s;
-	void * base;
-	while (tlb->regain_memory(base, s)) platform()->ram_alloc()->free(base, s);
+	regain_ram_from_tlb(tlb);
 }
 
 
@@ -52,11 +65,13 @@ void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
  ** Ipc_pager **
  ***************/
 
-void Ipc_pager::resolve_and_wait_for_fault()
+int Ipc_pager::resolve_and_wait_for_fault()
 {
-	/* valid mapping? */
-	assert(_mapping.valid());
-
+	/* check mapping */
+	if (!_mapping.valid()) {
+		PERR("invalid mapping");
+		return -1;
+	}
 	/* prepare mapping */
 	Tlb * const tlb = _pagefault.tlb;
 	Page_flags::access_t const flags =
@@ -74,18 +89,25 @@ void Ipc_pager::resolve_and_wait_for_fault()
 		void * ram;
 		bool ram_ok = platform()->ram_alloc()->alloc_aligned(1<<sl2, &ram,
 		                                                     sl2).is_ok();
-		assert(ram_ok);
-
+		if (!ram_ok) {
+			PERR("failed to allocate additional RAM for TLB");
+			return -1;
+		}
 		/* try to translate again with extra RAM */
 		sl2 = tlb->insert_translation(_mapping.virt_address,
 		                              _mapping.phys_address,
 		                              _mapping.size_log2, flags, ram);
-		assert(!sl2);
+		if (sl2) {
+			PERR("TLB needs to much RAM");
+			regain_ram_from_tlb(tlb);
+			return -1;
+		}
 	}
 	/* wake up faulter */
 	Kernel::resume_faulter(_pagefault.thread_id);
 
 	/* wait for next page fault */
 	wait_for_fault();
+	return 0;
 }
 

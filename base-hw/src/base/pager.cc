@@ -29,23 +29,28 @@ void Pager_activation_base::entry()
 	_cap = pager;
 	_cap_valid.unlock();
 
-	/* wait for the first pagefault */
-	bool reply = false;
+	/* receive and handle faults */
+	bool mapping_pending = 0;
 	while (1)
 	{
-		if (reply)
-			pager.resolve_and_wait_for_fault();
-		else
+		if (mapping_pending) {
+			/* apply mapping and await next fault */
+			if (pager.resolve_and_wait_for_fault()) {
+				PERR("failed to resolve page fault");
+				pager.wait_for_fault();
+			}
+		} else {
 			pager.wait_for_fault();
-
-		/* lookup pager object for the current faulter */
+		}
+		/* lookup pager object for current faulter */
 		Object_pool<Pager_object>::Guard o(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
 		if (!o) {
-			PERR("%s:%d: Invalid pager object", __FILE__, __LINE__);
-			while (1) ;
+			PERR("invalid pager object");
+			mapping_pending = 0;
+		} else {
+			/* try to find an appropriate mapping */
+			mapping_pending = !o->pager(pager);
 		}
-		/* let pager handle the pagefault, apply mapping, await pagefault */
-		reply = !o->pager(pager);
 	}
 }
 
@@ -90,6 +95,10 @@ void Ipc_pager::wait_for_fault()
 	/* receive first message */
 	size_t s = Kernel::wait_for_request();
 	while (1) {
+
+		/*
+		 * FIXME: the message size is a weak indicator for the message type
+		 */
 		switch (s) {
 
 		case sizeof(Pagefault): {
