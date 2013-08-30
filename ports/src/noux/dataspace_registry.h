@@ -124,11 +124,7 @@ namespace Noux {
 				 * created via 'Rm_dataspace_info::fork', are not handled by
 				 * those destructors. So we have to clean them up here.
 				 */
-				for (;;) {
-					Dataspace_info *info = _pool.first();
-					if (!info)
-						return;
-
+				while(Dataspace_info *info = _pool.first()) {
 					_pool.remove_locked(info);
 					destroy(env()->heap(), info);
 				}
@@ -172,8 +168,10 @@ namespace Noux {
 				return;
 			}
 
-			info->dissolve_users();
 			_ds_registry.remove(info);
+
+			info->dissolve_users();
+
 		}
 
 		Dataspace_capability fork(Ram_session_capability,

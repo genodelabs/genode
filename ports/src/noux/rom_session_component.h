@@ -66,18 +66,20 @@ namespace Noux {
 			~Rom_session_component()
 			{
 				/*
-				 * Lookup and lock ds info instead of directly acccessing
+				 * Lookup and lock ds info instead of directly accessing
 				 * the '_ds_info' member.
 				 */
 				Object_pool<Dataspace_info>::Guard
 					info(_ds_registry.lookup_info(_ds_info.ds_cap()));
 
-				if (info)
-					info->dissolve_users();
-				else
+				if (!info) {
 					PERR("~Rom_session_component: unexpected !info");
+					return;
+				}
 
 				_ds_registry.remove(&_ds_info);
+
+				info->dissolve_users();
 			}
 
 
