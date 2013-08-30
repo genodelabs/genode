@@ -40,7 +40,7 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 
 Platform_thread::~Platform_thread()
 {
-	/* detach UTCB if main thread outside core */
+	/* detach UTCB */
 	if (!_attaches_utcb_by_itself()) {
 		assert(_rm_client);
 		Rm_session_component * const rm = _rm_client->member_rm_session();
@@ -71,10 +71,12 @@ Platform_thread::Platform_thread(const char * name,
 
 	/* create UTCB for a core thread */
 	Range_allocator * const ram = platform()->ram_alloc();
-	bool phys_utcb_ok = ram->alloc_aligned(sizeof(Native_utcb),
-	                                       (void **)&_phys_utcb,
-	                                       MIN_MAPPING_SIZE_LOG2).is_ok();
-	assert(phys_utcb_ok);
+	if (!ram->alloc_aligned(sizeof(Native_utcb), (void **)&_phys_utcb,
+	                        MIN_MAPPING_SIZE_LOG2).is_ok())
+	{
+		PERR("failed to allocate UTCB");
+		throw Cpu_session::Out_of_metadata();
+	}
 	_virt_utcb = _phys_utcb;
 
 	/* common constructor parts */
@@ -95,14 +97,15 @@ Platform_thread::Platform_thread(const char * name, unsigned int priority,
 	 * is done by RAM session by default. It's save to use core env because
 	 * this cannot be its server activation thread.
 	 */
-	try {
-		Ram_session_component * const ram =
-			dynamic_cast<Ram_session_component *>(core_env()->ram_session());
-		assert(ram);
-		_utcb = ram->alloc(sizeof(Native_utcb), 1);
-		_phys_utcb = (Native_utcb *)ram->phys_addr(_utcb);
+	Ram_session_component * const ram =
+		dynamic_cast<Ram_session_component *>(core_env()->ram_session());
+	assert(ram);
+	try { _utcb = ram->alloc(sizeof(Native_utcb), 1); }
+	catch (...) {
+		PERR("failed to allocate UTCB");
+		throw Cpu_session::Out_of_metadata();
 	}
-	catch (...) { assert(0); }
+	_phys_utcb = (Native_utcb *)ram->phys_addr(_utcb);
 
 	/* common constructor parts */
 	_init();
@@ -113,8 +116,10 @@ int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
                              Weak_ptr<Address_space> address_space)
 {
 	/* check if we're already in another PD */
-	if (_pd_id && _pd_id != pd_id) return -1;
-
+	if (_pd_id && _pd_id != pd_id) {
+		PERR("already joined a PD");
+		return -1;
+	}
 	/* denote configuration for start method */
 	_pd_id         = pd_id;
 	_main_thread   = main_thread;
@@ -125,16 +130,22 @@ int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
 
 void Platform_thread::_init()
 {
+	/* create kernel object */
 	_id = Kernel::new_thread(_kernel_thread, this);
-	assert(_id);
+	if (!_id) {
+		PERR("failed to create kernel object");
+		throw Cpu_session::Thread_creation_failed();
+	}
 }
 
 
 int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 {
-	/* check thread attributes */
-	assert(_pd_id);
-
+	/* must be in a PD to get started */
+	if (!_pd_id) {
+		PERR("invalid PD");
+		return -1;
+	}
 	/* attach UTCB if the thread can't do this by itself */
 	if (!_attaches_utcb_by_itself())
 	{
@@ -147,14 +158,24 @@ int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 					 & ~((1<<MIN_MAPPING_SIZE_LOG2)-1));
 
 		/* attach UTCB */
-		assert(_rm_client);
+		if (!_rm_client) {
+			PERR("invalid RM client");
+			return -1;
+		};
 		Rm_session_component * const rm = _rm_client->member_rm_session();
 		try { rm->attach(_utcb, 0, 0, true, _virt_utcb, 0); }
-		catch (...) { assert(0); }
+		catch (...) {
+			PERR("failed to attach UTCB");
+			return -1;
+		}
 	}
 	/* let thread participate in CPU scheduling */
 	_tlb = Kernel::start_thread(this, ip, sp, cpu_no);
-	return _tlb ? 0 : -1;
+	if (!_tlb) {
+		PERR("failed to start thread");
+		return -1;
+	}
+	return 0;
 }
 
 
@@ -165,10 +186,10 @@ void Platform_thread::pager(Pager_object * const pager)
 
 	/* get RM client from pager pointer */
 	_rm_client = dynamic_cast<Rm_client *>(pager);
-	assert(_rm_client);
 }
 
 
-Genode::Pager_object * Platform_thread::pager() {
-	return _rm_client ? static_cast<Pager_object *>(_rm_client) : 0; }
-
+Genode::Pager_object * Platform_thread::pager()
+{
+	return _rm_client ? static_cast<Pager_object *>(_rm_client) : 0;
+}

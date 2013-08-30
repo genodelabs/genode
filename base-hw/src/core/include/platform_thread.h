@@ -23,7 +23,6 @@
 #include <kernel/thread.h>
 
 /* core includes */
-#include <assert.h>
 #include <address_space.h>
 
 namespace Genode {
@@ -182,7 +181,9 @@ namespace Genode {
 
 			Thread_base * thread_base()
 			{
-				if (!_thread_base) assert(main_thread());
+				if (!_thread_base && !main_thread()) {
+					PERR("invalid thread base");
+				}
 				return _thread_base;
 			}
 
