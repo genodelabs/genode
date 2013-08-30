@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/printf.h>
+#include <root/root.h>
 
 /* Core includes */
 #include <platform.h>
@@ -56,11 +57,16 @@ namespace Genode
 				bool kernel_pd_ok =
 					ram->alloc_aligned(Kernel::pd_size(), &kernel_pd,
 					                   Kernel::pd_alignm_log2()).is_ok();
-				assert(kernel_pd_ok);
-
+				if (!kernel_pd_ok) {
+					PERR("failed to allocate kernel object");
+					throw Root::Quota_exceeded();
+				}
 				/* create kernel object */
 				_id = Kernel::new_pd(kernel_pd, this);
-				assert(_id);
+				if (!_id) {
+					PERR("failed to create kernel object");
+					throw Root::Unavailable();
+				}
 			}
 
 			/**
@@ -87,18 +93,14 @@ namespace Genode
 			}
 
 			/**
-			 * Unbind thread from protection domain
-			 *
-			 * Free the thread's slot and update thread object.
-			 */
-			void unbind_thread(Platform_thread * t);
-
-			/**
 			 * Assign parent interface to protection domain
 			 */
 			int assign_parent(Native_capability parent)
 			{
-				assert(parent.valid());
+				if (!parent.valid()) {
+					PERR("parent invalid");
+					return -1;
+				}
 				_parent = parent;
 				return 0;
 			}

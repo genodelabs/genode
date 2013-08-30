@@ -21,8 +21,13 @@ using namespace Genode;
  ** Platform PD **
  *****************/
 
-void Platform_pd::unbind_thread(Platform_thread *thread) { assert(0); }
-
-
-Platform_pd::~Platform_pd() { assert(0); }
+Platform_pd::~Platform_pd()
+{
+	/*
+	 * FIXME: throwing exceptions is not declared for
+	 *        'Pd_root::close' wich is why we can only
+	 *        print an error
+	 */
+	PERR("not implemented");
+}
 
