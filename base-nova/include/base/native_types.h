@@ -20,6 +20,8 @@
 
 #include <nova/syscalls.h>
 
+#include <base/cap_map.h>
+
 namespace Genode {
 
 	struct Native_thread
@@ -109,6 +111,18 @@ namespace Genode {
 			: _cap(), _trans_map(true), _ptr(ptr),
 			  _rcv_window(INVALID_INDEX) {}
 
+			inline void _inc(bool inc_if_one = false) const
+			{
+				Cap_index idx(cap_map()->find(local_name()));
+				idx.inc(inc_if_one);
+			}
+
+			inline void _dec() const
+			{
+				Cap_index idx(cap_map()->find(local_name()));
+				idx.dec();
+			}
+
 		public:
 
 			/**
@@ -123,8 +137,10 @@ namespace Genode {
 			{
 				if (sel == INVALID_INDEX)
 					_cap = _Raw();
-				else
+				else {
 					_cap = _Raw(sel, rights);
+					_inc();
+				}
 
 				_trans_map = true;
 				_ptr = 0;
@@ -133,7 +149,21 @@ namespace Genode {
 
 			Native_capability(const Native_capability &o)
 			: _cap(o._cap), _trans_map(o._trans_map), _ptr(o._ptr),
-			  _rcv_window(o._rcv_window) {}
+			  _rcv_window(o._rcv_window) { if (valid()) _inc(); }
+
+			~Native_capability() { if (valid()) _dec(); }
+
+			/**
+			 * Overloaded comparison operator
+			 */
+			bool operator==(const Native_capability &o) const {
+				return (_ptr) ? _ptr == o._ptr : local_name() == o.local_name(); }
+
+			Native_capability operator+ () const
+			{
+				if (valid()) _inc(true);
+				return *this;
+			}
 
 			/**
 			 * Copy constructor
@@ -144,10 +174,15 @@ namespace Genode {
 				if (this == &o)
 					return *this;
 
+				if (valid()) _dec();
+
 				_cap        = o._cap;
 				_trans_map  = o._trans_map;
 				_ptr        = o._ptr;
 				_rcv_window = o._rcv_window;
+
+				if (valid()) _inc();
+
 				return *this;
 			}
 
