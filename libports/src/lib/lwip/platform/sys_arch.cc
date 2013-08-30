@@ -340,7 +340,7 @@ extern "C" {
 	 */
 	sys_prot_t sys_arch_protect(void)
 	{
-		if(global_mutex()->thread == Genode::Thread_base::myself())
+		if (global_mutex()->thread == Genode::Thread_base::myself())
 			return ++global_mutex()->counter;
 		global_mutex()->lock.lock();
 		global_mutex()->thread = Genode::Thread_base::myself();
@@ -353,13 +353,13 @@ extern "C" {
 	 */
 	void sys_arch_unprotect(sys_prot_t pval)
 	{
-		if(global_mutex()->thread != Genode::Thread_base::myself())
+		if (global_mutex()->thread != Genode::Thread_base::myself())
 			return;
-		if(global_mutex()->counter > 1)
+		if (global_mutex()->counter > 1)
 			global_mutex()->counter--;
 		else {
 			global_mutex()->counter = 0;
-			global_mutex()->thread = 0;
+			global_mutex()->thread = (Genode::Thread_base*)-1;
 			global_mutex()->lock.unlock();
 		}
 	}
