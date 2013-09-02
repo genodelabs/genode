@@ -43,17 +43,17 @@ Policy_id Session_component::alloc_policy(size_t size)
 
 	Policy_id const id(_policy_cnt++);
 
-	try { _md_alloc.withdraw(size); }
-	catch (...) { throw Out_of_metadata(); }
+	if (!_md_alloc.withdraw(size))
+		throw Out_of_metadata();
 
 	try {
 		Ram_dataspace_capability ds = _ram.alloc(size);
 
 		_policies.insert(*this, id, _policies_slab, ds, size);
 	} catch (...) {
-		/* revert withdrawal or quota and re-throw exception */
+		/* revert withdrawal or quota */
 		_md_alloc.upgrade(size);
-		throw;
+		throw Out_of_metadata();
 	}
 
 	return id;
@@ -82,17 +82,17 @@ void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
 	 * Account RAM needed for trace buffer and policy buffer to the trace
 	 * session.
 	 */
-	try { _md_alloc.withdraw(required_ram); }
-	catch (...) { throw Out_of_metadata(); }
+	if (!_md_alloc.withdraw(required_ram))
+		throw Out_of_metadata();
 
 	try {
 		Trace::Subject *subject = _subjects.lookup_by_id(subject_id);
 		subject->trace(policy_id, _policies.dataspace(*this, policy_id),
 		               policy_size, _ram, buffer_size);
 	} catch (...) {
-		/* revert withdrawal or quota and re-throw exception */
+		/* revert withdrawal or quota */
 		_md_alloc.upgrade(required_ram);
-		throw;
+		throw Out_of_metadata();
 	}
 }
 
