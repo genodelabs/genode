@@ -501,6 +501,12 @@ extern "C" {
 			if (abstime_ms > currtime_ms)
 				timeout = abstime_ms - currtime_ms;
 			try {
+				/*
+				 * The timed semaphore supports a timeout minimum of 10 ms and
+				 * logs a warning if the timeout is lower than the minimum. To
+				 * prevent the warning, limit timeouts to >= 10 ms here.
+				 */
+				if (timeout != 0) timeout = max(timeout, 10);
 				c->signal_sem.down(timeout);
 			} catch (Timeout_exception) {
 				result = ETIMEDOUT;
