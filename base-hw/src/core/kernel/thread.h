@@ -24,6 +24,7 @@
 #include <pic.h>
 #include <timer.h>
 #include <assert.h>
+#include <kernel/configuration.h>
 
 /* base-hw includes */
 #include <singleton.h>
@@ -45,17 +46,6 @@ namespace Kernel
 	template <typename T> class Avl_tree : public Genode::Avl_tree<T> { };
 	template <typename T> class Avl_node : public Genode::Avl_node<T> { };
 	template <typename T> class Fifo     : public Genode::Fifo<T> { };
-
-	/* kernel configuration */
-	enum {
-		DEFAULT_STACK_SIZE = 1*1024*1024,
-		USER_LAP_TIME_MS = 100,
-		MAX_PDS = 256,
-		MAX_THREADS = 256,
-		MAX_SIGNAL_RECEIVERS = 256,
-		MAX_SIGNAL_CONTEXTS = 256,
-		MAX_VMS = 4,
-	};
 
 	/**
 	 * Map unique sortable IDs to object pointers
