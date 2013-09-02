@@ -413,6 +413,11 @@ namespace Kernel
 	static Timer * timer() { static Timer _object; return &_object; }
 
 
+	static void reset_lap_time()
+	{
+		timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
+	}
+
 	/**
 	 * Access to the static CPU scheduler
 	 */
@@ -827,7 +832,7 @@ namespace Kernel
 
 				cpu_scheduler()->yield();
 				timer()->clear_interrupt();
-				timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
+				reset_lap_time();
 				break; }
 
 			default: {
@@ -1379,52 +1384,45 @@ namespace Kernel
 	 */
 	void handle_syscall(Thread * const user)
 	{
-		/* map syscall types to the according handler functions */
-		typedef void (*Syscall_handler)(Thread * const);
-		static Syscall_handler const handle_sysc[] =
+		switch (user->user_arg_0())
 		{
-			/* syscall ID */ /* handler           */
-			/*------------*/ /*-------------------*/
-			/*  0         */ handle_invalid_syscall,
-			/*  1         */ do_new_thread,
-			/*  2         */ do_start_thread,
-			/*  3         */ do_pause_thread,
-			/*  4         */ do_resume_thread,
-			/*  5         */ do_get_thread,
-			/*  6         */ do_current_thread_id,
-			/*  7         */ do_yield_thread,
-			/*  8         */ do_request_and_wait,
-			/*  9         */ do_reply,
-			/* 10         */ do_wait_for_request,
-			/* 11         */ do_set_pager,
-			/* 12         */ do_update_pd,
-			/* 13         */ do_new_pd,
-			/* 14         */ do_allocate_irq,
-			/* 15         */ do_await_irq,
-			/* 16         */ do_free_irq,
-			/* 17         */ do_print_char,
-			/* 18         */ do_read_thread_state,
-			/* 19         */ do_write_thread_state,
-			/* 20         */ do_new_signal_receiver,
-			/* 21         */ do_new_signal_context,
-			/* 22         */ do_await_signal,
-			/* 23         */ do_submit_signal,
-			/* 24         */ do_new_vm,
-			/* 25         */ do_run_vm,
-			/* 26         */ do_delete_thread,
-			/* 27         */ do_signal_pending,
-			/* 28         */ do_resume_faulter,
-			/* 29         */ do_ack_signal,
-			/* 30         */ do_kill_signal_context,
-			/* 31         */ do_pause_vm,
-			/* 32         */ do_update_region,
-		};
-		enum { MAX_SYSCALL = sizeof(handle_sysc)/sizeof(handle_sysc[0]) - 1 };
-
-		/* handle syscall that has been requested by the user */
-		unsigned syscall = user->user_arg_0();
-		if (syscall > MAX_SYSCALL) handle_sysc[INVALID_SYSCALL](user);
-		else handle_sysc[syscall](user);
+		case NEW_THREAD:          do_new_thread(user); return;
+		case DELETE_THREAD:       do_delete_thread(user); return;
+		case START_THREAD:        do_start_thread(user); return;
+		case PAUSE_THREAD:        do_pause_thread(user); return;
+		case RESUME_THREAD:       do_resume_thread(user); return;
+		case RESUME_FAULTER:      do_resume_faulter(user); return;
+		case GET_THREAD:          do_get_thread(user); return;
+		case CURRENT_THREAD_ID:   do_current_thread_id(user); return;
+		case YIELD_THREAD:        do_yield_thread(user); return;
+		case READ_THREAD_STATE:   do_read_thread_state(user); return;
+		case WRITE_THREAD_STATE:  do_write_thread_state(user); return;
+		case REQUEST_AND_WAIT:    do_request_and_wait(user); return;
+		case REPLY:               do_reply(user); return;
+		case WAIT_FOR_REQUEST:    do_wait_for_request(user); return;
+		case SET_PAGER:           do_set_pager(user); return;
+		case UPDATE_PD:           do_update_pd(user); return;
+		case UPDATE_REGION:       do_update_region(user); return;
+		case NEW_PD:              do_new_pd(user); return;
+		case ALLOCATE_IRQ:        do_allocate_irq(user); return;
+		case AWAIT_IRQ:           do_await_irq(user); return;
+		case FREE_IRQ:            do_free_irq(user); return;
+		case PRINT_CHAR:          do_print_char(user); return;
+		case NEW_SIGNAL_RECEIVER: do_new_signal_receiver(user); return;
+		case NEW_SIGNAL_CONTEXT:  do_new_signal_context(user); return;
+		case KILL_SIGNAL_CONTEXT: do_kill_signal_context(user); return;
+		case AWAIT_SIGNAL:        do_await_signal(user); return;
+		case SUBMIT_SIGNAL:       do_submit_signal(user); return;
+		case SIGNAL_PENDING:      do_signal_pending(user); return;
+		case ACK_SIGNAL:          do_ack_signal(user); return;
+		case NEW_VM:              do_new_vm(user); return;
+		case RUN_VM:              do_run_vm(user); return;
+		case PAUSE_VM:            do_pause_vm(user); return;
+		default:
+			PERR("invalid syscall");
+			user->crash();
+			reset_lap_time();
+		}
 	}
 }
 
@@ -1490,7 +1488,7 @@ extern "C" void kernel()
 		                0, core_id(), &cm_utcb, &cm_utcb);
 
 		/* kernel initialization finished */
-		timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
+		reset_lap_time();
 		initial_call = false;
 	}
 	/* will jump to the context related mode-switch */
@@ -1501,6 +1499,12 @@ extern "C" void kernel()
 /********************
  ** Kernel::Thread **
  ********************/
+
+void Kernel::Thread::crash()
+{
+	cpu_scheduler()->remove(this);
+	_state = CRASHED;
+}
 
 int Kernel::Thread::resume()
 {

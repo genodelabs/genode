@@ -746,6 +746,7 @@ namespace Kernel
 			AWAIT_IRQ,
 			AWAIT_SIGNAL,
 			AWAIT_SIGNAL_CONTEXT_DESTRUCT,
+			CRASHED,
 		};
 
 		Platform_thread * const _platform_thread; /* userland object wich
@@ -794,6 +795,11 @@ namespace Kernel
 				_state(AWAIT_START), _pager(0), _pd_id(0),
 				_phys_utcb(0), _virt_utcb(0), _signal_receiver(0)
 			{ }
+
+			/**
+			 * Suspend the thread due to unrecoverable misbehavior
+			 */
+			void crash();
 
 			/**
 			 * Prepare thread to get scheduled the first time
