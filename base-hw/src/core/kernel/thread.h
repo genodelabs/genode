@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <util/fifo.h>
-#include <util/avl_tree.h>
 
 /* core includes */
 #include <cpu.h>
@@ -25,9 +24,7 @@
 #include <timer.h>
 #include <assert.h>
 #include <kernel/configuration.h>
-
-/* base-hw includes */
-#include <singleton.h>
+#include <kernel/object.h>
 
 namespace Genode
 {
@@ -43,210 +40,7 @@ namespace Kernel
 	typedef Genode::Pagefault       Pagefault;
 	typedef Genode::Native_utcb     Native_utcb;
 
-	template <typename T> class Avl_tree : public Genode::Avl_tree<T> { };
-	template <typename T> class Avl_node : public Genode::Avl_node<T> { };
 	template <typename T> class Fifo     : public Genode::Fifo<T> { };
-
-	/**
-	 * Map unique sortable IDs to object pointers
-	 *
-	 * \param OBJECT_T  object type that should be inherited
-	 *                  from 'Object_pool::Entry'
-	 */
-	template <typename _OBJECT_T>
-	class Object_pool
-	{
-		typedef _OBJECT_T Object;
-
-		public:
-
-			enum { INVALID_ID = 0 };
-
-			/**
-			 * Provide 'Object_pool'-entry compliance by inheritance
-			 */
-			class Entry : public Avl_node<Entry>
-			{
-				protected:
-
-					unsigned _id;
-
-				public:
-
-					/**
-					 * Constructors
-					 */
-					Entry(unsigned const id) : _id(id) { }
-
-					/**
-					 * Find entry with 'object_id' within this AVL subtree
-					 */
-					Entry * find(unsigned const object_id)
-					{
-						if (object_id == id()) return this;
-						Entry * const subtree = Avl_node<Entry>::child(object_id > id());
-						return subtree ? subtree->find(object_id) : 0;
-					}
-
-					/**
-					 * ID of this object
-					 */
-					unsigned id() const { return _id; }
-
-
-					/************************
-					 * 'Avl_node' interface *
-					 ************************/
-
-					bool higher(Entry *e) { return e->id() > id(); }
-			};
-
-		private:
-
-			Avl_tree<Entry> _tree;
-
-		public:
-
-			/**
-			 * Add 'object' to pool
-			 */
-			void insert(Object * const object) { _tree.insert(object); }
-
-			/**
-			 * Remove 'object' from pool
-			 */
-			void remove(Object * const object) { _tree.remove(object); }
-
-			/**
-			 * Lookup object
-			 */
-			Object * object(unsigned const id)
-			{
-				Entry * object = _tree.first();
-				return (Object *)(object ? object->find(id) : 0);
-			}
-	};
-
-	/**
-	 * Manage allocation of a static set of IDs
-	 *
-	 * \param _SIZE  How much IDs shall be assignable simultaneously
-	 */
-	template <unsigned _SIZE>
-	class Id_allocator
-	{
-		enum { MIN = 1, MAX = _SIZE };
-
-		bool _free[MAX + 1]; /* assignability bitmap */
-		unsigned _first_free_id; /* hint to optimze access */
-
-		/**
-		 * Update first free ID after assignment
-		 */
-		void _first_free_id_assigned()
-		{
-			_first_free_id++;
-			while (_first_free_id <= MAX) {
-				if (_free[_first_free_id]) break;
-				_first_free_id++;
-			}
-		}
-
-		/**
-		 * Validate ID
-		 */
-		bool _valid_id(unsigned const id) const
-		{ return id >= MIN && id <= MAX; }
-
-		public:
-
-			/**
-			 * Constructor, makes all IDs unassigned
-			 */
-			Id_allocator() : _first_free_id(MIN)
-			{ for (unsigned i = MIN; i <= MAX; i++) _free[i] = 1; }
-
-			/**
-			 * Allocate an unassigned ID
-			 *
-			 * \return  ID that has been allocated by the call
-			 */
-			unsigned alloc()
-			{
-				assert(_valid_id(_first_free_id));
-				_free[_first_free_id] = 0;
-				unsigned const id = _first_free_id;
-				_first_free_id_assigned();
-				return id;
-			}
-
-			/**
-			 * Free a given ID
-			 */
-			void free(unsigned const id)
-			{
-				if (!_valid_id(id)) return;
-				_free[id] = 1;
-				if (id < _first_free_id) _first_free_id = id;
-			}
-	};
-
-	/**
-	 * Provides kernel object management for 'T'-objects if 'T' derives from it
-	 */
-	template <typename T, unsigned MAX_INSTANCES>
-	class Object : public Object_pool<T>::Entry
-	{
-		typedef Id_allocator<MAX_INSTANCES> Id_alloc;
-
-		/**
-		 * Allocator for unique IDs for all instances of 'T'
-		 */
-		static Id_alloc * _id_alloc()
-		{
-			return unsynchronized_singleton<Id_alloc>();
-		}
-
-		public:
-
-			typedef Object_pool<T> Pool;
-
-			/**
-			 * Gets every instance of 'T' by its ID
-			 */
-			static Pool * pool()
-			{
-				return unsynchronized_singleton<Pool>();
-			}
-
-			/**
-			 * Placement new
-			 *
-			 * Kernel objects are normally constructed on a memory
-			 * donation so we must be enabled to place them explicitly.
-			 */
-			void * operator new (size_t, void * p) { return p; }
-
-		protected:
-
-			/**
-			 * Constructor
-			 *
-			 * Ensures that we have a unique ID and
-			 * can be found through the static object pool.
-			 */
-			Object() : Pool::Entry(_id_alloc()->alloc()) {
-				pool()->insert(static_cast<T *>(this)); }
-
-			/**
-			 * Destructor
-			 */
-			~Object()
-			{
-				pool()->remove(static_cast<T *>(this));
-				_id_alloc()->free(Pool::Entry::id());
-			}
-	};
 
 	/**
 	 * Double connected list
@@ -642,7 +436,7 @@ namespace Kernel
 	/**
 	 * Exclusive ownership and handling of one IRQ per instance at a max
 	 */
-	class Irq_owner : public Object_pool<Irq_owner>::Entry
+	class Irq_owner : public Object_pool<Irq_owner>::Item
 	{
 		/**
 		 * To get any instance of this class by its ID
@@ -663,19 +457,19 @@ namespace Kernel
 		public:
 
 			/**
-			 * Translate 'Irq_owner_pool'-entry ID to IRQ ID
+			 * Translate 'Irq_owner_pool'-item ID to IRQ ID
 			 */
 			static unsigned id_to_irq(unsigned id) { return id - 1; }
 
 			/**
-			 * Translate IRQ ID to 'Irq_owner_pool'-entry ID
+			 * Translate IRQ ID to 'Irq_owner_pool'-item ID
 			 */
 			static unsigned irq_to_id(unsigned irq) { return irq + 1; }
 
 			/**
 			 * Constructor
 			 */
-			Irq_owner() : Pool::Entry(0) { }
+			Irq_owner() : Pool::Item(0) { }
 
 			/**
 			 * Destructor
