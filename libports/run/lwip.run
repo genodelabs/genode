@@ -73,9 +73,8 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="test-lwip_httpsrv">
-		<resource name="RAM" quantum="3M"/>
+		<resource name="RAM" quantum="5M"/>
 	</start> }
-
 
 append_if [have_spec platform_arndale] config {
 	<start name="platform_drv">
