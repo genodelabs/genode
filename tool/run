@@ -566,7 +566,7 @@ proc is_serial_available { } {
 ##
 # Execute scenario using Intel's AMT 
 #
-proc spawn_amt { wait_for_re timeout_value} {
+proc spawn_amt { wait_for_re timeout_value } {
 	global spawn_id
 
 	if {![is_amt_available]} { return 0 }
@@ -583,7 +583,7 @@ proc spawn_amt { wait_for_re timeout_value} {
 	set exit_result 1
 
 	while { $exit_result != 0 } {
- 		set time_start [ clock seconds ]
+		set time_start [ clock seconds ]
 		spawn amttool $::env(AMT_TEST_MACHINE_IP) reset
 		expect {
 			"host"  { send "y\r"; }
@@ -591,11 +591,11 @@ proc spawn_amt { wait_for_re timeout_value} {
 			timeout { puts "Error: amttool timed out"; exit -5 }
 		}
 		catch wait result
- 		set time_end [ clock seconds ]
+		set time_end [ clock seconds ]
 		if {[expr $time_end - $time_start] <= 1} {
 			incr timeout -1
 		} else {
-	 		incr timeout [expr -1 * ($time_end - $time_start)]
+			incr timeout [expr -1 * ($time_end - $time_start)]
 		}
 		if {$timeout < 0} {
 			set timeout 0
@@ -616,19 +616,19 @@ proc spawn_amt { wait_for_re timeout_value} {
 	set exit_result 1
 
 	while { $exit_result != 0 } {
- 		set time_start [ clock seconds ]
+		set time_start [ clock seconds ]
 		set pid [eval "spawn $amtterm"]
 		expect {
 			-re $wait_for_re { break }
 			eof     { continue }
 			timeout { puts "Error: Test execution timed out"; exit -2 }
 		}
- 		catch wait result
- 		set time_end [ clock seconds ]
+		catch wait result
+		set time_end [ clock seconds ]
 		if {[expr $time_end - $time_start] <= 1} {
 			incr timeout -1
 		} else {
-	 		incr timeout [expr -1 * ($time_end - $time_start)]
+			incr timeout [expr -1 * ($time_end - $time_start)]
 		}
 		if {$timeout < 0} {
 			set timeout 0
@@ -657,6 +657,7 @@ proc power_plug_connect {} {
 	return $connection_id
 }
 
+
 proc power_plug_reset {} {
 	set power_port [get_cmd_arg --reset-port 1]
 
@@ -676,6 +677,7 @@ proc power_plug_reset {} {
 	}
 }
 
+
 ##
 # Overwrite exit handler to switch off power plug adapter at script exit
 #
@@ -690,10 +692,8 @@ proc exit {{status 0}} {
 		send -i $connection_id "port $power_port 0\n"
 		expect -i $connection_id "250 OK"
 	}
-
 	power_plug_off_exit $status
 }
-
 
 
 ##
