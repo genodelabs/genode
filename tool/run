@@ -130,13 +130,35 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 
 
 ##
+# Remove color information from output
+#
+proc filter_out_color_escape_sequences { } {
+	global output
+	regsub -all {\e\[.*?m} $output "" output
+}
+
+
+##
+# Remove superfluous empty lines and unify line endings from output
+#
+proc trim_lines { } {
+	global output
+	regsub -all {[\r\n]+} $output "\n" output
+}
+
+
+##
 # Filter output based on the specified pattern
 #
 # Only those lines that match the pattern are preserved.
 #
 proc grep_output {pattern} {
 	global output
-	regsub -all {[\r\n]+} $output "\n" output
+
+	filter_out_color_escape_sequences
+
+	trim_lines
+
 	set output_list [split $output "\n"]
 	set filtered ""
 	foreach line $output_list {
