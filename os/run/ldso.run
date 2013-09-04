@@ -36,13 +36,13 @@ compare_output_to {
 	[init -> test-ldso] Static Geekings!
 	[init -> test-ldso] ================
 	[init -> test-ldso] Test read
-	[init -> test-ldso] [31mno plugin found for read(0)[0m
+	[init -> test-ldso] no plugin found for read(0)
 	[init -> test-ldso] Static object in funcion ... a: aaaaaaaa b: bbbbbbbb c: cccccccc 6: 00000666
 	[init -> test-ldso] Shared library function call ...good
 	[init -> test-ldso] Ctor in shared lib ... a: aaaaaaaa b: bbbbbbbb c: cccccccc 6: 00000666
 	[init -> test-ldso] Exception in shared lib ... good (library)
 	[init -> test-ldso] Cross library exception ... good (cross library)
-	[init -> test-ldso] Exception during RPC: [31mCould not open file "__not_found__"[0m
+	[init -> test-ldso] Exception during RPC: Could not open file "__not_found__"
 	[init -> test-ldso] good
 	[init -> test-ldso] Exception in dynamic binary ... good (binary)
 	[init -> test-ldso] Exception inter-shared library ... good (inter)
