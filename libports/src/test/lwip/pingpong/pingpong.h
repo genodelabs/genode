@@ -68,7 +68,7 @@ struct Packet
 void forgepacket(Packet *, uint32_t);
 int checkpacket(size_t, Packet *);
 
-ssize_t sendpacket(int, Packet *);
-ssize_t recvpacket(int, Packet *, char *, size_t);
+size_t sendpacket(int, Packet *);
+size_t recvpacket(int, Packet *, char *, size_t);
 
 #endif /* _PINGPONG_H_ */

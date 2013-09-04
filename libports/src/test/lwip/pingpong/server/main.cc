@@ -103,9 +103,6 @@ recvping(const char *addr)
 
 			n = recvpacket(c, &p, p.d, Databuf);
 			switch (n) {
-			case -1:
-				/* error */
-				printf("ERROR: recvpacket() == -1\n");
 			case 0:
 				/* disconnect */
 				//printf("ERROR: disconnect\n");
@@ -113,7 +110,7 @@ recvping(const char *addr)
 				act = 0;
 				break;
 			default:
-				/* check if packet is vaid */
+				/* check if packet is valid */
 				if (checkpacket(n, &p)) {
 					act = 0;
 				} else {
@@ -124,9 +121,9 @@ recvping(const char *addr)
 			}
 
 			if (verbose)
-				printf("%u	%d\n", p.h.id, n);
+				printf("%u	%zd\n", p.h.id, n);
 		}
-		printf("received %u packets of size %u\n", packets, packet_size);
+		printf("received %zu packets of size %zu\n", packets, packet_size);
 
 		free(p.d);
 	}

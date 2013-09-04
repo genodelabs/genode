@@ -44,7 +44,7 @@ checkpacket(size_t n, Packet *p)
 	}
 
 	/* check payload */
-	if (p->d[p->h.dsize - 1] != (p->h.id % 128)) {
+	if (p->d[p->h.dsize - 1] != (char)(p->h.id % 128)) {
 		printf("ERROR: packet payload corrupt, expected: %d got: %d\n", (p->h.id % 128),
 		     p->d[p->h.dsize - 1]);
 		return -1;
@@ -53,12 +53,12 @@ checkpacket(size_t n, Packet *p)
 	return 0;
 }
 
-ssize_t
+size_t
 sendpacket(int s, Packet *p)
 {
 	char *b;
-	ssize_t sent, nd, nh;
-	size_t dsize;
+	ssize_t sent;
+	size_t nd, nh, dsize;
 
 	/* send packet header */
 	b = (char *)&p->h;
@@ -102,12 +102,12 @@ sendpacket(int s, Packet *p)
 	return nh + nd;
 }
 
-ssize_t
+size_t
 recvpacket(int s, Packet *p, char *dbuf, size_t ldbuf)
 {
 	char *b;
-	ssize_t r, nd, nh;
-	size_t dsize;
+	ssize_t r;
+	size_t nd, nh, dsize;
 
 	/* recv packet header */
 	b = (char *)&p->h;

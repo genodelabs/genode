@@ -48,12 +48,12 @@ dial(const char *addr)
 }
 
 int
-sendping(const char *addr, size_t dsize, int count)
+sendping(const char *addr, size_t dsize, size_t count)
 {
 	Packet p;
 	int s;
 	size_t i;
-	ssize_t n;
+	size_t n = 0;
 
 	s = dial(addr);
 	if (s == -1)
@@ -67,12 +67,12 @@ sendping(const char *addr, size_t dsize, int count)
 		return -1;
 	}
 
-	printf("Trying to send %d packets...\n", count);
+	printf("Trying to send %zd packets...\n", count);
 	for (i = 0; i < count; i++) {
 		forgepacket(&p, i + 1);
 
 		n = sendpacket(s, &p);
-		if (n <= 0)
+		if (n == 0)
 			break;
 		if (n != (sizeof (Packetheader) + p.h.dsize)) {
 			printf("ERROR: size mismatch: %ld != %lu\n", n, sizeof (Packetheader) + p.h.dsize);
@@ -88,15 +88,11 @@ sendping(const char *addr, size_t dsize, int count)
 
 	switch (n) {
 	case 0:
-		printf("Disconnect, sent packets: %lu\n", i);
+		printf("Disconnect, sent packets: %zu\n", i);
 		return 0;
 		break;
-	case -1:
-		printf("Error, sent packets: %lu\n", i);
-		return 1;
-		break;
 	default:
-		printf("Sucessful, sent packets: %lu\n", i);
+		printf("Sucessfull, sent packets: %zu\n", i);
 		return 0;
 		break;
 	}
