@@ -254,7 +254,7 @@ int main(int, char **)
 		parent_services.remove_all();
 
 		/* reload config */
-		config()->reload();
+		try { config()->reload(); } catch (...) { }
 	}
 
 	return 0;
