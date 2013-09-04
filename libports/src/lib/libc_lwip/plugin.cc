@@ -111,8 +111,6 @@ static const long lwip_FIONREAD = FIONREAD;
 #include <assert.h>
 #include <sys/ioctl.h>
 
-extern void init_lwip();
-
 
 namespace {
 
