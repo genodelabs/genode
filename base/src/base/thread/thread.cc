@@ -150,8 +150,12 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	/*
 	 * Now the thread context is backed by memory, so it is safe to access its
 	 * members.
+	 *
+	 * We need to initialize the context object's memory with zeroes,
+	 * otherwise the ds_cap isn't invalid. That would cause trouble
+	 * when the assignment operator of Native_capability is used.
 	 */
-
+	memset(context, 0, sizeof(Context) - sizeof(Context::utcb));
 	context->thread_base = this;
 	context->stack_base  = ds_addr;
 	context->ds_cap      = ds_cap;
@@ -163,8 +167,14 @@ void Thread_base::_free_context()
 {
 	addr_t ds_addr = _context->stack_base - Native_config::context_area_virtual_base();
 	Ram_dataspace_capability ds_cap = _context->ds_cap;
+
+	/* call de-constructor explicitly before memory gets detached */
+	_context->~Context();
+
 	Genode::env_context_area_rm_session()->detach((void *)ds_addr);
 	Genode::env_context_area_ram_session()->free(ds_cap);
+
+	/* context area ready for reuse */
 	_context_allocator()->free(this);
 }
 
