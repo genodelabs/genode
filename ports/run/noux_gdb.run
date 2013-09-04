@@ -57,6 +57,9 @@ exec mkdir -p bin/test-gdb_monitor-src
 foreach test_binary $test_binaries {
 	set source_files [ exec [cross_dev_prefix]objdump -dl bin/$test_binary | grep "^/.*:.*" | sed -e "s/:.*//" | uniq ]
 	foreach source_file $source_files {
+		# resolve '..' to avoid problems with 'tar' with parts like '/a/b/../'
+		# where '/a' exists, but '/a/b' does not
+		set source_file [file normalize $source_file]
 		if [file exists $source_file] {
 			set dirname [ exec dirname $source_file]
 			exec mkdir -p bin/test-gdb_monitor-src$dirname
