@@ -79,17 +79,18 @@ inline File_descriptor *libc_fd_to_fd(int libc_fd, const char *func_name)
 /**
  * Generate body of wrapper function taking a file descriptor as first argument
  */
-#define FD_FUNC_WRAPPER_GENERIC(result_stm, func_name, libc_fd, ...)	\
+#define FD_FUNC_WRAPPER_GENERIC(result_stm, result_err_val, func_name, libc_fd, ...)	\
 {																		\
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, #func_name);			\
-	if (!fd || !fd->plugin)												\
-		result_stm INVALID_FD;											\
-	else																\
+	if (!fd || !fd->plugin) {											\
+		errno = EBADF;													\
+		result_stm result_err_val;											\
+	} else																\
 		result_stm fd->plugin->func_name(fd, ##__VA_ARGS__ ); 			\
 }
 
 #define FD_FUNC_WRAPPER(func_name, libc_fd, ...) \
-	FD_FUNC_WRAPPER_GENERIC(return, func_name, libc_fd, ##__VA_ARGS__ )
+	FD_FUNC_WRAPPER_GENERIC(return, INVALID_FD, func_name, libc_fd, ##__VA_ARGS__ )
 
 /**
  * Generate body of wrapper function taking a path name as first argument
@@ -270,8 +271,8 @@ extern "C" int _accept(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
 
 extern "C" int accept(int libc_fd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	File_descriptor *fd = libc_fd_to_fd(libc_fd, "accept");
-	File_descriptor *ret_fd = (fd && fd->plugin) ? fd->plugin->accept(fd, addr, addrlen) : 0;
+	File_descriptor *ret_fd;
+	FD_FUNC_WRAPPER_GENERIC(ret_fd =, 0, accept, libc_fd, addr, addrlen);
 	return ret_fd ? ret_fd->libc_fd : INVALID_FD;
 }
 
@@ -322,8 +323,8 @@ extern "C" int _connect(int libc_fd, const struct sockaddr *addr,
 
 extern "C" int _dup(int libc_fd)
 {
-	File_descriptor *fd = libc_fd_to_fd(libc_fd, "dup");
-	File_descriptor *ret_fd = (fd && fd->plugin) ? fd->plugin->dup(fd) : 0;
+	File_descriptor *ret_fd;
+	FD_FUNC_WRAPPER_GENERIC(ret_fd =, 0, dup, libc_fd);
 	return ret_fd ? ret_fd->libc_fd : INVALID_FD;
 }
 
@@ -337,8 +338,10 @@ extern "C" int dup(int libc_fd)
 extern "C" int _dup2(int libc_fd, int new_libc_fd)
 {
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "dup2");
-	if (!fd || !fd->plugin)
+	if (!fd || !fd->plugin) {
+		errno = EBADF;
 		return INVALID_FD;
+	}
 
 	if (libc_fd == new_libc_fd)
 		return libc_fd;
@@ -388,8 +391,10 @@ extern "C" int fchdir(int libc_fd)
 {
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "fchdir");
 
-	if (!fd)
+	if (!fd) {
+		errno = EBADF;
 		return INVALID_FD;
+	}
 
 	return chdir(fd->fd_path);
 }
@@ -400,7 +405,7 @@ extern "C" int fcntl(int libc_fd, int cmd, ...)
 	va_list ap;
 	int res;
 	va_start(ap, cmd);
-	FD_FUNC_WRAPPER_GENERIC(res =, fcntl, libc_fd, cmd, va_arg(ap, long));
+	FD_FUNC_WRAPPER_GENERIC(res =, INVALID_FD, fcntl, libc_fd, cmd, va_arg(ap, long));
 	va_end(ap);
 	return res;
 }
@@ -550,6 +555,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "mmap");
 	if (!fd || !fd->plugin || !fd->plugin->supports_mmap()) {
 		PWRN("mmap not supported for file descriptor %d", libc_fd);
+		errno = EBADF;
 		return (void *)INVALID_FD;
 	}
 
