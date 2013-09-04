@@ -97,52 +97,20 @@ run_genode_until {.*Remote debugging using /dev/terminal.*} 30
 
 puts "GDB monitor is up, starting GDB in a new terminal"
 
+source ${genode_dir}/ports/run/gdb_monitor.inc
+
+set gdb_target_binary "test-gdb_monitor"
+
 # sequence of GDB commands to execute at startup
 set gdb_cmds ""
 append gdb_cmds "-ex \"target remote localhost:$local_port\" "
 
-#
-# The test breaks into the 'main()' function of the dynamically linked test
-# application by using the following gdb command sequence. It's important that
-# the 'main()' breakpoint gets set before the 'sharedlibrary' command is
-# executed. Otherwise the breakpoint would get set in ld.lib.so's main()
-# function.
-#
-
-# don't ask for y/n when loading a new symbol file
-append gdb_cmds {-ex "set interactive-mode off" }
-
-# load the symbols of ld.lib.so
-append gdb_cmds {-ex "symbol-file bin/ld.lib.so" }
-
-# set a breakpoint in the 'call_main()' function
-append gdb_cmds {-ex "b call_main" }
-
-# continue execution until the breakpoint triggers
-append gdb_cmds {-ex "c" }
-
-# delete the 'call_main()' breakpoint
-append gdb_cmds {-ex "delete 1" }
-
-# load the symbols of the test application
-append gdb_cmds {-ex "symbol-file bin/test-gdb_monitor" }
-
-# set a breakpoint in the application's 'main()' function
-append gdb_cmds {-ex "b main" }
-
-# load the symbols of loaded shared libraries
-append gdb_cmds {-ex "sharedlibrary" }
-
-# continue execution until the breakpoint triggers
-append gdb_cmds {-ex "c" }
-
-# delete the 'main()' breakpoint
-append gdb_cmds {-ex "delete 2" }
+append gdb_cmds [gdb_main_breakpoint_cmds $gdb_target_binary]
 
 # ask the user for confirmations again
 append gdb_cmds {-ex "set interactive-mode auto" }
 
-puts "command: [gdb] bin/test-gdb_monitor $gdb_cmds"
+puts "command: [gdb] bin/$gdb_target_binary $gdb_cmds"
 
 exec [terminal] -e "[gdb] bin/test-gdb_monitor $gdb_cmds" &
 
