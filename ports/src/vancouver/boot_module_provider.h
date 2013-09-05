@@ -93,8 +93,10 @@ class Boot_module_provider
 					Dataspace_capability ds = rom.dataspace();
 					size_t const src_len = Dataspace_client(ds).size();
 
-					if (src_len > dst_len)
+					if (src_len > dst_len) {
+						PDBG("src_len=%zd dst_len=%zd", src_len, dst_len);
 						throw Destination_buffer_too_small();
+					}
 
 					void * const src = env()->rm_session()->attach(ds);
 
@@ -134,7 +136,14 @@ class Boot_module_provider
 			}
 			catch (Xml_node::Nonexistent_sub_node) { }
 			catch (Xml_node::Nonexistent_attribute) { }
+			catch (Destination_buffer_too_small) {
+				PERR("Boot_module_provider: destination buffer too small"); }
+			catch (Genode::Rm_session::Attach_failed) {
+				PERR("Boot_module_provider: Rm_session::Attach_failed"); }
+			catch (Genode::Rom_connection::Rom_connection_failed) {
+				PERR("Boot_module_provider: Rom_connection_failed"); }
 			catch (...) {
+				PERR("Boot_module_provider: Spurious exception");
 				throw Module_loading_failed();
 			}
 
