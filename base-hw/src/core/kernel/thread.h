@@ -15,6 +15,7 @@
 #define _CORE__KERNEL__THREAD_H_
 
 /* core includes */
+#include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <kernel/configuration.h>
 #include <kernel/scheduler.h>
@@ -34,7 +35,6 @@ namespace Kernel
 	typedef Genode::Cpu             Cpu;
 	typedef Genode::Page_flags      Page_flags;
 	typedef Genode::Core_tlb        Core_tlb;
-	typedef Genode::Signal          Signal;
 	typedef Genode::Pagefault       Pagefault;
 	typedef Genode::Native_utcb     Native_utcb;
 
@@ -52,15 +52,12 @@ namespace Kernel
 			virtual void proceed() = 0;
 	};
 
-	template <typename T> class Fifo : public Genode::Fifo<T> { };
-
 	/**
 	 * Kernel representation of a user thread
 	 */
 	class Thread : public Cpu::User_context,
 	               public Object<Thread, MAX_THREADS>,
 	               public Schedule_context,
-	               public Fifo<Thread>::Element,
 	               public Ipc_node,
 	               public Irq_receiver
 	{
@@ -84,8 +81,8 @@ namespace Kernel
 		unsigned _pd_id; /* ID of the PD this thread runs on */
 		Native_utcb * _phys_utcb; /* physical UTCB base */
 		Native_utcb * _virt_utcb; /* virtual UTCB base */
-		Signal_receiver * _signal_receiver; /* receiver we are currently
-		                                     * listen to */
+		Signal_receiver * _signal_receiver;
+		Signal_handler    _signal_handler;
 
 		/**
 		 * Resume execution
@@ -112,15 +109,24 @@ namespace Kernel
 
 		public:
 
+			void receive_signal(void * const base, size_t const size)
+			{
+				assert(_state == AWAIT_SIGNAL);
+				assert(size <= phys_utcb()->size())
+				Genode::memcpy(phys_utcb()->base(), base, size);
+				_schedule();
+			}
+
 			void * operator new (size_t, void * p) { return p; }
 
 			/**
 			 * Constructor
 			 */
-			Thread(Platform_thread * const platform_thread) :
-				_platform_thread(platform_thread),
-				_state(AWAIT_START), _pager(0), _pd_id(0),
-				_phys_utcb(0), _virt_utcb(0), _signal_receiver(0)
+			Thread(Platform_thread * const platform_thread)
+			:
+				_platform_thread(platform_thread), _state(AWAIT_START),
+				_pager(0), _pd_id(0), _phys_utcb(0), _virt_utcb(0),
+				_signal_receiver(0), _signal_handler((unsigned)this)
 			{ }
 
 			/**
@@ -211,11 +217,6 @@ namespace Kernel
 			void await_signal(Kernel::Signal_receiver * receiver);
 
 			/**
-			 * Gets called when we have received a signal at a signal receiver
-			 */
-			void received_signal();
-
-			/**
 			 * Handle the exception that currently blocks this thread
 			 */
 			void handle_exception();
@@ -241,6 +242,8 @@ namespace Kernel
 			unsigned pd_id() const { return _pd_id; }
 
 			Native_utcb * phys_utcb() const { return _phys_utcb; }
+
+			Signal_handler * signal_handler() { return &_signal_handler; }
 	};
 }
 

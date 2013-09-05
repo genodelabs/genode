@@ -23,7 +23,6 @@
  */
 
 /* Genode includes */
-#include <base/signal.h>
 #include <cpu/cpu_state.h>
 #include <base/thread_state.h>
 
@@ -56,7 +55,7 @@ namespace Kernel
 {
 	/* import Genode types */
 	typedef Genode::Thread_state Thread_state;
-	typedef Genode::umword_t umword_t;
+	typedef Genode::umword_t     umword_t;
 
 	class Schedule_context;
 
@@ -297,13 +296,6 @@ void Kernel::Thread::await_signal(Kernel::Signal_receiver * receiver)
 }
 
 
-void Kernel::Thread::received_signal()
-{
-	assert(_state == AWAIT_SIGNAL);
-	_schedule();
-}
-
-
 void Kernel::Thread::_received_irq()
 {
 	assert(_state == AWAIT_IRQ);
@@ -361,145 +353,13 @@ void Kernel::Thread::_awaits_irq()
 
 namespace Kernel
 {
-	class Signal_receiver;
 
-	/**
-	 * Specific signal type, owned by a receiver, can be triggered asynchr.
-	 */
-	class Signal_context : public Object<Signal_context, MAX_SIGNAL_CONTEXTS>,
-	                       public Fifo<Signal_context>::Element
+	void deliver_signal(Signal_handler * const dst,
+	                    void * const           base,
+	                    size_t const           size)
 	{
-		friend class Signal_receiver;
-
-		Signal_receiver * const _receiver;  /* the receiver that owns us */
-		unsigned const          _imprint;   /* every outgoing signals gets
-		                                     * signed with this */
-		unsigned                _submits;   /* accumul. undelivered submits */
-		bool                    _await_ack; /* delivery ack pending */
-		Thread *                _killer;    /* awaits our destruction if >0 */
-
-		/**
-		 * Utility to deliver all remaining submits
-		 */
-		void _deliver();
-
-		/**
-		 * Called by receiver when all submits have been delivered
-		 */
-		void _delivered()
-		{
-			_submits = 0;
-			_await_ack = 1;
-		}
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Signal_context(Signal_receiver * const r, unsigned const imprint) :
-				_receiver(r), _imprint(imprint),
-				_submits(0), _await_ack(0), _killer(0) { }
-
-			/**
-			 * Submit the signal
-			 *
-			 * \param n  number of submits
-			 */
-			void submit(unsigned const n);
-
-			/**
-			 * Acknowledge delivery of signal
-			 */
-			void ack();
-
-			/**
-			 * Destruct or prepare to do it at next call of 'ack'
-			 *
-			 * \return  wether destruction is done
-			 */
-			bool kill(Thread * const killer)
-			{
-				assert(!_killer);
-				_killer = killer;
-				if (_await_ack) {
-					_killer->kill_signal_context_blocks();
-					return 0;
-				}
-				this->~Signal_context();
-				return 1;
-			}
-	};
-
-	/**
-	 * Manage signal contexts and enable threads to trigger and await them
-	 */
-	class Signal_receiver :
-		public Object<Signal_receiver, MAX_SIGNAL_RECEIVERS>
-	{
-		Fifo<Thread> _listeners;
-		Fifo<Signal_context> _pending_contexts;
-
-		/**
-		 * Deliver as much submitted signals to listening threads as possible
-		 */
-		void _listen()
-		{
-			while (1)
-			{
-				/* any pending context? */
-				if (_pending_contexts.empty()) return;
-				Signal_context * const c = _pending_contexts.dequeue();
-
-				/* if there is no listener, enqueue context again and return */
-				if (_listeners.empty()) {
-					_pending_contexts.enqueue(c);
-					return;
-				}
-				/* awake a listener and transmit signal info to it */
-				Thread * const t = _listeners.dequeue();
-				Signal::Data data((Genode::Signal_context *)c->_imprint,
-				                  c->_submits);
-				*(Signal::Data *)t->phys_utcb()->base() = data;
-				t->received_signal();
-				c->_delivered();
-			}
-		}
-
-		public:
-
-			/**
-			 * Let a thread listen to our contexts
-			 */
-			void add_listener(Thread * const t)
-			{
-				t->await_signal(this);
-				_listeners.enqueue(t);
-				_listen();
-			}
-
-			/**
-			 * Stop a thread from listening to our contexts
-			 */
-			void remove_listener(Thread * const t) {
-				_listeners.remove(t); }
-
-			/**
-			 * If any of our contexts is pending
-			 */
-			bool pending() { return !_pending_contexts.empty(); }
-
-			/**
-			 * Recognize that 'c' wants to deliver
-			 */
-			void deliver(Signal_context * const c)
-			{
-				assert(c->_receiver == this);
-				if (!c->is_enqueued()) _pending_contexts.enqueue(c);
-				_listen();
-			}
-	};
-
+		((Thread *)dst->id())->receive_signal(base, size);
+	}
 
 	class Vm : public Object<Vm, MAX_VMS>,
 	           public Schedule_context
@@ -1053,7 +913,8 @@ namespace Kernel
 		assert(r);
 
 		/* let user listen to receiver */
-		r->add_listener(user);
+		user->await_signal(r);
+		r->add_handler(user->signal_handler());
 	}
 
 
@@ -1068,7 +929,7 @@ namespace Kernel
 		assert(r);
 
 		/* set return value */
-		user->user_arg_0(r->pending());
+		user->user_arg_0(r->deliverable());
 	}
 
 
@@ -1094,10 +955,11 @@ namespace Kernel
 	 */
 	void do_ack_signal(Thread * const user)
 	{
-		Signal_context * const c =
-			Signal_context::pool()->object(user->user_arg_1());
-		assert(c);
-		c->ack();
+		unsigned id = user->user_arg_1();
+		Signal_context * const c = Signal_context::pool()->object(id);
+		if (!c) return;
+		Thread * const t = (Thread *)c->ack();
+		if (t) { t->kill_signal_context_done(); }
 	}
 
 
@@ -1106,10 +968,11 @@ namespace Kernel
 	 */
 	void do_kill_signal_context(Thread * const user)
 	{
-		Signal_context * const c =
-			Signal_context::pool()->object(user->user_arg_1());
-		assert(c);
-		user->user_arg_0(c->kill(user));
+		unsigned id = user->user_arg_1();
+		Signal_context * const c = Signal_context::pool()->object(id);
+		if (!c) { return; }
+		if (c->kill((unsigned)user)) { return; }
+		user->kill_signal_context_blocks();
 	}
 
 	/**
@@ -1319,7 +1182,7 @@ int Kernel::Thread::resume()
 		return 0;
 	case AWAIT_SIGNAL:
 		PDBG("cancel signal receipt");
-		_signal_receiver->remove_listener(this);
+		_signal_receiver->remove_handler(signal_handler());
 		_schedule();
 		return 0;
 	case AWAIT_SIGNAL_CONTEXT_DESTRUCT:
@@ -1409,38 +1272,3 @@ void Thread::kill_signal_context_done()
 	user_arg_0(1);
 	_schedule();
 }
-
-
-/****************************
- ** Kernel::Signal_context **
- ****************************/
-
-void Signal_context::_deliver()
-{
-	if (!_submits) return;
-	_receiver->deliver(this);
-}
-
-
-void Signal_context::ack()
-{
-	assert(_await_ack);
-	_await_ack = 0;
-	if (!_killer) {
-		_deliver();
-		return;
-	}
-	_killer->kill_signal_context_done();
-	this->~Signal_context();
-}
-
-
-void Signal_context::submit(unsigned const n)
-{
-	assert(_submits < (unsigned)~0 - n);
-	if (_killer) return;
-	_submits += n;
-	if (_await_ack) return;
-	_deliver();
-}
-
