@@ -145,6 +145,29 @@ namespace Genode {
 				return result;
 			}
 	};
+
+	/**
+	 * Helper for using member variables as FIFO elements
+	 *
+	 * \param T  type of compound object to be organized in a FIFO
+	 *
+	 * This helper allow the creation of FIFOs that use member variables to
+	 * connect their elements. This way, the organized type does not need to
+	 * publicly inherit 'Fifo<QT>::Element'. Furthermore objects can easily
+	 * be organized in multiple FIFOs by embedding multiple 'Fifo_element'
+	 * member variables.
+	 */
+	template <typename T>
+	class Fifo_element : public Fifo<Fifo_element<T> >::Element
+	{
+		T *_object;
+
+		public:
+
+			Fifo_element(T *object) : _object(object) { }
+
+			inline T *object() { return _object; }
+	};
 }
 
 #endif /* _INCLUDE__UTIL__FIFO_H_ */
