@@ -895,7 +895,7 @@ int main(int argc, char **argv)
 	/*
 	 * Entrypoint used to virtualize child resources such as RAM, RM
 	 */
-	enum { STACK_SIZE = 1024*sizeof(long) };
+	enum { STACK_SIZE = 2*1024*sizeof(long) };
 	static Genode::Rpc_entrypoint resources_ep(&cap, STACK_SIZE, "noux_rsc_ep");
 
 	/* create init process */
