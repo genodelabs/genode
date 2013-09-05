@@ -341,63 +341,7 @@ namespace Kernel
 			Tlb * const tlb() { return _tlb; }
 			Platform_pd * const platform_pd() { return _platform_pd; }
 	};
-
-
-	/**
-	 * Access to static interrupt-controller
-	 */
-	static Pic * pic() { return unsynchronized_singleton<Pic>(); }
 }
-
-
-bool Kernel::Irq_owner::allocate_irq(unsigned const irq)
-{
-	/* Check if an allocation is needed and possible */
-	unsigned const id = irq_to_id(irq);
-	if (_id) return _id == id;
-	if (_pool()->object(id)) return 0;
-
-	/* Let us own the IRQ, but mask it till we await it */
-	pic()->mask(irq);
-	_id = id;
-	_pool()->insert(this);
-	return 1;
-}
-
-
-bool Kernel::Irq_owner::free_irq(unsigned const irq)
-{
-	if (_id != irq_to_id(irq)) return 0;
-	_pool()->remove(this);
-	_id = 0;
-	return 1;
-}
-
-
-void Kernel::Irq_owner::await_irq()
-{
-	assert(_id);
-	unsigned const irq = id_to_irq(_id);
-	pic()->unmask(irq);
-	_awaits_irq();
-}
-
-
-void Kernel::Irq_owner::cancel_waiting() {
-	if (_id) pic()->mask(id_to_irq(_id)); }
-
-
-void Kernel::Irq_owner::receive_irq(unsigned const irq)
-{
-	assert(_id == irq_to_id(irq));
-	pic()->mask(irq);
-	_received_irq();
-}
-
-
-Kernel::Irq_owner * Kernel::Irq_owner::owner(unsigned irq) {
-	return _pool()->object(irq_to_id(irq)); }
-
 
 namespace Kernel
 {
@@ -837,8 +781,7 @@ namespace Kernel
 
 			default: {
 
-				/* IRQ not owned by core, thus notify IRQ owner */
-				Irq_owner * const o = Irq_owner::owner(irq);
+				Irq_receiver * const o = Irq_receiver::receiver(irq);
 				assert(o);
 				o->receive_irq(irq);
 				break; }
@@ -1521,7 +1464,7 @@ int Kernel::Thread::resume()
 		return 0;
 	case AWAIT_IRQ:
 		PDBG("cancel IRQ receipt");
-		Irq_owner::cancel_waiting();
+		Irq_receiver::cancel_waiting();
 		_schedule();
 		return 0;
 	case AWAIT_SIGNAL:

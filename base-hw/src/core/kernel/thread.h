@@ -20,12 +20,12 @@
 /* core includes */
 #include <cpu.h>
 #include <tlb.h>
-#include <pic.h>
 #include <timer.h>
 #include <assert.h>
 #include <kernel/configuration.h>
 #include <kernel/scheduler.h>
 #include <kernel/object.h>
+#include <kernel/irq_receiver.h>
 
 namespace Genode
 {
@@ -235,84 +235,6 @@ namespace Kernel
 	};
 
 	/**
-	 * Exclusive ownership and handling of one IRQ per instance at a max
-	 */
-	class Irq_owner : public Object_pool<Irq_owner>::Item
-	{
-		/**
-		 * To get any instance of this class by its ID
-		 */
-		typedef Object_pool<Irq_owner> Pool;
-		static Pool * _pool() { static Pool _pool; return &_pool; }
-
-		/**
-		 * Is called when the IRQ we were waiting for has occured
-		 */
-		virtual void _received_irq() = 0;
-
-		/**
-		 * Is called when we start waiting for the occurence of an IRQ
-		 */
-		virtual void _awaits_irq() = 0;
-
-		public:
-
-			/**
-			 * Translate 'Irq_owner_pool'-item ID to IRQ ID
-			 */
-			static unsigned id_to_irq(unsigned id) { return id - 1; }
-
-			/**
-			 * Translate IRQ ID to 'Irq_owner_pool'-item ID
-			 */
-			static unsigned irq_to_id(unsigned irq) { return irq + 1; }
-
-			/**
-			 * Constructor
-			 */
-			Irq_owner() : Pool::Item(0) { }
-
-			/**
-			 * Destructor
-			 */
-			virtual ~Irq_owner() { }
-
-			/**
-			 * Ensure that our 'receive_irq' gets called on IRQ 'irq'
-			 *
-			 * \return  wether the IRQ is allocated to the caller or not
-			 */
-			bool allocate_irq(unsigned const irq);
-
-			/**
-			 * Release the ownership of the IRQ 'irq' if we own it
-			 *
-			 * \return  wether the IRQ is freed or not
-			 */
-			bool free_irq(unsigned const irq);
-
-			/**
-			 * If we own an IRQ, enable it and await 'receive_irq'
-			 */
-			void await_irq();
-
-			/**
-			 * Stop waiting for an IRQ if in a waiting state
-			 */
-			void cancel_waiting();
-
-			/**
-			 * Denote occurence of an IRQ if we own it and awaited it
-			 */
-			void receive_irq(unsigned const irq);
-
-			/**
-			 * Get owner of IRQ or 0 if the IRQ is not owned by anyone
-			 */
-			static Irq_owner * owner(unsigned irq);
-	};
-
-	/**
 	 * Kernel representation of a user thread
 	 */
 	class Thread : public Cpu::User_context,
@@ -320,7 +242,7 @@ namespace Kernel
 	               public Schedule_context,
 	               public Fifo<Thread>::Element,
 	               public Ipc_node,
-	               public Irq_owner
+	               public Irq_receiver
 	{
 		enum State
 		{
