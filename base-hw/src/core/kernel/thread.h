@@ -14,18 +14,15 @@
 #ifndef _CORE__KERNEL__THREAD_H_
 #define _CORE__KERNEL__THREAD_H_
 
-/* Genode includes */
-#include <util/fifo.h>
-
 /* core includes */
-#include <cpu.h>
-#include <tlb.h>
-#include <timer.h>
-#include <assert.h>
+#include <kernel/ipc_node.h>
 #include <kernel/configuration.h>
 #include <kernel/scheduler.h>
 #include <kernel/object.h>
 #include <kernel/irq_receiver.h>
+#include <cpu.h>
+#include <tlb.h>
+#include <timer.h>
 
 namespace Genode
 {
@@ -41,8 +38,6 @@ namespace Kernel
 	typedef Genode::Pagefault       Pagefault;
 	typedef Genode::Native_utcb     Native_utcb;
 
-	template <typename T> class Fifo     : public Genode::Fifo<T> { };
-
 	class Schedule_context;
 	typedef Scheduler<Schedule_context> Cpu_scheduler;
 
@@ -57,182 +52,7 @@ namespace Kernel
 			virtual void proceed() = 0;
 	};
 
-	/**
-	 * Sends requests to other IPC nodes, accumulates request announcments,
-	 * provides serial access to them and replies to them if expected.
-	 * Synchronizes communication.
-	 *
-	 * IPC node states:
-	 *
-	 *         +----------+                               +---------------+                             +---------------+
-	 * --new-->| inactive |---send-request-await-reply--->| await reply   |               +--send-note--| prepare reply |
-	 *         |          |<--receive-reply---------------|               |               |             |               |
-	 *         |          |<--cancel-waiting--------------|               |               |             |               |
-	 *         |          |                               +---------------+               +------------>|               |
-	 *         |          |<--request-is-a-note-------+---request-is-not-a-note------------------------>|               |
-	 *         |          |<--------------------------(---not-await-request---+                         |               |
-	 *         |          |                           |   +---------------+   |                         |               |
-	 *         |          |---await-request-----------+-->| await request |<--+--send-reply-------------|               |
-	 *         |          |<--cancel-waiting--------------|               |------announce-request--+--->|               |
-	 *         |          |---send-reply---------+----+-->|               |                        |    |               |
-	 *         |          |---send-note--+       |    |   +---------------+                        |    |               |
-	 *         |          |              |       |    |                                            |    |               |
-	 *         |          |<-------------+       |  request available                              |    |               |
-	 *         |          |<--not-await-request--+    |                                            |    |               |
-	 *         |          |<--request-is-a-note-------+-------------------request-is-not-a-note----(--->|               |
-	 *         |          |<--request-is-a-note----------------------------------------------------+    |               |
-	 *         +----------+                 +-------------------------+                                 |               |
-	 *                                      | prepare and await reply |<--send-request-and-await-reply--|               |
-	 *                                      |                         |---receive-reply---------------->|               |
-	 *                                      |                         |---cancel-waiting--------------->|               |
-	 *                                      +-------------------------+                                 +---------------+
-	 *
-	 * State model propagated to deriving classes:
-	 *
-	 *         +--------------+                                               +----------------+
-	 * --new-->| has received |--send-request-await-reply-------------------->| awaits receipt |
-	 *         |              |--await-request----------------------------+-->|                |
-	 *         |              |                                           |   |                |
-	 *         |              |<--request-available-----------------------+   |                |
-	 *         |              |--send-reply-------------------------------+-->|                |
-	 *         |              |--send-note--+                             |   |                |
-	 *         |              |             |                             |   |                |
-	 *         |              |<------------+                             |   |                |
-	 *         |              |<--request-available-or-not-await-request--+   |                |
-	 *         |              |<--announce-request----------------------------|                |
-	 *         |              |<--receive-reply-------------------------------|                |
-	 *         |              |<--cancel-waiting------------------------------|                |
-	 *         +--------------+                                               +----------------+
-	 */
-	class Ipc_node
-	{
-		/**
-		 * IPC node states as depicted initially
-		 */
-		enum State
-		{
-			INACTIVE = 1,
-			AWAIT_REPLY = 2,
-			AWAIT_REQUEST = 3,
-			PREPARE_REPLY = 4,
-			PREPARE_AND_AWAIT_REPLY = 5,
-		};
-
-		/**
-		 * Describes the buffer for incoming or outgoing messages
-		 */
-		struct Message_buf : public Fifo<Message_buf>::Element
-		{
-			void * base;
-			size_t size;
-			Ipc_node * origin;
-		};
-
-		Fifo<Message_buf> _request_queue; /* requests that waits to be
-		                                   * received by us */
-		Message_buf _inbuf;  /* buffers message we have received lastly */
-		Message_buf _outbuf; /* buffers the message we aim to send */
-		State       _state;  /* current node state */
-
-		/**
-		 * Buffer next request from request queue in 'r' to handle it
-		 */
-		void _receive_request(Message_buf * const r);
-
-		/**
-		 * Receive a given reply if one is expected
-		 *
-		 * \param base  base of the reply payload
-		 * \param size  size of the reply payload
-		 */
-		void _receive_reply(void * const base, size_t const size);
-
-		/**
-		 * Insert 'r' into request queue, buffer it if we were waiting for it
-		 */
-		void _announce_request(Message_buf * const r);
-
-		/**
-		 * Wether we expect to receive a reply message
-		 */
-		bool _awaits_reply();
-
-		/**
-		 * IPC node waits for a message to receive to its inbuffer
-		 */
-		virtual void _awaits_receipt() = 0;
-
-		/**
-		 * IPC node has received a message in its inbuffer
-		 *
-		 * \param s  size of the message
-		 */
-		virtual void _has_received(size_t const s) = 0;
-
-		public:
-
-			/**
-			 * Construct an initially inactive IPC node
-			 */
-			Ipc_node();
-
-			/**
-			 * Destructor
-			 */
-			virtual ~Ipc_node() { }
-
-			/**
-			 * Send a request and wait for the according reply
-			 *
-			 * \param dest        targeted IPC node
-			 * \param req_base    base of the request payload
-			 * \param req_size    size of the request payload
-			 * \param inbuf_base  base of the reply buffer
-			 * \param inbuf_size  size of the reply buffer
-			 */
-			void send_request_await_reply(Ipc_node * const dest,
-			                              void * const req_base,
-			                              size_t const req_size,
-			                              void * const inbuf_base,
-			                              size_t const inbuf_size);
-
-			/**
-			 * Wait until a request has arrived and load it for handling
-			 *
-			 * \param inbuf_base  base of the request buffer
-			 * \param inbuf_size  size of the request buffer
-			 */
-			void await_request(void * const inbuf_base,
-			                   size_t const inbuf_size);
-
-			/**
-			 * Reply to last request if there's any
-			 *
-			 * \param reply_base  base of the reply payload
-			 * \param reply_size  size of the reply payload
-			 */
-			void send_reply(void * const reply_base,
-			                size_t const reply_size);
-
-			/**
-			 * Send a notification and stay inactive
-			 *
-			 * \param dest        targeted IPC node
-			 * \param note_base   base of the note payload
-			 * \param note_size   size of the note payload
-			 *
-			 * The caller must ensure that the note payload remains
-			 * until it is buffered by the targeted node.
-			 */
-			void send_note(Ipc_node * const dest,
-			               void * const note_base,
-			               size_t const note_size);
-
-			/**
-			 * Stop waiting for a receipt if in a waiting state
-			 */
-			void cancel_waiting();
-	};
+	template <typename T> class Fifo : public Genode::Fifo<T> { };
 
 	/**
 	 * Kernel representation of a user thread
