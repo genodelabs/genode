@@ -200,7 +200,7 @@ append_if $use_nic_session config {
 
 append_if [expr $use_nic_session && $use_nic_bridge] config {
 	<start name="nic_bridge">
-		<resource name="RAM" quantum="3M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 		<route>
 			<service name="Nic"><child name="nic_drv"/></service>
