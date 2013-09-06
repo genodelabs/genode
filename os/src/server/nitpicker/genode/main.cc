@@ -553,6 +553,8 @@ namespace Nitpicker {
 	{
 		private:
 
+			Session_list         &_session_list;
+			Global_keys          &_global_keys;
 			Area                  _scr_size;
 			View_stack           *_view_stack;
 			Flush_merger         *_flush_merger;
@@ -595,18 +597,26 @@ namespace Nitpicker {
 
 				bool provides_default_bg = (Genode::strcmp(label_buf, "backdrop") == 0);
 
-				return new (md_alloc())
-				       Session_component(label_buf, cdt, cdt, _view_stack, ep(),
-				                         _flush_merger, _framebuffer, v_offset,
-				                         cdt->input_mask_buffer(),
-				                         provides_default_bg, session_color(args),
-				                         stay_top);
+				Session_component *session = new (md_alloc())
+					Session_component(label_buf, cdt, cdt, _view_stack, ep(),
+					                  _flush_merger, _framebuffer, v_offset,
+					                  cdt->input_mask_buffer(),
+					                  provides_default_bg, session_color(args),
+					                  stay_top);
+
+				_session_list.insert(session);
+				_global_keys.apply_config(_session_list);
+
+				return session;
 			}
 
 			void _destroy_session(Session_component *session)
 			{
 				Chunky_dataspace_texture<PT> *cdt;
 				cdt = static_cast<Chunky_dataspace_texture<PT> *>(session->texture());
+
+				_session_list.remove(session);
+				_global_keys.apply_config(_session_list);
 
 				destroy(md_alloc(), session);
 				destroy(md_alloc(), cdt);
@@ -617,12 +627,14 @@ namespace Nitpicker {
 			/**
 			 * Constructor
 			 */
-			Root(Genode::Rpc_entrypoint *session_ep, Area scr_size,
+			Root(Session_list &session_list, Global_keys &global_keys,
+			     Genode::Rpc_entrypoint *session_ep, Area scr_size,
 			     View_stack *view_stack, Genode::Allocator *md_alloc,
 			     Flush_merger *flush_merger,
 			     Framebuffer::Session *framebuffer, int default_v_offset)
 			:
 				Genode::Root_component<Session_component>(session_ep, md_alloc),
+				_session_list(session_list), _global_keys(global_keys),
 				_scr_size(scr_size), _view_stack(view_stack), _flush_merger(flush_merger),
 				_framebuffer(framebuffer), _default_v_offset(default_v_offset) { }
 	};
@@ -789,6 +801,85 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 typedef Pixel_rgb565 PT;  /* physical pixel type */
 
 
+/*****************************
+ ** Handling of global keys **
+ *****************************/
+
+Global_keys::Policy *Global_keys::_lookup_policy(char const *key_name)
+{
+	for (unsigned i = 0; i < NUM_POLICIES; i++)
+		if (Genode::strcmp(key_name, Input::key_name((Input::Keycode)i)) == 0)
+			return &_policies[i];
+
+	return 0;
+}
+
+
+void Global_keys::apply_config(Session_list &session_list)
+{
+	for (unsigned i = 0; i < NUM_POLICIES; i++)
+		_policies[i].undefine();
+
+	using Genode::Xml_node;
+	try {
+		Xml_node node = Genode::config()->xml_node().sub_node("global-keys").sub_node("key");
+
+		for (; ; node = node.next("key")) {
+
+			if (!node.has_attribute("name")) {
+				PWRN("attribute 'name' missing in <key> config node");
+				continue;
+			}
+
+			char name[32]; name[0] = 0;
+			node.attribute("name").value(name, sizeof(name));
+
+			Policy * policy = _lookup_policy(name);
+			if (!policy) {
+				PWRN("invalid key name \"%s\"", name);
+				continue;
+			}
+
+			/* if two policies match, give precedence to policy defined first */
+			if (policy->defined())
+				continue;
+
+			if (node.has_attribute("operation")) {
+				Xml_node::Attribute operation = node.attribute("operation");
+
+				if (operation.has_value("kill")) {
+					policy->operation_kill();
+					continue;
+				} else if (operation.has_value("xray")) {
+					policy->operation_xray();
+					continue;
+				} else {
+					char buf[32]; buf[0] = 0;
+					operation.value(buf, sizeof(buf));
+					PWRN("unknown operation \"%s\" for key %s", buf, name);
+				}
+				continue;
+			}
+
+			if (!node.has_attribute("label")) {
+				PWRN("missing 'label' attribute for key %s", name);
+				continue;
+			}
+
+			/* assign policy to matching client session */
+			for (Session *s = session_list.first(); s; s = s->next())
+				if (node.attribute("label").has_value(s->label()))
+					policy->client(s);
+		}
+
+	} catch (Xml_node::Nonexistent_sub_node) { }
+}
+
+
+/******************
+ ** Main program **
+ ******************/
+
 int main(int argc, char **argv)
 {
 	using namespace Genode;
@@ -828,7 +919,18 @@ int main(int argc, char **argv)
 	PT *menubar_pixels = (PT *)env()->heap()->alloc(sizeof(PT)*mode.width()*16);
 	Chunky_menubar<PT> menubar(menubar_pixels, Area(mode.width(), MENUBAR_HEIGHT));
 
-	User_state user_state(&screen, &menubar);
+	static Global_keys global_keys;
+
+	static Session_list session_list;
+
+	/*
+	 * Apply initial global-key policy to turn X-ray and kill keys into
+	 * effect. The policy will be updated each time the config changes,
+	 * or when a session appears or disappears.
+	 */
+	global_keys.apply_config(session_list);
+
+	static User_state user_state(global_keys, &screen, &menubar);
 
 	/*
 	 * Create view stack with default elements
@@ -852,7 +954,8 @@ int main(int argc, char **argv)
 
 	Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
-	static Nitpicker::Root<PT> np_root(&ep, Area(mode.width(), mode.height()),
+	static Nitpicker::Root<PT> np_root(session_list, global_keys,
+	                                   &ep, Area(mode.width(), mode.height()),
 	                                   &user_state, &sliced_heap,
 	                                   &screen, &framebuffer,
 	                                   MENUBAR_HEIGHT);

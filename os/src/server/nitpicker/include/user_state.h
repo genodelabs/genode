@@ -23,10 +23,16 @@
 #include "mode.h"
 #include "menubar.h"
 #include "view_stack.h"
+#include "global_keys.h"
 
 class User_state : public Mode, public View_stack
 {
 	private:
+
+		/*
+		 * Policy for the routing of global keys
+		 */
+		Global_keys &_global_keys;
 
 		/*
 		 * Number of currently pressed keys.
@@ -52,12 +58,22 @@ class User_state : public Mode, public View_stack
 		 */
 		View *_pointed_view;
 
+		/*
+		 * Session that receives the current stream of input events
+		 */
+		Session *_input_receiver;
+
+		/*
+		 * True while a global key sequence is processed
+		 */
+		bool _global_key_sequence;
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		User_state(Canvas *canvas, Menubar *menubar);
+		User_state(Global_keys &global_keys, Canvas *canvas, Menubar *menubar);
 
 		/**
 		 * Handle input event

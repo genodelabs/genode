@@ -14,13 +14,21 @@
 #ifndef _SESSION_H_
 #define _SESSION_H_
 
+/* Genode includes */
+#include <util/list.h>
+
+/* local includes */
 #include "string.h"
 
 class Texture;
 class View;
+class Session;
+
 namespace Input { class Event; }
 
-class Session
+typedef Genode::List<Session> Session_list;
+
+class Session : public Session_list::Element
 {
 	public:
 

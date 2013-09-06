@@ -102,6 +102,15 @@ append config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<global-keys>
+				<key name="KEY_SCROLLLOCK" operation="xray" />
+				<key name="KEY_SYSRQ"      operation="kill" />
+				<key name="KEY_PRINT"      operation="kill" />
+				<key name="KEY_F11"        operation="kill" />
+				<key name="KEY_F12"        operation="xray" />
+			</global-keys>
+		</config>
 	</start>
 	<start name="launchpad">
 		<resource name="RAM" quantum="32M"/>

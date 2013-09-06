@@ -12,15 +12,56 @@ Configuration
 Nitpicker supports the following configuration options, supplied via
 Genode's config mechanism.
 
-:Tinting of clients in X-Ray mode:
+Tinting of clients in X-Ray mode
+--------------------------------
 
-  Nitpicker allows for assigning a color to single clients or a groups
-  of clients based on the client's label. The following configuration
-  tints all views of the launchpad subsystem in blue except for those
-  views that belong to the testnit child of launchpad.
-  ! <config>
-  !   <policy label="launchpad"            color="#0000ff"/>
-  !   <policy label="launchpad -> testnit" color="#ff0000"/>
-  ! </config>
+Nitpicker allows for assigning a color to single clients or a groups
+of clients based on the client's label. The following configuration
+tints all views of the launchpad subsystem in blue except for those
+views that belong to the testnit child of launchpad.
 
+! <config>
+!   <policy label="launchpad"            color="#0000ff"/>
+!   <policy label="launchpad -> testnit" color="#ff0000"/>
+! </config>
+
+Global key definitions
+----------------------
+
+Nitpicker has a few built-in function that can be activated via global
+keyboard shortcuts, namely the X-ray mode and the kill mode. The keys
+for toggling those functions can be defined as follows:
+
+! <config>
+!   <global-keys>
+!     <key name="KEY_SCROLLLOCK" operation="xray" />
+!     <key name="KEY_PRINT"      operation="kill" />
+!   </global-keys>
+! </config>
+
+The '<global-keys>' node contains the policy for handling global keys. Each
+'<key>' subnode expresses a rule for named key. The 'operation' attribute
+refers nitpicker's built-in operations. In the example above, the X-ray
+mode can be activated via the scroll-lock key and the kill mode can be
+activated via the print key.
+
+Alternatively to specifying an 'operation' attribute, a key node can contain
+a 'label' attribute. If specified, all events regarding the key will be
+reported to the client with the specified label. This enables clients to
+handle global shortcuts. The client with the matching label will receive
+all events until the number of concurrently pressed keys reaches zero.
+This way, it is possible to handle chords of multiple keys starting with
+the key specified in the '<key>' node. For the routing of global keys to
+clients, the order of '<key>' nodes is important. If multiple nodes exists for
+different labels, the first match will take effect. For example:
+
+! <global-keys>
+!   <key name="KEY_F11" label="launchpad -> testnit" />
+!   <key name="KEY_F11" label="launchpad" />
+! </global-keys>
+
+The "launchpad" client will receive all key sequences starting with F11 unless
+the "launchpad -> testnit" program is running. As soon as testnit gets started
+by launchpad, testnit will receive the events. If the order was reversed,
+launchpad would always receive the events.
 
