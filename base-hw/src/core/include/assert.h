@@ -17,18 +17,30 @@
 /* Genode includes */
 #include <base/printf.h>
 
+enum { CHECK_ASSERTIONS = 0 };
+
 /**
- * Assert a condition
+ * Make an assertion
  *
- * \param expression  Expression that must be true
+ * \param expression  statement that must be true
+ *
+ * Use this macro as if it could always be empty as well.
+ * I.e. it should not be used with expressions that are relevant
+ * to the protection against another, untrusted PD or expressions
+ * that contain mandatory function calls! A good rule of thumb
+ * is to use it only for the protection of a component against
+ * a PD-local interface misuse that can't be avoided due to language
+ * constraints (e.g. inaccuracy of integer ranges).
  */
 #define assert(expression) \
 	do { \
-		if (!(expression)) { \
-			PERR("Assertion failed: "#expression""); \
-			PERR("  File: %s:%d", __FILE__, __LINE__); \
-			PERR("  Function: %s", __PRETTY_FUNCTION__); \
-			while (1) ; \
+		if (CHECK_ASSERTIONS) { \
+			if (!(expression)) { \
+				PERR("Assertion failed: "#expression""); \
+				PERR("  File: %s:%d", __FILE__, __LINE__); \
+				PERR("  Function: %s", __PRETTY_FUNCTION__); \
+				while (1) ; \
+			} \
 		} \
 	} while (0) ;
 
