@@ -647,22 +647,20 @@ namespace {
 
 	class Plugin : public Libc::Plugin
 	{
-		private:
-
-			Libc::File_descriptor *_stdin;
-			Libc::File_descriptor *_stdout;
-			Libc::File_descriptor *_stderr;
-
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Plugin() :
-				_stdin (Libc::file_descriptor_allocator()->alloc(this, noux_context(0), 0)),
-				_stdout(Libc::file_descriptor_allocator()->alloc(this, noux_context(1), 1)),
-				_stderr(Libc::file_descriptor_allocator()->alloc(this, noux_context(2), 2))
-			{ }
+			Plugin()
+			{
+				/* register inherited open file descriptors */
+				int fd = 0;
+				while ((fd = noux()->next_open_fd(fd)) != -1) {
+					Libc::file_descriptor_allocator()->alloc(this, noux_context(fd), fd);
+					fd++;
+				}
+			}
 
 			bool supports_execve(char const *, char *const[],
 			                     char *const[])                  { return true; }

@@ -137,6 +137,13 @@ namespace Noux {
 		 */
 		virtual bool syscall(Syscall syscall) = 0;
 
+		/*
+		 * Return the next open file descriptor, starting from (and including)
+		 * 'start_fd'.
+		 *
+		 * \return the next open file descriptor or -1
+		 */
+		virtual int next_open_fd(int start_fd) = 0;
 
 		/*********************
 		 ** RPC declaration **
@@ -144,8 +151,9 @@ namespace Noux {
 
 		GENODE_RPC(Rpc_sysio_dataspace, Dataspace_capability, sysio_dataspace);
 		GENODE_RPC(Rpc_syscall, bool, syscall, Syscall);
+		GENODE_RPC(Rpc_next_open_fd, int, next_open_fd, int);
 
-		GENODE_RPC_INTERFACE(Rpc_sysio_dataspace, Rpc_syscall);
+		GENODE_RPC_INTERFACE(Rpc_sysio_dataspace, Rpc_syscall, Rpc_next_open_fd);
 	};
 }
 

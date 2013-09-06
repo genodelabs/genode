@@ -386,6 +386,15 @@ namespace Noux {
 			}
 
 			bool syscall(Syscall sc);
+
+			int next_open_fd(int start_fd)
+			{
+				if (start_fd >= 0)
+					for (int fd = start_fd; fd < MAX_FILE_DESCRIPTORS; fd++)
+						if (fd_in_use(fd))
+							return fd;
+				return -1;
+			}
 	};
 };
 

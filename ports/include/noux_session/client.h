@@ -43,6 +43,11 @@ namespace Noux {
 
 				return result;
 			}
+
+			int next_open_fd(int start_fd)
+			{
+				return call<Rpc_next_open_fd>(start_fd);
+			}
 	};
 }
 
