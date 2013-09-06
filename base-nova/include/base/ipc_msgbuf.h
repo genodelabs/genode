@@ -67,31 +67,28 @@ namespace Genode {
 				bool   del;
 			} _rcv_pt_sel [MAX_CAP_ARGS];
 
-			enum { FREE_SEL, UNUSED_CAP, USED_CAP } _rcv_pt_cap_free [MAX_CAP_ARGS];
+			enum { FREE_INVALID, FREE_SEL, UNUSED_CAP, USED_CAP }
+				_rcv_pt_cap_free [MAX_CAP_ARGS];
 
 			/**
 			 * Read counter for unmarshalling portal capability
 			 * selectors
 			 */
-			unsigned _rcv_pt_sel_cnt;
-			unsigned _rcv_pt_sel_max;
-
-			/**
-			 * Number of capabilities which has been received,
-			 * reported by the kernel.
-			 */
-			unsigned _rcv_items;
+			unsigned short _rcv_pt_sel_cnt;
+			unsigned short _rcv_pt_sel_max;
+			unsigned short _rcv_wnd_log2;
 
 			char _msg_start[];  /* symbol marks start of message */
 
 		public:
+
 			enum { INVALID_INDEX = ~0UL };
 
 			/**
 			 * Constructor
 			 */
 			Msgbuf_base()
-			: _rcv_pt_base(INVALID_INDEX), _rcv_items(0)
+			: _rcv_pt_base(INVALID_INDEX), _rcv_wnd_log2(MAX_CAP_ARGS_LOG2)
 			{
 				rcv_reset();
 				snd_reset();
@@ -171,6 +168,18 @@ namespace Genode {
 			addr_t rcv_pt_base() const { return _rcv_pt_base; }
 
 			/**
+			 * Set log2 number of capabilities to be received during reply of
+			 * a IPC call.
+			 */
+			void rcv_wnd(unsigned short const caps_log2)
+			{
+				if (caps_log2 > MAX_CAP_ARGS_LOG2)
+					nova_die();
+
+				_rcv_wnd_log2 = caps_log2;
+			}
+
+			/**
 			 * Reset portal-capability receive window
 			 */
 			void rcv_reset()
@@ -222,10 +231,10 @@ namespace Genode {
 			 * \result 'true'  -  receive window must be re-initialized
 			 *         'false' -  portal selectors has been kept
 			 */
-			bool rcv_cleanup(bool keep)
+			bool rcv_cleanup(bool keep, unsigned short const new_max = MAX_CAP_ARGS)
 			{
 				/* mark used mapped capabilities as used to prevent freeing */
-				bool used = false;
+				bool reinit = false;
 				for (unsigned i = 0; i < _rcv_pt_sel_cnt; i++) {
 					if (!_rcv_pt_sel[i].del)
 						continue;
@@ -236,30 +245,36 @@ namespace Genode {
 							nova_die();
 
 					_rcv_pt_cap_free [_rcv_pt_sel[i].sel - rcv_pt_base()] = USED_CAP;
-					used = true;
+					reinit = true;
 				}
 
 				/* revoke received caps which are unused */
 				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
-					if (_rcv_pt_cap_free[i] != UNUSED_CAP)
-						continue;
+					if (i < new_max && _rcv_pt_cap_free[i] == FREE_INVALID)
+						reinit = true;
 
-					Nova::revoke(Nova::Obj_crd(rcv_pt_base() + i, 0), true);
+					if (_rcv_pt_cap_free[i] == UNUSED_CAP)
+						Nova::revoke(Nova::Obj_crd(rcv_pt_base() + i, 0), true);
 				}
 
 				_rcv_pt_sel_cnt = 0;
 				_rcv_pt_sel_max = 0;
 
 				/* we can keep the cap selectors if none was used */
-				if (keep && !used)
+				if (keep && !reinit) {
+					/* free rest of indexes if new_max is smaller then last window */
+					for (unsigned i = new_max; i < MAX_CAP_ARGS; i++)
+						if (_rcv_pt_cap_free[i] == FREE_SEL)
+							cap_selector_allocator()->free(rcv_pt_base() + i, 0);
+
 					return false;
+				}
 
 				/* keep used selectors, free up rest */	
 				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
-					if (_rcv_pt_cap_free[i] == USED_CAP)
-						continue;
-
-					cap_selector_allocator()->free(rcv_pt_base() + i, 0);
+					if (_rcv_pt_cap_free[i] == UNUSED_CAP ||
+						_rcv_pt_cap_free[i] == FREE_SEL)
+							cap_selector_allocator()->free(rcv_pt_base() + i, 0);
 				}
 
 				return true;
@@ -280,43 +295,40 @@ namespace Genode {
 			 * rcv_window parameter, this function allocates a
 			 * fresh receive window and clears 'rcv_invalid'.
 			 */
-			bool rcv_prepare_pt_sel_window(Nova::Utcb *utcb,
-			                               addr_t rcv_window = INVALID_INDEX)
+			bool prepare_rcv_window(Nova::Utcb *utcb,
+			                        addr_t rcv_window = INVALID_INDEX)
 			{
-				try {
-					/*
-					 * If a rcv_window was specified use solely
-					 * the selector specified by rcv_window.
-					 */
-					if (rcv_window != INVALID_INDEX) {
-						/* cleanup if this msgbuf was already used */
-						if (!rcv_invalid()) rcv_cleanup(false);
+				/* open maximal translate window */
+				utcb->crd_xlt = Nova::Obj_crd(0, ~0UL);
 
-						_rcv_pt_base = rcv_window;
-					} else {
-						if (rcv_invalid() || rcv_cleanup(true))
-							_rcv_pt_base = cap_selector_allocator()->alloc(MAX_CAP_ARGS_LOG2);
-					}
+				/* use receive window if specified */
+				if (rcv_window != INVALID_INDEX) {
+					/* cleanup if receive window already used */
+					if (!rcv_invalid()) rcv_cleanup(false);
 
-					addr_t max = 0;
-					if (rcv_window == INVALID_INDEX)
-						max = MAX_CAP_ARGS_LOG2;
+					_rcv_pt_base = rcv_window;
 
-					using namespace Nova;
-					/* setup receive window */
-					utcb->crd_rcv = Obj_crd(rcv_pt_base(), max);
-					/* open maximal translate window */
-					utcb->crd_xlt = Obj_crd(0, ~0UL);
-
+					/* open receive window */
+					utcb->crd_rcv = Nova::Obj_crd(rcv_pt_base(), _rcv_wnd_log2);
 					return true;
-				} catch (Bit_array_out_of_indexes) {
-					using namespace Nova;
-					/* setup receive window */
-					utcb->crd_rcv = Obj_crd();
-					/* open maximal translate window */
-					utcb->crd_xlt = Obj_crd(0, ~0UL);
-					return false;
 				}
+
+				/* allocate receive window if necessary, otherwise use old one */
+				if (rcv_invalid() || rcv_cleanup(true, 1U << _rcv_wnd_log2))
+				{
+					try {
+						_rcv_pt_base = cap_selector_allocator()->alloc(_rcv_wnd_log2);
+					} catch (Bit_array_out_of_indexes) {
+						_rcv_pt_base = INVALID_INDEX;
+						/* no mappings can be received */
+						utcb->crd_rcv = Nova::Obj_crd();
+						return false;
+					}
+				}
+
+				/* open receive window */
+				utcb->crd_rcv = Nova::Obj_crd(rcv_pt_base(), _rcv_wnd_log2);
+				return true;
 			}
 
 			/**
@@ -329,19 +341,25 @@ namespace Genode {
 			 *
 			 * \param utcb  UTCB of designated receiver thread
 			 */
-			void post_ipc(Nova::Utcb *utcb)
+			void post_ipc(Nova::Utcb *utcb, addr_t const rcv_window = INVALID_INDEX)
 			{
 				using namespace Nova;
 
-				_rcv_items = (utcb->items >> 16) & 0xffffu;
+				unsigned const rcv_items = (utcb->items >> 16) & 0xffffu;
+
 				_rcv_pt_sel_max = 0;
 				_rcv_pt_sel_cnt = 0;
 
-				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) 
-					_rcv_pt_cap_free [i] = FREE_SEL;
+				unsigned short const max = 1U << utcb->crd_rcv.order();
+				if (max > MAX_CAP_ARGS)
+					nova_die();
+
+				for (unsigned short i = 0; i < MAX_CAP_ARGS; i++) 
+					_rcv_pt_cap_free [i] = (i >= max) ? FREE_INVALID : FREE_SEL;
 
 				addr_t max = 1UL << utcb->crd_rcv.order();
-				for (unsigned i = 0; i < _rcv_items; i++) {
+
+				for (unsigned i = 0; i < rcv_items; i++) {
 					Utcb::Item * item = utcb->get_item(i);
 					if (!item)
 						break;
@@ -352,7 +370,7 @@ namespace Genode {
 					if (!cap.is_null() && item->is_del()) {
 						/* should never happen */
 						if (cap.base() < rcv_pt_base() ||
-						    (cap.base() >= rcv_pt_base() + MAX_CAP_ARGS))
+						    (cap.base() >= rcv_pt_base() + max))
 							nova_die();
 						_rcv_pt_cap_free [cap.base() - rcv_pt_base()] = UNUSED_CAP;
 					}
@@ -371,12 +389,11 @@ namespace Genode {
 
 				/*
 				 * If a specific rcv_window has been specified,
-				 * (see rcv_prepare_pt_sel_window) then the
-				 * caller want to take care about freeing the
-				 * selector. Make the _rcv_pt_base invalid so
-				 * that it is not cleanup twice.
+				 * (see prepare_rcv_window) then the caller want to take care
+				 * about freeing the * selector. Make the _rcv_pt_base invalid
+				 * so that it is not cleanup twice.
 				 */
-				if (max != MAX_CAP_ARGS)
+				if (rcv_window != INVALID_INDEX)
 					_rcv_pt_base = INVALID_INDEX;
 			}
 	};

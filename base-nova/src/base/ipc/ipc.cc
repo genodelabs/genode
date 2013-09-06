@@ -162,7 +162,7 @@ void Ipc_client::_call()
 	}
 
 	/* if we can't setup receive window, die in order to recognize the issue */
-	if (!_rcv_msg->rcv_prepare_pt_sel_window(utcb, Ipc_ostream::_dst.rcv_window()))
+	if (!_rcv_msg->prepare_rcv_window(utcb, Ipc_ostream::_dst.rcv_window()))
 		/* printf doesn't work here since for IPC also rcv_prepare* is used */
 		nova_die();
 
@@ -175,7 +175,7 @@ void Ipc_client::_call()
 		ret(ERR_INVALID_OBJECT);
 	}
 
-	_rcv_msg->post_ipc(utcb);
+	_rcv_msg->post_ipc(utcb, Ipc_ostream::_dst.rcv_window());
 	copy_utcb_to_msgbuf(utcb, _rcv_msg);
 	_snd_msg->snd_reset();
 
@@ -186,7 +186,17 @@ void Ipc_client::_call()
 Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
                        Msgbuf_base *rcv_msg, unsigned short const rcv_caps)
 : Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0)
-{ }
+{
+	if (rcv_caps == ~0)
+		/* use default values for rcv_wnd */
+		return;
+
+	/* calculate max order of caps to be received during reply */
+	unsigned short log2_max = rcv_caps ? log2(rcv_caps) : 0;
+	if ((1U << log2_max) < rcv_caps) log2_max ++;
+
+	rcv_msg->rcv_wnd(log2_max);
+}
 
 
 /****************

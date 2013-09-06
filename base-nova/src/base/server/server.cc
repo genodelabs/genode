@@ -140,8 +140,8 @@ void Rpc_entrypoint::_activation_entry()
 	}
 
 	/* if we can't setup receive window, die in order to recognize the issue */
-	if (!ep->_rcv_buf.rcv_prepare_pt_sel_window((Nova::Utcb *)ep->utcb()))
-		/* printf doesn't work here since for IPC also rcv_prepare* is used */
+	if (!ep->_rcv_buf.prepare_rcv_window((Nova::Utcb *)ep->utcb()))
+		/* printf doesn't work here since for IPC also prepare_rcv_window is used */
 		nova_die();
 
 	srv << IPC_REPLY;
@@ -230,7 +230,8 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		throw Cpu_session::Thread_creation_failed();
 
 	/* prepare portal receive window of new thread */
-	_rcv_buf.rcv_prepare_pt_sel_window((Nova::Utcb *)&_context->utcb);
+	if (!_rcv_buf.prepare_rcv_window((Nova::Utcb *)&_context->utcb))
+		throw Cpu_session::Thread_creation_failed();
 
 	if (start_on_construction)
 		activate();
