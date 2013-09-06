@@ -96,7 +96,7 @@ append_if $use_platform_driver config {
 
 append_if $use_nic_bridge config {
 	<start name="nic_bridge">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 		<config/>
 		<route>
