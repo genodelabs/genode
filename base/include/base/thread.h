@@ -56,6 +56,7 @@
 #include <base/lock.h>
 #include <base/native_types.h>
 #include <base/trace/logger.h>
+#include <util/string.h>
 #include <util/list.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
@@ -371,12 +372,18 @@ namespace Genode {
 			/**
 			 * Log null-terminated string as trace event
 			 */
-			static void trace(char const *);
+			static void trace(char const *cstring)
+			{
+				_logger()->log(cstring, strlen(cstring));
+			}
 
 			/**
 			 * Log binary data as trace event
 			 */
-			static void trace(char const *, size_t len);
+			static void trace(char const *data, size_t len)
+			{
+				_logger()->log(data, len);
+			}
 
 			/**
 			 * Log trace event as defined in base/trace.h
