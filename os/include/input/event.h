@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__INPUT__EVENT_H_
 #define _INCLUDE__INPUT__EVENT_H_
 
+#include <input/keycodes.h>
+
 namespace Input {
 
 	class Event
@@ -63,6 +65,14 @@ namespace Input {
 			int  ay()   const { return _ay; }
 			int  rx()   const { return _rx; }
 			int  ry()   const { return _ry; }
+
+			/**
+			 * Return key code for press/release events
+			 */
+			Keycode keycode() const
+			{
+				return _type == PRESS || _type == RELEASE ? (Keycode)_code : KEY_UNKNOWN;
+			}
 
 			bool is_absolute_motion() const { return _type == MOTION && !_rx && !_ry; }
 			bool is_relative_motion() const { return _type == MOTION && (_rx || _ry); }
