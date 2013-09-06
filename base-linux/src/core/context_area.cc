@@ -17,9 +17,7 @@
 #include <base/printf.h>
 #include <base/thread.h>
 
-/* Linux includes */
-#include <linux_syscalls.h>
-#include <sys/mman.h>
+#include <context_area.h>
 
 
 /**
@@ -33,6 +31,12 @@
 class Context_area_rm_session : public Genode::Rm_session
 {
 	public:
+
+		Context_area_rm_session()
+		{
+			flush_context_area();
+			reserve_context_area();
+		}
 
 		/**
 		 * Attach backing store to thread-context area

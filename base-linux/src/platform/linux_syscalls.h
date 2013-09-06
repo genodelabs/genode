@@ -203,36 +203,6 @@ inline int lx_munmap(void *addr, size_t length)
 }
 
 
-/**
- * Exclude local virtual memory area from being used by mmap
- *
- * \param base  base address of area to reserve
- * \param size  number of bytes to reserve
- *
- * \return  start of allocated reserved area, or ~0 on failure
- */
-inline Genode::addr_t lx_vm_reserve(Genode::addr_t base, Genode::size_t size)
-{
-	/* we cannot include sys/mman.h from here */
-	enum {
-		LX_MAP_PRIVATE   = 0x02,
-		LX_MAP_FIXED     = 0x10,
-		LX_MAP_ANONYMOUS = 0x20,
-		LX_PROT_NONE     = 0x0
-	};
-
-	int const flags = LX_MAP_ANONYMOUS | LX_MAP_PRIVATE
-	                | (base ? LX_MAP_FIXED : 0);
-
-	void * const res = lx_mmap((void *)base, size, LX_PROT_NONE, flags, -1, 0);
-
-	if (base)
-		return ((Genode::addr_t)res == base) ? base : ~0;
-	else
-		return (Genode::addr_t)res;
-}
-
-
 /***********************************************************************
  ** Functions used by thread lib and core's cancel-blocking mechanism **
  ***********************************************************************/

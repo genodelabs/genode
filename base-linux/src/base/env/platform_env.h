@@ -197,6 +197,13 @@ namespace Genode {
 					void _add_to_rmap(Region const &);
 
 					/**
+					 * Reserve VM region for sub-rm dataspace
+					 */
+					addr_t _reserve_local(bool           use_local_addr,
+					                      addr_t         local_addr,
+					                      Genode::size_t size);
+
+					/**
 					 * Map dataspace into local address space
 					 */
 					void *_map_local(Dataspace_capability ds,
@@ -204,7 +211,8 @@ namespace Genode {
 					                 addr_t               offset,
 					                 bool                 use_local_addr,
 					                 addr_t               local_addr,
-					                 bool                 executable);
+					                 bool                 executable,
+					                 bool                 overmap = false);
 
 					/**
 					 * Determine size of dataspace

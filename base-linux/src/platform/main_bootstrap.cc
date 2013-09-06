@@ -56,16 +56,6 @@ void Genode::platform_main_bootstrap()
 			 * __initial_sp[3] = environ
 			 */
 			lx_environ = (char**)&__initial_sp[3];
-
-			/*
-			 * Free context area preserved in linker script
-			 */
-			addr_t         base = Native_config::context_area_virtual_base();
-			Genode::size_t size = Native_config::context_area_virtual_size();
-			int ret;
-			if ((ret = lx_munmap((void *)base, size)) < 0)
-				PERR("flushing of context area [%lx,%lx) failed (ret=%d)",
-				     (unsigned long) base, (unsigned long) base + size, ret);
 		}
 	} bootstrap;
 }
