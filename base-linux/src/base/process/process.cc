@@ -70,13 +70,7 @@ Process::Process(Dataspace_capability   elf_data_ds_cap,
 			PERR("Dynamically linked file found, but no dynamic linker binary present");
 			return;
 		}
-		/*
-		 * Starting the dynamic linker directly may cause it to be loaded at the
-		 * wrong address on ARM-Linux. But since the dynamically linked
-		 * application has a dynamic linker (by default ld.lib.so) defined as its
-		 * interpreter in the ELF image, it's okay to just start the application
-		 * directly on Linux.
-		 */
+		elf_data_ds_cap = _dynamic_linker_cap;
 	}
 
 	/*
