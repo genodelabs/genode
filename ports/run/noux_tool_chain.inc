@@ -7,6 +7,15 @@
 # $platform_pkgs     - names of platform-specific tar archives without the '.tar' extension
 #
 
+#
+# The Linux version of Noux lacks the support for the fork system call. Hence,
+# the run script is expected to fail.
+#
+if {[have_spec linux]} {
+	puts "Linux is unsupported."
+	exit 0
+}
+
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
 	drivers/framebuffer drivers/pci drivers/input
