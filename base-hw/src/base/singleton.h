@@ -28,6 +28,9 @@
 #ifndef _SINGLETON_H_
 #define _SINGLETON_H_
 
+/* Genode includes */
+#include <base/stdint.h>
+
 inline void *operator new(Genode::size_t, void *at) { return at; }
 
 
