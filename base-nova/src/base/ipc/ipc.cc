@@ -30,17 +30,13 @@ using namespace Nova;
 
 void Ipc_ostream::_marshal_capability(Native_capability const &cap)
 {
-	if (cap.valid())
-		_snd_msg->snd_append_pt_sel(cap.local_name(),
-		                            cap.dst().rights(),
-		                            cap.trans_map());
+	_snd_msg->snd_append_pt_sel(cap);
 }
 
 
 void Ipc_istream::_unmarshal_capability(Native_capability &cap)
 {
-	addr_t pt_sel = _rcv_msg->rcv_pt_sel();
-	cap = Native_capability(pt_sel);
+	_rcv_msg->rcv_pt_sel(cap);
 }
 
 

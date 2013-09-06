@@ -21,9 +21,6 @@
 #ifndef _INCLUDE__BASE__IPC_MSGBUF_H_
 #define _INCLUDE__BASE__IPC_MSGBUF_H_
 
-/* Genode includes */
-#include <base/cap_sel_alloc.h>
-
 /* NOVA includes */
 #include <nova/syscalls.h>
 #include <nova/util.h>
@@ -51,11 +48,7 @@ namespace Genode {
 			/**
 			 * Portal capability selectors to delegate
 			 */
-			struct {
-				addr_t   sel;
-				unsigned rights;
-				bool     trans_map;
-			} _snd_pt_sel [MAX_CAP_ARGS];
+			Native_capability _snd_pt_sel [MAX_CAP_ARGS];
 
 			/**
 			 * Base of portal receive window
@@ -117,20 +110,25 @@ namespace Genode {
 			/**
 			 * Reset portal capability selector payload
 			 */
-			inline void snd_reset() { _snd_pt_sel_cnt = 0; }
+			inline void snd_reset() {
+
+				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
+					+_snd_pt_sel[i];
+					_snd_pt_sel[i] = Native_capability();
+				}
+
+				_snd_pt_sel_cnt = 0;
+			}
 
 			/**
 			 * Append portal capability selector to message buffer
 			 */
-			inline bool snd_append_pt_sel(addr_t pt_sel, unsigned rights,
-			                              bool trans_map)
+			inline bool snd_append_pt_sel(Native_capability const &cap)
 			{
 				if (_snd_pt_sel_cnt >= MAX_CAP_ARGS - 1)
 					return false;
 
-				_snd_pt_sel[_snd_pt_sel_cnt  ].sel       = pt_sel;
-				_snd_pt_sel[_snd_pt_sel_cnt  ].rights    = rights;
-				_snd_pt_sel[_snd_pt_sel_cnt++].trans_map = trans_map;
+				_snd_pt_sel[_snd_pt_sel_cnt++ ] = cap;
 				return true;
 			}
 
@@ -157,9 +155,10 @@ namespace Genode {
 				if (i >= _snd_pt_sel_cnt)
 					return Nova::Obj_crd();
 
-				trans_map = _snd_pt_sel[i].trans_map;
-				return Nova::Obj_crd(_snd_pt_sel[i].sel, 0,
-				                     _snd_pt_sel[i].rights);
+				trans_map = _snd_pt_sel[i].trans_map();
+
+				return Nova::Obj_crd(_snd_pt_sel[i].local_name(), 0,
+				                     _snd_pt_sel[i].dst().rights());
 			}
 
 			/**
@@ -194,13 +193,15 @@ namespace Genode {
 			/**
 			 * Return received portal-capability selector
 			 */
-			addr_t rcv_pt_sel()
+			void rcv_pt_sel(Native_capability &cap)
 			{
+				if (_rcv_pt_sel_cnt >= _rcv_pt_sel_max) {
+					cap = Native_capability();
+					return; 
+				}
+
 				/* return only received or translated caps */
-				if (_rcv_pt_sel_cnt < _rcv_pt_sel_max)
-					return _rcv_pt_sel[_rcv_pt_sel_cnt++].sel;
-				else
-					return INVALID_INDEX;
+				cap = Native_capability(_rcv_pt_sel[_rcv_pt_sel_cnt++].sel);
 			}
 
 			/**
@@ -245,37 +246,38 @@ namespace Genode {
 							nova_die();
 
 					_rcv_pt_cap_free [_rcv_pt_sel[i].sel - rcv_pt_base()] = USED_CAP;
+					cap_map()->remove(_rcv_pt_sel[i].sel - rcv_pt_base(), 0);
+
 					reinit = true;
 				}
 
-				/* revoke received caps which are unused */
-				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
-					if (i < new_max && _rcv_pt_cap_free[i] == FREE_INVALID)
+				/* if old receive window was smaller, we need to re-init */
+				for (unsigned i = 0; !reinit && i < new_max; i++)
+					if (_rcv_pt_cap_free[i] == FREE_INVALID)
 						reinit = true;
-
-					if (_rcv_pt_cap_free[i] == UNUSED_CAP)
-						Nova::revoke(Nova::Obj_crd(rcv_pt_base() + i, 0), true);
-				}
 
 				_rcv_pt_sel_cnt = 0;
 				_rcv_pt_sel_max = 0;
 
 				/* we can keep the cap selectors if none was used */
 				if (keep && !reinit) {
-					/* free rest of indexes if new_max is smaller then last window */
-					for (unsigned i = new_max; i < MAX_CAP_ARGS; i++)
-						if (_rcv_pt_cap_free[i] == FREE_SEL)
-							cap_selector_allocator()->free(rcv_pt_base() + i, 0);
+					for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
+						/* revoke received caps which are unused */
+						if (_rcv_pt_cap_free[i] == UNUSED_CAP)
+							Nova::revoke(Nova::Obj_crd(rcv_pt_base() + i, 0), true);
+
+						/* free rest of indexes if new_max is smaller then last window */
+						if (i >= new_max && _rcv_pt_cap_free[i] == FREE_SEL)
+							cap_map()->remove(rcv_pt_base() + i, 0, false);
+					}
 
 					return false;
 				}
 
-				/* keep used selectors, free up rest */	
-				for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
-					if (_rcv_pt_cap_free[i] == UNUSED_CAP ||
-						_rcv_pt_cap_free[i] == FREE_SEL)
-							cap_selector_allocator()->free(rcv_pt_base() + i, 0);
-				}
+				/* decrease ref count if valid selector */
+				for (unsigned i = 0; i < MAX_CAP_ARGS; i++)
+					if (_rcv_pt_cap_free[i] != FREE_INVALID)
+						cap_map()->remove(rcv_pt_base() + i, 0, _rcv_pt_cap_free[i] == FREE_SEL);
 
 				return true;
 			}
@@ -316,10 +318,9 @@ namespace Genode {
 				/* allocate receive window if necessary, otherwise use old one */
 				if (rcv_invalid() || rcv_cleanup(true, 1U << _rcv_wnd_log2))
 				{
-					try {
-						_rcv_pt_base = cap_selector_allocator()->alloc(_rcv_wnd_log2);
-					} catch (Bit_array_out_of_indexes) {
-						_rcv_pt_base = INVALID_INDEX;
+					_rcv_pt_base = cap_map()->insert(_rcv_wnd_log2);
+
+					if (_rcv_pt_base == INVALID_INDEX) {
 						/* no mappings can be received */
 						utcb->crd_rcv = Nova::Obj_crd();
 						return false;
@@ -356,8 +357,6 @@ namespace Genode {
 
 				for (unsigned short i = 0; i < MAX_CAP_ARGS; i++) 
 					_rcv_pt_cap_free [i] = (i >= max) ? FREE_INVALID : FREE_SEL;
-
-				addr_t max = 1UL << utcb->crd_rcv.order();
 
 				for (unsigned i = 0; i < rcv_items; i++) {
 					Utcb::Item * item = utcb->get_item(i);
