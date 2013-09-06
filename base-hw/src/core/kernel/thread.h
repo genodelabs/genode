@@ -33,7 +33,6 @@ namespace Genode
 namespace Kernel
 {
 	typedef Genode::Cpu             Cpu;
-	typedef Genode::Page_flags      Page_flags;
 	typedef Genode::Core_tlb        Core_tlb;
 	typedef Genode::Pagefault       Pagefault;
 	typedef Genode::Native_utcb     Native_utcb;

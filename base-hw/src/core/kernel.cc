@@ -27,9 +27,9 @@
 #include <base/thread_state.h>
 
 /* core includes */
+#include <kernel/pd.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
-#include <tlb.h>
 #include <trustzone.h>
 
 /* base-hw includes */
@@ -42,15 +42,6 @@ extern Genode::Native_utcb * _main_utcb;
 extern int _kernel_stack_high;
 extern "C" void CORE_MAIN();
 
-/* get structure of mode transition PIC */
-extern int _mode_transition_begin;
-extern int _mode_transition_end;
-extern int _mt_user_entry_pic;
-extern int _mon_vm_entry;
-extern Genode::addr_t _mt_client_context_ptr;
-extern Genode::addr_t _mt_master_context_begin;
-extern Genode::addr_t _mt_master_context_end;
-
 namespace Kernel
 {
 	/* import Genode types */
@@ -58,138 +49,6 @@ namespace Kernel
 	typedef Genode::umword_t     umword_t;
 
 	class Schedule_context;
-
-	/**
-	 * Controls the mode transition code
-	 *
-	 * The code that switches between kernel/user mode must not exceed the
-	 * smallest page size supported by the MMU. The Code must be position
-	 * independent. This code has to be mapped in every PD, to ensure
-	 * appropriate kernel invokation on CPU interrupts.
-	 * This class controls the settings like kernel, user, and VM states
-	 * that are handled by the mode transition PIC.
-	 */
-	struct Mode_transition_control
-	{
-		enum {
-			SIZE_LOG2 = Tlb::MIN_PAGE_SIZE_LOG2,
-			SIZE = 1 << SIZE_LOG2,
-			VIRT_BASE = Cpu::EXCEPTION_ENTRY,
-			VIRT_END = VIRT_BASE + SIZE,
-			ALIGNM_LOG2 = SIZE_LOG2,
-		};
-
-		addr_t const _virt_user_entry;
-
-		/**
-		 * Constructor
-		 */
-		Mode_transition_control() :
-			_virt_user_entry(VIRT_BASE + ((addr_t)&_mt_user_entry_pic -
-			                 (addr_t)&_mode_transition_begin))
-		{
-			/* check if mode transition PIC fits into aligned region */
-			addr_t const pic_begin = (addr_t)&_mode_transition_begin;
-			addr_t const pic_end = (addr_t)&_mode_transition_end;
-			size_t const pic_size = pic_end - pic_begin;
-			assert(pic_size <= SIZE);
-
-			/* check if kernel context fits into the mode transition */
-			addr_t const kc_begin = (addr_t)&_mt_master_context_begin;
-			addr_t const kc_end = (addr_t)&_mt_master_context_end;
-			size_t const kc_size = kc_end - kc_begin;
-			assert(sizeof(Cpu::Context) <= kc_size);
-		}
-
-		/**
-		 * Fetch next kernelmode context
-		 */
-		void fetch_master_context(Cpu::Context * const c) {
-			memcpy(&_mt_master_context_begin, c, sizeof(Cpu::Context)); }
-
-		/**
-		 * Page aligned physical base of the mode transition PIC
-		 */
-		addr_t phys_base() { return (addr_t)&_mode_transition_begin; }
-
-		/**
-		 * Jump to the usermode entry PIC
-		 */
-		void virt_user_entry() {
-			((void(*)(void))_virt_user_entry)(); }
-	};
-
-
-	/**
-	 * Static mode transition control
-	 */
-	static Mode_transition_control * mtc()
-	{ return unsynchronized_singleton<Mode_transition_control>(); }
-
-	/**
-	 * Kernel object that represents a Genode PD
-	 */
-	class Pd : public Object<Pd, MAX_PDS>
-	{
-		Tlb * const         _tlb;
-		Platform_pd * const _platform_pd;
-
-		/* keep ready memory for size aligned extra costs at construction */
-		enum { EXTRA_SPACE_SIZE = 2*Tlb::MAX_COSTS_PER_TRANSLATION };
-		char _extra_space[EXTRA_SPACE_SIZE];
-
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Pd(Tlb * const t, Platform_pd * const platform_pd)
-			: _tlb(t), _platform_pd(platform_pd)
-			{
-				/* try to add translation for mode transition region */
-				Page_flags::access_t const flags = Page_flags::mode_transition();
-				unsigned const slog2 =
-					tlb()->insert_translation(mtc()->VIRT_BASE,
-					                          mtc()->phys_base(),
-					                          mtc()->SIZE_LOG2, flags);
-
-				/* extra space needed to translate mode transition region */
-				if (slog2)
-				{
-					/* Get size aligned extra space */
-					addr_t const es = (addr_t)&_extra_space;
-					addr_t const es_end = es + sizeof(_extra_space);
-					addr_t const aligned_es = (es_end - (1<<slog2)) &
-					                          ~((1<<slog2)-1);
-					addr_t const aligned_es_end = aligned_es + (1<<slog2);
-
-					/* check attributes of aligned extra space */
-					assert(aligned_es >= es && aligned_es_end <= es_end)
-
-					/* translate mode transition region globally */
-					tlb()->insert_translation(mtc()->VIRT_BASE,
-					                          mtc()->phys_base(),
-					                          mtc()->SIZE_LOG2, flags,
-					                          (void *)aligned_es);
-				}
-			}
-
-			/**
-			 * Add the CPU context 'c' to this PD
-			 */
-			void append_context(Cpu::Context * const c)
-			{
-				c->protection_domain(id());
-				c->tlb(tlb()->base());
-			}
-
-			/***************
-			 ** Accessors **
-			 ***************/
-
-			Tlb * const tlb() { return _tlb; }
-			Platform_pd * const platform_pd() { return _platform_pd; }
-	};
 }
 
 namespace Kernel
@@ -228,7 +87,6 @@ namespace Kernel
 		Pd       *pd       = unsynchronized_singleton<Pd>(core_tlb, nullptr);
 		return pd;
 	}
-
 
 	/**
 	 * Get core attributes
@@ -325,8 +183,7 @@ void Kernel::Thread::handle_exception()
 
 void Kernel::Thread::proceed()
 {
-	_mt_client_context_ptr = (addr_t)static_cast<Genode::Cpu_state*>(this);
-	mtc()->virt_user_entry();
+	mtc()->continue_user(static_cast<Cpu::Context *>(this));
 }
 
 
@@ -353,7 +210,6 @@ void Kernel::Thread::_awaits_irq()
 
 namespace Kernel
 {
-
 	void deliver_signal(Signal_handler * const dst,
 	                    void * const           base,
 	                    size_t const           size)
@@ -406,14 +262,7 @@ namespace Kernel
 				}
 			}
 
-			void proceed()
-			{
-				/* set context pointer for mode switch */
-				_mt_client_context_ptr = (addr_t)_state;
-
-				/* jump to assembler path */
-				((void(*)(void))&_mon_vm_entry)();
-			}
+			void proceed() { mtc()->continue_vm(_state); }
 	};
 
 
@@ -1109,17 +958,6 @@ extern "C" void kernel()
 		/* enable kernel timer */
 		pic()->unmask(Timer::IRQ);
 
-		/* compose kernel CPU context */
-		static Cpu::Context kernel_context;
-		kernel_context.ip = (addr_t)kernel;
-		kernel_context.sp = (addr_t)&_kernel_stack_high;
-
-		/* add kernel to the core PD */
-		core()->append_context(&kernel_context);
-
-		/* offer the final kernel context to the mode transition page */
-		mtc()->fetch_master_context(&kernel_context);
-
 		/* TrustZone initialization code */
 		trustzone_initialization(pic());
 
@@ -1271,4 +1109,24 @@ void Thread::kill_signal_context_done()
 	}
 	user_arg_0(1);
 	_schedule();
+}
+
+static Kernel::Mode_transition_control * Kernel::mtc()
+{
+	/* compose CPU context for kernel entry */
+	struct Kernel_context : Cpu::Context
+	{
+		/**
+		 * Constructor
+		 */
+		Kernel_context()
+		{
+			ip = (addr_t)kernel;
+			sp = (addr_t)&_kernel_stack_high;
+			core()->admit(this);
+		}
+	} * const k = unsynchronized_singleton<Kernel_context>();
+
+	/* initialize mode transition page */
+	return unsynchronized_singleton<Mode_transition_control>(k);
 }

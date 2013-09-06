@@ -248,8 +248,8 @@
 	 * region, thus one should map it solely accessable for privileged modes.
 	 */
 	.p2align 12 /* page-aligned */
-	.global _mode_transition_begin
-	_mode_transition_begin:
+	.global _mt_begin
+	_mt_begin:
 
 		/*
 		 * On user exceptions the CPU has to jump to one of the following
@@ -299,8 +299,8 @@
 		.global _mt_buffer
 		_mt_buffer: .long 0
 
-	.global _mode_transition_end
-	_mode_transition_end:
+	.global _mt_end
+	_mt_end:
 
 	/*
 	 * On vm exceptions the CPU has to jump to one of the following
@@ -328,6 +328,6 @@
 
 	/* kernel must jump to this point to switch to a vm */
 	.p2align 2
-	.global _mon_vm_entry
-	_mon_vm_entry:
+	.global _mt_vm_entry_pic
+	_mt_vm_entry_pic:
 		_kernel_to_vm
