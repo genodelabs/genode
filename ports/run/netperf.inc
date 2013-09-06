@@ -155,7 +155,11 @@ append config {
 			<arg value="netserver"/>
 			<arg value="-D"/>
 			<arg value="-4"/>
-			<arg value="-f"/>
+			<arg value="-f"/>}
+set lx_ip_addr "10.0.2.55"
+append_if [have_spec linux] config "
+			<libc ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\"/>"
+append config {
 		</config>}
 append_if $use_nic_bridge config {
 		<route>
@@ -212,6 +216,8 @@ set force_ports ""
 if [is_qemu_available] {
 	set ip_addr "localhost"
 	set force_ports "-P 49153,49153"
+} elseif [have_spec linux] {
+	set ip_addr $lx_ip_addr
 } else {
 	set match_string "got IP address (\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+)"
 	regexp $match_string $output all ip_addr
