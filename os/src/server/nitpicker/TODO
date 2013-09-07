@@ -1,7 +1,0 @@
-* Proper framebuffer refresh implementation.
-  Limit update_session_views to the specified buffer rectangle.
-* Advanced view stacking (moving other alien view behind stacked view)
-* Prevent stack overflow by too deep recursion (too many views in the view stack)
-  Idea: Dimension stack size for the worst case - max. recursion depth is
-  max(screen width, screen height) if each view overlaps its next view in
-  a way that one row/column is revealed.
