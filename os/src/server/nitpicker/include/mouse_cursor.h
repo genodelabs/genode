@@ -27,18 +27,28 @@ class Mouse_cursor : public Chunky_texture<PT>, public Session, public View
 {
 	private:
 
-		View_stack *_view_stack;
+		View_stack const &_view_stack;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Mouse_cursor(PT *pixels, Area size, View_stack *view_stack):
+		Mouse_cursor(PT const *pixels, Area size, View_stack const &view_stack)
+		:
 			Chunky_texture<PT>(pixels, 0, size),
-			Session("", this, 0, BLACK),
-			View(this, View::STAY_TOP | View::TRANSPARENT),
-			_view_stack(view_stack) { }
+			Session("", *this, 0, BLACK),
+			View(*this, View::STAY_TOP, View::TRANSPARENT, View::NOT_BACKGROUND,
+			     Rect()),
+			_view_stack(view_stack)
+		{ }
+
+
+		/***********************
+		 ** Session interface **
+		 ***********************/
+
+		void submit_input_event(Input::Event) { }
 
 
 		/********************
@@ -49,19 +59,19 @@ class Mouse_cursor : public Chunky_texture<PT>, public Session, public View
 		 * The mouse cursor is always displayed without a surrounding frame.
 		 */
 
-		int frame_size(Mode *mode) { return 0; }
+		int frame_size(Mode const &mode) const { return 0; }
 
-		void frame(Canvas *canvas, Mode *mode) { }
+		void frame(Canvas &canvas, Mode const &mode) const { }
 
-		void draw(Canvas *canvas, Mode *mode)
+		void draw(Canvas &canvas, Mode const &mode) const
 		{
 			Clip_guard clip_guard(canvas, *this);
 
 			/* draw area behind the mouse cursor */
-			_view_stack->draw_rec(view_stack_next(), 0, 0, *this);
+			_view_stack.draw_rec(view_stack_next(), 0, 0, *this);
 
 			/* draw mouse cursor */
-			canvas->draw_texture(this, BLACK, p1(), Canvas::MASKED);
+			canvas.draw_texture(*this, BLACK, p1(), Canvas::MASKED);
 		}
 };
 

@@ -33,17 +33,17 @@ class Point
 		/**
 		 * Operator for adding points
 		 */
-		Point operator + (Point p) { return Point(_x + p.x(), _y + p.y()); }
+		Point operator + (Point const &p) const { return Point(_x + p.x(), _y + p.y()); }
 
 		/**
 		 * Operator for subtracting points
 		 */
-		Point operator - (Point p) { return Point(_x - p.x(), _y - p.y()); }
+		Point operator - (Point const &p) const { return Point(_x - p.x(), _y - p.y()); }
 
 		/**
 		 * Operator for testing non-equality of two points
 		 */
-		bool operator != (Point p) { return p.x() != _x || p.y() != _y; }
+		bool operator != (Point const &p) const { return p.x() != _x || p.y() != _y; }
 };
 
 
@@ -51,7 +51,7 @@ class Area
 {
 	private:
 
-		int _w, _h;
+		int const _w, _h;
 
 	public:
 
@@ -89,11 +89,6 @@ class Rect
 			_p1(p), _p2(p.x() + a.w() - 1, p.y() + a.h() - 1) { }
 
 		Rect() { }
-
-		/**
-		 * Assign new coordinates
-		 */
-		void rect(Rect r) { _p1 = r.p1(); _p2 = r.p2(); }
 
 		/**
 		 * Accessors
@@ -140,7 +135,7 @@ class Rect
 		 * In the worst case (if we cut a hole into the rectangle) we get
 		 * four valid resulting rectangles.
 		 */
-		void cut(Rect r, Rect *top, Rect *left, Rect *right, Rect *bottom)
+		void cut(Rect r, Rect *top, Rect *left, Rect *right, Rect *bottom) const
 		{
 			/* limit the cut-out area to the actual rectangle */
 			r = intersect(r, *this);
@@ -154,7 +149,7 @@ class Rect
 		/**
 		 * Return position of an area when centered within the rectangle
 		 */
-		Point center(Area area) {
+		Point center(Area area) const {
 			return Point((w() - area.w())/2, (h() - area.h())/2) + p1(); }
 };
 

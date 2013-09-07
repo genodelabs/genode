@@ -22,8 +22,8 @@ class View_stack
 {
 	private:
 
-		Canvas                *_canvas;
-		Mode                  *_mode;
+		Canvas                &_canvas;
+		Mode                  &_mode;
 		List<View_stack_elem>  _views;
 		View                  *_default_background;
 
@@ -34,7 +34,7 @@ class View_stack
 		 * active Nitpicker mode. In non-flat modes, we incorporate the
 		 * surrounding frame.
 		 */
-		Rect _outline(View *view);
+		Rect _outline(View const &view) const;
 
 		/**
 		 * Return top-most view of the view stack
@@ -44,12 +44,12 @@ class View_stack
 		/**
 		 * Find position in view stack for inserting a view
 		 */
-		View *_target_stack_position(View *neighbor, bool behind);
+		View const *_target_stack_position(View const *neighbor, bool behind);
 
 		/**
 		 * Find best visible label position
 		 */
-		void _optimize_label_rec(View *cv, View *lv, Rect rect, Rect *optimal);
+		void _optimize_label_rec(View const *cv, View const *lv, Rect rect, Rect *optimal);
 
 		/**
 		 * Position labels that are affected by specified area
@@ -58,21 +58,25 @@ class View_stack
 
 		/**
 		 * Return view following the specified view in the view stack
+		 *
+		 * The function is a template to capture both const and non-const
+		 * usage.
 		 */
-		View *_next_view(View *view);
+		template <typename VIEW>
+		VIEW *_next_view(VIEW *view) const;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		View_stack(Canvas *canvas, Mode *mode) :
+		View_stack(Canvas &canvas, Mode &mode) :
 			_canvas(canvas), _mode(mode), _default_background(0) { }
 
 		/**
 		 * Return size
 		 */
-		Area size() { return _canvas->size(); }
+		Area size() { return _canvas.size(); }
 
 		/**
 		 * Draw views in specified area (recursivly)
@@ -82,22 +86,22 @@ class View_stack
 		 *                  if all views should be drawn
 		 * \param exclude   do not draw views of this session
 		 */
-		void draw_rec(View *view, View *dst_view, Session *exclude, Rect);
+		void draw_rec(View const *view, View const *dst_view, Session const *exclude, Rect) const;
 
 		/**
 		 * Draw whole view stack
 		 */
 		void update_all_views()
 		{
-			_place_labels(Rect(Point(), _canvas->size()));
-			draw_rec(_first_view(), 0, 0, Rect(Point(), _canvas->size()));
+			_place_labels(Rect(Point(), _canvas.size()));
+			draw_rec(_first_view(), 0, 0, Rect(Point(), _canvas.size()));
 		}
 
 		/**
 		 * Update all views belonging to the specified session
 		 *
-		 * \param Session *  Session that created the view
-		 * \param Rect       Buffer area to update
+		 * \param Session  Session that created the view
+		 * \param Rect     Buffer area to update
 		 *
 		 * Note: For now, we perform an independent view-stack traversal
 		 *       for each view when calling 'refresh_view'. This becomes
@@ -105,11 +109,11 @@ class View_stack
 		 *       a tailored 'draw_rec_session' function would overcome
 		 *       this problem.
 		 */
-		void update_session_views(Session *session, Rect rect)
+		void update_session_views(Session const &session, Rect rect)
 		{
-			for (View *view = _first_view(); view; view = view->view_stack_next()) {
+			for (View const *view = _first_view(); view; view = view->view_stack_next()) {
 
-				if (view->session() != session)
+				if (!view->belongs_to(session))
 					continue;
 
 				/*
@@ -119,7 +123,7 @@ class View_stack
 				Point offset = view->p1() + view->buffer_off();
 				Rect r = Rect::intersect(Rect(rect.p1() + offset,
 				                              rect.p2() + offset), *view);
-				refresh_view(view, view, r);
+				refresh_view(*view, view, r);
 			}
 		}
 
@@ -131,7 +135,7 @@ class View_stack
 		 *              refreshed or 'view' if the refresh should be limited to
 		 *              the specified view.
 		 */
-		void refresh_view(View *view, View *dst, Rect);
+		void refresh_view(View const &view, View const *dst, Rect);
 
 		/**
 		 * Define position and viewport
@@ -140,7 +144,7 @@ class View_stack
 		 * \param buffer_off  view offset of displayed buffer
 		 * \param do_redraw   perform screen update immediately
 		 */
-		void viewport(View *view, Rect pos, Point buffer_off, bool do_redraw);
+		void viewport(View &view, Rect pos, Point buffer_off, bool do_redraw);
 
 		/**
 		 * Insert view at specified position in view stack
@@ -153,13 +157,13 @@ class View_stack
 		 * bottom of the view stack, specify neighbor = 0 and
 		 * behind = false.
 		 */
-		void stack(View *view, View *neighbor = 0, bool behind    = true,
-		                                           bool do_redraw = true);
+		void stack(View const &view, View const *neighbor = 0,
+		           bool behind = true, bool do_redraw = true);
 
 		/**
 		 * Set view title
 		 */
-		void title(View *view, const char *title);
+		void title(View &view, char const *title);
 
 		/**
 		 * Find view at specified position
@@ -169,17 +173,17 @@ class View_stack
 		/**
 		 * Remove view from view stack
 		 */
-		void remove_view(View *);
+		void remove_view(View const &);
 
 		/**
 		 * Define default background
 		 */
-		void default_background(View *view) { _default_background = view; }
+		void default_background(View &view) { _default_background = &view; }
 
 		/**
 		 * Return true if view is the default background
 		 */
-		bool is_default_background(View *view) { return view == _default_background; }
+		bool is_default_background(View const *view) const { return view == _default_background; }
 
 		/**
 		 * Remove all views of specified session from view stack
@@ -187,11 +191,11 @@ class View_stack
 		 * Rather than removing the views from the view stack, this function moves
 		 * the session views out of the visible screen area.
 		 */
-		void lock_out_session(Session *session)
+		void lock_out_session(Session const &session)
 		{
-			View *view = _first_view(), *next_view = view->view_stack_next();
+			View const *view = _first_view(), *next_view = view->view_stack_next();
 			while (view) {
-				if (view->session() == session) remove_view(view);
+				if (view->belongs_to(session)) remove_view(*view);
 				view = next_view;
 				next_view = view ? view->view_stack_next() : 0;
 			}

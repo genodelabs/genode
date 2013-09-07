@@ -31,7 +31,7 @@ class Texture : public Area
 		/**
 		 * Return pointer to alpha values, or 0 if no alpha channel exists
 		 */
-		virtual unsigned char *alpha() { return 0; }
+		virtual unsigned char const *alpha() const { return 0; }
 };
 
 
@@ -87,13 +87,14 @@ class Canvas
 		 * Define/request clipping rectangle
 		 */
 		void clip(Rect clip) { _clip = Rect::intersect(Rect(Point(0, 0), _size), clip); }
-		Rect clip() { return _clip; }
-		bool clip_valid() { return _clip.valid(); }
+
+		Rect clip()       const { return _clip; }
+		bool clip_valid() const { return _clip.valid(); }
 
 		/**
 		 * Return dimension of canvas in pixels
 		 */
-		Area size() { return _size; }
+		Area size() const { return _size; }
 
 		/**
 		 * Draw filled box
@@ -106,13 +107,13 @@ class Canvas
 		/**
 		 * Draw string
 		 */
-		virtual void draw_string(Point position, Font *font, Color color,
+		virtual void draw_string(Point position, Font const &font, Color color,
 		                         const char *str) = 0;
 
 		/**
 		 * Draw texture
 		 */
-		virtual void draw_texture(Texture *src, Color mix_color, Point position,
+		virtual void draw_texture(Texture const &src, Color mix_color, Point position,
 		                          Mode mode, bool allow_alpha = true) = 0;
 };
 

@@ -27,25 +27,32 @@ class Chunky_menubar : public Chunky_texture<PT>,
 
 	public:
 
-		Chunky_menubar(PT *pixels, Area size) :
-			Chunky_texture<PT>(pixels, 0, size),
-			Session("", this, 0, BLACK),
-			Menubar(&_chunky_canvas, size, this),
-			_chunky_canvas(pixels, size) { }
+		Chunky_menubar(PT *pixels, Area size)
+		:
+			Chunky_texture<PT>(pixels, 0, size), Session("", *this, 0, BLACK),
+			Menubar(_chunky_canvas, size, *this), _chunky_canvas(pixels, size)
+		{ }
+
+
+		/***********************
+		 ** Session interface **
+		 ***********************/
+
+		void submit_input_event(Input::Event) { }
 
 
 		/********************
 		 ** View interface **
 		 ********************/
 
-		int  frame_size(Mode *mode) { return 0; }
-		void frame(Canvas *canvas, Mode *mode) { }
-		void draw(Canvas *canvas, Mode *mode)
+		int  frame_size(Mode const &mode) const { return 0; }
+		void frame(Canvas &canvas, Mode const &mode) { }
+		void draw(Canvas const &canvas, Mode const &mode)
 		{
 			Clip_guard clip_guard(canvas, *this);
 
 			/* draw menubar content */
-			canvas->draw_texture(this, BLACK, p1(), Canvas::SOLID);
+			canvas.draw_texture(*this, BLACK, p1(), Canvas::SOLID);
 		}
 };
 

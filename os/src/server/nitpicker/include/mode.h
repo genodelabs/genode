@@ -18,44 +18,43 @@ class View;
 
 class Mode
 {
-	protected:
+	private:
 
-		unsigned _mode;
+		bool _xray;
+		bool _kill;
 
 		/*
-		 * Last clicked view. This view is receiving
-		 * keyboard input.
+		 * Last clicked view. This view is receiving keyboard input, except
+		 * for global keys.
 		 */
-		View *_focused_view;
+		View const *_focused_view;
 
 	public:
 
-		/*
-		 * Bitmasks for the different Nitpicker modes
-		 */
-		enum {
-			XRAY = 0x1,
-			KILL = 0x2,
-		};
-
-		Mode(): _mode(0), _focused_view(0) { }
+		Mode(): _xray(false), _kill(false), _focused_view(0) { }
 
 		virtual ~Mode() { }
 
 		/**
 		 * Accessors
 		 */
-		bool xray() { return _mode & XRAY; }
-		bool kill() { return _mode & KILL; }
-		bool flat() { return _mode == 0; }
+		bool xray() const { return _xray; }
+		bool kill() const { return _kill; }
+		bool flat() const { return !_xray && !_kill; }
 
-		View *focused_view() { return _focused_view; }
+		void leave_kill() { _kill = false; }
+		void toggle_kill() { _kill = !_kill; }
+		void toggle_xray() { _xray = !_xray; }
+
+		View const *focused_view() const { return _focused_view; }
+
+		void focused_view(View const *view) { _focused_view = view; }
 
 		/**
 		 * Discard all references to specified view
 		 */
-		virtual void forget(View *v) {
-			if (v == _focused_view) _focused_view = 0; }
+		virtual void forget(View const &v) {
+			if (&v == _focused_view) _focused_view = 0; }
 };
 
 #endif

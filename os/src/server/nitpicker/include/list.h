@@ -32,7 +32,7 @@ class List
 
 				friend class List;
 
-				LT *_next;
+				LT mutable *_next;
 
 			public:
 
@@ -41,7 +41,7 @@ class List
 				/**
 				 * Return next element in list
 				 */
-				LT *next() { return _next; }
+				LT *next() const { return _next; }
 		};
 
 	public:
@@ -56,7 +56,8 @@ class List
 		/**
 		 * Return first list element
 		 */
-		LT *first() { return _first; }
+		LT       *first()       { return _first; }
+		LT const *first() const { return _first; }
 
 		/**
 		 * Insert element into list
@@ -65,22 +66,22 @@ class List
 		 * \param  at  target position (preceding list element) or
 		 *             0 to insert element at the beginning of the list
 		 */
-		void insert(LT *le, LT *at = 0)
+		void insert(LT const *le, LT const *at = 0)
 		{
 			/* insert element at the beginning of the list */
 			if (at == 0) {
 				le->_next = _first;
-				_first    = le;
+				_first    = const_cast<LT *>(le);
 			} else {
 				le->_next = at->_next;
-				at->_next = le;
+				at->_next = const_cast<LT *>(le);
 			}
 		}
 
 		/**
 		 * Remove element from list
 		 */
-		void remove(LT *le)
+		void remove(LT const *le)
 		{
 			if (!_first) return;
 

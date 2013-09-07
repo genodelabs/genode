@@ -46,7 +46,7 @@ class User_state : public Mode, public View_stack
 		 * according to the current Mitpicker mode and the
 		 * focused view.
 		 */
-		Menubar *_menubar;
+		Menubar &_menubar;
 
 		/*
 		 * Current mouse cursor position
@@ -56,7 +56,7 @@ class User_state : public Mode, public View_stack
 		/*
 		 * Currently pointed-at view
 		 */
-		View *_pointed_view;
+		View const *_pointed_view;
 
 		/*
 		 * Session that receives the current stream of input events
@@ -73,7 +73,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Constructor
 		 */
-		User_state(Global_keys &global_keys, Canvas *canvas, Menubar *menubar);
+		User_state(Global_keys &global_keys, Canvas &canvas, Menubar &menubar);
 
 		/**
 		 * Handle input event
@@ -86,12 +86,12 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Accessors
 		 */
-		Point mouse_pos()  { return _mouse_pos; }
+		Point mouse_pos() { return _mouse_pos; }
 
 		/**
 		 * Mode interface
 		 */
-		void forget(View *);
+		void forget(View const &);
 };
 
 #endif

@@ -23,17 +23,17 @@ class Chunky_texture : public Texture
 {
 	private:
 
-		PT            *_pixels;
-		unsigned char *_alpha;
+		PT            const *_pixels;
+		unsigned char const *_alpha;
 
 	public:
 
-		Chunky_texture(PT *pixels, unsigned char *alpha,  Area size) :
-			Texture(size), _pixels(pixels), _alpha(alpha) { }
+		Chunky_texture(PT const *pixels, unsigned char const *alpha, Area size)
+		: Texture(size), _pixels(pixels), _alpha(alpha) { }
 
-		PT *pixels() { return _pixels; }
+		PT const *pixels() const { return _pixels; }
 
-		unsigned char *alpha() { return _alpha; }
+		unsigned char const *alpha() const { return _alpha; }
 };
 
 
@@ -75,19 +75,17 @@ class Chunky_canvas : public Canvas
 			_flush_pixels(clipped);
 		}
 
-		void draw_string(Point p, Font *font, Color color, const char *sstr)
+		void draw_string(Point p, Font const &font, Color color, char const *sstr)
 		{
-			const unsigned char *str = (const unsigned char *)sstr;
+			unsigned char const *str = (unsigned char const *)sstr;
 			int x = p.x(), y = p.y();
 
-			if (!str || !font) return;
-
-			unsigned char const *src = font->img;
-			int d, h = font->img_h;
+			unsigned char const *src = font.img;
+			int d, h = font.img_h;
 
 			/* check top clipping */
 			if ((d = _clip.y1() - y) > 0) {
-				src += d*font->img_w;
+				src += d*font.img_w;
 				y   += d;
 				h   -= d;
 			}
@@ -99,8 +97,8 @@ class Chunky_canvas : public Canvas
 			if (h < 1) return;
 
 			/* skip hidden glyphs */
-			for ( ; *str && (x + font->wtab[*str] < _clip.x1()); )
-				x += font->wtab[*str++];
+			for ( ; *str && (x + font.wtab[*str] < _clip.x1()); )
+				x += font.wtab[*str++];
 
 			int x_start = x;
 
@@ -110,13 +108,13 @@ class Chunky_canvas : public Canvas
 			/* draw glyphs */
 			for ( ; *str && (x <= _clip.x2()); str++) {
 
-				int                  w     = font->wtab[*str];
+				int                  w     = font.wtab[*str];
 				int                  start = max(0, _clip.x1() - x);
 				int                  end   = min(w - 1, _clip.x2() - x);
 				PT                  *d     = dst + x;
-				unsigned char const *s     = src + font->otab[*str];
+				unsigned char const *s     = src + font.otab[*str];
 
-				for (int j = 0; j < h; j++, s += font->img_w, d += _size.w())
+				for (int j = 0; j < h; j++, s += font.img_w, d += _size.w())
 					for (int i = start; i <= end; i++)
 						if (s[i]) d[i] = pix;
 
@@ -126,27 +124,27 @@ class Chunky_canvas : public Canvas
 			_flush_pixels(Rect(Point(x_start, y), Area(x - x_start + 1, h)));
 		}
 
-		void draw_texture(Texture *texture, Color mix_color, Point position,
+		void draw_texture(Texture const &texture, Color mix_color, Point position,
 		                  Mode mode, bool allow_alpha)
 		{
-			Rect clipped = Rect::intersect(Rect(position, *texture), _clip);
+			Rect clipped = Rect::intersect(Rect(position, texture), _clip);
 
 			if (!clipped.valid()) return;
 
-			int src_w = texture->w();
-			int dst_w = _size.w();
+			int const src_w = texture.w();
+			int const dst_w = _size.w();
 
-			Chunky_texture<PT> *tex = static_cast<Chunky_texture<PT> *>(texture);
+			Chunky_texture<PT> const &tex = static_cast<Chunky_texture<PT> const &>(texture);
 
 			/* calculate offset of first texture pixel to copy */
 			unsigned long tex_start_offset = (clipped.y1() - position.y())*src_w
 			                               +  clipped.x1() - position.x();
 
 			/* start address of source pixels */
-			PT *src = tex->pixels() + tex_start_offset;
+			PT const *src = tex.pixels() + tex_start_offset;
 
 			/* start address of source alpha values */
-			unsigned char *alpha = tex->alpha() + tex_start_offset;
+			unsigned char const *alpha = tex.alpha() + tex_start_offset;
 
 			/* start address of destination pixels */
 			PT *dst = _addr + clipped.y1()*dst_w + clipped.x1();
@@ -154,8 +152,9 @@ class Chunky_canvas : public Canvas
 			PT mix_pixel(mix_color.r, mix_color.g, mix_color.b);
 
 			int i, j;
-			PT *s, *d;
-			unsigned char *a;
+			PT            const *s;
+			PT                  *d;
+			unsigned char const *a;
 
 			switch (mode) {
 
@@ -165,7 +164,7 @@ class Chunky_canvas : public Canvas
 				 * If the texture has no alpha channel, we can use
 				 * a plain pixel blit.
 				 */
-				if (tex->alpha() == 0 || !allow_alpha) {
+				if (tex.alpha() == 0 || !allow_alpha) {
 					blit(src, src_w*sizeof(PT),
 					     dst, dst_w*sizeof(PT),
 					     clipped.w()*sizeof(PT), clipped.h());

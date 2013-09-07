@@ -255,7 +255,7 @@ void Vancouver_console::entry()
 						            ((fg & 0x2) >> 1)*127+lum, /* G+luminosity */
 						            (fg & 0x1)*127+lum         /* B+luminosity */);
 
-						canvas.draw_string(where, &default_font, color, buffer);
+						canvas.draw_string(where, default_font, color, buffer);
 
 						/* Checksum for comparing */
 						if (cmp_even) checksum1 += character;

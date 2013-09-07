@@ -36,13 +36,13 @@ class Session : public Session_list::Element
 
 	private:
 
-		char           _label[LABEL_LEN];
-		Color          _color;
-		Texture       *_texture;
-		View          *_background;
-		int            _v_offset;
-		unsigned char *_input_mask;
-		bool           _stay_top;
+		char                 _label[LABEL_LEN];
+		Color                _color;
+		Texture       const &_texture;
+		View                *_background;
+		int                  _v_offset;
+		unsigned char const *_input_mask;
+		bool          const  _stay_top;
 
 	public:
 
@@ -64,8 +64,8 @@ class Session : public Session_list::Element
 		 *                    'input_mask' is a null pointer, user input is
 		 *                    unconditionally consumed by the view.
 		 */
-		Session(const char *label, Texture *texture, int v_offset,
-		        Color color, unsigned char *input_mask = 0,
+		Session(char const *label, Texture const &texture, int v_offset,
+		        Color color, unsigned char const *input_mask = 0,
 		        bool stay_top = false)
 		:
 			_color(color), _texture(texture), _background(0),
@@ -74,13 +74,13 @@ class Session : public Session_list::Element
 
 		virtual ~Session() { }
 
-		virtual void submit_input_event(Input::Event *ev) { }
+		virtual void submit_input_event(Input::Event ev) = 0;
 
-		char *label() { return _label; }
+		char const *label() const { return _label; }
 
-		Texture *texture() const { return _texture; }
+		Texture const &texture() const { return _texture; }
 
-		Color color() { return _color; }
+		Color color() const { return _color; }
 
 		View *background() const { return _background; }
 
@@ -91,7 +91,7 @@ class Session : public Session_list::Element
 		/**
 		 * Return true if session uses an alpha channel
 		 */
-		bool uses_alpha() const { return _texture && _texture->alpha(); }
+		bool uses_alpha() const { return _texture.alpha(); }
 
 		/**
 		 * Return vertical offset of session
@@ -101,16 +101,16 @@ class Session : public Session_list::Element
 		/**
 		 * Return input mask value at specified buffer position
 		 */
-		unsigned char input_mask_at(Point p)
+		unsigned char input_mask_at(Point p) const
 		{
 			if (!_input_mask) return 0;
 
 			/* check boundaries */
-			if (p.x() < 0 || p.x() >= _texture->w()
-			 || p.y() < 0 || p.y() >= _texture->h())
+			if (p.x() < 0 || p.x() >= _texture.w()
+			 || p.y() < 0 || p.y() >= _texture.h())
 				return 0;
 
-			return _input_mask[p.y()*_texture->w() + p.x()];
+			return _input_mask[p.y()*_texture.w() + p.x()];
 		}
 };
 

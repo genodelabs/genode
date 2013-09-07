@@ -103,7 +103,7 @@ class Log_entry
 
 			if (new_section) {
 				canvas->draw_box(Rect(Point(1, y), Area(label_w + 2, label_h - 1)), label_bgcol);
-				canvas->draw_string(Point(1, y - 1), &default_font, label_fgcol, _label);
+				canvas->draw_string(Point(1, y - 1), default_font, label_fgcol, _label);
 				canvas->draw_box(Rect(Point(1, y + label_h - 1), Area(label_w + 2, 1)), Color(0, 0, 0));
 				canvas->draw_box(Rect(Point(label_w + 2, y), Area(1, label_h - 1)), _color);
 				canvas->draw_box(Rect(Point(label_w + 3, y), Area(1, label_h - 1)), Color(0, 0, 0));
@@ -113,7 +113,7 @@ class Log_entry
 				canvas->draw_box(Rect(Point(1, y), Area(1000, label_h)), text_bgcol);
 
 			/* draw log text */
-			canvas->draw_string(Point(label_w + 6, y), &default_font, text_fgcol, _text);
+			canvas->draw_string(Point(label_w + 6, y), default_font, text_fgcol, _text);
 		}
 
 		/**

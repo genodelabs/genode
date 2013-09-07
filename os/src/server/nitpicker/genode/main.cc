@@ -289,11 +289,11 @@ namespace Framebuffer {
 	{
 		private:
 
-			::Buffer             *_buffer;
-			View_stack           *_view_stack;
-			::Session            *_session;
-			Flush_merger         *_flush_merger;
-			Framebuffer::Session *_framebuffer;
+			::Buffer             &_buffer;
+			View_stack           &_view_stack;
+			::Session            &_session;
+			Flush_merger         &_flush_merger;
+			Framebuffer::Session &_framebuffer;
 
 		public:
 
@@ -302,37 +302,37 @@ namespace Framebuffer {
 			 *
 			 * \param session  Nitpicker session
 			 */
-			Session_component(::Buffer *buffer, View_stack *view_stack,
-			                  ::Session *session, Flush_merger *flush_merger,
-			                  Framebuffer::Session *framebuffer)
+			Session_component(::Buffer &buffer, View_stack &view_stack,
+			                  ::Session &session, Flush_merger &flush_merger,
+			                  Framebuffer::Session &framebuffer)
 			:
 				_buffer(buffer), _view_stack(view_stack), _session(session),
 				_flush_merger(flush_merger), _framebuffer(framebuffer) { }
 
-			Genode::Dataspace_capability dataspace() { return _buffer->ds_cap(); }
+			Genode::Dataspace_capability dataspace() { return _buffer.ds_cap(); }
 
 			void release() { }
 
 			Mode mode() const
 			{
-				return Mode(_buffer->size().w(), _buffer->size().h(),
-				            _buffer->format());
+				return Mode(_buffer.size().w(), _buffer.size().h(),
+				            _buffer.format());
 			}
 
 			void mode_sigh(Genode::Signal_context_capability) { }
 
 			void refresh(int x, int y, int w, int h)
 			{
-				_view_stack->update_session_views(_session,
-				                                  Rect(Point(x, y), Area(w, h)));
+				_view_stack.update_session_views(_session,
+				                                 Rect(Point(x, y), Area(w, h)));
 
 				/* flush dirty pixels to physical frame buffer */
-				if (_flush_merger->defer == false) {
-					Rect r = _flush_merger->to_be_flushed();
-					_framebuffer->refresh(r.x1(), r.y1(), r.w(), r.h());
-					_flush_merger->reset();
+				if (_flush_merger.defer == false) {
+					Rect r = _flush_merger.to_be_flushed();
+					_framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h());
+					_flush_merger.reset();
 				}
-				_flush_merger->defer = true;
+				_flush_merger.defer = true;
 			}
 	};
 }
@@ -343,25 +343,24 @@ class View_component : public Genode::List<View_component>::Element,
 {
 	private:
 
-		View_stack             *_view_stack;
+		View_stack             &_view_stack;
 		::View                  _view;
-		Genode::Rpc_entrypoint *_ep;
-
-		static unsigned _flags(Session *session)
-		{
-			return (session && session->stay_top()) ? ::View::STAY_TOP : 0;
-		}
+		Genode::Rpc_entrypoint &_ep;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		View_component(::Session *session, View_stack *view_stack,
-		               Genode::Rpc_entrypoint *ep):
-			_view_stack(view_stack), _view(session, _flags(session)), _ep(ep) { }
+		View_component(::Session &session, View_stack &view_stack,
+		               Genode::Rpc_entrypoint &ep):
+			_view_stack(view_stack),
+			_view(session,
+			      session.stay_top() ? ::View::STAY_TOP : ::View::NOT_STAY_TOP,
+			      ::View::NOT_TRANSPARENT, ::View::NOT_BACKGROUND, Rect()),
+			_ep(ep) { }
 
-		::View *view() { return &_view; }
+		::View &view() { return _view; }
 
 
 		/******************************
@@ -372,26 +371,26 @@ class View_component : public Genode::List<View_component>::Element,
 		             int buf_x, int buf_y, bool redraw)
 		{
 			/* transpose y position by vertical session offset */
-			y += _view.session()->v_offset();
+			y += _view.session().v_offset();
 
-			_view_stack->viewport(&_view, Rect(Point(x, y), Area(w, h)),
-			                              Point(buf_x, buf_y), redraw);
+			_view_stack.viewport(_view, Rect(Point(x, y), Area(w, h)),
+			                            Point(buf_x, buf_y), redraw);
 			return 0;
 		}
 
 		int stack(Nitpicker::View_capability neighbor_cap, bool behind, bool redraw)
 		{
-			Genode::Object_pool<View_component>::Guard nvc(_ep->lookup_and_lock(neighbor_cap));
+			Genode::Object_pool<View_component>::Guard nvc(_ep.lookup_and_lock(neighbor_cap));
 
-			::View *neighbor_view = nvc ? nvc->view() : 0;
+			::View *neighbor_view = nvc ? &nvc->view() : 0;
 
-			_view_stack->stack(&_view, neighbor_view, behind, redraw);
+			_view_stack.stack(_view, neighbor_view, behind, redraw);
 			return 0;
 		}
 
 		int title(Title const &title)
 		{
-			_view_stack->title(&_view, title.string());
+			_view_stack.title(_view, title.string());
 			return 0;
 		}
 };
@@ -417,9 +416,9 @@ namespace Nitpicker {
 			 * Entrypoint that is used for the views, input session,
 			 * and framebuffer session.
 			 */
-			Genode::Rpc_entrypoint *_ep;
+			Genode::Rpc_entrypoint &_ep;
 
-			View_stack *_view_stack;
+			View_stack &_view_stack;
 
 			Genode::List<View_component> _view_list;
 
@@ -434,24 +433,24 @@ namespace Nitpicker {
 			/**
 			 * Constructor
 			 */
-			Session_component(const char             *name,
-			                  ::Buffer               *buffer,
-			                  Texture                *texture,
-			                  View_stack             *view_stack,
-			                  Genode::Rpc_entrypoint *ep,
-			                  Flush_merger           *flush_merger,
-			                  Framebuffer::Session   *framebuffer,
+			Session_component(char             const *name,
+			                  ::Buffer               &buffer,
+			                  Texture          const &texture,
+			                  View_stack             &view_stack,
+			                  Genode::Rpc_entrypoint &ep,
+			                  Flush_merger           &flush_merger,
+			                  Framebuffer::Session   &framebuffer,
 			                  int                     v_offset,
-			                  unsigned char          *input_mask,
+			                  unsigned char    const *input_mask,
 			                  bool                    provides_default_bg,
 			                  Color                   color,
 			                  bool                    stay_top)
 			:
 				::Session(name, texture, v_offset, color, input_mask, stay_top),
-				_framebuffer_session_component(buffer, view_stack, this, flush_merger, framebuffer),
+				_framebuffer_session_component(buffer, view_stack, *this, flush_merger, framebuffer),
 				_ep(ep), _view_stack(view_stack),
-				_framebuffer_session_cap(_ep->manage(&_framebuffer_session_component)),
-				_input_session_cap(_ep->manage(&_input_session_component)),
+				_framebuffer_session_cap(_ep.manage(&_framebuffer_session_component)),
+				_input_session_cap(_ep.manage(&_input_session_component)),
 				_provides_default_bg(provides_default_bg)
 			{ }
 
@@ -460,11 +459,10 @@ namespace Nitpicker {
 			 */
 			~Session_component()
 			{
-				_ep->dissolve(&_framebuffer_session_component);
-				_ep->dissolve(&_input_session_component);
+				_ep.dissolve(&_framebuffer_session_component);
+				_ep.dissolve(&_input_session_component);
 
-				View_component *vc;
-				while ((vc = _view_list.first()))
+				while (View_component *vc = _view_list.first())
 					destroy_view(vc->cap());
 			}
 
@@ -473,7 +471,7 @@ namespace Nitpicker {
 			 ** Nitpicker-internal session interface **
 			 ******************************************/
 
-			void submit_input_event(Input::Event *ev)
+			void submit_input_event(Input::Event e)
 			{
 				using namespace Input;
 
@@ -481,7 +479,6 @@ namespace Nitpicker {
 				 * Transpose absolute coordinates by session-specific vertical
 				 * offset.
 				 */
-				Event e = *ev;
 				if (e.ax() || e.ay())
 					e = Event(e.type(), e.code(), e.ax(),
 					          max(0, e.ay() - v_offset()), e.rx(), e.ry());
@@ -507,19 +504,19 @@ namespace Nitpicker {
 				 *        Use a heap partition!
 				 */
 				View_component *view = new (Genode::env()->heap())
-				                       View_component(this, _view_stack, _ep);
+				                       View_component(*this, _view_stack, _ep);
 
 				_view_list.insert(view);
-				return _ep->manage(view);
+				return _ep.manage(view);
 			}
 
 			void destroy_view(View_capability view_cap)
 			{
-				View_component *vc = dynamic_cast<View_component *>(_ep->lookup_and_lock(view_cap));
+				View_component *vc = dynamic_cast<View_component *>(_ep.lookup_and_lock(view_cap));
 				if (!vc) return;
 
-				_view_stack->remove_view(vc->view());
-				_ep->dissolve(vc);
+				_view_stack.remove_view(vc->view());
+				_ep.dissolve(vc);
 				_view_list.remove(vc);
 				destroy(Genode::env()->heap(), vc);
 			}
@@ -527,9 +524,9 @@ namespace Nitpicker {
 			int background(View_capability view_cap)
 			{
 				if (_provides_default_bg) {
-					Genode::Object_pool<View_component>::Guard vc(_ep->lookup_and_lock(view_cap));
-					vc->view()->background(true);
-					_view_stack->default_background(vc->view());
+					Genode::Object_pool<View_component>::Guard vc(_ep.lookup_and_lock(view_cap));
+					vc->view().background(true);
+					_view_stack.default_background(vc->view());
 					return 0;
 				}
 
@@ -537,11 +534,11 @@ namespace Nitpicker {
 				if (::Session::background()) ::Session::background()->background(false);
 
 				/* assign session background */
-				Genode::Object_pool<View_component>::Guard vc(_ep->lookup_and_lock(view_cap));
-				::Session::background(vc->view());
+				Genode::Object_pool<View_component>::Guard vc(_ep.lookup_and_lock(view_cap));
+				::Session::background(&vc->view());
 
 				/* switch background view to background mode */
-				if (::Session::background()) ::Session::background()->background(true);
+				if (::Session::background()) vc->view().background(true);
 
 				return 0;
 			}
@@ -556,9 +553,9 @@ namespace Nitpicker {
 			Session_list         &_session_list;
 			Global_keys          &_global_keys;
 			Area                  _scr_size;
-			View_stack           *_view_stack;
-			Flush_merger         *_flush_merger;
-			Framebuffer::Session *_framebuffer;
+			View_stack           &_view_stack;
+			Flush_merger         &_flush_merger;
+			Framebuffer::Session &_framebuffer;
 			int                   _default_v_offset;
 
 		protected:
@@ -598,7 +595,7 @@ namespace Nitpicker {
 				bool provides_default_bg = (Genode::strcmp(label_buf, "backdrop") == 0);
 
 				Session_component *session = new (md_alloc())
-					Session_component(label_buf, cdt, cdt, _view_stack, ep(),
+					Session_component(label_buf, *cdt, *cdt, _view_stack, *ep(),
 					                  _flush_merger, _framebuffer, v_offset,
 					                  cdt->input_mask_buffer(),
 					                  provides_default_bg, session_color(args),
@@ -612,14 +609,17 @@ namespace Nitpicker {
 
 			void _destroy_session(Session_component *session)
 			{
-				Chunky_dataspace_texture<PT> *cdt;
-				cdt = static_cast<Chunky_dataspace_texture<PT> *>(session->texture());
+				/* retrieve pointer to texture from session */
+				Chunky_dataspace_texture<PT> const &cdt =
+					static_cast<Chunky_dataspace_texture<PT> const &>(session->texture());
 
 				_session_list.remove(session);
 				_global_keys.apply_config(_session_list);
 
 				destroy(md_alloc(), session);
-				destroy(md_alloc(), cdt);
+
+				/* cast away constness just for destruction of the texture */
+				destroy(md_alloc(), const_cast<Chunky_dataspace_texture<PT> *>(&cdt));
 			}
 
 		public:
@@ -628,12 +628,12 @@ namespace Nitpicker {
 			 * Constructor
 			 */
 			Root(Session_list &session_list, Global_keys &global_keys,
-			     Genode::Rpc_entrypoint *session_ep, Area scr_size,
-			     View_stack *view_stack, Genode::Allocator *md_alloc,
-			     Flush_merger *flush_merger,
-			     Framebuffer::Session *framebuffer, int default_v_offset)
+			     Genode::Rpc_entrypoint &session_ep, Area scr_size,
+			     View_stack &view_stack, Genode::Allocator &md_alloc,
+			     Flush_merger &flush_merger,
+			     Framebuffer::Session &framebuffer, int default_v_offset)
 			:
-				Genode::Root_component<Session_component>(session_ep, md_alloc),
+				Genode::Root_component<Session_component>(&session_ep, &md_alloc),
 				_session_list(session_list), _global_keys(global_keys),
 				_scr_size(scr_size), _view_stack(view_stack), _flush_merger(flush_merger),
 				_framebuffer(framebuffer), _default_v_offset(default_v_offset) { }
@@ -657,30 +657,30 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 {
 	private:
 
-		User_state           *_user_state;
-		View                 *_mouse_cursor;
-		Area                  _mouse_size;
-		Flush_merger         *_flush_merger;
-		Input::Session       *_input;
+		User_state           &_user_state;
+		View                 &_mouse_cursor;
+		Area           const  _mouse_size;
+		Flush_merger         &_flush_merger;
+		Input::Session       &_input;
 		Input::Event         *_ev_buf;
-		Framebuffer::Session *_framebuffer;
-		Timer::Session       *_timer;
+		Framebuffer::Session &_framebuffer;
+		Timer::Session       &_timer;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Input_handler_component(User_state *user_state, View *mouse_cursor,
-		                        Area mouse_size, Flush_merger *flush_merger,
-		                        Input::Session *input,
-		                        Framebuffer::Session *framebuffer,
-		                        Timer::Session *timer)
+		Input_handler_component(User_state &user_state, View &mouse_cursor,
+		                        Area mouse_size, Flush_merger &flush_merger,
+		                        Input::Session &input,
+		                        Framebuffer::Session &framebuffer,
+		                        Timer::Session &timer)
 		:
 			_user_state(user_state), _mouse_cursor(mouse_cursor),
 			_mouse_size(mouse_size), _flush_merger(flush_merger),
 			_input(input),
-			_ev_buf(Genode::env()->rm_session()->attach(_input->dataspace())),
+			_ev_buf(Genode::env()->rm_session()->attach(_input.dataspace())),
 			_framebuffer(framebuffer), _timer(timer)
 		{ }
 
@@ -691,7 +691,7 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 		 * \param max  size of the event array
 		 * \return     number of events subjected to merge
 		 */
-		unsigned _num_consecutive_events(Input::Event *ev, unsigned max)
+		unsigned _num_consecutive_events(Input::Event const *ev, unsigned max)
 		{
 			if (max < 1) return 0;
 			if (ev->type() != Input::Event::MOTION) return 1;
@@ -714,7 +714,7 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 		 * \param n   number of events to merge
 		 * \return    merged motion event
 		 */
-		Input::Event _merge_motion_events(Input::Event *ev, unsigned n)
+		static Input::Event _merge_motion_events(Input::Event const *ev, unsigned n)
 		{
 			Input::Event res;
 			for (unsigned i = 0; i < n; i++, ev++)
@@ -751,7 +751,7 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 					continue;
 
 				/* pass event to user state */
-				_user_state->handle_event(curr);
+				_user_state.handle_event(curr);
 			}
 		}
 
@@ -761,28 +761,28 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 		void do_input_handling()
 		{
 			do {
-				Point old_mouse_pos = _user_state->mouse_pos();
+				Point old_mouse_pos = _user_state.mouse_pos();
 
 				/* handle batch of pending events */
-				if (_input->is_pending())
-					_import_input_events(_input->flush());
+				if (_input.is_pending())
+					_import_input_events(_input.flush());
 
-				Point new_mouse_pos = _user_state->mouse_pos();
+				Point new_mouse_pos = _user_state.mouse_pos();
 
 				/* update mouse cursor */
 				if (old_mouse_pos != new_mouse_pos)
-					_user_state->viewport(_mouse_cursor,
-					                      Rect(new_mouse_pos, _mouse_size),
-					                      Point(), true);
+					_user_state.viewport(_mouse_cursor,
+					                     Rect(new_mouse_pos, _mouse_size),
+					                     Point(), true);
 
 				/* flush dirty pixels to physical frame buffer */
-				if (_flush_merger->defer == false) {
-					Rect r = _flush_merger->to_be_flushed();
+				if (_flush_merger.defer == false) {
+					Rect r = _flush_merger.to_be_flushed();
 					if (r.valid())
-						_framebuffer->refresh(r.x1(), r.y1(), r.w(), r.h());
-					_flush_merger->reset();
+						_framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h());
+					_flush_merger.reset();
 				}
-				_flush_merger->defer = false;
+				_flush_merger.defer = false;
 
 				/*
 				 * In kill mode, we never leave the dispatch function to block
@@ -790,10 +790,10 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 				 * spinning for the end of the kill mode less painful for all
 				 * non-blocked processes.
 				 */
-				if (_user_state->kill())
-					_timer->msleep(10);
+				if (_user_state.kill())
+					_timer.msleep(10);
 
-			} while (_user_state->kill());
+			} while (_user_state.kill());
 		}
 };
 
@@ -930,23 +930,23 @@ int main(int argc, char **argv)
 	 */
 	global_keys.apply_config(session_list);
 
-	static User_state user_state(global_keys, &screen, &menubar);
+	static User_state user_state(global_keys, screen, menubar);
 
 	/*
 	 * Create view stack with default elements
 	 */
 	Area             mouse_size(big_mouse.w, big_mouse.h);
 	Mouse_cursor<PT> mouse_cursor((PT *)&big_mouse.pixels[0][0],
-	                              mouse_size, &user_state);
+	                              mouse_size, user_state);
 
 	menubar.state(user_state, "", "", BLACK);
 
 	Background background(screen.size());
 
-	user_state.default_background(&background);
-	user_state.stack(&mouse_cursor);
-	user_state.stack(&menubar);
-	user_state.stack(&background);
+	user_state.default_background(background);
+	user_state.stack(mouse_cursor);
+	user_state.stack(menubar);
+	user_state.stack(background);
 
 	/*
 	 * Initialize Nitpicker root interface
@@ -955,9 +955,9 @@ int main(int argc, char **argv)
 	Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
 	static Nitpicker::Root<PT> np_root(session_list, global_keys,
-	                                   &ep, Area(mode.width(), mode.height()),
-	                                   &user_state, &sliced_heap,
-	                                   &screen, &framebuffer,
+	                                   ep, Area(mode.width(), mode.height()),
+	                                   user_state, sliced_heap,
+	                                   screen, framebuffer,
 	                                   MENUBAR_HEIGHT);
 
 	env()->parent()->announce(ep.manage(&np_root));
@@ -971,8 +971,8 @@ int main(int argc, char **argv)
 	 * periodic fashion.
 	 */
 	static Input_handler_component
-		input_handler(&user_state, &mouse_cursor, mouse_size,
-		              &screen, &input, &framebuffer, &timer);
+		input_handler(user_state, mouse_cursor, mouse_size,
+		              screen, input, framebuffer, timer);
 	Capability<Input_handler> input_handler_cap = ep.manage(&input_handler);
 
 	/* start periodic mode of operation */

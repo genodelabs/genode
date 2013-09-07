@@ -26,19 +26,19 @@
 /**
  * Draw rectangle
  */
-static void draw_rect(Canvas *canvas, int x, int y, int w, int h, Color color)
+static void draw_rect(Canvas &canvas, int x, int y, int w, int h, Color color)
 {
-	canvas->draw_box(Rect(Point(x, y),         Area(w, 1)), color);
-	canvas->draw_box(Rect(Point(x, y),         Area(1, h)), color);
-	canvas->draw_box(Rect(Point(x + w - 1, y), Area(1, h)), color);
-	canvas->draw_box(Rect(Point(x, y + h - 1), Area(w, 1)), color);
+	canvas.draw_box(Rect(Point(x, y),         Area(w, 1)), color);
+	canvas.draw_box(Rect(Point(x, y),         Area(1, h)), color);
+	canvas.draw_box(Rect(Point(x + w - 1, y), Area(1, h)), color);
+	canvas.draw_box(Rect(Point(x, y + h - 1), Area(w, 1)), color);
 }
 
 
 /**
  * Draw outlined frame with black outline color
  */
-static void draw_frame(Canvas *canvas, Rect r, Color color, int frame_size)
+static void draw_frame(Canvas &canvas, Rect r, Color color, int frame_size)
 {
 	/* draw frame around the view */
 	int d = frame_size;
@@ -58,35 +58,33 @@ void View::title(const char *title)
 	Nitpicker::strncpy(_title, title, TITLE_LEN);
 
 	/* calculate label size, the position is defined by the view stack */
-	_label_rect = Rect(Point(0, 0), label_size(_session->label(), _title));
+	_label_rect = Rect(Point(0, 0), label_size(_session.label(), _title));
 }
 
 
-void View::frame(Canvas *canvas, Mode *mode)
+void View::frame(Canvas &canvas, Mode const &mode) const
 {
 	/* do not draw frame in flat mode */
-	if (mode->flat()) return;
+	if (mode.flat()) return;
 
-	draw_frame(canvas, *this, _session->color(), frame_size(mode));
+	draw_frame(canvas, *this, _session.color(), frame_size(mode));
 }
 
 
-void View::draw(Canvas *canvas, Mode *mode)
+void View::draw(Canvas &canvas, Mode const &mode) const
 {
-	/* use dimming in x-ray mode */
-	Canvas::Mode op = mode->flat() ? Canvas::SOLID : Canvas::MIXED;
-
 	/* is this the currently focused view? */
-	Session *focused_session = mode->focused_view()
-	                         ? mode->focused_view()->session()
-	                         : 0;
+	bool const view_is_focused = mode.focused_view()
+	                          && mode.focused_view()->belongs_to(_session);
 
-	bool view_is_focused = (focused_session == _session);
-	Color frame_color = _session->color();
+	Color const frame_color = _session.color();
 
-	/* do not dim the focused view in x-ray mode */
-	if (mode->xray() && !mode->kill() && view_is_focused)
-		op = Canvas::SOLID;
+	/*
+	 * Use dimming in x-ray and kill mode, but do not dim the focused view in
+	 * x-ray mode.
+	 */
+	Canvas::Mode const op = mode.flat() || (mode.xray() && view_is_focused)
+	                      ? Canvas::SOLID : Canvas::MIXED;
 
 	/*
 	 * The view content and label should never overdraw the
@@ -97,25 +95,25 @@ void View::draw(Canvas *canvas, Mode *mode)
 	Clip_guard clip_guard(canvas, *this);
 
 	/*
-	 * If the clipping area shrinked to zero,
-	 * we do not process drawing operations.
+	 * If the clipping area shrinked to zero, we do not process drawing
+	 * operations.
 	 */
-	if (!canvas->clip_valid() || !_session) return;
+	if (!canvas.clip_valid() || !&_session) return;
 
 	/* allow alpha blending only in flat mode */
-	bool allow_alpha = mode->flat();
+	bool allow_alpha = mode.flat();
 
 	/* draw view content */
-	Color mix_color = Color(_session->color().r >> 1,
-	                        _session->color().g >> 1,
-	                        _session->color().b >> 1);
+	Color const mix_color = mode.kill() ? KILL_COLOR
+	                      : Color(_session.color().r >> 1,
+	                              _session.color().g >> 1,
+	                              _session.color().b >> 1);
 
-	if (mode->kill()) mix_color = KILL_COLOR;
-	canvas->draw_texture(_session->texture(), mix_color, _buffer_off + p1(),
-	                     op, allow_alpha);
+	canvas.draw_texture(_session.texture(), mix_color, _buffer_off + p1(),
+	                    op, allow_alpha);
 
-	if (mode->flat()) return;
+	if (mode.flat()) return;
 
 	/* draw label */
-	draw_label(canvas, _label_rect.p1(), _session->label(), WHITE, _title, frame_color);
+	draw_label(canvas, _label_rect.p1(), _session.label(), WHITE, _title, frame_color);
 }

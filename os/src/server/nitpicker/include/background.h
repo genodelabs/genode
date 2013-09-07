@@ -17,32 +17,40 @@
 #include "view.h"
 #include "clip_guard.h"
 
-class Background : public Session, public View
+struct Background : private Texture, Session, View
 {
-	public:
+	/*
+	 * The background uses no texture. Therefore
+	 * we can pass a null pointer as texture argument
+	 * to the Session constructor.
+	 */
+	Background(Area size)
+	:
+		Texture(Area(0, 0)), Session("", *this, 0, BLACK),
+		View(*this, View::NOT_STAY_TOP, View::NOT_TRANSPARENT,
+		     View::BACKGROUND, Rect(Point(0, 0), size))
+	{ }
 
-		/*
-		 * The background uses no texture. Therefore
-		 * we can pass a null pointer as texture argument
-		 * to the Session constructor.
-		 */
-		Background(Area size) :
-			Session("", 0, 0, BLACK),
-			View(this, View::BACKGROUND, Rect(Point(0, 0), size)) { }
+
+	/***********************
+	 ** Session interface **
+	 ***********************/
+
+	void submit_input_event(Input::Event) { }
 
 
-		/********************
-		 ** View interface **
-		 ********************/
+	/********************
+	 ** View interface **
+	 ********************/
 
-		int  frame_size(Mode *mode) { return 0; }
-		void frame(Canvas *canvas, Mode *mode) { }
+	int  frame_size(Mode const &mode) const { return 0; }
+	void frame(Canvas &canvas, Mode const &mode) { }
 
-		void draw(Canvas *canvas, Mode *mode)
-		{
-			Clip_guard clip_guard(canvas, *this);
-			canvas->draw_box(*this, Color(25, 37, 50));
-		}
+	void draw(Canvas &canvas, Mode const &mode) const
+	{
+		Clip_guard clip_guard(canvas, *this);
+		canvas.draw_box(*this, Color(25, 37, 50));
+	}
 };
 
-#endif
+#endif /* _BACKGROUND_H_ */

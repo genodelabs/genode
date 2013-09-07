@@ -35,9 +35,9 @@ static inline bool _mouse_button(Keycode keycode) {
  ** User state interface **
  **************************/
 
-User_state::User_state(Global_keys &global_keys, Canvas *canvas, Menubar *menubar)
+User_state::User_state(Global_keys &global_keys, Canvas &canvas, Menubar &menubar)
 :
-	View_stack(canvas, this), _global_keys(global_keys), _key_cnt(0),
+	View_stack(canvas, *this), _global_keys(global_keys), _key_cnt(0),
 	_menubar(menubar), _pointed_view(0), _input_receiver(0),
 	_global_key_sequence(false)
 { }
@@ -52,7 +52,7 @@ void User_state::handle_event(Input::Event ev)
 	 * Mangle incoming events
 	 */
 	int ax = _mouse_pos.x(), ay = _mouse_pos.y();
-	int rx = 0, ry = 0; /* skip info about relative motion per default */
+	int rx = 0, ry = 0; /* skip info about relative motion by default */
 
 	/* transparently handle absolute and relative motion events */
 	if (type == Event::MOTION) {
@@ -76,22 +76,27 @@ void User_state::handle_event(Input::Event ev)
 
 	_mouse_pos = Point(ax, ay);
 
-	View * pointed_view = find_view(_mouse_pos);
+	/* count keys */
+	if (type == Event::PRESS)                   _key_cnt++;
+	if (type == Event::RELEASE && _key_cnt > 0) _key_cnt--;
+
+	View const * const pointed_view = find_view(_mouse_pos);
 
 	/*
 	 * Deliver a leave event if pointed-to session changed
 	 */
 	if (pointed_view && _pointed_view &&
-		pointed_view->session() != _pointed_view->session()) {
+		!pointed_view->same_session_as(*_pointed_view)) {
+
 		Input::Event leave_ev(Input::Event::LEAVE, 0, ax, ay, 0, 0);
-		_pointed_view->session()->submit_input_event(&leave_ev);
+		_pointed_view->session().submit_input_event(leave_ev);
 	}
 
-	/* remember currently pointed-at view */
 	_pointed_view = pointed_view;
 
 	/**
-	 * Guard that performs a whole-screen update when leaving the scope
+	 * Guard that, when 'enabled' is set to true, performs a whole-screen
+	 * update when leaving the scope
 	 */
 	struct Update_all_guard
 	{
@@ -108,40 +113,42 @@ void User_state::handle_event(Input::Event ev)
 				return;
 
 			if (user_state._input_receiver)
-				user_state._menubar->state(user_state, user_state._input_receiver->label(),
-				 menu_title, user_state._input_receiver->color());
+				user_state._menubar.state(user_state,
+				                          user_state._input_receiver->label(),
+				                          menu_title,
+				                          user_state._input_receiver->color());
 			else
-				user_state._menubar->state(user_state, "", "", BLACK);
+				user_state._menubar.state(user_state, "", "", BLACK);
 
 			user_state.update_all_views();
 		}
 	} update_all_guard(*this);
 
 	/*
-	 * Detect mouse press event in kill mode, used to select the session
-	 * to lock out.
-	 */
-	if (kill() && type == Event::PRESS && keycode == Input::BTN_LEFT) {
-		if (pointed_view && pointed_view->session())
-			lock_out_session(pointed_view->session());
-
-		/* leave kill mode */
-		pointed_view             = 0;
-		Mode::_mode             &= ~KILL;
-		update_all_guard.enabled = true;
-	}
-
-	/*
 	 * Handle start of a key sequence
 	 */
-	if (type == Event::PRESS && _key_cnt == 0) {
+	if (type == Event::PRESS && _key_cnt == 1) {
+
+		/*
+		 * Detect mouse press event in kill mode, used to select the session
+		 * to lock out.
+		 */
+		if (kill() && keycode == Input::BTN_LEFT) {
+			if (pointed_view)
+				lock_out_session(pointed_view->session());
+
+			/* leave kill mode */
+			update_all_guard.enabled = true;
+			Mode::leave_kill();
+			return;
+		}
 
 		/* update focused view */
 		if (pointed_view != focused_view() && _mouse_button(keycode)) {
 
 			bool const focus_stays_in_session =
-				(_focused_view && pointed_view &&
-				 _focused_view->session() == pointed_view->session());
+				focused_view() && pointed_view &&
+				focused_view()->belongs_to(pointed_view->session());
 
 			/*
 			 * Update the whole screen when the focus change results in
@@ -155,21 +162,21 @@ void User_state::handle_event(Input::Event ev)
 			 */
 			if (!focus_stays_in_session) {
 
-				if (_focused_view) {
+				if (focused_view()) {
 					Input::Event unfocus_ev(Input::Event::FOCUS, 0, ax, ay, 0, 0);
-					_focused_view->session()->submit_input_event(&unfocus_ev);
+					focused_view()->session().submit_input_event(unfocus_ev);
 				}
 
 				if (pointed_view) {
 					Input::Event focus_ev(Input::Event::FOCUS, 1, ax, ay, 0, 0);
-					pointed_view->session()->submit_input_event(&focus_ev);
+					pointed_view->session().submit_input_event(focus_ev);
 				}
 			}
 
-			if (!flat() || !_focused_view || !pointed_view)
+			if (!flat() || !focused_view() || !pointed_view)
 				update_all_guard.enabled = true;
 
-			_focused_view = pointed_view;
+			focused_view(pointed_view);
 		}
 
 		/*
@@ -194,9 +201,9 @@ void User_state::handle_event(Input::Event ev)
 		 * No global rule matched, so the input stream gets directed to the
 		 * focused view or refers to a built-in operation.
 		 */
-		if (!global_receiver && _focused_view) {
-			_input_receiver             = _focused_view->session();
-			update_all_guard.menu_title = _focused_view->title();
+		if (!global_receiver && focused_view()) {
+			_input_receiver             = &focused_view()->session();
+			update_all_guard.menu_title =  focused_view()->title();
 		}
 
 		/*
@@ -205,22 +212,17 @@ void User_state::handle_event(Input::Event ev)
 		 */
 		if (_global_keys.is_operation_key(keycode)) {
 
-			Mode::_mode ^= _global_keys.is_kill_key(keycode) ? KILL : 0
-			             | _global_keys.is_xray_key(keycode) ? XRAY : 0;
+			if (_global_keys.is_kill_key(keycode)) Mode::toggle_kill();
+			if (_global_keys.is_xray_key(keycode)) Mode::toggle_xray();
 
 			update_all_guard.enabled = true;
 			_input_receiver          = 0;
 		}
 	}
 
-	/* count keys */
-	if (type == Event::PRESS) _key_cnt++;
-	if (type == Event::RELEASE && _key_cnt > 0) _key_cnt--;
-
 	/*
-	 * Deliver event to Nitpicker session except when kill mode is activated
+	 * Deliver event to session except when kill mode is activated
 	 */
-
 	if (kill()) return;
 
 	if (type == Event::MOTION || type == Event::WHEEL) {
@@ -234,23 +236,23 @@ void User_state::handle_event(Input::Event ev)
 			 */
 			if (flat() || (xray() && focused_view() == pointed_view))
 				if (pointed_view)
-					pointed_view->session()->submit_input_event(&ev);
+					pointed_view->session().submit_input_event(ev);
 
 		} else if (_input_receiver)
-			_input_receiver->submit_input_event(&ev);
+			_input_receiver->submit_input_event(ev);
 	}
 
 	/* deliver press/release event to session with focused view */
 	if (type == Event::PRESS || type == Event::RELEASE)
 		if (_input_receiver)
-			_input_receiver->submit_input_event(&ev);
+			_input_receiver->submit_input_event(ev);
 
 	/*
 	 * Detect end of global key sequence
 	 */
 	if (ev.type() == Event::RELEASE && _key_cnt == 0 && _global_key_sequence) {
-		_input_receiver             = _focused_view ? _focused_view->session() : 0;
-		update_all_guard.menu_title = _focused_view ? _focused_view->title()   : "";
+		_input_receiver             = focused_view() ? &focused_view()->session() : 0;
+		update_all_guard.menu_title = focused_view() ?  focused_view()->title()   : "";
 		update_all_guard.enabled    = true;
 		_global_key_sequence        = false;
 	}
@@ -261,16 +263,17 @@ void User_state::handle_event(Input::Event ev)
  ** Mode interface **
  ********************/
 
-void User_state::forget(View *v)
+void User_state::forget(View const &view)
 {
-	if (_focused_view == v) {
-		Mode::forget(v);
-		_menubar->state(*this, "", "", BLACK);
+	if (focused_view() == &view) {
+		Mode::forget(view);
+		_menubar.state(*this, "", "", BLACK);
 		update_all_views();
 	}
-	if (_input_receiver == v->session())
+	if (_input_receiver && view.belongs_to(*_input_receiver))
 		_input_receiver = 0;
-	if (_pointed_view == v)
+
+	if (_pointed_view == &view)
 		_pointed_view = find_view(_mouse_pos);
 }
 
