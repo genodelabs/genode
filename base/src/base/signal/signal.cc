@@ -141,7 +141,7 @@ namespace Genode {
 				Lock::Guard guard(_lock);
 
 				/* search list for context */
-				List_element<Signal_context> *le = _list.first();
+				List_element<Signal_context> const *le = _list.first();
 				for ( ; le; le = le->next()) {
 
 					if (context == le->object()) {

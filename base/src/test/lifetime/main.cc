@@ -32,7 +32,7 @@ void Genode::Volatile_object_base::debug_info() const
 {
 	/* count number of weak pointers pointing to the object */
 	weak_ptr_cnt = 0;
-	for (Weak_ptr_base *curr = _list.first(); curr; curr = curr->next())
+	for (Weak_ptr_base const *curr = _list.first(); curr; curr = curr->next())
 		weak_ptr_cnt++;
 }
 

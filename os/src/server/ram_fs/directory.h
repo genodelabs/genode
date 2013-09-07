@@ -28,7 +28,7 @@ namespace File_system {
 
 			bool has_sub_node_unsynchronized(char const *name) const
 			{
-				Node *sub_node = _entries.first();
+				Node const *sub_node = _entries.first();
 				for (; sub_node; sub_node = sub_node->next())
 					if (strcmp(sub_node->name(), name) == 0)
 						return true;

@@ -48,15 +48,27 @@ class Libc::Mmap_registry
 
 		Genode::Lock mutable _lock;
 
-		Entry *_lookup_by_addr_unsynchronized(void * const start) const
+		/*
+		 * Common for both const and non-const lookup functions
+		 */
+		template <typename ENTRY>
+		static ENTRY *_lookup_by_addr_unsynchronized(ENTRY *curr, void * const start)
 		{
-			Entry *curr = _list.first();
-
 			for (; curr; curr = curr->next())
 				if (curr->start == start)
 					return curr;
 
 			return 0;
+		}
+
+		Entry const *_lookup_by_addr_unsynchronized(void * const start) const
+		{
+			return _lookup_by_addr_unsynchronized(_list.first(), start);
+		}
+
+		Entry *_lookup_by_addr_unsynchronized(void * const start)
+		{
+			return _lookup_by_addr_unsynchronized(_list.first(), start);
 		}
 
 	public:
@@ -77,7 +89,7 @@ class Libc::Mmap_registry
 		{
 			Genode::Lock::Guard guard(_lock);
 
-			Entry * const e = _lookup_by_addr_unsynchronized(start);
+			Entry const * const e = _lookup_by_addr_unsynchronized(start);
 			return e ? e->plugin : 0;
 		}
 

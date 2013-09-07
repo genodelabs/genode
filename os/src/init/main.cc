@@ -141,7 +141,7 @@ namespace Init {
 
 			bool is_unique(const char *name) const
 			{
-				Genode::List_element<Child> *curr = first();
+				Genode::List_element<Child> const *curr = first();
 				for (; curr; curr = curr->next())
 					if (curr->object()->has_name(name))
 						return false;
@@ -151,7 +151,7 @@ namespace Init {
 
 			Genode::Server *lookup_server(const char *name) const
 			{
-				Genode::List_element<Child> *curr = first();
+				Genode::List_element<Child> const *curr = first();
 				for (; curr; curr = curr->next())
 					if (curr->object()->has_name(name))
 						return curr->object()->server();

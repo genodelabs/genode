@@ -34,7 +34,7 @@ namespace Genode {
 
 					friend class List;
 
-					LT *_next;
+					LT mutable *_next;
 
 				public:
 
@@ -53,34 +53,44 @@ namespace Genode {
 			 *
 			 * Start with an empty list.
 			 */
-			List(): _first(0) { }
+			List() : _first(0) { }
 
 			/**
 			 * Return first list element
 			 */
-			LT *first() const { return _first; }
+			LT       *first()       { return _first; }
+			LT const *first() const { return _first; }
 
 			/**
-			 * Insert element into list
+			 * Insert element after specified element into list
+			 *
+			 * \param  le  list element to insert
+			 * \param  at  target position (preceding list element)
 			 */
-			void insert(LT *le)
+			void insert(LT const *le, LT const *at = 0)
 			{
-				le->Element::_next = _first;
-				_first = le;
+				/* insert at beginning of the list */
+				if (at == 0) {
+					le->Element::_next = _first;
+					_first = const_cast<LT *>(le);
+				} else {
+					le->Element::_next = at->Element::_next;
+					at->Element::_next = const_cast<LT *>(le);
+				}
 			}
 
 			/**
 			 * Remove element from list
 			 */
-			void remove(LT *le)
+			void remove(LT const *le)
 			{
 				if (!_first) return;
 
 				/* if specified element is the first of the list */
-				if (le == _first)
+				if (le == _first) {
 					_first = le->Element::_next;
 
-				else {
+				} else {
 
 					/* search specified element in the list */
 					Element *e = _first;
@@ -119,7 +129,7 @@ namespace Genode {
 
 			List_element(T *object) : _object(object) { }
 
-			T *object() { return _object; }
+			T *object() const { return _object; }
 	};
 }
 

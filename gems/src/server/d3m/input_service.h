@@ -157,7 +157,7 @@ namespace Input {
 			 *
 			 * \return  total number of available input events
 			 */
-			Genode::size_t flush_sources(Event *dst, Genode::size_t dst_max) const
+			Genode::size_t flush_sources(Event *dst, Genode::size_t dst_max)
 			{
 				Genode::size_t dst_count = 0;
 
