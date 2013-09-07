@@ -55,7 +55,7 @@ static void draw_frame(Canvas &canvas, Rect r, Color color, int frame_size)
 
 void View::title(const char *title)
 {
-	Nitpicker::strncpy(_title, title, TITLE_LEN);
+	Genode::strncpy(_title, title, TITLE_LEN);
 
 	/* calculate label size, the position is defined by the view stack */
 	_label_rect = Rect(Point(0, 0), label_size(_session.label(), _title));

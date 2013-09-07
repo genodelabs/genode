@@ -14,12 +14,12 @@
 #ifndef _VIEW_H_
 #define _VIEW_H_
 
+#include <util/string.h>
 #include <nitpicker_gfx/canvas.h>
 #include <nitpicker_gfx/geometry.h>
 
 #include "list.h"
 #include "mode.h"
-#include "string.h"
 #include "session.h"
 
 class Buffer;

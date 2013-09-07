@@ -16,9 +16,7 @@
 
 /* Genode includes */
 #include <util/list.h>
-
-/* local includes */
-#include "string.h"
+#include <util/string.h>
 
 class Texture;
 class View;
@@ -70,7 +68,7 @@ class Session : public Session_list::Element
 		:
 			_color(color), _texture(texture), _background(0),
 			_v_offset(v_offset), _input_mask(input_mask), _stay_top(stay_top) {
-			Nitpicker::strncpy(_label, label, sizeof(_label)); }
+			Genode::strncpy(_label, label, sizeof(_label)); }
 
 		virtual ~Session() { }
 
