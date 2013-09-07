@@ -11,8 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include <base/printf.h>
-
 #include "view_stack.h"
 #include "clip_guard.h"
 
@@ -33,19 +31,6 @@ static View const *last_stay_top_view(View const *view)
 
 	return view;
 }
-
-
-/**
- * Get last view that without background attribute
- */
-//static View *last_foreground_view(View *view)
-//{
-//	for (; view && view->view_stack_next(); view = view->view_stack_next())
-//		if (view->view_stack_next()->background())
-//			break;
-//
-//	return view;
-//}
 
 
 /**************************

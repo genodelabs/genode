@@ -15,10 +15,10 @@
 #define _VIEW_H_
 
 #include <util/string.h>
+#include <util/list.h>
 #include <nitpicker_gfx/canvas.h>
 #include <nitpicker_gfx/geometry.h>
 
-#include "list.h"
 #include "mode.h"
 #include "session.h"
 
@@ -29,10 +29,10 @@ class Buffer;
  * For each buffer, there is a list of views that belong to
  * this buffer. This list is called Same_buffer_list.
  */
-class Same_buffer_list_elem : public List<Same_buffer_list_elem>::Element { };
+struct Same_buffer_list_elem : Genode::List<Same_buffer_list_elem>::Element { };
 
 
-class View_stack_elem : public List<View_stack_elem>::Element { };
+struct View_stack_elem : Genode::List<View_stack_elem>::Element { };
 
 
 class View : public Same_buffer_list_elem, public View_stack_elem, public Rect

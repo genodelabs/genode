@@ -22,10 +22,10 @@ class View_stack
 {
 	private:
 
-		Canvas                &_canvas;
-		Mode                  &_mode;
-		List<View_stack_elem>  _views;
-		View                  *_default_background;
+		Canvas                        &_canvas;
+		Mode                          &_mode;
+		Genode::List<View_stack_elem>  _views;
+		View                          *_default_background;
 
 		/**
 		 * Return outline geometry of a view
