@@ -65,3 +65,10 @@ the "launchpad -> testnit" program is running. As soon as testnit gets started
 by launchpad, testnit will receive the events. If the order was reversed,
 launchpad would always receive the events.
 
+Background color
+----------------
+
+The background color can be defined via the '<background>' config node:
+
+! <background color="#112233" />
+

@@ -19,6 +19,8 @@
 
 struct Background : private Texture, Session, View
 {
+	Color color;
+
 	/*
 	 * The background uses no texture. Therefore
 	 * we can pass a null pointer as texture argument
@@ -28,7 +30,8 @@ struct Background : private Texture, Session, View
 	:
 		Texture(Area(0, 0)), Session("", *this, 0, BLACK),
 		View(*this, View::NOT_STAY_TOP, View::NOT_TRANSPARENT,
-		     View::BACKGROUND, Rect(Point(0, 0), size))
+		     View::BACKGROUND, Rect(Point(0, 0), size)),
+		color(25, 37, 50)
 	{ }
 
 
@@ -49,7 +52,7 @@ struct Background : private Texture, Session, View
 	void draw(Canvas &canvas, Mode const &mode) const
 	{
 		Clip_guard clip_guard(canvas, *this);
-		canvas.draw_box(*this, Color(25, 37, 50));
+		canvas.draw_box(*this, color);
 	}
 };
 

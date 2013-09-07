@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <util/list.h>
 #include <util/string.h>
+#include <nitpicker_gfx/color.h>
+#include <nitpicker_gfx/geometry.h>
+#include <nitpicker_gfx/canvas.h>
 
 class Texture;
 class View;
