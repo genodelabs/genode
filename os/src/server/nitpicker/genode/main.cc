@@ -657,14 +657,14 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 {
 	private:
 
-		User_state           &_user_state;
-		View                 &_mouse_cursor;
-		Area           const  _mouse_size;
-		Flush_merger         &_flush_merger;
-		Input::Session       &_input;
-		Input::Event         *_ev_buf;
-		Framebuffer::Session &_framebuffer;
-		Timer::Session       &_timer;
+		User_state              &_user_state;
+		View                    &_mouse_cursor;
+		Area               const _mouse_size;
+		Flush_merger            &_flush_merger;
+		Input::Session          &_input;
+		Input::Event            *_ev_buf;
+		Framebuffer::Session    &_framebuffer;
+		Genode::Signal_receiver &_sig_rec;
 
 	public:
 
@@ -675,13 +675,13 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 		                        Area mouse_size, Flush_merger &flush_merger,
 		                        Input::Session &input,
 		                        Framebuffer::Session &framebuffer,
-		                        Timer::Session &timer)
+		                        Genode::Signal_receiver &sig_rec)
 		:
 			_user_state(user_state), _mouse_cursor(mouse_cursor),
 			_mouse_size(mouse_size), _flush_merger(flush_merger),
 			_input(input),
 			_ev_buf(Genode::env()->rm_session()->attach(_input.dataspace())),
-			_framebuffer(framebuffer), _timer(timer)
+			_framebuffer(framebuffer), _sig_rec(sig_rec)
 		{ }
 
 		/**
@@ -786,12 +786,12 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 
 				/*
 				 * In kill mode, we never leave the dispatch function to block
-				 * RPC calls from Nitpicker clients. We sleep here to make the
-				 * spinning for the end of the kill mode less painful for all
-				 * non-blocked processes.
+				 * RPC calls from Nitpicker clients. We block for signals here
+				 * to make the spinning for the end of the kill mode less
+				 * painful for all non-blocked processes.
 				 */
 				if (_user_state.kill())
-					_timer.msleep(10);
+					_sig_rec.wait_for_signal();
 
 			} while (_user_state.kill());
 		}
@@ -887,7 +887,6 @@ int main(int argc, char **argv)
 	/*
 	 * Sessions to the required external services
 	 */
-	static Timer::Connection       timer;
 	static Framebuffer::Connection framebuffer;
 	static Input::Connection       input;
 	static Cap_connection          cap;
@@ -951,7 +950,6 @@ int main(int argc, char **argv)
 	/*
 	 * Initialize Nitpicker root interface
 	 */
-
 	Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
 	static Nitpicker::Root<PT> np_root(session_list, global_keys,
@@ -963,6 +961,16 @@ int main(int argc, char **argv)
 	env()->parent()->announce(ep.manage(&np_root));
 
 	/*
+	 * Schedule periodic timer signals every 10 milliseconds
+	 */
+	static Timer::Connection timer;
+	static Signal_receiver   sig_rec;
+	Signal_context           timer_sig_ctx;
+
+	timer.sigh(sig_rec.manage(&timer_sig_ctx));
+	timer.trigger_periodic(10*1000);
+
+	/*
 	 * Initialize input handling
 	 *
 	 * We serialize the input handling with the client interfaces via
@@ -972,17 +980,13 @@ int main(int argc, char **argv)
 	 */
 	static Input_handler_component
 		input_handler(user_state, mouse_cursor, mouse_size,
-		              screen, input, framebuffer, timer);
+		              screen, input, framebuffer, sig_rec);
+
 	Capability<Input_handler> input_handler_cap = ep.manage(&input_handler);
 
-	/* start periodic mode of operation */
-	static Msgbuf<256> ih_snd_msg, ih_rcv_msg;
-	Ipc_client input_handler_client(input_handler_cap, &ih_snd_msg, &ih_rcv_msg);
-	while (1) {
-		timer.msleep(10);
-		input_handler_client << 0 << IPC_CALL;
+	for (;;) {
+		sig_rec.wait_for_signal();
+		input_handler_cap.call<Input_handler::Rpc_do_input_handling>();
 	}
-
-	sleep_forever();
 	return 0;
 }
