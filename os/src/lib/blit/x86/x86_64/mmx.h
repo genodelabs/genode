@@ -17,7 +17,7 @@
 /**
  * Copy 32byte chunks via MMX
  */
-static inline void copy_32byte_chunks(void *src, void *dst, int size)
+static inline void copy_32byte_chunks(void const *src, void *dst, int size)
 {
 	asm volatile (
 		"emms                             \n\t"

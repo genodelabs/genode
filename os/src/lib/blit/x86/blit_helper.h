@@ -20,11 +20,11 @@
 /**
  * Copy single 16bit column
  */
-static inline void copy_16bit_column(char *src, int src_w,
+static inline void copy_16bit_column(char const *src, int src_w,
                                      char *dst, int dst_w, int h)
 {
 	for (; h-- > 0; src += src_w, dst += dst_w)
-		*(short *)dst = *(short *)src;
+		*(short *)dst = *(short const *)src;
 }
 
 
@@ -38,7 +38,7 @@ static inline void copy_16bit_column(char *src, int src_w,
  * \param src_w  width of source buffer in bytes
  * \param dst_w  width of destination buffer in bytes
  */
-static inline void copy_block_32bit(char *src, int src_w,
+static inline void copy_block_32bit(char const *src, int src_w,
                                     char *dst, int dst_w,
                                     int w, int h)
 {
@@ -58,7 +58,7 @@ static inline void copy_block_32bit(char *src, int src_w,
  * \param w  width in 32 byte chunks to copy per line
  * \param h  number of lines of copy
  */
-static inline void copy_block_32byte(char *src, int src_w,
+static inline void copy_block_32byte(char const *src, int src_w,
                                      char *dst, int dst_w,
                                      int w, int h)
 {

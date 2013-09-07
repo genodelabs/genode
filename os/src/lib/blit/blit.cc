@@ -15,11 +15,12 @@
 #include <blit_helper.h>
 
 
-extern "C" void blit(void *s, unsigned src_w,
+extern "C" void blit(void const *s, unsigned src_w,
                      void *d, unsigned dst_w,
                      int w, int h)
 {
-	char *src = (char *)s, *dst = (char *)d;
+	char const *src = (char const *)s;
+	char       *dst = (char       *)d;
 
 	if (w <= 0 || h <= 0) return;
 

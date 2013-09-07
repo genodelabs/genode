@@ -28,8 +28,7 @@
  * If the source and destination overlap, the result
  * of the copy operation is not defined.
  */
-extern "C" void blit(void *src, unsigned src_w,
-                     void *dst, unsigned dst_w,
-                     int w, int h);
+extern "C" void blit(void const *src, unsigned src_w,
+                     void *dst, unsigned dst_w, int w, int h);
 
 #endif /* _INCLUDE__BLIT__BLIT_H_ */
