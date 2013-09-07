@@ -17,6 +17,7 @@
 #ifndef _INCLUDE__BASE__SIGNAL_H__
 #define _INCLUDE__BASE__SIGNAL_H__
 
+#include <util/noncopyable.h>
 #include <base/semaphore.h>
 #include <signal_session/signal_session.h>
 
@@ -219,7 +220,7 @@ namespace Genode {
 	/**
 	 * Signal receiver
 	 */
-	class Signal_receiver
+	class Signal_receiver : Noncopyable
 	{
 		private:
 
