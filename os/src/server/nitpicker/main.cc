@@ -15,13 +15,11 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/printf.h>
-#include <base/rpc_server.h>
 #include <os/attached_ram_dataspace.h>
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <root/component.h>
 #include <dataspace/client.h>
-#include <cap_session/connection.h>
 #include <timer_session/connection.h>
 #include <input_session/connection.h>
 #include <input_session/input_session.h>
@@ -31,7 +29,7 @@
 #include <nitpicker_gfx/pixel_rgb565.h>
 #include <nitpicker_gfx/string.h>
 #include <os/session_policy.h>
-#include <os/signal_rpc_dispatcher.h>
+#include <os/server.h>
 
 /* local includes */
 #include "input.h"
@@ -45,9 +43,13 @@ namespace Input       { using namespace Genode;  }
 namespace Input       { class Session_component; }
 namespace Framebuffer { using namespace Genode;  }
 namespace Framebuffer { class Session_component; }
-namespace Nitpicker   { using namespace Genode;  }
-namespace Nitpicker   { class Session_component; }
-namespace Nitpicker   { template <typename> class Root; }
+
+namespace Nitpicker {
+	using namespace Genode;
+	class Session_component;
+	template <typename> class Root;
+	struct Main;
+}
 
 
 /***************
@@ -646,117 +648,68 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 };
 
 
-void wait_and_dispatch_one_signal(Genode::Signal_receiver &sig_rec)
+struct Nitpicker::Main
 {
-	using namespace Genode;
-
-	/*
-	 * We call the signal dispatcher outside of the scope of 'Signal'
-	 * object because we block the RPC interface in the input handler
-	 * when the kill mode gets actived. While kill mode is active, we
-	 * do not serve incoming RPC requests but we need to stay responsive
-	 * to user input. Hence, we wait for signals in the input dispatcher
-	 * in this case. An already existing 'Signal' object would lock the
-	 * signal receiver and thereby prevent this nested way of signal
-	 * handling.
-	 */
-	Signal_dispatcher_base *dispatcher = 0;
-	unsigned num = 0;
-
-	{
-		Signal sig = sig_rec.wait_for_signal();
-		dispatcher = dynamic_cast<Signal_dispatcher_base *>(sig.context());
-		num        = sig.num();
-	}
-
-	if (dispatcher)
-		dispatcher->dispatch(num);
-}
-
-
-/******************
- ** Main program **
- ******************/
-
-typedef Pixel_rgb565 PT;  /* physical pixel type */
-
-
-int main(int argc, char **argv)
-{
-	using namespace Genode;
+	Server::Entrypoint &ep;
 
 	/*
 	 * Sessions to the required external services
 	 */
-	static Framebuffer::Connection framebuffer;
-	static Input::Connection       input;
-	static Cap_connection          cap;
+	Framebuffer::Connection framebuffer;
+	Input::Connection       input;
 
-	static Input::Event * const ev_buf =
+	Input::Event * const ev_buf =
 		env()->rm_session()->attach(input.dataspace());
-
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 16*1024 };
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "nitpicker_ep");
 
 	/*
 	 * Initialize framebuffer
 	 */
 	Framebuffer::Mode const mode = framebuffer.mode();
 
-	PINF("framebuffer is %dx%d@%d\n",
-	     mode.width(), mode.height(), mode.format());
-
 	Dataspace_capability fb_ds_cap = framebuffer.dataspace();
-	if (!fb_ds_cap.valid()) {
-		PERR("Could not request dataspace for frame buffer");
-		return -2;
-	}
+
+	typedef Pixel_rgb565 PT;  /* physical pixel type */
 
 	void *fb_base = env()->rm_session()->attach(fb_ds_cap);
-	Screen<PT> screen((PT *)fb_base, Area(mode.width(), mode.height()));
 
+	Screen<PT> screen = { (PT *)fb_base, Area(mode.width(), mode.height()) };
+
+	/*
+	 * Menu bar
+	 */
 	enum { MENUBAR_HEIGHT = 16 };
+
 	PT *menubar_pixels = (PT *)env()->heap()->alloc(sizeof(PT)*mode.width()*16);
-	Chunky_menubar<PT> menubar(menubar_pixels, Area(mode.width(), MENUBAR_HEIGHT));
 
-	static Global_keys global_keys;
+	Chunky_menubar<PT> menubar = { menubar_pixels, Area(mode.width(), MENUBAR_HEIGHT) };
 
-	static Session_list session_list;
+	/*
+	 * User-input policy
+	 */
+	Global_keys global_keys;
 
-	static User_state user_state(global_keys, screen, menubar);
+	Session_list session_list;
+
+	User_state user_state = { global_keys, screen, menubar };
 
 	/*
 	 * Create view stack with default elements
 	 */
-	Area             mouse_size(big_mouse.w, big_mouse.h);
-	Mouse_cursor<PT> mouse_cursor((PT *)&big_mouse.pixels[0][0],
-	                              mouse_size, user_state);
+	Area             mouse_size { big_mouse.w, big_mouse.h };
+	Mouse_cursor<PT> mouse_cursor { (PT *)&big_mouse.pixels[0][0],
+	                                mouse_size, user_state };
 
-	menubar.state(user_state, "", "", BLACK);
-
-	Background background(screen.size());
-
-	user_state.default_background(background);
-	user_state.stack(mouse_cursor);
-	user_state.stack(menubar);
-	user_state.stack(background);
+	Background background = { screen.size() };
 
 	/*
 	 * Initialize Nitpicker root interface
 	 */
-	Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
-	static Nitpicker::Root<PT> np_root(session_list, global_keys,
-	                                   ep, Area(mode.width(), mode.height()),
-	                                   user_state, sliced_heap,
-	                                   screen, framebuffer,
-	                                   MENUBAR_HEIGHT);
-
-	static Signal_receiver sig_rec;
-
+	Root<PT> np_root = { session_list, global_keys, ep.rpc_ep(),
+	                     Area(mode.width(), mode.height()),
+	                     user_state, sliced_heap, screen,
+	                     framebuffer, MENUBAR_HEIGHT };
 	/*
 	 * Configuration-update dispatcher, executed in the context of the RPC
 	 * entrypoint.
@@ -764,89 +717,117 @@ int main(int argc, char **argv)
 	 * In addition to installing the signal dispatcher, we trigger first signal
 	 * manually to turn the initial configuration into effect.
 	 */
-	static auto config_func = [&](unsigned)
-	{
-		config()->reload();
-		global_keys.apply_config(session_list);
-		try {
-			config()->xml_node().sub_node("background")
-			                    .attribute("color").value(&background.color);
-		} catch (...) { }
-		user_state.update_all_views();
-	};
+	void handle_config(unsigned);
 
-	auto config_dispatcher = signal_rpc_dispatcher(config_func);
+	Signal_rpc_member<Main> config_dispatcher = { *this, &Main::handle_config };
 
-	Signal_context_capability config_sigh = config_dispatcher.manage(sig_rec, ep);
+	Signal_context_capability config_sigh = ep.manage(config_dispatcher);
 
-	config()->sigh(config_sigh);
-
-	Signal_transmitter(config_sigh).submit();
-
-	/*
-	 * Input dispatcher, executed in the contect of the RPC entrypoint
+	/**
+	 * Signal handler invoked on the reception of user input
 	 */
-	static auto input_func = [&](unsigned num)
-	{
-		/*
-		 * If kill mode is already active, we got recursively called from
-		 * within this 'input_func' (via 'wait_and_dispatch_one_signal').
-		 * In this case, return immediately. New input events will be
-		 * processed in the local 'do' loop.
-		 */
-		if (user_state.kill())
-			return;
+	void handle_input(unsigned);
 
-		do {
-			Point const old_mouse_pos = user_state.mouse_pos();
-
-			/* handle batch of pending events */
-			if (input.is_pending())
-				import_input_events(ev_buf, input.flush(), user_state);
-
-			Point const new_mouse_pos = user_state.mouse_pos();
-
-			/* update mouse cursor */
-			if (old_mouse_pos != new_mouse_pos)
-				user_state.viewport(mouse_cursor,
-				                    Rect(new_mouse_pos, mouse_size),
-				                    Point(), true);
-
-			/* flush dirty pixels to physical frame buffer */
-			if (screen.defer == false) {
-				Rect const r = screen.to_be_flushed();
-				if (r.valid())
-					framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h());
-				screen.reset();
-			}
-			screen.defer = false;
-
-			/*
-			 * In kill mode, we do not leave the dispatch function in order to
-			 * block RPC calls from Nitpicker clients. We block for signals
-			 * here to stay responsive to user input and configuration changes.
-			 * Nested calls of 'input_func' are prevented by the condition
-			 * check for 'user_state.kill()' at the beginning of the handler.
-			 */
-			if (user_state.kill())
-				wait_and_dispatch_one_signal(sig_rec);
-
-		} while (user_state.kill());
-	};
-
-	auto input_dispatcher = signal_rpc_dispatcher(input_func);
+	Signal_rpc_member<Main> input_dispatcher = { *this, &Main::handle_input };
 
 	/*
 	 * Dispatch input on periodic timer signals every 10 milliseconds
 	 */
-	static Timer::Connection timer;
-	timer.sigh(input_dispatcher.manage(sig_rec, ep));
-	timer.trigger_periodic(10*1000);
+	Timer::Connection timer;
 
-	env()->parent()->announce(ep.manage(&np_root));
+	Main(Server::Entrypoint &ep) : ep(ep)
+	{
+		menubar.state(user_state, "", "", BLACK);
 
-	for (;;)
-		wait_and_dispatch_one_signal(sig_rec);
+		user_state.default_background(background);
+		user_state.stack(mouse_cursor);
+		user_state.stack(menubar);
+		user_state.stack(background);
 
-	return 0;
+		config()->sigh(config_sigh);
+		Signal_transmitter(config_sigh).submit();
+
+		timer.sigh(ep.manage(input_dispatcher));
+		timer.trigger_periodic(10*1000);
+
+		env()->parent()->announce(ep.manage(np_root));
+	}
+};
+
+
+void Nitpicker::Main::handle_input(unsigned)
+{
+	/*
+	 * If kill mode is already active, we got recursively called from
+	 * within this 'input_func' (via 'wait_and_dispatch_one_signal').
+	 * In this case, return immediately. New input events will be
+	 * processed in the local 'do' loop.
+	 */
+	if (user_state.kill())
+		return;
+
+	do {
+		Point const old_mouse_pos = user_state.mouse_pos();
+
+		/* handle batch of pending events */
+		if (input.is_pending())
+			import_input_events(ev_buf, input.flush(), user_state);
+
+		Point const new_mouse_pos = user_state.mouse_pos();
+
+		/* update mouse cursor */
+		if (old_mouse_pos != new_mouse_pos)
+			user_state.viewport(mouse_cursor,
+			                    Rect(new_mouse_pos, mouse_size),
+			                    Point(), true);
+
+		/* flush dirty pixels to physical frame buffer */
+		if (screen.defer == false) {
+			Rect const r = screen.to_be_flushed();
+			if (r.valid())
+				framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h());
+			screen.reset();
+		}
+		screen.defer = false;
+
+		/*
+		 * In kill mode, we do not leave the dispatch function in order to
+		 * block RPC calls from Nitpicker clients. We block for signals
+		 * here to stay responsive to user input and configuration changes.
+		 * Nested calls of 'input_func' are prevented by the condition
+		 * check for 'user_state.kill()' at the beginning of the handler.
+		 */
+		if (user_state.kill())
+			Server::wait_and_dispatch_one_signal();
+
+	} while (user_state.kill());
+}
+
+
+void Nitpicker::Main::handle_config(unsigned)
+{
+	config()->reload();
+	global_keys.apply_config(session_list);
+	try {
+		config()->xml_node().sub_node("background")
+		.attribute("color").value(&background.color);
+	} catch (...) { }
+	user_state.update_all_views();
+}
+
+
+/************
+ ** Server **
+ ************/
+
+namespace Server {
+
+	char const *name() { return "nitpicker_ep"; }
+
+	size_t stack_size() { return 4*1024*sizeof(long); }
+
+	void construct(Entrypoint &ep)
+	{
+		static Nitpicker::Main nitpicker(ep);
+	}
 }
