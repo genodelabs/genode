@@ -1,7 +1,7 @@
 LIB_DIR     = $(REP_DIR)/src/lib/usb
 LIB_INC_DIR = $(LIB_DIR)/include
 
-LIBS     += base cxx dde_kit libc-setjmp
+LIBS     += base cxx dde_kit libc-setjmp config
 SRC_CC   += main.cc lx_emul.cc irq.cc timer.cc event.cc storage.cc \
             input_component.cc nic.cc
 SRC_C    += dummies.c scsi.c evdev.c

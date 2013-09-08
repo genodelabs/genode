@@ -20,9 +20,6 @@ int main(void)
 {
 	try {
 		config()->xml_node().sub_node("test_config_subnode");
-	} catch(Config::Invalid) {
-		PERR("Error: Missing '<config>' node.");
-		return -1;
 	} catch (Xml_node::Nonexistent_sub_node) {
 		PERR("Error: Missing '<test_config_subnode>' sub node.");
 		return -1;

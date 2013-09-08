@@ -1,6 +1,6 @@
 TARGET   = kdb_uart_drv
 SRC_CC   = main.cc
-LIBS     = base
+LIBS     = base config
 
 INC_DIR += $(PRG_DIR)/.. $(PRG_DIR)/../..
 

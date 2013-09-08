@@ -41,9 +41,6 @@ struct Services
 		try {
 			config()->xml_node().sub_node("hid");
 			hid = true;
-		} catch (Config::Invalid) {
-			PDBG("No <config> node found - not starting any USB services");
-			return;
 		} catch (Xml_node::Nonexistent_sub_node) {
 			PDBG("No <hid> config node found - not starting the USB HID (Input) service");
 		}

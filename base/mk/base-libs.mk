@@ -4,7 +4,7 @@
 # These linked against 'ldso' and filtered out for dynamically
 # linked binaries
 #
-BASE_LIBS = base-common base cxx timed_semaphore alarm
+BASE_LIBS = base-common base cxx timed_semaphore alarm config
 
 #
 # Name of Genode's dynamic linker

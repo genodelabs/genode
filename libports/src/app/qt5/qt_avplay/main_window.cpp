@@ -86,9 +86,7 @@ Main_window::Main_window()
 			qDebug() << "filter:" << framebuffer_filter->name << "," << framebuffer_filter->ram_quota;
 			framebuffer_filters.prepend(framebuffer_filter);
 		}
-	} catch (Config::Invalid) {
-	} catch (Xml_node::Nonexistent_sub_node) {
-	}
+	} catch (Xml_node::Nonexistent_sub_node) { }
 
 	/* start the filtering framebuffer services */
 

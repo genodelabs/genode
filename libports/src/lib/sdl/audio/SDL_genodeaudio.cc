@@ -83,7 +83,6 @@ static void read_config()
 
 		volume = (float)config_volume / 100;
 	}
-	catch (Genode::Config::Invalid) { }
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
 	catch (Genode::Xml_node::Nonexistent_attribute) { }
 }

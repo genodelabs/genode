@@ -635,7 +635,6 @@ int main(int, char **)
 		Xml_node content = config()->xml_node().sub_node("content");
 		preload_content(*env()->heap(), content, root_dir); }
 	catch (Xml_node::Nonexistent_sub_node) { }
-	catch (Config::Invalid) { }
 
 	static File_system::Root root(ep, sliced_heap, sig_rec, root_dir);
 

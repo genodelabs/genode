@@ -11,7 +11,7 @@ ifeq ($(wildcard $(VANCOUVER_DIR)),)
 REQUIRES += prepare_ports_vancouver
 endif
 
-LIBS   += base blit alarm seoul_libc_support
+LIBS   += base blit alarm seoul_libc_support config
 SRC_CC  = main.cc nova_user_env.cc device_model_registry.cc
 SRC_CC += console.cc keyboard.cc network.cc disk.cc
 SRC_BIN = mono.tff

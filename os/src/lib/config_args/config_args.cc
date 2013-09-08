@@ -37,7 +37,6 @@ void init_config_args(void)
 			arg_node = arg_node.next("arg");
 		}
 	}
-	catch (Config::Invalid) { return; }
 	catch (Xml_node::Nonexistent_sub_node) { }
 	catch (Xml_node::Nonexistent_attribute)
 	{

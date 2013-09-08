@@ -32,6 +32,6 @@ SRC_CC  += env.cc \
 INC_DIR += $(REP_DIR)/include \
            $(REP_DIR)/src/lib/l4lx/include \
 
-LIBS     = base
+LIBS     = base config
 
 vpath %.cc $(REP_DIR)/src/lib/l4lx

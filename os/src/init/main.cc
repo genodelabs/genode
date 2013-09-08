@@ -229,8 +229,8 @@ int main(int, char **)
 		}
 		catch (Xml_node::Nonexistent_sub_node) {
 			PERR("No children to start"); }
-		catch (Config::Invalid) {
-			PERR("No valid config found"); }
+		catch (Xml_node::Invalid_syntax) {
+			PERR("No children to start"); }
 		catch (Init::Child::Child_name_is_not_unique) { }
 
 		/*

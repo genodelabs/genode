@@ -42,12 +42,8 @@ int main(int, char **)
 		/* wait for config change */
 		sig_rec.wait_for_signal();
 
-		try {
-			Genode::config()->reload();
-			parse_config();
-		} catch (Genode::Config::Invalid) {
-			PERR("Error: reloading config failed");
-		}
+		Genode::config()->reload();
+		parse_config();
 	}
 	return 0;
 }

@@ -192,7 +192,7 @@ diff -urNpB kernel-2.6.23-v2/arch/l4/Makefile contrib/arch/l4/Makefile
 -libs-y +=  -lvtimer -lvserial -ll4e -lll -liguana -ll4 -lgcc -lmutex -lcircular_buffer -lc -latomic_ops -lfs
 +#libs-y +=  -lvtimer -lvserial -ll4e -lll -liguana -ll4 -lgcc -lmutex -lcircular_buffer -lc -latomic_ops -lfs
 +
-+GENODE_LIBS = base base-common cxx startup \
++GENODE_LIBS = base base-common cxx startup config \
 +              oklx
 +
 +libs-y += $(addprefix $(GENODE_LIBS_DIR)/,$(foreach l,$(GENODE_LIBS),$l/$l.lib.a))
