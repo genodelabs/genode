@@ -344,7 +344,7 @@ namespace Genode {
 			}
 
 			/**
-			 * Dissolve server object from entry point
+			 * Dissolve RPC object from entry point
 			 */
 			template <typename RPC_INTERFACE, typename RPC_SERVER>
 			void dissolve(Rpc_object<RPC_INTERFACE, RPC_SERVER> *obj)
