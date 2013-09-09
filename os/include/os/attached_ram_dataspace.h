@@ -116,7 +116,7 @@ namespace Genode {
 			 * untyped memory anyway.
 			 */
 			template <typename T>
-			T *local_addr() { return static_cast<T *>(_local_addr); }
+			T *local_addr() const { return static_cast<T *>(_local_addr); }
 
 			/**
 			 * Return size
