@@ -19,6 +19,34 @@
 
 namespace Genode {
 
+	class Session_label
+	{
+		public:
+
+			enum { MAX_LEN = 128 };
+
+		private:
+
+			char _buf[MAX_LEN];
+
+		public:
+
+			Session_label() { _buf[0] = 0; }
+
+			/**
+			 * Constructor
+			 *
+			 * \param args session-arguments as null-terminated string
+			 */
+			explicit Session_label(char const *args)
+			{
+				Arg_string::find_arg(args, "label").string(_buf, sizeof(_buf),
+				                                           "<undefined>");
+			}
+
+			char const *string() const { return _buf; }
+	};
+
 	/**
 	 * Query server-side policy for a session request
 	 */
@@ -37,19 +65,14 @@ namespace Genode {
 			 * Returns true if the start of the label matches the specified
 			 * match string
 			 */
-			static bool _label_matches(const char *label, const char *match) {
-				return strcmp(label, match, strlen(match)) == 0; }
+			static bool _label_matches(Session_label const &label, char const *match) {
+				return strcmp(label.string(), match, strlen(match)) == 0; }
 
 			/**
-			 * Query session policy from config
+			 * Query session policy from session label
 			 */
-			static Xml_node _query_policy(char const *args)
+			static Xml_node _query_policy(Session_label const &label)
 			{
-				enum { LABEL_LEN = 128 };
-				char session_label[LABEL_LEN];
-				Arg_string::find_arg(args, "label").
-					string(session_label, sizeof(session_label), "<unlabeled>");
-
 				/* find index of policy node that matches best */
 				int best_match = -1;
 				try {
@@ -62,11 +85,11 @@ namespace Genode {
 							continue;
 
 						/* label attribtute from policy node */
-						char policy_label[LABEL_LEN];
+						char policy_label[Session_label::MAX_LEN];
 						policy.attribute("label").value(policy_label,
 						                                sizeof(policy_label));
 
-						if (!_label_matches(session_label, policy_label)
+						if (!_label_matches(label, policy_label)
 						 || strlen(policy_label) < label_len)
 							continue;
 
@@ -92,18 +115,17 @@ namespace Genode {
 			 *                           policy defined for the session
 			 *                           request
 			 *
-			 * On construction, the 'Session_policy' looks up the 'policy'
-			 * XML note that matches the label delivered as session argument.
-			 * The server-side policies are defined in one or more policy
-			 * subnodes of the server's 'config' node. Each policy node has
-			 * a label attribute. The if policy label matches the first
-			 * part of the label delivered as session argument, the policy
-			 * matches. If multiple policies match, the one with the largest
-			 * label is selected.
+			 * On construction, the 'Session_policy' looks up the 'policy' XML
+			 * note that matches the label provided as argument. The
+			 * server-side policies are defined in one or more policy subnodes
+			 * of the server's 'config' node. Each policy node has a label
+			 * attribute. The if policy label matches the first part of the
+			 * label delivered as session argument, the policy matches. If
+			 * multiple policies match, the one with the largest label is
+			 * selected.
 			 */
-			Session_policy(char const *args)
-			: Xml_node(_query_policy(args))
-			{ }
+			explicit Session_policy(Session_label const &label)
+			: Xml_node(_query_policy(label)) { }
 	};
 }
 

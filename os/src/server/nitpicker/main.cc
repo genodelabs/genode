@@ -70,7 +70,8 @@ static Color session_color(char const *session_args)
 	Color color = WHITE;
 
 	try {
-		Session_policy policy(session_args);
+		Session_label  label(session_args);
+		Session_policy policy(label);
 
 		/* read color attribute */
 		policy.attribute("color").value(&color);

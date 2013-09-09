@@ -171,7 +171,6 @@ namespace Net {
 
 			enum { MAX_IP_ADDR_LENGTH  = 16, };
 			char ip_addr[MAX_IP_ADDR_LENGTH];
-			char label[256];
 
 			Session_component *_create_session(const char *args)
 			{
@@ -180,11 +179,11 @@ namespace Net {
 				memset(ip_addr, 0, MAX_IP_ADDR_LENGTH);
 
 				 try {
-					Genode::Arg_string::find_arg(args, "label").string(label, sizeof(label), "");
-					Session_policy policy(args);
+					Session_label  label(args);
+					Session_policy policy(label);
 					policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
 
-					if (verbose) PDBG("policy: %s ip_addr = %s", label, ip_addr);
+					if (verbose) PDBG("policy: %s ip_addr = %s", label.string(), ip_addr);
 				} catch (Xml_node::Nonexistent_attribute) {
 					if (verbose) PDBG("Missing \"ip_addr\" attribute in policy definition");
 				} catch (Session_policy::No_policy_defined) {

@@ -458,7 +458,8 @@ namespace Terminal {
 				Genode::size_t io_buffer_size = 4096;
 
 				try {
-					Genode::Session_policy policy(args);
+					Genode::Session_label  label(args);
+					Genode::Session_policy policy(label);
 
 					unsigned tcp_port = 0;
 					policy.attribute("port").value(&tcp_port);

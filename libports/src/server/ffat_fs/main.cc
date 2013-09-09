@@ -879,7 +879,8 @@ namespace File_system {
 				root[0] = 0;
 
 				try {
-					Session_policy policy(args);
+					Session_label  label(args);
+					Session_policy policy(label);
 
 					/*
 					 * Determine directory that is used as root directory of

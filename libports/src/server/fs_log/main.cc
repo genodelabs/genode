@@ -118,7 +118,8 @@ class Log_root : public Genode::Root_component<Log_component>
 			enum { FILENAME_MAX_LEN = 256 };
 			char filename[FILENAME_MAX_LEN];
 			try {
-				Session_policy policy(args);
+				Session_label  label(args);
+				Session_policy policy(label);
 				policy.attribute("file").value(filename, sizeof(filename));
 			} catch (...) {
 				PERR("Invalid session request, no matching policy");
