@@ -17,6 +17,7 @@
 /* basic Linux syscall bindings */
 #include <linux_syscalls.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 
 /*******************************************************

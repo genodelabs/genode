@@ -364,6 +364,8 @@ int Pd_session_component::assign_parent(Parent_capability parent)
 
 void Pd_session_component::start(Capability<Dataspace> binary)
 {
+	const char *tmp_filename = "temporary_executable_elf_dataspace_file_for_execve";
+
 	/* lookup binary dataspace */
 	Object_pool<Dataspace_component>::Guard ds(_ds_ep->lookup_and_lock(binary));
 
@@ -372,7 +374,32 @@ void Pd_session_component::start(Capability<Dataspace> binary)
 		return; /* XXX reflect error to client */
 	}
 
-	Linux_dataspace::Filename filename = ds->fname();
+	const char *filename = ds->fname().buf;
+
+	/*
+	 * In order to be executable via 'execve', a program must be represented as
+	 * a file on the Linux file system. However, this is not the case for a
+	 * plain RAM dataspace that contains an ELF image. In this case, we copy
+	 * the dataspace content into a temporary file whose path is passed to
+	 * 'execve()'.
+	 */
+	if (strcmp(filename, "") == 0) {
+
+		filename = tmp_filename;
+
+		int tmp_binary_fd = lx_open(filename, O_CREAT | O_EXCL | O_WRONLY, S_IRWXU);
+		if (tmp_binary_fd < 0) {
+			PERR("Could not create file '%s'", filename);
+			return; /* XXX reflect error to client */
+		}
+
+		char buf[4096];
+		int num_bytes = 0;
+		while ((num_bytes = lx_read(ds->fd().dst().socket, buf, sizeof(buf))) != 0)
+			lx_write(tmp_binary_fd, buf, num_bytes);
+
+		lx_close(tmp_binary_fd);
+	}
 
 	/* pass parent capability as environment variable to the child */
 	enum { ENV_STR_LEN = 256 };
@@ -412,13 +439,17 @@ void Pd_session_component::start(Capability<Dataspace> binary)
 	enum { STACK_SIZE = 4096 };
 	static char stack[STACK_SIZE];    /* initial stack used by the child until
 	                                     calling 'execve' */
+
 	/*
 	 * Argument frame as passed to 'clone'. Because, we can only pass a single
 	 * pointer, all arguments are embedded within the 'execve_args' struct.
 	 */
-	Execve_args arg(filename.buf, _root, argv_buf, env, _uid, _gid,
+	Execve_args arg(filename, _root, argv_buf, env, _uid, _gid,
 	                _parent.dst().socket);
 
 	_pid = lx_create_process((int (*)(void *))_exec_child,
 	                         stack + STACK_SIZE - sizeof(umword_t), &arg);
+
+	if (strcmp(filename, tmp_filename) == 0)
+		lx_unlink(filename);
 };
