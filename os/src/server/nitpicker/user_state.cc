@@ -114,7 +114,7 @@ void User_state::handle_event(Input::Event ev)
 
 			if (user_state._input_receiver)
 				user_state._menubar.state(user_state,
-				                          user_state._input_receiver->label(),
+				                          user_state._input_receiver->label().string(),
 				                          menu_title,
 				                          user_state._input_receiver->color());
 			else

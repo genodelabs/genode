@@ -58,7 +58,7 @@ void View::title(const char *title)
 	Genode::strncpy(_title, title, TITLE_LEN);
 
 	/* calculate label size, the position is defined by the view stack */
-	_label_rect = Rect(Point(0, 0), label_size(_session.label(), _title));
+	_label_rect = Rect(Point(0, 0), label_size(_session.label().string(), _title));
 }
 
 
@@ -115,5 +115,5 @@ void View::draw(Canvas &canvas, Mode const &mode) const
 	if (mode.flat()) return;
 
 	/* draw label */
-	draw_label(canvas, _label_rect.p1(), _session.label(), WHITE, _title, frame_color);
+	draw_label(canvas, _label_rect.p1(), _session.label().string(), WHITE, _title, frame_color);
 }

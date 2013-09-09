@@ -56,31 +56,6 @@ namespace Nitpicker {
  ** Utilities **
  ***************/
 
-/**
- * Determine session color according to the list of configured policies
- *
- * Select the policy that matches the label. If multiple policies
- * match, select the one with the largest number of characters.
- */
-static Color session_color(char const *session_args)
-{
-	using namespace Genode;
-
-	/* use white by default */
-	Color color = WHITE;
-
-	try {
-		Session_label  label(session_args);
-		Session_policy policy(label);
-
-		/* read color attribute */
-		policy.attribute("color").value(&color);
-	} catch (...) { }
-
-	return color;
-}
-
-
 /*
  * Font initialization
  */
@@ -93,15 +68,13 @@ class Flush_merger
 {
 	private:
 
-		Rect _to_be_flushed;
+		Rect _to_be_flushed = { Point(), Area(-1, -1) };
 
 	public:
 
-		bool defer;
+		bool defer = false;
 
-		Flush_merger() : _to_be_flushed(Point(), Area(-1, -1)), defer(false) { }
-
-		Rect to_be_flushed() { return _to_be_flushed; }
+		Rect to_be_flushed() const { return _to_be_flushed; }
 
 		void merge(Rect rect)
 		{
@@ -127,8 +100,7 @@ class Screen : public Chunky_canvas<PT>, public Flush_merger
 		/**
 		 * Constructor
 		 */
-		Screen(PT *scr_base, Area scr_size):
-			Chunky_canvas<PT>(scr_base, scr_size) { }
+		Screen(PT *base, Area size) : Chunky_canvas<PT>(base, size) { }
 };
 
 
@@ -148,7 +120,8 @@ class Buffer
 		 * \throw Ram_session::Alloc_failed
 		 * \throw Rm_session::Attach_failed
 		 */
-		Buffer(Area size, Framebuffer::Mode::Format format, Genode::size_t bytes):
+		Buffer(Area size, Framebuffer::Mode::Format format, Genode::size_t bytes)
+		:
 			_size(size), _format(format),
 			_ram_ds(Genode::env()->ram_session(), bytes)
 		{ }
@@ -156,10 +129,10 @@ class Buffer
 		/**
 		 * Accessors
 		 */
-		Genode::Ram_dataspace_capability ds_cap() { return _ram_ds.cap(); }
-		Area                               size() { return _size; }
-		Framebuffer::Mode::Format        format() { return _format; }
-		void                        *local_addr() { return _ram_ds.local_addr<void>(); }
+		Genode::Ram_dataspace_capability ds_cap() const { return _ram_ds.cap(); }
+		Area                               size() const { return _size; }
+		Framebuffer::Mode::Format        format() const { return _format; }
+		void                        *local_addr() const { return _ram_ds.local_addr<void>(); }
 };
 
 
@@ -187,7 +160,8 @@ class Chunky_dataspace_texture : public Buffer, public Chunky_texture<PT>
 		/**
 		 * Constructor
 		 */
-		Chunky_dataspace_texture(Area size, bool use_alpha):
+		Chunky_dataspace_texture(Area size, bool use_alpha)
+		:
 			Buffer(size, _format(), calc_num_bytes(size, use_alpha)),
 			Chunky_texture<PT>((PT *)local_addr(),
 			                   _alpha_base(size, use_alpha), size) { }
@@ -225,12 +199,15 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 
 		enum { MAX_EVENTS = 200 };
 
+		static size_t ev_ds_size() {
+			return align_addr(MAX_EVENTS*sizeof(Event), 12); }
+
 	private:
 
 		/*
 		 * Exported event buffer dataspace
 		 */
-		Attached_ram_dataspace _ev_ram_ds;
+		Attached_ram_dataspace _ev_ram_ds = { env()->ram_session(), ev_ds_size() };
 
 		/*
 		 * Local event buffer that is copied
@@ -238,19 +215,9 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 		 * flush() gets called.
 		 */
 		Event      _ev_buf[MAX_EVENTS];
-		unsigned   _num_ev;
+		unsigned   _num_ev = 0;
 
 	public:
-
-		static size_t ev_ds_size() {
-			return align_addr(MAX_EVENTS*sizeof(Event), 12); }
-
-		/**
-		 * Constructor
-		 */
-		Session_component():
-			_ev_ram_ds(env()->ram_session(), ev_ds_size()),
-			_num_ev(0) { }
 
 		/**
 		 * Enqueue event into local event buffer of the input session
@@ -419,7 +386,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		Framebuffer::Session_component _framebuffer_session_component;
 
 		/* Input_session_component */
-		Input::Session_component  _input_session_component;
+		Input::Session_component _input_session_component;
 
 		/*
 		 * Entrypoint that is used for the views, input session,
@@ -435,14 +402,14 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		Framebuffer::Session_capability _framebuffer_session_cap;
 		Input::Session_capability       _input_session_cap;
 
-		bool _provides_default_bg;
+		bool const _provides_default_bg;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Session_component(char             const *name,
+		Session_component(Session_label    const &label,
 		                  ::Buffer               &buffer,
 		                  Texture          const &texture,
 		                  View_stack             &view_stack,
@@ -452,10 +419,9 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		                  int                     v_offset,
 		                  unsigned char    const *input_mask,
 		                  bool                    provides_default_bg,
-		                  Color                   color,
 		                  bool                    stay_top)
 		:
-			::Session(name, texture, v_offset, color, input_mask, stay_top),
+			::Session(label, texture, v_offset, input_mask, stay_top),
 			_framebuffer_session_component(buffer, view_stack, *this, flush_merger, framebuffer),
 			_ep(ep), _view_stack(view_stack),
 			_framebuffer_session_cap(_ep.manage(&_framebuffer_session_component)),
@@ -572,24 +538,21 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		Session_component *_create_session(const char *args)
 		{
 			PINF("create session with args: %s\n", args);
-			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
-			int v_offset = _default_v_offset;
+			int const v_offset = _default_v_offset;
 
 			/* determine buffer size of the session */
-			Area size(Arg_string::find_arg(args, "fb_width" ).long_value(_scr_size.w()),
-			          Arg_string::find_arg(args, "fb_height").long_value(_scr_size.h() - v_offset));
+			Area const size(Arg_string::find_arg(args, "fb_width" ).long_value(_scr_size.w()),
+			                Arg_string::find_arg(args, "fb_height").long_value(_scr_size.h() - v_offset));
 
-			char label_buf[::Session::LABEL_LEN];
-			Arg_string::find_arg(args, "label").string(label_buf, sizeof(label_buf), "<unlabeled>");
+			bool const use_alpha = Arg_string::find_arg(args, "alpha").bool_value(false);
+			bool const stay_top  = Arg_string::find_arg(args, "stay_top").bool_value(false);
 
-			bool use_alpha = Arg_string::find_arg(args, "alpha").bool_value(false);
-			bool stay_top  = Arg_string::find_arg(args, "stay_top").bool_value(false);
+			size_t const texture_num_bytes = Chunky_dataspace_texture<PT>::calc_num_bytes(size, use_alpha);
 
-			size_t texture_num_bytes = Chunky_dataspace_texture<PT>::calc_num_bytes(size, use_alpha);
-
-			size_t required_quota = texture_num_bytes
-			                      + Input::Session_component::ev_ds_size();
+			size_t const required_quota = texture_num_bytes
+			                            + Input::Session_component::ev_ds_size();
 
 			if (ram_quota < required_quota) {
 				PWRN("Insufficient dontated ram_quota (%zd bytes), require %zd bytes",
@@ -598,18 +561,20 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			}
 
 			/* allocate texture */
-			Chunky_dataspace_texture<PT> *cdt;
-			cdt = new (md_alloc()) Chunky_dataspace_texture<PT>(size, use_alpha);
+			Chunky_dataspace_texture<PT> * const cdt =
+				new (md_alloc()) Chunky_dataspace_texture<PT>(size, use_alpha);
 
-			bool provides_default_bg = (strcmp(label_buf, "backdrop") == 0);
+			Session_label const label(args);
+			bool const provides_default_bg = (strcmp(label.string(), "backdrop") == 0);
 
 			Session_component *session = new (md_alloc())
-				Session_component(label_buf, *cdt, *cdt, _view_stack, *ep(),
-				                  _flush_merger, _framebuffer, v_offset,
+				Session_component(Session_label(args), *cdt, *cdt,
+				                  _view_stack, *ep(), _flush_merger,
+				                  _framebuffer, v_offset,
 				                  cdt->input_mask_buffer(),
-				                  provides_default_bg, session_color(args),
-				                  stay_top);
+				                  provides_default_bg, stay_top);
 
+			session->apply_session_color();
 			_session_list.insert(session);
 			_global_keys.apply_config(_session_list);
 
@@ -808,11 +773,21 @@ void Nitpicker::Main::handle_input(unsigned)
 void Nitpicker::Main::handle_config(unsigned)
 {
 	config()->reload();
+
+	/* update global keys policy */
 	global_keys.apply_config(session_list);
+
+	/* update background color */
 	try {
 		config()->xml_node().sub_node("background")
 		.attribute("color").value(&background.color);
 	} catch (...) { }
+
+	/* update session policies */
+	for (::Session *s = session_list.first(); s; s = s->next())
+		s->apply_session_color();
+
+	/* redraw */
 	user_state.update_all_views();
 }
 

@@ -28,7 +28,7 @@ struct Background : private Texture, Session, View
 	 */
 	Background(Area size)
 	:
-		Texture(Area(0, 0)), Session("", *this, 0, BLACK),
+		Texture(Area(0, 0)), Session(Genode::Session_label(""), *this, 0),
 		View(*this, View::NOT_STAY_TOP, View::NOT_TRANSPARENT,
 		     View::BACKGROUND, Rect(Point(0, 0), size)),
 		color(25, 37, 50)

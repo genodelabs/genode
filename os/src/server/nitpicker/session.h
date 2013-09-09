@@ -20,6 +20,8 @@
 #include <nitpicker_gfx/color.h>
 #include <nitpicker_gfx/geometry.h>
 #include <nitpicker_gfx/canvas.h>
+#include <nitpicker_gfx/string.h>
+#include <os/session_policy.h>
 
 class Texture;
 class View;
@@ -31,27 +33,22 @@ typedef Genode::List<Session> Session_list;
 
 class Session : public Session_list::Element
 {
-	public:
-
-		enum { LABEL_LEN = 64 };  /* max. length of session label */
-
 	private:
 
-		char                 _label[LABEL_LEN];
-		Color                _color;
-		Texture       const &_texture;
-		View                *_background;
-		int                  _v_offset;
-		unsigned char const *_input_mask;
-		bool          const  _stay_top;
+		Genode::Session_label const  _label;
+		Color                        _color;
+		Texture               const &_texture;
+		View                        *_background = 0;
+		int                          _v_offset;
+		unsigned char         const *_input_mask;
+		bool                  const  _stay_top;
 
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param label       textual session label as null-terminated
-		 *                    ASCII string
+		 * \param label       session label
 		 * \param texture     texture containing the session's pixel
 		 *                    representation
 		 * \param v_offset    vertical screen offset of session
@@ -65,19 +62,19 @@ class Session : public Session_list::Element
 		 *                    'input_mask' is a null pointer, user input is
 		 *                    unconditionally consumed by the view.
 		 */
-		Session(char const *label, Texture const &texture, int v_offset,
-		        Color color, unsigned char const *input_mask = 0,
+		Session(Genode::Session_label const &label, Texture const &texture,
+		        int v_offset, unsigned char const *input_mask = 0,
 		        bool stay_top = false)
 		:
-			_color(color), _texture(texture), _background(0),
-			_v_offset(v_offset), _input_mask(input_mask), _stay_top(stay_top) {
-			Genode::strncpy(_label, label, sizeof(_label)); }
+			_label(label), _texture(texture), _v_offset(v_offset),
+			_input_mask(input_mask), _stay_top(stay_top)
+		{ }
 
 		virtual ~Session() { }
 
 		virtual void submit_input_event(Input::Event ev) = 0;
 
-		char const *label() const { return _label; }
+		Genode::Session_label const &label() const { return _label; }
 
 		Texture const &texture() const { return _texture; }
 
@@ -113,6 +110,26 @@ class Session : public Session_list::Element
 
 			return _input_mask[p.y()*_texture.w() + p.x()];
 		}
+
+		/**
+		 * Set session color according to the list of configured policies
+		 *
+		 * Select the policy that matches the label. If multiple policies
+		 * match, select the one with the largest number of characters.
+		 */
+		void apply_session_color()
+		{
+			/* use white by default */
+			_color = WHITE;
+
+			try {
+				Genode::Session_policy policy(_label);
+
+				/* read color attribute */
+				policy.attribute("color").value(&_color);
+			} catch (...) { }
+		}
+
 };
 
 #endif
