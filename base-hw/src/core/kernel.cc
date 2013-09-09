@@ -28,9 +28,9 @@
 
 /* core includes */
 #include <kernel/pd.h>
-#include <platform_thread.h>
 #include <platform_pd.h>
 #include <trustzone.h>
+#include <timer.h>
 
 /* base-hw includes */
 #include <singleton.h>
@@ -47,8 +47,7 @@ namespace Kernel
 	/* import Genode types */
 	typedef Genode::Thread_state Thread_state;
 	typedef Genode::umword_t     umword_t;
-
-	class Schedule_context;
+	typedef Genode::Core_tlb     Core_tlb;
 }
 
 namespace Kernel
@@ -70,11 +69,6 @@ namespace Kernel
 		timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
 	}
 
-	/**
-	 * Access to the static CPU scheduler
-	 */
-	static Cpu_scheduler * cpu_scheduler();
-
 
 	/**
 	 * Static kernel PD that describes core
@@ -92,119 +86,6 @@ namespace Kernel
 	 * Get core attributes
 	 */
 	unsigned core_id() { return core()->id(); }
-
-
-	class Thread;
-
-	void handle_pagefault(Thread * const);
-	void handle_syscall(Thread * const);
-	void handle_interrupt(void);
-	void handle_invalid_excpt(void);
-}
-
-
-void Kernel::Thread::_schedule()
-{
-	cpu_scheduler()->insert(this);
-	_state = SCHEDULED;
-}
-
-
-void Kernel::Thread::pause()
-{
-	assert(_state == AWAIT_RESUMPTION || _state == SCHEDULED);
-	cpu_scheduler()->remove(this);
-	_state = AWAIT_RESUMPTION;
-}
-
-
-void Kernel::Thread::stop()
-{
-	cpu_scheduler()->remove(this);
-	_state = AWAIT_START;
-}
-
-
-void Kernel::Thread::request_and_wait(Thread * const dest, size_t const size) {
-	Ipc_node::send_request_await_reply(dest, phys_utcb()->base(),
-	                                   size, phys_utcb()->base(),
-	                                   phys_utcb()->size()); }
-
-
-void Kernel::Thread::wait_for_request() {
-	Ipc_node::await_request(phys_utcb()->base(),
-	                        phys_utcb()->size()); }
-
-
-void Kernel::Thread::reply(size_t const size, bool const await_request)
-{
-	Ipc_node::send_reply(phys_utcb()->base(), size);
-	if (await_request)
-		Ipc_node::await_request(phys_utcb()->base(),
-		                        phys_utcb()->size());
-	else user_arg_0(0);
-}
-
-
-void Kernel::Thread::await_signal(Kernel::Signal_receiver * receiver)
-{
-	cpu_scheduler()->remove(this);
-	_state = AWAIT_SIGNAL;
-	_signal_receiver = receiver;
-}
-
-
-void Kernel::Thread::_received_irq()
-{
-	assert(_state == AWAIT_IRQ);
-	_schedule();
-}
-
-
-void Kernel::Thread::handle_exception()
-{
-	switch(cpu_exception) {
-	case SUPERVISOR_CALL:
-		handle_syscall(this);
-		return;
-	case PREFETCH_ABORT:
-	case DATA_ABORT:
-		handle_pagefault(this);
-		return;
-	case INTERRUPT_REQUEST:
-	case FAST_INTERRUPT_REQUEST:
-		handle_interrupt();
-		return;
-	default:
-		handle_invalid_excpt();
-	}
-}
-
-
-void Kernel::Thread::proceed()
-{
-	mtc()->continue_user(static_cast<Cpu::Context *>(this));
-}
-
-
-void Kernel::Thread::_has_received(size_t const s)
-{
-	user_arg_0(s);
-	if (_state != SCHEDULED) _schedule();
-}
-
-
-void Kernel::Thread::_awaits_receipt()
-{
-	cpu_scheduler()->remove(this);
-	_state = AWAIT_IPC;
-}
-
-
-void Kernel::Thread::_awaits_irq()
-{
-	cpu_scheduler()->remove(this);
-	_state = AWAIT_IRQ;
 }
 
 
@@ -218,7 +99,7 @@ namespace Kernel
 	}
 
 	class Vm : public Object<Vm, MAX_VMS>,
-	           public Schedule_context
+	           public Execution_context
 	{
 		private:
 
@@ -245,9 +126,9 @@ namespace Kernel
 			void pause() { cpu_scheduler()->remove(this); }
 
 
-			/**********************
-			 ** Schedule_context **
-			 **********************/
+			/***********************
+			 ** Execution_context **
+			 ***********************/
 
 			void handle_exception()
 			{
@@ -279,17 +160,18 @@ namespace Kernel
 		if (initial)
 		{
 			/* initialize idle thread */
-			void * sp;
-			sp = (void *)&idle_stack[sizeof(idle_stack)/sizeof(idle_stack[0])];
+			enum { STACK_SIZE = sizeof(idle_stack)/sizeof(idle_stack[0]) };
+			void * const ip = (void *)&idle_main;
+			void * const sp = (void *)&idle_stack[STACK_SIZE];
 
 			/*
 			 * Idle doesn't use its UTCB pointer, thus
 			 * utcb_phys = utcb_virt = 0 is save.
 			 * Base-hw doesn't support multiple cores, thus
 			 * cpu_no = 0 is ok. We don't use 'start' to avoid
-			 * recursive call of'cpu_scheduler'.
+			 * recursive call of'cpu_scheduler()'.
 			 */
-			idle.prepare_to_start((void *)&idle_main, sp, 0, core_id(), 0, 0);
+			idle.prepare_to_start(ip, sp, 0, core_id(), 0, 0, 0);
 			initial = 0;
 		}
 		/* create scheduler with a permanent idle thread */
@@ -444,14 +326,17 @@ namespace Kernel
 		Platform_thread * pt = (Platform_thread *)user->user_arg_1();
 		void * const ip = (void *)user->user_arg_2();
 		void * const sp = (void *)user->user_arg_3();
-		unsigned const cpu = (unsigned)user->user_arg_4();
+		unsigned const cpu_id = (unsigned)user->user_arg_4();
 
 		/* get targeted thread */
 		Thread * const t = Thread::pool()->object(pt->id());
 		assert(t);
 
 		/* start thread */
-		t->start(ip, sp, cpu, pt->pd_id(), pt->phys_utcb(), pt->virt_utcb());
+		unsigned const pd_id = pt->pd_id();
+		Native_utcb * const utcb_p = pt->phys_utcb();
+		Native_utcb * const utcb_v = pt->virt_utcb();
+		t->start(ip, sp, cpu_id, pd_id, utcb_p, utcb_v, pt->main_thread());
 
 		/* return software TLB that the thread is assigned to */
 		Pd::Pool * const pp = Pd::pool();
@@ -979,7 +864,7 @@ extern "C" void kernel()
 		enum { CM_STACK_SIZE = sizeof(cm_stack)/sizeof(cm_stack[0]) + 1 };
 		core_main.start((void *)CORE_MAIN,
 		                (void *)&cm_stack[CM_STACK_SIZE - 1],
-		                0, core_id(), &cm_utcb, &cm_utcb);
+		                0, core_id(), &cm_utcb, &cm_utcb, 1);
 
 		/* kernel initialization finished */
 		reset_lap_time();
@@ -987,128 +872,6 @@ extern "C" void kernel()
 	}
 	/* will jump to the context related mode-switch */
 	cpu_scheduler()->head()->proceed();
-}
-
-
-/********************
- ** Kernel::Thread **
- ********************/
-
-void Kernel::Thread::crash()
-{
-	cpu_scheduler()->remove(this);
-	_state = CRASHED;
-}
-
-int Kernel::Thread::resume()
-{
-	switch (_state) {
-	case AWAIT_RESUMPTION:
-		_schedule();
-		return 0;
-	case SCHEDULED:
-		return 1;
-	case AWAIT_IPC:
-		PDBG("cancel IPC receipt");
-		Ipc_node::cancel_waiting();
-		_schedule();
-		return 0;
-	case AWAIT_IRQ:
-		PDBG("cancel IRQ receipt");
-		Irq_receiver::cancel_waiting();
-		_schedule();
-		return 0;
-	case AWAIT_SIGNAL:
-		PDBG("cancel signal receipt");
-		_signal_receiver->remove_handler(signal_handler());
-		_schedule();
-		return 0;
-	case AWAIT_SIGNAL_CONTEXT_DESTRUCT:
-		PDBG("cancel signal context destruction");
-		_schedule();
-		return 0;
-	case AWAIT_START:
-	default:
-		PERR("unresumable state");
-		return -1;
-	}
-}
-
-
-void Thread::prepare_to_start(void * const        ip,
-                              void * const        sp,
-                              unsigned const      cpu_id,
-                              unsigned const      pd_id,
-                              Native_utcb * const utcb_phys,
-                              Native_utcb * const utcb_virt)
-{
-	/* check state and arguments */
-	assert(_state == AWAIT_START)
-	assert(!cpu_id);
-
-	/* store thread parameters */
-	_phys_utcb = utcb_phys;
-	_virt_utcb = utcb_virt;
-	_pd_id     = pd_id;
-
-	/* join a protection domain */
-	Pd * const pd = Pd::pool()->object(_pd_id);
-	assert(pd)
-	addr_t const tlb = pd->tlb()->base();
-
-	/* initialize CPU context */
-	if (!_platform_thread)
-		/* this is the main thread of core */
-		User_context::init_core_main_thread(ip, sp, tlb, pd_id);
-	else if (!_platform_thread->main_thread())
-		/* this is not a main thread */
-		User_context::init_thread(ip, sp, tlb, pd_id);
-	else
-		/* this is the main thread of a program other than core */
-		User_context::init_main_thread(ip, _virt_utcb, tlb, pd_id);
-}
-
-
-void Thread::start(void * const        ip,
-                   void * const        sp,
-                   unsigned const      cpu_id,
-                   unsigned const      pd_id,
-                   Native_utcb * const utcb_phys,
-                   Native_utcb * const utcb_virt)
-{
-	prepare_to_start(ip, sp, cpu_id, pd_id, utcb_phys, utcb_virt);
-	_schedule();
-}
-
-
-void Thread::pagefault(addr_t const va, bool const w)
-{
-	/* pause faulter */
-	cpu_scheduler()->remove(this);
-	_state = AWAIT_RESUMPTION;
-
-	/* inform pager through IPC */
-	assert(_pager);
-	_pagefault = Pagefault(id(), (Tlb *)tlb(), ip, va, w);
-	Ipc_node::send_note(_pager, &_pagefault, sizeof(_pagefault));
-}
-
-
-void Thread::kill_signal_context_blocks()
-{
-	cpu_scheduler()->remove(this);
-	_state = AWAIT_SIGNAL_CONTEXT_DESTRUCT;
-}
-
-
-void Thread::kill_signal_context_done()
-{
-	if (_state != AWAIT_SIGNAL_CONTEXT_DESTRUCT) {
-		PDBG("ignore unexpected signal-context destruction");
-		return;
-	}
-	user_arg_0(1);
-	_schedule();
 }
 
 static Kernel::Mode_transition_control * Kernel::mtc()
