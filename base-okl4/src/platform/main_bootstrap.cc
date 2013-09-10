@@ -1,6 +1,7 @@
 /*
  * \brief  Platform-specific helper functions for the _main() function
  * \author Christian Prochaska
+ * \author Christian Helmuth
  * \date   2009-08-05
  */
 
@@ -11,9 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PLATFORM___MAIN_HELPER_H_
-#define _PLATFORM___MAIN_HELPER_H_
-
+/* Genode includes */
+#include <base/native_types.h>
 
 /* OKL4-specific includes and definitions */
 namespace Okl4 { extern "C" {
@@ -40,16 +40,23 @@ namespace Okl4 {
 }
 
 
+namespace Genode { void platform_main_bootstrap(); }
+
+
 Genode::Native_thread_id main_thread_tid;
 
 
-static void main_thread_bootstrap()
+void Genode::platform_main_bootstrap()
 {
-	/* copy thread ID to utcb */
-	main_thread_tid.raw = Okl4::copy_uregister_to_utcb();
+	static struct Bootstrap
+	{
+		Bootstrap()
+		{
+			/* copy thread ID to utcb */
+			main_thread_tid.raw = Okl4::copy_uregister_to_utcb();
 
-	if (main_thread_tid.raw == 0) /* core */
-		main_thread_tid.raw = Okl4::L4_rootserver.raw;
+			if (main_thread_tid.raw == 0) /* core */
+				main_thread_tid.raw = Okl4::L4_rootserver.raw;
+		}
+	} bootstrap;
 }
-
-#endif /* _PLATFORM___MAIN_HELPER_H_ */

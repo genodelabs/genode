@@ -1,6 +1,7 @@
 /*
  * \brief  Platform-specific helper functions for the _main() function
  * \author Martin Stein
+ * \author Christian Helmuth
  * \date   2010-09-13
  */
 
@@ -11,19 +12,20 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SRC__PLATFORM__MAIN_HELPER_H_
-#define _SRC__PLATFORM__MAIN_HELPER_H_
-
+/* Genode includes */
 #include <base/native_types.h>
+
+
+namespace Genode { void platform_main_bootstrap(); }
 
 
 Genode::Native_thread_id main_thread_tid;
 
 
-static void main_thread_bootstrap()
+void Genode::platform_main_bootstrap()
 {
-	main_thread_tid = Kernel::current_thread_id();
+	static struct Bootstrap
+	{
+		Bootstrap() { main_thread_tid = Kernel::current_thread_id(); }
+	} bootstrap;
 }
-
-#endif /* _SRC__PLATFORM__MAIN_HELPER_H_ */
-

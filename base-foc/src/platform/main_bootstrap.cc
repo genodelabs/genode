@@ -1,6 +1,7 @@
 /*
  * \brief  Platform-specific helper functions for the _main() function
  * \author Christian Prochaska
+ * \author Christian Helmuth
  * \date   2009-08-05
  */
 
@@ -11,9 +12,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PLATFORM___MAIN_HELPER_H_
-#define _PLATFORM___MAIN_HELPER_H_
-
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/native_types.h>
@@ -23,16 +21,21 @@ namespace Fiasco {
 #include <l4/sys/utcb.h>
 }
 
-enum { MAIN_THREAD_CAP_ID = 1 };
 
-static void main_thread_bootstrap() {
-	using namespace Genode;
+namespace Genode { void platform_main_bootstrap(); }
 
-	Cap_index *i
-		= cap_map()->insert(MAIN_THREAD_CAP_ID, Fiasco::MAIN_THREAD_CAP);
-	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE] = (unsigned long) i;
-	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = 0;
+
+void Genode::platform_main_bootstrap()
+{
+	static struct Bootstrap
+	{
+		enum { MAIN_THREAD_CAP_ID = 1 };
+
+		Bootstrap()
+		{
+			Cap_index *i(cap_map()->insert(MAIN_THREAD_CAP_ID, Fiasco::MAIN_THREAD_CAP));
+			Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE] = (unsigned long) i;
+			Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = 0;
+		}
+	} bootstrap;
 }
-
-
-#endif /* _PLATFORM___MAIN_HELPER_H_ */

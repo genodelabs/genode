@@ -1,6 +1,7 @@
 /*
  * \brief  Platform-specific helper functions for the _main() function
  * \author Christian Prochaska
+ * \author Christian Helmuth
  * \date   2009-08-05
  */
 
@@ -11,25 +12,25 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PLATFORM___MAIN_HELPER_H_
-#define _PLATFORM___MAIN_HELPER_H_
+/* Genode includes */
+#include <base/native_types.h>
 
 /* Pistachio includes */
 namespace Pistachio {
 #include <l4/thread.h>
 }
 
-/* Genode includes */
-#include <base/native_types.h>
+
+namespace Genode { void platform_main_bootstrap(); }
 
 
 Genode::Native_thread_id main_thread_tid;
 
 
-static void main_thread_bootstrap()
+void Genode::platform_main_bootstrap()
 {
-	main_thread_tid = Pistachio::L4_Myself();
+	static struct Bootstrap
+	{
+		Bootstrap() { main_thread_tid = Pistachio::L4_Myself(); }
+	} bootstrap;
 }
-
-
-#endif /* _PLATFORM___MAIN_HELPER_H_ */

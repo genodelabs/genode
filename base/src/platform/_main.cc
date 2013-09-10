@@ -25,7 +25,6 @@
 #include <base/printf.h>
 
 /* platform-specific local helper functions */
-#include <_main_helper.h>
 #include <_main_parent_cap.h>
 
 
@@ -35,7 +34,8 @@ extern int main(int argc, char **argv, char **envp);
 extern void init_exception_handling();  /* implemented in base/cxx */
 
 namespace Genode {
-	extern Rm_session *env_context_area_rm_session();
+	Rm_session *env_context_area_rm_session();
+	void platform_main_bootstrap();
 }
 
 
@@ -225,10 +225,13 @@ namespace Genode { extern bool inhibit_tracing; }
 
 /**
  * C entry function called by the crt0 startup code
+ *
+ * Note, _main is executed twice when starting dynamic programs: in ld.lib.so
+ * and also in the loaded binary.
  */
 extern "C" int _main()
 {
-	main_thread_bootstrap();
+	platform_main_bootstrap();
 
 	/* call env() explicitly to setup the environment */
 	(void*)env();

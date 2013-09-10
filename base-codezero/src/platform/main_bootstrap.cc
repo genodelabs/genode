@@ -1,6 +1,7 @@
 /*
  * \brief  Platform-specific helper functions for the _main() function
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2009-10-02
  */
 
@@ -11,14 +12,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PLATFORM___MAIN_HELPER_H_
-#define _PLATFORM___MAIN_HELPER_H_
-
+/* Genode includes */
+#include <base/stdint.h>
 #include <base/printf.h>
-
-/* make Codezero includes happy */
-extern "C" char *strncpy(char *dest, const char *src, Genode::size_t n);
-extern "C" void *memcpy(void *dest, const void *src, Genode::size_t n);
+#include <base/thread.h>
+#include <util/string.h>
 
 /* Codezero includes */
 #include <codezero/syscalls.h>
@@ -59,19 +57,25 @@ extern "C" int printf(const char *format, ...)
  ** Startup-code helpers **
  **************************/
 
+namespace Genode { void platform_main_bootstrap(); }
+
 
 Genode::Native_thread_id main_thread_tid;
 Codezero::l4_mutex       main_thread_running_lock;
 
 
-static void main_thread_bootstrap()
+void Genode::platform_main_bootstrap()
 {
-	Codezero::__l4_init();
+	static struct Bootstrap
+	{
+		Bootstrap()
+		{
+			Codezero::__l4_init();
 
-	main_thread_tid = Codezero::thread_myself();
+			main_thread_tid = Codezero::thread_myself();
 
-	Codezero::l4_mutex_init(&main_thread_running_lock);
-	Codezero::l4_mutex_lock(&main_thread_running_lock); /* block on first mutex lock */
+			Codezero::l4_mutex_init(&main_thread_running_lock);
+			Codezero::l4_mutex_lock(&main_thread_running_lock); /* block on first mutex lock */
+		}
+	} bootstrap;
 }
-
-#endif /* _PLATFORM___MAIN_HELPER_H_ */

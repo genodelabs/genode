@@ -13,7 +13,7 @@
 
 #include <base/crt0.h>
 #include <base/printf.h>
-#include <_main_helper.h>
+#include <linux_syscalls.h>
 #include <linux_cpu_session/linux_cpu_session.h>
 
 
