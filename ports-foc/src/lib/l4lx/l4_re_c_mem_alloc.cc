@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/capability.h>
-#include <os/config.h>
 #include <rm_session/connection.h>
 
 /* L4lx includes */
@@ -31,36 +30,18 @@ static const bool DEBUG = false;
 
 extern "C" {
 
-	static const unsigned long _chunk_size()
-	{
-		enum { DEFAULT_CHUNK_SIZE = 16*1024*1024 };
-
-		Genode::Number_of_bytes result = DEFAULT_CHUNK_SIZE;
-
-		try {
-			Genode::config()->xml_node().sub_node("ram")
-			                            .attribute("chunk_size")
-			                            .value(&result);
-		} catch(...) { }
-
-		return result;
-	}
-
-
 	long l4re_ma_alloc(unsigned long size, l4re_ds_t const mem,
 	                   unsigned long flags)
 	{
-		static const unsigned long chunk_size = _chunk_size();
-
 		using namespace L4lx;
 
 		if (DEBUG)
 			PDBG("size=%lx mem=%lx flags=%lx", size, mem, flags);
 
 		Dataspace *ds;
-		if (size > chunk_size) {
+		if (Genode::log2(size) >= Chunked_dataspace::CHUNK_SIZE_LOG2) {
 			ds = new (Genode::env()->heap())
-				Chunked_dataspace("lx_memory", size, mem, chunk_size);
+				Chunked_dataspace("lx_memory", size, mem);
 		} else {
 			Genode::Dataspace_capability cap =
 				Genode::env()->ram_session()->alloc(size);

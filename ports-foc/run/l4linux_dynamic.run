@@ -112,7 +112,7 @@ set config  {
 		</route>
 	</start>
 	<start name="nic_bridge">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 		<route>
 			<service name="Nic"> <child name="usb_drv"/> </service>
@@ -163,64 +163,23 @@ set config  {
 	<start name="cli_monitor">
 		<resource name="RAM" quantum="2G"/>
 		<config>
-			<subsystem name="l4linux" help="L4Linux with 100 MiB RAM">
-				<binary name="init"/>
-				<resource name="RAM" quantum="116M"/>
-				<config>
-					<parent-provides>
-						<service name="ROM"/>
-						<service name="RAM"/>
-						<service name="CAP"/>
-						<service name="PD"/>
-						<service name="RM"/>
-						<service name="CPU"/>
-						<service name="LOG"/>
-						<service name="SIGNAL"/>
-						<service name="Timer"/>
-						<service name="Terminal"/>
-					</parent-provides>
-					<start name="l4linux">
-						<resource name="RAM" quantum="1G"/>
-						<config args="mem=100M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
-						<route> <any-service> <parent/> </any-service> </route>
-					</start>
-				</config>
-			</subsystem>
+			<preservation name="RAM" quantum="16M" />
 			<subsystem name="l4linux_net" help="L4Linux with network">
-				<binary name="init"/>
-				<resource name="RAM" quantum="116M"/>
-				<config>
-					<parent-provides>
-						<service name="ROM"/>
-						<service name="RAM"/>
-						<service name="CAP"/>
-						<service name="PD"/>
-						<service name="RM"/>
-						<service name="CPU"/>
-						<service name="LOG"/>
-						<service name="SIGNAL"/>
-						<service name="Timer"/>
-						<service name="Terminal"/>
-						<service name="Nic"/>
-					</parent-provides>
-					<start name="l4linux">
-						<resource name="RAM" quantum="1G"/>
-						<config args="mem=100M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
-						<route> <any-service> <parent/> </any-service> </route>
-					</start>
-				</config>
+				<binary name="l4linux"/>
+				<resource name="RAM" quantum="64M"/>
+				<config args="mem=2G console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
 			</subsystem>
 			<subsystem name="l4linux_emmc" help="L4Linux accessing the second eMMC partition">
 				<binary name="l4linux"/>
-				<resource name="RAM" quantum="100M"/>
-				<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
+				<resource name="RAM" quantum="64M"/>
+				<config args="mem=2G console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
 					<block label="sda" />
 				</config>
 			</subsystem>
 			<subsystem name="l4linux_sata" help="L4Linux accessing the second SATA partition">
 				<binary name="l4linux"/>
-				<resource name="RAM" quantum="100M"/>
-				<config args="mem=64M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
+				<resource name="RAM" quantum="64MM"/>
+				<config args="mem=2G console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
 					<block label="sda" />
 				</config>
 			</subsystem>

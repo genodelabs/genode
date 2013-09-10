@@ -20,6 +20,7 @@
 #include <base/env.h>
 #include <util/avl_tree.h>
 #include <rm_session/connection.h>
+#include <platform_env.h>
 
 namespace Fiasco {
 #include <l4/sys/types.h>
@@ -56,7 +57,8 @@ namespace L4lx {
 			Fiasco::l4_cap_idx_t         ref()        { return _ref;  }
 
 			virtual Genode::Dataspace_capability cap() = 0;
-			virtual bool map(Genode::size_t offset)    = 0;
+			virtual void map(Genode::size_t offset, bool greedy = false) = 0;
+			virtual bool free(Genode::size_t offset)   = 0;
 
 			/************************
 			 ** Avl_node interface **
@@ -89,8 +91,9 @@ namespace L4lx {
 				Genode::cap_idx_alloc()->alloc_range(1)->kcap())
 			: Dataspace(name, size, ref), _cap(ds) {}
 
-			Genode::Dataspace_capability cap() { return _cap; }
-			bool map(Genode::size_t offset)    { return true; }
+			Genode::Dataspace_capability cap() { return _cap;  }
+			void map(Genode::size_t offset, bool greedy) { }
+			bool free(Genode::size_t offset)   { return false; }
 	};
 
 
@@ -98,72 +101,54 @@ namespace L4lx {
 	{
 		private:
 
-			class Chunk : public Genode::Avl_node<Chunk>
-			{
-				private:
-
-					Genode::size_t               _offset;
-					Genode::size_t               _size;
-					Genode::Dataspace_capability _cap;
-
-				public:
-
-					Chunk(Genode::size_t off, Genode::size_t size,
-					      Genode::Dataspace_capability cap)
-					: _offset(off), _size(size), _cap(cap) {}
-
-					Genode::size_t               offset() { return _offset; }
-					Genode::size_t               size()   { return _size;   }
-					Genode::Dataspace_capability cap()    { return _cap;    }
-
-					bool higher(Chunk *n) { return n->_offset > _offset; }
-
-					Chunk *find_by_offset(Genode::size_t off)
-					{
-						if (off >= _offset && off < _offset+_size) return this;
-
-						Chunk *n = Genode::Avl_node<Chunk>::child(off > _offset);
-						return n ? n->find_by_offset(off) : 0;
-					}
-			};
-
-			Genode::Rm_connection   _rm;
-			Genode::Avl_tree<Chunk> _chunks;
-			Genode::size_t          _chunk_size;
-			Genode::size_t          _chunk_size_log2;
+			Genode::Rm_connection               _rm_con;
+			Genode::Expanding_rm_session_client _rm;
+			Genode::Ram_dataspace_capability   *_chunks;
 
 	public:
 
+			enum {
+				CHUNK_SIZE_LOG2 = 20,
+				CHUNK_SIZE      = 1 << CHUNK_SIZE_LOG2,
+			};
+
 			Chunked_dataspace(const char*          name,
 							  Genode::size_t       size,
-							  Fiasco::l4_cap_idx_t ref,
-			                  Genode::size_t       chunk_size)
-			: Dataspace(name, size, ref), _rm(0, size), _chunk_size(chunk_size),
-			  _chunk_size_log2(Genode::log2(_chunk_size)) {}
-
-			Genode::Dataspace_capability cap() { return _rm.dataspace(); }
-
-			bool map(Genode::size_t off)
+							  Fiasco::l4_cap_idx_t ref)
+			: Dataspace(name, size, ref), _rm_con(0, size), _rm(_rm_con.cap())
 			{
-				off = Genode::align_addr((off-(_chunk_size-1)), _chunk_size_log2);
+				_chunks = (Genode::Ram_dataspace_capability*) Genode::env()->heap()->alloc(
+					sizeof(Genode::Ram_dataspace_capability) * (size/CHUNK_SIZE));
+			}
 
-				Chunk* c = _chunks.first() ? _chunks.first()->find_by_offset(off) : 0;
-				if (c) return true;
+			Genode::Dataspace_capability cap() { return _rm_con.dataspace(); }
 
-				try {
-					Genode::Dataspace_capability cap =
-						Genode::env()->ram_session()->alloc(_chunk_size);
-					_chunks.insert(new (Genode::env()->heap())
-								   Chunk(off, _chunk_size, cap));
-					_rm.attach(cap, 0, 0, true, off);
-					return true;
-				} catch(Genode::Ram_session::Quota_exceeded) {
-					PWRN("Could not allocate new dataspace chunk");
-				} catch(Genode::Rm_session::Attach_failed) {
-					PWRN("Attach of chunk dataspace of size %zx to %p failed",
-					     _chunk_size, (void*) off);
+			void map(Genode::size_t off, bool greedy)
+			{
+				off = Genode::align_addr((off-(CHUNK_SIZE-1)), CHUNK_SIZE_LOG2);
+				int i = off / CHUNK_SIZE;
+				if (_chunks[i].valid()) return;
+
+				Genode::size_t ram_avail = Genode::env()->ram_session()->avail();
+				if (greedy && ram_avail < 4*CHUNK_SIZE) {
+					char buf[128];
+					Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd",
+					                 4*CHUNK_SIZE - ram_avail);
+					Genode::env()->parent()->resource_request(buf);
 				}
-				return false;
+
+				_chunks[i] = Genode::env()->ram_session()->alloc(CHUNK_SIZE);
+				_rm.attach(_chunks[i], 0, 0, true, off, false);
+			}
+
+			bool free(Genode::size_t off)
+			{
+				off = Genode::align_addr((off-(CHUNK_SIZE-1)), CHUNK_SIZE_LOG2);
+				int i = off / CHUNK_SIZE;
+				if (!_chunks[i].valid()) return false;
+				Genode::env()->ram_session()->free(_chunks[i]);
+				_chunks[i] = Genode::Ram_dataspace_capability();
+				return true;
 			}
 	};
 
