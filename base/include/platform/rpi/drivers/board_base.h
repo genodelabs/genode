@@ -49,6 +49,9 @@ namespace Genode
 			IRQ_CONTROLLER_SIZE = 0x100,
 
 			SECURITY_EXTENSION = 0,
+
+			/* CPU cache */
+			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 		};
 	};
 }
