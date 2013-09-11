@@ -17,7 +17,6 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/thread.h>
-#include <base/cap_sel_alloc.h>
 
 /* core includes */
 #include <core_parent.h>
@@ -628,6 +627,32 @@ Platform::Platform() :
 		printf(":virt_alloc: "); _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
 		printf(":phys_alloc: "); _core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
 		printf(":io_mem_alloc: "); _io_mem_alloc.raw()->dump_addr_tree();
+	}
+
+	/* add capability selector ranges to map */
+	unsigned index = 0x2000;
+	for (unsigned i = 0; i < 16; i++)
+	{
+		void * phys_ptr = 0;
+		ram_alloc()->alloc(4096, &phys_ptr);
+
+		addr_t phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		addr_t core_local_addr = _map_page(phys_addr >> get_page_size_log2(),
+		                                   1, false);
+		
+		Cap_range * range = reinterpret_cast<Cap_range *>(core_local_addr);
+		*range = Cap_range(index);
+
+		cap_map()->insert(range);
+
+/*
+		if (verbose_boot_info)
+			printf("add cap range [0x%8lx:0x%8lx) - physical 0x%8lx -> 0x%8lx\n",
+			       range->base(),
+			       range->base() + range->elements(), phys_addr, core_local_addr);
+*/
+
+		index = range->base() + range->elements();
 	}
 }
 
