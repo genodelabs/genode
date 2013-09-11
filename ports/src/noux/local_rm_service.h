@@ -120,8 +120,8 @@ namespace Noux {
 
 			void close(Genode::Session_capability session)
 			{
-				Object_pool<Rm_session_component>::Guard
-					rm_session(_ep.lookup_and_lock(session));
+				Rm_session_component * rm_session = 
+					dynamic_cast<Rm_session_component *>(_ep.lookup_and_lock(session));
 				if (!rm_session) {
 					PWRN("Unexpected call of close with non-RM-session argument");
 					return;
@@ -141,7 +141,9 @@ namespace Noux {
 
 				info->dissolve_users();
 
+				/* 'rm_session' is deleted by deleting Rm_dataspace_info 'info' */
 				destroy(env()->heap(), info);
+				
 			}
 	};
 }
