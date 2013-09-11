@@ -54,16 +54,17 @@ namespace Genode
 		virtual ~Signal_session() { }
 
 		/**
-		 * Create a new signal-receiver kernel-object
+		 * Create and manage a new signal receiver
 		 *
 		 * \return  a cap that acts as reference to the created object
 		 *
 		 * \throw Out_of_metadata
+		 * \throw Exception
 		 */
 		virtual Signal_receiver_capability alloc_receiver() = 0;
 
 		/**
-		 * Create a new signal-context kernel-object
+		 * Create and manage a new signal context
 		 *
 		 * \param r        names the signal receiver that shall provide
 		 *                 the new context
@@ -73,29 +74,35 @@ namespace Genode
 		 * \return  a cap that acts as reference to the created object
 		 *
 		 * \throw Out_of_metadata
+		 * \throw Exception
 		 */
 		virtual Signal_context_capability
-		alloc_context(Signal_receiver_capability const r,
+		alloc_context(Signal_receiver_capability r,
 		              unsigned const imprint) = 0;
 
 		/**
-		 * Free signal-context
+		 * Free a signal context
 		 *
 		 * \param cap  capability of signal-context to release
+		 *
+		 * \throw Exception
 		 */
 		virtual void free_context(Signal_context_capability cap) = 0;
+
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
 		GENODE_RPC_THROW(Rpc_alloc_receiver, Signal_receiver_capability,
-		                 alloc_receiver, GENODE_TYPE_LIST(Out_of_metadata));
+		                 alloc_receiver, GENODE_TYPE_LIST(Out_of_metadata,
+		                 Exception));
 		GENODE_RPC_THROW(Rpc_alloc_context, Signal_context_capability,
-		                 alloc_context, GENODE_TYPE_LIST(Out_of_metadata),
-		                 Signal_receiver_capability, unsigned);
-		GENODE_RPC(Rpc_free_context, void, free_context,
-		           Signal_context_capability);
+		                 alloc_context, GENODE_TYPE_LIST(Out_of_metadata,
+		                 Exception), Signal_receiver_capability, unsigned);
+		GENODE_RPC_THROW(Rpc_free_context, void, free_context,
+		                 GENODE_TYPE_LIST(Exception),
+		                 Signal_context_capability);
 
 		GENODE_RPC_INTERFACE(Rpc_alloc_receiver, Rpc_alloc_context,
 		                     Rpc_free_context);

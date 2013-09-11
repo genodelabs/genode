@@ -532,6 +532,8 @@ namespace Kernel
 	 * Blocks the caller until the last delivered signal of the targeted
 	 * context is acknowledged. Then the context gets destructed, losing
 	 * all submits that were not delivered when this syscall occured.
+	 *
+	 * Restricted to core threads.
 	 */
 	inline bool kill_signal_context(unsigned context_id) {
 		return syscall(KILL_SIGNAL_CONTEXT, (Syscall_arg)context_id); }

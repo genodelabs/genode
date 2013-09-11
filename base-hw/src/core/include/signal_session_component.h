@@ -19,6 +19,7 @@
 #include <base/rpc_server.h>
 #include <base/slab.h>
 #include <base/allocator_guard.h>
+#include <base/object_pool.h>
 
 namespace Genode
 {
@@ -36,9 +37,17 @@ namespace Genode
 
 		private:
 
+			/**
+			 * Maps a signal-context name to related core and kernel resources
+			 */
+			class Context;
+
+			typedef Object_pool<Context> Context_pool;
+
 			Allocator_guard _md_alloc;
 			Slab            _receivers_slab;
 			Slab            _contexts_slab;
+			Context_pool    _contexts;
 			char            _initial_receivers_sb [RECEIVERS_SB_SIZE];
 			char            _initial_contexts_sb  [CONTEXTS_SB_SIZE];
 
@@ -70,11 +79,41 @@ namespace Genode
 			Signal_receiver_capability alloc_receiver();
 
 			Signal_context_capability
-			alloc_context(Signal_receiver_capability const r,
-			              unsigned const imprint);
-			void free_context(Signal_context_capability context_cap);
+			alloc_context(Signal_receiver_capability, unsigned const);
+
+			void free_context(Signal_context_capability);
 	};
 }
 
-#endif /* _CORE__INCLUDE__CAP_SESSION_COMPONENT_H_ */
+class Genode::Signal_session_component::Context : public Context_pool::Entry
+{
+	public:
 
+		/**
+		 * Constructor
+		 */
+		Context(Untyped_capability cap) : Entry(cap) { }
+
+		/**
+		 * Name of signal context
+		 */
+		unsigned id() const { return Context_pool::Entry::cap().dst(); }
+
+		/**
+		 * Size of SLAB block occupied by resources and this resource info
+		 */
+		static size_t slab_size()
+		{
+			return sizeof(Context) + Kernel::signal_context_size();
+		}
+
+		/**
+		 * Base of region donated to the kernel
+		 */
+		static void * kernel_donation(void * const slab_addr)
+		{
+			return (void *)((addr_t)slab_addr + sizeof(Context));
+		}
+};
+
+#endif /* _CORE__INCLUDE__CAP_SESSION_COMPONENT_H_ */

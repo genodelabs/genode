@@ -111,21 +111,7 @@ Signal_receiver::Signal_receiver()
 
 void Signal_receiver::_unsynchronized_dissolve(Signal_context * c)
 {
-	/*
-	 * We first destroy the kernel object. This also ensures
-	 * that no delivered but unacked signals of this context exist
-	 * in userland anymore.
-	 */
-	if (!Kernel::kill_signal_context(c->_cap.dst())) {
-		PERR("failed to kill signal context");
-
-		/* we have to keep the signal context alive for other */
-		while (1) ;
-	}
-	/*
-	 * Now we can tell core to regain the memory of the
-	 * destructed kernel object.
-	 */
+	/* release core resources */
 	signal_connection()->free_context(c->_cap);
 
 	/* reset the context */

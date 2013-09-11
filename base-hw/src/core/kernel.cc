@@ -702,6 +702,9 @@ namespace Kernel
 	 */
 	void do_kill_signal_context(Thread * const user)
 	{
+		/* check permissions */
+		assert(user->pd_id() == core_id());
+
 		unsigned id = user->user_arg_1();
 		Signal_context * const c = Signal_context::pool()->object(id);
 		if (!c) { return; }
