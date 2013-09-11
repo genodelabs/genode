@@ -12,9 +12,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <base/cap_sel_alloc.h>
-
 /* Core includes */
 #include <platform_pd.h>
 
@@ -23,7 +20,7 @@
 #include <nova_util.h>
 
 enum {
-	ECHO_STACK_SIZE = 1024,
+	ECHO_STACK_SIZE = 512,
 	ECHO_GLOBAL     = false,
 	ECHO_EXC_BASE   = 0
 };
@@ -64,8 +61,8 @@ static void echo_reply()
 
 Echo::Echo(Genode::addr_t utcb_addr)
 :
-	_ec_sel(Genode::cap_selector_allocator()->alloc()),
-	_pt_sel(Genode::cap_selector_allocator()->alloc()),
+	_ec_sel(Genode::cap_map()->insert()),
+	_pt_sel(Genode::cap_map()->insert()),
 	_utcb((Nova::Utcb *)utcb_addr)
 {
 	using namespace Nova;
@@ -77,11 +74,11 @@ Echo::Echo(Genode::addr_t utcb_addr)
 	                        ECHO_EXC_BASE, ECHO_GLOBAL);
 
 	/* make error condition visible by raising an unhandled page fault */
-	if (res) { ((void (*)())(res*0x10000UL))(); }
+	if (res != Nova::NOVA_OK) { *reinterpret_cast<unsigned *>(0) = 0xdead; }
 
 	/* set up echo portal to ourself */
 	res = create_pt(_pt_sel, pd_sel, _ec_sel, Mtd(0), (mword_t)echo_reply);
-	if (res) { ((void (*)())(res*0x10001UL))(); }
+	if (res != Nova::NOVA_OK) { *reinterpret_cast<unsigned *>(0) = 0xdead; }
 	revoke(Obj_crd(_pt_sel, 0, Obj_crd::RIGHT_PT_CTRL));
 
 	/* echo thread doesn't receive anything, it transfers items during reply */

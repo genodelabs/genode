@@ -15,7 +15,6 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/cap_sel_alloc.h>
 #include <base/ipc_pager.h>
 
 /* core includes */
@@ -129,7 +128,7 @@ int Platform_thread::start(void *ip, void *sp)
 			return -6;
 	}
 
-	pd_sel = cap_selector_allocator()->alloc();
+	pd_sel = cap_map()->insert();
 
 	/* create task */
 	res = create_pd(pd_sel, pd_core_sel, initial_pts);
@@ -180,7 +179,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	cleanup_pd:
 	revoke(Obj_crd(pd_sel, 0));
-	cap_selector_allocator()->free(pd_sel, 0);
+	cap_map()->remove(pd_sel, 0, false);
 
 	return -7;
 }
@@ -287,7 +286,7 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 
 Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
 :
-	_pd(0), _pager(0), _id_base(cap_selector_allocator()->alloc(1)),
+	_pd(0), _pager(0), _id_base(cap_map()->insert(1)),
 	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0),
 	_features(0)
 {
@@ -301,5 +300,5 @@ Platform_thread::~Platform_thread()
 
 	/* free ec and sc caps */
 	revoke(Obj_crd(_id_base, 1));
-	cap_selector_allocator()->free(_id_base, 1);
+	cap_map()->remove(_id_base, 1, false);
 }

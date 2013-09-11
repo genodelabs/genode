@@ -27,7 +27,6 @@ SRC_CC       = main.cc \
                signal_source_component.cc \
                trace_session_component.cc \
                core_rm_session.cc \
-               cap_sel_alloc.cc \
                main_thread.cc \
                context_area.cc \
                echo.cc \
@@ -60,6 +59,5 @@ vpath platform_services.cc         $(GEN_CORE_DIR)/x86
 vpath context_area.cc              $(GEN_CORE_DIR)
 vpath core_printf.cc               $(BASE_DIR)/src/base/console
 vpath %.cc                         $(REP_DIR)/src/core
-vpath cap_sel_alloc.cc             $(REP_DIR)/src/base/env
 vpath main_thread.cc               $(REP_DIR)/src/base/env
 vpath pager.cc                     $(REP_DIR)/src/base/pager

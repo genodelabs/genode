@@ -14,7 +14,6 @@
  */
 
 /* Genode includes */
-#include <base/cap_sel_alloc.h>
 #include <base/pager.h>
 #include <base/sleep.h>
 
@@ -337,8 +336,8 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 	        sizeof(_context->name) - 6);
 
 	addr_t pd_sel        = __core_pd_sel;
-	_pt_cleanup          = cap_selector_allocator()->alloc(1);
-	_client_exc_pt_sel   = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
+	_pt_cleanup          = cap_map()->insert(1);
+	_client_exc_pt_sel   = cap_map()->insert(NUM_INITIAL_PT_LOG2);
 	_state._status       = 0;
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
 
@@ -440,10 +439,8 @@ Pager_object::~Pager_object()
 	/* revoke portal used for the cleanup call */
 	revoke(Obj_crd(_pt_cleanup, 0));
 
-	Native_capability pager_obj = ::Object_pool<Pager_object>::Entry::cap();
-	cap_selector_allocator()->free(_pt_cleanup, 1);
-	cap_selector_allocator()->free(pager_obj.local_name(), 0);
-	cap_selector_allocator()->free(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2);
+	cap_map()->remove(_pt_cleanup, 1, false);
+	cap_map()->remove(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2, false);
 }
 
 

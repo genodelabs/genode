@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/cap_sel_alloc.h>
 
 /* core includes */
 #include <platform_pd.h>
@@ -57,5 +56,5 @@ Platform_pd::~Platform_pd()
 
 	/* Revoke and free cap, pd is gone */
 	Nova::revoke(Nova::Obj_crd(_pd_sel, 0));
-	cap_selector_allocator()->free(_pd_sel, 0);
+	cap_map()->remove(_pd_sel, 0, false);
 }

@@ -35,7 +35,6 @@
 #include <util/touch.h>
 #include <base/printf.h>
 #include <base/sleep.h>
-#include <base/cap_sel_alloc.h>
 #include <base/thread.h>
 #include <base/rpc_server.h>
 #include <base/native_types.h>
@@ -279,14 +278,13 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE>
 
 		Vcpu_thread(char const * name) : Thread(name)
 		{
+			using namespace Genode;
+
 			/* release pre-allocated selectors of Thread */
-			Genode::cap_selector_allocator()->
-			        free(tid().exc_pt_sel,
-				     Nova::NUM_INITIAL_PT_LOG2);
+			cap_map()->remove(tid().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
 
 			/* allocate correct number of selectors */
-			tid().exc_pt_sel = Genode::cap_selector_allocator()->
-			        alloc(VCPU_EXC_BASE_LOG2);
+			tid().exc_pt_sel = cap_map()->insert(VCPU_EXC_BASE_LOG2);
 
 			/* tell generic thread code that this becomes a vCPU */
 			tid().is_vcpu = true;
@@ -295,15 +293,13 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE>
 
 		~Vcpu_thread()
 		{
-			using namespace Nova;
+			using namespace Genode;
 
-			revoke(Obj_crd(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2));
-			Genode::cap_selector_allocator()->
-			        free(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2);
+			Nova::revoke(Nova::Obj_crd(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2));
+			cap_map()->remove(tid().exc_pt_sel, VCPU_EXC_BASE_LOG2, false);
 
 			/* allocate selectors for ~Thread */
-			tid().exc_pt_sel = Genode::cap_selector_allocator()->
-			        alloc(NUM_INITIAL_PT_LOG2);
+			tid().exc_pt_sel = cap_map()->insert(Nova::NUM_INITIAL_PT_LOG2);
 		}
 
 		Genode::addr_t exc_base() { return tid().exc_pt_sel; }
@@ -353,12 +349,6 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		/***************
 		 ** Shortcuts **
 		 ***************/
-
-		static Nova::mword_t _alloc_sel(Genode::size_t num_caps_log2 = 0) {
-			return Genode::cap_selector_allocator()->alloc(num_caps_log2); }
-
-		static void _free_sel(Nova::mword_t sel, Genode::size_t num_caps_log2 = 0) {
-			Genode::cap_selector_allocator()->free(sel, num_caps_log2); }
 
 		static ::Utcb *_utcb_of_myself() {
 			return (::Utcb *)Genode::Thread_base::myself()->utcb(); }

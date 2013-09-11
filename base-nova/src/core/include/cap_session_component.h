@@ -29,9 +29,11 @@ namespace Genode {
 
 			static long _unique_id_cnt;
 
-			struct Cap_object : Native_capability, List<Cap_object>::Element
+			struct Cap_object : List<Cap_object>::Element
 			{
-				Cap_object(addr_t cap_sel) : Native_capability(cap_sel) {}
+				Genode::addr_t _cap_sel;
+
+				Cap_object(addr_t cap_sel) : _cap_sel(cap_sel) {}
 			};
 
 			Tslab<Cap_object, 128> _cap_slab;
@@ -54,8 +56,9 @@ namespace Genode {
 				Lock::Guard cap_lock(_cap_lock);
 
 				for (Cap_object *obj; (obj = _cap_list.first()); ) {
-					Nova::revoke(Nova::Obj_crd(obj->local_name(), 0));
-					/* XXX cap_selector free up */
+					Nova::revoke(Nova::Obj_crd(obj->_cap_sel, 0));
+					cap_map()->remove(obj->_cap_sel, 0, false);
+
 					_cap_list.remove(obj);
 					destroy(&_cap_slab, obj);
 				}
@@ -64,7 +67,7 @@ namespace Genode {
 			Native_capability alloc(Native_capability ep, addr_t entry,
 			                        addr_t mtd)
 			{
-				addr_t pt_sel = cap_selector_allocator()->alloc(0);
+				addr_t pt_sel = cap_map()->insert();
 				addr_t pd_sel = Platform_pd::pd_core_sel();
 				addr_t ec_sel = ep.local_name();
 
@@ -94,9 +97,7 @@ namespace Genode {
 				destroy(&_cap_slab, pt_cap);
 
 				/* cleanup unused selectors */	
-				cap_selector_allocator()->free(pt_sel, 0);
-
-				/* XXX revoke ec_sel if it was mapped !!!! */
+				cap_map()->remove(pt_sel, 0, false);
 
 				return Native_capability::invalid_cap();
 			}
@@ -108,9 +109,10 @@ namespace Genode {
 				Lock::Guard cap_lock(_cap_lock);
 
 				for (Cap_object *obj = _cap_list.first(); obj ; obj = obj->next()) {
-					if (cap.local_name() == obj->local_name()) {
-						Nova::revoke(Nova::Obj_crd(obj->local_name(), 0));
-						/* XXX cap_selector free up */
+					if (cap.local_name() == obj->_cap_sel) {
+						Nova::revoke(Nova::Obj_crd(obj->_cap_sel, 0));
+						cap_map()->remove(obj->_cap_sel, 0, false);
+
 						_cap_list.remove(obj);
 						destroy(&_cap_slab, obj);
 						return;

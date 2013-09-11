@@ -97,7 +97,7 @@ class Irq_thread : public Thread_base
 			utcb_obj->crd_xlt = Obj_crd();
 
 			/* create SC */
-			unsigned sc_sel = cap_selector_allocator()->alloc();
+			unsigned sc_sel = cap_map()->insert();
 			res = create_sc(sc_sel, pd_sel, _tid.ec_sel, Qpd());
 			if (res != NOVA_OK) {
 				PERR("%p - create_sc returned returned %d", this, res);
@@ -122,7 +122,7 @@ class Genode::Irq_proxy_component : public Irq_proxy<Irq_thread>
 		bool _associate()
 		{
 			/* alloc slector where IRQ will be mapped */
-			_irq_sel = cap_selector_allocator()->alloc();
+			_irq_sel = cap_map()->insert();
 
 			/* since we run in APIC mode translate IRQ 0 (PIT) to 2 */
 			if (!_irq_number)

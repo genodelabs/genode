@@ -13,11 +13,8 @@
  */
 
 /* Genode includes */
-#include <base/cap_sel_alloc.h>
+#include <base/stdint.h>
 #include <base/console.h>
-
-/* NOVA includes */
-#include <nova/syscalls.h>
 
 
 /**

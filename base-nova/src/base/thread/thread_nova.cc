@@ -15,7 +15,6 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/cap_sel_alloc.h>
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <base/env.h>
@@ -76,7 +75,7 @@ void Thread_base::_init_platform_thread()
 	 * running semaphore and exception handler portals.
 	 */
 	_tid.ec_sel     = Native_thread::INVALID_INDEX;
-	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
+	_tid.exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
 	if (_tid.exc_pt_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 
@@ -99,13 +98,13 @@ void Thread_base::_deinit_platform_thread()
 {
 	using namespace Nova;
 
-	if (_tid.ec_sel != ~0UL) {
+	if (_tid.ec_sel != Native_thread::INVALID_INDEX) {
 		revoke(Obj_crd(_tid.ec_sel, 1));
-		cap_selector_allocator()->free(_tid.ec_sel, 1);
+		cap_map()->remove(_tid.ec_sel, 1, false);
 	}
 
 	revoke(Obj_crd(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2));
-	cap_selector_allocator()->free(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2);
+	cap_map()->remove(_tid.exc_pt_sel, NUM_INITIAL_PT_LOG2, false);
 
 	/* revoke utcb */
 	Rights rwx(true, true, true);
@@ -113,17 +112,11 @@ void Thread_base::_deinit_platform_thread()
 	revoke(Mem_crd(utcb >> 12, 0, rwx));
 
 	/* de-announce thread */
-	if (_thread_cap.valid()) {
+	if (_thread_cap.valid())
 		env()->cpu_session()->kill_thread(_thread_cap);
-		revoke(_thread_cap.local_name(), 0);
-		cap_selector_allocator()->free(_thread_cap.local_name(), 0);
-	}
 
-	if (_pager_cap.valid()) {
+	if (_pager_cap.valid())
 		env()->rm_session()->remove_client(_pager_cap);
-		revoke(_pager_cap.local_name(), 0);
-		cap_selector_allocator()->free(_pager_cap.local_name(), 0);
-	}
 }
 
 
@@ -166,7 +159,7 @@ void Thread_base::start()
 		throw Cpu_session::Thread_creation_failed();
 
 	/* request native EC thread cap */ 
-	_tid.ec_sel = cap_selector_allocator()->alloc(1);
+	_tid.ec_sel = cap_map()->insert(1);
 	if (_tid.ec_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 

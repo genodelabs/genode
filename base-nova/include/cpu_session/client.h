@@ -50,9 +50,6 @@ namespace Genode {
 				return;
 
 			Nova::sm_ctrl(block.local_name(), Nova::SEMAPHORE_DOWN);
-
-			Nova::revoke(Nova::Obj_crd(block.local_name(), 0));
-			cap_selector_allocator()->free(block.local_name(), 0);
 		}
 
 		void resume(Thread_capability thread) {

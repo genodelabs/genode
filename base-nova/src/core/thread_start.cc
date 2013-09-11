@@ -15,10 +15,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <base/cap_sel_alloc.h>
 #include <base/printf.h>
-#include <base/sleep.h>
-#include <base/env.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -39,8 +36,8 @@ void Thread_base::_init_platform_thread()
 	 */
 	using namespace Nova;
 
-	_tid.ec_sel     = cap_selector_allocator()->alloc(1);
-	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
+	_tid.ec_sel     = cap_map()->insert(1);
+	_tid.exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
 	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
 	/* create running semaphore required for locking */
@@ -58,9 +55,8 @@ void Thread_base::_deinit_platform_thread()
 	unmap_local(Nova::Obj_crd(_tid.ec_sel, 1));
 	unmap_local(Nova::Obj_crd(_tid.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2));
 
-	cap_selector_allocator()->free(_tid.ec_sel, 1);
-	cap_selector_allocator()->free(_tid.exc_pt_sel,
-	                               Nova::NUM_INITIAL_PT_LOG2);
+	cap_map()->remove(_tid.ec_sel, 1, false);
+	cap_map()->remove(_tid.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2, false);
 
 	/* revoke utcb */
 	Nova::Rights rwx(true, true, true);
@@ -78,7 +74,7 @@ void Thread_base::start()
 	using namespace Nova;
 
 	addr_t sp                   = reinterpret_cast<addr_t>(&_context->stack[-4]);
-	sp                         &= ~0xf; /* align initial stack to 16 byte boundary */
+	sp                         &= ~0xFUL; /* align initial stack to 16 byte boundary */
 	addr_t utcb                 = reinterpret_cast<addr_t>(&_context->utcb);
 	Utcb * utcb_obj             = reinterpret_cast<Utcb *>(&_context->utcb);
 	addr_t pd_sel               = Platform_pd::pd_core_sel();

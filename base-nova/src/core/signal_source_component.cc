@@ -14,7 +14,6 @@
 /* Genode includes */
 #include <base/ipc.h>
 #include <base/printf.h>
-#include <base/cap_sel_alloc.h>
 
 /* core includes */
 #include <signal_session_component.h>

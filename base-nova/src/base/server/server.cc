@@ -17,7 +17,6 @@
 #include <base/printf.h>
 #include <base/rpc_server.h>
 #include <base/env.h>
-#include <base/cap_sel_alloc.h>
 
 /* NOVA includes */
 #include <nova/syscalls.h>
@@ -76,10 +75,6 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 
 	/* wait until nobody is inside dispatch */
 	obj->acquire();
-
-	/* free cap selector */
-	/* XXX we need cap ref counting to avoid reuse bug which triggers */
-	//cap_selector_allocator()->free(obj->cap().local_name(), 0);
 }
 
 void Rpc_entrypoint::_activation_entry()
@@ -99,12 +94,12 @@ void Rpc_entrypoint::_activation_entry()
 		ep->_delay_start.unlock();
 	}
 
+	/* required to decrease ref count of capability used during last reply */
+	ep->_snd_buf.snd_reset();
+
 	/* prepare ipc server object (copying utcb content to message buffer */
 	Ipc_server srv(&ep->_snd_buf, &ep->_rcv_buf);
 	ep->_rcv_buf.post_ipc(reinterpret_cast<Nova::Utcb *>(ep->utcb()));
-
-	/* destination of next reply - no effect on nova */
-	srv.dst(Native_capability(id_pt));
 
 	int opcode = 0;
 
@@ -255,7 +250,4 @@ Rpc_entrypoint::~Rpc_entrypoint()
 
 	/* de-announce object from cap_session */
 	_cap_session->free(_cap);
-
-	Nova::revoke(Nova::Obj_crd(_cap.local_name(), 0), true);
-	cap_selector_allocator()->free(_cap.local_name(), 0);
 }
