@@ -251,6 +251,11 @@ namespace Genode {
 			 */
 			void _unsynchronized_dissolve(Signal_context *context);
 
+			/**
+			 * Hook to platform specific destructor parts
+			 */
+			void _platform_destructor();
+
 		public:
 
 			/**

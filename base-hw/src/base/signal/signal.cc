@@ -199,3 +199,5 @@ Signal Signal_receiver::wait_for_signal()
 void Signal_receiver::local_submit(Signal::Data signal) {
 	PDBG("Not implemented"); };
 
+
+void Signal_receiver::_platform_destructor() { }

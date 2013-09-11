@@ -69,5 +69,6 @@ Signal_receiver::~Signal_receiver()
 	/* disassociate contexts from the receiver */
 	for (List_element<Signal_context> *le; (le = _contexts.first()); )
 		_unsynchronized_dissolve(le->object());
-}
 
+	_platform_destructor();
+}

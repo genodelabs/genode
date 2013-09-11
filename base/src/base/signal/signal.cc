@@ -400,3 +400,6 @@ void Signal_receiver::dispatch_signals(Signal_source *signal_source)
 		context->_lock.unlock();
 	}
 }
+
+
+void Signal_receiver::_platform_destructor() { }
