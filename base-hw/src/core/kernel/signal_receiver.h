@@ -25,9 +25,19 @@
 namespace Kernel
 {
 	/**
-	 * Enables external components to act as a signal handler
+	 * Ability to receive from signal receivers
 	 */
 	class Signal_handler;
+
+	/**
+	 * Ability to destruct signal contexts
+	 */
+	class Signal_context_killer;
+
+	/**
+	 * Ability to destruct signal receivers
+	 */
+	class Signal_receiver_killer;
 
 	/**
 	 * Signal types that are assigned to a signal receiver each
@@ -38,17 +48,6 @@ namespace Kernel
 	 * Combines signal contexts to an entity that handlers can listen to
 	 */
 	class Signal_receiver;
-
-	/**
-	 * Signal delivery backend
-	 *
-	 * \param dst   destination
-	 * \param base  signal-data base
-	 * \param size  signal-data size
-	 */
-	void deliver_signal(Signal_handler * const dst,
-	                    void * const           base,
-	                    size_t const           size);
 }
 
 class Kernel::Signal_handler
@@ -59,22 +58,56 @@ class Kernel::Signal_handler
 
 		typedef Genode::Fifo_element<Signal_handler> Fifo_element;
 
-		Fifo_element   _fe;
-		unsigned const _id;
+		Fifo_element   _handlers_fe;
+
+		/**
+		 * Signal delivery backend
+		 *
+		 * \param base  signal-data base
+		 * \param size  signal-data size
+		 */
+		virtual void _signal_handler(void * const base, size_t const size) = 0;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Signal_handler(unsigned id) : _fe(this), _id(id) { }
+		Signal_handler() : _handlers_fe(this) { }
+};
 
+class Kernel::Signal_context_killer
+{
+	friend class Signal_context;
 
-		/***************
-		 ** Accessors **
-		 ***************/
+	private:
 
-		unsigned id() { return _id; }
+		/**
+		 * Notice that the destruction is pending
+		 */
+		virtual void _signal_context_kill_pending() = 0;
+
+		/**
+		 * Notice that pending destruction is done
+		 */
+		virtual void _signal_context_kill_done() = 0;
+};
+
+class Kernel::Signal_receiver_killer
+{
+	friend class Signal_receiver;
+
+	private:
+
+		/**
+		 * Notice that the destruction is pending
+		 */
+		virtual void _signal_receiver_kill_pending() = 0;
+
+		/**
+		 * Notice that pending destruction is done
+		 */
+		virtual void _signal_receiver_kill_done() = 0;
 };
 
 class Kernel::Signal_context
@@ -87,17 +120,18 @@ class Kernel::Signal_context
 
 		typedef Genode::Fifo_element<Signal_context> Fifo_element;
 
-		Fifo_element            _fe;
+		Fifo_element            _deliver_fe;
+		Fifo_element            _contexts_fe;
 		Signal_receiver * const _receiver;
 		unsigned const          _imprint;
 		unsigned                _submits;
 		bool                    _ack;
-		unsigned                _killer;
+		Signal_context_killer * _killer;
 
 		/**
 		 * Tell receiver about the submits of the context if any
 		 */
-		inline void _deliverable();
+		void _deliverable();
 
 		/**
 		 * Called by receiver when all submits have been delivered
@@ -108,85 +142,87 @@ class Kernel::Signal_context
 			_ack     = 0;
 		}
 
-	public:
+		/**
+		 * Destructor
+		 */
+		~Signal_context();
 
 		/**
 		 * Constructor
+		 *
+		 * \param r        receiver that the context is assigned to
+		 * \param imprint  userland identification of the context
 		 */
 		Signal_context(Signal_receiver * const r, unsigned const imprint)
 		:
-			_fe(this), _receiver(r), _imprint(imprint), _submits(0), _ack(1),
-			_killer(0)
+			_deliver_fe(this), _contexts_fe(this), _receiver(r),
+			_imprint(imprint), _submits(0), _ack(1), _killer(0)
 		{ }
+
+	public:
 
 		/**
 		 * Submit the signal
 		 *
 		 * \param n  number of submits
+		 *
+		 * \retval  0 succeeded
+		 * \retval -1 failed
 		 */
-		void submit(unsigned const n)
+		int submit(unsigned const n)
 		{
-			if (_submits >= (unsigned)~0 - n) {
-				PERR("overflow at signal-submit count");
-				return;
-			}
-			if (_killer) {
-				PERR("signal context already in destruction");
-				return;
-			}
+			if (_killer || _submits >= (unsigned)~0 - n) { return -1; }
 			_submits += n;
-			if (!_ack) { return; }
-			_deliverable();
+			if (_ack) { _deliverable(); }
+			return 0;
 		}
 
 		/**
 		 * Acknowledge delivery of signal
-		 *
-		 * \retval   0  no kill request finished
-		 * \retval > 0  name of finished kill request
 		 */
-		unsigned ack()
+		void ack()
 		{
-			if (_ack) {
-				PERR("unexpected signal acknowledgment");
-				return 0;
-			}
+			if (_ack) { return; }
 			if (!_killer) {
 				_ack = 1;
 				_deliverable();
-				return 0;
+				return;
 			}
 			this->~Signal_context();
-			return _killer;
+			_killer->_signal_context_kill_done();
 		}
 
 		/**
 		 * Destruct context or prepare to do it as soon as delivery is done
 		 *
-		 * \param killer  name of the kill request
+		 * \param killer  object that shall receive progress reports
 		 *
-		 * \retval 1  destruction is done
-		 * \retval 0  destruction is initiated, will be done with the next ack
+		 * \retval  0 succeeded
+		 * \retval -1 failed
 		 */
-		bool kill(unsigned const killer)
+		int kill(Signal_context_killer * const k)
 		{
-			/* FIXME: aggregate or avoid multiple kill requests */
-			if (_killer) {
-				PERR("multiple kill requests");
-				while (1) { }
+			if (_killer) { return -1; }
+
+			/* destruct directly if there is no unacknowledged delivery */
+			if (_ack) {
+				this->~Signal_context();
+				return 0;
 			}
-			_killer = killer;
-			if (!_ack) { return 0; }
-			this->~Signal_context();
-			return 1;
+			/* wait for delivery acknowledgement */
+			_killer = k;
+			_killer->_signal_context_kill_pending();
+			return 0;
 		}
 };
 
 class Kernel::Signal_receiver
 :
-	public Object<Signal_receiver, MAX_SIGNAL_RECEIVERS>
+	public Object<Signal_receiver, MAX_SIGNAL_RECEIVERS>,
+	public Signal_context_killer
 {
 	friend class Signal_context;
+	friend class Context_killer;
 
 	private:
 
@@ -195,14 +231,19 @@ class Kernel::Signal_receiver
 		template <typename T> class Fifo : public Genode::Fifo<T> { };
 
 		Fifo<Signal_handler::Fifo_element> _handlers;
-		Fifo<Signal_context::Fifo_element> _deliverable;
+		Fifo<Signal_context::Fifo_element> _deliver;
+		Fifo<Signal_context::Fifo_element> _contexts;
+		unsigned                           _context_kills;
+		Signal_receiver_killer *           _killer;
 
 		/**
 		 * Recognize that context 'c' has submits to deliver
 		 */
 		void _add_deliverable(Signal_context * const c)
 		{
-			if (!c->_fe.is_enqueued()) _deliverable.enqueue(&c->_fe);
+			if (!c->_deliver_fe.is_enqueued()) {
+				_deliver.enqueue(&c->_deliver_fe);
+			}
 			_listen();
 		}
 
@@ -214,53 +255,128 @@ class Kernel::Signal_receiver
 			while (1)
 			{
 				/* check if there are deliverable signal */
-				if (_deliverable.empty()) return;
-				Signal_context * const c = _deliverable.dequeue()->object();
+				if (_deliver.empty()) return;
+				Signal_context * const c = _deliver.dequeue()->object();
 
 				/* if there is no handler re-enqueue context and exit */
 				if (_handlers.empty()) {
-					_deliverable.enqueue(&c->_fe);
+					_deliver.enqueue(&c->_deliver_fe);
 					return;
 				}
 				/* delivery from context to handler */
 				Signal_handler * const h = _handlers.dequeue()->object();
 				Signal::Data data((Genode::Signal_context *)c->_imprint,
 				                   c->_submits);
-				deliver_signal(h, &data, sizeof(data));
+				h->_signal_handler(&data, sizeof(data));
 				c->_delivered();
+			}
+		}
+
+		/**
+		 * Notice that a context of the receiver has been killed
+		 *
+		 * \param c  killed context
+		 */
+		void _context_killed(Signal_context * const c)
+		{
+			if (c->_deliver_fe.is_enqueued()) {
+				_deliver.remove(&c->_deliver_fe);
+			}
+			_contexts.remove(&c->_contexts_fe);
+		}
+
+
+		/***************************
+		 ** Signal_context_killer **
+		 ***************************/
+
+		void _signal_context_kill_pending() { _context_kills++; }
+
+		void _signal_context_kill_done()
+		{
+			_context_kills--;
+			if (!_context_kills && _killer) {
+				this->~Signal_receiver();
+				_killer->_signal_receiver_kill_done();
 			}
 		}
 
 	public:
 
 		/**
-		 * Let a handler wait for signals of the receiver
+		 * Constructor
 		 */
-		void add_handler(Signal_handler * const h)
+
+		/**
+		 * Let a handler 'h' wait for signals of the receiver
+		 *
+		 * \retval  0 succeeded
+		 * \retval -1 failed
+		 */
+		int add_handler(Signal_handler * const h)
 		{
-			_handlers.enqueue(&h->_fe);
+			if (_killer) { return -1; }
+			_handlers.enqueue(&h->_handlers_fe);
 			_listen();
+			return 0;
 		}
 
 		/**
-		 * Stop a handler from waiting for signals of the receiver
+		 * Stop a handler 'h' from waiting for signals of the receiver
 		 */
 		void remove_handler(Signal_handler * const h)
 		{
-			_handlers.remove(&h->_fe);
+			_handlers.remove(&h->_handlers_fe);
+		}
+
+		/**
+		 * Create a context that is assigned to the receiver
+		 *
+		 * \retval  0  succeeded
+		 * \retval -1  failed
+		 */
+		int new_context(void * p, unsigned imprint)
+		{
+			if (_killer) { return -1; }
+			new (p) Signal_context(this, imprint);
+			Signal_context * const c = (Signal_context *)p;
+			_contexts.enqueue(&c->_contexts_fe);
+			return 0;
 		}
 
 		/**
 		 * Return wether any of the contexts of this receiver is deliverable
 		 */
-		bool deliverable() { return !_deliverable.empty(); }
+		bool deliverable() { return !_deliver.empty(); }
+
+		/**
+		 * Destruct receiver or prepare to do it as soon as delivery is done
+		 *
+		 * \param killer  object that shall receive progress reports
+		 *
+		 * \retval  0 succeeded
+		 * \retval -1 failed
+		 */
+		int kill(Signal_receiver_killer * const k)
+		{
+			if (_killer) { return -1; }
+
+			/* start killing at all contexts of the receiver */
+			Signal_context * c = _contexts.dequeue()->object();
+			while (c) {
+				c->kill(this);
+				c = _contexts.dequeue()->object();
+			}
+			/* destruct directly if no context kill is pending */
+			if (!_context_kills) {
+				this->~Signal_receiver();
+				return 0;
+			}
+			/* wait for pending context kills */
+			_killer = k;
+			_killer->_signal_receiver_kill_pending();
+			return 0;
+		}
 };
-
-
-void Kernel::Signal_context::_deliverable()
-{
-	if (!_submits) return;
-	_receiver->_add_deliverable(this);
-}
 
 #endif /* _KERNEL__SIGNAL_RECEIVER_ */

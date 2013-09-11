@@ -81,7 +81,10 @@ class Kernel::Thread
 	public Object<Thread, MAX_THREADS>,
 	public Execution_context,
 	public Ipc_node,
-	public Irq_receiver
+	public Irq_receiver,
+	public Signal_context_killer,
+	public Signal_receiver_killer,
+	public Signal_handler
 {
 	private:
 
@@ -93,7 +96,7 @@ class Kernel::Thread
 			AWAIT_RESUMPTION,
 			AWAIT_IRQ,
 			AWAIT_SIGNAL,
-			AWAIT_SIGNAL_CONTEXT_DESTRUCT,
+			AWAIT_SIGNAL_CONTEXT_KILL,
 			CRASHED,
 		};
 
@@ -105,7 +108,6 @@ class Kernel::Thread
 		Native_utcb *           _phys_utcb;
 		Native_utcb *           _virt_utcb;
 		Signal_receiver *       _signal_receiver;
-		Signal_handler          _signal_handler;
 
 		/**
 		 * Resume execution
@@ -115,6 +117,47 @@ class Kernel::Thread
 			cpu_scheduler()->insert(this);
 			_state = SCHEDULED;
 		}
+
+		/***************************
+		 ** Signal_context_killer **
+		 ***************************/
+
+		void _signal_context_kill_pending()
+		{
+			cpu_scheduler()->remove(this);
+			_state = AWAIT_SIGNAL_CONTEXT_KILL;
+		}
+
+		void _signal_context_kill_done()
+		{
+			if (_state != AWAIT_SIGNAL_CONTEXT_KILL) {
+				PDBG("ignore unexpected signal-context destruction");
+				return;
+			}
+			user_arg_0(0);
+			_schedule();
+		}
+
+
+		/********************
+		 ** Signal_handler **
+		 ********************/
+
+		void _signal_handler(void * const base, size_t const size)
+		{
+			assert(_state == AWAIT_SIGNAL && size <= phys_utcb()->size());
+			Genode::memcpy(phys_utcb()->base(), base, size);
+			_schedule();
+		}
+
+
+		/****************************
+		 ** Signal_receiver_killer **
+		 ****************************/
+
+		void _signal_receiver_kill_pending() { PERR("not implemented"); }
+
+		void _signal_receiver_kill_done() { PERR("not implemented"); }
 
 
 		/**************
@@ -161,7 +204,7 @@ class Kernel::Thread
 		:
 			_platform_thread(platform_thread), _state(AWAIT_START),
 			_pager(0), _pd_id(0), _phys_utcb(0), _virt_utcb(0),
-			_signal_receiver(0), _signal_handler((unsigned)this)
+			_signal_receiver(0)
 		{ }
 
 		/**
@@ -280,10 +323,10 @@ class Kernel::Thread
 				return 0;
 			case AWAIT_SIGNAL:
 				PDBG("cancel signal receipt");
-				_signal_receiver->remove_handler(signal_handler());
+				_signal_receiver->remove_handler(this);
 				_schedule();
 				return 0;
-			case AWAIT_SIGNAL_CONTEXT_DESTRUCT:
+			case AWAIT_SIGNAL_CONTEXT_KILL:
 				PDBG("cancel signal context destruction");
 				_schedule();
 				return 0;
@@ -361,41 +404,6 @@ class Kernel::Thread
 			_signal_receiver = receiver;
 		}
 
-		/**
-		 * Let the thread receive signal data
-		 *
-		 * \param base  signal-data base
-		 * \param size  signal-data size
-		 */
-		void receive_signal(void * const base, size_t const size)
-		{
-			assert(_state == AWAIT_SIGNAL && size <= phys_utcb()->size());
-			Genode::memcpy(phys_utcb()->base(), base, size);
-			_schedule();
-		}
-
-		/**
-		 * Destructing a signal context blocks the thread for now
-		 */
-		void kill_signal_context_blocks()
-		{
-			cpu_scheduler()->remove(this);
-			_state = AWAIT_SIGNAL_CONTEXT_DESTRUCT;
-		}
-
-		/**
-		 * A signal-context destruction that blocked the thread is done
-		 */
-		void kill_signal_context_done()
-		{
-			if (_state != AWAIT_SIGNAL_CONTEXT_DESTRUCT) {
-				PDBG("ignore unexpected signal-context destruction");
-				return;
-			}
-			user_arg_0(1);
-			_schedule();
-		}
-
 
 		/***********************
 		 ** Execution_context **
@@ -441,8 +449,6 @@ class Kernel::Thread
 		unsigned pd_id() const { return _pd_id; }
 
 		Native_utcb * phys_utcb() const { return _phys_utcb; }
-
-		Signal_handler * signal_handler() { return &_signal_handler; }
 };
 
 #endif /* _CORE__KERNEL__THREAD_H_ */

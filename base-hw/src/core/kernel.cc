@@ -91,13 +91,6 @@ namespace Kernel
 
 namespace Kernel
 {
-	void deliver_signal(Signal_handler * const dst,
-	                    void * const           base,
-	                    size_t const           size)
-	{
-		((Thread *)dst->id())->receive_signal(base, size);
-	}
-
 	class Vm : public Object<Vm, MAX_VMS>,
 	           public Execution_context
 	{
@@ -601,15 +594,16 @@ namespace Kernel
 	 */
 	void do_new_signal_receiver(Thread * const user)
 	{
-			/* check permissions */
-			assert(user->pd_id() == core_id());
-
-			/* create receiver */
-			void * dst = (void *)user->user_arg_1();
-			Signal_receiver * const r = new (dst) Signal_receiver();
-
-			/* return success */
-			user->user_arg_0(r->id());
+		/* check permissions */
+		if (user->pd_id() != core_id()) {
+			PERR("permission to create signal receiver denied");
+			user->user_arg_0(0);
+			return;
+		}
+		/* create receiver */
+		void * p = (void *)user->user_arg_1();
+		Signal_receiver * const r = new (p) Signal_receiver();
+		user->user_arg_0(r->id());
 	}
 
 
@@ -619,19 +613,29 @@ namespace Kernel
 	void do_new_signal_context(Thread * const user)
 	{
 		/* check permissions */
-		assert(user->pd_id() == core_id());
-
+		if (user->pd_id() != core_id()) {
+			PERR("not entitled to create signal context");
+			user->user_arg_0(0);
+			return;
+		}
 		/* lookup receiver */
-		unsigned rid = user->user_arg_2();
-		Signal_receiver * const r = Signal_receiver::pool()->object(rid);
-		assert(r);
-
-		/* create context */
-		void * dst = (void *)user->user_arg_1();
+		unsigned id = user->user_arg_2();
+		Signal_receiver * const r = Signal_receiver::pool()->object(id);
+		if (!r) {
+			PERR("invalid signal receiver");
+			user->user_arg_0(0);
+			return;
+		}
+		/* create and assign context*/
+		void * p = (void *)user->user_arg_1();
 		unsigned imprint = user->user_arg_3();
-		Signal_context * const c = new (dst) Signal_context(r, imprint);
-
-		/* return success */
+		if (r->new_context(p, imprint)) {
+			PERR("failed to create signal context");
+			user->user_arg_0(0);
+			return;
+		}
+		/* return context name */
+		Signal_context * const c = (Signal_context *)p;
 		user->user_arg_0(c->id());
 	}
 
@@ -642,13 +646,21 @@ namespace Kernel
 	void do_await_signal(Thread * const user)
 	{
 		/* lookup receiver */
-		unsigned rid = user->user_arg_2();
-		Signal_receiver * const r = Signal_receiver::pool()->object(rid);
-		assert(r);
-
-		/* let user listen to receiver */
+		unsigned id = user->user_arg_1();
+		Signal_receiver * const r = Signal_receiver::pool()->object(id);
+		if (!r) {
+			PERR("invalid signal receiver");
+			user->user_arg_0(-1);
+			return;
+		}
+		/* register handler at the receiver */
 		user->await_signal(r);
-		r->add_handler(user->signal_handler());
+		if (r->add_handler(user)) {
+			PERR("failed to register handler at signal receiver");
+			user->user_arg_0(-1);
+			return;
+		}
+		user->user_arg_0(0);
 	}
 
 
@@ -657,12 +669,15 @@ namespace Kernel
 	 */
 	void do_signal_pending(Thread * const user)
 	{
-		/* lookup receiver */
-		unsigned rid = user->user_arg_2();
-		Signal_receiver * const r = Signal_receiver::pool()->object(rid);
-		assert(r);
-
-		/* set return value */
+		/* lookup signal receiver */
+		unsigned id = user->user_arg_1();
+		Signal_receiver * const r = Signal_receiver::pool()->object(id);
+		if (!r) {
+			PERR("invalid signal receiver");
+			user->user_arg_0(0);
+			return;
+		}
+		/* get pending state */
 		user->user_arg_0(r->deliverable());
 	}
 
@@ -672,15 +687,20 @@ namespace Kernel
 	 */
 	void do_submit_signal(Thread * const user)
 	{
-		/* lookup context */
-		Signal_context * const c =
-			Signal_context::pool()->object(user->user_arg_1());
+		/* lookup signal context */
+		unsigned const id = user->user_arg_1();
+		Signal_context * const c = Signal_context::pool()->object(id);
 		if(!c) {
-			PDBG("invalid signal-context capability");
+			PERR("invalid signal context");
+			user->user_arg_0(-1);
 			return;
 		}
-		/* trigger signal at context */
-		c->submit(user->user_arg_2());
+		/* trigger signal context */
+		if (c->submit(user->user_arg_2())) {
+			user->user_arg_0(-1);
+			return;
+		}
+		user->user_arg_0(0);
 	}
 
 
@@ -689,11 +709,15 @@ namespace Kernel
 	 */
 	void do_ack_signal(Thread * const user)
 	{
+		/* lookup signal context */
 		unsigned id = user->user_arg_1();
 		Signal_context * const c = Signal_context::pool()->object(id);
-		if (!c) return;
-		Thread * const t = (Thread *)c->ack();
-		if (t) { t->kill_signal_context_done(); }
+		if (!c) {
+			PWRN("invalid signal context");
+			return;
+		}
+		/* acknowledge */
+		c->ack();
 	}
 
 
@@ -703,14 +727,54 @@ namespace Kernel
 	void do_kill_signal_context(Thread * const user)
 	{
 		/* check permissions */
-		assert(user->pd_id() == core_id());
-
+		if (user->pd_id() != core_id()) {
+			PERR("not entitled to kill signal context");
+			user->user_arg_0(-1);
+			return;
+		}
+		/* lookup signal context */
 		unsigned id = user->user_arg_1();
 		Signal_context * const c = Signal_context::pool()->object(id);
-		if (!c) { return; }
-		if (c->kill((unsigned)user)) { return; }
-		user->kill_signal_context_blocks();
+		if (!c) {
+			user->user_arg_0(0);
+			return;
+		}
+		/* kill signal context */
+		if (c->kill(user)) {
+			user->user_arg_0(-1);
+			return;
+		}
+		user->user_arg_0(0);
 	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_kill_signal_receiver(Thread * const user)
+	{
+		/* check permissions */
+		if (user->pd_id() != core_id()) {
+			PERR("not entitled to kill signal receiver");
+			user->user_arg_0(-1);
+			return;
+		}
+		/* lookup signal receiver */
+		user->user_arg_0(1);
+		unsigned id = user->user_arg_1();
+		Signal_receiver * const r = Signal_receiver::pool()->object(id);
+		if (!r) {
+			user->user_arg_0(0);
+			return;
+		}
+		/* kill signal receiver */
+		if (r->kill(user)) {
+			user->user_arg_0(-1);
+			return;
+		}
+		user->user_arg_0(0);
+	}
+
 
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
@@ -779,38 +843,39 @@ namespace Kernel
 	{
 		switch (user->user_arg_0())
 		{
-		case NEW_THREAD:          do_new_thread(user); return;
-		case DELETE_THREAD:       do_delete_thread(user); return;
-		case START_THREAD:        do_start_thread(user); return;
-		case PAUSE_THREAD:        do_pause_thread(user); return;
-		case RESUME_THREAD:       do_resume_thread(user); return;
-		case RESUME_FAULTER:      do_resume_faulter(user); return;
-		case GET_THREAD:          do_get_thread(user); return;
-		case CURRENT_THREAD_ID:   do_current_thread_id(user); return;
-		case YIELD_THREAD:        do_yield_thread(user); return;
-		case READ_THREAD_STATE:   do_read_thread_state(user); return;
-		case WRITE_THREAD_STATE:  do_write_thread_state(user); return;
-		case REQUEST_AND_WAIT:    do_request_and_wait(user); return;
-		case REPLY:               do_reply(user); return;
-		case WAIT_FOR_REQUEST:    do_wait_for_request(user); return;
-		case SET_PAGER:           do_set_pager(user); return;
-		case UPDATE_PD:           do_update_pd(user); return;
-		case UPDATE_REGION:       do_update_region(user); return;
-		case NEW_PD:              do_new_pd(user); return;
-		case ALLOCATE_IRQ:        do_allocate_irq(user); return;
-		case AWAIT_IRQ:           do_await_irq(user); return;
-		case FREE_IRQ:            do_free_irq(user); return;
-		case PRINT_CHAR:          do_print_char(user); return;
-		case NEW_SIGNAL_RECEIVER: do_new_signal_receiver(user); return;
-		case NEW_SIGNAL_CONTEXT:  do_new_signal_context(user); return;
-		case KILL_SIGNAL_CONTEXT: do_kill_signal_context(user); return;
-		case AWAIT_SIGNAL:        do_await_signal(user); return;
-		case SUBMIT_SIGNAL:       do_submit_signal(user); return;
-		case SIGNAL_PENDING:      do_signal_pending(user); return;
-		case ACK_SIGNAL:          do_ack_signal(user); return;
-		case NEW_VM:              do_new_vm(user); return;
-		case RUN_VM:              do_run_vm(user); return;
-		case PAUSE_VM:            do_pause_vm(user); return;
+		case NEW_THREAD:           do_new_thread(user); return;
+		case DELETE_THREAD:        do_delete_thread(user); return;
+		case START_THREAD:         do_start_thread(user); return;
+		case PAUSE_THREAD:         do_pause_thread(user); return;
+		case RESUME_THREAD:        do_resume_thread(user); return;
+		case RESUME_FAULTER:       do_resume_faulter(user); return;
+		case GET_THREAD:           do_get_thread(user); return;
+		case CURRENT_THREAD_ID:    do_current_thread_id(user); return;
+		case YIELD_THREAD:         do_yield_thread(user); return;
+		case READ_THREAD_STATE:    do_read_thread_state(user); return;
+		case WRITE_THREAD_STATE:   do_write_thread_state(user); return;
+		case REQUEST_AND_WAIT:     do_request_and_wait(user); return;
+		case REPLY:                do_reply(user); return;
+		case WAIT_FOR_REQUEST:     do_wait_for_request(user); return;
+		case SET_PAGER:            do_set_pager(user); return;
+		case UPDATE_PD:            do_update_pd(user); return;
+		case UPDATE_REGION:        do_update_region(user); return;
+		case NEW_PD:               do_new_pd(user); return;
+		case ALLOCATE_IRQ:         do_allocate_irq(user); return;
+		case AWAIT_IRQ:            do_await_irq(user); return;
+		case FREE_IRQ:             do_free_irq(user); return;
+		case PRINT_CHAR:           do_print_char(user); return;
+		case NEW_SIGNAL_RECEIVER:  do_new_signal_receiver(user); return;
+		case NEW_SIGNAL_CONTEXT:   do_new_signal_context(user); return;
+		case KILL_SIGNAL_CONTEXT:  do_kill_signal_context(user); return;
+		case KILL_SIGNAL_RECEIVER: do_kill_signal_receiver(user); return;
+		case AWAIT_SIGNAL:         do_await_signal(user); return;
+		case SUBMIT_SIGNAL:        do_submit_signal(user); return;
+		case SIGNAL_PENDING:       do_signal_pending(user); return;
+		case ACK_SIGNAL:           do_ack_signal(user); return;
+		case NEW_VM:               do_new_vm(user); return;
+		case RUN_VM:               do_run_vm(user); return;
+		case PAUSE_VM:             do_pause_vm(user); return;
 		default:
 			PERR("invalid syscall");
 			user->crash();

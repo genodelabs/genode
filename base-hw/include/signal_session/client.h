@@ -46,6 +46,9 @@ namespace Genode
 		              unsigned const imprint) {
 			return call<Rpc_alloc_context>(r, imprint); }
 
+		void free_receiver(Signal_receiver_capability cap) {
+			call<Rpc_free_receiver>(cap); }
+
 		void free_context(Signal_context_capability cap) {
 			call<Rpc_free_context>(cap); }
 	};

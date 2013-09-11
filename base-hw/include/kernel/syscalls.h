@@ -73,6 +73,7 @@ namespace Kernel
 
 		/* asynchronous signalling */
 		NEW_SIGNAL_RECEIVER = 20,
+		KILL_SIGNAL_RECEIVER = 33,
 		NEW_SIGNAL_CONTEXT = 21,
 		KILL_SIGNAL_CONTEXT = 30,
 		AWAIT_SIGNAL = 22,
@@ -438,105 +439,129 @@ namespace Kernel
 	/**
 	 * Create a kernel object that acts as receiver for asynchronous signals
 	 *
-	 * \param dst  physical base of an appropriate portion of memory
-	 *             that is thereupon allocated to the kernel
+	 * \param p  appropriate memory donation for the kernel object
 	 *
-	 * \return  ID of the new kernel object
+	 * \retval >0  kernel name of the new signal receiver
+	 * \retval  0  failed
 	 *
-	 * Restricted to core threads. Regaining of the supplied memory is not
-	 * supported by now.
+	 * Restricted to core threads.
 	 */
-	inline unsigned new_signal_receiver(void * dst) {
-		return syscall(NEW_SIGNAL_RECEIVER, (Syscall_arg)dst); }
-
-
-	/**
-	 * Create a kernel object that acts as a distinct signal type at a receiver
-	 *
-	 * \param dst          physical base of an appropriate portion of memory
-	 *                     that is thereupon allocated to the kernel
-	 * \param receiver_id  ID of the receiver kernel-object that shall
-	 *                     provide the new signal context
-	 * \param imprint      Every signal, one receives at the new context,
-	 *                     will hold this imprint. This enables the receiver
-	 *                     to interrelate signals with the context.
-	 *
-	 * \return  ID of the new kernel object
-	 *
-	 * Core-only syscall. Regaining of the supplied memory is not
-	 * supported by now.
-	 */
-	inline unsigned new_signal_context(void * dst, unsigned receiver_id,
-	                                   unsigned imprint)
+	inline unsigned new_signal_receiver(addr_t const p)
 	{
-		return syscall(NEW_SIGNAL_CONTEXT, (Syscall_arg)dst,
-		               (Syscall_arg)receiver_id, (Syscall_arg)imprint);
+		return syscall(NEW_SIGNAL_RECEIVER, p);
 	}
 
 
 	/**
-	 * Wait for occurence of at least one signal at any context of a receiver
+	 * Create a kernel object that acts as a signal context at a receiver
 	 *
-	 * \param receiver_id  ID of the targeted receiver kernel-object
+	 * \param p         appropriate memory donation for the kernel object
+	 * \param receiver  kernel name of targeted signal receiver
+	 * \param imprint   userland name of the new signal context
 	 *
-	 * When this call returns, an instance of 'Signal::Data' is located at the
-	 * base of the callers UTCB. It's granted that every occurence of a signal
-	 * is provided through this function, exactly till it gets delivered through
-	 * this function. If multiple threads listen at the same receiver, and/or
-	 * multiple contexts of the receiver trigger simultanously, there is no
-	 * assertion about wich thread receives, and from wich context. But
-	 * deliveries belonging to the same context are serialized through
-	 * 'ack_signal', to enable synchronization in 'kill_signal'.
+	 * \retval >0  kernel name of the new signal context
+	 * \retval  0  failed
+	 *
+	 * Restricted to core threads.
 	 */
-	inline void await_signal(unsigned receiver_id) {
-		syscall(AWAIT_SIGNAL, (Syscall_arg)receiver_id); }
+	inline unsigned new_signal_context(addr_t const   p,
+	                                   unsigned const receiver,
+	                                   unsigned const imprint)
+	{
+		return syscall(NEW_SIGNAL_CONTEXT, p, receiver, imprint);
+	}
 
 
 	/**
-	 * Get summarized state of all contexts of a signal receiver
+	 * Wait for the occurence of any context of a receiver
 	 *
-	 * \param receiver_id  ID of the targeted receiver kernel-object
+	 * \param receiver  kernel name of the targeted signal receiver
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
+	 *
+	 * If this call returns 0, an instance of 'Signal::Data' is located at the
+	 * base of the callers UTCB. Every occurence of a signal is provided
+	 * through this function until it gets delivered through this function.
+	 * If multiple threads listen at the same receiver, and/or
+	 * multiple contexts of the receiver trigger simultanously, there is no
+	 * assertion about wich thread receives, and from wich context. A context
+	 * that delivered once doesn't deliver again unless its last delivery has
+	 * been acknowledged via 'ack_signal'.
 	 */
-	inline bool signal_pending(unsigned receiver_id) {
-		return syscall(SIGNAL_PENDING, (Syscall_arg)receiver_id); }
+	inline int await_signal(unsigned const receiver)
+	{
+		return syscall(AWAIT_SIGNAL, receiver);
+	}
+
+
+	/**
+	 * Return wether any context of a receiver is pending
+	 *
+	 * \param receiver  kernel name of the targeted signal receiver
+	 *
+	 * \retval 0  none of the contexts is pending or the receiver doesn't exist
+	 * \retval 1  a context of the signal receiver is pending
+	 */
+	inline bool signal_pending(unsigned const receiver)
+	{
+		return syscall(SIGNAL_PENDING, receiver);
+	}
 
 
 	/**
 	 * Trigger a specific signal context
 	 *
-	 * \param context_id  ID of the targeted context kernel-object
-	 * \param num         how often the context shall be triggered by this call
+	 * \param context  kernel name of the targeted signal context
+	 * \param num      how often the context shall be triggered by this call
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
 	 */
-	inline void submit_signal(unsigned context_id, int num) {
-		syscall(SUBMIT_SIGNAL, (Syscall_arg)context_id, (Syscall_arg)num); }
+	inline int submit_signal(unsigned const context, unsigned const num)
+	{
+		return syscall(SUBMIT_SIGNAL, context, num);
+	}
 
 	/**
-	 * Acknowledge the processing of the last signal of a signal context
+	 * Acknowledge the processing of the last delivery of a signal context
 	 *
-	 * \param context_id  kernel name of the targeted signal context
-	 *
-	 * Should be called after all signal objects, that reference the targeted
-	 * signal context in userland are destructed. The signal context wont
-	 * deliver a new signal until the old signal is acknowledged.
+	 * \param context  kernel name of the targeted signal context
 	 */
-	inline void ack_signal(unsigned context_id) {
-		syscall(ACK_SIGNAL, (Syscall_arg)context_id); }
+	inline void ack_signal(unsigned const context)
+	{
+		syscall(ACK_SIGNAL, context);
+	}
 
 	/**
 	 * Destruct a signal context
 	 *
-	 * \param context_id  kernel name of the targeted signal context
+	 * \param context  kernel name of the targeted signal context
 	 *
-	 * \return  wether the context could be destructed
-	 *
-	 * Blocks the caller until the last delivered signal of the targeted
-	 * context is acknowledged. Then the context gets destructed, losing
-	 * all submits that were not delivered when this syscall occured.
+	 * \retval  0  suceeded
+	 * \retval -1  failed
 	 *
 	 * Restricted to core threads.
 	 */
-	inline bool kill_signal_context(unsigned context_id) {
-		return syscall(KILL_SIGNAL_CONTEXT, (Syscall_arg)context_id); }
+	inline int kill_signal_context(unsigned const context)
+	{
+		return syscall(KILL_SIGNAL_CONTEXT, context);
+	}
+
+	/**
+	 * Destruct a signal receiver
+	 *
+	 * \param receiver  kernel name of the targeted signal receiver
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
+	 *
+	 * Restricted to core threads.
+	 */
+	inline int kill_signal_receiver(unsigned const receiver)
+	{
+		return syscall(KILL_SIGNAL_RECEIVER, receiver);
+	}
 
 	/**
 	 * Create a new virtual-machine that is stopped initially

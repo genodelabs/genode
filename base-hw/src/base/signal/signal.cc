@@ -109,9 +109,16 @@ Signal_receiver::Signal_receiver()
 }
 
 
+void Signal_receiver::_platform_destructor()
+{
+	/* release server resources of receiver */
+	signal_connection()->free_receiver(_cap);
+}
+
+
 void Signal_receiver::_unsynchronized_dissolve(Signal_context * c)
 {
-	/* release core resources */
+	/* release server resources of context */
 	signal_connection()->free_context(c->_cap);
 
 	/* reset the context */
@@ -128,7 +135,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 	/* check if the context is already managed */
 	Lock::Guard contexts_guard(_contexts_lock);
 	Lock::Guard context_guard(c->_lock);
-	if (c->_receiver) throw Context_already_in_use();
+	if (c->_receiver) { throw Context_already_in_use(); }
 
 	/* create a kernel object that corresponds to the context */
 	bool session_upgraded = 0;
@@ -154,13 +161,10 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 }
 
 
-void Signal_receiver::dissolve(Signal_context *context)
+void Signal_receiver::dissolve(Signal_context * const context)
 {
-	if (context->_receiver != this)
-		throw Context_not_associated();
-
+	if (context->_receiver != this) { throw Context_not_associated(); }
 	Lock::Guard list_lock_guard(_contexts_lock);
-
 	_unsynchronized_dissolve(context);
 
 	/*
@@ -180,24 +184,17 @@ bool Signal_receiver::pending() { return Kernel::signal_pending(_cap.dst()); }
 Signal Signal_receiver::wait_for_signal()
 {
 	/* await a signal */
-	Kernel::await_signal(_cap.dst());
-	Signal s(*(Signal::Data *)Thread_base::myself()->utcb());
-	Signal_context * const c = s.context();
-
-	/* check if the context of the signal is managed by us */
-	Lock::Guard context_guard(c->_lock);
-	if (c->_receiver != this) {
-		PERR("%s: Context not managed by this receiver", __PRETTY_FUNCTION__);
-		while (1) ;
+	if (Kernel::await_signal(_cap.dst())) {
+		PERR("failed to receive signal");
+		throw Exception();
 	}
-	/* check attributes of the signal and return it */
-	if (s.num() == 0) PWRN("Returning signal with num == 0");
+	/* get signal data */
+	Signal s(*(Signal::Data *)Thread_base::myself()->utcb());
 	return s;
 }
 
 
-void Signal_receiver::local_submit(Signal::Data signal) {
-	PDBG("Not implemented"); };
-
-
-void Signal_receiver::_platform_destructor() { }
+void Signal_receiver::local_submit(Signal::Data signal)
+{
+	PDBG("Not implemented");
+}

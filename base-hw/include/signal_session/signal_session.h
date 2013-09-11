@@ -81,9 +81,18 @@ namespace Genode
 		              unsigned const imprint) = 0;
 
 		/**
+		 * Free a signal receiver
+		 *
+		 * \param cap  capability of targeted signal receiver
+		 *
+		 * \throw Exception
+		 */
+		virtual void free_receiver(Signal_receiver_capability cap) = 0;
+
+		/**
 		 * Free a signal context
 		 *
-		 * \param cap  capability of signal-context to release
+		 * \param cap  capability of targeted signal context
 		 *
 		 * \throw Exception
 		 */
@@ -97,15 +106,21 @@ namespace Genode
 		GENODE_RPC_THROW(Rpc_alloc_receiver, Signal_receiver_capability,
 		                 alloc_receiver, GENODE_TYPE_LIST(Out_of_metadata,
 		                 Exception));
+
 		GENODE_RPC_THROW(Rpc_alloc_context, Signal_context_capability,
 		                 alloc_context, GENODE_TYPE_LIST(Out_of_metadata,
 		                 Exception), Signal_receiver_capability, unsigned);
+
+		GENODE_RPC_THROW(Rpc_free_receiver, void, free_receiver,
+		                 GENODE_TYPE_LIST(Exception),
+		                 Signal_receiver_capability);
+
 		GENODE_RPC_THROW(Rpc_free_context, void, free_context,
 		                 GENODE_TYPE_LIST(Exception),
 		                 Signal_context_capability);
 
 		GENODE_RPC_INTERFACE(Rpc_alloc_receiver, Rpc_alloc_context,
-		                     Rpc_free_context);
+		                     Rpc_free_receiver, Rpc_free_context);
 	};
 }
 

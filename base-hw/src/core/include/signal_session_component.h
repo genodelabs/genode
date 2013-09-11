@@ -38,14 +38,21 @@ namespace Genode
 		private:
 
 			/**
+			 * Maps a signal-receiver name to related core and kernel resources
+			 */
+			class Receiver;
+
+			/**
 			 * Maps a signal-context name to related core and kernel resources
 			 */
 			class Context;
 
-			typedef Object_pool<Context> Context_pool;
+			typedef Object_pool<Receiver> Receiver_pool;
+			typedef Object_pool<Context>  Context_pool;
 
 			Allocator_guard _md_alloc;
 			Slab            _receivers_slab;
+			Receiver_pool   _receivers;
 			Slab            _contexts_slab;
 			Context_pool    _contexts;
 			char            _initial_receivers_sb [RECEIVERS_SB_SIZE];
@@ -81,9 +88,42 @@ namespace Genode
 			Signal_context_capability
 			alloc_context(Signal_receiver_capability, unsigned const);
 
+			void free_receiver(Signal_receiver_capability);
+
 			void free_context(Signal_context_capability);
 	};
 }
+
+class Genode::Signal_session_component::Receiver : public Receiver_pool::Entry
+{
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Receiver(Untyped_capability cap) : Entry(cap) { }
+
+		/**
+		 * Name of signal receiver
+		 */
+		unsigned id() const { return Receiver_pool::Entry::cap().dst(); }
+
+		/**
+		 * Size of SLAB block occupied by resources and this resource info
+		 */
+		static size_t slab_size()
+		{
+			return sizeof(Receiver) + Kernel::signal_receiver_size();
+		}
+
+		/**
+		 * Base of region donated to the kernel
+		 */
+		static addr_t kernel_donation(void * const slab_addr)
+		{
+			return ((addr_t)slab_addr + sizeof(Receiver));
+		}
+};
 
 class Genode::Signal_session_component::Context : public Context_pool::Entry
 {
@@ -110,9 +150,9 @@ class Genode::Signal_session_component::Context : public Context_pool::Entry
 		/**
 		 * Base of region donated to the kernel
 		 */
-		static void * kernel_donation(void * const slab_addr)
+		static addr_t kernel_donation(void * const slab_addr)
 		{
-			return (void *)((addr_t)slab_addr + sizeof(Context));
+			return ((addr_t)slab_addr + sizeof(Context));
 		}
 };
 

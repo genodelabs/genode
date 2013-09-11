@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <base/sleep.h>
 #include <kernel/syscalls.h>
 
 /* core includes */
@@ -31,7 +30,7 @@ void * operator new (size_t, void * p) { return p; }
 Signal_session_component::Signal_session_component(Allocator * const md,
                                                    size_t const ram_quota) :
 	_md_alloc(md, ram_quota),
-	_receivers_slab(Kernel::signal_receiver_size(), RECEIVERS_SB_SIZE,
+	_receivers_slab(Receiver::slab_size(), RECEIVERS_SB_SIZE,
 	                (Slab_block *)&_initial_receivers_sb, &_md_alloc),
 	_contexts_slab(Context::slab_size(), CONTEXTS_SB_SIZE,
 	               (Slab_block *)&_initial_contexts_sb, &_md_alloc)
@@ -48,21 +47,51 @@ Signal_session_component::~Signal_session_component()
 Signal_receiver_capability Signal_session_component::alloc_receiver()
 {
 	/* allocate resources for receiver */
-	size_t const s = Kernel::signal_receiver_size();
 	void * p;
-	if (!_receivers_slab.alloc(s, &p)) {
-		PERR("failed to allocate signal receiver");
+	if (!_receivers_slab.alloc(Receiver::slab_size(), &p)) {
+		PERR("failed to allocate signal-receiver resources");
 		throw Out_of_metadata();
 	}
 	/* create kernel object for receiver */
-	unsigned const id = Kernel::new_signal_receiver(p);
-	if (!id) {
+	addr_t donation = Receiver::kernel_donation(p);
+	unsigned const id = Kernel::new_signal_receiver(donation);
+	if (!id)
+	{
+		/* clean up */
+		_receivers_slab.free(p, Receiver::slab_size());
 		PERR("failed to create signal receiver");
 		throw Exception();
 	}
+	/* remember receiver ressources */
+	Native_capability cap(id, id);
+	Receiver * const r = new (p) Receiver(cap);
+	_receivers.insert(r);
+
 	/* return receiver capability */
-	Native_capability c(id, id);
-	return reinterpret_cap_cast<Signal_receiver>(c);
+	return reinterpret_cap_cast<Signal_receiver>(cap);
+}
+
+
+void Signal_session_component::free_receiver(Signal_receiver_capability cap)
+{
+	/* lookup ressource info */
+	Receiver * const r = _receivers.lookup_and_lock(cap);
+	if (!r) {
+		PERR("unknown signal receiver");
+		throw Exception();
+	}
+	/* release kernel resources */
+	if (Kernel::kill_signal_receiver(r->id()))
+	{
+		/* clean-up */
+		r->release();
+		PERR("failed to kill signal receiver");
+		throw Exception();
+	}
+	/* release core resources */
+	_receivers.remove_locked(r);
+	r->~Receiver();
+	_receivers_slab.free(r, Receiver::slab_size());
 }
 
 
@@ -77,7 +106,7 @@ Signal_session_component::alloc_context(Signal_receiver_capability r,
 		throw Out_of_metadata();
 	}
 	/* create kernel object for context */
-	void * donation = Context::kernel_donation(p);
+	addr_t donation = Context::kernel_donation(p);
 	unsigned const id = Kernel::new_signal_context(donation, r.dst(), imprint);
 	if (!id)
 	{
@@ -104,7 +133,7 @@ void Signal_session_component::free_context(Signal_context_capability cap)
 		throw Exception();
 	}
 	/* release kernel resources */
-	if (!Kernel::kill_signal_context(c->id()))
+	if (Kernel::kill_signal_context(c->id()))
 	{
 		/* clean-up */
 		c->release();
