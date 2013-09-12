@@ -66,6 +66,7 @@ namespace Noux {
 				inline void dissolve(Dataspace_info &ds);
 			};
 
+			Lock         _region_lock;
 			List<Region> _regions;
 
 			Region *_lookup_region_by_addr(addr_t local_addr)
@@ -115,6 +116,7 @@ namespace Noux {
 			            Dataspace_registry    &ds_registry,
 			            Rpc_entrypoint        &ep)
 			{
+				Lock::Guard guard(_region_lock);
 				for (Region *curr = _regions.first(); curr; curr = curr->next_region()) {
 
 					Dataspace_capability ds;
@@ -163,34 +165,44 @@ namespace Noux {
 
 			void poke(addr_t dst_addr, void const *src, size_t len)
 			{
-				Region *region = _lookup_region_by_addr(dst_addr);
-				if (!region) {
-					PERR("poke: no region at 0x%lx", dst_addr);
-					return;
+				Dataspace_capability ds_cap;
+				addr_t               local_addr;
+
+				{
+					Lock::Guard guard(_region_lock);
+
+					Region *region = _lookup_region_by_addr(dst_addr);
+					if (!region) {
+						PERR("poke: no region at 0x%lx", dst_addr);
+						return;
+					}
+
+					/*
+					 * Test if start and end address occupied by the object
+					 * type refers to the same region.
+					 */
+					if (region != _lookup_region_by_addr(dst_addr + len - 1)) {
+						PERR("attempt to write beyond region boundary");
+						return;
+					}
+
+					if (region->offset) {
+						PERR("poke: writing to region with offset is not supported");
+						return;
+					}
+
+					ds_cap = region->ds;
+					local_addr = region->local_addr;
 				}
 
-				/*
-				 * Test if start and end address occupied by the object
-				 * type refers to the same region.
-				 */
-				if (region != _lookup_region_by_addr(dst_addr + len - 1)) {
-					PERR("attempt to write beyond region boundary");
-					return;
-				}
-
-				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(region->ds));
+				Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(ds_cap));
 				if (!info) {
 					PERR("attempt to write to unknown dataspace type");
 					for (;;);
 					return;
 				}
 
-				if (region->offset) {
-					PERR("poke: writing to region with offset is not supported");
-					return;
-				}
-
-				info->poke(dst_addr - region->local_addr, src, len);
+				info->poke(dst_addr - local_addr, src, len);
 			}
 
 
@@ -205,7 +217,7 @@ namespace Noux {
 			                  bool executable = false)
 			{
 				/*
-				 * Rm_session substracts offset from size if size is 0
+				 * Rm_session subtracts offset from size if size is 0
 				 */
 				if (size == 0) 
 					size = Dataspace_client(ds).size() - offset;
@@ -237,6 +249,7 @@ namespace Noux {
 				 * Record attachment for later replay (needed during
 				 * fork)
 				 */
+				Lock::Guard guard(_region_lock);
 				_regions.insert(region);
 
 
@@ -245,14 +258,18 @@ namespace Noux {
 
 			void detach(Local_addr local_addr)
 			{
-				Region *region = _lookup_region_by_addr(local_addr);
-				if (!region) {
-					PWRN("Attempt to detach unknown region at 0x%p",
-					     (void *)local_addr);
-					return;
-				}
+				Region * region = 0;
+				{
+					Lock::Guard guard(_region_lock);
+					region = _lookup_region_by_addr(local_addr);
+					if (!region) {
+						PWRN("Attempt to detach unknown region at 0x%p",
+						     (void *)local_addr);
+						return;
+					}
 
-				_regions.remove(region);
+					_regions.remove(region);
+				}
 
 				{
 					Object_pool<Dataspace_info>::Guard info(_ds_registry.lookup_info(region->ds));
