@@ -97,16 +97,19 @@ class Irq_context : public Genode::List<Irq_context>::Element
 			bool handled = false;
 
 			/*
-			 * It might be that the next interrupt triggers right after the device has
-			 * acknowledged the IRQ
+			 * It might be that the next interrupt triggers right after the
+			 * device has acknowledged the IRQ. To reduce per-IRQ context
+			 * switches, we merge up to 'MAX_MERGED_IRQS' calls to the
+			 * interrupt handler.
 			 */
-			do {
+			enum { MAX_MERGED_IRQS = 8 };
+			for (unsigned i = 0; i < MAX_MERGED_IRQS; i++) {
 				if (h->handler(_irq, h->dev) != IRQ_HANDLED)
-					return handled;
+					break;
 
 				handled = true;
-
-			} while (true);
+			}
+			return handled;
 		}
 
 		/**
