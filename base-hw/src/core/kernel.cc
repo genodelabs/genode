@@ -596,7 +596,7 @@ namespace Kernel
 	{
 		/* check permissions */
 		if (user->pd_id() != core_id()) {
-			PERR("permission to create signal receiver denied");
+			PERR("not entitled to create signal receiver");
 			user->user_arg_0(0);
 			return;
 		}
@@ -622,7 +622,7 @@ namespace Kernel
 		unsigned id = user->user_arg_2();
 		Signal_receiver * const r = Signal_receiver::pool()->object(id);
 		if (!r) {
-			PERR("invalid signal receiver");
+			PERR("unknown signal receiver");
 			user->user_arg_0(0);
 			return;
 		}
@@ -649,12 +649,11 @@ namespace Kernel
 		unsigned id = user->user_arg_1();
 		Signal_receiver * const r = Signal_receiver::pool()->object(id);
 		if (!r) {
-			PERR("invalid signal receiver");
+			PERR("unknown signal receiver");
 			user->user_arg_0(-1);
 			return;
 		}
 		/* register handler at the receiver */
-		user->await_signal(r);
 		if (r->add_handler(user)) {
 			PERR("failed to register handler at signal receiver");
 			user->user_arg_0(-1);
@@ -673,7 +672,7 @@ namespace Kernel
 		unsigned id = user->user_arg_1();
 		Signal_receiver * const r = Signal_receiver::pool()->object(id);
 		if (!r) {
-			PERR("invalid signal receiver");
+			PERR("unknown signal receiver");
 			user->user_arg_0(0);
 			return;
 		}
@@ -691,12 +690,13 @@ namespace Kernel
 		unsigned const id = user->user_arg_1();
 		Signal_context * const c = Signal_context::pool()->object(id);
 		if(!c) {
-			PERR("invalid signal context");
+			PERR("unknown signal context");
 			user->user_arg_0(-1);
 			return;
 		}
 		/* trigger signal context */
 		if (c->submit(user->user_arg_2())) {
+			PERR("failed to submit signal context");
 			user->user_arg_0(-1);
 			return;
 		}
@@ -713,7 +713,7 @@ namespace Kernel
 		unsigned id = user->user_arg_1();
 		Signal_context * const c = Signal_context::pool()->object(id);
 		if (!c) {
-			PWRN("invalid signal context");
+			PERR("unknown signal context");
 			return;
 		}
 		/* acknowledge */
@@ -736,11 +736,13 @@ namespace Kernel
 		unsigned id = user->user_arg_1();
 		Signal_context * const c = Signal_context::pool()->object(id);
 		if (!c) {
+			PERR("unknown signal context");
 			user->user_arg_0(0);
 			return;
 		}
 		/* kill signal context */
 		if (c->kill(user)) {
+			PERR("failed to kill signal context");
 			user->user_arg_0(-1);
 			return;
 		}
@@ -760,15 +762,16 @@ namespace Kernel
 			return;
 		}
 		/* lookup signal receiver */
-		user->user_arg_0(1);
 		unsigned id = user->user_arg_1();
 		Signal_receiver * const r = Signal_receiver::pool()->object(id);
 		if (!r) {
+			PERR("unknown signal receiver");
 			user->user_arg_0(0);
 			return;
 		}
 		/* kill signal receiver */
 		if (r->kill(user)) {
+			PERR("unknown signal receiver");
 			user->user_arg_0(-1);
 			return;
 		}

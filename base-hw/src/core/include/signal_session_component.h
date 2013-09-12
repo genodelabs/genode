@@ -58,6 +58,16 @@ namespace Genode
 			char            _initial_receivers_sb [RECEIVERS_SB_SIZE];
 			char            _initial_contexts_sb  [CONTEXTS_SB_SIZE];
 
+			/**
+			 * Destruct receiver 'r'  
+			 */
+			void _destruct_receiver(Receiver * const r);
+
+			/**
+			 * Destruct context 'c'
+			 */
+			void _destruct_context(Context * const c);
+
 		public:
 
 			/**

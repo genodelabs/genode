@@ -21,7 +21,7 @@ using namespace Genode;
 
 
 /**
- * Provide a static signal connection
+ * Provide one signal connection per program
  */
 static Signal_connection * signal_connection()
 {
@@ -40,12 +40,10 @@ void Signal::_dec_ref_and_unlock()
 		Lock::Guard lock_guard(_data.context->_lock);
 		_data.context->_ref_cnt--;
 
-		/*
-		 * We must ack a signal context to receive the next one,
-		 * so new signals are received only when ref_cnt = 0.
-		 */
-		if (_data.context->_ref_cnt == 0)
+		/* acknowledge as soon as receipt is fully processed */
+		if (_data.context->_ref_cnt == 0) {
 			Kernel::ack_signal(_data.context->_cap.dst());
+		}
 	}
 }
 
@@ -61,11 +59,7 @@ void Signal::_inc_ref()
 
 Signal::Signal(Signal::Data data) : _data(data)
 {
-	/*
-	 * We assume that a kernel signal-context doesn't deliver
-	 * multiple signals simultaneously.
-	 */
-	if (_data.context) _data.context->_ref_cnt = 1;
+	if (_data.context) { _data.context->_ref_cnt = 1; }
 }
 
 
@@ -73,9 +67,8 @@ Signal::Signal(Signal::Data data) : _data(data)
  ** Signal transmitter **
  ************************/
 
-void Signal_transmitter::submit(unsigned cnt)
+void Signal_transmitter::submit(unsigned const cnt)
 {
-	/* submits to invalid signal contexts get ignored */
 	Kernel::submit_signal(_context.dst(), cnt);
 }
 
@@ -116,7 +109,7 @@ void Signal_receiver::_platform_destructor()
 }
 
 
-void Signal_receiver::_unsynchronized_dissolve(Signal_context * c)
+void Signal_receiver::_unsynchronized_dissolve(Signal_context * const c)
 {
 	/* release server resources of context */
 	signal_connection()->free_context(c->_cap);
@@ -196,5 +189,6 @@ Signal Signal_receiver::wait_for_signal()
 
 void Signal_receiver::local_submit(Signal::Data signal)
 {
-	PDBG("Not implemented");
+	PDBG("not implemented");
+	throw Exception();
 }

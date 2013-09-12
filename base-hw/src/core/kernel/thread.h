@@ -143,7 +143,14 @@ class Kernel::Thread
 		 ** Signal_handler **
 		 ********************/
 
-		void _signal_handler(void * const base, size_t const size)
+		void _await_signal(Signal_receiver * const receiver)
+		{
+			cpu_scheduler()->remove(this);
+			_state = AWAIT_SIGNAL;
+			_signal_receiver = receiver;
+		}
+
+		void _receive_signal(void * const base, size_t const size)
 		{
 			assert(_state == AWAIT_SIGNAL && size <= phys_utcb()->size());
 			Genode::memcpy(phys_utcb()->base(), base, size);
@@ -391,18 +398,6 @@ class Kernel::Thread
 		 * Get unique thread ID, avoid method ambiguousness
 		 */
 		unsigned id() const { return Object::id(); }
-
-		/**
-		 * Let the thread block for signal receipt
-		 *
-		 * \param receiver  the signal pool that the thread blocks for
-		 */
-		void await_signal(Signal_receiver * receiver)
-		{
-			cpu_scheduler()->remove(this);
-			_state = AWAIT_SIGNAL;
-			_signal_receiver = receiver;
-		}
 
 
 		/***********************

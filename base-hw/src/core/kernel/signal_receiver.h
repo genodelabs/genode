@@ -58,7 +58,14 @@ class Kernel::Signal_handler
 
 		typedef Genode::Fifo_element<Signal_handler> Fifo_element;
 
-		Fifo_element   _handlers_fe;
+		Fifo_element _handlers_fe;
+
+		/**
+		 * Let the handler block for signal receipt
+		 *
+		 * \param receiver  the signal pool that the thread blocks for
+		 */
+		virtual void _await_signal(Signal_receiver * const receiver) = 0;
 
 		/**
 		 * Signal delivery backend
@@ -66,7 +73,7 @@ class Kernel::Signal_handler
 		 * \param base  signal-data base
 		 * \param size  signal-data size
 		 */
-		virtual void _signal_handler(void * const base, size_t const size) = 0;
+		virtual void _receive_signal(void * const base, size_t const size) = 0;
 
 	public:
 
@@ -267,7 +274,7 @@ class Kernel::Signal_receiver
 				Signal_handler * const h = _handlers.dequeue()->object();
 				Signal::Data data((Genode::Signal_context *)c->_imprint,
 				                   c->_submits);
-				h->_signal_handler(&data, sizeof(data));
+				h->_receive_signal(&data, sizeof(data));
 				c->_delivered();
 			}
 		}
@@ -317,6 +324,7 @@ class Kernel::Signal_receiver
 		{
 			if (_killer) { return -1; }
 			_handlers.enqueue(&h->_handlers_fe);
+			h->_await_signal(this);
 			_listen();
 			return 0;
 		}

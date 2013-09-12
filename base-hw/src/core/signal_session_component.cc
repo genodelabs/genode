@@ -39,8 +39,16 @@ Signal_session_component::Signal_session_component(Allocator * const md,
 
 Signal_session_component::~Signal_session_component()
 {
-	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
-	while (1) ;
+	while (1) {
+		Context * const c = _contexts.first_locked();
+		if (!c) { break; }
+		_destruct_context(c);
+	}
+	while (1) {
+		Receiver * const r = _receivers.first_locked();
+		if (!r) { break; }
+		_destruct_receiver(r);
+	}
 }
 
 
@@ -80,17 +88,8 @@ void Signal_session_component::free_receiver(Signal_receiver_capability cap)
 		PERR("unknown signal receiver");
 		throw Exception();
 	}
-	/* release kernel resources */
-	if (Kernel::kill_signal_receiver(r->id()))
-	{
-		/* clean-up */
-		r->release();
-		PERR("failed to kill signal receiver");
-		throw Exception();
-	}
-	/* release core resources */
-	_receivers.remove_locked(r);
-	r->~Receiver();
+	/* release resources */
+	_destruct_receiver(r);
 	_receivers_slab.free(r, Receiver::slab_size());
 }
 
@@ -132,6 +131,14 @@ void Signal_session_component::free_context(Signal_context_capability cap)
 		PERR("unknown signal context");
 		throw Exception();
 	}
+	/* release resources */
+	_destruct_context(c);
+	_contexts_slab.free(c, Context::slab_size());
+}
+
+
+void Signal_session_component::_destruct_context(Context * const c)
+{
 	/* release kernel resources */
 	if (Kernel::kill_signal_context(c->id()))
 	{
@@ -143,5 +150,20 @@ void Signal_session_component::free_context(Signal_context_capability cap)
 	/* release core resources */
 	_contexts.remove_locked(c);
 	c->~Context();
-	_contexts_slab.free(c, Context::slab_size());
+}
+
+
+void Signal_session_component::_destruct_receiver(Receiver * const r)
+{
+	/* release kernel resources */
+	if (Kernel::kill_signal_receiver(r->id()))
+	{
+		/* clean-up */
+		r->release();
+		PERR("failed to kill signal receiver");
+		throw Exception();
+	}
+	/* release core resources */
+	_receivers.remove_locked(r);
+	r->~Receiver();
 }
