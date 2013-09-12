@@ -57,7 +57,7 @@ SRC_C += $(addprefix scsi/,scsi.c constants.c)
 # Determine the header files included by the contrib code. For each
 # of these header files we create a symlink to 'lx_emul.h'.
 #
-GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(CONTRIB_DIR) |\
+GEN_INCLUDES := $(shell grep -Rh "^\#include .*\/" $(CONTRIB_DIR) |\
                         sed "s/^\#include *[<\"]\(.*\)[>\"].*/\1/" | sort | uniq)
 
 #
