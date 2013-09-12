@@ -14,5 +14,9 @@
 #ifndef _X86_32__PLATFORM__LX_EMUL_
 #define _X86_32__PLATFORM__LX_EMUL_
 
+struct platform_device
+{
+	void *data;
+};
 
 #endif /* _X86_32__PLATFORM__LX_EMUL_ */

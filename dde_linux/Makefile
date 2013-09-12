@@ -92,6 +92,10 @@ CONTENT    += include/linux/platform_data/usb-omap.h
 CONTENT += arch/arm/plat-samsung/include/plat/usb-phy.h
 CONTENT += include/linux/platform_data/usb-ehci-s5p.h
 
+# Raspberry Pi
+DWC_OTG_GIT_URL    := https://github.com/nfeske/dwc_otg.git
+DWC_OTG_GIT_BRANCH := r1
+
 #
 #
 # Utility to check if a tool is installed
@@ -115,6 +119,12 @@ help:
 	$(ECHO)
 
 prepare: clean $(CONTRIB_DIR)/.prepared
+
+prepare_rpi: prepare
+	$(VERBOSE)cd $(CONTRIB_DIR)/drivers/usb/host; \
+	    git clone $(DWC_OTG_GIT_URL) dwc_otg
+	$(VERBOSE)cd $(CONTRIB_DIR)/drivers/usb/host/dwc_otg; \
+	    git reset --hard HEAD && git checkout $(DWC_OTG_GIT_BRANCH)
 
 $(CONTRIB_DIR)/.prepared: Makefile
 $(CONTRIB_DIR)/.prepared: $(DOWNLOAD_DIR)/$(LINUX_TBZ2)

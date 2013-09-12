@@ -59,7 +59,8 @@ class Work : public Genode::List<Work>::Element
 	private:
 
 		void *_work;
-		bool  _delayed;
+
+		enum Type { NORMAL, DELAYED, TASKLET } _type;
 
 		static Genode::List<Work> *_list()
 		{
@@ -69,12 +70,14 @@ class Work : public Genode::List<Work>::Element
 
 	public:
 
-		Work(void *work, bool delayed) : _work(work), _delayed(delayed) { }
+		Work(delayed_work *work)   : _work(work), _type(DELAYED) { }
+		Work(work_struct  *work)   : _work(work), _type(NORMAL)  { }
+		Work(tasklet_struct *work) : _work(work), _type(TASKLET) { }
 
-		static void schedule(void *work, bool delayed)
+		template <typename WORK>
+		static void schedule(WORK *work)
 		{
-			Work *w = new (Genode::env()->heap()) Work(work, delayed);
-			_list()->insert(w);
+			_list()->insert(new (Genode::env()->heap()) Work(work));
 		}
 
 		static void exec()
@@ -83,18 +86,32 @@ class Work : public Genode::List<Work>::Element
 				Work *w = _list()->first();
 				_list()->remove(w);
 
-				if (w->_delayed) {
-					delayed_work *work = static_cast<delayed_work *>(w->_work);
-					work->work.func(&(work)->work);
-				}
-				else {
-					work_struct *work = static_cast<work_struct *>(w->_work);
-					work->func(work);
+				switch (w->_type) {
+
+				case NORMAL:
+					{
+						work_struct *work = static_cast<work_struct *>(w->_work);
+						work->func(work);
+					}
+					break;
+
+				case DELAYED:
+					{
+						delayed_work *work = static_cast<delayed_work *>(w->_work);
+						work->work.func(&(work)->work);
+					}
+					break;
+
+				case TASKLET:
+					{
+						tasklet_struct *tasklet = static_cast<tasklet_struct *>(w->_work);
+						tasklet->func(tasklet->data);
+					}
+					break;
 				}
 				destroy(Genode::env()->heap(), w);
 			}
 		}
-
 };
 
 
@@ -226,15 +243,14 @@ int wake_up_process(struct task_struct *tsk)
 
 int schedule_delayed_work(struct delayed_work *work, unsigned long delay)
 {
-	Work::schedule((void *)work, true);
-	//work->work.func(&(work)->work);
+	Work::schedule(work);
 	return 0;
 }
 
 
 int schedule_work(struct work_struct *work)
 {
-	Work::schedule((void *)work, false);
+	Work::schedule(work);
 	return 1;
 }
 
@@ -242,6 +258,29 @@ int schedule_work(struct work_struct *work)
 bool queue_delayed_work(struct workqueue_struct *wq,
                         struct delayed_work *dwork, unsigned long delay)
 {
-	Work::schedule((void *)dwork, true);
+	Work::schedule(dwork);
 	return true;
+}
+
+
+/***********************
+ ** linux/interrupt.h **
+ ***********************/
+
+void tasklet_init(struct tasklet_struct *t, void (*f)(unsigned long), unsigned long d)
+{
+	t->func = f;
+	t->data = d;
+}
+
+
+void tasklet_schedule(struct tasklet_struct *tasklet)
+{
+	Work::schedule(tasklet);
+}
+
+
+void tasklet_hi_schedule(struct tasklet_struct *tasklet)
+{
+	tasklet_schedule(tasklet);
 }

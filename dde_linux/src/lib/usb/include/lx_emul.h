@@ -51,6 +51,19 @@ extern "C" {
 #define KBUILD_MODNAME "mod-noname"
 
 
+static inline void bt()
+{
+	dde_kit_printf("BT: 0x%p\n", __builtin_return_address(0));
+}
+
+
+/*******************
+ ** linux/sizes.h **
+ *******************/
+
+#define SZ_256K 0x40000  /* needed by 'dwc_otg_attr.c' */
+
+
 /*****************
  ** linux/bcd.h **
  *****************/
@@ -224,6 +237,15 @@ typedef unsigned long dma_addr_t;
  */
 typedef unsigned short mode_t;
 
+/*
+ * Needed by 'dwc_common_port/usb.h'
+ */
+typedef unsigned int  u_int;
+typedef unsigned char u_char;
+typedef unsigned long u_long;
+typedef uint8_t       u_int8_t;
+typedef uint16_t      u_int16_t;
+typedef uint32_t      u_int32_t;
 
 #include <linux/usb/storage.h>
 
@@ -246,6 +268,8 @@ static inline void barrier() { mb(); }
 
 #define likely
 #define unlikely
+
+#define notrace /* needed by 'dwc_otg_hcd_intr.c' */
 
 #define __user   /* needed by usb/core/devices.c */
 #define __iomem  /* needed by usb/hcd.h */
@@ -277,6 +301,9 @@ enum irqreturn {
 	IRQ_NONE,
 	IRQ_HANDLED = (1 << 0),
 };
+
+/* needed by 'dwc_otg_hcd_linux.c' */
+#define IRQ_RETVAL(x) ((x) != IRQ_NONE)
 
 typedef enum irqreturn irqreturn_t;
 
@@ -447,6 +474,8 @@ enum {
 	ENOLINK       = 50,
 	EADDRNOTAVAIL = 51,
 	EPROBE_DEFER  = 52,
+	ERESTART      = 53,
+	ECONNABORTED  = 54,
 };
 
 
@@ -603,6 +632,8 @@ long simple_strtoul(const char *cp, char **endp, unsigned int base);
 /*
  * Needed by 'usb.h'
  */
+int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
+int vsprintf(char *buf, const char *fmt, va_list args);
 int snprintf(char *buf, size_t size, const char *fmt, ...);
 int sprintf(char *buf, const char *fmt, ...);
 int sscanf(const char *, const char *, ...);
@@ -910,6 +941,7 @@ void up_write(struct rw_semaphore *sem);
  */
 extern volatile unsigned long jiffies;
 unsigned long msecs_to_jiffies(const unsigned int m);
+unsigned int jiffies_to_msecs(const unsigned long j);
 long time_after(long a, long b);
 long time_after_eq(long a, long b);
 
@@ -943,11 +975,15 @@ ktime_t ktime_set(const long, const unsigned long);
  ** linux/timer.h **
  *******************/
 
+struct tvec_base;
+extern struct tvec_base boot_tvec_bases;  /* needed by 'dwc_common_linux.c' */
+
 struct timer_list {
 	void (*function)(unsigned long);
 	unsigned long data;
 	void *timer;
 	unsigned long expires;
+	struct tvec_base *base;  /* needed by 'dwc_common_linux.c' */
 };
 
 void init_timer(struct timer_list *);
@@ -958,8 +994,8 @@ void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
 int timer_pending(const struct timer_list * timer);
 unsigned long round_jiffies(unsigned long j);
 
-void add_timer(struct timer_list *timer);
 void set_timer_slack(struct timer_list *time, int slack_hz);
+static inline void add_timer(struct timer_list *timer) { mod_timer(timer, timer->expires); }
 
 static inline
 int del_timer_sync(struct timer_list * timer) { return del_timer(timer); }
@@ -990,6 +1026,8 @@ int hrtimer_cancel(struct hrtimer *);
 void msleep(unsigned int msecs);
 void udelay(unsigned long usecs);
 void mdelay(unsigned long usecs);
+
+extern unsigned long loops_per_jiffy;  /* needed by 'dwc_otg_attr.c' */
 
 
 /***********************
@@ -1046,6 +1084,14 @@ struct workqueue_struct { };
 
 bool queue_delayed_work(struct workqueue_struct *,
                         struct delayed_work *, unsigned long);
+
+/* needed for 'dwc_common_linux.c' */
+struct workqueue_struct *create_singlethread_workqueue(char *n);
+
+void destroy_workqueue(struct workqueue_struct *wq);
+
+bool queue_work(struct workqueue_struct *wq, struct work_struct *work);
+
 
 /******************
  ** linux/wait.h **
@@ -1622,6 +1668,10 @@ struct platform_device;
 void *platform_get_drvdata(const struct platform_device *pdev);
 void platform_set_drvdata(struct platform_device *pdev, void *data);
 
+/* needed by 'dwc_otg_driver.c' */
+struct platform_driver;
+void platform_driver_unregister(struct platform_driver *);
+
 
 /*********************
  ** linux/dmapool.h **
@@ -1941,6 +1991,7 @@ int seq_printf(struct seq_file *, const char *, ...);
 enum {
 	__GFP_DMA  = 0x01u,
 	GFP_DMA    = __GFP_DMA,
+	GFP_DMA32  = 0x04u,   /* needed by 'dwc_common_linux.c' */
 	__GFP_WAIT = 0x10u,
 	GFP_ATOMIC = 0x20u,
 	GFP_KERNEL = 0x0u,
@@ -2027,6 +2078,8 @@ void *ioremap_wc(resource_size_t phys_addr, unsigned long size);
 
 #define ioremap_nocache ioremap
 
+void *phys_to_virt(unsigned long address);
+
 #define writel(value, addr) (*(volatile uint32_t *)(addr) = (value))
 #define readl(addr) (*(volatile uint32_t *)(addr))
 #define readb(addr) (*(volatile uint8_t  *)(addr))
@@ -2094,6 +2147,35 @@ typedef irqreturn_t (*irq_handler_t)(int, void *);
 int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                 const char *name, void *dev);
 void free_irq(unsigned int, void *);
+
+
+/*****************
+ ** linux/irq.h **
+ *****************/
+
+enum { IRQ_TYPE_LEVEL_LOW = 0x00000008 }; /* needed by 'dwc_otg_driver.c' */
+
+
+/*********************
+ ** linux/hardirq.h **
+ *********************/
+
+/* needed by 'dwc_common_linux.c' */
+int in_irq();
+
+
+/***************
+ ** asm/fiq.h **
+ ***************/
+
+/*
+ * Needed by 'dwc_otg_hcd_linux.c'
+ */
+struct fiq_handler {
+	char const *name;
+};
+
+void __FIQ_Branch(unsigned long *regs);
 
 
 /*********************
@@ -3325,8 +3407,10 @@ struct tasklet_struct
 	unsigned long data;
 };
 
-static inline void tasklet_schedule(struct tasklet_struct *t) { t->func(t->data); }
+void tasklet_schedule(struct tasklet_struct *t);
+void tasklet_hi_schedule(struct tasklet_struct *t);
 void tasklet_kill(struct tasklet_struct *);
+void tasklet_init(struct tasklet_struct *t, void (*)(unsigned long), unsigned long);
 
 
 /*************************
@@ -3523,6 +3607,21 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
                         unsigned int code, int value);
 
 void start_input_service(void *ep);
+
+
+/******************
+ ** asm/ptrace.h **
+ ******************/
+
+/*
+ * Needed by 'dwc_otg_hcd_linux.c'
+ */
+struct pt_regs { unsigned long dummy; };
+
+#define ARM_r8 dummy
+#define ARM_r9 dummy
+#define ARM_sp dummy
+
 
 #ifdef __cplusplus
 }
