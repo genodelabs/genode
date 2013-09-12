@@ -37,7 +37,6 @@ namespace Kernel
 	typedef Genode::Native_utcb Native_utcb;
 
 	unsigned core_id();
-	void     handle_pagefault(Thread * const);
 	void     handle_syscall(Thread * const);
 	void     handle_interrupt(void);
 	void     handle_invalid_excpt(void);
@@ -90,14 +89,16 @@ class Kernel::Thread
 
 		enum State
 		{
-			SCHEDULED,
-			AWAIT_START,
-			AWAIT_IPC,
-			AWAIT_RESUMPTION,
-			AWAIT_IRQ,
-			AWAIT_SIGNAL,
-			AWAIT_SIGNAL_CONTEXT_KILL,
-			CRASHED,
+			SCHEDULED                 = 1,
+			AWAIT_START               = 2,
+			AWAIT_IPC                 = 3,
+			AWAIT_RESUME              = 4,
+			AWAIT_PAGER               = 5,
+			AWAIT_PAGER_IPC           = 6,
+			AWAIT_IRQ                 = 7,
+			AWAIT_SIGNAL              = 8,
+			AWAIT_SIGNAL_CONTEXT_KILL = 9,
+			CRASHED                   = 10,
 		};
 
 		Platform_thread * const _platform_thread;
@@ -173,14 +174,39 @@ class Kernel::Thread
 
 		void _has_received(size_t const s)
 		{
-			user_arg_0(s);
-			if (_state != SCHEDULED) { _schedule(); }
+			switch (_state) {
+			case AWAIT_IPC:
+				_schedule();
+			case SCHEDULED:
+				user_arg_0(s);
+				return;
+			case AWAIT_PAGER_IPC:
+				_schedule();
+				return;
+			case AWAIT_PAGER:
+				/* pager replied before pagefault has been resolved */
+				_state = AWAIT_RESUME;
+				return;
+			default:
+				PERR("wrong thread state to receive IPC");
+				crash();
+				return;
+			}
 		}
 
 		void _awaits_receipt()
 		{
-			cpu_scheduler()->remove(this);
-			_state = AWAIT_IPC;
+			switch (_state) {
+			case SCHEDULED:
+				cpu_scheduler()->remove(this);
+				_state = AWAIT_IPC;
+			case AWAIT_PAGER:
+				return;
+			default:
+				PERR("wrong thread state to await IPC");
+				crash();
+				return;
+			}
 		}
 
 
@@ -293,9 +319,9 @@ class Kernel::Thread
 		 */
 		void pause()
 		{
-			assert(_state == AWAIT_RESUMPTION || _state == SCHEDULED);
+			assert(_state == AWAIT_RESUME || _state == SCHEDULED);
 			cpu_scheduler()->remove(this);
-			_state = AWAIT_RESUMPTION;
+			_state = AWAIT_RESUME;
 		}
 
 		/**
@@ -313,8 +339,12 @@ class Kernel::Thread
 		int resume()
 		{
 			switch (_state) {
-			case AWAIT_RESUMPTION:
+			case AWAIT_RESUME:
 				_schedule();
+				return 0;
+			case AWAIT_PAGER:
+				/* pagefault has been resolved before pager replied */
+				_state = AWAIT_PAGER_IPC;
 				return 0;
 			case SCHEDULED:
 				return 1;
@@ -339,7 +369,8 @@ class Kernel::Thread
 				return 0;
 			case AWAIT_START:
 			default:
-				PERR("unresumable state");
+				PERR("wrong state to resume thread");
+				crash();
 				return -1;
 			}
 		}
@@ -376,22 +407,26 @@ class Kernel::Thread
 		}
 
 		/**
-		 * Handle a pagefault that originates from this thread
-		 *
-		 * \param va  virtual fault address
-		 * \param w   if fault was caused by a write access
+		 * Handle an exception thrown by the MMU
 		 */
-		void pagefault(addr_t const va, bool const w)
+		void handle_mmu_exception()
 		{
-			assert(_state == SCHEDULED && _pager);
-
-			/* pause faulter */
+			/* pause thread */
 			cpu_scheduler()->remove(this);
-			_state = AWAIT_RESUMPTION;
+			_state = AWAIT_PAGER;
 
-			/* inform pager through IPC */
+			/* check out cause and attributes */
+			addr_t va = 0;
+			bool   w  = 0;
+			if (!pagefault(va, w)) {
+				PERR("unknown MMU exception");
+				return;
+			}
+			/* inform pager */
 			_pagefault = Pagefault(id(), (Tlb *)tlb(), ip, va, w);
-			Ipc_node::send_note(_pager, &_pagefault, sizeof(_pagefault));
+			void * const base = &_pagefault;
+			size_t const size = sizeof(_pagefault);
+			Ipc_node::send_request_await_reply(_pager, base, size, base, size);
 		}
 
 		/**
@@ -411,10 +446,10 @@ class Kernel::Thread
 				handle_syscall(this);
 				return;
 			case PREFETCH_ABORT:
-				handle_pagefault(this);
+				handle_mmu_exception();
 				return;
 			case DATA_ABORT:
-				handle_pagefault(this);
+				handle_mmu_exception();
 				return;
 			case INTERRUPT_REQUEST:
 				handle_interrupt();

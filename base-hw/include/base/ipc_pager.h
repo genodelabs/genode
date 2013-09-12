@@ -73,14 +73,19 @@ namespace Genode
 	};
 
 	/**
-	 * Special paging server class
+	 * Paging-server backend
 	 */
 	class Ipc_pager : public Native_capability
 	{
-		enum { VERBOSE = 1 };
+		private:
 
-		Pagefault _pagefault; /* data of lastly received pagefault */
-		Mapping   _mapping; /* mapping to resolve last pagefault */
+			Pagefault _pagefault; /* data of lastly received pagefault */
+			Mapping   _mapping; /* mapping to resolve last pagefault */
+
+			/**
+			 * Backend for wait_for_fault and wait_for_first_fault
+			 */
+			void _wait_for_fault(size_t s);
 
 		public:
 
@@ -98,6 +103,11 @@ namespace Genode
 					while (1) ;
 				}
 			}
+
+			/**
+			 * Wait for the first pagefault request
+			 */
+			void wait_for_first_fault();
 
 			/**
 			 * Wait for the next pagefault request

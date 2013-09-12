@@ -31,26 +31,30 @@ void Pager_activation_base::entry()
 
 	/* receive and handle faults */
 	bool mapping_pending = 0;
+	pager.wait_for_first_fault();
 	while (1)
 	{
+		/* protect bottom half of loop against pager-object guard */
+		{
+			/* lookup pager object for current faulter */
+			Object_pool<Pager_object>::Guard
+				o(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
+
+			if (!o) {
+				PERR("invalid pager object");
+				mapping_pending = 0;
+			} else {
+				/* try to find an appropriate mapping */
+				mapping_pending = !o->pager(pager);
+			}
+		}
 		if (mapping_pending) {
 			/* apply mapping and await next fault */
 			if (pager.resolve_and_wait_for_fault()) {
 				PERR("failed to resolve page fault");
 				pager.wait_for_fault();
 			}
-		} else {
-			pager.wait_for_fault();
-		}
-		/* lookup pager object for current faulter */
-		Object_pool<Pager_object>::Guard o(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
-		if (!o) {
-			PERR("invalid pager object");
-			mapping_pending = 0;
-		} else {
-			/* try to find an appropriate mapping */
-			mapping_pending = !o->pager(pager);
-		}
+		} else { pager.wait_for_fault(); }
 	}
 }
 
@@ -59,8 +63,8 @@ void Pager_activation_base::entry()
  ** Pager_entrypoint **
  **********************/
 
-Pager_entrypoint::Pager_entrypoint(Cap_session *,
-                                   Pager_activation_base * const a)
+Pager_entrypoint::
+Pager_entrypoint(Cap_session *, Pager_activation_base * const a)
 : _activation(a) { _activation->ep(this); }
 
 
@@ -89,18 +93,31 @@ Pager_capability Pager_entrypoint::manage(Pager_object * const o)
  ** Ipc_pager **
  ***************/
 
+void Ipc_pager::wait_for_first_fault()
+{
+	/* receive message */
+	size_t const s = Kernel::wait_for_request();
+	_wait_for_fault(s);
+}
+
 
 void Ipc_pager::wait_for_fault()
 {
 	/* receive first message */
-	size_t s = Kernel::wait_for_request();
-	while (1) {
+	size_t const s = Kernel::reply(0, 1);
+	_wait_for_fault(s);
+}
 
+
+void Ipc_pager::_wait_for_fault(size_t s)
+{
+	while (1)
+	{
 		/*
 		 * FIXME: the message size is a weak indicator for the message type
 		 */
-		switch (s) {
-
+		switch (s)
+		{
 		case sizeof(Pagefault): {
 
 			/* message is a pagefault */
@@ -114,7 +131,7 @@ void Ipc_pager::wait_for_fault()
 			}
 			/* pagefault is invalid so get the next message */
 			else {
-				PERR("%s:%d: Invalid pagefault", __FILE__, __LINE__);
+				PERR("invalid pagefault");
 				continue;
 			}
 			continue; }
@@ -132,9 +149,8 @@ void Ipc_pager::wait_for_fault()
 
 		default: {
 
-			PERR("%s:%d: Invalid message format", __FILE__, __LINE__);
+			PERR("invalid message format");
 			continue; }
 		}
 	}
 }
-

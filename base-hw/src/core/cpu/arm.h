@@ -619,12 +619,12 @@ namespace Arm
 			}
 
 			/**
-			 * Check if a pagefault has occured due to a translation miss
+			 * Return if the context is in a pagefault due to a translation miss
 			 *
-			 * \param va  holds the virtual fault-address if this returns 1
-			 * \param w   wether it is a write fault if this returns 1
+			 * \param va  holds the virtual fault-address if call returns 1
+			 * \param w   holds wether it's a write fault if call returns 1
 			 */
-			bool translation_miss(addr_t & va, bool & w) const
+			bool pagefault(addr_t & va, bool & w) const
 			{
 				/* determine fault type */
 				switch (cpu_exception) {
