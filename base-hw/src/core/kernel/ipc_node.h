@@ -1,5 +1,5 @@
 /*
- * \brief   End point of inter-process communication
+ * \brief   Backend for end points of synchronous interprocess communication
  * \author  Martin Stein
  * \date    2012-11-30
  */
@@ -23,51 +23,7 @@
 namespace Kernel
 {
 	/**
-	 * Sends requests to other IPC nodes, accumulates request announcments,
-	 * provides serial access to them and replies to them if expected.
-	 * Synchronizes communication.
-	 *
-	 * IPC node states:
-	 *
-	 *         +----------+                               +---------------+                             +---------------+
-	 * --new-->| inactive |---send-request-await-reply--->| await reply   |               +--send-note--| prepare reply |
-	 *         |          |<--receive-reply---------------|               |               |             |               |
-	 *         |          |<--cancel-waiting--------------|               |               |             |               |
-	 *         |          |                               +---------------+               +------------>|               |
-	 *         |          |<--request-is-a-note-------+---request-is-not-a-note------------------------>|               |
-	 *         |          |<--------------------------(---not-await-request---+                         |               |
-	 *         |          |                           |   +---------------+   |                         |               |
-	 *         |          |---await-request-----------+-->| await request |<--+--send-reply-------------|               |
-	 *         |          |<--cancel-waiting--------------|               |------announce-request--+--->|               |
-	 *         |          |---send-reply---------+----+-->|               |                        |    |               |
-	 *         |          |---send-note--+       |    |   +---------------+                        |    |               |
-	 *         |          |              |       |    |                                            |    |               |
-	 *         |          |<-------------+       |  request available                              |    |               |
-	 *         |          |<--not-await-request--+    |                                            |    |               |
-	 *         |          |<--request-is-a-note-------+-------------------request-is-not-a-note----(--->|               |
-	 *         |          |<--request-is-a-note----------------------------------------------------+    |               |
-	 *         +----------+                 +-------------------------+                                 |               |
-	 *                                      | prepare and await reply |<--send-request-and-await-reply--|               |
-	 *                                      |                         |---receive-reply---------------->|               |
-	 *                                      |                         |---cancel-waiting--------------->|               |
-	 *                                      +-------------------------+                                 +---------------+
-	 *
-	 * State model propagated to deriving classes:
-	 *
-	 *         +--------------+                                               +----------------+
-	 * --new-->| has received |--send-request-await-reply-------------------->| awaits receipt |
-	 *         |              |--await-request----------------------------+-->|                |
-	 *         |              |                                           |   |                |
-	 *         |              |<--request-available-----------------------+   |                |
-	 *         |              |--send-reply-------------------------------+-->|                |
-	 *         |              |--send-note--+                             |   |                |
-	 *         |              |             |                             |   |                |
-	 *         |              |<------------+                             |   |                |
-	 *         |              |<--request-available-or-not-await-request--+   |                |
-	 *         |              |<--announce-request----------------------------|                |
-	 *         |              |<--receive-reply-------------------------------|                |
-	 *         |              |<--cancel-waiting------------------------------|                |
-	 *         +--------------+                                               +----------------+
+	 * Backend for end points of synchronous interprocess communication
 	 */
 	class Ipc_node;
 }
@@ -76,11 +32,10 @@ class Kernel::Ipc_node
 {
 	private:
 
-		template <typename T> class Fifo : public Genode::Fifo<T> { };
+		class Message_buf;
 
-		/**
-		 * IPC node states as depicted initially
-		 */
+		typedef Genode::Fifo<Message_buf> Message_fifo;
+
 		enum State
 		{
 			INACTIVE = 1,
@@ -93,18 +48,19 @@ class Kernel::Ipc_node
 		/**
 		 * Describes the buffer for incoming or outgoing messages
 		 */
-		struct Message_buf : public Fifo<Message_buf>::Element
+		class Message_buf : public Message_fifo::Element
 		{
-			void * base;
-			size_t size;
-			Ipc_node * origin;
+			public:
+
+				void *     base;
+				size_t     size;
+				Ipc_node * origin;
 		};
 
-		Fifo<Message_buf> _request_queue; /* requests that waits to be
-		                                   * received by us */
-		Message_buf _inbuf;  /* buffers message we have received lastly */
-		Message_buf _outbuf; /* buffers the message we aim to send */
-		State       _state;  /* current node state */
+		Message_fifo _request_queue;
+		Message_buf  _inbuf;
+		Message_buf  _outbuf;
+		State        _state;
 
 		/**
 		 * Buffer next request from request queue in 'r' to handle it
@@ -122,8 +78,7 @@ class Kernel::Ipc_node
 			_inbuf.origin = r->origin;
 
 			/* update state */
-			_state = r->origin->_awaits_reply() ? PREPARE_REPLY :
-			                                      INACTIVE;
+			_state = PREPARE_REPLY;
 		}
 
 		/**
@@ -135,7 +90,7 @@ class Kernel::Ipc_node
 		void _receive_reply(void * const base, size_t const size)
 		{
 			/* FIXME: when discard awaited replies userland must get a hint */
-			if (!_awaits_reply() || size > _inbuf.size) {
+			if (size > _inbuf.size) {
 				PDBG("discard invalid IPC reply");
 				return;
 			}
@@ -162,15 +117,6 @@ class Kernel::Ipc_node
 			}
 			/* cannot receive yet, so queue request */
 			_request_queue.enqueue(r);
-		}
-
-		/**
-		 * Wether we expect to receive a reply message
-		 */
-		bool _awaits_reply()
-		{
-			return _state == AWAIT_REPLY ||
-			       _state == PREPARE_AND_AWAIT_REPLY;
 		}
 
 		/**
@@ -278,30 +224,6 @@ class Kernel::Ipc_node
 				_inbuf.origin->_receive_reply(reply_base, reply_size);
 				_state = INACTIVE;
 			}
-		}
-
-		/**
-		 * Send a notification and stay inactive
-		 *
-		 * \param dest        targeted IPC node
-		 * \param note_base   base of the note payload
-		 * \param note_size   size of the note payload
-		 *
-		 * The caller must ensure that the note payload remains
-		 * until it is buffered by the targeted node.
-		 */
-		void send_note(Ipc_node * const dest,
-		               void * const     note_base,
-		               size_t const     note_size)
-		{
-			/* assert preconditions */
-			assert(_state == INACTIVE || _state == PREPARE_REPLY);
-
-			/* announce request message, our state says: No reply needed */
-			_outbuf.base = note_base;
-			_outbuf.size = note_size;
-			_outbuf.origin = this;
-			dest->_announce_request(&_outbuf);
 		}
 
 		/**
