@@ -192,7 +192,6 @@ s64 ktime_us_delta(const ktime_t later, const ktime_t earlier) { TRACE; return 0
  *******************/
 
 unsigned long round_jiffies(unsigned long j) { TRACE; return 1; }
-void add_timer(struct timer_list *timer) { TRACE; }
 void set_timer_slack(struct timer_list *time, int slack_hz) { TRACE; }
 
 /*********************
@@ -422,11 +421,10 @@ void devres_free(void *res) { TRACE; }
  ** linux/platform_device.h **
  *****************************/
 
-void *platform_get_drvdata(const struct platform_device *pdev) { TRACE; return NULL; }
-void platform_set_drvdata(struct platform_device *pdev, void *data) { TRACE; printk("ret: %p\n", __builtin_return_address(0)); }
 int platform_device_del(struct platform_device *pdev) { TRACE; return 0; }
 int platform_device_put(struct platform_device *pdev) { TRACE; return 0; }
 void platform_device_unregister(struct platform_device *pdev) { TRACE; }
+
 
 /********************
  ** linux/dcache.h **

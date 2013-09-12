@@ -139,6 +139,23 @@ class Genode::Slab_backend_alloc : public Genode::Allocator,
 			return phys;
 		}
 
+		/**
+		 * Translate given physical address to virtual address
+		 *
+		 * \return virtual address, or 0 if no translation exists
+		 */
+		addr_t virt_addr(addr_t phys)
+		{
+			for (unsigned i = 0; i < ELEMENTS; i++) {
+				if (_ds_cap[i].valid()
+				 && phys >= _ds_phys[i] && phys < _ds_phys[i] + BLOCK_SIZE)
+					return _base + i*BLOCK_SIZE + phys - _ds_phys[i];
+			}
+
+			PWRN("virt_addr(0x%lx) - no translation", phys);
+			return 0;
+		}
+
 		addr_t start() const { return _base; }
 		addr_t end()   const { return _base + VM_SIZE - 1; }
 };
@@ -291,6 +308,11 @@ class Malloc
 		Genode::addr_t phys_addr(void *a)
 		{
 			return _back_allocator->phys_addr((addr_t)a);
+		}
+
+		Genode::addr_t virt_addr(Genode::addr_t phys)
+		{
+			return _back_allocator->virt_addr(phys);
 		}
 
 		/**
@@ -476,6 +498,15 @@ void *_memcpy(void *d, const void *s, size_t n)
 inline void *memset(void *s, int c, size_t n) 
 {
 	return Genode::memset(s, c, n);
+}
+
+
+int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
+{
+	Genode::String_console sc(buf, size);
+	sc.vprintf(fmt, args);
+
+	return sc.len();
 }
 
 
@@ -668,6 +699,12 @@ void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
 }
 
 
+void *phys_to_virt(unsigned long address)
+{
+	return (void *)Malloc::dma()->virt_addr(address);
+}
+
+
 /********************
  ** linux/device.h **
  ********************/
@@ -807,6 +844,17 @@ void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp)
 	return kzalloc(size, gfp);
 }
 
+
+void *platform_get_drvdata(const struct platform_device *pdev)
+{
+	return pdev->data;
+}
+
+
+void platform_set_drvdata(struct platform_device *pdev, void *data)
+{
+	pdev->data = data;
+}
 
 
 /*******************************

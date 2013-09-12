@@ -29,6 +29,7 @@ struct platform_device
 	struct device    dev;
 	u32              num_resources;
 	struct resource *resource;
+	void            *data;
 };
 
 
@@ -236,6 +237,33 @@ struct nop_usb_xceiv_platform_data { int type; };
  *******************************/
 
 enum samsung_usb_phy_type { USB_PHY_TYPE_HOST = 1 };
+
+
+/***********************
+ ** asm/dma-mapping.h **
+ ***********************/
+
+/* needed by 'dwc_otg_hcd_linux.c' */
+void *dma_to_virt(struct device *dev, dma_addr_t addr);
+
+
+/********************
+ ** asm/irqflags.h **
+ ********************/
+
+void local_fiq_disable();
+void local_fiq_enable();
+
+
+/***************
+ ** asm/fiq.h **
+ ***************/
+
+struct pt_regs;
+int claim_fiq(struct fiq_handler *f);
+void set_fiq_regs(struct pt_regs const *regs);
+void enable_fiq();
+void set_fiq_handler(void *start, unsigned int length);
 
 
 #endif /* _ARM__PLATFORM__LX_EMUL_H_ */
