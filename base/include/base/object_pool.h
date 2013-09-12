@@ -196,6 +196,19 @@ namespace Genode {
 				Lock::Guard lock_guard(_lock);
 				return (OBJ_TYPE *)_tree.first();
 			}
+
+			/**
+			 * Return first element of tree locked
+			 *
+			 * This function is used for removing tree elements step by step.
+			 */
+			OBJ_TYPE *first_locked()
+			{
+				Lock::Guard lock_guard(_lock);
+				OBJ_TYPE * const obj_typed = (OBJ_TYPE *)_tree.first();
+				obj_typed->lock();
+				return obj_typed;
+			}
 	};
 }
 
