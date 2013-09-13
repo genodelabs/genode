@@ -56,7 +56,7 @@ namespace Kernel
 
 		public:
 
-			Pic() : Genode::Mmio(Genode::Board::IRQ_CONTROLLER_BASE) { }
+			Pic() : Genode::Mmio(Genode::Board::IRQ_CONTROLLER_BASE) { mask(); }
 
 			bool take_request(unsigned &irq)
 			{
@@ -69,7 +69,7 @@ namespace Kernel
 				               p2 = read<Irq_pending_gpu_2>();
 
 				if (Irq_pending_basic::Timer::get(p)) {
-					irq = 0;
+					irq = Irq_pending_basic::Timer::SHIFT;
 					return true;
 				}
 
@@ -89,31 +89,29 @@ namespace Kernel
 
 			void unmask() { PDBG("not implemented"); }
 
-			void mask() { PDBG("not implemented"); }
+			void mask()
+			{
+				write<Irq_disable_basic>(~0);
+				write<Irq_disable_gpu_1>(~0);
+				write<Irq_disable_gpu_2>(~0);
+			}
 
 			void unmask(unsigned const i)
 			{
 				if (i < 8)
 					write<Irq_enable_basic>(1 << i);
-
-				else if (i < 32 + 8) {
+				else if (i < 32 + 8)
 					write<Irq_enable_gpu_1>(1 << (i - 8));
-					write<Irq_enable_basic>(1 << 8);
-
-				} else {
+				else
 					write<Irq_enable_gpu_2>(1 << (i - 8 - 32));
-					write<Irq_enable_basic>(1 << 9);
-				}
 			}
 
 			void mask(unsigned const i)
 			{
 				if (i < 8)
 					write<Irq_disable_basic>(1 << i);
-
 				else if (i < 32 + 8)
 					write<Irq_disable_gpu_1>(1 << (i - 8));
-
 				else
 					write<Irq_disable_gpu_2>(1 << (i - 8 - 32));
 			}
