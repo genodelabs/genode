@@ -138,8 +138,8 @@ class dde_kit_timer : public Alarm, public List<dde_kit_timer>::Element
 		{
 			/* if timer is really pending, call registered handler function */
 			if (_pending) {
-				_handler(_priv);
 				_pending = false;
+				_handler(_priv);
 			}
 
 			/* do not schedule again */
