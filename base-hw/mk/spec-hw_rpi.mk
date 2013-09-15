@@ -8,7 +8,7 @@
 SPECS += hw platform_rpi
 
 # set address where to link the text segment at
-LD_TEXT_ADDR ?= 0x400000
+LD_TEXT_ADDR ?= 0x800000
 
 # include implied specs
 include $(call select_from_repositories,mk/spec-hw.mk)
