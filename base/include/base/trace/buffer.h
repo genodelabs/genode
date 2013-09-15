@@ -31,15 +31,15 @@ class Genode::Trace::Buffer
 		unsigned volatile _head_offset;  /* in bytes, relative to 'entries' */
 		unsigned volatile _size;         /* in bytes */
 
-		struct Entry
+		struct _Entry
 		{
 			size_t len;
 			char   data[0];
 		};
 
-		Entry _entries[0];
+		_Entry _entries[0];
 
-		Entry *_head_entry() { return (Entry *)((addr_t)_entries + _head_offset); }
+		_Entry *_head_entry() { return (_Entry *)((addr_t)_entries + _head_offset); }
 
 		/*
 		 * The 'entries' member marks the beginning of the trace buffer
@@ -64,11 +64,13 @@ class Genode::Trace::Buffer
 
 		char *reserve(size_t len)
 		{
-			if (_head_offset + sizeof(Entry) + len <= _size)
+			if (_head_offset + sizeof(_Entry) + len <= _size)
 				return _head_entry()->data;
 
 			/* mark last entry with len 0 and wrap */
-			_head_entry()->len = 0;
+			if (_head_offset + sizeof(_Entry) <= _size)
+				_head_entry()->len = 0;
+
 			_head_offset = 0;
 
 			return _head_entry()->data;
@@ -83,7 +85,7 @@ class Genode::Trace::Buffer
 			_head_entry()->len = len;
 
 			/* advance head offset, wrap when reaching buffer boundary */
-			_head_offset += sizeof(Entry) + len;
+			_head_offset += sizeof(_Entry) + len;
 			if (_head_offset == _size)
 				_head_offset = 0;
 		}
@@ -93,8 +95,42 @@ class Genode::Trace::Buffer
 		 ** Functions called from the TRACE client **
 		 ********************************************/
 
-		addr_t entries()     const { return (addr_t)_entries; }
-		addr_t head_offset() const { return (addr_t)_head_offset; }
+		class Entry
+		{
+			private:
+
+				_Entry const *_entry;
+
+				friend class Buffer;
+
+				Entry(_Entry const *entry) : _entry(entry) { }
+
+			public:
+
+				size_t      length()  const { return _entry->len; }
+				char const *data()    const { return _entry->data; }
+				bool        is_last() const { return _entry == 0; }
+		};
+
+		Entry first() const
+		{
+			return _entries->len ? Entry(_entries) : Entry(0);
+		}
+
+		Entry next(Entry entry) const
+		{
+			if (entry.is_last())
+				return Entry(0);
+
+			if (entry.length() == 0)
+				return Entry(0);
+
+			addr_t const offset = (addr_t)entry._entry - (addr_t)_entries;
+			if (offset + entry.length() + sizeof(_Entry) > _size)
+				return Entry(0);
+
+			return Entry((_Entry const *)((addr_t)entry.data() + entry.length()));
+		}
 };
 
 #endif /* _INCLUDE__BASE__TRACE__BUFFER_H_ */
