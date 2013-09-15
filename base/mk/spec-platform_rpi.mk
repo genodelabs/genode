@@ -5,7 +5,7 @@
 #
 
 # denote wich specs are also fullfilled by this spec
-SPECS += arm_v6 pl011 usb
+SPECS += arm_v6 pl011 usb framebuffer
 
 # add repository relative include paths
 REP_INC_DIR += include/platform/rpi
