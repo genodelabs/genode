@@ -1109,13 +1109,13 @@ struct net_device *alloc_etherdev(int sizeof_priv)
 int is_valid_ether_addr(const u8 *addr)
 {
 	/* is multicast */
-	if (!(addr[0] & 0x1))
+	if ((addr[0] & 0x1))
 		return 0;
 
 	/* zero */
 	if (!(addr[0] | addr[1] | addr[2] | addr[3] | addr[4] | addr[5]))
 		return 0;
-	
+
 	return 1;
 }
 
