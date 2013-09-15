@@ -17,6 +17,7 @@
 
 /* emulation */
 #include <platform/platform.h>
+#include <platform.h>
 #include <lx_emul.h>
 
 /* dwc-otg */
@@ -180,11 +181,17 @@ struct tvec_base boot_tvec_bases;
  *******************/
 
 extern "C" void module_dwc_otg_driver_init();
+extern "C" int  module_usbnet_init();
+extern "C" int  module_smsc95xx_driver_init();
 
-struct Services;
-
-void platform_hcd_init(Services *)
+void platform_hcd_init(Services *services)
 {
+	/* register network */
+	if (services->nic) {
+		module_usbnet_init();
+		module_smsc95xx_driver_init();
+	}
+
 	/* disable split-enable fix, otherwise, fiq_fix will be implied */
 	fiq_split_enable = false;
 
