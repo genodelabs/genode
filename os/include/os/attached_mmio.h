@@ -49,7 +49,7 @@ namespace Genode
 			Attached_mmio(addr_t base, size_t size,
 			              bool write_combined = false)
 			: Attached_io_mem_dataspace(base, size, write_combined),
-			  Mmio((addr_t)local_addr<void>()) { }
+			  Mmio((addr_t)local_addr<void>() | (base & 0xfff)) { }
 	};
 }
 
