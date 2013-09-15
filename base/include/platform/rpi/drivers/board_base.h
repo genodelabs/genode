@@ -59,6 +59,11 @@ namespace Genode
 			/* CPU cache */
 			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */
 		};
+
+		enum Videocore_cache_policy { NON_COHERENT = 0,
+		                              COHERENT     = 1,
+		                              L2_ONLY      = 2,
+		                              UNCACHED     = 3 };
 	};
 }
 
