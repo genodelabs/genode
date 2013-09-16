@@ -76,7 +76,7 @@ append_if [is_qemu_available] config {
 if {![is_qemu_available]} {
 append config {
 	<start name="tcp_terminal">
-		<resource name="RAM" quantum="2560K"/>
+		<resource name="RAM" quantum="5M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
