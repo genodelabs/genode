@@ -435,7 +435,7 @@ namespace Genode {
 			 * Constructor
 			 */
 			Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
-			                                         Msgbuf_base *rcv_msg);
+			           Msgbuf_base *rcv_msg, unsigned short rcv_caps = ~0);
 
 			/**
 			 * Operator that issues an IPC call

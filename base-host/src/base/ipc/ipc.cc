@@ -52,8 +52,8 @@ Ipc_istream::~Ipc_istream() { }
 void Ipc_client::_call() { }
 
 
-Ipc_client::Ipc_client(Native_capability const &srv,
-                       Msgbuf_base *snd_msg, Msgbuf_base *rcv_msg)
+Ipc_client::Ipc_client(Native_capability const &srv, Msgbuf_base *snd_msg,
+                       Msgbuf_base *rcv_msg, unsigned short)
 : Ipc_istream(rcv_msg), Ipc_ostream(srv, snd_msg), _result(0)
 { }
 

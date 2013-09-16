@@ -38,6 +38,35 @@ namespace Genode {
 		: Capability<RPC_INTERFACE>(cap) { }
 	};
 
+	/**
+	 * Count capabilities of a RPC_FUNCTION which are out parameters.
+	 */
+	template <typename T> struct Cap_para_out                  { enum { Value = 0 }; };
+	template <typename T> struct Cap_para_out<Capability<T> *> { enum { Value = 1 }; };
+	template <typename T> struct Cap_para_out<Capability<T> &> { enum { Value = 1 }; };
+	template <> struct Cap_para_out<Native_capability *>       { enum { Value = 1 }; };
+	template <> struct Cap_para_out<Native_capability &>       { enum { Value = 1 }; };
+
+	template <typename T> struct Cap_return                  { enum { Value = 0 }; };
+	template <typename T> struct Cap_return<Capability<T> >  { enum { Value = 1 }; };
+	template <typename T> struct Cap_return<Capability<T> *> { enum { Value = 1 }; };
+	template <typename T> struct Cap_return<Capability<T> &> { enum { Value = 1 }; };
+	template <> struct Cap_return<Native_capability>         { enum { Value = 1 }; };
+	template <> struct Cap_return<Native_capability *>       { enum { Value = 1 }; };
+	template <> struct Cap_return<Native_capability &>       { enum { Value = 1 }; };
+
+	template <typename ARGS>
+	struct Rpc_caps_out {
+		enum { Value = Cap_para_out<typename ARGS::Head>::Value
+		             + Rpc_caps_out<typename ARGS::Tail>::Value }; };
+	
+	template <>
+	struct Rpc_caps_out<Meta::Empty> { enum { Value = 0 }; };
+
+	template <typename RPC_FUNCTION>
+	struct Rpc_function_caps_out {
+		enum { Value = Rpc_caps_out<typename RPC_FUNCTION::Server_args>::Value +
+		               Cap_return  <typename RPC_FUNCTION::Ret_type>::Value}; };
 
 	/*********************************************************
 	 ** Implementation of 'Capability:call' functions **
@@ -106,12 +135,13 @@ namespace Genode {
 		 */
 		enum { PROTOCOL_OVERHEAD = 4*sizeof(long),
 		       CALL_MSG_SIZE     = Rpc_function_msg_size<IF, RPC_CALL>::Value,
-		       REPLY_MSG_SIZE    = Rpc_function_msg_size<IF, RPC_REPLY>::Value };
+		       REPLY_MSG_SIZE    = Rpc_function_msg_size<IF, RPC_REPLY>::Value,
+		       CAP_BY_VALUE      = Rpc_function_caps_out<IF>::Value };
 
 		Msgbuf<CALL_MSG_SIZE  + PROTOCOL_OVERHEAD>  call_buf;
 		Msgbuf<REPLY_MSG_SIZE + PROTOCOL_OVERHEAD> reply_buf;
 
-		Ipc_client ipc_client(*this, &call_buf, &reply_buf);
+		Ipc_client ipc_client(*this, &call_buf, &reply_buf, CAP_BY_VALUE);
 
 		/* determine opcode of RPC function */
 		typedef typename RPC_INTERFACE::Rpc_functions Rpc_functions;
