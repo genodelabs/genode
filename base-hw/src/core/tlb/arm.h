@@ -398,47 +398,43 @@ namespace Arm
 			}
 
 			/**
-			 * Remove translations, wich overlap with a given virtual region
+			 * Remove translations that overlap with a given virtual region
 			 *
-			 * \param vo    offset of the virtual region within the region
-			 *              represented by this table
+			 * \param vo    region offset within the tables virtual region
 			 * \param size  region size
 			 */
-			void remove_region(addr_t const vo, size_t const size)
+			void remove_region(addr_t vo, size_t const size)
 			{
-				/* traverse all possibly affected entries */
-				addr_t residual_vo = vo;
+				addr_t const ve = vo + size;
 				unsigned i;
 				while (1)
 				{
-					/* check if anything is left over to remove */
-					if (residual_vo >= vo + size) return;
-
-					/* check if residual region overlaps with table */
-					if (_index_by_vo(i, residual_vo)) return;
-
-					/* update current entry and recalculate residual region */
+					if (vo >= ve) { return; }
+					if (_index_by_vo(i, vo)) { return; }
+					addr_t next_vo;
 					switch (Descriptor::type(_entries[i])) {
 
 					case Descriptor::FAULT: {
 
-						residual_vo = (residual_vo & Fault::VIRT_BASE_MASK)
-						              + Fault::VIRT_SIZE;
+						vo &= Fault::VIRT_BASE_MASK;
+						next_vo = vo + Fault::VIRT_SIZE;
 						break; }
 
 					case Descriptor::SMALL_PAGE: {
 
-						residual_vo = (residual_vo & Small_page::VIRT_BASE_MASK)
-						              + Small_page::VIRT_SIZE;
+						vo &= Small_page::VIRT_BASE_MASK;
 						Descriptor::invalidate(_entries[i]);
+						next_vo = vo + Small_page::VIRT_SIZE;
 						break; }
 
 					case Descriptor::LARGE_PAGE: {
 
-						PDBG("Removal of large pages not implemented");
+						PDBG("large pages not supported by now");
 						while (1) ;
 						break; }
 					}
+					if (next_vo < vo) { return; }
+					vo = next_vo;
 				}
 			}
 
@@ -800,63 +796,55 @@ namespace Arm
 			}
 
 			/**
-			 * Remove translations, wich overlap with a given virtual region
+			 * Remove translations that overlap with a given virtual region
 			 *
-			 * \param vo    offset of the virtual region within the region
-			 *              represented by this table
+			 * \param vo    region offset within the tables virtual region
 			 * \param size  region size
 			 */
-			void remove_region(addr_t const vo, size_t const size)
+			void remove_region(addr_t vo, size_t const size)
 			{
-				/* traverse all possibly affected entries */
-				addr_t residual_vo = vo;
+				addr_t const ve = vo + size;
 				unsigned i;
 				while (1)
 				{
-					/* check if anything is left over to remove */
-					if (residual_vo >= vo + size) return;
+					if (vo >= ve) { return; }
+					if (_index_by_vo(i, vo)) { return; }
+					addr_t next_vo;
+					switch (Descriptor::type(_entries[i])) {
 
-					/* check if the residual region overlaps with this table */
-					if (_index_by_vo(i, residual_vo)) return;
+					case Descriptor::FAULT: {
 
-					/* update current entry and recalculate residual region */
-					switch (Descriptor::type(_entries[i]))
-					{
-					case Descriptor::FAULT:
-					{
-						residual_vo = (residual_vo & Fault::VIRT_BASE_MASK)
-						              + Fault::VIRT_SIZE;
-						break;
-					}
-					case Descriptor::PAGE_TABLE:
-					{
-						/* instruct page table to remove residual region */
-						Page_table * const pt = (Page_table *)
-						(addr_t)Page_table_descriptor::Pa_31_10::masked(_entries[i]);
-						size_t const residual_size = vo + size - residual_vo;
-						addr_t const pt_vo = residual_vo
-						                     - Section::Pa_31_20::masked(residual_vo);
-						pt->remove_region(pt_vo, residual_size);
+						vo &= Fault::VIRT_BASE_MASK;
+						next_vo = vo + Fault::VIRT_SIZE;
+						break; }
 
-						/* recalculate residual region */
-						residual_vo = (residual_vo & Page_table::VIRT_BASE_MASK)
-						              + Page_table::VIRT_SIZE;
-						break;
-					}
-					case Descriptor::SECTION:
-					{
+					case Descriptor::PAGE_TABLE: {
+
+						typedef Page_table_descriptor Ptd;
+						typedef Page_table            Pt;
+
+						vo &= Pt::VIRT_BASE_MASK;
+						Pt * const pt = (Pt *)Ptd::Pa_31_10::masked(_entries[i]);
+						addr_t const pt_vo = vo - Section::Pa_31_20::masked(vo);
+						pt->remove_region(pt_vo, ve - vo);
+						next_vo = vo + Pt::VIRT_SIZE;
+						break; }
+
+					case Descriptor::SECTION: {
+
+						vo &= Section::VIRT_BASE_MASK;
 						Descriptor::invalidate(_entries[i]);
-						residual_vo = (residual_vo & Section::VIRT_BASE_MASK)
-						              + Section::VIRT_SIZE;
-						break;
+						next_vo = vo + Section::VIRT_SIZE;
+						break; }
+
+					case Descriptor::SUPERSECTION: {
+
+						PDBG("supersections not supported by now");
+						while (1) { }
+						break; }
 					}
-					case Descriptor::SUPERSECTION:
-					{
-						PDBG("Removal of supersections not implemented");
-						while (1);
-						break;
-					}
-					}
+					if (next_vo < vo) { return; }
+					vo = next_vo;
 				}
 			}
 
