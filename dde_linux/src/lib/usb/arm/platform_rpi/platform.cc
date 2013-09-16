@@ -11,9 +11,10 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode */
+/* Genode includes */
 #include <io_mem_session/connection.h>
 #include <util/mmio.h>
+#include <platform_session/connection.h>
 
 /* emulation */
 #include <platform/platform.h>
@@ -186,6 +187,10 @@ extern "C" int  module_smsc95xx_driver_init();
 
 void platform_hcd_init(Services *services)
 {
+	/* enable USB power */
+	Platform::Connection platform;
+	platform.power_state(Platform::Session::POWER_USB_HCD, true);
+
 	/* register network */
 	if (services->nic) {
 		module_usbnet_init();
