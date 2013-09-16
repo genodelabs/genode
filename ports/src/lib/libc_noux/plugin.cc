@@ -177,9 +177,48 @@ extern "C" uid_t geteuid()
 }
 
 
+void *sbrk(intptr_t increment)
+{
+	if (verbose)
+		PDBG("not implemented %d", increment);
+	errno = ENOMEM;
+	return reinterpret_cast<void *>(-1);
+}
+
+
 extern "C" int getrlimit(int resource, struct rlimit *rlim)
 {
-	PDBG("not implemented");
+	switch (resource) {
+		case RLIMIT_STACK:
+		{
+			using namespace Genode;
+
+			Thread_base * me = Thread_base::myself();
+			if (me) {
+				addr_t top = reinterpret_cast<addr_t>(me->stack_top());
+				addr_t cur = reinterpret_cast<addr_t>(me->stack_base());
+
+				rlim->rlim_cur = rlim->rlim_max = top - cur;
+				return 0;
+			}
+
+			/* XXX - fix Thread_base::myself to be working also for main thread */
+			rlim->rlim_cur = rlim->rlim_max = 64 * 1024;
+			return 0;
+		}
+		case RLIMIT_AS:
+			#ifdef __x86_64__
+				rlim->rlim_cur = rlim->rlim_max = 0x800000000000UL;
+			#else
+				rlim->rlim_cur = rlim->rlim_max = 0xc0000000UL;
+			#endif
+			return 0;
+		case RLIMIT_RSS:
+			rlim->rlim_cur = rlim->rlim_max = Genode::env()->ram_session()->quota();
+			return 0;
+	}
+	errno = ENOSYS;
+	PDBG("not implemented %d", resource);
 	return -1;
 }
 
@@ -424,6 +463,9 @@ extern "C" pid_t getpid(void)
 }
 
 
+extern "C" pid_t getppid(void) { return getpid(); }
+
+
 extern "C" int access(char const *pathname, int mode)
 {
 	if (verbose)
@@ -460,6 +502,23 @@ extern "C" pid_t _wait4(pid_t pid, int *status, int options,
 		*status = sysio()->wait4_out.status;
 
 	return sysio()->wait4_out.pid;
+}
+
+
+int getrusage(int who, struct rusage *usage)
+{
+	if (verbose)
+		PDBG("not implemented");
+
+	errno = ENOSYS;
+	return -1;
+}
+
+
+void endpwent(void)
+{
+	if (verbose)
+		PDBG("not implemented");
 }
 
 
@@ -542,6 +601,14 @@ extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 extern "C" int _sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
 	return sigprocmask(how, set, oldset);
+}
+
+
+extern "C" int _sigaction(int, const struct sigaction *, struct sigaction *)
+{
+	/* XXX todo */
+	errno = ENOSYS;
+	return -1;
 }
 
 
@@ -1177,7 +1244,8 @@ namespace {
 			 *
 			 * XXX: FD_CLOEXEC not yet supported
 			 */
-			PWRN("fcntl(F_GETFD) not implemented, returning 0");
+			if (verbose)
+				PWRN("fcntl(F_GETFD) not implemented, returning 0");
 			return 0;
 
 		case F_SETFD:
@@ -1354,6 +1422,7 @@ namespace {
 		return 0;
 	}
 
+
 	int Plugin::mkdir(const char *path, mode_t mode)
 	{
 		Genode::strncpy(sysio()->mkdir_in.path, path, sizeof(sysio()->mkdir_in.path));
@@ -1372,6 +1441,7 @@ namespace {
 		}
 		return 0;
 	}
+
 
 	void *Plugin::mmap(void *addr_in, ::size_t length, int prot, int flags,
 	                   Libc::File_descriptor *fd, ::off_t offset)
@@ -1404,11 +1474,13 @@ namespace {
 		return addr;
 	}
 
+
 	int Plugin::munmap(void *addr, ::size_t)
 	{
 		Libc::mem_alloc()->free(addr);
 		return 0;
 	}
+
 
 	Libc::File_descriptor *Plugin::socket(int domain, int type, int protocol)
 	{
@@ -1797,6 +1869,7 @@ extern char **genode_envp;
 
 /* pointer to environment, provided by libc */
 extern char **environ;
+
 
 __attribute__((constructor))
 void init_libc_noux(void)
