@@ -43,3 +43,6 @@ SRC_CC  += platform.cc
 
 vpath platform.cc $(LIB_DIR)/arm/platform_rpi
 vpath %.c         $(CONTRIB_DIR)/drivers/net/usb
+
+# enable C++11 support
+CC_CXX_OPT += -std=gnu++11
