@@ -172,20 +172,11 @@ class Kernel::Thread
 		 ** Ipc_node **
 		 **************/
 
-		void _has_received(size_t const s)
+		void _received_ipc_request(size_t const s)
 		{
 			switch (_state) {
-			case AWAIT_IPC:
-				_schedule();
 			case SCHEDULED:
 				user_arg_0(s);
-				return;
-			case AWAIT_PAGER_IPC:
-				_schedule();
-				return;
-			case AWAIT_PAGER:
-				/* pager replied before pagefault has been resolved */
-				_state = AWAIT_RESUME;
 				return;
 			default:
 				PERR("wrong thread state to receive IPC");
@@ -194,7 +185,7 @@ class Kernel::Thread
 			}
 		}
 
-		void _awaits_receipt()
+		void _await_ipc()
 		{
 			switch (_state) {
 			case SCHEDULED:
@@ -204,6 +195,52 @@ class Kernel::Thread
 				return;
 			default:
 				PERR("wrong thread state to await IPC");
+				crash();
+				return;
+			}
+		}
+
+		void _await_ipc_succeeded(size_t const s)
+		{
+			switch (_state) {
+			case AWAIT_IPC:
+				_schedule();
+				user_arg_0(s);
+				return;
+			case AWAIT_PAGER_IPC:
+				_schedule();
+				return;
+			case AWAIT_PAGER:
+				_state = AWAIT_RESUME;
+				return;
+			default:
+				PERR("wrong thread state to receive IPC");
+				crash();
+				return;
+			}
+		}
+
+		void _await_ipc_failed()
+		{
+			switch (_state) {
+			case AWAIT_IPC:
+				PERR("failed to receive IPC");
+				crash();
+				return;
+			case SCHEDULED:
+				PERR("failed to receive IPC");
+				crash();
+				return;
+			case AWAIT_PAGER_IPC:
+				PERR("failed to get pagefault resolved");
+				crash();
+				return;
+			case AWAIT_PAGER:
+				PERR("failed to get pagefault resolved");
+				crash();
+				return;
+			default:
+				PERR("wrong thread state to cancel IPC");
 				crash();
 				return;
 			}

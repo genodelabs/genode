@@ -54,12 +54,13 @@ class Kernel::Ipc_node
 
 				void *     base;
 				size_t     size;
-				Ipc_node * origin;
+				Ipc_node * src;
 		};
 
 		Message_fifo _request_queue;
 		Message_buf  _inbuf;
 		Message_buf  _outbuf;
+		Ipc_node *   _outbuf_dst;
 		State        _state;
 
 		/**
@@ -75,7 +76,7 @@ class Kernel::Ipc_node
 			/* fetch message */
 			Genode::memcpy(_inbuf.base, r->base, r->size);
 			_inbuf.size = r->size;
-			_inbuf.origin = r->origin;
+			_inbuf.src  = r->src;
 
 			/* update state */
 			_state = PREPARE_REPLY;
@@ -101,7 +102,7 @@ class Kernel::Ipc_node
 			/* update state */
 			if (_state != PREPARE_AND_AWAIT_REPLY) { _state = INACTIVE; }
 			else { _state = PREPARE_REPLY; }
-			_has_received(_inbuf.size);
+			_await_ipc_succeeded(_inbuf.size);
 		}
 
 		/**
@@ -112,7 +113,7 @@ class Kernel::Ipc_node
 			/* directly receive request if we've awaited it */
 			if (_state == AWAIT_REQUEST) {
 				_receive_request(r);
-				_has_received(_inbuf.size);
+				_await_ipc_succeeded(_inbuf.size);
 				return;
 			}
 			/* cannot receive yet, so queue request */
@@ -120,32 +121,96 @@ class Kernel::Ipc_node
 		}
 
 		/**
-		 * IPC node waits for a message to receive to its inbuffer
+		 * Cancel all requests in request queue
 		 */
-		virtual void _awaits_receipt() = 0;
+		void _cancel_request_queue()
+		{
+			while (1) {
+				Message_buf * const r = _request_queue.dequeue();
+				if (!r) { return; }
+				r->src->_outbuf_request_cancelled();
+			}
+		}
 
 		/**
-		 * IPC node has received a message in its inbuffer
-		 *
-		 * \param s  size of the message
+		 * Cancel request in outgoing buffer
 		 */
-		virtual void _has_received(size_t const s) = 0;
+		void _cancel_outbuf_request()
+		{
+			if (_outbuf_dst) {
+				_outbuf_dst->_announced_request_cancelled(&_outbuf);
+				_outbuf_dst = 0;
+			}
+		}
+
+		/**
+		 * Cancel request in incoming buffer
+		 */
+		void _cancel_inbuf_request()
+		{
+			if (_inbuf.src) {
+				_inbuf.src->_outbuf_request_cancelled();
+				_inbuf.src = 0;
+			}
+		}
+
+		/**
+		 * A request 'r' in inbuf or request queue was cancelled by sender
+		 */
+		void _announced_request_cancelled(Message_buf * const r)
+		{
+			if (_inbuf.src == r->src) {
+				_inbuf.src = 0;
+				return;
+			}
+			_request_queue.remove(r);
+		}
+
+		/**
+		 * The request in the outbuf was cancelled by receiver
+		 */
+		void _outbuf_request_cancelled()
+		{
+			if (_outbuf_dst) {
+				_outbuf_dst = 0;
+				if (!_inbuf.src) { _state = INACTIVE; }
+				else { _state = PREPARE_REPLY; }
+				_await_ipc_failed();
+			}
+		}
+
+		/**
+		 * IPC node received a request without waiting
+		 */
+		virtual void _received_ipc_request(size_t const s) = 0;
+
+		/**
+		 * IPC node started waiting for message receipt
+		 */
+		virtual void _await_ipc() = 0;
+
+		/**
+		 * IPC node returned from waiting due to message receipt
+		 *
+		 * \param s  size of incoming message
+		 */
+		virtual void _await_ipc_succeeded(size_t const s) = 0;
+
+		/**
+		 * IPC node returned from waiting due to cancellation
+		 */
+		virtual void _await_ipc_failed() = 0;
 
 	public:
 
 		/**
-		 * Construct an initially inactive IPC node
+		 * Constructor
 		 */
 		Ipc_node() : _state(INACTIVE)
 		{
-			_inbuf.size = 0;
-			_outbuf.size = 0;
+			_inbuf.src  = 0;
+			_outbuf_dst = 0;
 		}
-
-		/**
-		 * Destructor
-		 */
-		virtual ~Ipc_node() { }
 
 		/**
 		 * Send a request and wait for the according reply
@@ -156,7 +221,7 @@ class Kernel::Ipc_node
 		 * \param inbuf_base  base of the reply buffer
 		 * \param inbuf_size  size of the reply buffer
 		 */
-		void send_request_await_reply(Ipc_node * const dest,
+		void send_request_await_reply(Ipc_node * const dst,
 		                              void * const     req_base,
 		                              size_t const     req_size,
 		                              void * const     inbuf_base,
@@ -168,19 +233,21 @@ class Kernel::Ipc_node
 			/* prepare transmission of request message */
 			_outbuf.base = req_base;
 			_outbuf.size = req_size;
-			_outbuf.origin = this;
+			_outbuf.src  = this;
+			_outbuf_dst  = dst;
 
 			/* prepare reception of reply message */
 			_inbuf.base = inbuf_base;
 			_inbuf.size = inbuf_size;
+			/* don't clear '_inbuf.origin' because we might prepare a reply */
 
 			/* update state */
 			if (_state != PREPARE_REPLY) { _state = AWAIT_REPLY; }
 			else { _state = PREPARE_AND_AWAIT_REPLY; }
-			_awaits_receipt();
+			_await_ipc();
 
 			/* announce request */
-			dest->_announce_request(&_outbuf);
+			dst->_announce_request(&_outbuf);
 		}
 
 		/**
@@ -198,16 +265,17 @@ class Kernel::Ipc_node
 			/* prepare receipt of request */
 			_inbuf.base = inbuf_base;
 			_inbuf.size = inbuf_size;
+			_inbuf.src  = 0;
 
 			/* if anybody already announced a request receive it */
 			if (!_request_queue.empty()) {
 				_receive_request(_request_queue.dequeue());
-				_has_received(_inbuf.size);
+				_received_ipc_request(_inbuf.size);
 				return;
 			}
 			/* no request announced, so wait */
 			_state = AWAIT_REQUEST;
-			_awaits_receipt();
+			_await_ipc();
 		}
 
 		/**
@@ -221,19 +289,41 @@ class Kernel::Ipc_node
 		{
 			/* reply to the last request if we have to */
 			if (_state == PREPARE_REPLY) {
-				_inbuf.origin->_receive_reply(reply_base, reply_size);
+				if (_inbuf.src) {
+					_inbuf.src->_receive_reply(reply_base, reply_size);
+					_inbuf.src = 0;
+				}
 				_state = INACTIVE;
 			}
 		}
 
 		/**
-		 * Stop waiting for a receipt if in a waiting state
+		 * Destructor
+		 */
+		~Ipc_node()
+		{
+			_cancel_request_queue();
+			_cancel_inbuf_request();
+			_cancel_outbuf_request();
+		}
+
+		/**
+		 * If IPC node waits, cancel '_outbuf' to stop waiting
 		 */
 		void cancel_waiting()
 		{
-			if (_state == PREPARE_AND_AWAIT_REPLY) { _state = PREPARE_REPLY; }
-			if (_state == AWAIT_REPLY || _state == AWAIT_REQUEST) {
+			switch (_state) {
+			case AWAIT_REPLY:
+				_cancel_outbuf_request();
 				_state = INACTIVE;
+				_await_ipc_failed();
+				return;
+			case PREPARE_AND_AWAIT_REPLY:
+				_cancel_outbuf_request();
+				_state = PREPARE_REPLY;
+				_await_ipc_failed();
+				return;
+			default: return;
 			}
 		}
 };
