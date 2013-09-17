@@ -58,7 +58,8 @@ class Kernel::Signal_handler
 
 		typedef Genode::Fifo_element<Signal_handler> Fifo_element;
 
-		Fifo_element _handlers_fe;
+		Fifo_element      _handlers_fe;
+		Signal_receiver * _receiver;
 
 		/**
 		 * Let the handler block for signal receipt
@@ -81,6 +82,11 @@ class Kernel::Signal_handler
 		 * Constructor
 		 */
 		Signal_handler() : _handlers_fe(this) { }
+
+		/**
+		 * Destructor
+		 */
+		virtual ~Signal_handler();
 };
 
 class Kernel::Signal_context_killer
@@ -88,6 +94,8 @@ class Kernel::Signal_context_killer
 	friend class Signal_context;
 
 	private:
+
+		Signal_context * _context;
 
 		/**
 		 * Notice that the destruction is pending
@@ -98,6 +106,18 @@ class Kernel::Signal_context_killer
 		 * Notice that pending destruction is done
 		 */
 		virtual void _signal_context_kill_done() = 0;
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Signal_context_killer() : _context(0) { }
+
+		/**
+		 * Destructor
+		 */
+		virtual ~Signal_context_killer();
 };
 
 class Kernel::Signal_receiver_killer
@@ -105,6 +125,8 @@ class Kernel::Signal_receiver_killer
 	friend class Signal_receiver;
 
 	private:
+
+		Signal_receiver * _receiver;
 
 		/**
 		 * Notice that the destruction is pending
@@ -115,6 +137,18 @@ class Kernel::Signal_receiver_killer
 		 * Notice that pending destruction is done
 		 */
 		virtual void _signal_receiver_kill_done() = 0;
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Signal_receiver_killer() : _receiver(0) { }
+
+		/**
+		 * Destructor
+		 */
+		virtual ~Signal_receiver_killer();
 };
 
 class Kernel::Signal_context
@@ -122,6 +156,7 @@ class Kernel::Signal_context
 	public Object<Signal_context, MAX_SIGNAL_CONTEXTS>
 {
 	friend class Signal_receiver;
+	friend class Signal_context_killer;
 
 	private:
 
@@ -133,6 +168,7 @@ class Kernel::Signal_context
 		unsigned const          _imprint;
 		unsigned                _submits;
 		bool                    _ack;
+		bool                    _kill;
 		Signal_context_killer * _killer;
 
 		/**
@@ -150,6 +186,11 @@ class Kernel::Signal_context
 		}
 
 		/**
+		 * Notice that the killer of the context has been destructed
+		 */
+		void _killer_destructed() { _killer = 0; }
+
+		/**
 		 * Destructor
 		 */
 		~Signal_context();
@@ -163,7 +204,7 @@ class Kernel::Signal_context
 		Signal_context(Signal_receiver * const r, unsigned const imprint)
 		:
 			_deliver_fe(this), _contexts_fe(this), _receiver(r),
-			_imprint(imprint), _submits(0), _ack(1), _killer(0)
+			_imprint(imprint), _submits(0), _ack(1), _kill(0), _killer(0)
 		{ }
 
 	public:
@@ -178,7 +219,7 @@ class Kernel::Signal_context
 		 */
 		int submit(unsigned const n)
 		{
-			if (_killer || _submits >= (unsigned)~0 - n) { return -1; }
+			if (_kill || _submits >= (unsigned)~0 - n) { return -1; }
 			_submits += n;
 			if (_ack) { _deliverable(); }
 			return 0;
@@ -190,13 +231,16 @@ class Kernel::Signal_context
 		void ack()
 		{
 			if (_ack) { return; }
-			if (!_killer) {
+			if (!_kill) {
 				_ack = 1;
 				_deliverable();
 				return;
 			}
 			this->~Signal_context();
-			_killer->_signal_context_kill_done();
+			if (_killer) {
+				_killer->_context = 0;
+				_killer->_signal_context_kill_done();
+			}
 		}
 
 		/**
@@ -209,7 +253,7 @@ class Kernel::Signal_context
 		 */
 		int kill(Signal_context_killer * const k)
 		{
-			if (_killer) { return -1; }
+			if (_kill) { return -1; }
 
 			/* destruct directly if there is no unacknowledged delivery */
 			if (_ack) {
@@ -217,7 +261,9 @@ class Kernel::Signal_context
 				return 0;
 			}
 			/* wait for delivery acknowledgement */
-			_killer = k;
+			_killer           = k;
+			_kill             = 1;
+			_killer->_context = this;
 			_killer->_signal_context_kill_pending();
 			return 0;
 		}
@@ -229,7 +275,7 @@ class Kernel::Signal_receiver
 	public Signal_context_killer
 {
 	friend class Signal_context;
-	friend class Context_killer;
+	friend class Signal_receiver_killer;
 
 	private:
 
@@ -240,8 +286,9 @@ class Kernel::Signal_receiver
 		Fifo<Signal_handler::Fifo_element> _handlers;
 		Fifo<Signal_context::Fifo_element> _deliver;
 		Fifo<Signal_context::Fifo_element> _contexts;
-		unsigned                           _context_kills;
+		bool                               _kill;
 		Signal_receiver_killer *           _killer;
+		unsigned                           _context_kills;
 
 		/**
 		 * Recognize that context 'c' has submits to deliver
@@ -274,6 +321,7 @@ class Kernel::Signal_receiver
 				Signal_handler * const h = _handlers.dequeue()->object();
 				Signal::Data data((Genode::Signal_context *)c->_imprint,
 				                   c->_submits);
+				h->_receiver = 0;
 				h->_receive_signal(&data, sizeof(data));
 				c->_delivered();
 			}
@@ -286,11 +334,15 @@ class Kernel::Signal_receiver
 		 */
 		void _context_killed(Signal_context * const c)
 		{
-			if (c->_deliver_fe.is_enqueued()) {
-				_deliver.remove(&c->_deliver_fe);
-			}
 			_contexts.remove(&c->_contexts_fe);
+			if (!c->_deliver_fe.is_enqueued()) { return; }
+			_deliver.remove(&c->_deliver_fe);
 		}
+
+		/**
+		 * Notice that the killer of the receiver has been destructed
+		 */
+		void _killer_destructed() { _killer = 0; }
 
 
 		/***************************
@@ -302,9 +354,12 @@ class Kernel::Signal_receiver
 		void _signal_context_kill_done()
 		{
 			_context_kills--;
-			if (!_context_kills && _killer) {
+			if (!_context_kills && _kill) {
 				this->~Signal_receiver();
-				_killer->_signal_receiver_kill_done();
+				if (_killer) {
+					_killer->_receiver = 0;
+					_killer->_signal_receiver_kill_done();
+				}
 			}
 		}
 
@@ -313,6 +368,7 @@ class Kernel::Signal_receiver
 		/**
 		 * Constructor
 		 */
+		Signal_receiver() : _kill(0), _killer(0), _context_kills(0) { }
 
 		/**
 		 * Let a handler 'h' wait for signals of the receiver
@@ -322,8 +378,9 @@ class Kernel::Signal_receiver
 		 */
 		int add_handler(Signal_handler * const h)
 		{
-			if (_killer) { return -1; }
+			if (_kill) { return -1; }
 			_handlers.enqueue(&h->_handlers_fe);
+			h->_receiver = this;
 			h->_await_signal(this);
 			_listen();
 			return 0;
@@ -345,7 +402,7 @@ class Kernel::Signal_receiver
 		 */
 		int new_context(void * p, unsigned imprint)
 		{
-			if (_killer) { return -1; }
+			if (_kill) { return -1; }
 			new (p) Signal_context(this, imprint);
 			Signal_context * const c = (Signal_context *)p;
 			_contexts.enqueue(&c->_contexts_fe);
@@ -367,7 +424,7 @@ class Kernel::Signal_receiver
 		 */
 		int kill(Signal_receiver_killer * const k)
 		{
-			if (_killer) { return -1; }
+			if (_kill) { return -1; }
 
 			/* start killing at all contexts of the receiver */
 			Signal_context * c = _contexts.dequeue()->object();
@@ -381,7 +438,9 @@ class Kernel::Signal_receiver
 				return 0;
 			}
 			/* wait for pending context kills */
-			_killer = k;
+			_kill              = 1;
+			_killer            = k;
+			_killer->_receiver = this;
 			_killer->_signal_receiver_kill_pending();
 			return 0;
 		}
