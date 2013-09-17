@@ -60,7 +60,6 @@ namespace Noux {
 			}
 	};
 
-
 	/**
 	 * Return singleton instance of PID allocator
 	 */
@@ -168,12 +167,28 @@ namespace Noux {
 			 */
 			Environment _env;
 
-			Dir_file_system * const _root_dir;
-
 			/**
-			 * ELF binary
+			 * ELF binary handling
 			 */
-			Dataspace_capability const _binary_ds;
+			struct Elf
+			{
+				enum { NAME_MAX_LEN = 128 };
+				char _name[NAME_MAX_LEN];
+
+				Dir_file_system    * const _root_dir;
+				Dataspace_capability const _binary_ds;
+
+				Elf(char const * const binary_name, Dir_file_system * root_dir,
+				    Dataspace_capability binary_ds)
+				:
+					_root_dir(root_dir), _binary_ds(binary_ds)
+				{
+					strncpy(_name, binary_name, sizeof(_name));
+					_name[NAME_MAX_LEN - 1] = 0;
+				}
+
+				~Elf() { _root_dir->release(_name, _binary_ds); }
+			} _elf;
 
 			enum { PAGE_SIZE = 4096, PAGE_MASK = ~(PAGE_SIZE - 1) };
 			enum { SYSIO_DS_SIZE = PAGE_MASK & (sizeof(Sysio) + PAGE_SIZE - 1) };
@@ -235,6 +250,8 @@ namespace Noux {
 				io->unregister_wake_up_notifier(&notifier);
 			}
 
+			Dir_file_system    * const root_dir() { return _elf._root_dir; }
+
 			/**
 			 * Method for handling noux network related system calls
 			 */
@@ -258,7 +275,7 @@ namespace Noux {
 			 *                               looked up at the virtual file
 			 *                               system
 			 */
-			Child(char const        *name,
+			Child(char const        *binary_name,
 			      Family_member     *parent,
 			      int                pid,
 			      Signal_receiver   *sig_rec,
@@ -281,11 +298,10 @@ namespace Noux {
 				_destruct_context_cap(sig_rec->manage(&_destruct_dispatcher)),
 				_cap_session(cap_session),
 				_entrypoint(cap_session, STACK_SIZE, "noux_process", false),
-				_resources(name, resources_ep, false),
+				_resources(binary_name, resources_ep, false),
 				_args(ARGS_DS_SIZE, args),
 				_env(env),
-				_root_dir(root_dir),
-				_binary_ds(root_dir->dataspace(name)),
+				_elf(binary_name, root_dir, root_dir->dataspace(binary_name)),
 				_sysio_ds(Genode::env()->ram_session(), SYSIO_DS_SIZE),
 				_sysio(_sysio_ds.local_addr<Sysio>()),
 				_noux_session_cap(Session_capability(_entrypoint.manage(this))),
@@ -295,18 +311,18 @@ namespace Noux {
 				_local_rm_service(_entrypoint, _resources.ds_registry),
 				_local_rom_service(_entrypoint, _resources.ds_registry),
 				_parent_services(parent_services),
-				_binary_ds_info(_resources.ds_registry, _binary_ds),
+				_binary_ds_info(_resources.ds_registry, _elf._binary_ds),
 				_sysio_ds_info(_resources.ds_registry, _sysio_ds.cap()),
 				_ldso_ds_info(_resources.ds_registry, ldso_ds_cap()),
 				_args_ds_info(_resources.ds_registry, _args.cap()),
 				_env_ds_info(_resources.ds_registry, _env.cap()),
-				_child_policy(name, _binary_ds, _args.cap(), _env.cap(),
+				_child_policy(_elf._name, _elf._binary_ds, _args.cap(), _env.cap(),
 				              _entrypoint, _local_noux_service,
 				              _local_rm_service, _local_rom_service,
 				              _parent_services,
 				              *this, *this, _destruct_context_cap,
 				              _resources.ram, verbose),
-				_child(forked ? Dataspace_capability() : _binary_ds,
+				_child(forked ? Dataspace_capability() : _elf._binary_ds,
 				       _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_entrypoint, &_child_policy,
 				       /**
@@ -317,8 +333,8 @@ namespace Noux {
 				if (verbose)
 					_args.dump();
 
-				if (!forked && !_binary_ds.valid()) {
-					PERR("Lookup of executable \"%s\" failed", name);
+				if (!forked && !_elf._binary_ds.valid()) {
+					PERR("Lookup of executable \"%s\" failed", binary_name);
 					throw Binary_does_not_exist();
 				}
 			}
@@ -328,8 +344,6 @@ namespace Noux {
 				_sig_rec->dissolve(&_destruct_dispatcher);
 
 				_entrypoint.dissolve(this);
-
-				_root_dir->release(_child_policy.name(), _binary_ds);
 			}
 
 			void start() { _entrypoint.activate(); }

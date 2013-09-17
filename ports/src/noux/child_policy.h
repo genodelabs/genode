@@ -30,8 +30,6 @@ namespace Noux {
 	{
 		private:
 
-			enum { NAME_MAX_LEN = 128 };
-			char                                _name_buf[NAME_MAX_LEN];
 			char                         const *_name;
 			Init::Child_policy_enforce_labeling _labeling_policy;
 			Init::Child_policy_provide_rom_file _binary_policy;
@@ -64,7 +62,7 @@ namespace Noux {
 			             Ram_session              &ref_ram_session,
 			             bool                      verbose)
 			:
-				_name(strncpy(_name_buf, name, sizeof(_name_buf))),
+				_name(name),
 				_labeling_policy(_name),
 				_binary_policy("binary", binary_ds, &entrypoint),
 				_args_policy(  "args",   args_ds,   &entrypoint),

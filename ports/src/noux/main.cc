@@ -175,7 +175,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_STAT:
 		case SYSCALL_LSTAT: /* XXX implement difference between 'lstat' and 'stat' */
 			{
-				bool result = _root_dir->stat(_sysio, _sysio->stat_in.path);
+				bool result = root_dir()->stat(_sysio, _sysio->stat_in.path);
 
 				/**
  				 * Instead of using the uid/gid given by the actual file system
@@ -207,11 +207,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_OPEN:
 			{
-				Vfs_handle *vfs_handle = _root_dir->open(_sysio, _sysio->open_in.path);
+				Vfs_handle *vfs_handle = root_dir()->open(_sysio, _sysio->open_in.path);
 				if (!vfs_handle)
 					return false;
 
-				char const *leaf_path = _root_dir->leaf_path(_sysio->open_in.path);
+				char const *leaf_path = root_dir()->leaf_path(_sysio->open_in.path);
 
 				/*
 				 * File descriptors of opened directories are handled by
@@ -219,12 +219,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 * path because path operations always refer to the global
 				 * root.
 				 */
-				if (vfs_handle->ds() == _root_dir)
+				if (vfs_handle->ds() == root_dir())
 					leaf_path = _sysio->open_in.path;
 
 				Shared_pointer<Io_channel>
 					channel(new Vfs_io_channel(_sysio->open_in.path,
-					                           leaf_path, _root_dir, vfs_handle),
+					                           leaf_path, root_dir(), vfs_handle),
 					        Genode::env()->heap());
 
 				_sysio->open_out.fd = add_io_channel(channel);
@@ -257,7 +257,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 * does not exist.
 				 */
 				Dataspace_capability binary_ds =
-					_root_dir->dataspace(_sysio->execve_in.filename);
+					root_dir()->dataspace(_sysio->execve_in.filename);
 
 				if (!binary_ds.valid()) {
 					_sysio->error.execve = Sysio::EXECVE_NONEXISTENT;
@@ -268,23 +268,23 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					child_env(_sysio->execve_in.filename, binary_ds,
 					          _sysio->execve_in.args, _sysio->execve_in.env);
 
-				_root_dir->release(_sysio->execve_in.filename, binary_ds);
+				root_dir()->release(_sysio->execve_in.filename, binary_ds);
 
-				binary_ds = _root_dir->dataspace(child_env.binary_name());
+				binary_ds = root_dir()->dataspace(child_env.binary_name());
 
 				if (!binary_ds.valid()) {
 					_sysio->error.execve = Sysio::EXECVE_NONEXISTENT;
 					return false;
 				}
 
-				_root_dir->release(child_env.binary_name(), binary_ds);
+				root_dir()->release(child_env.binary_name(), binary_ds);
 
 				try {
 					Child *child = new Child(child_env.binary_name(),
 					                         parent(),
 					                         pid(),
 					                         _sig_rec,
-					                         _root_dir,
+					                         root_dir(),
 					                         child_env.args(),
 					                         child_env.env(),
 					                         _cap_session,
@@ -501,7 +501,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				                         this,
 				                         new_pid,
 				                         _sig_rec,
-				                         _root_dir,
+				                         root_dir(),
 				                         _args,
 				                         _env.env(),
 				                         _cap_session,
@@ -584,25 +584,25 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_UNLINK:
 
-			return _root_dir->unlink(_sysio, _sysio->unlink_in.path);
+			return root_dir()->unlink(_sysio, _sysio->unlink_in.path);
 
 		case SYSCALL_READLINK:
 
-			return _root_dir->readlink(_sysio, _sysio->readlink_in.path);
+			return root_dir()->readlink(_sysio, _sysio->readlink_in.path);
 
 
 		case SYSCALL_RENAME:
 
-			return _root_dir->rename(_sysio, _sysio->rename_in.from_path,
+			return root_dir()->rename(_sysio, _sysio->rename_in.from_path,
 			                                 _sysio->rename_in.to_path);
 
 		case SYSCALL_MKDIR:
 
-			return _root_dir->mkdir(_sysio, _sysio->mkdir_in.path);
+			return root_dir()->mkdir(_sysio, _sysio->mkdir_in.path);
 
 		case SYSCALL_SYMLINK:
 
-			return _root_dir->symlink(_sysio, _sysio->symlink_in.newpath);
+			return root_dir()->symlink(_sysio, _sysio->symlink_in.newpath);
 
 		case SYSCALL_USERINFO:
 			{
