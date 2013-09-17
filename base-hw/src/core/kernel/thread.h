@@ -72,6 +72,14 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 		 * Continue execution
 		 */
 		virtual void proceed() = 0;
+
+		/**
+		 * Destructor
+		 */
+		virtual ~Execution_context()
+		{
+			if (list()) { cpu_scheduler()->remove(this); }
+		}
 };
 
 class Kernel::Thread

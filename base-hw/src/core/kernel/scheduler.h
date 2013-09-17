@@ -138,6 +138,13 @@ class Kernel::Double_list<T>::Item
 		 * Constructor
 		 */
 		Item() : _next(0), _prev(0), _list(0) { }
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Double_list<T> * list() { return _list; }
 };
 
 template <typename T>
