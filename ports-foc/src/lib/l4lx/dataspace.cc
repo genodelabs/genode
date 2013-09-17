@@ -24,7 +24,8 @@ L4lx::Dataspace* L4lx::Dataspace_tree::insert(const char* name,
 	using namespace L4lx;
 
 	Genode::Dataspace_client dsc(cap);
-	Dataspace *ds = new (Genode::env()->heap()) Dataspace(name, dsc.size(), cap);
+	Dataspace *ds =
+		new (Genode::env()->heap()) Single_dataspace(name, dsc.size(), cap);
 	insert(ds);
 	return ds;
 }

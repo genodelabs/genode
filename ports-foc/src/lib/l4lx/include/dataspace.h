@@ -17,7 +17,9 @@
 /* Genode includes */
 #include <dataspace/client.h>
 #include <base/cap_map.h>
+#include <base/env.h>
 #include <util/avl_tree.h>
+#include <rm_session/connection.h>
 
 namespace Fiasco {
 #include <l4/sys/types.h>
@@ -29,10 +31,9 @@ namespace L4lx {
 	{
 		private:
 
-			const char*                  _name;
-			Genode::size_t               _size;
-			Genode::Dataspace_capability _cap;
-			Fiasco::l4_cap_idx_t         _ref;
+			const char*          _name;
+			Genode::size_t       _size;
+			Fiasco::l4_cap_idx_t _ref;
 
 		public:
 
@@ -40,17 +41,10 @@ namespace L4lx {
 			 ** Constructors **
 			 ******************/
 
-			Dataspace(const char*                    name,
-			          Genode::size_t                 size,
-			          Genode::Dataspace_capability   ds,
-			          Fiasco::l4_cap_idx_t           ref)
-			: _name(name), _size(size), _cap(ds), _ref(ref) {}
-
-			Dataspace(const char*                    name,
-			          Genode::size_t                 size,
-			          Genode::Dataspace_capability   ds)
-			: _name(name), _size(size), _cap(ds),
-				_ref(Genode::cap_idx_alloc()->alloc_range(1)->kcap()) {}
+			Dataspace(const char*          name,
+			          Genode::size_t       size,
+			          Fiasco::l4_cap_idx_t ref)
+			: _name(name), _size(size), _ref(ref) {}
 
 
 			/***************
@@ -59,9 +53,10 @@ namespace L4lx {
 
 			const char*                  name() const { return _name; }
 			Genode::size_t               size()       { return _size; }
-			Genode::Dataspace_capability cap()        { return _cap;  }
 			Fiasco::l4_cap_idx_t         ref()        { return _ref;  }
 
+			virtual Genode::Dataspace_capability cap() = 0;
+			virtual bool map(Genode::size_t offset)    = 0;
 
 			/************************
 			 ** Avl_node interface **
@@ -75,6 +70,100 @@ namespace L4lx {
 
 				Dataspace *n = Genode::Avl_node<Dataspace>::child(ref > _ref);
 				return n ? n->find_by_ref(ref) : 0;
+			}
+	};
+
+
+	class Single_dataspace : public Dataspace
+	{
+		private:
+
+			Genode::Dataspace_capability _cap;
+
+		public:
+
+			Single_dataspace(const char*                    name,
+							 Genode::size_t                 size,
+							 Genode::Dataspace_capability   ds,
+			                 Fiasco::l4_cap_idx_t           ref =
+				Genode::cap_idx_alloc()->alloc_range(1)->kcap())
+			: Dataspace(name, size, ref), _cap(ds) {}
+
+			Genode::Dataspace_capability cap() { return _cap; }
+			bool map(Genode::size_t offset)    { return true; }
+	};
+
+
+	class Chunked_dataspace : public Dataspace
+	{
+		private:
+
+			class Chunk : public Genode::Avl_node<Chunk>
+			{
+				private:
+
+					Genode::size_t               _offset;
+					Genode::size_t               _size;
+					Genode::Dataspace_capability _cap;
+
+				public:
+
+					Chunk(Genode::size_t off, Genode::size_t size,
+					      Genode::Dataspace_capability cap)
+					: _offset(off), _size(size), _cap(cap) {}
+
+					Genode::size_t               offset() { return _offset; }
+					Genode::size_t               size()   { return _size;   }
+					Genode::Dataspace_capability cap()    { return _cap;    }
+
+					bool higher(Chunk *n) { return n->_offset > _offset; }
+
+					Chunk *find_by_offset(Genode::size_t off)
+					{
+						if (off >= _offset && off < _offset+_size) return this;
+
+						Chunk *n = Genode::Avl_node<Chunk>::child(off > _offset);
+						return n ? n->find_by_offset(off) : 0;
+					}
+			};
+
+			Genode::Rm_connection   _rm;
+			Genode::Avl_tree<Chunk> _chunks;
+			Genode::size_t          _chunk_size;
+			Genode::size_t          _chunk_size_log2;
+
+	public:
+
+			Chunked_dataspace(const char*          name,
+							  Genode::size_t       size,
+							  Fiasco::l4_cap_idx_t ref,
+			                  Genode::size_t       chunk_size)
+			: Dataspace(name, size, ref), _rm(0, size), _chunk_size(chunk_size),
+			  _chunk_size_log2(Genode::log2(_chunk_size)) {}
+
+			Genode::Dataspace_capability cap() { return _rm.dataspace(); }
+
+			bool map(Genode::size_t off)
+			{
+				off = Genode::align_addr((off-(_chunk_size-1)), _chunk_size_log2);
+
+				Chunk* c = _chunks.first() ? _chunks.first()->find_by_offset(off) : 0;
+				if (c) return true;
+
+				try {
+					Genode::Dataspace_capability cap =
+						Genode::env()->ram_session()->alloc(_chunk_size);
+					_chunks.insert(new (Genode::env()->heap())
+								   Chunk(off, _chunk_size, cap));
+					_rm.attach(cap, 0, 0, true, off);
+					return true;
+				} catch(Genode::Ram_session::Quota_exceeded) {
+					PWRN("Could not allocate new dataspace chunk");
+				} catch(Genode::Rm_session::Attach_failed) {
+					PWRN("Attach of chunk dataspace of size %zx to %p failed",
+					     _chunk_size, (void*) off);
+				}
+				return false;
 			}
 	};
 

@@ -159,8 +159,9 @@ Region* Region_manager::reserve_range(Genode::size_t size, int align,
 void Region_manager::reserve_range(Genode::addr_t addr, Genode::size_t size,
                                    const char *name)
 {
+	Genode::Dataspace_capability cap;
 	L4lx::Dataspace *ds = new (Genode::env()->heap())
-		L4lx::Dataspace(name, size, Genode::reinterpret_cap_cast<Genode::Dataspace>(Genode::Native_capability()));
+		L4lx::Single_dataspace(name, size, cap);
 	L4lx::Env::env()->dataspaces()->insert(ds);
 	alloc_addr(size, (Genode::addr_t)addr);
 	metadata((void*)addr, Region(addr, size, ds));

@@ -57,7 +57,7 @@ extern "C" {
 			l4re_env_cap_entry_t *entry = new (Genode::env()->heap())
 				l4re_env_cap_entry_t();
 			Dataspace *ds = new (Genode::env()->heap())
-				Dataspace("initrd", size, cap);
+				Single_dataspace("initrd", size, cap);
 			Env::env()->dataspaces()->insert(ds);
 			entry->cap = ds->ref();
 			return entry;

@@ -26,6 +26,7 @@ SRC_CC  += env.cc \
            l4lx_memory.cc \
            l4lx_task.cc \
            l4lx_thread.cc \
+           l4x_pagefault.cc \
            rm.cc \
            startup.cc
 
