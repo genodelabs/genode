@@ -24,7 +24,7 @@
 	.endr
 .endm
 
-.section .text
+.section ".text.crt0"
 
 	/* ELF entry symbol */
 	.global _start
