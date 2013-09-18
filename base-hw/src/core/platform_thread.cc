@@ -42,9 +42,12 @@ Platform_thread::~Platform_thread()
 {
 	/* detach UTCB */
 	if (!_attaches_utcb_by_itself()) {
-		assert(_rm_client);
-		Rm_session_component * const rm = _rm_client->member_rm_session();
-		rm->detach(_virt_utcb);
+
+		/* the RM client may be destructed before platform thread */
+		if (_rm_client) {
+			Rm_session_component * const rm = _rm_client->member_rm_session();
+			rm->detach(_virt_utcb);
+		}
 	}
 	/* free UTCB */
 	if (_pd_id == Kernel::core_id()) {
