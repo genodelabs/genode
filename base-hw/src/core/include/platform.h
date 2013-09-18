@@ -98,6 +98,8 @@ namespace Genode {
 
 			inline void wait_for_exit() { while (1) Kernel::pause_thread(); };
 
+			bool supports_direct_unmap() const { return 1; }
+
 			inline Range_allocator * region_alloc()
 			{
 				kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
