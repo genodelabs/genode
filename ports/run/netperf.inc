@@ -64,6 +64,8 @@ create_boot_directory
 # Generate config
 #
 
+set lx_ip_addr "10.0.2.55"
+
 set config {
 <config verbose="yes">
 	<parent-provides>
@@ -98,7 +100,11 @@ append_if $use_nic_bridge config {
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
-		<config/>
+		<config>}
+append_if [expr $use_nic_bridge && [have_spec linux]] config "
+			<policy label=\"netserver_genode\" ip_addr=\"$lx_ip_addr\"/>"
+append_if $use_nic_bridge config {
+		</config>
 		<route>
 			<service name="Nic"> }
 append_if $use_nic_bridge config "
@@ -156,7 +162,6 @@ append config {
 			<arg value="-D"/>
 			<arg value="-4"/>
 			<arg value="-f"/>}
-set lx_ip_addr "10.0.2.55"
 append_if [have_spec linux] config "
 			<libc ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\"/>"
 append config {
