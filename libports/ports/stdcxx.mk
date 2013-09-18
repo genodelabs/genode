@@ -16,6 +16,7 @@ STDCXX_GEN_INCLUDES := \
                 include/stdcxx-genode/new \
                 include/stdcxx-genode/exception \
                 include/stdcxx-genode/typeinfo \
+                include/stdcxx-genode/initializer_list \
                 include/stdcxx-genode/bits/c++allocator.h \
                 include/stdcxx-genode/bits/c++locale.h \
                 include/stdcxx-genode/bits/cpu_defines.h \
@@ -66,6 +67,8 @@ include/stdcxx-genode/exception:
 	$(VERBOSE)ln -s ../../$(CONTRIB_DIR)/$(STDCXX)/libsupc++/exception $@
 include/stdcxx-genode/typeinfo:
 	$(VERBOSE)ln -s ../../$(CONTRIB_DIR)/$(STDCXX)/libsupc++/typeinfo $@
+include/stdcxx-genode/initializer_list:
+	$(VERBOSE)ln -s ../../$(CONTRIB_DIR)/$(STDCXX)/libsupc++/initializer_list $@
 include/stdcxx-genode/bits/hash_bytes.h:
 	$(VERBOSE)ln -s ../../../$(CONTRIB_DIR)/$(STDCXX)/libsupc++/hash_bytes.h $@
 include/stdcxx-genode/bits/exception_defines.h:
