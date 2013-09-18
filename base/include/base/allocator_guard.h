@@ -86,7 +86,7 @@ namespace Genode {
 			void free(void *addr, size_t size)
 			{
 				_allocator->free(addr, size);
-				_consumed -= size - _allocator->overhead(size);
+				_consumed -= size + _allocator->overhead(size);
 			}
 
 			/**
