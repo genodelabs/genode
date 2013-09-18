@@ -116,6 +116,12 @@ CC_C_OPT   += $(CC_OPT)
 CC_ADA_OPT += $(CC_OLEVEL) $(CC_WARN)
 
 #
+# Enable C++11 by default
+#
+CC_CXX_OPT_STD ?= -std=gnu++11
+CC_CXX_OPT     += $(CC_CXX_OPT_STD)
+
+#
 # Linker options
 #
 # Use '-gc-sections' by default but allow a platform to disable this feature by

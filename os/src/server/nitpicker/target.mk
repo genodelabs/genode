@@ -7,6 +7,3 @@ SRC_CC   = main.cc \
            global_keys.cc
 
 SRC_BIN  = default.tff
-
-# enable C++11 support
-CC_CXX_OPT += -std=gnu++11

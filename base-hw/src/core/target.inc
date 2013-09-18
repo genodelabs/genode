@@ -13,9 +13,6 @@ CC_OPT += -DCORE_MAIN=_main
 # add library dependencies
 LIBS += base-common
 
-# enable C++11 support
-CC_CXX_OPT += -std=gnu++11
-
 # add include paths
 INC_DIR += $(REP_DIR)/src/core \
            $(REP_DIR)/src/core/include \
