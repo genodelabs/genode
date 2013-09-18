@@ -31,6 +31,18 @@ namespace Kernel
 
 namespace Genode
 {
+	/**
+	 * Regain all administrative memory that isn't used anymore by 'tlb'
+	 */
+	inline void regain_ram_from_tlb(Tlb * tlb)
+	{
+		size_t s;
+		void * base;
+		while (tlb->regain_memory(base, s)) {
+			platform()->ram_alloc()->free(base, s);
+		}
+	}
+
 	class Platform_thread;
 
 	/**
@@ -38,11 +50,11 @@ namespace Genode
 	 */
 	class Platform_pd : public Address_space
 	{
-		unsigned           _id;          /* ID of our kernel object */
-		Native_capability  _parent;      /* our parent interface */
-		Native_thread_id   _main_thread; /* the first thread that gets
-		                                  * executed in this PD */
-		char const * const _label;       /* PD-connection label */
+		unsigned           _id;
+		Native_capability  _parent;
+		Native_thread_id   _main_thread;
+		char const * const _label;
+		Tlb *              _tlb;
 
 		public:
 
@@ -67,6 +79,7 @@ namespace Genode
 					PERR("failed to create kernel object");
 					throw Root::Unavailable();
 				}
+				_tlb = (Tlb *)kernel_pd;
 			}
 
 			/**

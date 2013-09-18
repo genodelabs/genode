@@ -185,6 +185,11 @@ class Kernel::Pd : public Object<Pd, MAX_PDS>
 		}
 
 		/**
+		 * Destructor
+		 */
+		~Pd() { }
+
+		/**
 		 * Let the CPU context 'c' join the PD
 		 */
 		void admit(Cpu::Context * const c)

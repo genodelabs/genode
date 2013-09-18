@@ -238,16 +238,47 @@ namespace Kernel
 	void do_new_pd(Thread * const user)
 	{
 		/* check permissions */
-		assert(user->pd_id() == core_id());
-
-		/* create TLB and PD */
-		void * dst = (void *)user->user_arg_1();
-		Tlb * const tlb = new (dst) Tlb();
-		dst = (void *)((addr_t)dst + sizeof(Tlb));
-		Pd * const pd = new (dst) Pd(tlb, (Platform_pd *)user->user_arg_2());
-
-		/* return success */
+		if (user->pd_id() != core_id()) {
+			PERR("not entitled to create protection domain");
+			user->user_arg_0(0);
+			return;
+		}
+		/* create translation lookaside buffer and protection domain */
+		void * p = (void *)user->user_arg_1();
+		Tlb * const tlb = new (p) Tlb();
+		p = (void *)((addr_t)p + sizeof(Tlb));
+		Pd * const pd = new (p) Pd(tlb, (Platform_pd *)user->user_arg_2());
 		user->user_arg_0(pd->id());
+	}
+
+
+	/**
+	 * Do specific syscall for 'user', for details see 'syscall.h'
+	 */
+	void do_kill_pd(Thread * const user)
+	{
+		/* check permissions */
+		if (user->pd_id() != core_id()) {
+			PERR("not entitled to destruct protection domain");
+			user->user_arg_0(-1);
+			return;
+		}
+		/* lookup protection domain */
+		unsigned id = user->user_arg_1();
+		Pd * const pd = Pd::pool()->object(id);
+		if (!pd) {
+			PERR("unknown protection domain");
+			user->user_arg_0(-1);
+			return;
+		}
+		/* destruct translation lookaside buffer and protection domain */
+		Tlb * const tlb = pd->tlb();
+		pd->~Pd();
+		tlb->~Tlb();
+
+		/* clean up buffers of memory management */
+		Cpu::flush_tlb_by_pid(pd->id());
+		user->user_arg_0(0);
 	}
 
 
@@ -287,7 +318,6 @@ namespace Kernel
 		/* destroy thread */
 		thread->~Thread();
 	}
-
 
 	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
@@ -866,6 +896,7 @@ namespace Kernel
 		case NEW_VM:               do_new_vm(user); return;
 		case RUN_VM:               do_run_vm(user); return;
 		case PAUSE_VM:             do_pause_vm(user); return;
+		case KILL_PD:              do_kill_pd(user); return;
 		default:
 			PERR("invalid syscall");
 			user->crash();

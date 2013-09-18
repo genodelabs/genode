@@ -57,11 +57,12 @@ namespace Kernel
 		REPLY = 9,
 		WAIT_FOR_REQUEST = 10,
 
-		/* management of resource protection-domains */
+		/* management of protection domains */
 		SET_PAGER = 11,
 		UPDATE_PD = 12,
 		UPDATE_REGION = 32,
 		NEW_PD = 13,
+		KILL_PD = 34,
 
 		/* interrupt handling */
 		ALLOCATE_IRQ = 14,
@@ -144,21 +145,34 @@ namespace Kernel
 
 
 	/**
-	 * Create a new PD
+	 * Create a protection domain
 	 *
-	 * \param dst  physical base of an appropriate portion of memory
-	 *             that is thereupon allocated to the kernel
-	 * \param pd   core local Platform_pd object
+	 * \param p   appropriate memory donation for the kernel object
+	 * \param pd  core local Platform_pd object
 	 *
-	 * \retval >0  ID of the new PD
-	 * \retval  0  if no new PD was created
+	 * \retval >0  kernel name of the new protection domain
+	 * \retval  0  failed
 	 *
 	 * Restricted to core threads. Regaining of the supplied memory is not
 	 * supported by now.
 	 */
-	inline int new_pd(void * const dst, Platform_pd * const pd) {
-		return syscall(NEW_PD, (Syscall_arg)dst, (Syscall_arg)pd); }
+	inline unsigned new_pd(void * const dst, Platform_pd * const pd)
+	{
+		return syscall(NEW_PD, (Syscall_arg)dst, (Syscall_arg)pd);
+	}
 
+	/**
+	 * Destruct a protection domain
+	 *
+	 * \param pd  kernel name of the targeted protection domain
+	 *
+	 * \retval  0  succeeded
+	 * \retval -1  failed
+	 */
+	inline int kill_pd(unsigned const pd)
+	{
+		return syscall(KILL_PD, pd);
+	}
 
 	/**
 	 * Propagate changes in PD configuration

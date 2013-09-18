@@ -16,18 +16,12 @@
 
 using namespace Genode;
 
-
-/*****************
- ** Platform PD **
- *****************/
-
 Platform_pd::~Platform_pd()
 {
-	/*
-	 * FIXME: throwing exceptions is not declared for
-	 *        'Pd_root::close' wich is why we can only
-	 *        print an error
-	 */
-	PERR("not implemented");
+	_tlb->remove_region(platform()->vm_start(), platform()->vm_size());
+	regain_ram_from_tlb(_tlb);
+	if (Kernel::kill_pd(_id)) {
+		PERR("failed to destruct protection domain at kernel");
+	}
 }
 

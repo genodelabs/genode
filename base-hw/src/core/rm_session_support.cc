@@ -17,31 +17,18 @@
 /* core includes */
 #include <rm_session_component.h>
 #include <platform.h>
+#include <platform_pd.h>
 #include <platform_thread.h>
 #include <tlb.h>
 
 using namespace Genode;
 
 
-/**
- * Try to regain administrative memory that isn't used anymore from 'tlb'
- */
-static void regain_ram_from_tlb(Tlb * tlb)
-{
-	size_t s;
-	void * base;
-	while (tlb->regain_memory(base, s)) {
-		platform()->ram_alloc()->free(base, s);
-	}
-}
-
-
 /***************
  ** Rm_client **
  ***************/
 
-
-void Rm_client::unmap(addr_t core_local_base, addr_t virt_base, size_t size)
+void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 {
 	/* get software TLB of the thread that we serve */
 	Platform_thread * const pt = Kernel::get_thread(badge());
