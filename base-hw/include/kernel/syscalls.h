@@ -317,14 +317,19 @@ namespace Kernel
 
 
 	/**
-	 * Get platform thread by ID or 0 if target is "core main" or "idle"
+	 * Get platform thread by the kernel name of a thread
 	 *
-	 * \param id  ID of the targeted thread or 0 if caller targets itself
+	 * \param id  kernel name of the thread or 0 if the caller targets itself
+	 *
+	 * \retval  0  thread doesn't exist or has no platform thread
+	 * \retval >0  core local address of platform thread
 	 *
 	 * Restricted to core threads.
 	 */
-	inline Platform_thread * get_thread(unsigned const id = 0) {
-		return (Platform_thread *)syscall(GET_THREAD, id); }
+	inline Platform_thread * get_thread(unsigned const id)
+	{
+		return (Platform_thread *)syscall(GET_THREAD, id);
+	}
 
 
 	/**

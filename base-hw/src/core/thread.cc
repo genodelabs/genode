@@ -42,12 +42,9 @@ Native_utcb * Thread_base::utcb()
  */
 Thread_base * Thread_base::myself()
 {
-	/* get our platform thread wich holds our thread base or 0 */
-	Platform_thread * const pt = Kernel::get_thread();
-	if (pt) return pt->thread_base();
-
-	/* we are core main, the only thread beside idle with no platform thread */
-	else return 0;
+	Platform_thread * const t = Kernel::get_thread(0);
+	if (t) { return t->thread_base(); }
+	return 0;
 }
 
 

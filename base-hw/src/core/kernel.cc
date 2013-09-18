@@ -444,21 +444,21 @@ namespace Kernel
 	void do_get_thread(Thread * const user)
 	{
 		/* check permissions */
-		assert(user->pd_id() == core_id());
-
-		/* get target */
-		unsigned const tid = (unsigned)user->user_arg_1();
+		if (user->pd_id() != core_id()) {
+			PERR("not entitled to read address of platform thread");
+			user->user_arg_0(0);
+			return;
+		}
+		/* lookup thread */
+		unsigned const id = user->user_arg_1();
 		Thread * t;
-
-		/* user targets a thread by ID */
-		if (tid) {
-			t = Thread::pool()->object(tid);
-			assert(t);
-
-		/* user targets itself */
-		} else t = user;
-
-		/* return target platform thread */
+		if (id) {
+			t = Thread::pool()->object(id);
+			if (!t) {
+				PERR("unknown thread");
+				user->user_arg_0(0);
+			}
+		} else { t = user; }
 		user->user_arg_0((Syscall_ret)t->platform_thread());
 	}
 
