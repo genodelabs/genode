@@ -26,7 +26,7 @@ extern "C" int printf(char const *format, ...)
 	return 0;
 }
 
-extern "C"inline
+extern "C" inline
 int vprintf(const char *format, va_list ap) 
 {
 	Genode::vprintf(format, ap);

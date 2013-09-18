@@ -195,7 +195,7 @@ namespace Genode {
 }
 
 
-extern "C"int open(const char *pathname, int flags)
+extern "C" int open(const char *pathname, int flags)
 {
 	using namespace Genode;
 	static int fd = -1;
