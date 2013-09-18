@@ -290,7 +290,7 @@ class Kernel::Thread
 		 */
 		void crash()
 		{
-			cpu_scheduler()->remove(this);
+			if (_state == SCHEDULED) { cpu_scheduler()->remove(this); }
 			_state = CRASHED;
 		}
 
