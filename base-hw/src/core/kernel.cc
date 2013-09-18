@@ -468,16 +468,21 @@ namespace Kernel
 	 */
 	void do_set_pager(Thread * const user)
 	{
-		/* assert preconditions */
-		assert(user->pd_id() == core_id());
-
-		/* get faulter and pager thread */
-		Thread * const p = Thread::pool()->object(user->user_arg_1());
-		Thread * const f = Thread::pool()->object(user->user_arg_2());
-		assert(p && f);
-
+		/* check permissions */
+		if (user->pd_id() != core_id()) {
+			PERR("not entitled to set pager");
+			return;
+		}
+		/* lookup faulter and pager thread */
+		unsigned const pager_id = user->user_arg_1();
+		Thread * const pager    = Thread::pool()->object(pager_id);
+		Thread * const faulter  = Thread::pool()->object(user->user_arg_2());
+		if ((pager_id && !pager) || !faulter) {
+			PERR("failed to set pager");
+			return;
+		}
 		/* assign pager */
-		f->pager(p);
+		faulter->pager(pager);
 	}
 
 

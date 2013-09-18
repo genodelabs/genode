@@ -181,11 +181,14 @@ int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 
 void Platform_thread::pager(Pager_object * const pager)
 {
-	/* announce pager thread to kernel */
-	Kernel::set_pager(pager->cap().dst(), _id);
-
-	/* get RM client from pager pointer */
-	_rm_client = dynamic_cast<Rm_client *>(pager);
+	if (pager) {
+		Kernel::set_pager(pager->cap().dst(), _id);
+		_rm_client = dynamic_cast<Rm_client *>(pager);
+		return;
+	}
+	Kernel::set_pager(0, _id);
+	_rm_client = 0;
+	return;
 }
 
 

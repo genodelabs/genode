@@ -351,21 +351,18 @@ namespace Kernel
 
 
 	/**
-	 * Set a thread that gets informed about pagefaults of another thread
+	 * Set or unset an IPC destination for pagefaults reports of a thread
 	 *
-	 * \param pager_id    ID of the thread that shall get informed.
-	 *                    Subsequently this thread gets an IPC message,
-	 *                    wich contains an according 'Pagefault' object for
-	 *                    every pagefault the faulter throws.
-	 * \param faulter_id  ID of the thread that throws the pagefaults
-	 *                    wich shall be notified. After every pagefault this
-	 *                    thread remains paused to be reactivated by
-	 *                    'resume_thread'.
+	 * \param pager_id    kernel name of the pager thread or 0 for "unset"
+	 * \param faulter_id  kernel name of the thread that throws the pagefaults
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void set_pager(unsigned const pager_id, unsigned const faulter_id) {
-		syscall(SET_PAGER, pager_id, faulter_id); }
+	inline void set_pager(unsigned const pager_id, unsigned const faulter_id)
+	{
+		syscall(SET_PAGER, pager_id, faulter_id);
+	}
+
 
 	/**
 	 * Print a char 'c' to the kernels serial ouput
