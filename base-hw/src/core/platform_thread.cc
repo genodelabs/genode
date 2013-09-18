@@ -59,6 +59,15 @@ Platform_thread::~Platform_thread()
 		assert(ram);
 		ram->free(_utcb);
 	}
+	/* release from pager */
+	if (_rm_client) {
+		Pager_object * const object = dynamic_cast<Pager_object *>(_rm_client);
+		assert(object);
+		Rm_session_component * const rm = _rm_client->member_rm_session();
+		assert(rm);
+		Pager_capability cap = reinterpret_cap_cast<Pager_object>(object->cap());
+		rm->remove_client(cap);
+	}
 	/* destroy object at the kernel */
 	Kernel::delete_thread(_id);
 }
@@ -157,8 +166,8 @@ int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 		 * Kernel afterwards offers this as bootstrap argument to the thread.
 		 */
 		_virt_utcb = (Native_utcb *)((platform()->vm_start()
-					 + platform()->vm_size() - sizeof(Native_utcb))
-					 & ~((1<<MIN_MAPPING_SIZE_LOG2)-1));
+		             + platform()->vm_size() - sizeof(Native_utcb))
+		             & ~((1<<MIN_MAPPING_SIZE_LOG2)-1));
 
 		/* attach UTCB */
 		if (!_rm_client) {
