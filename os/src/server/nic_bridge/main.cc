@@ -21,6 +21,7 @@
 
 /* local includes */
 #include "component.h"
+#include "nic.h"
 #include "env.h"
 
 
@@ -44,6 +45,12 @@ int main(int, char **)
 
 		/* announce NIC service */
 		env()->parent()->announce(ep.manage(&nic_root));
+
+		/* connect to NIC backend to actually see incoming traffic */
+		Net::Ethernet_frame::Mac_address mac(Net::Env::nic()->mac());
+		printf("--- NIC bridge started (mac=%02x:%02x:%02x:%02x:%02x:%02x) ---\n",
+		       mac.addr[0], mac.addr[1], mac.addr[2],
+		       mac.addr[3], mac.addr[4], mac.addr[5]);
 
 		while (true) {
 			Signal s = Net::Env::receiver()->wait_for_signal();

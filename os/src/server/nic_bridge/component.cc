@@ -139,9 +139,9 @@ Session_component::Session_component(Genode::Allocator          *allocator,
 			set_ipv4_address(ip);
 
 			if (verbose)
-				PDBG("\nmac=%02x.%02x.%02x.%02x.%02x.%02x ip=%d.%d.%d.%d",
+				PLOG("vmac=%02x:%02x:%02x:%02x:%02x:%02x ip=%d.%d.%d.%d",
 				     vmac.addr[0], vmac.addr[1], vmac.addr[2],
-			         vmac.addr[3], vmac.addr[4], vmac.addr[5],
+				     vmac.addr[3], vmac.addr[4], vmac.addr[5],
 				     ip.addr[0], ip.addr[1], ip.addr[2], ip.addr[3]);
 		}
 	}

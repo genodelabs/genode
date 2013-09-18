@@ -183,11 +183,11 @@ namespace Net {
 					Session_policy policy(label);
 					policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
 
-					if (verbose) PDBG("policy: %s ip_addr = %s", label.string(), ip_addr);
+					if (verbose) PLOG("policy: %s ip_addr = %s", label.string(), ip_addr);
 				} catch (Xml_node::Nonexistent_attribute) {
-					if (verbose) PDBG("Missing \"ip_addr\" attribute in policy definition");
+					if (verbose) PLOG("Missing \"ip_addr\" attribute in policy definition");
 				} catch (Session_policy::No_policy_defined) {
-					if (verbose) PDBG("Invalid session request, no matching policy");;
+					if (verbose) PLOG("Invalid session request, no matching policy");;
 				}
 
 				size_t ram_quota =
