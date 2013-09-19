@@ -97,16 +97,17 @@ class Kernel::Thread
 
 		enum State
 		{
-			SCHEDULED                 = 1,
-			AWAIT_START               = 2,
-			AWAIT_IPC                 = 3,
-			AWAIT_RESUME              = 4,
-			AWAIT_PAGER               = 5,
-			AWAIT_PAGER_IPC           = 6,
-			AWAIT_IRQ                 = 7,
-			AWAIT_SIGNAL              = 8,
-			AWAIT_SIGNAL_CONTEXT_KILL = 9,
-			CRASHED                   = 10,
+			SCHEDULED                  = 1,
+			AWAIT_START                = 2,
+			AWAIT_IPC                  = 3,
+			AWAIT_RESUME               = 4,
+			AWAIT_PAGER                = 5,
+			AWAIT_PAGER_IPC            = 6,
+			AWAIT_IRQ                  = 7,
+			AWAIT_SIGNAL               = 8,
+			AWAIT_SIGNAL_CONTEXT_KILL  = 9,
+			AWAIT_SIGNAL_RECEIVER_KILL = 10,
+			STOPPED                    = 11,
 		};
 
 		Platform_thread * const _platform_thread;
@@ -127,22 +128,40 @@ class Kernel::Thread
 			_state = SCHEDULED;
 		}
 
+
 		/***************************
 		 ** Signal_context_killer **
 		 ***************************/
 
 		void _signal_context_kill_pending()
 		{
-			cpu_scheduler()->remove(this);
+			assert(_state == SCHEDULED);
 			_state = AWAIT_SIGNAL_CONTEXT_KILL;
+			cpu_scheduler()->remove(this);
 		}
 
 		void _signal_context_kill_done()
 		{
-			if (_state != AWAIT_SIGNAL_CONTEXT_KILL) {
-				PDBG("ignore unexpected signal-context destruction");
-				return;
-			}
+			assert(_state == AWAIT_SIGNAL_CONTEXT_KILL);
+			user_arg_0(0);
+			_schedule();
+		}
+
+
+		/****************************
+		 ** Signal_receiver_killer **
+		 ****************************/
+
+		void _signal_receiver_kill_pending()
+		{
+			assert(_state == SCHEDULED);
+			_state = AWAIT_SIGNAL_RECEIVER_KILL;
+			cpu_scheduler()->remove(this);
+		}
+
+		void _signal_receiver_kill_done()
+		{
+			assert(_state == AWAIT_SIGNAL_RECEIVER_KILL);
 			user_arg_0(0);
 			_schedule();
 		}
@@ -167,15 +186,6 @@ class Kernel::Thread
 		}
 
 
-		/****************************
-		 ** Signal_receiver_killer **
-		 ****************************/
-
-		void _signal_receiver_kill_pending() { PERR("not implemented"); }
-
-		void _signal_receiver_kill_done() { PERR("not implemented"); }
-
-
 		/**************
 		 ** Ipc_node **
 		 **************/
@@ -188,7 +198,7 @@ class Kernel::Thread
 				return;
 			default:
 				PERR("wrong thread state to receive IPC");
-				crash();
+				stop();
 				return;
 			}
 		}
@@ -203,7 +213,7 @@ class Kernel::Thread
 				return;
 			default:
 				PERR("wrong thread state to await IPC");
-				crash();
+				stop();
 				return;
 			}
 		}
@@ -223,7 +233,7 @@ class Kernel::Thread
 				return;
 			default:
 				PERR("wrong thread state to receive IPC");
-				crash();
+				stop();
 				return;
 			}
 		}
@@ -233,23 +243,23 @@ class Kernel::Thread
 			switch (_state) {
 			case AWAIT_IPC:
 				PERR("failed to receive IPC");
-				crash();
+				stop();
 				return;
 			case SCHEDULED:
 				PERR("failed to receive IPC");
-				crash();
+				stop();
 				return;
 			case AWAIT_PAGER_IPC:
 				PERR("failed to get pagefault resolved");
-				crash();
+				stop();
 				return;
 			case AWAIT_PAGER:
 				PERR("failed to get pagefault resolved");
-				crash();
+				stop();
 				return;
 			default:
 				PERR("wrong thread state to cancel IPC");
-				crash();
+				stop();
 				return;
 			}
 		}
@@ -286,12 +296,12 @@ class Kernel::Thread
 		{ }
 
 		/**
-		 * Suspend the thread due to unrecoverable misbehavior
+		 * Suspend the thread unrecoverably
 		 */
-		void crash()
+		void stop()
 		{
 			if (_state == SCHEDULED) { cpu_scheduler()->remove(this); }
-			_state = CRASHED;
+			_state = STOPPED;
 		}
 
 		/**
@@ -370,15 +380,6 @@ class Kernel::Thread
 		}
 
 		/**
-		 * Stop this thread
-		 */
-		void stop()
-		{
-			cpu_scheduler()->remove(this);
-			_state = AWAIT_START;
-		}
-
-		/**
 		 * Resume this thread
 		 */
 		int resume()
@@ -388,36 +389,44 @@ class Kernel::Thread
 				_schedule();
 				return 0;
 			case AWAIT_PAGER:
-				/* pagefault has been resolved before pager replied */
 				_state = AWAIT_PAGER_IPC;
+				return 0;
+			case AWAIT_PAGER_IPC:
+				PERR("cancel message receipt");
+				Ipc_node::cancel_waiting();
 				return 0;
 			case SCHEDULED:
 				return 1;
 			case AWAIT_IPC:
-				PDBG("cancel IPC receipt");
+				PERR("cancel message receipt");
 				Ipc_node::cancel_waiting();
 				_schedule();
 				return 0;
 			case AWAIT_IRQ:
-				PDBG("cancel IRQ receipt");
+				PERR("cancel interrupt receipt");
 				Irq_receiver::cancel_waiting();
 				_schedule();
 				return 0;
 			case AWAIT_SIGNAL:
-				PDBG("cancel signal receipt");
-				_signal_receiver->remove_handler(this);
+				PERR("cancel signal receipt");
+				Signal_handler::cancel_waiting();
 				_schedule();
 				return 0;
 			case AWAIT_SIGNAL_CONTEXT_KILL:
-				PDBG("cancel signal context destruction");
+				PERR("cancel signal context destruction");
+				Signal_context_killer::cancel_waiting();
+				_schedule();
+				return 0;
+			case AWAIT_SIGNAL_RECEIVER_KILL:
+				PERR("cancel signal receiver destruction");
+				Signal_receiver_killer::cancel_waiting();
 				_schedule();
 				return 0;
 			case AWAIT_START:
-			default:
-				PERR("wrong state to resume thread");
-				crash();
-				return -1;
+			case STOPPED:;
 			}
+			PERR("failed to resume thread");
+			return -1;
 		}
 
 		/**

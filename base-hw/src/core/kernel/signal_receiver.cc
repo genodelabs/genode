@@ -17,21 +17,21 @@
 using namespace Kernel;
 
 
-Signal_handler::~Signal_handler()
+void Signal_handler::_cancel_waiting()
 {
-	if (_receiver) { _receiver->remove_handler(this); }
+	if (_receiver) { _receiver->_handler_cancelled(this); }
 }
 
 
-Signal_context_killer::~Signal_context_killer()
+void Signal_context_killer::_cancel_waiting()
 {
-	if (_context) { _context->_killer_destructed(); }
+	if (_context) { _context->_killer_cancelled(); }
 }
 
 
-Signal_receiver_killer::~Signal_receiver_killer()
+void Signal_receiver_killer::_cancel_waiting()
 {
-	if (_receiver) { _receiver->_killer_destructed(); }
+	if (_receiver) { _receiver->_killer_cancelled(); }
 }
 
 

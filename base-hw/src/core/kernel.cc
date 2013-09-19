@@ -899,7 +899,7 @@ namespace Kernel
 		case KILL_PD:              do_kill_pd(user); return;
 		default:
 			PERR("invalid syscall");
-			user->crash();
+			user->stop();
 			reset_lap_time();
 		}
 	}

@@ -62,6 +62,11 @@ class Kernel::Signal_handler
 		Signal_receiver * _receiver;
 
 		/**
+		 * Backend for for destructor and cancel_waiting
+		 */
+		void _cancel_waiting();
+
+		/**
 		 * Let the handler block for signal receipt
 		 *
 		 * \param receiver  the signal pool that the thread blocks for
@@ -86,7 +91,12 @@ class Kernel::Signal_handler
 		/**
 		 * Destructor
 		 */
-		virtual ~Signal_handler();
+		virtual ~Signal_handler() { _cancel_waiting(); }
+
+		/**
+		 * Stop waiting for a signal receiver
+		 */
+		void cancel_waiting() { _cancel_waiting(); }
 };
 
 class Kernel::Signal_context_killer
@@ -96,6 +106,11 @@ class Kernel::Signal_context_killer
 	private:
 
 		Signal_context * _context;
+
+		/**
+		 * Backend for for destructor and cancel_waiting
+		 */
+		void _cancel_waiting();
 
 		/**
 		 * Notice that the destruction is pending
@@ -117,7 +132,12 @@ class Kernel::Signal_context_killer
 		/**
 		 * Destructor
 		 */
-		virtual ~Signal_context_killer();
+		virtual ~Signal_context_killer() { _cancel_waiting(); }
+
+		/**
+		 * Stop waiting for a signal context
+		 */
+		void cancel_waiting() { _cancel_waiting(); }
 };
 
 class Kernel::Signal_receiver_killer
@@ -127,6 +147,11 @@ class Kernel::Signal_receiver_killer
 	private:
 
 		Signal_receiver * _receiver;
+
+		/**
+		 * Backend for for destructor and cancel_waiting
+		 */
+		void _cancel_waiting();
 
 		/**
 		 * Notice that the destruction is pending
@@ -148,7 +173,12 @@ class Kernel::Signal_receiver_killer
 		/**
 		 * Destructor
 		 */
-		virtual ~Signal_receiver_killer();
+		virtual ~Signal_receiver_killer() { _cancel_waiting(); }
+
+		/**
+		 * Stop waiting for a signal receiver
+		 */
+		void cancel_waiting() { _cancel_waiting(); }
 };
 
 class Kernel::Signal_context
@@ -188,7 +218,7 @@ class Kernel::Signal_context
 		/**
 		 * Notice that the killer of the context has been destructed
 		 */
-		void _killer_destructed() { _killer = 0; }
+		void _killer_cancelled() { _killer = 0; }
 
 		/**
 		 * Destructor
@@ -275,6 +305,7 @@ class Kernel::Signal_receiver
 	public Signal_context_killer
 {
 	friend class Signal_context;
+	friend class Signal_handler;
 	friend class Signal_receiver_killer;
 
 	private:
@@ -340,9 +371,17 @@ class Kernel::Signal_receiver
 		}
 
 		/**
-		 * Notice that the killer of the receiver has been destructed
+		 * Notice that the killer of the receiver has cancelled waiting
 		 */
-		void _killer_destructed() { _killer = 0; }
+		void _killer_cancelled() { _killer = 0; }
+
+		/**
+		 * Notice that handler 'h' has cancelled waiting
+		 */
+		void _handler_cancelled(Signal_handler * const h)
+		{
+			_handlers.remove(&h->_handlers_fe);
+		}
 
 
 		/***************************
@@ -384,14 +423,6 @@ class Kernel::Signal_receiver
 			h->_await_signal(this);
 			_listen();
 			return 0;
-		}
-
-		/**
-		 * Stop a handler 'h' from waiting for signals of the receiver
-		 */
-		void remove_handler(Signal_handler * const h)
-		{
-			_handlers.remove(&h->_handlers_fe);
 		}
 
 		/**
