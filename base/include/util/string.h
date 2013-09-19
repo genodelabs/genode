@@ -447,6 +447,36 @@ namespace Genode {
 
 		return i;
 	}
+
+	/**
+	 * Buffer that contains a null-terminated string
+	 *
+	 * \param SIZE  buffer size
+	 */
+	template <size_t SIZE>
+	class String
+	{
+		private:
+
+			char   _buf[SIZE];
+			size_t _length;
+
+		public:
+
+			constexpr static size_t size() { return SIZE; }
+
+			String() : _length(0) { }
+
+			String(char const *str) : _length(min(strlen(str) + 1, SIZE))
+			{
+				strncpy(_buf, str, _length);
+			}
+
+			bool valid() const {
+				return (_length <= SIZE) && (_buf[_length - 1] == '\0'); }
+
+			char const *string() const { return valid() ? _buf : ""; }
+	};
 }
 
 #endif /* _INCLUDE__UTIL__STRING_H_ */

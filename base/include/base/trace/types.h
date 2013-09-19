@@ -25,26 +25,6 @@ namespace Genode { namespace Trace {
 	struct Traced_by_other_session : Exception { };
 	struct Subject_not_traced      : Exception { };
 
-	template <size_t MAX>
-	struct String
-	{
-		enum { MAX_SIZE = MAX };
-		char   buf[MAX];
-		size_t length;
-
-		String() : length(0) { }
-
-		String(char const *str) : length(min(strlen(str) + 1, MAX))
-		{
-			strncpy(buf, str, length);
-		}
-
-		bool valid() const {
-			return (length < MAX) && (length > 0) && (buf[length - 1] == '\0'); }
-
-		char const *string() const { return valid() ? buf : ""; }
-	};
-
 	typedef String<160> Session_label;
 	typedef String<64>  Thread_name;
 

@@ -301,7 +301,7 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
 	_trace_sources(trace_sources)
 {
 	/* remember session label */
-	char buf[Session_label::MAX_SIZE];
+	char buf[Session_label::size()];
 	Arg_string::find_arg(args, "label").string(buf, sizeof(buf), "");
 	_label = Session_label(buf);
 
