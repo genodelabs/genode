@@ -60,6 +60,12 @@ namespace Genode {
 			typedef Rpc_in_buffer<160> Session_args;
 			typedef Rpc_in_buffer<160> Upgrade_args;
 
+			/**
+			 * Use 'String' instead of 'Rpc_in_buffer' because 'Resource_args'
+			 * is used as both in and out parameter.
+			 */
+			typedef String<160> Resource_args;
+
 
 			virtual ~Parent() { }
 
@@ -172,6 +178,54 @@ namespace Genode {
 			 */
 			virtual Thread_capability main_thread_cap() const = 0;
 
+			/**
+			 * Register signal handler for resource notifications
+			 */
+			virtual void resource_avail_sigh(Signal_context_capability sigh) = 0;
+
+			/**
+			 * Request additional resources
+			 *
+			 * By invoking this function, a process is able to inform its
+			 * parent about the need for additional resources. The argument
+			 * string contains a resource description in the same format as
+			 * used for session-construction arguments. In particular, for
+			 * requesting additional RAM quota, the argument looks like
+			 * "ram_quota=<amount>" where 'amount' is the amount of additional
+			 * resources expected from the parent. If the parent complies with
+			 * the request, it submits a resource-available signal to the
+			 * handler registered via 'resource_avail_sigh()'. On the reception
+			 * of such a signal, the process can re-evaluate its resource quota
+			 * and resume execution.
+			 */
+			virtual void resource_request(Resource_args const &args) = 0;
+
+			/**
+			 * Register signal handler for resource yield notifications
+			 *
+			 * Using the yield signal, the parent is able to inform the process
+			 * about its wish to regain resources.
+			 */
+			virtual void yield_sigh(Signal_context_capability sigh) = 0;
+
+			/**
+			 * Obtain information about the amount of resources to free
+			 *
+			 * The amount of resources returned by this function is the
+			 * goal set by the parent. It is not commanded but merely meant
+			 * as a friendly beg to cooperate. The process is not obligated
+			 * to comply. If the process decides to take action to free
+			 * resources, it can inform its parent about the availability
+			 * of freed up resources by calling 'yield_response()'.
+			 */
+			virtual Resource_args yield_request() = 0;
+
+			/**
+			 * Notify the parent about a response to a yield request
+			 */
+			virtual void yield_response() = 0;
+
+
 			/*********************
 			 ** RPC declaration **
 			 *********************/
@@ -187,9 +241,27 @@ namespace Genode {
 			                 Session_capability, Upgrade_args const &);
 			GENODE_RPC(Rpc_close, void, close, Session_capability);
 			GENODE_RPC(Rpc_main_thread, Thread_capability, main_thread_cap);
+			GENODE_RPC(Rpc_resource_avail_sigh, void, resource_avail_sigh,
+			           Signal_context_capability);
+			GENODE_RPC(Rpc_resource_request, void, resource_request,
+			           Resource_args const &);
+			GENODE_RPC(Rpc_yield_sigh, void, yield_sigh, Signal_context_capability);
+			GENODE_RPC(Rpc_yield_request, Resource_args, yield_request);
+			GENODE_RPC(Rpc_yield_response, void, yield_response);
 
-			GENODE_RPC_INTERFACE(Rpc_exit, Rpc_announce, Rpc_session, Rpc_upgrade,
-			                     Rpc_close, Rpc_main_thread);
+			typedef Meta::Type_tuple<Rpc_exit,
+			        Meta::Type_tuple<Rpc_announce,
+			        Meta::Type_tuple<Rpc_session,
+			        Meta::Type_tuple<Rpc_upgrade,
+			        Meta::Type_tuple<Rpc_close,
+			        Meta::Type_tuple<Rpc_main_thread,
+			        Meta::Type_tuple<Rpc_resource_avail_sigh,
+			        Meta::Type_tuple<Rpc_resource_request,
+			        Meta::Type_tuple<Rpc_yield_sigh,
+			        Meta::Type_tuple<Rpc_yield_request,
+			        Meta::Type_tuple<Rpc_yield_response,
+			                         Meta::Empty>
+			        > > > > > > > > > > Rpc_functions;
 	};
 }
 

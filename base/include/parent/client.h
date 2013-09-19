@@ -41,6 +41,19 @@ namespace Genode {
 
 		Thread_capability main_thread_cap() const {
 			return call<Rpc_main_thread>(); }
+
+		void resource_avail_sigh(Signal_context_capability sigh) {
+			call<Rpc_resource_avail_sigh>(sigh); }
+
+		void resource_request(Resource_args const &args) {
+			call<Rpc_resource_request>(args); }
+
+		void yield_sigh(Signal_context_capability sigh) {
+			call<Rpc_yield_sigh>(sigh); }
+
+		Resource_args yield_request() { return call<Rpc_yield_request>(); }
+
+		void yield_response() { call<Rpc_yield_response>(); }
 	};
 }
 

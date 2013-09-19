@@ -417,6 +417,21 @@ Thread_capability Child::main_thread_cap() const
 }
 
 
+void Child::resource_avail_sigh(Signal_context_capability) { }
+
+
+void Child::resource_request(Resource_args const &) { }
+
+
+void Child::yield_sigh(Signal_context_capability) { }
+
+
+Parent::Resource_args Child::yield_request() { return Resource_args(); }
+
+
+void Child::yield_response() { }
+
+
 Child::Child(Dataspace_capability    elf_ds,
              Ram_session_capability  ram,
              Cpu_session_capability  cpu,

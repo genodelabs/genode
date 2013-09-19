@@ -286,6 +286,11 @@ namespace Genode {
 			void close(Session_capability);
 			void exit(int);
 			Thread_capability main_thread_cap() const;
+			void resource_avail_sigh(Signal_context_capability);
+			void resource_request(Resource_args const &);
+			void yield_sigh(Signal_context_capability);
+			Resource_args yield_request();
+			void yield_response();
 	};
 }
 

@@ -18,53 +18,37 @@
 #include <base/printf.h>
 #include <parent/parent.h>
 
-namespace Genode {
-
-	/**
-	 * In fact, Core has _no_ parent. But most of our libraries could work
-	 * seamlessly inside Core too, if it had one. Core_parent fills this gap.
-	 */
-	class Core_parent : public Parent
-	{
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Core_parent() { }
+namespace Genode { struct Core_parent; }
 
 
-			/**********************
-			 ** Parent interface **
-			 **********************/
+/**
+ * In fact, Core has _no_ parent. But most of our libraries could work
+ * seamlessly inside Core too, if it had one. Core_parent fills this gap.
+ */
+struct Genode::Core_parent : Parent
+{
+	void exit(int);
 
-			void exit(int);
+	void announce(Service_name const &, Root_capability) { }
 
-			void announce(Service_name const &, Root_capability)
-			{
-				PDBG("implement me, please");
-			}
+	Session_capability session(Service_name const &, Session_args const &,
+	                           Affinity const &);
 
-			Session_capability session(Service_name const &, Session_args const &,
-			                           Affinity const &);
+	void upgrade(Session_capability, Upgrade_args const &) { throw Quota_exceeded(); }
 
-			void upgrade(Session_capability, Upgrade_args const &)
-			{
-				PDBG("implement me, please");
-				throw Quota_exceeded();
-			}
+	void close(Session_capability) { }
 
-			void close(Session_capability)
-			{
-				PDBG("implement me, please");
-			}
+	Thread_capability main_thread_cap() const { return Thread_capability(); }
 
-			Thread_capability main_thread_cap() const
-			{
-				PDBG("implement me, please");
-				return Thread_capability();
-			}
-	};
-}
+	void resource_avail_sigh(Signal_context_capability) { }
+
+	void resource_request(Resource_args const &) { }
+
+	void yield_sigh(Signal_context_capability) { }
+
+	Resource_args yield_request() { return Resource_args(); }
+
+	void yield_response() { }
+};
 
 #endif /* _CORE__INCLUDE__CORE_PARENT_H_ */
