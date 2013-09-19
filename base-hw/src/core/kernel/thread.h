@@ -488,6 +488,15 @@ class Kernel::Thread
 		 */
 		unsigned id() const { return Object::id(); }
 
+		/**
+		 * Notice that another thread yielded the CPU to us
+		 */
+		void receive_yielded_cpu()
+		{
+			if (_state == AWAIT_RESUME) { _schedule(); }
+			else { PERR("failed to receive yielded CPU"); }
+		}
+
 
 		/***********************
 		 ** Execution_context **

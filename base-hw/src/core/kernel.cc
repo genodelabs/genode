@@ -380,13 +380,19 @@ namespace Kernel
 	 */
 	void do_resume_thread(Thread * const user)
 	{
-		/* get targeted thread */
+		/* lookup thread */
 		Thread * const t = Thread::pool()->object(user->user_arg_1());
-		assert(t);
-
+		if (!t) {
+			PERR("unknown thread");
+			user->user_arg_0(-1);
+			return;
+		}
 		/* check permissions */
-		assert(user->pd_id() == core_id() || user->pd_id() == t->pd_id());
-
+		if (user->pd_id() != core_id() && user->pd_id() != t->pd_id()) {
+			PERR("not entitled to resume thread");
+			user->user_arg_0(-1);
+			return;
+		}
 		/* resume targeted thread */
 		user->user_arg_0(t->resume());
 	}
@@ -397,22 +403,21 @@ namespace Kernel
 	 */
 	void do_resume_faulter(Thread * const user)
 	{
-		/* get targeted thread */
+		/* lookup thread */
 		Thread * const t = Thread::pool()->object(user->user_arg_1());
-		assert(t);
-
+		if (!t) {
+			PERR("unknown thread");
+			user->user_arg_0(-1);
+			return;
+		}
 		/* check permissions */
-		assert(user->pd_id() == core_id() || user->pd_id() == t->pd_id());
-
-		/*
-		 * Writeback the TLB entry that resolves the fault.
-		 * This is a substitution for write-through-flagging
-		 * the memory that holds the TLB data, because the latter
-		 * is not feasible in core space.
-		 */
+		if (user->pd_id() != core_id() && user->pd_id() != t->pd_id()) {
+			PERR("not entitled to resume thread");
+			user->user_arg_0(-1);
+			return;
+		}
+		/* writeback translation table and resume faulter */
 		Cpu::tlb_insertions();
-
-		/* resume targeted thread */
 		t->resume();
 	}
 
@@ -422,11 +427,8 @@ namespace Kernel
 	 */
 	void do_yield_thread(Thread * const user)
 	{
-		/* get targeted thread */
 		Thread * const t = Thread::pool()->object(user->user_arg_1());
-
-		/* invoke kernel object */
-		if (t) t->resume();
+		if (t) { t->receive_yielded_cpu(); }
 		cpu_scheduler()->yield();
 	}
 
