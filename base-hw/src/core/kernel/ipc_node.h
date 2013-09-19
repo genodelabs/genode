@@ -38,10 +38,10 @@ class Kernel::Ipc_node
 
 		enum State
 		{
-			INACTIVE = 1,
-			AWAIT_REPLY = 2,
-			AWAIT_REQUEST = 3,
-			PREPARE_REPLY = 4,
+			INACTIVE                = 1,
+			AWAIT_REPLY             = 2,
+			AWAIT_REQUEST           = 3,
+			PREPARE_REPLY           = 4,
 			PREPARE_AND_AWAIT_REPLY = 5,
 		};
 
@@ -315,6 +315,10 @@ class Kernel::Ipc_node
 			switch (_state) {
 			case AWAIT_REPLY:
 				_cancel_outbuf_request();
+				_state = INACTIVE;
+				_await_ipc_failed();
+				return;
+			case AWAIT_REQUEST:
 				_state = INACTIVE;
 				_await_ipc_failed();
 				return;
