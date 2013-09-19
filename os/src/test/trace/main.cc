@@ -62,46 +62,19 @@ class Trace_buffer_monitor
 	private:
 
 		enum { MAX_ENTRY_BUF = 256 };
+		char                  _buf[MAX_ENTRY_BUF];
 
-		Trace::Subject_id  _id;
-		Trace::Buffer     *_buffer;
+		Trace::Subject_id     _id;
+		Trace::Buffer        *_buffer;
+		Trace::Buffer::Entry _curr_entry;
 
-		addr_t             _read_head;
-		addr_t             _write_head;
-		size_t             _overflow;
-
-		char               _entry_buf[MAX_ENTRY_BUF];
-
-		const char * _next_entry()
+		const char *_terminate_entry(Trace::Buffer::Entry const &entry)
 		{
-			size_t len = *(addr_t*) _read_head;
-			char *p    = (char*) _read_head;
+			size_t len = min(entry.length() + 1, MAX_ENTRY_BUF);
+			memcpy(_buf, entry.data(), len);
+			_buf[len-1] = '\0';
 
-			char tmp[len + 1];
-
-			p += sizeof(size_t);
-
-			if (len > 0)
-				memcpy(tmp, (void *)(p), len); tmp[len] = '\0';
-
-			_read_head = (addr_t)(p + len);
-
-			snprintf(_entry_buf, MAX_ENTRY_BUF, "0x%lx '%s'",
-			         _read_head, tmp);
-
-			return _entry_buf;
-		}
-
-		void _update_heads()
-		{
-			_write_head  = _buffer->entries();
-			_write_head += _buffer->head_offset();
-
-			if (_write_head < _read_head) {
-				_overflow++;
-				/* XXX read missing entries before resetting */
-				_read_head = _buffer->entries();
-			}
+			return _buf;
 		}
 
 	public:
@@ -110,12 +83,9 @@ class Trace_buffer_monitor
 		:
 			_id(id),
 			_buffer(env()->rm_session()->attach(ds_cap)),
-			_read_head(_buffer->entries()),
-			_write_head(_buffer->entries() + _buffer->head_offset()),
-			_overflow(0)
+			_curr_entry(_buffer->first())
 		{
-			PLOG("monitor subject:%d buffer:0x%lx start:0x%lx",
-			     _id.id, (addr_t)_buffer, _buffer->entries());
+			PLOG("monitor subject:%d buffer:0x%lx", _id.id, (addr_t)_buffer);
 		}
 
 		~Trace_buffer_monitor()
@@ -126,26 +96,23 @@ class Trace_buffer_monitor
 
 		Trace::Subject_id id() { return _id; };
 
-		void dump(unsigned limit)
+		void dump()
 		{
-			_update_heads();
-			PLOG("overflows: %zu", _overflow);
+			PLOG("overflows: %u", _buffer->wrapped());
 
-			if (limit) {
-				PLOG("read up-to %u events", limit);
-				for (unsigned i = 0; i < limit; i++) {
-					const char *s = _next_entry();
-					if (s)
-						PLOG("%s", s);
-				}
-			} else {
-				PLOG("read all remaining events");
-				while (_read_head < _write_head) {
-					const char *s = _next_entry();
-					if (s)
-						PLOG("%s", s);
-				}
+			PLOG("read all remaining events");
+			for (; !_curr_entry.is_last(); _curr_entry = _buffer->next(_curr_entry)) {
+				/* omit empty entries */
+				if (_curr_entry.length() == 0)
+					continue;
+
+				const char *data = _terminate_entry(_curr_entry);
+				if (data)
+					PLOG("%s", data);
 			}
+
+			/* reset after we read all available entries */
+			_curr_entry = _buffer->first();
 		}
 };
 
@@ -245,7 +212,7 @@ int main(int argc, char **argv)
 			/* read events from trace buffer */
 			if (test_monitor) {
 				if (subjects[i].id == test_monitor->id().id)
-					test_monitor->dump(0);
+					test_monitor->dump();
 			}
 		}
 	}
