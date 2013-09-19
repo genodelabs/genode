@@ -1,0 +1,30 @@
+diff -ur contrib.bak/fiasco/snapshot/l4/pkg/l4sys/include/ARCH-x86/kdebug.h contrib/fiasco/snapshot/l4/pkg/l4sys/include/ARCH-x86/kdebug.h
+--- fiasco/snapshot/l4/pkg/l4sys/include/ARCH-x86/kdebug.h	2008-07-30 13:19:01.000000000 +0200
++++ fiasco/snapshot/l4/pkg/l4sys/include/ARCH-x86/kdebug.h	2013-09-23 09:02:29.875532260 +0200
+@@ -21,7 +21,7 @@
+ asm(\
+     "int	$3	\n\t"\
+     "jmp	1f	\n\t"\
+-    ".ascii	\""text "\"\n\t"\
++    ".ascii	\"" text "\"\n\t"\
+     "1:			\n\t"\
+     )
+ 
+@@ -35,7 +35,7 @@
+ #define asm_enter_kdebug(text) \
+     "int	$3	\n\t"\
+     "jmp	1f	\n\t"\
+-    ".ascii	\""text "\"\n\t"\
++    ".ascii	\"" text "\"\n\t"\
+     "1:			\n\t"
+ 
+ /**
+@@ -50,7 +50,7 @@
+     "int	$3	\n\t"\
+     "nop		\n\t"\
+     "jmp	1f	\n\t"\
+-    ".ascii	\""text "\"\n\t"\
++    ".ascii	\"" text "\"\n\t"\
+     "1:			\n\t"\
+     )
+ 
