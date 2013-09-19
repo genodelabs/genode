@@ -30,6 +30,7 @@ class Genode::Trace::Buffer
 
 		unsigned volatile _head_offset;  /* in bytes, relative to 'entries' */
 		unsigned volatile _size;         /* in bytes */
+		unsigned volatile _wrapped;      /* count of buffer wraps */
 
 		struct _Entry
 		{
@@ -40,6 +41,12 @@ class Genode::Trace::Buffer
 		_Entry _entries[0];
 
 		_Entry *_head_entry() { return (_Entry *)((addr_t)_entries + _head_offset); }
+
+		void _buffer_wrapped()
+		{
+			_head_offset = 0;
+			_wrapped++;
+		}
 
 		/*
 		 * The 'entries' member marks the beginning of the trace buffer
@@ -60,6 +67,8 @@ class Genode::Trace::Buffer
 			size_t const header_size = (addr_t)&_entries - (addr_t)this;
 
 			_size = size - header_size;
+
+			_wrapped = 0;
 		}
 
 		char *reserve(size_t len)
@@ -71,7 +80,7 @@ class Genode::Trace::Buffer
 			if (_head_offset + sizeof(_Entry) <= _size)
 				_head_entry()->len = 0;
 
-			_head_offset = 0;
+			_buffer_wrapped();
 
 			return _head_entry()->data;
 		}
@@ -87,8 +96,10 @@ class Genode::Trace::Buffer
 			/* advance head offset, wrap when reaching buffer boundary */
 			_head_offset += sizeof(_Entry) + len;
 			if (_head_offset == _size)
-				_head_offset = 0;
+				_buffer_wrapped();
 		}
+
+		unsigned wrapped() const { return _wrapped; }
 
 
 		/********************************************
