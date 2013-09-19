@@ -83,9 +83,7 @@ append config {
 	<start name="launchpad">
 		<resource name="RAM" quantum="1G"/>
 		<config>
-			<launcher>
-				<filename>init</filename>
-				<ram_quota>70M</ram_quota>
+			<launcher name="init" ram_quota="70M">
 				<config prio_levels="2">
 					<parent-provides>
 						<service name="ROM"/>

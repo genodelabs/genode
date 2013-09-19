@@ -99,18 +99,18 @@ static void process_config(Launchpad *launchpad)
 			/* catch XML syntax errors within launcher node */
 			try {
 				/* read file name and default quote from launcher node */
-				Xml_node filename_node = node.sub_node("filename");
+				Xml_node::Attribute filename_attr = node.attribute("name");
 
-				size_t filename_len = filename_node.content_size();
-				char *filename = (char *)env()->heap()->alloc(filename_len + 1);
+				enum { MAX_NAME_LEN = 128 };
+				char *filename = (char *)env()->heap()->alloc(MAX_NAME_LEN);
 				if (!filename) {
 					::printf("Error: Out of memory while processing configuration\n");
 					return;
 				}
-				filename_node.value(filename, filename_len + 1);
-				Xml_node ram_quota_node = node.sub_node("ram_quota");
+				filename_attr.value(filename, MAX_NAME_LEN);
+				Xml_node::Attribute ram_quota_attr = node.attribute("ram_quota");
 				Number_of_bytes default_ram_quota = 0;
-				ram_quota_node.value(&default_ram_quota);
+				ram_quota_attr.value(&default_ram_quota);
 
 				/* obtain configuration for the child */
 				Init::Child_config *config = new (env()->heap())
@@ -187,16 +187,7 @@ int main(int argc, char **argv)
 	/* request config file from ROM service */
 	try {
 		process_config(&launchpad);
-
-	/* if there exists no configuration, use defaults */
-	} catch (...) {
-		launchpad.add_launcher("testnit",      768*1024);
-		launchpad.add_launcher("scout",    11*1024*1024);
-		launchpad.add_launcher("launchpad", 6*1024*1024);
-		launchpad.add_launcher("nitlog",    1*1024*1024);
-		launchpad.add_launcher("liquid_fb", 7*1024*1024);
-		launchpad.add_launcher("nitpicker", 1*1024*1024);
-	}
+	} catch (...) { }
 
 	Avail_quota_update avail_quota_update(&launchpad);
 

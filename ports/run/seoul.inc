@@ -282,7 +282,7 @@ if {$use_fancy_stuff} {
 	set launchpad_cfg_fd [open "bin/launchpad-config" w]
 
 	puts $launchpad_cfg_fd "<config>
-	<launcher><ram_quota>$memory_init</ram_quota><filename>init</filename>"
+	<launcher ram_quota=\"$memory_init\" name=\"init\">"
 
 	puts $launchpad_cfg_fd {
 		<config>

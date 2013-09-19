@@ -123,6 +123,9 @@ append config {
 			<service name="LOG">       <child name="terminal_log"/> </service>
 			<any-service> <any-child/> <parent/></any-service>
 		</route>
+		<config>
+			<launcher name="testnit"   ram_quota="768K" />
+		</config>
 	</start>
 </config>
 }

@@ -1,34 +1,15 @@
 Launchpad is a graphical application for interactively starting and
 killing programs.
 
-By default, launchpad displays a preconfigured list of programs and their
-respective default memory quotas. The user can tweak the memory quota
-for each entry with mouse and then start a program by clicking on its
-name. As an alternative to using the default list, you can define the list
-manually by supplying a configuration to Launchpad. The following example
-configuration tells launchpad to display a list of two launcher entries:
+By default, launchpad displays a onfigured list of programs and their
+respective default memory quotas. The user can tweak the memory quota for each
+entry with mouse and then start a program by clicking on its name. The
+following example configuration tells launchpad to display a list of three
+launcher entries:
 
 !<config>
-!  <launcher>
-!    <filename>sdl_pathfind</filename>
-!    <ram_quota>10M</ram_quota>
-!  </launcher>
-!  <launcher>
-!    <filename>liquid_fb</filename>
-!    <ram_quota>10M</ram_quota>
-!  </launcher>
-!  <launcher>
-!    <filename>init</filename>
-!    <ram_quota>10M</ram_quota>
-!    <config>
-!      <start>
-!        <filename>hello</filename>
-!        <ram_quota>1M</ram_quota>
-!      </start>
-!    </config>
-!  </launcher>
+!  <launcher name="sdl_pathfind" ram_quota="10M" />
+!  <launcher name="liquid_fb"    ram_quota="10M" />
+!  <launcher name="hello"        ram_quota="1M" />
 !</config>
 
-To use this configuration for a Launchpad started via init, you can
-simply insert the launchpad configuration into the '<start>' node
-of the launchpad entry in init's 'config' file.
