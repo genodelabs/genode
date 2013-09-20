@@ -38,7 +38,7 @@ int main(int, char **)
 	} catch(...) {}
 
 	try {
-		enum { STACK_SIZE = 1024*sizeof(Genode::addr_t) };
+		enum { STACK_SIZE = 2048*sizeof(Genode::addr_t) };
 		static Cap_connection cap;
 		static Rpc_entrypoint ep(&cap, STACK_SIZE, "nic_bridge_ep");
 		static Net::Root      nic_root(&ep, env()->heap());
