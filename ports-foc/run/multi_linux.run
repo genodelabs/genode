@@ -142,9 +142,9 @@ lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         usb] boot_modules usb_drv
 
 if {[have_spec x86]} {
-	set uri "https://github.com/downloads/skalk/genode/busybox-initrd-x86-20120618.gz"
+	set uri "http://genode.org/files/l4linux/busybox-initrd-x86-20120618.gz"
 } elseif {[have_spec arm]} {
-	set uri "https://github.com/downloads/skalk/genode/busybox-initrd-arm-20120618.gz"
+	set uri "http://genode.org/files/l4linux/busybox-initrd-arm-20120618.gz"
 }
 if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
