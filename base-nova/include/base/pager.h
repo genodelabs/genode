@@ -49,13 +49,9 @@ namespace Genode {
 			 */
 			addr_t _pt_cleanup;
 
-			/**
-			 * Semaphore selector to synchronize pause/state/resume operations
-			 */
-			addr_t _sm_state_notify;
-
 			addr_t _initial_esp;
 			addr_t _initial_eip;
+			addr_t _client_exc_pt_sel;
 
 			struct
 			{
@@ -70,6 +66,11 @@ namespace Genode {
 
 			void _copy_state(Nova::Utcb * utcb);
 
+			/**
+			 * Semaphore selector to synchronize pause/state/resume operations
+			 */
+			addr_t sm_state_notify() { return _pt_cleanup + 1; }
+
 			static void _page_fault_handler();
 			static void _startup_handler();
 			static void _invoke_handler();
@@ -79,6 +80,7 @@ namespace Genode {
 			static void _exception_handler(addr_t portal_id);
 
 			static Nova::Utcb * _check_handler(Thread_base *&, Pager_object *&);
+
 		public:
 
 			Pager_object(unsigned long badge, Affinity::Location location);
@@ -106,6 +108,7 @@ namespace Genode {
 			 * Return base of initial portal window
 			 */
 			addr_t exc_pt_sel() { return _tid.exc_pt_sel; }
+			addr_t exc_pt_sel_client() { return _client_exc_pt_sel; }
 
 			/**
 			 * Set initial stack pointer used by the startup handler
@@ -154,7 +157,7 @@ namespace Genode {
 				if (_state.dead)
 					return Native_capability::invalid_cap();
 
-				return Native_capability(_sm_state_notify);
+				return Native_capability(sm_state_notify());
 			}
 
 			/**

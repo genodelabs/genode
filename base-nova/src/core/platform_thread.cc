@@ -72,28 +72,14 @@ int Platform_thread::start(void *ip, void *sp)
 			return -3;
 		}
 
-		/*
-		 * Create semaphore required for Genode locking.
-		 * It is created at the root pager exception base +
-		 * SM_SEL_EC_CLIENT and can be later on requested by the thread
-		 * the same way as STARTUP and PAGEFAULT portal.
-		 */
-		addr_t  sm  = _pager->exc_pt_sel() + SM_SEL_EC_CLIENT;
-		uint8_t res = Nova::create_sm(sm, _pd->pd_sel(), 0);
-		if (res != Nova::NOVA_OK) {
-			PERR("creation of semaphore for new thread failed %u", res);
-			return -4;
-		}
-
 		/* ip == 0 means that caller will use the thread as worker */
 		bool thread_global = ip;
 
-		res = create_ec(_sel_ec(), _pd->pd_sel(), _location.xpos(), utcb,
-		                initial_sp, _sel_exc_base, thread_global);
+		uint8_t res = create_ec(_sel_ec(), _pd->pd_sel(), _location.xpos(),
+		                        utcb, initial_sp, _sel_exc_base, thread_global);
 		if (res != Nova::NOVA_OK) {
-			revoke(Obj_crd(sm, 0));
 			PERR("creation of new thread failed %u", res);
-			return -5;
+			return -4;
 		}
 
 		_pager->initial_eip((addr_t)ip);
@@ -105,7 +91,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	if (_sel_exc_base != Native_thread::INVALID_INDEX) {
 		PERR("thread already started");
-		return -6;
+		return -5;
 	}
 
 	/*
@@ -116,59 +102,24 @@ int Platform_thread::start(void *ip, void *sp)
 	                 Native_config::context_area_virtual_size() -
 	                 get_page_size();
 
-	_sel_exc_base = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
+	_sel_exc_base = _pager->exc_pt_sel_client();
 
 	addr_t pd_core_sel  = Platform_pd::pd_core_sel();
-	addr_t sm_ec_sel    = _pager->exc_pt_sel() + SM_SEL_EC_CLIENT;
 
-	addr_t remap_src[] = { _pd->parent_pt_sel(),
-	                       _pager->exc_pt_sel() + PT_SEL_STARTUP,
-	                       _pager->exc_pt_sel() + PT_SEL_RECALL,
-	                       sm_ec_sel };
-	addr_t remap_dst[] = { PT_SEL_PARENT,
-	                       PT_SEL_STARTUP,
-	                       PT_SEL_RECALL,
-	                       SM_SEL_EC };
+	addr_t remap_src[] = { _pd->parent_pt_sel() };
+	addr_t remap_dst[] = { PT_SEL_PARENT };
 	addr_t pd_sel;
 
 	Obj_crd initial_pts(_sel_exc_base, NUM_INITIAL_PT_LOG2);
 
 	uint8_t res;
 
-	/* create lock for EC used by lock_helper */
-	res = create_sm(sm_ec_sel, pd_core_sel, 0);
-	if (res != NOVA_OK) {
-		PERR("could not create semaphore for new thread");
-		goto cleanup_base;
-	}
-
 	/* remap exception portals for first thread */
-	if (map_local((Utcb *)Thread_base::myself()->utcb(),
-	              Obj_crd(_pager->exc_pt_sel(), 4),
-	              Obj_crd(_sel_exc_base, 4)))
-		goto cleanup_base;
-
-	if (map_local((Utcb *)Thread_base::myself()->utcb(),
-	              Obj_crd(_pager->exc_pt_sel() + 0x10, 3),
-	              Obj_crd(_sel_exc_base + 0x10, 3)))
-		goto cleanup_base;
-
-	if (map_local((Utcb *)Thread_base::myself()->utcb(),
-	              Obj_crd(_pager->exc_pt_sel() + 0x18, 1),
-	              Obj_crd(_sel_exc_base + 0x18, 1)))
-		goto cleanup_base;
-
-	if (PT_SEL_PARENT != 0x1a) {
-		PERR("PT_SEL_PARENT changed !! Adjust remap code !!");
-		goto cleanup_base;
-	}
-
-	/* remap Genode specific, RECALL and STARTUP portals for first thread */
 	for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
 		if (map_local((Utcb *)Thread_base::myself()->utcb(),
 		              Obj_crd(remap_src[i], 0),
 		              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
-			goto cleanup_base;
+			return -6;
 	}
 
 	pd_sel = cap_selector_allocator()->alloc();
@@ -223,12 +174,6 @@ int Platform_thread::start(void *ip, void *sp)
 	cleanup_pd:
 	revoke(Obj_crd(pd_sel, 0));
 	cap_selector_allocator()->free(pd_sel, 0);
-
-	cleanup_base:
-	revoke(Obj_crd(sm_ec_sel, 0));
-	revoke(Obj_crd(_sel_exc_base, NUM_INITIAL_PT_LOG2));
-	cap_selector_allocator()->free(_sel_exc_base, NUM_INITIAL_PT_LOG2);
-	_sel_exc_base = Native_thread::INVALID_INDEX;
 
 	return -7;
 }
@@ -340,11 +285,4 @@ Platform_thread::~Platform_thread()
 	/* free ec and sc caps */
 	revoke(Obj_crd(_id_base, 1));
 	cap_selector_allocator()->free(_id_base, 1);
-
-	/* free exc_base used by main thread */
-	if (_is_main_thread && _sel_exc_base != Native_thread::INVALID_INDEX) {
-		revoke(Obj_crd(_sel_exc_base, NUM_INITIAL_PT_LOG2));
-		cap_selector_allocator()->free(_sel_exc_base,
-		                               NUM_INITIAL_PT_LOG2);
-	}
 }

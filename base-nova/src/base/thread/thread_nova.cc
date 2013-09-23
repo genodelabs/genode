@@ -75,8 +75,10 @@ void Thread_base::_init_platform_thread()
 	 * Allocate capability selectors for the thread's execution context,
 	 * running semaphore and exception handler portals.
 	 */
-	_tid.ec_sel     = ~0UL;
+	_tid.ec_sel     = Native_thread::INVALID_INDEX;
 	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
+	if (_tid.exc_pt_sel == Native_thread::INVALID_INDEX)
+		throw Cpu_session::Thread_creation_failed();
 
 	/* create thread at core */
 	char buf[48];
