@@ -190,17 +190,21 @@ void Pager_object::_invoke_handler()
 	Utcb         *utcb = _check_handler(myself, obj);
 
 	/* send single portal as reply */
-	addr_t event = utcb->msg_words() != 1 ? 0 : utcb->msg[0];
+	addr_t const event    = utcb->msg[0];
+	addr_t const logcount = utcb->msg[1];
 	utcb->mtd = 0;
 	utcb->set_msg_word(0);
 
-	if (event < PT_SEL_PARENT || event == PT_SEL_STARTUP ||
-	    event == SM_SEL_EC    || event == PT_SEL_RECALL) {
+	if (logcount > NUM_INITIAL_PT_LOG2 || event > 1UL << NUM_INITIAL_PT_LOG2 ||
+	    event + (1UL << logcount) > (1UL << NUM_INITIAL_PT_LOG2))
+		reply(myself->stack_top());
 
-		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() + event, 0), 0);
-		/* one item ever fits on the UTCB */
-		(void)res;
-	}
+	utcb->mtd = 0;
+	utcb->set_msg_word(0);
+
+	bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() + event, logcount), 0);
+	/* one item ever fits on the UTCB */
+	(void)res;
 
 	reply(myself->stack_top());
 }

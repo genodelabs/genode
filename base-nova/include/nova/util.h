@@ -30,7 +30,8 @@ inline void nova_die(const char * text = 0)
 
 
 inline void request_event_portal(Genode::Native_capability cap,
-                                 Genode::addr_t exc_base, Genode::addr_t event)
+                                 Genode::addr_t exc_base, Genode::addr_t event,
+                                 unsigned short log2_count = 0)
 {
 	using namespace Nova;
 	Utcb *utcb = (Utcb *)Genode::Thread_base::myself()->utcb();
@@ -39,14 +40,14 @@ inline void request_event_portal(Genode::Native_capability cap,
 	Crd orig_crd = utcb->crd_rcv;
 
 	/* request event-handler portal */
-	utcb->crd_rcv = Obj_crd(exc_base + event, 0);
+	utcb->crd_rcv = Obj_crd(exc_base + event, log2_count);
 	utcb->msg[0]  = event;
-	utcb->set_msg_word(1);
+	utcb->msg[1]  = log2_count;
+	utcb->set_msg_word(2);
 
 	uint8_t res = call(cap.local_name());
 	if (res)
-		PERR("request of event (%lu) capability selector failed",
-		     event);
+		PERR("request of event (%lu) capability selector failed", event);
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
