@@ -20,3 +20,6 @@ INC_DIR += $(REP_DIR)/contrib/$(QT5)/qtscript/include/QtScript/$(QT_VERSION)/QtS
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION)/QtCore \
 
 LIBS += qt5_core pthread
+
+# see https://github.com/genodelabs/genode/issues/890
+REQUIRES += cxx11_fix
