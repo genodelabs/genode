@@ -21,13 +21,13 @@ namespace Genode {
 
 	struct Linux_pd_session_client : Rpc_client<Linux_pd_session>
 	{
-		explicit Linux_pd_session_client(Capability<Linux_pd_session> session)
+		explicit Linux_pd_session_client(Capability<Linux_pd_session> const &session)
 		: Rpc_client<Linux_pd_session>(session) { }
 
-		int bind_thread(Thread_capability thread) {
+		int bind_thread(Thread_capability const &thread) {
 			return call<Rpc_bind_thread>(thread); }
 
-		int assign_parent(Parent_capability parent) {
+		int assign_parent(Parent_capability const &parent) {
 			return call<Rpc_assign_parent>(parent); }
 
 

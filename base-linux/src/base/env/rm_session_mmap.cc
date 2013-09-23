@@ -44,7 +44,7 @@
 using namespace Genode;
 
 
-static bool is_sub_rm_session(Dataspace_capability ds)
+static bool is_sub_rm_session(Dataspace_capability const &ds)
 {
 	if (ds.valid())
 		return false;
@@ -101,7 +101,7 @@ addr_t Platform_env_base::Rm_session_mmap::_reserve_local(bool           use_loc
 
 
 void *
-Platform_env_base::Rm_session_mmap::_map_local(Dataspace_capability ds,
+Platform_env_base::Rm_session_mmap::_map_local(Dataspace_capability const &ds,
                                                Genode::size_t       size,
                                                addr_t               offset,
                                                bool                 use_local_addr,
@@ -152,7 +152,7 @@ void Platform_env::Rm_session_mmap::_add_to_rmap(Region const &region)
 
 
 Rm_session::Local_addr
-Platform_env::Rm_session_mmap::attach(Dataspace_capability ds,
+Platform_env::Rm_session_mmap::attach(Dataspace_capability const &ds,
                                       size_t size, off_t offset,
                                       bool use_local_addr,
                                       Rm_session::Local_addr local_addr,

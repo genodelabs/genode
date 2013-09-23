@@ -181,7 +181,7 @@ namespace Genode {
 				return obj_typed;
 			}
 
-			OBJ_TYPE *lookup_and_lock(Untyped_capability cap)
+			OBJ_TYPE *lookup_and_lock(Untyped_capability const &cap)
 			{
 				return lookup_and_lock(cap.local_name());
 			}

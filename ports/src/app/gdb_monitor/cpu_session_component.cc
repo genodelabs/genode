@@ -30,7 +30,7 @@ using namespace Gdb_monitor;
 static unsigned long new_lwpid = GENODE_LWP_BASE;
 
 
-Thread_info *Cpu_session_component::_thread_info(Thread_capability thread_cap)
+Thread_info *Cpu_session_component::_thread_info(Thread_capability const &thread_cap)
 {
 	Thread_info *thread_info = _thread_list.first();
 	while (thread_info) {
@@ -44,7 +44,7 @@ Thread_info *Cpu_session_component::_thread_info(Thread_capability thread_cap)
 }
 
 
-unsigned long Cpu_session_component::lwpid(Thread_capability thread_cap)
+unsigned long Cpu_session_component::lwpid(Thread_capability const &thread_cap)
 {
 	return _thread_info(thread_cap)->lwpid();
 }
@@ -77,13 +77,13 @@ Thread_capability Cpu_session_component::create_thread(Cpu_session::Name const &
 }
 
 
-Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread)
+Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability const &thread)
 {
 	return _parent_cpu_session.utcb(thread);
 }
 
 
-void Cpu_session_component::kill_thread(Thread_capability thread_cap)
+void Cpu_session_component::kill_thread(Thread_capability const &thread_cap)
 {
 	Thread_info *thread_info = _thread_info(thread_cap);
 
@@ -108,7 +108,7 @@ Thread_capability Cpu_session_component::first()
 }
 
 
-Thread_capability Cpu_session_component::next(Thread_capability thread_cap)
+Thread_capability Cpu_session_component::next(Thread_capability const &thread_cap)
 {
 	Thread_info *next_thread_info = _thread_info(thread_cap)->next();
 	if (next_thread_info)
@@ -118,14 +118,14 @@ Thread_capability Cpu_session_component::next(Thread_capability thread_cap)
 }
 
 
-int Cpu_session_component::set_pager(Thread_capability thread_cap,
-                                     Pager_capability  pager_cap)
+int Cpu_session_component::set_pager(Thread_capability const &thread_cap,
+                                     Pager_capability const &pager_cap)
 {
 	return _parent_cpu_session.set_pager(thread_cap, pager_cap);
 }
 
 
-int Cpu_session_component::start(Thread_capability thread_cap,
+int Cpu_session_component::start(Thread_capability const &thread_cap,
                                  addr_t ip, addr_t sp)
 {
 	Thread_info *thread_info = _thread_info(thread_cap);
@@ -147,45 +147,45 @@ int Cpu_session_component::start(Thread_capability thread_cap,
 }
 
 
-void Cpu_session_component::pause(Thread_capability thread_cap)
+void Cpu_session_component::pause(Thread_capability const &thread_cap)
 {
 	_parent_cpu_session.pause(thread_cap);
 }
 
 
-void Cpu_session_component::resume(Thread_capability thread_cap)
+void Cpu_session_component::resume(Thread_capability const &thread_cap)
 {
 	_parent_cpu_session.resume(thread_cap);
 }
 
 
-void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
+void Cpu_session_component::cancel_blocking(Thread_capability const &thread_cap)
 {
 	_parent_cpu_session.cancel_blocking(thread_cap);
 }
 
 
-void Cpu_session_component::state(Thread_capability thread_cap,
+void Cpu_session_component::state(Thread_capability const &thread_cap,
                                  Thread_state const &state)
 {
 	_parent_cpu_session.state(thread_cap, state);
 }
 
 
-Thread_state Cpu_session_component::state(Thread_capability thread_cap)
+Thread_state Cpu_session_component::state(Thread_capability const &thread_cap)
 {
 	return _parent_cpu_session.state(thread_cap);
 }
 
 
-void Cpu_session_component::exception_handler(Thread_capability         thread_cap,
-                                              Signal_context_capability sigh_cap)
+void Cpu_session_component::exception_handler(Thread_capability const &thread_cap,
+                                              Signal_context_capability const &sigh_cap)
 {
 	_parent_cpu_session.exception_handler(thread_cap, sigh_cap);
 }
 
 
-void Cpu_session_component::single_step(Thread_capability thread_cap, bool enable)
+void Cpu_session_component::single_step(Thread_capability const &thread_cap, bool enable)
 {
 	_parent_cpu_session.single_step(thread_cap, enable);
 }
@@ -197,7 +197,7 @@ Affinity::Space Cpu_session_component::affinity_space() const
 }
 
 
-void Cpu_session_component::affinity(Thread_capability thread_cap,
+void Cpu_session_component::affinity(Thread_capability const &thread_cap,
                                      Affinity::Location location)
 {
 	_parent_cpu_session.affinity(thread_cap, location);
@@ -210,19 +210,19 @@ Dataspace_capability Cpu_session_component::trace_control()
 }
 
 
-unsigned Cpu_session_component::trace_control_index(Thread_capability thread)
+unsigned Cpu_session_component::trace_control_index(Thread_capability const &thread)
 {
 	return _parent_cpu_session.trace_control_index(thread);
 }
 
 
-Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread)
+Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability const &thread)
 {
 	return _parent_cpu_session.trace_buffer(thread);
 }
 
 
-Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread)
+Dataspace_capability Cpu_session_component::trace_policy(Thread_capability const &thread)
 {
 	return _parent_cpu_session.trace_policy(thread);
 }

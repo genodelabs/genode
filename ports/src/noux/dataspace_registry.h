@@ -33,14 +33,14 @@ namespace Noux {
 	{
 		private:
 
-			size_t               _size;
-			Dataspace_capability _ds_cap;
-			Lock                 _users_lock;
-			List<Dataspace_user> _users;
+			size_t                     _size;
+			Dataspace_capability const _ds_cap;
+			Lock                       _users_lock;
+			List<Dataspace_user>       _users;
 
 		public:
 
-			Dataspace_info(Dataspace_capability ds_cap)
+			Dataspace_info(Dataspace_capability const &ds_cap)
 			:
 				Object_pool<Dataspace_info>::Entry(ds_cap),
 				_size(Dataspace_client(ds_cap).size()),
@@ -91,7 +91,7 @@ namespace Noux {
 			 *                     RM session)
 			 * \return             capability for the new dataspace
 			 */
-			virtual Dataspace_capability fork(Ram_session_capability ram,
+			virtual Dataspace_capability fork(Ram_session_capability const &ram,
 			                                  Dataspace_registry    &ds_registry,
 			                                  Rpc_entrypoint        &ep) = 0;
 
@@ -140,7 +140,7 @@ namespace Noux {
 				_pool.remove_locked(info);
 			}
 
-			Dataspace_info *lookup_info(Dataspace_capability ds_cap)
+			Dataspace_info *lookup_info(Dataspace_capability const &ds_cap)
 			{
 				return _pool.lookup_and_lock(ds_cap);
 			}
@@ -152,7 +152,7 @@ namespace Noux {
 		Dataspace_registry &_ds_registry;
 
 		Static_dataspace_info(Dataspace_registry &ds_registry,
-		                      Dataspace_capability ds)
+		                      Dataspace_capability const &ds)
 		: Dataspace_info(ds), _ds_registry(ds_registry)
 		{
 			_ds_registry.insert(this);
@@ -174,7 +174,7 @@ namespace Noux {
 
 		}
 
-		Dataspace_capability fork(Ram_session_capability,
+		Dataspace_capability fork(Ram_session_capability const &,
 		                          Dataspace_registry &,
 		                          Rpc_entrypoint &)
 		{

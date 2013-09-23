@@ -34,7 +34,7 @@ namespace Genode {
 
 				public:
 
-					void sub_rm_session(Native_capability _cap) { }
+					void sub_rm_session(Native_capability const &_cap) { }
 			};
 
 		public:
@@ -50,17 +50,18 @@ namespace Genode {
 
 			void upgrade_ram_quota(size_t ram_quota) { }
 
-			Local_addr attach(Dataspace_capability, size_t, off_t, bool, Local_addr, bool) {
+			Local_addr attach(Dataspace_capability const &, size_t, off_t,
+			                  bool, Local_addr, bool) {
 				return (addr_t)0; }
 
 			void detach(Local_addr) { }
 
-			Pager_capability add_client(Thread_capability) {
+			Pager_capability add_client(Thread_capability const &) {
 				return Pager_capability(); }
 
-			void remove_client(Pager_capability) { }
+			void remove_client(Pager_capability const &) { }
 
-			void fault_handler(Signal_context_capability) { }
+			void fault_handler(Signal_context_capability const &) { }
 
 			State state() { return State(); }
 

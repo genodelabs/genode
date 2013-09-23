@@ -65,7 +65,7 @@ namespace Genode {
 		 * in the currently used dataspace remains unchanged until the client
 		 * calls 'dataspace()' the next time.
 		 */
-		virtual void sigh(Signal_context_capability sigh) = 0;
+		virtual void sigh(Signal_context_capability const &sigh) = 0;
 
 
 		/*********************
@@ -73,7 +73,7 @@ namespace Genode {
 		 *********************/
 
 		GENODE_RPC(Rpc_dataspace, Rom_dataspace_capability, dataspace);
-		GENODE_RPC(Rpc_sigh, void, sigh, Signal_context_capability);
+		GENODE_RPC(Rpc_sigh, void, sigh, Signal_context_capability const &);
 
 		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_sigh);
 	};

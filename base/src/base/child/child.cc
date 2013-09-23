@@ -36,10 +36,10 @@ namespace {
 		 */
 		class Transfer {
 
-			bool                   _ack;
-			size_t                 _quantum;
-			Ram_session_capability _from;
-			Ram_session_capability _to;
+			bool                          _ack;
+			size_t                        _quantum;
+			Ram_session_capability const &_from;
+			Ram_session_capability const &_to;
 
 			public:
 
@@ -51,8 +51,8 @@ namespace {
 				 * \param to       receiver RAM session
 				 */
 				Transfer(size_t quantum,
-				         Ram_session_capability from,
-				         Ram_session_capability to)
+				         Ram_session_capability const &from,
+				         Ram_session_capability const &to)
 				: _ack(false), _quantum(quantum), _from(from), _to(to)
 				{
 					if (_from.valid() && _to.valid() &&
@@ -137,7 +137,7 @@ class Child::Session : public Object_pool<Session>::Entry,
 		 * \param ident      optional session identifier, used for
 		 *                   debugging
 		 */
-		Session(Session_capability session, Service *service,
+		Session(Session_capability const &session, Service *service,
 		        size_t ram_quota, const char *ident = "<noname>")
 		:
 			Object_pool<Session>::Entry(session), _cap(session),
@@ -253,7 +253,7 @@ void Child::notify_resource_avail() const
 }
 
 
-void Child::announce(Parent::Service_name const &name, Root_capability root)
+void Child::announce(Parent::Service_name const &name, Root_capability const &root)
 {
 	if (!name.is_valid_string()) return;
 
@@ -314,7 +314,8 @@ Session_capability Child::session(Parent::Service_name const &name,
 }
 
 
-void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &args)
+void Child::upgrade(Session_capability const &to_session,
+                    Parent::Upgrade_args const &args)
 {
 	Service *targeted_service = 0;
 
@@ -365,7 +366,7 @@ void Child::upgrade(Session_capability to_session, Parent::Upgrade_args const &a
 }
 
 
-void Child::close(Session_capability session_cap)
+void Child::close(Session_capability const &session_cap)
 {
 	/* refuse to close the child's initial sessions */
 	if (session_cap.local_name() == _ram.local_name()
@@ -463,10 +464,10 @@ Parent::Resource_args Child::yield_request()
 void Child::yield_response() { _policy->yield_response(); }
 
 
-Child::Child(Dataspace_capability    elf_ds,
-             Ram_session_capability  ram,
-             Cpu_session_capability  cpu,
-             Rm_session_capability   rm,
+Child::Child(Dataspace_capability   const &elf_ds,
+             Ram_session_capability const &ram,
+             Cpu_session_capability const &cpu,
+             Rm_session_capability  const &rm,
              Rpc_entrypoint         *entrypoint,
              Child_policy           *policy,
              Service                &ram_service,

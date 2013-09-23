@@ -13,7 +13,7 @@
 using namespace Genode;
 
 
-void Cpu_session_component::thread_id(Thread_capability thread_cap, int pid, int tid)
+void Cpu_session_component::thread_id(Thread_capability const &thread_cap, int pid, int tid)
 {
 	Object_pool<Cpu_thread_component>::Guard
 		thread(_thread_ep->lookup_and_lock(thread_cap));
@@ -23,7 +23,7 @@ void Cpu_session_component::thread_id(Thread_capability thread_cap, int pid, int
 }
 
 
-Untyped_capability Cpu_session_component::server_sd(Thread_capability thread_cap)
+Untyped_capability Cpu_session_component::server_sd(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard
 		thread(_thread_ep->lookup_and_lock(thread_cap));
@@ -36,7 +36,7 @@ Untyped_capability Cpu_session_component::server_sd(Thread_capability thread_cap
 }
 
 
-Untyped_capability Cpu_session_component::client_sd(Thread_capability thread_cap)
+Untyped_capability Cpu_session_component::client_sd(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard
 		thread(_thread_ep->lookup_and_lock(thread_cap));

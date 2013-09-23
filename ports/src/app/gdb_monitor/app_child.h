@@ -91,9 +91,9 @@ namespace Gdb_monitor {
 						return _rm_root.session(args, affinity);
 					}
 
-					void upgrade(Genode::Session_capability, const char *) { }
+					void upgrade(Genode::Session_capability const &, const char *) { }
 
-					void close(Genode::Session_capability cap)
+					void close(Genode::Session_capability const &cap)
 					{
 						_rm_root.close(cap);
 					}
@@ -149,7 +149,7 @@ namespace Gdb_monitor {
 					{
 						Genode::size_t ram_quota;
 
-						Child_session(Genode::Session_capability cap,
+						Child_session(Genode::Session_capability const &cap,
 						              Genode::size_t ram_quota)
 						: Session_pool::Entry(cap), ram_quota(ram_quota) { }
 					};
@@ -164,8 +164,8 @@ namespace Gdb_monitor {
 					/**
 					 * Constructor
 					 */
-					Child_service_root(Genode::Ram_session_capability child_ram,
-					                   Genode::Root_capability        child_root)
+					Child_service_root(Genode::Ram_session_capability const &child_ram,
+					                   Genode::Root_capability        const &child_root)
 					: _child_root(child_root), _child_ram(child_ram)
 					{ }
 
@@ -196,12 +196,12 @@ namespace Gdb_monitor {
 						return cap;
 					}
 
-					void upgrade(Session_capability, Upgrade_args const &)
+					void upgrade(Session_capability const &, Upgrade_args const &)
 					{
 						PDBG("not yet implemented");
 					}
 
-					void close(Session_capability session_cap)
+					void close(Session_capability const &session_cap)
 					{
 						using namespace Genode;
 
@@ -236,8 +236,8 @@ namespace Gdb_monitor {
 			 *                 towards the parent of GDB monitor
 			 */
 			App_child(const char                     *unique_name,
-			          Genode::Dataspace_capability    elf_ds,
-			          Genode::Ram_session_capability  ram_session,
+			          Genode::Dataspace_capability   const &elf_ds,
+			          Genode::Ram_session_capability const &ram_session,
 			          Genode::Cap_session            *cap_session,
 			          Service_registry               *parent_services,
 			          Genode::Rpc_entrypoint         *root_ep,
@@ -308,7 +308,7 @@ namespace Gdb_monitor {
 			}
 
 			bool announce_service(const char     *name,
-			                      Root_capability root,
+			                      Root_capability const &root,
 			                      Allocator      *alloc,
 			                      Server         *server)
 			{

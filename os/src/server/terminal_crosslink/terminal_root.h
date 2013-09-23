@@ -55,9 +55,9 @@ namespace Terminal {
 				return Session_capability();
 			}
 
-			void upgrade(Genode::Session_capability, Root::Upgrade_args const &) { }
+			void upgrade(Genode::Session_capability const &, Root::Upgrade_args const &) { }
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability const &session)
 			{
 				if (_session_component1.belongs_to(session))
 					_session_state &= ~FIRST_SESSION_OPEN;

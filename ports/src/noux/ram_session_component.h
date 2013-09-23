@@ -36,10 +36,10 @@ namespace Noux {
 	struct Ram_dataspace_info : Dataspace_info,
 	                            List<Ram_dataspace_info>::Element
 	{
-		Ram_dataspace_info(Ram_dataspace_capability ds_cap)
+		Ram_dataspace_info(Ram_dataspace_capability const &ds_cap)
 		: Dataspace_info(ds_cap) { }
 
-		Dataspace_capability fork(Ram_session_capability ram,
+		Dataspace_capability fork(Ram_session_capability const &ram,
 		                          Dataspace_registry    &,
 		                          Rpc_entrypoint        &)
 		{
@@ -151,7 +151,7 @@ namespace Noux {
 				return ds_cap;
 			}
 
-			void free(Ram_dataspace_capability ds_cap)
+			void free(Ram_dataspace_capability const &ds_cap)
 			{
 				Ram_dataspace_info *ds_info =
 					dynamic_cast<Ram_dataspace_info *>(_registry.lookup_info(ds_cap));
@@ -172,8 +172,8 @@ namespace Noux {
 				destroy(env()->heap(), ds_info);
 			}
 
-			int ref_account(Ram_session_capability) { return 0; }
-			int transfer_quota(Ram_session_capability, size_t) { return 0; }
+			int ref_account(Ram_session_capability const &) { return 0; }
+			int transfer_quota(Ram_session_capability const &, size_t) { return 0; }
 			size_t quota() { return env()->ram_session()->quota(); }
 			size_t used() { return _used_quota; }
 	};

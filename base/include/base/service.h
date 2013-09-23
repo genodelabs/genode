@@ -70,7 +70,7 @@ namespace Genode {
 	{
 		private:
 
-			Ram_session_capability _ram;
+			Ram_session_capability const _ram;
 
 		public:
 
@@ -80,12 +80,12 @@ namespace Genode {
 			 * \param ram  RAM session capability of the server process used,
 			 *             for quota transfers from/to the server
 			 */
-			Server(Ram_session_capability ram): _ram(ram) { }
+			Server(Ram_session_capability const &ram): _ram(ram) { }
 
 			/**
 			 * Return RAM session capability of the server process
 			 */
-			Ram_session_capability ram_session_cap() const { return _ram; }
+			Ram_session_capability const &ram_session_cap() const { return _ram; }
 	};
 
 
@@ -133,18 +133,17 @@ namespace Genode {
 			 * \throw Unavailable
 			 * \throw Quota_exceeded
 			 */
-			virtual Session_capability session(char const *args,
-			                                   Affinity const &affinity) = 0;
+			virtual Session_capability session(char const *args, Affinity const &affinity) = 0;
 
 			/**
 			 * Extend resource donation to an existing session
 			 */
-			virtual void upgrade(Session_capability session, const char *args) = 0;
+			virtual void upgrade(Session_capability const & session, const char *args) = 0;
 
 			/**
 			 * Close session
 			 */
-			virtual void close(Session_capability /*session*/) { }
+			virtual void close(Session_capability const &) { }
 
 			/**
 			 * Return server providing the service
@@ -186,13 +185,13 @@ namespace Genode {
 				catch (Genode::Ipc_error)    { throw Unavailable();  }
 			}
 
-			void upgrade(Session_capability session, const char *args)
+			void upgrade(Session_capability const &session, const char *args)
 			{
 				try { _root->upgrade(session, args); }
 				catch (Genode::Ipc_error)      { throw Unavailable();    }
 			}
 
-			void close(Session_capability session)
+			void close(Session_capability const &session)
 			{
 				try { _root->close(session); }
 				catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
@@ -220,13 +219,13 @@ namespace Genode {
 				catch (Genode::Ipc_error)      { throw Unavailable();    }
 			}
 
-			void upgrade(Session_capability session, const char *args)
+			void upgrade(Session_capability const &session, const char *args)
 			{
 				try { env()->parent()->upgrade(session, args); }
 				catch (Genode::Ipc_error)    { throw Unavailable();    }
 			}
 
-			void close(Session_capability session)
+			void close(Session_capability const &session)
 			{
 				try { env()->parent()->close(session); }
 				catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
@@ -241,9 +240,9 @@ namespace Genode {
 	{
 		private:
 
-			Root_capability _root_cap;
-			Root_client     _root;
-			Server         *_server;
+			Root_capability const _root_cap;
+			Root_client           _root;
+			Server               *_server;
 
 		public:
 
@@ -254,9 +253,9 @@ namespace Genode {
 			 * \param root    capability to root interface
 			 * \param server  server process providing the service
 			 */
-			Child_service(const char     *name,
-			              Root_capability root,
-			              Server         *server)
+			Child_service(const char            *name,
+			              Root_capability const &root,
+			              Server                *server)
 			: Service(name), _root_cap(root), _root(root), _server(server) { }
 
 			Server *server() const { return _server; }
@@ -273,7 +272,7 @@ namespace Genode {
 				catch (Genode::Ipc_error)    { throw Unavailable();    }
 			}
 
-			void upgrade(Session_capability sc, const char *args)
+			void upgrade(Session_capability const & sc, const char *args)
 			{
 				if (!_root_cap.valid())
 					throw Unavailable();
@@ -285,7 +284,7 @@ namespace Genode {
 				catch (Genode::Ipc_error)    { throw Unavailable();    }
 			}
 
-			void close(Session_capability sc)
+			void close(Session_capability const &sc)
 			{
 				try { _root.close(sc); }
 				catch (Genode::Ipc_error)    { throw Blocking_canceled(); }

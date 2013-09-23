@@ -49,7 +49,7 @@ class Device_pd_policy : public Genode::Slave_policy
 		{ }
 
 		bool announce_service(const char             *service_name,
-		                      Genode::Root_capability root,
+		                      Genode::Root_capability const &root,
 		                      Genode::Allocator      *alloc,
 		                      Genode::Server         *server)
 		{

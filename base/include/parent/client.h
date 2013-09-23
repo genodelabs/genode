@@ -21,12 +21,12 @@ namespace Genode {
 
 	struct Parent_client : Rpc_client<Parent>
 	{
-		explicit Parent_client(Parent_capability parent)
+		explicit Parent_client(Parent_capability const &parent)
 		: Rpc_client<Parent>(parent) { }
 
 		void exit(int exit_value) { call<Rpc_exit>(exit_value); }
 
-		void announce(Service_name const &service, Root_capability root) {
+		void announce(Service_name const &service, Root_capability const &root) {
 			call<Rpc_announce>(service, root); }
 
 		Session_capability session(Service_name const &service,
@@ -34,10 +34,10 @@ namespace Genode {
 		                           Affinity     const &affinity) {
 			return call<Rpc_session>(service, args, affinity); }
 
-		void upgrade(Session_capability to_session, Upgrade_args const &args) {
+		void upgrade(Session_capability const &to_session, Upgrade_args const &args) {
 			call<Rpc_upgrade>(to_session, args); }
 
-		void close(Session_capability session) { call<Rpc_close>(session); }
+		void close(Session_capability const &session) { call<Rpc_close>(session); }
 
 		Thread_capability main_thread_cap() const {
 			return call<Rpc_main_thread>(); }

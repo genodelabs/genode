@@ -48,20 +48,20 @@ class Iso9660_boot_probe
 		{
 			Genode::Session_capability _session;
 
-			Proxy_service(Genode::Session_capability session)
+			Proxy_service(Genode::Session_capability const &session)
 			: Genode::Service("proxy"), _session(session) { }
 
 			Genode::Session_capability session(char             const *,
 			                                   Genode::Affinity const &)
 			{ return _session; }
 
-			void upgrade(Genode::Session_capability session, const char *) { }
+			void upgrade(Genode::Session_capability const &session, const char *) { }
 
 		} _block_proxy_service;
 
 		Iso9660_policy(Genode::Rpc_entrypoint            &entrypoint,
 		               Genode::Lock                      &annouce_lock,
-		               Genode::Capability<Block::Session> block_session)
+		               Genode::Capability<Block::Session> const &block_session)
 		:
 			Genode::Slave_policy("iso9660", entrypoint),
 			_annouce_lock(annouce_lock),
@@ -93,7 +93,7 @@ class Iso9660_boot_probe
 		}
 
 		bool announce_service(char const             *service_name,
-		                      Genode::Root_capability root,
+		                      Genode::Root_capability const &root,
 		                      Genode::Allocator      *alloc,
 		                      Genode::Server         *server)
 		{
@@ -138,7 +138,8 @@ class Iso9660_boot_probe
 	 *
 	 * This constructor is used by the 'probe' function below.
 	 */
-	Iso9660_boot_probe(Genode::Root_capability root, char const *boot_tag_name)
+	Iso9660_boot_probe(Genode::Root_capability const &root,
+	                   char const *boot_tag_name)
 	:
 		_block_root(root),
 		_block_session(_init_session()),
@@ -217,7 +218,7 @@ namespace Block {
 
 			Driver() : _name(0) { }
 
-			void init(char const *name, Genode::Root_capability root)
+			void init(char const *name, Genode::Root_capability const &root)
 			{
 				_name = name;
 				_root = root;
@@ -308,10 +309,10 @@ namespace Block {
 				return Genode::Root_client(root).session(args, affinity);
 			}
 
-			void upgrade(Genode::Session_capability,
+			void upgrade(Genode::Session_capability const &,
 			             Genode::Root::Upgrade_args const &) { }
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability const &session)
 			{
 				Genode::Root_capability root = _driver_registry.root();
 				Genode::Root_client(root).close(session);

@@ -21,13 +21,13 @@ namespace Genode {
 
 	struct Pd_session_client : Rpc_client<Pd_session>
 	{
-		explicit Pd_session_client(Pd_session_capability session)
+		explicit Pd_session_client(Pd_session_capability const &session)
 		: Rpc_client<Pd_session>(session) { }
 
-		int bind_thread(Thread_capability thread) {
+		int bind_thread(Thread_capability const &thread) {
 			return call<Rpc_bind_thread>(thread); }
 
-		int assign_parent(Parent_capability parent) {
+		int assign_parent(Parent_capability const &parent) {
 			return call<Rpc_assign_parent>(parent); }
 
 		bool assign_pci(addr_t) { return false; }

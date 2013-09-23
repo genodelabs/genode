@@ -36,7 +36,7 @@ namespace Genode {
 
 			Core_rm_session(Rpc_entrypoint *ds_ep): _ds_ep(ds_ep) { }
 
-			Local_addr attach(Dataspace_capability ds_cap, size_t size=0,
+			Local_addr attach(Dataspace_capability const &ds_cap, size_t size=0,
 			                  off_t offset=0, bool use_local_addr = false,
 			                  Local_addr local_addr = 0,
 			                  bool executable = false)
@@ -51,12 +51,12 @@ namespace Genode {
 
 			void detach(Local_addr local_addr) { }
 
-			Pager_capability add_client(Thread_capability thread) {
+			Pager_capability add_client(Thread_capability const &) {
 				return Pager_capability(); }
 
-			void remove_client(Pager_capability) { }
+			void remove_client(Pager_capability const &) { }
 
-			void fault_handler(Signal_context_capability handler) { }
+			void fault_handler(Signal_context_capability const &) { }
 
 			State state() { return State(); }
 

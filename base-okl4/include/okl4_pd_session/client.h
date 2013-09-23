@@ -24,10 +24,10 @@ namespace Genode {
 		explicit Okl4_pd_session_client(Pd_session_capability cap)
 		: Rpc_client<Okl4_pd_session>(static_cap_cast<Okl4_pd_session>(cap)) { }
 
-		int bind_thread(Thread_capability thread) {
+		int bind_thread(Thread_capability const &thread) {
 			return call<Rpc_bind_thread>(thread); }
 
-		int assign_parent(Parent_capability parent) {
+		int assign_parent(Parent_capability const &parent) {
 			return call<Rpc_assign_parent>(parent); }
 
 		Okl4::L4_SpaceId_t space_id() {

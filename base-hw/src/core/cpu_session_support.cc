@@ -21,7 +21,7 @@ using namespace Genode;
 
 
 Ram_dataspace_capability
-Cpu_session_component::utcb(Thread_capability thread_cap)
+Cpu_session_component::utcb(Thread_capability const &thread_cap)
 {
 	/* lookup requested UTCB dataspace */
 	Object_pool<Cpu_thread_component>::Guard

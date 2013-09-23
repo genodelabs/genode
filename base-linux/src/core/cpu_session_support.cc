@@ -20,7 +20,7 @@
 using namespace Genode;
 
 
-Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread_cap)
+Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability const &thread_cap)
 {
 	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
 	return Ram_dataspace_capability();

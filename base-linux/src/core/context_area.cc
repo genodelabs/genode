@@ -41,7 +41,7 @@ class Context_area_rm_session : public Genode::Rm_session
 		/**
 		 * Attach backing store to thread-context area
 		 */
-		Local_addr attach(Genode::Dataspace_capability ds_cap,
+		Local_addr attach(Genode::Dataspace_capability const &ds_cap,
 		                  Genode::size_t size, Genode::off_t offset,
 		                  bool use_local_addr, Local_addr local_addr,
 		                  bool executable)
@@ -66,12 +66,12 @@ class Context_area_rm_session : public Genode::Rm_session
 		void detach(Local_addr local_addr) {
 			PWRN("context area detach from 0x%p - not implemented", (void *)local_addr); }
 
-		Genode::Pager_capability add_client(Genode::Thread_capability) {
+		Genode::Pager_capability add_client(Genode::Thread_capability const &) {
 			return Genode::Pager_capability(); }
 
-		void remove_client(Genode::Pager_capability) { }
+		void remove_client(Genode::Pager_capability const &) { }
 
-		void fault_handler(Genode::Signal_context_capability) { }
+		void fault_handler(Genode::Signal_context_capability const &) { }
 
 		State state() { return State(); }
 
@@ -87,11 +87,11 @@ class Context_area_ram_session : public Genode::Ram_session
 		Genode::Ram_dataspace_capability alloc(Genode::size_t size, bool) {
 			return Genode::Ram_dataspace_capability(); }
 
-		void free(Genode::Ram_dataspace_capability) { }
+		void free(Genode::Ram_dataspace_capability const &) { }
 
-		int ref_account(Genode::Ram_session_capability) { return 0; }
+		int ref_account(Genode::Ram_session_capability const &) { return 0; }
 
-		int transfer_quota(Genode::Ram_session_capability, Genode::size_t) { return 0; }
+		int transfer_quota(Genode::Ram_session_capability const &, Genode::size_t) { return 0; }
 
 		size_t quota() { return 0; }
 

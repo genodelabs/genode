@@ -29,14 +29,15 @@ struct Genode::Core_parent : Parent
 {
 	void exit(int);
 
-	void announce(Service_name const &, Root_capability) { }
+	void announce(Service_name const &, Root_capability const &) { }
 
 	Session_capability session(Service_name const &, Session_args const &,
 	                           Affinity const &);
 
-	void upgrade(Session_capability, Upgrade_args const &) { throw Quota_exceeded(); }
+	void upgrade(Session_capability const &, Upgrade_args const &) {
+		throw Quota_exceeded(); }
 
-	void close(Session_capability) { }
+	void close(Session_capability const &) { }
 
 	Thread_capability main_thread_cap() const { return Thread_capability(); }
 

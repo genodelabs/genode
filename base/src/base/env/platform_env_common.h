@@ -84,7 +84,7 @@ struct Upgradeable_client : CLIENT
 
 struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_session_client>
 {
-	Expanding_ram_session_client(Ram_session_capability cap)
+	Expanding_ram_session_client(Ram_session_capability const &cap)
 	: Upgradeable_client<Genode::Ram_session_client>(cap) { }
 
 	Ram_dataspace_capability alloc(size_t size, bool cached = true)
@@ -125,7 +125,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 			NUM_ATTEMPTS);
 	}
 
-	int transfer_quota(Ram_session_capability ram_session, size_t amount)
+	int transfer_quota(Ram_session_capability const &ram_session, size_t amount)
 	{
 		enum { NUM_ATTEMPTS = 2 };
 		int ret = -1;
@@ -236,7 +236,7 @@ class Genode::Expanding_parent_client : public Parent_client
 				NUM_ATTEMPTS);
 		}
 
-		void upgrade(Session_capability to_session, Upgrade_args const &args)
+		void upgrade(Session_capability const &to_session, Upgrade_args const &args)
 		{
 			/*
 			 * If the upgrade fails, attempt to issue a resource request twice.
@@ -259,7 +259,7 @@ class Genode::Expanding_parent_client : public Parent_client
 				NUM_ATTEMPTS);
 		}
 
-		void resource_avail_sigh(Signal_context_capability sigh)
+		void resource_avail_sigh(Signal_context_capability const &sigh)
 		{
 			Lock::Guard guard(_lock);
 

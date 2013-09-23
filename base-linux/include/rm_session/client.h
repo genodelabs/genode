@@ -29,10 +29,10 @@ namespace Genode {
 		 */
 		Rm_session *_local() const { return Rm_session_capability::deref(_cap); }
 
-		explicit Rm_session_client(Rm_session_capability session)
+		explicit Rm_session_client(Rm_session_capability const &session)
 		: _cap(session) { }
 
-		Local_addr attach(Dataspace_capability ds, size_t size = 0,
+		Local_addr attach(Dataspace_capability const &ds, size_t size = 0,
 		                  off_t offset = 0, bool use_local_addr = false,
 		                  Local_addr local_addr = (void *)0,
 		                  bool executable = false)
@@ -44,13 +44,13 @@ namespace Genode {
 		void detach(Local_addr local_addr) {
 			return _local()->detach(local_addr); }
 
-		Pager_capability add_client(Thread_capability thread) {
+		Pager_capability add_client(Thread_capability const &thread) {
 			return _local()->add_client(thread); }
 
-		void remove_client(Pager_capability pager) {
+		void remove_client(Pager_capability const &pager) {
 			_local()->remove_client(pager); }
 
-		void fault_handler(Signal_context_capability /*handler*/)
+		void fault_handler(Signal_context_capability const &)
 		{
 			/*
 			 * On Linux, page faults are never reflected to RM clients. They

@@ -96,7 +96,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds_cap);
 		}
 
-		void sigh(Genode::Signal_context_capability sigh_cap)
+		void sigh(Genode::Signal_context_capability const &sigh_cap)
 		{
 			Genode::Lock::Guard guard(_lock);
 			_sigh = sigh_cap;

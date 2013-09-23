@@ -48,7 +48,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		 *
 		 * \param dst  destination dataspace
 		 */
-		void _copy_content_to_dataspace(Genode::Dataspace_capability dst)
+		void _copy_content_to_dataspace(Genode::Dataspace_capability const &dst)
 		{
 			using namespace Genode;
 
@@ -167,7 +167,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds);
 		}
 
-		void sigh(Genode::Signal_context_capability) { }
+		void sigh(Genode::Signal_context_capability const &) { }
 };
 
 

@@ -87,12 +87,12 @@ namespace Genode {
 				return s->cap();
 			}
 
-			void upgrade(Session_capability, Upgrade_args const &)
+			void upgrade(Session_capability const &, Upgrade_args const &)
 			{
 				/* there is no need to upgrade an IRQ session */
 			}
 
-			void close(Session_capability session)
+			void close(Session_capability const &session)
 			{
 				Irq_session_component *s = _sessions.first();
 

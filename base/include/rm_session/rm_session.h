@@ -126,7 +126,7 @@ namespace Genode {
 		 * \return                 local address of mapped dataspace
 		 *
 		 */
-		virtual Local_addr attach(Dataspace_capability ds,
+		virtual Local_addr attach(Dataspace_capability const &ds,
 		                          size_t size = 0, off_t offset = 0,
 		                          bool use_local_addr = false,
 		                          Local_addr local_addr = (void *)0,
@@ -135,15 +135,16 @@ namespace Genode {
 		/**
 		 * Shortcut for attaching a dataspace at a predefined local address
 		 */
-		Local_addr attach_at(Dataspace_capability ds, addr_t local_addr,
+		Local_addr attach_at(Dataspace_capability const &ds, addr_t local_addr,
 		                     size_t size = 0, off_t offset = 0) {
 			return attach(ds, size, offset, true, local_addr); }
 
 		/**
 		 * Shortcut for attaching a dataspace executable at a predefined local address
 		 */
-		Local_addr attach_executable(Dataspace_capability ds, addr_t local_addr,
-		                             size_t size = 0, off_t offset = 0) {
+		Local_addr attach_executable(Dataspace_capability const &ds,
+		                             addr_t local_addr, size_t size = 0,
+		                             off_t offset = 0) {
 			return attach(ds, size, offset, true, local_addr, true); }
 
 		/**
@@ -164,14 +165,14 @@ namespace Genode {
 		 * communication channel between the pager part of the region manager
 		 * and the client thread.
 		 */
-		virtual Pager_capability add_client(Thread_capability thread) = 0;
+		virtual Pager_capability add_client(Thread_capability const &thread) = 0;
 
 		/**
 		 * Remove client from pager
 		 *
 		 * \param pager  pager capability of client to be removed
 		 */
-		virtual void remove_client(Pager_capability) = 0;
+		virtual void remove_client(Pager_capability const &) = 0;
 
 		/**
 		 * Register signal handler for region-manager faults
@@ -181,7 +182,7 @@ namespace Genode {
 		 * unresolvable page faults (traditionally called segmentation fault)
 		 * will result in the delivery of the signal.
 		 */
-		virtual void fault_handler(Signal_context_capability handler) = 0;
+		virtual void fault_handler(Signal_context_capability const &handler) = 0;
 
 		/**
 		 * Request current state of RM session
@@ -201,13 +202,14 @@ namespace Genode {
 		GENODE_RPC_THROW(Rpc_attach, Local_addr, attach,
 		                 GENODE_TYPE_LIST(Invalid_dataspace, Region_conflict,
 		                                  Out_of_metadata, Invalid_args),
-		                 Dataspace_capability, size_t, off_t, bool, Local_addr, bool);
+		                 Dataspace_capability const &, size_t, off_t, bool,
+		                 Local_addr, bool);
 		GENODE_RPC(Rpc_detach, void, detach, Local_addr);
 		GENODE_RPC_THROW(Rpc_add_client, Pager_capability, add_client,
 		                 GENODE_TYPE_LIST(Invalid_thread, Out_of_metadata),
-		                 Thread_capability);
-		GENODE_RPC(Rpc_remove_client, void, remove_client, Pager_capability);
-		GENODE_RPC(Rpc_fault_handler, void, fault_handler, Signal_context_capability);
+		                 Thread_capability const &);
+		GENODE_RPC(Rpc_remove_client, void, remove_client, Pager_capability const &);
+		GENODE_RPC(Rpc_fault_handler, void, fault_handler, Signal_context_capability const &);
 		GENODE_RPC(Rpc_state, State, state);
 		GENODE_RPC(Rpc_dataspace, Dataspace_capability, dataspace);
 

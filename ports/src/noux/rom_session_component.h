@@ -26,7 +26,7 @@ namespace Noux {
 
 		~Rom_dataspace_info() { }
 
-		Dataspace_capability fork(Ram_session_capability,
+		Dataspace_capability fork(Ram_session_capability const &,
 		                          Dataspace_registry &ds_registry,
 		                          Rpc_entrypoint &)
 		{
@@ -92,7 +92,7 @@ namespace Noux {
 				return static_cap_cast<Rom_dataspace>(_ds_info.ds_cap());
 			}
 
-			void sigh(Signal_context_capability) { }
+			void sigh(Signal_context_capability const &) { }
 	};
 }
 

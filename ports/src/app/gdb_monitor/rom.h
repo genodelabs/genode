@@ -28,7 +28,7 @@ namespace Gdb_monitor {
 	/**
 	 * Clone a ROM dataspace in RAM
 	 */
-	Capability<Ram_dataspace> clone_rom(Capability<Rom_dataspace> rom_cap)
+	Capability<Ram_dataspace> clone_rom(Capability<Rom_dataspace> const &rom_cap)
 	{
 		Genode::size_t            rom_size  = Dataspace_client(rom_cap).size();
 		Capability<Ram_dataspace> clone_cap = env()->ram_session()->alloc(rom_size);
@@ -75,7 +75,7 @@ namespace Gdb_monitor {
 
 			void release() { }
 
-			void sigh(Genode::Signal_context_capability) { }
+			void sigh(Genode::Signal_context_capability const &) { }
 	};
 
 
@@ -117,9 +117,9 @@ namespace Gdb_monitor {
 			Capability<Session> session(char const *args, Affinity const &affinity) {
 				return _root.session(args, affinity); }
 
-			void upgrade(Capability<Session>, char const *) { }
+			void upgrade(Capability<Session> const &, char const *) { }
 
-			void close(Capability<Session> cap) { _root.close(cap); }
+			void close(Capability<Session> const &cap) { _root.close(cap); }
 	};
 }
 

@@ -258,7 +258,7 @@ namespace Init {
 
 			Genode::Server *server() const { return _server; }
 
-			void announce(Genode::Root_capability root)
+			void announce(Genode::Root_capability const &root)
 			{
 				Genode::Lock::Guard guard(_applicants_lock);
 
@@ -302,14 +302,14 @@ namespace Init {
 				return cap;
 			}
 
-			void upgrade(Genode::Session_capability sc, const char *args)
+			void upgrade(Genode::Session_capability const &sc, const char *args)
 			{
 				try { Genode::Root_client(_root).upgrade(sc, args); }
 				catch (Genode::Root::Invalid_args) { throw Invalid_args(); }
 				catch (Genode::Ipc_error)          { throw Unavailable(); }
 			}
 
-			void close(Genode::Session_capability sc)
+			void close(Genode::Session_capability const &sc)
 			{
 				try { Genode::Root_client(_root).close(sc); }
 				catch (Genode::Ipc_error) { throw Genode::Blocking_canceled(); }
@@ -702,7 +702,7 @@ namespace Init {
 			}
 
 			bool announce_service(const char             *service_name,
-			                      Genode::Root_capability root,
+			                      Genode::Root_capability const &root,
 			                      Genode::Allocator      *alloc,
 			                      Genode::Server         *server)
 			{

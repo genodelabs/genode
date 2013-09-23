@@ -38,7 +38,7 @@ namespace Genode {
 		 * After successful bind, the thread will execute inside this
 		 * protection domain when started.
 		 */
-		virtual int bind_thread(Thread_capability thread) = 0;
+		virtual int bind_thread(Thread_capability const &thread) = 0;
 
 		/**
 		 * Assign parent to protection domain
@@ -46,15 +46,15 @@ namespace Genode {
 		 * \param   parent  capability of parent interface
 		 * \return  0 on success, or negative error code
 		 */
-		virtual int assign_parent(Parent_capability parent) = 0;
+		virtual int assign_parent(Parent_capability const &parent) = 0;
 
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
-		GENODE_RPC(Rpc_bind_thread,   int, bind_thread,   Thread_capability);
-		GENODE_RPC(Rpc_assign_parent, int, assign_parent, Parent_capability);
+		GENODE_RPC(Rpc_bind_thread,   int, bind_thread,   Thread_capability const &);
+		GENODE_RPC(Rpc_assign_parent, int, assign_parent, Parent_capability const &);
 
 		GENODE_RPC_INTERFACE(Rpc_bind_thread, Rpc_assign_parent);
 	};

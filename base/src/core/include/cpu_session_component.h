@@ -53,19 +53,19 @@ namespace Genode {
 
 		private:
 
-			Thread_name         const _name;
-			Platform_thread           _platform_thread;
-			bool                      _bound;            /* pd binding flag */
-			Signal_context_capability _sigh;             /* exception handler */
-			unsigned            const _trace_control_index;
-			Trace::Source             _trace_source;
+			Thread_name               const  _name;
+			Platform_thread                  _platform_thread;
+			bool                             _bound;    /* pd binding flag */
+			Signal_context_capability        _sigh;     /* exception handler */
+			unsigned                  const  _trace_control_index;
+			Trace::Source                    _trace_source;
 
 		public:
 
 			Cpu_thread_component(Session_label const &label,
 			                     Thread_name const &name,
 			                     unsigned priority, addr_t utcb,
-			                     Signal_context_capability sigh,
+			                     Signal_context_capability const &sigh,
 			                     unsigned trace_control_index,
 			                     Trace::Control &trace_control)
 			:
@@ -87,7 +87,7 @@ namespace Genode {
 			void             bound(bool b)     { _bound = b; }
 			Trace::Source   *trace_source()    { return &_trace_source; }
 
-			void sigh(Signal_context_capability sigh)
+			void sigh(Signal_context_capability const &sigh)
 			{
 				_sigh = sigh;
 				update_exception_sigh();
@@ -172,23 +172,23 @@ namespace Genode {
 			 ***************************/
 
 			Thread_capability create_thread(Name const &, addr_t);
-			Ram_dataspace_capability utcb(Thread_capability thread);
-			void kill_thread(Thread_capability);
-			int set_pager(Thread_capability, Pager_capability);
-			int start(Thread_capability, addr_t, addr_t);
-			void pause(Thread_capability thread_cap);
-			void resume(Thread_capability thread_cap);
-			void cancel_blocking(Thread_capability);
-			int name(Thread_capability, char *, size_t);
-			Thread_state state(Thread_capability);
-			void state(Thread_capability, Thread_state const &);
-			void exception_handler(Thread_capability, Signal_context_capability);
+			Ram_dataspace_capability utcb(Thread_capability const &thread);
+			void kill_thread(Thread_capability const &);
+			int set_pager(Thread_capability const &, Pager_capability const &);
+			int start(Thread_capability const &, addr_t, addr_t);
+			void pause(Thread_capability const & thread_cap);
+			void resume(Thread_capability const & thread_cap);
+			void cancel_blocking(Thread_capability const &);
+			int name(Thread_capability const &, char *, size_t);
+			Thread_state state(Thread_capability const &);
+			void state(Thread_capability const &, Thread_state const &);
+			void exception_handler(Thread_capability const &, Signal_context_capability const &);
 			Affinity::Space affinity_space() const;
-			void affinity(Thread_capability, Affinity::Location);
+			void affinity(Thread_capability const &, Affinity::Location);
 			Dataspace_capability trace_control();
-			unsigned trace_control_index(Thread_capability);
-			Dataspace_capability trace_buffer(Thread_capability);
-			Dataspace_capability trace_policy(Thread_capability);
+			unsigned trace_control_index(Thread_capability const &);
+			Dataspace_capability trace_buffer(Thread_capability const &);
+			Dataspace_capability trace_policy(Thread_capability const &);
 	};
 }
 

@@ -191,7 +191,7 @@ namespace Iso {
 			Rom_dataspace_capability dataspace() {
 				return static_cap_cast<Rom_dataspace>(_file->rm()->dataspace()); }
 
-			void sigh(Signal_context_capability) { }
+			void sigh(Signal_context_capability const &) { }
 
 			Rom_component(char *path, Signal_receiver *receiver,
 			              Backing_store *backing_store)

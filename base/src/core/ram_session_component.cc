@@ -24,7 +24,7 @@ using namespace Genode;
 static const bool verbose = false;
 
 
-addr_t Ram_session_component::phys_addr(Ram_dataspace_capability ds)
+addr_t Ram_session_component::phys_addr(Ram_dataspace_capability const &ds)
 {
 	Object_pool<Dataspace_component>::Guard dsc(_ds_ep->lookup_and_lock(ds));
 	if (!dsc) throw Invalid_dataspace();
@@ -199,7 +199,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 }
 
 
-void Ram_session_component::free(Ram_dataspace_capability ds_cap)
+void Ram_session_component::free(Ram_dataspace_capability const &ds_cap)
 {
 	Dataspace_component * ds =
 		dynamic_cast<Dataspace_component *>(_ds_ep->lookup_and_lock(ds_cap));
@@ -210,7 +210,7 @@ void Ram_session_component::free(Ram_dataspace_capability ds_cap)
 }
 
 
-int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
+int Ram_session_component::ref_account(Ram_session_capability const &ram_session_cap)
 {
 	/* the reference account cannot be defined twice */
 	if (_ref_account) return -2;
@@ -230,7 +230,7 @@ int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
 }
 
 
-int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
+int Ram_session_component::transfer_quota(Ram_session_capability const &ram_session_cap,
                                           size_t amount)
 {
 	if (verbose)

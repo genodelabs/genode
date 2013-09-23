@@ -30,7 +30,7 @@ namespace Noux {
 	struct Directory_service
 	{
 		virtual Dataspace_capability dataspace(char const *path) = 0;
-		virtual void release(char const *path, Dataspace_capability) = 0;
+		virtual void release(char const *path, Dataspace_capability const &) = 0;
 
 		virtual Vfs_handle *open(Sysio *sysio, char const *path) = 0;
 

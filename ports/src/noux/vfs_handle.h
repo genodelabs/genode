@@ -51,7 +51,7 @@ namespace Noux {
 						return Dataspace_capability();
 					}
 
-					void release(char const *, Dataspace_capability) { }
+					void release(char const *, Dataspace_capability const &) { }
 
 					bool        stat(Sysio *, char const *)                 { return _msg("stat"); }
 					Vfs_handle *open(Sysio *, char const *)                 { _msg("open"); return 0; }

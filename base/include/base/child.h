@@ -68,7 +68,7 @@ namespace Genode {
 		 *               child is not permitted to announce service
 		 */
 		virtual bool announce_service(const char            * /*name*/,
-		                              Root_capability         /*root*/,
+		                              Root_capability const & /*root*/,
 		                              Allocator             * /*alloc*/,
 		                              Server                * /*server*/)
 		{ return false; }
@@ -254,10 +254,10 @@ namespace Genode {
 			 * the child environment. By default, we expect that these
 			 * resources are provided by the parent.
 			 */
-			Child(Dataspace_capability    elf_ds,
-			      Ram_session_capability  ram,
-			      Cpu_session_capability  cpu,
-			      Rm_session_capability   rm,
+			Child(Dataspace_capability   const &elf_ds,
+			      Ram_session_capability const &ram,
+			      Cpu_session_capability const &cpu,
+			      Rm_session_capability  const &rm,
 			      Rpc_entrypoint         *entrypoint,
 			      Child_policy           *policy,
 			      Service                &ram_service = *_parent_service(),
@@ -313,11 +313,11 @@ namespace Genode {
 			 ** Parent interface **
 			 **********************/
 
-			void announce(Service_name const &, Root_capability);
+			void announce(Service_name const &, Root_capability const &);
 			Session_capability session(Service_name const &, Session_args const &,
 			                           Affinity const &);
-			void upgrade(Session_capability, Upgrade_args const &);
-			void close(Session_capability);
+			void upgrade(Session_capability const &, Upgrade_args const &);
+			void close(Session_capability const &);
 			void exit(int);
 			Thread_capability main_thread_cap() const;
 			void resource_avail_sigh(Signal_context_capability);

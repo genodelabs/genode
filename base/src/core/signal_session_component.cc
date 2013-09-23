@@ -69,7 +69,7 @@ Signal_context_capability Signal_session_component::alloc_context(long imprint)
 }
 
 
-void Signal_session_component::free_context(Signal_context_capability context_cap)
+void Signal_session_component::free_context(Signal_context_capability const &context_cap)
 {
 	Signal_context_component * context =
 		dynamic_cast<Signal_context_component *>(_context_ep->lookup_and_lock(context_cap));
@@ -83,7 +83,7 @@ void Signal_session_component::free_context(Signal_context_capability context_ca
 }
 
 
-void Signal_session_component::submit(Signal_context_capability context_cap,
+void Signal_session_component::submit(Signal_context_capability const &context_cap,
                                       unsigned                  cnt)
 {
 	Object_pool<Signal_context_component>::Guard

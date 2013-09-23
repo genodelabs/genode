@@ -49,7 +49,7 @@ class Context_area_rm_session : public Rm_session
 		/**
 		 * Attach backing store to thread-context area
 		 */
-		Local_addr attach(Dataspace_capability ds_cap,
+		Local_addr attach(Dataspace_capability const &ds_cap,
 		                  size_t size, off_t offset,
 		                  bool use_local_addr, Local_addr local_addr,
 		                  bool executable)
@@ -109,12 +109,12 @@ class Context_area_rm_session : public Rm_session
 			Genode::unmap_local(ds->core_local_addr(), ds->size() >> get_page_size_log2());
 		}
 
-		Pager_capability add_client(Thread_capability) {
+		Pager_capability add_client(Thread_capability const &) {
 			return Pager_capability(); }
 
-		void remove_client(Pager_capability) { }
+		void remove_client(Pager_capability const &) { }
 
-		void fault_handler(Signal_context_capability) { }
+		void fault_handler(Signal_context_capability const &) { }
 
 		State state() { return State(); }
 
@@ -160,7 +160,7 @@ class Context_area_ram_session : public Ram_session
 			return static_cap_cast<Ram_dataspace>(cap);
 		}
 
-		void free(Ram_dataspace_capability ds)
+		void free(Ram_dataspace_capability const &ds)
 		{
 			Dataspace_component *dataspace_component =
 				dynamic_cast<Dataspace_component*>(Dataspace_capability::deref(ds));
@@ -184,9 +184,9 @@ class Context_area_ram_session : public Ram_session
 			platform_specific()->ram_alloc()->free(phys_addr, size);
 		}
 
-		int ref_account(Ram_session_capability ram_session) { return 0; }
+		int ref_account(Ram_session_capability const &) { return 0; }
 
-		int transfer_quota(Ram_session_capability ram_session, size_t amount) { return 0; }
+		int transfer_quota(Ram_session_capability const &, size_t) { return 0; }
 
 		size_t quota() { return 0; }
 

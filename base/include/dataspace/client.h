@@ -21,7 +21,7 @@ namespace Genode {
 
 	struct Dataspace_client : Rpc_client<Dataspace>
 	{
-		explicit Dataspace_client(Dataspace_capability ds)
+		explicit Dataspace_client(Dataspace_capability const &ds)
 		: Rpc_client<Dataspace>(ds) { }
 
 		size_t size()      { return call<Rpc_size>();      }

@@ -95,7 +95,7 @@ namespace Genode {
 			 *
 			 * This function is indirectly called by the ROM session client.
 			 */
-			void sigh(Signal_context_capability sigh) { _sigh = sigh; }
+			void sigh(Signal_context_capability const &sigh) { _sigh = sigh; }
 
 			/**
 			 * Commit data contained in background dataspace
@@ -233,7 +233,7 @@ namespace Genode {
 				return _rom_module.fg_dataspace();
 			}
 
-			void sigh(Signal_context_capability sigh)
+			void sigh(Signal_context_capability const &sigh)
 			{
 				Rom_module_lock_guard guard(_rom_module);
 				_rom_module.sigh(sigh);

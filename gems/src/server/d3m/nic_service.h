@@ -56,9 +56,9 @@ namespace Nic {
 				}
 			}
 
-			void upgrade(Genode::Session_capability, Upgrade_args const &) { }
+			void upgrade(Genode::Session_capability const &, Upgrade_args const &) { }
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability const &session)
 			{
 				Genode::Root_client(_nic_provider.root()).close(session);
 			}

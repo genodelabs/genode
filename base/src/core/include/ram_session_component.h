@@ -153,16 +153,16 @@ namespace Genode {
 			 *
 			 * \throw Invalid_dataspace
 			 */
-			addr_t phys_addr(Ram_dataspace_capability ds);
+			addr_t phys_addr(Ram_dataspace_capability const &ds);
 
 			/***************************
 			 ** RAM Session interface **
 			 ***************************/
 
 			Ram_dataspace_capability alloc(size_t, bool);
-			void free(Ram_dataspace_capability);
-			int ref_account(Ram_session_capability);
-			int transfer_quota(Ram_session_capability, size_t);
+			void free(Ram_dataspace_capability const &);
+			int ref_account(Ram_session_capability const &);
+			int transfer_quota(Ram_session_capability const &, size_t);
 			size_t quota() { return _quota_limit; }
 			size_t used()  { return _payload; }
 	};

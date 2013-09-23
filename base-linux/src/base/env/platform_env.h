@@ -84,7 +84,7 @@ namespace Genode {
 
 					Region() : _start(0), _offset(0), _size(0) { }
 
-					Region(addr_t start, off_t offset, Dataspace_capability ds, size_t size)
+					Region(addr_t start, off_t offset, Dataspace_capability const &ds, size_t size)
 					: _start(start), _offset(offset), _ds(ds), _size(size) { }
 
 					bool                 used()      const { return _size > 0; }
@@ -229,7 +229,7 @@ namespace Genode {
 					/**
 					 * Map dataspace into local address space
 					 */
-					void *_map_local(Dataspace_capability ds,
+					void *_map_local(Dataspace_capability const &ds,
 					                 Genode::size_t       size,
 					                 addr_t               offset,
 					                 bool                 use_local_addr,
@@ -274,18 +274,18 @@ namespace Genode {
 					 ** Region manager session interface **
 					 **************************************/
 
-					Local_addr attach(Dataspace_capability ds, size_t size,
+					Local_addr attach(Dataspace_capability const &ds, size_t size,
 					                  off_t, bool, Local_addr,
 					                  bool executable);
 
 					void detach(Local_addr local_addr);
 
-					Pager_capability add_client(Thread_capability thread) {
+					Pager_capability add_client(Thread_capability const &thread) {
 						return Pager_capability(); }
 
-					void remove_client(Pager_capability pager) { }
+					void remove_client(Pager_capability const &pager) { }
 
-					void fault_handler(Signal_context_capability handler) { }
+					void fault_handler(Signal_context_capability const &handler) { }
 
 					State state() { return State(); }
 
@@ -387,7 +387,7 @@ namespace Genode {
 					Session_capability session(Service_name const &,
 					                           Session_args const &,
 					                           Affinity     const & = Affinity());
-					void close(Session_capability);
+					void close(Session_capability const &);
 
 					/**
 					 * Constructor
@@ -396,7 +396,7 @@ namespace Genode {
 					 *                    promote requests to non-local
 					 *                    services
 					 */
-					Local_parent(Parent_capability parent_cap,
+					Local_parent(Parent_capability const &parent_cap,
 					             Emergency_ram_reserve &);
 			};
 

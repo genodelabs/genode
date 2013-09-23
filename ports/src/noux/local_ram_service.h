@@ -41,12 +41,12 @@ namespace Noux {
 				return Genode::Session_capability();
 			}
 
-			void upgrade(Genode::Session_capability, const char *args)
+			void upgrade(Genode::Session_capability const &, const char *args)
 			{
 				PDBG("Implement me!");
 			}
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability const &)
 			{
 				PDBG("Implement me!");
 			}

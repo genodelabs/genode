@@ -23,14 +23,14 @@ namespace Noux {
 
 	struct Local_noux_service : public Service
 	{
-		Genode::Session_capability _cap;
+		Genode::Session_capability const _cap;
 
 		/**
 		 * Constructor
 		 *
 		 * \param cap  capability to return on session requests
 		 */
-		Local_noux_service(Genode::Session_capability cap)
+		Local_noux_service(Genode::Session_capability const &cap)
 		: Service(Session::service_name()), _cap(cap) { }
 
 		Genode::Session_capability session(const char *args, Affinity const &)
@@ -38,8 +38,8 @@ namespace Noux {
 			return _cap;
 		}
 
-		void upgrade(Genode::Session_capability, const char *args) { }
-		void close(Genode::Session_capability) { }
+		void upgrade(Genode::Session_capability const &, const char *args) { }
+		void close(Genode::Session_capability const &) { }
 	};
 }
 

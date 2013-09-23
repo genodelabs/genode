@@ -29,7 +29,7 @@ namespace Noux {
 
 			Rm_session_component * const _sub_rm;
 			Rpc_entrypoint              &_ep;
-			Rm_session_capability        _rm_cap;
+			Rm_session_capability  const _rm_cap;
 
 		public:
 
@@ -61,7 +61,7 @@ namespace Noux {
 
 			Rm_session_capability rm_cap() { return _rm_cap; }
 
-			Dataspace_capability fork(Ram_session_capability ram,
+			Dataspace_capability fork(Ram_session_capability const &ram,
 			                          Dataspace_registry  &ds_registry,
 			                          Rpc_entrypoint      &ep)
 			{
@@ -116,9 +116,9 @@ namespace Noux {
 				return info->rm_cap();
 			}
 
-			void upgrade(Genode::Session_capability, const char *args) { }
+			void upgrade(Genode::Session_capability const &, const char *args) { }
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability const &session)
 			{
 				Rm_session_component * rm_session = 
 					dynamic_cast<Rm_session_component *>(_ep.lookup_and_lock(session));

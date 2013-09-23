@@ -26,7 +26,7 @@ using namespace Pistachio;
 //     return 1;
 // }
 
-Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability thread_cap)
+Ram_dataspace_capability Cpu_session_component::utcb(Thread_capability const &)
 {
 	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
 	return Ram_dataspace_capability();

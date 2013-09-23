@@ -182,8 +182,8 @@ namespace Genode {
 
 			Signal_source_capability signal_source();
 			Signal_context_capability alloc_context(long imprint);
-			void free_context(Signal_context_capability context_cap);
-			void submit(Signal_context_capability context_cap, unsigned cnt);
+			void free_context(Signal_context_capability const &context_cap);
+			void submit(Signal_context_capability const &context_cap, unsigned cnt);
 
 
 			/**************************

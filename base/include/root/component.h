@@ -233,7 +233,7 @@ namespace Genode {
 				return _ep->manage(s);
 			}
 
-			void upgrade(Session_capability session, Root::Upgrade_args const &args)
+			void upgrade(Session_capability const &session, Root::Upgrade_args const &args)
 			{
 				if (!args.is_valid_string()) throw Root::Invalid_args();
 
@@ -244,7 +244,7 @@ namespace Genode {
 				_upgrade_session(s, args.string());
 			}
 
-			void close(Session_capability session)
+			void close(Session_capability const &session)
 			{
 				SESSION_TYPE * s =
 					dynamic_cast<SESSION_TYPE *>(_ep->lookup_and_lock(session));

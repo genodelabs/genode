@@ -64,7 +64,7 @@ namespace Genode {
 		 *
 		 * \param ds  dataspace capability as returned by alloc
 		 */
-		virtual void free(Ram_dataspace_capability ds) = 0;
+		virtual void free(Ram_dataspace_capability const &ds) = 0;
 
 		/**
 		 * Define reference account for the RAM session
@@ -77,7 +77,7 @@ namespace Genode {
 		 * account to transfer quota to and from. The reference account can
 		 * be defined only once.
 		 */
-		virtual int ref_account(Ram_session_capability ram_session) = 0;
+		virtual int ref_account(Ram_session_capability const &ram_session) = 0;
 
 		/**
 		 * Transfer quota to another RAM session
@@ -89,7 +89,7 @@ namespace Genode {
 		 * Quota can only be transfered if the specified RAM session is
 		 * either the reference account for this session or vice versa.
 		 */
-		virtual int transfer_quota(Ram_session_capability ram_session, size_t amount) = 0;
+		virtual int transfer_quota(Ram_session_capability const &ram_session, size_t amount) = 0;
 
 		/**
 		 * Return current quota limit
@@ -117,9 +117,10 @@ namespace Genode {
 		GENODE_RPC_THROW(Rpc_alloc, Ram_dataspace_capability, alloc,
 		                 GENODE_TYPE_LIST(Quota_exceeded, Out_of_metadata),
 		                 size_t, bool);
-		GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability);
-		GENODE_RPC(Rpc_ref_account, int, ref_account, Ram_session_capability);
-		GENODE_RPC(Rpc_transfer_quota, int, transfer_quota, Ram_session_capability, size_t);
+		GENODE_RPC(Rpc_free, void, free, Ram_dataspace_capability const &);
+		GENODE_RPC(Rpc_ref_account, int, ref_account, Ram_session_capability const &);
+		GENODE_RPC(Rpc_transfer_quota, int, transfer_quota,
+		           Ram_session_capability const &, size_t);
 		GENODE_RPC(Rpc_quota, size_t, quota);
 		GENODE_RPC(Rpc_used, size_t, used);
 

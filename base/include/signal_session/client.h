@@ -23,7 +23,7 @@ namespace Genode {
 
 	struct Signal_session_client : Rpc_client<Signal_session>
 	{
-		explicit Signal_session_client(Signal_session_capability session)
+		explicit Signal_session_client(Signal_session_capability const &session)
 		: Rpc_client<Signal_session>(session) { }
 
 		Signal_source_capability signal_source() {
@@ -32,10 +32,10 @@ namespace Genode {
 		Signal_context_capability alloc_context(long imprint) {
 			return call<Rpc_alloc_context>(imprint); }
 
-		void free_context(Signal_context_capability cap) {
+		void free_context(Signal_context_capability const &cap) {
 			call<Rpc_free_context>(cap); }
 
-		void submit(Signal_context_capability receiver, unsigned cnt = 1) {
+		void submit(Signal_context_capability const &receiver, unsigned cnt = 1) {
 			call<Rpc_submit>(receiver, cnt); }
 	};
 }

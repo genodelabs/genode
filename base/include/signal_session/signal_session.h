@@ -59,7 +59,7 @@ namespace Genode {
 		 *
 		 * \param cap  capability of signal-context to release
 		 */
-		virtual void free_context(Signal_context_capability cap) = 0;
+		virtual void free_context(Signal_context_capability const &cap) = 0;
 
 		/**
 		 * Submit signals to the specified signal context
@@ -76,7 +76,7 @@ namespace Genode {
 		 * a capability with a blocking interface to compromise the
 		 * nonblocking behaviour of the submit function.
 		 */
-		virtual void submit(Signal_context_capability context,
+		virtual void submit(Signal_context_capability const &context,
 		                    unsigned cnt = 1) = 0;
 
 
@@ -87,8 +87,8 @@ namespace Genode {
 		GENODE_RPC(Rpc_signal_source, Signal_source_capability, signal_source);
 		GENODE_RPC_THROW(Rpc_alloc_context, Signal_context_capability, alloc_context,
 		                 GENODE_TYPE_LIST(Out_of_metadata), long);
-		GENODE_RPC(Rpc_free_context, void, free_context, Signal_context_capability);
-		GENODE_RPC(Rpc_submit, void, submit, Signal_context_capability, unsigned);
+		GENODE_RPC(Rpc_free_context, void, free_context, Signal_context_capability const &);
+		GENODE_RPC(Rpc_submit, void, submit, Signal_context_capability const &, unsigned);
 
 		GENODE_RPC_INTERFACE(Rpc_submit, Rpc_signal_source, Rpc_alloc_context,
 		                     Rpc_free_context);

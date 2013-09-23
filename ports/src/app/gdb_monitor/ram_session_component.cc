@@ -35,19 +35,19 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 }
 
 
-void Ram_session_component::free(Ram_dataspace_capability ds_cap)
+void Ram_session_component::free(Ram_dataspace_capability const &ds_cap)
 {
 	_parent_ram_session.free(ds_cap);
 }
 
 
-int Ram_session_component::ref_account(Ram_session_capability ram_session_cap)
+int Ram_session_component::ref_account(Ram_session_capability const &ram_session_cap)
 {
 	return _parent_ram_session.ref_account(ram_session_cap);
 }
 
 
-int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap,
+int Ram_session_component::transfer_quota(Ram_session_capability const &ram_session_cap,
                                           size_t amount)
 {
 	return _parent_ram_session.transfer_quota(ram_session_cap, amount);

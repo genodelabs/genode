@@ -53,12 +53,13 @@ namespace Genode {
 		/**
 		 * Extend resource donation to an existing session
 		 */
-		virtual void upgrade(Session_capability session, Upgrade_args const &args) = 0;
+		virtual void upgrade(Session_capability const &session,
+		                     Upgrade_args const &args) = 0;
 
 		/**
 		 * Close session
 		 */
-		virtual void close(Session_capability session) = 0;
+		virtual void close(Session_capability const &session) = 0;
 
 
 		/*********************
@@ -70,8 +71,8 @@ namespace Genode {
 		                 Session_args const &, Affinity const &);
 		GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
 		                 GENODE_TYPE_LIST(Invalid_args),
-		                 Session_capability, Upgrade_args const &);
-		GENODE_RPC(Rpc_close, void, close, Session_capability);
+		                 Session_capability const &, Upgrade_args const &);
+		GENODE_RPC(Rpc_close, void, close, Session_capability const &);
 
 		GENODE_RPC_INTERFACE(Rpc_session, Rpc_upgrade, Rpc_close);
 	};

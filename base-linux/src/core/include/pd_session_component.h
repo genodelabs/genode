@@ -54,8 +54,8 @@ namespace Genode {
 			 ** PD session interface **
 			 **************************/
 
-			int bind_thread(Thread_capability);
-			int assign_parent(Parent_capability parent);
+			int bind_thread(Thread_capability const &);
+			int assign_parent(Parent_capability const &);
 
 
 			/******************************

@@ -35,7 +35,7 @@ class Genode::Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION
 {
 	private:
 
-		Capability<SESSION> _session;
+		Capability<SESSION> const &_session;
 
 	public:
 
@@ -44,7 +44,7 @@ class Genode::Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION
 		 *
 		 * \param session  session to be provided to the client
 		 */
-		Static_root(Capability<SESSION> session) : _session(session) { }
+		Static_root(Capability<SESSION> const &session) : _session(session) { }
 
 
 		/********************
@@ -56,9 +56,9 @@ class Genode::Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION
 			return _session;
 		}
 
-		void upgrade(Capability<Session>, Root::Upgrade_args const &) { }
+		void upgrade(Capability<Session> const &, Root::Upgrade_args const &) { }
 
-		void close(Capability<Session>) { }
+		void close(Capability<Session> const &) { }
 };
 
 #endif /* _INCLUDE__OS__STATIC_ROOT_H_ */

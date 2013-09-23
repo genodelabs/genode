@@ -79,7 +79,7 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 }
 
 
-void Platform_env::Local_parent::close(Session_capability session)
+void Platform_env::Local_parent::close(Session_capability const &session)
 {
 	/*
 	 * Handle non-local capabilities
@@ -98,7 +98,7 @@ void Platform_env::Local_parent::close(Session_capability session)
 }
 
 
-Platform_env::Local_parent::Local_parent(Parent_capability parent_cap,
+Platform_env::Local_parent::Local_parent(Parent_capability const &parent_cap,
                                          Emergency_ram_reserve &reserve)
 : Expanding_parent_client(parent_cap, reserve)
 { }

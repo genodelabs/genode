@@ -24,7 +24,7 @@
 using namespace Genode;
 
 
-int Pd_session_component::bind_thread(Thread_capability thread)
+int Pd_session_component::bind_thread(Thread_capability const &thread)
 {
 	Object_pool<Cpu_thread_component>::Guard cpu_thread(_thread_ep->lookup_and_lock(thread));
 	if (!cpu_thread) return -1;
@@ -43,7 +43,7 @@ int Pd_session_component::bind_thread(Thread_capability thread)
 }
 
 
-int Pd_session_component::assign_parent(Parent_capability parent)
+int Pd_session_component::assign_parent(Parent_capability const &parent)
 {
 	return _pd.assign_parent(parent);
 }

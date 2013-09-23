@@ -44,7 +44,7 @@ namespace Gdb_monitor {
 				  Dataspace_capability _ds_cap;
 
 				public:
-					Region(void *start, void *end, Dataspace_capability ds_cap, Genode::off_t offset)
+					Region(void *start, void *end, Dataspace_capability const &ds_cap, Genode::off_t offset)
 					: _start(start), _end(end), _offset(offset), _ds_cap(ds_cap) {}
 
 					bool higher(Region *e) { return e->_start > _start; }
@@ -92,12 +92,13 @@ namespace Gdb_monitor {
 			 ** Region manager session interface **
 			 **************************************/
 
-			Local_addr       attach        (Dataspace_capability, Genode::size_t,
-			                                Genode::off_t, bool, Local_addr, bool);
+			Local_addr       attach        (Dataspace_capability const &,
+			                                Genode::size_t, Genode::off_t,
+			                                bool, Local_addr, bool);
 			void             detach        (Local_addr);
-			Pager_capability add_client    (Thread_capability);
-			void             remove_client (Pager_capability);
-			void             fault_handler (Signal_context_capability);
+			Pager_capability add_client    (Thread_capability const &);
+			void             remove_client (Pager_capability const &);
+			void             fault_handler (Signal_context_capability const &);
 			State            state         ();
 			Dataspace_capability dataspace ();
 	};

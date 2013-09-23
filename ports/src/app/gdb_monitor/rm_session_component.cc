@@ -55,7 +55,7 @@ Rm_session_component::Region *Rm_session_component::find_region(void *local_addr
 
 
 Rm_session::Local_addr
-Rm_session_component::attach(Dataspace_capability ds_cap, size_t size,
+Rm_session_component::attach(Dataspace_capability const &ds_cap, size_t size,
                              off_t offset, bool use_local_addr,
                              Rm_session::Local_addr local_addr,
                              bool executable)
@@ -109,7 +109,7 @@ void Rm_session_component::detach(Rm_session::Local_addr local_addr)
 }
 
 
-Pager_capability Rm_session_component::add_client(Thread_capability thread)
+Pager_capability Rm_session_component::add_client(Thread_capability const &thread)
 {
 	if (verbose)
 		PDBG("add_client()");
@@ -118,7 +118,7 @@ Pager_capability Rm_session_component::add_client(Thread_capability thread)
 }
 
 
-void Rm_session_component::remove_client(Pager_capability pager)
+void Rm_session_component::remove_client(Pager_capability const &pager)
 {
 	if (verbose)
 		PDBG("remove_client()");
@@ -127,7 +127,7 @@ void Rm_session_component::remove_client(Pager_capability pager)
 }
 
 
-void Rm_session_component::fault_handler(Signal_context_capability handler)
+void Rm_session_component::fault_handler(Signal_context_capability const &handler)
 {
 	if (verbose)
 		PDBG("fault_handler()");

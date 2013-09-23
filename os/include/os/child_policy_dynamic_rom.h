@@ -128,7 +128,7 @@ namespace Genode {
 				return static_cap_cast<Rom_dataspace>(ds_cap);
 			}
 
-			void sigh(Signal_context_capability cap) { _sigh_cap = cap; }
+			void sigh(Signal_context_capability const &cap) { _sigh_cap = cap; }
 
 
 			/***********************
@@ -138,8 +138,8 @@ namespace Genode {
 			Session_capability session(const char *, Affinity const &) {
 				return _rom_session_cap; }
 
-			void upgrade(Session_capability, const char *) { }
-			void close(Session_capability) { }
+			void upgrade(Session_capability const &, const char *) { }
+			void close(Session_capability const &) { }
 
 
 			/*********************

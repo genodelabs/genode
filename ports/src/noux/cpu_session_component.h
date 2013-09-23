@@ -36,9 +36,10 @@ namespace Noux {
 	{
 		private:
 
-			bool const        _forked;
-			Cpu_connection    _cpu;
-			Thread_capability _main_thread;
+			bool const           _forked;
+			Cpu_connection       _cpu;
+			Thread_capability    _main_thread;
+			Dataspace_capability _trace_control;
 
 		public:
 
@@ -87,17 +88,17 @@ namespace Noux {
 				return _main_thread;
 			}
 
-			Ram_dataspace_capability utcb(Thread_capability thread) {
+			Ram_dataspace_capability utcb(Thread_capability const &thread) {
 				return _cpu.utcb(thread); }
 
-			void kill_thread(Thread_capability thread) {
+			void kill_thread(Thread_capability const &thread) {
 				_cpu.kill_thread(thread); }
 
-			int set_pager(Thread_capability thread,
-			              Pager_capability  pager) {
+			int set_pager(Thread_capability const &thread,
+			              Pager_capability  const &pager) {
 				return _cpu.set_pager(thread, pager); }
 
-			int start(Thread_capability thread, addr_t ip, addr_t sp)
+			int start(Thread_capability const &thread, addr_t ip, addr_t sp)
 			{
 				if (_forked) {
 					PINF("defer attempt to start thread at ip 0x%lx", ip);
@@ -106,44 +107,44 @@ namespace Noux {
 				return _cpu.start(thread, ip, sp);
 			}
 
-			void pause(Thread_capability thread) {
+			void pause(Thread_capability const &thread) {
 				_cpu.pause(thread); }
 
-			void resume(Thread_capability thread) {
+			void resume(Thread_capability const &thread) {
 				_cpu.resume(thread); }
 
-			void cancel_blocking(Thread_capability thread) {
+			void cancel_blocking(Thread_capability const &thread) {
 				_cpu.cancel_blocking(thread); }
 
-			Thread_state state(Thread_capability thread) {
+			Thread_state state(Thread_capability const &thread) {
 				return _cpu.state(thread); }
 
-			void state(Thread_capability thread, Thread_state const &state) {
+			void state(Thread_capability const &thread, Thread_state const &state) {
 				_cpu.state(thread, state); }
 
-			void exception_handler(Thread_capability         thread,
-			                       Signal_context_capability handler) {
+			void exception_handler(Thread_capability const &thread,
+			                       Signal_context_capability const &handler) {
 				_cpu.exception_handler(thread, handler); }
 
-			void single_step(Thread_capability thread, bool enable) {
+			void single_step(Thread_capability const &thread, bool enable) {
 				_cpu.single_step(thread, enable); }
 
 			Affinity::Space affinity_space() const {
 				return _cpu.affinity_space(); }
 
-			void affinity(Thread_capability thread, Affinity::Location location) {
+			void affinity(Thread_capability const &thread, Affinity::Location location) {
 				_cpu.affinity(thread, location); }
 
 			Dataspace_capability trace_control() {
 				return _cpu.trace_control(); }
 
-			unsigned trace_control_index(Thread_capability thread) {
+			unsigned trace_control_index(Thread_capability const &thread) {
 				return _cpu.trace_control_index(thread); }
 
-			Dataspace_capability trace_buffer(Thread_capability thread) {
+			Dataspace_capability trace_buffer(Thread_capability const &thread) {
 				return _cpu.trace_buffer(thread); }
 
-			Dataspace_capability trace_policy(Thread_capability thread) {
+			Dataspace_capability trace_policy(Thread_capability const &thread) {
 				return _cpu.trace_policy(thread); }
 	};
 }

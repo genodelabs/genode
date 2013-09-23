@@ -352,10 +352,10 @@ Pd_session_component::~Pd_session_component()
 }
 
 
-int Pd_session_component::bind_thread(Thread_capability) { return -1; }
+int Pd_session_component::bind_thread(Thread_capability const &) { return -1; }
 
 
-int Pd_session_component::assign_parent(Parent_capability parent)
+int Pd_session_component::assign_parent(Parent_capability const &parent)
 {
 	_parent = parent;
 	return 0;

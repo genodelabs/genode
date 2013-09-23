@@ -272,7 +272,7 @@ namespace Genode {
 					 ***********************************/
 
 					Native_capability sub_rm_session() { return _rm_session_cap; }
-					void sub_rm_session(Native_capability _cap) { _rm_session_cap = _cap; }
+					void sub_rm_session(Native_capability const &_cap) { _rm_session_cap = _cap; }
 			};
 
 
@@ -359,11 +359,12 @@ namespace Genode {
 			 ** Region manager session interface **
 			 **************************************/
 
-			Local_addr       attach        (Dataspace_capability, size_t, off_t, bool, Local_addr, bool);
+			Local_addr       attach        (Dataspace_capability const &, size_t,
+			                                off_t, bool, Local_addr, bool);
 			void             detach        (Local_addr);
-			Pager_capability add_client    (Thread_capability);
-			void             remove_client (Pager_capability);
-			void             fault_handler (Signal_context_capability handler);
+			Pager_capability add_client    (Thread_capability const &);
+			void             remove_client (Pager_capability const &);
+			void             fault_handler (Signal_context_capability const &);
 			State            state         ();
 			Dataspace_capability dataspace () { return _ds_cap; }
 	};

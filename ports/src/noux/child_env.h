@@ -50,7 +50,7 @@ namespace Noux {
 			 * Handle the case that the given binary needs an interpreter
 			 */
 			void _process_binary_name_and_args(const char *binary_name,
-			                                   Dataspace_capability binary_ds,
+			                                   Dataspace_capability const &binary_ds,
 			                                   const char *args)
 			{
 				bool interpretable = true;
@@ -144,7 +144,7 @@ namespace Noux {
 
 		public:
 
-			Child_env(const char *binary_name, Dataspace_capability binary_ds,
+			Child_env(const char *binary_name, Dataspace_capability const &binary_ds,
 			          const char *args, Sysio::Env env)
 			{
 				_process_env(env);

@@ -78,7 +78,7 @@ namespace Genode {
 			 * Announce service to the parent
 			 */
 			virtual void announce(Service_name const &service_name,
-			                      Root_capability service_root) = 0;
+			                      Root_capability const &service_root) = 0;
 
 
 			/**
@@ -165,13 +165,13 @@ namespace Genode {
 			 * The error case indicates that there is not enough unused quota on
 			 * the source side.
 			 */
-			virtual void upgrade(Session_capability to_session,
+			virtual void upgrade(Session_capability const &to_session,
 			                     Upgrade_args const &args) = 0;
 
 			/**
 			 * Close session
 			 */
-			virtual void close(Session_capability session) = 0;
+			virtual void close(Session_capability const &session) = 0;
 
 			/**
 			 * Provide thread_cap of main thread
@@ -232,14 +232,14 @@ namespace Genode {
 
 			GENODE_RPC(Rpc_exit, void, exit, int);
 			GENODE_RPC(Rpc_announce, void, announce,
-			           Service_name const &, Root_capability);
+			           Service_name const &, Root_capability const &);
 			GENODE_RPC_THROW(Rpc_session, Session_capability, session,
 			                 GENODE_TYPE_LIST(Service_denied, Quota_exceeded, Unavailable),
 			                 Service_name const &, Session_args const &, Affinity const &);
 			GENODE_RPC_THROW(Rpc_upgrade, void, upgrade,
 			                 GENODE_TYPE_LIST(Quota_exceeded),
-			                 Session_capability, Upgrade_args const &);
-			GENODE_RPC(Rpc_close, void, close, Session_capability);
+			                 Session_capability const &, Upgrade_args const &);
+			GENODE_RPC(Rpc_close, void, close, Session_capability const &);
 			GENODE_RPC(Rpc_main_thread, Thread_capability, main_thread_cap);
 			GENODE_RPC(Rpc_resource_avail_sigh, void, resource_avail_sigh,
 			           Signal_context_capability);

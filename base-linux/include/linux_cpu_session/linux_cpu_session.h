@@ -25,7 +25,7 @@ namespace Genode {
 		/**
 		 * Register Linux PID and TID of the specified thread
 		 */
-		virtual void thread_id(Thread_capability, int pid, int tid) = 0;
+		virtual void thread_id(Thread_capability const &, int pid, int tid) = 0;
 
 		/*
 		 * If a thread plays the role of an entrypoint, core creates a bound
@@ -41,7 +41,7 @@ namespace Genode {
 		 * exclusively by the server for receiving incoming requests. It should
 		 * never leave the server process.
 		 */
-		virtual Untyped_capability server_sd(Thread_capability thread) = 0;
+		virtual Untyped_capability server_sd(Thread_capability const &) = 0;
 
 		/**
 		 * Request client-side socket descriptor
@@ -51,16 +51,16 @@ namespace Genode {
 		 * In contrast to 'server_sd', the 'client_sd' is expected to be passed
 		 * around via capability delegations.
 		 */
-		virtual Untyped_capability client_sd(Thread_capability thread) = 0;
+		virtual Untyped_capability client_sd(Thread_capability const &) = 0;
 
 
 		/*********************
 		 ** RPC declaration **
 		 *********************/
 
-		GENODE_RPC(Rpc_thread_id, void, thread_id, Thread_capability, int, int);
-		GENODE_RPC(Rpc_server_sd, Untyped_capability, server_sd, Thread_capability);
-		GENODE_RPC(Rpc_client_sd, Untyped_capability, client_sd, Thread_capability);
+		GENODE_RPC(Rpc_thread_id, void, thread_id, Thread_capability const &, int, int);
+		GENODE_RPC(Rpc_server_sd, Untyped_capability, server_sd, Thread_capability const &);
+		GENODE_RPC(Rpc_client_sd, Untyped_capability, client_sd, Thread_capability const &);
 
 		GENODE_RPC_INTERFACE_INHERIT(Cpu_session,
 		                             Rpc_thread_id, Rpc_server_sd, Rpc_client_sd);

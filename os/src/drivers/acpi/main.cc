@@ -98,10 +98,10 @@ namespace Irq {
 			/**
 			 * Close session at parent
 			 */
-			void close(Genode::Session_capability session) {
+			void close(Genode::Session_capability const &session) {
 				Genode::env()->parent()->close(session); }
 
-			void upgrade(Genode::Session_capability session, Upgrade_args const &args) { }
+			void upgrade(Genode::Session_capability const &session, Upgrade_args const &args) { }
 	};
 }
 
@@ -144,10 +144,10 @@ namespace Pci {
 				}
 			}
 
-			void close(Genode::Session_capability session) {
+			void close(Genode::Session_capability const &session) {
 				Genode::Root_client(_pci_provider.root()).close(session); }
 
-			void upgrade(Genode::Session_capability, Upgrade_args const &) { }
+			void upgrade(Genode::Session_capability const &, Upgrade_args const &) { }
 	};
 }
 
@@ -209,7 +209,7 @@ class Pci_policy : public Genode::Slave_policy, public Pci::Provider
 		{ }
 
 		bool announce_service(const char             *service_name,
-		                      Genode::Root_capability root,
+		                      Genode::Root_capability const &root,
 		                      Genode::Allocator      *alloc,
 		                      Genode::Server         *server)
 		{

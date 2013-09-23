@@ -26,7 +26,7 @@ namespace Fiasco {
 
 static Genode::Avl_tree<Genode::Cpu_session_irqs> _irq_tree;
 
-Genode::Ram_dataspace_capability Genode::Cpu_session_component::utcb(Genode::Thread_capability thread_cap)
+Genode::Ram_dataspace_capability Genode::Cpu_session_component::utcb(Genode::Thread_capability const &thread_cap)
 {
 	using namespace Genode;
 	PERR("%s: Not implemented", __PRETTY_FUNCTION__);
@@ -93,7 +93,7 @@ Genode::Native_capability Genode::Cpu_session_component::alloc_irq()
 }
 
 
-void Genode::Cpu_session_component::single_step(Genode::Thread_capability thread_cap, bool enable)
+void Genode::Cpu_session_component::single_step(Genode::Thread_capability const &thread_cap, bool enable)
 {
 	using namespace Genode;
 

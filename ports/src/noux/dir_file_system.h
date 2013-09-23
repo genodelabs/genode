@@ -186,7 +186,7 @@ namespace Noux {
 				return Dataspace_capability();
 			}
 
-			void release(char const *path, Dataspace_capability ds_cap)
+			void release(char const *path, Dataspace_capability const &ds_cap)
 			{
 				path = _sub_path(path);
 				if (!path)

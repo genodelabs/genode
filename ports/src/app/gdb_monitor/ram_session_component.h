@@ -44,9 +44,9 @@ class Ram_session_component : public Rpc_object<Ram_session>
 		 ***************************/
 
 		Ram_dataspace_capability alloc(Genode::size_t, bool);
-		void free(Ram_dataspace_capability);
-		int ref_account(Ram_session_capability);
-		int transfer_quota(Ram_session_capability, Genode::size_t);
+		void free(Ram_dataspace_capability const &);
+		int ref_account(Ram_session_capability const &);
+		int transfer_quota(Ram_session_capability const &, Genode::size_t);
 		Genode::size_t quota();
 		Genode::size_t used();
 };

@@ -180,26 +180,25 @@ namespace Genode {
 			 ***************************/
 
 			Thread_capability create_thread(Name const &, addr_t);
-			Ram_dataspace_capability utcb(Thread_capability thread);
-			void kill_thread(Thread_capability);
-			Thread_capability first();
-			Thread_capability next(Thread_capability);
-			int set_pager(Thread_capability, Pager_capability);
-			int start(Thread_capability, addr_t, addr_t);
-			void pause(Thread_capability thread_cap);
-			void resume(Thread_capability thread_cap);
-			void single_step(Thread_capability thread_cap, bool enable);
-			void cancel_blocking(Thread_capability);
+			Ram_dataspace_capability utcb(Thread_capability const &);
+			void kill_thread(Thread_capability const &);
+			int set_pager(Thread_capability const &, Pager_capability const &);
+			int start(Thread_capability const &, addr_t, addr_t);
+			void pause(Thread_capability const &thread_cap);
+			void resume(Thread_capability const &thread_cap);
+			void single_step(Thread_capability const &thread_cap, bool enable);
+			void cancel_blocking(Thread_capability const &);
 			int name(Thread_capability, char *, size_t);
-			Thread_state state(Thread_capability);
-			void state(Thread_capability, Thread_state const &);
-			void exception_handler(Thread_capability, Signal_context_capability);
+			Thread_state state(Thread_capability const &);
+			void state(Thread_capability const &, Thread_state const &);
+			void exception_handler(Thread_capability const &,
+			                       Signal_context_capability const &);
 			Affinity::Space affinity_space() const;
-			void affinity(Thread_capability, Affinity::Location);
+			void affinity(Thread_capability const &, Affinity::Location);
 			Dataspace_capability trace_control();
-			unsigned trace_control_index(Thread_capability);
-			Dataspace_capability trace_buffer(Thread_capability);
-			Dataspace_capability trace_policy(Thread_capability);
+			unsigned trace_control_index(Thread_capability const &);
+			Dataspace_capability trace_buffer(Thread_capability const &);
+			Dataspace_capability trace_policy(Thread_capability const &);
 
 
 			/***********************************

@@ -26,12 +26,12 @@ namespace Noux {
 	{
 		private:
 
-			Rpc_entrypoint         &_ep;
-			Cpu_session_capability  _cap;
+			Rpc_entrypoint               &_ep;
+			Cpu_session_capability const  _cap;
 
 		public:
 
-			Local_cpu_service(Rpc_entrypoint &ep, Cpu_session_capability cap)
+			Local_cpu_service(Rpc_entrypoint &ep, Cpu_session_capability const &cap)
 			:
 				Service(Cpu_session::service_name()), _ep(ep),
 				_cap(cap)
@@ -43,12 +43,12 @@ namespace Noux {
 				return Genode::Session_capability();
 			}
 
-			void upgrade(Genode::Session_capability, const char *args)
+			void upgrade(Genode::Session_capability const &, const char *args)
 			{
 				env()->parent()->upgrade(_cap, args);
 			}
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability const &session)
 			{
 				PDBG("Implement me!");
 			}

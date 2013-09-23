@@ -135,7 +135,7 @@ namespace Init {
 				/**
 				 * Constructor
 				 */
-				Local_rom_session_component(Genode::Dataspace_capability ds)
+				Local_rom_session_component(Genode::Dataspace_capability const &ds)
 				: ds_cap(ds) { }
 
 
@@ -146,7 +146,7 @@ namespace Init {
 				Genode::Rom_dataspace_capability dataspace() {
 					return Genode::static_cap_cast<Genode::Rom_dataspace>(ds_cap); }
 
-				void sigh(Genode::Signal_context_capability) { }
+				void sigh(Genode::Signal_context_capability const &) { }
 
 			} _local_rom_session;
 
@@ -158,8 +158,8 @@ namespace Init {
 
 			struct Local_rom_service : public Genode::Service
 			{
-				Genode::Rom_session_capability _rom_cap;
-				bool                           _valid;
+				Genode::Rom_session_capability const _rom_cap;
+				bool                                 _valid;
 
 				/**
 				 * Constructor
@@ -168,7 +168,8 @@ namespace Init {
 				 * \param valid    true if local rom service is backed by a
 				 *                 valid dataspace
 				 */
-				Local_rom_service(Genode::Rom_session_capability rom_cap, bool valid)
+				Local_rom_service(Genode::Rom_session_capability const &rom_cap,
+				                  bool valid)
 				: Genode::Service("ROM"), _rom_cap(rom_cap), _valid(valid) { }
 
 				Genode::Session_capability session(char const * /*args*/,
@@ -180,8 +181,8 @@ namespace Init {
 					return _rom_cap;
 				}
 
-				void upgrade(Genode::Session_capability, const char * /*args*/) { }
-				void close(Genode::Session_capability) { }
+				void upgrade(Genode::Session_capability const &, const char * /*args*/) { }
+				void close(Genode::Session_capability const &) { }
 
 			} _local_rom_service;
 
@@ -191,7 +192,7 @@ namespace Init {
 			 * Constructor
 			 */
 			Child_policy_provide_rom_file(const char                  *filename,
-			                              Genode::Dataspace_capability ds_cap,
+			                              Genode::Dataspace_capability const &ds_cap,
 			                              Genode::Rpc_entrypoint      *ep)
 			:
 				_local_rom_session(ds_cap), _ep(ep),
@@ -266,7 +267,7 @@ namespace Init {
 			Genode::Server                    *_server;
 			Genode::Service_registry          *_parent_services;
 			Genode::Service_registry          *_child_services;
-			Genode::Dataspace_capability       _config_ds;
+			Genode::Dataspace_capability const _config_ds;
 			Genode::Rpc_entrypoint            *_parent_entrypoint;
 			Child_policy_enforce_labeling      _labeling_policy;
 			Child_policy_handle_cpu_priorities _priority_policy;
@@ -282,8 +283,8 @@ namespace Init {
 			                         Genode::Server              *server,
 			                         Genode::Service_registry    *parent_services,
 			                         Genode::Service_registry    *child_services,
-			                         Genode::Dataspace_capability config_ds,
-			                         Genode::Dataspace_capability binary_ds,
+			                         Genode::Dataspace_capability const &config_ds,
+			                         Genode::Dataspace_capability const &binary_ds,
 			                         long                         prio_levels_log2,
 			                         long                         priority,
 			                         char const                  *root,
@@ -338,7 +339,7 @@ namespace Init {
 			}
 
 			bool announce_service(const char              *service_name,
-			                      Genode::Root_capability  root,
+			                      Genode::Root_capability const &root,
 			                      Genode::Allocator       *alloc,
 			                      Genode::Server          * /*server*/)
 			{

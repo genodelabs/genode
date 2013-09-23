@@ -38,10 +38,10 @@ namespace Genode {
 
 struct Genode::Expanding_rm_session_client : Upgradeable_client<Genode::Rm_session_client>
 {
-	Expanding_rm_session_client(Rm_session_capability cap)
+	Expanding_rm_session_client(Rm_session_capability const &cap)
 	: Upgradeable_client<Genode::Rm_session_client>(cap) { }
 
-	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
+	Local_addr attach(Dataspace_capability const &ds, size_t size, off_t offset,
 	                  bool use_local_addr, Local_addr local_addr,
 	                  bool executable)
 	{
@@ -54,7 +54,7 @@ struct Genode::Expanding_rm_session_client : Upgradeable_client<Genode::Rm_sessi
 			[&] () { upgrade_ram(8*1024); });
 	}
 
-	Pager_capability add_client(Thread_capability thread)
+	Pager_capability add_client(Thread_capability const &thread)
 	{
 		return retry<Rm_session::Out_of_metadata>(
 			[&] () { return Rm_session_client::add_client(thread); },

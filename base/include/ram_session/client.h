@@ -22,18 +22,18 @@ namespace Genode {
 
 	struct Ram_session_client : Rpc_client<Ram_session>
 	{
-		explicit Ram_session_client(Ram_session_capability session)
+		explicit Ram_session_client(Ram_session_capability const &session)
 		: Rpc_client<Ram_session>(session) { }
 
 		Ram_dataspace_capability alloc(size_t size, bool cached = true) {
 			return call<Rpc_alloc>(size, cached); }
 
-		void free(Ram_dataspace_capability ds) { call<Rpc_free>(ds); }
+		void free(Ram_dataspace_capability const &ds) { call<Rpc_free>(ds); }
 
-		int ref_account(Ram_session_capability ram_session) {
+		int ref_account(Ram_session_capability const &ram_session) {
 			return call<Rpc_ref_account>(ram_session); }
 
-		int transfer_quota(Ram_session_capability ram_session, size_t amount) {
+		int transfer_quota(Ram_session_capability const &ram_session, size_t amount) {
 			return call<Rpc_transfer_quota>(ram_session, amount); }
 
 		size_t quota() { return call<Rpc_quota>(); }

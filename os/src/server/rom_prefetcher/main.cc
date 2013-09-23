@@ -25,7 +25,7 @@
 volatile int dummy;
 
 
-static void prefetch_dataspace(Genode::Dataspace_capability ds)
+static void prefetch_dataspace(Genode::Dataspace_capability const &ds)
 {
 	char *mapped = Genode::env()->rm_session()->attach(ds);
 	Genode::size_t size = Genode::Dataspace_client(ds).size();
@@ -68,7 +68,7 @@ class Rom_session_component : public Genode::Rpc_object<Genode::Rom_session>
 		Genode::Rom_dataspace_capability dataspace() {
 			return _rom.dataspace(); }
 
-		void sigh(Genode::Signal_context_capability) { }
+		void sigh(Genode::Signal_context_capability const &) { }
 };
 
 class Rom_root : public Genode::Root_component<Rom_session_component>

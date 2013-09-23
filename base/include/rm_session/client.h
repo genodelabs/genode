@@ -21,10 +21,10 @@ namespace Genode {
 
 	struct Rm_session_client : Rpc_client<Rm_session>
 	{
-		explicit Rm_session_client(Rm_session_capability session)
+		explicit Rm_session_client(Rm_session_capability const &session)
 		: Rpc_client<Rm_session>(session) { }
 
-		Local_addr attach(Dataspace_capability ds, size_t size = 0,
+		Local_addr attach(Dataspace_capability const &ds, size_t size = 0,
 		                  off_t offset = 0, bool use_local_addr = false,
 		                  Local_addr local_addr = (void *)0,
 		                  bool executable = false)
@@ -37,13 +37,13 @@ namespace Genode {
 		void detach(Local_addr local_addr) {
 			call<Rpc_detach>(local_addr); }
 
-		Pager_capability add_client(Thread_capability thread) {
+		Pager_capability add_client(Thread_capability const &thread) {
 			return call<Rpc_add_client>(thread); }
 
-		void remove_client(Pager_capability pager) {
+		void remove_client(Pager_capability const &pager) {
 			call<Rpc_remove_client>(pager); }
 
-		void fault_handler(Signal_context_capability handler) {
+		void fault_handler(Signal_context_capability const &handler) {
 			call<Rpc_fault_handler>(handler); }
 
 		State state() {

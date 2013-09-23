@@ -101,7 +101,7 @@ namespace Loader {
 					return _parent_rom_service.session(args, affinity);
 				}
 
-				void close(Session_capability session)
+				void close(Session_capability const &session)
 				{
 					Lock::Guard guard(_lock);
 
@@ -118,7 +118,7 @@ namespace Loader {
 					_parent_rom_service.close(session);
 				}
 
-				void upgrade(Session_capability session, const char *) { }
+				void upgrade(Session_capability const &session, const char *) { }
 			};
 
 			/**
@@ -130,12 +130,12 @@ namespace Loader {
 
 				Intercepted_parent_service(char const *name) : Service(name) { }
 
-				void close(Session_capability session)
+				void close(Session_capability const &session)
 				{
 					env()->parent()->close(session);
 				}
 
-				void upgrade(Session_capability session, const char *) { }
+				void upgrade(Session_capability const &session, const char *) { }
 			};
 
 			/**
@@ -210,7 +210,7 @@ namespace Loader {
 					return ep.manage(open_session);
 				}
 
-				void upgrade(Genode::Session_capability session, const char *) { }
+				void upgrade(Genode::Session_capability const &session, const char *) { }
 			};
 
 			enum { STACK_SIZE = 2*4096 };

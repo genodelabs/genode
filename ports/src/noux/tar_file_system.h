@@ -429,7 +429,7 @@ namespace Noux {
 				return Dataspace_capability();
 			}
 
-			void release(char const *, Dataspace_capability ds_cap)
+			void release(char const *, Dataspace_capability const & ds_cap)
 			{
 				env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds_cap));
 			}

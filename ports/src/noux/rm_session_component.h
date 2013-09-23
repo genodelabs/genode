@@ -36,13 +36,13 @@ namespace Noux {
 			struct Region : List<Region>::Element, Dataspace_user
 			{
 				Rm_session_component &rm;
-				Dataspace_capability  ds;
+				Dataspace_capability const ds;
 				size_t                size;
 				off_t                 offset;
 				addr_t                local_addr;
 
 				Region(Rm_session_component &rm,
-				       Dataspace_capability ds, size_t size,
+				       Dataspace_capability const &ds, size_t size,
 				       off_t offset, addr_t local_addr)
 				:
 					rm(rm), ds(ds), size(size), offset(offset),
@@ -111,8 +111,8 @@ namespace Noux {
 			 * \param ep           entrypoint used to serve the RPC interface
 			 *                     of forked managed dataspaces
 			 */
-			void replay(Ram_session_capability dst_ram,
-			            Rm_session_capability  dst_rm,
+			void replay(Ram_session_capability const &dst_ram,
+			            Rm_session_capability  const &dst_rm,
 			            Dataspace_registry    &ds_registry,
 			            Rpc_entrypoint        &ep)
 			{
@@ -210,7 +210,7 @@ namespace Noux {
 			 ** RM session interface **
 			 **************************/
 
-			Local_addr attach(Dataspace_capability ds,
+			Local_addr attach(Dataspace_capability const &ds,
 			                  size_t size = 0, off_t offset = 0,
 			                  bool use_local_addr = false,
 			                  Local_addr local_addr = (addr_t)0,
@@ -283,17 +283,17 @@ namespace Noux {
 
 			}
 
-			Pager_capability add_client(Thread_capability thread)
+			Pager_capability add_client(Thread_capability const &thread)
 			{
 				return _rm.add_client(thread);
 			}
 
-			void remove_client(Pager_capability pager)
+			void remove_client(Pager_capability const &pager)
 			{
 				_rm.remove_client(pager);
 			}
 
-			void fault_handler(Signal_context_capability handler)
+			void fault_handler(Signal_context_capability const &handler)
 			{
 				return _rm.fault_handler(handler);
 			}

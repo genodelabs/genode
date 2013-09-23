@@ -116,7 +116,7 @@ namespace Noux {
 			Allocator                 *_alloc;
 			Destruct_queue            &_destruct_queue;
 			Destruct_dispatcher        _destruct_dispatcher;
-			Signal_context_capability  _destruct_context_cap;
+			Signal_context_capability  const _destruct_context_cap;
 
 			Cap_session * const _cap_session;
 
@@ -186,7 +186,7 @@ namespace Noux {
 				Dataspace_capability const _binary_ds;
 
 				Elf(char const * const binary_name, Dir_file_system * root_dir,
-				    Dataspace_capability binary_ds)
+				    Dataspace_capability const &binary_ds)
 				:
 					_root_dir(root_dir), _binary_ds(binary_ds)
 				{

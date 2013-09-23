@@ -21,7 +21,7 @@ using namespace Genode;
 
 
 Native_capability
-Cpu_session_component::pause_sync(Thread_capability thread_cap)
+Cpu_session_component::pause_sync(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard
 		thread(_thread_ep->lookup_and_lock(thread_cap));
@@ -33,7 +33,7 @@ Cpu_session_component::pause_sync(Thread_capability thread_cap)
 
 
 void
-Cpu_session_component::single_step(Thread_capability thread_cap, bool enable)
+Cpu_session_component::single_step(Thread_capability const &thread_cap, bool enable)
 {
 	using namespace Genode;
 

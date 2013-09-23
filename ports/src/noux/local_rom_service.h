@@ -54,9 +54,9 @@ namespace Noux {
 				return _ep.manage(rom);
 			}
 
-			void upgrade(Genode::Session_capability, const char *args) { }
+			void upgrade(Genode::Session_capability const &, const char *args) { }
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability const &session)
 			{
 				/* acquire locked session object */
 				Rom_session_component *rom_session =

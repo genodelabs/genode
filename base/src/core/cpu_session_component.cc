@@ -82,7 +82,7 @@ void Cpu_session_component::_unsynchronized_kill_thread(Cpu_thread_component *th
 }
 
 
-void Cpu_session_component::kill_thread(Thread_capability thread_cap)
+void Cpu_session_component::kill_thread(Thread_capability const &thread_cap)
 {
 	Cpu_thread_component * thread =
 		dynamic_cast<Cpu_thread_component *>(_thread_ep->lookup_and_lock(thread_cap));
@@ -93,8 +93,8 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 }
 
 
-int Cpu_session_component::set_pager(Thread_capability thread_cap,
-                                     Pager_capability  pager_cap)
+int Cpu_session_component::set_pager(Thread_capability const &thread_cap,
+                                     Pager_capability const & pager_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return -1;
@@ -110,7 +110,7 @@ int Cpu_session_component::set_pager(Thread_capability thread_cap,
 }
 
 
-int Cpu_session_component::start(Thread_capability thread_cap,
+int Cpu_session_component::start(Thread_capability const &thread_cap,
                                  addr_t ip, addr_t sp)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
@@ -133,7 +133,7 @@ int Cpu_session_component::start(Thread_capability thread_cap,
 }
 
 
-void Cpu_session_component::pause(Thread_capability thread_cap)
+void Cpu_session_component::pause(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
@@ -142,7 +142,7 @@ void Cpu_session_component::pause(Thread_capability thread_cap)
 }
 
 
-void Cpu_session_component::resume(Thread_capability thread_cap)
+void Cpu_session_component::resume(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
@@ -151,7 +151,7 @@ void Cpu_session_component::resume(Thread_capability thread_cap)
 }
 
 
-void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
+void Cpu_session_component::cancel_blocking(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return;
@@ -160,7 +160,7 @@ void Cpu_session_component::cancel_blocking(Thread_capability thread_cap)
 }
 
 
-Thread_state Cpu_session_component::state(Thread_capability thread_cap)
+Thread_state Cpu_session_component::state(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) throw State_access_failed();
@@ -169,7 +169,7 @@ Thread_state Cpu_session_component::state(Thread_capability thread_cap)
 }
 
 
-void Cpu_session_component::state(Thread_capability thread_cap,
+void Cpu_session_component::state(Thread_capability const &thread_cap,
                                   Thread_state const &state)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
@@ -180,8 +180,8 @@ void Cpu_session_component::state(Thread_capability thread_cap,
 
 
 void
-Cpu_session_component::exception_handler(Thread_capability         thread_cap,
-                                         Signal_context_capability sigh_cap)
+Cpu_session_component::exception_handler(Thread_capability const &thread_cap,
+                                         Signal_context_capability const &sigh_cap)
 {
 	/*
 	 * By specifying an invalid thread capability, the caller sets the default
@@ -192,18 +192,17 @@ Cpu_session_component::exception_handler(Thread_capability         thread_cap,
 		return;
 	}
 
+	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
+	if (!thread) return;
+
 	/*
 	 * If an invalid signal handler is specified for a valid thread, we revert
 	 * the signal handler to the CPU session's default signal handler.
 	 */
-	if (!sigh_cap.valid()) {
-		sigh_cap = _default_exception_handler;
-	}
-
-	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread) return;
-
-	thread->sigh(sigh_cap);
+	if (sigh_cap.valid())
+		thread->sigh(sigh_cap);
+	else
+		thread->sigh(_default_exception_handler);
 }
 
 
@@ -217,7 +216,7 @@ Affinity::Space Cpu_session_component::affinity_space() const
 }
 
 
-void Cpu_session_component::affinity(Thread_capability  thread_cap,
+void Cpu_session_component::affinity(Thread_capability const &thread_cap,
                                      Affinity::Location location)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
@@ -246,7 +245,7 @@ Dataspace_capability Cpu_session_component::trace_control()
 }
 
 
-unsigned Cpu_session_component::trace_control_index(Thread_capability thread_cap)
+unsigned Cpu_session_component::trace_control_index(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return 0;
@@ -255,7 +254,7 @@ unsigned Cpu_session_component::trace_control_index(Thread_capability thread_cap
 }
 
 
-Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability thread_cap)
+Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return Dataspace_capability();
@@ -264,7 +263,7 @@ Dataspace_capability Cpu_session_component::trace_buffer(Thread_capability threa
 }
 
 
-Dataspace_capability Cpu_session_component::trace_policy(Thread_capability thread_cap)
+Dataspace_capability Cpu_session_component::trace_policy(Thread_capability const &thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard thread(_thread_ep->lookup_and_lock(thread_cap));
 	if (!thread) return Dataspace_capability();

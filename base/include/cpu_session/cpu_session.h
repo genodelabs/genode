@@ -77,14 +77,14 @@ namespace Genode {
 			/**
 			 * Get dataspace of the UTCB that is used by the specified thread
 			 */
-			virtual Ram_dataspace_capability utcb(Thread_capability thread) = 0;
+			virtual Ram_dataspace_capability utcb(Thread_capability const &thread) = 0;
 
 			/**
 			 * Kill an existing thread
 			 *
 			 * \param thread  capability of the thread to kill
 			 */
-			virtual void kill_thread(Thread_capability thread) = 0;
+			virtual void kill_thread(Thread_capability const &thread) = 0;
 
 			/**
 			 * Set paging capabilities for thread
@@ -92,8 +92,8 @@ namespace Genode {
 			 * \param thread  thread to configure
 			 * \param pager   capability used to propagate page faults
 			 */
-			virtual int set_pager(Thread_capability thread,
-			                      Pager_capability  pager) = 0;
+			virtual int set_pager(Thread_capability const &thread,
+			                      Pager_capability  const &pager) = 0;
 
 			/**
 			 * Modify instruction and stack pointer of thread - start the
@@ -105,7 +105,8 @@ namespace Genode {
 			 *
 			 * \return        0 on success
 			 */
-			virtual int start(Thread_capability thread, addr_t ip, addr_t sp) = 0;
+			virtual int start(Thread_capability const &thread, addr_t ip,
+			                  addr_t sp) = 0;
 
 			/**
 			 * Pause the specified thread
@@ -113,19 +114,19 @@ namespace Genode {
 			 * After calling this function, the execution of the thread can be
 			 * continued by calling 'resume'.
 			 */
-			virtual void pause(Thread_capability thread) = 0;
+			virtual void pause(Thread_capability const &thread) = 0;
 
 			/**
 			 * Resume the specified thread
 			 */
-			virtual void resume(Thread_capability thread) = 0;
+			virtual void resume(Thread_capability const &thread) = 0;
 
 			/**
 			 * Cancel a currently blocking operation
 			 *
 			 * \param thread  thread to unblock
 			 */
-			virtual void cancel_blocking(Thread_capability thread) = 0;
+			virtual void cancel_blocking(Thread_capability const &thread) = 0;
 
 			/**
 			 * Get the current state of a specific thread
@@ -134,7 +135,7 @@ namespace Genode {
 			 * \return        state of the targeted thread
 			 * \throw         State_access_failed
 			 */
-			virtual Thread_state state(Thread_capability thread) = 0;
+			virtual Thread_state state(Thread_capability const &thread) = 0;
 
 			/**
 			 * Override the current state of a specific thread
@@ -143,7 +144,7 @@ namespace Genode {
 			 * \param state   state that shall be applied
 			 * \throw         State_access_failed
 			 */
-			virtual void state(Thread_capability thread,
+			virtual void state(Thread_capability const &thread,
 			                   Thread_state const &state) = 0;
 
 			/**
@@ -159,8 +160,8 @@ namespace Genode {
 			 * a SIGCHLD. On other platforms, this exception is delivered on
 			 * the occurrence of CPU exceptions such as division by zero.
 			 */
-			virtual void exception_handler(Thread_capability         thread,
-			                               Signal_context_capability handler) = 0;
+			virtual void exception_handler(Thread_capability const &thread,
+			                               Signal_context_capability const &handler) = 0;
 
 			/**
 			 * Enable/disable single stepping for specified thread.
@@ -171,7 +172,7 @@ namespace Genode {
 			 * \param thread  thread to set into single step mode
 			 * \param enable  true = enable single-step mode; false = disable
 			 */
-			virtual void single_step(Thread_capability, bool) {}
+			virtual void single_step(Thread_capability const &, bool) {}
 
 			/**
 			 * Return affinity space of CPU nodes available to the CPU session
@@ -189,7 +190,7 @@ namespace Genode {
 			 * allow a CPU service to balance the load of threads among
 			 * multiple CPUs.
 			 */
-			virtual void affinity(Thread_capability thread,
+			virtual void affinity(Thread_capability const &thread,
 			                      Affinity::Location affinity) = 0;
 
 			/**
@@ -227,7 +228,7 @@ namespace Genode {
 			 * all threads of the CPU session. Each thread gets assigned a
 			 * different index by the CPU service.
 			 */
-			virtual unsigned trace_control_index(Thread_capability thread) = 0;
+			virtual unsigned trace_control_index(Thread_capability const &thread) = 0;
 
 			/**
 			 * Request trace buffer for the specified thread
@@ -235,7 +236,7 @@ namespace Genode {
 			 * The trace buffer is not accounted to the CPU session. It is
 			 * owned by a TRACE session.
 			 */
-			virtual Dataspace_capability trace_buffer(Thread_capability thread) = 0;
+			virtual Dataspace_capability trace_buffer(Thread_capability const &thread) = 0;
 
 			/**
 			 * Request trace policy
@@ -243,7 +244,7 @@ namespace Genode {
 			 * The trace policy buffer is not accounted to the CPU session. It
 			 * is owned by a TRACE session.
 			 */
-			virtual Dataspace_capability trace_policy(Thread_capability thread) = 0;
+			virtual Dataspace_capability trace_policy(Thread_capability const &thread) = 0;
 
 
 			/*********************
@@ -253,28 +254,37 @@ namespace Genode {
 			GENODE_RPC_THROW(Rpc_create_thread, Thread_capability, create_thread,
 			                 GENODE_TYPE_LIST(Thread_creation_failed, Out_of_metadata),
 			                 Name const &, addr_t);
-			GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb, Thread_capability);
-			GENODE_RPC(Rpc_kill_thread, void, kill_thread, Thread_capability);
-			GENODE_RPC(Rpc_set_pager, int, set_pager, Thread_capability, Pager_capability);
-			GENODE_RPC(Rpc_start, int, start, Thread_capability, addr_t, addr_t);
-			GENODE_RPC(Rpc_pause, void, pause, Thread_capability);
-			GENODE_RPC(Rpc_resume, void, resume, Thread_capability);
-			GENODE_RPC(Rpc_cancel_blocking, void, cancel_blocking, Thread_capability);
+			GENODE_RPC(Rpc_utcb, Ram_dataspace_capability, utcb,
+			           Thread_capability const &);
+			GENODE_RPC(Rpc_kill_thread, void, kill_thread,
+			           Thread_capability const &);
+			GENODE_RPC(Rpc_set_pager, int, set_pager, Thread_capability const &,
+			           Pager_capability const &);
+			GENODE_RPC(Rpc_start, int, start, Thread_capability const &,
+			           addr_t, addr_t);
+			GENODE_RPC(Rpc_pause, void, pause, Thread_capability const &);
+			GENODE_RPC(Rpc_resume, void, resume, Thread_capability const &);
+			GENODE_RPC(Rpc_cancel_blocking, void, cancel_blocking,
+			           Thread_capability const &);
 			GENODE_RPC_THROW(Rpc_get_state, Thread_state, state,
 			                 GENODE_TYPE_LIST(State_access_failed),
-			                 Thread_capability);
+			                 Thread_capability const &);
 			GENODE_RPC_THROW(Rpc_set_state, void, state,
 			                 GENODE_TYPE_LIST(State_access_failed),
-			                 Thread_capability, Thread_state const &);
+			                 Thread_capability const &, Thread_state const &);
 			GENODE_RPC(Rpc_exception_handler, void, exception_handler,
-			                                  Thread_capability, Signal_context_capability);
-			GENODE_RPC(Rpc_single_step, void, single_step, Thread_capability, bool);
+			           Thread_capability const &, Signal_context_capability const &);
+			GENODE_RPC(Rpc_single_step, void, single_step, Thread_capability const &, bool);
 			GENODE_RPC(Rpc_affinity_space, Affinity::Space, affinity_space);
-			GENODE_RPC(Rpc_affinity, void, affinity, Thread_capability, Affinity::Location);
+			GENODE_RPC(Rpc_affinity, void, affinity, Thread_capability const &,
+			           Affinity::Location);
 			GENODE_RPC(Rpc_trace_control, Dataspace_capability, trace_control);
-			GENODE_RPC(Rpc_trace_control_index, unsigned, trace_control_index, Thread_capability);
-			GENODE_RPC(Rpc_trace_buffer, Dataspace_capability, trace_buffer, Thread_capability);
-			GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy, Thread_capability);
+			GENODE_RPC(Rpc_trace_control_index, unsigned, trace_control_index,
+			           Thread_capability const &);
+			GENODE_RPC(Rpc_trace_buffer, Dataspace_capability, trace_buffer,
+			           Thread_capability const &);
+			GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy,
+			           Thread_capability const &);
 
 			/*
 			 * 'GENODE_RPC_INTERFACE' declaration done manually

@@ -23,7 +23,7 @@ namespace Genode {
 	{
 		virtual ~Nova_cpu_session() { }
 
-		virtual Native_capability pause_sync(Thread_capability) = 0;
+		virtual Native_capability pause_sync(Thread_capability const &) = 0;
 
 
 		/*********************
@@ -31,7 +31,7 @@ namespace Genode {
 		 *********************/
 
 		GENODE_RPC(Rpc_pause_sync, Native_capability, pause_sync,
-		           Thread_capability);
+		           Thread_capability const &);
 
 		GENODE_RPC_INTERFACE_INHERIT(Cpu_session, Rpc_pause_sync);
 	};
