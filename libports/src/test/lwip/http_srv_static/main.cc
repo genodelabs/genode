@@ -21,6 +21,7 @@
 #include <base/printf.h>
 #include <base/thread.h>
 #include <util/string.h>
+#include <nic/packet_allocator.h>
 
 /* LwIP includes */
 extern "C" {
@@ -78,12 +79,15 @@ void http_server_serve(int conn) {
 
 int main()
 {
+	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
 	int s;
 
 	lwip_tcpip_init();
 
 	/* Initialize network stack  */
-	if (lwip_nic_init(inet_addr("10.0.2.55"), inet_addr("255.255.255.0"), inet_addr("10.0.2.1"))) {
+	if (lwip_nic_init(inet_addr("10.0.2.55"), inet_addr("255.255.255.0"),
+	                  inet_addr("10.0.2.1"), BUF_SIZE, BUF_SIZE)) {
 		PERR("We got no IP address!");
 		return -1;
 	}

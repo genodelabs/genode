@@ -135,11 +135,17 @@ extern "C" {
 
 
 	/* in lwip/genode.h */
-	int lwip_nic_init(genode_int32_t ip_addr,
-	                  genode_int32_t netmask, genode_int32_t gateway)
+	int lwip_nic_init(Genode::int32_t ip_addr,
+	                  Genode::int32_t netmask,
+	                  Genode::int32_t gateway,
+	                  Genode::size_t  tx_buf_size,
+	                  Genode::size_t  rx_buf_size)
 	{
 		static struct netif netif;
 		struct ip_addr ip, nm, gw;
+		static struct netif_buf_sizes nbs;
+		nbs.tx_buf_size = tx_buf_size;
+		nbs.rx_buf_size = rx_buf_size;
 		ip.addr = ip_addr;
 		nm.addr = netmask;
 		gw.addr = gateway;
@@ -157,7 +163,8 @@ extern "C" {
 			 *
 			 * See: http://lwip.wikia.com/wiki/Writing_a_device_driver
 			 */
-			struct netif *ret = netif_add(&netif, &ip, &nm, &gw, NULL, genode_netif_init, tcpip_input);
+			struct netif *ret = netif_add(&netif, &ip, &nm, &gw, &nbs,
+			                              genode_netif_init, tcpip_input);
 			if (!ret)
 				throw Nic_not_availble();
 

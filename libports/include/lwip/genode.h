@@ -33,6 +33,8 @@ void lwip_tcpip_init(void);
  *                 DHCP
  * \param netmask  IPv4 network mask in network byte order
  * \param gateway  IPv4 network-gateway address in network byte order
+ * \param tx_buf_size  packet stream buffer size for TX direction
+ * \param rx_buf_size  packet stream buffer size for RX direction
  *
  * \return 0 on success, or 1 if DHCP failed.
  *
@@ -40,7 +42,10 @@ void lwip_tcpip_init(void);
  * requests.
  */
 int lwip_nic_init(genode_int32_t ip_addr,
-                  genode_int32_t netmask, genode_int32_t gateway);
+                  genode_int32_t netmask,
+                  genode_int32_t gateway,
+                  __SIZE_TYPE__  tx_buf_size,
+                  __SIZE_TYPE__  rx_buf_size);
 
 #ifdef __cplusplus
 }

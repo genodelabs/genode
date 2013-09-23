@@ -15,6 +15,7 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <lwip/genode.h>
+#include <nic/packet_allocator.h>
 
 extern "C" {
 #include <lwip/netdb.h>
@@ -295,9 +296,11 @@ void Http::cmd_get(size_t file_offset, size_t size, off_t offset)
 
 void __attribute__((constructor)) init()
 {
+	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
 	lwip_tcpip_init();
 
-	if (lwip_nic_init(0, 0, 0)) {
+	if (lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE)) {
 		PERR("DHCP failed");
 		throw -1;
 	}

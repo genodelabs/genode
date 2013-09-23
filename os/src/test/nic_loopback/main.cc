@@ -14,6 +14,7 @@
 #include <base/printf.h>
 #include <base/allocator_avl.h>
 #include <nic_session/connection.h>
+#include <nic/packet_allocator.h>
 #include <timer_session/connection.h>
 
 using namespace Genode;
@@ -162,13 +163,15 @@ int main(int, char **)
 {
 	printf("--- NIC loop-back test ---\n");
 
+	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
 	bool config_test_roundtrip = true;
 	bool config_test_batch     = true;
 
 	if (config_test_roundtrip) {
 		printf("-- test roundtrip two times (packet offsets should be the same) --\n");
 		Allocator_avl tx_block_alloc(env()->heap());
-		Nic::Connection nic(&tx_block_alloc);
+		Nic::Connection nic(&tx_block_alloc, BUF_SIZE, BUF_SIZE);
 		single_packet_roundtrip(&nic, 'a', 100);
 		single_packet_roundtrip(&nic, 'b', 100);
 	}
@@ -176,7 +179,7 @@ int main(int, char **)
 	if (config_test_batch) {
 		printf("-- test submitting and receiving batches of packets --\n");
 		Allocator_avl tx_block_alloc(env()->heap());
-		Nic::Connection nic(&tx_block_alloc);
+		Nic::Connection nic(&tx_block_alloc, BUF_SIZE, BUF_SIZE);
 		enum { NUM_PACKETS = 1000 };
 		batch_packets(&nic, NUM_PACKETS);
 	}

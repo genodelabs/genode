@@ -17,6 +17,7 @@
 #include <base/thread.h>
 #include <util/string.h>
 #include <timer_session/connection.h>
+#include <nic/packet_allocator.h>
 
 extern "C" {
 #include <lwip/sockets.h>
@@ -38,12 +39,14 @@ static const char *http_get_request =
  */
 int main()
 {
+	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
 	static Timer::Connection _timer;
 	lwip_tcpip_init();
 
 	char serv_addr[] = "10.0.2.55";
 
-	if( lwip_nic_init(0, 0, 0))
+	if( lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE))
 	{
 		PERR("We got no IP address!");
 		return 0;

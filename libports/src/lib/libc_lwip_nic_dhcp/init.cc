@@ -16,6 +16,7 @@
 #include <parent/parent.h>
 
 #include <os/config.h>
+#include <nic/packet_allocator.h>
 #include <util/string.h>
 
 #include <lwip/genode.h>
@@ -32,6 +33,8 @@ extern void create_etc_resolv_conf_plugin();
 
 void __attribute__((constructor)) init_nic_dhcp(void)
 {
+	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
 	PDBG("init_nic_dhcp()\n");
 
 	bool provide_etc_resolv_conf = true;
@@ -43,6 +46,8 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 	genode_int32_t ip_addr = 0;
 	genode_int32_t netmask = 0;
 	genode_int32_t gateway = 0;
+	Genode::Number_of_bytes tx_buf_size(BUF_SIZE);
+	Genode::Number_of_bytes rx_buf_size(BUF_SIZE);
 
 	try {
 		Genode::Xml_node libc_node = Genode::config()->xml_node().sub_node("libc");
@@ -62,6 +67,14 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 
 		try {
 			libc_node.attribute("gateway").value(gateway_str, sizeof(gateway_str));
+		} catch(...) { }
+
+		try {
+			libc_node.attribute("tx_buf_size").value(&tx_buf_size);
+		} catch(...) { }
+
+		try {
+			libc_node.attribute("rx_buf_size").value(&rx_buf_size);
 		} catch(...) { }
 
 		/* either none or all 3 interface attributes must exist */
@@ -108,7 +121,8 @@ void __attribute__((constructor)) init_nic_dhcp(void)
 	create_lwip_plugin();
 
 	try {
-		lwip_nic_init(ip_addr, netmask, gateway);
+		lwip_nic_init(ip_addr, netmask, gateway,
+		              (Genode::size_t)tx_buf_size, (Genode::size_t)rx_buf_size);
 	} catch (Genode::Parent::Service_denied) {
 		/* ignore for now */
 	}

@@ -16,6 +16,7 @@
 #include <stdio.h>
 
 #ifdef LWIP_NATIVE
+#include <nic/packet_allocator.h>
 #include <lwip/genode.h>
 #endif
 
@@ -139,9 +140,11 @@ main(int argc, char *argv[])
 	char listenip[16] = "0.0.0.0";
 
 #ifdef LWIP_NATIVE
+	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+
 	lwip_tcpip_init();
 	/* DHCP */
-	if (lwip_nic_init(0, 0, 0)) {
+	if (lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE)) {
 		printf("ERROR: We got no IP address!\n");
 		return 1;
 	}

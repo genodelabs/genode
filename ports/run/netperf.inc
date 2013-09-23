@@ -161,10 +161,10 @@ append config {
 			<arg value="netserver"/>
 			<arg value="-D"/>
 			<arg value="-4"/>
-			<arg value="-f"/>}
-append_if [have_spec linux] config "
-			<libc ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\"/>"
-append config {
+			<arg value="-f"/>
+			<libc tx_buf_size="2M" rx_buf_size="2M"}
+append_if [have_spec linux] config "ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
+append config {/>
 		</config>}
 append_if $use_nic_bridge config {
 		<route>

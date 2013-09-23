@@ -14,6 +14,12 @@
 #ifndef _LWIP__NIC_H_
 #define _LWIP__NIC_H_
 
+struct netif_buf_sizes {
+	__SIZE_TYPE__ tx_buf_size;
+	__SIZE_TYPE__ rx_buf_size;
+};
+
+
 /**
  * Initializes the genode nic backend.
  *

@@ -244,17 +244,15 @@ extern "C" {
 		LWIP_ASSERT("netif != NULL", (netif != NULL));
 
 		/* Initialize nic-session */
-		enum {
-			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
-			BUF_SIZE    = Nic::Session::QUEUE_SIZE * PACKET_SIZE,
-		};
-
 		Nic::Packet_allocator *tx_block_alloc = new (env()->heap())
 		                                        Nic::Packet_allocator(env()->heap());
 
+		struct netif_buf_sizes *nbs = (struct netif_buf_sizes *) netif->state;
 		Nic::Connection *nic = 0;
 		try {
-			nic = new (env()->heap()) Nic::Connection(tx_block_alloc, BUF_SIZE, BUF_SIZE);
+			nic = new (env()->heap()) Nic::Connection(tx_block_alloc,
+			                                          nbs->tx_buf_size,
+			                                          nbs->rx_buf_size);
 		} catch (Parent::Service_denied) {
 			destroy(env()->heap(), tx_block_alloc);
 			return ERR_IF;
