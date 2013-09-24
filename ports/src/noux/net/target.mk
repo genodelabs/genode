@@ -1,5 +1,5 @@
 TARGET   = noux_net
-LIBS    += alarm libc libc_lwip config
+LIBS    += alarm libc libc_lwip_nic_dhcp config
 
 SRC_CC   = main.cc net.cc
 

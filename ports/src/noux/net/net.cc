@@ -67,15 +67,6 @@ static void select_notify()
 void init_network()
 {
 	PINF("--- noux: initialize network ---");
-	
-	/**
-	 * NOTE: we only call lwip_nic_init() because
-	 * lwip_tcpip_init() was already called by libc_lwip's
-	 * constructor and we don't want to have another tcpip
-	 * thread.
-	 */
-
-	lwip_nic_init(0, 0, 0);
 
 	if (!libc_select_notify)
 		libc_select_notify = select_notify;
