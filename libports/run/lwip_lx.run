@@ -41,7 +41,7 @@ set config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 	<start name="test-lwip_httpsrv">
-		<resource name="RAM" quantum="2M"/>
+		<resource name="RAM" quantum="5M"/>
 	</start>
 </config>
 }
