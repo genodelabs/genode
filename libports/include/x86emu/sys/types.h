@@ -22,4 +22,6 @@ typedef genode_uint32_t uint32_t;
 typedef genode_int64_t   int64_t;
 typedef genode_uint64_t uint64_t;
 
+int abs(int j);
+
 #define NULL (void*)0
