@@ -73,9 +73,6 @@ namespace Genode {
 		void single_step(Thread_capability thread, bool enable) {
 			call<Rpc_single_step>(thread, enable); }
 
-		Native_capability native_cap(Thread_capability cap) {
-			return call<Rpc_native_cap>(cap); }
-
 		Affinity::Space affinity_space() const {
 			return call<Rpc_affinity_space>(); }
 

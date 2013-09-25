@@ -204,7 +204,6 @@ namespace Genode {
 			 ** NOVA specific extensions **
 			 ******************************/
 
-			Native_capability native_cap(Thread_capability);
 			Native_capability pause_sync(Thread_capability);
 	};
 }

@@ -149,29 +149,7 @@ namespace Genode {
 				_pd = pd, _is_main_thread = is_main_thread;
 			}
 
-			/**
-			 * Return native EC cap with specific rights mask set.
-			 * If the cap is mapped the kernel will demote the
-			 * rights of the EC as specified by the rights mask.
-			 *
-			 * The cap is supposed to be returned to clients,
-			 * which they have to use as argument to identify
-			 * the thread to which they want attach portals.
-			 *
-			 * The demotion by the kernel during the map operation
-			 * takes care that the EC cap itself contains
-			 * no usable rights for the clients.
-			 */
-			Native_capability native_cap()
-			{
-				using namespace Nova;
-
-				return Native_capability(
-					_sel_ec(), Obj_crd::RIGHT_EC_RECALL);
-			}
-
 			void single_step(bool on);
-
 	};
 }
 

@@ -21,18 +21,6 @@ using namespace Genode;
 
 
 Native_capability
-Cpu_session_component::native_cap(Thread_capability thread_cap)
-{
-	Object_pool<Cpu_thread_component>::Guard
-		thread(_thread_ep->lookup_and_lock(thread_cap));
-	if (!thread || !thread->platform_thread())
-		return Native_capability::invalid_cap();
-
-	return thread->platform_thread()->native_cap();
-}
-
-
-Native_capability
 Cpu_session_component::pause_sync(Thread_capability thread_cap)
 {
 	Object_pool<Cpu_thread_component>::Guard
