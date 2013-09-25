@@ -67,7 +67,7 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 				.ulong_value(~0);
 
 		if (size == 0)
-			return Parent_client::session(service_name, args, affinity);
+			return Expanding_parent_client::session(service_name, args, affinity);
 
 		Rm_session_mmap *rm = new (env()->heap())
 		                      Rm_session_mmap(true, size);
@@ -75,7 +75,7 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 		return Session_capability::local_cap(rm);
 	}
 
-	return Parent_client::session(service_name, args, affinity);
+	return Expanding_parent_client::session(service_name, args, affinity);
 }
 
 
@@ -98,10 +98,10 @@ void Platform_env::Local_parent::close(Session_capability session)
 }
 
 
-Platform_env::Local_parent::Local_parent(Parent_capability parent_cap)
-: Parent_client(parent_cap)
-{
-}
+Platform_env::Local_parent::Local_parent(Parent_capability parent_cap,
+                                         Emergency_ram_reserve &reserve)
+: Expanding_parent_client(parent_cap, reserve)
+{ }
 
 
 /******************
@@ -143,7 +143,7 @@ static Parent_capability obtain_parent_cap()
 
 Platform_env::Local_parent &Platform_env::_parent()
 {
-	static Local_parent local_parent(obtain_parent_cap());
+	static Local_parent local_parent(obtain_parent_cap(), *this);
 	return local_parent;
 }
 
@@ -153,7 +153,8 @@ Platform_env::Platform_env()
 	Platform_env_base(static_cap_cast<Ram_session>(_parent().session("Env::ram_session", "")),
 	                  static_cap_cast<Cpu_session>(_parent().session("Env::cpu_session", "")),
 	                  static_cap_cast<Pd_session> (_parent().session("Env::pd_session",  ""))),
-	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session())
+	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session()),
+	_emergency_ram_ds(ram_session()->alloc(_emergency_ram_size()))
 {
 	/* register TID and PID of the main thread at core */
 	cpu_session()->thread_id(parent()->main_thread_cap(),

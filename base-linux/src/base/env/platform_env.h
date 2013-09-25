@@ -360,7 +360,7 @@ namespace Genode {
 	/**
 	 * 'Platform_env' used by all processes except for core
 	 */
-	class Platform_env : public Platform_env_base
+	class Platform_env : public Platform_env_base, public Emergency_ram_reserve
 	{
 		private:
 
@@ -376,7 +376,7 @@ namespace Genode {
 			 * All requests that do not refer to the RM service are passed
 			 * through the real parent interface.
 			 */
-			class Local_parent : public Parent_client
+			class Local_parent : public Expanding_parent_client
 			{
 				public:
 
@@ -396,15 +396,24 @@ namespace Genode {
 					 *                    promote requests to non-local
 					 *                    services
 					 */
-					Local_parent(Parent_capability parent_cap);
+					Local_parent(Parent_capability parent_cap,
+					             Emergency_ram_reserve &);
 			};
 
 			/**
-			 * Obtain singleton instance of parent interface
+			 * Return instance of parent interface
 			 */
-			static Local_parent &_parent();
+			Local_parent &_parent();
 
 			Heap _heap;
+
+			/*
+			 * Emergency RAM reserve
+			 *
+			 * See the comment of '_fallback_sig_cap()' in 'env/env.cc'.
+			 */
+			constexpr static size_t  _emergency_ram_size() { return 4*1024; }
+			Ram_dataspace_capability _emergency_ram_ds;
 
 
 			/*************************************
@@ -430,6 +439,13 @@ namespace Genode {
 			{
 				/* not supported on Linux */
 			}
+
+
+			/*************************************
+			 ** Emergency_ram_reserve interface **
+			 *************************************/
+
+			void release() { ram_session()->free(_emergency_ram_ds); }
 
 
 			/*******************

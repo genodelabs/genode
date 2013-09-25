@@ -85,11 +85,11 @@ struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_ses
 };
 
 
-class Genode::Platform_env : public Genode::Env
+class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 {
 	private:
 
-		Parent_client _parent_client;
+		Expanding_parent_client _parent_client;
 
 		struct Resources
 		{
@@ -115,7 +115,15 @@ class Genode::Platform_env : public Genode::Env
 		Resources _resources;
 		Heap      _heap;
 
-		char _initial_junk[sizeof(addr_t) * 4096];
+		char _initial_heap_chunk[sizeof(addr_t) * 4096];
+
+		/*
+		 * Emergency RAM reserve
+		 *
+		 * See the comment of '_fallback_sig_cap()' in 'env/env.cc'.
+		 */
+		constexpr static size_t  _emergency_ram_size() { return 4*1024; }
+		Ram_dataspace_capability _emergency_ram_ds;
 
 	public:
 
@@ -124,13 +132,21 @@ class Genode::Platform_env : public Genode::Env
 		 */
 		Platform_env()
 		:
-			_parent_client(Genode::parent_cap()),
+			_parent_client(Genode::parent_cap(), *this),
 			_resources(_parent_client),
 			_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED,
-			      _initial_junk, sizeof(_initial_junk))
+			      _initial_heap_chunk, sizeof(_initial_heap_chunk)),
+			_emergency_ram_ds(_resources.ram.alloc(_emergency_ram_size()))
 		{ }
 
 		void reload_parent_cap(Native_capability::Dst, long);
+
+
+		/*************************************
+		 ** Emergency_ram_reserve interface **
+		 *************************************/
+
+		void release() { _resources.ram.free(_emergency_ram_ds); }
 
 
 		/*******************

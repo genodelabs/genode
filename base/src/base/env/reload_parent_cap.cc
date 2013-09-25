@@ -44,8 +44,9 @@ void Genode::Platform_env::reload_parent_cap(Native_capability::Dst dst,
 	/*
 	 * Re-initialize 'Platform_env' members
 	 */
-	_parent_client = Parent_client(Genode::parent_cap());
-	_resources     = Resources(_parent_client);
+	static_cast<Parent_client &>(_parent_client) = Parent_client(Genode::parent_cap());
+
+	_resources = Resources(_parent_client);
 
 	/*
 	 * Keep information about dynamically allocated memory but use the new
