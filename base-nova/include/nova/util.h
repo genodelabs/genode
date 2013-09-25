@@ -29,8 +29,8 @@ inline void nova_die(const char * text = 0)
 }
 
 
-inline void request_event_portal(Genode::Native_capability cap,
-                                 Genode::addr_t exc_base, Genode::addr_t event,
+inline void request_event_portal(Genode::Native_capability const &cap,
+                                 Genode::addr_t sel, Genode::addr_t event,
                                  unsigned short log2_count = 0)
 {
 	using namespace Nova;
@@ -40,7 +40,7 @@ inline void request_event_portal(Genode::Native_capability cap,
 	Crd orig_crd = utcb->crd_rcv;
 
 	/* request event-handler portal */
-	utcb->crd_rcv = Obj_crd(exc_base + event, log2_count);
+	utcb->crd_rcv = Obj_crd(sel, log2_count);
 	utcb->msg[0]  = event;
 	utcb->msg[1]  = log2_count;
 	utcb->set_msg_word(2);
@@ -52,5 +52,10 @@ inline void request_event_portal(Genode::Native_capability cap,
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
 }
+
+
+inline void request_native_ec_cap(Genode::Native_capability const &cap,
+                                  Genode::addr_t sel) {
+	request_event_portal(cap, sel , ~0U, 0); }
 
 #endif /* _NOVA__INCLUDE__UTIL_H_ */

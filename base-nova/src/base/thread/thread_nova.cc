@@ -166,11 +166,11 @@ void Thread_base::start()
 		throw Cpu_session::Thread_creation_failed();
 
 	/* request native EC thread cap */ 
-	Genode::Cpu_session_client cpu(env()->cpu_session_cap());
-	Native_capability ec_cap = cpu.native_cap(_thread_cap);
-	if (!ec_cap.valid())
+	_tid.ec_sel = cap_selector_allocator()->alloc();
+	if (_tid.ec_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
-	_tid.ec_sel = ec_cap.local_name();
+
+	request_native_ec_cap(_pager_cap, _tid.ec_sel);
 
 	using namespace Nova;
 

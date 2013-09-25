@@ -49,7 +49,6 @@
 #include <os/alarm.h>
 #include <os/synced_interface.h>
 #include <timer_session/connection.h>
-#include <nova_cpu_session/connection.h>
 #include <rtc_session/connection.h>
 
 /* NOVA includes that come with Genode */
@@ -317,15 +316,7 @@ class Vcpu_thread : Genode::Thread<STACK_SIZE>
 			 * Request native EC thread cap and put it next to the
 			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
 			 */
-
-			Nova_cpu_connection cpu;
-			/* Use selector next to SM cap to retrieve EC cap */
-			cpu.rcv_window(sel_ec);
-
-			Native_capability ec_cap = cpu.native_cap(_thread_cap);
-
-			if (!ec_cap.valid() || sel_ec != ec_cap.local_name())
-				Logging::panic("Could not collocate EC cap");
+			request_native_ec_cap(_pager_cap, sel_ec);
 		}
 
 		void entry() { }
@@ -815,47 +806,9 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		{
 			using namespace Genode;
 
-			/* create new pager object and assign it to the new thread */
-			Pager_capability const pager_cap =
-				env()->rm_session()->add_client(_thread_cap);
-
-			if (!pager_cap.valid())
-				throw Cpu_session::Thread_creation_failed();
-
-			if (env()->cpu_session()->set_pager(_thread_cap, pager_cap))
-				throw Cpu_session::Thread_creation_failed();
-
-			env()->cpu_session()->state(_thread_cap,
-			                            Thread_state(false, _tid.exc_pt_sel));
-
-			addr_t const thread_sp = (addr_t)&_context->stack[-4];
-
-			if (env()->cpu_session()->start(_thread_cap, 0, thread_sp))
-				throw Cpu_session::Thread_creation_failed();
-
-			/* Request exception portals for vCPU dispatcher */
-			for (unsigned i = 0; i < Nova::PT_SEL_PARENT; i++)
-				request_event_portal(pager_cap, _tid.exc_pt_sel, i);
-
-			request_event_portal(pager_cap, _tid.exc_pt_sel,
-			                     Nova::SM_SEL_EC);
-			request_event_portal(pager_cap, _tid.exc_pt_sel,
-			                     Nova::PT_SEL_RECALL);
-
-			/**
-			 * Request native thread cap, _thread_cap only a token.
-			 * The native thread cap is required to attach new rpc objects
-			 * (to create portals bound to the ec)
-			 */
-			Genode::Nova_cpu_connection cpu;
-			Native_capability ec_cap = cpu.native_cap(_thread_cap);
-			_tid.ec_sel = ec_cap.local_name();
-
-			/* init utcb of dispatcher thread */
-			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(&_context->utcb);
-			utcb->set_msg_word(0);
-			utcb->crd_xlt = Nova::Crd(0);
-			utcb->crd_rcv = Nova::Crd(0);
+			/* request creation of a 'local' EC */
+			_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+			Thread_base::start();
 
 			using namespace Nova;
 

@@ -192,18 +192,37 @@ void Pager_object::_invoke_handler()
 	/* send single portal as reply */
 	addr_t const event    = utcb->msg[0];
 	addr_t const logcount = utcb->msg[1];
+
 	utcb->mtd = 0;
 	utcb->set_msg_word(0);
 
+	if (event == ~0UL) {
+		/**
+		 * Return native EC cap with specific rights mask set.
+		 * If the cap is mapped the kernel will demote the
+		 * rights of the EC as specified by the rights mask.
+		 *
+		 * The cap is supposed to be returned to clients,
+		 * which they have to use as argument to identify
+		 * the thread to which they want attach portals.
+		 *
+		 * The demotion by the kernel during the map operation
+		 * takes care that the EC cap itself contains
+		 * no usable rights for the clients.
+		 */
+		bool res = utcb->append_item(Obj_crd(obj->_state.sel_client_ec, 0,
+		                                     Obj_crd::RIGHT_EC_RECALL), 0);
+		(void)res;
+		reply(myself->stack_top());
+	}
+
+	/* sanity check - if event is not valid return nothing */
 	if (logcount > NUM_INITIAL_PT_LOG2 || event > 1UL << NUM_INITIAL_PT_LOG2 ||
 	    event + (1UL << logcount) > (1UL << NUM_INITIAL_PT_LOG2))
 		reply(myself->stack_top());
 
-	utcb->mtd = 0;
-	utcb->set_msg_word(0);
-
-	bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() + event, logcount), 0);
-	/* one item ever fits on the UTCB */
+	bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() + event,
+	                                     logcount), 0);
 	(void)res;
 
 	reply(myself->stack_top());
