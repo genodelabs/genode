@@ -12,22 +12,45 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__PLATFORM_ENV_H_
-#define _INCLUDE__BASE__PLATFORM_ENV_H_
+#ifndef _PLATFORM_ENV_H_
+#define _PLATFORM_ENV_H_
 
+/* Linux includes */
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#include <base/env.h>
-#include <base/printf.h>
+/* Genode includes */
 #include <util/misc_math.h>
 #include <base/heap.h>
-#include <parent/client.h>
-#include <ram_session/client.h>
 #include <linux_cpu_session/client.h>
-#include <pd_session/client.h>
+
+/* local includes (from 'base/src/base/env/') */
+#include <platform_env_common.h>
+
+
+namespace Genode {
+	struct Expanding_cpu_session_client;
+	class Platform_env;
+}
+
+
+struct Genode::Expanding_cpu_session_client
+:
+	Upgradeable_client<Genode::Linux_cpu_session_client>
+{
+	Expanding_cpu_session_client(Genode::Capability<Linux_cpu_session> cap)
+	: Upgradeable_client<Genode::Linux_cpu_session_client>(cap) { }
+
+	Thread_capability create_thread(Name const &name, addr_t utcb)
+	{
+		return retry<Cpu_session::Out_of_metadata>(
+			[&] () { return Linux_cpu_session_client::create_thread(name, utcb); },
+			[&] () { upgrade_ram(8*1024); });
+	}
+};
+
 
 namespace Genode {
 
@@ -292,69 +315,6 @@ namespace Genode {
 
 		private:
 
-			class Expanding_ram_session_client : public Ram_session_client
-			{
-				Ram_session_capability _cap;
-
-				public:
-
-					Expanding_ram_session_client(Ram_session_capability cap)
-					: Ram_session_client(cap), _cap(cap) { }
-
-					Ram_dataspace_capability alloc(size_t size, bool cached)
-					{
-						bool try_again;
-						do {
-							try_again = false;
-							try {
-								return Ram_session_client::alloc(size, cached);
-
-							} catch (Ram_session::Out_of_metadata) {
-
-								/* give up if the error occurred a second time */
-								if (try_again)
-									break;
-
-								PINF("upgrading quota donation for Env::RAM session");
-								env()->parent()->upgrade(_cap, "ram_quota=8K");
-								try_again = true;
-							}
-						} while (try_again);
-
-						return Ram_dataspace_capability();
-					}
-			};
-
-			class Expanding_cpu_session_client : public Linux_cpu_session_client
-			{
-				Cpu_session_capability _cap;
-
-				public:
-
-					Expanding_cpu_session_client(Cpu_session_capability cap)
-					: Linux_cpu_session_client(static_cap_cast<Linux_cpu_session>(cap)), _cap(cap) { }
-
-					Thread_capability create_thread(Name const &name, addr_t utcb = 0) {
-						bool try_again;
-						do {
-							try_again = false;
-							try {
-								return Linux_cpu_session_client::create_thread(name, utcb);
-							}
-							catch (Cpu_session::Out_of_metadata) {
-								if (try_again)
-									break;
-								PINF("upgrade quota donation for Env::CPU session");
-								env()->parent()->upgrade(_cap, "ram_quota=8K");
-								try_again = true;
-							}
-						} while (try_again);
-
-						return Thread_capability();
-					}
-			};
-
-
 			/*******************************
 			 ** Platform-specific members **
 			 *******************************/
@@ -481,4 +441,4 @@ namespace Genode {
 	};
 }
 
-#endif /* _INCLUDE__BASE__PLATFORM_ENV_H_ */
+#endif /* _PLATFORM_ENV_H_ */

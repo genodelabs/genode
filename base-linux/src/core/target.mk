@@ -29,6 +29,7 @@ INC_DIR      += $(REP_DIR)/src/core/include \
                 $(REP_DIR)/src/platform \
                 $(REP_DIR)/src/base/ipc \
                 $(REP_DIR)/src/base/env \
+                $(BASE_DIR)/src/base/env \
                 $(REP_DIR)/src/base/console \
                 $(BASE_DIR)/src/base/thread \
 

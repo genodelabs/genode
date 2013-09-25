@@ -17,207 +17,134 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__PLATFORM_ENV_H_
-#define _INCLUDE__BASE__PLATFORM_ENV_H_
+#ifndef _PLATFORM_ENV_H_
+#define _PLATFORM_ENV_H_
 
+/* Genode includes */
+#include <base/printf.h>
 #include <base/env.h>
-
 #include <base/heap.h>
-#include <parent/client.h>
-#include <ram_session/client.h>
-#include <rm_session/client.h>
-#include <cpu_session/client.h>
-#include <pd_session/client.h>
+
+/* local includes */
+#include <platform_env_common.h>
 
 
 namespace Genode {
-
-	class Platform_env : public Env
-	{
-		class Expanding_rm_session_client : public Rm_session_client
-		{
-			Rm_session_capability _cap;
-
-			public:
-
-				Expanding_rm_session_client(Rm_session_capability cap)
-				: Rm_session_client(cap), _cap(cap) { }
-
-				Local_addr attach(Dataspace_capability ds,
-				                  size_t size = 0, off_t offset = 0,
-				                  bool use_local_addr = false,
-				                  Local_addr local_addr = (addr_t)0,
-				                  bool executable = false) {
-
-					bool try_again = false;
-					do {
-						try {
-							return Rm_session_client::attach(ds, size, offset,
-							                                 use_local_addr,
-							                                 local_addr,
-							                                 executable);
-
-						} catch (Rm_session::Out_of_metadata) {
-
-							/* give up if the error occurred a second time */
-							if (try_again)
-								break;
-
-							PINF("upgrading quota donation for Env::RM session");
-							env()->parent()->upgrade(_cap, "ram_quota=8K");
-							try_again = true;
-						}
-					} while (try_again);
-
-					return (addr_t)0;
-				}
-
-				Pager_capability add_client(Thread_capability thread)
-				{
-					bool try_again = false;
-					do {
-						try {
-							return Rm_session_client::add_client(thread);
-						} catch (Rm_session::Out_of_metadata) {
-
-							/* give up if the error occurred a second time */
-							if (try_again)
-								break;
-
-							PINF("upgrading quota donation for Env::RM session");
-							env()->parent()->upgrade(_cap, "ram_quota=8K");
-							try_again = true;
-						}
-					} while (try_again);
-
-					return Pager_capability();
-				}
-
-				void remove_client(Pager_capability pager)
-				{
-					Rm_session_client::remove_client(pager);
-				}
-		};
-
-		class Expanding_ram_session_client : public Ram_session_client
-		{
-			Ram_session_capability _cap;
-
-			public:
-
-				Expanding_ram_session_client(Ram_session_capability cap)
-				: Ram_session_client(cap), _cap(cap) { }
-
-				Ram_dataspace_capability alloc(size_t size, bool cached) {
-					bool try_again = false;
-					do {
-						try {
-							return Ram_session_client::alloc(size, cached);
-
-						} catch (Ram_session::Out_of_metadata) {
-
-							/* give up if the error occurred a second time */
-							if (try_again)
-								break;
-
-							PINF("upgrading quota donation for Env::RAM session");
-							env()->parent()->upgrade(_cap, "ram_quota=8K");
-							try_again = true;
-						}
-					} while (try_again);
-
-					return Ram_dataspace_capability();
-				}
-		};
-
-		class Expanding_cpu_session_client : public Cpu_session_client
-		{
-			Cpu_session_capability _cap;
-
-			public:
-
-				Expanding_cpu_session_client(Cpu_session_capability cap)
-				: Cpu_session_client(cap), _cap(cap) { }
-
-				Thread_capability create_thread(Name const &name, addr_t utcb) {
-					bool try_again = false;
-					do {
-						try {
-							return Cpu_session_client::create_thread(name, utcb);
-						} catch (Cpu_session::Out_of_metadata) {
-
-							/* give up if the error occurred a second time */
-							if (try_again)
-								break;
-
-							PINF("upgrading quota donation for Env::CPU session");
-							env()->parent()->upgrade(_cap, "ram_quota=8K");
-							try_again = true;
-						}
-					} while (try_again);
-
-					return Thread_capability();
-				}
-		};
-
-		private:
-
-			Parent_client _parent_client;
-
-			struct Resources
-			{
-				Ram_session_capability       ram_cap;
-				Expanding_ram_session_client ram;
-				Cpu_session_capability       cpu_cap;
-				Expanding_cpu_session_client cpu;
-				Expanding_rm_session_client  rm;
-				Pd_session_client            pd;
-
-				Resources(Parent &parent)
-				:
-					ram_cap(static_cap_cast<Ram_session>(parent.session("Env::ram_session", ""))),
-					ram(ram_cap),
-					cpu_cap(static_cap_cast<Cpu_session>(parent.session("Env::cpu_session", ""))),
-					cpu(cpu_cap),
-					rm(static_cap_cast<Rm_session>(parent.session("Env::rm_session", ""))),
-					pd(static_cap_cast<Pd_session>(parent.session("Env::pd_session", "")))
-				{ }
-			};
-
-			Resources _resources;
-			Heap      _heap;
-
-			char _initial_junk[sizeof(addr_t) * 4096];
-
-		public:
-
-			/**
-			 * Standard constructor
-			 */
-			Platform_env()
-			:
-				_parent_client(Genode::parent_cap()),
-				_resources(_parent_client),
-				_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED,
-				      _initial_junk, sizeof(_initial_junk))
-			{ }
-
-			void reload_parent_cap(Native_capability::Dst, long);
-
-
-			/*******************
-			 ** Env interface **
-			 *******************/
-
-			Parent                 *parent()          { return &_parent_client; }
-			Ram_session            *ram_session()     { return &_resources.ram; }
-			Ram_session_capability  ram_session_cap() { return  _resources.ram_cap; }
-			Cpu_session            *cpu_session()     { return &_resources.cpu; }
-			Cpu_session_capability  cpu_session_cap() { return  _resources.cpu_cap; }
-			Rm_session             *rm_session()      { return &_resources.rm; }
-			Pd_session             *pd_session()      { return &_resources.pd; }
-			Allocator              *heap()            { return &_heap; }
-	};
+	struct Expanding_rm_session_client;
+	struct Expanding_cpu_session_client;
+	class Platform_env;
 }
 
-#endif /* _INCLUDE__BASE__PLATFORM_ENV_H_ */
+
+struct Genode::Expanding_rm_session_client : Upgradeable_client<Genode::Rm_session_client>
+{
+	Expanding_rm_session_client(Rm_session_capability cap)
+	: Upgradeable_client<Genode::Rm_session_client>(cap) { }
+
+	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
+	                  bool use_local_addr, Local_addr local_addr,
+	                  bool executable)
+	{
+		return retry<Rm_session::Out_of_metadata>(
+			[&] () {
+				return Rm_session_client::attach(ds, size, offset,
+				                                 use_local_addr,
+				                                 local_addr,
+				                                 executable); },
+			[&] () { upgrade_ram(8*1024); });
+	}
+
+	Pager_capability add_client(Thread_capability thread)
+	{
+		return retry<Rm_session::Out_of_metadata>(
+			[&] () { return Rm_session_client::add_client(thread); },
+			[&] () { upgrade_ram(8*1024); });
+	}
+};
+
+
+struct Genode::Expanding_cpu_session_client : Upgradeable_client<Genode::Cpu_session_client>
+{
+	Expanding_cpu_session_client(Genode::Cpu_session_capability cap)
+	:
+		/*
+		 * We need to upcast the capability because on some platforms (i.e.,
+		 * NOVA), 'Cpu_session_client' refers to a platform-specific session
+		 * interface ('Nova_cpu_session').
+		 */
+		Upgradeable_client<Genode::Cpu_session_client>
+			(static_cap_cast<Genode::Cpu_session_client::Rpc_interface>(cap))
+	{ }
+
+	Thread_capability create_thread(Name const &name, addr_t utcb)
+	{
+		return retry<Cpu_session::Out_of_metadata>(
+			[&] () { return Cpu_session_client::create_thread(name, utcb); },
+			[&] () { upgrade_ram(8*1024); });
+	}
+};
+
+
+class Genode::Platform_env : public Genode::Env
+{
+	private:
+
+		Parent_client _parent_client;
+
+		struct Resources
+		{
+			template <typename T>
+			Capability<T> request(Parent &parent, char const *service) {
+				return static_cap_cast<T>(parent.session(service, "")); }
+
+			Ram_session_capability       ram_cap;
+			Expanding_ram_session_client ram = { ram_cap };
+			Cpu_session_capability       cpu_cap;
+			Expanding_cpu_session_client cpu = { cpu_cap };
+			Expanding_rm_session_client  rm;
+			Pd_session_client            pd;
+
+			Resources(Parent &parent) :
+				ram_cap(request<Ram_session>(parent, "Env::ram_session")),
+				cpu_cap(request<Cpu_session>(parent, "Env::cpu_session")),
+				rm     (request<Rm_session> (parent, "Env::rm_session")),
+				pd     (request<Pd_session> (parent, "Env::pd_session"))
+			{ }
+		};
+
+		Resources _resources;
+		Heap      _heap;
+
+		char _initial_junk[sizeof(addr_t) * 4096];
+
+	public:
+
+		/**
+		 * Standard constructor
+		 */
+		Platform_env()
+		:
+			_parent_client(Genode::parent_cap()),
+			_resources(_parent_client),
+			_heap(&_resources.ram, &_resources.rm, Heap::UNLIMITED,
+			      _initial_junk, sizeof(_initial_junk))
+		{ }
+
+		void reload_parent_cap(Native_capability::Dst, long);
+
+
+		/*******************
+		 ** Env interface **
+		 *******************/
+
+		Parent                 *parent()          { return &_parent_client; }
+		Ram_session            *ram_session()     { return &_resources.ram; }
+		Ram_session_capability  ram_session_cap() { return  _resources.ram_cap; }
+		Cpu_session            *cpu_session()     { return &_resources.cpu; }
+		Cpu_session_capability  cpu_session_cap() { return  _resources.cpu_cap; }
+		Rm_session             *rm_session()      { return &_resources.rm; }
+		Pd_session             *pd_session()      { return &_resources.pd; }
+		Allocator              *heap()            { return &_heap; }
+};
+
+#endif /* _PLATFORM_ENV_H_ */
