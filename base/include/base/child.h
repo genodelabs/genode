@@ -112,6 +112,19 @@ namespace Genode {
 		 * argument to core, i.e., the chroot path, the UID, and the GID.
 		 */
 		virtual Native_pd_args const *pd_args() const { return 0; }
+
+		/**
+		 * Respond to the release of resources by the child
+		 *
+		 * This function is called when the child confirms the release of
+		 * resources in response to a yield request.
+		 */
+		virtual void yield_response() { }
+
+		/**
+		 * Take action on additional resource needs by the child
+		 */
+		virtual void resource_request(Parent::Resource_args const &) { }
 	};
 
 
@@ -178,10 +191,16 @@ namespace Genode {
 			/* server role */
 			Server                 _server;
 
-			/**
-			 * Session-argument buffer
-			 */
+			/* session-argument buffer */
 			char _args[Parent::Session_args::MAX_SIZE];
+
+			/* signal handlers registered by the child */
+			Signal_context_capability _resource_avail_sigh;
+			Signal_context_capability _yield_sigh;
+
+			/* arguments fetched by the child in response to a yield signal */
+			Lock          _yield_request_lock;
+			Resource_args _yield_request_args;
 
 			Process _process;
 
@@ -273,6 +292,21 @@ namespace Genode {
 			 * not de-reference the server argument in here!
 			 */
 			void revoke_server(const Server *server);
+
+			/**
+			 * Instruct the child to yield resources
+			 *
+			 * By calling this function, the child will be notified about the
+			 * need to release the specified amount of resources. For more
+			 * details about the protocol between a child and its parent,
+			 * refer to the description given in 'parent/parent.h'.
+			 */
+			void yield(Resource_args const &args);
+
+			/**
+			 * Notify the child about newly available resources
+			 */
+			void notify_resource_avail() const;
 
 
 			/**********************

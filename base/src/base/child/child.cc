@@ -233,6 +233,26 @@ void Child::revoke_server(Server const *server)
 }
 
 
+void Child::yield(Resource_args const &args)
+{
+	Lock::Guard guard(_yield_request_lock);
+
+	/* buffer yield request arguments to be picked up by the child */
+	_yield_request_args = args;
+
+	/* notify the child about the yield request */
+	if (_yield_sigh.valid())
+		Signal_transmitter(_yield_sigh).submit();
+}
+
+
+void Child::notify_resource_avail() const
+{
+	if (_resource_avail_sigh.valid())
+		Signal_transmitter(_resource_avail_sigh).submit();
+}
+
+
 void Child::announce(Parent::Service_name const &name, Root_capability root)
 {
 	if (!name.is_valid_string()) return;
@@ -417,19 +437,30 @@ Thread_capability Child::main_thread_cap() const
 }
 
 
-void Child::resource_avail_sigh(Signal_context_capability) { }
+void Child::resource_avail_sigh(Signal_context_capability sigh)
+{
+	_resource_avail_sigh = sigh;
+}
 
 
-void Child::resource_request(Resource_args const &) { }
+void Child::resource_request(Resource_args const &args)
+{
+	_policy->resource_request(args);
+}
 
 
-void Child::yield_sigh(Signal_context_capability) { }
+void Child::yield_sigh(Signal_context_capability sigh) { _yield_sigh = sigh; }
 
 
-Parent::Resource_args Child::yield_request() { return Resource_args(); }
+Parent::Resource_args Child::yield_request()
+{
+	Lock::Guard guard(_yield_request_lock);
+
+	return _yield_request_args;
+}
 
 
-void Child::yield_response() { }
+void Child::yield_response() { _policy->yield_response(); }
 
 
 Child::Child(Dataspace_capability    elf_ds,
