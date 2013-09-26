@@ -82,6 +82,18 @@ namespace Init {
 	}
 
 
+	/**
+	 * Return amount of RAM that is currently unused
+	 */
+	static inline Genode::size_t avail_slack_ram_quota()
+	{
+		Genode::size_t const preserve = 128*1024;
+		Genode::size_t const avail    = Genode::env()->ram_session()->avail();
+
+		return avail > preserve ? avail - preserve : 0;
+	}
+
+
 	inline Genode::size_t read_ram_quota(Genode::Xml_node start_node)
 	{
 		Genode::Number_of_bytes ram_quota = 0;
@@ -103,8 +115,8 @@ namespace Init {
 		 * our allocation of the child meta data from the heap.
 		 * Hence, we preserve some of our own quota.
 		 */
-		if (ram_quota > Genode::env()->ram_session()->avail() - 128*1024) {
-			ram_quota = Genode::env()->ram_session()->avail() - 128*1024;
+		if (ram_quota > avail_slack_ram_quota()) {
+			ram_quota = avail_slack_ram_quota();
 			if (config_verbose)
 				Genode::printf("Warning: Specified quota exceeds available quota.\n"
 				               "         Proceeding with a quota of %zd bytes.\n",
@@ -702,6 +714,35 @@ namespace Init {
 
 				rs->announce(root);
 				return true;
+			}
+
+			void resource_request(Genode::Parent::Resource_args const &args)
+			{
+				Genode::printf("child \"%s\" requests resources: %s\n",
+				               name(), args.string());
+
+				Genode::size_t const requested_ram_quota =
+					Genode::Arg_string::find_arg(args.string(), "ram_quota")
+						.ulong_value(0);
+
+				if (avail_slack_ram_quota() < requested_ram_quota) {
+					PERR("Cannot respond to resource request - out of memory");
+					return;
+				}
+
+				/*
+				 * XXX  Synchronize quota transfers from/to env()->ram_session()
+				 *
+				 * If multiple children issue concurrent resource requests, the
+				 * value reported by 'avail_slack_ram_quota' may be out of date
+				 * when calling 'transfer_quota'.
+				 */
+
+				Genode::env()->ram_session()->transfer_quota(_resources.ram.cap(),
+				                                             requested_ram_quota);
+
+				/* wake up child that was starved for resources */
+				_child.notify_resource_avail();
 			}
 
 			Genode::Native_pd_args const *pd_args() const { return &_pd_args; }
