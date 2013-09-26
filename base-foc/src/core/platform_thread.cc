@@ -174,8 +174,8 @@ void Platform_thread::pager(Pager_object *pager_obj)
 
 void Platform_thread::state(Thread_state s)
 {
-	PDBG("Not implemented");
-	throw Cpu_session::State_access_failed();
+	if (_pager_obj)
+		_pager_obj->state = s;
 }
 
 

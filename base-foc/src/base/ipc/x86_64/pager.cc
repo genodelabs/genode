@@ -17,7 +17,7 @@
 #include <base/ipc_pager.h>
 
 
-void Genode::Ipc_pager::copy_regs(Thread_state *state)
+void Genode::Ipc_pager::get_regs(Thread_state *state)
 {
 	state->ip     = _regs.ip;
 	state->sp     = _regs.sp;
@@ -40,3 +40,29 @@ void Genode::Ipc_pager::copy_regs(Thread_state *state)
 	state->eflags = _regs.flags;
 	state->trapno = _regs.trapno;
 }
+
+
+void Genode::Ipc_pager::set_regs(Thread_state state)
+{
+	_regs.ip     = state.ip;
+	_regs.sp     = state.sp;
+	_regs.r8     = state.r8;
+	_regs.r9     = state.r9;
+	_regs.r10    = state.r10;
+	_regs.r11    = state.r11;
+	_regs.r12    = state.r12;
+	_regs.r13    = state.r13;
+	_regs.r14    = state.r14;
+	_regs.r15    = state.r15;
+	_regs.rax    = state.rax;
+	_regs.rbx    = state.rbx;
+	_regs.rcx    = state.rcx;
+	_regs.rdx    = state.rdx;
+	_regs.rdi    = state.rdi;
+	_regs.rsi    = state.rsi;
+	_regs.rbp    = state.rbp;
+	_regs.ss     = state.ss;
+	_regs.flags  = state.eflags;
+	_regs.trapno = state.trapno;
+}
+

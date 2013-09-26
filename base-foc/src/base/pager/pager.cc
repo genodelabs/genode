@@ -71,7 +71,7 @@ void Pager_activation_base::entry()
 			{
 				if (pager.is_exception()) {
 					Lock::Guard guard(obj->state.lock);
-					pager.copy_regs(&obj->state);
+					pager.get_regs(&obj->state);
 					obj->state.exceptions++;
 					obj->state.in_exception = true;
 					obj->submit_exception_signal();
@@ -105,15 +105,17 @@ void Pager_activation_base::entry()
 				pager.set_reply_dst(Native_thread());
 				pager.acknowledge_wakeup();
 
-				/* revert exception flag */
 				{
 					Lock::Guard guard(obj->state.lock);
+					/* revert exception flag */
 					obj->state.in_exception = false;
+					/* set new register contents */
+					pager.set_regs(obj->state);
 				}
 
 				/* send wake up message to requested thread */
 				pager.set_reply_dst(obj->badge());
-				pager.acknowledge_wakeup();
+				pager.acknowledge_exception();
 				break;
 			}
 
@@ -124,8 +126,7 @@ void Pager_activation_base::entry()
 		case Ipc_pager::PAUSE:
 			{
 				Lock::Guard guard(obj->state.lock);
-				pager.copy_regs(&obj->state);
-
+				pager.get_regs(&obj->state);
 				obj->state.exceptions++;
 				obj->state.in_exception = true;
 

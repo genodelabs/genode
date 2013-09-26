@@ -112,6 +112,14 @@ void Ipc_pager::acknowledge_wakeup()
 }
 
 
+void Ipc_pager::acknowledge_exception()
+{
+	memcpy(l4_utcb_exc(), &_regs, sizeof(l4_exc_regs_t));
+	l4_cap_idx_t dst = Fiasco::Capability::valid(_last) ? _last : L4_SYSF_REPLY;
+	l4_ipc_send(dst, l4_utcb(), l4_msgtag(0, L4_UTCB_EXCEPTION_REGS_SIZE, 0, 0), L4_IPC_SEND_TIMEOUT_0);
+}
+
+
 Ipc_pager::Ipc_pager()
 : Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
   _badge(0) { }

@@ -157,6 +157,11 @@ namespace Genode {
 			void acknowledge_wakeup();
 
 			/**
+			 * Reply to an exception IPC
+			 */
+			void acknowledge_exception();
+
+			/**
 			 * Return thread ID of last faulter
 			 */
 			Native_thread last() const { return _last; }
@@ -183,9 +188,15 @@ namespace Genode {
 
 			/**
 			 * Copy the exception registers from the last exception
-			 * to the given thread_state object.
+			 * to the given Thread_state object.
 			 */
-			void copy_regs(Thread_state *state);
+			void get_regs(Thread_state *state);
+
+			/*
+			 * Copy the exception reply registers from the given
+			 * Thread_state object
+			 */
+			void set_regs(Thread_state state);
 	};
 }
 
