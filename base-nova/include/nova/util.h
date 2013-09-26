@@ -46,16 +46,22 @@ inline void request_event_portal(Genode::Native_capability const &cap,
 	utcb->set_msg_word(2);
 
 	uint8_t res = call(cap.local_name());
-	if (res)
-		PERR("request of event (%lu) capability selector failed", event);
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
+
+	if (res)
+		PERR("request of event (%lu) capability selector failed", event);
 }
 
 
 inline void request_native_ec_cap(Genode::Native_capability const &cap,
                                   Genode::addr_t sel) {
-	request_event_portal(cap, sel , ~0U, 0); }
+	request_event_portal(cap, sel , ~0UL, 1); }
+
+
+inline void request_signal_sm_cap(Genode::Native_capability const &cap,
+                                  Genode::addr_t sel) {
+	request_event_portal(cap, sel, ~0UL - 1, 0); }
 
 #endif /* _NOVA__INCLUDE__UTIL_H_ */

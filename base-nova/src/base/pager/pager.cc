@@ -84,7 +84,7 @@ void Pager_object::_page_fault_handler()
 			myself->name(client_name, sizeof(client_name));
 
 			PDBG("unhandled page fault, '%s' address=0x%lx ip=0x%lx",
-				 client_name, ipc_pager.fault_addr(), ipc_pager.fault_ip());
+			     client_name, ipc_pager.fault_addr(), ipc_pager.fault_ip());
 		}
 
 		utcb->set_msg_word(0);
@@ -101,20 +101,18 @@ void Pager_object::_exception_handler(addr_t portal_id)
 	Pager_object *obj;
 	Utcb         *utcb = _check_handler(myself, obj);
 	addr_t fault_ip    = utcb->ip;
+	uint8_t res        = Nova::NOVA_OK;
 
-	if (obj->submit_exception_signal()) {
-		/* somebody takes care don't die - just recall and block */
-		if (obj->client_recall() != Nova::NOVA_OK) {
-			PERR("recall failed exception_handler");
-			nova_die();
-		}
-	}
-	else {
+	if (obj->submit_exception_signal())
+		res = obj->client_recall();
+
+	if (res != NOVA_OK) {
 		char client_name[Context::NAME_LEN];
 		myself->name(client_name, sizeof(client_name));
 
-		PWRN("unresolvable exception at ip 0x%lx, exception portal 0x%lx, "
-		     "'%s'", fault_ip, portal_id, client_name);
+		PWRN("unresolvable exception at ip 0x%lx, exception portal 0x%lx, %s, "
+		     "'%s'", fault_ip, portal_id, res == NOVA_OK ? "" : "recall failed",
+		     client_name);
 
 		Nova::revoke(Obj_crd(portal_id, 0));
 		obj->_state.mark_dead();
@@ -200,6 +198,7 @@ void Pager_object::_invoke_handler()
 	utcb->mtd = 0;
 	utcb->set_msg_word(0);
 
+	/* native ec cap requested */
 	if (event == ~0UL) {
 		/**
 		 * Return native EC cap with specific rights mask set.
@@ -216,15 +215,40 @@ void Pager_object::_invoke_handler()
 		 */
 		bool res = utcb->append_item(Obj_crd(obj->_state.sel_client_ec, 0,
 		                                     Obj_crd::RIGHT_EC_RECALL), 0);
+		res = utcb->append_item(Obj_crd(obj->Object_pool<Pager_object>::Entry::cap().local_name(), 0), 1);
 		(void)res;
+
 		reply(myself->stack_top());
 	}
 
-	/* sanity check - if event is not valid return nothing */
+	/* semaphore for signaling thread is requested, reuse PT_SEL_STARTUP. */
+	if (event == ~0UL - 1) {
+		/* create semaphore only once */
+		if (!obj->_state.has_signal_sm()) {
+
+			revoke(Obj_crd(obj->exc_pt_sel_client() + PT_SEL_STARTUP, 0));
+
+			bool res = Nova::create_sm(obj->exc_pt_sel_client() + PT_SEL_STARTUP,
+			                           __core_pd_sel, 0);
+			if (res != Nova::NOVA_OK)
+				reply(myself->stack_top());
+
+			obj->_state.mark_signal_sm();
+		}
+
+		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() +
+		                                     PT_SEL_STARTUP, 0), 0);
+		(void)res;
+
+		reply(myself->stack_top());
+	}
+
+	/* sanity check, if event is not valid return nothing */
 	if (logcount > NUM_INITIAL_PT_LOG2 || event > 1UL << NUM_INITIAL_PT_LOG2 ||
 	    event + (1UL << logcount) > (1UL << NUM_INITIAL_PT_LOG2))
 		reply(myself->stack_top());
 
+	/* valid event portal is requested, delegate it to caller */
 	bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() + event,
 	                                     logcount), 0);
 	(void)res;
@@ -250,7 +274,14 @@ void Pager_object::client_cancel_blocking()
 
 	uint8_t res = sm_ctrl(exc_pt_sel_client() + SM_SEL_EC, SEMAPHORE_UP);
 	if (res != NOVA_OK)
-		PWRN("cancel blocking failed");
+		PWRN("canceling blocked client failed (thread sm)");
+
+	if (!_state.has_signal_sm())
+		return;
+
+	res = sm_ctrl(exc_pt_sel_client() + PT_SEL_STARTUP, SEMAPHORE_UP);
+	if (res != NOVA_OK)
+		PWRN("canceling blocked client failed (signal sm)");
 }
 
 
@@ -277,16 +308,18 @@ void Pager_object::cleanup_call()
 		     utcb, this->utcb(), res);
 }
 
+
 static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
-	                         addr_t eip)
+                             addr_t eip)
 {
 	uint8_t res = create_pt(pt, pd, ec, mtd, eip);
 
 	if (res == NOVA_OK)
 		revoke(Obj_crd(pt, 0, Obj_crd::RIGHT_PT_CTRL));
 
-	return res;	
+	return res;
 }
+
 
 Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 : Thread_base("pager:", PF_HANDLER_STACK_SIZE),

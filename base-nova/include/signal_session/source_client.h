@@ -48,7 +48,11 @@ namespace Genode {
 				if (_sem.valid()) return;
 
 				/* request mapping of semaphore capability selector */
-				_sem = call<Rpc_request_semaphore>();
+				Thread_base * myself = Thread_base::myself();
+				request_signal_sm_cap(Native_capability(myself->tid().ec_sel + 1),
+				                      myself->tid().exc_pt_sel + Nova::PT_SEL_STARTUP);
+				_sem = Native_capability(myself->tid().exc_pt_sel + Nova::PT_SEL_STARTUP);
+				call<Rpc_register_semaphore>(_sem);
 			}
 
 		public:
@@ -77,8 +81,7 @@ namespace Genode {
 				 * Block on semaphore, will be unblocked if
 				 * signal is available
 				 */
-				if (Nova::sm_ctrl(_sem.local_name(),
-				                  Nova::SEMAPHORE_DOWN))
+				if (Nova::sm_ctrl(_sem.local_name(), Nova::SEMAPHORE_DOWN))
 					nova_die();
 
 				/*

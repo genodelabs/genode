@@ -62,6 +62,7 @@ namespace Genode {
 					DEAD          = 0x2U,
 					SINGLESTEP    = 0x4U,
 					CLIENT_CANCEL = 0x8U,
+					SIGNAL_SM     = 0x10U,
 				};
 				uint8_t _status;
 
@@ -78,6 +79,9 @@ namespace Genode {
 				inline bool is_dead() { return _status & DEAD; }
 
 				inline bool singlestep() { return _status & SINGLESTEP; }
+
+				inline void mark_signal_sm() { _status |= SIGNAL_SM; }
+				inline bool has_signal_sm() { return _status & SIGNAL_SM; }
 			} _state;
 
 			Thread_capability _thread_cap;

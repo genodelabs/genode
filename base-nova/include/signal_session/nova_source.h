@@ -25,9 +25,10 @@ namespace Genode {
 		 ** RPC declaration **
 		 *********************/
 
-		GENODE_RPC(Rpc_request_semaphore, Native_capability, _request_semaphore);
+		GENODE_RPC(Rpc_register_semaphore, void, _register_semaphore,
+		           Native_capability const &);
 
-		GENODE_RPC_INTERFACE_INHERIT(Signal_source, Rpc_request_semaphore);
+		GENODE_RPC_INTERFACE_INHERIT(Signal_source, Rpc_register_semaphore);
 	};
 }
 

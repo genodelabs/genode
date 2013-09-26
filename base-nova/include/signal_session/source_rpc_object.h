@@ -32,7 +32,12 @@ namespace Genode {
 
 		public:
 
-			Native_capability _request_semaphore() { return _blocking_semaphore; }
+			void _register_semaphore(Native_capability const &cap)
+			{
+				if (_blocking_semaphore.valid())
+					PWRN("overwritting blocking signal semaphore !!!");
+				_blocking_semaphore = cap;
+			}
 	};
 }
 

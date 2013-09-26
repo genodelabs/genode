@@ -39,7 +39,7 @@ void Thread_base::_init_platform_thread()
 	 */
 	using namespace Nova;
 
-	_tid.ec_sel     = cap_selector_allocator()->alloc();
+	_tid.ec_sel     = cap_selector_allocator()->alloc(1);
 	_tid.exc_pt_sel = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
 	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
@@ -55,10 +55,10 @@ void Thread_base::_init_platform_thread()
 
 void Thread_base::_deinit_platform_thread()
 {
-	unmap_local(Nova::Obj_crd(_tid.ec_sel, 0));
+	unmap_local(Nova::Obj_crd(_tid.ec_sel, 1));
 	unmap_local(Nova::Obj_crd(_tid.exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2));
 
-	cap_selector_allocator()->free(_tid.ec_sel, 0);
+	cap_selector_allocator()->free(_tid.ec_sel, 1);
 	cap_selector_allocator()->free(_tid.exc_pt_sel,
 	                               Nova::NUM_INITIAL_PT_LOG2);
 

@@ -71,16 +71,7 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 :
 	_entrypoint(ep), _finalizer(*this),
-	_finalizer_cap(_entrypoint->manage(&_finalizer))
-{
-	/* initialized blocking semaphore */
-	addr_t sem_sel = cap_selector_allocator()->alloc();
-	uint8_t ret = Nova::create_sm(sem_sel, Platform_pd::pd_core_sel(), 0);
-	if (ret)
-		PERR("create_sm returned %u", ret);
-
-	_blocking_semaphore = Native_capability(sem_sel);
-}
+	_finalizer_cap(_entrypoint->manage(&_finalizer)) { }
 
 
 Signal_source_component::~Signal_source_component()
