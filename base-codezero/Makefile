@@ -18,6 +18,8 @@ check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 
 $(call check_tool,git)
 $(call check_tool,patch)
+$(call check_tool,python2.6)
+$(call check_tool,scons)
 
 #
 # Print help information by default
