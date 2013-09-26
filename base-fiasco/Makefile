@@ -20,6 +20,7 @@ check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 $(call check_tool,wget)
 $(call check_tool,patch)
 $(call check_tool,tar)
+$(call check_tool,byacc)
 
 #
 # Print help information by default
