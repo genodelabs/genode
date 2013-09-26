@@ -46,7 +46,7 @@ Utcb * Pager_object::_check_handler(Thread_base *&myself, Pager_object *&obj)
 	PERR("unexpected exception-fault for non-existing pager object,"
 	     " going to sleep forever");
 
-	if (obj) obj->_state.dead = true;
+	if (obj) obj->_state.mark_dead();
 	sleep_forever();
 }
 
@@ -76,7 +76,7 @@ void Pager_object::_page_fault_handler()
 
 			revoke(Obj_crd(obj->exc_pt_sel_client(), NUM_INITIAL_PT_LOG2), false);
 
-			obj->_state.dead = true;
+			obj->_state.mark_dead();
 		}
 
 		if (ret == 1) {
@@ -117,7 +117,7 @@ void Pager_object::_exception_handler(addr_t portal_id)
 		     "'%s'", fault_ip, portal_id, client_name);
 
 		Nova::revoke(Obj_crd(portal_id, 0));
-		obj->_state.dead = true;
+		obj->_state.mark_dead();
 	}
 
 	utcb->set_msg_word(0);
@@ -141,26 +141,30 @@ void Pager_object::_recall_handler()
 	obj->_state.thread.eflags = utcb->flags;
 	obj->_state.thread.trapno = PT_SEL_RECALL;
 
-	obj->_state.valid         = true;
+	obj->_state.mark_valid();
 
-	if (sm_ctrl(obj->sm_state_notify(), SEMAPHORE_UP) != NOVA_OK)
-		PWRN("notify failed");
+	if (obj->_state.is_client_cancel())
+		if (sm_ctrl(obj->sm_state_notify(), SEMAPHORE_UP) != NOVA_OK)
+			PWRN("notify failed");
 
-	if (sm_ctrl(obj->exc_pt_sel() + SM_SEL_EC, SEMAPHORE_DOWNZERO) != NOVA_OK)
-		PWRN("blocking recall handler failed");
+	do {
+		if (sm_ctrl(obj->exc_pt_sel() + SM_SEL_EC, SEMAPHORE_DOWNZERO) != NOVA_OK)
+			PWRN("blocking recall handler failed");
+	} while (obj->_state.is_client_cancel());
 
-	obj->_state.valid = false;
+	obj->_state.mark_invalid();
 
 	bool singlestep_state = obj->_state.thread.eflags & 0x100UL;
-	if (obj->_state.singlestep && !singlestep_state) {
+	if (obj->_state.singlestep() && !singlestep_state) {
 		utcb->flags = obj->_state.thread.eflags | 0x100UL;
 		utcb->mtd = Nova::Mtd(Mtd::EFL).value();
 	} else
-		if (!obj->_state.singlestep && singlestep_state) {
+		if (!obj->_state.singlestep() && singlestep_state) {
 			utcb->flags = obj->_state.thread.eflags & ~0x100UL;
 			utcb->mtd = Nova::Mtd(Mtd::EFL).value();
 		} else
 			utcb->mtd = 0;
+
 	utcb->set_msg_word(0);
 
 	reply(myself->stack_top());
@@ -229,11 +233,21 @@ void Pager_object::_invoke_handler()
 }
 
 
-void Pager_object::wake_up() { cancel_blocking(); }
+void Pager_object::wake_up()
+{
+	_state.unmark_client_cancel();
+
+	cancel_blocking();
+}
 
 
 void Pager_object::client_cancel_blocking()
 {
+	if (_state.is_client_cancel())
+		return;
+
+	_state.mark_client_cancel();
+
 	uint8_t res = sm_ctrl(exc_pt_sel_client() + SM_SEL_EC, SEMAPHORE_UP);
 	if (res != NOVA_OK)
 		PWRN("cancel blocking failed");
@@ -288,9 +302,7 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 	addr_t pd_sel        = __core_pd_sel;
 	_pt_cleanup          = cap_selector_allocator()->alloc(1);
 	_client_exc_pt_sel   = cap_selector_allocator()->alloc(NUM_INITIAL_PT_LOG2);
-	_state.valid         = false;
-	_state.dead          = false;
-	_state.singlestep    = false;
+	_state._status       = 0;
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
 
 	if (_pt_cleanup == Native_thread::INVALID_INDEX ||

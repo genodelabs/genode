@@ -57,9 +57,27 @@ namespace Genode {
 			{
 				struct Thread_state thread;
 				addr_t sel_client_ec;
-				bool valid;
-				bool dead;
-				bool singlestep;
+				enum {
+					VALID         = 0x1U,
+					DEAD          = 0x2U,
+					SINGLESTEP    = 0x4U,
+					CLIENT_CANCEL = 0x8U,
+				};
+				uint8_t _status;
+
+				/* convenience function to access pause/recall state */
+				inline bool is_valid() { return _status & VALID; }
+				inline void mark_valid() { _status |= VALID; }
+				inline void mark_invalid() { _status &= ~VALID; }
+
+				inline bool is_client_cancel() { return _status & CLIENT_CANCEL; }
+				inline void mark_client_cancel() { _status |= CLIENT_CANCEL; }
+				inline void unmark_client_cancel() { _status &= ~CLIENT_CANCEL; }
+
+				inline void mark_dead() { _status |= DEAD; }
+				inline bool is_dead() { return _status & DEAD; }
+
+				inline bool singlestep() { return _status & SINGLESTEP; }
 			} _state;
 
 			Thread_capability _thread_cap;
@@ -152,10 +170,8 @@ namespace Genode {
 			 */
 			Native_capability notify_sm()
 			{
-				if (_state.valid)
-					return Native_capability::invalid_cap();
-				if (_state.dead)
-					return Native_capability::invalid_cap();
+				if (_state.is_valid() || _state.is_dead())
+					return Native_capability();
 
 				return Native_capability(sm_state_notify());
 			}
@@ -165,7 +181,8 @@ namespace Genode {
 			 */
 			int copy_thread_state(Thread_state * state_dst)
 			{
-				if (!state_dst || !_state.valid) return -1;
+				if (!state_dst || !_state.is_valid())
+					return -1;
 
 				*state_dst = _state.thread;
 
@@ -181,7 +198,13 @@ namespace Genode {
 			uint8_t client_recall();
 			void    client_set_ec(addr_t ec) { _state.sel_client_ec = ec; }
 
-			void single_step(bool on) { _state.singlestep = on; }
+			inline void single_step(bool on)
+			{
+				if (on)
+					_state._status |= _state.SINGLESTEP;
+				else
+					_state._status &= ~_state.SINGLESTEP;
+			}
 
 			/**
 			 * Remember thread cap so that rm_session can tell thread that
