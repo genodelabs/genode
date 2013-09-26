@@ -237,6 +237,12 @@ extern "C" int _main()
 	init_exception_handling();
 
 	/*
+	 * We create the thread-context area as early as possible to prevent other
+	 * mappings from occupying the predefined virtual-memory region.
+	 */
+	env_context_area_rm_session();
+
+	/*
 	 * Trigger first exception. This step has two purposes.
 	 * First, it enables us to detect problems related to exception handling as
 	 * early as possible. If there are problems with the C++ support library,
@@ -260,9 +266,6 @@ extern "C" int _main()
 	for (func = &_ctors_end; func != &_ctors_start; (*--func)());
 
 	/* now, it is save to call printf */
-
-	/* create the thread context area RM session */
-	env_context_area_rm_session();
 
 	/* enable tracing support */
 	inhibit_tracing = false;
