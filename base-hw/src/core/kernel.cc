@@ -34,6 +34,7 @@
 
 /* base-hw includes */
 #include <singleton.h>
+#include <kernel/perf_counter.h>
 
 using namespace Kernel;
 
@@ -954,6 +955,9 @@ extern "C" void kernel()
 
 		/* TrustZone initialization code */
 		trustzone_initialization(pic());
+
+		/* enable performance counter */
+		perf_counter()->enable();
 
 		/* switch to core address space */
 		Cpu::init_virt_kernel(core()->tlb()->base(), core_id());

@@ -11,7 +11,7 @@ TARGET = core
 CC_OPT += -DCORE_MAIN=_main
 
 # add library dependencies
-LIBS += base-common
+LIBS += base-common perf_counter
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core \
