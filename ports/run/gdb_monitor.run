@@ -10,10 +10,11 @@
 # at this time
 #
 
-if {![have_spec foc] && ![have_spec nova]} {
-	 puts "Run script requires foc or nova"; exit 0
+if {![is_qemu_available] || (![have_spec foc] && ![have_spec nova])} {
+	 puts "Run script is only supported for foc or nova in Qemu"; exit 0
 }
 
+assert_spec 32bit
 
 #
 # Build
@@ -174,6 +175,7 @@ if {![regexp {#0  puts} $gdb_output] ||
     ![regexp {in func2 ()} $gdb_output] ||
     ![regexp {in func1 ()} $gdb_output] ||
     ![regexp {in main ()} $gdb_output]} {
+
 	puts stderr "Error: Stack trace when not in syscall is not as expected"
 	exit -1
 }
@@ -202,8 +204,11 @@ if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $gdb_output]
 if {![regexp {Genode::Ipc_istream::_wait} $gdb_output] ||
     ![regexp {Genode::Ipc_server::_wait} $gdb_output] ||
     ![regexp {Genode::sleep_forever ()} $gdb_output]} {
-	puts stderr "Error: Stack trace when in syscall is not as expected"
-	exit -1
+
+	if {![have_spec nova]} {
+		puts stderr "Error: Stack trace when in syscall is not as expected"
+		exit -1
+	}
 }
 
 puts "Test succeeded"
