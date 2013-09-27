@@ -135,6 +135,7 @@ namespace Genode {
 			/**
 			 * Set initial stack pointer used by the startup handler
 			 */
+			addr_t initial_esp() { return _initial_esp; }
 			void initial_esp(addr_t esp) { _initial_esp = esp; }
 
 			/**
@@ -183,14 +184,14 @@ namespace Genode {
 			/**
 			 * Copy thread state of recalled thread.
 			 */
-			int copy_thread_state(Thread_state * state_dst)
+			bool copy_thread_state(Thread_state * state_dst)
 			{
 				if (!state_dst || !_state.is_valid())
-					return -1;
+					return false;
 
 				*state_dst = _state.thread;
 
-				return 0;
+				return true;
 			}
 
 			/**

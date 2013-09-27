@@ -37,12 +37,23 @@ namespace Genode {
 			addr_t             _id_base;
 			addr_t             _sel_exc_base;
 			Affinity::Location _location;
-			bool               _is_main_thread;
-			bool               _is_vcpu;
+
+			enum {
+				MAIN_THREAD = 0x1U,
+				VCPU        = 0x2U,
+				WORKER      = 0x4U,
+			};
+			uint8_t            _features;
+
 			char               _name[Thread_base::Context::NAME_LEN];
 
 			addr_t _sel_ec() const { return _id_base; }
 			addr_t _sel_sc() const { return _id_base + 1; }
+
+			/* convenience function to access _feature variable */
+			inline bool is_main_thread() { return _features & MAIN_THREAD; }
+			inline bool is_vcpu()        { return _features & VCPU; }
+			inline bool is_worker()      { return _features & WORKER; }
 
 		public:
 
@@ -144,9 +155,11 @@ namespace Genode {
 			/**
 			 * Associate thread with protection domain
 			 */
-			void bind_to_pd(Platform_pd *pd, bool is_main_thread)
+			void bind_to_pd(Platform_pd *pd, bool main_thread)
 			{
-				_pd = pd, _is_main_thread = is_main_thread;
+				_pd = pd;
+
+				if (main_thread) _features |= MAIN_THREAD;
 			}
 
 			void single_step(bool on);
