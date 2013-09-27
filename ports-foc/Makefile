@@ -24,6 +24,7 @@ UPDATE_PATCH    = $(word 1, $(PATCH-$(TARGET)))
 check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
 
 $(call check_tool,patch)
+$(call check_tool,bc)
 
 ifeq ($(TARGET), l4android)
 $(call check_tool,git)
