@@ -66,7 +66,7 @@ int Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t am
 
 	/* check for reference account relationship */
 	if ((ref_account() != dst) && (dst->ref_account() != this))
-		return -3;
+		return -2;
 
 	/* decrease quota limit of this session - check against used quota */
 	if (_quota_limit < amount + _payload) {
