@@ -146,7 +146,12 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		 ** Emergency_ram_reserve interface **
 		 *************************************/
 
-		void release() { _resources.ram.free(_emergency_ram_ds); }
+		void release() {
+
+			PDBG("used before freeing emergency=%zd", _resources.ram.used());
+			_resources.ram.free(_emergency_ram_ds);
+			PDBG("used after freeing emergency=%zd", _resources.ram.used());
+		}
 
 
 		/*******************
