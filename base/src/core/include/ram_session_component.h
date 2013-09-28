@@ -73,8 +73,7 @@ namespace Genode {
 			/**
 			 * Return portion of RAM quota that is currently in use
 			 */
-			size_t used_quota() {
-				return _ds_slab.consumed() + _payload + sizeof(*this); }
+			size_t used_quota() { return _payload; }
 
 			/**
 			 * Free dataspace
