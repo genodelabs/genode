@@ -248,15 +248,26 @@ create a 'target.mk' file in 'src/hello/server':
 ! SRC_CC = main.cc
 ! LIBS   = base
 
-To tell the init process to start the new program, we have to add the following
-entry to Init's 'config' file, which is located at 'build/bin/config'.
+To tell the init process to start the new program, we have to add a '<start>'
+entry to init's 'config' file, which is located at 'build/bin/config'.
 
 ! <config>
+!   <parent-provides>
+!     <service name="CAP"/>
+!     <service name="LOG"/>
+!     <service name="RM"/>
+!   </parent-provides>
+!   <default-route>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </default-route>
 !   <start name="hello_server">
-!     <resource name="RAM" quantum="256K"/>
+!     <resource name="RAM" quantum="1M"/>
 !     <provides><service name="Hello"/></provides>
 !   </start>
 ! </config>
+
+For information about the configuring the init process, please refer
+to [http://genode.org/documentation/developer-resources/init].
 
 Now rebuild 'hello/server', go to 'build/bin', run './core'.
 
