@@ -73,3 +73,10 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 
 	return -1;
 }
+
+
+extern "C" void genode_store_register(int regno, unsigned long reg_content)
+{
+	PDBG("not implemented yet for this platform");
+}
+

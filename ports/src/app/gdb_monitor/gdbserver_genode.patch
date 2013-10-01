@@ -1,6 +1,20 @@
-- Genode-specific changes of gdbserver files
+gdbserver_genode.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gdb/gdbserver/linux-arm-low.c |    4 +
+ gdb/gdbserver/linux-low.c     |  223 ++++++++++++++++++++++++++++++++++-------
+ gdb/gdbserver/linux-low.h     |    5 +
+ gdb/gdbserver/linux-x86-low.c |   43 +++++++-
+ gdb/gdbserver/remote-utils.c  |   80 +++++++++++++++
+ gdb/gdbserver/server.c        |   52 ++++++++--
+ gdb/gdbserver/server.h        |    4 -
+ 7 files changed, 356 insertions(+), 55 deletions(-)
 
 diff --git a/gdb/gdbserver/linux-arm-low.c b/gdb/gdbserver/linux-arm-low.c
+index babb20c..d14c8cc 100644
 --- a/gdb/gdbserver/linux-arm-low.c
 +++ b/gdb/gdbserver/linux-arm-low.c
 @@ -25,6 +25,7 @@
@@ -11,7 +25,7 @@ diff --git a/gdb/gdbserver/linux-arm-low.c b/gdb/gdbserver/linux-arm-low.c
  #include <sys/ptrace.h>
  
  /* Defined in auto-generated files.  */
-@@ -306,6 +307,7 @@
+@@ -306,6 +307,7 @@ static void
  arm_arch_setup (void)
  {
    arm_hwcap = 0;
@@ -19,7 +33,7 @@ diff --git a/gdb/gdbserver/linux-arm-low.c b/gdb/gdbserver/linux-arm-low.c
    if (arm_get_hwcap (&arm_hwcap) == 0)
      {
        init_registers_arm ();
-@@ -347,7 +349,7 @@
+@@ -347,7 +349,7 @@ arm_arch_setup (void)
  
        return;
      }
@@ -29,6 +43,7 @@ diff --git a/gdb/gdbserver/linux-arm-low.c b/gdb/gdbserver/linux-arm-low.c
       simulated.  */
    init_registers_arm ();
 diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
+index 81b8540..5b31da5 100644
 --- a/gdb/gdbserver/linux-low.c
 +++ b/gdb/gdbserver/linux-low.c
 @@ -19,6 +19,7 @@
@@ -39,7 +54,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  
  #include <sys/wait.h>
  #include <stdio.h>
-@@ -281,6 +282,7 @@
+@@ -281,6 +282,7 @@ elf_64_file_p (const char *file)
  static void
  delete_lwp (struct lwp_info *lwp)
  {
@@ -47,7 +62,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    remove_thread (get_lwp_thread (lwp));
    remove_inferior (&all_lwps, &lwp->head);
    free (lwp->arch_private);
-@@ -535,6 +537,8 @@
+@@ -535,6 +537,8 @@ get_stop_pc (struct lwp_info *lwp)
  static void *
  add_lwp (ptid_t ptid)
  {
@@ -56,7 +71,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    struct lwp_info *lwp;
  
    lwp = (struct lwp_info *) xmalloc (sizeof (*lwp));
-@@ -547,6 +551,9 @@
+@@ -547,6 +551,9 @@ add_lwp (ptid_t ptid)
  
    add_inferior_to_list (&all_lwps, &lwp->head);
  
@@ -66,7 +81,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    return lwp;
  }
  
-@@ -606,6 +613,7 @@
+@@ -606,6 +613,7 @@ linux_attach_lwp_1 (unsigned long lwpid, int initial)
    ptid_t ptid;
    struct lwp_info *new_lwp;
  
@@ -74,7 +89,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    if (ptrace (PTRACE_ATTACH, lwpid, 0, 0) != 0)
      {
        if (!initial)
-@@ -621,6 +629,7 @@
+@@ -621,6 +629,7 @@ linux_attach_lwp_1 (unsigned long lwpid, int initial)
  	error ("Cannot attach to lwp %ld: %s (%d)\n", lwpid,
  	       strerror (errno), errno);
      }
@@ -82,7 +97,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  
    if (initial)
      /* NOTE/FIXME: This lwp might have not been the tgid.  */
-@@ -637,10 +646,11 @@
+@@ -637,10 +646,11 @@ linux_attach_lwp_1 (unsigned long lwpid, int initial)
    new_lwp = (struct lwp_info *) add_lwp (ptid);
    add_thread (ptid, new_lwp);
  
@@ -95,7 +110,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    /* The next time we wait for this LWP we'll see a SIGSTOP as PTRACE_ATTACH
       brings it to a halt.
  
-@@ -689,6 +699,10 @@
+@@ -689,6 +699,10 @@ linux_attach (unsigned long pid)
    linux_attach_lwp_1 (pid, 1);
    linux_add_process (pid, 1);
  
@@ -106,7 +121,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    if (!non_stop)
      {
        struct thread_info *thread;
-@@ -698,7 +712,7 @@
+@@ -698,7 +712,7 @@ linux_attach (unsigned long pid)
        thread = find_thread_ptid (ptid_build (pid, pid, 0));
        thread->last_resume_kind = resume_stop;
      }
@@ -115,7 +130,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    return 0;
  }
  
-@@ -812,7 +826,11 @@
+@@ -812,7 +826,11 @@ linux_kill (int pid)
    return 0;
  }
  
@@ -127,7 +142,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  linux_detach_one_lwp (struct inferior_list_entry *entry, void *args)
  {
    struct thread_info *thread = (struct thread_info *) entry;
-@@ -822,6 +840,7 @@
+@@ -822,6 +840,7 @@ linux_detach_one_lwp (struct inferior_list_entry *entry, void *args)
    if (ptid_get_pid (entry->id) != pid)
      return 0;
  
@@ -135,7 +150,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    /* If this process is stopped but is expecting a SIGSTOP, then make
       sure we take care of that now.  This isn't absolutely guaranteed
       to collect the SIGSTOP, but is fairly likely to.  */
-@@ -833,13 +852,15 @@
+@@ -833,13 +852,15 @@ linux_detach_one_lwp (struct inferior_list_entry *entry, void *args)
        linux_resume_one_lwp (lwp, 0, 0, NULL);
        linux_wait_for_event (lwp->head.id, &wstat, __WALL);
      }
@@ -152,7 +167,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  
    delete_lwp (lwp);
    return 0;
-@@ -2460,6 +2481,13 @@
+@@ -2460,6 +2481,13 @@ async_file_mark (void)
       be awakened anyway.  */
  }
  
@@ -166,7 +181,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  static ptid_t
  linux_wait (ptid_t ptid,
  	    struct target_waitstatus *ourstatus, int target_options)
-@@ -2469,18 +2497,28 @@
+@@ -2469,18 +2497,28 @@ linux_wait (ptid_t ptid,
    if (debug_threads)
      fprintf (stderr, "linux_wait: [%s]\n", target_pid_to_str (ptid));
  
@@ -174,18 +189,16 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    /* Flush the async file first.  */
    if (target_is_async_p ())
      async_file_flush ();
--
 +#endif
-+
+ 
 +#ifdef __GENODE__
 +  /* TODO: get some information from wait_for_signal_or_gdb_interrupt() */
 +  event_ptid = genode_wait_for_signal_or_gdb_interrupt(ourstatus);
 +  find_inferior (&all_lwps, mark_as_stopped, NULL);
 +#else
    event_ptid = linux_wait_1 (ptid, ourstatus, target_options);
--
 +#endif
-+
+ 
 +#ifndef __GENODE__
    /* If at least one stop was reported, there may be more.  A single
       SIGCHLD can signal more than one child stop.  */
@@ -197,7 +210,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  
    return event_ptid;
  }
-@@ -2785,6 +2823,8 @@
+@@ -2785,6 +2823,8 @@ static void
  linux_resume_one_lwp (struct lwp_info *lwp,
  		      int step, int signal, siginfo_t *info)
  {
@@ -206,7 +219,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    struct thread_info *saved_inferior;
    int fast_tp_collecting;
  
-@@ -2958,10 +2998,15 @@
+@@ -2958,10 +2998,15 @@ lwp %ld wants to get out of fast tracepoint jump pad single-stepping\n",
    lwp->stopped = 0;
    lwp->stopped_by_watchpoint = 0;
    lwp->stepping = step;
@@ -222,7 +235,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  
    current_inferior = saved_inferior;
    if (errno)
-@@ -3325,6 +3370,8 @@
+@@ -3325,6 +3370,8 @@ finish_step_over (struct lwp_info *lwp)
  static int
  linux_resume_one_thread (struct inferior_list_entry *entry, void *arg)
  {
@@ -231,7 +244,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    struct lwp_info *lwp;
    struct thread_info *thread;
    int step;
-@@ -3436,6 +3483,8 @@
+@@ -3436,6 +3483,8 @@ linux_resume_one_thread (struct inferior_list_entry *entry, void *arg)
  static void
  linux_resume (struct thread_resume *resume_info, size_t n)
  {
@@ -240,7 +253,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    struct thread_resume_array array = { resume_info, n };
    struct lwp_info *need_step_over = NULL;
    int any_pending;
-@@ -3484,6 +3533,8 @@
+@@ -3484,6 +3533,8 @@ linux_resume (struct thread_resume *resume_info, size_t n)
  
    if (need_step_over)
      start_step_over (need_step_over);
@@ -249,43 +262,63 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  }
  
  /* This function is called once per thread.  We check the thread's
-@@ -3958,6 +4009,22 @@
+@@ -3958,6 +4009,26 @@ linux_fetch_registers (struct regcache *regcache, int regno)
  #endif
  }
  
 +static void
 +genode_fetch_registers (struct regcache *regcache, int regno)
 +{
-+  unsigned long reg_content = 0;
++	unsigned long reg_content = 0;
 +
-+  if (regno == -1) {
-+      for (regno = 0; regno < the_low_target.num_regs; regno++) {
-+    	  if (genode_fetch_register(regno, &reg_content) == 0)
-+    		  supply_register(regcache, regno, &reg_content);
-+      }
-+  } else {
-+	  if (genode_fetch_register(regno, &reg_content) == 0)
-+		  supply_register(regcache, regno, &reg_content);
-+  }
++	if (regno == -1) {
++		for (regno = 0; regno < the_low_target.num_regs; regno++) {
++			if (genode_fetch_register(regno, &reg_content) == 0)
++				supply_register(regcache, regno, &reg_content);
++			else
++				supply_register(regcache, regno, 0);
++		}
++	} else {
++		if (genode_fetch_register(regno, &reg_content) == 0)
++			supply_register(regcache, regno, &reg_content);
++		else
++			supply_register(regcache, regno, 0);
++	}
 +}
 +
  void
  linux_store_registers (struct regcache *regcache, int regno)
  {
-@@ -3970,6 +4037,12 @@
+@@ -3970,6 +4041,28 @@ linux_store_registers (struct regcache *regcache, int regno)
  #endif
  }
  
 +void
 +genode_store_registers (struct regcache *regcache, int regno)
 +{
-+	printf("genode_store_registers() - not yet implemented\n");
++	if (debug_threads) printf("genode_store_registers(): regno = %d\n", regno);
++
++	unsigned long reg_content = 0;
++
++	if (regno == -1) {
++		for (regno = 0; regno < the_low_target.num_regs; regno++) {
++			if (register_size(regno) <= sizeof(reg_content)) {
++				collect_register(regcache, regno, &reg_content);
++				genode_store_register(regno, reg_content);
++			}
++		}
++	} else {
++		if (register_size(regno) <= sizeof(reg_content)) {
++			collect_register(regcache, regno, &reg_content);
++			genode_store_register(regno, reg_content);
++		}
++	}
 +}
 +
  
  /* Copy LEN bytes from inferior's memory starting at MEMADDR
     to debugger memory starting at MYADDR.  */
-@@ -4040,6 +4113,17 @@
+@@ -4040,6 +4133,17 @@ linux_read_memory (CORE_ADDR memaddr, unsigned char *myaddr, int len)
    return 0;
  }
  
@@ -303,7 +336,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  /* Copy LEN bytes of data from debugger memory at MYADDR to inferior's
     memory at MEMADDR.  On failure (cannot write to the inferior)
     returns the value of errno.  */
-@@ -4121,6 +4205,17 @@
+@@ -4121,6 +4225,34 @@ linux_write_memory (CORE_ADDR memaddr, const unsigned char *myaddr, int len)
    return 0;
  }
  
@@ -311,17 +344,34 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
 +genode_write_memory (CORE_ADDR memaddr, const unsigned char *myaddr, int len)
 +{
 +	int i;
-+	if (debug_threads) printf("genode_write_memory(%llx, %p, %d)\n", memaddr, myaddr, len);
-+	if (myaddr)
++	
++	if (debug_threads)
++		printf("genode_write_memory(%llx, %p, %d)\n", memaddr, myaddr, len);
++
++	if (myaddr && (len > 0)) {
++		if (debug_threads)
++		{
++			/* Dump up to four bytes.  */
++			unsigned int val = * (unsigned int *) myaddr;
++			if (len == 1)
++				val = val & 0xff;
++			else if (len == 2)
++				val = val & 0xffff;
++			else if (len == 3)
++				val = val & 0xffffff;
++			fprintf (stderr, "Writing %0*x to 0x%08lx\n", 2 * ((len < 4) ? len : 4),
++					 val, (long)memaddr);
++		}
 +		for (i = 0; i < len; i++)
 +		   genode_write_memory_byte((void*)(unsigned long)memaddr + i, myaddr[i]);
++	}
 +	return 0;
 +}
 +
  /* Non-zero if the kernel supports PTRACE_O_TRACEFORK.  */
  static int linux_supports_tracefork_flag;
  
-@@ -4296,6 +4391,10 @@
+@@ -4296,6 +4428,10 @@ linux_look_up_symbols (void)
  static void
  linux_request_interrupt (void)
  {
@@ -332,7 +382,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    extern unsigned long signal_pid;
  
    if (!ptid_equal (cont_thread, null_ptid)
-@@ -4306,10 +4405,19 @@
+@@ -4306,10 +4442,19 @@ linux_request_interrupt (void)
  
        lwp = get_thread_lwp (current_inferior);
        lwpid = lwpid_of (lwp);
@@ -353,7 +403,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  }
  
  /* Copy LEN bytes from inferior's auxiliary vector starting at OFFSET
-@@ -5108,28 +5216,28 @@
+@@ -5108,28 +5253,28 @@ linux_emit_ops (void)
  }
  
  static struct target_ops linux_target_ops = {
@@ -395,7 +445,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  #if defined(__UCLIBC__) && defined(HAS_NOMMU)
    linux_read_offsets,
  #else
-@@ -5140,32 +5248,32 @@
+@@ -5140,32 +5285,32 @@ static struct target_ops linux_target_ops = {
  #else
    NULL,
  #endif
@@ -448,7 +498,7 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
  };
  
  static void
-@@ -5181,11 +5289,14 @@
+@@ -5181,11 +5326,14 @@ linux_init_signals ()
  void
  initialize_low (void)
  {
@@ -463,13 +513,14 @@ diff --git a/gdb/gdbserver/linux-low.c b/gdb/gdbserver/linux-low.c
    linux_init_signals ();
    linux_test_for_tracefork ();
  #ifdef HAVE_LINUX_REGSETS
-@@ -5198,4 +5309,5 @@
+@@ -5198,4 +5346,5 @@ initialize_low (void)
    sigemptyset (&sigchld_action.sa_mask);
    sigchld_action.sa_flags = SA_RESTART;
    sigaction (SIGCHLD, &sigchld_action, NULL);
 +#endif
  }
 diff --git a/gdb/gdbserver/linux-low.h b/gdb/gdbserver/linux-low.h
+index 6635bc6..ae172bd 100644
 --- a/gdb/gdbserver/linux-low.h
 +++ b/gdb/gdbserver/linux-low.h
 @@ -21,7 +21,7 @@
@@ -481,7 +532,7 @@ diff --git a/gdb/gdbserver/linux-low.h b/gdb/gdbserver/linux-low.h
  
  #ifdef HAVE_LINUX_REGSETS
  typedef void (*regset_fill_func) (struct regcache *, void *);
-@@ -56,6 +56,9 @@
+@@ -56,6 +56,9 @@ struct process_info_private
    /* libthread_db-specific additions.  Not NULL if this process has loaded
       thread_db, and it is active.  */
    struct thread_db *thread_db;
@@ -492,6 +543,7 @@ diff --git a/gdb/gdbserver/linux-low.h b/gdb/gdbserver/linux-low.h
  
  struct lwp_info;
 diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
+index 69c6b57..cffa803 100644
 --- a/gdb/gdbserver/linux-x86-low.c
 +++ b/gdb/gdbserver/linux-x86-low.c
 @@ -28,8 +28,15 @@
@@ -499,8 +551,9 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  #include "elf/common.h"
  
 -#include "gdb_proc_service.h"
+-
 +//#include "gdb_proc_service.h"
- 
++
 +#ifdef __GENODE__
 +/* Defined in auto-generated file i386.c.  */
 +void init_registers_i386 (void);
@@ -511,7 +564,7 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  /* Defined in auto-generated file i386-linux.c.  */
  void init_registers_i386_linux (void);
  /* Defined in auto-generated file amd64-linux.c.  */
-@@ -40,11 +47,22 @@
+@@ -40,11 +47,22 @@ void init_registers_i386_avx_linux (void);
  void init_registers_amd64_avx_linux (void);
  /* Defined in auto-generated file i386-mmx-linux.c.  */
  void init_registers_i386_mmx_linux (void);
@@ -534,7 +587,7 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  static const char *xmltarget_i386_linux_no_xml = "@<target>\
  <architecture>i386</architecture>\
  <osabi>GNU/Linux</osabi>\
-@@ -56,8 +74,15 @@
+@@ -56,8 +74,15 @@ static const char *xmltarget_amd64_linux_no_xml = "@<target>\
  <osabi>GNU/Linux</osabi>\
  </target>";
  #endif
@@ -550,7 +603,7 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  #include <sys/procfs.h>
  #include <sys/ptrace.h>
  #include <sys/uio.h>
-@@ -273,8 +298,10 @@
+@@ -273,8 +298,10 @@ x86_fill_gregset (struct regcache *regcache, void *buf)
    for (i = 0; i < I386_NUM_REGS; i++)
      collect_register (regcache, i, ((char *) buf) + i386_regmap[i]);
  
@@ -561,7 +614,7 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  }
  
  static void
-@@ -295,8 +322,10 @@
+@@ -295,8 +322,10 @@ x86_store_gregset (struct regcache *regcache, const void *buf)
    for (i = 0; i < I386_NUM_REGS; i++)
      supply_register (regcache, i, ((char *) buf) + i386_regmap[i]);
  
@@ -572,7 +625,7 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  }
  
  static void
-@@ -414,7 +443,15 @@
+@@ -414,7 +443,15 @@ x86_set_pc (struct regcache *regcache, CORE_ADDR pc)
      }
  }
  
@@ -588,7 +641,7 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
  #define x86_breakpoint_len 1
  
  static int
-@@ -2576,7 +2613,7 @@
+@@ -2576,7 +2613,7 @@ struct linux_target_ops the_low_target =
    x86_siginfo_fixup,
    x86_linux_new_process,
    x86_linux_new_thread,
@@ -598,6 +651,7 @@ diff --git a/gdb/gdbserver/linux-x86-low.c b/gdb/gdbserver/linux-x86-low.c
    x86_supports_tracepoints,
    x86_get_thread_area,
 diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
+index 650ddf8..046dd2e 100644
 --- a/gdb/gdbserver/remote-utils.c
 +++ b/gdb/gdbserver/remote-utils.c
 @@ -18,11 +18,14 @@
@@ -615,7 +669,7 @@ diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
  #if HAVE_SYS_IOCTL_H
  #include <sys/ioctl.h>
  #endif
-@@ -171,7 +174,6 @@
+@@ -171,7 +174,6 @@ handle_accept_event (int err, gdb_client_data client_data)
  
  #ifndef USE_WIN32API
    close (listen_desc);		/* No longer need this */
@@ -623,7 +677,7 @@ diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
    signal (SIGPIPE, SIG_IGN);	/* If we don't do this, then gdbserver simply
  				   exits when the remote side dies.  */
  #else
-@@ -186,6 +188,12 @@
+@@ -186,6 +188,12 @@ handle_accept_event (int err, gdb_client_data client_data)
  
    enable_async_notification (remote_desc);
  
@@ -636,7 +690,7 @@ diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
    /* Register the event loop handler.  */
    add_file_handler (remote_desc, handle_serial_event, NULL);
  
-@@ -280,6 +288,14 @@
+@@ -280,6 +288,14 @@ remote_open (char *name)
  
        /* Register the event loop handler.  */
        add_file_handler (remote_desc, handle_serial_event, NULL);
@@ -651,7 +705,7 @@ diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
  #endif /* USE_WIN32API */
      }
    else
-@@ -857,6 +873,68 @@
+@@ -857,6 +873,68 @@ input_interrupt (int unused)
      }
  }
  
@@ -721,6 +775,7 @@ diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
  void
  check_remote_input_interrupt_request (void)
 diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
+index 2f4484f..79c89d4 100644
 --- a/gdb/gdbserver/server.c
 +++ b/gdb/gdbserver/server.c
 @@ -18,8 +18,13 @@
@@ -737,7 +792,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
  #if HAVE_UNISTD_H
  #include <unistd.h>
  #endif
-@@ -47,7 +52,7 @@
+@@ -47,7 +52,7 @@ static char **program_argv, **wrapper_argv;
  
  /* Enable miscellaneous debugging output.  The name is historical - it
     was originally used to debug LinuxThreads support.  */
@@ -746,7 +801,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
  
  /* Enable debugging of h/w breakpoint/watchpoint support.  */
  int debug_hw_points;
-@@ -1740,6 +1745,7 @@
+@@ -1740,6 +1745,7 @@ static void gdb_wants_all_threads_stopped (void);
  void
  handle_v_cont (char *own_buf)
  {
@@ -754,7 +809,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    char *p, *q;
    int n = 0, i = 0;
    struct thread_resume *resume_info;
-@@ -2055,11 +2061,11 @@
+@@ -2055,11 +2061,11 @@ handle_v_requests (char *own_buf, int packet_len, int *new_packet_len)
  	  return;
  	}
      }
@@ -768,7 +823,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    if (strncmp (own_buf, "vAttach;", 8) == 0)
      {
        if (!multi_process && target_running ())
-@@ -2114,6 +2120,7 @@
+@@ -2114,6 +2120,7 @@ handle_v_requests (char *own_buf, int packet_len, int *new_packet_len)
  static void
  myresume (char *own_buf, int step, int sig)
  {
@@ -776,7 +831,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    struct thread_resume resume_info[2];
    int n = 0;
    int valid_cont_thread;
-@@ -2250,6 +2257,7 @@
+@@ -2250,6 +2257,7 @@ gdb_reattached_process (struct inferior_list_entry *entry)
  static void
  handle_status (char *own_buf)
  {
@@ -784,7 +839,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    /* GDB is connected, don't forward events to the target anymore.  */
    for_each_inferior (&all_processes, gdb_reattached_process);
  
-@@ -2286,7 +2294,7 @@
+@@ -2286,7 +2294,7 @@ handle_status (char *own_buf)
  	strcpy (own_buf, "W00");
      }
  }
@@ -793,7 +848,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
  static void
  gdbserver_version (void)
  {
-@@ -2328,7 +2336,7 @@
+@@ -2328,7 +2336,7 @@ gdbserver_show_disableable (FILE *stream)
  	   "T stop reply packet\n"
  	   "  threads     \tAll of the above\n");
  }
@@ -802,7 +857,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
  
  #undef require_running
  #define require_running(BUF)			\
-@@ -2449,8 +2457,9 @@
+@@ -2449,8 +2457,9 @@ join_inferiors_callback (struct inferior_list_entry *entry)
  }
  
  int
@@ -813,7 +868,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    int bad_attach;
    int pid;
    char *arg_end, *port;
-@@ -2584,7 +2593,7 @@
+@@ -2584,7 +2593,7 @@ main (int argc, char *argv[])
        gdbserver_usage (stderr);
        exit (1);
      }
@@ -822,7 +877,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    initialize_inferiors ();
    initialize_async_io ();
    initialize_low ();
-@@ -2594,6 +2603,7 @@
+@@ -2594,6 +2603,7 @@ main (int argc, char *argv[])
    own_buf = xmalloc (PBUFSIZ + 1);
    mem_buf = xmalloc (PBUFSIZ);
  
@@ -830,7 +885,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    if (pid == 0 && *next_arg != NULL)
      {
        int i, n;
-@@ -2647,6 +2657,12 @@
+@@ -2647,6 +2657,12 @@ main (int argc, char *argv[])
        fprintf (stderr, "No program to debug.  GDBserver exiting.\n");
        exit (1);
      }
@@ -843,7 +898,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
  
    while (1)
      {
-@@ -2655,6 +2671,15 @@
+@@ -2655,6 +2671,15 @@ main (int argc, char *argv[])
        /* Be sure we're out of tfind mode.  */
        current_traceframe = -1;
  
@@ -859,15 +914,15 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
        remote_open (port);
  
        if (setjmp (toplevel) != 0)
-@@ -2755,6 +2780,7 @@
+@@ -2755,6 +2780,7 @@ process_serial_event (void)
  
    i = 0;
    ch = own_buf[i++];
-+  if (debug_threads) printf("GDB command = %s\n", own_buf);
++  //if (debug_threads) printf("GDB command = %s\n", own_buf);
    switch (ch)
      {
      case 'q':
-@@ -2844,7 +2870,9 @@
+@@ -2844,7 +2870,9 @@ process_serial_event (void)
  		 gone.  */
  	      for_each_inferior (&all_processes,
  				 join_inferiors_callback);
@@ -877,7 +932,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
  	    }
  	}
        break;
-@@ -3076,7 +3104,11 @@
+@@ -3076,7 +3104,11 @@ process_serial_event (void)
  	  return 0;
  	}
        else
@@ -889,7 +944,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
  
      case 'T':
        {
-@@ -3140,14 +3172,14 @@
+@@ -3140,14 +3172,14 @@ process_serial_event (void)
        own_buf[0] = '\0';
        break;
      }
@@ -906,7 +961,7 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
    if (!extended_protocol && have_ran && !target_running ())
      {
        /* In non-stop, defer exiting until GDB had a chance to query
-@@ -3159,7 +3191,7 @@
+@@ -3159,7 +3191,7 @@ process_serial_event (void)
  	  exit (0);
  	}
      }
@@ -916,9 +971,10 @@ diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
      return -1;
  
 diff --git a/gdb/gdbserver/server.h b/gdb/gdbserver/server.h
+index 77f5dd6..897abed 100644
 --- a/gdb/gdbserver/server.h
 +++ b/gdb/gdbserver/server.h
-@@ -664,8 +664,8 @@
+@@ -664,8 +664,8 @@ struct emit_ops
  /* Returns the address of the get_raw_reg function in the IPA.  */
  CORE_ADDR get_raw_reg_func_addr (void);
  

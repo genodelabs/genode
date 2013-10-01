@@ -36,3 +36,12 @@ Thread_state get_current_thread_state()
 	return csc->state(csc->thread_cap(ptid.lwp));
 }
 
+void set_current_thread_state(Thread_state thread_state)
+{
+	Cpu_session_component *csc = gdb_stub_thread()->cpu_session_component();
+
+	ptid_t ptid = ((struct inferior_list_entry*)current_inferior)->id;
+
+	csc->state(csc->thread_cap(ptid.lwp), thread_state);
+}
+

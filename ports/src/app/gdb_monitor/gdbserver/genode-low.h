@@ -32,6 +32,7 @@ ptid_t genode_wait_for_signal_or_gdb_interrupt(struct target_waitstatus *status)
 void genode_continue_thread(unsigned long lwpid, int single_step);
 
 int genode_fetch_register(int regno, unsigned long *reg_content);
+void genode_store_register(int regno, unsigned long reg_content);
 unsigned char genode_read_memory_byte(void *addr);
 void genode_write_memory_byte(void *addr, unsigned char value);
 

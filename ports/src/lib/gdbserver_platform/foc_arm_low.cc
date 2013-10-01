@@ -67,8 +67,12 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 			case R9: PDBG("cannot determine contents of register R9"); return -1;
 			case R10: PDBG("cannot determine contents of register R10"); return -1;
 			case R11:
-				/* When in a syscall, the user FP is SP+28+8 */
-				*reg_content = thread_state.sp + 28 + 8;
+				/* R11 can be calculated from SP. The offset can be found in
+				 * the disassembled 'Fiasco::l4_ipc()' function:
+				 *   add	r11, sp, #8 -> r11 = sp + 8
+				 *   sub	sp, sp, #20 -> r11 = (sp + 20) + 8
+				 */
+				*reg_content = (thread_state.sp + 20) + 8;
 				PDBG("FP = %8lx", *reg_content);
 				return 0;
 			case R12: PDBG("cannot determine contents of register R12"); return -1;
@@ -120,3 +124,50 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 
 	return -1;
 }
+
+
+extern "C" void genode_store_register(int regno, unsigned long reg_content)
+{
+	Thread_state thread_state;
+
+	try { thread_state = get_current_thread_state(); }
+	catch (...) { return; }
+
+	if (in_syscall(thread_state)) {
+		PDBG("cannot set registers while thread is in syscall");
+		return;
+	}
+
+	switch((enum reg_index)regno)
+	{
+		case R0:   thread_state.r0  = reg_content; PDBG("R0 = %8lx", reg_content);  break;
+		case R1:   thread_state.r1  = reg_content; PDBG("R1 = %8lx", reg_content);  break;
+		case R2:   thread_state.r2  = reg_content; PDBG("R2 = %8lx", reg_content);  break;
+		case R3:   thread_state.r3  = reg_content; PDBG("R3 = %8lx", reg_content);  break;
+		case R4:   thread_state.r4  = reg_content; PDBG("R4 = %8lx", reg_content);  break;
+		case R5:   thread_state.r5  = reg_content; PDBG("R5 = %8lx", reg_content);  break;
+		case R6:   thread_state.r6  = reg_content; PDBG("R6 = %8lx", reg_content);  break;
+		case R7:   thread_state.r7  = reg_content; PDBG("R7 = %8lx", reg_content);  break;
+		case R8:   thread_state.r8  = reg_content; PDBG("R8 = %8lx", reg_content);  break;
+		case R9:   thread_state.r9  = reg_content; PDBG("R9 = %8lx", reg_content);  break;
+		case R10:  thread_state.r10 = reg_content; PDBG("R10 = %8lx", reg_content); break;
+		case R11:  thread_state.r11 = reg_content; PDBG("FP = %8lx", reg_content);  break;
+		case R12:  thread_state.r12 = reg_content; PDBG("R12 = %8lx", reg_content); break;
+		case SP:   thread_state.sp  = reg_content; PDBG("SP = %8lx", reg_content);  break;
+		case LR:   thread_state.lr  = reg_content; PDBG("LR = %8lx", reg_content);  break;
+		case PC:   thread_state.ip  = reg_content; PDBG("PC = %8lx", reg_content);  break;
+		case F0:   PDBG("cannot set contents of register F0"); break;
+		case F1:   PDBG("cannot set contents of register F1"); break;
+		case F2:   PDBG("cannot set contents of register F2"); break;
+		case F3:   PDBG("cannot set contents of register F3"); break;
+		case F4:   PDBG("cannot set contents of register F4"); break;
+		case F5:   PDBG("cannot set contents of register F5"); break;
+		case F6:   PDBG("cannot set contents of register F6"); break;
+		case F7:   PDBG("cannot set contents of register F7"); break;
+		case FPS:  PDBG("cannot set contents of register FPS"); break;
+		case CPSR: thread_state.cpsr = reg_content; PDBG("CPSR = %8lx", reg_content); break;
+	}
+
+	set_current_thread_state(thread_state);
+}
+
