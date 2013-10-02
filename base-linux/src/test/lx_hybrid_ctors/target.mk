@@ -11,8 +11,8 @@ $(TARGET): $(TESTLIB_SO)
 
 $(TESTLIB_SO): $(TESTLIB_SRC_CC)
 	$(MSG_BUILD)$(TESTLIB_SO)
-	$(VERBOSE)g++ -fPIC -c $^
-	$(VERBOSE)g++ -shared -o $@ $(notdir $(^:.cc=.o))
+	$(VERBOSE)g++ $(CC_MARCH) -fPIC -c $^
+	$(VERBOSE)g++ $(CC_MARCH) -shared -o $@ $(notdir $(^:.cc=.o))
 
 clean_libtestlib:
 	$(VERBOSE)rm -f $(TESTLIB_SO) $(TESTLIB_SRC_CC:.cc=.o)
