@@ -185,6 +185,19 @@ namespace Genode {
 				       _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &entrypoint, &slave_policy)
 			{ }
+
+			Genode::Ram_connection &ram() { return _resources.ram; }
+
+
+			/***************************************
+			 ** Wrappers of the 'Child' interface **
+			 ***************************************/
+
+			void yield(Genode::Parent::Resource_args const &args) {
+				_child.yield(args); }
+
+			void notify_resource_avail() const {
+				_child.notify_resource_avail(); }
 	};
 }
 
