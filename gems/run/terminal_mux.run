@@ -11,8 +11,8 @@ if {[have_spec linux]} { puts "Run script does not support Linux"; exit 0 }
 
 set build_components {
 	core init noux/minimal lib/libc_noux app/cli_monitor test/bomb test/signal
-	drivers/timer drivers/uart server/terminal_mux server/terminal_log
-	noux-pkg/vim
+	test/resource_yield drivers/timer drivers/uart server/terminal_mux
+	server/terminal_log noux-pkg/vim
 }
 
 build $build_components
@@ -125,6 +125,11 @@ append config {
 					<resource name="RAM" quantum="5M" />
 					<binary name="test-signal" />
 				</subsystem>
+				<subsystem name="ram_eater" help="resource-yield test program">
+					<resource name="RAM" quantum="25M" />
+					<binary name="test-resource_yield" />
+					<config child="yes" expand="yes" />
+				</subsystem>
 			</config>
 			<route>
 				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
@@ -143,7 +148,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so noux terminal_mux terminal_log
-	test-signal cli_monitor
+	test-signal cli_monitor test-resource_yield
 	libc.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
 	vim.tar
 }

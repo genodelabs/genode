@@ -101,21 +101,25 @@ struct Command_line;
  */
 struct Command : List<Command>::Element, Completable
 {
-	List<Argument>  _arguments;
 	List<Parameter> _parameters;
 
 	Command(char const *name, char const *short_help)
 	: Completable(name, short_help) { }
 
 	void add_parameter(Parameter *par) { _parameters.insert(par); }
-	void add_argument (Argument  *arg) { _arguments. insert(arg); }
-
-	void remove_argument(Argument *arg) { _arguments.remove(arg); }
 
 	char const *name_suffix() const { return ""; }
 
 	List<Parameter> &parameters() { return _parameters; }
-	List<Argument>  &arguments()  { return _arguments; }
+
+	/**
+	 * To be overridden by commands that accept auto-completion of arguments
+	 */
+	virtual List<Argument> &arguments()
+	{
+		static List<Argument> empty;
+		return empty;
+	}
 
 	virtual void execute(Command_line &, Terminal::Session &terminal) = 0;
 };
@@ -713,11 +717,21 @@ class Line_editor
 		            Terminal::Session &terminal, Command_registry &commands)
 		:
 			_prompt(prompt), _prompt_len(strlen(prompt)),
-			_buf(buf), _buf_size(buf_size), _cursor_pos(0),
-			_terminal(terminal), _commands(commands),
-			_complete(false)
+			_buf(buf), _buf_size(buf_size),
+			_terminal(terminal), _commands(commands)
+		{
+			reset();
+		}
+
+		/**
+		 * Reset prompt to initial state after construction
+		 */
+		void reset()
 		{
 			_buf[0] = 0;
+			_complete = false;
+			_cursor_pos = 0;
+			_seq_tracker = Seq_tracker();
 			_fresh_prompt();
 		}
 
