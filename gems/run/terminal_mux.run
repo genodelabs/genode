@@ -85,7 +85,7 @@ append config {
 				<service name="LOG"/>
 			</provides>
 			<route>
-				<any-service> <child name="terminal_mux" /> <any-child/> <parent/> </any-service>
+				<any-service> <child name="terminal_mux" /> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 		<start name="cli_monitor">
