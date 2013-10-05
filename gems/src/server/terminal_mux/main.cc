@@ -482,6 +482,8 @@ class Menu : public Registry::Entry
 
 			bool is_normal() const { return state == INIT && !sequence_complete; }
 
+			bool _is_normal(char c) const { return is_normal() && normal == c; }
+
 			bool _fn_complete(char match_first, char match_second) const
 			{
 				return sequence_complete
@@ -489,8 +491,11 @@ class Menu : public Registry::Entry
 				    && second == match_second;
 			}
 
-			bool is_key_up()   const { return _fn_complete(91, 65); }
-			bool is_key_down() const { return _fn_complete(91, 66); }
+			bool is_key_up() const {
+				return _fn_complete(91, 65) || _is_normal('k'); }
+
+			bool is_key_down() const {
+				return _fn_complete(91, 66) || _is_normal('j'); }
 		};
 
 		Seq_tracker _seq_tracker;
