@@ -1,0 +1,40 @@
+build "core init test/resource_yield drivers/timer"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="test-resource_yield">
+			<resource name="RAM" quantum="16M"/>
+			<provides> <service name="ROM" /> </provides>
+		</start>
+	</config>
+}
+
+build_boot_image "core init timer test-resource_yield"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until {--- test-resource_yield finished ---\s*\n} 50
+
+puts "Test succeeded"

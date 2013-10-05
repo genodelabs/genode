@@ -30,3 +30,4 @@ affinity
 mp_server
 seoul-auto
 resource_request
+resource_yield
