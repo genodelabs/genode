@@ -101,6 +101,8 @@ class Kernel::Thread
 {
 	private:
 
+		enum { START_VERBOSE = 0 };
+
 		enum State
 		{
 			SCHEDULED                  = 1,
@@ -302,6 +304,26 @@ class Kernel::Thread
 		{ }
 
 		/**
+		 * Return wether the thread is a core thread
+		 */
+		bool core() { return pd_id() == core_id(); }
+
+		/**
+		 * Return kernel backend of protection domain the thread is in
+		 */
+		Pd * pd() { return Pd::pool()->object(pd_id()); }
+
+		/**
+		 * Return user label of the thread
+		 */
+		char const * label();
+
+		/**
+		 * return user label of the protection domain the thread is in
+		 */
+		char const * pd_label();
+
+		/**
 		 * Suspend the thread unrecoverably
 		 */
 		void stop()
@@ -327,30 +349,7 @@ class Kernel::Thread
 		                      unsigned const      pd_id,
 		                      Native_utcb * const utcb_phys,
 		                      Native_utcb * const utcb_virt,
-		                      bool const          main)
-		{
-			assert(_state == AWAIT_START)
-
-			/* FIXME: support SMP */
-			if (cpu_id) { PERR("multicore processing not supported"); }
-
-			/* store thread parameters */
-			_phys_utcb = utcb_phys;
-			_virt_utcb = utcb_virt;
-			_pd_id     = pd_id;
-
-			/* join a protection domain */
-			Pd * const pd = Pd::pool()->object(_pd_id);
-			assert(pd);
-			addr_t const tlb = pd->tlb()->base();
-
-			/* initialize CPU context */
-			User_context * const c = static_cast<User_context *>(this);
-			bool const core = (_pd_id == core_id());
-			if (!main) { c->init_thread(ip, sp, tlb, pd_id); }
-			else if (!core) { c->init_main_thread(ip, utcb_virt, tlb, pd_id); }
-			else { c->init_core_main_thread(ip, sp, tlb, pd_id); }
-		}
+		                      bool const          main);
 
 		/**
 		 * Start this thread
