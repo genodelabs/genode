@@ -397,35 +397,24 @@ class Kernel::Thread
 				_state = AWAIT_PAGER_IPC;
 				return 0;
 			case AWAIT_PAGER_IPC:
-				PERR("cancel message receipt");
 				Ipc_node::cancel_waiting();
 				return 0;
 			case SCHEDULED:
 				return 1;
 			case AWAIT_IPC:
-				PERR("cancel message receipt");
 				Ipc_node::cancel_waiting();
-				_schedule();
 				return 0;
 			case AWAIT_IRQ:
-				PERR("cancel interrupt receipt");
 				Irq_receiver::cancel_waiting();
-				_schedule();
 				return 0;
 			case AWAIT_SIGNAL:
-				PERR("cancel signal receipt");
 				Signal_handler::cancel_waiting();
-				_schedule();
 				return 0;
 			case AWAIT_SIGNAL_CONTEXT_KILL:
-				PERR("cancel signal context destruction");
 				Signal_context_killer::cancel_waiting();
-				_schedule();
 				return 0;
 			case AWAIT_SIGNAL_RECEIVER_KILL:
-				PERR("cancel signal receiver destruction");
 				Signal_receiver_killer::cancel_waiting();
-				_schedule();
 				return 0;
 			case AWAIT_START:
 			case STOPPED:;
