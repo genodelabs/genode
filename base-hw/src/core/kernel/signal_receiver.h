@@ -48,6 +48,16 @@ namespace Kernel
 	 * Combines signal contexts to an entity that handlers can listen to
 	 */
 	class Signal_receiver;
+
+	typedef Id_allocator<MAX_SIGNAL_CONTEXTS>  Signal_context_ids;
+	typedef Object_pool<Signal_context>        Signal_context_pool;
+	typedef Id_allocator<MAX_SIGNAL_RECEIVERS> Signal_receiver_ids;
+	typedef Object_pool<Signal_receiver>       Signal_receiver_pool;
+
+	Signal_context_ids   * signal_context_ids();
+	Signal_context_pool  * signal_context_pool();
+	Signal_receiver_ids  * signal_receiver_ids();
+	Signal_receiver_pool * signal_receiver_pool();
 }
 
 class Kernel::Signal_handler
@@ -183,7 +193,8 @@ class Kernel::Signal_receiver_killer
 
 class Kernel::Signal_context
 :
-	public Object<Signal_context, MAX_SIGNAL_CONTEXTS>
+	public Object<Signal_context, MAX_SIGNAL_CONTEXTS,
+	              signal_context_ids, signal_context_pool>
 {
 	friend class Signal_receiver;
 	friend class Signal_context_killer;
@@ -301,7 +312,8 @@ class Kernel::Signal_context
 
 class Kernel::Signal_receiver
 :
-	public Object<Signal_receiver, MAX_SIGNAL_RECEIVERS>,
+	public Object<Signal_receiver, MAX_SIGNAL_RECEIVERS,
+	              signal_receiver_ids, signal_receiver_pool>,
 	public Signal_context_killer
 {
 	friend class Signal_context;

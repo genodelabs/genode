@@ -47,8 +47,16 @@ namespace Kernel
 
 	/**
 	 * Make all objects of a deriving class findable through unique IDs
+	 *
+	 * \param T              object type
+	 * \param MAX_INSTANCES  max amount of coincidently living objects
+	 * \param ID_ALLOC       accessor function of object-name allocator
+	 * \param POOL           accessor function of object pool
 	 */
-	template <typename T, unsigned MAX_INSTANCES>
+	template <typename T, unsigned MAX_INSTANCES,
+	          Id_allocator<MAX_INSTANCES> * (*ID_ALLOC)(),
+	          Kernel::Object_pool<T> * (* POOL)()>
+
 	class Object;
 }
 
@@ -190,21 +198,12 @@ class Kernel::Id_allocator
 		}
 };
 
-template <typename T, unsigned MAX_INSTANCES>
+template <typename T, unsigned MAX_INSTANCES,
+          Kernel::Id_allocator<MAX_INSTANCES> * (* ID_ALLOC)(),
+          Kernel::Object_pool<T> * (* POOL)()>
+
 class Kernel::Object : public Object_pool<T>::Item
 {
-	private :
-
-		class Id_allocator : public Kernel::Id_allocator<MAX_INSTANCES> { };
-
-		/**
-		 * Unique-ID allocator for objects of T
-		 */
-		static Id_allocator * _id_allocator()
-		{
-			return unsynchronized_singleton<Id_allocator>();
-		}
-
 	public:
 
 		typedef Object_pool<T> Pool;
@@ -212,16 +211,16 @@ class Kernel::Object : public Object_pool<T>::Item
 		/**
 		 * Map of unique IDs to objects of T
 		 */
-		static Pool * pool() { return unsynchronized_singleton<Pool>(); }
+		static Pool * pool() { return POOL(); }
 
 	protected:
 
 		/**
 		 * Constructor
 		 */
-		Object() : Pool::Item(_id_allocator()->alloc())
+		Object() : Pool::Item(ID_ALLOC()->alloc())
 		{
-			pool()->insert(static_cast<T *>(this));
+			POOL()->insert(static_cast<T *>(this));
 		}
 
 		/**
@@ -229,8 +228,8 @@ class Kernel::Object : public Object_pool<T>::Item
 		 */
 		~Object()
 		{
-			pool()->remove(static_cast<T *>(this));
-			_id_allocator()->free(Pool::Item::id());
+			POOL()->remove(static_cast<T *>(this));
+			ID_ALLOC()->free(Pool::Item::id());
 		}
 };
 

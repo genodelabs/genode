@@ -57,6 +57,15 @@ namespace Kernel
 	 */
 	static void idle_main() { while (1) ; }
 
+	Pd_ids * pd_ids() { return unsynchronized_singleton<Pd_ids>(); }
+	Thread_ids * thread_ids() { return unsynchronized_singleton<Thread_ids>(); }
+	Signal_context_ids * signal_context_ids() { return unsynchronized_singleton<Signal_context_ids>(); }
+	Signal_receiver_ids * signal_receiver_ids() { return unsynchronized_singleton<Signal_receiver_ids>(); }
+
+	Pd_pool * pd_pool() { return unsynchronized_singleton<Pd_pool>(); }
+	Thread_pool * thread_pool() { return unsynchronized_singleton<Thread_pool>(); }
+	Signal_context_pool * signal_context_pool() { return unsynchronized_singleton<Signal_context_pool>(); }
+	Signal_receiver_pool * signal_receiver_pool() { return unsynchronized_singleton<Signal_receiver_pool>(); }
 
 	/**
 	 * Access to static kernel timer
@@ -91,7 +100,14 @@ namespace Kernel
 
 namespace Kernel
 {
-	class Vm : public Object<Vm, MAX_VMS>,
+	class Vm;
+	typedef Id_allocator<MAX_VMS> Vm_ids;
+	typedef Object_pool<Vm>       Vm_pool;
+
+	Vm_ids  * vm_ids();
+	Vm_pool * vm_pool();
+
+	class Vm : public Object<Vm, MAX_VMS, vm_ids, vm_pool>,
 	           public Execution_context
 	{
 		private:
@@ -139,6 +155,8 @@ namespace Kernel
 			void proceed() { mtc()->continue_vm(_state); }
 	};
 
+	Vm_ids * vm_ids() { return unsynchronized_singleton<Vm_ids>(); }
+	Vm_pool * vm_pool() { return unsynchronized_singleton<Vm_pool>(); }
 
 	/**
 	 * Access to static CPU scheduler

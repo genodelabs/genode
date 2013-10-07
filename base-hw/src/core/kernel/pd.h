@@ -53,6 +53,12 @@ namespace Kernel
 	 * Kernel backend of protection domains
 	 */
 	class Pd;
+
+	typedef Id_allocator<MAX_PDS> Pd_ids;
+	typedef Object_pool<Pd>       Pd_pool;
+
+	Pd_ids  * pd_ids();
+	Pd_pool * pd_pool();
 }
 
 class Kernel::Mode_transition_control
@@ -138,7 +144,7 @@ class Kernel::Mode_transition_control
 		}
 };
 
-class Kernel::Pd : public Object<Pd, MAX_PDS>
+class Kernel::Pd : public Object<Pd, MAX_PDS, pd_ids, pd_pool>
 {
 	private:
 

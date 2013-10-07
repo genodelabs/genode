@@ -1,5 +1,5 @@
 /*
- * \brief   Kernel backend for userland execution-contexts
+ * \brief   Kernel backend for execution contexts in userland
  * \author  Martin Stein
  * \date    2012-11-30
  */
@@ -57,6 +57,12 @@ namespace Kernel
 	 * Kernel backend for userland execution-contexts
 	 */
 	class Thread;
+
+	typedef Id_allocator<MAX_THREADS> Thread_ids;
+	typedef Object_pool<Thread>       Thread_pool;
+
+	Thread_ids  * thread_ids();
+	Thread_pool * thread_pool();
 }
 
 class Kernel::Execution_context : public Cpu_scheduler::Item
@@ -85,7 +91,7 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 class Kernel::Thread
 :
 	public Cpu::User_context,
-	public Object<Thread, MAX_THREADS>,
+	public Object<Thread, MAX_THREADS, thread_ids, thread_pool>,
 	public Execution_context,
 	public Ipc_node,
 	public Irq_receiver,
@@ -335,7 +341,7 @@ class Kernel::Thread
 
 			/* join a protection domain */
 			Pd * const pd = Pd::pool()->object(_pd_id);
-			assert(pd)
+			assert(pd);
 			addr_t const tlb = pd->tlb()->base();
 
 			/* initialize CPU context */
