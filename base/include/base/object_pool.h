@@ -206,6 +206,7 @@ namespace Genode {
 			{
 				Lock::Guard lock_guard(_lock);
 				OBJ_TYPE * const obj_typed = (OBJ_TYPE *)_tree.first();
+				if (!obj_typed) { return 0; }
 				obj_typed->lock();
 				return obj_typed;
 			}
