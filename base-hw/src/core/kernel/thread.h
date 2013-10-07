@@ -226,12 +226,19 @@ class Kernel::Thread
 			}
 		}
 
-		void _await_ipc_succeeded(size_t const s)
+		void _await_ipc_succeeded(bool const reply, size_t const s)
 		{
 			switch (_state) {
 			case AWAIT_IPC:
-				_schedule();
-				user_arg_0(s);
+				/* FIXME: return error codes on all IPC transfers */
+				if (reply) {
+					phys_utcb()->ipc_msg_size(s);
+					user_arg_0(0);
+					_schedule();
+				} else {
+					user_arg_0(s);
+					_schedule();
+				}
 				return;
 			case AWAIT_PAGER_IPC:
 				_schedule();
@@ -246,12 +253,18 @@ class Kernel::Thread
 			}
 		}
 
-		void _await_ipc_failed()
+		void _await_ipc_failed(bool const reply)
 		{
 			switch (_state) {
 			case AWAIT_IPC:
-				PERR("failed to receive IPC");
-				stop();
+				/* FIXME: return error codes on all IPC transfers */
+				if (reply) {
+					user_arg_0(-1);
+					_schedule();
+				} else {
+					PERR("failed to receive IPC");
+					stop();
+				}
 				return;
 			case SCHEDULED:
 				PERR("failed to receive IPC");
@@ -429,8 +442,9 @@ class Kernel::Thread
 		void request_and_wait(Thread * const dest, size_t const size)
 		{
 			Ipc_node::send_request_await_reply(
-				dest, phys_utcb()->base(), size, phys_utcb()->base(),
-				phys_utcb()->size());
+				dest, phys_utcb()->base(), size,
+				phys_utcb()->ipc_msg_base(),
+			    phys_utcb()->max_ipc_msg_size());
 		}
 
 		/**

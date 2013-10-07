@@ -94,14 +94,39 @@ namespace Genode
 		char payload[1<<MIN_MAPPING_SIZE_LOG2];
 
 		/**
-		 * Get the base of the UTCB
+		 * Get the base of the UTCB region
 		 */
 		void * base() { return payload; }
 
 		/**
-		 * Get the UTCB size
+		 * Get the size of the UTCB region
 		 */
 		size_t size() { return sizeof(payload); }
+
+		/**
+		 * Get the top of the UTCB region
+		 */
+		addr_t top()  { return (addr_t)payload + size(); }
+
+		/**
+		 * Get the base of an IPC message that is held by the UTCB
+		 */
+		void * ipc_msg_base() { return (void *)((addr_t)base() + sizeof(size_t)); }
+
+		/**
+		 * Get the size of an IPC message that is held by the UTCB
+		 */
+		size_t ipc_msg_size() { return *(size_t *)base(); }
+
+		/**
+		 * Set the size of the IPC message that is held by the UTCB 
+		 */
+		void ipc_msg_size(size_t const s) { *(size_t *)base() = s; }
+
+		/**
+		 * Maximum size of an IPC message that can be held by the UTCB
+		 */
+		size_t max_ipc_msg_size() { return top() - (addr_t)ipc_msg_base(); }
 	};
 
 	struct Cap_dst_policy

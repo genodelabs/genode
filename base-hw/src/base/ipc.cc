@@ -60,6 +60,23 @@ static void utcb_to_msgbuf(Msgbuf_base * const msgbuf, size_t size)
 	memcpy(msgbuf->buf, utcb->base(), size);
 }
 
+/**
+ * Copy message payload with integrated size toion  message buffer
+ *
+ * This function pioneers IPC messages with headers and will
+ * replace utcb_to_msgbuf sometime.
+ */
+static void sized_utcb_to_msgbuf(Msgbuf_base * const msgbuf)
+{
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	size_t msg_size = utcb->ipc_msg_size();
+	if (msg_size > utcb->max_ipc_msg_size()) {
+		kernel_log() << "oversized IPC message\n";
+		msg_size = utcb->max_ipc_msg_size();
+	}
+	memcpy(msgbuf->buf, utcb->ipc_msg_base(), msg_size);
+}
+
 
 /**
  * Copy message payload to the UTCB
@@ -120,8 +137,9 @@ void Ipc_client::_call()
 
 	/* send request and receive reply */
 	msgbuf_to_utcb(_snd_msg, _write_offset, Ipc_ostream::_dst.local_name());
-	size_t const s = request_and_wait(Ipc_ostream::_dst.dst(), _write_offset);
-	utcb_to_msgbuf(_rcv_msg, s);
+	int error = request_and_wait(Ipc_ostream::_dst.dst(), _write_offset);
+	if (error) { throw Blocking_canceled(); }
+	sized_utcb_to_msgbuf(_rcv_msg);
 
 	/* reset unmarshaller */
 	_write_offset = _read_offset = RPC_OBJECT_ID_SIZE;
