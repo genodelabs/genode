@@ -229,7 +229,7 @@ class Child_destructor_thread : Thread<2*4096>
 				try {
 					destroy(_curr_alloc, _curr_child);
 				} catch (Blocking_canceled) {
-					PERR("Suspicious cancellation\n");
+					PERR("Suspicious cancellation");
 				}
 
 				_ready = true;
