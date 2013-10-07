@@ -46,6 +46,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 				PDBG("ACK packet for block: %zu status: %d", packet->block_number(), cmnd->result);
 
 			session->complete(*packet, true);
+			Genode::destroy(Genode::env()->heap(), packet);
 			_scsi_free_command(cmnd);
 		}
 
