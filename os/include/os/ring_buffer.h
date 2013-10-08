@@ -89,7 +89,18 @@ class Ring_buffer
 		/**
 		 * Return true if ring buffer is empty
 		 */
-		bool empty() { return _tail == _head; }
+		bool empty() const { return _tail == _head; }
+
+		/**
+		 * Return the remaining capacity
+		 */
+		int avail_capacity() const
+		{
+			if (_head >= _tail)
+				return QUEUE_SIZE - _head + _tail - 1;
+			else
+				return _tail - _head - 1;
+		}
 };
 
 #endif /* _INCLUDE__OS__RING_BUFFER_H_ */
