@@ -16,12 +16,14 @@
 #include <dataspace/client.h>
 #include <base/printf.h>
 #include <base/env.h>
+#include <timer_session/connection.h>
 
 using namespace Genode;
 
 int main()
 {
 	printf("--- Test framebuffer ---\n");
+	static Timer::Connection timer;
 
 	/* create framebuffer */
 	static Framebuffer::Connection fb;
@@ -32,17 +34,44 @@ int main()
 		PERR("Could not request dataspace for frame buffer");
 		return -2;
 	}
-	Framebuffer::Mode const fb_mode = fb.mode();
-
-	/* write pixeldata to framebuffer */
-	void           *fb_base = env()->rm_session()->attach(fb_ds_cap);
-	unsigned const  fb_size = (unsigned)(mode.width()*mode.height())/2;
-	for (unsigned i = 0; i < fb_size; i++)
-		*(((unsigned volatile *)fb_base) + i) = i;
-
-	fb.refresh(0, 0, fb_mode.width(), fb_mode.height());
-	printf("--- end ---\n");
-	while(1);
+	/* drive framebuffer */
+	enum {
+		BLACK = 0x0,
+		BLUE  = 0x1f,
+		GREEN = 0x7e0,
+		RED   = 0xf800,
+		WHITE = 0xffff,
+	};
+	addr_t const   fb_base = (addr_t)env()->rm_session()->attach(fb_ds_cap);
+	unsigned const fb_bpp  = (unsigned)mode.bytes_per_pixel();
+	unsigned const fb_size = (unsigned)(mode.width() * mode.height() * fb_bpp);
+	while (1) {
+		for (addr_t o = 0; o < fb_size; o += fb_bpp)
+			*(unsigned volatile *)(fb_base + o) = BLACK;
+		PINF("black");
+		timer.msleep(2000);
+		for (addr_t o = 0; o < fb_size; o += fb_bpp)
+			*(unsigned volatile *)(fb_base + o) = BLUE;
+		PINF("blue");
+		timer.msleep(2000);
+		for (addr_t o = 0; o < fb_size; o += fb_bpp)
+			*(unsigned volatile *)(fb_base + o) = GREEN;
+		PINF("green");
+		timer.msleep(2000);
+		for (addr_t o = 0; o < fb_size; o += fb_bpp)
+			*(unsigned volatile *)(fb_base + o) = RED;
+		PINF("red");
+		timer.msleep(2000);
+		for (addr_t o = 0; o < fb_size; o += fb_bpp)
+			*(unsigned volatile *)(fb_base + o) = WHITE;
+		PINF("white");
+		timer.msleep(2000);
+		unsigned i = 0;
+		for (addr_t o = 0; o < fb_size; o += fb_bpp, i++)
+			*(unsigned volatile *)(fb_base + o) = i;
+		PINF("all");
+		timer.msleep(2000);
+	}
 	return 0;
 }
 
