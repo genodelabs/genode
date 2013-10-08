@@ -121,7 +121,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 	 * meta data of the dataspace to be created - therefore, we add
 	 * the slab block size here.
 	 */
-	if (used_quota() + SBS + ds_size >= _quota_limit) {
+	if (used_quota() + SBS + ds_size > _quota_limit) {
 
 		PWRN("Quota exceeded: %s", _label);
 		PWRN("  memory for slab:               %zd", _ds_slab.consumed());
