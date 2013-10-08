@@ -33,10 +33,12 @@ struct Driver_factory : Regulator::Driver_factory
 		case Regulator::CLK_USB30:
 		case Regulator::CLK_USB20:
 		case Regulator::CLK_MMC0:
+		case Regulator::CLK_HDMI:
 			return _cmu;
 		case Regulator::PWR_SATA:
 		case Regulator::PWR_USB30:
 		case Regulator::PWR_USB20:
+		case Regulator::PWR_HDMI:
 			return _pmu;
 		default:
 			throw Root::Invalid_args(); /* invalid regulator */

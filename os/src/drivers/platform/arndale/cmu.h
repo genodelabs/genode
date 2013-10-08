@@ -187,7 +187,11 @@ class Cmu : public Regulator::Driver,
 		};
 
 		struct Clk_gate_ip_gscl  : Register<0x10920, 32> { };
-		struct Clk_gate_ip_disp1 : Register<0x10928, 32> { };
+		struct Clk_gate_ip_disp1 : Register<0x10928, 32>
+		{
+			struct Clk_mixer     : Bitfield<5, 1> { };
+			struct Clk_hdmi      : Bitfield<6, 1> { };
+		};
 		struct Clk_gate_ip_mfc   : Register<0x1092c, 32> { };
 		struct Clk_gate_ip_g3d   : Register<0x10930, 32> { };
 		struct Clk_gate_ip_gen   : Register<0x10934, 32> { };
@@ -204,15 +208,27 @@ class Cmu : public Regulator::Driver,
 			struct Sata_phy_i2c  : Bitfield<25, 1> { };
 		};
 
+		struct Clk_src_disp1_0 : Register<0x1022c, 32>
+		{
+			struct Hdmi_sel : Bitfield<20, 1> { };
+		};
+
+		struct Clk_src_mask_disp1_0 : Register<0x1032c, 32>
+		{
+			struct Hdmi_mask : Bitfield<20, 1> { };
+		};
+
 		struct Clk_gate_ip_peric : Register<0x10950, 32>
 		{
-			struct Clk_uart2 : Bitfield<2,  1> { };
-			struct Clk_pwm   : Bitfield<24, 1> { };
+			struct Clk_uart2   : Bitfield<2,  1> { };
+			struct Clk_i2chdmi : Bitfield<14, 1> { };
+			struct Clk_pwm     : Bitfield<24, 1> { };
 		};
 
 		struct Clk_gate_block : Register<0x10980, 32>
 		{
-			struct Clk_gen : Bitfield<2, 1> { };
+			struct Clk_disp1 : Bitfield<5, 1> { };
+			struct Clk_gen   : Bitfield<2, 1> { };
 		};
 
 
@@ -320,6 +336,18 @@ class Cmu : public Regulator::Driver,
 		 ** Device functions **
 		 **********************/
 
+		void _hdmi_enable()
+		{
+			write<Clk_gate_ip_peric::Clk_i2chdmi>(1);
+			Clk_gate_ip_disp1::access_t gd1 = read<Clk_gate_ip_disp1>();
+			Clk_gate_ip_disp1::Clk_mixer::set(gd1, 1);
+			Clk_gate_ip_disp1::Clk_hdmi::set(gd1, 1);
+			write<Clk_gate_ip_disp1>(gd1);
+			write<Clk_gate_block::Clk_disp1>(1);
+			write<Clk_src_mask_disp1_0::Hdmi_mask>(1);
+			write<Clk_src_disp1_0::Hdmi_sel>(1);
+		}
+
 		void _sata_enable()
 		{
 			/* enable I2C for SATA */
@@ -357,6 +385,9 @@ class Cmu : public Regulator::Driver,
 			switch (id) {
 			case CLK_SATA:
 				_sata_enable();
+				break;
+			case CLK_HDMI:
+				_hdmi_enable();
 				break;
 			case CLK_USB30:
 				_usb30_enable();
@@ -413,7 +444,7 @@ class Cmu : public Regulator::Driver,
 			write<Clk_gate_ip_isp0>(0);
 			write<Clk_gate_ip_isp1>(0);
 			write<Clk_gate_sclk_isp>(0);
-            write<Clk_gate_ip_gscl>(0);
+			write<Clk_gate_ip_gscl>(0);
 			write<Clk_gate_ip_disp1>(0);
 			write<Clk_gate_ip_mfc>(0);
 			write<Clk_gate_ip_g3d>(0);

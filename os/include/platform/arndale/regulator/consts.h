@@ -24,9 +24,11 @@ namespace Regulator {
 		CLK_USB30,
 		CLK_USB20,
 		CLK_MMC0,
+		CLK_HDMI,
 		PWR_SATA,
 		PWR_USB30,
 		PWR_USB20,
+		PWR_HDMI,
 		MAX,
 		INVALID
 	};
@@ -37,14 +39,16 @@ namespace Regulator {
 	};
 
 	Regulator_name names[] = {
-		{ CLK_CPU,   "clock-cpu"    },
-		{ CLK_SATA,  "clock-sata"   },
-		{ CLK_USB30, "clock-usb3.0" },
-		{ CLK_USB20, "clock-usb2.0" },
-		{ CLK_MMC0,  "clock-mmc0"   },
-		{ PWR_SATA,  "power-sata"   },
-		{ PWR_USB30, "power-usb3.0" },
-		{ PWR_USB20, "power-usb2.0" },
+		{ CLK_CPU,   "clock-cpu"     },
+		{ CLK_SATA,  "clock-sata"    },
+		{ CLK_USB30, "clock-usb3.0"  },
+		{ CLK_USB20, "clock-usb2.0"  },
+		{ CLK_MMC0,  "clock-mmc0"    },
+		{ CLK_HDMI,  "clock-hdmi"    },
+		{ PWR_SATA,  "power-sata"    },
+		{ PWR_USB30, "power-usb3.0"  },
+		{ PWR_USB20, "power-usb2.0"  },
+		{ PWR_HDMI,  "power-hdmi"},
 	};
 
 	Regulator_id regulator_id_by_name(const char * name)

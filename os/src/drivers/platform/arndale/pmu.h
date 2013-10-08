@@ -57,7 +57,12 @@ class Pmu : public Regulator::Driver,
 			struct Stat : Register<OFFSET, 32>::template Bitfield<0, 1> { };
 		};
 
-		typedef Control<0x700> Hdmi_phy_control;
+		struct Hdmi_phy_control : Register<0x700, 32>
+		{
+			struct Enable    : Bitfield<0, 1> { };
+			struct Div_ratio : Bitfield<16, 10> { };
+		};
+
 		typedef Control<0x704> Usbdrd_phy_control;
 		typedef Control<0x708> Usbhost_phy_control;
 		typedef Control<0x70c> Efnand_phy_control;
@@ -98,6 +103,14 @@ class Pmu : public Regulator::Driver,
 			while (read<typename S::Stat>() != 0) ;
 		}
 
+		template <typename C, typename S>
+		void _enable_domain()
+		{
+			if (read<typename S::Stat>() == 7)
+				return;
+			write<typename C::Local_pwr_cfg>(7);
+			while (read<typename S::Stat>() != 7) ;
+		}
 
 		void _enable(unsigned long id)
 		{
@@ -111,6 +124,13 @@ class Pmu : public Regulator::Driver,
 			case PWR_SATA :
 				write<Sata_phy_control::Enable>(1);
 				break;
+			case PWR_HDMI: {
+				_enable_domain<Disp1_configuration, Disp1_status>();
+				Hdmi_phy_control::access_t hpc = read<Hdmi_phy_control>();
+				Hdmi_phy_control::Div_ratio::set(hpc, 150);
+				Hdmi_phy_control::Enable::set(hpc, 1);
+				write<Hdmi_phy_control>(hpc);
+				break; }
 			default:
 				PWRN("Unsupported for %s", names[id].name);
 			}
