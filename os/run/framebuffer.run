@@ -2,7 +2,12 @@
 # Build
 #
 
-build { core init test/framebuffer drivers/framebuffer drivers/pci drivers/timer }
+set build_components {
+	core init test/framebuffer drivers/framebuffer drivers/pci drivers/timer }
+
+lappend_if [have_spec exynos5] build_components drivers/platform
+
+build $build_components
 
 create_boot_directory
 
@@ -54,6 +59,12 @@ append_if [have_spec framebuffer] config {
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 
+append_if [have_spec exynos5] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+	</start>}
+
 append config {
 	<start name="test-framebuffer">
 		<resource name="RAM" quantum="10M"/>
@@ -76,6 +87,7 @@ set boot_modules {
 lappend_if [have_spec sdl]         boot_modules fb_sdl
 lappend_if [have_spec pci]         boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec exynos5]     boot_modules platform_drv
 
 build_boot_image $boot_modules
 
