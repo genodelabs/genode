@@ -17,6 +17,7 @@
 
 #include "signal.h"
 
+#include "platform/lx_mem.h"
 
 /**
  * Session components that overrides signal handlers
@@ -122,8 +123,8 @@ class Packet_session_component : public RPC
 				}
 
 				return new (ROOT_COMPONENT::md_alloc())
-					SESSION_COMPONENT(env()->ram_session()->alloc(tx_buf_size, CACHED),
-					                  env()->ram_session()->alloc(rx_buf_size, CACHED),
+					SESSION_COMPONENT(Backend_memory::alloc(tx_buf_size, CACHED),
+					                  Backend_memory::alloc(rx_buf_size, CACHED),
 					                  _ep, _sig_rec, _device);
 			}
 
