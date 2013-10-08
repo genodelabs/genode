@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__UTIL__FIFO_H_
 #define _INCLUDE__UTIL__FIFO_H_
 
+#include <base/printf.h>
+
 namespace Genode {
 
 	/*
@@ -166,7 +168,17 @@ namespace Genode {
 
 			Fifo_element(T *object) : _object(object) { }
 
-			inline T *object() { return _object; }
+			/**
+			 * Get typed object pointer
+			 *
+			 * Zero-pointer save: Returns 0 if this pointer is 0 to
+			 * cover the case of accessing an empty FIFO.
+			 */
+			inline T *object()
+			{
+				if (this) { return _object; }
+				return 0;
+			}
 	};
 }
 
