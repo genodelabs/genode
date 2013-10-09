@@ -61,7 +61,8 @@ class Iomux : public Genode::Attached_io_mem_dataspace,
 		Iomux()
 		: Genode::Attached_io_mem_dataspace(Genode::Board_base::IOMUXC_BASE,
 		                                    Genode::Board_base::IOMUXC_SIZE),
-		Genode::Mmio((Genode::addr_t)local_addr<void>()) { }
+		Genode::Mmio((Genode::addr_t)local_addr<void>()) {
+		}
 
 		void i2c_2_enable()
 		{
@@ -89,6 +90,14 @@ class Iomux : public Genode::Attached_io_mem_dataspace,
 			write<Gpr2::Data_width_ch1>(Gpr2::Data_width_ch1::PX_18_BITS);
 			write<Gpr2::Bit_mapping_ch1>(Gpr2::Bit_mapping_ch1::SPWG);
 			write<Gpr2::Ch1_mode>(Gpr2::Ch1_mode::ROUTED_TO_DI1);
+		}
+
+		void pwm_enable()
+		{
+			write<Eim_a24>(1);
+			write<Sw_pad_ctl_pad_eim_a24>(0);
+			write<Sw_mux_ctl_pad_gpio<1> >(0x4);
+			write<Sw_pad_ctl_pad_gpio<1> >(0x0);
 		}
 
 		void buttons_enable()

@@ -83,6 +83,7 @@ class Framebuffer::Driver
 			case Platform::Session::SMD:
 				_ipu.init(_width, _height, _width * BYTES_PER_PIXEL,
 				          phys_base, false);
+				_platform.enable(Platform::Session::PWM);
 				_pwm.enable_display();
 				break;
 			default:

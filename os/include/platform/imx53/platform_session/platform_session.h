@@ -26,6 +26,7 @@ namespace Platform {
 			I2C_2,
 			I2C_3,
 			BUTTONS,
+			PWM,
 		};
 
 		enum Board_revision {

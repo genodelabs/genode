@@ -71,6 +71,9 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			case Session::BUTTONS:
 				_iomux.buttons_enable();
 				break;
+			case Session::PWM:
+				_iomux.pwm_enable();
+				break;
 			default:
 				PWRN("Invalid device");
 			};
