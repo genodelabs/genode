@@ -4,7 +4,10 @@
 # \date   2013-08-12
 #
 
-CXX_OPT = -g -ffreestanding -fPIC -fno-exceptions -fno-rtti -nostdinc -nostdlib -MMD
+CXX_OPT  = -g -ffreestanding -fPIC -fno-exceptions -fno-rtti \
+           -nostdinc -nostdlib -MMD
+
+CXX_OPT += $(CC_CXX_OPT_STD)
 
 LD_SCRIPT= $(PRG_DIR)/../policy.ld
 
