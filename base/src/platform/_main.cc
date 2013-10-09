@@ -170,6 +170,8 @@ void genode___cxa_finalize(void *dso)
 }
 
 
+extern "C" void __cxa_finalize(void *dso);
+
 /**
  * Terminate the process.
  */
@@ -192,7 +194,7 @@ void genode_exit(int status)
 	for (func = &_dtors_start; func != &_dtors_end; (*func++)());
 
 	/* call all handlers registered with atexit() or __cxa_atexit() */
-	genode___cxa_finalize(0);
+	__cxa_finalize(0);
 
 	/*
 	 * Wait for destruction by the parent who was supposed to be notified by 

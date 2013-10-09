@@ -47,6 +47,18 @@ extern "C" int __cxa_atexit(void(*func)(void*), void *arg,
 }
 
 
+/**
+ * Prototype for finalize support function provided by '_main.cc'
+ */
+extern int genode___cxa_finalize(void *dso);
+
+
+extern "C" void __cxa_finalize(void *dso)
+{
+	genode___cxa_finalize(dso);
+}
+
+
 /***********************************
  ** Support required for ARM EABI **
  ***********************************/
