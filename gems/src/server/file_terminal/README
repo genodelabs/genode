@@ -1,0 +1,9 @@
+File terminal is a service that provides Genode's Terminal_session interface
+for a given file via a File_system_session.
+
+! <config>
+!   <policy label="client1" filename="test.txt" />
+!   <policy label="client2" filename="file.dat" io_buffer_size="4K"/>h
+! </config>
+
+To keep things simple a client can only open one file at the moment.
