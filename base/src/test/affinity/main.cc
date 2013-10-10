@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 	/* construct the thread objects */
 	for (unsigned i = 0; i < cpus.total(); i++)
 		threads[i] = new (env()->heap())
-		             Spinning_thread(cpus.location_of_index(i), "thread");
+		             Spinning_thread(cpus.location_of_index(i), "spinning_thread");
 
 	/* wait until all threads are up and running */
 	for (unsigned i = 0; i < cpus.total(); i++)

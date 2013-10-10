@@ -172,6 +172,7 @@ namespace Timer {
 			 */
 			Timeout_scheduler(Platform_timer *pt, Genode::Rpc_entrypoint *ep)
 			:
+				Thread("timeout_scheduler"),
 				_platform_timer(pt),
 				_irq_dispatcher_component(this, pt),
 				_irq_dispatcher_cap(ep->manage(&_irq_dispatcher_component))

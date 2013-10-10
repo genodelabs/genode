@@ -403,7 +403,7 @@ namespace Genode {
 			 *
 			 * \param name  thread name (for debugging)
 			 */
-			explicit Thread(const char *name = "<noname>")
+			explicit Thread(const char *name)
 			: Thread_base(name, STACK_SIZE) { }
 	};
 }

@@ -48,6 +48,8 @@ class Pager : public Thread<8192>
 
 	public:
 
+		Pager() : Thread("pager") { }
+
 		Signal_receiver *signal_receiver() { return &_receiver; }
 
 		void entry()

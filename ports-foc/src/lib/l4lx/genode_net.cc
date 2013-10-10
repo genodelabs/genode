@@ -59,7 +59,7 @@ struct Counter : public Genode::Thread<8192>
 
 	void inc(Genode::size_t s) { cnt++; size += s; }
 
-	Counter() : cnt(0), size(0)  { start(); }
+	Counter() : Thread("net-counter"), cnt(0), size(0)  { start(); }
 };
 #else
 struct Counter { inline void inc(Genode::size_t s) { } };

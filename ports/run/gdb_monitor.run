@@ -191,7 +191,7 @@ if {![regexp {\* 2    Thread 2          Test_thread::entry} $gdb_output] ||
 	exit -1
 }
 
-if {![regexp {40				func()} $gdb_output]} {
+if {![regexp {42				func()} $gdb_output]} {
 	puts stderr "Error: Single stepping didn't result in the expected output"
 	exit -1
 }

@@ -50,7 +50,8 @@ namespace Block {
 					/**
 					 * Constructor
 					 */
-					Tx_thread(Session_component *session) : _session(session) { }
+					Tx_thread(Session_component *session)
+					: Thread("block_session_tx"), _session(session) { }
 
 					/**
 					 * Thread entry function.

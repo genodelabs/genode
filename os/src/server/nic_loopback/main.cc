@@ -128,6 +128,7 @@ namespace Nic {
 			:
 				Genode::Allocator_avl(rx_block_md_alloc),
 				Tx_rx_communication_buffers(tx_buf_size, rx_buf_size),
+				Thread("nic_packet_handler"),
 				Session_rpc_object(Tx_rx_communication_buffers::tx_ds(),
 				                   Tx_rx_communication_buffers::rx_ds(),
 				                   static_cast<Genode::Range_allocator *>(this), ep)

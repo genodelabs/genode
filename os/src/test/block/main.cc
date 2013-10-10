@@ -37,7 +37,7 @@ class Worker : public Genode::Thread<8192>
 		 * Constructor
 		 */
 		Worker(Genode::Allocator_avl *block_alloc)
-		: _blk_con(block_alloc) { }
+		: Thread("worker"), _blk_con(block_alloc) { }
 
 		void dump(Block::Packet_descriptor &p1, Block::Packet_descriptor &p2)
 		{

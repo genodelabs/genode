@@ -140,6 +140,7 @@ class Source : private Genode::Thread<STACK_SIZE>,
 		Source(Genode::Dataspace_capability ds_cap)
 		:
 			/* init bulk buffer allocator, storing its meta data on the heap */
+			Thread("source"),
 			Genode::Allocator_avl(Genode::env()->heap()),
 			Packet_stream_source<Test_packet_stream_policy>(this, ds_cap),
 			_operation(OP_NONE),
@@ -220,6 +221,7 @@ class Sink : private Genode::Thread<STACK_SIZE>,
 		 */
 		Sink(Genode::Dataspace_capability ds_cap)
 		:
+			Thread("sink"),
 			Packet_stream_sink<Test_packet_stream_policy>(ds_cap),
 			_operation(OP_NONE),
 			_lock(Genode::Lock::LOCKED),

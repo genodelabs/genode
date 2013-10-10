@@ -50,6 +50,7 @@ class Local_fault_handler : public Thread<4096>
 
 		Local_fault_handler(Rm_session *rm_session, Signal_receiver *receiver)
 		:
+			Thread("local_fault_handler"),
 			_rm_session(rm_session), _receiver(receiver)
 		{ }
 

@@ -132,7 +132,8 @@ class Alarm_thread : Thread<4096>, public Alarm_scheduler
 		 * Constructor
 		 */
 		Alarm_thread(Synced_motherboard &mb, Synced_timeout_list &timeouts)
-		: _curr_time(0), _motherboard(mb), _timeouts(timeouts) { start(); }
+		: Thread("alarm"), _curr_time(0), _motherboard(mb), _timeouts(timeouts)
+		{ start(); }
 
 		Alarm::Time curr_time() { return _curr_time; }
 		unsigned long long curr_time_long() { return _motherboard()->clock()->time(); }
@@ -799,6 +800,7 @@ class Vcpu_dispatcher : public Genode::Thread<STACK_SIZE>,
 		                bool                   has_svm,
 		                bool                   has_vmx)
 		:
+			Thread("vcpu_dispatcher"),
 			_vcpu(vcpu_lock, unsynchronized_vcpu),
 			_vcpu_thread("vCPU thread"),
 			_guest_memory(guest_memory),

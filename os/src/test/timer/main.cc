@@ -47,7 +47,8 @@ class Timer_client : public Genode::List<Timer_client>::Element,
 		 * Constructor
 		 */
 		Timer_client(unsigned long period_msec)
-		: _period_msec(period_msec), _cnt(0), _stop(false) { }
+		: Thread("timer_client"),
+		  _period_msec(period_msec), _cnt(0), _stop(false) { }
 
 		/**
 		 * Start calling the timer service

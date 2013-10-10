@@ -43,6 +43,8 @@ class Client : public Genode::Thread<4096>
 {
 	public:
 
+		Client() : Thread("client") { }
+
 		void entry()
 		{
 			/* client loop */

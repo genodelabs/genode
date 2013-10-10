@@ -71,6 +71,7 @@ class Sender : Thread<4096>
 		Sender(Signal_context_capability context,
 		       unsigned interval_ms, bool verbose = true)
 		:
+			Thread("sender"),
 			_transmitter(context),
 			_interval_ms(interval_ms),
 			_stop(false),
@@ -161,6 +162,7 @@ class Handler : Thread<4096>
 		 */
 		Handler(Signal_receiver *receiver, unsigned dispatch_ms, bool verbose = true)
 		:
+			Thread("handler"),
 			_dispatch_ms(dispatch_ms),
 			_id(++_id_cnt),
 			_receiver(receiver),
@@ -541,7 +543,8 @@ class Signal_context_destroyer : public Thread<4096>
 	public:
 
 		Signal_context_destroyer(Signal_receiver *receiver, Signal_context *context)
-		: _receiver(receiver), _context(context) { }
+		: Thread("signal_context_destroyer"),
+		  _receiver(receiver), _context(context) { }
 
 		void entry()
 		{

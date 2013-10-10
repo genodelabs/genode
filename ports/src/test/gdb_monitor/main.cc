@@ -23,6 +23,8 @@ class Test_thread : public Genode::Thread<2*4096>
 {
 	public:
 
+		Test_thread() : Thread("test") { }
+
 		void func()
 		{
 			/*

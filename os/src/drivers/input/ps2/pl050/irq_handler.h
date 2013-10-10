@@ -34,6 +34,7 @@ class Irq_handler : Genode::Thread<4096>
 
 		Irq_handler(int irq_number, Serial_interface *channel, Input_driver &input_driver)
 		:
+			Thread("irq_handler"),
 			_irq(irq_number),
 			_channel(channel),
 			_input_driver(input_driver)

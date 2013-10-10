@@ -51,7 +51,8 @@ namespace Block {
 					          addr_t             dev_addr,
 					          size_t             dev_size,
 					          size_t             blk_size)
-					: _session(session),
+					: Thread("block_session_tx"),
+					  _session(session),
 					  _dev_addr(dev_addr),
 					  _dev_size(dev_size),
 					  _blk_size(blk_size) { }

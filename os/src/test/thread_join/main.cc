@@ -36,6 +36,7 @@ struct Worker : Genode::Thread<4096>
 
 	Worker(Timer::Session &timer, int result_value)
 	:
+		Thread("worker"),
 		timer(timer), result_value(result_value), result(~0)
 	{
 		start();

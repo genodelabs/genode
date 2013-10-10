@@ -248,6 +248,7 @@ class Child_destructor_thread : Thread<2*4096>
 		 * Constructor
 		 */
 		Child_destructor_thread() :
+			Thread("child_destructor"),
 			_curr_child(0), _curr_alloc(0),
 			_activate_lock(Lock::LOCKED),
 			_ready(true)

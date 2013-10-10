@@ -19,7 +19,8 @@ struct Thread : Genode::Thread<STACK_SIZE>
 {
 	Genode::Lock &_barrier;
 
-	Thread(Genode::Lock &barrier) : _barrier(barrier) { start(); }
+	Thread(Genode::Lock &barrier)
+	: Genode::Thread<STACK_SIZE>("stat"), _barrier(barrier) { start(); }
 
 	void entry()
 	{

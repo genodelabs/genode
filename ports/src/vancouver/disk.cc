@@ -54,6 +54,7 @@ Vancouver_disk::Vancouver_disk(Synced_motherboard &mb,
                                char * backing_store_base,
                                char * backing_store_fb_base)
 :
+	Thread("vmm_disk"),
 	_motherboard(mb), _backing_store_base(backing_store_base),
 	_backing_store_fb_base(backing_store_fb_base),
 	_tslab_msg(disk_heap()), _tslab_dma(disk_heap()), _tslab_avl(disk_heap())

@@ -59,7 +59,7 @@ namespace Block {
 				public:
 
 					Tx_thread(Session_component *session)
-					: _session(session) { }
+					: Thread("block_session_tx"), _session(session) { }
 
 					void entry()
 					{

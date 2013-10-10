@@ -48,7 +48,7 @@ class Genode::Interrupt_handler : public Thread<4096>
 {
 	private:
 
-		Interrupt_handler() { start(); }
+		Interrupt_handler() : Thread("irq_handler") { start(); }
 
 	public:
 

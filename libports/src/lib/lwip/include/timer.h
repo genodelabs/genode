@@ -43,7 +43,7 @@ namespace Lwip {
 
 		public:
 
-			Scheduler() : _curr_time(0) { }
+			Scheduler() : Thread("lwip_timeout_sched"), _curr_time(0) { }
 
 			Genode::Alarm::Time curr_time() { return _curr_time; }
 	};

@@ -52,7 +52,9 @@ namespace Nic {
 		void inc(size_t s) { cnt++; size += s; }
 		void inc_burst() { burst++; }
 
-		Counter(char const *prefix) : prefix(prefix), cnt(0), burst(0), size(0) { start(); }
+		Counter(char const *prefix)
+		: Thread("counter"), prefix(prefix), cnt(0), burst(0), size(0)
+		{ start(); }
 	};
 #else
 	struct Counter

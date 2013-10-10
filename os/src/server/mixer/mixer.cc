@@ -116,7 +116,7 @@ class Audio_out::Mixer : public Thread<1024 * sizeof(addr_t)>
 
 		Mixer()
 		:
-			Thread("mixer"),
+			Thread("audio_out_mixer"),
 			_sleep_lock(Lock::LOCKED), _left("left", false, true),
 			_right("right", false, true)
 		{

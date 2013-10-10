@@ -180,7 +180,7 @@ class Timer_thread : public Thread<4096>
 		 *
 		 * Start thread immediately on construction.
 		 */
-		Timer_thread() { start(); }
+		Timer_thread() : Thread("timer") { start(); }
 
 		void entry()
 		{

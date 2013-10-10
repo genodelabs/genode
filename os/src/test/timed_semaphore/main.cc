@@ -32,7 +32,8 @@ class Wakeup_thread : public Thread<4096>
 		Wakeup_thread(Timed_semaphore *sem,
 		              Timer::Session  *timer,
 		              Alarm::Time      timeout)
-		: _sem(sem), _timer(timer), _timeout(timeout), _lock(Lock::LOCKED), _stop(false) { }
+		: Thread("wakeup"), _sem(sem), _timer(timer), _timeout(timeout),
+		  _lock(Lock::LOCKED), _stop(false) { }
 
 		void entry()
 		{

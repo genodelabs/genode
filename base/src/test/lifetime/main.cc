@@ -156,7 +156,7 @@ struct Destruct_thread : Genode::Thread<4096>
 		PLOG("thread: destruction completed, job done");
 	}
 
-	Destruct_thread(Object *obj) : obj(obj) { }
+	Destruct_thread(Object *obj) : Thread("object_destructor"), obj(obj) { }
 };
 
 

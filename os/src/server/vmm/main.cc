@@ -331,7 +331,8 @@ namespace Genode {
 			Vmm(addr_t tsc_base, addr_t tpc_base,
 				addr_t sys_base, addr_t sp810_base,
 				Vm    *vm)
-			: _tsc_io_mem(tsc_base,     0x1000),
+			: Thread("vmm_signal_handler"),
+			  _tsc_io_mem(tsc_base,     0x1000),
 			  _tpc_io_mem(tpc_base,     0x1000),
 			  _sys_io_mem(sys_base,     0x1000),
 			  _sp810_io_mem(sp810_base, 0x1000),

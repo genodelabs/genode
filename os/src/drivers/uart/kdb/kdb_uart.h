@@ -49,8 +49,11 @@ class Kdb_uart : public Uart::Driver
 
 				Char_avail_checker_thread(Uart::Driver &uart_driver,
 				                          Uart::Char_avail_callback &char_avail_callback)
-				: _uart_driver(uart_driver),
-				  _char_avail_callback(char_avail_callback) { }
+				:
+					Thread<STACK_SIZE>("char_avail_handler"),
+					_uart_driver(uart_driver),
+					_char_avail_callback(char_avail_callback)
+				{ }
 
 				void entry()
 				{
@@ -72,8 +75,9 @@ class Kdb_uart : public Uart::Driver
 		 * Constructor
 		 */
 		Kdb_uart(Uart::Char_avail_callback &callback)
-		: _buffered_char(-1),
-		  _char_avail_checker_thread(*this, callback)
+		:
+			_buffered_char(-1),
+			_char_avail_checker_thread(*this, callback)
 		{
 			_char_avail_checker_thread.start();
 		}

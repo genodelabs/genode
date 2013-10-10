@@ -74,7 +74,8 @@ class Input::Tablet_driver : Genode::Thread<8192>
 		}
 
 		Tablet_driver(Event_queue &ev_queue)
-		: _ev_queue(ev_queue),
+		: Thread("touchscreen_signal_handler"),
+		  _ev_queue(ev_queue),
 		  _gpio_ts(GPIO_TOUCH),
 		  _gpio_bt(GPIO_BUTTON),
 		  _ts_sig_cap(_init_ts_gpio()),

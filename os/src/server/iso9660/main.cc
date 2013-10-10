@@ -217,6 +217,8 @@ namespace Iso {
 
 		public:
 
+			Pager() : Thread("iso_pager") { }
+
 			Signal_receiver *signal_receiver() { return &_receiver; }
 
 			void entry()

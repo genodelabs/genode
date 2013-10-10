@@ -39,7 +39,7 @@ class Comparer : public Genode::Thread<8192>
 
 		Comparer(Genode::Allocator_avl *block_alloc,
 		         const char* filename)
-		: _blk_con(block_alloc), _rom(filename),
+		: Thread("comparer"), _blk_con(block_alloc), _rom(filename),
 		  _addr(Genode::env()->rm_session()->attach(_rom.dataspace())) { }
 
 		void entry()
