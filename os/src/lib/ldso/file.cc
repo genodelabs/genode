@@ -41,6 +41,8 @@ namespace Genode {
 			Rm_area(addr_t base)
 			: Rm_connection(0, RESERVATION), _range(env()->heap())
 			{
+				on_destruction(KEEP_OPEN);
+
 				_base = (addr_t) env()->rm_session()->attach_at(dataspace(), base);
 				_range.add_range(base, RESERVATION);
 			}
