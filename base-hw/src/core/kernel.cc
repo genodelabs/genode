@@ -102,13 +102,13 @@ namespace Kernel
 namespace Kernel
 {
 	class Vm;
-	typedef Id_allocator<MAX_VMS> Vm_ids;
-	typedef Object_pool<Vm>       Vm_pool;
+	class Vm_ids : public Id_allocator<MAX_VMS> { };
+	typedef Object_pool<Vm> Vm_pool;
 
 	Vm_ids  * vm_ids();
 	Vm_pool * vm_pool();
 
-	class Vm : public Object<Vm, MAX_VMS, vm_ids, vm_pool>,
+	class Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 	           public Execution_context
 	{
 		private:

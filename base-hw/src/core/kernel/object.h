@@ -52,10 +52,15 @@ namespace Kernel
 	 * \param MAX_INSTANCES  max amount of coincidently living objects
 	 * \param ID_ALLOC       accessor function of object-name allocator
 	 * \param POOL           accessor function of object pool
+	 *
+	 * FIXME: Most of the bother with template parameters regarding ID
+	 *        allocator and object pool is caused by the use of
+	 *        unsynchronized singletons. By avoiding the use of
+	 *        unsynchronized singletons one can at least remove
+	 *        ID_ALLOC_T.
 	 */
-	template <typename T, unsigned MAX_INSTANCES,
-	          Id_allocator<MAX_INSTANCES> * (*ID_ALLOC)(),
-	          Kernel::Object_pool<T> * (* POOL)()>
+	template <typename T, unsigned MAX_INSTANCES, typename ID_ALLOC_T,
+	          ID_ALLOC_T * (*ID_ALLOC)(), Kernel::Object_pool<T> * (* POOL)()>
 
 	class Object;
 }
@@ -198,9 +203,8 @@ class Kernel::Id_allocator
 		}
 };
 
-template <typename T, unsigned MAX_INSTANCES,
-          Kernel::Id_allocator<MAX_INSTANCES> * (* ID_ALLOC)(),
-          Kernel::Object_pool<T> * (* POOL)()>
+template <typename T, unsigned MAX_INSTANCES, typename ID_ALLOC_T,
+          ID_ALLOC_T * (* ID_ALLOC)(), Kernel::Object_pool<T> * (* POOL)()>
 
 class Kernel::Object : public Object_pool<T>::Item
 {

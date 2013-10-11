@@ -58,8 +58,8 @@ namespace Kernel
 	 */
 	class Thread;
 
-	typedef Id_allocator<MAX_THREADS> Thread_ids;
-	typedef Object_pool<Thread>       Thread_pool;
+	class Thread_ids : public Id_allocator<MAX_THREADS> { };
+	typedef Object_pool<Thread> Thread_pool;
 
 	Thread_ids  * thread_ids();
 	Thread_pool * thread_pool();
@@ -91,7 +91,7 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 class Kernel::Thread
 :
 	public Cpu::User_context,
-	public Object<Thread, MAX_THREADS, thread_ids, thread_pool>,
+	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
 	public Execution_context,
 	public Ipc_node,
 	public Irq_receiver,

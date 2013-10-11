@@ -54,8 +54,8 @@ namespace Kernel
 	 */
 	class Pd;
 
-	typedef Id_allocator<MAX_PDS> Pd_ids;
-	typedef Object_pool<Pd>       Pd_pool;
+	class Pd_ids : public Id_allocator<MAX_PDS> { };
+	typedef Object_pool<Pd> Pd_pool;
 
 	Pd_ids  * pd_ids();
 	Pd_pool * pd_pool();
@@ -144,7 +144,7 @@ class Kernel::Mode_transition_control
 		}
 };
 
-class Kernel::Pd : public Object<Pd, MAX_PDS, pd_ids, pd_pool>
+class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 {
 	private:
 
