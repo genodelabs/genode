@@ -294,6 +294,7 @@ namespace Init {
 				catch (Genode::Root::Invalid_args)   { throw Invalid_args();   }
 				catch (Genode::Root::Unavailable)    { throw Unavailable();    }
 				catch (Genode::Root::Quota_exceeded) { throw Quota_exceeded(); }
+				catch (Genode::Ipc_error)            { throw Unavailable();  }
 
 				if (!cap.valid())
 					throw Unavailable();
@@ -303,12 +304,15 @@ namespace Init {
 
 			void upgrade(Genode::Session_capability sc, const char *args)
 			{
-				Genode::Root_client(_root).upgrade(sc, args);
+				try { Genode::Root_client(_root).upgrade(sc, args); }
+				catch (Genode::Root::Invalid_args) { throw Invalid_args(); }
+				catch (Genode::Ipc_error)          { throw Unavailable(); }
 			}
 
 			void close(Genode::Session_capability sc)
 			{
-				Genode::Root_client(_root).close(sc);
+				try { Genode::Root_client(_root).close(sc); }
+				catch (Genode::Ipc_error) { throw Genode::Blocking_canceled(); }
 			}
 	};
 

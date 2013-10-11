@@ -183,13 +183,20 @@ namespace Genode {
 				catch (Root::Invalid_args)   { throw Invalid_args(); }
 				catch (Root::Unavailable)    { throw Unavailable(); }
 				catch (Root::Quota_exceeded) { throw Quota_exceeded(); }
+				catch (Genode::Ipc_error)    { throw Unavailable();  }
 			}
 
-			void upgrade(Session_capability session, const char *args) {
-				_root->upgrade(session, args); }
+			void upgrade(Session_capability session, const char *args)
+			{
+				try { _root->upgrade(session, args); }
+				catch (Genode::Ipc_error)      { throw Unavailable();    }
+			}
 
-			void close(Session_capability session) {
-				_root->close(session); }
+			void close(Session_capability session)
+			{
+				try { _root->close(session); }
+				catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
+			}
 	};
 
 
@@ -210,13 +217,20 @@ namespace Genode {
 					throw Unavailable();
 				}
 				catch (Parent::Quota_exceeded) { throw Quota_exceeded(); }
+				catch (Genode::Ipc_error)      { throw Unavailable();    }
 			}
 
-			void upgrade(Session_capability session, const char *args) {
-				env()->parent()->upgrade(session, args); }
+			void upgrade(Session_capability session, const char *args)
+			{
+				try { env()->parent()->upgrade(session, args); }
+				catch (Genode::Ipc_error)    { throw Unavailable();    }
+			}
 
-			void close(Session_capability session) {
-				env()->parent()->close(session); }
+			void close(Session_capability session)
+			{
+				try { env()->parent()->close(session); }
+				catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
+			}
 	};
 
 
@@ -256,6 +270,7 @@ namespace Genode {
 				catch (Root::Invalid_args)   { throw Invalid_args();   }
 				catch (Root::Unavailable)    { throw Unavailable();    }
 				catch (Root::Quota_exceeded) { throw Quota_exceeded(); }
+				catch (Genode::Ipc_error)    { throw Unavailable();    }
 			}
 
 			void upgrade(Session_capability sc, const char *args)
@@ -267,9 +282,14 @@ namespace Genode {
 				catch (Root::Invalid_args)   { throw Invalid_args();   }
 				catch (Root::Unavailable)    { throw Unavailable();    }
 				catch (Root::Quota_exceeded) { throw Quota_exceeded(); }
+				catch (Genode::Ipc_error)    { throw Unavailable();    }
 			}
 
-			void close(Session_capability sc) { _root.close(sc); }
+			void close(Session_capability sc)
+			{
+				try { _root.close(sc); }
+				catch (Genode::Ipc_error)    { throw Blocking_canceled(); }
+			}
 	};
 
 
