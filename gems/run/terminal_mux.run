@@ -89,10 +89,11 @@ append config {
 			</route>
 		</start>
 		<start name="cli_monitor">
-			<resource name="RAM" quantum="1G"/>
+			<resource name="RAM" quantum="100M"/>
 			<config>
+				<preservation name="RAM" quantum="16M" />
 				<subsystem name="noux" help="VIM executed in the noux runtime">
-					<resource name="RAM" quantum="16M"/>
+					<resource name="RAM" quantum="16M" />
 					<config>
 						<fstab> <tar name="vim.tar" /> </fstab>
 						<start name="/bin/vim">
@@ -128,7 +129,7 @@ append config {
 				<subsystem name="ram_eater" help="resource-yield test program">
 					<resource name="RAM" quantum="25M" />
 					<binary name="test-resource_yield" />
-					<config child="yes" expand="yes" />
+					<config child="yes" expand="yes" period_ms="100" />
 				</subsystem>
 			</config>
 			<route>
