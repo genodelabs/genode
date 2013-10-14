@@ -47,7 +47,7 @@ class Input::Buttons {
 
 		Genode::Attached_io_mem_dataspace _i2c_ds;
 		I2c::I2c                          _i2c;
-		int                               _button;
+		Genode::uint8_t                   _state;
 
 	public:
 
@@ -55,7 +55,7 @@ class Input::Buttons {
 		                    Genode::Board_base::I2C_2_SIZE),
 		            _i2c((Genode::addr_t)_i2c_ds.local_addr<void>(),
 		                  Genode::Board_base::I2C_2_IRQ),
-		            _button(0)
+		            _state(0)
 		{
 			static Genode::uint8_t init_cmd[][2] = {
 				{0x41, 0x8 }, {0x42, 0x5 }, {0x43, 0x8 },
@@ -80,38 +80,22 @@ class Input::Buttons {
 
 		void event(Event_queue &ev_queue)
 		{
-			Genode::uint8_t buf =  0;
+			int buttons[] = { BACK, HOME, MENU, POWER };
+			int codes[]   = { Input::KEY_BACK, Input::KEY_HOME,
+			                  Input::KEY_MENU, Input::KEY_POWER};
 
+			Genode::uint8_t buf =  0;
 			_i2c.send(I2C_ADDR, &buf, 1);
 			_i2c.recv(I2C_ADDR, &buf, 1);
-			switch (buf) {
-			case RELEASE:
-				ev_queue.add(Input::Event(Input::Event::RELEASE,
-				                          _button, 0, 0, 0, 0));
-				break;
-			case BACK:
-				ev_queue.add(Input::Event(Input::Event::PRESS,
-				                          Input::KEY_BACK, 0, 0, 0, 0));
-				_button = Input::KEY_BACK;
-				break;
-			case HOME:
-				ev_queue.add(Input::Event(Input::Event::PRESS,
-				                          Input::KEY_HOME, 0, 0, 0, 0));
-				_button = Input::KEY_HOME;
-				break;
-			case MENU:
-				ev_queue.add(Input::Event(Input::Event::PRESS,
-				                          Input::KEY_MENU, 0, 0, 0, 0));
-				_button = Input::KEY_MENU;
-				break;
-			case POWER:
-				ev_queue.add(Input::Event(Input::Event::PRESS,
-				                          Input::KEY_POWER, 0, 0, 0, 0));
-				_button = Input::KEY_POWER;
-				break;
-			default:
-				/* just ignore everything else */;
+
+			for (unsigned i = 0; i < (sizeof(buttons)/sizeof(int)); i++) {
+				if ((_state & buttons[i]) == (buf & buttons[i]))
+					continue;
+				Input::Event::Type event = (buf & buttons[i]) ?
+					Input::Event::PRESS : Input::Event::RELEASE;
+				ev_queue.add(Input::Event(event, codes[i], 0, 0, 0, 0));
 			};
+			_state = buf;
 		}
 };
 
