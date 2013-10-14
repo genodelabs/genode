@@ -78,10 +78,6 @@ downloaded and prepared by invoking the following command from within the
 
 ! make prepare PKG=x86emu
 
-Also uncomment the following line in 'etc/build.conf'
-
-! REPOSITORIES += $(GENODE_DIR)/libports
-
 Now that the base platform is prepared, the 'create_builddir' tool can be used
 to create a build directory for your platform of choice by giving the platform
 as argument. To see the list of available platforms, execute 'create_builddir'
@@ -95,6 +91,8 @@ steps are required:
   ! make -C base-okl4 prepare
 # Create a build directory
   ! ./tool/create_builddir okl4_x86 BUILD_DIR=build.okl4
+# Uncomment the following line in 'build.okl4/etc/build.conf'
+  ! REPOSITORIES += $(GENODE_DIR)/libports
 # Build and execute the demo using Qemu
   ! make -C build.okl4 run/demo
 
