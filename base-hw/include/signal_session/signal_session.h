@@ -41,7 +41,11 @@ namespace Genode
 	 */
 	struct Signal_session : Session
 	{
-		class Out_of_metadata : public Exception { };
+		class Out_of_metadata        : public Exception { };
+		class Create_receiver_failed : public Exception { };
+		class Create_context_failed  : public Exception { };
+		class Kill_receiver_failed   : public Exception { };
+		class Kill_context_failed    : public Exception { };
 
 		/**
 		 * String that can be used to refer to this service
@@ -50,6 +54,9 @@ namespace Genode
 
 		/**
 		 * Destructor
+		 *
+		 * \throw Kill_context_failed
+		 * \throw Kill_receiver_failed
 		 */
 		virtual ~Signal_session() { }
 
@@ -59,7 +66,7 @@ namespace Genode
 		 * \return  a cap that acts as reference to the created object
 		 *
 		 * \throw Out_of_metadata
-		 * \throw Exception
+		 * \throw Create_receiver_failed
 		 */
 		virtual Signal_receiver_capability alloc_receiver() = 0;
 
@@ -74,7 +81,7 @@ namespace Genode
 		 * \return  a cap that acts as reference to the created object
 		 *
 		 * \throw Out_of_metadata
-		 * \throw Exception
+		 * \throw Create_context_failed
 		 */
 		virtual Signal_context_capability
 		alloc_context(Signal_receiver_capability r,
@@ -85,7 +92,7 @@ namespace Genode
 		 *
 		 * \param cap  capability of targeted signal receiver
 		 *
-		 * \throw Exception
+		 * \throw Kill_receiver_failed
 		 */
 		virtual void free_receiver(Signal_receiver_capability cap) = 0;
 
@@ -94,7 +101,7 @@ namespace Genode
 		 *
 		 * \param cap  capability of targeted signal context
 		 *
-		 * \throw Exception
+		 * \throw Kill_context_failed
 		 */
 		virtual void free_context(Signal_context_capability cap) = 0;
 
@@ -105,18 +112,19 @@ namespace Genode
 
 		GENODE_RPC_THROW(Rpc_alloc_receiver, Signal_receiver_capability,
 		                 alloc_receiver, GENODE_TYPE_LIST(Out_of_metadata,
-		                 Exception));
+		                 Create_receiver_failed));
 
 		GENODE_RPC_THROW(Rpc_alloc_context, Signal_context_capability,
 		                 alloc_context, GENODE_TYPE_LIST(Out_of_metadata,
-		                 Exception), Signal_receiver_capability, unsigned);
+		                 Create_context_failed), Signal_receiver_capability,
+		                 unsigned);
 
 		GENODE_RPC_THROW(Rpc_free_receiver, void, free_receiver,
-		                 GENODE_TYPE_LIST(Exception),
+		                 GENODE_TYPE_LIST(Kill_receiver_failed),
 		                 Signal_receiver_capability);
 
 		GENODE_RPC_THROW(Rpc_free_context, void, free_context,
-		                 GENODE_TYPE_LIST(Exception),
+		                 GENODE_TYPE_LIST(Kill_context_failed),
 		                 Signal_context_capability);
 
 		GENODE_RPC_INTERFACE(Rpc_alloc_receiver, Rpc_alloc_context,

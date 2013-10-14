@@ -68,7 +68,7 @@ Signal_receiver_capability Signal_session_component::alloc_receiver()
 		/* clean up */
 		_receivers_slab.free(p, Receiver::slab_size());
 		PERR("failed to create signal receiver");
-		throw Exception();
+		throw Create_receiver_failed();
 	}
 	/* remember receiver ressources */
 	Native_capability cap(id, id);
@@ -86,7 +86,7 @@ void Signal_session_component::free_receiver(Signal_receiver_capability cap)
 	Receiver * const r = _receivers.lookup_and_lock(cap);
 	if (!r) {
 		PERR("unknown signal receiver");
-		throw Exception();
+		throw Kill_receiver_failed();
 	}
 	/* release resources */
 	_destruct_receiver(r);
@@ -112,7 +112,7 @@ Signal_session_component::alloc_context(Signal_receiver_capability r,
 		/* clean up */
 		_contexts_slab.free(p, Context::slab_size());
 		PERR("failed to create signal context");
-		throw Exception();
+		throw Create_context_failed();
 	}
 	/* remember context ressources */
 	Native_capability cap(id, id);
@@ -129,7 +129,7 @@ void Signal_session_component::free_context(Signal_context_capability cap)
 	Context * const c = _contexts.lookup_and_lock(cap);
 	if (!c) {
 		PERR("unknown signal context");
-		throw Exception();
+		throw Kill_context_failed();
 	}
 	/* release resources */
 	_destruct_context(c);
@@ -145,7 +145,7 @@ void Signal_session_component::_destruct_context(Context * const c)
 		/* clean-up */
 		c->release();
 		PERR("failed to kill signal context");
-		throw Exception();
+		throw Kill_context_failed();
 	}
 	/* release core resources */
 	_contexts.remove_locked(c);
@@ -161,7 +161,7 @@ void Signal_session_component::_destruct_receiver(Receiver * const r)
 		/* clean-up */
 		r->release();
 		PERR("failed to kill signal receiver");
-		throw Exception();
+		throw Kill_receiver_failed();
 	}
 	/* release core resources */
 	_receivers.remove_locked(r);
