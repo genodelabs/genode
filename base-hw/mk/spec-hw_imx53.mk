@@ -8,7 +8,7 @@
 SPECS += hw platform_imx53 epit
 
 # set address where to link the text segment at
-LD_TEXT_ADDR ?= 0x70001000
+LD_TEXT_ADDR ?= 0x70010000
 
 # include implied specs
 include $(call select_from_repositories,mk/spec-hw.mk)
