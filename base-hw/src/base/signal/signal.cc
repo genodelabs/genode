@@ -179,7 +179,7 @@ Signal Signal_receiver::wait_for_signal()
 	/* await a signal */
 	if (Kernel::await_signal(_cap.dst())) {
 		PERR("failed to receive signal");
-		throw Exception();
+		return Signal(Signal::Data());
 	}
 	/* get signal data */
 	Signal s(*(Signal::Data *)Thread_base::myself()->utcb());
@@ -189,6 +189,5 @@ Signal Signal_receiver::wait_for_signal()
 
 void Signal_receiver::local_submit(Signal::Data signal)
 {
-	PDBG("not implemented");
-	throw Exception();
+	PERR("method not implemented");
 }
