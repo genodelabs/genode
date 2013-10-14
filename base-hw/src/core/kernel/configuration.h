@@ -22,7 +22,7 @@ namespace Kernel
 		MAX_PDS              = 256,
 		MAX_THREADS          = 256,
 		MAX_SIGNAL_RECEIVERS = 256,
-		MAX_SIGNAL_CONTEXTS  = 256,
+		MAX_SIGNAL_CONTEXTS  = 2048,
 		MAX_VMS              = 4,
 	};
 }
