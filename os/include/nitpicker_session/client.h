@@ -17,28 +17,34 @@
 #include <nitpicker_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Nitpicker {
+namespace Nitpicker { struct Session_client; }
 
-	struct Session_client : public Genode::Rpc_client<Session>
-	{
-		explicit Session_client(Session_capability session)
-		: Genode::Rpc_client<Session>(session) { }
 
-		Framebuffer::Session_capability framebuffer_session() {
-			return call<Rpc_framebuffer_session>(); }
+struct Nitpicker::Session_client : public Rpc_client<Session>
+{
+	explicit Session_client(Session_capability session)
+	: Rpc_client<Session>(session) { }
 
-		Input::Session_capability input_session() {
-			return call<Rpc_input_session>(); }
+	Framebuffer::Session_capability framebuffer_session() {
+		return call<Rpc_framebuffer_session>(); }
 
-		View_capability create_view() {
-			return call<Rpc_create_view>(); }
+	Input::Session_capability input_session() {
+		return call<Rpc_input_session>(); }
 
-		void destroy_view(View_capability view) {
-			call<Rpc_destroy_view>(view); }
+	View_capability create_view() {
+		return call<Rpc_create_view>(); }
 
-		int background(View_capability view) {
-			return call<Rpc_background>(view); }
-	};
-}
+	void destroy_view(View_capability view) {
+		call<Rpc_destroy_view>(view); }
+
+	int background(View_capability view) {
+		return call<Rpc_background>(view); }
+
+	Framebuffer::Mode mode() {
+		return call<Rpc_mode>(); }
+
+	void buffer(Framebuffer::Mode mode, bool alpha) {
+		call<Rpc_buffer>(mode, alpha); }
+};
 
 #endif /* _INCLUDE__NITPICKER_SESSION__CLIENT_H_ */

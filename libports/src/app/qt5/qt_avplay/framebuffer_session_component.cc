@@ -41,11 +41,14 @@ namespace Framebuffer {
 	                                     QNitpickerViewWidget &nitpicker_view_widget,
 	                                     int max_width,
 	                                     int max_height)
-	:	_nitpicker(Nitpicker::Connection(
-		            _limited_size(session_arg(args, "fb_width"), max_width),
-		            _limited_size(session_arg(args, "fb_height"), max_height))),
+	:
 		_framebuffer(_nitpicker.framebuffer_session())
 	{
+		Framebuffer::Mode const
+			mode(_limited_size(session_arg(args, "fb_width"), max_width),
+		         _limited_size(session_arg(args, "fb_height"), max_height),
+		         _nitpicker.mode().format());
+		_nitpicker.buffer(mode, false);
 		Nitpicker::View_capability nitpicker_view_cap = _nitpicker.create_view();
 		Mode _mode = _framebuffer.mode();
 		nitpicker_view_widget.setNitpickerView(nitpicker_view_cap,

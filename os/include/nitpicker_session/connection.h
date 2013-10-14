@@ -20,108 +20,76 @@
 #include <util/arg_string.h>
 #include <base/connection.h>
 
-namespace Nitpicker {
+namespace Nitpicker { class Connection; }
 
-	class Connection : public Genode::Connection<Session>,
-	                   public Session_client
-	{
-		private:
 
-			Framebuffer::Session_client _framebuffer;
-			Input::Session_client       _input;
+class Nitpicker::Connection : public Genode::Connection<Session>,
+                              public Session_client
+{
+	private:
 
-			/**
-			 * Create session and return typed session capability
+		Framebuffer::Session_client _framebuffer;
+		Input::Session_client       _input;
+
+		/**
+		 * Create session and return typed session capability
+		 */
+		Session_capability _connect(bool stay_top)
+		{
+			enum { ARGBUF_SIZE = 128 };
+			char argbuf[ARGBUF_SIZE];
+			argbuf[0] = 0;
+
+			/*
+			 * Declare ram-quota donation
 			 */
-			Session_capability
-			_connect(unsigned width, unsigned height, bool alpha,
-			         Framebuffer::Mode::Format format, bool stay_top)
-			{
-				using namespace Genode;
+			enum { SESSION_METADATA = 20*1024 };
+			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", SESSION_METADATA);
 
-				enum { ARGBUF_SIZE = 128 };
-				char argbuf[ARGBUF_SIZE];
-				argbuf[0] = 0;
+			if (stay_top)
+				Arg_string::set_arg(argbuf, sizeof(argbuf), "stay_top", "yes");
 
-				/* by default, donate as much as needed for a 1024x768 RGB565 screen */
-				Genode::size_t ram_quota = 1600*1024;
+			return session(argbuf);
+		}
 
-				/*
-				 * NOTE: When specifying an INVALID mode as argument, we could
-				 * probe for any valid video mode. For now, we just probe for
-				 * RGB565.
-				 */
-				if (format == Framebuffer::Mode::INVALID)
-					format =  Framebuffer::Mode::RGB565;
+	public:
 
-				/* if buffer dimensions are specified, calculate ram quota to donate */
-				if (width && height)
-					ram_quota = width*height*Framebuffer::Mode::bytes_per_pixel(format);
+		/**
+		 * Constructor
+		 */
+		Connection(bool stay_top = false)
+		:
+			/* establish nitpicker session */
+			Genode::Connection<Session>(_connect(stay_top)),
+			Session_client(cap()),
 
-				/* account for alpha and input-mask buffers */
-				if (alpha)
-					ram_quota += width*height*2;
+			/* request frame-buffer and input sub sessions */
+			_framebuffer(framebuffer_session()),
+			_input(input_session())
+		{ }
 
-				/* add quota for storing server-side meta data */
-				enum { SESSION_METADATA = 16*1024 };
-				ram_quota += SESSION_METADATA;
+		void buffer(Framebuffer::Mode mode, bool use_alpha)
+		{
+			enum { ARGBUF_SIZE = 128 };
+			char argbuf[ARGBUF_SIZE];
+			argbuf[0] = 0;
 
-				/* declare ram-quota donation */
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", ram_quota);
+			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+			                    ram_quota(mode, use_alpha));
 
-				/* set optional session-constructor arguments */
-				if (width)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_width", width);
-				if (height)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_height", height);
-				if (format != Framebuffer::Mode::INVALID)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "fb_format", format);
-				if (alpha)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "alpha", "yes");
-				if (stay_top)
-					Arg_string::set_arg(argbuf, sizeof(argbuf), "stay_top", "yes");
+			env()->parent()->upgrade(cap(), argbuf);
+			Session_client::buffer(mode, use_alpha);
+		}
 
-				return session(argbuf);
-			}
+		/**
+		 * Return sub session for Nitpicker's input service
+		 */
+		Input::Session *input() { return &_input; }
 
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param width   desired buffer width
-			 * \param height  desired buffer height
-			 * \param alpha   true for using a buffer with alpha channel
-			 * \param format  desired pixel format
-			 *
-			 * The specified value for 'format' is not enforced. After creating 
-			 * the session, you should validate the actual pixel format of the
-			 * buffer by its 'mode'.
-			 */
-			Connection(unsigned width  = 0, unsigned height = 0, bool alpha = false,
-			           Framebuffer::Mode::Format format = Framebuffer::Mode::INVALID,
-			           bool stay_top = false)
-			:
-				/* establish nitpicker session */
-				Genode::Connection<Session>(_connect(width, height, alpha,
-				                                     format, stay_top)),
-				Session_client(cap()),
-
-				/* request frame-buffer and input sub sessions */
-				_framebuffer(framebuffer_session()),
-				_input(input_session())
-			{ }
-
-			/**
-			 * Return sub session for Nitpicker's input service
-			 */
-			Input::Session *input() { return &_input; }
-
-			/**
-			 * Return sub session for session's frame buffer
-			 */
-			Framebuffer::Session *framebuffer() { return &_framebuffer; }
-	};
-}
+		/**
+		 * Return sub session for session's frame buffer
+		 */
+		Framebuffer::Session *framebuffer() { return &_framebuffer; }
+};
 
 #endif /* _INCLUDE__NITPICKER_SESSION__CONNECTION_H_ */

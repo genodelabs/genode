@@ -215,28 +215,19 @@ Platform::Platform(unsigned vx, unsigned vy, unsigned vw, unsigned vh,
 	Config::browser_attr = 7;
 
 	/*
-	 * Create temporary nitpicker session just to determine the screen size
-	 *
-	 * NOTE: This approach has the disadvantage creating the nitpicker session
-	 * is not an atomic operation. In theory, both session requests may be
-	 * propagated to different nitpicker instances.
+	 * Allocate a nitpicker buffer double as high as the physical screen to
+	 * use the upper/lower halves for double-buffering.
 	 */
-	_nitpicker = new (env()->heap()) Nitpicker::Connection();
-	Framebuffer::Mode const query_mode = _nitpicker->framebuffer()->mode();
+	_nitpicker = new (env()->heap()) Nitpicker::Connection;
+	Framebuffer::Mode const query_mode = _nitpicker->mode();
 	_scr_w      = query_mode.width();
 	_scr_h      = query_mode.height();
 	_scr_format = query_mode.format();
-	destroy(env()->heap(), _nitpicker);
 
 	if (_max_vw) _scr_w = min(_max_vw, _scr_w);
 	if (_max_vh) _scr_h = min(_max_vh, _scr_h);
 
-	/*
-	 * Allocate a nitpicker buffer double as high as the physical screen to
-	 * use the upper/lower halves for double-buffering.
-	 */
-	_nitpicker = new (env()->heap())
-		Nitpicker::Connection(_scr_w, _scr_h*2, false, _scr_format);
+	_nitpicker->buffer(Framebuffer::Mode(_scr_w, _scr_h*2, _scr_format), false);
 
 	static Timer::Connection timer;
 	_timer = &timer;

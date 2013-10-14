@@ -112,10 +112,12 @@ int main(int argc, char **argv)
 	 * Init sessions to the required external services
 	 */
 	enum { CONFIG_ALPHA = false };
-	static Nitpicker::Connection nitpicker(256, 256, CONFIG_ALPHA);
+	static Nitpicker::Connection nitpicker;
 	static Timer::Connection     timer;
 
-	Framebuffer::Mode const mode = nitpicker.framebuffer()->mode();
+	Framebuffer::Mode const mode(256, 256, Framebuffer::Mode::RGB565);
+	nitpicker.buffer(mode, false);
+
 	int const scr_w = mode.width(), scr_h = mode.height();
 
 	printf("screen is %dx%d\n", scr_w, scr_h);

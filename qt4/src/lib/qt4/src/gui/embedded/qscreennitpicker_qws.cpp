@@ -173,8 +173,10 @@ bool QNitpickerScreen::connect(const QString &displaySpec)
 	nitpicker   = new Nitpicker::Connection();
 	framebuffer = new Framebuffer::Session_client(nitpicker->framebuffer_session());
 	
-	Framebuffer::Mode const scr_mode = framebuffer->mode();
+	Framebuffer::Mode const scr_mode = nitpicker->mode();
 	int const scr_w = scr_mode.width(), scr_h = scr_mode.height();
+
+	nitpicker->buffer(scr_mode, false);
 
 	qDebug() << "screen is " << scr_w << "x" << scr_h;
 	if (!scr_w || !scr_h) {

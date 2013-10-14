@@ -161,8 +161,6 @@ namespace Nitpicker {
 
 			Rpc_entrypoint           &_ep;
 
-			int                       _fb_width, _fb_height;
-
 			Nitpicker::Connection     _nitpicker;
 			View_capability           _nitpicker_view;
 
@@ -188,13 +186,6 @@ namespace Nitpicker {
 			                  const char               *args)
 			:
 				_ep(ep),
-
-				/* store the framebuffer size for view size constraining */
-				_fb_width(_session_arg(args, "fb_width")),
-				_fb_height(_session_arg(args, "fb_height")),
-
-				/* connect to the "real" Nitpicker service */
-				_nitpicker(_fb_width, _fb_height),
 
 				/* create Nitpicker view */
 				_nitpicker_view(_nitpicker.create_view()),
@@ -242,6 +233,16 @@ namespace Nitpicker {
 				return 0;
 			}
 
+			Framebuffer::Mode mode()
+			{
+				return _nitpicker.mode();
+			}
+
+			void buffer(Framebuffer::Mode mode, bool use_alpha)
+			{
+				_nitpicker.buffer(mode, use_alpha);
+			}
+
 
 			/**********************************
 			 ** Input::Transformer interface **
@@ -270,9 +271,11 @@ namespace Nitpicker {
 			 */
 			Loader::Session::View_geometry loader_view_geometry()
 			{
+				Framebuffer::Session_client framebuffer(framebuffer_session());
+				Framebuffer::Mode const mode = framebuffer.mode();
 				Loader::Session::View_geometry result(
-					min(_proxy_view.w(), _fb_width),
-					min(_proxy_view.h(), _fb_height),
+					min(_proxy_view.w(), mode.width()),
+					min(_proxy_view.h(), mode.height()),
 					_proxy_view.buf_x(),
 					_proxy_view.buf_y());
 

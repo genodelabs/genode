@@ -149,16 +149,21 @@ int main(int argc, char **argv)
 	/*
 	 * Open Nitpicker session
 	 */
-	static Nitpicker::Connection nitpicker(view_w, view_h);
+	static Nitpicker::Connection nitpicker;
 
 	/*
 	 * If no config was provided, use screen size of Nitpicker
 	 */
 	if (view_w == 0 || view_h == 0) {
-		Framebuffer::Session_client nit_fb(nitpicker.framebuffer_session());
-		Framebuffer::Mode const mode = nit_fb.mode();
+		Framebuffer::Mode const mode = nitpicker.mode();
 		view_w = mode.width(), view_h = mode.height();
 	}
+
+	/*
+	 * Setup virtual framebuffer
+	 */
+	Framebuffer::Mode const mode(view_w, view_h, Framebuffer::Mode::RGB565);
+	nitpicker.buffer(mode, false);
 
 	PINF("using xywh=(%ld,%ld,%ld,%ld) refresh_rate=%u",
 	     view_x, view_y, view_w, view_h, cfg.refresh_rate);

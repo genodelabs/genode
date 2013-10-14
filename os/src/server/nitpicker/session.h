@@ -37,7 +37,7 @@ class Session : public Session_list::Element
 
 		Genode::Session_label const  _label;
 		Color                        _color;
-		Texture               const &_texture;
+		Texture               const *_texture;
 		View                        *_background = 0;
 		int                          _v_offset;
 		unsigned char         const *_input_mask;
@@ -48,26 +48,14 @@ class Session : public Session_list::Element
 		/**
 		 * Constructor
 		 *
-		 * \param label       session label
-		 * \param texture     texture containing the session's pixel
-		 *                    representation
-		 * \param v_offset    vertical screen offset of session
-		 * \param input_mask  input mask buffer containing a byte value per
-		 *                    texture pixel, which describes the policy of
-		 *                    handling user input referring to the pixel.
-		 *                    If set to zero, the input is passed through
-		 *                    the view such that it can be handled by one of
-		 *                    the subsequent views in the view stack. If set
-		 *                    to one, the input is consumed by the view. If
-		 *                    'input_mask' is a null pointer, user input is
-		 *                    unconditionally consumed by the view.
+		 * \param label     session label
+		 * \param v_offset  vertical screen offset of session
+		 * \param stay_top  true for views that stay always in front
 		 */
-		Session(Genode::Session_label const &label, Texture const &texture,
-		        int v_offset, unsigned char const *input_mask = 0,
-		        bool stay_top = false)
+		Session(Genode::Session_label const &label, int v_offset, bool stay_top)
 		:
-			_label(label), _texture(texture), _v_offset(v_offset),
-			_input_mask(input_mask), _stay_top(stay_top)
+			_label(label), _texture(0), _v_offset(v_offset),
+			_input_mask(0), _stay_top(stay_top)
 		{ }
 
 		virtual ~Session() { }
@@ -76,7 +64,23 @@ class Session : public Session_list::Element
 
 		Genode::Session_label const &label() const { return _label; }
 
-		Texture const &texture() const { return _texture; }
+		Texture const *texture() const { return _texture; }
+
+		void texture(Texture const *texture) { _texture = texture; }
+
+		/**
+		 * Set input mask buffer
+		 *
+		 * \param mask  input mask buffer containing a byte value per texture
+		 *              pixel, which describes the policy of handling user
+		 *              input referring to the pixel. If set to zero, the input
+		 *              is passed through the view such that it can be handled
+		 *              by one of the subsequent views in the view stack. If
+		 *              set to one, the input is consumed by the view. If
+		 *              'input_mask' is a null pointer, user input is
+		 *              unconditionally consumed by the view.
+		 */
+		void input_mask(unsigned char const *mask) { _input_mask = mask; }
 
 		Color color() const { return _color; }
 
@@ -89,7 +93,7 @@ class Session : public Session_list::Element
 		/**
 		 * Return true if session uses an alpha channel
 		 */
-		bool uses_alpha() const { return _texture.alpha(); }
+		bool uses_alpha() const { return _texture ? _texture->alpha() : 0; }
 
 		/**
 		 * Return vertical offset of session
@@ -101,14 +105,14 @@ class Session : public Session_list::Element
 		 */
 		unsigned char input_mask_at(Point p) const
 		{
-			if (!_input_mask) return 0;
+			if (!_input_mask || !_texture) return 0;
 
 			/* check boundaries */
-			if (p.x() < 0 || p.x() >= _texture.w()
-			 || p.y() < 0 || p.y() >= _texture.h())
+			if (p.x() < 0 || p.x() >= _texture->w()
+			 || p.y() < 0 || p.y() >= _texture->h())
 				return 0;
 
-			return _input_mask[p.y()*_texture.w() + p.x()];
+			return _input_mask[p.y()*_texture->w() + p.x()];
 		}
 
 		/**
@@ -129,7 +133,6 @@ class Session : public Session_list::Element
 				policy.attribute("color").value(&_color);
 			} catch (...) { }
 		}
-
 };
 
 #endif

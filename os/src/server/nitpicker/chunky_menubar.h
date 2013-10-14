@@ -30,9 +30,11 @@ class Chunky_menubar : public Chunky_texture<PT>,
 		Chunky_menubar(PT *pixels, Area size)
 		:
 			Chunky_texture<PT>(pixels, 0, size),
-			Session(Genode::Session_label(""), *this, 0),
+			Session(Genode::Session_label(""), 0, false),
 			Menubar(_chunky_canvas, size, *this), _chunky_canvas(pixels, size)
-		{ }
+		{
+			Session::texture(this);
+		}
 
 
 		/***********************

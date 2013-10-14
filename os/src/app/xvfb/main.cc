@@ -60,8 +60,16 @@ static Pixel                *fb_addr;
 
 static Nitpicker::Session *nitpicker()
 {
-	static Nitpicker::Connection nitpicker_connection;
-	return &nitpicker_connection;
+	struct Connection : Nitpicker::Connection
+	{
+		Connection()
+		{
+			Nitpicker::Connection::buffer(mode(), false);
+		}
+	};
+
+	static Connection connection;
+	return &connection;
 }
 
 

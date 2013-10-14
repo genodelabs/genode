@@ -15,6 +15,7 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/printf.h>
+#include <base/allocator_guard.h>
 #include <os/attached_ram_dataspace.h>
 #include <input/event.h>
 #include <input/keycodes.h>
@@ -133,6 +134,18 @@ class Buffer
 		Area                               size() const { return _size; }
 		Framebuffer::Mode::Format        format() const { return _format; }
 		void                        *local_addr() const { return _ram_ds.local_addr<void>(); }
+};
+
+
+/**
+ * Interface for triggering the re-allocation of a virtual framebuffer
+ *
+ * Used by 'Framebuffer::Session_component',
+ * implemented by 'Nitpicker::Session_component'
+ */
+struct Buffer_provider
+{
+	virtual Buffer *realloc_buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
 };
 
 
@@ -263,37 +276,79 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 {
 	private:
 
-		::Buffer             &_buffer;
-		View_stack           &_view_stack;
-		::Session            &_session;
-		Flush_merger         &_flush_merger;
-		Framebuffer::Session &_framebuffer;
+		::Buffer                 *_buffer = 0;
+		View_stack               &_view_stack;
+		::Session                &_session;
+		Flush_merger             &_flush_merger;
+		Framebuffer::Session     &_framebuffer;
+		Buffer_provider          &_buffer_provider;
+		Signal_context_capability _mode_sigh;
+		Framebuffer::Mode         _mode;
+		bool                      _alpha = false;
 
 	public:
 
 		/**
 		 * Constructor
-		 *
-		 * \param session  Nitpicker session
 		 */
-		Session_component(::Buffer &buffer, View_stack &view_stack,
-		                  ::Session &session, Flush_merger &flush_merger,
-		                  Framebuffer::Session &framebuffer)
+		Session_component(View_stack           &view_stack,
+		                  ::Session            &session,
+		                  Flush_merger         &flush_merger,
+		                  Framebuffer::Session &framebuffer,
+		                  Buffer_provider      &buffer_provider)
 		:
-			_buffer(buffer), _view_stack(view_stack), _session(session),
-			_flush_merger(flush_merger), _framebuffer(framebuffer) { }
+			_view_stack(view_stack),
+			_session(session),
+			_flush_merger(flush_merger),
+			_framebuffer(framebuffer),
+			_buffer_provider(buffer_provider)
+		{ }
 
-		Dataspace_capability dataspace() { return _buffer.ds_cap(); }
+
+		/**
+		 * Change virtual framebuffer mode
+		 *
+		 * Called by Nitpicker::Session_component when re-dimensioning the
+		 * buffer.
+		 *
+		 * The new mode does not immediately become active. The client can
+		 * keep using an already obtained framebuffer dataspace. However,
+		 * we inform the client about the mode change via a signal. If the
+		 * client calls 'dataspace' the next time, the new mode becomes
+		 * effective.
+		 */
+		void notify_mode_change(Framebuffer::Mode mode, bool alpha)
+		{
+			_mode  = mode;
+			_alpha = alpha;
+
+			if (_mode_sigh.valid())
+				Signal_transmitter(_mode_sigh).submit();
+		}
+
+
+		/************************************
+		 ** Framebuffer::Session interface **
+		 ************************************/
+
+		Dataspace_capability dataspace()
+		{
+			_buffer = _buffer_provider.realloc_buffer(_mode, _alpha);
+
+			return _buffer ? _buffer->ds_cap() : Ram_dataspace_capability();
+		}
 
 		void release() { }
 
 		Mode mode() const
 		{
-			return Mode(_buffer.size().w(), _buffer.size().h(),
-			            _buffer.format());
+			return _mode;
 		}
 
-		void mode_sigh(Signal_context_capability) { }
+		void mode_sigh(Signal_context_capability mode_sigh)
+		{
+			_mode_sigh = mode_sigh;
+		}
 
 		void refresh(int x, int y, int w, int h)
 		{
@@ -378,9 +433,14 @@ class View_component : public Genode::List<View_component>::Element,
  *****************************************/
 
 class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
-                                     public ::Session
+                                     public ::Session,
+                                     public Buffer_provider
 {
 	private:
+
+		Allocator_guard _buffer_alloc;
+
+		Framebuffer::Session &_framebuffer;
 
 		/* Framebuffer_session_component */
 		Framebuffer::Session_component _framebuffer_session_component;
@@ -404,30 +464,57 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 		bool const _provides_default_bg;
 
+		/* size of currently allocated virtual framebuffer, in bytes */
+		size_t _buffer_size = 0;
+
+		void _release_buffer()
+		{
+			if (!::Session::texture())
+				return;
+
+			typedef Pixel_rgb565 PT;
+
+			/* retrieve pointer to texture from session */
+			Chunky_dataspace_texture<PT> const *cdt =
+				static_cast<Chunky_dataspace_texture<PT> const *>(::Session::texture());
+
+			::Session::texture(0);
+			::Session::input_mask(0);
+
+			destroy(&_buffer_alloc, const_cast<Chunky_dataspace_texture<PT> *>(cdt));
+
+			_buffer_alloc.upgrade(_buffer_size);
+			_buffer_size = 0;
+		}
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Session_component(Session_label    const &label,
-		                  ::Buffer               &buffer,
-		                  Texture          const &texture,
-		                  View_stack             &view_stack,
-		                  Rpc_entrypoint         &ep,
-		                  Flush_merger           &flush_merger,
-		                  Framebuffer::Session   &framebuffer,
-		                  int                     v_offset,
-		                  unsigned char    const *input_mask,
-		                  bool                    provides_default_bg,
-		                  bool                    stay_top)
+		Session_component(Session_label  const &label,
+		                  View_stack           &view_stack,
+		                  Rpc_entrypoint       &ep,
+		                  Flush_merger         &flush_merger,
+		                  Framebuffer::Session &framebuffer,
+		                  int                   v_offset,
+		                  bool                  provides_default_bg,
+		                  bool                  stay_top,
+		                  Allocator            &buffer_alloc,
+		                  size_t                ram_quota)
 		:
-			::Session(label, texture, v_offset, input_mask, stay_top),
-			_framebuffer_session_component(buffer, view_stack, *this, flush_merger, framebuffer),
+			::Session(label, v_offset, stay_top),
+			_buffer_alloc(&buffer_alloc, ram_quota),
+			_framebuffer(framebuffer),
+			_framebuffer_session_component(view_stack, *this, flush_merger,
+			                               framebuffer, *this),
 			_ep(ep), _view_stack(view_stack),
 			_framebuffer_session_cap(_ep.manage(&_framebuffer_session_component)),
 			_input_session_cap(_ep.manage(&_input_session_component)),
 			_provides_default_bg(provides_default_bg)
-		{ }
+		{
+			_buffer_alloc.upgrade(ram_quota);
+		}
 
 		/**
 		 * Destructor
@@ -439,7 +526,11 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			while (View_component *vc = _view_list.first())
 				destroy_view(vc->cap());
+
+			_release_buffer();
 		}
+
+		void upgrade_ram_quota(size_t ram_quota) { _buffer_alloc.upgrade(ram_quota); }
 
 
 		/******************************************
@@ -517,6 +608,56 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 
 			return 0;
 		}
+
+		Framebuffer::Mode mode()
+		{
+			unsigned const width  = _framebuffer.mode().width();
+			unsigned const height = _framebuffer.mode().height()
+			                      - ::Session::v_offset();
+
+			return Framebuffer::Mode(width, height,
+			                         _framebuffer.mode().format());
+		}
+
+		void buffer(Framebuffer::Mode mode, bool use_alpha)
+		{
+			/* check if the session quota suffices for the specified mode */
+			if (_buffer_alloc.quota() < ram_quota(mode, use_alpha))
+				throw Nitpicker::Session::Out_of_metadata();
+
+			_framebuffer_session_component.notify_mode_change(mode, use_alpha);
+		}
+
+
+		/*******************************
+		 ** Buffer_provider interface **
+		 *******************************/
+
+		Buffer *realloc_buffer(Framebuffer::Mode mode, bool use_alpha)
+		{
+			_release_buffer();
+
+			Area const size(mode.width(), mode.height());
+
+			typedef Pixel_rgb565 PT;
+
+			_buffer_size =
+				Chunky_dataspace_texture<PT>::calc_num_bytes(size, use_alpha);
+
+			Chunky_dataspace_texture<PT> * const texture =
+				new (&_buffer_alloc) Chunky_dataspace_texture<PT>(size, use_alpha);
+
+			if (!_buffer_alloc.withdraw(_buffer_size)) {
+				destroy(&_buffer_alloc, texture);
+				_buffer_size = 0;
+				return 0;
+			}
+
+			::Session::texture(texture);
+			::Session::input_mask(texture->input_mask_buffer());
+
+			return texture;
+		}
 };
 
 
@@ -527,7 +668,7 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 
 		Session_list         &_session_list;
 		Global_keys          &_global_keys;
-		Area                  _scr_size;
+		Framebuffer::Mode     _scr_mode;
 		View_stack           &_view_stack;
 		Flush_merger         &_flush_merger;
 		Framebuffer::Session &_framebuffer;
@@ -542,17 +683,9 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 
 			int const v_offset = _default_v_offset;
 
-			/* determine buffer size of the session */
-			Area const size(Arg_string::find_arg(args, "fb_width" ).long_value(_scr_size.w()),
-			                Arg_string::find_arg(args, "fb_height").long_value(_scr_size.h() - v_offset));
-
-			bool const use_alpha = Arg_string::find_arg(args, "alpha").bool_value(false);
 			bool const stay_top  = Arg_string::find_arg(args, "stay_top").bool_value(false);
 
-			size_t const texture_num_bytes = Chunky_dataspace_texture<PT>::calc_num_bytes(size, use_alpha);
-
-			size_t const required_quota = texture_num_bytes
-			                            + Input::Session_component::ev_ds_size();
+			size_t const required_quota = Input::Session_component::ev_ds_size();
 
 			if (ram_quota < required_quota) {
 				PWRN("Insufficient dontated ram_quota (%zd bytes), require %zd bytes",
@@ -560,19 +693,16 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 				throw Root::Quota_exceeded();
 			}
 
-			/* allocate texture */
-			Chunky_dataspace_texture<PT> * const cdt =
-				new (md_alloc()) Chunky_dataspace_texture<PT>(size, use_alpha);
+			size_t const unused_quota = ram_quota - required_quota;
 
 			Session_label const label(args);
 			bool const provides_default_bg = (strcmp(label.string(), "backdrop") == 0);
 
 			Session_component *session = new (md_alloc())
-				Session_component(Session_label(args), *cdt, *cdt,
-				                  _view_stack, *ep(), _flush_merger,
-				                  _framebuffer, v_offset,
-				                  cdt->input_mask_buffer(),
-				                  provides_default_bg, stay_top);
+				Session_component(Session_label(args), _view_stack, *ep(),
+				                  _flush_merger, _framebuffer, v_offset,
+				                  provides_default_bg, stay_top,
+				                  *md_alloc(), unused_quota);
 
 			session->apply_session_color();
 			_session_list.insert(session);
@@ -581,19 +711,18 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 			return session;
 		}
 
+		void _upgrade_session(Session_component *s, const char *args)
+		{
+			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").long_value(0);
+			s->upgrade_ram_quota(ram_quota);
+		}
+
 		void _destroy_session(Session_component *session)
 		{
-			/* retrieve pointer to texture from session */
-			Chunky_dataspace_texture<PT> const &cdt =
-				static_cast<Chunky_dataspace_texture<PT> const &>(session->texture());
-
 			_session_list.remove(session);
 			_global_keys.apply_config(_session_list);
 
 			destroy(md_alloc(), session);
-
-			/* cast away constness just for destruction of the texture */
-			destroy(md_alloc(), const_cast<Chunky_dataspace_texture<PT> *>(&cdt));
 		}
 
 	public:
@@ -602,15 +731,15 @@ class Nitpicker::Root : public Genode::Root_component<Session_component>
 		 * Constructor
 		 */
 		Root(Session_list &session_list, Global_keys &global_keys,
-		     Rpc_entrypoint &session_ep, Area scr_size,
-		     View_stack &view_stack, Allocator &md_alloc,
-		     Flush_merger &flush_merger,
+		     Rpc_entrypoint &session_ep, View_stack &view_stack,
+		     Allocator &md_alloc, Flush_merger &flush_merger,
 		     Framebuffer::Session &framebuffer, int default_v_offset)
 		:
 			Root_component<Session_component>(&session_ep, &md_alloc),
 			_session_list(session_list), _global_keys(global_keys),
-			_scr_size(scr_size), _view_stack(view_stack), _flush_merger(flush_merger),
-			_framebuffer(framebuffer), _default_v_offset(default_v_offset) { }
+			_view_stack(view_stack), _flush_merger(flush_merger),
+			_framebuffer(framebuffer), _default_v_offset(default_v_offset)
+		{ }
 };
 
 
@@ -673,7 +802,6 @@ struct Nitpicker::Main
 	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
 	Root<PT> np_root = { session_list, global_keys, ep.rpc_ep(),
-	                     Area(mode.width(), mode.height()),
 	                     user_state, sliced_heap, screen,
 	                     framebuffer, MENUBAR_HEIGHT };
 	/*

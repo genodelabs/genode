@@ -33,12 +33,8 @@ int main(int argc, char **argv)
 
 	sig_rec.wait_for_signal();
 
-	Nitpicker::View_capability view_cap = loader.view();
-
 	Loader::Session::View_geometry geometry = loader.view_geometry();
-
-	PDBG("w = %d, h = %d, buf_x = %d, buf_y = %d",
-	     geometry.width, geometry.height, geometry.buf_x, geometry.buf_y);
+	Nitpicker::View_capability view_cap = loader.view();
 
 	Nitpicker::View_client view(view_cap);
 	view.stack(Nitpicker::View_capability(), true, false);
@@ -46,12 +42,12 @@ int main(int argc, char **argv)
 	Timer::Connection timer;
 
 	while(1) {
-		view.viewport(0, 0, geometry.width, geometry.height,
-		              geometry.buf_x, geometry.buf_y, true);
-		timer.msleep(1000);
-		view.viewport(50, 50, geometry.width, geometry.height,
-		              geometry.buf_x, geometry.buf_y, true);
-		timer.msleep(1000);
+
+		for (unsigned i = 0; i < 10; i++) {
+			view.viewport(50*i, 50*i, geometry.width, geometry.height,
+			              geometry.buf_x, geometry.buf_y, true);
+			timer.msleep(1000);
+		}
 	}
 
 	sleep_forever();

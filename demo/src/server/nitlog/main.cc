@@ -342,8 +342,10 @@ int main(int argc, char **argv)
 	int log_win_h = default_font.str_h(" ") * LOG_H + 2;
 
 	/* init sessions to the required external services */
-	static Nitpicker::Connection nitpicker(log_win_w, log_win_h);
+	static Nitpicker::Connection nitpicker;
 	static     Timer::Connection timer;
+
+	nitpicker.buffer(Framebuffer::Mode(LOG_W, LOG_H, Framebuffer::Mode::RGB565), false);
 
 	/* initialize entry point that serves the root interface */
 	enum { STACK_SIZE = 4096 };

@@ -232,13 +232,17 @@ int main(int argc, char **argv)
 		return -2;
 	}
 
-	static Nitpicker::Connection       nitpicker;
+	static Nitpicker::Connection nitpicker;
+
+	/* obtain physical screen size */
+	Framebuffer::Mode const mode = nitpicker.mode();
+
+	/* setup virtual framebuffer mode */
+	nitpicker.buffer(mode, false);
+
 	static Framebuffer::Session_client framebuffer(nitpicker.framebuffer_session());
 	Nitpicker::View_capability         view_cap = nitpicker.create_view();
 	static Nitpicker::View_client      view(view_cap);
-
-	/* obtain screen size */
-	Framebuffer::Mode const mode = framebuffer.mode();
 
 	if (mode.format() != Framebuffer::Mode::RGB565) {
 		printf("Error: Color mode %d not supported\n", (int)mode.format());

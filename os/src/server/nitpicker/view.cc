@@ -109,8 +109,9 @@ void View::draw(Canvas &canvas, Mode const &mode) const
 	                              _session.color().g >> 1,
 	                              _session.color().b >> 1);
 
-	canvas.draw_texture(_session.texture(), mix_color, _buffer_off + p1(),
-	                    op, allow_alpha);
+	if (_session.texture())
+		canvas.draw_texture(*_session.texture(), mix_color, _buffer_off + p1(),
+		                    op, allow_alpha);
 
 	if (mode.flat()) return;
 
