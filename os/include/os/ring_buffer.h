@@ -18,6 +18,36 @@
 #include <base/exception.h>
 #include <util/string.h>
 
+
+struct Ring_buffer_unsynchronized
+{
+	struct Sem
+	{
+		void down() { }
+		void up() { }
+	};
+
+	struct Lock
+	{
+		void lock() { }
+		void unlock() { }
+	};
+
+	struct Lock_guard
+	{
+		Lock_guard(Lock &lock) { }
+	};
+};
+
+
+struct Ring_buffer_synchronized
+{
+	typedef Genode::Semaphore Sem;
+	typedef Genode::Lock Lock;
+	typedef Genode::Lock::Guard Lock_guard;
+};
+
+
 /**
  * Ring buffer template
  *
@@ -30,17 +60,18 @@
  * stored in the buffer. Hence, the ring buffer is suited
  * for simple plain-data element types.
  */
-template <typename ET, int QUEUE_SIZE>
+template <typename ET, int QUEUE_SIZE,
+          typename SYNC_POLICY = Ring_buffer_synchronized>
 class Ring_buffer
 {
 	private:
 
-		int               _head;
-		int               _tail;
-		Genode::Semaphore _sem;        /* element counter */
-		Genode::Lock      _head_lock;  /* synchronize add */
+		int                        _head;
+		int                        _tail;
+		typename SYNC_POLICY::Sem  _sem;        /* element counter */
+		typename SYNC_POLICY::Lock _head_lock;  /* synchronize add */
 
-		ET                _queue[QUEUE_SIZE];
+		ET                         _queue[QUEUE_SIZE];
 
 	public:
 
@@ -60,7 +91,7 @@ class Ring_buffer
 		 */
 		void add(ET ev)
 		{
-			Genode::Lock::Guard lock_guard(_head_lock);
+			typename SYNC_POLICY::Lock_guard lock_guard(_head_lock);
 
 			if ((_head + 1)%QUEUE_SIZE != _tail) {
 				_queue[_head] = ev;
