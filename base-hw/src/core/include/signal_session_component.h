@@ -31,8 +31,21 @@ namespace Genode
 		public:
 
 			enum {
-				RECEIVERS_SB_SIZE = 4096,
-				CONTEXTS_SB_SIZE  = 4096,
+				/**
+				 * Lastly a receivers SLAB size was 112. Additionally we have
+				 * have to take in account, that the backing store might add
+				 * its metadata and round up to next page size. So we choose
+				 * 36 * 112 which mostly is save to end up in one page only.
+				 */
+				RECEIVERS_SB_SIZE = 4032,
+
+				/**
+				 * Lastly a contexts SLAB size was 112. Additionally we have
+				 * have to take in account, that the backing store might add
+				 * its metadata and round up to next page size. So we choose
+				 * 36 * 112 which mostly is save to end up in one page only.
+				 */
+				CONTEXTS_SB_SIZE  = 4032,
 			};
 
 		private:
@@ -59,7 +72,7 @@ namespace Genode
 			char            _initial_contexts_sb  [CONTEXTS_SB_SIZE];
 
 			/**
-			 * Destruct receiver 'r'  
+			 * Destruct receiver 'r'
 			 */
 			void _destruct_receiver(Receiver * const r);
 
