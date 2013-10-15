@@ -15,6 +15,7 @@ build {
 	server/terminal
 	server/terminal_log
 	test/nitpicker
+	app/launchpad
 }
 create_boot_directory
 
