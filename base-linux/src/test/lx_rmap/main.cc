@@ -21,7 +21,23 @@
 #include <rm_session/connection.h>
 
 
-extern "C" void wait_for_continue();
+
+static void blob() __attribute__((used));
+static void blob()
+{
+	asm volatile (
+		".balign 4096, -1\n"
+		"blob_beg:\n"
+		".space 16*4096, -2\n"
+		"blob_end:\n"
+		".global blob_beg\n"
+		".global blob_end\n"
+		: : : );
+}
+
+
+extern unsigned long blob_beg;
+extern unsigned long blob_end;
 
 
 int main()
@@ -37,12 +53,12 @@ int main()
 		env()->heap()->free(addr, 0);
 	}
 
-	addr_t beg((addr_t)&_prog_img_beg);
-	addr_t end(align_addr((addr_t)&_prog_img_end, 12));
+	addr_t beg((addr_t)&blob_beg);
+	addr_t end(align_addr((addr_t)&blob_end, 12));
 
 	size_t size(end - beg);
 
-	PLOG("program-image region [%016lx,%016lx) size=%zx", beg, end, size);
+	PLOG("blob region region [%016lx,%016lx) size=%zx", beg, end, size);
 
 	/* RAM dataspace attachment overlapping binary */
 	try {

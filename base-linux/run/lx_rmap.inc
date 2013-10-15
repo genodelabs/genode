@@ -6,11 +6,6 @@
 
 assert_spec linux
 
-if {[have_spec always_hybrid]} {
-	puts "\nTest does not support always_hybrid mode."
-	exit 0
-}
-
 #
 # Build
 #
