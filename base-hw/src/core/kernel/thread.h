@@ -39,7 +39,7 @@ namespace Kernel
 	unsigned core_id();
 	void     handle_syscall(Thread * const);
 	void     handle_interrupt(void);
-	void     handle_invalid_excpt(void);
+	void     reset_lap_time();
 
 	/**
 	 * Kernel object that can be scheduled for the CPU
@@ -524,7 +524,9 @@ class Kernel::Thread
 				handle_interrupt();
 				return;
 			default:
-				handle_invalid_excpt();
+				PERR("unknown exception");
+				stop();
+				reset_lap_time();
 			}
 		}
 

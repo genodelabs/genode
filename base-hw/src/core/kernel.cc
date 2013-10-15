@@ -74,7 +74,7 @@ namespace Kernel
 	static Timer * timer() { static Timer _object; return &_object; }
 
 
-	static void reset_lap_time()
+	void reset_lap_time()
 	{
 		timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
 	}
@@ -210,12 +210,6 @@ namespace Kernel
 	size_t signal_receiver_size() { return sizeof(Signal_receiver); }
 	unsigned pd_alignm_log2()     { return Tlb::ALIGNM_LOG2; }
 	size_t vm_size()              { return sizeof(Vm); }
-
-
-	/**
-	 * Handle the occurence of an unknown exception
-	 */
-	void handle_invalid_excpt() { assert(0); }
 
 
 	/**
