@@ -1107,9 +1107,14 @@ static Hdmi * hdmi()
  ** Framebuffer::Driver **
  *************************/
 
+void prepare_fb_driver_init(Mmio::Delayer * const d);
+
 int Framebuffer::Driver::init_drv(size_t width, size_t height, Format format,
                                   Output output, addr_t fb_phys)
 {
+	/* FIXME: hook for scenario/platform dependent quirks */
+	prepare_fb_driver_init(delayer());
+
 	_fb_width  = width;
 	_fb_height = height;
 	_fb_format = format;
