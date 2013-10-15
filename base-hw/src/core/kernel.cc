@@ -250,12 +250,6 @@ namespace Kernel
 
 
 	/**
-	 * Handle request of an unknown signal type
-	 */
-	void handle_invalid_syscall(Thread * const) { assert(0); }
-
-
-	/**
 	 * Do specific syscall for 'user', for details see 'syscall.h'
 	 */
 	void do_new_pd(Thread * const user)
