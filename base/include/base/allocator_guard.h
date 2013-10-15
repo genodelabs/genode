@@ -90,9 +90,14 @@ namespace Genode {
 			}
 
 			/**
-			 * Return total amount of backing store consumed by the allocator
+			 * Return amount of backing store consumed by the allocator
 			 */
 			size_t consumed() { return _consumed; }
+
+			/**
+			 * Return allocation limit
+			 */
+			size_t quota() const { return _amount; }
 
 			/**
 			 * Return meta-data overhead per block
