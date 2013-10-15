@@ -23,7 +23,13 @@ using namespace Genode;
  ** Signal **
  ************/
 
-Signal::Signal(Signal const &other) { _inc_ref(); }
+Signal::Signal(Signal const &other)
+{
+	_data.context = other._data.context;
+	_data.num     = other._data.num;
+
+	_inc_ref();
+}
 
 
 Signal & Signal::operator=(Signal const &other)
