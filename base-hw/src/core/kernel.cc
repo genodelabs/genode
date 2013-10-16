@@ -106,25 +106,15 @@ namespace Kernel
 		static char idle_stack[DEFAULT_STACK_SIZE]
 		__attribute__((aligned(Cpu::DATA_ACCESS_ALIGNM)));
 		static Thread idle((Platform_thread *)0);
-		static bool initial = 1;
-		if (initial)
-		{
-			/* initialize idle thread */
+		static bool init = 0;
+		if (!init) {
 			enum { STACK_SIZE = sizeof(idle_stack)/sizeof(idle_stack[0]) };
 			void * const ip = (void *)&idle_main;
 			void * const sp = (void *)&idle_stack[STACK_SIZE];
-
-			/*
-			 * Idle doesn't use its UTCB pointer, thus
-			 * utcb_phys = utcb_virt = 0 is save.
-			 * Base-hw doesn't support multiple cores, thus
-			 * cpu_no = 0 is ok. We don't use 'start' to avoid
-			 * recursive call of'cpu_scheduler()'.
-			 */
-			idle.prepare_to_start(ip, sp, 0, core_id(), 0, 0, 0);
-			initial = 0;
+			idle.init(ip, sp, 0, core_id(), 0, 0, 0, 0);
+			init = 1;
 		}
-		/* create scheduler with a permanent idle thread */
+		/* create CPU scheduler with a permanent idle thread */
 		static Cpu_scheduler cpu_sched(&idle);
 		return &cpu_sched;
 	}
@@ -220,15 +210,17 @@ extern "C" void kernel()
 		 */
 
 		/* create the core main thread */
-		static Native_utcb cm_utcb;
-		static char cm_stack[DEFAULT_STACK_SIZE]
-		            __attribute__((aligned(Cpu::DATA_ACCESS_ALIGNM)));
-		static Thread core_main((Platform_thread *)0);
-		_main_utcb = &cm_utcb;
-		enum { CM_STACK_SIZE = sizeof(cm_stack)/sizeof(cm_stack[0]) + 1 };
-		core_main.start((void *)CORE_MAIN,
-		                (void *)&cm_stack[CM_STACK_SIZE - 1],
-		                0, core_id(), &cm_utcb, &cm_utcb, 1);
+		{
+			static Native_utcb utcb;
+			static char stack[DEFAULT_STACK_SIZE]
+			            __attribute__((aligned(Cpu::DATA_ACCESS_ALIGNM)));
+			enum { STACK_SIZE = sizeof(stack)/sizeof(stack[0]) + 1 };
+			void * const ip = (void *)CORE_MAIN;
+			void * const sp = (void *)&stack[STACK_SIZE - 1];
+			_main_utcb = &utcb;
+			static Thread t((Platform_thread *)0);
+			t.init(ip, sp, 0, core_id(), &utcb, &utcb, 1, 1);
+		}
 
 		/* kernel initialization finished */
 		reset_lap_time();

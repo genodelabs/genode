@@ -19,6 +19,7 @@
 #include <root/root.h>
 
 /* Core includes */
+#include <tlb.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <address_space.h>

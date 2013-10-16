@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__KERNEL__THREAD_H_
-#define _CORE__KERNEL__THREAD_H_
+#ifndef _KERNEL__THREAD_H_
+#define _KERNEL__THREAD_H_
 
 /* core includes */
 #include <kernel/configuration.h>
@@ -20,7 +20,6 @@
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <kernel/irq_receiver.h>
-#include <kernel/pd.h>
 #include <cpu.h>
 
 namespace Genode
@@ -31,14 +30,13 @@ namespace Genode
 namespace Kernel
 {
 	class Thread;
+	class Pd;
 
 	typedef Genode::Cpu         Cpu;
 	typedef Genode::Pagefault   Pagefault;
 	typedef Genode::Native_utcb Native_utcb;
 
-	unsigned core_id();
-	void     handle_interrupt(void);
-	void     reset_lap_time();
+	void reset_lap_time();
 
 	/**
 	 * Kernel backend for userland execution-contexts
@@ -92,179 +90,48 @@ class Kernel::Thread
 		Signal_receiver *       _signal_receiver;
 
 		/**
-		 * Resume execution
+		 * Notice that another thread yielded the CPU to this thread
 		 */
-		void _schedule()
-		{
-			cpu_scheduler()->insert(this);
-			_state = SCHEDULED;
-		}
+		void _receive_yielded_cpu();
 
+		/**
+		 * Return kernel backend of protection domain the thread is in
+		 */
+		Pd * _pd() const;
 
-		/***************************
-		 ** Signal_context_killer **
-		 ***************************/
+		/**
+		 * Return wether this is a core thread
+		 */
+		bool _core() const;
 
-		void _signal_context_kill_pending()
-		{
-			assert(_state == SCHEDULED);
-			_state = AWAITS_SIGNAL_CONTEXT_KILL;
-			cpu_scheduler()->remove(this);
-		}
+		/**
+		 * Resume execution rawly
+		 */
+		void _schedule();
 
-		void _signal_context_kill_done()
-		{
-			assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
-			user_arg_0(0);
-			_schedule();
-		}
+		/**
+		 * Pause execution
+		 */
+		void _pause();
 
+		/**
+		 * Suspend unrecoverably from execution
+		 */
+		void _stop();
 
-		/****************************
-		 ** Signal_receiver_killer **
-		 ****************************/
+		/**
+		 * Try to escape from blocking state, if in any, and resume execution
+		 *
+		 * \retval -1  failed
+		 * \retval  0  succeeded, execution was paused
+		 * \retval  1  succeeded, execution was not paused
+		 */
+		int _resume();
 
-		void _signal_receiver_kill_pending()
-		{
-			assert(_state == SCHEDULED);
-			_state = AWAITS_SIGNAL_RECEIVER_KILL;
-			cpu_scheduler()->remove(this);
-		}
-
-		void _signal_receiver_kill_done()
-		{
-			assert(_state == AWAITS_SIGNAL_RECEIVER_KILL);
-			user_arg_0(0);
-			_schedule();
-		}
-
-
-		/********************
-		 ** Signal_handler **
-		 ********************/
-
-		void _await_signal(Signal_receiver * const receiver)
-		{
-			cpu_scheduler()->remove(this);
-			_state = AWAITS_SIGNAL;
-			_signal_receiver = receiver;
-		}
-
-		void _receive_signal(void * const base, size_t const size)
-		{
-			assert(_state == AWAITS_SIGNAL && size <= phys_utcb()->size());
-			Genode::memcpy(phys_utcb()->base(), base, size);
-			_schedule();
-		}
-
-
-		/**************
-		 ** Ipc_node **
-		 **************/
-
-		void _received_ipc_request(size_t const s)
-		{
-			switch (_state) {
-			case SCHEDULED:
-				user_arg_0(s);
-				return;
-			default:
-				PERR("wrong thread state to receive IPC");
-				stop();
-				return;
-			}
-		}
-
-		void _await_ipc()
-		{
-			switch (_state) {
-			case SCHEDULED:
-				cpu_scheduler()->remove(this);
-				_state = AWAITS_IPC;
-			case AWAITS_PAGER:
-				return;
-			default:
-				PERR("wrong thread state to await IPC");
-				stop();
-				return;
-			}
-		}
-
-		void _await_ipc_succeeded(bool const reply, size_t const s)
-		{
-			switch (_state) {
-			case AWAITS_IPC:
-				/* FIXME: return error codes on all IPC transfers */
-				if (reply) {
-					phys_utcb()->ipc_msg_size(s);
-					user_arg_0(0);
-					_schedule();
-				} else {
-					user_arg_0(s);
-					_schedule();
-				}
-				return;
-			case AWAITS_PAGER_IPC:
-				_schedule();
-				return;
-			case AWAITS_PAGER:
-				_state = AWAITS_RESUME;
-				return;
-			default:
-				PERR("wrong thread state to receive IPC");
-				stop();
-				return;
-			}
-		}
-
-		void _await_ipc_failed(bool const reply)
-		{
-			switch (_state) {
-			case AWAITS_IPC:
-				/* FIXME: return error codes on all IPC transfers */
-				if (reply) {
-					user_arg_0(-1);
-					_schedule();
-				} else {
-					PERR("failed to receive IPC");
-					stop();
-				}
-				return;
-			case SCHEDULED:
-				PERR("failed to receive IPC");
-				stop();
-				return;
-			case AWAITS_PAGER_IPC:
-				PERR("failed to get pagefault resolved");
-				stop();
-				return;
-			case AWAITS_PAGER:
-				PERR("failed to get pagefault resolved");
-				stop();
-				return;
-			default:
-				PERR("wrong thread state to cancel IPC");
-				stop();
-				return;
-			}
-		}
-
-
-		/***************
-		 ** Irq_owner **
-		 ***************/
-
-		void _received_irq()
-		{
-			assert(_state == AWAITS_IRQ);
-			_schedule();
-		}
-
-		void _awaits_irq()
-		{
-			cpu_scheduler()->remove(this);
-			_state = AWAITS_IRQ;
-		}
+		/**
+		 * Handle an exception thrown by the memory management unit
+		 */
+		void _mmu_exception();
 
 		/**
 		 * Handle syscall request of this thread
@@ -311,43 +178,56 @@ class Kernel::Thread
 		void _syscall_run_vm();
 		void _syscall_pause_vm();
 
+
+		/***************************
+		 ** Signal_context_killer **
+		 ***************************/
+
+		void _signal_context_kill_pending();
+		void _signal_context_kill_done();
+
+
+		/****************************
+		 ** Signal_receiver_killer **
+		 ****************************/
+
+		void _signal_receiver_kill_pending();
+		void _signal_receiver_kill_done();
+
+
+		/********************
+		 ** Signal_handler **
+		 ********************/
+
+		void _await_signal(Signal_receiver * const receiver);
+		void _receive_signal(void * const base, size_t const size);
+
+
+		/**************
+		 ** Ipc_node **
+		 **************/
+
+		void _received_ipc_request(size_t const s);
+		void _await_ipc();
+		void _await_ipc_succeeded(bool const reply, size_t const s);
+		void _await_ipc_failed(bool const reply);
+
+
+		/***************
+		 ** Irq_owner **
+		 ***************/
+
+		void _received_irq();
+		void _awaits_irq();
+
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param platform_thread  userland backend of execution context
+		 * \param platform_thread  corresponding userland object
 		 */
 		Thread(Platform_thread * const platform_thread);
-
-		/**
-		 * Return wether the thread is a core thread
-		 */
-		bool core() { return pd_id() == core_id(); }
-
-		/**
-		 * Return kernel backend of protection domain the thread is in
-		 */
-		Pd * pd() { return Pd::pool()->object(pd_id()); }
-
-		/**
-		 * Return user label of the thread
-		 */
-		char const * label();
-
-		/**
-		 * return user label of the protection domain the thread is in
-		 */
-		char const * pd_label();
-
-		/**
-		 * Suspend the thread unrecoverably
-		 */
-		void stop()
-		{
-			if (_state == SCHEDULED) { cpu_scheduler()->remove(this); }
-			_state = STOPPED;
-		}
 
 		/**
 		 * Prepare thread to get scheduled the first time
@@ -359,190 +239,20 @@ class Kernel::Thread
 		 * \param utcb_phys  physical UTCB pointer
 		 * \param utcb_virt  virtual UTCB pointer
 		 * \param main       wether the thread is the first one in its PD
+		 * \param start      wether to start execution
 		 */
-		void prepare_to_start(void * const        ip,
-		                      void * const        sp,
-		                      unsigned const      cpu_id,
-		                      unsigned const      pd_id,
-		                      Native_utcb * const utcb_phys,
-		                      Native_utcb * const utcb_virt,
-		                      bool const          main);
-
-		/**
-		 * Start this thread
-		 *
-		 * \param ip      initial instruction pointer
-		 * \param sp      initial stack pointer
-		 * \param cpu_id  target cpu
-		 * \param pd_id   target protection-domain
-		 * \param utcb_p  physical UTCB pointer
-		 * \param utcb_v  virtual UTCB pointer
-		 * \param main    wether the thread is the first one in its PD
-		 */
-		void start(void * const        ip,
-		           void * const        sp,
-		           unsigned const      cpu_id,
-		           unsigned const      pd_id,
-		           Native_utcb * const utcb_p,
-		           Native_utcb * const utcb_v,
-		           bool const          main)
-		{
-			prepare_to_start(ip, sp, cpu_id, pd_id, utcb_p, utcb_v, main);
-			_schedule();
-		}
-
-		/**
-		 * Pause this thread
-		 */
-		void pause()
-		{
-			assert(_state == AWAITS_RESUME || _state == SCHEDULED);
-			cpu_scheduler()->remove(this);
-			_state = AWAITS_RESUME;
-		}
-
-		/**
-		 * Resume this thread
-		 */
-		int resume()
-		{
-			switch (_state) {
-			case AWAITS_RESUME:
-				_schedule();
-				return 0;
-			case AWAITS_PAGER:
-				_state = AWAITS_PAGER_IPC;
-				return 0;
-			case AWAITS_PAGER_IPC:
-				Ipc_node::cancel_waiting();
-				return 0;
-			case SCHEDULED:
-				return 1;
-			case AWAITS_IPC:
-				Ipc_node::cancel_waiting();
-				return 0;
-			case AWAITS_IRQ:
-				Irq_receiver::cancel_waiting();
-				return 0;
-			case AWAITS_SIGNAL:
-				Signal_handler::cancel_waiting();
-				return 0;
-			case AWAITS_SIGNAL_CONTEXT_KILL:
-				Signal_context_killer::cancel_waiting();
-				return 0;
-			case AWAITS_SIGNAL_RECEIVER_KILL:
-				Signal_receiver_killer::cancel_waiting();
-				return 0;
-			case AWAITS_START:
-			case STOPPED:;
-			}
-			PERR("failed to resume thread");
-			return -1;
-		}
-
-		/**
-		 * Send a request and await the reply
-		 */
-		void request_and_wait(Thread * const dest, size_t const size)
-		{
-			Ipc_node::send_request_await_reply(
-				dest, phys_utcb()->base(), size,
-				phys_utcb()->ipc_msg_base(),
-			    phys_utcb()->max_ipc_msg_size());
-		}
-
-		/**
-		 * Wait for any request
-		 */
-		void wait_for_request()
-		{
-			Ipc_node::await_request(phys_utcb()->base(), phys_utcb()->size());
-		}
-
-		/**
-		 * Reply to the last request
-		 */
-		void reply(size_t const size, bool const await_request)
-		{
-			Ipc_node::send_reply(phys_utcb()->base(), size);
-			if (await_request) {
-				Ipc_node * const ipc = static_cast<Ipc_node *>(this);
-				ipc->await_request(phys_utcb()->base(), phys_utcb()->size());
-			}
-			else { user_arg_0(0); }
-		}
-
-		/**
-		 * Handle an exception thrown by the MMU
-		 */
-		void handle_mmu_exception()
-		{
-			/* pause thread */
-			cpu_scheduler()->remove(this);
-			_state = AWAITS_PAGER;
-
-			/* check out cause and attributes */
-			addr_t va = 0;
-			bool   w  = 0;
-			if (!pagefault(va, w)) {
-				PERR("unknown MMU exception");
-				return;
-			}
-			/* inform pager */
-			_pagefault = Pagefault(id(), (Tlb *)tlb(), ip, va, w);
-			void * const base = &_pagefault;
-			size_t const size = sizeof(_pagefault);
-			Ipc_node::send_request_await_reply(_pager, base, size, base, size);
-		}
-
-		/**
-		 * Get unique thread ID, avoid method ambiguousness
-		 */
-		unsigned id() const { return Object::id(); }
-
-		/**
-		 * Notice that another thread yielded the CPU to us
-		 */
-		void receive_yielded_cpu()
-		{
-			if (_state == AWAITS_RESUME) { _schedule(); }
-			else { PERR("failed to receive yielded CPU"); }
-		}
+		void init(void * const ip, void * const sp, unsigned const cpu_id,
+		          unsigned const pd_id, Native_utcb * const utcb_phys,
+		          Native_utcb * const utcb_virt, bool const main,
+		          bool const start);
 
 
 		/***********************
 		 ** Execution_context **
 		 ***********************/
 
-		void handle_exception()
-		{
-			switch(cpu_exception) {
-			case SUPERVISOR_CALL:
-				_syscall();
-				return;
-			case PREFETCH_ABORT:
-				handle_mmu_exception();
-				return;
-			case DATA_ABORT:
-				handle_mmu_exception();
-				return;
-			case INTERRUPT_REQUEST:
-				handle_interrupt();
-				return;
-			case FAST_INTERRUPT_REQUEST:
-				handle_interrupt();
-				return;
-			default:
-				PERR("unknown exception");
-				stop();
-				reset_lap_time();
-			}
-		}
-
-		void proceed()
-		{
-			mtc()->continue_user(static_cast<Cpu::Context *>(this));
-		}
+		void handle_exception();
+		void proceed();
 
 
 		/***************
@@ -550,12 +260,11 @@ class Kernel::Thread
 		 ***************/
 
 		Platform_thread * platform_thread() const { return _platform_thread; }
-
-		void pager(Thread * const p) { _pager = p; }
-
-		unsigned pd_id() const { return _pd_id; }
-
-		Native_utcb * phys_utcb() const { return _phys_utcb; }
+		void              pager(Thread * const p) { _pager = p; }
+		unsigned          id() const { return Object::id(); }
+		char const *      label() const;
+		unsigned          pd_id() const { return _pd_id; }
+		char const *      pd_label() const;
 };
 
-#endif /* _CORE__KERNEL__THREAD_H_ */
+#endif /* _KERNEL__THREAD_H_ */
