@@ -335,8 +335,7 @@ namespace Kernel
 	/**
 	 * Send IPC request and wait for reply
 	 *
-	 * \param id    kernel name of the server thread
-	 * \param size  size of request message located in the callers UTCB
+	 * \param id  kernel name of the server thread
 	 *
 	 * \retval  0  successful
 	 * \retval -1  failed
@@ -344,9 +343,9 @@ namespace Kernel
 	 * If the call returns successful the callers UTCB provides
 	 * a valid reply message and its size.
 	 */
-	inline int request_and_wait(unsigned const id, size_t const size)
+	inline int request_and_wait(unsigned const id)
 	{
-		return (int)syscall(REQUEST_AND_WAIT, id, size);
+		return (int)syscall(REQUEST_AND_WAIT, id);
 	}
 
 

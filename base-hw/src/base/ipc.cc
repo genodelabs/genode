@@ -61,7 +61,7 @@ static void utcb_to_msgbuf(Msgbuf_base * const msgbuf, size_t size)
 }
 
 /**
- * Copy message payload with integrated size toion  message buffer
+ * Copy message payload with size header to message buffer
  *
  * This function pioneers IPC messages with headers and will
  * replace utcb_to_msgbuf sometime.
@@ -89,6 +89,30 @@ static void msgbuf_to_utcb(Msgbuf_base * const msgbuf, size_t size,
 	size += sizeof(local_name);
 	limit_msg_size(msgbuf, utcb, size);
 	memcpy((unsigned *)utcb->base() + 1, (unsigned *)msgbuf->buf + 1, size);
+}
+
+
+/**
+ * Copy message payload with size header to the UTCB
+ *
+ * This function pioneers IPC messages with headers and will
+ * replace msgbuf_to_utcb sometime.
+ */
+static void msgbuf_to_sized_utcb(Msgbuf_base * const msg_buf, size_t msg_size,
+                                 unsigned const local_name)
+{
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	enum { NAME_SIZE = sizeof(local_name) };
+	size_t const ipc_msg_size = msg_size + NAME_SIZE;
+	if (ipc_msg_size > utcb->max_ipc_msg_size()) {
+		kernel_log() << "oversized IPC message\n";
+		msg_size = utcb->max_ipc_msg_size() - NAME_SIZE;
+	}
+	*(unsigned *)utcb->ipc_msg_base() = local_name;
+	void * const utcb_msg = (void *)((addr_t)utcb->ipc_msg_base() + NAME_SIZE);
+	void * const buf_msg  = (void *)((addr_t)msg_buf->buf + NAME_SIZE);
+	memcpy(utcb_msg, buf_msg, msg_size);
+	utcb->ipc_msg_size(ipc_msg_size);
 }
 
 
@@ -136,8 +160,9 @@ void Ipc_client::_call()
 	using namespace Kernel;
 
 	/* send request and receive reply */
-	msgbuf_to_utcb(_snd_msg, _write_offset, Ipc_ostream::_dst.local_name());
-	int error = request_and_wait(Ipc_ostream::_dst.dst(), _write_offset);
+	unsigned const local_name = Ipc_ostream::_dst.local_name();
+	msgbuf_to_sized_utcb(_snd_msg, _write_offset, local_name);
+	int error = request_and_wait(Ipc_ostream::_dst.dst());
 	if (error) { throw Blocking_canceled(); }
 	sized_utcb_to_msgbuf(_rcv_msg);
 

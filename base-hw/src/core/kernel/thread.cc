@@ -624,14 +624,15 @@ void Thread::_syscall_wait_for_request()
  */
 void Thread::_syscall_request_and_wait()
 {
-	Thread * const dst      = Thread::pool()->object(user_arg_1());
-	size_t const   msg_size = (size_t)user_arg_2();
-	assert(dst);
-
+	Thread * const dst = Thread::pool()->object(user_arg_1());
+	if (!dst) {
+		PERR("unkonwn recipient");
+		_await_ipc();
+		return;
+	}
 	Ipc_node::send_request_await_reply(
-		dst, _phys_utcb->base(), msg_size,
-		_phys_utcb->ipc_msg_base(),
-		_phys_utcb->max_ipc_msg_size());
+		dst, _phys_utcb->ipc_msg_base(), _phys_utcb->ipc_msg_size(),
+		_phys_utcb->ipc_msg_base(), _phys_utcb->max_ipc_msg_size());
 }
 
 
