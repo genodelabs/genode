@@ -47,7 +47,7 @@ namespace Kernel
 	/**
 	 * Return the system wide mode-transition control
 	 */
-	static Mode_transition_control * mtc();
+	Mode_transition_control * mtc();
 
 	/**
 	 * Kernel backend of protection domains

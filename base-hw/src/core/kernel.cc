@@ -917,7 +917,7 @@ extern "C" void kernel()
 	cpu_scheduler()->head()->proceed();
 }
 
-static Kernel::Mode_transition_control * Kernel::mtc()
+Kernel::Mode_transition_control * Kernel::mtc()
 {
 	/* compose CPU context for kernel entry */
 	struct Kernel_context : Cpu::Context
