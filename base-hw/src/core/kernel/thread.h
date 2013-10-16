@@ -37,7 +37,6 @@ namespace Kernel
 	typedef Genode::Native_utcb Native_utcb;
 
 	unsigned core_id();
-	void     handle_syscall(Thread * const);
 	void     handle_interrupt(void);
 	void     reset_lap_time();
 
@@ -70,17 +69,17 @@ class Kernel::Thread
 
 		enum State
 		{
-			SCHEDULED                  = 1,
-			AWAIT_START                = 2,
-			AWAIT_IPC                  = 3,
-			AWAIT_RESUME               = 4,
-			AWAIT_PAGER                = 5,
-			AWAIT_PAGER_IPC            = 6,
-			AWAIT_IRQ                  = 7,
-			AWAIT_SIGNAL               = 8,
-			AWAIT_SIGNAL_CONTEXT_KILL  = 9,
-			AWAIT_SIGNAL_RECEIVER_KILL = 10,
-			STOPPED                    = 11,
+			SCHEDULED                   = 1,
+			AWAITS_START                = 2,
+			AWAITS_IPC                  = 3,
+			AWAITS_RESUME               = 4,
+			AWAITS_PAGER                = 5,
+			AWAITS_PAGER_IPC            = 6,
+			AWAITS_IRQ                  = 7,
+			AWAITS_SIGNAL               = 8,
+			AWAITS_SIGNAL_CONTEXT_KILL  = 9,
+			AWAITS_SIGNAL_RECEIVER_KILL = 10,
+			STOPPED                     = 11,
 		};
 
 		Platform_thread * const _platform_thread;
@@ -109,13 +108,13 @@ class Kernel::Thread
 		void _signal_context_kill_pending()
 		{
 			assert(_state == SCHEDULED);
-			_state = AWAIT_SIGNAL_CONTEXT_KILL;
+			_state = AWAITS_SIGNAL_CONTEXT_KILL;
 			cpu_scheduler()->remove(this);
 		}
 
 		void _signal_context_kill_done()
 		{
-			assert(_state == AWAIT_SIGNAL_CONTEXT_KILL);
+			assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
 			user_arg_0(0);
 			_schedule();
 		}
@@ -128,13 +127,13 @@ class Kernel::Thread
 		void _signal_receiver_kill_pending()
 		{
 			assert(_state == SCHEDULED);
-			_state = AWAIT_SIGNAL_RECEIVER_KILL;
+			_state = AWAITS_SIGNAL_RECEIVER_KILL;
 			cpu_scheduler()->remove(this);
 		}
 
 		void _signal_receiver_kill_done()
 		{
-			assert(_state == AWAIT_SIGNAL_RECEIVER_KILL);
+			assert(_state == AWAITS_SIGNAL_RECEIVER_KILL);
 			user_arg_0(0);
 			_schedule();
 		}
@@ -147,13 +146,13 @@ class Kernel::Thread
 		void _await_signal(Signal_receiver * const receiver)
 		{
 			cpu_scheduler()->remove(this);
-			_state = AWAIT_SIGNAL;
+			_state = AWAITS_SIGNAL;
 			_signal_receiver = receiver;
 		}
 
 		void _receive_signal(void * const base, size_t const size)
 		{
-			assert(_state == AWAIT_SIGNAL && size <= phys_utcb()->size());
+			assert(_state == AWAITS_SIGNAL && size <= phys_utcb()->size());
 			Genode::memcpy(phys_utcb()->base(), base, size);
 			_schedule();
 		}
@@ -181,8 +180,8 @@ class Kernel::Thread
 			switch (_state) {
 			case SCHEDULED:
 				cpu_scheduler()->remove(this);
-				_state = AWAIT_IPC;
-			case AWAIT_PAGER:
+				_state = AWAITS_IPC;
+			case AWAITS_PAGER:
 				return;
 			default:
 				PERR("wrong thread state to await IPC");
@@ -194,7 +193,7 @@ class Kernel::Thread
 		void _await_ipc_succeeded(bool const reply, size_t const s)
 		{
 			switch (_state) {
-			case AWAIT_IPC:
+			case AWAITS_IPC:
 				/* FIXME: return error codes on all IPC transfers */
 				if (reply) {
 					phys_utcb()->ipc_msg_size(s);
@@ -205,11 +204,11 @@ class Kernel::Thread
 					_schedule();
 				}
 				return;
-			case AWAIT_PAGER_IPC:
+			case AWAITS_PAGER_IPC:
 				_schedule();
 				return;
-			case AWAIT_PAGER:
-				_state = AWAIT_RESUME;
+			case AWAITS_PAGER:
+				_state = AWAITS_RESUME;
 				return;
 			default:
 				PERR("wrong thread state to receive IPC");
@@ -221,7 +220,7 @@ class Kernel::Thread
 		void _await_ipc_failed(bool const reply)
 		{
 			switch (_state) {
-			case AWAIT_IPC:
+			case AWAITS_IPC:
 				/* FIXME: return error codes on all IPC transfers */
 				if (reply) {
 					user_arg_0(-1);
@@ -235,11 +234,11 @@ class Kernel::Thread
 				PERR("failed to receive IPC");
 				stop();
 				return;
-			case AWAIT_PAGER_IPC:
+			case AWAITS_PAGER_IPC:
 				PERR("failed to get pagefault resolved");
 				stop();
 				return;
-			case AWAIT_PAGER:
+			case AWAITS_PAGER:
 				PERR("failed to get pagefault resolved");
 				stop();
 				return;
@@ -257,15 +256,60 @@ class Kernel::Thread
 
 		void _received_irq()
 		{
-			assert(_state == AWAIT_IRQ);
+			assert(_state == AWAITS_IRQ);
 			_schedule();
 		}
 
 		void _awaits_irq()
 		{
 			cpu_scheduler()->remove(this);
-			_state = AWAIT_IRQ;
+			_state = AWAITS_IRQ;
 		}
+
+		/**
+		 * Handle syscall request of this thread
+		 */
+		void _syscall();
+
+
+		/***************************************************
+		 ** Syscall backends, for details see 'syscall.h' **
+		 ***************************************************/
+
+		void _syscall_new_pd();
+		void _syscall_kill_pd();
+		void _syscall_new_thread();
+		void _syscall_delete_thread();
+		void _syscall_start_thread();
+		void _syscall_pause_thread();
+		void _syscall_resume_thread();
+		void _syscall_resume_faulter();
+		void _syscall_yield_thread();
+		void _syscall_current_thread_id();
+		void _syscall_get_thread();
+		void _syscall_wait_for_request();
+		void _syscall_request_and_wait();
+		void _syscall_reply();
+		void _syscall_set_pager();
+		void _syscall_update_pd();
+		void _syscall_update_region();
+		void _syscall_allocate_irq();
+		void _syscall_free_irq();
+		void _syscall_await_irq();
+		void _syscall_print_char();
+		void _syscall_read_thread_state();
+		void _syscall_write_thread_state();
+		void _syscall_new_signal_receiver();
+		void _syscall_new_signal_context();
+		void _syscall_await_signal();
+		void _syscall_signal_pending();
+		void _syscall_submit_signal();
+		void _syscall_ack_signal();
+		void _syscall_kill_signal_context();
+		void _syscall_kill_signal_receiver();
+		void _syscall_new_vm();
+		void _syscall_run_vm();
+		void _syscall_pause_vm();
 
 	public:
 
@@ -352,9 +396,9 @@ class Kernel::Thread
 		 */
 		void pause()
 		{
-			assert(_state == AWAIT_RESUME || _state == SCHEDULED);
+			assert(_state == AWAITS_RESUME || _state == SCHEDULED);
 			cpu_scheduler()->remove(this);
-			_state = AWAIT_RESUME;
+			_state = AWAITS_RESUME;
 		}
 
 		/**
@@ -363,33 +407,33 @@ class Kernel::Thread
 		int resume()
 		{
 			switch (_state) {
-			case AWAIT_RESUME:
+			case AWAITS_RESUME:
 				_schedule();
 				return 0;
-			case AWAIT_PAGER:
-				_state = AWAIT_PAGER_IPC;
+			case AWAITS_PAGER:
+				_state = AWAITS_PAGER_IPC;
 				return 0;
-			case AWAIT_PAGER_IPC:
+			case AWAITS_PAGER_IPC:
 				Ipc_node::cancel_waiting();
 				return 0;
 			case SCHEDULED:
 				return 1;
-			case AWAIT_IPC:
+			case AWAITS_IPC:
 				Ipc_node::cancel_waiting();
 				return 0;
-			case AWAIT_IRQ:
+			case AWAITS_IRQ:
 				Irq_receiver::cancel_waiting();
 				return 0;
-			case AWAIT_SIGNAL:
+			case AWAITS_SIGNAL:
 				Signal_handler::cancel_waiting();
 				return 0;
-			case AWAIT_SIGNAL_CONTEXT_KILL:
+			case AWAITS_SIGNAL_CONTEXT_KILL:
 				Signal_context_killer::cancel_waiting();
 				return 0;
-			case AWAIT_SIGNAL_RECEIVER_KILL:
+			case AWAITS_SIGNAL_RECEIVER_KILL:
 				Signal_receiver_killer::cancel_waiting();
 				return 0;
-			case AWAIT_START:
+			case AWAITS_START:
 			case STOPPED:;
 			}
 			PERR("failed to resume thread");
@@ -435,7 +479,7 @@ class Kernel::Thread
 		{
 			/* pause thread */
 			cpu_scheduler()->remove(this);
-			_state = AWAIT_PAGER;
+			_state = AWAITS_PAGER;
 
 			/* check out cause and attributes */
 			addr_t va = 0;
@@ -461,7 +505,7 @@ class Kernel::Thread
 		 */
 		void receive_yielded_cpu()
 		{
-			if (_state == AWAIT_RESUME) { _schedule(); }
+			if (_state == AWAITS_RESUME) { _schedule(); }
 			else { PERR("failed to receive yielded CPU"); }
 		}
 
@@ -474,7 +518,7 @@ class Kernel::Thread
 		{
 			switch(cpu_exception) {
 			case SUPERVISOR_CALL:
-				handle_syscall(this);
+				_syscall();
 				return;
 			case PREFETCH_ABORT:
 				handle_mmu_exception();
