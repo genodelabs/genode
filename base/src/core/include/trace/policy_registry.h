@@ -80,7 +80,7 @@ class Genode::Trace::Policy_registry
 
 		Policy *_unsynchronized_lookup(Policy_owner const &owner, Policy_id id)
 		{
-			for (Policy *p = _policies.first(); p; p++)
+			for (Policy *p = _policies.first(); p; p = p->next())
 				if (p->is_owned_by(owner) && p->has_id(id))
 					return p;
 
@@ -89,7 +89,7 @@ class Genode::Trace::Policy_registry
 
 		Policy *_any_policy_owned_by(Policy_owner const &owner)
 		{
-			for (Policy *p = _policies.first(); p; p++)
+			for (Policy *p = _policies.first(); p; p = p->next())
 				if (p->is_owned_by(owner))
 					return p;
 
@@ -119,9 +119,15 @@ class Genode::Trace::Policy_registry
 		{
 			Lock::Guard guard(_lock);
 
-			for (Policy *p = _policies.first(); p; p++)
-				if (p->is_owned_by(owner) && p->has_id(id))
-					destroy(&p->md_alloc(), p);
+			for (Policy *p = _policies.first(); p; ) {
+				Policy *tmp = p;
+				p = p->next();
+
+				if (tmp->is_owned_by(owner) && tmp->has_id(id)) {
+					_policies.remove(tmp);
+					destroy(&tmp->md_alloc(), tmp);
+				}
+			}
 		}
 
 		void destroy_policies_owned_by(Policy_owner const &owner)
