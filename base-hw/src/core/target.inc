@@ -48,6 +48,7 @@ SRC_CC += console.cc \
           thread.cc \
           kernel.cc \
           kernel/thread.cc \
+          kernel/vm.cc \
           kernel/signal_receiver.cc \
           rm_session_support.cc \
           kernel_support.cc \

@@ -42,18 +42,6 @@ namespace Kernel
 	void     reset_lap_time();
 
 	/**
-	 * Kernel object that can be scheduled for the CPU
-	 */
-	class Execution_context;
-
-	typedef Scheduler<Execution_context> Cpu_scheduler;
-
-	/**
-	 * Return the systems CPU scheduler
-	 */
-	static Cpu_scheduler * cpu_scheduler();
-
-	/**
 	 * Kernel backend for userland execution-contexts
 	 */
 	class Thread;
@@ -64,29 +52,6 @@ namespace Kernel
 	Thread_ids  * thread_ids();
 	Thread_pool * thread_pool();
 }
-
-class Kernel::Execution_context : public Cpu_scheduler::Item
-{
-	public:
-
-		/**
-		 * Handle an exception that occured during execution
-		 */
-		virtual void handle_exception() = 0;
-
-		/**
-		 * Continue execution
-		 */
-		virtual void proceed() = 0;
-
-		/**
-		 * Destructor
-		 */
-		virtual ~Execution_context()
-		{
-			if (list()) { cpu_scheduler()->remove(this); }
-		}
-};
 
 class Kernel::Thread
 :

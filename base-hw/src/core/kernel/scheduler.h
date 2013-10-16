@@ -31,6 +31,18 @@ namespace Kernel
 	 */
 	template <typename T>
 	class Scheduler;
+
+	/**
+	 * Kernel object that can be scheduled for the CPU
+	 */
+	class Execution_context;
+
+	typedef Scheduler<Execution_context> Cpu_scheduler;
+
+	/**
+	 * Return the systems CPU scheduler
+	 */
+	Cpu_scheduler * cpu_scheduler();
 }
 
 template <typename T>
@@ -208,6 +220,29 @@ class Kernel::Scheduler
 		 * Exclude 'i' from scheduling
 		 */
 		void remove(T * const i) { _items[i->priority].remove(i); }
+};
+
+class Kernel::Execution_context : public Cpu_scheduler::Item
+{
+	public:
+
+		/**
+		 * Handle an exception that occured during execution
+		 */
+		virtual void handle_exception() = 0;
+
+		/**
+		 * Continue execution
+		 */
+		virtual void proceed() = 0;
+
+		/**
+		 * Destructor
+		 */
+		virtual ~Execution_context()
+		{
+			if (list()) { cpu_scheduler()->remove(this); }
+		}
 };
 
 #endif /* _KERNEL__SCHEDULER_H_ */

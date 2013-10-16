@@ -23,11 +23,11 @@
  */
 
 /* Genode includes */
-#include <cpu/cpu_state.h>
 #include <base/thread_state.h>
 
 /* core includes */
 #include <kernel/pd.h>
+#include <kernel/vm.h>
 #include <platform_pd.h>
 #include <trustzone.h>
 #include <timer.h>
@@ -101,68 +101,6 @@ namespace Kernel
 
 namespace Kernel
 {
-	class Vm;
-	class Vm_ids : public Id_allocator<MAX_VMS> { };
-	typedef Object_pool<Vm> Vm_pool;
-
-	Vm_ids  * vm_ids();
-	Vm_pool * vm_pool();
-
-	class Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
-	           public Execution_context
-	{
-		private:
-
-			Genode::Cpu_state_modes * const _state;
-			Signal_context * const          _context;
-
-		public:
-
-			void * operator new (size_t, void * p) { return p; }
-
-			/**
-			 * Constructor
-			 */
-			Vm(Genode::Cpu_state_modes * const state,
-			   Signal_context * const context)
-			: _state(state), _context(context)
-			{
-				/* set VM to least priority by now */
-				priority = 0;
-			}
-
-
-			/**************************
-			 ** Vm_session interface **
-			 **************************/
-
-			void run()   { cpu_scheduler()->insert(this); }
-			void pause() { cpu_scheduler()->remove(this); }
-
-
-			/***********************
-			 ** Execution_context **
-			 ***********************/
-
-			void handle_exception()
-			{
-				switch(_state->cpu_exception) {
-				case Genode::Cpu_state::INTERRUPT_REQUEST:
-				case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-					handle_interrupt();
-					return;
-				default:
-					cpu_scheduler()->remove(this);
-					_context->submit(1);
-				}
-			}
-
-			void proceed() { mtc()->continue_vm(_state); }
-	};
-
-	Vm_ids * vm_ids() { return unsynchronized_singleton<Vm_ids>(); }
-	Vm_pool * vm_pool() { return unsynchronized_singleton<Vm_pool>(); }
-
 	/**
 	 * Access to static CPU scheduler
 	 */
