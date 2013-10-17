@@ -171,8 +171,7 @@ The Genode source tree is composed of the following subdirectories:
 :'ports-<platform>':
 
   These platform-specific source-code repositories contain software that
-  capitalizes special features of the respective kernel platform. I.e.,
-  for the OKL4 base platform, a port of OKLinux is provided in 'ports-okl4'.
+  capitalizes special features of the respective kernel platform.
   For the Fiasco.OC platform, 'ports-foc' hosts a port of the L4Linux
   kernel. For further information, please refer to the README file at the
   top level of the respective repository.

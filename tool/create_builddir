@@ -108,14 +108,6 @@ $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).optional >> $@
 endif
 
-#
-# Add 'ports-okl4' repository to OKL4 build directory
-#
-ifeq ($(PLATFORM),okl4_x86)
-$(BUILD_DIR)/etc/build.conf::
-	@cat $(BUILD_CONF).ports-okl4 >> $@
-endif
-
 $(BUILD_DIR)/Makefile:
 	@ln -sf $(GENODE_ABS_DIR)/tool/builddir/build.mk $@
 

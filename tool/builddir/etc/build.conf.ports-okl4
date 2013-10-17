@@ -1,5 +1,0 @@
-
-#
-# Software ported specifically for OKL4, i.e., OKLinux
-#
-#REPOSITORIES += $(GENODE_DIR)/ports-okl4

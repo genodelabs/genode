@@ -455,10 +455,6 @@ Runtime environments
   that enables the use of unmodified command-line based GNU software. For using
   noux, refer to the run script 'ports/run/noux.run'.
 
-:'ports-okl4/src/oklinux': OKLinux is a paravirtualized Linux kernel that
-  enables the use of Linux-based OSes as subsystems on the OKL4 kernel. For
-  using OKLinux, refer to the run script 'ports-okl4/run/lx_block.run'.
-
 :'ports-foc/src/l4linux': L4Linux is a paravirtualized Linux kernel that
   enables the use of Linux-based OSes as subsystems on the Fiasco.OC kernel.
   For using L4Linux, refer to the run script 'ports-foc/run/l4linux.run'.
