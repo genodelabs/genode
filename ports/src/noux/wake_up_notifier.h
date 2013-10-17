@@ -16,21 +16,21 @@
 
 /* Genode includes */
 #include <util/list.h>
-#include <base/semaphore.h>
+#include <base/lock.h>
 
 namespace Noux {
 
 	struct Wake_up_notifier : List<Wake_up_notifier>::Element
 	{
-		Semaphore *semaphore;
+		Lock *lock;
 
-		Wake_up_notifier(Semaphore *semaphore = 0)
-		: semaphore(semaphore) { }
+		Wake_up_notifier(Lock *lock = 0)
+		: lock(lock) { }
 
 		void wake_up()
 		{
-			if (semaphore)
-				semaphore->up();
+			if (lock)
+				lock->unlock();
 		}
 	};
 };

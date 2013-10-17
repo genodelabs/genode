@@ -45,6 +45,7 @@
 #include <libc_mem_alloc.h>
 
 enum { verbose = false };
+enum { verbose_signals = false };
 
 
 void *operator new (size_t, void *ptr) { return ptr; }
@@ -89,6 +90,34 @@ Noux::Session *noux()  { return noux_connection()->session(); }
 Noux::Sysio   *sysio() { return noux_connection()->sysio();   }
 
 
+/* Array of signal handlers */
+static struct sigaction signal_action[SIGRTMAX+1];
+
+
+static bool noux_syscall(Noux::Session::Syscall opcode)
+{
+	bool ret = noux()->syscall(opcode);
+
+	/* handle signals */
+	while (!sysio()->pending_signals.empty()) {
+		Noux::Sysio::Signal signal = sysio()->pending_signals.get();
+		if (signal_action[signal].sa_flags & SA_SIGINFO) {
+			/* TODO: pass siginfo_t struct */
+			signal_action[signal].sa_sigaction(signal, 0, 0);
+		} else {
+			if (signal_action[signal].sa_handler == SIG_DFL) {
+				/* do nothing */
+			} else if (signal_action[signal].sa_handler == SIG_IGN) {
+				/* do nothing */
+			} else
+				signal_action[signal].sa_handler(signal);
+		}
+	}
+
+	return ret;
+}
+
+
 enum { FS_BLOCK_SIZE = 1024 };
 
 
@@ -124,7 +153,7 @@ extern "C" struct passwd *getpwuid(uid_t uid)
 	sysio()->userinfo_in.uid = uid;
 	sysio()->userinfo_in.request = Noux::Sysio::USERINFO_GET_ALL;
 
-	if (!noux()->syscall(Noux::Session::SYSCALL_USERINFO)) {
+	if (!noux_syscall(Noux::Session::SYSCALL_USERINFO)) {
 		return (struct passwd *)0;
 	}
 
@@ -144,7 +173,7 @@ extern "C" uid_t getgid()
 {
 	sysio()->userinfo_in.request = Noux::Sysio::USERINFO_GET_GID;
 
-	if (!noux()->syscall(Noux::Session::SYSCALL_USERINFO))
+	if (!noux_syscall(Noux::Session::SYSCALL_USERINFO))
 		return 0;
 
 	uid_t gid = sysio()->userinfo_out.gid;
@@ -162,7 +191,7 @@ extern "C" uid_t getuid()
 {
 	sysio()->userinfo_in.request = Noux::Sysio::USERINFO_GET_UID;
 
-	if (!noux()->syscall(Noux::Session::SYSCALL_USERINFO))
+	if (!noux_syscall(Noux::Session::SYSCALL_USERINFO))
 		return 0;
 
 	uid_t uid = sysio()->userinfo_out.uid;
@@ -364,11 +393,10 @@ extern "C" int select(int nfds, fd_set *readfds, fd_set *writefds,
 	/*
 	 * Perform syscall
 	 */
-	if (!noux()->syscall(Noux::Session::SYSCALL_SELECT)) {
-		PWRN("select syscall failed");
-//		switch (sysio()->error.select) {
-//		case Noux::Sysio::SELECT_NONEXISTENT: errno = ENOENT; break;
-//		}
+	if (!noux_syscall(Noux::Session::SYSCALL_SELECT)) {
+		switch (sysio()->error.select) {
+			case Noux::Sysio::SELECT_ERR_INTERRUPT: errno = EINTR; break;
+		}
 		return -1;
 	}
 
@@ -444,7 +472,7 @@ extern "C" pid_t fork(void)
 		sysio()->fork_in.sp              = (Genode::addr_t)(&stack[STACK_SIZE]);
 		sysio()->fork_in.parent_cap_addr = (Genode::addr_t)(&new_parent);
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_FORK)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_FORK)) {
 			PERR("fork error %d", sysio()->error.general);
 		}
 
@@ -458,7 +486,7 @@ extern "C" pid_t vfork(void) { return fork(); }
 
 extern "C" pid_t getpid(void)
 {
-	noux()->syscall(Noux::Session::SYSCALL_GETPID);
+	noux_syscall(Noux::Session::SYSCALL_GETPID);
 	return sysio()->getpid_out.pid;
 }
 
@@ -493,7 +521,7 @@ extern "C" pid_t _wait4(pid_t pid, int *status, int options,
 {
 	sysio()->wait4_in.pid    = pid;
 	sysio()->wait4_in.nohang = !!(options & WNOHANG);
-	if (!noux()->syscall(Noux::Session::SYSCALL_WAIT4)) {
+	if (!noux_syscall(Noux::Session::SYSCALL_WAIT4)) {
 		PERR("wait4 error %d", sysio()->error.general);
 		return -1;
 	}
@@ -545,7 +573,7 @@ extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
 		return -1;
 	}
 
-	if (!noux()->syscall(Noux::Session::SYSCALL_CLOCK_GETTIME)) {
+	if (!noux_syscall(Noux::Session::SYSCALL_CLOCK_GETTIME)) {
 		switch (sysio()->error.clock) {
 		case Noux::Sysio::CLOCK_ERR_INVALID: errno = EINVAL; break;
 		default:                             errno = 0;      break;
@@ -563,7 +591,7 @@ extern "C" int clock_gettime(clockid_t clk_id, struct timespec *tp)
 
 extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-	if (!noux()->syscall(Noux::Session::SYSCALL_GETTIMEOFDAY)) {
+	if (!noux_syscall(Noux::Session::SYSCALL_GETTIMEOFDAY)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -577,7 +605,7 @@ extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 extern "C" int utimes(const char* path, const struct timeval *times)
 {
-	if (!noux()->syscall(Noux::Session::SYSCALL_UTIMES)) {
+	if (!noux_syscall(Noux::Session::SYSCALL_UTIMES)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -604,20 +632,30 @@ extern "C" int _sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 }
 
 
-extern "C" int _sigaction(int, const struct sigaction *, struct sigaction *)
+extern "C" int _sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
-	/* XXX todo */
-	errno = ENOSYS;
-	return -1;
+	if (verbose_signals)
+		PDBG("signum = %d, handler = %p", signum, act ? act->sa_handler : 0);
+
+	if ((signum < 0) || (signum > SIGRTMAX)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (oldact)
+		*oldact = signal_action[signum];
+
+	if (act)
+		signal_action[signum] = *act;
+
+	return 0;
 }
 
 
 extern "C" int sigaction(int signum, const struct sigaction *act,
                          struct sigaction *oldact)
 {
-	/* XXX todo */
-	errno = ENOSYS;
-	return -1;
+	return _sigaction(signum, act, oldact);
 }
 
 
@@ -771,7 +809,7 @@ namespace {
 		    return -1;
 		}
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_EXECVE)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_EXECVE)) {
 			PWRN("exec syscall failed for path \"%s\"", filename);
 			switch (sysio()->error.execve) {
 			case Noux::Sysio::EXECVE_NONEXISTENT: errno = ENOENT; break;
@@ -800,7 +838,7 @@ namespace {
 
 		Genode::strncpy(sysio()->stat_in.path, path, sizeof(sysio()->stat_in.path));
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_STAT)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_STAT)) {
 			if (verbose)
 				PWRN("stat syscall failed for path \"%s\"", path);
 			switch (sysio()->error.stat) {
@@ -826,7 +864,7 @@ namespace {
 		while (!opened) {
 			Genode::strncpy(sysio()->open_in.path, pathname, sizeof(sysio()->open_in.path));
 			sysio()->open_in.mode = flags;
-			if (noux()->syscall(Noux::Session::SYSCALL_OPEN))
+			if (noux_syscall(Noux::Session::SYSCALL_OPEN))
 				opened = true;
 			else
 				switch (sysio()->error.open) {
@@ -838,7 +876,7 @@ namespace {
 						/* O_CREAT is set, so try to create the file */
 						Genode::strncpy(sysio()->open_in.path, pathname, sizeof(sysio()->open_in.path));
 						sysio()->open_in.mode = flags | O_EXCL;
-						if (noux()->syscall(Noux::Session::SYSCALL_OPEN))
+						if (noux_syscall(Noux::Session::SYSCALL_OPEN))
 							opened = true;
 						else
 							switch (sysio()->error.open) {
@@ -878,7 +916,7 @@ namespace {
 
 		Genode::strncpy(sysio()->symlink_in.oldpath, oldpath, sizeof(sysio()->symlink_in.oldpath));
 		Genode::strncpy(sysio()->symlink_in.newpath, newpath, sizeof(sysio()->symlink_in.newpath));
-		if (!noux()->syscall(Noux::Session::SYSCALL_SYMLINK)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_SYMLINK)) {
 			PERR("symlink error");
 			/* XXX set errno */
 			return -1;
@@ -910,12 +948,13 @@ namespace {
 			sysio()->write_in.count = curr_count;
 			Genode::memcpy(sysio()->write_in.chunk, src, curr_count);
 
-			if (!noux()->syscall(Noux::Session::SYSCALL_WRITE)) {
+			if (!noux_syscall(Noux::Session::SYSCALL_WRITE)) {
 				switch (sysio()->error.write) {
 				case Noux::Sysio::WRITE_ERR_AGAIN:       errno = EAGAIN;      break;
 				case Noux::Sysio::WRITE_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
 				case Noux::Sysio::WRITE_ERR_INVALID:     errno = EINVAL;      break;
 				case Noux::Sysio::WRITE_ERR_IO:          errno = EIO;         break;
+				case Noux::Sysio::WRITE_ERR_INTERRUPT:   errno = EINTR;       break;
 				default: 
 					if (sysio()->error.general == Noux::Sysio::ERR_FD_INVALID)
 						errno = EBADF;
@@ -944,12 +983,14 @@ namespace {
 			sysio()->read_in.fd    = noux_fd(fd->context);
 			sysio()->read_in.count = curr_count;
 
-			if (!noux()->syscall(Noux::Session::SYSCALL_READ)) {
+			if (!noux_syscall(Noux::Session::SYSCALL_READ)) {
+
 				switch (sysio()->error.read) {
 				case Noux::Sysio::READ_ERR_AGAIN:       errno = EAGAIN;      break;
 				case Noux::Sysio::READ_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
 				case Noux::Sysio::READ_ERR_INVALID:     errno = EINVAL;      break;
 				case Noux::Sysio::READ_ERR_IO:          errno = EIO;         break;
+				case Noux::Sysio::READ_ERR_INTERRUPT:   errno = EINTR;       break;
 				default:
 					if (sysio()->error.general == Noux::Sysio::ERR_FD_INVALID)
 						errno = EBADF;
@@ -982,7 +1023,7 @@ namespace {
 	int Plugin::close(Libc::File_descriptor *fd)
 	{
 		sysio()->close_in.fd = noux_fd(fd->context);
-		if (!noux()->syscall(Noux::Session::SYSCALL_CLOSE)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_CLOSE)) {
 			PERR("close error");
 			/* XXX set errno */
 			return -1;
@@ -1080,7 +1121,7 @@ namespace {
 		}
 
 		/* perform syscall */
-		if (!noux()->syscall(Noux::Session::SYSCALL_IOCTL)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_IOCTL)) {
 			switch (sysio()->error.ioctl) {
 			case Noux::Sysio::IOCTL_ERR_INVALID: errno = EINVAL; break;
 			case Noux::Sysio::IOCTL_ERR_NOTTY:   errno = ENOTTY; break;
@@ -1118,7 +1159,7 @@ namespace {
 	int Plugin::pipe(Libc::File_descriptor *pipefd[2])
 	{
 		/* perform syscall */
-		if (!noux()->syscall(Noux::Session::SYSCALL_PIPE)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_PIPE)) {
 			PERR("pipe error");
 			/* XXX set errno */
 			return -1;
@@ -1137,7 +1178,7 @@ namespace {
 		sysio()->dup2_in.fd    = noux_fd(fd->context);
 		sysio()->dup2_in.to_fd = -1;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_DUP2)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_DUP2)) {
 			PERR("dup error");
 			/* XXX set errno */
 			return 0;
@@ -1160,7 +1201,7 @@ namespace {
 		sysio()->dup2_in.to_fd = noux_fd(new_fd->context);
 
 		/* perform syscall */
-		if (!noux()->syscall(Noux::Session::SYSCALL_DUP2)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_DUP2)) {
 			PERR("dup2 error");
 			/* XXX set errno */
 			return -1;
@@ -1173,7 +1214,7 @@ namespace {
 	int Plugin::fstat(Libc::File_descriptor *fd, struct stat *buf)
 	{
 		sysio()->fstat_in.fd = noux_fd(fd->context);
-		if (!noux()->syscall(Noux::Session::SYSCALL_FSTAT)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_FSTAT)) {
 			PERR("fstat error");
 			/* XXX set errno */
 			return -1;
@@ -1196,9 +1237,10 @@ namespace {
 	{
 		sysio()->ftruncate_in.fd = noux_fd(fd->context);
 		sysio()->ftruncate_in.length = length;
-		if (!noux()->syscall(Noux::Session::SYSCALL_FTRUNCATE)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_FTRUNCATE)) {
 			switch (sysio()->error.ftruncate) {
 				case Noux::Sysio::FTRUNCATE_ERR_NO_PERM: errno = EPERM; break;
+				case Noux::Sysio::FTRUNCATE_ERR_INTERRUPT: errno = EINTR; break;
 			}
 			return -1;
 		}
@@ -1271,10 +1313,16 @@ namespace {
 		};
 
 		/* invoke system call */
-		if (!noux()->syscall(Noux::Session::SYSCALL_FCNTL)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_FCNTL)) {
 			PWRN("fcntl failed (libc_fd= %d, cmd=%x)", fd->libc_fd, cmd);
-			/* XXX read error code from sysio */
-			errno = EINVAL;
+			switch (sysio()->error.fcntl) {
+				case Noux::Sysio::FCNTL_ERR_CMD_INVALID: errno = EINVAL; break;
+				default:
+					switch (sysio()->error.general) {
+						case Noux::Sysio::ERR_FD_INVALID: errno = EINVAL; break;
+						case Noux::Sysio::NUM_GENERAL_ERRORS: break;
+					}
+			}
 			return -1;
 		}
 
@@ -1296,7 +1344,7 @@ namespace {
 		struct dirent *dirent = (struct dirent *)buf;
 		Genode::memset(dirent, 0, sizeof(struct dirent));
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_DIRENT)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_DIRENT)) {
 			switch (sysio()->error.general) {
 
 			case Noux::Sysio::ERR_FD_INVALID:
@@ -1343,7 +1391,7 @@ namespace {
 		case SEEK_END: sysio()->lseek_in.whence = Noux::Sysio::LSEEK_END; break;
 		}
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_LSEEK)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_LSEEK)) {
 			switch (sysio()->error.general) {
 
 			case Noux::Sysio::ERR_FD_INVALID:
@@ -1363,7 +1411,7 @@ namespace {
 	{
 		Genode::strncpy(sysio()->unlink_in.path, path, sizeof(sysio()->unlink_in.path));
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_UNLINK)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_UNLINK)) {
 			PWRN("unlink syscall failed for path \"%s\"", path);
 			switch (sysio()->error.unlink) {
 			case Noux::Sysio::UNLINK_ERR_NO_ENTRY: errno = ENOENT; break;
@@ -1384,7 +1432,7 @@ namespace {
 		Genode::strncpy(sysio()->readlink_in.path, path, sizeof(sysio()->readlink_in.path));
 		sysio()->readlink_in.bufsiz = bufsiz;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_READLINK)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_READLINK)) {
 			PWRN("readlink syscall failed for \"%s\"", path);
 			/* XXX set errno */
 			return -1;
@@ -1406,7 +1454,7 @@ namespace {
 		Genode::strncpy(sysio()->rename_in.from_path, from_path, sizeof(sysio()->rename_in.from_path));
 		Genode::strncpy(sysio()->rename_in.to_path,   to_path,   sizeof(sysio()->rename_in.to_path));
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_RENAME)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_RENAME)) {
 			PWRN("rename syscall failed for \"%s\" -> \"%s\"", from_path, to_path);
 			switch (sysio()->error.rename) {
 			case Noux::Sysio::RENAME_ERR_NO_ENTRY: errno = ENOENT; break;
@@ -1425,7 +1473,7 @@ namespace {
 	{
 		Genode::strncpy(sysio()->mkdir_in.path, path, sizeof(sysio()->mkdir_in.path));
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_MKDIR)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_MKDIR)) {
 			PWRN("mkdir syscall failed for \"%s\" mode=0x%x", path, (int)mode);
 			switch (sysio()->error.mkdir) {
 			case Noux::Sysio::MKDIR_ERR_EXISTS:        errno = EEXIST;       break;
@@ -1486,7 +1534,7 @@ namespace {
 		sysio()->socket_in.type = type;
 		sysio()->socket_in.protocol = protocol;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_SOCKET))
+		if (!noux_syscall(Noux::Session::SYSCALL_SOCKET))
 			return 0;
 
 		Libc::Plugin_context *context = noux_context(sysio()->socket_out.fd);
@@ -1507,7 +1555,7 @@ namespace {
 		Genode::memset(sysio()->getsockopt_in.optval, 0,
 				sizeof (sysio()->getsockopt_in.optval));
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_GETSOCKOPT))
+		if (!noux_syscall(Noux::Session::SYSCALL_GETSOCKOPT))
 			return -1;
 
 		Genode::memcpy(optval, sysio()->setsockopt_in.optval,
@@ -1532,7 +1580,7 @@ namespace {
 
 		Genode::memcpy(sysio()->setsockopt_in.optval, optval, optlen);
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_SETSOCKOPT)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_SETSOCKOPT)) {
 			/* XXX */
 			return -1;
 		}
@@ -1555,7 +1603,7 @@ namespace {
 			sysio()->accept_in.addrlen = 0;
 		}
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_ACCEPT)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_ACCEPT)) {
 			switch (sysio()->error.accept) {
 			case Noux::Sysio::ACCEPT_ERR_AGAIN:         errno = EAGAIN;      break;
 			case Noux::Sysio::ACCEPT_ERR_NO_MEMORY:     errno = ENOMEM;      break;
@@ -1585,7 +1633,7 @@ namespace {
 		Genode::memcpy(&sysio()->bind_in.addr, addr, sizeof (struct sockaddr));
 		sysio()->bind_in.addrlen = addrlen;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_BIND)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_BIND)) {
 			switch (sysio()->error.bind) {
 			case Noux::Sysio::BIND_ERR_ACCESS:      errno = EACCES;     break;
 			case Noux::Sysio::BIND_ERR_ADDR_IN_USE: errno = EADDRINUSE; break;
@@ -1608,7 +1656,7 @@ namespace {
 		Genode::memcpy(&sysio()->connect_in.addr, addr, sizeof (struct sockaddr));
 		sysio()->connect_in.addrlen = addrlen;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_CONNECT)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_CONNECT)) {
 			switch (sysio()->error.connect) {
 			case Noux::Sysio::CONNECT_ERR_AGAIN:        errno = EAGAIN;      break;
 			case Noux::Sysio::CONNECT_ERR_ALREADY:      errno = EALREADY;    break;
@@ -1630,7 +1678,7 @@ namespace {
 		sysio()->getpeername_in.fd = noux_fd(fd->context);
 		sysio()->getpeername_in.addrlen = *addrlen;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_GETPEERNAME)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_GETPEERNAME)) {
 			/* errno */
 			return -1;
 		}
@@ -1648,7 +1696,7 @@ namespace {
 		sysio()->listen_in.fd = noux_fd(fd->context);
 		sysio()->listen_in.backlog = backlog;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_LISTEN)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_LISTEN)) {
 			switch (sysio()->error.listen) {
 			case Noux::Sysio::LISTEN_ERR_ADDR_IN_USE:   errno = EADDRINUSE; break;
 			case Noux::Sysio::LISTEN_ERR_NOT_SUPPORTED: errno = EOPNOTSUPP; break;
@@ -1672,7 +1720,7 @@ namespace {
 			sysio()->recv_in.fd = noux_fd(fd->context);
 			sysio()->recv_in.len = curr_len;
 
-			if (!noux()->syscall(Noux::Session::SYSCALL_RECV)) {
+			if (!noux_syscall(Noux::Session::SYSCALL_RECV)) {
 				switch (sysio()->error.recv) {
 				case Noux::Sysio::RECV_ERR_AGAIN:         errno = EAGAIN;      break;
 				case Noux::Sysio::RECV_ERR_WOULD_BLOCK:   errno = EWOULDBLOCK; break;
@@ -1717,7 +1765,7 @@ namespace {
 			else
 				sysio()->recvfrom_in.addrlen = *addrlen;
 
-			if (!noux()->syscall(Noux::Session::SYSCALL_RECVFROM)) {
+			if (!noux_syscall(Noux::Session::SYSCALL_RECVFROM)) {
 				switch (sysio()->error.recv) {
 				case Noux::Sysio::RECV_ERR_AGAIN:         errno = EAGAIN;      break;
 				case Noux::Sysio::RECV_ERR_WOULD_BLOCK:   errno = EWOULDBLOCK; break;
@@ -1765,7 +1813,7 @@ namespace {
 			sysio()->send_in.len = curr_len;
 			Genode::memcpy(sysio()->send_in.buf, src, curr_len);
 
-			if (!noux()->syscall(Noux::Session::SYSCALL_SEND)) {
+			if (!noux_syscall(Noux::Session::SYSCALL_SEND)) {
 				PERR("write error %d", sysio()->error.general);
 				switch (sysio()->error.send) {
 				case Noux::Sysio::SEND_ERR_AGAIN:            errno = EAGAIN;      break;
@@ -1816,7 +1864,7 @@ namespace {
 				Genode::memcpy(&sysio()->sendto_in.dest_addr, dest_addr, addrlen);
 			}
 
-			if (!noux()->syscall(Noux::Session::SYSCALL_SENDTO)) {
+			if (!noux_syscall(Noux::Session::SYSCALL_SENDTO)) {
 				switch (sysio()->error.send) {
 				case Noux::Sysio::SEND_ERR_AGAIN:            errno = EAGAIN;      break;
 				case Noux::Sysio::SEND_ERR_WOULD_BLOCK:      errno = EWOULDBLOCK; break;
@@ -1842,7 +1890,7 @@ namespace {
 		sysio()->shutdown_in.fd = noux_fd(fd->context);
 		sysio()->shutdown_in.how = how;
 
-		if (!noux()->syscall(Noux::Session::SYSCALL_SHUTDOWN)) {
+		if (!noux_syscall(Noux::Session::SYSCALL_SHUTDOWN)) {
 			switch (sysio()->error.shutdown) {
 			case Noux::Sysio::SHUTDOWN_ERR_NOT_CONNECTED: errno = ENOTCONN; break;
 			default:                                      errno = 0;        break;

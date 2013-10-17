@@ -21,18 +21,29 @@
 
 namespace Noux {
 
-	struct Vfs_io_channel : public Io_channel
+	struct Vfs_io_channel : Io_channel, Signal_dispatcher_base
 	{
 		Vfs_handle *_fh;
 
 		Absolute_path _path;
 		Absolute_path _leaf_path;
 
-		Vfs_io_channel(char const *path, char const *leaf_path,
-		               Dir_file_system *root_dir, Vfs_handle *vfs_handle)
-		: _fh(vfs_handle), _path(path), _leaf_path(leaf_path) { }
+		Signal_receiver &_sig_rec;
 
-		~Vfs_io_channel() { destroy(env()->heap(), _fh); }
+		Vfs_io_channel(char const *path, char const *leaf_path,
+		               Dir_file_system *root_dir, Vfs_handle *vfs_handle,
+		               Signal_receiver &sig_rec)
+		: _fh(vfs_handle), _path(path), _leaf_path(leaf_path),
+		  _sig_rec(sig_rec)
+		{
+			_fh->fs()->register_read_ready_sigh(_fh, _sig_rec.manage(this));
+		}
+
+		~Vfs_io_channel()
+		{
+			_sig_rec.dissolve(this);
+			destroy(env()->heap(), _fh);
+		}
 
 		bool write(Sysio *sysio, size_t &count)
 		{
@@ -158,12 +169,21 @@ namespace Noux {
 
 		bool check_unblock(bool rd, bool wr, bool ex) const
 		{
-			/*
-			 * XXX For now, we use the TAR fs only, which never blocks.
-			 *     However, real file systems may block.
-			 */
-			return true;
+			return _fh->fs()->check_unblock(_fh, rd, wr, ex);
 		}
+
+		/**************************************
+		 ** Signal_dispatcher_base interface **
+		 **************************************/
+
+		/**
+		 * Called by Noux main loop on the occurrence of new input
+		 */
+		void dispatch(unsigned)
+		{
+			Io_channel::invoke_all_notifiers();
+		}
+
 	};
 }
 

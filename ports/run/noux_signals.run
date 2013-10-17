@@ -1,0 +1,103 @@
+set build_components {
+	core init drivers/timer drivers/uart
+	noux/minimal
+    test/noux_signals
+}
+
+build $build_components
+
+# create tar archive
+exec tar cfv bin/noux_signals.tar -h -C bin test-noux_signals
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="uart_drv">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Terminal"/></provides>
+			<config>
+				<policy label="noux" uart="1"/>
+			</config>
+		</start>
+		<start name="noux">
+			<resource name="RAM" quantum="1G"/>
+			<config verbose="yes">
+				<fstab> <tar name="noux_signals.tar" /> </fstab>
+				<start name="test-noux_signals"> </start>
+			</config>
+		</start>
+	</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init timer ld.lib.so noux libc.lib.so
+	uart_drv libc_noux.lib.so noux_signals.tar
+}
+
+build_boot_image $boot_modules
+
+#
+# Redirect the LOG session output of Noux into a file
+#
+set noux_output_file "noux_signals.log"
+
+append qemu_args " -nographic"
+append qemu_args " -serial file:$noux_output_file"
+append qemu_args " -serial mon:stdio"
+
+run_genode_until "test ready" 10
+
+# send Ctrl-C
+send \003
+
+run_genode_until "test finished" 10 $spawn_id
+
+set error_occured 0
+
+if {![regexp {0: signal handler for signal 2 called} $output]} {
+	set error_occured 1
+}
+
+if {![regexp {1: signal handler for signal 2 called} $output]} {
+	set error_occured 1
+}
+
+if {![regexp {0: 'read\(\)' returned with error EINTR} $output]} {
+	set error_occured 1
+}
+
+if {![regexp {1: 'read\(\)' returned with error EINTR} $output]} {
+	set error_occured 1
+}
+
+if { $error_occured == 1 } {
+	puts "output not as expected"
+	exit -1
+}
+
+exec rm bin/noux_signals.tar
+exec rm $noux_output_file
+

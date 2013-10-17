@@ -32,6 +32,7 @@
 #include <io_receptor_registry.h>
 #include <destruct_queue.h>
 #include <destruct_dispatcher.h>
+#include <interrupt_handler.h>
 
 #include <local_cpu_service.h>
 #include <local_ram_service.h>
@@ -95,16 +96,22 @@ namespace Noux {
 	class Child : public Rpc_object<Session>,
 	              public File_descriptor_registry,
 	              public Family_member,
-	              public Destruct_queue::Element<Child>
+	              public Destruct_queue::Element<Child>,
+	              public Interrupt_handler
 	{
 		private:
 
 			Signal_receiver *_sig_rec;
 
 			/**
-			 * Semaphore used for implementing blocking syscalls, i.e., select
+			 * Lock used for implementing blocking syscalls, i.e., select
+			 *
+			 * The reason to have it as a member variable instead of creating
+			 * it on demand is to not have to register and unregister an
+			 * interrupt handler at every IO channel on every blocking syscall,
+			 * but only once when the IO channel gets added.
 			 */
-			Semaphore _blocker;
+			Lock _blocker;
 
 			Allocator                 *_alloc;
 			Destruct_queue            &_destruct_queue;
@@ -196,6 +203,10 @@ namespace Noux {
 			Attached_ram_dataspace _sysio_ds;
 			Sysio * const          _sysio;
 
+			typedef Ring_buffer<enum Sysio::Signal, Sysio::SIGNAL_QUEUE_SIZE>
+			        Signal_queue;
+			Signal_queue _pending_signals;
+
 			Session_capability const _noux_session_cap;
 
 			Local_noux_service _local_noux_service;
@@ -242,11 +253,34 @@ namespace Noux {
 						child->add_io_channel(io_channel_by_fd(fd), fd);
 			}
 
-			void _block_for_io_channel(Shared_pointer<Io_channel> &io)
+			/**
+			 * Block until the IO channel is ready for reading or writing or an
+			 * exception occured.
+			 *
+			 * \param io  the IO channel
+			 * \param rd  check for data available for reading
+			 * \param wr  check for readiness for writing
+			 * \param ex  check for exceptions
+			 */
+			void _block_for_io_channel(Shared_pointer<Io_channel> &io,
+			                           bool rd, bool wr, bool ex)
 			{
+				/* reset the blocker lock to the 'locked' state */
+				_blocker.unlock();
+				_blocker.lock();
+
 				Wake_up_notifier notifier(&_blocker);
 				io->register_wake_up_notifier(&notifier);
-				_blocker.down();
+
+				for (;;) {
+					if (io->check_unblock(rd, wr, ex) ||
+					    !_pending_signals.empty())
+						break;
+
+					/* block (unless the lock got unlocked in the meantime) */
+					_blocker.lock();
+				}
+
 				io->unregister_wake_up_notifier(&notifier);
 			}
 
@@ -395,6 +429,78 @@ namespace Noux {
 							return fd;
 				return -1;
 			}
+
+
+			/****************************************
+			 ** File_descriptor_registry overrides **
+			 ****************************************/
+
+			/**
+			 * Find out if the IO channel associated with 'fd' has more file
+			 * descriptors associated with it
+			 */
+			bool _is_the_only_fd_for_io_channel(int fd,
+			                                    Shared_pointer<Io_channel> io_channel)
+			{
+				for (int f = 0; f < MAX_FILE_DESCRIPTORS; f++) {
+					if ((f != fd) &&
+					    fd_in_use(f) &&
+					    (io_channel_by_fd(f) == io_channel))
+					return false;
+				}
+
+				return true;
+			}
+
+			int add_io_channel(Shared_pointer<Io_channel> io_channel, int fd = -1)
+			{
+				fd = File_descriptor_registry::add_io_channel(io_channel, fd);
+
+				/* Register the interrupt handler only once per IO channel */
+				if (_is_the_only_fd_for_io_channel(fd, io_channel))
+					io_channel->register_interrupt_handler(this);
+
+				return fd;
+			}
+
+			void remove_io_channel(int fd)
+			{
+				Shared_pointer<Io_channel> io_channel = _lookup_channel(fd);
+
+				/*
+				 * Unregister the interrupt handler only if there are no other
+				 * file descriptors associated with the IO channel.
+				 */
+				if (_is_the_only_fd_for_io_channel(fd, io_channel))
+					io_channel->unregister_interrupt_handler(this);
+
+				File_descriptor_registry::remove_io_channel(fd);
+			}
+
+			void flush()
+			{
+				for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
+					try {
+						remove_io_channel(fd);
+					} catch (Invalid_fd) { }
+			}
+
+
+			/*********************************
+			 ** Interrupt_handler interface **
+			 *********************************/
+
+			void handle_interrupt()
+			{
+				try {
+					_pending_signals.add(Sysio::SIG_INT);
+				} catch (Signal_queue::Overflow) {
+					PERR("signal queue is full - signal dropped");
+				}
+
+				_blocker.unlock();
+			}
+
 	};
 };
 

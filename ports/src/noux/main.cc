@@ -89,11 +89,11 @@ namespace Noux {
 	{
 		private:
 			Timeout_state     *_state;
-			Semaphore         *_blocker;
+			Lock              *_blocker;
 			Timeout_scheduler *_scheduler;
 
 		public:
-			Timeout_alarm(Timeout_state *st, Semaphore *blocker, Timeout_scheduler *scheduler, Time timeout)
+			Timeout_alarm(Timeout_state *st, Lock *blocker, Timeout_scheduler *scheduler, Time timeout)
 				:
 					_state(st),
 					_blocker(blocker),
@@ -109,7 +109,7 @@ namespace Noux {
 			bool on_alarm()
 			{
 				_state->timed_out = true;
-				_blocker->up();
+				_blocker->unlock();
 
 				return false;
 			}
@@ -127,6 +127,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		Genode::printf("PID %d -> SYSCALL %s\n",
 		               pid(), Noux::Session::syscall_name(sc));
 
+	bool result = false;
+
 	try {
 		switch (sc) {
 
@@ -139,17 +141,26 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					Shared_pointer<Io_channel> io = _lookup_channel(_sysio->write_in.fd);
 
 					if (!io->is_nonblocking())
-						if (!io->check_unblock(false, true, false))
-							_block_for_io_channel(io);
+						_block_for_io_channel(io, false, true, false);
 
-					/*
-					 * 'io->write' is expected to update 'write_out.count'
-					 */
-					if (io->write(_sysio, count) == false)
-						return false;
+					if (io->check_unblock(false, true, false)) {
+						/*
+						 * 'io->write' is expected to update
+						 * '_sysio->write_out.count' and 'count'
+						 */
+						result = io->write(_sysio, count);
+						if (result == false)
+							break;
+					} else {
+						if (result == false) {
+							/* nothing was written yet */
+							_sysio->error.write = Sysio::WRITE_ERR_INTERRUPT;
+						}
+						break;
+					}
 				}
 
-				return true;
+				break;
 			}
 
 		case SYSCALL_READ:
@@ -157,20 +168,28 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->read_in.fd);
 
 				if (!io->is_nonblocking())
-					while (!io->check_unblock(true, false, false))
-						_block_for_io_channel(io);
+					_block_for_io_channel(io, true, false, false);
 
-				return io->read(_sysio);
+				if (io->check_unblock(true, false, false))
+					result = io->read(_sysio);
+				else
+					_sysio->error.read = Sysio::READ_ERR_INTERRUPT;
+
+				break;
 			}
 
 		case SYSCALL_FTRUNCATE:
 			{
 				Shared_pointer<Io_channel> io = _lookup_channel(_sysio->ftruncate_in.fd);
 
-				while (!io->check_unblock(true, false, false))
-					_block_for_io_channel(io);
+				_block_for_io_channel(io, false, true, false);
 
-				return io->ftruncate(_sysio);
+				if (io->check_unblock(false, true, false))
+					result = io->ftruncate(_sysio);
+				else
+					_sysio->error.ftruncate = Sysio::FTRUNCATE_ERR_INTERRUPT;
+
+				break;
 			}
 
 		case SYSCALL_STAT:
@@ -225,7 +244,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 				Shared_pointer<Io_channel>
 					channel(new Vfs_io_channel(_sysio->open_in.path,
-					                           leaf_path, root_dir(), vfs_handle),
+					                           leaf_path, root_dir(),
+					                           vfs_handle, *_sig_rec),
 					        Genode::env()->heap());
 
 				_sysio->open_out.fd = add_io_channel(channel);
@@ -302,6 +322,17 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 					_assign_io_channels_to(child);
 
+					/*
+					 * Close all open files.
+					 *
+					 * This action is not part of the child destructor,
+					 * because in the case that a child exits itself,
+					 * it may need to close all files to unblock the
+					 * parent (which might be reading from a pipe) before
+					 * the parent can destroy the child object.
+					 */
+					flush();
+
 					/* signal main thread to remove ourself */
 					Genode::Signal_transmitter(_destruct_context_cap).submit();
 
@@ -328,6 +359,46 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				long timeout_sec     = _sysio->select_in.timeout.sec;
 				long timeout_usec    = _sysio->select_in.timeout.usec;
 				bool timeout_reached = false;
+
+				/* reset the blocker lock to the 'locked' state */
+				_blocker.unlock();
+				_blocker.lock();
+
+				/*
+				 * Register ourself at all watched I/O channels
+				 *
+				 * We instantiate as many notifiers as we have file
+				 * descriptors to observe. Each notifier is associated
+				 * with the child's blocking semaphore. When any of the
+				 * notifiers get woken up, the semaphore gets unblocked.
+				 *
+				 * XXX However, the blocker may get unblocked for other
+				 *     conditions such as the destruction of the child.
+				 *     ...to be done.
+				 */
+
+				Wake_up_notifier notifiers[in_fds_total];
+
+				for (Genode::size_t i = 0; i < in_fds_total; i++) {
+					int fd = in_fds.array[i];
+					if (!fd_in_use(fd)) continue;
+
+					Shared_pointer<Io_channel> io = io_channel_by_fd(fd);
+					notifiers[i].lock = &_blocker;
+
+					io->register_wake_up_notifier(&notifiers[i]);
+				}
+
+				/**
+				 * Register ourself at the Io_receptor_registry
+				 *
+				 * Each entry in the registry will be unblocked if an external
+				 * event has happend, e.g. network I/O.
+				 */
+
+				Io_receptor receptor(&_blocker);
+				io_receptor_registry()->register_receptor(&receptor);
+
 
 				/*
 				 * Block for one action of the watched file descriptors
@@ -383,13 +454,14 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 						/* exception fds are currently not considered */
 						_sysio->select_out.fds.num_ex = unblock_ex;
 
-						return true;
+						result = true;
+						break;
 					}
 
 					/*
-					 * Return if I/O channel triggered, but timeout exceeded
+					 * Return if timeout is zero or timeout exceeded
 					 */
-					
+
 					if (_sysio->select_in.timeout.zero() || timeout_reached) {
 						/*
 						if (timeout_reached) PINF("timeout_reached");
@@ -399,42 +471,18 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 						_sysio->select_out.fds.num_wr = 0;
 						_sysio->select_out.fds.num_ex = 0;
 
-						return true;
+						result = true;
+						break;
 					}
 
 					/*
-					 * Register ourself at all watched I/O channels
-					 *
-					 * We instantiate as many notifiers as we have file
-					 * descriptors to observe. Each notifier is associated
-					 * with the child's blocking semaphore. When any of the
-					 * notifiers get woken up, the semaphore gets unblocked.
-					 *
-					 * XXX However, the semaphore may get unblocked for other
-					 *     conditions such as the destruction of the child.
-					 *     ...to be done.
+					 * Return if signals are pending
 					 */
 
-					Wake_up_notifier notifiers[in_fds_total];
-
-					for (Genode::size_t i = 0; i < in_fds_total; i++) {
-						int fd = in_fds.array[i];
-						if (!fd_in_use(fd)) continue;
-
-						Shared_pointer<Io_channel> io = io_channel_by_fd(fd);
-						notifiers[i].semaphore = &_blocker;
-						io->register_wake_up_notifier(&notifiers[i]);
+					if (!_pending_signals.empty()) {
+						_sysio->error.select = Sysio::SELECT_ERR_INTERRUPT;
+						break;
 					}
-
-					/**
-					 * Register ourself at the Io_receptor_registry
-					 *
-					 * Each entry in the registry will be unblocked if an external
-					 * event has happend, e.g. network I/O.
-					 */
-
-					Io_receptor receptor(&_blocker);
-					io_receptor_registry()->register_receptor(&receptor);
 
 					/*
 					 * Block at barrier except when reaching the timeout
@@ -446,7 +494,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 						Timeout_alarm ta(&ts, &_blocker, Noux::timeout_scheduler(), to_msec);
 
 						/* block until timeout is reached or we were unblocked */
-						_blocker.down();
+						_blocker.lock();
 
 						if (ts.timed_out) {
 							timeout_reached = 1;
@@ -461,28 +509,28 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					}
 					else {
 						/* let's block infinitely */
-						_blocker.down();
+						_blocker.lock();
 					}
-
-					/*
-					 * Unregister barrier at watched I/O channels
-					 */
-					for (Genode::size_t i = 0; i < in_fds_total; i++) {
-						int fd = in_fds.array[i];
-						if (!fd_in_use(fd)) continue;
-
-						Shared_pointer<Io_channel> io = io_channel_by_fd(fd);
-						io->unregister_wake_up_notifier(&notifiers[i]);
-					}
-
-					/*
-					 * Unregister receptor
-					 */
-					io_receptor_registry()->unregister_receptor(&receptor);
 
 				}
 
-				return true;
+				/*
+				 * Unregister barrier at watched I/O channels
+				 */
+				for (Genode::size_t i = 0; i < in_fds_total; i++) {
+					int fd = in_fds.array[i];
+					if (!fd_in_use(fd)) continue;
+
+					Shared_pointer<Io_channel> io = io_channel_by_fd(fd);
+					io->unregister_wake_up_notifier(&notifiers[i]);
+				}
+
+				/*
+				 * Unregister receptor
+				 */
+				io_receptor_registry()->unregister_receptor(&receptor);
+
+				break;
 			}
 
 		case SYSCALL_FORK:
@@ -722,7 +770,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 	catch (...) { PERR("Unexpected exception"); }
 
-	return false;
+	/* handle signals which might have occured */
+	while (!_pending_signals.empty() &&
+		   (_sysio->pending_signals.avail_capacity() > 0))
+		_sysio->pending_signals.add(_pending_signals.get());
+
+	return result;
 }
 
 

@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <base/lock.h>
-#include <base/semaphore.h>
 #include <util/list.h>
 
 
@@ -26,19 +25,19 @@ namespace Noux {
 	{
 		private:
 
-			Semaphore *_sem;
+			Lock *_lock;
 
 		public:
 
-			Io_receptor(Semaphore *semaphore)
+			Io_receptor(Lock *lock)
 			:
-				_sem(semaphore)
+				_lock(lock)
 			{ }
 
 			void check_and_wakeup()
 			{
-				if (_sem)
-					_sem->up();
+				if (_lock)
+					_lock->unlock();
 			}
 	};
 

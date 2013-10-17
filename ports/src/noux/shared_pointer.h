@@ -145,6 +145,11 @@ namespace Noux {
 
 			operator bool () const { return _ptr != 0; }
 
+			bool operator== (const Shared_pointer &other)
+			{
+				return (_ptr == other._ptr);
+			}
+
 			template<typename To>
 			Shared_pointer<To> dynamic_pointer_cast()
 			{

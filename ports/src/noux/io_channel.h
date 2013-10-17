@@ -24,6 +24,7 @@
 #include <noux_session/sysio.h>
 #include <shared_pointer.h>
 #include <wake_up_notifier.h>
+#include <interrupt_handler.h>
 
 namespace Noux {
 
@@ -52,8 +53,10 @@ namespace Noux {
 			 * List of notifiers (i.e., processes) used by threads that block
 			 * for an I/O-channel event
 			 */
-			List<Wake_up_notifier> _notifiers;
-			Lock                   _notifiers_lock;
+			List<Wake_up_notifier>  _notifiers;
+			Lock                    _notifiers_lock;
+			List<Interrupt_handler> _interrupt_handlers;
+			Lock                    _interrupt_handlers_lock;
 
 		public:
 
@@ -129,6 +132,41 @@ namespace Noux {
 
 				for (Wake_up_notifier *n = _notifiers.first(); n; n = n->next())
 					n->wake_up();
+			}
+
+			/**
+			 * Register interrupt handler
+			 *
+			 * This function is called by Child objects to get woken up if the
+			 * terminal sends, for example, Ctrl-C.
+			 */
+			void register_interrupt_handler(Interrupt_handler *handler)
+			{
+				Lock::Guard guard(_interrupt_handlers_lock);
+
+				_interrupt_handlers.insert(handler);
+			}
+
+			/**
+			 * Unregister interrupt handler
+			 */
+			void unregister_interrupt_handler(Interrupt_handler *handler)
+			{
+				Lock::Guard guard(_interrupt_handlers_lock);
+
+				_interrupt_handlers.remove(handler);
+			}
+
+			/**
+			 * Tell all registered handlers about an interrupt event
+			 */
+			void invoke_all_interrupt_handlers()
+			{
+				Lock::Guard guard(_interrupt_handlers_lock);
+
+				for (Interrupt_handler *h = _interrupt_handlers.first();
+				     h; h = h->next())
+					h->handle_interrupt();
 			}
 	};
 }
