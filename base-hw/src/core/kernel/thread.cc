@@ -24,6 +24,7 @@
 using namespace Kernel;
 
 typedef Genode::Thread_state Thread_state;
+typedef Genode::Msg_type     Msg_type;
 
 
 bool Thread::_core() const
@@ -90,8 +91,8 @@ void Thread::_received_ipc_request(size_t const s)
 {
 	switch (_state) {
 	case SCHEDULED:
+		_phys_utcb->msg.type = Msg_type::IPC;
 		_phys_utcb->ipc_msg.size = s;
-		user_arg_0(0);
 		return;
 	default:
 		PERR("wrong thread state to receive IPC");
@@ -121,8 +122,8 @@ void Thread::_await_ipc_succeeded(size_t const s)
 {
 	switch (_state) {
 	case AWAITS_IPC:
+		_phys_utcb->msg.type = Msg_type::IPC;
 		_phys_utcb->ipc_msg.size = s;
-		user_arg_0(0);
 		_schedule();
 		return;
 	case AWAITS_PAGER_IPC:
@@ -143,7 +144,7 @@ void Thread::_await_ipc_failed()
 {
 	switch (_state) {
 	case AWAITS_IPC:
-		user_arg_0(-1);
+		_phys_utcb->msg.type = Msg_type::INVALID;
 		_schedule();
 		return;
 	case SCHEDULED:
@@ -641,7 +642,7 @@ void Thread::_syscall_reply()
 		void * const buf_base = _phys_utcb->ipc_msg.data;
 		size_t const buf_size = _phys_utcb->ipc_msg_max_size();
 		Ipc_node::await_request(buf_base, buf_size);
-	} else { user_arg_0(0); }
+	} else { _phys_utcb->msg.type = Msg_type::INVALID; }
 }
 
 

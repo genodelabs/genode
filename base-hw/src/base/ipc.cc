@@ -92,7 +92,7 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 
 void Ipc_istream::_wait()
 {
-	/* FIXME this shall be not supported */
+	/* FIXME: this shall be not supported */
 	Kernel::pause_thread();
 }
 
@@ -116,11 +116,17 @@ void Ipc_client::_call()
 {
 	using namespace Kernel;
 
-	/* send request and receive reply */
+	/* send request */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
-	int error = request_and_wait(Ipc_ostream::_dst.dst());
-	if (error) { throw Blocking_canceled(); }
+	request_and_wait(Ipc_ostream::_dst.dst());
+
+	/* receive reply */
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	if (utcb->msg.type != Msg_type::IPC) {
+		PERR("failed to receive reply");
+		throw Blocking_canceled();
+	}
 	utcb_to_msgbuf(_rcv_msg);
 
 	/* reset unmarshaller */
@@ -161,12 +167,14 @@ void Ipc_server::_prepare_next_reply_wait()
 void Ipc_server::_wait()
 {
 	/* receive next request */
-	int const error = Kernel::wait_for_request();
-	if (!error) { utcb_to_msgbuf(_rcv_msg); }
-	else {
+	Kernel::wait_for_request();
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	if (utcb->msg.type != Msg_type::IPC) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
+	utcb_to_msgbuf(_rcv_msg);
+
 	/* update server state */
 	_prepare_next_reply_wait();
 }
@@ -182,21 +190,24 @@ void Ipc_server::_reply()
 
 void Ipc_server::_reply_wait()
 {
-	/* if there is no reply simply do wait for request */
-	/* FIXME this shall be not supported */
+	/* if there is no reply, wait for request */
 	if (!_reply_needed) {
 		_wait();
 		return;
 	}
-	/* send reply and receive next request */
+	/* send reply an await request */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
-	int const error = Kernel::reply(1);
-	if (!error) { utcb_to_msgbuf(_rcv_msg); }
-	else {
+	Kernel::reply(1);
+
+	/* fetch request */
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	if (utcb->msg.type != Msg_type::IPC) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
+	utcb_to_msgbuf(_rcv_msg);
+
 	/* update server state */
 	_prepare_next_reply_wait();
 }

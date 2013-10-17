@@ -86,21 +86,42 @@ namespace Genode
 	};
 
 	/**
+	 * Types of synchronously communicated messages
+	 */
+	struct Msg_type
+	{
+		enum Id {
+			INVALID = 0,
+			IPC     = 1,
+		};
+	};
+
+	/**
+	 * Message that is communicated synchronously
+	 */
+	struct Msg
+	{
+		Msg_type::Id type;
+		uint8_t      data[];
+	};
+
+	/**
+	 * Message that is communicated between user threads
+	 */
+	struct Ipc_msg : Msg
+	{
+		size_t  size;
+		uint8_t data[];
+	};
+
+	/**
 	 * Describes a userland-thread-context region
 	 */
 	struct Native_utcb
 	{
-		/**
-		 * Structure of an IPC message held by the UTCB
-		 */
-		struct Ipc_msg
-		{
-			size_t  size;
-			uint8_t data[];
-		};
-
 		union {
 			uint8_t data[1 << MIN_MAPPING_SIZE_LOG2];
+			Msg     msg;
 			Ipc_msg ipc_msg;
 		};
 

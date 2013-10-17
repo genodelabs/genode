@@ -333,51 +333,42 @@ namespace Kernel
 
 
 	/**
-	 * Send IPC request and wait for reply
+	 * Send IPC request and await corresponding IPC reply
 	 *
 	 * \param id  kernel name of the server thread
 	 *
-	 * \retval  0  successful
-	 * \retval -1  failed
-	 *
-	 * If the call returns successful the callers UTCB provides
-	 * a valid reply message and its metadata.
+	 * As soon as call returns, callers UTCB provides received message.
 	 */
-	inline int request_and_wait(unsigned const id)
+	inline void request_and_wait(unsigned const id)
 	{
-		return (int)syscall(REQUEST_AND_WAIT, id);
+		syscall(REQUEST_AND_WAIT, id);
 	}
 
 
 	/**
-	 * Wait for next IPC request, discard current request
+	 * Await the receipt of a message
 	 *
-	 * \retval  0  succeeded
-	 * \retval -1  failed
+	 * \return  type of received message
 	 *
-	 * If the call returns successful the callers UTCB provides
-	 * a valid request message and its metadata.
+	 * As soon as call returns, callers UTCB provides received message.
 	 */
-	inline int wait_for_request()
+	inline void wait_for_request()
 	{
-		return (int)syscall(WAIT_FOR_REQUEST);
+		syscall(WAIT_FOR_REQUEST);
 	}
 
 
 	/**
-	 * Reply to last IPC request
+	 * Reply to lastly received message
 	 *
-	 * \param await_request  if the call shall await and fetch next request
+	 * \param await_message  wether the call shall await receipt of a message
 	 *
-	 * \retval  0  succeeded
-	 * \retval -1  failed to receive request
-	 *
-	 * If await_request = 1 and the call returns successful the callers UTCB
-	 * provides a valid request message and its metadata.
+	 * If await_request = 1, callers UTCB provides received message
+	 * as soon as call returns
 	 */
-	inline int reply(bool const await_request)
+	inline void reply(bool const await_message)
 	{
-		return (int)syscall(REPLY, await_request);
+		syscall(REPLY, await_message);
 	}
 
 
