@@ -43,12 +43,12 @@ enum
 static void utcb_to_msgbuf(Msgbuf_base * const msgbuf)
 {
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	size_t msg_size = utcb->ipc_msg_size();
+	size_t msg_size = utcb->ipc_msg.size;
 	if (msg_size > msgbuf->size()) {
 		kernel_log() << "oversized IPC message\n";
 		msg_size = msgbuf->size();
 	}
-	memcpy(msgbuf->buf, utcb->ipc_msg_base(), msg_size);
+	memcpy(msgbuf->buf, utcb->ipc_msg.data, msg_size);
 }
 
 
@@ -61,15 +61,15 @@ static void msgbuf_to_utcb(Msgbuf_base * const msg_buf, size_t msg_size,
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	enum { NAME_SIZE = sizeof(local_name) };
 	size_t const ipc_msg_size = msg_size + NAME_SIZE;
-	if (ipc_msg_size > utcb->max_ipc_msg_size()) {
+	if (ipc_msg_size > utcb->ipc_msg_max_size()) {
 		kernel_log() << "oversized IPC message\n";
-		msg_size = utcb->max_ipc_msg_size() - NAME_SIZE;
+		msg_size = utcb->ipc_msg_max_size() - NAME_SIZE;
 	}
-	*(unsigned *)utcb->ipc_msg_base() = local_name;
-	void * const utcb_msg = (void *)((addr_t)utcb->ipc_msg_base() + NAME_SIZE);
+	*(unsigned *)utcb->ipc_msg.data = local_name;
+	void * const utcb_msg = (void *)((addr_t)utcb->ipc_msg.data + NAME_SIZE);
 	void * const buf_msg  = (void *)((addr_t)msg_buf->buf + NAME_SIZE);
 	memcpy(utcb_msg, buf_msg, msg_size);
-	utcb->ipc_msg_size(ipc_msg_size);
+	utcb->ipc_msg.size = ipc_msg_size;
 }
 
 
@@ -175,7 +175,7 @@ void Ipc_server::_wait()
 void Ipc_server::_reply()
 {
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->ipc_msg_size(_write_offset);
+	utcb->ipc_msg.size = _write_offset;
 	Kernel::reply(0);
 }
 

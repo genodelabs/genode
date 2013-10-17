@@ -90,43 +90,39 @@ namespace Genode
 	 */
 	struct Native_utcb
 	{
-		/* UTCB payload */
-		char payload[1<<MIN_MAPPING_SIZE_LOG2];
+		/**
+		 * Structure of an IPC message held by the UTCB
+		 */
+		struct Ipc_msg
+		{
+			size_t  size;
+			uint8_t data[];
+		};
+
+		union {
+			uint8_t data[1 << MIN_MAPPING_SIZE_LOG2];
+			Ipc_msg ipc_msg;
+		};
 
 		/**
 		 * Get the base of the UTCB region
 		 */
-		void * base() { return payload; }
+		void * base() { return data; }
 
 		/**
 		 * Get the size of the UTCB region
 		 */
-		size_t size() { return sizeof(payload); }
+		size_t size() { return sizeof(data) / sizeof(data[0]); }
 
 		/**
 		 * Get the top of the UTCB region
 		 */
-		addr_t top()  { return (addr_t)payload + size(); }
-
-		/**
-		 * Get the base of an IPC message that is held by the UTCB
-		 */
-		void * ipc_msg_base() { return (void *)((addr_t)base() + sizeof(size_t)); }
-
-		/**
-		 * Get the size of an IPC message that is held by the UTCB
-		 */
-		size_t ipc_msg_size() { return *(size_t *)base(); }
-
-		/**
-		 * Set the size of the IPC message that is held by the UTCB 
-		 */
-		void ipc_msg_size(size_t const s) { *(size_t *)base() = s; }
+		addr_t top()  { return (addr_t)data + size(); }
 
 		/**
 		 * Maximum size of an IPC message that can be held by the UTCB
 		 */
-		size_t max_ipc_msg_size() { return top() - (addr_t)ipc_msg_base(); }
+		size_t ipc_msg_max_size() { return top() - (addr_t)ipc_msg.data; }
 	};
 
 	struct Cap_dst_policy

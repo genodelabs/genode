@@ -90,7 +90,7 @@ void Thread::_received_ipc_request(size_t const s)
 {
 	switch (_state) {
 	case SCHEDULED:
-		_phys_utcb->ipc_msg_size(s);
+		_phys_utcb->ipc_msg.size = s;
 		user_arg_0(0);
 		return;
 	default:
@@ -121,7 +121,7 @@ void Thread::_await_ipc_succeeded(size_t const s)
 {
 	switch (_state) {
 	case AWAITS_IPC:
-		_phys_utcb->ipc_msg_size(s);
+		_phys_utcb->ipc_msg.size = s;
 		user_arg_0(0);
 		_schedule();
 		return;
@@ -604,8 +604,8 @@ void Thread::_syscall_get_thread()
  */
 void Thread::_syscall_wait_for_request()
 {
-	void * const buf_base = _phys_utcb->ipc_msg_base();
-	size_t const buf_size = _phys_utcb->max_ipc_msg_size();
+	void * const buf_base = _phys_utcb->ipc_msg.data;
+	size_t const buf_size = _phys_utcb->ipc_msg_max_size();
 	Ipc_node::await_request(buf_base, buf_size);
 }
 
@@ -622,8 +622,8 @@ void Thread::_syscall_request_and_wait()
 		return;
 	}
 	Ipc_node::send_request_await_reply(
-		dst, _phys_utcb->ipc_msg_base(), _phys_utcb->ipc_msg_size(),
-		_phys_utcb->ipc_msg_base(), _phys_utcb->max_ipc_msg_size());
+		dst, _phys_utcb->ipc_msg.data, _phys_utcb->ipc_msg.size,
+		_phys_utcb->ipc_msg.data, _phys_utcb->ipc_msg_max_size());
 }
 
 
@@ -633,13 +633,13 @@ void Thread::_syscall_request_and_wait()
 void Thread::_syscall_reply()
 {
 	bool const await_request = user_arg_1();
-	void * const msg_base = _phys_utcb->ipc_msg_base();
-	size_t const msg_size = _phys_utcb->ipc_msg_size();
+	void * const msg_base = _phys_utcb->ipc_msg.data;
+	size_t const msg_size = _phys_utcb->ipc_msg.size;
 	Ipc_node::send_reply(msg_base, msg_size);
 
 	if (await_request) {
-		void * const buf_base = _phys_utcb->ipc_msg_base();
-		size_t const buf_size = _phys_utcb->max_ipc_msg_size();
+		void * const buf_base = _phys_utcb->ipc_msg.data;
+		size_t const buf_size = _phys_utcb->ipc_msg_max_size();
 		Ipc_node::await_request(buf_base, buf_size);
 	} else { user_arg_0(0); }
 }

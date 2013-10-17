@@ -97,14 +97,14 @@ void Ipc_pager::wait_for_first_fault()
 {
 	while (Kernel::wait_for_request()) { PERR("failed to receive fault"); }
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	_wait_for_fault(utcb->ipc_msg_size());
+	_wait_for_fault(utcb->ipc_msg.size);
 }
 
 
 void Ipc_pager::wait_for_fault()
 {
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->ipc_msg_size(0);
+	utcb->ipc_msg.size = 0;
 	int err = Kernel::reply(1);
 	if (err) {
 		PERR("failed to receive fault");
@@ -112,7 +112,7 @@ void Ipc_pager::wait_for_fault()
 			PERR("failed to receive fault");
 		}
 	}
-	_wait_for_fault(utcb->ipc_msg_size());
+	_wait_for_fault(utcb->ipc_msg.size);
 }
 
 
@@ -129,7 +129,7 @@ void Ipc_pager::_wait_for_fault(size_t s)
 
 			/* message is a pagefault */
 			Native_utcb * const utcb = Thread_base::myself()->utcb();
-			Pagefault * const pf = (Pagefault *)utcb->ipc_msg_base();
+			Pagefault * const pf = (Pagefault *)utcb->ipc_msg.data;
 			if (pf->valid())
 			{
 				/* give our caller the chance to handle the fault */
@@ -147,19 +147,19 @@ void Ipc_pager::_wait_for_fault(size_t s)
 
 			/* message is a release request from a RM session */
 			Native_utcb * const utcb = Thread_base::myself()->utcb();
-			void * const msg_base = utcb->ipc_msg_base();
+			void * const msg_base = utcb->ipc_msg.data;
 			Pagefault_resolved * const msg = (Pagefault_resolved *)msg_base;
 
 			/* resume faulter, send ack to RM and get the next message */
 			Kernel::resume_thread(msg->pager_object->badge());
-			utcb->ipc_msg_size(0);
+			utcb->ipc_msg.size = 0;
 			if (Kernel::reply(1)) {
 				PERR("failed to receive fault");
 				while (Kernel::wait_for_request()) {
 					PERR("failed to receive fault");
 				}
 			}
-			s = utcb->ipc_msg_size();
+			s = utcb->ipc_msg.size;
 			continue; }
 
 		default: {
