@@ -90,7 +90,8 @@ void Thread::_received_ipc_request(size_t const s)
 {
 	switch (_state) {
 	case SCHEDULED:
-		user_arg_0(s);
+		_phys_utcb->ipc_msg_size(s);
+		user_arg_0(0);
 		return;
 	default:
 		PERR("wrong thread state to receive IPC");
@@ -116,19 +117,13 @@ void Thread::_await_ipc()
 }
 
 
-void Thread::_await_ipc_succeeded(bool const reply, size_t const s)
+void Thread::_await_ipc_succeeded(size_t const s)
 {
 	switch (_state) {
 	case AWAITS_IPC:
-		/* FIXME: return error codes on all IPC transfers */
-		if (reply) {
-			_phys_utcb->ipc_msg_size(s);
-			user_arg_0(0);
-			_schedule();
-		} else {
-			user_arg_0(s);
-			_schedule();
-		}
+		_phys_utcb->ipc_msg_size(s);
+		user_arg_0(0);
+		_schedule();
 		return;
 	case AWAITS_PAGER_IPC:
 		_schedule();
@@ -144,18 +139,12 @@ void Thread::_await_ipc_succeeded(bool const reply, size_t const s)
 }
 
 
-void Thread::_await_ipc_failed(bool const reply)
+void Thread::_await_ipc_failed()
 {
 	switch (_state) {
 	case AWAITS_IPC:
-		/* FIXME: return error codes on all IPC transfers */
-		if (reply) {
-			user_arg_0(-1);
-			_schedule();
-		} else {
-			PERR("failed to receive IPC");
-			_stop();
-		}
+		user_arg_0(-1);
+		_schedule();
 		return;
 	case SCHEDULED:
 		PERR("failed to receive IPC");
@@ -615,7 +604,9 @@ void Thread::_syscall_get_thread()
  */
 void Thread::_syscall_wait_for_request()
 {
-	Ipc_node::await_request(_phys_utcb->base(), _phys_utcb->size());
+	void * const buf_base = _phys_utcb->ipc_msg_base();
+	size_t const buf_size = _phys_utcb->max_ipc_msg_size();
+	Ipc_node::await_request(buf_base, buf_size);
 }
 
 
@@ -641,12 +632,15 @@ void Thread::_syscall_request_and_wait()
  */
 void Thread::_syscall_reply()
 {
-	size_t const msg_size      = user_arg_1();
-	bool const   await_request = user_arg_2();
+	bool const await_request = user_arg_1();
+	void * const msg_base = _phys_utcb->ipc_msg_base();
+	size_t const msg_size = _phys_utcb->ipc_msg_size();
+	Ipc_node::send_reply(msg_base, msg_size);
 
-	Ipc_node::send_reply(_phys_utcb->base(), msg_size);
 	if (await_request) {
-		Ipc_node::await_request(_phys_utcb->base(), _phys_utcb->size());
+		void * const buf_base = _phys_utcb->ipc_msg_base();
+		size_t const buf_size = _phys_utcb->max_ipc_msg_size();
+		Ipc_node::await_request(buf_base, buf_size);
 	} else { user_arg_0(0); }
 }
 

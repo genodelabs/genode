@@ -341,7 +341,7 @@ namespace Kernel
 	 * \retval -1  failed
 	 *
 	 * If the call returns successful the callers UTCB provides
-	 * a valid reply message and its size.
+	 * a valid reply message and its metadata.
 	 */
 	inline int request_and_wait(unsigned const id)
 	{
@@ -352,23 +352,33 @@ namespace Kernel
 	/**
 	 * Wait for next IPC request, discard current request
 	 *
-	 * \return  size of received request (beginning with the callers UTCB base)
+	 * \retval  0  succeeded
+	 * \retval -1  failed
+	 *
+	 * If the call returns successful the callers UTCB provides
+	 * a valid request message and its metadata.
 	 */
-	inline size_t wait_for_request() {
-		return (size_t)syscall(WAIT_FOR_REQUEST); }
+	inline int wait_for_request()
+	{
+		return (int)syscall(WAIT_FOR_REQUEST);
+	}
 
 
 	/**
 	 * Reply to last IPC request
 	 *
-	 * \param size           reply size (beginning with the callers UTCB base)
 	 * \param await_request  if the call shall await and fetch next request
 	 *
-	 * \return  request size (beginning with the callers UTCB base)
-	 *          if await_request was set
+	 * \retval  0  succeeded
+	 * \retval -1  failed to receive request
+	 *
+	 * If await_request = 1 and the call returns successful the callers UTCB
+	 * provides a valid request message and its metadata.
 	 */
-	inline size_t reply(size_t const size, bool const await_request) {
-		return (size_t)syscall(REPLY, size, await_request); }
+	inline int reply(bool const await_request)
+	{
+		return (int)syscall(REPLY, await_request);
+	}
 
 
 	/**

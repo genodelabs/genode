@@ -209,8 +209,8 @@ class Kernel::Thread
 
 		void _received_ipc_request(size_t const s);
 		void _await_ipc();
-		void _await_ipc_succeeded(bool const reply, size_t const s);
-		void _await_ipc_failed(bool const reply);
+		void _await_ipc_succeeded(size_t const s);
+		void _await_ipc_failed();
 
 
 		/***************

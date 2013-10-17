@@ -38,68 +38,25 @@ enum
  ***************/
 
 /**
- * Limit message size to the size of UTCB and message buffer
+ * Copy message from the callers UTCB to message buffer
  */
-void limit_msg_size(Msgbuf_base * const msgbuf, Native_utcb * const utcb,
-                    size_t & size)
-{
-	if (size > utcb->size() || size > msgbuf->size()) {
-		kernel_log() << __PRETTY_FUNCTION__ << ": truncate message\n";
-		size = utcb->size() < msgbuf->size() ? utcb->size() : msgbuf->size();
-	}
-}
-
-
-/**
- * Copy message payload to message buffer
- */
-static void utcb_to_msgbuf(Msgbuf_base * const msgbuf, size_t size)
-{
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	limit_msg_size(msgbuf, utcb, size);
-	memcpy(msgbuf->buf, utcb->base(), size);
-}
-
-/**
- * Copy message payload with size header to message buffer
- *
- * This function pioneers IPC messages with headers and will
- * replace utcb_to_msgbuf sometime.
- */
-static void sized_utcb_to_msgbuf(Msgbuf_base * const msgbuf)
+static void utcb_to_msgbuf(Msgbuf_base * const msgbuf)
 {
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	size_t msg_size = utcb->ipc_msg_size();
-	if (msg_size > utcb->max_ipc_msg_size()) {
+	if (msg_size > msgbuf->size()) {
 		kernel_log() << "oversized IPC message\n";
-		msg_size = utcb->max_ipc_msg_size();
+		msg_size = msgbuf->size();
 	}
 	memcpy(msgbuf->buf, utcb->ipc_msg_base(), msg_size);
 }
 
 
 /**
- * Copy message payload to the UTCB
+ * Copy message from message buffer to the callers UTCB
  */
-static void msgbuf_to_utcb(Msgbuf_base * const msgbuf, size_t size,
+static void msgbuf_to_utcb(Msgbuf_base * const msg_buf, size_t msg_size,
                            unsigned const local_name)
-{
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	*(unsigned *)utcb->base() = local_name;
-	size += sizeof(local_name);
-	limit_msg_size(msgbuf, utcb, size);
-	memcpy((unsigned *)utcb->base() + 1, (unsigned *)msgbuf->buf + 1, size);
-}
-
-
-/**
- * Copy message payload with size header to the UTCB
- *
- * This function pioneers IPC messages with headers and will
- * replace msgbuf_to_utcb sometime.
- */
-static void msgbuf_to_sized_utcb(Msgbuf_base * const msg_buf, size_t msg_size,
-                                 unsigned const local_name)
 {
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	enum { NAME_SIZE = sizeof(local_name) };
@@ -161,10 +118,10 @@ void Ipc_client::_call()
 
 	/* send request and receive reply */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
-	msgbuf_to_sized_utcb(_snd_msg, _write_offset, local_name);
+	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
 	int error = request_and_wait(Ipc_ostream::_dst.dst());
 	if (error) { throw Blocking_canceled(); }
-	sized_utcb_to_msgbuf(_rcv_msg);
+	utcb_to_msgbuf(_rcv_msg);
 
 	/* reset unmarshaller */
 	_write_offset = _read_offset = RPC_OBJECT_ID_SIZE;
@@ -204,14 +161,23 @@ void Ipc_server::_prepare_next_reply_wait()
 void Ipc_server::_wait()
 {
 	/* receive next request */
-	utcb_to_msgbuf(_rcv_msg, Kernel::wait_for_request());
-
+	int const error = Kernel::wait_for_request();
+	if (!error) { utcb_to_msgbuf(_rcv_msg); }
+	else {
+		PERR("failed to receive request");
+		throw Blocking_canceled();
+	}
 	/* update server state */
 	_prepare_next_reply_wait();
 }
 
 
-void Ipc_server::_reply() { Kernel::reply(_write_offset, 0); }
+void Ipc_server::_reply()
+{
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	utcb->ipc_msg_size(_write_offset);
+	Kernel::reply(0);
+}
 
 
 void Ipc_server::_reply_wait()
@@ -223,9 +189,14 @@ void Ipc_server::_reply_wait()
 		return;
 	}
 	/* send reply and receive next request */
-	msgbuf_to_utcb(_snd_msg, _write_offset, Ipc_ostream::_dst.local_name());
-	utcb_to_msgbuf(_rcv_msg, Kernel::reply(_write_offset, 1));
-
+	unsigned const local_name = Ipc_ostream::_dst.local_name();
+	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
+	int const error = Kernel::reply(1);
+	if (!error) { utcb_to_msgbuf(_rcv_msg); }
+	else {
+		PERR("failed to receive request");
+		throw Blocking_canceled();
+	}
 	/* update server state */
 	_prepare_next_reply_wait();
 }
