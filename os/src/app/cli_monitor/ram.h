@@ -45,7 +45,9 @@ class Ram
 		    Genode::Signal_context_capability yield_sigh,
 		    Genode::Signal_context_capability resource_avail_sigh)
 		:
-			_yield_sigh(yield_sigh), _preserve(preserve)
+			_yield_sigh(yield_sigh),
+			_resource_avail_sigh(resource_avail_sigh),
+			_preserve(preserve)
 		{ }
 
 		size_t preserve() const
