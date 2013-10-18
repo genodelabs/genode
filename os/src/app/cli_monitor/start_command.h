@@ -129,8 +129,9 @@ struct Start_command : Command
 		cmd.parameter("--ram",       ram);
 		cmd.parameter("--ram-limit", ram_limit);
 
-		size_t preserve_ram = 1*1024*1024;
-		if (ram + preserve_ram > Genode::env()->ram_session()->avail()) {
+		/* acount for cli_monitor local metadata */
+		size_t preserve_ram = 100*1024;
+		if (count * (ram + preserve_ram) > Genode::env()->ram_session()->avail()) {
 			tprintf(terminal, "Error: RAM quota exceeds available quota\n");
 			return;
 		}
