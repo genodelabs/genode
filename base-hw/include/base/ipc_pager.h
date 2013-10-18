@@ -79,30 +79,28 @@ namespace Genode
 	{
 		private:
 
-			Pagefault _pagefault; /* data of lastly received pagefault */
-			Mapping   _mapping; /* mapping to resolve last pagefault */
+			Pagefault_msg _pagefault_msg;
+			Mapping       _mapping;
 
 			/**
 			 * Backend for wait_for_fault and wait_for_first_fault
 			 */
-			void _wait_for_fault(size_t s);
+			void _wait_for_fault();
+
+			/**
+			 * Get global name of pager thread
+			 */
+			static unsigned _thread_id()
+			{
+				return Genode::thread_get_my_native_id();
+			}
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Ipc_pager() :
-				Native_capability(Genode::thread_get_my_native_id(), 0)
-			{
-				/* check if we can distinguish all message types */
-				if (sizeof(Pagefault) == sizeof(Pagefault_resolved))
-				{
-					kernel_log() << __PRETTY_FUNCTION__
-					             << ": Message types indiscernible\n";
-					while (1) ;
-				}
-			}
+			Ipc_pager() : Native_capability(_thread_id(), 0) { }
 
 			/**
 			 * Wait for the first pagefault request
@@ -125,12 +123,12 @@ namespace Genode
 			/**
 			 * Request instruction pointer of current page fault
 			 */
-			addr_t fault_ip() { return _pagefault.virt_ip; }
+			addr_t fault_ip() { return _pagefault_msg.virt_ip; }
 
 			/**
 			 * Request fault address of current page fault
 			 */
-			addr_t fault_addr() { return _pagefault.virt_address; }
+			addr_t fault_addr() { return _pagefault_msg.virt_address; }
 
 			/**
 			 * Set parameters for next reply
@@ -159,17 +157,17 @@ namespace Genode
 			/**
 			 * Return thread ID of last faulter
 			 */
-			Native_thread_id last() const { return _pagefault.thread_id; }
+			Native_thread_id last() const { return _pagefault_msg.thread_id; }
 
 			/**
 			 * Return badge for faulting thread
 			 */
-			unsigned badge() const { return _pagefault.thread_id; }
+			unsigned badge() const { return _pagefault_msg.thread_id; }
 
 			/**
 			 * Return true if last fault was a write fault
 			 */
-			bool is_write_fault() const { return _pagefault.write; }
+			bool is_write_fault() const { return _pagefault_msg.write; }
 
 			/**
 			 * Return true if last fault was an exception

@@ -95,13 +95,8 @@ Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 
 void Ipc_pager::wait_for_first_fault()
 {
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	while (1) {
-		Kernel::wait_for_request();
-		if (utcb->msg.type == Msg_type::IPC) { break; }
-		PERR("failed to receive fault");
-	}
-	_wait_for_fault(utcb->ipc_msg.size);
+	Kernel::wait_for_request();
+	_wait_for_fault();
 }
 
 
@@ -110,62 +105,41 @@ void Ipc_pager::wait_for_fault()
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	utcb->ipc_msg.size = 0;
 	Kernel::reply(1);
-	while (utcb->msg.type != Msg_type::IPC) {
-		PERR("failed to receive fault");
-		Kernel::wait_for_request();
-	}
-	_wait_for_fault(utcb->ipc_msg.size);
+	_wait_for_fault();
 }
 
 
-void Ipc_pager::_wait_for_fault(size_t s)
+void Ipc_pager::_wait_for_fault()
 {
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	while (1)
 	{
-		/*
-		 * FIXME: the message size is a weak indicator for the message type
-		 */
-		switch (s)
-		{
-		case sizeof(Pagefault): {
+		switch (utcb->msg.type) {
 
-			/* message is a pagefault */
-			Native_utcb * const utcb = Thread_base::myself()->utcb();
-			Pagefault * const pf = (Pagefault *)utcb->ipc_msg.data;
-			if (pf->valid())
-			{
-				/* give our caller the chance to handle the fault */
-				_pagefault = *pf;
-				return;
-			}
-			/* pagefault is invalid so get the next message */
-			else {
-				PERR("invalid pagefault");
-				continue;
-			}
-			continue; }
+		case Msg::Type::PAGEFAULT: {
 
-		case sizeof(Pagefault_resolved): {
+			/* receive pagefault report */
+			_pagefault_msg = utcb->pagefault_msg;
+			return; }
 
-			/* message is a release request from a RM session */
+		case Msg::Type::IPC: {
+
+			/* receive release request from region manager */
 			Native_utcb * const utcb = Thread_base::myself()->utcb();
 			void * const msg_base = utcb->ipc_msg.data;
 			Pagefault_resolved * const msg = (Pagefault_resolved *)msg_base;
 
-			/* resume faulter, send ack to RM and get the next message */
+			/* resume faulter */
 			Kernel::resume_thread(msg->pager_object->badge());
 			utcb->ipc_msg.size = 0;
+
+			/* send ack to region manager and get next message */
 			Kernel::reply(1);
-			while (utcb->msg.type != Msg_type::IPC) {
-				PERR("failed to receive fault");
-				Kernel::wait_for_request();
-			}
-			s = utcb->ipc_msg.size;
 			continue; }
 
 		default: {
 
-			PERR("invalid message format");
+			PERR("unknown message type");
 			continue; }
 		}
 	}

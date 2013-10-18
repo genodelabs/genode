@@ -60,7 +60,7 @@ int Ipc_pager::resolve_and_wait_for_fault()
 		return -1;
 	}
 	/* prepare mapping */
-	Tlb * const tlb = _pagefault.tlb;
+	Tlb * const tlb = _pagefault_msg.tlb;
 	Page_flags::access_t const flags =
 	Page_flags::resolve_and_wait_for_fault(_mapping.writable,
 	                                       _mapping.write_combined,
@@ -91,7 +91,7 @@ int Ipc_pager::resolve_and_wait_for_fault()
 		}
 	}
 	/* wake up faulter */
-	Kernel::resume_faulter(_pagefault.thread_id);
+	Kernel::resume_faulter(_pagefault_msg.thread_id);
 
 	/* wait for next page fault */
 	wait_for_fault();

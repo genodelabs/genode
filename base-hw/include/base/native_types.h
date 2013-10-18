@@ -49,60 +49,51 @@ namespace Genode
 	inline Native_thread_id thread_invalid_id() { return 0; }
 
 	/**
-	 * Describes a pagefault
-	 */
-	struct Pagefault
-	{
-		unsigned thread_id;    /* thread ID of the faulter */
-		Tlb *    tlb;          /* TLB to wich the faulter is assigned */
-		addr_t   virt_ip;      /* the faulters virtual instruction pointer */
-		addr_t   virt_address; /* virtual fault address */
-		bool     write;        /* write access attempted at fault? */
-
-		/**
-		 * Placement new operator
-		 */
-		void * operator new (size_t, void * p) { return p; }
-
-		/**
-		 * Construct invalid pagefault
-		 */
-		Pagefault() : thread_id(0) { }
-
-		/**
-		 * Construct valid pagefault
-		 */
-		Pagefault(unsigned const tid, Tlb * const tlb,
-		          addr_t const vip, addr_t const va, bool const w)
-		:
-			thread_id(tid), tlb(tlb), virt_ip(vip),
-			virt_address(va), write(w)
-		{ }
-
-		/**
-		 * Validation
-		 */
-		bool valid() const { return thread_id != 0; }
-	};
-
-	/**
-	 * Types of synchronously communicated messages
-	 */
-	struct Msg_type
-	{
-		enum Id {
-			INVALID = 0,
-			IPC     = 1,
-		};
-	};
-
-	/**
 	 * Message that is communicated synchronously
 	 */
 	struct Msg
 	{
-		Msg_type::Id type;
-		uint8_t      data[];
+		/**
+		 * Types of synchronously communicated messages
+		 */
+		struct Type
+		{
+			enum Id {
+				INVALID   = 0,
+				IPC       = 1,
+				PAGEFAULT = 2,
+			};
+		};
+
+		Type::Id type;
+		uint8_t  data[];
+	};
+
+	/**
+	 * Message that reports a pagefault
+	 */
+	struct Pagefault_msg : Msg
+	{
+		unsigned thread_id;
+		Tlb *    tlb;
+		addr_t   virt_ip;
+		addr_t   virt_address;
+		bool     write;
+
+		static void init(void * const p, unsigned const tid, Tlb * const tlb,
+		                 addr_t const vip, addr_t const va, bool const w)
+		{
+			Pagefault_msg * msg = (Pagefault_msg *)p;
+			msg->Msg::type      = Msg::Type::PAGEFAULT;
+			msg->thread_id      = tid;
+			msg->tlb            = tlb;
+			msg->virt_ip        = vip;
+			msg->virt_address   = va;
+			msg->write          = w;
+		}
+
+		void * base() { return this; }
+		size_t size() { return sizeof(Pagefault_msg); }
 	};
 
 	/**
@@ -120,30 +111,43 @@ namespace Genode
 	struct Native_utcb
 	{
 		union {
-			uint8_t data[1 << MIN_MAPPING_SIZE_LOG2];
-			Msg     msg;
-			Ipc_msg ipc_msg;
+			uint8_t       data[1 << MIN_MAPPING_SIZE_LOG2];
+			Msg           msg;
+			Ipc_msg       ipc_msg;
+			Pagefault_msg pagefault_msg;
 		};
 
-		/**
-		 * Get the base of the UTCB region
-		 */
-		void * base() { return data; }
+		void syscall_wait_for_request(void * & buf_base, size_t & buf_size)
+		{
+			msg.type = Msg::Type::INVALID;
+			buf_base = base();
+			buf_size = size();
+		}
 
-		/**
-		 * Get the size of the UTCB region
-		 */
+		void syscall_request_and_wait(void * & msg_base, size_t & msg_size,
+		                              void * & buf_base, size_t & buf_size)
+		{
+			msg.type = Msg::Type::IPC;
+			msg_base = ipc_msg_base();
+			msg_size = ipc_msg_size();
+			buf_base = base();
+			buf_size = size();
+		}
+
+		void syscall_reply(void * & msg_base, size_t & msg_size)
+		{
+			msg.type = Msg::Type::IPC;
+			msg_base = ipc_msg_base();
+			msg_size = ipc_msg_size();
+		}
+
 		size_t size() { return sizeof(data) / sizeof(data[0]); }
-
-		/**
-		 * Get the top of the UTCB region
-		 */
-		addr_t top()  { return (addr_t)data + size(); }
-
-		/**
-		 * Maximum size of an IPC message that can be held by the UTCB
-		 */
-		size_t ipc_msg_max_size() { return top() - (addr_t)ipc_msg.data; }
+		void * base() { return &data; }
+		addr_t top() { return (addr_t)base() + size(); }
+		void * ipc_msg_base() { return &ipc_msg; }
+		size_t ipc_msg_size() { return ipc_msg_header_size() + ipc_msg.size; }
+		size_t ipc_msg_max_size() { return top() - (addr_t)&ipc_msg; }
+		size_t ipc_msg_header_size() { return (addr_t)ipc_msg.data - (addr_t)&ipc_msg; }
 	};
 
 	struct Cap_dst_policy

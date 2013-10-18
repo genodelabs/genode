@@ -24,7 +24,6 @@
 using namespace Kernel;
 
 typedef Genode::Thread_state Thread_state;
-typedef Genode::Msg_type     Msg_type;
 
 
 bool Thread::_core() const
@@ -91,8 +90,6 @@ void Thread::_received_ipc_request(size_t const s)
 {
 	switch (_state) {
 	case SCHEDULED:
-		_phys_utcb->msg.type = Msg_type::IPC;
-		_phys_utcb->ipc_msg.size = s;
 		return;
 	default:
 		PERR("wrong thread state to receive IPC");
@@ -122,8 +119,6 @@ void Thread::_await_ipc_succeeded(size_t const s)
 {
 	switch (_state) {
 	case AWAITS_IPC:
-		_phys_utcb->msg.type = Msg_type::IPC;
-		_phys_utcb->ipc_msg.size = s;
 		_schedule();
 		return;
 	case AWAITS_PAGER_IPC:
@@ -144,7 +139,6 @@ void Thread::_await_ipc_failed()
 {
 	switch (_state) {
 	case AWAITS_IPC:
-		_phys_utcb->msg.type = Msg_type::INVALID;
 		_schedule();
 		return;
 	case SCHEDULED:
@@ -340,10 +334,10 @@ void Thread::_mmu_exception()
 		PERR("unknown MMU exception");
 		return;
 	}
-	/* inform pager */
-	_pagefault = Pagefault(id(), (Tlb *)tlb(), ip, va, w);
-	void * const base = &_pagefault;
-	size_t const size = sizeof(_pagefault);
+	/* send pagefault message to pager */
+	Pagefault_msg::init(&_pagefault_msg, id(), (Tlb *)tlb(), ip, va, w);
+	void * const base = _pagefault_msg.base();
+	size_t const size = _pagefault_msg.size();
 	Ipc_node::send_request_await_reply(_pager, base, size, base, size);
 }
 
@@ -605,8 +599,9 @@ void Thread::_syscall_get_thread()
  */
 void Thread::_syscall_wait_for_request()
 {
-	void * const buf_base = _phys_utcb->ipc_msg.data;
-	size_t const buf_size = _phys_utcb->ipc_msg_max_size();
+	void * buf_base;
+	size_t buf_size;
+	_phys_utcb->syscall_wait_for_request(buf_base, buf_size);
 	Ipc_node::await_request(buf_base, buf_size);
 }
 
@@ -622,9 +617,14 @@ void Thread::_syscall_request_and_wait()
 		_await_ipc();
 		return;
 	}
-	Ipc_node::send_request_await_reply(
-		dst, _phys_utcb->ipc_msg.data, _phys_utcb->ipc_msg.size,
-		_phys_utcb->ipc_msg.data, _phys_utcb->ipc_msg_max_size());
+	void * msg_base;
+	size_t msg_size;
+	void * buf_base;
+	size_t buf_size;
+	_phys_utcb->syscall_request_and_wait(msg_base, msg_size,
+	                                     buf_base, buf_size);
+	Ipc_node::send_request_await_reply(dst, msg_base, msg_size,
+	                                   buf_base, buf_size);
 }
 
 
@@ -633,16 +633,12 @@ void Thread::_syscall_request_and_wait()
  */
 void Thread::_syscall_reply()
 {
-	bool const await_request = user_arg_1();
-	void * const msg_base = _phys_utcb->ipc_msg.data;
-	size_t const msg_size = _phys_utcb->ipc_msg.size;
+	void * msg_base;
+	size_t msg_size;
+	_phys_utcb->syscall_reply(msg_base, msg_size);
 	Ipc_node::send_reply(msg_base, msg_size);
-
-	if (await_request) {
-		void * const buf_base = _phys_utcb->ipc_msg.data;
-		size_t const buf_size = _phys_utcb->ipc_msg_max_size();
-		Ipc_node::await_request(buf_base, buf_size);
-	} else { _phys_utcb->msg.type = Msg_type::INVALID; }
+	bool const await_request = user_arg_1();
+	if (await_request) { _syscall_wait_for_request(); }
 }
 
 

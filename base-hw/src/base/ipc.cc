@@ -123,7 +123,7 @@ void Ipc_client::_call()
 
 	/* receive reply */
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	if (utcb->msg.type != Msg_type::IPC) {
+	if (utcb->msg.type != Msg::Type::IPC) {
 		PERR("failed to receive reply");
 		throw Blocking_canceled();
 	}
@@ -169,7 +169,7 @@ void Ipc_server::_wait()
 	/* receive next request */
 	Kernel::wait_for_request();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	if (utcb->msg.type != Msg_type::IPC) {
+	if (utcb->msg.type != Msg::Type::IPC) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
@@ -202,7 +202,7 @@ void Ipc_server::_reply_wait()
 
 	/* fetch request */
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	if (utcb->msg.type != Msg_type::IPC) {
+	if (utcb->msg.type != Msg::Type::IPC) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}

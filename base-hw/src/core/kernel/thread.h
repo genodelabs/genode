@@ -32,9 +32,9 @@ namespace Kernel
 	class Thread;
 	class Pd;
 
-	typedef Genode::Cpu         Cpu;
-	typedef Genode::Pagefault   Pagefault;
-	typedef Genode::Native_utcb Native_utcb;
+	typedef Genode::Cpu           Cpu;
+	typedef Genode::Pagefault_msg Pagefault_msg;
+	typedef Genode::Native_utcb   Native_utcb;
 
 	void reset_lap_time();
 
@@ -82,7 +82,7 @@ class Kernel::Thread
 
 		Platform_thread * const _platform_thread;
 		State                   _state;
-		Pagefault               _pagefault;
+		Pagefault_msg           _pagefault_msg;
 		Thread *                _pager;
 		unsigned                _pd_id;
 		Native_utcb *           _phys_utcb;
