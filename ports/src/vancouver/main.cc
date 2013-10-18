@@ -45,6 +45,7 @@
 #include <cap_session/connection.h>
 #include <base/allocator_avl.h>
 #include <nic_session/connection.h>
+#include <nic/packet_allocator.h>
 #include <os/config.h>
 #include <os/alarm.h>
 #include <os/synced_interface.h>
@@ -1164,11 +1165,16 @@ class Machine : public StaticReceiver<Machine>
 				}
 			case MessageHostOp::OP_GET_MAC:
 				{
-					Genode::Allocator_avl * tx_block_alloc =
-					        new Genode::Allocator_avl(Genode::env()->heap());
+					Nic::Packet_allocator *tx_block_alloc =
+						new (Genode::env()->heap()) Nic::Packet_allocator(Genode::env()->heap());
+
+					enum {
+						PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+						BUF_SIZE    = Nic::Session::QUEUE_SIZE * PACKET_SIZE,
+					};
 
 					try {
-						_nic = new Nic::Connection(tx_block_alloc);
+						_nic = new Nic::Connection(tx_block_alloc, BUF_SIZE, BUF_SIZE);
 					} catch (...) {
 						Logging::printf("No NIC connection possible!\n");
 						return false;
