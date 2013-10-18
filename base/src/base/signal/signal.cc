@@ -199,6 +199,31 @@ Signal::Signal(Signal::Data data) : _data(data)
 }
 
 
+/********************
+ ** Signal context **
+ ********************/
+
+void Signal_context::submit(unsigned num)
+{
+	if (!_receiver) {
+		PWRN("signal context with no receiver");
+		return;
+	}
+
+	if (!signal_context_registry()->test_and_lock(this)) {
+		PWRN("encountered dead signal context");
+		return;
+	}
+
+	/* construct and locally submit signal object */
+	Signal::Data signal(this, num);
+	_receiver->local_submit(signal);
+
+	/* free context lock that was taken by 'test_and_lock' */
+	_lock.unlock();
+}
+
+
 /************************
  ** Signal transmitter **
  ************************/

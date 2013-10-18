@@ -170,6 +170,16 @@ namespace Genode {
 			 */
 			virtual ~Signal_context() { }
 
+			/**
+			 * Local sginal submission (DEPRECATED)
+			 *
+			 * Trigger local signal submission (within the same address space), the
+			 * context has to be bound to a sginal receiver beforehand.
+			 *
+			 * \param num  number of pending signals
+			 */
+			void submit(unsigned num);
+
 			/*
 			 * Signal contexts are never invoked but only used as arguments for
 			 * 'Signal_session' functions. Hence, there exists a capability
@@ -343,7 +353,7 @@ namespace Genode {
 	 * \param T  type of signal-handling class
 	 */
 	template <typename T>
-	class Signal_dispatcher : private Signal_dispatcher_base,
+	class Signal_dispatcher : public Signal_dispatcher_base,
 	                          public  Signal_context_capability
 	{
 		private:
