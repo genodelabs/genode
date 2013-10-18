@@ -134,6 +134,9 @@ class Child : public List<Child>::Element, Genode::Child_policy
 		 */
 		void yield(size_t amount, bool greedy)
 		{
+			if (requested_ram_quota())
+				return; /* resource request in flight */
+
 			char buf[128];
 			snprintf(buf, sizeof(buf), "ram_quota=%zd", amount);
 			_withdraw_on_yield_response = greedy;
