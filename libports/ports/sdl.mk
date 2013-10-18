@@ -52,8 +52,9 @@ include/SDL/SDL_platform.h:
 	$(VERBOSE)ln -fs ../../src/lib/sdl/SDL_config_genode.h $(dir $@)
 
 clean-sdl:
-	$(VERBOSE)for i in `find $(CONTRIB_DIR)/$(SDL)/include -name "*.h"`; do \
-		rm -f include/SDL/`basename $$i`; done
+	$(VERBOSE)test -d $(CONTRIB_DIR)/$(SDL) && \
+		for i in `find $(CONTRIB_DIR)/$(SDL)/include -name "*.h"`; do \
+		rm -f include/SDL/`basename $$i`; done || true
 	$(VERBOSE)rm -f $(addprefix include/SDL/,SDL_config_genode.h SDL_config.h)
 	$(VERBOSE)rmdir include/SDL 2>/dev/null || true
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(SDL)
