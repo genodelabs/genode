@@ -158,6 +158,9 @@ class Child : public List<Child>::Element, Genode::Child_policy
 		 */
 		void withdraw_ram_quota(size_t amount)
 		{
+			if (!amount)
+				return;
+
 			_ram.withdraw_from(_resources.ram.cap(), amount);
 			_ram_quota -= amount;
 		}
@@ -286,9 +289,13 @@ class Child : public List<Child>::Element, Genode::Child_policy
 		void yield_response()
 		{
 			if (_withdraw_on_yield_response) {
+				enum { RESERVE = 4*1024*1024 };
+
+				size_t amount = _resources.ram.avail() < RESERVE
+				                ? 0 : _resources.ram.avail() - RESERVE;
 
 				/* try to immediately withdraw freed-up resources */
-				try { withdraw_ram_quota(_resources.ram.avail()); }
+				try { withdraw_ram_quota(amount); }
 				catch (Ram::Transfer_quota_failed) { }
 			}
 
