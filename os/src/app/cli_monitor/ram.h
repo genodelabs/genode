@@ -30,6 +30,10 @@ class Ram
 		{
 			if (_ram.avail() < _preserve)
 				Genode::Signal_transmitter(_yield_sigh).submit();
+
+			/* verify to answer outstanding resource requests too */
+			if (_ram.avail() > _preserve)
+				Genode::Signal_transmitter(_resource_avail_sigh).submit();
 		}
 
 	public:
