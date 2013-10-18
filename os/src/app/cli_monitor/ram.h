@@ -112,12 +112,15 @@ class Ram
 		{
 			Genode::Lock::Guard guard(_lock);
 
+			if (_ram.avail() < (_preserve + amount)) {
+				Genode::Signal_transmitter(_yield_sigh).submit();
+				throw Transfer_quota_failed();
+			}
+
 			int const ret = _ram.transfer_quota(to, amount);
 
 			if (ret != 0)
 				throw Transfer_quota_failed();
-
-			_validate_preservation();
 		}
 
 		/**
