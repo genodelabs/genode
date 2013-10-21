@@ -388,7 +388,7 @@ void Platform::_setup_basics()
 	                           Native_config::context_area_virtual_size());
 
 	/* preserve utcb- area in core's virtual address space */
-	_region_alloc.remove_range((addr_t)l4_utcb(), L4_PAGESIZE);
+	_region_alloc.remove_range((addr_t)l4_utcb(), L4_PAGESIZE * 16);
 
 	/* I/O memory could be the whole user address space */
 	/* FIXME if the kernel helps to find out max address - use info here */
