@@ -1,0 +1,35 @@
+--- contrib/dosbox-svn-3837/src/ints/bios.cpp.orig	2013-10-21 21:45:59.350897646 +0200
++++ contrib/dosbox-svn-3837/src/ints/bios.cpp	2013-10-21 22:02:03.526912653 +0200
+@@ -32,7 +32,7 @@
+ #include "setup.h"
+ #include "serialport.h"
+ #include <time.h>
+-#include <sys/timeb.h>
++//#include <sys/timeb.h>
+ 
+ 
+ /* if mem_systems 0 then size_extended is reported as the real size else 
+@@ -490,11 +490,11 @@
+ 
+ static void BIOS_HostTimeSync() {
+ 	/* Setup time and date */
+-	struct timeb timebuffer;
+-	ftime(&timebuffer);
++	struct timeval tv;
++	gettimeofday(&tv, NULL);
+ 	
+ 	struct tm *loctime;
+-	loctime = localtime (&timebuffer.time);
++	loctime = localtime (&tv.tv_sec);
+ 
+ 	/*
+ 	loctime->tm_hour = 23;
+@@ -513,7 +513,7 @@
+ 		loctime->tm_hour*3600*1000+
+ 		loctime->tm_min*60*1000+
+ 		loctime->tm_sec*1000+
+-		timebuffer.millitm))*(((double)PIT_TICK_RATE/65536.0)/1000.0));
++		(tv.tv_usec * 1000)))*(((double)PIT_TICK_RATE/65536.0)/1000.0));
+ 	mem_writed(BIOS_TIMER,ticks);
+ }
+ 

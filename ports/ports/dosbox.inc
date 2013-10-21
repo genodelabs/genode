@@ -1,0 +1,4 @@
+DOSBOX_REV     := 3837
+DOSBOX_VERSION := svn-$(DOSBOX_REV)
+DOSBOX         := dosbox-$(DOSBOX_VERSION)
+

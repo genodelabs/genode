@@ -1,0 +1,158 @@
+#
+# Build
+#
+
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/audio_out
+	server/tar_fs
+	drivers/framebuffer drivers/pci drivers/input
+	app/dosbox
+}
+
+lappend_if [have_spec acpi] build_components drivers/acpi
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+	</start>}
+
+append_if [have_spec vesa] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+		<config buffered="yes"> </config>
+		<route>
+			<service name="PCI"><child name="acpi" /></service>
+			<any-service> <parent /> <any-child /></any-service>
+		</route>
+	</start>}
+
+append_if [have_spec pl11x] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>}
+
+append config {
+	<start name="audio_out_drv">
+		<resource name="RAM" quantum="6M"/>}
+append_if [have_spec acpi] config {
+		<route>
+			<service name="IRQ"><child name="acpi" /></service>
+			<service name="PCI"><child name="acpi" /></service>
+			<any-service> <parent /> <any-child /></any-service>
+		</route>}
+append config {
+		<provides><service name="Audio_out"/></provides>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="tar_fs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<archive name="dosbox.tar" />
+			<policy label="" root="/" />
+		</config>
+	</start>
+	<start name="dosbox">
+		<resource name="RAM" quantum="128M"/>
+		<config>
+			<sdl_audio_volume value="100"/>
+		</config>
+	</start>
+</config>}
+
+install_config $config
+
+if {![file exists bin/dosbox.tar]} {
+	puts ""
+	puts "You need to provide 'bin/dosbox.tar' that contains the DOS game you want to"
+	puts "play. Mount the directory from within DosBox by entering 'mount C: <dir>',"
+	puts "change CWD to C: and play the game!"
+	puts ""
+	puts "(Note: for all games, which need a R/W filesystem, you cannot use 'tar_fs'.)"
+	puts ""
+	exit 1
+}
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer audio_out_drv
+	tar_fs ld.lib.so
+	libc_fs.lib.so libc.lib.so libc_log.lib.so
+	libm.lib.so lwip.lib.so libpng.lib.so
+	stdcxx.lib.so sdl.lib.so sdl_net.lib.so pthread.lib.so zlib.lib.so
+	dosbox dosbox.tar
+}
+
+# platform-specific modules
+lappend_if [have_spec nova]  boot_modules pci_device_pd
+lappend_if [have_spec acpi]  boot_modules acpi_drv
+lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec pci]   boot_modules pci_drv
+lappend_if [have_spec vesa]  boot_modules fb_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+lappend_if [have_spec pl11x] boot_modules fb_drv
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 -soundhw ac97 "
+
+run_genode_until forever
