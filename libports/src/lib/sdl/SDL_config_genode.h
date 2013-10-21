@@ -42,7 +42,7 @@
 #define SDL_AUDIO_DRIVER_GENODE 1
 
 /* Enable the stub cdrom driver (src/cdrom/dummy/\*.c) */
-#define SDL_CDROM_DISABLED 1
+#define SDL_CDROM_DUMMY 1
 
 /* Enable the stub joystick driver (src/joystick/dummy/\*.c) */
 #define SDL_JOYSTICK_DISABLED 1

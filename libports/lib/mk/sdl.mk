@@ -66,6 +66,11 @@ SRC_C   += joystick/SDL_joystick.c \
            joystick/dummy/SDL_sysjoystick.c
 INC_DIR += $(SDL_DIR)/src/joystick
 
+# cdrom subsystem
+SRC_C   += cdrom/SDL_cdrom.c \
+           cdrom/dummy/SDL_syscdrom.c
+INC_DIR += $(SDL_DIR)/src/cdrom
+
 # we need libc
 LIBS = libc pthread
 
