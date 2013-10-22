@@ -1,0 +1,38 @@
+--- contrib/SDL_net-1.2.8/SDLnet.c.orig	2013-10-22 23:17:40.135873087 +0200
++++ contrib/SDL_net-1.2.8/SDLnet.c	2013-10-22 23:28:28.845485683 +0200
+@@ -122,11 +122,11 @@
+ 	} else {
+ 		address->host = inet_addr(host);
+ 		if ( address->host == INADDR_NONE ) {
+-			struct hostent *hp;
++			struct addrinfo *ai;
+ 
+-			hp = gethostbyname(host);
+-			if ( hp ) {
+-				memcpy(&address->host,hp->h_addr,hp->h_length);
++			retval = getaddrinfo(host, NULL, NULL, &ai);
++			if ( retval == 0 ) {
++				memcpy(&address->host,ai->ai_addr,ai->ai_addrlen);
+ 			} else {
+ 				retval = -1;
+ 			}
+@@ -149,12 +149,15 @@
+  */
+ const char *SDLNet_ResolveIP(const IPaddress *ip)
+ {
+-	struct hostent *hp;
++	static char host[256];
+ 	struct in_addr in;
++	int err;
+ 
+-	hp = gethostbyaddr((const char *)&ip->host, sizeof(ip->host), AF_INET);
+-	if ( hp != NULL ) {
+-		return hp->h_name;
++	err = getnameinfo((const struct sockaddr*) &ip->host,
++	                  sizeof (struct sockaddr), host, sizeof (host),
++			  NULL, 0, 0);
++	if ( err == 0 ) {
++		return host;
+ 	}
+ 
+ 	in.s_addr = ip->host;

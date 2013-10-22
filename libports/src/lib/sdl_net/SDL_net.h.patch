@@ -1,0 +1,16 @@
+--- contrib/SDL_net-1.2.8/SDL_net.h.orig	2013-10-30 15:17:11.391825241 +0100
++++ contrib/SDL_net-1.2.8/SDL_net.h	2013-10-30 15:17:55.108447538 +0100
+@@ -350,6 +350,13 @@
+ extern no_parse_DECLSPEC char * SDLCALL SDLNet_GetError(void);
+ */
+ 
++#ifdef __cplusplus
++#define SDL_reinterpret_cast(type, expression) reinterpret_cast<type>(expression)
++#define SDL_static_cast(type, expression) static_cast<type>(expression)
++#else
++#define SDL_reinterpret_cast(type, expression) ((type)(expression))
++#define SDL_static_cast(type, expression) ((type)(expression))
++#endif
+ 
+ /* Inline macro functions to read/write network data */
+ 
