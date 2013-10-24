@@ -16,16 +16,16 @@
 #ifndef _INCLUDE__BASE__THREAD_STATE_H_
 #define _INCLUDE__BASE__THREAD_STATE_H_
 
-#include <cpu/cpu_state.h>
+#include <base/thread_state_base.h>
 
 namespace Genode {
 
-	struct Thread_state : public Cpu_state
+	struct Thread_state : Thread_state_base
 	{
 		bool is_vcpu;
 		addr_t sel_exc_base;
 
-		Thread_state() : Cpu_state(), is_vcpu(false), sel_exc_base(~0UL) { }
+		Thread_state() : is_vcpu(false), sel_exc_base(~0UL) { }
 
 		Thread_state(bool is_vcpu, addr_t sel_exc_base)
 		: is_vcpu(is_vcpu), sel_exc_base(sel_exc_base) { }

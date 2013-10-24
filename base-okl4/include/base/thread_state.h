@@ -20,11 +20,11 @@ namespace Okl4 { extern "C" {
 #include <l4/types.h>
 } }
 
-#include <cpu/cpu_state.h>
+#include <base/thread_state_base.h>
 
 namespace Genode {
 
-	struct Thread_state : public Cpu_state
+	struct Thread_state : Thread_state_base
 	{
 		Okl4::L4_ThreadId_t tid;     /* OKL4 specific thread id */
 	};

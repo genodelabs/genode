@@ -651,7 +651,7 @@ index 69c6b57..cffa803 100644
    x86_supports_tracepoints,
    x86_get_thread_area,
 diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
-index 650ddf8..046dd2e 100644
+index 650ddf8..728da30 100644
 --- a/gdb/gdbserver/remote-utils.c
 +++ b/gdb/gdbserver/remote-utils.c
 @@ -18,11 +18,14 @@
@@ -756,11 +756,11 @@ index 650ddf8..046dd2e 100644
 +		  genode_stop_all_threads();
 +
 +		  if (sig > 0) {
-+			  event_ptid.lwp = sig;
++			  event_ptid.lwp    = sig;
 +			  status->kind      = TARGET_WAITKIND_STOPPED;
 +			  status->value.sig = TARGET_SIGNAL_TRAP;
 +		  } else {
-+			  event_ptid.lwp    = 1;
++			  event_ptid.lwp    = genode_find_segfault_lwpid();
 +			  status->kind      = TARGET_WAITKIND_STOPPED;
 +			  status->value.sig = TARGET_SIGNAL_SEGV;
 +		  }

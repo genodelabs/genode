@@ -181,6 +181,23 @@ void genode_continue_thread(unsigned long lwpid, int single_step)
 }
 
 
+unsigned long genode_find_segfault_lwpid()
+{
+	Cpu_session_component *csc = gdb_stub_thread()->cpu_session_component();
+
+	Thread_capability thread_cap = csc->first();
+
+	while (thread_cap.valid()) {
+		Thread_state thread_state = csc->state(thread_cap);
+		if (thread_state.unresolved_page_fault)
+			return csc->lwpid(thread_cap);
+		thread_cap = csc->next(thread_cap);
+	}
+
+	PDBG("could not determine thread which caused the page fault");
+	return 1;
+}
+
 
 class Memory_model
 {

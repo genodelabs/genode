@@ -18,11 +18,11 @@
 
 #include <base/capability.h>
 #include <base/lock.h>
-#include <cpu/cpu_state.h>
+#include <base/thread_state_base.h>
 
 namespace Genode {
 
-	struct Thread_state : public Cpu_state
+	struct Thread_state : Thread_state_base
 	{
 		Native_thread         kcap;         /* thread's gate cap in its pd */
 		int                   id;           /* id of gate capability */
