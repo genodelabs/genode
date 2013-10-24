@@ -243,8 +243,11 @@ struct Phy_usb3 : Genode::Mmio
 		/* setup clock  */
 		Phy_clk_rst::access_t clk = 0;
 
-		/* set external clock */
-		Phy_clk_rst::Ref_clk_sel::set(clk, 3);
+		/*
+		 * Use same reference clock for high speed
+		 * as for super speed
+		 */
+		Phy_clk_rst::Ref_clk_sel::set(clk, 0x2);
 		/* 24 MHz */
 		Phy_clk_rst::Fsel::set(clk, 0x2a);
 		Phy_clk_rst::Mpll_mult::set(clk, 0x68);

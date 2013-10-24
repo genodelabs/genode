@@ -953,7 +953,6 @@ struct timer_list {
 void init_timer(struct timer_list *);
 int mod_timer(struct timer_list *timer, unsigned long expires);
 int del_timer(struct timer_list * timer);
-int del_timer_sync(struct timer_list * timer);
 void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
                  unsigned long data);
 int timer_pending(const struct timer_list * timer);
@@ -961,6 +960,9 @@ unsigned long round_jiffies(unsigned long j);
 
 void add_timer(struct timer_list *timer);
 void set_timer_slack(struct timer_list *time, int slack_hz);
+
+static inline
+int del_timer_sync(struct timer_list * timer) { return del_timer(timer); }
 
 
 /*********************
@@ -1650,7 +1652,7 @@ void  dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
 
 #define DMA_BIT_MASK(n) (((n) == 64) ? ~0ULL : ((1ULL<<(n))-1))
 static inline int dma_set_coherent_mask(struct device *dev, u64 mask) { dev->coherent_dma_mask = mask; return 0; }
-int dma_set_mask(struct device *dev, u64 mask);
+static inline int dma_set_mask(struct device *dev, u64 mask) { *dev->dma_mask = mask; return 0; }
 
 /*********************
  ** linux/uaccess.h **

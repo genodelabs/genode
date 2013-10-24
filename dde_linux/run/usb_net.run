@@ -46,11 +46,11 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="512K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="usb_drv">
-		<resource name="RAM" quantum="6M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides>
 			<service name="Nic"/>
 		</provides>

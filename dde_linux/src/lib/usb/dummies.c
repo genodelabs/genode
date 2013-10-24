@@ -191,7 +191,6 @@ s64 ktime_us_delta(const ktime_t later, const ktime_t earlier) { TRACE; return 0
  ** linux/timer.h **
  *******************/
 
-int del_timer_sync(struct timer_list *timer) { TRACE; return 0; }
 unsigned long round_jiffies(unsigned long j) { TRACE; return 1; }
 void add_timer(struct timer_list *timer) { TRACE; }
 void set_timer_slack(struct timer_list *time, int slack_hz) { TRACE; }
@@ -671,7 +670,6 @@ void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
                     enum dma_data_direction direction) { SKIP;; }
 
 int dma_mapping_error(struct device *dev, dma_addr_t dma_addr) { SKIP; return 0; }
-int dma_set_mask(struct device *dev, u64 mask) { TRACE; return 0; }
 
 
 /*****************
