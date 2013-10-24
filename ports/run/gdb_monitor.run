@@ -129,6 +129,16 @@ append gdb_cmds {-ex "c" }
 # test: stack trace when not in syscall
 append gdb_cmds {-ex "bt" }
 
+# test: modify variable
+append gdb_cmds {-ex "print test_var" }
+append gdb_cmds {-ex "set var test_var=2" }
+append gdb_cmds {-ex "print test_var" }
+
+# test: 'call' command
+if {![have_spec nova]} {
+append gdb_cmds {-ex "call test_var_func()" }
+}
+
 # test: thread info
 append gdb_cmds {-ex "b Test_thread::entry()" }
 append gdb_cmds {-ex "c" }
@@ -150,7 +160,7 @@ append gdb_cmds {-ex "q" }
 # run GDB and redirect stderr to stdio to get the relevant output into the expect buffer  
 eval spawn [gdb] bin/$gdb_target_binary -batch $gdb_cmds 2&>1
 
-set timeout 60
+set timeout 120
 expect {
 	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
 }
@@ -180,6 +190,23 @@ if {![regexp {#0  puts} $gdb_output] ||
 	exit -1
 }
 
+if {![regexp {\$1 = 1} $gdb_output]} {
+	puts stderr "Error: first 'print test_var' command didn't result in the expected output"
+	exit -1
+}
+
+if {![regexp {\$2 = 2} $gdb_output]} {
+	puts stderr "Error: second 'print test_var' command didn't result in the expected output"
+	exit -1
+}
+
+if {![have_spec nova]} {
+if {![regexp {\$3 = 3} $gdb_output]} {
+	puts stderr "Error: 'call' command didn't result in the expected output"
+	exit -1
+}
+}
+
 if {![regexp {Breakpoint 4, Test_thread::entry()} $gdb_output]} {
 	puts stderr "Error: Breakpoint in test thread did not trigger"
 	exit -1
@@ -191,7 +218,7 @@ if {![regexp {\* 2    Thread 2          Test_thread::entry} $gdb_output] ||
 	exit -1
 }
 
-if {![regexp {42				func()} $gdb_output]} {
+if {![regexp {46				func()} $gdb_output]} {
 	puts stderr "Error: Single stepping didn't result in the expected output"
 	exit -1
 }

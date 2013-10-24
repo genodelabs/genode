@@ -1,5 +1,5 @@
 /*
- * \brief  GDB Monitor thread selection and backtrace test
+ * \brief  GDB Monitor test
  * \author Christian Prochaska
  * \date   2011-05-24
  */
@@ -19,6 +19,10 @@
 /* libc includes */
 #include <stdio.h>
 
+/* a variable to be modified with GDB */
+int test_var = 1;
+
+/* a thread to test GDB thread switching support */
 class Test_thread : public Genode::Thread<2*4096>
 {
 	public:
@@ -45,12 +49,24 @@ class Test_thread : public Genode::Thread<2*4096>
 		}
 };
 
+/*
+ * This function returns the current value of 'test_var' + 1 and can be called from
+ * GDB using the 'call' or 'print' commands
+ */
+int test_var_func()
+{
+	return test_var + 1;
+}
+
 /* this function returns a value to make itself appear in the stack trace when building with -O2 */
 int func2()
 {
 	/* set the first breakpoint here to test the 'backtrace' command for a
 	 * thread which is not in a syscall */
 	puts("in func2()\n");
+
+	/* call 'test_var_func()', so the compiler does not throw the function away */
+	printf("test_var_func() returned %d\n", test_var_func());
 
 	return 0;
 }
@@ -77,3 +93,4 @@ int main(void)
 
 	return 0;
 }
+
