@@ -1,0 +1,70 @@
+<!-- configuration template for the 'gdb' command -->
+
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="Timer"/>
+		<service name="Terminal"/>
+	</parent-provides>
+
+	<!-- additional start nodes can be inserted here -->
+
+	<start name="terminal_gdb">
+		<binary name="terminal_crosslink"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<route>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="noux">
+		<resource name="RAM" quantum="24M"/>
+		<route>
+			<service name="Terminal">
+				<if-arg key="label" value=""/><parent/>
+			</service>
+			<service name="Terminal">
+				<if-arg key="label" value="noux(terminal_fs)"/><child name="terminal_gdb"/>
+			</service>
+			<any-service> <any-child/> <parent/> </any-service>
+		</route>
+		<config>
+
+			<!-- the GDB <start> node gets generated above this comment -->
+
+			<fstab>
+				<dir name="dev"><terminal name="gdb"/></dir>
+
+				<!-- the GDB binary is expected in /bin -->
+				<tar name="gdb.tar" at="/"/>
+
+				<!-- the GDB target binaries are expected in /gdb -->
+				<!-- the GDB target source is expected in /gdb/src -->
+				<dir name="gdb">
+					<tar name="gdb_target.tar"/>
+					<dir name="src"><tar name="gdb_target-src.tar"/></dir>
+				</dir>
+
+			</fstab>
+		</config>
+	</start>
+	<start name="gdb_monitor">
+
+		<!-- the <config> node gets generated above this comment -->
+
+		<resource name="RAM" quantum="1G"/>
+		<route>
+			<service name="Terminal"><child name="terminal_gdb"/></service>
+			<any-service> <any-child/> <parent/> </any-service>
+		</route>
+	</start>
+</config>
+
+

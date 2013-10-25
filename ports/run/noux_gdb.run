@@ -3,13 +3,13 @@ if {![have_spec foc] || ![have_spec 32bit]} {
 	exit 0
 }
 
+source ${genode_dir}/ports/run/noux_gdb.inc
+
 if {[have_spec arm]} {
-	set gdb "gdb_arm"
 	set tool_prefix "genode-arm-"
 }
 
 if {[have_spec x86]} {
-	set gdb "gdb_x86"
 	set tool_prefix "genode-x86-"
 }
 
@@ -17,57 +17,34 @@ if {[have_spec x86]} {
 # Uncomment the following line when working on the GDB source code. Otherwise,
 # the package may get recompiled, yet it does not get reinstalled into 'bin/'.
 #
-#exec rm -rf noux-pkg/$gdb/ bin/$gdb/
+#exec rm -rf noux-pkg/[noux_gdb_pkg_name]/ bin/[noux_gdb_pkg_name]/
 
 set build_components {
 	core init drivers/timer noux lib/libc_noux
 	drivers/framebuffer drivers/pci drivers/input drivers/usb
 	server/terminal server/terminal_crosslink
-	server/ram_fs app/gdb_monitor
+	app/gdb_monitor
 	test/gdb_monitor
 }
-lappend build_components noux-pkg/$gdb
+lappend build_components noux-pkg/[noux_gdb_pkg_name]
+
+# the application to be debugged with GDB
+lappend build_components test/gdb_monitor
+set gdb_target_binary_name test-gdb_monitor
 
 build $build_components
 
-# tar archive for GDB
-
-exec sh -c "find bin/$gdb/ -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
-exec tar cfhv bin/gdb.tar -C bin/$gdb .
-
 # names of the binaries needed for the GDB monitor test
-
-set test_binaries {
+set gdb_target_binaries {
 	test-gdb_monitor
 	ld.lib.so
 	libc.lib.so
 	libc_log.lib.so
 }
+lappend gdb_target_binaries ${gdb_target_binary_name}
 
-# tar archive for the unstripped binaries of the GDB monitor test
-
-foreach test_binary $test_binaries {
-	exec tar ufv bin/test-gdb_monitor.tar -h -C bin $test_binary
-}
-
-# tar archive for the source code of the GDB monitor test
-# currently, directories need to have their own tar records 
-
-exec mkdir -p bin/test-gdb_monitor-src
-foreach test_binary $test_binaries {
-	set source_files [ exec [cross_dev_prefix]objdump -dl bin/$test_binary | grep "^/.*:.*" | sed -e "s/:.*//" | uniq ]
-	foreach source_file $source_files {
-		# resolve '..' to avoid problems with 'tar' with parts like '/a/b/../'
-		# where '/a' exists, but '/a/b' does not
-		set source_file [file normalize $source_file]
-		if [file exists $source_file] {
-			set dirname [ exec dirname $source_file]
-			exec mkdir -p bin/test-gdb_monitor-src$dirname
-			exec ln -sf  $source_file bin/test-gdb_monitor-src$source_file
-		}
-	}
-}
-exec tar chf bin/test-gdb_monitor-src.tar -C bin/test-gdb_monitor-src .
+create_gdb_tar
+create_binary_and_source_tars ${gdb_target_binary_name} ${gdb_target_binaries}
 
 create_boot_directory
 
@@ -149,37 +126,11 @@ append config {
 				<service name="Terminal"><child name="terminal_gdb"/></service>
 				<any-service><parent/><any-child/></any-service>
 			</route>
-			<config>
-				<target name="test-gdb_monitor"/>
+			<config> }
+append config "
+				<target name=\"${gdb_target_binary_name}\"/> "
+append config {
 				<preserve name="RAM" quantum="5M"/>
-			</config>
-		</start>
-		<start name="ram_fs">
-			<resource name="RAM" quantum="10M"/>
-			<provides><service name="File_system"/></provides>
-			<config>
-				<content>
-					<dir name="gdb">
-						<inline name="commands">
-							set interactive-mode off
-							directory /gdb/src
-							target remote /dev/gdb
-							symbol-file /gdb/ld.lib.so
-							b call_main
-							c
-							delete 1
-							symbol-file /gdb/test-gdb_monitor
-							b main
-							set solib-search-path /gdb
-							sharedlibrary
-							c
-							delete 2
-							set interactive-mode auto
-						</inline>
-					</dir>
-				</content>
-				<!-- constrain sessions according to their labels -->
-				<policy label="noux -> gdb" root="/gdb" />
 			</config>
 		</start>
 		<start name="noux">
@@ -197,17 +148,34 @@ append config {
 				<fstab>
 					<tar name="gdb.tar" at="/"/>
 					<dir name="dev"><terminal name="gdb"/></dir>
-					<dir name="gdb">
-						<tar name="test-gdb_monitor.tar"/>
-						<fs label="gdb"/>
-						<dir name="src"> <tar name="test-gdb_monitor-src.tar"/> </dir>
+					<dir name="gdb"> }
+append config "
+						<tar name=\"${gdb_target_binary_name}.tar\"/>
+						<dir name=\"src\"> <tar name=\"${gdb_target_binary_name}-src.tar\"/> </dir> "
+append config {
 					</dir>
 				</fstab> }
 append config "
-				<start name=\"/bin/${tool_prefix}gdb\"> "
+				<start name=\"/bin/${tool_prefix}gdb\">
+					<arg value=\"/bin/${tool_prefix}gdb\"/>
+					<arg value=\"/gdb/${gdb_target_binary_name}\"/> "
 append config {
-					<arg value="/gdb/test-gdb_monitor"/>
-					<arg value="-x" /><arg value="/gdb/commands" />
+					<arg value="-ex" /><arg value="set interactive-mode off" />
+					<arg value="-ex" /><arg value="directory /gdb/src" />
+					<arg value="-ex" /><arg value="target remote /dev/gdb" />
+					<arg value="-ex" /><arg value="symbol-file /gdb/ld.lib.so" />
+					<arg value="-ex" /><arg value="b call_main" />
+					<arg value="-ex" /><arg value="c" />
+					<arg value="-ex" /><arg value="delete 1" /> }
+append config "
+					<arg value=\"-ex\" /><arg value=\"symbol-file /gdb/${gdb_target_binary_name}\" /> "
+append config {
+					<arg value="-ex" /><arg value="b main" />
+					<arg value="-ex" /><arg value="set solib-search-path /gdb" />
+					<arg value="-ex" /><arg value="sharedlibrary" />
+					<arg value="-ex" /><arg value="c" />
+					<arg value="-ex" /><arg value="delete 2" />
+					<arg value="-ex" /><arg value="set interactive-mode auto" />
 				</start>
 			</config>
 		</start>
@@ -226,7 +194,7 @@ set boot_modules {
 	core init timer ld.lib.so noux terminal terminal_crosslink
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
 	libc_lock_pipe.lib.so libc_log.lib.so libc_terminal.lib.so
-	ram_fs gdb_monitor test-gdb_monitor
+	gdb_monitor test-gdb_monitor
 	gdb.tar test-gdb_monitor.tar test-gdb_monitor-src.tar
 }
 
