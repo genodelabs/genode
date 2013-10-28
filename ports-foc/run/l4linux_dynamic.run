@@ -5,30 +5,43 @@ assert_spec arm
 # Build
 #
 set build_components {
+	app/cli_monitor
+	app/gdb_monitor
+	app/launchpad
+	app/scout
 	core
-	init
+	drivers/ahci
+	drivers/framebuffer
 	drivers/platform
-	drivers/usb
+	drivers/sd_card
 	drivers/timer
 	drivers/uart
-	drivers/sd_card
-	drivers/ahci
-	server/terminal_mux
-	server/terminal_log
-	server/nic_bridge
-	server/part_blk
+	drivers/usb
+	init
+	l4linux
+	lib/libc_noux
+	noux
 	server/ffat_fs
-	drivers/framebuffer
-	app/cli_monitor
+	server/fs_rom
+	server/nic_bridge
+	server/liquid_framebuffer
+	server/nitpicker
+	server/part_blk
+	server/tar_fs
+	server/terminal
+	server/terminal_crosslink
+	server/terminal_log
+	server/terminal_mux
 	test/affinity
+	test/block
+	test/gdb_monitor
 	test/input
 	test/lwip/http_srv
-	test/block
-	l4linux
-	noux
+	test/nitpicker
 }
 
 lappend build_components noux-pkg/vim
+lappend build_components noux-pkg/gdb_arm
 
 build $build_components
 create_boot_directory
@@ -111,6 +124,16 @@ set config  {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+	<start name="usb30_drv">
+		<binary name="usb_drv"/>
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Block"/></provides>
+		<config xhci="yes"><storage /></config>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
 	<start name="nic_bridge">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
@@ -142,7 +165,7 @@ set config  {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<config>
-			<policy label="cli_monitor -> block"               partition="1"/>
+			<policy label="cli_monitor -> block_emmc"          partition="1"/>
 			<policy label="cli_monitor -> l4linux_emmc -> sda" partition="2"/>
 		</config>
 	</start>
@@ -160,25 +183,46 @@ set config  {
 			<policy label="cli_monitor -> l4linux_sata -> sda"      partition="2"/>
 		</config>
 	</start>
-	<start name="cli_monitor">
-		<resource name="RAM" quantum="2G"/>
+	<start name="part_blk_usb">
+		<binary name="part_blk"/>
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<route>
+			<service name="LOG"> <child name="terminal_log"/>  </service>
+			<service name="Block"> <child name="usb30_drv"/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 		<config>
-			<preservation name="RAM" quantum="16M" />
-			<subsystem name="l4linux_net" help="L4Linux with network">
+			<policy label="cli_monitor -> block_usb"           partition="2"/>
+			<policy label="cli_monitor -> l4linux_usb -> sda"  partition="1"/>
+		</config>
+	</start>
+	<start name="cli_monitor" priority="-1">
+		<resource name="RAM" quantum="1800M"/>
+		<config>
+			<preservation name="RAM" quantum="32M" />
+			<subsystem name="l4linux" help="L4Linux with network">
 				<binary name="l4linux"/>
-				<resource name="RAM" quantum="64M"/>
+				<resource name="RAM" quantum="128M"/>
 				<config args="mem=2G console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1"/>
 			</subsystem>
 			<subsystem name="l4linux_emmc" help="L4Linux accessing the second eMMC partition">
 				<binary name="l4linux"/>
-				<resource name="RAM" quantum="64M"/>
+				<resource name="RAM" quantum="128M"/>
 				<config args="mem=2G console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
 					<block label="sda" />
 				</config>
 			</subsystem>
 			<subsystem name="l4linux_sata" help="L4Linux accessing the second SATA partition">
 				<binary name="l4linux"/>
-				<resource name="RAM" quantum="64MM"/>
+				<resource name="RAM" quantum="128M"/>
+				<config args="mem=2G console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
+					<block label="sda" />
+				</config>
+			</subsystem>
+			<subsystem name="l4linux_usb" help="L4Linux accessing the first USB disk partition">
+				<binary name="l4linux"/>
+				<resource name="RAM" quantum="128M"/>
 				<config args="mem=2G console=ttyS0 l4x_rd=initrd.gz l4x_cpus=2 l4x_cpus_map=0,1">
 					<block label="sda" />
 				</config>
@@ -187,15 +231,11 @@ set config  {
 				<binary name="test-affinity"/>
 				<resource name="RAM" quantum="1M"/>
 			</subsystem>
-			<subsystem name="http" help="simple HTTP server">
-				<binary name="test-lwip_httpsrv"/>
-				<resource name="RAM" quantum="3M"/>
+			<subsystem name="block_emmc" help="block device test on first eMMC partition">
+				<binary name="test-block"/>
+				<resource name="RAM" quantum="1M" />
 			</subsystem>
-			<subsystem name="input" help="dump user input">
-				<binary name="test-input"/>
-				<resource name="RAM" quantum="1M"/>
-			</subsystem>
-			<subsystem name="block" help="block device test on first eMMC partition">
+			<subsystem name="block_usb" help="block device test on second USB disk partition">
 				<binary name="test-block"/>
 				<resource name="RAM" quantum="1M" />
 			</subsystem>
@@ -257,6 +297,115 @@ set config  {
 					</start>
 				</config>
 			</subsystem>
+			<subsystem name="graphical_demo" help="Graphical demo scenario">
+				<binary name="init"/>
+				<resource name="RAM" quantum="1024M" />
+				<config>
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="RAM"/>
+						<service name="IRQ"/>
+						<service name="IO_MEM"/>
+						<service name="CAP"/>
+						<service name="PD"/>
+						<service name="RM"/>
+						<service name="CPU"/>
+						<service name="LOG"/>
+						<service name="SIGNAL"/>
+						<service name="Timer"/>
+						<service name="Regulator"/>
+						<service name="Input"/>
+					</parent-provides>
+					<default-route>
+						<any-service> <parent/> <any-child/> </any-service>
+					</default-route>
+					<start name="fb_drv">
+						<resource name="RAM" quantum="6M"/>
+						<provides><service name="Framebuffer"/></provides>
+					</start>
+					<start name="nitpicker">
+						<resource name="RAM" quantum="1M"/>
+						<provides><service name="Nitpicker"/></provides>
+						<config>
+						<global-keys>
+						<key name="KEY_SCROLLLOCK" operation="xray" />
+						<key name="KEY_SYSRQ"      operation="kill" />
+						<key name="KEY_PRINT"      operation="kill" />
+						<key name="KEY_F11"        operation="kill" />
+						<key name="KEY_F12"        operation="xray" />
+						</global-keys>
+						</config>
+						<route>
+							<service name="Framebuffer">
+								<child name="fb_drv"/>
+							</service>
+							<any-service> <parent/> <any-child/> </any-service>
+						</route>
+					</start>
+					<start name="Terminal">
+						<binary name="liquid_fb"/>
+						<resource name="RAM" quantum="6M"/>
+						<provides>
+							<service name="Framebuffer"/>
+							<service name="Input"/>
+						</provides>
+						<config xpos="5" ypos="10" width="640" height="480" title="Terminal" animate="off"/>
+					</start>
+					<start name="terminal_cli">
+						<binary name="terminal"/>
+						<resource name="RAM" quantum="4M"/>
+						<provides><service name="Terminal"/></provides>
+						<route>
+							<service name="Framebuffer">
+								<child name="Terminal"/>
+							</service>
+							<service name="Input"><child name="Terminal"/></service>
+							<any-service> <parent/> <any-child/> </any-service>
+						</route>
+					</start>
+					<start name="tar_fs">
+						<resource name="RAM" quantum="20M"/>
+						<provides><service name="File_system"/></provides>
+						<config>
+							<archive name="gdb.tar" />
+							<policy label="fs_rom" root="/gdb" />
+							<policy label="cli_monitor" root="/" />
+						</config>
+					</start>
+					<start name="fs_rom">
+						<resource name="RAM" quantum="200M"/>
+						<provides><service name="ROM"/></provides>
+					</start>
+					<start name="cli_monitor">
+						<resource name="RAM" quantum="2G"/>
+						<config>
+							<preservation name="RAM" quantum="16M" />
+							<subsystem name="gdb_test" help="GDB test application">
+								<binary name="test-gdb_monitor"/>
+								<resource name="RAM" quantum="100M"/>
+							</subsystem>
+							<subsystem name="testnit" help="Graphical test application">
+								<binary name="testnit"/>
+								<resource name="RAM" quantum="100M"/>
+							</subsystem>
+							<subsystem name="scout" help="Demo browser">
+								<binary name="scout"/>
+								<resource name="RAM" quantum="100M"/>
+							</subsystem>
+						</config>
+						<route>
+							<service name="Terminal">
+								<child name="terminal_cli"/>
+							</service>
+							<service name="ROM"><child name="fs_rom"/></service>
+							<service name="File_system">
+								<child name="tar_fs"/>
+							</service>
+							<any-service> <parent/> <any-child/> </any-service>
+						</route>
+					</start>
+				</config>
+			</subsystem>
 		</config>
 		<route>
 			<service name="LOG"> <child name="terminal_log"/> </service>
@@ -269,7 +418,13 @@ set config  {
 					<if-arg key="label" value="l4linux_emmc -> sda"/><child name="part_blk_emmc"/>
 			</service>
 			<service name="Block">
-					<if-arg key="label" value="block"/><child name="part_blk_emmc"/>
+					<if-arg key="label" value="l4linux_usb -> sda"/><child name="part_blk_usb"/>
+			</service>
+			<service name="Block">
+					<if-arg key="label" value="block_emmc"/><child name="part_blk_emmc"/>
+			</service>
+			<service name="Block">
+					<if-arg key="label" value="block_usb"/><child name="part_blk_usb"/>
 			</service>
 			<service name="Block">
 					<if-arg key="label" value="vim_sata -> ffat_fs_sata"/><child name="part_blk_sata"/>
@@ -278,47 +433,179 @@ set config  {
 		</route>
 	</start>
 }
-
 append config {
 </config>
 }
-
 install_config $config
+
+set gdb_config_fd [open "bin/gdb_command_config" w]
+puts $gdb_config_fd {<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="Timer"/>
+		<service name="Nitpicker"/>
+		<service name="File_system"/>
+	</parent-provides>
+	<start name="GDB">
+		<binary name="liquid_fb"/>
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+		<route>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config xpos="600" ypos="150" width="640" height="480" title="GDB" animate="off"/>
+	</start>
+	<start name="terminal">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="Framebuffer"><child name="GDB"/></service>
+			<service name="Input"><child name="GDB"/></service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="terminal_gdb">
+		<binary name="terminal_crosslink"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<route>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="noux">
+		<resource name="RAM" quantum="50M"/>
+		<route>
+			<service name="Terminal">
+				<if-arg key="label" value=""/><child name="terminal"/>
+			</service>
+			<service name="Terminal">
+				<if-arg key="label" value="noux(terminal_fs)"/><child name="terminal_gdb"/>
+			</service>
+			<any-service> <any-child/> <parent/> </any-service>
+		</route>
+		<config>
+
+			<!-- the GDB <start> node gets generated above this comment -->
+
+			<fstab>
+				<fs label="gdb"/>
+				<dir name="dev"> <terminal name="gdb"/> </dir>
+			</fstab>
+		</config>
+	</start>
+	<start name="gdb_monitor">
+
+		<!-- the <config> node gets generated above this comment -->
+
+		<resource name="RAM" quantum="1G"/>
+		<route>
+			<service name="Terminal"><child name="terminal_gdb"/></service>
+			<any-service> <any-child/> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+close $gdb_config_fd
+
+set gdb_binaries {
+	test-gdb_monitor
+	testnit
+	scout
+	libc.lib.so
+	ld.lib.so
+	libc_log.lib.so
+}
+set gdb_stripped_binaries {
+	expat.lib.so
+	gdb_monitor
+	init
+	launchpad
+	libc_lock_pipe.lib.so
+	libc_noux.lib.so
+	libc_terminal.lib.so
+	libm.lib.so
+	liquid_fb
+	ncurses.lib.so
+	noux
+	terminal
+	terminal_crosslink
+}
+
+exec sh -c "find bin/gdb_arm/ -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
+exec mkdir -p bin/gdb/src
+foreach binary ${gdb_binaries} {
+	set source_files [ exec [cross_dev_prefix]objdump -dl bin/${binary} | grep "^/.*:.*" | sed -e "s/:.*//" | uniq ]
+	foreach source_file ${source_files} {
+		# resolve '..' to avoid problems with 'tar' with parts like '/a/b/../'
+		# where '/a' exists, but '/a/b' does not
+		set source_file [file normalize ${source_file}]
+		if [file exists ${source_file}] {
+			set dirname [ exec dirname ${source_file}]
+			exec mkdir -p bin/gdb/src${dirname}
+			exec ln -sf ${source_file} bin/gdb/src${source_file}
+		}
+	}
+}
+foreach binary ${gdb_stripped_binaries} {
+	exec sh -c "cp bin/${binary} bin/gdb/${binary}"
+	exec sh -c "[cross_dev_prefix]strip bin/gdb/${binary}"
+}
+foreach binary ${gdb_binaries} {
+	exec ln -s ../${binary} bin/gdb/${binary}
+}
+exec ln -s ../gdb_command_config bin/gdb/gdb_command_config
+exec tar cfh bin/gdb.tar -C bin gdb
+exec tar ufh bin/gdb.tar -C bin/gdb_arm bin
+exec rm -rf bin/gdb
 
 #
 # Boot modules
 #
 set boot_modules {
+	ahci
+	cli_monitor
 	core
+	fb_drv
+	ffat_fs
+	fs_rom
 	init
-	timer
+	initrd.gz
 	kdb_uart_drv
-	platform_drv
-	terminal_mux
-	terminal_log
+	l4linux
 	ld.lib.so
 	libc.lib.so
-	libm.lib.so
-	libc_terminal.lib.so
 	libc_log.lib.so
 	libc_noux.lib.so
+	libc_terminal.lib.so
+	libm.lib.so
 	lwip.lib.so
 	ncurses.lib.so
-	cli_monitor
-	l4linux
-	initrd.gz
-	test-affinity
-	usb_drv
-	test-input
-	test-lwip_httpsrv
 	nic_bridge
-	sd_card_drv
-	ahci
-	test-block
-	part_blk
-	ffat_fs
+	liquid_fb
+	nitpicker
 	noux
+	part_blk
+	platform_drv
+	sd_card_drv
+	tar_fs
+	terminal
+	terminal_log
+	terminal_mux
+	test-affinity
+	test-block
+	timer
+	usb_drv
 	vim.tar
+	gdb.tar
 }
 
 set uri "http://genode.org/files/l4linux/initrd-arm-mdev.gz"
