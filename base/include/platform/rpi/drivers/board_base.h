@@ -48,6 +48,9 @@ namespace Genode
 			IRQ_CONTROLLER_BASE = 0x2000b200,
 			IRQ_CONTROLLER_SIZE = 0x100,
 
+			/* timer */
+			TIMER_IRQ = 0,
+
 			SECURITY_EXTENSION = 0,
 
 			/* CPU cache */

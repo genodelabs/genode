@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <os/attached_io_mem_dataspace.h>
 #include <drivers/timer/sp804_base.h>
+#include <drivers/board_base.h>
 
 /*
  * On the BCM2835, the timer is driven by the APB clock (250 MHz). The prescale
@@ -27,8 +28,7 @@
  * we open an IO_MEM session with a range smaller than page size as argument.
  * The dataspace base address will correspond to 0x2000b000.
  */
-enum { TIMER_IRQ         = 0,
-       TIMER_MMIO_BASE   = 0x2000b400,
+enum { TIMER_MMIO_BASE   = 0x2000b400,
        TIMER_MMIO_OFFSET = 0x400,
        TIMER_MMIO_SIZE   = 0x100,
        TIMER_CLOCK       = 1984*1000 };
@@ -38,7 +38,7 @@ struct Platform_timer_base
 	Genode::Attached_io_mem_dataspace,
 	Genode::Sp804_base<TIMER_CLOCK>
 {
-	enum { IRQ = TIMER_IRQ };
+	enum { IRQ = Genode::Board_base::TIMER_IRQ };
 
 	Platform_timer_base() :
 		Attached_io_mem_dataspace(TIMER_MMIO_BASE, TIMER_MMIO_SIZE),
