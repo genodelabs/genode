@@ -13,6 +13,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <timer_session/connection.h>
+
 extern "C" {
 
 #include <unistd.h>
@@ -23,23 +25,26 @@ extern "C" {
 #include "SDL_timer_c.h"
 
 
-static Uint32 jiffies = 0;
+static unsigned long start_ms = 0;
+
+static Timer::Connection _timer;
 
 
 void SDL_StartTicks(void)
 {
+	start_ms = _timer.elapsed_ms();
 }
 
 
 Uint32 SDL_GetTicks (void)
 {
-	return jiffies;
+	return _timer.elapsed_ms() - start_ms;
 }
 
 
 void SDL_Delay (Uint32 ms)
 {
-	usleep(ms*1000);
+	_timer.msleep(ms);
 }
 
 
@@ -50,7 +55,6 @@ void SDL_Delay (Uint32 ms)
 static int timer_alive = 0;
 static SDL_Thread *timer = NULL;
 
-
 static int RunTimer(void *unused)
 {
 	while ( timer_alive ) {
@@ -58,7 +62,6 @@ static int RunTimer(void *unused)
 			SDL_ThreadedTimerCheck();
 		}
 		SDL_Delay(1);
-		jiffies++;
 	}
 	return(0);
 }
