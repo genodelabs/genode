@@ -14,6 +14,7 @@
 #ifndef _DWMMC_H_
 #define _DWMMC_H_
 
+#include <drivers/board_base.h>
 #include <irq_session/connection.h>
 #include <os/attached_ram_dataspace.h>
 #include <util/mmio.h>
@@ -492,7 +493,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 	public:
 
-		enum { IRQ_NUMBER = 107 };
+		enum { IRQ_NUMBER = Genode::Board_base::SDMMC0_IRQ };
 
 		Exynos5_msh_controller(Genode::addr_t const mmio_base, Delayer &delayer,
 		                       bool use_dma)

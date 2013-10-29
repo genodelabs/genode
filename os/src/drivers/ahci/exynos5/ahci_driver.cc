@@ -23,6 +23,7 @@
 #include <dataspace/client.h>
 #include <regulator/consts.h>
 #include <regulator_session/connection.h>
+#include <drivers/board_base.h>
 
 using namespace Genode;
 
@@ -920,7 +921,7 @@ struct Sata_ahci : Attached_mmio
 	  dbc_trials(50),
 	  dbc_stable_trials(5),
 	  p0_speed(SATA_3_MAX_SPEED),
-	  p0_irq(147)
+	  p0_irq(Genode::Board_base::SATA_IRQ)
 	{ }
 
 	/**

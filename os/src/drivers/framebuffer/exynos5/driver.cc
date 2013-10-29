@@ -19,6 +19,7 @@
 #include <irq_session/connection.h>
 #include <regulator_session/connection.h>
 #include <os/attached_mmio.h>
+#include <drivers/board_base.h>
 
 using namespace Genode;
 
@@ -557,7 +558,8 @@ class I2c_hdmi : public I2c_interface
 		/**
 		 * Constructor
 		 */
-		I2c_hdmi() : I2c_interface(0x12ce0000, 96) { }
+		I2c_hdmi()
+		: I2c_interface(0x12ce0000, Genode::Board_base::I2C_HDMI_IRQ) { }
 
 		/**
 		 * Stop HDMI PHY from operating
