@@ -37,19 +37,20 @@ namespace Genode
 			MPU_DPLL_CLOCK = 200*1000*1000,
 			SYS_CLK        = 38400000,
 
-			/* UARTs */
+			/* UART controllers */
 			TL16C750_1_MMIO_BASE = MMIO_0_BASE + 0x6a000,
 			TL16C750_2_MMIO_BASE = MMIO_0_BASE + 0x6c000,
 			TL16C750_3_MMIO_BASE = MMIO_0_BASE + 0x20000,
 			TL16C750_4_MMIO_BASE = MMIO_0_BASE + 0x6e000,
-
 			TL16C750_MMIO_SIZE = 0x2000,
 			TL16C750_CLOCK = 48*1000*1000,
+			TL16C750_1_IRQ = 104,
+			TL16C750_2_IRQ = 105,
+			TL16C750_3_IRQ = 106,
+			TL16C750_4_IRQ = 102,
 
-			TL16C750_1_IRQ = 72,
-			TL16C750_2_IRQ = 73,
-			TL16C750_3_IRQ = 74,
-			TL16C750_4_IRQ = 70,
+			/* timer modules */
+			GP_TIMER_3_IRQ = 71,
 
 			/* CPU */
 			CORTEX_A9_PRIVATE_MEM_BASE = 0x48240000,
@@ -83,6 +84,9 @@ namespace Genode
 			GPIO6_MMIO_BASE = 0x4805d000,
 			GPIO6_MMIO_SIZE = 0x1000,
 			GPIO6_IRQ       = 34 + 32,
+
+			/* SD card */
+			HSMMC_IRQ = 115,
 
 			/* CPU cache */
 			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */

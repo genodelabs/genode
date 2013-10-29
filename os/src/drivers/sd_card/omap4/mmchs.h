@@ -18,6 +18,7 @@
 #include <util/mmio.h>
 #include <os/attached_ram_dataspace.h>
 #include <irq_session/connection.h>
+#include <drivers/board_base.h>
 
 /* local includes */
 #include <sd_card.h>
@@ -749,7 +750,7 @@ struct Omap4_hsmmc_controller : private Mmchs, public Sd_card::Host_controller
 
 	public:
 
-		enum { IRQ_NUMBER = 83 + 32 };
+		enum { IRQ_NUMBER = Genode::Board_base::HSMMC_IRQ };
 
 		/**
 		 * Constructor

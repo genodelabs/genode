@@ -30,10 +30,10 @@ static struct Omap_uart_cfg {
 	Genode::size_t mmio_size;
 	int            irq_number;
 } omap_uart_cfg[UARTS_NUM] = {
-	{ Genode::Board_base::TL16C750_1_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_1_IRQ + 32 },
-	{ Genode::Board_base::TL16C750_2_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_2_IRQ + 32 },
-	{ Genode::Board_base::TL16C750_3_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_3_IRQ + 32 },
-	{ Genode::Board_base::TL16C750_4_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_4_IRQ + 32 },
+	{ Genode::Board_base::TL16C750_1_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_1_IRQ },
+	{ Genode::Board_base::TL16C750_2_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_2_IRQ },
+	{ Genode::Board_base::TL16C750_3_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_3_IRQ },
+	{ Genode::Board_base::TL16C750_4_MMIO_BASE, Genode::Board_base::TL16C750_MMIO_SIZE, Genode::Board_base::TL16C750_4_IRQ },
 };
 
 #endif /* _INCLUDE__PLATFORM__PANDABOARD__UART_DEFS_H_ */

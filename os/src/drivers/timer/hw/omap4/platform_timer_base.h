@@ -248,14 +248,13 @@ class Platform_timer_base : public Genode::Io_mem_connection,
 {
 	/* FIXME these should be located in a omap4-defs file */
 	enum {
-		GP_TIMER_3_IRQ       = 71,
 		GP_TIMER_3_MMIO_BASE = 0x48034000,
 		GP_TIMER_3_MMIO_SIZE = 0x00001000,
 	};
 
 	public:
 
-		enum { IRQ = GP_TIMER_3_IRQ };
+		enum { IRQ = Genode::Board_base::GP_TIMER_3_IRQ };
 
 		/**
 		 * Constructor
