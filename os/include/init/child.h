@@ -463,8 +463,8 @@ namespace Init {
 			/**
 			 * ELF binary
 			 */
-			Genode::Rom_connection _binary_rom;
-
+			Genode::Rom_connection       _binary_rom;
+			Genode::Dataspace_capability _binary_rom_ds;
 			/**
 			 * Private child configuration
 			 */
@@ -510,16 +510,17 @@ namespace Init {
 				_resources(start_node, _name.unique, prio_levels_log2, affinity_space),
 				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false),
 				_binary_rom(_name.file, _name.unique),
+				_binary_rom_ds(_binary_rom.dataspace()),
 				_config(_resources.ram.cap(), start_node),
 				_server(_resources.ram.cap()),
-				_child(_binary_rom.dataspace(), _resources.ram.cap(),
+				_child(_binary_rom_ds, _resources.ram.cap(),
 				       _resources.cpu.cap(), _resources.rm.cap(), &_entrypoint, this),
 				_parent_services(parent_services),
 				_child_services(child_services),
 				_labeling_policy(_name.unique),
 				_priority_policy(_resources.prio_levels_log2, _resources.priority),
 				_config_policy("config", _config.dataspace(), &_entrypoint),
-				_binary_policy("binary", _binary_rom.dataspace(), &_entrypoint),
+				_binary_policy("binary", _binary_rom_ds, &_entrypoint),
 				_configfile_policy("config", _config.filename()),
 				_pd_args_policy(&_pd_args)
 			{
