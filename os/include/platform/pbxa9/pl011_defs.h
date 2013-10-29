@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__PLATFORM__PBXA9__PL011_DEFS_H_
 #define _INCLUDE__PLATFORM__PBXA9__PL011_DEFS_H_
 
+#include <drivers/board_base.h>
+
 enum {
 
 	/** Number of UARTs */
@@ -31,10 +33,10 @@ enum {
 	/**
 	 * Interrupt lines
 	 */
-	PL011_IRQ0 = 12 + 32,      /* UART 0 */
-	PL011_IRQ1 = 13 + 32,      /* UART 1 */
-	PL011_IRQ2 = 14 + 32,      /* UART 2 */
-	PL011_IRQ3 = 15 + 32,      /* UART 3 */
+	PL011_IRQ0 = Genode::Board_base::PL011_0_IRQ, /* UART 0 */
+	PL011_IRQ1 = Genode::Board_base::PL011_1_IRQ, /* UART 1 */
+	PL011_IRQ2 = Genode::Board_base::PL011_2_IRQ, /* UART 2 */
+	PL011_IRQ3 = Genode::Board_base::PL011_3_IRQ, /* UART 3 */
 
 	/**
 	 * UART baud rate configuration (precalculated)

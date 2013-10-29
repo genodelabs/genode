@@ -56,12 +56,26 @@ namespace Genode
 			PL011_0_MMIO_SIZE = 0x00001000,
 			PL011_0_CLOCK     = OSC_6_CLOCK,
 			PL011_0_IRQ       = 44,
+			PL011_1_IRQ       = 45,
+			PL011_2_IRQ       = 46,
+			PL011_3_IRQ       = 47,
 
 			/* timer */
 			SP804_0_1_MMIO_BASE = 0x10011000,
 			SP804_0_1_MMIO_SIZE = 0x00001000,
 			SP804_0_1_IRQ       = 36,
 			SP804_0_1_CLOCK     = 1000*1000,
+
+			/* keyboard & mouse */
+			KMI_0_IRQ = 52,
+			KMI_1_IRQ = 53,
+
+			/* LAN */
+			ETHERNET_IRQ = 60,
+
+			/* SD card */
+			PL180_IRQ_0 = 49,
+			PL180_IRQ_1 = 50,
 
 			/* CPU cache */
 			CACHE_LINE_SIZE_LOG2 = 2, /* FIXME get correct value from board spec */

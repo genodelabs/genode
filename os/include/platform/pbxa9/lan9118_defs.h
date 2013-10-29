@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__PLATFORM__PBXA9__LAN9118_DEFS_H_
 #define _INCLUDE__PLATFORM__PBXA9__LAN9118_DEFS_H_
 
+#include <drivers/board_base.h>
+
 enum {
 
 	/**
@@ -32,7 +34,7 @@ enum {
 	/**
 	 * Interrupt line
 	 */
-	LAN9118_IRQ = 28 + 32,
+	LAN9118_IRQ = Genode::Board_base::ETHERNET_IRQ,
 };
 
 #endif /* _INCLUDE__PLATFORM__PBXA9__LAN9118_DEFS_H_ */

@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__PLATFORM__PBXA9__PL050_DEFS_H_
 #define _INCLUDE__PLATFORM__PBXA9__PL050_DEFS_H_
 
+#include <drivers/board_base.h>
+
 enum {
 	PL050_KEYBD_PHYS = 0x10006000, PL050_KEYBD_SIZE = 0x1000,
 	PL050_MOUSE_PHYS = 0x10007000, PL050_MOUSE_SIZE = 0x1000,
@@ -21,8 +23,8 @@ enum {
 	/**
 	 * Interrupt lines
 	 */
-	PL050_KEYBD_IRQ = 20 + 32,
-	PL050_MOUSE_IRQ = 21 + 32,
+	PL050_KEYBD_IRQ = Genode::Board_base::KMI_0_IRQ,
+	PL050_MOUSE_IRQ = Genode::Board_base::KMI_1_IRQ,
 };
 
 #endif /* _INCLUDE__PLATFORM__PBXA9__PL050_DEFS_H_ */
