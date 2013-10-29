@@ -81,8 +81,6 @@ namespace Genode
 			PWM2_BASE          = 0x53fb8000,
 			PWM2_SIZE          = 0x00004000,
 
-			IPU_ERR_IRQ        = 10,
-			IPU_SYNC_IRQ       = 11,
 			IPU_BASE           = 0x18000000,
 			IPU_SIZE           = 0x08000000,
 
