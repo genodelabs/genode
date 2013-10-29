@@ -16,6 +16,7 @@
 #define _INCLUDE__PLATFORM__PBXA9__PL180_DEFS_H_
 
 #include <platform/vea9x4/bus.h>
+#include <drivers/board_base.h>
 
 enum {
 	PL180_PHYS = SMB_CS7 + 0x5000, PL180_SIZE = 0x1000,
@@ -23,8 +24,8 @@ enum {
 	/**
 	 * Interrupt lines
 	 */
-	PL180_IRQ0 = 9,
-	PL180_IRQ1 = 10,
+	PL180_IRQ0 = Genode::Board_base::PL180_0_IRQ,
+	PL180_IRQ1 = Genode::Board_base::PL180_1_IRQ,
 };
 
 #endif /* _INCLUDE__PLATFORM__PBXA9__PL180_DEFS_H_ */

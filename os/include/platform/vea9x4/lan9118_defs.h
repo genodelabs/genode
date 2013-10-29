@@ -16,6 +16,7 @@
 #define _INCLUDE__PLATFORM__VEA9X4__LAN9118_DEFS_H_
 
 #include <platform/vea9x4/bus.h>
+#include <drivers/board_base.h>
 
 enum {
 
@@ -35,7 +36,7 @@ enum {
 	/**
 	 * Interrupt line
 	 */
-	LAN9118_IRQ = 32 + 15,
+	LAN9118_IRQ = Genode::Board_base::LAN9118_IRQ,
 };
 
 #endif /* _INCLUDE__PLATFORM__VEA9X4__LAN9118_DEFS_H_ */

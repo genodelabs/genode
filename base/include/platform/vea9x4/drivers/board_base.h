@@ -45,13 +45,27 @@ namespace Genode
 			PL011_0_MMIO_BASE = MMIO_0_BASE + 0x9000,
 			PL011_0_MMIO_SIZE = 0x1000,
 			PL011_0_CLOCK = 24*1000*1000,
-			PL011_0_IRQ = 5,
+			PL011_0_IRQ = 37,
+			PL011_1_IRQ = 38,
+			PL011_2_IRQ = 39,
+			PL011_3_IRQ = 40,
 
 			/* timer/counter */
 			SP804_0_1_MMIO_BASE = MMIO_0_BASE + 0x11000,
 			SP804_0_1_MMIO_SIZE = 0x1000,
 			SP804_0_1_CLOCK = 1000*1000,
 			SP804_0_1_IRQ = 34,
+
+			/* PS2 */
+			KMI_0_IRQ = 44,
+			KMI_1_IRQ = 45,
+
+			/* LAN */
+			LAN9118_IRQ = 47,
+
+			/* card reader */
+			PL180_0_IRQ = 9,
+			PL180_1_IRQ = 10,
 
 			/* clocks */
 			TCREF_CLOCK = 66670*1000,

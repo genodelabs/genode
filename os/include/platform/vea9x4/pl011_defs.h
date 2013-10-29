@@ -16,6 +16,7 @@
 #define _INCLUDE__PLATFORM__PBXA9__PL011_DEFS_H_
 
 #include <platform/vea9x4/bus.h>
+#include <drivers/board_base.h>
 
 enum {
 
@@ -34,10 +35,10 @@ enum {
 	/**
 	 * Interrupt lines
 	 */
-	PL011_IRQ0 = 32 + 5,      /* UART 0 */
-	PL011_IRQ1 = 32 + 6,      /* UART 1 */
-	PL011_IRQ2 = 32 + 7,      /* UART 2 */
-	PL011_IRQ3 = 32 + 8,      /* UART 3 */
+	PL011_IRQ0 = Genode::Board_base::PL011_0_IRQ, /* UART 0 */
+	PL011_IRQ1 = Genode::Board_base::PL011_1_IRQ, /* UART 1 */
+	PL011_IRQ2 = Genode::Board_base::PL011_2_IRQ, /* UART 2 */
+	PL011_IRQ3 = Genode::Board_base::PL011_3_IRQ, /* UART 3 */
 
 	/**
 	 * UART baud rate configuration (precalculated)
