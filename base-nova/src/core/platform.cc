@@ -336,7 +336,7 @@ Platform::Platform() :
 
 	/* configure virtual address spaces */
 #ifdef __x86_64__
-	_vm_size = 0x800000000000UL - _vm_base;
+	_vm_size = 0x7FFFFFFFF000UL - _vm_base;
 #else
 	_vm_size = 0xc0000000UL - _vm_base;
 #endif
