@@ -6,7 +6,7 @@
 
 VERBOSE    ?= @
 ECHO        = @echo
-GIT_URL     = http://git.l4dev.org/codezero.git
+GIT_URL     = https://github.com/nfeske/codezero.git
 GIT_REV     = 6fa4884a5a1cf6207372f69ae01e5faa6d5a39c8
 CONTRIB_DIR = contrib
 PATCHES     = $(shell find patches -name *.patch)
