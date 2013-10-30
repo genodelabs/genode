@@ -177,7 +177,7 @@ bool Signal_receiver::pending() { return Kernel::signal_pending(_cap.dst()); }
 Signal Signal_receiver::wait_for_signal()
 {
 	/* await a signal */
-	if (Kernel::await_signal(_cap.dst())) {
+	if (Kernel::await_signal(_cap.dst(), 0)) {
 		PERR("failed to receive signal");
 		return Signal(Signal::Data());
 	}

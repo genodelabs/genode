@@ -161,20 +161,6 @@ void Thread::_await_ipc_failed()
 }
 
 
-void Thread::_received_irq()
-{
-	assert(_state == AWAITS_IRQ);
-	_schedule();
-}
-
-
-void Thread::_awaits_irq()
-{
-	cpu_scheduler()->remove(this);
-	_state = AWAITS_IRQ;
-}
-
-
 int Thread::_resume()
 {
 	switch (_state) {
@@ -191,9 +177,6 @@ int Thread::_resume()
 		return 1;
 	case AWAITS_IPC:
 		Ipc_node::cancel_waiting();
-		return 0;
-	case AWAITS_IRQ:
-		Irq_receiver::cancel_waiting();
 		return 0;
 	case AWAITS_SIGNAL:
 		Signal_handler::cancel_waiting();
@@ -691,38 +674,6 @@ void Thread::_syscall_update_region()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_allocate_irq()
-{
-	assert(_core());
-	unsigned irq = user_arg_1();
-	user_arg_0(allocate_irq(irq));
-}
-
-
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
-void Thread::_syscall_free_irq()
-{
-	assert(_core());
-	unsigned irq = user_arg_1();
-	user_arg_0(free_irq(irq));
-}
-
-
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
-void Thread::_syscall_await_irq()
-{
-	assert(_core());
-	await_irq();
-}
-
-
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_syscall_print_char()
 {
 	Genode::printf("%c", (char)user_arg_1());
@@ -767,7 +718,7 @@ void Thread::_syscall_new_signal_receiver()
 		return;
 	}
 	/* create receiver */
-	void * p = (void *)user_arg_1();
+	void * const p = (void *)user_arg_1();
 	Signal_receiver * const r = new (p) Signal_receiver();
 	user_arg_0(r->id());
 }
@@ -785,7 +736,7 @@ void Thread::_syscall_new_signal_context()
 		return;
 	}
 	/* lookup receiver */
-	unsigned id = user_arg_2();
+	unsigned const id = user_arg_2();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
 		PERR("unknown signal receiver");
@@ -793,8 +744,8 @@ void Thread::_syscall_new_signal_context()
 		return;
 	}
 	/* create and assign context*/
-	void * p = (void *)user_arg_1();
-	unsigned imprint = user_arg_3();
+	void * const p = (void *)user_arg_1();
+	unsigned const imprint = user_arg_3();
 	if (r->new_context(p, imprint)) {
 		PERR("failed to create signal context");
 		user_arg_0(0);
@@ -811,9 +762,16 @@ void Thread::_syscall_new_signal_context()
  */
 void Thread::_syscall_await_signal()
 {
+	/* check wether to acknowledge a context */
+	unsigned const context_id = user_arg_2();
+	if (context_id) {
+		Signal_context * const c = Signal_context::pool()->object(context_id);
+		if (c) { c->ack(); }
+		else { PERR("failed to acknowledge signal context"); }
+	}
 	/* lookup receiver */
-	unsigned id = user_arg_1();
-	Signal_receiver * const r = Signal_receiver::pool()->object(id);
+	unsigned const receiver_id = user_arg_1();
+	Signal_receiver * const r = Signal_receiver::pool()->object(receiver_id);
 	if (!r) {
 		PERR("unknown signal receiver");
 		user_arg_0(-1);
@@ -835,7 +793,7 @@ void Thread::_syscall_await_signal()
 void Thread::_syscall_signal_pending()
 {
 	/* lookup signal receiver */
-	unsigned id = user_arg_1();
+	unsigned const id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
 		PERR("unknown signal receiver");
@@ -876,7 +834,7 @@ void Thread::_syscall_submit_signal()
 void Thread::_syscall_ack_signal()
 {
 	/* lookup signal context */
-	unsigned id = user_arg_1();
+	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
 		PERR("unknown signal context");
@@ -899,7 +857,7 @@ void Thread::_syscall_kill_signal_context()
 		return;
 	}
 	/* lookup signal context */
-	unsigned id = user_arg_1();
+	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
 		PERR("unknown signal context");
@@ -928,7 +886,7 @@ void Thread::_syscall_kill_signal_receiver()
 		return;
 	}
 	/* lookup signal receiver */
-	unsigned id = user_arg_1();
+	unsigned const id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
 		PERR("unknown signal receiver");
@@ -1028,9 +986,6 @@ void Thread::_syscall()
 	case UPDATE_PD:            _syscall_update_pd(); return;
 	case UPDATE_REGION:        _syscall_update_region(); return;
 	case NEW_PD:               _syscall_new_pd(); return;
-	case ALLOCATE_IRQ:         _syscall_allocate_irq(); return;
-	case AWAIT_IRQ:            _syscall_await_irq(); return;
-	case FREE_IRQ:             _syscall_free_irq(); return;
 	case PRINT_CHAR:           _syscall_print_char(); return;
 	case NEW_SIGNAL_RECEIVER:  _syscall_new_signal_receiver(); return;
 	case NEW_SIGNAL_CONTEXT:   _syscall_new_signal_context(); return;

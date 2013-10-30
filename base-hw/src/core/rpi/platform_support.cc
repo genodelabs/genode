@@ -14,8 +14,37 @@
 /* core includes */
 #include <platform.h>
 #include <board.h>
+#include <kernel/irq.h>
 
 using namespace Genode;
+
+namespace Kernel { void init_platform(); }
+
+/**
+ * Interrupts that core shall provide to users
+ */
+static unsigned irq_ids[] =
+{
+	Board::TIMER_IRQ
+};
+
+enum { IRQ_IDS_SIZE = sizeof(irq_ids)/sizeof(irq_ids[0]) };
+
+
+void Kernel::init_platform()
+{
+	/* make user IRQs become known by cores IRQ session backend and kernel */
+	static uint8_t _irqs[IRQ_IDS_SIZE][sizeof(Irq)];
+	for (unsigned i = 0; i < IRQ_IDS_SIZE; i++) {
+		new (_irqs[i]) Irq(irq_ids[i]);
+	}
+}
+
+
+unsigned * Platform::_irq(unsigned const i)
+{
+	return i < IRQ_IDS_SIZE ? &irq_ids[i] : 0;
+}
 
 
 Native_region * Platform::_ram_regions(unsigned const i)
@@ -23,31 +52,6 @@ Native_region * Platform::_ram_regions(unsigned const i)
 	static Native_region _regions[] =
 	{
 		{ Board::RAM_0_BASE, Board::RAM_0_SIZE }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_irq_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		{ 0, 64 }
-	};
-	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
-}
-
-
-Native_region * Platform::_core_only_irq_regions(unsigned const i)
-{
-	static Native_region _regions[] =
-	{
-		/* system timer */
-		{ Board::SYSTEM_TIMER_IRQ, 1 },
-
-		/* UART */
-		{ Board::PL011_0_IRQ, 1 },
-
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

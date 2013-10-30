@@ -122,7 +122,13 @@ Platform::Platform() :
 	enum { VERBOSE = 0 };
 	unsigned const psl2 = get_page_size_log2();
 	init_alloc(&_core_mem_alloc, _ram_regions, _core_only_ram_regions, psl2);
-	init_alloc(&_irq_alloc, _irq_regions, _core_only_irq_regions);
+
+	/* make interrupts available to the interrupt allocator */
+	for (unsigned i = 0; ; i++) {
+		unsigned * const irq = _irq(i);
+		if (!irq) { break; }
+		_irq_alloc.add_range(*irq, 1);
+	}
 
 	/*
 	 * Use byte granuarity for MMIO regions because on some platforms, devices

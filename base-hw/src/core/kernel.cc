@@ -25,9 +25,11 @@
 /* core includes */
 #include <kernel/pd.h>
 #include <kernel/vm.h>
+#include <kernel/irq.h>
 #include <platform_pd.h>
 #include <trustzone.h>
 #include <timer.h>
+#include <pic.h>
 
 /* base-hw includes */
 #include <singleton.h>
@@ -42,9 +44,16 @@ extern "C" void CORE_MAIN();
 
 namespace Kernel
 {
+	/**
+	 * Return interrupt-controller singleton
+	 */
+	Pic * pic() { return unsynchronized_singleton<Pic>(); }
+
 	/* import Genode types */
 	typedef Genode::umword_t     umword_t;
 	typedef Genode::Core_tlb     Core_tlb;
+
+	void init_platform();
 }
 
 namespace Kernel
@@ -142,10 +151,10 @@ namespace Kernel
 	void handle_interrupt()
 	{
 		/* determine handling for specific interrupt */
-		unsigned irq;
-		if (pic()->take_request(irq))
+		unsigned irq_id;
+		if (pic()->take_request(irq_id))
 		{
-			switch (irq) {
+			switch (irq_id) {
 
 			case Timer::IRQ: {
 
@@ -156,9 +165,7 @@ namespace Kernel
 
 			default: {
 
-				Irq_receiver * const o = Irq_receiver::receiver(irq);
-				assert(o);
-				o->receive_irq(irq);
+				Irq::occurred(irq_id);
 				break; }
 			}
 		}
@@ -180,7 +187,7 @@ extern "C" void kernel()
 {
 	static bool initial_call = true;
 
-	/* an exception occured */
+	/* an exception occurred */
 	if (!initial_call)
 	{
 		/* handle exception that interrupted the last user */
@@ -188,8 +195,6 @@ extern "C" void kernel()
 
 	/* kernel initialization */
 	} else {
-
-		Genode::printf("Kernel started!\n");
 
 		/* enable kernel timer */
 		pic()->unmask(Timer::IRQ);
@@ -221,8 +226,8 @@ extern "C" void kernel()
 			static Thread t((Platform_thread *)0);
 			t.init(ip, sp, 0, core_id(), &utcb, &utcb, 1, 1);
 		}
-
 		/* kernel initialization finished */
+		init_platform();
 		reset_lap_time();
 		initial_call = false;
 	}

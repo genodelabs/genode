@@ -64,11 +64,6 @@ namespace Kernel
 		NEW_PD = 13,
 		KILL_PD = 34,
 
-		/* interrupt handling */
-		ALLOCATE_IRQ = 14,
-		AWAIT_IRQ = 15,
-		FREE_IRQ = 16,
-
 		/* debugging */
 		PRINT_CHAR = 17,
 
@@ -392,40 +387,6 @@ namespace Kernel
 	inline void print_char(char const c)
 	{ syscall(PRINT_CHAR, (Syscall_arg)c); }
 
-	/**
-	 * Allocate an IRQ to the caller if the IRQ is not allocated already
-	 *
-	 * \param id  ID of the targeted IRQ
-	 *
-	 * \return  wether the IRQ has been allocated to this thread or not
-	 *
-	 * Restricted to core threads.
-	 */
-	inline bool allocate_irq(unsigned const id) {
-		return syscall(ALLOCATE_IRQ, (Syscall_arg)id); }
-
-
-	/**
-	 * Free an IRQ from allocation if it is allocated by the caller
-	 *
-	 * \param id  ID of the targeted IRQ
-	 *
-	 * \return  wether the IRQ has been freed or not
-	 *
-	 * Restricted to core threads.
-	 */
-	inline bool free_irq(unsigned const id)	{
-		return syscall(FREE_IRQ, (Syscall_arg)id); }
-
-
-	/**
-	 * Block caller for the occurence of its IRQ
-	 *
-	 * Restricted to core threads. Blocks the caller forever
-	 * if he has not allocated any IRQ.
-	 */
-	inline void await_irq() { syscall(AWAIT_IRQ); }
-
 
 	/**
 	 * Copy the current state of a thread to the callers UTCB
@@ -492,25 +453,29 @@ namespace Kernel
 
 
 	/**
-	 * Wait for the occurence of any context of a receiver
+	 * Await any context of a receiver and optionally ack a context before
 	 *
-	 * \param receiver  kernel name of the targeted signal receiver
+	 * \param receiver_id  kernel name of the targeted signal receiver
+	 * \param context_id   kernel name of a context that shall be acknowledged
 	 *
 	 * \retval  0  suceeded
 	 * \retval -1  failed
 	 *
+	 * If context is set to 0, the call doesn't acknowledge any context.
 	 * If this call returns 0, an instance of 'Signal::Data' is located at the
 	 * base of the callers UTCB. Every occurence of a signal is provided
-	 * through this function until it gets delivered through this function.
-	 * If multiple threads listen at the same receiver, and/or
-	 * multiple contexts of the receiver trigger simultanously, there is no
-	 * assertion about wich thread receives, and from wich context. A context
-	 * that delivered once doesn't deliver again unless its last delivery has
-	 * been acknowledged via 'ack_signal'.
+	 * through this function until it gets delivered through this function or
+	 * context respectively receiver get destructed. If multiple threads
+	 * listen at the same receiver, and/or multiple contexts of the receiver
+	 * trigger simultanously, there is no assertion about wich thread
+	 * receives, and from wich context. A context that delivered once doesn't
+	 * deliver again unless its last delivery has been acknowledged via
+	 * ack_signal.
 	 */
-	inline int await_signal(unsigned const receiver)
+	inline int await_signal(unsigned const receiver_id,
+	                        unsigned const context_id)
 	{
-		return syscall(AWAIT_SIGNAL, receiver);
+		return syscall(AWAIT_SIGNAL, receiver_id, context_id);
 	}
 
 

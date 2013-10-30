@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/sync_allocator.h>
 #include <base/allocator_avl.h>
+#include <irq_session/irq_session.h>
 #include <kernel/log.h>
 #include <kernel/syscalls.h>
 
@@ -52,7 +53,6 @@ namespace Genode {
 		 */
 		static Native_region * _ram_regions(unsigned i);
 		static Native_region * _mmio_regions(unsigned i);
-		static Native_region * _irq_regions(unsigned i);
 
 		/**
 		 * Get one of the consecutively numbered core regions
@@ -66,7 +66,16 @@ namespace Genode {
 		 */
 		static Native_region * _core_only_ram_regions(unsigned i);
 		static Native_region * _core_only_mmio_regions(unsigned i);
-		static Native_region * _core_only_irq_regions(unsigned i);
+
+		/**
+		 * Get one of the consecutively numbered user interrupts
+		 *
+		 * \param i  index of interrupt
+		 *
+		 * \return  >0  pointer to the name of the requested interrupt
+		 *          0   no interrupt for that index
+		 */
+		static unsigned * _irq(unsigned const i);
 
 		public:
 

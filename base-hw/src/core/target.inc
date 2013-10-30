@@ -50,6 +50,7 @@ SRC_CC += console.cc \
           kernel/thread.cc \
           kernel/vm.cc \
           kernel/signal_receiver.cc \
+          kernel/irq.cc \
           rm_session_support.cc \
           kernel_support.cc \
           trustzone.cc \

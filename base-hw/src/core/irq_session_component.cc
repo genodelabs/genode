@@ -1,5 +1,5 @@
 /*
- * \brief  Implementation of IRQ session component
+ * \brief  Backend for IRQ sessions served by core
  * \author Martin Stein
  * \date   2012-02-12
  */
@@ -15,56 +15,54 @@
 #include <kernel/syscalls.h>
 
 /* core includes */
+#include <kernel/irq.h>
 #include <irq_root.h>
+#include <core_env.h>
 
 using namespace Genode;
 
-
-bool
-Irq_session_component::Irq_control_component::associate_to_irq(unsigned irq)
-{ return Kernel::allocate_irq(irq); }
-
-
-void Irq_session_component::wait_for_irq() { Kernel::await_irq(); }
-
-
-Irq_session_component::~Irq_session_component()
+/**
+ * On other platforms, every IRQ session component creates its entrypoint.
+ * However, on base-hw this isn't necessary as users can wait for their
+ * interrupts directly. Instead of replacing cores generic irq_root.h and
+ * main.cc with base-hw specific versions, we simply use a local singleton.h
+ */
+static Rpc_entrypoint * irq_session_ep()
 {
-	/* free IRQ for other threads */
-	if (Kernel::free_irq(_irq_number))
-		PERR("Could not free IRQ %u", _irq_number);
+	enum { STACK_SIZE = 2048 };
+	static Rpc_entrypoint
+		_ep(core_env()->cap_session(), STACK_SIZE, "irq_session_ep");
+	return &_ep;
 }
 
+void Irq_session_component::wait_for_irq() { PERR("not implemented"); }
 
-Irq_session_component::Irq_session_component(Cap_session *     cap_session,
-                                             Range_allocator * irq_alloc,
-                                             const char *      args)
+Irq_signal Irq_session_component::signal() { return _signal; }
+
+Irq_session_component::~Irq_session_component() { PERR("not implemented"); }
+
+
+Irq_session_component::Irq_session_component(Cap_session * const     cap_session,
+                                             Range_allocator * const irq_alloc,
+                                             const char * const      args)
 :
-	_irq_alloc(irq_alloc), _ep(cap_session, STACK_SIZE, "irqctrl"),
-	_control_cap(_ep.manage(&_control_component)),
-	_control_client(_control_cap)
+	_irq_alloc(irq_alloc)
 {
 	/* check arguments */
 	bool shared = Arg_string::find_arg(args, "irq_shared").bool_value(false);
 	if (shared) {
-		PERR("IRQ sharing not supported");
+		PERR("shared interrupts not supported");
 		throw Root::Invalid_args();
 	}
-	/* allocate IRQ */
+	/* allocate interrupt */
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
-	if (irq_number < 0 || !irq_alloc ||
-	    irq_alloc->alloc_addr(1, irq_number).is_error())
-	{
-		PERR("Unavailable IRQ %lu requested", irq_number);
+	bool error = irq_number < 0 || !_irq_alloc;
+	error |= _irq_alloc->alloc_addr(1, irq_number).is_error();
+	if (error) {
+		PERR("unavailable interrupt requested");
 		throw Root::Invalid_args();
 	}
-	_irq_number = irq_number;
-
-	/* configure control client */
-	if (!_control_client.associate_to_irq(irq_number)) {
-		PERR("IRQ association failed");
-		throw Root::Invalid_args();
-	}
-	/* create IRQ capability */
-	_irq_cap = Irq_session_capability(_ep.manage(this));
+	/* make interrupt accessible */
+	_signal = Irq::signal(irq_number);
+	_cap    = Irq_session_capability(irq_session_ep()->manage(this));
 }

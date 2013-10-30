@@ -232,12 +232,7 @@ class Kernel::Signal_context
 		void _killer_cancelled() { _killer = 0; }
 
 		/**
-		 * Destructor
-		 */
-		~Signal_context();
-
-		/**
-		 * Constructor
+		 * Constructor that is used by signal receivers
 		 *
 		 * \param r        receiver that the context is assigned to
 		 * \param imprint  userland identification of the context
@@ -247,6 +242,25 @@ class Kernel::Signal_context
 			_deliver_fe(this), _contexts_fe(this), _receiver(r),
 			_imprint(imprint), _submits(0), _ack(1), _kill(0), _killer(0)
 		{ }
+
+		/**
+		 * Hook to install in-kernel handler for acks at specific signal types
+		 */
+		virtual void _signal_context_acknowledged() { };
+
+	protected:
+
+		/**
+		 * Constructor that is used by 
+		 *
+		 * \param r  receiver that the context is assigned to
+		 */
+		Signal_context(Signal_receiver * const r);
+
+		/**
+		 * Destructor
+		 */
+		~Signal_context();
 
 	public:
 
@@ -271,6 +285,7 @@ class Kernel::Signal_context
 		 */
 		void ack()
 		{
+			_signal_context_acknowledged();
 			if (_ack) { return; }
 			if (!_kill) {
 				_ack = 1;
@@ -441,6 +456,9 @@ class Kernel::Signal_receiver
 		/**
 		 * Create a context that is assigned to the receiver
 		 *
+		 * \param p        memory destination
+		 * \param imprint  userland identification of context
+		 *
 		 * \retval  0  succeeded
 		 * \retval -1  failed
 		 */
@@ -449,6 +467,19 @@ class Kernel::Signal_receiver
 			if (_kill) { return -1; }
 			new (p) Signal_context(this, imprint);
 			Signal_context * const c = (Signal_context *)p;
+			_contexts.enqueue(&c->_contexts_fe);
+			return 0;
+		}
+
+		/**
+		 * Assign context 'c' to the receiver
+		 *
+		 * \retval  0  succeeded
+		 * \retval -1  failed
+		 */
+		int add_context(Signal_context * const c)
+		{
+			if (_kill) { return -1; }
 			_contexts.enqueue(&c->_contexts_fe);
 			return 0;
 		}

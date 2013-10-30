@@ -19,7 +19,6 @@
 #include <kernel/scheduler.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
-#include <kernel/irq_receiver.h>
 #include <cpu.h>
 
 namespace Genode
@@ -56,7 +55,6 @@ class Kernel::Thread
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
 	public Execution_context,
 	public Ipc_node,
-	public Irq_receiver,
 	public Signal_context_killer,
 	public Signal_receiver_killer,
 	public Signal_handler
@@ -73,7 +71,6 @@ class Kernel::Thread
 			AWAITS_RESUME               = 4,
 			AWAITS_PAGER                = 5,
 			AWAITS_PAGER_IPC            = 6,
-			AWAITS_IRQ                  = 7,
 			AWAITS_SIGNAL               = 8,
 			AWAITS_SIGNAL_CONTEXT_KILL  = 9,
 			AWAITS_SIGNAL_RECEIVER_KILL = 10,
@@ -160,9 +157,6 @@ class Kernel::Thread
 		void _syscall_set_pager();
 		void _syscall_update_pd();
 		void _syscall_update_region();
-		void _syscall_allocate_irq();
-		void _syscall_free_irq();
-		void _syscall_await_irq();
 		void _syscall_print_char();
 		void _syscall_read_thread_state();
 		void _syscall_write_thread_state();
@@ -211,14 +205,6 @@ class Kernel::Thread
 		void _await_ipc();
 		void _await_ipc_succeeded(size_t const s);
 		void _await_ipc_failed();
-
-
-		/***************
-		 ** Irq_owner **
-		 ***************/
-
-		void _received_irq();
-		void _awaits_irq();
 
 	public:
 
