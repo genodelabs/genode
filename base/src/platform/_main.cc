@@ -60,33 +60,42 @@ struct atexit_fn
 	void *fn_dso;	/* shared module handle */
 };
 
+/* all members are initialized with 0 */
 static struct atexit
 {
+	bool enabled;
 	int index;
 	struct atexit_fn fns[ATEXIT_SIZE];
 } _atexit;
 
 
-static Lock *atexit_lock()
+static Lock &atexit_lock()
 {
 	static Lock _atexit_lock;
-	return &_atexit_lock;
+	return _atexit_lock;
+}
+
+
+static void atexit_enable()
+{
+	_atexit.enabled = true;
 }
 
 
 static int atexit_register(struct atexit_fn *fn)
 {
-	atexit_lock()->lock();
+	Lock::Guard atexit_lock_guard(atexit_lock());
+
+	if (!_atexit.enabled)
+		return 0;
 
 	if (_atexit.index >= ATEXIT_SIZE) {
 		PERR("Cannot register exit handler - ATEXIT_SIZE reached");
-		atexit_lock()->unlock();
 		return -1;
 	}
 
 	_atexit.fns[_atexit.index++] = *fn;
 
-	atexit_lock()->unlock();
 	return 0;
 }
 
@@ -142,8 +151,7 @@ void genode___cxa_finalize(void *dso)
 	struct atexit_fn fn;
 	int n = 0;
 
-	atexit_lock()->lock();
-
+	atexit_lock().lock();
 	for (n = _atexit.index; --n >= 0;) {
 		if (_atexit.fns[n].fn_type == ATEXIT_FN_EMPTY)
 			continue; /* already been called */
@@ -156,17 +164,17 @@ void genode___cxa_finalize(void *dso)
 		 * has already been called.
 		 */
 		_atexit.fns[n].fn_type = ATEXIT_FN_EMPTY;
-		atexit_lock()->unlock();
+		atexit_lock().unlock();
 
 		/* call the function of correct type */
 		if (fn.fn_type == ATEXIT_FN_CXA)
 			fn.fn_ptr.cxa_func(fn.fn_arg);
 		else if (fn.fn_type == ATEXIT_FN_STD)
 			fn.fn_ptr.std_func();
-		atexit_lock()->lock();
-	}
 
-	atexit_lock()->unlock();
+		atexit_lock().lock();
+	}
+	atexit_lock().unlock();
 }
 
 
@@ -177,29 +185,17 @@ extern "C" void __cxa_finalize(void *dso);
  */
 void genode_exit(int status)
 {
-	/* inform parent about the exit status */
-	env()->parent()->exit(status);
+	/* call handlers registered with 'atexit()' or '__cxa_atexit()' */
+	__cxa_finalize(0);
 
-	/*
-	 * Call destructors for static objects.
-	 *
-	 * It happened that a function from the dtors list (namely
-	 * __clean_env_destructor() from the libc) called another function, which
-	 * depended on the Genode environment. Since the Genode environment gets
-	 * destroyed by genode___cxa_finalize(), the functions from the dtors list
-	 * are called before genode___cxa_finalize().
-	 *
-	 */
+	/* call destructors for global static objects. */
 	void (**func)();
 	for (func = &_dtors_start; func != &_dtors_end; (*func++)());
 
-	/* call all handlers registered with atexit() or __cxa_atexit() */
-	__cxa_finalize(0);
+	/* inform parent about the exit status */
+	env()->parent()->exit(status);
 
-	/*
-	 * Wait for destruction by the parent who was supposed to be notified by 
-	 * the destructor of the static Genode::Env instance.
-	 */
+	/* wait for destruction by the parent */
 	sleep_forever();
 }
 
@@ -237,6 +233,16 @@ extern "C" int _main()
 
 	/* call env() explicitly to setup the environment */
 	(void*)env();
+
+	/*
+	 * Allow exit handlers to be registered.
+	 *
+	 * This is done after the creation of the environment to prevent its
+	 * destruction. The environment is still needed to notify the parent
+	 * after all exit handlers (including static object destructors) have
+	 * been called.
+	 */
+	atexit_enable();
 
 	/* initialize exception handling */
 	init_exception_handling();
