@@ -18,7 +18,7 @@
 #define _INCLUDE__INPUT__KEYCODES_H_
 
 /*
- * C++ provides no reflection of the names of enum value. So we use the
+ * C++ provides no reflection of the names of enum values. So we use the
  * preprocessor to generate the bodies of both the enum type 'Keycode' and
  * the reflection function 'key_name' from one definition.
  */
