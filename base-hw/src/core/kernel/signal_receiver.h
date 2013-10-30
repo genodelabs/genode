@@ -232,18 +232,6 @@ class Kernel::Signal_context
 		void _killer_cancelled() { _killer = 0; }
 
 		/**
-		 * Constructor that is used by signal receivers
-		 *
-		 * \param r        receiver that the context is assigned to
-		 * \param imprint  userland identification of the context
-		 */
-		Signal_context(Signal_receiver * const r, unsigned const imprint)
-		:
-			_deliver_fe(this), _contexts_fe(this), _receiver(r),
-			_imprint(imprint), _submits(0), _ack(1), _kill(0), _killer(0)
-		{ }
-
-		/**
 		 * Hook to install in-kernel handler for acks at specific signal types
 		 */
 		virtual void _signal_context_acknowledged() { };
@@ -251,18 +239,26 @@ class Kernel::Signal_context
 	protected:
 
 		/**
-		 * Constructor that is used by 
-		 *
-		 * \param r  receiver that the context is assigned to
-		 */
-		Signal_context(Signal_receiver * const r);
-
-		/**
 		 * Destructor
 		 */
 		~Signal_context();
 
 	public:
+
+		/**
+		 * Exception types
+		 */
+		struct Assign_to_receiver_failed { };
+
+		/**
+		 * Constructor
+		 *
+		 * \param r        receiver that the context shall be assigned to
+		 * \param imprint  userland identification of the context
+		 *
+		 * \throw  Assign_to_receiver_failed
+		 */
+		Signal_context(Signal_receiver * const r, unsigned const imprint);
 
 		/**
 		 * Submit the signal
@@ -411,6 +407,19 @@ class Kernel::Signal_receiver
 			_handlers.remove(&h->_handlers_fe);
 		}
 
+		/**
+		 * Assign context 'c' to the receiver
+		 *
+		 * \retval  0  succeeded
+		 * \retval -1  failed
+		 */
+		int _add_context(Signal_context * const c)
+		{
+			if (_kill) { return -1; }
+			_contexts.enqueue(&c->_contexts_fe);
+			return 0;
+		}
+
 
 		/***************************
 		 ** Signal_context_killer **
@@ -450,37 +459,6 @@ class Kernel::Signal_receiver
 			h->_receiver = this;
 			h->_await_signal(this);
 			_listen();
-			return 0;
-		}
-
-		/**
-		 * Create a context that is assigned to the receiver
-		 *
-		 * \param p        memory destination
-		 * \param imprint  userland identification of context
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
-		 */
-		int new_context(void * p, unsigned imprint)
-		{
-			if (_kill) { return -1; }
-			new (p) Signal_context(this, imprint);
-			Signal_context * const c = (Signal_context *)p;
-			_contexts.enqueue(&c->_contexts_fe);
-			return 0;
-		}
-
-		/**
-		 * Assign context 'c' to the receiver
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
-		 */
-		int add_context(Signal_context * const c)
-		{
-			if (_kill) { return -1; }
-			_contexts.enqueue(&c->_contexts_fe);
 			return 0;
 		}
 

@@ -746,14 +746,13 @@ void Thread::_syscall_new_signal_context()
 	/* create and assign context*/
 	void * const p = (void *)user_arg_1();
 	unsigned const imprint = user_arg_3();
-	if (r->new_context(p, imprint)) {
-		PERR("failed to create signal context");
+	try {
+		Signal_context * const c = new (p) Signal_context(r, imprint);
+		user_arg_0(c->id());
+	} catch (Signal_context::Assign_to_receiver_failed) {
+		PERR("failed to assign context to receiver");
 		user_arg_0(0);
-		return;
 	}
-	/* return context name */
-	Signal_context * const c = (Signal_context *)p;
-	user_arg_0(c->id());
 }
 
 

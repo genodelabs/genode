@@ -45,10 +45,10 @@ void Signal_context::_deliverable()
 Signal_context::~Signal_context() { _receiver->_context_killed(this); }
 
 
-Signal_context::Signal_context(Signal_receiver * const r)
+Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint)
 :
 	_deliver_fe(this), _contexts_fe(this), _receiver(r),
-	_imprint(Object::id()), _submits(0), _ack(1), _kill(0), _killer(0)
+	_imprint(imprint), _submits(0), _ack(1), _kill(0), _killer(0)
 {
-	r->add_context(this);
+	if (r->_add_context(this)) { throw Assign_to_receiver_failed(); }
 }

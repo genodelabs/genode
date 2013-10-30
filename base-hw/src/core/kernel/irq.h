@@ -142,7 +142,7 @@ class Kernel::Irq
 		Irq(unsigned const irq_id)
 		:
 			Pool::Item(irq_id),
-			Signal_context(this)
+			Signal_context(this, 0)
 		{
 			_pool()->insert(this);
 			_disable();
