@@ -44,10 +44,8 @@ extern "C" {
 
 	int pthread_attr_init(pthread_attr_t *attr)
 	{
-		if (!attr) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!attr)
+			return EINVAL;
 
 		*attr = new (env()->heap()) pthread_attr;
 
@@ -57,10 +55,8 @@ extern "C" {
 
 	int pthread_attr_destroy(pthread_attr_t *attr)
 	{
-		if (!attr || !*attr) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!attr || !*attr)
+			return EINVAL;
 
 		destroy(env()->heap(), *attr);
 		*attr = 0;
@@ -100,12 +96,11 @@ extern "C" {
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
-		pthread_t thread_obj = new (env()->heap()) pthread(attr ? *attr : 0, start_routine, arg);
+		pthread_t thread_obj = new (env()->heap())
+		                           pthread(attr ? *attr : 0, start_routine, arg);
 
-		if (!thread_obj) {
-			errno = EAGAIN;
-			return -1;
-		}
+		if (!thread_obj)
+			return EAGAIN;
 
 		*thread = thread_obj;
 
@@ -159,10 +154,8 @@ extern "C" {
 		/* FIXME */
 		PWRN("pthread_attr_getstack() called, might not work correctly");
 
-		if (!attr || !*attr || !stackaddr || !stacksize) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!attr || !*attr || !stackaddr || !stacksize)
+			return EINVAL;
 
 		pthread_t pthread = (*attr)->pthread;
 
@@ -175,10 +168,8 @@ extern "C" {
 
 	int pthread_attr_get_np(pthread_t pthread, pthread_attr_t *attr)
 	{
-		if (!attr) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!attr)
+			return EINVAL;
 
 		*attr = pthread->_attr;
 		return 0;
@@ -222,10 +213,8 @@ extern "C" {
 
 	int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 	{
-		if (!attr) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!attr)
+			return EINVAL;
 
 		*attr = new (env()->heap()) pthread_mutex_attr;
 
@@ -235,10 +224,8 @@ extern "C" {
 
 	int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 	{
-		if (!attr || !*attr) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!attr || !*attr)
+			return EINVAL;
 
 		destroy(env()->heap(), *attr);
 		*attr = 0;
@@ -249,10 +236,8 @@ extern "C" {
 
 	int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 	{
-		if (!attr || !*attr) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!attr || !*attr)
+			return EINVAL;
 
 		(*attr)->type = type;
 
@@ -263,10 +248,8 @@ extern "C" {
 	int pthread_mutex_init(pthread_mutex_t *__restrict mutex,
 	                       const pthread_mutexattr_t *__restrict attr)
 	{
-		if (!mutex) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!mutex)
+			return EINVAL;
 
 		*mutex = new (env()->heap()) pthread_mutex(attr);
 
@@ -276,10 +259,8 @@ extern "C" {
 
 	int pthread_mutex_destroy(pthread_mutex_t *mutex)
 	{
-		if ((!mutex) || (*mutex == PTHREAD_MUTEX_INITIALIZER)) {
-			errno = EINVAL;
-			return -1;
-		}
+		if ((!mutex) || (*mutex == PTHREAD_MUTEX_INITIALIZER))
+			return EINVAL;
 
 		destroy(env()->heap(), *mutex);
 		*mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -290,10 +271,8 @@ extern "C" {
 
 	int pthread_mutex_lock(pthread_mutex_t *mutex)
 	{
-		if (!mutex) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!mutex)
+			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
 			pthread_mutex_init(mutex, 0);
@@ -306,10 +285,8 @@ extern "C" {
 
 	int pthread_mutex_unlock(pthread_mutex_t *mutex)
 	{
-		if (!mutex) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!mutex)
+			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
 			pthread_mutex_init(mutex, 0);
@@ -343,10 +320,8 @@ extern "C" {
 	int pthread_cond_init(pthread_cond_t *__restrict cond,
 	                      const pthread_condattr_t *__restrict attr)
 	{
-		if (!cond) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!cond)
+			return EINVAL;
 
 		*cond = new (env()->heap()) pthread_cond;
 
@@ -367,10 +342,8 @@ extern "C" {
 		int result = 0;
 		Alarm::Time timeout = 0;
 
-		if (!cond || !*cond) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!cond || !*cond)
+			return EINVAL;
 
 		pthread_cond *c = *cond;
 
@@ -392,14 +365,13 @@ extern "C" {
 			try {
 				c->signal_sem.down(timeout);
 			} catch (Timeout_exception) {
-				errno = ETIMEDOUT;
-				result = -1;
+				result = ETIMEDOUT;
 			}
 		}
 
 		c->counter_lock.lock();
 		if (c->num_signallers > 0) {
-			if (result == -1) /* timeout occured */
+			if (result == ETIMEDOUT) /* timeout occured */
 				c->signal_sem.down();
 			c->handshake_sem.up();
 			--c->num_signallers;
@@ -422,10 +394,8 @@ extern "C" {
 
 	int pthread_cond_signal(pthread_cond_t *cond)
 	{
-		if (!cond || !*cond) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!cond || !*cond)
+			return EINVAL;
 
 		pthread_cond *c = *cond;
 
@@ -444,10 +414,8 @@ extern "C" {
 
 	int pthread_cond_broadcast(pthread_cond_t *cond)
 	{
-		if (!cond || !*cond) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!cond || !*cond)
+			return EINVAL;
 
 		pthread_cond *c = *cond;
 
@@ -488,10 +456,8 @@ extern "C" {
 		static Lock key_list_lock;
 		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
 
-		if (!key) {
-			errno = EINVAL;
-			return -1;
-		}
+		if (!key)
+			return EINVAL;
 
 		for (int k = 0; k < PTHREAD_KEYS_MAX; k++) {
 			/*
@@ -506,8 +472,7 @@ extern "C" {
 			}
 		}
 
-		errno = EAGAIN;
-		return -1;
+		return EAGAIN;
 	}
 
 
