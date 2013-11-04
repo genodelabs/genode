@@ -103,7 +103,7 @@ void Pager_object::_exception_handler(addr_t portal_id)
 	Pager_object *obj;
 	Utcb         *utcb = _check_handler(myself, obj);
 	addr_t fault_ip    = utcb->ip;
-	uint8_t res        = Nova::NOVA_OK;
+	uint8_t res        = 0xFF;
 
 	if (obj->submit_exception_signal())
 		res = obj->client_recall();
@@ -113,7 +113,9 @@ void Pager_object::_exception_handler(addr_t portal_id)
 		myself->name(client_name, sizeof(client_name));
 
 		PWRN("unresolvable exception at ip 0x%lx, exception portal 0x%lx, %s, "
-		     "'%s'", fault_ip, portal_id, res == NOVA_OK ? "" : "recall failed",
+		     "'%s'", fault_ip,
+		     portal_id, res == 0xFF ? "no signal handler" :
+		     res == NOVA_OK ? "" : "recall failed",
 		     client_name);
 
 		Nova::revoke(Obj_crd(portal_id, 0));
