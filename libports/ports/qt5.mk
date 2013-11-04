@@ -59,8 +59,9 @@ $(DOWNLOAD_DIR)/$(QTSCRIPTCLASSIC_TGZ).verified: $(DOWNLOAD_DIR)/$(QTSCRIPTCLASS
 $(CONTRIB_DIR)/$(QT5): $(DOWNLOAD_DIR)/$(QT5_TGZ).verified
 	$(VERBOSE)tar xzf $(DOWNLOAD_DIR)/$(QT5_TGZ) -C $(CONTRIB_DIR)
 	$(VERBOSE)touch $(CONTRIB_DIR)/$(QT5)
-	$(VERBOSE)for p in $(PATCHES); do \
-	            patch -d $(CONTRIB_DIR)/$(QT5) -p1 -i ../../$(PATCHES_DIR)/$$p; done
+	$(VERBOSE)git init $(CONTRIB_DIR)/$(QT5)
+	$(VERBOSE)cd $(CONTRIB_DIR)/$(QT5) && for p in $(PATCHES); do \
+	            git apply ../../$(PATCHES_DIR)/$$p; done;
 
 $(CONTRIB_DIR)/$(QTSCRIPTCLASSIC): $(DOWNLOAD_DIR)/$(QTSCRIPTCLASSIC_TGZ).verified
 	$(VERBOSE)tar xzf $(DOWNLOAD_DIR)/$(QTSCRIPTCLASSIC_TGZ) -C $(CONTRIB_DIR)
