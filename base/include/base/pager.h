@@ -79,14 +79,10 @@ namespace Genode {
 			 */
 			virtual int pager(Ipc_pager &ps) = 0;
 
-			void wake_up()
-			{
-				/* notify pager to wake up faulter */
-				Msgbuf<16> snd, rcv;
-				Native_capability pager = cap();
-				Ipc_client ipc_client(pager, &snd, &rcv);
-				ipc_client << this << IPC_CALL;
-			}
+			/**
+			 * Wake up the faulter
+			 */
+			void wake_up();
 
 			/**
 			 * Assign user-level exception handler for the pager object

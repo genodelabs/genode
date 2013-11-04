@@ -8,7 +8,7 @@ LIBS += cxx syscall startup
 
 SRC_CC += main_bootstrap.cc
 SRC_CC += ipc/ipc.cc ipc/pager.cc
-SRC_CC += pager/pager.cc
+SRC_CC += pager/pager.cc pager/common.cc
 SRC_CC += avl_tree/avl_tree.cc
 SRC_CC += allocator/slab.cc
 SRC_CC += allocator/allocator_avl.cc
