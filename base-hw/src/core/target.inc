@@ -46,7 +46,7 @@ SRC_CC += console.cc \
           signal_session_component.cc \
           trace_session_component.cc \
           thread.cc \
-          kernel.cc \
+          kernel/kernel.cc \
           kernel/thread.cc \
           kernel/vm.cc \
           kernel/signal_receiver.cc \
