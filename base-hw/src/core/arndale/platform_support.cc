@@ -15,6 +15,7 @@
 #include <board.h>
 #include <platform.h>
 #include <pic.h>
+#include <cpu.h>
 #include <timer.h>
 #include <kernel/irq.h>
 
@@ -83,3 +84,6 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
+
+
+Cpu::User_context::User_context() { cpsr = Psr::init_user(); }

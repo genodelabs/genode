@@ -14,6 +14,7 @@
 /* core includes */
 #include <platform.h>
 #include <board.h>
+#include <cpu.h>
 #include <kernel/irq.h>
 
 using namespace Genode;
@@ -83,3 +84,5 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
 
+
+Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
