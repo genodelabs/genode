@@ -197,6 +197,16 @@ int main()
 	 */
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
+	/**
+	 * Provide signal service before other services to enable the use of signal
+	 * connection during service initialization. This has been introduced due
+	 * to the use of the signal framework for paging (RM service) in base-hw.
+	 */
+	static Signal_root signal_root(&sliced_heap, core_env()->cap_session());
+	char const * const signal_name = Signal_session::service_name();
+	static Local_service signal_service(signal_name, &signal_root);
+	local_services.insert(&signal_service);
+
 	static Cap_root     cap_root     (e, &sliced_heap);
 	static Ram_root     ram_root     (e, e, platform()->ram_alloc(), &sliced_heap);
 	static Rom_root     rom_root     (e, e, platform()->rom_fs(), &sliced_heap);
@@ -210,7 +220,6 @@ int main()
 	                                  platform()->ram_alloc(), &sliced_heap);
 	static Irq_root     irq_root     (core_env()->cap_session(),
 	                                  platform()->irq_alloc(), &sliced_heap);
-	static Signal_root  signal_root  (&sliced_heap, core_env()->cap_session());
 	static Trace::Root  trace_root   (e, &sliced_heap, trace_sources, trace_policies);
 
 	/*
@@ -227,7 +236,6 @@ int main()
 		Local_service(Log_session::service_name(),     &log_root),
 		Local_service(Io_mem_session::service_name(),  &io_mem_root),
 		Local_service(Irq_session::service_name(),     &irq_root),
-		Local_service(Signal_session::service_name(),  &signal_root),
 		Local_service(Trace::Session::service_name(),  &trace_root)
 	};
 
