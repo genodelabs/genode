@@ -58,7 +58,7 @@ proc build_boot_image {binaries} {
 	if {![nova_external] && ![file exists [nova_kernel]]} { build { kernel } }
 
 	puts "using NOVA kernel at [nova_kernel]"
-	exec objcopy -O elf32-i386 [nova_kernel] [run_dir]/hypervisor
+	exec [cross_dev_prefix]objcopy -O elf32-i386 [nova_kernel] [run_dir]/hypervisor
 
 	install_iso_bootloader_to_run_dir
 
