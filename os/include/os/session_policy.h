@@ -36,7 +36,7 @@ namespace Genode {
 			/**
 			 * Constructor
 			 *
-			 * \param args session-arguments as null-terminated string
+			 * \param args  session arguments as null-terminated string
 			 */
 			explicit Session_label(char const *args)
 			{
@@ -84,7 +84,7 @@ namespace Genode {
 						if (!policy.has_type("policy"))
 							continue;
 
-						/* label attribtute from policy node */
+						/* label attribute from policy node */
 						char policy_label[Session_label::MAX_LEN];
 						policy.attribute("label").value(policy_label,
 						                                sizeof(policy_label));
@@ -116,10 +116,10 @@ namespace Genode {
 			 *                           request
 			 *
 			 * On construction, the 'Session_policy' looks up the 'policy' XML
-			 * note that matches the label provided as argument. The
+			 * node that matches the label provided as argument. The
 			 * server-side policies are defined in one or more policy subnodes
 			 * of the server's 'config' node. Each policy node has a label
-			 * attribute. The if policy label matches the first part of the
+			 * attribute. If the policy label matches the first part of the
 			 * label delivered as session argument, the policy matches. If
 			 * multiple policies match, the one with the largest label is
 			 * selected.
