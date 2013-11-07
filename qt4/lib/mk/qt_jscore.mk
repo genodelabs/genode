@@ -11,6 +11,13 @@ CC_CXX_OPT += -D_GLIBCXX_USE_C99_MATH
 # use default warning level to avoid noise when compiling contrib code
 CC_WARN =
 
+# some parts of the library are not C++11 compatible
+CC_CXX_OPT_STD =
+
+# StackBounds includes Genode headers, which rely on C++11. Hence, we need
+# to selectively enable C++11 for this compilation unit.
+CC_OPT_StackBounds = -std=gnu++11
+
 include $(REP_DIR)/lib/mk/qt_jscore_generated.inc
 
 include $(REP_DIR)/lib/mk/qt.inc

@@ -13,6 +13,9 @@ CC_WARN = -Wno-deprecated-declarations
 
 CC_OPT_sqlite3 +=  -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
 
+# some parts of the library are not C++11 compatible
+CC_CXX_OPT_STD =
+
 include $(REP_DIR)/lib/mk/qt_webcore_generated.inc
 
 include $(REP_DIR)/lib/mk/qt.inc
