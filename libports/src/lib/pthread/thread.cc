@@ -199,14 +199,105 @@ extern "C" {
 	};
 
 
-	struct pthread_mutex : Lock
+	struct pthread_mutex
 	{
 		pthread_mutex_attr mutexattr;
 
+		Lock mutex_lock;
+
+		pthread_t owner;
+		int       lock_count;
+		Lock      owner_and_counter_lock;
+
 		pthread_mutex(const pthread_mutexattr_t *__restrict attr)
+		: owner(0),
+		  lock_count(0)
 		{
 			if (attr && *attr)
 				mutexattr = **attr;
+		}
+
+		int lock()
+		{
+			if (mutexattr.type == PTHREAD_MUTEX_RECURSIVE) {
+
+				Lock::Guard lock_guard(owner_and_counter_lock);
+
+				if (lock_count == 0) {
+					owner = pthread_self();
+					lock_count++;
+					mutex_lock.lock();
+					return 0;
+				}
+
+				/* the mutex is already locked */
+				if (pthread_self() == owner) {
+					lock_count++;
+					return 0;
+				} else {
+					mutex_lock.lock();
+					return 0;
+				}
+			}
+			
+			if (mutexattr.type == PTHREAD_MUTEX_ERRORCHECK) {
+
+				Lock::Guard lock_guard(owner_and_counter_lock);
+			
+				if (lock_count == 0) {
+					owner = pthread_self();
+					mutex_lock.lock();
+					return 0;
+				}
+
+				/* the mutex is already locked */
+				if (pthread_self() != owner) {
+					mutex_lock.lock();
+					return 0;
+				} else
+					return EDEADLK;
+			}
+
+			/* PTHREAD_MUTEX_NORMAL or PTHREAD_MUTEX_DEFAULT */
+			mutex_lock.lock();
+			return 0;
+		}
+
+		int unlock()
+		{
+
+			if (mutexattr.type == PTHREAD_MUTEX_RECURSIVE) {
+
+				Lock::Guard lock_guard(owner_and_counter_lock);
+
+				if (pthread_self() != owner)
+					return EPERM;
+
+				lock_count--;
+
+				if (lock_count == 0) {
+					owner = 0;
+					mutex_lock.unlock();
+				}
+
+				return 0;
+			}
+
+			if (mutexattr.type == PTHREAD_MUTEX_ERRORCHECK) {
+
+				Lock::Guard lock_guard(owner_and_counter_lock);
+
+				if (pthread_self() != owner)
+					return EPERM;
+
+				owner = 0;
+				mutex_lock.unlock();
+				return 0;
+			}
+
+			/* PTHREAD_MUTEX_NORMAL or PTHREAD_MUTEX_DEFAULT */
+			mutex_lock.unlock();
+			return 0;
 		}
 	};
 
