@@ -14,10 +14,9 @@
 /* Genode includes */
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
-#include <cap_session/connection.h>
-#include <base/sleep.h>
 #include <os/attached_rom_dataspace.h>
 #include <os/config.h>
+#include <os/server.h>
 #include <os/session_policy.h>
 #include <util/xml_node.h>
 
@@ -36,11 +35,12 @@ namespace File_system {
 	{
 		private:
 
+			Server::Entrypoint   &_ep;
 			Directory            &_root;
 			Node_handle_registry  _handle_registry;
 			bool                  _writable;
 
-			Signal_dispatcher<Session_component> _process_packet_dispatcher;
+			Signal_rpc_member<Session_component> _process_packet_dispatcher;
 
 
 			/******************************
@@ -147,22 +147,23 @@ namespace File_system {
 			/**
 			 * Constructor
 			 */
-			Session_component(size_t tx_buf_size, Rpc_entrypoint &ep,
-			                  Signal_receiver &sig_rec,
+			Session_component(size_t tx_buf_size, Server::Entrypoint &ep,
 			                  Directory &root, bool writable)
 			:
-				Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep),
+				Session_rpc_object(env()->ram_session()->alloc(tx_buf_size), ep.rpc_ep()),
+				_ep(ep),
 				_root(root),
 				_writable(writable),
-				_process_packet_dispatcher(sig_rec, *this,
-				                           &Session_component::_process_packets)
+				_process_packet_dispatcher(*this, &Session_component::_process_packets)
 			{
 				/*
 				 * Register '_process_packets' dispatch function as signal
 				 * handler for packet-avail and ready-to-ack signals.
 				 */
-				_tx.sigh_packet_avail(_process_packet_dispatcher);
-				_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+				Signal_context_capability sigh(_ep.manage(_process_packet_dispatcher));
+
+				_tx.sigh_packet_avail(sigh);
+				_tx.sigh_ready_to_ack(sigh);
 			}
 
 			/**
@@ -170,6 +171,7 @@ namespace File_system {
 			 */
 			~Session_component()
 			{
+				_ep.dissolve(_process_packet_dispatcher);
 				Dataspace_capability ds = tx_sink()->dataspace();
 				env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
 			}
@@ -416,9 +418,8 @@ namespace File_system {
 	{
 		private:
 
-			Rpc_entrypoint  &_channel_ep;
-			Signal_receiver &_sig_rec;
-			Directory       &_root_dir;
+			Server::Entrypoint &_ep;
+			Directory          &_root_dir;
 
 		protected:
 
@@ -497,8 +498,7 @@ namespace File_system {
 					throw Root::Quota_exceeded();
 				}
 				return new (md_alloc())
-					Session_component(tx_buf_size, _channel_ep, _sig_rec,
-					                  *session_root_dir, writeable);
+					Session_component(tx_buf_size, _ep, *session_root_dir, writeable);
 			}
 
 		public:
@@ -506,19 +506,20 @@ namespace File_system {
 			/**
 			 * Constructor
 			 *
-			 * \param session_ep  session entrypoint
-			 * \param sig_rec     signal receiver used for handling the
-			 *                    data-flow signals of packet streams
-			 * \param md_alloc    meta-data allocator
+			 * \param ep        entrypoint
+			 * \param md_alloc  meta-data allocator
+			 * \param root_dir  root-directory handle (anchor for fs)
 			 */
-			Root(Rpc_entrypoint &session_ep, Allocator &md_alloc,
-			     Signal_receiver &sig_rec, Directory &root_dir)
+			Root(Server::Entrypoint &ep, Allocator &md_alloc, Directory &root_dir)
 			:
-				Root_component<Session_component>(&session_ep, &md_alloc),
-				_channel_ep(session_ep), _sig_rec(sig_rec), _root_dir(root_dir)
+				Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
+				_ep(ep),
+				_root_dir(root_dir)
 			{ }
 	};
-};
+
+	struct Main;
+}
 
 
 /**
@@ -620,31 +621,36 @@ static void preload_content(Genode::Allocator      &alloc,
 }
 
 
-int main(int, char **)
+struct File_system::Main
 {
-	using namespace File_system;
+	Server::Entrypoint &ep;
 
-	enum { STACK_SIZE = 8192 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "ram_fs_ep");
-	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
-	static Signal_receiver sig_rec;
-	static Directory root_dir("");
+	Directory root_dir = { "" };
 
-	/* preload RAM file system with content as declared in the config */
-	try {
-		Xml_node content = config()->xml_node().sub_node("content");
-		preload_content(*env()->heap(), content, root_dir); }
-	catch (Xml_node::Nonexistent_sub_node) { }
+	/*
+	 * Initialize root interface
+	 */
+	Sliced_heap sliced_heap = { env()->ram_session(), env()->rm_session() };
 
-	static File_system::Root root(ep, sliced_heap, sig_rec, root_dir);
+	Root fs_root = { ep, sliced_heap, root_dir };
 
-	env()->parent()->announce(ep.manage(&root));
+	Main(Server::Entrypoint &ep) : ep(ep)
+	{
+		/* preload RAM file system with content as declared in the config */
+		try {
+			Xml_node content = config()->xml_node().sub_node("content");
+			preload_content(*env()->heap(), content, root_dir); }
+		catch (Xml_node::Nonexistent_sub_node) { }
 
-	for (;;) {
-		Signal s = sig_rec.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+		env()->parent()->announce(ep.manage(fs_root));
 	}
+};
 
-	return 0;
-}
+
+/**********************
+ ** Server framework **
+ **********************/
+
+char const *   Server::name()                            { return "ram_fs_ep"; }
+Genode::size_t Server::stack_size()                      { return 2048 * sizeof(long); }
+void           Server::construct(Server::Entrypoint &ep) { static File_system::Main inst(ep); }
