@@ -6,7 +6,7 @@
 
 if {[is_qemu_available]} {
 	puts "\nAuto test running on Qemu is not recommented.\n"
-	exit
+	exit 0
 }
 if {[have_spec pistachio]} {
 	puts "Pistachio is unsupported."
@@ -14,16 +14,32 @@ if {[have_spec pistachio]} {
 }
 
 assert_spec 32bit
-assert_spec x86
 
-set platform          "nova_x86_32"
-set platform_base_dir "base-nova"
+set verbose_mode      "no"
+
 set platform_pkgs     ""
 set platform_cmds     {
                          make core &&
                          exit 234
 } 
-set verbose_mode      "no"
+
+if {[have_spec arm]} {
+	set platform_base_dir "base-hw"
+
+	if {[have_spec platform_panda]}   { set platform "hw_panda" }
+	if {[have_spec platform_arndale]} { set platform "hw_arndale" }
+	if {[have_spec platform_pbxa9]}   { set platform "hw_pbxa9" }
+
+	if {![info exists platform]} {
+		puts "Unsupported arm platform."
+		exit 0
+	}
+}
+
+if {[have_spec x86]} {
+	set platform          "nova_x86_32"
+	set platform_base_dir "base-nova"
+}
 
 source ${genode_dir}/ports/run/noux_tool_chain.inc
 

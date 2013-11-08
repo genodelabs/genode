@@ -718,7 +718,7 @@ proc spawn_serial { wait_for_re timeout_value kernel_msg } {
 		eval spawn $serial_cmd
 		set serial_spawn_id $spawn_id
 
-		set timeout 30
+		set timeout 210
 		expect {
 			$kernel_msg  { break; }
 			eof     { puts stderr "Serial command process died unexpectedly"; incr retry -1; }

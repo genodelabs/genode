@@ -16,6 +16,9 @@ if {[have_spec linux]} {
 	exit 0
 }
 
+set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+set use_usb_input [expr ![have_spec ps2] && ![have_spec sdl] && [have_spec usb]]
+
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
 	drivers/framebuffer drivers/pci drivers/input
@@ -23,8 +26,10 @@ set build_components {
 	test/libports/ncurses
 }
 
-lappend_if [have_spec acpi]  build_components drivers/acpi
-lappend_if [have_spec pci]   build_components drivers/pci/device_pd
+lappend_if [have_spec acpi]     build_components drivers/acpi
+lappend_if [have_spec pci]      build_components drivers/pci/device_pd
+lappend_if $use_platform_driver build_components drivers/platform
+lappend_if $use_usb_input       build_components drivers/usb
 
 set cc_march ""
 
@@ -106,6 +111,12 @@ append config {
 			<provides><service name="Timer"/></provides>
 		</start> }
 
+append_if $use_platform_driver config {                                         
+		<start name="platform_drv">                                                 
+			<resource name="RAM" quantum="1M" />                                    
+			<provides><service name="Regulator"/></provides>                        
+		</start>} 
+
 append_if [have_spec sdl] config {
 	<start name="fb_sdl">
 		<resource name="RAM" quantum="4M"/>
@@ -131,7 +142,7 @@ append_if [have_spec acpi] config {
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>}
 
@@ -145,6 +156,13 @@ append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
+	</start> }
+
+append_if $use_usb_input config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="yes" ehci="no" xhci="no"> <hid/> </config>
 	</start> }
 
 append config {
@@ -276,6 +294,8 @@ lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec        acpi] boot_modules acpi_drv
 lappend_if [have_spec        nova] boot_modules pci_device_pd
+lappend_if $use_platform_driver    boot_modules platform_drv
+lappend_if $use_usb_input          boot_modules usb_drv
 
 build_boot_image $boot_modules
 
