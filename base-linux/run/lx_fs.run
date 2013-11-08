@@ -1,0 +1,79 @@
+#
+# \brief  Test for using the libc_fs plugin with the Linux file system
+# \author Norman Feske
+# \author Christian Helmuth
+# \date   2013-11-07
+#
+
+assert_spec linux
+
+#
+# Build
+#
+
+build { core init server/lx_fs test/libc_fs }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="lx_fs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config> <policy label="" root="/libc_fs" writeable="yes" /> </config>
+	</start>
+	<start name="test-libc_fs">
+		<resource name="RAM" quantum="2M"/>
+	</start>
+</config>
+}
+
+#
+# Create test-directory structure
+#
+
+exec mkdir -p bin/libc_fs
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	core init
+	ld.lib.so libc.lib.so libc_log.lib.so libc_fs.lib.so
+	lx_fs test-libc_fs
+	libc_fs
+}
+
+#
+# Execute test case
+#
+
+run_genode_until {.*child exited with exit value 0.*} 60
+
+puts "\ntest succeeded\n"
+
+#
+# Cleanup test-directory structure
+#
+
+exec rm -r bin/libc_fs
+
+# vi: set ft=tcl :

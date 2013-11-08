@@ -1,0 +1,44 @@
+This directory contains an Genode file-system service to Linux host fs
+wrapper.
+
+Configuration
+~~~~~~~~~~~~~
+
+Access to the file system can be tailored for each session depending on the
+session's label. By default, no permissions are granted to any session.
+To selectively permit access to (a part of) the file system, at least one
+policy must be defined.
+
+The following configuration illustates the way of how to express policy.
+
+! <config>
+!   <!-- constrain sessions according to their labels -->
+!   <policy label="noux -> root" root="/" />
+!   <policy label="noux -> home" root="/home/user" writeable="yes" />
+!   <policy label="noux -> tmp"  root="/tmp"       writeable="yes" />
+! </config>
+
+Session-specific access-control policy is expressed via one or more '<policy>'
+nodes. At session-creation time, each policy node is matched against the label
+of the new session. If the label of a policy node matches, the defined policy
+is applied. If multiple policies match, the one with the longest 'label'
+attribute (the most specific one) is selected.
+
+A policy node may contain the following attributes. The mandatory 'root'
+attribute defines the viewport of the session onto the file system. The
+optional 'writeable' attribute grants the permission to modify the file system.
+
+
+Example
+~~~~~~~
+
+To illustrate the use of lx_fs, refer to the 'base-linux/run/lx_fs.run'
+script.
+
+
+Notes
+~~~~~
+
+If the Linux file system experiences changes from other processes
+'inotify' may help to keep the servers cache up-to-date. This is not
+implemented yet.
