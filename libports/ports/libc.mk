@@ -245,6 +245,7 @@ LIBC_IMPORT_INCLUDES += include/libc/sys/queue.h \
                         include/libc/sys/file.h \
                         include/libc/sys/fcntl.h \
                         include/libc/sys/resource.h \
+                        include/libc/sys/disk.h \
                         include/libc/sys/disklabel.h \
                         include/libc/sys/link_elf.h \
                         include/libc/sys/endian.h \
