@@ -125,7 +125,11 @@ namespace Kernel
 			 */
 			Vm(Genode::Cpu_state_modes * const state,
 			   Signal_context * const context)
-			: _state(state), _context(context) { }
+			: _state(state), _context(context)
+			{
+				/* set VM to least priority by now */
+				priority = 0;
+			}
 
 
 			/**************************

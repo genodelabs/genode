@@ -309,12 +309,7 @@ class Kernel::Thread
 		 *
 		 * \param platform_thread  userland backend of execution context
 		 */
-		Thread(Platform_thread * const platform_thread)
-		:
-			_platform_thread(platform_thread), _state(AWAIT_START),
-			_pager(0), _pd_id(0), _phys_utcb(0), _virt_utcb(0),
-			_signal_receiver(0)
-		{ }
+		Thread(Platform_thread * const platform_thread);
 
 		/**
 		 * Return wether the thread is a core thread

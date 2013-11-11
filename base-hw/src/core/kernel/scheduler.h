@@ -15,6 +15,7 @@
 #define _KERNEL__SCHEDULER_H_
 
 /* core includes */
+#include <kernel/priority.h>
 #include <assert.h>
 
 namespace Kernel
@@ -155,34 +156,44 @@ class Kernel::Scheduler
 		/**
 		 * Capability to be item in a scheduler through inheritance
 		 */
-		class Item : public Double_list<T>::Item { };
+		struct Item : public Double_list<T>::Item
+		{
+			Priority priority;
+		};
 
 	protected:
 
 		T * const      _idle;
-		Double_list<T> _items;
+		T *            _current;
+		Double_list<T> _items[Priority::MAX+1];
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Scheduler(T * const idle) : _idle(idle) { }
+		Scheduler(T * const idle) : _idle(idle), _current(0) { }
 
 		/**
 		 * Get currently scheduled item
 		 */
-		T * head() const
+		T * head()
 		{
-			T * const i = _items.head();
-			if (i) { return i; }
+			for (int i = Priority::MAX; i >= 0 ; i--) {
+				_current = _items[i].head();
+				if (_current) return _current;
+			}
 			return _idle;
 		}
 
 		/**
 		 * End turn of currently scheduled item
 		 */
-		void yield() { _items.head_to_tail(); }
+		void yield()
+		{
+			if (!_current) return;
+			_items[_current->priority].head_to_tail();
+		}
 
 		/**
 		 * Include 'i' in scheduling
@@ -190,13 +201,13 @@ class Kernel::Scheduler
 		void insert(T * const i)
 		{
 			assert(i != _idle);
-			_items.insert_tail(i);
+			_items[i->priority].insert_tail(i);
 		}
 
 		/**
 		 * Exclude 'i' from scheduling
 		 */
-		void remove(T * const i) { _items.remove(i); }
+		void remove(T * const i) { _items[i->priority].remove(i); }
 };
 
 #endif /* _KERNEL__SCHEDULER_H_ */

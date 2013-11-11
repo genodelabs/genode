@@ -52,6 +52,7 @@ namespace Genode {
 		Ram_dataspace_capability _utcb;
 		char                     _name[NAME_MAX_LEN];
 		char                     _kernel_thread[sizeof(Kernel::Thread)];
+		unsigned                 _priority;
 
 		/*
 		 * Wether this thread is the main thread of a program.
@@ -196,6 +197,8 @@ namespace Genode {
 			bool main_thread() const { return _main_thread; }
 
 			Tlb * tlb() const { return _tlb; }
+
+			unsigned priority() { return _priority; }
 	};
 }
 

@@ -75,3 +75,13 @@ Kernel::Thread::prepare_to_start(void * const        ip,
 		      this->pd_id(), pd_label(), id(), label());
 	}
 }
+
+
+Kernel::Thread::Thread(Platform_thread * const platform_thread)
+: _platform_thread(platform_thread), _state(AWAIT_START),
+  _pager(0), _pd_id(0), _phys_utcb(0), _virt_utcb(0),
+  _signal_receiver(0)
+{
+	priority = _platform_thread ? _platform_thread->priority()
+	                            : Kernel::Priority::MAX;
+}
