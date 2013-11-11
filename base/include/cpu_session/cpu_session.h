@@ -199,24 +199,12 @@ namespace Genode {
 			 *                       be power of 2
 			 * \param prio           generic priority value as used by the CPU
 			 *                       session interface
-			 * \param inverse        order of platform priorities, if true
-			 *                       'pf_prio_limit' corresponds to the highest
-			 *                       priority, otherwise it refers to the
-			 *                       lowest priority.
 			 * \return               platform-specific priority value
 			 */
-			static unsigned scale_priority(unsigned pf_prio_limit, unsigned prio,
-			                               bool inverse = true)
+			static unsigned scale_priority(unsigned pf_prio_limit, unsigned prio)
 			{
 				/* if no priorities are used, use the platform priority limit */
 				if (prio == 0) return pf_prio_limit;
-
-				/*
-				 * Generic priority values are (0 is highest, 'PRIORITY_LIMIT'
-				 * is lowest. On platforms where priority levels are defined
-				 * the other way round, we have to invert the priority value.
-				 */
-				prio = inverse ? Cpu_session::PRIORITY_LIMIT - prio : prio;
 
 				/* scale value to platform priority range 0..pf_prio_limit */
 				return (prio*pf_prio_limit)/Cpu_session::PRIORITY_LIMIT;
