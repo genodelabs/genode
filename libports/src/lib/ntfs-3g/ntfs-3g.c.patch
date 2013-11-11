@@ -1,0 +1,54 @@
+--- contrib/ntfs-3g_ntfsprogs-2013.1.13/src/ntfs-3g.c.orig	2013-12-10 16:16:48.000000000 +0100
++++ contrib/ntfs-3g_ntfsprogs-2013.1.13/src/ntfs-3g.c	2013-12-10 16:19:05.040371689 +0100
+@@ -151,6 +151,11 @@
+ static ntfs_fuse_context_t *ctx;
+ static u32 ntfs_sequence;
+ 
++ntfs_fuse_context_t **ntfs_fuse_ctx()
++{
++	return &ctx;
++}
++
+ static const char *usage_msg = 
+ "\n"
+ "%s %s %s %d - Third Generation NTFS Driver\n"
+@@ -3266,7 +3271,7 @@
+ #endif
+ #endif /* HAVE_SETXATTR */
+ 
+-static void ntfs_close(void)
++void ntfs_close(void)
+ {
+ 	struct SECURITY_CONTEXT security;
+ 
+@@ -3305,7 +3310,7 @@
+ 	ntfs_close();
+ }
+ 
+-static struct fuse_operations ntfs_3g_ops = {
++struct fuse_operations ntfs_3g_ops = {
+ #if defined(HAVE_UTIMENSAT) && (defined(FUSE_INTERNAL) || (FUSE_VERSION > 28))
+ 		/*
+ 		 * Accept UTIME_NOW and UTIME_OMIT in utimens, when
+@@ -3387,7 +3392,7 @@
+ 	return 0;
+ }
+ 
+-static int ntfs_open(const char *device)
++int ntfs_open(const char *device)
+ {
+ 	unsigned long flags = 0;
+ 	
+@@ -3669,6 +3674,7 @@
+ 	ntfs_log_info("Mount options: %s\n", parsed_options);
+ }
+ 
++#if 0
+ int main(int argc, char *argv[])
+ {
+ 	char *parsed_options = NULL;
+@@ -3931,3 +3937,4 @@
+ 	free(opts.device);
+ 	return err;
+ }
++#endif
