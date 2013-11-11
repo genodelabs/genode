@@ -470,52 +470,6 @@ namespace Arm
 			uint32_t section_table; /* base address of applied section table */
 
 			/**
-			 * Copy CPU state data to 'c'
-			 */
-			void read_cpu_state(Cpu_state * const s)
-			{
-				s->r0  = r0;
-				s->r1  = r1;
-				s->r2  = r2;
-				s->r3  = r3;
-				s->r4  = r4;
-				s->r5  = r5;
-				s->r6  = r6;
-				s->r7  = r7;
-				s->r8  = r8;
-				s->r9  = r9;
-				s->r10 = r10;
-				s->r11 = r11;
-				s->r12 = r12;
-				s->sp  = sp;
-				s->lr  = lr;
-				s->ip  = ip;
-			}
-
-			/**
-			 * Override CPU state with data from 'c'
-			 */
-			void write_cpu_state(Cpu_state * const s)
-			{
-				r0  = s->r0;
-				r1  = s->r1;
-				r2  = s->r2;
-				r3  = s->r3;
-				r4  = s->r4;
-				r5  = s->r5;
-				r6  = s->r6;
-				r7  = s->r7;
-				r8  = s->r8;
-				r9  = s->r9;
-				r10 = s->r10;
-				r11 = s->r11;
-				r12 = s->r12;
-				sp  = s->sp;
-				lr  = s->lr;
-				ip  = s->ip;
-			}
-
-			/**
 			 * Get base of assigned translation lookaside buffer
 			 */
 			addr_t tlb() const { return section_table; }

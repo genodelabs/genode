@@ -212,3 +212,38 @@ Genode::Pager_object * Platform_thread::pager()
 {
 	return _rm_client ? static_cast<Pager_object *>(_rm_client) : 0;
 }
+
+
+addr_t const * cpu_state_regs();
+
+size_t cpu_state_regs_length();
+
+
+Thread_state Platform_thread::state()
+{
+	static addr_t const * const src = cpu_state_regs();
+	static size_t const length = cpu_state_regs_length();
+	static size_t const size = length * sizeof(src[0]);
+	void  * dst = Thread_base::myself()->utcb()->base();
+	Genode::memcpy(dst, src, size);
+	Thread_state thread_state;
+	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
+	if (Kernel::access_thread_regs(id(), length, 0, (addr_t *)cpu_state, 0)) {
+		throw Cpu_session::State_access_failed();
+	}
+	return thread_state;
+};
+
+
+void Platform_thread::state(Thread_state thread_state)
+{
+	static addr_t const * const src = cpu_state_regs();
+	static size_t const length = cpu_state_regs_length();
+	static size_t const size = length * sizeof(src[0]);
+	void  * dst = Thread_base::myself()->utcb()->base();
+	Genode::memcpy(dst, src, size);
+	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
+	if (Kernel::access_thread_regs(id(), 0, length, 0, (addr_t *)cpu_state)) {
+		throw Cpu_session::State_access_failed();
+	}
+};

@@ -128,20 +128,12 @@ namespace Genode {
 			/**
 			 * Get raw thread state
 			 */
-			Thread_state state()
-			{
-				Kernel::read_thread_state(id());
-				return *(Thread_state *)Thread_base::myself()->utcb()->base();
-			};
+			Thread_state state();
 
 			/**
 			 * Override raw thread state
 			 */
-			void state(Thread_state s)
-			{
-				*(Thread_state *)Thread_base::myself()->utcb()->base() = s;
-				Kernel::write_thread_state(id());
-			};
+			void state(Thread_state s);
 
 			/**
 			 * Return unique identification of this thread as faulter

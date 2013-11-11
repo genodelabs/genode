@@ -135,6 +135,38 @@ class Kernel::Thread
 		 */
 		void _syscall();
 
+		/**
+		 * Read a thread register
+		 *
+		 * \param id     kernel name of targeted thread register
+		 * \param value  read-value buffer
+		 *
+		 * \retval  0  succeeded
+		 * \retval -1  failed
+		 */
+		int _read_reg(addr_t const id, addr_t & value) const;
+
+		/**
+		 * Override a thread register
+		 *
+		 * \param id     kernel name of targeted thread register
+		 * \param value  write-value buffer
+		 *
+		 * \retval  0  succeeded
+		 * \retval -1  failed
+		 */
+		int _write_reg(addr_t const id, addr_t const value);
+
+		/**
+		 * Map kernel names of thread registers to the corresponding data
+		 *
+		 * \param id  kernel name of thread register
+		 *
+		 * \retval  0  failed
+		 * \retval >0  pointer to register content
+		 */
+		addr_t * _reg(addr_t const id) const;
+
 
 		/***************************************************
 		 ** Syscall backends, for details see 'syscall.h' **
@@ -158,8 +190,6 @@ class Kernel::Thread
 		void _syscall_update_pd();
 		void _syscall_update_region();
 		void _syscall_print_char();
-		void _syscall_read_thread_state();
-		void _syscall_write_thread_state();
 		void _syscall_new_signal_receiver();
 		void _syscall_new_signal_context();
 		void _syscall_await_signal();
@@ -171,6 +201,7 @@ class Kernel::Thread
 		void _syscall_new_vm();
 		void _syscall_run_vm();
 		void _syscall_pause_vm();
+		void _syscall_access_thread_regs();
 
 
 		/***************************

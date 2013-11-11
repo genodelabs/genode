@@ -683,32 +683,6 @@ void Thread::_syscall_print_char()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_read_thread_state()
-{
-	assert(_core());
-	Thread * const t = Thread::pool()->object(user_arg_1());
-	if (!t) PDBG("Targeted thread unknown");
-	Thread_state * const ts = (Thread_state *)_phys_utcb->base();
-	t->Cpu::Context::read_cpu_state(ts);
-}
-
-
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
-void Thread::_syscall_write_thread_state()
-{
-	assert(_core());
-	Thread * const t = Thread::pool()->object(user_arg_1());
-	if (!t) PDBG("Targeted thread unknown");
-	Thread_state * const ts = (Thread_state *)_phys_utcb->base();
-	t->Cpu::Context::write_cpu_state(ts);
-}
-
-
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_syscall_new_signal_receiver()
 {
 	/* check permissions */
@@ -976,8 +950,6 @@ void Thread::_syscall()
 	case GET_THREAD:           _syscall_get_thread(); return;
 	case CURRENT_THREAD_ID:    _syscall_current_thread_id(); return;
 	case YIELD_THREAD:         _syscall_yield_thread(); return;
-	case READ_THREAD_STATE:    _syscall_read_thread_state(); return;
-	case WRITE_THREAD_STATE:   _syscall_write_thread_state(); return;
 	case REQUEST_AND_WAIT:     _syscall_request_and_wait(); return;
 	case REPLY:                _syscall_reply(); return;
 	case WAIT_FOR_REQUEST:     _syscall_wait_for_request(); return;
@@ -998,6 +970,7 @@ void Thread::_syscall()
 	case RUN_VM:               _syscall_run_vm(); return;
 	case PAUSE_VM:             _syscall_pause_vm(); return;
 	case KILL_PD:              _syscall_kill_pd(); return;
+	case ACCESS_THREAD_REGS:   _syscall_access_thread_regs(); return;
 	default:
 		PERR("invalid syscall");
 		_stop();

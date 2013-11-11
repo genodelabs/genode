@@ -15,7 +15,7 @@
 #define _INCLUDE__KERNEL__SYSCALLS_H_
 
 /* Genode includes */
-#include <base/syscall_types.h>
+#include <base/syscall_support.h>
 
 namespace Genode
 {
@@ -49,8 +49,7 @@ namespace Kernel
 		GET_THREAD = 5,
 		CURRENT_THREAD_ID = 6,
 		YIELD_THREAD = 7,
-		READ_THREAD_STATE = 18,
-		WRITE_THREAD_STATE = 19,
+		ACCESS_THREAD_REGS = 37,
 
 		/* interprocess communication */
 		REQUEST_AND_WAIT = 8,
@@ -389,31 +388,47 @@ namespace Kernel
 
 
 	/**
-	 * Copy the current state of a thread to the callers UTCB
+	 * Access plain member variables of a kernel thread-object
 	 *
-	 * \param thread_id  ID of the targeted thread
+	 * \param thread_id     kernel name of the targeted thread
+	 * \param reads         amount of read operations
+	 * \param writes        amount of write operations
+	 * \param read_values   base of value buffer for read operations
+	 * \param write_values  base of value buffer for write operations
 	 *
-	 * Restricted to core threads. One can also read from its own context,
-	 * or any thread that is active in the meantime. In these cases
-	 * be aware of the fact, that the result reflects the thread
-	 * state that were backed at the last kernel entry of the thread.
-	 * The copy might be incoherent when this function returns because
-	 * the caller might get scheduled away before then.
+	 * \retval  0  all operations done
+	 * \retval >0  amount of undone operations
+	 * \retval -1  failed to start processing operations
+	 *
+	 * Restricted to core threads. Operations are processed in order of the
+	 * appearance of the register names in the callers UTCB. If reads = 0,
+	 * read_values is of no relevance. If writes = 0, write_values is of no
+	 * relevance.
+	 *
+	 * Expected structure at the callers UTCB base:
+	 *
+	 *                    0 * sizeof(addr_t): read register name #1
+	 *                  ...                   ...
+	 *          (reads - 1) * sizeof(addr_t): read register name #reads
+	 *          (reads - 0) * sizeof(addr_t): write register name #1
+	 *                  ...                   ...
+	 * (reads + writes - 1) * sizeof(addr_t): write register name #writes
+	 *
+	 * Expected structure at write_values:
+	 *
+	 *                    0 * sizeof(addr_t): write value #1
+	 *                  ...                   ...
+	 *         (writes - 1) * sizeof(addr_t): write value #writes
 	 */
-	inline void read_thread_state(unsigned const thread_id) {
-		syscall(READ_THREAD_STATE, (Syscall_arg)thread_id); }
-
-
-	/**
-	 * Override the state of a thread with the callers UTCB content
-	 *
-	 * \param thread_id  ID of the targeted thread
-	 *
-	 * Restricted to core threads. One can also write to its own context, or
-	 * to that of a thread that is active in the meantime.
-	 */
-	inline void write_thread_state(unsigned const thread_id) {
-		syscall(WRITE_THREAD_STATE, (Syscall_arg)thread_id); }
+	inline int access_thread_regs(unsigned const thread_id,
+	                              unsigned const reads,
+	                              unsigned const writes,
+	                              addr_t * const read_values,
+	                              addr_t * const write_values)
+	{
+		return syscall(ACCESS_THREAD_REGS, thread_id, reads, writes,
+		               (Syscall_arg)read_values, (Syscall_arg)write_values);
+	}
 
 
 	/**

@@ -12,7 +12,8 @@ INC_DIR += $(REP_DIR)/src/core/imx31
 
 # add C++ sources
 SRC_CC += platform_services.cc \
-          platform_support.cc
+          platform_support.cc \
+          cpu_support.cc
 
 # add assembly sources
 SRC_S += mode_transition.s \
@@ -23,6 +24,7 @@ SRC_S += mode_transition.s \
 vpath platform_services.cc $(BASE_DIR)/src/core
 vpath platform_support.cc  $(REP_DIR)/src/core/imx31
 vpath mode_transition.s    $(REP_DIR)/src/core/arm_v6
+vpath cpu_support.cc       $(REP_DIR)/src/core/arm
 vpath crt0.s               $(REP_DIR)/src/core/arm
 
 #
