@@ -1,9 +1,5 @@
-if {[expr [have_spec linux] || [have_spec platform_imx53]]} {
-	puts "\nPlatform not supported because of missing UART driver\n"
-	exit 0
-}
-
-build "core init drivers/timer drivers/uart noux/minimal lib/libc_noux noux-pkg/coreutils"
+build { core init drivers/timer noux/minimal server/log_terminal
+        lib/libc_noux noux-pkg/coreutils }
 
 # strip coreutils binaries and create tar archive
 exec sh -c "[cross_dev_prefix]strip bin/coreutils/bin/*"
@@ -33,12 +29,10 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="uart_drv">
+		<start name="terminal">
+			<binary name="log_terminal" />
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Terminal"/></provides>
-			<config>
-				<policy label="noux" uart="1"/>
-			</config>
 		</start>
 		<start name="noux">
 			<resource name="RAM" quantum="1G"/>
@@ -51,34 +45,18 @@ install_config {
 }
 
 build_boot_image {
-	core init timer uart_drv ld.lib.so noux libc.lib.so libm.lib.so
+	core init timer log_terminal ld.lib.so noux libc.lib.so libm.lib.so
 	libc_noux.lib.so coreutils.tar
 }
 
-if {[is_qemu_available]} {
-	#
-	# Redirect the output of Noux via the virtual serial port 1 into a file to be
-	# dumped after the successful completion of the test.
-	#
-	set noux_output_file "noux_output.log"
+append qemu_args " -nographic -serial mon:stdio "
 
-	append qemu_args " -nographic"
-	append qemu_args " -serial mon:stdio"
-	append qemu_args " -serial file:$noux_output_file"
-
-	if {[have_spec x86_64]} {
-        # coreutils.tar is really huge when built for x86_64
-        append qemu_args " -m 300 "
-	}
+if {[have_spec x86_64]} {
+	# coreutils.tar is really huge when built for x86_64
+	append qemu_args " -m 300 "
 }
 
 run_genode_until "child /bin/ls exited with exit value 0.*\n" 30
-
-if {[is_qemu_available]} {
-	puts "[exec cat $noux_output_file]"
-
-	exec rm $noux_output_file
-}
 
 exec rm bin/coreutils.tar
 
