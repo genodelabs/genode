@@ -54,6 +54,9 @@ Platform_env_base::Rm_session_mmap::_dataspace_writable(Dataspace_capability ds)
  ** Platform_env::Local_parent **
  ********************************/
 
+static inline size_t get_page_size_log2() { return 12; }
+
+
 Session_capability
 Platform_env::Local_parent::session(Service_name const &service_name,
                                     Session_args const &args,
@@ -68,6 +71,9 @@ Platform_env::Local_parent::session(Service_name const &service_name,
 
 		if (size == 0)
 			return Expanding_parent_client::session(service_name, args, affinity);
+
+		if (size != ~0UL)
+			size = align_addr(size, get_page_size_log2());
 
 		Rm_session_mmap *rm = new (env()->heap())
 		                      Rm_session_mmap(true, size);
