@@ -314,6 +314,9 @@ Separate components:
 :'os/src/server/terminal_log':
   Adapter for forwarding LOG messages to a terminal session.
 
+:'os/src/server/log_terminal':
+  Adapter for forwarding terminal output to a LOG session.
+
 :'libports/src/server/fs_log':
   Adapter that writes LOG messages to files on a file system.
 
