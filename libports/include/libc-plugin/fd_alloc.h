@@ -16,6 +16,7 @@
 #define _LIBC_PLUGIN__FD_ALLOC_H_
 
 #include <base/allocator_avl.h>
+#include <base/lock.h>
 #include <base/printf.h>
 #include <os/path.h>
 
@@ -42,6 +43,7 @@ namespace Libc {
 		char           *fd_path;    /* for 'fchdir()' */
 		Plugin         *plugin;
 		Plugin_context *context;
+		Genode::Lock    lock;
 
 		void path(char const *newpath)
 		{

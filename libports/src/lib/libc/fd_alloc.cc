@@ -49,7 +49,7 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 
 	/* allocate fresh fd if the default value for 'libc_fd' was specified */
 	bool alloc_ok = false;
-	if (addr == ANY_FD) 
+	if (addr == ANY_FD)
 		alloc_ok = Allocator_avl_base::alloc(1, reinterpret_cast<void**>(&addr));
 	else
 		alloc_ok = (Allocator_avl_base::alloc_addr(1, addr).is_ok());
@@ -65,6 +65,7 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 	fdo->fd_path = 0;
 	fdo->plugin  = plugin;
 	fdo->context = context;
+	fdo->lock    = Lock(Lock::UNLOCKED);
 	return fdo;
 }
 
