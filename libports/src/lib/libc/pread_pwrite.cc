@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/lock.h>
+#include <libc-plugin/fd_alloc.h>
 
 /* libc includes */
 #include <sys/types.h>
@@ -20,31 +21,32 @@
 #include <unistd.h>
 
 
-static Genode::Lock rw_lock;
-
-
 struct Read
 {
-     ssize_t operator()(int fd, void *buf, size_t count)
-     {
-    	 return read(fd, buf, count);
-     }
+	ssize_t operator()(int fd, void *buf, size_t count)
+	{
+		return read(fd, buf, count);
+	}
 };
 
 
 struct Write
 {
-     ssize_t operator()(int fd, const void *buf, size_t count)
-     {
-    	 return write(fd, buf, count);
-     }
+	ssize_t operator()(int fd, const void *buf, size_t count)
+	{
+		return write(fd, buf, count);
+	}
 };
 
 
 template <typename Rw_func, typename Buf_type>
 static ssize_t pread_pwrite_impl(Rw_func rw_func, int fd, Buf_type buf, ::size_t count, ::off_t offset)
 {
-	Genode::Lock_guard<Genode::Lock> rw_lock_guard(rw_lock);
+	Libc::File_descriptor *fdesc = Libc::file_descriptor_allocator()->find_by_libc_fd(fd);
+	if (fdesc == 0)
+		return -1;
+
+	Genode::Lock_guard<Genode::Lock> rw_lock_guard(fdesc->lock);
 
 	off_t old_offset = lseek(fd, 0, SEEK_CUR);
 
