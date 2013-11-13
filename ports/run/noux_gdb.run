@@ -26,6 +26,9 @@ set build_components {
 	app/gdb_monitor
 	test/gdb_monitor
 }
+
+lappend_if [have_spec gpio]    build_components drivers/gpio
+
 lappend build_components noux-pkg/[noux_gdb_pkg_name]
 
 # the application to be debugged with GDB
@@ -97,6 +100,13 @@ append_if [have_spec ps2] config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Input"/></provides>
 		</start>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
 
 append_if [expr ![have_spec ps2] && [have_spec usb]] config {
 		<start name="usb_drv">
@@ -204,6 +214,7 @@ lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec         usb] boot_modules usb_drv
+lappend_if [have_spec        gpio] boot_modules gpio_drv
 
 build_boot_image $boot_modules
 

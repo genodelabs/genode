@@ -14,6 +14,7 @@
 #include <platform/platform.h>
 #include <platform.h>
 
+#include <gpio_session/connection.h>
 #include <io_mem_session/connection.h>
 #include <util/mmio.h>
 
@@ -221,96 +222,6 @@ struct Ehci : Genode::Mmio
 
 
 /**
- * Panda board GPIO bases 1 - 6
- */
-static addr_t omap44xx_gpio_base[] =
-{
-		0x4A310000, 0x48055000, 0x48057000, 0x48059000, 0x4805B000, 0x4805D000
-};
-
-
-/**
- * General purpose I/O
- */
-struct Gpio
-{
-		enum { GPIO = 6 };
-
-		addr_t _io[GPIO];
-		Io_mem_session_capability _cap[GPIO];
-
-		void map()
-		{
-			for (int i = 0; i < GPIO; i++) {
-				Io_mem_connection io(omap44xx_gpio_base[i], 0x1000);
-				io.on_destruction(Io_mem_connection::KEEP_OPEN);
-				_io[i]  = (addr_t)env()->rm_session()->attach(io.dataspace());
-				_cap[i] = io.cap();
-			}
-		}
-
-		Gpio()
-		{
-			map();
-		}
-
-		~Gpio()
-		{
-			for (int i = 0; i < GPIO; i++) {
-				env()->rm_session()->detach(_io[i]);
-				env()->parent()->close(_cap[i]);
-			}
-		}
-
-		addr_t base(unsigned gpio) { return _io[gpio >> 5]; }
-		int index(unsigned gpio)   { return gpio & 0x1f; }
-
-		void _set_data_out(addr_t base, unsigned gpio, bool enable)
-		{
-			enum { SETDATAOUT = 0x194, CLEARDATAOUT = 0x190 };
-			writel(1U << gpio, base + (enable ? SETDATAOUT : CLEARDATAOUT));
-		}
-
-		void _set_gpio_direction(addr_t base, unsigned gpio, bool input)
-		{
-			enum { OE = 0x134 };
-			base += OE;
-
-			u32 val = readl(base);
-
-			if (input)
-				val |= 1U << gpio;
-			else
-				val &= ~(1U << gpio);
-
-			writel(val, base);
-		}
-
-		void direction_output(unsigned gpio, bool enable)
-		{
-			_set_data_out(base(gpio), index(gpio), enable);
-			_set_gpio_direction(base(gpio), index(gpio), false);
-		}
-
-		void direction_input(unsigned gpio)
-		{
-			_set_gpio_direction(base(gpio), index(gpio), true);
-		}
-
-		void set_value(unsigned gpio, int val)
-		{
-			_set_data_out(base(gpio), index(gpio), val);
-		}
-
-		unsigned get_value(int gpio)
-		{
-			enum  { DATAIN = 0x138 };
-			return (readl(base(gpio) + DATAIN) & (1 << index(gpio))) != 0;
-		}
-};
-
-
-/**
  * Initialize the USB controller from scratch, since the boot loader might not
  * do it or even disable USB.
  */
@@ -327,12 +238,14 @@ static void omap_ehci_init()
 	Aux3 aux3(scrm_base);
 
 	/* init GPIO */
-	Gpio gpio;
+	Gpio::Connection gpio_power(HUB_POWER);
+	Gpio::Connection gpio_reset(HUB_NRESET);
+
 	/* disable the hub power and reset before init */
-	gpio.direction_output(HUB_POWER, false);
-	gpio.direction_output(HUB_NRESET, false);
-	gpio.set_value(HUB_POWER, 0);
-	gpio.set_value(HUB_NRESET, 1);
+	gpio_power.direction(Gpio::Session::OUT);
+	gpio_reset.direction(Gpio::Session::OUT);
+	gpio_power.write(false);
+	gpio_reset.write(true);
 
 	/* enable clocks */
 	Io_mem_connection io_clock(CAM_BASE, 0x1000);
@@ -350,7 +263,7 @@ static void omap_ehci_init()
 	Uhh uhh(uhh_base);
 
 	/* enable hub power */
-	gpio.set_value(HUB_POWER, 1);
+	gpio_power.write(true);
 
 	/* reset EHCI */
 	addr_t ehci_base = uhh_base + 0xc00;

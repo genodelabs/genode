@@ -10,6 +10,7 @@ build {
 	init
 	drivers/timer
 	drivers/usb
+	drivers/gpio
 	test/lwip/http_srv_tracing
 }
 
@@ -40,6 +41,11 @@ set config  {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides>
@@ -67,6 +73,7 @@ set boot_modules {
 	init
 	timer
 	usb_drv
+	gpio_drv
 	test-lwip_httpsrv_tracing
 	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so
 }

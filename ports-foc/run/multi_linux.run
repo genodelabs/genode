@@ -15,9 +15,10 @@ set build_components {
 	l4linux
 }
 
-lappend_if [have_spec pci] build_components drivers/pci
-lappend_if [have_spec ps2] build_components drivers/input/ps2
-lappend_if [have_spec usb] build_components drivers/usb
+lappend_if [have_spec pci]  build_components drivers/pci
+lappend_if [have_spec ps2]  build_components drivers/input/ps2
+lappend_if [have_spec usb]  build_components drivers/usb
+lappend_if [have_spec gpio] build_components drivers/gpio
 
 build $build_components
 create_boot_directory
@@ -65,6 +66,13 @@ append_if [have_spec ps2] config {
 		<binary name="ps2_drv"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
+	</start>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
 	</start>}
 
 append_if [expr ![have_spec ps2] && [have_spec usb]] config {
@@ -140,6 +148,7 @@ lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         usb] boot_modules usb_drv
+lappend_if [have_spec        gpio] boot_modules gpio_drv
 
 if {[have_spec x86]} {
 	set uri "http://genode.org/files/l4linux/busybox-initrd-x86-20120618.gz"

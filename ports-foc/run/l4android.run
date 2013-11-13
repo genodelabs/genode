@@ -27,6 +27,7 @@ set build_components {
 lappend_if [have_spec   pci] build_components drivers/pci
 lappend_if [have_spec  acpi] build_components drivers/acpi
 lappend_if [have_spec   ps2] build_components drivers/input/ps2
+lappend_if [have_spec usb]   build_components drivers/usb
 lappend_if $use_usb_drv      build_components drivers/usb
 lappend_if $use_nic_drv      build_components drivers/nic
 lappend_if $use_atapi_drv    build_components drivers/atapi
@@ -168,6 +169,13 @@ append_if $use_platform_drv config {
 		</provides>
 	</start>}
 
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
 append_if $use_usb_drv config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
@@ -240,6 +248,7 @@ set boot_modules {
 
 lappend_if [have_spec        acpi] boot_modules acpi_drv
 lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec        gpio] boot_modules gpio_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if $use_usb_drv            boot_modules usb_drv

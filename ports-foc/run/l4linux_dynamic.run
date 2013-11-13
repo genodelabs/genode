@@ -1,5 +1,4 @@
-assert_spec foc
-assert_spec arm
+assert_spec platform_arndale
 
 #
 # Build

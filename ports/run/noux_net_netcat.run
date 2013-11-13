@@ -18,6 +18,7 @@ lappend_if $use_usb_driver     build_components drivers/usb
 lappend_if $use_nic_driver     build_components drivers/nic
 lappend_if [have_spec acpi]    build_components drivers/acpi
 lappend_if [have_spec pci]     build_components drivers/pci/device_pd
+lappend_if [have_spec gpio]    build_components drivers/gpio
 lappend_if [is_qemu_available] build_components drivers/uart
 lappend_if $use_platform_drv   build_components drivers/platform
 
@@ -114,6 +115,13 @@ append_if $use_platform_drv config {
 		</provides>
 	</start>}
 
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
 append_if $use_usb_driver config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
@@ -190,6 +198,7 @@ lappend_if [have_spec acpi]    boot_modules acpi_drv
 lappend_if [have_spec nova]    boot_modules pci_device_pd
 lappend_if [is_qemu_available] boot_modules uart_drv
 lappend_if $use_platform_drv   boot_modules platform_drv
+lappend_if [have_spec gpio]    boot_modules gpio_drv
 
 build_boot_image $boot_modules
 

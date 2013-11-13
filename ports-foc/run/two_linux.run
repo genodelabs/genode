@@ -22,6 +22,7 @@ lappend_if [have_spec     pci] build_components drivers/pci
 lappend_if [have_spec     ps2] build_components drivers/input/ps2
 lappend_if [have_spec lan9118] build_components drivers/nic
 lappend_if [have_spec     usb] build_components drivers/usb
+lappend_if [have_spec    gpio] build_components drivers/gpio
 
 build $build_components
 create_boot_directory
@@ -56,6 +57,13 @@ append_if [have_spec pci] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
 	</start>}
 
 append_if [have_spec framebuffer] config {
@@ -205,11 +213,12 @@ lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         x86] boot_modules nic_drv
 lappend_if [have_spec     lan9118] boot_modules nic_drv
 lappend_if [have_spec         usb] boot_modules usb_drv
+lappend_if [have_spec        gpio] boot_modules gpio_drv
 
 if {[have_spec x86]} {
-	set uri "https://github.com/downloads/skalk/genode/busybox-initrd-x86-20120618.gz"
+	set uri "http://genode.org/files/l4linux/busybox-initrd-x86-20120618.gz"
 } elseif {[have_spec arm]} {
-	set uri "https://github.com/downloads/skalk/genode/busybox-initrd-arm-20120618.gz"
+	set uri "http://genode.org/files/l4linux/busybox-initrd-arm-20120618.gz"
 }
 if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."

@@ -13,6 +13,7 @@ lappend_if [have_spec acpi]             build_components drivers/acpi
 lappend_if [have_spec pci]              build_components drivers/pci
 lappend_if [have_spec pci]              build_components drivers/pci/device_pd
 lappend_if [have_spec platform_arndale] build_components drivers/platform
+lappend_if [have_spec gpio]             build_components drivers/gpio
 
 build $build_components
 
@@ -46,6 +47,13 @@ append_if [have_spec platform_arndale] config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Regulator"/></provides>
 		</start>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
@@ -99,6 +107,7 @@ lappend_if [have_spec acpi]             boot_modules acpi_drv
 lappend_if [have_spec pci]              boot_modules pci_drv
 lappend_if [have_spec nova]             boot_modules pci_device_pd
 lappend_if [have_spec platform_arndale] boot_modules platform_drv
+lappend_if [have_spec gpio]             boot_modules gpio_drv
 
 build_boot_image $boot_modules
 
