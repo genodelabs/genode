@@ -18,6 +18,9 @@
 #include <util/register.h>
 #include <base/printf.h>
 
+/* base-hw includes */
+#include <placement_new.h>
+
 namespace Arm
 {
 	using namespace Genode;
@@ -311,11 +314,6 @@ namespace Arm
 			}
 
 		public:
-
-			/**
-			 * Placement new operator
-			 */
-			void * operator new (size_t, void * p) { return p; }
 
 			/**
 			 * Constructor

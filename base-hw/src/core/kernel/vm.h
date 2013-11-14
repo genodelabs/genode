@@ -48,11 +48,6 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 	public:
 
 		/**
-		 * Placement new
-		 */
-		void * operator new (size_t, void * p) { return p; }
-
-		/**
 		 * Constructor
 		 *
 		 * \param state    initial CPU state

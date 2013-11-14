@@ -13,18 +13,15 @@
 
 /* Genode includes */
 #include <base/printf.h>
+
+/* base-hw includes */
 #include <kernel/syscalls.h>
+#include <placement_new.h>
 
 /* core includes */
 #include <signal_session_component.h>
 
 using namespace Genode;
-
-
-/**
- * Placement new
- */
-void * operator new (size_t, void * p) { return p; }
 
 
 Signal_session_component::Signal_session_component(Allocator * const md,

@@ -31,8 +31,8 @@
 /* Genode includes */
 #include <base/stdint.h>
 
-inline void *operator new(Genode::size_t, void *at) { return at; }
-
+/* base-hw includes */
+#include <placement_new.h>
 
 template <typename T, int ALIGN = 2, typename... Args>
 static inline T *unsynchronized_singleton(Args... args)

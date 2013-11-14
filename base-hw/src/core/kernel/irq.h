@@ -18,6 +18,9 @@
 #include <base/native_types.h>
 #include <irq_session/irq_session.h>
 
+/* base-hw includes */
+#include <placement_new.h>
+
 /* core includes */
 #include <kernel/signal_receiver.h>
 
@@ -124,15 +127,6 @@ class Kernel::Irq
 		void _signal_context_acknowledged() { _enable(); }
 
 	public:
-
-		/**
-		 * Placement-new operator
-		 *
-		 * \param p  destination of new object
-		 *
-		 * \return  destination of new object
-		 */
-		void * operator new (size_t, void * p) { return p; }
 
 		/**
 		 * Constructor
