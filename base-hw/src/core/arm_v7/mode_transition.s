@@ -189,6 +189,10 @@
 	mrs   r1, spsr                     /* spsr to r0                      */
 	mov   r2, #\exception_type         /* exception reason to r1          */
 	stmia r0!, {r1-r2}                 /* save spsr, and exception reason */
+	mrc   p15, 0, r3, c6, c0, 0        /* move DFAR  to r3                */
+	mrc   p15, 0, r4, c2, c0, 0        /* move TTBR0 to r4                */
+	mrc   p15, 0, r5, c2, c0, 1        /* move TTBR1 to r5                */
+	mrc   p15, 0, r6, c2, c0, 2        /* move TTBRC to r6                */
 	mov   r1, #0
 	mcr   p15, 0, r1, c1, c1, 0        /* disable non-secure bit          */
 	_save_bank 27                      /* save undefined banks            */
@@ -197,6 +201,7 @@
 	_save_bank 18                      /* save irq banks                  */
 	_save_bank 17                      /* save fiq banks                  */
 	stmia r0!, {r8-r12}                /* save fiq r8-r12                 */
+	stmia r0!, {r3-r6}                 /* save MMU registers              */
 	cps   #19                          /* switch to supervisor mode       */
 	adr   r0, _mt_master_context_begin /* get kernel context pointer      */
 	add   r0, r0, #13*4                /* load kernel context             */
