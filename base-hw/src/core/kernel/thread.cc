@@ -28,17 +28,9 @@ using namespace Kernel;
 
 typedef Genode::Thread_state Thread_state;
 
+unsigned Thread::pd_id() const { return _pd ? _pd->id() : 0; }
 
-bool Thread::_core() const
-{
-	return pd_id() == core_id();
-}
-
-
-Kernel::Pd * Thread::_pd() const
-{
-	return Pd::pool()->object(pd_id());
-}
+bool Thread::_core() const { return pd_id() == core_id(); }
 
 
 void Thread::_signal_context_kill_pending()
@@ -108,7 +100,6 @@ void Thread::_await_ipc()
 	case SCHEDULED:
 		cpu_scheduler()->remove(this);
 		_state = AWAITS_IPC;
-	case AWAITS_PAGER:
 		return;
 	default:
 		PERR("wrong thread state to await IPC");
@@ -123,12 +114,6 @@ void Thread::_await_ipc_succeeded(size_t const s)
 	switch (_state) {
 	case AWAITS_IPC:
 		_schedule();
-		return;
-	case AWAITS_PAGER_IPC:
-		_schedule();
-		return;
-	case AWAITS_PAGER:
-		_state = AWAITS_RESUME;
 		return;
 	default:
 		PERR("wrong thread state to receive IPC");
@@ -148,14 +133,6 @@ void Thread::_await_ipc_failed()
 		PERR("failed to receive IPC");
 		_stop();
 		return;
-	case AWAITS_PAGER_IPC:
-		PERR("failed to get pagefault resolved");
-		_stop();
-		return;
-	case AWAITS_PAGER:
-		PERR("failed to get pagefault resolved");
-		_stop();
-		return;
 	default:
 		PERR("wrong thread state to cancel IPC");
 		_stop();
@@ -169,12 +146,6 @@ int Thread::_resume()
 	switch (_state) {
 	case AWAITS_RESUME:
 		_schedule();
-		return 0;
-	case AWAITS_PAGER:
-		_state = AWAITS_PAGER_IPC;
-		return 0;
-	case AWAITS_PAGER_IPC:
-		Ipc_node::cancel_waiting();
 		return 0;
 	case SCHEDULED:
 		return 1;
@@ -213,20 +184,22 @@ void Thread::_schedule()
 }
 
 
-Thread::Thread(Platform_thread * const platform_thread)
+Thread::Thread(Platform_thread * const pt)
 :
-	_platform_thread(platform_thread), _state(AWAITS_START),
-	_pager(0), _pd_id(0), _phys_utcb(0), _virt_utcb(0),
+	Execution_context(pt ? pt->priority() : Priority::MAX),
+	Thread_cpu_support(this),
+	_platform_thread(pt),
+	_state(AWAITS_START),
+	_pd(0),
+	_phys_utcb(0),
+	_virt_utcb(0),
 	_signal_receiver(0)
-{
-	if (_platform_thread) { priority = _platform_thread->priority(); }
-	else { priority = Kernel::Priority::MAX; }
-}
+{ }
 
 
 void
 Thread::init(void * const ip, void * const sp, unsigned const cpu_id,
-             unsigned const pd_id, Native_utcb * const utcb_phys,
+             unsigned const pd_id_arg, Native_utcb * const utcb_phys,
              Native_utcb * const utcb_virt, bool const main,
              bool const start)
 {
@@ -238,23 +211,22 @@ Thread::init(void * const ip, void * const sp, unsigned const cpu_id,
 	/* store thread parameters */
 	_phys_utcb = utcb_phys;
 	_virt_utcb = utcb_virt;
-	_pd_id     = pd_id;
 
 	/* join protection domain */
-	Pd * const pd = Pd::pool()->object(_pd_id);
-	assert(pd);
-	addr_t const tlb = pd->tlb()->base();
+	_pd = Pd::pool()->object(pd_id_arg);
+	assert(_pd);
+	addr_t const tlb = _pd->tlb()->base();
 
 	/* initialize CPU context */
 	User_context * const c = static_cast<User_context *>(this);
-	if (!main) { c->init_thread(ip, sp, tlb, pd_id); }
-	else if (!_core()) { c->init_main_thread(ip, utcb_virt, tlb, pd_id); }
-	else { c->init_core_main_thread(ip, sp, tlb, pd_id); }
+	if (!main) { c->init_thread(ip, sp, tlb, pd_id()); }
+	else if (!_core()) { c->init_main_thread(ip, utcb_virt, tlb, pd_id()); }
+	else { c->init_core_main_thread(ip, sp, tlb, pd_id()); }
 
 	/* print log message */
 	if (START_VERBOSE) {
 		PINF("in program %u '%s' start thread %u '%s'",
-		     this->pd_id(), pd_label(), id(), label());
+		     pd_id(), pd_label(), id(), label());
 	}
 	/* start execution */
 	if (start) { _schedule(); }
@@ -307,27 +279,6 @@ void Thread::proceed()
 }
 
 
-void Thread::_mmu_exception()
-{
-	/* pause thread */
-	cpu_scheduler()->remove(this);
-	_state = AWAITS_PAGER;
-
-	/* check out cause and attributes */
-	addr_t va = 0;
-	bool   w  = 0;
-	if (!pagefault(va, w)) {
-		PERR("unknown MMU exception");
-		return;
-	}
-	/* send pagefault message to pager */
-	Pagefault_msg::init(&_pagefault_msg, id(), (Tlb *)tlb(), ip, va, w);
-	void * const base = _pagefault_msg.base();
-	size_t const size = _pagefault_msg.size();
-	Ipc_node::send_request_await_reply(_pager, base, size, base, size);
-}
-
-
 char const * Kernel::Thread::label() const
 {
 	if (!platform_thread()) {
@@ -341,15 +292,15 @@ char const * Kernel::Thread::label() const
 char const * Kernel::Thread::pd_label() const
 {
 	if (_core()) { return "core"; }
-	if (!_pd()) { return "?"; }
-	return _pd()->platform_pd()->label();
+	if (!_pd) { return "?"; }
+	return _pd->platform_pd()->label();
 }
 
 
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_new_pd()
+void Thread::_call_new_pd()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -369,7 +320,7 @@ void Thread::_syscall_new_pd()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_kill_pd()
+void Thread::_call_kill_pd()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -399,7 +350,7 @@ void Thread::_syscall_kill_pd()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_new_thread()
+void Thread::_call_new_thread()
 {
 	/* check permissions */
 	assert(_core());
@@ -419,7 +370,7 @@ void Thread::_syscall_new_thread()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_delete_thread()
+void Thread::_call_delete_thread()
 {
 	/* check permissions */
 	assert(_core());
@@ -436,7 +387,7 @@ void Thread::_syscall_delete_thread()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_start_thread()
+void Thread::_call_start_thread()
 {
 	/* check permissions */
 	assert(_core());
@@ -457,19 +408,14 @@ void Thread::_syscall_start_thread()
 	Native_utcb * const utcb_v = pt->virt_utcb();
 	bool const main = pt->main_thread();
 	t->init(ip, sp, cpu_id, pd_id, utcb_p, utcb_v, main, 1);
-
-	/* return software TLB that the thread is assigned to */
-	Pd::Pool * const pp = Pd::pool();
-	Pd * const pd = pp->object(t->pd_id());
-	assert(pd);
-	user_arg_0((Syscall_ret)pd->tlb());
+	user_arg_0((Syscall_ret)t->_pd->tlb());
 }
 
 
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_pause_thread()
+void Thread::_call_pause_thread()
 {
 	unsigned const tid = user_arg_1();
 
@@ -493,7 +439,7 @@ void Thread::_syscall_pause_thread()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_resume_thread()
+void Thread::_call_resume_thread()
 {
 	/* lookup thread */
 	Thread * const t = Thread::pool()->object(user_arg_1());
@@ -513,34 +459,30 @@ void Thread::_syscall_resume_thread()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
-void Thread::_syscall_resume_faulter()
+void Thread_event::_signal_acknowledged()
 {
-	/* lookup thread */
-	Thread * const t = Thread::pool()->object(user_arg_1());
-	if (!t) {
-		PERR("unknown thread");
-		user_arg_0(-1);
-		return;
-	}
-	/* check permissions */
-	if (!_core() && pd_id() != t->pd_id()) {
-		PERR("not entitled to resume thread");
-		user_arg_0(-1);
-		return;
-	}
-	/* writeback translation table and resume faulter */
 	Cpu::tlb_insertions();
-	t->_resume();
+	_thread->_resume();
+}
+
+
+Thread_event::Thread_event(Thread * const t)
+:
+	_thread(t), _signal_context(0)
+{ }
+
+
+void Thread_event::submit()
+{
+	if (_signal_context && !_signal_context->submit(1)) { return; }
+	PERR("failed to communicate thread event");
 }
 
 
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_yield_thread()
+void Thread::_call_yield_thread()
 {
 	Thread * const t = Thread::pool()->object(user_arg_1());
 	if (t) { t->_receive_yielded_cpu(); }
@@ -551,14 +493,14 @@ void Thread::_syscall_yield_thread()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_current_thread_id()
+void Thread::_call_current_thread_id()
 { user_arg_0((Syscall_ret)id()); }
 
 
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_get_thread()
+void Thread::_call_get_thread()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -583,7 +525,7 @@ void Thread::_syscall_get_thread()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_wait_for_request()
+void Thread::_call_wait_for_request()
 {
 	void * buf_base;
 	size_t buf_size;
@@ -595,7 +537,7 @@ void Thread::_syscall_wait_for_request()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_request_and_wait()
+void Thread::_call_request_and_wait()
 {
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
@@ -617,44 +559,130 @@ void Thread::_syscall_request_and_wait()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_reply()
+void Thread::_call_reply()
 {
 	void * msg_base;
 	size_t msg_size;
 	_phys_utcb->syscall_reply(msg_base, msg_size);
 	Ipc_node::send_reply(msg_base, msg_size);
 	bool const await_request = user_arg_1();
-	if (await_request) { _syscall_wait_for_request(); }
+	if (await_request) { _call_wait_for_request(); }
 }
 
 
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_set_pager()
+void Thread::_call_route_thread_event()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to set pager");
+		PERR("not entitled to route thread event");
+		user_arg_0(-1);
 		return;
 	}
-	/* lookup faulter and pager thread */
-	unsigned const pager_id = user_arg_1();
-	Thread * const pager    = Thread::pool()->object(pager_id);
-	Thread * const faulter  = Thread::pool()->object(user_arg_2());
-	if ((pager_id && !pager) || !faulter) {
-		PERR("failed to set pager");
+	/* get targeted thread */
+	unsigned const thread_id = user_arg_1();
+	Thread * const t = Thread::pool()->object(thread_id);
+	if (!t) {
+		PERR("unknown thread");
+		user_arg_0(-1);
 		return;
 	}
-	/* assign pager */
-	faulter->pager(pager);
+
+	/* override event route */
+	unsigned const event_id = user_arg_2();
+	unsigned const signal_context_id = user_arg_3();
+	if (t->_route_event(event_id, signal_context_id)) { user_arg_0(-1); }
+	else { user_arg_0(0); }
+	return;
+}
+
+
+int Thread::_route_event(unsigned const event_id,
+                         unsigned const signal_context_id)
+{
+	/* lookup signal context */
+	Signal_context * c;
+	if (signal_context_id) {
+		c = Signal_context::pool()->object(signal_context_id);
+		if (!c) {
+			PERR("unknown signal context");
+			return -1;
+		}
+	} else { c = 0; }
+
+	/* lookup event and assign signal context */
+	Thread_event Thread::* e = _event(event_id);
+	if (!e) { return -1; }
+	(this->*e).signal_context(c);
+	return 0;
+}
+
+
+void Thread_event::signal_context(Signal_context * const c)
+{
+	_signal_context = c;
+	if (_signal_context) { _signal_context->ack_handler(this); }
+}
+
+
+unsigned Thread_event::signal_context_id() const
+{
+	if (_signal_context) { return _signal_context->id(); }
+	return 0;
 }
 
 
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_update_pd()
+void Thread::_call_access_thread_regs()
+{
+	/* check permissions */
+	if (!_core()) {
+		PERR("not entitled to access thread regs");
+		user_arg_0(-1);
+		return;
+	}
+	/* get targeted thread */
+	unsigned const thread_id = user_arg_1();
+	Thread * const t = Thread::pool()->object(thread_id);
+	if (!t) {
+		PERR("unknown thread");
+		user_arg_0(-1);
+		return;
+	}
+	/* execute read operations */
+	unsigned const reads = user_arg_2();
+	unsigned const writes = user_arg_3();
+	addr_t * const utcb = (addr_t *)_phys_utcb->base();
+	addr_t * const read_ids = &utcb[0];
+	addr_t * const read_values = (addr_t *)user_arg_4();
+	for (unsigned i = 0; i < reads; i++) {
+		if (t->_read_reg(read_ids[i], read_values[i])) {
+			user_arg_0(reads + writes - i);
+			return;
+		}
+	}
+	/* execute write operations */
+	addr_t * const write_ids = &utcb[reads];
+	addr_t * const write_values = (addr_t *)user_arg_5();
+	for (unsigned i = 0; i < writes; i++) {
+		if (t->_write_reg(write_ids[i], write_values[i])) {
+			user_arg_0(writes - i);
+			return;
+		}
+	}
+	user_arg_0(0);
+	return;
+}
+
+
+/**
+ * Do specific syscall for this thread, for details see 'syscall.h'
+ */
+void Thread::_call_update_pd()
 {
 	assert(_core());
 	Cpu::flush_tlb_by_pid(user_arg_1());
@@ -664,7 +692,7 @@ void Thread::_syscall_update_pd()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_update_region()
+void Thread::_call_update_region()
 {
 	assert(_core());
 
@@ -677,7 +705,7 @@ void Thread::_syscall_update_region()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_print_char()
+void Thread::_call_print_char()
 {
 	Genode::printf("%c", (char)user_arg_1());
 }
@@ -686,7 +714,7 @@ void Thread::_syscall_print_char()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_new_signal_receiver()
+void Thread::_call_new_signal_receiver()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -704,7 +732,7 @@ void Thread::_syscall_new_signal_receiver()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_new_signal_context()
+void Thread::_call_new_signal_context()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -736,7 +764,7 @@ void Thread::_syscall_new_signal_context()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_await_signal()
+void Thread::_call_await_signal()
 {
 	/* check wether to acknowledge a context */
 	unsigned const context_id = user_arg_2();
@@ -766,7 +794,7 @@ void Thread::_syscall_await_signal()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_signal_pending()
+void Thread::_call_signal_pending()
 {
 	/* lookup signal receiver */
 	unsigned const id = user_arg_1();
@@ -784,7 +812,7 @@ void Thread::_syscall_signal_pending()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_submit_signal()
+void Thread::_call_submit_signal()
 {
 	/* lookup signal context */
 	unsigned const id = user_arg_1();
@@ -807,7 +835,7 @@ void Thread::_syscall_submit_signal()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_ack_signal()
+void Thread::_call_ack_signal()
 {
 	/* lookup signal context */
 	unsigned const id = user_arg_1();
@@ -824,7 +852,7 @@ void Thread::_syscall_ack_signal()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_kill_signal_context()
+void Thread::_call_kill_signal_context()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -853,7 +881,7 @@ void Thread::_syscall_kill_signal_context()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_kill_signal_receiver()
+void Thread::_call_kill_signal_receiver()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -882,7 +910,7 @@ void Thread::_syscall_kill_signal_receiver()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_new_vm()
+void Thread::_call_new_vm()
 {
 	/* check permissions */
 	assert(_core());
@@ -906,7 +934,7 @@ void Thread::_syscall_new_vm()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_run_vm()
+void Thread::_call_run_vm()
 {
 	/* check permissions */
 	assert(_core());
@@ -923,7 +951,7 @@ void Thread::_syscall_run_vm()
 /**
  * Do specific syscall for this thread, for details see 'syscall.h'
  */
-void Thread::_syscall_pause_vm()
+void Thread::_call_pause_vm()
 {
 	/* check permissions */
 	assert(_core());
@@ -937,45 +965,67 @@ void Thread::_syscall_pause_vm()
 }
 
 
+int Thread::_read_reg(addr_t const id, addr_t & value) const
+{
+	addr_t Thread::* const reg = _reg(id);
+	if (reg) {
+		value = this->*reg;
+		return 0;
+	}
+	PERR("unknown thread register");
+	return -1;
+}
+
+
+int Thread::_write_reg(addr_t const id, addr_t const value)
+{
+	addr_t Thread::* const reg = _reg(id);
+	if (reg) {
+		this->*reg = value;
+		return 0;
+	}
+	PERR("unknown thread register");
+	return -1;
+}
+
+
 /**
  * Handle a syscall request
  */
 void Thread::_syscall()
 {
-	switch (user_arg_0())
-	{
-	case NEW_THREAD:           _syscall_new_thread(); return;
-	case DELETE_THREAD:        _syscall_delete_thread(); return;
-	case START_THREAD:         _syscall_start_thread(); return;
-	case PAUSE_THREAD:         _syscall_pause_thread(); return;
-	case RESUME_THREAD:        _syscall_resume_thread(); return;
-	case RESUME_FAULTER:       _syscall_resume_faulter(); return;
-	case GET_THREAD:           _syscall_get_thread(); return;
-	case CURRENT_THREAD_ID:    _syscall_current_thread_id(); return;
-	case YIELD_THREAD:         _syscall_yield_thread(); return;
-	case REQUEST_AND_WAIT:     _syscall_request_and_wait(); return;
-	case REPLY:                _syscall_reply(); return;
-	case WAIT_FOR_REQUEST:     _syscall_wait_for_request(); return;
-	case SET_PAGER:            _syscall_set_pager(); return;
-	case UPDATE_PD:            _syscall_update_pd(); return;
-	case UPDATE_REGION:        _syscall_update_region(); return;
-	case NEW_PD:               _syscall_new_pd(); return;
-	case PRINT_CHAR:           _syscall_print_char(); return;
-	case NEW_SIGNAL_RECEIVER:  _syscall_new_signal_receiver(); return;
-	case NEW_SIGNAL_CONTEXT:   _syscall_new_signal_context(); return;
-	case KILL_SIGNAL_CONTEXT:  _syscall_kill_signal_context(); return;
-	case KILL_SIGNAL_RECEIVER: _syscall_kill_signal_receiver(); return;
-	case AWAIT_SIGNAL:         _syscall_await_signal(); return;
-	case SUBMIT_SIGNAL:        _syscall_submit_signal(); return;
-	case SIGNAL_PENDING:       _syscall_signal_pending(); return;
-	case ACK_SIGNAL:           _syscall_ack_signal(); return;
-	case NEW_VM:               _syscall_new_vm(); return;
-	case RUN_VM:               _syscall_run_vm(); return;
-	case PAUSE_VM:             _syscall_pause_vm(); return;
-	case KILL_PD:              _syscall_kill_pd(); return;
-	case ACCESS_THREAD_REGS:   _syscall_access_thread_regs(); return;
+	switch (user_arg_0()) {
+	case Call_id::NEW_THREAD:           _call_new_thread(); return;
+	case Call_id::DELETE_THREAD:        _call_delete_thread(); return;
+	case Call_id::START_THREAD:         _call_start_thread(); return;
+	case Call_id::PAUSE_THREAD:         _call_pause_thread(); return;
+	case Call_id::RESUME_THREAD:        _call_resume_thread(); return;
+	case Call_id::GET_THREAD:           _call_get_thread(); return;
+	case Call_id::CURRENT_THREAD_ID:    _call_current_thread_id(); return;
+	case Call_id::YIELD_THREAD:         _call_yield_thread(); return;
+	case Call_id::REQUEST_AND_WAIT:     _call_request_and_wait(); return;
+	case Call_id::REPLY:                _call_reply(); return;
+	case Call_id::WAIT_FOR_REQUEST:     _call_wait_for_request(); return;
+	case Call_id::UPDATE_PD:            _call_update_pd(); return;
+	case Call_id::UPDATE_REGION:        _call_update_region(); return;
+	case Call_id::NEW_PD:               _call_new_pd(); return;
+	case Call_id::PRINT_CHAR:           _call_print_char(); return;
+	case Call_id::NEW_SIGNAL_RECEIVER:  _call_new_signal_receiver(); return;
+	case Call_id::NEW_SIGNAL_CONTEXT:   _call_new_signal_context(); return;
+	case Call_id::KILL_SIGNAL_CONTEXT:  _call_kill_signal_context(); return;
+	case Call_id::KILL_SIGNAL_RECEIVER: _call_kill_signal_receiver(); return;
+	case Call_id::AWAIT_SIGNAL:         _call_await_signal(); return;
+	case Call_id::SUBMIT_SIGNAL:        _call_submit_signal(); return;
+	case Call_id::SIGNAL_PENDING:       _call_signal_pending(); return;
+	case Call_id::ACK_SIGNAL:           _call_ack_signal(); return;
+	case Call_id::NEW_VM:               _call_new_vm(); return;
+	case Call_id::RUN_VM:               _call_run_vm(); return;
+	case Call_id::PAUSE_VM:             _call_pause_vm(); return;
+	case Call_id::KILL_PD:              _call_kill_pd(); return;
+	case Call_id::ACCESS_THREAD_REGS:   _call_access_thread_regs(); return;
+	case Call_id::ROUTE_THREAD_EVENT:   _call_route_thread_event(); return;
 	default:
-		PERR("invalid syscall");
+		PERR("unkonwn kernel call");
 		_stop();
 		reset_lap_time();
 	}

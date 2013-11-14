@@ -14,17 +14,37 @@
 #ifndef _KERNEL__SCHEDULER_H_
 #define _KERNEL__SCHEDULER_H_
 
+/* Genode includes */
+#include <util/misc_math.h>
+
 /* core includes */
-#include <kernel/priority.h>
+#include <kernel/configuration.h>
 #include <assert.h>
 
 namespace Kernel
 {
 	/**
-	 * Double connected list of objects of type T
+	 * Inheritable ability for objects of type T to be item in a double list
+	 */
+	template <typename T>
+	class Double_list_item;
+
+	/**
+	 * Double connected list for objects of type T
 	 */
 	template <typename T>
 	class Double_list;
+
+	/**
+	 * Range save priority value
+	 */
+	class Priority;
+
+	/**
+	 * Inheritable ability for objects of type T to be item in a scheduler
+	 */
+	template <typename T>
+	class Scheduler_item;
 
 	/**
 	 * Round robin scheduler for objects of type T
@@ -46,14 +66,37 @@ namespace Kernel
 }
 
 template <typename T>
+class Kernel::Double_list_item
+{
+	friend class Double_list<T>;
+
+	private:
+
+		Double_list_item * _next;
+		Double_list_item * _prev;
+		Double_list<T> *   _list;
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Double_list_item() : _next(0), _prev(0), _list(0) { }
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Double_list<T> * list() { return _list; }
+};
+
+template <typename T>
 class Kernel::Double_list
 {
 	public:
 
-		/**
-		 * Enable deriving objects to be inserted into a double list
-		 */
-		class Item;
+		typedef Double_list_item<T> Item;
 
 	private:
 
@@ -134,52 +177,78 @@ class Kernel::Double_list
 		T * head() const { return static_cast<T *>(_head); }
 };
 
-template <typename T>
-class Kernel::Double_list<T>::Item
+class Kernel::Priority
 {
-	friend class Double_list<T>;
-
 	private:
 
-		Item *           _next;
-		Item *           _prev;
-		Double_list<T> * _list;
+		unsigned _value;
+
+	public:
+
+		enum {
+			MIN = 0,
+			MAX = MAX_PRIORITY,
+		};
+
+		/**
+		 * Constructor
+		 */
+		Priority(unsigned const priority)
+		:
+			_value(Genode::min(priority, MAX))
+		{ }
+
+		/**
+		 * Assignment operator
+		 */
+		Priority & operator =(unsigned const priority)
+		{
+			_value = Genode::min(priority, MAX);
+			return *this;
+		}
+
+		operator unsigned() const { return _value; }
+};
+
+/**
+ * Ability to be item in a scheduler through inheritance
+ */
+template <typename T>
+class Kernel::Scheduler_item : public Double_list<T>::Item
+{
+	private:
+
+		Priority const _priority;
 
 	public:
 
 		/**
 		 * Constructor
+		 *
+		 * \param p  scheduling priority
 		 */
-		Item() : _next(0), _prev(0), _list(0) { }
+		Scheduler_item(Priority const p) : _priority(p) { }
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Double_list<T> * list() { return _list; }
+		Priority priority() const { return _priority; }
 };
 
 template <typename T>
 class Kernel::Scheduler
 {
-	public:
-
-		/**
-		 * Capability to be item in a scheduler through inheritance
-		 */
-		struct Item : public Double_list<T>::Item
-		{
-			Priority priority;
-		};
-
 	protected:
 
 		T * const      _idle;
 		T *            _current;
-		Double_list<T> _items[Priority::MAX+1];
+		Double_list<T> _items[Priority::MAX + 1];
 
 	public:
+
+		typedef Scheduler_item<T> Item;
 
 		/**
 		 * Constructor
@@ -204,7 +273,7 @@ class Kernel::Scheduler
 		void yield()
 		{
 			if (!_current) return;
-			_items[_current->priority].head_to_tail();
+			_items[_current->priority()].head_to_tail();
 		}
 
 		/**
@@ -213,13 +282,13 @@ class Kernel::Scheduler
 		void insert(T * const i)
 		{
 			assert(i != _idle);
-			_items[i->priority].insert_tail(i);
+			_items[i->priority()].insert_tail(i);
 		}
 
 		/**
 		 * Exclude 'i' from scheduling
 		 */
-		void remove(T * const i) { _items[i->priority].remove(i); }
+		void remove(T * const i) { _items[i->priority()].remove(i); }
 };
 
 class Kernel::Execution_context : public Cpu_scheduler::Item
@@ -235,6 +304,13 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 		 * Continue execution
 		 */
 		virtual void proceed() = 0;
+
+		/**
+		 * Constructor
+		 *
+		 * \param p  scheduling priority
+		 */
+		Execution_context(Priority const p) : Cpu_scheduler::Item(p) { }
 
 		/**
 		 * Destructor

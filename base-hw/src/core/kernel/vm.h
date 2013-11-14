@@ -56,11 +56,8 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		Vm(Genode::Cpu_state_modes * const state,
 		   Signal_context * const context)
 		:
-			_state(state), _context(context)
-		{
-			/* set VM to least priority by now */
-			priority = 0;
-		}
+			Execution_context(Priority::MIN), _state(state), _context(context)
+		{ }
 
 
 		/****************
