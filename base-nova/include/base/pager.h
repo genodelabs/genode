@@ -52,6 +52,7 @@ namespace Genode {
 			addr_t _initial_esp;
 			addr_t _initial_eip;
 			addr_t _client_exc_pt_sel;
+			addr_t _client_exc_vcpu;
 
 			struct
 			{
@@ -131,6 +132,7 @@ namespace Genode {
 			 */
 			addr_t exc_pt_sel() { return _tid.exc_pt_sel; }
 			addr_t exc_pt_sel_client() { return _client_exc_pt_sel; }
+			addr_t exc_pt_vcpu() { return _client_exc_vcpu; }
 
 			/**
 			 * Set initial stack pointer used by the startup handler
@@ -226,6 +228,18 @@ namespace Genode {
 			 * all remotely available portals had been revoked beforehand.
 			 */
 			void cleanup_call();
+
+			/**
+			 * Open receive window for initial portals for vCPU.
+			 */
+			void prepare_vCPU_portals()
+			{
+				_client_exc_vcpu = cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2);
+
+				Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+
+				utcb->crd_rcv = Nova::Obj_crd(_client_exc_vcpu, Nova::NUM_INITIAL_VCPU_PT_LOG2); 
+			}
 	};
 
 

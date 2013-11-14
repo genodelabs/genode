@@ -194,6 +194,12 @@ void Pager_object::_invoke_handler()
 	Pager_object *obj;
 	Utcb         *utcb = _check_handler(myself, obj);
 
+	/* if protocol is violated ignore request and close receive window */
+	if (utcb->msg_words() != 2) {
+		utcb->crd_rcv = Obj_crd();
+		reply(myself->stack_top());
+	}
+
 	/* send single portal as reply */
 	addr_t const event    = utcb->msg[0];
 	addr_t const logcount = utcb->msg[1];
@@ -325,8 +331,10 @@ static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
 
 
 Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
-: Thread_base("pager:", PF_HANDLER_STACK_SIZE),
-  _badge(reinterpret_cast<unsigned long>(_context->name + 6))
+:
+	Thread_base("pager:", PF_HANDLER_STACK_SIZE),
+	_badge(reinterpret_cast<unsigned long>(_context->name + 6)),
+	_client_exc_vcpu(Native_thread::INVALID_INDEX)
 {
 	class Create_exception_pt_failed { };
 	uint8_t res;
@@ -441,6 +449,13 @@ Pager_object::~Pager_object()
 
 	cap_map()->remove(_pt_cleanup, 1, false);
 	cap_map()->remove(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2, false);
+
+	if (_client_exc_vcpu == Native_thread::INVALID_INDEX)
+		return;
+
+	/* revoke vCPU exception portals */
+	revoke(Obj_crd(_client_exc_vcpu, NUM_INITIAL_VCPU_PT_LOG2));
+	cap_map()->remove(_client_exc_vcpu, NUM_INITIAL_VCPU_PT_LOG2, false);
 }
 
 

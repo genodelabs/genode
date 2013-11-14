@@ -64,4 +64,27 @@ inline void request_signal_sm_cap(Genode::Native_capability const &cap,
                                   Genode::addr_t sel) {
 	request_event_portal(cap, sel, ~0UL - 1, 0); }
 
+
+inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
+                                  Genode::addr_t sel)
+{
+	using namespace Nova;
+	Utcb *utcb = reinterpret_cast<Utcb *>(Genode::Thread_base::myself()->utcb());
+
+	/* save original receive window */
+	Crd orig_crd = utcb->crd_rcv;
+
+	utcb->crd_rcv = Obj_crd();
+	utcb->set_msg_word(0);
+	uint8_t res = utcb->append_item(Obj_crd(sel, NUM_INITIAL_VCPU_PT_LOG2), 0);
+	(void)res;
+
+	res = call(cap.local_name());
+
+	/* restore original receive window */
+	utcb->crd_rcv = orig_crd;
+
+	if (res)
+		PERR("setting exception portals for vCPU failed %u", res);
+}
 #endif /* _NOVA__INCLUDE__UTIL_H_ */

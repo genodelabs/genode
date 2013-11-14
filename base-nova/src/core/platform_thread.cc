@@ -100,38 +100,32 @@ int Platform_thread::start(void *ip, void *sp)
 		return -5;
 	}
 
-	/*
-	 * For the first thread of a new PD, use the initial stack pointer for
-	 * reporting the thread's UTCB address.
-	 */
-	addr_t pd_utcb = Native_config::context_area_virtual_base() +
-	                 Native_config::context_area_virtual_size() -
-	                 get_page_size();
-
-	_sel_exc_base = _pager->exc_pt_sel_client();
-
 	addr_t pd_core_sel  = Platform_pd::pd_core_sel();
+	addr_t pd_utcb      = 0;
+	_sel_exc_base       = is_vcpu() ? _pager->exc_pt_vcpu() : _pager->exc_pt_sel_client();
 
-	addr_t remap_src[] = { _pd->parent_pt_sel() };
-	addr_t remap_dst[] = { PT_SEL_PARENT };
-	addr_t pd_sel;
+	if (!is_vcpu()) {
+		pd_utcb = Native_config::context_area_virtual_base() +
+		          Native_config::context_area_virtual_size() - get_page_size();
 
-	Obj_crd initial_pts(_sel_exc_base, NUM_INITIAL_PT_LOG2);
+		addr_t remap_src[] = { _pd->parent_pt_sel() };
+		addr_t remap_dst[] = { PT_SEL_PARENT };
 
-	uint8_t res;
-
-	/* remap exception portals for first thread */
-	for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
-		if (map_local((Utcb *)Thread_base::myself()->utcb(),
-		              Obj_crd(remap_src[i], 0),
-		              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
-			return -6;
+		/* remap exception portals for first thread */
+		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
+			if (map_local((Utcb *)Thread_base::myself()->utcb(),
+		    	          Obj_crd(remap_src[i], 0),
+		        	      Obj_crd(_sel_exc_base + remap_dst[i], 0)))
+				return -6;
+		}
 	}
 
-	pd_sel = cap_map()->insert();
+	addr_t pd_sel = cap_map()->insert();
 
 	/* create task */
-	res = create_pd(pd_sel, pd_core_sel, initial_pts);
+	Obj_crd initial_pts(_sel_exc_base, is_vcpu() ?
+	                    NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2);
+	uint8_t res = create_pd(pd_sel, pd_core_sel, initial_pts);
 	if (res != NOVA_OK) {
 		PERR("create_pd returned %d", res);
 		goto cleanup_pd;
@@ -238,9 +232,6 @@ Thread_state Platform_thread::state()
 
 void Platform_thread::state(Thread_state s)
 {
-	/* not permitted for main thread */
-	if (is_main_thread()) throw Cpu_session::State_access_failed();
-
 	/* you can do it only once */
 	if (_sel_exc_base != Native_thread::INVALID_INDEX)
 		throw Cpu_session::State_access_failed();
@@ -251,8 +242,16 @@ void Platform_thread::state(Thread_state s)
 	 * s.is_vcpu      If true it will run as vCPU,
 	 *                otherwise it will be a thread.
 	 */
-	_sel_exc_base = s.sel_exc_base;
-	if (s.is_vcpu) _features |= VCPU;
+	if (!is_main_thread())
+		_sel_exc_base = s.sel_exc_base;
+
+	if (!s.is_vcpu)
+		return;
+
+	_features |= VCPU;
+
+	if (is_main_thread() && _pager)
+		_pager->prepare_vCPU_portals();
 }
 
 
