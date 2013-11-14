@@ -15,7 +15,7 @@
 #include <base/printf.h>
 
 /* base-hw includes */
-#include <kernel/syscalls.h>
+#include <kernel/interface.h>
 #include <placement_new.h>
 
 /* core includes */

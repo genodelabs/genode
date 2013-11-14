@@ -14,7 +14,9 @@
 /* Genode includes */
 #include <base/ipc.h>
 #include <base/thread.h>
-#include <kernel/syscalls.h>
+
+/* base-hw includes */
+#include <kernel/interface.h>
 #include <kernel/log.h>
 
 using namespace Genode;

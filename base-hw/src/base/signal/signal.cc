@@ -15,7 +15,9 @@
 #include <base/thread.h>
 #include <base/signal.h>
 #include <signal_session/connection.h>
-#include <kernel/syscalls.h>
+
+/* base-hw includes */
+#include <kernel/interface.h>
 
 using namespace Genode;
 

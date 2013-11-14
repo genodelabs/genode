@@ -4,7 +4,7 @@
 # \date   2013-02-14
 #
 
-LIBS += cxx syscall
+LIBS += cxx kernel_interface
 
 SRC_CC += main_bootstrap.cc
 SRC_CC += ipc.cc ipc/ipc_marshal_cap.cc

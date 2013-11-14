@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/* Genode includes */
-#include <kernel/syscalls.h>
+/* base-hw includes */
+#include <kernel/interface.h>
 
 /* core includes */
 #include <kernel/irq.h>

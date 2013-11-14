@@ -244,7 +244,7 @@ void Thread::handle_exception()
 {
 	switch (cpu_exception) {
 	case SUPERVISOR_CALL:
-		_syscall();
+		_call();
 		return;
 	case PREFETCH_ABORT:
 		_mmu_exception();
@@ -297,9 +297,6 @@ char const * Kernel::Thread::pd_label() const
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_new_pd()
 {
 	/* check permissions */
@@ -317,9 +314,6 @@ void Thread::_call_new_pd()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_kill_pd()
 {
 	/* check permissions */
@@ -347,29 +341,24 @@ void Thread::_call_kill_pd()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_new_thread()
 {
 	/* check permissions */
 	assert(_core());
 
 	/* dispatch arguments */
-	Syscall_arg const arg1 = user_arg_1();
-	Syscall_arg const arg2 = user_arg_2();
+	Call_arg const arg1 = user_arg_1();
+	Call_arg const arg2 = user_arg_2();
 
 	/* create thread */
 	Thread * const t = new ((void *)arg1)
 	Thread((Platform_thread *)arg2);
 
 	/* return thread ID */
-	user_arg_0((Syscall_ret)t->id());
+	user_arg_0((Call_ret)t->id());
 }
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
+
 void Thread::_call_delete_thread()
 {
 	/* check permissions */
@@ -384,9 +373,7 @@ void Thread::_call_delete_thread()
 	thread->~Thread();
 }
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
+
 void Thread::_call_start_thread()
 {
 	/* check permissions */
@@ -408,13 +395,10 @@ void Thread::_call_start_thread()
 	Native_utcb * const utcb_v = pt->virt_utcb();
 	bool const main = pt->main_thread();
 	t->init(ip, sp, cpu_id, pd_id, utcb_p, utcb_v, main, 1);
-	user_arg_0((Syscall_ret)t->_pd->tlb());
+	user_arg_0((Call_ret)t->_pd->tlb());
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_pause_thread()
 {
 	unsigned const tid = user_arg_1();
@@ -436,9 +420,6 @@ void Thread::_call_pause_thread()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_resume_thread()
 {
 	/* lookup thread */
@@ -479,9 +460,6 @@ void Thread_event::submit()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_yield_thread()
 {
 	Thread * const t = Thread::pool()->object(user_arg_1());
@@ -490,16 +468,9 @@ void Thread::_call_yield_thread()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
-void Thread::_call_current_thread_id()
-{ user_arg_0((Syscall_ret)id()); }
+void Thread::_call_current_thread_id() { user_arg_0((Call_ret)id()); }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_get_thread()
 {
 	/* check permissions */
@@ -518,25 +489,19 @@ void Thread::_call_get_thread()
 			user_arg_0(0);
 		}
 	} else { t = this; }
-	user_arg_0((Syscall_ret)t->platform_thread());
+	user_arg_0((Call_ret)t->platform_thread());
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_wait_for_request()
 {
 	void * buf_base;
 	size_t buf_size;
-	_phys_utcb->syscall_wait_for_request(buf_base, buf_size);
+	_phys_utcb->call_wait_for_request(buf_base, buf_size);
 	Ipc_node::await_request(buf_base, buf_size);
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_request_and_wait()
 {
 	Thread * const dst = Thread::pool()->object(user_arg_1());
@@ -549,30 +514,24 @@ void Thread::_call_request_and_wait()
 	size_t msg_size;
 	void * buf_base;
 	size_t buf_size;
-	_phys_utcb->syscall_request_and_wait(msg_base, msg_size,
+	_phys_utcb->call_request_and_wait(msg_base, msg_size,
 	                                     buf_base, buf_size);
 	Ipc_node::send_request_await_reply(dst, msg_base, msg_size,
 	                                   buf_base, buf_size);
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_reply()
 {
 	void * msg_base;
 	size_t msg_size;
-	_phys_utcb->syscall_reply(msg_base, msg_size);
+	_phys_utcb->call_reply(msg_base, msg_size);
 	Ipc_node::send_reply(msg_base, msg_size);
 	bool const await_request = user_arg_1();
 	if (await_request) { _call_wait_for_request(); }
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_route_thread_event()
 {
 	/* check permissions */
@@ -634,9 +593,6 @@ unsigned Thread_event::signal_context_id() const
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_access_thread_regs()
 {
 	/* check permissions */
@@ -679,9 +635,6 @@ void Thread::_call_access_thread_regs()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_update_pd()
 {
 	assert(_core());
@@ -689,9 +642,6 @@ void Thread::_call_update_pd()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_update_region()
 {
 	assert(_core());
@@ -702,18 +652,12 @@ void Thread::_call_update_region()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_print_char()
 {
 	Genode::printf("%c", (char)user_arg_1());
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_new_signal_receiver()
 {
 	/* check permissions */
@@ -729,9 +673,6 @@ void Thread::_call_new_signal_receiver()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_new_signal_context()
 {
 	/* check permissions */
@@ -761,9 +702,6 @@ void Thread::_call_new_signal_context()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_await_signal()
 {
 	/* check wether to acknowledge a context */
@@ -791,9 +729,6 @@ void Thread::_call_await_signal()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_signal_pending()
 {
 	/* lookup signal receiver */
@@ -809,9 +744,6 @@ void Thread::_call_signal_pending()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_submit_signal()
 {
 	/* lookup signal context */
@@ -832,9 +764,6 @@ void Thread::_call_submit_signal()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_ack_signal()
 {
 	/* lookup signal context */
@@ -849,9 +778,6 @@ void Thread::_call_ack_signal()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_kill_signal_context()
 {
 	/* check permissions */
@@ -878,9 +804,6 @@ void Thread::_call_kill_signal_context()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_kill_signal_receiver()
 {
 	/* check permissions */
@@ -907,9 +830,6 @@ void Thread::_call_kill_signal_receiver()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_new_vm()
 {
 	/* check permissions */
@@ -927,13 +847,10 @@ void Thread::_call_new_vm()
 	Vm * const vm = new (allocator) Vm(state, context);
 
 	/* return vm id */
-	user_arg_0((Syscall_ret)vm->id());
+	user_arg_0((Call_ret)vm->id());
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_run_vm()
 {
 	/* check permissions */
@@ -948,9 +865,6 @@ void Thread::_call_run_vm()
 }
 
 
-/**
- * Do specific syscall for this thread, for details see 'syscall.h'
- */
 void Thread::_call_pause_vm()
 {
 	/* check permissions */
@@ -989,10 +903,7 @@ int Thread::_write_reg(addr_t const id, addr_t const value)
 }
 
 
-/**
- * Handle a syscall request
- */
-void Thread::_syscall()
+void Thread::_call()
 {
 	switch (user_arg_0()) {
 	case Call_id::NEW_THREAD:           _call_new_thread(); return;

@@ -18,8 +18,10 @@
 #include <base/sync_allocator.h>
 #include <base/allocator_avl.h>
 #include <irq_session/irq_session.h>
+
+/* base-hw includes */
 #include <kernel/log.h>
-#include <kernel/syscalls.h>
+#include <kernel/interface.h>
 
 /* core includes */
 #include <platform_generic.h>

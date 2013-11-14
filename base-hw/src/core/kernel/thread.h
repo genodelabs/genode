@@ -147,9 +147,9 @@ class Kernel::Thread
 		void _mmu_exception();
 
 		/**
-		 * Handle syscall request of this thread
+		 * Handle kernel-call request of this thread
 		 */
-		void _syscall();
+		void _call();
 
 		/**
 		 * Read a thread register
@@ -184,9 +184,9 @@ class Kernel::Thread
 		addr_t Thread::* _reg(addr_t const id) const;
 
 
-		/***************************************************
-		 ** Syscall backends, for details see 'syscall.h' **
-		 ***************************************************/
+		/****************************************************************
+		 ** Kernel-call backends, for details see 'kernel/interface.h' **
+		 ****************************************************************/
 
 		void _call_new_pd();
 		void _call_kill_pd();

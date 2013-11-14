@@ -1,5 +1,5 @@
 /*
- * \brief  Platform specific basic Genode types
+ * \brief  Basic Genode types
  * \author Martin Stein
  * \date   2012-01-02
  */
@@ -15,7 +15,7 @@
 #define _BASE__NATIVE_TYPES_H_
 
 /* Genode includes */
-#include <kernel/syscalls.h>
+#include <kernel/interface.h>
 #include <base/native_capability.h>
 #include <base/stdint.h>
 
@@ -88,14 +88,14 @@ namespace Genode
 			Ipc_msg       ipc_msg;
 		};
 
-		void syscall_wait_for_request(void * & buf_base, size_t & buf_size)
+		void call_wait_for_request(void * & buf_base, size_t & buf_size)
 		{
 			msg.type = Msg::Type::INVALID;
 			buf_base = base();
 			buf_size = size();
 		}
 
-		void syscall_request_and_wait(void * & msg_base, size_t & msg_size,
+		void call_request_and_wait(void * & msg_base, size_t & msg_size,
 		                              void * & buf_base, size_t & buf_size)
 		{
 			msg.type = Msg::Type::IPC;
@@ -105,7 +105,7 @@ namespace Genode
 			buf_size = size();
 		}
 
-		void syscall_reply(void * & msg_base, size_t & msg_size)
+		void call_reply(void * & msg_base, size_t & msg_size)
 		{
 			msg.type = Msg::Type::IPC;
 			msg_base = ipc_msg_base();
