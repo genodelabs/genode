@@ -13,7 +13,9 @@
 
 /* Genode includes */
 #include <base/thread.h>
-#include <kernel/syscalls.h>
+
+/* base-hw includes */
+#include <kernel/interface.h>
 
 
 void Genode::Thread_base::_thread_bootstrap()

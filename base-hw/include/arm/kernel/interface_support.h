@@ -1,5 +1,5 @@
 /*
- * \brief  Syscall declarations specific for ARM systems
+ * \brief  Interface between kernel and userland
  * \author Martin Stein
  * \date   2011-11-30
  */
@@ -11,16 +11,16 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__ARM__BASE__SYSCALL_H_
-#define _INCLUDE__ARM__BASE__SYSCALL_H_
+#ifndef _KERNEL__INTERFACE_SUPPORT_H_
+#define _KERNEL__INTERFACE_SUPPORT_H_
 
 /* Genode includes */
 #include <base/stdint.h>
 
 namespace Kernel
 {
-	typedef Genode::uint32_t Syscall_arg;
-	typedef Genode::uint32_t Syscall_ret;
+	typedef Genode::uint32_t Call_arg;
+	typedef Genode::uint32_t Call_ret;
 
 	/**
 	 * Registers that are provided by a kernel thread-object for user access
@@ -62,5 +62,5 @@ namespace Kernel
 	};
 }
 
-#endif /* _INCLUDE__ARM__BASE__SYSCALL_H_ */
+#endif /* _KERNEL__INTERFACE_SUPPORT_H_ */
 

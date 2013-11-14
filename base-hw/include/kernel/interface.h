@@ -1,5 +1,5 @@
 /*
- * \brief  Kernels syscall frontend
+ * \brief  Interface between kernel and userland
  * \author Martin stein
  * \date   2011-11-30
  */
@@ -11,11 +11,11 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__KERNEL__SYSCALLS_H_
-#define _INCLUDE__KERNEL__SYSCALLS_H_
+#ifndef _KERNEL__INTERFACE_H_
+#define _KERNEL__INTERFACE_H_
 
 /* Genode includes */
-#include <base/syscall_support.h>
+#include <kernel/interface_support.h>
 
 namespace Genode
 {
@@ -72,39 +72,39 @@ namespace Kernel
 
 
 	/*****************************************************************
-	 ** Syscall with 1 to 6 arguments                               **
+	 ** Kernel call with 1 to 6 arguments                           **
 	 **                                                             **
 	 ** These functions must not be inline to ensure that objects,  **
 	 ** wich are referenced by arguments, are tagged as "used" even **
 	 ** though only the pointer gets handled in here.               **
 	 *****************************************************************/
 
-	Syscall_ret syscall(Syscall_arg arg_0);
+	Call_ret call(Call_arg arg_0);
 
-	Syscall_ret syscall(Syscall_arg arg_0,
-	                    Syscall_arg arg_1);
+	Call_ret call(Call_arg arg_0,
+	              Call_arg arg_1);
 
-	Syscall_ret syscall(Syscall_arg arg_0,
-	                    Syscall_arg arg_1,
-	                    Syscall_arg arg_2);
+	Call_ret call(Call_arg arg_0,
+	              Call_arg arg_1,
+	              Call_arg arg_2);
 
-	Syscall_ret syscall(Syscall_arg arg_0,
-	                    Syscall_arg arg_1,
-	                    Syscall_arg arg_2,
-	                    Syscall_arg arg_3);
+	Call_ret call(Call_arg arg_0,
+	              Call_arg arg_1,
+	              Call_arg arg_2,
+	              Call_arg arg_3);
 
-	Syscall_ret syscall(Syscall_arg arg_0,
-	                    Syscall_arg arg_1,
-	                    Syscall_arg arg_2,
-	                    Syscall_arg arg_3,
-	                    Syscall_arg arg_4);
+	Call_ret call(Call_arg arg_0,
+	              Call_arg arg_1,
+	              Call_arg arg_2,
+	              Call_arg arg_3,
+	              Call_arg arg_4);
 
-	Syscall_ret syscall(Syscall_arg arg_0,
-	                    Syscall_arg arg_1,
-	                    Syscall_arg arg_2,
-	                    Syscall_arg arg_3,
-	                    Syscall_arg arg_4,
-	                    Syscall_arg arg_5);
+	Call_ret call(Call_arg arg_0,
+	              Call_arg arg_1,
+	              Call_arg arg_2,
+	              Call_arg arg_3,
+	              Call_arg arg_4,
+	              Call_arg arg_5);
 
 	/**
 	 * Virtual range of the mode transition region in every PD
@@ -141,21 +141,21 @@ namespace Kernel
 	 */
 	inline unsigned new_pd(void * const dst, Platform_pd * const pd)
 	{
-		return syscall(Call_id::NEW_PD, (Syscall_arg)dst, (Syscall_arg)pd);
+		return call(Call_id::NEW_PD, (Call_arg)dst, (Call_arg)pd);
 	}
 
 
 	/**
 	 * Destruct a protection domain
 	 *
-	 * \param pd  kernel name of the targeted protection domain
+	 * \param pd_id  kernel name of the targeted protection domain
 	 *
 	 * \retval  0  succeeded
 	 * \retval -1  failed
 	 */
-	inline int kill_pd(unsigned const pd)
+	inline int kill_pd(unsigned const pd_id)
 	{
-		return syscall(Call_id::KILL_PD, pd);
+		return call(Call_id::KILL_PD, pd_id);
 	}
 
 
@@ -165,18 +165,18 @@ namespace Kernel
 	 * \param pd_id  ID of the PD that has been configured
 	 *
 	 * It might be, that the kernel and/or the hardware caches parts of PD
-	 * configurations such as virtual address translations. This syscall
+	 * configurations such as virtual address translations. This function
 	 * ensures that the current configuration of the targeted PD gets fully
-	 * applied from the moment it returns to the userland. This syscall is
+	 * applied from the moment it returns to the userland. This function is
 	 * inappropriate in case that a PD wants to change its own configuration.
-	 * There's no need for this syscall after a configuration change that
+	 * There's no need for this function after a configuration change that
 	 * can't affect the kernel- and/or hardware-caches.
 	 *
 	 * Restricted to core threads.
 	 */
 	inline void update_pd(unsigned const pd_id)
 	{
-		syscall(Call_id::UPDATE_PD, (Syscall_arg)pd_id);
+		call(Call_id::UPDATE_PD, pd_id);
 	}
 
 
@@ -187,14 +187,14 @@ namespace Kernel
 	 * \param size  size of the region
 	 *
 	 * If one updates a memory region and must ensure that the update
-	 * gets visible directly to other address spaces, this syscall does
+	 * gets visible directly to other address spaces, this function does
 	 * the job.
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void update_region(addr_t base, size_t size)
+	inline void update_region(addr_t const base, size_t const size)
 	{
-		syscall(Call_id::UPDATE_REGION, (Syscall_arg)base, (Syscall_arg)size);
+		call(Call_id::UPDATE_REGION, (Call_arg)base, (Call_arg)size);
 	}
 
 
@@ -213,7 +213,7 @@ namespace Kernel
 	 */
 	inline int new_thread(void * const dst, Platform_thread * const pt)
 	{
-		return syscall(Call_id::NEW_THREAD, (Syscall_arg)dst, (Syscall_arg)pt);
+		return call(Call_id::NEW_THREAD, (Call_arg)dst, (Call_arg)pt);
 	}
 
 
@@ -226,9 +226,9 @@ namespace Kernel
 	 * granted beforehand by 'new_thread' to kernel for managing this thread
 	 * is freed again.
 	 */
-	inline void delete_thread(unsigned thread_id)
+	inline void delete_thread(unsigned const thread_id)
 	{
-		syscall(Call_id::DELETE_THREAD, (Syscall_arg)thread_id);
+		call(Call_id::DELETE_THREAD, thread_id);
 	}
 
 
@@ -245,11 +245,11 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline Tlb * start_thread(Platform_thread * const phys_pt, void * ip,
-	                          void * sp, unsigned cpu_no)
+	inline Tlb * start_thread(Platform_thread * const phys_pt, void * const ip,
+	                          void * const sp, unsigned const cpu_no)
 	{
-		return (Tlb *)syscall(Call_id::START_THREAD, (Syscall_arg)phys_pt,
-		                      (Syscall_arg)ip, (Syscall_arg)sp, cpu_no);
+		return (Tlb *)call(Call_id::START_THREAD, (Call_arg)phys_pt,
+		                   (Call_arg)ip, (Call_arg)sp, cpu_no);
 	}
 
 
@@ -259,15 +259,14 @@ namespace Kernel
 	 * \param id  ID of the targeted thread. If not set
 	 *            this will target the current thread.
 	 *
-	 * \retval  0  syscall was successful
-	 * \retval <0  if the targeted thread does not exist or still participates
-	 *             in CPU scheduling after
+	 * \retval  0  succeeded
+	 * \retval -1  the targeted thread does not exist or is still active
 	 *
 	 * If the caller doesn't target itself, this is restricted to core threads.
 	 */
 	inline int pause_thread(unsigned const id = 0)
 	{
-		return syscall(Call_id::PAUSE_THREAD, id);
+		return call(Call_id::PAUSE_THREAD, id);
 	}
 
 
@@ -276,17 +275,16 @@ namespace Kernel
 	 *
 	 * \param id  ID of the targeted thread
 	 *
-	 * \retval  0  if syscall was successful and thread were paused beforehand
-	 * \retval >0  if syscall was successful and thread were already active
-	 * \retval <0  if targeted thread doesn't participate in CPU
-	 *             scheduling after
+	 * \retval  0  succeeded and thread was paused beforehand
+	 * \retval  1  succeeded and thread was active beforehand
+	 * \retval -1  failed
 	 *
 	 * If the targeted thread blocks for any event except a 'start_thread'
 	 * call this call cancels the blocking.
 	 */
 	inline int resume_thread(unsigned const id = 0)
 	{
-		return syscall(Call_id::RESUME_THREAD, id);
+		return call(Call_id::RESUME_THREAD, id);
 	}
 
 
@@ -298,7 +296,7 @@ namespace Kernel
 	 */
 	inline void yield_thread(unsigned const id = 0)
 	{
-		syscall(Call_id::YIELD_THREAD, id);
+		call(Call_id::YIELD_THREAD, id);
 	}
 
 
@@ -307,7 +305,7 @@ namespace Kernel
 	 */
 	inline int current_thread_id()
 	{
-		return syscall(Call_id::CURRENT_THREAD_ID);
+		return call(Call_id::CURRENT_THREAD_ID);
 	}
 
 
@@ -323,7 +321,7 @@ namespace Kernel
 	 */
 	inline Platform_thread * get_thread(unsigned const id)
 	{
-		return (Platform_thread *)syscall(Call_id::GET_THREAD, id);
+		return (Platform_thread *)call(Call_id::GET_THREAD, id);
 	}
 
 
@@ -340,8 +338,8 @@ namespace Kernel
 	                              unsigned const event_id,
 	                              unsigned const signal_context_id)
 	{
-		return syscall(Call_id::ROUTE_THREAD_EVENT, thread_id,
-		               event_id, signal_context_id);
+		return call(Call_id::ROUTE_THREAD_EVENT, thread_id,
+		            event_id, signal_context_id);
 	}
 
 
@@ -354,7 +352,7 @@ namespace Kernel
 	 */
 	inline void request_and_wait(unsigned const id)
 	{
-		syscall(Call_id::REQUEST_AND_WAIT, id);
+		call(Call_id::REQUEST_AND_WAIT, id);
 	}
 
 
@@ -367,7 +365,7 @@ namespace Kernel
 	 */
 	inline void wait_for_request()
 	{
-		syscall(Call_id::WAIT_FOR_REQUEST);
+		call(Call_id::WAIT_FOR_REQUEST);
 	}
 
 
@@ -381,7 +379,7 @@ namespace Kernel
 	 */
 	inline void reply(bool const await_message)
 	{
-		syscall(Call_id::REPLY, await_message);
+		call(Call_id::REPLY, await_message);
 	}
 
 
@@ -390,7 +388,7 @@ namespace Kernel
 	 */
 	inline void print_char(char const c)
 	{
-		syscall(Call_id::PRINT_CHAR, (Syscall_arg)c);
+		call(Call_id::PRINT_CHAR, c);
 	}
 
 
@@ -433,8 +431,8 @@ namespace Kernel
 	                              addr_t * const read_values,
 	                              addr_t * const write_values)
 	{
-		return syscall(Call_id::ACCESS_THREAD_REGS, thread_id, reads, writes,
-		               (Syscall_arg)read_values, (Syscall_arg)write_values);
+		return call(Call_id::ACCESS_THREAD_REGS, thread_id, reads, writes,
+		            (Call_arg)read_values, (Call_arg)write_values);
 	}
 
 
@@ -450,7 +448,7 @@ namespace Kernel
 	 */
 	inline unsigned new_signal_receiver(addr_t const p)
 	{
-		return syscall(Call_id::NEW_SIGNAL_RECEIVER, p);
+		return call(Call_id::NEW_SIGNAL_RECEIVER, p);
 	}
 
 
@@ -470,7 +468,7 @@ namespace Kernel
 	                                   unsigned const receiver,
 	                                   unsigned const imprint)
 	{
-		return syscall(Call_id::NEW_SIGNAL_CONTEXT, p, receiver, imprint);
+		return call(Call_id::NEW_SIGNAL_CONTEXT, p, receiver, imprint);
 	}
 
 
@@ -497,7 +495,7 @@ namespace Kernel
 	inline int await_signal(unsigned const receiver_id,
 	                        unsigned const context_id)
 	{
-		return syscall(Call_id::AWAIT_SIGNAL, receiver_id, context_id);
+		return call(Call_id::AWAIT_SIGNAL, receiver_id, context_id);
 	}
 
 
@@ -511,7 +509,7 @@ namespace Kernel
 	 */
 	inline bool signal_pending(unsigned const receiver)
 	{
-		return syscall(Call_id::SIGNAL_PENDING, receiver);
+		return call(Call_id::SIGNAL_PENDING, receiver);
 	}
 
 
@@ -526,7 +524,7 @@ namespace Kernel
 	 */
 	inline int submit_signal(unsigned const context, unsigned const num)
 	{
-		return syscall(Call_id::SUBMIT_SIGNAL, context, num);
+		return call(Call_id::SUBMIT_SIGNAL, context, num);
 	}
 
 
@@ -537,7 +535,7 @@ namespace Kernel
 	 */
 	inline void ack_signal(unsigned const context)
 	{
-		syscall(Call_id::ACK_SIGNAL, context);
+		call(Call_id::ACK_SIGNAL, context);
 	}
 
 
@@ -553,7 +551,7 @@ namespace Kernel
 	 */
 	inline int kill_signal_context(unsigned const context)
 	{
-		return syscall(Call_id::KILL_SIGNAL_CONTEXT, context);
+		return call(Call_id::KILL_SIGNAL_CONTEXT, context);
 	}
 
 
@@ -569,57 +567,56 @@ namespace Kernel
 	 */
 	inline int kill_signal_receiver(unsigned const receiver)
 	{
-		return syscall(Call_id::KILL_SIGNAL_RECEIVER, receiver);
+		return call(Call_id::KILL_SIGNAL_RECEIVER, receiver);
 	}
 
 
 	/**
-	 * Create a new virtual-machine that is stopped initially
+	 * Create a virtual machine that is stopped initially
 	 *
-	 * \param dst         physical base of an appropriate portion of memory
-	 *                    that is thereupon allocated to the kernel
-	 * \param state       location of the CPU state of the VM
-	 * \param context_id  ID of the targeted signal context
+	 * \param dst                memory donation for the kernel VM-object
+	 * \param state              location of the CPU state of the VM
+	 * \param signal_context_id  kernel name of the signal context for VM events
 	 *
-	 * \retval >0  ID of the new VM
-	 * \retval  0  if no new VM was created
+	 * \retval >0  kernel name of the new VM
+	 * \retval  0  failed
 	 *
 	 * Restricted to core threads. Regaining of the supplied memory is not
 	 * supported by now.
 	 */
 	inline int new_vm(void * const dst, void * const state,
-	                  unsigned context_id)
+	                  unsigned const signal_context_id)
 	{
-		return syscall(Call_id::NEW_VM, (Syscall_arg)dst, (Syscall_arg)state,
-		               (Syscall_arg)context_id);
+		return call(Call_id::NEW_VM, (Call_arg)dst, (Call_arg)state,
+		            signal_context_id);
 	}
 
 
 	/**
 	 * Execute a virtual-machine (again)
 	 *
-	 * \param id  ID of the targeted VM
+	 * \param vm_id  kernel name of the targeted VM
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void run_vm(unsigned const id)
+	inline void run_vm(unsigned const vm_id)
 	{
-		syscall(Call_id::RUN_VM, (Syscall_arg)id);
+		call(Call_id::RUN_VM, vm_id);
 	}
 
 
 	/**
 	 * Stop execution of a virtual-machine
 	 *
-	 * \param id  ID of the targeted VM
+	 * \param vm_id  kernel name of the targeted VM
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void pause_vm(unsigned const id)
+	inline void pause_vm(unsigned const vm_id)
 	{
-		syscall(Call_id::PAUSE_VM, (Syscall_arg)id);
+		call(Call_id::PAUSE_VM, vm_id);
 	}
 }
 
-#endif /* _INCLUDE__KERNEL__SYSCALLS_H_ */
+#endif /* _KERNEL__INTERFACE_H_ */
 

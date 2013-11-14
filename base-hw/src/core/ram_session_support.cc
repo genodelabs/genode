@@ -13,7 +13,9 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <kernel/syscalls.h>
+
+/* base-hw includes */
+#include <kernel/interface.h>
 
 /* core includes */
 #include <ram_session_component.h>

@@ -17,13 +17,15 @@
 /* Genode includes */
 #include <ram_session/ram_session.h>
 #include <base/native_types.h>
-#include <kernel/syscalls.h>
-#include <kernel/log.h>
 #include <base/thread.h>
-#include <kernel/thread.h>
+
+/* base-hw includes */
+#include <kernel/interface.h>
+#include <kernel/log.h>
 
 /* core includes */
 #include <address_space.h>
+#include <kernel/thread.h>
 
 namespace Genode {
 

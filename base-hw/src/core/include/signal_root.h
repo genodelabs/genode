@@ -16,7 +16,9 @@
 
 /* Genode includes */
 #include <root/component.h>
-#include <kernel/syscalls.h>
+
+/* base-hw includes */
+#include <kernel/interface.h>
 
 /* core includes */
 #include <signal_session_component.h>
