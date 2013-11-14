@@ -1,0 +1,15 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/ext2fs.h.orig	2013-11-22 17:06:23.728888099 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/ext2fs.h	2013-11-22 17:03:53.028881471 +0100
+@@ -49,9 +49,12 @@
+ #include <sys/types.h>
+ #endif
+ 
++typedef unsigned int dev_t;
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <time.h>
+ 
+ #if EXT2_FLAT_INCLUDES
+ #include "e2_types.h"

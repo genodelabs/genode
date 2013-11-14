@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/fuse-ext2/op_access.c.orig	2013-11-22 17:10:24.636898700 +0100
++++ contrib/fuse-ext2-svn-220/fuse-ext2/op_access.c	2013-11-22 17:10:34.728899142 +0100
+@@ -18,6 +18,8 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  */
+ 
++#include <unistd.h>
++
+ #include "fuse-ext2.h"
+ 
+ int op_access (const char *path, int mask)

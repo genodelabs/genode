@@ -1,0 +1,22 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/closefs.c.orig	2013-11-22 17:12:24.152903960 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/closefs.c	2013-11-22 17:12:52.936905227 +0100
+@@ -32,19 +32,6 @@
+ 	}
+ }
+ 
+-int ext2fs_bg_has_super(ext2_filsys fs, int group_block)
+-{
+-	if (!(fs->super->s_feature_ro_compat &
+-	      EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER))
+-		return 1;
+-
+-	if (test_root(group_block, 3) || (test_root(group_block, 5)) ||
+-	    test_root(group_block, 7))
+-		return 1;
+-
+-	return 0;
+-}
+-
+ /*
+  * ext2fs_super_and_bgd_loc2()
+  * @fs:			ext2 fs pointer

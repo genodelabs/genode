@@ -1,0 +1,15 @@
+--- contrib/fuse-ext2-svn-220/fuse-ext2/op_statfs.c.orig	2013-11-25 15:51:51.752182307 +0100
++++ contrib/fuse-ext2-svn-220/fuse-ext2/op_statfs.c	2013-11-25 15:51:45.592104883 +0100
+@@ -41,10 +41,12 @@
+ 
+ static int ext2_bg_has_super (ext2_filsys e2fs, int group)
+ {
++	/*
+ 	if (EXT2_HAS_RO_COMPAT_FEATURE(e2fs->super, EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER) &&
+ 	    !ext2_group_spare(group)) {
+ 		return 0;
+ 	}
++	*/
+ 	return 1;
+ }
+ 

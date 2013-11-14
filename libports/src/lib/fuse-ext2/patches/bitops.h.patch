@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/bitops.h.orig	2013-11-14 15:25:38.621795983 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/bitops.h	2013-11-14 15:24:24.069798186 +0100
+@@ -98,7 +98,7 @@
+ extern int ext2fs_test_block_bitmap_range(ext2fs_block_bitmap bitmap,
+ 					  blk_t block, int num);
+ extern int ext2fs_test_inode_bitmap_range(ext2fs_inode_bitmap bitmap,
+-					  ino_t inode, int num);
++					  ext2_ino_t inode, int num);
+ extern void ext2fs_fast_mark_block_bitmap_range(ext2fs_block_bitmap bitmap,
+ 						blk_t block, int num);
+ extern void ext2fs_fast_unmark_block_bitmap_range(ext2fs_block_bitmap bitmap,

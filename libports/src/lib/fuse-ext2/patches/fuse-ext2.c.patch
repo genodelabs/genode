@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.c.orig	2013-11-22 17:13:24.484906614 +0100
++++ contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.c	2013-11-22 17:13:35.520907100 +0100
+@@ -278,7 +278,7 @@
+ 	goto exit;
+ }
+ 
+-static const struct fuse_operations ext2fs_ops = {
++const struct fuse_operations ext2fs_ops = {
+ 	.getattr        = op_getattr,
+ 	.readlink       = op_readlink,
+ 	.mknod          = op_mknod,
