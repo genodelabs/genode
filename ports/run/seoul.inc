@@ -42,7 +42,7 @@ build $build_components
 
 # write Seoul config file
 set vm_cfg_fd [open "bin/vm_linux.cfg" w]
-puts $vm_cfg_fd {<config>
+puts $vm_cfg_fd {<config colocate="1" >
 	<machine>
 		<mem start="0x0" end="0x9a000"/>
 		<mem start="0x100000" end="0xfffff000"/>

@@ -19,27 +19,89 @@
 #include <base/thread.h>
 #include <cap_session/connection.h>
 #include <nova_cpu_session/connection.h>
+#include <cpu_session/connection.h>
+#include <pd_session/connection.h>
 
 namespace Vmm {
 
 	using namespace Genode;
 
 	class Vcpu_thread;
+	class Vcpu_other_pd;
+	class Vcpu_same_pd;
 }
 
+class Vmm::Vcpu_thread
+{
+	public:
 
-class Vmm::Vcpu_thread : Genode::Thread_base
+		virtual Genode::addr_t exc_base()            = 0;
+		virtual void           start(Genode::addr_t) = 0;
+};
+
+class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 {
 	private:
 
-		/**
-		 * Log2 size of portal window used for virtualization events
-		 */
-		enum { VCPU_EXC_BASE_LOG2 = 8 };
+		Genode::Pd_connection  _pd_session;
+		Genode::Cpu_connection _cpu_session;
+
+		Genode::addr_t _exc_pt_sel;
 
 	public:
 
-		Vcpu_thread(size_t stack_size)
+		Vcpu_other_pd()
+		:
+			_pd_session("VM"), _cpu_session("vCPU"),
+			_exc_pt_sel(Genode::cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
+		{ }
+
+		void start(Genode::addr_t sel_ec)
+		{
+			using namespace Genode;
+
+			Thread_capability vcpu_vm = _cpu_session.create_thread("vCPU");
+			
+			/* assign thread to protection domain */
+			_pd_session.bind_thread(vcpu_vm);
+
+			/* create new pager object and assign it to the new thread */
+			Pager_capability pager_cap = env()->rm_session()->add_client(vcpu_vm);
+
+			_cpu_session.set_pager(vcpu_vm, pager_cap);
+
+			/* tell parent that this will be a vCPU */
+			Thread_state state;
+			state.sel_exc_base = Native_thread::INVALID_INDEX;
+			state.is_vcpu      = true;
+
+			_cpu_session.state(vcpu_vm, state);
+
+			/*
+			 * Delegate parent the vCPU exception portals required during PD
+			 * creation.
+			 */
+			delegate_vcpu_portals(pager_cap, exc_base());
+
+			/* start vCPU in separate PD */
+			_cpu_session.start(vcpu_vm, 0, 0);
+
+			/*
+			 * Request native EC thread cap and put it next to the
+			 * SM cap - see Vcpu_dispatcher->sel_sm_ec description
+			 */
+			request_native_ec_cap(pager_cap, sel_ec);
+		}
+
+		Genode::addr_t exc_base() { return _exc_pt_sel; }
+};
+
+
+class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
+{
+	public:
+
+		Vcpu_same_pd(size_t stack_size)
 		:
 			Thread_base("vCPU", stack_size)
 		{
@@ -47,18 +109,18 @@ class Vmm::Vcpu_thread : Genode::Thread_base
 			Genode::cap_map()->remove(tid().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
 
 			/* allocate correct number of selectors */
-			this->tid().exc_pt_sel = cap_map()->insert(VCPU_EXC_BASE_LOG2);
+			this->tid().exc_pt_sel = cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2);
 
 			/* tell generic thread code that this becomes a vCPU */
 			this->tid().is_vcpu = true;
 		}
 
-		~Vcpu_thread()
+		~Vcpu_same_pd()
 		{
 			using namespace Nova;
 
-			revoke(Nova::Obj_crd(this->tid().exc_pt_sel, VCPU_EXC_BASE_LOG2));
-			cap_map()->remove(this->tid().exc_pt_sel, VCPU_EXC_BASE_LOG2, false);
+			revoke(Nova::Obj_crd(this->tid().exc_pt_sel, NUM_INITIAL_VCPU_PT_LOG2));
+			cap_map()->remove(this->tid().exc_pt_sel, NUM_INITIAL_VCPU_PT_LOG2, false);
 
 			/* allocate selectors for ~Thread */
 			this->tid().exc_pt_sel = cap_map()->insert(Nova::NUM_INITIAL_PT_LOG2);

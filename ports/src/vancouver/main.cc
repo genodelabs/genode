@@ -256,7 +256,7 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
 		 */
 		Genode::Synced_interface<VCpu> _vcpu;
 
-		Vmm::Vcpu_thread _vcpu_thread;
+		Vmm::Vcpu_thread *_vcpu_thread;
 
 		/**
 		 * Guest-physical memory
@@ -669,9 +669,10 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
 				PERR("could not register handler %lx", exc_base + EV);
 		}
 
+	public:
+
 		enum { STACK_SIZE = 1024*sizeof(Genode::addr_t) };
 
-	public:
 
 		Vcpu_dispatcher(Genode::Lock           &vcpu_lock,
 		                Genode::Cap_connection &cap_connection,
@@ -679,11 +680,12 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
 		                Guest_memory           &guest_memory,
 		                Synced_motherboard     &motherboard,
 		                bool                    has_svm,
-		                bool                    has_vmx)
+		                bool                    has_vmx,
+		                Vmm::Vcpu_thread       *vcpu_thread)
 		:
 			Vmm::Vcpu_dispatcher(STACK_SIZE, cap_connection),
 			_vcpu(vcpu_lock, unsynchronized_vcpu),
-			_vcpu_thread(STACK_SIZE),
+			_vcpu_thread(vcpu_thread),
 			_guest_memory(guest_memory),
 			_motherboard(motherboard)
 		{
@@ -698,11 +700,10 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
 			/*
 			 * Register vCPU event handlers
 			 */
-			Genode::addr_t const exc_base = _vcpu_thread.exc_base();
+			Genode::addr_t const exc_base = _vcpu_thread->exc_base();
 			typedef Vcpu_dispatcher This;
 
 			if (has_svm) {
-
 				_register_handler<0x64, &This::_vmx_irqwin>
 					(exc_base, MTD_IRQ);
 				_register_handler<0x72, &This::_svm_cpuid>
@@ -725,7 +726,6 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
 					(exc_base, MTD_IRQ);
 
 			} else if (has_vmx) {
-
 				_register_handler<2, &This::_vmx_triple>
 					(exc_base, MTD_ALL);
 				_register_handler<3, &This::_vmx_init>
@@ -765,7 +765,7 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
 			}
 
 			/* let vCPU run */
-			_vcpu_thread.start(sel_sm_ec() + 1);
+			_vcpu_thread->start(sel_sm_ec() + 1);
 
 			/* handle cpuid overrides */
 			unsynchronized_vcpu->executor.add(this, receive_static<CpuMessage>);
@@ -834,6 +834,7 @@ class Machine : public StaticReceiver<Machine>
 		Alarm_thread          *_alarm_thread;
 
 		bool                   _alloc_fb_mem; /* For detecting FB alloc message */
+		bool                   _colocate_vm_vmm;
 
 		Nic::Session          *_nic;
 		Rtc::Session          *_rtc;
@@ -908,13 +909,21 @@ class Machine : public StaticReceiver<Machine>
 					if (verbose_debug)
 						Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
+					Vmm::Vcpu_thread * vcpu_thread;
+					if (_colocate_vm_vmm)
+						vcpu_thread = new Vmm::Vcpu_same_pd(Vcpu_dispatcher::STACK_SIZE);
+					else
+						vcpu_thread = new Vmm::Vcpu_other_pd();
+
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(_motherboard_lock,
 						                    _cap,
 						                    msg.vcpu,
 						                    _guest_memory,
 						                    _motherboard,
-						                    _hip->has_feature_svm(), _hip->has_feature_vmx());
+						                    _hip->has_feature_svm(),
+						                    _hip->has_feature_vmx(),
+						                    vcpu_thread);
 
 					msg.value = vcpu_dispatcher->sel_sm_ec();
 					return true;
@@ -1190,7 +1199,8 @@ class Machine : public StaticReceiver<Machine>
 		/**
 		 * Constructor
 		 */
-		Machine(Boot_module_provider &boot_modules, Guest_memory &guest_memory)
+		Machine(Boot_module_provider &boot_modules, Guest_memory &guest_memory,
+		        bool colocate)
 		:
 			_hip_rom("hypervisor_info_page"),
 			_hip(Genode::env()->rm_session()->attach(_hip_rom.dataspace())),
@@ -1200,7 +1210,8 @@ class Machine : public StaticReceiver<Machine>
 			_motherboard(_motherboard_lock, &_unsynchronized_motherboard),
 			_timeouts(_timeouts_lock, &_unsynchronized_timeouts),
 			_guest_memory(guest_memory),
-			_boot_modules(boot_modules)
+			_boot_modules(boot_modules),
+			_colocate_vm_vmm(colocate)
 		{
 			_timeouts()->init();
 
@@ -1344,6 +1355,7 @@ int main(int argc, char **argv)
 {
 	Genode::addr_t fb_size = 4*1024*1024;
 	Genode::addr_t vm_size;
+	unsigned       colocate = 1; /* by default co-locate VM and VMM in same PD */
 
 	{
 		/*
@@ -1374,17 +1386,24 @@ int main(int argc, char **argv)
 			arg.value(&val);
 			fb_size = val*1024;
 		} catch (...) { }
+
+		/* read out whether VM and VMM should be colocated or not */
+		try {
+			Genode::config()->xml_node().attribute("colocate").value(&colocate);
+		} catch (...) { }
 	}
 
-	/* re-adjust reservation to actual VM size */
-	Vmm::Virtual_reservation reservation(vm_size);
+	if (colocate)
+		/* re-adjust reservation to actual VM size */
+		static Vmm::Virtual_reservation reservation(vm_size);
 
 	/* setup guest memory */
 	static Guest_memory guest_memory(vm_size, fb_size);
 
 	/* diagnostic messages */
-	Genode::printf("[0x%012lx, 0x%012lx) - %lu MiB - VM accessible memory\n",
-	               0, vm_size, vm_size / 1024 / 1024);
+	if (colocate)
+		Genode::printf("[0x%012lx, 0x%012lx) - %lu MiB - VM accessible "
+		               "memory\n", 0, vm_size, vm_size / 1024 / 1024);
 
 	if (guest_memory.backing_store_local_base())
 		Genode::printf("[0x%012p, 0x%012p) - %lu MiB - VMM accessible shadow "
@@ -1421,7 +1440,8 @@ int main(int argc, char **argv)
 	static Boot_module_provider
 		boot_modules(Genode::config()->xml_node().sub_node("multiboot"));
 
-	static Machine machine(boot_modules, guest_memory);
+	/* create the PC machine based on the configuration given */
+	static Machine machine(boot_modules, guest_memory, colocate);
 
 	/* create console thread */
 	Vancouver_console vcon(machine.motherboard(), fb_size, guest_memory.fb_ds());
@@ -1436,6 +1456,8 @@ int main(int argc, char **argv)
 	vdisk.register_host_operations(machine.unsynchronized_motherboard());
 
 	machine.setup_devices(Genode::config()->xml_node().sub_node("machine"));
+
+	PINF("VM and VMM %s.", colocate ? "co-located" : "not co-located");
 
 	Genode::printf("\n--- Booting VM ---\n");
 
