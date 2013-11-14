@@ -28,217 +28,7 @@
 
 #include <rom_file.h>
 
-
-class Audio_out_channel
-{
-	private:
-
-		Audio_out::Connection _connection;
-
-	public:
-
-		Audio_out_channel(const char *channel_name)
-		:
-			_connection(channel_name)
-		{
-			_connection.start();
-		}
-
-		Audio_out::Stream *stream()
-		{
-			return _connection.stream();
-		}
-
-		Audio_out::Connection *session() { return &_connection; }
-};
-
-
-/**
- * Sound player used as fallback if audio-out is unavailable
- */
-class Sound_player
-{
-	public:
-
-		enum Sound { HOVER, SELECT };
-
-		virtual void play(Sound sound) { }
-};
-
-
-/**
- * Sound player using two 'Audio_out' sessions, for left and right
- */
-class Sound_player_audio_out : public Sound_player
-{
-	private:
-
-		Audio_out_channel _l;
-		Audio_out_channel _r;
-		bool _ack_pending;
-
-	public:
-
-		Sound_player_audio_out()
-		:
-			_l("front left"),
-			_r("front right")
-		{ }
-
-		void play(Sound_player::Sound sound)
-		{
-			extern float _binary_hover_raw_start[];
-			extern float _binary_select_raw_start[];
-
-			float *src;
-			Genode::size_t file_size = 0;
-			switch (sound) {
-			case HOVER:  src = _binary_hover_raw_start;  file_size = 7712; break;
-			case SELECT: src = _binary_select_raw_start; file_size = 8520; break;
-			default: src = 0; break;
-			}
-
-			enum { SRC_CHANNELS = 2, BYTES_PER_SRC_FRAME = sizeof(float) };
-			size_t num_frames = file_size / (SRC_CHANNELS*BYTES_PER_SRC_FRAME);
-
-			if (!src) return;
-
-			using namespace Audio_out;
-			using namespace Genode;
-
-			Audio_out::Packet *l_packet = _l.stream()->next();
-			Audio_out::Packet *r_packet = _r.stream()->next();
-			for (unsigned offset = 0; offset < num_frames; offset += PERIOD) {
-
-					do {
-						l_packet = _l.stream()->next(l_packet);
-						r_packet = _r.stream()->get(_l.stream()->packet_position(l_packet));
-					} while (!l_packet->played());
-
-
-				float *l_content = l_packet->content();
-				float *r_content = r_packet->content();
-
-				Genode::memset(l_content, 0, l_packet->size());
-				Genode::memset(r_content, 0, r_packet->size());
-
-				/*
-				 * The source data contains interleaved values for the
-				 * left and right channels.
-				 */
-				for (unsigned i = 0; i < Genode::min(num_frames - offset, (Genode::size_t)PERIOD); i++)
-				{
-					*l_content++ = *src++;
-					*r_content++ = *src++;
-				}
-
-				_l.session()->submit(l_packet);
-				_r.session()->submit(r_packet);
-			}
-		}
-};
-
-
-Sound_player *sound_player()
-{
-	static bool try_audio_out = false;
-
-	if (try_audio_out) {
-		try {
-			static Sound_player_audio_out sound_player_inst;
-			return &sound_player_inst;
-		} catch (...) {
-			try_audio_out = false;
-			PINF("No audio driver available, falling back to silence");
-		}
-	}
-
-	/*
-	 * If anything went wrong with creating audio-out sessions,
-	 * fall back to silence.
-	 */
-	static Sound_player silent_sound_player_inst;
-	return &silent_sound_player_inst;
-}
-
-
 enum { IMAGE_NAME_MAX_LEN = 64 };
-
-
-static inline unsigned long
-read_banner_config_value(const char *attr_name,
-                         unsigned long default_value)
-{
-	unsigned long result = default_value;
-	try {
-		Genode::config()->xml_node().sub_node("banner").attribute(attr_name).value(&result);
-	} catch (...) { };
-	return result;
-}
-
-
-typedef Genode::Thread<4096> Time_trigger_thread;
-
-
-class Time_trigger : Time_trigger_thread
-{
-	private:
-
-		Genode::Lock _lock;
-		Genode::Lock _barrier;
-
-		Timer::Connection _timer;
-
-		volatile unsigned long _jiffies;
-		volatile unsigned long _last_jiffies;
-		bool _needs_wakeup;
-
-		void entry()
-		{
-			for (;;) {
-				_timer.msleep(20);
-				_jiffies++;
-				{
-					Genode::Lock::Guard guard(_lock);
-					if (_needs_wakeup) {
-						_barrier.unlock();
-						_needs_wakeup = false;
-					}
-				}
-			}
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Time_trigger()
-		:
-			Time_trigger_thread("time_trigger"),
-			_barrier(Genode::Lock::LOCKED), _jiffies(0),
-			_last_jiffies(0),
-			_needs_wakeup(false)
-		{ Thread_base::start(); }
-
-		/**
-		 * Block for next frame, called by the main thread
-		 *
-		 * \return number of passed-by time units
-		 */
-		unsigned block()
-		{
-			{
-				Genode::Lock::Guard guard(_lock);
-				_needs_wakeup = true;
-			}
-			_barrier.lock();
-
-			unsigned long passed_by = _jiffies - _last_jiffies;
-			_last_jiffies = _jiffies;
-			return passed_by;
-		}
-};
 
 
 class Menu_entry : public Genode::List<Menu_entry>::Element
@@ -247,7 +37,6 @@ class Menu_entry : public Genode::List<Menu_entry>::Element
 
 		Nano3d::Rect _sensor;
 		Nano3d::Rect _view;
-		int          _banner_id;
 		bool         _hover;
 		bool         _selected;
 		bool         _needs_update;
@@ -255,10 +44,9 @@ class Menu_entry : public Genode::List<Menu_entry>::Element
 
 	public:
 
-		Menu_entry(Nano3d::Rect sensor, Nano3d::Rect view,
-		           int banner_id)
+		Menu_entry(Nano3d::Rect sensor, Nano3d::Rect view)
 		:
-			_sensor(sensor), _view(view), _banner_id(banner_id),
+			_sensor(sensor), _view(view),
 			_hover(false), _selected(false), _needs_update(true),
 			_blend(0)
 		{ }
@@ -271,8 +59,6 @@ class Menu_entry : public Genode::List<Menu_entry>::Element
 			     && p.y() <= _sensor.y2());
 		}
 
-		int banner_id() const { return _banner_id; }
-
 		void hover(bool hover)
 		{
 			if (hover == _hover)
@@ -283,8 +69,6 @@ class Menu_entry : public Genode::List<Menu_entry>::Element
 				_blend = 256;
 			} else {
 				_blend = 0;
-				try { sound_player()->play(Sound_player::HOVER); }
-				catch (...) { }
 			}
 
 			_hover = hover;
@@ -293,8 +77,6 @@ class Menu_entry : public Genode::List<Menu_entry>::Element
 
 		virtual void click()
 		{
-			try { sound_player()->play(Sound_player::SELECT); }
-			catch (...) { }
 			_selected = !_selected;
 			_needs_update = true;
 		}
@@ -361,13 +143,10 @@ class Menu
 		Input::Event                *_ev_buf;
 		int                          _rmx, _rmy;
 		int                          _key_cnt;
-		int                          _focus_cnt;
 		Menu_entry                  *_focused_entry;
 
 		int                          _next_banner_id;
 		int                          _curr_banner_id;
-
-		bool                         _hidden;
 
 		unsigned _width()      const { return _png_image.width(); }
 		unsigned _height()     const { return _png_image.height(); }
@@ -381,7 +160,7 @@ class Menu
 
 		void _draw_entry(Menu_entry *entry)
 		{
-			if (!entry || _hidden) return;
+			if (!entry) return;
 			Nano3d::Rect view = entry->view();
 
 			/* select source image */
@@ -487,34 +266,12 @@ class Menu
 			                      _width(), _height());
 		}
 
-		void hidden(bool enabled)
-		{
-			if (enabled == _hidden)
-				return;
-
-			_hidden = enabled;
-
-			for (unsigned i = 0; i < _num_pixels(); i++)
-				_alpha[i] = (enabled) ? 0 : _img_alpha[IMG_DEFAULT][i];
-
-			if (!_hidden)
-				for (Menu_entry *e = _entries.first(); e; e = e->next())
-					_draw_entry(e);
-
-			if (_hidden)
-				_next_banner_id = Banner::NO_BANNER;
-
-			_nitpicker.framebuffer()->refresh(0, 0, _width(), _height());
-		}
-
-		bool hidden() const { return _hidden; }
-
 		Menu(void *png_image_data, int xpos, int ypos)
 		:
 			_xpos(xpos), _ypos(ypos),
 			_png_image(png_image_data),
 			_fade_in_pos(-_png_image.height() << 8),
-			_nitpicker(true),
+			_nitpicker(false),
 			_mode(_png_image.width(), _png_image.height(), Framebuffer::Mode::RGB565),
 			_framebuffer(_init_framebuffer()),
 			_fb_ds(_framebuffer.dataspace()),
@@ -526,10 +283,9 @@ class Menu
 			_ev_ds(_nitpicker.input()->dataspace()),
 			_ev_buf(Genode::env()->rm_session()->attach(_ev_ds)),
 			_rmx(0), _rmy(0), _key_cnt(0),
-			_focus_cnt(0), _focused_entry(0),
+			_focused_entry(0),
 			_next_banner_id(Banner::INITIAL),
-			_curr_banner_id(Banner::INITIAL),
-			_hidden(false)
+			_curr_banner_id(Banner::INITIAL)
 		{
 			_fade_in_pos.dst(_ypos << 8, 16);
 
@@ -580,17 +336,8 @@ class Menu
 
 		void add_entry(Menu_entry *entry) { _entries.insert(entry); }
 
-		int curr_banner_id() { return _curr_banner_id; }
-
 		void handle_input()
 		{
-			/*
-			 * If mouse cursor resided on one spot for a certain
-			 * time, change banner.
-			 */
-			if (_focus_cnt++ > 8)
-				_curr_banner_id = _next_banner_id;
-
 			if (!_nitpicker.input()->is_pending()) return;
 
 			for (int i = 0, num_ev = _nitpicker.input()->flush(); i < num_ev; i++) {
@@ -603,18 +350,12 @@ class Menu
 				int x = ev->ax() - _xpos;
 				int y = ev->ay() - _ypos;
 
-				if (_key_cnt == 0 && !_hidden) {
-					_next_banner_id = (_curr_banner_id == Banner::INITIAL)
-					                ? Banner::INITIAL : Banner::NO_BANNER;
+				if (_key_cnt == 0) {
 					Menu_entry *entry = _entries.first();
 					for (; entry; entry = entry->next()) {
 						if (entry->is_located_at(Nano3d::Point(x,y))) {
-							if (!entry->selected())
-								_next_banner_id = entry->banner_id();
-
 							if (_focused_entry != entry) {
 								_focused_entry = entry;
-								_focus_cnt = 0;
 							}
 							entry->hover(true);
 							break;
@@ -624,43 +365,13 @@ class Menu
 					}
 					if (!entry && _focused_entry) {
 						_focused_entry = 0;
-						_focus_cnt = 0;
 					}
 				}
 
-				if (_focused_entry && !_hidden
+				if (_focused_entry
 				 && ev->type() == Input::Event::PRESS
 				 && ev->code() == Input::BTN_LEFT) {
 					_focused_entry->click();
-					if (_focused_entry->selected())
-						_next_banner_id = Banner::NO_BANNER;
-				}
-
-				/*
-				 * Set to true to enable the toggling of the menu visibility
-				 * when clicking on the top part of the menu.
-				 */
-				bool const visibility_toggle_feature = false;
-				if (visibility_toggle_feature
-				 && !_focused_entry
-				 && ev->type() == Input::Event::PRESS
-				 && ev->code() == Input::BTN_LEFT
-				 && (y < 80))
-					hidden(!hidden());
-
-				if (!_focused_entry
-				 && ev->type() == Input::Event::PRESS
-				 && ev->code() == Input::BTN_LEFT) {
-					_rmx = ev->ax() - _xpos;
-					_rmy = ev->ay() - _ypos;
-				}
-
-				if (!_focused_entry
-				 && ev->type() == Input::Event::MOTION
-				 && _key_cnt > 0) {
-					_xpos = ev->ax() - _rmx;
-					_ypos = ev->ay() - _rmy;
-					_view.viewport(_xpos, _ypos, _width(), _height(), 0, 0, true);
 				}
 			}
 		}
@@ -719,10 +430,9 @@ class Launcher_menu_entry : public Menu_entry
 		                    long                      prio_levels_log2,
 		                    Genode::Cap_session      *cap_session,
 		                    Nano3d::Rect              sensor,
-		                    Nano3d::Rect              view,
-		                    int                       banner_id)
+		                    Nano3d::Rect              view)
 		:
-			Menu_entry(sensor, view, banner_id),
+			Menu_entry(sensor, view),
 			_child(0),
 			_xml_node(xml_node),
 			_parent_services(parent_services),
@@ -764,29 +474,6 @@ int main(int argc, char **argv)
 	long prio_levels_log2 = read_prio_levels_log2();
 	Genode::Service_registry parent_services;
 
-	long banner_width  = read_banner_config_value("width", 0),
-	     banner_height = read_banner_config_value("height", 0);
-
-	/* center banner by default */
-	long banner_xpos = 0, banner_ypos = 0;
-	{
-		/* create temporary nitpicker session, just to query the mode */
-		Nitpicker::Connection nitpicker;
-		Framebuffer::Mode const mode = nitpicker.mode();
-
-		banner_xpos = (mode.width()  - banner_width)  / 2;
-		banner_ypos = (mode.height() - banner_height) / 2;
-	}
-
-	/* override centered position by config values, if provided */
-	banner_xpos = read_banner_config_value("xpos", banner_xpos),
-	banner_ypos = read_banner_config_value("ypos", banner_ypos);
-
-	/* counter of cube face id, tracks assigned faces */
-	unsigned face = 0;
-
-	static Banner banner(banner_xpos, banner_ypos, banner_width, banner_height);
-
 	Genode::Xml_node menu_xml = Genode::config()->xml_node().sub_node("menu");
 
 	char image_name[IMAGE_NAME_MAX_LEN];
@@ -799,14 +486,6 @@ int main(int argc, char **argv)
 	assign_image_to_menu(menu_xml, "image-hover",     &menu, Menu::IMG_HOVER);
 	assign_image_to_menu(menu_xml, "image-selected",  &menu, Menu::IMG_SELECTED);
 	assign_image_to_menu(menu_xml, "image-hselected", &menu, Menu::IMG_HSELECTED);
-
-	try {
-		char png_name[IMAGE_NAME_MAX_LEN];
-		png_name[0] = 0;
-		menu_xml.sub_node("splash").attribute("png").value(png_name, sizeof(png_name));
-		Rom_file *rom_file = new (Genode::env()->heap()) Rom_file(png_name);
-		banner.assign_png_to_cube_face(rom_file->local_addr(), Banner::INITIAL);
-	} catch (...) { }
 
 	try {
 		Genode::Xml_node entry = menu_xml.sub_node("entry");
@@ -831,17 +510,6 @@ int main(int argc, char **argv)
 				view.attribute("height").value(&vh);
 			} catch (...) { }
 
-			/* assign banner configured for the entry */
-			int banner_id = Banner::NO_BANNER;
-			try {
-				char png_name[IMAGE_NAME_MAX_LEN];
-				png_name[0] = 0;
-				entry.sub_node("banner").attribute("png").value(png_name, sizeof(png_name));
-				Rom_file *rom_file = new (Genode::env()->heap()) Rom_file(png_name);
-				banner_id = face++;
-				banner.assign_png_to_cube_face(rom_file->local_addr(), banner_id);
-			} catch (...) { }
-
 			/* create and register menu entry */
 			Menu_entry *menu_entry = new (Genode::env()->heap())
 				Launcher_menu_entry(entry,
@@ -851,8 +519,7 @@ int main(int argc, char **argv)
 				                    Nano3d::Rect(Nano3d::Point(sx, sy),
 				                                 Nano3d::Area(sw, sh)),
 				                    Nano3d::Rect(Nano3d::Point(vx, vy),
-				                                 Nano3d::Area(vw, vh)),
-				                    banner_id);
+				                                 Nano3d::Area(vw, vh)));
 
 			menu.add_entry(menu_entry);
 
@@ -861,22 +528,12 @@ int main(int argc, char **argv)
 		}
 	} catch (...) { }
 
-	static Time_trigger time_trigger;
-	int curr_banner_id = Banner::INITIAL;
-	banner.show(curr_banner_id);
+	Timer::Connection timer;
 	while (1) {
 
 		menu.handle_input();
 		menu.update();
-
-		banner.render();
-		unsigned passed_frames = time_trigger.block();
-		banner.animate(passed_frames);
-
-		if (curr_banner_id != menu.curr_banner_id()) {
-			curr_banner_id = menu.curr_banner_id();
-			banner.show(curr_banner_id);
-		}
+		timer.msleep(5);
 	}
 	return 0;
 }

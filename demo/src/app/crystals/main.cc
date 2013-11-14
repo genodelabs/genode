@@ -202,11 +202,11 @@ class Dodecahedron
 
 			Vertex_array<NUM_VERTICES> vertices = _vertices;
 
-			vertices.rotate_x(frame*1);
-			vertices.rotate_y(frame*2);
-			vertices.rotate_z(frame*3);
+			vertices.rotate_x(frame*3);
+			vertices.rotate_y(frame*4);
+			vertices.rotate_z(frame*5);
 			vertices.project(1600, 800);
-			vertices.translate(400, 350, 0);
+			vertices.translate(120, 120, 0);
 
 			enum { SHOW_EDGE = -1 };
 
@@ -365,7 +365,7 @@ class Process_tree
 			          Nano3d::Area(_fb_width, _fb_height/2), _l_edge, _r_edge),
 			_canvas_front(&_canvas_1),
 			_canvas_back(&_canvas_2),
-			_outer_dodecahedron(10000),
+			_outer_dodecahedron(7000),
 			_inner_dodecahedron(3000),
 			_frame(0)
 		{
@@ -408,11 +408,11 @@ int main(int argc, char **argv)
 	Nano3d::init_sincos_tab();
 	static Timer::Connection timer;
 
-	static Process_tree process_tree(10, 10, 1000, 720);
+	static Process_tree process_tree(250, 150, 240, 240);
 
 	while (1) {
 
-		timer.msleep(10);
+		timer.msleep(4);
 
 		process_tree.render();
 

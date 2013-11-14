@@ -5,7 +5,6 @@ TARGET := static_menu
 #
 # Additional declarations to created self-contained menu
 #
-SRC_BIN += cube1.png cube2.png cube3.png cube4.png cube5.png cube6.png
 SRC_BIN += default.png hover.png selected.png hselected.png
 
 #

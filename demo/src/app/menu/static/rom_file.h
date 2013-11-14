@@ -30,12 +30,6 @@ class Rom_file
 
 		Rom_file(const char *name) : _local_addr(0)
 		{
-			extern char _binary_cube1_png_start[];
-			extern char _binary_cube2_png_start[];
-			extern char _binary_cube3_png_start[];
-			extern char _binary_cube4_png_start[];
-			extern char _binary_cube5_png_start[];
-			extern char _binary_cube6_png_start[];
 			extern char _binary_default_png_start[];
 			extern char _binary_hover_png_start[];
 			extern char _binary_selected_png_start[];
@@ -45,12 +39,6 @@ class Rom_file
 				const char *name;
 				void *data;
 			} file_list[] = {
-				{ "cube1.png",     _binary_cube1_png_start },
-				{ "cube2.png",     _binary_cube2_png_start },
-				{ "cube3.png",     _binary_cube3_png_start },
-				{ "cube4.png",     _binary_cube4_png_start },
-				{ "cube5.png",     _binary_cube5_png_start },
-				{ "cube6.png",     _binary_cube6_png_start },
 				{ "default.png",   _binary_default_png_start },
 				{ "hover.png",     _binary_hover_png_start },
 				{ "selected.png",  _binary_selected_png_start },
