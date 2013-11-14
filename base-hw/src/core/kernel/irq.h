@@ -44,7 +44,8 @@ class Kernel::Irq
 :
 	public Object_pool<Irq>::Item,
 	public Signal_receiver,
-	public Signal_context
+	public Signal_context,
+	public Signal_ack_handler
 {
 	friend class Genode::Irq;
 
@@ -120,11 +121,11 @@ class Kernel::Irq
 		~Irq() { PERR("method not implemented"); }
 
 
-		/********************
-		 ** Signal_context **
-		 ********************/
+		/************************
+		 ** Signal_ack_handler **
+		 ************************/
 
-		void _signal_context_acknowledged() { _enable(); }
+		void _signal_acknowledged() { _enable(); }
 
 	public:
 
@@ -138,6 +139,7 @@ class Kernel::Irq
 			Pool::Item(irq_id),
 			Signal_context(this, 0)
 		{
+			Signal_context::ack_handler(this);
 			_pool()->insert(this);
 			_disable();
 		}

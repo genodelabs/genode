@@ -125,12 +125,12 @@ void Signal_receiver::_unsynchronized_dissolve(Signal_context * const c)
 
 Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 {
-	/* check if the context is already managed */
+	/* ensure that the context isn't managed already */
 	Lock::Guard contexts_guard(_contexts_lock);
 	Lock::Guard context_guard(c->_lock);
 	if (c->_receiver) { throw Context_already_in_use(); }
 
-	/* create a kernel object that corresponds to the context */
+	/* create a context kernel-object at the receiver kernel-object */
 	bool session_upgraded = 0;
 	Signal_connection * const s = signal_connection();
 	while (1) {
@@ -146,7 +146,7 @@ Signal_context_capability Signal_receiver::manage(Signal_context * const c)
 				PERR("failed to alloc signal context");
 				return Signal_context_capability();
 			}
-			PINF("upgrading quota donation for SIGNAL session");
+			PINF("upgrading quota donation for signal session");
 			env()->parent()->upgrade(s->cap(), "ram_quota=4K");
 			session_upgraded = 1;
 		}

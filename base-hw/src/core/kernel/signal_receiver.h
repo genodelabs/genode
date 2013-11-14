@@ -25,9 +25,14 @@
 namespace Kernel
 {
 	/**
-	 * Ability to receive from signal receivers
+	 * Ability to receive signals from signal receivers
 	 */
 	class Signal_handler;
+
+	/**
+	 * Ability to get informed about signal acks
+	 */
+	class Signal_ack_handler;
 
 	/**
 	 * Ability to destruct signal contexts
@@ -59,6 +64,30 @@ namespace Kernel
 	Signal_receiver_ids  * signal_receiver_ids();
 	Signal_receiver_pool * signal_receiver_pool();
 }
+
+class Kernel::Signal_ack_handler
+{
+	friend class Signal_context;
+
+	Signal_context * _signal_context;
+
+	protected:
+
+		/**
+		 * Provide custom handler for acks at a signal context
+		 */
+		virtual void _signal_acknowledged() = 0;
+
+		/**
+		 * Constructor
+		 */
+		Signal_ack_handler() : _signal_context(0) { }
+
+		/**
+		 * Destructor
+		 */
+		virtual ~Signal_ack_handler();
+};
 
 class Kernel::Signal_handler
 {
@@ -203,6 +232,20 @@ class Kernel::Signal_context
 
 		typedef Genode::Fifo_element<Signal_context> Fifo_element;
 
+		/**
+		 * Dummy handler that is used every time no other handler is available
+		 */
+		class Default_ack_handler : public Signal_ack_handler
+		{
+			private:
+
+				/************************
+				 ** Signal_ack_handler **
+				 ************************/
+
+				void _signal_acknowledged() { }
+		};
+
 		Fifo_element            _deliver_fe;
 		Fifo_element            _contexts_fe;
 		Signal_receiver * const _receiver;
@@ -211,6 +254,8 @@ class Kernel::Signal_context
 		bool                    _ack;
 		bool                    _kill;
 		Signal_context_killer * _killer;
+		Default_ack_handler     _default_ack_handler;
+		Signal_ack_handler    * _ack_handler;
 
 		/**
 		 * Tell receiver about the submits of the context if any
@@ -230,11 +275,6 @@ class Kernel::Signal_context
 		 * Notice that the killer of the context has been destructed
 		 */
 		void _killer_cancelled() { _killer = 0; }
-
-		/**
-		 * Hook to install in-kernel handler for acks at specific signal types
-		 */
-		virtual void _signal_context_acknowledged() { };
 
 	protected:
 
@@ -261,6 +301,17 @@ class Kernel::Signal_context
 		Signal_context(Signal_receiver * const r, unsigned const imprint);
 
 		/**
+		 * Attach or detach a handler for acknowledgments at this context
+		 *
+		 * \param h  handler that shall be attached or 0 to detach handler
+		 */
+		void ack_handler(Signal_ack_handler * const h)
+		{
+			_ack_handler = h ? h : &_default_ack_handler;
+			_ack_handler->_signal_context = this;
+		}
+
+		/**
 		 * Submit the signal
 		 *
 		 * \param n  number of submits
@@ -281,7 +332,7 @@ class Kernel::Signal_context
 		 */
 		void ack()
 		{
-			_signal_context_acknowledged();
+			_ack_handler->_signal_acknowledged();
 			if (_ack) { return; }
 			if (!_kill) {
 				_ack = 1;
@@ -454,7 +505,7 @@ class Kernel::Signal_receiver
 		 */
 		int add_handler(Signal_handler * const h)
 		{
-			if (_kill) { return -1; }
+			if (_kill || h->_receiver) { return -1; }
 			_handlers.enqueue(&h->_handlers_fe);
 			h->_receiver = this;
 			h->_await_signal(this);

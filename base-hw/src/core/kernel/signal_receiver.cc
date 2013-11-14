@@ -17,11 +17,29 @@
 using namespace Kernel;
 
 
+/************************
+ ** Signal_ack_handler **
+ ************************/
+
+Signal_ack_handler::~Signal_ack_handler()
+{
+	if (_signal_context) { _signal_context->ack_handler(0); }
+}
+
+
+/********************
+ ** Signal_handler **
+ ********************/
+
 void Signal_handler::_cancel_waiting()
 {
 	if (_receiver) { _receiver->_handler_cancelled(this); }
 }
 
+
+/***************************
+ ** Signal_context_killer **
+ ***************************/
 
 void Signal_context_killer::_cancel_waiting()
 {
@@ -29,16 +47,23 @@ void Signal_context_killer::_cancel_waiting()
 }
 
 
+/****************************
+ ** Signal_receiver_killer **
+ ****************************/
+
 void Signal_receiver_killer::_cancel_waiting()
 {
 	if (_receiver) { _receiver->_killer_cancelled(); }
 }
 
 
+/********************
+ ** Signal_context **
+ ********************/
+
 void Signal_context::_deliverable()
 {
-	if (!_submits) return;
-	_receiver->_add_deliverable(this);
+	if (_submits) { _receiver->_add_deliverable(this); }
 }
 
 
@@ -48,7 +73,8 @@ Signal_context::~Signal_context() { _receiver->_context_killed(this); }
 Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint)
 :
 	_deliver_fe(this), _contexts_fe(this), _receiver(r),
-	_imprint(imprint), _submits(0), _ack(1), _kill(0), _killer(0)
+	_imprint(imprint), _submits(0), _ack(1), _kill(0), _killer(0),
+	_ack_handler(&_default_ack_handler)
 {
 	if (r->_add_context(this)) { throw Assign_to_receiver_failed(); }
 }

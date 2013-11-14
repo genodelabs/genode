@@ -10,6 +10,7 @@ REQUIRES += platform_pbxa9
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/pbxa9
+INC_DIR += $(REP_DIR)/src/core/arm
 
 # add C++ sources
 SRC_CC += platform_services.cc \

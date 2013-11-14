@@ -9,6 +9,7 @@ REQUIRES = platform_rpi
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/rpi
+INC_DIR += $(REP_DIR)/src/core/arm
 
 # add C++ sources
 SRC_CC += platform_services.cc \

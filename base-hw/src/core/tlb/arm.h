@@ -41,9 +41,9 @@ namespace Arm
 		 * Create flag POD for Genode pagers
 		 */
 		static access_t
-		resolve_and_wait_for_fault(bool const writeable,
-		                           bool const write_combined,
-		                           bool const io_mem) {
+		apply_mapping(bool const writeable,
+		              bool const write_combined,
+		              bool const io_mem) {
 			return W::bits(writeable) | X::bits(1) | K::bits(0) | G::bits(0) |
 			       D::bits(io_mem) | C::bits(!write_combined & !io_mem); }
 

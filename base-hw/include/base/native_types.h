@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__BASE__NATIVE_TYPES_H_
-#define _INCLUDE__BASE__NATIVE_TYPES_H_
+#ifndef _BASE__NATIVE_TYPES_H_
+#define _BASE__NATIVE_TYPES_H_
 
 /* Genode includes */
 #include <kernel/syscalls.h>
@@ -61,39 +61,11 @@ namespace Genode
 			enum Id {
 				INVALID   = 0,
 				IPC       = 1,
-				PAGEFAULT = 2,
 			};
 		};
 
 		Type::Id type;
 		uint8_t  data[];
-	};
-
-	/**
-	 * Message that reports a pagefault
-	 */
-	struct Pagefault_msg : Msg
-	{
-		unsigned thread_id;
-		Tlb *    tlb;
-		addr_t   virt_ip;
-		addr_t   virt_address;
-		bool     write;
-
-		static void init(void * const p, unsigned const tid, Tlb * const tlb,
-		                 addr_t const vip, addr_t const va, bool const w)
-		{
-			Pagefault_msg * msg = (Pagefault_msg *)p;
-			msg->Msg::type      = Msg::Type::PAGEFAULT;
-			msg->thread_id      = tid;
-			msg->tlb            = tlb;
-			msg->virt_ip        = vip;
-			msg->virt_address   = va;
-			msg->write          = w;
-		}
-
-		void * base() { return this; }
-		size_t size() { return sizeof(Pagefault_msg); }
 	};
 
 	/**
@@ -114,7 +86,6 @@ namespace Genode
 			uint8_t       data[1 << MIN_MAPPING_SIZE_LOG2];
 			Msg           msg;
 			Ipc_msg       ipc_msg;
-			Pagefault_msg pagefault_msg;
 		};
 
 		void syscall_wait_for_request(void * & buf_base, size_t & buf_size)
@@ -199,5 +170,5 @@ namespace Genode
 	struct Native_pd_args { };
 }
 
-#endif /* _INCLUDE__BASE__NATIVE_TYPES_H_ */
+#endif /* _BASE__NATIVE_TYPES_H_ */
 

@@ -23,16 +23,42 @@ namespace Kernel
 	typedef Genode::uint32_t Syscall_ret;
 
 	/**
-	 * Thread registers that can be accessed via Access_thread_regs
+	 * Registers that are provided by a kernel thread-object for user access
 	 */
-	struct Access_thread_regs_id
+	struct Thread_reg_id
 	{
 		enum {
-			R0, R1, R2, R3, R4,
-			R5, R6, R7, R8, R9,
-			R10, R11, R12, SP, LR,
-			IP, CPSR, CPU_EXCEPTION
+			R0            = 0,
+			R1            = 1,
+			R2            = 2,
+			R3            = 3,
+			R4            = 4,
+			R5            = 5,
+			R6            = 6,
+			R7            = 7,
+			R8            = 8,
+			R9            = 9,
+			R10           = 10,
+			R11           = 11,
+			R12           = 12,
+			SP            = 13,
+			LR            = 14,
+			IP            = 15,
+			CPSR          = 16,
+			CPU_EXCEPTION = 17,
+			FAULT_TLB     = 18,
+			FAULT_ADDR    = 19,
+			FAULT_WRITES  = 20,
+			FAULT_SIGNAL  = 21,
 		};
+	};
+
+	/**
+	 * Events that are provided by a kernel thread-object for user handling
+	 */
+	struct Thread_event_id
+	{
+		enum { FAULT = 0 };
 	};
 }
 

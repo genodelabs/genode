@@ -65,7 +65,7 @@ Platform_thread::~Platform_thread()
 		assert(object);
 		Rm_session_component * const rm = _rm_client->member_rm_session();
 		assert(rm);
-		Pager_capability cap = reinterpret_cap_cast<Pager_object>(object->cap());
+		Pager_capability cap = reinterpret_cap_cast<Pager_object>(object->Object_pool<Pager_object>::Entry::cap());
 		rm->remove_client(cap);
 	}
 	/* destroy object at the kernel */
@@ -197,13 +197,25 @@ int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 
 void Platform_thread::pager(Pager_object * const pager)
 {
+	typedef Kernel::Thread_event_id Event_id;
 	if (pager) {
-		Kernel::set_pager(pager->cap().dst(), _id);
-		_rm_client = dynamic_cast<Rm_client *>(pager);
+		unsigned const sc_id = pager->signal_context_id();
+		if (sc_id) {
+			if (!Kernel::route_thread_event(id(), Event_id::FAULT, sc_id)) {
+				_rm_client = dynamic_cast<Rm_client *>(pager);
+				return;
+			}
+		}
+		PERR("failed to attach signal context to fault");
+		return;
+	} else {
+		if (!Kernel::route_thread_event(id(), Event_id::FAULT, 0)) {
+			_rm_client = 0;
+			return;
+		}
+		PERR("failed to detach signal context from fault");
 		return;
 	}
-	Kernel::set_pager(0, _id);
-	_rm_client = 0;
 	return;
 }
 

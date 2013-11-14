@@ -166,12 +166,13 @@ Syscall_ret Kernel::syscall(Syscall_arg arg_0,
  ** CPU-state utilities **
  *************************/
 
-typedef Access_thread_regs_id Id;
+typedef Thread_reg_id Reg_id;
 
 static addr_t const _cpu_state_regs[] = {
-	Id::R0,   Id::R1, Id::R2,  Id::R3,  Id::R4,  Id::R5, Id::R6, Id::R7,
-	Id::R8,   Id::R9, Id::R10, Id::R11, Id::R12, Id::SP, Id::LR, Id::IP,
-	Id::CPSR, Id::CPU_EXCEPTION };
+	Reg_id::R0,   Reg_id::R1,   Reg_id::R2,  Reg_id::R3, Reg_id::R4,
+	Reg_id::R5,   Reg_id::R6,   Reg_id::R7,  Reg_id::R8, Reg_id::R9,
+	Reg_id::R10,  Reg_id::R11,  Reg_id::R12, Reg_id::SP, Reg_id::LR,
+	Reg_id::IP,   Reg_id::CPSR, Reg_id::CPU_EXCEPTION };
 
 addr_t const * cpu_state_regs() { return _cpu_state_regs; }
 

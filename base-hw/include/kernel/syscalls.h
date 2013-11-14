@@ -33,54 +33,43 @@ namespace Kernel
 	typedef Genode::Platform_pd     Platform_pd;
 
 	/**
-	 * Unique opcodes of all syscalls supported by the kernel
+	 * Kernel names of all kernel calls
 	 */
-	enum Syscall_type
+	struct Call_id
 	{
-		INVALID_SYSCALL = 0,
-
-		/* execution control */
-		NEW_THREAD = 1,
-		DELETE_THREAD = 26,
-		START_THREAD = 2,
-		PAUSE_THREAD = 3,
-		RESUME_THREAD = 4,
-		RESUME_FAULTER = 28,
-		GET_THREAD = 5,
-		CURRENT_THREAD_ID = 6,
-		YIELD_THREAD = 7,
-		ACCESS_THREAD_REGS = 37,
-
-		/* interprocess communication */
-		REQUEST_AND_WAIT = 8,
-		REPLY = 9,
-		WAIT_FOR_REQUEST = 10,
-
-		/* management of protection domains */
-		SET_PAGER = 11,
-		UPDATE_PD = 12,
-		UPDATE_REGION = 32,
-		NEW_PD = 13,
-		KILL_PD = 34,
-
-		/* debugging */
-		PRINT_CHAR = 17,
-
-		/* asynchronous signalling */
-		NEW_SIGNAL_RECEIVER = 20,
-		KILL_SIGNAL_RECEIVER = 33,
-		NEW_SIGNAL_CONTEXT = 21,
-		KILL_SIGNAL_CONTEXT = 30,
-		AWAIT_SIGNAL = 22,
-		SUBMIT_SIGNAL = 23,
-		SIGNAL_PENDING = 27,
-		ACK_SIGNAL = 29,
-
-		/* vm specific */
-		NEW_VM   = 24,
-		RUN_VM   = 25,
-		PAUSE_VM = 31,
+		enum {
+			NEW_THREAD           = 0,
+			DELETE_THREAD        = 1,
+			START_THREAD         = 2,
+			PAUSE_THREAD         = 3,
+			RESUME_THREAD        = 4,
+			GET_THREAD           = 5,
+			CURRENT_THREAD_ID    = 6,
+			YIELD_THREAD         = 7,
+			ACCESS_THREAD_REGS   = 8,
+			ROUTE_THREAD_EVENT   = 9,
+			UPDATE_PD            = 10,
+			UPDATE_REGION        = 11,
+			NEW_PD               = 12,
+			KILL_PD              = 13,
+			REQUEST_AND_WAIT     = 14,
+			REPLY                = 15,
+			WAIT_FOR_REQUEST     = 16,
+			NEW_SIGNAL_RECEIVER  = 17,
+			NEW_SIGNAL_CONTEXT   = 18,
+			KILL_SIGNAL_CONTEXT  = 19,
+			KILL_SIGNAL_RECEIVER = 20,
+			SUBMIT_SIGNAL        = 21,
+			AWAIT_SIGNAL         = 22,
+			SIGNAL_PENDING       = 23,
+			ACK_SIGNAL           = 24,
+			NEW_VM               = 25,
+			RUN_VM               = 26,
+			PAUSE_VM             = 27,
+			PRINT_CHAR           = 28,
+		};
 	};
+
 
 	/*****************************************************************
 	 ** Syscall with 1 to 6 arguments                               **
@@ -152,8 +141,9 @@ namespace Kernel
 	 */
 	inline unsigned new_pd(void * const dst, Platform_pd * const pd)
 	{
-		return syscall(NEW_PD, (Syscall_arg)dst, (Syscall_arg)pd);
+		return syscall(Call_id::NEW_PD, (Syscall_arg)dst, (Syscall_arg)pd);
 	}
+
 
 	/**
 	 * Destruct a protection domain
@@ -165,8 +155,9 @@ namespace Kernel
 	 */
 	inline int kill_pd(unsigned const pd)
 	{
-		return syscall(KILL_PD, pd);
+		return syscall(Call_id::KILL_PD, pd);
 	}
+
 
 	/**
 	 * Propagate changes in PD configuration
@@ -183,8 +174,11 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void update_pd(unsigned const pd_id) {
-		syscall(UPDATE_PD, (Syscall_arg)pd_id); }
+	inline void update_pd(unsigned const pd_id)
+	{
+		syscall(Call_id::UPDATE_PD, (Syscall_arg)pd_id);
+	}
+
 
 	/**
 	 * Propagate memory-updates within a given virtual region
@@ -198,8 +192,11 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void update_region(addr_t base, size_t size) {
-		syscall(UPDATE_REGION, (Syscall_arg)base, (Syscall_arg)size); }
+	inline void update_region(addr_t base, size_t size)
+	{
+		syscall(Call_id::UPDATE_REGION, (Syscall_arg)base, (Syscall_arg)size);
+	}
+
 
 	/**
 	 * Create a new thread that is stopped initially
@@ -214,9 +211,11 @@ namespace Kernel
 	 * Restricted to core threads. Regaining of the supplied memory can be done
 	 * through 'delete_thread'.
 	 */
-	inline int
-	new_thread(void * const dst, Platform_thread * const pt) {
-		return syscall(NEW_THREAD, (Syscall_arg)dst, (Syscall_arg)pt); }
+	inline int new_thread(void * const dst, Platform_thread * const pt)
+	{
+		return syscall(Call_id::NEW_THREAD, (Syscall_arg)dst, (Syscall_arg)pt);
+	}
+
 
 	/**
 	 * Delete an existing thread
@@ -227,8 +226,11 @@ namespace Kernel
 	 * granted beforehand by 'new_thread' to kernel for managing this thread
 	 * is freed again.
 	 */
-	inline void delete_thread(unsigned thread_id) {
-		syscall(DELETE_THREAD, (Syscall_arg)thread_id); }
+	inline void delete_thread(unsigned thread_id)
+	{
+		syscall(Call_id::DELETE_THREAD, (Syscall_arg)thread_id);
+	}
+
 
 	/**
 	 * Start thread with a given context and let it participate in CPU scheduling
@@ -246,9 +248,8 @@ namespace Kernel
 	inline Tlb * start_thread(Platform_thread * const phys_pt, void * ip,
 	                          void * sp, unsigned cpu_no)
 	{
-		return (Tlb *)syscall(START_THREAD, (Syscall_arg)phys_pt,
-		                              (Syscall_arg)ip, (Syscall_arg)sp,
-		                              (Syscall_arg)cpu_no);
+		return (Tlb *)syscall(Call_id::START_THREAD, (Syscall_arg)phys_pt,
+		                      (Syscall_arg)ip, (Syscall_arg)sp, cpu_no);
 	}
 
 
@@ -264,8 +265,10 @@ namespace Kernel
 	 *
 	 * If the caller doesn't target itself, this is restricted to core threads.
 	 */
-	inline int pause_thread(unsigned const id = 0) {
-		return syscall(PAUSE_THREAD, id); }
+	inline int pause_thread(unsigned const id = 0)
+	{
+		return syscall(Call_id::PAUSE_THREAD, id);
+	}
 
 
 	/**
@@ -281,17 +284,10 @@ namespace Kernel
 	 * If the targeted thread blocks for any event except a 'start_thread'
 	 * call this call cancels the blocking.
 	 */
-	inline int resume_thread(unsigned const id = 0) {
-		return syscall(RESUME_THREAD, id); }
-
-
-	/**
-	 * Continue thread after a pagefault that could be resolved
-	 *
-	 * \param id  ID of the targeted thread
-	 */
-	inline void resume_faulter(unsigned const id = 0) {
-		syscall(RESUME_FAULTER, id); }
+	inline int resume_thread(unsigned const id = 0)
+	{
+		return syscall(Call_id::RESUME_THREAD, id);
+	}
 
 
 	/**
@@ -300,14 +296,19 @@ namespace Kernel
 	 * \param id  if this thread ID is set and valid this will resume the
 	 *            targeted thread additionally
 	 */
-	inline void yield_thread(unsigned const id = 0) {
-		syscall(YIELD_THREAD, id); }
+	inline void yield_thread(unsigned const id = 0)
+	{
+		syscall(Call_id::YIELD_THREAD, id);
+	}
 
 
 	/**
 	 * Get the thread ID of the current thread
 	 */
-	inline int current_thread_id() { return syscall(CURRENT_THREAD_ID); }
+	inline int current_thread_id()
+	{
+		return syscall(Call_id::CURRENT_THREAD_ID);
+	}
 
 
 	/**
@@ -322,7 +323,25 @@ namespace Kernel
 	 */
 	inline Platform_thread * get_thread(unsigned const id)
 	{
-		return (Platform_thread *)syscall(GET_THREAD, id);
+		return (Platform_thread *)syscall(Call_id::GET_THREAD, id);
+	}
+
+
+	/**
+	 * Set or unset the handler of an event a kernel thread-object triggers
+	 *
+	 * \param thread_id          kernel name of the targeted thread
+	 * \param event_id           kernel name of the targeted thread event
+	 * \param signal_context_id  kernel name of the handlers signal context
+	 *
+	 * Restricted to core threads.
+	 */
+	inline int route_thread_event(unsigned const thread_id,
+	                              unsigned const event_id,
+	                              unsigned const signal_context_id)
+	{
+		return syscall(Call_id::ROUTE_THREAD_EVENT, thread_id,
+		               event_id, signal_context_id);
 	}
 
 
@@ -335,7 +354,7 @@ namespace Kernel
 	 */
 	inline void request_and_wait(unsigned const id)
 	{
-		syscall(REQUEST_AND_WAIT, id);
+		syscall(Call_id::REQUEST_AND_WAIT, id);
 	}
 
 
@@ -348,7 +367,7 @@ namespace Kernel
 	 */
 	inline void wait_for_request()
 	{
-		syscall(WAIT_FOR_REQUEST);
+		syscall(Call_id::WAIT_FOR_REQUEST);
 	}
 
 
@@ -362,21 +381,7 @@ namespace Kernel
 	 */
 	inline void reply(bool const await_message)
 	{
-		syscall(REPLY, await_message);
-	}
-
-
-	/**
-	 * Set or unset an IPC destination for pagefaults reports of a thread
-	 *
-	 * \param pager_id    kernel name of the pager thread or 0 for "unset"
-	 * \param faulter_id  kernel name of the thread that throws the pagefaults
-	 *
-	 * Restricted to core threads.
-	 */
-	inline void set_pager(unsigned const pager_id, unsigned const faulter_id)
-	{
-		syscall(SET_PAGER, pager_id, faulter_id);
+		syscall(Call_id::REPLY, await_message);
 	}
 
 
@@ -384,7 +389,9 @@ namespace Kernel
 	 * Print a char 'c' to the kernels serial ouput
 	 */
 	inline void print_char(char const c)
-	{ syscall(PRINT_CHAR, (Syscall_arg)c); }
+	{
+		syscall(Call_id::PRINT_CHAR, (Syscall_arg)c);
+	}
 
 
 	/**
@@ -426,15 +433,15 @@ namespace Kernel
 	                              addr_t * const read_values,
 	                              addr_t * const write_values)
 	{
-		return syscall(ACCESS_THREAD_REGS, thread_id, reads, writes,
+		return syscall(Call_id::ACCESS_THREAD_REGS, thread_id, reads, writes,
 		               (Syscall_arg)read_values, (Syscall_arg)write_values);
 	}
 
 
 	/**
-	 * Create a kernel object that acts as receiver for asynchronous signals
+	 * Create a kernel object that acts as a signal receiver
 	 *
-	 * \param p  appropriate memory donation for the kernel object
+	 * \param p  memory donation for the kernel signal-receiver object
 	 *
 	 * \retval >0  kernel name of the new signal receiver
 	 * \retval  0  failed
@@ -443,16 +450,16 @@ namespace Kernel
 	 */
 	inline unsigned new_signal_receiver(addr_t const p)
 	{
-		return syscall(NEW_SIGNAL_RECEIVER, p);
+		return syscall(Call_id::NEW_SIGNAL_RECEIVER, p);
 	}
 
 
 	/**
-	 * Create a kernel object that acts as a signal context at a receiver
+	 * Create kernel object that acts as a signal context and assign it
 	 *
-	 * \param p         appropriate memory donation for the kernel object
+	 * \param p         memory donation for the kernel signal-context object
 	 * \param receiver  kernel name of targeted signal receiver
-	 * \param imprint   userland name of the new signal context
+	 * \param imprint   user label of the signal context
 	 *
 	 * \retval >0  kernel name of the new signal context
 	 * \retval  0  failed
@@ -463,7 +470,7 @@ namespace Kernel
 	                                   unsigned const receiver,
 	                                   unsigned const imprint)
 	{
-		return syscall(NEW_SIGNAL_CONTEXT, p, receiver, imprint);
+		return syscall(Call_id::NEW_SIGNAL_CONTEXT, p, receiver, imprint);
 	}
 
 
@@ -490,7 +497,7 @@ namespace Kernel
 	inline int await_signal(unsigned const receiver_id,
 	                        unsigned const context_id)
 	{
-		return syscall(AWAIT_SIGNAL, receiver_id, context_id);
+		return syscall(Call_id::AWAIT_SIGNAL, receiver_id, context_id);
 	}
 
 
@@ -504,7 +511,7 @@ namespace Kernel
 	 */
 	inline bool signal_pending(unsigned const receiver)
 	{
-		return syscall(SIGNAL_PENDING, receiver);
+		return syscall(Call_id::SIGNAL_PENDING, receiver);
 	}
 
 
@@ -519,8 +526,9 @@ namespace Kernel
 	 */
 	inline int submit_signal(unsigned const context, unsigned const num)
 	{
-		return syscall(SUBMIT_SIGNAL, context, num);
+		return syscall(Call_id::SUBMIT_SIGNAL, context, num);
 	}
+
 
 	/**
 	 * Acknowledge the processing of the last delivery of a signal context
@@ -529,8 +537,9 @@ namespace Kernel
 	 */
 	inline void ack_signal(unsigned const context)
 	{
-		syscall(ACK_SIGNAL, context);
+		syscall(Call_id::ACK_SIGNAL, context);
 	}
+
 
 	/**
 	 * Destruct a signal context
@@ -544,8 +553,9 @@ namespace Kernel
 	 */
 	inline int kill_signal_context(unsigned const context)
 	{
-		return syscall(KILL_SIGNAL_CONTEXT, context);
+		return syscall(Call_id::KILL_SIGNAL_CONTEXT, context);
 	}
+
 
 	/**
 	 * Destruct a signal receiver
@@ -559,8 +569,9 @@ namespace Kernel
 	 */
 	inline int kill_signal_receiver(unsigned const receiver)
 	{
-		return syscall(KILL_SIGNAL_RECEIVER, receiver);
+		return syscall(Call_id::KILL_SIGNAL_RECEIVER, receiver);
 	}
+
 
 	/**
 	 * Create a new virtual-machine that is stopped initially
@@ -579,7 +590,7 @@ namespace Kernel
 	inline int new_vm(void * const dst, void * const state,
 	                  unsigned context_id)
 	{
-		return syscall(NEW_VM, (Syscall_arg)dst, (Syscall_arg)state,
+		return syscall(Call_id::NEW_VM, (Syscall_arg)dst, (Syscall_arg)state,
 		               (Syscall_arg)context_id);
 	}
 
@@ -591,8 +602,10 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void run_vm(unsigned const id) {
-		syscall(RUN_VM, (Syscall_arg)id); }
+	inline void run_vm(unsigned const id)
+	{
+		syscall(Call_id::RUN_VM, (Syscall_arg)id);
+	}
 
 
 	/**
@@ -602,8 +615,10 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void pause_vm(unsigned const id) {
-		syscall(PAUSE_VM, (Syscall_arg)id); }
+	inline void pause_vm(unsigned const id)
+	{
+		syscall(Call_id::PAUSE_VM, (Syscall_arg)id);
+	}
 }
 
 #endif /* _INCLUDE__KERNEL__SYSCALLS_H_ */

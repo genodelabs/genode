@@ -19,6 +19,7 @@
 #include <kernel/scheduler.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
+#include <cpu_support.h>
 #include <cpu.h>
 
 namespace Genode
@@ -32,7 +33,6 @@ namespace Kernel
 	class Pd;
 
 	typedef Genode::Cpu           Cpu;
-	typedef Genode::Pagefault_msg Pagefault_msg;
 	typedef Genode::Native_utcb   Native_utcb;
 
 	void reset_lap_time();
@@ -57,8 +57,11 @@ class Kernel::Thread
 	public Ipc_node,
 	public Signal_context_killer,
 	public Signal_receiver_killer,
-	public Signal_handler
+	public Signal_handler,
+	public Thread_cpu_support
 {
+	friend class Thread_event;
+
 	private:
 
 		enum { START_VERBOSE = 0 };
@@ -69,19 +72,15 @@ class Kernel::Thread
 			AWAITS_START                = 2,
 			AWAITS_IPC                  = 3,
 			AWAITS_RESUME               = 4,
-			AWAITS_PAGER                = 5,
-			AWAITS_PAGER_IPC            = 6,
-			AWAITS_SIGNAL               = 8,
-			AWAITS_SIGNAL_CONTEXT_KILL  = 9,
-			AWAITS_SIGNAL_RECEIVER_KILL = 10,
-			STOPPED                     = 11,
+			AWAITS_SIGNAL               = 5,
+			AWAITS_SIGNAL_CONTEXT_KILL  = 6,
+			AWAITS_SIGNAL_RECEIVER_KILL = 7,
+			STOPPED                     = 8,
 		};
 
 		Platform_thread * const _platform_thread;
 		State                   _state;
-		Pagefault_msg           _pagefault_msg;
-		Thread *                _pager;
-		unsigned                _pd_id;
+		Pd *                    _pd;
 		Native_utcb *           _phys_utcb;
 		Native_utcb *           _virt_utcb;
 		Signal_receiver *       _signal_receiver;
@@ -92,9 +91,26 @@ class Kernel::Thread
 		void _receive_yielded_cpu();
 
 		/**
-		 * Return kernel backend of protection domain the thread is in
+		 * Attach or detach the handler of a thread-triggered event
+		 *
+		 * \param event_id           kernel name of the thread event
+		 * \param signal_context_id  kernel name signal context or 0 to detach
+		 *
+		 * \retval  0  succeeded
+		 * \retval -1  failed
 		 */
-		Pd * _pd() const;
+		int _route_event(unsigned const event_id,
+		                 unsigned const signal_context_id);
+
+		/**
+		 * Map kernel name of thread event to the corresponding member
+		 *
+		 * \param id  kernel name of targeted thread event
+		 *
+		 * \retval  0  failed
+		 * \retval >0  targeted member pointer
+		 */
+		Thread_event Thread::* _event(unsigned const id) const;
 
 		/**
 		 * Return wether this is a core thread
@@ -165,43 +181,42 @@ class Kernel::Thread
 		 * \retval  0  failed
 		 * \retval >0  pointer to register content
 		 */
-		addr_t * _reg(addr_t const id) const;
+		addr_t Thread::* _reg(addr_t const id) const;
 
 
 		/***************************************************
 		 ** Syscall backends, for details see 'syscall.h' **
 		 ***************************************************/
 
-		void _syscall_new_pd();
-		void _syscall_kill_pd();
-		void _syscall_new_thread();
-		void _syscall_delete_thread();
-		void _syscall_start_thread();
-		void _syscall_pause_thread();
-		void _syscall_resume_thread();
-		void _syscall_resume_faulter();
-		void _syscall_yield_thread();
-		void _syscall_current_thread_id();
-		void _syscall_get_thread();
-		void _syscall_wait_for_request();
-		void _syscall_request_and_wait();
-		void _syscall_reply();
-		void _syscall_set_pager();
-		void _syscall_update_pd();
-		void _syscall_update_region();
-		void _syscall_print_char();
-		void _syscall_new_signal_receiver();
-		void _syscall_new_signal_context();
-		void _syscall_await_signal();
-		void _syscall_signal_pending();
-		void _syscall_submit_signal();
-		void _syscall_ack_signal();
-		void _syscall_kill_signal_context();
-		void _syscall_kill_signal_receiver();
-		void _syscall_new_vm();
-		void _syscall_run_vm();
-		void _syscall_pause_vm();
-		void _syscall_access_thread_regs();
+		void _call_new_pd();
+		void _call_kill_pd();
+		void _call_new_thread();
+		void _call_delete_thread();
+		void _call_start_thread();
+		void _call_pause_thread();
+		void _call_resume_thread();
+		void _call_yield_thread();
+		void _call_current_thread_id();
+		void _call_get_thread();
+		void _call_wait_for_request();
+		void _call_request_and_wait();
+		void _call_reply();
+		void _call_update_pd();
+		void _call_update_region();
+		void _call_print_char();
+		void _call_new_signal_receiver();
+		void _call_new_signal_context();
+		void _call_await_signal();
+		void _call_signal_pending();
+		void _call_submit_signal();
+		void _call_ack_signal();
+		void _call_kill_signal_context();
+		void _call_kill_signal_receiver();
+		void _call_new_vm();
+		void _call_run_vm();
+		void _call_pause_vm();
+		void _call_access_thread_regs();
+		void _call_route_thread_event();
 
 
 		/***************************
@@ -277,10 +292,9 @@ class Kernel::Thread
 		 ***************/
 
 		Platform_thread * platform_thread() const { return _platform_thread; }
-		void              pager(Thread * const p) { _pager = p; }
 		unsigned          id() const { return Object::id(); }
 		char const *      label() const;
-		unsigned          pd_id() const { return _pd_id; }
+		unsigned          pd_id() const;
 		char const *      pd_label() const;
 };
 

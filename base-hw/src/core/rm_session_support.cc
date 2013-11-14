@@ -12,7 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/ipc_pager.h>
+#include <base/pager.h>
 
 /* core includes */
 #include <rm_session_component.h>
@@ -48,23 +48,18 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 }
 
 
-/***************
- ** Ipc_pager **
- ***************/
+/***************************
+ ** Pager_activation_base **
+ ***************************/
 
-int Ipc_pager::resolve_and_wait_for_fault()
+int Pager_activation_base::apply_mapping()
 {
-	/* check mapping */
-	if (!_mapping.valid()) {
-		PERR("invalid mapping");
-		return -1;
-	}
 	/* prepare mapping */
-	Tlb * const tlb = _pagefault_msg.tlb;
+	Tlb * const tlb = (Tlb *)_fault.tlb;
 	Page_flags::access_t const flags =
-	Page_flags::resolve_and_wait_for_fault(_mapping.writable,
-	                                       _mapping.write_combined,
-	                                       _mapping.io_mem);
+	Page_flags::apply_mapping(_mapping.writable,
+	                          _mapping.write_combined,
+	                          _mapping.io_mem);
 
 	/* insert mapping into TLB */
 	unsigned sl2;
@@ -90,11 +85,48 @@ int Ipc_pager::resolve_and_wait_for_fault()
 			return -1;
 		}
 	}
-	/* wake up faulter */
-	Kernel::resume_faulter(_pagefault_msg.thread_id);
-
-	/* wait for next page fault */
-	wait_for_fault();
 	return 0;
 }
 
+
+void Pager_activation_base::entry()
+{
+	/* get ready to receive faults */
+	_cap = Native_capability(thread_get_my_native_id(), 0);
+	_cap_valid.unlock();
+	while (1)
+	{
+		/* await fault */
+		Pager_object * o;
+		while (1) {
+			Signal s = Signal_receiver::wait_for_signal();
+			o = dynamic_cast<Pager_object *>(s.context());
+			if (o) {
+				o->fault_occured(s);
+				break;
+			}
+			PERR("unknown pager object");
+		}
+		/* fetch fault data */
+		unsigned const thread_id = o->badge();
+		typedef Kernel::Thread_reg_id Reg_id;
+		static addr_t const read_regs[] = {
+			Reg_id::FAULT_TLB, Reg_id::IP, Reg_id::FAULT_ADDR,
+			Reg_id::FAULT_WRITES, Reg_id::FAULT_SIGNAL };
+		enum { READS = sizeof(read_regs)/sizeof(read_regs[0]) };
+		void * const utcb = Thread_base::myself()->utcb()->base();
+		memcpy(utcb, read_regs, sizeof(read_regs));
+		addr_t * const read_values = (addr_t *)&_fault;
+		if (Kernel::access_thread_regs(thread_id, READS, 0, read_values, 0)) {
+			PERR("failed to read page-fault data");
+			continue;
+		}
+		/* handle fault */
+		if (o->pager(*this)) { continue; }
+		if (apply_mapping()) {
+			PERR("failed to apply mapping");
+			continue;
+		}
+		o->fault_resolved();
+	}
+}

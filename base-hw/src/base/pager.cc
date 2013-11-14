@@ -15,47 +15,108 @@
 #include <base/pager.h>
 #include <base/printf.h>
 
+/* base-hw includes */
+#include <placement_new.h>
+
 using namespace Genode;
+
+
+/*************
+ ** Mapping **
+ *************/
+
+Mapping::Mapping(addr_t const va, addr_t const pa, bool const wc,
+                 bool const io, unsigned const sl2, bool const w)
+:
+	virt_address(va), phys_address(pa), write_combined(wc),
+	io_mem(io), size_log2(sl2), writable(w)
+{ }
+
+
+Mapping::Mapping()
+:
+	virt_address(0), phys_address(0), write_combined(0),
+	io_mem(0), size_log2(0), writable(0)
+{ }
+
+
+void Mapping::prepare_map_operation() { }
+
+
+/***************
+ ** Ipc_pager **
+ ***************/
+
+addr_t Ipc_pager::fault_ip() const { return _fault.ip; }
+
+addr_t Ipc_pager::fault_addr() const { return _fault.addr; }
+
+bool Ipc_pager::is_write_fault() const { return _fault.writes; }
+
+void Ipc_pager::set_reply_mapping(Mapping m) { _mapping = m; }
+
+
+/******************
+ ** Pager_object **
+ ******************/
+
+Thread_capability Pager_object::thread_cap() const { return _thread_cap; }
+
+void Pager_object::thread_cap(Thread_capability const & c) { _thread_cap = c; }
+
+Signal * Pager_object::_signal() const { return (Signal *)_signal_buf; }
+
+void Pager_object::wake_up() { fault_resolved(); }
+
+void Pager_object::exception_handler(Signal_context_capability) { }
+
+void Pager_object::fault_resolved() { _signal()->~Signal(); }
+
+unsigned Pager_object::badge() const { return _thread_id; }
+
+
+void Pager_object::fault_occured(Signal const & s)
+{
+	new (_signal()) Signal(s);
+}
+
+
+void Pager_object::cap(Native_capability const & c)
+{
+	Object_pool<Pager_object>::Entry::cap(c);
+}
+
+
+Pager_object::Pager_object(unsigned const thread_id, Affinity::Location)
+:
+	_thread_id(thread_id)
+{ }
+
+
+unsigned Pager_object::signal_context_id() const
+{
+	return _signal_context_cap.dst();
+}
 
 
 /***************************
  ** Pager_activation_base **
  ***************************/
 
-void Pager_activation_base::entry()
+void Pager_activation_base::ep(Pager_entrypoint * const ep) { _ep = ep; }
+
+
+Pager_activation_base::Pager_activation_base(char const * const name,
+                                             size_t const stack_size)
+:
+	Thread_base(name, stack_size), _cap_valid(Lock::LOCKED), _ep(0)
+{ }
+
+
+Native_capability Pager_activation_base::cap()
 {
-	/* acknowledge that we're ready to work */
-	Ipc_pager pager;
-	_cap = pager;
-	_cap_valid.unlock();
-
-	/* receive and handle faults */
-	bool mapping_pending = 0;
-	pager.wait_for_first_fault();
-	while (1)
-	{
-		/* protect bottom half of loop against pager-object guard */
-		{
-			/* lookup pager object for current faulter */
-			Object_pool<Pager_object>::Guard
-				o(_ep ? _ep->lookup_and_lock(pager.badge()) : 0);
-
-			if (!o) {
-				PERR("invalid pager object");
-				mapping_pending = 0;
-			} else {
-				/* try to find an appropriate mapping */
-				mapping_pending = !o->pager(pager);
-			}
-		}
-		if (mapping_pending) {
-			/* apply mapping and await next fault */
-			if (pager.resolve_and_wait_for_fault()) {
-				PERR("failed to resolve page fault");
-				pager.wait_for_fault();
-			}
-		} else { pager.wait_for_fault(); }
-	}
+	if (!_cap.valid()) { _cap_valid.lock(); }
+	return _cap;
 }
 
 
@@ -63,84 +124,25 @@ void Pager_activation_base::entry()
  ** Pager_entrypoint **
  **********************/
 
-Pager_entrypoint::
-Pager_entrypoint(Cap_session *, Pager_activation_base * const a)
-: _activation(a) { _activation->ep(this); }
-
-
 void Pager_entrypoint::dissolve(Pager_object * const o) { remove_locked(o); }
+
+
+Pager_entrypoint::Pager_entrypoint(Cap_session *,
+                                   Pager_activation_base * const activation)
+:
+	_activation(activation)
+{
+	_activation->ep(this);
+}
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 {
-	/* do we have an activation */
 	if (!_activation) return Pager_capability();
-
-	/* create cap with the object badge as local name */
-	Native_capability c;
-	c = Native_capability(_activation->cap().dst(), o->badge());
-
-	/* let activation provide the pager object */
+	o->_signal_context_cap = _activation->Signal_receiver::manage(o);
+	unsigned const dst = _activation->cap().dst();
+	Native_capability c = Native_capability(dst, o->badge());
 	o->cap(c);
 	insert(o);
-
-	/* return pager-object cap */
 	return reinterpret_cap_cast<Pager_object>(c);
-}
-
-
-/***************
- ** Ipc_pager **
- ***************/
-
-void Ipc_pager::wait_for_first_fault()
-{
-	Kernel::wait_for_request();
-	_wait_for_fault();
-}
-
-
-void Ipc_pager::wait_for_fault()
-{
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->ipc_msg.size = 0;
-	Kernel::reply(1);
-	_wait_for_fault();
-}
-
-
-void Ipc_pager::_wait_for_fault()
-{
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	while (1)
-	{
-		switch (utcb->msg.type) {
-
-		case Msg::Type::PAGEFAULT: {
-
-			/* receive pagefault report */
-			_pagefault_msg = utcb->pagefault_msg;
-			return; }
-
-		case Msg::Type::IPC: {
-
-			/* receive release request from region manager */
-			Native_utcb * const utcb = Thread_base::myself()->utcb();
-			void * const msg_base = utcb->ipc_msg.data;
-			Pagefault_resolved * const msg = (Pagefault_resolved *)msg_base;
-
-			/* resume faulter */
-			Kernel::resume_thread(msg->pager_object->badge());
-			utcb->ipc_msg.size = 0;
-
-			/* send ack to region manager and get next message */
-			Kernel::reply(1);
-			continue; }
-
-		default: {
-
-			PERR("unknown message type");
-			continue; }
-		}
-	}
 }

@@ -20,7 +20,6 @@ SRC_CC += lock/lock.cc
 SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/thread_bootstrap.cc thread/trace.cc
-SRC_CC += pager/common.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/lock
