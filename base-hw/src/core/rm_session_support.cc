@@ -31,14 +31,14 @@ using namespace Genode;
 void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 {
 	/* get software TLB of the thread that we serve */
-	Platform_thread * const pt = Kernel::get_thread(badge());
+	Platform_thread * const pt = (Platform_thread *)badge();
 	if (!pt) {
-		PERR("failed to get RM client-thread");
+		PERR("failed to get platform thread of RM client");
 		return;
 	}
 	Tlb * const tlb = pt->tlb();
 	if (!tlb) {
-		PERR("failed to get PD of RM client-thread");
+		PERR("failed to get page table of RM client");
 		return;
 	}
 	/* update all translation caches */
@@ -108,7 +108,12 @@ void Pager_activation_base::entry()
 			PERR("unknown pager object");
 		}
 		/* fetch fault data */
-		unsigned const thread_id = o->badge();
+		Platform_thread * const pt = (Platform_thread *)o->badge();
+		if (!pt) {
+			PERR("failed to get platform thread of faulter");
+			continue;
+		}
+		unsigned const thread_id = pt->id();
 		typedef Kernel::Thread_reg_id Reg_id;
 		static addr_t const read_regs[] = {
 			Reg_id::FAULT_TLB, Reg_id::IP, Reg_id::FAULT_ADDR,
@@ -118,7 +123,7 @@ void Pager_activation_base::entry()
 		memcpy(utcb, read_regs, sizeof(read_regs));
 		addr_t * const read_values = (addr_t *)&_fault;
 		if (Kernel::access_thread_regs(thread_id, READS, 0, read_values, 0)) {
-			PERR("failed to read page-fault data");
+			PERR("failed to read fault data");
 			continue;
 		}
 		/* handle fault */

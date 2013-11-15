@@ -72,7 +72,7 @@ void Pager_object::exception_handler(Signal_context_capability) { }
 
 void Pager_object::fault_resolved() { _signal()->~Signal(); }
 
-unsigned Pager_object::badge() const { return _thread_id; }
+unsigned Pager_object::badge() const { return _badge; }
 
 
 void Pager_object::fault_occured(Signal const & s)
@@ -87,9 +87,9 @@ void Pager_object::cap(Native_capability const & c)
 }
 
 
-Pager_object::Pager_object(unsigned const thread_id, Affinity::Location)
+Pager_object::Pager_object(unsigned const badge, Affinity::Location)
 :
-	_thread_id(thread_id)
+	_badge(badge)
 { }
 
 
