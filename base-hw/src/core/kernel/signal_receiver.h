@@ -125,7 +125,11 @@ class Kernel::Signal_handler
 		/**
 		 * Constructor
 		 */
-		Signal_handler() : _handlers_fe(this) { }
+		Signal_handler()
+		:
+			_handlers_fe(this),
+			_receiver(0)
+		{ }
 
 		/**
 		 * Destructor
@@ -495,7 +499,12 @@ class Kernel::Signal_receiver
 		/**
 		 * Constructor
 		 */
-		Signal_receiver() : _kill(0), _killer(0), _context_kills(0) { }
+		Signal_receiver()
+		:
+			_kill(0),
+			_killer(0),
+			_context_kills(0)
+		{ }
 
 		/**
 		 * Let a handler 'h' wait for signals of the receiver
