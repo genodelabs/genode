@@ -43,30 +43,29 @@ namespace Kernel
 			START_THREAD         = 2,
 			PAUSE_THREAD         = 3,
 			RESUME_THREAD        = 4,
-			GET_THREAD           = 5,
-			CURRENT_THREAD_ID    = 6,
-			YIELD_THREAD         = 7,
-			ACCESS_THREAD_REGS   = 8,
-			ROUTE_THREAD_EVENT   = 9,
-			UPDATE_PD            = 10,
-			UPDATE_REGION        = 11,
-			NEW_PD               = 12,
-			KILL_PD              = 13,
-			REQUEST_AND_WAIT     = 14,
-			REPLY                = 15,
-			WAIT_FOR_REQUEST     = 16,
-			NEW_SIGNAL_RECEIVER  = 17,
-			NEW_SIGNAL_CONTEXT   = 18,
-			KILL_SIGNAL_CONTEXT  = 19,
-			KILL_SIGNAL_RECEIVER = 20,
-			SUBMIT_SIGNAL        = 21,
-			AWAIT_SIGNAL         = 22,
-			SIGNAL_PENDING       = 23,
-			ACK_SIGNAL           = 24,
-			NEW_VM               = 25,
-			RUN_VM               = 26,
-			PAUSE_VM             = 27,
-			PRINT_CHAR           = 28,
+			CURRENT_THREAD_ID    = 5,
+			YIELD_THREAD         = 6,
+			ACCESS_THREAD_REGS   = 7,
+			ROUTE_THREAD_EVENT   = 8,
+			UPDATE_PD            = 9,
+			UPDATE_REGION        = 10,
+			NEW_PD               = 11,
+			KILL_PD              = 12,
+			REQUEST_AND_WAIT     = 13,
+			REPLY                = 14,
+			WAIT_FOR_REQUEST     = 15,
+			NEW_SIGNAL_RECEIVER  = 16,
+			NEW_SIGNAL_CONTEXT   = 17,
+			KILL_SIGNAL_CONTEXT  = 18,
+			KILL_SIGNAL_RECEIVER = 19,
+			SUBMIT_SIGNAL        = 20,
+			AWAIT_SIGNAL         = 21,
+			SIGNAL_PENDING       = 22,
+			ACK_SIGNAL           = 23,
+			NEW_VM               = 24,
+			RUN_VM               = 25,
+			PAUSE_VM             = 26,
+			PRINT_CHAR           = 27,
 		};
 	};
 
@@ -306,22 +305,6 @@ namespace Kernel
 	inline int current_thread_id()
 	{
 		return call(Call_id::CURRENT_THREAD_ID);
-	}
-
-
-	/**
-	 * Get platform thread by the kernel name of a thread
-	 *
-	 * \param id  kernel name of the thread or 0 if the caller targets itself
-	 *
-	 * \retval  0  thread doesn't exist or has no platform thread
-	 * \retval >0  core local address of platform thread
-	 *
-	 * Restricted to core threads.
-	 */
-	inline Platform_thread * get_thread(unsigned const id)
-	{
-		return (Platform_thread *)call(Call_id::GET_THREAD, id);
 	}
 
 
