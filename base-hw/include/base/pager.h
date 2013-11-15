@@ -133,7 +133,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		Signal_context_capability _signal_context_cap;
 		Thread_capability         _thread_cap;
 		char                      _signal_buf[sizeof(Signal)];
-		unsigned const            _thread_id;
+		unsigned const            _badge;
 
 
 		/***************
@@ -147,9 +147,9 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		/**
 		 * Constructor
 		 *
-		 * \param thread_id  kernel name of faulter thread
+		 * \param badge  user identifaction of pager object
 		 */
-		Pager_object(unsigned const thread_id, Affinity::Location);
+		Pager_object(unsigned const badge, Affinity::Location);
 
 		/**
 		 * Destructor

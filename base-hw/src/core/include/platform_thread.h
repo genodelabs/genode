@@ -140,7 +140,7 @@ namespace Genode {
 			/**
 			 * Return unique identification of this thread as faulter
 			 */
-			unsigned pager_object_badge() { return _id; }
+			unsigned pager_object_badge() { return (unsigned)this; }
 
 			/**
 			 * Set the executing CPU for this thread
