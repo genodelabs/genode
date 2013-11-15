@@ -22,6 +22,15 @@ namespace Genode
 {
 	enum { MIN_PAGE_SIZE_LOG2 = 12 };
 
+	/**
+	 * Identification that core threads use to get access to their metadata
+	 */
+	typedef addr_t Core_thread_id;
+
+	/**
+	 * Allows core threads to get their core-thread ID via their stack pointer
+	 */
+	enum { CORE_STACK_ALIGNM_LOG2 = 15 };
 
 	/**
 	 * Get the the minimal supported page-size log 2

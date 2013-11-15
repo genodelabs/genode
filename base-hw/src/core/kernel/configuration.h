@@ -17,7 +17,7 @@
 namespace Kernel
 {
 	enum {
-		DEFAULT_STACK_SIZE   = 1024 * 1024,
+		DEFAULT_STACK_SIZE   = 16 * 1024,
 		USER_LAP_TIME_MS     = 100,
 		MAX_PDS              = 256,
 		MAX_THREADS          = 256,

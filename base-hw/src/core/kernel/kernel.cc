@@ -50,8 +50,9 @@ namespace Kernel
 	Pic * pic() { return unsynchronized_singleton<Pic>(); }
 
 	/* import Genode types */
-	typedef Genode::umword_t     umword_t;
-	typedef Genode::Core_tlb     Core_tlb;
+	typedef Genode::umword_t       umword_t;
+	typedef Genode::Core_tlb       Core_tlb;
+	typedef Genode::Core_thread_id Core_thread_id;
 
 	void init_platform();
 }
@@ -216,12 +217,23 @@ extern "C" void kernel()
 
 		/* create the core main thread */
 		{
-			static Native_utcb utcb;
-			static char stack[DEFAULT_STACK_SIZE]
-			            __attribute__((aligned(Cpu::DATA_ACCESS_ALIGNM)));
-			enum { STACK_SIZE = sizeof(stack)/sizeof(stack[0]) + 1 };
+			/* get stack memory that fullfills the constraints for core stacks */
+			enum {
+				STACK_ALIGNM = 1 << Genode::CORE_STACK_ALIGNM_LOG2,
+				STACK_SIZE   = DEFAULT_STACK_SIZE,
+			};
+			if (STACK_SIZE > STACK_ALIGNM - sizeof(Core_thread_id)) {
+				PERR("stack size does not fit stack alignment of core");
+			}
+			static char s[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
+
+			/* provide thread ident at the aligned base of the stack */
+			*(Core_thread_id *)s = 0;
+
+			/* start thread with stack pointer at the top of stack */
+			void * const sp = (void *)((addr_t)s + STACK_SIZE);
 			void * const ip = (void *)CORE_MAIN;
-			void * const sp = (void *)&stack[STACK_SIZE - 1];
+			static Native_utcb utcb;
 			_main_utcb = &utcb;
 			static Thread t((Platform_thread *)0);
 			t.init(ip, sp, 0, core_id(), &utcb, &utcb, 1, 1);
