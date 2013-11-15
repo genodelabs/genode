@@ -32,20 +32,20 @@ namespace Genode
 
 			enum {
 				/**
-				 * Lastly a receivers SLAB size was 112. Additionally we have
+				 * Lastly Receiver::slab_size() was 112. Additionally we
 				 * have to take in account, that the backing store might add
 				 * its metadata and round up to next page size. So we choose
-				 * 36 * 112 which mostly is save to end up in one page only.
+				 * 35 * 112 which mostly is save to end up in one page only.
 				 */
-				RECEIVERS_SB_SIZE = 4032,
+				RECEIVERS_SB_SIZE = 3920,
 
 				/**
-				 * Lastly a contexts SLAB size was 112. Additionally we have
+				 * Lastly Context::slab_size() size was 124. Additionally we
 				 * have to take in account, that the backing store might add
 				 * its metadata and round up to next page size. So we choose
-				 * 36 * 112 which mostly is save to end up in one page only.
+				 * 32 * 124 which mostly is save to end up in one page only.
 				 */
-				CONTEXTS_SB_SIZE  = 4032,
+				CONTEXTS_SB_SIZE  = 3968,
 			};
 
 		private:
