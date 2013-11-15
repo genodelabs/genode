@@ -187,10 +187,11 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 
 	/*
 	 * Calculate block size of needed backing store. The block must hold the
-	 * requested 'size' and a new Dataspace structure if the allocation above
-	 * failed. Finally, we align the size to a 4K page.
+	 * requested 'size' with the requested alignment and a new Dataspace
+	 * structure if the allocation above failed.
+	 * Finally, we align the size to a 4K page.
 	 */
-	size_t request_size = size + 1024;
+	size_t request_size = size + max((1 << align_log2), 1024);
 
 	if (request_size < _chunk_size*sizeof(umword_t)) {
 		request_size = _chunk_size*sizeof(umword_t);
