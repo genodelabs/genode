@@ -193,7 +193,7 @@ class Alpha_channel
 
 	public:
 
-		enum { MIN = 250 + 200, MAX = 255 + (1 << 7) + 256 };
+		enum { MIN = 250 + 80, MAX = 255 + (1 << 7) + 256 };
 
 		Alpha_channel(unsigned char *alpha_base, unsigned w, unsigned h)
 		: _alpha_base(alpha_base), _w(w), _h(h) { }
