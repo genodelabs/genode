@@ -162,6 +162,14 @@ class Atag {
 			_next();
 		}
 
+		void setup_rev_tag(Genode::addr_t rev)
+		{
+			_params->hdr.tag         = ATAG_REVISION;
+			_params->hdr.size        = _size<struct atag_revision>();
+			_params->u.revision.rev  = rev;
+			_next();
+		}
+
 		void setup_mem_tag(Genode::addr_t start, Genode::size_t len)
 		{
 			_params->hdr.tag     = ATAG_MEM;

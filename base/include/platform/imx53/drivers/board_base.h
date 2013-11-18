@@ -103,6 +103,9 @@ namespace Genode
 			IIM_BASE           = 0x63f98000,
 			IIM_SIZE           = 0x00004000,
 
+			M4IF_BASE          = 0x63fd8000,
+			M4IF_SIZE          = 0x00001000,
+
 			/* wether board provides security extension */
 			SECURITY_EXTENSION = 1,
 
