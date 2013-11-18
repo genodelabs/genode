@@ -44,11 +44,7 @@ Thread_base * Thread_base::myself()
 	addr_t sp = (addr_t)(&dummy);
 	enum { SP_MASK = ~((1 << CORE_STACK_ALIGNM_LOG2) - 1) };
 	Core_thread_id id = *(Core_thread_id *)((addr_t)sp & SP_MASK);
-
-	/* if the ident is zero this is the main thread */
-	Platform_thread * const pt = (Platform_thread *)id;
-	if (pt) { return pt->thread_base(); }
-	return 0;
+	return (Thread_base *)id;
 }
 
 
@@ -64,7 +60,7 @@ Thread_base::Thread_base(const char *name, size_t stack_size)
 : _list_element(this)
 {
 	_tid.pt = new (platform()->core_mem_alloc())
-		Platform_thread(name, this, stack_size, Kernel::core_id());
+		Platform_thread(name, stack_size, Kernel::core_id());
 }
 
 
@@ -91,7 +87,7 @@ void Thread_base::start()
 		return;
 	}
 	/* provide thread ident at the aligned base of the stack */
-	*(Core_thread_id *)base = (Core_thread_id)_tid.pt;
+	*(Core_thread_id *)base = (Core_thread_id)this;
 
 	/* start thread with stack pointer at the top of stack */
 	void * sp = (void *)((addr_t)base + size);
