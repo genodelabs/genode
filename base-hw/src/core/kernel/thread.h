@@ -22,11 +22,6 @@
 #include <cpu_support.h>
 #include <cpu.h>
 
-namespace Genode
-{
-	class Platform_thread;
-}
-
 namespace Kernel
 {
 	class Thread;
@@ -78,11 +73,11 @@ class Kernel::Thread
 			STOPPED                     = 8,
 		};
 
-		Platform_thread * const _platform_thread;
-		State                   _state;
-		Pd *                    _pd;
-		Native_utcb *           _utcb_phys;
-		Signal_receiver *       _signal_receiver;
+		State              _state;
+		Pd *               _pd;
+		Native_utcb *      _utcb_phys;
+		Signal_receiver *  _signal_receiver;
+		char const * const _label;
 
 		/**
 		 * Notice that another thread yielded the CPU to this thread
@@ -255,9 +250,10 @@ class Kernel::Thread
 		/**
 		 * Constructor
 		 *
-		 * \param platform_thread  corresponding userland object
+		 * \param priority  scheduling priority
+		 * \param label     debugging label
 		 */
-		Thread(Platform_thread * const platform_thread);
+		Thread(unsigned const priority, char const * const label);
 
 		/**
 		 * Prepare thread to get scheduled the first time
@@ -283,11 +279,10 @@ class Kernel::Thread
 		 ** Accessors **
 		 ***************/
 
-		Platform_thread * platform_thread() const { return _platform_thread; }
-		unsigned          id() const { return Object::id(); }
-		char const *      label() const;
-		unsigned          pd_id() const;
-		char const *      pd_label() const;
+		unsigned     id() const { return Object::id(); }
+		char const * label() const { return _label; };
+		unsigned     pd_id() const;
+		char const * pd_label() const;
 };
 
 #endif /* _KERNEL__THREAD_H_ */

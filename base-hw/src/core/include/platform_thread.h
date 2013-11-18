@@ -40,7 +40,7 @@ namespace Genode {
 	 */
 	class Platform_thread
 	{
-		enum { NAME_MAX_LEN = 32 };
+		enum { LABEL_MAX_LEN = 32 };
 
 		Thread_base *            _thread_base;
 		size_t                   _stack_size;
@@ -52,9 +52,8 @@ namespace Genode {
 		Native_utcb *            _utcb_virt;
 		Tlb *                    _tlb;
 		Ram_dataspace_capability _utcb;
-		char                     _name[NAME_MAX_LEN];
+		char                     _label[LABEL_MAX_LEN];
 		char                     _kernel_thread[sizeof(Kernel::Thread)];
-		unsigned                 _priority;
 
 		/*
 		 * Wether this thread is the main thread of a program.
@@ -80,14 +79,24 @@ namespace Genode {
 
 			/**
 			 * Constructor for core threads
+			 *
+			 * \param label        debugging label
+			 * \param thread_base  Genode thread object
+			 * \param stack_size   initial size of the stack
+			 * \param pd_id        kernel name of targeted protection domain
 			 */
-			Platform_thread(const char * name, Thread_base * const thread_base,
+			Platform_thread(const char * const label,
+			                Thread_base * const thread_base,
 			                size_t const stack_size, unsigned const pd_id);
 
 			/**
 			 * Constructor for threads outside of core
+			 *
+			 * \param label     debugging label
+			 * \param priority  processor-scheduling priority
+			 * \param utcb      core local pointer to userland thread-context
 			 */
-			Platform_thread(const char * name, unsigned const priority,
+			Platform_thread(const char * const label, unsigned const priority,
 			                addr_t const utcb);
 
 			/**
@@ -96,13 +105,14 @@ namespace Genode {
 			~Platform_thread();
 
 			/**
-			 * Join PD identified by 'pd_id'
+			 * Join a protection domain
 			 *
-			 * \param pd_id        ID of targeted PD
-			 * \param main_thread  wether we are the main thread in this PD
+			 * \param pd_id          kernel name of targeted protection domain
+			 * \param main_thread    wether thread is the first in protection domain
+			 * \param address_space  corresponding Genode address space
 			 *
-			 * \retval  0  on success
-			 * \retval <0  otherwise
+			 * \retval  0  succeeded
+			 * \retval -1  failed
 			 */
 			int join_pd(unsigned const pd_id, bool const main_thread,
 			            Weak_ptr<Address_space> address_space);
@@ -166,8 +176,6 @@ namespace Genode {
 			 ** Accessors **
 			 ***************/
 
-			inline char const * name() const { return _name; }
-
 			void pager(Pager_object * const pager);
 
 			Pager_object * pager();
@@ -180,7 +188,7 @@ namespace Genode {
 
 			Thread_base * thread_base()
 			{
-				if (!_thread_base && !main_thread()) {
+				if (!_thread_base && !_main_thread) {
 					PERR("invalid thread base");
 				}
 				return _thread_base;
@@ -188,15 +196,9 @@ namespace Genode {
 
 			Native_utcb * utcb_phys() const { return _utcb_phys; }
 
-			Native_utcb * utcb_virt() const { return _utcb_virt; }
-
 			Ram_dataspace_capability utcb() const { return _utcb; }
 
-			bool main_thread() const { return _main_thread; }
-
 			Tlb * tlb() const { return _tlb; }
-
-			unsigned priority() { return _priority; }
 	};
 }
 

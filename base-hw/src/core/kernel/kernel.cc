@@ -115,7 +115,7 @@ namespace Kernel
 		/* create idle thread */
 		static char idle_stack[DEFAULT_STACK_SIZE]
 		__attribute__((aligned(Cpu::DATA_ACCESS_ALIGNM)));
-		static Thread idle((Platform_thread *)0);
+		static Thread idle(Priority::MAX, "idle");
 		static bool init = 0;
 		if (!init) {
 			enum { STACK_SIZE = sizeof(idle_stack)/sizeof(idle_stack[0]) };
@@ -233,7 +233,7 @@ extern "C" void kernel()
 			/* start thread with stack pointer at the top of stack */
 			static Native_utcb utcb;
 			_main_utcb = &utcb;
-			static Thread t((Platform_thread *)0);
+			static Thread t(Priority::MAX, "core");
 			t.ip = (addr_t)CORE_MAIN;;
 			t.sp = (addr_t)s + STACK_SIZE;
 			t.init(0, core_id(), &utcb, 1);

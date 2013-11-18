@@ -28,7 +28,7 @@ bool Platform_thread::_attaches_utcb_by_itself()
 	 * virtual context area by itself, as it is done for other threads
 	 * through a sub RM-session.
 	 */
-	return _pd_id == Kernel::core_id() || !main_thread();
+	return _pd_id == Kernel::core_id() || !_main_thread;
 }
 
 
@@ -46,13 +46,13 @@ Platform_thread::~Platform_thread()
 		/* the RM client may be destructed before platform thread */
 		if (_rm_client) {
 			Rm_session_component * const rm = _rm_client->member_rm_session();
-			rm->detach(utcb_virt());
+			rm->detach(_utcb_virt);
 		}
 	}
 	/* free UTCB */
 	if (_pd_id == Kernel::core_id()) {
 		Range_allocator * const ram = platform()->ram_alloc();
-		ram->free(utcb_phys(), sizeof(Native_utcb));
+		ram->free(_utcb_phys, sizeof(Native_utcb));
 	} else {
 		Ram_session_component * const ram =
 			dynamic_cast<Ram_session_component *>(core_env()->ram_session());
@@ -72,16 +72,19 @@ Platform_thread::~Platform_thread()
 	Kernel::delete_thread(_id);
 }
 
-Platform_thread::Platform_thread(const char * name,
+
+Platform_thread::Platform_thread(const char * const label,
                                  Thread_base * const thread_base,
                                  size_t const stack_size, unsigned const pd_id)
 :
-	_thread_base(thread_base), _stack_size(stack_size),
-	_pd_id(pd_id), _rm_client(0), _utcb_virt(0),
-	_priority(Kernel::Priority::MAX),
+	_thread_base(thread_base),
+	_stack_size(stack_size),
+	_pd_id(pd_id),
+	_rm_client(0),
+	_utcb_virt(0),
 	_main_thread(0)
 {
-	strncpy(_name, name, NAME_MAX_LEN);
+	strncpy(_label, label, LABEL_MAX_LEN);
 
 	/* create UTCB for a core thread */
 	Range_allocator * const ram = platform()->ram_alloc();
@@ -93,20 +96,27 @@ Platform_thread::Platform_thread(const char * name,
 	}
 	_utcb_virt = _utcb_phys;
 
-	/* common constructor parts */
-	_init();
+	/* create kernel object */
+	_id = Kernel::new_thread(_kernel_thread, Kernel::Priority::MAX, _label);
+	if (!_id) {
+		PERR("failed to create kernel object");
+		throw Cpu_session::Thread_creation_failed();
+	}
 }
 
 
-Platform_thread::Platform_thread(const char * name, unsigned int priority,
-                                 addr_t utcb)
+Platform_thread::Platform_thread(const char * const label,
+                                 unsigned const priority,
+                                 addr_t const utcb)
 :
-	_thread_base(0), _stack_size(0), _pd_id(0), _rm_client(0),
+	_thread_base(0),
+	_stack_size(0),
+	_pd_id(0),
+	_rm_client(0),
 	_utcb_virt((Native_utcb *)utcb),
-	_priority(Cpu_session::scale_priority(Kernel::Priority::MAX, priority)),
 	_main_thread(0)
 {
-	strncpy(_name, name, NAME_MAX_LEN);
+	strncpy(_label, label, LABEL_MAX_LEN);
 
 	/*
 	 * Allocate UTCB backing store for a thread outside of core. Page alignment
@@ -123,22 +133,26 @@ Platform_thread::Platform_thread(const char * name, unsigned int priority,
 	}
 	_utcb_phys = (Native_utcb *)ram->phys_addr(_utcb);
 
-	/* common constructor parts */
-	_init();
+	/* create kernel object */
+	_id = Kernel::new_thread(_kernel_thread, priority, _label);
+	if (!_id) {
+		PERR("failed to create kernel object");
+		throw Cpu_session::Thread_creation_failed();
+	}
 }
 
 
 int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
                              Weak_ptr<Address_space> address_space)
 {
-	/* check if we're already in another PD */
+	/* check if thread is already in another protection domain */
 	if (_pd_id && _pd_id != pd_id) {
-		PERR("already joined a PD");
+		PERR("thread already in another protection domain");
 		return -1;
 	}
-	/* denote configuration for start method */
-	_pd_id         = pd_id;
-	_main_thread   = main_thread;
+	/* join protection domain */
+	_pd_id = pd_id;
+	_main_thread = main_thread;
 	_address_space = address_space;
 	return 0;
 }
@@ -146,12 +160,6 @@ int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
 
 void Platform_thread::_init()
 {
-	/* create kernel object */
-	_id = Kernel::new_thread(_kernel_thread, this);
-	if (!_id) {
-		PERR("failed to create kernel object");
-		throw Cpu_session::Thread_creation_failed();
-	}
 }
 
 
@@ -186,14 +194,14 @@ int Platform_thread::start(void * const ip, void * const sp,
 	write_regs[1] = Reg_id::SP;
 	addr_t write_values[] = { 
 		(addr_t)ip,
-		main_thread() ? (addr_t)_utcb_virt : (addr_t)sp
+		_main_thread ? (addr_t)_utcb_virt : (addr_t)sp
 	};
 	if (Kernel::access_thread_regs(id(), 0, WRITES, 0, write_values)) {
 		PERR("failed to initialize thread registers");
 		return -1;
 	}
 	/* let thread participate in CPU scheduling */
-	_tlb = Kernel::start_thread(id(), cpu_id, _pd_id, utcb_phys());
+	_tlb = Kernel::start_thread(id(), cpu_id, _pd_id, _utcb_phys);
 	if (!_tlb) {
 		PERR("failed to start thread");
 		return -1;
