@@ -465,7 +465,7 @@ void Thread::_call_request_and_wait()
 {
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
-		PERR("unkonwn recipient");
+		PERR("unknown recipient");
 		_await_ipc();
 		return;
 	}
@@ -894,7 +894,7 @@ void Thread::_call()
 	case Call_id::ACCESS_THREAD_REGS:   _call_access_thread_regs(); return;
 	case Call_id::ROUTE_THREAD_EVENT:   _call_route_thread_event(); return;
 	default:
-		PERR("unkonwn kernel call");
+		PERR("unknown kernel call");
 		_stop();
 		reset_lap_time();
 	}
