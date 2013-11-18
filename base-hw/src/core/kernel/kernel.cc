@@ -119,9 +119,9 @@ namespace Kernel
 		static bool init = 0;
 		if (!init) {
 			enum { STACK_SIZE = sizeof(idle_stack)/sizeof(idle_stack[0]) };
-			void * const ip = (void *)&idle_main;
-			void * const sp = (void *)&idle_stack[STACK_SIZE];
-			idle.init(ip, sp, 0, core_id(), 0, 0, 0, 0);
+			idle.ip = (addr_t)&idle_main;;
+			idle.sp = (addr_t)&idle_stack[STACK_SIZE];;
+			idle.init(0, core_id(), 0, 0);
 			init = 1;
 		}
 		/* create CPU scheduler with a permanent idle thread */
@@ -231,12 +231,12 @@ extern "C" void kernel()
 			*(Core_thread_id *)s = 0;
 
 			/* start thread with stack pointer at the top of stack */
-			void * const sp = (void *)((addr_t)s + STACK_SIZE);
-			void * const ip = (void *)CORE_MAIN;
 			static Native_utcb utcb;
 			_main_utcb = &utcb;
 			static Thread t((Platform_thread *)0);
-			t.init(ip, sp, 0, core_id(), &utcb, &utcb, 1, 1);
+			t.ip = (addr_t)CORE_MAIN;;
+			t.sp = (addr_t)s + STACK_SIZE;
+			t.init(0, core_id(), &utcb, 1);
 		}
 		/* kernel initialization finished */
 		init_platform();

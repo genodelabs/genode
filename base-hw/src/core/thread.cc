@@ -33,7 +33,7 @@ Native_utcb * Thread_base::utcb()
 	if (!this) { return _main_utcb; }
 
 	/* this isn't the main thread */
-	return _tid.pt->phys_utcb();
+	return _tid.pt->utcb_phys();
 }
 
 

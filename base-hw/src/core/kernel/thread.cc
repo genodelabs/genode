@@ -75,8 +75,8 @@ void Thread::_await_signal(Signal_receiver * const receiver)
 
 void Thread::_receive_signal(void * const base, size_t const size)
 {
-	assert(_state == AWAITS_SIGNAL && size <= _phys_utcb->size());
-	Genode::memcpy(_phys_utcb->base(), base, size);
+	assert(_state == AWAITS_SIGNAL && size <= _utcb_phys->size());
+	Genode::memcpy(_utcb_phys->base(), base, size);
 	_schedule();
 }
 
@@ -191,17 +191,14 @@ Thread::Thread(Platform_thread * const pt)
 	_platform_thread(pt),
 	_state(AWAITS_START),
 	_pd(0),
-	_phys_utcb(0),
-	_virt_utcb(0),
+	_utcb_phys(0),
 	_signal_receiver(0)
 { }
 
 
 void
-Thread::init(void * const ip, void * const sp, unsigned const cpu_id,
-             unsigned const pd_id_arg, Native_utcb * const utcb_phys,
-             Native_utcb * const utcb_virt, bool const main,
-             bool const start)
+Thread::init(unsigned const cpu_id, unsigned const pd_id_arg,
+             Native_utcb * const utcb_phys, bool const start)
 {
 	assert(_state == AWAITS_START)
 
@@ -209,19 +206,13 @@ Thread::init(void * const ip, void * const sp, unsigned const cpu_id,
 	if (cpu_id) { PERR("multicore processing not supported"); }
 
 	/* store thread parameters */
-	_phys_utcb = utcb_phys;
-	_virt_utcb = utcb_virt;
+	_utcb_phys = utcb_phys;
 
 	/* join protection domain */
 	_pd = Pd::pool()->object(pd_id_arg);
 	assert(_pd);
 	addr_t const tlb = _pd->tlb()->base();
-
-	/* initialize CPU context */
-	User_context * const c = static_cast<User_context *>(this);
-	if (!main) { c->init_thread(ip, sp, tlb, pd_id()); }
-	else if (!_core()) { c->init_main_thread(ip, utcb_virt, tlb, pd_id()); }
-	else { c->init_core_main_thread(ip, sp, tlb, pd_id()); }
+	User_context::init_thread(tlb, pd_id());
 
 	/* print log message */
 	if (START_VERBOSE) {
@@ -282,7 +273,7 @@ void Thread::proceed()
 char const * Kernel::Thread::label() const
 {
 	if (!platform_thread()) {
-		if (!_phys_utcb) { return "idle"; }
+		if (!_utcb_phys) { return "idle"; }
 		return "core";
 	}
 	return platform_thread()->name();
@@ -377,24 +368,26 @@ void Thread::_call_delete_thread()
 void Thread::_call_start_thread()
 {
 	/* check permissions */
-	assert(_core());
-
+	if (!_core()) {
+		PERR("not entitled to start thread");
+		user_arg_0(0);
+		return;
+	}
 	/* dispatch arguments */
-	Platform_thread * pt = (Platform_thread *)user_arg_1();
-	void * const ip = (void *)user_arg_2();
-	void * const sp = (void *)user_arg_3();
-	unsigned const cpu_id = (unsigned)user_arg_4();
+	unsigned const thread_id = user_arg_1();
+	unsigned const cpu_id    = user_arg_2();
+	unsigned const pd_id     = user_arg_3();
+	Native_utcb * const utcb = (Native_utcb *)user_arg_4();
 
-	/* get targeted thread */
-	Thread * const t = Thread::pool()->object(pt->id());
-	assert(t);
-
+	/* lookup targeted thread */
+	Thread * const t = Thread::pool()->object(thread_id);
+	if (!t) {
+		PERR("unknown thread");
+		user_arg_0(0);
+		return;
+	}
 	/* start thread */
-	unsigned const pd_id = pt->pd_id();
-	Native_utcb * const utcb_p = pt->phys_utcb();
-	Native_utcb * const utcb_v = pt->virt_utcb();
-	bool const main = pt->main_thread();
-	t->init(ip, sp, cpu_id, pd_id, utcb_p, utcb_v, main, 1);
+	t->init(cpu_id, pd_id, utcb, 1);
 	user_arg_0((Call_ret)t->_pd->tlb());
 }
 
@@ -475,7 +468,7 @@ void Thread::_call_wait_for_request()
 {
 	void * buf_base;
 	size_t buf_size;
-	_phys_utcb->call_wait_for_request(buf_base, buf_size);
+	_utcb_phys->call_wait_for_request(buf_base, buf_size);
 	Ipc_node::await_request(buf_base, buf_size);
 }
 
@@ -492,7 +485,7 @@ void Thread::_call_request_and_wait()
 	size_t msg_size;
 	void * buf_base;
 	size_t buf_size;
-	_phys_utcb->call_request_and_wait(msg_base, msg_size,
+	_utcb_phys->call_request_and_wait(msg_base, msg_size,
 	                                     buf_base, buf_size);
 	Ipc_node::send_request_await_reply(dst, msg_base, msg_size,
 	                                   buf_base, buf_size);
@@ -503,7 +496,7 @@ void Thread::_call_reply()
 {
 	void * msg_base;
 	size_t msg_size;
-	_phys_utcb->call_reply(msg_base, msg_size);
+	_utcb_phys->call_reply(msg_base, msg_size);
 	Ipc_node::send_reply(msg_base, msg_size);
 	bool const await_request = user_arg_1();
 	if (await_request) { _call_wait_for_request(); }
@@ -590,7 +583,7 @@ void Thread::_call_access_thread_regs()
 	/* execute read operations */
 	unsigned const reads = user_arg_2();
 	unsigned const writes = user_arg_3();
-	addr_t * const utcb = (addr_t *)_phys_utcb->base();
+	addr_t * const utcb = (addr_t *)_utcb_phys->base();
 	addr_t * const read_ids = &utcb[0];
 	addr_t * const read_values = (addr_t *)user_arg_4();
 	for (unsigned i = 0; i < reads; i++) {

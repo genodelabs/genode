@@ -81,8 +81,7 @@ class Kernel::Thread
 		Platform_thread * const _platform_thread;
 		State                   _state;
 		Pd *                    _pd;
-		Native_utcb *           _phys_utcb;
-		Native_utcb *           _virt_utcb;
+		Native_utcb *           _utcb_phys;
 		Signal_receiver *       _signal_receiver;
 
 		/**
@@ -263,19 +262,13 @@ class Kernel::Thread
 		/**
 		 * Prepare thread to get scheduled the first time
 		 *
-		 * \param ip         initial instruction pointer
-		 * \param sp         initial stack pointer
-		 * \param cpu_id     target cpu
-		 * \param pd_id      target protection-domain
-		 * \param utcb_phys  physical UTCB pointer
-		 * \param utcb_virt  virtual UTCB pointer
-		 * \param main       wether the thread is the first one in its PD
-		 * \param start      wether to start execution
+		 * \param cpu_id     kernel name of targeted processor
+		 * \param pd_id      kernel name of target protection domain
+		 * \param utcb       core local pointer to userland thread-context
+		 * \param start      wether to start executing the thread
 		 */
-		void init(void * const ip, void * const sp, unsigned const cpu_id,
-		          unsigned const pd_id, Native_utcb * const utcb_phys,
-		          Native_utcb * const utcb_virt, bool const main,
-		          bool const start);
+		void init(unsigned const cpu_id, unsigned const pd_id,
+		          Native_utcb * const utcb, bool const start);
 
 
 		/***********************

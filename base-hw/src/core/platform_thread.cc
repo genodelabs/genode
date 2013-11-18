@@ -46,13 +46,13 @@ Platform_thread::~Platform_thread()
 		/* the RM client may be destructed before platform thread */
 		if (_rm_client) {
 			Rm_session_component * const rm = _rm_client->member_rm_session();
-			rm->detach(_virt_utcb);
+			rm->detach(utcb_virt());
 		}
 	}
 	/* free UTCB */
 	if (_pd_id == Kernel::core_id()) {
 		Range_allocator * const ram = platform()->ram_alloc();
-		ram->free((void *)_phys_utcb, sizeof(Native_utcb));
+		ram->free(utcb_phys(), sizeof(Native_utcb));
 	} else {
 		Ram_session_component * const ram =
 			dynamic_cast<Ram_session_component *>(core_env()->ram_session());
@@ -77,7 +77,7 @@ Platform_thread::Platform_thread(const char * name,
                                  size_t const stack_size, unsigned const pd_id)
 :
 	_thread_base(thread_base), _stack_size(stack_size),
-	_pd_id(pd_id), _rm_client(0), _virt_utcb(0),
+	_pd_id(pd_id), _rm_client(0), _utcb_virt(0),
 	_priority(Kernel::Priority::MAX),
 	_main_thread(0)
 {
@@ -85,13 +85,13 @@ Platform_thread::Platform_thread(const char * name,
 
 	/* create UTCB for a core thread */
 	Range_allocator * const ram = platform()->ram_alloc();
-	if (!ram->alloc_aligned(sizeof(Native_utcb), (void **)&_phys_utcb,
+	if (!ram->alloc_aligned(sizeof(Native_utcb), (void **)&_utcb_phys,
 	                        MIN_MAPPING_SIZE_LOG2).is_ok())
 	{
 		PERR("failed to allocate UTCB");
 		throw Cpu_session::Out_of_metadata();
 	}
-	_virt_utcb = _phys_utcb;
+	_utcb_virt = _utcb_phys;
 
 	/* common constructor parts */
 	_init();
@@ -102,7 +102,7 @@ Platform_thread::Platform_thread(const char * name, unsigned int priority,
                                  addr_t utcb)
 :
 	_thread_base(0), _stack_size(0), _pd_id(0), _rm_client(0),
-	_virt_utcb((Native_utcb *)utcb),
+	_utcb_virt((Native_utcb *)utcb),
 	_priority(Cpu_session::scale_priority(Kernel::Priority::MAX, priority)),
 	_main_thread(0)
 {
@@ -121,7 +121,7 @@ Platform_thread::Platform_thread(const char * name, unsigned int priority,
 		PERR("failed to allocate UTCB");
 		throw Cpu_session::Out_of_metadata();
 	}
-	_phys_utcb = (Native_utcb *)ram->phys_addr(_utcb);
+	_utcb_phys = (Native_utcb *)ram->phys_addr(_utcb);
 
 	/* common constructor parts */
 	_init();
@@ -155,21 +155,14 @@ void Platform_thread::_init()
 }
 
 
-int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
+int Platform_thread::start(void * const ip, void * const sp,
+                           unsigned int const cpu_id)
 {
-	/* must be in a PD to get started */
-	if (!_pd_id) {
-		PERR("invalid PD");
-		return -1;
-	}
 	/* attach UTCB if the thread can't do this by itself */
 	if (!_attaches_utcb_by_itself())
 	{
-		/*
-		 * Declare page aligned virtual UTCB outside the context area.
-		 * Kernel afterwards offers this as bootstrap argument to the thread.
-		 */
-		_virt_utcb = (Native_utcb *)((platform()->vm_start()
+		/* declare page aligned virtual UTCB outside the context area */
+		_utcb_virt = (Native_utcb *)((platform()->vm_start()
 		             + platform()->vm_size() - sizeof(Native_utcb))
 		             & ~((1<<MIN_MAPPING_SIZE_LOG2)-1));
 
@@ -179,14 +172,28 @@ int Platform_thread::start(void * ip, void * sp, unsigned int cpu_no)
 			return -1;
 		};
 		Rm_session_component * const rm = _rm_client->member_rm_session();
-		try { rm->attach(_utcb, 0, 0, true, _virt_utcb, 0); }
+		try { rm->attach(_utcb, 0, 0, true, _utcb_virt, 0); }
 		catch (...) {
 			PERR("failed to attach UTCB");
 			return -1;
 		}
 	}
+	/* initialize thread regisers */
+	typedef Kernel::Thread_reg_id Reg_id;
+	enum { WRITES = 2 };
+	addr_t * write_regs = (addr_t *)Thread_base::myself()->utcb()->base();
+	write_regs[0] = Reg_id::IP;
+	write_regs[1] = Reg_id::SP;
+	addr_t write_values[] = { 
+		(addr_t)ip,
+		main_thread() ? (addr_t)_utcb_virt : (addr_t)sp
+	};
+	if (Kernel::access_thread_regs(id(), 0, WRITES, 0, write_values)) {
+		PERR("failed to initialize thread registers");
+		return -1;
+	}
 	/* let thread participate in CPU scheduling */
-	_tlb = Kernel::start_thread(this, ip, sp, cpu_no);
+	_tlb = Kernel::start_thread(id(), cpu_id, _pd_id, utcb_phys());
 	if (!_tlb) {
 		PERR("failed to start thread");
 		return -1;

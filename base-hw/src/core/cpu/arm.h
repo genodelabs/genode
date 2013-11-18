@@ -517,59 +517,15 @@ namespace Arm
 			unsigned user_arg_7() const { return r7; }
 
 			/**
-			 * Part of context init that is common for all types of threads
+			 * Initialize thread context
+			 *
+			 * \param tlb    physical base of appropriate page table
+			 * \param pd_id  kernel name of appropriate protection domain
 			 */
-			void init_thread_common(void * const   instr_p,
-			                        addr_t const   tlb,
-			                        unsigned const pd_id)
+			void init_thread(addr_t const tlb, unsigned const pd_id)
 			{
-				ip = (addr_t)instr_p;
 				cidr = pd_id;
 				section_table = tlb;
-			}
-
-			/**
-			 * Init context of the first thread of core
-			 */
-			void init_core_main_thread(void * const   instr_p,
-			                           void * const   stack_p,
-			                           addr_t const   tlb,
-			                           unsigned const pd_id)
-			{
-				sp = (addr_t)stack_p;
-				init_thread_common(instr_p, tlb, pd_id);
-			}
-
-			/**
-			 * Init context of a thread that isn't first thread of a program
-			 */
-			void init_thread(void * const   instr_p,
-			                 void * const   stack_p,
-			                 addr_t const   tlb,
-			                 unsigned const pd_id)
-			{
-				sp = (addr_t)stack_p;
-				init_thread_common(instr_p, tlb, pd_id);
-			}
-
-			/**
-			 * Init context of the first thread of a program other than core
-			 */
-			void init_main_thread(void * const   instr_p,
-			                      void * const   utcb_virt,
-			                      addr_t const   tlb,
-			                      unsigned const pd_id)
-			{
-				/*
-				 * Normally threads receive their UTCB pointer through their
-				 * 'Thread_base' but the first thread of a program doesn't
-				 * have such object. Thus the kernel hands out the UTCB pointer
-				 * through the main threads initial CPU context. 'crt0.s' then
-				 * can save the received pointer to local mem before polluting
-				 * the CPU context.
-				 */
-				sp = (addr_t)utcb_virt;
-				init_thread_common(instr_p, tlb, pd_id);
 			}
 
 			/**
