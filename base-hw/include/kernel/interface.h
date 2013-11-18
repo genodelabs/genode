@@ -39,7 +39,7 @@ namespace Kernel
 	{
 		enum {
 			NEW_THREAD           = 0,
-			DELETE_THREAD        = 1,
+			KILL_THREAD          = 1,
 			START_THREAD         = 2,
 			PAUSE_THREAD         = 3,
 			RESUME_THREAD        = 4,
@@ -218,17 +218,15 @@ namespace Kernel
 
 
 	/**
-	 * Delete an existing thread
+	 * Destruct kernel thread-object
 	 *
-	 * \param id  kernel name of the targeted thread
+	 * \param thread_id  kernel name of the targeted thread
 	 *
-	 * Restricted to core threads. After calling this, the memory that was
-	 * granted beforehand by 'new_thread' to kernel for managing this thread
-	 * is freed again.
+	 * Restricted to core threads.
 	 */
-	inline void delete_thread(unsigned const thread_id)
+	inline void kill_thread(unsigned const thread_id)
 	{
-		call(Call_id::DELETE_THREAD, thread_id);
+		call(Call_id::KILL_THREAD, thread_id);
 	}
 
 
