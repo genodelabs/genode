@@ -338,7 +338,7 @@ void Thread::_call_new_thread()
 }
 
 
-void Thread::_call_delete_thread()
+void Thread::_call_kill_thread()
 {
 	/* check permissions */
 	assert(_core());
@@ -866,7 +866,7 @@ void Thread::_call()
 {
 	switch (user_arg_0()) {
 	case Call_id::NEW_THREAD:           _call_new_thread(); return;
-	case Call_id::DELETE_THREAD:        _call_delete_thread(); return;
+	case Call_id::KILL_THREAD:          _call_kill_thread(); return;
 	case Call_id::START_THREAD:         _call_start_thread(); return;
 	case Call_id::PAUSE_THREAD:         _call_pause_thread(); return;
 	case Call_id::RESUME_THREAD:        _call_resume_thread(); return;

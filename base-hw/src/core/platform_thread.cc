@@ -69,7 +69,7 @@ Platform_thread::~Platform_thread()
 		rm->remove_client(cap);
 	}
 	/* destroy object at the kernel */
-	Kernel::delete_thread(_id);
+	Kernel::kill_thread(_id);
 }
 
 
