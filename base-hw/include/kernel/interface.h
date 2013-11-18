@@ -20,7 +20,6 @@
 namespace Genode
 {
 	class Native_utcb;
-	class Platform_thread;
 	class Platform_pd;
 	class Tlb;
 }
@@ -30,7 +29,6 @@ namespace Kernel
 	typedef Genode::Tlb             Tlb;
 	typedef Genode::addr_t          addr_t;
 	typedef Genode::size_t          size_t;
-	typedef Genode::Platform_thread Platform_thread;
 	typedef Genode::Platform_pd     Platform_pd;
 	typedef Genode::Native_utcb     Native_utcb;
 
@@ -200,21 +198,22 @@ namespace Kernel
 
 
 	/**
-	 * Create a new thread that is stopped initially
+	 * Create kernel object that acts as thread that isn't executed initially
 	 *
-	 * \param dst  physical base of an appropriate portion of memory
-	 *             that is thereupon allocated to the kernel
-	 * \param pt   assigned platform thread
+	 * \param p         memory donation for the new kernel thread object
+	 * \param priority  scheduling priority of the new thread
+	 * \param label     debugging label of the new thread
 	 *
-	 * \retval >0  ID of the new thread
-	 * \retval  0  if no new thread was created
+	 * \retval >0  kernel name of the new thread
+	 * \retval  0  failed
 	 *
-	 * Restricted to core threads. Regaining of the supplied memory can be done
-	 * through 'delete_thread'.
+	 * Restricted to core threads.
 	 */
-	inline int new_thread(void * const dst, Platform_thread * const pt)
+	inline int new_thread(void * const p, unsigned const priority,
+	                      char const * const label)
 	{
-		return call(Call_id::NEW_THREAD, (Call_arg)dst, (Call_arg)pt);
+		return call((Call_arg)Call_id::NEW_THREAD, (Call_arg)p, (Call_arg)priority,
+		            (Call_arg)label);
 	}
 
 

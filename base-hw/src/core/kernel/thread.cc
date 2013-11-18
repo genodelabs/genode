@@ -21,7 +21,6 @@
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/vm.h>
-#include <platform_thread.h>
 #include <platform_pd.h>
 
 using namespace Kernel;
@@ -184,15 +183,15 @@ void Thread::_schedule()
 }
 
 
-Thread::Thread(Platform_thread * const pt)
+Thread::Thread(unsigned const priority, char const * const label)
 :
-	Execution_context(pt ? pt->priority() : Priority::MAX),
+	Execution_context(priority),
 	Thread_cpu_support(this),
-	_platform_thread(pt),
 	_state(AWAITS_START),
 	_pd(0),
 	_utcb_phys(0),
-	_signal_receiver(0)
+	_signal_receiver(0),
+	_label(label)
 { }
 
 
@@ -270,16 +269,6 @@ void Thread::proceed()
 }
 
 
-char const * Kernel::Thread::label() const
-{
-	if (!platform_thread()) {
-		if (!_utcb_phys) { return "idle"; }
-		return "core";
-	}
-	return platform_thread()->name();
-}
-
-
 char const * Kernel::Thread::pd_label() const
 {
 	if (_core()) { return "core"; }
@@ -335,18 +324,17 @@ void Thread::_call_kill_pd()
 void Thread::_call_new_thread()
 {
 	/* check permissions */
-	assert(_core());
-
-	/* dispatch arguments */
-	Call_arg const arg1 = user_arg_1();
-	Call_arg const arg2 = user_arg_2();
-
-	/* create thread */
-	Thread * const t = new ((void *)arg1)
-	Thread((Platform_thread *)arg2);
-
-	/* return thread ID */
-	user_arg_0((Call_ret)t->id());
+	if (!_core()) {
+		PERR("not entitled to create thread");
+		user_arg_0(0);
+		return;
+	}
+	/* create new thread */
+	void * const p = (void *)user_arg_1();
+	unsigned const priority = user_arg_2();
+	char const * const label = (char *)user_arg_3();
+	Thread * const t = new (p) Thread(priority, label);
+	user_arg_0(t->id());
 }
 
 
