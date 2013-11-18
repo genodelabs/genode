@@ -25,8 +25,10 @@ namespace Genode
 			MMIO_BASE          = 0x0,
 			MMIO_SIZE          = 0x70000000,
 
-			RAM_BASE           = 0x70000000,
-			RAM_SIZE           = 0x40000000,
+			RAM0_BASE          = 0x70000000,
+			RAM0_SIZE          = 0x20000000,
+			RAM1_BASE          = 0xb0000000,
+			RAM1_SIZE          = 0x20000000,
 
 			UART_1_IRQ         = 31,
 			UART_1_MMIO_BASE   = 0x53fbc000,

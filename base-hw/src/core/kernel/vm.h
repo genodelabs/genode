@@ -22,6 +22,7 @@
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
 #include <kernel/signal_receiver.h>
+#include <cpu.h>
 
 namespace Kernel
 {
@@ -42,8 +43,13 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 {
 	private:
 
-		Genode::Cpu_state_modes * const _state;
-		Signal_context * const          _context;
+		struct Vm_state : Genode::Cpu_state_modes
+		{
+			Genode::addr_t dfar;
+		};
+
+		Vm_state       * const _state;
+		Signal_context * const _context;
 
 	public:
 
@@ -53,10 +59,11 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 * \param state    initial CPU state
 		 * \param context  signal for VM exceptions other than interrupts
 		 */
-		Vm(Genode::Cpu_state_modes * const state,
+		Vm(void           * const state,
 		   Signal_context * const context)
 		:
-			Execution_context(Priority::MIN), _state(state), _context(context)
+			Execution_context(Priority::MIN),
+			_state((Vm_state * const)state), _context(context)
 		{ }
 
 
@@ -80,6 +87,8 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 			case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
 				handle_interrupt();
 				return;
+			case Genode::Cpu_state::DATA_ABORT:
+				_state->dfar = Genode::Cpu::Dfar::read();
 			default:
 				cpu_scheduler()->remove(this);
 				_context->submit(1);

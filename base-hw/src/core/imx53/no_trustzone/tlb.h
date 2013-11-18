@@ -37,7 +37,8 @@ namespace Genode
 			 */
 			Core_tlb()
 			{
-				map_core_area(Board::RAM_BASE, Board::RAM_SIZE, 0);
+				map_core_area(Board::RAM0_BASE, Board::RAM0_SIZE, 0);
+				map_core_area(Board::RAM1_BASE, Board::RAM1_SIZE, 0);
 				map_core_area(Board::MMIO_BASE, Board::MMIO_SIZE, 1);
 			}
 	};

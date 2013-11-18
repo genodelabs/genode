@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _IMX53__PIC_H_
-#define _IMX53__PIC_H_
+#ifndef _IMX53__PIC_BASE_H_
+#define _IMX53__PIC_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -27,7 +27,7 @@ namespace Imx53
 	/**
 	 * Programmable interrupt controller for core
 	 */
-	class Pic : public Mmio
+	class Pic_base : public Mmio
 	{
 		public:
 
@@ -63,7 +63,7 @@ namespace Imx53
 			/**
 			 * Interrupt security registers
 			 */
-			struct Intsec : Register_array<0x80, 32, MAX_INTERRUPT_ID+1, 1>
+			struct Intsec : Register_array<0x80, 32, MAX_INTERRUPT_ID, 1>
 			{
 				struct Nonsecure : Bitfield<0, 1> { };
 			};
@@ -71,7 +71,7 @@ namespace Imx53
 			/**
 			 * Interrupt set enable registers
 			 */
-			struct Enset : Register_array<0x100, 32, MAX_INTERRUPT_ID+1, 1, true>
+			struct Enset : Register_array<0x100, 32, MAX_INTERRUPT_ID, 1, true>
 			{
 				struct Set_enable : Bitfield<0, 1> { };
 			};
@@ -79,7 +79,7 @@ namespace Imx53
 			/**
 			 * Interrupt clear enable registers
 			 */
-			struct Enclear : Register_array<0x180, 32, MAX_INTERRUPT_ID+1, 1, true>
+			struct Enclear : Register_array<0x180, 32, MAX_INTERRUPT_ID, 1, true>
 			{
 				struct Clear_enable : Bitfield<0, 1> { };
 			};
@@ -87,18 +87,15 @@ namespace Imx53
 			/**
 			 * Interrupt priority level registers
 			 */
-			struct Icdipr  : Register_array<0x400, 32, MAX_INTERRUPT_ID+1, 8>
+			struct Priority  : Register_array<0x400, 32, MAX_INTERRUPT_ID, 8>
 			{
-				struct Priority : Bitfield<0, 8>
-				{
-					enum { GET_MIN_PRIORITY = 0xff };
-				};
+				enum { MIN_PRIO = 0xff };
 			};
 
 			/**
 			 * Pending registers
 			 */
-			struct Pndr  : Register_array<0xd00, 32, MAX_INTERRUPT_ID+1, 1>
+			struct Pndr  : Register_array<0xd00, 32, MAX_INTERRUPT_ID, 1>
 			{
 				struct Pending : Bitfield<0, 1> { };
 			};
@@ -106,7 +103,7 @@ namespace Imx53
 			/**
 			 * Highest interrupt pending registers
 			 */
-			struct Hipndr  : Register_array<0xd80, 32, MAX_INTERRUPT_ID+1, 1, true>
+			struct Hipndr  : Register_array<0xd80, 32, MAX_INTERRUPT_ID, 1, true>
 			{
 				struct Pending : Bitfield<0, 1> { };
 			};
@@ -121,18 +118,18 @@ namespace Imx53
 			/**
 			 * Constructor, all interrupts get masked
 			 */
-			Pic() : Mmio(Board::TZIC_MMIO_BASE)
+			Pic_base() : Mmio(Board::TZIC_MMIO_BASE)
 			{
-				/* configure interrupts as nonsecure, and disable them */
 				for (unsigned i = 0; i <= MAX_INTERRUPT_ID; i++) {
-					write<Enclear::Clear_enable>(1, i);
 					write<Intsec::Nonsecure>(1, i);
+					write<Enclear::Clear_enable>(1, i);
 				}
 
 				write<Priomask::Mask>(0x1f);
 				write<Intctrl>(Intctrl::Enable::bits(1) |
-				               Intctrl::Nsen::bits(1)   |
-				               Intctrl::Nsen_mask::bits(1));
+							   Intctrl::Nsen::bits(1)   |
+							   Intctrl::Nsen_mask::bits(1));
+
 			}
 
 			/**
@@ -141,7 +138,7 @@ namespace Imx53
 			bool take_request(unsigned & i)
 			{
 				for (unsigned j = 0; j <= MAX_INTERRUPT_ID; j++) {
-					if (read<Pndr::Pending>(j)) {
+					if (read<Hipndr::Pending>(j)) {
 						i = j;
 						return true;
 					}
@@ -198,6 +195,4 @@ namespace Imx53
 	};
 }
 
-namespace Kernel { class Pic : public Imx53::Pic { }; }
-
-#endif /* _IMX53__PIC_H_ */
+#endif /* _IMX53__PIC_BASE_H_ */

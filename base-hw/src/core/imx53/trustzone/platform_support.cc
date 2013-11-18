@@ -11,6 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <drivers/trustzone.h>
+
 /* core includes */
 #include <platform.h>
 #include <board.h>
@@ -69,7 +71,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::RAM_BASE, Board::RAM_SIZE }
+		{ Trustzone::SECURE_RAM_BASE, Trustzone::SECURE_RAM_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -82,6 +84,7 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 		{ 0x07000000, 0x1000000  }, /* security controller */
 		{ 0x10000000, 0x30000000 }, /* SATA, IPU, GPU      */
 		{ 0x50000000, 0x20000000 }, /* Misc.               */
+		{ Trustzone::NONSECURE_RAM_BASE, Trustzone::NONSECURE_RAM_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -99,9 +102,12 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 
 		/* interrupt controller */
 		{ Board::TZIC_MMIO_BASE, Board::TZIC_MMIO_SIZE },
+
+		/* vm state memory */
+		{ Trustzone::VM_STATE_BASE, Trustzone::VM_STATE_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
 
 
-Cpu::User_context::User_context() { cpsr = Psr::init_user(); }
+Cpu::User_context::User_context() { cpsr = Psr::init_user_with_trustzone(); }

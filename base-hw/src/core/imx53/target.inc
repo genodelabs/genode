@@ -6,7 +6,7 @@
 #
 
 # declare wich specs must be given to build this target
-REQUIRES = platform_imx53
+REQUIRES += platform_imx53
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/imx53
@@ -18,13 +18,11 @@ SRC_CC += platform_services.cc \
           cpu_support.cc
 
 # add assembly sources
-SRC_S += mode_transition.s \
-         boot_modules.s \
-         crt0.s
+SRC_S    += mode_transition.s \
+            boot_modules.s \
+            crt0.s
 
 # declare source paths
-vpath platform_services.cc $(BASE_DIR)/src/core
-vpath platform_support.cc  $(REP_DIR)/src/core/imx53
 vpath mode_transition.s    $(REP_DIR)/src/core/arm_v7
 vpath cpu_support.cc       $(REP_DIR)/src/core/arm
 vpath crt0.s               $(REP_DIR)/src/core/arm
@@ -42,4 +40,3 @@ endif
 
 # include less specific target parts
 include $(REP_DIR)/src/core/target.inc
-
