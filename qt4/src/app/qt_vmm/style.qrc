@@ -1,0 +1,12 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/">
+<file>style.qss</file>
+<file alias="play.png">play.png</file>
+<file alias="pause.png">pause.png</file>
+<file alias="stop.png">stop.png</file>
+<file alias="bomb.png">bomb.png</file>
+<file alias="power.png">power.png</file>
+<file alias="background.png">background.png</file>
+</qresource>
+</RCC>

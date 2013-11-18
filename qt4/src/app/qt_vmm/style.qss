@@ -1,0 +1,81 @@
+Play_pause_button, Stop_button, Bomb_button, Power_button {
+	width: 32px;
+	height: 32px;
+}
+
+Play_pause_button#play {
+	border-image: url(:pause.png);
+}
+
+Play_pause_button#pause {
+	border-image: url(:play.png);
+}
+
+Stop_button {
+	border-image: url(:stop.png);
+}
+
+Bomb_button {
+	border-image: url(:bomb.png);
+}
+
+Power_button {
+	border-image: url(:power.png);
+}
+
+/*
+Register_widget, Framebuffer_widget {
+	border: none;
+	font-weight: bold;
+    padding-top: 14px;
+}
+
+Register_widget::title, Framebuffer_widget::title {
+    padding-left: 0px;
+}
+*/
+
+/*
+                                      stop: 0 rgb(136, 164, 193),
+                                      stop: 1 rgba(136, 164, 193, 0));
+*/
+
+QGroupBox {
+    background-color: qradialgradient(cx:0, cy:0, radius:1.3, fx:0.3, fy:0.2,
+                                      stop: 0 rgb(200, 200, 200),
+                                      stop: 1 rgba(200, 200, 200, 0));
+    font-weight: bold;
+    border: none;
+    border-radius: 7px;
+    padding: 22px 8px 8px 8px;
+}
+QGroupBox::title { padding: 4px 5px; }
+
+
+QLineEdit {
+    background-color: rgba(255, 255, 255, 60%);
+}
+
+Control_bar {
+    background-color: qradialgradient(cx:0, cy:0, radius:1.3, fx:0.3, fy:0.2,
+                                      stop: 0 rgb(200, 200, 200),
+                                      stop: 1 rgba(200, 200, 200, 0));
+    border: none;
+    border-radius: 7px;
+}
+
+
+Main_window {
+	margin: 20px;
+    border-radius: 10px;
+}
+
+
+Background_window {
+	background-image:  url(:background.png);
+	background-origin: padding;
+	margin-top:        -16px;
+	padding-top:       16px;
+	margin-left:       -550px;
+	padding-left:      550px;
+}

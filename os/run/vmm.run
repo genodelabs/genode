@@ -5,14 +5,33 @@
 #
 
 if {![have_spec trustzone]} {
-	puts "\nThe VMM support base-hw for Versatile Express with TrustZone support only\n"
+	puts "\nThe VMM currently supports TrustZone only\n"
 	exit 0
 }
 
-build "core init server/vmm"
+set build_components {
+	  core
+	  init
+	  drivers/framebuffer
+	  drivers/timer
+	  drivers/input
+	  server/nitpicker
+	  server/vmm
+	  server/fade_fb
+	  server/terminal
+	  server/terminal_log
+	  app/crystals
+	  app/menu
+	  app/backdrop
+	  app/qt_vmm
+}
+lappend_if [have_spec imx53] build_components drivers/gpio
+lappend_if [have_spec imx53] build_components drivers/platform
+
+build $build_components
 create_boot_directory
 
-install_config {
+set config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -28,12 +47,172 @@ install_config {
 		<service name="VM"/>
 	</parent-provides>
 	<default-route>
+		<service name="LOG"><parent/></service>
 		<any-service><any-child/><parent/></any-service>
 	</default-route>
-	<start name="vmm">
-		<resource name="RAM" quantum="4M"/>
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Platform"/></provides>
+		<config/>
 	</start>
-</config>
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>
+	<start name="fb_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Framebuffer"/></provides>
+		<config buffered="yes"/>
+	</start>
+	<start name="input_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Input">       <child name="input_drv"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<any-service> <parent/> <any-child/></any-service>
+		</route>
+		<config>
+			<policy label="menu -> trustzone -> vmm" color="#ff3333"/>
+		</config>
+	</start>
+	<start name="nit_fb_log">
+		<binary name="fade_fb" />
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+		<config xpos="32" ypos="486" width="300" height="236"/>
+	</start>
+	<start name="terminal">
+		<resource name="RAM" quantum="3M"/>
+		<provides><service name="Terminal"/></provides>
+		<config><font size="8"/></config>
+		<route>
+			<service name="Input">       <child name="nit_fb_log"/> </service>
+			<service name="Framebuffer"> <child name="nit_fb_log"/> </service>
+			<any-service> <parent/> <any-child/></any-service>
+		</route>
+	</start>
+	<start name="terminal_log">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="LOG"/></provides>
+	</start>
+	<start name="backdrop">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<image>background.png</image>
+		</config>
+	</start>
+	<start name="menu">
+		<binary name="static_menu"/>
+		<resource name="RAM" quantum="200M"/>
+		<route>
+			<service name="LOG">         <child name="terminal_log"/> </service>
+			<service name="Framebuffer"> <child name="fb_drv"/> </service>
+			<any-service> <any-child/> <parent/></any-service>
+		</route>
+		<config>
+			<banner xpos="272" ypos="170" width="480" height="384"/>
+			<menu xpos="16" ypos="16">
+				<image png="default.png"/>
+				<image-hover png="hover.png"/>
+				<image-selected png="selected.png"/>
+				<image-hselected png="hselected.png"/>
+
+				<entry name="crystals" xpos="26" ypos="153" width="131" height="24">
+					<binary name="crystals"/>
+					<resource name="RAM" quantum="32M"/>
+					<view xpos="16" ypos="147" width="158" height="35"/>
+				</entry>
+
+				<entry name="trustzone" xpos="26" ypos="188" width="131" height="24">
+					<binary name="init"/>
+					<resource name="RAM" quantum="45M"/>
+					<config>
+						<parent-provides>
+							<service name="ROM"/>
+							<service name="RAM"/>
+							<service name="IRQ"/>
+							<service name="IO_MEM"/>
+							<service name="CAP"/>
+							<service name="PD"/>
+							<service name="RM"/>
+							<service name="CPU"/>
+							<service name="LOG"/>
+							<service name="SIGNAL"/>
+							<service name="VM"/>
+							<service name="Timer"/>
+							<service name="Nitpicker"/>
+							<service name="Framebuffer"/>
+						</parent-provides>
+						<default-route>
+							<any-service><any-child/><parent/></any-service>
+						</default-route>
+						<start name="vmm">
+							<resource name="RAM" quantum="4M"/>
+						</start>
+						<start name="qt_vmm">
+							<resource name="RAM" quantum="45M"/>
+							<provides><service name="Vmmgui"/></provides>
+						</start>
+					</config>
+					<view xpos="16" ypos="182" width="158" height="35"/>
+				</entry>
+			</menu>
+		</config>
+	</start>
+</config>}
+
+install_config $config
+
+set boot_modules {
+	core
+	init
+	timer
+	nitpicker
+	vmm
+	static_menu
+	crystals
+	backdrop
+	background.png
+	fade_fb
+	terminal
+	terminal_log
+	ld.lib.so
+	libc.lib.so
+	libc_lock_pipe.lib.so
+	libm.lib.so
+	libpng.lib.so
+	jpeg.lib.so
+	stdcxx.lib.so
+	zlib.lib.so
+	dejavusans.lib.so
+	freetype.lib.so
+	qt_vmm
+	qnitpickerviewwidget.lib.so
+	qt_core.lib.so
+	qt_gui.lib.so
+	qt_xml.lib.so
+	linux
+	initrd.gz
 }
 
-build_boot_image "core init vmm linux initrd.gz"
+lappend_if [have_spec imx53] boot_modules gpio_drv
+lappend_if [have_spec imx53] boot_modules platform_drv
+lappend_if [have_spec imx53] boot_modules fb_drv
+lappend_if [have_spec imx53] boot_modules input_drv
+lappend_if [have_spec pl11x] boot_modules pl11x_drv
+lappend_if [have_spec ps2]   boot_modules ps2_drv
+
+build_boot_image  $boot_modules
