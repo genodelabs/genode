@@ -19,6 +19,7 @@
 
 namespace Genode
 {
+	class Native_utcb;
 	class Platform_thread;
 	class Platform_pd;
 	class Tlb;
@@ -31,6 +32,7 @@ namespace Kernel
 	typedef Genode::size_t          size_t;
 	typedef Genode::Platform_thread Platform_thread;
 	typedef Genode::Platform_pd     Platform_pd;
+	typedef Genode::Native_utcb     Native_utcb;
 
 	/**
 	 * Kernel names of all kernel calls
@@ -232,23 +234,20 @@ namespace Kernel
 
 
 	/**
-	 * Start thread with a given context and let it participate in CPU scheduling
+	 * Start executing a thread
 	 *
-	 * \param id  ID of targeted thread
-	 * \param ip  initial instruction pointer
-	 * \param sp  initial stack pointer
-	 *
-	 * \retval >0  success, return value is the TLB of the thread
-	 * \retval  0  the targeted thread wasn't started or was already started
-	 *             when this gets called (in both cases it remains untouched)
+	 * \param thread_id  kernel name of targeted thread
+	 * \param cpu_id     kernel name of targeted processor
+	 * \param pd_id      kernel name of targeted protection domain
+	 * \param utcb       core local pointer to userland thread-context
 	 *
 	 * Restricted to core threads.
 	 */
-	inline Tlb * start_thread(Platform_thread * const phys_pt, void * const ip,
-	                          void * const sp, unsigned const cpu_no)
+	inline Tlb * start_thread(unsigned const thread_id, unsigned const cpu_id,
+	                          unsigned const pd_id, Native_utcb * const utcb)
 	{
-		return (Tlb *)call(Call_id::START_THREAD, (Call_arg)phys_pt,
-		                   (Call_arg)ip, (Call_arg)sp, cpu_no);
+		return (Tlb *)call(Call_id::START_THREAD, thread_id, cpu_id, pd_id,
+		                   (Call_arg)utcb);
 	}
 
 

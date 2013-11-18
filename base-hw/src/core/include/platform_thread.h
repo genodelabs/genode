@@ -48,8 +48,8 @@ namespace Genode {
 		Weak_ptr<Address_space>  _address_space;
 		unsigned                 _id;
 		Rm_client *              _rm_client;
-		Native_utcb *            _phys_utcb;
-		Native_utcb *            _virt_utcb;
+		Native_utcb *            _utcb_phys;
+		Native_utcb *            _utcb_virt;
 		Tlb *                    _tlb;
 		Ram_dataspace_capability _utcb;
 		char                     _name[NAME_MAX_LEN];
@@ -109,8 +109,12 @@ namespace Genode {
 
 			/**
 			 * Run this thread
+			 *
+			 * \param ip      initial instruction pointer
+			 * \param sp      initial stack pointer
+			 * \param cpu_id  kernel name of targeted CPU
 			 */
-			int start(void * ip, void * sp, unsigned int cpu_no = 0);
+			int start(void * const ip, void * const sp, unsigned const cpu_id = 0);
 
 			/**
 			 * Pause this thread
@@ -182,9 +186,9 @@ namespace Genode {
 				return _thread_base;
 			}
 
-			Native_utcb * phys_utcb() const { return _phys_utcb; }
+			Native_utcb * utcb_phys() const { return _utcb_phys; }
 
-			Native_utcb * virt_utcb() const { return _virt_utcb; }
+			Native_utcb * utcb_virt() const { return _utcb_virt; }
 
 			Ram_dataspace_capability utcb() const { return _utcb; }
 
