@@ -31,7 +31,6 @@ namespace Genode {
 
 	class Pager_object;
 	class Thread_state;
-	class Thread_base;
 	class Rm_client;
 	class Platform_thread;
 
@@ -42,7 +41,6 @@ namespace Genode {
 	{
 		enum { LABEL_MAX_LEN = 32 };
 
-		Thread_base *            _thread_base;
 		size_t                   _stack_size;
 		unsigned                 _pd_id;
 		Weak_ptr<Address_space>  _address_space;
@@ -80,14 +78,12 @@ namespace Genode {
 			/**
 			 * Constructor for core threads
 			 *
-			 * \param label        debugging label
-			 * \param thread_base  Genode thread object
-			 * \param stack_size   initial size of the stack
-			 * \param pd_id        kernel name of targeted protection domain
+			 * \param label       debugging label
+			 * \param stack_size  initial size of the stack
+			 * \param pd_id       kernel name of targeted protection domain
 			 */
-			Platform_thread(const char * const label,
-			                Thread_base * const thread_base,
-			                size_t const stack_size, unsigned const pd_id);
+			Platform_thread(const char * const label, size_t const stack_size,
+			                unsigned const pd_id);
 
 			/**
 			 * Constructor for threads outside of core
@@ -185,14 +181,6 @@ namespace Genode {
 			Native_thread_id id() const { return _id; }
 
 			size_t stack_size() const { return _stack_size; }
-
-			Thread_base * thread_base()
-			{
-				if (!_thread_base && !_main_thread) {
-					PERR("invalid thread base");
-				}
-				return _thread_base;
-			}
 
 			Native_utcb * utcb_phys() const { return _utcb_phys; }
 

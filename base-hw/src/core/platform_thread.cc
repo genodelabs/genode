@@ -74,10 +74,9 @@ Platform_thread::~Platform_thread()
 
 
 Platform_thread::Platform_thread(const char * const label,
-                                 Thread_base * const thread_base,
-                                 size_t const stack_size, unsigned const pd_id)
+                                 size_t const stack_size,
+                                 unsigned const pd_id)
 :
-	_thread_base(thread_base),
 	_stack_size(stack_size),
 	_pd_id(pd_id),
 	_rm_client(0),
@@ -109,7 +108,6 @@ Platform_thread::Platform_thread(const char * const label,
                                  unsigned const priority,
                                  addr_t const utcb)
 :
-	_thread_base(0),
 	_stack_size(0),
 	_pd_id(0),
 	_rm_client(0),
