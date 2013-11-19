@@ -705,6 +705,15 @@ namespace Genode {
 				try { attribute(type); return true; } catch (...) { }
 				return false;
 			}
+
+			/**
+			 * Return true if sub node of specified type exists
+			 */
+			inline bool has_sub_node(char const *type) const
+			{
+				try { sub_node(type); return true; } catch (...) { }
+				return false;
+			}
 	};
 }
 
