@@ -112,13 +112,39 @@ static void process_config(Launchpad *launchpad)
 				Number_of_bytes default_ram_quota = 0;
 				ram_quota_attr.value(&default_ram_quota);
 
-				/* obtain configuration for the child */
-				Init::Child_config *config = new (env()->heap())
-					Init::Child_config(Genode::env()->ram_session_cap(), node);
+				/*
+				 * Obtain configuration for the child
+				 */
+				Dataspace_capability config_ds;
+
+				if (node.has_sub_node("configfile")
+				 && node.sub_node("configfile").has_attribute("name")) {
+
+				 	char name[128];
+				 	node.sub_node("configfile").attribute("name").value(name, sizeof(name));
+
+					Rom_connection config_rom(name);
+					config_rom.on_destruction(Rom_connection::KEEP_OPEN);
+
+					config_ds = config_rom.dataspace();
+				}
+
+				if (node.has_sub_node("config")) {
+
+					Xml_node config_node = node.sub_node("config");
+
+					/* allocate dataspace for config */
+					size_t const config_size = config_node.size();
+					config_ds = env()->ram_session()->alloc(config_size);
+
+					/* copy configuration into new dataspace */
+					char * const ptr = env()->rm_session()->attach(config_ds);
+					Genode::memcpy(ptr, config_node.addr(), config_size);
+					env()->rm_session()->detach(ptr);
+				}
 
 				/* add launchpad entry */
-				launchpad->add_launcher(filename, default_ram_quota,
-				                        config->dataspace());
+				launchpad->add_launcher(filename, default_ram_quota, config_ds);
 				launcher_cnt++;
 
 			} catch (...) {
