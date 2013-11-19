@@ -62,6 +62,7 @@ int main(int argc, char **argv)
 		plat_drv.enable(Platform::Session::I2C_3);
 		plat_drv.enable(Platform::Session::BUTTONS);
 		Input::Tablet_driver::factory(ev_queue);
+		break;
 	default:
 		PWRN("No input driver available for this board");
 	}
