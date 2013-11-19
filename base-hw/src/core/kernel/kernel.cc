@@ -38,7 +38,7 @@
 using namespace Kernel;
 
 /* get core configuration */
-extern Genode::Native_utcb * _main_utcb;
+extern Genode::Native_utcb * _main_thread_utcb;
 extern int _kernel_stack_high;
 extern "C" void CORE_MAIN();
 
@@ -232,8 +232,9 @@ extern "C" void kernel()
 
 			/* start thread with stack pointer at the top of stack */
 			static Native_utcb utcb;
-			_main_utcb = &utcb;
 			static Thread t(Priority::MAX, "core");
+			_main_thread_utcb = &utcb;
+			_main_thread_utcb->startup_msg.init(t.id());
 			t.ip = (addr_t)CORE_MAIN;;
 			t.sp = (addr_t)s + STACK_SIZE;
 			t.init(0, core_id(), &utcb, 1);

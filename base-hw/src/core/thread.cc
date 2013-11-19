@@ -22,18 +22,16 @@
 
 using namespace Genode;
 
-extern Genode::Native_utcb * _main_utcb;
+extern Genode::Native_utcb * _main_thread_utcb;
 
 namespace Kernel { unsigned core_id(); }
 
 
 Native_utcb * Thread_base::utcb()
 {
-	/* this is the main thread */
-	if (!this) { return _main_utcb; }
-
-	/* this isn't the main thread */
-	return _tid.pt->utcb_phys();
+	if (this) { return _tid.platform_thread->utcb_virt(); }
+	return _main_thread_utcb;
+	
 }
 
 
@@ -57,9 +55,10 @@ void Thread_base::_thread_start()
 
 
 Thread_base::Thread_base(const char *name, size_t stack_size)
-: _list_element(this)
+:
+	_list_element(this)
 {
-	_tid.pt = new (platform()->core_mem_alloc())
+	_tid.platform_thread = new (platform()->core_mem_alloc())
 		Platform_thread(name, stack_size, Kernel::core_id());
 }
 
@@ -74,7 +73,7 @@ Thread_base::~Thread_base()
 void Thread_base::start()
 {
 	/* allocate stack memory that fullfills the constraints for core stacks */
-	size_t const size = _tid.pt->stack_size();
+	size_t const size = _tid.platform_thread->stack_size();
 	if (size > (1 << CORE_STACK_ALIGNM_LOG2) - sizeof(Core_thread_id)) {
 		PERR("stack size does not fit stack alignment of core");
 		return;
@@ -92,7 +91,7 @@ void Thread_base::start()
 	/* start thread with stack pointer at the top of stack */
 	void * sp = (void *)((addr_t)base + size);
 	void * ip = (void *)&_thread_start;
-	if (_tid.pt->start(ip, sp)) {
+	if (_tid.platform_thread->start(ip, sp)) {
 		PERR("failed to start thread");
 		alloc->free(base, size);
 		return;
@@ -106,5 +105,8 @@ void Thread_base::join()
 }
 
 
-void Thread_base::cancel_blocking() { _tid.pt->cancel_blocking(); }
+void Thread_base::cancel_blocking()
+{
+	_tid.platform_thread->cancel_blocking();
+}
 

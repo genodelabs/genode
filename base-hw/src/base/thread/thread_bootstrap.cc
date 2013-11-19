@@ -20,5 +20,6 @@
 
 void Genode::Thread_base::_thread_bootstrap()
 {
-	_tid.tid = Kernel::current_thread_id();
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	_tid.thread_id = utcb->startup_msg.thread_id();
 }

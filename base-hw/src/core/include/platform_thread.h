@@ -182,7 +182,7 @@ namespace Genode {
 
 			size_t stack_size() const { return _stack_size; }
 
-			Native_utcb * utcb_phys() const { return _utcb_phys; }
+			Native_utcb * utcb_virt() const { return _utcb_virt; }
 
 			Ram_dataspace_capability utcb() const { return _utcb; }
 

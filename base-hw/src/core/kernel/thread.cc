@@ -449,9 +449,6 @@ void Thread::_call_yield_thread()
 }
 
 
-void Thread::_call_current_thread_id() { user_arg_0((Call_ret)id()); }
-
-
 void Thread::_call_wait_for_request()
 {
 	void * buf_base;
@@ -870,7 +867,6 @@ void Thread::_call()
 	case Call_id::START_THREAD:         _call_start_thread(); return;
 	case Call_id::PAUSE_THREAD:         _call_pause_thread(); return;
 	case Call_id::RESUME_THREAD:        _call_resume_thread(); return;
-	case Call_id::CURRENT_THREAD_ID:    _call_current_thread_id(); return;
 	case Call_id::YIELD_THREAD:         _call_yield_thread(); return;
 	case Call_id::REQUEST_AND_WAIT:     _call_request_and_wait(); return;
 	case Call_id::REPLY:                _call_reply(); return;

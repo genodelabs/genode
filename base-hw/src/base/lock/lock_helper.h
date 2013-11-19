@@ -1,5 +1,5 @@
 /*
- * \brief  Helper functions for the Lock implementation
+ * \brief  Helper functions for the lock implementation
  * \author Martin Stein
  * \date   2011-01-02
  */
@@ -11,55 +11,56 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _SRC__BASE__LOCK__LOCK_HELPER_H_
-#define _SRC__BASE__LOCK__LOCK_HELPER_H_
+#ifndef _LOCK_HELPER_H_
+#define _LOCK_HELPER_H_
 
 /* Genode includes */
 #include <base/native_types.h>
 #include <base/thread.h>
 
-
-extern Genode::Native_thread_id main_thread_tid;
-
-
-/**
- * Yield CPU to any other thread
- */
-static inline void thread_yield()
-{ Kernel::yield_thread(); }
+extern Genode::Native_thread_id _main_thread_id;
 
 
 /**
- * Yield CPU to a specified thread 't'
+ * Yield execution time-slice of current thread
  */
-static inline void
-thread_switch_to(Genode::Thread_base *thread_base)
+static inline void thread_yield() { Kernel::yield_thread(); }
+
+
+/**
+ * Return kernel name of thread t
+ */
+static inline Genode::Native_thread_id
+native_thread_id(Genode::Thread_base * const t)
 {
-	Genode::Native_thread_id t = thread_base ?
-	                             thread_base->tid().tid :
-	                             main_thread_tid;
-	Kernel::yield_thread(t);
+	return t ? t->tid().thread_id : _main_thread_id;
 }
 
 
 /**
- * Resume another thread 't' and return if it were paused or not
+ * Yield execution time-slice of current thread to thread t
+ */
+static inline void thread_switch_to(Genode::Thread_base * const t)
+{
+	Kernel::yield_thread(native_thread_id(t));
+}
+
+
+/**
+ * Resume thread t and return wether t was paused or not
  */
 static inline bool
-thread_check_stopped_and_restart(Genode::Thread_base *thread_base)
+thread_check_stopped_and_restart(Genode::Thread_base * const t)
 {
-	Genode::Native_thread_id t = thread_base ?
-	                             thread_base->tid().tid :
-	                             main_thread_tid;
-	return Kernel::resume_thread(t) == 0;
+	return Kernel::resume_thread(native_thread_id(t)) == 0;
 }
 
 
 /**
- * Exclude ourselves from CPU scheduling for now
+ * Pause execution of current thread
  */
 static inline void thread_stop_myself() { Kernel::pause_thread(); }
 
 
-#endif /* _SRC__BASE__LOCK__LOCK_HELPER_H_ */
+#endif /* _LOCK_HELPER_H_ */
 
