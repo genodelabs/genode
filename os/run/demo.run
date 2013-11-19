@@ -135,7 +135,9 @@ set launchpad_config_fd [open "bin/launchpad.config" w]
 puts $launchpad_config_fd {<config>
 	<launcher name="testnit"   ram_quota="768K" />
 	<launcher name="scout"     ram_quota="41M" />
-	<launcher name="launchpad" ram_quota="6M" />
+	<launcher name="launchpad" ram_quota="6M">
+		<configfile name="launchpad.config" />
+	</launcher>
 	<launcher name="nitlog"    ram_quota="1M" />
 	<launcher name="liquid_fb" ram_quota="7M" />
 	<launcher name="nitpicker" ram_quota="1M" />
