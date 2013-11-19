@@ -190,7 +190,6 @@ class Kernel::Thread
 		void _call_pause_thread();
 		void _call_resume_thread();
 		void _call_yield_thread();
-		void _call_current_thread_id();
 		void _call_wait_for_request();
 		void _call_request_and_wait();
 		void _call_reply();

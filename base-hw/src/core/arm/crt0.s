@@ -75,6 +75,6 @@
 
 	/* main-thread UTCB-pointer for the Genode thread-API */
 	.align 3
-	.global _main_utcb
-	_main_utcb:  .long 0
+	.global _main_thread_utcb
+	_main_thread_utcb: .long 0
 

@@ -28,8 +28,8 @@ namespace Genode
 
 	struct Native_thread
 	{
-		Native_thread_id  tid;
-		Platform_thread  *pt;
+		Platform_thread  * platform_thread;
+		Native_thread_id   thread_id;
 	};
 
 	typedef int Native_connection_state;
@@ -38,13 +38,12 @@ namespace Genode
 	enum { MIN_MAPPING_SIZE_LOG2 = 12 };
 
 	/**
-	 * Get kernel-object identifier of the current thread
+	 * Return kernel thread-name of the caller
 	 */
-	inline Native_thread_id thread_get_my_native_id()
-	{ return Kernel::current_thread_id(); }
+	Native_thread_id thread_get_my_native_id();
 
 	/**
-	 * Get the thread ID, wich is handled as invalid by the kernel
+	 * Return an invalid kernel thread-name
 	 */
 	inline Native_thread_id thread_invalid_id() { return 0; }
 
@@ -59,8 +58,9 @@ namespace Genode
 		struct Type
 		{
 			enum Id {
-				INVALID   = 0,
-				IPC       = 1,
+				INVALID = 0,
+				STARTUP = 1,
+				IPC     = 2,
 			};
 		};
 
@@ -78,48 +78,14 @@ namespace Genode
 	};
 
 	/**
-	 * Describes a userland-thread-context region
+	 * Message that is communicated from a thread creator to the new thread
 	 */
-	struct Native_utcb
-	{
-		union {
-			uint8_t       data[1 << MIN_MAPPING_SIZE_LOG2];
-			Msg           msg;
-			Ipc_msg       ipc_msg;
-		};
+	class Startup_msg;
 
-		void call_wait_for_request(void * & buf_base, size_t & buf_size)
-		{
-			msg.type = Msg::Type::INVALID;
-			buf_base = base();
-			buf_size = size();
-		}
-
-		void call_request_and_wait(void * & msg_base, size_t & msg_size,
-		                              void * & buf_base, size_t & buf_size)
-		{
-			msg.type = Msg::Type::IPC;
-			msg_base = ipc_msg_base();
-			msg_size = ipc_msg_size();
-			buf_base = base();
-			buf_size = size();
-		}
-
-		void call_reply(void * & msg_base, size_t & msg_size)
-		{
-			msg.type = Msg::Type::IPC;
-			msg_base = ipc_msg_base();
-			msg_size = ipc_msg_size();
-		}
-
-		size_t size() { return sizeof(data) / sizeof(data[0]); }
-		void * base() { return &data; }
-		addr_t top() { return (addr_t)base() + size(); }
-		void * ipc_msg_base() { return &ipc_msg; }
-		size_t ipc_msg_size() { return ipc_msg_header_size() + ipc_msg.size; }
-		size_t ipc_msg_max_size() { return top() - (addr_t)&ipc_msg; }
-		size_t ipc_msg_header_size() { return (addr_t)ipc_msg.data - (addr_t)&ipc_msg; }
-	};
+	/**
+	 * Memory region that is exclusive to every thread and known by the kernel
+	 */
+	struct Native_utcb;
 
 	struct Cap_dst_policy
 	{
@@ -145,7 +111,7 @@ namespace Genode
 	typedef Native_capability_tpl<Cap_dst_policy> Native_capability;
 
 	/**
-	 * A coherent address region
+	 * Coherent address region
 	 */
 	struct Native_region
 	{
@@ -169,6 +135,77 @@ namespace Genode
 
 	struct Native_pd_args { };
 }
+
+class Genode::Startup_msg : public Msg
+{
+	private:
+
+		Native_thread_id _thread_id;
+
+	public:
+
+		/**
+		 * Set-up valid startup message
+		 *
+		 * \param thread_id  kernel name of the thread that is started
+		 */
+		void init(Native_thread_id const thread_id)
+		{
+			_thread_id = thread_id;
+			type = Msg::Type::STARTUP;
+		}
+
+		/**
+		 * Return kernel name of started thread message-type-save
+		 */
+		Native_thread_id thread_id() const
+		{
+			if (type == Msg::Type::STARTUP) { return _thread_id; }
+			return thread_invalid_id();
+		}
+};
+
+struct Genode::Native_utcb
+{
+	union {
+		uint8_t     data[1 << MIN_MAPPING_SIZE_LOG2];
+		Msg         msg;
+		Ipc_msg     ipc_msg;
+		Startup_msg startup_msg;
+	};
+
+	void call_wait_for_request(void * & buf_base, size_t & buf_size)
+	{
+		msg.type = Msg::Type::INVALID;
+		buf_base = base();
+		buf_size = size();
+	}
+
+	void call_request_and_wait(void * & msg_base, size_t & msg_size,
+	                              void * & buf_base, size_t & buf_size)
+	{
+		msg.type = Msg::Type::IPC;
+		msg_base = ipc_msg_base();
+		msg_size = ipc_msg_size();
+		buf_base = base();
+		buf_size = size();
+	}
+
+	void call_reply(void * & msg_base, size_t & msg_size)
+	{
+		msg.type = Msg::Type::IPC;
+		msg_base = ipc_msg_base();
+		msg_size = ipc_msg_size();
+	}
+
+	size_t size() { return sizeof(data) / sizeof(data[0]); }
+	void * base() { return &data; }
+	addr_t top() { return (addr_t)base() + size(); }
+	void * ipc_msg_base() { return &ipc_msg; }
+	size_t ipc_msg_size() { return ipc_msg_header_size() + ipc_msg.size; }
+	size_t ipc_msg_max_size() { return top() - (addr_t)&ipc_msg; }
+	size_t ipc_msg_header_size() { return (addr_t)ipc_msg.data - (addr_t)&ipc_msg; }
+};
 
 #endif /* _BASE__NATIVE_TYPES_H_ */
 

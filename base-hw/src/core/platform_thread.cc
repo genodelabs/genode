@@ -190,7 +190,7 @@ int Platform_thread::start(void * const ip, void * const sp,
 	addr_t * write_regs = (addr_t *)Thread_base::myself()->utcb()->base();
 	write_regs[0] = Reg_id::IP;
 	write_regs[1] = Reg_id::SP;
-	addr_t write_values[] = { 
+	addr_t write_values[] = {
 		(addr_t)ip,
 		_main_thread ? (addr_t)_utcb_virt : (addr_t)sp
 	};
@@ -198,8 +198,9 @@ int Platform_thread::start(void * const ip, void * const sp,
 		PERR("failed to initialize thread registers");
 		return -1;
 	}
-	/* let thread participate in CPU scheduling */
-	_tlb = Kernel::start_thread(id(), cpu_id, _pd_id, _utcb_phys);
+	/* start executing new thread */
+	_utcb_phys->startup_msg.init(_id);
+	_tlb = Kernel::start_thread(_id, cpu_id, _pd_id, _utcb_phys);
 	if (!_tlb) {
 		PERR("failed to start thread");
 		return -1;

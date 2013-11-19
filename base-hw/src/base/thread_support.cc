@@ -21,20 +21,20 @@ using namespace Genode;
 
 extern Native_utcb * __initial_sp;
 
-namespace Genode { Rm_session  *env_context_area_rm_session(); }
+namespace Genode { Rm_session * env_context_area_rm_session(); }
 
 
 /*****************
  ** Thread_base **
  *****************/
 
+void Thread_base::_init_platform_thread() { }
+
+
 Native_utcb * Thread_base::utcb()
 {
-	/* this is a main thread, so CRT0 provides UTCB through '_main_utcb' */
-	if (!this) return __initial_sp;
-
-	/* otherwise we have a valid thread base */
-	return &_context->utcb;
+	if (this) { return &_context->utcb; }
+	return __initial_sp;
 }
 
 
@@ -47,19 +47,16 @@ void Thread_base::_thread_start()
 }
 
 
-void Thread_base::_init_platform_thread() { }
-
-
 void Thread_base::_deinit_platform_thread()
 {
-	/* detach UTCB */
+	/* detach userland thread-context */
 	size_t const size = sizeof(_context->utcb);
 	addr_t utcb = Context_allocator::addr_to_base(_context) +
 	              Native_config::context_virtual_size() - size -
 	              Native_config::context_area_virtual_base();
 	env_context_area_rm_session()->detach(utcb);
 
-	/* destroy object at the CPU session */
+	/* destroy server object */
 	env()->cpu_session()->kill_thread(_thread_cap);
 	if (_pager_cap.valid()) {
 		env()->rm_session()->remove_client(_pager_cap);
@@ -69,7 +66,7 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::start()
 {
-	/* create thread at core */
+	/* create server object */
 	char buf[48];
 	name(buf, sizeof(buf));
 	Cpu_session * cpu = env()->cpu_session();
@@ -78,11 +75,11 @@ void Thread_base::start()
 	/* assign thread to protection domain */
 	env()->pd_session()->bind_thread(_thread_cap);
 
-	/* create new pager object and assign it to the new thread */
+	/* create pager object and assign it to the thread */
 	_pager_cap = env()->rm_session()->add_client(_thread_cap);
 	env()->cpu_session()->set_pager(_thread_cap, _pager_cap);
 
-	/* attach UTCB */
+	/* attach userland thread-context */
 	try {
 		Ram_dataspace_capability ds = env()->cpu_session()->utcb(_thread_cap);
 		size_t const size = sizeof(_context->utcb);
@@ -91,7 +88,7 @@ void Thread_base::start()
 		             Native_config::context_area_virtual_base();
 		env_context_area_rm_session()->attach_at(ds, dst, size);
 	} catch (...) {
-		PERR("%s: Failed to attach UTCB", __PRETTY_FUNCTION__);
+		PERR("failed to attach userland thread-context");
 		sleep_forever();
 	}
 	/* start thread with its initial IP and aligned SP */
@@ -105,4 +102,3 @@ void Thread_base::cancel_blocking()
 {
 	env()->cpu_session()->cancel_blocking(_thread_cap);
 }
-

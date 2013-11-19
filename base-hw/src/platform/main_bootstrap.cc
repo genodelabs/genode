@@ -14,18 +14,24 @@
 
 /* Genode includes */
 #include <base/native_types.h>
+#include <base/thread.h>
 
+using namespace Genode;
 
 namespace Genode { void platform_main_bootstrap(); }
 
+Native_thread_id _main_thread_id;
 
-Genode::Native_thread_id main_thread_tid;
+
+Native_thread_id Genode::thread_get_my_native_id()
+{
+	Thread_base * const t = Thread_base::myself();
+	return t ? t->tid().thread_id : _main_thread_id;
+}
 
 
 void Genode::platform_main_bootstrap()
 {
-	static struct Bootstrap
-	{
-		Bootstrap() { main_thread_tid = Kernel::current_thread_id(); }
-	} bootstrap;
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	_main_thread_id = utcb->startup_msg.thread_id();
 }

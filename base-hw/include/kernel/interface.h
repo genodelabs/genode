@@ -43,29 +43,28 @@ namespace Kernel
 			START_THREAD         = 2,
 			PAUSE_THREAD         = 3,
 			RESUME_THREAD        = 4,
-			CURRENT_THREAD_ID    = 5,
-			YIELD_THREAD         = 6,
-			ACCESS_THREAD_REGS   = 7,
-			ROUTE_THREAD_EVENT   = 8,
-			UPDATE_PD            = 9,
-			UPDATE_REGION        = 10,
-			NEW_PD               = 11,
-			KILL_PD              = 12,
-			REQUEST_AND_WAIT     = 13,
-			REPLY                = 14,
-			WAIT_FOR_REQUEST     = 15,
-			NEW_SIGNAL_RECEIVER  = 16,
-			NEW_SIGNAL_CONTEXT   = 17,
-			KILL_SIGNAL_CONTEXT  = 18,
-			KILL_SIGNAL_RECEIVER = 19,
-			SUBMIT_SIGNAL        = 20,
-			AWAIT_SIGNAL         = 21,
-			SIGNAL_PENDING       = 22,
-			ACK_SIGNAL           = 23,
-			NEW_VM               = 24,
-			RUN_VM               = 25,
-			PAUSE_VM             = 26,
-			PRINT_CHAR           = 27,
+			YIELD_THREAD         = 5,
+			ACCESS_THREAD_REGS   = 6,
+			ROUTE_THREAD_EVENT   = 7,
+			UPDATE_PD            = 8,
+			UPDATE_REGION        = 9,
+			NEW_PD               = 10,
+			KILL_PD              = 11,
+			REQUEST_AND_WAIT     = 12,
+			REPLY                = 13,
+			WAIT_FOR_REQUEST     = 14,
+			NEW_SIGNAL_RECEIVER  = 15,
+			NEW_SIGNAL_CONTEXT   = 16,
+			KILL_SIGNAL_CONTEXT  = 17,
+			KILL_SIGNAL_RECEIVER = 18,
+			SUBMIT_SIGNAL        = 19,
+			AWAIT_SIGNAL         = 20,
+			SIGNAL_PENDING       = 21,
+			ACK_SIGNAL           = 22,
+			NEW_VM               = 23,
+			RUN_VM               = 24,
+			PAUSE_VM             = 25,
+			PRINT_CHAR           = 26,
 		};
 	};
 
@@ -292,15 +291,6 @@ namespace Kernel
 	inline void yield_thread(unsigned const id = 0)
 	{
 		call(Call_id::YIELD_THREAD, id);
-	}
-
-
-	/**
-	 * Get the thread ID of the current thread
-	 */
-	inline int current_thread_id()
-	{
-		return call(Call_id::CURRENT_THREAD_ID);
 	}
 
 
