@@ -26,7 +26,8 @@ namespace Kernel { void init_platform(); }
  */
 static unsigned irq_ids[] =
 {
-	Board::TIMER_IRQ
+	Board::TIMER_IRQ,
+	Board::DWC_IRQ
 };
 
 enum { IRQ_IDS_SIZE = sizeof(irq_ids)/sizeof(irq_ids[0]) };

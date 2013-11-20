@@ -51,6 +51,9 @@ namespace Genode
 			/* timer */
 			TIMER_IRQ = 0,
 
+			/* USB host controller */
+			DWC_IRQ = 17,
+
 			SECURITY_EXTENSION = 0,
 
 			/* CPU cache */
