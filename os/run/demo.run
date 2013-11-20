@@ -10,10 +10,11 @@ set build_components {
 	drivers/framebuffer drivers/pci drivers/input
 }
 
-lappend_if [have_spec usb]     build_components drivers/usb
-lappend_if [have_spec gpio]    build_components drivers/gpio
-lappend_if [have_spec imx53]   build_components drivers/platform
-lappend_if [have_spec exynos5] build_components drivers/platform
+lappend_if [have_spec usb]          build_components drivers/usb
+lappend_if [have_spec gpio]         build_components drivers/gpio
+lappend_if [have_spec imx53]        build_components drivers/platform
+lappend_if [have_spec exynos5]      build_components drivers/platform
+lappend_if [have_spec platform_rpi] build_components drivers/platform
 
 build $build_components
 
@@ -74,6 +75,13 @@ append_if [have_spec exynos5] config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Regulator"/></provides>
+		<config/>
+	</start>}
+
+append_if [have_spec platform_rpi] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Platform"/></provides>
 		<config/>
 	</start>}
 
@@ -159,15 +167,16 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if [have_spec linux]       boot_modules fb_sdl
-lappend_if [have_spec pci]         boot_modules pci_drv
-lappend_if [have_spec ps2]         boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec usb]         boot_modules usb_drv
-lappend_if [have_spec gpio]        boot_modules gpio_drv
-lappend_if [have_spec imx53]       boot_modules platform_drv
-lappend_if [have_spec exynos5]     boot_modules platform_drv
-lappend_if [have_spec imx53]       boot_modules input_drv
+lappend_if [have_spec linux]        boot_modules fb_sdl
+lappend_if [have_spec pci]          boot_modules pci_drv
+lappend_if [have_spec ps2]          boot_modules ps2_drv
+lappend_if [have_spec framebuffer]  boot_modules fb_drv
+lappend_if [have_spec usb]          boot_modules usb_drv
+lappend_if [have_spec gpio]         boot_modules gpio_drv
+lappend_if [have_spec imx53]        boot_modules platform_drv
+lappend_if [have_spec exynos5]      boot_modules platform_drv
+lappend_if [have_spec platform_rpi] boot_modules platform_drv
+lappend_if [have_spec imx53]        boot_modules input_drv
 
 build_boot_image $boot_modules
 
