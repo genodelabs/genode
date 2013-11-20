@@ -35,7 +35,7 @@ class Genode::Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION
 {
 	private:
 
-		Capability<SESSION> const &_session;
+		Capability<SESSION> const _session;
 
 	public:
 

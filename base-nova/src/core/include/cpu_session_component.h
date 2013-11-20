@@ -57,8 +57,8 @@ namespace Genode {
 
 			Thread_name               const  _name;
 			Platform_thread                  _platform_thread;
-			bool                             _bound;   /* pd binding flag */
-			Signal_context_capability        &_sigh;   /* exception handler */
+			bool                             _bound;  /* pd binding flag */
+			Signal_context_capability        _sigh;   /* exception handler */
 			unsigned                  const  _trace_control_index;
 			Trace::Source                    _trace_source;
 

@@ -36,10 +36,10 @@ namespace {
 		 */
 		class Transfer {
 
-			bool                          _ack;
-			size_t                        _quantum;
-			Ram_session_capability const &_from;
-			Ram_session_capability const &_to;
+			bool                         _ack;
+			size_t                       _quantum;
+			Ram_session_capability const _from;
+			Ram_session_capability const _to;
 
 			public:
 
