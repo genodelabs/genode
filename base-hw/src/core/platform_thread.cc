@@ -73,9 +73,9 @@ Platform_thread::~Platform_thread()
 }
 
 
-Platform_thread::Platform_thread(const char * const label,
-                                 size_t const stack_size,
-                                 unsigned const pd_id)
+Platform_thread::Platform_thread(size_t const stack_size,
+                                 unsigned const pd_id,
+                                 const char * const label)
 :
 	_stack_size(stack_size),
 	_pd_id(pd_id),
@@ -105,7 +105,7 @@ Platform_thread::Platform_thread(const char * const label,
 
 
 Platform_thread::Platform_thread(const char * const label,
-                                 unsigned const priority,
+                                 unsigned const virt_prio,
                                  addr_t const utcb)
 :
 	_stack_size(0),
@@ -132,7 +132,9 @@ Platform_thread::Platform_thread(const char * const label,
 	_utcb_phys = (Native_utcb *)ram->phys_addr(_utcb);
 
 	/* create kernel object */
-	_id = Kernel::new_thread(_kernel_thread, priority, _label);
+	enum { MAX_PRIO = Kernel::Priority::MAX };
+	auto const phys_prio = Cpu_session::scale_priority(MAX_PRIO, virt_prio);
+	_id = Kernel::new_thread(_kernel_thread, phys_prio, _label);
 	if (!_id) {
 		PERR("failed to create kernel object");
 		throw Cpu_session::Thread_creation_failed();

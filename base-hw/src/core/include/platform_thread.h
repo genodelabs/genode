@@ -78,21 +78,21 @@ namespace Genode {
 			/**
 			 * Constructor for core threads
 			 *
-			 * \param label       debugging label
 			 * \param stack_size  initial size of the stack
 			 * \param pd_id       kernel name of targeted protection domain
+			 * \param label       debugging label
 			 */
-			Platform_thread(const char * const label, size_t const stack_size,
-			                unsigned const pd_id);
+			Platform_thread(size_t const stack_size,
+			                unsigned const pd_id, const char * const label);
 
 			/**
 			 * Constructor for threads outside of core
 			 *
-			 * \param label     debugging label
-			 * \param priority  processor-scheduling priority
-			 * \param utcb      core local pointer to userland thread-context
+			 * \param label      debugging label
+			 * \param virt_prio  unscaled processor-scheduling priority
+			 * \param utcb       core local pointer to userland thread-context
 			 */
-			Platform_thread(const char * const label, unsigned const priority,
+			Platform_thread(const char * const label, unsigned const virt_prio,
 			                addr_t const utcb);
 
 			/**
