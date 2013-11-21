@@ -57,17 +57,17 @@ namespace Genode
 	 * \param MAX_SIZE  maximum size the object is allowed to take
 	 */
 	template <size_t MAX_SIZE>
-	struct Message;
+	struct Message_tpl;
 
 	/**
-	 * Message that is communicated from a thread creator to the new thread
+	 * Information that a thread creator hands out to a new thread
 	 */
 	class Start_info;
 
 	/**
 	 * Memory region that is exclusive to every thread and known by the kernel
 	 */
-	struct Native_utcb;
+	class Native_utcb;
 
 	struct Cap_dst_policy
 	{
@@ -119,7 +119,7 @@ namespace Genode
 }
 
 template <Genode::size_t MAX_SIZE>
-class Genode::Message
+class Genode::Message_tpl
 {
 	private:
 
@@ -150,8 +150,9 @@ class Genode::Message
 		 * \return buf_size  size of receive buffer
 		 */
 		void info_about_await_request(void * & buf_base, size_t & buf_size)
+		const
 		{
-			buf_base = this;
+			buf_base = (void *)this;
 			buf_size = MAX_SIZE;
 		}
 
@@ -165,10 +166,11 @@ class Genode::Message
 		 */
 		void info_about_send_request(void * & msg_base, size_t & msg_size,
 		                             void * & buf_base, size_t & buf_size)
+		const
 		{
-			msg_base = this;
+			msg_base = (void *)this;
 			msg_size = _size();
-			buf_base = this;
+			buf_base = (void *)this;
 			buf_size = MAX_SIZE;
 		}
 
@@ -179,8 +181,9 @@ class Genode::Message
 		 * \return msg_size  size of complete send-message data
 		 */
 		void info_about_send_reply(void * & msg_base, size_t & msg_size)
+		const
 		{
-			msg_base = this;
+			msg_base = (void *)this;
 			msg_size = _size();
 		}
 
@@ -250,19 +253,28 @@ class Genode::Start_info
 		Native_thread_id thread_id() const { return _thread_id; }
 };
 
-struct Genode::Native_utcb
+class Genode::Native_utcb
 {
-	enum { SIZE = 1 << MIN_MAPPING_SIZE_LOG2 };
+	private:
 
-	union {
-		uint8_t       data[SIZE];
-		Message<SIZE> message;
-		Start_info    start_info;
-	};
+		uint8_t _data[1 << MIN_MAPPING_SIZE_LOG2];
 
-	size_t size() const { return SIZE; }
+	public:
 
-	void * base() const { return (void *)data; }
+		typedef Message_tpl<sizeof(_data)/sizeof(_data[0])> Message;
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Message * message() const { return (Message *)_data; }
+
+		Start_info * start_info() const { return (Start_info *)_data; }
+
+		size_t size() const { return sizeof(_data)/sizeof(_data[0]); }
+
+		void * base() const { return (void *)_data; }
 };
 
 #endif /* _BASE__NATIVE_TYPES_H_ */

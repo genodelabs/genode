@@ -234,7 +234,7 @@ extern "C" void kernel()
 			static Native_utcb utcb;
 			static Thread t(Priority::MAX, "core");
 			_main_thread_utcb = &utcb;
-			_main_thread_utcb->start_info.init(t.id());
+			_main_thread_utcb->start_info()->init(t.id());
 			t.ip = (addr_t)CORE_MAIN;;
 			t.sp = (addr_t)s + STACK_SIZE;
 			t.init(0, core_id(), &utcb, 1);

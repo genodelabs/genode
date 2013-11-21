@@ -79,12 +79,12 @@ void Ipc_client::_call()
 	/* send request and receive corresponding reply */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message.prepare_send(_snd_msg->buf, _write_offset, local_name);
+	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
 	if (Kernel::send_request_msg(Ipc_ostream::_dst.dst())) {
 		PERR("failed to receive reply");
 		throw Blocking_canceled();
 	}
-	utcb->message.finish_receive(_rcv_msg->buf, _rcv_msg->size());
+	utcb->message()->finish_receive(_rcv_msg->buf, _rcv_msg->size());
 
 	/* reset unmarshaller */
 	_write_offset = _read_offset = RPC_OBJECT_ID_SIZE;
@@ -129,7 +129,7 @@ void Ipc_server::_wait()
 		throw Blocking_canceled();
 	}
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message.finish_receive(_rcv_msg->buf, _rcv_msg->size());
+	utcb->message()->finish_receive(_rcv_msg->buf, _rcv_msg->size());
 
 	/* update server state */
 	_prepare_next_reply_wait();
@@ -140,7 +140,7 @@ void Ipc_server::_reply()
 {
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message.prepare_send(_snd_msg->buf, _write_offset, local_name);
+	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
 	Kernel::send_reply_msg(0);
 }
 
@@ -155,12 +155,12 @@ void Ipc_server::_reply_wait()
 	/* send reply and receive next request */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->message.prepare_send(_snd_msg->buf, _write_offset, local_name);
+	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
 	if (Kernel::send_reply_msg(1)) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
-	utcb->message.finish_receive(_rcv_msg->buf, _rcv_msg->size());
+	utcb->message()->finish_receive(_rcv_msg->buf, _rcv_msg->size());
 
 	/* update server state */
 	_prepare_next_reply_wait();
