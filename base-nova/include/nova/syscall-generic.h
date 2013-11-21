@@ -193,13 +193,22 @@ namespace Nova {
 				ESP  = 1 << 2,
 				EIP  = 1 << 3,
 				EFL  = 1 << 4,   /* eflags */
+				ESDS = 1 << 5,
 				FSGS = 1 << 6,
 				CSSS = 1 << 7,
+				TR   = 1 << 8,
+				LDTR = 1 << 9,
+				GDTR = 1 << 10,
+				IDTR = 1 << 11,
+				CR   = 1 << 12,
+				DR   = 1 << 13,  /* DR7 */
+				SYS  = 1 << 14,  /* Sysenter MSRs CS, ESP, EIP */
 				QUAL = 1 << 15,  /* exit qualification */
 				CTRL = 1 << 16,  /* execution controls */
 				INJ  = 1 << 17,  /* injection info */
 				STA  = 1 << 18,  /* interruptibility state */
 				TSC  = 1 << 19,  /* time-stamp counter */
+				EFER = 1 << 20,  /* EFER MSR */
 
 				IRQ  = EFL | STA | INJ | TSC,
 				ALL  = 0x000fffff & ~CTRL,
@@ -437,10 +446,10 @@ namespace Nova {
 #endif
 				unsigned long long qual[2];  /* exit qualification */
 				unsigned ctrl[2];
-				unsigned long long tsc;
+				unsigned long long reserved;
 				mword_t cr0, cr2, cr3, cr4;
 #ifdef __x86_64__
-				mword_t cr8, reserved;
+				mword_t cr8, efer;
 #endif
 				mword_t dr7, sysenter_cs, sysenter_sp, sysenter_ip;
 
@@ -460,6 +469,7 @@ namespace Nova {
 					mword_t  reserved1;	
 #endif
 				} gdtr, idtr;
+				unsigned long long tsc_val, tsc_off;
 			} __attribute__((packed));
 		};
 
