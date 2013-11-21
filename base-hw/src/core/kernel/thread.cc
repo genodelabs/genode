@@ -131,10 +131,6 @@ void Thread::_await_ipc_failed()
 		user_arg_0(-1);
 		_schedule();
 		return;
-	case SCHEDULED:
-		PERR("failed to receive IPC");
-		_stop();
-		return;
 	default:
 		PERR("wrong thread state to cancel IPC");
 		_stop();
