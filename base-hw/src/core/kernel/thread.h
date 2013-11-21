@@ -190,9 +190,9 @@ class Kernel::Thread
 		void _call_pause_thread();
 		void _call_resume_thread();
 		void _call_yield_thread();
-		void _call_wait_for_request();
-		void _call_request_and_wait();
-		void _call_reply();
+		void _call_await_request_msg();
+		void _call_send_request_msg();
+		void _call_send_reply_msg();
 		void _call_update_pd();
 		void _call_update_region();
 		void _call_print_char();

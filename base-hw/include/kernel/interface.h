@@ -50,9 +50,9 @@ namespace Kernel
 			UPDATE_REGION        = 9,
 			NEW_PD               = 10,
 			KILL_PD              = 11,
-			REQUEST_AND_WAIT     = 12,
-			REPLY                = 13,
-			WAIT_FOR_REQUEST     = 14,
+			SEND_REQUEST_MSG     = 12,
+			SEND_REPLY_MSG       = 13,
+			AWAIT_REQUEST_MSG    = 14,
 			NEW_SIGNAL_RECEIVER  = 15,
 			NEW_SIGNAL_CONTEXT   = 16,
 			KILL_SIGNAL_CONTEXT  = 17,
@@ -317,13 +317,13 @@ namespace Kernel
 	/**
 	 * Send IPC request and await corresponding IPC reply
 	 *
-	 * \param id  kernel name of the server thread
+	 * \param thread_id  kernel name of targeted thread
 	 *
 	 * As soon as call returns, callers UTCB provides received message.
 	 */
-	inline void request_and_wait(unsigned const id)
+	inline void send_request_msg(unsigned const thread_id)
 	{
-		call(Call_id::REQUEST_AND_WAIT, id);
+		call(Call_id::SEND_REQUEST_MSG, thread_id);
 	}
 
 
@@ -334,23 +334,23 @@ namespace Kernel
 	 *
 	 * As soon as call returns, callers UTCB provides received message.
 	 */
-	inline void wait_for_request()
+	inline void await_request_msg()
 	{
-		call(Call_id::WAIT_FOR_REQUEST);
+		call(Call_id::AWAIT_REQUEST_MSG);
 	}
 
 
 	/**
 	 * Reply to lastly received message
 	 *
-	 * \param await_message  wether the call shall await receipt of a message
+	 * \param await_request_msg  wether the call shall await a request message
 	 *
-	 * If await_request = 1, callers UTCB provides received message
-	 * as soon as call returns
+	 * As soon as call returns, callers UTCB provides received message if
+	 * await_request_msg is set.
 	 */
-	inline void reply(bool const await_message)
+	inline void send_reply_msg(bool const await_request_msg)
 	{
-		call(Call_id::REPLY, await_message);
+		call(Call_id::SEND_REPLY_MSG, await_request_msg);
 	}
 
 

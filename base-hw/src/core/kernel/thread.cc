@@ -449,16 +449,16 @@ void Thread::_call_yield_thread()
 }
 
 
-void Thread::_call_wait_for_request()
+void Thread::_call_await_request_msg()
 {
 	void * buf_base;
 	size_t buf_size;
-	_utcb_phys->call_wait_for_request(buf_base, buf_size);
+	_utcb_phys->call_await_request_msg(buf_base, buf_size);
 	Ipc_node::await_request(buf_base, buf_size);
 }
 
 
-void Thread::_call_request_and_wait()
+void Thread::_call_send_request_msg()
 {
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
@@ -470,21 +470,21 @@ void Thread::_call_request_and_wait()
 	size_t msg_size;
 	void * buf_base;
 	size_t buf_size;
-	_utcb_phys->call_request_and_wait(msg_base, msg_size,
-	                                     buf_base, buf_size);
+	_utcb_phys->call_send_request_msg(msg_base, msg_size,
+	                                  buf_base, buf_size);
 	Ipc_node::send_request_await_reply(dst, msg_base, msg_size,
 	                                   buf_base, buf_size);
 }
 
 
-void Thread::_call_reply()
+void Thread::_call_send_reply_msg()
 {
 	void * msg_base;
 	size_t msg_size;
-	_utcb_phys->call_reply(msg_base, msg_size);
+	_utcb_phys->call_send_reply_msg(msg_base, msg_size);
 	Ipc_node::send_reply(msg_base, msg_size);
-	bool const await_request = user_arg_1();
-	if (await_request) { _call_wait_for_request(); }
+	bool const await_request_msg = user_arg_1();
+	if (await_request_msg) { _call_await_request_msg(); }
 }
 
 
@@ -868,9 +868,9 @@ void Thread::_call()
 	case Call_id::PAUSE_THREAD:         _call_pause_thread(); return;
 	case Call_id::RESUME_THREAD:        _call_resume_thread(); return;
 	case Call_id::YIELD_THREAD:         _call_yield_thread(); return;
-	case Call_id::REQUEST_AND_WAIT:     _call_request_and_wait(); return;
-	case Call_id::REPLY:                _call_reply(); return;
-	case Call_id::WAIT_FOR_REQUEST:     _call_wait_for_request(); return;
+	case Call_id::SEND_REQUEST_MSG:     _call_send_request_msg(); return;
+	case Call_id::SEND_REPLY_MSG:       _call_send_reply_msg(); return;
+	case Call_id::AWAIT_REQUEST_MSG:    _call_await_request_msg(); return;
 	case Call_id::UPDATE_PD:            _call_update_pd(); return;
 	case Call_id::UPDATE_REGION:        _call_update_region(); return;
 	case Call_id::NEW_PD:               _call_new_pd(); return;

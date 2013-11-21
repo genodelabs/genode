@@ -116,12 +116,10 @@ Ipc_istream::~Ipc_istream() { }
 
 void Ipc_client::_call()
 {
-	using namespace Kernel;
-
 	/* send request */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
-	request_and_wait(Ipc_ostream::_dst.dst());
+	Kernel::send_request_msg(Ipc_ostream::_dst.dst());
 
 	/* receive reply */
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
@@ -169,7 +167,7 @@ void Ipc_server::_prepare_next_reply_wait()
 void Ipc_server::_wait()
 {
 	/* receive next request */
-	Kernel::wait_for_request();
+	Kernel::await_request_msg();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	if (utcb->msg.type != Msg::Type::IPC) {
 		PERR("failed to receive request");
@@ -186,7 +184,7 @@ void Ipc_server::_reply()
 {
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	utcb->ipc_msg.size = _write_offset;
-	Kernel::reply(0);
+	Kernel::send_reply_msg(0);
 }
 
 
@@ -200,7 +198,7 @@ void Ipc_server::_reply_wait()
 	/* send reply an await request */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
-	Kernel::reply(1);
+	Kernel::send_reply_msg(1);
 
 	/* fetch request */
 	Native_utcb * const utcb = Thread_base::myself()->utcb();

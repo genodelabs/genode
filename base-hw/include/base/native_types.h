@@ -174,15 +174,15 @@ struct Genode::Native_utcb
 		Startup_msg startup_msg;
 	};
 
-	void call_wait_for_request(void * & buf_base, size_t & buf_size)
+	void call_await_request_msg(void * & buf_base, size_t & buf_size)
 	{
 		msg.type = Msg::Type::INVALID;
 		buf_base = base();
 		buf_size = size();
 	}
 
-	void call_request_and_wait(void * & msg_base, size_t & msg_size,
-	                              void * & buf_base, size_t & buf_size)
+	void call_send_request_msg(void * & msg_base, size_t & msg_size,
+	                           void * & buf_base, size_t & buf_size)
 	{
 		msg.type = Msg::Type::IPC;
 		msg_base = ipc_msg_base();
@@ -191,7 +191,7 @@ struct Genode::Native_utcb
 		buf_size = size();
 	}
 
-	void call_reply(void * & msg_base, size_t & msg_size)
+	void call_send_reply_msg(void * & msg_base, size_t & msg_size)
 	{
 		msg.type = Msg::Type::IPC;
 		msg_base = ipc_msg_base();
