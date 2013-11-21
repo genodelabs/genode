@@ -1,0 +1,113 @@
+
+                        ==============================
+                        VMM on the i.MX53 SABRE Tablet
+                        ==============================
+
+
+                               Stefan Kalkowski
+
+
+This virtual machine monitor is a demonstration prototype to showcase how
+Android runs side by side with Genode. Thereby the TrustZone features of
+platform are used together with the TrustZone aware hw kernel, which is
+part of the Genode operating system framework. This small README helps to
+reproduce the demonstration scenario
+
+
+Shortcut
+########
+
+You can take a ready to use binary image of the whole demonstration scenario
+instead of following the below-mentioned build steps. Just download:
+
+! wget -c -O image.bin http://genode.org/files/images/imx53_tablet/android_trustzone.bin
+
+When you've loaded 'image.bin' to address 0x70800000 (via network, or MMC),
+just jump to the address via uBoot's 'go' command, and the demo will boot.
+
+
+Prerequisites
+#############
+
+First you need a copy of the demo branch:
+
+! git clone git@github.com:skalk/genode.git
+! cd genode
+! git checkout origin/i.MX53_tablet_demo -b i.MX53_tablet_demo
+
+Genode makes use of various third party OSS projects. The demo depends
+on a few of them, so you've to download, unpack, and prepare them before.
+In the Genode source directory do:
+
+! make -C libports PKG="freetype jpeg libc libpng qoost stdcxx zlib" prepare
+! make -C qt4 prepare
+
+Moreover, a corresponding Linux kernel version is needed, including all
+platform support from Freescale, and some modifications so that the
+Linux kernel runs cooperatively on the non-secure side:
+
+! git clone git@github.com:skalk/linux.git
+! cd linux
+! git checkout origin/imx53-tz -b imx53-tz
+
+
+Building the Linux guest kernel
+###############################
+
+To build the Linux kernel, you need an appropriated cross compiler to be
+installed. The Codesourcery GCC compiler 4.3.3 is successfully tested to
+compile this version:
+
+! make CROSS_COMPILE=/opt/CodeSourcery/Sourcery_G++_Lite/bin/arm-none-linux-gnueabi- ARCH=arm imx5_android_tz_defconfig
+! make CROSS_COMPILE=/opt/CodeSourcery/Sourcery_G++_Lite/bin/arm-none-linux-gnueabi- ARCH=arm -j4 uImage
+
+
+Building the whole demo
+#######################
+
+Genode depends on its own GCC toolchain configuration. For help on how to
+install it, please refer to:
+
+! http://genode.org/download/tool-chain
+
+First you've to create an appropriated build directory. Therefore go to the
+directory containing the Genode source code and type:
+
+! tool/create_builddir hw_imx53 BUILD_DIR=hw_imx53
+! cd hw_imx53
+
+The parts that are build, as well as the SPEC variable needs to be adapted:
+
+! echo "SPECS += trustzone qt4_deprecated" >> etc/specs.conf
+! sed -i "/REP.*libports$/s/^#//" etc/build.conf
+! sed -i "/REP.*qt4$/s/^#//"      etc/build.conf
+! sed -i "/REP.*ports$/s/^#//"    etc/build.conf
+! sed -i "/REP.*gems$/s/^#//"     etc/build.conf
+
+Now, copy the Linux kernel binary to the 'bin' subdirectory of the build
+directory (excluding the uImage header):
+
+! dd if=<path_to_linux_build_dir>/arch/arm/boot/uImage of=bin/linux bs=64 skip=1
+
+Moreover, the initramfs for the Linux kernel to boot the pre-installed Android
+from i.MX53 tablet's eMMC is needed. We took it from the
+'imx-android-r10.4_bundle_BSP.tar.gz' archive from Freescale's website. An
+already unpacked version can be found on our webserver:
+
+! wget -c -O bin/initrd.gz http://genode.org/files/images/imx53_tablet/initrd_android_emmc.gz
+
+The demo contains a background image, copy it from the source tree:
+
+! cp ../demo/src/app/backdrop/sticks_blue.png bin/background.png
+
+Finally, build the whole image (may take some time):
+
+! make run/vmm
+
+The resulting images can be found in 'var/run/vmm' in your build directory.
+To directly load the image via uBoot into memory (target address 0x70800000),
+you can use objcopy on the elf image to get an appropriated binary:
+
+! /usr/local/genode/bin/genode-arm-objcopy -O binary var/run/image.elf var/run/image.bin
+
+After that follow the steps in the #Shortcut section.
