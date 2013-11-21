@@ -62,7 +62,7 @@ namespace Genode
 	/**
 	 * Message that is communicated from a thread creator to the new thread
 	 */
-	class Startup_msg;
+	class Start_info;
 
 	/**
 	 * Memory region that is exclusive to every thread and known by the kernel
@@ -227,7 +227,7 @@ class Genode::Message
 		}
 };
 
-class Genode::Startup_msg
+class Genode::Start_info
 {
 	private:
 
@@ -257,7 +257,7 @@ struct Genode::Native_utcb
 	union {
 		uint8_t       data[SIZE];
 		Message<SIZE> message;
-		Startup_msg   startup_msg;
+		Start_info    start_info;
 	};
 
 	size_t size() const { return SIZE; }

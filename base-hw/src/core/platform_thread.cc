@@ -201,7 +201,7 @@ int Platform_thread::start(void * const ip, void * const sp,
 		return -1;
 	}
 	/* start executing new thread */
-	_utcb_phys->startup_msg.init(_id);
+	_utcb_phys->start_info.init(_id);
 	_tlb = Kernel::start_thread(_id, cpu_id, _pd_id, _utcb_phys);
 	if (!_tlb) {
 		PERR("failed to start thread");

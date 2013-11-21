@@ -36,7 +36,7 @@ void Genode::platform_main_bootstrap()
 	static bool main_thread_id_valid = 0;
 	if (!main_thread_id_valid) {
 		Native_utcb * const utcb = Thread_base::myself()->utcb();
-		_main_thread_id = utcb->startup_msg.thread_id();
+		_main_thread_id = utcb->startup_info.thread_id();
 		main_thread_id_valid = 1;
 	}
 }
