@@ -52,12 +52,12 @@ namespace Genode
 	inline Native_thread_id thread_invalid_id() { return 0; }
 
 	/**
-	 * Message that is communicated between user threads
+	 * Data bunch with variable size that is communicated between threads
 	 *
 	 * \param MAX_SIZE  maximum size the object is allowed to take
 	 */
 	template <size_t MAX_SIZE>
-	struct Ipc_msg;
+	struct Message;
 
 	/**
 	 * Message that is communicated from a thread creator to the new thread
@@ -119,7 +119,7 @@ namespace Genode
 }
 
 template <Genode::size_t MAX_SIZE>
-class Genode::Ipc_msg
+class Genode::Message
 {
 	private:
 
@@ -256,7 +256,7 @@ struct Genode::Native_utcb
 
 	union {
 		uint8_t       data[SIZE];
-		Ipc_msg<SIZE> ipc_msg;
+		Message<SIZE> message;
 		Startup_msg   startup_msg;
 	};
 
