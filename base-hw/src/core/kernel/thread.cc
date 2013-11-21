@@ -84,6 +84,7 @@ void Thread::_received_ipc_request(size_t const s)
 {
 	switch (_state) {
 	case SCHEDULED:
+		user_arg_0(0);
 		return;
 	default:
 		PERR("wrong thread state to receive IPC");
@@ -112,6 +113,7 @@ void Thread::_await_ipc_succeeded(size_t const s)
 {
 	switch (_state) {
 	case AWAITS_IPC:
+		user_arg_0(0);
 		_schedule();
 		return;
 	default:
@@ -126,6 +128,7 @@ void Thread::_await_ipc_failed()
 {
 	switch (_state) {
 	case AWAITS_IPC:
+		user_arg_0(-1);
 		_schedule();
 		return;
 	case SCHEDULED:
@@ -485,6 +488,7 @@ void Thread::_call_send_reply_msg()
 	Ipc_node::send_reply(msg_base, msg_size);
 	bool const await_request_msg = user_arg_1();
 	if (await_request_msg) { _call_await_request_msg(); }
+	else { user_arg_0(0); }
 }
 
 

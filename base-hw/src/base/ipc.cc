@@ -116,14 +116,10 @@ Ipc_istream::~Ipc_istream() { }
 
 void Ipc_client::_call()
 {
-	/* send request */
+	/* send request and receive corresponding reply */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
-	Kernel::send_request_msg(Ipc_ostream::_dst.dst());
-
-	/* receive reply */
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	if (utcb->msg.type != Msg::Type::IPC) {
+	if (Kernel::send_request_msg(Ipc_ostream::_dst.dst())) {
 		PERR("failed to receive reply");
 		throw Blocking_canceled();
 	}
@@ -166,10 +162,8 @@ void Ipc_server::_prepare_next_reply_wait()
 
 void Ipc_server::_wait()
 {
-	/* receive next request */
-	Kernel::await_request_msg();
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	if (utcb->msg.type != Msg::Type::IPC) {
+	/* receive request */
+	if (Kernel::await_request_msg()) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
@@ -195,14 +189,10 @@ void Ipc_server::_reply_wait()
 		_wait();
 		return;
 	}
-	/* send reply an await request */
+	/* send reply and receive next request */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
-	Kernel::send_reply_msg(1);
-
-	/* fetch request */
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	if (utcb->msg.type != Msg::Type::IPC) {
+	if (Kernel::send_reply_msg(1)) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
@@ -211,4 +201,3 @@ void Ipc_server::_reply_wait()
 	/* update server state */
 	_prepare_next_reply_wait();
 }
-

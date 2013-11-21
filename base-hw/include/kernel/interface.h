@@ -315,42 +315,51 @@ namespace Kernel
 
 
 	/**
-	 * Send IPC request and await corresponding IPC reply
+	 * Send request message and await receipt of corresponding reply message
 	 *
 	 * \param thread_id  kernel name of targeted thread
 	 *
-	 * As soon as call returns, callers UTCB provides received message.
+	 * \retval  0  succeeded
+	 * \retval -1  failed
+	 *
+	 * If the call returns successful, the received message is located at the
+	 * base of the callers userland thread-context.
 	 */
-	inline void send_request_msg(unsigned const thread_id)
+	inline int send_request_msg(unsigned const thread_id)
 	{
-		call(Call_id::SEND_REQUEST_MSG, thread_id);
+		return call(Call_id::SEND_REQUEST_MSG, thread_id);
 	}
 
 
 	/**
-	 * Await the receipt of a message
+	 * Await receipt of request message
 	 *
-	 * \return  type of received message
+	 * \retval  0  succeeded
+	 * \retval -1  failed
 	 *
-	 * As soon as call returns, callers UTCB provides received message.
+	 * If the call returns successful, the received message is located at the
+	 * base of the callers userland thread-context.
 	 */
-	inline void await_request_msg()
+	inline int await_request_msg()
 	{
-		call(Call_id::AWAIT_REQUEST_MSG);
+		return call(Call_id::AWAIT_REQUEST_MSG);
 	}
 
 
 	/**
-	 * Reply to lastly received message
+	 * Reply to lastly received request message
 	 *
 	 * \param await_request_msg  wether the call shall await a request message
 	 *
-	 * As soon as call returns, callers UTCB provides received message if
-	 * await_request_msg is set.
+	 * \retval  0  await_request_msg == 0 or request-message receipt succeeded
+	 * \retval -1  await_request_msg == 1 and request-message receipt failed
+	 *
+	 * If the call returns successful and await_request_msg == 1, the received
+	 * message is located at the base of the callers userland thread-context.
 	 */
-	inline void send_reply_msg(bool const await_request_msg)
+	inline int send_reply_msg(bool const await_request_msg)
 	{
-		call(Call_id::SEND_REPLY_MSG, await_request_msg);
+		return call(Call_id::SEND_REPLY_MSG, await_request_msg);
 	}
 
 

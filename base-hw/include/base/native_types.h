@@ -48,30 +48,9 @@ namespace Genode
 	inline Native_thread_id thread_invalid_id() { return 0; }
 
 	/**
-	 * Message that is communicated synchronously
-	 */
-	struct Msg
-	{
-		/**
-		 * Types of synchronously communicated messages
-		 */
-		struct Type
-		{
-			enum Id {
-				INVALID = 0,
-				STARTUP = 1,
-				IPC     = 2,
-			};
-		};
-
-		Type::Id type;
-		uint8_t  data[];
-	};
-
-	/**
 	 * Message that is communicated between user threads
 	 */
-	struct Ipc_msg : Msg
+	struct Ipc_msg
 	{
 		size_t  size;
 		uint8_t data[];
@@ -136,7 +115,7 @@ namespace Genode
 	struct Native_pd_args { };
 }
 
-class Genode::Startup_msg : public Msg
+class Genode::Startup_msg
 {
 	private:
 
@@ -149,34 +128,26 @@ class Genode::Startup_msg : public Msg
 		 *
 		 * \param thread_id  kernel name of the thread that is started
 		 */
-		void init(Native_thread_id const thread_id)
-		{
-			_thread_id = thread_id;
-			type = Msg::Type::STARTUP;
-		}
+		void init(Native_thread_id const thread_id) { _thread_id = thread_id; }
 
-		/**
-		 * Return kernel name of started thread message-type-save
-		 */
-		Native_thread_id thread_id() const
-		{
-			if (type == Msg::Type::STARTUP) { return _thread_id; }
-			return thread_invalid_id();
-		}
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Native_thread_id thread_id() const { return _thread_id; }
 };
 
 struct Genode::Native_utcb
 {
 	union {
 		uint8_t     data[1 << MIN_MAPPING_SIZE_LOG2];
-		Msg         msg;
 		Ipc_msg     ipc_msg;
 		Startup_msg startup_msg;
 	};
 
 	void call_await_request_msg(void * & buf_base, size_t & buf_size)
 	{
-		msg.type = Msg::Type::INVALID;
 		buf_base = base();
 		buf_size = size();
 	}
@@ -184,7 +155,6 @@ struct Genode::Native_utcb
 	void call_send_request_msg(void * & msg_base, size_t & msg_size,
 	                           void * & buf_base, size_t & buf_size)
 	{
-		msg.type = Msg::Type::IPC;
 		msg_base = ipc_msg_base();
 		msg_size = ipc_msg_size();
 		buf_base = base();
@@ -193,7 +163,6 @@ struct Genode::Native_utcb
 
 	void call_send_reply_msg(void * & msg_base, size_t & msg_size)
 	{
-		msg.type = Msg::Type::IPC;
 		msg_base = ipc_msg_base();
 		msg_size = ipc_msg_size();
 	}
