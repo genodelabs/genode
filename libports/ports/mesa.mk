@@ -27,6 +27,7 @@ $(DOWNLOAD_DIR)/$(MESA_TGZ):
 $(CONTRIB_DIR)/$(MESA_DIR): $(DOWNLOAD_DIR)/$(MESA_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR)
 	$(VERBOSE)patch -N -p0 -d $(CONTRIB_DIR)/$(MESA_DIR) < src/lib/gallium/p_state_config.patch
+	$(VERBOSE)patch -N -p1 -d $(CONTRIB_DIR)/$(MESA_DIR) < src/lib/egl/opengl_precision.patch
 	$(VERBOSE)touch $@
 
 tool/mesa/glsl:

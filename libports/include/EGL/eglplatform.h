@@ -26,8 +26,16 @@
 #define EGLAPIENTRYP EGLAPIENTRY*
 
 typedef int   EGLNativeDisplayType;
-typedef void *EGLNativeWindowType;
 typedef void *EGLNativePixmapType;
+
+struct Genode_egl_window
+{
+	int width;
+	int height;
+	unsigned char *addr;
+};
+
+typedef struct Genode_egl_window *EGLNativeWindowType;
 
 typedef khronos_int32_t EGLint;
 
