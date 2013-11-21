@@ -18,6 +18,10 @@
 #include <kernel/interface.h>
 #include <base/native_capability.h>
 #include <base/stdint.h>
+#include <util/string.h>
+
+/* base-hw includes */
+#include <kernel/log.h>
 
 namespace Genode
 {
@@ -49,12 +53,11 @@ namespace Genode
 
 	/**
 	 * Message that is communicated between user threads
+	 *
+	 * \param MAX_SIZE  maximum size the object is allowed to take
 	 */
-	struct Ipc_msg
-	{
-		size_t  size;
-		uint8_t data[];
-	};
+	template <size_t MAX_SIZE>
+	struct Ipc_msg;
 
 	/**
 	 * Message that is communicated from a thread creator to the new thread
@@ -115,6 +118,115 @@ namespace Genode
 	struct Native_pd_args { };
 }
 
+template <Genode::size_t MAX_SIZE>
+class Genode::Ipc_msg
+{
+	private:
+
+		size_t  _data_size;
+		uint8_t _data[];
+
+		/**
+		 * Return size of payload-preceding meta data
+		 */
+		size_t _header_size() const { return (addr_t)_data - (addr_t)this; }
+
+		/**
+		 * Return maximum payload size
+		 */
+		size_t _max_data_size() const { return MAX_SIZE - _header_size(); }
+
+		/**
+		 * Return size of header and current payload
+		 */
+		size_t _size() const { return _header_size() + _data_size; }
+
+	public:
+
+		/**
+		 * Get information about current await-request operation
+		 *
+		 * \return buf_base  base of receive buffer
+		 * \return buf_size  size of receive buffer
+		 */
+		void info_about_await_request(void * & buf_base, size_t & buf_size)
+		{
+			buf_base = this;
+			buf_size = MAX_SIZE;
+		}
+
+		/**
+		 * Get information about current send-request operation
+		 *
+		 * \return msg_base  base of complete send-message data
+		 * \return msg_size  size of complete send-message data
+		 * \return buf_base  base of receive buffer
+		 * \return buf_size  size of receive buffer
+		 */
+		void info_about_send_request(void * & msg_base, size_t & msg_size,
+		                             void * & buf_base, size_t & buf_size)
+		{
+			msg_base = this;
+			msg_size = _size();
+			buf_base = this;
+			buf_size = MAX_SIZE;
+		}
+
+		/**
+		 * Get information about current send-reply operation
+		 *
+		 * \return msg_base  base of complete send-message data
+		 * \return msg_size  size of complete send-message data
+		 */
+		void info_about_send_reply(void * & msg_base, size_t & msg_size)
+		{
+			msg_base = this;
+			msg_size = _size();
+		}
+
+		/**
+		 * Install message that shall be send
+		 *
+		 * \param data           base of payload
+		 * \param raw_data_size  size of payload without preceding name
+		 * \param name           local name that shall precede raw payload
+		 */
+		void prepare_send(void * const data, size_t raw_data_size,
+		                  unsigned const name)
+		{
+			/* limit data size */
+			enum { NAME_SIZE = sizeof(name) };
+			size_t const data_size = raw_data_size + NAME_SIZE;
+			if (data_size > _max_data_size()) {
+				kernel_log() << __func__ << ": oversized message outgoing\n";
+				raw_data_size = _max_data_size() - NAME_SIZE;
+			}
+			/* copy data */
+			*(unsigned *)_data = name;
+			void * const raw_data_dst = (void *)((addr_t)_data + NAME_SIZE);
+			void * const raw_data_src  = (void *)((addr_t)data + NAME_SIZE);
+			memcpy(raw_data_dst, raw_data_src, raw_data_size);
+			_data_size = data_size;
+		}
+
+		/**
+		 * Read out message that was received
+		 *
+		 * \param buf_base  base of read buffer
+		 * \param buf_size  size of read buffer
+		 */
+		void finish_receive(void * const buf_base, size_t const buf_size)
+		{
+			/* limit data size */
+			if (_data_size > buf_size) {
+				kernel_log() << __func__ << ": oversized message incoming\n";
+				_data_size = buf_size;
+			}
+			/* copy data */
+			memcpy(buf_base, _data, _data_size);
+		}
+};
+
 class Genode::Startup_msg
 {
 	private:
@@ -140,40 +252,17 @@ class Genode::Startup_msg
 
 struct Genode::Native_utcb
 {
+	enum { SIZE = 1 << MIN_MAPPING_SIZE_LOG2 };
+
 	union {
-		uint8_t     data[1 << MIN_MAPPING_SIZE_LOG2];
-		Ipc_msg     ipc_msg;
-		Startup_msg startup_msg;
+		uint8_t       data[SIZE];
+		Ipc_msg<SIZE> ipc_msg;
+		Startup_msg   startup_msg;
 	};
 
-	void call_await_request_msg(void * & buf_base, size_t & buf_size)
-	{
-		buf_base = base();
-		buf_size = size();
-	}
+	size_t size() const { return SIZE; }
 
-	void call_send_request_msg(void * & msg_base, size_t & msg_size,
-	                           void * & buf_base, size_t & buf_size)
-	{
-		msg_base = ipc_msg_base();
-		msg_size = ipc_msg_size();
-		buf_base = base();
-		buf_size = size();
-	}
-
-	void call_send_reply_msg(void * & msg_base, size_t & msg_size)
-	{
-		msg_base = ipc_msg_base();
-		msg_size = ipc_msg_size();
-	}
-
-	size_t size() { return sizeof(data) / sizeof(data[0]); }
-	void * base() { return &data; }
-	addr_t top() { return (addr_t)base() + size(); }
-	void * ipc_msg_base() { return &ipc_msg; }
-	size_t ipc_msg_size() { return ipc_msg_header_size() + ipc_msg.size; }
-	size_t ipc_msg_max_size() { return top() - (addr_t)&ipc_msg; }
-	size_t ipc_msg_header_size() { return (addr_t)ipc_msg.data - (addr_t)&ipc_msg; }
+	void * base() const { return (void *)data; }
 };
 
 #endif /* _BASE__NATIVE_TYPES_H_ */

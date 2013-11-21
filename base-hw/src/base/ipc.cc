@@ -35,46 +35,6 @@ enum
 };
 
 
-/***************
- ** Utilities **
- ***************/
-
-/**
- * Copy message from the callers UTCB to message buffer
- */
-static void utcb_to_msgbuf(Msgbuf_base * const msgbuf)
-{
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	size_t msg_size = utcb->ipc_msg.size;
-	if (msg_size > msgbuf->size()) {
-		kernel_log() << "oversized IPC message\n";
-		msg_size = msgbuf->size();
-	}
-	memcpy(msgbuf->buf, utcb->ipc_msg.data, msg_size);
-}
-
-
-/**
- * Copy message from message buffer to the callers UTCB
- */
-static void msgbuf_to_utcb(Msgbuf_base * const msg_buf, size_t msg_size,
-                           unsigned const local_name)
-{
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	enum { NAME_SIZE = sizeof(local_name) };
-	size_t const ipc_msg_size = msg_size + NAME_SIZE;
-	if (ipc_msg_size > utcb->ipc_msg_max_size()) {
-		kernel_log() << "oversized IPC message\n";
-		msg_size = utcb->ipc_msg_max_size() - NAME_SIZE;
-	}
-	*(unsigned *)utcb->ipc_msg.data = local_name;
-	void * const utcb_msg = (void *)((addr_t)utcb->ipc_msg.data + NAME_SIZE);
-	void * const buf_msg  = (void *)((addr_t)msg_buf->buf + NAME_SIZE);
-	memcpy(utcb_msg, buf_msg, msg_size);
-	utcb->ipc_msg.size = ipc_msg_size;
-}
-
-
 /*****************
  ** Ipc_ostream **
  *****************/
@@ -118,12 +78,13 @@ void Ipc_client::_call()
 {
 	/* send request and receive corresponding reply */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
-	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	utcb->ipc_msg.prepare_send(_snd_msg->buf, _write_offset, local_name);
 	if (Kernel::send_request_msg(Ipc_ostream::_dst.dst())) {
 		PERR("failed to receive reply");
 		throw Blocking_canceled();
 	}
-	utcb_to_msgbuf(_rcv_msg);
+	utcb->ipc_msg.finish_receive(_rcv_msg->buf, _rcv_msg->size());
 
 	/* reset unmarshaller */
 	_write_offset = _read_offset = RPC_OBJECT_ID_SIZE;
@@ -167,7 +128,8 @@ void Ipc_server::_wait()
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
-	utcb_to_msgbuf(_rcv_msg);
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	utcb->ipc_msg.finish_receive(_rcv_msg->buf, _rcv_msg->size());
 
 	/* update server state */
 	_prepare_next_reply_wait();
@@ -176,8 +138,9 @@ void Ipc_server::_wait()
 
 void Ipc_server::_reply()
 {
+	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	utcb->ipc_msg.size = _write_offset;
+	utcb->ipc_msg.prepare_send(_snd_msg->buf, _write_offset, local_name);
 	Kernel::send_reply_msg(0);
 }
 
@@ -191,12 +154,13 @@ void Ipc_server::_reply_wait()
 	}
 	/* send reply and receive next request */
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
-	msgbuf_to_utcb(_snd_msg, _write_offset, local_name);
+	Native_utcb * const utcb = Thread_base::myself()->utcb();
+	utcb->ipc_msg.prepare_send(_snd_msg->buf, _write_offset, local_name);
 	if (Kernel::send_reply_msg(1)) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
-	utcb_to_msgbuf(_rcv_msg);
+	utcb->ipc_msg.finish_receive(_rcv_msg->buf, _rcv_msg->size());
 
 	/* update server state */
 	_prepare_next_reply_wait();
