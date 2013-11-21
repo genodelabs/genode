@@ -204,11 +204,13 @@ namespace Genode {
 			 */
 			static unsigned scale_priority(unsigned pf_prio_limit, unsigned prio)
 			{
-				/* if no priorities are used, use the platform priority limit */
-				if (prio == 0) return pf_prio_limit;
-
-				/* scale value to platform priority range 0..pf_prio_limit */
-				return (prio*pf_prio_limit)/Cpu_session::PRIORITY_LIMIT;
+				/*
+				 * if no priorities are used, use the platform priority limit
+				 * otherwise scale value to platform priority range 0..pf_prio_limit
+				 */
+				return prio ? ((Cpu_session::PRIORITY_LIMIT-prio)*pf_prio_limit)
+				              / Cpu_session::PRIORITY_LIMIT
+				            : pf_prio_limit;
 			}
 
 			/**
