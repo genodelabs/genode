@@ -255,19 +255,14 @@ foreach netperf_test $netperf_tests {
 	puts "[format %8.0f $packets_second] packets/s\n"
 
 	# format output parseable for post proccessing scripts
-	foreach i {0 1} {
-		puts -nonewline "! PERF: $netperf_test"
-		if {$use_nic_bridge} { puts -nonewline "_bridge" }
-		if {$use_usb_driver} {
-			if {![string compare $use_usb_11 "yes"]} { puts -nonewline "_uhci" }
-			if {![string compare $use_usb_20 "yes"]} { puts -nonewline "_ohci" }
-			if {![string compare $use_usb_30 "yes"]} { puts -nonewline "_xhci" }
-		}
-		if {$i == 0} { puts -nonewline "              [lindex $throughput 1] MBit/s ok" }
-		if {$i == 1} { puts -nonewline "_packet_$packet_size [format %6.0f $packets_second] packets/s ok" }
-		if {$i >  1} { puts -nonewline "              0 unknown err" }
-		puts ""
+	puts -nonewline "! PERF: $netperf_test"
+	if {$use_nic_bridge} { puts -nonewline "_bridge" }
+	if {$use_usb_driver} {
+		if {![string compare $use_usb_11 "yes"]} { puts -nonewline "_uhci" }
+		if {![string compare $use_usb_20 "yes"]} { puts -nonewline "_ohci" }
+		if {![string compare $use_usb_30 "yes"]} { puts -nonewline "_xhci" }
 	}
+	puts "              [lindex $throughput 1] MBit/s ok"
 }
 
 
