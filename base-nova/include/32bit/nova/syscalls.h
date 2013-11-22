@@ -179,12 +179,14 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
+	__attribute__((noreturn))
 	inline void reply(void *next_sp)
 	{
 		asm volatile ("sysenter;"
 		              :
 		              : "a" (NOVA_REPLY), "c" (next_sp)
 		              : "memory");
+		__builtin_unreachable();
 	}
 
 
