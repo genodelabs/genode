@@ -19,9 +19,12 @@ lx_hybrid_pthread_ipc
 moon
 thread_join
 failsafe
-netperf
-netperf_usb30
-netperf_bridge
+netperf_lwip
+netperf_lwip_usb30
+netperf_lwip_bridge
+netperf_lxip
+netperf_lxip_usb30
+netperf_lxip_bridge
 l4linux_netperf
 l4linux_netperf_usb30
 l4linux_netperf_bridge

@@ -47,9 +47,9 @@ if {$use_nic_driver}    { set network_driver "nic_drv" }
 set build_components {
 	core init
 	drivers/pci drivers/timer drivers/nic
-	app/netperf
 }
 
+append     build_components     " $netperf_target "
 lappend_if $use_usb_driver      build_components drivers/usb
 lappend_if $use_platform_driver build_components drivers/platform
 lappend_if $use_nic_bridge      build_components server/nic_bridge
@@ -164,7 +164,10 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 
 append config {
 	<start name="netserver_genode">
-		<resource name="RAM" quantum="16M"/>
+}
+append config "<binary name=\"$netperf_app\"/>"
+append config {
+		<resource name="RAM" quantum="32M"/>
 		<config>
 			<arg value="netserver"/>
 			<arg value="-D"/>
@@ -194,10 +197,11 @@ install_config $config
 set boot_modules {
 	core init timer
 	ld.lib.so libc.lib.so libm.lib.so
-	lwip.lib.so libc_log.lib.so
-	netserver_genode
+	libc_log.lib.so
 }
 
+append                     boot_modules " $netperf_app "
+append                     boot_modules " $netperf_stack "
 lappend_if $use_nic_bridge boot_modules nic_bridge
 
 # platform-specific modules
@@ -233,8 +237,7 @@ if [is_qemu_available] {
 } elseif [have_spec linux] {
 	set ip_addr $lx_ip_addr
 } else {
-	set match_string "got IP address (\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+)"
-	regexp $match_string $output all ip_addr
+	regexp $ip_match_string $output all ip_addr
 	puts ""
 }
 
