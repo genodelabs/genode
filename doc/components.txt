@@ -336,7 +336,7 @@ Separate components:
   A file system server that makes the file system of a Linux base platform
   available to Genode.
 
-:'os/src/server/rom_loopdev':
+:'os/src/server/rom_blk':
   Provides the content of a ROM file as a block session, similar to the
   loop-mount mechanism on Linux
 

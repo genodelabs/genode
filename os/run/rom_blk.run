@@ -1,10 +1,10 @@
 #
-# \brief  Test for 'rom_loopdev' service
+# \brief  Test for 'rom_blk' service
 # \author Stefan Kalkowski
 # \date   2011-05-10
 #
 
-build "core init server/rom_loopdev test/rom_blk"
+build "core init server/rom_blk test/rom_blk"
 
 create_boot_directory
 
@@ -23,7 +23,7 @@ install_config {
 	<default-route>
 		<any-service>  <any-child/> <parent/></any-service>
 	</default-route>
-	<start name="rom_loopdev">
+	<start name="rom_blk">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Block"/></provides>
 		<config file="init" block_size="512"/>
@@ -35,7 +35,7 @@ install_config {
 </config>
 }
 
-build_boot_image "core init rom_loopdev test-rom_blk"
+build_boot_image "core init rom_blk test-rom_blk"
 
 append qemu_args "-m 64 -nographic "
 
