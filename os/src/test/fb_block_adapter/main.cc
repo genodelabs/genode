@@ -153,6 +153,8 @@ namespace Block {
 				ops->set_operation(Packet_descriptor::WRITE);
 			}
 
+			void sync() {}
+
 			/** Signal that transmit thread is ready */
 			void tx_ready() { _startup_sema.up(); }
 	};

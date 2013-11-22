@@ -178,6 +178,8 @@ namespace Block {
 				ops->set_operation(Packet_descriptor::READ);
 			}
 
+			void sync() {}
+
 			/**
 			 * Signal indicating that transmit thread is ready
 			 */

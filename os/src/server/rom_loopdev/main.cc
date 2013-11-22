@@ -173,6 +173,8 @@ namespace Block {
 				*blk_size  = _block_size;
 				ops->set_operation(Block::Packet_descriptor::READ);
 			}
+
+			void sync() {}
 	};
 
 

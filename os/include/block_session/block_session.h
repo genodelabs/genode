@@ -130,6 +130,11 @@ namespace Block {
 		                  Operations     *ops) = 0;
 
 		/**
+		 * Synchronize with block device, like ensuring data to be written
+		 */
+		virtual void sync() = 0;
+
+		/**
 		 * Request packet-transmission channel
 		 */
 		virtual Tx *tx_channel() { return 0; }
@@ -146,7 +151,8 @@ namespace Block {
 
 		GENODE_RPC(Rpc_info, void, info, Genode::size_t *, Genode::size_t *, Operations *);
 		GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, _tx_cap);
-		GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap);
+		GENODE_RPC(Rpc_sync, void, sync);
+		GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap, Rpc_sync);
 	};
 }
 

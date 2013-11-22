@@ -98,6 +98,11 @@ namespace Block {
 		 * Allocate buffer which is suitable for DMA.
 		 */
 		virtual Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t) = 0;
+
+		/**
+		 * Synchronize with with device.
+		 */
+		virtual void sync() = 0;
 	};
 
 

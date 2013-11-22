@@ -159,6 +159,8 @@ namespace Block {
 					ops->set_operation(Packet_descriptor::WRITE);
 			}
 
+			void sync() {}
+
 			Ata::Device* device() { return _device; };
 
 			/**

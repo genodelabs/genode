@@ -78,6 +78,8 @@ class Ahci_driver_base : public Block::Driver
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
 			return _device->alloc_dma_buffer(size); }
+
+		void sync() {}
 };
 
 #endif /* _AHCI_DRIVER_BASE_H_ */

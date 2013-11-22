@@ -72,6 +72,11 @@ namespace Partition {
 	 * Returns block size of back end
 	 */
 	Genode::size_t blk_size();
+
+	/**
+	 * Synchronize with backend device
+	 */
+	void sync();
 }
 
 #endif /* _PART_BLK_H_ */

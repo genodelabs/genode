@@ -35,7 +35,7 @@ namespace Partition {
 	Partition           *partition(int num) { return (num < MAX_PARTITIONS) ? _part_list[num] : 0; }
 	size_t               blk_size()         { return  _blk_size; }
 	inline unsigned long max_packets()      { return (MAX_PACKET_SIZE / _blk_size); }
-
+	void                 sync()             { _blk.sync(); }
 
 	/**
 	 * Partition table entry format

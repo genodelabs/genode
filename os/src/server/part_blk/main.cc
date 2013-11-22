@@ -137,6 +137,8 @@ namespace Block {
 				ops->set_operation(Packet_descriptor::WRITE);
 			}
 
+			void sync() { Partition::sync(); }
+
 			Partition::Partition *partition() { return _partition; }
 	};
 

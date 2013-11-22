@@ -118,6 +118,8 @@ class Block::Omap4_driver : public Block::Driver
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
 			return Genode::env()->ram_session()->alloc(size, false); }
+
+		void sync() {}
 };
 
 #endif /* _DRIVER_H_ */

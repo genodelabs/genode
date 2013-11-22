@@ -135,6 +135,8 @@ class Sd_card : public Block::Driver
 		{
 			return Genode::env()->ram_session()->alloc(size, false);
 		}
+
+		void sync() {}
 };
 
 #endif /* _SD_CARD_H_ */

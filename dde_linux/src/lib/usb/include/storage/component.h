@@ -92,6 +92,8 @@ namespace Block {
 				ops->set_operation(Packet_descriptor::WRITE);
 			}
 
+			void sync() {}
+
 			void complete(Packet_descriptor &packet, bool success)
 			{
 				packet.succeeded(success);

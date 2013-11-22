@@ -142,6 +142,8 @@ namespace Block {
 				ops->set_operation(Packet_descriptor::READ);
 				ops->set_operation(Packet_descriptor::WRITE);
 			}
+
+			void sync() { _driver.sync(); }
 	};
 
 	/*

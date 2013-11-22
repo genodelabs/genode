@@ -55,6 +55,7 @@ namespace Block {
 
 			Tx *tx_channel() { return &_tx; }
 			Tx::Source *tx() { return _tx.source(); }
+			void sync()      { call<Rpc_sync>(); }
 
 			/*
 			 * Wrapper for alloc_packet, allocates 2KB aligned packets
