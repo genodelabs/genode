@@ -136,8 +136,7 @@ class Block::Session_component : public Block::Session_rpc_object
 		{
 			*blk_count = _driver.block_count();
 			*blk_size  = _driver.block_size();
-			ops->set_operation(Packet_descriptor::READ);
-			ops->set_operation(Packet_descriptor::WRITE);
+			*ops       = _driver.ops();
 		}
 
 		void sync() { _driver.sync(); }

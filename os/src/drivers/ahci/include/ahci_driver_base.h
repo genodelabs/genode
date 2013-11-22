@@ -46,6 +46,15 @@ class Ahci_driver_base : public Block::Driver
 
 		size_t block_size()  { return Ahci_device::block_size(); }
 		size_t block_count() { return _device ? _device->block_count() : 0; }
+
+		Block::Session::Operations ops()
+		{
+			Block::Session::Operations o;
+			o.set_operation(Block::Packet_descriptor::READ);
+			o.set_operation(Block::Packet_descriptor::WRITE);
+			return o;
+		}
+
 		bool   dma_enabled() { return true; }
 
 		void read_dma(size_t block_number,

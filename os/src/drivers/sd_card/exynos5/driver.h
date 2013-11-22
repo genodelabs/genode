@@ -89,6 +89,14 @@ class Block::Exynos5_driver : public Block::Driver
 			return _controller.card_info().capacity_mb() * 1024 * 2;
 		}
 
+		Block::Session::Operations ops()
+		{
+			Block::Session::Operations o;
+			o.set_operation(Block::Packet_descriptor::READ);
+			o.set_operation(Block::Packet_descriptor::WRITE);
+			return o;
+		}
+
 		void read(Genode::size_t  block_number,
 		          Genode::size_t  block_count,
 		          char           *out_buffer)

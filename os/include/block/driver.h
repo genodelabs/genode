@@ -19,7 +19,7 @@
 #include <base/stdint.h>
 
 #include <ram_session/ram_session.h>
-
+#include <block_session/block_session.h>
 
 namespace Block {
 
@@ -42,6 +42,11 @@ namespace Block {
 		 * Request capacity of medium in blocks
 		 */
 		virtual Genode::size_t block_count() = 0;
+
+		/**
+		 * Request operations supported by the device
+		 */
+		virtual Session::Operations ops() = 0;
 
 		/**
 		 * Read from medium

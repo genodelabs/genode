@@ -79,6 +79,14 @@ class Sd_card : public Block::Driver
 		 */
 		Genode::size_t block_count() { return 0x20000000 /  BLOCK_SIZE; }
 
+		Block::Session::Operations ops()
+		{
+			Block::Session::Operations o;
+			o.set_operation(Block::Packet_descriptor::READ);
+			o.set_operation(Block::Packet_descriptor::WRITE);
+			return o;
+		}
+
 		void read(Genode::size_t  block_number,
 		          Genode::size_t  block_count,
 		          char           *out_buffer)
