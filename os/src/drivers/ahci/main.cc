@@ -19,7 +19,6 @@
 /* Genode includes */
 #include <cap_session/connection.h>
 #include <block/component.h>
-#include <base/sleep.h>
 
 /* local includes */
 #include <ahci_driver.h>
@@ -43,10 +42,15 @@ int main()
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "block_ep");
 
-	static Block::Root block_root(&ep, env()->heap(), driver_factory);
+	static Signal_receiver receiver;
+	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
 	env()->parent()->announce(ep.manage(&block_root));
 
-	sleep_forever();
+	while (true) {
+		Signal s = receiver.wait_for_signal();
+		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+	}
+
 	return 0;
 }
 

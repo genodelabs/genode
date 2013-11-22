@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/sleep.h>
 #include <base/printf.h>
 #include <cap_session/connection.h>
 #include <regulator_session/connection.h>
@@ -51,9 +50,15 @@ int main(int argc, char **argv)
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "block_ep");
 	static Regulator::Connection mmc0_regulator(Regulator::CLK_MMC0);
 	mmc0_regulator.state(true);
-	static Block::Root block_root(&ep, env()->heap(), driver_factory);
+
+	static Signal_receiver receiver;
+	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
 	env()->parent()->announce(ep.manage(&block_root));
 
-	sleep_forever();
+	while (true) {
+		Signal s = receiver.wait_for_signal();
+		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+	}
+
 	return 0;
 }
