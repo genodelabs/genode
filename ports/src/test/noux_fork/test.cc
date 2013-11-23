@@ -37,6 +37,6 @@ int main(int, char **)
 		printf("pid %d: parent i = %d\n", getpid(), i++);
 	}
 
-	for (;;);
+	pause();
 	return 0;
 }
