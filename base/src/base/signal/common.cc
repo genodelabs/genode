@@ -49,7 +49,22 @@ Signal & Signal::operator=(Signal const &other)
 }
 
 
-Signal::~Signal() { _dec_ref_and_unlock(); };
+Signal::~Signal() { _dec_ref_and_unlock(); }
+
+
+/********************
+ ** Signal_context **
+ ********************/
+
+Signal_context::~Signal_context()
+{
+	/*
+	 * Detect bug in an application where a signal context is destroyed prior
+	 * dissolving it from the signal receiver.
+	 */
+	if (_receiver)
+		PERR("Destructing undissolved signal context");
+}
 
 
 /************************
