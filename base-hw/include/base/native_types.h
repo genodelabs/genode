@@ -277,5 +277,26 @@ class Genode::Native_utcb
 		void * base() const { return (void *)_data; }
 };
 
+namespace Genode
+{
+	enum {
+		VIRT_ADDR_SPACE_START = 0x1000,
+		VIRT_ADDR_SPACE_SIZE  = 0xfffef000,
+	};
+
+	/**
+	 * Return virtual UTCB location of main threads 
+	 */
+	inline Native_utcb * main_thread_utcb()
+	{
+		enum {
+			VAS_TOP = VIRT_ADDR_SPACE_START + VIRT_ADDR_SPACE_SIZE,
+			UTCB = VAS_TOP - sizeof(Native_utcb),
+			UTCB_ALIGNED = UTCB & ~((1 << MIN_MAPPING_SIZE_LOG2) - 1),
+		};
+		return (Native_utcb *)UTCB_ALIGNED;
+	}
+}
+
 #endif /* _BASE__NATIVE_TYPES_H_ */
 

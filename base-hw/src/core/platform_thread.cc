@@ -20,6 +20,8 @@ using namespace Genode;
 
 namespace Kernel { unsigned core_id(); }
 
+void Platform_thread::_init() { }
+
 
 bool Platform_thread::_attaches_utcb_by_itself()
 {
@@ -158,23 +160,12 @@ int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
 }
 
 
-void Platform_thread::_init()
-{
-}
-
-
 int Platform_thread::start(void * const ip, void * const sp,
                            unsigned int const cpu_id)
 {
-	/* attach UTCB if the thread can't do this by itself */
-	if (!_attaches_utcb_by_itself())
-	{
-		/* declare page aligned virtual UTCB outside the context area */
-		_utcb_virt = (Native_utcb *)((platform()->vm_start()
-		             + platform()->vm_size() - sizeof(Native_utcb))
-		             & ~((1<<MIN_MAPPING_SIZE_LOG2)-1));
-
-		/* attach UTCB */
+	/* attach UTCB in case of a main thread */
+	if (_main_thread) {
+		_utcb_virt = main_thread_utcb();
 		if (!_rm_client) {
 			PERR("invalid RM client");
 			return -1;
@@ -186,16 +177,13 @@ int Platform_thread::start(void * const ip, void * const sp,
 			return -1;
 		}
 	}
-	/* initialize thread regisers */
+	/* initialize thread registers */
 	typedef Kernel::Thread_reg_id Reg_id;
 	enum { WRITES = 2 };
 	addr_t * write_regs = (addr_t *)Thread_base::myself()->utcb()->base();
 	write_regs[0] = Reg_id::IP;
 	write_regs[1] = Reg_id::SP;
-	addr_t write_values[] = {
-		(addr_t)ip,
-		_main_thread ? (addr_t)_utcb_virt : (addr_t)sp
-	};
+	addr_t write_values[] = { (addr_t)ip, (addr_t)sp };
 	if (Kernel::access_thread_regs(id(), 0, WRITES, 0, write_values)) {
 		PERR("failed to initialize thread registers");
 		return -1;

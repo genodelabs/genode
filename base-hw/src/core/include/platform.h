@@ -41,8 +41,8 @@ namespace Genode {
 		Phys_allocator _irq_alloc;      /* IRQ allocator          */
 		Rom_fs         _rom_fs;         /* ROM file system        */
 
-		addr_t _vm_base; /* base of virtual address space */
-		size_t _vm_size; /* size of virtual address space */
+		addr_t _vm_start; /* base of virtual address space */
+		size_t _vm_size;  /* size of virtual address space */
 
 		/**
 		 * Get one of the consecutively numbered available resource regions
@@ -101,7 +101,7 @@ namespace Genode {
 
 			inline Range_allocator * irq_alloc() { return &_irq_alloc; }
 
-			inline addr_t vm_start() const { return _vm_base; }
+			inline addr_t vm_start() const { return _vm_start; }
 
 			inline size_t vm_size() const { return _vm_size; }
 

@@ -19,8 +19,6 @@
 
 using namespace Genode;
 
-extern Native_utcb * __initial_sp;
-
 namespace Genode { Rm_session * env_context_area_rm_session(); }
 
 
@@ -34,7 +32,7 @@ void Thread_base::_init_platform_thread() { }
 Native_utcb * Thread_base::utcb()
 {
 	if (this) { return &_context->utcb; }
-	return __initial_sp;
+	return main_thread_utcb();
 }
 
 
