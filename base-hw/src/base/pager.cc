@@ -124,7 +124,16 @@ Native_capability Pager_activation_base::cap()
  ** Pager_entrypoint **
  **********************/
 
-void Pager_entrypoint::dissolve(Pager_object * const o) { remove_locked(o); }
+void Pager_entrypoint::dissolve(Pager_object * const o)
+{
+	/* let entrypoint dissolve the pager object */
+	remove_locked(o);
+	o->cap(Native_capability());
+
+	/* let activation signal-receiver dissolve the pager signal-context */
+	o->_signal_context_cap = Signal_context_capability();
+	_activation->Signal_receiver::dissolve(o);
+}
 
 
 Pager_entrypoint::Pager_entrypoint(Cap_session *,
@@ -138,8 +147,10 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *,
 
 Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 {
-	if (!_activation) return Pager_capability();
+	/* let activation signal-receiver manage the pager signal-context */
 	o->_signal_context_cap = _activation->Signal_receiver::manage(o);
+
+	/* let entrypoint manage the pager object */
 	unsigned const dst = _activation->cap().dst();
 	Native_capability c = Native_capability(dst, o->badge());
 	o->cap(c);
