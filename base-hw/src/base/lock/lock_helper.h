@@ -24,7 +24,7 @@ extern Genode::Native_thread_id _main_thread_id;
 /**
  * Yield execution time-slice of current thread
  */
-static inline void thread_yield() { Kernel::yield_thread(); }
+static inline void thread_yield() { Kernel::yield_thread(0); }
 
 
 /**
@@ -59,7 +59,7 @@ thread_check_stopped_and_restart(Genode::Thread_base * const t)
 /**
  * Pause execution of current thread
  */
-static inline void thread_stop_myself() { Kernel::pause_thread(); }
+static inline void thread_stop_myself() { Kernel::pause_thread(0); }
 
 
 #endif /* _LOCK_HELPER_H_ */

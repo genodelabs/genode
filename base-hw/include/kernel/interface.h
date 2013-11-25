@@ -250,24 +250,24 @@ namespace Kernel
 	/**
 	 * Prevent thread from participating in CPU scheduling
 	 *
-	 * \param id  ID of the targeted thread. If not set
-	 *            this will target the current thread.
+	 * \param thread_id  kernel name of the targeted thread or 0
 	 *
 	 * \retval  0  succeeded
 	 * \retval -1  the targeted thread does not exist or is still active
 	 *
-	 * If the caller doesn't target itself, this is restricted to core threads.
+	 * If thread_id is set to 0 the caller targets itself. If the caller
+	 * doesn't target itself, the call is restricted to core threads.
 	 */
-	inline int pause_thread(unsigned const id = 0)
+	inline int pause_thread(unsigned const thread_id)
 	{
-		return call(Call_id::PAUSE_THREAD, id);
+		return call(Call_id::PAUSE_THREAD, thread_id);
 	}
 
 
 	/**
 	 * Let an already started thread participate in CPU scheduling
 	 *
-	 * \param id  ID of the targeted thread
+	 * \param thread_id  kernel name of the targeted thread
 	 *
 	 * \retval  0  succeeded and thread was paused beforehand
 	 * \retval  1  succeeded and thread was active beforehand
@@ -276,21 +276,23 @@ namespace Kernel
 	 * If the targeted thread blocks for any event except a 'start_thread'
 	 * call this call cancels the blocking.
 	 */
-	inline int resume_thread(unsigned const id = 0)
+	inline int resume_thread(unsigned const thread_id)
 	{
-		return call(Call_id::RESUME_THREAD, id);
+		return call(Call_id::RESUME_THREAD, thread_id);
 	}
 
 
 	/**
 	 * Let the current thread give up its remaining timeslice
 	 *
-	 * \param id  if this thread ID is set and valid this will resume the
-	 *            targeted thread additionally
+	 * \param thread_id  kernel name of the benefited thread
+	 *
+	 * If thread_id is valid the call will resume the targeted thread
+	 * additionally.
 	 */
-	inline void yield_thread(unsigned const id = 0)
+	inline void yield_thread(unsigned const thread_id)
 	{
-		call(Call_id::YIELD_THREAD, id);
+		call(Call_id::YIELD_THREAD, thread_id);
 	}
 
 
