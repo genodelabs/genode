@@ -1,0 +1,26 @@
+Make fuse_operation struct globally accessible and comment-out
+main() function.
+--- contrib/fuse-exfat-1.0.1/fuse/main.c.orig	2013-11-11 14:34:42.668119109 +0100
++++ contrib/fuse-exfat-1.0.1/fuse/main.c	2013-11-11 14:36:25.728122089 +0100
+@@ -296,7 +296,7 @@
+ 	exit(1);
+ }
+ 
+-static struct fuse_operations fuse_exfat_ops =
++struct fuse_operations fuse_exfat_ops =
+ {
+ 	.getattr	= fuse_exfat_getattr,
+ 	.truncate	= fuse_exfat_truncate,
+@@ -403,6 +403,7 @@
+ 	return options;
+ }
+ 
++#if 0
+ int main(int argc, char* argv[])
+ {
+ 	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
+@@ -550,3 +551,4 @@
+ 	fuse_destroy(fh);
+ 	return 0;
+ }
++#endif

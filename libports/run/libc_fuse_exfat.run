@@ -1,0 +1,5 @@
+set mkfs_cmd   mkfs.exfat
+set mkfs_opts  ""
+set filesystem fuse_exfat
+
+source ${genode_dir}/libports/run/libc_filesystem_test.inc
