@@ -32,6 +32,11 @@ Native_thread_id Genode::thread_get_my_native_id()
 
 void Genode::platform_main_bootstrap()
 {
-	Native_utcb * const utcb = Thread_base::myself()->utcb();
-	_main_thread_id = utcb->startup_msg.thread_id();
+	/* go save against multiple calls e.g. for programs with dynamic linker */
+	static bool main_thread_id_valid = 0;
+	if (!main_thread_id_valid) {
+		Native_utcb * const utcb = Thread_base::myself()->utcb();
+		_main_thread_id = utcb->startup_msg.thread_id();
+		main_thread_id_valid = 1;
+	}
 }
