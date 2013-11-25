@@ -1,0 +1,17 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/">
+<file alias="samegame.qml">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/samegame3/samegame.qml</file>
+<file alias="Dialog.qml">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/samegame3/Dialog.qml</file>
+<file alias="Button.qml">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/samegame3/Button.qml</file>
+<file alias="Block.qml">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/samegame3/Block.qml</file>
+<file alias="samegame.js">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/samegame3/samegame.js</file>
+</qresource>
+<qresource prefix="shared/pics">
+<file alias="background.jpg">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/background.jpg</file>
+<file alias="blueStone.png">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/blueStone.png</file>
+<file alias="greenStone.png">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/greenStone.png</file>
+<file alias="redStone.png">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/redStone.png</file>
+<file alias="yellowStone.png">../../../../../contrib/qt-everywhere-opensource-src-5.1.0/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/yellowStone.png</file>
+</qresource>
+</RCC>

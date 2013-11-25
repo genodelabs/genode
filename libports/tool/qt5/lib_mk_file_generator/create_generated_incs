@@ -16,6 +16,12 @@ cd qtscript/src/script                       && ../../../create_generated_inc qt
 
 cd qttools/src/designer/src/uitools          && ../../../../../create_generated_inc qt5_ui_tools    && cp qt5_ui_tools_generated.inc ../../../../..    && cd ../../../../..
 
+cd qtjsbackend/src/v8                        && ../../../create_generated_inc qt5_v8                && cp qt5_v8_generated.inc ../../..                && cd ../../..
+
+cd qtdeclarative/src/qml                     && ../../../create_generated_inc qt5_qml               && cp qt5_qml_generated.inc ../../..               && cd ../../..
+cd qtdeclarative/src/quick                   && ../../../create_generated_inc qt5_quick             && cp qt5_quick_generated.inc ../../..             && cd ../../..
+cd qtdeclarative/src/imports/qtquick2        && ../../../../create_generated_inc qt5_qtquick2plugin && cp qt5_qtquick2plugin_generated.inc ../../../.. && cd ../../../..
+
 # qtwebkit
 
 make -C qtbase/src/tools/bootstrap

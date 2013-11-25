@@ -12,4 +12,5 @@ qt5_qtnetwork.patch
 qt5_qtwebkit.patch
 qt5_textedit_example.patch
 qt5_openglwindow_example.patch
+qt5_qml.patch
 qt5_tools.patch

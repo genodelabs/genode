@@ -6,7 +6,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 ---
  configure                                          |    2 -
  qt.pro                                             |   42 ++++++++++----------
- qtbase/configure                                   |    6 +--
+ qtbase/configure                                   |    8 ++--
  qtbase/mkspecs/genode-g++/qmake.conf               |    1 
  qtbase/mkspecs/genode-g++/qplatformdefs.h          |    1 
  qtbase/src/corelib/global/qconfig-genode.h         |    1 
@@ -15,7 +15,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtdeclarative/tests/tests.pro                      |    4 +-
  qtquick1/examples/declarative/declarative.pro      |    1 
  qtwebkit/Tools/qmake/mkspecs/features/features.prf |    6 +--
- 11 files changed, 39 insertions(+), 33 deletions(-)
+ 11 files changed, 40 insertions(+), 34 deletions(-)
  create mode 120000 qtbase/mkspecs/genode-g++/qmake.conf
  create mode 120000 qtbase/mkspecs/genode-g++/qplatformdefs.h
  create mode 120000 qtbase/src/corelib/global/qconfig-genode.h
@@ -90,7 +90,7 @@ index 218701a..bb4c037 100644
 +#addModule(qtdoc, qtdeclarative)
 +#addModule(qtqa, qtbase)
 diff --git a/qtbase/configure b/qtbase/configure
-index d7c9674..f4198b8 100755
+index d7c9674..956c3e1 100755
 --- a/qtbase/configure
 +++ b/qtbase/configure
 @@ -857,10 +857,10 @@ CFG_XINERAMA=runtime
@@ -106,6 +106,15 @@ index d7c9674..f4198b8 100755
  CFG_LIBJPEG=auto
  CFG_XCURSOR=runtime
  CFG_XRANDR=runtime
+@@ -883,7 +883,7 @@ CFG_SKIP_MODULES=""
+ CFG_COMPILE_EXAMPLES=auto
+ CFG_RELEASE_QMAKE=no
+ CFG_AUDIO_BACKEND=auto
+-CFG_V8SNAPSHOT=auto
++CFG_V8SNAPSHOT=no
+ CFG_QML_DEBUG=yes
+ CFG_JAVASCRIPTCORE_JIT=auto
+ CFG_PKGCONFIG=auto
 @@ -949,7 +949,7 @@ CFG_GETADDRINFO=auto
  CFG_IPV6IFNAME=auto
  CFG_GETIFADDRS=auto

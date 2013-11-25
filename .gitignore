@@ -129,6 +129,7 @@
 /libports/src/lib/ncurses/make_keys
 /libports/src/lib/ncurses/names.c
 /libports/src/lib/ncurses/unctrl.c
+/libports/src/lib/qt5/qtjsbackend
 /libports/src/lib/qt5/qtwebkit/Source/JavaScriptCore
 /libports/src/lib/qt5/qtwebkit/Source/WebCore/generated
 /libports/tool/mesa/glsl

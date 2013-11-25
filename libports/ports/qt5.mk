@@ -25,6 +25,7 @@ PORTS += qt5
 prepare-qt5: $(CONTRIB_DIR)/$(QT5) \
              $(CONTRIB_DIR)/$(QTSCRIPTCLASSIC) \
              tools \
+             $(REP_DIR)/src/lib/qt5/qtjsbackend/generated/generated.tag \
              $(REP_DIR)/src/lib/qt5/qtwebkit/Source/JavaScriptCore/generated/generated.tag \
              $(REP_DIR)/src/lib/qt5/qtwebkit/Source/WebCore/generated/generated.tag
 
@@ -73,6 +74,17 @@ $(CONTRIB_DIR)/$(QTSCRIPTCLASSIC): $(DOWNLOAD_DIR)/$(QTSCRIPTCLASSIC_TGZ).verifi
 #
 # some of the following lines have been extracted from Makefiles (and modified afterwards), that's why they can be quite long   
 #
+
+V8_DIR = $(CONTRIB_DIR)/$(QT5)/qtjsbackend/src/v8/../3rdparty/v8
+
+$(REP_DIR)/src/lib/qt5/qtjsbackend/generated/generated.tag:
+
+	$(VERBOSE)mkdir -p $(dir $@)
+
+	$(VERBOSE)python $(V8_DIR)/tools/js2c.py $(dir $@)/experimental-libraries.cpp EXPERIMENTAL off $(V8_DIR)/src/macros.py $(V8_DIR)/src/proxy.js
+
+	$(VERBOSE)python $(V8_DIR)/tools/js2c.py $(dir $@)/libraries.cpp CORE off $(V8_DIR)/src/macros.py $(V8_DIR)/src/runtime.js $(V8_DIR)/src/v8natives.js $(V8_DIR)/src/array.js $(V8_DIR)/src/string.js $(V8_DIR)/src/uri.js $(V8_DIR)/src/math.js $(V8_DIR)/src/messages.js $(V8_DIR)/src/apinatives.js $(V8_DIR)/src/date.js $(V8_DIR)/src/regexp.js $(V8_DIR)/src/json.js $(V8_DIR)/src/liveedit-debugger.js $(V8_DIR)/src/mirror-debugger.js $(V8_DIR)/src/debug-debugger.js
+
 
 JAVASCRIPTCORE_DIR = $(CONTRIB_DIR)/$(QT5)/qtwebkit/Source/JavaScriptCore
 

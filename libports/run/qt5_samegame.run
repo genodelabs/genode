@@ -1,0 +1,158 @@
+#
+# Build
+#
+
+build {
+	core
+	init
+	drivers/input/ps2
+	drivers/pci
+	drivers/framebuffer
+	drivers/timer
+	server/nitpicker
+	server/liquid_framebuffer
+	server/tar_fs
+	app/qt5/examples/samegame
+	lib/qt5/qtdeclarative/src/imports/qtquick2
+}
+
+create_boot_directory
+
+#
+# Create Qt tar archive
+#
+
+exec tar chf bin/qt5_fs.tar -C bin/qt5_fs .
+
+#
+# Generate config
+#
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route> }
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec pci] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+	</start>
+	<start name="tar_fs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<archive name="qt5_fs.tar" />
+			<policy label="" root="/" />
+		</config>
+	</start>
+	<start name="samegame">
+		<resource name="RAM" quantum="128M"/>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+
+# The QtQuick plugin currently needs to be provided both in the file system
+# (for Qt) and as ROM module (for 'dlopen()').
+
+set boot_modules {
+	core
+	init
+	timer
+	nitpicker
+	liquid_fb
+	tar_fs
+	samegame
+	freetype.lib.so
+	gallium.lib.so
+	icu.lib.so
+	ld.lib.so
+	libc.lib.so
+	libc_fs.lib.so
+	libc_log.lib.so
+	libc_lock_pipe.lib.so
+	libcrypto.lib.so
+	libm.lib.so
+	libpng.lib.so
+	libssl.lib.so
+	jpeg.lib.so
+	pthread.lib.so
+	qt5_core.lib.so
+	qt5_dejavusans.lib.so
+	qt5_network.lib.so
+	qt5_qml.lib.so
+	qt5_gui.lib.so
+	qt5_quick.lib.so
+	qt5_v8.lib.so
+	qt5_widgets.lib.so
+	qt5_xml.lib.so
+	zlib.lib.so
+	stdcxx.lib.so
+	qt5_fs.tar
+	qt5_qtquick2plugin.lib.so
+}
+
+# platform-specific modules
+lappend_if [have_spec       linux] boot_modules fb_sdl
+lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec         ps2] boot_modules ps2_drv
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256"
+
+run_genode_until forever
