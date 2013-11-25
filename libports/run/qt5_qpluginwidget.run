@@ -108,6 +108,7 @@ set boot_modules {
 	testnit
 	test-qpluginwidget
 	freetype.lib.so
+	gallium.lib.so
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so

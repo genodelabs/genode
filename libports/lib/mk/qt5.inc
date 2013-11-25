@@ -11,11 +11,11 @@ $(SRC_CC:.cpp=.o): $(COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTERED)
 COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTERED = $(filter-out $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT), $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES))
 $(SRC_CC:.cpp=.o): $(COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTERED)
 
-INC_DIR += $(REP_DIR)/src/lib/qt5/qtbase/mkspecs/qws/genode-generic-g++ \
-           $(REP_DIR)/src/lib/qt5/qtbase/src/corelib/global
+QT5_INC_DIR += $(REP_DIR)/src/lib/qt5/qtbase/mkspecs/qws/genode-generic-g++ \
+               $(REP_DIR)/src/lib/qt5/qtbase/src/corelib/global
 
-INC_DIR += $(addprefix $(REP_DIR)/src/lib/qt5/, $(QT_INCPATH))
-INC_DIR += $(addprefix $(REP_DIR)/contrib/$(QT5)/, $(QT_INCPATH))
+QT5_INC_DIR += $(addprefix $(REP_DIR)/src/lib/qt5/, $(QT_INCPATH))
+QT5_INC_DIR += $(addprefix $(REP_DIR)/contrib/$(QT5)/, $(QT_INCPATH))
 
 vpath % $(addprefix $(REP_DIR)/src/lib/qt5/, $(QT_VPATH))
 vpath % $(addprefix $(REP_DIR)/contrib/$(QT5)/, $(QT_VPATH))

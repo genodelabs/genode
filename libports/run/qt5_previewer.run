@@ -96,6 +96,7 @@ set boot_modules {
 	liquid_fb
 	previewer
 	freetype.lib.so
+	gallium.lib.so
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so

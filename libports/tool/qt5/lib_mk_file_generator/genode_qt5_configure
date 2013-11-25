@@ -8,6 +8,7 @@
     -no-qpa-platform-guard \
     -qpa minimal \
     -no-separate-debug-info \
+    -opengl desktop \
     -openssl-linked \
     -no-accessibility \
     -no-cups \
@@ -15,7 +16,6 @@
     -no-iconv \
     -no-largefile \
     -no-nis \
-    -no-opengl \
     -no-pkg-config \
     -no-xcb \
     -no-sse \

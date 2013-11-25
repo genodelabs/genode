@@ -1,0 +1,28 @@
+qt5_openglwindow_example.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ qtbase/examples/gui/openglwindow/openglwindow.pro |   10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/qtbase/examples/gui/openglwindow/openglwindow.pro b/qtbase/examples/gui/openglwindow/openglwindow.pro
+index 93f18f3..ffff275 100644
+--- a/qtbase/examples/gui/openglwindow/openglwindow.pro
++++ b/qtbase/examples/gui/openglwindow/openglwindow.pro
+@@ -1,7 +1,11 @@
+-include(openglwindow.pri)
++#include(openglwindow.pri)
+ 
+ SOURCES += \
+-    main.cpp
++    main.cpp \
++    openglwindow.cpp
+ 
+-target.path = $$[QT_INSTALL_EXAMPLES]/gui/openglwindow
++HEADERS += \
++    openglwindow.h
++
++#target.path = $$[QT_INSTALL_EXAMPLES]/gui/openglwindow
+ INSTALLS += target

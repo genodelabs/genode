@@ -15,6 +15,8 @@
 #ifndef _QNITPICKERINTEGRATION_H_
 #define _QNITPICKERINTEGRATION_H_
 
+#include <QOpenGLContext>
+
 #include <qpa/qplatformintegration.h>
 #include <qpa/qplatformscreen.h>
 
@@ -40,6 +42,8 @@ class QNitpickerIntegration : public QPlatformIntegration
 	    QAbstractEventDispatcher *guiThreadEventDispatcher() const;
 
 		QPlatformFontDatabase *fontDatabase() const;
+
+		QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const;
 };
 
 QT_END_NAMESPACE

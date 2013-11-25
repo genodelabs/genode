@@ -18,6 +18,7 @@
 
 /* Qt includes */
 #include <QtGui/private/qguiapplication_p.h>
+#include "qnitpickerglcontext.h"
 #include "qnitpickerintegration.h"
 #include "qnitpickerplatformwindow.h"
 #include "qnitpickerscreen.h"
@@ -90,4 +91,11 @@ QPlatformFontDatabase *QNitpickerIntegration::fontDatabase() const
     return &db;
 }
 
+
+QPlatformOpenGLContext *QNitpickerIntegration::createPlatformOpenGLContext(QOpenGLContext *context) const
+{
+    return new QNitpickerGLContext(context);
+}
+
 QT_END_NAMESPACE
+

@@ -96,6 +96,7 @@ set boot_modules {
 	liquid_fb
 	calculatorform
 	freetype.lib.so
+	gallium.lib.so
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so

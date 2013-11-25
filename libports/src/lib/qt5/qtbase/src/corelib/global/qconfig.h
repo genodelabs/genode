@@ -55,12 +55,6 @@
 # define QT_NO_DBUS
 #endif
 
-#if defined(QT_NO_EGL) && defined(QT_EGL)
-# undef QT_NO_EGL
-#elif !defined(QT_NO_EGL) && !defined(QT_EGL)
-# define QT_NO_EGL
-#endif
-
 #if defined(QT_NO_EGLFS) && defined(QT_EGLFS)
 # undef QT_NO_EGLFS
 #elif !defined(QT_NO_EGLFS) && !defined(QT_EGLFS)
@@ -101,12 +95,6 @@
 # undef QT_NO_NIS
 #elif !defined(QT_NO_NIS) && !defined(QT_NIS)
 # define QT_NO_NIS
-#endif
-
-#if defined(QT_NO_OPENGL) && defined(QT_OPENGL)
-# undef QT_NO_OPENGL
-#elif !defined(QT_NO_OPENGL) && !defined(QT_OPENGL)
-# define QT_NO_OPENGL
 #endif
 
 #if defined(QT_NO_OPENVG) && defined(QT_OPENVG)

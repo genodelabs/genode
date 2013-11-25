@@ -18,6 +18,9 @@
 /* Genode includes */
 #include <input/keycodes.h>
 
+/* EGL includes */
+#include <EGL/egl.h>
+
 /* Qt includes */
 #include <qpa/qplatformwindow.h>
 #include <qpa/qplatformscreen.h>
@@ -49,6 +52,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		QByteArray               _title;
 		bool                     _resize_handle;
 		bool                     _decoration;
+		EGLSurface               _egl_surface;
 
 		void _process_mouse_event(Input::Event *ev)
 		{
@@ -151,7 +155,8 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		  _timer(this),
 		  _keyboard_handler("", -1, false, false, ""),
 		  _resize_handle(!window->flags().testFlag(Qt::Popup)),
-		  _decoration(!window->flags().testFlag(Qt::Popup))
+		  _decoration(!window->flags().testFlag(Qt::Popup)),
+		  _egl_surface(EGL_NO_SURFACE)
 		{
 			_window_slave_policy.wait_for_service_announcements();
 
@@ -189,7 +194,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 	    void setGeometry(const QRect &rect)
 	    {
-	    	//if (qnpw_verbose)
+	    	if (qnpw_verbose)
 	    		qDebug() << "QNitpickerPlatformWindow::setGeometry(" << rect << ")";
 
 	    	/* limit window size to screen size */
@@ -211,6 +216,9 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 	    	QPlatformWindow::setGeometry(final_geometry);
 
 	    	emit framebuffer_changed();
+
+	    	if (qnpw_verbose)
+	    		qDebug() << "QNitpickerPlatformWindow::setGeometry() finished";
 	    }
 
 	    QRect geometry() const
@@ -232,7 +240,6 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 	    	if (qnpw_verbose)
 	    		qDebug() << "QNitpickerPlatformWindow::setVisible(" << visible << ")";
 
-	    	QPlatformWindow::setVisible(visible);
 	    	QRect g = geometry();
 	    	int x = g.x();
 	    	if (!visible)
@@ -243,6 +250,11 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 										   _resize_handle, _decoration);
 
 	    	emit framebuffer_changed();
+
+	    	QPlatformWindow::setVisible(visible);
+
+			if (qnpw_verbose)
+	    		qDebug() << "QNitpickerPlatformWindow::setVisible() finished";
 	    }
 
 	    void setWindowFlags(Qt::WindowFlags flags)
@@ -267,7 +279,10 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
     		                               _decoration);
 
 	    	QPlatformWindow::setWindowFlags(flags);
-	    }
+
+	    	if (qnpw_verbose)
+	    		qDebug() << "QNitpickerPlatformWindow::setWindowFlags() finished";
+		}
 
 	    void setWindowState(Qt::WindowState state)
 	    {
@@ -306,6 +321,9 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 	    	                               _title.constData(),
 	    	                               _resize_handle, _decoration);
 	    	emit framebuffer_changed();
+
+	    	if (qnpw_verbose)
+	    		qDebug() << "QNitpickerPlatformWindow::setWindowTitle() finished";
 	    }
 
 	    void setWindowFilePath(const QString &title)
@@ -472,6 +490,16 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		void refresh(int x, int y, int w, int h)
 		{
 			_window_slave_policy.refresh(x, y, w, h);
+		}
+
+		EGLSurface egl_surface() const
+		{
+			return _egl_surface;
+		}
+
+		void egl_surface(EGLSurface egl_surface)
+		{
+			_egl_surface = egl_surface;
 		}
 
 	signals:

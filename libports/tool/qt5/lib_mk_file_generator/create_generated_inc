@@ -32,8 +32,9 @@ function extract_sources()
       -e 's/OBJECTS .*//' \
       -e 's/.*SOURCES       =/QT_SOURCES += \\/' \
       -e 's/\\/\\\n/g' \
-      -e 's/\.cpp \.moc/\.cpp \\\n\.moc\t\t/' \
-      -e 's/\.cpp \.rcc/\.cpp \\\n\.rcc\t\t/' \
+      -e 's/\.cpp \.moc/\.cpp \\\n\t\t\.moc/g' \
+      -e 's/\.cpp \.rcc/\.cpp \\\n\t\t\.rcc/g' \
+      -e 's/\.cc generated/\.cc \\\n\t\tgenerated/g' \
       Makefile > sources.inc.tmp
 
   sed -e 's/.*\//  /' \
@@ -50,8 +51,9 @@ function extract_vpath()
       -e 's/OBJECTS .*//' \
       -e 's/.*SOURCES       =//' \
       -e 's/\\/\\\n/g' \
-      -e 's/\.cpp \.moc/\.cpp \\\n\.moc\t\t/' \
-      -e 's/\.cpp \.rcc/\.cpp \\\n\.rcc\t\t/' \
+      -e 's/\.cpp \.moc/\.cpp \\\n\t\t\.moc/' \
+      -e 's/\.cpp \.rcc/\.cpp \\\n\t\t\.rcc/' \
+      -e 's/\.cc generated/\.cc \\\n\t\tgenerated/g' \
       Makefile > vpath.inc.tmp
 
   echo -e "QT_VPATH += \\" > vpath.inc

@@ -38,4 +38,4 @@ INC_DIR += $(REP_DIR)/include/qt5/qtbase/QtGui/private \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION) \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
-LIBS += qt5_core jpeg zlib libpng
+LIBS += qt5_core jpeg zlib libpng gallium

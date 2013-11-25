@@ -10,7 +10,6 @@ build {
 	drivers/framebuffer
 	drivers/timer
 	server/nitpicker
-	server/nit_fb
 	server/liquid_framebuffer
 	app/qt5/examples/tetrix
 }
@@ -94,10 +93,10 @@ set boot_modules {
 	init
 	timer
 	nitpicker
-	nit_fb
 	liquid_fb
 	tetrix
 	freetype.lib.so
+	gallium.lib.so
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
