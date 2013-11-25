@@ -192,6 +192,8 @@ void main_parent(Dataspace_capability elf_ds)
 		rm.detach((void *)child_virt_addr);
 	}
 
+	fault_handler.dissolve(&signal_context);
+
 	printf("--- parent role of region-manager fault test finished ---\n");
 }
 

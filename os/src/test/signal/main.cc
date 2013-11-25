@@ -293,6 +293,8 @@ static void fast_sender_test()
 	if (sender->submit_cnt() != handler->receive_cnt())
 		throw Test_failed();
 
+	receiver.dissolve(&context_123);
+
 	destroy(env()->heap(), sender);
 	destroy(env()->heap(), handler);
 
@@ -378,6 +380,7 @@ static void multiple_handlers_test()
 	}
 
 	/* cleanup */
+	receiver.dissolve(&context_123);
 	destroy(env()->heap(), sender);
 	for (int i = 0; i < NUM_HANDLERS; i++)
 		destroy(env()->heap(), handler[i]);
@@ -437,6 +440,7 @@ static void stress_test()
 	if (sender->submit_cnt() != handler->receive_cnt())
 		throw Test_failed_with_unequal_sent_and_received_signals();
 
+	receiver.dissolve(&context_123);
 	destroy(env()->heap(), sender);
 	destroy(env()->heap(), handler);
 
@@ -479,6 +483,9 @@ static void lazy_receivers_test()
 		signal = rec_1.wait_for_signal();
 		printf("returned from wait_for_signal for receiver 1\n");
 	}
+
+	rec_1.dissolve(&rec_context_1);
+	rec_2.dissolve(&rec_context_2);
 
 	printf("TEST %d FINISHED\n", test_cnt);
 }
