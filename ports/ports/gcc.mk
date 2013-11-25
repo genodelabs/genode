@@ -56,3 +56,4 @@ $(CONTRIB_DIR)/$(GCC)/configure:: $(CONTRIB_DIR)/$(GCC)
 	@# Noux-specific changes
 	@#
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(GCC) -N -p1 < src/noux-pkg/gcc/build.patch
+	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(GCC) -N -p1 < src/noux-pkg/gcc/build_with_makeinfo_5.patch
