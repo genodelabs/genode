@@ -27,6 +27,11 @@
 #REPOSITORIES += $(GENODE_DIR)/ports
 
 #
+# Ports of the Linux TCP/IP stack and Linux drivers (USB) from the Linux kernel
+#
+#REPOSITORIES += $(GENODE_DIR)/dde_linux
+
+#
 # High-level Genode-specific services and applications
 #
 # The 'gems' repository depends on 'libc', 'libports', and 'qt4'.

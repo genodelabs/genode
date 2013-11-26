@@ -1,5 +1,1 @@
 
-#
-# Drivers ported from the Linux kernel (USB)
-#
-#REPOSITORIES += $(GENODE_DIR)/dde_linux
