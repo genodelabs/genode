@@ -93,7 +93,7 @@ class Redraw_manager
 				w = _canvas->w();
 
 			if (h > _canvas->h())
-				h = _canvas->w();
+				h = _canvas->h();
 
 			_w = w; _h = h;
 		}
