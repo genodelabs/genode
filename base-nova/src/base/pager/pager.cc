@@ -23,7 +23,7 @@
 using namespace Genode;
 using namespace Nova;
 
-enum { PF_HANDLER_STACK_SIZE = sizeof(addr_t) * 1024 };
+enum { PF_HANDLER_STACK_SIZE = 2 * sizeof(addr_t) * 1024 };
 extern Genode::addr_t __core_pd_sel;
 
 
