@@ -104,11 +104,22 @@ class Ahci_port : public Reg_base
 {
 	public:
 
-		/* command list base (lower 32 bit) */
-		void cmd_list_base(addr_t cmd_base) { _set(0x0, cmd_base); }
+		/* command list base */
+		void cmd_list_base(addr_t cmd_base)
+		{
+			uint64_t addr = cmd_base;
+			_set(0x0, addr);
+			_set(0x4, addr >> 32);
+		}
 
-		/* receive FIS base address (lower 32 bit) */
-		void fis_base(addr_t fis_base) { _set(0x8, fis_base); }
+		/* receive FIS base address */
+		void fis_base(addr_t fis_base)
+		{
+			uint64_t addr = fis_base;
+
+			_set(0x8, addr);
+			_set(0xc, addr);
+		}
 
 		/* interrupt status */
 		uint32_t intr_status()             { return _value(0x10); }
@@ -309,6 +320,8 @@ struct Command_table
 		enum { MAX_BYTES = 1 << 22 }; /* 4MB = one PRD */
 		uint8_t *fis = (uint8_t *)this;
 
+		uint64_t addr = phys_addr;
+
 		/* setup FIS */
 		fis[0] = 0x27;                   /* type = host to device */
 		fis[1] = 0x80;                   /* set update command flag */
@@ -324,7 +337,10 @@ struct Command_table
 		fis[13] = (blk_cnt >> 8) & 0xff; /* sector count 8 - 15 */
 
 		/* setup PRD for DMA */
-		memcpy(&fis[0x80], &phys_addr, 4); /* DBA: data base address */
+		uint32_t addr_l = addr;
+		uint32_t addr_u = addr >> 32;
+		memcpy(&fis[0x80], &addr_l, 4); /* DBA: data base address */
+		memcpy(&fis[0x84], &addr_u, 4); /* DBA: data base address upper */
 		uint32_t bytes  = (blk_cnt * 512) - 1;
 
 		if (bytes + 1 > MAX_BYTES) {
@@ -407,9 +423,10 @@ class Ahci_device_base
 			_port->fis_base(phys);
 			virt += 256; phys += 256;
 
+			uint64_t addr = phys;
 			/* setup command table (128 byte aligned (cache line size)) */
-			_cmd_list->cmd_table_base_l = phys;
-			_cmd_list->cmd_table_base_u = 0;
+			_cmd_list->cmd_table_base_l = addr;
+			_cmd_list->cmd_table_base_u = addr >> 32;
 			_cmd_table = (struct Command_table *)(virt);
 		}
 
