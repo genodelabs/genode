@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 
 	char                     policy_label[64];
 	char                     policy_module[64];
-        Rom_dataspace_capability policy_module_rom_ds;
+	Rom_dataspace_capability policy_module_rom_ds;
 
 	try {
 		Xml_node policy = config()->xml_node().sub_node("trace_policy");
