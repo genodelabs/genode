@@ -65,6 +65,16 @@ Signal::Signal(Signal::Data data) : _data(data)
 }
 
 
+/********************
+ ** Signal context **
+ ********************/
+
+void Signal_context::submit(unsigned num)
+{
+	Kernel::submit_signal(_cap.dst(), num);
+}
+
+
 /************************
  ** Signal transmitter **
  ************************/
@@ -191,5 +201,5 @@ Signal Signal_receiver::wait_for_signal()
 
 void Signal_receiver::local_submit(Signal::Data signal)
 {
-	PERR("method not implemented");
+	PERR("not implemented");
 }
