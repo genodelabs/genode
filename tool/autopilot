@@ -30,7 +30,7 @@ proc foreach_cmdline_arg { tag func } {
 #
 proc genode_dir { } {
 	global argv0;
-	return [file dirname [file dirname $argv0]]
+	return [file dirname [file dirname [file normalize $argv0]]]
 }
 
 
@@ -325,7 +325,7 @@ foreach platform $platforms {
 		if {[execute_run_script $platform $run_script]} {
 			puts stderr "-> OK"
 		} else {
-			
+
 			if {[build_failed_because_of_missing_run_script $platform $run_script]} {
 				puts stderr "-> UNAVAILABLE"
 			} else {
