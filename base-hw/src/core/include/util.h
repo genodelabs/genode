@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__UTIL_H_
-#define _CORE__INCLUDE__UTIL_H_
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
 /* Genode includes */
 #include <rm_session/rm_session.h>
@@ -20,7 +20,10 @@
 
 namespace Genode
 {
-	enum { MIN_PAGE_SIZE_LOG2 = 12 };
+	enum {
+		ACTIVITY_TABLE_ON_FAULTS = 0,
+		MIN_PAGE_SIZE_LOG2 = 12,
+	};
 
 	/**
 	 * Identification that core threads use to get access to their metadata
@@ -99,20 +102,41 @@ namespace Genode
 		return 20;
 	}
 
-
 	/**
-	 * Debug output on page faults
+	 * Print debug output on page faults
+	 *
+	 * \param fault_msg      introductory message
+	 * \param fault_addr     target address of the fault access
+	 * \param fault_ip       instruction pointer of the faulter
+	 * \param fault_type     access type of fault
+	 * \param faulter_badge  user identification of faulter
 	 */
-	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
-	                             Rm_session::Fault_type pf_type,
-	                             unsigned faulter_badge)
-	{
-		printf("%s (%s pf_addr=%p pf_ip=%p from %02x)", msg,
-		       pf_type == Rm_session::WRITE_FAULT ? "WRITE" : "READ",
-		       (void *)pf_addr, (void *)pf_ip,
-		       faulter_badge);
+	inline void print_page_fault(char const * const fault_msg,
+	                             addr_t const fault_addr,
+	                             addr_t const fault_ip,
+	                             Rm_session::Fault_type const fault_type,
+	                             unsigned const faulter_badge);
+}
+
+
+void Genode::print_page_fault(char const * const fault_msg,
+                              addr_t const fault_addr,
+                              addr_t const fault_ip,
+                              Rm_session::Fault_type const fault_type,
+                              unsigned const faulter_badge)
+{
+	const char read[] = "read from";
+	const char write[] = "write to";
+	printf("\033[31m%s\033[0m (faulter %x", fault_msg, faulter_badge);
+	printf(" with IP %p attempts to", (void *)fault_ip);
+	printf(" %s", fault_type == Rm_session::READ_FAULT ? read : write);
+	printf(" address %p)\n", (void *)fault_addr);
+	if (ACTIVITY_TABLE_ON_FAULTS) {
+		printf("---------- activity table ----------\n");
+		Kernel::print_char(0);
+		printf("\n");
 	}
 }
 
-#endif /* _CORE__INCLUDE__UTIL_H_ */
+#endif /* _UTIL_H_ */
 
