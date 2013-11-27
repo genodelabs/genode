@@ -494,7 +494,16 @@ proc spawn_qemu { wait_for_re timeout_value } {
 	    append qemu_args " -serial mon:stdio " }
 
 	# tweak emulated platform for specific platforms
-	if {[have_spec platform_pbxa9]}  { append qemu_args " -M realview-pbx-a9 -m 256 " }
+	if {[have_spec platform_pbxa9]}  {
+		#
+		# For PBXA9 qemu adjusts provided RAM chips to the -m arg. Thus we
+		# filter user values and force value that enables all chips that Genode
+		# expects to be available. Not doing so leads to inexplicable errors.
+		#
+		regsub -all {\-m ([0-9])+} $qemu_args "" qemu_args
+		append qemu_args " -m 768"
+		append qemu_args " -M realview-pbx-a9"
+	}
 	if {[have_spec platform_vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
 	if {[have_spec platform_vea9x4]} { append qemu_args " -M vexpress-a9 -cpu cortex-a9 -m 256 " }
 
