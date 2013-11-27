@@ -67,6 +67,8 @@ repositories. The most predominant repositories hosting device drivers are
 Platform devices
 ================
 
+:'os/src/drivers/platform/': Platform drivers for various ARM boards.
+
 :'os/src/drivers/pci':
   Implements the PCI-session interface using the PCI controller as found on
   x86 PC hardware. Using this interface, a client can probe for a particular
@@ -85,6 +87,12 @@ The UART device drivers implement the UART-session interface.
 
 :'os/src/drivers/uart/i8250':
   Driver for the i8250 UART as found on PC hardware.
+
+:'os/src/drivers/uart/omap4':
+  Driver for the UART as found on OMAP4-based hardware.
+
+:'os/src/drivers/uart/exynos5':
+  Driver for the UART as found on Exynos-5-based hardware.
 
 
 Framebuffer and input drivers
@@ -121,13 +129,24 @@ input-session interfaces respectively.
 :'os/src/drivers/framebuffer/pl11x':
   Driver for the PL110/PL111 LCD display.
 
+:'os/src/drivers/framebuffer/omap4':
+  Driver for HDMI output on OMAP4 SoCs.
+
+:'os/src/drivers/framebuffer/exynos5':
+  Driver for HDMI output on Exynos-5 SoCs.
+
+:'os/src/drivers/framebuffer/imx53':
+  Driver for LCD output on i.MX53 SoCs.
+
+:'os/src/drivers/framebuffer/imx53':
+  Driver for touchscreen input on i.MX53 quick start board.
+
+:'os/src/drivers/framebuffer/rpi':
+  Driver for the HDMI output of the Raspberry Pi.
+
 :'os/src/drivers/framebuffer/sdl':
   Serves as both framebuffer and input driver on Linux using libSDL. This
   driver is only usable on the Linux base platform.
-
-:'os/src/drivers/framebuffer/fiasco_ux':
-  Driver for the virtual framebuffer device provided by the user-mode Fiasco
-  kernel.
 
 :'dde_linux/src/drivers/usb':
   USB driver that makes USB HID and USB storage devices available as input
@@ -183,12 +202,15 @@ All block drivers implement the block-session interface defined at
 :'os/src/drivers/atapi':
   Driver for ATAPI CD-ROM devices on x86 PCs.
 
-:'os/src/drivers/sd_card':
+:'os/src/drivers/sd_card/pl180':
   Driver for SD-cards connected via the PL180 device as found on the PBX-A9
   platform.
 
 :'os/src/drivers/sd_card/omap4':
   Driver for SD-cards connected to the SD-card controller of the OMAP4 SoC.
+
+:'os/src/drivers/sd_card/exynos5':
+  Driver for SD-cards and eMMC connected to Exynos-5-based platforms.
 
 :'linux_drivers/src/drivers/usb':
   USB driver that makes USB storage devices available as block sessions.
@@ -229,6 +251,9 @@ General-purpose I/O drivers
 
 :'os/src/drivers/gpio/omap4':
   Driver for accessing the GPIO pins of OMAP4 platforms.
+
+:'os/src/drivers/gpio/imx53':
+  Driver for accessing the GPIO pins of i.MX53 platforms.
 
 
 Resource multiplexers
@@ -307,6 +332,10 @@ Separate components:
   A read-only file-system implementation that reads data from a TAR archive,
   which, in turn, is provided by a ROM service.
 
+:'os/src/server/lx_fs':
+  A file system server that makes the file system of a Linux base platform
+  available to Genode.
+
 :'os/src/server/rom_loopdev':
   Provides the content of a ROM file as a block session, similar to the
   loop-mount mechanism on Linux
@@ -323,6 +352,12 @@ Separate components:
 :'demo/src/server/nitlog':
   Provides a LOG session, printing log output on screen via a nitpicker
   session.
+
+:'os/src/server/log_terminal':
+  Forwards terminal output to a LOG session.
+
+:'gems/src/server/file_terminal':
+  Provides terminal sessions that target files on a file system.
 
 :'gems/src/server/terminal':
   Provides a terminal session via a graphical terminal using a framebuffer
@@ -356,9 +391,24 @@ Libraries:
 :'libports/lib/mk/libc_lwip_nic_dhcp':
   Translates the BSD socket API to a NIC session using the lwIP stack.
 
+:'dde_linux/lib/mk/libc_lxip':
+  Translates the BSD socket API to a NIC session using the Linux TCP/IP stack.
+
+:'libports/lib/mk/libc_ffat':
+  Accesses files on a block device that contains a FAT32 file system.
+
+:'libports/lib/mk/libc_fuse_exfat':
+  Accesses files on a block device that contains an exFAT file system.
+
+:'libports/lib/mk/libc_fuse_ext2':
+  Accesses files on a block device that contains an ext2 file system.
+
 :'libports/lib/mk/libc_fs':
   Allows libc-using programs to access the Genode file-system infrastructure
   using the POSIX file API.
+
+:'libports/lib/mk/libc_block':
+  Accesses a block session as a virtual block device.
 
 :'libports/lib/mk/libc_terminal':
   Connects the standard input and output from/to Genode's terminal session
@@ -472,4 +522,6 @@ Runtime environments
 :'os/src/server/loader': A service that allows the creation and destruction
   of Genode subsystems via a session interface. For further information,
   refer to 'os/src/server/loader/README'.
+
+:'ports/src/app/dosbox': A port of DosBox for executing DOS software.
 
