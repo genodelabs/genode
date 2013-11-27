@@ -2602,6 +2602,21 @@ static inline bool ipv4_is_loopback(__be32 addr)
 #include <uapi/linux/in6.h>
 
 
+/********************
+ ** linux/random.h **
+ ********************/
+
+static inline void get_random_bytes(void *buf, int nbytes)
+{
+	char *b = (char *)buf;
+
+	/* FIXME not random */
+	int i;
+	for (i = 0; i < nbytes; ++i)
+		b[i] = i + 1;
+}
+
+
 /**
  * Misc
  */

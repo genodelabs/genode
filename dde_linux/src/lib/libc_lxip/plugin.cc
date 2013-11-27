@@ -43,8 +43,6 @@ enum {
  ** Plugin interface **
  **********************/
 
-extern "C" void wait_for_continue();
-
 namespace {
 
 class Plugin_context : public Libc::Plugin_context

@@ -392,7 +392,7 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 			while (true) {
 				Genode::Signal s = Net::Env::receiver()->wait_for_signal();
 				static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-		  }
+			}
 		}
 
 		/***********************
