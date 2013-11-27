@@ -49,6 +49,9 @@ namespace Genode
 			TL16C750_3_IRQ = 106,
 			TL16C750_4_IRQ = 102,
 
+			/* USB */
+			HSUSB_EHCI_IRQ = 109,
+
 			/* timer modules */
 			GP_TIMER_3_IRQ = 71,
 

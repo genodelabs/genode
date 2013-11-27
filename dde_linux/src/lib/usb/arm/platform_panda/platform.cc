@@ -14,6 +14,7 @@
 #include <platform/platform.h>
 #include <platform.h>
 
+#include <drivers/board_base.h>
 #include <gpio_session/connection.h>
 #include <io_mem_session/connection.h>
 #include <util/mmio.h>
@@ -38,10 +39,7 @@ enum {
 /**
  * Inerrupt numbers
  */
-enum {
- IRQ_GIC_START = 32,
- IRQ_EHCI      = IRQ_GIC_START + 77,
-};
+enum { IRQ_EHCI = Board_base::HSUSB_EHCI_IRQ };
 
 
 /**
