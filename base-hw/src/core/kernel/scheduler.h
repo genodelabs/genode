@@ -289,6 +289,13 @@ class Kernel::Scheduler
 		 * Exclude 'i' from scheduling
 		 */
 		void remove(T * const i) { _items[i->priority()].remove(i); }
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		T * idle() const { return _idle; }
 };
 
 class Kernel::Execution_context : public Cpu_scheduler::Item
