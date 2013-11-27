@@ -69,7 +69,9 @@ class Kernel::Signal_ack_handler
 {
 	friend class Signal_context;
 
-	Signal_context * _signal_context;
+	private:
+
+		Signal_context * _signal_context;
 
 	protected:
 
@@ -120,6 +122,14 @@ class Kernel::Signal_handler
 		 */
 		virtual void _receive_signal(void * const base, size_t const size) = 0;
 
+	protected:
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Signal_receiver * receiver() const { return _receiver; }
+
 	public:
 
 		/**
@@ -165,6 +175,14 @@ class Kernel::Signal_context_killer
 		 */
 		virtual void _signal_context_kill_done() = 0;
 
+	protected:
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Signal_context * context() const { return _context; }
+
 	public:
 
 		/**
@@ -205,6 +223,14 @@ class Kernel::Signal_receiver_killer
 		 * Notice that pending destruction is done
 		 */
 		virtual void _signal_receiver_kill_done() = 0;
+
+	protected:
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Signal_receiver * receiver() const { return _receiver; }
 
 	public:
 
