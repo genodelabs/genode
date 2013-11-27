@@ -24,8 +24,8 @@ namespace Genode
 		enum
 		{
 			/* normal RAM */
-			RAM_0_BASE = 0x00000000,
-			RAM_0_SIZE = 0x10000000,
+			RAM_0_BASE = 0x70000000,
+			RAM_0_SIZE = 0x20000000,
 			RAM_1_BASE = 0x20000000,
 			RAM_1_SIZE = 0x10000000,
 
