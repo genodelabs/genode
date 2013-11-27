@@ -9,7 +9,7 @@ if {![have_spec trustzone]} {
 	exit 0
 }
 
-build "core init server/vmm"
+build "core init server/tz_vmm"
 create_boot_directory
 
 install_config {
@@ -30,10 +30,12 @@ install_config {
 	<default-route>
 		<any-service><any-child/><parent/></any-service>
 	</default-route>
-	<start name="vmm">
+	<start name="tz_vmm">
 		<resource name="RAM" quantum="4M"/>
 	</start>
 </config>
 }
 
-build_boot_image "core init vmm linux initrd.gz"
+build_boot_image "core init tz_vmm linux initrd.gz"
+
+run_genode_until forever
