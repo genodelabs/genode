@@ -10,9 +10,6 @@ REQUIRES += trustzone
 # add include paths
 INC_DIR  += $(REP_DIR)/src/core/imx53/trustzone
 
-# adjust link address of a trustzone text segment
-LD_TEXT_ADDR = 0x70800000
-
 # add C++ sources
 SRC_CC += vm_session_component.cc
 
