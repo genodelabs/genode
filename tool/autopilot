@@ -45,10 +45,10 @@ proc help { } {
 
 	set help_text {
 		Automatically execute test cases on different platforms
-		
+
 		  usage: autopilot -p <platform> ... [-r <run-script> ...]
 		                  [-d <test-dir>] [-j <make-jobs>]
-		                  [--help] [--cleanup] [--force]
+		                  [--help] [--cleanup] [--force] [--keep]
 		                  [--stdout] [--skip-clean-rules]
 		                  [--enable-ccache]
 
@@ -272,13 +272,17 @@ if {[get_cmd_switch --force]} { wipe_test_dir }
 # create build directories
 foreach platform $platforms {
 
+	set build_dir [build_dir $platform]
+
+	if {[get_cmd_switch --keep] && [file exists $build_dir]} { continue }
+
 	if {[catch {
-		exec [genode_dir]/tool/create_builddir $platform BUILD_DIR=[build_dir $platform]
+		exec [genode_dir]/tool/create_builddir $platform BUILD_DIR=$build_dir
 	}]} {
 		fail "create_builddir for platform $platform failed" -1
 	}
 
-	set build_conf [file join [build_dir $platform] etc build.conf]
+	set build_conf [file join $build_dir etc build.conf]
 	if {![file exists $build_conf]} {
 		fail "build dir for $platform lacks 'etc/build.conf' file" -2
 	}
@@ -291,7 +295,7 @@ foreach platform $platforms {
 
 	# optionally enable ccache
 	if {[get_cmd_switch --enable-ccache]} {
-		set tools_conf [file join [build_dir $platform] etc tools.conf]
+		set tools_conf [file join $build_dir etc tools.conf]
 		exec echo "CUSTOM_CC  = ccache \$(CROSS_DEV_PREFIX)gcc" >> $tools_conf
 		exec echo "CUSTOM_CXX = ccache \$(CROSS_DEV_PREFIX)g++" >> $tools_conf
 	}
