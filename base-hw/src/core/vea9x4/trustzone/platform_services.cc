@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/service.h>
+#include <drivers/trustzone.h>
 
 /* Core includes */
 #include <platform.h>
@@ -29,7 +30,15 @@ void Genode::platform_add_local_services(Genode::Rpc_entrypoint *ep,
 {
 	using namespace Genode;
 
-	static Vm_root vm_root(ep, sh, platform()->ram_alloc());
+	/*
+	 * We use an extra portion of RAM for the VM state,
+	 * so we can map it non-cached to core instead of normal, cached RAM.
+	 * In future, when core only maps memory on demand, this extra allocator,
+	 * can be eliminated.
+	 */
+	static Synchronized_range_allocator<Allocator_avl> vm_alloc(0);
+	vm_alloc.add_range(Trustzone::VM_STATE_BASE, Trustzone::VM_STATE_SIZE);
+	static Vm_root vm_root(ep, sh, &vm_alloc);
 	static Local_service vm_ls(Vm_session::service_name(), &vm_root);
 	ls->insert(&vm_ls);
 }

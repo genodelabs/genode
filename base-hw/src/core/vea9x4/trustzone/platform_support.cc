@@ -11,6 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+#include <drivers/trustzone.h>
+
 /* core includes */
 #include <board.h>
 #include <cpu.h>
@@ -60,7 +62,7 @@ Native_region * Platform::_ram_regions(unsigned const i)
 {
 	static Native_region _regions[] =
 	{
-		{ Board::RAM_3_BASE, Board::RAM_3_SIZE }
+		{ Trustzone::SECURE_RAM_BASE, Trustzone::SECURE_RAM_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -72,9 +74,7 @@ Native_region * Platform::_mmio_regions(unsigned const i)
 	{
 		{ Board::MMIO_0_BASE, Board::MMIO_0_SIZE },
 		{ Board::MMIO_1_BASE, Board::MMIO_1_SIZE },
-		{ 0x60000000, 0x40000000 },
-		{ Board::TZASC_MMIO_BASE, Board::TZASC_MMIO_SIZE },
-		{ Board::TZPC_MMIO_BASE, Board::TZPC_MMIO_SIZE },
+		{ Trustzone::NONSECURE_RAM_BASE, Trustzone::NONSECURE_RAM_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
@@ -89,7 +89,10 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* Core UART */
-		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE }
+		{ Board::PL011_0_MMIO_BASE, Board::PL011_0_MMIO_SIZE },
+
+		/* vm state memory */
+		{ Trustzone::VM_STATE_BASE, Trustzone::VM_STATE_SIZE },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
