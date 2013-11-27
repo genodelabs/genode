@@ -30,11 +30,7 @@ namespace Kernel
 
 class Kernel::Ipc_node
 {
-	private:
-
-		class Message_buf;
-
-		typedef Genode::Fifo<Message_buf> Message_fifo;
+	protected:
 
 		enum State
 		{
@@ -44,6 +40,12 @@ class Kernel::Ipc_node
 			PREPARE_REPLY           = 4,
 			PREPARE_AND_AWAIT_REPLY = 5,
 		};
+
+	private:
+
+		class Message_buf;
+
+		typedef Genode::Fifo<Message_buf> Message_fifo;
 
 		/**
 		 * Describes the buffer for incoming or outgoing messages
@@ -200,6 +202,16 @@ class Kernel::Ipc_node
 		 * IPC node returned from waiting due to cancellation
 		 */
 		virtual void _await_ipc_failed() = 0;
+
+	protected:
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Ipc_node * outbuf_dst() { return _outbuf_dst; }
+
+		State state() { return _state; }
 
 	public:
 
