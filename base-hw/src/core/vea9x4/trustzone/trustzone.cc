@@ -32,7 +32,7 @@ void Kernel::trustzone_initialization(Pic *pic)
 	pic->unsecure(34); //Timer 0/1
 	pic->unsecure(35); //Timer 2/3
 	pic->unsecure(36); //RTC
-	pic->unsecure(40); //UART3
+	pic->unsecure(37); //UART0
 	pic->unsecure(41); //MCI0
 	pic->unsecure(42); //MCI1
 	pic->unsecure(43); //AACI

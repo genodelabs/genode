@@ -36,6 +36,28 @@ install_config {
 </config>
 }
 
+if {[have_spec platform_imx53]} {
+	set init_uri "http://genode.org/files/images/imx53_qsb/initrd.gz"
+	set linux_uri "http://genode.org/files/images/imx53_qsb/linux_trustzone.bin"
+} elseif {[have_spec platform_vea9x4]} {
+	set init_uri "http://genode.org/files/images/vea9x4/initrd.gz"
+	set linux_uri "http://genode.org/files/images/vea9x4/linux_trustzone.bin"
+}
+if {![file exists bin/initrd.gz]} {
+	puts "Download initramfs ..."
+	exec >& /dev/null wget -c -O bin/initrd.gz $init_uri
+}
+if {![file exists bin/linux]} {
+	puts "Download linux binary ..."
+	exec >& /dev/null wget -c -O bin/linux $linux_uri
+}
+exec >& /dev/null wget -O bin/initrd.gz.md5 $init_uri.md5
+exec >& /dev/null wget -O bin/linux.md5 $linux_uri.md5
+cd bin
+exec md5sum -c initrd.gz.md5
+exec md5sum -c linux.md5
+cd ..
+
 build_boot_image "core init tz_vmm linux initrd.gz"
 
 run_genode_until forever

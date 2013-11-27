@@ -152,7 +152,7 @@ class Tsc_380 : Genode::Mmio
 			write<Region_attr<REGION15_REG_OFF>::Subreg2>(1);
 			write<Region_attr<REGION15_REG_OFF>::Subreg3>(1);
 
-			/* Access to UART3, and WDT */
+			/* Access to UART0, and WDT */
 			write<Region_low<REGION14_REG_OFF> >(0x10008000);
 			write<Region_high<REGION14_REG_OFF> >(0x10010000);
 			write<Region_attr<REGION14_REG_OFF>::Enable>(1);
@@ -162,9 +162,9 @@ class Tsc_380 : Genode::Mmio
 			write<Region_attr<REGION14_REG_OFF>::Secure_read>(1);
 			write<Region_attr<REGION14_REG_OFF>::Secure_write>(1);
 			write<Region_attr<REGION14_REG_OFF>::Subreg0>(1);
-			write<Region_attr<REGION14_REG_OFF>::Subreg1>(1);
 			write<Region_attr<REGION14_REG_OFF>::Subreg2>(1);
 			write<Region_attr<REGION14_REG_OFF>::Subreg3>(1);
+			write<Region_attr<REGION14_REG_OFF>::Subreg4>(1);
 			write<Region_attr<REGION14_REG_OFF>::Subreg5>(1);
 			write<Region_attr<REGION14_REG_OFF>::Subreg6>(1);
 

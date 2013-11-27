@@ -33,9 +33,7 @@ enum {
 };
 
 
-static const char* cmdline_tablet =
-	"console=ttymxc0,115200 androidboot.console=ttymxc0 lpj=4997120 \
-video=mxcdi1fb:RGB666,XGA gpu_memory=64M";
+static const char* cmdline_tablet = "console=ttymxc0,115200";
 
 
 namespace Vmm {
@@ -47,6 +45,11 @@ class Vmm::Vmm : public Thread<8192>
 {
 	private:
 
+		enum Devices {
+			FRAMEBUFFER,
+			INPUT,
+		};
+
 		Signal_receiver           _sig_rcv;
 		Signal_context            _vm_context;
 		Vm                       *_vm;
@@ -57,6 +60,9 @@ class Vmm::Vmm : public Thread<8192>
 		{
 			/* check device number*/
 			switch (_vm->state()->r0) {
+			case FRAMEBUFFER:
+			case INPUT:
+				break;
 			default:
 				PERR("Unknown hypervisor call!");
 				_vm->dump();
@@ -96,6 +102,7 @@ class Vmm::Vmm : public Thread<8192>
 		{
 			_vm->sig_handler(_sig_rcv.manage(&_vm_context));
 			_vm->start();
+			_vm->run();
 
 			while (true) {
 				Signal s = _sig_rcv.wait_for_signal();
@@ -127,7 +134,7 @@ int main()
 {
 	static Vm vm("linux", "initrd.gz", cmdline_tablet,
 	             Trustzone::NONSECURE_RAM_BASE, Trustzone::NONSECURE_RAM_SIZE,
-	             KERNEL_OFFSET, MACH_TYPE_TABLET, BOARD_REV_TABLET);
+	             KERNEL_OFFSET, MACH_TYPE_QSB);
 	static Vmm::Vmm vmm(&vm);
 
 	PINF("Start virtual machine ...");

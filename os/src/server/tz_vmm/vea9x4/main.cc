@@ -21,6 +21,7 @@
 #include <rom_session/connection.h>
 #include <vm_session/connection.h>
 #include <dataspace/client.h>
+#include <drivers/trustzone.h>
 
 /* local includes */
 #include <tsc_380.h>
@@ -150,7 +151,9 @@ class Vmm::Vmm : public Thread<8192>
 			Signal_receiver sig_rcv;
 			Signal_context  sig_cxt;
 			Signal_context_capability sig_cap(sig_rcv.manage(&sig_cxt));
-			_vm->start(sig_cap);
+			_vm->sig_handler(sig_cap);
+			_vm->start();
+
 			while (true) {
 				_vm->run();
 				Signal s = sig_rcv.wait_for_signal();
@@ -168,7 +171,8 @@ class Vmm::Vmm : public Thread<8192>
 		Vmm(addr_t tsc_base, addr_t tpc_base,
 			addr_t sys_base, addr_t sp810_base,
 			Vm    *vm)
-		: _tsc_io_mem(tsc_base,     0x1000),
+		: Thread<8192>("vmm"),
+		  _tsc_io_mem(tsc_base,     0x1000),
 		  _tpc_io_mem(tpc_base,     0x1000),
 		  _sys_io_mem(sys_base,     0x1000),
 		  _sp810_io_mem(sp810_base, 0x1000),
@@ -187,13 +191,13 @@ int main()
 		SP810_VEA9X4_BASE = 0x10001000,
 		TPC_VEA9X4_BASE   = 0x100e6000,
 		TSC_VEA9X4_BASE   = 0x100ec000,
-		MAIN_MEM_START    = 0x80000000,
-		MAIN_MEM_SIZE     = 0x10000000,
+		MAIN_MEM_START    = Trustzone::NONSECURE_RAM_BASE,
+		MAIN_MEM_SIZE     = Trustzone::NONSECURE_RAM_SIZE,
 		KERNEL_OFFSET     = 0x8000,
 		MACH_TYPE         = 2272,
 	};
 
-	static const char* cmdline = "console=ttyAMA0,38400n8 root=/dev/ram0 lpj=1554432";
+	static const char* cmdline = "console=ttyAMA0,115200n8 root=/dev/ram0 lpj=1554432";
 	static Vm vm("linux", "initrd.gz", cmdline, MAIN_MEM_START, MAIN_MEM_SIZE,
 	             KERNEL_OFFSET, MACH_TYPE);
 	static Vmm::Vmm vmm(TSC_VEA9X4_BASE, TPC_VEA9X4_BASE,
