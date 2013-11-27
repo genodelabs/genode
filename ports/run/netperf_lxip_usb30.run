@@ -5,11 +5,6 @@
 # \date   2013-07-08
 #
 
-if {[is_qemu_available]} {
-	puts "\nNetperf running on Qemu is not recommented.\n"
-	exit
-}
-
 if {[have_spec omap4]} {
 	puts stderr "\nTest requires 1 Gbit network interface - not supported for omap4\n"
 	exit 0

@@ -5,11 +5,6 @@
 # \date   2013-07-08
 #
 
-if {[is_qemu_available]} {
-	puts "\nNetperf running on Qemu is not recommented.\n"
-	exit
-}
-
 # network configuration
 set use_nic_bridge      0
 set use_usb_11          "no"

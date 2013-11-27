@@ -4,6 +4,11 @@
 # \date   2013-04-18
 #
 
+if {[is_qemu_available]} {
+	puts "\nNetperf running on Qemu is not recommended.\n"
+	exit
+}
+
 set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5]]
 set use_nic_driver      [expr !$use_usb_driver && ![have_spec platform_imx53]]
 set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
@@ -174,7 +179,7 @@ append config {
 			<arg value="-4"/>
 			<arg value="-f"/>
 			<libc tx_buf_size="2M" rx_buf_size="2M"}
-append_if [have_spec linux] config "ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
+append_if [have_spec linux] config " ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
 append config {/>
 		</config>}
 append_if $use_nic_bridge config {
