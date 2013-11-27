@@ -25,10 +25,12 @@
 /libports/include/GL
 /libports/include/KHR
 /libports/include/SDL
+/libports/include/exfat
 /libports/include/ffat
 /libports/include/fribidi
 /libports/include/freetype
 /libports/include/ft2build.h
+/libports/include/fuse-ext2
 /libports/include/iconv/
 /libports/include/icu/
 /libports/include/jbig2dec
