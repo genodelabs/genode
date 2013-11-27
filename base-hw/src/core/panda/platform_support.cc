@@ -36,7 +36,8 @@ static unsigned irq_ids[] =
 	Board::GPIO3_IRQ,
 	Board::GPIO4_IRQ,
 	Board::GPIO5_IRQ,
-	Board::GPIO6_IRQ
+	Board::GPIO6_IRQ,
+	Board::HSUSB_EHCI_IRQ
 };
 
 enum { IRQ_IDS_SIZE = sizeof(irq_ids)/sizeof(irq_ids[0]) };
