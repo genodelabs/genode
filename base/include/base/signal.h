@@ -314,7 +314,7 @@ namespace Genode {
 			virtual ~Signal_context();
 
 			/**
-			 * Local sginal submission (DEPRECATED)
+			 * Local signal submission (DEPRECATED)
 			 *
 			 * Trigger local signal submission (within the same address space), the
 			 * context has to be bound to a sginal receiver beforehand.
