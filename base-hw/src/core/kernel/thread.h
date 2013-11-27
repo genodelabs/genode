@@ -177,6 +177,26 @@ class Kernel::Thread
 		 */
 		addr_t Thread::* _reg(addr_t const id) const;
 
+		/**
+		 * Print table of all threads and their current activity
+		 */
+		void _print_activity_table();
+
+		/**
+		 * Print the activity of the thread
+		 */
+		void _print_activity();
+
+		/**
+		 * Print the activity of the thread when it awaits a message
+		 */
+		void _print_activity_when_awaits_ipc();
+
+		/**
+		 * Print activity info that is printed regardless of the thread state
+		 */
+		void _print_common_activity();
+
 
 		/****************************************************************
 		 ** Kernel-call backends, for details see 'kernel/interface.h' **

@@ -608,8 +608,89 @@ void Thread::_call_update_region()
 }
 
 
+void Thread::_print_activity_table()
+{
+	for (unsigned id = 0; id < MAX_THREADS; id++) {
+		Thread * const t = Thread::pool()->object(id);
+		if (!t) { continue; }
+		t->_print_activity();
+	}
+	return;
+}
+
+
+void Thread::_print_activity()
+{
+	static Thread * idle = dynamic_cast<Thread *>(cpu_scheduler()->idle());
+	Genode::printf("\033[33m[%u] %s", pd_id(), pd_label());
+	Genode::printf("(%u) %s:\033[0m", id(), label());
+	if (id() == idle->id()) {
+		Genode::printf("\033[32m run\033[0m");
+		_print_common_activity();
+		return;
+	}
+	switch (_state) {
+	case AWAITS_START: {
+		Genode::printf("\033[32m init\033[0m");
+		break; }
+	case SCHEDULED: {
+		Genode::printf("\033[32m run\033[0m");
+		break; }
+	case AWAITS_IPC: {
+		_print_activity_when_awaits_ipc();
+		break; }
+	case AWAITS_RESUME: {
+		Genode::printf("\033[32m await RES \033[0m");
+		break; }
+	case AWAITS_SIGNAL: {
+		unsigned const receiver_id = Signal_handler::receiver()->id();
+		Genode::printf("\033[32m await SIG %u\033[0m", receiver_id);
+		break; }
+	case AWAITS_SIGNAL_CONTEXT_KILL: {
+		unsigned const context_id = Signal_receiver_killer::receiver()->id();
+		Genode::printf("\033[32m await SCK %u\033[0m", context_id);
+		break; }
+	case AWAITS_SIGNAL_RECEIVER_KILL: {
+		unsigned const receiver_id = Signal_receiver_killer::receiver()->id();
+		Genode::printf("\033[32m await SRK %u\033[0m", receiver_id);
+		break; }
+	case STOPPED: {
+		Genode::printf("\033[32m stop\033[0m");
+		break; }
+	}
+	_print_common_activity();
+}
+
+
+void Thread::_print_common_activity()
+{
+	Genode::printf(" ip %lx sp %lx\n", ip, sp);
+}
+
+
+void Thread::_print_activity_when_awaits_ipc()
+{
+	switch (Ipc_node::state()) {
+	case AWAIT_REPLY: {
+		Thread * const server = dynamic_cast<Thread *>(Ipc_node::outbuf_dst());
+		Genode::printf("\033[32m await RPL %u\033[0m", server->id());
+		break; }
+	case AWAIT_REQUEST: {
+		Genode::printf("\033[32m await REQ\033[0m");
+		break; }
+	case PREPARE_AND_AWAIT_REPLY: {
+		Thread * const server = dynamic_cast<Thread *>(Ipc_node::outbuf_dst());
+		Genode::printf("\033[32m prep RPL await RPL %u\033[0m", server->id());
+		break; }
+	default: break;
+	}
+}
+
+
 void Thread::_call_print_char()
 {
+	char const c = user_arg_1();
+	if (!c) { _print_activity_table(); }
 	Genode::printf("%c", (char)user_arg_1());
 }
 

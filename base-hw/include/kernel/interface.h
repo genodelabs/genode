@@ -364,7 +364,10 @@ namespace Kernel
 
 
 	/**
-	 * Print a char 'c' to the kernels serial ouput
+	 * Print a char c to the kernels serial ouput
+	 *
+	 * If c is set to 0 the kernel prints a table of all threads and their
+	 * current activities to the serial output.
 	 */
 	inline void print_char(char const c)
 	{
