@@ -191,12 +191,12 @@ void Http::do_read(void * buf, size_t size)
 }
 
 
-Http::Http(char *uri, size_t length) : _port((char *)"80")
+Http::Http(char *uri) : _port((char *)"80")
 {
 	env()->heap()->alloc(HTTP_BUF, &_http_buf);
 
 	/* parse URI */
-	parse_uri(uri, length);
+	parse_uri(uri);
 
 	/* search for host */
 	resolve_uri();
@@ -218,10 +218,11 @@ Http::~Http()
 }
 
 
-void Http::parse_uri(char *uri, size_t length)
+void Http::parse_uri(char *uri)
 {
 	/* strip possible http prefix */
 	const char *http = "http://";
+	size_t length   = Genode::strlen(uri);
 	size_t http_len = Genode::strlen(http);
 	if (!strcmp(http, uri, http_len)) {
 		uri    += http_len;
@@ -252,10 +253,10 @@ void Http::parse_uri(char *uri, size_t length)
 }
 
 
-void Http::cmd_get(size_t file_offset, size_t size, off_t offset)
+void Http::cmd_get(size_t file_offset, size_t size, addr_t buffer)
 {
 	if (verbose)
-		PDBG("Read: offs %zu  size: %zu I/O offs: %lx", file_offset, size, offset);
+		PDBG("Read: offs %zu  size: %zu I/O buffer: %lx", file_offset, size, buffer);
 
 	while (true) {
 
@@ -288,7 +289,7 @@ void Http::cmd_get(size_t file_offset, size_t size, off_t offset)
 			throw Http::Server_error();
 		}
 
-		do_read((void *)(_base_addr + offset), size);
+		do_read((void *)(buffer), size);
 		return;
 	}
 }

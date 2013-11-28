@@ -54,7 +54,7 @@ class Http
 		/*
 		 * Set URI of remote file
 		 */
-		void parse_uri(char *uri, size_t length);
+		void parse_uri(char *uri);
 
 		/*
 		 * Resolve host
@@ -79,9 +79,9 @@ class Http
 	public:
 
 		/*
-		 * Constructor (default block size is 512 Bytes, default host port is 80
+		 * Constructor (default host port is 80
 		 */
-		Http(char *uri, size_t length);
+		Http(char *uri);
 
 		/*
 		 * Destructor
@@ -107,9 +107,9 @@ class Http
 		 *
 		 * \param file_offset  Read from offset of remote file
 		 * \param size         Number of byts to transfer
-		 * \param offset       Offset in I/O dataspace
+		 * \param buffer       address in I/O dataspace
 		 */
-		void cmd_get(size_t file_offset, size_t size, off_t offset);
+		void cmd_get(size_t file_offset, size_t size, addr_t buffer);
 
 		/* Exceptions */
 		class Exception     : public ::Genode::Exception { };
