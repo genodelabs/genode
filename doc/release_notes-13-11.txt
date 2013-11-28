@@ -240,7 +240,7 @@ Gigabit networking using the Linux TCP/IP stack
 ===============================================
 
 On Genode, we used to rely on lwIP as TCP/IP stack. Network-using applications
-would simply link against the lwIP stack and our libc_lwip_dhcp plugin to
+would simply link against the lwIP stack and our _libc_lwip_nic_dhcp_ plugin to
 access a NIC session, as provided by a NIC driver. For using multiple
 networking application on the same machine, there is a NIC bridge component,
 which multiplexes one physical NIC to multiple virtual NICs.
@@ -251,13 +251,14 @@ the Linux kernel. This observation prompted us to create an alternative to
 lwIP, which uses the TCP/IP stack of the Linux kernel. The result is called
 LXIP and can be found in the _dde_linux_ repository. LXIP consists of two
 parts, a port of the Linux TCP/IP stack to Genode and glue code to Genode's
-C runtime. It comes in the form of a shared library named _lxip.lib.so_. The
-IP stack can be interfaced using Genode's version of libc by linking your
-application to the _lxip_libc_ plugin in your 'target.mk' file.
+C runtime. It comes in the form of a shared libraries named _lxip.lib.so_ and
+_libc_lxip.lib.so_. The IP stack can be interfaced using Genode's version of
+libc by linking your application to the _libc_lxip_ plugin in your 'target.mk'
+file.
 
 From the application developer's point of view, the use of LXIP instead of
-LwIP is as simple as replacing the 'lwip_libc_dhcp' library with the
-'lxip_libc' library. Note however, that LXIP has larger memory demands
+LwIP is as simple as replacing the 'libc_lwip_dhcp' library with the
+'libc_lxip' library. Note however, that LXIP has larger memory demands
 compared to lwIP. So quota adjustments may be needed. For a quick test drive
 of LXIP, we have prepared a set of run scripts at _libports/run/_ that execute
 netperf using LXIP in different settings. The _netperf_lxip.run_ script
@@ -427,7 +428,7 @@ that provides Genode's 'Terminal_session' interface for a given file via a
 file-system session.
 ! <config>
 !   <policy label="client1" filename="test.txt" />
-!   <policy label="client2" filename="file.dat" io_buffer_size="4K"/>h
+!   <policy label="client2" filename="file.dat" io_buffer_size="4K"/>
 ! </config>
 To keep things simple, a client can open only one file at the moment.
 
@@ -445,9 +446,9 @@ Genode's block-session interface through the normal C-runtime file operations
 is needed. The solution comes in the form of the new _libc_block_ plugin. A
 program linked against this plugin obtains access to a block-session by
 opening the special device file "/dev/blkdev". Reading and writing from and to
-the block session - even on offsets that are not aligned to the block boundary
-- is handled by this plugin. For the actual program, the use of the plugin is
-completely transparent.
+the block session - even on offsets that are not aligned to the block
+boundary - is handled by this plugin. For the actual program, the use of the
+plugin is completely transparent.
 
 
 New file-system server for hybrid Genode/Linux systems
