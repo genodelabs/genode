@@ -16,6 +16,7 @@
 
 #include <base/exception.h>
 #include <base/stdint.h>
+#include <block/driver.h>
 
 namespace Genode {
 	class Io_port_session;
@@ -26,7 +27,7 @@ namespace Ata {
 
 	class Bus_master;
 
-	class Device
+	class Device : public Block::Driver
 	{
 
 			/* I/O back end may access private data (see io.cc) */
@@ -44,7 +45,6 @@ namespace Ata {
 			unsigned                 _block_start;
 			unsigned                 _block_end;
 			unsigned                 _block_size;
-			Genode::addr_t           _base_addr;
 			bool                     _lba48;
 			bool                     _host_protected_area;
 
@@ -61,8 +61,19 @@ namespace Ata {
 			Genode::Irq_connection *irq() { return _irq; }
 			Genode::Io_port_session *io() { return _pio; }
 
+			virtual void _read(Genode::size_t  block_number,
+			                   Genode::size_t  block_count,
+			                   char           *out_buffer,
+			                   bool            dma);
+			virtual void _write(Genode::size_t  block_number,
+			                    Genode::size_t  block_count,
+			                    char const     *buffer,
+			                    bool            dma);
 
 		public:
+
+			class Exception      : public ::Genode::Exception { };
+			class Io_error       : public Exception { };
 
 			/**
 			 * Constructor
@@ -91,53 +102,45 @@ namespace Ata {
 			static Device * probe_legacy(int search_type);
 
 			/**
-			 * Return number of blocks
-			 */
-			unsigned block_count() { return _block_end - _block_start + 1; }
-
-			/**
-			 * Return actual block size in bytes
-			 */
-			unsigned block_size() { return _block_size; }
-
-			/**
 			 * Read block size and block count (from device),
 			 * updates block_count and block_size
 			 */
 			virtual void read_capacity();
 
-			/**
-			 * Read one or more blocks from the device
-			 *
-			 * \param block_nr Block number to read
-			 * \param count    Number of blocks to read
-			 * \param offset   Offset in I/O buffer
-			 */
-			virtual void read(unsigned long block_nr,
-			                  unsigned long count, Genode::off_t offset);
 
-			/**
-			 * Write one or more blocks to the device
-			 *
-			 * \param block_nr Block number to read
-			 * \param count    Number of blocks to read
-			 * \param offset   Offset in I/O buffer
-			 */
-			virtual void write(unsigned long block_nr,
-			                   unsigned long count, Genode::off_t offset);
+			/*******************************
+			 **  Block::Driver interface  **
+			 *******************************/
 
-			/**
-			 * Set I/O buffer base address
-			 */
-			void set_base_addr(Genode::addr_t addr) { _base_addr = addr; }
+			Genode::size_t block_count() {
+				return _block_end - _block_start + 1; }
+			Genode::size_t block_size() { return _block_size; }
 
-			/**
-			 * Return true if DMA is enabled by device
-			 */
+			virtual Block::Session::Operations ops();
+
+			void read(Genode::size_t  block_number,
+			          Genode::size_t  block_count,
+			          char           *buffer) {
+				_read(block_number, block_count, buffer, false); }
+			void write(Genode::size_t  block_number,
+			           Genode::size_t  block_count,
+			           char const     *buffer) {
+				_write(block_number, block_count, buffer, false); }
+			void read_dma(Genode::size_t block_number,
+			              Genode::size_t block_count,
+			              Genode::addr_t phys) {
+				_read(block_number, block_count, (char*)phys, true); }
+			void write_dma(Genode::size_t  block_number,
+			               Genode::size_t  block_count,
+			               Genode::addr_t  phys) {
+				_write(block_number, block_count, (char*)phys, true); }
+
 			bool dma_enabled() { return _dma; }
 
-			class Exception      : public ::Genode::Exception { };
-			class Io_error       : public Exception { };
+			Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
+				return Genode::env()->ram_session()->alloc(size, false); }
+
+			void sync() {}
 	};
 
 
@@ -146,17 +149,23 @@ namespace Ata {
 		private:
 
 			int  read_sense(unsigned char *sense, int length);
+			void read_capacity();
+
+			void _read(Genode::size_t  block_number,
+			           Genode::size_t  block_count,
+			           char           *out_buffer,
+			           bool            dma);
+			void _write(Genode::size_t  block_number,
+			            Genode::size_t  block_count,
+			            char const     *buffer,
+			            bool            dma);
 
 		public:
 
 			Atapi_device(unsigned base_cmd, unsigned base_ctrl);
 
-			void read_capacity();
-			void read(unsigned long block_nr,
-			          unsigned long count, Genode::off_t offset);
 			bool test_unit_ready(int level = 0);
-			void write(unsigned long block_nr,
-			           unsigned long count, Genode::off_t offset);
+			Block::Session::Operations ops();
 	};
 }
 #endif

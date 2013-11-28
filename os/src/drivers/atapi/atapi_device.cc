@@ -101,8 +101,10 @@ void Atapi_device::read_capacity()
 }
 
 
-void Atapi_device::read(unsigned long block_nr, unsigned long count,
-                        off_t offset)
+void Atapi_device::_read(Genode::size_t  block_nr,
+                         Genode::size_t  count,
+                         char           *buffer,
+                         bool            dma)
 {
 	unsigned char cmd[12];
 	memset(cmd, 0, 12);
@@ -124,20 +126,31 @@ void Atapi_device::read(unsigned long block_nr, unsigned long count,
 	cmd[7] = (count >> 8) & 0xff;
 	cmd[8] = count & 0xff;
 
-	if (dma_enabled()) {
+	if (dma) {
 		if (verbose)
-			PDBG("DMA read: block %lu, count %lu, offset: %08lx, base: %08lx",
-			      block_nr, count, offset, _base_addr);
+			PDBG("DMA read: block %zu, count %zu, buffer: %p",
+			     block_nr, count, (void*)buffer);
 
 		if (dma_pci_packet(dev_num(), 12, cmd, 0, count * _block_size,
-		                   (unsigned char*)(_base_addr + offset)))
+		                   (unsigned char*)buffer))
 			throw Io_error();
 	} else {
 		if (reg_packet(dev_num(), 12, cmd, 0, count * _block_size,
-		               (unsigned char*)(_base_addr + offset)))
+		               (unsigned char*)buffer))
 			throw Io_error();
 	}
 }
 
-void Atapi_device::write(unsigned long block_nr, unsigned long count,
-                         off_t offset) { throw Io_error(); }
+
+void Atapi_device::_write(Genode::size_t  block_number,
+                          Genode::size_t  block_count,
+                          char const     *buffer,
+                          bool            dma) { throw Io_error(); }
+
+
+Block::Session::Operations Atapi_device::ops()
+{
+	Block::Session::Operations o;
+	o.set_operation(Block::Packet_descriptor::READ);
+	return o;
+}

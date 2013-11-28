@@ -148,26 +148,30 @@ void Ata::Device::read_capacity()
 }
 
 
-void Ata::Device::read(unsigned long block_nr,
-                       unsigned long count, off_t offset) {
+void Ata::Device::_read(Genode::size_t  block_nr,
+                        Genode::size_t  count,
+                        char           *buffer,
+                        bool            dma)
+{
+	Genode::size_t offset = 0;
 
 	while (count > 0) {
-		unsigned long c = count > 255 ? 255 : count;
+		Genode::size_t c = count > 255 ? 255 : count;
 
-		if (dma_enabled()) {
+		if (dma) {
 
 			if (verbose)
-				PDBG("DMA read: block %lu, c %lu, offset: %08lx, base: %08lx",
-					 block_nr, c, offset, _base_addr);
+				PDBG("DMA read: block %zu, c %zu, buffer: %p",
+					 block_nr, c, (void*)(buffer + offset));
 
 			if (!_lba48)
 			{
 				if (dma_pci_lba28(dev_num(), CMD_READ_DMA, 0, c, block_nr,
-								(unsigned char *)(_base_addr + offset), c))
+				                  (unsigned char*)(buffer + offset), c))
 					throw Io_error();
 			} else {
 				if (dma_pci_lba48(dev_num(), CMD_READ_DMA_EXT, 0, c, 0, block_nr,
-								(unsigned char *)(_base_addr + offset), c))
+				                  (unsigned char*)(buffer + offset), c))
 					throw Io_error();
 
 			}
@@ -176,11 +180,11 @@ void Ata::Device::read(unsigned long block_nr,
 			if (!_lba48)
 			{
 				if (reg_pio_data_in_lba28(dev_num(), CMD_READ_SECTORS, 0, c, block_nr,
-										(unsigned char *)(_base_addr + offset), c, 0))
+				                          (unsigned char*)(buffer + offset), c, 0))
 					throw Io_error();
 			} else {
 				if (reg_pio_data_in_lba48(dev_num(), CMD_READ_SECTORS_EXT, 0, c, 0, block_nr,
-										(unsigned char *)(_base_addr + offset), c, 0))
+				                          (unsigned char*)(buffer + offset), c, 0))
 					throw Io_error();
 			}
 		}
@@ -192,27 +196,31 @@ void Ata::Device::read(unsigned long block_nr,
 }
 
 
-void Ata::Device::write(unsigned long block_nr,
-                        unsigned long count, off_t offset) {
+void Ata::Device::_write(Genode::size_t  block_nr,
+                         Genode::size_t  count,
+                         char const     *buffer,
+                         bool            dma)
+{
+	Genode::size_t offset = 0;
 
 	while (count > 0) {
-		unsigned long c = count > 255 ? 255 : count;
+		Genode::size_t c = count > 255 ? 255 : count;
 
-		if (dma_enabled()) {
+		if (dma) {
 
 			if (verbose)
-				PDBG("DMA read: block %lu, c %lu, offset: %08lx, base: %08lx",
-					 block_nr, c, offset, _base_addr);
+				PDBG("DMA read: block %zu, c %zu, buffer: %p",
+					 block_nr, c, (void*)(buffer + offset));
 
 			if (!_lba48)
 			{
 				if (dma_pci_lba28(dev_num(), CMD_WRITE_DMA, 0, c, block_nr,
-								(unsigned char *)(_base_addr + offset), c))
+				                  (unsigned char*)(buffer + offset), c))
 					throw Io_error();
 			}
 			else {
 				if (dma_pci_lba48(dev_num(), CMD_WRITE_DMA_EXT, 0, c, 0, block_nr,
-							(unsigned char *)(_base_addr + offset), c))
+				                  (unsigned char*)(buffer + offset), c))
 				throw Io_error();
 
 			}
@@ -221,11 +229,11 @@ void Ata::Device::write(unsigned long block_nr,
 			if (!_lba48)
 			{
 				if (reg_pio_data_out_lba28(dev_num(), CMD_WRITE_SECTORS, 0, c, block_nr,
-										(unsigned char *)(_base_addr + offset), c, 0))
+				                           (unsigned char*)(buffer + offset), c, 0))
 					throw Io_error();
 			} else {
 				if (reg_pio_data_out_lba48(dev_num(), CMD_WRITE_SECTORS_EXT, 0, c, 0, block_nr,
-										(unsigned char *)(_base_addr + offset), c, 0))
+				                           (unsigned char*)(buffer + offset), c, 0))
 					throw Io_error();
 			}
 		}
@@ -300,3 +308,10 @@ Ata::Device * Ata::Device::probe_legacy(int search_type)
 }
 
 
+Block::Session::Operations Ata::Device::ops()
+{
+	Block::Session::Operations o;
+	o.set_operation(Block::Packet_descriptor::READ);
+	o.set_operation(Block::Packet_descriptor::WRITE);
+	return o;
+}
