@@ -371,7 +371,7 @@ Separate components:
   The terminal crosslink service allows to terminal clients to talk to each
   other.
 
-:'gems/src/server/http_block':
+:'gems/src/server/http_blk':
   A block service that fetches a virtual block device over the network from
   a HTTP server.
 

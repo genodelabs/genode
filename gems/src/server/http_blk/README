@@ -8,7 +8,7 @@ Usage
 
 Config file snippet:
 
-!<start name="http_blkdrv">
+!<start name="http_blk">
 !  <resource name="RAM" quantum="1M" />
 !  <provides><service name="Block"/></provides> <!-- Mandatory -->
 !  <config uri="http://kc86.genode.labs:80/file.iso" block_size=2048/>
