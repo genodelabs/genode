@@ -4,6 +4,42 @@
                                ===========
 
 
+Genode OS Framework release 13.11 | 2013-11-28
+##############################################
+
+| In addition to evolving the Genode API to better accommodate dynamic
+| workloads, version 13.11 comes with a host of new features such as
+| Qt5 QML, the Linux TCP/IP as user-level library, file systems based
+| on FUSE, and HDMI support for Exynos-5 and Raspberry Pi.
+
+As follow-up to the inclusion of Qt5 in the previous release, the new
+version principally enables the most distinctive feature of Qt5, namely QML.
+QML parts ways with the classical QWidget approach and thereby makes the
+development of visually appealing applications easier than ever.
+
+Most of the development during the release cycle was dedicated to work
+on protocol stacks. Thanks to the new implementation of the FUSE API for
+Genode, FUSE-based file systems have become available to the whole range of
+supported kernels. In addition, when using Genode on top of the Linux kernel,
+a new file-system service allows the integration of (parts of) the Linux file
+system with Genode. To improve the performance of gigabit networking, we
+supplemented the existing lwIP stack with a fresh port of the Linux TCP/IP
+stack that we call LXIP. Using LXIP, it becomes possible to execute one or
+many networking applications, each linked to its own Linux TCP/IP stack.
+
+In line with other releases, version 13.11 comes with improved device
+drivers. This time, the framework gains HDMI and USB 3.0 storage support
+for Exynos-5 SoCs as well as graphics and USB HID support for the Raspberry
+Pi. The added drivers were the only missing pieces to run interactive
+graphical system scenarios on both platforms.
+
+Among the many further improvements are the switch to C++11, new protocols
+for enabling dynamic resource balancing, new terminal services, and support
+for ARM TrustZone on i.MX53.
+For the full story, please refer to the detailed
+[http:/documentation/release-notes/13.11 - release documentation of version 13.11...]
+
+
 Genode OS Framework release 13.08 | 2013-08-15
 ##############################################
 
