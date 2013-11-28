@@ -15,241 +15,127 @@
  */
 
 #include <base/printf.h>
-#include <base/allocator_avl.h>
 #include <cap_session/connection.h>
-#include <root/component.h>
-#include <util/arg_string.h>
-#include <util/misc_math.h>
-#include <block_session/rpc_object.h>
 #include <framebuffer_session/connection.h>
-#include <timer_session/connection.h>
-#include <base/semaphore.h>
+#include <block/component.h>
+#include <block/driver.h>
 
-static Genode::size_t fb_size = 0;  /* framebuffer size */
-static Genode::addr_t fb_addr = 0;  /* start address of framebuffer */
+class Driver : public Block::Driver
+{
+	private:
 
-namespace Block {
+		enum { BLOCK_SIZE = 512 };
 
-	class Session_component : public Session_rpc_object
-	{
-		private:
+		Framebuffer::Connection      _fb;
+		Framebuffer::Mode            _fb_mode;
+		Genode::Dataspace_capability _fb_cap;
+		Genode::Dataspace_client     _fb_dsc;
+		Genode::addr_t               _fb_addr;
+		Genode::size_t               _fb_size;
 
-			enum { BLOCK_SIZE = 512 };
+	public:
 
-			/**
-			 * Thread handling the requests of an open block session.
-			 */
-			class Tx_thread : public Genode::Thread<8192>
-			{
-				private:
+		Driver()
+		: _fb_mode(_fb.mode()),
+		  _fb_cap(_fb.dataspace()),
+		  _fb_dsc(_fb_cap),
+		  _fb_addr(Genode::env()->rm_session()->attach(_fb_cap)),
+		  _fb_size(_fb_dsc.size()){}
 
-					Session_component *_session;
 
-				public:
+		/*******************************
+		 **  Block::Driver interface  **
+		 *******************************/
 
-					/**
-					 * Constructor
-					 */
-					Tx_thread(Session_component *session)
-					: Thread("block_session_tx"), _session(session) { }
+		Genode::size_t block_size()  { return BLOCK_SIZE; }
+		Genode::size_t block_count() { return _fb_size / BLOCK_SIZE; }
 
-					/**
-					 * Thread entry function.
-					 */
-					void entry()
-					{
-						using namespace Genode;
+		Block::Session::Operations ops()
+		{
+			Block::Session::Operations ops;
+			ops.set_operation(Block::Packet_descriptor::READ);
+			ops.set_operation(Block::Packet_descriptor::WRITE);
+			return ops;
+		}
 
-						Session_component::Tx::Sink *tx_sink = _session->tx_sink();
-						Block::Packet_descriptor packet;
-
-						/* signal to server activation: we're ready */
-						_session->tx_ready();
-
-						/* handle requests */
-						while (true) {
-
-							/* blocking-get packet from client */
-							packet = tx_sink->get_packet();
-							if (!packet.valid()) {
-								PWRN("received invalid packet");
-								continue;
-							}
-
-							/* sanity check block number */
-							if ((packet.block_number() + packet.block_count()
-								 > fb_size / BLOCK_SIZE)
-								|| packet.block_number() < 0) {
-								PWRN("requested %zd blocks from block %zd",
-									 packet.block_count(), packet.block_number());
-								PWRN("out of range!");
-								continue;
-							}
-
-							Genode::size_t offset = packet.block_number() * BLOCK_SIZE;
-							Genode::size_t size   = packet.block_count()  * BLOCK_SIZE;
-							switch (packet.operation()) {
-							case Block::Packet_descriptor::READ:
-								{
-									/* copy content to packet payload */
-									memcpy(tx_sink->packet_content(packet),
-										   (void*)(fb_addr + offset),
-										   size);
-									break;
-								}
-							case Block::Packet_descriptor::WRITE:
-								{
-									/* copy content from packet payload */
-									memcpy((void*)(fb_addr + offset),
-										   tx_sink->packet_content(packet),
-										   size);
-									break;
-								}
-							default:
-								PWRN("Unsupported operation %d", packet.operation());
-								continue;
-							}
-
-							/* mark success of operation */
-							packet.succeeded(true);
-
-							/* acknowledge packet to the client */
-							if (!tx_sink->ready_to_ack())
-								PDBG("need to wait until ready-for-ack");
-							tx_sink->acknowledge_packet(packet);
-						}
-					}
-			};
-
-		private:
-
-			Genode::Dataspace_capability _tx_ds;         /* buffer for tx channel */
-			Genode::Semaphore            _startup_sema;  /* thread startup sync */
-			Tx_thread                    _tx_thread;
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param tx_buf_size  buffer size for tx channel
-			 */
-			Session_component(Genode::size_t tx_buf_size,
-			                  Genode::Rpc_entrypoint &ep)
-			: Session_rpc_object(Genode::env()->ram_session()->alloc(tx_buf_size), ep),
-			  _startup_sema(0), _tx_thread(this)
-			{
-				_tx_thread.start();
-				_startup_sema.down();
+		void read(Genode::size_t  block_number,
+		          Genode::size_t  block_count,
+		          char           *buffer)
+		{
+			/* sanity check block number */
+			if (block_number + block_count > _fb_size / BLOCK_SIZE) {
+				PWRN("Out of range: requested %zd blocks from block %zd",
+				     block_count, block_number);
+				return;
 			}
 
+			Genode::size_t offset = block_number * BLOCK_SIZE;
+			Genode::size_t size   = block_count  * BLOCK_SIZE;
 
-			void info(Genode::size_t *blk_count, Genode::size_t *blk_size,
-			          Operations *ops)
-			{
-				*blk_count = fb_size / BLOCK_SIZE;
-				*blk_size  = BLOCK_SIZE;
-				ops->set_operation(Packet_descriptor::READ);
-				ops->set_operation(Packet_descriptor::WRITE);
+			Genode::memcpy((void*)buffer, (void*)(_fb_addr + offset), size);
+		}
+
+		void write(Genode::size_t  block_number,
+		           Genode::size_t  block_count,
+		           char const     *buffer)
+		{
+			/* sanity check block number */
+			if (block_number + block_count > _fb_size / BLOCK_SIZE) {
+				PWRN("Out of range: requested %zd blocks from block %zd",
+				     block_count, block_number);
+				return;
 			}
 
-			void sync() {}
+			Genode::size_t offset = block_number * BLOCK_SIZE;
+			Genode::size_t size   = block_count  * BLOCK_SIZE;
 
-			/** Signal that transmit thread is ready */
-			void tx_ready() { _startup_sema.up(); }
-	};
+			Genode::memcpy((void*)(_fb_addr + offset), (void*)buffer, size);
+			_fb.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+		}
 
-	/*
-	 * Block-session component is a singleton,
-	 * only one client should use the driver directly.
-	 */
-	static Session_component *_session = 0;
+		void read_dma(Genode::size_t block_number,
+		              Genode::size_t block_count,
+		              Genode::addr_t phys) {
+			throw Io_error(); }
+		void write_dma(Genode::size_t  block_number,
+		               Genode::size_t  block_count,
+		               Genode::addr_t  phys) {
+			throw Io_error(); }
+		bool dma_enabled() { return false; }
+		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
+			return Genode::env()->ram_session()->alloc(size, false); }
+		void sync() {}
+};
 
-	/**
-	 * Shortcut for single-client root component
-	 */
-	typedef Genode::Root_component<Session_component, Genode::Single_client>
-	Root_component;
 
-	/**
-	 * Root component, handling new session requests
-	 */
-	class Root : public Root_component
-	{
-		private:
+struct Factory : Block::Driver_factory
+{
+	Block::Driver *create() {
+		return new (Genode::env()->heap()) Driver(); }
 
-			Genode::Rpc_entrypoint &_ep;
-
-		protected:
-
-			/**
-			 * Always returns the singleton block-session component
-			 */
-			Session_component *_create_session(const char *args)
-			{
-				using namespace Genode;
-
-				if (Block::_session) {
-					PERR("Support for single session only! Aborting...");
-					throw Root::Unavailable();
-				}
-
-				Genode::size_t ram_quota =
-					Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-				Genode::size_t tx_buf_size =
-					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-
-				/* delete ram quota by the memory needed for the session */
-				Genode::size_t session_size = max((Genode::size_t)4096,
-				                                  sizeof(Session_component));
-				if (ram_quota < session_size)
-					throw Root::Quota_exceeded();
-
-				/*
-				 * Check if donated ram quota suffices for the
-				 * communication buffer.
-				 */
-				if (tx_buf_size > ram_quota - session_size) {
-					PERR("insufficient 'ram_quota', got %zd, need %zd",
-					     ram_quota, tx_buf_size + session_size);
-					throw Root::Quota_exceeded();
-				}
-
-				Block::_session = new (md_alloc()) Session_component(tx_buf_size, _ep);
-				return Block::_session;
-			}
-
-		public:
-
-			Root(Genode::Rpc_entrypoint *session_ep,
-			     Genode::Allocator      *md_alloc)
-			: Root_component(session_ep, md_alloc), _ep(*session_ep) { }
-	};
-}
+	void destroy(Block::Driver *driver) {
+		Genode::destroy(Genode::env()->heap(), driver); }
+};
 
 
 int main()
 {
 	using namespace Genode;
 
-	Framebuffer::Connection fb;
-	Dataspace_capability    fb_cap = fb.dataspace();
-	Dataspace_client        dsc(fb_cap);
-
-	fb_addr = env()->rm_session()->attach(fb_cap);
-	fb_size = dsc.size();
-
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fb_block_ep");
 
-	static Block::Root block_root(&ep, env()->heap());
+	static Signal_receiver receiver;
+	static Factory driver_factory;
+	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
+
 	env()->parent()->announce(ep.manage(&block_root));
 
-	Timer::Connection timer;
 	while (true) {
-		fb.refresh(0,0,1024,768);
-		timer.msleep(50);
+		Signal s = receiver.wait_for_signal();
+		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
 	}
+
 	return 0;
 }
