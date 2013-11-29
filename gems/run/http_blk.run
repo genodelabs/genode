@@ -1,0 +1,224 @@
+#
+# \brief  Automated testing of http_blk
+# \author Stefan Kalkowski
+# \date   2013-11-29
+#
+
+set use_usb_driver      [expr [have_spec omap4] || [have_spec exynos5]]
+set use_nic_driver      [expr !$use_usb_driver && ![have_spec platform_imx53]]
+set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+
+if {[expr !$use_usb_driver && !$use_nic_driver]} {
+	puts "\n Run script is not supported on this platform. \n"; exit 0 }
+
+if {$use_usb_driver}    { set network_driver "usb_drv" }
+if {$use_nic_driver}    { set network_driver "nic_drv" }
+
+set build_components {
+	core init
+	drivers/timer
+	server/ram_fs
+	server/nic_bridge
+	server/http_blk
+	app/lighttpd
+	test/rom_blk
+}
+
+# platform-specific modules
+lappend_if $use_usb_driver      build_components drivers/usb
+lappend_if $use_nic_driver      build_components drivers/nic
+lappend_if $use_platform_driver build_components drivers/platform
+lappend_if [have_spec acpi]     build_components drivers/acpi
+lappend_if [have_spec pci]      build_components drivers/pci
+lappend_if [have_spec pci]      build_components drivers/pci/device_pd
+lappend_if [have_spec gpio]     build_components drivers/gpio
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="CAP"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_if $use_platform_driver config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M" />
+		<provides><service name="Regulator"/></provides>
+	</start>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append_if $use_usb_driver config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides>
+			<service name="Nic"/>
+		</provides>
+		<config ehci="yes">
+			<nic mac="2e:60:90:0c:4e:05"/>
+		</config>
+	</start>}
+
+append_if $use_nic_driver config {
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start>}
+
+append config {
+	<start name="nic_bridge">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+		<config>
+			<policy label="lighttpd" ip_addr="10.0.1.1"/>
+			<policy label="http_blk" ip_addr="10.0.1.2"/>
+		</config>
+		<route>
+			<service name="Nic">}
+append config " <child name=\"$network_driver\"/>"
+append config {
+			</service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="15M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<policy label="lighttpd" root="/" />
+			<content>
+				<dir name="etc">
+					<dir name="lighttpd">
+						<inline name="lighttpd.conf">
+# lighttpd configuration
+server.port          = 80
+server.document-root = "/website"
+server.event-handler = "select"
+server.network-backend = "write"
+index-file.names     = (
+  "index.xhtml", "index.html", "index.htm"
+)
+mimetype.assign      = (
+  ".html"         =>      "text/html",
+  ".htm"          =>      "text/html"
+)
+						</inline>
+					</dir>
+				</dir>
+				<dir name="website">
+					<rom name="index.bin" as="index.bin" />
+				</dir>
+			</content>
+		</config>
+	</start>
+	<start name="http_blk">
+		<resource name="RAM" quantum="2M" />
+		<provides><service name="Block"/></provides>
+		<config block_size="512" uri="http://10.0.1.1/index.bin">
+			<libc ip_addr="10.0.1.2" gateway="10.0.1.5" netmask="255.255.255.0"/>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <any-child /> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="test-rom_blk">
+		<resource name="RAM" quantum="3M"/>
+		<config file="index.bin"/>
+	</start>
+	<start name="lighttpd">
+		<resource name="RAM" quantum="1G" />
+		<config>
+			<arg value="lighttpd" />
+			<arg value="-f" />
+			<arg value="/etc/lighttpd/lighttpd.conf" />
+			<arg value="-D" />
+			<libc ip_addr="10.0.1.1" gateway="10.0.1.5" netmask="255.255.255.0"/>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <any-child /> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+catch { exec dd if=/dev/zero of=bin/index.bin bs=512 count=400 }
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so ram_fs
+	libc.lib.so libm.lib.so libc_fs.lib.so libc_log.lib.so
+	lwip.lib.so zlib.lib.so
+	lighttpd nic_bridge http_blk index.bin test-rom_blk
+}
+
+# platform-specific modules
+lappend_if $use_platform_driver      boot_modules platform_drv
+lappend_if [have_spec acpi]          boot_modules acpi_drv
+lappend_if [have_spec pci]           boot_modules pci_drv
+lappend_if [have_spec gpio]          boot_modules gpio_drv
+lappend_if $use_usb_driver           boot_modules usb_drv
+lappend_if $use_nic_driver           boot_modules nic_drv
+lappend_if [have_spec nova]          boot_modules pci_device_pd
+
+build_boot_image $boot_modules
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -redir tcp:5555::80 "
+append qemu_args " -nographic -serial mon:stdio "
+
+run_genode_until {.*all done, finished!.*} 120
+exec rm -f bin/index.bin
