@@ -17,6 +17,7 @@
 #include <base/allocator_avl.h>
 #include <base/printf.h>
 #include <base/sleep.h>
+#include <base/exception.h>
 #include <base/thread.h>
 #include <os/config.h>
 #include <block_session/connection.h>
@@ -30,6 +31,8 @@ class Comparer : public Genode::Thread<8192>
 		Block::Connection          _blk_con;
 		Genode::Rom_connection     _rom;
 		Genode::addr_t             _addr;
+
+		class Block_file_differ : Genode::Exception {};
 
 	public:
 
@@ -87,8 +90,10 @@ class Comparer : public Genode::Thread<8192>
 							if (blk_src[j*blk_size+k] != rom_src[j*blk_size+k])
 								differ = true;
 						}
-					if (differ)
+					if (differ) {
 						PWRN("block %zx differs!", i);
+						throw Block_file_differ();
+					}
 					source->release_packet(p);
 				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
 					PERR("Mmh, strange we run out of packets");
