@@ -17,9 +17,11 @@
 #include <lwip/genode.h>
 #include <nic/packet_allocator.h>
 
-extern "C" {
-#include <lwip/netdb.h>
-}
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <errno.h>
 
 #include "http.h"
 
@@ -59,7 +61,7 @@ void Http::cmd_head()
 
 	int length = snprintf(_http_buf, HTTP_BUF, http_templ, "HEAD", _path, _host);
 
-	if (lwip_write(_fd, _http_buf, length) != length) {
+	if (write(_fd, _http_buf, length) != length) {
 		PERR("Write error");
 		throw Http::Socket_error();
 	}
@@ -68,26 +70,26 @@ void Http::cmd_head()
 
 void Http::connect()
 {
-	_fd = lwip_socket(AF_INET, SOCK_STREAM, 0);
+	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0) {
 		PERR("No socket avaiable");
 		throw Http::Socket_error();
 	}
 
-	if (lwip_connect(_fd, _info->ai_addr, sizeof(*(_info->ai_addr))) < 0) {
+	if (::connect(_fd, _info->ai_addr, sizeof(*(_info->ai_addr))) < 0) {
 		PERR("Connect failed");
 		throw Http::Socket_error();
 	}
 }
 
 
-void Http::reconnect(){ lwip_close(_fd); connect(); }
+void Http::reconnect(){ close(_fd); connect(); }
 
 
 void Http::resolve_uri()
 {
 	struct addrinfo *info;
-	if (lwip_getaddrinfo(_host, _port, 0, &info)) {
+	if (getaddrinfo(_host, _port, 0, &info)) {
 		PERR("Error: Host %s not found", _host);
 		throw Http::Uri_error();
 	}
@@ -102,7 +104,7 @@ Genode::size_t Http::read_header()
 	bool header = true; size_t i = 0;
 
 	while (header) {
-		if (!lwip_read(_fd, &_http_buf[i], 1))
+		if (!read(_fd, &_http_buf[i], 1))
 			throw Http::Socket_closed();
 
 		/* DEBUG: Genode::printf("%c", _http_buf[i]); */
@@ -177,7 +179,7 @@ void Http::do_read(void * buf, size_t size)
 	while (buf_fill < size) {
 
 		int part;
-		if ((part = lwip_read(_fd, (void *)((addr_t)buf + buf_fill),
+		if ((part = read(_fd, (void *)((addr_t)buf + buf_fill),
 		                      size - buf_fill)) <= 0) {
 			PERR("Error: Reading data (%d)", errno);
 			throw Http::Socket_error();
@@ -268,12 +270,12 @@ void Http::cmd_get(size_t file_offset, size_t size, addr_t buffer)
 		int length = snprintf(_http_buf, HTTP_BUF, http_templ, _path, _host,
 		                      file_offset, file_offset + size - 1);
 
-		if (lwip_write(_fd, _http_buf, length) < 0) {
+		if (write(_fd, _http_buf, length) < 0) {
 
 			if (errno == ESHUTDOWN)
 				reconnect();
 
-			if (lwip_write(_fd, _http_buf, length) < 0)
+			if (write(_fd, _http_buf, length) < 0)
 				throw Http::Socket_error();
 		}
 
@@ -293,17 +295,3 @@ void Http::cmd_get(size_t file_offset, size_t size, addr_t buffer)
 		return;
 	}
 }
-
-
-void __attribute__((constructor)) init()
-{
-	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
-
-	lwip_tcpip_init();
-
-	if (lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE)) {
-		PERR("DHCP failed");
-		throw -1;
-	}
-}
-
