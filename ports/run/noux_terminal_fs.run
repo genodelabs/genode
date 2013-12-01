@@ -94,7 +94,7 @@ append config {
 append_if [have_spec ps2] config {
 			<service name="Input"><child name="ps2_drv"/></service> }
 append config {
-			<service name="Framebuffer"><child name="fb_drv"/> </service> }
+			<service name="Framebuffer"><child name="fb_drv"/> </service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
