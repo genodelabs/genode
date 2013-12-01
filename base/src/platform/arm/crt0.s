@@ -35,7 +35,7 @@ __dso_handle: .long 0
 	.p2align 4
 	.globl	_stack_low
 _stack_low:
-	.space	64*1024
+	.space	128*1024
 	.globl	_stack_high
 _stack_high:
 
