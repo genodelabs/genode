@@ -111,11 +111,11 @@ append config {
 			<provides><service name="Timer"/></provides>
 		</start> }
 
-append_if $use_platform_driver config {                                         
-		<start name="platform_drv">                                                 
-			<resource name="RAM" quantum="1M" />                                    
-			<provides><service name="Regulator"/></provides>                        
-		</start>} 
+append_if $use_platform_driver config {
+		<start name="platform_drv">
+			<resource name="RAM" quantum="1M" />
+			<provides><service name="Regulator"/></provides>
+		</start>}
 
 append_if [have_spec sdl] config {
 	<start name="fb_sdl">
