@@ -4,6 +4,11 @@ set build_components {
 	server/terminal server/ram_fs
 	test/libports/ncurses
 }
+set use_usb_input [expr ![have_spec ps2] && ![have_spec sdl] && [have_spec usb]]
+set use_platform_driver [expr [have_spec platform_arndale] || [have_spec platform_imx53]]
+
+lappend_if $use_usb_input       build_components drivers/usb
+lappend_if $use_platform_driver build_components drivers/platform
 
 #
 # Build Noux packages only once
@@ -60,6 +65,13 @@ append_if [have_spec sdl] config {
 		</provides>
 	</start>}
 
+append_if $use_usb_input config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="yes" ehci="no" xhci="no"> <hid/> </config>
+	</start> }
+
 append_if [have_spec pci] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="1M"/>
@@ -77,6 +89,12 @@ append_if [have_spec ps2] config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
 	</start> }
+
+append_if $use_platform_driver config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+	</start>}
 
 append config {
 	<start name="terminal">
@@ -160,6 +178,8 @@ lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if $use_platform_driver    boot_modules platform_drv
+lappend_if $use_usb_input          boot_modules usb_drv
 
 build_boot_image $boot_modules
 
