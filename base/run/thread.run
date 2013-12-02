@@ -1,0 +1,26 @@
+build "core init test/thread"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="RM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-thread">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core init test-thread"
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "child exited with exit value 0.*\n" 10
+
+puts "Test succeeded"
