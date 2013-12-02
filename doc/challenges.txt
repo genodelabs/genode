@@ -1,6 +1,6 @@
 
                  =======================================
-                 Future Challanges of the Genode project
+                 Future Challenges of the Genode project
                  =======================================
 
 
