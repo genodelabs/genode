@@ -13,8 +13,6 @@ Genode-specific adaptations
  qtbase/src/corelib/kernel/qcoreapplication.cpp     |    2 -
  .../src/corelib/kernel/qeventdispatcher_unix.cpp   |   14 ++++
  qtbase/src/corelib/kernel/qtranslator.cpp          |    2 -
- qtbase/src/corelib/thread/qmutex.cpp               |    2 +
- qtbase/src/corelib/thread/qmutex_p.h               |    8 +++
  qtbase/src/corelib/thread/qthread.cpp              |    5 +-
  qtbase/src/corelib/thread/qthread_p.h              |   55 +++++++++++++++++
  qtbase/src/corelib/tools/qdatetime.cpp             |   12 ++++
@@ -24,7 +22,7 @@ Genode-specific adaptations
  qtbase/src/network/kernel/qhostinfo_unix.cpp       |    7 ++
  qtbase/src/widgets/dialogs/qfiledialog.cpp         |    2 -
  qtbase/src/widgets/styles/qstylefactory.cpp        |    7 ++
- 20 files changed, 252 insertions(+), 8 deletions(-)
+ 18 files changed, 242 insertions(+), 8 deletions(-)
 
 diff --git a/qtbase/src/corelib/codecs/qtextcodec.cpp b/qtbase/src/corelib/codecs/qtextcodec.cpp
 index 1cedd3a..646be07 100644
@@ -326,45 +324,6 @@ index 9243d09..d953b20 100644
  #define QT_USE_MMAP
  #include "private/qcore_unix_p.h"
  #endif
-diff --git a/qtbase/src/corelib/thread/qmutex.cpp b/qtbase/src/corelib/thread/qmutex.cpp
-index 1ed4a77..d1c10d1 100644
---- a/qtbase/src/corelib/thread/qmutex.cpp
-+++ b/qtbase/src/corelib/thread/qmutex.cpp
-@@ -649,6 +649,8 @@ QT_END_NAMESPACE
- #  include "qmutex_mac.cpp"
- #elif defined(Q_OS_WIN)
- #  include "qmutex_win.cpp"
-+#elif defined(Q_OS_GENODE)
-+#  include "qmutex_genode.cpp"
- #else
- #  include "qmutex_unix.cpp"
- #endif
-diff --git a/qtbase/src/corelib/thread/qmutex_p.h b/qtbase/src/corelib/thread/qmutex_p.h
-index bec2d93..74c0df4 100644
---- a/qtbase/src/corelib/thread/qmutex_p.h
-+++ b/qtbase/src/corelib/thread/qmutex_p.h
-@@ -65,6 +65,12 @@
- # include <mach/semaphore.h>
- #endif
- 
-+#include <qplatformdefs.h>
-+
-+#ifdef Q_OS_GENODE
-+#include <os/timed_semaphore.h>
-+#endif
-+
- #if defined(Q_OS_LINUX) && !defined(QT_LINUXBASE)
- // use Linux mutexes everywhere except for LSB builds
- #  define QT_LINUX_FUTEX
-@@ -128,6 +134,8 @@ public:
-     //platform specific stuff
- #if defined(Q_OS_MAC)
-     semaphore_t mach_semaphore;
-+#elif defined(Q_OS_GENODE)
-+    Genode::Timed_semaphore sem;
- #elif defined(Q_OS_UNIX)
-     bool wakeup;
-     pthread_mutex_t mutex;
 diff --git a/qtbase/src/corelib/thread/qthread.cpp b/qtbase/src/corelib/thread/qthread.cpp
 index 4d5bee3..622056e 100644
 --- a/qtbase/src/corelib/thread/qthread.cpp

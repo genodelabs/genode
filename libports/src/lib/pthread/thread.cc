@@ -239,11 +239,11 @@ extern "C" {
 					return 0;
 				}
 			}
-			
+
 			if (mutexattr.type == PTHREAD_MUTEX_ERRORCHECK) {
 
 				Lock::Guard lock_guard(owner_and_counter_lock);
-			
+
 				if (lock_count == 0) {
 					owner = pthread_self();
 					mutex_lock.lock();
@@ -408,6 +408,41 @@ extern "C" {
 	};
 
 
+	int pthread_condattr_init(pthread_condattr_t *attr)
+	{
+		if (!attr)
+			return EINVAL;
+
+		PDBG("not implemented yet");
+		*attr = 0;
+
+		return 0;
+	}
+
+
+	int pthread_condattr_destroy(pthread_condattr_t *attr)
+	{
+		if (!attr || !*attr)
+			return EINVAL;
+
+		PDBG("not implemented yet");
+
+		return 0;
+	}
+
+
+	int pthread_condattr_setclock(pthread_condattr_t *attr,
+	                              clockid_t clock_id)
+	{
+		if (!attr || !*attr)
+			return EINVAL;
+
+		PDBG("not implemented yet");
+
+		return 0;
+	}
+
+
 	int pthread_cond_init(pthread_cond_t *__restrict cond,
 	                      const pthread_condattr_t *__restrict attr)
 	{
@@ -415,6 +450,18 @@ extern "C" {
 			return EINVAL;
 
 		*cond = new (env()->heap()) pthread_cond;
+
+		return 0;
+	}
+
+
+	int pthread_cond_destroy(pthread_cond_t *cond)
+	{
+		if (!cond || !*cond)
+			return EINVAL;
+
+		destroy(env()->heap(), *cond);
+		*cond = 0;
 
 		return 0;
 	}
