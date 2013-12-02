@@ -209,8 +209,8 @@ bool Framebuffer::Driver::_init_hdmi(Framebuffer::addr_t phys_base)
 
 	_hdmi.write<Hdmi::Video_cfg::Packing_mode>(Hdmi::Video_cfg::Packing_mode::PACK_24B);
 
-	_hdmi.write<Hdmi::Video_size::X>(_fb_height);
-	_hdmi.write<Hdmi::Video_size::Y>(_fb_width);
+	_hdmi.write<Hdmi::Video_size::X>(_fb_width);
+	_hdmi.write<Hdmi::Video_size::Y>(_fb_height);
 
 	_hdmi.write<Hdmi::Video_cfg::Vsp>(0);
 	_hdmi.write<Hdmi::Video_cfg::Hsp>(0);
