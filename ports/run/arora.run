@@ -148,6 +148,7 @@ if {[have_spec qt4_deprecated]} {
 	#
 	append boot_modules {
 		liquid_fb
+		gallium.lib.so
 		icu.lib.so
 		pthread.lib.so
 		qt5_core.lib.so
