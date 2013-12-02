@@ -41,7 +41,8 @@ int main()
 		PERR("pixel format not supported");
 		return -1;
 	}
-	unsigned const fb_size = (unsigned)(mode.width() * mode.height() * fb_bpp);
+	size_t const fb_size = (unsigned)(mode.width() * mode.height() * fb_bpp);
+	addr_t const stripe_width = mode.width() / 4;
 	while (1) {
 		enum {
 			BLACK = 0x0,
@@ -50,30 +51,34 @@ int main()
 			RED   = 0xf800,
 			WHITE = 0xffff,
 		};
-		for (addr_t o = 0; o < fb_size; o += fb_bpp)
-			*(uint16_t volatile *)(fb_base + o) = BLACK;
-		PINF("black");
+		PINF("black & white stripes");
+		addr_t stripe_o = 0;
+		bool stripe = 0;
+		for (addr_t o = 0; o < fb_size; o += fb_bpp) {
+			stripe_o++;
+			if (stripe_o == stripe_width) {
+				stripe_o = 0;
+				stripe = !stripe;
+			}
+			*(uint16_t volatile *)(fb_base + o) = stripe ? BLACK : WHITE;
+		}
 		timer.msleep(2000);
+		PINF("blue");
 		for (addr_t o = 0; o < fb_size; o += fb_bpp)
 			*(uint16_t volatile *)(fb_base + o) = BLUE;
-		PINF("blue");
 		timer.msleep(2000);
+		PINF("green");
 		for (addr_t o = 0; o < fb_size; o += fb_bpp)
 			*(uint16_t volatile *)(fb_base + o) = GREEN;
-		PINF("green");
 		timer.msleep(2000);
+		PINF("red");
 		for (addr_t o = 0; o < fb_size; o += fb_bpp)
 			*(uint16_t volatile *)(fb_base + o) = RED;
-		PINF("red");
 		timer.msleep(2000);
-		for (addr_t o = 0; o < fb_size; o += fb_bpp)
-			*(uint16_t volatile *)(fb_base + o) = WHITE;
-		PINF("white");
-		timer.msleep(2000);
+		PINF("all colors mixed");
 		unsigned i = 0;
 		for (addr_t o = 0; o < fb_size; o += fb_bpp, i++)
 			*(uint16_t volatile *)(fb_base + o) = i;
-		PINF("all");
 		timer.msleep(2000);
 	}
 	return 0;
