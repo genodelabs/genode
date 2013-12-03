@@ -5,7 +5,7 @@
 #
 
 if {[is_qemu_available]} {
-	puts "\nAuto test running on Qemu is not recommented.\n"
+	puts "\nAuto test running on Qemu is not recommended.\n"
 	exit 0
 }
 if {[have_spec pistachio]} {
