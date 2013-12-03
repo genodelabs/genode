@@ -1949,19 +1949,3 @@ int Ahci_driver::_ncq_command(uint64_t lba, unsigned cnt, addr_t phys, bool w)
 
 size_t Ahci_driver::block_count() { return sata_ahci()->block_cnt; }
 size_t Ahci_driver::block_size()  { return Sata_ahci::BLOCK_SIZE; }
-
-Ram_dataspace_capability Ahci_driver::alloc_dma_buffer(size_t size) {
-	return env()->ram_session()->alloc(size, 0); }
-
-void Ahci_driver::read(size_t, size_t, char *)
-{
-	PERR("Not implemented");
-	throw Io_error();
-}
-
-void Ahci_driver::write(size_t, size_t, char const *)
-{
-	PERR("Not implemented");
-	throw Io_error();
-}
-

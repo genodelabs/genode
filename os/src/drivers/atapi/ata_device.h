@@ -16,7 +16,7 @@
 
 #include <base/exception.h>
 #include <base/stdint.h>
-#include <block/driver.h>
+#include <block/component.h>
 
 namespace Genode {
 	class Io_port_session;
@@ -120,27 +120,41 @@ namespace Ata {
 
 			void read(Genode::size_t  block_number,
 			          Genode::size_t  block_count,
-			          char           *buffer) {
-				_read(block_number, block_count, buffer, false); }
+			          char           *buffer,
+			          Block::Packet_descriptor &packet)
+			{
+				_read(block_number, block_count, buffer, false);
+				session->complete_packet(packet);
+			}
+
 			void write(Genode::size_t  block_number,
 			           Genode::size_t  block_count,
-			           char const     *buffer) {
-				_write(block_number, block_count, buffer, false); }
+			           char const     *buffer,
+			           Block::Packet_descriptor &packet)
+			{
+				_write(block_number, block_count, buffer, false);
+				session->complete_packet(packet);
+			}
+
 			void read_dma(Genode::size_t block_number,
 			              Genode::size_t block_count,
-			              Genode::addr_t phys) {
-				_read(block_number, block_count, (char*)phys, true); }
+			              Genode::addr_t phys,
+			              Block::Packet_descriptor &packet)
+			{
+				_read(block_number, block_count, (char*)phys, true);
+				session->complete_packet(packet);
+			}
+
 			void write_dma(Genode::size_t  block_number,
 			               Genode::size_t  block_count,
-			               Genode::addr_t  phys) {
-				_write(block_number, block_count, (char*)phys, true); }
+			               Genode::addr_t  phys,
+			               Block::Packet_descriptor &packet)
+			{
+				_write(block_number, block_count, (char*)phys, true);
+				session->complete_packet(packet);
+			}
 
 			bool dma_enabled() { return _dma; }
-
-			Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
-				return Genode::env()->ram_session()->alloc(size, false); }
-
-			void sync() {}
 	};
 
 

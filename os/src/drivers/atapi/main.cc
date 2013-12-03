@@ -16,7 +16,6 @@
 #include <base/thread.h>
 #include <cap_session/connection.h>
 #include <os/config.h>
-#include <block/component.h>
 
 /* local includes */
 #include "ata_device.h"

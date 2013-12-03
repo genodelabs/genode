@@ -15,7 +15,7 @@
 #define _AHCI_DRIVER_H_
 
 /* Genode includes */
-#include <block/driver.h>
+#include <block/component.h>
 #include <ram_session/ram_session.h>
 
 /**
@@ -29,7 +29,6 @@ class Ahci_driver : public Block::Driver
 	typedef Genode::size_t size_t;
 	typedef Genode::uint64_t uint64_t;
 	typedef Genode::addr_t addr_t;
-	typedef Genode::Ram_dataspace_capability Ram_dataspace_capability;
 
 	int _ncq_command(uint64_t lba, unsigned cnt, addr_t phys, bool w);
 
@@ -40,28 +39,37 @@ class Ahci_driver : public Block::Driver
 		 */
 		Ahci_driver();
 
+
 		/*****************************
 		 ** Block::Driver interface **
 		 *****************************/
 
+		Block::Session::Operations ops()
+		{
+			Block::Session::Operations o;
+			o.set_operation(Block::Packet_descriptor::READ);
+			o.set_operation(Block::Packet_descriptor::WRITE);
+			return o;
+		}
+
 		size_t block_size();
 		size_t block_count();
-		bool   dma_enabled() { return 1; }
-		void   write(size_t, size_t, char const *);
-		void   read(size_t, size_t, char *);
+		bool   dma_enabled() { return true; }
 
-		Ram_dataspace_capability alloc_dma_buffer(size_t size);
-
-		void read_dma(size_t block_nr, size_t block_cnt, addr_t phys)
+		void read_dma(size_t block_nr, size_t block_cnt, addr_t phys,
+		              Block::Packet_descriptor &packet)
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 0))
 				throw Io_error();
+			session->complete_packet(packet);
 		}
 
-		void write_dma(size_t  block_nr, size_t  block_cnt, addr_t  phys)
+		void write_dma(size_t  block_nr, size_t  block_cnt, addr_t  phys,
+		               Block::Packet_descriptor &packet)
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 1))
 				throw Io_error();
+			session->complete_packet(packet);
 		}
 };
 

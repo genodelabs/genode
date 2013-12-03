@@ -36,8 +36,7 @@ enum Commands {
 
 
 Atapi_device::Atapi_device(unsigned base_cmd, unsigned base_ctrl)
-  : Device(base_cmd, base_ctrl)
-{ }
+: Device(base_cmd, base_ctrl) { }
 
 
 int Atapi_device::read_sense(unsigned char *sense, int length)

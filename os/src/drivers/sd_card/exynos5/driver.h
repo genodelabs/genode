@@ -97,44 +97,47 @@ class Block::Exynos5_driver : public Block::Driver
 			return o;
 		}
 
-		void read(Genode::size_t  block_number,
-		          Genode::size_t  block_count,
-		          char           *out_buffer)
+		void read(Genode::size_t     block_number,
+		          Genode::size_t     block_count,
+		          char              *out_buffer,
+		          Packet_descriptor &packet)
 		{
 			if (!_controller.read_blocks(block_number, block_count, out_buffer))
 				throw Io_error();
+			session->complete_packet(packet);
 		}
 
-		void write(Genode::size_t  block_number,
-		           Genode::size_t  block_count,
-		           char const     *buffer)
+		void write(Genode::size_t     block_number,
+		           Genode::size_t     block_count,
+		           char const        *buffer,
+		           Packet_descriptor &packet)
 		{
 			if (!_controller.write_blocks(block_number, block_count, buffer))
 				throw Io_error();
+			session->complete_packet(packet);
 		}
 
-		void read_dma(Genode::size_t block_number,
-		              Genode::size_t block_count,
-		              Genode::addr_t phys)
+		void read_dma(Genode::size_t    block_number,
+		              Genode::size_t    block_count,
+		              Genode::addr_t    phys,
+		              Packet_descriptor &packet)
 		{
 			if (!_controller.read_blocks_dma(block_number, block_count, phys))
 				throw Io_error();
+			session->complete_packet(packet);
 		}
 
-		void write_dma(Genode::size_t  block_number,
-		               Genode::size_t  block_count,
-		               Genode::addr_t  phys)
+		void write_dma(Genode::size_t     block_number,
+		               Genode::size_t     block_count,
+		               Genode::addr_t     phys,
+		               Packet_descriptor &packet)
 		{
 			if (!_controller.write_blocks_dma(block_number, block_count, phys))
 				throw Io_error();
+			session->complete_packet(packet);
 		}
 
 		bool dma_enabled() { return _use_dma; }
-
-		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
-			return Genode::env()->ram_session()->alloc(size, false); }
-
-		void sync() {}
 };
 
 #endif /* _DRIVER_H_ */

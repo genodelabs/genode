@@ -111,10 +111,11 @@ int main(int argc, char **argv)
 		void operator () (Block::Driver &driver,
 		                  addr_t number, size_t count, addr_t phys, char *virt)
 		{
+			Block::Packet_descriptor p;
 			if (driver.dma_enabled())
-				driver.read_dma(number, count, phys);
+				driver.read_dma(number, count, phys, p);
 			else
-				driver.read(number, count, virt);
+				driver.read(number, count, virt, p);
 		}
 	} read_operation;
 
@@ -137,10 +138,11 @@ int main(int argc, char **argv)
 		void operator () (Block::Driver &driver,
 		                  addr_t number, size_t count, addr_t phys, char *virt)
 		{
+			Block::Packet_descriptor p;
 			if (driver.dma_enabled())
-				driver.write_dma(number, count, phys);
+				driver.write_dma(number, count, phys, p);
 			else
-				driver.write(number, count, virt);
+				driver.write(number, count, virt, p);
 		}
 	} write_operation;
 

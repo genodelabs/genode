@@ -57,9 +57,10 @@ class Rom_blk : public Block::Driver
 			return o;
 		}
 
-		void read(Genode::size_t  block_number,
-		          Genode::size_t  block_count,
-		          char           *out_buffer)
+		void read(Genode::size_t     block_number,
+		          Genode::size_t     block_count,
+		          char*              buffer,
+		          Block::Packet_descriptor &packet)
 		{
 			/* sanity check block number */
 			if ((block_number + block_count > _file_sz / _blk_sz)
@@ -73,32 +74,10 @@ class Rom_blk : public Block::Driver
 			size_t size   = block_count  * _blk_sz;
 
 			/* copy file content to packet payload */
-			memcpy(out_buffer, (void*)(_file_addr + offset), size);
+			memcpy((void*)buffer, (void*)(_file_addr + offset), size);
+
+			session->complete_packet(packet);
 		}
-
-		void write(Genode::size_t  block_number,
-		           Genode::size_t  block_count,
-		           char const     *buffer)
-		{
-			PWRN("write attempt on read-only device");
-		}
-
-		/*
-		 * This driver does not support DMA operation, currently.
-		 */
-
-		void read_dma(Genode::size_t, Genode::size_t, Genode::addr_t) {
-			throw Io_error(); }
-
-		void write_dma(Genode::size_t, Genode::size_t, Genode::addr_t) {
-			throw Io_error(); }
-
-		bool dma_enabled() { return false; }
-
-		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
-			return Genode::env()->ram_session()->alloc(size, false); }
-
-		void sync() {}
 };
 
 
@@ -118,8 +97,7 @@ struct Factory : Block::Driver_factory
 		PINF("Using file=%s as device with block size %zx.", file, blk_sz);
 
 		try {
-			Rom_blk *driver = new (Genode::env()->heap()) Rom_blk(file, blk_sz);
-			return driver;
+			return new (Genode::env()->heap()) Rom_blk(file, blk_sz);
 		} catch(Rom_connection::Rom_connection_failed) {
 			PERR("Cannot open file %s.", file);
 		}

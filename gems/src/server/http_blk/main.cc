@@ -39,9 +39,8 @@ class Driver : public Block::Driver
 		 **  Block::Driver interface  **
 		 *******************************/
 
-		Genode::size_t block_size() { return _block_size; }
-		Genode::size_t block_count() {
-			return _http.file_size() / _block_size; }
+		Genode::size_t block_size()  { return _block_size; }
+		Genode::size_t block_count() { return _http.file_size() / _block_size; }
 
 		Block::Session::Operations ops()
 		{
@@ -50,25 +49,15 @@ class Driver : public Block::Driver
 			return o;
 		}
 
-		void read(Genode::size_t  block_nr,
-		          Genode::size_t  block_count,
-		          char           *buffer) {
+		void read(Genode::size_t            block_nr,
+		          Genode::size_t            block_count,
+		          char                     *buffer,
+		          Block::Packet_descriptor &packet)
+		{
 			_http.cmd_get(block_nr * _block_size, block_count * _block_size,
-			              (addr_t)buffer); }
-
-		void write(Genode::size_t, Genode::size_t, char const*) {
-			throw Io_error(); }
-		void read_dma(Genode::size_t, Genode::size_t, Genode::addr_t) {
-			throw Io_error(); }
-		void write_dma(Genode::size_t, Genode::size_t, Genode::addr_t) {
-			throw Io_error(); }
-
-		bool dma_enabled() { return false; }
-
-		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
-			return Genode::env()->ram_session()->alloc(size, false); }
-
-		void sync() {}
+			              (addr_t)buffer);
+			session->complete_packet(packet);
+		}
 	};
 
 
@@ -92,8 +81,8 @@ class Factory : public Block::Driver_factory
 			PINF("Using file=%s as device with block size %zx.", _uri, _blk_sz);
 		}
 
-	Block::Driver *create() {
-		return new (env()->heap()) Driver(_blk_sz, _uri); }
+		Block::Driver *create() {
+			return new (env()->heap()) Driver(_blk_sz, _uri); }
 
 	void destroy(Block::Driver *driver) {
 		Genode::destroy(env()->heap(), driver); }

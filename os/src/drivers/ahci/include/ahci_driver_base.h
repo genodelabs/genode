@@ -34,7 +34,8 @@ class Ahci_driver_base : public Block::Driver
 				throw Io_error();
 		}
 
-		Ahci_driver_base(Ahci_device * const device) : _device(device) { }
+		Ahci_driver_base(Ahci_device * const device)
+		: _device(device) { }
 
 	public:
 
@@ -55,40 +56,30 @@ class Ahci_driver_base : public Block::Driver
 			return o;
 		}
 
-		bool   dma_enabled() { return true; }
+		bool dma_enabled() { return true; }
 
 		void read_dma(size_t block_number,
 		              size_t block_count,
-		              addr_t phys)
+		              addr_t phys,
+		              Block::Packet_descriptor &packet)
 		{
 			_sanity_check(block_number, block_count);
 			_device->read(block_number, block_count, phys);
+			if (session) session->complete_packet(packet);
 		}
 
 		void write_dma(size_t  block_number,
 		               size_t  block_count,
-		               addr_t  phys)
+		               addr_t  phys,
+		               Block::Packet_descriptor &packet)
 		{
 			_sanity_check(block_number, block_count);
 			_device->write(block_number, block_count, phys);
-		}
-
-		void read(size_t, size_t, char *)
-		{
-			PERR("%s should not be called", __PRETTY_FUNCTION__);
-			throw Io_error();
-		}
-
-		void write(size_t, size_t, char const *)
-		{
-			PERR("%s should not be called", __PRETTY_FUNCTION__);
-			throw Io_error();
+			if (session) session->complete_packet(packet);
 		}
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
 			return _device->alloc_dma_buffer(size); }
-
-		void sync() {}
 };
 
 #endif /* _AHCI_DRIVER_BASE_H_ */

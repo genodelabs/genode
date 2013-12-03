@@ -29,7 +29,8 @@ class Sd_card : public Block::Driver
 
 	public:
 
-		Sd_card(Host_driver &host_driver) : _hd(host_driver)
+		Sd_card(Host_driver &host_driver)
+		: _hd(host_driver)
 		{
 			unsigned resp;
 
@@ -89,7 +90,8 @@ class Sd_card : public Block::Driver
 
 		void read(Genode::size_t  block_number,
 		          Genode::size_t  block_count,
-		          char           *out_buffer)
+		          char           *out_buffer,
+		          Block::Packet_descriptor &packet)
 		{
 			unsigned resp;
 			unsigned length = BLOCK_SIZE;
@@ -105,11 +107,13 @@ class Sd_card : public Block::Driver
 				                 length, &resp);
 				_hd.read_data(length, out_buffer + (i * BLOCK_SIZE));
 			}
+			session->complete_packet(packet);
 		}
 
 		void write(Genode::size_t  block_number,
 		           Genode::size_t  block_count,
-		           char const     *buffer)
+		           char const     *buffer,
+		           Block::Packet_descriptor &packet)
 		{
 			unsigned resp;
 			unsigned length = BLOCK_SIZE;
@@ -125,26 +129,8 @@ class Sd_card : public Block::Driver
 				                  length, &resp);
 				_hd.write_data(length, buffer + (i * BLOCK_SIZE));
 			}
+			session->complete_packet(packet);
 		}
-
-		/*
-		 * This driver does not support DMA operation, currently.
-		 */
-
-		void read_dma(Genode::size_t, Genode::size_t, Genode::addr_t) {
-			throw Io_error(); }
-
-		void write_dma(Genode::size_t, Genode::size_t, Genode::addr_t) {
-			throw Io_error(); }
-
-		bool dma_enabled() { return false; }
-
-		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size)
-		{
-			return Genode::env()->ram_session()->alloc(size, false);
-		}
-
-		void sync() {}
 };
 
 #endif /* _SD_CARD_H_ */

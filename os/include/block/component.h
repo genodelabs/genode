@@ -30,6 +30,21 @@ namespace Block {
 
 class Block::Session_component : public Block::Session_rpc_object
 {
+	public:
+
+		void complete_packet(Packet_descriptor &packet, bool success = true)
+		{
+			packet.succeeded(success);
+
+			/* acknowledge packet to the client */
+			if (!tx_sink()->ready_to_ack()) {
+				PWRN("need to wait until ready-for-ack");
+				return;
+			}
+
+			tx_sink()->acknowledge_packet(packet);
+		}
+
 	private:
 
 		Driver_factory                      &_driver_factory;
@@ -60,40 +75,34 @@ class Block::Session_component : public Block::Session_rpc_object
 						if (_driver.dma_enabled())
 							_driver.read_dma(packet.block_number(),
 							                 packet.block_count(),
-							                 _rq_phys + packet.offset());
+							                 _rq_phys + packet.offset(),
+							                 packet);
 						else
 							_driver.read(packet.block_number(),
 							             packet.block_count(),
-							             tx_sink()->packet_content(packet));
+							             tx_sink()->packet_content(packet),
+							             packet);
 						break;
 
 					case Block::Packet_descriptor::WRITE:
 						if (_driver.dma_enabled())
 							_driver.write_dma(packet.block_number(),
 							                  packet.block_count(),
-							                  _rq_phys + packet.offset());
+							                  _rq_phys + packet.offset(),
+							                  packet);
 						else
 							_driver.write(packet.block_number(),
 							              packet.block_count(),
-							              tx_sink()->packet_content(packet));
+							              tx_sink()->packet_content(packet),
+							              packet);
 						break;
 
 					default:
-						PWRN("received invalid packet");
-						packet.succeeded(false);
-						continue;
+						throw Driver::Io_error();
 					}
 				} catch (Driver::Io_error) {
-					packet.succeeded(false);
+					complete_packet(packet, false);
 				}
-
-				/* acknowledge packet to the client */
-				if (!tx_sink()->ready_to_ack()) {
-					PWRN("need to wait until ready-for-ack");
-					return;
-				}
-
-				tx_sink()->acknowledge_packet(packet);
 			}
 		}
 
@@ -121,6 +130,8 @@ class Block::Session_component : public Block::Session_rpc_object
 		{
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
+
+			driver.session = this;
 		}
 
 		/**

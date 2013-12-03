@@ -58,9 +58,10 @@ class Driver : public Block::Driver
 			return ops;
 		}
 
-		void read(Genode::size_t  block_number,
-		          Genode::size_t  block_count,
-		          char           *buffer)
+		void read(Genode::size_t            block_number,
+		          Genode::size_t            block_count,
+		          char                     *buffer,
+		          Block::Packet_descriptor &packet)
 		{
 			/* sanity check block number */
 			if (block_number + block_count > _fb_size / BLOCK_SIZE) {
@@ -73,11 +74,13 @@ class Driver : public Block::Driver
 			Genode::size_t size   = block_count  * BLOCK_SIZE;
 
 			Genode::memcpy((void*)buffer, (void*)(_fb_addr + offset), size);
+			session->complete_packet(packet);
 		}
 
-		void write(Genode::size_t  block_number,
-		           Genode::size_t  block_count,
-		           char const     *buffer)
+		void write(Genode::size_t            block_number,
+		           Genode::size_t            block_count,
+		           char const               *buffer,
+		           Block::Packet_descriptor &packet)
 		{
 			/* sanity check block number */
 			if (block_number + block_count > _fb_size / BLOCK_SIZE) {
@@ -91,26 +94,14 @@ class Driver : public Block::Driver
 
 			Genode::memcpy((void*)(_fb_addr + offset), (void*)buffer, size);
 			_fb.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+			session->complete_packet(packet);
 		}
-
-		void read_dma(Genode::size_t block_number,
-		              Genode::size_t block_count,
-		              Genode::addr_t phys) {
-			throw Io_error(); }
-		void write_dma(Genode::size_t  block_number,
-		               Genode::size_t  block_count,
-		               Genode::addr_t  phys) {
-			throw Io_error(); }
-		bool dma_enabled() { return false; }
-		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
-			return Genode::env()->ram_session()->alloc(size, false); }
-		void sync() {}
 };
 
 
 struct Factory : Block::Driver_factory
 {
-	Block::Driver *create() {
+		Block::Driver *create() {
 		return new (Genode::env()->heap()) Driver(); }
 
 	void destroy(Block::Driver *driver) {
