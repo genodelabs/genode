@@ -46,12 +46,12 @@ source ${genode_dir}/ports/run/noux_tool_chain.inc
 append qemu_args " -m 768 "
 
 # wait until Noux started
-run_genode_until {\[init -\> noux\].*--- noux started ---} 100
+run_genode_until {\[init -\> noux\].*--- noux started ---} 300
 set serial_id $spawn_id
 
 # start the measurement
 set time_start [ clock seconds ]
-run_genode_until {child /bin/bash exited with exit value 234} 400 $serial_id 
+run_genode_until {child /bin/bash exited with exit value 234} 500 $serial_id
 
 set time_end [ clock seconds ]
 
