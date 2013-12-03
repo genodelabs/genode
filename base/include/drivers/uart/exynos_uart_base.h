@@ -1,5 +1,5 @@
 /*
- * \brief  Driver base for the Arndale UART
+ * \brief  Driver base for the Exynos UART
  * \author Martin stein
  * \date   2013-01-09
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _INCLUDE__DRIVERS__UART__ARNDALE_UART_BASE_H_
-#define _INCLUDE__DRIVERS__UART__ARNDALE_UART_BASE_H_
+#ifndef _INCLUDE__DRIVERS__UART__EXYNOS_UART_BASE_H_
+#define _INCLUDE__DRIVERS__UART__EXYNOS_UART_BASE_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -20,9 +20,9 @@
 namespace Genode
 {
 	/**
-	 * Arndale UART driver base
+	 * Exynos UART driver base
 	 */
-	class Arndale_uart_base : Mmio
+	class Exynos_uart_base : Mmio
 	{
 		/**
 		 * Line control
@@ -173,7 +173,7 @@ namespace Genode
 			 * \param  clock      reference clock
 			 * \param  baud_rate  targeted baud rate
 			 */
-			Arndale_uart_base(addr_t const base, unsigned const clock,
+			Exynos_uart_base(addr_t const base, unsigned const clock,
 			                  unsigned const baud_rate) : Mmio(base)
 			{
 				/* init control registers */
@@ -202,5 +202,5 @@ namespace Genode
 	};
 }
 
-#endif /* _INCLUDE__DRIVERS__UART__ARNDALE_UART_BASE_H_ */
+#endif /* _INCLUDE__DRIVERS__UART__EXYNOS_UART_BASE_H_ */
 

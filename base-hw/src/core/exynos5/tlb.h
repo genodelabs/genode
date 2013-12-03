@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _ARNDALE__TLB_H_
-#define _ARNDALE__TLB_H_
+#ifndef _EXYNOS5__TLB_H_
+#define _EXYNOS5__TLB_H_
 
 /* core includes */
 #include <board.h>
@@ -43,5 +43,5 @@ namespace Genode
 	};
 }
 
-#endif /* _ARNDALE__TLB_H_ */
+#endif /* _EXYNOS5__TLB_H_ */
 

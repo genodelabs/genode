@@ -33,6 +33,7 @@ usage:
 	@echo "                  'hw_imx31'"
 	@echo "                  'hw_imx53'"
 	@echo "                  'hw_arndale'"
+	@echo "                  'hw_odroid_xu'"
 	@echo "                  'hw_rpi'"
 	@echo "                  'foc_x86_32'"
 	@echo "                  'foc_x86_64'"
@@ -130,7 +131,7 @@ endif
 #
 # Add ARM drivers repositories to ARM build directories
 #
-ifeq ($(filter-out foc_panda foc_arndale hw_panda hw_arndale foc_imx53,$(PLATFORM)),)
+ifeq ($(filter-out foc_panda foc_arndale hw_panda hw_arndale hw_odroid_xu foc_imx53,$(PLATFORM)),)
 $(BUILD_DIR)/etc/build.conf::
 	@cat $(BUILD_CONF).drivers_arm >> $@
 endif
@@ -202,6 +203,9 @@ hw_arndale::
 
 hw_rpi::
 	@echo "SPECS = genode hw_rpi" > $(BUILD_DIR)/etc/specs.conf
+
+hw_odroid_xu::
+	@echo "SPECS = genode hw_odroid_xu" > $(BUILD_DIR)/etc/specs.conf
 
 lx_hybrid_x86::
 	@echo "CROSS_DEV_PREFIX =" > $(BUILD_DIR)/etc/tools.conf

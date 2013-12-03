@@ -1,15 +1,14 @@
 #
 # \brief  Build config for Genodes core process
 # \author Stefan Kalkowski
-# \author Martin Stein
-# \date   2012-10-04
+# \date   2013-11-25
 #
 
 # declare wich specs must be given to build this target
-REQUIRES += platform_arndale
+REQUIRES += platform_odroid_xu
 
 # add include paths
-INC_DIR += $(REP_DIR)/src/core/arndale
+INC_DIR += $(REP_DIR)/src/core/odroid_xu
 INC_DIR += $(REP_DIR)/src/core/exynos5
 INC_DIR += $(REP_DIR)/src/core/arm
 
@@ -25,7 +24,7 @@ SRC_S += mode_transition.s \
 
 # declare source paths
 vpath platform_services.cc $(BASE_DIR)/src/core
-vpath platform_support.cc  $(REP_DIR)/src/core/arndale
+vpath platform_support.cc  $(REP_DIR)/src/core/odroid_xu
 vpath mode_transition.s    $(REP_DIR)/src/core/arm_v7
 vpath cpu_support.cc       $(REP_DIR)/src/core/arm
 vpath crt0.s               $(REP_DIR)/src/core/arm
@@ -43,4 +42,3 @@ endif
 
 # include less specific target parts
 include $(REP_DIR)/src/core/target.inc
-

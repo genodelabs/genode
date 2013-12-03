@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _ARNDALE__CPU_H_
-#define _ARNDALE__CPU_H_
+#ifndef _EXYNOS5__CPU_H_
+#define _EXYNOS5__CPU_H_
 
 /* core includes */
 #include <cpu/cortex_a15.h>
@@ -25,5 +25,5 @@ namespace Genode
 	class Cpu : public Cortex_a15::Cpu { };
 }
 
-#endif /* _ARNDALE__CPU_H_ */
+#endif /* _EXYNOS5__CPU_H_ */
 
