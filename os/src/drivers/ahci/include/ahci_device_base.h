@@ -108,6 +108,7 @@ class Ahci_port : public Reg_base
 		void cmd_list_base(addr_t cmd_base)
 		{
 			uint64_t addr = cmd_base;
+
 			_set(0x0, addr);
 			_set(0x4, addr >> 32);
 		}
@@ -118,7 +119,7 @@ class Ahci_port : public Reg_base
 			uint64_t addr = fis_base;
 
 			_set(0x8, addr);
-			_set(0xc, addr);
+			_set(0xc, addr >> 32);
 		}
 
 		/* interrupt status */
