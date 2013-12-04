@@ -93,10 +93,25 @@ namespace Kernel
 	 */
 	static Pd * core()
 	{
+		/**
+		 * Core protection-domain
+		 */
+		class Core_pd : public Pd
+		{
+			public:
+
+				/**
+				 * Constructor
+				 */
+				Core_pd(Tlb * const tlb, Platform_pd * const platform_pd)
+				:
+					Pd(tlb, platform_pd)
+				{ }
+		};
 		constexpr int tlb_align = 1 << Core_tlb::ALIGNM_LOG2;
-		Core_tlb *core_tlb = unmanaged_singleton<Core_tlb, tlb_align>();
-		Pd       *pd       = unmanaged_singleton<Pd>(core_tlb, nullptr);
-		return pd;
+		Core_tlb * core_tlb = unmanaged_singleton<Core_tlb, tlb_align>();
+		Core_pd  * core_pd  = unmanaged_singleton<Core_pd>(core_tlb, nullptr);
+		return core_pd;
 	}
 
 	/**
