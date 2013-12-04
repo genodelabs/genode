@@ -21,9 +21,6 @@
 /* core includes */
 #include <assert.h>
 
-/* base-hw includes */
-#include <singleton.h>
-
 namespace Kernel
 {
 	template <typename T> class Avl_tree : public Genode::Avl_tree<T> { };

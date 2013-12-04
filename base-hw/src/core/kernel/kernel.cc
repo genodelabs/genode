@@ -31,8 +31,10 @@
 #include <timer.h>
 #include <pic.h>
 
+/* base includes */
+#include <unmanaged_singleton.h>
+
 /* base-hw includes */
-#include <singleton.h>
 #include <kernel/perf_counter.h>
 
 using namespace Kernel;
@@ -47,7 +49,7 @@ namespace Kernel
 	/**
 	 * Return interrupt-controller singleton
 	 */
-	Pic * pic() { return unsynchronized_singleton<Pic>(); }
+	Pic * pic() { return unmanaged_singleton<Pic>(); }
 
 	/* import Genode types */
 	typedef Genode::umword_t       umword_t;
@@ -64,15 +66,15 @@ namespace Kernel
 	 */
 	static void idle_main() { while (1) ; }
 
-	Pd_ids * pd_ids() { return unsynchronized_singleton<Pd_ids>(); }
-	Thread_ids * thread_ids() { return unsynchronized_singleton<Thread_ids>(); }
-	Signal_context_ids * signal_context_ids() { return unsynchronized_singleton<Signal_context_ids>(); }
-	Signal_receiver_ids * signal_receiver_ids() { return unsynchronized_singleton<Signal_receiver_ids>(); }
+	Pd_ids * pd_ids() { return unmanaged_singleton<Pd_ids>(); }
+	Thread_ids * thread_ids() { return unmanaged_singleton<Thread_ids>(); }
+	Signal_context_ids * signal_context_ids() { return unmanaged_singleton<Signal_context_ids>(); }
+	Signal_receiver_ids * signal_receiver_ids() { return unmanaged_singleton<Signal_receiver_ids>(); }
 
-	Pd_pool * pd_pool() { return unsynchronized_singleton<Pd_pool>(); }
-	Thread_pool * thread_pool() { return unsynchronized_singleton<Thread_pool>(); }
-	Signal_context_pool * signal_context_pool() { return unsynchronized_singleton<Signal_context_pool>(); }
-	Signal_receiver_pool * signal_receiver_pool() { return unsynchronized_singleton<Signal_receiver_pool>(); }
+	Pd_pool * pd_pool() { return unmanaged_singleton<Pd_pool>(); }
+	Thread_pool * thread_pool() { return unmanaged_singleton<Thread_pool>(); }
+	Signal_context_pool * signal_context_pool() { return unmanaged_singleton<Signal_context_pool>(); }
+	Signal_receiver_pool * signal_receiver_pool() { return unmanaged_singleton<Signal_receiver_pool>(); }
 
 	/**
 	 * Access to static kernel timer
@@ -92,9 +94,8 @@ namespace Kernel
 	static Pd * core()
 	{
 		constexpr int tlb_align = 1 << Core_tlb::ALIGNM_LOG2;
-
-		Core_tlb *core_tlb = unsynchronized_singleton<Core_tlb, tlb_align>();
-		Pd       *pd       = unsynchronized_singleton<Pd>(core_tlb, nullptr);
+		Core_tlb *core_tlb = unmanaged_singleton<Core_tlb, tlb_align>();
+		Pd       *pd       = unmanaged_singleton<Pd>(core_tlb, nullptr);
 		return pd;
 	}
 
@@ -262,8 +263,8 @@ Kernel::Mode_transition_control * Kernel::mtc()
 			sp = (addr_t)&_kernel_stack_high;
 			core()->admit(this);
 		}
-	} * const k = unsynchronized_singleton<Kernel_context>();
+	} * const k = unmanaged_singleton<Kernel_context>();
 
 	/* initialize mode transition page */
-	return unsynchronized_singleton<Mode_transition_control>(k);
+	return unmanaged_singleton<Mode_transition_control>(k);
 }

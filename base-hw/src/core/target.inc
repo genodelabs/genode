@@ -22,7 +22,8 @@ INC_DIR += $(REP_DIR)/src/core \
            $(BASE_DIR)/src/core/include \
            $(BASE_DIR)/include \
            $(BASE_DIR)/src/platform \
-           $(BASE_DIR)/src/base/thread
+           $(BASE_DIR)/src/base/thread \
+           $(BASE_DIR)/src/base/include
 
 # add C++ sources
 SRC_CC += console.cc \

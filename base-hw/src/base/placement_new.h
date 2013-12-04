@@ -14,9 +14,9 @@
 #ifndef _PLACEMENT_NEW_H_
 #define _PLACEMENT_NEW_H_
 
-/**
- * Placement new operator
- */
-inline void *operator new(Genode::size_t, void *at) { return at; }
+/* base includes */
+#include <unmanaged_singleton.h>
+
+/* FIXME: remove this header as soon as the Placeable template is public */
 
 #endif /* _PLACEMENT_NEW_H_ */

@@ -16,8 +16,8 @@
 #include <base/printf.h>
 #include <drivers/serial_log.h>
 
-/* base-hw includes */
-#include "singleton.h"
+/* base includes */
+#include <unmanaged_singleton.h>
 
 namespace Genode
 {
@@ -66,7 +66,7 @@ using namespace Genode;
  */
 static Platform_console * platform_console()
 {
-	return unsynchronized_singleton<Platform_console>();
+	return unmanaged_singleton<Platform_console>();
 }
 
 

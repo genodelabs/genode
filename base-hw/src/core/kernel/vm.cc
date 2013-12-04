@@ -16,6 +16,6 @@
 
 namespace Kernel
 {
-	Vm_ids * vm_ids() { return unsynchronized_singleton<Vm_ids>(); }
-	Vm_pool * vm_pool() { return unsynchronized_singleton<Vm_pool>(); }
+	Vm_ids * vm_ids() { return unmanaged_singleton<Vm_ids>(); }
+	Vm_pool * vm_pool() { return unmanaged_singleton<Vm_pool>(); }
 }
