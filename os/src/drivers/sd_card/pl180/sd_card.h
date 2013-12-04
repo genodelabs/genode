@@ -78,7 +78,7 @@ class Sd_card : public Block::Driver
 		/*
 		 * TODO report (and support) real capacity not just 512M
 		 */
-		Genode::size_t block_count() { return 0x20000000 /  BLOCK_SIZE; }
+		Block::sector_t block_count() { return 0x20000000 /  BLOCK_SIZE; }
 
 		Block::Session::Operations ops()
 		{
@@ -88,7 +88,7 @@ class Sd_card : public Block::Driver
 			return o;
 		}
 
-		void read(Genode::size_t  block_number,
+		void read(Block::sector_t block_number,
 		          Genode::size_t  block_count,
 		          char           *out_buffer,
 		          Block::Packet_descriptor &packet)
@@ -110,7 +110,7 @@ class Sd_card : public Block::Driver
 			session->complete_packet(packet);
 		}
 
-		void write(Genode::size_t  block_number,
+		void write(Block::sector_t block_number,
 		           Genode::size_t  block_count,
 		           char const     *buffer,
 		           Block::Packet_descriptor &packet)

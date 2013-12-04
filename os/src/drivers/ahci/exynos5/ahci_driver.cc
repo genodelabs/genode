@@ -1947,5 +1947,5 @@ int Ahci_driver::_ncq_command(uint64_t lba, unsigned cnt, addr_t phys, bool w)
 	return ret;
 }
 
-size_t Ahci_driver::block_count() { return sata_ahci()->block_cnt; }
-size_t Ahci_driver::block_size()  { return Sata_ahci::BLOCK_SIZE; }
+Block::sector_t Ahci_driver::block_count() { return sata_ahci()->block_cnt; }
+size_t          Ahci_driver::block_size()  { return Sata_ahci::BLOCK_SIZE; }

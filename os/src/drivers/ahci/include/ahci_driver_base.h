@@ -46,7 +46,8 @@ class Ahci_driver_base : public Block::Driver
 		}
 
 		size_t block_size()  { return Ahci_device::block_size(); }
-		size_t block_count() { return _device ? _device->block_count() : 0; }
+		Block::sector_t block_count() {
+			return _device ? _device->block_count() : 0; }
 
 		Block::Session::Operations ops()
 		{
@@ -58,9 +59,9 @@ class Ahci_driver_base : public Block::Driver
 
 		bool dma_enabled() { return true; }
 
-		void read_dma(size_t block_number,
-		              size_t block_count,
-		              addr_t phys,
+		void read_dma(Block::sector_t           block_number,
+		              size_t                    block_count,
+		              addr_t                    phys,
 		              Block::Packet_descriptor &packet)
 		{
 			_sanity_check(block_number, block_count);
@@ -68,9 +69,9 @@ class Ahci_driver_base : public Block::Driver
 			if (session) session->complete_packet(packet);
 		}
 
-		void write_dma(size_t  block_number,
-		               size_t  block_count,
-		               addr_t  phys,
+		void write_dma(Block::sector_t           block_number,
+		               size_t                    block_count,
+		               addr_t                    phys,
 		               Block::Packet_descriptor &packet)
 		{
 			_sanity_check(block_number, block_count);

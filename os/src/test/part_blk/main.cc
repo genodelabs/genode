@@ -56,7 +56,7 @@ class Sector
 			_p = _blk.tx()->get_acked_packet();
 
 			if (!_p.succeeded())
-				PERR("Could not access block %zu", _p.block_number());
+				PERR("Could not access block %llu", _p.block_number());
 		}
 
 };

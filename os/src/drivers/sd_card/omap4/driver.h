@@ -77,7 +77,7 @@ class Block::Omap4_driver : public Block::Driver
 
 		Genode::size_t block_size() { return 512; }
 
-		virtual Genode::size_t block_count()
+		virtual Block::sector_t block_count()
 		{
 			return _controller.card_info().capacity_mb() * 1024 * 2;
 		}
@@ -90,7 +90,7 @@ class Block::Omap4_driver : public Block::Driver
 			return o;
 		}
 
-		void read(Genode::size_t     block_number,
+		void read(Block::sector_t    block_number,
 		          Genode::size_t     block_count,
 		          char              *out_buffer,
 		          Packet_descriptor &packet)
@@ -100,7 +100,7 @@ class Block::Omap4_driver : public Block::Driver
 			session->complete_packet(packet);
 		}
 
-		void write(Genode::size_t     block_number,
+		void write(Block::sector_t    block_number,
 		           Genode::size_t     block_count,
 		           char const        *buffer,
 		           Packet_descriptor &packet)
@@ -110,7 +110,7 @@ class Block::Omap4_driver : public Block::Driver
 			session->complete_packet(packet);
 		}
 
-		void read_dma(Genode::size_t     block_number,
+		void read_dma(Block::sector_t    block_number,
 		              Genode::size_t     block_count,
 		              Genode::addr_t     phys,
 		              Packet_descriptor &packet)
@@ -120,7 +120,7 @@ class Block::Omap4_driver : public Block::Driver
 			session->complete_packet(packet);
 		}
 
-		void write_dma(Genode::size_t     block_number,
+		void write_dma(Block::sector_t    block_number,
 		               Genode::size_t     block_count,
 		               Genode::addr_t     phys,
 		               Packet_descriptor &packet)

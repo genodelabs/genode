@@ -91,7 +91,7 @@ class Vancouver_disk : public Genode::Thread<8192>, public StaticReceiver<Vancou
 			Block::Connection          *blk_con;
 			Block::Session::Operations  ops;
 			Genode::size_t              blk_size;
-			Genode::size_t              blk_cnt;
+			Block::sector_t             blk_cnt;
 			Vancouver_disk_signal      *dispatcher;
 		} _diskcon[MAX_DISKS];
 

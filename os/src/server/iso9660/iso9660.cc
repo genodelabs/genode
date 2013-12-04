@@ -489,7 +489,7 @@ namespace Iso {
 		Sector::_blk    = &_blk;
 		Sector::_source  = _blk.tx();
 
-		size_t blk_cnt = 0;
+		Block::sector_t blk_cnt = 0;
 		Block::Session::Operations ops;
 		_blk.info(&blk_cnt, &Sector::_blk_size, &ops);
 	}

@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 
 	/* check block-connection info */
 	Genode::size_t             _blk_size = 0;
-	size_t                     blk_cnt = 0;
+	Block::sector_t              blk_cnt = 0;
 	Block::Session::Operations ops;
 	_blk_con.info(&blk_cnt, &_blk_size, &ops);
 	if (!ops.supported(Block::Packet_descriptor::READ)) {

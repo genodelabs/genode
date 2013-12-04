@@ -51,7 +51,7 @@ class Comparer : public Genode::Thread<8192>
 
 			Block::Session::Tx::Source *source   = _blk_con.tx();
 			size_t                      blk_size = 0;
-			size_t                      blk_cnt  = 0;
+			Block::sector_t             blk_cnt  = 0;
 			Genode::addr_t              end      =
 				_addr + Dataspace_client(_rom.dataspace()).size();
 			Block::Session::Operations  ops;
@@ -61,7 +61,7 @@ class Comparer : public Genode::Thread<8192>
 				PERR("Block device not readable!");
 			}
 
-			PINF("We have %zx blocks with a size of %zx bytes", blk_cnt, blk_size);
+			PINF("We have %llu blocks with a size of 0x%zx bytes", blk_cnt, blk_size);
 
 			for (size_t i = 0; i < blk_cnt; i += BLOCK_REQ_PARALLEL) {
 				try {

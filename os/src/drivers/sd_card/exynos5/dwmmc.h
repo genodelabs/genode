@@ -325,7 +325,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			using namespace Sd_card;
 
 			powerup();
-			
+
 			if (!reset(_delayer))
 				throw Detection_failed();
 
@@ -628,7 +628,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 
 			/* return sector count */
 			uint64_t capacity =  csd.read<Sd_card::Ext_csd::Sector_count>() * BLOCK_SIZE;
-			
+
 			/* to MB */
 			return capacity / (1024 * 1024);
 		}
@@ -638,19 +638,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			return _card_info;
 		}
 
-		bool read_blocks(size_t block_number, size_t block_count, char *out_buffer)
-		{
-			PWRN("'read_blocks' not implemented");
-			return true;
-		}
-
-		bool write_blocks(size_t block_number, size_t block_count, char const *buffer)
-		{
-			PWRN("'write_blocks' not implemented");
-			return true;
-		}
-
-		bool read_blocks_dma(size_t block_number, size_t block_count,
+		bool read_blocks_dma(Block::sector_t block_number, size_t block_count,
 		                     Genode::addr_t buffer_phys)
 		{
 			if (!_setup_idmac_descriptor_table(block_count, buffer_phys))
@@ -671,7 +659,7 @@ struct Exynos5_msh_controller : private Dwmmc, Sd_card::Host_controller
 			return complete;
 		}
 
-		bool write_blocks_dma(size_t block_number, size_t block_count,
+		bool write_blocks_dma(Block::sector_t block_number, size_t block_count,
 		                      Genode::addr_t buffer_phys)
 		{
 			if (!_setup_idmac_descriptor_table(block_count, buffer_phys))

@@ -91,7 +91,7 @@ namespace {
 			Genode::Allocator_avl      _alloc;
 			Block::Connection          _session;
 			Genode::size_t             _blk_size;
-			Genode::size_t             _blk_cnt;
+			Block::sector_t            _blk_cnt;
 			Block::Session::Operations _blk_ops;
 			Genode::Native_capability  _irq_cap;
 			Genode::Signal_context     _tx;

@@ -42,7 +42,7 @@ Atapi_device::Atapi_device(unsigned base_cmd, unsigned base_ctrl)
 int Atapi_device::read_sense(unsigned char *sense, int length)
 {
 		unsigned char cmd_sense[12];
-		
+
 		memset(cmd_sense, 0, 12);
 		memset(sense, 0, length);
 
@@ -83,7 +83,7 @@ void Atapi_device::read_capacity()
 	memset(buffer, 0, 8);
 
 	cmd[0] = CMD_READ_CAPACITY;
-	
+
 	if (!test_unit_ready())
 		throw Io_error();
 
@@ -100,7 +100,7 @@ void Atapi_device::read_capacity()
 }
 
 
-void Atapi_device::_read(Genode::size_t  block_nr,
+void Atapi_device::_read(Block::sector_t block_nr,
                          Genode::size_t  count,
                          char           *buffer,
                          bool            dma)
@@ -127,7 +127,7 @@ void Atapi_device::_read(Genode::size_t  block_nr,
 
 	if (dma) {
 		if (verbose)
-			PDBG("DMA read: block %zu, count %zu, buffer: %p",
+			PDBG("DMA read: block %llu, count %zu, buffer: %p",
 			     block_nr, count, (void*)buffer);
 
 		if (dma_pci_packet(dev_num(), 12, cmd, 0, count * _block_size,
@@ -141,7 +141,7 @@ void Atapi_device::_read(Genode::size_t  block_nr,
 }
 
 
-void Atapi_device::_write(Genode::size_t  block_number,
+void Atapi_device::_write(Block::sector_t block_number,
                           Genode::size_t  block_count,
                           char const     *buffer,
                           bool            dma) { throw Io_error(); }

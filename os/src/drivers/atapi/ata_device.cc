@@ -148,7 +148,7 @@ void Ata::Device::read_capacity()
 }
 
 
-void Ata::Device::_read(Genode::size_t  block_nr,
+void Ata::Device::_read(Block::sector_t block_nr,
                         Genode::size_t  count,
                         char           *buffer,
                         bool            dma)
@@ -161,7 +161,7 @@ void Ata::Device::_read(Genode::size_t  block_nr,
 		if (dma) {
 
 			if (verbose)
-				PDBG("DMA read: block %zu, c %zu, buffer: %p",
+				PDBG("DMA read: block %llu, c %zu, buffer: %p",
 					 block_nr, c, (void*)(buffer + offset));
 
 			if (!_lba48)
@@ -196,7 +196,7 @@ void Ata::Device::_read(Genode::size_t  block_nr,
 }
 
 
-void Ata::Device::_write(Genode::size_t  block_nr,
+void Ata::Device::_write(Block::sector_t block_nr,
                          Genode::size_t  count,
                          char const     *buffer,
                          bool            dma)
@@ -209,7 +209,7 @@ void Ata::Device::_write(Genode::size_t  block_nr,
 		if (dma) {
 
 			if (verbose)
-				PDBG("DMA read: block %zu, c %zu, buffer: %p",
+				PDBG("DMA read: block %llu, c %zu, buffer: %p",
 					 block_nr, c, (void*)(buffer + offset));
 
 			if (!_lba48)

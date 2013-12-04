@@ -58,7 +58,7 @@ namespace {
 
 			Block::Connection          *_block;
 			size_t                      _block_size;
-			size_t                      _block_count;
+			Block::sector_t             _block_count;
 			Block::Session::Operations  _block_ops;
 			Block::Session::Tx::Source *_tx_source;
 
@@ -94,7 +94,7 @@ namespace {
 				_block_buffer = reinterpret_cast<char*>(malloc(BUFFER_BLOCK_NUMBER * _block_size));
 
 				if (verbose) {
-					PDBG("number of blocks: %zu with block size: %zu (bytes)"
+					PDBG("number of blocks: %llu with block size: %zu (bytes)"
 					     " , readable: %d writeable: %d",
 					     _block_count, _block_size, _readable, _writeable);
 				}

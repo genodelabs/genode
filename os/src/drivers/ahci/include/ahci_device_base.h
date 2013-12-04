@@ -316,7 +316,7 @@ struct Command_table
 	/**
 	 * Setup FIS and PRD
 	 */
-	void setup_command(uint8_t cmd, uint32_t lba48, uint16_t blk_cnt, addr_t phys_addr)
+	void setup_command(uint8_t cmd, uint64_t lba48, uint16_t blk_cnt, addr_t phys_addr)
 	{
 		enum { MAX_BYTES = 1 << 22 }; /* 4MB = one PRD */
 		uint8_t *fis = (uint8_t *)this;
@@ -332,8 +332,8 @@ struct Command_table
 		fis[6] = (lba48 >> 16) & 0xff;   /* LBA 16 - 23 */
 		fis[7] = 0x40;                   /* LBA mode flag */
 		fis[8] = (lba48 >> 24) & 0xff;   /* LBA 24 - 31 */
-		fis[9] =  0x0;                   /* LBA 32 - 39 */
-		fis[10] = 0x0;                   /* LBA 40 - 47 */
+		fis[9] = (lba48 >> 32) & 0xff;   /* LBA 32 - 39 */
+		fis[10] = (lba48 >> 40) & 0xff;  /* LBA 40 - 47 */
 		fis[12] = blk_cnt & 0xff;        /* sector count 0 - 7 */
 		fis[13] = (blk_cnt >> 8) & 0xff; /* sector count 8 - 15 */
 
@@ -537,24 +537,28 @@ class Ahci_device_base
 		/**
 		 * Issue ATA 'READ_DMA_EXT' command
 		 */
-		void read(size_t block_number, size_t  block_count, addr_t phys)
+		void read(Block::sector_t block_number, size_t  block_count,
+		          addr_t phys)
 		{
 			_cmd_list->w = 0;
 
 			enum { READ_DMA_EXT = 0x25 };
-			_cmd_table->setup_command(READ_DMA_EXT, block_number, block_count, phys);
+			_cmd_table->setup_command(READ_DMA_EXT, block_number,
+			                          block_count, phys);
 			_execute_command();
 		}
 
 		/**
 		 * Issue ATA 'WRITE_DMA_EXT' command
 		 */
-		void write(size_t block_number, size_t  block_count, addr_t phys)
+		void write(Block::sector_t block_number, size_t  block_count,
+		           addr_t phys)
 		{
 			_cmd_list->w = 1;
 
 			enum { WRITE_DMA_EXT = 0x35 };
-			_cmd_table->setup_command(WRITE_DMA_EXT, block_number, block_count, phys);
+			_cmd_table->setup_command(WRITE_DMA_EXT, block_number,
+			                          block_count, phys);
 			_execute_command();
 		}
 

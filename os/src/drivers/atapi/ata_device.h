@@ -61,11 +61,11 @@ namespace Ata {
 			Genode::Irq_connection *irq() { return _irq; }
 			Genode::Io_port_session *io() { return _pio; }
 
-			virtual void _read(Genode::size_t  block_number,
+			virtual void _read(Block::sector_t block_number,
 			                   Genode::size_t  block_count,
 			                   char           *out_buffer,
 			                   bool            dma);
-			virtual void _write(Genode::size_t  block_number,
+			virtual void _write(Block::sector_t block_number,
 			                    Genode::size_t  block_count,
 			                    char const     *buffer,
 			                    bool            dma);
@@ -112,13 +112,13 @@ namespace Ata {
 			 **  Block::Driver interface  **
 			 *******************************/
 
-			Genode::size_t block_count() {
+			Block::sector_t block_count() {
 				return _block_end - _block_start + 1; }
 			Genode::size_t block_size() { return _block_size; }
 
 			virtual Block::Session::Operations ops();
 
-			void read(Genode::size_t  block_number,
+			void read(Block::sector_t block_number,
 			          Genode::size_t  block_count,
 			          char           *buffer,
 			          Block::Packet_descriptor &packet)
@@ -127,7 +127,7 @@ namespace Ata {
 				session->complete_packet(packet);
 			}
 
-			void write(Genode::size_t  block_number,
+			void write(Block::sector_t block_number,
 			           Genode::size_t  block_count,
 			           char const     *buffer,
 			           Block::Packet_descriptor &packet)
@@ -136,16 +136,16 @@ namespace Ata {
 				session->complete_packet(packet);
 			}
 
-			void read_dma(Genode::size_t block_number,
-			              Genode::size_t block_count,
-			              Genode::addr_t phys,
+			void read_dma(Block::sector_t block_number,
+			              Genode::size_t  block_count,
+			              Genode::addr_t  phys,
 			              Block::Packet_descriptor &packet)
 			{
 				_read(block_number, block_count, (char*)phys, true);
 				session->complete_packet(packet);
 			}
 
-			void write_dma(Genode::size_t  block_number,
+			void write_dma(Block::sector_t block_number,
 			               Genode::size_t  block_count,
 			               Genode::addr_t  phys,
 			               Block::Packet_descriptor &packet)
@@ -165,11 +165,11 @@ namespace Ata {
 			int  read_sense(unsigned char *sense, int length);
 			void read_capacity();
 
-			void _read(Genode::size_t  block_number,
+			void _read(Block::sector_t block_number,
 			           Genode::size_t  block_count,
 			           char           *out_buffer,
 			           bool            dma);
-			void _write(Genode::size_t  block_number,
+			void _write(Block::sector_t block_number,
 			            Genode::size_t  block_count,
 			            char const     *buffer,
 			            bool            dma);

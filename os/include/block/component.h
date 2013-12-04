@@ -142,7 +142,18 @@ class Block::Session_component : public Block::Session_rpc_object
 			_driver_factory.destroy(&_driver);
 		}
 
-		void info(size_t *blk_count, size_t *blk_size,
+		/**
+		 * Destructor
+		 */
+		~Session_component() {
+			_driver_factory.destroy(&_driver); }
+
+
+		/*******************************
+		 **  Block session interface  **
+		 *******************************/
+
+		void info(sector_t *blk_count, size_t *blk_size,
 		          Operations *ops)
 		{
 			*blk_count = _driver.block_count();

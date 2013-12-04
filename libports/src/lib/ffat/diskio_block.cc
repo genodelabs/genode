@@ -28,7 +28,7 @@ static bool const verbose = false;
 static Genode::Allocator_avl _block_alloc(Genode::env()->heap());
 static Block::Connection *_block_connection;
 static size_t _blk_size = 0;
-static size_t _blk_cnt  = 0;
+static Block::sector_t _blk_cnt  = 0;
 static Block::Session::Tx::Source *_source;
 
 
@@ -72,7 +72,7 @@ extern "C" DSTATUS disk_initialize (BYTE drv)
 	}
 
 	if (verbose)
-		PDBG("We have %zu blocks with a size of %zu bytes",
+		PDBG("We have %llu blocks with a size of %zu bytes",
 		     _blk_cnt, _blk_size);
 
 	initialized = true;

@@ -47,8 +47,8 @@ class Rom_blk : public Block::Driver
 		 ** Block-driver interface **
 		 ****************************/
 
-		Genode::size_t block_size()  { return _blk_sz;  }
-		Genode::size_t block_count() { return _blk_cnt; }
+		Genode::size_t  block_size()  { return _blk_sz;  }
+		Block::sector_t block_count() { return _blk_cnt; }
 
 		Block::Session::Operations ops()
 		{
@@ -57,7 +57,7 @@ class Rom_blk : public Block::Driver
 			return o;
 		}
 
-		void read(Genode::size_t     block_number,
+		void read(Block::sector_t    block_number,
 		          Genode::size_t     block_count,
 		          char*              buffer,
 		          Block::Packet_descriptor &packet)
@@ -65,12 +65,12 @@ class Rom_blk : public Block::Driver
 			/* sanity check block number */
 			if ((block_number + block_count > _file_sz / _blk_sz)
 				|| block_number < 0) {
-				PWRN("requested blocks %zd-%zd out of range!",
+				PWRN("requested blocks %lld-%lld out of range!",
 					 block_number, block_number + block_count);
 				return;
 			}
 
-			size_t offset = block_number * _blk_sz;
+			size_t offset = (size_t) block_number * _blk_sz;
 			size_t size   = block_count  * _blk_sz;
 
 			/* copy file content to packet payload */

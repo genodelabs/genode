@@ -47,7 +47,7 @@ namespace Block {
 			 ** Block session interface **
 			 *****************************/
 
-			void info(Genode::size_t *blk_count, Genode::size_t *blk_size,
+			void info(sector_t *blk_count, Genode::size_t *blk_size,
 			          Operations *ops)
 			{
 				call<Rpc_info>(blk_count, blk_size, ops);

@@ -47,8 +47,8 @@ class Driver : public Block::Driver
 		 **  Block::Driver interface  **
 		 *******************************/
 
-		Genode::size_t block_size()  { return BLOCK_SIZE; }
-		Genode::size_t block_count() { return _fb_size / BLOCK_SIZE; }
+		Genode::size_t  block_size()  { return BLOCK_SIZE; }
+		Block::sector_t block_count() { return _fb_size / BLOCK_SIZE; }
 
 		Block::Session::Operations ops()
 		{
@@ -58,14 +58,14 @@ class Driver : public Block::Driver
 			return ops;
 		}
 
-		void read(Genode::size_t            block_number,
+		void read(Block::sector_t           block_number,
 		          Genode::size_t            block_count,
 		          char                     *buffer,
 		          Block::Packet_descriptor &packet)
 		{
 			/* sanity check block number */
 			if (block_number + block_count > _fb_size / BLOCK_SIZE) {
-				PWRN("Out of range: requested %zd blocks from block %zd",
+				PWRN("Out of range: requested %zd blocks from block %llu",
 				     block_count, block_number);
 				return;
 			}
@@ -77,14 +77,14 @@ class Driver : public Block::Driver
 			session->complete_packet(packet);
 		}
 
-		void write(Genode::size_t            block_number,
+		void write(Block::sector_t           block_number,
 		           Genode::size_t            block_count,
 		           char const               *buffer,
 		           Block::Packet_descriptor &packet)
 		{
 			/* sanity check block number */
 			if (block_number + block_count > _fb_size / BLOCK_SIZE) {
-				PWRN("Out of range: requested %zd blocks from block %zd",
+				PWRN("Out of range: requested %zd blocks from block %llu",
 				     block_count, block_number);
 				return;
 			}

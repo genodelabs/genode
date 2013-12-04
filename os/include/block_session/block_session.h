@@ -51,7 +51,7 @@ namespace Block {
 		private:
 
 			Opcode          _op;           /* requested operation */
-			Genode::size_t  _block_number; /* requested block number */
+			sector_t        _block_number; /* requested block number */
 			Genode::size_t  _block_count;  /* number of blocks to transfer */
 			unsigned        _success :1;   /* indicates success of operation */
 
@@ -68,13 +68,13 @@ namespace Block {
 			 * Constructor
 			 */
 			Packet_descriptor(Packet_descriptor p, Opcode op,
-			                  Genode::size_t blk_nr, Genode::size_t blk_count = 1)
+			                  sector_t blk_nr, Genode::size_t blk_count = 1)
 			: ::Packet_descriptor(p.offset(), p.size()),
 			  _op(op), _block_number(blk_nr),
 			  _block_count(blk_count), _success(false) { }
 
 			Opcode         operation()    const { return _op;           }
-			Genode::size_t block_number() const { return _block_number; }
+			sector_t       block_number() const { return _block_number; }
 			Genode::size_t block_count()  const { return _block_count;  }
 			bool           succeeded()    const { return _success;      }
 
@@ -125,7 +125,7 @@ namespace Block {
 		 * \param blk_size  will contain total size in bytes
 		 * \param ops       supported operations
 		 */
-		virtual void info(Genode::size_t *blk_count,
+		virtual void info(sector_t       *blk_count,
 		                  Genode::size_t *blk_size,
 		                  Operations     *ops) = 0;
 
@@ -149,7 +149,8 @@ namespace Block {
 		 ** RPC interface **
 		 *******************/
 
-		GENODE_RPC(Rpc_info, void, info, Genode::size_t *, Genode::size_t *, Operations *);
+		GENODE_RPC(Rpc_info, void, info, Block::sector_t *,
+		           Genode::size_t *, Operations *);
 		GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, _tx_cap);
 		GENODE_RPC(Rpc_sync, void, sync);
 		GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap, Rpc_sync);

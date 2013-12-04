@@ -52,11 +52,11 @@ class Ahci_driver : public Block::Driver
 			return o;
 		}
 
-		size_t block_size();
-		size_t block_count();
+		size_t          block_size();
+		Block::sector_t block_count();
 		bool   dma_enabled() { return true; }
 
-		void read_dma(size_t block_nr, size_t block_cnt, addr_t phys,
+		void read_dma(Block::sector_t block_nr, size_t block_cnt, addr_t phys,
 		              Block::Packet_descriptor &packet)
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 0))
@@ -64,7 +64,7 @@ class Ahci_driver : public Block::Driver
 			session->complete_packet(packet);
 		}
 
-		void write_dma(size_t  block_nr, size_t  block_cnt, addr_t  phys,
+		void write_dma(Block::sector_t block_nr, size_t  block_cnt, addr_t  phys,
 		               Block::Packet_descriptor &packet)
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 1))

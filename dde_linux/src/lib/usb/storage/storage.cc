@@ -43,7 +43,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			Block::Packet_descriptor *packet  = static_cast<Block::Packet_descriptor *>(cmnd->packet);
 
 			if (verbose)
-				PDBG("ACK packet for block: %zu status: %d", packet->block_number(), cmnd->result);
+				PDBG("ACK packet for block: %llu status: %d", packet->block_number(), cmnd->result);
 
 			session->complete_packet(*packet);
 			Genode::destroy(Genode::env()->heap(), packet);
@@ -86,7 +86,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			_scsi_free_command(cmnd);
 		}
 
-		void _io(Genode::size_t block_nr, Genode::size_t block_count,
+		void _io(Block::sector_t block_nr, Genode::size_t block_count,
 		         Block::Packet_descriptor packet,
 		         Genode::addr_t virt, Genode::addr_t phys, bool read)
 		{
@@ -94,7 +94,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 				throw Io_error();
 
 			if (verbose)
-				PDBG("PACKET: phys: %lx block: %zu count: %u %s",
+				PDBG("PACKET: phys: %lx block: %llu count: %u %s",
 				     phys, block_nr, block_count, read ? "read" : "write");
 
 			struct scsi_cmnd *cmnd = _scsi_alloc_command();
@@ -142,8 +142,8 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			_capacity();
 		}
 
-		Genode::size_t block_size()  { return _block_size;  }
-		Genode::size_t block_count() { return _block_count; }
+		Genode::size_t  block_size()  { return _block_size;  }
+		Block::sector_t block_count() { return _block_count; }
 
 		Block::Session::Operations ops()
 		{
@@ -153,7 +153,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			return o;
 		}
 
-		void read_dma(Genode::size_t            block_number,
+		void read_dma(Block::sector_t           block_number,
 		              Genode::size_t            block_count,
 		              Genode::addr_t            phys,
 		              Block::Packet_descriptor &packet)
@@ -163,7 +163,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			    phys, true);
 		}
 
-		void write_dma(Genode::size_t            block_number,
+		void write_dma(Block::sector_t           block_number,
 		               Genode::size_t            block_count,
 		               Genode::addr_t            phys,
 		               Block::Packet_descriptor &packet)

@@ -50,7 +50,7 @@ struct Block::Driver
 	/**
 	 * Request capacity of medium in blocks
 	 */
-	virtual Genode::size_t block_count() = 0;
+	virtual Block::sector_t block_count() = 0;
 
 	/**
 	 * Request operations supported by the device
@@ -64,7 +64,7 @@ struct Block::Driver
 	 * \param block_count   number of blocks to read
 	 * \param buffer        output buffer for read request
 	 */
-	virtual void read(Genode::size_t     block_number,
+	virtual void read(sector_t           block_number,
 	                  Genode::size_t     block_count,
 	                  char *             buffer,
 	                  Packet_descriptor &packet) {
@@ -77,7 +77,7 @@ struct Block::Driver
 	 * \param block_count   number of blocks to write
 	 * \param buffer        buffer for write request
 	 */
-	virtual void write(Genode::size_t     block_number,
+	virtual void write(sector_t           block_number,
 	                   Genode::size_t     block_count,
 	                   const char *       buffer,
 	                   Packet_descriptor &packet) {
@@ -90,7 +90,7 @@ struct Block::Driver
 	 * \param block_count   number of blocks to read
 	 * \param phys          phyiscal address of read buffer
 	 */
-	virtual void read_dma(Genode::size_t     block_number,
+	virtual void read_dma(sector_t           block_number,
 	                      Genode::size_t     block_count,
 	                      Genode::addr_t     phys,
 	                      Packet_descriptor &packet) {
@@ -103,7 +103,7 @@ struct Block::Driver
 	 * \param block_count   number of blocks to write
 	 * \param phys          physical address of write buffer
 	 */
-	virtual void write_dma(Genode::size_t     block_number,
+	virtual void write_dma(sector_t           block_number,
 	                       Genode::size_t     block_count,
 	                       Genode::addr_t     phys,
 	                       Packet_descriptor &packet) {

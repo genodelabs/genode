@@ -105,7 +105,7 @@ namespace Partition {
 					_alloc_sem.up();
 
 				if (!_p.succeeded()) {
-					PERR("Could not access block %zu", _p.block_number());
+					PERR("Could not access block %llu", _p.block_number());
 					throw Io_error();
 				}
 			}

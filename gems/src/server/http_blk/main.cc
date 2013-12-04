@@ -39,8 +39,8 @@ class Driver : public Block::Driver
 		 **  Block::Driver interface  **
 		 *******************************/
 
-		Genode::size_t block_size()  { return _block_size; }
-		Genode::size_t block_count() { return _http.file_size() / _block_size; }
+		Genode::size_t  block_size()  { return _block_size; }
+		Block::sector_t block_count() { return _http.file_size() / _block_size; }
 
 		Block::Session::Operations ops()
 		{
@@ -49,7 +49,7 @@ class Driver : public Block::Driver
 			return o;
 		}
 
-		void read(Genode::size_t            block_nr,
+		void read(Block::sector_t           block_nr,
 		          Genode::size_t            block_count,
 		          char                     *buffer,
 		          Block::Packet_descriptor &packet)
