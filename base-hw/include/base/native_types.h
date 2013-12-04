@@ -234,7 +234,8 @@ class Genode::Start_info
 {
 	private:
 
-		Native_thread_id _thread_id;
+		Native_thread_id  _thread_id;
+		Native_capability _utcb_ds;
 
 	public:
 
@@ -243,7 +244,12 @@ class Genode::Start_info
 		 *
 		 * \param thread_id  kernel name of the thread that is started
 		 */
-		void init(Native_thread_id const thread_id) { _thread_id = thread_id; }
+		void init(Native_thread_id const thread_id,
+		          Native_capability const & utcb_ds)
+		{
+			_thread_id = thread_id;
+			_utcb_ds = utcb_ds;
+		}
 
 
 		/***************
@@ -251,6 +257,7 @@ class Genode::Start_info
 		 ***************/
 
 		Native_thread_id thread_id() const { return _thread_id; }
+		Native_capability utcb_ds() const { return _utcb_ds; }
 };
 
 class Genode::Native_utcb
@@ -285,7 +292,7 @@ namespace Genode
 	};
 
 	/**
-	 * Return virtual UTCB location of main threads 
+	 * Return virtual UTCB location of main threads
 	 */
 	inline Native_utcb * main_thread_utcb()
 	{
