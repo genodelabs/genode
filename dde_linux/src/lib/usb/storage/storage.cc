@@ -12,21 +12,21 @@
  */
 
 #include <base/rpc_server.h>
-#include <block_session/block_session.h>
+#include <block/component.h>
 #include <cap_session/connection.h>
 #include <util/endian.h>
 #include <util/list.h>
 
 #include <lx_emul.h>
 
-#include <storage/component.h>
+#include <platform/lx_mem.h>
 #include <storage/scsi.h>
 #include "signal.h"
 
 static Signal_helper *_signal = 0;
 
 class Storage_device : public Genode::List<Storage_device>::Element,
-                       public Block::Device
+                       public Block::Driver
 {
 	private:
 
@@ -45,7 +45,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			if (verbose)
 				PDBG("ACK packet for block: %zu status: %d", packet->block_number(), cmnd->result);
 
-			session->complete(*packet, true);
+			session->complete_packet(*packet);
 			Genode::destroy(Genode::env()->heap(), packet);
 			_scsi_free_command(cmnd);
 		}
@@ -74,45 +74,27 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			Genode::uint32_t *data = (Genode::uint32_t *)scsi_buffer_data(cmnd);
 			_block_count = bswap(data[0]);
 			_block_size  = bswap(data[1]);
-		
+
 			/* if device returns the highest block number */
 			if (!_sdev->fix_capacity)
 				_block_count++;
-		
+
 			if (verbose)
 				PDBG("block size: %zu block count: %llu", _block_size, _block_count);
-		
+
 			scsi_free_buffer(cmnd);
 			_scsi_free_command(cmnd);
 		}
 
-
-		Storage_device(struct scsi_device *sdev) : _sdev(sdev) 
+		void _io(Genode::size_t block_nr, Genode::size_t block_count,
+		         Block::Packet_descriptor packet,
+		         Genode::addr_t virt, Genode::addr_t phys, bool read)
 		{
-			/* read device capacity */
-			_capacity();
-		}
-
-	public:
-
-		static Storage_device *add(struct scsi_device *sdev) {
-			return new (Genode::env()->heap()) Storage_device(sdev); }
-
-		Genode::size_t block_size() { return _block_size; }
-		Genode::size_t block_count() { return _block_count; }
-
-		void io(Block::Session_component *session, Block::Packet_descriptor &packet,
-		        Genode::addr_t virt, Genode::addr_t phys)
-		{
-			Block::sector_t  block_nr    = packet.block_number();
-			Genode::uint16_t block_count = packet.block_count() & 0xffff;
-			bool read = packet.operation() == Block::Packet_descriptor::WRITE ? false : true;
-
 			if (block_nr > _block_count)
-				throw -1;
-		
+				throw Io_error();
+
 			if (verbose)
-				PDBG("PACKET: phys: %lx block: %llu count: %u %s",
+				PDBG("PACKET: phys: %lx block: %zu count: %u %s",
 				     phys, block_nr, block_count, read ? "read" : "write");
 
 			struct scsi_cmnd *cmnd = _scsi_alloc_command();
@@ -132,7 +114,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			memcpy(&cmnd->cmnd[2], &be_block_nr, 4);
 
 			/* transfer one block */
-			Genode::uint16_t be_block_count =  bswap(block_count);
+			Genode::uint16_t be_block_count =  bswap<Genode::uint16_t>(block_count);
 			memcpy(&cmnd->cmnd[7], &be_block_count, 2);
 
 			/* setup command */
@@ -147,9 +129,54 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 
 			/* send command to host driver */
 			if (_sdev->host->hostt->queuecommand(_sdev->host, cmnd)) {
-				throw -2;
+				throw Io_error();
 			}
 		}
+
+	public:
+
+		Storage_device(struct scsi_device *sdev)
+		: Block::Driver(), _sdev(sdev)
+		{
+			/* read device capacity */
+			_capacity();
+		}
+
+		Genode::size_t block_size()  { return _block_size;  }
+		Genode::size_t block_count() { return _block_count; }
+
+		Block::Session::Operations ops()
+		{
+			Block::Session::Operations o;
+			o.set_operation(Block::Packet_descriptor::READ);
+			o.set_operation(Block::Packet_descriptor::WRITE);
+			return o;
+		}
+
+		void read_dma(Genode::size_t            block_number,
+		              Genode::size_t            block_count,
+		              Genode::addr_t            phys,
+		              Block::Packet_descriptor &packet)
+		{
+			_io(block_number, block_count, packet,
+			    (Genode::addr_t)session->tx_sink()->packet_content(packet),
+			    phys, true);
+		}
+
+		void write_dma(Genode::size_t            block_number,
+		               Genode::size_t            block_count,
+		               Genode::addr_t            phys,
+		               Block::Packet_descriptor &packet)
+		{
+			_io(block_number, block_count, packet,
+			    (Genode::addr_t)session->tx_sink()->packet_content(packet),
+			    phys, false);
+		}
+
+		bool dma_enabled() { return true; }
+
+		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
+			return Backend_memory::alloc(size, false); }
 };
 
 
@@ -157,12 +184,23 @@ void Storage::init(Genode::Signal_receiver *recv) {
 	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
 
 
+struct Factory : Block::Driver_factory
+{
+	Storage_device device;
+
+	Factory(struct scsi_device *sdev) : device(sdev) {}
+
+	Block::Driver *create() { return &device; }
+	void destroy(Block::Driver *driver) { }
+};
+
+
 void scsi_add_device(struct scsi_device *sdev)
 {
 	using namespace Genode;
 	static bool announce = false;
 
-	Storage_device *device = Storage_device::add(sdev);
+	static struct Factory factory(sdev);
 
 	/*
 	 * XXX  move to 'main'
@@ -171,7 +209,7 @@ void scsi_add_device(struct scsi_device *sdev)
 		enum { STACK_SIZE = 1024 * sizeof(addr_t) };
 		static Cap_connection cap_stor;
 		static Rpc_entrypoint ep_stor(&cap_stor, STACK_SIZE, "usb_stor_ep");
-		static Block::Root root(&ep_stor, env()->heap(), _signal->receiver(), device);
+		static Block::Root root(&ep_stor, env()->heap(), factory, *_signal->receiver());
 		env()->parent()->announce(ep_stor.manage(&root));
 		announce = true;
 	}

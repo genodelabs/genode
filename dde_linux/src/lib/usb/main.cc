@@ -22,7 +22,6 @@
 #include <nic_session/nic_session.h>
 
 /* Local */
-#include <storage/component.h>
 #include <platform.h>
 #include <routine.h>
 #include <signal.h>
