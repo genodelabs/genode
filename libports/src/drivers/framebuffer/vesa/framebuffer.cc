@@ -63,6 +63,10 @@ static uint16_t get_vesa_mode(mb_vbe_ctrl_t *ctrl_info, mb_vbe_mode_t *mode_info
 		if (X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, *MODE_PTR(off), VESA_MODE_OFFS) != VBE_SUPPORTED)
 			continue;
 
+		enum { DIRECT_COLOR = 0x06 };
+		if (mode_info->memory_model != DIRECT_COLOR)
+			continue;
+
 		if (verbose)
 			printf("    0x%03x %ux%u@%u\n", *MODE_PTR(off), mode_info->x_resolution,
 			                                 mode_info->y_resolution,
@@ -178,6 +182,9 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 	                                             + VESA_CTRL_OFFS);
 	mode_info = reinterpret_cast<mb_vbe_mode_t*>(X86emu::x86_mem.data_addr()
 	                                             + VESA_MODE_OFFS);
+
+	/* request VBE 2.0 information */
+	memcpy(ctrl_info->signature, "VBE2", 4);
 
 	/* retrieve controller information */
 	if (X86emu::x86emu_cmd(VBE_CONTROL_FUNC, 0, 0, VESA_CTRL_OFFS) != VBE_SUPPORTED) {
