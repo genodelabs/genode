@@ -25,7 +25,9 @@
 /* local includes */
 #include "uart_driver.h"
 
-class Exynos_uart : public Genode::Arndale_uart_base, public Uart::Driver, public Genode::Irq_handler
+class Exynos_uart : public Genode::Exynos_uart_base,
+                    public Uart::Driver,
+                    public Genode::Irq_handler
 {
 	public:
 
@@ -35,8 +37,8 @@ class Exynos_uart : public Genode::Arndale_uart_base, public Uart::Driver, publi
 		Exynos_uart(Genode::Attached_io_mem_dataspace *uart_mmio, int irq_number,
 		          unsigned baud_rate, Uart::Char_avail_callback &callback)
 		:
-			Arndale_uart_base((Genode::addr_t)uart_mmio->local_addr<void>(),
-			                  Genode::Board_base::UART_2_CLOCK, baud_rate) { }
+			Exynos_uart_base((Genode::addr_t)uart_mmio->local_addr<void>(),
+			                 Genode::Board_base::UART_2_CLOCK, baud_rate) { }
 
 		/**
 		 * * IRQ handler interface **
@@ -46,7 +48,7 @@ class Exynos_uart : public Genode::Arndale_uart_base, public Uart::Driver, publi
 		/**
 		 * * UART driver interface **
 		 */
-		void put_char(char c) { Arndale_uart_base::put_char(c); }
+		void put_char(char c) { Exynos_uart_base::put_char(c); }
 
 		bool char_avail() { return false; }
 
