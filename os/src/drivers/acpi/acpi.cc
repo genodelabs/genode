@@ -131,6 +131,7 @@ struct Dmar_struct
 	uint8_t  reserved;
 	uint16_t pci_segment;
 	uint64_t base;
+	uint64_t limit;
 
 	Dmar_struct *next() {
 		return reinterpret_cast<Dmar_struct *>((uint8_t *)this + length); }
@@ -339,7 +340,8 @@ class Table_wrapper
 			Dmar_struct *dmar = _table->dmar_struct();
 			for (; dmar < _table->dmar_end(); dmar = dmar->next())
 				if (dmar->type == Dmar_struct::RMRR)
-					PLOG("RMRR: 0x%llx - DMA region reported by BIOS", dmar->base);
+					PLOG("RMRR: [0x%llx,0x%llx] - DMA region reported by BIOS",
+					     dmar->base, dmar->limit);
 		}
 
 		Table_wrapper(addr_t base) : _base(base), _io_mem(0), _table(0)
