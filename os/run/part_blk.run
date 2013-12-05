@@ -2,48 +2,40 @@
 # \brief  Test of Block session interface provided by server/part_blk
 #
 
-if {![have_spec x86] || ![is_qemu_available]} {
-	puts "Run script is only supported on x86 and Qemu"; exit 0 }
-
 set block_count 20480
 
-if { [file exists ata.raw] == 0 } then {
+if { [file exists bin/ata.raw] == 0 } then {
 	# create empty block device file
-	catch { exec dd if=/dev/zero of=ata.raw bs=512 count=$block_count }
-	# create to tro primary partitions (one is extented) and two logical paritions
+	catch { exec dd if=/dev/zero of=bin/ata.raw bs=512 count=$block_count }
+
+	if [catch { set sfdisk [ exec which sfdisk ] }] {
+	   puts "sfdisk needs to be installed!"
+	   exit 1
+	}
+
+	# create two primary partitions (one is extented) and two logical paritions
 	puts "using sfdisk to partition disk image, requires root privileges"
-	catch { exec echo "2048,4096,c\n4096,16386,5\n0,0\n0,0\n6144,4096,c\n12288,8192,c\n" | sudo sfdisk -uS -f ata.raw }
+	catch { exec echo "2048,4096,c\n4096,16386,5\n0,0\n0,0\n6144,4096,c\n12288,8192,c\n" | $sfdisk -uS -f bin/ata.raw }
 }
-
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec exynos5] || [have_spec pl180]]
-set use_atapi_drv   [have_spec x86]
-
 
 #
 # Build
 #
 
-set build_components {
+build {
 	core init
 	drivers/timer
+	server/rom_blk
 	server/part_blk
-	test/part_blk
+	test/blk/cli
 }
-
-lappend_if [have_spec  pci] build_components drivers/pci
-lappend_if [have_spec acpi] build_components drivers/acpi
-lappend_if $use_atapi_drv   build_components drivers/atapi
-lappend_if $use_sd_card_drv build_components drivers/sd_card
-
-build $build_components
-
 create_boot_directory
 
 #
 # Generate config
 #
 
-append config {
+install_config {
 <config prio_levels="1" verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -65,11 +57,16 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+	<start name="rom_blk">
+		<resource name="RAM" quantum="32M"/>
+		<provides><service name="Block"/></provides>
+		<config file="ata.raw" block_size="512"/>
+	</start>
 	<start name="part_blk">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
-			<any-service><child name="blk_drv"/> <parent/><any-child/></any-service>
+			<any-service><child name="rom_blk"/> <parent/><any-child/></any-service>
 		</route>
 		<config>
 			<policy label="test-part1" partition="6"/>
@@ -77,102 +74,33 @@ append config {
 		</config>
 	</start>
 	<start name="test-part1">
-		<binary name="test-part"/>
-		<resource name="RAM" quantum="10M" />
+		<binary name="test-blk-cli"/>
+		<resource name="RAM" quantum="5M" />
 		<route>
 			<any-service> <child name="part_blk" /> <parent/> <any-child/> </any-service>
 		</route>
-		<config pattern="0x44" />
 	</start>
 	<start name="test-part2">
-		<binary name="test-part"/>
-		<resource name="RAM" quantum="10M" />
+		<binary name="test-blk-cli"/>
+		<resource name="RAM" quantum="5M" />
 		<route>
 			<any-service> <child name="part_blk" /> <parent/> <any-child/> </any-service>
 		</route>
-		<config pattern="0x33" />
 	</start>
-}
-
-append_if [have_spec acpi] config {
-	<start name="acpi">
-		<resource name="RAM" quantum="8M"/>
-		<binary name="acpi_drv"/>
-		<provides>
-			<service name="PCI"/>
-			<service name="IRQ" />
-		</provides>
-		<route>
-			<service name="PCI"> <any-child /> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>}
-
-append_if [expr ![have_spec acpi] && [have_spec pci]] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="5M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
-
-append_if $use_atapi_drv config {
-	<start name="blk_drv">
-	<binary name="atapi_drv"/>
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Block"/> </provides>
-		<config ata="yes" />
-	</start>
-}
-
-append_if $use_sd_card_drv config {
-	<start name="blk_drv">
-		<binary name="sd_card_drv"/>
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Block"/></provides>
-	</start>
-}
-
-append config {
 </config> }
-
-install_config $config
 
 #
 # Boot modules
 #
 
-set boot_modules {
-	core init timer part_blk test-part
-}
-
-lappend_if [have_spec pci]   boot_modules pci_drv
-lappend_if [have_spec acpi]  boot_modules acpi_drv
-lappend_if $use_atapi_drv    boot_modules atapi_drv
-lappend_if $use_sd_card_drv  boot_modules sd_card_drv
-
-build_boot_image $boot_modules
+build_boot_image { core init timer rom_blk part_blk test-blk-cli ata.raw }
 
 #
 # Qemu
 #
 
-append qemu_args " -nographic -m 64 "
-append_if $use_atapi_drv   qemu_args " -boot d -hda ata.raw "
-append_if $use_sd_card_drv qemu_args " -drive file=ata.raw,if=sd "
+append qemu_args " -nographic -m 128 "
 
-run_genode_until "Success.*\n.*Success.*\n" 10
-
-# Check whether atapi_drv reports the right start and end sectors
-set sector_range [regexp -inline {First block: [0-9]+ last block [0-9]+} $output]
-set sector_range [regexp -all -inline {[0-9]+} $sector_range]
-if {[lindex $sector_range 0] != 0 || [lindex $sector_range 1] != [expr $block_count - 1]} {
-	puts "Error: block range mismatch, expected \[0-$block_count), got \[[lindex $sector_range 0]-[lindex $sector_range 1])"
-	exit 1
-}
-
-grep_output {^\[init -> test-part}
-unify_output {[0-9]} "x"
-
-compare_output_to {
-[init -> test-partx] Success
-[init -> test-partx] Success
-}
+run_genode_until "Tests finished successfully.*\n.*Tests finished successfully.*\n" 50
+exec rm bin/ata.raw
+puts "Test succeeded"

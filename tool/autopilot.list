@@ -35,3 +35,4 @@ seoul-auto
 resource_request
 resource_yield
 gdb_monitor
+part_blk
