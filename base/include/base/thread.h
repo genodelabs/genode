@@ -335,7 +335,11 @@ namespace Genode {
 			 *
 			 * \return  pointer to first stack element
 			 */
-			void *stack_top() { return &_context->stack[-1]; }
+			void *stack_top()
+			{
+				return (void *)((addr_t)_context->stack -
+				                sizeof(_context->stack[0]));
+			}
 
 			/**
 			 * Return base of stack
