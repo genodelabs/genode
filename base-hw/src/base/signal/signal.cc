@@ -123,6 +123,9 @@ void Signal_receiver::_platform_destructor()
 
 void Signal_receiver::_unsynchronized_dissolve(Signal_context * const c)
 {
+	/* wait untill all context references disappear and put context to sleep */
+	Kernel::kill_signal_context(c->_cap.dst());
+
 	/* release server resources of context */
 	signal_connection()->free_context(c->_cap);
 

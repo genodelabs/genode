@@ -222,6 +222,7 @@ class Kernel::Thread
 		void _call_signal_pending();
 		void _call_submit_signal();
 		void _call_ack_signal();
+		void _call_kill_signal_context();
 		void _call_bin_signal_context();
 		void _call_bin_signal_receiver();
 		void _call_new_vm();
@@ -236,6 +237,7 @@ class Kernel::Thread
 		 ***************************/
 
 		void _signal_context_kill_pending();
+		void _signal_context_kill_failed();
 		void _signal_context_kill_done();
 
 

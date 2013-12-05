@@ -161,19 +161,24 @@ class Kernel::Signal_context_killer
 		Signal_context * _context;
 
 		/**
-		 * Backend for for destructor and cancel_waiting
+		 * Backend for destructor and cancel_waiting
 		 */
 		void _cancel_waiting();
 
 		/**
-		 * Notice that the destruction is pending
+		 * Notice that the kill operation is pending
 		 */
 		virtual void _signal_context_kill_pending() = 0;
 
 		/**
-		 * Notice that pending destruction is done
+		 * Notice that pending kill operation is done
 		 */
 		virtual void _signal_context_kill_done() = 0;
+
+		/**
+		 * Notice that pending kill operation failed
+		 */
+		virtual void _signal_context_kill_failed() = 0;
 
 	protected:
 
@@ -282,7 +287,7 @@ class Kernel::Signal_context
 		unsigned const          _imprint;
 		unsigned                _submits;
 		bool                    _ack;
-		bool                    _kill;
+		bool                    _killed;
 		Signal_context_killer * _killer;
 		Default_ack_handler     _default_ack_handler;
 		Signal_ack_handler    * _ack_handler;
@@ -302,18 +307,16 @@ class Kernel::Signal_context
 		}
 
 		/**
-		 * Notice that the killer of the context has been destructed
+		 * Notice that the killer of the context has cancelled waiting
 		 */
 		void _killer_cancelled() { _killer = 0; }
 
-	protected:
+	public:
 
 		/**
 		 * Destructor
 		 */
 		~Signal_context();
-
-	public:
 
 		/**
 		 * Exception types
@@ -351,7 +354,7 @@ class Kernel::Signal_context
 		 */
 		int submit(unsigned const n)
 		{
-			if (_kill || _submits >= (unsigned)~0 - n) { return -1; }
+			if (_killed || _submits >= (unsigned)~0 - n) { return -1; }
 			_submits += n;
 			if (_ack) { _deliverable(); }
 			return 0;
@@ -364,15 +367,15 @@ class Kernel::Signal_context
 		{
 			_ack_handler->_signal_acknowledged();
 			if (_ack) { return; }
-			if (!_kill) {
+			if (!_killed) {
 				_ack = 1;
 				_deliverable();
 				return;
 			}
-			this->~Signal_context();
 			if (_killer) {
 				_killer->_context = 0;
 				_killer->_signal_context_kill_done();
+				_killer = 0;
 			}
 		}
 
@@ -386,16 +389,19 @@ class Kernel::Signal_context
 		 */
 		int kill(Signal_context_killer * const k)
 		{
-			if (_kill) { return -1; }
-
-			/* destruct directly if there is no unacknowledged delivery */
+			/* check if in a kill operation or already killed */
+			if (_killed) {
+				if (_ack) { return 0; }
+				return -1;
+			}
+			/* kill directly if there is no unacknowledged delivery */
 			if (_ack) {
-				this->~Signal_context();
+				_killed = 1;
 				return 0;
 			}
 			/* wait for delivery acknowledgement */
-			_killer           = k;
-			_kill             = 1;
+			_killer = k;
+			_killed = 1;
 			_killer->_context = this;
 			_killer->_signal_context_kill_pending();
 			return 0;
@@ -464,11 +470,11 @@ class Kernel::Signal_receiver
 		}
 
 		/**
-		 * Notice that a context of the receiver has been killed
+		 * Notice that a context of the receiver has been destructed
 		 *
 		 * \param c  killed context
 		 */
-		void _context_killed(Signal_context * const c)
+		void _context_destructed(Signal_context * const c)
 		{
 			_contexts.remove(&c->_contexts_fe);
 			if (!c->_deliver_fe.is_enqueued()) { return; }
@@ -520,6 +526,8 @@ class Kernel::Signal_receiver
 			}
 		}
 
+		void _signal_context_kill_failed() { PERR("unexpected call"); }
+
 	public:
 
 		/**
@@ -569,6 +577,7 @@ class Kernel::Signal_receiver
 			Signal_context * c = _contexts.dequeue()->object();
 			while (c) {
 				c->kill(this);
+				c->~Signal_context();
 				c = _contexts.dequeue()->object();
 			}
 			/* destruct directly if no context kill is pending */

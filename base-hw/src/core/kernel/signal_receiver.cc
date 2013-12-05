@@ -67,7 +67,11 @@ void Signal_context::_deliverable()
 }
 
 
-Signal_context::~Signal_context() { _receiver->_context_killed(this); }
+Signal_context::~Signal_context()
+{
+	if (_killer) { _killer->_signal_context_kill_failed(); }
+	_receiver->_context_destructed(this);
+}
 
 
 Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint)
@@ -78,7 +82,7 @@ Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint
 	_imprint(imprint),
 	_submits(0),
 	_ack(1),
-	_kill(0),
+	_killed(0),
 	_killer(0),
 	_ack_handler(&_default_ack_handler)
 {

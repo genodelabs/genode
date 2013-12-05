@@ -48,6 +48,14 @@ void Thread::_signal_context_kill_done()
 }
 
 
+void Thread::_signal_context_kill_failed()
+{
+	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
+	user_arg_0(-1);
+	_schedule();
+}
+
+
 void Thread::_signal_receiver_kill_pending()
 {
 	assert(_state == SCHEDULED);
@@ -815,6 +823,25 @@ void Thread::_call_ack_signal()
 }
 
 
+void Thread::_call_kill_signal_context()
+{
+	/* lookup signal context */
+	unsigned const id = user_arg_1();
+	Signal_context * const c = Signal_context::pool()->object(id);
+	if (!c) {
+		PERR("unknown signal context");
+		user_arg_0(-1);
+		return;
+	}
+	/* kill signal context */
+	if (c->kill(this)) {
+		PERR("failed to kill signal context");
+		user_arg_0(-1);
+		return;
+	}
+}
+
+
 void Thread::_call_bin_signal_context()
 {
 	/* check permissions */
@@ -831,12 +858,8 @@ void Thread::_call_bin_signal_context()
 		user_arg_0(0);
 		return;
 	}
-	/* kill signal context */
-	if (c->kill(this)) {
-		PERR("failed to kill signal context");
-		user_arg_0(-1);
-		return;
-	}
+	/* destruct signal context */
+	c->~Signal_context();
 	user_arg_0(0);
 }
 
@@ -958,6 +981,7 @@ void Thread::_call()
 	case Call_id::PRINT_CHAR:           _call_print_char(); return;
 	case Call_id::NEW_SIGNAL_RECEIVER:  _call_new_signal_receiver(); return;
 	case Call_id::NEW_SIGNAL_CONTEXT:   _call_new_signal_context(); return;
+	case Call_id::KILL_SIGNAL_CONTEXT:  _call_kill_signal_context(); return;
 	case Call_id::BIN_SIGNAL_CONTEXT:   _call_bin_signal_context(); return;
 	case Call_id::BIN_SIGNAL_RECEIVER:  _call_bin_signal_receiver(); return;
 	case Call_id::AWAIT_SIGNAL:         _call_await_signal(); return;

@@ -55,16 +55,17 @@ namespace Kernel
 			AWAIT_REQUEST_MSG    = 14,
 			NEW_SIGNAL_RECEIVER  = 15,
 			NEW_SIGNAL_CONTEXT   = 16,
-			BIN_SIGNAL_CONTEXT   = 17,
-			BIN_SIGNAL_RECEIVER  = 18,
-			SUBMIT_SIGNAL        = 19,
-			AWAIT_SIGNAL         = 20,
-			SIGNAL_PENDING       = 21,
-			ACK_SIGNAL           = 22,
-			NEW_VM               = 23,
-			RUN_VM               = 24,
-			PAUSE_VM             = 25,
-			PRINT_CHAR           = 26,
+			KILL_SIGNAL_CONTEXT  = 17,
+			BIN_SIGNAL_CONTEXT   = 18,
+			BIN_SIGNAL_RECEIVER  = 19,
+			SUBMIT_SIGNAL        = 20,
+			AWAIT_SIGNAL         = 21,
+			SIGNAL_PENDING       = 22,
+			ACK_SIGNAL           = 23,
+			NEW_VM               = 24,
+			RUN_VM               = 25,
+			PAUSE_VM             = 26,
+			PRINT_CHAR           = 27,
 		};
 	};
 
@@ -519,6 +520,20 @@ namespace Kernel
 	inline void ack_signal(unsigned const context)
 	{
 		call(Call_id::ACK_SIGNAL, context);
+	}
+
+
+	/**
+	 * Halt processing of a signal context synchronously
+	 *
+	 * \param context  kernel name of the targeted signal context
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
+	 */
+	inline int kill_signal_context(unsigned const context)
+	{
+		return call(Call_id::KILL_SIGNAL_CONTEXT, context);
 	}
 
 
