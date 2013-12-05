@@ -1,0 +1,89 @@
+#
+# Check used commands
+#
+set mkfs.vfat [check_installed mkfs.vfat]
+set dd        [check_installed dd]
+
+#
+# Build
+#
+set build_components {
+	core init
+	drivers/timer
+	server/ram_blk
+	server/rump_fs
+	test/libc_fs
+}
+
+build $build_components
+
+#
+# Build FAT-file-system image
+#
+catch { exec $dd if=/dev/zero of=bin/fs.raw bs=1M count=16 }
+catch { exec $mkfs.vfat -F16 bin/fs.raw }
+
+create_boot_directory
+
+#
+# Generate config
+#
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="ram_blk">
+		<resource name="RAM" quantum="20M"/>
+		<provides><service name="Block"/></provides>
+		<config file="fs.raw" block_size="512"/>
+	</start>
+	<start name="rump_fs">
+		<resource name="RAM" quantum="8M" />
+		<provides><service name="File_system"/></provides>
+		<config fs="msdos"><policy label="" root="/" writeable="yes"/></config>
+	</start>
+	<start name="test-libc_fs">
+		<resource name="RAM" quantum="4M"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer test-libc_fs ram_blk
+	rump.lib.so rump_fs.lib.so rump_fs
+	ld.lib.so fs.raw libc.lib.so
+	libc_fs.lib.so libc_log.lib.so
+}
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 -nographic"
+
+run_genode_until {.*child exited with exit value 0.*} 60
+
+exec rm -f bin/fs.raw
+puts "\nTest succeeded\n"

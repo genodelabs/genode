@@ -1,0 +1,57 @@
+diff --git a/buildrump.sh b/buildrump.sh
+index f600b6a..e394b47 100755
+--- a/buildrump.sh
++++ b/buildrump.sh
+@@ -570,6 +570,16 @@ evaltools ()
+ 		: ${NM:=nm}
+ 		: ${OBJCOPY:=objcopy}
+ 	else
++		if [ "${MACH_ARCH}" = 'x86_64' ] ; then
++			cc_target=genode-x86
++		elif [ "${MACH_ARCH}" = 'arm' ] ; then
++			cc_target=genode-arm
++		else
++			die Unsupported architectur ${MACH_ARCH}
++		fi
++
++		echo "MACH_ARCH cc ${MACH_ARCH}"
++
+ 		: ${AR:=${cc_target}-ar}
+ 		: ${NM:=${cc_target}-nm}
+ 		: ${OBJCOPY:=${cc_target}-objcopy}
+@@ -600,6 +610,8 @@ evaltools ()
+ 		;;
+ 	esac
+ 
++	TARGET=freebsd
++
+ 	# check if we're running from a tarball, i.e. is checkout possible
+ 	BRDIR=$(dirname $0)
+ 	unset TARBALLMODE
+@@ -872,26 +884,6 @@ evaltarget ()
+ 		ccdefault=32
+ 	fi
+ 
+-	# step 2: if the user specified 32/64, try to establish if it will work
+-	if ${THIRTYTWO} && [ "${ccdefault}" -ne 32 ] ; then
+-		echo 'int main() {return 0;}' | ${CC} ${EXTRA_CFLAGS} -o /dev/null -x c - \
+-		    ${EXTRA_RUMPUSER} ${EXTRA_RUMPCOMMON} > /dev/null 2>&1
+-		[ $? -eq 0 ] || ${ANYTARGETISGOOD} || \
+-		    die 'Gave -32, but probe shows it will not work.  Try -H?'
+-	elif ${SIXTYFOUR} && [ "${ccdefault}" -ne 64 ] ; then
+-		echo 'int main() {return 0;}' | ${CC} ${EXTRA_CFLAGS} -o /dev/null -x c - \
+-		    ${EXTRA_RUMPUSER} ${EXTRA_RUMPCOMMON} > /dev/null 2>&1
+-		[ $? -eq 0 ] || ${ANYTARGETISGOOD} || \
+-		    die 'Gave -64, but probe shows it will not work.  Try -H?'
+-	else
+-		# not specified.  use compiler default
+-		if [ "${ccdefault}" -eq 64 ]; then
+-			SIXTYFOUR=true
+-		else
+-			THIRTYTWO=true
+-		fi
+-	fi
+-
+ 	TOOLABI=''
+ 	case ${MACH_ARCH} in
+ 	"amd64"|"x86_64")

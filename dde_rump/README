@@ -1,0 +1,57 @@
+                             ================================
+                             Genode's Rump Kernel kernel port
+                             ================================
+
+This repository contains the Genode version of the [http://wiki.netbsd.org/rumpkernel/ - rump kernel].
+The kernel is currently used to gain file-system access from within Genode. In
+order to achieve that, a Genode file-system server is located at
+_src/server/rump_fs_. For accessing the server through the libc, the _libc_fs_
+plugin can be facilitated, which is available in the _libports_ repository.
+
+Building instructions
+#####################
+
+In order to build the file-system server, issue
+
+! make prepare
+
+from the directory this file is contained in.
+
+
+Add
+
+! REPOSITORIES += $(GENODE_DIR)/dde_rump
+
+to your _etc/build.conf_ file of you build directory.
+
+Finally,
+
+! make server/rumps_fs
+
+called from your build directory will build the server. You may also specify
+
+! make run/rump_ext2
+
+to run a simple test scenario.
+
+
+Configuration
+#############
+
+Here is an example snippet that configures the server:
+
+!<start name="rump_fs">
+!  <resource name="RAM" quantum="8M" />
+!  <provides><service name="File_system"/></provides>
+!  <config fs="ext2fs"><policy label="" root="/" writeable="yes"/></config>
+!</start>
+
+The server is looking for a service that provides a Genode block session. If
+there is more than one block session in the system, the block session must be
+routed to the right block-session server. The value of the _fs_ attribute of
+the _config_ node can be one of the following: _ext2fs_ for EXT2, _cd9660_ for
+ISO-9660, or _msdos_ for FAT file-system support. _root_ defines the directory
+of the file system as seen as root directory by the client. The server hands
+most of its RAM quota to the rump kernel. This means the larger the quota is,
+the larger the internal block caches of the rump kernel will be.
+

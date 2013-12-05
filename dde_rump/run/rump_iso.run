@@ -1,0 +1,124 @@
+#
+# Check used commands
+#
+set mkisofs [check_installed mkisofs]
+
+#
+#
+# Build
+#
+set build_components {
+	core init
+	drivers/timer
+	server/fs_rom
+	server/rom_blk
+	server/rump_fs
+	test/iso
+}
+
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="rom_blk">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Block"/></provides>
+		<config file="fs.iso" block_size="2048"/>
+	</start>
+	<start name="rump_fs">
+		<resource name="RAM" quantum="8M" />
+		<provides><service name="File_system"/></provides>
+		<config fs="cd9660"><policy label="" root="/" writeable="no"/></config>
+	</start>
+	<start name="fs_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="ROM"/></provides>
+	</start>
+	<start name="test-iso">
+		<resource name="RAM" quantum="1M" />
+		<route>
+			<service name="ROM"><child name="fs_rom"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+</config>}
+
+#
+# Create iso
+#
+exec cp -f [genode_dir]/os/src/test/iso/test.txt [run_dir]
+
+for { set i 1 } { $i <= 30 } { incr i } {
+	exec touch [run_dir]/$i.txt
+}
+
+exec rm -f bin/fs.iso
+catch { exec $mkisofs -l -R -hide-rr-moved -jcharset utf-8 -o bin/fs.iso [run_dir]}
+
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules {
+	core init timer test-iso rom_blk
+	rump.lib.so rump_fs.lib.so rump_fs
+	ld.lib.so fs.iso fs_rom
+}
+
+
+build_boot_image $boot_modules
+
+append qemu_args "-nographic -m 64"
+
+run_genode_until "child exited with exit value 0.*\n" 60
+
+# pay only attention to the output of init and its children
+grep_output {^\[init -> test-iso}
+
+unify_output {at [a-f0-9]+} "at <unified>"
+
+compare_output_to {
+[init -> test-iso] File size is 31000 at <unified>
+[init -> test-iso] 00001000: 61616161  61616161  61616161  61616161  61616161  
+[init -> test-iso] 00001014: 61616161  61616161  61616161  61616161  61616161  
+[init -> test-iso] 00001028: 61616161  61616161  61616161  61616161  61616161  
+[init -> test-iso] 0000103c: 61616161  61616161  61616161  61616161  61616161  
+[init -> test-iso] 
+[init -> test-iso] 00010000: 62626262  62626262  62626262  62626262  62626262  
+[init -> test-iso] 00010014: 62626262  62626262  62626262  62626262  62626262  
+[init -> test-iso] 00010028: 62626262  62626262  62626262  62626262  62626262  
+[init -> test-iso] 0001003c: 62626262  62626262  62626262  62626262  62626262  
+[init -> test-iso] 
+[init -> test-iso] 00020000: 63636363  63636363  63636363  63636363  63636363  
+[init -> test-iso] 00020014: 63636363  63636363  63636363  63636363  63636363  
+[init -> test-iso] 00020028: 63636363  63636363  63636363  63636363  63636363  
+[init -> test-iso] 0002003c: 63636363  63636363  63636363  63636363  63636363  
+[init -> test-iso] 
+}
+

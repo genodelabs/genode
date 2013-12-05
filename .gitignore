@@ -17,6 +17,8 @@
 /dde_linux/download
 /dde_oss/contrib
 /dde_oss/download
+/dde_rump/contrib
+/dde_rump/include/rump
 /libports/contrib
 /libports/download
 /libports/include/curl/
