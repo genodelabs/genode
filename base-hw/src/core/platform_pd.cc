@@ -20,7 +20,7 @@ Platform_pd::~Platform_pd()
 {
 	_tlb->remove_region(platform()->vm_start(), platform()->vm_size());
 	regain_ram_from_tlb(_tlb);
-	if (Kernel::kill_pd(_id)) {
+	if (Kernel::bin_pd(_id)) {
 		PERR("failed to destruct protection domain at kernel");
 	}
 }

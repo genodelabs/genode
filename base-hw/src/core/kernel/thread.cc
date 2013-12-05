@@ -293,7 +293,7 @@ void Thread::_call_new_pd()
 }
 
 
-void Thread::_call_kill_pd()
+void Thread::_call_bin_pd()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -337,7 +337,7 @@ void Thread::_call_new_thread()
 }
 
 
-void Thread::_call_kill_thread()
+void Thread::_call_bin_thread()
 {
 	/* check permissions */
 	assert(_core());
@@ -815,7 +815,7 @@ void Thread::_call_ack_signal()
 }
 
 
-void Thread::_call_kill_signal_context()
+void Thread::_call_bin_signal_context()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -841,7 +841,7 @@ void Thread::_call_kill_signal_context()
 }
 
 
-void Thread::_call_kill_signal_receiver()
+void Thread::_call_bin_signal_receiver()
 {
 	/* check permissions */
 	if (!_core()) {
@@ -944,7 +944,7 @@ void Thread::_call()
 {
 	switch (user_arg_0()) {
 	case Call_id::NEW_THREAD:           _call_new_thread(); return;
-	case Call_id::KILL_THREAD:          _call_kill_thread(); return;
+	case Call_id::BIN_THREAD:           _call_bin_thread(); return;
 	case Call_id::START_THREAD:         _call_start_thread(); return;
 	case Call_id::PAUSE_THREAD:         _call_pause_thread(); return;
 	case Call_id::RESUME_THREAD:        _call_resume_thread(); return;
@@ -958,8 +958,8 @@ void Thread::_call()
 	case Call_id::PRINT_CHAR:           _call_print_char(); return;
 	case Call_id::NEW_SIGNAL_RECEIVER:  _call_new_signal_receiver(); return;
 	case Call_id::NEW_SIGNAL_CONTEXT:   _call_new_signal_context(); return;
-	case Call_id::KILL_SIGNAL_CONTEXT:  _call_kill_signal_context(); return;
-	case Call_id::KILL_SIGNAL_RECEIVER: _call_kill_signal_receiver(); return;
+	case Call_id::BIN_SIGNAL_CONTEXT:   _call_bin_signal_context(); return;
+	case Call_id::BIN_SIGNAL_RECEIVER:  _call_bin_signal_receiver(); return;
 	case Call_id::AWAIT_SIGNAL:         _call_await_signal(); return;
 	case Call_id::SUBMIT_SIGNAL:        _call_submit_signal(); return;
 	case Call_id::SIGNAL_PENDING:       _call_signal_pending(); return;
@@ -967,7 +967,7 @@ void Thread::_call()
 	case Call_id::NEW_VM:               _call_new_vm(); return;
 	case Call_id::RUN_VM:               _call_run_vm(); return;
 	case Call_id::PAUSE_VM:             _call_pause_vm(); return;
-	case Call_id::KILL_PD:              _call_kill_pd(); return;
+	case Call_id::BIN_PD:               _call_bin_pd(); return;
 	case Call_id::ACCESS_THREAD_REGS:   _call_access_thread_regs(); return;
 	case Call_id::ROUTE_THREAD_EVENT:   _call_route_thread_event(); return;
 	default:

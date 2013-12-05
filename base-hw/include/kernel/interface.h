@@ -39,7 +39,7 @@ namespace Kernel
 	{
 		enum {
 			NEW_THREAD           = 0,
-			KILL_THREAD          = 1,
+			BIN_THREAD           = 1,
 			START_THREAD         = 2,
 			PAUSE_THREAD         = 3,
 			RESUME_THREAD        = 4,
@@ -49,14 +49,14 @@ namespace Kernel
 			UPDATE_PD            = 8,
 			UPDATE_REGION        = 9,
 			NEW_PD               = 10,
-			KILL_PD              = 11,
+			BIN_PD               = 11,
 			SEND_REQUEST_MSG     = 12,
 			SEND_REPLY_MSG       = 13,
 			AWAIT_REQUEST_MSG    = 14,
 			NEW_SIGNAL_RECEIVER  = 15,
 			NEW_SIGNAL_CONTEXT   = 16,
-			KILL_SIGNAL_CONTEXT  = 17,
-			KILL_SIGNAL_RECEIVER = 18,
+			BIN_SIGNAL_CONTEXT   = 17,
+			BIN_SIGNAL_RECEIVER  = 18,
 			SUBMIT_SIGNAL        = 19,
 			AWAIT_SIGNAL         = 20,
 			SIGNAL_PENDING       = 21,
@@ -151,9 +151,9 @@ namespace Kernel
 	 * \retval  0  succeeded
 	 * \retval -1  failed
 	 */
-	inline int kill_pd(unsigned const pd_id)
+	inline int bin_pd(unsigned const pd_id)
 	{
-		return call(Call_id::KILL_PD, pd_id);
+		return call(Call_id::BIN_PD, pd_id);
 	}
 
 
@@ -223,9 +223,9 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline void kill_thread(unsigned const thread_id)
+	inline void bin_thread(unsigned const thread_id)
 	{
-		call(Call_id::KILL_THREAD, thread_id);
+		call(Call_id::BIN_THREAD, thread_id);
 	}
 
 
@@ -532,9 +532,9 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline int kill_signal_context(unsigned const context)
+	inline int bin_signal_context(unsigned const context)
 	{
-		return call(Call_id::KILL_SIGNAL_CONTEXT, context);
+		return call(Call_id::BIN_SIGNAL_CONTEXT, context);
 	}
 
 
@@ -548,9 +548,9 @@ namespace Kernel
 	 *
 	 * Restricted to core threads.
 	 */
-	inline int kill_signal_receiver(unsigned const receiver)
+	inline int bin_signal_receiver(unsigned const receiver)
 	{
-		return call(Call_id::KILL_SIGNAL_RECEIVER, receiver);
+		return call(Call_id::BIN_SIGNAL_RECEIVER, receiver);
 	}
 
 
