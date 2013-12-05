@@ -77,10 +77,37 @@ namespace Fuse {
 
 	bool initialized();
 
-	/* Genode fuse filesystem init functions */
-	void init_fs();
+	/**
+	 * Initialize the file system
+	 *
+	 * Mount the medium containg the file system, e.g. by
+	 * using a Block_session connection, and call the file system
+	 * init function as well as initialize needed fuse structures.
+	 */
+	bool init_fs();
+
+	/**
+	 * Deinitialize the file system
+	 *
+	 * Unmount the medium, call the file system cleanup function
+	 * and free all fuse structures.
+	 */
 	void deinit_fs();
 
+	/**
+	 * Synchronize the file system
+	 *
+	 * Request the file system to flush all internal caches
+	 * to disk.
+	 */
+	void sync_fs();
+
+	/**
+	 * FUSE File system implementation supports symlinks
+	 */
+	bool support_symlinks();
+
+	/* list of FUSE operations as of version 2.6 */
 	enum Fuse_operations {
 		FUSE_OP_GETATTR     =  0,
 		FUSE_OP_READLINK    =  1,

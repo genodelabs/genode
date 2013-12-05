@@ -129,12 +129,16 @@ namespace {
 			 */
 			Plugin()
 			{
-				Fuse::init_fs();
+				if (!Fuse::init_fs()) {
+					PERR("FUSE fs initialization failed");
+					return;
+				}
 			}
 
 			~Plugin()
 			{
-				Fuse::deinit_fs();
+				if (Fuse::initialized())
+					Fuse::deinit_fs();
 			}
 
 			bool supports_mkdir(const char *path, mode_t mode)

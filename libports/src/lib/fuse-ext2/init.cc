@@ -36,21 +36,22 @@ static struct extfs_data extfs_data;
 
 }
 
-void Fuse::init_fs(void)
+
+bool Fuse::init_fs(void)
 {
 	PLOG("libc_fuse_ext2: try to mount /dev/blkdev...");
 
 	int err = ext2fs_open("/dev/blkdev",  EXT2_FLAG_RW, 0, 0, unix_io_manager, &e2fs);
 	if (err) {
 		PERR("libc_fuse_ext2: could not mount /dev/blkdev, error: %d", err);
-		return;
+		return false;
 	}
 
 	errcode_t rc = ext2fs_read_bitmaps(e2fs);
 	if (rc) {
 		PERR("libc_fuse_ext2: error while reading bitmaps");
 		ext2fs_close(e2fs);
-		return;
+		return false;
 	}
 
 	extfs_data.debug = 0;
@@ -67,12 +68,28 @@ void Fuse::init_fs(void)
 	fh = fuse_new(fc, NULL, &ext2fs_ops, sizeof (ext2fs_ops), &extfs_data);
 	if (fh == 0) {
 		PERR("libc_fuse_ext2: fuse_new() failed");
-		return;
+		return false;
 	}
+
+	return true;
 }
+
 
 void Fuse::deinit_fs(void)
 {
 	PLOG("libc_fuse_ext2: unmount /dev/blkdev...");
 	ext2fs_close(e2fs);
+}
+
+
+void Fuse::sync_fs(void)
+{
+	PLOG("libc_fuse_ext2: sync file system...");
+	ext2fs_flush(e2fs);
+}
+
+
+bool Fuse::support_symlinks(void)
+{
+	return true;
 }

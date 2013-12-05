@@ -29,25 +29,38 @@ struct exfat ef;
 
 }
 
-void Fuse::init_fs(void)
+
+bool Fuse::init_fs(void)
 {
 	PLOG("libc_fuse_exfat: try to mount /dev/blkdev...");
 
 	int err = exfat_mount(&ef, "/dev/blkdev", "");
 	if (err) {
 		PERR("libc_fuse_exfat: could not mount /dev/blkdev");
-		return;
+		return false;
 	}
 
 	fh = fuse_new(fc, NULL, &fuse_exfat_ops, sizeof (struct fuse_operations), NULL);
 	if (fh == 0) {
 		PERR("libc_fuse_exfat: fuse_new() failed");
-		return;
+		return false;
 	}
+
+	return true;
 }
+
 
 void Fuse::deinit_fs(void)
 {
 	PLOG("libc_fuse_exfat: umount /dev/blkdev...");
 	exfat_unmount(&ef);
+}
+
+
+void Fuse::sync_fs(void) { }
+
+
+bool Fuse::support_symlinks(void)
+{
+	return false;
 }
