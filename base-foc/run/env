@@ -211,6 +211,7 @@ proc build_boot_image_x86 {binaries} {
 
 proc build_boot_image_arm {binaries} {
 
+	global run_target
 	global fiasco_serial_esc_arg
 
 	copy_and_strip_binaries $binaries
@@ -254,7 +255,7 @@ proc build_boot_image_arm {binaries} {
 	if {[info exists ::env(PXE_TFTP_DIR_BASE)] &&
 	    [info exists ::env(PXE_TFTP_DIR_OFFSET)]} {
 		exec ln -sf "[pwd]/[run_dir]/image.elf" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)"
-		if {[have_spec uboot]} {
+		if {[regexp "uboot" $run_target]} {
 			exec ln -sf "[pwd]/[run_dir]/uImage" "$::env(PXE_TFTP_DIR_BASE)$::env(PXE_TFTP_DIR_OFFSET)/uImage"
 		}
 	}
