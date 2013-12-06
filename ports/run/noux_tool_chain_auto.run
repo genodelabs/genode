@@ -23,15 +23,26 @@ set platform_cmds     {
                          exit 234
 } 
 
+# default tool_chain timeout, overwritten by platform if required
+set tool_chain_timeout  400
+set noux_boot_timeout   100
+
 if {[have_spec arm]} {
 	set platform_base_dir "base-hw"
+	set noux_boot_timeout   350
+	set tool_chain_timeout  500
 
-	if {[have_spec platform_panda]}   { set platform "hw_panda" }
-	if {[have_spec platform_arndale]} { set platform "hw_arndale" }
+	if {[have_spec platform_panda]}   {
+		set platform "hw_panda"
+		set tool_chain_timeout  1000
+	}
+	if {[have_spec platform_arndale]} {
+		set platform "hw_arndale"
+	}
 	if {[have_spec platform_pbxa9]}   { set platform "hw_pbxa9" }
 
 	if {![info exists platform]} {
-		puts "Unsupported arm platform."
+		puts "\n Run script is not supported on this platform. \n"
 		exit 0
 	}
 }
@@ -46,12 +57,12 @@ source ${genode_dir}/ports/run/noux_tool_chain.inc
 append qemu_args " -m 768 "
 
 # wait until Noux started
-run_genode_until {\[init -\> noux\].*--- noux started ---} 300
+run_genode_until {\[init -\> noux\].*--- noux started ---} $noux_boot_timeout
 set serial_id $spawn_id
 
 # start the measurement
 set time_start [ clock seconds ]
-run_genode_until {child /bin/bash exited with exit value 234} 500 $serial_id
+run_genode_until {child /bin/bash exited with exit value 234} $tool_chain_timeout $serial_id
 
 set time_end [ clock seconds ]
 
