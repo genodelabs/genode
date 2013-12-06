@@ -56,22 +56,6 @@ void Thread::_signal_context_kill_failed()
 }
 
 
-void Thread::_signal_receiver_kill_pending()
-{
-	assert(_state == SCHEDULED);
-	_state = AWAITS_SIGNAL_RECEIVER_KILL;
-	cpu_scheduler()->remove(this);
-}
-
-
-void Thread::_signal_receiver_kill_done()
-{
-	assert(_state == AWAITS_SIGNAL_RECEIVER_KILL);
-	user_arg_0(0);
-	_schedule();
-}
-
-
 void Thread::_await_signal(Signal_receiver * const receiver)
 {
 	cpu_scheduler()->remove(this);
@@ -163,9 +147,6 @@ int Thread::_resume()
 		return 0;
 	case AWAITS_SIGNAL_CONTEXT_KILL:
 		Signal_context_killer::cancel_waiting();
-		return 0;
-	case AWAITS_SIGNAL_RECEIVER_KILL:
-		Signal_receiver_killer::cancel_waiting();
 		return 0;
 	case AWAITS_START:
 	case STOPPED:;
@@ -658,10 +639,6 @@ void Thread::_print_activity()
 		unsigned const context_id = Signal_context_killer::context()->id();
 		Genode::printf("\033[32m await SCK %u\033[0m", context_id);
 		break; }
-	case AWAITS_SIGNAL_RECEIVER_KILL: {
-		unsigned const receiver_id = Signal_receiver_killer::receiver()->id();
-		Genode::printf("\033[32m await SRK %u\033[0m", receiver_id);
-		break; }
 	case STOPPED: {
 		Genode::printf("\033[32m stop\033[0m");
 		break; }
@@ -737,13 +714,8 @@ void Thread::_call_new_signal_context()
 	/* create and assign context*/
 	void * const p = (void *)user_arg_1();
 	unsigned const imprint = user_arg_3();
-	try {
-		Signal_context * const c = new (p) Signal_context(r, imprint);
-		user_arg_0(c->id());
-	} catch (Signal_context::Assign_to_receiver_failed) {
-		PERR("failed to assign context to receiver");
-		user_arg_0(0);
-	}
+	Signal_context * const c = new (p) Signal_context(r, imprint);
+	user_arg_0(c->id());
 }
 
 
@@ -880,12 +852,7 @@ void Thread::_call_bin_signal_receiver()
 		user_arg_0(0);
 		return;
 	}
-	/* kill signal receiver */
-	if (r->kill(this)) {
-		PERR("unknown signal receiver");
-		user_arg_0(-1);
-		return;
-	}
+	r->~Signal_receiver();
 	user_arg_0(0);
 }
 

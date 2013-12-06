@@ -47,16 +47,6 @@ void Signal_context_killer::_cancel_waiting()
 }
 
 
-/****************************
- ** Signal_receiver_killer **
- ****************************/
-
-void Signal_receiver_killer::_cancel_waiting()
-{
-	if (_receiver) { _receiver->_killer_cancelled(); }
-}
-
-
 /********************
  ** Signal_context **
  ********************/
@@ -86,5 +76,5 @@ Signal_context::Signal_context(Signal_receiver * const r, unsigned const imprint
 	_killer(0),
 	_ack_handler(&_default_ack_handler)
 {
-	if (r->_add_context(this)) { throw Assign_to_receiver_failed(); }
+	r->_add_context(this);
 }

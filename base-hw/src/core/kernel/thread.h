@@ -51,7 +51,6 @@ class Kernel::Thread
 	public Execution_context,
 	public Ipc_node,
 	public Signal_context_killer,
-	public Signal_receiver_killer,
 	public Signal_handler,
 	public Thread_cpu_support
 {
@@ -69,8 +68,7 @@ class Kernel::Thread
 			AWAITS_RESUME               = 4,
 			AWAITS_SIGNAL               = 5,
 			AWAITS_SIGNAL_CONTEXT_KILL  = 6,
-			AWAITS_SIGNAL_RECEIVER_KILL = 7,
-			STOPPED                     = 8,
+			STOPPED                     = 7,
 		};
 
 		State              _state;
@@ -239,14 +237,6 @@ class Kernel::Thread
 		void _signal_context_kill_pending();
 		void _signal_context_kill_failed();
 		void _signal_context_kill_done();
-
-
-		/****************************
-		 ** Signal_receiver_killer **
-		 ****************************/
-
-		void _signal_receiver_kill_pending();
-		void _signal_receiver_kill_done();
 
 
 		/********************

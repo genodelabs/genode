@@ -40,11 +40,6 @@ namespace Kernel
 	class Signal_context_killer;
 
 	/**
-	 * Ability to destruct signal receivers
-	 */
-	class Signal_receiver_killer;
-
-	/**
 	 * Signal types that are assigned to a signal receiver each
 	 */
 	class Signal_context;
@@ -206,55 +201,6 @@ class Kernel::Signal_context_killer
 		void cancel_waiting() { _cancel_waiting(); }
 };
 
-class Kernel::Signal_receiver_killer
-{
-	friend class Signal_receiver;
-
-	private:
-
-		Signal_receiver * _receiver;
-
-		/**
-		 * Backend for for destructor and cancel_waiting
-		 */
-		void _cancel_waiting();
-
-		/**
-		 * Notice that the destruction is pending
-		 */
-		virtual void _signal_receiver_kill_pending() = 0;
-
-		/**
-		 * Notice that pending destruction is done
-		 */
-		virtual void _signal_receiver_kill_done() = 0;
-
-	protected:
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Signal_receiver * receiver() const { return _receiver; }
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Signal_receiver_killer() : _receiver(0) { }
-
-		/**
-		 * Destructor
-		 */
-		virtual ~Signal_receiver_killer() { _cancel_waiting(); }
-
-		/**
-		 * Stop waiting for a signal receiver
-		 */
-		void cancel_waiting() { _cancel_waiting(); }
-};
-
 class Kernel::Signal_context
 :
 	public Object<Signal_context, MAX_SIGNAL_CONTEXTS,
@@ -317,11 +263,6 @@ class Kernel::Signal_context
 		 * Destructor
 		 */
 		~Signal_context();
-
-		/**
-		 * Exception types
-		 */
-		struct Assign_to_receiver_failed { };
 
 		/**
 		 * Constructor
@@ -412,12 +353,10 @@ class Kernel::Signal_receiver
 :
 	public Object<Signal_receiver, MAX_SIGNAL_RECEIVERS,
 	              Signal_receiver_ids, signal_receiver_ids,
-	              signal_receiver_pool>,
-	public Signal_context_killer
+	              signal_receiver_pool>
 {
 	friend class Signal_context;
 	friend class Signal_handler;
-	friend class Signal_receiver_killer;
 
 	private:
 
@@ -428,9 +367,6 @@ class Kernel::Signal_receiver
 		Fifo<Signal_handler::Fifo_element> _handlers;
 		Fifo<Signal_context::Fifo_element> _deliver;
 		Fifo<Signal_context::Fifo_element> _contexts;
-		bool                               _kill;
-		Signal_receiver_killer *           _killer;
-		unsigned                           _context_kills;
 
 		/**
 		 * Recognize that context 'c' has submits to deliver
@@ -472,7 +408,7 @@ class Kernel::Signal_receiver
 		/**
 		 * Notice that a context of the receiver has been destructed
 		 *
-		 * \param c  killed context
+		 * \param c  destructed context
 		 */
 		void _context_destructed(Signal_context * const c)
 		{
@@ -480,11 +416,6 @@ class Kernel::Signal_receiver
 			if (!c->_deliver_fe.is_enqueued()) { return; }
 			_deliver.remove(&c->_deliver_fe);
 		}
-
-		/**
-		 * Notice that the killer of the receiver has cancelled waiting
-		 */
-		void _killer_cancelled() { _killer = 0; }
 
 		/**
 		 * Notice that handler 'h' has cancelled waiting
@@ -496,49 +427,24 @@ class Kernel::Signal_receiver
 
 		/**
 		 * Assign context 'c' to the receiver
-		 *
-		 * \retval  0  succeeded
-		 * \retval -1  failed
 		 */
-		int _add_context(Signal_context * const c)
+		void _add_context(Signal_context * const c)
 		{
-			if (_kill) { return -1; }
 			_contexts.enqueue(&c->_contexts_fe);
-			return 0;
 		}
-
-
-		/***************************
-		 ** Signal_context_killer **
-		 ***************************/
-
-		void _signal_context_kill_pending() { _context_kills++; }
-
-		void _signal_context_kill_done()
-		{
-			_context_kills--;
-			if (!_context_kills && _kill) {
-				this->~Signal_receiver();
-				if (_killer) {
-					_killer->_receiver = 0;
-					_killer->_signal_receiver_kill_done();
-				}
-			}
-		}
-
-		void _signal_context_kill_failed() { PERR("unexpected call"); }
 
 	public:
 
 		/**
-		 * Constructor
+		 * Destructor
 		 */
-		Signal_receiver()
-		:
-			_kill(0),
-			_killer(0),
-			_context_kills(0)
-		{ }
+		~Signal_receiver()
+		{
+			/* destruct all attached contexts */
+			while (Signal_context * c = _contexts.dequeue()->object()) {
+				c->~Signal_context();
+			}
+		}
 
 		/**
 		 * Let a handler 'h' wait for signals of the receiver
@@ -548,7 +454,7 @@ class Kernel::Signal_receiver
 		 */
 		int add_handler(Signal_handler * const h)
 		{
-			if (_kill || h->_receiver) { return -1; }
+			if (h->_receiver) { return -1; }
 			_handlers.enqueue(&h->_handlers_fe);
 			h->_receiver = this;
 			h->_await_signal(this);
@@ -560,38 +466,6 @@ class Kernel::Signal_receiver
 		 * Return wether any of the contexts of this receiver is deliverable
 		 */
 		bool deliverable() { return !_deliver.empty(); }
-
-		/**
-		 * Destruct receiver or prepare to do it as soon as delivery is done
-		 *
-		 * \param killer  object that shall receive progress reports
-		 *
-		 * \retval  0 succeeded
-		 * \retval -1 failed
-		 */
-		int kill(Signal_receiver_killer * const k)
-		{
-			if (_kill) { return -1; }
-
-			/* start killing at all contexts of the receiver */
-			Signal_context * c = _contexts.dequeue()->object();
-			while (c) {
-				c->kill(this);
-				c->~Signal_context();
-				c = _contexts.dequeue()->object();
-			}
-			/* destruct directly if no context kill is pending */
-			if (!_context_kills) {
-				this->~Signal_receiver();
-				return 0;
-			}
-			/* wait for pending context kills */
-			_kill              = 1;
-			_killer            = k;
-			_killer->_receiver = this;
-			_killer->_signal_receiver_kill_pending();
-			return 0;
-		}
 };
 
 #endif /* _KERNEL__SIGNAL_RECEIVER_ */
