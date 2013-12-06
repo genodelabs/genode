@@ -612,7 +612,7 @@ void Thread::_print_activity()
 {
 	static Thread * idle = dynamic_cast<Thread *>(cpu_scheduler()->idle());
 	Genode::printf("\033[33m[%u] %s", pd_id(), pd_label());
-	Genode::printf("(%u) %s:\033[0m", id(), label());
+	Genode::printf(" (%u) %s:\033[0m", id(), label());
 	if (id() == idle->id()) {
 		Genode::printf("\033[32m run\033[0m");
 		_print_common_activity();
@@ -629,7 +629,7 @@ void Thread::_print_activity()
 		_print_activity_when_awaits_ipc();
 		break; }
 	case AWAITS_RESUME: {
-		Genode::printf("\033[32m await RES \033[0m");
+		Genode::printf("\033[32m await RES\033[0m");
 		break; }
 	case AWAITS_SIGNAL: {
 		unsigned const receiver_id = Signal_handler::receiver()->id();
