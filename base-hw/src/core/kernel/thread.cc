@@ -647,7 +647,7 @@ void Thread::_print_activity()
 		Genode::printf("\033[32m await SIG %u\033[0m", receiver_id);
 		break; }
 	case AWAITS_SIGNAL_CONTEXT_KILL: {
-		unsigned const context_id = Signal_receiver_killer::receiver()->id();
+		unsigned const context_id = Signal_context_killer::context()->id();
 		Genode::printf("\033[32m await SCK %u\033[0m", context_id);
 		break; }
 	case AWAITS_SIGNAL_RECEIVER_KILL: {
