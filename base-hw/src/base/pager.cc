@@ -15,9 +15,6 @@
 #include <base/pager.h>
 #include <base/printf.h>
 
-/* base-hw includes */
-#include <placement_new.h>
-
 using namespace Genode;
 
 
@@ -70,25 +67,10 @@ void Pager_object::wake_up() { fault_resolved(); }
 
 void Pager_object::exception_handler(Signal_context_capability) { }
 
-void Pager_object::fault_resolved() { _signal()->~Signal(); }
-
-unsigned Pager_object::badge() const { return _badge; }
-
-
-void Pager_object::fault_occured(Signal const & s)
-{
-	new (_signal()) Signal(s);
-}
-
-
-void Pager_object::cap(Native_capability const & c)
-{
-	Object_pool<Pager_object>::Entry::cap(c);
-}
-
 
 Pager_object::Pager_object(unsigned const badge, Affinity::Location)
 :
+	_signal_valid(0),
 	_badge(badge)
 { }
 
@@ -126,12 +108,8 @@ Native_capability Pager_activation_base::cap()
 
 void Pager_entrypoint::dissolve(Pager_object * const o)
 {
-	/* let entrypoint dissolve the pager object */
 	remove_locked(o);
-	o->cap(Native_capability());
-
-	/* let activation signal-receiver dissolve the pager signal-context */
-	o->_signal_context_cap = Signal_context_capability();
+	o->stop_paging();
 	_activation->Signal_receiver::dissolve(o);
 }
 
@@ -147,13 +125,10 @@ Pager_entrypoint::Pager_entrypoint(Cap_session *,
 
 Pager_capability Pager_entrypoint::manage(Pager_object * const o)
 {
-	/* let activation signal-receiver manage the pager signal-context */
-	o->_signal_context_cap = _activation->Signal_receiver::manage(o);
-
-	/* let entrypoint manage the pager object */
-	unsigned const dst = _activation->cap().dst();
-	Native_capability c = Native_capability(dst, o->badge());
-	o->cap(c);
+	unsigned const d = _activation->cap().dst();
+	unsigned const b = o->badge();
+	auto const p = reinterpret_cap_cast<Pager_object>(Native_capability(d, b));
+	o->start_paging(_activation->Signal_receiver::manage(o), p);
 	insert(o);
-	return reinterpret_cap_cast<Pager_object>(c);
+	return p;
 }

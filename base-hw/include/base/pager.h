@@ -20,6 +20,9 @@
 #include <base/signal.h>
 #include <pager/capability.h>
 
+/* base-hw includes */
+#include <placement_new.h>
+
 namespace Genode
 {
 	class Cap_session;
@@ -132,8 +135,37 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 
 		Signal_context_capability _signal_context_cap;
 		Thread_capability         _thread_cap;
+		bool                      _signal_valid;
 		char                      _signal_buf[sizeof(Signal)];
 		unsigned const            _badge;
+
+		/**
+		 * Remember an incoming fault for handling
+		 *
+		 * \param s  fault signal
+		 */
+		void _take_fault(Signal const & s)
+		{
+			new (_signal_buf) Signal(s);
+			_signal_valid = 1;
+		}
+
+		/**
+		 * End handling of current fault
+		 */
+		void _end_fault()
+		{
+			_signal()->~Signal();
+			_signal_valid = 0;
+		}
+
+		/**
+		 * End handling of current fault if there is one
+		 */
+		void _end_fault_if_pending()
+		{
+			if (_signal_valid) { _end_fault(); }
+		}
 
 
 		/***************
@@ -152,26 +184,21 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		Pager_object(unsigned const badge, Affinity::Location);
 
 		/**
-		 * Destructor
-		 */
-		virtual ~Pager_object() { }
-
-		/**
 		 * The faulter has caused a fault and awaits paging
 		 *
 		 * \param s  signal that communicated the fault
 		 */
-		void fault_occured(Signal const & s);
+		void fault_occured(Signal const & s) { _take_fault(s); }
 
 		/**
 		 * Current fault has been resolved so resume faulter
 		 */
-		void fault_resolved();
+		void fault_resolved() { _end_fault(); }
 
 		/**
 		 * User identification of pager object
 		 */
-		unsigned badge() const;
+		unsigned badge() const { return _badge; }
 
 		/**
 		 * Resume faulter
@@ -182,6 +209,29 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		 * Unnecessary as base-hw doesn't use exception handlers
 		 */
 		void exception_handler(Signal_context_capability);
+
+		/**
+		 * Install information that is necessary to handle page faults
+		 *
+		 * \param c  linkage between signal context and a signal receiver
+		 * \param p  linkage between pager object and a pager entry-point
+		 */
+		void start_paging(Signal_context_capability const & c,
+		                  Pager_capability const & p)
+		{
+			_signal_context_cap = c;
+			Object_pool<Pager_object>::Entry::cap(p);
+		}
+
+		/**
+		 * Uninstall paging information and cancel unresolved faults
+		 */
+		void stop_paging()
+		{
+			Object_pool<Pager_object>::Entry::cap(Native_capability());
+			_signal_context_cap = Signal_context_capability();
+			_end_fault_if_pending();
+		}
 
 
 		/******************
@@ -206,8 +256,6 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		Thread_capability thread_cap() const;
 
 		void thread_cap(Thread_capability const & c);
-
-		void cap(Native_capability const & c);
 
 		unsigned signal_context_id() const;
 };
