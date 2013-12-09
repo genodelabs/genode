@@ -20,7 +20,7 @@
 #include <os/irq_activation.h>
 #include <os/attached_io_mem_dataspace.h>
 
-#include <drivers/uart/arndale_uart_base.h>
+#include <drivers/uart/exynos_uart_base.h>
 
 /* local includes */
 #include "uart_driver.h"
