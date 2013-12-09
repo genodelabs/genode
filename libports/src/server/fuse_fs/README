@@ -1,0 +1,26 @@
+The fuse_fs server provides access to a FUSE based file system by using a
+File_system_session.
+
+The File_system_session component implementation is independent from each
+FUSE based file system. fuse_fs only calls the FUSE operation in question
+directly. These operations are provided by the FUSE file system and Genode's
+libfuse library makes sure, that each operation is executeable, e.g. by using
+a dummy function in case it is not provided by the FUSE file system.
+Therefore, to utilize a FUSE file system, the FUSE file system is linked
+against libfuse as well as the File_system_session component. For each
+fuse_fs server there is a binary (.e.g. 'os/src/server/fuse_fs/ext2').
+
+Note: write-support is supported but considered to be experimantal at this
+point and for now using it is NOT recommended.
+
+
+To use the ext2_fuse_fs server in noux the following config snippet may be
+used:
+
+!  <start name="ext2_fuse_fs">
+!  	<resource name="RAM" quantum="8M"/>
+!  	<provides> <service name="File_system"/> </provides>
+!  	<config>
+!  		<policy label="noux -> fuse" root="/" writeable="no" />
+!  	</config>
+!  </start>
