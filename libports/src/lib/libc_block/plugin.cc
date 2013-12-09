@@ -415,7 +415,7 @@ namespace {
 						     " displacement:%zu", ctx->seek_offset(), blk_size, displ);
 
 					nbytes = ctx->block_io(blk_nr, blk_buffer, blk_size, false);
-					if (nbytes != blk_size) {
+					if ((unsigned)nbytes != blk_size) {
 						PERR("error while reading block:%zu from block device",
 						     blk_nr);
 						return -1;
@@ -465,7 +465,7 @@ namespace {
 				while (count > 0) {
 					size_t displ   = 0;
 					size_t length  = 0;
-					size_t nbytes  = 0;
+					ssize_t nbytes = 0;
 					size_t blk_nr  = ctx->seek_offset() / blk_size;
 
 					displ = ctx->seek_offset() % blk_size;
@@ -520,7 +520,7 @@ namespace {
 					Genode::memcpy(blk_buffer + displ, _buf + written, length);
 
 					nbytes = ctx->block_io(blk_nr, blk_buffer, blk_size, true);
-					if (nbytes != blk_size) {
+					if ((unsigned)nbytes != blk_size) {
 						PERR("error while reading block:%zu from Block_device",
 						     blk_nr);
 						return -1;
