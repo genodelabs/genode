@@ -34,6 +34,11 @@ struct fuse      *fh;
 static ext2_filsys e2fs;
 static struct extfs_data extfs_data;
 
+char mnt_point[] = "/";
+char options[]   = "";
+char device[]    = "/dev/blkdev";
+char volname[]   = "ext2_volume";
+
 }
 
 
@@ -54,16 +59,18 @@ bool Fuse::init_fs(void)
 		return false;
 	}
 
-	extfs_data.debug = 0;
-	extfs_data.silent = 0;
-	extfs_data.force = 0;
-	extfs_data.readonly = 0;
+	/* set 1 to enable debug messages */
+	extfs_data.debug      = 0;
+
+	extfs_data.silent     = 0;
+	extfs_data.force      = 0;
+	extfs_data.readonly   = 0;
 	extfs_data.last_flush = 0;
-	extfs_data.mnt_point = "/";
-	extfs_data.options = "";
-	extfs_data.device = "/dev/blkdev";
-	extfs_data.volname = "ext2_volume";
-	extfs_data.e2fs = e2fs;
+	extfs_data.mnt_point  = mnt_point;
+	extfs_data.options    = options;
+	extfs_data.device     = device;
+	extfs_data.volname    = volname;
+	extfs_data.e2fs       = e2fs;
 
 	fh = fuse_new(fc, NULL, &ext2fs_ops, sizeof (ext2fs_ops), &extfs_data);
 	if (fh == 0) {
@@ -79,6 +86,8 @@ void Fuse::deinit_fs(void)
 {
 	PLOG("libc_fuse_ext2: unmount /dev/blkdev...");
 	ext2fs_close(e2fs);
+
+	free(fh);
 }
 
 
