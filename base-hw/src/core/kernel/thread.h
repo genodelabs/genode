@@ -182,8 +182,10 @@ class Kernel::Thread
 
 		/**
 		 * Print the activity of the thread
+		 *
+		 * \param printing_thread  wether this thread caused the debugging
 		 */
-		void _print_activity();
+		void _print_activity(bool const printing_thread);
 
 		/**
 		 * Print the activity of the thread when it awaits a message

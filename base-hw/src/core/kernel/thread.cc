@@ -602,13 +602,13 @@ void Thread::_print_activity_table()
 	for (unsigned id = 0; id < MAX_THREADS; id++) {
 		Thread * const t = Thread::pool()->object(id);
 		if (!t) { continue; }
-		t->_print_activity();
+		t->_print_activity(t == this);
 	}
 	return;
 }
 
 
-void Thread::_print_activity()
+void Thread::_print_activity(bool const printing_thread)
 {
 	static Thread * idle = dynamic_cast<Thread *>(cpu_scheduler()->idle());
 	Genode::printf("\033[33m[%u] %s", pd_id(), pd_label());
@@ -623,7 +623,8 @@ void Thread::_print_activity()
 		Genode::printf("\033[32m init\033[0m");
 		break; }
 	case SCHEDULED: {
-		Genode::printf("\033[32m run\033[0m");
+		if (!printing_thread) { Genode::printf("\033[32m run\033[0m"); }
+		else { Genode::printf("\033[32m debug\033[0m"); }
 		break; }
 	case AWAITS_IPC: {
 		_print_activity_when_awaits_ipc();
