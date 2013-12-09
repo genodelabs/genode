@@ -36,7 +36,7 @@ if {![is_qemu_available]} {
 	exit 0
 }
 
-if {[have_spec x86]} {
+if {[expr $use_atapi_drv && [have_spec x86]]} {
 	set qemu "qemu-system-i386"
 	if {[have_spec 64bit]} { set qemu "qemu-system-x86_64" }
 
