@@ -148,6 +148,12 @@ struct fuse* fuse_new(struct fuse_chan *chan, struct fuse_args *args,
 
 	Genode::memcpy(&_fuse->op, fsop, Genode::min(size, sizeof (_fuse->op)));
 
+	/**
+	 * Defining a dummy function for each fuse operation is cumbersome.
+	 * So let us faithfully ignore the compiler.
+	 */
+#pragma GCC diagnostic ignored "-fpermissive"
+
 	FIX_UP_OPERATION1(_fuse, readlink);
 	FIX_UP_OPERATION1(_fuse, mknod);
 	FIX_UP_OPERATION1(_fuse, unlink);
