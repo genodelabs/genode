@@ -45,7 +45,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			if (verbose)
 				PDBG("ACK packet for block: %llu status: %d", packet->block_number(), cmnd->result);
 
-			session->complete_packet(*packet);
+			session->ack_packet(*packet);
 			Genode::destroy(Genode::env()->heap(), packet);
 			_scsi_free_command(cmnd);
 		}
@@ -129,7 +129,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 
 			/* send command to host driver */
 			if (_sdev->host->hostt->queuecommand(_sdev->host, cmnd)) {
-				throw Io_error();
+				throw Request_congestion();
 			}
 		}
 

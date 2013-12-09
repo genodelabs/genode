@@ -30,21 +30,6 @@ namespace Block {
 
 class Block::Session_component : public Block::Session_rpc_object
 {
-	public:
-
-		void complete_packet(Packet_descriptor &packet, bool success = true)
-		{
-			packet.succeeded(success);
-
-			/* acknowledge packet to the client */
-			if (!tx_sink()->ready_to_ack()) {
-				PWRN("need to wait until ready-for-ack");
-				return;
-			}
-
-			tx_sink()->acknowledge_packet(packet);
-		}
-
 	private:
 
 		Driver_factory                      &_driver_factory;
@@ -53,80 +38,127 @@ class Block::Session_component : public Block::Session_rpc_object
 		addr_t                               _rq_phys;
 		Signal_dispatcher<Session_component> _sink_ack;
 		Signal_dispatcher<Session_component> _sink_submit;
+		bool                                 _req_queue_full;
+		Packet_descriptor                    _p_to_handle;
+		unsigned                             _p_in_fly;
 
-		void _ready_to_submit(unsigned)
+		/**
+		 * Acknowledge a packet already handled
+		 */
+		inline void _ack_packet(Packet_descriptor &packet)
 		{
-			/* handle requests */
-			while (tx_sink()->packet_avail()) {
+			if (!tx_sink()->ready_to_ack())
+				PERR("Not ready to ack!");
 
-				/* blocking-get packet from client */
-				Packet_descriptor packet = tx_sink()->get_packet();
-				if (!packet.valid()) {
-					PWRN("received invalid packet");
-					continue;
+			tx_sink()->acknowledge_packet(packet);
+			_p_in_fly--;
+		}
+
+		/**
+		 * Range check packet request
+		 */
+		inline bool _range_check(Packet_descriptor &p) {
+			return p.block_number() + p.block_count() - 1
+			       < _driver.block_count(); }
+
+		/**
+		 * Handle a single request
+		 */
+		void _handle_packet(Packet_descriptor packet)
+		{
+			_p_to_handle = packet;
+			_p_to_handle.succeeded(false);
+
+			/* ignore invalid packets */
+			if (!packet.valid() || !_range_check(_p_to_handle)) {
+				_ack_packet(_p_to_handle);
+				return;
+			}
+
+			try {
+				switch (_p_to_handle.operation()) {
+
+				case Block::Packet_descriptor::READ:
+					if (_driver.dma_enabled())
+						_driver.read_dma(packet.block_number(),
+						                 packet.block_count(),
+						                 _rq_phys + packet.offset(),
+						                 _p_to_handle);
+					else
+						_driver.read(packet.block_number(),
+						             packet.block_count(),
+						             tx_sink()->packet_content(packet),
+						             _p_to_handle);
+					break;
+
+				case Block::Packet_descriptor::WRITE:
+					if (_driver.dma_enabled())
+						_driver.write_dma(packet.block_number(),
+						                  packet.block_count(),
+						                  _rq_phys + packet.offset(),
+						                  _p_to_handle);
+					else
+						_driver.write(packet.block_number(),
+						              packet.block_count(),
+						              tx_sink()->packet_content(packet),
+						              _p_to_handle);
+					break;
+
+				default:
+					throw Driver::Io_error();
 				}
-
-				packet.succeeded(true);
-
-				try {
-					switch (packet.operation()) {
-
-					case Block::Packet_descriptor::READ:
-						if (_driver.dma_enabled())
-							_driver.read_dma(packet.block_number(),
-							                 packet.block_count(),
-							                 _rq_phys + packet.offset(),
-							                 packet);
-						else
-							_driver.read(packet.block_number(),
-							             packet.block_count(),
-							             tx_sink()->packet_content(packet),
-							             packet);
-						break;
-
-					case Block::Packet_descriptor::WRITE:
-						if (_driver.dma_enabled())
-							_driver.write_dma(packet.block_number(),
-							                  packet.block_count(),
-							                  _rq_phys + packet.offset(),
-							                  packet);
-						else
-							_driver.write(packet.block_number(),
-							              packet.block_count(),
-							              tx_sink()->packet_content(packet),
-							              packet);
-						break;
-
-					default:
-						throw Driver::Io_error();
-					}
-				} catch (Driver::Io_error) {
-					complete_packet(packet, false);
-				}
+			} catch (Driver::Request_congestion) {
+				_req_queue_full = true;
+			} catch (Driver::Io_error) {
+				_ack_packet(_p_to_handle);
 			}
 		}
 
-		void _ack_avail(unsigned) { }
+		/**
+		 * Triggered when a packet was placed into the empty submit queue
+		 */
+		void _packet_avail(unsigned)
+		{
+			/*
+			 * as long as more packets are available, and we're able to ack
+			 * them, and the driver's request queue isn't full,
+			 * direct the packet request to the driver backend
+			 */
+			for (; !_req_queue_full && tx_sink()->packet_avail() &&
+			     !(_p_in_fly >= tx_sink()->ack_slots_free()); _p_in_fly++)
+					_handle_packet(tx_sink()->get_packet());
+		}
+
+		/**
+		 * Triggered when an ack got removed from the full ack queue
+		 */
+		void _ready_to_ack(unsigned) { _packet_avail(0); }
 
 	public:
 
 		/**
 		 * Constructor
+		 *
+		 * \param rq_ds           shared dataspace for packet stream
+		 * \param driver          block driver backend
+		 * \param driver_factory  factory to create and destroy driver objects
+		 * \param ep              entrypoint handling this session component
+		 * \param receiver        signal receiver managing signals of the client
 		 */
 		Session_component(Ram_dataspace_capability  rq_ds,
 		                  Driver                   &driver,
 		                  Driver_factory           &driver_factory,
 		                  Rpc_entrypoint           &ep,
 		                  Signal_receiver          &receiver)
-		:
-			Session_rpc_object(rq_ds, ep),
-			_driver_factory(driver_factory),
-			_driver(driver),
-			_rq_ds(rq_ds),
-			_rq_phys(Dataspace_client(_rq_ds).phys_addr()),
-			_sink_ack(receiver, *this, &Session_component::_ack_avail),
-			_sink_submit(receiver, *this,
-			             &Session_component::_ready_to_submit)
+		: Session_rpc_object(rq_ds, ep),
+		  _driver_factory(driver_factory),
+		  _driver(driver),
+		  _rq_ds(rq_ds),
+		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
+		  _sink_ack(receiver, *this, &Session_component::_ready_to_ack),
+		  _sink_submit(receiver, *this, &Session_component::_packet_avail),
+		  _req_queue_full(false),
+		  _p_in_fly(0)
 		{
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
@@ -135,11 +167,34 @@ class Block::Session_component : public Block::Session_rpc_object
 		}
 
 		/**
-		 * Destructor
+		 * Acknowledges a packet processed by the driver to the client
+		 *
+		 * \param packet   the packet to acknowledge
+		 * \param success  indicated whether the processing was successful
+		 *
+		 * \throw Ack_congestion
 		 */
-		~Session_component()
+		void ack_packet(Packet_descriptor &packet, bool success = true)
 		{
-			_driver_factory.destroy(&_driver);
+			bool ack_queue_full = _p_in_fly >= tx_sink()->ack_slots_free();
+
+			packet.succeeded(success);
+			_ack_packet(packet);
+
+			if (!_req_queue_full && !ack_queue_full)
+				return;
+
+			/*
+			 * when the driver's request queue was full,
+			 * handle last unprocessed packet taken out of submit queue
+			 */
+			if (_req_queue_full) {
+				_req_queue_full = false;
+				_handle_packet(_p_to_handle);
+			}
+
+			/* resume packet processing */
+			_packet_avail(0);
 		}
 
 		/**
@@ -217,6 +272,14 @@ class Block::Root :
 
 	public:
 
+		/**
+		 * Constructor
+		 *
+		 * \param session_ep      entrypoint handling this root component
+		 * \param md_alloc        allocator to allocate session components
+		 * \param driver_factory  factory to create and destroy driver backend
+		 * \param receiver        signal receiver managing signals of the client
+		 */
 		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
 		     Driver_factory &driver_factory, Signal_receiver &receiver)
 		:

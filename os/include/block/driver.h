@@ -35,17 +35,19 @@ namespace Block {
  */
 struct Block::Driver
 {
-	Session_component *session;
+	Session_component * session; /* single session component of the driver
+	                              * might get used to acknowledge requests */
 
 	/**
 	 * Exceptions
 	 */
-	class Io_error : public ::Genode::Exception { };
+	class Io_error           : public ::Genode::Exception { };
+	class Request_congestion : public ::Genode::Exception { };
 
 	/**
 	 * Request block size for driver and medium
 	 */
-	virtual Genode::size_t block_size()  = 0;
+	virtual Genode::size_t block_size() = 0;
 
 	/**
 	 * Request capacity of medium in blocks
@@ -63,6 +65,11 @@ struct Block::Driver
 	 * \param block_number  number of first block to read
 	 * \param block_count   number of blocks to read
 	 * \param buffer        output buffer for read request
+	 * \param packet        packet descriptor from the client
+	 *
+	 * \throw Request_congestion
+	 *
+	 * Note: should be overridden by DMA non-capable devices
 	 */
 	virtual void read(sector_t           block_number,
 	                  Genode::size_t     block_count,
@@ -76,6 +83,11 @@ struct Block::Driver
 	 * \param block_number  number of first block to write
 	 * \param block_count   number of blocks to write
 	 * \param buffer        buffer for write request
+	 * \param packet        packet descriptor from the client
+	 *
+	 * \throw Request_congestion
+	 *
+	 * Note: should be overridden by DMA non-capable, non-ROM devices
 	 */
 	virtual void write(sector_t           block_number,
 	                   Genode::size_t     block_count,
@@ -89,6 +101,11 @@ struct Block::Driver
 	 * \param block_number  number of first block to read
 	 * \param block_count   number of blocks to read
 	 * \param phys          phyiscal address of read buffer
+	 * \param packet        packet descriptor from the client
+	 *
+	 * \throw Request_congestion
+	 *
+	 * Note: should be overridden by DMA capable devices
 	 */
 	virtual void read_dma(sector_t           block_number,
 	                      Genode::size_t     block_count,
@@ -102,6 +119,11 @@ struct Block::Driver
 	 * \param block_number  number of first block to write
 	 * \param block_count   number of blocks to write
 	 * \param phys          physical address of write buffer
+	 * \param packet        packet descriptor from the client
+	 *
+	 * \throw Request_congestion
+	 *
+	 * Note: should be overridden by DMA capable, non-ROM devices
 	 */
 	virtual void write_dma(sector_t           block_number,
 	                       Genode::size_t     block_count,
@@ -113,6 +135,8 @@ struct Block::Driver
 	 * Check if DMA is enabled for driver
 	 *
 	 * \return  true if DMA is enabled, false otherwise
+	 *
+	 * Note: has to be overriden by DMA-capable devices
 	 */
 	virtual bool dma_enabled() { return false; }
 
@@ -124,7 +148,10 @@ struct Block::Driver
 		return Genode::env()->ram_session()->alloc(size, false); }
 
 	/**
-	 * Synchronize with with device.
+	 * Synchronize with device.
+	 *
+	 * Note: should be overriden by (e.g. intermediate) components,
+	 *       which cache data
 	 */
 	virtual void sync() {}
 };

@@ -131,8 +131,8 @@ class Packet_descriptor_queue
 {
 	private:
 
-		int               _head;
-		int               _tail;
+		unsigned          _head;
+		unsigned          _tail;
 		PACKET_DESCRIPTOR _queue[QUEUE_SIZE];
 
 	public:
@@ -200,10 +200,18 @@ class Packet_descriptor_queue
 		 */
 		bool single_element() { return (_tail + 1)%QUEUE_SIZE == _head; }
 
+
 		/**
 		 * Return true if a single slot is left to be put into the queue
 		 */
 		bool single_slot_free() { return (_head + 2)%QUEUE_SIZE == _tail; }
+
+		/**
+		 * Return number of slots left to be put into the queue
+		 */
+		unsigned slots_free() {
+			return ((_tail > _head) ? _tail - _head
+			                        : QUEUE_SIZE - _head + _tail) - 1; }
 };
 
 
@@ -280,6 +288,11 @@ class Packet_descriptor_transmitter
 			if (_tx_queue->single_element())
 				_rx_ready.submit();
 		}
+
+		/**
+		 * Return number of slots left to be put into the tx queue
+		 */
+		unsigned tx_slots_free() { return _tx_queue->slots_free(); }
 };
 
 
@@ -774,6 +787,12 @@ class Packet_stream_sink : private Packet_stream_base
 		 * Returns true if no further acknowledgements can be submitted
 		 */
 		bool ready_to_ack() { return _ack_transmitter.ready_for_tx(); }
+
+		/**
+		 * Returns number of slots left in the the ack queue
+		 */
+		unsigned ack_slots_free() {
+			return _ack_transmitter.tx_slots_free(); }
 
 		/**
 		 * Tell the source that the processing of the specified packet is completed

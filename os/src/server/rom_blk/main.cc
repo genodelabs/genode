@@ -76,7 +76,7 @@ class Rom_blk : public Block::Driver
 			/* copy file content to packet payload */
 			memcpy((void*)buffer, (void*)(_file_addr + offset), size);
 
-			session->complete_packet(packet);
+			session->ack_packet(packet);
 		}
 };
 

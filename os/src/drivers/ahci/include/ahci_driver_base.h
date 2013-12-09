@@ -66,7 +66,7 @@ class Ahci_driver_base : public Block::Driver
 		{
 			_sanity_check(block_number, block_count);
 			_device->read(block_number, block_count, phys);
-			if (session) session->complete_packet(packet);
+			if (session) session->ack_packet(packet);
 		}
 
 		void write_dma(Block::sector_t           block_number,
@@ -76,7 +76,7 @@ class Ahci_driver_base : public Block::Driver
 		{
 			_sanity_check(block_number, block_count);
 			_device->write(block_number, block_count, phys);
-			if (session) session->complete_packet(packet);
+			if (session) session->ack_packet(packet);
 		}
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {

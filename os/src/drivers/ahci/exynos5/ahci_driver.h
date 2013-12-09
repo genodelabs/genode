@@ -61,7 +61,7 @@ class Ahci_driver : public Block::Driver
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 0))
 				throw Io_error();
-			session->complete_packet(packet);
+			session->ack_packet(packet);
 		}
 
 		void write_dma(Block::sector_t block_nr, size_t  block_cnt, addr_t  phys,
@@ -69,7 +69,7 @@ class Ahci_driver : public Block::Driver
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 1))
 				throw Io_error();
-			session->complete_packet(packet);
+			session->ack_packet(packet);
 		}
 };
 
