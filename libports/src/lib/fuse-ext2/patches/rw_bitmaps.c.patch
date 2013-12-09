@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/rw_bitmaps.c.orig	2013-12-09 15:17:28.255353356 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/rw_bitmaps.c	2013-12-09 15:21:02.807359558 +0100
+@@ -34,7 +34,7 @@
+ 	int		block_nbytes, inode_nbytes;
+ 	unsigned int	nbits;
+ 	errcode_t	retval;
+-	char 		*block_buf, *inode_buf;
++	char 		*block_buf = 0, *inode_buf = 0;
+ 	int		csum_flag = 0;
+ 	blk64_t		blk;
+ 	blk64_t		blk_itr = fs->super->s_first_data_block;

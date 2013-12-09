@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/test_io.c.orig	2013-12-09 15:32:11.095378871 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/test_io.c	2013-12-09 15:32:20.811379151 +0100
+@@ -9,6 +9,8 @@
+  * %End-Header%
+  */
+ 
++#include "config.h"
++
+ #include <stdio.h>
+ #include <string.h>
+ #if HAVE_UNISTD_H

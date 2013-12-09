@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/res_gdt.c.orig	2013-12-09 15:17:10.771352852 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/res_gdt.c	2013-12-09 15:16:58.379352494 +0100
+@@ -63,7 +63,7 @@
+ 	errcode_t		retval, retval2;
+ 	struct ext2_super_block	*sb;
+ 	struct ext2_inode	inode;
+-	__u32			*dindir_buf, *gdt_buf;
++	__u32			*dindir_buf = 0, *gdt_buf;
+ 	unsigned long long	apb, inode_size;
+ 	/* FIXME-64 - can't deal with extents */
+ 	blk_t			dindir_blk, rsv_off, gdt_off, gdt_blk;

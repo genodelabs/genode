@@ -1,0 +1,17 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/tdb.c.orig	2013-12-09 15:04:04.315330122 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/tdb.c	2013-12-09 15:05:19.767332303 +0100
+@@ -75,12 +75,11 @@
+ static char *rep_strdup(const char *s)
+ {
+ 	char *ret;
+-	int length;
++	size_t length;
+ 	if (!s)
+ 		return NULL;
+ 
+-	if (!length)
+-		length = strlen(s);
++	length = strlen(s);
+ 
+ 	ret = malloc(length + 1);
+ 	if (ret) {

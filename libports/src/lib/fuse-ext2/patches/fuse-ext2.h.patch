@@ -1,0 +1,20 @@
+--- contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.h.orig	2013-12-09 14:39:42.000000000 +0100
++++ contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.h	2013-12-09 14:33:19.455276804 +0100
+@@ -88,7 +88,7 @@
+ static inline ext2_filsys current_ext2fs(void)
+ {
+ 	struct fuse_context *mycontext=fuse_get_context();
+-	struct extfs_data *e2data=mycontext->private_data;
++	struct extfs_data *e2data= (struct extfs_data*)mycontext->private_data;
+ 	time_t now=time(NULL);
+ 	if ((now - e2data->last_flush) > FLUSH_BITMAPS_TIMEOUT) {
+ 		ext2fs_write_bitmaps(e2data->e2fs);
+@@ -103,7 +103,7 @@
+ {
+ 	va_list args;
+ 	struct fuse_context *mycontext=fuse_get_context();
+-	struct extfs_data *e2data=mycontext->private_data;
++	struct extfs_data *e2data=(struct extfs_data*) mycontext->private_data;
+ 	if (e2data && (e2data->debug == 0 || e2data->silent == 1)) {
+ 		return;
+ 	}

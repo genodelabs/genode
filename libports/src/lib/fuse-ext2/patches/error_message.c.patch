@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/et/error_message.c.orig	2013-12-09 15:26:26.847368923 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/et/error_message.c	2013-12-09 15:26:21.483368767 +0100
+@@ -16,6 +16,8 @@
+  * express or implied warranty.
+  */
+ 
++#include "config.h"
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>

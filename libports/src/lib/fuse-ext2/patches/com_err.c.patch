@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/et/com_err.c.orig	2013-12-09 15:25:01.855366466 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/et/com_err.c	2013-12-09 15:25:11.063366732 +0100
+@@ -11,6 +11,8 @@
+  * express or implied warranty.
+  */
+ 
++#include "config.h"
++
+ #include <stdio.h>
+ #ifdef HAVE_TERMIOS_H
+ #include <termios.h>

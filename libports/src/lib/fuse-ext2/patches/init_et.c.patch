@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/et/init_et.c.orig	2013-12-09 15:31:03.111376907 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/et/init_et.c	2013-12-09 15:31:11.391377147 +0100
+@@ -16,6 +16,8 @@
+  * express or implied warranty.
+  */
+ 
++#include "config.h"
++
+ #include <stdio.h>
+ #include <errno.h>
+ #ifdef HAVE_STDLIB_H

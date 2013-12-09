@@ -12,7 +12,11 @@ INC_DIR += $(REP_DIR)/include/fuse-ext2 \
            $(REP_DIR)/src/lib/fuse-ext2 \
            $(ET_DIR)
 
-CC_OPT += -DHAVE_CONFIG_H -D__BSD_VISIBLE
+CC_OPT += -DHAVE_CONFIG_H -D__BSD_VISIBLE -DENABLE_DEBUG
+
+CC_OPT += -Wno-unused-function -Wno-unused-variable \
+          -Wno-unused-but-set-variable -Wno-cpp \
+          -Wno-maybe-uninitialized -Wno-uninitialized
 
 LIBS += libc
 

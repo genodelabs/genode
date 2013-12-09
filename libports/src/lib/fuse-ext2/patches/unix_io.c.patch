@@ -1,0 +1,11 @@
+--- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/unix_io.c.orig	2013-12-09 15:07:14.055335606 +0100
++++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/unix_io.c	2013-12-09 15:06:55.163335059 +0100
+@@ -200,7 +200,7 @@
+ 	errcode_t	retval;
+ 	size_t		size, alignsize, fragment;
+ 	ext2_loff_t	location;
+-	int		total = 0, actual;
++	int		total = 0, actual = 0;
+ #define BLOCKALIGN 512
+ 	char		sector[BLOCKALIGN];
+ 
