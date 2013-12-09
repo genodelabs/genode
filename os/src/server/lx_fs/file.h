@@ -106,7 +106,7 @@ class File_system::File : public Node
 		{
 			/* should we append? */
 			if (seek_offset == ~0ULL) {
-				off_t off = lseek(_fd, 0, SEEK_END);
+				::off_t off = lseek(_fd, 0, SEEK_END);
 				if (off == -1)
 					return 0;
 				seek_offset = off;

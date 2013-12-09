@@ -11,6 +11,7 @@
 #include <file_system_session/file_system_session.h>
 
 /* Linux includes */
+#define _FILE_OFFSET_BITS 64
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
