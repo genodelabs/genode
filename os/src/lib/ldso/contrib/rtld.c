@@ -125,7 +125,6 @@ static int rtld_dirname(const char *, char *);
 static void rtld_exit(void);
 static char *search_library_path(const char *, const char *);
 static const void **get_program_var_addr(const char *);
-static void set_program_var(const char *, const void *);
 static const Elf_Sym *symlook_default(const char *, unsigned long,
   const Obj_Entry *, const Obj_Entry **, const Ver_Entry *, int);
 static const Elf_Sym *symlook_list(const char *, unsigned long, const Objlist *,
@@ -2429,7 +2428,7 @@ get_program_var_addr(const char *name)
  * is used to set key variables such as "environ" before any of the
  * init functions are called.
  */
-static void
+void
 set_program_var(const char *name, const void *value)
 {
     const void **addr;

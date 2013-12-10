@@ -64,6 +64,7 @@ endif
 #
 CXX_LINK_OPT += $(CC_MARCH)
 
+
 #
 # Generic linker script for statically linked binaries
 #
@@ -123,6 +124,13 @@ LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
 #
 FILTER_DEPS := $(filter-out $(BASE_LIBS),$(DEPS:.lib=))
 SHARED_LIBS += $(LIB_CACHE_DIR)/$(DYNAMIC_LINKER)/$(DYNAMIC_LINKER).lib.so
+
+#
+# Build program position independent as well
+#
+CC_OPT_PIC ?= -fPIC
+CC_OPT     += $(CC_OPT_PIC)
+
 endif
 
 #
