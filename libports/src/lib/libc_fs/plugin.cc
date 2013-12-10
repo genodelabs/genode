@@ -722,12 +722,15 @@ class Plugin : public Libc::Plugin
 				Libc::File_descriptor *fd =
 				    Libc::file_descriptor_allocator()->alloc(this, context);
 
-				if (write(fd, oldpath, strlen(oldpath) + 1) == -1) {
+				ssize_t res = write(fd, oldpath, strlen(oldpath) + 1);
+
+				Libc::file_descriptor_allocator()->free(fd);
+				destroy(Genode::env()->heap(), context);
+
+				if (res == -1) {
 					errno = EIO;
 					return -1;
 				}
-
-				close(fd);
 
 				return 0;
 			}
