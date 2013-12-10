@@ -51,7 +51,7 @@ inline void * operator new(Genode::size_t, void * p) { return p; }
  *
  * \return  object pointer
  */
-template <typename T, int ALIGNMENT = 2, typename... ARGS>
+template <typename T, int ALIGNMENT = sizeof(Genode::addr_t), typename... ARGS>
 static inline T * unmanaged_singleton(ARGS... args)
 {
 	/*
