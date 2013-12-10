@@ -239,6 +239,11 @@ class Packet_descriptor_transmitter
 			_tx_queue(tx_queue)
 		{ }
 
+		~Packet_descriptor_transmitter()
+		{
+			_tx_ready.dissolve(&_tx_ready_context);
+		}
+
 		Genode::Signal_context_capability tx_ready_cap()
 		{
 			return _tx_ready_cap;
@@ -309,6 +314,11 @@ class Packet_descriptor_receiver
 			_rx_ready_cap(_rx_ready.manage(&_rx_ready_context)),
 			_rx_queue(rx_queue)
 		{ }
+
+		~Packet_descriptor_receiver()
+		{
+			_rx_ready.dissolve(&_rx_ready_context);
+		}
 
 		Genode::Signal_context_capability rx_ready_cap()
 		{
