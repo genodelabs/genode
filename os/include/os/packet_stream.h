@@ -550,6 +550,12 @@ class Packet_stream_source : private Packet_stream_base
 			                         _bulk_buffer_size);
 		}
 
+		~Packet_stream_source()
+		{
+			_packet_alloc->remove_range(_bulk_buffer_offset,
+			                            _bulk_buffer_size);
+		}
+
 		/**
 		 * Return the size of the bulk buffer.
 		 */
