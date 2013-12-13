@@ -7,7 +7,7 @@ set build_components {
 	core init
 	drivers/timer
 	drivers/sd_card
-	test/block
+	test/blk/cli
 }
 lappend_if [have_spec platform_arndale] build_components drivers/platform
 
@@ -52,7 +52,7 @@ append config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Block"/></provides>
 		</start>
-		<start name="test-block">
+		<start name="test-blk-cli">
 			<resource name="RAM" quantum="1M" />
 		</start>
 	</config> }
@@ -69,7 +69,7 @@ set boot_modules {
 	core init
 	timer
 	sd_card_drv
-	test-block
+	test-blk-cli
 }
 lappend_if [have_spec platform_arndale] boot_modules platform_drv
 

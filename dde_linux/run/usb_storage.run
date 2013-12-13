@@ -12,7 +12,7 @@ set build_components {
 	core init
 	drivers/timer
 	drivers/usb
-	test/block
+	test/blk/cli
 }
 
 lappend_if [have_spec acpi]             build_components drivers/acpi
@@ -93,7 +93,7 @@ append config {
 	</start>
 		<start name="test-usb">
 		<resource name="RAM" quantum="2M" />
-		<binary name="test-block" />
+		<binary name="test-blk-cli" />
 	</start>
 </config>
 }
@@ -105,7 +105,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer usb_drv test-block
+	core init timer usb_drv test-blk-cli
 }
 
 lappend_if [have_spec acpi]             boot_modules acpi_drv
@@ -142,7 +142,7 @@ append qemu_args {  \
 -device usb-storage,bus=ehci.0,drive=disk \
 -boot order=d }
 
-run_genode_until {.*child exited with exit value 0.*} 40
+run_genode_until {.*child exited with exit value 0.*} 100
 
 puts "\ntest succeeded\n"
 

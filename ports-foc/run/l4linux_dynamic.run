@@ -32,7 +32,7 @@ set build_components {
 	server/terminal_log
 	server/terminal_mux
 	test/affinity
-	test/block
+	test/blk/cli
 	test/gdb_monitor
 	test/input
 	test/lwip/http_srv
@@ -231,11 +231,11 @@ set config  {
 				<resource name="RAM" quantum="1M"/>
 			</subsystem>
 			<subsystem name="block_emmc" help="block device test on first eMMC partition">
-				<binary name="test-block"/>
+				<binary name="test-blk-cli"/>
 				<resource name="RAM" quantum="1M" />
 			</subsystem>
 			<subsystem name="block_usb" help="block device test on second USB disk partition">
-				<binary name="test-block"/>
+				<binary name="test-blk-cli"/>
 				<resource name="RAM" quantum="1M" />
 			</subsystem>
 			<subsystem name="vim_sata" help="VIM editor accessing the first SATA partition">
@@ -600,7 +600,7 @@ set boot_modules {
 	terminal_log
 	terminal_mux
 	test-affinity
-	test-block
+	test-blk-cli
 	timer
 	usb_drv
 	vim.tar

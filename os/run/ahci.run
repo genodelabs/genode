@@ -7,7 +7,7 @@ if {![have_spec x86_32] && ![have_spec exynos5]} {
 # Build
 #
 
-set build_components { core init drivers/timer drivers/ahci test/block }
+set build_components { core init drivers/timer drivers/ahci test/blk/cli }
 
 lappend_if [have_spec x86_32]  build_components drivers/pci
 lappend_if [have_spec acpi]    build_components drivers/acpi
@@ -93,7 +93,7 @@ append config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 	</start>
-	<start name="test-block">
+	<start name="test-blk-cli">
 		<resource name="RAM" quantum="2M" />
 		<route>
 			<service name="Block"><child name="ahci"/></service>
@@ -108,7 +108,7 @@ install_config $config
 # Boot modules
 #
 
-set boot_modules { core init timer ahci test-block }
+set boot_modules { core init timer ahci test-blk-cli }
 
 append_if [have_spec x86_32]  boot_modules { pci_drv acpi_drv }
 append_if [have_spec nova]    boot_modules pci_device_pd
@@ -137,43 +137,4 @@ if { [file exists $disk_image] == 0 } then {
 # Test
 #
 
-run_genode_until "child exited with exit value 0.*\n" 10
-
-# pay only attention to the output of test-block
-grep_output {^\[init -> test-block.*Comparing}
-
-compare_output_to {
-	[init -> test-block] Comparing block 0000000000: success
-	[init -> test-block] Comparing block 0000000640: success
-	[init -> test-block] Comparing block 0000001280: success
-	[init -> test-block] Comparing block 0000001920: success
-	[init -> test-block] Comparing block 0000002560: success
-	[init -> test-block] Comparing block 0000003200: success
-	[init -> test-block] Comparing block 0000003840: success
-	[init -> test-block] Comparing block 0000004480: success
-	[init -> test-block] Comparing block 0000005120: success
-	[init -> test-block] Comparing block 0000005760: success
-	[init -> test-block] Comparing block 0000006400: success
-	[init -> test-block] Comparing block 0000007040: success
-	[init -> test-block] Comparing block 0000007680: success
-	[init -> test-block] Comparing block 0000008320: success
-	[init -> test-block] Comparing block 0000008960: success
-	[init -> test-block] Comparing block 0000009600: success
-	[init -> test-block] Comparing block 0000010240: success
-	[init -> test-block] Comparing block 0000010880: success
-	[init -> test-block] Comparing block 0000011520: success
-	[init -> test-block] Comparing block 0000012160: success
-	[init -> test-block] Comparing block 0000012800: success
-	[init -> test-block] Comparing block 0000013440: success
-	[init -> test-block] Comparing block 0000014080: success
-	[init -> test-block] Comparing block 0000014720: success
-	[init -> test-block] Comparing block 0000015360: success
-	[init -> test-block] Comparing block 0000016000: success
-	[init -> test-block] Comparing block 0000016640: success
-	[init -> test-block] Comparing block 0000017280: success
-	[init -> test-block] Comparing block 0000017920: success
-	[init -> test-block] Comparing block 0000018560: success
-	[init -> test-block] Comparing block 0000019200: success
-	[init -> test-block] Comparing block 0000019840: success
-}
-
+run_genode_until  "Tests finished successfully.*\n" 50

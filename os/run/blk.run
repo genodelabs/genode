@@ -1,0 +1,54 @@
+#
+# \brief  Test of Block session interface
+# \author Stefan Kalkowski
+# \date   2013-12-10
+#
+
+#
+# Build
+#
+build { core init drivers/timer test/blk lib/trace/policy/rpc_name }
+create_boot_directory
+
+#
+# Generate config
+#
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="TRACE"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="test-blk-srv">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+	</start>
+	<start name="test-blk-cli">
+		<resource name="RAM" quantum="50M" />
+	</start>
+</config> }
+
+#
+# Boot modules
+#
+build_boot_image { core init timer test-blk-srv test-blk-cli rpc_name }
+
+append qemu_args " -nographic -m 64 "
+run_genode_until "Tests finished successfully.*\n" 100
