@@ -7,7 +7,7 @@ index 7b315b8..ace38d8 100644
  struct container;
  
 -#define tcb_pagerid(tcb)	((tcb)->pager->tid)
-+#define tcb_pagerid(tcb) 3
++#define tcb_pagerid(tcb) 4
  
  #define space_is_pager(tcb)	\
  	((tcb)->space->spid == (tcb)->pager->space->spid)
