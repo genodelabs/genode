@@ -280,6 +280,15 @@ namespace File_system {
 		 */
 		virtual void sigh(Node_handle, Signal_context_capability sigh) = 0;
 
+		/**
+		 * Synchronize file system
+		 *
+		 * This is only needed by file systems that maintain an internal
+		 * cache, which needs to be flushed on certain occasions. Therefore,
+		 * the default implementation just serves as a reminder.
+		 */
+		virtual void sync() { PWRN("sync() not implemented!"); }
+
 
 		/*******************
 		 ** RPC interface **
@@ -317,6 +326,7 @@ namespace File_system {
 		GENODE_RPC_THROW(Rpc_sigh, void, sigh,
 		                 GENODE_TYPE_LIST(Invalid_handle),
 		                 Node_handle, Signal_context_capability);
+		GENODE_RPC(Rpc_sync, void, sync);
 
 		/*
 		 * Manual type-list definition, needed because the RPC interface
@@ -335,8 +345,9 @@ namespace File_system {
 		        Meta::Type_tuple<Rpc_truncate,
 		        Meta::Type_tuple<Rpc_move,
 		        Meta::Type_tuple<Rpc_sigh,
+		        Meta::Type_tuple<Rpc_sync,
 		                         Meta::Empty>
-		        > > > > > > > > > > > Rpc_functions;
+		        > > > > > > > > > > > > Rpc_functions;
 	};
 }
 

@@ -104,6 +104,11 @@ namespace File_system {
 			{
 				call<Rpc_sigh>(node, sigh);
 			}
+
+			void sync()
+			{
+				call<Rpc_sync>();
+			}
 	};
 }
 
