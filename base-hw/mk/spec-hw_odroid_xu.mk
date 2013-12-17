@@ -7,6 +7,9 @@
 # denote wich specs are also fullfilled by this spec
 SPECS += hw platform_odroid_xu
 
+# configure multiprocessor mode
+PROCESSORS = 1
+
 # add repository relative paths
 REP_INC_DIR += include/exynos5_uart
 

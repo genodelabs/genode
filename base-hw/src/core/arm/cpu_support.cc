@@ -77,8 +77,7 @@ Thread_event Thread::* Thread::_event(unsigned const id) const
 
 void Thread::_mmu_exception()
 {
-	cpu_scheduler()->remove(this);
-	_state = AWAITS_RESUME;
+	_unschedule(AWAITS_RESUME);
 	if (in_fault(_fault_addr, _fault_writes)) {
 		_fault_tlb    = (addr_t)_pd->tlb();
 		_fault_signal = _fault.signal_context_id();
@@ -87,3 +86,10 @@ void Thread::_mmu_exception()
 	}
 	PERR("unknown MMU exception");
 }
+
+
+/*************************
+ ** Kernel::Cpu_context **
+ *************************/
+
+void Kernel::Cpu_context::_init(size_t const stack_size) { r12 = stack_size; }

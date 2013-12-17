@@ -143,6 +143,11 @@ namespace Imx31
 			}
 
 			/**
+			 * Initialize processor local interface of the controller
+			 */
+			void init_processor_local() { }
+
+			/**
 			 * Receive a pending request number 'i'
 			 */
 			bool take_request(unsigned & i)
@@ -182,10 +187,16 @@ namespace Imx31
 			}
 
 			/**
-			 * Unmask interrupt 'i'
+			 * Unmask interrupt
+			 *
+			 * \param interrupt_id  kernel name of targeted interrupt
 			 */
-			void unmask(unsigned const i) {
-				if (i <= MAX_INTERRUPT_ID) write<Intennum>(i); }
+			void unmask(unsigned const interrupt_id, unsigned)
+			{
+				if (interrupt_id <= MAX_INTERRUPT_ID) {
+					write<Intennum>(interrupt_id);
+				}
+			}
 
 			/**
 			 * Mask interrupt 'i'

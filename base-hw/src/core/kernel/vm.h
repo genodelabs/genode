@@ -21,6 +21,7 @@
 #include <kernel/scheduler.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
+#include <kernel/multiprocessor.h>
 #include <kernel/signal_receiver.h>
 #include <cpu.h>
 
@@ -48,6 +49,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 			Genode::addr_t dfar;
 		};
 
+		Processor      * const _processor;
 		Vm_state       * const _state;
 		Signal_context * const _context;
 
@@ -63,6 +65,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		   Signal_context * const context)
 		:
 			Execution_context(Priority::MIN),
+			_processor(multiprocessor()->primary()),
 			_state((Vm_state * const)state), _context(context)
 		{ }
 
@@ -71,31 +74,34 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 ** Vm_session **
 		 ****************/
 
-		void run()   { cpu_scheduler()->insert(this); }
+		void run()   { _processor->scheduler()->insert(this); }
 
-		void pause() { cpu_scheduler()->remove(this); }
+		void pause() { _processor->scheduler()->remove(this); }
 
 
 		/***********************
 		 ** Execution_context **
 		 ***********************/
 
-		void handle_exception()
+		void handle_exception(unsigned const processor_id)
 		{
 			switch(_state->cpu_exception) {
 			case Genode::Cpu_state::INTERRUPT_REQUEST:
 			case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-				handle_interrupt();
+				handle_interrupt(_processor, processor_id);
 				return;
 			case Genode::Cpu_state::DATA_ABORT:
 				_state->dfar = Genode::Cpu::Dfar::read();
 			default:
-				cpu_scheduler()->remove(this);
+				_processor->scheduler()->remove(this);
 				_context->submit(1);
 			}
 		}
 
-		void proceed() { mtc()->continue_vm(_state); }
+		void proceed(unsigned const processor_id)
+		{
+			mtc()->continue_vm(_state, processor_id);
+		}
 };
 
 #endif /* _KERNEL__VM_H_ */

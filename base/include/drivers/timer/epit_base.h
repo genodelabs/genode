@@ -114,23 +114,10 @@ namespace Genode
 
 				/* disable timer */
 				write<Cr::En>(0);
-				clear_interrupt();
+				clear_interrupt(0);
 			}
 
-		public:
-
-			/**
-			 * Constructor
-			 */
-			Epit_base(addr_t base) : Mmio(base) { _reset(); }
-
-			/**
-			 * Start a one-shot run
-			 *
-			 * \param tics  native timer value used to assess the delay
-			 *              of the timer interrupt as of the call
-			 */
-			void start_one_shot(unsigned const tics)
+			void _start_one_shot(unsigned const tics)
 			{
 				/* stop timer */
 				_reset();
@@ -142,6 +129,23 @@ namespace Genode
 
 				/* start timer */
 				write<Cr::En>(1);
+			}
+
+		public:
+
+			/**
+			 * Constructor
+			 */
+			Epit_base(addr_t base) : Mmio(base) { _reset(); }
+
+			/**
+			 * Start single timeout run
+			 *
+			 * \param tics  delay of timer interrupt
+			 */
+			void start_one_shot(unsigned const tics, unsigned)
+			{
+				_start_one_shot(tics);
 			}
 
 			/**
@@ -161,7 +165,7 @@ namespace Genode
 			/**
 			 * Clear interrupt output line
 			 */
-			void clear_interrupt() { write<Sr::Ocif>(1); }
+			void clear_interrupt(unsigned) { write<Sr::Ocif>(1); }
 
 			/**
 			 * Translate milliseconds to a native timer value

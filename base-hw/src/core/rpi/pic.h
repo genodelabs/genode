@@ -58,6 +58,8 @@ namespace Kernel
 
 			Pic() : Genode::Mmio(Genode::Board::IRQ_CONTROLLER_BASE) { mask(); }
 
+			void init_processor_local() { }
+
 			bool take_request(unsigned &irq)
 			{
 				/* read basic IRQ status mask */
@@ -96,7 +98,7 @@ namespace Kernel
 				write<Irq_disable_gpu_2>(~0);
 			}
 
-			void unmask(unsigned const i)
+			void unmask(unsigned const i, unsigned)
 			{
 				if (i < 8)
 					write<Irq_enable_basic>(1 << i);

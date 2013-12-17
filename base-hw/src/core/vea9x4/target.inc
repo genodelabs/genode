@@ -8,6 +8,7 @@
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/vea9x4
 INC_DIR += $(REP_DIR)/src/core/arm
+INC_DIR += $(REP_DIR)/src/core/arm_v7
 
 # add C++ sources
 SRC_CC += platform_services.cc \

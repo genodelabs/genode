@@ -22,7 +22,20 @@ namespace Genode
 	/**
 	 * CPU driver for core
 	 */
-	class Cpu : public Cortex_a9::Cpu { };
+	class Cpu : public Cortex_a9::Cpu
+	{
+		public:
+
+			/**
+			 * Return kernel name of the primary processor
+			 */
+			static unsigned primary_id() { return 0; }
+
+			/**
+			 * Return kernel name of the executing processor
+			 */
+			static unsigned id() { return primary_id(); }
+	};
 }
 
 #endif /* _PANDA__CPU_H_ */

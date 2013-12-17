@@ -11,6 +11,24 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+.include "macros.s"
+
+
+/***************
+ ** Constants **
+ ***************/
+
+/* size of local variables */
+.set buffer_size, 1 * 4
+
+/* common constants */
+_mt_constants
+
+
+/************
+ ** Macros **
+ ************/
+
 /**
  * Invalidate all entries of the branch prediction cache
  *
@@ -22,7 +40,7 @@
  */
 .macro _flush_branch_predictor
 	mcr p15, 0, sp, c7, c5, 6
-/*	swi 0xf00000 */
+	/*swi 0xf00000 */
 .endm
 
 /**
@@ -47,13 +65,13 @@
 
 	/* load kernel cidr */
 	adr sp, _mt_master_context_begin
-	ldr sp, [sp, #18*4]
+	ldr sp, [sp, #contextidr_offset]
 	mcr p15, 0, sp, c13, c0, 1
 	_flush_branch_predictor
 
 	/* load kernel section table */
 	adr sp, _mt_master_context_begin
-	ldr sp, [sp, #19*4]
+	ldr sp, [sp, #section_table_offset]
 	mcr p15, 0, sp, c2, c0, 0
 	_flush_branch_predictor
 
@@ -72,22 +90,22 @@
 	stmia sp, {r0-r12}^
 
 	/* save user lr and sp */
-	add r0, sp, #13*4
+	add r0, sp, #sp_offset
 	stmia r0, {sp,lr}^
 
 	/* adjust and save user pc */
 	.if \pc_adjust != 0
 		sub lr, lr, #\pc_adjust
 	.endif
-	str lr, [sp, #15*4]
+	str lr, [sp, #pc_offset]
 
 	/* save user psr */
 	mrs r0, spsr
-	str r0, [sp, #16*4]
+	str r0, [sp, #psr_offset]
 
 	/* save type of exception that interrupted the user */
 	mov r0, #\exception_type
-	str r0, [sp, #17*4]
+	str r0, [sp, #exception_type_offset]
 
 	/*
 	 * Switch to supervisor mode
@@ -102,133 +120,123 @@
 	adr r0, _mt_master_context_begin
 
 	/* load kernel context */
-	add r0, r0, #13*4
-	ldmia r0, {sp, lr, pc}
+	add r0, r0, #sp_offset
+	ldm r0, {sp, lr, pc}
 
 .endm
 
 
+/**********************************
+ ** Linked into the text section **
+ **********************************/
+
 .section .text
 
 	/*
-	 * The mode transition PIC switches between a kernel context and a user
-	 * context and thereby between their address spaces. Due to the latter
+	 * Page aligned base of mode transition code.
+	 *
+	 * This position independent code switches between a kernel context and a
+	 * user context and thereby between their address spaces. Due to the latter
 	 * it must be mapped executable to the same region in every address space.
 	 * To enable such switching, the kernel context must be stored within this
 	 * region, thus one should map it solely accessable for privileged modes.
 	 */
-	.p2align 12
+	.p2align min_page_size_log2
 	.global _mt_begin
 	_mt_begin:
 
-		/*
-		 * On user exceptions the CPU has to jump to one of the following
-		 * 7 entry vectors to switch to a kernel context.
-		 */
-		.global _mt_kernel_entry_pic
-		_mt_kernel_entry_pic:
+	/*
+	 * On user exceptions the CPU has to jump to one of the following
+	 * seven entry vectors to switch to a kernel context.
+	 */
+	.global _mt_kernel_entry_pic
+	_mt_kernel_entry_pic:
 
-			b _rst_entry /* 0x00: reset                  */
-			b _und_entry /* 0x04: undefined instruction  */
-			b _swi_entry /* 0x08: software interrupt     */
-			b _pab_entry /* 0x0c: prefetch abort         */
-			b _dab_entry /* 0x10: data abort             */
-			nop          /* 0x14: reserved               */
-			b _irq_entry /* 0x18: interrupt request      */
-			b _fiq_entry /* 0x1c: fast interrupt request */
+	b _rst_entry /* 0x00: reset                  */
+	b _und_entry /* 0x04: undefined instruction  */
+	b _swi_entry /* 0x08: software interrupt     */
+	b _pab_entry /* 0x0c: prefetch abort         */
+	b _dab_entry /* 0x10: data abort             */
+	nop          /* 0x14: reserved               */
+	b _irq_entry /* 0x18: interrupt request      */
+	b _fiq_entry /* 0x1c: fast interrupt request */
 
-			/* PICs that switch from an user exception to the kernel */
-			_rst_entry: _user_to_kernel_pic 1, 0
-			_und_entry: _user_to_kernel_pic 2, 4
-			_swi_entry:
+	/* PICs that switch from a user exception to the kernel */
+	_rst_entry: _user_to_kernel_pic rst_type, rst_pc_adjust
+	_und_entry: _user_to_kernel_pic und_type, und_pc_adjust
+	_swi_entry:
 
-				/*
-				 * FIXME fast SWI routines pollute the SVC SP but we have
-				 *       to call them especially in SVC mode
-				 */
+	/*
+	 * FIXME fast SWI routines pollute the SVC SP but we have
+	 *       to call them especially in SVC mode
+	 */
 
-				/* check if SWI requests a fast service routine */
-/*				ldr sp, [r14, #-0x4]
-				and sp, sp, #0xffffff
-*/
-				/* fast "instruction barrier" service routine */
-/*				cmp sp, #0xf00000
-				bne _mt_slow_swi
-				movs pc, r14
-*/
-				/* slow high level service routine */
-				_mt_slow_swi:
-				_user_to_kernel_pic 3, 0
+	/* check if SWI requests a fast service routine */
+	/*ldr sp, [r14, #-0x4]*/
+	/*and sp, sp, #0xffffff*/
 
-			_pab_entry: _user_to_kernel_pic 4, 4
-			_dab_entry: _user_to_kernel_pic 5, 8
-			_irq_entry: _user_to_kernel_pic 6, 4
-			_fiq_entry: _user_to_kernel_pic 7, 4
+	/* fast "instruction barrier" service routine */
+	/*cmp sp, #0xf00000*/
+	/*bne _slow_swi_entry*/
+	/*movs pc, r14*/
 
-		/* kernel must jump to this point to switch to a user context */
-		.p2align 2
-		.global _mt_user_entry_pic
-		_mt_user_entry_pic:
+	/* slow high level service routine */
+	_slow_swi_entry: _user_to_kernel_pic svc_type, svc_pc_adjust
 
-			/* get user context pointer */
-			ldr lr, _mt_client_context_ptr
+	_pab_entry: _user_to_kernel_pic pab_type, pab_pc_adjust
+	_dab_entry: _user_to_kernel_pic dab_type, dab_pc_adjust
+	_irq_entry: _user_to_kernel_pic irq_type, irq_pc_adjust
+	_fiq_entry: _user_to_kernel_pic fiq_type, fiq_pc_adjust
 
-			/* buffer user pc */
-			ldr r0, [lr, #15*4]
-			adr r1, _mt_buffer
-			str r0, [r1]
+	/* kernel must jump to this point to switch to a user context */
+	.p2align 2
+	.global _mt_user_entry_pic
+	_mt_user_entry_pic:
 
-			/* buffer user psr */
-			ldr r0, [lr, #16*4]
-			msr spsr, r0
+	/* get user context pointer */
+	ldr lr, _mt_client_context_ptr
 
-			/* load user r0 ... r12 */
-			ldmia lr, {r0-r12}
+	/* buffer user pc */
+	ldr r0, [lr, #pc_offset]
+	adr r1, _mt_buffer
+	str r0, [r1]
 
-			/* load user sp and lr */
-			add sp, lr, #13*4
-			ldmia sp, {sp,lr}^
+	/* buffer user psr */
+	ldr r0, [lr, #psr_offset]
+	msr spsr, r0
 
-			/* get user cidr and section table */
-			ldr sp, [lr, #18*4]
-			ldr lr, [lr, #19*4]
+	/* load user r0 ... r12 */
+	ldm lr, {r0-r12}
 
-			/********************************************************
-			 ** From now on, until we leave kernel mode, we must   **
-			 ** avoid access to memory that is not mapped globally **
-			 ********************************************************/
+	/* load user sp and lr */
+	add sp, lr, #sp_offset
+	ldm sp, {sp,lr}^
 
-			/* apply user contextidr and section table */
-			mcr p15, 0, sp, c13, c0, 1
-			mcr p15, 0, lr, c2, c0, 0
-			_flush_branch_predictor
+	/* get user cidr and section table */
+	ldr sp, [lr, #contextidr_offset]
+	ldr lr, [lr, #section_table_offset]
 
-			/* load user pc (implies application of the user psr) */
-			adr lr, _mt_buffer
-			ldmia lr, {pc}^
+	/********************************************************
+	 ** From now on, until we leave kernel mode, we must   **
+	 ** avoid access to memory that is not mapped globally **
+	 ********************************************************/
 
-		/* leave some space for the kernel context */
-		.p2align 2
-		.global _mt_master_context_begin
-		_mt_master_context_begin: .space 32*4
-		.global _mt_master_context_end
-		_mt_master_context_end:
+	/* apply user contextidr and section table */
+	mcr p15, 0, sp, c13, c0, 1
+	mcr p15, 0, lr, c2, c0, 0
+	_flush_branch_predictor
 
-		/* pointer to the context backup space */
-		.p2align 2
-		.global _mt_client_context_ptr
-		_mt_client_context_ptr: .long 0
+	/* load user pc (implies application of the user psr) */
+	adr lr, _mt_buffer
+	ldm lr, {pc}^
 
-		/* a local word-sized buffer */
-		.p2align 2
-		.global _mt_buffer
-		_mt_buffer: .long 0
+	_mt_local_variables
 
 	.p2align 2
 	.global _mt_end
 	_mt_end:
 
-	/* FIXME this exists only because _vm_mon_entry pollutes kernel.cc */
+	/* FIXME exists only because _vm_mon_entry pollutes generic kernel code */
 	.global _mt_vm_entry_pic
 	_mt_vm_entry_pic:
 	1: b 1b

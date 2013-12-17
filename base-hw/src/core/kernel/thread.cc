@@ -21,7 +21,9 @@
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 #include <kernel/vm.h>
+#include <kernel/irq.h>
 #include <platform_pd.h>
+#include <pic.h>
 
 using namespace Kernel;
 
@@ -31,12 +33,12 @@ unsigned Thread::pd_id() const { return _pd ? _pd->id() : 0; }
 
 bool Thread::_core() const { return pd_id() == core_id(); }
 
+namespace Kernel { void reset_lap_time(unsigned const processor_id); }
 
 void Thread::_signal_context_kill_pending()
 {
 	assert(_state == SCHEDULED);
-	_state = AWAITS_SIGNAL_CONTEXT_KILL;
-	cpu_scheduler()->remove(this);
+	_unschedule(AWAITS_SIGNAL_CONTEXT_KILL);
 }
 
 
@@ -58,8 +60,7 @@ void Thread::_signal_context_kill_failed()
 
 void Thread::_await_signal(Signal_receiver * const receiver)
 {
-	cpu_scheduler()->remove(this);
-	_state = AWAITS_SIGNAL;
+	_unschedule(AWAITS_SIGNAL);
 	_signal_receiver = receiver;
 }
 
@@ -90,8 +91,7 @@ void Thread::_await_ipc()
 {
 	switch (_state) {
 	case SCHEDULED:
-		cpu_scheduler()->remove(this);
-		_state = AWAITS_IPC;
+		_unschedule(AWAITS_IPC);
 		return;
 	default:
 		PERR("wrong thread state to await IPC");
@@ -159,15 +159,22 @@ int Thread::_resume()
 void Thread::_pause()
 {
 	assert(_state == AWAITS_RESUME || _state == SCHEDULED);
-	cpu_scheduler()->remove(this);
-	_state = AWAITS_RESUME;
+	_unschedule(AWAITS_RESUME);
 }
 
 
 void Thread::_schedule()
 {
-	cpu_scheduler()->insert(this);
+	if (_state == SCHEDULED) { return; }
+	_processor->scheduler()->insert(this);
 	_state = SCHEDULED;
+}
+
+
+void Thread::_unschedule(State const s)
+{
+	if (_state == SCHEDULED) { _processor->scheduler()->remove(this); }
+	_state = s;
 }
 
 
@@ -184,17 +191,17 @@ Thread::Thread(unsigned const priority, char const * const label)
 	cpu_exception = RESET;
 }
 
+Thread::~Thread() { if (Execution_context::list()) { _unschedule(STOPPED); } }
+
 
 void
-Thread::init(unsigned const cpu_id, unsigned const pd_id_arg,
+Thread::init(Processor * const processor, unsigned const pd_id_arg,
              Native_utcb * const utcb_phys, bool const start)
 {
 	assert(_state == AWAITS_START)
 
-	/* FIXME: support SMP */
-	if (cpu_id) { PERR("multicore processing not supported"); }
-
 	/* store thread parameters */
+	_processor = processor;
 	_utcb_phys = utcb_phys;
 
 	/* join protection domain */
@@ -213,18 +220,14 @@ Thread::init(unsigned const cpu_id, unsigned const pd_id_arg,
 }
 
 
-void Thread::_stop()
-{
-	if (_state == SCHEDULED) { cpu_scheduler()->remove(this); }
-	_state = STOPPED;
-}
+void Thread::_stop() { _unschedule(STOPPED); }
 
 
-void Thread::handle_exception()
+void Thread::handle_exception(unsigned const processor_id)
 {
 	switch (cpu_exception) {
 	case SUPERVISOR_CALL:
-		_call();
+		_call(processor_id);
 		return;
 	case PREFETCH_ABORT:
 		_mmu_exception();
@@ -233,17 +236,17 @@ void Thread::handle_exception()
 		_mmu_exception();
 		return;
 	case INTERRUPT_REQUEST:
-		handle_interrupt();
+		handle_interrupt(_processor, processor_id);
 		return;
 	case FAST_INTERRUPT_REQUEST:
-		handle_interrupt();
+		handle_interrupt(_processor, processor_id);
 		return;
 	case RESET:
 		return;
 	default:
 		PERR("unknown exception");
 		_stop();
-		reset_lap_time();
+		reset_lap_time(processor_id);
 	}
 }
 
@@ -255,9 +258,9 @@ void Thread::_receive_yielded_cpu()
 }
 
 
-void Thread::proceed()
+void Thread::proceed(unsigned const processor_id)
 {
-	mtc()->continue_user(static_cast<Cpu::Context *>(this));
+	mtc()->continue_user(this, processor_id);
 }
 
 
@@ -366,8 +369,14 @@ void Thread::_call_start_thread()
 		user_arg_0(0);
 		return;
 	}
-	/* start thread */
-	t->init(cpu_id, pd_id, utcb, 1);
+	/*
+	 * Start thread
+	 *
+	 * FIXME: The affinity of a thread is ignored by now.
+	 *        Instead we always assign the primary processor.
+	 */
+	if (cpu_id) { PERR("multiprocessing not supported"); }
+	t->init(multiprocessor()->primary(), pd_id, utcb, 1);
 	user_arg_0((Call_ret)t->_pd->tlb());
 }
 
@@ -437,7 +446,7 @@ void Thread::_call_yield_thread()
 {
 	Thread * const t = Thread::pool()->object(user_arg_1());
 	if (t) { t->_receive_yielded_cpu(); }
-	cpu_scheduler()->yield();
+	_processor->scheduler()->yield();
 }
 
 
@@ -614,14 +623,8 @@ void Thread::_print_activity_table()
 
 void Thread::_print_activity(bool const printing_thread)
 {
-	static Thread * idle = dynamic_cast<Thread *>(cpu_scheduler()->idle());
 	Genode::printf("\033[33m[%u] %s", pd_id(), pd_label());
 	Genode::printf(" (%u) %s:\033[0m", id(), label());
-	if (id() == idle->id()) {
-		Genode::printf("\033[32m run\033[0m");
-		_print_common_activity();
-		return;
-	}
 	switch (_state) {
 	case AWAITS_START: {
 		Genode::printf("\033[32m init\033[0m");
@@ -935,7 +938,7 @@ int Thread::_write_reg(addr_t const id, addr_t const value)
 }
 
 
-void Thread::_call()
+void Thread::_call(unsigned const processor_id)
 {
 	switch (user_arg_0()) {
 	case Call_id::NEW_THREAD:           _call_new_thread(); return;
@@ -969,6 +972,6 @@ void Thread::_call()
 	default:
 		PERR("unknown kernel call");
 		_stop();
-		reset_lap_time();
+		reset_lap_time(processor_id);
 	}
 }

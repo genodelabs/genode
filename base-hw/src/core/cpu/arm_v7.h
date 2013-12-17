@@ -222,6 +222,38 @@ namespace Arm_v7
 			                     Nsacr::Cpnsae11::bits(1);
 			asm volatile ("mcr p15, 0, %[rd], c1, c1, 2" : : [rd] "r" (rd));
 		}
+
+		/**
+		 * Invalidate all predictions about the future control-flow
+		 */
+		static void invalidate_control_flow_predictions()
+		{
+			asm volatile ("mcr p15, 0, r0, c7, c5, 6");
+		}
+
+		/**
+		 * Finish all previous data transfers
+		 */
+		static void data_synchronization_barrier() { asm volatile ("dsb"); }
+
+		/**
+		 * Enable secondary processors that loop on wait-for-event
+		 *
+		 * \param ip  initial instruction pointer for secondary processors
+		 */
+		static void start_secondary_processors(void * const ip)
+		{
+			if (PROCESSORS > 1) {
+				Genode::Board::secondary_processors_ip(ip);
+				data_synchronization_barrier();
+				asm volatile ("sev\n");
+			}
+		}
+
+		/**
+		 * Wait for the next interrupt as cheap as possible
+		 */
+		static void wait_for_interrupt() { asm volatile ("wfi"); }
 	};
 }
 

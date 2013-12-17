@@ -12,9 +12,33 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/************
+ ** Macros **
+ ************/
+
+.include "macros.s"
+
+
+/**
+ * Get base of the first kernel-stack and the common kernel-stack size
+ *
+ * \param base_dst_reg  register that shall receive the stack-area base
+ * \param size_dst_reg  register that shall receive the size of a kernel stack
+ */
+.macro _get_constraints_of_kernel_stacks base_dst_reg, size_dst_reg
+
+	ldr \base_dst_reg, =kernel_stack
+	ldr \size_dst_reg, =kernel_stack_size
+	ldr \size_dst_reg, [\size_dst_reg]
+.endm
+
+
 .section ".text.crt0"
 
-	/* program entry-point */
+	/****************************************
+	 ** Startup code for primary processor **
+	 ****************************************/
+
 	.global _start
 	_start:
 
@@ -40,22 +64,29 @@
 	b 1b
 	2:
 
-	/* prepare the first call of the kernel main-routine */
-	ldr sp, =_kernel_stack_high
-	bl setup_kernel
+	/* setup temporary stack pointer for uniprocessor mode */
+	_get_constraints_of_kernel_stacks r0, r1
+	add sp, r0, r1
+
+	/* uniprocessor kernel-initialization which activates multiprocessor */
+	bl init_kernel_uniprocessor
+
+	/***************************************************
+	 ** Startup code that is common to all processors **
+	 ***************************************************/
+
+	.global _start_secondary_processors
+	_start_secondary_processors:
+
+	/* setup multiprocessor-aware kernel stack-pointer */
+	_get_constraints_of_kernel_stacks r0, r1
+	_init_kernel_sp r0, r1
+
+	/* do multiprocessor kernel-initialization */
+	bl init_kernel_multiprocessor
 
 	/* call the kernel main-routine */
-	ldr sp, =_kernel_stack_high
 	bl kernel
 
 	/* catch erroneous return of the kernel main-routine */
-	3: b 3b
-
-.section .bss
-
-	/* kernel stack, must be aligned to an 8-byte boundary */
-	.align 3
-	.space 64 * 1024
-	.global _kernel_stack_high
-	_kernel_stack_high:
-
+	1: b 1b

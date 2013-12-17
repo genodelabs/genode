@@ -51,9 +51,9 @@ namespace Cortex_a9
 			struct Event : Bitfield<0,1> { }; /* if counter hit zero */
 		};
 
-		public:
+		void _clear_interrupt() { write<Interrupt_status::Event>(1); }
 
-			enum { IRQ = Cortex_a9::Cpu::PRIVATE_TIMER_IRQ };
+		public:
 
 			/**
 			 * Constructor, clears the interrupt output
@@ -61,16 +61,26 @@ namespace Cortex_a9
 			Timer() : Mmio(Cortex_a9::Cpu::PRIVATE_TIMER_MMIO_BASE)
 			{
 				write<Control::Timer_enable>(0);
-				clear_interrupt();
+				_clear_interrupt();
 			}
 
 			/**
-			 * Start one-shot run with an IRQ delay of 'tics'
+			 * Return kernel name of timer interrupt
 			 */
-			inline void start_one_shot(uint32_t const tics)
+			static unsigned interrupt_id(unsigned)
+			{
+				return Cortex_a9::Cpu::PRIVATE_TIMER_IRQ;
+			}
+
+			/**
+			 * Start single timeout run
+			 *
+			 * \param tics  delay of timer interrupt
+			 */
+			inline void start_one_shot(unsigned const tics, unsigned)
 			{
 				/* reset timer */
-				clear_interrupt();
+				_clear_interrupt();
 				Control::access_t control = 0;
 				Control::Irq_enable::set(control, 1);
 				write<Control>(control);
@@ -91,10 +101,7 @@ namespace Cortex_a9
 			/**
 			 * Clear interrupt output line
 			 */
-			void clear_interrupt()
-			{
-				write<Interrupt_status::Event>(1);
-			}
+			void clear_interrupt(unsigned) { _clear_interrupt(); }
 	};
 }
 

@@ -47,9 +47,12 @@ class Kernel::Timer : public Genode::Mmio
 
 		Timer() : Mmio(Board_base::SYSTEM_TIMER_MMIO_BASE) { }
 
-		enum { IRQ = Board_base::SYSTEM_TIMER_IRQ };
+		static unsigned interrupt_id(unsigned)
+		{
+			return Board_base::SYSTEM_TIMER_IRQ;
+		}
 
-		inline void start_one_shot(uint32_t const tics)
+		inline void start_one_shot(uint32_t const tics, unsigned)
 		{
 			write<Clo>(0);
 			write<Cmp>(read<Clo>() + tics);
@@ -61,7 +64,7 @@ class Kernel::Timer : public Genode::Mmio
 			return (Board_base::SYSTEM_TIMER_CLOCK / 1000) * ms;
 		}
 
-		void clear_interrupt()
+		void clear_interrupt(unsigned)
 		{
 			write<Cs::Status>(1);
 			read<Cs>();

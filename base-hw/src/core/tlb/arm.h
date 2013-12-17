@@ -67,10 +67,6 @@ namespace Arm
 
 	/**
 	 * Second level translation table
-	 *
-	 * A table is dedicated to either secure or non-secure mode. All
-	 * translations done by this table apply to domain 0. They are not
-	 * shareable and have zero-filled memory region attributes.
 	 */
 	class Page_table
 	{
@@ -371,12 +367,6 @@ namespace Arm
 
 	/**
 	 * First level translation table
-	 *
-	 * A table is dedicated to either secure or non-secure mode. All
-	 * translations done by this table apply to domain 0. They are not
-	 * shareable and have zero-filled memory region attributes. The size
-	 * of this table is fixed to such a value that this table translates
-	 * a space wich is addressable by 32 bit.
 	 */
 	class Section_table
 	{

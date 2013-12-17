@@ -27,7 +27,13 @@ namespace Imx53
 	{
 		public:
 
-			enum { IRQ = Board::EPIT_1_IRQ };
+			/**
+			 * Return kernel name of timer interrupt
+			 */
+			static unsigned interrupt_id(unsigned)
+			{
+				return Board::EPIT_1_IRQ;
+			}
 
 			/**
 			 * Constructor

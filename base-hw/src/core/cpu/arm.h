@@ -38,6 +38,24 @@ namespace Arm
 		};
 
 		/**
+		 * Multiprocessor affinity register
+		 */
+		struct Mpidr : Register<32>
+		{
+			struct Aff_0 : Bitfield<0, 8> { };
+
+			/**
+			 * Read register value
+			 */
+			static access_t read()
+			{
+				access_t v;
+				asm volatile ("mrc p15, 0, %[v], c0, c0, 5" : [v] "=r" (v) ::);
+				return v;
+			}
+		};
+
+		/**
 		 * Cache type register
 		 */
 		struct Ctr : Register<32>
@@ -574,10 +592,13 @@ namespace Arm
 		};
 
 		/**
-		 * Flush all instruction caches
+		 * Invalidate all entries of all instruction caches
 		 */
-		__attribute__((always_inline)) static void flush_instr_caches() {
-			asm volatile ("mcr p15, 0, %[rd], c7, c5, 0" :: [rd]"r"(0) : ); }
+		__attribute__((always_inline))
+		static void invalidate_instruction_caches()
+		{
+			asm volatile ("mcr p15, 0, %[rd], c7, c5, 0" :: [rd]"r"(0) : );
+		}
 
 		/**
 		 * Flush all data caches
@@ -590,7 +611,7 @@ namespace Arm
 		static void flush_caches()
 		{
 			flush_data_caches();
-			flush_instr_caches();
+			invalidate_instruction_caches();
 		}
 
 		/**

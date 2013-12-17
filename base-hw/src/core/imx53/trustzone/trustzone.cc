@@ -22,8 +22,13 @@
 extern int _mon_kernel_entry;
 
 
-void Kernel::trustzone_initialization(Pic *pic)
+void Kernel::init_trustzone(Pic * pic)
 {
+	/* check for compatibility */
+	if (PROCESSORS > 1) {
+		PERR("trustzone not supported with multiprocessing");
+		return;
+	}
 	/* set exception vector entry */
 	Genode::Cpu::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
 

@@ -26,81 +26,149 @@ namespace Exynos_mct
 	 */
 	class Timer : public Mmio
 	{
-		enum {
-			PRESCALER = 1,
-			DIV_MUX   = 0,
-		};
+		private:
 
-		/**
-		 * MCT configuration
-		 */
-		struct Mct_cfg : Register<0x0, 32>
-		{
-			struct Prescaler    : Bitfield<0, 8>  { };
-			struct Div_mux      : Bitfield<8, 3>  { };
-		};
+			enum {
+				PRESCALER = 1,
+				DIV_MUX   = 0,
+			};
 
-		/**
-		 * Local timer 0 free running counter buffer
-		 */
-		struct L0_frcntb : Register<0x310, 32> { };
+			/**
+			 * MCT configuration
+			 */
+			struct Mct_cfg : Register<0x0, 32>
+			{
+				struct Prescaler : Bitfield<0, 8>  { };
+				struct Div_mux   : Bitfield<8, 3>  { };
+			};
 
-		/**
-		 * Local timer 0 configuration
-		 */
-		struct L0_tcon : Register<0x320, 32>
-		{
-			struct Frc_start : Bitfield<3, 1> { };
-		};
 
-		/**
-		 * Local timer 0 expired status
-		 */
-		struct L0_int_cstat : Register<0x330, 32, true>
-		{
-			struct Frcnt : Bitfield<1, 1> { };
-		};
+			/*******************
+			 ** Local timer 0 **
+			 *******************/
 
-		/**
-		 * Local timer 0 interrupt enable
-		 */
-		struct L0_int_enb : Register<0x334, 32>
-		{
-			struct Frceie : Bitfield<1, 1> { };
-		};
+			/**
+			 * Free running counter buffer
+			 */
+			struct L0_frcntb : Register<0x310, 32> { };
 
-		/**
-		 * Local timer 0 write status
-		 */
-		struct L0_wstat : Register<0x340, 32, true>
-		{
-			struct Frcntb : Bitfield<2, 1> { };
-			struct Tcon   : Bitfield<3, 1> { };
-		};
+			/**
+			 * Configuration
+			 */
+			struct L0_tcon : Register<0x320, 32>
+			{
+				struct Frc_start : Bitfield<3, 1> { };
+			};
 
-		/**
-		 * Write to reg that replies via ack bit and clear ack bit
-		 */
-		template <typename DEST, typename ACK>
-		void _acked_write(typename DEST::Register_base::access_t const v)
-		{
-			typedef typename DEST::Register_base Dest;
-			typedef typename ACK::Bitfield_base  Ack;
-			write<Dest>(v);
-			while (!read<Ack>());
-			write<Ack>(1);
-		}
+			/**
+			 * Expired status
+			 */
+			struct L0_int_cstat : Register<0x330, 32, true>
+			{
+				struct Frcnt : Bitfield<1, 1> { };
+			};
 
-		unsigned long const _tics_per_ms;
+			/**
+			 * Interrupt enable
+			 */
+			struct L0_int_enb : Register<0x334, 32>
+			{
+				struct Frceie : Bitfield<1, 1> { };
+			};
 
-		/**
-		 * Start and stop counting
-		 */
-		void _run(bool const run)
-		{
-			_acked_write<L0_tcon, L0_wstat::Tcon>
-				(L0_tcon::Frc_start::bits(run));
-		}
+			/**
+			 * Write status
+			 */
+			struct L0_wstat : Register<0x340, 32, true>
+			{
+				struct Frcntb : Bitfield<2, 1> { };
+				struct Tcon   : Bitfield<3, 1> { };
+			};
+
+			struct L0_frcnto : Register<0x314, 32> { };
+
+			/**
+			 * Start and stop counting
+			 */
+			void _run_0(bool const run)
+			{
+				_acked_write<L0_tcon, L0_wstat::Tcon>
+					(L0_tcon::Frc_start::bits(run));
+			}
+
+
+			/*******************
+			 ** Local timer 1 **
+			 *******************/
+
+			/**
+			 * Free running counter buffer
+			 */
+			struct L1_frcntb : Register<0x410, 32> { };
+
+			/**
+			 * Configuration
+			 */
+			struct L1_tcon : Register<0x420, 32>
+			{
+				struct Frc_start : Bitfield<3, 1> { };
+			};
+
+			/**
+			 * Expired status
+			 */
+			struct L1_int_cstat : Register<0x430, 32, true>
+			{
+				struct Frcnt : Bitfield<1, 1> { };
+			};
+
+			/**
+			 * Interrupt enable
+			 */
+			struct L1_int_enb : Register<0x434, 32>
+			{
+				struct Frceie : Bitfield<1, 1> { };
+			};
+
+			/**
+			 * Write status
+			 */
+			struct L1_wstat : Register<0x440, 32, true>
+			{
+				struct Frcntb : Bitfield<2, 1> { };
+				struct Tcon   : Bitfield<3, 1> { };
+			};
+
+			struct L1_frcnto : Register<0x414, 32> { };
+
+			/**
+			 * Start and stop counting
+			 */
+			void _run_1(bool const run)
+			{
+				_acked_write<L1_tcon, L1_wstat::Tcon>
+					(L1_tcon::Frc_start::bits(run));
+			}
+
+
+			/********************
+			 ** Helper methods **
+			 ********************/
+
+			/**
+			 * Write to reg that replies via ack bit and clear ack bit
+			 */
+			template <typename DEST, typename ACK>
+			void _acked_write(typename DEST::Register_base::access_t const v)
+			{
+				typedef typename DEST::Register_base Dest;
+				typedef typename ACK::Bitfield_base  Ack;
+				write<Dest>(v);
+				while (!read<Ack>());
+				write<Ack>(1);
+			}
+
+			unsigned long const _tics_per_ms;
 
 		public:
 
@@ -115,16 +183,33 @@ namespace Exynos_mct
 				Mct_cfg::Div_mux::set(mct_cfg, DIV_MUX);
 				write<Mct_cfg>(mct_cfg);
 				write<L0_int_enb>(L0_int_enb::Frceie::bits(1));
+				write<L1_int_enb>(L1_int_enb::Frceie::bits(1));
 			}
 
 			/**
-			 * Start one-shot run with an IRQ delay of 'tics'
+			 * Start single timeout run
+			 *
+			 * \param tics          delay of timer interrupt
+			 * \param processor_id  kernel name of processor of targeted timer
 			 */
-			inline void start_one_shot(unsigned const tics)
+			inline void start_one_shot(unsigned const tics,
+			                           unsigned const processor_id)
 			{
-				_run(0);
-				_acked_write<L0_frcntb, L0_wstat::Frcntb>(tics);
-				_run(1);
+				switch (processor_id) {
+				case 0:
+					_run_0(0);
+					_acked_write<L0_frcntb, L0_wstat::Frcntb>(tics);
+					_run_0(1);
+					return;
+				case 1:
+					_run_1(0);
+					_acked_write<L1_frcntb, L1_wstat::Frcntb>(tics);
+					_run_1(1);
+					return;
+				default:
+					while (1) { }
+					return;
+				}
 			}
 
 			/**
@@ -138,7 +223,45 @@ namespace Exynos_mct
 			/**
 			 * Clear interrupt output line
 			 */
-			void clear_interrupt() { write<L0_int_cstat::Frcnt>(1); }
+			void clear_interrupt(unsigned const processor_id)
+			{
+				switch (processor_id) {
+				case 0:
+					write<L0_int_cstat::Frcnt>(1);
+					return;
+				case 1:
+					write<L1_int_cstat::Frcnt>(1);
+					return;
+				default:
+					return;
+				}
+			}
+
+			unsigned value(unsigned const processor_id)
+			{
+				switch (processor_id) {
+				case 0:
+					return read<L0_frcnto>();
+				case 1:
+					return read<L1_frcnto>();
+				default:
+					while (1) { }
+					return 0;
+				}
+			}
+
+			unsigned irq_state(unsigned const processor_id)
+			{
+				switch (processor_id) {
+				case 0:
+					return read<L0_int_cstat::Frcnt>();
+				case 1:
+					return read<L1_int_cstat::Frcnt>();
+				default:
+					while (1) { }
+					return 0;
+				}
+			}
 	};
 }
 

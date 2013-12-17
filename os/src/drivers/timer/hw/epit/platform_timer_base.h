@@ -53,8 +53,7 @@ namespace Genode
 			/**
 			 * Count down 'value', raise IRQ output, wrap counter and continue
 			 */
-			void run_and_wrap(unsigned long value) {
-				start_one_shot(value); }
+			void run_and_wrap(unsigned long value) { _start_one_shot(value); }
 
 			/**
 			 * Maximum timeout value

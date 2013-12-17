@@ -14,6 +14,7 @@
 /* core includes */
 #include <kernel/irq.h>
 #include <pic.h>
+#include <cpu.h>
 
 using namespace Kernel;
 
@@ -21,4 +22,4 @@ namespace Kernel { Pic * pic(); }
 
 void Irq::_disable() const { pic()->mask(_id()); }
 
-void Irq::_enable() const { pic()->unmask(_id()); }
+void Irq::_enable() const { pic()->unmask(_id(), Genode::Cpu::id()); }

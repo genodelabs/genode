@@ -14,6 +14,9 @@
 #ifndef _KERNEL__PD_H_
 #define _KERNEL__PD_H_
 
+/* Genode includes */
+#include <cpu/atomic.h>
+
 /* core includes */
 #include <kernel/configuration.h>
 #include <kernel/object.h>
@@ -29,6 +32,49 @@ extern int            _mt_vm_entry_pic;
 extern Genode::addr_t _mt_client_context_ptr;
 extern Genode::addr_t _mt_master_context_begin;
 extern Genode::addr_t _mt_master_context_end;
+
+namespace Kernel
+{
+	/**
+	 * Lock that enables synchronization inside the kernel 
+	 */
+	class Lock;
+}
+
+class Kernel::Lock
+{
+	private:
+
+		int volatile _locked;
+
+		/**
+		 * Finish all previously started memory transactions
+		 */
+		void _memory_barrier() { asm volatile ("" : : : "memory"); }
+
+	public:
+
+		Lock() : _locked(0) { }
+
+		/**
+		 * Request the lock
+		 */
+		void lock() { while (!Genode::cmpxchg(&_locked, 0, 1)); }
+
+		/**
+		 * Free the lock
+		 */
+		void unlock()
+		{
+			_memory_barrier();
+			_locked = 0;
+		}
+
+		/**
+		 * Provide guard semantic for this type of lock
+		 */
+		typedef Genode::Lock_guard<Kernel::Lock> Guard;
+};
 
 namespace Kernel
 {
@@ -59,6 +105,8 @@ namespace Kernel
 
 	Pd_ids  * pd_ids();
 	Pd_pool * pd_pool();
+
+	Lock & data_lock();
 }
 
 class Kernel::Mode_transition_control
@@ -72,6 +120,31 @@ class Kernel::Mode_transition_control
 		typedef Genode::Page_flags      Page_flags;
 
 		addr_t const _virt_user_entry;
+
+		/**
+		 * Continue execution of client context
+		 *
+		 * \param context       targeted client processor-context
+		 * \param processor_id  kernel name of targeted processor
+		 * \param entry_raw     raw pointer to assembly entry-code
+		 */
+		void _continue_client(void * const context, unsigned const processor_id,
+		                      addr_t const entry_raw)
+		{
+			/* override client-context pointer of the executing processor */
+			addr_t const context_ptr_base = (addr_t)&_mt_client_context_ptr;
+			size_t const context_ptr_offset = processor_id * sizeof(context);
+			addr_t const context_ptr = context_ptr_base + context_ptr_offset;
+			*(void * *)context_ptr = context;
+
+			/* unlock kernel data */
+			data_lock().unlock();
+
+			/* call assembly code that applies the virtual-machine context */
+			typedef void (* Entry)();
+			Entry __attribute__((noreturn)) const entry = (Entry)entry_raw;
+			entry();
+		}
 
 	public:
 
@@ -126,21 +199,27 @@ class Kernel::Mode_transition_control
 		}
 
 		/**
-		 * Continue user-mode execution with CPU context 'c'
+		 * Continue execution of userland context
+		 *
+		 * \param context       targeted userland context
+		 * \param processor_id  kernel name of targeted processor
 		 */
-		void continue_user(Cpu::Context * const c)
+		void continue_user(Cpu::Context * const context,
+		                   unsigned const processor_id)
 		{
-			_mt_client_context_ptr = (addr_t)c;
-			((void(*)(void))_virt_user_entry)();
+			_continue_client(context, processor_id, _virt_user_entry);
 		}
 
 		/**
-		 * Continue VM execution with CPU state 's'
+		 * Continue execution of virtual machine
+		 *
+		 * \param context       targeted virtual-machine context
+		 * \param processor_id  kernel name of targeted processor
 		 */
-		void continue_vm(Cpu_state_modes * s)
+		void continue_vm(Cpu_state_modes * const context,
+		                 unsigned const processor_id)
 		{
-			_mt_client_context_ptr = (addr_t)s;
-			((void(*)(void))&_mt_vm_entry_pic)();
+			_continue_client(context, processor_id, _mt_vm_entry_pic);
 		}
 };
 

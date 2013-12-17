@@ -13,4 +13,4 @@
 
 #include <trustzone.h>
 
-void Kernel::trustzone_initialization(Pic *pic) { }
+void Kernel::init_trustzone(Pic * pic) { }

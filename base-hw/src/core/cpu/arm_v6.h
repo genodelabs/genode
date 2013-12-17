@@ -174,12 +174,57 @@ namespace Arm_v6
 		 * Ensure that TLB insertions get applied
 		 */
 		static void tlb_insertions() { flush_tlb(); }
+
+		static void start_secondary_processors(void * const ip)
+		{
+			if (PROCESSORS > 1) { PERR("multiprocessing not implemented"); }
+		}
+
+		/**
+		 * Invalidate all predictions about the future control-flow
+		 */
+		static void invalidate_control_flow_predictions()
+		{
+			/* FIXME invalidation of branch prediction not implemented */
+		}
+
+		/**
+		 * Finish all previous data transfers
+		 */
+		static void data_synchronization_barrier()
+		{
+			/* FIXME data synchronization barrier not implemented */
+		}
+
+		/**
+		 * Wait for the next interrupt as cheap as possible
+		 */
+		static void wait_for_interrupt()
+		{
+			/* FIXME cheap way of waiting is not implemented */
+		}
+
+		/**
+		 * Return kernel name of the primary processor
+		 */
+		static unsigned primary_id() { return 0; }
+
+		/**
+		 * Return kernel name of the executing processor
+		 */
+		static unsigned id() { return primary_id(); }
 	};
 }
 
 
-void Arm::Cpu::flush_data_caches() {
-	asm volatile ("mcr p15, 0, %[rd], c7, c14, 0" :: [rd]"r"(0) : ); }
+/**************
+ ** Arm::Cpu **
+ **************/
+
+void Arm::Cpu::flush_data_caches()
+{
+	asm volatile ("mcr p15, 0, %[rd], c7, c14, 0" :: [rd]"r"(0) : );
+}
 
 
 #endif /* _CPU__ARM_V6_H_ */

@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _EXYNOS5__TIMER_H_
-#define _EXYNOS5__TIMER_H_
+#ifndef _ODROID_XU__TIMER_H_
+#define _ODROID_XU__TIMER_H_
 
 /* core includes */
 #include <board.h>
@@ -27,7 +27,15 @@ namespace Kernel
 	{
 		public:
 
-			enum { IRQ = Genode::Board::MCT_IRQ_L0 };
+			/**
+			 * Return kernel name of timer interrupt of a specific processor
+			 *
+			 * \param processor_id  kernel name of targeted processor
+			 */
+			static unsigned interrupt_id(unsigned)
+			{
+				return Genode::Board::MCT_IRQ_L0;
+			}
 
 			/**
 			 * Constructor
@@ -37,4 +45,4 @@ namespace Kernel
 	};
 }
 
-#endif /* _EXYNOS5__TIMER_H_ */
+#endif /* _ODROID_XU__TIMER_H_ */

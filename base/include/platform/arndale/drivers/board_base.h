@@ -55,6 +55,7 @@ namespace Genode
 			MCT_MMIO_SIZE = 0x1000,
 			MCT_CLOCK     = 24000000,
 			MCT_IRQ_L0    = 152,
+			MCT_IRQ_L1    = 153,
 
 			/* USB */
 			USB_HOST20_IRQ = 103,
@@ -74,6 +75,12 @@ namespace Genode
 
 			/* wether board provides security extension */
 			SECURITY_EXTENSION = 1,
+
+			/* IRAM */
+			IRAM_BASE = 0x02020000,
+
+			/* hardware name of the primary processor */
+			PRIMARY_MPIDR_AFF_0 = 0,
 		};
 	};
 }

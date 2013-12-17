@@ -16,9 +16,12 @@
 
 namespace Kernel
 {
+	class Processor;
+
 	unsigned core_id();
 
-	void handle_interrupt();
+	void handle_interrupt(Processor * const processor,
+	                      unsigned const processor_id);
 }
 
 #endif /* _KERNEL__KERNEL_H_ */

@@ -127,10 +127,15 @@ namespace Imx53
 
 				write<Priomask::Mask>(0x1f);
 				write<Intctrl>(Intctrl::Enable::bits(1) |
-							   Intctrl::Nsen::bits(1)   |
-							   Intctrl::Nsen_mask::bits(1));
+				               Intctrl::Nsen::bits(1)   |
+				               Intctrl::Nsen_mask::bits(1));
 
 			}
+
+			/**
+			 * Initialize processor local interface of the controller
+			 */
+			void init_processor_local() { }
 
 			/**
 			 * Receive a pending request number 'i'
@@ -176,12 +181,15 @@ namespace Imx53
 			}
 
 			/**
-			 * Unmask interrupt 'i'
+			 * Unmask interrupt
+			 *
+			 * \param interrupt_id  kernel name of targeted interrupt
 			 */
-			void unmask(unsigned const i)
+			void unmask(unsigned const interrupt_id, unsigned)
 			{
-				if (i <= MAX_INTERRUPT_ID)
-					write<Enset::Set_enable>(1, i);
+				if (interrupt_id <= MAX_INTERRUPT_ID) {
+					write<Enset::Set_enable>(1, interrupt_id);
+				}
 			}
 
 			/**

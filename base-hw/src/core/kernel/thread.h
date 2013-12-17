@@ -30,8 +30,6 @@ namespace Kernel
 	typedef Genode::Cpu           Cpu;
 	typedef Genode::Native_utcb   Native_utcb;
 
-	void reset_lap_time();
-
 	/**
 	 * Kernel backend for userland execution-contexts
 	 */
@@ -40,9 +38,37 @@ namespace Kernel
 	class Thread_ids : public Id_allocator<MAX_THREADS> { };
 	typedef Object_pool<Thread> Thread_pool;
 
+	class Processor;
+
 	Thread_ids  * thread_ids();
 	Thread_pool * thread_pool();
+
+	/**
+	 * Processor context of the kernel
+	 */
+	class Cpu_context;
 }
+
+
+struct Kernel::Cpu_context : Cpu::Context
+{
+	private:
+
+		/**
+		 * Hook for environment specific initializations
+		 *
+		 * \param stack_size  size of kernel stack
+		 */
+		void _init(size_t const stack_size);
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		Cpu_context();
+};
+
 
 class Kernel::Thread
 :
@@ -76,6 +102,7 @@ class Kernel::Thread
 		Native_utcb *      _utcb_phys;
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;
+		Processor *        _processor;
 
 		/**
 		 * Notice that another thread yielded the CPU to this thread
@@ -115,6 +142,11 @@ class Kernel::Thread
 		void _schedule();
 
 		/**
+		 * Pause execution rawly
+		 */
+		void _unschedule(State const s);
+
+		/**
 		 * Pause execution
 		 */
 		void _pause();
@@ -139,9 +171,11 @@ class Kernel::Thread
 		void _mmu_exception();
 
 		/**
-		 * Handle kernel-call request of this thread
+		 * Handle kernel-call request of the thread
+		 *
+		 * \param processor_id  kernel name of the trapped processor
 		 */
-		void _call();
+		void _call(unsigned const processor_id);
 
 		/**
 		 * Read a thread register
@@ -269,14 +303,19 @@ class Kernel::Thread
 		Thread(unsigned const priority, char const * const label);
 
 		/**
+		 * Destructor
+		 */
+		~Thread();
+
+		/**
 		 * Prepare thread to get scheduled the first time
 		 *
-		 * \param cpu_id     kernel name of targeted processor
+		 * \param processor  kernel object of targeted processor
 		 * \param pd_id      kernel name of target protection domain
 		 * \param utcb       core local pointer to userland thread-context
 		 * \param start      wether to start executing the thread
 		 */
-		void init(unsigned const cpu_id, unsigned const pd_id,
+		void init(Processor * const processor, unsigned const pd_id,
 		          Native_utcb * const utcb, bool const start);
 
 
@@ -284,8 +323,8 @@ class Kernel::Thread
 		 ** Execution_context **
 		 ***********************/
 
-		void handle_exception();
-		void proceed();
+		void handle_exception(unsigned const processor_id);
+		void proceed(unsigned const processor_id);
 
 
 		/***************

@@ -40,8 +40,8 @@
 using namespace Kernel;
 
 extern Genode::Native_thread_id _main_thread_id;
-extern int _kernel_stack_high;
 extern "C" void CORE_MAIN();
+extern void * _start_secondary_processors;
 
 Genode::Native_utcb * _main_thread_utcb;
 
@@ -62,11 +62,6 @@ namespace Kernel
 
 namespace Kernel
 {
-	/**
-	 * Idle thread entry
-	 */
-	static void idle_main() { while (1) ; }
-
 	Pd_ids * pd_ids() { return unmanaged_singleton<Pd_ids>(); }
 	Thread_ids * thread_ids() { return unmanaged_singleton<Thread_ids>(); }
 	Signal_context_ids * signal_context_ids() { return unmanaged_singleton<Signal_context_ids>(); }
@@ -78,14 +73,21 @@ namespace Kernel
 	Signal_receiver_pool * signal_receiver_pool() { return unmanaged_singleton<Signal_receiver_pool>(); }
 
 	/**
-	 * Access to static kernel timer
+	 * Return singleton kernel-timer
 	 */
-	static Timer * timer() { static Timer _object; return &_object; }
-
-
-	void reset_lap_time()
+	Timer * timer()
 	{
-		timer()->start_one_shot(timer()->ms_to_tics(USER_LAP_TIME_MS));
+		static Timer _object;
+		return &_object;
+	}
+
+	/**
+	 * Start a new scheduling lap
+	 */
+	void reset_lap_time(unsigned const processor_id)
+	{
+		unsigned const tics = timer()->ms_to_tics(USER_LAP_TIME_MS);
+		timer()->start_one_shot(tics, processor_id);
 	}
 
 
@@ -125,28 +127,6 @@ namespace Kernel
 namespace Kernel
 {
 	/**
-	 * Access to static CPU scheduler
-	 */
-	Cpu_scheduler * cpu_scheduler()
-	{
-		/* create idle thread */
-		static char idle_stack[DEFAULT_STACK_SIZE]
-		__attribute__((aligned(Cpu::DATA_ACCESS_ALIGNM)));
-		static Thread idle(Priority::MAX, "idle");
-		static bool init = 0;
-		if (!init) {
-			enum { STACK_SIZE = sizeof(idle_stack)/sizeof(idle_stack[0]) };
-			idle.ip = (addr_t)&idle_main;;
-			idle.sp = (addr_t)&idle_stack[STACK_SIZE];;
-			idle.init(0, core_id(), 0, 0);
-			init = 1;
-		}
-		/* create CPU scheduler with a permanent idle thread */
-		static Cpu_scheduler cpu_sched(&idle);
-		return &cpu_sched;
-	}
-
-	/**
 	 * Get attributes of the mode transition region in every PD
 	 */
 	addr_t mode_transition_virt_base() { return mtc()->VIRT_BASE; }
@@ -162,64 +142,136 @@ namespace Kernel
 	unsigned pd_alignm_log2()     { return Tlb::ALIGNM_LOG2; }
 	size_t vm_size()              { return sizeof(Vm); }
 
+	enum { STACK_SIZE = 64 * 1024 };
 
 	/**
-	 * Handle an interrupt request
+	 * Return lock that guards all kernel data against concurrent access
 	 */
-	void handle_interrupt()
+	Lock & data_lock()
+	{
+		static Lock s;
+		return s;
+	}
+
+	addr_t   core_tlb_base;
+	unsigned core_pd_id;
+
+	/**
+	 * Handle interrupt request
+	 *
+	 * \param processor     kernel object of targeted processor
+	 * \param processor_id  kernel name of targeted processor
+	 */
+	void handle_interrupt(Processor * const processor,
+	                      unsigned const processor_id)
 	{
 		/* determine handling for specific interrupt */
 		unsigned irq_id;
 		if (pic()->take_request(irq_id))
 		{
-			switch (irq_id) {
+			/* check wether the interrupt is a scheduling timeout */
+			if (timer()->interrupt_id(processor_id) == irq_id)
+			{
+				/* handle scheduling timeout */
+				processor->scheduler()->yield();
+				timer()->clear_interrupt(processor_id);
+				reset_lap_time(processor_id);
+			} else {
 
-			case Timer::IRQ: {
-
-				cpu_scheduler()->yield();
-				timer()->clear_interrupt();
-				reset_lap_time();
-				break; }
-
-			default: {
-
+				/* try to inform the user interrupt-handler */
 				Irq::occurred(irq_id);
-				break; }
 			}
 		}
-		/* disengage interrupt controller from IRQ */
+		/* end interrupt request at controller */
 		pic()->finish_request();
 	}
 }
 
 
 /**
- * Prepare the first call of the kernel main-routine
+ * Enable kernel-entry assembly to get an exclusive stack at every processor
  */
-extern "C" void setup_kernel()
+char     kernel_stack[PROCESSORS][Kernel::STACK_SIZE] __attribute__((aligned()));
+unsigned kernel_stack_size = Kernel::STACK_SIZE;
+
+
+/**
+ * Setup kernel enviroment before activating secondary processors
+ */
+extern "C" void init_kernel_uniprocessor()
 {
+	/************************************************************************
+	 ** As atomic operations are broken in physical mode on some platforms **
+	 ** we must avoid the use of 'cmpxchg' by now (includes not using any  **
+	 ** local static objects.                                              **
+	 ************************************************************************/
+
+	/* calculate in advance as needed later when data writes aren't allowed */
+	core_tlb_base = core()->tlb()->base();
+	core_pd_id    = core_id();
+
+	/* initialize all processor objects */
+	multiprocessor();
+
+	/* go multiprocessor mode */
+	Cpu::start_secondary_processors(&_start_secondary_processors);
+}
+
+/**
+ * Setup kernel enviroment after activating secondary processors
+ */
+extern "C" void init_kernel_multiprocessor()
+{
+	/***********************************************************************
+	 ** As updates on a cached kernel lock might not be visible to        **
+	 ** processors that have not enabled caches, we can't synchronize the **
+	 ** activation of MMU and caches. Hence we must avoid write access to **
+	 ** kernel data by now.                                               **
+	 ***********************************************************************/
+
+	/* synchronize data view of all processors */
+	Cpu::flush_data_caches();
+	Cpu::invalidate_instruction_caches();
+	Cpu::invalidate_control_flow_predictions();
+	Cpu::data_synchronization_barrier();
+
 	/* initialize processor in physical mode */
 	Cpu::init_phys_kernel();
 
-	/* enable kernel timer */
-	pic()->unmask(Timer::IRQ);
-
-	/* TrustZone initialization code */
-	trustzone_initialization(pic());
-
-	/* enable performance counter */
-	perf_counter()->enable();
-
 	/* switch to core address space */
-	Cpu::init_virt_kernel(core()->tlb()->base(), core_id());
+	Cpu::init_virt_kernel(core_tlb_base, core_pd_id);
+
+	/************************************
+	 ** Now it's safe to use 'cmpxchg' **
+	 ************************************/
+
+	Lock::Guard guard(data_lock());
+
+	/*******************************************
+	 ** Now it's save to write to kernel data **
+	 *******************************************/
 
 	/*
-	 * From this point on, it is safe to use 'cmpxchg', i.e., to create
-	 * singleton objects via the static-local object pattern. See
-	 * the comment in 'src/base/singleton.h'.
+	 * TrustZone initialization code
+	 *
+	 * FIXME This is a plattform specific feature
 	 */
+	init_trustzone(pic());
 
-	/* create the core main thread */
+	/*
+	 * Enable performance counter
+	 *
+	 * FIXME This is an optional processor specific feature
+	 */
+	perf_counter()->enable();
+
+	/* initialize interrupt controller */
+	pic()->init_processor_local();
+	unsigned const processor_id = Cpu::id();
+	pic()->unmask(Timer::interrupt_id(processor_id), processor_id);
+
+	/* as primary processor create the core main thread */
+	if (Cpu::primary_id() == processor_id)
 	{
 		/* get stack memory that fullfills the constraints for core stacks */
 		enum {
@@ -242,11 +294,12 @@ extern "C" void setup_kernel()
 		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
 		t.ip = (addr_t)CORE_MAIN;;
 		t.sp = (addr_t)s + STACK_SIZE;
-		t.init(0, core_id(), &utcb, 1);
+		t.init(multiprocessor()->select(processor_id), core_id(), &utcb, 1);
+
+		/* kernel initialization finished */
+		init_platform();
 	}
-	/* kernel initialization finished */
-	init_platform();
-	reset_lap_time();
+	reset_lap_time(processor_id);
 }
 
 
@@ -255,27 +308,32 @@ extern "C" void setup_kernel()
  */
 extern "C" void kernel()
 {
-	cpu_scheduler()->head()->handle_exception();
-	cpu_scheduler()->head()->proceed();
+	data_lock().lock();
+	unsigned const processor_id = Cpu::id();
+	Processor * const processor = multiprocessor()->select(processor_id);
+	Processor_scheduler * const scheduler = processor->scheduler();
+	scheduler->head()->handle_exception(processor_id);
+	scheduler->head()->proceed(processor_id);
 }
 
 
 Kernel::Mode_transition_control * Kernel::mtc()
 {
-	/* compose CPU context for kernel entry */
-	struct Kernel_context : Cpu::Context
-	{
-		/**
-		 * Constructor
-		 */
-		Kernel_context()
-		{
-			ip = (addr_t)kernel;
-			sp = (addr_t)&_kernel_stack_high;
-			core()->admit(this);
-		}
-	} * const k = unmanaged_singleton<Kernel_context>();
+	/* create singleton processor context for kernel */
+	Cpu_context * const cpu_context = unmanaged_singleton<Cpu_context>();
 
 	/* initialize mode transition page */
-	return unmanaged_singleton<Mode_transition_control>(k);
+	return unmanaged_singleton<Mode_transition_control>(cpu_context);
+}
+
+
+Kernel::Execution_context::~Execution_context() { }
+
+
+Kernel::Cpu_context::Cpu_context()
+{
+	_init(STACK_SIZE);
+	sp = (addr_t)kernel_stack;
+	ip = (addr_t)kernel;
+	core()->admit(this);
 }

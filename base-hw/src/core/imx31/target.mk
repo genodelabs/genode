@@ -10,6 +10,7 @@ REQUIRES = platform_imx31
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/imx31
 INC_DIR += $(REP_DIR)/src/core/arm
+INC_DIR += $(REP_DIR)/src/core/arm_v6
 
 # add C++ sources
 SRC_CC += platform_services.cc \

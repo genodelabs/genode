@@ -19,7 +19,7 @@ namespace Kernel {
 	class Pic;
 
 
-	void trustzone_initialization(Pic *pic);
+	void init_trustzone(Pic * pic);
 }
 
 #endif /* _CORE__INCLUDE__TRUSTZONE_H_ */

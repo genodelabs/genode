@@ -58,11 +58,6 @@ namespace Kernel
 	class Execution_context;
 
 	typedef Scheduler<Execution_context> Cpu_scheduler;
-
-	/**
-	 * Return the systems CPU scheduler
-	 */
-	Cpu_scheduler * cpu_scheduler();
 }
 
 template <typename T>
@@ -304,13 +299,17 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 
 		/**
 		 * Handle an exception that occured during execution
+		 *
+		 * \param processor_id  kernel name of targeted processor
 		 */
-		virtual void handle_exception() = 0;
+		virtual void handle_exception(unsigned const processor_id) = 0;
 
 		/**
 		 * Continue execution
+		 *
+		 * \param processor_id  kernel name of targeted processor
 		 */
-		virtual void proceed() = 0;
+		virtual void proceed(unsigned const processor_id) = 0;
 
 		/**
 		 * Constructor
@@ -322,10 +321,7 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 		/**
 		 * Destructor
 		 */
-		virtual ~Execution_context()
-		{
-			if (list()) { cpu_scheduler()->remove(this); }
-		}
+		virtual ~Execution_context();
 };
 
 #endif /* _KERNEL__SCHEDULER_H_ */

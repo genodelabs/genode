@@ -23,7 +23,13 @@ namespace Kernel
 	{
 		public:
 
-			enum { IRQ = Genode::Board::EPIT_1_IRQ };
+			/**
+			 * Return kernel name of timer interrupt
+			 */
+			static unsigned interrupt_id(unsigned)
+			{
+				return Genode::Board::EPIT_1_IRQ;
+			}
 
 			/**
 			 * Constructor

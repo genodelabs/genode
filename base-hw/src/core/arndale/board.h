@@ -25,9 +25,16 @@ namespace Genode
 
 			static void prepare_kernel() { }
 
-			static void secondary_processors_ip(void * const ip) { }
+			/**
+			 * Tell secondary processors where to start execution from
+			 *
+			 * \param ip  initial instruction pointer of secondary processors
+			 */
+			static void secondary_processors_ip(void * const ip)
+			{
+				*(void * volatile *)IRAM_BASE = ip;
+			}
 	};
 }
 
 #endif /* _BOARD_H_ */
-

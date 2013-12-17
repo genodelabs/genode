@@ -11,6 +11,7 @@ REQUIRES += platform_imx53
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/imx53
 INC_DIR += $(REP_DIR)/src/core/arm
+INC_DIR += $(REP_DIR)/src/core/arm_v7
 
 # add C++ sources
 SRC_CC += platform_services.cc \

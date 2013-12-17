@@ -7,6 +7,9 @@
 # denote wich specs are also fullfilled by this spec
 SPECS += hw platform_arndale
 
+# configure multiprocessor mode
+PROCESSORS = 2
+
 # add repository relative paths
 REP_INC_DIR += include/exynos5_uart
 

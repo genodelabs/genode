@@ -7,6 +7,9 @@
 # denote wich specs are also fullfilled by this spec
 SPECS += hw platform_vea9x4
 
+# configure multiprocessor mode
+PROCESSORS = 1
+
 # set address where to link text segment at
 LD_TEXT_ADDR ?= 0x01000000
 

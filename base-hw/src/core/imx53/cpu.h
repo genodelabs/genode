@@ -22,7 +22,20 @@ namespace Genode
 	/**
 	 * CPU driver for core
 	 */
-	class Cpu : public Cortex_a8::Cpu { };
+	class Cpu : public Cortex_a8::Cpu
+	{
+		public:
+
+			/**
+			 * Return kernel name of the primary processor
+			 */
+			static unsigned primary_id() { return 0; }
+
+			/**
+			 * Return kernel name of the executing processor
+			 */
+			static unsigned id() { return primary_id(); }
+	};
 }
 
 #endif /* _IMX53__CPU_H_ */

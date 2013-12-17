@@ -11,6 +11,7 @@ REQUIRES += platform_odroid_xu
 INC_DIR += $(REP_DIR)/src/core/odroid_xu
 INC_DIR += $(REP_DIR)/src/core/exynos5
 INC_DIR += $(REP_DIR)/src/core/arm
+INC_DIR += $(REP_DIR)/src/core/arm_v7
 
 # add C++ sources
 SRC_CC += platform_services.cc \
