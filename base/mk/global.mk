@@ -143,7 +143,7 @@ LD_SCRIPT_DYN = $(call select_from_repositories,src/platform/genode_dyn.ld)
 #
 # Linker script for shared libraries
 #
-LD_SCRIPT_SO  = $(call select_from_repositories,src/platform/genode_rel.ld)
+LD_SCRIPT_SO ?= $(call select_from_repositories,src/platform/genode_rel.ld)
 
 #
 # Assembler options
