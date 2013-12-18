@@ -494,6 +494,8 @@ namespace Noux {
 
 			SYSIO_DECL(utimes,      { Path path; unsigned long sec; unsigned long usec; },
 			                        { });
+
+			SYSIO_DECL(sync,        { }, { });
 		};
 	};
 };

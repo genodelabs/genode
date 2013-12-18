@@ -550,6 +550,12 @@ void endpwent(void)
 }
 
 
+extern "C" void sync(void)
+{
+	noux_syscall(Noux::Session::SYSCALL_SYNC);
+}
+
+
 /********************
  ** Time functions **
  ********************/

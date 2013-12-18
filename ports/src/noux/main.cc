@@ -789,6 +789,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				return true;
 			}
 
+		case SYSCALL_SYNC:
+			{
+				root_dir()->sync();
+				return true;
+			}
+
 		case SYSCALL_SOCKET:
 		case SYSCALL_GETSOCKOPT:
 		case SYSCALL_SETSOCKOPT:

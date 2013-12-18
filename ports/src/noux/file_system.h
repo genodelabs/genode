@@ -42,6 +42,15 @@ namespace Noux {
 		 * This function is used for debugging only.
 		 */
 		virtual char const *name() const = 0;
+
+		/**
+		 * Synchronize file system
+		 *
+		 * This function is only used by a Fs_file_system because such a
+		 * file system may employ a backend, which maintains a internal
+		 * cache, that needs to be flushed.
+		 */
+		virtual void sync() { }
 	};
 }
 

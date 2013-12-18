@@ -652,6 +652,30 @@ namespace Noux {
 
 			char const *name() const { return "dir"; }
 
+			/**
+			 * Synchronize all file systems
+			 *
+			 * Only file system using the File_system_session interface are
+			 * synchronized.
+			 */
+			void sync()
+			{
+				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+					Fs_file_system *fs_fs = dynamic_cast<Fs_file_system *>(fs);
+					if (fs_fs) {
+						fs_fs->sync();
+						continue;
+					}
+
+					/* the directory might contain Fs_file_systems */
+					Dir_file_system *dir_fs = dynamic_cast<Dir_file_system *>(fs);
+					if (dir_fs) {
+						dir_fs->sync();
+						continue;
+					}
+				}
+			}
+
 
 			/********************************
 			 ** File I/O service interface **

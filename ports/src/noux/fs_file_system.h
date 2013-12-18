@@ -576,6 +576,11 @@ namespace Noux {
 
 			char const *name() const { return "fs"; }
 
+			void sync()
+			{
+				_fs.sync();
+			}
+
 
 			/********************************
 			 ** File I/O service interface **
