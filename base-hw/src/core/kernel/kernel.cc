@@ -192,79 +192,73 @@ namespace Kernel
 	}
 }
 
-/**
- * Prepare the system for the first run of 'kernel'
- */
-extern "C" void init_phys_kernel() {
-	Cpu::init_phys_kernel(); }
 
 /**
- * Kernel main routine
+ * Prepare the first call of the kernel main-routine
+ */
+extern "C" void setup_kernel()
+{
+	/* initialize processor in physical mode */
+	Cpu::init_phys_kernel();
+
+	/* enable kernel timer */
+	pic()->unmask(Timer::IRQ);
+
+	/* TrustZone initialization code */
+	trustzone_initialization(pic());
+
+	/* enable performance counter */
+	perf_counter()->enable();
+
+	/* switch to core address space */
+	Cpu::init_virt_kernel(core()->tlb()->base(), core_id());
+
+	/*
+	 * From this point on, it is safe to use 'cmpxchg', i.e., to create
+	 * singleton objects via the static-local object pattern. See
+	 * the comment in 'src/base/singleton.h'.
+	 */
+
+	/* create the core main thread */
+	{
+		/* get stack memory that fullfills the constraints for core stacks */
+		enum {
+			STACK_ALIGNM = 1 << Genode::CORE_STACK_ALIGNM_LOG2,
+			STACK_SIZE   = DEFAULT_STACK_SIZE,
+		};
+		if (STACK_SIZE > STACK_ALIGNM - sizeof(Core_thread_id)) {
+			PERR("stack size does not fit stack alignment of core");
+		}
+		static char s[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
+
+		/* provide thread ident at the aligned base of the stack */
+		*(Core_thread_id *)s = 0;
+
+		/* start thread with stack pointer at the top of stack */
+		static Native_utcb utcb;
+		static Thread t(Priority::MAX, "core");
+		_main_thread_id = t.id();
+		_main_thread_utcb = &utcb;
+		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
+		t.ip = (addr_t)CORE_MAIN;;
+		t.sp = (addr_t)s + STACK_SIZE;
+		t.init(0, core_id(), &utcb, 1);
+	}
+	/* kernel initialization finished */
+	init_platform();
+	reset_lap_time();
+}
+
+
+/**
+ * Main routine of every kernel pass
  */
 extern "C" void kernel()
 {
-	static bool initial_call = true;
-
-	/* an exception occurred */
-	if (!initial_call)
-	{
-		/* handle exception that interrupted the last user */
-		cpu_scheduler()->head()->handle_exception();
-
-	/* kernel initialization */
-	} else {
-
-		/* enable kernel timer */
-		pic()->unmask(Timer::IRQ);
-
-		/* TrustZone initialization code */
-		trustzone_initialization(pic());
-
-		/* enable performance counter */
-		perf_counter()->enable();
-
-		/* switch to core address space */
-		Cpu::init_virt_kernel(core()->tlb()->base(), core_id());
-
-		/*
-		 * From this point on, it is safe to use 'cmpxchg', i.e., to create
-		 * singleton objects via the static-local object pattern. See
-		 * the comment in 'src/base/singleton.h'.
-		 */
-
-		/* create the core main thread */
-		{
-			/* get stack memory that fullfills the constraints for core stacks */
-			enum {
-				STACK_ALIGNM = 1 << Genode::CORE_STACK_ALIGNM_LOG2,
-				STACK_SIZE   = DEFAULT_STACK_SIZE,
-			};
-			if (STACK_SIZE > STACK_ALIGNM - sizeof(Core_thread_id)) {
-				PERR("stack size does not fit stack alignment of core");
-			}
-			static char s[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
-
-			/* provide thread ident at the aligned base of the stack */
-			*(Core_thread_id *)s = 0;
-
-			/* start thread with stack pointer at the top of stack */
-			static Native_utcb utcb;
-			static Thread t(Priority::MAX, "core");
-			_main_thread_id = t.id();
-			_main_thread_utcb = &utcb;
-			_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
-			t.ip = (addr_t)CORE_MAIN;;
-			t.sp = (addr_t)s + STACK_SIZE;
-			t.init(0, core_id(), &utcb, 1);
-		}
-		/* kernel initialization finished */
-		init_platform();
-		reset_lap_time();
-		initial_call = false;
-	}
-	/* will jump to the context related mode-switch */
+	cpu_scheduler()->head()->handle_exception();
 	cpu_scheduler()->head()->proceed();
 }
+
 
 Kernel::Mode_transition_control * Kernel::mtc()
 {

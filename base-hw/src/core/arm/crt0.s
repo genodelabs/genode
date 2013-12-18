@@ -34,8 +34,6 @@
 		_nop 8
 
 		/* zero-fill BSS segment, BSS boundaries must be aligned to 4 */
-		.extern _bss_start
-		.extern _bss_end
 		ldr r0, =_bss_start
 		ldr r1, =_bss_end
 		mov r2, #0
@@ -47,17 +45,15 @@
 		b 1b
 		2:
 
-		/* enable C++ to prepare the first kernel run */
+		/* prepare the first call of the kernel main-routine */
 		ldr sp, =_kernel_stack_high
-		bl init_phys_kernel
+		bl setup_kernel
 
-		/* call kernel routine */
-		.extern kernel
-		_start_kernel:
+		/* call the kernel main-routine */
 		ldr sp, =_kernel_stack_high
 		bl kernel
 
-		/* catch erroneous kernel return */
+		/* catch erroneous return */
 		3: b 3b
 
 .section .bss

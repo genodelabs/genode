@@ -180,7 +180,9 @@ Thread::Thread(unsigned const priority, char const * const label)
 	_utcb_phys(0),
 	_signal_receiver(0),
 	_label(label)
-{ }
+{
+	cpu_exception = RESET;
+}
 
 
 void
@@ -235,6 +237,8 @@ void Thread::handle_exception()
 		return;
 	case FAST_INTERRUPT_REQUEST:
 		handle_interrupt();
+		return;
+	case RESET:
 		return;
 	default:
 		PERR("unknown exception");
