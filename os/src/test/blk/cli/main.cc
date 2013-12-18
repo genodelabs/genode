@@ -69,7 +69,8 @@ class Test
 		{
 			return bulk +
 			       sizeof(Block::Session::Tx_policy::Ack_queue) +
-			       sizeof(Block::Session::Tx_policy::Submit_queue);
+			       sizeof(Block::Session::Tx_policy::Submit_queue) +
+			       (1 << Block::Packet_descriptor::PACKET_ALIGNMENT) - 1;
 		}
 
 		void _ack_avail(unsigned)       { ack_avail();     }
