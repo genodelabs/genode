@@ -1,11 +1,8 @@
 /*
- * \brief   Startup code for core on ARM
+ * \brief   Startup code for core
  * \author  Martin Stein
  * \author  Stefan Kalkowski
  * \date    2011-10-01
- *
- * The code in this file is compliant to the general ARM instruction- and
- * register-set but the semantics are tested only on ARMv6 and ARMv7 by now.
  */
 
 /*
@@ -15,57 +12,50 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/**
- * Do no operation for 'count' cycles
- */
-.macro _nop count
-	.rept \count
-		mov r8, r8
-	.endr
-.endm
-
 .section ".text.crt0"
 
-	/* ELF entry symbol */
+	/* program entry-point */
 	.global _start
 	_start:
 
-		/* idle a little initially because 'u-boot' likes it this way */
-		_nop 8
+	/* idle a little initially because U-Boot likes it this way */
+	mov r8, r8
+	mov r8, r8
+	mov r8, r8
+	mov r8, r8
+	mov r8, r8
+	mov r8, r8
+	mov r8, r8
+	mov r8, r8
 
-		/* zero-fill BSS segment, BSS boundaries must be aligned to 4 */
-		ldr r0, =_bss_start
-		ldr r1, =_bss_end
-		mov r2, #0
-		1:
-		cmp r1, r0
-		ble 2f
-		str r2, [r0]
-		add r0, r0, #4
-		b 1b
-		2:
+	/* zero-fill BSS segment */
+	ldr r0, =_bss_start
+	ldr r1, =_bss_end
+	mov r2, #0
+	1:
+	cmp r1, r0
+	ble 2f
+	str r2, [r0]
+	add r0, r0, #4
+	b 1b
+	2:
 
-		/* prepare the first call of the kernel main-routine */
-		ldr sp, =_kernel_stack_high
-		bl setup_kernel
+	/* prepare the first call of the kernel main-routine */
+	ldr sp, =_kernel_stack_high
+	bl setup_kernel
 
-		/* call the kernel main-routine */
-		ldr sp, =_kernel_stack_high
-		bl kernel
+	/* call the kernel main-routine */
+	ldr sp, =_kernel_stack_high
+	bl kernel
 
-		/* catch erroneous return */
-		3: b 3b
+	/* catch erroneous return of the kernel main-routine */
+	3: b 3b
 
 .section .bss
 
 	/* kernel stack, must be aligned to an 8-byte boundary */
 	.align 3
-	.space 64*1024
+	.space 64 * 1024
 	.global _kernel_stack_high
 	_kernel_stack_high:
-
-	/* main-thread UTCB-pointer for the Genode thread-API */
-	.align 2
-	.global _main_thread_utcb
-	_main_thread_utcb: .long 0
 

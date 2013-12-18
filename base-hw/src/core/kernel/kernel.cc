@@ -39,11 +39,11 @@
 
 using namespace Kernel;
 
-/* get core configuration */
-extern Genode::Native_utcb * _main_thread_utcb;
 extern Genode::Native_thread_id _main_thread_id;
 extern int _kernel_stack_high;
 extern "C" void CORE_MAIN();
+
+Genode::Native_utcb * _main_thread_utcb;
 
 namespace Kernel
 {
