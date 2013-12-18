@@ -852,6 +852,9 @@ namespace File_system {
 			{
 				PWRN("File_system::Session::sigh not supported");
 			}
+
+			/* ffat only supports fsync(2) */
+			void sync() { }
 	};
 
 

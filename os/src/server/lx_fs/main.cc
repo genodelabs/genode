@@ -308,6 +308,13 @@ class File_system::Session_component : public Session_rpc_object
 		{
 			_handle_registry.sigh(node_handle, sigh);
 		}
+
+		/**
+		 * We could call sync(2) here but for now we forward just the
+		 * reminder because besides testing, there is currently no
+		 * use-case.
+		 */
+		void sync() { PWRN("sync() not implemented!"); }
 };
 
 
