@@ -13,12 +13,12 @@
 
 .section .data
 
-.align 3
+.align 2
 .global _boot_modules_begin
 _boot_modules_begin:
 .string "GROM"
 
-.align 3
+.align 2
 .global _boot_module_headers_begin
 _boot_module_headers_begin:
 

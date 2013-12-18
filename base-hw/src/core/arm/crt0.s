@@ -58,14 +58,14 @@
 
 .section .bss
 
-	/* kernel stack */
+	/* kernel stack, must be aligned to an 8-byte boundary */
 	.align 3
 	.space 64*1024
 	.global _kernel_stack_high
 	_kernel_stack_high:
 
 	/* main-thread UTCB-pointer for the Genode thread-API */
-	.align 3
+	.align 2
 	.global _main_thread_utcb
 	_main_thread_utcb: .long 0
 
