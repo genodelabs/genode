@@ -126,15 +126,18 @@ struct Test_mmio : public Mmio
 	{
 		struct Bits_0 : Bitfield<1, 3> { };
 		struct Bits_1 : Bitfield<12, 4> { };
+		struct Bits_2 : Bitfield<6, 2> { };
 	};
 	struct Reg_2 : Register<0x4, 32>
 	{
 		struct Bits_0 : Bitfield<4, 5> { };
 		struct Bits_1 : Bitfield<17, 12> { };
+		struct Bits_2 : Bitfield<1, 3> { };
 	};
 	struct My_bitset_2 : Bitset_2<Reg_1::Bits_0, Reg_0> { };
 	struct My_bitset_3 : Bitset_3<Reg_0, Reg_2::Bits_1, Reg_2::Bits_0> { };
 	struct My_bitset_4 : Bitset_2<My_bitset_2, Reg_2::Bits_0> { };
+	struct My_bitset_5 : Bitset_3<Reg_1::Bits_2, Reg_2::Bits_2, Reg_1::Bits_1> { };
 };
 
 
@@ -466,6 +469,13 @@ int main()
 		return test_failed(19);
 	if (mmio.read<Test_mmio::My_bitset_4>() != 0x5679)
 		return test_failed(19);
+
+	/**
+	 * Test 20, bitfield methods of bitsets
+	 */
+	if (Test_mmio::My_bitset_5::bits(0b110010110) != 0b1100000010001010) {
+		return test_failed(20);
+	}
 
 	printf("Test done\n");
 	return 0;

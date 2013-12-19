@@ -235,6 +235,18 @@ namespace Genode
 		};
 		typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
 		typedef Bitset_2<Bits_0, Bits_1> Bitset_2_base;
+
+		/**
+		 * Get register with the bitset set to a given value and rest left 0
+		 *
+		 * \param T  access type of register
+		 * \param v  bitset value
+		 */
+		template <typename T>
+		static inline T bits(T const v)
+		{
+			return Bits_0::bits(v) | Bits_1::bits(v >> Bits_0::WIDTH);
+		}
 	};
 
 	/**
@@ -260,6 +272,19 @@ namespace Genode
 		};
 		typedef typename Trait::Uint_width<ACCESS_WIDTH>::Type access_t;
 		typedef Bitset_3<Bits_0, Bits_1, Bits_2> Bitset_3_base;
+
+		/**
+		 * Get register with the bitset set to a given value and rest left 0
+		 *
+		 * \param T  access type of register
+		 * \param v  bitset value
+		 */
+		template <typename T>
+		static inline T bits(T const v)
+		{
+			typedef Bitset_2<Bits_0, Bits_1> Bits_0_1;
+			return Bits_0_1::bits(v) | Bits_2::bits(v >> Bits_0_1::WIDTH);
+		}
 	};
 }
 
