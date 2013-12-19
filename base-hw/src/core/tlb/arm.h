@@ -33,70 +33,29 @@ namespace Arm
 		return a == ((a >> alignm_log2) << alignm_log2); }
 
 	/**
-	 * Common access permission [1:0] bitfield values
-	 */
-	struct Ap_1_0_bitfield
-	{
-		enum {
-			KERNEL_AND_USER_NO_ACCESS = 0,
-			USER_NO_ACCESS = 1,
-			USER_RO_ACCESS = 2,
-			KERNEL_AND_USER_SAME_ACCESS = 3
-		};
-	};
-
-	/**
-	 * Common access permission [2] bitfield values
-	 */
-	struct Ap_2_bitfield
-	{
-		enum {
-			KERNEL_RW_OR_NO_ACCESS = 0,
-			KERNEL_RO_ACCESS = 1
-		};
-	};
-
-	/**
-	 * Permission configuration according to given access rights
+	 * Return permission configuration according to given mapping flags
 	 *
-	 * \param  T  targeted translation-table-descriptor type
-	 * \param  w  see 'Section_table::insert_translation'
-	 * \param  x  see 'Section_table::insert_translation'
-	 * \param  k  see 'Section_table::insert_translation'
+	 * \param T      targeted translation-table-descriptor type
+	 * \param flags  mapping flags
 	 *
-	 * \return  descriptor value with requested perms and the rest left zero
+	 * \return  descriptor value with AP and XN set and the rest left zero
 	 */
 	template <typename T>
 	static typename T::access_t
-	access_permission_bits(Page_flags const &flags)
+	access_permission_bits(Page_flags const & flags)
 	{
-		/* lookup table for AP bitfield values according to 'w' and 'k' flag */
-		typedef typename T::Ap_1_0 Ap_1_0;
-		typedef typename T::Ap_2 Ap_2;
-
-		/*
-		 * Note: Don't make 'ap_bits' static to avoid implicit use of 'cmpxchg'
-		 * prior enabling the MMU.
-		 *
-		 * XXX Replace array with a simpler-to-grasp switch statement.
-		 */
-		typename T::access_t const ap_bits[2][2] = {{
-			Ap_1_0::bits(Ap_1_0::USER_RO_ACCESS) |              /* -- */
-			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS),
-
-			Ap_1_0::bits(Ap_1_0::USER_NO_ACCESS) |              /* -k */
-			Ap_2::bits(Ap_2::KERNEL_RO_ACCESS) }, {
-
-			Ap_1_0::bits(Ap_1_0::KERNEL_AND_USER_SAME_ACCESS) | /* w- */
-			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS),
-
-			Ap_1_0::bits(Ap_1_0::USER_NO_ACCESS) |              /* wk */
-			Ap_2::bits(Ap_2::KERNEL_RW_OR_NO_ACCESS) }
-		};
-		/* combine XN and AP bitfield values according to the flags */
 		typedef typename T::Xn Xn;
-		return Xn::bits(!flags.executable) |
-		       ap_bits[flags.writeable][flags.privileged];
+		typedef typename T::Ap Ap;
+		typedef typename T::access_t access_t;
+		bool const w = flags.writeable;
+		bool const p = flags.privileged;
+		access_t ap;
+		if (w) { if (p) { ap = Ap::bits(0b001); }
+		         else   { ap = Ap::bits(0b011); }
+		} else { if (p) { ap = Ap::bits(0b101); }
+		         else   { ap = Ap::bits(0b010); }
+		}
+		return Xn::bits(!flags.executable) | ap;
 	}
 
 	/**
@@ -104,7 +63,7 @@ namespace Arm
 	 */
 	template <typename T>
 	static typename T::access_t
-	memory_region_attr(Page_flags const &flags);
+	memory_region_attr(Page_flags const & flags);
 
 	/**
 	 * Second level translation table
@@ -228,19 +187,19 @@ namespace Arm
 				struct Xn       : Bitfield<0, 1> { };   /* execute never */
 				struct B        : Bitfield<2, 1> { };   /* mem region attr. */
 				struct C        : Bitfield<3, 1> { };   /* mem region attr. */
-				struct Ap_1_0   : Bitfield<4, 2>,       /* access permission */
-				                  Ap_1_0_bitfield { };
+				struct Ap_0     : Bitfield<4, 2> { };   /* access permission */
 				struct Tex      : Bitfield<6, 3> { };   /* mem region attr. */
-				struct Ap_2     : Bitfield<9, 1>,       /* access permission */
-				                  Ap_2_bitfield { };
+				struct Ap_1     : Bitfield<9, 1> { };   /* access permission */
 				struct S        : Bitfield<10, 1> { };  /* shareable bit */
 				struct Ng       : Bitfield<11, 1> { };  /* not global bit */
 				struct Pa_31_12 : Bitfield<12, 20> { }; /* physical base */
 
+				struct Ap : Bitset_2<Ap_0, Ap_1> { }; /* access permission */
+
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(Page_flags const &flags,
+				static access_t create(Page_flags const & flags,
 				                       addr_t const pa)
 				{
 					access_t v = access_permission_bits<Small_page>(flags) |
@@ -322,7 +281,7 @@ namespace Arm
 			 */
 			void insert_translation(addr_t const vo, addr_t const pa,
 			                        size_t const size_log2,
-			                        Page_flags const &flags)
+			                        Page_flags const & flags)
 			{
 				/* validate virtual address */
 				unsigned i;
@@ -570,19 +529,19 @@ namespace Arm
 				struct C        : Bitfield<3, 1> { };   /* mem. region attr. */
 				struct Xn       : Bitfield<4, 1> { };   /* execute never bit */
 				struct Domain   : Bitfield<5, 4> { };   /* domain */
-				struct Ap_1_0   : Bitfield<10, 2>,      /* access permission */
-				                  Ap_1_0_bitfield { };
+				struct Ap_0     : Bitfield<10, 2> { };  /* access permission */
 				struct Tex      : Bitfield<12, 3> { };  /* mem. region attr. */
-				struct Ap_2     : Bitfield<15, 1>,      /* access permission */
-				                  Ap_2_bitfield { };
+				struct Ap_1     : Bitfield<15, 1> { };  /* access permission */
 				struct S        : Bitfield<16, 1> { };  /* shared */
 				struct Ng       : Bitfield<17, 1> { };  /* not global */
 				struct Pa_31_20 : Bitfield<20, 12> { }; /* physical base */
 
+				struct Ap : Bitset_2<Ap_0, Ap_1> { }; /* access permission */
+
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(Page_flags const &flags,
+				static access_t create(Page_flags const & flags,
 				                       addr_t const pa)
 				{
 					access_t v = access_permission_bits<Section>(flags) |
@@ -687,7 +646,7 @@ namespace Arm
 			template <typename ST>
 			size_t insert_translation(addr_t const vo, addr_t const pa,
 			                          size_t const size_log2,
-			                          Page_flags const &flags,
+			                          Page_flags const & flags,
 			                          ST * const st,
 			                          void * const extra_space = 0)
 			{
