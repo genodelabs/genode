@@ -172,6 +172,9 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 			Dataspace_component(ds_size, (addr_t)ds_addr, !cached, true, this);
 	} catch (Allocator::Out_of_memory) {
 		PWRN("Could not allocate metadata");
+		/* cleanup unneeded resources */
+		_ram_alloc->free(ds_addr);
+
 		throw Out_of_metadata();
 	}
 
@@ -182,14 +185,23 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 	 */
 	_clear_ds(ds);
 
+	/* create native shared memory representation of dataspace */
+	try {
+		_export_ram_ds(ds);
+	} catch (Out_of_metadata) {
+		PWRN("could not export RAM dataspace of size 0x%zx", ds->size());
+		/* cleanup unneeded resources */
+		destroy(&_ds_slab, ds);
+		_ram_alloc->free(ds_addr);
+
+		throw Quota_exceeded();
+	}
+
 	if (verbose)
 		PDBG("ds_size=%zu, used_quota=%zu quota_limit=%zu",
 		     ds_size, used_quota(), _quota_limit);
 
 	Dataspace_capability result = _ds_ep->manage(ds);
-
-	/* create native shared memory representation of dataspace */
-	_export_ram_ds(ds);
 
 	Lock::Guard lock_guard(_ref_members_lock);
 	/* keep track of the used quota for actual payload */
