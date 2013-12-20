@@ -68,7 +68,7 @@ namespace Genode {
 				long remaining_ram_quota = ram_quota - sizeof(Irq_session_component) -
 				                           _md_alloc->overhead(sizeof(Irq_session_component));
 				if (remaining_ram_quota < 0) {
-					PERR("Insufficient ram quota, provided=%zd, required=%zd",
+					PERR("Insufficient ram quota, provided=%zu, required=%zu",
 					     ram_quota, sizeof(Irq_session_component) +
 					                _md_alloc->overhead(sizeof(Irq_session_component)));
 					return Session_capability();

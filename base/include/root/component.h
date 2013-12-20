@@ -203,7 +203,7 @@ namespace Genode {
 				size_t needed = sizeof(SESSION_TYPE) + md_alloc()->overhead(sizeof(SESSION_TYPE));
 
 				if (needed > ram_quota) {
-					PERR("Insufficient ram quota, provided=%zd, required=%zd",
+					PERR("Insufficient ram quota, provided=%zu, required=%zu",
 					     ram_quota, needed);
 					throw Root::Quota_exceeded();
 				}
@@ -221,7 +221,7 @@ namespace Genode {
 				char adjusted_args[MAX_ARGS_LEN];
 				strncpy(adjusted_args, args.string(), sizeof(adjusted_args));
 				char ram_quota_buf[64];
-				snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%zd",
+				snprintf(ram_quota_buf, sizeof(ram_quota_buf), "%zu",
 				         remaining_ram_quota);
 				Arg_string::set_arg(adjusted_args, sizeof(adjusted_args),
 				                    "ram_quota", ram_quota_buf);

@@ -71,11 +71,11 @@ struct Upgradeable_client : CLIENT
 
 	void upgrade_ram(Genode::size_t quota)
 	{
-		PINF("upgrading quota donation for Env::%s (%zd bytes)",
+		PINF("upgrading quota donation for Env::%s (%zu bytes)",
 		     CLIENT::Rpc_interface::service_name(), quota);
 
 		char buf[128];
-		Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", quota);
+		Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu", quota);
 
 		Genode::env()->parent()->upgrade(_cap, buf);
 	}
@@ -118,7 +118,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 				 * a bit too much quota for the most time.
 				 */
 				enum { ALLOC_OVERHEAD = 1024U };
-				Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd",
+				Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu",
 				                 size + ALLOC_OVERHEAD);
 				env()->parent()->resource_request(buf);
 			},
@@ -141,7 +141,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 			 * XXX Let transfer_quota throw 'Ram_session::Quota_exceeded'
 			 */
 			char buf[128];
-			Genode::snprintf(buf, sizeof(buf), "ram_quota=%zd", amount);
+			Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu", amount);
 			env()->parent()->resource_request(buf);
 		}
 		return ret;
@@ -229,7 +229,7 @@ class Genode::Expanding_parent_client : public Parent_client
 							.ulong_value(0);
 
 					char buf[128];
-					snprintf(buf, sizeof(buf), "ram_quota=%zd", ram_quota);
+					snprintf(buf, sizeof(buf), "ram_quota=%zu", ram_quota);
 
 					resource_request(Resource_args(buf));
 				},

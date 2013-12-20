@@ -84,7 +84,7 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 		_ram_session->free(ds_cap);
 		return false;
 	} catch (Ram_session::Alloc_failed) {
-		PERR("Could not allocate dataspace with size %zd", size);
+		PERR("Could not allocate dataspace with size %zu", size);
 		return false;
 	}
 

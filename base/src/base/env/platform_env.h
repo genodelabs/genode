@@ -148,9 +148,9 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 
 		void release() {
 
-			PDBG("used before freeing emergency=%zd", _resources.ram.used());
+			PDBG("used before freeing emergency=%zu", _resources.ram.used());
 			_resources.ram.free(_emergency_ram_ds);
-			PDBG("used after freeing emergency=%zd", _resources.ram.used());
+			PDBG("used after freeing emergency=%zu", _resources.ram.used());
 		}
 
 

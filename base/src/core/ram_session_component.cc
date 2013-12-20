@@ -71,7 +71,7 @@ int Ram_session_component::_transfer_quota(Ram_session_component *dst, size_t am
 	/* decrease quota limit of this session - check against used quota */
 	if (_quota_limit < amount + _payload) {
 		PWRN("Insufficient quota for transfer: %s", _label);
-		PWRN("  have %zd, need %zd", _quota_limit - _payload, amount);
+		PWRN("  have %zu, need %zu", _quota_limit - _payload, amount);
 		return -3;
 	}
 
@@ -124,11 +124,11 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 	if (used_quota() + SBS + ds_size > _quota_limit) {
 
 		PWRN("Quota exceeded: %s", _label);
-		PWRN("  memory for slab:               %zd", _ds_slab.consumed());
-		PWRN("  used quota:                    %zd", used_quota());
-		PWRN("  ds_size:                       %zd", ds_size);
-		PWRN("  sizeof(Ram_session_component): %zd", sizeof(Ram_session_component));
-		PWRN("  quota_limit:                   %zd", _quota_limit);
+		PWRN("  memory for slab:               %zu", _ds_slab.consumed());
+		PWRN("  used quota:                    %zu", used_quota());
+		PWRN("  ds_size:                       %zu", ds_size);
+		PWRN("  sizeof(Ram_session_component): %zu", sizeof(Ram_session_component));
+		PWRN("  quota_limit:                   %zu", _quota_limit);
 
 		throw Quota_exceeded();
 	}
@@ -157,7 +157,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 	 * fragmentation could cause a failing allocation.
 	 */
 	if (!alloc_succeeded) {
-		PERR("We ran out of physical memory while allocating %zd bytes", ds_size);
+		PERR("We ran out of physical memory while allocating %zu bytes", ds_size);
 		throw Quota_exceeded();
 	}
 
@@ -183,7 +183,7 @@ Ram_dataspace_capability Ram_session_component::alloc(size_t ds_size, bool cache
 	_clear_ds(ds);
 
 	if (verbose)
-		PDBG("ds_size=%zd, used_quota=%zd quota_limit=%zd",
+		PDBG("ds_size=%zu, used_quota=%zu quota_limit=%zu",
 		     ds_size, used_quota(), _quota_limit);
 
 	Dataspace_capability result = _ds_ep->manage(ds);
@@ -234,7 +234,7 @@ int Ram_session_component::transfer_quota(Ram_session_capability ram_session_cap
                                           size_t amount)
 {
 	if (verbose)
-		PDBG("amount=%zd", amount);
+		PDBG("amount=%zu", amount);
 
 	Object_pool<Ram_session_component>::Guard dst(_ram_session_ep->lookup_and_lock(ram_session_cap));
 	return _transfer_quota(dst, amount);
@@ -263,7 +263,7 @@ Ram_session_component::~Ram_session_component()
 	for (Dataspace_component *ds; (ds = _ds_slab.raw()->first_object()); _free_ds(ds));
 
 	if (_payload != 0)
-		PWRN("Remaining payload of %zd in ram session to destroy", _payload);
+		PWRN("Remaining payload of %zu in ram session to destroy", _payload);
 
 	if (!_ref_account) return;
 

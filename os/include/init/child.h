@@ -119,7 +119,7 @@ namespace Init {
 			ram_quota = avail_slack_ram_quota();
 			if (config_verbose)
 				Genode::printf("Warning: Specified quota exceeds available quota.\n"
-				               "         Proceeding with a quota of %zd bytes.\n",
+				               "         Proceeding with a quota of %zu bytes.\n",
 				               (Genode::size_t)ram_quota);
 		}
 		return ram_quota;
@@ -531,7 +531,7 @@ namespace Init {
 
 				if (config_verbose) {
 					Genode::printf("child \"%s\"\n", _name.unique);
-					Genode::printf("  RAM quota:  %zd\n", _resources.ram_quota);
+					Genode::printf("  RAM quota:  %zu\n", _resources.ram_quota);
 					Genode::printf("  ELF binary: %s\n", _name.file);
 					Genode::printf("  priority:   %ld\n", _resources.priority);
 				}

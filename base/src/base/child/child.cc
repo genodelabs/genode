@@ -57,7 +57,7 @@ namespace {
 				{
 					if (_from.valid() && _to.valid() &&
 					    Ram_session_client(_from).transfer_quota(_to, quantum)) {
-						PWRN("not enough quota for a donation of %zd bytes", quantum);
+						PWRN("not enough quota for a donation of %zu bytes", quantum);
 						throw Parent::Quota_exceeded();
 					}
 				}

@@ -35,13 +35,13 @@ bool Core_mem_allocator::Mapped_mem_allocator::alloc(size_t size, void **out_add
 
 	/* allocate physical pages */
 	if (!_phys_alloc->alloc(page_rounded_size, &phys_addr)) {
-		PERR("Could not allocate physical memory region of size %zd\n", page_rounded_size);
+		PERR("Could not allocate physical memory region of size %zu\n", page_rounded_size);
 		return false;
 	}
 
 	/* allocate range in core's virtual address space */
 	if (!_virt_alloc->alloc(page_rounded_size, &virt_addr)) {
-		PERR("Could not allocate virtual address range in core of size %zd\n", page_rounded_size);
+		PERR("Could not allocate virtual address range in core of size %zu\n", page_rounded_size);
 
 		/* revert physical allocation */
 		_phys_alloc->free(phys_addr);
@@ -49,7 +49,7 @@ bool Core_mem_allocator::Mapped_mem_allocator::alloc(size_t size, void **out_add
 	}
 
 	if (verbose_core_mem_alloc)
-		printf("added core memory block of %zd bytes at virt=%p phys=%p\n",
+		printf("added core memory block of %zu bytes at virt=%p phys=%p\n",
 		       page_rounded_size, virt_addr, phys_addr);
 
 	/* make physical page accessible at the designated virtual address */

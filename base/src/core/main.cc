@@ -269,7 +269,7 @@ int main()
 	         core's heap and not accounted by the component's meta data allocator */
 	Genode::size_t init_quota = platform()->ram_alloc()->avail() - 172*1024;
 	env()->ram_session()->transfer_quota(init_ram_session_cap, init_quota);
-	PDBG("transferred %zd MB to init", init_quota / (1024*1024));
+	PDBG("transferred %zu MB to init", init_quota / (1024*1024));
 
 	Core_child *init = new (env()->heap())
 		Core_child(Rom_session_client(init_rom_session_cap).dataspace(),
