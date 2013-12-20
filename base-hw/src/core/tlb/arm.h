@@ -103,22 +103,19 @@ namespace Arm
 				/**
 				 * Descriptor types
 				 */
-				enum Type { FAULT, SMALL_PAGE, LARGE_PAGE };
+				enum Type { FAULT, SMALL_PAGE };
 
+				struct Type_0 : Bitfield<0, 2> { };
 				struct Type_1 : Bitfield<1, 1> { };
-				struct Type_2 : Bitfield<0, 1> { };
 
 				/**
 				 * Get descriptor type of 'v'
 				 */
 				static Type type(access_t const v)
 				{
+					access_t const t0 = Type_0::get(v);
+					if (t0 == 0) { return FAULT; }
 					access_t const t1 = Type_1::get(v);
-					if (t1 == 0) {
-						access_t const t2 = Type_2::get(v);
-						if (t2 == 0) return FAULT;
-						if (t2 == 1) return LARGE_PAGE;
-					}
 					if (t1 == 1) return SMALL_PAGE;
 					return FAULT;
 				}
@@ -129,23 +126,12 @@ namespace Arm
 				static void type(access_t & v, Type const t)
 				{
 					switch (t) {
-
-					case FAULT: {
-
-						Type_1::set(v, 0);
-						Type_2::set(v, 0);
-						break; }
-
-					case SMALL_PAGE: {
-
+					case FAULT:
+						Type_0::set(v, 0);
+						return;
+					case SMALL_PAGE:
 						Type_1::set(v, 1);
-						break; }
-
-					case LARGE_PAGE: {
-
-						Type_1::set(v, 0);
-						Type_2::set(v, 1);
-						break; }
+						return;
 					}
 				}
 
@@ -347,12 +333,6 @@ namespace Arm
 						Descriptor::invalidate(_entries[i]);
 						next_vo = vo + Small_page::VIRT_SIZE;
 						break; }
-
-					case Descriptor::LARGE_PAGE: {
-
-						PDBG("large pages not supported by now");
-						while (1) ;
-						break; }
 					}
 					if (next_vo < vo) { return; }
 					vo = next_vo;
@@ -432,24 +412,23 @@ namespace Arm
 				/**
 				 * Descriptor types
 				 */
-				enum Type { FAULT, PAGE_TABLE, SECTION, SUPERSECTION };
+				enum Type { FAULT, PAGE_TABLE, SECTION };
 
-				struct Type_1 : Bitfield<0, 2> { };  /* entry type code 1 */
-				struct Type_2 : Bitfield<18, 1> { }; /* entry type code 2 */
+				struct Type_0   : Bitfield<0, 2> { };
+				struct Type_1_0 : Bitfield<1, 1> { };
+				struct Type_1_1 : Bitfield<18, 1> { };
+				struct Type_1   : Bitset_2<Type_1_0, Type_1_1> { };
 
 				/**
 				 * Get descriptor type of 'v'
 				 */
 				static Type type(access_t const v)
 				{
+					access_t const t0 = Type_0::get(v);
+					if (t0 == 0) { return FAULT; }
+					if (t0 == 1) { return PAGE_TABLE; }
 					access_t const t1 = Type_1::get(v);
-					if (t1 == 0) return FAULT;
-					if (t1 == 1) return PAGE_TABLE;
-					if (t1 == 2) {
-						access_t const t2 = Type_2::get(v);
-						if (t2 == 0) return SECTION;
-						if (t2 == 1) return SUPERSECTION;
-					}
+					if (t1 == 1) { return SECTION; }
 					return FAULT;
 				}
 
@@ -459,14 +438,15 @@ namespace Arm
 				static void type(access_t & v, Type const t)
 				{
 					switch (t) {
-					case FAULT: Type_1::set(v, 0); break;
-					case PAGE_TABLE: Type_1::set(v, 1); break;
+					case FAULT:
+						Type_0::set(v, 0);
+						return;
+					case PAGE_TABLE:
+						Type_0::set(v, 1);
+						return;
 					case SECTION:
-						Type_1::set(v, 2);
-						Type_2::set(v, 0); break;
-					case SUPERSECTION:
-						Type_1::set(v, 2);
-						Type_2::set(v, 1); break;
+						Type_1::set(v, 1);
+						return;
 					}
 				}
 
@@ -756,12 +736,6 @@ namespace Arm
 						vo &= Section::VIRT_BASE_MASK;
 						Descriptor::invalidate(_entries[i]);
 						next_vo = vo + Section::VIRT_SIZE;
-						break; }
-
-					case Descriptor::SUPERSECTION: {
-
-						PDBG("supersections not supported by now");
-						while (1) { }
 						break; }
 					}
 					if (next_vo < vo) { return; }
