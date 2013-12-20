@@ -69,11 +69,15 @@ namespace Noux {
 			OPEN_MODE_CREATE  = 0x0800, /* libc O_EXCL */
 		};
 
+		/**
+		 * These values are the same as in the FreeBSD libc
+		 */
 		enum {
 			STAT_MODE_SYMLINK   = 0120000,
 			STAT_MODE_FILE      = 0100000,
 			STAT_MODE_DIRECTORY = 0040000,
 			STAT_MODE_CHARDEV   = 0020000,
+			STAT_MODE_BLOCKDEV  = 0060000,
 		};
 
 		struct Stat
@@ -92,7 +96,7 @@ namespace Noux {
 		struct Ioctl_in
 		{
 			enum Opcode { OP_UNDEFINED, OP_TIOCGWINSZ, OP_TIOCSETAF,
-			              OP_TIOCSETAW, OP_FIONBIO };
+			              OP_TIOCSETAW, OP_FIONBIO, OP_DIOCGMEDIASIZE };
 
 			enum Val    { VAL_NULL, VAL_ECHO, VAL_ECHONL };
 
@@ -112,6 +116,13 @@ namespace Noux {
 					int rows;
 					int columns;
 				} tiocgwinsz;
+
+				/* if request was 'OP_DIOCGMEDIASIZE' */
+				struct {
+					/* disk size rounded up to sector size in bytes*/
+					int size;
+
+				} diocgmediasize;
 			};
 		};
 
@@ -124,6 +135,7 @@ namespace Noux {
 			DIRENT_TYPE_DIRECTORY,
 			DIRENT_TYPE_FIFO,
 			DIRENT_TYPE_CHARDEV,
+			DIRENT_TYPE_BLOCKDEV,
 			DIRENT_TYPE_SYMLINK,
 			DIRENT_TYPE_END
 		};

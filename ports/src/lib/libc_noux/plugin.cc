@@ -29,6 +29,7 @@
 
 /* libc includes */
 #include <errno.h>
+#include <sys/disk.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <sys/dirent.h>
@@ -40,6 +41,15 @@
 #include <termios.h>
 #include <pwd.h>
 #include <string.h>
+
+/**
+ * There is a off_t typedef clash between sys/socket.h
+ * and base/stdint.h. We define the macro here to circumvent
+ * this issue.
+ */
+#undef DIOCGMEDIASIZE
+#define DIOCGMEDIASIZE _IOR('d', 129, int64_t)
+
 
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
@@ -1115,6 +1125,14 @@ namespace {
 				break;
 			}
 
+		case DIOCGMEDIASIZE:
+			{
+				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_DIOCGMEDIASIZE;
+				sysio()->ioctl_in.argp = 0;
+
+				break;
+			}
+
 		default:
 
 			PWRN("unsupported ioctl (request=0x%x)", request);
@@ -1155,6 +1173,12 @@ namespace {
 
 		case FIONBIO:
 			return 0;
+		case DIOCGMEDIASIZE:
+			{
+				int64_t *disk_size = (int64_t*)argp;
+				*disk_size = sysio()->ioctl_out.diocgmediasize.size;
+				return 0;
+			}
 
 		default:
 			return -1;
@@ -1368,6 +1392,7 @@ namespace {
 		case Noux::Sysio::DIRENT_TYPE_SYMLINK:   dirent->d_type = DT_LNK;  break;
 		case Noux::Sysio::DIRENT_TYPE_FIFO:      dirent->d_type = DT_FIFO; break;
 		case Noux::Sysio::DIRENT_TYPE_CHARDEV:   dirent->d_type = DT_CHR; break;
+		case Noux::Sysio::DIRENT_TYPE_BLOCKDEV:  dirent->d_type = DT_BLK; break;
 		case Noux::Sysio::DIRENT_TYPE_END:       return 0;
 		}
 
