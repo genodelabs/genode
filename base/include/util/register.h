@@ -247,6 +247,36 @@ namespace Genode
 		{
 			return Bits_0::bits(v) | Bits_1::bits(v >> Bits_0::WIDTH);
 		}
+
+		/**
+		 * Override bitset in a given register value
+		 *
+		 * \param T      access type of register
+		 * \param reg    register value
+		 * \param value  new bitset value
+		 */
+		template <typename T>
+		static inline void set(T & reg, access_t const value)
+		{
+			Bits_0::clear(reg);
+			Bits_1::clear(reg);
+			Bits_0::set(reg, value);
+			Bits_1::set(reg, value >> Bits_0::WIDTH);
+		};
+
+		/**
+		 * Read bitset from a given register value
+		 *
+		 * \param T      access type of register
+		 * \param reg    register value
+		 *
+		 * \return  bitset value
+		 */
+		template <typename T>
+		static inline access_t get(T const reg)
+		{
+			return Bits_0::get(reg) | (Bits_1::get(reg) << Bits_0::WIDTH);
+		}
 	};
 
 	/**
@@ -263,6 +293,7 @@ namespace Genode
 		typedef _BITS_0 Bits_0;
 		typedef _BITS_1 Bits_1;
 		typedef _BITS_2 Bits_2;
+		typedef Bitset_2<Bits_0, Bits_1> Bits_0_1;
 		enum {
 			WIDTH          = Bits_0::BITFIELD_WIDTH +
 			                 Bits_1::BITFIELD_WIDTH +
@@ -282,8 +313,38 @@ namespace Genode
 		template <typename T>
 		static inline T bits(T const v)
 		{
-			typedef Bitset_2<Bits_0, Bits_1> Bits_0_1;
 			return Bits_0_1::bits(v) | Bits_2::bits(v >> Bits_0_1::WIDTH);
+		}
+
+		/**
+		 * Override bitset in a given register value
+		 *
+		 * \param T      access type of register
+		 * \param reg    register value
+		 * \param value  new bitset value
+		 */
+		template <typename T>
+		static inline void set(T & reg, access_t const value)
+		{
+			Bits_0::clear(reg);
+			Bits_1::clear(reg);
+			Bits_2::clear(reg);
+			Bits_0_1::set(reg, value);
+			Bits_2::set(reg, value >> Bits_0_1::WIDTH);
+		};
+
+		/**
+		 * Read bitset from a given register value
+		 *
+		 * \param T      access type of register
+		 * \param reg    register value
+		 *
+		 * \return  bitset value
+		 */
+		template <typename T>
+		static inline access_t get(T const reg)
+		{
+			return Bits_0_1::get(reg) | (Bits_2::get(reg) << Bits_0_1::WIDTH);
 		}
 	};
 }

@@ -132,12 +132,11 @@ struct Test_mmio : public Mmio
 	{
 		struct Bits_0 : Bitfield<4, 5> { };
 		struct Bits_1 : Bitfield<17, 12> { };
-		struct Bits_2 : Bitfield<1, 3> { };
 	};
 	struct My_bitset_2 : Bitset_2<Reg_1::Bits_0, Reg_0> { };
 	struct My_bitset_3 : Bitset_3<Reg_0, Reg_2::Bits_1, Reg_2::Bits_0> { };
 	struct My_bitset_4 : Bitset_2<My_bitset_2, Reg_2::Bits_0> { };
-	struct My_bitset_5 : Bitset_3<Reg_1::Bits_2, Reg_2::Bits_2, Reg_1::Bits_1> { };
+	struct My_bitset_5 : Bitset_3<Reg_1::Bits_2, Reg_1::Bits_0, Reg_1::Bits_1> { };
 };
 
 
@@ -471,9 +470,18 @@ int main()
 		return test_failed(19);
 
 	/**
-	 * Test 20, bitfield methods of bitsets
+	 * Test 20, bitfield methods at bitsets
 	 */
-	if (Test_mmio::My_bitset_5::bits(0b110010110) != 0b1100000010001010) {
+	Test_mmio::Reg_1::access_t bs5 =
+		Test_mmio::My_bitset_5::bits(0b1011110010110);
+	if (bs5 != 0b1100000010001010) {
+		return test_failed(20);
+	}
+	if (Test_mmio::My_bitset_5::get(bs5) != 0b110010110) {
+		return test_failed(20);
+	}
+	Test_mmio::My_bitset_5::set(bs5, 0b1011101101001);
+	if (bs5 != 0b1011000001000100) {
 		return test_failed(20);
 	}
 
