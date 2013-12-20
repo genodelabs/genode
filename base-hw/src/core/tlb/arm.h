@@ -188,10 +188,11 @@ namespace Arm
 				static access_t create(Page_flags const & flags,
 				                       addr_t const pa)
 				{
-					access_t v = access_permission_bits<Small_page>(flags) |
-					             memory_region_attr<Small_page>(flags) |
-					             Ng::bits(!flags.global) |
-					             S::bits(0) | Pa_31_12::masked(pa);
+					access_t v = access_permission_bits<Small_page>(flags);
+					v |= memory_region_attr<Small_page>(flags);
+					v |= Ng::bits(!flags.global);
+					v |= S::bits(1);
+					v |= Pa_31_12::masked(pa);
 					Descriptor::type(v, Descriptor::SMALL_PAGE);
 					return v;
 				}
@@ -524,11 +525,12 @@ namespace Arm
 				static access_t create(Page_flags const & flags,
 				                       addr_t const pa)
 				{
-					access_t v = access_permission_bits<Section>(flags) |
-					             memory_region_attr<Section>(flags) |
-					             Domain::bits(DOMAIN) | S::bits(0) |
-					             Ng::bits(!flags.global) |
-					             Pa_31_20::masked(pa);
+					access_t v = access_permission_bits<Section>(flags);
+					v |= memory_region_attr<Section>(flags);
+					v |= Domain::bits(DOMAIN);
+					v |= S::bits(1);
+					v |= Ng::bits(!flags.global);
+					v |= Pa_31_20::masked(pa);
 					Descriptor::type(v, Descriptor::SECTION);
 					return v;
 				}
