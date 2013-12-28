@@ -14,13 +14,13 @@
 #ifndef _INCLUDE__NITPICKER_GFX__FONT_H_
 #define _INCLUDE__NITPICKER_GFX__FONT_H_
 
-#include "nitpicker_types.h"
+#include <base/stdint.h>
 
 class Font
 {
 	private:
 
-		typedef nitpicker_int32_t int32_t;
+		typedef Genode::int32_t int32_t;
 
 	public:
 
