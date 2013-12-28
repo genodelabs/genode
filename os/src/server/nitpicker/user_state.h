@@ -18,8 +18,6 @@
 #ifndef _USER_STATE_H_
 #define _USER_STATE_H_
 
-#include <nitpicker_gfx/canvas.h>
-
 #include "mode.h"
 #include "menubar.h"
 #include "view_stack.h"
@@ -51,7 +49,7 @@ class User_state : public Mode, public View_stack
 		/*
 		 * Current mouse cursor position
 		 */
-		Canvas::Point _mouse_pos;
+		Point _mouse_pos;
 
 		/*
 		 * Currently pointed-at view
@@ -73,7 +71,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Constructor
 		 */
-		User_state(Global_keys &global_keys, Canvas &canvas, Menubar &menubar);
+		User_state(Global_keys &, Canvas_base &, Menubar &);
 
 		/**
 		 * Handle input event
@@ -86,7 +84,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Accessors
 		 */
-		Canvas::Point mouse_pos() { return _mouse_pos; }
+		Point mouse_pos() { return _mouse_pos; }
 
 		/**
 		 * Mode interface

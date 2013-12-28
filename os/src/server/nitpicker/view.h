@@ -17,8 +17,6 @@
 #include <util/string.h>
 #include <util/list.h>
 
-#include <nitpicker_gfx/canvas.h>
-
 #include "mode.h"
 #include "session.h"
 
@@ -37,7 +35,7 @@ struct View_stack_elem : Genode::List<View_stack_elem>::Element { };
 
 class View : public Same_buffer_list_elem,
              public View_stack_elem,
-             public Canvas::Rect
+             public Rect
 {
 	public:
 
@@ -53,10 +51,10 @@ class View : public Same_buffer_list_elem,
 		Transparent const _transparent;   /* background is partly visible */
 		Background        _background;    /* view is a background view    */
 
-		Canvas::Rect     _label_rect;     /* position and size of label        */
-		Canvas::Point    _buffer_off;     /* offset to the visible buffer area */
-		Session         &_session;        /* session that created the view     */
-		char             _title[TITLE_LEN];
+		Rect     _label_rect;     /* position and size of label        */
+		Point    _buffer_off;     /* offset to the visible buffer area */
+		Session &_session;        /* session that created the view     */
+		char     _title[TITLE_LEN];
 
 	public:
 
@@ -84,12 +82,12 @@ class View : public Same_buffer_list_elem,
 		/**
 		 * Draw view-surrounding frame on canvas
 		 */
-		virtual void frame(Canvas &canvas, Mode const &mode) const;
+		virtual void frame(Canvas_base &canvas, Mode const &mode) const;
 
 		/**
 		 * Draw view on canvas
 		 */
-		virtual void draw(Canvas &canvas, Mode const &mode) const;
+		virtual void draw(Canvas_base &canvas, Mode const &mode) const;
 
 		/**
 		 * Set view title
@@ -126,19 +124,18 @@ class View : public Same_buffer_list_elem,
 		bool background()  const { return _background; }
 		Rect label_rect()  const { return _label_rect; }
 		bool uses_alpha()  const { return _session.uses_alpha(); }
-
-		Canvas::Point buffer_off()  const { return _buffer_off; }
+		Point buffer_off() const { return _buffer_off; }
 
 		char const *title() const { return _title; }
 
-		void buffer_off(Canvas::Point buffer_off) { _buffer_off = buffer_off; }
+		void buffer_off(Point buffer_off) { _buffer_off = buffer_off; }
 
-		void label_pos(Canvas::Point pos) { _label_rect = Rect(pos, _label_rect.area()); }
+		void label_pos(Point pos) { _label_rect = Rect(pos, _label_rect.area()); }
 
 		/**
 		 * Return true if input at screen position 'p' refers to the view
 		 */
-		bool input_response_at(Canvas::Point p, Mode const &mode) const
+		bool input_response_at(Point p, Mode const &mode) const
 		{
 			/* check if point lies outside view geometry */
 			if ((p.x() < x1()) || (p.x() > x2())

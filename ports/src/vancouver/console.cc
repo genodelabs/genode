@@ -28,16 +28,17 @@
 #include <util/register.h>
 
 /* nitpicker graphics backend */
-#include <nitpicker_gfx/chunky_canvas.h>
-#include <nitpicker_gfx/pixel_rgb565.h>
-#include <nitpicker_gfx/font.h>
-
-extern char _binary_mono_tff_start;
-Font default_font(&_binary_mono_tff_start);
-
+#include <os/pixel_rgb565.h>
+#include <nitpicker_gfx/text_painter.h>
 
 using Genode::env;
 using Genode::Dataspace_client;
+using Genode::Surface;
+using Genode::Pixel_rgb565;
+typedef Text_painter::Font Font;
+
+extern char _binary_mono_tff_start;
+Font default_font(&_binary_mono_tff_start);
 
 bool fb_active = true;
 
@@ -214,9 +215,9 @@ void Vancouver_console::entry()
 
 	_pixels = env()->rm_session()->attach(framebuffer->dataspace());
 
-	Chunky_canvas<Pixel_rgb565> canvas((Pixel_rgb565 *) _pixels,
-	                                   Canvas::Area(_fb_mode.width(),
-	                                   _fb_mode.height()));
+	Surface<Pixel_rgb565> surface((Pixel_rgb565 *) _pixels,
+	                              Genode::Surface_base::Area(_fb_mode.width(),
+	                              _fb_mode.height()));
 
 	/*
 	 * Handle input events
@@ -244,7 +245,7 @@ void Vancouver_console::entry()
 				else checksum2 = 0;
 				for (int j=0; j<25; j++) {
 					for (int i=0; i<80; i++) {
-						Canvas::Point where(i*8, j*15);
+						Genode::Surface_base::Point where(i*8, j*15);
 						char character = *((char *) (_guest_fb +(_regs->offset << 1) +j*80*2+i*2));
 						char colorvalue = *((char *) (_guest_fb+(_regs->offset << 1)+j*80*2+i*2+1));
 						char buffer[2]; buffer[0] = character; buffer[1] = 0;
@@ -255,7 +256,7 @@ void Vancouver_console::entry()
 						                    ((fg & 0x2) >> 1)*127+lum, /* G+luminosity */
 						                     (fg & 0x1)*127+lum        /* B+luminosity */);
 
-						canvas.draw_string(where, default_font, color, buffer);
+						Text_painter::paint(surface, where, default_font, color, buffer);
 
 						/* Checksum for comparing */
 						if (cmp_even) checksum1 += character;

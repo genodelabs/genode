@@ -22,7 +22,7 @@
 #include <nitpicker_view/capability.h>
 
 namespace Nitpicker {
-	using namespace Genode;
+	using Genode::size_t;
 	struct Session;
 }
 

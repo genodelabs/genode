@@ -43,6 +43,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			/*
 			 * Declare ram-quota donation
 			 */
+			using Genode::Arg_string;
 			enum { SESSION_METADATA = 20*1024 };
 			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", SESSION_METADATA);
 
@@ -74,10 +75,10 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			char argbuf[ARGBUF_SIZE];
 			argbuf[0] = 0;
 
-			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
-			                    ram_quota(mode, use_alpha));
+			Genode::Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+			                            ram_quota(mode, use_alpha));
 
-			env()->parent()->upgrade(cap(), argbuf);
+			Genode::env()->parent()->upgrade(cap(), argbuf);
 			Session_client::buffer(mode, use_alpha);
 		}
 

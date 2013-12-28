@@ -18,56 +18,16 @@
 #include "draw_label.h"
 #include "mode.h"
 
-class Menubar : public View
+
+struct Menubar
 {
-	private:
+	virtual ~Menubar() { }
 
-		Canvas &_canvas;
-
-	protected:
-
-		Menubar(Canvas &canvas, Canvas::Area size, Session &session)
-		:
-			View(session, View::STAY_TOP, View::NOT_TRANSPARENT,
-			     View::NOT_BACKGROUND, Canvas::Rect(Canvas::Point(0, 0), size)),
-			_canvas(canvas)
-		{ }
-
-	public:
-
-		/**
-		 * Set state that is displayed in the trusted menubar
-		 */
-		void state(Mode const &mode, const char *session_label,
-		           const char *view_title, Genode::Color session_color)
-		{
-			/* choose base color dependent on the Nitpicker state */
-			int r = (mode.kill()) ? 200 : (mode.xray()) ? session_color.r : (session_color.r + 100) >> 1;
-			int g = (mode.kill()) ?  70 : (mode.xray()) ? session_color.g : (session_color.g + 100) >> 1;
-			int b = (mode.kill()) ?  70 : (mode.xray()) ? session_color.b : (session_color.b + 100) >> 1;
-
-			/* highlight first line with slightly brighter color */
-			_canvas.draw_box(Canvas::Rect(Canvas::Point(0, 0), Canvas::Area(w(), 1)),
-			                 Genode::Color(r + (r / 2), g + (g / 2), b + (b / 2)));
-
-			/* draw slightly shaded background */
-			for (unsigned i = 1; i < h() - 1; i++) {
-				r -= r > 3 ? 4 : 0;
-				g -= g > 3 ? 4 : 0;
-				b -= b > 4 ? 4 : 0;
-				_canvas.draw_box(Canvas::Rect(Canvas::Point(0, i),
-				                              Canvas::Area(w(), 1)),
-				                 Genode::Color(r, g, b));
-			}
-
-			/* draw last line darker */
-			_canvas.draw_box(Canvas::Rect(Canvas::Point(0, h() - 1), Canvas::Area(w(), 1)),
-			                 Genode::Color(r / 4, g / 4, b / 4));
-
-			/* draw label */
-			draw_label(_canvas, center(label_size(session_label, view_title)),
-			           session_label, WHITE, view_title, session_color);
-		}
+	/**
+	 * Set state that is displayed in the trusted menubar
+	 */
+	virtual void state(Mode const &mode, char const *session_label,
+	                   char const *view_title, Genode::Color session_color) = 0;
 };
 
 #endif

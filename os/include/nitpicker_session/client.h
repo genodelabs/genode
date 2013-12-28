@@ -20,7 +20,7 @@
 namespace Nitpicker { struct Session_client; }
 
 
-struct Nitpicker::Session_client : public Rpc_client<Session>
+struct Nitpicker::Session_client : public Genode::Rpc_client<Session>
 {
 	explicit Session_client(Session_capability session)
 	: Rpc_client<Session>(session) { }

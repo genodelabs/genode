@@ -24,6 +24,7 @@
 #include <input/event.h>
 #include <os/config.h>
 #include <util/color.h>
+#include <os/pixel_rgb565.h>
 
 /* terminal includes */
 #include <terminal/decoder.h>
@@ -34,8 +35,11 @@
 #include <terminal_session/terminal_session.h>
 
 /* nitpicker graphic back end */
-#include <nitpicker_gfx/font.h>
-#include <nitpicker_gfx/pixel_rgb565.h>
+#include <nitpicker_gfx/text_painter.h>
+
+
+using Genode::Pixel_rgb565;
+typedef Text_painter::Font Font;
 
 
 static bool const verbose = false;

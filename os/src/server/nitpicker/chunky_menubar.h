@@ -14,26 +14,32 @@
 #ifndef _CHUNKY_MENUBAR_
 #define _CHUNKY_MENUBAR_
 
-#include <nitpicker_gfx/chunky_canvas.h>
+#include <nitpicker_gfx/box_painter.h>
+#include <nitpicker_gfx/texture_painter.h>
+
 #include "menubar.h"
 
 template <typename PT>
-class Chunky_menubar : public Chunky_texture<PT>,
-	                   public Session, public Menubar
+class Chunky_menubar : public Texture<PT>,
+                       public Session,
+                       public Menubar,
+                       public View
 {
 	private:
 
-		Chunky_canvas<PT> _chunky_canvas;
+		Canvas<PT> _canvas;
 
 	public:
 
-		Chunky_menubar(PT *pixels, Canvas::Area size)
+		Chunky_menubar(PT *pixels, Area size)
 		:
-			Chunky_texture<PT>(pixels, 0, size),
+			Texture<PT>(pixels, 0, size),
 			Session(Genode::Session_label(""), 0, false),
-			Menubar(_chunky_canvas, size, *this), _chunky_canvas(pixels, size)
+			View(*this, View::STAY_TOP, View::NOT_TRANSPARENT,
+			     View::NOT_BACKGROUND, Rect(Point(0, 0), size)),
+			_canvas(pixels, size)
 		{
-			Session::texture(this);
+			Session::texture(this, false);
 		}
 
 
@@ -49,13 +55,47 @@ class Chunky_menubar : public Chunky_texture<PT>,
 		 ********************/
 
 		int  frame_size(Mode const &mode) const { return 0; }
-		void frame(Canvas &canvas, Mode const &mode) { }
-		void draw(Canvas const &canvas, Mode const &mode)
+		void frame(Canvas_base &canvas, Mode const &mode) { }
+		void draw(Canvas_base &canvas, Mode const &mode)
 		{
 			Clip_guard clip_guard(canvas, *this);
 
 			/* draw menubar content */
-			canvas.draw_texture(*this, BLACK, p1(), Canvas::SOLID);
+			canvas.draw_texture(p1(), *this, Texture_painter::SOLID, BLACK, false);
+		}
+
+
+		/***********************
+		 ** Menubar interface **
+		 ***********************/
+
+		void state(Mode const &mode, char const *session_label,
+		           char const *view_title, Color session_color)
+		{
+			/* choose base color dependent on the Nitpicker state */
+			int r = (mode.kill()) ? 200 : (mode.xray()) ? session_color.r : (session_color.r + 100) >> 1;
+			int g = (mode.kill()) ?  70 : (mode.xray()) ? session_color.g : (session_color.g + 100) >> 1;
+			int b = (mode.kill()) ?  70 : (mode.xray()) ? session_color.b : (session_color.b + 100) >> 1;
+
+			/* highlight first line with slightly brighter color */
+			_canvas.draw_box(Rect(Point(0, 0), Area(View::w(), 1)),
+			                 Color(r + (r / 2), g + (g / 2), b + (b / 2)));
+
+			/* draw slightly shaded background */
+			for (unsigned i = 1; i < View::h() - 1; i++) {
+				r -= r > 3 ? 4 : 0;
+				g -= g > 3 ? 4 : 0;
+				b -= b > 4 ? 4 : 0;
+				_canvas.draw_box(Rect(Point(0, i), Area(View::w(), 1)), Color(r, g, b));
+			}
+
+			/* draw last line darker */
+			_canvas.draw_box(Rect(Point(0, View::h() - 1), Area(View::w(), 1)),
+			                 Color(r / 4, g / 4, b / 4));
+
+			/* draw label */
+			draw_label(_canvas, center(label_size(session_label, view_title)),
+			           session_label, WHITE, view_title, session_color);
 		}
 };
 

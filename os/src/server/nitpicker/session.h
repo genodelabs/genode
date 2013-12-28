@@ -17,13 +17,12 @@
 /* Genode includes */
 #include <util/list.h>
 #include <util/string.h>
-#include <nitpicker_gfx/canvas.h>
 #include <os/session_policy.h>
 
 /* local includes */
 #include "color.h"
+#include "canvas.h"
 
-class Texture;
 class View;
 class Session;
 
@@ -36,11 +35,12 @@ class Session : public Session_list::Element
 	private:
 
 		Genode::Session_label const  _label;
-		Genode::Color                _color;
-		Texture               const *_texture;
+		Color                        _color;
+		Texture_base          const *_texture = { 0 };
+		bool                         _uses_alpha = { false };
 		View                        *_background = 0;
 		int                          _v_offset;
-		unsigned char         const *_input_mask;
+		unsigned char         const *_input_mask = { 0 };
 		bool                  const  _stay_top;
 
 	public:
@@ -54,8 +54,7 @@ class Session : public Session_list::Element
 		 */
 		Session(Genode::Session_label const &label, int v_offset, bool stay_top)
 		:
-			_label(label), _texture(0), _v_offset(v_offset),
-			_input_mask(0), _stay_top(stay_top)
+			_label(label), _v_offset(v_offset), _stay_top(stay_top)
 		{ }
 
 		virtual ~Session() { }
@@ -64,9 +63,13 @@ class Session : public Session_list::Element
 
 		Genode::Session_label const &label() const { return _label; }
 
-		Texture const *texture() const { return _texture; }
+		Texture_base const *texture() const { return _texture; }
 
-		void texture(Texture const *texture) { _texture = texture; }
+		void texture(Texture_base const *texture, bool uses_alpha)
+		{
+			_texture    = texture;
+			_uses_alpha = uses_alpha;
+		}
 
 		/**
 		 * Set input mask buffer
@@ -82,7 +85,7 @@ class Session : public Session_list::Element
 		 */
 		void input_mask(unsigned char const *mask) { _input_mask = mask; }
 
-		Genode::Color color() const { return _color; }
+		Color color() const { return _color; }
 
 		View *background() const { return _background; }
 
@@ -93,7 +96,7 @@ class Session : public Session_list::Element
 		/**
 		 * Return true if session uses an alpha channel
 		 */
-		bool uses_alpha() const { return _texture ? _texture->alpha() : 0; }
+		bool uses_alpha() const { return _texture && _uses_alpha; }
 
 		/**
 		 * Return vertical offset of session
@@ -103,16 +106,16 @@ class Session : public Session_list::Element
 		/**
 		 * Return input mask value at specified buffer position
 		 */
-		unsigned char input_mask_at(Canvas::Point p) const
+		unsigned char input_mask_at(Point p) const
 		{
 			if (!_input_mask || !_texture) return 0;
 
 			/* check boundaries */
-			if ((unsigned)p.x() >= _texture->w()
-			 || (unsigned)p.y() >= _texture->h())
+			if ((unsigned)p.x() >= _texture->size().w()
+			 || (unsigned)p.y() >= _texture->size().h())
 				return 0;
 
-			return _input_mask[p.y()*_texture->w() + p.x()];
+			return _input_mask[p.y()*_texture->size().w() + p.x()];
 		}
 
 		/**

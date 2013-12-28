@@ -35,7 +35,7 @@ static inline bool _mouse_button(Keycode keycode) {
  ** User state interface **
  **************************/
 
-User_state::User_state(Global_keys &global_keys, Canvas &canvas, Menubar &menubar)
+User_state::User_state(Global_keys &global_keys, Canvas_base &canvas, Menubar &menubar)
 :
 	View_stack(canvas, *this), _global_keys(global_keys), _key_cnt(0),
 	_menubar(menubar), _pointed_view(0), _input_receiver(0),
@@ -74,7 +74,7 @@ void User_state::handle_event(Input::Event ev)
 	/* create the mangled event */
 	ev = Input::Event(type, keycode, ax, ay, rx, ry);
 
-	_mouse_pos = Canvas::Point(ax, ay);
+	_mouse_pos = Point(ax, ay);
 
 	/* count keys */
 	if (type == Event::PRESS)                   _key_cnt++;

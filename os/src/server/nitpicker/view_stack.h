@@ -15,6 +15,7 @@
 #define _VIEW_STACK_H_
 
 #include "view.h"
+#include "canvas.h"
 
 class Session;
 
@@ -22,11 +23,7 @@ class View_stack
 {
 	private:
 
-		typedef Canvas::Point Point;
-		typedef Canvas::Area  Area;
-		typedef Canvas::Rect  Rect;
-
-		Canvas                        &_canvas;
+		Canvas_base                   &_canvas;
 		Mode                          &_mode;
 		Genode::List<View_stack_elem>  _views;
 		View                          *_default_background;
@@ -38,7 +35,7 @@ class View_stack
 		 * active Nitpicker mode. In non-flat modes, we incorporate the
 		 * surrounding frame.
 		 */
-		Canvas::Rect _outline(View const &view) const;
+		Rect _outline(View const &view) const;
 
 		/**
 		 * Return top-most view of the view stack
@@ -74,7 +71,7 @@ class View_stack
 		/**
 		 * Constructor
 		 */
-		View_stack(Canvas &canvas, Mode &mode) :
+		View_stack(Canvas_base &canvas, Mode &mode) :
 			_canvas(canvas), _mode(mode), _default_background(0) { }
 
 		/**

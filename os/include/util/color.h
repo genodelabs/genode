@@ -26,10 +26,15 @@ namespace Genode {
 
 struct Genode::Color
 {
-	int r, g, b;
+	int r, g, b, a;
 
-	Color(int red, int green, int blue): r(red), g(green), b(blue) { }
-	Color(): r(0), g(0), b(0) { }
+	bool is_opaque()      const { return a == 255; }
+	bool is_transparent() const { return a == 0; }
+
+	Color(int red, int green, int blue, int alpha = 255)
+	: r(red), g(green), b(blue), a(alpha) { }
+
+	Color(): r(0), g(0), b(0), a(0) { }
 };
 
 

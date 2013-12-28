@@ -24,17 +24,23 @@
 #include <nitpicker_view/client.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
+#include <os/pixel_rgb565.h>
 
 /*
  * Nitpicker's graphics backend
  */
-#include <nitpicker_gfx/chunky_canvas.h>
-#include <nitpicker_gfx/pixel_rgb565.h>
-#include <nitpicker_gfx/font.h>
+#include <nitpicker_gfx/text_painter.h>
+#include <nitpicker_gfx/box_painter.h>
 
 
 enum { LOG_W = 80 };  /* number of visible characters per line */
 enum { LOG_H = 25 };  /* number of lines of log window         */
+
+typedef Text_painter::Font          Font;
+typedef Genode::Surface_base::Point Point;
+typedef Genode::Surface_base::Area  Area;
+typedef Genode::Surface_base::Rect  Rect;
+typedef Genode::Color               Color;
 
 
 /*
@@ -42,6 +48,47 @@ enum { LOG_H = 25 };  /* number of lines of log window         */
  */
 extern char _binary_mono_tff_start;
 Font default_font(&_binary_mono_tff_start);
+
+
+/**
+ * Pixel-type-independent interface to graphics backend
+ */
+struct Canvas_base
+{
+	virtual void draw_string(Point p, Font const &font, Color color,
+	                         char const *sstr) = 0;
+
+	virtual void draw_box(Rect rect, Color color) = 0;
+};
+
+
+/**
+ * Pixel-type-specific graphics backend
+ */
+template <typename PT>
+class Canvas : public Canvas_base
+{
+	private:
+
+		Genode::Surface<PT> _surface;
+
+	public:
+
+		Canvas(PT *base, Area size) : _surface(base, size) { }
+
+		void clip(Rect rect) { _surface.clip(rect); }
+
+		void draw_string(Point p, Font const &font, Color color,
+		                 char const *sstr)
+		{
+			Text_painter::paint(_surface, p, font, color, sstr);
+		}
+
+		void draw_box(Rect rect, Color color)
+		{
+			Box_painter::paint(_surface, rect, color);
+		}
+};
 
 
 class Log_entry
@@ -90,7 +137,7 @@ class Log_entry
 		 * marks a transition of output from one session to another. This
 		 * information is used to separate sessions visually.
 		 */
-		void draw(Canvas *canvas, int y, int new_section = false)
+		void draw(Canvas_base &canvas, int y, int new_section = false)
 		{
 			Color label_fgcol = Color(Genode::min(255, _color.r + 200),
 			                          Genode::min(255, _color.g + 200),
@@ -103,23 +150,19 @@ class Log_entry
 			int label_w = default_font.str_w(_label);
 			int label_h = default_font.str_h(_label);
 
-			typedef Canvas::Rect  Rect;
-			typedef Canvas::Area  Area;
-			typedef Canvas::Point Point;
-
 			if (new_section) {
-				canvas->draw_box(Rect(Point(1, y), Area(label_w + 2, label_h - 1)), label_bgcol);
-				canvas->draw_string(Point(1, y - 1), default_font, label_fgcol, _label);
-				canvas->draw_box(Rect(Point(1, y + label_h - 1), Area(label_w + 2, 1)), Color(0, 0, 0));
-				canvas->draw_box(Rect(Point(label_w + 2, y), Area(1, label_h - 1)), _color);
-				canvas->draw_box(Rect(Point(label_w + 3, y), Area(1, label_h - 1)), Color(0, 0, 0));
-				canvas->draw_box(Rect(Point(label_w + 4, y), Area(1000, label_h)), text_bgcol);
-				canvas->draw_box(Rect(Point(label_w + 4, y), Area(1000, 1)), Color(0, 0, 0));
+				canvas.draw_box(Rect(Point(1, y), Area(label_w + 2, label_h - 1)), label_bgcol);
+				canvas.draw_string(Point(1, y - 1), default_font, label_fgcol, _label);
+				canvas.draw_box(Rect(Point(1, y + label_h - 1), Area(label_w + 2, 1)), Color(0, 0, 0));
+				canvas.draw_box(Rect(Point(label_w + 2, y), Area(1, label_h - 1)), _color);
+				canvas.draw_box(Rect(Point(label_w + 3, y), Area(1, label_h - 1)), Color(0, 0, 0));
+				canvas.draw_box(Rect(Point(label_w + 4, y), Area(1000, label_h)), text_bgcol);
+				canvas.draw_box(Rect(Point(label_w + 4, y), Area(1000, 1)), Color(0, 0, 0));
 			} else
-				canvas->draw_box(Rect(Point(1, y), Area(1000, label_h)), text_bgcol);
+				canvas.draw_box(Rect(Point(1, y), Area(1000, label_h)), text_bgcol);
 
 			/* draw log text */
-			canvas->draw_string(Point(label_w + 6, y), default_font, text_fgcol, _text);
+			canvas.draw_string(Point(label_w + 6, y), default_font, text_fgcol, _text);
 		}
 
 		/**
@@ -134,7 +177,7 @@ class Log_window
 {
 	private:
 
-		Canvas      *_canvas;         /* graphics backend                      */
+		Canvas_base &_canvas;
 		Log_entry    _entries[LOG_H]; /* log entries                           */
 		int          _dst_entry;      /* destination entry for next write      */
 		int          _view_pos;       /* current view port on the entry array  */
@@ -148,8 +191,9 @@ class Log_window
 		/**
 		 * Constructor
 		 */
-		Log_window(Canvas *canvas):
-			_canvas(canvas), _dst_entry(0), _view_pos(0), _dirty(true) { }
+		Log_window(Canvas_base &canvas)
+		: _canvas(canvas), _dst_entry(0), _view_pos(0), _dirty(true)
+		{ }
 
 		/**
 		 * Write log entry
@@ -366,22 +410,19 @@ int main(int argc, char **argv)
 	 */
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
 
-	typedef Canvas::Point Point;
-	typedef Canvas::Area  Area;
-	typedef Canvas::Rect  Rect;
-
 	/* create log window */
 	void *addr = env()->rm_session()->attach(nitpicker.framebuffer()->dataspace());
-	static Chunky_canvas<Pixel_rgb565> canvas((Pixel_rgb565 *)addr,
-	                                          Area(log_win_w, log_win_h));
-	static Log_window log_window(&canvas);
+
+	static Canvas<Pixel_rgb565> canvas((Pixel_rgb565 *)addr,
+	                                          ::Area(log_win_w, log_win_h));
+	static Log_window log_window(canvas);
 
 	/*
 	 * We clip a border of one pixel off the canvas. This way, the
 	 * border remains unaffected by the drawing operations and
 	 * acts as an outline for the log window.
 	 */
-	canvas.clip(Rect(Point(1, 1), Area(log_win_w - 2, log_win_h - 2)));
+	canvas.clip(::Rect(::Point(1, 1), ::Area(log_win_w - 2, log_win_h - 2)));
 
 	/* create view for log window */
 	Log_view log_view(&nitpicker, 20, 20, log_win_w, log_win_h);

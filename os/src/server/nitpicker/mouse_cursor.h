@@ -17,13 +17,14 @@
 #ifndef _MOUSE_CURSOR_H_
 #define _MOUSE_CURSOR_H_
 
-#include <nitpicker_gfx/chunky_canvas.h>
+#include <nitpicker_gfx/texture_painter.h>
 
 #include "view.h"
 #include "session.h"
 
 template <typename PT>
-class Mouse_cursor : public Chunky_texture<PT>, public Session, public View
+class Mouse_cursor : public Texture<PT>,
+                     public Session, public View
 {
 	private:
 
@@ -34,12 +35,12 @@ class Mouse_cursor : public Chunky_texture<PT>, public Session, public View
 		/**
 		 * Constructor
 		 */
-		Mouse_cursor(PT const *pixels, Canvas::Area size, View_stack const &view_stack)
+		Mouse_cursor(PT const *pixels, Area size, View_stack const &view_stack)
 		:
-			Chunky_texture<PT>(pixels, 0, size),
+			Texture<PT>(pixels, 0, size),
 			Session(Genode::Session_label(""), 0, false),
 			View(*this, View::STAY_TOP, View::TRANSPARENT, View::NOT_BACKGROUND,
-			     Canvas::Rect()),
+			     Rect()),
 			_view_stack(view_stack)
 		{ }
 
@@ -61,9 +62,9 @@ class Mouse_cursor : public Chunky_texture<PT>, public Session, public View
 
 		int frame_size(Mode const &mode) const { return 0; }
 
-		void frame(Canvas &canvas, Mode const &mode) const { }
+		void frame(Canvas_base &canvas, Mode const &mode) const { }
 
-		void draw(Canvas &canvas, Mode const &mode) const
+		void draw(Canvas_base &canvas, Mode const &mode) const
 		{
 			Clip_guard clip_guard(canvas, *this);
 
@@ -71,7 +72,7 @@ class Mouse_cursor : public Chunky_texture<PT>, public Session, public View
 			_view_stack.draw_rec(view_stack_next(), 0, 0, *this);
 
 			/* draw mouse cursor */
-			canvas.draw_texture(*this, BLACK, p1(), Canvas::MASKED);
+			canvas.draw_texture(p1(), *this, Texture_painter::MASKED, BLACK, true);
 		}
 };
 
