@@ -109,8 +109,8 @@ class Chunky_canvas : public Canvas
 			for ( ; *str && (x <= _clip.x2()); str++) {
 
 				int                  w     = font.wtab[*str];
-				int                  start = max(0, _clip.x1() - x);
-				int                  end   = min(w - 1, _clip.x2() - x);
+				int                  start = Genode::max(0, _clip.x1() - x);
+				int                  end   = Genode::min(w - 1, _clip.x2() - x);
 				PT                  *d     = dst + x;
 				unsigned char const *s     = src + font.otab[*str];
 

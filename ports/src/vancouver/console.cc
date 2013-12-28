@@ -92,8 +92,8 @@ unsigned Vancouver_console::_input_to_ps2mouse(Input::Event const *ev)
 
 	/* clamp relative motion vector to bounds */
 	int const boundary = 200;
-	int const rx =  min(boundary, max(-boundary, ev->rx()));
-	int const ry = -min(boundary, max(-boundary, ev->ry()));
+	int const rx =  Genode::min(boundary, Genode::max(-boundary, ev->rx()));
+	int const ry = -Genode::min(boundary, Genode::max(-boundary, ev->ry()));
 
 	/* assemble PS/2 packet */
 	Ps2_mouse_packet::access_t packet = 0;

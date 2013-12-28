@@ -57,8 +57,8 @@ void User_state::handle_event(Input::Event ev)
 	/* transparently handle absolute and relative motion events */
 	if (type == Event::MOTION) {
 		if ((ev.rx() || ev.ry()) && ev.ax() == 0 && ev.ay() == 0) {
-			ax = max(0, min((int)size().w(), ax + ev.rx()));
-			ay = max(0, min((int)size().h(), ay + ev.ry()));
+			ax = Genode::max(0, Genode::min((int)size().w(), ax + ev.rx()));
+			ay = Genode::max(0, Genode::min((int)size().h(), ay + ev.ry()));
 		} else {
 			ax = ev.ax();
 			ay = ev.ay();

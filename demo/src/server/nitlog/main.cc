@@ -90,9 +90,9 @@ class Log_entry
 		 */
 		void draw(Canvas *canvas, int y, int new_section = false)
 		{
-			Color label_fgcol = Color(min(255, _color.r + 200),
-			                          min(255, _color.g + 200),
-			                          min(255, _color.b + 200));
+			Color label_fgcol = Color(Genode::min(255, _color.r + 200),
+			                          Genode::min(255, _color.g + 200),
+			                          Genode::min(255, _color.b + 200));
 			Color label_bgcol = Color(_color.r, _color.g, _color.b);
 			Color text_fgcol  = Color(180, 180, 180);
 			Color text_bgcol  = Color(_color.r / 2, _color.g / 2, _color.b / 2);

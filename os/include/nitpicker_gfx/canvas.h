@@ -16,7 +16,6 @@
 
 #include <util/geometry.h>
 
-#include <nitpicker_gfx/miscmath.h>
 #include <nitpicker_gfx/color.h>
 #include <nitpicker_gfx/font.h>
 
