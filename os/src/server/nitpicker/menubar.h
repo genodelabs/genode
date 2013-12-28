@@ -39,7 +39,7 @@ class Menubar : public View
 		 * Set state that is displayed in the trusted menubar
 		 */
 		void state(Mode const &mode, const char *session_label,
-		           const char *view_title, Color session_color)
+		           const char *view_title, Genode::Color session_color)
 		{
 			/* choose base color dependent on the Nitpicker state */
 			int r = (mode.kill()) ? 200 : (mode.xray()) ? session_color.r : (session_color.r + 100) >> 1;
@@ -48,7 +48,7 @@ class Menubar : public View
 
 			/* highlight first line with slightly brighter color */
 			_canvas.draw_box(Canvas::Rect(Canvas::Point(0, 0), Canvas::Area(w(), 1)),
-			                 Color(r + (r / 2), g + (g / 2), b + (b / 2)));
+			                 Genode::Color(r + (r / 2), g + (g / 2), b + (b / 2)));
 
 			/* draw slightly shaded background */
 			for (unsigned i = 1; i < h() - 1; i++) {
@@ -56,12 +56,13 @@ class Menubar : public View
 				g -= g > 3 ? 4 : 0;
 				b -= b > 4 ? 4 : 0;
 				_canvas.draw_box(Canvas::Rect(Canvas::Point(0, i),
-				                              Canvas::Area(w(), 1)), Color(r, g, b));
+				                              Canvas::Area(w(), 1)),
+				                 Genode::Color(r, g, b));
 			}
 
 			/* draw last line darker */
 			_canvas.draw_box(Canvas::Rect(Canvas::Point(0, h() - 1), Canvas::Area(w(), 1)),
-			                 Color(r / 4, g / 4, b / 4));
+			                 Genode::Color(r / 4, g / 4, b / 4));
 
 			/* draw label */
 			draw_label(_canvas, center(label_size(session_label, view_title)),

@@ -48,6 +48,8 @@ class Log_entry
 {
 	private:
 
+		typedef Genode::Color Color;
+
 		char  _label[64];
 		char  _text[LOG_W];
 		char  _attr[LOG_W];
@@ -65,7 +67,7 @@ class Log_entry
 		 */
 		Log_entry() { }
 
-		Log_entry(Color color, const char *label, const char *log_text, const char *log_attr, int id):
+		Log_entry(Genode::Color color, const char *label, const char *log_text, const char *log_attr, int id):
 			_color(color), _id(id)
 		{
 			Genode::strncpy(_label, label,    sizeof(_label));
@@ -156,7 +158,8 @@ class Log_window
 		 * \param sid    unique ID of the log session. This ID is used to
 		 *               determine section transitions in the log output.
 		 */
-		void write(Color color, const char *label, const char *log_text, int sid)
+		void write(Genode::Color color, const char *label,
+		           const char *log_text, int sid)
 		{
 			_entries[_dst_entry] = Log_entry(color, label, log_text, _attr, sid);
 
@@ -210,10 +213,10 @@ class Log_session_component : public Genode::Rpc_object<Genode::Log_session>
 
 	private:
 
-		Color       _color;
-		Log_window *_log_window;
-		char        _label[LABEL_LEN];
-		int         _id;
+		Genode::Color _color;
+		Log_window   *_log_window;
+		char          _label[LABEL_LEN];
+		int           _id;
 
 		static int _bit(int v, int bit_num) { return (v >> bit_num) & 1; }
 
@@ -237,7 +240,7 @@ class Log_session_component : public Genode::Rpc_object<Genode::Log_session>
 			int g = (_bit(_id, 4) + 2*_bit(_id, 1))*scale + offset;
 			int b = (_bit(_id, 5) + 2*_bit(_id, 2))*scale + offset;
 
-			_color = Color(r, g, b);
+			_color = Genode::Color(r, g, b);
 
 			Genode::strncpy(_label, label, sizeof(_label));
 		}

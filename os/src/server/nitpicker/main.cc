@@ -28,7 +28,7 @@
 #include <nitpicker_session/nitpicker_session.h>
 #include <framebuffer_session/connection.h>
 #include <nitpicker_gfx/pixel_rgb565.h>
-#include <nitpicker_gfx/string.h>
+#include <util/color.h>
 #include <os/session_policy.h>
 #include <os/server.h>
 

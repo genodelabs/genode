@@ -17,10 +17,11 @@
 /* Genode includes */
 #include <util/list.h>
 #include <util/string.h>
-#include <nitpicker_gfx/color.h>
 #include <nitpicker_gfx/canvas.h>
-#include <nitpicker_gfx/string.h>
 #include <os/session_policy.h>
+
+/* local includes */
+#include "color.h"
 
 class Texture;
 class View;
@@ -35,7 +36,7 @@ class Session : public Session_list::Element
 	private:
 
 		Genode::Session_label const  _label;
-		Color                        _color;
+		Genode::Color                _color;
 		Texture               const *_texture;
 		View                        *_background = 0;
 		int                          _v_offset;
@@ -81,7 +82,7 @@ class Session : public Session_list::Element
 		 */
 		void input_mask(unsigned char const *mask) { _input_mask = mask; }
 
-		Color color() const { return _color; }
+		Genode::Color color() const { return _color; }
 
 		View *background() const { return _background; }
 

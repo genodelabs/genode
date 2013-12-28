@@ -15,8 +15,8 @@
 #define _INCLUDE__NITPICKER_GFX__CANVAS_H_
 
 #include <util/geometry.h>
+#include <util/color.h>
 
-#include <nitpicker_gfx/color.h>
 #include <nitpicker_gfx/font.h>
 
 
@@ -47,6 +47,7 @@ class Canvas
 		typedef Genode::Point<> Point;
 		typedef Genode::Area<>  Area;
 		typedef Genode::Rect<>  Rect;
+		typedef Genode::Color   Color;
 
 	protected:
 

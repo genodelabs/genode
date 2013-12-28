@@ -251,9 +251,9 @@ void Vancouver_console::entry()
 						char fg = colorvalue & 0xf;
 						if (fg == 0x8) fg = 0x7;
 						unsigned lum = ((fg & 0x8) >> 3)*127;
-						Color color(((fg & 0x4) >> 2)*127+lum, /* R+luminosity */
-						            ((fg & 0x2) >> 1)*127+lum, /* G+luminosity */
-						            (fg & 0x1)*127+lum         /* B+luminosity */);
+						Genode::Color color(((fg & 0x4) >> 2)*127+lum, /* R+luminosity */
+						                    ((fg & 0x2) >> 1)*127+lum, /* G+luminosity */
+						                     (fg & 0x1)*127+lum        /* B+luminosity */);
 
 						canvas.draw_string(where, default_font, color, buffer);
 

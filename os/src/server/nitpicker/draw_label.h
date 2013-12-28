@@ -53,8 +53,8 @@ inline Canvas::Area label_size(const char *sl, const char *vt) {
  * application.
  */
 static void draw_label(Canvas &canvas, Canvas::Point pos,
-                       const char *session_label, Color session_label_color,
-                       const char *view_title,    Color view_title_color)
+                       const char *session_label, Genode::Color session_label_color,
+                       const char *view_title,    Genode::Color view_title_color)
 {
 	pos = pos + Canvas::Point(1, 1);
 

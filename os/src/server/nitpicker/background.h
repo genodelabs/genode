@@ -19,7 +19,7 @@
 
 struct Background : private Texture, Session, View
 {
-	Color color;
+	Genode::Color color;
 
 	/*
 	 * The background uses no texture. Therefore

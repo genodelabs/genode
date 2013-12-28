@@ -23,6 +23,7 @@
 #include <os/attached_ram_dataspace.h>
 #include <input/event.h>
 #include <os/config.h>
+#include <util/color.h>
 
 /* terminal includes */
 #include <terminal/decoder.h>
@@ -34,7 +35,6 @@
 
 /* nitpicker graphic back end */
 #include <nitpicker_gfx/font.h>
-#include <nitpicker_gfx/color.h>
 #include <nitpicker_gfx/pixel_rgb565.h>
 
 
@@ -63,6 +63,9 @@ inline Pixel_rgb565 mix(Pixel_rgb565 p1, Pixel_rgb565 p2, int alpha)
 	res.pixel = blend(p1, 264 - alpha).pixel + blend(p2, alpha).pixel;
 	return res;
 }
+
+
+using Genode::Color;
 
 
 static Color color_palette[2*8];

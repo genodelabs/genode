@@ -26,7 +26,7 @@
 /**
  * Draw rectangle
  */
-static void draw_rect(Canvas &canvas, int x, int y, int w, int h, Color color)
+static void draw_rect(Canvas &canvas, int x, int y, int w, int h, Genode::Color color)
 {
 	canvas.draw_box(Canvas::Rect(Canvas::Point(x, y),         Canvas::Area(w, 1)), color);
 	canvas.draw_box(Canvas::Rect(Canvas::Point(x, y),         Canvas::Area(1, h)), color);
@@ -38,7 +38,7 @@ static void draw_rect(Canvas &canvas, int x, int y, int w, int h, Color color)
 /**
  * Draw outlined frame with black outline color
  */
-static void draw_frame(Canvas &canvas, Canvas::Rect r, Color color, int frame_size)
+static void draw_frame(Canvas &canvas, Canvas::Rect r, Genode::Color color, int frame_size)
 {
 	/* draw frame around the view */
 	int d = frame_size;
@@ -77,7 +77,7 @@ void View::draw(Canvas &canvas, Mode const &mode) const
 	bool const view_is_focused = mode.focused_view()
 	                          && mode.focused_view()->belongs_to(_session);
 
-	Color const frame_color = _session.color();
+	Genode::Color const frame_color = _session.color();
 
 	/*
 	 * Use dimming in x-ray and kill mode, but do not dim the focused view in
@@ -104,10 +104,10 @@ void View::draw(Canvas &canvas, Mode const &mode) const
 	bool allow_alpha = mode.flat();
 
 	/* draw view content */
-	Color const mix_color = mode.kill() ? KILL_COLOR
-	                      : Color(_session.color().r >> 1,
-	                              _session.color().g >> 1,
-	                              _session.color().b >> 1);
+	Genode::Color const mix_color = mode.kill() ? KILL_COLOR
+	                              : Genode::Color(_session.color().r >> 1,
+	                                              _session.color().g >> 1,
+	                                              _session.color().b >> 1);
 
 	if (_session.texture())
 		canvas.draw_texture(*_session.texture(), mix_color, _buffer_off + p1(),
