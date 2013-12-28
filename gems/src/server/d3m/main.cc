@@ -265,7 +265,7 @@ int main(int argc, char **argv)
 	/* create PS/2 driver */
 	static Rpc_entrypoint ps2_ep(&cap, STACK_SIZE, "ps2_slave");
 	static Ps2_policy     ps2_policy(ps2_ep, input_source_registry);
-	static Genode::Slave  ps2_slave(ps2_ep, ps2_policy, 512*1024);
+	static Genode::Slave  ps2_slave(ps2_ep, ps2_policy, 768*1024);
 
 	/* create USB driver */
 	char const *config = "<config uhci=\"yes\" ehci=\"yes\"><hid/><storage/></config>";
