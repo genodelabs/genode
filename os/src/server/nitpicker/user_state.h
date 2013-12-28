@@ -51,7 +51,7 @@ class User_state : public Mode, public View_stack
 		/*
 		 * Current mouse cursor position
 		 */
-		Point _mouse_pos;
+		Canvas::Point _mouse_pos;
 
 		/*
 		 * Currently pointed-at view
@@ -86,7 +86,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Accessors
 		 */
-		Point mouse_pos() { return _mouse_pos; }
+		Canvas::Point mouse_pos() { return _mouse_pos; }
 
 		/**
 		 * Mode interface

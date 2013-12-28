@@ -28,17 +28,17 @@
  */
 static void draw_rect(Canvas &canvas, int x, int y, int w, int h, Color color)
 {
-	canvas.draw_box(Rect(Point(x, y),         Area(w, 1)), color);
-	canvas.draw_box(Rect(Point(x, y),         Area(1, h)), color);
-	canvas.draw_box(Rect(Point(x + w - 1, y), Area(1, h)), color);
-	canvas.draw_box(Rect(Point(x, y + h - 1), Area(w, 1)), color);
+	canvas.draw_box(Canvas::Rect(Canvas::Point(x, y),         Canvas::Area(w, 1)), color);
+	canvas.draw_box(Canvas::Rect(Canvas::Point(x, y),         Canvas::Area(1, h)), color);
+	canvas.draw_box(Canvas::Rect(Canvas::Point(x + w - 1, y), Canvas::Area(1, h)), color);
+	canvas.draw_box(Canvas::Rect(Canvas::Point(x, y + h - 1), Canvas::Area(w, 1)), color);
 }
 
 
 /**
  * Draw outlined frame with black outline color
  */
-static void draw_frame(Canvas &canvas, Rect r, Color color, int frame_size)
+static void draw_frame(Canvas &canvas, Canvas::Rect r, Color color, int frame_size)
 {
 	/* draw frame around the view */
 	int d = frame_size;
@@ -58,7 +58,7 @@ void View::title(const char *title)
 	Genode::strncpy(_title, title, TITLE_LEN);
 
 	/* calculate label size, the position is defined by the view stack */
-	_label_rect = Rect(Point(0, 0), label_size(_session.label().string(), _title));
+	_label_rect = Canvas::Rect(Canvas::Point(0, 0), label_size(_session.label().string(), _title));
 }
 
 

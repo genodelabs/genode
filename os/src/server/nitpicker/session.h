@@ -18,7 +18,6 @@
 #include <util/list.h>
 #include <util/string.h>
 #include <nitpicker_gfx/color.h>
-#include <nitpicker_gfx/geometry.h>
 #include <nitpicker_gfx/canvas.h>
 #include <nitpicker_gfx/string.h>
 #include <os/session_policy.h>
@@ -103,13 +102,13 @@ class Session : public Session_list::Element
 		/**
 		 * Return input mask value at specified buffer position
 		 */
-		unsigned char input_mask_at(Point p) const
+		unsigned char input_mask_at(Canvas::Point p) const
 		{
 			if (!_input_mask || !_texture) return 0;
 
 			/* check boundaries */
-			if (p.x() < 0 || p.x() >= _texture->w()
-			 || p.y() < 0 || p.y() >= _texture->h())
+			if ((unsigned)p.x() >= _texture->w()
+			 || (unsigned)p.y() >= _texture->h())
 				return 0;
 
 			return _input_mask[p.y()*_texture->w() + p.x()];

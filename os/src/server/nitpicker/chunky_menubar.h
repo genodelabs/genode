@@ -27,7 +27,7 @@ class Chunky_menubar : public Chunky_texture<PT>,
 
 	public:
 
-		Chunky_menubar(PT *pixels, Area size)
+		Chunky_menubar(PT *pixels, Canvas::Area size)
 		:
 			Chunky_texture<PT>(pixels, 0, size),
 			Session(Genode::Session_label(""), 0, false),

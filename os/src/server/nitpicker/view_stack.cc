@@ -63,15 +63,15 @@ VIEW *View_stack::_next_view(VIEW *view) const
 }
 
 
-Rect View_stack::_outline(View const &view) const
+Canvas::Rect View_stack::_outline(View const &view) const
 {
 	if (_mode.flat()) return view;
 
 	/* request thickness of view frame */
 	int const frame_size = view.frame_size(_mode);
 
-	return Rect(Point(view.x1() - frame_size, view.y1() - frame_size),
-	            Point(view.x2() + frame_size, view.y2() + frame_size));
+	return Canvas::Rect(Canvas::Point(view.x1() - frame_size, view.y1() - frame_size),
+	                    Canvas::Point(view.x2() + frame_size, view.y2() + frame_size));
 }
 
 

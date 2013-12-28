@@ -26,11 +26,11 @@ struct Background : private Texture, Session, View
 	 * we can pass a null pointer as texture argument
 	 * to the Session constructor.
 	 */
-	Background(Area size)
+	Background(Canvas::Area size)
 	:
 		Texture(Area(0, 0)), Session(Genode::Session_label(""), 0, false),
 		View(*this, View::NOT_STAY_TOP, View::NOT_TRANSPARENT,
-		     View::BACKGROUND, Rect(Point(0, 0), size)),
+		     View::BACKGROUND, Canvas::Rect(Canvas::Point(0, 0), size)),
 		color(25, 37, 50)
 	{ }
 

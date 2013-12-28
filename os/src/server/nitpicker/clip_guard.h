@@ -34,17 +34,18 @@ class Clip_guard
 {
 	private:
 
-		Canvas    &_canvas;
-		Rect const _orig_clip_rect;
+		Canvas &_canvas;
+
+		Canvas::Rect const _orig_clip_rect;
 
 	public:
 
-		Clip_guard(Canvas &canvas, Rect new_clip_rect)
+		Clip_guard(Canvas &canvas, Canvas::Rect new_clip_rect)
 		:
 			_canvas(canvas),
 			_orig_clip_rect(_canvas.clip())
 		{
-			_canvas.clip(Rect::intersect(_orig_clip_rect, new_clip_rect));
+			_canvas.clip(Canvas::Rect::intersect(_orig_clip_rect, new_clip_rect));
 		}
 
 		~Clip_guard() { _canvas.clip(_orig_clip_rect); }

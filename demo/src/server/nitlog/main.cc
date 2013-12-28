@@ -101,6 +101,10 @@ class Log_entry
 			int label_w = default_font.str_w(_label);
 			int label_h = default_font.str_h(_label);
 
+			typedef Canvas::Rect  Rect;
+			typedef Canvas::Area  Area;
+			typedef Canvas::Point Point;
+
 			if (new_section) {
 				canvas->draw_box(Rect(Point(1, y), Area(label_w + 2, label_h - 1)), label_bgcol);
 				canvas->draw_string(Point(1, y - 1), default_font, label_fgcol, _label);
@@ -358,6 +362,10 @@ int main(int argc, char **argv)
 	 * dataspace.
 	 */
 	static Sliced_heap sliced_heap(env()->ram_session(), env()->rm_session());
+
+	typedef Canvas::Point Point;
+	typedef Canvas::Area  Area;
+	typedef Canvas::Rect  Rect;
 
 	/* create log window */
 	void *addr = env()->rm_session()->attach(nitpicker.framebuffer()->dataspace());

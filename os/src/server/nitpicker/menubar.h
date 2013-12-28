@@ -26,10 +26,10 @@ class Menubar : public View
 
 	protected:
 
-		Menubar(Canvas &canvas, Area size, Session &session)
+		Menubar(Canvas &canvas, Canvas::Area size, Session &session)
 		:
 			View(session, View::STAY_TOP, View::NOT_TRANSPARENT,
-			     View::NOT_BACKGROUND, Rect(Point(0, 0), size)),
+			     View::NOT_BACKGROUND, Canvas::Rect(Canvas::Point(0, 0), size)),
 			_canvas(canvas)
 		{ }
 
@@ -47,19 +47,20 @@ class Menubar : public View
 			int b = (mode.kill()) ?  70 : (mode.xray()) ? session_color.b : (session_color.b + 100) >> 1;
 
 			/* highlight first line with slightly brighter color */
-			_canvas.draw_box(Rect(Point(0, 0), Area(w(), 1)),
+			_canvas.draw_box(Canvas::Rect(Canvas::Point(0, 0), Canvas::Area(w(), 1)),
 			                 Color(r + (r / 2), g + (g / 2), b + (b / 2)));
 
 			/* draw slightly shaded background */
-			for (int i = 1; i < h() - 1; i++) {
+			for (unsigned i = 1; i < h() - 1; i++) {
 				r -= r > 3 ? 4 : 0;
 				g -= g > 3 ? 4 : 0;
 				b -= b > 4 ? 4 : 0;
-				_canvas.draw_box(Rect(Point(0, i), Area(w(), 1)), Color(r, g, b));
+				_canvas.draw_box(Canvas::Rect(Canvas::Point(0, i),
+				                              Canvas::Area(w(), 1)), Color(r, g, b));
 			}
 
 			/* draw last line darker */
-			_canvas.draw_box(Rect(Point(0, h() - 1), Area(w(), 1)),
+			_canvas.draw_box(Canvas::Rect(Canvas::Point(0, h() - 1), Canvas::Area(w(), 1)),
 			                 Color(r / 4, g / 4, b / 4));
 
 			/* draw label */

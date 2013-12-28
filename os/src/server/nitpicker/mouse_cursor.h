@@ -34,12 +34,12 @@ class Mouse_cursor : public Chunky_texture<PT>, public Session, public View
 		/**
 		 * Constructor
 		 */
-		Mouse_cursor(PT const *pixels, Area size, View_stack const &view_stack)
+		Mouse_cursor(PT const *pixels, Canvas::Area size, View_stack const &view_stack)
 		:
 			Chunky_texture<PT>(pixels, 0, size),
 			Session(Genode::Session_label(""), 0, false),
 			View(*this, View::STAY_TOP, View::TRANSPARENT, View::NOT_BACKGROUND,
-			     Rect()),
+			     Canvas::Rect()),
 			_view_stack(view_stack)
 		{ }
 

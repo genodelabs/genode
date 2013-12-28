@@ -22,6 +22,10 @@ class View_stack
 {
 	private:
 
+		typedef Canvas::Point Point;
+		typedef Canvas::Area  Area;
+		typedef Canvas::Rect  Rect;
+
 		Canvas                        &_canvas;
 		Mode                          &_mode;
 		Genode::List<View_stack_elem>  _views;
@@ -34,7 +38,7 @@ class View_stack
 		 * active Nitpicker mode. In non-flat modes, we incorporate the
 		 * surrounding frame.
 		 */
-		Rect _outline(View const &view) const;
+		Canvas::Rect _outline(View const &view) const;
 
 		/**
 		 * Return top-most view of the view stack

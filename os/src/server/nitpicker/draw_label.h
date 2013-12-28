@@ -24,12 +24,12 @@ enum { LABEL_GAP = 5 };
 /**
  * Draw black outline of string
  */
-inline void draw_string_outline(Canvas &canvas, Point pos, const char *s)
+inline void draw_string_outline(Canvas &canvas, Canvas::Point pos, const char *s)
 {
 	for (int j = -1; j <= 1; j++)
 		for (int i = -1; i <= 1; i++)
 			if (i || j)
-				canvas.draw_string(pos + Point(i, j), default_font, BLACK, s);
+				canvas.draw_string(pos + Canvas::Point(i, j), default_font, BLACK, s);
 }
 
 
@@ -39,9 +39,9 @@ inline void draw_string_outline(Canvas &canvas, Point pos, const char *s)
  * \param sl  session label string
  * \param vt  view title string
  */
-inline Area label_size(const char *sl, const char *vt) {
-	return Area(default_font.str_w(sl) + LABEL_GAP + default_font.str_w(vt) + 2,
-	            default_font.str_h(sl) + 2); }
+inline Canvas::Area label_size(const char *sl, const char *vt) {
+	return Canvas::Area(default_font.str_w(sl) + LABEL_GAP + default_font.str_w(vt) + 2,
+	                    default_font.str_h(sl) + 2); }
 
 
 /**
@@ -52,16 +52,16 @@ inline Area label_size(const char *sl, const char *vt) {
  * policy. In contrast, the view title can individually be defined by the
  * application.
  */
-static void draw_label(Canvas &canvas, Point pos,
+static void draw_label(Canvas &canvas, Canvas::Point pos,
                        const char *session_label, Color session_label_color,
                        const char *view_title,    Color view_title_color)
 {
-	pos = pos + Point(1, 1);
+	pos = pos + Canvas::Point(1, 1);
 
 	draw_string_outline(canvas, pos, session_label);
 	canvas.draw_string(pos, default_font, session_label_color, session_label);
 
-	pos = pos + Point(default_font.str_w(session_label) + LABEL_GAP, 0);
+	pos = pos + Canvas::Point(default_font.str_w(session_label) + LABEL_GAP, 0);
 
 	draw_string_outline(canvas, pos, view_title);
 	canvas.draw_string(pos, default_font, view_title_color, view_title);

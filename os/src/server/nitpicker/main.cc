@@ -69,23 +69,23 @@ class Flush_merger
 {
 	private:
 
-		Rect _to_be_flushed = { Point(), Area(-1, -1) };
+		Canvas::Rect _to_be_flushed = { Canvas::Point(), Canvas::Area() };
 
 	public:
 
 		bool defer = false;
 
-		Rect to_be_flushed() const { return _to_be_flushed; }
+		Canvas::Rect to_be_flushed() const { return _to_be_flushed; }
 
-		void merge(Rect rect)
+		void merge(Canvas::Rect rect)
 		{
 			if (_to_be_flushed.valid())
-				_to_be_flushed = Rect::compound(_to_be_flushed, rect);
+				_to_be_flushed = Canvas::Rect::compound(_to_be_flushed, rect);
 			else
 				_to_be_flushed = rect;
 		}
 
-		void reset() { _to_be_flushed = Rect(Point(), Area(-1, -1)); }
+		void reset() { _to_be_flushed = Canvas::Rect(Canvas::Point(), Canvas::Area()); }
 };
 
 
@@ -94,14 +94,14 @@ class Screen : public Chunky_canvas<PT>, public Flush_merger
 {
 	protected:
 
-		virtual void _flush_pixels(Rect rect) { merge(rect); }
+		virtual void _flush_pixels(Canvas::Rect rect) { merge(rect); }
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Screen(PT *base, Area size) : Chunky_canvas<PT>(base, size) { }
+		Screen(PT *base, Canvas::Area size) : Chunky_canvas<PT>(base, size) { }
 };
 
 
@@ -109,7 +109,7 @@ class Buffer
 {
 	private:
 
-		Area                           _size;
+		Canvas::Area                   _size;
 		Framebuffer::Mode::Format      _format;
 		Genode::Attached_ram_dataspace _ram_ds;
 
@@ -121,7 +121,7 @@ class Buffer
 		 * \throw Ram_session::Alloc_failed
 		 * \throw Rm_session::Attach_failed
 		 */
-		Buffer(Area size, Framebuffer::Mode::Format format, Genode::size_t bytes)
+		Buffer(Canvas::Area size, Framebuffer::Mode::Format format, Genode::size_t bytes)
 		:
 			_size(size), _format(format),
 			_ram_ds(Genode::env()->ram_session(), bytes)
@@ -131,7 +131,7 @@ class Buffer
 		 * Accessors
 		 */
 		Genode::Ram_dataspace_capability ds_cap() const { return _ram_ds.cap(); }
-		Area                               size() const { return _size; }
+		Canvas::Area                       size() const { return _size; }
 		Framebuffer::Mode::Format        format() const { return _format; }
 		void                        *local_addr() const { return _ram_ds.local_addr<void>(); }
 };
@@ -160,7 +160,7 @@ class Chunky_dataspace_texture : public Buffer, public Chunky_texture<PT>
 		/**
 		 * Return base address of alpha channel or 0 if no alpha channel exists
 		 */
-		unsigned char *_alpha_base(Area size, bool use_alpha)
+		unsigned char *_alpha_base(Canvas::Area size, bool use_alpha)
 		{
 			if (!use_alpha) return 0;
 
@@ -173,13 +173,13 @@ class Chunky_dataspace_texture : public Buffer, public Chunky_texture<PT>
 		/**
 		 * Constructor
 		 */
-		Chunky_dataspace_texture(Area size, bool use_alpha)
+		Chunky_dataspace_texture(Canvas::Area size, bool use_alpha)
 		:
 			Buffer(size, _format(), calc_num_bytes(size, use_alpha)),
 			Chunky_texture<PT>((PT *)local_addr(),
 			                   _alpha_base(size, use_alpha), size) { }
 
-		static Genode::size_t calc_num_bytes(Area size, bool use_alpha)
+		static Genode::size_t calc_num_bytes(Canvas::Area size, bool use_alpha)
 		{
 			/*
 			 * If using an alpha channel, the alpha buffer follows the
@@ -353,11 +353,12 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		void refresh(int x, int y, int w, int h)
 		{
 			_view_stack.update_session_views(_session,
-			                                 Rect(Point(x, y), Area(w, h)));
+			                                 Canvas::Rect(Canvas::Point(x, y),
+			                                              Canvas::Area(w, h)));
 
 			/* flush dirty pixels to physical frame buffer */
 			if (_flush_merger.defer == false) {
-				Rect r = _flush_merger.to_be_flushed();
+				Canvas::Rect r = _flush_merger.to_be_flushed();
 				_framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h());
 				_flush_merger.reset();
 			}
@@ -387,7 +388,7 @@ class View_component : public Genode::List<View_component>::Element,
 			_view_stack(view_stack),
 			_view(session,
 			      session.stay_top() ? ::View::STAY_TOP : ::View::NOT_STAY_TOP,
-			      ::View::NOT_TRANSPARENT, ::View::NOT_BACKGROUND, Rect()),
+			      ::View::NOT_TRANSPARENT, ::View::NOT_BACKGROUND, Canvas::Rect()),
 			_ep(ep) { }
 
 		::View &view() { return _view; }
@@ -403,8 +404,9 @@ class View_component : public Genode::List<View_component>::Element,
 			/* transpose y position by vertical session offset */
 			y += _view.session().v_offset();
 
-			_view_stack.viewport(_view, Rect(Point(x, y), Area(w, h)),
-			                            Point(buf_x, buf_y), redraw);
+			_view_stack.viewport(_view, Canvas::Rect(Canvas::Point(x, y),
+			                                         Canvas::Area(w, h)),
+			                            Canvas::Point(buf_x, buf_y), redraw);
 			return 0;
 		}
 
@@ -637,7 +639,7 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		{
 			_release_buffer();
 
-			Area const size(mode.width(), mode.height());
+			Canvas::Area const size(mode.width(), mode.height());
 
 			typedef Pixel_rgb565 PT;
 
@@ -767,7 +769,7 @@ struct Nitpicker::Main
 
 	void *fb_base = env()->rm_session()->attach(fb_ds_cap);
 
-	Screen<PT> screen = { (PT *)fb_base, Area(mode.width(), mode.height()) };
+	Screen<PT> screen = { (PT *)fb_base, Canvas::Area(mode.width(), mode.height()) };
 
 	/*
 	 * Menu bar
@@ -776,7 +778,7 @@ struct Nitpicker::Main
 
 	PT *menubar_pixels = (PT *)env()->heap()->alloc(sizeof(PT)*mode.width()*16);
 
-	Chunky_menubar<PT> menubar = { menubar_pixels, Area(mode.width(), MENUBAR_HEIGHT) };
+	Chunky_menubar<PT> menubar = { menubar_pixels, Canvas::Area(mode.width(), MENUBAR_HEIGHT) };
 
 	/*
 	 * User-input policy
@@ -790,7 +792,7 @@ struct Nitpicker::Main
 	/*
 	 * Create view stack with default elements
 	 */
-	Area             mouse_size { big_mouse.w, big_mouse.h };
+	Canvas::Area     mouse_size { big_mouse.w, big_mouse.h };
 	Mouse_cursor<PT> mouse_cursor { (PT *)&big_mouse.pixels[0][0],
 	                                mouse_size, user_state };
 
@@ -859,23 +861,23 @@ void Nitpicker::Main::handle_input(unsigned)
 		return;
 
 	do {
-		Point const old_mouse_pos = user_state.mouse_pos();
+		Canvas::Point const old_mouse_pos = user_state.mouse_pos();
 
 		/* handle batch of pending events */
 		if (input.is_pending())
 			import_input_events(ev_buf, input.flush(), user_state);
 
-		Point const new_mouse_pos = user_state.mouse_pos();
+		Canvas::Point const new_mouse_pos = user_state.mouse_pos();
 
 		/* update mouse cursor */
 		if (old_mouse_pos != new_mouse_pos)
 			user_state.viewport(mouse_cursor,
-			                    Rect(new_mouse_pos, mouse_size),
-			                    Point(), true);
+			                    Canvas::Rect(new_mouse_pos, mouse_size),
+			                    Canvas::Point(), true);
 
 		/* flush dirty pixels to physical frame buffer */
 		if (screen.defer == false) {
-			Rect const r = screen.to_be_flushed();
+			Canvas::Rect const r = screen.to_be_flushed();
 			if (r.valid())
 				framebuffer.refresh(r.x1(), r.y1(), r.w(), r.h());
 			screen.reset();

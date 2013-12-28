@@ -16,8 +16,8 @@
 
 #include <util/string.h>
 #include <util/list.h>
+
 #include <nitpicker_gfx/canvas.h>
-#include <nitpicker_gfx/geometry.h>
 
 #include "mode.h"
 #include "session.h"
@@ -35,7 +35,9 @@ struct Same_buffer_list_elem : Genode::List<Same_buffer_list_elem>::Element { };
 struct View_stack_elem : Genode::List<View_stack_elem>::Element { };
 
 
-class View : public Same_buffer_list_elem, public View_stack_elem, public Rect
+class View : public Same_buffer_list_elem,
+             public View_stack_elem,
+             public Canvas::Rect
 {
 	public:
 
@@ -51,10 +53,10 @@ class View : public Same_buffer_list_elem, public View_stack_elem, public Rect
 		Transparent const _transparent;   /* background is partly visible */
 		Background        _background;    /* view is a background view    */
 
-		Rect     _label_rect;    /* position and size of label        */
-		Point    _buffer_off;    /* offset to the visible buffer area */
-		Session &_session;       /* session that created the view     */
-		char     _title[TITLE_LEN];
+		Canvas::Rect     _label_rect;     /* position and size of label        */
+		Canvas::Point    _buffer_off;     /* offset to the visible buffer area */
+		Session         &_session;        /* session that created the view     */
+		char             _title[TITLE_LEN];
 
 	public:
 
@@ -119,23 +121,24 @@ class View : public Same_buffer_list_elem, public View_stack_elem, public Rect
 		bool belongs_to(Session const &session) const { return &session == &_session; }
 		bool same_session_as(View const &other) const { return &_session == &other._session; }
 
-		bool  stay_top()    const { return _stay_top; }
-		bool  transparent() const { return _transparent || _session.uses_alpha(); }
-		bool  background()  const { return _background; }
-		Point buffer_off()  const { return _buffer_off; }
-		Rect  label_rect()  const { return _label_rect; }
-		bool  uses_alpha()  const { return _session.uses_alpha(); }
+		bool stay_top()    const { return _stay_top; }
+		bool transparent() const { return _transparent || _session.uses_alpha(); }
+		bool background()  const { return _background; }
+		Rect label_rect()  const { return _label_rect; }
+		bool uses_alpha()  const { return _session.uses_alpha(); }
+
+		Canvas::Point buffer_off()  const { return _buffer_off; }
 
 		char const *title() const { return _title; }
 
-		void  buffer_off(Point buffer_off) { _buffer_off = buffer_off; }
+		void buffer_off(Canvas::Point buffer_off) { _buffer_off = buffer_off; }
 
-		void  label_pos(Point pos) { _label_rect = Rect(pos, _label_rect.area()); }
+		void label_pos(Canvas::Point pos) { _label_rect = Rect(pos, _label_rect.area()); }
 
 		/**
 		 * Return true if input at screen position 'p' refers to the view
 		 */
-		bool input_response_at(Point p, Mode const &mode) const
+		bool input_response_at(Canvas::Point p, Mode const &mode) const
 		{
 			/* check if point lies outside view geometry */
 			if ((p.x() < x1()) || (p.x() > x2())

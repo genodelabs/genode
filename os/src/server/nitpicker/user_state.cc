@@ -57,8 +57,8 @@ void User_state::handle_event(Input::Event ev)
 	/* transparently handle absolute and relative motion events */
 	if (type == Event::MOTION) {
 		if ((ev.rx() || ev.ry()) && ev.ax() == 0 && ev.ay() == 0) {
-			ax = max(0, min(size().w(), ax + ev.rx()));
-			ay = max(0, min(size().h(), ay + ev.ry()));
+			ax = max(0, min((int)size().w(), ax + ev.rx()));
+			ay = max(0, min((int)size().h(), ay + ev.ry()));
 		} else {
 			ax = ev.ax();
 			ay = ev.ay();
@@ -74,7 +74,7 @@ void User_state::handle_event(Input::Event ev)
 	/* create the mangled event */
 	ev = Input::Event(type, keycode, ax, ay, rx, ry);
 
-	_mouse_pos = Point(ax, ay);
+	_mouse_pos = Canvas::Point(ax, ay);
 
 	/* count keys */
 	if (type == Event::PRESS)                   _key_cnt++;

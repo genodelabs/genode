@@ -215,7 +215,7 @@ void Vancouver_console::entry()
 	_pixels = env()->rm_session()->attach(framebuffer->dataspace());
 
 	Chunky_canvas<Pixel_rgb565> canvas((Pixel_rgb565 *) _pixels,
-	                                   Area(_fb_mode.width(),
+	                                   Canvas::Area(_fb_mode.width(),
 	                                   _fb_mode.height()));
 
 	/*
@@ -244,7 +244,7 @@ void Vancouver_console::entry()
 				else checksum2 = 0;
 				for (int j=0; j<25; j++) {
 					for (int i=0; i<80; i++) {
-						Point where(i*8, j*15);
+						Canvas::Point where(i*8, j*15);
 						char character = *((char *) (_guest_fb +(_regs->offset << 1) +j*80*2+i*2));
 						char colorvalue = *((char *) (_guest_fb+(_regs->offset << 1)+j*80*2+i*2+1));
 						char buffer[2]; buffer[0] = character; buffer[1] = 0;

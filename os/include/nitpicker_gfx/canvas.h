@@ -14,17 +14,18 @@
 #ifndef _INCLUDE__NITPICKER_GFX__CANVAS_H_
 #define _INCLUDE__NITPICKER_GFX__CANVAS_H_
 
+#include <util/geometry.h>
+
 #include <nitpicker_gfx/miscmath.h>
 #include <nitpicker_gfx/color.h>
 #include <nitpicker_gfx/font.h>
-#include <nitpicker_gfx/geometry.h>
 
 
-class Texture : public Area
+class Texture : public Genode::Area<>
 {
 	public:
 
-		Texture(Area size): Area(size) { }
+		Texture(Area<> size): Area<>(size) { }
 
 		virtual ~Texture() { }
 
@@ -42,6 +43,12 @@ class Texture : public Area
  */
 class Canvas
 {
+	public:
+
+		typedef Genode::Point<> Point;
+		typedef Genode::Area<>  Area;
+		typedef Genode::Rect<>  Rect;
+
 	protected:
 
 		Rect _clip;      /* clipping area        */
@@ -50,8 +57,7 @@ class Canvas
 		/**
 		 * Constructor
 		 */
-		Canvas(Area size):
-			_clip(Point(0, 0), size), _size(size) { }
+		Canvas(Area size) : _clip(Point(0, 0), size), _size(size) { }
 
 		/**
 		 * Register canvas area as to be flushed
@@ -86,7 +92,8 @@ class Canvas
 		/**
 		 * Define/request clipping rectangle
 		 */
-		void clip(Rect clip) { _clip = Rect::intersect(Rect(Point(0, 0), _size), clip); }
+		void clip(Rect clip) {
+			_clip = Rect::intersect(Rect(Point(0, 0), _size), clip); }
 
 		Rect clip()       const { return _clip; }
 		bool clip_valid() const { return _clip.valid(); }
