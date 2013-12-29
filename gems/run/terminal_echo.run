@@ -55,7 +55,7 @@ append_if [have_spec ps2] config {
 
 append config {
 		<start name="timer">
-			<resource name="RAM" quantum="512K"/>
+			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
 		<start name="terminal">
