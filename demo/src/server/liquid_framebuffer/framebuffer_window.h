@@ -14,7 +14,8 @@
 #ifndef _FRAMEBUFFER_WINDOW_H_
 #define _FRAMEBUFFER_WINDOW_H_
 
-#include "window.h"
+#include <scout/window.h>
+
 #include "titlebar.h"
 #include "sky_texture.h"
 #include "fade_icon.h"
@@ -27,7 +28,7 @@ extern unsigned char SIZER_RGBA[];
 
 
 template <typename PT>
-class Framebuffer_window : public Window
+class Framebuffer_window : public Scout::Window
 {
 	private:
 
@@ -39,29 +40,34 @@ class Framebuffer_window : public Window
 		/**
 		 * Widgets
 		 */
-		Titlebar<PT>              _titlebar;
-		Sky_texture<PT, 512, 512> _bg_texture;
-		int                       _bg_offset;
-		Fade_icon<PT, 32, 32>     _sizer;
-		Element                  *_content;
-		bool                      _config_alpha;
-		bool                      _config_resize_handle;
-		bool                      _config_decoration;
+		Scout::Titlebar<PT>              _titlebar;
+		Scout::Sky_texture<PT, 512, 512> _bg_texture;
+		int                              _bg_offset;
+		Scout::Fade_icon<PT, 32, 32>     _sizer;
+		Scout::Element                  *_content;
+		bool                             _config_alpha;
+		bool                             _config_resize_handle;
+		bool                             _config_decoration;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Framebuffer_window(Platform       *pf,
-		                   Redraw_manager *redraw,
-		                   Element        *content,
-		                   const char     *name,
-		                   bool            config_alpha,
-		                   bool            config_resize_handle,
-		                   bool            config_decoration)
+		Framebuffer_window(Scout::Graphics_backend &gfx_backend,
+		                   Scout::Element          *content,
+		                   Scout::Point             position,
+		                   Scout::Area              size,
+		                   Scout::Area              max_size,
+		                   char              const *name,
+		                   bool                     config_alpha,
+		                   bool                     config_resize_handle,
+		                   bool                     config_decoration)
 		:
-			Window(pf, redraw, content->min_w() + 2, content->min_h() + 1 + _TH),
+			Scout::Window(gfx_backend, position,
+			              Scout::Area(content->min_size().w() + 2,
+			                          content->min_size().h() + 1 + _TH),
+			              max_size, false),
 			_bg_offset(0), _content(content), _config_alpha(config_alpha),
 			_config_resize_handle(config_resize_handle),
 			_config_decoration(config_decoration)
@@ -69,11 +75,11 @@ class Framebuffer_window : public Window
 			/* titlebar */
 			_titlebar.rgba(TITLEBAR_RGBA);
 			_titlebar.text(name);
-			_titlebar.event_handler(new Mover_event_handler(this));
+			_titlebar.event_handler(new Scout::Mover_event_handler(this));
 
 			/* resize handle */
 			_sizer.rgba(SIZER_RGBA);
-			_sizer.event_handler(new Sizer_event_handler(this));
+			_sizer.event_handler(new Scout::Sizer_event_handler(this));
 			_sizer.alpha(100);
 
 			if (config_decoration)
@@ -84,8 +90,9 @@ class Framebuffer_window : public Window
 			if (config_resize_handle)
 				append(&_sizer);
 
-			_min_w = 1 + 32 + 1;   /* left border + resize handle + right border */
-			_min_h = _TH + 32 + 1; /* title bar + resize handle + bottom border */
+			unsigned const BORDER = 1, TITLE = _TH, RESIZER = 32;
+			_min_size = Scout::Area(BORDER + RESIZER + BORDER,
+			                        BORDER + TITLE + RESIZER + BORDER);
 		}
 
 		/**
@@ -131,7 +138,7 @@ class Framebuffer_window : public Window
 		void vpos(int x, int y)
 		{
 			Window::vpos(x, y);
-			format(_w, _h);
+			format(_size);
 		}
 
 		/**
@@ -140,43 +147,47 @@ class Framebuffer_window : public Window
 		void content_geometry(int x, int y, int w, int h)
 		{
 			Window::vpos(x, y);
-			format(w + 2, h + 1 + _TH);
+			format(Scout::Area(w + 2, h + 1 + _TH));
 		}
 
 		/**
 		 * Window interface
 		 */
-		void format(int w, int h)
+		void format(Scout::Area size)
 		{
+			using namespace Scout;
+
+			unsigned w = size.w();
+			unsigned h = size.h();
+
 			/* limit window size to valid values */
-			w = (w < _min_w)  ? _min_w  : w;
-			h = (h < _min_h)  ? _min_h  : h;
-			w = (w > max_w()) ? max_w() : w;
-			h = (h > max_h()) ? max_h() : h;
-			_w = w;
-			_h = h;
+			w = max(w, min_size().w());
+			h = max(h, min_size().h());
+			w = min(w, max_size().w());
+			h = min(h, max_size().h());
+
+			_size = Scout::Area(w, h);
 
 			int y = 0;
 
 			_titlebar.format_fixed_width(w);
-			_titlebar.geometry(1, y, _titlebar.min_w(), _titlebar.min_h());
-			y += _titlebar.min_h();
+			_titlebar.geometry(Rect(Point(1, y),
+			                        Area(_titlebar.min_size().w(),
+			                             _titlebar.min_size().h())));
+			y += _titlebar.min_size().h();
 
-			int const content_h = (h > y + 1) ? (h - y - 1) : 0;
+			int const content_h = ((int)h > y + 1) ? (h - y - 1) : 0;
 			int const content_w = w - 2;
-			_content->format_fixed_size(content_w, content_h);
-			_content->geometry(1, y, content_w, content_h);
+			_content->format_fixed_size(Area(content_w, content_h));
+			_content->geometry(Rect(Point(1, y), Area(content_w, content_h)));
 
-			_sizer.geometry(_w - 32, _h - 32, 32, 32);
-
-			pf()->top_view();
+			_sizer.geometry(Rect(Point(_size.w() - 32, _size.h() - 32), Area(32, 32)));
 
 			if (_config_decoration)
-				pf()->view_geometry(pf()->vx(), pf()->vy(), _w, _h);
+				Window::format(_size);
 			else
-				pf()->view_geometry(pf()->vx(), pf()->vy(),
-				                    _w - 2, _h - 1 - _TH, false, -1, -_TH);
-			redraw()->size(_w, _h);
+				Window::format(Area(_size.w() - 2, _size.h() - 1 - _TH));
+
 			refresh();
 		}
 
@@ -188,20 +199,22 @@ class Framebuffer_window : public Window
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas *c, int x, int y)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
 		{
-			if (_config_alpha)
-				_bg_texture.draw(c, 0, - _bg_offset);
+			using namespace Scout;
 
-			::Parent_element::draw(c, x, y);
+			if (_config_alpha)
+				_bg_texture.draw(canvas, Point(0, - _bg_offset));
+
+			Parent_element::draw(canvas, abs_position);
 
 			/* border */
-			Color col(0, 0, 0);
-			c->draw_box(0, 0, _w, 1, col);
-			c->draw_box(0, _TH, _w, 1, col);
-			c->draw_box(0, _h - 1, _w, 1, col);
-			c->draw_box(0, 1, 1, _h - 2, col);
-			c->draw_box(_w - 1, 1, 1, _h - 2, col);
+			Color color(0, 0, 0);
+			canvas.draw_box(0, 0, _size.w(), 1, color);
+			canvas.draw_box(0, _TH, _size.w(), 1, color);
+			canvas.draw_box(0, _size.h() - 1, _size.w(), 1, color);
+			canvas.draw_box(0, 1, 1, _size.h() - 2, color);
+			canvas.draw_box(_size.w() - 1, 1, 1, _size.h() - 2, color);
 		};
 };
 

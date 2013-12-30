@@ -11,9 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#include "miscmath.h"
+#include <scout/misc_math.h>
+
 #include "launchpad_window.h"
 #include "styles.h"
+
+using namespace Scout;
+
 
 /****************************
  ** External graphics data **
@@ -31,13 +35,12 @@ extern unsigned char TITLEBAR_RGBA[];
  ********************************/
 
 template <typename PT>
-Launchpad_window<PT>::Launchpad_window(Platform *pf,
-                                       Redraw_manager *redraw,
-                                       int max_w, int max_h,
+Launchpad_window<PT>::Launchpad_window(Graphics_backend &gfx_backend,
+                                       Point position, Area size, Area max_size,
                                        unsigned long initial_quota)
 :
 	Launchpad(initial_quota),
-	Window(pf, redraw, max_w, max_h),
+	Window(gfx_backend, position, size, max_size, false),
 	_docview(0),
 	_spacer(1, _TH),
 	_info_section("Status", &subsection_font),
@@ -55,8 +58,7 @@ Launchpad_window<PT>::Launchpad_window(Platform *pf,
 	_titlebar.text("Launchpad");
 	_titlebar.event_handler(new Mover_event_handler(this));
 
-	_min_w = 200;
-	_min_h = 200;
+	_min_size = Scout::Area(200, 200);
 
 	_status_entry.max_value(initial_quota / 1024);
 
@@ -81,15 +83,15 @@ Launchpad_window<PT>::Launchpad_window(Platform *pf,
 template <typename PT>
 void Launchpad_window<PT>::ypos_sb(int ypos, int update_scrollbar)
 {
-	if (ypos < -_docview.h() + _h)
-		ypos = -_docview.h() + _h;
+	if (ypos < -(int)(_docview.size().h() + _size.h()))
+		ypos = -_docview.size().h() + _size.h();
 
 	_ypos = ypos <= 0 ? ypos : 0;
 
-	_docview.geometry(_docview.x(), _ypos, _docview.w(), _docview.h());
+	_docview.geometry(Rect(Point(_docview.position().x(), _ypos), _docview.size()));
 
 	if (update_scrollbar)
-		_scrollbar.view(_docview.h(), _h, -_ypos);
+		_scrollbar.view(_docview.size().h(), _size.h(), -_ypos);
 
 	refresh();
 }
@@ -100,54 +102,57 @@ void Launchpad_window<PT>::ypos_sb(int ypos, int update_scrollbar)
  *************************/
 
 template <typename PT>
-void Launchpad_window<PT>::format(int w, int h)
+void Launchpad_window<PT>::format(Scout::Area size)
 {
 	/* limit window size to valid values */
-	w = (w < _min_w)  ? _min_w  : w;
-	h = (h < _min_h)  ? _min_h  : h;
-	w = (w > max_w()) ? max_w() : w;
-	h = (h > max_h()) ? max_h() : h;
+	unsigned w = size.w();
+	unsigned h = size.h();
+
+	w = max(w, min_size().w());
+	h = max(h, min_size().h());
+	w = min(w, max_size().w());
+	h = min(h, max_size().h());
 
 	/* determine old scrollbar visibility */
-	int old_sb_visibility = (_docview.min_h() > _h);
+	int old_sb_visibility = (_docview.min_size().h() > _size.h());
 
 	/* assign new size to window */
-	_w = w;
-	_h = h;
+	_size = Scout::Area(w, h);
 
 	/* format document */
-	_docview.format_fixed_width(_w);
+	_docview.format_fixed_width(_size.w());
 
 	/* format titlebar */
-	_titlebar.format_fixed_width(_w);
+	_titlebar.format_fixed_width(_size.w());
 
 	/* determine new scrollbar visibility */
-	int new_sb_visibility = (_docview.min_h() > _h);
+	int new_sb_visibility = (_docview.min_size().h() > _size.h());
 
 	/* reformat docview on change of scrollbar visibility */
 	if (old_sb_visibility ^ new_sb_visibility) {
-		_docview.right_pad(new_sb_visibility ? _scrollbar.min_w() : 0);
-		_docview.format_fixed_width(_w);
+		_docview.right_pad(new_sb_visibility ? _scrollbar.min_size().w() : 0);
+		_docview.format_fixed_width(_size.w());
 	}
 
 	/* position docview */
-	_docview.geometry(0, _ypos, _docview.min_w(), max(_docview.min_h(), _h));
+	_docview.geometry(Rect(Point(0, _ypos),
+	                       Area(_docview.min_size().w(),
+	                            max(_docview.min_size().h(), _size.h()))));
 
 	/* start at top */
 	int y = 0;
 
 	/* position titlebar */
-	_titlebar.geometry(y, 0, _w, _TH);
+	_titlebar.geometry(Rect(Point(y, 0), Area(_size.w(), _TH)));
 	y += _TH;
 
-	_scrollbar.geometry(w - _scrollbar.min_w() - _SB_XPAD, y + _SB_YPAD,
-	                        _scrollbar.min_w(), h - y - _SB_YPAD*2 - 8);
+	_scrollbar.geometry(Rect(Point(w - _scrollbar.min_size().w() - _SB_XPAD, y + _SB_YPAD),
+	                         Area(_scrollbar.min_size().w(), h - y - _SB_YPAD*2 - 8)));
 	
 	
-	_sizer.geometry(_w - 32, _h - 32, 32, 32);
+	_sizer.geometry(Rect(Point(_size.w() - 32, _size.h() - 32), Area(32, 32)));
 
-	pf()->view_geometry(pf()->vx(), pf()->vy(), _w, _h);
-	redraw()->size(_w, _h);
+	Window::format(_size);
 	ypos(_ypos);
 	refresh();
 }
@@ -169,5 +174,4 @@ void Launchpad_window<PT>::handle_scroll(int view_pos)
 	ypos_sb(-view_pos, 0);
 }
 
-#include "canvas_rgb565.h"
-template class Launchpad_window<Pixel_rgb565>;
+template class Launchpad_window<Genode::Pixel_rgb565>;

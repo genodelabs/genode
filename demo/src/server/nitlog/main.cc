@@ -55,10 +55,9 @@ Font default_font(&_binary_mono_tff_start);
  */
 struct Canvas_base
 {
-	virtual void draw_string(Point p, Font const &font, Color color,
-	                         char const *sstr) = 0;
+	virtual void draw_string(Point, Font const &, Color, char const *) = 0;
 
-	virtual void draw_box(Rect rect, Color color) = 0;
+	virtual void draw_box(Rect, Color) = 0;
 };
 
 

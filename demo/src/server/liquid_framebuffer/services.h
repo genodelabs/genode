@@ -15,11 +15,11 @@
 #define _SERVICES_H_
 
 #include <base/rpc_server.h>
+#include <scout/canvas.h>
 
-#include "canvas.h"
 #include "elements.h"
 
-extern Element *window_content();
+extern Scout::Element *window_content();
 extern void init_window_content(unsigned fb_w, unsigned fb_h, bool config_alpha);
 extern void init_services(Genode::Rpc_entrypoint &ep);
 extern void lock_window_content();

@@ -28,7 +28,7 @@ extern unsigned char OPENED_ICON_RGBA[];
 extern unsigned char CLOSED_ICON_RGBA[];
 
 
-class Kill_event_handler : public Event_handler
+class Kill_event_handler : public Scout::Event_handler
 {
 	private:
 
@@ -43,9 +43,11 @@ class Kill_event_handler : public Event_handler
 		/**
 		 * Event handler interface
 		 */
-		void handle(Event &ev)
+		void handle(Scout::Event &ev)
 		{
 			static int key_cnt;
+
+			using Scout::Event;
 
 			if (ev.type == Event::PRESS)   key_cnt++;
 			if (ev.type == Event::RELEASE) key_cnt--;
@@ -57,7 +59,8 @@ class Kill_event_handler : public Event_handler
 
 
 template <typename PT>
-class Child_entry : public Parent_element, public Genode::List<Child_entry<PT> >::Element
+class Child_entry : public Scout::Parent_element,
+                    public Genode::List<Child_entry<PT> >::Element
 {
 	private:
 
@@ -67,13 +70,13 @@ class Child_entry : public Parent_element, public Genode::List<Child_entry<PT> >
 		enum { _PADX     = 10 };      /* horizontal padding       */
 		enum { _NAME_LEN = 64 };      /* max length of child name */
 
-		Block             _block;
+		Scout::Block      _block;
 		Kbyte_loadbar<PT> _loadbar;
 
 		char              _name[_NAME_LEN];
 
-		Fade_icon<PT, _IW, _IH> _kill_icon;
-		Fade_icon<PT, _IW, _IH> _fold_icon;
+		Scout::Fade_icon<PT, _IW, _IH> _kill_icon;
+		Scout::Fade_icon<PT, _IW, _IH> _fold_icon;
 
 		Kill_event_handler _kill_event_handler;
 
@@ -85,11 +88,11 @@ class Child_entry : public Parent_element, public Genode::List<Child_entry<PT> >
 		Child_entry(const char *name, int quota_kb, int max_quota_kb,
 		            Launchpad *launchpad, Launchpad_child *launchpad_child)
 		:
-			_block(Block::RIGHT), _loadbar(0, &label_font),
+			_block(Scout::Block::RIGHT), _loadbar(0, &Scout::label_font),
 			_kill_event_handler(launchpad, launchpad_child)
 		{
 			Genode::strncpy(_name, name, sizeof(_name));
-			_block.append_plaintext(_name, &plain_style);
+			_block.append_plaintext(_name, &Scout::plain_style);
 
 			_loadbar.max_value(max_quota_kb);
 			_loadbar.value(quota_kb);
@@ -108,7 +111,7 @@ class Child_entry : public Parent_element, public Genode::List<Child_entry<PT> >
 			append(&_kill_icon);
 			append(&_fold_icon);
 
-			_min_w = _PTW + 100;
+			_min_size = Scout::Area(_PTW + 100, _min_size.h());
 		}
 
 
@@ -124,22 +127,25 @@ class Child_entry : public Parent_element, public Genode::List<Child_entry<PT> >
 
 		void format_fixed_width(int w)
 		{
+			using namespace Scout;
+
 			_block.format_fixed_width(_PTW);
-			int bh = _block.min_h();
-			int iy = max(0, (bh - _loadbar.min_h())/2);
+			int bh = _block.min_size().h();
+			int iy = max(0U, (bh - _loadbar.min_size().h())/2);
 
-			_fold_icon.geometry(0, iy, _IW, _IH);
-			_kill_icon.geometry(w - _IW - 8, iy, _IW, _IH);
+			_fold_icon.geometry(Rect(Point(0, iy), Area(_IW, _IH)));
+			_kill_icon.geometry(Rect(Point(w - _IW - 8, iy), Area(_IW, _IH)));
 
-			_block.geometry(max(10, _PTW - _block.min_w()),
-			                max(0, (bh - _block.min_h())/2),
-			                min((int)_PTW, _block.min_w()), bh);
+			_block.geometry(Rect(Point(max(10, _PTW - (int)_block.min_size().w()),
+			                           max(0, (bh - (int)_block.min_size().h())/2)),
+			                     Area(min((int)_PTW,
+			                              (int)_block.min_size().w()), bh)));
 
 			int lw = w - 2*_PADX - _PTW - _IW;
 			_loadbar.format_fixed_width(lw);
-			_loadbar.geometry(_PADX + _PTW, iy, lw, 16);
-			_min_h = bh;
-			_min_w = w;
+			_loadbar.geometry(Rect(Point(_PADX + _PTW, iy), Area(lw, 16)));
+
+			_min_size = Scout::Area(w, bh);
 		}
 };
 

@@ -6,6 +6,4 @@ SRC_CC    = launchpad_window.cc \
 
 SCOUT_DIR = $(REP_DIR)/src/app/scout
 
-INC_DIR   = $(PRG_DIR) \
-            $(SCOUT_DIR)/include \
-            $(SCOUT_DIR)/include/genode
+INC_DIR   = $(PRG_DIR) $(SCOUT_DIR)

@@ -18,29 +18,30 @@
 
 
 template <typename PT>
-class Section : public Parent_element
+class Section : public Scout::Parent_element
 {
 	private:
 
 		enum { _SH  = 8 };   /* shadow height */
 		enum { _STH = 20 };  /* shadow height */
 
-		Horizontal_shadow<PT, 40>  _bg;
-		Horizontal_shadow<PT, 160> _shadow;
-		const char                *_txt;
-		int                        _txt_w, _txt_h;
-		int                        _txt_len;
-		Font                      *_font;
-		int                        _r_add;
+		Scout::Horizontal_shadow<PT, 40>  _bg;
+		Scout::Horizontal_shadow<PT, 160> _shadow;
+
+		char  const *_txt;
+		int          _txt_w, _txt_h;
+		int          _txt_len;
+		Scout::Font *_font;
+		int          _r_add;
 
 	public:
 
-		Section(const char *txt, Font *font)
+		Section(const char *txt, Scout::Font *font)
 		: _bg(_STH), _shadow(_SH), _txt(txt), _font(font), _r_add(100)
 		{
-			_txt_w   = font->str_w(_txt, strlen(_txt));
-			_txt_h   = font->str_h(_txt, strlen(_txt));
-			_txt_len = strlen(_txt);
+			_txt_w   = font->str_w(_txt, Scout::strlen(_txt));
+			_txt_h   = font->str_h(_txt, Scout::strlen(_txt));
+			_txt_len = Scout::strlen(_txt);
 			append(&_bg);
 			append(&_shadow);
 		}
@@ -50,23 +51,34 @@ class Section : public Parent_element
 		 */
 		void format_fixed_width(int w)
 		{
-			_min_h = _format_children(0, w) + _SH/2;
-			_min_w = w;
+			using namespace Scout;
 
-			_bg.geometry(_bg.x(), _bg.y(), _bg.w() + _r_add, _bg.h());
-			_shadow.geometry(_shadow.x(), _shadow.y(), _shadow.w() + _r_add, _shadow.h());
+			_min_size = Area(w, _format_children(0, w) + _SH/2);
+
+			_bg.geometry(Rect(_bg.position(),
+			                  Area(_bg.size().w() + _r_add, _bg.size().h())));
+
+			_shadow.geometry(Rect(_shadow.position(),
+			                      Area(_shadow.size().w() + _r_add,
+			                           _shadow.size().h())));
 		}
 
-		void draw(Canvas *c, int x, int y)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
 		{
-			c->draw_box(x + _x, y + _y + 1, _w + _r_add, _txt_h - 1, Color(240,240,240,130));
+			using namespace Scout;
 
-			int _txt_x = x + _x + max((_w - _txt_w)/2, 8);
-			int _txt_y = y + _y + max((_STH - _SH - _txt_h)/2, 0) - 1;
+			canvas.draw_box(abs_position.x() + _position.x(),
+			                abs_position.y() + _position.y() + 1,
+			                _size.w() + _r_add, _txt_h - 1, Color(240,240,240,130));
 
-			Parent_element::draw(c, x, y);
-			c->draw_string(_txt_x , _txt_y, _font, Color(0,0,0,150), _txt, strlen(_txt));
-			c->draw_box(x + _x, y + _y, _w + _r_add, 1, Color(0,0,0,64));
+			int _txt_x = abs_position.x() + _position.x() + max((_size.w() - _txt_w)/2, 8UL);
+			int _txt_y = abs_position.y() + _position.y() + max((_STH - _SH - _txt_h)/2, 0) - 1;
+
+			Parent_element::draw(canvas, abs_position);
+
+			canvas.draw_string(_txt_x , _txt_y, _font, Color(0,0,0,150), _txt, strlen(_txt));
+			canvas.draw_box(abs_position.x() + _position.x(), abs_position.y() + _position.y(),
+			                _size.w() + _r_add, 1, Color(0,0,0,64));
 		}
 };
 

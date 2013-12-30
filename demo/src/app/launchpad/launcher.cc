@@ -15,10 +15,8 @@
 #include "elements.h"
 #include "launcher_config.h"
 
+using namespace Scout;
 
-/************************
- ** Launcher interface **
- ************************/
 
 void Launcher::launch()
 {

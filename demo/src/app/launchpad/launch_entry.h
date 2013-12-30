@@ -18,15 +18,15 @@
 #include "launcher_config.h"
 
 template <typename PT>
-class Launch_entry : public Parent_element, public Loadbar_listener
+class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 {
 	private:
 
-		Block             _block;
-		Kbyte_loadbar<PT> _loadbar;
-		Launcher_config   _config;
-		Launcher          _launcher;
-		int               _lh;        /* launch entry height */
+		Scout::Block           _block;
+		Kbyte_loadbar<PT>      _loadbar;
+		Scout::Launcher_config _config;
+		Scout::Launcher        _launcher;
+		int                    _lh;        /* launch entry height */
 
 		enum { _PTW = 100 };  /* program text width */
 		enum { _PADX = 10 };  /* program text width */
@@ -40,16 +40,19 @@ class Launch_entry : public Parent_element, public Loadbar_listener
 		Launch_entry(const char *prg_name, int initial_quota, int max_quota,
 		             Launchpad  *launchpad,
 		             Genode::Dataspace_capability config_ds)
-		: _block(Block::RIGHT), _loadbar(this, &label_font), _config(config_ds),
-		  _launcher(prg_name, launchpad, 1024 * initial_quota, &_config)
+		:
+			_block(Scout::Block::RIGHT), _loadbar(this, &Scout::label_font),
+			_config(config_ds),
+			_launcher(prg_name, launchpad, 1024 * initial_quota, &_config)
 		{
-			_block.append_launchertext(prg_name, &link_style, &_launcher);
+			_block.append_launchertext(prg_name, &Scout::link_style, &_launcher);
 
 			_loadbar.max_value(max_quota);
 			_loadbar.value(initial_quota);
 			append(&_loadbar);
 			append(&_block);
-			_min_w = _PTW + 100;
+
+			_min_size = Scout::Area(_PTW + 100, _min_size.h());
 		}
 
 
@@ -59,7 +62,7 @@ class Launch_entry : public Parent_element, public Loadbar_listener
 
 		void loadbar_changed(int mx)
 		{
-			int value = _loadbar.value_by_xpos(mx - _loadbar.abs_x());
+			int value = _loadbar.value_by_xpos(mx - _loadbar.abs_position().x());
 			_loadbar.value(value);
 			_loadbar.refresh();
 			_launcher.quota(1024 * (unsigned long)value);
@@ -72,18 +75,20 @@ class Launch_entry : public Parent_element, public Loadbar_listener
 
 		void format_fixed_width(int w)
 		{
+			using namespace Scout;
+
 			_block.format_fixed_width(_PTW);
-			_lh = _block.min_h();
-			_block.geometry(max(10, _PTW - _block.min_w()),
-			                max(0, (_lh - _block.min_h())/2),
-			                min((int)_PTW, _block.min_w()), _lh);
+			_lh = _block.min_size().h();
+			_block.geometry(Rect(Point(max(10U, _PTW - _block.min_size().w()),
+			                           max(0U, (_lh - _block.min_size().h())/2)),
+			                     Area(min((unsigned)_PTW, _block.min_size().w()), _lh)));
 
 			int lw = max(0, w - 2*_PADX - _PTW - _PADR);
-			int ly = max(0, (_lh - _loadbar.min_h())/2);
+			int ly = max(0U, (_lh - _loadbar.min_size().h())/2);
 			_loadbar.format_fixed_width(lw);
-			_loadbar.geometry(_PADX + _PTW, ly, lw, 16);
-			_min_h = _lh;
-			_min_w = w;
+			_loadbar.geometry(Rect(Point(_PADX + _PTW, ly), Area(lw, 16)));
+
+			_min_size = Scout::Area(w, _lh);
 		}
 };
 

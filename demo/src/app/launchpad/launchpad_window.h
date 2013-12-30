@@ -14,13 +14,14 @@
 #ifndef _LAUNCHPAD_WINDOW_H_
 #define _LAUNCHPAD_WINDOW_H_
 
+#include <scout/platform.h>
+#include <scout/window.h>
+
 #include "elements.h"
 #include "widgets.h"
 #include "sky_texture.h"
 #include "scrollbar.h"
 #include "fade_icon.h"
-#include "platform.h"
-#include "window.h"
 #include "titlebar.h"
 
 #include "launch_entry.h"
@@ -32,9 +33,9 @@
 #include <base/printf.h>
 
 template <typename PT>
-class Launchpad_window : public Scrollbar_listener,
+class Launchpad_window : public Scout::Scrollbar_listener,
                          public Launchpad,
-                         public Window
+                         public Scout::Window
 {
 	private:
 
@@ -50,20 +51,20 @@ class Launchpad_window : public Scrollbar_listener,
 		/**
 		 * Widgets
 		 */
-		Titlebar<PT>                   _titlebar;
-		Sky_texture<PT, 512, 512>      _texture;
-		Fade_icon<PT, 32, 32>          _sizer;
-		Scrollbar<PT>                  _scrollbar;
-		Genode::List<Child_entry<PT> > _child_entry_list;
-		Docview                        _docview;
-		Spacer                         _spacer;
-		Document                       _document;
+		Scout::Titlebar<PT>              _titlebar;
+		Scout::Sky_texture<PT, 512, 512> _texture;
+		Scout::Fade_icon<PT, 32, 32>     _sizer;
+		Scout::Scrollbar<PT>             _scrollbar;
+		Genode::List<Child_entry<PT> >   _child_entry_list;
+		Scout::Docview                   _docview;
+		Scout::Spacer                    _spacer;
+		Scout::Document                  _document;
 
-		Section<PT>                    _info_section;
-		Section<PT>                    _launch_section;
-		Section<PT>                    _kiddy_section;
+		Section<PT>                      _info_section;
+		Section<PT>                      _launch_section;
+		Section<PT>                      _kiddy_section;
 
-		Status_entry<PT>               _status_entry;
+		Status_entry<PT>                 _status_entry;
 
 	public:
 
@@ -72,9 +73,9 @@ class Launchpad_window : public Scrollbar_listener,
 		 *
 		 * \param initial_quota  maximum value of quota displays
 		 */
-		Launchpad_window(Platform *pf,
-		                 Redraw_manager *redraw, int max_w, int max_h,
-		                 unsigned long inital_quota);
+		Launchpad_window(Scout::Graphics_backend &gfx_backend,
+		                 Scout::Point position, Scout::Area size,
+		                 Scout::Area max_size, unsigned long inital_quota);
 
 		/**
 		 * Define vertical scroll offset of document
@@ -87,22 +88,24 @@ class Launchpad_window : public Scrollbar_listener,
 		/**
 		 * Window interface
 		 */
-		void format(int w, int h);
+		void format(Scout::Area);
 		void ypos(int ypos) { ypos_sb(ypos, 1); }
 
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas *c, int x, int y)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
 		{
-			::Parent_element::draw(c, x, y);
+			using namespace Scout;
+
+			Parent_element::draw(canvas, abs_position);
 
 			/* border */
-			Color col(0, 0, 0);
-			c->draw_box(0, 0, _w, 1, col);
-			c->draw_box(0, _h - 1, _w, 1, col);
-			c->draw_box(0, 1, 1, _h - 2, col);
-			c->draw_box(_w - 1, 1, 1, _h - 2, col);
+			Color color(0, 0, 0);
+			canvas.draw_box(0, 0, _size.w(), 1, color);
+			canvas.draw_box(0, _size.h() - 1, _size.w(), 1, color);
+			canvas.draw_box(0, 1, 1, _size.h() - 2, color);
+			canvas.draw_box(_size.w() - 1, 1, 1, _size.h() - 2, color);
 		};
 
 		/**
@@ -143,7 +146,7 @@ class Launchpad_window : public Scrollbar_listener,
 			                                 this, launchpad_child);
 			_child_entry_list.insert(ce);
 			_kiddy_section.append(ce);
-			format(_w, _h);
+			format(_size);
 			refresh();
 		}
 
@@ -163,7 +166,7 @@ class Launchpad_window : public Scrollbar_listener,
 			_child_entry_list.remove(ce);
 			_kiddy_section.forget(ce);
 			destroy(alloc, ce);
-			format(_w, _h);
+			format(_size);
 			refresh();
 		}
 };

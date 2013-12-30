@@ -15,44 +15,42 @@
 #include <base/signal.h>
 #include <cap_session/connection.h>
 #include <os/config.h>
+#include <scout/user_state.h>
+#include <scout/nitpicker_graphics_backend.h>
 
 #include "framebuffer_window.h"
-#include "canvas_rgb565.h"
-#include "user_state.h"
 #include "services.h"
 
-using namespace Genode;
 
 /**
  * Runtime configuration
  */
-namespace Config
+namespace Scout { namespace Config
 {
 	int iconbar_detail    = 1;
 	int background_detail = 1;
 	int mouse_cursor      = 1;
 	int browser_attr      = 0;
-}
+} }
 
 
-void Launcher::launch() { }
-
-extern int native_startup(int, char **);
+void Scout::Launcher::launch() { }
 
 
-class Background_animator : public Tick
+class Background_animator : public Scout::Tick
 {
 	private:
 
-		Framebuffer_window<Pixel_rgb565> *_fb_win;
-		int                               _bg_offset;
+		Framebuffer_window<Scout::Pixel_rgb565> *_fb_win;
+
+		int _bg_offset;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Background_animator(Framebuffer_window<Pixel_rgb565> *fb_win):
+		Background_animator(Framebuffer_window<Scout::Pixel_rgb565> *fb_win):
 			_fb_win(fb_win), _bg_offset(0) {
 			schedule(20); }
 
@@ -171,7 +169,7 @@ static void read_config()
 
 struct Input_handler
 {
-	GENODE_RPC(Rpc_handle_input, void, handle, Event&);
+	GENODE_RPC(Rpc_handle_input, void, handle, Scout::Event&);
 	GENODE_RPC_INTERFACE(Rpc_handle_input);
 };
 
@@ -182,35 +180,33 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 
 	private:
 
-		Platform                         &_pf;
-		User_state                       &_user_state;
-		Framebuffer_window<Pixel_rgb565> &_fb_win;
-		Redraw_manager                   &_redraw;
-		Signal_receiver                  &_sig_rec;
-		unsigned long                     _curr_time, _old_time;
+		Scout::Platform                          &_pf;
+		Scout::User_state                        &_user_state;
+		Framebuffer_window<Genode::Pixel_rgb565> &_fb_win;
+		Genode::Signal_receiver                  &_sig_rec;
+		unsigned long                             _curr_time, _old_time;
 
 	public:
 
-		Input_handler_component(Platform &pf,
-		                        User_state &user_state,
-		                        Framebuffer_window<Pixel_rgb565> &fb_win,
-		                        Redraw_manager &redraw,
-		                        Signal_receiver &sig_rec)
-		: _pf(pf),
-		  _user_state(user_state),
-		  _fb_win(fb_win),
-		  _redraw(redraw),
-		  _sig_rec(sig_rec)
+		Input_handler_component(Scout::Platform &pf,
+		                        Scout::User_state &user_state,
+		                        Framebuffer_window<Genode::Pixel_rgb565> &fb_win,
+		                        Genode::Signal_receiver &sig_rec)
+		:
+			_pf(pf),
+			_user_state(user_state),
+			_fb_win(fb_win),
+			_sig_rec(sig_rec)
 		{
 			_curr_time = _old_time = _pf.timer_ticks();
 		}
 
-		void handle(Event &ev)
+		void handle(Scout::Event &ev)
 		{
-			if (ev.type != Event::WHEEL) {
-				ev.mx -= _user_state.vx();
-				ev.my -= _user_state.vy();
-			}
+			using Scout::Event;
+
+			if (ev.type != Event::WHEEL)
+				ev.mouse_position = ev.mouse_position - _user_state.view_position();
 
 			/* direct all keyboard events to the window content */
 			if ((ev.type == Event::PRESS || ev.type == Event::RELEASE)
@@ -219,15 +215,12 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 			else
 				_user_state.handle_event(ev);
 
-			if (ev.type == Event::REFRESH)
-				_pf.scr_update(0, 0, _pf.scr_w(), _pf.scr_h());
-
 			if (ev.type == Event::TIMER) {
-				Tick::handle(_pf.timer_ticks());
+				Scout::Tick::handle(_pf.timer_ticks());
 				/* check for configuration changes */
 				if (_sig_rec.pending()) {
 					_sig_rec.wait_for_signal();
-					config()->reload();
+					Genode::config()->reload();
 					/* keep the current values by default */
 					config_fb_x = _fb_win.view_x();
 					config_fb_y = _fb_win.view_y();
@@ -249,7 +242,7 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
 			_curr_time = _pf.timer_ticks();
 			if (!_pf.event_pending() && ((_curr_time - _old_time > 20) || (_curr_time < _old_time))) {
 				_old_time = _curr_time;
-				_redraw.process();
+				_fb_win.process_redraw();
 			}
 		}
 };
@@ -260,44 +253,41 @@ class Input_handler_component : public Genode::Rpc_object<Input_handler,
  */
 int main(int argc, char **argv)
 {
-	if (native_startup(argc, argv)) return -1;
+	using namespace Scout;
 
 	try { read_config(); } catch (...) { }
 
 	/*
 	 * Register signal handler for config changes
 	 */
-	static Signal_receiver sig_rec;
-	static Signal_context sig_ctx;
+	static Genode::Signal_receiver sig_rec;
+	static Genode::Signal_context sig_ctx;
 
-	try { config()->sigh(sig_rec.manage(&sig_ctx)); } catch (...) { }
+	try { Genode::config()->sigh(sig_rec.manage(&sig_ctx)); } catch (...) { }
 
 	/* heuristic for allocating the double-buffer backing store */
 	enum { WINBORDER_WIDTH = 10, WINBORDER_HEIGHT = 40 };
 
 	/* init platform */
-	static Platform pf(config_fb_x, config_fb_y,
-	                   config_fb_width  + WINBORDER_WIDTH,
-	                   config_fb_height + WINBORDER_HEIGHT,
-	                   config_fb_width  + WINBORDER_WIDTH,
-	                   config_fb_height + WINBORDER_HEIGHT);
+	static Nitpicker::Connection nitpicker;
+	static Platform pf(*nitpicker.input());
+
+	Area  const max_size(config_fb_width  + WINBORDER_WIDTH,
+	                     config_fb_height + WINBORDER_HEIGHT);
+	Point const initial_position(config_fb_x, config_fb_y);
+	Area  const initial_size = max_size;
+
+	static Nitpicker_graphics_backend
+		graphics_backend(nitpicker, max_size, initial_position, initial_size);
 
 	/* initialize our window content */
 	init_window_content(config_fb_width, config_fb_height, config_alpha);
 
-	/* init canvas */
-	static Chunky_canvas<Pixel_rgb565> canvas;
-	canvas.init(static_cast<Pixel_rgb565 *>(pf.buf_adr()),
-	            pf.scr_w()*pf.scr_h());
-	canvas.set_size(pf.scr_w(), pf.scr_h());
-	canvas.clip(0, 0, pf.scr_w(), pf.scr_h());
-
-	/* init redraw manager */
-	static Redraw_manager redraw(&canvas, &pf, pf.vw(), pf.vh());
-
 	/* create instance of browser window */
 	static Framebuffer_window<Pixel_rgb565>
-		fb_win(&pf, &redraw, window_content(), config_title, config_alpha,
+		fb_win(graphics_backend, window_content(),
+		       initial_position, initial_size, max_size,
+		       config_title, config_alpha,
 		       config_resize_handle, config_decoration);
 
 	if (config_animate) {
@@ -305,34 +295,33 @@ int main(int argc, char **argv)
 	}
 
 	/* create user state manager */
-	static User_state user_state(&fb_win, &fb_win, pf.vx(), pf.vy());
-
-	/* assign framebuffer window as root element to redraw manager */
-	redraw.root(&fb_win);
-
+	static User_state user_state(&fb_win, &fb_win,
+	                             initial_position.x(), initial_position.y());
 	fb_win.parent(&user_state);
 	fb_win.content_geometry(config_fb_x, config_fb_y,
 	                        config_fb_width, config_fb_height);
 
 	/* initialize server entry point */
-	enum { STACK_SIZE = 2*1024*sizeof(addr_t) };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "liquid_fb_ep");
+	enum { STACK_SIZE = 2*1024*sizeof(Genode::addr_t) };
+	static Genode::Cap_connection cap;
+	static Genode::Rpc_entrypoint ep(&cap, STACK_SIZE, "liquid_fb_ep");
 
 	/* initialize public services */
 	init_services(ep);
 
 	/* create local input handler service */
 	static Input_handler_component input_handler(pf, user_state, fb_win,
-	                                             redraw, sig_rec);
-	Capability<Input_handler> input_handler_cap = ep.manage(&input_handler);
+	                                             sig_rec);
+	Genode::Capability<Input_handler> input_handler_cap = ep.manage(&input_handler);
 
 	/* enter main loop */
-	Event ev;
-	do {
-		pf.get_event(&ev);
+	for (;;) {
+		Event ev = pf.get_event();
 		input_handler_cap.call<Input_handler::Rpc_handle_input>(ev);
-	} while (ev.type != Event::QUIT);
+
+		if (ev.type == Event::QUIT)
+			break;
+	}
 
 	return 0;
 }

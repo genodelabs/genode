@@ -1,23 +1,12 @@
-LIBS      = base blit
-
-SRC_CC    = sky_texture.cc     startup.cc   \
-            elements.cc        widgets.cc   \
-            tick.cc            scrollbar.cc \
-            refracted_icon.cc
-
-SRC_CC   += platform_genode.cc
+LIBS      = base blit scout_gfx
+SRC_CC    = tick.cc elements.cc widgets.cc scrollbar.cc
 
 SCOUT_DIR = $(REP_DIR)/src/app/scout
 
-INC_DIR  += $(SCOUT_DIR)/include \
-            $(SCOUT_DIR)/include/genode
+INC_DIR  += $(SCOUT_DIR)/include
 
-vpath %                  $(SCOUT_DIR)/data
-vpath %.cc               $(SCOUT_DIR)/common
-vpath startup.cc         $(SCOUT_DIR)/genode
-vpath launcher.cc        $(SCOUT_DIR)/genode
-vpath platform_genode.cc $(SCOUT_DIR)/genode
-
+vpath %    $(SCOUT_DIR)/data
+vpath %.cc $(SCOUT_DIR)
 
 SRC_TFF   =   vera16.tff \
              verai16.tff \

@@ -16,9 +16,13 @@
 #include <base/rpc_server.h>
 #include <framebuffer_session/framebuffer_session.h>
 #include <input/component.h>
+#include <nitpicker_gfx/texture_painter.h>
+#include <os/pixel_rgb565.h>
 
-#include "canvas_rgb565.h"
 #include "services.h"
+
+
+typedef Genode::Texture<Genode::Pixel_rgb565> Texture_rgb565;
 
 
 /*****************
@@ -43,7 +47,7 @@ class Event_queue
 		 */
 		Event_queue(): _head(0), _tail(0)
 		{
-			memset(_queue, 0, sizeof(_queue));
+			Scout::memset(_queue, 0, sizeof(_queue));
 		}
 
 		void post(Input::Event ev)
@@ -81,28 +85,30 @@ namespace Input {
 }
 
 
-class Window_content : public Element
+class Window_content : public Scout::Element
 {
 	private:
 
-		class Content_event_handler : public Event_handler
+		class Content_event_handler : public Scout::Event_handler
 		{
 			private:
 
-				Event_queue  *_ev_queue;
-				int           _omx, _omy;
-				Element      *_element;
+				Event_queue *_ev_queue;
+				Scout::Point _old_mouse_position;
+				Element     *_element;
 
 			public:
 
-				Content_event_handler(Event_queue *ev_queue, Element *element)
+				Content_event_handler(Event_queue *ev_queue,
+				                      Scout::Element *element)
 				:
 					_ev_queue(ev_queue), _element(element) { }
 
-				void handle(Event &ev)
+				void handle(Scout::Event &ev)
 				{
-					int mx = ev.mx - _element->abs_x();
-					int my = ev.my - _element->abs_y();
+					using namespace Scout;
+
+					Point mouse_position = ev.mouse_position - _element->abs_position();
 
 					int code = 0;
 
@@ -117,28 +123,30 @@ class Window_content : public Element
 					     : Input::Event::INVALID;
 
 					if (type != Input::Event::INVALID)
-						_ev_queue->post(Input::Event(type, code, mx, my, mx - _omx, my - _omy));
+						_ev_queue->post(Input::Event(type, code, mouse_position.x(),
+						                             mouse_position.y(),
+						                             mouse_position.x() - _old_mouse_position.x(),
+						                             mouse_position.y() - _old_mouse_position.y()));
 
-					_omx = mx;
-					_omy = my;
+					_old_mouse_position = mouse_position;
 				}
 		};
 
 		struct Fb_texture
 		{
-			unsigned                        w, h;
-			Genode::Attached_ram_dataspace  ds;
-			Pixel_rgb565                   *pixel;
-			unsigned char                  *alpha;
-			Texture_rgb565                  texture;
+			unsigned                              w, h;
+			Genode::Attached_ram_dataspace        ds;
+			Genode::Pixel_rgb565                 *pixel;
+			unsigned char                        *alpha;
+			Genode::Texture<Genode::Pixel_rgb565> texture;
 
 			Fb_texture(unsigned w, unsigned h, bool config_alpha)
 			:
 				w(w), h(h),
-				ds(Genode::env()->ram_session(), w*h*sizeof(Pixel_rgb565)),
-				pixel(ds.local_addr<Pixel_rgb565>()),
+				ds(Genode::env()->ram_session(), w*h*sizeof(Genode::Pixel_rgb565)),
+				pixel(ds.local_addr<Genode::Pixel_rgb565>()),
 				alpha((unsigned char *)Genode::env()->heap()->alloc(w*h)),
-				texture(pixel, alpha, w, h)
+				texture(pixel, alpha, Scout::Area(w, h))
 			{
 				int alpha_min = config_alpha ? 0 : 255;
 
@@ -152,7 +160,7 @@ class Window_content : public Element
 						if (v & 0x100)
 							a = 255 - a;
 
-						a += (dither_matrix[y % dither_size][x % dither_size] - 127) >> 4;
+						a += (Genode::Dither_matrix::value(x, y) - 127) >> 4;
 
 						alpha[y*w + x] = Genode::max(alpha_min, Genode::min(a, 255));
 					}
@@ -183,8 +191,7 @@ class Window_content : public Element
 			_new_w(fb_w), _new_h(fb_h),
 			_wait_for_refresh(false)
 		{
-			_min_w = _fb->w;
-			_min_h = _fb->h;
+			_min_size = Scout::Area(_fb->w, _fb->h);
 
 			event_handler(&_ev_handler);
 		}
@@ -229,15 +236,15 @@ class Window_content : public Element
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas *c, int x, int y)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
 		{
 			if (!_wait_for_refresh)
-				c->draw_texture(&_fb->texture, _x + x, _y + y);
+				canvas.draw_texture(abs_position + _position, _fb->texture);
 		}
 
-		void format_fixed_size(int w, int h)
+		void format_fixed_size(Scout::Area size)
 		{
-			_new_w = w, _new_h = h;
+			_new_w = size.w(), _new_h = size.h();
 
 			/* notify framebuffer client about mode change */
 			if (_mode_sigh.valid())
@@ -248,7 +255,7 @@ class Window_content : public Element
 
 static Window_content *_window_content;
 
-Element *window_content() { return _window_content; }
+Scout::Element *window_content() { return _window_content; }
 
 
 /***********************************************
