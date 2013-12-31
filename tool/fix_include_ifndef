@@ -37,7 +37,7 @@ proc out {txtline} {
 
 foreach line $lines {
 	incr i
-	
+
 	if {$state == "comment_header_begin"} {
 		if {[regexp {^/*} $line]} {
 			set state comment_header
@@ -66,6 +66,41 @@ foreach line $lines {
 	if {$state == "empty_line_after_comment_header"} {
 		if {![regexp {^$} $line]} {
 			puts "Error (line $i): no empty line after comment header"
+			exit -1;
+		}
+		set state license_header_begin
+		out $line
+		continue
+	}
+
+	if {$state == "license_header_begin"} {
+		if {[regexp {^/*} $line]} {
+			set state license_header
+			out $line
+			continue
+		} else {
+			puts stderr "Error (line $i): missing license header"
+			exit -1;
+		}
+	}
+
+	if {$state == "license_header"} {
+		if {[regexp {^ \*/} $line]} {
+			set state empty_line_after_license_header
+			out $line
+			continue;
+		}
+		if {[regexp {^ \*[^/]*} $line]} {
+			out $line
+			continue
+		}
+		puts "Error (line $i): non-complient license header"
+		exit -1;
+	}
+
+	if {$state == "empty_line_after_license_header"} {
+		if {![regexp {^$} $line]} {
+			puts "Error (line $i): no empty line after license header"
 			exit -1;
 		}
 		set state ifndef
