@@ -411,6 +411,13 @@ class Surface : public native_surface
 			wait              = _wait;
 		}
 
+		~Surface()
+		{
+			for (int i = 0; i < NUM_NATIVE_ATTACHMENTS; i++)
+				if (_textures[i])
+					pipe_texture_reference(&_textures[i], 0);
+		}
+
 		/**
 		 * Return texture used as backing store for the surface
 		 */

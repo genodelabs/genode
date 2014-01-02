@@ -81,13 +81,6 @@ bool QNitpickerGLContext::makeCurrent(QPlatformSurface *surface)
 	if (qnglc_verbose)
 		PDBG("w->framebuffer() = %p", w->framebuffer());
 
-#if 0
-
-	/*
-	 * Unfortunalety, this code triggers a memory leak somewhere,
-	 * so it cannot be used yet.
-	 */
-
 	if (w->egl_surface() != EGL_NO_SURFACE)
 		if (!eglDestroySurface(_egl_display, w->egl_surface()))
 			qFatal("eglDestroySurface() failed");
@@ -99,23 +92,6 @@ bool QNitpickerGLContext::makeCurrent(QPlatformSurface *surface)
 		qFatal("eglCreateiWindowSurface() failed");
 
 	w->egl_surface(egl_surface);
-
-#else
-
-	/* temporary workaround, the surface gets created only once */
-
-	if (w->egl_surface() == EGL_NO_SURFACE) {
-
-		EGLSurface egl_surface =
-			eglCreateWindowSurface(_egl_display, _egl_config, &egl_window, 0);
-
-		if (egl_surface == EGL_NO_SURFACE)
-			qFatal("eglCreateiWindowSurface() failed");
-
-		w->egl_surface(egl_surface);
-	}
-
-#endif
 
 	if (!eglMakeCurrent(_egl_display, w->egl_surface(), w->egl_surface(), _egl_context))
 		qFatal("eglMakeCurrent() failed");
