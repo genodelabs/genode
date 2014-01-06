@@ -3,6 +3,30 @@
                                Genode News
                                ===========
 
+FOSDEM 2014 | 2014-01-06
+########################
+
+| It goes without saying that Genode will participate in FOSDEM this year
+| during February 1 - 2 in Brussels.
+
+Like the years before, there will be a
+microkernel devroom. This time, the devroom will be held on Sunday.
+There will be two presentations at the devroom specifically related to
+Genode:
+
+09:55 - 10:40 *Genode as general-purpose OS - Progress report and demonstration*
+_Norman Feske_
+
+15:00 - 15:30 *Virtualization Dungeon on ARM*
+_Stefan Kalkowski_
+
+As usual, those presentations will be garnished with demonstrations.
+Besides our contributions, the devroom will cover many other intriguing
+topics related to the Open-Source microkernel community. The devroom
+schedule for the whole day is available here:
+
+[https://fosdem.org/2014/schedule/track/microkernel_based_operating_systems]
+
 
 Genode OS Framework release 13.11 | 2013-11-28
 ##############################################
