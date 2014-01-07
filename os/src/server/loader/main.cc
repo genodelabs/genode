@@ -176,6 +176,9 @@ namespace Loader {
 				Rpc_entrypoint &ep;
 				Allocator      &_md_alloc;
 
+				int             _max_width;
+				int             _max_height;
+
 				Signal_context_capability view_ready_sigh;
 
 				Nitpicker::Session_component *open_session;
@@ -186,6 +189,8 @@ namespace Loader {
 					Service("virtual_nitpicker"),
 					ep(ep),
 					_md_alloc(md_alloc),
+					_max_width(-1),
+					_max_height(-1),
 					open_session(0)
 				{ }
 
@@ -198,6 +203,11 @@ namespace Loader {
 					destroy(&_md_alloc, open_session);
 				}
 
+				void constrain_geometry(int width, int height)
+				{
+					_max_width = width, _max_height = height;
+				}
+
 				Genode::Session_capability session(char     const *args,
 				                                   Affinity const &)
 				{
@@ -205,7 +215,11 @@ namespace Loader {
 						throw Unavailable();
 
 					open_session = new (&_md_alloc)
-						Nitpicker::Session_component(ep, view_ready_sigh, args);
+						Nitpicker::Session_component(ep,
+						                             _max_width,
+						                             _max_height,
+						                             view_ready_sigh,
+						                             args);
 
 					return ep.manage(open_session);
 				}
@@ -219,7 +233,6 @@ namespace Loader {
 			Ram_session_client_guard  _ram_session_client;
 			Heap                      _md_alloc;
 			size_t                    _subsystem_ram_quota_limit;
-			int                       _width, _height;
 			Rpc_entrypoint            _ep;
 			Service_registry          _parent_services;
 			Rom_module_registry       _rom_modules;
@@ -252,7 +265,6 @@ namespace Loader {
 				_ram_session_client(env()->ram_session_cap(), _ram_quota),
 				_md_alloc(&_ram_session_client, env()->rm_session()),
 				_subsystem_ram_quota_limit(0),
-				_width(-1), _height(-1),
 				_ep(&cap, STACK_SIZE, "session_ep"),
 				_rom_modules(_ram_session_client, _md_alloc),
 				_rom_service(_ep, _md_alloc, _rom_modules),
@@ -300,7 +312,7 @@ namespace Loader {
 
 			void constrain_geometry(int width, int height)
 			{
-				_width = width, _height = height;
+				_nitpicker_service.constrain_geometry(width, height);
 			}
 
 			void view_ready_sigh(Signal_context_capability sigh)
@@ -346,7 +358,7 @@ namespace Loader {
 						      pd_args, _ep, _ram_session_client,
 						      ram_quota, _parent_services, _rom_service,
 						      _cpu_service, _rm_service, _nitpicker_service,
-						      _fault_sigh, _width, _height);
+						      _fault_sigh);
 				}
 				catch (Genode::Parent::Service_denied) {
 					throw Rom_module_does_not_exist(); }

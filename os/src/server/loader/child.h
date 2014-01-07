@@ -86,8 +86,6 @@ namespace Loader {
 			Init::Child_policy_enforce_labeling _labeling_policy;
 			Init::Child_policy_pd_args          _pd_args_policy;
 
-			int _max_width, _max_height;
-
 			Genode::Child _child;
 
 			Rom_session_capability _rom_session(char const *name)
@@ -115,9 +113,7 @@ namespace Loader {
 			      Service                   &local_cpu_service,
 			      Service                   &local_rm_service,
 			      Service                   &local_nitpicker_service,
-			      Signal_context_capability fault_sigh,
-			      int                       max_width,
-			      int                       max_height)
+			      Signal_context_capability fault_sigh)
 			:
 				_label(label),
 				_pd_args(pd_args),
@@ -132,7 +128,6 @@ namespace Loader {
 				_binary_policy("binary", _binary_rom_session.dataspace(), &_ep),
 				_labeling_policy(_label.string),
 				_pd_args_policy(&_pd_args),
-				_max_width(max_width), _max_height(max_height),
 				_child(_binary_rom_session.dataspace(),
 				       _resources.ram.cap(), _resources.cpu.cap(),
 				       _resources.rm.cap(), &_ep, this)
@@ -155,29 +150,6 @@ namespace Loader {
 			{
 				_labeling_policy.filter_session_args(service, args, args_len);
 				_pd_args_policy. filter_session_args(service, args, args_len);
-
-				if (!strcmp(service, "Nitpicker")) {
-
-					/*
-					 * Restrict the child's framebuffer size to the maximum
-					 * size given by the client.
-					 */
-
-					if (_max_width > -1) {
-						int fb_width = Arg_string::find_arg(args, "fb_width" ).long_value(_max_width);
-						if (!Arg_string::set_arg(args, args_len, "fb_width",
-						                         min(fb_width, _max_width))) {
-							PERR("could not set fb_width argument");
-						}
-					}
-					if (_max_height > -1) {
-						int fb_height = Arg_string::find_arg(args, "fb_height" ).long_value(_max_height);
-						if (!Arg_string::set_arg(args, args_len, "fb_height",
-						                         min(fb_height, _max_height))) {
-							PERR("could not set fb_height argument");
-						}
-					}
-				}
 			}
 
 			Service *resolve_session_request(const char *name,

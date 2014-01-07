@@ -161,6 +161,9 @@ namespace Nitpicker {
 
 			Rpc_entrypoint           &_ep;
 
+			int                       _max_width;
+			int                       _max_height;
+
 			Nitpicker::Connection     _nitpicker;
 			View_capability           _nitpicker_view;
 
@@ -181,11 +184,16 @@ namespace Nitpicker {
 			/**
 			 * Constructor
 			 */
-			Session_component(Rpc_entrypoint           &ep,
-			                  Signal_context_capability view_ready_sigh,
-			                  const char               *args)
+			Session_component(Rpc_entrypoint            &ep,
+			                  int                        max_width,
+			                  int                        max_height,
+			                  Signal_context_capability  view_ready_sigh,
+			                  const char                *args)
 			:
 				_ep(ep),
+
+				_max_width(max_width),
+				_max_height(max_height),
 
 				/* create Nitpicker view */
 				_nitpicker_view(_nitpicker.create_view()),
@@ -235,7 +243,16 @@ namespace Nitpicker {
 
 			Framebuffer::Mode mode()
 			{
-				return _nitpicker.mode();
+				int mode_width = (_max_width > -1) ?
+				                 _max_width :
+				                 _nitpicker.mode().width();
+
+				int mode_height = (_max_height > -1) ?
+				                  _max_height :
+				                  _nitpicker.mode().height();
+
+				return Framebuffer::Mode(mode_width, mode_height,
+				                         _nitpicker.mode().format());
 			}
 
 			void buffer(Framebuffer::Mode mode, bool use_alpha)
@@ -271,11 +288,17 @@ namespace Nitpicker {
 			 */
 			Loader::Session::View_geometry loader_view_geometry()
 			{
-				Framebuffer::Session_client framebuffer(framebuffer_session());
-				Framebuffer::Mode const mode = framebuffer.mode();
+				int view_width = (_max_width > -1) ?
+				                 min(_proxy_view.w(), _max_width) :
+				                 _proxy_view.w();
+
+				int view_height = (_max_height > -1) ?
+				                  min(_proxy_view.h(), _max_height) :
+				                  _proxy_view.h();
+
 				Loader::Session::View_geometry result(
-					min(_proxy_view.w(), mode.width()),
-					min(_proxy_view.h(), mode.height()),
+					view_width,
+					view_height,
 					_proxy_view.buf_x(),
 					_proxy_view.buf_y());
 
