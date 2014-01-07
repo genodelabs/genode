@@ -39,17 +39,16 @@ unsigned long nr_free_buffer_pages(void)
 /**
  * Initialize sub-systems
  */
-int lxip_init()
+int lxip_init(char *address_config)
 {
 	/* init data */
 	INIT_LIST_HEAD(&init_net.dev_base_head);
-
 
 	/*start jiffies */
 	dde_kit_timer_init(0, 0);
 
 	/* call __setup stuff */
-	__ip_auto_config_setup("dhcp");
+	__ip_auto_config_setup(address_config);
 
 	core_sock_init();
 	core_netlink_proto_init();
@@ -70,7 +69,7 @@ int lxip_init()
 	/* late  */
 	late_tcp_congestion_default();
 
-	/* dhcp */
+	/* dhcp or static configuration */
 	late_ip_auto_config();
 
 	return 1;

@@ -31,7 +31,15 @@ namespace Lxip {
 
 	class Socketcall;
 
-	Socketcall & init();
+	/**
+	 * Init backend
+	 *
+	 * \param  address_config  for dynamic configuration use "dhcp", for static
+	 *                         configuration use "<ip>::<gw-ip>:<netmask>:::off"
+	 *
+	 * \return Reference to Socketcall object
+	 */
+	Socketcall & init(char *address_config);
 
 	typedef Genode::uint8_t  uint8_t;
 	typedef Genode::uint16_t uint16_t;

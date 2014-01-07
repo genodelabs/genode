@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 extern "C"
 #endif
-int lxip_init(void);
+
+int lxip_init(char *address_config);
 
 #endif

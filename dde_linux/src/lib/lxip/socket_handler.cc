@@ -621,9 +621,9 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 };
 
 
-Lxip::Socketcall & Lxip::init()
+Lxip::Socketcall & Lxip::init(char *address_config)
 {
-	static int             init = lxip_init();
+	static int             init = lxip_init(address_config);
 	static Net::Socketcall socketcall;
 
 	return socketcall;
