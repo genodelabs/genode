@@ -72,10 +72,17 @@ class Test_child : public Genode::Child_policy
 			}
 		} _resources;
 
+		/*
+		 * The order of the following members is important. The services must
+		 * appear before the child to ensure the correct order of destruction.
+		 * I.e., the services must remain alive until the child has stopped
+		 * executing. Otherwise, the child may hand out already destructed
+		 * local services when dispatching an incoming session call.
+		 */
 		Genode::Rom_connection _elf;
-		Genode::Child          _child;
 		Genode::Parent_service _log_service;
 		Genode::Parent_service _rm_service;
+		Genode::Child          _child;
 
 	public:
 
@@ -88,9 +95,9 @@ class Test_child : public Genode::Child_policy
 		:
 			_resources(sigh),
 			_elf(elf_name),
+			_log_service("LOG"), _rm_service("RM"),
 			_child(_elf.dataspace(), _resources.ram.cap(),
-			       _resources.cpu.cap(), _resources.rm.cap(), &ep, this),
-			_log_service("LOG"), _rm_service("RM")
+			       _resources.cpu.cap(), _resources.rm.cap(), &ep, this)
 		{ }
 
 
