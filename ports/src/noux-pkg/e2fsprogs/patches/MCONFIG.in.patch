@@ -1,0 +1,11 @@
+--- contrib/e2fsprogs-v1.42.9/MCONFIG.in.orig	2014-01-07 12:04:39.022395752 +0100
++++ contrib/e2fsprogs-v1.42.9/MCONFIG.in	2014-01-07 12:08:02.010390431 +0100
+@@ -62,6 +62,8 @@
+ @ifGNUmake@   endif
+ @ifGNUmake@ endif
+ 
++CHECK_CMD = true
++
+ @ifNotGNUmake@ CHECK_CMD=@true
+ 
+ CC = @CC@

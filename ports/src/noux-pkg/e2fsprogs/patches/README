@@ -1,0 +1,5 @@
+These patches mainly circumvent shortcomings in the original autotool
+buildsystem, e.g. missing @LIBS@ definitions, which lead to non-working
+binaries on Genode because the actual start-up code is missing. Furthmore,
+TLS support is disabled by force because we currently do not need it and
+it would require us to link against libgcc_eh.a (__emutls_* is needed).

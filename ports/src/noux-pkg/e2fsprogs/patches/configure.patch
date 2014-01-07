@@ -1,0 +1,38 @@
+--- contrib/e2fsprogs-v1.42.9/configure.orig	2014-01-07 14:59:39.000000000 +0100
++++ contrib/e2fsprogs-v1.42.9/configure	2014-01-07 15:59:14.598026789 +0100
+@@ -4225,10 +4225,10 @@
+ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+-if test "$GCC" = yes; then
+-   RDYNAMIC="-rdynamic"
+-
+-fi
++#if test "$GCC" = yes; then
++#   RDYNAMIC="-rdynamic"
++#
++#fi
+ ac_ext=c
+ ac_cpp='$CPP $CPPFLAGS'
+ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+@@ -5526,6 +5526,9 @@
+ 
+ fi
+ 
++# disable TLS by force
++try_tls="no"
++
+ if test "$try_tls" = "yes"
+ then
+ 
+@@ -11349,7 +11352,9 @@
+ $as_echo "Setting root_sysconfdir to $root_sysconfdir" >&6; }
+ fi
+ 
+-
++# force sbindir
++root_sbindir='/bin'
++sbindir='/bin'
+ 
+ 
+ 
