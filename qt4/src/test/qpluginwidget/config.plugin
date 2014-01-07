@@ -2,6 +2,7 @@
 	<parent-provides>
 		<service name="LOG"/>
 		<service name="Timer"/>
+		<service name="SIGNAL"/>
 		<service name="Nitpicker"/>
 	</parent-provides>
 	<default-route>

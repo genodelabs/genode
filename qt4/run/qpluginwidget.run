@@ -112,6 +112,8 @@ set boot_modules {
 	libc_lock_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
+	libssl.lib.so
+	libcrypto.lib.so
 	jpeg.lib.so
 	qt_core.lib.so
 	qt_gui.lib.so
