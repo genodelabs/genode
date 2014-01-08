@@ -1,8 +1,8 @@
 #
 # Genode base libaries
 #
-# These linked against 'ldso' and filtered out for dynamically
-# linked binaries
+# These static libraries are filtered out when linking dynamically linked
+# binaries.
 #
 BASE_LIBS = base-common base cxx timed_semaphore alarm config
 
