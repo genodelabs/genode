@@ -30,10 +30,10 @@
 	<start name="launchpad">
 		<resource name="RAM" quantum="1G"/>
 		<config xpos="50" ypos="10" width="400" height="400">
-			<launcher><filename>testnit</filename><ram_quota>512K</ram_quota></launcher>
-			<launcher><filename>launchpad</filename><ram_quota>6M</ram_quota>
+			<launcher name="testnit" ram_quota="512K" />
+			<launcher name="launchpad" ram_quota="6M">
 				<config xpos="90" ypos="50" width="400" height="400">
-					<launcher><filename>testnit</filename><ram_quota>512K</ram_quota></launcher>
+					<launcher name="testnit" ram_quota="512K" />
 				</config>
 			</launcher>
 		</config>
