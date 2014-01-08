@@ -39,6 +39,7 @@ class Block::Session_component : public Block::Session_rpc_object
 		Signal_dispatcher<Session_component> _sink_ack;
 		Signal_dispatcher<Session_component> _sink_submit;
 		bool                                 _req_queue_full;
+		bool                                 _ack_queue_full;
 		Packet_descriptor                    _p_to_handle;
 		unsigned                             _p_in_fly;
 
@@ -124,9 +125,11 @@ class Block::Session_component : public Block::Session_rpc_object
 			 * them, and the driver's request queue isn't full,
 			 * direct the packet request to the driver backend
 			 */
-			for (; !_req_queue_full && tx_sink()->packet_avail() &&
-			     !(_p_in_fly >= tx_sink()->ack_slots_free()); _p_in_fly++)
-					_handle_packet(tx_sink()->get_packet());
+			for (_ack_queue_full = (_p_in_fly >= tx_sink()->ack_slots_free());
+			     !_req_queue_full && !_ack_queue_full
+			     && tx_sink()->packet_avail();
+				 _ack_queue_full = (++_p_in_fly >= tx_sink()->ack_slots_free()))
+				_handle_packet(tx_sink()->get_packet());
 		}
 
 		/**
@@ -176,12 +179,10 @@ class Block::Session_component : public Block::Session_rpc_object
 		 */
 		void ack_packet(Packet_descriptor &packet, bool success = true)
 		{
-			bool ack_queue_full = _p_in_fly >= tx_sink()->ack_slots_free();
-
 			packet.succeeded(success);
 			_ack_packet(packet);
 
-			if (!_req_queue_full && !ack_queue_full)
+			if (!_req_queue_full && !_ack_queue_full)
 				return;
 
 			/*
