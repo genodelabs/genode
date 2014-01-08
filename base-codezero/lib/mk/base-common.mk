@@ -4,7 +4,7 @@
 # \date   2013-02-14
 #
 
-LIBS += cxx l4 startup
+LIBS += cxx syscall startup
 
 SRC_CC += cap_copy.cc
 SRC_CC += ipc/ipc.cc ipc/pager.cc ipc/ipc_marshal_cap.cc

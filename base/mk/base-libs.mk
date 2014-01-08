@@ -4,7 +4,7 @@
 # These static libraries are filtered out when linking dynamically linked
 # binaries.
 #
-BASE_LIBS = base-common base cxx timed_semaphore alarm config
+BASE_LIBS = base-common base cxx timed_semaphore alarm config syscall
 
 #
 # Name of Genode's dynamic linker

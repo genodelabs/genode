@@ -68,21 +68,17 @@ warn_missing_lib_mk: generate_lib_rule_for_defect_library
 override REP_DIR := $(firstword $(foreach REP,$(REPOSITORIES),$(findstring $(REP)/,$(LIB_MK))))
 override REP_DIR := $(REP_DIR:/=)
 
-include $(LIB_MK)
 include $(BASE_DIR)/mk/base-libs.mk
-#
-# Libraries from the library depends on
+include $(LIB_MK)
+
+ifdef SHARED_LIB
 #
 # For shared libraries, we have to make sure to build ldso support before
 # building a shared library.
 #
-ifdef SHARED_LIB
 LIBS += ldso-startup
 
-ifeq ($(LIB),$(DYNAMIC_LINKER))
-LIBS += $(BASE_LIBS)
-else
-LIBS := $(filter-out $(BASE_LIBS),$(LIBS))
+ifneq ($(LIB),$(DYNAMIC_LINKER))
 LIBS += $(DYNAMIC_LINKER)
 
 #
@@ -95,7 +91,13 @@ LIBS += $(DYNAMIC_LINKER)
 LIBS += startup_dyn
 endif
 
-
+#
+# Ensure that startup_dyn is build for the dynamic programs that depend on a
+# shared library. They add it to their dependencies as replacement for the
+# static-case startup as soon as they recognize that they are dynamic.
+# The current library in contrast filters-out startup_dyn from its
+# dependencies before they get merged.
+#
 DEP_VAR_NAME := DEP_$(LIB).lib.so
 else
 DEP_VAR_NAME := DEP_$(LIB).lib

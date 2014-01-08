@@ -1,7 +1,8 @@
 #note: leave empty to disable debugging output
 DEBUG =
 
-LIBS = base ldso-arch
+include $(BASE_DIR)/mk/base-libs.mk
+LIBS   = $(BASE_LIBS) ldso-arch
 
 SRC_S  = rtld_start.S
 SRC_C  = reloc.c rtld.c map_object.c xmalloc.c debug.c main.c  \

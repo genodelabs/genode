@@ -15,6 +15,8 @@
 ##   REP_DIR          - repository where the library resides
 ##
 
+include $(BASE_DIR)/mk/base-libs.mk
+
 #
 # Prevent <libname>.mk rules to be executed as default rule
 #
@@ -132,10 +134,11 @@ ifdef SHARED_LIB
 override DEPS := $(filter-out startup_dyn.lib,$(DEPS))
 
 #
-# Prevent linkage of startup code against shared libraries except for ld.lib.so
+# Prevent linkage of startup code and base libs against shared libraries except
+# for ld.lib.so
 #
 ifneq ($(LIB),ld)
-override DEPS := $(filter-out startup.lib,$(DEPS))
+override DEPS := $(filter-out $(BASE_LIBS:=.lib) startup.lib,$(DEPS))
 endif
 endif
 
