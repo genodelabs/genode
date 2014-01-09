@@ -209,6 +209,7 @@ namespace Nova {
 				STA  = 1 << 18,  /* interruptibility state */
 				TSC  = 1 << 19,  /* time-stamp counter */
 				EFER = 1 << 20,  /* EFER MSR */
+				FPU  = 1 << 31,  /* FPU state */
 
 				IRQ  = EFL | STA | INJ | TSC,
 				ALL  = 0x000fffff & ~CTRL,

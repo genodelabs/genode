@@ -9,7 +9,7 @@ VERBOSE     ?= @
 ECHO        = @echo
 GIT_URL     = https://github.com/alex-ab/NOVA.git
 GIT_REV     = HEAD
-GIT_BRANCH  = r3
+GIT_BRANCH  = r4
 CONTRIB_DIR = contrib
 PATCHES     = $(shell find patches -name '*.patch')
 
