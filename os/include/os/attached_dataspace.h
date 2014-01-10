@@ -1,0 +1,83 @@
+/*
+ * \brief  Dataspace utility
+ * \author Norman Feske
+ * \date   2014-01-10
+ */
+
+/*
+ * Copyright (C) 2014 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+#ifndef _INCLUDE__OS__ATTACHED_DATASPACE_H_
+#define _INCLUDE__OS__ATTACHED_DATASPACE_H_
+
+#include <dataspace/client.h>
+#include <base/env.h>
+
+namespace Genode { class Attached_dataspace; }
+
+
+class Genode::Attached_dataspace : Noncopyable
+{
+	public:
+
+		/**
+		 * Exception type
+		 */
+		class Invalid_dataspace { };
+
+	private:
+
+		Dataspace_capability _ds;
+
+		size_t const _size = { Dataspace_client(_ds).size() };
+
+		void * const _local_addr = { env()->rm_session()->attach(_ds) };
+
+		Dataspace_capability _check(Dataspace_capability ds)
+		{
+			if (ds.valid())
+				return ds;
+
+			throw Invalid_dataspace();
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \throw Rm_session::Attach_failed
+		 * \throw Invalid_dataspace
+		 */
+		Attached_dataspace(Dataspace_capability ds) : _ds(_check(ds)) { }
+
+		/**
+		 * Destructor
+		 */
+		~Attached_dataspace() { env()->rm_session()->detach(_local_addr); }
+
+		/**
+		 * Return capability of the used dataspace
+		 */
+		Dataspace_capability cap() const { return _ds; }
+
+		/**
+		 * Request local address
+		 *
+		 * This is a template to avoid inconvenient casts at the caller.
+		 * A newly attached dataspace is untyped memory anyway.
+		 */
+		template <typename T>
+		T *local_addr() { return static_cast<T *>(_local_addr); }
+
+		/**
+		 * Return size
+		 */
+		size_t size() const { return _size; }
+};
+
+#endif /* _INCLUDE__OS__ATTACHED_DATASPACE_H_ */

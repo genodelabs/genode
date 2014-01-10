@@ -14,93 +14,65 @@
 #ifndef _INCLUDE__OS__ATTACHED_ROM_DATASPACE_H_
 #define _INCLUDE__OS__ATTACHED_ROM_DATASPACE_H_
 
+#include <util/volatile_object.h>
+#include <os/attached_dataspace.h>
 #include <rom_session/connection.h>
-#include <dataspace/client.h>
-#include <base/env.h>
 
-namespace Genode {
+namespace Genode { class Attached_rom_dataspace; }
 
-	class Attached_rom_dataspace
-	{
-		private:
 
-			Rom_connection            _rom;
-			Rom_dataspace_capability  _ds;
-			size_t                    _size;
-			void                     *_local_addr = 0;
+class Genode::Attached_rom_dataspace
+{
+	private:
 
-			void _detach()
-			{
-				if (!_local_addr)
-					return;
+		Rom_connection _rom;
 
-				env()->rm_session()->detach(_local_addr);
-				_local_addr = 0;
-				_size       = 0;
-			}
+		/*
+		 * A ROM module may change or disappear over the lifetime of a ROM
+		 * session. In contrast to the plain 'Attached_dataspace', which is
+		 * always be valid once constructed, a 'Attached_rom_dataspace' has
+		 * to handle the validity of the dataspace.
+		 */
+		Lazy_volatile_object<Attached_dataspace> _ds;
 
-			void _attach()
-			{
-				if (_local_addr)
-					_detach();
+		/**
+		 * Try to attach the ROM module, ignore invalid dataspaces
+		 */
+		void _try_attach()
+		{
+			try { _ds.construct(_rom.dataspace()); }
+			catch (Attached_dataspace::Invalid_dataspace) { }
+		}
 
-				_ds = _rom.dataspace();
-				if (_ds.valid()) {
-					_size       = Dataspace_client(_ds).size();
-					_local_addr = env()->rm_session()->attach(_ds);
-				}
-			}
+	public:
 
-		public:
+		/**
+		 * Constructor
+		 *
+		 * \throw Rom_connection::Rom_connection_failed
+		 * \throw Rm_session::Attach_failed
+		 */
+		Attached_rom_dataspace(char const *name)
+		: _rom(name) { _try_attach(); }
 
-			/**
-			 * Constructor
-			 *
-			 * \throw Rom_connection::Rom_connection_failed
-			 * \throw Rm_session::Attach_failed
-			 */
-			Attached_rom_dataspace(char const *name)
-			: _rom(name) { _attach(); }
+		template <typename T> T *local_addr() { return _ds->local_addr<T>(); }
 
-			/**
-			 * Destructor
-			 */
-			~Attached_rom_dataspace() { _detach(); }
+		size_t size() const { return _ds->size(); }
 
-			/**
-			 * Return capability of the used ROM dataspace
-			 */
-			Rom_dataspace_capability cap() const { return _ds; }
+		/**
+		 * Register signal handler for ROM module changes
+		 */
+		void sigh(Signal_context_capability sigh) { _rom.sigh(sigh); }
 
-			/**
-			 * Request local address
-			 *
-			 * This is a template to avoid inconvenient casts at the caller.
-			 * A newly allocated ROM dataspace is untyped memory anyway.
-			 */
-			template <typename T>
-			T *local_addr() { return static_cast<T *>(_local_addr); }
+		/**
+		 * Re-attach ROM module
+		 */
+		void update() { _try_attach(); }
 
-			/**
-			 * Return size
-			 */
-			size_t size() const { return _size; }
-
-			/**
-			 * Register signal handler for ROM module changes
-			 */
-			void sigh(Signal_context_capability sigh) { _rom.sigh(sigh); }
-
-			/**
-			 * Re-attach ROM module
-			 */
-			void update() { _attach(); }
-
-			/**
-			 * Return true of content is present
-			 */
-			bool is_valid() const { return _local_addr != 0; }
-	};
-}
+		/**
+		 * Return true of content is present
+		 */
+		bool is_valid() const { return _ds.is_constructed(); }
+};
 
 #endif /* _INCLUDE__OS__ATTACHED_ROM_DATASPACE_H_ */
