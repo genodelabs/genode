@@ -27,7 +27,29 @@ namespace Genode {
 			Rom_connection            _rom;
 			Rom_dataspace_capability  _ds;
 			size_t                    _size;
-			void                     *_local_addr;
+			void                     *_local_addr = 0;
+
+			void _detach()
+			{
+				if (!_local_addr)
+					return;
+
+				env()->rm_session()->detach(_local_addr);
+				_local_addr = 0;
+				_size       = 0;
+			}
+
+			void _attach()
+			{
+				if (_local_addr)
+					_detach();
+
+				_ds = _rom.dataspace();
+				if (_ds.valid()) {
+					_size       = Dataspace_client(_ds).size();
+					_local_addr = env()->rm_session()->attach(_ds);
+				}
+			}
 
 		public:
 
@@ -38,20 +60,12 @@ namespace Genode {
 			 * \throw Rm_session::Attach_failed
 			 */
 			Attached_rom_dataspace(char const *name)
-			:
-				_rom(name),
-				_ds(_rom.dataspace()),
-				_size(Dataspace_client(_ds).size()),
-				_local_addr(env()->rm_session()->attach(_ds))
-			{ }
+			: _rom(name) { _attach(); }
 
 			/**
 			 * Destructor
 			 */
-			~Attached_rom_dataspace()
-			{
-				env()->rm_session()->detach(_local_addr);
-			}
+			~Attached_rom_dataspace() { _detach(); }
 
 			/**
 			 * Return capability of the used ROM dataspace
@@ -61,9 +75,8 @@ namespace Genode {
 			/**
 			 * Request local address
 			 *
-			 * This is a template to avoid inconvenient casts at
-			 * the caller. A newly allocated ROM dataspace is
-			 * untyped memory anyway.
+			 * This is a template to avoid inconvenient casts at the caller.
+			 * A newly allocated ROM dataspace is untyped memory anyway.
 			 */
 			template <typename T>
 			T *local_addr() { return static_cast<T *>(_local_addr); }
@@ -72,6 +85,21 @@ namespace Genode {
 			 * Return size
 			 */
 			size_t size() const { return _size; }
+
+			/**
+			 * Register signal handler for ROM module changes
+			 */
+			void sigh(Signal_context_capability sigh) { _rom.sigh(sigh); }
+
+			/**
+			 * Re-attach ROM module
+			 */
+			void update() { _attach(); }
+
+			/**
+			 * Return true of content is present
+			 */
+			bool is_valid() const { return _local_addr != 0; }
 	};
 }
 
