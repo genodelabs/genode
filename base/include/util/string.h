@@ -451,29 +451,33 @@ namespace Genode {
 	/**
 	 * Buffer that contains a null-terminated string
 	 *
-	 * \param SIZE  buffer size
+	 * \param CAPACITY  buffer size including the terminating zero
 	 */
-	template <size_t SIZE>
+	template <size_t CAPACITY>
 	class String
 	{
 		private:
 
-			char   _buf[SIZE];
+			char   _buf[CAPACITY];
 			size_t _length;
 
 		public:
 
-			constexpr static size_t size() { return SIZE; }
+			constexpr static size_t size() { return CAPACITY; }
 
 			String() : _length(0) { }
 
-			String(char const *str) : _length(min(strlen(str) + 1, SIZE))
+			String(char const *str) : _length(min(strlen(str) + 1, CAPACITY))
 			{
 				strncpy(_buf, str, _length);
 			}
 
+			size_t length() const { return _length; }
+
+			static constexpr size_t capacity() { return CAPACITY; }
+
 			bool valid() const {
-				return (_length <= SIZE) && (_buf[_length - 1] == '\0'); }
+				return (_length <= CAPACITY) && (_buf[_length - 1] == '\0'); }
 
 			char const *string() const { return valid() ? _buf : ""; }
 	};
