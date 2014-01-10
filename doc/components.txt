@@ -375,10 +375,14 @@ Separate components:
   A block service that fetches a virtual block device over the network from
   a HTTP server.
 
-:'fs_rom':
+:'os/src/server/fs_rom':
   A ROM service that translates the 'File_system' session interface to the
   'ROM' session' interface. Each request for a ROM file is handled by looking
   up an equally named file on the file system.
+
+:'os/src/server/dynamic_rom':
+  A simple ROM service that provides ROM modules that change in time according
+  to a configured timeline.
 
 Libraries:
 

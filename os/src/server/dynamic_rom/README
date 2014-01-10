@@ -1,0 +1,6 @@
+ROM service that provides ROM modules that change during the lifetime of a ROM
+session according to a timeline. This main purpuse of this service is the
+testing of programs that are able to respond to ROM module changes, for example
+configuration changes.
+
+For a practical example, refer to the 'gems/run/decorator.run' script.
