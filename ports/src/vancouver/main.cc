@@ -21,8 +21,8 @@
  * Copyright (C) 2011-2013 Genode Labs GmbH
  * Copyright (C) 2012 Intel Corporation
  *
- * This file is part of the Genode OS framework, which is distributed
- * under the terms of the GNU General Public License version 2.
+ * This file is distributed under the terms of the GNU General Public License
+ * version 2.
  *
  * The code is partially based on the Vancouver VMM, which is distributed
  * under the terms of the GNU General Public License version 2.
