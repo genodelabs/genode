@@ -160,16 +160,14 @@ class File_system::Session_component : public Session_rpc_object
 			_md_alloc(md_alloc),
 			_root(*new (&_md_alloc) Directory(_md_alloc, root_dir, false)),
 			_writable(writable),
-			_process_packet_dispatcher(*this, &Session_component::_process_packets)
+			_process_packet_dispatcher(ep, *this, &Session_component::_process_packets)
 		{
 			/*
 			 * Register '_process_packets' dispatch function as signal
 			 * handler for packet-avail and ready-to-ack signals.
 			 */
-			Signal_context_capability sigh(_ep.manage(_process_packet_dispatcher));
-
-			_tx.sigh_packet_avail(sigh);
-			_tx.sigh_ready_to_ack(sigh);
+			_tx.sigh_packet_avail(_process_packet_dispatcher);
+			_tx.sigh_ready_to_ack(_process_packet_dispatcher);
 		}
 
 		/**
@@ -177,7 +175,6 @@ class File_system::Session_component : public Session_rpc_object
 		 */
 		~Session_component()
 		{
-			_ep.dissolve(_process_packet_dispatcher);
 			Dataspace_capability ds = tx_sink()->dataspace();
 			env()->ram_session()->free(static_cap_cast<Ram_dataspace>(ds));
 			destroy(&_md_alloc, &_root);

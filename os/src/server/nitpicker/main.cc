@@ -813,16 +813,14 @@ struct Nitpicker::Main
 	 */
 	void handle_config(unsigned);
 
-	Signal_rpc_member<Main> config_dispatcher = { *this, &Main::handle_config };
-
-	Signal_context_capability config_sigh = ep.manage(config_dispatcher);
+	Signal_rpc_member<Main> config_dispatcher = { ep, *this, &Main::handle_config};
 
 	/**
 	 * Signal handler invoked on the reception of user input
 	 */
 	void handle_input(unsigned);
 
-	Signal_rpc_member<Main> input_dispatcher = { *this, &Main::handle_input };
+	Signal_rpc_member<Main> input_dispatcher = { ep, *this, &Main::handle_input };
 
 	/*
 	 * Dispatch input on periodic timer signals every 10 milliseconds
@@ -838,10 +836,10 @@ struct Nitpicker::Main
 		user_state.stack(menubar);
 		user_state.stack(background);
 
-		config()->sigh(config_sigh);
-		Signal_transmitter(config_sigh).submit();
+		config()->sigh(config_dispatcher);
+		Signal_transmitter(config_dispatcher).submit();
 
-		timer.sigh(ep.manage(input_dispatcher));
+		timer.sigh(input_dispatcher);
 		timer.trigger_periodic(10*1000);
 
 		env()->parent()->announce(ep.manage(np_root));

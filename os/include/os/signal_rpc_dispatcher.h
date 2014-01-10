@@ -21,7 +21,7 @@ namespace Genode {
 
 	class Signal_rpc_dispatcher_base;
 	template <typename> class Signal_rpc_functor;
-	template <typename> class Signal_rpc_member;
+	template <typename, typename> class Signal_rpc_member;
 
 	template <typename FUNCTOR>
 	Signal_rpc_functor<FUNCTOR> signal_rpc_functor(FUNCTOR &);
@@ -148,6 +148,11 @@ struct Genode::Signal_rpc_functor : Genode::Signal_rpc_dispatcher_base
 };
 
 
+namespace Server{
+	class Entrypoint;
+}
+
+
 /**
  * Signal dispatcher for directing signals via RPC to member function
  *
@@ -159,21 +164,28 @@ struct Genode::Signal_rpc_functor : Genode::Signal_rpc_dispatcher_base
  * 'Signal_dispatcher_base::dispatch'.
  *
  * \param T  type of signal-handling class
+ * \param EP type of entrypoint handling signal RPC
  */
-template <typename T>
-struct Genode::Signal_rpc_member : Genode::Signal_rpc_dispatcher_base
+template <typename T, typename EP = Server::Entrypoint>
+struct Genode::Signal_rpc_member : Genode::Signal_rpc_dispatcher_base,
+                                   Genode::Signal_context_capability
 {
-	T &obj;
+	EP &ep;
+	T  &obj;
 	void (T::*member) (unsigned);
 
 	/**
 	 * Constructor
 	 *
+	 * \param ep          entrypoint managing this signal RPC
 	 * \param obj,member  object and member function to call when
 	 *                    the signal occurs
 	 */
-	Signal_rpc_member(T &obj, void (T::*member)(unsigned))
-	: obj(obj), member(member) { }
+	Signal_rpc_member(EP &ep, T &obj, void (T::*member)(unsigned))
+	: Signal_context_capability(ep.manage(*this)),
+	  ep(ep), obj(obj), member(member) { }
+
+	~Signal_rpc_member() { ep.dissolve(*this); }
 
 	/**
 	 * Interface of Signal_rpc_dispatcher_base
