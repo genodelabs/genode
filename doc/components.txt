@@ -384,6 +384,10 @@ Separate components:
   A simple ROM service that provides ROM modules that change in time according
   to a configured timeline.
 
+:'os/src/server/report_rom':
+  A service that implements both the report session interface and the ROM
+  session interface. It reflects incoming reports as ROM modules.
+
 Libraries:
 
 :'libports/lib/mk/libc':

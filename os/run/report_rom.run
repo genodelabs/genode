@@ -1,0 +1,70 @@
+build "core init server/report_rom test/report_rom drivers/timer"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="RAM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="CAP"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+		<start name="report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="ROM" />
+			           <service name="Report" /> </provides>
+		</start>
+		<start name="test-report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<route>
+				<service name="ROM">
+					<if-arg key="label" value="test-report_rom/brightness" />
+					<child name="report_rom" />
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+}
+
+build_boot_image "core init timer report_rom test-report_rom"
+
+append qemu_args "-nographic -m 128"
+
+run_genode_until {child exited with exit value 0.*\n} 30
+
+grep_output {^\[init -> test-report_rom}
+
+compare_output_to {
+	[init -> test-report_rom] --- test-report_rom started ---
+	[init -> test-report_rom] Reporter: open session
+	[init -> test-report_rom] Reporter: brightness 10
+	[init -> test-report_rom] ROM client: request brightness report
+	[init -> test-report_rom]          -> <brightness brightness="10"/>
+	[init -> test-report_rom] Reporter: updated brightness to 77
+	[init -> test-report_rom] ROM client: wait for update notification
+	[init -> test-report_rom] ROM client: got signal
+	[init -> test-report_rom] ROM client: request updated brightness report
+	[init -> test-report_rom]          -> <brightness brightness="77"/>
+	[init -> test-report_rom] Reporter: close report session
+	[init -> test-report_rom] ROM client: wait for update notification
+	[init -> test-report_rom] ROM client: detected vanished report
+	[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)
+	[init -> test-report_rom] ROM client: wait for update notification
+	[init -> test-report_rom] --- test-report_rom finished ---
+}

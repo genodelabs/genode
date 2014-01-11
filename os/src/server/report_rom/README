@@ -1,0 +1,24 @@
+The "report_rom" component is both a report service and a ROM service. It makes
+incoming reports available as ROM modules. The ROM modules are named after the
+label of the corresponding report session.
+
+Configuration
+-------------
+
+The report-ROM server hands out ROM modules only if explicitly permitted by a
+configured policy. For example:
+
+! <config>
+!   <rom>
+!     <policy label="decorator -> pointer" report="nitpicker -> pointer"/>
+!     <policy ...  />
+!     ...
+!   </rom>
+! </config>
+
+The label of an incoming ROM session is matched against the 'label' attribute
+of all '<policy>' nodes. If the session label matches a policy label, the
+client obtains the data from the report client with the label specified in the
+'report' attribute. In the example above, the nitpicker GUI server sends
+reports about the pointer position to the report-ROM service. Those reports
+are handed out to a window decorator (labeled "decorator") as ROM module.
