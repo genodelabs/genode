@@ -31,6 +31,7 @@
 #include <os/pixel_rgb565.h>
 #include <os/session_policy.h>
 #include <os/server.h>
+#include <os/reporter.h>
 
 /* local includes */
 #include "input.h"
@@ -821,6 +822,9 @@ struct Nitpicker::Main
 	Root<PT> np_root = { session_list, global_keys, ep.rpc_ep(),
 	                     user_state, sliced_heap, screen,
 	                     framebuffer, MENUBAR_HEIGHT };
+
+	Genode::Reporter pointer_reporter = { "pointer" };
+
 	/*
 	 * Configuration-update dispatcher, executed in the context of the RPC
 	 * entrypoint.
@@ -884,6 +888,14 @@ void Nitpicker::Main::handle_input(unsigned)
 
 		Point const new_mouse_pos = user_state.mouse_pos();
 
+		/* report mouse-position updates */
+		if (pointer_reporter.is_enabled() && old_mouse_pos != new_mouse_pos)
+			Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
+			{
+				xml.attribute("xpos", new_mouse_pos.x());
+				xml.attribute("ypos", new_mouse_pos.y());
+			});
+
 		/* update mouse cursor */
 		if (old_mouse_pos != new_mouse_pos)
 			user_state.viewport(mouse_cursor,
@@ -924,6 +936,13 @@ void Nitpicker::Main::handle_config(unsigned)
 	try {
 		config()->xml_node().sub_node("background")
 		.attribute("color").value(&background.color);
+	} catch (...) { }
+
+	/* enable or disable reporting */
+	try {
+		pointer_reporter.enabled(config()->xml_node().sub_node("report")
+		                                             .attribute("pointer")
+		                                             .has_value("yes"));
 	} catch (...) { }
 
 	/* update session policies */
