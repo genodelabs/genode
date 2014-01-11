@@ -480,6 +480,12 @@ namespace Genode {
 				return (_length <= CAPACITY) && (_buf[_length - 1] == '\0'); }
 
 			char const *string() const { return valid() ? _buf : ""; }
+
+			template <size_t OTHER_CAPACITY>
+			bool operator == (String<OTHER_CAPACITY> const &other) const
+			{
+				return strcmp(string(), other.string()) == 0;
+			}
 	};
 }
 
