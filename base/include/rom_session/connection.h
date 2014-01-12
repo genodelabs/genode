@@ -32,8 +32,8 @@ namespace Genode {
 			Rom_session_capability _create_session(const char *filename, const char *label)
 			{
 				try {
-					return session("ram_quota=4K, filename=\"%s\", label=%s",
-					               filename, label); }
+					return session("ram_quota=4K, filename=\"%s\", label=\"%s\"",
+					               filename, label ? label: filename); }
 				catch (...) {
 					PERR("Could not open file \"%s\"", filename);
 					throw Rom_connection_failed();
@@ -50,7 +50,7 @@ namespace Genode {
 			 *
 			 * \throw Rom_connection_failed
 			 */
-			Rom_connection(const char *filename, const char *label = "") :
+			Rom_connection(const char *filename, const char *label = 0) :
 				Connection<Rom_session>(_create_session(filename, label)),
 				Rom_session_client(cap())
 			{ }
