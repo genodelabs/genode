@@ -47,6 +47,36 @@ static Genode::Signal_receiver &global_sig_rec()
 }
 
 
+static void wait_and_dispatch_one_signal(bool entrypoint)
+{
+	/*
+	 * We call the signal dispatcher outside of the scope of 'Signal'
+	 * object because we block the RPC interface in the input handler
+	 * when the kill mode gets actived. While kill mode is active, we
+	 * do not serve incoming RPC requests but we need to stay responsive
+	 * to user input. Hence, we wait for signals in the input dispatcher
+	 * in this case. An already existing 'Signal' object would lock the
+	 * signal receiver and thereby prevent this nested way of signal
+	 * handling.
+	 */
+	Signal_rpc_dispatcher_base *dispatcher = 0;
+	unsigned num = 0;
+
+	{
+		Signal sig = global_sig_rec().wait_for_signal();
+		dispatcher = dynamic_cast<Signal_rpc_dispatcher_base *>(sig.context());
+		num        = sig.num();
+	}
+
+	if (!dispatcher)
+		return;
+
+	if (entrypoint)
+		dispatcher->dispatch_at_entrypoint(num);
+	else
+		dispatcher->dispatch(num);
+}
+
 Signal_context_capability Entrypoint::manage(Signal_rpc_dispatcher_base &dispatcher)
 {
 	return dispatcher.manage(global_sig_rec(), global_rpc_ep());
@@ -62,30 +92,8 @@ void Server::Entrypoint::dissolve(Signal_rpc_dispatcher_base &dispatcher)
 Server::Entrypoint::Entrypoint() : _rpc_ep(global_rpc_ep()) { }
 
 
-void Server::wait_and_dispatch_one_signal()
-{
-	/*
-	 * We call the signal dispatcher outside of the scope of 'Signal'
-	 * object because we block the RPC interface in the input handler
-	 * when the kill mode gets actived. While kill mode is active, we
-	 * do not serve incoming RPC requests but we need to stay responsive
-	 * to user input. Hence, we wait for signals in the input dispatcher
-	 * in this case. An already existing 'Signal' object would lock the
-	 * signal receiver and thereby prevent this nested way of signal
-	 * handling.
-	 */
-	Signal_dispatcher_base *dispatcher = 0;
-	unsigned num = 0;
-
-	{
-		Signal sig = global_sig_rec().wait_for_signal();
-		dispatcher = dynamic_cast<Signal_dispatcher_base *>(sig.context());
-		num        = sig.num();
-	}
-
-	if (dispatcher)
-		dispatcher->dispatch(num);
-}
+void Server::wait_and_dispatch_one_signal() {
+	::wait_and_dispatch_one_signal(true); }
 
 
 namespace Server {
@@ -116,10 +124,10 @@ int main(int argc, char **argv)
 
 	/* call Server::construct in the context of the entrypoint */
 	Capability<Server::Constructor> constructor_cap = ep.manage(constructor);
-	
+
 	constructor_cap.call<Server::Constructor::Rpc_construct>();
 
 	/* process incoming signals */
 	for (;;)
-		Server::wait_and_dispatch_one_signal();
+		wait_and_dispatch_one_signal(false);
 }

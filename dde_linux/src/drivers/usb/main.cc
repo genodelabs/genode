@@ -4,9 +4,12 @@
  * \date   2013-02-20
  */
 
-int main()
-{
-	extern void start_usb_driver();
-	start_usb_driver();
-	return 0;
+#include <os/server.h>
+
+extern void start_usb_driver(Server::Entrypoint &e);
+
+namespace Server {
+	char const *name()            { return "usb_drv_ep";        }
+	size_t      stack_size()      { return 4*1024*sizeof(long); }
+	void construct(Entrypoint &e) { start_usb_driver(e);        }
 }

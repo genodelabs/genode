@@ -17,18 +17,16 @@
 #include <base/env.h>
 #include <base/printf.h>
 #include <base/signal.h>
+#include <os/server.h>
 
 #include "routine.h"
 
 /**
- * This singelton currently received all signals
+ * This singleton currently received all signals
  */
 class Service_handler
 {
-
 	private:
-
-		Genode::Signal_receiver *_receiver;
 
 		Service_handler() { }
 
@@ -40,8 +38,6 @@ class Service_handler
 			return &_s;
 		}
 
-		void receiver(Genode::Signal_receiver *recv) { _receiver = recv; }
-
 		/**
 		 * Dispatch for wait for signal
 		 */
@@ -52,68 +48,54 @@ class Service_handler
 				return;
 			}
 
-			check_signal();
-		}
-
-		void check_signal(bool block = true)
-		{
-			while (_receiver->pending() || block) {
-
-				Genode::Signal s = _receiver->wait_for_signal();
-
-				/* handle signal IRQ, timer, or event signals */
-				static_cast<Genode::Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-				block = false;
-			}
+			Routine::schedule_main();
 		}
 };
 
 
 /**
- * Helper that holds sender and receiver
+ * Helper that holds sender and entrypoint
  */
 class Signal_helper
 {
 	private:
 
-		Genode::Signal_receiver    *_receiver;
-		Genode::Signal_transmitter *_sender;
-	
+		Server::Entrypoint        &_ep;
+		Genode::Signal_transmitter _sender;
+
 	public:
 
-		Signal_helper(Genode::Signal_receiver *recv)
-		: _receiver(recv),
-		  _sender(new (Genode::env()->heap()) Genode::Signal_transmitter()) { }
+		Signal_helper(Server::Entrypoint &ep) : _ep(ep) { }
 
-		Genode::Signal_receiver    *receiver() const { return _receiver; }
-		Genode::Signal_transmitter *sender() const { return _sender; }
+		Server::Entrypoint         &ep()     { return _ep;      }
+		Genode::Signal_transmitter &sender() { return _sender; }
 };
 
 
 namespace Timer
 {
-	void init(Genode::Signal_receiver *recv);
+	void init(Server::Entrypoint &ep);
 }
 
 namespace Irq
 {
-	void init(Genode::Signal_receiver *recv);
+	void init(Server::Entrypoint &ep);
 	void check_irq();
 }
 
 namespace Event
 {
-	void init(Genode::Signal_receiver *recv);
+	void init(Server::Entrypoint &ep);
 }
 
 namespace Storage
 {
-	void init(Genode::Signal_receiver *recv);
+	void init(Server::Entrypoint &ep);
 }
 
 namespace Nic
 {
-	void init(Genode::Signal_receiver *recv);
+	void init(Server::Entrypoint &ep);
 }
 
 #endif /* _SIGNAL_H_ */

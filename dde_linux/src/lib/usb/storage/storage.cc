@@ -180,8 +180,8 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 };
 
 
-void Storage::init(Genode::Signal_receiver *recv) {
-	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
+void Storage::init(Server::Entrypoint &ep) {
+	_signal = new (Genode::env()->heap()) Signal_helper(ep); }
 
 
 struct Factory : Block::Driver_factory
@@ -206,11 +206,8 @@ void scsi_add_device(struct scsi_device *sdev)
 	 * XXX  move to 'main'
 	 */
 	if (!announce) {
-		enum { STACK_SIZE = 1024 * sizeof(addr_t) };
-		static Cap_connection cap_stor;
-		static Rpc_entrypoint ep_stor(&cap_stor, STACK_SIZE, "usb_stor_ep");
-		static Block::Root root(&ep_stor, env()->heap(), factory, *_signal->receiver());
-		env()->parent()->announce(ep_stor.manage(&root));
+		static Block::Root root(_signal->ep(), env()->heap(), factory);
+		env()->parent()->announce(_signal->ep().rpc_ep().manage(&root));
 		announce = true;
 	}
 }

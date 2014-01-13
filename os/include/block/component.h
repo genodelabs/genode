@@ -16,6 +16,8 @@
 #define _INCLUDE__BLOCK__COMPONENT_H_
 
 #include <root/component.h>
+#include <os/signal_rpc_dispatcher.h>
+#include <os/server.h>
 #include <block_session/rpc_object.h>
 #include <block/driver.h>
 
@@ -36,8 +38,8 @@ class Block::Session_component : public Block::Session_rpc_object
 		Driver                              &_driver;
 		Ram_dataspace_capability             _rq_ds;
 		addr_t                               _rq_phys;
-		Signal_dispatcher<Session_component> _sink_ack;
-		Signal_dispatcher<Session_component> _sink_submit;
+		Signal_rpc_member<Session_component> _sink_ack;
+		Signal_rpc_member<Session_component> _sink_submit;
 		bool                                 _req_queue_full;
 		bool                                 _ack_queue_full;
 		Packet_descriptor                    _p_to_handle;
@@ -146,20 +148,18 @@ class Block::Session_component : public Block::Session_rpc_object
 		 * \param driver          block driver backend
 		 * \param driver_factory  factory to create and destroy driver objects
 		 * \param ep              entrypoint handling this session component
-		 * \param receiver        signal receiver managing signals of the client
 		 */
 		Session_component(Ram_dataspace_capability  rq_ds,
 		                  Driver                   &driver,
 		                  Driver_factory           &driver_factory,
-		                  Rpc_entrypoint           &ep,
-		                  Signal_receiver          &receiver)
-		: Session_rpc_object(rq_ds, ep),
+		                  Server::Entrypoint       &ep)
+		: Session_rpc_object(rq_ds, ep.rpc_ep()),
 		  _driver_factory(driver_factory),
 		  _driver(driver),
 		  _rq_ds(rq_ds),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
-		  _sink_ack(receiver, *this, &Session_component::_ready_to_ack),
-		  _sink_submit(receiver, *this, &Session_component::_packet_avail),
+		  _sink_ack(ep, *this, &Session_component::_ready_to_ack),
+		  _sink_submit(ep, *this, &Session_component::_packet_avail),
 		  _req_queue_full(false),
 		  _p_in_fly(0)
 		{
@@ -224,14 +224,13 @@ class Block::Session_component : public Block::Session_rpc_object
 /**
  * Root component, handling new session requests
  */
-class Block::Root :
-	public Genode::Root_component<Block::Session_component, Single_client>
+class Block::Root : public Genode::Root_component<Block::Session_component,
+                                                  Single_client>
 {
 	private:
 
-		Driver_factory  &_driver_factory;
-		Rpc_entrypoint  &_ep;
-		Signal_receiver &_receiver;
+		Driver_factory     &_driver_factory;
+		Server::Entrypoint &_ep;
 
 	protected:
 
@@ -267,8 +266,7 @@ class Block::Root :
 			Ram_dataspace_capability ds_cap;
 			ds_cap = driver->alloc_dma_buffer(tx_buf_size);
 			return new (md_alloc())
-				Session_component(ds_cap, *driver, _driver_factory, _ep,
-				                  _receiver);
+				Session_component(ds_cap, *driver, _driver_factory, _ep);
 		}
 
 	public:
@@ -276,18 +274,15 @@ class Block::Root :
 		/**
 		 * Constructor
 		 *
-		 * \param session_ep      entrypoint handling this root component
+		 * \param ep              entrypoint handling this root component
 		 * \param md_alloc        allocator to allocate session components
 		 * \param driver_factory  factory to create and destroy driver backend
 		 * \param receiver        signal receiver managing signals of the client
 		 */
-		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
-		     Driver_factory &driver_factory, Signal_receiver &receiver)
-		:
-			Root_component(session_ep, md_alloc),
-			_driver_factory(driver_factory), _ep(*session_ep),
-			_receiver(receiver)
-		{ }
+		Root(Server::Entrypoint &ep, Allocator *md_alloc,
+		     Driver_factory &driver_factory)
+		: Root_component(&ep.rpc_ep(), md_alloc),
+		  _driver_factory(driver_factory), _ep(ep) { }
 };
 
 #endif /* _INCLUDE__BLOCK__COMPONENT_H_ */

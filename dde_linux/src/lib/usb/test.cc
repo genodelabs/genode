@@ -27,7 +27,7 @@ void tx_test() {
 			while (1) {
 				sk_buff *skb = alloc_skb(1066 + HEAD_ROOM, 0);
 				if (!skb) {
-					Service_handler::s()->check_signal(true);
+					Service_handler::s()->check_signal();
 					continue;
 				}
 				skb->len     = 1066;

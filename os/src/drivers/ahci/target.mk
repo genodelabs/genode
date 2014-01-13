@@ -1,3 +1,3 @@
 TARGET  = ahci
-LIBS   += ahci
+LIBS   += ahci server
 SRC_CC += empty.cc

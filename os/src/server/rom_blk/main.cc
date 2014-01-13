@@ -14,7 +14,7 @@
 #include <base/exception.h>
 #include <base/printf.h>
 #include <os/config.h>
-#include <cap_session/connection.h>
+#include <os/server.h>
 #include <rom_session/connection.h>
 #include <block/component.h>
 #include <block/driver.h>
@@ -81,50 +81,51 @@ class Rom_blk : public Block::Driver
 };
 
 
-struct Factory : Block::Driver_factory
+struct Main
 {
-	Block::Driver *create()
+	Server::Entrypoint &ep;
+
+	struct Factory : Block::Driver_factory
 	{
-		char   file[64];
-		size_t blk_sz = 512;
+		Block::Driver *create()
+		{
+			char   file[64];
+			size_t blk_sz = 512;
 
-		try {
-			config()->xml_node().attribute("file").value(file, sizeof(file));
-			config()->xml_node().attribute("block_size").value(&blk_sz);
+			try {
+				config()->xml_node().attribute("file").value(file, sizeof(file));
+				config()->xml_node().attribute("block_size").value(&blk_sz);
+			}
+			catch (...) { }
+
+			PINF("Using file=%s as device with block size %zx.", file, blk_sz);
+
+			try {
+				return new (Genode::env()->heap()) Rom_blk(file, blk_sz);
+			} catch(Rom_connection::Rom_connection_failed) {
+				PERR("Cannot open file %s.", file);
+			}
+			throw Root::Unavailable();
 		}
-		catch (...) { }
 
-		PINF("Using file=%s as device with block size %zx.", file, blk_sz);
+		void destroy(Block::Driver *driver) {
+			Genode::destroy(env()->heap(), driver); }
+	} factory;
 
-		try {
-			return new (Genode::env()->heap()) Rom_blk(file, blk_sz);
-		} catch(Rom_connection::Rom_connection_failed) {
-			PERR("Cannot open file %s.", file);
-		}
-		throw Root::Unavailable();
-	}
+	Block::Root root;
 
-	void destroy(Block::Driver *driver) {
-		Genode::destroy(env()->heap(), driver); }
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep, Genode::env()->heap(), factory) {
+		Genode::env()->parent()->announce(ep.manage(root)); }
 };
 
 
-int main()
-{
-	enum { STACK_SIZE = 8192 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "rom_blk_ep");
+/************
+ ** Server **
+ ************/
 
-	static Signal_receiver receiver;
-	static Factory driver_factory;
-	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
-
-	env()->parent()->announce(ep.manage(&block_root));
-
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-	}
-
-	return 0;
+namespace Server {
+	char const *name()             { return "rom_blk_ep";        }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }

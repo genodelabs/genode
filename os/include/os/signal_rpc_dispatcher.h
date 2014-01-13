@@ -53,18 +53,10 @@ struct Genode::Signal_rpc_dispatcher_base : Genode::Signal_dispatcher_base
 
 		Proxy_component   _proxy;
 		Capability<Proxy> _proxy_cap;
-		unsigned          _nesting_level;
-
-	private:
-
-		/**
-		 * To be implemented by the derived class
-		 */
-		virtual void dispatch_at_entrypoint(unsigned num) = 0;
 
 	protected:
 
-		Signal_rpc_dispatcher_base() : _proxy(*this), _nesting_level(0) { }
+		Signal_rpc_dispatcher_base() : _proxy(*this) { }
 
 		Capability<Proxy> proxy_cap() { return _proxy_cap; }
 
@@ -94,26 +86,13 @@ struct Genode::Signal_rpc_dispatcher_base : Genode::Signal_dispatcher_base
 		/**
 		 * Interface of Signal_dispatcher_base
 		 */
-		void dispatch(unsigned num)
-		{
-			/*
-			 * Keep track of nesting levels to deal with nested signal
-			 * dispatching. When called from within the RPC entrypoint, any
-			 * attempt to perform a RPC call would lead to a deadlock. In
-			 * this case, we call the 'dispatch' function directly.
-			 */
-			_nesting_level++;
+		void dispatch(unsigned num) {
+			proxy_cap().call<Proxy::Rpc_handle_signal>(num); }
 
-			/* called from the signal-receiving thread */
-			if (_nesting_level == 1)
-				proxy_cap().call<Proxy::Rpc_handle_signal>(num);
-
-			/* called from the context of the RPC entrypoint */
-			if (_nesting_level > 1)
-				dispatch_at_entrypoint(num);
-
-			_nesting_level--;
-		}
+		/**
+		 * To be implemented by the derived class
+		 */
+		virtual void dispatch_at_entrypoint(unsigned num) = 0;
 };
 
 

@@ -48,7 +48,7 @@ class Irq_context : public Genode::List<Irq_context>::Element
 
 		unsigned int                           _irq;          /* IRQ number */
 		Genode::List<Irq_handler>              _handler_list; /* List of registered handlers */
-		Genode::Signal_dispatcher<Irq_context> _dispatcher;
+		Genode::Signal_rpc_member<Irq_context> _dispatcher;
 
 		static Genode::List<Irq_context> *_list()
 		{
@@ -82,8 +82,8 @@ class Irq_context : public Genode::List<Irq_context>::Element
 			Irq_context *ctx = static_cast<Irq_context *>(irq);
 
 			/* set context & submit signal */
-			_signal->sender()->context(ctx->_dispatcher);
-			_signal->sender()->submit();
+			_signal->sender().context(ctx->_dispatcher);
+			_signal->sender().submit();
 
 			/* wait for interrupt to get acked at device side */
 			_irq_sync.lock();
@@ -122,7 +122,7 @@ class Irq_context : public Genode::List<Irq_context>::Element
 			/* report IRQ to all clients */
 			for (Irq_handler *h = _handler_list.first(); h; h = h->next()) {
 
-				if (_handle_one(h))
+				if ((handled = _handle_one(h)))
 					break;
 
 				dde_kit_log(DEBUG_IRQ, "IRQ: %u ret: %u h: %p dev: %p", _irq, handled, h->handler, h->dev);
@@ -143,7 +143,7 @@ class Irq_context : public Genode::List<Irq_context>::Element
 
 		Irq_context(unsigned int irq)
 		: _irq(irq),
-		  _dispatcher(*_signal->receiver(), *this, &Irq_context::_handle)
+		  _dispatcher(_signal->ep(), *this, &Irq_context::_handle)
 		{
 			/* register at DDE (shared) */
 			int ret = dde_kit_interrupt_attach(_irq, 0, 0, _dde_handler, this);
@@ -184,8 +184,8 @@ class Irq_context : public Genode::List<Irq_context>::Element
 };
 
 
-void Irq::init(Genode::Signal_receiver *recv) {
-	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
+void Irq::init(Server::Entrypoint &ep) {
+	_signal = new (Genode::env()->heap()) Signal_helper(ep); }
 
 
 void Irq::check_irq()

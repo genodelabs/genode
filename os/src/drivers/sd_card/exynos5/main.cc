@@ -13,52 +13,48 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <cap_session/connection.h>
 #include <regulator_session/connection.h>
+#include <os/server.h>
 
 /* local includes */
 #include <driver.h>
 
 
-int main(int argc, char **argv)
+struct Main
 {
-	using namespace Genode;
+	Server::Entrypoint &ep;
 
-	printf("--- Arndale eMMC card driver ---\n");
-
-	/**
-	 * Factory used by 'Block::Root' at session creation/destruction time
-	 */
-	struct Driver_factory : Block::Driver_factory
+	struct Factory : Block::Driver_factory
 	{
-		Block::Driver *create()
-		{
-			bool use_dma = true;
-			return new (env()->heap()) Block::Exynos5_driver(use_dma);
-		}
+		Block::Driver *create() {
+			return new (Genode::env()->heap()) Block::Exynos5_driver(true); }
 
-		void destroy(Block::Driver *driver)
-		{
-			Genode::destroy(env()->heap(),
-			                static_cast<Block::Exynos5_driver *>(driver));
-		}
+		void destroy(Block::Driver *driver) {
+			Genode::destroy(Genode::env()->heap(),
+			                static_cast<Block::Exynos5_driver *>(driver)); }
+	} factory;
 
-	} driver_factory;
+	Regulator::Connection regulator;
+	Block::Root           root;
 
-	enum { STACK_SIZE = 8192 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "block_ep");
-	static Regulator::Connection mmc0_regulator(Regulator::CLK_MMC0);
-	mmc0_regulator.state(true);
+	Main(Server::Entrypoint &ep)
+	: ep(ep), regulator(Regulator::CLK_MMC0),
+	  root(ep, Genode::env()->heap(), factory)
+	{
+		Genode::printf("--- Arndale eMMC card driver ---\n");
 
-	static Signal_receiver receiver;
-	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
-	env()->parent()->announce(ep.manage(&block_root));
-
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+		Genode::env()->parent()->announce(ep.manage(root));
+		regulator.state(true);
 	}
+};
 
-	return 0;
+
+/************
+ ** Server **
+ ************/
+
+namespace Server {
+	char const *name()             { return "sd_card_ep";        }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }

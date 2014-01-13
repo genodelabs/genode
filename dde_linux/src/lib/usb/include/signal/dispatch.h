@@ -27,7 +27,7 @@ class Packet_session_component : public RPC
 {
 	private:
 
-		Genode::Signal_dispatcher<Packet_session_component> _process_packet_dispatcher;
+		Genode::Signal_rpc_member<Packet_session_component> _dispatcher;
 
 	protected:
 
@@ -36,37 +36,31 @@ class Packet_session_component : public RPC
 	public:
 
 		Packet_session_component(Genode::Dataspace_capability  tx_ds,
-		                         Genode::Rpc_entrypoint       &ep,
-		                         Genode::Signal_receiver      *sig_rec)
-		:
-			RPC(tx_ds, ep),
-			_process_packet_dispatcher(*sig_rec, *this,
-			                           &Packet_session_component::_process_packets)
-		{ 
+		                         Server::Entrypoint           &ep)
+		: RPC(tx_ds, ep.rpc_ep()),
+		  _dispatcher(ep, *this, &Packet_session_component::_process_packets)
+		{
 			/*
 			 * Register '_process_packets' dispatch function as signal
 			 * handler for packet-avail and ready-to-ack signals.
 			 */
-			RPC::_tx.sigh_packet_avail(_process_packet_dispatcher);
-			RPC::_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+			RPC::_tx.sigh_packet_avail(_dispatcher);
+			RPC::_tx.sigh_ready_to_ack(_dispatcher);
 		}
 
 		Packet_session_component(Genode::Dataspace_capability  tx_ds,
 		                         Genode::Dataspace_capability  rx_ds,
 		                         Genode::Range_allocator      *rx_buffer_alloc,
-		                         Genode::Rpc_entrypoint       &ep,
-		                         Genode::Signal_receiver      *sig_rec)
-		:
-			RPC(tx_ds, rx_ds, rx_buffer_alloc, ep),
-			_process_packet_dispatcher(*sig_rec, *this,
-			                           &Packet_session_component::_process_packets)
-		{ 
+		                         Server::Entrypoint           &ep)
+		: RPC(tx_ds, rx_ds, rx_buffer_alloc, ep.rpc_ep()),
+		  _dispatcher(ep, *this, &Packet_session_component::_process_packets)
+		{
 			/*
 			 * Register '_process_packets' dispatch function as signal
 			 * handler for packet-avail and ready-to-ack signals.
 			 */
-			RPC::_tx.sigh_packet_avail(_process_packet_dispatcher);
-			RPC::_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+			RPC::_tx.sigh_packet_avail(_dispatcher);
+			RPC::_tx.sigh_ready_to_ack(_dispatcher);
 		}
 };
 
@@ -85,9 +79,8 @@ class Packet_session_component : public RPC
 	{
 		private:
 
-			Genode::Rpc_entrypoint  &_ep;
-			Genode::Signal_receiver *_sig_rec;
-			Device                  *_device;
+			Server::Entrypoint  &_ep;
+			Device              *_device;
 
 		protected:
 
@@ -125,17 +118,15 @@ class Packet_session_component : public RPC
 				return new (ROOT_COMPONENT::md_alloc())
 					SESSION_COMPONENT(Backend_memory::alloc(tx_buf_size, CACHED),
 					                  Backend_memory::alloc(rx_buf_size, CACHED),
-					                  _ep, _sig_rec, _device);
+					                  _ep, _device);
 			}
 
 		public:
 
-			Packet_root(Genode::Rpc_entrypoint  *session_ep, Genode::Allocator *md_alloc,
-			            Genode::Signal_receiver *sig_rec, Device *device)
-			:
-				ROOT_COMPONENT(session_ep, md_alloc),
-				_ep(*session_ep), _sig_rec(sig_rec), _device(device)
-			{ }
+			Packet_root(Server::Entrypoint &ep, Genode::Allocator *md_alloc,
+			            Device *device)
+			: ROOT_COMPONENT(&ep.rpc_ep(), md_alloc),
+			  _ep(ep), _device(device) { }
 	};
 
 #endif /* _SIGNAL__DISPATCHER_H_ */

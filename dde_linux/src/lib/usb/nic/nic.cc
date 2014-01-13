@@ -283,8 +283,8 @@ class Nic_device : public Nic::Device
 static Nic_device *_nic = 0;
 
 
-void Nic::init(Genode::Signal_receiver *recv) {
-	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
+void Nic::init(Server::Entrypoint &ep) {
+	_signal = new (Genode::env()->heap()) Signal_helper(ep); }
 
 
 /***********************
@@ -301,9 +301,7 @@ int register_netdev(struct net_device *ndev)
 
 	/* XXX: move to 'main' */
 	if (!announce) {
-		static Cap_connection cap_nic;
-		static Rpc_entrypoint ep_nic(&cap_nic, 4096, "usb_nic_ep");
-		static Nic::Root root(&ep_nic, env()->heap(), _signal->receiver(), nic);
+		static Nic::Root root(_signal->ep(), env()->heap(), nic);
 
 		announce = true;
 
@@ -321,7 +319,7 @@ int register_netdev(struct net_device *ndev)
 			ndev->netdev_ops->ndo_change_mtu(ndev, 4000);
 */
 		_nic = nic;
-		env()->parent()->announce(ep_nic.manage(&root));
+		env()->parent()->announce(_signal->ep().rpc_ep().manage(&root));
 	}
 
 	return err;

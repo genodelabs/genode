@@ -13,9 +13,8 @@
  */
 
 /* Genode includes */
-#include <base/thread.h>
-#include <cap_session/connection.h>
 #include <os/config.h>
+#include <os/server.h>
 
 /* local includes */
 #include "ata_device.h"
@@ -65,22 +64,24 @@ struct Factory : Block::Driver_factory
 };
 
 
-int main()
+struct Main
 {
-	enum { STACK_SIZE = 8192 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "atapi_ep");
+	Server::Entrypoint &ep;
+	struct Factory      factory;
+	Block::Root         root;
 
-	static Signal_receiver receiver;
-	static Factory driver_factory;
-	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep, Genode::env()->heap(), factory) {
+		Genode::env()->parent()->announce(ep.manage(root)); }
+};
 
-	env()->parent()->announce(ep.manage(&block_root));
 
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-	}
+/************
+ ** Server **
+ ************/
 
-	return 0;
+namespace Server {
+	char const *name()             { return "atapi_ep";          }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }

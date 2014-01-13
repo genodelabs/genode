@@ -33,7 +33,7 @@ class Timer_context
 
 		timer_list                              *_timer;     /* Linux timer */
 		dde_kit_timer                           *_dde_timer; /* DDE kit timer */
-		Genode::Signal_dispatcher<Timer_context> _dispatcher;
+		Genode::Signal_rpc_member<Timer_context> _dispatcher;
 
 		/* call timer function */
 		void _handle(unsigned) { _timer->function(_timer->data); }
@@ -42,7 +42,7 @@ class Timer_context
 
 		Timer_context(timer_list *timer)
 		: _timer(timer), _dde_timer(0),
-		  _dispatcher(*_signal->receiver(), *this, &Timer_context::_handle) {}
+		  _dispatcher(_signal->ep(), *this, &Timer_context::_handle) {}
 
 		/* schedule next timeout */
 		void schedule(unsigned long expires)
@@ -93,13 +93,13 @@ static void handler(void *timer)
 	Timer_context *t = static_cast<Timer_context *>(timer);
 
 	/* set context and submit */
-	_signal->sender()->context(t->cap());
-	_signal->sender()->submit();
+	_signal->sender().context(t->cap());
+	_signal->sender().submit();
 }
 
 
-void Timer::init(Genode::Signal_receiver *recv) {
-	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
+void Timer::init(Server::Entrypoint &ep) {
+	_signal = new (Genode::env()->heap()) Signal_helper(ep); }
 
 
 /*******************

@@ -14,11 +14,9 @@
 
 
 /* Genode */
-#include <base/rpc_server.h>
 #include <base/printf.h>
 #include <base/sleep.h>
-#include <cap_session/connection.h>
-
+#include <os/server.h>
 #include <nic_session/nic_session.h>
 
 /* Local */
@@ -45,6 +43,7 @@ extern "C" void start_input_service(void *ep);
 
 Routine *Routine::_current    = 0;
 Routine *Routine::_dead       = 0;
+Routine *Routine::_main       = 0;
 bool     Routine::_all        = false;
 
 void breakpoint() { PDBG("BREAK"); }
@@ -79,34 +78,22 @@ static void init(Services *services)
 }
 
 
-void start_usb_driver()
+void start_usb_driver(Server::Entrypoint &ep)
 {
-	/*
-	 * Initialize server entry point
-	 */
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep_hid(&cap, STACK_SIZE, "usb_hid_ep");
-	static Signal_receiver recv;
-
 	Services services;
 
 	if (services.hid)
-		start_input_service(&ep_hid);
+		start_input_service(&ep.rpc_ep());
 
-	Timer::init(&recv);
-	Irq::init(&recv);
-	Event::init(&recv);
-	Service_handler::s()->receiver(&recv);
-	Storage::init(&recv);
-	Nic::init(&recv);
+	Timer::init(ep);
+	Irq::init(ep);
+	Event::init(ep);
+	Storage::init(ep);
+	Nic::init(ep);
 
 	Routine::add(0, 0, "Main", true);
 	Routine::current_use_first();
 	init(&services);
 
-	Routine::remove();
-
-	/* will never be reached */
-	sleep_forever();
+	Routine::main();
 }

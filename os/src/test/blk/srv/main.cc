@@ -32,28 +32,23 @@ class Driver : public Block::Driver
 		Genode::size_t                    _number;
 		Genode::size_t                    _size;
 		Req_buffer                        _packets;
-		Genode::Signal_dispatcher<Driver> _ack;
 		Genode::Ram_dataspace_capability  _blk_ds;
 		unsigned char                    *_blk_buf;
 
-		void _handle_ack(unsigned)
+	public:
+
+		Driver(Genode::size_t number, Genode::size_t size)
+		: _number(number), _size(size),
+		  _blk_ds(Genode::env()->ram_session()->alloc(number*size)),
+		  _blk_buf(Genode::env()->rm_session()->attach(_blk_ds)) {}
+
+		void handler(unsigned)
 		{
 			while (!_packets.empty()) {
 				Block::Packet_descriptor p = _packets.get();
 				session->ack_packet(p);
 			}
 		}
-
-	public:
-
-		Driver(Genode::size_t number, Genode::size_t size,
-		       Genode::Signal_receiver &receiver)
-		: _number(number), _size(size),
-		  _ack(receiver, *this, &Driver::_handle_ack),
-		  _blk_ds(Genode::env()->ram_session()->alloc(number*size)),
-		  _blk_buf(Genode::env()->rm_session()->attach(_blk_ds)) {}
-
-		Genode::Signal_context_capability handler() { return _ack; }
 
 
 		/*******************************
@@ -98,52 +93,54 @@ class Driver : public Block::Driver
 };
 
 
-struct Factory : Block::Driver_factory
+struct Main
 {
-	Genode::Signal_receiver &receiver;
-	::Driver                *driver;
+	Server::Entrypoint       &ep;
 
-	Factory(Genode::Signal_receiver &r) : receiver(r)
+	struct Factory : Block::Driver_factory
 	{
-		Genode::size_t blk_nr = 1024;
-		Genode::size_t blk_sz = 512;
+		::Driver *driver;
 
-		try {
-			Genode::config()->xml_node().attribute("sectors").value(&blk_nr);
-			Genode::config()->xml_node().attribute("block_size").value(&blk_sz);
+		Factory()
+		{
+			Genode::size_t blk_nr = 1024;
+			Genode::size_t blk_sz = 512;
+
+			try {
+				Genode::config()->xml_node().attribute("sectors").value(&blk_nr);
+				Genode::config()->xml_node().attribute("block_size").value(&blk_sz);
+			}
+			catch (...) { }
+
+			driver = new (Genode::env()->heap()) Driver(blk_nr, blk_sz);
 		}
-		catch (...) { }
-
-		driver =  new (Genode::env()->heap()) Driver(blk_nr, blk_sz, receiver);
-	}
 
 		Block::Driver *create() { return driver; }
 
-	void destroy(Block::Driver *driver) { }
+		void destroy(Block::Driver *driver) { }
+	} factory;
+
+	Block::Root                       root;
+	Timer::Connection                 timer;
+	Server::Signal_rpc_member<Driver> dispatcher = { ep, *factory.driver,
+	                                                 &Driver::handler };
+
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep, Genode::env()->heap(), factory)
+	{
+		timer.sigh(dispatcher);
+		timer.trigger_periodic(10000);
+		Genode::env()->parent()->announce(ep.manage(root));
+	}
 };
 
 
-int main()
-{
-	using namespace Genode;
+/************
+ ** Server **
+ ************/
 
-	enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "test_blk_ep");
-
-	static Signal_receiver receiver;
-	static Factory driver_factory(receiver);
-	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
-
-	env()->parent()->announce(ep.manage(&block_root));
-
-	static Timer::Connection timer;
-	timer.sigh(driver_factory.driver->handler());
-	timer.trigger_periodic(10000);
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-	}
-
-	return 0;
+namespace Server {
+	char const *name()             { return "blk_srv_ep";        }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }

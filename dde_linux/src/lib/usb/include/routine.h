@@ -43,6 +43,7 @@ class Routine : public Genode::List<Routine>::Element
 		char           *_stack;          /* stack pointer */
 		static Routine *_current;        /* currently scheduled object */
 		static Routine *_dead;           /* object to remove */
+		static Routine *_main;           /* main routine */
 		static bool     _all;            /* true when all objects must be scheduled */
 
 
@@ -129,12 +130,16 @@ class Routine : public Genode::List<Routine>::Element
 		 *
 		 * If all is true, each object will be scheduled once.
 		 */
-		static void schedule(bool all = false) __attribute__((noinline))
+		static void schedule(bool all = false, bool main = false)
+			__attribute__((noinline))
 		{
-			if (!_list()->first())
+			if (!_list()->first() && !_main)
 				return;
 
-			Routine *next = _next(all);
+			if (_current == _main)
+				all = true;
+
+			Routine *next = main ? _main : _next(all);
 
 			if (next == _current) {
 				_check_dead();
@@ -183,6 +188,22 @@ class Routine : public Genode::List<Routine>::Element
 
 			schedule();
 		}
+
+		static void main()
+		{
+			if (!_current)
+				return;
+
+			_list()->remove(_current);
+			_main = _current;
+
+			if (_main && _setjmp(_main->_env))
+				return;
+
+			schedule();
+		}
+
+		static void schedule_main() { schedule(false, true); }
 
 		/**
 		 * True when 'schedule_all' has been called and is still in progress

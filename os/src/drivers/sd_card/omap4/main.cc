@@ -13,53 +13,45 @@
 
 /* Genode includes */
 #include <base/printf.h>
-#include <cap_session/connection.h>
+#include <os/server.h>
 
 /* local includes */
 #include <driver.h>
 
 
-/*
- * MMC1: IRQ 83
- */
-
-int main(int argc, char **argv)
+struct Main
 {
-	using namespace Genode;
+	Server::Entrypoint &ep;
 
-	printf("--- OMAP4 SD card driver ---\n");
-
-	/**
-	 * Factory used by 'Block::Root' at session creation/destruction time
-	 */
-	struct Driver_factory : Block::Driver_factory
+	struct Factory : Block::Driver_factory
 	{
-		Block::Driver *create()
-		{
-			bool use_dma = true;
-			return new (env()->heap()) Block::Omap4_driver(use_dma);
-		}
+		Block::Driver *create() {
+			return new (Genode::env()->heap()) Block::Omap4_driver(true); }
 
-		void destroy(Block::Driver *driver)
-		{
-			Genode::destroy(env()->heap(),
-			                static_cast<Block::Omap4_driver *>(driver));
-		}
+		void destroy(Block::Driver *driver) {
+			Genode::destroy(Genode::env()->heap(),
+			                static_cast<Block::Omap4_driver *>(driver)); }
+	} factory;
 
-	} driver_factory;
+	Block::Root root;
 
-	enum { STACK_SIZE = 4096 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "block_ep");
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep, Genode::env()->heap(), factory)
+	{
+		Genode::printf("--- OMAP4 SD card driver ---\n");
 
-	static Signal_receiver receiver;
-	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
-	env()->parent()->announce(ep.manage(&block_root));
-
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+		Genode::env()->parent()->announce(ep.manage(root));
 	}
+};
 
-	return 0;
+
+/************
+ ** Server **
+ ************/
+
+namespace Server {
+	char const *name()             { return "sd_card_ep";        }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }
+

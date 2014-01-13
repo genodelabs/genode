@@ -246,12 +246,11 @@ namespace Nic {
 			 */
 			Session_component(Dataspace_capability  tx_ds,
 			                  Dataspace_capability  rx_ds,
-			                  Rpc_entrypoint       &ep,
-			                  Signal_receiver *sig_rec,
+			                  Server::Entrypoint   &ep,
 			                  ::Device *device)
 			:
 				Nic::Packet_allocator(Genode::env()->heap()),
-				Packet_session_component(tx_ds, rx_ds, this,  ep, sig_rec),
+				Packet_session_component(tx_ds, rx_ds, this, ep),
 				_device(static_cast<Device *>(device)),
 				_tx_sink(Session_rpc_object::_tx.sink()),
 				_tx_alloc(true)
@@ -296,10 +295,9 @@ namespace Nic {
 	{
 		public:
 
-			Root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
-			     Signal_receiver *sig_rec, Device *device)
-			:
-				Packet_root(session_ep, md_alloc, sig_rec, device) { }
+			Root(Server::Entrypoint &ep, Allocator *md_alloc,
+			     Device *device)
+			: Packet_root(ep, md_alloc, device) { }
 	};
 }
 

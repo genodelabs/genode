@@ -23,14 +23,14 @@ class Event_context
 {
 	private:
 
-		Genode::Signal_dispatcher<Event_context> _dispatcher;
+		Genode::Signal_rpc_member<Event_context> _dispatcher;
 
 		void _handle(unsigned) {
 			Routine::schedule_all(); }
 
 		Event_context()
-		: _dispatcher(*_signal->receiver(), *this, &Event_context::_handle) {
-		  _signal->sender()->context(_dispatcher); }
+		: _dispatcher(_signal->ep(), *this, &Event_context::_handle) {
+		  _signal->sender().context(_dispatcher); }
 
 	public:
 
@@ -41,14 +41,14 @@ class Event_context
 		}
 
 		void submit() {
-			_signal->sender()->submit(); }
+			_signal->sender().submit(); }
 
 		char const *debug() { return "Event_context"; }
 };
 
 
-void Event::init(Genode::Signal_receiver *recv) {
-	_signal = new (Genode::env()->heap()) Signal_helper(recv); }
+void Event::init(Server::Entrypoint &ep) {
+	_signal = new (Genode::env()->heap()) Signal_helper(ep); }
 
 
 /**

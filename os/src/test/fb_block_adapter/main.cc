@@ -15,10 +15,8 @@
  */
 
 #include <base/printf.h>
-#include <cap_session/connection.h>
 #include <framebuffer_session/connection.h>
 #include <block/component.h>
-#include <block/driver.h>
 
 class Driver : public Block::Driver
 {
@@ -109,24 +107,24 @@ struct Factory : Block::Driver_factory
 };
 
 
-int main()
+struct Main
 {
-	using namespace Genode;
+	Server::Entrypoint &ep;
+	struct Factory      factory;
+	Block::Root         root;
 
-	enum { STACK_SIZE = 2048 * sizeof(Genode::addr_t) };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "fb_block_ep");
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep, Genode::env()->heap(), factory) {
+		Genode::env()->parent()->announce(ep.manage(root)); }
+};
 
-	static Signal_receiver receiver;
-	static Factory driver_factory;
-	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
 
-	env()->parent()->announce(ep.manage(&block_root));
+/************
+ ** Server **
+ ************/
 
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
-	}
-
-	return 0;
+namespace Server {
+	char const *name()             { return "fb_blk_ep";        }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }

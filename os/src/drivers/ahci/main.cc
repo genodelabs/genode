@@ -17,40 +17,47 @@
  */
 
 /* Genode includes */
-#include <cap_session/connection.h>
 #include <block/component.h>
+#include <os/server.h>
 
 /* local includes */
 #include <ahci_driver.h>
 
 using namespace Genode;
 
-int main()
-{
-	printf("--- AHCI driver started ---\n");
 
-	struct Ahci_driver_factory : Block::Driver_factory
+struct Main
+{
+	Server::Entrypoint &ep;
+
+	struct Factory : Block::Driver_factory
 	{
 		Block::Driver *create() {
 			return new(env()->heap()) Ahci_driver(); }
 
 		void destroy(Block::Driver *driver) {
 			Genode::destroy(env()->heap(), static_cast<Ahci_driver *>(driver)); }
-	} driver_factory;
+	} factory;
 
-	enum { STACK_SIZE = 8128 };
-	static Cap_connection cap;
-	static Rpc_entrypoint ep(&cap, STACK_SIZE, "block_ep");
+	Block::Root root;
 
-	static Signal_receiver receiver;
-	static Block::Root block_root(&ep, env()->heap(), driver_factory, receiver);
-	env()->parent()->announce(ep.manage(&block_root));
+	Main(Server::Entrypoint &ep)
+	: ep(ep), root(ep, Genode::env()->heap(), factory)
+	{
+		printf("--- AHCI driver started ---\n");
 
-	while (true) {
-		Signal s = receiver.wait_for_signal();
-		static_cast<Signal_dispatcher_base *>(s.context())->dispatch(s.num());
+		Genode::env()->parent()->announce(ep.manage(root));
 	}
+};
 
-	return 0;
+
+/************
+ ** Server **
+ ************/
+
+namespace Server {
+	char const *name()             { return "ahci_ep";           }
+	size_t stack_size()            { return 2*1024*sizeof(long); }
+	void construct(Entrypoint &ep) { static Main server(ep);     }
 }
 
