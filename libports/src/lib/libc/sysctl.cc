@@ -37,7 +37,12 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 	if ((name[0] == CTL_HW) && (name[1] == HW_NCPU))
 		return -1;
 
-	if ((name[0] == CTL_HW) && (name[1] == HW_PAGESIZE)) {
+	/*
+	 * CTL_P1003_1B is used by sysconf(_SC_PAGESIZE) to determine
+	 * the actual page size.
+	 */
+	if (((name[0] == CTL_HW) && (name[1] == HW_PAGESIZE)) ||
+	    (name[0] == CTL_P1003_1B) && (name[1] == CTL_P1003_1B_PAGESIZE)) {
 		int result = 4096;
 		if (oldp) {
 			if (*oldlenp >= sizeof(result)) {
