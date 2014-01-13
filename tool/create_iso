@@ -38,7 +38,7 @@ gen_iso_image = mkisofs     -f -l -R -hide-rr-moved -jcharset utf-8 \
 
 $(ISOIMG) iso:
 	@$(call gen_iso_image, $(ISOIMG) $(ISODIR))
-	@which isohybrid > /dev/null && isohybrid $(ISOIMG)
+	@isohybrid $(ISOIMG)
 
 STRIP_FILES = $(wildcard genode/*) $(wildcard pistachio/*)
 
