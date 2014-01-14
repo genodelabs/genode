@@ -402,14 +402,20 @@ Add a 'target.mk' file with the following content to 'src/hello/client/':
 ! SRC_CC = main.cc
 ! LIBS   = base
 
-Add the following entries to your 'config' file:
+Extend your 'config' file as follows.
 
-! <start name="timer">
-!   <resource name="RAM" quantum="256K"/>
-! </start>
-! <start name="hello_client">
-!   <resource name="RAM" quantum="256K"/>
-! </start>
+# Add the 'SIGNAL' service to the '<parent-provides>' section:
+
+  ! <service name="SIGNAL"/>
+
+# Add start entries for 'Timer' service and hello client:
+
+  ! <start name="timer">
+  !   <resource name="RAM" quantum="512K"/>
+  ! </start>
+  ! <start name="hello_client">
+  !   <resource name="RAM" quantum="1M"/>
+  ! </start>
 
 Build 'drivers/timer', and 'hello/client', go to 'build/bin', and run './core'
 again.  You have now successfully implemented your first Genode client-server
