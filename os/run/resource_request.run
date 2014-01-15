@@ -25,7 +25,7 @@ install_config {
 			<provides><service name="Timer"/></provides>
 		</start>
 		<start name="test-resource_request">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="ROM" /> </provides>
 		</start>
 	</config>
