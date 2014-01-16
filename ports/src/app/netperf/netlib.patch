@@ -13,6 +13,20 @@ Index: src/netlib.c
    return(temp_cpus);
  
  }
+@@ -1095,8 +1095,13 @@
+ 
+ #endif /* WIN32 */
+ 
++#ifdef GENODE_BUILD
++void
++start_do_not_use_timer(int time)
++#else
+ void
+ start_timer(int time)
++#endif
+ {
+ 
+ #ifdef WIN32
 @@ -3059,7 +3063,9 @@
  	      (which == SEND_BUFFER) ? "SO_SNDBUF" : "SO_RCVBUF",
  	      errno);
