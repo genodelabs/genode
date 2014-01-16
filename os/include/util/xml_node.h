@@ -121,6 +121,11 @@ namespace Genode {
 						       strcmp(type, _name.start(), _name.len()) == 0; }
 
 					/**
+					 * Return size of value
+					 */
+					size_t value_size() const { return _value.len(); }
+
+					/**
 					 * Return attribute value as null-terminated string
 					 *
 					 * \return true on success, or
