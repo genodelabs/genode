@@ -510,6 +510,9 @@ extern "C" {
 				c->signal_sem.down(timeout);
 			} catch (Timeout_exception) {
 				result = ETIMEDOUT;
+			} catch (Genode::Nonblocking_exception) {
+				errno  = ETIMEDOUT;
+				result = ETIMEDOUT;
 			}
 		}
 
