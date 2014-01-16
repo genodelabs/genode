@@ -158,7 +158,7 @@ append gdb_cmds {-ex "bt" }
 append gdb_cmds {-ex "q" }
 
 # run GDB and redirect stderr to stdio to get the relevant output into the expect buffer  
-eval spawn [gdb] bin/$gdb_target_binary -batch $gdb_cmds 2&>1
+eval spawn [gdb] bin/$gdb_target_binary -n -batch $gdb_cmds 2&>1
 
 set timeout 120
 expect {
