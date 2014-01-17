@@ -3,6 +3,25 @@
                                Genode News
                                ===========
 
+Road Map 2014 | 2014-01-17
+##########################
+
+| The updated road map outlines the major topics and schedule of the
+| project for 2014.
+
+In 2014, the development of Genode will be focused on the base-hw kernel
+platform, a capability-based user interface, storage, and the scalability
+of 3rd-party software support.
+
+The updated road map provides a brief reflection of the last year's progress
+before giving the rationale for the next steps the project will take. The
+various topics include for example virtualization using ARM's virtualization
+extensions, a novel user-interface, storage, VirtualBox on NOVA, and
+3rd-party source-code package management.
+
+[http://genode.org/about/road-map - Please refer to the official road-map for more details...]
+
+
 FOSDEM 2014 | 2014-01-06
 ########################
 

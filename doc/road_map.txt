@@ -4,175 +4,148 @@
                              ========
 
 
-This page contains our preliminary plans for evolving Genode.
-Progress in addition to this planning will very much depend on the
-degree of community support the project will receive. The
-[http:/about/challenges - Challenges] page collects some of
-our ideas to advance Genode in various directions.
+Herein, we lay out our plans for evolving Genode. Progress in addition to this
+planning will very much depend on the degree of community support the project
+will receive. The
+[http:/about/challenges - Challenges] page collects some of our ideas to
+advance Genode in various further directions.
 
-The road map is not fixed. If there is commercial interest of
-pushing the Genode technology to a certain direction, we are willing
-to revisit our plans.
+The road map is not fixed. If there is commercial interest of pushing the
+Genode technology to a certain direction, we are willing to revisit our plans.
 
 
-2013
+Review of the past year
+#######################
+
+In 2013, we worked on four construction sites: Framework infrastructure,
+self-hosting, tooling and optimization, and hardware support. When
+reviewing the road map for 2013, it is great to see that we largely
+lived up to our planning.
+
+The framework infrastructure was enhanced with concepts for managing
+CPUs on multi-processor systems and for dynamically balancing memory
+resources, it received new audio and file-system capabilities, and, with
+the addition of Qt5 and the lxIP stack, we could enable highly
+sophisticated workloads natively on Genode.
+
+On our endeavour of self-hosting Genode on Genode, we could eliminate
+long-standing show stoppers for several base platforms. We were able to
+improve them to the point where we can routinely execute Genode's tool
+chain across several base platforms such as NOVA and Fiasco.OC as part
+of our nightly automated tests. On the user-facing side, a new
+command-line interface has seen the light of the day.
+
+Two highlights when it comes to tooling were the new event tracing
+facilities, and profound support for automated testing. Thanks to the
+latter, we expose Genode to over 500 test runs including automated
+performance benchmarks. By executing those tests each night, we have
+become able to resolve regressions before they enter the master branch.
+So the master branch remains always in a good shape.
+
+As expected for an operating-system project, most of our work was spent
+on hardware support. On x86, we added IOMMU support, and the
+virtualization capabilities on NOVA have seen a major upgrade. On ARM,
+we enabled or vastly enhanced the device drivers for Samsung Exynos 5,
+Freescale i.MX, and Raspberry Pi. We also explored the possibilities of
+combining Genode with ARM TrustZone.
+
+Only two topics, namely Intel wireless and a new user interface concept
+had been deferred. We decided to postpone the Intel wireless topic to
+address gigabit networking instead. Even though the new user-interface
+concept served as a strong motivation behind many improvements of the
+base system such as dynamic reconfiguration and dynamic resource
+balancing, the work on those fundamentals left little room to bring
+forward the actual UI concept. Now that those pieces are in place, we
+can go full steam ahead.
+
+The most surprising topic that was not clearly laid out in our last
+year's road map is the advancement of the base-hw platform. Started as a
+mere experiment, it received so much love and attention that it
+unexpectedly became able to host the whole universe of Genode's software
+stack.
+
+
+2014
 ####
 
-Before detailing the work planned for 2013, let's have a look at the last
-year's road map. In 2012, we labeled our activities as "Eating our own dog
-food". Our goal was to bring Genode into a shape that makes it usable as
-working environment for conducting Genode development. Just to name a few
-achievements of 2012, there is the new ability to build Genode on Genode, SSH,
-lighttpd, the new file-system infrastructure, the new DDE linux and DDE OSS.
-But even though the puzzle pieces are nicely coming together, we are not quite
-there yet to realistically make the switch to Genode as development
-environment. Two major missing points are a solid UI concept that leverages
-Genode's unique architecture and a "real" file system.
+In 2014, we will put the emphasis on the base-hw kernel, 3rd-party software,
+storage, and the user-facing side of Genode.
 
-Even though we missed our ambitious main goal for 2012, there is no cause for
-despair. There are many achievements in addition to our road-map items to be
-proud of. The most visible addition is the thorough support for ARM-based
-platforms reaching from versatile express, over freescale i.MX, to OMAP4.
-Another amazing development is the added base-hw platform that enables Genode
-to be executed without a 3rd-party kernel on a variety of ARM-based platforms.
-Furthermore, the largely revised support for the Linux base platform makes
-Genode fit to be used as component framework on Linux.
+The experience with base-hw in 2013 ignited our ambitions to develop this
+kernel not just into a complete base platform for Genode, but also
+to explore new grounds. To fully accommodate Genode, we will complement
+base-hw with multi-processor support, kernel-protected capability-based
+security, and real-time scheduling. Beyond supporting Genode's software
+stack, we will explore the use of ARM's virtualization extensions
+to turn base-hw into a microhypervisor, similar to NOVA but focusing on ARM.
 
-So what is coming next?
+With Genode becoming more and more flexible, the role of 3rd-party software in
+both source-code and binary form grows. Even though Genode offers a pretty
+convenient mechanism to automatically download and integrate 3rd-party source
+codes, the burden to resolve inter-dependencies between such source packages is
+still left to the user of the framework. Many new users stumble over
+the installation of 3rd-party code as it is not obvious to see which packages
+are required for a particular system scenario. To make Genode better
+approachable and more convenient to use, we plan to consolidate the current
+mechanisms into a solid source-code package management solution.
 
-We see four major construction sites that we should address this year:
-framework infrastructure, self-hosting, tooling and optimizations, and hardware
-support.
+The improved 3rd-party software support will hopefully allow us to realize
+sophisticated and popular usage scenarios more easily. As security is one of
+Genode's major benefits compared to commodity operating systems, we consider
+supporting TOR, either as server, or client side, or even both. One
+possibility would be to provide a ready-to-use live image containing a TOR
+client and a configured browser, which would enable users to browse
+anonymously.
 
+Besides the use of ported 3rd-party software on top of Genode, we see clear
+demand for hosting 3rd-party binary software, particularly virtualized OSes.
+The Seoul VMM (on NOVA) and L4Linux (on Fiasco.OC) already allow for the use
+of Linux guest OSes as Genode sub systems. However, both solutions fall short
+in different ways. Whereas L4Linux requires the maintenance of a patched Linux
+kernel, Seoul can execute unpatched Linux kernels but requires a fine-tuned
+kernel configuration. Because we long for a product-quality virtualization
+solution that works just out of the box with most existing guest OSes, we will
+make VirtualBox available on Genode/NOVA.
 
-Framework infrastructure
-========================
+The move to employing Genode for day-to-day computing requires reliable,
+secure, and fast storage. Hence, we will build and optimize components that
+operate on file-system and block level. This includes work on device drivers,
+file-system stacks, caching mechanisms, block-level encryption, as well as
+improved per-process virtual file systems.
 
-The primary group of people Genode tries to cater well are developers
-and integrators of systems. Genode is meant as a tool box to empower
-those people to build real-world component-based system solutions. From
-this audience, we receive requests for improvements in the following areas:
-
-* Multi-processor support: On some base platforms, SMP support is
-  available but the framework still misses a holistic concept to
-  manage and configure the use of multiple CPUs.
-
-* Improving scalability: On multi-core systems, and systems with a
-  non-uniform memory architecture (NUMA) in particular, we face scalability
-  challenges that we haven't thoroughly addresses so far. On NUMA systems,
-  memory locality is an important consideration. So the framework should
-  provide means to tailor the allocation of RAM for different subsystems.
-  Furthermore, core could be largely improved to process service requests and
-  page faults in a concurrent fashion.
-
-* Storage: Block-device access is a general concern. Even though we
-  laid the foundations for Genode's storage infrastructure, several
-  pieces are still missing, in particular a "real" (non-FAT) file
-  system, block/file/directory caching, and I/O scheduling. Without
-  those pieces, there is no way to achieve the application performance
-  that we desire.
-
-* Networking: The current TCP/IP performance using lwIP has room
-  for improvement. So I'd like to find a solution to bring TCP/IP
-  performance on Genode on par with Linux. Maybe this means to find
-  the bottlenecks in our lwIP port, or even going for another TCP/IP
-  stack?
-
-* Qt5: Now that Qt5 is officially released, we should consider to
-  switch from Qt4 to Qt5.
-
-* Low-latency audio: The current audio_out-session interface was
-  our first shot into the direction of audio processing. To enable
-  use cases where streaming audio and sporadic sounds must be
-  accommodated at the same time, we need to revise our approach.
-
-* Cryptography
-  * Random numbers
-  * Block-device encryption
-
-Self-hosting
-============
-
-The second major topic is redeeming the promise stated for the past year
-- using Genode as a real-world OS. The following pieces are missing.
-
-* UI concept for pleasant working environment
-  * Tiled window manager
-  * Terminal improvements (e.g., scroll buffer)
-  * Noux improvements (e.g., signals)
-
-* Tools
-  * Git (work is already in progress)
-  * Mail user agent
-  * Instant-messaging software
-  * Support for 'make prepare' (e.g., SVN, wget, mawk)
-  * Support for run tool: expect, Qemu
-
-Tooling and optimization
-========================
-
-Now that Genode's work loads become ever more complex, we feel the
-drastically increased need to understand its inner behavior and detect
-possible black holes where the performance goes.
-
-When the system scenarios were rather small, printf-debugging was quite
-feasible. But now, with multiple instances of Noux running concurrently
-with several drivers, we need better tools for understanding, debugging,
-and tracing the system. In a component-based system like Genode, the
-creation of such tooling support of especially challenging because we
-need to walk on new grounds. But good tooling is key to direct our efforts
-spent with performance optimizations. The goal should be to ultimately debunk
-the slow performance of microkernel-based systems as a myth.
-
-Hardware support
-================
-
-The attractiveness of our framework corresponds to the degree of
-hardware support. Since we want to make Genode more attractive, we need
-to continue our efforts with creating custom drivers, porting drivers,
-and enabling platforms. The following points are considered as the most
-interesting ones for this year:
-
-* Intel architecture
-  * IOMMU support
-  * Improved virtualization support (Vancouver on NOVA)
-  * Intel wireless
-* ARM architecture
-  * Extending support for SoC platforms
-  * TrustZone
+Finally, we plan to complement Genode with an entirely capability-based user
+interface, which will present the user with a unique model of how to interact
+with the system. With user interface, we actually refer to three different
+things: System configuration (the user interface a system integrator has
+to deal with), text-based user interface, and a graphical desktop environment.
+We hope to cover those with one single holistic concept.
 
 
 Milestones
 ==========
 
-In the following, there is a rough schedule about the planned work. As always,
+In the following, there is a rough schedule of the planned work. As usual,
 it is not set in stone. If you are interested in a particular line of work,
 please get in touch.
 
-:February - Release 13.02:
-  * Low-latency audio support
-  * IOMMU support on NOVA
-  * First steps of user-interface concept
-  * Improved x86 virtualization support
+:February - Release 14.02:
+  * First version of VirtualBox on NOVA
+  * Base-hw: multi-processor support
+  * Block cache
+  * Component composition tool kit
 
-:May - Release 13.05:
-  * SMP support
-  * Qt5
-  * Cryptography
-  * Refined user-interface concept
+:May - Release 14.05:
+  * Base-hw: real-time scheduling
+  * 3rd-party source-code package management
+  * Block-level encryption
 
-:August - Release 13.08:
-  * TCP/IP optimization
-  * RPC tracing facility
-  * Real (non-FAT-based) file system
+:August - Release 14.08:
+  * Desktop environment
+  * Base-hw: kernel-protected capability-based security
+  * TOR on Genode
 
-:November - Release 13.11:
+:November - Release 14.11:
+  * Base-hw: virtualization on ARM, support for Cortex-A7
   * Intel wireless
-  * MP scalability improvements
+  * NOVA kernel resource management
 
-
-Live system
-===========
-
-In addition to the milestones outlined above, we are planning to release
-a new live system in 2013.
