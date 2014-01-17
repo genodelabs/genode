@@ -56,19 +56,19 @@ namespace L4lx {
 			  _data(data ? *data : 0),
 			  _vcpu_state(vcpu_state),
 			  _cpu_nr(cpu_nr)
-			  {
-				  start();
+			{
+				start();
 
-				  /* set l4linux specific utcb entry: L4X_UTCB_TCR_ID */
-				  l4_utcb_tcr_u(utcb())->user[0] = tid();
+				/* set l4linux specific utcb entry: L4X_UTCB_TCR_ID */
+				l4_utcb_tcr_u(utcb())->user[0] = tid();
 
-				  /* enable vcpu functionality respectively */
-				  if (_vcpu_state)
-					  vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
+				/* enable vcpu functionality respectively */
+				if (_vcpu_state)
+					vcpu_connection()->enable_vcpu(_thread_cap, _vcpu_state);
 
-				  /* set cpu affinity */
-				  set_affinity(_cpu_nr);
-			  }
+				/* set cpu affinity */
+				set_affinity(_cpu_nr);
+			}
 
 			void entry()
 			{
@@ -79,8 +79,7 @@ namespace L4lx {
 
 			void unblock() { _lock.unlock(); }
 
-			Genode::addr_t sp() {
-				return ((Genode::addr_t)&_context->stack[-4]) & ~0xf; }
+			Genode::addr_t sp() { return _context->stack_top(); }
 
 			Genode::addr_t ip() { return (Genode::addr_t)_func; }
 

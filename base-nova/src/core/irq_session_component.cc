@@ -63,9 +63,9 @@ class Irq_thread : public Thread_base
 			/*
 			 * Put IP on stack, it will be read from core pager in platform.cc
 			 */
-			addr_t *sp   = reinterpret_cast<addr_t *>(_context->stack - sizeof(addr_t));
+			addr_t *sp = reinterpret_cast<addr_t *>(_context->stack_top() - sizeof(addr_t));
 			*sp = reinterpret_cast<addr_t>(_thread_start);
-	
+
 			/* create global EC */
 			enum { GLOBAL = true };
 			uint8_t res = create_ec(_tid.ec_sel, pd_sel, boot_cpu(),

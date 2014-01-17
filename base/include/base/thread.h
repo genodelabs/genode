@@ -96,10 +96,21 @@ namespace Genode {
 			 */
 			struct Context
 			{
+				private:
+
+					/**
+					 * Top of the stack is accessible via stack_top()
+					 */
+					long _stack[];
+
+				public:
+
 				/**
-				 * Top of the stack
+				 * Top of stack aligned to 16 byte
+				 *
+				 * The alignment is also sufficient for the AMD64 ABI.
 				 */
-				long stack[];
+				addr_t stack_top() const { return (addr_t)_stack & ~0xf; }
 
 				/**
 				 * Virtual address of the start of the stack
@@ -333,13 +344,9 @@ namespace Genode {
 			/**
 			 * Return top of stack
 			 *
-			 * \return  pointer to first stack element
+			 * \return  pointer just after first stack element
 			 */
-			void *stack_top()
-			{
-				return (void *)((addr_t)_context->stack -
-				                sizeof(_context->stack[0]));
-			}
+			void *stack_top() const { return (void *)_context->stack_top(); }
 
 			/**
 			 * Return base of stack

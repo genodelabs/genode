@@ -212,7 +212,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 		_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
 	} else {
 		/* tell affinity CPU in 'core' via stack */
-		reinterpret_cast<Affinity::Location *>(stack_top())[-1] = location;
+		reinterpret_cast<Affinity::Location *>(stack_base())[0] = location;
 	}
 
 	/* required to create a 'local' EC */

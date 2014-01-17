@@ -104,7 +104,7 @@ void Thread_base::start()
 	/* create and start platform thread */
 	_tid.pt = new(platform()->core_mem_alloc()) Platform_thread(_context->name);
 
-	_tid.l4id = create_thread(1, &_context->stack[-4], (void *)&_thread_start);
+	_tid.l4id = create_thread(1, stack_top(), (void *)&_thread_start);
 
 	if (_tid.l4id < 0)
 		PERR("create_thread returned %d", _tid.l4id);

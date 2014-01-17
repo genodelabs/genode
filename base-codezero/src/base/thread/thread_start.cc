@@ -64,9 +64,7 @@ void Thread_base::start()
 	env()->cpu_session()->set_pager(_thread_cap, _pager_cap);
 
 	/* register initial IP and SP at core */
-	addr_t thread_sp = (addr_t)&_context->stack[-4];
-	thread_sp &= ~0xf;  /* align initial stack to 16 byte boundary */
-	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, thread_sp);
+	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
 }
 
 

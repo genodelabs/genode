@@ -56,7 +56,7 @@ void Thread_base::start()
 	l4_utcb_tcr_u(pt->utcb())->user[UTCB_TCR_BADGE] = (unsigned long) pt->gate().local.idx();
 	l4_utcb_tcr_u(pt->utcb())->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
-	pt->start((void *)_thread_start, _context->stack);
+	pt->start((void *)_thread_start, stack_top());
 }
 
 

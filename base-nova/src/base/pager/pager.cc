@@ -354,7 +354,7 @@ Pager_object::Pager_object(unsigned long badge, Affinity::Location location)
 		throw Create_exception_pt_failed();
 
 	/* tell thread starting code on which CPU to let run the pager */
-	reinterpret_cast<Affinity::Location *>(stack_top())[-1] = location;
+	reinterpret_cast<Affinity::Location *>(stack_base())[0] = location;
 
 	/* creates local EC */
 	Thread_base::start();

@@ -41,7 +41,7 @@ void Thread_base::start()
 	_tid.pt->pager(platform_specific()->core_pager());
 	_tid.l4id = _tid.pt->native_thread_id();
 
-	_tid.pt->start((void *)_thread_start, _context->stack);
+	_tid.pt->start((void *)_thread_start, stack_top());
 }
 
 

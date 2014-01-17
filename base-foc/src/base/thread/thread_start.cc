@@ -70,9 +70,7 @@ void Thread_base::start()
 	l4_utcb_tcr_u(state.utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 	/* register initial IP and SP at core */
-	addr_t thread_sp = (addr_t)&_context->stack[-4];
-	thread_sp &= ~0xf;  /* align initial stack to 16 byte boundary */
-	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, thread_sp);
+	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
 }
 
 

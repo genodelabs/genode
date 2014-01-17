@@ -90,9 +90,7 @@ void Thread_base::start()
 		sleep_forever();
 	}
 	/* start thread with its initial IP and aligned SP */
-	addr_t thread_sp = (addr_t)&_context->stack[-4];
-	thread_sp &= ~0xf;
-	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, thread_sp);
+	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
 }
 
 

@@ -38,7 +38,7 @@ void Thread_base::start()
 
 	platform_specific()->core_pd()->bind_thread(_tid.pt);
 
-	_tid.pt->start((void *)_thread_start, _context->stack);
+	_tid.pt->start((void *)_thread_start, stack_top());
 }
 
 

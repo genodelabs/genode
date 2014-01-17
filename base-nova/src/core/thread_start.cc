@@ -73,14 +73,17 @@ void Thread_base::start()
 	 */
 	using namespace Nova;
 
-	addr_t sp                   = reinterpret_cast<addr_t>(&_context->stack[-4]);
-	sp                         &= ~0xFUL; /* align initial stack to 16 byte boundary */
-	addr_t utcb                 = reinterpret_cast<addr_t>(&_context->utcb);
-	Utcb * utcb_obj             = reinterpret_cast<Utcb *>(&_context->utcb);
-	addr_t pd_sel               = Platform_pd::pd_core_sel();
-	Affinity::Location location = reinterpret_cast<Affinity::Location *>(stack_top())[-1];
+	addr_t sp       = _context->stack_top();
+	addr_t utcb     = reinterpret_cast<addr_t>(&_context->utcb);
+	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_context->utcb);
+	addr_t pd_sel   = Platform_pd::pd_core_sel();
 
-	/* server code sets this value */
+	/*
+	 * In core, the affinity location was write to the stack base by the server
+	 * code. So, thry to read the value from there.
+	 */
+	Affinity::Location location = reinterpret_cast<Affinity::Location *>(stack_base())[0];
+
 	if (!location.valid())
 		location = Affinity::Location(boot_cpu(), 0);
 
