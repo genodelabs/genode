@@ -1,0 +1,253 @@
+#
+# The Linux version of Noux lacks the support for the fork system call. Hence,
+# the run script is expected to fail.
+#
+if {[have_spec linux]} {
+	puts "Linux is unsupported."
+	exit 0
+}
+
+#
+# On OMAP4 where no PS/2 is available, we rely on USB HID
+#
+proc use_usb_input { } { return [expr ![have_spec ps2] && [have_spec usb]] }
+
+#
+# Uncomment the following line when working on the VIM source code. Otherwise,
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+#
+#exec rm -rf noux-pkg/bash bin/bash
+
+set build_components {
+	core init drivers/timer noux/minimal lib/libc_noux
+	drivers/framebuffer drivers/pci drivers/input
+	server/terminal server/ram_fs server/trace_fs
+	test/libports/ncurses
+
+	lib/trace/policy/rpc_name
+}
+
+lappend_if [use_usb_input]  build_components drivers/usb
+lappend_if [have_spec gpio] build_components drivers/gpio
+lappend_if [have_spec acpi] build_components drivers/acpi
+lappend_if [have_spec  pci] build_components drivers/pci
+
+set noux_pkgs "bash coreutils grep vim"
+#
+# Build Noux packages only once
+#
+foreach pkg $noux_pkgs {
+	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+
+build $build_components
+
+# write default vimrc file
+set vimrc_fd [open "bin/vim/share/vim/vimrc" w]
+puts $vimrc_fd {
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=}
+close $vimrc_fd
+
+# strip all binaries prior archiving
+foreach pkg $noux_pkgs {
+	exec sh -c "find bin/$pkg -type f | (xargs [cross_dev_prefix]strip || true) 2>/dev/null"
+	exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
+
+create_boot_directory
+
+append config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="CAP"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+		<service name="SIGNAL"/>
+		<service name="TRACE"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <any-child/> <parent/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start> }
+
+append_if [have_spec sdl] config {
+	<start name="fb_sdl">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
+	</start>}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="5M"/>
+		<provides><service name="PCI"/></provides>
+	</start>}
+
+append_if [have_spec framebuffer] config {
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+		<config width="640" height="480" />
+	</start>}
+
+append_if [have_spec ps2] config {
+	<start name="ps2_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Input"/></provides>
+	</start> }
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append_if [use_usb_input] config {
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
+	</start> }
+
+append config {
+	<start name="terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<config>
+			<keyboard layout="us"/>
+			<font size="12" />
+		</config>
+	</start>
+	<start name="trace_fs">
+		<resource name="RAM" quantum="128M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<policy label="noux -> trace"  root="/" interval="1000" subject_limit="512" trace_quota="64M" parent_levels="0" />
+		</config>
+	</start>
+	<start name="ram_fs">
+		<resource name="RAM" quantum="32M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<content>
+				<dir name="home">
+					<inline name=".bash_profile">
+					</inline>
+				</dir>
+				<dir name="tmp">
+					<dir name="policies">
+						<rom name="rpc_name" />
+					</dir>
+				</dir>
+			</content>
+			<!-- constrain sessions according to their labels -->
+			<policy label="noux -> root" root="/" />
+			<policy label="noux -> home" root="/home" writeable="yes" />
+			<policy label="noux -> tmp"  root="/tmp"  writeable="yes" />
+		</config>
+	</start>
+	<start name="noux">
+		<resource name="RAM" quantum="256M" />
+		<config>
+			<fstab> }
+foreach pkg $noux_pkgs {
+append config "								<tar name=\"$pkg.tar\" />" }
+append config {
+				<dir name="home"> <fs label="home" /> </dir>
+				<dir name="ram"> <fs label="root" /> </dir>
+				<dir name="tmp"> <fs label="tmp" /> </dir>
+				<dir name="trace"> <fs label="trace" /> </dir>
+
+				<dir name="dev">
+					<null /> <zero />
+				</dir>
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="linux" />
+				<env name="HOME" value="/home" />
+				<arg value="--login" />
+			</start>
+		</config>
+		<route>
+			<service name="File_system">
+				<if-arg key="label" value="home"/> <child name="ram_fs" /> </service>
+			<service name="File_system">
+				<if-arg key="label" value="root"/> <child name="ram_fs" />
+			</service>
+			<service name="File_system">
+				<if-arg key="label" value="tmp"/> <child name="ram_fs" />
+			</service>
+			<service name="File_system">
+				<if-arg key="label" value="trace"/> <child name="trace_fs"/>
+			</service>
+			<any-service> <parent /> <any-child /> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal ram_fs
+	libc.lib.so libm.lib.so libc_noux.lib.so
+	ncurses.lib.so pcre.lib.so zlib.lib.so readline.lib.so
+	trace_fs
+
+	rpc_name
+}
+
+foreach pkg $noux_pkgs {
+	append boot_modules " $pkg.tar " }
+
+# platform-specific modules
+lappend_if [have_spec       linux] boot_modules fb_sdl
+lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [use_usb_input        ] boot_modules usb_drv
+lappend_if [have_spec        gpio] boot_modules gpio_drv
+lappend_if [have_spec        acpi] boot_modules acpi_drv
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 512 "
+
+run_genode_until forever
+
+# vi: set ft=tcl :
