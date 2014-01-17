@@ -14,25 +14,26 @@
 #include <base/printf.h>
 #include <base/allocator.h>
 
+using Genode::size_t;
+using Genode::Allocator;
 
-void *operator new(Genode::size_t size, Genode::Allocator *allocator)
+
+static void *try_alloc(Allocator *alloc, size_t size)
 {
-	if (!allocator)
-		throw Genode::Allocator::Out_of_memory();
+	if (!alloc)
+		throw Allocator::Out_of_memory();
 
-	return allocator->alloc(size);
-}
-
-void *operator new [] (Genode::size_t size, Genode::Allocator *allocator)
-{
-	if (!allocator)
-		throw Genode::Allocator::Out_of_memory();
-
-	return allocator->alloc(size);
+	return alloc->alloc(size);
 }
 
 
-void operator delete (void *ptr, Genode::Allocator *alloc)
+void *operator new    (size_t s, Allocator *a) { return try_alloc(a, s); }
+void *operator new [] (size_t s, Allocator *a) { return try_alloc(a, s); }
+void *operator new    (size_t s, Allocator &a) { return a.alloc(s); }
+void *operator new [] (size_t s, Allocator &a) { return a.alloc(s); }
+
+
+void operator delete (void *ptr, Allocator *alloc)
 {
 	/*
 	 * Warn on the attempt to use an allocator that relies on the size
