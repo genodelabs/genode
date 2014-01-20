@@ -175,7 +175,7 @@ Platform::Platform()
 
 void Core_parent::exit(int exit_value)
 {
-	kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
+	Kernel::log() << __PRETTY_FUNCTION__ << "not implemented\n";
 	while (1) ;
 }
 

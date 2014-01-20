@@ -1,5 +1,5 @@
 /*
- * \brief  Print to kernel log output
+ * \brief  Print to the standard output of the kernel
  * \author Martin stein
  * \date   2012-04-05
  */
@@ -17,42 +17,45 @@
 /* Genode includes */
 #include <kernel/interface.h>
 
-namespace Genode
+namespace Kernel
 {
 	/**
-	 * Prints incoming streams to the kernel log output
+	 * Prints incoming streams to the standard output of the kernel
 	 */
-	class Kernel_log
+	class Log
 	{
-		/**
-		 * Print an unsigned 4 bit integer as hexadecimal value
-		 */
-		void _print_4bit_hex(unsigned char x) const
-		{
-			/* decode to ASCII char */
-			x &= 0x0f;
-			if (x > 9) x += 39;
-			x += 48;
+		private:
 
-			/* print ASCII char */
-			Kernel::print_char(x);
-		}
+			/**
+			 * Print an unsigned 4 bit integer x as hexadecimal value
+			 */
+			void _print_4bit_hex(unsigned char x) const
+			{
+				/* decode to ASCII char */
+				x &= 0x0f;
+				if (x > 9) x += 39;
+				x += 48;
+
+				/* print ASCII char */
+				print_char(x);
+			}
 
 		public:
 
 			/**
-			 * Print zero-terminated string
+			 * Print a zero-terminated string s
 			 */
-			Kernel_log & operator << (char const * s)
+			Log & operator << (char const * s)
 			{
-				while (*s) Kernel::print_char(*s++);
+				while (*s) print_char(*s++);
+				if (*--s != '\n') { print_char(' '); }
 				return *this;
 			}
 
 			/**
-			 * Print an unsigned integer as hexadecimal value
+			 * Print an unsigned integer x as hexadecimal value
 			 */
-			Kernel_log & operator << (unsigned int const & x)
+			Log & operator << (unsigned int const x)
 			{
 				enum {
 					BYTE_WIDTH = 8,
@@ -91,17 +94,23 @@ namespace Genode
 					_print_4bit_hex(c >> 4);
 					_print_4bit_hex(c);
 				}
+				print_char(' ');
 				return *this;
 			}
+
+			/**
+			 * Print a pointer p as hexadecimal value
+			 */
+			Log & operator << (void * const p) { return *this << (unsigned)p; }
 	};
 
 	/**
-	 * Give static 'Kernel_log' reference as target for common log output
+	 * Return singleton kernel-log
 	 */
-	inline Kernel_log & kernel_log()
+	inline Log & log()
 	{
-		static Kernel_log _log;
-		return _log;
+		static Log s;
+		return s;
 	}
 }
 

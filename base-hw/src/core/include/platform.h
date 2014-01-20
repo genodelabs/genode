@@ -116,7 +116,7 @@ namespace Genode {
 
 			inline Range_allocator * region_alloc()
 			{
-				kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
+				Kernel::log() << __PRETTY_FUNCTION__ << "not implemented\n";
 				while (1) ;
 				return 0;
 			}

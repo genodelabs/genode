@@ -62,7 +62,7 @@ Thread_base::Thread_base(const char * const label, size_t const stack_size)
 
 Thread_base::~Thread_base()
 {
-	kernel_log() << __PRETTY_FUNCTION__ << ": Not implemented\n";
+	Kernel::log() << __PRETTY_FUNCTION__ << "not implemented\n";
 	while (1) ;
 }
 

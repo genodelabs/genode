@@ -203,7 +203,7 @@ class Genode::Message_tpl
 			enum { NAME_SIZE = sizeof(name) };
 			size_t const data_size = raw_data_size + NAME_SIZE;
 			if (data_size > _max_data_size()) {
-				kernel_log() << __func__ << ": oversized message outgoing\n";
+				Kernel::log() << "oversized message outgoing\n";
 				raw_data_size = _max_data_size() - NAME_SIZE;
 			}
 			/* copy data */
@@ -224,7 +224,7 @@ class Genode::Message_tpl
 		{
 			/* limit data size */
 			if (_data_size > buf_size) {
-				kernel_log() << __func__ << ": oversized message incoming\n";
+				Kernel::log() << "oversized message incoming\n";
 				_data_size = buf_size;
 			}
 			/* copy data */
