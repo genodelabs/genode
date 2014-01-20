@@ -659,7 +659,8 @@ class Plugin : public Libc::Plugin
 
 				ssize_t result = read(fd, buf, bufsiz);
 				if (verbose)
-					PDBG("result = %zd, buf = %s", result, buf);
+					PDBG("result = %zd, buf = %s", result, buf[result] ?
+					     "<not zero terminated>" : buf);
 				close(fd);
 
 				return result;

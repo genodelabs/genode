@@ -205,9 +205,12 @@ static void resolve_symlinks(char const *path, Absolute_path &resolved_path)
 					PDBGV("found symlink: %s", next_iteration_working_path.base());
 					FNAME_FUNC_WRAPPER_GENERIC(res = , readlink,
 					                           next_iteration_working_path.base(),
-					                           symlink_target, sizeof(symlink_target));
+					                           symlink_target, sizeof(symlink_target) - 1);
 					if (res < 1)
 						throw Symlink_resolve_error();
+
+					/* zero terminate target */
+					symlink_target[res] = 0;
 
 					if (symlink_target[0] == '/')
 						/* absolute target */
