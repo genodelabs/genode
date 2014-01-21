@@ -467,7 +467,9 @@ namespace Genode {
 
 			String() : _length(0) { }
 
-			String(char const *str) : _length(min(strlen(str) + 1, CAPACITY))
+			String(char const *str, size_t len = ~0UL - 1)
+			:
+				_length(min(len + 1, min(strlen(str) + 1, CAPACITY)))
 			{
 				strncpy(_buf, str, _length);
 			}
