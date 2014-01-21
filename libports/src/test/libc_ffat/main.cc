@@ -194,6 +194,13 @@ int main(int argc, char *argv[])
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 		CALL_AND_CHECK(ret, stat(file_name, &stat_buf), ret == 0, "file_name=%s", file_name);
 
+		/* test 'unlink()' */
+		CALL_AND_CHECK(ret, unlink(file_name), (ret == 0), "file_name=%s", file_name);
+		CALL_AND_CHECK(ret, stat(file_name, &stat_buf), (ret == -1), "file_name=%s", file_name);
+		CALL_AND_CHECK(ret, stat(dir_name2, &stat_buf), (ret == 0), "dir_name=%s", dir_name2);
+		CALL_AND_CHECK(ret, unlink(dir_name2), (ret == 0), "dir_name=%s", dir_name2);
+		CALL_AND_CHECK(ret, stat(dir_name2, &stat_buf), (ret == -1), "dir_name=%s", dir_name2);
+
 		/* test symbolic links */
 		if ((symlink("/", "/symlinks_supported") == 0) || (errno != ENOSYS)) {
 			CALL_AND_CHECK(ret, mkdir("/a", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/a");
@@ -216,6 +223,10 @@ int main(int argc, char *argv[])
 			} else {
 				printf("file content is correct\n");
 			}
+
+			/* test unlink for symbolic links */
+			CALL_AND_CHECK(ret, unlink("/c/d"), (ret == 0), "symlink=%s", "/c/d");
+			CALL_AND_CHECK(ret, stat("/c/d", &stat_buf), (ret == -1), "symlink=%s", "/c/d");
 		}
 
 		if (i < (iterations - 1))

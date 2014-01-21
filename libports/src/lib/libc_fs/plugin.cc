@@ -744,7 +744,28 @@ class Plugin : public Libc::Plugin
 
 		int unlink(const char *path)
 		{
-			return -1;
+			Canonical_path dir_path(path);
+			dir_path.strip_last_element();
+
+			Canonical_path basename(path);
+			basename.keep_only_last_element();
+
+			try {
+				/*
+				 * Open directory that contains the file to be opened/created
+				 */
+				File_system::Dir_handle const dir_handle =
+				    file_system()->dir(dir_path.base(), false);
+
+				Node_handle_guard guard(dir_handle);
+
+				file_system()->unlink(dir_handle, basename.base() + 1);
+			} catch (...) {
+				PERR("unlink(%s) failed", path);
+				return -1;
+			}
+
+			return 0;
 		}
 
 		ssize_t write(Libc::File_descriptor *fd, const void *buf, ::size_t count)
