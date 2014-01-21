@@ -123,7 +123,8 @@ namespace Genode {
 					/**
 					 * Return size of value
 					 */
-					size_t value_size() const { return _value.len(); }
+					size_t      value_size() const { return _value.len() - 2; }
+					char const *value_base() const { return _value.start() + 1; }
 
 					/**
 					 * Return attribute value as null-terminated string
@@ -550,8 +551,15 @@ namespace Genode {
 			 * Note that the returned string is not null-terminated as it
 			 * points directly into a sub range of the unmodified Xml_node
 			 * address range.
+			 *
+			 * XXX This function is deprecated. Use 'content_base()' instead.
 			 */
 			char *content_addr() const { return _start_tag.next_token().start(); }
+
+			/**
+			 * Return pointer to start of content
+			 */
+			char const *content_base() const { return content_addr(); }
 
 			/**
 			 * Return size of node content
