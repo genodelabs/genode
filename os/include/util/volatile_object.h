@@ -134,6 +134,8 @@ class Genode::Volatile_object
 		 */
 		MT       *operator -> ()       { _check_constructed(); return       _ptr(); }
 		MT const *operator -> () const { _check_constructed(); return _const_ptr(); }
+
+		MT &operator * () { _check_constructed(); return *_ptr(); }
 };
 
 
