@@ -141,7 +141,7 @@ void Ipc_server::_reply()
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
-	Kernel::send_reply_msg(0);
+	Kernel::send_reply_msg(false);
 }
 
 
@@ -156,7 +156,7 @@ void Ipc_server::_reply_wait()
 	unsigned const local_name = Ipc_ostream::_dst.local_name();
 	Native_utcb * const utcb = Thread_base::myself()->utcb();
 	utcb->message()->prepare_send(_snd_msg->buf, _write_offset, local_name);
-	if (Kernel::send_reply_msg(1)) {
+	if (Kernel::send_reply_msg(true)) {
 		PERR("failed to receive request");
 		throw Blocking_canceled();
 	}
