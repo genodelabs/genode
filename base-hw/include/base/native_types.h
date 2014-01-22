@@ -192,25 +192,23 @@ class Genode::Message_tpl
 		/**
 		 * Install message that shall be send
 		 *
-		 * \param data           base of payload
-		 * \param raw_data_size  size of payload without preceding name
-		 * \param name           local name that shall precede raw payload
+		 * \param data       base of payload
+		 * \param data_size  size of payload
+		 * \param name       local name that shall be the first payload word
 		 */
-		void prepare_send(void * const data, size_t raw_data_size,
+		void prepare_send(void * const data, size_t data_size,
 		                  unsigned const name)
 		{
 			/* limit data size */
-			enum { NAME_SIZE = sizeof(name) };
-			size_t const data_size = raw_data_size + NAME_SIZE;
 			if (data_size > _max_data_size()) {
 				Kernel::log() << "oversized message outgoing\n";
-				raw_data_size = _max_data_size() - NAME_SIZE;
+				data_size = _max_data_size();
 			}
 			/* copy data */
 			*(unsigned *)_data = name;
-			void * const raw_data_dst = (void *)((addr_t)_data + NAME_SIZE);
-			void * const raw_data_src  = (void *)((addr_t)data + NAME_SIZE);
-			memcpy(raw_data_dst, raw_data_src, raw_data_size);
+			void * const data_dst = (void *)((addr_t)_data + sizeof(name));
+			void * const data_src  = (void *)((addr_t)data + sizeof(name));
+			memcpy(data_dst, data_src, data_size - sizeof(name));
 			_data_size = data_size;
 		}
 
