@@ -11,6 +11,7 @@ create_boot_directory
 install_config {
 	<config>
 		<parent-provides>
+			<service name="RM"/>
 			<service name="LOG"/>
 		</parent-provides>
 		<default-route>
@@ -29,14 +30,15 @@ append qemu_args "-nographic -m 64"
 run_genode_until "child exited with exit value 0.*\n" 10
 
 grep_output {^\[init -> test-ram_fs_chunk\]}
+unify_output { sizeof=[0-9]+} {}
 
 compare_output_to {
 	[init -> test-ram_fs_chunk] --- ram_fs_chunk test ---
-	[init -> test-ram_fs_chunk] [32mchunk sizes[0m
-	[init -> test-ram_fs_chunk] [32m  level 0: payload=120 sizeof=36[0m
-	[init -> test-ram_fs_chunk] [32m  level 1: payload=24 sizeof=32[0m
-	[init -> test-ram_fs_chunk] [32m  level 2: payload=6 sizeof=28[0m
-	[init -> test-ram_fs_chunk] [32m  level 3: payload=2 sizeof=16[0m
+	[init -> test-ram_fs_chunk] chunk sizes
+	[init -> test-ram_fs_chunk]   level 0: payload=120
+	[init -> test-ram_fs_chunk]   level 1: payload=24
+	[init -> test-ram_fs_chunk]   level 2: payload=6
+	[init -> test-ram_fs_chunk]   level 3: payload=2
 	[init -> test-ram_fs_chunk] write "five-o-one" at offset 0 -> content (size=10): "five-o-one"
 	[init -> test-ram_fs_chunk] write "five" at offset 7 -> content (size=11): "five-o-five"
 	[init -> test-ram_fs_chunk] write "Nuance" at offset 17 -> content (size=23): "five-o-five......Nuance"
