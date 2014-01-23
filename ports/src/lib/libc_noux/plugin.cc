@@ -41,6 +41,7 @@
 #include <termios.h>
 #include <pwd.h>
 #include <string.h>
+#include <signal.h>
 
 /**
  * There is a off_t typedef clash between sys/socket.h
@@ -53,6 +54,7 @@
 
 /* libc-internal includes */
 #include <libc_mem_alloc.h>
+
 
 enum { verbose = false };
 enum { verbose_signals = false };
@@ -100,27 +102,57 @@ Noux::Session *noux()  { return noux_connection()->session(); }
 Noux::Sysio   *sysio() { return noux_connection()->sysio();   }
 
 
-/* Array of signal handlers */
-static struct sigaction signal_action[SIGRTMAX+1];
+/*
+ * Array of signal handlers, initialized with 0 (SIG_DFL)
+ * TODO: preserve ignored signals across 'execve()'
+ */
+static struct sigaction signal_action[NSIG+1];
+
+/*
+ * Signal mask functionality is not fully implemented yet.
+ * TODO: - actually block delivery of to be blocked signals
+ *       - preserve signal mask across 'execve()'
+ */
+static sigset_t signal_mask;
 
 
 static bool noux_syscall(Noux::Session::Syscall opcode)
 {
+	/*
+	 * Signal handlers might do syscalls themselves, so the 'sysio' object
+	 * needs to get saved before and restored after calling the signal handler.
+	 */
+	Noux::Sysio saved_sysio;
+
 	bool ret = noux()->syscall(opcode);
 
 	/* handle signals */
 	while (!sysio()->pending_signals.empty()) {
 		Noux::Sysio::Signal signal = sysio()->pending_signals.get();
+		if (verbose_signals)
+			PDBG("received signal %d", signal);
 		if (signal_action[signal].sa_flags & SA_SIGINFO) {
+			memcpy(&saved_sysio, sysio(), sizeof(Noux::Sysio));
 			/* TODO: pass siginfo_t struct */
 			signal_action[signal].sa_sigaction(signal, 0, 0);
+			memcpy(sysio(), &saved_sysio, sizeof(Noux::Sysio));
 		} else {
 			if (signal_action[signal].sa_handler == SIG_DFL) {
-				/* do nothing */
+				switch (signal) {
+					case SIGCHLD:
+						/* ignore */
+						break;
+					default:
+						/* terminate the process */
+						exit((signal << 8) | EXIT_FAILURE);
+				}
 			} else if (signal_action[signal].sa_handler == SIG_IGN) {
 				/* do nothing */
-			} else
+			} else {
+				memcpy(&saved_sysio, sysio(), sizeof(Noux::Sysio));
 				signal_action[signal].sa_handler(signal);
+				memcpy(sysio(), &saved_sysio, sizeof(Noux::Sysio));
+			}
 		}
 	}
 
@@ -532,12 +564,19 @@ extern "C" pid_t _wait4(pid_t pid, int *status, int options,
 	sysio()->wait4_in.pid    = pid;
 	sysio()->wait4_in.nohang = !!(options & WNOHANG);
 	if (!noux_syscall(Noux::Session::SYSCALL_WAIT4)) {
-		PERR("wait4 error %d", sysio()->error.general);
+		switch (sysio()->error.wait4) {
+			case Noux::Sysio::WAIT4_ERR_INTERRUPT: errno = EINTR; break;
+		}
 		return -1;
 	}
 
+	/*
+	 * The libc expects status information in bits 0..6 and the exit value
+	 * in bits 8..15 (according to 'wait.h'). 
+	 */
 	if (status)
-		*status = sysio()->wait4_out.status;
+		*status = ((sysio()->wait4_out.status >> 8) & 0177) |
+		          ((sysio()->wait4_out.status & 0xff) << 8);
 
 	return sysio()->wait4_out.pid;
 }
@@ -563,6 +602,25 @@ void endpwent(void)
 extern "C" void sync(void)
 {
 	noux_syscall(Noux::Session::SYSCALL_SYNC);
+}
+
+
+extern "C" int kill(int pid, int sig)
+{
+	if (verbose_signals)
+		PDBG("pid = %d, sig = %d", pid, sig);
+
+	sysio()->kill_in.pid = pid;
+	sysio()->kill_in.sig = Noux::Sysio::Signal(sig);
+
+	if (!noux_syscall(Noux::Session::SYSCALL_KILL)) {
+		switch (sysio()->error.kill) {
+			case Noux::Sysio::KILL_ERR_SRCH: errno = ESRCH; break;
+		}
+		return -1;
+	}
+
+	return 0;
 }
 
 
@@ -636,9 +694,42 @@ extern "C" int utimes(const char* path, const struct timeval *times)
 
 extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
-	/* XXX todo */
-	errno = ENOSYS;
-	return -1;
+	if (oldset)
+		*oldset = signal_mask;
+
+	if (!set)
+		return 0;
+
+	switch (how) {
+		case SIG_BLOCK:
+			for (int sig = 1; sig < NSIG; sig++)
+				if (sigismember(set, sig)) {
+					if (verbose_signals)
+						PDBG("signal %d requested to get blocked", sig);
+					sigaddset(&signal_mask, sig);
+				}
+			break;
+		case SIG_UNBLOCK:
+			for (int sig = 1; sig < NSIG; sig++)
+				if (sigismember(set, sig)) {
+					if (verbose_signals)
+						PDBG("signal %d requested to get unblocked", sig);
+					sigdelset(&signal_mask, sig);
+				}
+			break;
+		case SIG_SETMASK:
+			if (verbose_signals)
+				for (int sig = 1; sig < NSIG; sig++)
+					if (sigismember(set, sig))
+						PDBG("signal %d requested to get blocked", sig);
+			signal_mask = *set;
+			break;
+		default:
+			errno = EINVAL;
+			return -1;
+	}
+
+	return 0;
 }
 
 
@@ -653,7 +744,7 @@ extern "C" int _sigaction(int signum, const struct sigaction *act, struct sigact
 	if (verbose_signals)
 		PDBG("signum = %d, handler = %p", signum, act ? act->sa_handler : 0);
 
-	if ((signum < 0) || (signum > SIGRTMAX)) {
+	if ((signum < 1) || (signum > NSIG)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -1951,6 +2042,8 @@ extern char **environ;
 __attribute__((constructor))
 void init_libc_noux(void)
 {
+	sigemptyset(&signal_mask);
+
 	/* copy command-line arguments from 'args' ROM dataspace */
 	Genode::Rom_connection args_rom("args");
 	char *args = (char *)Genode::env()->rm_session()->

@@ -37,6 +37,7 @@ namespace Noux {
 	    /* signal numbers must match with libc signal numbers */
 		enum Signal {
 			SIG_INT = 2,
+			SIG_CHLD = 20,
 		};
 
 		enum { SIGNAL_QUEUE_SIZE = 32 };
@@ -369,6 +370,10 @@ namespace Noux {
 		                       UTIMES_ERR_NOT_DIRECTORY, UTIMES_ERR_NO_PERM,
 		                       UTIMES_ERR_READ_ONLY };
 
+		enum Wait4_error     { WAIT4_ERR_INTERRUPT };
+
+		enum Kill_error      { KILL_ERR_SRCH };
+
 		union {
 			General_error   general;
 			Stat_error      stat;
@@ -395,6 +400,8 @@ namespace Noux {
 			Socket_error    socket;
 			Clock_error     clock;
 			Utimes_error    utimes;
+			Wait4_error     wait4;
+			Kill_error      kill;
 		} error;
 
 		union {
@@ -508,6 +515,8 @@ namespace Noux {
 			                        { });
 
 			SYSIO_DECL(sync,        { }, { });
+
+			SYSIO_DECL(kill,        { int pid; Signal sig; }, { });
 		};
 	};
 };

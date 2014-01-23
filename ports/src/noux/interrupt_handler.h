@@ -14,12 +14,9 @@
 #ifndef _NOUX__INTERRUPT_HANDLER__H_
 #define _NOUX__INTERRUPT_HANDLER__H_
 
-/* Genode includes */
-#include <util/list.h>
-
 namespace Noux {
 
-	struct Interrupt_handler : List<Interrupt_handler>::Element
+	struct Interrupt_handler
 	{
 		virtual void handle_interrupt() = 0;
 	};

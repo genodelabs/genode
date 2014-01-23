@@ -19,6 +19,7 @@
 
 /* Noux includes */
 #include <family_member.h>
+#include <parent_exit.h>
 #include <file_descriptor_registry.h>
 #include <local_noux_service.h>
 #include <local_rm_service.h>
@@ -40,6 +41,7 @@ namespace Noux {
 			Local_rom_service                  &_local_rom_service;
 			Service_registry                   &_parent_services;
 			Family_member                      &_family_member;
+			Parent_exit                        *_parent_exit;
 			File_descriptor_registry           &_file_descriptor_registry;
 			Signal_context_capability           _destruct_context_cap;
 			Ram_session                        &_ref_ram_session;
@@ -57,6 +59,7 @@ namespace Noux {
 			             Local_rom_service        &local_rom_service,
 			             Service_registry         &parent_services,
 			             Family_member            &family_member,
+			             Parent_exit              *parent_exit,
 			             File_descriptor_registry &file_descriptor_registry,
 			             Signal_context_capability destruct_context_cap,
 			             Ram_session              &ref_ram_session,
@@ -72,6 +75,7 @@ namespace Noux {
 				_local_rom_service(local_rom_service),
 				_parent_services(parent_services),
 				_family_member(family_member),
+				_parent_exit(parent_exit),
 				_file_descriptor_registry(file_descriptor_registry),
 				_destruct_context_cap(destruct_context_cap),
 				_ref_ram_session(ref_ram_session),
@@ -130,11 +134,15 @@ namespace Noux {
 				 */
 				_file_descriptor_registry.flush();
 
-				_family_member.wakeup_parent(exit_value);
+				_family_member.exit(exit_value);
 
-				/* handle exit of the init process */
-				if (_family_member.parent() == 0)
+				/* notify the parent */
+				if (_parent_exit)
+					_parent_exit->exit_child();
+				else {
+					/* handle exit of the init process */
 					Signal_transmitter(_destruct_context_cap).submit();
+				}
 			}
 
 			Ram_session *ref_ram_session()

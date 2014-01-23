@@ -24,9 +24,13 @@
 #include <noux_session/sysio.h>
 #include <shared_pointer.h>
 #include <wake_up_notifier.h>
-#include <interrupt_handler.h>
+#include <io_channel_listener.h>
 
 namespace Noux {
+
+	class Terminal_io_channel;
+
+	extern Genode::Lock &signal_lock();
 
 	/**
 	 * Input/output channel backend that is used for calling
@@ -53,10 +57,10 @@ namespace Noux {
 			 * List of notifiers (i.e., processes) used by threads that block
 			 * for an I/O-channel event
 			 */
-			List<Wake_up_notifier>  _notifiers;
-			Lock                    _notifiers_lock;
-			List<Interrupt_handler> _interrupt_handlers;
-			Lock                    _interrupt_handlers_lock;
+			List<Wake_up_notifier>    _notifiers;
+			Lock                      _notifiers_lock;
+			List<Io_channel_listener> _interrupt_handlers;
+			Lock                      _interrupt_handlers_lock;
 
 		public:
 
@@ -140,7 +144,7 @@ namespace Noux {
 			 * This function is called by Child objects to get woken up if the
 			 * terminal sends, for example, Ctrl-C.
 			 */
-			void register_interrupt_handler(Interrupt_handler *handler)
+			void register_interrupt_handler(Io_channel_listener *handler)
 			{
 				Lock::Guard guard(_interrupt_handlers_lock);
 
@@ -150,7 +154,7 @@ namespace Noux {
 			/**
 			 * Unregister interrupt handler
 			 */
-			void unregister_interrupt_handler(Interrupt_handler *handler)
+			void unregister_interrupt_handler(Io_channel_listener *handler)
 			{
 				Lock::Guard guard(_interrupt_handlers_lock);
 
@@ -158,15 +162,29 @@ namespace Noux {
 			}
 
 			/**
+			  * Find the 'Io_channel_listener' object which contains the given
+			  * 'Interrupt_handler' pointer
+			  */
+			Io_channel_listener *lookup_io_channel_listener(Interrupt_handler *handler)
+			{
+				for (Io_channel_listener *l = _interrupt_handlers.first();
+				     l; l = l->next())
+					if (l->object() == handler)
+						return l;
+				return 0;
+			}
+
+			/**
 			 * Tell all registered handlers about an interrupt event
 			 */
 			void invoke_all_interrupt_handlers()
 			{
+				Lock::Guard signal_lock_guard(signal_lock());
 				Lock::Guard guard(_interrupt_handlers_lock);
 
-				for (Interrupt_handler *h = _interrupt_handlers.first();
-				     h; h = h->next())
-					h->handle_interrupt();
+				for (Io_channel_listener *l = _interrupt_handlers.first();
+				     l; l = l->next())
+					l->object()->handle_interrupt();
 			}
 
 			/**
