@@ -13,9 +13,12 @@
 
 #include <base/printf.h>
 #include <base/allocator.h>
+#include <base/sleep.h>
 
 using Genode::size_t;
 using Genode::Allocator;
+using Genode::Deallocator;
+using Genode::sleep_forever;
 
 
 static void *try_alloc(Allocator *alloc, size_t size)
@@ -33,15 +36,25 @@ void *operator new    (size_t s, Allocator &a) { return a.alloc(s); }
 void *operator new [] (size_t s, Allocator &a) { return a.alloc(s); }
 
 
-void operator delete (void *ptr, Allocator *alloc)
+static void try_dealloc(void *ptr, Deallocator &dealloc)
 {
 	/*
-	 * Warn on the attempt to use an allocator that relies on the size
-	 * argument.
+	 * Log error and block on the attempt to use an allocator that relies on
+	 * the size argument.
 	 */
-	if (alloc->need_size_for_free())
-		PERR("C++ runtime: delete called with unsafe allocator, leaking memory");
+	if (dealloc.need_size_for_free()) {
+		PERR("C++ runtime: delete called with allocator, which needs "
+		     "'size' on free. Blocking before leaking memory...");
+		sleep_forever();
+	}
+
+	/* size not required, so call with dummy size */
+	dealloc.free(ptr, 0);
 }
+
+
+void operator delete (void *ptr, Deallocator *dealloc) { try_dealloc(ptr, *dealloc); }
+void operator delete (void *ptr, Deallocator &dealloc) { try_dealloc(ptr,  dealloc); }
 
 
 /*

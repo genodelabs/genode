@@ -204,28 +204,21 @@ namespace Genode {
 	/**
 	 * Destroy object
 	 *
-	 * For destroying an object, we need to specify the allocator
-	 * that was used by the object. Because we cannot pass the
-	 * allocator directly to the delete operator, we mimic the
-	 * delete operator using this template function.
+	 * For destroying an object, we need to specify the allocator that was used
+	 * by the object. Because we cannot pass the allocator directly to the
+	 * delete expression, we mimic the expression by using this template
+	 * function. The function explicitly calls the object destructor and
+	 * operator delete afterwards.
 	 *
-	 * \param T      implicit object type
+	 * For details see https://github.com/genodelabs/genode/issues/1030.
 	 *
-	 * \param alloc  allocator from which the object was allocated
-	 * \param obj    object to destroy
+	 * \param T        implicit object type
+	 *
+	 * \param dealloc  reference or pointer to allocator from which the object
+	 *                 was allocated
+	 * \param obj      object to destroy
 	 */
-	template <typename T>
-	void destroy(Deallocator *dealloc, T *obj)
-	{
-		if (!obj)
-			return;
-
-		/* call destructors */
-		obj->~T();
-
-		/* free memory at the allocator */
-		dealloc->free(obj, sizeof(T));
-	}
+	template <typename T, typename DEALLOC> void destroy(DEALLOC dealloc, T *obj);
 }
 
 void *operator new    (Genode::size_t, Genode::Allocator *);
@@ -260,6 +253,22 @@ void *operator new [] (Genode::size_t, Genode::Allocator &);
  *   'free()' function for the allocation of objects that may throw exceptions
  *   at their construction time!
  */
-void operator delete (void *, Genode::Allocator *);
+void operator delete (void *, Genode::Deallocator *);
+void operator delete (void *, Genode::Deallocator &);
+
+
+/* implemented here as it needs the special delete operators */
+template <typename T, typename DEALLOC>
+void Genode::destroy(DEALLOC dealloc, T *obj)
+{
+	if (!obj)
+		return;
+
+	/* call destructors */
+	obj->~T();
+
+	/* free memory at the allocator */
+	operator delete (obj, dealloc);
+}
 
 #endif /* _INCLUDE__BASE__ALLOCATOR_H_ */
