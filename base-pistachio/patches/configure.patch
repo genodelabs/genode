@@ -1,0 +1,17 @@
+Require Autoconf version >= 2.50
+---
+ user/configure.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/user/configure.in b/user/configure.in
+index 264f82d..8f27ec2 100644
+--- a/user/configure.in
++++ b/user/configure.in
+@@ -34,6 +34,7 @@ dnl Process this file with autoconf to produce a configure script.
+ 
+ AC_INIT(Pistachio, [0.4])
+ AC_CONFIG_SRCDIR([serv/sigma0/sigma0.cc])
++AC_PREREQ(2.50)
+ 
+ if test "x$host_alias" != x; then
+   # We do not necessarily need crt0 and friends when cross-compiling.
