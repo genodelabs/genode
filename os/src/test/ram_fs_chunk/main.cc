@@ -42,7 +42,8 @@ namespace Genode {
 			_wrapped.free(addr, size);
 		}
 
-		size_t overhead(size_t size) { return 0; }
+		size_t overhead(size_t size)    override { return _wrapped.overhead(size); }
+		bool need_size_for_free() const override { return _wrapped.need_size_for_free(); }
 	};
 };
 

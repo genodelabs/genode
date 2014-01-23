@@ -92,6 +92,12 @@ namespace Genode {
 				Lock::Guard lock_guard(*_lock);
 				return _alloc.overhead(size);
 			}
+
+			bool need_size_for_free() const override
+			{
+				Lock::Guard lock_guard(*_lock);
+				return _alloc.need_size_for_free();
+			}
 	};
 
 	/**
@@ -189,6 +195,12 @@ namespace Genode {
 			{
 				Lock::Guard lock_guard(*_lock);
 				return _alloc.overhead(size);
+			}
+
+			bool need_size_for_free() const override
+			{
+				Lock::Guard lock_guard(*_lock);
+				return _alloc.need_size_for_free();
 			}
 
 

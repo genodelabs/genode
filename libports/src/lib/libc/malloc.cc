@@ -150,6 +150,8 @@ class Malloc : public Genode::Allocator
 
 			return _allocator[_slab_log2(size) - SLAB_START]->overhead(size);
 		}
+
+		bool need_size_for_free() const override { return false; }
 };
 
 

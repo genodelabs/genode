@@ -155,6 +155,8 @@ class Backing_store_allocator : public Allocator
 		size_t consumed() { return _consumed; }
 
 		size_t overhead(size_t size) { return 0; }
+
+		bool need_size_for_free() const override { return false; }
 };
 
 

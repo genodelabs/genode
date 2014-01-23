@@ -50,18 +50,19 @@ namespace Genode
 				_alloc->free(addr, size); }
 
 			size_t consumed() {
-				PDBG("Unexprected call");
+				PDBG("Unexpected call");
 				while (1) ;
 				return 0;
 			}
 
 			size_t overhead(size_t size) {
-				PDBG("Unexprected call");
+				PDBG("Unexpected call");
 				while (1) ;
 				return 0;
 			}
 
-			bool need_size_for_free() const { return true; }
+			bool need_size_for_free() const override {
+				return _alloc->need_size_for_free(); }
 	};
 }
 

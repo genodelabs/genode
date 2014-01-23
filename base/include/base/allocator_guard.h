@@ -103,6 +103,9 @@ namespace Genode {
 			 * Return meta-data overhead per block
 			 */
 			size_t overhead(size_t size) { return _allocator->overhead(size); }
+
+			bool need_size_for_free() const override {
+				return _allocator->need_size_for_free(); }
 	};
 }
 

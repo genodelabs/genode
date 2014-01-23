@@ -112,6 +112,8 @@ namespace Nic {
 
 			void free(void *addr, Genode::size_t) { free(addr); }
 
+			bool need_size_for_free() const override { return false; }
+
 
 			/*********************
 			 ** Dummy functions **

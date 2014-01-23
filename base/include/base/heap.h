@@ -153,7 +153,7 @@ namespace Genode {
 			void   free(void *, size_t);
 			size_t consumed() { return _quota_used; }
 			size_t overhead(size_t size) { return _alloc.overhead(size); }
-			bool   need_size_for_free() const { return false; }
+			bool   need_size_for_free() const override { return false; }
 	};
 
 
@@ -193,7 +193,7 @@ namespace Genode {
 			void   free(void *, size_t);
 			size_t consumed() { return _consumed; }
 			size_t overhead(size_t size);
-			bool   need_size_for_free() const { return false; }
+			bool   need_size_for_free() const override { return false; }
 	};
 }
 

@@ -39,7 +39,7 @@ namespace Genode {
 		 * See the documentation of 'operator delete(void *, Allocator *)'
 		 * below for more details.
 		 */
-		virtual bool need_size_for_free() const { return true; }
+		virtual bool need_size_for_free() const = 0;
 	};
 
 

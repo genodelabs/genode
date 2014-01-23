@@ -243,7 +243,7 @@ namespace Genode {
 			 */
 			size_t overhead(size_t) { return sizeof(Block) + sizeof(umword_t); }
 
-			bool need_size_for_free() const { return false; }
+			bool need_size_for_free() const override { return false; }
 	};
 
 

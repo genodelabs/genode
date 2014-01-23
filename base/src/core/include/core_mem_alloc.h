@@ -88,6 +88,9 @@ namespace Genode {
 					void free(void *addr, size_t size) { _alloc.free(addr, size); }
 					size_t consumed() { return _phys_alloc->consumed(); }
 					size_t overhead(size_t size) { return _phys_alloc->overhead(size); }
+
+					bool need_size_for_free() const override {
+						return _phys_alloc->need_size_for_free(); }
 			};
 
 
@@ -166,6 +169,9 @@ namespace Genode {
 
 			size_t consumed() { return _phys_alloc.consumed(); }
 			size_t overhead(size_t size) { return _phys_alloc.overhead(size); }
+
+			bool need_size_for_free() const override {
+				return _phys_alloc.need_size_for_free(); }
 	};
 }
 
