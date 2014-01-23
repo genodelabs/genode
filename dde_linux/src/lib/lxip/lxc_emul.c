@@ -56,14 +56,14 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 
 void *kmem_cache_alloc_node(struct kmem_cache *cache, gfp_t flags, int node)
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%zd",  cache->name,cache->size);
+	dde_kit_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
 	return kmalloc(cache->size, 0);
 }
 
 
 void *kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
 {
-	dde_kit_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%zd",  cache->name,cache->size);
+	dde_kit_log(DEBUG_SLAB, "\"%s\" alloc obj_size=%u",  cache->name,cache->size);
 	return kmalloc(cache->size, 0);
 }
 

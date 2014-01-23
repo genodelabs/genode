@@ -94,7 +94,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 				throw Io_error();
 
 			if (verbose)
-				PDBG("PACKET: phys: %lx block: %llu count: %u %s",
+				PDBG("PACKET: phys: %lx block: %llu count: %zu %s",
 				     phys, block_nr, block_count, read ? "read" : "write");
 
 			struct scsi_cmnd *cmnd = _scsi_alloc_command();
