@@ -149,7 +149,7 @@ namespace Pci {
 				Config_space *e = config_space_list().first();
 				for (; e && (config_space == ~0UL); e = e->next())
 					config_space = e->lookup_config_space(bdf);
-		
+
 				return config_space;
 			}
 
@@ -320,6 +320,13 @@ namespace Pci {
 				_child->attach_dma_mem(ram);
 
 				return ram;
+			}
+
+			void free_dma_buffer(Device_capability device_cap,
+			                     Genode::Ram_dataspace_capability cap)
+			{
+				if (cap.valid())
+					Genode::env()->ram_session()->free(cap);
 			}
 	};
 

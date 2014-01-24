@@ -25,12 +25,12 @@ namespace Pci {
 		: Genode::Rpc_client<Session>(session) { }
 
 		Device_capability first_device(unsigned device_class = 0,
-		                               unsigned class_mask = 0) { 
+		                               unsigned class_mask = 0) {
 			return call<Rpc_first_device>(device_class, class_mask); }
 
 		Device_capability next_device(Device_capability prev_device,
 		                              unsigned device_class = 0,
-		                              unsigned class_mask = 0) { 
+		                              unsigned class_mask = 0) {
 			return call<Rpc_next_device>(prev_device, device_class, class_mask); }
 
 		void release_device(Device_capability device) {
@@ -42,6 +42,10 @@ namespace Pci {
 		Genode::Ram_dataspace_capability alloc_dma_buffer(Device_capability device_cap,
 		                                                  Genode::size_t size) {
 			return call<Rpc_alloc_dma_buffer>(device_cap, size); }
+
+		void free_dma_buffer(Device_capability device_cap,
+		                     Genode::Ram_dataspace_capability cap) {
+			call<Rpc_free_dma_buffer>(device_cap, cap); }
 	};
 }
 
