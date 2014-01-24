@@ -177,6 +177,9 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 
 		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
 			return Backend_memory::alloc(size, false); }
+
+		void free_dma_buffer(Genode::Ram_dataspace_capability cap) {
+			return Backend_memory::free(cap); }
 };
 
 

@@ -21,6 +21,9 @@ class Backend_memory {
 		static Genode::Ram_dataspace_capability alloc(Genode::addr_t size,
 		                                              bool cached) {
 			return Genode::env()->ram_session()->alloc(size, cached); }
+
+		static void free(Genode::Ram_dataspace_capability cap) {
+			return Genode::env()->ram_session()->free(cap); }
 };
 
 #endif /* _ARM__PLATFORM__LX_MEM_ */

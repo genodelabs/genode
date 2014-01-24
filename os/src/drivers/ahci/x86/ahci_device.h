@@ -205,6 +205,9 @@ class Ahci_device : public Ahci_device_base
 
 		Ram_dataspace_capability alloc_dma_buffer(size_t size) {
 			return _pci.alloc_dma_buffer(_pci_device_cap, size); }
+
+		void free_dma_buffer(Ram_dataspace_capability cap) {
+			return _pci.free_dma_buffer(_pci_device_cap, cap); }
 };
 
 #endif /* _AHCI_DEVICE_H_ */

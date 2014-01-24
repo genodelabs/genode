@@ -25,18 +25,49 @@ namespace Block {
 
 	using namespace Genode;
 
+	class Session_component_base;
 	class Session_component;
 	class Root;
 };
 
 
-class Block::Session_component : public Block::Session_rpc_object
+/**
+ * We have a hen and egg situation that makes this base class necessary.
+ * The Block::Session_rpc_object construction depends on a dataspace for
+ * the packet stream. The dataspace on the other hand is constructed by
+ * the driver, which is created on demand when creating a session.
+ * When creating the driver, and dataspace outside the Session_component
+ * constructor within _create_session of the root component, we would have
+ * to destroy the driver and dataspace within the destructor body of
+ * Session_component, which will lead to problems, because the packet stream
+ * destructors will be called after the shared memory already vanished.
+ */
+class Block::Session_component_base
+{
+	protected:
+
+		Driver_factory          &_driver_factory;
+		Driver                  &_driver;
+		Ram_dataspace_capability _rq_ds;
+
+		Session_component_base(Driver_factory &factory, size_t tx_buf_size)
+		: _driver_factory(factory),
+		  _driver(*factory.create()),
+		  _rq_ds(_driver.alloc_dma_buffer(tx_buf_size)) {}
+
+		~Session_component_base()
+		{
+			_driver.free_dma_buffer(_rq_ds);
+			_driver_factory.destroy(&_driver);
+		}
+};
+
+
+class Block::Session_component : public Block::Session_component_base,
+                                 public Block::Session_rpc_object
 {
 	private:
 
-		Driver_factory                      &_driver_factory;
-		Driver                              &_driver;
-		Ram_dataspace_capability             _rq_ds;
 		addr_t                               _rq_phys;
 		Signal_rpc_member<Session_component> _sink_ack;
 		Signal_rpc_member<Session_component> _sink_submit;
@@ -149,14 +180,10 @@ class Block::Session_component : public Block::Session_rpc_object
 		 * \param driver_factory  factory to create and destroy driver objects
 		 * \param ep              entrypoint handling this session component
 		 */
-		Session_component(Ram_dataspace_capability  rq_ds,
-		                  Driver                   &driver,
-		                  Driver_factory           &driver_factory,
-		                  Server::Entrypoint       &ep)
-		: Session_rpc_object(rq_ds, ep.rpc_ep()),
-		  _driver_factory(driver_factory),
-		  _driver(driver),
-		  _rq_ds(rq_ds),
+		Session_component(Driver_factory           &driver_factory,
+		                  Server::Entrypoint       &ep, size_t buf_size)
+		: Session_component_base(driver_factory, buf_size),
+		  Session_rpc_object(_rq_ds, ep.rpc_ep()),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
 		  _sink_ack(ep, *this, &Session_component::_ready_to_ack),
 		  _sink_submit(ep, *this, &Session_component::_packet_avail),
@@ -166,7 +193,7 @@ class Block::Session_component : public Block::Session_rpc_object
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
 
-			driver.session = this;
+			_driver.session = this;
 		}
 
 		/**
@@ -197,12 +224,6 @@ class Block::Session_component : public Block::Session_rpc_object
 			/* resume packet processing */
 			_packet_avail(0);
 		}
-
-		/**
-		 * Destructor
-		 */
-		~Session_component() {
-			_driver_factory.destroy(&_driver); }
 
 
 		/*******************************
@@ -262,11 +283,8 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 				throw Root::Quota_exceeded();
 			}
 
-			Driver * driver = _driver_factory.create();
-			Ram_dataspace_capability ds_cap;
-			ds_cap = driver->alloc_dma_buffer(tx_buf_size);
-			return new (md_alloc())
-				Session_component(ds_cap, *driver, _driver_factory, _ep);
+			return new (md_alloc()) Session_component(_driver_factory,
+			                                          _ep, tx_buf_size);
 		}
 
 	public:

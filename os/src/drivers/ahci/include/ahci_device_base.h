@@ -563,6 +563,7 @@ class Ahci_device_base
 		}
 
 		virtual Ram_dataspace_capability alloc_dma_buffer(size_t size) = 0;
+		virtual void free_dma_buffer(Ram_dataspace_capability cap) = 0;
 };
 
 #endif /* _AHCI_DEVICE_BASE_H_ */

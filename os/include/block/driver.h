@@ -148,6 +148,12 @@ struct Block::Driver
 		return Genode::env()->ram_session()->alloc(size, false); }
 
 	/**
+	 * Free buffer which is suitable for DMA.
+	 */
+	virtual void free_dma_buffer(Genode::Ram_dataspace_capability c) {
+		return Genode::env()->ram_session()->free(c); }
+
+	/**
 	 * Synchronize with device.
 	 *
 	 * Note: should be overriden by (e.g. intermediate) components,

@@ -12,6 +12,8 @@
  */
 
 /* Genode inludes */
+#include <ram_session/client.h>
+#include <base/object_pool.h>
 #include <pci_session/connection.h>
 #include <pci_device/client.h>
 
@@ -175,12 +177,51 @@ class Pci_driver
 };
 
 
+/********************************
+ ** Backend memory definitions **
+ ********************************/
+
+struct Memory_object_base : Genode::Object_pool<Memory_object_base>::Entry
+{
+	Memory_object_base(Genode::Ram_dataspace_capability cap)
+	: Genode::Object_pool<Memory_object_base>::Entry(cap) {}
+	virtual ~Memory_object_base() {};
+
+	virtual void free() = 0;
+
+	Genode::Ram_dataspace_capability ram_cap()
+	{
+		using namespace Genode;
+		return reinterpret_cap_cast<Ram_dataspace>(cap());
+	}
+};
+
+
+struct Ram_object : Memory_object_base
+{
+	Ram_object(Genode::Ram_dataspace_capability cap)
+	: Memory_object_base(cap) {}
+
+	void free();
+};
+
+
+struct Dma_object : Memory_object_base
+{
+	Dma_object(Genode::Ram_dataspace_capability cap)
+	: Memory_object_base(cap) {}
+
+	void free();
+};
+
+
 /*********************
  ** Linux interface **
  *********************/
 
 static Pci::Device_capability pci_device_cap;
 static Pci::Connection pci;
+static Genode::Object_pool<Memory_object_base> memory_pool;
 
 int pci_register_driver(struct pci_driver *drv)
 {
@@ -319,13 +360,42 @@ const char *pci_name(const struct pci_dev *pdev)
 	return "dummy";
 }
 
+
+void Ram_object::free() { Genode::env()->ram_session()->free(ram_cap()); }
+
+
+void Dma_object::free() { pci.free_dma_buffer(pci_device_cap, ram_cap()); }
+
+
 Genode::Ram_dataspace_capability Backend_memory::alloc(Genode::addr_t size,
                                                        bool cached)
 {
 	using namespace Genode;
 
-	if (cached)
-		return env()->ram_session()->alloc(size, cached);
-	else
-		return pci.alloc_dma_buffer(pci_device_cap, size);
+	Memory_object_base *o;
+	Genode::Ram_dataspace_capability cap;
+	if (cached) {
+		cap = env()->ram_session()->alloc(size, cached);
+		o = new (env()->heap())	Ram_object(cap);
+	} else {
+		cap = pci.alloc_dma_buffer(pci_device_cap, size);
+		o = new (env()->heap()) Dma_object(cap);
+	}
+
+	memory_pool.insert(o);
+	return cap;
+}
+
+
+void Backend_memory::free(Genode::Ram_dataspace_capability cap)
+{
+	using namespace Genode;
+
+	Memory_object_base *o = memory_pool.lookup_and_lock(cap);
+	if (!o)
+		return;
+
+	o->free();
+	memory_pool.remove_locked(o);
+	destroy(env()->heap(), o);
 }

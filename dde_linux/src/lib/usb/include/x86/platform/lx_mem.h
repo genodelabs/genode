@@ -1,6 +1,6 @@
 /*
  * \brief  Platform specific part of memory allocation
- * \author Alexander Boettcher 
+ * \author Alexander Boettcher
  * \date   2013-03-18
  */
 
@@ -20,6 +20,8 @@ class Backend_memory {
 
 		static Genode::Ram_dataspace_capability alloc(Genode::addr_t size,
 		                                              bool cached);
+
+		static void free(Genode::Ram_dataspace_capability cap);
 };
 
 #endif /* _X86__PLATFORM__LX_MEM_ */
