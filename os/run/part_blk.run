@@ -4,18 +4,9 @@
 
 set block_count 20480
 
-if { [file exists bin/ata.raw] == 0 } then {
-	# create empty block device file
-	catch { exec dd if=/dev/zero of=bin/ata.raw bs=512 count=$block_count }
-
-	if [catch { set sfdisk [ exec which sfdisk ] }] {
-	   puts "sfdisk needs to be installed!"
-	   exit 1
-	}
-
-	# create two primary partitions (one is extented) and two logical paritions
-	puts "using sfdisk to partition disk image, requires root privileges"
-	catch { exec echo "2048,4096,c\n4096,16386,5\n0,0\n0,0\n6144,4096,c\n12288,8192,c\n" | $sfdisk -uS -f bin/ata.raw }
+if [catch { set sfdisk [ exec which sfdisk ] }] {
+   puts "sfdisk needs to be installed!"
+   exit 1
 }
 
 #
@@ -29,6 +20,16 @@ build {
 	server/part_blk
 	test/blk/cli
 }
+
+if { [file exists bin/ata.raw] == 0 } then {
+	# create empty block device file
+	catch { exec dd if=/dev/zero of=bin/ata.raw bs=512 count=$block_count }
+
+	# create two primary partitions (one is extented) and two logical paritions
+	puts "using sfdisk to partition disk image, requires root privileges"
+	catch { exec echo "2048,4096,c\n4096,16386,5\n0,0\n0,0\n6144,4096,c\n12288,8192,c\n" | $sfdisk -uS -f bin/ata.raw }
+}
+
 create_boot_directory
 
 #
