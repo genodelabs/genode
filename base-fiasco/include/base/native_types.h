@@ -78,13 +78,15 @@ namespace Genode {
 		/**
 		 * Thread-context area configuration.
 		 */
-		static addr_t context_area_virtual_base() { return 0x40000000UL; }
-		static addr_t context_area_virtual_size() { return 0x10000000UL; }
+		static constexpr addr_t context_area_virtual_base() {
+			return 0x40000000UL; }
+		static constexpr addr_t context_area_virtual_size() {
+			return 0x10000000UL; }
 
 		/**
 		 * Size of virtual address region holding the context of one thread
 		 */
-		static addr_t context_virtual_size() { return 0x00100000UL; }
+		static constexpr addr_t context_virtual_size() { return 0x00100000UL; }
 	};
 
 	struct Native_pd_args { };

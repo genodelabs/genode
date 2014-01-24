@@ -17,10 +17,6 @@
 #include <util/string.h>
 #include <util/misc_math.h>
 
-namespace Fiasco {
-#include <l4/sys/utcb.h>
-}
-
 using namespace Genode;
 
 
@@ -41,7 +37,8 @@ namespace Genode {
 
 Thread_base::Context *Thread_base::Context_allocator::base_to_context(addr_t base)
 {
-	addr_t result = base + Native_config::context_virtual_size() - sizeof(Context);
+	addr_t result = base + Native_config::context_virtual_size()
+	                - sizeof(Context);
 	return reinterpret_cast<Context *>(result);
 }
 
@@ -52,14 +49,17 @@ addr_t Thread_base::Context_allocator::addr_to_base(void *addr)
 }
 
 
-bool Thread_base::Context_allocator::_is_in_use(addr_t base)
+size_t Thread_base::Context_allocator::base_to_idx(addr_t base)
 {
-	List_element<Thread_base> *le = _threads.first();
-	for (; le; le = le->next())
-		if (base_to_context(base) == le->object()->_context)
-			return true;
+	return (base - Native_config::context_area_virtual_base()) /
+	       Native_config::context_virtual_size();
+}
 
-	return false;
+
+addr_t Thread_base::Context_allocator::idx_to_base(size_t idx)
+{
+	return Native_config::context_area_virtual_base() +
+	       idx * Native_config::context_virtual_size();
 }
 
 
@@ -67,30 +67,19 @@ Thread_base::Context *Thread_base::Context_allocator::alloc(Thread_base *thread_
 {
 	Lock::Guard _lock_guard(_threads_lock);
 
-	/*
-	 * Find slot in context area for the new context
-	 */
-	addr_t base = Native_config::context_area_virtual_base();
-	for (; _is_in_use(base); base += Native_config::context_virtual_size()) {
-
-		/* check upper bound of context area */
-		if (base >= Native_config::context_area_virtual_base() + Native_config::context_area_virtual_size())
-			return 0;
+	try {
+		return base_to_context(idx_to_base(_alloc.alloc()));
+	} catch(Bit_allocator<MAX_THREADS>::Out_of_indices) {
+		return 0;
 	}
-
-	_threads.insert(&thread_base->_list_element);
-
-	return base_to_context(base);
 }
 
 
-void Thread_base::Context_allocator::free(Thread_base *thread_base)
+void Thread_base::Context_allocator::free(Context *context)
 {
 	Lock::Guard _lock_guard(_threads_lock);
 
-	_threads.remove(&thread_base->_list_element);
-
-	thread_base->_context->~Context();
+	_alloc.free(base_to_idx(addr_to_base(context)));
 }
 
 
@@ -124,7 +113,8 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	enum { PAGE_SIZE_LOG2 = 12 };
 	size_t ds_size = align_addr(stack_size, PAGE_SIZE_LOG2);
 
-	if (stack_size >= Native_config::context_virtual_size() - sizeof(Native_utcb) - (1 << PAGE_SIZE_LOG2))
+	if (stack_size >= Native_config::context_virtual_size() -
+	    sizeof(Native_utcb) - (1UL << PAGE_SIZE_LOG2))
 		throw Stack_too_large();
 
 	/*
@@ -132,8 +122,9 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	 *
 	 * The stack is always located at the top of the context.
 	 */
-	addr_t ds_addr = Context_allocator::addr_to_base(context) + Native_config::context_virtual_size()
-	               - ds_size;
+	addr_t ds_addr = Context_allocator::addr_to_base(context) +
+	                 Native_config::context_virtual_size() -
+	                 ds_size;
 
 	/* add padding for UTCB if defined for the platform */
 	if (sizeof(Native_utcb) >= (1 << PAGE_SIZE_LOG2))
@@ -144,41 +135,47 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	try {
 		ds_cap = env_context_area_ram_session()->alloc(ds_size);
 		addr_t attach_addr = ds_addr - Native_config::context_area_virtual_base();
-		env_context_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size);
-
-	} catch (Ram_session::Alloc_failed) {
-		throw Stack_alloc_failed();
+		if (attach_addr != (addr_t)env_context_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size))
+			throw Stack_alloc_failed(); 
 	}
+	catch (Ram_session::Alloc_failed) { throw Stack_alloc_failed(); }
 
 	/*
 	 * Now the thread context is backed by memory, so it is safe to access its
 	 * members.
 	 *
-	 * We need to initalize the context object's memory with zeroes,
+	 * We need to initialize the context object's memory with zeroes,
 	 * otherwise the ds_cap isn't invalid. That would cause trouble
 	 * when the assignment operator of Native_capability is used.
 	 */
-	memset(context, 0, sizeof(Context));
+	memset(context, 0, sizeof(Context) - sizeof(Context::utcb));
 	context->thread_base = this;
 	context->stack_base  = ds_addr;
 	context->ds_cap      = ds_cap;
+
 	return context;
 }
 
 
-void Thread_base::_free_context()
+void Thread_base::_free_context(Context* context)
 {
-	addr_t ds_addr = _context->stack_base - Native_config::context_area_virtual_base();
-	Ram_dataspace_capability ds_cap = _context->ds_cap;
-	_context_allocator()->free(this);
+	addr_t ds_addr = context->stack_base - Native_config::context_area_virtual_base();
+	Ram_dataspace_capability ds_cap = context->ds_cap;
+
+	/* call de-constructor explicitly before memory gets detached */
+	context->~Context();
+
 	Genode::env_context_area_rm_session()->detach((void *)ds_addr);
 	Genode::env_context_area_ram_session()->free(ds_cap);
+
+	/* context area ready for reuse */
+	_context_allocator()->free(context);
 }
 
 
 void Thread_base::name(char *dst, size_t dst_len)
 {
-	snprintf(dst, min(dst_len, (size_t)Context::NAME_LEN), _context->name);
+	snprintf(dst, min(dst_len, (size_t)Context::NAME_LEN), "%s", _context->name);
 }
 
 
@@ -196,9 +193,23 @@ void Thread_base::join()
 }
 
 
+void* Thread_base::alloc_secondary_stack(char const *name, size_t stack_size)
+{
+	Context *context = _alloc_context(stack_size);
+	strncpy(context->name, name, sizeof(context->name));
+	return (void *)context->stack_top();
+}
+
+
+void Thread_base::free_secondary_stack(void* stack_addr)
+{
+	addr_t base = Context_allocator::addr_to_base(stack_addr);
+	_free_context(Context_allocator::base_to_context(base));
+}
+
+
 Thread_base::Thread_base(const char *name, size_t stack_size)
 :
-	_list_element(this),
 	_context(_alloc_context(stack_size)),
 	_join_lock(Lock::LOCKED)
 {
@@ -210,5 +221,5 @@ Thread_base::Thread_base(const char *name, size_t stack_size)
 Thread_base::~Thread_base()
 {
 	_deinit_platform_thread();
-	_free_context();
+	_free_context(_context);
 }

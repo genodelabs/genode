@@ -64,15 +64,16 @@ class Routine : public Genode::List<Routine>::Element
 			/* will never return */
 			if (!_started) {
 				_started = true;
-				_stack = (char *)dde_kit_simple_malloc(STACK_SIZE);
+				Genode::Thread_base *th = Genode::Thread_base::myself();
+				_stack = (char *) th->alloc_secondary_stack(_name, STACK_SIZE);
 
 				if (verbose)
-					PDBG("Start func %s (%p) sp: %p", _name, _func, (_stack + STACK_SIZE));
+					PDBG("Start func %s (%p) sp: %p", _name, _func, _stack);
 
 				/* XXX  move to platform code */
 
 				/* switch stack and call '_func(_arg)' */
-				platform_execute((void *)(_stack + STACK_SIZE), (void *)_func, _arg);
+				platform_execute((void *)(_stack), (void *)_func, _arg);
 			}
 
 			/* restore old state */
@@ -122,7 +123,7 @@ class Routine : public Genode::List<Routine>::Element
 		~Routine()
 		{
 			if (_stack)
-				dde_kit_simple_free(_stack);
+				Genode::Thread_base::myself()->free_secondary_stack(_stack);
 		}
 
 		/**

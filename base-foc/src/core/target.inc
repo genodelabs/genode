@@ -33,7 +33,6 @@ SRC_CC       = cap_session_component.cc \
                signal_source_component.cc \
                trace_session_component.cc \
                thread_start.cc \
-               thread_context_area.cc \
                core_printf.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \

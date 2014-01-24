@@ -39,6 +39,9 @@
  * additional context members. Note that this memory is allocated from the RAM
  * session of the process environment and not accounted for when using the
  * 'sizeof()' operand on a 'Thread_base' object.
+ *
+ * A thread may be associated with more than one stack. Additional secondary
+ * stacks can be associated with a thread, and used for user level scheduling.
  */
 
 /*
@@ -57,7 +60,7 @@
 #include <base/native_types.h>
 #include <base/trace/logger.h>
 #include <util/string.h>
-#include <util/list.h>
+#include <util/bit_allocator.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
 
@@ -79,15 +82,6 @@ namespace Genode {
 			class Context_alloc_failed : public Exception { };
 			class Stack_too_large      : public Exception { };
 			class Stack_alloc_failed   : public Exception { };
-
-		private:
-
-			/**
-			 * List-element helper to enable inserting threads in a list
-			 */
-			List_element<Thread_base> _list_element;
-
-		public:
 
 			/**
 			 * Thread context located within the thread-context area
@@ -169,8 +163,12 @@ namespace Genode {
 			{
 				private:
 
-					List<List_element<Thread_base> > _threads;
-					Lock                             _threads_lock;
+					static constexpr size_t MAX_THREADS =
+						Native_config::context_area_virtual_size() /
+						Native_config::context_virtual_size();
+
+					Bit_allocator<MAX_THREADS> _alloc;
+					Lock                       _threads_lock;
 
 					/**
 					 * Detect if a context already exists at the specified address
@@ -191,7 +189,7 @@ namespace Genode {
 					/**
 					 * Release thread context
 					 */
-					void free(Thread_base *thread);
+					void free(Context *thread);
 
 					/**
 					 * Return 'Context' object for a given base address
@@ -202,6 +200,16 @@ namespace Genode {
 					 * Return base address of context containing the specified address
 					 */
 					static addr_t addr_to_base(void *addr);
+
+					/**
+					 * Return index in context area for a given base address
+					 */
+					static size_t base_to_idx(addr_t base);
+
+					/**
+					 * Return base address of context given index in context area
+					 */
+					static addr_t idx_to_base(size_t idx);
 			};
 
 			/**
@@ -217,7 +225,7 @@ namespace Genode {
 			/**
 			 * Detach and release thread context of the thread
 			 */
-			void _free_context();
+			void _free_context(Context *context);
 
 			/**
 			 * Platform-specific thread-startup code
@@ -258,7 +266,7 @@ namespace Genode {
 			Genode::Pager_capability  _pager_cap;
 
 			/**
-			 * Pointer to corresponding thread context
+			 * Pointer to primary thread context
 			 */
 			Context *_context;
 
@@ -325,6 +333,28 @@ namespace Genode {
 			 * Request name of thread
 			 */
 			void name(char *dst, size_t dst_len);
+
+			/**
+			 * Add an additional stack to the thread
+			 *
+			 * \throw Stack_too_large
+			 * \throw Stack_alloc_failed
+			 * \throw Context_alloc_failed
+			 *
+			 * The stack for the new thread will be allocated from the RAM
+			 * session of the process environment. A small portion of the
+			 * stack size is internally used by the framework for storing
+			 * thread-context information such as the thread's name (see
+			 * 'struct Context').
+			 *
+			 * \return  pointer to the new stack's top
+			 */
+			void* alloc_secondary_stack(char const *name, size_t stack_size);
+
+			/**
+			 * Remove a secondary stack from the thread
+			 */
+			void free_secondary_stack(void* stack_addr);
 
 			/**
 			 * Request capability of thread

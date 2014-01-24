@@ -49,14 +49,17 @@ addr_t Thread_base::Context_allocator::addr_to_base(void *addr)
 }
 
 
-bool Thread_base::Context_allocator::_is_in_use(addr_t base)
+size_t Thread_base::Context_allocator::base_to_idx(addr_t base)
 {
-	List_element<Thread_base> *le = _threads.first();
-	for (; le; le = le->next())
-		if (base_to_context(base) == le->object()->_context)
-			return true;
+	return (base - Native_config::context_area_virtual_base()) /
+	       Native_config::context_virtual_size();
+}
 
-	return false;
+
+addr_t Thread_base::Context_allocator::idx_to_base(size_t idx)
+{
+	return Native_config::context_area_virtual_base() +
+	       idx * Native_config::context_virtual_size();
 }
 
 
@@ -64,29 +67,19 @@ Thread_base::Context *Thread_base::Context_allocator::alloc(Thread_base *thread_
 {
 	Lock::Guard _lock_guard(_threads_lock);
 
-	/*
-	 * Find slot in context area for the new context
-	 */
-	addr_t base = Native_config::context_area_virtual_base();
-	for (; _is_in_use(base); base += Native_config::context_virtual_size()) {
-
-		/* check upper bound of context area */
-		if (base >= Native_config::context_area_virtual_base() +
-		    Native_config::context_area_virtual_size())
-			return 0;
+	try {
+		return base_to_context(idx_to_base(_alloc.alloc()));
+	} catch(Bit_allocator<MAX_THREADS>::Out_of_indices) {
+		return 0;
 	}
-
-	_threads.insert(&thread_base->_list_element);
-
-	return base_to_context(base);
 }
 
 
-void Thread_base::Context_allocator::free(Thread_base *thread_base)
+void Thread_base::Context_allocator::free(Context *context)
 {
 	Lock::Guard _lock_guard(_threads_lock);
 
-	_threads.remove(&thread_base->_list_element);
+	_alloc.free(base_to_idx(addr_to_base(context)));
 }
 
 
@@ -159,23 +152,24 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	context->thread_base = this;
 	context->stack_base  = ds_addr;
 	context->ds_cap      = ds_cap;
+
 	return context;
 }
 
 
-void Thread_base::_free_context()
+void Thread_base::_free_context(Context* context)
 {
-	addr_t ds_addr = _context->stack_base - Native_config::context_area_virtual_base();
-	Ram_dataspace_capability ds_cap = _context->ds_cap;
+	addr_t ds_addr = context->stack_base - Native_config::context_area_virtual_base();
+	Ram_dataspace_capability ds_cap = context->ds_cap;
 
 	/* call de-constructor explicitly before memory gets detached */
-	_context->~Context();
+	context->~Context();
 
 	Genode::env_context_area_rm_session()->detach((void *)ds_addr);
 	Genode::env_context_area_ram_session()->free(ds_cap);
 
 	/* context area ready for reuse */
-	_context_allocator()->free(this);
+	_context_allocator()->free(context);
 }
 
 
@@ -211,9 +205,23 @@ void Thread_base::join()
 }
 
 
+void* Thread_base::alloc_secondary_stack(char const *name, size_t stack_size)
+{
+	Context *context = _alloc_context(stack_size);
+	strncpy(context->name, name, sizeof(context->name));
+	return (void *)context->stack_top();
+}
+
+
+void Thread_base::free_secondary_stack(void* stack_addr)
+{
+	addr_t base = Context_allocator::addr_to_base(stack_addr);
+	_free_context(Context_allocator::base_to_context(base));
+}
+
+
 Thread_base::Thread_base(const char *name, size_t stack_size)
 :
-	_list_element(this),
 	_context(_alloc_context(stack_size)),
 	_join_lock(Lock::LOCKED)
 {
@@ -225,5 +233,5 @@ Thread_base::Thread_base(const char *name, size_t stack_size)
 Thread_base::~Thread_base()
 {
 	_deinit_platform_thread();
-	_free_context();
+	_free_context(_context);
 }
