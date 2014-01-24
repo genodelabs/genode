@@ -135,7 +135,7 @@ static int lookup_tid_by_client_socket(int sd)
 	 * Synchronize calls so that the large 'sockaddr_un' can be allocated
 	 * in the BSS rather than the stack.
 	 */
-	Lock lock;
+	static Lock lock;
 	Lock::Guard guard(lock);
 
 	static sockaddr_un name;
