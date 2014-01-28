@@ -6,7 +6,7 @@
 
 LIBS += cxx startup
 
-SRC_CC += cap_copy.cc main_bootstrap.cc
+SRC_CC += cap_copy.cc
 SRC_CC += ipc/ipc.cc ipc/pager.cc ipc/ipc_marshal_cap.cc
 SRC_CC += pager/pager.cc pager/common.cc
 SRC_CC += avl_tree/avl_tree.cc
@@ -20,12 +20,11 @@ SRC_CC += elf/elf_binary.cc
 SRC_CC += lock/lock.cc
 SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc server/common.cc
-SRC_CC += thread/thread.cc thread/thread_bootstrap_empty.cc thread/trace.cc
+SRC_CC += thread/thread.cc thread/thread_bootstrap.cc thread/trace.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/thread
 
-vpath main_bootstrap.cc  $(REP_DIR)/src/platform
-vpath cap_copy.cc       $(BASE_DIR)/src/platform
-vpath %.cc               $(REP_DIR)/src/base
-vpath %.cc              $(BASE_DIR)/src/base
+vpath cap_copy.cc $(BASE_DIR)/src/platform
+vpath %.cc        $(REP_DIR)/src/base
+vpath %.cc        $(BASE_DIR)/src/base

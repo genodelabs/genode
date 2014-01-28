@@ -11,7 +11,12 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-ENTRY(_start)
+
+/*
+ * Program doesn't need to startup with CRT0 as LDSO has done this
+ * initialization during its own CRT0 already.
+ */
+ENTRY(_main)
 
 PHDRS 
 {

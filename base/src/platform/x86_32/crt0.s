@@ -1,6 +1,7 @@
 /**
  * \brief   Startup code for Genode applications
  * \author  Christian Helmuth
+ * \author  Martin Stein
  * \date    2009-08-12
  */
 
@@ -11,53 +12,79 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/*--- .text (program code) -------------------------*/
-	.text
-	.global _start
 
-_start:
+/**************************
+ ** .text (program code) **
+ **************************/
+
+.text
+
+	/* program entry-point */
+	.global _start
+	_start:
+
+	/* make initial value of some registers available to higher-level code */
 	mov %esp, __initial_sp
 	mov %eax, __initial_ax
 	mov %edi, __initial_di
 
-	/* XXX Switch to our own stack.  */
+	/*
+	 * Install initial temporary environment that is replaced later by the
+	 * environment that init_main_thread creates.
+	 */
 	leal _stack_high, %esp
 
-	/* Clear the base pointer so that stack backtraces will work.  */
+	/* create proper environment for the main thread */
+	call init_main_thread
+
+	/* apply environment that was created by init_main_thread */
+	movl init_main_thread_result, %esp
+
+	/* clear the base pointer in order that stack backtraces will work */
 	xor %ebp,%ebp
 
-	/* Jump into init C code */
-	call _main
+	/* jump into init C code instead of calling it as it should never return */
+	jmp _main
 
-	/* We should never get here since _main does not return */
-1:	int  $3
-	jmp  2f
-	.ascii "_main() returned."
-2:	jmp  1b
 
-	.globl	__dso_handle
-__dso_handle: .long 0
+/**********************************
+ ** .eh_frame (exception frames) **
+ **********************************/
 
-/*--- .eh_frame (exception frames) -----------------*/
 /*
-	.section .eh_frame,"aw"
+.section .eh_frame,"aw"
+
 	.global	__EH_FRAME_BEGIN__
-__EH_FRAME_BEGIN__:
+	__EH_FRAME_BEGIN__:
 */
 
-/*--- .bss (non-initialized data) ------------------*/
-	.bss
+
+/*********************************
+ ** .bss (non-initialized data) **
+ *********************************/
+
+.bss
+
+	/* stack of the temporary initial environment */
 	.p2align 4
 	.global	_stack_low
-_stack_low:
-	.space	64*1024
+	_stack_low:
+	.space	64 * 1024
 	.global	_stack_high
-_stack_high:
+	_stack_high:
 
 	/* initial value of the ESP, EAX and EDI register */
-	.globl	__initial_sp
-	.globl	__initial_ax
-	.globl	__initial_di
-__initial_sp: .space 4
-__initial_ax: .space 4
-__initial_di: .space 4
+	.global	__initial_sp
+	__initial_sp:
+	.space 4
+	.global	__initial_ax
+	__initial_ax:
+	.space 4
+	.global	__initial_di
+	__initial_di:
+	.space 4
+
+	/* return value of init_main_thread */
+	.global init_main_thread_result
+	init_main_thread_result:
+	.space 4

@@ -1,6 +1,7 @@
 /*
  * \brief  Implementation of the Thread API via Linux threads
  * \author Norman Feske
+ * \author Martin Stein
  * \date   2006-06-13
  */
 
@@ -23,6 +24,7 @@
 
 using namespace Genode;
 
+extern int main_thread_futex_counter;
 
 static void empty_signal_handler(int) { }
 
@@ -67,9 +69,16 @@ void Thread_base::_thread_start()
 }
 
 
-void Thread_base::_init_platform_thread()
+void Thread_base::_init_platform_thread(Type type)
 {
-	_thread_cap = env()->cpu_session()->create_thread(_context->name);
+	/* for normal threads create an object at the CPU session */
+	if (type == NORMAL) {
+		_thread_cap = env()->cpu_session()->create_thread(_context->name);
+		return;
+	}
+	/* adjust initial object state for main threads */
+	tid().futex_counter = main_thread_futex_counter;
+	_thread_cap = env()->parent()->main_thread_cap();
 }
 
 

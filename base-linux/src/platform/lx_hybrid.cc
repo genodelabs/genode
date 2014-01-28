@@ -401,7 +401,7 @@ void Thread_base::join()
 }
 
 
-Thread_base::Thread_base(const char *name, size_t stack_size)
+Thread_base::Thread_base(const char *name, size_t stack_size, Type)
 {
 	_tid.meta_data = new (env()->heap()) Thread_meta_data_created(this);
 

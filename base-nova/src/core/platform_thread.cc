@@ -106,7 +106,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 	if (!is_vcpu()) {
 		pd_utcb = Native_config::context_area_virtual_base() +
-		          Native_config::context_area_virtual_size() - get_page_size();
+		          Native_config::context_virtual_size() - get_page_size();
 
 		addr_t remap_src[] = { _pd->parent_pt_sel() };
 		addr_t remap_dst[] = { PT_SEL_PARENT };

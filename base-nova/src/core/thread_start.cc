@@ -27,7 +27,7 @@
 using namespace Genode;
 
 
-void Thread_base::_init_platform_thread()
+void Thread_base::_init_platform_thread(Type type)
 {
 	/*
 	 * This function is called for constructing server activations and pager
@@ -36,6 +36,20 @@ void Thread_base::_init_platform_thread()
 	 */
 	using namespace Nova;
 
+	if (type == MAIN)
+	{
+		/* set EC selector according to NOVA spec */
+		_tid.ec_sel = Platform_pd::pd_core_sel() + 1;
+
+		/*
+		 * Exception base of first thread in core is 0. We have to set
+		 * it here so that Thread_base code finds the semaphore of the
+		 * main thread.
+		 */
+		_tid.exc_pt_sel = 0;
+
+		return;
+	}
 	_tid.ec_sel     = cap_map()->insert(1);
 	_tid.exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
 	addr_t pd_sel   = Platform_pd::pd_core_sel();

@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__RM_SESSION__CLIENT_H_
 #define _INCLUDE__RM_SESSION__CLIENT_H_
 
+/* Genode includes */
 #include <rm_session/capability.h>
 
 namespace Genode {
@@ -21,6 +22,8 @@ namespace Genode {
 	struct Rm_session_client : Rm_session
 	{
 		Rm_session_capability const _cap;
+
+		typedef Rm_session Rpc_interface;
 
 		/**
 		 * Return pointer to locally implemented RM session

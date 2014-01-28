@@ -46,7 +46,7 @@ void Thread_base::_thread_start()
 }
 
 
-void Thread_base::_init_platform_thread() { }
+void Thread_base::_init_platform_thread(Type) { }
 
 
 void Thread_base::_deinit_platform_thread() { }

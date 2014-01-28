@@ -12,12 +12,14 @@
  */
 
 /* Genode includes */
+#include <util/construct_at.h>
 #include <util/misc_math.h>
 #include <util/arg_string.h>
 #include <base/printf.h>
 #include <rom_session/connection.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
+#include <platform_env.h>
 
 /* noux includes */
 #include <noux_session/connection.h>
@@ -60,9 +62,6 @@ enum { verbose = false };
 enum { verbose_signals = false };
 
 
-void *operator new (size_t, void *ptr) { return ptr; }
-
-
 class Noux_connection
 {
 	private:
@@ -78,13 +77,6 @@ class Noux_connection
 	public:
 
 		Noux_connection() : _sysio(_obtain_sysio()) { }
-
-		void reconnect()
-		{
-			new (&_connection) Noux_connection;
-			Genode::env()->rm_session()->detach(_sysio);
-			_sysio = _obtain_sysio();
-		}
 
 		/**
 		 * Return the capability of the local context-area RM session
@@ -495,11 +487,22 @@ extern "C" void stdout_reconnect(); /* provided by 'log_console.cc' */
  */
 extern "C" void fork_trampoline()
 {
-	Genode::env()->reload_parent_cap(new_parent.dst, new_parent.local_name);
+	/* reinitialize environment */
+	using namespace Genode;
+	Platform_env * const platform_env = dynamic_cast<Platform_env *>(env());
+	platform_env->reinit(new_parent.dst, new_parent.local_name);
 
+	/* reinitialize standard-output connection */
 	stdout_reconnect();
-	noux_connection()->reconnect();
 
+	/* reinitialize noux connection */
+	construct_at<Noux_connection>(noux_connection());
+
+	/* reinitialize main-thread object which implies reinit of context area */
+	auto context_area_rm = noux_connection()->context_area_rm_session();
+	platform_env->reinit_main_thread(context_area_rm);
+
+	/* apply processor state that the forker had when he did the fork */
 	longjmp(fork_jmp_buf, 1);
 }
 
@@ -507,7 +510,7 @@ extern "C" void fork_trampoline()
 extern "C" pid_t fork(void)
 {
 	/* stack used for executing 'fork_trampoline' */
-	enum { STACK_SIZE = 1024 };
+	enum { STACK_SIZE = 8 * 1024 };
 	static long stack[STACK_SIZE];
 
 	if (setjmp(fork_jmp_buf)) {

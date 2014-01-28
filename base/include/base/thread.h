@@ -185,11 +185,13 @@ namespace Genode {
 					/**
 					 * Allocate thread context for specified thread
 					 *
-					 * \param thread  thread for which to allocate the new context
-					 * \return        virtual address of new thread context, or
-					 *                0 if the allocation failed
+					 * \param thread       thread for which to allocate the new context
+					 * \param main_thread  wether to alloc for the main thread
+					 *
+					 * \return  virtual address of new thread context, or
+					 *          0 if the allocation failed
 					 */
-					Context *alloc(Thread_base *thread);
+					Context *alloc(Thread_base *thread, bool main_thread);
 
 					/**
 					 * Release thread context
@@ -224,8 +226,11 @@ namespace Genode {
 
 			/**
 			 * Allocate and locally attach a new thread context
+			 *
+			 * \param stack_size   size of this threads stack
+			 * \param main_thread  wether this is the main thread
 			 */
-			Context *_alloc_context(size_t stack_size);
+			Context *_alloc_context(size_t stack_size, bool main_thread);
 
 			/**
 			 * Detach and release thread context of the thread
@@ -245,11 +250,6 @@ namespace Genode {
 			 * Helper for thread startup
 			 */
 			static void _thread_start();
-
-			/**
-			 * Hook for platform-specific constructor supplements
-			 */
-			void _init_platform_thread();
 
 			/**
 			 * Hook for platform-specific destructor supplements
@@ -285,6 +285,14 @@ namespace Genode {
 			 */
 			Genode::Lock _join_lock;
 
+			/**
+			 * Thread type
+			 *
+			 * Some threads need special treatment at construction. This enum
+			 * is solely used to distinguish them at construction.
+			 */
+			enum Type { NORMAL, MAIN, REINITIALIZED_MAIN };
+
 		private:
 
 			Trace::Logger _trace_logger;
@@ -296,6 +304,13 @@ namespace Genode {
 			 */
 			static Trace::Logger *_logger();
 
+			/**
+			 * Hook for platform-specific constructor supplements
+			 *
+			 * \param main_thread  wether this is the main thread
+			 */
+			void _init_platform_thread(Type type);
+
 		public:
 
 			/**
@@ -303,6 +318,7 @@ namespace Genode {
 			 *
 			 * \param name        thread name for debugging
 			 * \param stack_size  stack size
+			 * \param type        enables selection of special construction
 			 *
 			 * \throw Stack_too_large
 			 * \throw Stack_alloc_failed
@@ -313,8 +329,14 @@ namespace Genode {
 			 * stack size is internally used by the framework for storing
 			 * thread-context information such as the thread's name (see
 			 * 'struct Context').
+			 *
+			 * FIXME: With type = Forked_main_thread the whole
+			 *        Context::_alloc_context call gets skipped but we should
+			 *        at least set Context::ds_cap in a way that it references
+			 *        the dataspace of the already attached stack.
 			 */
-			Thread_base(const char *name, size_t stack_size);
+			Thread_base(const char *name, size_t stack_size,
+			            Type type = NORMAL);
 
 			/**
 			 * Destructor
@@ -448,9 +470,10 @@ namespace Genode {
 			 * Constructor
 			 *
 			 * \param name  thread name (for debugging)
+			 * \param type  enables selection of special construction
 			 */
-			explicit Thread(const char *name)
-			: Thread_base(name, STACK_SIZE) { }
+			explicit Thread(const char *name, Type type = NORMAL)
+			: Thread_base(name, STACK_SIZE, type) { }
 	};
 }
 

@@ -17,6 +17,7 @@
 #include <base/cap_map.h>
 #include <base/native_types.h>
 #include <util/assert.h>
+#include <util/construct_at.h>
 
 namespace Genode {
 
@@ -124,6 +125,11 @@ namespace Genode {
 
 			bool static_idx(Cap_index *idx) {
 				return ((T*)idx) < &_indices[START_IDX]; }
+
+			void reinit()
+			{
+				construct_at<Cap_index_allocator_tpl<T, SZ> >(this);
+			}
 	};
 }
 

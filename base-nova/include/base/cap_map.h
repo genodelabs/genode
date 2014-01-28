@@ -102,7 +102,7 @@ namespace Genode {
 	};
 
 
-	class Capability_map : Noncopyable
+	class Capability_map : private Noncopyable
 	{
 		private:
 

@@ -1,6 +1,7 @@
 /**
  * \brief   Startup code for Genode 64Bit applications
  * \author  Sebastian Sumpf
+ * \author  Martin Stein
  * \date    2011-05-11
  */
 
@@ -11,60 +12,90 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/*--- .text (program code) -------------------------*/
-	.text
+
+/**************************
+ ** .text (program code) **
+ **************************/
+
+.text
+
+	/* program entry-point */
 	.global _start
+	_start:
 
-_start:
-
+	/* make initial value of some registers available to higher-level code */
 	movq __initial_ax@GOTPCREL(%rip), %rbx
 	movq %rax, (%rbx)
-
 	movq __initial_di@GOTPCREL(%rip), %rbx
 	movq %rdi, (%rbx)
-
 	movq __initial_sp@GOTPCREL(%rip), %rax
 	movq %rsp, (%rax)
 
-	/* XXX Switch to our own stack.  */
+	/*
+	 * Install initial temporary environment that is replaced later by the
+	 * environment that init_main_thread creates.
+	 */
 	leaq _stack_high@GOTPCREL(%rip),%rax
 	movq (%rax), %rsp
 
-	/* Clear the base pointer so that stack backtraces will work.  */
-	xorq %rbp,%rbp
+	/* create proper environment for the main thread */
+	call init_main_thread
 
-	/* Jump into init C code */
-	call _main
+	/* apply environment that was created by init_main_thread */
+	movq init_main_thread_result@GOTPCREL(%rip), %rax
+	movq (%rax), %rsp
 
-	/* We should never get here since _main does not return */
-1:	int  $3
-	jmp  2f
-	.ascii "_main() returned."
-2:	jmp  1b
+	/* clear the base pointer in order that stack backtraces will work */
+	xorq %rbp, %rbp
 
-	.globl	__dso_handle
-__dso_handle: .quad 0
+	/*
+	 * We jump into initial C code instead of calling it as it should never
+	 * return on the one hand and because the alignment of the stack pointer
+	 * that init_main_thread returned expects a jump at the other hand. The
+	 * latter matters because GCC expects the initial stack pointer to be
+	 * aligned to 16 byte for at least the handling of floating points.
+	 */
+	jmp _main
 
-/*--- .eh_frame (exception frames) -----------------*/
+
+/**********************************
+ ** .eh_frame (exception frames) **
+ **********************************/
+
 /*
-	.section .eh_frame,"aw"
+.section .eh_frame,"aw"
+
 	.global	__EH_FRAME_BEGIN__
-__EH_FRAME_BEGIN__:
+	__EH_FRAME_BEGIN__:
 */
 
-/*--- .bss (non-initialized data) ------------------*/
-	.bss
+
+/*********************************
+ ** .bss (non-initialized data) **
+ *********************************/
+
+.bss
+
+	/* stack of the temporary initial environment */
 	.p2align 8
 	.global	_stack_low
-_stack_low:
-	.space	64*1024
+	_stack_low:
+	.space	64 * 1024
 	.global	_stack_high
-_stack_high:
+	_stack_high:
 
 	/* initial value of the RSP, RAX and RDI register */
 	.globl	__initial_sp
+	__initial_sp:
+	.space 8
 	.globl	__initial_ax
+	__initial_ax:
+	.space 8
 	.globl	__initial_di
-__initial_sp: .space 8
-__initial_ax: .space 8
-__initial_di: .space 8
+	__initial_di:
+	.space 8
+
+	/* return value of init_main_thread */
+	.globl init_main_thread_result
+	init_main_thread_result:
+	.space 8

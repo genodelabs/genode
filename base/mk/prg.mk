@@ -120,9 +120,13 @@ LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
                -Wl,--eh-frame-hdr
 
 #
-# Filter out the base libraries since they will be provided by the ldso.library
+# Filter out the base libraries since they will be provided by the LDSO
+# library and the startup library as the CRT0 part of program startup is
+# done by LDSO already. As replacement for the startup library startup_dyn
+# is used. The startup_dyn build is triggered by any shared library without
+# merging it to the library.
 #
-FILTER_DEPS := $(filter-out $(BASE_LIBS),$(DEPS:.lib=))
+FILTER_DEPS := $(filter-out $(BASE_LIBS) startup,$(DEPS:.lib=)) startup_dyn
 SHARED_LIBS += $(LIB_CACHE_DIR)/$(DYNAMIC_LINKER)/$(DYNAMIC_LINKER).lib.so
 
 #

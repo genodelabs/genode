@@ -7,7 +7,7 @@ SRC_S  = rtld_start.S
 SRC_C  = reloc.c rtld.c map_object.c xmalloc.c debug.c main.c  \
          ldso_types.c rtld_dummies.c platform.c
 SRC_CC = stdio.cc stdlib.cc file.cc err.cc string.cc lock.cc \
-         test.cc environ.cc
+         test.cc environ.cc thread.cc
 
 INC_DIR += $(DIR)/ \
            $(DIR)/contrib \

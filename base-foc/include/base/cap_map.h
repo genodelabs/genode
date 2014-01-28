@@ -146,6 +146,11 @@ namespace Genode
 			 * \param idx pointer to the Cap_index object in question
 			 */
 			virtual bool static_idx(Cap_index *idx) = 0;
+
+			/**
+			 * Redo construction of the object
+			 */
+			virtual void reinit() = 0;
 	};
 
 
@@ -196,7 +201,9 @@ namespace Genode
 	 * to save entries in the capability space, and prevent leaks of
 	 * them.
 	 */
-	class Capability_map : Noncopyable
+	class Capability_map
+	:
+		private Noncopyable
 	{
 		private:
 

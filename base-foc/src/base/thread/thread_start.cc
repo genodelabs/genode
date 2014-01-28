@@ -2,6 +2,7 @@
  * \brief  Fiasco-specific implementation of the non-core startup Thread API
  * \author Norman Feske
  * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2010-01-19
  */
 
@@ -38,15 +39,26 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Genode::Thread_base::_init_platform_thread()
+void Thread_base::_init_platform_thread(Type type)
 {
-	/* create thread at core */
-	char buf[48];
-	name(buf, sizeof(buf));
-	_thread_cap = env()->cpu_session()->create_thread(buf);
+	if (type == NORMAL)
+	{
+		/* create thread at core */
+		char buf[48];
+		name(buf, sizeof(buf));
+		_thread_cap = env()->cpu_session()->create_thread(buf);
 
-	/* assign thread to protection domain */
-	env()->pd_session()->bind_thread(_thread_cap);
+		/* assign thread to protection domain */
+		env()->pd_session()->bind_thread(_thread_cap);
+		return;
+	}
+	/* adjust values whose computation differs for a main thread */
+	_tid = Fiasco::MAIN_THREAD_CAP;
+	_thread_cap = env()->parent()->main_thread_cap();
+
+	/* make thread object known to the Fiasco environment */
+	addr_t const t = (addr_t)this;
+	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = t;
 }
 
 

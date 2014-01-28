@@ -1,6 +1,7 @@
 /**
  * \brief   Startup code for Genode applications on ARM
  * \author  Norman Feske
+ * \author  Martin Stein
  * \date    2007-04-28
  */
 
@@ -11,19 +12,40 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/*--- .text (program code) -------------------------*/
+
+/**************************
+ ** .text (program code) **
+ **************************/
+
 .section ".text.crt0"
 
+	/* linker entry-point */
 	.globl _start_ldso
-_start_ldso:
+	_start_ldso:
 
-	ldr r2, .initial_sp
+	/* make initial value of some registers available to higher-level code */
+	ldr r2, =__initial_sp
 	str sp, [r2]
 
-	ldr  sp, .stack_high
+	/*
+	 * Install initial temporary environment that is replaced later by the
+	 * environment that init_main_thread creates.
+	 */
+	ldr  sp, =_stack_high
+
+	/* let init_rtld relocate linker */
 	bl init_rtld
-	b    _main
 
-	.initial_sp:   .word __initial_sp
-	.stack_high:   .word _stack_high
+	/* create proper environment for the main thread */
+	bl init_main_thread
 
+	/* apply environment that was created by init_main_thread */
+	ldr sp, =init_main_thread_result
+	ldr sp, [sp]
+
+	/* call init C code */
+	bl _main
+
+	/* this should never be reached since _main should never return */
+	_catch_main_return:
+	b _catch_main_return

@@ -35,7 +35,7 @@ void Thread_base::_deinit_platform_thread()
 }
 
 
-void Genode::Thread_base::_init_platform_thread() { }
+void Thread_base::_init_platform_thread(Type) { }
 
 
 void Thread_base::start()

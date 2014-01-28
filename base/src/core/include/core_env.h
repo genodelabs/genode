@@ -22,6 +22,7 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <ram_session/client.h>
+#include <rm_session/capability.h>
 
 /* core includes */
 #include <platform.h>
@@ -174,7 +175,9 @@ namespace Genode {
 				return 0;
 			}
 
-			void reload_parent_cap(Capability<Parent>::Dst, long) { }
+			void reinit(Capability<Parent>::Dst, long) { }
+
+			void reinit_main_thread(Rm_session_capability &) { }
 	};
 
 

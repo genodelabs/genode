@@ -1,0 +1,130 @@
+/*
+ * \brief  Setup the thread environment of a programs first thread
+ * \author Christian Helmuth
+ * \author Christian Prochaska
+ * \author Martin Stein
+ * \date   2013-12-04
+ */
+
+/*
+ * Copyright (C) 2013 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU General Public License version 2.
+ */
+
+/* Genode includes */
+#include <util/construct_at.h>
+#include <base/env.h>
+#include <base/printf.h>
+#include <base/thread.h>
+
+using namespace Genode;
+
+extern addr_t init_main_thread_result;
+
+extern void init_exception_handling();
+
+namespace Genode { Rm_session * env_context_area_rm_session(); }
+
+void prepare_init_main_thread();
+
+enum { MAIN_THREAD_STACK_SIZE = 16UL * 1024 * sizeof(Genode::addr_t) };
+
+/**
+ * The first thread in a program
+ */
+class Main_thread : public Thread<MAIN_THREAD_STACK_SIZE>
+{
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param reinit  wether this is called for reinitialization
+		 */
+		Main_thread(bool reinit)
+		:
+			Thread("main", reinit ? REINITIALIZED_MAIN : MAIN)
+		{ }
+
+		/**********************
+		 ** Thread interface **
+		 **********************/
+
+		void entry() { }
+};
+
+
+Main_thread * main_thread()
+{
+	static Main_thread s(false);
+	return &s;
+}
+
+
+/**
+ * Create a thread object for the main thread
+ *
+ * \return  stack pointer of the new environment via init_main_thread_result
+ *
+ * This function must be called only once per program and before the _main
+ * function. It can be called as soon as a temporary environment provides
+ * some stack space and inter-process communication. At this stage, global
+ * static objects are not registered for implicit destruction at program exit.
+ */
+extern "C" void init_main_thread()
+{
+	/* do platform specific preparation */
+	prepare_init_main_thread();
+
+	/*
+	 * Explicitly setup program environment at this point to ensure that its
+	 * destructor won't be registered for the atexit routine.
+	 */
+	(void*)env();
+
+	/* initialize exception handling */
+	init_exception_handling();
+
+	/*
+	 * We create the thread-context area as early as possible to prevent other
+	 * mappings from occupying the predefined virtual-memory region.
+	 */
+	env_context_area_rm_session();
+
+	/*
+	 * Trigger first exception. This step has two purposes.
+	 * First, it enables us to detect problems related to exception handling as
+	 * early as possible. If there are problems with the C++ support library,
+	 * it is much easier to debug them at this early stage. Otherwise problems
+	 * with half-working exception handling cause subtle failures that are hard
+	 * to interpret.
+	 *
+	 * Second, the C++ support library allocates data structures lazily on the
+	 * first occurrence of an exception. This allocation traverses into
+	 * Genode's heap and, in some corner cases, consumes several KB of stack.
+	 * This is usually not a problem when the first exception is triggered from
+	 * the main thread but it becomes an issue when the first exception is
+	 * thrown from the context of a thread with a specially tailored (and
+	 * otherwise sufficient) stack size. By throwing an exception here, we
+	 * mitigate this issue by eagerly performing those allocations.
+	 */
+	try { throw 1; } catch (...) { }
+
+	/* create a thread object for the main thread */
+	main_thread();
+
+	/**
+	 * The new stack pointer enables the caller to switch from its current
+	 * environment to the those that the thread object provides.
+	 */
+	addr_t sp = reinterpret_cast<addr_t>(main_thread()->stack_top());
+	init_main_thread_result = sp;
+}
+
+
+/**
+ * Reinitialize main-thread object according to a reinitialized environment
+ */
+void reinit_main_thread() { construct_at<Main_thread>(main_thread(), true); }

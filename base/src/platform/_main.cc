@@ -31,13 +31,8 @@
 using namespace Genode;
 
 extern int main(int argc, char **argv, char **envp);
-extern void init_exception_handling();  /* implemented in base/cxx */
 
-namespace Genode {
-	Rm_session *env_context_area_rm_session();
-	void platform_main_bootstrap();
-}
-
+namespace Genode { Rm_session *env_context_area_rm_session(); }
 
 enum { ATEXIT_SIZE = 256 };
 
@@ -45,6 +40,8 @@ enum { ATEXIT_SIZE = 256 };
 /***************
  ** C++ stuff **
  ***************/
+
+void * __dso_handle = 0;
 
 enum Atexit_fn_type { ATEXIT_FN_EMPTY, ATEXIT_FN_STD, ATEXIT_FN_CXA };
 
@@ -229,11 +226,6 @@ namespace Genode { extern bool inhibit_tracing; }
  */
 extern "C" int _main()
 {
-	platform_main_bootstrap();
-
-	/* call env() explicitly to setup the environment */
-	(void*)env();
-
 	/*
 	 * Allow exit handlers to be registered.
 	 *
@@ -243,34 +235,6 @@ extern "C" int _main()
 	 * been called.
 	 */
 	atexit_enable();
-
-	/* initialize exception handling */
-	init_exception_handling();
-
-	/*
-	 * We create the thread-context area as early as possible to prevent other
-	 * mappings from occupying the predefined virtual-memory region.
-	 */
-	env_context_area_rm_session();
-
-	/*
-	 * Trigger first exception. This step has two purposes.
-	 * First, it enables us to detect problems related to exception handling as
-	 * early as possible. If there are problems with the C++ support library,
-	 * it is much easier to debug them at this early stage. Otherwise problems
-	 * with half-working exception handling cause subtle failures that are hard
-	 * to interpret.
-	 *
-	 * Second, the C++ support library allocates data structures lazily on the
-	 * first occurrence of an exception. This allocation traverses into
-	 * Genode's heap and, in some corner cases, consumes several KB of stack.
-	 * This is usually not a problem when the first exception is triggered from
-	 * the main thread but it becomes an issue when the first exception is
-	 * thrown from the context of a thread with a specially tailored (and
-	 * otherwise sufficient) stack size. By throwing an exception here, we
-	 * mitigate this issue by eagerly performing those allocations.
-	 */
-	try { throw 1; } catch (...) { }
 
 	/* call constructors for static objects */
 	void (**func)();

@@ -1,6 +1,7 @@
 /**
  * \brief   Startup code for Genode applications on ARM
  * \author  Norman Feske
+ * \author  Martin Stein
  * \date    2007-04-28
  */
 
@@ -11,34 +12,58 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-/*--- .text (program code) -------------------------*/
+
+/**************************
+ ** .text (program code) **
+ **************************/
+
 .section ".text.crt0"
 
-	.globl _start
-_start:
+	/* program entry-point */
+	.global _start
+	_start:
 
-	ldr r4, .initial_sp
+	/* make initial value of some registers available to higher-level code */
+	ldr r4, =__initial_sp
 	str sp, [r4]
 
-	ldr  sp, .stack_high
-	b    _main
+	/*
+	 * Install initial temporary environment that is replaced later by the
+	 * environment that init_main_thread creates.
+	 */
+	ldr sp, =_stack_high
 
-.initial_sp: .word __initial_sp
-.stack_high: .word _stack_high
+	/* create proper environment for main thread */
+	bl init_main_thread
 
-	.globl	__dso_handle
-__dso_handle: .long 0
+	/* apply environment that was created by init_main_thread */
+	ldr sp, =init_main_thread_result
+	ldr sp, [sp]
 
-/*--- .bss (non-initialized data) ------------------*/
+	/* jump into init C code instead of calling it as it should never return */
+	b _main
+
+
+/*********************************
+ ** .bss (non-initialized data) **
+ *********************************/
+
 .section ".bss"
 
+	/* stack of the temporary initial environment */
 	.p2align 4
-	.globl	_stack_low
-_stack_low:
-	.space	128*1024
-	.globl	_stack_high
-_stack_high:
+	.global	_stack_low
+	_stack_low:
+	.space 128 * 1024
+	.global _stack_high
+	_stack_high:
 
 	/* initial value of the SP register */
-	.globl  __initial_sp
-__initial_sp: .space 4
+	.global __initial_sp
+	__initial_sp:
+	.space 4
+
+	/* return value of init_main_thread */
+	.global init_main_thread_result
+	init_main_thread_result:
+	.space 4

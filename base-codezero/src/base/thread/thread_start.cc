@@ -39,9 +39,6 @@ void Thread_base::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread_base::_init_platform_thread() { }
-
-
 void Thread_base::_deinit_platform_thread()
 {
 	env()->cpu_session()->kill_thread(_thread_cap);

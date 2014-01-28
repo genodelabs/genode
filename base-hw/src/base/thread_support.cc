@@ -26,9 +26,6 @@ namespace Genode { Rm_session * env_context_area_rm_session(); }
  ** Thread_base **
  *****************/
 
-void Thread_base::_init_platform_thread() { }
-
-
 Native_utcb * Thread_base::utcb()
 {
 	if (this) { return &_context->utcb; }

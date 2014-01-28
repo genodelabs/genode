@@ -84,6 +84,15 @@ LIBS += $(BASE_LIBS)
 else
 LIBS := $(filter-out $(BASE_LIBS),$(LIBS))
 LIBS += $(DYNAMIC_LINKER)
+
+#
+# Ensure that startup_dyn is build for the dynamic programs that depend on a
+# shared library. They add it to their dependencies as replacement for the
+# static-case startup as soon as they recognize that they are dynamic.
+# The current library in contrast filters-out startup_dyn from its
+# dependencies before they get merged.
+#
+LIBS += startup_dyn
 endif
 
 

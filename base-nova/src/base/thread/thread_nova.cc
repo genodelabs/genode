@@ -66,7 +66,7 @@ void Thread_base::_thread_start()
  ** Thread base **
  *****************/
 
-void Thread_base::_init_platform_thread()
+void Thread_base::_init_platform_thread(Type type)
 {
 	using namespace Nova;
 
@@ -74,7 +74,15 @@ void Thread_base::_init_platform_thread()
 	 * Allocate capability selectors for the thread's execution context,
 	 * running semaphore and exception handler portals.
 	 */
-	_tid.ec_sel     = Native_thread::INVALID_INDEX;
+	_tid.ec_sel = Native_thread::INVALID_INDEX;
+
+	/* for main threads the member initialization differs */
+	if (type == MAIN || type == REINITIALIZED_MAIN) {
+		_thread_cap = env()->parent()->main_thread_cap();
+		_tid.exc_pt_sel = 0;
+		return;
+	}
+
 	_tid.exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
 	if (_tid.exc_pt_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();

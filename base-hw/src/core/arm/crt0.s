@@ -60,11 +60,6 @@
 		/* catch erroneous kernel return */
 		3: b 3b
 
-	/* handle for dynamic symbol objects */
-	.align 3
-	.global __dso_handle
-	__dso_handle: .long 0
-
 .section .bss
 
 	/* kernel stack */

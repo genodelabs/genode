@@ -27,10 +27,6 @@ enum { verbose_thread_start = true };
 
 using namespace Genode;
 
-
-void Thread_base::_init_platform_thread() { }
-
-
 void Thread_base::_deinit_platform_thread() { }
 
 

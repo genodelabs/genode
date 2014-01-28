@@ -154,6 +154,10 @@ Platform_env::Local_parent &Platform_env::_parent()
 }
 
 
+void Platform_env::reinit(Native_capability::Dst, long) { }
+void Platform_env::reinit_main_thread(Rm_session_capability &) { }
+
+
 Platform_env::Platform_env()
 :
 	Platform_env_base(static_cap_cast<Ram_session>(_parent().session("Env::ram_session", "")),

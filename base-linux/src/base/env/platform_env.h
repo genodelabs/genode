@@ -432,13 +432,15 @@ namespace Genode {
 			 */
 			~Platform_env() { _parent().exit(0); }
 
-			/**
-			 * Reload parent capability and reinitialize environment resources
+			/*
+			 * Support functions for implementing fork on Noux.
+			 *
+			 * Not supported on Linux.
+			 *
+			 * See the documentation in 'base/src/base/env/platform_env.h'
 			 */
-			void reload_parent_cap(Capability<Parent>::Dst, long)
-			{
-				/* not supported on Linux */
-			}
+			void reinit(Native_capability::Dst, long);
+			void reinit_main_thread(Rm_session_capability &);
 
 
 			/*************************************
