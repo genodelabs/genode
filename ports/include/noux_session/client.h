@@ -48,6 +48,11 @@ namespace Noux {
 			{
 				return call<Rpc_next_open_fd>(start_fd);
 			}
+
+			Rm_session_capability lookup_rm_session(addr_t const addr)
+			{
+				return call<Rpc_lookup_rm_session>(addr);
+			}
 	};
 }
 

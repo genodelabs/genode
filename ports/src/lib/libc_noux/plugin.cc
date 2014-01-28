@@ -86,6 +86,16 @@ class Noux_connection
 			_sysio = _obtain_sysio();
 		}
 
+		/**
+		 * Return the capability of the local context-area RM session
+		 */
+		Genode::Rm_session_capability context_area_rm_session()
+		{
+			using namespace Genode;
+			addr_t const addr = Native_config::context_area_virtual_base();
+			return _connection.lookup_rm_session(addr);
+		}
+
 		Noux::Session *session() { return &_connection; }
 		Noux::Sysio   *sysio()   { return  _sysio; }
 };

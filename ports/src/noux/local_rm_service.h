@@ -85,6 +85,12 @@ namespace Noux {
 				}
 				_sub_rm->poke(dst_offset, src, len);
 			}
+
+			Rm_session_capability lookup_rm_session(addr_t const addr)
+			{
+				/* the dataspace is a sub RM, so traverse into it */
+				return _sub_rm->lookup_rm_session(addr);
+			}
 	};
 
 

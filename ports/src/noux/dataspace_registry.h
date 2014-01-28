@@ -103,6 +103,17 @@ namespace Noux {
 			 * \param len         length of source buffer in bytes
 			 */
 			virtual void poke(addr_t dst_offset, void const *src, size_t len) = 0;
+
+			/**
+			 * Return leaf RM session that covers a given address
+			 *
+			 * \param addr  address that is covered by the requested RM session
+			 */
+			virtual Rm_session_capability lookup_rm_session(addr_t const addr)
+			{
+				/* by default a dataspace is no sub RM, so return invalid */
+				return Rm_session_capability();
+			}
 	};
 
 

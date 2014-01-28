@@ -425,6 +425,11 @@ namespace Noux {
 				return _sysio_ds.cap();
 			}
 
+			Rm_session_capability lookup_rm_session(addr_t const addr)
+			{
+				return _resources.rm.lookup_rm_session(addr);
+			}
+
 			bool syscall(Syscall sc);
 
 			int next_open_fd(int start_fd)
