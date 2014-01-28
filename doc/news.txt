@@ -3,6 +3,20 @@
                                Genode News
                                ===========
 
+Guide for porting 3rd-party software to Genode | 2014-01-28
+###########################################################
+
+| Our new porting guide provides step-by-step instructions on how to
+| port existing libraries, applications, and device drivers to Genode.
+
+The comprehensive documentation is written in the style of a tutorial, taking
+DosBox as a practical example to motivate the steps needed to port an existing
+application to Genode. Furthermore, it gives valuable insights into
+time-tested methodologies of porting libraries and device drivers.
+
+[http://genode.org/documentation/developer-resources/porting - Genode Porting Guide...]
+
+
 Road Map 2014 | 2014-01-17
 ##########################
 

@@ -1,0 +1,1476 @@
+                                ====================
+                                Genode Porting Guide
+                                ====================
+
+                                  Genode Labs GmbH
+
+
+Overview
+########
+
+This document describes the basic workflows for porting applications, libraries,
+and device drivers to the Genode framework. It consists of the following
+sections:
+
+:[http:porting_applications - Porting third-party code to Genode]:
+  Overview of the general steps needed to use 3rd-party code on Genode.
+
+:[http:porting_dosbox - Porting a program to natively run on Genode]:
+  Step-by-step description of applying the steps described in the first
+  section to port an application, using DosBox as an example.
+
+:[http:porting_libraries - Native Genode port of a library]:
+  Many 3rd-party applications have library dependencies. This section shows
+  how to port a library using SDL_net (needed by DosBox) as an example.
+
+:[http:porting_noux_packages - Porting an application to Genode's Noux runtime]:
+  On Genode, there exists an environment specially tailored to execute
+  command-line based Unix software, the so-called Noux runtime. This section
+  demonstrates how to port and execute the tar program within Noux.
+
+:[http:porting_device_drivers - Porting devices drivers]:
+  This chapter describes the concepts of how to port a device driver to the
+  Genode framework. It requires the basic knowledge introduced in the previous
+  chapters and should be read last. Before reading this guide, it is strongly
+  advised to read the "The Genode Build System" documentation.
+
+
+Porting third-party code to Genode
+##################################
+
+Porting an existing program or library to Genode is for the most part a
+straight-forward task and depends mainly on the complexity of the program
+itself. Genode provides a fairly complete libc based on FreeBSD's libc whose
+functionality can be extended by so-called libc plugins. If the program one
+wants to port solely uses standard libc functions, porting becomes easy. Every
+porting task involves usually the same steps which are outlined below.
+
+
+Steps in porting applications to Genode
+=======================================
+
+# Check requirements/dependencies (e.g. on Linux)
+
+  The first step is gathering information about the application,
+  e.g. what functionality needs to be provided by the target system and
+  which libraries does it use.
+
+# Create a port Makefile
+
+  Prepare the source code of the application for the use within Genode. The
+  Genode build-system infrastructure uses fetch rules, so called port-files,
+  which describe how the source is obtained, what patches are applied to the
+  source code, if needed, and where the source code will be stored and
+  configured.
+
+# Check platform dependent code and create stub code
+
+  This step may require changes to the original source code
+  of the application to be compilable to Genode. At this point, it
+  is not necessary to provide a working implementation for required
+  functions. Just creating stubs of the various functions is fine.
+
+# Create build Makefile
+
+  To compile the application we need build rules. Within these rules
+  we also declare all dependencies (e.g. libraries) that are needed
+  by it. The location of these rules depends on the type
+  of the application. Normal programs on one hand use a _target.mk_ file,
+  which is located in the program directory (e.g. _src/app/foobar_)
+  within a given Genode repository. Libraries on the other hand use
+  one or more _<library-name>.mk_ files that are placed in the _lib/mk_
+  directory of a Genode repository. In addition, libraries have to
+  provide _import-<library-name>.mk_ files. Amongst other things, these
+  files are used by applications to find the associated header files
+  of a library. The import files are placed in the _lib/import_
+  directory.
+
+# Create a run script to ease testing
+
+  To ease the testing of applications, it is reasonable to write a run script
+  that creates a test scenario for the application. This run script is used
+  to automatically build all components of the Genode OS framework that are
+  needed to run the application as well as the application itself. Testing
+  the application on any of the kernels supported by Genode becomes just a
+  matter of executing the run script.
+
+# Compile the application
+
+  The ported application is compiled from within the respective build
+  directory like any other application or component of Genode. The build
+  system of Genode uses the build rules created in the fourth step.
+
+# Run the application
+
+  While porting an application, easy testing is crucial. By using the run script
+  that was written in the fifth step we reduce the effort.
+
+# Debug the application
+
+  In most cases, a ported application does not work right away. We have to
+  debug misbehaviour and implement certain functionality in the platform-depending
+  parts of the application so that is can run on Genode. There are
+  several facilities available on Genode that help in the process. These are
+  different on each Genode platform but basically break down to using either a
+  kernel debugger (e.g., JDB on Fiasco.OC) or 'gdb(1)'. The reader of this guide
+  is advised to take a look at the "User-level debugging on Genode via GDB"
+  documentation.
+
+_The order of step 1-4 is not mandatory but is somewhat natural._
+
+
+Porting a program to natively run on Genode
+###########################################
+
+As an example on how to create a native port of a program for Genode, we will
+describe the porting of DosBox more closely. Hereby, each of the steps
+outlined in the previous section will be discussed in detail.
+
+
+Check requirements/dependencies
+===============================
+
+In the first step, we build DosBox for Linux/x86 to obtain needed information.
+Nowadays, most applications use a build-tool like Autotools or something
+similar that will generate certain files (e.g., _config.h_). These files are
+needed to successfully compile the program. Naturally they are required on
+Genode as well. Since Genode does not use the original build tool of the
+program for native ports, it is appropriate to copy those generated files
+and adjust them later on to match Genode's settings.
+
+We start by checking out the source code of DosBox from its subversion repository:
+
+! $ svn export http://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk@3837 dosbox-svn-3837
+! $ cd dosbox-svn-3837
+
+At this point, it is helpful to disable certain options that are not
+available or used on Genode just to keep the noise down:
+
+! $ ./configure --disable-opengl
+! $ make > build.log 2>&1
+
+After the DosBox binary is successfully built, we have a log file
+(build.log) of the whole build process at our disposal. This log file will
+be helpful later on when the _target.mk_ file needs to be created. In
+addition, we will inspect the DosBox binary:
+
+! $ readelf -d -t src/dosbox|grep NEEDED
+!  0x0000000000000001 (NEEDED)  Shared library: [libasound.so.2]
+!  0x0000000000000001 (NEEDED)  Shared library: [libdl.so.2]
+!  0x0000000000000001 (NEEDED)  Shared library: [libpthread.so.0]
+!  0x0000000000000001 (NEEDED)  Shared library: [libSDL-1.2.so.0]
+!  0x0000000000000001 (NEEDED)  Shared library: [libpng12.so.0]
+!  0x0000000000000001 (NEEDED)  Shared library: [libz.so.1]
+!  0x0000000000000001 (NEEDED)  Shared library: [libSDL_net-1.2.so.0]
+!  0x0000000000000001 (NEEDED)  Shared library: [libX11.so.6]
+!  0x0000000000000001 (NEEDED)  Shared library: [libstdc++.so.6]
+!  0x0000000000000001 (NEEDED)  Shared library: [libm.so.6]
+!  0x0000000000000001 (NEEDED)  Shared library: [libgcc_s.so.1]
+!  0x0000000000000001 (NEEDED)  Shared library: [libc.so.6]
+
+Using _readelf_ on the binary shows all direct dependencies. We now know
+that at least libSDL, libSDL_net, libstdc++, libpng, libz, and
+libm are required by DosBox. The remaining libraries are mostly
+mandatory on Linux and do not matter on Genode.  Luckily all of these
+libraries are already available on Genode. For now all we have to do is to
+keep them in mind.
+
+
+Creating the port Makefile
+==========================
+
+Since DosBox is an application, which depends on several ported
+libraries (e.g., libSDL), the 'ports' repository within the Genode
+source tree is a natural fit. On that account, the port Makefile
+_ports/ports/dosbox.mk_ is created. It is often reasonable to also
+create a corresponding _ports/ports/dosbox.inc_ file that contains
+the used version of the program which is included by _dosbox.mk_ as
+well as by the associated build Makefile. Through this approach it is
+easier to update ports whose structures stays the same but varies only
+in its version string.
+
+For DosBox the _dosbox.inc_ looks as follows:
+
+! DOSBOX_REV     := 3837
+! DOSBOX_VERSION := svn-$(DOSBOX_REV)
+! DOSBOX         := dosbox-$(DOSBOX_VERSION)
+
+In addition, the corresponding _dosbox.mk_ contains:
+
+! include ports/dosbox.inc
+!
+! DOSBOX_SVN_URL = http://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk
+!
+! #
+! # Interface to top-level prepare Makefile
+! #
+! PORTS += $(DOSBOX)
+!
+! prepare:: $(CONTRIB_DIR)/$(DOSBOX)
+!
+! #
+! # Port-specific local rules
+! #
+! $(CONTRIB_DIR)/$(DOSBOX):
+!         $(ECHO) "checking out 'dosbox rev. $(DOSBOX_REV)' to '$@'"
+!         $(VERBOSE)svn export $(DOSBOX_SVN_URL)@$(DOSBOX_REV) $@
+
+_The variable_ 'CONTRIB_DIR' _always contains the path to the directory_
+_that holds the contributed source code relatively to the particular_
+_Genode repository (e.g., ports/contrib)._
+
+The DosBox port can now be prepared by executing
+
+! $ make PKG=dosbox prepare
+
+from within Genode's 'ports' repository. The 'prepare::' rule is evaluated
+and the checkout will be triggered.
+
+
+Check platform-dependent code
+=============================
+
+At this point, it is important to spot platform dependent source files or
+rather certain functions that are not yet available on Genode. These source
+files should be omitted. Of course they may be used as a guidance when
+implementing the functionality for Genode later on, when creating the
+_target.mk_ file. In particular the various 'cdrom_ioctl_*.cpp' files are such
+candidates in this example.
+
+
+Creating the build Makefile
+===========================
+
+Now it is time to write the build rules into the _target.mk_, which will be
+placed in _ports/src/app/dosbox_.
+
+Armed with the _build.log_ that we created while building DosBox on Linux,
+we assemble a list of needed source files. If an application just
+uses a simple Makefile and not a build tool, it might be easier to just
+reuse the contents of this Makefile instead.
+
+First we include _dosbox.inc_ and for convenience set the source directory
+of DosBox:
+
+! include $(REP_DIR)/ports/dosbox.inc
+! DOSBOX_DIR = $(REP_DIR)/contrib/$(DOSBOX)
+
+Examining the log file leaves us with the following list of source files:
+
+! SRC_CC_cpu      = $(notdir $(wildcard $(DOSBOX_DIR)/src/cpu/*.cpp))
+! SRC_CC_debug    = $(notdir $(wildcard $(DOSBOX_DIR)/src/debug/*.cpp))
+! FILTER_OUT_dos  = cdrom_aspi_win32.cpp cdrom_ioctl_linux.cpp cdrom_ioctl_os2.cpp \
+!                   cdrom_ioctl_win32.cpp
+! SRC_CC_dos      = $(filter-out $(FILTER_OUT_dos), \
+!                   $(notdir $(wildcard $(DOSBOX_DIR)/src/*.cpp)))
+! […]
+! SRC_CC          = $(DOSBOX_DIR)/src/dosbox.cpp
+! SRC_CC         += $(SRC_CC_cpu) $(SRC_CC_debug) $(SRC_CC_dos) $(SRC_CC_fpu) \
+!                   $(SRC_CC_gui) $(SRC_CC_hw) $(SRC_CC_hw_ser) $(SRC_CC_ints) \
+!                   $(SRC_CC_ints) $(SRC_CC_misc) $(SRC_CC_shell)
+!
+! vpath %.cpp $(DOSBOX_DIR)/src
+! vpath %.cpp $(DOSBOX_DIR)/src/cpu
+! […]
+
+_The only variable here that is actually evaluated by Genode's build-system is_
+'SRC_CC' _. The rest of the variables are little helpers that make our_
+_life more comfortable._
+
+In this case, it is mandatory to use GNUMake's 'notdir' file name function
+because otherwise the compiled object files would be stored within
+the _contrib_ directories. Genode runs on multiple platforms with varying
+architectures and mixing object files is considered harmful, which can happen
+easily if the application is build from the original source directory. That's
+why you have to use a build directory for each platform. The Genode build
+system will create the needed directory hierarchy within the build directory
+automatically. By combining GNUMake's 'notdir' and 'wildcard' function, we
+can assemble a list of all needed source files without much effort. We then
+use 'vpath' to point GNUMake to the right source file within the _contrib_
+directory.
+
+The remaining thing to do now is setting the right include directories and proper
+compiler flags:
+
+! INC_DIR += $(PRG_DIR)
+! INC_DIR += $(DOSBOX_DIR)/include
+! INC_DIR += $(addprefix $(DOSBOX_DIR)/src, cpu debug dos fpu gui hardware \
+!                                           hardware/serialport ints misc shell)
+
+'PRG_DIR' _is a special variable of Genode's build-system_
+_and its value is always the absolute path to the directory containing_
+_the 'target.mk' file._
+
+We copy the _config.h_ file, which was generated in the first step to this
+directory and change certain parts of it to better match Genode's
+environment. Below is a skimmed diff of these changes:
+
+! --- config.h.orig       2013-10-21 15:27:45.185719517 +0200
+! +++ config.h    2013-10-21 15:36:48.525727975 +0200
+! @@ -25,7 +25,8 @@
+!  /* #undef AC_APPLE_UNIVERSAL_BUILD */
+!
+!  /* Compiling on BSD */
+! -/* #undef BSD */
+! +/* Genode's libc is based on FreeBSD 8.2 */
+! +#define BSD 1
+!
+! […]
+!
+! /* The type of cpu this target has */
+! -#define C_TARGETCPU X86_64
+! +/* we define it ourself */
+! +/* #undef C_TARGETCPU */
+!
+! […]
+
+Thereafter we specify the compiler flags:
+
+! CC_OPT  = -DHAVE_CONFIG_H -D_GNU_SOURCE=1 -D_REENTRANT
+! ifeq ($(filter-out $(SPECS),x86_32),)
+! INC_DIR += $(PRG_DIR)/x86_32
+! CC_OPT += -DC_TARGETCPU=X86
+! else ifeq ($(filter-out $(SPECS),x86_64),)
+! INC_DIR += $(PRG_DIR)/x86_64
+! CC_OPT += -DC_TARGETCPU=X86_64
+! endif
+!
+! CC_WARN  = -Wall
+! #CC_WARN += -Wno-unused-variable -Wno-unused-function -Wno-switch \
+!            -Wunused-value -Wno-unused-but-set-variable
+
+As noted in the commentary seen in the diff we define 'C_TARGETCPU'
+and adjust the include directories ourselves according to the target
+architecture.
+
+While debugging compiler warnings for 3rd-party code are really helpful but
+tend to be annoying after the porting work is finished, we can
+remove the hashmark to keep the compiler from complaining too
+much.
+
+Lastly, we need to add the required libraries, which we acquired in step 1:
+
+! LIBS += libc libm libpng sdl stdcxx zlib
+! LIBS += libc_log libc_fs libc_lwip_nic_dhcp config_args
+
+In addition to the required libraries, a few Genode specific
+libraries are also needed. These libraries implement certain
+functions in the libc via the libc's plugin mechanism.
+libc_log, for example, is used to print message on stdout via
+Genode's LOG service.
+
+
+Creating the run script
+=======================
+
+To ease compiling, running and debugging DosBox, we create a run script
+at _ports/run/dosbox.run_.
+
+First, we specify the components that need to be built
+
+! set build_components {
+!   core init drivers/audio_out drivers/framebuffer drivers/input
+!   drivers/pci drivers/timer server/tar_fs app/dosbox
+! }
+! build $build_components
+
+and instruct _tool/run_ to create the boot directory that hosts
+all binaries and files which belong to the DosBox scenario.
+
+As the name 'build_components' suggests, you only have to declare
+the components of Genode, which are needed in this scenario. All
+dependencies of DosBox (e.g. libSDL) will be built before DosBox
+itself.
+
+Nextm we provide the scenario's configuration 'config':
+
+! append config {
+! <config>
+!   <parent-provides>
+!     <service name="ROM"/>
+!     <service name="RAM"/>
+!     <service name="IRQ"/>
+!     <service name="IO_MEM"/>
+!     <service name="IO_PORT"/>
+!     <service name="CAP"/>
+!     <service name="PD"/>
+!     <service name="RM"/>
+!     <service name="CPU"/>
+!     <service name="LOG"/>
+!     <service name="SIGNAL"/>
+!   </parent-provides>
+!   <default-route>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </default-route>
+!   <start name="audio_out_drv">
+!     <resource name="RAM" quantum="6M"/>}
+!     <provides><service name="Audio_out"/></provides>
+!   </start>
+!   <start name="fb_drv">
+!     <resource name="RAM" quantum="4M"/>
+!     <provides><service name="Framebuffer"/></provides>
+!   </start>
+!   <start name="ps2_drv">
+!     <resource name="RAM" quantum="1M"/>
+!     <provides><service name="Input"/></provides>
+!   </start>
+!   <start name="timer">
+!     <resource name="RAM" quantum="1M"/>
+!     <provides><service name="Timer"/></provides>
+!   </start>
+!   <start name="tar_fs">
+!     <resource name="RAM" quantum="4M"/>
+!     <provides> <service name="File_system"/> </provides>
+!     <config>
+!       <archive name="dosbox.tar" />
+!       <policy label="" root="/" />
+!     </config>
+!   </start>
+!   <start name="dosbox">
+!     <resource name="RAM" quantum="128M"/>
+!     <config>
+!       <sdl_audio_volume value="100"/>
+!     </config>
+!   </start>
+! </config>}
+! install_config $config
+
+The _config_ file will be used by the init program to start all
+components and application of the scenario, including DosBox.
+
+Thereafter we declare all boot modules:
+
+! set boot_modules {
+!   core init timer audio_out_drv fb_drv ps2_drv ld.lib.so
+!   libc_fs.lib.so libc.lib.so libc_log.lib.so libm.lib.so
+!   lwip.lib.so libpng.lib.so stdcxx.lib.so sdl.lib.so
+!   pthread.lib.so zlib.lib.so tar_fs dosbox dosbox.tar
+! }
+! build_boot_image $boot_modules
+
+The boot modules comprise all binaries and other files like
+the tar archive that contains DosBox' configuration file _dosbox.conf_
+that are needed for this scenario to run sucessfully.
+
+Finally, we set certain options, which are used when Genode is executed
+in Qemu and instruct _tool/run_ to keep the scenario executing as long
+as it is not manually stopped:
+
+! append qemu_args " -m 256 -soundhw ac97 "
+! run_genode_until forever
+
+_It is reasonable to write the run script in a way that makes it possible_
+_to use it for multiple Genode platforms. Debugging is often done on_
+_Genode/Linux or on another Genode platform running in Qemu but testing_
+_is normally done using actual hardware._
+
+
+Compiling the program
+=====================
+
+To compile DosBox and all libraries it depends on, we execute
+
+! $ make app/dosbox
+
+from within Genode's build directory.
+
+_We could also use the run script that we created in the previous step but_
+_that would build all components that are needed to actually run_ DosBox
+_and at this point our goal is just to get_ DosBox _compiled._
+
+At the first attempt, the compilation stopped because g++ could not find
+the header file _sys/timeb.h_:
+
+! /src/genode/ports/contrib/dosbox-svn-3837/src/ints/bios.cpp:35:23: fatal error:
+!         sys/timeb.h: No such file or directory
+
+This header is part of the libc but until now there was no program, which
+actually used this header. So nobody noticed that it was missing. This
+can happen all time when porting a new application to Genode because most
+functionality is enabled or rather added on demand. Someone who is
+porting applications to Genode has to be aware of the fact that it might be
+necessary to extend Genode functionality by enabling so far disabled
+bits or implementing certain functionality needed by the
+application that is ported.
+
+Since 'ftime(3)' is a deprecated function anyway we change the code of
+DosBox to use 'gettimeofday(2)'.
+
+After this was fixed we face another problem:
+
+! /src/genode/ports/contrib/dosbox-svn-3837/src/ints/int10_vesa.cpp:48:33: error:
+!         unable to find string literal operator ‘operator"" VERSION’
+
+The fix is quite simple and the compile error was due to the fact
+that Genode uses C++11 by now. It often happens that 3rd party code
+is not well tested with a C++11 enabled compiler. In any case a patch file
+should be created which will be applied when executing the fetch-rules:
+
+! $(CONTRIB_DIR)/$(DOSBOX):
+! […]
+! 	$(VERBOSE)patch -N -p0 < src/app/dosbox/int10_vesa.patch
+
+Furthermore it would be reasonable to report the bug to the DosBox
+developers so it can be fixed upstream. We can then get rid of our
+local patch.
+
+The next show stoppers are missing symbols in Genode's SDL library port.
+As it turns out, we never actually compiled and linked in the cdrom dummy
+code which is provided by SDL.
+
+
+Running the application
+=======================
+
+DosBox was compiled successfully. Now it is time to execute the binary
+on Genode. Hence we use the run script we created in step 5:
+
+! $ make run/dosbox
+
+This may take some time because all other components of the Genode OS
+Framework that are needed for this scenario have to be built.
+
+
+Debugging the application
+=========================
+
+DosBox was successfully compiled but unfortunately it did not run.
+To be honest that was expected and here the fun begins.
+
+At this point there are several options to chose from. By running
+Genode/Fiasco.OC within Qemu we can use the kernel debugger (JDB)
+to take a deeper look at what went wrong (e.g. backtraces of the
+running processes, memory dumps of the faulted DosBox process etc.).
+Doing this can be quite taxing but fortunately Genode runs on multiple
+kernels and often problems on one kernel can be reproduced on another
+kernel. For this reason we choose Genode/Linux where we can use all
+the normal debugging tools like 'gdb(1)', 'valgrind(1)' and so on. Luckily
+for us, DosBox also fails to run on Genode/Linux. The debugging steps
+are naturally dependent on the ported software. In the case of DosBox,
+the remaining stumbling blocks were a few places where DosBox assumed
+Linux as a host platform.
+
+For the sake of completeness here is a list of all files that were created by
+porting DosBox to Genode:
+
+! ports/ports/dosbox.inc
+! ports/ports/dosbox.mk
+! ports/run/dosbox.run
+! ports/src/app/dosbox/config.h
+! ports/src/app/dosbox/patches/bios.patch
+! ports/src/app/dosbox/patches/int10_vesa.patch
+! ports/src/app/dosbox/target.mk
+! ports/src/app/dosbox/x86_32/size_defs.h
+! ports/src/app/dosbox/x86_64/size_defs.h
+
+[image dosbox]
+  DosBox ported to Genode
+
+
+Native Genode port of a library
+###############################
+
+Porting a library to be used natively on Genode is similar to porting
+an application to run natively on Genode. The source codes has to be
+obtained and, if needed, patched to run on Genode.
+As an example on how to port a library to natively run on Genode, we
+will describe the porting of SDL_net in more detail. Ported libraries
+are placed in the _libports_ repository of Genode.
+
+
+Checking requirements/dependencies
+==================================
+
+We will proceed as we did when we ported DosBox to run natively on Genode.
+First we build SDL_net on Linux to obtain a log file of the whole build
+process:
+
+! $ wget http://www.libsdl.org/projects/SDL_net/release/SDL_net-1.2.8.tar.gz
+! $ tar xvzf SDL_net-1.2.8.tar.gz
+! $ cd SDL_net-1.2.8
+! $ ./configure
+! $ make > build.log 2>&1
+
+
+Creating the port Makefile
+==========================
+
+We start by creating 'libports/ports/sdl_net.inc':
+
+! SDL_NET_VERSION = 1.2.8
+! SDL_NET         = SDL_net-$(SDL_NET_VERSION)
+
+Following this we create the actual fetch-rules
+in _libports/ports/sdl_net.mk_
+
+! include ports/sdl_net.inc
+!
+! SDL_NET_TGZ = $(SDL_NET).tar.gz
+! SDL_NET_URL = http://www.libsdl.org/projects/SDL_net/release/$(SDL_NET_TGZ)
+!
+! #
+! # Interface to top-level prepare Makefile
+! #
+! # Register SDL_net port as lower case to be consistent with the
+! # other libraries.
+! #
+! PORTS += sdl_net-$(SDL_NET_VERSION)
+!
+! prepare-sdl_net: $(CONTRIB_DIR)/$(SDL_NET) include/SDL/SDL_net.h
+!
+! $(CONTRIB_DIR)/$(SDL_NET): clean-sdl_net
+
+While extracting the archive, we omit certain directories and files that we
+do not need and that otherwise would only pollute the 'contrib' directory:
+
+! #
+! # Port-specific local rules
+! #
+! $(DOWNLOAD_DIR)/$(SDL_NET_TGZ):
+! 	$(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(SDL_NET_URL) && touch $@
+!
+! $(CONTRIB_DIR)/$(SDL_NET): $(DOWNLOAD_DIR)/$(SDL_NET_TGZ)
+! 	$(VERBOSE)tar xfz $< \
+! 	          --exclude Xcode --exclude VisualC --exclude Xcode-iOS \
+! 	          --exclude VisualCE --exclude Watcom-OS2.zip --exclude debian \
+! 	          -C $(CONTRIB_DIR) && touch $@
+! 	$(VERBOSE)patch -N -p0 < src/lib/sdl_net/SDLnet.patch
+
+Applications that want to use SDL_net have to include the 'SDL_net.h' header
+file. Hence it is necessary to make file visible to applications. This is
+done by creating a symbolic link from the original location to
+_libports/include/SDL/SDL_net.h_
+
+! #
+! # Install SDL_net headers
+! #
+! include/SDL/SDL_net.h:
+! 	$(VERBOSE)mkdir -p $(dir $@)
+! 	$(VERBOSE)ln -fs ../../$(CONTRIB_DIR)/$(SDL_NET)/SDL_net.h include/SDL/
+
+Since we created a symbolic link that is placed in Genode's _libports_
+repository,
+we have to provide a 'clean' rule. This rule is responsible for removing all
+extracted files and the link we created:
+
+! clean-sdl_net:
+! 	$(VERBOSE)rm -rf include/SDL/SDL_net.h
+! 	$(VERBOSE)rmdir include/SDL 2>/dev/null || true
+! 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(SDL_NET)
+
+_It is important to write the_ 'clean' _rule in way that does not remove_
+_files that are still needed by other components of Genode or ported_
+_applications. In this example we only delete include/SDL if it is_
+_empty. Otherwise_ 'rmdir(1)' _will not remove the directory and we_
+_simply ignore it._
+
+Creating the build Makefile
+===========================
+
+We create the build rules in _libports/lib/mk/sdl_net.mk_:
+
+! include $(REP_DIR)/ports/sdl_net.inc
+! SDL_NET_DIR = $(REP_DIR)/contrib/$(SDL_NET)
+!
+! SRC_C = $(notdir $(wildcard $(SDL_NET_DIR)/SDLnet*.c))
+!
+! vpath %.c $(SDL_NET_DIR)
+!
+! INC_DIR += $(SDL_NET_DIR)
+!
+! LIBS += libc sdl
+
+'SDL_net' should be used as shared library. To achieve this, we
+have to add the following statement to the 'mk' file:
+
+! SHARED_LIB = yes
+
+_If we omit this statement, Genode's build-system will automatically_
+_build SDL_net as a static library called_ 'sdl_net.lib.a' _that_
+_is linked directly into the application._
+
+It is a reasonable to create a dummy application that uses the
+library because it is only possible to build libraries automatically
+as a dependency of an application.
+
+Therefore we create
+_libports/src/test/libports/sdl_net/target.mk_ with the following content:
+
+! TARGET = test-sdl_net
+! LIBS   = libc sdl_net
+! SRC_CC = main.cc
+
+! vpath main.cc $(PRG_DIR)/..
+
+At this point we normally would also create _lib/import/import-sdl_net.mk_
+with the following content:
+
+! REP_INC_DIR += include/SDL
+
+However in this case this is not necessary because _SDL_net_ depends on
+libSDL which already provides its own _import-sdl.mk_ file with exactly
+the same content. While preparing SDL_net we placed a symbolic link in
+just this directory and therefore every user of SDL_net already knows
+about this directory.
+
+
+Compiling the library
+=====================
+
+We compile the SDL_net library as a side effect of building our dummy test
+program by executing
+
+! $ make test/libports/sdl_net
+
+All source files are compiled fine but unfortunately the linking of the
+library does not succeed:
+
+! /src/genodebuild/foc_x86_32/var/libcache/sdl_net/sdl_net.lib.so:
+!     undefined reference to `gethostbyaddr'
+
+The symbol 'gethostbyaddr' is missing, which is often a clear sign
+of a missing dependency. In this case however 'gethostbyaddr(3)' is
+missing because this function does not exist in Genode's libc _(*)_.
+But 'getaddrinfo(3)' exists. We are now facing the choice of implementing
+'gethostbyaddr(3)' or changing the code of SDL_net to use 'getaddrinfo(3)'.
+Porting applications or libraries to Genode always may involve this kind of
+choice. Which way is the best has to be decided by closely examining the
+matter at hand. Sometimes it is better to implement the missing functions
+and sometimes it is more beneficial to change the contributed code.
+In this case we opt for changing SDL_net because the former function is
+obsolete anyway and implementing 'gethostbyaddr(3)' involves changes to
+several libraries in Genode, namely libc and the network related
+libc plugin. Although we have to keep in mind that is likely to encounter
+another application or library that also uses this function in the future.
+
+With this change in place SDL_net compiles fine.
+
+_(*) Actually this function is implemented in the Genode's_ libc _but is_
+_only available by using libc_resolv which we did not do for the sake of_
+_this example._
+
+
+Testing the library
+===================
+
+The freshly ported library is best tested with the application, which was the
+reason the library was ported in the first place, since it is unlikely that
+we port a library just for fun and profit. Therefore, it is not necessary to
+write a run script for a library alone.
+
+For the records, here is a list of all files that were created by
+porting SDL_net to Genode:
+
+! libports/lib/mk/sdl_net.mk
+! libports/ports/sdl_net.inc
+! libports/ports/sdl_net.mk
+! libports/src/lib/sdl_net/SDLnet.patch
+! libports/test/libports/sdl_net/target.mk
+
+
+Porting an application to Genode's Noux runtime
+###############################################
+
+Porting an application to Genode's Noux runtime is basically the same as
+porting a program to natively run on Genode. The source code has to be
+prepared and, if needed, patched to run in Noux. However in contrast to
+this there are Noux build rules (_ports/mk/noux.mk_) that enable us to use
+the original build-tool if it is based upon Autotools. Building the
+application is done within a cross-compile environment. In this environment
+all needed variables like 'CC', 'LD', 'CFLAGS' and so on are set to their
+proper values. In addition to these precautions, using _noux.mk_ simplifies certain things.
+The system-call handling/functions is/are implemented in the libc plugin
+_libc_noux_ (the source code is found in _ports/src/lib/libc_noux_). All
+application running in Noux have to be linked against this library which is
+done implicitly by using the build rules of Noux.
+
+As an example on how to port an application to Genode's Noux runtime, we
+will describe the porting of GNU's 'tar' tool in more detail. A ported
+application is normally referred to as a Noux package.
+
+Checking requirements/dependencies
+==================================
+
+As usual, we first build GNU tar on Linux/x86 and capture the build
+process:
+
+! $ wget http://ftp.gnu.org/gnu/tar/tar-1.27.tar.xz
+! $ tar xJf tar-1.27.tar.xz
+! $ cd tar-1.27
+! $ ./configure
+! $ make > build.log 2>&1
+
+
+Creating the port Makefile
+==========================
+
+We start by creating the port Makefile _ports/ports/tar.mk_:
+
+! GNUTAR     = tar-1.27
+! GNUTAR_TXZ = $(GNUTAR).tar.xz
+! GNUTAR_SIG = $(GNUTAR_TXZ).sig
+! GNUTAR_URL = http://ftp.gnu.org/gnu/tar
+! GNUTAR_KEY = GNU
+
+_As of release 13.08 Genode includes integrity checks for downloaded_
+_3rd-party software. The signature of the downloaded archive will be_
+_checked prior to extraction. New ports to Genode should always use_
+_this checks if it is possible. Unfortunately not all projects provide signature_
+_files though._
+
+The remaining part of the port Makefile looks like this:
+
+! #
+! # Interface to top-level prepare Makefile
+! #
+! PORTS += $(GNUTAR)
+!
+! prepare:: $(CONTRIB_DIR)/$(GNUTAR)
+!
+! #
+! # Port-specific local rules
+! #
+! $(DOWNLOAD_DIR)/$(GNUTAR_TXZ):
+!         $(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GNUTAR_URL)/$(GNUTAR_TXZ) && touch $@
+!
+! $(DOWNLOAD_DIR)/$(GNUTAR_SIG):
+!         $(VERBOSE)wget -c -P $(DOWNLOAD_DIR) $(GNUTAR_URL)/$(GNUTAR_SIG) && touch $@
+!
+! $(CONTRIB_DIR)/$(GNUTAR): $(DOWNLOAD_DIR)/$(GNUTAR_TXZ).verified
+!         $(VERBOSE)tar xfJ $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
+!
+! $(DOWNLOAD_DIR)/$(GNUTAR_TXZ).verified: $(DOWNLOAD_DIR)/$(GNUTAR_TXZ) \
+!         $(DOWNLOAD_DIR)/$(GNUTAR_SIG)
+!         $(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GNUTAR_TXZ) \
+!                                  $(DOWNLOAD_DIR)/$(GNUTAR_SIG) $(GNUTAR_KEY)
+!         $(VERBOSE)touch $@
+
+Its almost the same as the previous shown port Makefile but adds rules for
+verifying the archive signature.
+
+
+Creating the build rule
+=======================
+
+Build rules for Noux packages are located in _ports/src/noux-pkgs_.
+
+The _tar/target.mk_ corresponding to GNU tar looks like this:
+
+! NOUX_CONFIGURE_ARGS = --bindir=/bin \
+!                       --libexecdir=/libexec
+!
+! include $(REP_DIR)/mk/noux.mk
+
+The variable 'NOUX_CONFIGURE_ARGS' contains the options that are
+passed on to Autoconf's configure script. The Noux specific build
+rules in _noux.mk_ always have to be included last.
+
+The build rules for GNU tar are quite short and therefore at the end
+of this chapter we take a look at a much more extensive example.
+
+
+Creating a run script
+=====================
+
+Creating a run script to test Noux packages is the same as it is
+with running natively ported applications. Therefore we will only focus
+on the Noux-specific parts of the run script and omit the rest.
+
+First, we add the desired Noux packages to 'build_components':
+
+! set noux_pkgs "bash coreutils tar"
+!
+! foreach pkg $noux_pkgs {
+!   lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
+!
+! build $build_components
+
+Since each Noux package is, like every other Genode binary, installed to the
+_<build-dir>/bin_ directory, we create a tar archive of each package from
+each directory:
+
+! foreach pkg $noux_pkgs {
+!   exec tar cfv bin/$pkg.tar -h -C bin/$pkg . }
+
+_Using noux.mk makes sure that each package is always installed to_
+_<build-dir>/bin/<package-name>._
+
+Later on, we will use these tar archives to assemble the file system
+hierarchy within Noux.
+
+Most applications ported to Noux want to read and write files. On that
+matter, it is reasonable to provide a file-system service and the easiest
+way to do this is to use the ram_fs server. This server provides a RAM-backed
+file system, which is perfect for testing Noux applications. With
+the help of the session label we can route multiple directories to the
+file system in Noux:
+
+! append config {
+! <config>
+! […]
+!   <start name="ram_fs">
+!     <resource name="RAM" quantum="32M"/>
+!     <provides><service name="File_system"/></provides>
+!     <config>
+!       <content>
+!         <dir name="tmp"> </dir>
+!         <dir name="home"> </dir>
+!       </content>
+!       <policy label="noux -> root" root="/" />
+!       <policy label="noux -> home" root="/home" writeable="yes" />
+!       <policy label="noux -> tmp"  root="/tmp"  writeable="yes" />
+!     </config>
+!   </start>
+! […]
+
+The file system Noux presents to the running applications is constructed
+out of several stacked file systems. These file systems have to be
+registered in the 'fstab' node in the configuration node of Noux:
+
+!   <start name="noux">
+!     <resource name="RAM" quantum="256M" />
+!     <config>
+!       <fstab>}
+
+Each Noux package is added
+
+! foreach pkg $noux_pkgs {
+!   append config {
+!         <tar name=\"$pkg.tar\" />" }}
+
+and the routes to the ram_fs file system are configured:
+
+! append config {
+!         <dir name="home"> <fs label="home" /> </dir>
+!         <dir name="ram"> <fs label="root" /> </dir>
+!         <dir name="tmp"> <fs label="tmp" /> </dir>
+!       </fstab>
+!       <start name="/bin/bash">
+!         <env name="TERM" value="linux" />
+!       </start>
+!     </config>
+!   </start>}
+
+In this example we save the run script as _ports/run/noux_tar.run_.
+
+
+Compiling the Noux package
+==========================
+
+Now we can trigger the compilation of tar by executing
+
+! $ make VERBOSE= noux-pkg/tar
+
+_At least on the first compilation attempt, it is wise to unset_ 'VERBOSE'
+_because it enables us to see the whole output of the_ 'configure' _process._
+
+If configure is not able to find a particular header file the first place
+to look is generally _libports/include/libc_. This directory is populated by
+the rules in _libports/ports/libc.mk_. So if a header file is indeed
+missing, adding the relevant header there is necessary.
+
+By now Genode provides almost all libc header files that are used by
+typical POSIX programs. In most cases it is rather a matter of enabling
+the right definitions and compilation flags. It might be worth to take a
+look at FreeBSD's ports tree because Genode's libc is based upon the one
+of FreeBSD 8.2.0 and if certain changes to the contributed code are needed,
+they are normally already done in the ports tree.
+
+The script _noux_env.sh_ that is used to create the cross-compile
+environment as well as the famous _config.log_ are found
+in _<build-dir>/noux-pkg/<package-name>_.
+
+
+Running the Noux package
+========================
+
+We use the previously written run script to start the scenario, in which we
+can execute and test the Noux package by issuing:
+
+! $ make run/noux_tar
+
+After the system has booted and Noux is running, we first create some test
+files from within the running bash process:
+
+! bash-4.1$ mkdir /tmp/foo
+! bash-4.1$ echo 'foobar' > /tmp/foo/bar
+
+Following this we try to create a ".tar" archive of the directory _/tmp/foo_
+
+! bash-4.1$ cd /tmp
+! bash-4.1$ tar cvf foo.tar foo/
+! tar: /tmp/foo: Cannot stat: Function not implemented
+! tar: Exiting with failure status due to previous errors
+! bash-4.1$
+
+Well, this does not look too good but at least we have a useful error message
+that leads (hopefully) us into the right direction.
+
+
+Debugging an application that uses the Noux runtime
+===================================================
+
+Since the Noux service is basically the kernel part of our POSIX runtime
+environment, we can ask Noux to show us the system calls executed by tar.
+We change its configuration in the run script to trace all system calls:
+
+! […]
+! <start name="noux">
+! 	<config trace_syscalls="yes">
+! […]
+
+We start the runscript again, create the test files and try to create a
+".tar" archive. It still fails but now we have a trace of all system calls
+and know at least what is going in Noux itself:
+
+! […]
+! [init -> noux] PID 0 -> SYSCALL FORK
+! [init -> noux] PID 0 -> SYSCALL WAIT4
+! [init -> noux] PID 5 -> SYSCALL STAT
+! [init -> noux] PID 5 -> SYSCALL EXECVE
+! [init -> noux] PID 5 -> SYSCALL STAT
+! [init -> noux] PID 5 -> SYSCALL GETTIMEOFDAY
+! [init -> noux] PID 5 -> SYSCALL STAT
+! [init -> noux] PID 5 -> SYSCALL OPEN
+! [init -> noux] PID 5 -> SYSCALL FTRUNCATE
+! [init -> noux] PID 5 -> SYSCALL FSTAT
+! [init -> noux] PID 5 -> SYSCALL GETTIMEOFDAY
+! [init -> noux] PID 5 -> SYSCALL FCNTL
+! [init -> noux] PID 5 -> SYSCALL WRITE
+! [init -> noux -> /bin/tar] DUMMY fstatat(): fstatat called, not implemented
+! [init -> noux] PID 5 -> SYSCALL FCNTL
+! [init -> noux] PID 5 -> SYSCALL FCNTL
+! [init -> noux] PID 5 -> SYSCALL WRITE
+! [init -> noux] PID 5 -> SYSCALL FCNTL
+! [init -> noux] PID 5 -> SYSCALL WRITE
+! [init -> noux] PID 5 -> SYSCALL GETTIMEOFDAY
+! [init -> noux] PID 5 -> SYSCALL CLOSE
+! [init -> noux] PID 5 -> SYSCALL FCNTL
+! [init -> noux] PID 5 -> SYSCALL WRITE
+! [init -> noux] PID 5 -> SYSCALL CLOSE
+! [init -> noux] child /bin/tar exited with exit value 2
+! […]
+
+_The trace log was shortened to only contain the important information._
+
+We now see at which point something went wrong. To be honest, we see the
+'DUMMY' message even without enabling the tracing of system calls. But
+there are situations where a application is actually stuck in a (blocking)
+system call and it is difficult to see in which.
+
+Anyhow, 'fstatat' is not properly implemented. At this point, we either have
+to add this function to the Genode's libc or rather add it to libc_noux.
+If we add it to the libc not only applications running in Noux will
+benefit but all applications using the libc. Implementing it in
+libc_noux is the preferred way if there are special circumstances because
+we have to treat the function differently when used in Noux (e.g. 'fork').
+
+For the sake of completeness here is a list of all files that were created by
+porting GNU tar to Genode's Noux runtime:
+
+! ports/ports/tar.mk
+! ports/run/noux_tar.run
+! ports/src/noux-pkg/tar/target.mk
+
+Extensive build rules example
+=============================
+
+The build rules for OpenSSH are much more extensive than the ones in
+the previous example. Let us take a quick look at those build rules to
+get a better understanding of possible challenges one may encounter while
+porting a program to Noux:
+
+! # This prefix 'magic' is needed because OpenSSH uses $exec_prefix
+! # while compiling (e.g. -DSSH_PATH) and in the end the $prefix and
+! # $exec_prefix path differ.
+!
+! NOUX_CONFIGURE_ARGS += --disable-ip6 \
+!                        […]
+!                        --exec-prefix= \
+!                        --bindir=/bin \
+!                        --sbindir=/bin \
+!                        --libexecdir=/bin
+
+In addition to the normal configure options we have to also define the
+path prefixes. The OpenSSH build system embeds certain paths in the
+ssh binary, which need to be changed for Noux.
+
+! NOUX_INSTALL_TARGET  = install
+
+Normally the Noux build rules (_noux.mk_) execute 'make install-strip' to
+explicitly install binaries that are stripped of their debug symbols. The
+generated Makefile of OpenSSH does not use this target. It automatically
+strips the binaries when executing 'make install'. Therefore, we set the
+variable 'NOUX_INSTALL_TARGET' to override the default behaviour of the
+Noux build rules.
+
+! LIBS += libcrypto libssl zlib libc_resolv
+
+As OpenSSH depends on several libraries we need to include these in the
+build Makefile. These libraries are runtime dependencies and need to be
+present when running OpenSSH in Noux.
+
+Sometimes it is needed to patch the original build system. One way to do
+this is by applying a patch while preparing the source code. The other
+way is to do it before building the Noux package:
+
+! noux_built.tag: Makefile Makefile_patch
+!
+! Makefile_patch: Makefile
+!         @#
+!         @# Our $(LDFLAGS) contain options which are usable by gcc(1)
+!         @# only. So instead of using ld(1) to link the binary, we have
+!         @# to use gcc(1).
+!         @#
+!         $(VERBOSE)sed -i 's|^LD=.*|LD=$(CC)|' Makefile
+!         @#
+!         @# We do not want to generate host-keys because we are crosscompiling
+!         @# and we can not run Genode binaries on the build system.
+!         @#
+!         $(VERBOSE)sed -i 's|^install:.*||' Makefile
+!         $(VERBOSE)sed -i 's|^install-nokeys:|install:|' Makefile
+!         @#
+!         @# The path of ssh(1) is hardcoded to $(bindir)/ssh which in our
+!         @# case is insufficient.
+!         @#
+!         $(VERBOSE)sed -i 's|^SSH_PROGRAM=.*|SSH_PROGRAM=/bin/ssh|' Makefile
+
+The target _noux_built.tag_ is a special target defined by the Noux build
+rules. It will be used by the build rules when building the Noux package.
+We add the 'Makefile_patch' target as a dependency to it. So after configure
+is executed the generated Makefile will be patched.
+
+Autoconf's configure script checks if all requirements are fulfilled and
+therefore, tests if all required libraries are installed on the host system.
+This is done by linking a small test program against the particular library.
+Since these libraries are only build-time dependencies, we fool the configure
+script by providing dummy libraries:
+
+! #
+! # Make the zlib linking test succeed
+! #
+! Makefile: dummy_libs
+!
+! NOUX_LDFLAGS += -L$(PWD)
+!
+! dummy_libs: libz.a libcrypto.a libssl.a
+!
+! libcrypto.a:
+!         $(VERBOSE)$(AR) -rc $@
+! libssl.a:
+!         $(VERBOSE)$(AR) -rc $@
+! libz.a:
+!         $(VERBOSE)$(AR) -rc $@
+
+Porting devices drivers
+#######################
+
+Even though Genode encourages writing native device drivers, this task sometimes
+becomes infeasible. Especially if there is no documentation available for a
+certain device or if there are not enough programming resources at hand to
+implement a fully fledged driver. Examples of ported drivers can be found in
+the 'dde_linux', 'dde_oss', and 'dde_ipxe' repositories.
+
+In this chapter we will exemplary discuss how to port a Linux driver for an ARM
+based SoC to Genode. The goal is to execute driver code in user land directly on
+Genode while making the driver believe it is running within the Linux kernel.
+Traditionally there have been two approaches to reach this goal in Genode. In
+the past, Genode provided a Linux environment, called 'dde_linux26', with the
+purpose to offer just enough infrastructure to easily port drivers. However,
+after adding more drivers it became clear that this repository grew extensively,
+making it hard to maintain. Also updating the environment to support newer
+Linux-kernel versions became a huge effort which let the repository to be neglected
+over time.
+
+Therefore we choose the path to write a customized environment for each driver,
+which provides a specially tailored infrastructure. We found that the
+support code usually is not larger than a couple of thousand lines of code,
+while upgrading to newer driver versions, as we did with the USB drivers, is
+feasible.
+
+
+Basic driver structure
+======================
+
+The first step in porting a driver is to identify the driver code that has to be
+ported. Once the code is located, we usually create a new Genode repository and
+write a Makefile that downloads and extracts the code to a directory called
+_contrib_ (see 'dde_linux/Makefile') thus implementing the 'make prepare'
+command for the repository. Having the source code ready, there are three main
+tasks the environment must implement. The first is the driver back end, which is
+responsible for raw device access using Genode primitives, the actual
+environment that emulates Linux function calls the driver code is using, and the
+front end, which exposes for example some Genode-session interface (like NIC or
+block session) that client applications can connect to.
+
+
+Further preparations
+====================
+
+Having the code ready, the next step is to create an _*.mk_ file that actually
+compiles the code. For a driver library _lib/mk/<driver name>.mk_ has to be
+created and for a stand-alone program _src/<driver name>/target.mk_ is created
+within the repository. With the _*.mk_ file in place, we can now start the
+actual compilation. Of course this will cause a whole lot of errors and
+warnings. Most of the messages will deal with implicit declarations of functions
+and unknown data types. What we have to do now is to go through each warning and
+error message and either add the header file containing the desired function or
+data type to the list of files that will be extracted to the _contrib_ directory
+or create our own prototype or data definition.
+
+When creating our own prototypes, we put them in a file called _lx_emul.h_. To
+actually get this file included in all driver files we use the following code in
+the _*.mk_ file:
+
+! CC_C_OPT  += -include $(INC_DIR)/lx_emul.h
+
+where 'INC_DIR' points to the include path of _lx_emul.h_.
+
+The hard part is to decide which of the two ways to go for a specific function
+or data type, since adding header files also adds more dependencies and often
+more errors and warnings. As a rule of thumb, try adding as few headers as
+possible.
+
+The compiler will also complain about a lot of missing header files. Since we do
+not want to create all these header files, we use a trick in our _*.mk_ file that
+extracts all header file includes from the driver code and creates symbolic
+links that correspond to the file name and links to _lx_emul.h_. You can put the
+following code snippet in your _*.mk_ file which does the trick:
+
+!#
+!# Determine the header files included by the contrib code. For each
+!# of these header files we create a symlink to _lx_emul.h_.
+!#
+!GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(CONTRIB_DIR) |\
+!                        sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" | \
+!                        sort | uniq)
+!
+!#
+!# Filter out original Linux headers that exist in the contrib directory
+!#
+!NO_GEN_INCLUDES := $(shell cd $(CONTRIB_DIR); find -name "*.h" | sed "s/.\///" | \
+!                           sed "s/.*include\///")
+!GEN_INCLUDES    := $(filter-out $(NO_GEN_INCLUDES),$(GEN_INCLUDES))
+!
+!#
+!# Put Linux headers in 'GEN_INC' dir, since some include use "../../" paths use
+!# three level include hierarchy
+!#
+!GEN_INC         := $(shell pwd)/include/include/include
+!
+!$(shell mkdir -p $(GEN_INC))
+!
+!GEN_INCLUDES    := $(addprefix $(GEN_INC)/,$(GEN_INCLUDES))
+!INC_DIR         += $(GEN_INC)
+!
+!#
+!# Make sure to create the header symlinks prior building
+!#
+!$(SRC_C:.c=.o) $(SRC_CC:.cc=.o): $(GEN_INCLUDES)
+!
+!$(GEN_INCLUDES):
+!  $(VERBOSE)mkdir -p $(dir $@)
+!  $(VERBOSE)ln -s $(LX_INC_DIR)/lx_emul.h $@
+
+Make sure 'LX_INC_DIR' is the directory containing the _lx_emul.h_ file. Note
+that 'GEN_INC' is added to your 'INC_DIR' variable.
+
+The process of function definition and type declaration continues until the code
+compiles. This process can be quite tiresome. When the driver code finally compiles, the
+next stage is linking. This will of course lead to another whole set of errors
+that complain about undefined references. To actually obtain a linked binary we
+create a _dummies.cc_ file. To ease things up we suggest to create a macro called
+'DUMMY' and implement functions as in the example below:
+
+! /*
+!  * Do not include 'lx_emul.h', since the implementation will most likely clash
+!  * with the prototype
+!  */
+!
+!#define DUMMY(retval, name) \
+!	DUMMY name(void) { \
+!		PDBG( #name " called (from %p) not implemented", __builtin_return_address(0)); \
+!	return retval; \
+!}
+!
+! DUMMY(-1, kmalloc)
+! DUMMY(-1, memcpy)
+! ...
+
+Create a 'DUMMY' for each undefined reference until the binary links. We now
+have a linked binary with a dummy environment.
+
+
+Debugging
+=========
+
+From here on, we will actually start executing code, but before we do that, let us
+have a look at the debugging options for device drivers. Since drivers have to
+be tested on the target platform, there are not as many debugging options
+available as for higher level applications, like running applications on the
+Linux version of Genode while using GDB for debugging. Having these
+restrictions, debugging is almost completely performed over the serial line and
+on rare occasions with an hardware debugger using JTAG.
+
+For basic Linux driver debugging it is useful to implement the 'printk'
+function (use 'dde_kit_printf' or something similar) first. This way, the driver
+code can output something and additions for debugging can be made. The
+'__builtin_return_address' function is also useful in order to determine where a
+specific function was called from. 'printk' may become a problem with devices
+that require certain time constrains because serial line output is very slow. This is
+why we port most drivers by running them on top of the Fiasco.OC version of
+Genode. There you can take advantage of Fiasco's debugger (JDB) and trace buffer
+facility.
+
+The trace buffer can be used to log data and is much faster than 'printk' over
+serial line. Please inspect the 'ktrace.h' file (at
+_base-foc/contrib/l4/pkg/l4sys/include/ARCH-*/ktrace.h_)
+that describes the complete interface. A very handy function there is
+
+!fiasco_tbuf_log_3val("My message", variable1, variable2, variable3);
+
+which stores a message and three variables in the trace buffer. The trace buffer
+can be inspected from within JDB by pressing 'T'.
+
+JDB can be accessed at any time by pressing the 'ESC' key. It can be used to
+inspect the state of all running threads and address spaces on the system. There
+is no recent JDB documentation available, but
+
+:Fiasco kernel debugger manual:
+
+  [http://os.inf.tu-dresden.de/fiasco/doc/jdb.pdf]
+
+should be a good starting point. It is also possible to enter the debugger at
+any time from your program calling the 'enter_kdebug("My breakpoint")' function
+from within your code. The complete JDB interface can be found in
+_base-foc/contrib/l4/pkg/l4sys/include/ARCH-*/kdebug.h_.
+
+Note that the backtrace ('bt') command does not work out of the box on ARM
+platforms. We have a small patch for that in our Fiasco.OC development branch
+located at GitHub: [http://github.com/ssumpf/foc/tree/dev]
+
+
+The back end
+============
+
+To ease up the porting of drivers and interfacing Genode from C code, Genode offers a
+library called DDE kit. DDE kit provides access to common functions required
+by drivers like device memory, virtual memory with physical-address lookup,
+interrupt handling, timers, etc. Please inspect _os/include/dde_kit_ to see the
+complete interface description. You can also use 'grep -r dde_kit_ *' to see
+usage of the interface in Genode.
+
+As an example for using DDE kit we implement the 'kmalloc' call:
+
+!void *kmalloc(size_t size, gfp_t flags)
+!{
+!  return dde_kit_simple_malloc(size);
+!}
+
+It is also possible to directly use Genode primitives from C++ files, the
+functions only have to be declared as 'extern "C"' so they can be called from C
+code.
+
+
+The environment
+===============
+
+Having a dummy environment we may now begin to actually execute driver code.
+
+Driver initialization
+~~~~~~~~~~~~~~~~~~~~~
+
+Most Linux drivers will have an initialization routine to register itself within
+the Linux kernel and do other initializations if necessary. In order to be
+initialized, the driver will register a function using the 'module_init' call.
+This registered function must be called before the driver is actually used. To
+be able to call the registered function from Genode, we define the 'module_init'
+macro in _lx_emul.h_ as follows:
+
+! #define module_init(fn) void module_##fn(void) { fn(); }
+
+when a driver now registers a function like
+
+! module_init(ehci_hcd_init);
+
+we would have to call
+
+! module_ehci_hcd_init();
+
+during driver startup. Having implemented the above, it is now time to start our
+ported driver on the target platform and check if the initialization function is
+successful. Any important dummy functions that are called must be implemented
+now. A dummy function that does not do device related things, like Linux book
+keeping, may not be implemented. Sometimes Linux checks the return values of
+functions we might not want to implement, in this case it is sufficient to simply
+adjust the return value of the affected function.
+
+Device probing
+~~~~~~~~~~~~~~
+Having the driver initialized, we will give the driver access to the device
+resources. This is performed in two steps. In the case of ARM SoC's we have to
+check in which state the boot loader (usually U-Boot) left the device. Sometimes
+devices are already setup by the boot loader and only a simple device reset is
+necessary to proceed. If the boot loader did not touch the device, we most
+likely have to check and setup all the necessary clocks on the platform and may
+have to perform other low level initializations like PHY setup.
+
+If the device is successfully (low level) initialized, we can hand it over to
+the driver by calling the 'probe' function of the driver. For ARM platforms the
+'probe' function takes a 'struct platform_device' as an argument and all
+important fields, like device resources and interrupt numbers, should be set to
+the correct values before calling 'probe'. During 'probe' the driver will most
+likely map and access device memory, request interrupts, and reset the device.
+All dummy functions that are related to these tasks should be implemented or
+ported at this point.
+
+When 'probe' returns successful, you may either test other driver functions by
+hand or start building the front-end.
+
+
+The front-end
+=============
+
+An important design question is how the front end is attached to the driver. In
+some cases the front end may not use the driver directly, but other Linux
+subsystems that are ported or emulated by the environment. For example, the USB
+storage driver implements parts of the SCSI subsystem, which in turn is used
+by the front end. The whole decision depends on the kind of driver that is
+ported and on how much additional infrastructure is needed to actually make use
+of the data. Again an USB example: For USB HID, we needed to port the USB controller
+driver, the hub driver, the USB HID driver, and the generic HID driver in order
+to retrieve keyboard and mouse events from the HID driver.
+
+The last step in porting a device driver is to make it accessible to other
+Genode applications. Typically this is achieved by implementing one of Genode's
+session interfaces, like a NIC session for network adapters or a block session for
+block devices. You may also define your own session interfaces. The
+implementation of the session interface will most likely trigger driver calls,
+so you have to have to keep an eye on the dummy functions. Also make sure that calls to the
+driver actually do what they are supposed to, for example, some wrong return value
+of a dummy function may cause a function to return without performing any work.
+
+
+Notes on synchronization
+========================
+
+After some experiences with Linux drivers and multi-threading, we lately
+choose to have all Linux driver code executed by a single thread only. This way no Linux
+synchronization primitives have to be implemented and we simply don't have to
+worry about subtle pre- and postconditions of many functions (like "this
+function has to be called with lock 'x' being held").
+
+Unfortunately we cannot get rid of all threads within a device-driver server,
+there is at least one waiting for interrupts and one for the entry point that
+waits for client session requests. In order to synchronize these threads, we use
+Genode's signalling framework. So when, for example, the IRQ thread receives an
+interrupt it will send a signal. The Linux driver thread will at certain points
+wait for these signals (e.g., functions like 'schedule_timeout' or
+'wait_for_completion') and execute the right code depending on the kind of
+signal delivered or firmly speaking the signal context. For this to work, we use
+a class called 'Signal_dispatcher' (_base/include/base/signal.h_) which inherits
+from 'Signal_context'. More than one dispatcher can be bound to a signal
+receiver, while each dispatcher might do different work, like calling the
+Linux interrupt handler in the IRQ example.
+
+
