@@ -261,7 +261,7 @@ extern "C" uid_t geteuid()
 void *sbrk(intptr_t increment)
 {
 	if (verbose)
-		PDBG("not implemented %d", increment);
+		PDBG("not implemented %ld", (long int)increment);
 	errno = ENOMEM;
 	return reinterpret_cast<void *>(-1);
 }
