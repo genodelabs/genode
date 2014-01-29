@@ -146,6 +146,10 @@ class Framebuffer_window : public Scout::Window
 		 */
 		void content_geometry(int x, int y, int w, int h)
 		{
+			if (_config_decoration) {
+				x -= 1;    /* border */
+				y -= _TH;  /* title bar */
+			}
 			Window::vpos(x, y);
 			format(Scout::Area(w + 2, h + 1 + _TH));
 		}
@@ -170,16 +174,21 @@ class Framebuffer_window : public Scout::Window
 
 			int y = 0;
 
-			_titlebar.format_fixed_width(w);
-			_titlebar.geometry(Rect(Point(1, y),
-			                        Area(_titlebar.min_size().w(),
-			                             _titlebar.min_size().h())));
-			y += _titlebar.min_size().h();
+			if (_config_decoration) {
+				_titlebar.format_fixed_width(w);
+				_titlebar.geometry(Rect(Point(1, y),
+				                        Area(_titlebar.min_size().w(),
+				                             _titlebar.min_size().h())));
+				y += _titlebar.min_size().h();
+			}
 
 			int const content_h = ((int)h > y + 1) ? (h - y - 1) : 0;
+			int const content_x = _config_decoration ? 1 : 0;
 			int const content_w = w - 2;
+
 			_content->format_fixed_size(Area(content_w, content_h));
-			_content->geometry(Rect(Point(1, y), Area(content_w, content_h)));
+			_content->geometry(Rect(Point(content_x, y),
+			                   Area(content_w, content_h)));
 
 			_sizer.geometry(Rect(Point(_size.w() - 32, _size.h() - 32), Area(32, 32)));
 
@@ -211,7 +220,8 @@ class Framebuffer_window : public Scout::Window
 			/* border */
 			Color color(0, 0, 0);
 			canvas.draw_box(0, 0, _size.w(), 1, color);
-			canvas.draw_box(0, _TH, _size.w(), 1, color);
+			if (_config_decoration)
+				canvas.draw_box(0, _TH, _size.w(), 1, color);
 			canvas.draw_box(0, _size.h() - 1, _size.w(), 1, color);
 			canvas.draw_box(0, 1, 1, _size.h() - 2, color);
 			canvas.draw_box(_size.w() - 1, 1, 1, _size.h() - 2, color);
