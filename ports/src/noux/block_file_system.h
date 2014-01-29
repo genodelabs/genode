@@ -337,7 +337,7 @@ namespace Noux {
 					 * than block size, we also have to read the block first.
 					 */
 					if (displ > 0 || length < _block_size) {
-						PWRN("offset:%u block_size:%zd displacement:%zd length:%zu",
+						PWRN("offset:%zd block_size:%zd displacement:%zd length:%zu",
 								_seek_offset, _block_size, displ, length);
 
 						_block_io(blk_nr, _block_buffer, _block_size, false);
@@ -414,7 +414,7 @@ namespace Noux {
 					}
 
 					if (displ > 0)
-						PWRN("offset:%u is not aligned to block_size:%zu"
+						PWRN("offset:%zd is not aligned to block_size:%zu"
 						     " displacement:%zu", _seek_offset, _block_size,
 						     displ);
 
