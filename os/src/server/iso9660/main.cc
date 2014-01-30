@@ -306,7 +306,7 @@ int main()
 	Iso::Pager::pager()->start();
 
 	/* initialize ROM service */
-	enum { STACK_SIZE = 4096 };
+	enum { STACK_SIZE = sizeof(long)*4096 };
 	static Cap_connection cap;
 	static Rpc_entrypoint ep(&cap, STACK_SIZE, "iso9660_ep");
 
