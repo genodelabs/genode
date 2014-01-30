@@ -5,6 +5,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 ---
  .../Source/JavaScriptCore/dfg/DFGOperations.cpp    |    1 +
+ .../JavaScriptCore/jit/ExecutableAllocator.h       |    8 ++++++++
  qtwebkit/Source/WTF/wtf/Assertions.h               |   11 ++++++++++
  qtwebkit/Source/WTF/wtf/FastMalloc.cpp             |    2 +-
  qtwebkit/Source/WTF/wtf/InlineASM.h                |    4 ++--
@@ -14,7 +15,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   12 +++++++++++
  qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   21 ++++++++++++++++++++
  .../platform/graphics/qt/MediaPlayerPrivateQt.cpp  |    3 +++
- 10 files changed, 88 insertions(+), 6 deletions(-)
+ 11 files changed, 96 insertions(+), 6 deletions(-)
 
 diff --git a/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp b/qtwebkit/Source/JavaScriptCore/dfg/DFGOperations.cpp
 index bb9ccc3..077cbed 100644
@@ -28,6 +29,26 @@ index bb9ccc3..077cbed 100644
  ".globl " SYMBOL_STRING(getHostCallReturnValue) "\n"
  HIDE_SYMBOL(getHostCallReturnValue) "\n"
  SYMBOL_STRING(getHostCallReturnValue) ":" "\n"
+diff --git a/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h b/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h
+index 85779e6..231ba3b 100644
+--- a/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h
++++ b/qtwebkit/Source/JavaScriptCore/jit/ExecutableAllocator.h
+@@ -107,7 +107,15 @@ class DemandExecutableAllocator;
+ #if CPU(ARM)
+ static const size_t fixedExecutableMemoryPoolSize = 16 * 1024 * 1024;
+ #elif CPU(X86_64)
++#if OS(GENODE)
++/*
++ * Genode's 'mmap()' implementation currently does not support on-demand
++ * allocation of physical memory and tries to allocate the whole amount at once.
++ */
++static const size_t fixedExecutableMemoryPoolSize = 32 * 1024 * 1024;
++#else
+ static const size_t fixedExecutableMemoryPoolSize = 1024 * 1024 * 1024;
++#endif
+ #else
+ static const size_t fixedExecutableMemoryPoolSize = 32 * 1024 * 1024;
+ #endif
 diff --git a/qtwebkit/Source/WTF/wtf/Assertions.h b/qtwebkit/Source/WTF/wtf/Assertions.h
 index 7e079ab..cac10fc 100644
 --- a/qtwebkit/Source/WTF/wtf/Assertions.h
