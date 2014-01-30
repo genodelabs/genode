@@ -296,7 +296,7 @@ void Pager_object::client_cancel_blocking()
 
 uint8_t Pager_object::client_recall()
 {
-	return ec_ctrl(_state.sel_client_ec);
+	return ec_ctrl(EC_RECALL, _state.sel_client_ec);
 }
 
 

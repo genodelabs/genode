@@ -147,6 +147,11 @@ namespace Nova {
 	 */
 	enum Sem_op { SEMAPHORE_UP = 0U, SEMAPHORE_DOWN = 1U, SEMAPHORE_DOWNZERO = 0x3U };
 
+	/**
+	 * Ec operations
+	 */
+	enum Ec_op { EC_RECALL = 0U, EC_YIELD = 1U };
+
 
 	class Descriptor
 	{

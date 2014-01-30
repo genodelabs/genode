@@ -41,7 +41,7 @@ Genode::Thread_base * __attribute__((weak)) Genode::Thread_base::myself()
 }
 
 
-static inline void thread_yield() { }
+static inline void thread_yield() { Nova::ec_ctrl(Nova::EC_YIELD); }
 
 
 static inline bool thread_check_stopped_and_restart(Genode::Thread_base *thread_base)

@@ -940,7 +940,7 @@ class Machine : public StaticReceiver<Machine>
 						return false;
 					}
 				}
-				return (Nova::ec_ctrl(msg.value + 1) == 0);
+				return (Nova::ec_ctrl(Nova::EC_RECALL, msg.value + 1) == 0);
 
 			case MessageHostOp::OP_VCPU_BLOCK:
 				{
