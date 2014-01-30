@@ -210,9 +210,9 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t ec_ctrl(Ec_op op, unsigned para = ~0UL)
+	inline uint8_t ec_ctrl(Ec_op op, mword_t ec = ~0UL, mword_t para = ~0UL)
 	{
-		return syscall_0(NOVA_EC_CTRL, op, para);
+		return syscall_1(NOVA_EC_CTRL, op, ec, para);
 	}
 
 

@@ -150,7 +150,7 @@ namespace Nova {
 	/**
 	 * Ec operations
 	 */
-	enum Ec_op { EC_RECALL = 0U, EC_YIELD = 1U };
+	enum Ec_op { EC_RECALL = 0U, EC_YIELD = 1U, EC_DONATE_SC = 2U, EC_RESCHEDULE = 3U };
 
 
 	class Descriptor
