@@ -153,6 +153,12 @@ Thread_base::Context *Thread_base::_alloc_context(size_t stack_size)
 	context->stack_base  = ds_addr;
 	context->ds_cap      = ds_cap;
 
+	/*
+	 * The value at the top of the stack might get interpreted as return
+	 * address of the thread start function by GDB, so we set it to 0.
+	 */
+	*(addr_t*)context->stack_top() = 0;
+
 	return context;
 }
 

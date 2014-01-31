@@ -122,9 +122,7 @@ void Thread_base::start()
 		threadlib_initialized = true;
 	}
 
-	/* align initial stack to 16 byte boundary */
-	void *thread_sp = (void *)((addr_t)(stack_top()) & ~0xf);
-	_tid.tid = lx_create_thread(Thread_base::_thread_start, thread_sp, this);
+	_tid.tid = lx_create_thread(Thread_base::_thread_start, stack_top(), this);
 	_tid.pid = lx_getpid();
 
 	/* wait until the 'thread_start' function got entered */

@@ -17,6 +17,9 @@
 lx_clone:
 	.cfi_startproc
 
+	/* Align the new stack pointer to 16 bytes. */
+	andq    $0xfffffffffffffff0, %rsi
+
 	/* Insert the argument onto the new stack.  */
 	subq	$16,%rsi
 	movq	%rcx,8(%rsi)
@@ -51,7 +54,7 @@ L(thread_start):
 
 	/* Clear the frame pointer.  The ABI suggests this be done, to mark 
 	   the outermost frame obviously.  */
-	xorl	%ebp, %ebp
+	xorq	%rbp, %rbp
 
 	/* Set up arguments for the function call.  */
 	popq	%rax	/* Function to call.  */

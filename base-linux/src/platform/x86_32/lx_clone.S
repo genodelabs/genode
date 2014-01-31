@@ -83,8 +83,7 @@ L(thread_start):
     .cfi_startproc;
     /* Clearing frame pointer is insufficient, use CFI.  */
     .cfi_undefined %eip;
-    /* Note: %esi is zero.  */
-    movl    %esi,%ebp   /* terminate the stack frame */
+    xorl    %ebp,%ebp   /* terminate the stack frame */
     call    *%ebx
 #ifdef PIC
     call    L(here)

@@ -100,11 +100,16 @@ namespace Genode {
 				public:
 
 				/**
-				 * Top of stack aligned to 16 byte
+				 * Top of stack
 				 *
-				 * The alignment is also sufficient for the AMD64 ABI.
+				 * The alignment matches an initial stack frame, which is
+				 * sufficient for the AMD64 ABI (stack top + 8 is 16-byte
+				 * aligned).
 				 */
-				addr_t stack_top() const { return (addr_t)_stack & ~0xf; }
+				addr_t stack_top() const
+				{
+					return ((addr_t)_stack & ~0xf) - sizeof(addr_t);
+				}
 
 				/**
 				 * Virtual address of the start of the stack
