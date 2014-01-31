@@ -96,21 +96,22 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 		struct Resources
 		{
 			template <typename T>
-			Capability<T> request(Parent &parent, char const *service) {
-				return static_cap_cast<T>(parent.session(service, "")); }
+			Capability<T> request(Parent &parent, char const *service)
+			{
+				return static_cap_cast<T>(parent.session(service, ""));
+			}
 
-			Ram_session_capability       ram_cap;
-			Expanding_ram_session_client ram = { ram_cap };
-			Cpu_session_capability       cpu_cap;
-			Expanding_cpu_session_client cpu = { cpu_cap };
+			Expanding_ram_session_client ram;
+			Expanding_cpu_session_client cpu;
 			Expanding_rm_session_client  rm;
 			Pd_session_client            pd;
 
-			Resources(Parent &parent) :
-				ram_cap(request<Ram_session>(parent, "Env::ram_session")),
-				cpu_cap(request<Cpu_session>(parent, "Env::cpu_session")),
-				rm     (request<Rm_session> (parent, "Env::rm_session")),
-				pd     (request<Pd_session> (parent, "Env::pd_session"))
+			Resources(Parent &parent)
+			:
+				ram(request<Ram_session>(parent, "Env::ram_session")),
+				cpu(request<Cpu_session>(parent, "Env::cpu_session")),
+				rm (request<Rm_session> (parent, "Env::rm_session")),
+				pd (request<Pd_session> (parent, "Env::pd_session"))
 			{ }
 		};
 
@@ -184,9 +185,9 @@ class Genode::Platform_env : public Genode::Env, public Emergency_ram_reserve
 
 		Parent                 *parent()          { return &_parent_client; }
 		Ram_session            *ram_session()     { return &_resources.ram; }
-		Ram_session_capability  ram_session_cap() { return  _resources.ram_cap; }
+		Ram_session_capability  ram_session_cap() { return  _resources.ram; }
 		Cpu_session            *cpu_session()     { return &_resources.cpu; }
-		Cpu_session_capability  cpu_session_cap() { return  _resources.cpu_cap; }
+		Cpu_session_capability  cpu_session_cap() { return  _resources.cpu; }
 		Rm_session             *rm_session()      { return &_resources.rm; }
 		Pd_session             *pd_session()      { return &_resources.pd; }
 		Allocator              *heap()            { return &_heap; }
