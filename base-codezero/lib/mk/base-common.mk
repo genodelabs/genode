@@ -21,7 +21,7 @@ SRC_CC += lock/lock.cc
 SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/thread.cc thread/thread_bootstrap.cc thread/trace.cc
-SRC_CC += env/utcb.cc
+SRC_CC += thread/context_allocator.cc env/utcb.cc
 SRC_CC += lock/cmpxchg.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
