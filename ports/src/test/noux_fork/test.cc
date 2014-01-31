@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-enum { MAX_COUNT = 100 };
+enum { MAX_COUNT = 1000 };
 
 int main(int, char **)
 {
