@@ -463,7 +463,7 @@ namespace Nova {
 					unsigned short sel, ar;
 					unsigned limit;
 					mword_t  base;
-#ifdef __x86_32__
+#ifndef __x86_64__
 					mword_t  reserved;	
 #endif
 				} es, cs, ss, ds, fs, gs, ldtr, tr;
@@ -471,7 +471,7 @@ namespace Nova {
 					unsigned reserved0;
 					unsigned limit;
 					mword_t  base;
-#ifdef __x86_32__
+#ifndef __x86_64__
 					mword_t  reserved1;	
 #endif
 				} gdtr, idtr;
