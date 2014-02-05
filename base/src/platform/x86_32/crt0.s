@@ -34,6 +34,9 @@
 	 */
 	leal _stack_high, %esp
 
+	/* if this is the dynamic linker, init_rtld relocates the linker */
+	call init_rtld
+
 	/* create proper environment for the main thread */
 	call init_main_thread
 

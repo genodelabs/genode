@@ -33,6 +33,9 @@
 	 */
 	ldr sp, =_stack_high
 
+	/* if this is the dynamic linker, init_rtld relocates the linker */
+	bl init_rtld
+
 	/* create proper environment for main thread */
 	bl init_main_thread
 
