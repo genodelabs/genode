@@ -240,55 +240,49 @@ void Arm::Cpu::flush_data_caches()
 	 *       with more beauty.
 	 */
 	asm volatile (
-		"mrc p15, 1, r0, c0, c0, 1\n"   /* read CLIDR into R0 */
+		"mrc p15, 1, r0, c0, c0, 1\n"  /* read CLIDR into R0 */
 		"ands r3, r0, #0x7000000\n"
-		"mov r3, r3, lsr #23\n"         /* cache level value (naturally aligned) */
+		"mov r3, r3, lsr #23\n"        /* cache level value (naturally aligned) */
 		"beq 5f\n"
-		"mov r10, #0\n"
+		"mov r9, #0\n"
 
 		"1:\n"
-
-		"add r2, r10, r10, lsr #1\n"    /* work out 3 x cachelevel */
-		"mov r1, r0, lsr r2\n"          /* bottom 3 bits are the Cache type for this level */
-		"and r1, r1, #7\n"              /* get those 3 bits alone */
+		"add r2, r9, r9, lsr #1\n"     /* work out 3 x cachelevel */
+		"mov r1, r0, lsr r2\n"         /* bottom 3 bits are the Cache type for this level */
+		"and r1, r1, #7\n"             /* get those 3 bits alone */
 		"cmp r1, #2\n"
-		"blt 4f\n"                      /* no cache or only instruction cache at this level */
-		"mcr p15, 2, r10, c0, c0, 0\n"  /* write CSSELR from R10 */
-		"isb\n"                         /* ISB to sync the change to the CCSIDR */
-		"mrc p15, 1, r1, c0, c0, 0\n"   /* read current CCSIDR to R1 */
-		"and r2, r1, #0x7\n"            /* extract the line length field */
-		"add r2, r2, #4\n"              /* add 4 for the line length offset (log2 16 bytes) */
+		"blt 4f\n"                     /* no cache or only instruction cache at this level */
+		"mcr p15, 2, r9, c0, c0, 0\n"  /* write CSSELR from R9 */
+		"isb\n"                        /* ISB to sync the change to the CCSIDR */
+		"mrc p15, 1, r1, c0, c0, 0\n"  /* read current CCSIDR to R1 */
+		"and r2, r1, #0x7\n"           /* extract the line length field */
+		"add r2, r2, #4\n"             /* add 4 for the line length offset (log2 16 bytes) */
 		"ldr r4, =0x3ff\n"
-		"ands r4, r4, r1, lsr #3\n"     /* R4 is the max number on the way size (right aligned) */
-		"clz r5, r4\n"                  /* R5 is the bit position of the way size increment */
-		"mov r9, r4\n"                  /* R9 working copy of the max way size (right aligned) */
+		"ands r4, r4, r1, lsr #3\n"    /* R4 is the max number on the way size (right aligned) */
+		"clz r5, r4\n"                 /* R5 is the bit position of the way size increment */
+		"mov r8, r4\n"                 /* R8 working copy of the max way size (right aligned) */
 
 		"2:\n"
-
 		"ldr r7, =0x00007fff\n"
-		"ands r7, r7, r1, lsr #13\n"    /* R7 is the max number of the index size (right aligned) */
+		"ands r7, r7, r1, lsr #13\n"   /* R7 is the max number of the index size (right aligned) */
 
 		"3:\n"
-
-		"orr r11, r10, r9, lsl r5\n"    /* factor in the way number and cache number into R11 */
-		"orr r11, r11, r7, lsl r2\n"    /* factor in the index number */
-		"mcr p15, 0, r11, c7, c10, 2\n" /* DCCSW, clean by set/way */
-		"subs r7, r7, #1\n"             /* decrement the index */
+		"orr r6, r9, r8, lsl r5\n"     /* factor in the way number and cache number into R11 */
+		"orr r6, r6, r7, lsl r2\n"     /* factor in the index number */
+		"mcr p15, 0, r6, c7, c10, 2\n" /* DCCSW, clean by set/way */
+		"subs r7, r7, #1\n"            /* decrement the index */
 		"bge 3b\n"
-		"subs r9, r9, #1\n"             /* decrement the way number */
+		"subs r8, r8, #1\n"            /* decrement the way number */
 		"bge 2b\n"
 
 		"4:\n"
-
-		"add r10, r10, #2\n"            /* increment the cache number */
-		"cmp r3, r10\n"
+		"add r9, r9, #2\n"             /* increment the cache number */
+		"cmp r3, r9\n"
 		"bgt 1b\n"
 		"dsb\n"
 
 		"5:\n"
-
-		::: "r0", "r1", "r2", "r3", "r4",
-			"r5", "r7", "r9", "r10", "r11");
+		::: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9");
 }
 
 
