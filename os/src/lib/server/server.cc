@@ -128,6 +128,15 @@ int main(int argc, char **argv)
 	constructor_cap.call<Server::Constructor::Rpc_construct>();
 
 	/* process incoming signals */
-	for (;;)
-		wait_and_dispatch_one_signal(false);
+	for (;;) {
+
+		/*
+		 * It might happen that we try to forward a signal to the entrypoint,
+		 * while the context of that signal is already destroyed. In that case
+		 * we will get an ipc error exception as result, which has to be caught.
+		 */
+		try {
+			wait_and_dispatch_one_signal(false);
+		} catch(Genode::Ipc_error) { }
+	}
 }
