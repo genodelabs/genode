@@ -37,3 +37,4 @@ resource_yield
 gdb_monitor
 part_blk
 xml_generator
+blk_cache
