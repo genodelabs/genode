@@ -20,6 +20,10 @@
 using namespace Genode;
 
 
+/*********************+********************
+ ** Thread-context allocator concurrency **
+ ******************************************/
+
 template <int CHILDREN>
 struct Helper : Thread<0x2000>
 {
@@ -59,6 +63,63 @@ static void test_context_alloc()
 }
 
 
+/*********************
+ ** Stack alignment **
+ *********************/
+
+/*
+ * Aligned FPU instruction accesses are very useful to identify stack-alignment
+ * issues. Fortunately, GCC generates pushes of FPU register content for
+ * vararg functions if floating-point values are passed to the function.
+ */
+
+static void test_stack_alignment_varargs(char const *format, ...) __attribute__((noinline));
+static void test_stack_alignment_varargs(char const *format, ...)
+{
+	va_list list;
+	va_start(list, format);
+
+	vprintf(format, list);
+
+	va_end(list);
+}
+
+
+static void log_stack_address(char const *who)
+{
+	long dummy;
+	printf("%s stack @ %p\n", who, &dummy);
+}
+
+
+struct Stack_helper : Thread<0x2000>
+{
+	Stack_helper() : Thread<0x2000>("stack_helper") { }
+
+	void entry()
+	{
+		log_stack_address("helper");
+		test_stack_alignment_varargs("%f\n%g\n", 3.142, 2.718);
+	}
+};
+
+
+static void test_stack_alignment()
+{
+	Stack_helper helper;
+
+	helper.start();
+	helper.join();
+
+	log_stack_address("main");
+	test_stack_alignment_varargs("%f\n%g\n", 3.142, 2.718);
+}
+
+
+/****************************
+ ** Main-thread stack area **
+ ****************************/
+
 static void test_main_thread()
 {
 	/* check wether my thread object exists */
@@ -91,8 +152,9 @@ static void test_main_thread()
 int main()
 {
 	try {
-		test_main_thread();
 		test_context_alloc();
+		test_stack_alignment();
+		test_main_thread();
 	} catch (int error) {
 		return error;
 	}
