@@ -1,6 +1,6 @@
 /*
  * \brief  Interface between kernel and userland
- * \author Martin stein
+ * \author Martin Stein
  * \date   2011-11-30
  */
 
@@ -17,91 +17,59 @@
 using namespace Kernel;
 
 
-/**********************************************************************
- ** Inline assembly templates for kernel calls with 1 to 6 arguments **
- **********************************************************************/
-
-#define CALL_6_ASM_OPS \
-	"mov r5, #0       \n" \
-	"add r5, %[arg_5] \n" \
-	CALL_5_ASM_OPS
-
-#define CALL_5_ASM_OPS \
-	"mov r4, #0       \n" \
-	"add r4, %[arg_4] \n" \
-	CALL_4_ASM_OPS
-
-#define CALL_4_ASM_OPS \
-	"mov r3, #0       \n" \
-	"add r3, %[arg_3] \n" \
-	CALL_3_ASM_OPS
-
-#define CALL_3_ASM_OPS \
-	"mov r2, #0       \n" \
-	"add r2, %[arg_2] \n" \
-	CALL_2_ASM_OPS
-
-#define CALL_2_ASM_OPS \
-	"mov r1, #0       \n" \
-	"add r1, %[arg_1] \n" \
-	CALL_1_ASM_OPS
-
-#define CALL_1_ASM_OPS  \
-	"mov r0, #0        \n" \
-	"add r0, %[arg_0]  \n" \
-	"swi 0             \n" \
-	"mov %[result], #0 \n" \
-	"add %[result], r0   "
-
-
-/****************************************************************************
- ** Inline assembly "writeable" tpl-args for kernel calls with 1 to 6 args **
- ****************************************************************************/
-
-#define CALL_6_ASM_WRITE [arg_5] "+r" (arg_5), CALL_5_ASM_WRITE
-#define CALL_5_ASM_WRITE [arg_4] "+r" (arg_4), CALL_4_ASM_WRITE
-#define CALL_4_ASM_WRITE [arg_3] "+r" (arg_3), CALL_3_ASM_WRITE
-#define CALL_3_ASM_WRITE [arg_2] "+r" (arg_2), CALL_2_ASM_WRITE
-#define CALL_2_ASM_WRITE [arg_1] "+r" (arg_1), CALL_1_ASM_WRITE
-#define CALL_1_ASM_WRITE \
-	[arg_0]  "+r" (arg_0),  \
-	[result] "+r" (result)
-
-
-/**************************************************************************
- ** Inline assembly clobber lists for kernel calls with 1 to 6 arguments **
- **************************************************************************/
-
-#define CALL_6_ASM_CLOBBER "r5", CALL_5_ASM_CLOBBER
-#define CALL_5_ASM_CLOBBER "r4", CALL_4_ASM_CLOBBER
-#define CALL_4_ASM_CLOBBER "r3", CALL_3_ASM_CLOBBER
-#define CALL_3_ASM_CLOBBER "r2", CALL_2_ASM_CLOBBER
-#define CALL_2_ASM_CLOBBER "r1", CALL_1_ASM_CLOBBER
-#define CALL_1_ASM_CLOBBER "r0"
-
-
 /************************************
- ** Calls with 1 to 6 arguments **
+ ** Helper macros for kernel calls **
  ************************************/
+
+#define CALL_1_FILL_ARG_REGS \
+	register Call_arg arg_0_reg asm("r0") = arg_0;
+
+#define CALL_2_FILL_ARG_REGS \
+	CALL_1_FILL_ARG_REGS \
+	register Call_arg arg_1_reg asm("r1") = arg_1;
+
+#define CALL_3_FILL_ARG_REGS \
+	CALL_2_FILL_ARG_REGS \
+	register Call_arg arg_2_reg asm("r2") = arg_2;
+
+#define CALL_4_FILL_ARG_REGS \
+	CALL_3_FILL_ARG_REGS \
+	register Call_arg arg_3_reg asm("r3") = arg_3;
+
+#define CALL_5_FILL_ARG_REGS \
+	CALL_4_FILL_ARG_REGS \
+	register Call_arg arg_4_reg asm("r4") = arg_4;
+
+#define CALL_6_FILL_ARG_REGS \
+	CALL_5_FILL_ARG_REGS \
+	register Call_arg arg_5_reg asm("r5") = arg_5;
+
+#define CALL_1_SWI "swi 0\n" : "+r" (arg_0_reg)
+#define CALL_2_SWI CALL_1_SWI:  "r" (arg_1_reg)
+#define CALL_3_SWI CALL_2_SWI,  "r" (arg_2_reg)
+#define CALL_4_SWI CALL_3_SWI,  "r" (arg_3_reg)
+#define CALL_5_SWI CALL_4_SWI,  "r" (arg_4_reg)
+#define CALL_6_SWI CALL_5_SWI,  "r" (arg_5_reg)
+
+
+/******************
+ ** Kernel calls **
+ ******************/
 
 Call_ret Kernel::call(Call_arg arg_0)
 {
-	Call_ret result = 0;
-	asm volatile(CALL_1_ASM_OPS
-	           : CALL_1_ASM_WRITE
-	          :: CALL_1_ASM_CLOBBER);
-	return result;
+	CALL_1_FILL_ARG_REGS
+	asm volatile(CALL_1_SWI);
+	return arg_0_reg;
 }
 
 
 Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_1)
 {
-	Call_ret result = 0;
-	asm volatile(CALL_2_ASM_OPS
-	           : CALL_2_ASM_WRITE
-	          :: CALL_2_ASM_CLOBBER);
-	return result;
+	CALL_2_FILL_ARG_REGS
+	asm volatile(CALL_2_SWI);
+	return arg_0_reg;
 }
 
 
@@ -109,11 +77,9 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_1,
                       Call_arg arg_2)
 {
-	Call_ret result = 0;
-	asm volatile(CALL_3_ASM_OPS
-	           : CALL_3_ASM_WRITE
-	          :: CALL_3_ASM_CLOBBER);
-	return result;
+	CALL_3_FILL_ARG_REGS
+	asm volatile(CALL_3_SWI);
+	return arg_0_reg;
 }
 
 
@@ -122,11 +88,9 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_2,
                       Call_arg arg_3)
 {
-	Call_ret result = 0;
-	asm volatile(CALL_4_ASM_OPS
-	           : CALL_4_ASM_WRITE
-	          :: CALL_4_ASM_CLOBBER);
-	return result;
+	CALL_4_FILL_ARG_REGS
+	asm volatile(CALL_4_SWI);
+	return arg_0_reg;
 }
 
 
@@ -136,11 +100,9 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_3,
                       Call_arg arg_4)
 {
-	Call_ret result = 0;
-	asm volatile(CALL_5_ASM_OPS
-	           : CALL_5_ASM_WRITE
-	          :: CALL_5_ASM_CLOBBER);
-	return result;
+	CALL_5_FILL_ARG_REGS
+	asm volatile(CALL_5_SWI);
+	return arg_0_reg;
 }
 
 
@@ -151,11 +113,9 @@ Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_4,
                       Call_arg arg_5)
 {
-	Call_ret result = 0;
-	asm volatile(CALL_6_ASM_OPS
-	           : CALL_6_ASM_WRITE
-	          :: CALL_6_ASM_CLOBBER);
-	return result;
+	CALL_6_FILL_ARG_REGS
+	asm volatile(CALL_6_SWI);
+	return arg_0_reg;
 }
 
 
