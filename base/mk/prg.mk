@@ -115,6 +115,12 @@ ifeq ($(SHARED_LIBS),)
 LD_SCRIPTS  := $(LD_SCRIPT_STATIC)
 FILTER_DEPS := $(DEPS:.lib=)
 else
+
+#
+# Add a list of symbols that shall always be added to the dynsym section
+#
+LD_OPT += --dynamic-list=$(call select_from_repositories,src/platform/genode_dyn.dl)
+
 LD_SCRIPTS  := $(LD_SCRIPT_DYN)
 LD_CMD      += -Wl,--dynamic-linker=$(DYNAMIC_LINKER).lib.so \
                -Wl,--eh-frame-hdr

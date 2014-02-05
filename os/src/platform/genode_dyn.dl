@@ -1,0 +1,16 @@
+/*
+ * Symbols that shall always be added to the section '.dynsym'
+ */
+{
+	/*
+	 * The ctors and dtors symbols are not used by a dynamic program as such
+	 * programs have no '_main' function. Hence the linker doesn't add them to
+	 * the dynsym section by itself. However, we need to lookup the ctors and
+	 * dtors arrays of the dynamic program in LDSO, which is why we must
+	 * explicitely add them to the dynsym section.
+	 */
+	_ctors_start;
+	_ctors_end;
+	_dtors_start;
+	_dtors_end;
+};
