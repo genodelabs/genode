@@ -64,7 +64,11 @@ extern "C" void __cxa_finalize(void *dso)
  ***********************************/
 
 
-extern "C" void *__aeabi_atexit() { return 0; }
+extern "C" int __aeabi_atexit(void *arg, void(*func)(void*),
+                              void *dso_handle)
+{
+	return genode___cxa_atexit(func, arg, dso_handle);
+}
 
 
 extern "C" __attribute__((weak))
