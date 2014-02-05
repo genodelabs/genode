@@ -32,6 +32,12 @@ void prepare_init_main_thread();
 enum { MAIN_THREAD_STACK_SIZE = 16UL * 1024 * sizeof(Genode::addr_t) };
 
 /**
+ * Satisfy crt0.s in static programs, LDSO overrides this symbol
+ */
+extern "C" void init_rtld() __attribute__((weak));
+void init_rtld() { }
+
+/**
  * The first thread in a program
  */
 class Main_thread : public Thread<MAIN_THREAD_STACK_SIZE>
