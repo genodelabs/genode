@@ -124,7 +124,7 @@ static int relocate_objects(Obj_Entry *, bool, Obj_Entry *);
 static int rtld_dirname(const char *, char *);
 static void rtld_exit(void);
 static char *search_library_path(const char *, const char *);
-static const void **get_program_var_addr(const char *);
+const void **get_program_var_addr(const char *);
 static const Elf_Sym *symlook_default(const char *, unsigned long,
   const Obj_Entry *, const Obj_Entry **, const Ver_Entry *, int);
 static const Elf_Sym *symlook_list(const char *, unsigned long, const Objlist *,
@@ -2403,7 +2403,7 @@ r_debug_state(struct r_debug* rd, struct link_map *m)
 /*
  * Get address of the pointer variable in the main program.
  */
-static const void **
+const void **
 get_program_var_addr(const char *name)
 {
     const Obj_Entry *obj;
