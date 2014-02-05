@@ -94,50 +94,56 @@ AUTOCONF_gcc_4.7.2 = autoconf2.64
 
 AUTOCONF = $(AUTOCONF_gcc_$(GCC_VERSION))
 
-ifeq ($(AUTOCONF),)
-$(error Unknown autoconf version for GCC $(GCC_VERSION).)
-endif
+# Return $(2) if $(1) is empty, "" else
+check_nonempty_f = $(if $(1),,$(info $(2))$(2))
+# Return $(3) if $(1) != $(2), "" else
+check_equal_f    = $(if $(filter $(1),$(2)),,$(info $(3))$(3))
+
+AUTOCONF_OK = $(call check_nonempty_f,$(AUTOCONF),\
+                Unknown autoconf version for GCC $(GCC_VERSION))
 
 #
 # Check if 'autoconf' is installed
 #
-ifeq ($(shell which $(AUTOCONF)),)
-$(error Need to have '$(AUTOCONF)' installed.)
-endif
+AUTOCONFINST_OK = $(call check_nonempty_f,$(shell which $(AUTOCONF)),\
+                    Need to have $(AUTOCONF) installed.)
 
 #
 # Check if 'libncurses' is installed
 #
-ifneq ($(shell $(LD) -lncurses -e0 -o /tmp/a.out && echo ok),ok)
-$(error Need to have 'libncurses' installed.)
-endif
+CURSES_OK = $(call check_equal_f,\
+              $(shell $(LD) -lncurses -e0 -o /tmp/a.out && echo ok),ok,\
+              Need to have 'libncurses' installed.)
 
 #
 # Check if 'texinfo' is installed
 #
-ifeq ($(shell which texi2pdf),)
-$(error Need to have 'texinfo' installed.)
-endif
+TEXINFO_OK = $(call check_nonempty_f,$(shell which texi2pdf),\
+               Need to have 'texinfo' installed.)
 
 #
 # Check if 'wget' is installed
 #
-ifeq ($(shell which wget),)
-$(error Need to have 'wget' installed.)
-endif
+WGET_OK = $(call check_nonempty_f,$(shell which wget),\
+            Need to have 'wget' installed.)
 
 #
 # Check if 'autogen' is installed
 #
-ifeq ($(shell which autogen)),)
-$(error Need to have 'autogen' installed.)
-endif
+AUTOGEN_OK = $(call check_nonempty_f,$(shell which autogen),\
+               Need to have 'autogen' installed.)
 
 #
 # Check if 'gpg' is installed
 #
-ifeq ($(shell which gpg)),)
-$(error Need to have 'gpg' installed.)
+GPG_OK = $(call check_nonempty_f,$(shell which gpg),\
+           Need to have 'gpg' installed.)
+
+TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(CURSES_OK) \
+           $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK)
+
+ifneq ($(strip $(TOOLS_OK)),)
+$(error Please install missing tools.)
 endif
 
 #
