@@ -19,8 +19,6 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/param.h>
-#include <base/crt0.h>
-#include <call_main.h>
 #include "file.h"
 
 typedef void (*func_ptr_type)();
@@ -29,6 +27,9 @@ func_ptr_type
 _rtld(Elf_Addr *sp, func_ptr_type *exit_proc, Obj_Entry **objp);
 
 extern char **lx_environ;
+
+int call_program_main(void (*main_func)(void));
+
 
 static void *setup_stack(const char *name, long fd)
 {
@@ -86,27 +87,8 @@ int main(int argc, char **argv)
 
 	/* build dummy stack */
 	void *sp =  setup_stack(binary, (long)fd);
+	func_ptr_type const program_main = _rtld(sp, &exit_proc, &objp);
 
-	/* DEBUGGING
-	printf("Starting ldso ...\n");
-	*/
-
-	/* this is usually '_start' */
-	func_ptr_type main_func = _rtld(sp, &exit_proc, &objp);
-
-	/* DEBUGGING
-	char **p;
-	for(p = environ; *p; p++)
-		printf("env: %s\n", *p);
-	
-	printf("Starting application ... environ: %p\n", lx_environ);
-	*/
-
-	/* start loaded application */
-	call_main(main_func);
-
-	exit_proc();
-
-	printf("Exiting ldso\n");
-	return 0;
+	/* call main function of dynamic program */
+	return call_program_main(program_main);
 }

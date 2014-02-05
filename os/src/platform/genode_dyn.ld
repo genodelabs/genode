@@ -16,7 +16,7 @@
  * Program doesn't need to startup with CRT0 as LDSO has done this
  * initialization during its own CRT0 already.
  */
-ENTRY(_main)
+ENTRY(main)
 
 PHDRS 
 {
@@ -171,6 +171,7 @@ SECTIONS
        wildcard.  The wildcard also means that it
        doesn't matter which directory crtbegin.o
        is in.  */
+
     KEEP (*crtbegin.o(.ctors))
     KEEP (*crtbegin?.o(.ctors))
     /* We don't want to include the .ctor section from
@@ -181,17 +182,20 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
-    KEEP (*(.init_array)) /* list of constructors specific for ARM eabi */
+    KEEP (*(SORT(.init_array.*)))
+    KEEP (*(.init_array))
     _ctors_end = .;
   }
   .dtors          :
   {
-    _dtors_start = .;
     KEEP (*crtbegin.o(.dtors))
     KEEP (*crtbegin?.o(.dtors))
+    _dtors_start = .;
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
+    KEEP (*(.fini_array))
+    KEEP (*(SORT(.fini_array.*)))
     _dtors_end = .;
   }
   .jcr            : { KEEP (*(.jcr)) }
@@ -217,6 +221,9 @@ SECTIONS
 
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
+
+    __dso_handle = .;
+    LONG(0x0);
   }
   .data1          : { *(.data1) }
   _edata = .; PROVIDE (edata = .);

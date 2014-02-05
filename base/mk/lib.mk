@@ -127,16 +127,10 @@ $(LIB_A): $(OBJECTS)
 	$(VERBOSE)$(AR) -rc $@ $(OBJECTS)
 
 #
-# Prevent linkage of startup_dyn as we added it only in order that it gets
-# build for the dynamic programs.
-#
-ifdef SHARED_LIB
-override DEPS := $(filter-out startup_dyn.lib,$(DEPS))
-
-#
 # Prevent linkage of startup code and base libs against shared libraries except
 # for ld.lib.so
 #
+ifdef SHARED_LIB
 ifneq ($(LIB),ld)
 override DEPS := $(filter-out $(BASE_LIBS:=.lib) startup.lib,$(DEPS))
 endif

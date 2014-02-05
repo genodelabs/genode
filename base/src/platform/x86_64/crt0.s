@@ -70,16 +70,15 @@
 	/* stack of the temporary initial environment */
 	.p2align 8
 	.space 32 * 1024
-	.global _stack_high
 	_stack_high:
 
 	/* initial value of the RSP, RAX and RDI register */
-	.globl	__initial_sp
+	.globl __initial_sp
 	__initial_sp:
 	.space 8
-	.globl	__initial_ax
+	.globl __initial_ax
 	__initial_ax:
 	.space 8
-	.globl	__initial_di
+	.globl __initial_di
 	__initial_di:
 	.space 8
