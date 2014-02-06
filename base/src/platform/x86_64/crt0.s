@@ -58,18 +58,6 @@
 	jmp _main
 
 
-/**********************************
- ** .eh_frame (exception frames) **
- **********************************/
-
-/*
-.section .eh_frame,"aw"
-
-	.global	__EH_FRAME_BEGIN__
-	__EH_FRAME_BEGIN__:
-*/
-
-
 /*********************************
  ** .bss (non-initialized data) **
  *********************************/
