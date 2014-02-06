@@ -35,10 +35,12 @@ class Driver : public Block::Driver
 		{
 			Block::Packet_descriptor srv;
 			Block::Packet_descriptor cli;
+			char * const             buffer;
 
 			Request(Block::Packet_descriptor &s,
-			        Block::Packet_descriptor &c)
-			: srv(s), cli(c) {}
+			        Block::Packet_descriptor &c,
+			        char * const              b)
+				: srv(s), cli(c), buffer(b) {}
 
 			/*
 			 * \return true when the given response packet matches
@@ -158,12 +160,10 @@ class Driver : public Block::Driver
 			try {
 			if (r->cli.operation() == Block::Packet_descriptor::READ)
 				read(r->cli.block_number(), r->cli.block_count(),
-				     session->tx_sink()->packet_content(r->cli),
-				     r->cli);
+				     r->buffer, r->cli);
 			else
 				write(r->cli.block_number(), r->cli.block_count(),
-				      session->tx_sink()->packet_content(r->cli),
-				      r->cli);
+				      r->buffer, r->cli);
 			} catch(Block::Driver::Request_congestion) {
 				PWRN("cli (%lld %zu) srv (%lld %zu)",
 					 r->cli.block_number(), r->cli.block_count(),
@@ -214,6 +214,7 @@ class Driver : public Block::Driver
 		 */
 		void _request(Block::sector_t           block_number,
 		              Genode::size_t            block_count,
+					  char * const              buffer,
 		              Block::Packet_descriptor &packet)
 		{
 			Block::Packet_descriptor p_to_dev;
@@ -222,7 +223,8 @@ class Driver : public Block::Driver
 				/* we've to look whether the request is already pending */
 				for (Request *r = _r_list.first(); r; r = r->next()) {
 					if (r->match(false, block_number, block_count)) {
-						_r_list.insert(new (&_r_slab) Request(r->srv, packet));
+						_r_list.insert(new (&_r_slab) Request(r->srv, packet,
+						                                      buffer));
 						return;
 					}
 				}
@@ -246,7 +248,7 @@ class Driver : public Block::Driver
 					Block::Packet_descriptor(_blk.dma_alloc_packet(_blk_sz*cnt),
 					                         Block::Packet_descriptor::READ,
 					                         nr, cnt);
-				_r_list.insert(new (&_r_slab) Request(p_to_dev, packet));
+				_r_list.insert(new (&_r_slab) Request(p_to_dev, packet, buffer));
 				_blk.tx()->submit_packet(p_to_dev);
 			} catch(Block::Session::Tx::Source::Packet_alloc_failed) {
 				throw Request_congestion();
@@ -290,7 +292,7 @@ class Driver : public Block::Driver
 		 * \param p    client side packet, which triggered this operation
 		 */
 		bool _stat(Block::sector_t nr, Genode::size_t cnt,
-		           Block::Packet_descriptor &p)
+		           char * const buffer, Block::Packet_descriptor &p)
 		{
 			Cache::offset_t off   = nr  * _blk_sz;
 			Cache::size_t   size  = cnt * _blk_sz;
@@ -302,7 +304,7 @@ class Driver : public Block::Driver
 			} catch(Cache::Chunk_base::Range_incomplete &e) {
 				off  = Genode::max(off, e.off);
 				size = Genode::min(end - off, e.size);
-				_request(off / _blk_sz, size / _blk_sz, p);
+				_request(off / _blk_sz, size / _blk_sz, buffer, p);
 			}
 			return false;
 		}
@@ -396,11 +398,11 @@ class Driver : public Block::Driver
 			if (!_ops.supported(Block::Packet_descriptor::READ))
 				throw Io_error();
 
-			if (!_stat(block_number, block_count, packet))
+			if (!_stat(block_number, block_count, buffer, packet))
 				return;
 
 			_cache.read(buffer, block_count*_blk_sz, block_number*_blk_sz);
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void write(Block::sector_t           block_number,
@@ -413,16 +415,18 @@ class Driver : public Block::Driver
 
 			_cache.alloc(block_count * _blk_sz, block_number * _blk_sz);
 
-			if ((block_number % _cache_blk_mod()) && _stat(block_number, 1, packet))
+			if ((block_number % _cache_blk_mod()) &&
+			    _stat(block_number, 1, const_cast<char* const>(buffer), packet))
 				return;
 
 			if (((block_number+block_count) % _cache_blk_mod())
-				&& _stat(block_number+block_count-1, 1, packet))
+				&& _stat(block_number+block_count-1, 1,
+				         const_cast<char* const>(buffer), packet))
 				return;
 
 			_cache.write(buffer, block_count * _blk_sz,
 			             block_number * _blk_sz);
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void sync() { _sync(); }

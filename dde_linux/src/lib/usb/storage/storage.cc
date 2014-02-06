@@ -37,18 +37,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 		static void _sync_done(struct scsi_cmnd *cmnd) {
 			complete((struct completion *)cmnd->back); }
 
-		static void _async_done(struct scsi_cmnd *cmnd)
-		{
-			Block::Session_component *session = static_cast<Block::Session_component *>(cmnd->session);
-			Block::Packet_descriptor *packet  = static_cast<Block::Packet_descriptor *>(cmnd->packet);
-
-			if (verbose)
-				PDBG("ACK packet for block: %llu status: %d", packet->block_number(), cmnd->result);
-
-			session->ack_packet(*packet);
-			Genode::destroy(Genode::env()->heap(), packet);
-			_scsi_free_command(cmnd);
-		}
+		static void _async_done(struct scsi_cmnd *cmnd);
 
 		void _capacity()
 		{
@@ -88,7 +77,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 
 		void _io(Block::sector_t block_nr, Genode::size_t block_count,
 		         Block::Packet_descriptor packet,
-		         Genode::addr_t virt, Genode::addr_t phys, bool read)
+		         Genode::addr_t phys, bool read)
 		{
 			if (block_nr > _block_count)
 				throw Io_error();
@@ -108,7 +97,6 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			Block::Packet_descriptor *p = new (Genode::env()->heap()) Block::Packet_descriptor();
 			*p = packet;
 			cmnd->packet  = (void *)p;
-			cmnd->session = (void *)session;
 
 			Genode::uint32_t be_block_nr = bswap<Genode::uint32_t>(block_nr);
 			memcpy(&cmnd->cmnd[2], &be_block_nr, 4);
@@ -118,7 +106,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			memcpy(&cmnd->cmnd[7], &be_block_count, 2);
 
 			/* setup command */
-			scsi_setup_buffer(cmnd, block_count * _block_size, (void *)virt, phys);
+			scsi_setup_buffer(cmnd, block_count * _block_size, (void *)0, phys);
 
 			/*
 			 * Required by 'last_sector_hacks' in 'drivers/usb/storage/transprot.c
@@ -156,22 +144,14 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 		void read_dma(Block::sector_t           block_number,
 		              Genode::size_t            block_count,
 		              Genode::addr_t            phys,
-		              Block::Packet_descriptor &packet)
-		{
-			_io(block_number, block_count, packet,
-			    (Genode::addr_t)session->tx_sink()->packet_content(packet),
-			    phys, true);
-		}
+		              Block::Packet_descriptor &packet) {
+			_io(block_number, block_count, packet, phys, true); }
 
 		void write_dma(Block::sector_t           block_number,
 		               Genode::size_t            block_count,
 		               Genode::addr_t            phys,
-		               Block::Packet_descriptor &packet)
-		{
-			_io(block_number, block_count, packet,
-			    (Genode::addr_t)session->tx_sink()->packet_content(packet),
-			    phys, false);
-		}
+		               Block::Packet_descriptor &packet) {
+			_io(block_number, block_count, packet, phys, false); }
 
 		bool dma_enabled() { return true; }
 
@@ -198,12 +178,16 @@ struct Factory : Block::Driver_factory
 };
 
 
+static Storage_device *device = nullptr;
+
+
 void scsi_add_device(struct scsi_device *sdev)
 {
 	using namespace Genode;
 	static bool announce = false;
 
 	static struct Factory factory(sdev);
+	device = &factory.device;
 
 	/*
 	 * XXX  move to 'main'
@@ -215,3 +199,17 @@ void scsi_add_device(struct scsi_device *sdev)
 	}
 }
 
+
+void Storage_device::_async_done(struct scsi_cmnd *cmnd)
+{
+	Block::Packet_descriptor *packet =
+		static_cast<Block::Packet_descriptor *>(cmnd->packet);
+
+	if (verbose)
+		PDBG("ACK packet for block: %llu status: %d",
+		     packet->block_number(), cmnd->result);
+
+	device->ack_packet(*packet);
+	Genode::destroy(Genode::env()->heap(), packet);
+	_scsi_free_command(cmnd);
+}

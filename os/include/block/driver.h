@@ -21,145 +21,204 @@
 #include <base/signal.h>
 
 #include <ram_session/ram_session.h>
-#include <block_session/block_session.h>
+#include <block_session/rpc_object.h>
 
 namespace Block {
-	class Session_component;
-	struct Driver;
+	class Driver_session;
+	class Driver;
 	struct Driver_factory;
+};
+
+
+class Block::Driver_session : public Block::Session_rpc_object
+{
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param tx_ds  dataspace used as communication buffer
+		 *               for the tx packet stream
+		 * \param ep     entry point used for packet-stream channel
+		 */
+		Driver_session(Genode::Dataspace_capability tx_ds,
+		               Genode::Rpc_entrypoint &ep)
+		: Session_rpc_object(tx_ds, ep) { }
+
+		/**
+		 * Acknowledges a packet processed by the driver to the client
+		 *
+		 * \param packet   the packet to acknowledge
+		 * \param success  indicated whether the processing was successful
+		 *
+		 * \throw Ack_congestion
+		 */
+		virtual void ack_packet(Packet_descriptor &packet,
+		                        bool success) = 0;
 };
 
 
 /**
  * Interface to be implemented by the device-specific driver code
  */
-struct Block::Driver
+class Block::Driver
 {
-	Session_component * session; /* single session component of the driver
-	                              * might get used to acknowledge requests */
+	private:
 
-	/**
-	 * Exceptions
-	 */
-	class Io_error           : public ::Genode::Exception { };
-	class Request_congestion : public ::Genode::Exception { };
+		Driver_session *_session = nullptr;
 
-	/**
-	 * Request block size for driver and medium
-	 */
-	virtual Genode::size_t block_size() = 0;
+	public:
 
-	/**
-	 * Request capacity of medium in blocks
-	 */
-	virtual Block::sector_t block_count() = 0;
+		/**
+		 * Exceptions
+		 */
+		class Io_error           : public ::Genode::Exception { };
+		class Request_congestion : public ::Genode::Exception { };
 
-	/**
-	 * Request operations supported by the device
-	 */
-	virtual Session::Operations ops() = 0;
+		/**
+		 * Request block size for driver and medium
+		 */
+		virtual Genode::size_t block_size() = 0;
 
-	/**
-	 * Read from medium
-	 *
-	 * \param block_number  number of first block to read
-	 * \param block_count   number of blocks to read
-	 * \param buffer        output buffer for read request
-	 * \param packet        packet descriptor from the client
-	 *
-	 * \throw Request_congestion
-	 *
-	 * Note: should be overridden by DMA non-capable devices
-	 */
-	virtual void read(sector_t           block_number,
-	                  Genode::size_t     block_count,
-	                  char *             buffer,
-	                  Packet_descriptor &packet) {
-		throw Io_error(); }
+		/**
+		 * Request capacity of medium in blocks
+		 */
+		virtual Block::sector_t block_count() = 0;
 
-	/**
-	 * Write to medium
-	 *
-	 * \param block_number  number of first block to write
-	 * \param block_count   number of blocks to write
-	 * \param buffer        buffer for write request
-	 * \param packet        packet descriptor from the client
-	 *
-	 * \throw Request_congestion
-	 *
-	 * Note: should be overridden by DMA non-capable, non-ROM devices
-	 */
-	virtual void write(sector_t           block_number,
-	                   Genode::size_t     block_count,
-	                   const char *       buffer,
-	                   Packet_descriptor &packet) {
-		throw Io_error(); }
+		/**
+		 * Request operations supported by the device
+		 */
+		virtual Session::Operations ops() = 0;
 
-	/**
-	 * Read from medium using DMA
-	 *
-	 * \param block_number  number of first block to read
-	 * \param block_count   number of blocks to read
-	 * \param phys          phyiscal address of read buffer
-	 * \param packet        packet descriptor from the client
-	 *
-	 * \throw Request_congestion
-	 *
-	 * Note: should be overridden by DMA capable devices
-	 */
-	virtual void read_dma(sector_t           block_number,
-	                      Genode::size_t     block_count,
-	                      Genode::addr_t     phys,
-	                      Packet_descriptor &packet) {
-		throw Io_error(); }
+		/**
+		 * Read from medium
+		 *
+		 * \param block_number  number of first block to read
+		 * \param block_count   number of blocks to read
+		 * \param buffer        output buffer for read request
+		 * \param packet        packet descriptor from the client
+		 *
+		 * \throw Request_congestion
+		 *
+		 * Note: should be overridden by DMA non-capable devices
+		 */
+		virtual void read(sector_t           block_number,
+		                  Genode::size_t     block_count,
+		                  char *             buffer,
+		                  Packet_descriptor &packet) {
+			throw Io_error(); }
 
-	/**
-	 * Write to medium using DMA
-	 *
-	 * \param block_number  number of first block to write
-	 * \param block_count   number of blocks to write
-	 * \param phys          physical address of write buffer
-	 * \param packet        packet descriptor from the client
-	 *
-	 * \throw Request_congestion
-	 *
-	 * Note: should be overridden by DMA capable, non-ROM devices
-	 */
-	virtual void write_dma(sector_t           block_number,
-	                       Genode::size_t     block_count,
-	                       Genode::addr_t     phys,
-	                       Packet_descriptor &packet) {
-		throw Io_error(); }
+		/**
+		 * Write to medium
+		 *
+		 * \param block_number  number of first block to write
+		 * \param block_count   number of blocks to write
+		 * \param buffer        buffer for write request
+		 * \param packet        packet descriptor from the client
+		 *
+		 * \throw Request_congestion
+		 *
+		 * Note: should be overridden by DMA non-capable, non-ROM devices
+		 */
+		virtual void write(sector_t           block_number,
+		                   Genode::size_t     block_count,
+		                   const char *       buffer,
+		                   Packet_descriptor &packet) {
+			throw Io_error(); }
 
-	/**
-	 * Check if DMA is enabled for driver
-	 *
-	 * \return  true if DMA is enabled, false otherwise
-	 *
-	 * Note: has to be overriden by DMA-capable devices
-	 */
-	virtual bool dma_enabled() { return false; }
+		/**
+		 * Read from medium using DMA
+		 *
+		 * \param block_number  number of first block to read
+		 * \param block_count   number of blocks to read
+		 * \param phys          phyiscal address of read buffer
+		 * \param packet        packet descriptor from the client
+		 *
+		 * \throw Request_congestion
+		 *
+		 * Note: should be overridden by DMA capable devices
+		 */
+		virtual void read_dma(sector_t           block_number,
+		                      Genode::size_t     block_count,
+		                      Genode::addr_t     phys,
+		                      Packet_descriptor &packet) {
+			throw Io_error(); }
 
-	/**
-	 * Allocate buffer which is suitable for DMA.
-	 */
-	virtual Genode::Ram_dataspace_capability
-	alloc_dma_buffer(Genode::size_t size) {
-		return Genode::env()->ram_session()->alloc(size, false); }
+		/**
+		 * Write to medium using DMA
+		 *
+		 * \param block_number  number of first block to write
+		 * \param block_count   number of blocks to write
+		 * \param phys          physical address of write buffer
+		 * \param packet        packet descriptor from the client
+		 *
+		 * \throw Request_congestion
+		 *
+		 * Note: should be overridden by DMA capable, non-ROM devices
+		 */
+		virtual void write_dma(sector_t           block_number,
+		                       Genode::size_t     block_count,
+		                       Genode::addr_t     phys,
+		                       Packet_descriptor &packet) {
+			throw Io_error(); }
 
-	/**
-	 * Free buffer which is suitable for DMA.
-	 */
-	virtual void free_dma_buffer(Genode::Ram_dataspace_capability c) {
-		return Genode::env()->ram_session()->free(c); }
+		/**
+		 * Check if DMA is enabled for driver
+		 *
+		 * \return  true if DMA is enabled, false otherwise
+		 *
+		 * Note: has to be overriden by DMA-capable devices
+		 */
+		virtual bool dma_enabled() { return false; }
 
-	/**
-	 * Synchronize with device.
-	 *
-	 * Note: should be overriden by (e.g. intermediate) components,
-	 *       which cache data
-	 */
-	virtual void sync() {}
+		/**
+		 * Allocate buffer which is suitable for DMA.
+		 *
+		 * Note: has to be overriden by DMA-capable devices
+		 */
+		virtual Genode::Ram_dataspace_capability
+		alloc_dma_buffer(Genode::size_t size) {
+			return Genode::env()->ram_session()->alloc(size); }
+
+		/**
+		 * Free buffer which is suitable for DMA.
+		 *
+		 * Note: has to be overriden by DMA-capable devices
+		 */
+		virtual void free_dma_buffer(Genode::Ram_dataspace_capability c) {
+			return Genode::env()->ram_session()->free(c); }
+
+		/**
+		 * Synchronize with device.
+		 *
+		 * Note: should be overriden by (e.g. intermediate) components,
+		 *       which cache data
+		 */
+		virtual void sync() {}
+
+		/**
+		 * Informs the driver that the client session was closed
+		 *
+		 * Note: drivers with state (e.g. asynchronously working)
+		 *       should override this function, and reset their internal state
+		 */
+		virtual void session_invalidated() { }
+
+		/**
+		 * Set single session component of the driver
+		 *
+		 * Session might get used to acknowledge requests.
+		 */
+		void session(Driver_session *session) {
+			if (!(_session = session)) session_invalidated(); }
+
+		/**
+		 * Acknowledge a packet after processing finished to the client
+		 *
+		 * \param p  packet to acknowledge
+		 */
+		void ack_packet(Packet_descriptor &p, bool success = true) {
+			if (_session) _session->ack_packet(p, success); }
 };
 
 

@@ -56,12 +56,18 @@ class Ahci_driver : public Block::Driver
 		Block::sector_t block_count();
 		bool   dma_enabled() { return true; }
 
+		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
+			return Genode::env()->ram_session()->alloc(size, false); }
+
+		void free_dma_buffer(Genode::Ram_dataspace_capability c) {
+			return Genode::env()->ram_session()->free(c); }
+
 		void read_dma(Block::sector_t block_nr, size_t block_cnt, addr_t phys,
 		              Block::Packet_descriptor &packet)
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 0))
 				throw Io_error();
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void write_dma(Block::sector_t block_nr, size_t  block_cnt, addr_t  phys,
@@ -69,7 +75,7 @@ class Ahci_driver : public Block::Driver
 		{
 			if (_ncq_command(block_nr, block_cnt, phys, 1))
 				throw Io_error();
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 };
 

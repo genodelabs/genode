@@ -46,7 +46,7 @@ class Driver : public Block::Driver
 		{
 			while (!_packets.empty()) {
 				Block::Packet_descriptor p = _packets.get();
-				session->ack_packet(p);
+				ack_packet(p);
 			}
 		}
 
@@ -54,6 +54,9 @@ class Driver : public Block::Driver
 		/*******************************
 		 **  Block::Driver interface  **
 		 *******************************/
+
+		void session_invalidated() {
+			while (!_packets.empty()) _packets.get(); }
 
 		Genode::size_t  block_size()  { return _size;   }
 		Block::sector_t block_count() { return _number; }

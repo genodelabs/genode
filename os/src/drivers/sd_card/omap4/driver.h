@@ -97,7 +97,7 @@ class Block::Omap4_driver : public Block::Driver
 		{
 			if (!_controller.read_blocks(block_number, block_count, out_buffer))
 				throw Io_error();
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void write(Block::sector_t    block_number,
@@ -107,7 +107,7 @@ class Block::Omap4_driver : public Block::Driver
 		{
 			if (!_controller.write_blocks(block_number, block_count, buffer))
 				throw Io_error();
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void read_dma(Block::sector_t    block_number,
@@ -117,7 +117,7 @@ class Block::Omap4_driver : public Block::Driver
 		{
 			if (!_controller.read_blocks_dma(block_number, block_count, phys))
 				throw Io_error();
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void write_dma(Block::sector_t    block_number,
@@ -127,10 +127,16 @@ class Block::Omap4_driver : public Block::Driver
 		{
 			if (!_controller.write_blocks_dma(block_number, block_count, phys))
 				throw Io_error();
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		bool dma_enabled() { return _use_dma; }
+
+		Genode::Ram_dataspace_capability alloc_dma_buffer(Genode::size_t size) {
+			return Genode::env()->ram_session()->alloc(size, false); }
+
+		void free_dma_buffer(Genode::Ram_dataspace_capability c) {
+			return Genode::env()->ram_session()->free(c); }
 };
 
 #endif /* _DRIVER_H_ */

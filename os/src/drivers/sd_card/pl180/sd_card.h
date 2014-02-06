@@ -107,7 +107,7 @@ class Sd_card : public Block::Driver
 				                 length, &resp);
 				_hd.read_data(length, out_buffer + (i * BLOCK_SIZE));
 			}
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void write(Block::sector_t block_number,
@@ -129,7 +129,7 @@ class Sd_card : public Block::Driver
 				                  length, &resp);
 				_hd.write_data(length, buffer + (i * BLOCK_SIZE));
 			}
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 };
 

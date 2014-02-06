@@ -56,7 +56,7 @@ class Driver : public Block::Driver
 		{
 			_http.cmd_get(block_nr * _block_size, block_count * _block_size,
 			              (addr_t)buffer);
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 	};
 

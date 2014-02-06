@@ -72,7 +72,7 @@ class Driver : public Block::Driver
 			Genode::size_t size   = block_count  * BLOCK_SIZE;
 
 			Genode::memcpy((void*)buffer, (void*)(_fb_addr + offset), size);
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 
 		void write(Block::sector_t           block_number,
@@ -92,7 +92,7 @@ class Driver : public Block::Driver
 
 			Genode::memcpy((void*)(_fb_addr + offset), (void*)buffer, size);
 			_fb.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
-			session->ack_packet(packet);
+			ack_packet(packet);
 		}
 };
 

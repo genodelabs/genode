@@ -124,7 +124,7 @@ namespace Ata {
 			          Block::Packet_descriptor &packet)
 			{
 				_read(block_number, block_count, buffer, false);
-				session->ack_packet(packet);
+				ack_packet(packet);
 			}
 
 			void write(Block::sector_t block_number,
@@ -133,7 +133,7 @@ namespace Ata {
 			           Block::Packet_descriptor &packet)
 			{
 				_write(block_number, block_count, buffer, false);
-				session->ack_packet(packet);
+				ack_packet(packet);
 			}
 
 			void read_dma(Block::sector_t block_number,
@@ -142,7 +142,7 @@ namespace Ata {
 			              Block::Packet_descriptor &packet)
 			{
 				_read(block_number, block_count, (char*)phys, true);
-				session->ack_packet(packet);
+				ack_packet(packet);
 			}
 
 			void write_dma(Block::sector_t block_number,
@@ -151,7 +151,7 @@ namespace Ata {
 			               Block::Packet_descriptor &packet)
 			{
 				_write(block_number, block_count, (char*)phys, true);
-				session->ack_packet(packet);
+				ack_packet(packet);
 			}
 
 			bool dma_enabled() { return _dma; }

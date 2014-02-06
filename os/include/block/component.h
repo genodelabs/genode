@@ -18,7 +18,6 @@
 #include <root/component.h>
 #include <os/signal_rpc_dispatcher.h>
 #include <os/server.h>
-#include <block_session/rpc_object.h>
 #include <block/driver.h>
 
 namespace Block {
@@ -64,7 +63,7 @@ class Block::Session_component_base
 
 
 class Block::Session_component : public Block::Session_component_base,
-                                 public Block::Session_rpc_object
+                                 public Block::Driver_session
 {
 	private:
 
@@ -183,7 +182,7 @@ class Block::Session_component : public Block::Session_component_base,
 		Session_component(Driver_factory           &driver_factory,
 		                  Server::Entrypoint       &ep, size_t buf_size)
 		: Session_component_base(driver_factory, buf_size),
-		  Session_rpc_object(_rq_ds, ep.rpc_ep()),
+		  Driver_session(_rq_ds, ep.rpc_ep()),
 		  _rq_phys(Dataspace_client(_rq_ds).phys_addr()),
 		  _sink_ack(ep, *this, &Session_component::_ready_to_ack),
 		  _sink_submit(ep, *this, &Session_component::_packet_avail),
@@ -193,8 +192,10 @@ class Block::Session_component : public Block::Session_component_base,
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
 
-			_driver.session = this;
+			_driver.session(this);
 		}
+
+		~Session_component() { _driver.session(nullptr); }
 
 		/**
 		 * Acknowledges a packet processed by the driver to the client
@@ -204,7 +205,7 @@ class Block::Session_component : public Block::Session_component_base,
 		 *
 		 * \throw Ack_congestion
 		 */
-		void ack_packet(Packet_descriptor &packet, bool success = true)
+		void ack_packet(Packet_descriptor &packet, bool success)
 		{
 			packet.succeeded(success);
 			_ack_packet(packet);
