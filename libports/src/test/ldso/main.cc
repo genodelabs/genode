@@ -111,6 +111,27 @@ static void exception() { throw 666; }
 extern void __ldso_raise_exception();
 
 
+/*************************************
+ ** Helpers to test stack alignment **
+ *************************************/
+
+static void test_stack_align(char const *fmt, ...) __attribute__((noinline));
+static void test_stack_align(char const *fmt, ...)
+{
+	va_list list;
+	va_start(list, fmt);
+
+	vprintf(fmt, list);
+
+	va_end(list);
+}
+
+struct Test_stack_align_thread : Thread<0x2000>
+{
+	Test_stack_align_thread() : Thread<0x2000>("test_stack_align") { }
+	void entry() { test_stack_align("%f\n%g\n", 3.142, 2.718); }
+};
+
 /**
  * Main function of LDSO test
  */
@@ -166,6 +187,14 @@ int main(int argc, char **argv)
 	printf("\n");
 
 	lib_1_test();
+
+	printf("test stack alignment\n");
+	printf("--------------------\n");
+	test_stack_align("%f\n%g\n", 3.142, 2.718);
+	Test_stack_align_thread t;
+	t.start();
+	t.join();
+	printf("\n");
 
 	/* test if return value is propagated correctly by dynamic linker */
 	return 123;

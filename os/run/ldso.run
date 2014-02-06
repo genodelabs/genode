@@ -98,6 +98,13 @@ compare_output_to {
 [init -> test-ldso] exception in lib: caught
 [init -> test-ldso] exception in another shared lib: caught
 [init -> test-ldso] 
+[init -> test-ldso] test stack alignment
+[init -> test-ldso] --------------------
+[init -> test-ldso] <warning: unsupported format string argument>
+[init -> test-ldso] <warning: unsupported format string argument>
+[init -> test-ldso] <warning: unsupported format string argument>
+[init -> test-ldso] <warning: unsupported format string argument>
+[init -> test-ldso] 
 [init -> test-ldso] ~Lib_2_local 55667785
 [init -> test-ldso] ~Lib_1_local_2 1020303d
 [init -> test-ldso] ~Lib_1_local_1 5060707d
