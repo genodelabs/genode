@@ -769,6 +769,35 @@ proc gdb { } {
 
 
 ##
+# Check if a shell command is installed
+#
+# \param  command  name of the command to search
+#
+# \return absolute path of command if cound, or exists if not
+#
+proc check_installed {command} {
+	if { [catch {set path [exec which $command]}] == 0} {
+		return $path
+	}
+
+	set dir { /sbin /usr/sbin /usr/local/bin }
+
+	foreach location $dir  {
+		append location / $command
+
+		if { [file exists $location] == 1} {
+			return $location
+		}
+	}
+
+	puts stderr "Error: '$command' command could be not found. Please make sure to install the"
+	puts stderr "        packet containing '$command', or make it avaiable in your PATH variable.\n"
+
+	exit 1
+}
+
+
+##
 #  U-boot bootloader specific uImage
 #
 # \param  elf_img   ELF binary to build uImage from
