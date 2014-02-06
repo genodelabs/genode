@@ -21,7 +21,7 @@
 
 using namespace Genode;
 
-extern addr_t init_main_thread_result;
+addr_t init_main_thread_result;
 
 extern void init_exception_handling();
 

@@ -66,10 +66,8 @@
 
 	/* stack of the temporary initial environment */
 	.p2align 8
-	.global	_stack_low
-	_stack_low:
-	.space	32 * 1024
-	.global	_stack_high
+	.space 32 * 1024
+	.global _stack_high
 	_stack_high:
 
 	/* initial value of the RSP, RAX and RDI register */
@@ -81,9 +79,4 @@
 	.space 8
 	.globl	__initial_di
 	__initial_di:
-	.space 8
-
-	/* return value of init_main_thread */
-	.globl init_main_thread_result
-	init_main_thread_result:
 	.space 8

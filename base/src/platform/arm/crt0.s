@@ -52,8 +52,6 @@
 
 	/* stack of the temporary initial environment */
 	.p2align 4
-	.global	_stack_low
-	_stack_low:
 	.space 32 * 1024
 	.global _stack_high
 	_stack_high:
@@ -61,9 +59,4 @@
 	/* initial value of the SP register */
 	.global __initial_sp
 	__initial_sp:
-	.space 4
-
-	/* return value of init_main_thread */
-	.global init_main_thread_result
-	init_main_thread_result:
 	.space 4
