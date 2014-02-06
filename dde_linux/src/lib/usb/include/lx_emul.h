@@ -359,6 +359,8 @@ void put_unaligned_le16(u16 val, void *p);
 void put_unaligned_le32(u32 val, void *p);
 u32  get_unaligned_le32(const void *p);
 
+void put_unaligned_be32(u32 val, void *p);
+
 void put_unaligned_le64(u64 val, void *p);
 u64 get_unaligned_le64(const void *p);
 
@@ -628,6 +630,7 @@ int kstrtouint(const char *s, unsigned int base, unsigned int *res);
 int strict_strtoul(const char *s, unsigned int base, unsigned long *res);
 long simple_strtoul(const char *cp, char **endp, unsigned int base);
 
+int hex_to_bin(char ch);
 
 /*
  * Needed by 'usb.h'
@@ -823,6 +826,7 @@ struct module;
 	module_exit(__driver##_exit);
 
 
+int try_module_get(struct module *module);
 
 static inline void module_put(struct module *module) { }
 static inline void __module_get(struct module *module) { }
@@ -944,6 +948,7 @@ unsigned long msecs_to_jiffies(const unsigned int m);
 unsigned int jiffies_to_msecs(const unsigned long j);
 long time_after(long a, long b);
 long time_after_eq(long a, long b);
+long time_before(long a, long b);
 
 
 /*******************
@@ -2717,7 +2722,14 @@ struct request
 void blk_queue_bounce_limit(struct request_queue *, u64);
 void blk_queue_dma_alignment(struct request_queue *, int);
 void blk_queue_max_hw_sectors(struct request_queue *, unsigned int);
+int  blk_queue_resize_tags(struct request_queue *, int);
+int  blk_queue_tagged(struct request_queue *);
+void blk_queue_update_dma_alignment(struct request_queue *, int);
+
+void blk_complete_request(struct request *);
+
 sector_t blk_rq_pos(const struct request *rq);
+
 unsigned int queue_max_hw_sectors(struct request_queue *q);
 
 #include <scsi/scsi_host.h>
@@ -2756,6 +2768,7 @@ int scsi_normalize_sense(const u8 *sense_buffer, int sb_len,
 
 const u8 * scsi_sense_desc_find(const u8 * sense_buffer, int sb_len,
                                 int desc_type);
+int scsi_sense_valid(struct scsi_sense_hdr *);
 
 /*********************
  ** scsi/scsi_tcq.h **
@@ -2847,10 +2860,16 @@ int scsi_get_resid(struct scsi_cmnd *cmd);
 struct scsi_driver *scsi_cmd_to_driver(struct scsi_cmnd *cmd);
 struct scsi_target *scsi_target(struct scsi_device *sdev);
 
+void trace_scsi_dispatch_cmd_start(struct scsi_cmnd *);
+void trace_scsi_dispatch_cmd_error(struct scsi_cmnd *, int);
+void trace_scsi_dispatch_cmd_done(struct scsi_cmnd *);
 
 /************************
  ** scsi/scsi_device.h **
  ************************/
+
+#define scmd_printk(prefix, scmd, fmt, a...)
+#define sdev_printk(prefix, sdev, fmt, a...)
 
 struct scsi_target
 {
@@ -2928,6 +2947,11 @@ struct scsi_device
 
 #define shost_for_each_device(sdev, shost) dde_kit_printf("shost_for_each_device called\n");
 #define __shost_for_each_device(sdev, shost) dde_kit_printf("__shost_for_each_device called\n");
+
+int scsi_device_blocked(struct scsi_device *);
+int scsi_device_get(struct scsi_device *);
+int scsi_execute_req(struct scsi_device *, const unsigned char *, int, void *,
+                     unsigned, struct scsi_sense_hdr *, int , int , int *);
 
 
 /************************
@@ -3466,6 +3490,7 @@ void ida_simple_remove(struct ida *ida, unsigned int id);
 struct async_domain { };
 
 #define ASYNC_DOMAIN(name) struct async_domain name = { };
+void async_unregister_domain(struct async_domain *domain);
 
 
 /*******************************
@@ -3495,6 +3520,12 @@ int bitmap_subset(const unsigned long *,
 
 u16 crc16(u16 crc, const u8 *buffer, size_t len);
 
+
+/*******************
+ ** linux/crc32.h **
+ *******************/
+
+u32 ether_crc(int, unsigned char *);
 
 /*******************
  ** linux/birev.h **

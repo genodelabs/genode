@@ -215,6 +215,7 @@ int  phy_mii_ioctl(struct phy_device *phydev, struct ifreq *ifr, int cmd);
 void phy_print_status(struct phy_device *phydev);
 int  phy_ethtool_sset(struct phy_device *phydev, struct ethtool_cmd *cmd);
 int  phy_ethtool_gset(struct phy_device *phydev, struct ethtool_cmd *cmd);
+void phy_start(struct phy_device *phydev);
 int  phy_start_aneg(struct phy_device *phydev);
 void phy_stop(struct phy_device *phydev);
 int  genphy_resume(struct phy_device *phydev);

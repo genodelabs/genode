@@ -25,8 +25,7 @@ CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG
 CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
           -Wno-unused-function -Wno-overflow 
 
-CC_C_OPT += -Wno-implicit-function-declaration -Wno-unused-but-set-variable \
-            -Wno-pointer-sign
+CC_C_OPT += -Wno-unused-but-set-variable -Wno-pointer-sign
 
 CXX_OPT = -fpermissive
 #
