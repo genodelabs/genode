@@ -54,7 +54,7 @@
 	.p2align 4
 	.global	_stack_low
 	_stack_low:
-	.space 128 * 1024
+	.space 32 * 1024
 	.global _stack_high
 	_stack_high:
 
