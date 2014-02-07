@@ -43,12 +43,12 @@ int main(int argc, char *argv[])
 	}
 
 	offset = lseek(fd, 8193, SEEK_SET);
-	printf("offset: %zd\n", offset);
+	printf("offset: %lld\n", (long long)offset);
 
 	n = write(fd, str, sizeof (str));
 
 	offset = lseek(fd, 8193, SEEK_SET);
-	printf("offset: %zd\n", offset);
+	printf("offset: %lld\n", (long long)offset);
 	n = read(fd, buf, sizeof (str));
 	printf("bytes: %zd\n", n);
 	for (size_t i = 0; i < sizeof (str); i++)

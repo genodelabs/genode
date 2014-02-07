@@ -132,7 +132,7 @@ static void run_benchmark(
 	unsigned const sec_right        = 1000 * ((float)sec - sec_left);
 	unsigned const mb_per_sec_left  = mb_per_sec;
 	unsigned const mb_per_sec_right = 1000 * ((float)mb_per_sec - mb_per_sec_left);
-	PLOG(" %10u  %10u  %u.%03u  %10u.%03u", request_size, bytes, sec_left, sec_right, mb_per_sec_left, mb_per_sec_right);
+	PLOG(" %10zu  %10u  %u.%03u  %10u.%03u", request_size, bytes, sec_left, sec_right, mb_per_sec_left, mb_per_sec_right);
 }
 
 void print_bench_head()

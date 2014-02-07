@@ -130,7 +130,7 @@ class Track : Thread<8192>
 					}
 
 					if (verbose)
-						PDBG("%s submit packet %zu", _file,
+						PDBG("%s submit packet %u", _file,
 						     _audio_out[0]->stream()->packet_position((p[0])));
 
 					for (int i = 0; i < CHN_CNT; i++)
