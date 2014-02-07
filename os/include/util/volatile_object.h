@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__UTIL__VOLATILE_OBJECT_H_
 #define _INCLUDE__UTIL__VOLATILE_OBJECT_H_
 
+#include <util/construct_at.h>
 #include <base/printf.h>
 #include <base/stdint.h>
 
@@ -40,21 +41,6 @@ class Genode::Volatile_object
 	private:
 
 		/**
-		 * Utility to equip an existing type 'T' with a placement new operator
-		 */
-		template <typename T>
-		struct Placeable : T
-		{
-			template <typename... ARGS>
-			Placeable(ARGS &&... args)
-			:
-				T(args...)
-			{ }
-
-			void *operator new (size_t, void *ptr) { return ptr; }
-		};
-
-		/**
 		 * Static reservation of memory for the embedded object
 		 */
 		char _space[sizeof(MT)];
@@ -66,7 +52,7 @@ class Genode::Volatile_object
 
 		template <typename... ARGS> void _do_construct(ARGS &&... args)
 		{
-			new (_space) Placeable<MT>(args...);
+			construct_at<MT>(_space, args...);
 			_constructed = true;
 		}
 

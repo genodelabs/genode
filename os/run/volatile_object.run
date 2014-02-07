@@ -59,6 +59,11 @@ compare_output_to {
 [init -> test-volatile_object] destruct Member_with_reference
 [init -> test-volatile_object] destruct Object 2
 [init -> test-volatile_object] destruct Object 1
+[init -> test-volatile_object] -- construct Throwing object
+[init -> test-volatile_object] construct Throwing -> don't throw
+[init -> test-volatile_object] destruct Throwing
+[init -> test-volatile_object] construct Throwing -> throw exception
+[init -> test-volatile_object] -- catched exception as expected
 [init -> test-volatile_object] --- test-volatile_object finished ---
 }
 
