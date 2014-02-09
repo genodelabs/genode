@@ -82,31 +82,51 @@ endif
 # Utilities
 #
 
+##
+# Return $(2) if $(1) is empty, "" else
+#
+check_nonempty_f = $(if $(1),,$(info $(2))$(2))
+
+##
+# Return $(3) if $(1) != $(2), "" else
+#
+check_equal_f = $(if $(filter $(1),$(2)),,$(info $(3))$(3))
+
+
 SHELL       = bash
 BRIGHT_COL  = \033[01;33m
 DEFAULT_COL = \033[0m
 ECHO        = @echo -e
 VERBOSE     = @
 
-AUTOCONF_gcc_4.4.5 = autoconf2.59
-AUTOCONF_gcc_4.6.1 = autoconf2.64
-AUTOCONF_gcc_4.7.2 = autoconf2.64
-
-AUTOCONF = $(AUTOCONF_gcc_$(GCC_VERSION))
-
-# Return $(2) if $(1) is empty, "" else
-check_nonempty_f = $(if $(1),,$(info $(2))$(2))
-# Return $(3) if $(1) != $(2), "" else
-check_equal_f    = $(if $(filter $(1),$(2)),,$(info $(3))$(3))
-
-AUTOCONF_OK = $(call check_nonempty_f,$(AUTOCONF),\
-                Unknown autoconf version for GCC $(GCC_VERSION))
-
 #
 # Check if 'autoconf' is installed
 #
-AUTOCONFINST_OK = $(call check_nonempty_f,$(shell which $(AUTOCONF)),\
-                    Need to have $(AUTOCONF) installed.)
+AUTOCONF_VERSION_gcc_4.4.5 = 2.59
+AUTOCONF_VERSION_gcc_4.6.1 = 2.64
+AUTOCONF_VERSION_gcc_4.7.2 = 2.64
+
+AUTOCONF_VERSION = $(AUTOCONF_VERSION_gcc_$(GCC_VERSION))
+
+ifeq ($(AUTOCONF_VERSION),)
+$(error Unknown autoconf version for GCC $(GCC_VERSION).)
+endif
+
+AUTOCONF_VERSION_STRING = "autoconf (GNU Autoconf) $(AUTOCONF_VERSION)"
+ifeq ($(shell autoconf -V | grep $(AUTOCONF_VERSION_STRING)),)
+  ifeq ($(shell which autoconf$(AUTOCONF_VERSION)),)
+    ifneq ($(shell which autoconf-$(AUTOCONF_VERSION)),)
+      AUTOCONF = autoconf-$(AUTOCONF_VERSION)
+    endif
+  else
+    AUTOCONF = autoconf$(AUTOCONF_VERSION)
+  endif
+else
+  AUTOCONF = autoconf
+endif
+
+AUTOCONFINST_OK = $(call check_nonempty_f,$(AUTOCONF),\
+                    Need to have 'autoconf-$(AUTOCONF_VERSION)' installed.)
 
 #
 # Check if 'libncurses' is installed
