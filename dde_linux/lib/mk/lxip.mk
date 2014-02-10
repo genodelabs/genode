@@ -30,8 +30,7 @@ CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
           -Wno-unused-function -Wno-overflow -Wno-pointer-arith \
           -Wno-sign-compare
 
-CC_C_OPT  += -Wno-implicit-function-declaration -Wno-unused-but-set-variable \
-             -Wno-pointer-sign
+CC_C_OPT  += -Wno-unused-but-set-variable -Wno-pointer-sign
 
 CC_C_OPT  += -include $(LIB_INC_DIR)/lx_emul.h
 CC_CXX_OPT = -fpermissive
@@ -39,7 +38,7 @@ CC_CXX_OPT = -fpermissive
 SRC_CC = dummies.cc env.cc lxcc_emul.cc nic_handler.cc socket_handler.cc \
          timer_handler.cc
 
-SRC_C += driver.c init.c lxc_emul.c socket.c
+SRC_C += driver.c dummies_c.c init.c lxc_emul.c socket.c
 
 SRC_C += net/802/p8023.c
 SRC_C += $(addprefix net/core/,$(notdir $(wildcard $(NET_DIR)/core/*.c)))

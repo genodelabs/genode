@@ -54,6 +54,7 @@ extern "C" {
 	ret; })
 
 #define WARN_ON_ONCE WARN_ON
+#define WARN_ONCE WARN
 
 #define BUG() do { \
 	dde_kit_debug("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
@@ -207,7 +208,19 @@ enum {
 
 struct module;
 #define module_init(fn) void module_##fn(void) { fn(); }
-#define module_exit(fn) void module_exit_##fn(void) { exit_fn(); }
+#define module_exit(fn) void module_exit_##fn(void) { fn(); }
+
+void module_put(struct module *);
+int try_module_get(struct module *);
+
+/*******************
+ ** asm/barrier.h **
+ *******************/
+
+#define mb()  asm volatile ("": : :"memory")
+#define smp_mb() mb()
+#define smp_rmb() mb()
+#define smp_wmb() mb()
 
 
 /*************************
@@ -263,11 +276,14 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+
+
 typedef uint8_t  __u8;
 typedef uint16_t __u16;
 typedef uint32_t __u32;
 typedef uint64_t __u64;
 
+typedef __u8  u_int8_t;
 
 typedef int16_t  __s16;
 typedef int32_t  __s32;
@@ -292,6 +308,11 @@ typedef long         __kernel_suseconds_t;
 typedef int            pid_t;
 typedef long           ssize_t;
 typedef unsigned short umode_t;
+typedef unsigned long  clock_t;
+typedef int            pid_t;
+typedef unsigned int   uid_t;
+typedef unsigned int   gid_t;
+
 
 #define __aligned_u64 __u64 __attribute__((aligned(8)))
 
@@ -326,6 +347,13 @@ enum { true = 1, false = 0 };
 #endif /* NULL */
 
 #define __bitwise
+
+
+/******************
+ ** linux/kmod.h **
+ ******************/
+
+int request_module(const char *name, ...);
 
 
 /*******************************
@@ -376,6 +404,13 @@ struct scatterlist
 {
 };
 
+struct page;
+
+void sg_mark_end(struct scatterlist *sg);
+void sg_set_buf(struct scatterlist *, const void *, unsigned int);
+void sg_set_page(struct scatterlist *, struct page *, unsigned int,
+                 unsigned int);
+
 /********************
  ** linux/printk.h **
  ********************/
@@ -383,10 +418,15 @@ struct scatterlist
 #define KERN_WARNING "<4>"
 
 #define pr_crit(fmt, ...)    printk(KERN_CRIT fmt, ##__VA_ARGS__)
+#define pr_emerg(fmt, ...)   printk(KERN_EMERG fmt, ##__VA_ARGS__)
 #define pr_info(fmt, ...)    printk(KERN_INFO fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...)     printk(KERN_ERR fmt, ##__VA_ARGS__)
 #define pr_notice(fmt, ...)  printk(KERN_NOTICE fmt, ##__VA_ARGS__)
 #define pr_cont(fmt, ...)    printk(KERN_CONT fmt, ##__VA_ARGS__)
+#define pr_warn(fmt, ...)    printk(KERN_WARN fmt, ##__VA_ARGS__)
+
+#define pr_info_once(fmt, ...)  printk(KERN_INFO fmt, ##__VA_ARGS__)
+#define pr_err_once(fmt, ...)   printk(KERN_ERR fmt, ##__VA_ARGS__)
 
 #if DEBUG_LEVEL
 #define pr_debug(fmt, ...)   printk(KERN_DEBUG fmt, ##__VA_ARGS__)
@@ -424,7 +464,8 @@ static inline int _printk(const char *fmt, ...)
  ** linux/hash.h **
  ******************/
 
-u32 hash_32(u32 val, unsigned int bits);
+u32 hash_32(u32 val, unsigned int);
+u32 hash32_ptr(const void *);
 
 
 /****************************************************************
@@ -432,6 +473,9 @@ u32 hash_32(u32 val, unsigned int bits);
  ****************************************************************/
 
 typedef unsigned long mm_segment_t;
+
+void prefetchw(const void *);
+void prefetch(const void *);
 
 
 /*************************************
@@ -471,6 +515,10 @@ static inline u32 get_unaligned_be32(const void *p)
 	return be32_to_cpup((__be32 *)p);
 }
 
+u32 __get_unaligned_cpu32(const void *);
+
+void put_unaligned_be32(u32 val, void *);
+
 
 /*****************
  ** asm/param.h **
@@ -499,6 +547,7 @@ static inline u32 get_unaligned_be32(const void *p)
 #define KERN_EMERG  "EMERG: "
 #define KERN_ALERT  "ALERT: "
 #define KERN_CONT   ""
+#define KERN_WARN   "WARNING: "
 
 
 #define container_of(ptr, type, member) ({ \
@@ -559,6 +608,8 @@ enum { SPRINTF_STR_LEN = 64 };
 int   snprintf(char *buf, size_t size, const char *fmt, ...);
 int   sprintf(char *buf, const char *fmt, ...);
 int   sscanf(const char *, const char *, ...);
+int   kstrtoul(const char *, unsigned int, unsigned long *);
+int   scnprintf(char *, size_t, const char *, ...);
 
 #define sprintf(buf, fmt, ...) snprintf(buf, SPRINTF_STR_LEN, fmt, __VA_ARGS__)
 
@@ -568,9 +619,13 @@ int   sscanf(const char *, const char *, ...);
 	buf; \
 })
 
+#define clamp(val, min, max) printk("clamp is not implemented\n")
+
 //char *kasprintf(gfp_t gfp, const char *fmt, ...);
 
 char *get_options(const char *str, int nints, int *ints);
+int   hex_to_bin(char);
+
 
 /**************************
  ** uapi/linux/sysinfo.h **
@@ -591,6 +646,11 @@ struct sysinfo
 	*ptr = (*ptr == o) ? n : *ptr; \
 	prev;\
 })
+
+unsigned long __xchg(unsigned long, volatile void *, int);
+
+#define xchg(ptr, x) \
+	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
 
 
 /******************
@@ -662,11 +722,23 @@ static inline int atomic_add_unless(atomic_t *v, int a, int u)
 	return ret != u;
 }
 
+#define smp_mb__before_atomic_dec()
+
+/****************************
+ ** tools/perf/util/util.h **
+ ****************************/
+
+void dump_stack(void);
+
+
 /******************
  ** linux/kref.h **
  ******************/
 
 struct kref { atomic_t refcount; };
+
+void kref_init(struct kref *);
+int  kref_put(struct kref *, void (*)(struct kref *));
 
 
 /********************
@@ -676,7 +748,25 @@ struct kref { atomic_t refcount; };
 typedef unsigned  kuid_t;
 typedef unsigned  kgid_t;
 
+struct user_namespace;
 #define GLOBAL_ROOT_UID (kuid_t)0
+
+bool  gid_lte(kgid_t, kgid_t);
+uid_t from_kuid_munged(struct user_namespace *, kuid_t);
+gid_t from_kgid_munged(struct user_namespace *, kgid_t);
+uid_t from_kuid(struct user_namespace *, kuid_t);
+gid_t from_kgid(struct user_namespace *, kgid_t);
+bool  uid_eq(kuid_t, kuid_t);
+
+
+/*****************
+ ** linux/pid.h **
+ ****************/
+
+struct pid;
+
+pid_t pid_vnr(struct pid *);
+void put_pid(struct pid *);
 
 /***********************
  ** linux/kmemcheck.h **
@@ -685,6 +775,8 @@ typedef unsigned  kgid_t;
 #define kmemcheck_bitfield_begin(name)
 #define kmemcheck_bitfield_end(name)
 #define kmemcheck_annotate_bitfield(ptr, name)
+#define kmemcheck_annotate_variable(var)
+
 
 /*************************
  ** asm-generic/div64.h **
@@ -697,6 +789,16 @@ typedef unsigned  kgid_t;
 	(n)   = ((uint64_t)(n)) / __base; \
 	__rem; \
 })
+
+
+/********************
+ ** linux/math64.h **
+ ********************/
+
+u64 div64_u64(u64, u64);
+u64 div_u64(u64, u32);
+
+
 /*************************
  ** asm-generic/cache.h **
  *************************/
@@ -729,7 +831,14 @@ enum { NUMA_NO_NODE = -1 };
  ************************/
 
 struct static_key { };
+
 #define STATIC_KEY_INIT_FALSE ((struct static_key) {})
+
+void static_key_slow_inc(struct static_key *);
+void static_key_slow_dec(struct static_key *);
+bool static_key_false(struct static_key *);
+bool static_key_enabled(struct static_key *);
+
 
 /********************
  ** linux/poison.h **
@@ -772,9 +881,11 @@ enum { BITS_PER_LONG  = sizeof(long) * 8 };
 
 #define smp_mb__before_clear_bit()
 
+unsigned long __fls(unsigned long);
+int           fls64(__u64 x);
+
 static int get_bitmask_order(unsigned int count) {
  return __builtin_clz(count) ^ 0x1f; }
-
 
 #define ffs(x) __builtin_ffs(x)
 #define ffz(x) ffs(~(x))
@@ -789,7 +900,17 @@ static inline __u32 rol32(__u32 word, unsigned int shift)
  ** asm-generic/bitops/find.h **
  *******************************/
 
+#define smp_mb__after_clear_bit() smp_mb()
+
 unsigned long find_first_zero_bit(unsigned long const *addr, unsigned long size);
+
+
+/****************************
+ ** bitops/const_hweight.h **
+ ****************************/
+
+#define hweight32(w) printk("hweight32 not implemented\n")
+#define hweight64(w) printk("hweight64 not implemented\n")
 
 
 /****************************
@@ -843,13 +964,22 @@ struct page
  *************************/
 
 enum { RES_USAGE };
+struct res_counter;
+int res_counter_charge_nofail(struct res_counter *, unsigned long,
+                              struct res_counter **);
+u64 res_counter_uncharge(struct res_counter *, unsigned long);
+u64 res_counter_read_u64(struct res_counter *counter, int member);
 
 
 /************************
  ** linux/memcontrol.h **
  ************************/
+struct sock;
 
 enum { UNDER_LIMIT, SOFT_LIMIT, OVER_LIMIT };
+
+void sock_update_memcg(struct sock *);
+void sock_release_memcg(struct sock *);
 
 
 /*********************
@@ -886,6 +1016,16 @@ void put_page(struct page *page);
 
 struct page *virt_to_head_page(const void *x);
 struct page *virt_to_page(const void *x);
+
+void si_meminfo(struct sysinfo *);
+
+
+/********************
+ ** linux/mmzone.h **
+ ********************/
+
+
+int PageHighMem(struct page *);
 
 
 /******************
@@ -929,6 +1069,10 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order);
 unsigned long get_zeroed_page(gfp_t gfp_mask);
 #define free_page(p) kfree((void *)p)
 
+bool gfp_pfmemalloc_allowed(gfp_t);
+unsigned long __get_free_pages(gfp_t, unsigned int);
+void free_pages(unsigned long, unsigned int);
+
 /******************
  ** linux/slab.h **
  ******************/
@@ -958,6 +1102,7 @@ void *kmem_cache_alloc(struct kmem_cache *, gfp_t);
 void *kmem_cache_alloc_node(struct kmem_cache *, gfp_t flags, int node);
 
 void kmem_cache_free(struct kmem_cache *cache, void *objp);
+void kmem_cache_destroy(struct kmem_cache *);
 
 
 /*********************
@@ -965,14 +1110,18 @@ void kmem_cache_free(struct kmem_cache *cache, void *objp);
  *********************/
 
 void *vzalloc(unsigned long size);
+void vfree(const void *addr);
 
 
 /**********************
  ** linux/highmem.h  **
  **********************/
 
+void kunmap_atomic(void *);
+
 static inline void *kmap(struct page *page) { return page_address(page); }
 static inline void *kmap_atomic(struct page *page) { return kmap(page); }
+void                kunmap(struct page *);
 
 
 /*********************
@@ -980,14 +1129,21 @@ static inline void *kmap_atomic(struct page *page) { return kmap(page); }
  *********************/
 
 void *alloc_large_system_hash(const char *tablename,
-	                            unsigned long bucketsize,
-	                            unsigned long numentries,
-	                            int scale,
-	                            int flags,
-	                            unsigned int *_hash_shift,
-	                            unsigned int *_hash_mask,
-	                            unsigned long low_limit,
-	                            unsigned long high_limit);
+                              unsigned long bucketsize,
+                              unsigned long numentries,
+                              int scale,
+                              int flags,
+                              unsigned int *_hash_shift,
+                              unsigned int *_hash_mask,
+                              unsigned long low_limit,
+                              unsigned long high_limit);
+
+
+/************************
+ ** linux/debug_lock.h **
+ ************************/
+
+void debug_check_no_locks_freed(const void *from, unsigned long len);
 
 
 /**********************
@@ -1004,6 +1160,9 @@ static inline void spin_unlock(spinlock_t *lock) { }
 
 static inline void spin_lock_bh(spinlock_t *lock) { }
 static inline void spin_unlock_bh(spinlock_t *lock) { }
+
+void spin_lock_irqsave(spinlock_t *, unsigned long);
+void spin_unlock_irqrestore(spinlock_t *, unsigned long);
 
 int spin_trylock(spinlock_t *lock);
 
@@ -1022,15 +1181,33 @@ struct mutex { };
 
 #define DEFINE_MUTEX(n) struct mutex n;
 
+void mutex_lock(struct mutex *);
+void mutex_unlock(struct mutex *);
+void mutex_init(struct mutex *);
 
-/**************************
- ** linux/rwlock_types.h **
- **************************/
+
+/***********************************
+ ** linux/rwlock_types.h/rwlock.h **
+ ***********************************/
 
 typedef unsigned rwlock_t;
 
 #define DEFINE_RWLOCK(x) rwlock_t x;
 #define __RW_LOCK_UNLOCKED(x) 0
+
+void rwlock_init(rwlock_t *);
+
+void write_lock_bh(rwlock_t *);
+void write_unlock_bh(rwlock_t *);
+void write_lock(rwlock_t *);
+void write_unlock(rwlock_t *);
+void write_lock_irq(rwlock_t *);
+void write_unlock_irq(rwlock_t *);
+
+void read_lock(rwlock_t *);
+void read_unlock(rwlock_t *);
+void read_lock_bh(rwlock_t *);
+void read_unlock_bh(rwlock_t *);
 
 
 /*******************
@@ -1048,6 +1225,8 @@ struct rw_semaphore { int dummy; };
 
 typedef unsigned seqlock_t;
 
+void seqlock_init (seqlock_t *);
+
 #define __SEQLOCK_UNLOCKED(x) 0
 
 /*********************
@@ -1058,14 +1237,17 @@ extern volatile unsigned long jiffies;
 
 enum { INITIAL_JIFFIES = 0 };
 
-unsigned int jiffies_to_msecs(const unsigned long j);
-unsigned long msecs_to_jiffies(const unsigned int m);
+unsigned int jiffies_to_msecs(const unsigned long);
+unsigned int jiffies_to_usecs(const unsigned long);
+unsigned long msecs_to_jiffies(const unsigned int);
 
 long time_after(long a, long b);
 long time_after_eq(long a, long b);
 
 static inline long time_before(long a, long b) { return time_after(b, a); }
 static inline long time_before_eq(long a, long b) { return time_after_eq(b ,a); }
+
+clock_t jiffies_to_clock_t(unsigned long);
 
 
 /******************
@@ -1093,6 +1275,7 @@ enum {
 };
 
 unsigned long get_seconds(void);
+void          getnstimeofday(struct timespec *);
 
 
 /*******************
@@ -1102,12 +1285,18 @@ unsigned long get_seconds(void);
 union ktime { 
 	s64 tv64; 
 };
- typedef union ktime ktime_t;
+
+typedef union ktime ktime_t;
+
+#define ktime_to_ns(kt) ((kt).tv64)
 
 struct timeval ktime_to_timeval(const ktime_t);
 struct timespec ktime_to_timespec(const ktime_t kt);
 
 ktime_t ktime_sub(const ktime_t, const ktime_t);
+ktime_t ktime_get(void);
+int     ktime_equal(const ktime_t, const ktime_t);
+s64     ktime_us_delta(const ktime_t, const ktime_t);
 
 static inline ktime_t ktime_set(const long secs, const unsigned long nsecs)
 {
@@ -1123,6 +1312,7 @@ static inline ktime_t ktime_get_real(void)
 {
 	return (ktime_t) { .tv64 = jiffies * (1000 / HZ) * NSEC_PER_MSEC };
 }
+
 
 /*******************
  ** linux/timer.h **
@@ -1150,6 +1340,14 @@ void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
                  unsigned long data);
 int  timer_pending(const struct timer_list * timer);
 int  del_timer(struct timer_list *timer);
+void timer_stats_timer_clear_start_info(struct timer_list *);
+long round_jiffies_relative(unsigned long);
+
+unsigned long round_jiffies(unsigned long);
+unsigned long round_jiffies_up(unsigned long);
+
+
+#define del_timer_sync del_timer
 
 
 /*********************
@@ -1163,7 +1361,9 @@ struct hrtimer { };
  ** linux/delay.h **
  *******************/
 
- void msleep(unsigned int msecs);
+void msleep(unsigned int);
+void ssleep(unsigned int);
+
 
 /***********************
  ** linux/ratelimit.h **
@@ -1181,6 +1381,8 @@ struct ratelimit_state
 		.burst          = burst_init,                           \
 	}
 
+extern int ___ratelimit(struct ratelimit_state *, const char *);
+#define __ratelimit(state) ___ratelimit(state, __func__)
 
 /*******************
  ** linux/sched.h **
@@ -1212,8 +1414,23 @@ struct task_struct
 /* normally defined in asm/current.h, included by sched.h */
 extern struct task_struct *current;
 
-long schedule_timeout_uninterruptible(signed long timeout);
+signed long schedule_timeout_interruptible(signed long);
+long        schedule_timeout_uninterruptible(signed long);
 signed long schedule_timeout(signed long timeout);
+
+void  cond_resched(void);
+void  cond_resched_softirq(void);
+int   signal_pending(struct task_struct *);
+int   send_sig(int, struct task_struct *, int);
+void  tsk_restore_flags(struct task_struct *, unsigned long, unsigned long);
+pid_t task_pid_nr(struct task_struct *);
+void  schedule(void);
+int   need_resched(void);
+void  yield(void);
+void __set_current_state(int);
+void  set_current_state(int);
+pid_t task_tgid_vnr(struct task_struct *);
+
 
 /************************
  ** linux/textsearch.h **
@@ -1233,6 +1450,8 @@ struct ts_config
 	void          (*finish)(struct ts_config *conf,
 	                        struct ts_state *state);
 };
+
+unsigned int textsearch_find(struct ts_config *, struct ts_state *);
 
 
 /****************************
@@ -1261,9 +1480,15 @@ enum {
 };
 
 #define lockdep_set_class(lock, key)
+#define lockdep_set_class_and_name(lock, key, name)
+#define mutex_acquire(l, s, t, i)
+#define mutex_release(l, n, i) 
 
 struct lock_class_key { };
 struct lockdep_map { };
+
+void lockdep_init_map(struct lockdep_map *, const char *,
+                      struct lock_class_key *, int);
 
 
 /*****************
@@ -1271,6 +1496,11 @@ struct lockdep_map { };
  *****************/
 
 #define smp_processor_id() 0
+#define put_cpu()
+
+typedef void (*smp_call_func_t)(void *info);
+
+int on_each_cpu(smp_call_func_t, void *, int);
 
 /**********************
  ** linux/rcupdate.h **
@@ -1293,6 +1523,11 @@ struct rcu_head { };
 
 void rcu_read_lock(void);
 void rcu_read_unlock(void);
+
+void rcu_read_lock_bh(void);
+void rcu_read_unlock_bh(void);
+
+void synchronize_rcu(void);
 
 static inline int rcu_read_lock_held(void) { return 1; }
 static inline int rcu_read_lock_bh_held(void) { return 1; }
@@ -1332,6 +1567,11 @@ static inline void call_rcu(struct rcu_head *head,
 
 #define free_percpu(pdata) kfree(pdata)
 
+void hlist_add_after_rcu(struct hlist_node *, struct hlist_node *);
+void hlist_add_before_rcu(struct hlist_node *,struct hlist_node *);
+
+void list_replace_rcu(struct list_head *, struct list_head *);
+
 
 /***************************
  ** linux/rculist_nulls.h **
@@ -1339,6 +1579,14 @@ static inline void call_rcu(struct rcu_head *head,
 
 #define hlist_nulls_for_each_entry_rcu(tpos, pos, head, member) \
 	hlist_nulls_for_each_entry(tpos, pos, head, member)
+
+
+/*********************
+ ** linux/rcutree.h **
+ *********************/
+
+ void rcu_barrier(void);
+ void synchronize_rcu_expedited(void);
 
 
 /*************************
@@ -1368,9 +1616,11 @@ void *__alloc_percpu(size_t size, size_t align);
 #define per_cpu(var, cpu) var
 #define per_cpu_ptr(ptr, cpu)   ({ (void)(cpu);(typeof(*(ptr)) *)(ptr); })
 #define get_cpu_var(var) var
+#define put_cpu_var(var) ({ (void)&(var); })
 #define __get_cpu_var(var) var
 #define __this_cpu_ptr(ptr) per_cpu_ptr(ptr, 0)
 #define this_cpu_ptr(ptr) per_cpu_ptr(ptr, 0)
+#define __this_cpu_read(pcp) pcp
 
 #define this_cpu_inc(pcp) pcp += 1
 #define this_cpu_dec(pcp) pcp -= 1
@@ -1381,6 +1631,15 @@ void *__alloc_percpu(size_t size, size_t align);
 #define this_cpu_add(pcp, val) pcp += val
 #define __this_cpu_add(pcp, val) this_cpu_add(pcp, val)
 #define get_cpu() 0
+
+
+/*********************
+ ** linux/cpumask.h **
+ *********************/
+
+#define num_online_cpus() 1U
+
+unsigned num_possible_cpus(void);
 
 
 /****************************
@@ -1458,6 +1717,15 @@ extern const struct cpumask *const cpu_possible_mask;
 	for ((cpu) = 0; (cpu) < 1; (cpu)++, (void)mask)
 
 #define for_each_possible_cpu(cpu) for_each_cpu((cpu), cpu_possible_mask)
+#define hotcpu_notifier(fn, pri)
+
+
+/*******************
+ ** linux/preempt **
+ *******************/
+
+void preempt_enable(void);
+void preempt_disable(void);
 
 
 /*********************
@@ -1472,6 +1740,9 @@ enum kobject_action
 
 struct kobject { };
 
+void kobject_put(struct kobject *);
+int kobject_uevent(struct kobject *, enum kobject_action);
+
 
 /***********************
  ** linux/interrupt.h **
@@ -1483,7 +1754,44 @@ enum {
 	NET_SOFTIRQS,
 };
 
+struct tasklet_struct;
 struct softirq_action { };
+
+void raise_softirq_irqoff(unsigned int);
+void __raise_softirq_irqoff(unsigned int );
+
+bool irqs_disabled(void);
+void do_softirq(void);
+
+void open_softirq(int, void (*)(struct softirq_action *));
+
+void tasklet_init(struct tasklet_struct *, void (*)(unsigned long),
+                  unsigned long);
+void tasklet_schedule(struct tasklet_struct *);
+
+
+/***********************
+ ** /linux/irqflags.h **
+ ***********************/
+
+void local_irq_save(unsigned long);
+void local_irq_restore(unsigned long);
+void local_irq_enable(void);
+void local_irq_disable(void);
+
+/*********************
+ ** linux/hardirq.h **
+ *********************/
+
+int in_softirq(void);
+int in_irq(void);
+
+
+/*************************
+ ** linux/irq_cpustat.h **
+ *************************/
+
+bool local_softirq_pending(void);
 
 
 /*************************
@@ -1540,6 +1848,7 @@ long copy_to_user(void *to, const void *from, unsigned long n)
 	return 0;
 }
 
+int access_ok(int, const void *, unsigned long);
 
 #define get_user(src, dst) ({ \
 	src = *dst; \
@@ -1550,6 +1859,14 @@ long copy_to_user(void *to, const void *from, unsigned long n)
 	0; })
 
 #define __copy_from_user copy_from_user
+#define __copy_from_user_nocache copy_from_user
+
+long strncpy_from_user(char *, const char *src, long);
+
+mm_segment_t get_fs(void);
+mm_segment_t get_ds(void);
+
+void set_fs(mm_segment_t);
 
 
 /*****************************
@@ -1561,6 +1878,14 @@ enum {
 	CAP_NET_ADMIN        = 12,
 	CAP_NET_RAW          = 13,
 };
+
+
+/*************************
+ ** linux/capability.h **
+ *************************/
+
+bool capable(int cap);
+bool ns_capable(struct user_namespace *, int);
 
 
 /********************
@@ -1578,6 +1903,13 @@ typedef int proc_handler (struct ctl_table *ctl, int write,
  ************************/
 
 struct proc_dir_entry { };
+
+
+/*******************
+ ** linux/proc_fs **
+ *******************/
+
+void remove_proc_entry(const char *, struct proc_dir_entry *);
 
 
 /*********************************
@@ -1611,6 +1943,10 @@ extern int audit_enabled;
 
 struct audit_context { };
 
+void   audit_log(struct audit_context *, gfp_t, int, const char *, ...);
+kuid_t audit_get_loginuid(struct task_struct *);
+int    audit_get_sessionid(struct task_struct *);
+
 
 /********************
  ** linux/device.h **
@@ -1624,15 +1960,19 @@ struct device_driver
 
 struct device
 {
-	struct kobject                *kobj;
+	struct kobject                 kobj;
 	struct device                 *parent;
 	struct device_driver          *driver;
 };
 
 struct class_attribute { };
 
-const char *dev_driver_string(const struct device *dev);
-const char *dev_name(const struct device *dev);
+const char *dev_driver_string(const struct device *);
+const char *dev_name(const struct device *);
+int         device_rename(struct device *, const char *);
+void        put_device(struct device *);
+
+int dev_printk_emit(int, const struct device *, const char *, ...);
 
 /*************************
  ** linux/dma-direction **
@@ -1648,6 +1988,14 @@ enum dma_data_direction { D = 1};
 dma_addr_t dma_map_page(struct device *dev, struct page *page,
                         size_t offset, size_t size,
                         enum dma_data_direction dir);
+
+
+/***********************
+ ** linux/dmaenging.h **
+ ***********************/
+
+void net_dmaengine_get(void);
+void net_dmaengine_put(void);
 
 
 /*****************
@@ -1706,6 +2054,26 @@ typedef struct wait_queue { } wait_queue_t;
 #define DEFINE_WAIT_FUNC(name, function) \
        wait_queue_t name
 
+#define wake_up(x)
+#define wake_up_interruptible_all(x)
+
+void init_waitqueue_head(wait_queue_head_t *);
+int waitqueue_active(wait_queue_head_t *);
+
+void wake_up_interruptible(wait_queue_head_t *);
+void wake_up_interruptible_sync_poll(wait_queue_head_t *, int);
+void wake_up_interruptible_poll(wait_queue_head_t *, int);
+
+void prepare_to_wait(wait_queue_head_t *, wait_queue_t *, int);
+void prepare_to_wait_exclusive(wait_queue_head_t *, wait_queue_t *, int);
+void finish_wait(wait_queue_head_t *, wait_queue_t *);
+
+int  autoremove_wake_function(wait_queue_t *, unsigned, int, void *);
+void add_wait_queue(wait_queue_head_t *, wait_queue_t *);
+void add_wait_queue_exclusive(wait_queue_head_t *, wait_queue_t *);
+void remove_wait_queue(wait_queue_head_t *, wait_queue_t *);
+
+
 /******************
  ** linux/poll.h **
  ******************/
@@ -1714,6 +2082,7 @@ typedef struct poll_table_struct { } poll_table;
 
 struct file;
 void poll_wait(struct file * filp, wait_queue_head_t * wait_address, poll_table *p);
+bool poll_does_not_wait(const poll_table *);
 
 /****************************
  ** linux/user_namespace.h **
@@ -1747,6 +2116,16 @@ extern struct user_namespace init_user_ns;
 #define current_user_ns() (&init_user_ns)
 
 struct group_info *get_current_groups();
+void put_cred(const struct cred *);
+
+static inline void current_uid_gid(kuid_t *u, kgid_t *g)
+{
+	*u = 0;
+	*g =0;
+}
+
+kgid_t current_egid(void);
+
 
 /*************************
  ** asm-generic/fcntl.h **
@@ -1794,6 +2173,7 @@ struct inode
 };
 
 struct inode *file_inode(struct file *f);
+int send_sigurg(struct fown_struct *);
 
 
 /***********************
@@ -1844,6 +2224,8 @@ struct splice_pipe_desc
 	const struct pipe_buf_operations *ops;
 	void (*spd_release)(struct splice_pipe_desc *, unsigned int);
 };
+
+ssize_t splice_to_pipe(struct pipe_inode_info *, struct splice_pipe_desc *);
 
 
 /*****************
@@ -1924,12 +2306,19 @@ struct sock_fprog { };
  ** linux/filter.h **
  ********************/
 
+struct sk_buff;
+struct sock_filter;
 struct sk_filter
 {
 	atomic_t        refcnt;
 	struct rcu_head rcu;
 };
 
+unsigned int sk_filter_len(const struct sk_filter *);
+int sk_filter(struct sock *, struct sk_buff *);
+int sk_attach_filter(struct sock_fprog *, struct sock *);
+int sk_detach_filter(struct sock *);
+int sk_get_filter(struct sock *, struct sock_filter *, unsigned);
 
 /*****************************
  ** uapi/linux/hdlc/ioctl.h **
@@ -1971,7 +2360,19 @@ struct delayed_work
 	.func = (f) \
 }
 
+#define INIT_WORK(_work, _func) printk("INIT_WORK not implemented\n");
+
 extern struct workqueue_struct *system_wq;
+
+bool schedule_work(struct work_struct *work);
+bool schedule_delayed_work(struct delayed_work *, unsigned long);
+bool cancel_delayed_work(struct delayed_work *);
+bool cancel_delayed_work_sync(struct delayed_work *);
+bool mod_delayed_work(struct workqueue_struct *, struct delayed_work *,
+                      unsigned long);
+
+
+void INIT_DEFERRABLE_WORK(struct delayed_work *, void (*func)(struct work_struct *));
 
 
 /**********************
@@ -1998,14 +2399,44 @@ enum {
 	SHA_WORKSPACE_WORDS = 16,
 };
 
+void sha_transform(__u32 *, const char *, __u32 *);
 
-/**********************
- ** linx/rtnetlink.h **
- **********************/
+
+/***********************
+ ** linux/rtnetlink.h **
+ ***********************/
 
 struct net_device;
+struct nlmsghdr;
+struct net;
+struct sk_buff;
+struct netlink_callback;
+struct rtnl_af_ops;
+struct dst_entry;
+
+typedef int (*rtnl_doit_func)(struct sk_buff *, struct nlmsghdr *, void *);
+typedef int (*rtnl_dumpit_func)(struct sk_buff *, struct netlink_callback *);
+typedef u16 (*rtnl_calcit_func)(struct sk_buff *, struct nlmsghdr *);
+
+
+void rtnetlink_init(void);
+void rtnl_register(int protocol, int msgtype,
+                   rtnl_doit_func, rtnl_dumpit_func,
+                   rtnl_calcit_func);
+int  rtnl_af_register(struct rtnl_af_ops *);
 
 struct netdev_queue *dev_ingress_queue(struct net_device *dev);
+void rtnl_notify(struct sk_buff *, struct net *, u32, u32, struct nlmsghdr *,
+                 gfp_t);
+int  rtnl_unicast(struct sk_buff *, struct net *, u32);
+int  rtnetlink_put_metrics(struct sk_buff *, u32 *);
+void rtnl_set_sk_err(struct net *, u32, int);
+void ASSERT_RTNL(void);
+void rtnl_lock(void);
+void rtnl_unlock(void);
+void __rtnl_unlock(void);
+int  rtnl_is_locked(void);
+int  rtnl_put_cacheinfo(struct sk_buff *, struct dst_entry *, u32, long, u32);
 
 
 /********************
@@ -2015,6 +2446,8 @@ struct netdev_queue *dev_ingress_queue(struct net_device *dev);
 enum netevent_notif_type {
 	NETEVENT_NEIGH_UPDATE = 1, /* arg is struct neighbour ptr */
 };
+
+int call_netevent_notifiers(unsigned long, void *);
 
 
 /***************
@@ -2029,6 +2462,13 @@ struct scm_cookie
 {
 	struct scm_creds creds; 
 };
+
+struct msghdr;
+struct socket;
+
+int  scm_send(struct socket *, struct msghdr *, struct scm_cookie *, bool);
+void scm_recv(struct socket *, struct msghdr *, struct scm_cookie *, int);
+void scm_destroy(struct scm_cookie *);
 
 
 /*********************
@@ -2114,8 +2554,13 @@ static inline int net_eq(const struct net *net1, const struct net *net2) {
 struct net *get_net_ns_by_pid(pid_t pid);
 struct net *get_net_ns_by_fd(int pid);
 
-int register_pernet_subsys(struct pernet_operations *);
-int register_pernet_device(struct pernet_operations *);
+int  register_pernet_subsys(struct pernet_operations *);
+int  register_pernet_device(struct pernet_operations *);
+void release_net(struct net *net);
+
+int  rt_genid(struct net *);
+void rt_genid_bump(struct net *);
+
 
 /**************************
  ** linux/seq_file_net.h **
@@ -2135,9 +2580,9 @@ struct seq_operations { };
 struct seq_file { };
 
 
-/**************************
+/*********************
  ** linux/seqlock.h **
- **************************/
+ *********************/
 
 typedef struct seqcount {
 	unsigned sequence;
@@ -2145,6 +2590,24 @@ typedef struct seqcount {
 
 unsigned read_seqbegin(const seqlock_t *sl);
 unsigned read_seqretry(const seqlock_t *sl, unsigned start);
+void write_seqlock_bh(seqlock_t *);
+void write_sequnlock_bh(seqlock_t *);
+void write_seqlock(seqlock_t *);
+void write_sequnlock(seqlock_t *);
+void write_seqcount_begin(seqcount_t *);
+void write_seqcount_end(seqcount_t *);
+
+
+/**********************
+ ** net/secure_seq.h **
+ **********************/
+
+u32   secure_ipv4_port_ephemeral(__be32, __be32, __be16);
+__u32 secure_tcp_sequence_number(__be32, __be32, __be16, __be16);
+
+__u32 secure_ip_id(__be32 );
+__u32 secure_ipv6_id(const __be32 [4]);
+
 
 /**********************
  ** linux/notifier.h **
@@ -2189,8 +2652,20 @@ struct atomic_notifier_head {
 
 };
 
+int atomic_notifier_chain_register(struct atomic_notifier_head *,
+                                   struct notifier_block *);
+
+int atomic_notifier_chain_unregister(struct atomic_notifier_head *,
+                                     struct notifier_block *);
+
+int atomic_notifier_call_chain(struct atomic_notifier_head *,
+                               unsigned long, void *);
+
 int raw_notifier_chain_register(struct raw_notifier_head *nh,
                                 struct notifier_block *n);
+
+int raw_notifier_chain_unregister(struct raw_notifier_head *nh,
+                                  struct notifier_block *nb);
 
 int raw_notifier_call_chain(struct raw_notifier_head *nh,
                             unsigned long val, void *v);
@@ -2198,8 +2673,14 @@ int raw_notifier_call_chain(struct raw_notifier_head *nh,
 int blocking_notifier_chain_register(struct blocking_notifier_head *nh,
                                      struct notifier_block *n);
 
+int blocking_notifier_chain_unregister(struct blocking_notifier_head *nh,
+                                       struct notifier_block *nb);
+
 int blocking_notifier_call_chain(struct blocking_notifier_head *nh,
                                  unsigned long val, void *v);
+
+int notifier_to_errno(int);
+int notifier_from_errno(int);
 
 #define BLOCKING_NOTIFIER_INIT(name) { \
 	.rwsem = __RWSEM_INITIALIZER((name).rwsem), .head = NULL }
@@ -2275,8 +2756,12 @@ struct net_device *vlan_dev_real_dev(const struct net_device *dev)
 }
 
 #define vlan_tx_tag_get(__skb) 0
-struct sk_buff *__vlan_put_tag(struct sk_buff *skb, u16 vlan_tci);
-struct sk_buff *vlan_untag(struct sk_buff *skb);
+struct sk_buff *__vlan_put_tag(struct sk_buff *, u16);
+struct sk_buff *vlan_untag(struct sk_buff *);
+int             is_vlan_dev(struct net_device *);
+u16             vlan_tx_tag_present(struct sk_buff *);
+bool            vlan_do_receive(struct sk_buff **);
+bool            vlan_tx_nonzero_tag_present(struct sk_buff *);
 
 
 /********************
@@ -2289,7 +2774,12 @@ __wsum csum_and_copy_from_user(const void __user *src, void *dst,
                                int len, __wsum sum, int *err_ptr);
 __wsum csum_add(__wsum csum, __wsum addend);
 __wsum csum_block_add(__wsum csum, __wsum csum2, int offset);
+__wsum csum_block_sub(__wsum, __wsum, int);
 __wsum csum_sub(__wsum csum, __wsum addend);
+__wsum csum_unfold(__sum16 n);
+
+void csum_replace2(__sum16 *, __be16, __be16);
+
 
 /*****************************
  ** uapi/linux/net_tstamp.h **
@@ -2402,6 +2892,13 @@ enum {
 };
 
 
+/**********************
+ ** net/cls_cgroup.h **
+ **********************/
+
+void sock_update_classid(struct sock *, struct task_struct *);
+
+
 /****************
  ** linux/ip.h **
  ****************/
@@ -2439,6 +2936,9 @@ enum {
 	ADDRCONF_TIMER_FUZZ_MAX   = (HZ),
 };
 
+unsigned long addrconf_timeout_fixup(u32, unsigned int);
+int addrconf_finite_timeout(unsigned long);
+
 
 /***********************
  ** uapi/linux/xfrm.h **
@@ -2457,6 +2957,7 @@ enum {
  ** net/xfrm.h **
  ****************/
 
+struct flowi;
 struct xfrm_state
 {
 	struct
@@ -2470,6 +2971,17 @@ struct sec_path
 	int                len;
 	struct xfrm_state *xvec[XFRM_MAX_DEPTH];
 };
+
+int  xfrm_sk_clone_policy(struct sock *);
+int  xfrm_decode_session_reverse(struct sk_buff *, struct flowi *,
+                                 unsigned int);
+void xfrm_sk_free_policy(struct sock *);
+int  xfrm4_policy_check(struct sock *sk, int, struct sk_buff *);
+int  xfrm4_policy_check_reverse(struct sock *, int, struct sk_buff *);
+int  xfrm4_route_forward(struct sk_buff *);
+int  xfrm_user_policy(struct sock *, int, u8 *, int);
+void secpath_reset(struct sk_buff *);
+int  secpath_exists(struct sk_buff *);
 
 
 /*********************
@@ -2488,6 +3000,29 @@ enum {
 
 extern int sysctl_igmp_max_msf;
 
+struct in_device;
+struct ip_mreqn;
+struct ip_msfilter;
+struct ip_mreq_source;
+struct group_filter;
+
+int ip_check_mc_rcu(struct in_device *, __be32, __be32, u16);
+
+void ip_mc_init_dev(struct in_device *);
+void ip_mc_up(struct in_device *);
+void ip_mc_down(struct in_device *);
+void ip_mc_destroy_dev(struct in_device *);
+void ip_mc_drop_socket(struct sock *);
+int  ip_mc_gsfget(struct sock *, struct group_filter *, struct group_filter *, int *);
+int  ip_mc_join_group(struct sock *, struct ip_mreqn *);
+int  ip_mc_leave_group(struct sock *, struct ip_mreqn *);
+int  ip_mc_msfilter(struct sock *, struct ip_msfilter *,int);
+int  ip_mc_msfget(struct sock *, struct ip_msfilter *, struct ip_msfilter *, int *);
+void ip_mc_remap(struct in_device *);
+int  ip_mc_sf_allow(struct sock *, __be32, __be32, int);
+int  ip_mc_source(int, int, struct sock *, struct ip_mreq_source *, int);
+void ip_mc_unmap(struct in_device *);
+
 
 /**************************
  ** uapi/linux/pkg_sched **
@@ -2504,9 +3039,22 @@ enum {
 
 
 /***********************
+ ** net/inet_common.h **
+ ***********************/
+
+int  __inet_stream_connect(struct socket *, struct sockaddr *, int, int);
+void inet_sock_destruct(struct sock *);
+int  inet_ctl_sock_create(struct sock **, unsigned short,
+                          unsigned short, unsigned char,
+                          struct net *);
+void inet_ctl_sock_destroy(struct sock *);
+
+
+/***********************
  ** linux/inet_diag.h **
  ***********************/
 
+struct inet_hashinfo;
 
 struct inet_diag_handler
 {
@@ -2526,6 +3074,16 @@ struct inet_diag_handler
 };
 
 
+void inet_diag_dump_icsk(struct inet_hashinfo *, struct sk_buff *,
+                         struct netlink_callback *, struct inet_diag_req_v2 *,
+                         struct nlattr *);
+int inet_diag_dump_one_icsk(struct inet_hashinfo *, struct sk_buff *,
+                            const struct nlmsghdr *, struct inet_diag_req_v2 *);
+
+int  inet_diag_register(const struct inet_diag_handler *);
+void inet_diag_unregister(const struct inet_diag_handler *);
+
+
 /********************
  ** net/inet_ecn.h **
  ********************/
@@ -2534,6 +3092,9 @@ enum {
 	INET_ECN_NOT_ECT = 0,
 };
 
+int  INET_ECN_is_not_ect(__u8);
+void INET_ECN_xmit(struct sock *);
+void INET_ECN_dontxmit(struct sock *);
 
 
 /*****************
@@ -2549,7 +3110,13 @@ int xfrm4_udp_encap_rcv(struct sock *sk, struct sk_buff *skb);
 
 struct napi_struct;
 
-void *netpoll_poll_lock(struct napi_struct *napi);
+void *netpoll_poll_lock(struct napi_struct *);
+int   netpoll_rx_disable(struct net_device *);
+void  netpoll_rx_enable(struct net_device *);
+bool  netpoll_rx(struct sk_buff *);
+bool  netpoll_rx_on(struct sk_buff *);
+int   netpoll_receive_skb(struct sk_buff *);
+void  netpoll_poll_unlock(void *);
 
 
 /************************
@@ -2566,10 +3133,23 @@ extern const struct header_ops eth_header_ops;
 #define NF_HOOK(pf, hook, skb, indev, outdev, okfn) (okfn)(skb)
 #define NF_HOOK_COND(pf, hook, skb, indev, outdev, okfn, cond) (okfn)(skb)
 
+int  nf_hook(u_int8_t, unsigned int, struct sk_buff *, struct net_device *,
+             struct net_device *, int (*)(struct sk_buff *));
+void nf_ct_attach(struct sk_buff *, struct sk_buff *);
+
+
+/******************************
+ ** linux/netfilter_bridge.h **
+ ******************************/
+
+unsigned int nf_bridge_pad(const struct sk_buff *);
+
 
 /****************
  ** linux/in.h **
  ****************/
+
+bool ipv4_is_local_multicast(__be32);
 
 #define INADDR_BROADCAST        ((unsigned long int) 0xffffffff)
 
@@ -2616,6 +3196,116 @@ static inline void get_random_bytes(void *buf, int nbytes)
 		b[i] = i + 1;
 }
 
+u32  random32(void);
+void add_device_randomness(const void *, unsigned int);
+u32  next_pseudo_random32(u32);
+void srandom32(u32 seed);
+
+
+/**********************
+ ** linux/security.h **
+ **********************/
+
+struct request_sock;
+
+void security_sock_graft(struct sock *, struct socket *);
+void security_sk_classify_flow(struct sock *, struct flowi *);
+int  security_socket_getpeersec_stream(struct socket *, char *, int *, unsigned );
+int  security_sk_alloc(struct sock *, int, gfp_t);
+void security_sk_free(struct sock *);
+void security_req_classify_flow(const struct request_sock *, struct flowi *);
+int  security_inet_conn_request(struct sock *, struct sk_buff *, struct request_sock *);
+void security_inet_csk_clone(struct sock *, const struct request_sock *);
+int  security_socket_getpeersec_dgram(struct socket *, struct sk_buff *, u32 *);
+int  security_secid_to_secctx(u32 secid, char **secdata, u32 *);
+void security_release_secctx(char *secdata, u32 seclen);
+void security_skb_classify_flow(struct sk_buff *, struct flowi *);
+void security_skb_owned_by(struct sk_buff *, struct sock *);
+void security_inet_conn_established(struct sock *, struct sk_buff *);
+int  security_netlink_send(struct sock *, struct sk_buff *);
+
+
+/**********************
+ ** net/netns/hash.h **
+ **********************/
+
+unsigned int net_hash_mix(struct net *);
+
+
+/**************************
+ ** net/netprio_cgroup.h **
+ **************************/
+
+void sock_update_netprioidx(struct sock *, struct task_struct *);
+
+
+/******************
+ ** linux/ipv6.h **
+ ******************/
+
+int inet_v6_ipv6only(const struct sock *);
+int ipv6_only_sock(const struct sock *);
+
+
+/********************
+ ** linux/mroute.h **
+ ********************/
+
+int ip_mroute_opt(int);
+int ip_mroute_getsockopt(struct sock *, int, char*, int *);
+int ip_mroute_setsockopt(struct sock *, int, char *, unsigned int);
+
+
+/******************
+ ** linux/inet.h **
+ ******************/
+
+__be32 in_aton(const char *);
+
+
+/**********************
+ ** net/cipso_ipv4.h **
+ **********************/
+
+int cipso_v4_validate(const struct sk_buff *, unsigned char **option);
+
+/***********************
+ ** uapi/linux/stat.h **
+ ***********************/
+
+bool S_ISSOCK(int);
+
+
+/*********************
+ ** net/gen_stats.h **
+ *********************/
+
+struct gnet_stats_basic_packed;
+struct gnet_stats_rate_est;
+
+void gen_kill_estimator(struct gnet_stats_basic_packed *,
+                        struct gnet_stats_rate_est *);
+
+
+/*******************
+ ** Tracing stuff **
+ *******************/
+
+struct proto;
+
+void trace_kfree_skb(struct sk_buff *, void *);
+void trace_consume_skb(struct sk_buff *);
+void trace_sock_exceed_buf_limit(struct sock *, struct proto *, long);
+void trace_sock_rcvqueue_full(struct sock *, struct sk_buff *);
+void trace_net_dev_xmit(struct sk_buff *, int , struct net_device *,
+                        unsigned int);
+void trace_net_dev_queue(struct sk_buff *);
+void trace_netif_rx(struct sk_buff *);
+void trace_netif_receive_skb(struct sk_buff *);
+void trace_napi_poll(struct napi_struct *);
+void trace_skb_copy_datagram_iovec(const struct sk_buff *, int);
+void trace_udp_fail_queue_rcv_skb(int, struct sock*);
+
 
 /**
  * Misc
@@ -2624,7 +3314,6 @@ static inline void get_random_bytes(void *buf, int nbytes)
 void set_sock_wait(struct socket *sock, unsigned long ptr);
 int socket_check_state(struct socket *sock);
 void log_sock(struct socket *sock);
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

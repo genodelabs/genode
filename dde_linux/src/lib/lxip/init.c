@@ -14,6 +14,7 @@
 #include <linux/inetdevice.h>
 #include <net/tcp.h>
 #include <init.h>
+
 /*
  * Header declarations and tuning
  */
@@ -35,6 +36,19 @@ unsigned long nr_free_buffer_pages(void)
 	return 1000;
 }
 
+
+/*
+ * Declare stuff used
+ */
+int __ip_auto_config_setup(char *addrs);
+void core_sock_init(void);
+void core_netlink_proto_init(void);
+void subsys_net_dev_init(void);
+void fs_inet_init(void);
+void module_driver_init(void);
+void module_cubictcp_register(void);
+void late_ip_auto_config(void);
+void late_tcp_congestion_default(void);
 
 /**
  * Initialize sub-systems

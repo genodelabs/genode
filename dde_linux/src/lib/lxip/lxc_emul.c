@@ -14,6 +14,7 @@
 #include <net/ip_fib.h>
 #include <uapi/linux/rtnetlink.h>
 #include <dde_kit/memory.h>
+#include <net/sock.h>
 #include <net/route.h>
 #include <net/tcp.h>
 
