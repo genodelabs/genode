@@ -154,7 +154,8 @@ int Platform_thread::start(void *ip, void *sp)
 	_pager->initial_esp((addr_t)sp);
 
 	/* let the thread run */
-	res = create_sc(_sel_sc(), pd_sel, _sel_ec(), Qpd());
+	res = create_sc(_sel_sc(), pd_sel, _sel_ec(),
+	                Qpd(Qpd::DEFAULT_QUANTUM, _priority));
 	if (res != NOVA_OK) {
 		/*
 		 * Reset pd cap since thread got not running and pd cap will
@@ -208,7 +209,8 @@ void Platform_thread::resume()
 	using namespace Nova;
 
 	if (!is_worker()) {
-		uint8_t res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(), Qpd());
+		uint8_t res = create_sc(_sel_sc(), _pd->pd_sel(), _sel_ec(),
+		                        Qpd(Qpd::DEFAULT_QUANTUM, _priority));
 		if (res == NOVA_OK) return;
 	}
 
@@ -287,11 +289,12 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 }
 
 
-Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
+Platform_thread::Platform_thread(const char *name, unsigned prio, int thread_id)
 :
 	_pd(0), _pager(0), _id_base(cap_map()->insert(1)),
 	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0, 0, 0),
-	_features(0)
+	_features(0),
+	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio))
 {
 	strncpy(_name, name, sizeof(_name));
 }

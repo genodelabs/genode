@@ -44,6 +44,7 @@ namespace Genode {
 				WORKER      = 0x4U,
 			};
 			uint8_t            _features;
+			uint8_t            _priority;
 
 			char               _name[Thread_base::Context::NAME_LEN];
 

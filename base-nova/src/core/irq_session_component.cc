@@ -98,7 +98,7 @@ class Irq_thread : public Thread_base
 
 			/* create SC */
 			unsigned sc_sel = cap_map()->insert();
-			res = create_sc(sc_sel, pd_sel, _tid.ec_sel, Qpd());
+			res = create_sc(sc_sel, pd_sel, _tid.ec_sel, Qpd(Qpd::DEFAULT_QUANTUM, Qpd::DEFAULT_PRIORITY + 1));
 			if (res != NOVA_OK) {
 				PERR("%p - create_sc returned returned %d", this, res);
 				throw Cpu_session::Thread_creation_failed();
