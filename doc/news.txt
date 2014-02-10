@@ -3,6 +3,25 @@
                                Genode News
                                ===========
 
+Slides and videos of our FOSDEM talks | 2014-02-10
+##################################################
+
+| We held two talks at FOSDEM 2014: Stefan Kalkowski presented Genode
+| running on the secure side of ARM TrustZone whereas Norman Feske gave an
+| overview of the project's efforts towards general-purpose computing.
+
+The slides of both talks are available at the
+[http://genode.org/about/publications - publications section].
+Both talks feature several live demonstrations. E.g., Stefan presented
+Genode running besides Android on an i.MX tablet. Norman showed off
+VirtualBox on Genode among several other demos.
+
+For the latter talk, there is a
+[http://video.fosdem.org/2014/H2214/Sunday/Genode_as_generalpurpose_OS_progress_report_and_demonstration.webm - video recording]
+available. A video for Stefan's talk will follow soon. Thanks to the video
+crew at FOSDEM for their great work!
+
+
 Guide for porting 3rd-party software to Genode | 2014-01-28
 ###########################################################
 
