@@ -53,8 +53,8 @@ namespace {
 
 			bool supports_open(const char *pathname, int flags)
 			{
-				return !Genode::strcmp(pathname,
-				                       "/sys/class/drm/card0/device/device");
+				return (Genode::strcmp(pathname,
+				                       "/sys/class/drm/card0/device/device") == 0);
 			}
 
 			Libc::File_descriptor *open(const char *pathname, int flags)
@@ -87,6 +87,23 @@ namespace {
 				                device_id_string + context(fd)->position, count);
 				context(fd)->position += count;
 				return count;
+			}
+
+			bool supports_stat(const char *path)
+			{
+				return (Genode::strcmp(path, "/sys") == 0) ||
+				       (Genode::strcmp(path, "/sys/class") == 0) ||
+				       (Genode::strcmp(path, "/sys/class/drm") == 0) ||
+				       (Genode::strcmp(path, "/sys/class/drm/card0") == 0) ||
+				       (Genode::strcmp(path, "/sys/class/drm/card0/device") == 0) ||
+				       (Genode::strcmp(path, "/sys/class/drm/card0/device/device") == 0);
+			}
+
+			int stat(const char *path, struct stat *buf)
+			{
+				if (buf)
+					buf->st_mode = S_IFDIR;
+				return 0;
 			}
 	};
 }

@@ -139,6 +139,20 @@ namespace {
 				return Libc::file_descriptor_allocator()->alloc(this, context);
 			}
 
+			bool supports_stat(const char *path)
+			{
+				return (Genode::strcmp(path, "/dev") == 0 ||
+				        Genode::strcmp(path, "/dev/drm") == 0);
+			}
+
+			int stat(const char *path, struct stat *buf)
+			{
+				if (buf)
+					buf->st_mode = S_IFDIR;
+
+				return 0;
+			}
+
 			int ioctl(Libc::File_descriptor *fd, int request, char *argp)
 			{
 				if (verbose_ioctl)
@@ -151,6 +165,8 @@ namespace {
 				}
 				return _driver->ioctl(_client, drm_command(request), argp);
 			}
+
+			bool supports_mmap() { return true; }
 
 			/**
 			 * Pseudo mmap specific for DRM device
