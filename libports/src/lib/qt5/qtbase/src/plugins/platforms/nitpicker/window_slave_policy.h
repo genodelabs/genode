@@ -66,7 +66,7 @@ class Window_slave_policy : public Genode::Slave_policy
 			config_doc.appendChild(config_node);
 
 			config_node.setAttribute("xpos", QString::number(xpos));
-			config_node.setAttribute("ypos", QString::number(ypos));
+			config_node.setAttribute("ypos", QString::number(ypos + TITLE_BAR_HEIGHT));
 			config_node.setAttribute("width", QString::number(width));
 			config_node.setAttribute("height", QString::number(height));
 
@@ -124,6 +124,9 @@ class Window_slave_policy : public Genode::Slave_policy
 		};
 
 	public:
+
+		/* scout widgets title bar height */
+		enum { TITLE_BAR_HEIGHT = 32 };
 
 		Window_slave_policy(Genode::Rpc_entrypoint &ep,
 		                    int screen_width, int screen_height)

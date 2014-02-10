@@ -23,6 +23,9 @@
 #include <nitpicker_session/connection.h>
 #include <framebuffer_session/client.h>
 
+/* local includes */
+#include "window_slave_policy.h"
+
 QT_BEGIN_NAMESPACE
 
 class QNitpickerScreen : public QPlatformScreen
@@ -44,7 +47,9 @@ class QNitpickerScreen : public QPlatformScreen
 			if (scr_mode.format() != Framebuffer::Mode::RGB565)
 				qCritical() << "Nitpicker screen format is not RGB565";
 
-			_geometry.setRect(0, 0, scr_mode.width(), scr_mode.height());
+			_geometry.setRect(0, 0, scr_mode.width(),
+			                        scr_mode.height() -
+			                        Window_slave_policy::TITLE_BAR_HEIGHT);
 
 			Genode::env()->parent()->close(_nitpicker.cap());
 		}
