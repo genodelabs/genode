@@ -19,10 +19,6 @@ if {[have_spec fiasco]} {
 	#
 	exit 0
 }
-if {[have_spec hw]} {
-	puts "Hw kernel is unsupported (see https://github.com/genodelabs/genode/issues/801)"
-	exit 0
-}
 
 #
 # Build
