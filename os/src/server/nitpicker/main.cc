@@ -369,8 +369,6 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			return _buffer ? _buffer->ds_cap() : Genode::Ram_dataspace_capability();
 		}
 
-		void release() { }
-
 		Mode mode() const
 		{
 			return _mode;

@@ -46,7 +46,6 @@ namespace Framebuffer {
 			                  int max_height = 0);
 
 			Genode::Dataspace_capability dataspace();
-			void release();
 			Mode mode() const;
 			void mode_sigh(Genode::Signal_context_capability sigh_cap);
 			void refresh(int x, int y, int w, int h);

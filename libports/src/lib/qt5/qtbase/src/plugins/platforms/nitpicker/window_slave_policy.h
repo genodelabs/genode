@@ -99,8 +99,6 @@ class Window_slave_policy : public Genode::Slave_policy
 			if (_framebuffer)
 				Genode::env()->rm_session()->detach(_framebuffer);
 
-			session_client.release();
-
 			Dataspace_capability framebuffer_ds = session_client.dataspace();
 			if (framebuffer_ds.valid()) {
 				_framebuffer = Genode::env()->rm_session()->attach(framebuffer_ds);

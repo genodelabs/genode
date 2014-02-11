@@ -287,8 +287,6 @@ namespace Framebuffer
 				return _window_content.fb_ds_cap();
 			}
 
-			void release() { }
-
 			Mode mode() const
 			{
 				return Mode(_window_content.mode_size().w(),

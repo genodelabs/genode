@@ -70,21 +70,18 @@ namespace Framebuffer {
 
 		/**
 		 * Request dataspace representing the logical frame buffer
+		 *
+		 * By calling this function, the framebuffer client enables the server
+		 * to reallocate the framebuffer dataspace (e.g., on mode changes).
+		 * Hence, prior calling this function, the client should make sure to
+		 * have detached the previously requested dataspace from its local
+		 * address space.
 		 */
 		virtual Genode::Dataspace_capability dataspace() = 0;
 
 		/**
-		 * Release framebuffer, free dataspace
-		 *
-		 * By calling this function, the framebuffer client enables the server
-		 * to reallocate the framebuffer dataspace on mode changes. Prior
-		 * calling this function, the client should have detached the dataspace
-		 * from its local address space.
-		 */
-		virtual void release() = 0;
-
-		/**
-		 * Request current display-mode properties
+		 * Request display-mode properties of the framebuffer ready to be
+		 * obtained via the 'dataspace()' function
 		 */
 		virtual Mode mode() const = 0;
 
@@ -95,11 +92,9 @@ namespace Framebuffer {
 		 * fly. For example, a virtual framebuffer presented in a window may
 		 * get resized according to the window dimensions. By installing a
 		 * signal handler for mode changes, the framebuffer client can respond
-		 * to such changes. From the client's perspective, the original mode
-		 * stays in effect until the client calls 'release()'. After having
-		 * released the framebuffer, the new mode can be obtained using the
-		 * 'mode()' function and a new framebuffer dataspace can be requested
-		 * by calling 'dataspace()'.
+		 * to such changes. The new mode can be obtained using the 'mode()'
+		 * function. However, from the client's perspective, the original mode
+		 * stays in effect until the it calls 'dataspace()' again.
 		 */
 		virtual void mode_sigh(Genode::Signal_context_capability sigh) = 0;
 
@@ -116,13 +111,11 @@ namespace Framebuffer {
 		 *********************/
 
 		GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, dataspace);
-		GENODE_RPC(Rpc_release, void, release);
 		GENODE_RPC(Rpc_mode, Mode, mode);
 		GENODE_RPC(Rpc_refresh, void, refresh, int, int, int, int);
 		GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
 
-		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_release, Rpc_mode,
-		                     Rpc_mode_sigh, Rpc_refresh);
+		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_mode, Rpc_mode_sigh, Rpc_refresh);
 	};
 }
 

@@ -27,8 +27,6 @@ namespace Framebuffer {
 		Genode::Dataspace_capability dataspace() {
 			return call<Rpc_dataspace>(); }
 
-		void release() { call<Rpc_release>(); }
-
 		Mode mode() const { return call<Rpc_mode>(); }
 
 		void mode_sigh(Genode::Signal_context_capability sigh) {

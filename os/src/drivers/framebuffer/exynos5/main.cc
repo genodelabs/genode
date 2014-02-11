@@ -90,8 +90,6 @@ class Framebuffer::Session_component
 
 		Dataspace_capability dataspace() { return _ds; }
 
-		void release() { }
-
 		Mode mode() const
 		{
 			return Mode(_width, _height, _convert_format(_format));

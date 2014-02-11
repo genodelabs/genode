@@ -69,7 +69,6 @@ class Framebuffer::Session_component :
 		 **************************************/
 
 		Dataspace_capability dataspace() { return _buffered ? _bb_ds : _fb_ds; }
-		void release()                   { }
 		Mode mode() const                { return _mode; }
 		void mode_sigh(Genode::Signal_context_capability) { }
 

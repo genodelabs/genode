@@ -64,12 +64,6 @@ namespace Framebuffer {
 	}
 
 
-	void Session_component::release()
-	{
-		_framebuffer.release();
-	}
-
-
 	Mode Session_component::mode() const
 	{
 		return _framebuffer.mode();

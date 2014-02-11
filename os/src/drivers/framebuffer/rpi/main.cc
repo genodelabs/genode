@@ -47,8 +47,6 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		Dataspace_capability dataspace() { return _fb_mem.cap(); }
 
-		void release() { }
-
 		Mode mode() const
 		{
 			return Mode(_width, _height, Mode::RGB565);

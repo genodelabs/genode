@@ -61,8 +61,6 @@ namespace Framebuffer {
 
 			Genode::Dataspace_capability dataspace() { return fb_ds_cap; }
 
-			void release() { }
-
 			Mode mode() const { return _mode; }
 
 			void mode_sigh(Genode::Signal_context_capability) { }

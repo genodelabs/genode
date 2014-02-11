@@ -157,8 +157,6 @@ namespace Framebuffer
 
 			Genode::Dataspace_capability dataspace() { return _fb_ds_cap; }
 
-			void release() { }
-
 			Mode mode() const { return Mode(SCR_WIDTH, SCR_HEIGHT, Mode::RGB565); }
 
 			void mode_sigh(Genode::Signal_context_capability) { }
