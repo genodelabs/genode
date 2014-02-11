@@ -7,10 +7,11 @@
 # Linux/Genode programs. Hence, it must be void of any thread-related code.
 #
 
-LIBS += base-common syscall
+LIBS += base-common syscall cxx
 
 SRC_CC += console/log_console.cc
 SRC_CC += env/env.cc env/platform_env.cc env/context_area.cc
+SRC_CC += thread/thread.cc thread/thread_linux.cc
 
 INC_DIR += $(REP_DIR)/src/base/env $(BASE_DIR)/src/base/env
 
