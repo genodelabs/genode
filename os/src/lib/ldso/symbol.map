@@ -14,6 +14,12 @@
 			init_exception_handling*;
 			operator*new*;
 			operator*delete*;
+			genode_atexit*;
+			genode_exit*;
+			genode___cxa_finalize*;
+			genode_envp;
+			genode_argv;
+			genode_argc;
 		};
 		__dynamic_cast;
 
