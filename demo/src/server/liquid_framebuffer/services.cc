@@ -176,9 +176,25 @@ class Window_content : public Scout::Element
 		bool                              _config_alpha;
 		Content_event_handler             _ev_handler;
 		Fb_texture                       *_fb;
-		unsigned                          _new_w, _new_h;
+
+		/**
+		 * Size of the framebuffer handed out by the next call of 'dataspace'
+		 */
+		Scout::Area _next_size;
+
+		/**
+		 * Most current designated size of the framebuffer as defined by the
+		 * user.
+		 *
+		 * The '_designated_size' may be updated any time when the user drags
+		 * the resize handle of the window. It is propagated to '_next_size'
+		 * not before the framebuffer client requests the current mode. Once
+		 * the mode information is passed to the client, it is locked until
+		 * the client requests the mode again.
+		 */
+		Scout::Area _designated_size;
+
 		Genode::Signal_context_capability _mode_sigh;
-		bool                              _wait_for_refresh;
 
 	public:
 
@@ -188,23 +204,23 @@ class Window_content : public Scout::Element
 			_config_alpha(config_alpha),
 			_ev_handler(ev_queue, this),
 			_fb(new (Genode::env()->heap()) Fb_texture(fb_w, fb_h, _config_alpha)),
-			_new_w(fb_w), _new_h(fb_h),
-			_wait_for_refresh(false)
+			_next_size(fb_w, fb_h),
+			_designated_size(_next_size)
 		{
 			_min_size = Scout::Area(_fb->w, _fb->h);
 
 			event_handler(&_ev_handler);
 		}
 
-		Genode::Dataspace_capability fb_ds_cap() {
-			return _fb->ds.cap();
-		}
+		Genode::Dataspace_capability fb_ds_cap() { return _fb->ds.cap(); }
 
-		unsigned fb_w() {
-			return _fb->w;
-		}
-		unsigned fb_h() {
-			return _fb->h;
+		unsigned fb_w() { return _fb->w; }
+		unsigned fb_h() { return _fb->h; }
+
+		Scout::Area mode_size()
+		{
+			_next_size = _designated_size;
+			return _next_size;
 		}
 
 		void mode_sigh(Genode::Signal_context_capability sigh)
@@ -215,36 +231,26 @@ class Window_content : public Scout::Element
 		void realloc_framebuffer()
 		{
 			/* skip reallocation if size has not changed */
-			if (_new_w == _fb->w && _new_h == _fb->h)
+			if (_next_size.w() == _fb->w && _next_size.h() == _fb->h)
 				return;
 
 			Genode::destroy(Genode::env()->heap(), _fb);
 
 			_fb = new (Genode::env()->heap())
-			      Fb_texture(_new_w, _new_h, _config_alpha);
-
-			/*
-			 * Suppress drawing of the texture until we received the next
-			 * refresh call from the client. This way, we avoid flickering
-			 * artifacts while continuously resizing the window.
-			 */
-			_wait_for_refresh = true;
+			      Fb_texture(_next_size.w(), _next_size.h(), _config_alpha);
 		}
-
-		void client_called_refresh() { _wait_for_refresh = false; }
 
 		/**
 		 * Element interface
 		 */
 		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
 		{
-			if (!_wait_for_refresh)
-				canvas.draw_texture(abs_position + _position, _fb->texture);
+			canvas.draw_texture(abs_position + _position, _fb->texture);
 		}
 
 		void format_fixed_size(Scout::Area size)
 		{
-			_new_w = size.w(), _new_h = size.h();
+			_designated_size = size;
 
 			/* notify framebuffer client about mode change */
 			if (_mode_sigh.valid())
@@ -275,16 +281,18 @@ namespace Framebuffer
 			Session_component(Window_content &window_content)
 			: _window_content(window_content) { }
 
-			Genode::Dataspace_capability dataspace() {
-				return _window_content.fb_ds_cap(); }
+			Genode::Dataspace_capability dataspace()
+			{
+				_window_content.realloc_framebuffer();
+				return _window_content.fb_ds_cap();
+			}
 
-			void release() {
-				_window_content.realloc_framebuffer(); }
+			void release() { }
 
 			Mode mode() const
 			{
-				return Mode(_window_content.fb_w(), _window_content.fb_h(),
-				            Mode::RGB565);
+				return Mode(_window_content.mode_size().w(),
+				            _window_content.mode_size().h(), Mode::RGB565);
 			}
 
 			void mode_sigh(Genode::Signal_context_capability sigh) {
@@ -292,7 +300,6 @@ namespace Framebuffer
 
 			void refresh(int x, int y, int w, int h)
 			{
-				_window_content.client_called_refresh();
 				_window_content.redraw_area(x, y, w, h);
 			}
 	};
