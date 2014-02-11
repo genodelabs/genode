@@ -148,7 +148,7 @@ void View_stack::_optimize_label_rec(View const *cv, View const *lv, Rect rect, 
 }
 
 
-void View_stack::_place_labels(Rect rect)
+void View_stack::_place_labels(Canvas_base &canvas, Rect rect)
 {
 	/* do not calculate label positions in flat mode */
 	if (_mode.flat()) return;
@@ -163,7 +163,7 @@ void View_stack::_place_labels(Rect rect)
 			Rect old = view->label_rect(), best;
 
 			/* calculate best visible label position */
-			Rect rect = Rect::intersect(Rect(Point(), _canvas.size()), *view);
+			Rect rect = Rect::intersect(Rect(Point(), canvas.size()), *view);
 			if (start) _optimize_label_rec(start, view, rect, &best);
 
 			/*
@@ -177,13 +177,13 @@ void View_stack::_place_labels(Rect rect)
 			view->label_pos(Point(x, best.y1()));
 
 			/* refresh old and new label positions */
-			refresh_view(*view, view, old);
-			refresh_view(*view, view, view->label_rect());
+			refresh_view(canvas, *view, view, old);
+			refresh_view(canvas, *view, view, view->label_rect());
 		}
 }
 
 
-void View_stack::draw_rec(View const *view, View const *dst_view,
+void View_stack::draw_rec(Canvas_base &canvas, View const *view, View const *dst_view,
                           Session const *exclude, Rect rect) const
 {
 	Rect clipped;
@@ -201,40 +201,42 @@ void View_stack::draw_rec(View const *view, View const *dst_view,
 	View const *next = _next_view(view);
 
 	/* draw areas at the top/left of the current view */
-	if (next && top.valid())  draw_rec(next, dst_view, exclude, top);
-	if (next && left.valid()) draw_rec(next, dst_view, exclude, left);
+	if (next && top.valid())  draw_rec(canvas, next, dst_view, exclude, top);
+	if (next && left.valid()) draw_rec(canvas, next, dst_view, exclude, left);
 
 	/* draw current view */
 	if (!dst_view || (dst_view == view) || view->transparent()) {
 
-		Clip_guard clip_guard(_canvas, clipped);
+		Clip_guard clip_guard(canvas, clipped);
 
 		/* draw background if view is transparent */
 		if (view->uses_alpha())
-			draw_rec(_next_view(view), 0, 0, clipped);
+			draw_rec(canvas, _next_view(view), 0, 0, clipped);
 
-		view->frame(_canvas, _mode);
+		view->frame(canvas, _mode);
 
 		if (!exclude || !view->belongs_to(*exclude))
-			view->draw(_canvas, _mode);
+			view->draw(canvas, _mode);
 	}
 
 	/* draw areas at the bottom/right of the current view */
-	if (next &&  right.valid()) draw_rec(next, dst_view, exclude, right);
-	if (next && bottom.valid()) draw_rec(next, dst_view, exclude, bottom);
+	if (next &&  right.valid()) draw_rec(canvas, next, dst_view, exclude, right);
+	if (next && bottom.valid()) draw_rec(canvas, next, dst_view, exclude, bottom);
 }
 
 
-void View_stack::refresh_view(View const &view, View const *dst_view, Rect rect)
+void View_stack::refresh_view(Canvas_base &canvas, View const &view,
+                              View const *dst_view, Rect rect)
 {
 	/* clip argument agains view outline */
 	rect = Rect::intersect(rect, _outline(view));
 
-	draw_rec(_first_view(), dst_view, 0, rect);
+	draw_rec(canvas, _first_view(), dst_view, 0, rect);
 }
 
 
-void View_stack::viewport(View &view, Rect pos, Point buffer_off, bool do_redraw)
+void View_stack::viewport(Canvas_base &canvas, View &view, Rect pos,
+                          Point buffer_off, bool do_redraw)
 {
 	Rect old = _outline(view);
 
@@ -245,33 +247,34 @@ void View_stack::viewport(View &view, Rect pos, Point buffer_off, bool do_redraw
 
 	/* update labels (except when moving the mouse cursor) */
 	if (&view != _first_view())
-		_place_labels(compound);
+		_place_labels(canvas, compound);
 
 	if (!_mode.flat())
 		do_redraw = true;
 
 	/* update area on screen */
-	draw_rec(_first_view(), 0, do_redraw ? 0 : &view.session(), compound);
+	draw_rec(canvas, _first_view(), 0, do_redraw ? 0 : &view.session(), compound);
 }
 
 
-void View_stack::stack(View const &view, View const *neighbor, bool behind, bool do_redraw)
+void View_stack::stack(Canvas_base &canvas, View const &view,
+                       View const *neighbor, bool behind, bool do_redraw)
 {
 	_views.remove(&view);
 	_views.insert(&view, _target_stack_position(neighbor, behind));
 
-	_place_labels(view);
+	_place_labels(canvas, view);
 
 	/* refresh affected screen area */
-	refresh_view(view, 0, _outline(view));
+	refresh_view(canvas, view, 0, _outline(view));
 }
 
 
-void View_stack::title(View &view, const char *title)
+void View_stack::title(Canvas_base &canvas, View &view, const char *title)
 {
 	view.title(title);
-	_place_labels(view);
-	refresh_view(view, 0, _outline(view));
+	_place_labels(canvas, view);
+	refresh_view(canvas, view, 0, _outline(view));
 }
 
 
@@ -288,7 +291,7 @@ View *View_stack::find_view(Point p)
 }
 
 
-void View_stack::remove_view(View const &view)
+void View_stack::remove_view(Canvas_base &canvas, View const &view, bool redraw)
 {
 	/* remember geometry of view to remove */
 	Rect rect = _outline(view);
@@ -308,5 +311,6 @@ void View_stack::remove_view(View const &view)
 	_mode.forget(view);
 
 	/* redraw area where the view was visible */
-	draw_rec(_first_view(), 0, 0, rect);
+	if (redraw)
+		draw_rec(canvas, _first_view(), 0, 0, rect);
 }

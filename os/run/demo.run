@@ -148,6 +148,7 @@ puts $launchpad_config_fd {<config>
 	</launcher>
 	<launcher name="nitlog"    ram_quota="1M" />
 	<launcher name="liquid_fb" ram_quota="7M" />
+		<config resize_handle="on" />
 	<launcher name="nitpicker" ram_quota="1M" />
 </config>}
 close $launchpad_config_fd

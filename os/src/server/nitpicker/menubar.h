@@ -18,16 +18,34 @@
 #include "draw_label.h"
 #include "mode.h"
 
+struct Menubar_state
+{
+	Genode::String<128> session_label;
+	Genode::String<128> view_title;
+	Mode                mode;
+	Color               session_color;
 
-struct Menubar
+	Menubar_state(Mode mode, char const *session_label,
+	              char const *view_title, Color session_color)
+	:
+		session_label(session_label), view_title(view_title),
+		mode(mode), session_color(session_color)
+	{ }
+
+	Menubar_state() : session_color(BLACK) { }
+};
+
+
+struct Menubar : Menubar_state
 {
 	virtual ~Menubar() { }
 
 	/**
 	 * Set state that is displayed in the trusted menubar
 	 */
-	virtual void state(Mode const &mode, char const *session_label,
-	                   char const *view_title, Genode::Color session_color) = 0;
+	virtual void state(Menubar_state) = 0;
+
+	Menubar_state state() const { return *this; }
 };
 
 #endif

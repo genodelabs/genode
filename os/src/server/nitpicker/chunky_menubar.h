@@ -19,6 +19,7 @@
 
 #include "menubar.h"
 
+
 template <typename PT>
 class Chunky_menubar : public Texture<PT>,
                        public Session,
@@ -69,9 +70,10 @@ class Chunky_menubar : public Texture<PT>,
 		 ** Menubar interface **
 		 ***********************/
 
-		void state(Mode const &mode, char const *session_label,
-		           char const *view_title, Color session_color)
+		void state(Menubar_state const state)
 		{
+			*static_cast<Menubar_state *>(this) = state;
+
 			/* choose base color dependent on the Nitpicker state */
 			int r = (mode.kill()) ? 200 : (mode.xray()) ? session_color.r : (session_color.r + 100) >> 1;
 			int g = (mode.kill()) ?  70 : (mode.xray()) ? session_color.g : (session_color.g + 100) >> 1;
@@ -94,9 +96,11 @@ class Chunky_menubar : public Texture<PT>,
 			                 Color(r / 4, g / 4, b / 4));
 
 			/* draw label */
-			draw_label(_canvas, center(label_size(session_label, view_title)),
-			           session_label, WHITE, view_title, session_color);
+			draw_label(_canvas, center(label_size(session_label.string(), view_title.string())),
+			           session_label.string(), WHITE, view_title.string(), session_color);
 		}
+
+		using Menubar::state;
 };
 
 #endif

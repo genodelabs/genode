@@ -71,7 +71,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Constructor
 		 */
-		User_state(Global_keys &, Canvas_base &, Menubar &);
+		User_state(Global_keys &, Area view_stack_size, Menubar &);
 
 		/**
 		 * Handle input event
@@ -79,7 +79,7 @@ class User_state : public Mode, public View_stack
 		 * This function controls the Nitpicker mode and the
 		 * user state variables.
 		 */
-		void handle_event(Input::Event ev);
+		void handle_event(Input::Event ev, Canvas_base &);
 
 		/**
 		 * Accessors
@@ -89,7 +89,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Mode interface
 		 */
-		void forget(View const &);
+		void forget(Canvas_base &, View const &);
 };
 
 #endif

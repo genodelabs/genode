@@ -69,7 +69,7 @@ class Mouse_cursor : public Texture<PT>,
 			Clip_guard clip_guard(canvas, *this);
 
 			/* draw area behind the mouse cursor */
-			_view_stack.draw_rec(view_stack_next(), 0, 0, *this);
+			_view_stack.draw_rec(canvas, view_stack_next(), 0, 0, *this);
 
 			/* draw mouse cursor */
 			canvas.draw_texture(p1(), *this, Texture_painter::MASKED, BLACK, true);

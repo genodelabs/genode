@@ -35,15 +35,15 @@ static inline bool _mouse_button(Keycode keycode) {
  ** User state interface **
  **************************/
 
-User_state::User_state(Global_keys &global_keys, Canvas_base &canvas, Menubar &menubar)
+User_state::User_state(Global_keys &global_keys, Area view_stack_size, Menubar &menubar)
 :
-	View_stack(canvas, *this), _global_keys(global_keys), _key_cnt(0),
+	View_stack(view_stack_size, *this), _global_keys(global_keys), _key_cnt(0),
 	_menubar(menubar), _pointed_view(0), _input_receiver(0),
 	_global_key_sequence(false)
 { }
 
 
-void User_state::handle_event(Input::Event ev)
+void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 {
 	Input::Keycode     const keycode = ev.keycode();
 	Input::Event::Type const type    = ev.type();
@@ -100,29 +100,32 @@ void User_state::handle_event(Input::Event ev)
 	 */
 	struct Update_all_guard
 	{
-		User_state &user_state;
-		bool        enabled;
-		char const *menu_title;
+		User_state  &user_state;
+		Canvas_base &canvas;
+		bool         enabled;
+		char  const *menu_title;
 
-		Update_all_guard(User_state &user_state)
-		: user_state(user_state), enabled(false), menu_title("") { }
+		Update_all_guard(User_state &user_state, Canvas_base &canvas)
+		: user_state(user_state), canvas(canvas), enabled(false), menu_title("") { }
 
 		~Update_all_guard()
 		{
 			if (!enabled)
 				return;
 
-			if (user_state._input_receiver)
-				user_state._menubar.state(user_state,
-				                          user_state._input_receiver->label().string(),
-				                          menu_title,
-				                          user_state._input_receiver->color());
-			else
-				user_state._menubar.state(user_state, "", "", BLACK);
+			Menubar_state state(user_state, "", "", BLACK);
 
-			user_state.update_all_views();
+			if (user_state._input_receiver)
+				state = Menubar_state(user_state,
+				                      user_state._input_receiver->label().string(),
+				                      menu_title,
+				                      user_state._input_receiver->color());
+
+			user_state._menubar.state(state);
+
+			user_state.update_all_views(canvas);
 		}
-	} update_all_guard(*this);
+	} update_all_guard(*this, canvas);
 
 	/*
 	 * Handle start of a key sequence
@@ -135,7 +138,7 @@ void User_state::handle_event(Input::Event ev)
 		 */
 		if (kill() && keycode == Input::BTN_LEFT) {
 			if (pointed_view)
-				lock_out_session(pointed_view->session());
+				lock_out_session(canvas, pointed_view->session());
 
 			/* leave kill mode */
 			update_all_guard.enabled = true;
@@ -263,12 +266,12 @@ void User_state::handle_event(Input::Event ev)
  ** Mode interface **
  ********************/
 
-void User_state::forget(View const &view)
+void User_state::forget(Canvas_base &canvas, View const &view)
 {
 	if (focused_view() == &view) {
 		Mode::forget(view);
-		_menubar.state(*this, "", "", BLACK);
-		update_all_views();
+		_menubar.state(Menubar_state(*this, "", "", BLACK));
+		update_all_views(canvas);
 	}
 	if (_input_receiver && view.belongs_to(*_input_receiver))
 		_input_receiver = 0;

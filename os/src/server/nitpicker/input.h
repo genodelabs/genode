@@ -63,7 +63,7 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 
 
 static void import_input_events(Input::Event *ev_buf, unsigned num_ev,
-                                User_state &user_state)
+                                User_state &user_state, Canvas_base &canvas)
 {
 	/*
 	 * Take events from input event buffer, merge consecutive motion
@@ -91,7 +91,7 @@ static void import_input_events(Input::Event *ev_buf, unsigned num_ev,
 			continue;
 
 		/* pass event to user state */
-		user_state.handle_event(curr);
+		user_state.handle_event(curr, canvas);
 	}
 }
 

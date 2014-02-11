@@ -23,7 +23,7 @@ class View_stack
 {
 	private:
 
-		Canvas_base                   &_canvas;
+		Area                           _size;
 		Mode                          &_mode;
 		Genode::List<View_stack_elem>  _views;
 		View                          *_default_background;
@@ -55,7 +55,7 @@ class View_stack
 		/**
 		 * Position labels that are affected by specified area
 		 */
-		void _place_labels(Rect);
+		void _place_labels(Canvas_base &, Rect);
 
 		/**
 		 * Return view following the specified view in the view stack
@@ -71,13 +71,15 @@ class View_stack
 		/**
 		 * Constructor
 		 */
-		View_stack(Canvas_base &canvas, Mode &mode) :
-			_canvas(canvas), _mode(mode), _default_background(0) { }
+		View_stack(Area size, Mode &mode) :
+			_size(size), _mode(mode), _default_background(0) { }
 
 		/**
 		 * Return size
 		 */
-		Area size() { return _canvas.size(); }
+		Area size() const { return _size; }
+
+		void size(Area size) { _size = size; }
 
 		/**
 		 * Draw views in specified area (recursivly)
@@ -87,15 +89,15 @@ class View_stack
 		 *                  if all views should be drawn
 		 * \param exclude   do not draw views of this session
 		 */
-		void draw_rec(View const *view, View const *dst_view, Session const *exclude, Rect) const;
+		void draw_rec(Canvas_base &, View const *view, View const *dst_view, Session const *exclude, Rect) const;
 
 		/**
 		 * Draw whole view stack
 		 */
-		void update_all_views()
+		void update_all_views(Canvas_base &canvas)
 		{
-			_place_labels(Rect(Point(), _canvas.size()));
-			draw_rec(_first_view(), 0, 0, Rect(Point(), _canvas.size()));
+			_place_labels(canvas, Rect(Point(), _size));
+			draw_rec(canvas, _first_view(), 0, 0, Rect(Point(), _size));
 		}
 
 		/**
@@ -110,7 +112,7 @@ class View_stack
 		 *       a tailored 'draw_rec_session' function would overcome
 		 *       this problem.
 		 */
-		void update_session_views(Session const &session, Rect rect)
+		void update_session_views(Canvas_base &canvas, Session const &session, Rect rect)
 		{
 			for (View const *view = _first_view(); view; view = view->view_stack_next()) {
 
@@ -124,7 +126,7 @@ class View_stack
 				Point offset = view->p1() + view->buffer_off();
 				Rect r = Rect::intersect(Rect(rect.p1() + offset,
 				                              rect.p2() + offset), *view);
-				refresh_view(*view, view, r);
+				refresh_view(canvas, *view, view, r);
 			}
 		}
 
@@ -136,7 +138,7 @@ class View_stack
 		 *              refreshed or 'view' if the refresh should be limited to
 		 *              the specified view.
 		 */
-		void refresh_view(View const &view, View const *dst, Rect);
+		void refresh_view(Canvas_base &, View const &view, View const *dst, Rect);
 
 		/**
 		 * Define position and viewport
@@ -145,7 +147,7 @@ class View_stack
 		 * \param buffer_off  view offset of displayed buffer
 		 * \param do_redraw   perform screen update immediately
 		 */
-		void viewport(View &view, Rect pos, Point buffer_off, bool do_redraw);
+		void viewport(Canvas_base &, View &view, Rect pos, Point buffer_off, bool do_redraw);
 
 		/**
 		 * Insert view at specified position in view stack
@@ -158,13 +160,13 @@ class View_stack
 		 * bottom of the view stack, specify neighbor = 0 and
 		 * behind = false.
 		 */
-		void stack(View const &view, View const *neighbor = 0,
+		void stack(Canvas_base &, View const &view, View const *neighbor = 0,
 		           bool behind = true, bool do_redraw = true);
 
 		/**
 		 * Set view title
 		 */
-		void title(View &view, char const *title);
+		void title(Canvas_base &, View &view, char const *title);
 
 		/**
 		 * Find view at specified position
@@ -174,7 +176,7 @@ class View_stack
 		/**
 		 * Remove view from view stack
 		 */
-		void remove_view(View const &);
+		void remove_view(Canvas_base &, View const &, bool redraw = true);
 
 		/**
 		 * Define default background
@@ -192,11 +194,11 @@ class View_stack
 		 * Rather than removing the views from the view stack, this function moves
 		 * the session views out of the visible screen area.
 		 */
-		void lock_out_session(Session const &session)
+		void lock_out_session(Canvas_base &canvas, Session const &session)
 		{
 			View const *view = _first_view(), *next_view = view->view_stack_next();
 			while (view) {
-				if (view->belongs_to(session)) remove_view(*view);
+				if (view->belongs_to(session)) remove_view(canvas, *view);
 				view = next_view;
 				next_view = view ? view->view_stack_next() : 0;
 			}
