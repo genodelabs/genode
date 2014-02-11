@@ -1,10 +1,11 @@
 #
 # \brief  Portions of base library shared by core and non-core processes
 # \author Norman Feske
+# \author Martin Stein
 # \date   2013-02-14
 #
 
-LIBS += cxx kernel_interface
+LIBS += cxx
 
 SRC_CC += ipc.cc ipc/ipc_marshal_cap.cc
 SRC_CC += avl_tree/avl_tree.cc
@@ -20,6 +21,7 @@ SRC_CC += signal/signal.cc signal/common.cc
 SRC_CC += server/server.cc server/common.cc
 SRC_CC += thread/thread_bootstrap.cc thread/trace.cc
 SRC_CC += thread/context_allocator.cc
+SRC_CC += kernel/interface.cc
 
 INC_DIR += $(REP_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/lock
