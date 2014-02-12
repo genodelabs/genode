@@ -362,8 +362,10 @@ namespace Nova {
 
 			enum {
 				RIGHT_EC_RECALL = 0x1U,
-				RIGHT_PT_CTRL   = 0x1U,
-				RIGHT_PT_CALL   = 0x2U
+				RIGHT_PT_CALL   = 0x1U,
+				RIGHT_PT_CTRL   = 0x2U,
+				RIGHT_SM_UP     = 0x1U,
+				RIGHT_SM_DOWN   = 0x2U
 			};
 
 			Obj_crd() : Crd(0, 0)
@@ -575,6 +577,8 @@ namespace Nova {
 	enum {
 		PT_SEL_PAGE_FAULT = 0xe,
 		PT_SEL_PARENT     = 0x1a,  /* convention on Genode */
+		PT_SEL_MAIN_PAGER = 0x1b,  /* convention on Genode */
+		PT_SEL_MAIN_EC    = 0x1c,  /* convention on Genode */
 		PT_SEL_STARTUP    = 0x1e,
 		PT_SEL_RECALL     = 0x1f,
 		SM_SEL_EC         = 0x1d,  /* convention on Genode */

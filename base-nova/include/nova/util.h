@@ -56,8 +56,8 @@ inline void request_event_portal(Genode::Native_capability const &cap,
 
 
 inline void request_native_ec_cap(Genode::Native_capability const &cap,
-                                  Genode::addr_t sel) {
-	request_event_portal(cap, sel , ~0UL, 1); }
+                                  Genode::addr_t sel, unsigned pager_cap = 1) {
+	request_event_portal(cap, sel , ~0UL, pager_cap); }
 
 
 inline void request_signal_sm_cap(Genode::Native_capability const &cap,

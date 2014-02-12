@@ -224,7 +224,9 @@ void Pager_object::_invoke_handler()
 		 */
 		bool res = utcb->append_item(Obj_crd(obj->_state.sel_client_ec, 0,
 		                                     Obj_crd::RIGHT_EC_RECALL), 0);
-		res = utcb->append_item(Obj_crd(obj->Object_pool<Pager_object>::Entry::cap().local_name(), 0), 1);
+		/* if logcount > 0 then the pager cap should also be mapped */
+		if (logcount)
+			res = utcb->append_item(Obj_crd(obj->Object_pool<Pager_object>::Entry::cap().local_name(), 0), 1);
 		(void)res;
 
 		reply(myself->stack_top());

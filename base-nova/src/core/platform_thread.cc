@@ -108,8 +108,9 @@ int Platform_thread::start(void *ip, void *sp)
 		pd_utcb = Native_config::context_area_virtual_base() +
 		          Native_config::context_virtual_size() - get_page_size();
 
-		addr_t remap_src[] = { _pd->parent_pt_sel() };
-		addr_t remap_dst[] = { PT_SEL_PARENT };
+		addr_t remap_src[] = { _pd->parent_pt_sel(),
+		                       _pager->Object_pool<Pager_object>::Entry::cap().local_name() };
+		addr_t remap_dst[] = { PT_SEL_PARENT, PT_SEL_MAIN_PAGER };
 
 		/* remap exception portals for first thread */
 		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
@@ -120,11 +121,14 @@ int Platform_thread::start(void *ip, void *sp)
 		}
 	}
 
-	addr_t pd_sel = cap_map()->insert();
-
 	/* create task */
-	Obj_crd initial_pts(_sel_exc_base, is_vcpu() ?
-	                    NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2);
+	addr_t const pd_sel = cap_map()->insert();
+	addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
+	                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
+	                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
+	unsigned pts = is_vcpu() ?  NUM_INITIAL_VCPU_PT_LOG2 : NUM_INITIAL_PT_LOG2;
+
+	Obj_crd initial_pts(_sel_exc_base, pts, rights);
 	uint8_t res = create_pd(pd_sel, pd_core_sel, initial_pts);
 	if (res != NOVA_OK) {
 		PERR("create_pd returned %d", res);

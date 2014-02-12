@@ -79,7 +79,15 @@ void Thread_base::_init_platform_thread(Type type)
 	/* for main threads the member initialization differs */
 	if (type == MAIN || type == REINITIALIZED_MAIN) {
 		_thread_cap = env()->parent()->main_thread_cap();
+
+		Genode::Native_capability pager_cap(Nova::PT_SEL_MAIN_PAGER);
+		_pager_cap  = reinterpret_cap_cast<Pager_object>(pager_cap);
+
 		_tid.exc_pt_sel = 0;
+		_tid.ec_sel     = Nova::PT_SEL_MAIN_EC;
+
+		enum { DONT_MAP_PAGER_CAP = 0 };
+		request_native_ec_cap(_pager_cap, _tid.ec_sel, DONT_MAP_PAGER_CAP);
 		return;
 	}
 
