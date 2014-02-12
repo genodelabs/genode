@@ -14,6 +14,7 @@
 #include <base/printf.h>
 #include <block_session/connection.h>
 #include <block/component.h>
+#include <os/packet_allocator.h>
 
 #include "chunk.h"
 
@@ -117,7 +118,7 @@ class Driver : public Block::Driver
 
 		Genode::Tslab<Request, SLAB_SZ>   _r_slab;    /* slab for requests  */
 		Genode::List<Request>             _r_list;    /* list of requests   */
-		Genode::Allocator_avl             _alloc;     /* packet allocator   */
+		Genode::Packet_allocator          _alloc;     /* packet allocator   */
 		Block::Connection                 _blk;       /* backend device     */
 		Block::Session::Operations        _ops;       /* allowed operations */
 		Genode::size_t                    _blk_sz;    /* block size         */
@@ -255,7 +256,6 @@ class Driver : public Block::Driver
 			} catch(Genode::Allocator::Out_of_memory) {
 				if (p_to_dev.valid()) /* clean up */
 					_blk.tx()->release_packet(p_to_dev);
-				//TODO
 				throw Request_congestion();
 			}
 		}
@@ -332,7 +332,7 @@ class Driver : public Block::Driver
 		 */
 		Driver(Server::Entrypoint &ep)
 		: _r_slab(Genode::env()->heap()),
-		  _alloc(Genode::env()->heap()),
+		  _alloc(Genode::env()->heap(), CACHE_BLK_SIZE),
 		  _blk(&_alloc, Block::Session::TX_QUEUE_SIZE*CACHE_BLK_SIZE),
 		  _blk_sz(0),
 		  _blk_cnt(0),

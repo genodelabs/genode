@@ -15,31 +15,32 @@
 #ifndef _INCLUDE__UTIL__BIT_ARRAY_H_
 #define _INCLUDE__UTIL__BIT_ARRAY_H_
 
+#include <util/string.h>
 #include <base/exception.h>
 #include <base/stdint.h>
 
 namespace Genode {
 
-	template <unsigned BITS>
-	class Bit_array
+	class Bit_array_base
 	{
 		public:
 
+			class Invalid_bit_count    : public Exception {};
 			class Invalid_index_access : public Exception {};
 			class Invalid_clear        : public Exception {};
 			class Invalid_set          : public Exception {};
 
-		private:
+		protected:
 
 			static constexpr size_t _BITS_PER_BYTE = 8UL;
 			static constexpr size_t _BITS_PER_WORD = sizeof(addr_t) *
 			                                        _BITS_PER_BYTE;
-			static constexpr size_t _WORDS         = BITS / _BITS_PER_WORD;
 
-			static_assert(BITS % _BITS_PER_WORD == 0,
-			              "Count of bits need to be word aligned!");
+		private:
 
-			addr_t _words[_WORDS];
+			unsigned _bit_cnt;
+			unsigned _word_cnt;
+			addr_t  *_words;
 
 			addr_t _word(addr_t index) const {
 				return index / _BITS_PER_WORD; }
@@ -47,9 +48,9 @@ namespace Genode {
 			void _check_range(addr_t const index,
 			                  addr_t const width) const
 			{
-				if ((index >= _WORDS * _BITS_PER_WORD) ||
-				    width > _WORDS * _BITS_PER_WORD ||
-				    _WORDS * _BITS_PER_WORD - width < index)
+				if ((index >= _word_cnt * _BITS_PER_WORD) ||
+				    width > _word_cnt * _BITS_PER_WORD ||
+				    _word_cnt * _BITS_PER_WORD - width < index)
 					throw Invalid_index_access();
 			}
 
@@ -91,7 +92,15 @@ namespace Genode {
 
 		public:
 
-			Bit_array() { memset(&_words, 0, sizeof(_words)); }
+			Bit_array_base(unsigned bits, addr_t *addr)
+			: _bit_cnt(bits),
+			  _word_cnt(_bit_cnt / _BITS_PER_WORD),
+			  _words(addr)
+			{
+				if (bits % _BITS_PER_WORD) throw Invalid_bit_count();
+
+				memset(_words, 0, sizeof(addr_t)*_word_cnt);
+			}
 
 			/**
 			 * Return true if at least one bit is set between
@@ -118,6 +127,24 @@ namespace Genode {
 
 			void clear(addr_t const index, addr_t const width) {
 				_set(index, width, true); }
+	};
+
+
+	template <unsigned BITS>
+	class Bit_array : public Bit_array_base
+	{
+		private:
+
+			static constexpr size_t _WORDS = BITS / _BITS_PER_WORD;
+
+			static_assert(BITS % _BITS_PER_WORD == 0,
+			              "Count of bits need to be word aligned!");
+
+			addr_t _array[_WORDS];
+
+		public:
+
+			Bit_array() : Bit_array_base(BITS, _array) { }
 	};
 
 }
