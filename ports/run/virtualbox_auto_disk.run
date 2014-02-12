@@ -1,0 +1,54 @@
+set use_vdi 1
+set use_iso 0
+set vdi_image "win7.vdi"
+
+set config_of_app {
+	<start name="vbox-auto-test-helper">
+		<resource name="RAM" quantum="10M"/>
+		<route>
+			<service name="File_system"> <child name="rump_fs"/> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+}
+
+source ${genode_dir}/ports/run/virtualbox_auto.inc
+
+run_genode_until "vbox_auto_test_helper is done." 20
+exec kill [exp_pid −i $spawn_id]
+
+set config_of_app {
+	<start name="vbox">
+		<binary name="virtualbox" />
+		<resource name="RAM" quantum="2G"/>
+		<config>}
+
+if {$use_iso} {
+append config_of_app "
+			<image type=\"iso\" file=\"/$iso_image\"/>"
+}
+
+if {$use_vdi} {
+append config_of_app "
+			<image type=\"vdi\" file=\"/$vdi_image\" overlay=\"yes\"/>"
+}
+
+append config_of_app {
+		</config>
+		<route>
+			<service name="File_system"> <child name="rump_fs"/> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+}
+
+source ${genode_dir}/ports/run/virtualbox_auto.inc
+
+
+run_genode_until "ignore resize request to 720x400" 20 
+run_genode_until "ignore resize request to 640x480" 15 $spawn_id
+run_genode_until "ignore resize request to 800x600" 25 $spawn_id
+run_genode_until "ignore resize request to 800x600" 60 $spawn_id
+run_genode_until "ignore resize request to 720x400" 10 $spawn_id
+
+puts "\nTest succeeded"
