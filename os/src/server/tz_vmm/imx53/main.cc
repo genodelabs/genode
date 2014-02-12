@@ -124,8 +124,8 @@ class Vmm::Vmm : public Thread<8192>
 		  _m4if_io_mem(Board_base::M4IF_BASE, Board_base::M4IF_SIZE),
 		  _m4if((addr_t)env()->rm_session()->attach(_m4if_io_mem.dataspace()))
 		{
-			_m4if.set_region(Trustzone::SECURE_RAM_BASE,
-			                 Trustzone::SECURE_RAM_SIZE);
+			_m4if.set_region0(Trustzone::SECURE_RAM_BASE,
+			                  Trustzone::SECURE_RAM_SIZE);
 		}
 };
 
