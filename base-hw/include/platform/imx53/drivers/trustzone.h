@@ -20,10 +20,10 @@
 namespace Trustzone
 {
 	enum {
-		VM_STATE_SIZE      = 1 << 20,
 		SECURE_RAM_BASE    = Genode::Board_base::RAM0_BASE,
-		SECURE_RAM_SIZE    = Genode::Board_base::RAM0_SIZE - VM_STATE_SIZE,
+		SECURE_RAM_SIZE    = 256 * 1024 * 1024,
 		VM_STATE_BASE      = SECURE_RAM_BASE + SECURE_RAM_SIZE,
+		VM_STATE_SIZE      = 1 << 20,
 		NONSECURE_RAM_BASE = Genode::Board_base::RAM1_BASE,
 		NONSECURE_RAM_SIZE = Genode::Board_base::RAM1_SIZE,
 	};

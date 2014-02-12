@@ -241,8 +241,8 @@ class Vmm::Vmm : public Thread<8192>
 		  _foreground(false),
 		  _running(false)
 		{
-			_m4if.set_region(Trustzone::SECURE_RAM_BASE,
-			                 Trustzone::SECURE_RAM_SIZE);
+			_m4if.set_region0(Trustzone::SECURE_RAM_BASE,
+			                  Trustzone::SECURE_RAM_SIZE);
 		}
 };
 
