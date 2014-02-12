@@ -79,6 +79,9 @@
 			main_thread_utcb*;
 		};
 
+		/* Linux */
+		lx_syscall;
+
 	local:
 
 		/*
