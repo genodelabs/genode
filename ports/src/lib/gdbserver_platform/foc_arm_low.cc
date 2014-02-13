@@ -52,7 +52,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 	try { thread_state = get_current_thread_state(); }
 	catch (...) { return 0; }
 
-	if (in_syscall(thread_state)) {
+	if (in_syscall(thread_state) || thread_state.unresolved_page_fault) {
 		switch((enum reg_index)regno)
 		{
 			case R0: PDBG("cannot determine contents of register R0"); return -1;
@@ -67,14 +67,18 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 			case R9: PDBG("cannot determine contents of register R9"); return -1;
 			case R10: PDBG("cannot determine contents of register R10"); return -1;
 			case R11:
-				/* R11 can be calculated from SP. The offset can be found in
-				 * the disassembled 'Fiasco::l4_ipc()' function:
-				 *   add	r11, sp, #8 -> r11 = sp + 8
-				 *   sub	sp, sp, #20 -> r11 = (sp + 20) + 8
-				 */
-				*reg_content = (thread_state.sp + 20) + 8;
-				PDBG("FP = %8lx", *reg_content);
-				return 0;
+				if (in_syscall(thread_state)) {
+					/* R11 can be calculated from SP. The offset can be found in
+			 	 	 * the disassembled 'Fiasco::l4_ipc()' function:
+			 	 	 *   add	r11, sp, #8 -> r11 = sp + 8
+			 	 	 *   sub	sp, sp, #20 -> r11 = (sp + 20) + 8
+			 	 	 */
+					*reg_content = (thread_state.sp + 20) + 8;
+					PDBG("FP = %8lx", *reg_content);
+					return 0;
+				} else {
+					PDBG("cannot determine contents of register R11"); return -1;
+				}
 			case R12: PDBG("cannot determine contents of register R12"); return -1;
 			case SP: *reg_content = thread_state.sp; PDBG("SP = %8lx", *reg_content); return 0;
 			case LR: PDBG("cannot determine contents of register LR"); return -1;

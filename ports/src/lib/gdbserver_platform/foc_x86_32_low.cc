@@ -51,29 +51,37 @@ extern "C" int genode_fetch_register(int regno, unsigned long *reg_content)
 	try { thread_state = get_current_thread_state(); }
 	catch (...) { return 0; }
 
-	if (in_syscall(thread_state)) {
+	if (in_syscall(thread_state) || thread_state.unresolved_page_fault) {
 		switch((enum reg_index)regno)
 		{
 			case EAX:  PDBG("cannot determine contents of register EAX"); return -1;
 			case ECX:  PDBG("cannot determine contents of register ECX"); return -1;
 			case EDX:  PDBG("cannot determine contents of register EDX"); return -1;
 			case EBX:
-				/* When in a syscall, the user EBX has been pushed onto the stack at address ESP+4 */
-				*reg_content = genode_read_memory_byte((void*)(thread_state.sp + 4)) +
-				               (genode_read_memory_byte((void*)(thread_state.sp + 5)) << 8) +
-				               (genode_read_memory_byte((void*)(thread_state.sp + 6)) << 16) +
-				               (genode_read_memory_byte((void*)(thread_state.sp + 7)) << 24);
-				PDBG("EBX = %8lx", *reg_content);
-				return 0;
+				if (in_syscall(thread_state)) {
+					/* When in a syscall, the user EBX has been pushed onto the stack at address ESP+4 */
+					*reg_content = genode_read_memory_byte((void*)(thread_state.sp + 4)) +
+				               	   (genode_read_memory_byte((void*)(thread_state.sp + 5)) << 8) +
+				               	   (genode_read_memory_byte((void*)(thread_state.sp + 6)) << 16) +
+				               	   (genode_read_memory_byte((void*)(thread_state.sp + 7)) << 24);
+					PDBG("EBX = %8lx", *reg_content);
+					return 0;
+				} else {
+					PDBG("cannot determine contents of register EBX"); return -1;
+				}
 			case UESP: *reg_content = thread_state.sp; PDBG("ESP = %8lx", *reg_content); return 0;
 			case EBP:
-				/* When in a syscall, the user EBP has been pushed onto the stack at address ESP+0 */
-				*reg_content = genode_read_memory_byte((void*)(thread_state.sp + 0)) +
-							   (genode_read_memory_byte((void*)(thread_state.sp + 1)) << 8) +
-							   (genode_read_memory_byte((void*)(thread_state.sp + 2)) << 16) +
-							   (genode_read_memory_byte((void*)(thread_state.sp + 3)) << 24);
-				PDBG("EBP = %8lx", *reg_content);
-				return 0;
+				if (in_syscall(thread_state)) {
+					/* When in a syscall, the user EBP has been pushed onto the stack at address ESP+0 */
+					*reg_content = genode_read_memory_byte((void*)(thread_state.sp + 0)) +
+							   	   (genode_read_memory_byte((void*)(thread_state.sp + 1)) << 8) +
+							   	   (genode_read_memory_byte((void*)(thread_state.sp + 2)) << 16) +
+							   	   (genode_read_memory_byte((void*)(thread_state.sp + 3)) << 24);
+					PDBG("EBP = %8lx", *reg_content);
+					return 0;
+				} else {
+					PDBG("cannot determine contents of register EBP"); return -1;
+				}
 			case ESI:  PDBG("cannot determine contents of register ESI"); return -1;
 			case EDI:  PDBG("cannot determine contents of register EDI"); return -1;
 			case EIP:  *reg_content = thread_state.ip; PDBG("EIP = %8lx", *reg_content); return 0;
