@@ -731,7 +731,7 @@ namespace Init {
 						.ulong_value(0);
 
 				if (avail_slack_ram_quota() < requested_ram_quota) {
-					PERR("Cannot respond to resource request - out of memory");
+					PWRN("Cannot respond to resource request - out of memory");
 					return;
 				}
 
