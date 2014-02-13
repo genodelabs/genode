@@ -167,7 +167,6 @@ append config {
 				</fstab> }
 append config "
 				<start name=\"/bin/${tool_prefix}gdb\">
-					<arg value=\"/bin/${tool_prefix}gdb\"/>
 					<arg value=\"/gdb/${gdb_target_binary_name}\"/> "
 append config {
 					<arg value="-ex" /><arg value="set interactive-mode off" />
