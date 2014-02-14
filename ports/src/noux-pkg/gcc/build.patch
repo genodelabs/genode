@@ -4,12 +4,13 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- Makefile.in        |    7 +++++++
- configure          |    1 +
- gcc/Makefile.in    |    6 +++---
- gcc/configure      |    1 +
- libgcc/Makefile.in |    2 +-
- 5 files changed, 13 insertions(+), 4 deletions(-)
+ Makefile.in             |    7 +++++++
+ configure               |    1 +
+ fixincludes/Makefile.in |    4 ++--
+ gcc/Makefile.in         |    6 +++---
+ gcc/configure           |    1 +
+ libgcc/Makefile.in      |    2 +-
+ 6 files changed, 15 insertions(+), 6 deletions(-)
 
 diff --git a/Makefile.in b/Makefile.in
 index 1cb2117..84759de 100644
@@ -69,6 +70,24 @@ index 88ec0e7..dfb4906 100755
  DEBUG_PREFIX_CFLAGS_FOR_TARGET
  SYSROOT_CFLAGS_FOR_TARGET
  stage1_languages
+diff --git a/fixincludes/Makefile.in b/fixincludes/Makefile.in
+index b9857b9..0229f70 100644
+--- a/fixincludes/Makefile.in
++++ b/fixincludes/Makefile.in
+@@ -107,11 +107,11 @@ oneprocess : full-stamp
+ twoprocess : test-stamp $(AF)
+ 
+ full-stamp : $(ALLOBJ) $(LIBIBERTY)
+-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(FI) $(ALLOBJ) $(LIBIBERTY)
++	$(CC) $(CFLAGS) $(LDFLAGS) -o $(FI) $(ALLOBJ) $(LIBIBERTY) $(LIBS)
+ 	$(STAMP) $@
+ 
+ test-stamp : $(TESTOBJ) $(LIBIBERTY)
+-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(FI) $(TESTOBJ) $(LIBIBERTY)
++	$(CC) $(CFLAGS) $(LDFLAGS) -o $(FI) $(TESTOBJ) $(LIBIBERTY) $(LIBS)
+ 	$(STAMP) $@
+ 
+ $(AF): $(FIXOBJ) $(LIBIBERTY)
 diff --git a/gcc/Makefile.in b/gcc/Makefile.in
 index 5c3514d..9345bc3 100644
 --- a/gcc/Makefile.in
