@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <util/list.h>
+#include <util/construct_at.h>
 
 #include "file.h"
 
@@ -38,6 +39,8 @@ namespace Genode {
 			addr_t        _base;  /* base address of dataspace */
 			Allocator_avl _range; /* VM range allocator */
 
+		protected:
+
 			Rm_area(addr_t base)
 			: Rm_connection(0, RESERVATION), _range(env()->heap())
 			{
@@ -51,8 +54,19 @@ namespace Genode {
 
 			static Rm_area *r(addr_t base = 0)
 			{
-				static Rm_area _area(base);
-				return &_area;
+				/*
+				 * The capabilities in this class become invalid when doing a
+				 * fork in the noux environment. Hence avoid destruction of
+				 * the singleton object as the destructor would try to access
+				 * the capabilities also in the forked process.
+				 */
+				static bool constructed = 0;
+				static char placeholder[sizeof(Rm_area)];
+				if (!constructed) {
+					construct_at<Rm_area>(placeholder, base);
+					constructed = 1;
+				}
+				return reinterpret_cast<Rm_area *>(placeholder);
 			}
 
 			/**
