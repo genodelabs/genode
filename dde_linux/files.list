@@ -123,6 +123,7 @@ linux-3.9/drivers/usb/host/xhci-ext-caps.h
 linux-3.9/drivers/usb/host/xhci.h
 linux-3.9/drivers/usb/host/xhci-hub.c
 linux-3.9/drivers/usb/host/xhci-mem.c
+linux-3.9/drivers/usb/host/xhci-pci.c
 linux-3.9/drivers/usb/host/xhci-plat.c
 linux-3.9/drivers/usb/host/xhci-ring.c
 linux-3.9/drivers/usb/storage/alauda.c

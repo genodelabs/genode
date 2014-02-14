@@ -1,5 +1,6 @@
 SRC_C   += usbnet.c asix_devices.c asix_common.c ax88172a.c ax88179_178a.c
 
+include $(REP_DIR)/lib/mk/xhci.inc
 include $(REP_DIR)/lib/mk/usb.inc
 include $(REP_DIR)/lib/mk/arm/usb.inc
 
@@ -12,7 +13,7 @@ SRC_CC  += platform.cc
 SRC_C   += dwc3-exynos.c host.c core.c
 
 #XHCI
-SRC_C += xhci-dbg.c xhci-hub.c xhci-mem.c xhci-plat.c xhci-ring.c  xhci.c
+SRC_C += xhci-plat.c
 
 vpath platform.cc $(LIB_DIR)/arm/platform_arndale
 vpath %.c         $(CONTRIB_DIR)/drivers/usb/dwc3

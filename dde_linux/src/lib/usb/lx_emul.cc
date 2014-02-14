@@ -914,7 +914,7 @@ int fls(int x)
 
 	for (int i = 31; i >= 0; i--)
 		if (x & (1 << i))
-			return i;
+			return i + 1;
 
 	return 0;
 }

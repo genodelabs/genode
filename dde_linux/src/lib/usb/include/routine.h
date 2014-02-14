@@ -34,7 +34,7 @@ class Routine : public Genode::List<Routine>::Element
 {
 	private:
 
-		enum { STACK_SIZE = 0x2000 };
+		enum { STACK_SIZE = 4 * 1024 * sizeof(long) };
 		bool            _started;        /* true if already started */
 		jmp_buf         _env;            /* state */
 		int           (*_func)(void *);  /* function to call*/

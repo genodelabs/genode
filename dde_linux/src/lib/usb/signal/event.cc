@@ -77,6 +77,10 @@ class Work : public Genode::List<Work>::Element
 		template <typename WORK>
 		static void schedule(WORK *work)
 		{
+			if (work->pending)
+				return;
+
+			work->pending = 1;
 			_list()->insert(new (Genode::env()->heap()) Work(work));
 		}
 
@@ -92,6 +96,7 @@ class Work : public Genode::List<Work>::Element
 					{
 						work_struct *work = static_cast<work_struct *>(w->_work);
 						work->func(work);
+						work->pending = 0;
 					}
 					break;
 
@@ -99,6 +104,7 @@ class Work : public Genode::List<Work>::Element
 					{
 						delayed_work *work = static_cast<delayed_work *>(w->_work);
 						work->work.func(&(work)->work);
+						work->pending = 0;
 					}
 					break;
 
@@ -106,6 +112,7 @@ class Work : public Genode::List<Work>::Element
 					{
 						tasklet_struct *tasklet = static_cast<tasklet_struct *>(w->_work);
 						tasklet->func(tasklet->data);
+						tasklet->pending = 0;
 					}
 					break;
 				}
@@ -269,8 +276,9 @@ bool queue_delayed_work(struct workqueue_struct *wq,
 
 void tasklet_init(struct tasklet_struct *t, void (*f)(unsigned long), unsigned long d)
 {
-	t->func = f;
-	t->data = d;
+	t->func    = f;
+	t->data    = d;
+	t->pending = 0;
 }
 
 

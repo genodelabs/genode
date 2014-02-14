@@ -645,6 +645,13 @@ int scnprintf(char *buf, size_t size, const char *fmt, ...);
 struct completion;
 void complete_and_exit(struct completion *, long);
 
+
+/*********************
+ ** linux/cpumask.h **
+ *********************/
+
+static inline unsigned num_online_cpus(void) { return 1U; }
+
 /******************
  ** linux/log2.h **
  ******************/
@@ -1045,11 +1052,13 @@ typedef void (*work_func_t)(struct work_struct *work);
 struct work_struct {
 	work_func_t func;
 	struct list_head entry;
+	unsigned         pending;
 };
 
 struct delayed_work {
 	struct timer_list timer;
 	struct work_struct work;
+	unsigned           pending;
 };
 
 bool cancel_work_sync(struct work_struct *work);
@@ -1062,10 +1071,17 @@ bool flush_work_sync(struct work_struct *work);
 
 
 #define PREPARE_WORK(_work, _func) \
-	do { (_work)->func = (_func); } while (0)
+	do { \
+	 (_work)->func    = (_func); \
+	 (_work)->pending = 0; \
+	} while (0)
 
 #define PREPARE_DELAYED_WORK(_work, _func) \
-	PREPARE_WORK(&(_work)->work, (_func))
+	do { \
+		PREPARE_WORK(&(_work)->work, (_func)); \
+		(_work)->pending = 0; \
+	} while (0)
+
 
 #define __INIT_WORK(_work, _func, on_stack) \
 	do { \
@@ -1080,6 +1096,7 @@ bool flush_work_sync(struct work_struct *work);
 	do { \
 		INIT_WORK(&(_work)->work, (_func)); \
 		init_timer(&(_work)->timer); \
+		(_work)->pending = 0; \
 	} while (0)
 
 
@@ -2201,12 +2218,9 @@ bool in_interrupt(void);
 /*
  * Definitions normally found in pci_regs.h
  */
-//enum { PCI_BASE_ADDRESS_MEM_MASK = ~0x0fUL };
-//enum { PCI_CAP_ID_AGP            = 0x02 };
 extern struct  bus_type pci_bus_type;
 enum { PCI_ANY_ID = ~0U };
 enum { DEVICE_COUNT_RESOURCE = 6 };
-//enum { PCIBIOS_MIN_MEM = 0UL };
 
 #define PCI_DEVICE_CLASS(dev_class,dev_class_mask) \
 	.class = (dev_class), .class_mask = (dev_class_mask), \
@@ -2231,6 +2245,21 @@ typedef enum { PCI_D0 = 0 } pci_power_t;
 #ifdef __cplusplus
 #define class device_class
 #endif /* __cplusplus */
+
+struct msix_entry
+{
+	u32 vector;
+	u16 entry;
+};
+
+struct pci_dev;
+
+int  pci_enable_msi(struct pci_dev *);
+void pci_disable_msi(struct pci_dev *);
+
+int  pci_enable_msix(struct pci_dev *, struct msix_entry *, int);
+void pci_disable_msix(struct pci_dev *);
+
 
 #include <linux/mod_devicetable.h>
 
@@ -2769,6 +2798,8 @@ int scsi_normalize_sense(const u8 *sense_buffer, int sb_len,
 const u8 * scsi_sense_desc_find(const u8 * sense_buffer, int sb_len,
                                 int desc_type);
 int scsi_sense_valid(struct scsi_sense_hdr *);
+int scsi_sense_is_deferred(struct scsi_sense_hdr *);
+
 
 /*********************
  ** scsi/scsi_tcq.h **
@@ -3429,6 +3460,7 @@ struct tasklet_struct
 {
 	void (*func)(unsigned long);
 	unsigned long data;
+	unsigned      pending;
 };
 
 void tasklet_schedule(struct tasklet_struct *t);

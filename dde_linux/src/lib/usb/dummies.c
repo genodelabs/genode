@@ -611,6 +611,7 @@ bool in_interrupt(void) { TRACE; return 1; }
 /*****************
  ** linux/pci.h **
  *****************/
+
 int pci_bus_read_config_dword(struct pci_bus *bus, unsigned int devfn, int where, u32 *val) { TRACE; return 0; }
 int pci_bus_write_config_dword(struct pci_bus *bus, unsigned int devfn, int where, u32 val) { TRACE; return 0; }
 
@@ -632,6 +633,12 @@ struct pci_dev *pci_get_slot(struct pci_bus *bus, unsigned int devfn) { TRACE; r
 const struct pci_device_id *pci_match_id(const struct pci_device_id *ids,
                                          struct pci_dev *dev) { TRACE; return 0; }
 void *pci_ioremap_bar(struct pci_dev *pdev, int bar);
+
+int  pci_enable_msi(struct pci_dev *pdev) { TRACE; return -1; }
+void pci_disable_msi(struct pci_dev *pdev) { TRACE; }
+
+int  pci_enable_msix(struct pci_dev *pdev, struct msix_entry *entries, int vec) { TRACE; return -1; }
+void pci_disable_msix(struct pci_dev *pdev) { TRACE; }
 
 /**
  * Omitted PCI functions
