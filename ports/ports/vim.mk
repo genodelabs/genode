@@ -39,4 +39,4 @@ $(CONTRIB_DIR)/$(VIM): $(DOWNLOAD_DIR)/$(VIM_TBZ2).verified
 	@# environment
 	@#
 	$(VERBOSE)sed -i "/default_vim_dir/s/.(VIMRCLOC)/\/share\/vim/" $@/src/Makefile
-
+	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(VIM) -N -p1 < src/noux-pkg/vim/build.patch
