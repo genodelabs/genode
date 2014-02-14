@@ -52,12 +52,12 @@ class Genode::Reporter : Noncopyable
 		{
 			if (enabled == _enabled) return;
 
-			_enabled = enabled;
-
-			if (_enabled)
+			if (enabled)
 				_conn.construct(_name.string());
 			else
 				_conn.destruct();
+
+			_enabled = enabled;
 		}
 
 		bool is_enabled() const { return _enabled; }
