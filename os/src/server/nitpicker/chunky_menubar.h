@@ -37,9 +37,10 @@ class Chunky_menubar : public Texture<PT>,
 			Texture<PT>(pixels, 0, size),
 			Session(Genode::Session_label(""), 0, false),
 			View(*this, View::STAY_TOP, View::NOT_TRANSPARENT,
-			     View::NOT_BACKGROUND, Rect(Point(0, 0), size)),
+			     View::NOT_BACKGROUND, 0),
 			_canvas(pixels, size)
 		{
+			View::geometry(Rect(Point(0, 0), size));
 			Session::texture(this, false);
 		}
 
@@ -62,7 +63,7 @@ class Chunky_menubar : public Texture<PT>,
 			Clip_guard clip_guard(canvas, *this);
 
 			/* draw menubar content */
-			canvas.draw_texture(p1(), *this, Texture_painter::SOLID, BLACK, false);
+			canvas.draw_texture(abs_position(), *this, Texture_painter::SOLID, BLACK, false);
 		}
 
 
@@ -79,25 +80,28 @@ class Chunky_menubar : public Texture<PT>,
 			int g = (mode.kill()) ?  70 : (mode.xray()) ? session_color.g : (session_color.g + 100) >> 1;
 			int b = (mode.kill()) ?  70 : (mode.xray()) ? session_color.b : (session_color.b + 100) >> 1;
 
+			Rect const view_rect = abs_geometry();
+
 			/* highlight first line with slightly brighter color */
-			_canvas.draw_box(Rect(Point(0, 0), Area(View::w(), 1)),
+			_canvas.draw_box(Rect(Point(0, 0), Area(view_rect.w(), 1)),
 			                 Color(r + (r / 2), g + (g / 2), b + (b / 2)));
 
 			/* draw slightly shaded background */
-			for (unsigned i = 1; i < View::h() - 1; i++) {
+			for (unsigned i = 1; i < view_rect.h() - 1; i++) {
 				r -= r > 3 ? 4 : 0;
 				g -= g > 3 ? 4 : 0;
 				b -= b > 4 ? 4 : 0;
-				_canvas.draw_box(Rect(Point(0, i), Area(View::w(), 1)), Color(r, g, b));
+				_canvas.draw_box(Rect(Point(0, i), Area(view_rect.w(), 1)), Color(r, g, b));
 			}
 
 			/* draw last line darker */
-			_canvas.draw_box(Rect(Point(0, View::h() - 1), Area(View::w(), 1)),
+			_canvas.draw_box(Rect(Point(0, view_rect.h() - 1), Area(view_rect.w(), 1)),
 			                 Color(r / 4, g / 4, b / 4));
 
 			/* draw label */
-			draw_label(_canvas, center(label_size(session_label.string(), view_title.string())),
-			           session_label.string(), WHITE, view_title.string(), session_color);
+			draw_label(_canvas, view_rect.center(label_size(session_label.string(),
+			           view_title.string())), session_label.string(),
+			           WHITE, view_title.string(), session_color);
 		}
 
 		using Menubar::state;

@@ -65,13 +65,15 @@ VIEW *View_stack::_next_view(VIEW *view) const
 
 Rect View_stack::_outline(View const &view) const
 {
-	if (_mode.flat()) return view;
+	Rect const rect = view.abs_geometry();
+
+	if (_mode.flat()) return rect;
 
 	/* request thickness of view frame */
 	int const frame_size = view.frame_size(_mode);
 
-	return Rect(Point(view.x1() - frame_size, view.y1() - frame_size),
-	            Point(view.x2() + frame_size, view.y2() + frame_size));
+	return Rect(Point(rect.x1() - frame_size, rect.y1() - frame_size),
+	            Point(rect.x2() + frame_size, rect.y2() + frame_size));
 }
 
 
@@ -157,13 +159,15 @@ void View_stack::_place_labels(Canvas_base &canvas, Rect rect)
 	View const *start = _next_view(_first_view());
 	View       *view  = _next_view(_first_view());
 
-	for (; view && _next_view(view); view = _next_view(view))
-		if (Rect::intersect(*view, rect).valid()) {
+	for (; view && _next_view(view); view = _next_view(view)) {
+
+		Rect const view_rect = view->abs_geometry();
+		if (Rect::intersect(view_rect, rect).valid()) {
 
 			Rect old = view->label_rect(), best;
 
 			/* calculate best visible label position */
-			Rect rect = Rect::intersect(Rect(Point(), canvas.size()), *view);
+			Rect rect = Rect::intersect(Rect(Point(), canvas.size()), view_rect);
 			if (start) _optimize_label_rec(start, view, rect, &best);
 
 			/*
@@ -180,6 +184,7 @@ void View_stack::_place_labels(Canvas_base &canvas, Rect rect)
 			refresh_view(canvas, *view, view, old);
 			refresh_view(canvas, *view, view, view->label_rect());
 		}
+	}
 }
 
 
@@ -235,15 +240,17 @@ void View_stack::refresh_view(Canvas_base &canvas, View const &view,
 }
 
 
-void View_stack::viewport(Canvas_base &canvas, View &view, Rect pos,
+void View_stack::viewport(Canvas_base &canvas, View &view, Rect rect,
                           Point buffer_off, bool do_redraw)
 {
-	Rect old = _outline(view);
+	Rect const old_compound = _compound_outline(view);
 
-	static_cast<Rect &>(view) = Rect(pos);
+	view.geometry(Rect(rect));
 	view.buffer_off(buffer_off);
 
-	Rect compound = Rect::compound(old, _outline(view));
+	Rect const new_compound = _compound_outline(view);
+
+	Rect const compound = Rect::compound(old_compound, new_compound);
 
 	/* update labels (except when moving the mouse cursor) */
 	if (&view != _first_view())
@@ -263,7 +270,7 @@ void View_stack::stack(Canvas_base &canvas, View const &view,
 	_views.remove(&view);
 	_views.insert(&view, _target_stack_position(neighbor, behind));
 
-	_place_labels(canvas, view);
+	_place_labels(canvas, view.abs_geometry());
 
 	/* refresh affected screen area */
 	refresh_view(canvas, view, 0, _outline(view));
@@ -273,7 +280,7 @@ void View_stack::stack(Canvas_base &canvas, View const &view,
 void View_stack::title(Canvas_base &canvas, View &view, const char *title)
 {
 	view.title(title);
-	_place_labels(canvas, view);
+	_place_labels(canvas, view.abs_geometry());
 	refresh_view(canvas, view, 0, _outline(view));
 }
 

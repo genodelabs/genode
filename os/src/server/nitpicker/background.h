@@ -31,10 +31,11 @@ struct Background : private Texture_base, Session, View
 	Background(Area size)
 	:
 		Texture_base(Area(0, 0)), Session(Genode::Session_label(""), 0, false),
-		View(*this, View::NOT_STAY_TOP, View::NOT_TRANSPARENT,
-		     View::BACKGROUND, Rect(Point(0, 0), size)),
+		View(*this, View::NOT_STAY_TOP, View::NOT_TRANSPARENT, View::BACKGROUND, 0),
 		color(25, 37, 50)
-	{ }
+	{
+		View::geometry(Rect(Point(0, 0), size));
+	}
 
 
 	/***********************
@@ -53,8 +54,9 @@ struct Background : private Texture_base, Session, View
 
 	void draw(Canvas_base &canvas, Mode const &mode) const
 	{
-		Clip_guard clip_guard(canvas, *this);
-		canvas.draw_box(*this, color);
+		Rect const view_rect = abs_geometry();
+		Clip_guard clip_guard(canvas, view_rect);
+		canvas.draw_box(view_rect, color);
 	}
 };
 

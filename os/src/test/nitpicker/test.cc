@@ -29,18 +29,23 @@ class Test_view : public List<Test_view>::Element
 		Nitpicker::View_capability  _cap;
 		int                         _x, _y, _w, _h;
 		const char                 *_title;
+		Test_view            const *_parent_view;
 
 	public:
 
 		Test_view(Nitpicker::Session *nitpicker,
 		          int x, int y, int w, int h,
-		          const char *title)
+		          const char *title,
+		          Test_view *parent_view = 0)
 		:
-			_x(x), _y(y), _w(w), _h(h), _title(title)
+			_x(x), _y(y), _w(w), _h(h), _title(title), _parent_view(parent_view)
 		{
 			using namespace Nitpicker;
 
-			_cap = nitpicker->create_view();
+			View_capability parent_cap = parent_view ? parent_view->_cap
+			                           : View_capability();
+
+			_cap = nitpicker->create_view(parent_cap);
 			View_client(_cap).viewport(_x, _y, _w, _h, 0, 0, true);
 			View_client(_cap).stack(Nitpicker::View_capability(), true, true);
 			View_client(_cap).title(_title);
@@ -51,21 +56,30 @@ class Test_view : public List<Test_view>::Element
 			Nitpicker::View_client(_cap).stack(Nitpicker::View_capability(), true, true);
 		}
 
+		/**
+		 * Move view to absolute position
+		 */
 		void move(int x, int y)
 		{
-			_x = x;
-			_y = y;
+			/*
+			 * If the view uses a parent view as corrdinate origin, we need to
+			 * transform the absolute coordinates to parent-relative
+			 * coordinates.
+			 */
+			_x = _parent_view ? x - _parent_view->x() : x;
+			_y = _parent_view ? y - _parent_view->y() : y;
+
 			Nitpicker::View_client(_cap).viewport(_x, _y, _w, _h, 0, 0, true);
 		}
 
 		/**
 		 * Accessors
 		 */
-		const char *title() { return _title; }
-		int         x()     { return _x; }
-		int         y()     { return _y; }
-		int         w()     { return _w; }
-		int         h()     { return _h; }
+		const char *title() const { return _title; }
+		int         x()     const { return _parent_view ? _parent_view->x() + _x : _x; }
+		int         y()     const { return _parent_view ? _parent_view->y() + _y : _y; }
+		int         w()     const { return _w; }
+		int         h()     const { return _h; }
 };
 
 
@@ -83,6 +97,7 @@ class Test_view_stack : public List<Test_view>
 		Test_view *find(int x, int y)
 		{
 			for (Test_view *tv = first(); tv; tv = tv->next()) {
+
 				if (x < tv->x() || x >= tv->x() + tv->w()
 				 || y < tv->y() || y >= tv->y() + tv->h())
 					continue;
@@ -151,9 +166,18 @@ int main(int argc, char **argv)
 	 */
 	Test_view_stack tvs(input_mask, scr_w);
 
-	tvs.insert(new (env()->heap()) Test_view(&nitpicker, 150, 100, 230, 200, "Eins"));
-	tvs.insert(new (env()->heap()) Test_view(&nitpicker, 170, 120, 230, 210, "Zwei"));
-	tvs.insert(new (env()->heap()) Test_view(&nitpicker, 190, 140, 230, 220, "Drei"));
+	{
+		/*
+		 * View 'v1' is used as coordinate origin of 'v2' and 'v3'.
+		 */
+		static Test_view v1(&nitpicker, 150, 100, 230, 200, "Eins");
+		static Test_view v2(&nitpicker,  20,  20, 230, 210, "Zwei", &v1);
+		static Test_view v3(&nitpicker,  40,  40, 230, 220, "Drei", &v1);
+
+		tvs.insert(&v1);
+		tvs.insert(&v2);
+		tvs.insert(&v3);
+	}
 
 	/*
 	 * Handle input events

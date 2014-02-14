@@ -39,8 +39,7 @@ class Mouse_cursor : public Texture<PT>,
 		:
 			Texture<PT>(pixels, 0, size),
 			Session(Genode::Session_label(""), 0, false),
-			View(*this, View::STAY_TOP, View::TRANSPARENT, View::NOT_BACKGROUND,
-			     Rect()),
+			View(*this, View::STAY_TOP, View::TRANSPARENT, View::NOT_BACKGROUND, 0),
 			_view_stack(view_stack)
 		{ }
 
@@ -66,13 +65,15 @@ class Mouse_cursor : public Texture<PT>,
 
 		void draw(Canvas_base &canvas, Mode const &mode) const
 		{
-			Clip_guard clip_guard(canvas, *this);
+			Rect const view_rect = abs_geometry();
+
+			Clip_guard clip_guard(canvas, view_rect);
 
 			/* draw area behind the mouse cursor */
-			_view_stack.draw_rec(canvas, view_stack_next(), 0, 0, *this);
+			_view_stack.draw_rec(canvas, view_stack_next(), 0, 0, view_rect);
 
 			/* draw mouse cursor */
-			canvas.draw_texture(p1(), *this, Texture_painter::MASKED, BLACK, true);
+			canvas.draw_texture(view_rect.p1(), *this, Texture_painter::MASKED, BLACK, true);
 		}
 };
 

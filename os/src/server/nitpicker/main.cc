@@ -418,11 +418,11 @@ class View_component : public Genode::List<View_component>::Element,
 		 */
 		View_component(::Session &session, View_stack &view_stack,
 		               Canvas_accessor &canvas_accessor,
-		               Rpc_entrypoint &ep):
+		               Rpc_entrypoint &ep, ::View *parent_view):
 			_view_stack(view_stack),
 			_view(session,
 			      session.stay_top() ? ::View::STAY_TOP : ::View::NOT_STAY_TOP,
-			      ::View::NOT_TRANSPARENT, ::View::NOT_BACKGROUND, Rect()),
+			      ::View::NOT_TRANSPARENT, ::View::NOT_BACKGROUND, parent_view),
 			_canvas_accessor(canvas_accessor),
 			_ep(ep)
 		{ }
@@ -437,8 +437,9 @@ class View_component : public Genode::List<View_component>::Element,
 		int viewport(int x, int y, int w, int h,
 		             int buf_x, int buf_y, bool redraw)
 		{
-			/* transpose y position by vertical session offset */
-			y += _view.session().v_offset();
+			/* transpose y position of top-level views by vertical session offset */
+			if (_view.top_level())
+				y += _view.session().v_offset();
 
 			_view_stack.viewport(_canvas(), _view,
 			                     Rect(Point(x, y), Area(w, h)),
@@ -605,15 +606,25 @@ class Nitpicker::Session_component : public Genode::Rpc_object<Session>,
 		Input::Session_capability input_session() {
 			return _input_session_cap; }
 
-		View_capability create_view()
+		View_capability create_view(View_capability parent_cap)
 		{
-			/**
+			/* lookup parent view */
+			View_component *parent_view =
+				dynamic_cast<View_component *>(_ep.lookup_and_lock(parent_cap));
+
+			/*
 			 * FIXME: Do not allocate View meta data from Heap!
 			 *        Use a heap partition!
 			 */
 			View_component *view = new (env()->heap())
-			                       View_component(*this, _view_stack,
-			                       _canvas_accessor, _ep);
+				View_component(*this, _view_stack, _canvas_accessor, _ep,
+				               parent_view ? &parent_view->view() : 0);
+
+			if (parent_view)
+				parent_view->view().add_child(&view->view());
+
+			if (parent_view)
+				parent_view->release();
 
 			_view_list.insert(view);
 			return _ep.manage(view);

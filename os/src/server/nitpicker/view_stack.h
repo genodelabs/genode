@@ -58,6 +58,19 @@ class View_stack
 		void _place_labels(Canvas_base &, Rect);
 
 		/**
+		 * Return compound rectangle covering the view and all of its children
+		 */
+		Rect _compound_outline(View const &view)
+		{
+			Rect rect = _outline(view);
+
+			view.for_each_child([&] (View const &child) {
+			 	rect = Rect::compound(_outline(child), rect); });
+
+			return rect;
+		}
+
+		/**
 		 * Return view following the specified view in the view stack
 		 *
 		 * The function is a template to capture both const and non-const
@@ -123,9 +136,10 @@ class View_stack
 				 * Determine view portion that displays the buffer portion
 				 * specified by 'rect'.
 				 */
-				Point offset = view->p1() + view->buffer_off();
-				Rect r = Rect::intersect(Rect(rect.p1() + offset,
-				                              rect.p2() + offset), *view);
+				Point const offset = view->abs_position() + view->buffer_off();
+				Rect const r = Rect::intersect(Rect(rect.p1() + offset,
+				                                    rect.p2() + offset),
+				                               view->abs_geometry());
 				refresh_view(canvas, *view, view, r);
 			}
 		}

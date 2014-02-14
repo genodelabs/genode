@@ -225,7 +225,7 @@ namespace Nitpicker {
 				return _proxy_input_cap;
 			}
 
-			View_capability create_view()
+			View_capability create_view(View_capability)
 			{
 				return _proxy_view_cap;
 			}

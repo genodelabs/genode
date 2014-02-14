@@ -73,7 +73,7 @@ void View::frame(Canvas_base &canvas, Mode const &mode) const
 	/* do not draw frame in flat mode */
 	if (mode.flat()) return;
 
-	draw_frame(canvas, *this, _session.color(), frame_size(mode));
+	draw_frame(canvas, abs_geometry(), _session.color(), frame_size(mode));
 }
 
 
@@ -92,13 +92,15 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 	Texture_painter::Mode const op = mode.flat() || (mode.xray() && view_is_focused)
 	                               ? Texture_painter::SOLID : Texture_painter::MIXED;
 
+	Rect const view_rect = abs_geometry();
+
 	/*
 	 * The view content and label should never overdraw the
 	 * frame of the view in non-flat Nitpicker modes. The frame
 	 * is located outside the view area. By shrinking the
 	 * clipping area to the view area, we protect the frame.
 	 */
-	Clip_guard clip_guard(canvas, *this);
+	Clip_guard clip_guard(canvas, view_rect);
 
 	/*
 	 * If the clipping area shrinked to zero, we do not process drawing
@@ -116,8 +118,8 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 	                              _session.color().b >> 1);
 
 	if (_session.texture())
-		canvas.draw_texture(_buffer_off + p1(), *_session.texture(), op,
-		                    mix_color, allow_alpha);
+		canvas.draw_texture(_buffer_off + view_rect.p1(), *_session.texture(),
+		                    op, mix_color, allow_alpha);
 
 	if (mode.flat()) return;
 

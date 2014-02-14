@@ -31,8 +31,8 @@ struct Nitpicker::Session_client : public Genode::Rpc_client<Session>
 	Input::Session_capability input_session() {
 		return call<Rpc_input_session>(); }
 
-	View_capability create_view() {
-		return call<Rpc_create_view>(); }
+	View_capability create_view(View_capability parent = View_capability()) {
+		return call<Rpc_create_view>(parent); }
 
 	void destroy_view(View_capability view) {
 		call<Rpc_destroy_view>(view); }
