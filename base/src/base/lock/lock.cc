@@ -15,7 +15,7 @@
 #include <base/cancelable_lock.h>
 
 /* local includes */
-#include "spin_lock.h"
+#include <spin_lock.h>
 
 using namespace Genode;
 

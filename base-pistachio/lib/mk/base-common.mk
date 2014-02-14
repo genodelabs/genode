@@ -24,6 +24,7 @@ SRC_CC += thread/thread.cc thread/trace.cc thread/thread_bootstrap.cc
 SRC_CC += thread/context_allocator.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
+INC_DIR += $(BASE_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/thread
 
 vpath cap_copy.cc $(BASE_DIR)/src/platform

@@ -25,6 +25,7 @@ SRC_CC += thread/context_allocator.cc env/utcb.cc
 SRC_CC += lock/cmpxchg.cc
 
 INC_DIR +=  $(REP_DIR)/src/base/lock
+INC_DIR += $(BASE_DIR)/src/base/lock
 INC_DIR += $(BASE_DIR)/src/base/thread
 INC_DIR +=  $(REP_DIR)/include/codezero/dummies
 
