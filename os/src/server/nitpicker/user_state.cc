@@ -102,17 +102,15 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 	{
 		User_state  &user_state;
 		Canvas_base &canvas;
-		bool         enabled;
-		char  const *menu_title;
+		bool        update_menubar = false;
+		bool        update_views   = false;
+		char const *menu_title     = "";
 
 		Update_all_guard(User_state &user_state, Canvas_base &canvas)
-		: user_state(user_state), canvas(canvas), enabled(false), menu_title("") { }
+		: user_state(user_state), canvas(canvas) { }
 
 		~Update_all_guard()
 		{
-			if (!enabled)
-				return;
-
 			Menubar_state state(user_state, "", "", BLACK);
 
 			if (user_state._input_receiver)
@@ -121,9 +119,11 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 				                      menu_title,
 				                      user_state._input_receiver->color());
 
-			user_state._menubar.state(state);
+			if (update_menubar)
+				user_state._menubar.state(state);
 
-			user_state.update_all_views(canvas);
+			if (update_menubar || update_views)
+				user_state.update_all_views(canvas);
 		}
 	} update_all_guard(*this, canvas);
 
@@ -141,7 +141,8 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 				lock_out_session(canvas, pointed_view->session());
 
 			/* leave kill mode */
-			update_all_guard.enabled = true;
+			update_all_guard.update_menubar = true;
+			update_all_guard.update_views   = true;
 			Mode::leave_kill();
 			return;
 		}
@@ -157,8 +158,10 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 			 * Update the whole screen when the focus change results in
 			 * changing the focus to another session.
 			 */
-			if (flat() && !focus_stays_in_session)
-				update_all_guard.enabled = true;
+			if (flat() && !focus_stays_in_session) {
+				update_all_guard.update_menubar = true;
+				update_all_guard.update_views   = true;
+			}
 
 			/*
 			 * Notify both the old focussed session and the new one.
@@ -176,8 +179,10 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 				}
 			}
 
+			update_all_guard.update_menubar = true;
+
 			if (!flat() || !focused_view() || !pointed_view)
-				update_all_guard.enabled = true;
+				update_all_guard.update_views = true;
 
 			focused_view(pointed_view);
 		}
@@ -194,10 +199,11 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 		 */
 		Session * const global_receiver = _global_keys.global_receiver(keycode);
 		if (global_receiver) {
-			_global_key_sequence        = true;
-			_input_receiver             = global_receiver;
-			update_all_guard.menu_title = "";
-			update_all_guard.enabled    = true;
+			_global_key_sequence            = true;
+			_input_receiver                 = global_receiver;
+			update_all_guard.menu_title     = "";
+			update_all_guard.update_menubar = true;
+			update_all_guard.update_views   = true;
 		}
 
 		/*
@@ -205,8 +211,8 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 		 * focused view or refers to a built-in operation.
 		 */
 		if (!global_receiver && focused_view()) {
-			_input_receiver             = &focused_view()->session();
-			update_all_guard.menu_title =  focused_view()->title();
+			_input_receiver = &focused_view()->session();
+			update_all_guard.menu_title = focused_view()->title();
 		}
 
 		/*
@@ -218,8 +224,10 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 			if (_global_keys.is_kill_key(keycode)) Mode::toggle_kill();
 			if (_global_keys.is_xray_key(keycode)) Mode::toggle_xray();
 
-			update_all_guard.enabled = true;
-			_input_receiver          = 0;
+			update_all_guard.update_menubar = true;
+			update_all_guard.update_views   = true;
+
+			_input_receiver = 0;
 		}
 	}
 
@@ -254,10 +262,14 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 	 * Detect end of global key sequence
 	 */
 	if (ev.type() == Event::RELEASE && _key_cnt == 0 && _global_key_sequence) {
-		_input_receiver             = focused_view() ? &focused_view()->session() : 0;
-		update_all_guard.menu_title = focused_view() ?  focused_view()->title()   : "";
-		update_all_guard.enabled    = true;
-		_global_key_sequence        = false;
+
+		_input_receiver = focused_view() ? &focused_view()->session() : 0;
+
+		update_all_guard.menu_title     = focused_view() ?  focused_view()->title()   : "";
+		update_all_guard.update_menubar = true;
+		update_all_guard.update_views   = true;
+
+		_global_key_sequence = false;
 	}
 }
 
