@@ -18,6 +18,6 @@ prepare:: $(CONTRIB_DIR)/$(E2FSPROGS)
 $(CONTRIB_DIR)/$(E2FSPROGS):
 	$(VERBOSE)git clone $(E2FSPROGS_URL) $(CONTRIB_DIR)/$(E2FSPROGS) && \
 	cd $(CONTRIB_DIR)/$(E2FSPROGS) && \
-	git checkout $(E2FSPROGS_BRANCH)
+	git checkout -b $(E2FSPROGS_BRANCH) $(E2FSPROGS_BRANCH)
 	$(VERBOSE)for i in src/noux-pkg/e2fsprogs/patches/*.patch; do \
-		patch -N -p0 < $$i; done || true
+		patch -d $(CONTRIB_DIR)/$(E2FSPROGS) -N -p1 < $$i; done || true

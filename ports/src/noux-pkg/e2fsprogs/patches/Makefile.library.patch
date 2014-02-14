@@ -1,6 +1,8 @@
---- contrib/e2fsprogs-v1.42.9/lib/Makefile.library.orig	2014-01-07 12:22:50.526367140 +0100
-+++ contrib/e2fsprogs-v1.42.9/lib/Makefile.library	2014-01-07 12:24:59.142363769 +0100
-@@ -2,6 +2,8 @@
+diff --git a/lib/Makefile.library b/lib/Makefile.library
+index 1b86b02..264246a 100644
+--- a/lib/Makefile.library
++++ b/lib/Makefile.library
+@@ -2,6 +2,8 @@ all:: subdirs $(LIBRARY).a
  
  install-shlibs::
  

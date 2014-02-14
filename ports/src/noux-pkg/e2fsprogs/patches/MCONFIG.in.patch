@@ -1,6 +1,8 @@
---- contrib/e2fsprogs-v1.42.9/MCONFIG.in.orig	2014-01-07 12:04:39.022395752 +0100
-+++ contrib/e2fsprogs-v1.42.9/MCONFIG.in	2014-01-07 12:08:02.010390431 +0100
-@@ -62,6 +62,8 @@
+diff --git a/MCONFIG.in b/MCONFIG.in
+index 557b37a..bcdbfa7 100644
+--- a/MCONFIG.in
++++ b/MCONFIG.in
+@@ -62,6 +62,8 @@ datadir = @datadir@
  @ifGNUmake@   endif
  @ifGNUmake@ endif
  
