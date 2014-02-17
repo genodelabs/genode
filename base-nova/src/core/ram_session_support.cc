@@ -90,7 +90,7 @@ void Ram_session_component::_clear_ds(Dataspace_component *ds)
 	if (!virt_ptr) return;
 
 	Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::myself()->utcb());
-	const Nova::Rights rights(true, ds->writable(), true);
+	const Nova::Rights rights(true, true, true);
 	
 	addr_t const virt_addr = reinterpret_cast<addr_t>(virt_ptr);
 	addr_t phys            = ds->phys_addr();
