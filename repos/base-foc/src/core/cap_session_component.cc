@@ -84,13 +84,12 @@ Cap_mapping::Cap_mapping(Native_capability cap, Native_thread_id r)
  **  Cap_session_component  **
  *****************************/
 
-Native_capability Cap_session_component::alloc(Cap_session_component *session,
-                                               Native_capability ep)
+Native_capability Cap_session_component::alloc(Native_capability ep)
 {
 	Native_capability cap;
 
 	if (!ep.valid()) {
-		PWRN("Invalid cap!");
+		PWRN("Invalid reference capability!");
 		return cap;
 	}
 
@@ -108,7 +107,7 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 		Core_cap_index* idx = static_cast<Core_cap_index*>(cap_map()->insert(id));
 
 		if (!idx) {
-			PWRN("Out of capabilities!");
+			PWRN("Out of capability indices!");
 			platform_specific()->cap_id_alloc()->free(id);
 			return cap;
 		}
@@ -125,21 +124,23 @@ Native_capability Cap_session_component::alloc(Cap_session_component *session,
 			/* set debugger-name of ipc-gate to thread's name */
 			Fiasco::l4_debugger_set_object_name(idx->kcap(), ref->pt()->name());
 
-		idx->session(session);
+		idx->session(this);
 		idx->pt(ref->pt());
-		idx->inc();
 		cap = Native_capability(idx);
 	} catch (Cap_id_allocator::Out_of_ids) {
-		PERR("Out of IDs");
+		PERR("Out of capability ids");
 	}
 
+	/*
+	 * insert valid capabilities into the session's object pool to
+	 * be able to destroy them on session destruction.
+	 * For the construction of core's own threads the related cap session
+	 * doesn't have an allocator set. But this session gets never destroyed
+	 * so this is not an issue.
+	 */
+	if (cap.valid() && _md_alloc)
+		_pool.insert(new (_md_alloc) Entry(cap));
 	return cap;
-}
-
-
-Native_capability Cap_session_component::alloc(Native_capability ep)
-{
-	return Cap_session_component::alloc(this, ep);
 }
 
 
@@ -147,18 +148,27 @@ void Cap_session_component::free(Native_capability cap)
 {
 	using namespace Fiasco;
 
-	if (!cap.valid())
-		return;
+	if (!cap.valid()) return;
 
-	Core_cap_index* idx = static_cast<Core_cap_index*>(cap.idx());
+	/* proof whether the capability was created by this cap_session */
+	if (static_cast<Core_cap_index*>(cap.idx())->session() != this) return;
 
-	/*
-	 * check whether this cap_session has created the capability to delete.
-	 */
-	if (idx->session() != this)
-		return;
+	_pool.apply(cap, [this] (Entry *e) {
+		if (e) {
+			_pool.remove(e);
+			destroy(_md_alloc, e);
+		} else
+			PWRN("Could not find capability to be deleted");
+	});
+}
 
-	idx->dec();
+
+Cap_session_component::~Cap_session_component()
+{
+	_pool.remove_all([this] (Entry *e) {
+		if (!e) return;
+		destroy(_md_alloc, e);
+	});
 }
 
 
@@ -203,7 +213,6 @@ void Genode::Capability_map::remove(Genode::Cap_index* i)
 	if (i) {
 		Core_cap_index* e = static_cast<Core_cap_index*>(_tree.first() ? _tree.first()->find_by_id(i->id()) : 0);
 		if (e == i) {
-
 			l4_msgtag_t tag = l4_task_unmap(L4_BASE_TASK_CAP,
 			                                l4_obj_fpage(i->kcap(), 0, L4_FPAGE_RWX),
 			                                L4_FP_ALL_SPACES | L4_FP_DELETE_OBJ);

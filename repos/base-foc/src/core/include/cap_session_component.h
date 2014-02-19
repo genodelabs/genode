@@ -17,23 +17,34 @@
 /* Genode includes */
 #include <base/rpc_server.h>
 #include <base/allocator.h>
+#include <base/object_pool.h>
 
 namespace Genode {
 
 	class Cap_session_component : public Rpc_object<Cap_session>
 	{
+		private:
+
+			struct Entry : Object_pool<Entry>::Entry
+			{
+				Entry(Native_capability cap) : Object_pool<Entry>::Entry(cap) {}
+			};
+
+			Object_pool<Entry> _pool;
+			Allocator         *_md_alloc;
+
 		public:
 
-			Cap_session_component(Allocator *md_alloc, const char *args) {}
+			Cap_session_component(Allocator *md_alloc, const char *args)
+			: _md_alloc(md_alloc) {}
+
+			~Cap_session_component();
 
 			void upgrade_ram_quota(size_t ram_quota) { }
 
 			Native_capability alloc(Native_capability ep);
 
 			void free(Native_capability cap);
-
-			static Native_capability alloc(Cap_session_component *session,
-			                               Native_capability ep);
 	};
 }
 

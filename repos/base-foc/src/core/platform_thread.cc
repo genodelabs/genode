@@ -226,8 +226,13 @@ void Platform_thread::_create_thread()
 	if (l4_msgtag_has_error(tag))
 		PERR("cannot create more thread kernel-objects!");
 
+	/* for core threads we can't use core_env, it is to early */
+	static Cap_session_component core_thread_cap_session(0,"");
+	Cap_session &csc = (_core_thread)
+		? core_thread_cap_session : *core_env()->cap_session();
+
 	/* create initial gate for thread */
-	_gate.local = Cap_session_component::alloc(0, _thread.local);
+	_gate.local = csc.alloc(_thread.local);
 }
 
 
@@ -311,7 +316,7 @@ Platform_thread::Platform_thread(const char *name)
 
 Platform_thread::~Platform_thread()
 {
-	_gate.local.idx()->dec();
+	core_env()->cap_session()->free(_gate.local);
 
 	/*
 	 * We inform our protection domain about thread destruction, which will end up in
