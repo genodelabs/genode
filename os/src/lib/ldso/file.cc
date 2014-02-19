@@ -110,24 +110,26 @@ namespace Genode {
 	{
 		private:
 
+			addr_t                   _phdr;
 			addr_t                   _vaddr;  /* image start */
 			addr_t                   _daddr;  /* data start */
 			Rom_dataspace_capability _ds_rom; /* image ds */
 			Ram_dataspace_capability _ds_ram; /* data ds */
 			int                      _fd;     /* file handle */
+			Session_capability       _rom_cap;
 
 		public:
 
-			enum {
-				ENOT_FOUND = 1
-			};
-
-			Fd_handle(int fd, Rom_dataspace_capability ds_rom)
-			: _vaddr(~0UL),  _ds_rom(ds_rom), _fd(fd)
-			{}
+			Fd_handle(int fd, Rom_dataspace_capability ds_rom, Session_capability rom_cap)
+			: _vaddr(~0UL),  _ds_rom(ds_rom), _fd(fd), _rom_cap(rom_cap)
+			{
+				_phdr = (addr_t)env()->rm_session()->attach(_ds_rom, PAGE_SIZE);
+			}
 
 			addr_t                   vaddr()      { return _vaddr; }
+			void                     vaddr(addr_t vaddr) { _vaddr = vaddr; }
 			Rom_dataspace_capability dataspace()  { return _ds_rom; }
+			addr_t                   phdr()       { return _phdr; }
 
 			void setup_data(addr_t vaddr, addr_t vlimit, addr_t flimit, off_t offset)
 			{
@@ -166,16 +168,20 @@ namespace Genode {
 				return &_file_list;
 			}
 
-			static Fd_handle *find_handle(int fd)
+			static Fd_handle *find_handle(int fd, addr_t vaddr = 0)
 			{
 				Fd_handle *h = file_list()->first();
 
 				while (h) {
+
+					if (vaddr && vaddr == h->_vaddr)
+						return h;
 					if (h->_fd == fd)
 						return h;
 					h = h->next();
 				}
-				throw ENOT_FOUND;
+
+				return 0;
 			}
 
 			static void free(void *addr)
@@ -205,7 +211,11 @@ namespace Genode {
 					Rm_area::r()->detach(_daddr);
 					Rm_area::r()->free_region(_vaddr);
 					env()->ram_session()->free(_ds_ram);
+					env()->rm_session()->detach(_phdr);
 				}
+
+				if (_rom_cap.valid())
+					env()->parent()->close(_rom_cap);
 			}
 	};
 }
@@ -215,6 +225,8 @@ extern "C" int open(const char *pathname, int flags)
 {
 	using namespace Genode;
 	static int fd = -1;
+	static int i = 0;
+	i++;
 
 	/* skip directory part from pathname, leaving only the plain filename */
 	const char *filename = pathname;
@@ -228,14 +240,34 @@ extern "C" int open(const char *pathname, int flags)
 		rom.on_destruction(Rom_connection::KEEP_OPEN);
 
 		Fd_handle::file_list()->insert(new(env()->heap())
-		                               Fd_handle(++fd, rom.dataspace()));
-		return fd;
-	}
-	catch (...) {
-		PERR("Could not open %s\n", filename);
+		                               Fd_handle(++fd, rom.dataspace(), rom.cap()));
+
+		Fd_handle *h;
+		if (!(h = Fd_handle::find_handle(fd))) {
+			PERR("Could not open %s\n", filename);
+			return -1;
+		}
+	} catch (...) {
+		PERR("Rom connection failed for %s", filename);
+		return -1;
 	}
 
-	return -1;
+	return fd;
+}
+
+
+extern "C" void *file_phdr(const char *pathname, void *vaddr)
+{
+	using namespace Genode;
+
+	Fd_handle *h = 0;
+	if (!(h = Fd_handle::find_handle(-1, (addr_t)vaddr))) {
+		int fd = open(pathname, 0);
+		h = Fd_handle::find_handle(fd);
+		h->vaddr((addr_t)vaddr);
+	}
+
+	return (void *)h->phdr();
 }
 
 
@@ -244,10 +276,7 @@ extern "C" int find_binary_name(int fd, char *buf, size_t buf_size)
 	using namespace Genode;
 
 	Fd_handle *h;
-	try {
-		h = Fd_handle::find_handle(fd);
-	}
-	catch (...) {
+	if (!(h = Fd_handle::find_handle(fd))) {
 		PERR("handle not found\n");
 		return -1;
 	}
@@ -261,10 +290,8 @@ extern "C" ssize_t read(int fd, void *buf, size_t count)
 	using namespace Genode;
 
 	Fd_handle *h;
-	try {
-		h = Fd_handle::find_handle(fd);
-	}
-	catch (...) {
+
+	if (!(h = Fd_handle::find_handle(fd))) {
 		PERR("handle not found\n");
 		return -1;
 	}
@@ -352,8 +379,7 @@ extern "C" void *genode_map(int fd, Elf_Phdr **segs)
 	}
 
 	Fd_handle *h;
-	try { h = Fd_handle::find_handle(fd); }
-	catch (...) {
+	if (!(h = Fd_handle::find_handle(fd))) {
 		PERR("handle not found\n");
 		return MAP_FAILED;
 	}

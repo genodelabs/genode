@@ -57,13 +57,10 @@ static void platform_section(Elf_Phdr *phdr, void **priv)
  */
 static void find_exidx(Obj_Entry *obj)
 {
-	char buf[PAGE_SIZE];
+	char *phdr = file_phdr(obj->path, (void *)obj->mapbase);
 
-	int fd = open(obj->path, 0);
-	read(fd, buf, PAGE_SIZE);
-
-	Elf_Ehdr *ehdr = (Elf_Ehdr *)buf;
-	Elf_Phdr *ph_table = (Elf_Phdr *)(buf + ehdr->e_phoff);
+	Elf_Ehdr *ehdr = (Elf_Ehdr *)phdr;
+	Elf_Phdr *ph_table = (Elf_Phdr *)(phdr + ehdr->e_phoff);
 
 	unsigned i;
 	size_t start = ~0;

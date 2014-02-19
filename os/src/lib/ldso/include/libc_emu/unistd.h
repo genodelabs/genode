@@ -31,6 +31,8 @@ int issetugid(void) { return 1; }
 static inline
 int close(int fd) { return 0; }
 
+void *file_phdr(const char *, void *);
+
 enum whence {
 	SEEK_SET
 };
