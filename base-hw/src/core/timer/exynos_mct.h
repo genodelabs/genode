@@ -91,7 +91,7 @@ namespace Exynos_mct
 			write<Ack>(1);
 		}
 
-		float const _tics_per_ms;
+		unsigned long const _tics_per_ms;
 
 		/**
 		 * Start and stop counting
@@ -108,7 +108,7 @@ namespace Exynos_mct
 			 * Constructor
 			 */
 			Timer(addr_t const base, unsigned const clk)
-			: Mmio(base), _tics_per_ms((float)clk / (PRESCALER + 1) / (1 << DIV_MUX) / 1000)
+			: Mmio(base), _tics_per_ms(clk / (PRESCALER + 1) / (1 << DIV_MUX) / 1000)
 			{
 				Mct_cfg::access_t mct_cfg = 0;
 				Mct_cfg::Prescaler::set(mct_cfg, PRESCALER);
