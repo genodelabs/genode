@@ -16,6 +16,7 @@
 #include <base/env.h>
 #include <base/printf.h>
 #include <base/slab.h>
+#include <util/construct_at.h>
 #include <util/string.h>
 #include <util/misc_math.h>
 
@@ -90,6 +91,8 @@ class Malloc : public Genode::Allocator
 			}
 		}
 
+		~Malloc() { PDBG("CALLED"); }
+
 		/**
 		 * Allocator interface
 		 */
@@ -157,8 +160,14 @@ class Malloc : public Genode::Allocator
 
 static Genode::Allocator *allocator()
 {
-	static Malloc _m(Genode::env()->heap());
-	return &_m;
+	static bool constructed = 0;
+	static char placeholder[sizeof(Malloc)];
+	if (!constructed) {
+		Genode::construct_at<Malloc>(placeholder, Genode::env()->heap());
+		constructed = 1;
+	}
+
+	return reinterpret_cast<Malloc *>(placeholder);
 }
 
 
