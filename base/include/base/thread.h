@@ -59,6 +59,7 @@
 #include <base/lock.h>
 #include <base/native_types.h>
 #include <base/trace/logger.h>
+#include <cpu/consts.h>
 #include <util/string.h>
 #include <util/bit_allocator.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
@@ -103,12 +104,12 @@ namespace Genode {
 				 * Top of stack
 				 *
 				 * The alignment matches an initial stack frame, which is
-				 * sufficient for the AMD64 ABI (stack top + 8 is 16-byte
+				 * sufficient for the AMD64 ABI (stack top + adjustment is 16-byte
 				 * aligned).
 				 */
 				addr_t stack_top() const
 				{
-					return ((addr_t)_stack & ~0xf) - sizeof(addr_t);
+					return ((addr_t)_stack & ~0xf) - Abi::stack_adjustment();
 				}
 
 				/**
