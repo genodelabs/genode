@@ -12,6 +12,7 @@ SRC_CC = qgenericunixeventdispatcher.cpp \
 SRC_CC += main.cpp \
           qnitpickerglcontext.cpp \
           qnitpickerintegration.cpp \
+          qnitpickerplatformwindow.cpp \
           qnitpickerwindowsurface.cpp \
           moc_qnitpickerplatformwindow.cpp \
           moc_qnitpickerwindowsurface.cpp \
@@ -21,13 +22,10 @@ SRC_CC += main.cpp \
           moc_qevdevkeyboardhandler_p.cpp
 
 INC_DIR += $(REP_DIR)/contrib/$(QT5)/qtbase/src/platformsupport/eventdispatchers \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/src/platformsupport/input/evdevkeyboard \
            $(REP_DIR)/contrib/$(QT5)/qtbase/src/platformsupport/fontdatabases/basic \
            $(REP_DIR)/contrib/$(QT5)/qtbase/src/3rdparty/harfbuzz/src \
-           $(REP_DIR)/src/lib/qt5/qtbase/src/plugins/platforms/nitpicker \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtPlatformSupport/$(QT_VERSION) \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtGui/$(QT_VERSION) \
-           $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtGui/$(QT_VERSION)/QtGui \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION) \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 

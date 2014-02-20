@@ -11,7 +11,6 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-
 #include <private/qguiapplication_p.h>
 
 #include <qpa/qplatformscreen.h>
@@ -19,6 +18,8 @@
 #include "qnitpickerplatformwindow.h"
 
 #include "qnitpickerwindowsurface.h"
+
+#include <QDebug>
 
 static const bool verbose = false;
 
