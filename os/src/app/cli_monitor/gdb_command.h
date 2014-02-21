@@ -260,11 +260,11 @@ struct Gdb_command : Command
 					snprintf(gdb_main_breakpoint_args_buf,
 				         	 sizeof(gdb_main_breakpoint_args_buf),
 				         	 "<arg value=\"-ex\" /><arg value=\"symbol-file /gdb/ld.lib.so\" />\n \
-				          	  <arg value=\"-ex\" /><arg value=\"b call_main\" />\n \
+				          	  <arg value=\"-ex\" /><arg value=\"b call_program_main\" />\n \
 				          	  <arg value=\"-ex\" /><arg value=\"c\" />\n \
 				          	  <arg value=\"-ex\" /><arg value=\"delete 1\" />\n \
 				          	  <arg value=\"-ex\" /><arg value=\"symbol-file /gdb/%s\" />\n \
-				          	  <arg value=\"-ex\" /><arg value=\"b main\" />\n \
+				          	  <arg value=\"-ex\" /><arg value=\"b main()\" />\n \
 				          	  <arg value=\"-ex\" /><arg value=\"set solib-search-path /gdb\" />\n \
 				          	  <arg value=\"-ex\" /><arg value=\"sharedlibrary\" />\n \
 				          	  <arg value=\"-ex\" /><arg value=\"c\" />\n \

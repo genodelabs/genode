@@ -173,13 +173,13 @@ append config {
 					<arg value="-ex" /><arg value="directory /gdb/src" />
 					<arg value="-ex" /><arg value="target remote /dev/gdb" />
 					<arg value="-ex" /><arg value="symbol-file /gdb/ld.lib.so" />
-					<arg value="-ex" /><arg value="b call_main" />
+					<arg value="-ex" /><arg value="b call_program_main" />
 					<arg value="-ex" /><arg value="c" />
 					<arg value="-ex" /><arg value="delete 1" /> }
 append config "
 					<arg value=\"-ex\" /><arg value=\"symbol-file /gdb/${gdb_target_binary_name}\" /> "
 append config {
-					<arg value="-ex" /><arg value="b main" />
+					<arg value="-ex" /><arg value="b main()" />
 					<arg value="-ex" /><arg value="set solib-search-path /gdb" />
 					<arg value="-ex" /><arg value="sharedlibrary" />
 					<arg value="-ex" /><arg value="c" />
