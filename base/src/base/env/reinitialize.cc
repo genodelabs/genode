@@ -90,9 +90,9 @@ reinit_main_thread(Rm_session_capability & context_area_rm)
 	Rm_session_client * const rmc = dynamic_cast<Rm_session_client *>(rms);
 	construct_at<Rm_session_client>(rmc, context_area_rm);
 
-	/* re-enable tracing */
-	inhibit_tracing = false;
-
 	/* reinitialize main-thread object */
 	::reinit_main_thread();
+
+	/* re-enable tracing */
+	inhibit_tracing = false;
 }
