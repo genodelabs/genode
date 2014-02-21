@@ -1,19 +1,16 @@
 #
-# \brief  Portions of base library that are exclusive to non-core processes
-# \author Norman Feske
-# \date   2013-02-14
-#
-# The content of this file is used for both native Genode as well as hybrid
-# Linux/Genode programs. Hence, it must be void of any thread-related code.
+# \brief  Base lib parts that are not used by hybrid applications
+# \author Sebastian Sumpf
+# \date   2014-02-21
 #
 
-LIBS += base-common syscall cxx
+LIBS   += startup cxx
+SRC_CC += thread.cc thread_linux.cc
 
-SRC_CC += console/log_console.cc
-SRC_CC += env/env.cc env/platform_env.cc env/context_area.cc
-SRC_CC += thread/thread.cc thread/thread_linux.cc
+vpath %.cc  $(REP_DIR)/src/base/thread
+vpath %.cc $(BASE_DIR)/src/base/thread
 
-INC_DIR += $(REP_DIR)/src/base/env $(BASE_DIR)/src/base/env
+include $(REP_DIR)/lib/mk/base.inc
 
-vpath %.cc  $(REP_DIR)/src/base
-vpath %.cc $(BASE_DIR)/src/base
+
+

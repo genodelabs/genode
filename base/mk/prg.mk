@@ -162,8 +162,9 @@ STATIC_LIBS := $(sort $(wildcard $(STATIC_LIBS)))
 # 'src/platform/lx_hybrid.cc'.
 #
 ifeq ($(USE_HOST_LD_SCRIPT),yes)
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/base/base.lib.a, $(STATIC_LIBS))
-STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/cxx/cxx.lib.a,   $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/startup/startup.lib.a, $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/base/base.lib.a,       $(STATIC_LIBS))
+STATIC_LIBS := $(filter-out $(LIB_CACHE_DIR)/cxx/cxx.lib.a,         $(STATIC_LIBS))
 endif
 
 #
