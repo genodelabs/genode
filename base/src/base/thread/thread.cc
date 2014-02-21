@@ -91,12 +91,7 @@ Thread_base::_alloc_context(size_t stack_size, bool main_thread)
 	context->stack_base  = ds_addr;
 	context->ds_cap      = ds_cap;
 
-	/*
-	 * The value at the top of the stack might get interpreted as return
-	 * address of the thread start function by GDB, so we set it to 0.
-	 */
-	*(addr_t*)context->stack_top() = 0;
-
+	Abi::init_stack(context->stack_top());
 	return context;
 }
 
