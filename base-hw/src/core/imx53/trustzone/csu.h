@@ -41,8 +41,8 @@ namespace Genode
 			{
 				enum {
 					SECURE_UNLOCKED,
-					SECURE_LOCKED,
 					UNSECURE_UNLOCKED,
+					SECURE_LOCKED,
 					UNSECURE_LOCKED
 				};
 
@@ -123,10 +123,10 @@ namespace Genode
 				write<Csl19::Slave_a>(Csl00::UNSECURE);
 
 				/* GPIO */
-				//write<Csl00::Slave_b>(Csl00::UNSECURE);
-				//write<Csl01::Slave_a>(Csl00::UNSECURE);
-				//write<Csl01::Slave_b>(Csl00::UNSECURE);
-				//write<Csl02::Slave_a>(Csl00::UNSECURE);
+				write<Csl00::Slave_b>(Csl00::SECURE);
+				write<Csl01::Slave_a>(Csl00::SECURE);
+				write<Csl01::Slave_b>(Csl00::SECURE);
+				write<Csl02::Slave_a>(Csl00::SECURE);
 
 				/* IOMUXC TODO */
 				write<Csl05::Slave_a>(Csl00::UNSECURE);
@@ -138,15 +138,15 @@ namespace Genode
 				write<Csl00::Slave_a>(Csl00::UNSECURE);
 
 				/* TVE */
-				//write<Csl22::Slave_b>(Csl00::UNSECURE);
+				write<Csl22::Slave_b>(Csl00::SECURE);
 
 				/* I2C */
-				//write<Csl18::Slave_a>(Csl00::UNSECURE);
-				//write<Csl17::Slave_b>(Csl00::UNSECURE);
-				//write<Csl31::Slave_a>(Csl00::UNSECURE);
+				write<Csl18::Slave_a>(Csl00::SECURE);
+				write<Csl17::Slave_b>(Csl00::SECURE);
+				write<Csl31::Slave_a>(Csl00::SECURE);
 
 				/* IPU */
-				//write<Csl24::Slave_a>(Csl00::UNSECURE);
+				write<Csl24::Slave_a>(Csl00::SECURE);
 
 				/* Audio */
 				write<Csl18::Slave_b>(Csl00::UNSECURE);
@@ -196,7 +196,7 @@ namespace Genode
 				write<Csl20::Slave_b>(Csl00::UNSECURE);
 				write<Csl21::Slave_a>(Csl00::UNSECURE);
 				write<Csl21::Slave_b>(Csl00::UNSECURE);
-				//write<Csl23::Slave_a>(Csl00::UNSECURE); //VPU
+				write<Csl23::Slave_a>(Csl00::SECURE); //VPU
 				write<Csl23::Slave_b>(Csl00::UNSECURE);
 				write<Csl26::Slave_b>(Csl00::UNSECURE);
 				write<Csl27::Slave_a>(Csl00::UNSECURE);
@@ -206,7 +206,16 @@ namespace Genode
 
 				write<Master::Sdma>(Master::UNSECURE_UNLOCKED);
 				write<Master::Esdhc3>(Master::UNSECURE_UNLOCKED);
-				write<Master::Gpu>(Master::UNSECURE_UNLOCKED);
+
+				/*
+				 * Sadly, we cannot distinguish between IPU, and GPU DMA requests,
+				 * although one can configure these peripherals individually
+				 * to be accessable by secure, or normal world, this is not possible
+				 * to do for DMA requests of them.
+				 */
+				PWRN("This is an unsecure configuration: GPU touches secure memory!");
+				write<Master::Gpu>(Master::SECURE_UNLOCKED);
+
 				write<Master::Usb>(Master::UNSECURE_UNLOCKED);
 				write<Master::Pata>(Master::UNSECURE_UNLOCKED);
 				write<Master::Esdhc4>(Master::UNSECURE_UNLOCKED);
