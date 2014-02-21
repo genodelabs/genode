@@ -91,4 +91,5 @@ void Thread_base::_init_platform_thread(Type type)
 	}
 	/* adjust initial object state in case of a main thread */
 	tid().thread_id = _main_thread_id;
+	_thread_cap     = env()->parent()->main_thread_cap();
 }

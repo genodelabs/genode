@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
+#include <base/env.h>
 
 /* Pistachio includes */
 namespace Pistachio
@@ -48,5 +49,6 @@ void Genode::Thread_base::_thread_bootstrap()
 void Genode::Thread_base::_init_platform_thread(Type type)
 {
 	if (type == NORMAL) { return; }
-	_tid.l4id = main_thread_tid;
+	_tid.l4id   = main_thread_tid;
+	_thread_cap = env()->parent()->main_thread_cap();
 }

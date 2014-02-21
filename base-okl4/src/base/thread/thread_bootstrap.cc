@@ -14,6 +14,7 @@
 
 /* Genode includes */
 #include <base/thread.h>
+#include <base/env.h>
 
 /* OKL4 includes */
 namespace Okl4
@@ -82,4 +83,5 @@ void Genode::Thread_base::_init_platform_thread(Type type)
 {
 	if (type == NORMAL) { return; }
 	_tid.l4id.raw = main_thread_tid.raw;
+	_thread_cap   = env()->parent()->main_thread_cap();
 }
