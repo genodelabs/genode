@@ -32,6 +32,11 @@
 #REPOSITORIES += $(GENODE_DIR)/dde_linux
 
 #
+# NetBSD file-system support
+#
+#REPOSITORIES += $(GENODE_DIR)/dde_rump
+
+#
 # High-level Genode-specific services and applications
 #
 # The 'gems' repository depends on 'libc', 'libports', and 'qt4'.
