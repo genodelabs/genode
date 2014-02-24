@@ -16,6 +16,7 @@
 #include <base/thread.h>
 #include <base/trace/policy.h>
 #include <dataspace/client.h>
+#include <util/construct_at.h>
 
 /* local includes */
 #include <trace/control.h>
@@ -64,8 +65,20 @@ static Trace::Control *trace_control(Cpu_session *cpu, Rm_session *rm,
 		}
 	};
 
-	static Area area(*cpu, *rm);
-	return area.slot(thread_cap);
+	/**
+	 * We have to construct the Area object explicitly because otherwise
+	 * the destructor may use a invalid capability. This is mainly the
+	 * case by e.g. forked processes in noux.
+	 */
+
+	static char area_mem[sizeof (Area)];
+	static Area *area = 0;
+
+	if (!area) {
+		area = construct_at<Area>(area_mem, *cpu, *rm);
+	}
+
+	return area->slot(thread_cap);
 }
 
 
