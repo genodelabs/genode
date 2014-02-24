@@ -48,10 +48,15 @@ INCSDIRS = adosfs altq arpa crypto dev evbarm filecorefs fs i386 isofs miscfs \
 $(shell mkdir -p $(RUMP_BASE)/include)
 
 #
+# Filter potential ccache call
+#
+RUMP_CC = $(filter-out ccache, $(CC))
+
+#
 # Build nbmake for host platform
 #
 $(RUMP_TOOLS):
-	CC=$(CC) $(BUILD_CMD) -N -V RUMP_KERNEL_IS_LIBC=1 tools
+	CC=$(RUMP_CC) $(BUILD_CMD) -N -V RUMP_KERNEL_IS_LIBC=1 tools
 	echo 'CPPFLAGS+=-DMAXPHYS=32768' >> $(RUMP_TOOLS)/mk.conf
 	echo 'CPPFLAGS+= -fPIC' >> $(RUMP_TOOLS)/mk.conf
 
@@ -59,14 +64,14 @@ $(RUMP_TOOLS):
 # Setup install directory
 #
 $(RUMP_OBJ)/dest: $(RUMP_TOOLS)
-	CC=$(CC) $(BUILD_CMD) setupdest
+	CC=$(RUMP_CC) $(BUILD_CMD) setupdest
 
 #
 # Build librump
 #
 $(ARCHIVE): $(RUMP_OBJ)/dest
 	@echo "Building rump library ..."
-	CC=$(CC) $(BUILD_CMD) -k build install
+	CC=$(RUMP_CC) $(BUILD_CMD) -k build install
 
 #
 # Install kernel, libc, and pthread headers
