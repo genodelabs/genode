@@ -335,7 +335,7 @@ extern "C" void *mmap(void *addr, size_t length, int prot, int flags, int fd, of
 
 	/* called during ldso relocation */
 	if (flags & MAP_LDSO) {
-		enum { MEM_SIZE = 48 * 1024 };
+		enum { MEM_SIZE = 128 * 1024 };
 		static char _mem[MEM_SIZE];
 
 		/* generate fault on allocation */
