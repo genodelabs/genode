@@ -57,7 +57,7 @@ namespace Arm_v7
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(Arm::Page_flags::access_t const flags,
+				static access_t create(Page_flags const &flags,
 				                       addr_t const pa,
 				                       Section_table * const st)
 				{
@@ -86,7 +86,7 @@ namespace Arm_v7
 			size_t
 			insert_translation(addr_t const vo, addr_t const pa,
 			                   size_t const size_log2,
-			                   Arm::Page_flags::access_t const flags,
+			                   Page_flags const &flags,
 			                   void * const extra_space = 0) {
 				return Arm::Section_table::
 				insert_translation<Section_table>(vo, pa, size_log2, flags,
@@ -114,7 +114,7 @@ namespace Arm_v7
 
 template <typename T>
 static typename T::access_t
-Arm::memory_region_attr(Arm::Page_flags::access_t const flags)
+Arm::memory_region_attr(Page_flags const &flags)
 {
 	typedef typename T::Tex Tex;
 	typedef typename T::C C;
@@ -123,10 +123,10 @@ Arm::memory_region_attr(Arm::Page_flags::access_t const flags)
 	/*
 	 * FIXME: upgrade to write-back & write-allocate when !d & c
 	 */
-	if(Arm::Page_flags::D::get(flags))
+	if(flags.device)
 		return Tex::bits(2) | C::bits(0) | B::bits(0);
 
-	if(Arm::Page_flags::C::get(flags))
+	if(flags.cacheable)
 		return Tex::bits(5) | C::bits(0) | B::bits(1);
 
 	return Tex::bits(6) | C::bits(1) | B::bits(0);

@@ -56,7 +56,7 @@ int Pager_activation_base::apply_mapping()
 {
 	/* prepare mapping */
 	Tlb * const tlb = (Tlb *)_fault.tlb;
-	Page_flags::access_t const flags =
+	Page_flags const flags =
 	Page_flags::apply_mapping(_mapping.writable,
 	                          _mapping.write_combined,
 	                          _mapping.io_mem);

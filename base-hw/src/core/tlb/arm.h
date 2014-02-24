@@ -20,47 +20,11 @@
 
 /* base-hw includes */
 #include <placement_new.h>
+#include <tlb/page_flags.h>
 
 namespace Arm
 {
 	using namespace Genode;
-
-	/**
-	 * Map app-specific mem attributes to a TLB-specific POD
-	 */
-	struct Page_flags : Register<8>
-	{
-		struct W : Bitfield<0, 1> { }; /* writeable */
-		struct X : Bitfield<1, 1> { }; /* executable */
-		struct K : Bitfield<2, 1> { }; /* privileged */
-		struct G : Bitfield<3, 1> { }; /* global */
-		struct D : Bitfield<4, 1> { }; /* device */
-		struct C : Bitfield<5, 1> { }; /* cacheable */
-
-		/**
-		 * Create flag POD for Genode pagers
-		 */
-		static access_t
-		apply_mapping(bool const writeable,
-		              bool const write_combined,
-		              bool const io_mem) {
-			return W::bits(writeable) | X::bits(1) | K::bits(0) | G::bits(0) |
-			       D::bits(io_mem) | C::bits(!write_combined & !io_mem); }
-
-		/**
-		 * Create flag POD for kernel when it creates the core space
-		 */
-		static access_t map_core_area(bool const io_mem) {
-			return W::bits(1) | X::bits(1) | K::bits(0) | G::bits(0) |
-			       D::bits(io_mem) | C::bits(!io_mem); }
-
-		/**
-		 * Create flag POD for the mode transition region
-		 */
-		static access_t mode_transition() {
-			return W::bits(1) | X::bits(1) | K::bits(1) | G::bits(1) |
-			       D::bits(0) | C::bits(1); }
-	};
 
 	/**
 	 * Check if 'p' is aligned to 1 << 'alignm_log2'
@@ -104,7 +68,7 @@ namespace Arm
 	 */
 	template <typename T>
 	static typename T::access_t
-	access_permission_bits(Page_flags::access_t const flags)
+	access_permission_bits(Page_flags const &flags)
 	{
 		/* lookup table for AP bitfield values according to 'w' and 'k' flag */
 		typedef typename T::Ap_1_0 Ap_1_0;
@@ -131,8 +95,8 @@ namespace Arm
 		};
 		/* combine XN and AP bitfield values according to the flags */
 		typedef typename T::Xn Xn;
-		return Xn::bits(!Page_flags::X::get(flags)) |
-		       ap_bits[Page_flags::W::get(flags)][Page_flags::K::get(flags)];
+		return Xn::bits(!flags.executable) |
+		       ap_bits[flags.writeable][flags.privileged];
 	}
 
 	/**
@@ -140,7 +104,7 @@ namespace Arm
 	 */
 	template <typename T>
 	static typename T::access_t
-	memory_region_attr(Page_flags::access_t const flags);
+	memory_region_attr(Page_flags const &flags);
 
 	/**
 	 * Second level translation table
@@ -276,12 +240,12 @@ namespace Arm
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(Page_flags::access_t const flags,
+				static access_t create(Page_flags const &flags,
 				                       addr_t const pa)
 				{
 					access_t v = access_permission_bits<Small_page>(flags) |
 					             memory_region_attr<Small_page>(flags) |
-					             Ng::bits(!Page_flags::G::get(flags)) |
+					             Ng::bits(!flags.global) |
 					             S::bits(0) | Pa_31_12::masked(pa);
 					Descriptor::type(v, Descriptor::SMALL_PAGE);
 					return v;
@@ -358,7 +322,7 @@ namespace Arm
 			 */
 			void insert_translation(addr_t const vo, addr_t const pa,
 			                        size_t const size_log2,
-			                        Page_flags::access_t const flags)
+			                        Page_flags const &flags)
 			{
 				/* validate virtual address */
 				unsigned i;
@@ -618,13 +582,13 @@ namespace Arm
 				/**
 				 * Compose descriptor value
 				 */
-				static access_t create(Page_flags::access_t const flags,
+				static access_t create(Page_flags const &flags,
 				                       addr_t const pa)
 				{
 					access_t v = access_permission_bits<Section>(flags) |
 					             memory_region_attr<Section>(flags) |
 					             Domain::bits(DOMAIN) | S::bits(0) |
-					             Ng::bits(!Page_flags::G::get(flags)) |
+					             Ng::bits(!flags.global) |
 					             Pa_31_20::masked(pa);
 					Descriptor::type(v, Descriptor::SECTION);
 					return v;
@@ -723,7 +687,7 @@ namespace Arm
 			template <typename ST>
 			size_t insert_translation(addr_t const vo, addr_t const pa,
 			                          size_t const size_log2,
-			                          Page_flags::access_t const flags,
+			                          Page_flags const &flags,
 			                          ST * const st,
 			                          void * const extra_space = 0)
 			{
@@ -908,8 +872,7 @@ namespace Arm
 			void map_core_area(addr_t vo, size_t s, bool io_mem, ST * st)
 			{
 				/* initialize parameters */
-				Page_flags::access_t const flags =
-					Page_flags::map_core_area(io_mem);
+				Page_flags const flags = Page_flags::map_core_area(io_mem);
 				unsigned tsl2 = translation_size_l2(vo, s);
 				size_t ts = 1 << tsl2;
 

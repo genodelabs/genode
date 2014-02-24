@@ -119,10 +119,10 @@ class Kernel::Mode_transition_control
 		 */
 		size_t map(Tlb * tlb, addr_t ram = 0)
 		{
-			Page_flags::access_t const flags = Page_flags::mode_transition();
 			addr_t const phys_base = (addr_t)&_mt_begin;
 			return tlb->insert_translation(VIRT_BASE, phys_base, SIZE_LOG2,
-			                               flags, (void *)ram);
+			                               Page_flags::mode_transition(),
+			                               (void *)ram);
 		}
 
 		/**

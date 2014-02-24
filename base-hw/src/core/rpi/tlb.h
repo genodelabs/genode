@@ -21,8 +21,6 @@
 
 namespace Genode
 {
-	struct Page_flags : Arm::Page_flags { };
-
 	class Tlb : public Arm_v6::Section_table { };
 
 	/**
