@@ -110,7 +110,7 @@ install_config $config
 set boot_modules {
 	core init ld.lib.so timer nitpicker nit_fb
 	launchpad eglgears
-	gallium.lib.so libc.lib.so libm.lib.so libc_log.lib.so
+	gallium.lib.so libc.lib.so libm.lib.so libc_log.lib.so pthread.lib.so
 }
 
 lappend_if [have_spec       linux] boot_modules fb_sdl
