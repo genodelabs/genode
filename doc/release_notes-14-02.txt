@@ -1,0 +1,789 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 14.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+During the release cycle of version 14.02, our development has been focused on
+storage and virtualization. It goes without saying that proper support for
+block-device access and file systems is fundamental for the use of
+Genode as general-purpose OS. Virtualization is relevant as well because
+it bridges the gap between the functionality we need and the features
+natively available on Genode today.
+
+Our work on the storage topic involved changes of the block-driver APIs to an
+asynchronous mode of operation, overhauling most of the existing block-level
+components, as well as the creation of new block services, most importantly a
+block cache. At file-system level, we continued our line of work on FUSE-based
+file systems, adding support for NTFS-3g. A new highlight, however, is a new
+file-system service that makes the file systems of the NetBSD kernel available
+to Genode. This is made possible by using rump kernels as described in Section
+[NetBSD file systems using rump kernels].
+
+Virtualization on Genode has a long history, starting with the original
+support of OKLinux on the OKL4 kernel (OKLinux is no longer supported), over
+the support of L4Linux on top of the Fiasco.OC kernel, to the support of the
+Vancouver VMM on top of NOVA. However, whereas each of those variants has
+different technical merits, all of them were developed in the context of
+university research projects and were never exposed to real-world scenarios.
+We were longing for a solution that meets the general expectations from a
+virtualization product, namely the support for a wide range of guest OSes,
+guest-host integration features, ease of use, and an active development.
+VirtualBox is one of the most popular commodity virtualization products as of
+today. With the current release, we are happy to announce the availability of
+VirtualBox on top of Genode/NOVA. Section
+[VirtualBox on top of the NOVA microhypervisor] gives insights into the
+background of this development, the technical challenges we had to overcome,
+and the current state of the implementation.
+
+In addition to addressing storage and virtualization, the current release
+comes with a new pseudo file system called trace_fs that allows the
+interactive use of Genode's tracing facilities via Unix commands,
+a profound unification of the various graphics back ends used throughout
+the framework, a new facility for propagating status reports, and
+improvements of the Noux runtime for executing Unix software on Genode.
+
+
+VirtualBox on top of the NOVA microhypervisor
+#############################################
+
+Virtualization is an important topic for Genode for two distinct reasons.
+It is repeatedly requested by users of the framework who consider
+Genode as a microkernel-based hosting platform for virtual machines,
+and it provides a smooth migration path from using Linux-based systems
+towards using Genode as day-to-day OS.
+
+Why do people consider Genode as a hosting platform for virtual machines
+if there is an abundance of mature virtualization solutions on the market?
+What all existing popular solutions have in common is the staggering complexity
+of their respective trusted-computing base (TCB). The user of a virtual
+machine on a commodity hosting platform has to trust millions of lines of
+code. For example, with Xen, the TCB comprises the hypervisor and the Linux
+system running as DOM0. For security-sensitive application areas, it is
+almost painful to trust such a complex foundation. In contrast, the TCB of a
+hosting platform based on Genode/NOVA is two orders of magnitude less complex.
+Lowering the complexity reduces the likelihood for vulnerabilities and thereby
+mitigates the attack surface of the system. It also enables the assessment of
+security properties by thorough evaluation or even formal verification. In the
+light of the large-scale privacy issues of today, the desire for systems that
+are resilient against malware and zero-day exploits has never been higher.
+Microkernel-based operating systems promise a solution. Virtualization enables
+compatibility to existing software. Combining both seems natural. This is what
+Genode/NOVA stands for.
+
+From the perspective of us Genode developers who are in the process of
+migrating from Linux-based OSes to Genode as day-to-day OS, we consider
+virtualization as a stop-gap solution for all those applications that
+do not exist natively on Genode, yet. Virtualization makes our transition
+an evolutionary process.
+
+Until now, NOVA was typically accompanied with a co-developed virtual machine
+monitor called Seoul (formerly called Vancouver), which is executed as a
+regular user-level process on top of NOVA. In contrast to conventional wisdom
+about the performance of microkernel-based systems, the Seoul VMM on top of
+NOVA is extremely fast, actually faster then most (if not all) commonly used
+virtualization solutions. However, originating from a research project, Seoul
+is quite challenging to use and not as mature as commodity VMMs that were
+developed as real-world products. For example, there is a good chance that an
+attempt to boot an arbitrary version of a modern Linux distribution might just
+fail. In our experience, it takes a few days to investigate the issues, modify
+the guest OS configuration, and tweak the VMM here and there, to run the OS
+inside the Seoul VMM. That is certainly not a show stopper in appliance-like
+scenarios, but it rules out Seoul as a general solution. Running Windows
+OS as guest is not supported at all, which further reduces the application
+areas of Seoul. With this in mind, it is unrealistic to propose the use
+of Genode/NOVA as an alternative for popular VM hosting solutions.
+
+Out of this realization, the idea was born to combine NOVA's virtualization
+interface with a time-tested and fully-featured commodity VMM. Out of the
+available Open-Source virtualization solutions, we decided to take a closer
+look at VirtualBox, which attracted us for several reasons: First, it is
+portable, supporting various host OSes such as Solaris, Windows OS, Linux,
+and Mac OS X. Second, it has all the guest-integration features we could
+wish for. There are extensive so-called guest additions for popular guest
+OSes that vastly improve the guest-OS performance and allow a tight
+integration with the host OS using shared folders or a shared clipboard.
+Third, it comes with sophisticated device models that support all
+important popular guest OSes. And finally, it is actively developed and
+commercially supported.
+
+However, moving VirtualBox over to NOVA presented us with a number of
+problems. As a precondition, we needed to gain a profound understanding
+of the VirtualBox architecture and the code base. To illustrate the challenge,
+the source-code distribution of VirtualBox comprises 2.8 million lines of
+code. This code contains build tools, the VMM, management tools, several
+3rd-party libraries, middleware, the guest additions, and tests. The pieces
+that are relevant for the actual VMM amount to 700 thousand lines. By
+reviewing the architecture, we found that the part of VirtualBox that
+implements the hypervisor functionality (the world switch) runs in the
+kernel of the host OS (it is loaded on demand by the user-level VM process
+through the _/dev/vboxdrv_ interface into the host OS kernel). It is
+appropriately named VMMR0. Once installed into the host OS kernel, it
+takes over the control over the machine. To put it blatantly simple, it runs
+"underneath" the host OS. The VMMR0 code is kernel agnostic, which explains
+the good portability of VirtualBox across various host OSes. Porting
+VirtualBox to a new host OS comes down to finding a hook for installing the
+VMMR0 code into the host OS kernel and adapting the VirtualBox runtime API
+to the new host OS.
+
+In the context of microkernel-based systems, however, it becomes clear that
+this classical approach of porting VirtualBox would subvert the microkernel
+architecture. Not only would we need to punch a hole into NOVA for loading
+additional kernel code, but also the VMMR0 code would inflate the amount of
+code executed in privileged mode by more than factor 20. Both implications
+are gross violations of the microkernel principle. Consequently, we needed to
+find a different way to marry NOVA with VirtualBox.
+
+Our solution was the creation of a drop-in replacement of the VMMR0 code that
+runs solely at user level and interacts with NOVA's virtualization
+interface. Our VMMR0 emulation code is co-located with the VirtualBox
+VM process. Architecturally, the resulting solution is identical to the
+use of Seoul on top of NOVA. There is one VM process per virtual machine,
+and each VM process is isolated from others by the NOVA kernel. In
+addition to creating the VMMR0 emulation code, we needed to replace some parts
+of the VirtualBox VMMR3 code with custom implementations because they
+overlapped with functionality provided by NOVA's virtualization interface,
+in particular the provisioning of guest-physical memory. Finally, we needed
+to interface the VM process with Genode's API to let the VM process
+interact with Genode's input, file-system, and framebuffer services.
+
+The result of this undertaking is available at the _ports_ repository.
+VirtualBox can be downloaded and integrated with Genode via the following
+command issued from within the repository:
+! make prepare PKG=virtualbox
+
+To illustrate the integration of VirtualBox into a Genode system, there
+is run script located at _ports/run/virtualbox.run_. It expects a
+bootable ISO image containing a guest OS at _<build-dir>/bin/test.iso_.
+The configuration of the VirtualBox process is as simple as
+! <config>
+!   <image type="iso" file="/iso/test.iso" />
+! </config>
+
+VirtualBox will try to obtain the specified ISO file via a file-system
+session. Furthermore, it will open a framebuffer session and an input session.
+The memory assigned to the guest OS depends on the RAM quota assigned to the
+VirtualBox process. Booting a guest OS stored in a VDI file is supported. The
+image type must be changed to "vdi" accordingly.
+
+Please note that this first version of VirtualBox is far from being complete
+as it lacks many features (SMP, guest-addition support, networking), is not
+optimized, and must be considered as experimental. However, we could
+successfully run GNU/Linux, Android, Windows XP, Windows 7, HelenOS, Minix-3,
+GNU Hurd, and of course Genode inside VirtualBox.
+
+One point we are pretty excited about is that the porting effort to
+Genode/NOVA did not require any change of Genode. From Genode's point of
+view, VirtualBox is just an ordinary leaf node of the process tree, which
+can happily co-exist with other processes - even if it is the Seoul VMM.
+
+[image seoul-vbox-win7-tinycore]
+
+In the screenshot above, VirtualBox is running besides the Seoul VMM on top of
+Genode/NOVA. Seoul executes Tinycore Linux as guest OS. VirtualBox executes MS
+Windows 7. Both VMMs are using hardware virtualization (VT-x) but are plain
+user-level programs with no special privileges.
+
+
+NetBSD file systems using rump kernels
+######################################
+
+In the previous release, we made FUSE-based file systems available to Genode
+via a custom implementation of the FUSE API. Even though this step made
+several popular file systems available, we found that the file systems most
+important to us (such as ext) are actually not well supported by FUSE. For
+example, write support on ext2 is declared as an experimental feature. In
+hindsight it is clear why: FUSE is primarily being used for accessing file
+systems not found in the Linux kernel. So it shines with supporting NTFS
+but less so with file systems that are well supported by the Linux kernel.
+Coincidentally, when we came to this realization, we stumbled upon the
+wonderful work of Antti Kantee on so-called rump kernels:
+
+:[http://wiki.netbsd.org/rumpkernel/]:
+  Rump kernel Wiki
+
+The motivation behind the rump kernels was the development of
+NetBSD kernel subsystems (referred to as "drivers") in the NetBSD user land.
+Such subsystems like file systems, device drivers, or the TCP/IP stack are
+linked against a stripped-down version of the NetBSD kernel that can be
+executed in user mode and uses a fairly small "hypercall" interface to
+interact with the outside world. A rump kernel contains everything needed to
+execute NetBSD kernel subsystems but hardly anything else. In particular, it
+does not support the execution of programs on top. From our perspective,
+having crafted device-driver environments (DDEs) for Linux, iPXE, and OSS over
+the years, a rump kernel sounded pretty much like a DDE for NetBSD. So we
+started exploring rump kernels with the immediate goal of making time-tested
+NetBSD file systems available to Genode.
+
+To our delight, the integration of rump kernels into the Genode system went
+fairly smooth. The most difficult part was the integration of the NetBSD build
+infrastructure with Genode's build system. The glue between rump kernels and
+Genode is less than 3,000 lines of code. This code enables us to reuse all
+NetBSD file systems on Genode. A rump kernel instance that contains several
+file systems such as ext2, iso9660, msdos, and ffs takes about 8 MiB of memory
+when executed on Genode.
+
+The support for rump kernels comes in the form of the dedicated _dde_rump_
+repository. For downloading and integrating the required NetBSD source code,
+the repository contains a Makefile providing the usual 'make prepare'
+mechanism. To build the file-system server, make sure to add the _dde_rump_
+repository to the 'REPOSITORIES' declaration of your _etc/build.conf_ file
+within your build directory. The server then can be built via
+! make server/rump_fs
+
+There is a run script located at _dde_rump/run/rump_ext2.run_ to execute
+a simple test scenario:
+! make run/rump_ext2
+
+The server can be configured as follows:
+!<start name="rump_fs">
+!  <resource name="RAM" quantum="8M" />
+!  <provides><service name="File_system"/></provides>
+!  <config fs="ext2fs"><policy label="" root="/" writeable="yes"/></config>
+!</start>
+
+On startup, it requests a service that provides a block session. If
+there is more than one block session in the system, the block session must be
+routed to the right block-session server. The value of the _fs_ attribute of
+the '<config>' node can be one of the following: _ext2fs_ for EXT2, _cd9660_ for
+ISO-9660, or _msdos_ for FAT file-system support. _root_ defines the directory
+of the file system as seen as root directory by the client. The server hands
+most of its RAM quota to the rump kernel. This means the larger the quota is,
+the larger the internal block caches of the rump kernel will be.
+
+
+Base framework
+##############
+
+The base API has not underwent major changes apart from the addition of
+a few new utilities and minor refinements. Under the hood, however, the inner
+workings of the framework received much attention, including an extensive
+unification of the startup code and stack management.
+
+
+New 'construct_at' utility
+==========================
+
+A new utility located at 'base/include/util/construct_at.h' allows for the
+manual placement of objects without the need to have a global placement new
+operation nor the need for type-specific new operators.
+
+
+New utility for managing volatile objects
+=========================================
+
+Throughout Genode, we maintain a programming style that largely avoids dynamic
+memory allocations. For the most part, higher-level objects aggregate
+lower-level objects as class members. For example, the nitpicker GUI server
+is actually a compound of such aggregations (see
+[https://github.com/genodelabs/genode/blob/master/os/src/server/nitpicker/main.cc#L803 - Nitpicker::Main]).
+This functional programming style leads to robust programs but it poses a
+problem for programs that are expected to adopt their behaviour at runtime.
+For the example of nitpicker, the graphics back end of the GUI server takes
+the size of the screen as constructor argument. If the screen size changes,
+the once constructed graphics back end becomes inconsistent with the new
+screen size. We desire a way to selectively replace an aggregated object by a
+new version with updated constructor arguments. The new utilities found in
+'os/include/util/volatile_object.h' solve this problem. A so-called
+'Volatile_object' wraps an object of the type specified as template argument.
+In contrast of a regular object, a 'Volatile_object' can be re-constructed any
+number of times by calling 'construct' with the constructor arguments. It is
+accompanied with a so-called 'Lazy_volatile_object', which remains
+unconstructed until 'construct' is called the first time.
+
+
+Changed interface of 'Signal_rpc_member'
+========================================
+
+We unified the 'Signal_rpc_member' interface to be more consistent with the
+'Signal_rpc_dispatcher'. The new version takes an entrypoint as argument and
+cares for dissolving itself from the entrypoint when destructed.
+
+
+Filename as default label for ROM connections
+=============================================
+
+Since the first version of Genode, ROM services used to rely on a "filename"
+provided as session argument. In the meanwhile, we established the use of the
+session label to select routing policies as well as server-side policies.
+Strictly speaking, the name of a ROM module is used as a key to a server-side
+policy of ROM services. So why not to use the session label to express the
+key as we do with other services? By assigning the file name as label for ROM
+sessions, we may become able to remove the filename argument in the future by
+just interpreting the last part of the label as filename. By keeping only the
+label, we won't need to consider conditional routing (via '<if-arg>') based on
+session arguments other than the label anymore, which would simplify Genode
+configurations in the long run. This change is transparent at API level but
+may be taken into consideration when configuring Genode systems.
+
+
+New 'Genode::Deallocator' interface
+===================================
+
+By splitting the new 'Genode::Deallocator' interface from the former
+'Genode::Allocator' interface, we become able to restrict the accessible
+operations for code that is only supposed to release memory, but not
+perform any allocations.
+
+Closely related to the allocator interface, we introduced variants of the
+'new' operator that take a reference (as opposed to a pointer) to a
+'Genode::Allocator' as argument.
+
+
+Unified main-stack management and startup code among all platforms
+==================================================================
+
+In contrast to the stacks of regular threads, which are located within a
+dedicated virtual-address region called thread-context area, the stack of
+the main thread of a Genode program used to be located within the BSS
+segment. If the stack of a normal thread overflows, the program produces
+an unresolvable page fault, which can be easily debugged. However,
+an overflowing main stack would silently corrupt the BSS segment. With
+the current release, we finally resolved this long-standing problem by
+moving the main stack to the context area, too. The tricky part was that
+the context area is created by the main thread. So we hit a hen-and-egg
+problem. We overcame this problem by splitting the process startup
+into two stages, both called from the crt0 assembly code. The first
+stage runs on a small stack within the BSS and has the sole purpose
+of creating the context area and a thread object for the main thread.
+This code path (and thereby the stack usage) is the same for all programs.
+So we can safely dimension the stage-1 stack. Once the first stage
+returns to the crt0 assembly code, the stack pointer is loaded with the
+stack that is now located within the context area. Equipped with the
+new stack, the actual startup code ('_main') including the global
+constructors of the program is executed.
+
+This change paved the ground for several further code unifications and
+simplifications, in particular related to the dynamic linker.
+
+
+Low-level OS infrastructure
+###########################
+
+Revised block-driver framework
+==============================
+
+Whereas Genode's block-session interface was designed to work asynchronously
+and supports the out-of-order processing of requests, those capabilities
+remained unused by the existing block services as those services used to
+operate synchronously to keep their implementation simple. However, this
+simplicity came at the prize of two disadvantages: First, it prevented us
+to fully utilize native command queuing of modern disk controllers. Second,
+when chaining components such as a block driver, the part_blk server, and
+a file system, latencies accumulated along the chain of services. This
+hurts the performance of random access patterns.
+
+To overcome this limitation, we changed the block-component framework to work
+asynchronously and to facilitate the recently introduced server API.
+Consequently, all users of the API underwent an update. The affected
+components are rom_loopdev, atapi_drv, fb_block_adapter, http_block, usb_drv,
+and part_blk. For some components, in particular part_blk, this step led to a
+complete redesign.
+
+Besides the change of the block-component framework, the block-session
+interface got extended to support logical block addresses greater than
+32bit (LBA48). Thereby, the block component framework can now support
+devices that exceed 2 TiB in size.
+
+
+Block cache
+===========
+
+The provisioning of a block cache was one of the primary motivations behind the
+[http://www.genode.org/documentation/release-notes/13.11#Dynamic_resource_balancing - dynamic resource balancing]
+concept that was introduced in Genode 13.11. We are now introducing the first
+version of such a cache.
+
+The new block cache component located at _os/src/server/blk_cache/_ is both
+a block-session client as well as a block-session server serving a single
+client. It is meant to sit between a block-device driver and a file-system
+server. When accessing the block device, it issues requests at a granularity
+of 4K and thereby implicitly reads ahead whenever a client requests a smaller
+amount of blocks. Blocks obtained from the device or written by the client
+are kept in memory. If memory becomes scarce, the block cache first tries
+to request further memory resources from its parent. If the request
+gets denied, the cache evicts blocks from memory to the block device following
+a least-recently-used replacement strategy. As of now, the block cache supports
+dynamic resource requests to grow on demand but support for handling yield
+requests is not yet implemented. So memory once handed out to the block cache
+cannot be regained. Adding support for yielding memory on demand will be
+complemented in the next version.
+
+To see how to integrate the block cache in a Genode scenario, there is a
+ready-to-use run script available at _os/run/blk_cache.run_.
+
+
+
+File-system infrastructure
+==========================
+
+In addition to the integration of NetBSD's file systems, there are
+file-system-related improvements all over the place.
+
+First, the 'File_system::Session' interface has been extended with a 'sync'
+RPC function. This function allows the client of a file system to force
+the file system to write back its internal caches.
+
+Second, we extended the FUSE implementation introduced with the previous
+release.
+Since file systems tend to have a built-in caching mechanism, we need to
+sync these caches at the end of a session when using the fuse_fs server.
+Therefore, each FUSE file system port has to implement a 'Fuse::sync_fs()'
+function that executes the necessary actions if requested. Further
+improvements are related to the handling of symbolic links and error
+handling. Finally, we added a libc plugin for accessing NTFS file systems
+via the ntfs-3g library.
+
+Third, we complemented the family of FUSE-based libc plugins with a family of
+FUSE-based file-system servers. To utilize a FUSE file system, there is a
+dedicated binary (e.g., _os/src/server/fuse_fs/ext2_) for each FUSE
+file-system server.
+Note that write support is possible but considered to be experimental at this
+point. For now, using it is not recommended.
+To use the ext2_fuse_fs server in Noux, the following configuration snippet
+may be used:
+
+! <start name="ext2_fuse_fs">
+!   <resource name="RAM" quantum="8M"/>
+!   <provides> <service name="File_system"/> </provides>
+!   <config>
+!     <policy label="noux -> fuse" root="/" writeable="no" />
+!   </config>
+! </start>
+
+Finally, the libc file-system plugin has been extended to support 'unlink'.
+
+
+Trace file system
+=================
+
+The new _trace_fs_ server provides access to a trace session by providing a
+file-system session as front end. Combined with Noux, it allows for the
+interactive exploration and tracing of Genode's process tree using
+traditional Unix tools.
+
+Each trace subject is represented by a directory ('thread_name.subject') that
+contains specific files, which are used to control the tracing process of the
+thread as well as storing the content of its trace buffer:
+
+:'enable': The tracing of a thread is activated if there is a valid policy
+  installed and the intend to trace the subject was made clear by writing '1'
+  to the 'enable' file. The tracing of a thread may be deactivated by writing a
+  '0' to this file.
+
+:'policy': A policy may be changed by overwriting the currently used one in the
+  'policy' file. In this case, the old policy is replaced by the new one and
+  automatically used by the framework.
+
+:'buffer_size': Writing a value to the 'buffer_size' file changes the size of
+  the trace buffer. This value is evaluated only when reactivating the tracing
+  of the thread.
+
+:'events': The trace-buffer contents may be accessed by reading from the
+  'events' file. New trace events are appended to this file.
+
+:'active': Reading the file will return whether the tracing is active (1) or
+  not (0).
+
+:'cleanup': Nodes of untraced subjects are kept as long as they do not change
+  their tracing state to dead. Dead untraced nodes are automatically removed
+  from the file system. Subjects that were traced before and are now untraced
+  can be removed by writing '1' to the 'cleanup' file.
+
+To use the trace_fs, a configuration similar to the following may be used:
+
+! <start name="trace_fs">
+!   <resource name="RAM" quantum="128M"/>
+!   <provides><service name="File_system"/></provides>
+!   <config>
+!           <policy label="noux -> trace"
+!                   interval="1000"
+!                   subject_limit="512"
+!                   trace_quota="64M" />
+!   </config>
+! </start>
+
+:'interval': sets the period the Trace_session is polled. The
+  time is given in milliseconds.
+
+:'subject_limit': specifies how many trace subjects should by acquired at
+  max when the Trace_session is polled.
+
+:'trace_quota': is the amount of quota the trace_fs should use for the
+  Trace_session connection. The remaining amount of RAM quota will be used
+  for the actual nodes of the file system and the 'policy' as well as the
+  'events' files.
+
+In addition, there are 'buffer_size' and 'buffer_size_limit' that define
+the initial and the upper limit of the size of a trace buffer.
+
+A ready-to-use run script can by found in 'ports/run/noux_trace_fs.run'.
+
+
+Unified interfaces for graphics
+===============================
+
+Genode comes with several programs that perform software-based graphics
+operations. A few noteworthy examples are the nitpicker GUI server,
+the launchpad, the scout tutorial browser, or the terminal. Most of those
+programs were equipped with their custom graphics back end. In some
+cases such as the terminal, nitpicker's graphics back end was re-used.
+But this back end is severely limited because its sole purpose is the
+accommodation of the minimalistic (almost invisible) nitpicker GUI server.
+
+The ongoing work on Genode's new user interface involves the creation of
+new components that rely on a graphics back end. Instead of further
+diversifying the zoo of graphics back ends, we took the intermediate step
+to consolidate the existing back ends into one unified concept such that
+application-specific graphics back ends can be created and extended using
+modular building blocks. The new versions of nitpicker, scout, launchpad,
+liquid_fb, nitlog, and terminal have been changed to use the new common
+interfaces:
+
+:os/include/util/geometry.h: Basic data structures and operations needed
+  for 2D graphics.
+
+:os/include/util/color.h: Common color representation and utilities.
+
+:os/include/os/pixel_rgba.h: Class template for representing a pixel.
+
+:os/include/os/pixel_rgb565.h: Template specializations for RGB565 pixels.
+
+:os/include/os/surface.h: Target surface, onto which graphics operations
+  can be applied.
+
+:os/include/os/texture.h: Source texture for graphics operations that
+  transfer 2D pixel data to a surface.
+
+The former _os/include/nitpicker_gfx/_ directory is almost deserted. The only
+remainders are functors for the few graphics operations actually required by
+nitpicker. For the scout widgets, the corresponding functors have become
+available at the public headers at _demo/include/scout_gfx/_.
+
+Because the scout widget set is used by at least three programs and will
+most certainly play a role in new GUI components, we undertook a major
+cleanup of the parts worth reusing. The result can be found at
+_demo/include/scout/_.
+
+
+New session interface for status reporting
+==========================================
+
+Genode has a uniform way of how configuration information is passed from
+parents to children within the process tree by the means of "config" ROM
+modules. Using this mechanism, a parent is able to steer the behaviour of
+its children, not just at their start time but also during runtime.
+Until now, however, there was no counterpart to the config mechanism, which
+would allow a child to propagate runtime information to its parent. There
+are many use cases for such a mechanism. For example, a bus-controller driver
+might want to propagate a list of devices attached to the bus. When a new
+device gets plugged in, this list should be updated to let the parent
+take the new device resource into consideration. Another use case would be the
+propagation of status information such as the feature set of a plugin.
+Taken to the extreme, a process might expose its entire internal state to its
+parent in order to allow the parent to kill and restart the process, and
+feed the saved state back to the new process instance.
+
+To cover these use cases, we introduced the new report-session interface. When
+a client opens a report session, it transfers a part of its RAM quota to the
+report server. In return, the report server hands out a dataspace dimensioned
+according to the donated quota. Upon reception of the dataspace, the client
+can write its status reports into the dataspace and inform the server about
+the update via the 'submit' function. In addition to the mere reporting of
+status information, the report-session interface is designed to allow the
+server to respond to reports. For example, if the report mechanism is used to
+implement a desktop notification facility, the user may interactively respond
+to an incoming notification. This response can be reflected to the originator
+of the notification via the 'response_sigh' and 'obtain_response' functions.
+
+The new _report_rom_ component is both a report service and a ROM service. It
+reflects incoming reports as ROM modules. The ROM modules are named
+after the label of the corresponding report session.
+
+Configuration
+-------------
+
+The report-ROM server hands out ROM modules only if explicitly permitted by a
+configured policy. For example:
+
+! <config>
+!   <rom>
+!     <policy label="decorator -> pointer" report="nitpicker -> pointer"/>
+!     <policy ...  />
+!     ...
+!   </rom>
+! </config>
+
+The label of an incoming ROM session is matched against the 'label' attribute
+of all '<policy>' nodes. If the session label matches a policy label, the
+client obtains the data from the report client with the label specified in the
+'report' attribute. In the example above, the nitpicker GUI server sends
+reports about the pointer position to the report-ROM service. Those reports
+are handed out to a window decorator (labeled "decorator") as ROM module.
+
+
+XML generator utility
+=====================
+
+With the new report-session interface in place, comes the increased
+need to produce XML data. The new XML generator utility located at
+_os/include/util/xml_generator.h_ makes this extremely easy, thanks to
+C++11 language features. For an example application, refer to
+_os/src/test/xml_generator/_ and the corresponding run script at
+_os/run/xml_generator.run_.
+
+
+Dynamic ROM service for automated testing
+=========================================
+
+The new _dynamic_rom_ service provides ROM modules that change during the
+lifetime of a ROM session according to a timeline. The main purpose of this
+service is the automated testing of programs that are able to respond to ROM
+module changes, for example configuration changes.
+
+The configuration of the dynamic ROM server contains a '<rom>' sub node per
+ROM module provided by the service. Each '<rom>' node hosts a 'name' attribute
+and contains a sequence of sub nodes that define the timeline of the ROM
+module. The possible sub nodes are:
+
+:'<inline>': The content of the '<inline>' node is assigned to the content
+  of the ROM module.
+
+:'<sleep>': Sleeps a number of milliseconds as specified via the 'milliseconds'
+  attribute.
+
+:'<empty>': Removes the ROM module.
+
+At the end of the timeline, it re-starts at the beginning.
+
+
+Nitpicker GUI server
+====================
+
+The nitpicker GUI server has been enhanced to support dynamic screen
+resizing. This is needed to let nitpicker respond to screen-resolution
+changes, or when using a nested version of nitpicker within a resizable
+virtual framebuffer window.
+
+To accommodate Genode's upcoming user-interface concept, we introduced the
+notion of a parent-child relationship between nitpicker views. If an existing
+view is specified as parent at construction time of a new view, the parent
+view's position is taken as the origin of the child view's coordinate space.
+This allows for the grouping of views, which can be atomically repositioned by
+moving their common parent view. Another use case is the handling of popup
+menus in Qt5, which can now be positioned relative to their corresponding
+top-level window. The relative position is maintained transparently to Qt when
+the top-level window gets repositioned.
+
+
+Libraries and applications
+##########################
+
+Noux runtime for executing Unix software
+========================================
+
+Noux plays an increasingly important role for Genode as it allows the use
+of the GNU software stack. Even though it already supported a variety of
+packages including bash, gcc, binutils, coreutils, make, and vim, some
+programs were still limited by Noux' not fully complete POSIX semantics,
+in particular with regard to signal handling. For example, it was not
+possible to cancel the execution of a long-running process via Control-C.
+
+To overcome those limitations, we enhanced Noux by adding the _kill_ syscall,
+reworking the _wait_ and _execve_ syscalls, as well as adding
+signal-dispatching code to the Noux libc. Special attention had to be paid to
+the preservation of pending signals during the process creation via _fork_ and
+_execve_.
+
+The current implementation delivers signals each time a Noux syscall
+returns. Signal handlers are executed as part of the normal control flow. This
+is in contrast to traditional Unix implementations, which allow the
+asynchronous invocation of signal handlers out of band with the regular
+program flow. The obvious downside of our solution is that a program that got
+stuck in a busy loop (and thereby not issuing any system calls) won't respond
+to signals. However, as we regard the Unix interface just as a runtime and not
+as the glue that holds the system together, we think that this compromise is
+justified to keep the implementation simple and kernel-agnostic. In the worst
+case, if a Noux process gets stuck because of such a bug, we certainly can
+live with the inconvenience of restarting the corresponding Noux subsystem.
+
+To complement our current activities on the block and file-system levels,
+the e2fsprogs-v1.42.9 package as been ported to Noux. To allow the
+block-device utilities to operate on Genode's block sessions, we added a new
+"block" file system to Noux. Such a block file system can be mounted using a
+'<block>' node within the '<fstab>'. By specifying a label attribute, each
+block session request can be routed to the proper block session provider:
+
+! <fstab>
+!   ...
+!   <dir name="dev">
+!     <block name="blkdev0" label="block_session_0" />
+!   </dir>
+!   ...
+! </fstab>
+
+In addition to this file system, support for the DIOCGMEDIASIZE ioctl
+request was added. This request is used by FreeBSD and therefore by our
+libc to query the size of the block device in bytes.
+
+
+Qt5 refinements
+===============
+
+Our port of Qt5 used to rely on custom versions of synchronization
+primitives such as 'QWaitCondition' and 'QMutex'. However, since most of the
+usual pthread synchronization functions as relied on by Qt5's regular POSIX
+back end have been added to Genode's pthread library by now, we could replace
+our custom implementations by Qt5's POSIX version.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+The development of our base-hw kernel platform during this release cycle was
+primarily geared towards adding multi-processor support. However, as we
+haven't exposed the code to thorough testing yet, we deferred the integration
+of this feature for the current release.
+
+We increased the number of usable ARM platforms by adding basic support for
+the ODROID XU board.
+
+
+NOVA microhypervisor
+====================
+
+The port of VirtualBox to Genode prompted us to improve the NOVA platform in
+the following respects.
+
+NOVA used to omit the saving and restoring of the FPU state of the guest OS
+during the world switch between the guest OS and the virtual machine monitor
+(VMM). With the Vancouver VMM, which is traditionally used on NOVA, the
+omission of FPU context handling did not pose any problem because Vancouver
+did not touch the FPU. So the FPU context of the guest was always preserved
+throughout the handling of virtualization events. However, in contrast to the
+Vancouver VMM, VirtualBox relies on the FPU. Without properly saving and
+restoring the FPU state on each VM-enter/exit, both the guest OS and
+VirtualBox would corrupt each other's FPU state. After first implementing an
+interim solution in our custom version of the kernel, the missing FPU context
+handling had been implemented in the upstream version of NOVA as well.
+
+In contrast to most kernels, NOVA did not allow a thread to yield its current
+time slice to another thread. The only way to yield CPU time was to block on
+a semaphore or to perform an RPC call. Unfortunately both of those instruments
+require the time-receiving threads to explicitly unblock the yielding thread
+(by releasing the semaphore or replying to the RPC call). However, there are
+situations where the progress of a thread may depend on an external
+condition or a side effect produced by another (unknown) thread. One
+particular example is the spin lock used to protect (an extremely short)
+critical section of Genode's lock metadata. Apparently VirtualBox presented
+us with several more use cases for thread-yield semantics. Therefore, we
+decided to extend NOVA's kernel interface with a new 'YIELD' opcode to the
+'ec_control' system call.
+
