@@ -113,6 +113,16 @@ namespace Genode {
 				}
 
 				/**
+				 * Ensure that the stack has a given size at the minimum
+				 *
+				 * \param size  minimum stack size
+				 *
+				 * \throw Stack_too_large
+				 * \throw Stack_alloc_failed
+				 */
+				void stack_size(size_t const size);
+
+				/**
 				 * Virtual address of the start of the stack
 				 *
 				 * This address is pointing to the begin of the dataspace used
@@ -420,6 +430,16 @@ namespace Genode {
 			 *          0 if the calling thread is the main thread
 			 */
 			static Thread_base *myself();
+
+			/**
+			 * Ensure that the stack has a given size at the minimum
+			 *
+			 * \param size  minimum stack size
+			 *
+			 * \throw Context::Stack_too_large
+			 * \throw Context::Stack_alloc_failed
+			 */
+			void stack_size(size_t const size) { _context->stack_size(size); }
 
 			/**
 			 * Return user-level thread control block

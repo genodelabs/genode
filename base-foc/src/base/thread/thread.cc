@@ -31,6 +31,40 @@ namespace Genode {
 }
 
 
+void Thread_base::Context::stack_size(size_t const size)
+{
+	/* check if the stack needs to be enhanced */
+	size_t const stack_size = (addr_t)_stack - stack_base;
+	if (stack_size >= size) { return; }
+
+	/* check if the stack enhancement fits the context region */
+	enum {
+		CONTEXT_SIZE      = Native_config::context_virtual_size(),
+		CONTEXT_AREA_BASE = Native_config::context_area_virtual_base(),
+		UTCB_SIZE         = sizeof(Native_utcb),
+		PAGE_SIZE_LOG2    = 12,
+		PAGE_SIZE         = (1UL << PAGE_SIZE_LOG2),
+	};
+	addr_t const context_base = Context_allocator::addr_to_base(this);
+	size_t const ds_size = align_addr(size - stack_size, PAGE_SIZE_LOG2);
+	if (stack_base - ds_size < context_base) { throw Stack_too_large(); }
+
+	/* allocate and attach backing store for the stack enhancement */
+	addr_t const ds_addr = stack_base - ds_size - CONTEXT_AREA_BASE;
+	try {
+		Ram_session * const ram = env_context_area_ram_session();
+		Ram_dataspace_capability const ds_cap = ram->alloc(ds_size);
+		Rm_session * const rm = env_context_area_rm_session();
+		void * const attach_addr = rm->attach_at(ds_cap, ds_addr, ds_size);
+		if (ds_addr != (addr_t)attach_addr) { throw Stack_alloc_failed(); }
+	}
+	catch (Ram_session::Alloc_failed) { throw Stack_alloc_failed(); }
+
+	/* update context information */
+	stack_base -= ds_size;
+}
+
+
 Thread_base::Context *
 Thread_base::_alloc_context(size_t stack_size, bool main_thread)
 {
