@@ -56,12 +56,17 @@ if {[is_qemu_available]} {
 	}
 }
 
-set good_string {[init -> test-affinity] Round XX:}
-for {set i 0} {$i < $cpus} {incr i} {
-	append good_string "  A"
+set good_string {}
+for {set r 0} {$r <= $rounds} {incr r} {
+	append good_string {[init -> test-affinity] Round } 
+	append good_string [format "%02d" $r]
+	append good_string ":"
+	for {set i 0} {$i < $cpus} {incr i} {
+		append good_string "  A"
+	}
+	append good_string "\n"
 }
 
 grep_output {\[init -\> test-affinity\] Round}
-unify_output {[0-9]+} "XX"
 
 compare_output_to $good_string
