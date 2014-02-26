@@ -2125,6 +2125,15 @@ void init_libc_noux(void)
 	static Plugin noux_plugin;
 
 	chdir(noux_cwd.base());
+
+	/*
+	 * Enhance main-thread stack
+	 *
+	 * This is done because we ran into a stack overflow while compiling
+	 * Genodes core/main.cc with GCC in Noux.
+	 */
+	enum { STACK_SIZE = 32UL * 1024 * sizeof(Genode::addr_t) };
+	Genode::Thread_base::myself()->stack_size(STACK_SIZE);
 }
 
 
