@@ -17,7 +17,14 @@
 /* Genode includes */
 #include <base/printf.h>
 
-enum { CHECK_ASSERTIONS = 0 };
+/**
+ * Suppress assertions in release version
+ */
+#ifdef GENODE_RELEASE
+#define DO_ASSERT false
+#else
+#define DO_ASSERT true
+#endif /* GENODE_RELEASE */
 
 /**
  * Make an assertion
@@ -34,7 +41,7 @@ enum { CHECK_ASSERTIONS = 0 };
  */
 #define assert(expression) \
 	do { \
-		if (CHECK_ASSERTIONS) { \
+		if (DO_ASSERT) { \
 			if (!(expression)) { \
 				PERR("Assertion failed: "#expression""); \
 				PERR("  File: %s:%d", __FILE__, __LINE__); \
