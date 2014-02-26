@@ -2,3 +2,18 @@ ROM service that provides ROM modules that change during the lifetime of a ROM
 session according to a timeline. This main purpose of this service is the
 testing of programs that are able to respond to ROM module changes, for example
 configuration changes.
+
+The configuration of the dynamic ROM server contains a '<rom>' sub node per
+ROM module provided by the service. Each '<rom>' node hosts a 'name' attribute
+and contains a sequence of sub nodes that define the timeline of the ROM
+module. The possible sub nodes are:
+
+':<inline>:' The content of the '<inline>' node is assigned to the content
+  of the ROM module.
+
+':<sleep>:' Sleeps a number of milliseconds as specified via the 'milliseconds'
+  attribute.
+
+:'<empty>:' Removes the ROM module.
+
+At the end of the timeline, the timeline re-starts at the beginning.
