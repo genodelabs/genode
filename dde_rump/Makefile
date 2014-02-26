@@ -9,11 +9,13 @@ CONTRIB_DIR = contrib
 ECHO        = @echo
 PATCHES    := $(shell find patches -name \*.patch)
 
-GIT_RUMP_URI     = https://github.com/anttikantee/buildrump.sh.git
-GIT_RUMP_COMMIT  = d604845baafa110945cb54a2d9607e6f435c6027
+GIT_RUMP_URI      = https://github.com/anttikantee/buildrump.sh.git
+GIT_RUMP_COMMIT   = d604845baafa110945cb54a2d9607e6f435c6027
 
-GIT_LIBS_URI     = https://github.com/anttikantee/xen-nblibc.git
-GIT_LIBS_COMMIT  = b86122315f338042d06ad83ac5bd763a5dbd0c00
+GIT_LIBS_URI      = https://github.com/anttikantee/xen-nblibc.git
+GIT_LIBS_COMMIT   = b86122315f338042d06ad83ac5bd763a5dbd0c00
+
+GIT_NETBSD_COMMIT = ff70642c9d7a8fb4b3242b30de2efc1fd8ad9ad4
 
 RUMP_SRC   = src
 
@@ -33,6 +35,7 @@ $(CONTRIB_DIR)/nblibs:
 
 $(CONTRIB_DIR)/$(RUMP_SRC):
 	$(VERBOSE) cd $(CONTRIB_DIR); ./buildrump.sh -s $(RUMP_SRC) checkout
+	$(VERBOSE) cd $(CONTRIB_DIR)/src; git reset --hard $(GIT_NETBSD_COMMIT)
 
 commit:
 	$(VERBOSE) cd $(CONTRIB_DIR); git fetch origin
