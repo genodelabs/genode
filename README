@@ -152,6 +152,13 @@ The Genode source tree is composed of the following subdirectories:
   This source-code repository contains the device-driver environment for the
   audio drivers of the Open Sound System (OSS).
 
+:'dde_rump':
+
+  This source-code repository contains the port of rump kernels, which are
+  used to execute subsystems of the NetBSD kernel as user level processes.
+  The repository contains a server that uses a rump kernel to provide
+  various NetBSD file systems to Genode.
+
 :'qt4':
 
   This source-code repository contains the Genode version of Qt4 framework.

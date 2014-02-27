@@ -332,13 +332,25 @@ Separate components:
   A read-only file-system implementation that reads data from a TAR archive,
   which, in turn, is provided by a ROM service.
 
+:'dde_rump/src/server/rump_fs':
+  A file-system server that contains various file-systems ported from the
+  NetBSD kernel.
+
 :'os/src/server/lx_fs':
   A file system server that makes the file system of a Linux base platform
   available to Genode.
 
+:'os/src/server/trace_fs':
+  A pseudo file system that can be used as a front end to core's TRACE
+  service.
+
 :'os/src/server/rom_blk':
   Provides the content of a ROM file as a block session, similar to the
   loop-mount mechanism on Linux
+
+:'os/src/server/ram_blk':
+  Provides the content of a RAM dataspace as a block session. In contrast
+  to 'rom_blk', this server provides a writeable block device.
 
 :'os/src/server/terminal_log':
   Adapter for forwarding LOG messages to a terminal session.
