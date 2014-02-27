@@ -1,5 +1,5 @@
 diff --git a/buildrump.sh b/buildrump.sh
-index f600b6a..e394b47 100755
+index f600b6a..f6bb302 100755
 --- a/buildrump.sh
 +++ b/buildrump.sh
 @@ -570,6 +570,16 @@ evaltools ()
@@ -55,3 +55,12 @@ index f600b6a..e394b47 100755
  	TOOLABI=''
  	case ${MACH_ARCH} in
  	"amd64"|"x86_64")
+@@ -918,6 +910,8 @@ evaltarget ()
+ 		MACHINE="evbarm"
+ 		MACH_ARCH="arm"
+ 		TOOLABI="elf"
++		EXTRA_CFLAGS='-march=armv7-a'
++		EXTRA_AFLAGS='-march=armv7-a'
+ 		probearm
+ 		;;
+ 	"sparc")
