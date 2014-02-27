@@ -23,6 +23,12 @@
 	.global _start
 	_start:
 
+	/* initialize GOT pointer in EBX */
+	3:
+	movl $., %ebx
+	addl $_GLOBAL_OFFSET_TABLE_ + (. - 3b) , %ebx
+	movl %esp, __initial_sp@GOTOFF(%ebx)
+
 	/* make initial value of some registers available to higher-level code */
 	mov %esp, __initial_sp
 	mov %eax, __initial_ax
@@ -32,7 +38,7 @@
 	 * Install initial temporary environment that is replaced later by the
 	 * environment that init_main_thread creates.
 	 */
-	leal _stack_high, %esp
+	leal _stack_high@GOTOFF(%ebx), %esp
 
 	/* if this is the dynamic linker, init_rtld relocates the linker */
 	call init_rtld
@@ -44,7 +50,7 @@
 	movl init_main_thread_result, %esp
 
 	/* clear the base pointer in order that stack backtraces will work */
-	xor %ebp,%ebp
+	xor %ebp, %ebp
 
 	/* jump into init C code instead of calling it as it should never return */
 	jmp _main

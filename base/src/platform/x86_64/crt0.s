@@ -23,6 +23,9 @@
 	.global _start
 	_start:
 
+	/* initialize GLOBAL OFFSET TABLE */
+	leaq _GLOBAL_OFFSET_TABLE_(%rip), %r15
+
 	/* make initial value of some registers available to higher-level code */
 	movq __initial_ax@GOTPCREL(%rip), %rbx
 	movq %rax, (%rbx)
