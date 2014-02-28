@@ -762,17 +762,19 @@ NOVA microhypervisor
 The port of VirtualBox to Genode prompted us to improve the NOVA platform in
 the following respects.
 
-NOVA used to omit the saving and restoring of the FPU state of the guest OS
-during the world switch between the guest OS and the virtual machine monitor
-(VMM). With the Vancouver VMM, which is traditionally used on NOVA, the
-omission of FPU context handling did not pose any problem because Vancouver
-did not touch the FPU. So the FPU context of the guest was always preserved
+NOVA used to omit the propagation of the FPU state of the guest OS to the
+virtual machine monitor (VMM) during the world switch between the guest OS and
+the VMM. With the Vancouver VMM, which is traditionally used on NOVA, this
+omission did not pose any problem because Vancouver would never touch the FPU
+state of the guest. So the FPU context of the guest was always preserved
 throughout the handling of virtualization events. However, in contrast to the
-Vancouver VMM, VirtualBox relies on the FPU. Without properly saving and
-restoring the FPU state on each VM-enter/exit, both the guest OS and
-VirtualBox would corrupt each other's FPU state. After first implementing an
+Vancouver VMM, VirtualBox relies on the propagation of the FPU state between
+the guest running in VT-X non-root mode and the guest running within the
+VirtualBox recompiler. Without properly propagating the FPU state between both
+virtualization back ends, both the guest OS in non-root mode and VirtualBox's
+recompiler would corrupt each other's FPU state. After first implementing an
 interim solution in our custom version of the kernel, the missing FPU context
-handling had been implemented in the upstream version of NOVA as well.
+propagation had been implemented in the upstream version of NOVA as well.
 
 In contrast to most kernels, NOVA did not allow a thread to yield its current
 time slice to another thread. The only way to yield CPU time was to block on
