@@ -1,35 +1,35 @@
-The trace_fs server provides access to a Trace_session by using a
-File_system_session as front end.
+The new _trace_fs_ server provides access to a trace session by providing a
+file-system session as front end. Combined with Noux, it allows for the
+interactive exploration and tracing of Genode's process tree using
+traditional Unix tools.
 
-Each trace subject is represented by a directory ('thread_name.subject')
-that contains specific files ('active', 'cleanup', 'enable', 'events',
-'buffer_size' and 'policy'), which are used to control the tracing
-process of the thread as well as storing the content of its trace
-buffer.
+Each trace subject is represented by a directory ('thread_name.subject') that
+contains specific files, which are used to control the tracing process of the
+thread as well as storing the content of its trace buffer:
 
-The tracing of a thread is only activated if there is a valid policy
-installed and the intend to trace the subject was made clear by writing
-'1' to the 'enable' file.
+:'enable': The tracing of a thread is activated if there is a valid policy
+  installed and the intend to trace the subject was made clear by writing '1'
+  to the 'enable' file. The tracing of a thread may be deactivated by writing a
+  '0' to this file.
 
-The tracing of a thread may be deactivated by writing a '0' to the
-'enable' file.
+:'policy': A policy may be changed by overwriting the currently used one in the
+  'policy' file. In this case, the old policy is replaced by the new one and
+  automatically used by the framework.
 
-A policy may be changed by overwriting the currently used one. In this
-case, the old policy is replaced by the new policy and is automatically
-utilized.
+:'buffer_size': Writing a value to the 'buffer_size' file changes the size of
+  the trace buffer. This value is evaluated only when reactivating the tracing
+  of the thread.
 
-Writing a value to the 'buffer_size' file changes the size of
-the trace buffer. This value is evaluated when reactivating the
-tracing of the thread.
+:'events': The trace-buffer contents may be accessed by reading from the
+  'events' file. New trace events are appended to this file.
 
-The content of the trace buffer may be accessed by reading from the
-'events' file. New trace events are appended to this file.
+:'active': Reading the file will return whether the tracing is active (1) or
+  not (0).
 
-Nodes of UNTRACED subjects are kept as long as they do not change their
-tracing state to DEAD. In this case, all nodes are removed from the
-file system. Subjects that were traced before and are now UNTRACED can
-be removed by writing '1' to the 'cleanup' file - even if they
-are DEAD by now.
+:'cleanup': Nodes of untraced subjects are kept as long as they do not change
+  their tracing state to dead. Dead untraced nodes are automatically removed
+  from the file system. Subjects that were traced before and are now untraced
+  can be removed by writing '1' to the 'cleanup' file.
 
 To use the trace_fs, a configuration similar to the following may be used:
 
@@ -44,19 +44,18 @@ To use the trace_fs, a configuration similar to the following may be used:
 !   </config>
 ! </start>
 
-'interval' sets the period the Trace_session is polled. The
-time is given in milliseconds.
-'subject_limit' specifies how many trace subjects should by acquired at
-max when the Trace_session is polled.
-'trace_quota' is the amount of quota the trace_fs should use for the
-Trace_session connection. The remaining amount of RAM quota will be used
-for the actual nodes of the file system and the 'policy' as well as the
-'events' files.
+:'interval': sets the period the Trace_session is polled. The
+  time is given in milliseconds.
+
+:'subject_limit': specifies how many trace subjects should by acquired at
+  max when the Trace_session is polled.
+
+:'trace_quota': is the amount of quota the trace_fs should use for the
+  Trace_session connection. The remaining amount of RAM quota will be used
+  for the actual nodes of the file system and the 'policy' as well as the
+  'events' files.
+
 In addition, there are 'buffer_size' and 'buffer_size_limit' that define
 the initial and the upper limit of the size of a trace buffer.
-Tracing of parent processes may be enabled by setting
-'parent_levels' to a value greater than '0' (though this attribute is
-available, the trace session component within core still lacks support
-for it).
 
 A ready-to-use run script can by found in 'ports/run/noux_trace_fs.run'.
