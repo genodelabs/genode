@@ -63,21 +63,19 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		Vm(void           * const state,
 		   Signal_context * const context)
 		:
-			Execution_context(Priority::MIN),
+			Execution_context(multiprocessor()->primary(), Priority::MIN),
 			_state((Vm_state * const)state),
 			_context(context)
-		{
-			_processor = multiprocessor()->primary();
-		}
+		{ }
 
 
 		/****************
 		 ** Vm_session **
 		 ****************/
 
-		void run()   { _processor->scheduler()->insert(this); }
+		void run()   { Execution_context::_schedule(); }
 
-		void pause() { _processor->scheduler()->remove(this); }
+		void pause() { Execution_context::_unschedule(); }
 
 
 		/***********************
@@ -94,7 +92,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 			case Genode::Cpu_state::DATA_ABORT:
 				_state->dfar = Genode::Cpu::Dfar::read();
 			default:
-				_processor->scheduler()->remove(this);
+				Execution_context::_unschedule();
 				_context->submit(1);
 			}
 		}

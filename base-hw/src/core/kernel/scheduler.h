@@ -297,9 +297,11 @@ class Kernel::Scheduler
 
 class Kernel::Execution_context : public Cpu_scheduler::Item
 {
-	protected:
+	private:
 
-		Processor * _processor;
+		Processor * __processor;
+
+	protected:
 
 		/**
 		 * Handle an interrupt exception that occured during execution
@@ -307,6 +309,31 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 		 * \param processor_id  kernel name of targeted processor
 		 */
 		void _interrupt(unsigned const processor_id);
+
+		/**
+		 * Insert context into the processor scheduling
+		 */
+		void _schedule();
+
+		/**
+		 * Remove context from the processor scheduling
+		 */
+		void _unschedule();
+
+		/**
+		 * Yield currently scheduled processor share of the context
+		 */
+		void _yield();
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		void _processor(Processor * const processor)
+		{
+			__processor = processor;
+		}
 
 	public:
 
@@ -327,9 +354,14 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 		/**
 		 * Constructor
 		 *
-		 * \param p  scheduling priority
+		 * \param processor  kernel object of targeted processor
+		 * \param priority   scheduling priority
 		 */
-		Execution_context(Priority const p) : Cpu_scheduler::Item(p) { }
+		Execution_context(Processor * const processor, Priority const priority)
+		:
+			Cpu_scheduler::Item(priority),
+			__processor(processor)
+		{ }
 
 		/**
 		 * Destructor

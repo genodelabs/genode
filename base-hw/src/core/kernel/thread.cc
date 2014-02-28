@@ -166,21 +166,21 @@ void Thread::_pause()
 void Thread::_schedule()
 {
 	if (_state == SCHEDULED) { return; }
-	_processor->scheduler()->insert(this);
+	Execution_context::_schedule();
 	_state = SCHEDULED;
 }
 
 
 void Thread::_unschedule(State const s)
 {
-	if (_state == SCHEDULED) { _processor->scheduler()->remove(this); }
+	if (_state == SCHEDULED) { Execution_context::_unschedule(); }
 	_state = s;
 }
 
 
 Thread::Thread(unsigned const priority, char const * const label)
 :
-	Execution_context(priority),
+	Execution_context(0, priority),
 	Thread_cpu_support(this),
 	_state(AWAITS_START),
 	_pd(0),
@@ -201,7 +201,7 @@ Thread::init(Processor * const processor, unsigned const pd_id_arg,
 	assert(_state == AWAITS_START)
 
 	/* store thread parameters */
-	_processor = processor;
+	Execution_context::_processor(processor);
 	_utcb_phys = utcb_phys;
 
 	/* join protection domain */
@@ -446,7 +446,7 @@ void Thread::_call_yield_thread()
 {
 	Thread * const t = Thread::pool()->object(user_arg_1());
 	if (t) { t->_receive_yielded_cpu(); }
-	_processor->scheduler()->yield();
+	Execution_context::_yield();
 }
 
 

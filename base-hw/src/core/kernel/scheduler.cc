@@ -38,7 +38,7 @@ void Kernel::Execution_context::_interrupt(unsigned const processor_id)
 		if (timer()->interrupt_id(processor_id) == irq_id)
 		{
 			/* handle scheduling timeout */
-			_processor->scheduler()->yield();
+			__processor->scheduler()->yield();
 			timer()->clear_interrupt(processor_id);
 			reset_lap_time(processor_id);
 		} else {
@@ -49,4 +49,22 @@ void Kernel::Execution_context::_interrupt(unsigned const processor_id)
 	}
 	/* end interrupt request at controller */
 	pic()->finish_request();
+}
+
+
+void Kernel::Execution_context::_schedule()
+{
+	__processor->scheduler()->insert(this);
+}
+
+
+void Kernel::Execution_context::_unschedule()
+{
+	__processor->scheduler()->remove(this);
+}
+
+
+void Kernel::Execution_context::_yield()
+{
+	__processor->scheduler()->yield();
 }
