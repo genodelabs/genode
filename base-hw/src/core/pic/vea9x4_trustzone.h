@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <pic/arm_gic.h>
-#include <cpu.h>
+#include <processor_driver.h>
 
 namespace Vea9x4_trustzone
 {

@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <pic/arm_gic.h>
-#include <cpu.h>
+#include <processor_driver.h>
 
 namespace Cortex_a9
 {

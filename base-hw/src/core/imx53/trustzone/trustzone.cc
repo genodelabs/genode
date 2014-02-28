@@ -14,7 +14,7 @@
 /* core includes */
 #include <trustzone.h>
 #include <pic.h>
-#include <cpu.h>
+#include <processor_driver.h>
 #include <csu.h>
 #include <board.h>
 

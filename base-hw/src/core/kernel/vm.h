@@ -23,7 +23,7 @@
 #include <kernel/pd.h>
 #include <kernel/multiprocessor.h>
 #include <kernel/signal_receiver.h>
-#include <cpu.h>
+#include <processor_driver.h>
 
 namespace Kernel
 {

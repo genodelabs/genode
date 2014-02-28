@@ -14,7 +14,7 @@
 /* core includes */
 #include <platform.h>
 #include <board.h>
-#include <cpu.h>
+#include <processor_driver.h>
 #include <pic.h>
 #include <kernel/irq.h>
 

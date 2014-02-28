@@ -15,7 +15,7 @@
 #include <board.h>
 #include <platform.h>
 #include <pic.h>
-#include <cpu.h>
+#include <processor_driver.h>
 #include <timer.h>
 #include <kernel/irq.h>
 

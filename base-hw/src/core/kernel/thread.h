@@ -20,7 +20,7 @@
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <cpu_support.h>
-#include <cpu.h>
+#include <processor_driver.h>
 
 namespace Kernel
 {

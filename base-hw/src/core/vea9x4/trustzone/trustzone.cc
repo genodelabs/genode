@@ -14,7 +14,7 @@
 /* core includes */
 #include <trustzone.h>
 #include <pic.h>
-#include <cpu.h>
+#include <processor_driver.h>
 
 /* monitor exception vector address */
 extern int _mon_kernel_entry;

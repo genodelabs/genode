@@ -14,7 +14,7 @@
 /* core includes */
 #include <kernel/irq.h>
 #include <pic.h>
-#include <cpu.h>
+#include <processor_driver.h>
 
 using namespace Kernel;
 

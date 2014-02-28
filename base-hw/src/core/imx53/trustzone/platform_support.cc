@@ -17,7 +17,7 @@
 #include <platform.h>
 #include <board.h>
 #include <pic.h>
-#include <cpu.h>
+#include <processor_driver.h>
 #include <kernel/irq.h>
 
 using namespace Genode;

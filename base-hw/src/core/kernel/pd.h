@@ -21,7 +21,7 @@
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <tlb.h>
-#include <cpu.h>
+#include <processor_driver.h>
 #include <assert.h>
 
 /* structure of the mode transition */
