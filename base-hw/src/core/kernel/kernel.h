@@ -14,14 +14,6 @@
 #ifndef _KERNEL__KERNEL_H_
 #define _KERNEL__KERNEL_H_
 
-namespace Kernel
-{
-	class Processor;
-
-	unsigned core_id();
-
-	void handle_interrupt(Processor * const processor,
-	                      unsigned const processor_id);
-}
+namespace Kernel { unsigned core_id(); }
 
 #endif /* _KERNEL__KERNEL_H_ */

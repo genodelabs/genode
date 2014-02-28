@@ -236,10 +236,10 @@ void Thread::handle_exception(unsigned const processor_id)
 		_mmu_exception();
 		return;
 	case INTERRUPT_REQUEST:
-		handle_interrupt(_processor, processor_id);
+		_interrupt(processor_id);
 		return;
 	case FAST_INTERRUPT_REQUEST:
-		handle_interrupt(_processor, processor_id);
+		_interrupt(processor_id);
 		return;
 	case RESET:
 		return;

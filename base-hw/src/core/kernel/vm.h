@@ -89,7 +89,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 			switch(_state->cpu_exception) {
 			case Genode::Cpu_state::INTERRUPT_REQUEST:
 			case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-				handle_interrupt(_processor, processor_id);
+				_interrupt(processor_id);
 				return;
 			case Genode::Cpu_state::DATA_ABORT:
 				_state->dfar = Genode::Cpu::Dfar::read();

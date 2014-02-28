@@ -25,7 +25,6 @@
 /* core includes */
 #include <kernel/pd.h>
 #include <kernel/vm.h>
-#include <kernel/irq.h>
 #include <platform_pd.h>
 #include <trustzone.h>
 #include <timer.h>
@@ -155,36 +154,6 @@ namespace Kernel
 
 	addr_t   core_tlb_base;
 	unsigned core_pd_id;
-
-	/**
-	 * Handle interrupt request
-	 *
-	 * \param processor     kernel object of targeted processor
-	 * \param processor_id  kernel name of targeted processor
-	 */
-	void handle_interrupt(Processor * const processor,
-	                      unsigned const processor_id)
-	{
-		/* determine handling for specific interrupt */
-		unsigned irq_id;
-		if (pic()->take_request(irq_id))
-		{
-			/* check wether the interrupt is a scheduling timeout */
-			if (timer()->interrupt_id(processor_id) == irq_id)
-			{
-				/* handle scheduling timeout */
-				processor->scheduler()->yield();
-				timer()->clear_interrupt(processor_id);
-				reset_lap_time(processor_id);
-			} else {
-
-				/* try to inform the user interrupt-handler */
-				Irq::occurred(irq_id);
-			}
-		}
-		/* end interrupt request at controller */
-		pic()->finish_request();
-	}
 }
 
 

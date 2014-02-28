@@ -301,6 +301,13 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 
 		Processor * _processor;
 
+		/**
+		 * Handle an interrupt exception that occured during execution
+		 *
+		 * \param processor_id  kernel name of targeted processor
+		 */
+		void _interrupt(unsigned const processor_id);
+
 	public:
 
 		/**
