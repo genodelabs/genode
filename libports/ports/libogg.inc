@@ -1,0 +1,2 @@
+LIBOGG_VERSION = 1.3.1
+LIBOGG         = libogg-$(LIBOGG_VERSION)
