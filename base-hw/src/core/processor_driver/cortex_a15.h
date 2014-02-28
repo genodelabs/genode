@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU__CORTEX_A15_H_
-#define _CPU__CORTEX_A15_H_
+#ifndef _PROCESSOR_DRIVER__CORTEX_A15_H_
+#define _PROCESSOR_DRIVER__CORTEX_A15_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -40,5 +40,5 @@ namespace Cortex_a15
 	};
 }
 
-#endif /* _CPU__CORTEX_A15_H_ */
+#endif /* _PROCESSOR_DRIVER__CORTEX_A15_H_ */
 

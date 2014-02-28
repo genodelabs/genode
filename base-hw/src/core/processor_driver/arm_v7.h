@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU__ARM_V7_H_
-#define _CPU__ARM_V7_H_
+#ifndef _PROCESSOR_DRIVER__ARM_V7_H_
+#define _PROCESSOR_DRIVER__ARM_V7_H_
 
 /* core includes */
 #include <processor_driver/arm.h>
@@ -330,5 +330,5 @@ Arm::Cpu::Psr::access_t Arm::Cpu::Psr::init_user_with_trustzone()
 }
 
 
-#endif /* _CPU__ARM_V7_H_ */
+#endif /* _PROCESSOR_DRIVER__ARM_V7_H_ */
 

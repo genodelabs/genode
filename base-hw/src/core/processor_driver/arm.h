@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU__ARM_H_
-#define _CPU__ARM_H_
+#ifndef _PROCESSOR_DRIVER__ARM_H_
+#define _PROCESSOR_DRIVER__ARM_H_
 
 /* Genode includes */
 #include <util/register.h>
@@ -652,5 +652,5 @@ namespace Arm
 	};
 }
 
-#endif /* _CPU__ARM_H_ */
+#endif /* _PROCESSOR_DRIVER__ARM_H_ */
 

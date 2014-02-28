@@ -12,8 +12,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU__ARM_V6_H_
-#define _CPU__ARM_V6_H_
+#ifndef _PROCESSOR_DRIVER__ARM_V6_H_
+#define _PROCESSOR_DRIVER__ARM_V6_H_
 
 /* Genode includes */
 #include <base/printf.h>
@@ -227,5 +227,5 @@ void Arm::Cpu::flush_data_caches()
 }
 
 
-#endif /* _CPU__ARM_V6_H_ */
+#endif /* _PROCESSOR_DRIVER__ARM_V6_H_ */
 

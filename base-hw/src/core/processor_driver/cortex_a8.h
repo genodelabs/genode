@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU__CORTEX_A8_H_
-#define _CPU__CORTEX_A8_H_
+#ifndef _PROCESSOR_DRIVER__CORTEX_A8_H_
+#define _PROCESSOR_DRIVER__CORTEX_A8_H_
 
 /* core includes */
 #include <processor_driver/arm_v7.h>
@@ -33,5 +33,5 @@ namespace Cortex_a8
 	};
 }
 
-#endif /* _CPU__CORTEX_A8_H_ */
+#endif /* _PROCESSOR_DRIVER__CORTEX_A8_H_ */
 
