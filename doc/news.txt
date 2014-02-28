@@ -3,6 +3,51 @@
                                Genode News
                                ===========
 
+
+Genode OS Framework release 14.02 | 2014-02-28
+##############################################
+
+| The two highlights of the new release are VirtualBox running on
+| top of the NOVA microhypervisor and the added support for NetBSD's file
+| systems. Furthermore, the release comes with new or largely revised
+| storage components such as a block cache.
+
+During the release cycle for version 14.02, the development was focused on the
+topics storage and virtualization, both considered as fundamental for using
+Genode as general-purpose OS.
+
+Concerning storage, we took the chance to redesign the existing block-level
+components to work asynchronously. This way, block requests can be processed
+in a pipelined fashion and even out of order, which is beneficial to hide
+device latencies and to maximize throughput. Additionally, there are entirely
+new storage components, most prominently a new block cache, FUSE-based
+file-system services, and support for the file systems of the NetBSD kernel.
+The latter was made possible by the use of so-called rump kernels, which allow
+the execution of individual NetBSD kernel subsystems at user level. We use it
+to execute NetBSD's file systems as Genode components.
+
+Virtualization has become a popular use case for microkernel technology. Until
+now, however, none of Genode's existing virtualization options such as L4Linux
+on top of Fiasco.OC or the Vancouver VMM on top of NOVA could be considered as
+compelling alternatives to commodity virtualization products. With the added
+support for running VirtualBox on top of the NOVA microhypervisor, we combine
+the benefits of microkernel technology and capability-based security in
+particular with a product-grade virtualization solution. Compared to the
+traditional host operating systems supported by VirtualBox, using VirtualBox
+on top of Genode/NOVA reduces the trusted computing base for the security of
+virtual machines by more than three orders of magnitude. For existing Genode
+users, VirtualBox opens up the ability to run a wide range of unmodified guest
+operating systems such as GNU/Linux and MS Windows side by side with regular
+Genode components.
+
+As is the case for every release, there are many additional improvements all
+over the place, for example unified interfaces for graphics, support for POSIX
+signals in the Noux runtime for Unix programs, and a new pseudo file system
+for the interactive exploration and tracing of Genode's process tree. These
+and more topics are covered by the detailed
+[http:/documentation/release-notes/14.02 - release documentation of version 14.02...]
+
+
 Slides and videos of our FOSDEM talks | 2014-02-10
 ##################################################
 
