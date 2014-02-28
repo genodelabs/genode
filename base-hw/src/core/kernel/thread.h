@@ -38,8 +38,6 @@ namespace Kernel
 	class Thread_ids : public Id_allocator<MAX_THREADS> { };
 	typedef Object_pool<Thread> Thread_pool;
 
-	class Processor;
-
 	Thread_ids  * thread_ids();
 	Thread_pool * thread_pool();
 
@@ -102,7 +100,6 @@ class Kernel::Thread
 		Native_utcb *      _utcb_phys;
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;
-		Processor *        _processor;
 
 		/**
 		 * Notice that another thread yielded the CPU to this thread

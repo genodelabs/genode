@@ -23,6 +23,8 @@
 
 namespace Kernel
 {
+	class Processor;
+
 	/**
 	 * Inheritable ability for objects of type T to be item in a double list
 	 */
@@ -295,6 +297,10 @@ class Kernel::Scheduler
 
 class Kernel::Execution_context : public Cpu_scheduler::Item
 {
+	protected:
+
+		Processor * _processor;
+
 	public:
 
 		/**

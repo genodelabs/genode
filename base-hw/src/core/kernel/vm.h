@@ -49,7 +49,6 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 			Genode::addr_t dfar;
 		};
 
-		Processor      * const _processor;
 		Vm_state       * const _state;
 		Signal_context * const _context;
 
@@ -65,9 +64,11 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		   Signal_context * const context)
 		:
 			Execution_context(Priority::MIN),
-			_processor(multiprocessor()->primary()),
-			_state((Vm_state * const)state), _context(context)
-		{ }
+			_state((Vm_state * const)state),
+			_context(context)
+		{
+			_processor = multiprocessor()->primary();
+		}
 
 
 		/****************
