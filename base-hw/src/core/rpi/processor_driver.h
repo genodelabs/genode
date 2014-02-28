@@ -17,7 +17,9 @@
 /* core includes */
 #include <processor_driver/arm_v6.h>
 
-namespace Genode { struct Cpu : Arm_v6::Cpu { }; }
+namespace Genode { class Processor_driver : public Arm_v6::Cpu { }; }
+
+namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
 
 #endif /* _RPI__PROCESSOR_DRIVER_H_ */
 

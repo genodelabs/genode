@@ -22,4 +22,4 @@ namespace Kernel { Pic * pic(); }
 
 void Irq::_disable() const { pic()->mask(_id()); }
 
-void Irq::_enable() const { pic()->unmask(_id(), Genode::Cpu::id()); }
+void Irq::_enable() const { pic()->unmask(_id(), Processor_driver::id()); }

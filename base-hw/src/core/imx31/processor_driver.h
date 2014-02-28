@@ -22,8 +22,10 @@ namespace Genode
 	/**
 	 * CPU driver for core
 	 */
-	class Cpu : public Arm_v6::Cpu { };
+	class Processor_driver : public Arm_v6::Cpu { };
 }
+
+namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
 
 #endif /* _IMX31__PROCESSOR_DRIVER_H_ */
 

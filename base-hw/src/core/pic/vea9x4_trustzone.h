@@ -32,8 +32,8 @@ namespace Vea9x4_trustzone
 			/**
 			 * Constructor
 			 */
-			Pic() : Arm_gic::Pic(Genode::Cpu::PL390_DISTRIBUTOR_MMIO_BASE,
-			                     Genode::Cpu::PL390_CPU_MMIO_BASE)
+			Pic() : Arm_gic::Pic(Processor_driver::PL390_DISTRIBUTOR_MMIO_BASE,
+			                     Processor_driver::PL390_CPU_MMIO_BASE)
 			{
 				/* configure every shared peripheral interrupt */
 				for (unsigned i=MIN_SPI; i <= _max_interrupt; i++) {

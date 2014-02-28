@@ -22,7 +22,7 @@ namespace Genode
 	/**
 	 * CPU driver for core
 	 */
-	class Cpu : public Cortex_a9::Cpu
+	class Processor_driver : public Cortex_a9::Cpu
 	{
 		public:
 
@@ -37,6 +37,8 @@ namespace Genode
 			static unsigned id() { return primary_id(); }
 	};
 }
+
+namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
 
 #endif /* _PANDA__PROCESSOR_DRIVER_H_ */
 

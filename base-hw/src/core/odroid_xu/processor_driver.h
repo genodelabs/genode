@@ -22,7 +22,7 @@ namespace Genode
 	/**
 	 * CPU driver for core
 	 */
-	class Cpu : public Cortex_a15::Cpu
+	class Processor_driver : public Cortex_a15::Cpu
 	{
 		public:
 
@@ -37,6 +37,8 @@ namespace Genode
 			static unsigned primary_id() { return primary_id(); }
 	};
 }
+
+namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
 
 #endif /* _ODROID_XU__PROCESSOR_DRIVER_H_ */
 

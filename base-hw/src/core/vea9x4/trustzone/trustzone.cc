@@ -28,10 +28,10 @@ void Kernel::init_trustzone(Pic * pic)
 		return;
 	}
 	/* set exception vector entry */
-	Genode::Cpu::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
+	Processor_driver::mon_exception_entry_at((Genode::addr_t)&_mon_kernel_entry);
 
 	/* enable coprocessor access for TZ VMs */
-	Genode::Cpu::allow_coprocessor_nonsecure();
+	Processor_driver::allow_coprocessor_nonsecure();
 
 	/* set unsecure IRQs */
 	pic->unsecure(34); //Timer 0/1

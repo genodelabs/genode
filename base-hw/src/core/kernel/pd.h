@@ -115,7 +115,6 @@ class Kernel::Mode_transition_control
 
 	private:
 
-		typedef Genode::Cpu             Cpu;
 		typedef Genode::Cpu_state_modes Cpu_state_modes;
 		typedef Genode::Page_flags      Page_flags;
 
@@ -151,7 +150,7 @@ class Kernel::Mode_transition_control
 		enum {
 			SIZE_LOG2 = Tlb::MIN_PAGE_SIZE_LOG2,
 			SIZE = 1 << SIZE_LOG2,
-			VIRT_BASE = Cpu::EXCEPTION_ENTRY,
+			VIRT_BASE = Processor_driver::EXCEPTION_ENTRY,
 			VIRT_END = VIRT_BASE + SIZE,
 			ALIGNM_LOG2 = SIZE_LOG2,
 		};
@@ -161,7 +160,7 @@ class Kernel::Mode_transition_control
 		 *
 		 * \param c  CPU context for kernel mode entry
 		 */
-		Mode_transition_control(Cpu::Context * const c)
+		Mode_transition_control(Processor_driver::Context * const c)
 		:
 			_virt_user_entry(VIRT_BASE + ((addr_t)&_mt_user_entry_pic -
 			                 (addr_t)&_mt_begin))
@@ -176,10 +175,11 @@ class Kernel::Mode_transition_control
 			addr_t const kc_begin = (addr_t)&_mt_master_context_begin;
 			addr_t const kc_end = (addr_t)&_mt_master_context_end;
 			size_t const kc_size = kc_end - kc_begin;
-			assert(sizeof(Cpu::Context) <= kc_size);
+			assert(sizeof(Processor_driver::Context) <= kc_size);
 
 			/* fetch kernel-mode context */
-			Genode::memcpy(&_mt_master_context_begin, c, sizeof(Cpu::Context));
+			Genode::memcpy(&_mt_master_context_begin, c,
+			               sizeof(Processor_driver::Context));
 		}
 
 		/**
@@ -204,7 +204,7 @@ class Kernel::Mode_transition_control
 		 * \param context       targeted userland context
 		 * \param processor_id  kernel name of targeted processor
 		 */
-		void continue_user(Cpu::Context * const context,
+		void continue_user(Processor_driver::Context * const context,
 		                   unsigned const processor_id)
 		{
 			_continue_client(context, processor_id, _virt_user_entry);
@@ -226,8 +226,6 @@ class Kernel::Mode_transition_control
 class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 {
 	private:
-
-		typedef Genode::Cpu        Cpu;
 
 		Tlb * const         _tlb;
 		Platform_pd * const _platform_pd;
@@ -277,7 +275,7 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		/**
 		 * Let the CPU context 'c' join the PD
 		 */
-		void admit(Cpu::Context * const c)
+		void admit(Processor_driver::Context * const c)
 		{
 			c->protection_domain(id());
 			c->tlb(tlb()->base());

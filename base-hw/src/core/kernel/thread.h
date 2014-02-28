@@ -27,8 +27,7 @@ namespace Kernel
 	class Thread;
 	class Pd;
 
-	typedef Genode::Cpu           Cpu;
-	typedef Genode::Native_utcb   Native_utcb;
+	typedef Genode::Native_utcb Native_utcb;
 
 	/**
 	 * Kernel backend for userland execution-contexts
@@ -48,7 +47,7 @@ namespace Kernel
 }
 
 
-struct Kernel::Cpu_context : Cpu::Context
+struct Kernel::Cpu_context : Processor_driver::Context
 {
 	private:
 
@@ -70,7 +69,7 @@ struct Kernel::Cpu_context : Cpu::Context
 
 class Kernel::Thread
 :
-	public Cpu::User_context,
+	public Processor_driver::User_context,
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
 	public Execution_context,
 	public Ipc_node,

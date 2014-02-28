@@ -30,8 +30,8 @@ namespace Cortex_a9
 			/**
 			 * Constructor
 			 */
-			Pic() : Arm_gic::Pic(Genode::Cpu::PL390_DISTRIBUTOR_MMIO_BASE,
-			                     Genode::Cpu::PL390_CPU_MMIO_BASE) { }
+			Pic() : Arm_gic::Pic(Processor_driver::PL390_DISTRIBUTOR_MMIO_BASE,
+			                     Processor_driver::PL390_CPU_MMIO_BASE) { }
 	};
 }
 

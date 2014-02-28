@@ -90,7 +90,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 				_interrupt(processor_id);
 				return;
 			case Genode::Cpu_state::DATA_ABORT:
-				_state->dfar = Genode::Cpu::Dfar::read();
+				_state->dfar = Processor_driver::Dfar::read();
 			default:
 				Execution_context::_unschedule();
 				_context->submit(1);
