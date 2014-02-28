@@ -342,7 +342,7 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 		 *
 		 * \param processor_id  kernel name of targeted processor
 		 */
-		virtual void handle_exception(unsigned const processor_id) = 0;
+		virtual void exception(unsigned const processor_id) = 0;
 
 		/**
 		 * Continue execution

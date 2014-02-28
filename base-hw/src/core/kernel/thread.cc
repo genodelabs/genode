@@ -223,7 +223,7 @@ Thread::init(Processor * const processor, unsigned const pd_id_arg,
 void Thread::_stop() { _unschedule(STOPPED); }
 
 
-void Thread::handle_exception(unsigned const processor_id)
+void Thread::exception(unsigned const processor_id)
 {
 	switch (cpu_exception) {
 	case SUPERVISOR_CALL:

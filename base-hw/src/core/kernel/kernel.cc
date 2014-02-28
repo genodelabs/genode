@@ -281,7 +281,7 @@ extern "C" void kernel()
 	unsigned const processor_id = Cpu::id();
 	Processor * const processor = multiprocessor()->select(processor_id);
 	Processor_scheduler * const scheduler = processor->scheduler();
-	scheduler->head()->handle_exception(processor_id);
+	scheduler->head()->exception(processor_id);
 	scheduler->head()->proceed(processor_id);
 }
 

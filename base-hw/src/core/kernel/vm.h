@@ -82,7 +82,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 ** Execution_context **
 		 ***********************/
 
-		void handle_exception(unsigned const processor_id)
+		void exception(unsigned const processor_id)
 		{
 			switch(_state->cpu_exception) {
 			case Genode::Cpu_state::INTERRUPT_REQUEST:

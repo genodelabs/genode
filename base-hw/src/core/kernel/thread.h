@@ -320,7 +320,7 @@ class Kernel::Thread
 		 ** Execution_context **
 		 ***********************/
 
-		void handle_exception(unsigned const processor_id);
+		void exception(unsigned const processor_id);
 		void proceed(unsigned const processor_id);
 
 
