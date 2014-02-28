@@ -15,7 +15,7 @@
 #define _CPU__CORTEX_A9_H_
 
 /* core includes */
-#include <cpu/arm_v7.h>
+#include <processor_driver/arm_v7.h>
 #include <board.h>
 
 namespace Cortex_a9

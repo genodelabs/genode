@@ -15,7 +15,7 @@
 #define _ODROID_XU__CPU_H_
 
 /* core includes */
-#include <cpu/cortex_a15.h>
+#include <processor_driver/cortex_a15.h>
 
 namespace Genode
 {

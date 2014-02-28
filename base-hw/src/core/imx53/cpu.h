@@ -15,7 +15,7 @@
 #define _IMX53__CPU_H_
 
 /* core includes */
-#include <cpu/cortex_a8.h>
+#include <processor_driver/cortex_a8.h>
 
 namespace Genode
 {

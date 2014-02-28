@@ -15,7 +15,7 @@
 #define _RPI__CPU_H_
 
 /* core includes */
-#include <cpu/arm_v6.h>
+#include <processor_driver/arm_v6.h>
 
 namespace Genode { struct Cpu : Arm_v6::Cpu { }; }
 

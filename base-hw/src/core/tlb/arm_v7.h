@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <tlb/arm.h>
-#include <cpu/arm_v7.h>
+#include <processor_driver/arm_v7.h>
 
 namespace Arm_v7
 {

@@ -5,19 +5,24 @@
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2012 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CPU__CORTEX_A8_H_
-#define _CPU__CORTEX_A8_H_
+#ifndef _CPU__CORTEX_A15_H_
+#define _CPU__CORTEX_A15_H_
+
+/* Genode includes */
+#include <util/register.h>
+#include <base/printf.h>
 
 /* core includes */
-#include <cpu/arm_v7.h>
+#include <processor_driver/arm_v7.h>
+#include <board.h>
 
-namespace Cortex_a8
+namespace Cortex_a15
 {
 	using namespace Genode;
 
@@ -28,10 +33,12 @@ namespace Cortex_a8
 	{
 		/**
 		 * Ensure that TLB insertions get applied
+		 *
+		 * Nothing to do because MMU uses caches on pagetable walks
 		 */
-		static void tlb_insertions() { flush_tlb(); }
+		static void tlb_insertions() { }
 	};
 }
 
-#endif /* _CPU__CORTEX_A8_H_ */
+#endif /* _CPU__CORTEX_A15_H_ */
 

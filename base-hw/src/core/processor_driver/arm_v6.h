@@ -19,7 +19,7 @@
 #include <base/printf.h>
 
 /* core includes */
-#include <cpu/arm.h>
+#include <processor_driver/arm.h>
 #include <board.h>
 
 namespace Arm_v6

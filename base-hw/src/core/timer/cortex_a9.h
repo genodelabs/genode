@@ -18,7 +18,7 @@
 #include <util/mmio.h>
 
 /* core includes */
-#include <cpu/cortex_a9.h>
+#include <processor_driver/cortex_a9.h>
 
 namespace Cortex_a9
 {

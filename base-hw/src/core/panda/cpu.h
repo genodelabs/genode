@@ -15,7 +15,7 @@
 #define _PANDA__CPU_H_
 
 /* core includes */
-#include <cpu/cortex_a9.h>
+#include <processor_driver/cortex_a9.h>
 
 namespace Genode
 {

@@ -15,7 +15,7 @@
 #define _IMX31__CPU_H_
 
 /* core includes */
-#include <cpu/arm_v6.h>
+#include <processor_driver/arm_v6.h>
 
 namespace Genode
 {
