@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _VEA9X4__CPU_H_
-#define _VEA9X4__CPU_H_
+#ifndef _VEA9X4__PROCESSOR_DRIVER_H_
+#define _VEA9X4__PROCESSOR_DRIVER_H_
 
 /* core includes */
 #include <processor_driver/cortex_a9.h>
@@ -38,5 +38,5 @@ namespace Genode
 	};
 }
 
-#endif /* _VEA9X4__CPU_H_ */
+#endif /* _VEA9X4__PROCESSOR_DRIVER_H_ */
 

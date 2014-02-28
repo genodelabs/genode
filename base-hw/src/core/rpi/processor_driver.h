@@ -11,13 +11,13 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _RPI__CPU_H_
-#define _RPI__CPU_H_
+#ifndef _RPI__PROCESSOR_DRIVER_H_
+#define _RPI__PROCESSOR_DRIVER_H_
 
 /* core includes */
 #include <processor_driver/arm_v6.h>
 
 namespace Genode { struct Cpu : Arm_v6::Cpu { }; }
 
-#endif /* _RPI__CPU_H_ */
+#endif /* _RPI__PROCESSOR_DRIVER_H_ */
 

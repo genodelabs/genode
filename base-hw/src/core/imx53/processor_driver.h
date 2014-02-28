@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _IMX53__CPU_H_
-#define _IMX53__CPU_H_
+#ifndef _IMX53__PROCESSOR_DRIVER_H_
+#define _IMX53__PROCESSOR_DRIVER_H_
 
 /* core includes */
 #include <processor_driver/cortex_a8.h>
@@ -38,5 +38,5 @@ namespace Genode
 	};
 }
 
-#endif /* _IMX53__CPU_H_ */
+#endif /* _IMX53__PROCESSOR_DRIVER_H_ */
 

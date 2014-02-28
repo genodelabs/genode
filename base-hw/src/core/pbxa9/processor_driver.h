@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _PBXA9__CPU_H_
-#define _PBXA9__CPU_H_
+#ifndef _PBXA9__PROCESSOR_DRIVER_H_
+#define _PBXA9__PROCESSOR_DRIVER_H_
 
 /* core includes */
 #include <processor_driver/cortex_a9.h>
@@ -38,5 +38,5 @@ namespace Genode
 	};
 }
 
-#endif /* _PBXA9__CPU_H_ */
+#endif /* _PBXA9__PROCESSOR_DRIVER_H_ */
 

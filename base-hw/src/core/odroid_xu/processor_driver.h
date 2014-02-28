@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _ODROID_XU__CPU_H_
-#define _ODROID_XU__CPU_H_
+#ifndef _ODROID_XU__PROCESSOR_DRIVER_H_
+#define _ODROID_XU__PROCESSOR_DRIVER_H_
 
 /* core includes */
 #include <processor_driver/cortex_a15.h>
@@ -38,5 +38,5 @@ namespace Genode
 	};
 }
 
-#endif /* _ODROID_XU__CPU_H_ */
+#endif /* _ODROID_XU__PROCESSOR_DRIVER_H_ */
 
