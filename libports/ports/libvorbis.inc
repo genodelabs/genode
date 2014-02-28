@@ -1,0 +1,2 @@
+LIBVORBIS_VERSION := 1.3.4
+LIBVORBIS         := libvorbis-$(LIBVORBIS_VERSION)
