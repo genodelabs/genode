@@ -12,9 +12,9 @@
  */
 
 /* core includes */
+#include <kernel/multiprocessor.h>
 #include <kernel/irq.h>
 #include <pic.h>
-#include <processor_driver.h>
 
 using namespace Kernel;
 
@@ -22,4 +22,4 @@ namespace Kernel { Pic * pic(); }
 
 void Irq::_disable() const { pic()->mask(_id()); }
 
-void Irq::_enable() const { pic()->unmask(_id(), Processor_driver::id()); }
+void Irq::_enable() const { pic()->unmask(_id(), Processor::id()); }

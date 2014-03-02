@@ -19,6 +19,7 @@
 
 /* core includes */
 #include <kernel/thread.h>
+#include <processor_driver.h>
 
 namespace Kernel
 {
@@ -67,9 +68,7 @@ class Kernel::Idle_thread : public Thread
 		 */
 		static void _main()
 		{
-			while (1) {
-				Processor_driver::wait_for_interrupt();
-			}
+			while (1) { Processor_driver::wait_for_interrupt(); }
 		}
 
 	public:
@@ -89,7 +88,7 @@ class Kernel::Idle_thread : public Thread
 		}
 };
 
-class Kernel::Processor
+class Kernel::Processor : public Processor_driver
 {
 	private:
 
@@ -146,7 +145,7 @@ class Kernel::Multiprocessor
 		 */
 		Processor * primary() const
 		{
-			return (Processor *)_data[Processor_driver::primary_id()];
+			return (Processor *)_data[Processor::primary_id()];
 		}
 };
 

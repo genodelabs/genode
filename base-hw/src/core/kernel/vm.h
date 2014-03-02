@@ -23,7 +23,6 @@
 #include <kernel/pd.h>
 #include <kernel/multiprocessor.h>
 #include <kernel/signal_receiver.h>
-#include <processor_driver.h>
 
 namespace Kernel
 {
@@ -90,7 +89,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 				_interrupt(processor_id);
 				return;
 			case Genode::Cpu_state::DATA_ABORT:
-				_state->dfar = Processor_driver::Dfar::read();
+				_state->dfar = Processor::Dfar::read();
 			default:
 				Execution_context::_unschedule();
 				_context->submit(1);

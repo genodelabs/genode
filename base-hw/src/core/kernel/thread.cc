@@ -311,7 +311,7 @@ void Thread::_call_bin_pd()
 	tlb->~Tlb();
 
 	/* clean up buffers of memory management */
-	Processor_driver::flush_tlb_by_pid(pd->id());
+	Processor::flush_tlb_by_pid(pd->id());
 	user_arg_0(0);
 }
 
@@ -424,7 +424,7 @@ void Thread::_call_resume_thread()
 
 void Thread_event::_signal_acknowledged()
 {
-	Processor_driver::tlb_insertions();
+	Processor::tlb_insertions();
 	_thread->_resume();
 }
 
@@ -596,7 +596,7 @@ void Thread::_call_access_thread_regs()
 void Thread::_call_update_pd()
 {
 	assert(_core());
-	Processor_driver::flush_tlb_by_pid(user_arg_1());
+	Processor::flush_tlb_by_pid(user_arg_1());
 }
 
 
@@ -605,8 +605,8 @@ void Thread::_call_update_region()
 	assert(_core());
 
 	/* FIXME we don't handle instruction caches by now */
-	Processor_driver::flush_data_cache_by_virt_region((addr_t)user_arg_1(),
-	                                     (size_t)user_arg_2());
+	Processor::flush_data_cache_by_virt_region((addr_t)user_arg_1(),
+	                                           (size_t)user_arg_2());
 }
 
 

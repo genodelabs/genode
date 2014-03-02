@@ -183,7 +183,7 @@ extern "C" void init_kernel_uniprocessor()
 	multiprocessor();
 
 	/* go multiprocessor mode */
-	Processor_driver::start_secondary_processors(&_start_secondary_processors);
+	Processor::start_secondary_processors(&_start_secondary_processors);
 }
 
 /**
@@ -199,16 +199,16 @@ extern "C" void init_kernel_multiprocessor()
 	 ***********************************************************************/
 
 	/* synchronize data view of all processors */
-	Processor_driver::flush_data_caches();
-	Processor_driver::invalidate_instruction_caches();
-	Processor_driver::invalidate_control_flow_predictions();
-	Processor_driver::data_synchronization_barrier();
+	Processor::flush_data_caches();
+	Processor::invalidate_instruction_caches();
+	Processor::invalidate_control_flow_predictions();
+	Processor::data_synchronization_barrier();
 
 	/* initialize processor in physical mode */
-	Processor_driver::init_phys_kernel();
+	Processor::init_phys_kernel();
 
 	/* switch to core address space */
-	Processor_driver::init_virt_kernel(core_tlb_base, core_pd_id);
+	Processor::init_virt_kernel(core_tlb_base, core_pd_id);
 
 	/************************************
 	 ** Now it's safe to use 'cmpxchg' **
@@ -236,11 +236,11 @@ extern "C" void init_kernel_multiprocessor()
 
 	/* initialize interrupt controller */
 	pic()->init_processor_local();
-	unsigned const processor_id = Processor_driver::id();
+	unsigned const processor_id = Processor::id();
 	pic()->unmask(Timer::interrupt_id(processor_id), processor_id);
 
 	/* as primary processor create the core main thread */
-	if (Processor_driver::primary_id() == processor_id)
+	if (Processor::primary_id() == processor_id)
 	{
 		/* get stack memory that fullfills the constraints for core stacks */
 		enum {
@@ -278,7 +278,7 @@ extern "C" void init_kernel_multiprocessor()
 extern "C" void kernel()
 {
 	data_lock().lock();
-	unsigned const processor_id = Processor_driver::id();
+	unsigned const processor_id = Processor::id();
 	Processor * const processor = multiprocessor()->select(processor_id);
 	Processor_scheduler * const scheduler = processor->scheduler();
 	scheduler->head()->exception(processor_id);

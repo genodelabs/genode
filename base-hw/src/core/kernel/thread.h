@@ -19,8 +19,8 @@
 #include <kernel/scheduler.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
-#include <cpu_support.h>
 #include <processor_driver.h>
+#include <cpu_support.h>
 
 namespace Kernel
 {
