@@ -24,7 +24,7 @@ namespace Cortex_a8
 	/**
 	 * CPU driver for core
 	 */
-	struct Cpu : Arm_v7::Cpu
+	struct Processor_driver : Arm_v7::Processor_driver
 	{
 		/**
 		 * Ensure that TLB insertions get applied

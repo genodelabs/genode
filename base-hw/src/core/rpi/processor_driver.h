@@ -17,7 +17,7 @@
 /* core includes */
 #include <processor_driver/arm_v6.h>
 
-namespace Genode { class Processor_driver : public Arm_v6::Cpu { }; }
+namespace Genode { class Processor_driver : public Arm_v6::Processor_driver { }; }
 
 namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
 

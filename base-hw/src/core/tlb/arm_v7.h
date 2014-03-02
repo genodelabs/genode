@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <tlb/arm.h>
-#include <processor_driver/arm_v7.h>
+#include <processor_driver.h>
 
 namespace Arm_v7
 {
@@ -82,7 +82,7 @@ class Arm_v7::Section_table : public Arm::Section_table
 		/**
 		 * Constructor
 		 */
-		Section_table() : _secure(Arm_v7::Cpu::secure_mode()) { }
+		Section_table() : _secure(Processor_driver::secure_mode()) { }
 
 		/**
 		 * Insert one atomic translation into this table

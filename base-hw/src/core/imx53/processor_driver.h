@@ -22,7 +22,7 @@ namespace Genode
 	/**
 	 * CPU driver for core
 	 */
-	class Processor_driver : public Cortex_a8::Cpu
+	class Processor_driver : public Cortex_a8::Processor_driver
 	{
 		public:
 

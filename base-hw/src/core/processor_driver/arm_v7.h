@@ -25,7 +25,7 @@ namespace Arm_v7
 	/**
 	 * CPU driver for core
 	 */
-	struct Cpu : Arm::Cpu
+	struct Processor_driver : Arm::Processor_driver
 	{
 		/**
 		 * Secure configuration register
@@ -61,7 +61,7 @@ namespace Arm_v7
 		/**
 		 * System control register
 		 */
-		struct Sctlr : Arm::Cpu::Sctlr
+		struct Sctlr : Arm::Processor_driver::Sctlr
 		{
 			struct Unused_0 : Bitfield<3,4>  { }; /* shall be ~0 */
 			struct Sw       : Bitfield<10,1> { }; /* support SWP and SWPB */
@@ -96,7 +96,7 @@ namespace Arm_v7
 			static access_t init_phys_kernel()
 			{
 				return base_value() |
-				       Arm::Cpu::Sctlr::init_phys_kernel() |
+				       Arm::Processor_driver::Sctlr::init_phys_kernel() |
 				       Sw::bits(0) |
 				       Ha::bits(0) |
 				       Nmfi::bits(0) |
@@ -109,7 +109,7 @@ namespace Arm_v7
 			static access_t init_virt_kernel()
 			{
 				return base_value() |
-				       Arm::Cpu::Sctlr::init_virt_kernel() |
+				       Arm::Processor_driver::Sctlr::init_virt_kernel() |
 				       Sw::bits(0) |
 				       Ha::bits(0) |
 				       Nmfi::bits(0) |
@@ -120,7 +120,7 @@ namespace Arm_v7
 		/**
 		 * Translation table base register 0
 		 */
-		struct Ttbr0 : Arm::Cpu::Ttbr0
+		struct Ttbr0 : Arm::Processor_driver::Ttbr0
 		{
 			struct Nos : Bitfield<5,1> { }; /* not outer shareable */
 
@@ -134,7 +134,7 @@ namespace Arm_v7
 			 */
 			static access_t init_virt_kernel(addr_t const sect_table)
 			{
-				return Arm::Cpu::Ttbr0::init_virt_kernel(sect_table) |
+				return Arm::Processor_driver::Ttbr0::init_virt_kernel(sect_table) |
 				       Nos::bits(0) |
 				       Irgn_1::bits(0) |
 				       Irgn_0::bits(1);
@@ -144,7 +144,7 @@ namespace Arm_v7
 		/**
 		 * Translation table base control register
 		 */
-		struct Ttbcr : Arm::Cpu::Ttbcr
+		struct Ttbcr : Arm::Processor_driver::Ttbcr
 		{
 			struct Pd0 : Bitfield<4,1> { }; /* disable walk for TTBR0 */
 			struct Pd1 : Bitfield<5,1> { }; /* disable walk for TTBR1 */
@@ -154,7 +154,7 @@ namespace Arm_v7
 			 */
 			static access_t init_virt_kernel()
 			{
-				return Arm::Cpu::Ttbcr::init_virt_kernel() |
+				return Arm::Processor_driver::Ttbcr::init_virt_kernel() |
 				       Pd0::bits(0) |
 				       Pd1::bits(0);
 			}
@@ -194,7 +194,7 @@ namespace Arm_v7
 		static bool secure_mode()
 		{
 			if (!Board::SECURITY_EXTENSION) return 0;
-			return !Cpu::Scr::Ns::get(Cpu::Scr::read());
+			return !Scr::Ns::get(Scr::read());
 		}
 
 
@@ -258,11 +258,11 @@ namespace Arm_v7
 }
 
 
-/**************
- ** Arm::Cpu **
- **************/
+/***************************
+ ** Arm::Processor_driver **
+ ***************************/
 
-void Arm::Cpu::flush_data_caches()
+void Arm::Processor_driver::flush_data_caches()
 {
 	/*
 	 * FIXME This routine is taken from the ARMv7 reference manual by
@@ -318,7 +318,7 @@ void Arm::Cpu::flush_data_caches()
 }
 
 
-Arm::Cpu::Psr::access_t Arm::Cpu::Psr::init_user_with_trustzone()
+Arm::Processor_driver::Psr::access_t Arm::Processor_driver::Psr::init_user_with_trustzone()
 {
 	return M::bits(M::USER) |
 	       T::bits(T::ARM) |

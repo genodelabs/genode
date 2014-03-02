@@ -18,7 +18,7 @@
 #include <util/mmio.h>
 
 /* core includes */
-#include <processor_driver/cortex_a9.h>
+#include <processor_driver.h>
 
 namespace Cortex_a9
 {
@@ -27,7 +27,7 @@ namespace Cortex_a9
 	 */
 	class Timer : public Mmio
 	{
-		enum { TICS_PER_MS = Cortex_a9::Cpu::PRIVATE_TIMER_CLK / 1000, };
+		enum { TICS_PER_MS = Processor_driver::PRIVATE_TIMER_CLK / 1000, };
 
 		/**
 		 * Load value register
@@ -58,7 +58,7 @@ namespace Cortex_a9
 			/**
 			 * Constructor, clears the interrupt output
 			 */
-			Timer() : Mmio(Cortex_a9::Cpu::PRIVATE_TIMER_MMIO_BASE)
+			Timer() : Mmio(Processor_driver::PRIVATE_TIMER_MMIO_BASE)
 			{
 				write<Control::Timer_enable>(0);
 				_clear_interrupt();
@@ -69,7 +69,7 @@ namespace Cortex_a9
 			 */
 			static unsigned interrupt_id(unsigned)
 			{
-				return Cortex_a9::Cpu::PRIVATE_TIMER_IRQ;
+				return Processor_driver::PRIVATE_TIMER_IRQ;
 			}
 
 			/**

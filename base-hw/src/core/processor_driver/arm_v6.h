@@ -29,12 +29,12 @@ namespace Arm_v6
 	/**
 	 * CPU driver for core
 	 */
-	struct Cpu : Arm::Cpu
+	struct Processor_driver : Arm::Processor_driver
 	{
 		/**
 		 * Cache type register
 		 */
-		struct Ctr : Arm::Cpu::Ctr
+		struct Ctr : Arm::Processor_driver::Ctr
 		{
 			struct P : Bitfield<23, 1> { }; /* page mapping restriction on */
 		};
@@ -42,7 +42,7 @@ namespace Arm_v6
 		/**
 		 * System control register
 		 */
-		struct Sctlr : Arm::Cpu::Sctlr
+		struct Sctlr : Arm::Processor_driver::Sctlr
 		{
 			struct W : Bitfield<3,1> { };  /* enable write buffer */
 
@@ -75,7 +75,7 @@ namespace Arm_v6
 			static access_t init_virt_kernel()
 			{
 				return base_value() |
-				       Arm::Cpu::Sctlr::init_virt_kernel() |
+				       Arm::Processor_driver::Sctlr::init_virt_kernel() |
 				       W::bits(0) |
 				       B::bits(B::LITTLE) |
 				       S::bits(0) |
@@ -93,7 +93,7 @@ namespace Arm_v6
 			static access_t init_phys_kernel()
 			{
 				return base_value() |
-				       Arm::Cpu::Sctlr::init_phys_kernel() |
+				       Arm::Processor_driver::Sctlr::init_phys_kernel() |
 				       W::bits(0) |
 				       B::bits(B::LITTLE) |
 				       S::bits(0) |
@@ -109,7 +109,7 @@ namespace Arm_v6
 		/**
 		 * Translation table base control register 0
 		 */
-		struct Ttbr0 : Arm::Cpu::Ttbr0
+		struct Ttbr0 : Arm::Processor_driver::Ttbr0
 		{
 			struct C : Bitfield<0,1> /* inner cachable mode */
 			{
@@ -125,7 +125,7 @@ namespace Arm_v6
 			 */
 			static access_t init_virt_kernel(addr_t const sect_table)
 			{
-				return Arm::Cpu::Ttbr0::init_virt_kernel(sect_table) |
+				return Arm::Processor_driver::Ttbr0::init_virt_kernel(sect_table) |
 				       P::bits(0) |
 				       C::bits(C::NON_CACHEABLE);
 			}
@@ -217,11 +217,11 @@ namespace Arm_v6
 }
 
 
-/**************
- ** Arm::Cpu **
- **************/
+/***************************
+ ** Arm::Processor_driver **
+ ***************************/
 
-void Arm::Cpu::flush_data_caches()
+void Arm::Processor_driver::flush_data_caches()
 {
 	asm volatile ("mcr p15, 0, %[rd], c7, c14, 0" :: [rd]"r"(0) : );
 }

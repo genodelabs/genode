@@ -29,7 +29,7 @@ namespace Arm
 	/**
 	 * CPU driver for core
 	 */
-	struct Cpu
+	struct Processor_driver
 	{
 		enum {
 			TTBCR_N = 0,
