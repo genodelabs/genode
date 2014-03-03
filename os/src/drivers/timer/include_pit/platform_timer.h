@@ -64,12 +64,14 @@ class Platform_timer
 		unsigned long mutable      _curr_time_usec;
 		unsigned long mutable      _counter_init_value;
 		Genode::Lock  mutable      _update_curr_time_lock;
+		bool          mutable      _handled_wrap;
 
 		/**
 		 * Set PIT counter value
 		 */
 		void _set_counter(Genode::uint16_t value)
 		{
+			_handled_wrap = false;
 			_io_port.outb(PIT_DATA_PORT_0, value & 0xff);
 			_io_port.outb(PIT_DATA_PORT_0, (value >> 8) & 0xff);
 		}
@@ -104,7 +106,8 @@ class Platform_timer
 			_io_port(PIT_DATA_PORT_0, PIT_CMD_PORT - PIT_DATA_PORT_0 + 1),
 			_timer_irq(IRQ_PIT),
 			_curr_time_usec(0),
-			_counter_init_value(0)
+			_counter_init_value(0),
+			_handled_wrap(false)
 		{
 			/* operate PIT in one-shot mode */
 			_io_port.outb(PIT_CMD_PORT, PIT_CMD_SELECT_CHANNEL_0 |
@@ -114,7 +117,7 @@ class Platform_timer
 		/**
 		 * Return current time-counter value in microseconds
 		 *
-		 * This function has to be executed regulary,
+		 * This function has to be executed regularly,
 		 * at least all max_timeout() usecs.
 		 */
 		unsigned long curr_time() const
@@ -134,10 +137,11 @@ class Platform_timer
 			curr_counter = const_cast<Platform_timer *>(this)->_read_counter(&wrapped);
 
 			/* determine the time since we looked at the counter */
-			if (wrapped)
+			if (wrapped && !_handled_wrap) {
 				/* the counter wrapped from 0 to 0xffff */
 				passed_ticks = _counter_init_value + PIT_MAX_COUNT - curr_counter;
-			else
+				_handled_wrap = true;
+			} else
 				passed_ticks = _counter_init_value - curr_counter;
 
 			_curr_time_usec += (passed_ticks*1000)/PIT_TICKS_PER_MSEC;
