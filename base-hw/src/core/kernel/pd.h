@@ -20,7 +20,7 @@
 /* core includes */
 #include <kernel/configuration.h>
 #include <kernel/object.h>
-#include <kernel/multiprocessor.h>
+#include <kernel/processor.h>
 #include <tlb.h>
 #include <assert.h>
 

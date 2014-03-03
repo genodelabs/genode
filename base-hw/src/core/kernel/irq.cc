@@ -12,7 +12,7 @@
  */
 
 /* core includes */
-#include <kernel/multiprocessor.h>
+#include <kernel/processor.h>
 #include <kernel/irq.h>
 #include <pic.h>
 

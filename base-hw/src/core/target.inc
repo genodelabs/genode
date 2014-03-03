@@ -53,7 +53,7 @@ SRC_CC += console.cc \
           kernel/signal_receiver.cc \
           kernel/irq.cc \
           kernel/scheduler.cc \
-          kernel/multiprocessor.cc \
+          kernel/processor.cc \
           rm_session_support.cc \
           trustzone.cc \
           pager.cc \

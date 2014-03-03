@@ -11,8 +11,8 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _KERNEL__MULTIPROCESSOR_H_
-#define _KERNEL__MULTIPROCESSOR_H_
+#ifndef _KERNEL__PROCESSOR_H_
+#define _KERNEL__PROCESSOR_H_
 
 /* base includes */
 #include <unmanaged_singleton.h>
@@ -149,4 +149,4 @@ class Kernel::Multiprocessor
 		}
 };
 
-#endif /* _KERNEL__MULTIPROCESSOR_H_ */
+#endif /* _KERNEL__PROCESSOR_H_ */

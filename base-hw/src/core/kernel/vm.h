@@ -21,7 +21,7 @@
 #include <kernel/scheduler.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
-#include <kernel/multiprocessor.h>
+#include <kernel/processor.h>
 #include <kernel/signal_receiver.h>
 
 namespace Kernel

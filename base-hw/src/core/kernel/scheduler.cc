@@ -12,8 +12,7 @@
  */
 
 /* core includes */
-#include <kernel/scheduler.h>
-#include <kernel/multiprocessor.h>
+#include <kernel/processor.h>
 #include <kernel/irq.h>
 #include <pic.h>
 #include <timer.h>

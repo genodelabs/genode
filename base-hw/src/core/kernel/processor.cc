@@ -1,5 +1,5 @@
 /*
- * \brief   Representation of a common instruction processor
+ * \brief   Provide a processor object for every available processor
  * \author  Martin Stein
  * \date    2014-01-14
  */
@@ -12,7 +12,7 @@
  */
 
 /* core includes */
-#include <kernel/multiprocessor.h>
+#include <kernel/processor.h>
 
 using namespace Kernel;
 
