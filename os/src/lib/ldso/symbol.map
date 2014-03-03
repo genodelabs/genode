@@ -88,6 +88,11 @@
 		/* Linux */
 		lx_syscall;
 
+		/* Base HW */
+		extern "C++" {
+			Kernel::*;
+		};
+
 	local:
 
 		/*
