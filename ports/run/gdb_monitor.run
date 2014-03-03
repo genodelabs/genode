@@ -228,14 +228,14 @@ if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $gdb_output]
 	exit -1
 }
 
-if {![regexp {Genode::Ipc_istream::_wait} $gdb_output] ||
-    ![regexp {Genode::Ipc_server::_wait} $gdb_output] ||
-    ![regexp {Genode::sleep_forever ()} $gdb_output]} {
+if {![regexp {thread_stop_myself \(\)} $gdb_output] ||
+    ![regexp {Genode::Cancelable_lock::lock \(this=} $gdb_output] ||
+    ![regexp {Genode::Thread_base::join \(this=} $gdb_output] ||
+    ![regexp {in main \(\)} $gdb_output]} {
 
-	if {![have_spec nova]} {
-		puts stderr "Error: Stack trace when in syscall is not as expected"
-		exit -1
-	}
+	puts stderr "Error: Stack trace when in syscall is not as expected"
+	exit -1
+
 }
 
 puts "Test succeeded"

@@ -224,6 +224,9 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
  ** Ipc_istream **
  *****************/
 
+/* Build with frame pointer to make GDB backtraces work. See issue #1061. */
+__attribute__((optimize("-fno-omit-frame-pointer")))
+__attribute__((noinline))
 void Ipc_istream::_wait()
 {
 	l4_umword_t label = 0;

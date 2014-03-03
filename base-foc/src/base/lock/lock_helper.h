@@ -79,7 +79,12 @@ static inline void thread_switch_to(Genode::Thread_base *thread_base)
 /**
  * Unconditionally block the calling thread
  */
-static inline void thread_stop_myself()
+
+/* Build with frame pointer to make GDB backtraces work. See issue #1061. */
+__attribute__((optimize("-fno-omit-frame-pointer")))
+__attribute__((noinline))
+__attribute__((used))
+static void thread_stop_myself()
 {
 	using namespace Fiasco;
 

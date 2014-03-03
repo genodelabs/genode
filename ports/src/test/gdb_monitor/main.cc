@@ -89,7 +89,7 @@ int main(void)
 
 	test_thread.start();
 
-	Genode::sleep_forever();
+	test_thread.join();
 
 	return 0;
 }

@@ -64,6 +64,10 @@ static unsigned long _core_pager_stack[PAGER_STACK_ELEMENTS];
 /**
  * Core pager "service loop"
  */
+
+/* Build with frame pointer to make GDB backtraces work. See issue #1061. */
+__attribute__((optimize("-fno-omit-frame-pointer")))
+__attribute__((noinline))
 static void _core_pager_loop()
 {
 	using namespace Fiasco;

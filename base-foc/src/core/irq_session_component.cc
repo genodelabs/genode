@@ -224,6 +224,9 @@ Irq_session_component::~Irq_session_component() {
  ** Interrupt handler implemtentation **
  ***************************************/
 
+/* Build with frame pointer to make GDB backtraces work. See issue #1061. */
+__attribute__((optimize("-fno-omit-frame-pointer")))
+__attribute__((noinline))
 void Interrupt_handler::entry()
 {
 	using namespace Fiasco;

@@ -72,6 +72,9 @@ namespace Genode {
 			 ** Signal source interface **
 			 *****************************/
 
+			/* Build with frame pointer to make GDB backtraces work. See issue #1061. */
+			__attribute__((optimize("-fno-omit-frame-pointer")))
+			__attribute__((noinline))
 			Signal wait_for_signal()
 			{
 				using namespace Fiasco;

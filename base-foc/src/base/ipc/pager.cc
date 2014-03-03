@@ -60,6 +60,9 @@ void Ipc_pager::_parse_msg_type()
 }
 
 
+/* Build with frame pointer to make GDB backtraces work. See issue #1061. */
+__attribute__((optimize("-fno-omit-frame-pointer")))
+__attribute__((noinline))
 void Ipc_pager::wait_for_fault()
 {
 	l4_umword_t label;
