@@ -180,7 +180,7 @@ extern "C" void init_kernel_uniprocessor()
 	core_pd_id    = core_id();
 
 	/* initialize all processor objects */
-	multiprocessor();
+	processor_pool();
 
 	/* go multiprocessor mode */
 	Processor::start_secondary_processors(&_start_secondary_processors);
@@ -263,7 +263,7 @@ extern "C" void init_kernel_multiprocessor()
 		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
 		t.ip = (addr_t)CORE_MAIN;;
 		t.sp = (addr_t)s + STACK_SIZE;
-		t.init(multiprocessor()->select(processor_id), core_id(), &utcb, 1);
+		t.init(processor_pool()->select(processor_id), core_id(), &utcb, 1);
 
 		/* kernel initialization finished */
 		init_platform();
@@ -279,7 +279,7 @@ extern "C" void kernel()
 {
 	data_lock().lock();
 	unsigned const processor_id = Processor::id();
-	Processor * const processor = multiprocessor()->select(processor_id);
+	Processor * const processor = processor_pool()->select(processor_id);
 	Processor_scheduler * const scheduler = processor->scheduler();
 	scheduler->head()->exception(processor_id);
 	scheduler->head()->proceed(processor_id);

@@ -376,7 +376,7 @@ void Thread::_call_start_thread()
 	 *        Instead we always assign the primary processor.
 	 */
 	if (cpu_id) { PERR("multiprocessing not supported"); }
-	t->init(multiprocessor()->primary(), pd_id, utcb, 1);
+	t->init(processor_pool()->primary(), pd_id, utcb, 1);
 	user_arg_0((Call_ret)t->_pd->tlb());
 }
 

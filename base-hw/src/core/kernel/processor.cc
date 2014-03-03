@@ -17,8 +17,8 @@
 using namespace Kernel;
 
 
-Multiprocessor * Kernel::multiprocessor()
+Processor_pool * Kernel::processor_pool()
 {
-	static Multiprocessor s;
+	static Processor_pool s;
 	return &s;
 }

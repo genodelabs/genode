@@ -38,12 +38,12 @@ namespace Kernel
 	/**
 	 * Provides a processor object for every provided processor
 	 */
-	class Multiprocessor;
+	class Processor_pool;
 
 	/**
-	 * Return multiprocessor singleton
+	 * Return Processor_pool singleton
 	 */
-	Multiprocessor * multiprocessor();
+	Processor_pool * processor_pool();
 
 	/**
 	 * Return kernel name of the core protection-domain
@@ -110,7 +110,7 @@ class Kernel::Processor : public Processor_driver
 		Processor_scheduler * scheduler() { return &_scheduler; }
 };
 
-class Kernel::Multiprocessor
+class Kernel::Processor_pool
 {
 	private:
 
@@ -123,7 +123,7 @@ class Kernel::Multiprocessor
 		 *
 		 * \param id  kernel name of the targeted processor
 		 */
-		Multiprocessor()
+		Processor_pool()
 		{
 			for (unsigned i = 0; i < PROCESSORS; i++) {
 				new (_data[i]) Processor;
