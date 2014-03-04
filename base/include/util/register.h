@@ -199,12 +199,12 @@ namespace Genode
 			{ return (reg >> SHIFT) & mask(); }
 
 			/**
-			 * Get registervalue 'reg' with this bitfield set to zero
+			 * Get register value 'reg' with this bitfield set to zero
 			 */
 			static inline void clear(access_t & reg) { reg &= clear_mask(); }
 
 			/**
-			 * Get registervalue 'reg' with this bitfield set to 'value'
+			 * Get register value 'reg' with this bitfield set to 'value'
 			 */
 			static inline void set(access_t & reg, access_t const value = ~0)
 			{
@@ -237,7 +237,7 @@ namespace Genode
 		typedef Bitset_2<Bits_0, Bits_1> Bitset_2_base;
 
 		/**
-		 * Get register with the bitset set to a given value and rest left 0
+		 * Convert bitset value to register representation
 		 *
 		 * \param T  access type of register
 		 * \param v  bitset value
@@ -274,7 +274,7 @@ namespace Genode
 		typedef Bitset_3<Bits_0, Bits_1, Bits_2> Bitset_3_base;
 
 		/**
-		 * Get register with the bitset set to a given value and rest left 0
+		 * Convert bitset value to register representation
 		 *
 		 * \param T  access type of register
 		 * \param v  bitset value
