@@ -62,7 +62,7 @@ class Platform_timer
 		Genode::Io_port_connection _io_port;
 		Genode::Irq_connection     _timer_irq;
 		unsigned long mutable      _curr_time_usec;
-		unsigned long mutable      _counter_init_value;
+		Genode::uint16_t mutable   _counter_init_value;
 		Genode::Lock  mutable      _update_curr_time_lock;
 		bool          mutable      _handled_wrap;
 
@@ -79,18 +79,18 @@ class Platform_timer
 		/**
 		 * Read current PIT counter value
 		 */
-		unsigned long _read_counter(bool *wrapped)
+		Genode::uint16_t _read_counter(bool *wrapped)
 		{
 			/* read-back count and status of counter 0 */
 			_io_port.outb(PIT_CMD_PORT, PIT_CMD_READ_BACK |
 			              PIT_CMD_RB_COUNT | PIT_CMD_RB_STATUS | PIT_CMD_RB_CHANNEL_0);
 
 			/* read status byte from latch register */
-			int status = _io_port.inb(PIT_DATA_PORT_0);
+			Genode::uint8_t status = _io_port.inb(PIT_DATA_PORT_0);
 
 			/* read low and high bytes from latch register */
-			int lo = _io_port.inb(PIT_DATA_PORT_0),
-			    hi = _io_port.inb(PIT_DATA_PORT_0);
+			Genode::uint16_t lo = _io_port.inb(PIT_DATA_PORT_0);
+			Genode::uint16_t hi = _io_port.inb(PIT_DATA_PORT_0);
 
 			*wrapped = status & PIT_STAT_INT_LINE ? true : false;
 			return (hi << 8) | lo;
@@ -124,7 +124,7 @@ class Platform_timer
 		{
 			Genode::Lock::Guard lock(_update_curr_time_lock);
 
-			unsigned long curr_counter, passed_ticks;
+			Genode::uint32_t passed_ticks;
 
 			/*
 			 * Read PIT count and status
@@ -134,15 +134,22 @@ class Platform_timer
 			 * explicitly override the const-ness of the 'this' pointer.
 			 */
 			bool wrapped;
-			curr_counter = const_cast<Platform_timer *>(this)->_read_counter(&wrapped);
+			Genode::uint16_t const curr_counter = const_cast<Platform_timer *>(this)->_read_counter(&wrapped);
 
 			/* determine the time since we looked at the counter */
 			if (wrapped && !_handled_wrap) {
-				/* the counter wrapped from 0 to 0xffff */
-				passed_ticks = _counter_init_value + PIT_MAX_COUNT - curr_counter;
+				passed_ticks = _counter_init_value;
+				/* the counter really wrapped around */
+				if (curr_counter)
+					passed_ticks += PIT_MAX_COUNT + 1 - curr_counter;
+
 				_handled_wrap = true;
-			} else
-				passed_ticks = _counter_init_value - curr_counter;
+			} else {
+				if (_counter_init_value)
+					passed_ticks = _counter_init_value - curr_counter;
+				else
+					passed_ticks = PIT_MAX_COUNT + 1 - curr_counter;
+			}
 
 			_curr_time_usec += (passed_ticks*1000)/PIT_TICKS_PER_MSEC;
 
