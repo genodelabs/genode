@@ -111,7 +111,8 @@ SRC_S  += Runtime/common/asm/ASMAtomicUoReadU64.as
 SRC_S  += Runtime/common/asm/ASMAtomicXchgU64.asm
 
 SRC_CC += Runtime/common/err/errmsg.cpp
-Runtime/common/err/errmsg.cpp: errmsgdata.h
+Runtime/common/err/errmsg.o: errmsgdata.h
+
 errmsgdata.h: $(VIRTUALBOX_DIR)/include/iprt/err.h \
               $(VIRTUALBOX_DIR)/include/VBox/err.h
 	$(MSG_CONVERT)$@

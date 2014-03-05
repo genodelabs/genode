@@ -44,7 +44,7 @@ CC_WARN += -Wno-unused-but-set-variable
 #
 CC_OPT += -DVBOX_WITH_HGSMI -DVBOX_WITH_WDDM -DVBOX_WITH_VDMA
 
-Devices/Graphics/DevVGA.cpp: vbetables.h
+Devices/Graphics/DevVGA.o: vbetables.h
 
 vbetables.h: vbetables-gen
 	$(MSG_CONVERT)$@
@@ -56,7 +56,7 @@ vbetables-gen: Devices/Graphics/BIOS/vbetables-gen.c
 
 
 
-Devices/PC/ACPI/VBoxAcpi.cpp: vboxaml.hex vboxssdt-standard.hex vboxssdt-cpuhotplug.hex
+Devices/PC/ACPI/VBoxAcpi.o: vboxaml.hex vboxssdt-standard.hex vboxssdt-cpuhotplug.hex
 
 vboxaml.hex: vbox.dsl
 	iasl -tc -vs -p $@ $^
