@@ -7,8 +7,9 @@ ALL_SDL_MIXER_SRC_C = $(notdir $(wildcard $(REP_DIR)/contrib/$(SDL_MIXER)/*.c))
 
 SRC_C = $(filter-out $(FILTER_OUT), $(ALL_SDL_MIXER_SRC_C))
 
-LIBS += libc libm sdl
+LIBS += libc libm sdl libvorbis
 
+CC_OPT = -DOGG_MUSIC
 # suppress warnings of 3rd-party code
 CC_OPT_music      = -Wno-unused-label -Wno-unused-function
 CC_OPT_load_aiff  = -Wno-unused-but-set-variable

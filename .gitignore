@@ -65,6 +65,7 @@
 /libports/include/ncurses/termcap.h
 /libports/include/ncurses/tic.h
 /libports/include/ncurses/unctrl.h
+/libports/include/ogg
 /libports/include/openjpeg
 /libports/include/openssl
 /libports/src/lib/openssl/x86_32/aes_enc.s
@@ -111,6 +112,7 @@
 /libports/include/stdcxx-genode/new
 /libports/include/stdcxx-genode/typeinfo
 /libports/include/stdcxx-genode/initializer_list
+/libports/include/vorbis
 /libports/include/x86emu/stdint.h
 /libports/include/x86emu/stdio.h
 /libports/include/x86emu/stdlib.h
