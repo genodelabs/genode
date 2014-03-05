@@ -45,6 +45,7 @@ PORTS += $(VIRTUALBOX)
 # Check for tools
 #
 $(call check_tool,iasl)
+$(call check_tool,yasm)
 
 
 PATCHES := $(shell find $(CURDIR)/src/virtualbox/ -name "*.patch")
