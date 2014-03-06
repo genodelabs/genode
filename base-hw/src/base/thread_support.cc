@@ -61,12 +61,6 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::start()
 {
-	/* create server object */
-	char buf[48];
-	name(buf, sizeof(buf));
-	Cpu_session * cpu = env()->cpu_session();
-	_thread_cap = cpu->create_thread(buf, (addr_t)&_context->utcb);
-
 	/* assign thread to protection domain */
 	env()->pd_session()->bind_thread(_thread_cap);
 

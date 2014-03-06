@@ -74,7 +74,15 @@ void Thread_base::_thread_bootstrap()
 void Thread_base::_init_platform_thread(Type type)
 {
 	/* nothing platform specific to do if this is not a special thread */
-	if (type == NORMAL) { return; }
+	if (type == NORMAL)
+	{
+		/* create server object */
+		char buf[48];
+		name(buf, sizeof(buf));
+		Cpu_session * cpu = env()->cpu_session();
+		_thread_cap = cpu->create_thread(buf, (addr_t)&_context->utcb);
+		return;
+	}
 
 	/* if we got reinitialized we have to get rid of the old UTCB */
 	size_t const utcb_size = sizeof(Native_utcb);
