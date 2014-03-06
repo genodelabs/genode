@@ -240,7 +240,7 @@ class Kernel::Scheduler
 	protected:
 
 		T * const      _idle;
-		T *            _current;
+		T *            _occupant;
 		Double_list<T> _items[Priority::MAX + 1];
 
 	public:
@@ -250,27 +250,29 @@ class Kernel::Scheduler
 		/**
 		 * Constructor
 		 */
-		Scheduler(T * const idle) : _idle(idle), _current(0) { }
+		Scheduler(T * const idle) : _idle(idle), _occupant(0) { }
 
 		/**
-		 * Get currently scheduled item
+		 * Adjust occupant reference to the current scheduling plan
+		 *
+		 * \return  updated occupant reference
 		 */
-		T * head()
+		T * update_occupant()
 		{
 			for (int i = Priority::MAX; i >= 0 ; i--) {
-				_current = _items[i].head();
-				if (_current) return _current;
+				_occupant = _items[i].head();
+				if (_occupant) { return _occupant; }
 			}
 			return _idle;
 		}
 
 		/**
-		 * End turn of currently scheduled item
+		 * Adjust scheduling plan to the fact that the current occupant yileds
 		 */
-		void yield()
+		void yield_occupation()
 		{
-			if (!_current) return;
-			_items[_current->priority()].head_to_tail();
+			if (!_occupant) { return; }
+			_items[_occupant->priority()].head_to_tail();
 		}
 
 		/**
@@ -291,6 +293,8 @@ class Kernel::Scheduler
 		/***************
 		 ** Accessors **
 		 ***************/
+
+		T * occupant() { return _occupant ? _occupant : _idle; }
 
 		T * idle() const { return _idle; }
 };

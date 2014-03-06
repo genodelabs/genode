@@ -277,12 +277,28 @@ extern "C" void init_kernel_multiprocessor()
  */
 extern "C" void kernel()
 {
+	/* ensure that no other processor accesses kernel data while we do */
 	data_lock().lock();
+
+	/* determine local processor scheduler */
 	unsigned const processor_id = Processor::executing_id();
 	Processor * const processor = processor_pool()->select(processor_id);
 	Processor_scheduler * const scheduler = processor->scheduler();
-	scheduler->head()->exception(processor_id);
-	scheduler->head()->proceed(processor_id);
+
+	/*
+	 * Request the current processor occupant without any update. While this
+	 * processor was outside the kernel, another processor may have changed the
+	 * scheduling of the local activities in a way that an update would return
+	 * an occupant other than that whose exception caused the kernel entry.
+	 */
+	scheduler->occupant()->exception(processor_id);
+
+	/*
+	 * The processor local as well as remote exception-handling may have
+	 * changed the scheduling of the local activities. Hence we must update the
+	 * processor occupant.
+	 */
+	scheduler->update_occupant()->proceed(processor_id);
 }
 
 
