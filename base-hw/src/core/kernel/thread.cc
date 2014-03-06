@@ -212,8 +212,13 @@ Thread::init(Processor * const processor, unsigned const pd_id_arg,
 
 	/* print log message */
 	if (START_VERBOSE) {
-		PINF("in program %u '%s' start thread %u '%s'",
-		     pd_id(), pd_label(), id(), label());
+		Genode::printf("start thread %u '%s' in program %u '%s' ",
+		               id(), label(), pd_id(), pd_label());
+		if (PROCESSORS) {
+			Genode::printf("on processor %u/%u ",
+			               processor->id(), PROCESSORS);
+		}
+		Genode::printf("\n");
 	}
 	/* start execution */
 	if (start) { _schedule(); }
