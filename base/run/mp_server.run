@@ -1,10 +1,13 @@
 #
 # \brief  Test to start and call RPC entrypoint on all available CPUs
 # \author Norman Feske
-# \author Alexander Boettcher 
+# \author Alexander Boettcher
 #
 
-if {[have_spec platform_pbxa9] || (![have_spec nova] && ![have_spec foc])} {
+if {
+	![have_spec hw_arndale] &&
+	([have_spec platform_pbxa9] || (![have_spec nova] && ![have_spec foc]))
+} {
 	puts "Platform is unsupported."
 	exit 0
 }
