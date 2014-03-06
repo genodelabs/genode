@@ -236,7 +236,7 @@ extern "C" void init_kernel_multiprocessor()
 
 	/* initialize interrupt controller */
 	pic()->init_processor_local();
-	unsigned const processor_id = Processor::id();
+	unsigned const processor_id = Processor::executing_id();
 	pic()->unmask(Timer::interrupt_id(processor_id), processor_id);
 
 	/* as primary processor create the core main thread */
@@ -278,7 +278,7 @@ extern "C" void init_kernel_multiprocessor()
 extern "C" void kernel()
 {
 	data_lock().lock();
-	unsigned const processor_id = Processor::id();
+	unsigned const processor_id = Processor::executing_id();
 	Processor * const processor = processor_pool()->select(processor_id);
 	Processor_scheduler * const scheduler = processor->scheduler();
 	scheduler->head()->exception(processor_id);

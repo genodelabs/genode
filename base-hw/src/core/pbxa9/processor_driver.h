@@ -34,7 +34,7 @@ namespace Genode
 			/**
 			 * Return kernel name of the executing processor
 			 */
-			static unsigned id() { return primary_id(); }
+			static unsigned executing_id() { return primary_id(); }
 	};
 }
 

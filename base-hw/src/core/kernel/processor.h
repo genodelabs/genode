@@ -92,6 +92,7 @@ class Kernel::Processor : public Processor_driver
 {
 	private:
 
+		unsigned const      _id;
 		Idle_thread         _idle;
 		Processor_scheduler _scheduler;
 
@@ -99,13 +100,20 @@ class Kernel::Processor : public Processor_driver
 
 		/**
 		 * Constructor
+		 *
+		 * \param id  kernel name of the processor object
 		 */
-		Processor() : _idle(this), _scheduler(&_idle) { }
+		Processor(unsigned const id)
+		:
+			_id(id), _idle(this), _scheduler(&_idle)
+		{ }
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
+
+		unsigned id() const { return _id; }
 
 		Processor_scheduler * scheduler() { return &_scheduler; }
 };
@@ -126,7 +134,7 @@ class Kernel::Processor_pool
 		Processor_pool()
 		{
 			for (unsigned i = 0; i < PROCESSORS; i++) {
-				new (_data[i]) Processor;
+				new (_data[i]) Processor(i);
 			}
 		}
 

@@ -29,7 +29,10 @@ namespace Genode
 			/**
 			 * Return kernel name of the executing processor
 			 */
-			static unsigned id() { return Mpidr::Aff_0::get(Mpidr::read()); }
+			static unsigned executing_id()
+			{
+				return Mpidr::Aff_0::get(Mpidr::read());
+			}
 
 			/**
 			 * Return kernel name of the primary processor
