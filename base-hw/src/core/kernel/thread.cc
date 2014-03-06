@@ -352,32 +352,31 @@ void Thread::_call_start_thread()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to start thread");
+		PERR("permission denied");
 		user_arg_0(0);
 		return;
 	}
-	/* dispatch arguments */
-	unsigned const thread_id = user_arg_1();
-	unsigned const cpu_id    = user_arg_2();
-	unsigned const pd_id     = user_arg_3();
-	Native_utcb * const utcb = (Native_utcb *)user_arg_4();
-
 	/* lookup targeted thread */
-	Thread * const t = Thread::pool()->object(thread_id);
-	if (!t) {
+	unsigned const thread_id = user_arg_1();
+	Thread * const thread = Thread::pool()->object(thread_id);
+	if (!thread) {
 		PERR("unknown thread");
 		user_arg_0(0);
 		return;
 	}
-	/*
-	 * Start thread
-	 *
-	 * FIXME: The affinity of a thread is ignored by now.
-	 *        Instead we always assign the primary processor.
-	 */
-	if (cpu_id) { PERR("multiprocessing not supported"); }
-	t->init(processor_pool()->primary(), pd_id, utcb, 1);
-	user_arg_0((Call_ret)t->_pd->tlb());
+	/* lookup targeted processor */
+	unsigned const processor_id = user_arg_2();
+	Processor * const processor = processor_pool()->select(processor_id);
+	if (!processor) {
+		PERR("unknown processor");
+		user_arg_0(0);
+		return;
+	}
+	/* start thread */
+	unsigned const pd_id = user_arg_3();
+	Native_utcb * const utcb = (Native_utcb *)user_arg_4();
+	thread->init(processor, pd_id, utcb, 1);
+	user_arg_0((Call_ret)thread->_pd->tlb());
 }
 
 
