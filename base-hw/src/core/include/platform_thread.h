@@ -63,6 +63,8 @@ namespace Genode {
 		 */
 		bool _main_thread;
 
+		Affinity::Location _location;
+
 		/**
 		 * Common construction part
 		 */
@@ -116,11 +118,10 @@ namespace Genode {
 			/**
 			 * Run this thread
 			 *
-			 * \param ip      initial instruction pointer
-			 * \param sp      initial stack pointer
-			 * \param cpu_id  kernel name of targeted CPU
+			 * \param ip  initial instruction pointer
+			 * \param sp  initial stack pointer
 			 */
-			int start(void * const ip, void * const sp, unsigned const cpu_id = 0);
+			int start(void * const ip, void * const sp);
 
 			/**
 			 * Pause this thread
@@ -154,13 +155,15 @@ namespace Genode {
 
 			/**
 			 * Set the executing CPU for this thread
+			 *
+			 * \param location  targeted location in affinity space
 			 */
-			void affinity(Affinity::Location) { }
+			void affinity(Affinity::Location const & location);
 
 			/**
 			 * Get the executing CPU for this thread
 			 */
-			Affinity::Location affinity() { return Affinity::Location(); };
+			Affinity::Location affinity() const;
 
 			/**
 			 * Return the address space to which the thread is bound

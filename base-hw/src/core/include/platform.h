@@ -120,6 +120,11 @@ namespace Genode {
 				while (1) ;
 				return 0;
 			}
+
+			Affinity::Space affinity_space() const
+			{
+				return Affinity::Space(PROCESSORS);
+			}
 	};
 }
 

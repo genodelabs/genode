@@ -160,8 +160,16 @@ int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
 }
 
 
-int Platform_thread::start(void * const ip, void * const sp,
-                           unsigned int const cpu_id)
+void Platform_thread::affinity(Affinity::Location const & location)
+{
+	_location = location;
+}
+
+
+Affinity::Location Platform_thread::affinity() const { return _location; }
+
+
+int Platform_thread::start(void * const ip, void * const sp)
 {
 	/* attach UTCB in case of a main thread */
 	if (_main_thread) {
@@ -188,9 +196,14 @@ int Platform_thread::start(void * const ip, void * const sp,
 		PERR("failed to initialize thread registers");
 		return -1;
 	}
+	/* determine kernel name of targeted processor */
+	unsigned processor_id;
+	if (_location.valid()) { processor_id = _location.xpos(); }
+	else { processor_id = Processor_driver::primary_id(); }
+
 	/* start executing new thread */
 	_utcb_phys->start_info()->init(_id, _utcb);
-	_tlb = Kernel::start_thread(_id, cpu_id, _pd_id, _utcb_phys);
+	_tlb = Kernel::start_thread(_id, processor_id, _pd_id, _utcb_phys);
 	if (!_tlb) {
 		PERR("failed to start thread");
 		return -1;
