@@ -19,9 +19,23 @@
 #include <platform.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
+#include <processor_broadcast.h>
 #include <tlb.h>
 
 using namespace Genode;
+
+
+/**************************************
+ ** Helpers for processor broadcasts **
+ **************************************/
+
+struct Update_pd_data { unsigned const pd_id; };
+
+void update_pd(void * const data)
+{
+	auto const d = reinterpret_cast<Update_pd_data *>(data);
+	Kernel::update_pd(d->pd_id);
+}
 
 
 /***************
@@ -30,7 +44,7 @@ using namespace Genode;
 
 void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 {
-	/* get software TLB of the thread that we serve */
+	/* remove mapping from the translation table of the thread that we serve */
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (!pt) {
 		PERR("failed to get platform thread of RM client");
@@ -41,9 +55,14 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 		PERR("failed to get page table of RM client");
 		return;
 	}
-	/* update all translation caches */
 	tlb->remove_region(virt_base, size);
-	Kernel::update_pd(pt->pd_id());
+
+	/* update translation caches of all processors */
+	Update_pd_data data { pt->pd_id() };
+	Processor_broadcast_operation const operation(update_pd, &data);
+	processor_broadcast()->execute(&operation);
+
+	/* try to get back released memory from the translation table */
 	regain_ram_from_tlb(tlb);
 }
 
