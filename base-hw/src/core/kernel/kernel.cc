@@ -83,7 +83,7 @@ namespace Kernel
 	/**
 	 * Start a new scheduling lap
 	 */
-	void reset_lap_time(unsigned const processor_id)
+	void reset_scheduling_time(unsigned const processor_id)
 	{
 		unsigned const tics = timer()->ms_to_tics(USER_LAP_TIME_MS);
 		timer()->start_one_shot(tics, processor_id);
@@ -268,7 +268,7 @@ extern "C" void init_kernel_multiprocessor()
 		/* kernel initialization finished */
 		init_platform();
 	}
-	reset_lap_time(processor_id);
+	reset_scheduling_time(processor_id);
 }
 
 
@@ -291,14 +291,17 @@ extern "C" void kernel()
 	 * scheduling of the local activities in a way that an update would return
 	 * an occupant other than that whose exception caused the kernel entry.
 	 */
-	scheduler->occupant()->exception(processor_id);
+	Execution_context * const old_occupant = scheduler->occupant();
+	old_occupant->exception(processor_id);
 
 	/*
 	 * The processor local as well as remote exception-handling may have
 	 * changed the scheduling of the local activities. Hence we must update the
 	 * processor occupant.
 	 */
-	scheduler->update_occupant()->proceed(processor_id);
+	Execution_context * const new_occupant = scheduler->update_occupant();
+	if (old_occupant != new_occupant) { reset_scheduling_time(processor_id); }
+	new_occupant->proceed(processor_id);
 }
 
 

@@ -33,8 +33,6 @@ unsigned Thread::pd_id() const { return _pd ? _pd->id() : 0; }
 
 bool Thread::_core() const { return pd_id() == core_id(); }
 
-namespace Kernel { void reset_lap_time(unsigned const processor_id); }
-
 void Thread::_signal_context_kill_pending()
 {
 	assert(_state == SCHEDULED);
@@ -251,7 +249,6 @@ void Thread::exception(unsigned const processor_id)
 	default:
 		PERR("unknown exception");
 		_stop();
-		reset_lap_time(processor_id);
 	}
 }
 
@@ -976,6 +973,5 @@ void Thread::_call(unsigned const processor_id)
 	default:
 		PERR("unknown kernel call");
 		_stop();
-		reset_lap_time(processor_id);
 	}
 }

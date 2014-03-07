@@ -23,7 +23,6 @@ namespace Kernel
 {
 	Pic * pic();
 	Timer * timer();
-	void reset_lap_time(unsigned const);
 }
 
 
@@ -39,7 +38,6 @@ void Kernel::Execution_context::_interrupt(unsigned const processor_id)
 			/* handle scheduling timeout */
 			__processor->scheduler()->yield_occupation();
 			timer()->clear_interrupt(processor_id);
-			reset_lap_time(processor_id);
 		} else {
 
 			/* try to inform the user interrupt-handler */
