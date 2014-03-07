@@ -65,6 +65,11 @@ namespace Genode
 	class Start_info;
 
 	/**
+	 * Info that a core-thread creator hands out to Platform_thread::start
+	 */
+	class Core_start_info;
+
+	/**
 	 * Memory region that is exclusive to every thread and known by the kernel
 	 */
 	class Native_utcb;
@@ -260,6 +265,32 @@ class Genode::Start_info
 		Native_capability utcb_ds() const { return _utcb_ds; }
 };
 
+class Genode::Core_start_info
+{
+	private:
+
+		unsigned _processor_id;
+
+	public:
+
+		/**
+		 * Set-up valid core startup-message
+		 *
+		 * \param processor_id  kernel name of the processor to start on
+		 */
+		void init(unsigned const processor_id)
+		{
+			_processor_id = processor_id;
+		}
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		unsigned processor_id() const { return _processor_id; }
+};
+
 class Genode::Native_utcb
 {
 	private:
@@ -278,6 +309,11 @@ class Genode::Native_utcb
 		Message * message() const { return (Message *)_data; }
 
 		Start_info * start_info() const { return (Start_info *)_data; }
+
+		Core_start_info * core_start_info() const
+		{
+			return (Core_start_info *)_data;
+		}
 
 		size_t size() const { return sizeof(_data)/sizeof(_data[0]); }
 

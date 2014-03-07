@@ -97,6 +97,9 @@ Platform_thread::Platform_thread(size_t const stack_size,
 	}
 	_utcb_virt = _utcb_phys;
 
+	/* set-up default start-info */
+	_utcb_virt->core_start_info()->init(Processor_driver::primary_id());
+
 	/* create kernel object */
 	_id = Kernel::new_thread(_kernel_thread, Kernel::Priority::MAX, _label);
 	if (!_id) {

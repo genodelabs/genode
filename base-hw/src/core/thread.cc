@@ -85,10 +85,16 @@ void Thread_base::start()
 	/* provide thread ident at the aligned base of the stack */
 	*(Core_thread_id *)base = (Core_thread_id)this;
 
+	/* set affinity of thread */
+	Platform_thread * const platform_thread = _tid.platform_thread;
+	unsigned const processor_id = utcb()->core_start_info()->processor_id();
+	Affinity::Location location(processor_id, 0, 1, 1);
+	platform_thread->affinity(location);
+
 	/* start thread with stack pointer at the top of stack */
 	void * sp = (void *)((addr_t)base + size);
 	void * ip = (void *)&_thread_start;
-	if (_tid.platform_thread->start(ip, sp)) {
+	if (platform_thread->start(ip, sp)) {
 		PERR("failed to start thread");
 		alloc->free(base, size);
 		return;
