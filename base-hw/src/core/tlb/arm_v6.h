@@ -93,7 +93,7 @@ class Arm_v6::Section_table : public Arm::Section_table
 
 template <typename T>
 static typename T::access_t
-Arm::memory_region_attr(Pageflags const & flags)
+Arm::memory_region_attr(Page_flags const & flags)
 {
 	typedef typename T::Tex Tex;
 	typedef typename T::C C;
