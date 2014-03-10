@@ -71,7 +71,7 @@ class Kernel::Thread
 :
 	public Processor_driver::User_context,
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
-	public Execution_context,
+	public Processor_client,
 	public Ipc_node,
 	public Signal_context_killer,
 	public Signal_handler,
@@ -315,9 +315,9 @@ class Kernel::Thread
 		          Native_utcb * const utcb, bool const start);
 
 
-		/***********************
-		 ** Execution_context **
-		 ***********************/
+		/**********************
+		 ** Processor_client **
+		 **********************/
 
 		void exception(unsigned const processor_id);
 		void proceed(unsigned const processor_id);

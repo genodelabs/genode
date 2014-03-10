@@ -26,7 +26,7 @@ namespace Kernel
 }
 
 
-void Kernel::Execution_context::_interrupt(unsigned const processor_id)
+void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 {
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
@@ -61,7 +61,7 @@ void Kernel::Execution_context::_interrupt(unsigned const processor_id)
 }
 
 
-void Kernel::Execution_context::_schedule()
+void Kernel::Processor_client::_schedule()
 {
 	/* schedule thread */
 	__processor->scheduler()->insert(this);
@@ -74,14 +74,14 @@ void Kernel::Execution_context::_schedule()
 }
 
 
-void Kernel::Execution_context::_unschedule()
+void Kernel::Processor_client::_unschedule()
 {
 	assert(__processor->id() == Processor::executing_id());
 	__processor->scheduler()->remove(this);
 }
 
 
-void Kernel::Execution_context::_yield()
+void Kernel::Processor_client::_yield()
 {
 	assert(__processor->id() == Processor::executing_id());
 	__processor->scheduler()->yield_occupation();

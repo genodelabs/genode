@@ -57,9 +57,9 @@ namespace Kernel
 	/**
 	 * Kernel object that can be scheduled for the CPU
 	 */
-	class Execution_context;
+	class Processor_client;
 
-	typedef Scheduler<Execution_context> Processor_scheduler;
+	typedef Scheduler<Processor_client> Processor_scheduler;
 }
 
 template <typename T>
@@ -299,7 +299,7 @@ class Kernel::Scheduler
 		T * idle() const { return _idle; }
 };
 
-class Kernel::Execution_context : public Processor_scheduler::Item
+class Kernel::Processor_client : public Processor_scheduler::Item
 {
 	private:
 
@@ -361,7 +361,7 @@ class Kernel::Execution_context : public Processor_scheduler::Item
 		 * \param processor  kernel object of targeted processor
 		 * \param priority   scheduling priority
 		 */
-		Execution_context(Processor * const processor, Priority const priority)
+		Processor_client(Processor * const processor, Priority const priority)
 		:
 			Processor_scheduler::Item(priority),
 			__processor(processor)
@@ -370,7 +370,7 @@ class Kernel::Execution_context : public Processor_scheduler::Item
 		/**
 		 * Destructor
 		 */
-		virtual ~Execution_context();
+		virtual ~Processor_client();
 };
 
 #endif /* _KERNEL__SCHEDULER_H_ */

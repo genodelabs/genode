@@ -39,7 +39,7 @@ namespace Kernel
 }
 
 class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
-                   public Execution_context
+                   public Processor_client
 {
 	private:
 
@@ -62,7 +62,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		Vm(void           * const state,
 		   Signal_context * const context)
 		:
-			Execution_context(processor_pool()->primary(), Priority::MIN),
+			Processor_client(processor_pool()->primary(), Priority::MIN),
 			_state((Vm_state * const)state),
 			_context(context)
 		{ }
@@ -72,14 +72,14 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		 ** Vm_session **
 		 ****************/
 
-		void run()   { Execution_context::_schedule(); }
+		void run()   { Processor_client::_schedule(); }
 
-		void pause() { Execution_context::_unschedule(); }
+		void pause() { Processor_client::_unschedule(); }
 
 
-		/***********************
-		 ** Execution_context **
-		 ***********************/
+		/**********************
+		 ** Processor_client **
+		 **********************/
 
 		void exception(unsigned const processor_id)
 		{
@@ -91,7 +91,7 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 			case Genode::Cpu_state::DATA_ABORT:
 				_state->dfar = Processor::Dfar::read();
 			default:
-				Execution_context::_unschedule();
+				Processor_client::_unschedule();
 				_context->submit(1);
 			}
 		}

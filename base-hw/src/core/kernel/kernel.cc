@@ -291,7 +291,7 @@ extern "C" void kernel()
 	 * scheduling of the local activities in a way that an update would return
 	 * an occupant other than that whose exception caused the kernel entry.
 	 */
-	Execution_context * const old_occupant = scheduler->occupant();
+	Processor_client * const old_occupant = scheduler->occupant();
 	old_occupant->exception(processor_id);
 
 	/*
@@ -299,7 +299,7 @@ extern "C" void kernel()
 	 * changed the scheduling of the local activities. Hence we must update the
 	 * processor occupant.
 	 */
-	Execution_context * const new_occupant = scheduler->update_occupant();
+	Processor_client * const new_occupant = scheduler->update_occupant();
 	if (old_occupant != new_occupant) { reset_scheduling_time(processor_id); }
 	new_occupant->proceed(processor_id);
 }
@@ -315,7 +315,7 @@ Kernel::Mode_transition_control * Kernel::mtc()
 }
 
 
-Kernel::Execution_context::~Execution_context() { }
+Kernel::Processor_client::~Processor_client() { }
 
 
 Kernel::Cpu_context::Cpu_context()

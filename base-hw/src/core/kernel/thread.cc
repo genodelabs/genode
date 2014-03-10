@@ -164,21 +164,21 @@ void Thread::_pause()
 void Thread::_schedule()
 {
 	if (_state == SCHEDULED) { return; }
-	Execution_context::_schedule();
+	Processor_client::_schedule();
 	_state = SCHEDULED;
 }
 
 
 void Thread::_unschedule(State const s)
 {
-	if (_state == SCHEDULED) { Execution_context::_unschedule(); }
+	if (_state == SCHEDULED) { Processor_client::_unschedule(); }
 	_state = s;
 }
 
 
 Thread::Thread(unsigned const priority, char const * const label)
 :
-	Execution_context(0, priority),
+	Processor_client(0, priority),
 	Thread_cpu_support(this),
 	_state(AWAITS_START),
 	_pd(0),
@@ -189,7 +189,7 @@ Thread::Thread(unsigned const priority, char const * const label)
 	cpu_exception = RESET;
 }
 
-Thread::~Thread() { if (Execution_context::list()) { _unschedule(STOPPED); } }
+Thread::~Thread() { if (Processor_client::list()) { _unschedule(STOPPED); } }
 
 
 void
@@ -199,7 +199,7 @@ Thread::init(Processor * const processor, unsigned const pd_id_arg,
 	assert(_state == AWAITS_START)
 
 	/* store thread parameters */
-	Execution_context::_processor(processor);
+	Processor_client::_processor(processor);
 	_utcb_phys = utcb_phys;
 
 	/* join protection domain */
@@ -447,7 +447,7 @@ void Thread::_call_yield_thread()
 {
 	Thread * const t = Thread::pool()->object(user_arg_1());
 	if (t) { t->_receive_yielded_cpu(); }
-	Execution_context::_yield();
+	Processor_client::_yield();
 }
 
 
