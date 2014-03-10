@@ -23,8 +23,6 @@
 
 namespace Kernel
 {
-	typedef Cpu_scheduler Processor_scheduler;
-
 	/**
 	 * Thread that consumes processor time if no other thread is available
 	 */

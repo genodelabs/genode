@@ -59,7 +59,7 @@ namespace Kernel
 	 */
 	class Execution_context;
 
-	typedef Scheduler<Execution_context> Cpu_scheduler;
+	typedef Scheduler<Execution_context> Processor_scheduler;
 }
 
 template <typename T>
@@ -299,7 +299,7 @@ class Kernel::Scheduler
 		T * idle() const { return _idle; }
 };
 
-class Kernel::Execution_context : public Cpu_scheduler::Item
+class Kernel::Execution_context : public Processor_scheduler::Item
 {
 	private:
 
@@ -363,7 +363,7 @@ class Kernel::Execution_context : public Cpu_scheduler::Item
 		 */
 		Execution_context(Processor * const processor, Priority const priority)
 		:
-			Cpu_scheduler::Item(priority),
+			Processor_scheduler::Item(priority),
 			__processor(processor)
 		{ }
 
