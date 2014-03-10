@@ -595,12 +595,18 @@ proc spawn_amt { wait_for_re timeout_value } {
 	set exit_result 1
 
 	while { $exit_result != 0 } {
+		set try_again 0
 		set time_start [ clock seconds ]
 		spawn amttool $::env(AMT_TEST_MACHINE_IP) reset
 		expect {
 			"host"  { send "y\r"; }
 			eof     { puts "Error: amttool died unexpectedly"; exit -4 }
 			timeout { puts "Error: amttool timed out"; exit -5 }
+		}
+		expect {
+			"result: pt_status: success" { break }
+			eof     { set try_again 1 }
+			timeout { puts "Error: amttool timed out"; exit -6 }
 		}
 		catch wait result
 		set time_end [ clock seconds ]
@@ -612,6 +618,10 @@ proc spawn_amt { wait_for_re timeout_value } {
 		if {$timeout < 0} {
 			set timeout 0
 		}
+		if {$try_again != 0 } {
+			continue
+		}
+
 		set exit_result [lindex $result 3]
 	}
 	sleep 5
