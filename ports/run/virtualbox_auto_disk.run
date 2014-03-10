@@ -1,3 +1,6 @@
+# Tested for nova 64bit solely.
+assert_spec 64bit
+ 
 set use_vdi 1
 set use_iso 0
 set vdi_image "win7.vdi"
@@ -47,8 +50,8 @@ source ${genode_dir}/ports/run/virtualbox_auto.inc
 
 run_genode_until "ignore resize request to 720x400" 20 
 run_genode_until "ignore resize request to 640x480" 15 $spawn_id
-run_genode_until "ignore resize request to 800x600" 25 $spawn_id
-run_genode_until "ignore resize request to 800x600" 60 $spawn_id
+run_genode_until "ignore resize request to 800x600" 35 $spawn_id
+run_genode_until "ignore resize request to 800x600" 90 $spawn_id
 run_genode_until "ignore resize request to 720x400" 10 $spawn_id
 
 puts "\nTest succeeded"
