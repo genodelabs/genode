@@ -189,8 +189,6 @@ Thread::Thread(unsigned const priority, char const * const label)
 	cpu_exception = RESET;
 }
 
-Thread::~Thread() { if (Processor_client::list()) { _unschedule(STOPPED); } }
-
 
 void
 Thread::init(Processor * const processor, unsigned const pd_id_arg,

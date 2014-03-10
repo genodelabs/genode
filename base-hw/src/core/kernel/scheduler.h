@@ -73,19 +73,19 @@ class Kernel::Double_list_item
 		Double_list_item * _prev;
 		Double_list<T> *   _list;
 
+	protected:
+
+		/**
+		 * Return wether this item is managed by a list currently
+		 */
+		bool _listed() const { return _list; }
+
 	public:
 
 		/**
 		 * Constructor
 		 */
 		Double_list_item() : _next(0), _prev(0), _list(0) { }
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Double_list<T> * list() { return _list; }
 };
 
 template <typename T>
@@ -216,6 +216,13 @@ class Kernel::Scheduler_item : public Double_list<T>::Item
 	private:
 
 		Priority const _priority;
+
+	protected:
+
+		/**
+		 * Return wether this item is managed by a scheduler currently
+		 */
+		bool _scheduled() const { return Double_list<T>::Item::_listed(); }
 
 	public:
 
@@ -370,7 +377,11 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		/**
 		 * Destructor
 		 */
-		virtual ~Processor_client();
+		~Processor_client()
+		{
+			if (!_scheduled()) { return; }
+			_unschedule();
+		}
 };
 
 #endif /* _KERNEL__SCHEDULER_H_ */

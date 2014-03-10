@@ -315,9 +315,6 @@ Kernel::Mode_transition_control * Kernel::mtc()
 }
 
 
-Kernel::Processor_client::~Processor_client() { }
-
-
 Kernel::Cpu_context::Cpu_context()
 {
 	_init(STACK_SIZE);

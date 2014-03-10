@@ -299,11 +299,6 @@ class Kernel::Thread
 		Thread(unsigned const priority, char const * const label);
 
 		/**
-		 * Destructor
-		 */
-		~Thread();
-
-		/**
 		 * Prepare thread to get scheduled the first time
 		 *
 		 * \param processor  kernel object of targeted processor
