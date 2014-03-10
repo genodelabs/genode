@@ -291,3 +291,17 @@ int rumpuser_getrandom(void *buf, size_t buflen, int flags, size_t *retp)
 	return 0;
 }
 
+
+/**********
+ ** Exit **
+ **********/
+
+void genode_exit(int) __attribute__((noreturn));
+
+void rumpuser_exit(int status)
+{
+	if (status == RUMPUSER_PANIC)
+		PERR("Rump panic");
+
+	genode_exit(status);
+}
