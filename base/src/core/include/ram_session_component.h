@@ -23,6 +23,7 @@
 
 /* core includes */
 #include <dataspace_component.h>
+#include <util.h>
 
 namespace Genode {
 
@@ -37,9 +38,10 @@ namespace Genode {
 
 			class Invalid_dataspace : public Exception { };
 
-			enum { SBS = 1024 };   /* slab block size */
+			static constexpr size_t SBS = get_page_size();
 
-			typedef Synchronized_allocator<Tslab<Dataspace_component, SBS> > Ds_slab;
+			using Ds_slab = Synchronized_allocator<Tslab<Dataspace_component,
+			                                             SBS> >;
 
 			Rpc_entrypoint         *_ds_ep;
 			Rpc_entrypoint         *_ram_session_ep;

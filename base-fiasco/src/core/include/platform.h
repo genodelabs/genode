@@ -141,7 +141,7 @@ namespace Genode {
 			 ** Generic platform interface **
 			 ********************************/
 
-			Allocator       *core_mem_alloc() { return &_ram_alloc; }
+			Range_allocator *core_mem_alloc() { return &_ram_alloc; }
 			Range_allocator *ram_alloc()      { return &_ram_alloc; }
 			Range_allocator *io_mem_alloc()   { return &_io_mem_alloc; }
 			Range_allocator *io_port_alloc()  { return &_io_port_alloc; }

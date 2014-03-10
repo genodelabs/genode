@@ -1,6 +1,7 @@
 /*
  * \brief  Allocator infrastructure for core
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2009-10-12
  */
 
@@ -17,162 +18,102 @@
 #include <base/lock.h>
 #include <base/sync_allocator.h>
 #include <base/allocator_avl.h>
+#include <util.h>
 
 namespace Genode {
-
-	/**
-	 * Allocators for physical memory, core's virtual address space,
-	 * and core-local memory. The interface of this class is thread safe.
-	 */
-	class Core_mem_allocator : public Allocator
-	{
-		public:
-
-			typedef Synchronized_range_allocator<Allocator_avl> Phys_allocator;
-
-		private:
-
-			/**
-			 * Unsynchronized allocator for core-mapped memory
-			 *
-			 * This is an allocator of core-mapped memory. It is meant to be used as
-			 * meta-data allocator for the other allocators and as back end for core's
-			 * synchronized memory allocator.
-			 */
-			class Mapped_mem_allocator : public Allocator
-			{
-				private:
-
-					Allocator_avl     _alloc;
-					Range_allocator *_phys_alloc;
-					Range_allocator *_virt_alloc;
-
-					/**
-					 * Initial chunk to populate the core mem allocator
-					 *
-					 * This chunk is used at platform initialization time.
-					 */
-					char _initial_chunk[16*1024];
-
-					/**
-					 * Map physical page locally to specified virtual address
-					 *
-					 * \param virt_addr  core-local address
-					 * \param phys_addr  physical memory address
-					 * \param size_log2  size of memory block to map
-					 * \return           true on success
-					 */
-					bool _map_local(addr_t virt_addr, addr_t phys_addr, unsigned size_log2);
-
-				public:
-
-					/**
-					 * Constructor
-					 *
-					 * \param phys_alloc  allocator of physical memory
-					 * \param virt_alloc  allocator of core-local virtual memory ranges
-					 */
-					Mapped_mem_allocator(Range_allocator *phys_alloc,
-					                     Range_allocator *virt_alloc)
-					: _alloc(0), _phys_alloc(phys_alloc), _virt_alloc(virt_alloc)
-					{
-						_alloc.add_range((addr_t)_initial_chunk, sizeof(_initial_chunk));
-					}
+	class Core_mem_allocator;
+};
 
 
-					/*************************
-					 ** Allocator interface **
-					 *************************/
+/**
+ * Allocators for physical memory, core's virtual address space,
+ * and core-local memory. The interface of this class is thread safe.
+ * The class itself implements a ready-to-use memory allocator for
+ * core that allows to allocate memory at page granularity only.
+ */
+class Genode::Core_mem_allocator : public Genode::Range_allocator
+{
+	public:
 
-					bool alloc(size_t size, void **out_addr);
-					void free(void *addr, size_t size) { _alloc.free(addr, size); }
-					size_t consumed() { return _phys_alloc->consumed(); }
-					size_t overhead(size_t size) { return _phys_alloc->overhead(size); }
+		using Page_allocator = Allocator_avl_tpl<Empty, get_page_size()>;
+		using Phys_allocator = Synchronized_range_allocator<Page_allocator>;
 
-					bool need_size_for_free() const override {
-						return _phys_alloc->need_size_for_free(); }
-			};
+	protected:
 
+		/**
+		 * Lock used for synchronization of all operations on the
+		 * embedded allocators.
+		 */
+		Lock _lock;
 
-			/**
-			 * Lock used for synchronization of all operations on the
-			 * embedded allocators.
-			 */
-			Lock _lock;
+		/**
+		 * Synchronized allocator of physical memory ranges
+		 *
+		 * This allocator must only be used to allocate memory
+		 * ranges at page granularity.
+		 */
+		Phys_allocator _phys_alloc;
 
-			/**
-			 * Synchronized allocator of physical memory ranges
-			 *
-			 * This allocator must only be used to allocate memory
-			 * ranges at page granularity.
-			 */
-			Phys_allocator _phys_alloc;
+		/**
+		 * Synchronized allocator of core's virtual memory ranges
+		 *
+		 * This allocator must only be used to allocate memory
+		 * ranges at page granularity.
+		 */
+		Phys_allocator _virt_alloc;
 
-			/**
-			 * Synchronized allocator of core's virtual memory ranges
-			 *
-			 * This allocator must only be used to allocate memory
-			 * ranges at page granularity.
-			 */
-			Phys_allocator _virt_alloc;
+		bool _map_local(addr_t virt_addr, addr_t phys_addr, unsigned size);
+		bool _unmap_local(addr_t virt_addr, unsigned size);
 
-			/**
-			 * Unsynchronized core-mapped memory allocator
-			 *
-			 * This allocator is internally used within this class for
-			 * allocating meta data for the other allocators. It is not
-			 * synchronized to avoid nested locking. The lock-guarded
-			 * access to this allocator from the outer world is
-			 * provided via the 'Allocator' interface implemented by
-			 * 'Core_mem_allocator'. The allocator works at byte
-			 * granularity.
-			 */
-			Mapped_mem_allocator _mem_alloc;
+	public:
 
-		public:
+		/**
+		 * Constructor
+		 */
+		Core_mem_allocator()
+		: _phys_alloc(&_lock, this),
+		  _virt_alloc(&_lock, this) { }
 
-			/**
-			 * Constructor
-			 */
-			Core_mem_allocator() :
-				_phys_alloc(&_lock, &_mem_alloc),
-				_virt_alloc(&_lock, &_mem_alloc),
-				_mem_alloc(_phys_alloc.raw(), _virt_alloc.raw())
-			{ }
+		/**
+		 * Access physical-memory allocator
+		 */
+		Phys_allocator *phys_alloc() { return &_phys_alloc; }
 
-			/**
-			 * Access physical-memory allocator
-			 */
-			Phys_allocator *phys_alloc() { return &_phys_alloc; }
-
-			/**
-			 * Access core's virtual-memory allocator
-			 */
-			Phys_allocator *virt_alloc() { return &_virt_alloc; }
+		/**
+		 * Access core's virtual-memory allocator
+		 */
+		Phys_allocator *virt_alloc() { return &_virt_alloc; }
 
 
-			/*************************
-			 ** Allocator interface **
-			 *************************/
+		/*******************************
+		 ** Range allocator interface **
+		 *******************************/
 
-			bool alloc(size_t size, void **out_addr)
-			{
-				Lock::Guard lock_guard(_lock);
-				return _mem_alloc.alloc(size, out_addr);
-			}
+		int          add_range(addr_t base, size_t size) { return -1; }
+		int          remove_range(addr_t base, size_t size) { return -1; }
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0);
+		Alloc_return alloc_addr(size_t size, addr_t addr) {
+			return Alloc_return::RANGE_CONFLICT; }
+		void         free(void *addr) {}
+		size_t       avail() { return _phys_alloc.avail(); }
 
-			void free(void *addr, size_t size)
-			{
-				Lock::Guard lock_guard(_lock);
-				_mem_alloc.free(addr, size);
-			}
+		bool valid_addr(addr_t addr) { return _virt_alloc.valid_addr(addr); }
 
-			size_t consumed() { return _phys_alloc.consumed(); }
-			size_t overhead(size_t size) { return _phys_alloc.overhead(size); }
 
-			bool need_size_for_free() const override {
-				return _phys_alloc.need_size_for_free(); }
-	};
-}
+		/*************************
+		 ** Allocator interface **
+		 *************************/
+
+		bool alloc(size_t size, void **out_addr) {
+			return alloc_aligned(size, out_addr).is_ok(); }
+
+		void free(void *addr, size_t) { free(addr); }
+
+		size_t consumed() { return _phys_alloc.consumed(); }
+		size_t overhead(size_t size) { return _phys_alloc.overhead(size); }
+
+		bool need_size_for_free() const override {
+			return _phys_alloc.need_size_for_free(); }
+};
 
 #endif /* _CORE__INCLUDE__CORE_MEM_ALLOC_H_ */

@@ -117,7 +117,7 @@ struct Genode::Expanding_ram_session_client : Upgradeable_client<Genode::Ram_ses
 				 * Because the worst case almost never happens, we request
 				 * a bit too much quota for the most time.
 				 */
-				enum { ALLOC_OVERHEAD = 1024U };
+				enum { ALLOC_OVERHEAD = 4096U };
 				Genode::snprintf(buf, sizeof(buf), "ram_quota=%zu",
 				                 size + ALLOC_OVERHEAD);
 				env()->parent()->resource_request(buf);

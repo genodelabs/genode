@@ -91,13 +91,10 @@ namespace Genode {
 		return (addr + L4_SUPERPAGESIZE-1) & L4_SUPERPAGEMASK;
 	}
 
-	inline size_t get_page_size() { return L4_PAGESIZE; }
-
-	inline size_t get_page_size_log2() { return L4_LOG2_PAGESIZE; }
-
-	inline size_t get_super_page_size() { return L4_SUPERPAGESIZE; }
-
-	inline size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
+	constexpr size_t get_page_size() { return L4_PAGESIZE; }
+	constexpr size_t get_page_size_log2() { return L4_LOG2_PAGESIZE; }
+	constexpr size_t get_super_page_size() { return L4_SUPERPAGESIZE; }
+	constexpr size_t get_super_page_size_log2() { return L4_LOG2_SUPERPAGESIZE; }
 
 	inline void print_page_fault(const char *msg, addr_t pf_addr, addr_t pf_ip,
 	                             Rm_session::Fault_type pf_type,

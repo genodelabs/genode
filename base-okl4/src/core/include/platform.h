@@ -35,15 +35,19 @@ namespace Genode {
 	{
 		private:
 
-			typedef Core_mem_allocator::Phys_allocator Phys_allocator;
+			using Phys_allocator = Core_mem_allocator::Phys_allocator;
+			using Rom_slab       = Tslab<Rom_module, get_page_size()>;
+			using Thread_slab    = Tslab<Platform_thread, get_page_size()>;
 
-			Platform_pd       *_core_pd;        /* core protection domain */
-			Platform_thread   *_core_pager;     /* pager for core threads */
-			Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
-			Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
-			Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
-			Phys_allocator     _irq_alloc;      /* IRQ allocator          */
-			Rom_fs             _rom_fs;         /* ROM file system        */
+			Platform_pd       *_core_pd;        /* core protection domain    */
+			Platform_thread   *_core_pager;     /* pager for core threads    */
+			Core_mem_allocator _core_mem_alloc; /* core-accessible memory    */
+			Phys_allocator     _io_mem_alloc;   /* MMIO allocator            */
+			Phys_allocator     _io_port_alloc;  /* I/O port allocator        */
+			Phys_allocator     _irq_alloc;      /* IRQ allocator             */
+			Rom_slab           _rom_slab;       /* Slab for rom modules      */
+			Rom_fs             _rom_fs;         /* ROM file system           */
+			Thread_slab        _thread_slab;    /* Slab for platform threads */
 
 			/*
 			 * Virtual-memory range for non-core address spaces.
@@ -75,6 +79,10 @@ namespace Genode {
 			 */
 			Platform_thread *core_pager() { return _core_pager; }
 
+			/**
+			 * Accessor for platform thread object slab allocator
+			 */
+			Thread_slab *thread_slab() { return &_thread_slab; }
 
 			/**********************************************
 			 ** Callbacks used for parsing the boot info **
@@ -113,7 +121,7 @@ namespace Genode {
 			Range_allocator *io_port_alloc()  { return &_io_port_alloc; }
 			Range_allocator *irq_alloc()      { return &_irq_alloc; }
 			Range_allocator *region_alloc()   { return  _core_mem_alloc.virt_alloc(); }
-			Allocator       *core_mem_alloc() { return &_core_mem_alloc; }
+			Range_allocator *core_mem_alloc() { return &_core_mem_alloc; }
 			addr_t           vm_start() const { return _vm_start; }
 			size_t           vm_size()  const { return _vm_size; }
 			Rom_fs          *rom_fs()         { return &_rom_fs; }

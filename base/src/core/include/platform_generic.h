@@ -37,7 +37,7 @@ namespace Genode {
 			/**
 			 * Allocator of core-local mapped virtual memory
 			 */
-			virtual Allocator *core_mem_alloc() = 0;
+			virtual Range_allocator *core_mem_alloc() = 0;
 
 			/**
 			 * Allocator of physical memory

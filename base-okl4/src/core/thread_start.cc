@@ -34,7 +34,8 @@ void Thread_base::_thread_start()
 void Thread_base::start()
 {
 	/* create and start platform thread */
-	_tid.pt = new(platform()->core_mem_alloc()) Platform_thread(_context->name);
+	_tid.pt = new(platform_specific()->thread_slab())
+		Platform_thread(_context->name);
 
 	platform_specific()->core_pd()->bind_thread(_tid.pt);
 
@@ -53,5 +54,5 @@ void Thread_base::cancel_blocking()
 void Thread_base::_deinit_platform_thread()
 {
 	/* destruct platform thread */
-	destroy(platform()->core_mem_alloc(), _tid.pt);
+	destroy(platform_specific()->thread_slab(), _tid.pt);
 }

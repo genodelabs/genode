@@ -53,12 +53,13 @@ static int num_boot_module_objects;
  ** Support for core memory management **
  ****************************************/
 
-bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t   virt_addr,
-                                                          addr_t   phys_addr,
-                                                          unsigned size_log2)
-{
-	return map_local(phys_addr, virt_addr, 1 << (size_log2 - get_page_size_log2()));
-}
+bool Core_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
+                                    unsigned size) {
+	return map_local(phys_addr, virt_addr, size / get_page_size()); }
+
+
+bool Core_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size) {
+	return unmap_local(virt_addr, size / get_page_size()); }
 
 
 /**********************
@@ -185,9 +186,14 @@ Okl4::bi_name_t Platform::bi_new_ms(Okl4::bi_name_t owner,
 }
 
 
+static char init_slab_block_rom[get_page_size()];
+static char init_slab_block_thread[get_page_size()];
+
 Platform::Platform() :
 	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
-	_irq_alloc(core_mem_alloc())
+	_irq_alloc(core_mem_alloc()),
+	_rom_slab(core_mem_alloc(), (Slab_block *)&init_slab_block_rom),
+	_thread_slab(core_mem_alloc(), (Slab_block *)&init_slab_block_thread)
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.
@@ -247,7 +253,7 @@ Platform::Platform() :
 	/* make gathered boot-module info known to '_rom_fs' */
 	int num_boot_modules = min(num_boot_module_objects, num_boot_module_memsects);
 	for (int i = 0; i < num_boot_modules; i++) {
-		Rom_module *r = new (core_mem_alloc())
+		Rom_module *r = new (&_rom_slab)
 		                Rom_module(boot_modules[i].base,
 		                           boot_modules[i].size,
 		                           boot_modules[i].name);
@@ -294,7 +300,7 @@ Platform::Platform() :
 	 * not destroy this task, it should be no problem.
 	 */
 	Platform_thread *core_thread =
-		new(core_mem_alloc()) Platform_thread("core.main");
+		new(&_thread_slab) Platform_thread("core.main");
 
 	core_thread->set_l4_thread_id(Okl4::L4_rootserver);
 

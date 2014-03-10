@@ -321,11 +321,22 @@ Platform::Platform() :
 	map_local_phys_to_virt(__main_thread_utcb,
 	                       Mem_crd(BDA_PHY,  0, Rights(true, false, false)),
 	                       Mem_crd(BDA_VIRT, 0, Rights(true, false, false)));
-	
+
 
 	/*
 	 * Now that we can access the I/O ports for comport 0, printf works...
 	 */
+
+	/*
+	 * remap main utcb to default utcb address
+	 * we do this that early, because Core_mem_allocator uses
+	 * the main_thread_utcb very early to establish mappings
+	 */
+	if (map_local(__main_thread_utcb, (addr_t)__main_thread_utcb,
+	              (addr_t)main_thread_utcb(), 1, Rights(true, true, false))) {
+		PERR("could not remap utcb of main thread");
+		nova_die();
+	}
 
 	/* sanity checks */
 	if (hip->sel_exc + 3 > NUM_INITIAL_PT_RESERVED) {
@@ -616,13 +627,6 @@ Platform::Platform() :
 	_irq_alloc.add_range(0, hip->sel_gsi - 1);
 	_gsi_base_sel = (hip->mem_desc_offset - hip->cpu_desc_offset) / hip->cpu_desc_size;
 
-	/* remap main utcb to default utcb address */
-	if (map_local(__main_thread_utcb, (addr_t)__main_thread_utcb,
-	              (addr_t)main_thread_utcb(), 1, Rights(true, true, false))) {
-		PERR("could not remap utcb of main thread");
-		nova_die();
-	}
-
 	if (verbose_boot_info) {
 		printf(":virt_alloc: "); _core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
 		printf(":phys_alloc: "); _core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
@@ -661,13 +665,20 @@ Platform::Platform() :
  ** Support for core memory management **
  ****************************************/
 
-bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr,
-                                                          addr_t phys_addr,
-                                                          unsigned size_log2)
+bool Core_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
+                                    unsigned size)
 {
 	map_local((Utcb *)Thread_base::myself()->utcb(), phys_addr,
-	          virt_addr, 1 << (size_log2 - get_page_size_log2()),
+	          virt_addr, size / get_page_size(),
 	          Rights(true, true, true), true);
+	return true;
+}
+
+
+bool Core_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
+{
+	unmap_local((Utcb *)Thread_base::myself()->utcb(),
+	            virt_addr, size / get_page_size());
 	return true;
 }
 

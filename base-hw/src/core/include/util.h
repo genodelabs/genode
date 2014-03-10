@@ -38,19 +38,19 @@ namespace Genode
 	/**
 	 * Get the the minimal supported page-size log 2
 	 */
-	inline size_t get_page_size_log2()    { return MIN_PAGE_SIZE_LOG2; }
+	constexpr size_t get_page_size_log2()    { return MIN_PAGE_SIZE_LOG2; }
 
 
 	/**
 	 * Get the the minimal supported page-size
 	 */
-	inline size_t get_page_size() { return 1 << get_page_size_log2(); }
+	constexpr size_t get_page_size() { return 1 << get_page_size_log2(); }
 
 
 	/**
 	 * Get the base mask for the minimal supported page-size
 	 */
-	inline addr_t get_page_mask() { return ~(get_page_size() - 1); }
+	constexpr addr_t get_page_mask() { return ~(get_page_size() - 1); }
 
 
 	/**

@@ -1,6 +1,7 @@
 /*
  * \brief  Allocator for core-local memory
  * \author Norman Feske
+ * \author Stefan Kalkowski
  * \date   2009-10-12
  */
 
@@ -16,48 +17,46 @@
 
 /* local includes */
 #include <core_mem_alloc.h>
-#include <util.h>
 
 using namespace Genode;
 
 static const bool verbose_core_mem_alloc = false;
 
 
-bool Core_mem_allocator::Mapped_mem_allocator::alloc(size_t size, void **out_addr)
+Range_allocator::Alloc_return
+Core_mem_allocator::alloc_aligned(size_t size, void **out_addr, int align)
 {
-	/* try to allocate block in cores already mapped virtual address ranges */
-	if (_alloc.alloc(size, out_addr))
-		return true;
-
-	/* there is no sufficient space in core's mapped virtual memory, expansion needed */
 	size_t page_rounded_size = (size + get_page_size() - 1) & get_page_mask();
-	void *phys_addr = 0, *virt_addr = 0;
+	void  *phys_addr = 0;
+	align = max((size_t)align, get_page_size_log2());
 
 	/* allocate physical pages */
-	if (!_phys_alloc->alloc(page_rounded_size, &phys_addr)) {
-		PERR("Could not allocate physical memory region of size %zu\n", page_rounded_size);
-		return false;
+	Alloc_return ret1 = _phys_alloc.raw()->alloc_aligned(page_rounded_size,
+	                                                     &phys_addr, align);
+	if (!ret1.is_ok()) {
+		PERR("Could not allocate physical memory region of size %zu\n",
+		     page_rounded_size);
+		return ret1;
 	}
 
 	/* allocate range in core's virtual address space */
-	if (!_virt_alloc->alloc(page_rounded_size, &virt_addr)) {
-		PERR("Could not allocate virtual address range in core of size %zu\n", page_rounded_size);
+	Alloc_return ret2 = _virt_alloc.raw()->alloc_aligned(page_rounded_size,
+	                                                     out_addr, align);
+	if (!ret2.is_ok()) {
+		PERR("Could not allocate virtual address range in core of size %zu\n",
+		     page_rounded_size);
 
 		/* revert physical allocation */
-		_phys_alloc->free(phys_addr);
-		return false;
+		_phys_alloc.raw()->free(phys_addr);
+		return ret2;
 	}
 
 	if (verbose_core_mem_alloc)
 		printf("added core memory block of %zu bytes at virt=%p phys=%p\n",
-		       page_rounded_size, virt_addr, phys_addr);
+		       page_rounded_size, *out_addr, phys_addr);
 
 	/* make physical page accessible at the designated virtual address */
-	_map_local((addr_t)virt_addr, (addr_t)phys_addr, get_page_size_log2());
+	_map_local((addr_t)*out_addr, (addr_t)phys_addr, page_rounded_size);
 
-	/* add new range to core's allocator for mapped virtual memory */
-	_alloc.add_range((addr_t)virt_addr, page_rounded_size);
-
-	/* now that we have added enough memory, try again... */
-	return _alloc.alloc(size, out_addr);
+	return Alloc_return::OK;
 }

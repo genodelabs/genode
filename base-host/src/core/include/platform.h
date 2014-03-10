@@ -38,7 +38,7 @@ namespace Genode {
 			Range_allocator *io_port_alloc()  { return 0; }
 			Range_allocator *irq_alloc()      { return 0; }
 			Range_allocator *region_alloc()   { return 0; }
-			Allocator       *core_mem_alloc() { return 0; }
+			Range_allocator *core_mem_alloc() { return 0; }
 			addr_t           vm_start() const { return 0; }
 			size_t           vm_size()  const { return 0; }
 			Rom_fs          *rom_fs()         { return 0; }

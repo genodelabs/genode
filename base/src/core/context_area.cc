@@ -124,7 +124,14 @@ class Context_area_rm_session : public Rm_session
 
 class Context_area_ram_session : public Ram_session
 {
-	enum { verbose = false };
+	private:
+
+		enum { verbose = false };
+
+		using Ds_slab = Synchronized_allocator<Tslab<Dataspace_component,
+		                                             get_page_size()> >;
+
+		Ds_slab _ds_slab { platform()->core_mem_alloc() };
 
 	public:
 
@@ -153,7 +160,7 @@ class Context_area_ram_session : public Ram_session
 			if (verbose)
 				PDBG("phys_base = %p, size = 0x%zx", phys_base, size);
 
-			context_ds[i] = new (platform()->core_mem_alloc())
+			context_ds[i] = new (&_ds_slab)
 				Dataspace_component(size, 0, (addr_t)phys_base, false, true, 0);
 
 			Dataspace_capability cap = Dataspace_capability::local_cap(context_ds[i]);
@@ -180,7 +187,7 @@ class Context_area_ram_session : public Ram_session
 			if (verbose)
 				PDBG("phys_addr = %p, size = 0x%zx", phys_addr, size);
 
-			destroy(platform()->core_mem_alloc(), dataspace_component);
+			destroy(&_ds_slab, dataspace_component);
 			platform_specific()->ram_alloc()->free(phys_addr, size);
 		}
 

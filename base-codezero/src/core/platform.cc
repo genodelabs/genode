@@ -126,9 +126,15 @@ int Platform::_init_rom_fs()
  ** Support for core memory management **
  ****************************************/
 
-bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, unsigned size_log2)
+bool Core_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr, unsigned size)
 {
-	return map_local(phys_addr, virt_addr, 1 << (size_log2 - get_page_size_log2()));
+	return map_local(phys_addr, virt_addr, size / get_page_size());
+}
+
+
+bool Core_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
+{
+	return unmap_local(virt_addr, size / get_page_size());
 }
 
 
