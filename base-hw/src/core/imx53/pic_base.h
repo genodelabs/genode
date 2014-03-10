@@ -200,6 +200,25 @@ namespace Imx53
 				if (i <= MAX_INTERRUPT_ID)
 					write<Enclear::Clear_enable>(1, i);
 			}
+
+			/**
+			 * Wether an interrupt is inter-processor interrupt of a processor
+			 *
+			 * \param interrupt_id  kernel name of the interrupt
+			 * \param processor_id  kernel name of the processor
+			 */
+			bool is_ip_interrupt(unsigned const interrupt_id,
+			                     unsigned const processor_id)
+			{
+				return false;
+			}
+
+			/**
+			 * Trigger the inter-processor interrupt of a processor
+			 *
+			 * \param processor_id  kernel name of the processor
+			 */
+			void trigger_ip_interrupt(unsigned const processor_id) { }
 	};
 }
 

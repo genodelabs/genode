@@ -30,14 +30,26 @@ void Kernel::Execution_context::_interrupt(unsigned const processor_id)
 {
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
-	if (pic()->take_request(irq_id))
+	Pic * const ic = pic();
+	if (ic->take_request(irq_id))
 	{
-		/* check wether the interrupt is a scheduling timeout */
-		if (timer()->interrupt_id(processor_id) == irq_id)
-		{
-			/* handle scheduling timeout */
+		/* check wether the interrupt is a processor-scheduling timeout */
+		if (timer()->interrupt_id(processor_id) == irq_id) {
+
 			__processor->scheduler()->yield_occupation();
 			timer()->clear_interrupt(processor_id);
+
+		/* check wether the interrupt is our inter-processor interrupt */
+		} else if (ic->is_ip_interrupt(irq_id, processor_id)) {
+
+			/*
+			 * This interrupt solely denotes that another processor has
+			 * modified the scheduling plan of this processor and thus
+			 * a more prior user context than the current one might be
+			 * available.
+			 */
+
+		/* after all it must be a user interrupt */
 		} else {
 
 			/* try to inform the user interrupt-handler */
@@ -45,23 +57,32 @@ void Kernel::Execution_context::_interrupt(unsigned const processor_id)
 		}
 	}
 	/* end interrupt request at controller */
-	pic()->finish_request();
+	ic->finish_request();
 }
 
 
 void Kernel::Execution_context::_schedule()
 {
+	/* schedule thread */
 	__processor->scheduler()->insert(this);
+
+	/* let processor of the scheduled thread notice the change immediately */
+	unsigned const processor_id = __processor->id();
+	if (processor_id != Processor::executing_id()) {
+		pic()->trigger_ip_interrupt(processor_id);
+	}
 }
 
 
 void Kernel::Execution_context::_unschedule()
 {
+	assert(__processor->id() == Processor::executing_id());
 	__processor->scheduler()->remove(this);
 }
 
 
 void Kernel::Execution_context::_yield()
 {
+	assert(__processor->id() == Processor::executing_id());
 	__processor->scheduler()->yield_occupation();
 }

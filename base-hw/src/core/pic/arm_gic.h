@@ -128,6 +128,15 @@ class Arm_gic::Pic
 			};
 
 			/**
+			 * Software generated interrupt register
+			 */
+			struct Sgir : Register<0xf00, 32>
+			{
+				struct Sgi_int_id      : Bitfield<0,  4> { };
+				struct Cpu_target_list : Bitfield<16, 8> { };
+			};
+
+			/**
 			 * Minimum supported interrupt priority
 			 */
 			Ipriorityr::access_t min_priority()
@@ -201,7 +210,6 @@ class Arm_gic::Pic
 			struct Iar : Register<0x0c, 32, true>
 			{
 				struct Irq_id : Bitfield<0,10> { };
-				struct Cpu_id : Bitfield<10,3> { };
 			};
 
 			/**
@@ -221,6 +229,16 @@ class Arm_gic::Pic
 		 * Wether the security extension is used or not
 		 */
 		inline static bool _use_security_ext();
+
+		/**
+		 * Return inter-processor interrupt of a specific processor
+		 *
+		 * \param processor_id  kernel name of targeted processor
+		 */
+		unsigned _ip_interrupt(unsigned const processor_id) const
+		{
+			return processor_id + 1;
+		}
 
 	public:
 
@@ -336,6 +354,32 @@ class Arm_gic::Pic
 		void mask(unsigned const interrupt_id)
 		{
 			_distr.write<Distr::Icenabler::Clear_enable>(1, interrupt_id);
+		}
+
+		/**
+		 * Wether an interrupt is inter-processor interrupt of a processor
+		 *
+		 * \param interrupt_id  kernel name of the interrupt
+		 * \param processor_id  kernel name of the processor
+		 */
+		bool is_ip_interrupt(unsigned const interrupt_id,
+		                     unsigned const processor_id)
+		{
+			return interrupt_id == _ip_interrupt(processor_id);
+		}
+
+		/**
+		 * Trigger the inter-processor interrupt of a processor
+		 *
+		 * \param processor_id  kernel name of the processor
+		 */
+		void trigger_ip_interrupt(unsigned const processor_id)
+		{
+			typedef Distr::Sgir Sgir;
+			Sgir::access_t sgir = 0;
+			Sgir::Sgi_int_id::set(sgir, _ip_interrupt(processor_id));
+			Sgir::Cpu_target_list::set(sgir, 1 << processor_id);
+			_distr.write<Sgir>(sgir);
 		}
 };
 
