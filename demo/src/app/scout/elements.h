@@ -18,6 +18,7 @@
 #include <scout/printf.h>
 #include <scout/string.h>
 #include <scout/fader.h>
+#include <scout/platform.h>
 
 namespace Scout {
 	class Style;
