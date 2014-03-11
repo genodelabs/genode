@@ -16,10 +16,9 @@
 
 /* core includes */
 #include <kernel/configuration.h>
-#include <kernel/scheduler.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
-#include <processor_driver.h>
+#include <kernel/processor.h>
 #include <cpu_support.h>
 
 namespace Kernel

@@ -263,7 +263,7 @@ extern "C" void init_kernel_multiprocessor()
 		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
 		t.ip = (addr_t)CORE_MAIN;;
 		t.sp = (addr_t)s + STACK_SIZE;
-		t.init(processor_pool()->select(processor_id), core_id(), &utcb, 1);
+		t.init(processor_pool()->processor(processor_id), core_id(), &utcb, 1);
 
 		/* kernel initialization finished */
 		init_platform();
@@ -282,7 +282,7 @@ extern "C" void kernel()
 
 	/* determine local processor scheduler */
 	unsigned const processor_id = Processor::executing_id();
-	Processor * const processor = processor_pool()->select(processor_id);
+	Processor * const processor = processor_pool()->processor(processor_id);
 	Processor_scheduler * const scheduler = processor->scheduler();
 
 	/*

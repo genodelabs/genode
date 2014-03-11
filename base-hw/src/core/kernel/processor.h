@@ -1,5 +1,5 @@
 /*
- * \brief   Provide a processor object for every available processor
+ * \brief   A multiplexable common instruction processor
  * \author  Martin Stein
  * \date    2014-01-14
  */
@@ -14,75 +14,103 @@
 #ifndef _KERNEL__PROCESSOR_H_
 #define _KERNEL__PROCESSOR_H_
 
-/* base includes */
-#include <unmanaged_singleton.h>
-
 /* core includes */
-#include <kernel/thread.h>
 #include <processor_driver.h>
+#include <kernel/scheduler.h>
 
 namespace Kernel
 {
 	/**
-	 * Thread that consumes processor time if no other thread is available
+	 * A single user of a multiplexable processor
 	 */
-	class Idle_thread;
+	class Processor_client;
 
 	/**
-	 * Representation of a single common instruction processor
+	 * Multiplexes a single processor to multiple processor clients
+	 */
+	typedef Scheduler<Processor_client> Processor_scheduler;
+
+	/**
+	 * A multiplexable common instruction processor
 	 */
 	class Processor;
-
-	/**
-	 * Provides a processor object for every provided processor
-	 */
-	class Processor_pool;
-
-	/**
-	 * Return Processor_pool singleton
-	 */
-	Processor_pool * processor_pool();
-
-	/**
-	 * Return kernel name of the core protection-domain
-	 */
-	unsigned core_id();
 }
 
-
-class Kernel::Idle_thread : public Thread
+class Kernel::Processor_client : public Processor_scheduler::Item
 {
 	private:
 
-		enum {
-			STACK_SIZE   = 4 * 1024,
-			STACK_ALIGNM = Processor_driver::DATA_ACCESS_ALIGNM,
-		};
+		Processor * __processor;
 
-		char _stack[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
+	protected:
 
 		/**
-		 * Main function of all idle threads
+		 * Handle an interrupt exception that occured during execution
+		 *
+		 * \param processor_id  kernel name of targeted processor
 		 */
-		static void _main()
+		void _interrupt(unsigned const processor_id);
+
+		/**
+		 * Insert context into the processor scheduling
+		 */
+		void _schedule();
+
+		/**
+		 * Remove context from the processor scheduling
+		 */
+		void _unschedule();
+
+		/**
+		 * Yield currently scheduled processor share of the context
+		 */
+		void _yield();
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		void _processor(Processor * const processor)
 		{
-			while (1) { Processor_driver::wait_for_interrupt(); }
+			__processor = processor;
 		}
 
 	public:
 
 		/**
+		 * Handle an exception that occured during execution
+		 *
+		 * \param processor_id  kernel name of targeted processor
+		 */
+		virtual void exception(unsigned const processor_id) = 0;
+
+		/**
+		 * Continue execution
+		 *
+		 * \param processor_id  kernel name of targeted processor
+		 */
+		virtual void proceed(unsigned const processor_id) = 0;
+
+		/**
 		 * Constructor
 		 *
 		 * \param processor  kernel object of targeted processor
+		 * \param priority   scheduling priority
 		 */
-		Idle_thread(Processor * const processor)
+		Processor_client(Processor * const processor, Priority const priority)
 		:
-			Thread(Priority::MAX, "idle")
+			Processor_scheduler::Item(priority),
+			__processor(processor)
+		{ }
+
+		/**
+		 * Destructor
+		 */
+		~Processor_client()
 		{
-			ip = (addr_t)&_main;
-			sp = (addr_t)&_stack[STACK_SIZE];
-			init(processor, core_id(), 0, 0);
+			if (!_scheduled()) { return; }
+			_unschedule();
 		}
 };
 
@@ -91,7 +119,6 @@ class Kernel::Processor : public Processor_driver
 	private:
 
 		unsigned const      _id;
-		Idle_thread         _idle;
 		Processor_scheduler _scheduler;
 
 	public:
@@ -99,11 +126,12 @@ class Kernel::Processor : public Processor_driver
 		/**
 		 * Constructor
 		 *
-		 * \param id  kernel name of the processor object
+		 * \param id           kernel name of the processor object
+		 * \param idle_client  client that gets scheduled on idle
 		 */
-		Processor(unsigned const id)
+		Processor(unsigned const id, Processor_client * const idle_client)
 		:
-			_id(id), _idle(this), _scheduler(&_idle)
+			_id(id), _scheduler(idle_client)
 		{ }
 
 
@@ -114,45 +142,6 @@ class Kernel::Processor : public Processor_driver
 		unsigned id() const { return _id; }
 
 		Processor_scheduler * scheduler() { return &_scheduler; }
-};
-
-class Kernel::Processor_pool
-{
-	private:
-
-		char _data[PROCESSORS][sizeof(Processor)];
-
-	public:
-
-		/**
-		 * Initialize the objects of one of the available processors
-		 *
-		 * \param id  kernel name of the targeted processor
-		 */
-		Processor_pool()
-		{
-			for (unsigned i = 0; i < PROCESSORS; i++) {
-				new (_data[i]) Processor(i);
-			}
-		}
-
-		/**
-		 * Return the object of a specific processor
-		 *
-		 * \param id  kernel name of the targeted processor
-		 */
-		Processor * select(unsigned const id) const
-		{
-			return id < PROCESSORS ? (Processor *)_data[id] : 0;
-		}
-
-		/**
-		 * Return the object of the primary processor
-		 */
-		Processor * primary() const
-		{
-			return (Processor *)_data[Processor::primary_id()];
-		}
 };
 
 #endif /* _KERNEL__PROCESSOR_H_ */

@@ -14,17 +14,12 @@
 #ifndef _KERNEL__SCHEDULER_H_
 #define _KERNEL__SCHEDULER_H_
 
-/* Genode includes */
-#include <util/misc_math.h>
-
 /* core includes */
 #include <kernel/configuration.h>
 #include <assert.h>
 
 namespace Kernel
 {
-	class Processor;
-
 	/**
 	 * Inheritable ability for objects of type T to be item in a double list
 	 */
@@ -53,13 +48,6 @@ namespace Kernel
 	 */
 	template <typename T>
 	class Scheduler;
-
-	/**
-	 * Kernel object that can be scheduled for the CPU
-	 */
-	class Processor_client;
-
-	typedef Scheduler<Processor_client> Processor_scheduler;
 }
 
 template <typename T>
@@ -304,84 +292,6 @@ class Kernel::Scheduler
 		T * occupant() { return _occupant ? _occupant : _idle; }
 
 		T * idle() const { return _idle; }
-};
-
-class Kernel::Processor_client : public Processor_scheduler::Item
-{
-	private:
-
-		Processor * __processor;
-
-	protected:
-
-		/**
-		 * Handle an interrupt exception that occured during execution
-		 *
-		 * \param processor_id  kernel name of targeted processor
-		 */
-		void _interrupt(unsigned const processor_id);
-
-		/**
-		 * Insert context into the processor scheduling
-		 */
-		void _schedule();
-
-		/**
-		 * Remove context from the processor scheduling
-		 */
-		void _unschedule();
-
-		/**
-		 * Yield currently scheduled processor share of the context
-		 */
-		void _yield();
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		void _processor(Processor * const processor)
-		{
-			__processor = processor;
-		}
-
-	public:
-
-		/**
-		 * Handle an exception that occured during execution
-		 *
-		 * \param processor_id  kernel name of targeted processor
-		 */
-		virtual void exception(unsigned const processor_id) = 0;
-
-		/**
-		 * Continue execution
-		 *
-		 * \param processor_id  kernel name of targeted processor
-		 */
-		virtual void proceed(unsigned const processor_id) = 0;
-
-		/**
-		 * Constructor
-		 *
-		 * \param processor  kernel object of targeted processor
-		 * \param priority   scheduling priority
-		 */
-		Processor_client(Processor * const processor, Priority const priority)
-		:
-			Processor_scheduler::Item(priority),
-			__processor(processor)
-		{ }
-
-		/**
-		 * Destructor
-		 */
-		~Processor_client()
-		{
-			if (!_scheduled()) { return; }
-			_unschedule();
-		}
 };
 
 #endif /* _KERNEL__SCHEDULER_H_ */

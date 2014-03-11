@@ -18,10 +18,9 @@
 #include <cpu/cpu_state.h>
 
 /* core includes */
-#include <kernel/scheduler.h>
 #include <kernel/kernel.h>
 #include <kernel/pd.h>
-#include <kernel/processor.h>
+#include <kernel/processor_pool.h>
 #include <kernel/signal_receiver.h>
 
 namespace Kernel
@@ -62,7 +61,8 @@ class Kernel::Vm : public Object<Vm, MAX_VMS, Vm_ids, vm_ids, vm_pool>,
 		Vm(void           * const state,
 		   Signal_context * const context)
 		:
-			Processor_client(processor_pool()->primary(), Priority::MIN),
+			Processor_client(processor_pool()->primary_processor(),
+			                 Priority::MIN),
 			_state((Vm_state * const)state),
 			_context(context)
 		{ }

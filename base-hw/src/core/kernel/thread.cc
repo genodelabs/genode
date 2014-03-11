@@ -366,7 +366,7 @@ void Thread::_call_start_thread()
 	}
 	/* lookup targeted processor */
 	unsigned const processor_id = user_arg_2();
-	Processor * const processor = processor_pool()->select(processor_id);
+	Processor * const processor = processor_pool()->processor(processor_id);
 	if (!processor) {
 		PERR("unknown processor");
 		user_arg_0(0);
