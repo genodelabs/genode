@@ -42,12 +42,7 @@ void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 		/* check wether the interrupt is our inter-processor interrupt */
 		} else if (ic->is_ip_interrupt(irq_id, processor_id)) {
 
-			/*
-			 * This interrupt solely denotes that another processor has
-			 * modified the scheduling plan of this processor and thus
-			 * a more prior user context than the current one might be
-			 * available.
-			 */
+			__processor->ip_interrupt();
 
 		/* after all it must be a user interrupt */
 		} else {
@@ -61,15 +56,18 @@ void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 }
 
 
-void Kernel::Processor_client::_schedule()
-{
-	/* schedule thread */
-	__processor->scheduler()->insert(this);
+void Kernel::Processor_client::_schedule() { __processor->schedule(this); }
 
-	/* let processor of the scheduled thread notice the change immediately */
-	unsigned const processor_id = __processor->id();
-	if (processor_id != Processor::executing_id()) {
-		pic()->trigger_ip_interrupt(processor_id);
+
+void Kernel::Processor::schedule(Processor_client * const client)
+{
+	/* schedule processor client */
+	_scheduler.insert(client);
+
+	/* let the processor notice the change immediately */
+	if (_id != executing_id() && !_ip_interrupt_pending) {
+		pic()->trigger_ip_interrupt(_id);
+		_ip_interrupt_pending = true;
 	}
 }
 

@@ -120,6 +120,7 @@ class Kernel::Processor : public Processor_driver
 
 		unsigned const      _id;
 		Processor_scheduler _scheduler;
+		bool                _ip_interrupt_pending;
 
 	public:
 
@@ -131,8 +132,29 @@ class Kernel::Processor : public Processor_driver
 		 */
 		Processor(unsigned const id, Processor_client * const idle_client)
 		:
-			_id(id), _scheduler(idle_client)
+			_id(id), _scheduler(idle_client), _ip_interrupt_pending(false)
 		{ }
+
+		/**
+		 * Notice that the inter-processor interrupt isn't pending anymore
+		 */
+		void ip_interrupt()
+		{
+			/*
+			 * This interrupt solely denotes that another processor has
+			 * modified the scheduling plan of this processor and thus
+			 * a more prior user context than the current one might be
+			 * available.
+			 */
+			_ip_interrupt_pending = false;
+		}
+
+		/**
+		 * Add a processor client to the scheduling plan of the processor
+		 *
+		 * \param client  targeted client
+		 */
+		void schedule(Processor_client * const client);
 
 
 		/***************
