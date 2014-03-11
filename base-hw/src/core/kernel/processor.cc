@@ -61,13 +61,17 @@ void Kernel::Processor_client::_schedule() { __processor->schedule(this); }
 
 void Kernel::Processor::schedule(Processor_client * const client)
 {
-	/* schedule processor client */
-	_scheduler.insert(client);
+	if (_id != executing_id()) {
 
-	/* let the processor notice the change immediately */
-	if (_id != executing_id() && !_ip_interrupt_pending) {
-		pic()->trigger_ip_interrupt(_id);
-		_ip_interrupt_pending = true;
+		/* remote add client and let target processor notice it if necessary */
+		if (_scheduler.insert_and_check(client) && !_ip_interrupt_pending) {
+			pic()->trigger_ip_interrupt(_id);
+			_ip_interrupt_pending = true;
+		}
+	} else {
+
+		/* add client locally */
+		_scheduler.insert(client);
 	}
 }
 

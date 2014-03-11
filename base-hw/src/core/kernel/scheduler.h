@@ -280,6 +280,20 @@ class Kernel::Scheduler
 		}
 
 		/**
+		 * Include item in scheduling and check wether an update is needed
+		 *
+		 * \param item  targeted item
+		 *
+		 * \return  wether the current occupant is out-dated after insertion
+		 */
+		bool insert_and_check(T * const item)
+		{
+			insert(item);
+			if (!_occupant) { return true; }
+			return item->priority() > _occupant->priority();
+		}
+
+		/**
 		 * Exclude 'i' from scheduling
 		 */
 		void remove(T * const i) { _items[i->priority()].remove(i); }
