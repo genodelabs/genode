@@ -63,7 +63,18 @@ void Kernel::Processor::schedule(Processor_client * const client)
 {
 	if (_id != executing_id()) {
 
-		/* remote add client and let target processor notice it if necessary */
+		/*
+		 * Remote add client and let target processor notice it if necessary
+		 *
+		 * The interrupt controller might provide redundant submission of
+		 * inter-processor interrupts. Thus its possible that once the targeted
+		 * processor is able to grab the kernel lock, multiple remote updates
+		 * occured and consequently the processor traps multiple times for the
+		 * sole purpose of recognizing the result of the accumulative changes.
+		 * Hence, we omit further interrupts if there is one pending already.
+		 * Additionailly we omit the interrupt if the insertion doesn't
+		 * rescind the current scheduling choice of the processor.
+		 */
 		if (_scheduler.insert_and_check(client) && !_ip_interrupt_pending) {
 			pic()->trigger_ip_interrupt(_id);
 			_ip_interrupt_pending = true;
