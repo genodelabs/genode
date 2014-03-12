@@ -247,9 +247,8 @@ extern "C" void init_kernel_multiprocessor()
 			STACK_ALIGNM = 1 << Genode::CORE_STACK_ALIGNM_LOG2,
 			STACK_SIZE   = DEFAULT_STACK_SIZE,
 		};
-		if (STACK_SIZE > STACK_ALIGNM - sizeof(Core_thread_id)) {
-			PERR("stack size does not fit stack alignment of core");
-		}
+		static_assert(STACK_SIZE <= STACK_ALIGNM - sizeof(Core_thread_id),
+		              "stack size does not fit stack alignment of core");
 		static char s[STACK_SIZE] __attribute__((aligned(STACK_ALIGNM)));
 
 		/* provide thread ident at the aligned base of the stack */

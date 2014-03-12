@@ -118,7 +118,11 @@ class Kernel::Irq
 		 *
 		 * By now, there is no use case to destruct user interrupts
 		 */
-		~Irq() { PERR("method not implemented"); }
+		~Irq()
+		{
+			PERR("destruction of interrupts not implemented");
+			while (1) { }
+		}
 
 
 		/************************
@@ -153,7 +157,7 @@ class Kernel::Irq
 		{
 			Irq * const irq = _pool()->object(irq_id);
 			if (!irq) {
-				PERR("unknown interrupt occurred");
+				PWRN("unknown interrupt occurred");
 				return;
 			}
 			irq->_occurred();

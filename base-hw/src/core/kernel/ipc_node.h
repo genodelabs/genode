@@ -72,8 +72,8 @@ class Kernel::Ipc_node
 		{
 			/* FIXME: invalid requests should be discarded */
 			if (r->size > _inbuf.size) {
-				PERR("oversized request");
-				while (1) { }
+				PWRN("oversized request");
+				r->size = _inbuf.size;
 			}
 			/* fetch message */
 			Genode::memcpy(_inbuf.base, r->base, r->size);

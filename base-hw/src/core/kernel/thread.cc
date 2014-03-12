@@ -78,7 +78,7 @@ void Thread::_received_ipc_request(size_t const s)
 		user_arg_0(0);
 		return;
 	default:
-		PERR("wrong thread state to receive IPC");
+		PWRN("wrong thread state to receive IPC");
 		_stop();
 		return;
 	}
@@ -92,7 +92,7 @@ void Thread::_await_ipc()
 		_unschedule(AWAITS_IPC);
 		return;
 	default:
-		PERR("wrong thread state to await IPC");
+		PWRN("wrong thread state to await IPC");
 		_stop();
 		return;
 	}
@@ -107,7 +107,7 @@ void Thread::_await_ipc_succeeded(size_t const s)
 		_schedule();
 		return;
 	default:
-		PERR("wrong thread state to receive IPC");
+		PWRN("wrong thread state to receive IPC");
 		_stop();
 		return;
 	}
@@ -122,7 +122,7 @@ void Thread::_await_ipc_failed()
 		_schedule();
 		return;
 	default:
-		PERR("wrong thread state to cancel IPC");
+		PWRN("wrong thread state to cancel IPC");
 		_stop();
 		return;
 	}
@@ -149,7 +149,7 @@ int Thread::_resume()
 	case AWAITS_START:
 	case STOPPED:;
 	}
-	PERR("failed to resume thread");
+	PWRN("failed to resume thread");
 	return -1;
 }
 
@@ -245,7 +245,7 @@ void Thread::exception(unsigned const processor_id)
 	case RESET:
 		return;
 	default:
-		PERR("unknown exception");
+		PWRN("unknown exception");
 		_stop();
 	}
 }
@@ -254,7 +254,7 @@ void Thread::exception(unsigned const processor_id)
 void Thread::_receive_yielded_cpu()
 {
 	if (_state == AWAITS_RESUME) { _schedule(); }
-	else { PERR("failed to receive yielded CPU"); }
+	else { PWRN("failed to receive yielded CPU"); }
 }
 
 
@@ -276,7 +276,7 @@ void Thread::_call_new_pd()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to create protection domain");
+		PWRN("not entitled to create protection domain");
 		user_arg_0(0);
 		return;
 	}
@@ -293,7 +293,7 @@ void Thread::_call_bin_pd()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to destruct protection domain");
+		PWRN("not entitled to destruct protection domain");
 		user_arg_0(-1);
 		return;
 	}
@@ -301,7 +301,7 @@ void Thread::_call_bin_pd()
 	unsigned id = user_arg_1();
 	Pd * const pd = Pd::pool()->object(id);
 	if (!pd) {
-		PERR("unknown protection domain");
+		PWRN("unknown protection domain");
 		user_arg_0(-1);
 		return;
 	}
@@ -320,7 +320,7 @@ void Thread::_call_new_thread()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to create thread");
+		PWRN("not entitled to create thread");
 		user_arg_0(0);
 		return;
 	}
@@ -352,7 +352,7 @@ void Thread::_call_start_thread()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("permission denied");
+		PWRN("permission denied");
 		user_arg_0(0);
 		return;
 	}
@@ -360,7 +360,7 @@ void Thread::_call_start_thread()
 	unsigned const thread_id = user_arg_1();
 	Thread * const thread = Thread::pool()->object(thread_id);
 	if (!thread) {
-		PERR("unknown thread");
+		PWRN("unknown thread");
 		user_arg_0(0);
 		return;
 	}
@@ -368,7 +368,7 @@ void Thread::_call_start_thread()
 	unsigned const processor_id = user_arg_2();
 	Processor * const processor = processor_pool()->processor(processor_id);
 	if (!processor) {
-		PERR("unknown processor");
+		PWRN("unknown processor");
 		user_arg_0(0);
 		return;
 	}
@@ -406,13 +406,13 @@ void Thread::_call_resume_thread()
 	/* lookup thread */
 	Thread * const t = Thread::pool()->object(user_arg_1());
 	if (!t) {
-		PERR("unknown thread");
+		PWRN("unknown thread");
 		user_arg_0(-1);
 		return;
 	}
 	/* check permissions */
 	if (!_core() && pd_id() != t->pd_id()) {
-		PERR("not entitled to resume thread");
+		PWRN("not entitled to resume thread");
 		user_arg_0(-1);
 		return;
 	}
@@ -437,7 +437,7 @@ Thread_event::Thread_event(Thread * const t)
 void Thread_event::submit()
 {
 	if (_signal_context && !_signal_context->submit(1)) { return; }
-	PERR("failed to communicate thread event");
+	PWRN("failed to communicate thread event");
 }
 
 
@@ -462,7 +462,7 @@ void Thread::_call_send_request_msg()
 {
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
-		PERR("unknown recipient");
+		PWRN("unknown recipient");
 		_await_ipc();
 		return;
 	}
@@ -493,7 +493,7 @@ void Thread::_call_route_thread_event()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to route thread event");
+		PWRN("not entitled to route thread event");
 		user_arg_0(-1);
 		return;
 	}
@@ -501,7 +501,7 @@ void Thread::_call_route_thread_event()
 	unsigned const thread_id = user_arg_1();
 	Thread * const t = Thread::pool()->object(thread_id);
 	if (!t) {
-		PERR("unknown thread");
+		PWRN("unknown thread");
 		user_arg_0(-1);
 		return;
 	}
@@ -523,7 +523,7 @@ int Thread::_route_event(unsigned const event_id,
 	if (signal_context_id) {
 		c = Signal_context::pool()->object(signal_context_id);
 		if (!c) {
-			PERR("unknown signal context");
+			PWRN("unknown signal context");
 			return -1;
 		}
 	} else { c = 0; }
@@ -554,7 +554,7 @@ void Thread::_call_access_thread_regs()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to access thread regs");
+		PWRN("not entitled to access thread regs");
 		user_arg_0(-1);
 		return;
 	}
@@ -562,7 +562,7 @@ void Thread::_call_access_thread_regs()
 	unsigned const thread_id = user_arg_1();
 	Thread * const t = Thread::pool()->object(thread_id);
 	if (!t) {
-		PERR("unknown thread");
+		PWRN("unknown thread");
 		user_arg_0(-1);
 		return;
 	}
@@ -691,7 +691,7 @@ void Thread::_call_new_signal_receiver()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to create signal receiver");
+		PWRN("not entitled to create signal receiver");
 		user_arg_0(0);
 		return;
 	}
@@ -706,7 +706,7 @@ void Thread::_call_new_signal_context()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to create signal context");
+		PWRN("not entitled to create signal context");
 		user_arg_0(0);
 		return;
 	}
@@ -714,7 +714,7 @@ void Thread::_call_new_signal_context()
 	unsigned const id = user_arg_2();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
-		PERR("unknown signal receiver");
+		PWRN("unknown signal receiver");
 		user_arg_0(0);
 		return;
 	}
@@ -733,19 +733,19 @@ void Thread::_call_await_signal()
 	if (context_id) {
 		Signal_context * const c = Signal_context::pool()->object(context_id);
 		if (c) { c->ack(); }
-		else { PERR("failed to acknowledge signal context"); }
+		else { PWRN("failed to acknowledge signal context"); }
 	}
 	/* lookup receiver */
 	unsigned const receiver_id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(receiver_id);
 	if (!r) {
-		PERR("unknown signal receiver");
+		PWRN("unknown signal receiver");
 		user_arg_0(-1);
 		return;
 	}
 	/* register handler at the receiver */
 	if (r->add_handler(this)) {
-		PERR("failed to register handler at signal receiver");
+		PWRN("failed to register handler at signal receiver");
 		user_arg_0(-1);
 		return;
 	}
@@ -759,7 +759,7 @@ void Thread::_call_signal_pending()
 	unsigned const id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
-		PERR("unknown signal receiver");
+		PWRN("unknown signal receiver");
 		user_arg_0(0);
 		return;
 	}
@@ -774,13 +774,13 @@ void Thread::_call_submit_signal()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if(!c) {
-		PERR("unknown signal context");
+		PWRN("unknown signal context");
 		user_arg_0(-1);
 		return;
 	}
 	/* trigger signal context */
 	if (c->submit(user_arg_2())) {
-		PERR("failed to submit signal context");
+		PWRN("failed to submit signal context");
 		user_arg_0(-1);
 		return;
 	}
@@ -794,7 +794,7 @@ void Thread::_call_ack_signal()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
-		PERR("unknown signal context");
+		PWRN("unknown signal context");
 		return;
 	}
 	/* acknowledge */
@@ -808,13 +808,13 @@ void Thread::_call_kill_signal_context()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
-		PERR("unknown signal context");
+		PWRN("unknown signal context");
 		user_arg_0(-1);
 		return;
 	}
 	/* kill signal context */
 	if (c->kill(this)) {
-		PERR("failed to kill signal context");
+		PWRN("failed to kill signal context");
 		user_arg_0(-1);
 		return;
 	}
@@ -825,7 +825,7 @@ void Thread::_call_bin_signal_context()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to kill signal context");
+		PWRN("not entitled to kill signal context");
 		user_arg_0(-1);
 		return;
 	}
@@ -833,7 +833,7 @@ void Thread::_call_bin_signal_context()
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
 	if (!c) {
-		PERR("unknown signal context");
+		PWRN("unknown signal context");
 		user_arg_0(0);
 		return;
 	}
@@ -847,7 +847,7 @@ void Thread::_call_bin_signal_receiver()
 {
 	/* check permissions */
 	if (!_core()) {
-		PERR("not entitled to kill signal receiver");
+		PWRN("not entitled to kill signal receiver");
 		user_arg_0(-1);
 		return;
 	}
@@ -855,7 +855,7 @@ void Thread::_call_bin_signal_receiver()
 	unsigned const id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
 	if (!r) {
-		PERR("unknown signal receiver");
+		PWRN("unknown signal receiver");
 		user_arg_0(0);
 		return;
 	}
@@ -920,7 +920,7 @@ int Thread::_read_reg(addr_t const id, addr_t & value) const
 		value = this->*reg;
 		return 0;
 	}
-	PERR("unknown thread register");
+	PWRN("unknown thread register");
 	return -1;
 }
 
@@ -932,7 +932,7 @@ int Thread::_write_reg(addr_t const id, addr_t const value)
 		this->*reg = value;
 		return 0;
 	}
-	PERR("unknown thread register");
+	PWRN("unknown thread register");
 	return -1;
 }
 
@@ -969,7 +969,7 @@ void Thread::_call(unsigned const processor_id)
 	case Call_id::ACCESS_THREAD_REGS:   _call_access_thread_regs(); return;
 	case Call_id::ROUTE_THREAD_EVENT:   _call_route_thread_event(); return;
 	default:
-		PERR("unknown kernel call");
+		PWRN("unknown kernel call");
 		_stop();
 	}
 }
