@@ -47,12 +47,12 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 	/* remove mapping from the translation table of the thread that we serve */
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (!pt) {
-		PERR("failed to get platform thread of RM client");
+		PWRN("failed to get platform thread of RM client");
 		return;
 	}
 	Tlb * const tlb = pt->tlb();
 	if (!tlb) {
-		PERR("failed to get page table of RM client");
+		PWRN("failed to get page table of RM client");
 		return;
 	}
 	tlb->remove_region(virt_base, size);
@@ -91,7 +91,7 @@ int Pager_activation_base::apply_mapping()
 		bool ram_ok = platform()->ram_alloc()->alloc_aligned(1<<sl2, &ram,
 		                                                     sl2).is_ok();
 		if (!ram_ok) {
-			PERR("failed to allocate additional RAM for TLB");
+			PWRN("failed to allocate additional RAM for TLB");
 			return -1;
 		}
 		/* try to translate again with extra RAM */
@@ -99,7 +99,7 @@ int Pager_activation_base::apply_mapping()
 		                              _mapping.phys_address,
 		                              _mapping.size_log2, flags, ram);
 		if (sl2) {
-			PERR("TLB needs to much RAM");
+			PWRN("TLB needs to much RAM");
 			regain_ram_from_tlb(tlb);
 			return -1;
 		}
@@ -124,12 +124,12 @@ void Pager_activation_base::entry()
 				o->fault_occured(s);
 				break;
 			}
-			PERR("unknown pager object");
+			PWRN("unknown pager object");
 		}
 		/* fetch fault data */
 		Platform_thread * const pt = (Platform_thread *)o->badge();
 		if (!pt) {
-			PERR("failed to get platform thread of faulter");
+			PWRN("failed to get platform thread of faulter");
 			continue;
 		}
 		unsigned const thread_id = pt->id();
@@ -142,13 +142,13 @@ void Pager_activation_base::entry()
 		memcpy(utcb, read_regs, sizeof(read_regs));
 		addr_t * const read_values = (addr_t *)&_fault;
 		if (Kernel::access_thread_regs(thread_id, READS, 0, read_values, 0)) {
-			PERR("failed to read fault data");
+			PWRN("failed to read fault data");
 			continue;
 		}
 		/* handle fault */
 		if (o->pager(*this)) { continue; }
 		if (apply_mapping()) {
-			PERR("failed to apply mapping");
+			PWRN("failed to apply mapping");
 			continue;
 		}
 		o->fault_resolved();
