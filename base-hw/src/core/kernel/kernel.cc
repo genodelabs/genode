@@ -267,6 +267,7 @@ extern "C" void init_kernel_multiprocessor()
 
 		/* kernel initialization finished */
 		init_platform();
+		Genode::printf("kernel initialized\n");
 	}
 	reset_scheduling_time(processor_id);
 }

@@ -207,7 +207,7 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 		return
 	}
 	if {[is_serial_available]} {
-		spawn_serial $wait_for_re $timeout_value "create local services"
+		spawn_serial $wait_for_re $timeout_value "kernel initialized"
 		return
 	}
 
