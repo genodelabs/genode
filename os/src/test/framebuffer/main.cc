@@ -1,11 +1,12 @@
 /*
  * \brief  Basic test for framebuffer session
  * \author Martin Stein
+ * \author Christian Helmuth
  * \date   2012-01-09
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2014 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -18,31 +19,54 @@
 #include <base/env.h>
 #include <timer_session/connection.h>
 
-using namespace Genode;
+
+class Test_environment
+{
+	private:
+
+		Timer::Connection                  _timer;
+		Framebuffer::Connection            _fb;
+		Framebuffer::Mode            const _mode{_fb.mode()};
+
+		Genode::Dataspace_capability const _ds_cap{_fb.dataspace()};
+		void *                       const _base{Genode::env()->rm_session()->attach(_ds_cap)};
+
+	public:
+
+		Test_environment()
+		{
+			PINF("framebuffer is %dx%d@%d",
+			     _mode.width(), _mode.height(), _mode.format());
+
+			if (_mode.bytes_per_pixel() != 2) {
+				PERR("pixel format not supported");
+				throw -1;
+			}
+		}
+
+		void complete_step()
+		{
+			_fb.refresh(0, 0, _mode.width(), _mode.height());
+			_timer.msleep(2000);
+		}
+
+		Framebuffer::Mode fb_mode() const { return _mode; }
+		unsigned fb_bpp()           const { return _mode.bytes_per_pixel(); }
+		Genode::addr_t fb_base()    const { return (Genode::addr_t) _base; }
+		Genode::size_t fb_size()    const { return _mode.width()
+		                                         * _mode.height()
+		                                         * _mode.bytes_per_pixel(); }
+};
+
 
 int main()
 {
-	printf("--- Test framebuffer ---\n");
-	static Timer::Connection timer;
+	using namespace Genode;
 
-	/* create framebuffer */
-	static Framebuffer::Connection fb;
-	Framebuffer::Mode const mode = fb.mode();
-	PINF("framebuffer is %dx%d@%d\n", mode.width(), mode.height(), mode.format());
-	Dataspace_capability fb_ds_cap = fb.dataspace();
-	if (!fb_ds_cap.valid()) {
-		PERR("Could not request dataspace for frame buffer");
-		return -2;
-	}
-	/* drive framebuffer */
-	addr_t const   fb_base = (addr_t)env()->rm_session()->attach(fb_ds_cap);
-	unsigned const fb_bpp  = (unsigned)mode.bytes_per_pixel();
-	if (fb_bpp != 2) {
-		PERR("pixel format not supported");
-		return -1;
-	}
-	size_t const fb_size = (unsigned)(mode.width() * mode.height() * fb_bpp);
-	addr_t const stripe_width = mode.width() / 4;
+	printf("--- Test framebuffer ---\n");
+	static Test_environment te;
+
+	addr_t const stripe_width = te.fb_mode().width() / 4;
 	while (1) {
 		enum {
 			BLACK = 0x0,
@@ -54,33 +78,36 @@ int main()
 		PINF("black & white stripes");
 		addr_t stripe_o = 0;
 		bool stripe = 0;
-		for (addr_t o = 0; o < fb_size; o += fb_bpp) {
+		for (addr_t o = 0; o < te.fb_size(); o += te.fb_bpp()) {
 			stripe_o++;
 			if (stripe_o == stripe_width) {
 				stripe_o = 0;
 				stripe = !stripe;
 			}
-			*(uint16_t volatile *)(fb_base + o) = stripe ? BLACK : WHITE;
+			*(uint16_t volatile *)(te.fb_base() + o) = stripe ? BLACK : WHITE;
 		}
-		timer.msleep(2000);
+		te.complete_step();
+
 		PINF("blue");
-		for (addr_t o = 0; o < fb_size; o += fb_bpp)
-			*(uint16_t volatile *)(fb_base + o) = BLUE;
-		timer.msleep(2000);
+		for (addr_t o = 0; o < te.fb_size(); o += te.fb_bpp())
+			*(uint16_t volatile *)(te.fb_base() + o) = BLUE;
+		te.complete_step();
+
 		PINF("green");
-		for (addr_t o = 0; o < fb_size; o += fb_bpp)
-			*(uint16_t volatile *)(fb_base + o) = GREEN;
-		timer.msleep(2000);
+		for (addr_t o = 0; o < te.fb_size(); o += te.fb_bpp())
+			*(uint16_t volatile *)(te.fb_base() + o) = GREEN;
+		te.complete_step();
+
 		PINF("red");
-		for (addr_t o = 0; o < fb_size; o += fb_bpp)
-			*(uint16_t volatile *)(fb_base + o) = RED;
-		timer.msleep(2000);
+		for (addr_t o = 0; o < te.fb_size(); o += te.fb_bpp())
+			*(uint16_t volatile *)(te.fb_base() + o) = RED;
+		te.complete_step();
+
 		PINF("all colors mixed");
 		unsigned i = 0;
-		for (addr_t o = 0; o < fb_size; o += fb_bpp, i++)
-			*(uint16_t volatile *)(fb_base + o) = i;
-		timer.msleep(2000);
+		for (addr_t o = 0; o < te.fb_size(); o += te.fb_bpp(), i++)
+			*(uint16_t volatile *)(te.fb_base() + o) = i;
+		te.complete_step();
 	}
-	return 0;
 }
 
