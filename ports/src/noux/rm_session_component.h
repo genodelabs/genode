@@ -175,7 +175,7 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 
 				} else {
 
-					PERR("replay: missing ds_info for dataspace at addr 0x%lx",
+					PWRN("replay: missing ds_info for dataspace at addr 0x%lx",
 					     curr->local_addr);
 
 					/*
