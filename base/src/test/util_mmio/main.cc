@@ -158,8 +158,11 @@ struct Test_mmio : public Mmio
 void dump_mem(uint8_t * base, size_t size)
 {
 	addr_t top = (addr_t)base + size;
+	bool print_separator = 0;
 	for(; (addr_t)base < top;) {
-		printf("%2X ", *(uint8_t *)base);
+		if (print_separator) { printf("-"); }
+		else { print_separator = 1; }
+		printf("%1x%1x", (*(uint8_t *)base) & 0xf, *(uint8_t *)base >> 4);
 		base = (uint8_t *)((addr_t)base + sizeof(uint8_t));
 	}
 }
@@ -199,7 +202,7 @@ int compare_mem(uint8_t * base1, uint8_t * base2, size_t size)
 void error(unsigned line)
 {
 	printf("Test in line %i failed\n", line);
-	printf("  mmio_mem:  0x ");
+	printf("  mmio_mem:  hex ");
 	dump_mem(mmio_mem, sizeof(mmio_mem));
 	printf("\n  cpu_state: 0x%4X\n", cpu_state);
 }
