@@ -192,14 +192,12 @@ int compare_mem(uint8_t * base1, uint8_t * base2, size_t size)
 /**
  * End a failed test
  */
-int test_failed(unsigned line)
+void error(unsigned line)
 {
 	printf("Test in line %i failed\n", line);
 	printf("  mmio_mem:  0x ");
 	dump_mem(mmio_mem, sizeof(mmio_mem));
 	printf("\n  cpu_state: 0x%4X\n", cpu_state);
-	printf("Test done\n");
-	return -1;
 }
 
 
@@ -220,7 +218,7 @@ int main()
 	static uint8_t mmio_cmpr_1[MMIO_SIZE] = {0,0,0,0,0b00010101,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_1, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg>() != 0x15)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* read/write bit appropriately */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -228,7 +226,7 @@ int main()
 	static uint8_t mmio_cmpr_2[MMIO_SIZE] = {0,0,0,0,0b00000001,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_2, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Bit_1>() != 1)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* read/write bit overflowing */
 	mmio.write<Test_mmio::Reg::Bit_2>(0xff);
@@ -236,14 +234,14 @@ int main()
 	static uint8_t mmio_cmpr_3[MMIO_SIZE] = {0,0,0,0,0b00010001,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_3, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Bit_2>() != 1)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* read/write bitarea appropriately */
 	mmio.write<Test_mmio::Reg::Area>(Test_mmio::Reg::Area::VALUE_3);
 	static uint8_t mmio_cmpr_4[MMIO_SIZE] = {0,0,0,0,0b00011011,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_4, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Area>() != Test_mmio::Reg::Area::VALUE_3)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* read/write bitarea overflowing */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -251,27 +249,27 @@ int main()
 	static uint8_t mmio_cmpr_5[MMIO_SIZE] = {0,0,0,0,0b00001010,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_5, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Area>() != 0b101)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* read/write bit out of regrange */
 	mmio.write<Test_mmio::Reg::Invalid_bit>(1);
 	if (compare_mem(mmio_mem, mmio_cmpr_5, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Invalid_bit>() != 0)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* read/write bitarea that exceeds regrange */
 	mmio.write<Test_mmio::Reg::Invalid_area>(0xff);
 	static uint8_t mmio_cmpr_7[MMIO_SIZE] = {0,0,0,0,0b11001010,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_7, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Invalid_area>() != 0b11)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* read/write bitarea that overlaps other bitfields */
 	mmio.write<Test_mmio::Reg::Overlapping_area>(0b00110011);
 	static uint8_t mmio_cmpr_8[MMIO_SIZE] = {0,0,0,0,0b11110011,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_8, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Overlapping_area>() != 0b110011)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 
 	/******************************
@@ -297,7 +295,7 @@ int main()
 	    || Cpu_state::Irq::get(state)          != 0b101
 	    || Cpu_state::Invalid_bit::get(state)  != 0
 	    || Cpu_state::Invalid_area::get(state) != 1)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* clear bitfields */
 	Cpu_state::B::clear(state);
@@ -307,7 +305,7 @@ int main()
 	if (cpu_state != 0b1000010001001010
 	    || Cpu_state::B::get(state)   != 0
 	    || Cpu_state::Irq::get(state) != 0)
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 
 	/******************************************
@@ -328,7 +326,7 @@ int main()
 	    mmio.read<Test_mmio::Array>(5) != 0xc ||
 	    mmio.read<Test_mmio::Array>(9) != 0xd ||
 	    mmio.read<Test_mmio::Array>(11) !=  0 )
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* item- and bitfield overflows - also test overlapping bitfields */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -354,7 +352,7 @@ int main()
 		mmio.read<Test_mmio::Array::C>(8)  != 0x0 ||
 		mmio.read<Test_mmio::Array::D>(8)  != 0x3 ||
 		mmio.read<Test_mmio::Array::A>(11) != 0   )
-	{ return test_failed(__LINE__); }
+	{ error(__LINE__); }
 
 	/* writing to registers with 'STRICT_WRITE' set */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -363,7 +361,7 @@ int main()
 	mmio.write<Test_mmio::Strict_reg::B>(0xff);
 	static uint8_t mmio_cmpr_13[MMIO_SIZE] = {0,0,0,0b11000000,0b10101010,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_13, sizeof(mmio_mem))) {
-		return test_failed(__LINE__); }
+		error(__LINE__); }
 
 	/* writing to register array items with 'STRICT_WRITE' set */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -375,7 +373,7 @@ int main()
 	mmio.write<Test_mmio::Strict_array>(0b110011, 3);
 	static uint8_t mmio_cmpr_14[MMIO_SIZE] = {0,0b00110000,0b10101010,0,0,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_14, sizeof(mmio_mem))) {
-		return test_failed(__LINE__); }
+		error(__LINE__); }
 
 	/* writing to register array bitfields with 'STRICT_WRITE' set */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -384,7 +382,7 @@ int main()
 	mmio.write<Test_mmio::Strict_array::B>(0xff, 3);
 	static uint8_t mmio_cmpr_15[MMIO_SIZE] = {0,0b11000000,0b10101010,0,0,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_15, sizeof(mmio_mem))) {
-		return test_failed(__LINE__); }
+		error(__LINE__); }
 
 	/* writing to simple register array */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -396,47 +394,47 @@ int main()
 	mmio.write<Test_mmio::Simple_array_2>(0xabcd, 2);
 	static uint8_t mmio_cmpr_16[MMIO_SIZE] = {0x78,0x56,0xdc,0xfe,0x21,0x43,0xcd,0xab};
 	if (compare_mem(mmio_mem, mmio_cmpr_16, sizeof(mmio_mem))) {
-		return test_failed(__LINE__); }
+		error(__LINE__); }
 
 	/* write and read a bitset with 2 parts */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::My_bitset_2>(0x1234);
 	static uint8_t mmio_cmpr_17[MMIO_SIZE] = {0x00,0x46,0x08,0x00,0x00,0x00,0x00,0x00};
 	if (compare_mem(mmio_mem, mmio_cmpr_17, sizeof(mmio_mem)))
-		return test_failed(__LINE__);
+		error(__LINE__);
 	if (mmio.read<Test_mmio::My_bitset_2>() != 0x234)
-		return test_failed(__LINE__);
+		error(__LINE__);
 
 	/* write and read a bitset with 3 parts */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::My_bitset_3>(0x12345678);
 	static uint8_t mmio_cmpr_18[MMIO_SIZE] = {0x00,0x78,0x00,0x00,0x30,0x00,0xac,0x08};
 	if (compare_mem(mmio_mem, mmio_cmpr_18, sizeof(mmio_mem)))
-		return test_failed(__LINE__);
+		error(__LINE__);
 	if (mmio.read<Test_mmio::My_bitset_3>() != 0x345678)
-		return test_failed(__LINE__);
+		error(__LINE__);
 
 	/* write and read a nested bitset */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::My_bitset_4>(0x5679);
 	static uint8_t mmio_cmpr_19[MMIO_SIZE] = {0x00,0xcf,0x02,0x00,0xa0,0x00,0x00,0x00};
 	if (compare_mem(mmio_mem, mmio_cmpr_19, sizeof(mmio_mem)))
-		return test_failed(__LINE__);
+		error(__LINE__);
 	if (mmio.read<Test_mmio::My_bitset_4>() != 0x5679)
-		return test_failed(__LINE__);
+		error(__LINE__);
 
 	/* bitfield methods at bitsets */
 	Test_mmio::Reg_1::access_t bs5 =
 		Test_mmio::My_bitset_5::bits(0b1011110010110);
 	if (bs5 != 0b1100000010001010) {
-		return test_failed(__LINE__);
+		error(__LINE__);
 	}
 	if (Test_mmio::My_bitset_5::get(bs5) != 0b110010110) {
-		return test_failed(__LINE__);
+		error(__LINE__);
 	}
 	Test_mmio::My_bitset_5::set(bs5, 0b1011101101001);
 	if (bs5 != 0b1011000001000100) {
-		return test_failed(__LINE__);
+		error(__LINE__);
 	}
 
 	/**********************************
@@ -450,8 +448,8 @@ int main()
 			0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01 };
 		zero_mem(mmio_mem, MMIO_SIZE);
 		mmio.write<Reg>(REG);
-		if (mmio.read<Reg>() != REG) { return test_failed(__LINE__); }
-		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { return test_failed(__LINE__); }
+		if (mmio.read<Reg>() != REG) { error(__LINE__); }
+		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { error(__LINE__); }
 
 		/* bitfields in a register */
 		enum {
@@ -459,18 +457,18 @@ int main()
 			BITS_1     = 0x56789,
 			BITS_2     = 0x4,
 			BITS_3     = 0xabcdef,
-			BITS_TRASH = 0xf000000
+			BITS_TRASH = 0xf000000,
 		};
 		zero_mem(mmio_mem, MMIO_SIZE);
 		mmio.write<Reg::Bits_0>(BITS_0 | BITS_TRASH);
 		mmio.write<Reg::Bits_1>(BITS_1 | BITS_TRASH);
 		mmio.write<Reg::Bits_2>(BITS_2 | BITS_TRASH);
 		mmio.write<Reg::Bits_3>(BITS_3 | BITS_TRASH);
-		if (mmio.read<Reg::Bits_0>() != BITS_0) { return test_failed(__LINE__); }
-		if (mmio.read<Reg::Bits_1>() != BITS_1) { return test_failed(__LINE__); }
-		if (mmio.read<Reg::Bits_2>() != BITS_2) { return test_failed(__LINE__); }
-		if (mmio.read<Reg::Bits_3>() != BITS_3) { return test_failed(__LINE__); }
-		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { return test_failed(__LINE__); }
+		if (mmio.read<Reg::Bits_0>() != BITS_0) { error(__LINE__); }
+		if (mmio.read<Reg::Bits_1>() != BITS_1) { error(__LINE__); }
+		if (mmio.read<Reg::Bits_2>() != BITS_2) { error(__LINE__); }
+		if (mmio.read<Reg::Bits_3>() != BITS_3) { error(__LINE__); }
+		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { error(__LINE__); }
 	}
 
 	printf("Test done\n");
