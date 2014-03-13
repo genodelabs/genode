@@ -520,8 +520,11 @@ namespace Genode
 			{
 				typedef typename T::Bitset_2_base::Bits_0 Bits_0;
 				typedef typename T::Bitset_2_base::Bits_1 Bits_1;
-				return  read<Bits_0>() |
-				       (read<Bits_1>() << Bits_0::BITFIELD_WIDTH);
+				typedef typename T::Bitset_2_base::access_t access_t;
+				enum { V1_SHIFT = Bits_0::BITFIELD_WIDTH };
+				access_t const v0 = read<Bits_0>();
+				access_t const v1 = read<Bits_1>();
+				return v0 | (v1 << V1_SHIFT);
 			}
 
 			/**
@@ -547,9 +550,15 @@ namespace Genode
 				typedef typename T::Bitset_3_base::Bits_0 Bits_0;
 				typedef typename T::Bitset_3_base::Bits_1 Bits_1;
 				typedef typename T::Bitset_3_base::Bits_2 Bits_2;
-				return  read<Bitset_2<Bits_0, Bits_1> >() |
-				       (read<Bits_2>() << (Bits_0::BITFIELD_WIDTH +
-				                           Bits_1::BITFIELD_WIDTH));
+				typedef typename T::Bitset_3_base::access_t access_t;
+				enum {
+					BITS_0_WIDTH = Bits_0::BITFIELD_WIDTH,
+					BITS_1_WIDTH = Bits_1::BITFIELD_WIDTH,
+					V1_SHIFT     = BITS_0_WIDTH + BITS_1_WIDTH,
+				};
+				access_t const v0 = read<Bitset_2<Bits_0, Bits_1> >();
+				access_t const v1 = read<Bits_2>();
+				return v0 | (v1 << V1_SHIFT);
 			}
 
 			/**
