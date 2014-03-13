@@ -61,6 +61,14 @@ struct Test_mmio : public Mmio
 {
 	Test_mmio(addr_t const base) : Mmio(base) { }
 
+	struct Reg_64 : Register<0x00, 64>
+	{
+		struct Bits_0 : Bitfield<48,12>  { };
+		struct Bits_1 : Bitfield<24,20> { };
+		struct Bits_2 : Bitfield<44,4>  { };
+		struct Bits_3 : Bitfield<0,24> { };
+	};
+
 	struct Reg : Register<0x04, 8>
 	{
 		enum
@@ -429,6 +437,40 @@ int main()
 	Test_mmio::My_bitset_5::set(bs5, 0b1011101101001);
 	if (bs5 != 0b1011000001000100) {
 		return test_failed(__LINE__);
+	}
+
+	/**********************************
+	 ** Test access widths of 64 bit **
+	 **********************************/
+	{
+		/* whole register */
+		typedef Test_mmio::Reg_64 Reg;
+		enum { REG = 0x0123456789abcdef };
+		static uint8_t cmp_mem[MMIO_SIZE] = {
+			0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01 };
+		zero_mem(mmio_mem, MMIO_SIZE);
+		mmio.write<Reg>(REG);
+		if (mmio.read<Reg>() != REG) { return test_failed(__LINE__); }
+		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { return test_failed(__LINE__); }
+
+		/* bitfields in a register */
+		enum {
+			BITS_0     = 0x123,
+			BITS_1     = 0x56789,
+			BITS_2     = 0x4,
+			BITS_3     = 0xabcdef,
+			BITS_TRASH = 0xf000000
+		};
+		zero_mem(mmio_mem, MMIO_SIZE);
+		mmio.write<Reg::Bits_0>(BITS_0 | BITS_TRASH);
+		mmio.write<Reg::Bits_1>(BITS_1 | BITS_TRASH);
+		mmio.write<Reg::Bits_2>(BITS_2 | BITS_TRASH);
+		mmio.write<Reg::Bits_3>(BITS_3 | BITS_TRASH);
+		if (mmio.read<Reg::Bits_0>() != BITS_0) { return test_failed(__LINE__); }
+		if (mmio.read<Reg::Bits_1>() != BITS_1) { return test_failed(__LINE__); }
+		if (mmio.read<Reg::Bits_2>() != BITS_2) { return test_failed(__LINE__); }
+		if (mmio.read<Reg::Bits_3>() != BITS_3) { return test_failed(__LINE__); }
+		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { return test_failed(__LINE__); }
 	}
 
 	printf("Test done\n");
