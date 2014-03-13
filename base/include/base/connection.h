@@ -23,7 +23,7 @@ namespace Genode {
 	 * Representation of an open connection to a service
 	 */
 	template <typename SESSION_TYPE>
-	class Connection
+	class Connection : public Noncopyable
 	{
 		public:
 
