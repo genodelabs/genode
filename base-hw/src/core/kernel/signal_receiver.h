@@ -386,22 +386,21 @@ class Kernel::Signal_receiver
 		{
 			while (1)
 			{
-				/* check if there are deliverable signal */
-				if (_deliver.empty()) return;
-				Signal_context * const c = _deliver.dequeue()->object();
+				/* check for deliverable signals and waiting handlers */
+				if (_deliver.empty() || _handlers.empty()) { return; }
 
-				/* if there is no handler re-enqueue context and exit */
-				if (_handlers.empty()) {
-					_deliver.enqueue(&c->_deliver_fe);
-					return;
-				}
-				/* delivery from context to handler */
-				Signal_handler * const h = _handlers.dequeue()->object();
-				Signal::Data data((Genode::Signal_context *)c->_imprint,
-				                   c->_submits);
-				h->_receiver = 0;
-				h->_receive_signal(&data, sizeof(data));
-				c->_delivered();
+				/* create a signal data-object */
+				typedef Genode::Signal_context * Signal_imprint;
+				auto const context = _deliver.dequeue()->object();
+				auto const imprint =
+					reinterpret_cast<Signal_imprint>(context->_imprint);
+				Signal::Data data(imprint, context->_submits);
+
+				/* communicate signal data to handler */
+				auto const handler = _handlers.dequeue()->object();
+				handler->_receiver = 0;
+				handler->_receive_signal(&data, sizeof(data));
+				context->_delivered();
 			}
 		}
 
