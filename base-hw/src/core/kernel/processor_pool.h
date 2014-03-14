@@ -48,7 +48,7 @@ class Kernel::Idle_thread : public Thread
 	private:
 
 		enum {
-			STACK_SIZE   = 4 * 1024,
+			STACK_SIZE   = sizeof(addr_t) * 32,
 			STACK_ALIGNM = Processor_driver::DATA_ACCESS_ALIGNM,
 		};
 
