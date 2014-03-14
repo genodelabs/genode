@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	close(fd_src);
 	close(fd_dst);
 
-	printf("wrote %zu bytes to overlay.vdi - res=%d\n", sum, len);
+	printf("wrote %zu bytes to overlay.vdi - res=%zu\n", sum, len);
 	printf("vbox_auto_test_helper is done.\n");
 	return 0;
 }
