@@ -227,9 +227,9 @@ class Kernel::Thread
 		void _print_common_activity();
 
 
-		/****************************************************************
-		 ** Kernel-call backends, for details see 'kernel/interface.h' **
-		 ****************************************************************/
+		/*********************************************************
+		 ** Kernel-call back-ends, see kernel-interface headers **
+		 *********************************************************/
 
 		void _call_new_pd();
 		void _call_bin_pd();

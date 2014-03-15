@@ -18,7 +18,7 @@
 #include <root/component.h>
 
 /* base-hw includes */
-#include <kernel/interface.h>
+#include <kernel/core_interface.h>
 
 /* core includes */
 #include <signal_session_component.h>

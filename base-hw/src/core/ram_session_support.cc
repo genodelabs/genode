@@ -15,7 +15,7 @@
 #include <base/printf.h>
 
 /* base-hw includes */
-#include <kernel/interface.h>
+#include <kernel/core_interface.h>
 
 /* core includes */
 #include <ram_session_component.h>

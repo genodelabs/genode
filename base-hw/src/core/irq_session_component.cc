@@ -12,7 +12,7 @@
  */
 
 /* base-hw includes */
-#include <kernel/interface.h>
+#include <kernel/core_interface.h>
 
 /* core includes */
 #include <kernel/irq.h>

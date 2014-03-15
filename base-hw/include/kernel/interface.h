@@ -14,7 +14,7 @@
 #ifndef _KERNEL__INTERFACE_H_
 #define _KERNEL__INTERFACE_H_
 
-/* Genode includes */
+/* base-hw includes */
 #include <kernel/interface_support.h>
 
 namespace Genode
@@ -26,48 +26,27 @@ namespace Genode
 
 namespace Kernel
 {
-	typedef Genode::Tlb             Tlb;
-	typedef Genode::addr_t          addr_t;
-	typedef Genode::size_t          size_t;
-	typedef Genode::Platform_pd     Platform_pd;
-	typedef Genode::Native_utcb     Native_utcb;
+	typedef Genode::Tlb          Tlb;
+	typedef Genode::addr_t       addr_t;
+	typedef Genode::size_t       size_t;
+	typedef Genode::Platform_pd  Platform_pd;
+	typedef Genode::Native_utcb  Native_utcb;
 
 	/**
-	 * Kernel names of all kernel calls
+	 * Kernel names of the kernel calls
 	 */
-	struct Call_id
-	{
-		enum {
-			NEW_THREAD           = 0,
-			BIN_THREAD           = 1,
-			START_THREAD         = 2,
-			PAUSE_THREAD         = 3,
-			RESUME_THREAD        = 4,
-			YIELD_THREAD         = 5,
-			ACCESS_THREAD_REGS   = 6,
-			ROUTE_THREAD_EVENT   = 7,
-			UPDATE_PD            = 8,
-			UPDATE_REGION        = 9,
-			NEW_PD               = 10,
-			BIN_PD               = 11,
-			SEND_REQUEST_MSG     = 12,
-			SEND_REPLY_MSG       = 13,
-			AWAIT_REQUEST_MSG    = 14,
-			NEW_SIGNAL_RECEIVER  = 15,
-			NEW_SIGNAL_CONTEXT   = 16,
-			KILL_SIGNAL_CONTEXT  = 17,
-			BIN_SIGNAL_CONTEXT   = 18,
-			BIN_SIGNAL_RECEIVER  = 19,
-			SUBMIT_SIGNAL        = 20,
-			AWAIT_SIGNAL         = 21,
-			SIGNAL_PENDING       = 22,
-			ACK_SIGNAL           = 23,
-			NEW_VM               = 24,
-			RUN_VM               = 25,
-			PAUSE_VM             = 26,
-			PRINT_CHAR           = 27,
-		};
-	};
+	constexpr Call_arg call_id_pause_thread()        { return 0; }
+	constexpr Call_arg call_id_resume_thread()       { return 1; }
+	constexpr Call_arg call_id_yield_thread()        { return 2; }
+	constexpr Call_arg call_id_send_request_msg()    { return 3; }
+	constexpr Call_arg call_id_send_reply_msg()      { return 4; }
+	constexpr Call_arg call_id_await_request_msg()   { return 5; }
+	constexpr Call_arg call_id_kill_signal_context() { return 6; }
+	constexpr Call_arg call_id_submit_signal()       { return 7; }
+	constexpr Call_arg call_id_await_signal()        { return 8; }
+	constexpr Call_arg call_id_signal_pending()      { return 9; }
+	constexpr Call_arg call_id_ack_signal()          { return 10; }
+	constexpr Call_arg call_id_print_char()          { return 11; }
 
 
 	/*****************************************************************
@@ -105,148 +84,6 @@ namespace Kernel
 	              Call_arg arg_4,
 	              Call_arg arg_5);
 
-	/**
-	 * Virtual range of the mode transition region in every PD
-	 */
-	addr_t mode_transition_virt_base();
-	size_t mode_transition_size();
-
-	/**
-	 * Get sizes of the kernel objects
-	 */
-	size_t thread_size();
-	size_t pd_size();
-	size_t signal_context_size();
-	size_t signal_receiver_size();
-	size_t vm_size();
-
-	/**
-	 * Get alignment constraints of the kernel objects
-	 */
-	unsigned kernel_pd_alignm_log2();
-
-
-	/**
-	 * Create a protection domain
-	 *
-	 * \param p   appropriate memory donation for the kernel object
-	 * \param pd  core local Platform_pd object
-	 *
-	 * \retval >0  kernel name of the new protection domain
-	 * \retval  0  failed
-	 *
-	 * Restricted to core threads. Regaining of the supplied memory is not
-	 * supported by now.
-	 */
-	inline unsigned new_pd(void * const dst, Platform_pd * const pd)
-	{
-		return call(Call_id::NEW_PD, (Call_arg)dst, (Call_arg)pd);
-	}
-
-
-	/**
-	 * Destruct a protection domain
-	 *
-	 * \param pd_id  kernel name of the targeted protection domain
-	 *
-	 * \retval  0  succeeded
-	 * \retval -1  failed
-	 */
-	inline int bin_pd(unsigned const pd_id)
-	{
-		return call(Call_id::BIN_PD, pd_id);
-	}
-
-
-	/**
-	 * Propagate changes in PD configuration
-	 *
-	 * \param pd_id  ID of the PD that has been configured
-	 *
-	 * It might be, that the kernel and/or the hardware caches parts of PD
-	 * configurations such as virtual address translations. This function
-	 * ensures that the current configuration of the targeted PD gets fully
-	 * applied from the moment it returns to the userland. This function is
-	 * inappropriate in case that a PD wants to change its own configuration.
-	 * There's no need for this function after a configuration change that
-	 * can't affect the kernel- and/or hardware-caches.
-	 *
-	 * Restricted to core threads.
-	 */
-	inline void update_pd(unsigned const pd_id)
-	{
-		call(Call_id::UPDATE_PD, pd_id);
-	}
-
-
-	/**
-	 * Propagate memory-updates within a given virtual region
-	 *
-	 * \param base  virtual base of the region
-	 * \param size  size of the region
-	 *
-	 * If one updates a memory region and must ensure that the update
-	 * gets visible directly to other address spaces, this function does
-	 * the job.
-	 *
-	 * Restricted to core threads.
-	 */
-	inline void update_region(addr_t const base, size_t const size)
-	{
-		call(Call_id::UPDATE_REGION, (Call_arg)base, (Call_arg)size);
-	}
-
-
-	/**
-	 * Create kernel object that acts as thread that isn't executed initially
-	 *
-	 * \param p         memory donation for the new kernel thread object
-	 * \param priority  scheduling priority of the new thread
-	 * \param label     debugging label of the new thread
-	 *
-	 * \retval >0  kernel name of the new thread
-	 * \retval  0  failed
-	 *
-	 * Restricted to core threads.
-	 */
-	inline int new_thread(void * const p, unsigned const priority,
-	                      char const * const label)
-	{
-		return call((Call_arg)Call_id::NEW_THREAD, (Call_arg)p, (Call_arg)priority,
-		            (Call_arg)label);
-	}
-
-
-	/**
-	 * Destruct kernel thread-object
-	 *
-	 * \param thread_id  kernel name of the targeted thread
-	 *
-	 * Restricted to core threads.
-	 */
-	inline void bin_thread(unsigned const thread_id)
-	{
-		call(Call_id::BIN_THREAD, thread_id);
-	}
-
-
-	/**
-	 * Start executing a thread
-	 *
-	 * \param thread_id  kernel name of targeted thread
-	 * \param cpu_id     kernel name of targeted processor
-	 * \param pd_id      kernel name of targeted protection domain
-	 * \param utcb       core local pointer to userland thread-context
-	 *
-	 * Restricted to core threads.
-	 */
-	inline Tlb * start_thread(unsigned const thread_id, unsigned const cpu_id,
-	                          unsigned const pd_id, Native_utcb * const utcb)
-	{
-		return (Tlb *)call(Call_id::START_THREAD, thread_id, cpu_id, pd_id,
-		                   (Call_arg)utcb);
-	}
-
 
 	/**
 	 * Prevent thread from participating in CPU scheduling
@@ -261,7 +98,7 @@ namespace Kernel
 	 */
 	inline int pause_thread(unsigned const thread_id)
 	{
-		return call(Call_id::PAUSE_THREAD, thread_id);
+		return call(call_id_pause_thread(), thread_id);
 	}
 
 
@@ -279,7 +116,7 @@ namespace Kernel
 	 */
 	inline int resume_thread(unsigned const thread_id)
 	{
-		return call(Call_id::RESUME_THREAD, thread_id);
+		return call(call_id_resume_thread(), thread_id);
 	}
 
 
@@ -293,25 +130,7 @@ namespace Kernel
 	 */
 	inline void yield_thread(unsigned const thread_id)
 	{
-		call(Call_id::YIELD_THREAD, thread_id);
-	}
-
-
-	/**
-	 * Set or unset the handler of an event a kernel thread-object triggers
-	 *
-	 * \param thread_id          kernel name of the targeted thread
-	 * \param event_id           kernel name of the targeted thread event
-	 * \param signal_context_id  kernel name of the handlers signal context
-	 *
-	 * Restricted to core threads.
-	 */
-	inline int route_thread_event(unsigned const thread_id,
-	                              unsigned const event_id,
-	                              unsigned const signal_context_id)
-	{
-		return call(Call_id::ROUTE_THREAD_EVENT, thread_id,
-		            event_id, signal_context_id);
+		call(call_id_yield_thread(), thread_id);
 	}
 
 
@@ -328,7 +147,7 @@ namespace Kernel
 	 */
 	inline int send_request_msg(unsigned const thread_id)
 	{
-		return call(Call_id::SEND_REQUEST_MSG, thread_id);
+		return call(call_id_send_request_msg(), thread_id);
 	}
 
 
@@ -343,7 +162,7 @@ namespace Kernel
 	 */
 	inline int await_request_msg()
 	{
-		return call(Call_id::AWAIT_REQUEST_MSG);
+		return call(call_id_await_request_msg());
 	}
 
 
@@ -360,7 +179,7 @@ namespace Kernel
 	 */
 	inline int send_reply_msg(bool const await_request_msg)
 	{
-		return call(Call_id::SEND_REPLY_MSG, await_request_msg);
+		return call(call_id_send_reply_msg(), await_request_msg);
 	}
 
 
@@ -372,87 +191,7 @@ namespace Kernel
 	 */
 	inline void print_char(char const c)
 	{
-		call(Call_id::PRINT_CHAR, c);
-	}
-
-
-	/**
-	 * Access plain member variables of a kernel thread-object
-	 *
-	 * \param thread_id     kernel name of the targeted thread
-	 * \param reads         amount of read operations
-	 * \param writes        amount of write operations
-	 * \param read_values   base of value buffer for read operations
-	 * \param write_values  base of value buffer for write operations
-	 *
-	 * \retval  0  all operations done
-	 * \retval >0  amount of undone operations
-	 * \retval -1  failed to start processing operations
-	 *
-	 * Restricted to core threads. Operations are processed in order of the
-	 * appearance of the register names in the callers UTCB. If reads = 0,
-	 * read_values is of no relevance. If writes = 0, write_values is of no
-	 * relevance.
-	 *
-	 * Expected structure at the callers UTCB base:
-	 *
-	 *                    0 * sizeof(addr_t): read register name #1
-	 *                  ...                   ...
-	 *          (reads - 1) * sizeof(addr_t): read register name #reads
-	 *          (reads - 0) * sizeof(addr_t): write register name #1
-	 *                  ...                   ...
-	 * (reads + writes - 1) * sizeof(addr_t): write register name #writes
-	 *
-	 * Expected structure at write_values:
-	 *
-	 *                    0 * sizeof(addr_t): write value #1
-	 *                  ...                   ...
-	 *         (writes - 1) * sizeof(addr_t): write value #writes
-	 */
-	inline int access_thread_regs(unsigned const thread_id,
-	                              unsigned const reads,
-	                              unsigned const writes,
-	                              addr_t * const read_values,
-	                              addr_t * const write_values)
-	{
-		return call(Call_id::ACCESS_THREAD_REGS, thread_id, reads, writes,
-		            (Call_arg)read_values, (Call_arg)write_values);
-	}
-
-
-	/**
-	 * Create a kernel object that acts as a signal receiver
-	 *
-	 * \param p  memory donation for the kernel signal-receiver object
-	 *
-	 * \retval >0  kernel name of the new signal receiver
-	 * \retval  0  failed
-	 *
-	 * Restricted to core threads.
-	 */
-	inline unsigned new_signal_receiver(addr_t const p)
-	{
-		return call(Call_id::NEW_SIGNAL_RECEIVER, p);
-	}
-
-
-	/**
-	 * Create kernel object that acts as a signal context and assign it
-	 *
-	 * \param p         memory donation for the kernel signal-context object
-	 * \param receiver  kernel name of targeted signal receiver
-	 * \param imprint   user label of the signal context
-	 *
-	 * \retval >0  kernel name of the new signal context
-	 * \retval  0  failed
-	 *
-	 * Restricted to core threads.
-	 */
-	inline unsigned new_signal_context(addr_t const   p,
-	                                   unsigned const receiver,
-	                                   unsigned const imprint)
-	{
-		return call(Call_id::NEW_SIGNAL_CONTEXT, p, receiver, imprint);
+		call(call_id_print_char(), c);
 	}
 
 
@@ -479,7 +218,7 @@ namespace Kernel
 	inline int await_signal(unsigned const receiver_id,
 	                        unsigned const context_id)
 	{
-		return call(Call_id::AWAIT_SIGNAL, receiver_id, context_id);
+		return call(call_id_await_signal(), receiver_id, context_id);
 	}
 
 
@@ -493,7 +232,7 @@ namespace Kernel
 	 */
 	inline bool signal_pending(unsigned const receiver)
 	{
-		return call(Call_id::SIGNAL_PENDING, receiver);
+		return call(call_id_signal_pending(), receiver);
 	}
 
 
@@ -508,7 +247,7 @@ namespace Kernel
 	 */
 	inline int submit_signal(unsigned const context, unsigned const num)
 	{
-		return call(Call_id::SUBMIT_SIGNAL, context, num);
+		return call(call_id_submit_signal(), context, num);
 	}
 
 
@@ -519,7 +258,7 @@ namespace Kernel
 	 */
 	inline void ack_signal(unsigned const context)
 	{
-		call(Call_id::ACK_SIGNAL, context);
+		call(call_id_ack_signal(), context);
 	}
 
 
@@ -533,88 +272,8 @@ namespace Kernel
 	 */
 	inline int kill_signal_context(unsigned const context)
 	{
-		return call(Call_id::KILL_SIGNAL_CONTEXT, context);
-	}
-
-
-	/**
-	 * Destruct a signal context
-	 *
-	 * \param context  kernel name of the targeted signal context
-	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
-	 *
-	 * Restricted to core threads.
-	 */
-	inline int bin_signal_context(unsigned const context)
-	{
-		return call(Call_id::BIN_SIGNAL_CONTEXT, context);
-	}
-
-
-	/**
-	 * Destruct a signal receiver
-	 *
-	 * \param receiver  kernel name of the targeted signal receiver
-	 *
-	 * \retval  0  suceeded
-	 * \retval -1  failed
-	 *
-	 * Restricted to core threads.
-	 */
-	inline int bin_signal_receiver(unsigned const receiver)
-	{
-		return call(Call_id::BIN_SIGNAL_RECEIVER, receiver);
-	}
-
-
-	/**
-	 * Create a virtual machine that is stopped initially
-	 *
-	 * \param dst                memory donation for the kernel VM-object
-	 * \param state              location of the CPU state of the VM
-	 * \param signal_context_id  kernel name of the signal context for VM events
-	 *
-	 * \retval >0  kernel name of the new VM
-	 * \retval  0  failed
-	 *
-	 * Restricted to core threads. Regaining of the supplied memory is not
-	 * supported by now.
-	 */
-	inline int new_vm(void * const dst, void * const state,
-	                  unsigned const signal_context_id)
-	{
-		return call(Call_id::NEW_VM, (Call_arg)dst, (Call_arg)state,
-		            signal_context_id);
-	}
-
-
-	/**
-	 * Execute a virtual-machine (again)
-	 *
-	 * \param vm_id  kernel name of the targeted VM
-	 *
-	 * Restricted to core threads.
-	 */
-	inline void run_vm(unsigned const vm_id)
-	{
-		call(Call_id::RUN_VM, vm_id);
-	}
-
-
-	/**
-	 * Stop execution of a virtual-machine
-	 *
-	 * \param vm_id  kernel name of the targeted VM
-	 *
-	 * Restricted to core threads.
-	 */
-	inline void pause_vm(unsigned const vm_id)
-	{
-		call(Call_id::PAUSE_VM, vm_id);
+		return call(call_id_kill_signal_context(), context);
 	}
 }
 
 #endif /* _KERNEL__INTERFACE_H_ */
-

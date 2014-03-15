@@ -20,7 +20,7 @@
 #include <base/thread.h>
 
 /* base-hw includes */
-#include <kernel/interface.h>
+#include <kernel/core_interface.h>
 #include <kernel/log.h>
 
 /* core includes */

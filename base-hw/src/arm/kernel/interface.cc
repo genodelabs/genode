@@ -117,24 +117,3 @@ Call_ret Kernel::call(Call_arg arg_0,
 	asm volatile(CALL_6_SWI);
 	return arg_0_reg;
 }
-
-
-/*************************
- ** CPU-state utilities **
- *************************/
-
-typedef Thread_reg_id Reg_id;
-
-static addr_t const _cpu_state_regs[] = {
-	Reg_id::R0,   Reg_id::R1,   Reg_id::R2,  Reg_id::R3, Reg_id::R4,
-	Reg_id::R5,   Reg_id::R6,   Reg_id::R7,  Reg_id::R8, Reg_id::R9,
-	Reg_id::R10,  Reg_id::R11,  Reg_id::R12, Reg_id::SP, Reg_id::LR,
-	Reg_id::IP,   Reg_id::CPSR, Reg_id::CPU_EXCEPTION };
-
-addr_t const * cpu_state_regs() { return _cpu_state_regs; }
-
-
-size_t cpu_state_regs_length()
-{
-	return sizeof(_cpu_state_regs)/sizeof(_cpu_state_regs[0]);
-}

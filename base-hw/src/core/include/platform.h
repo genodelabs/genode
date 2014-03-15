@@ -21,7 +21,7 @@
 
 /* base-hw includes */
 #include <kernel/log.h>
-#include <kernel/interface.h>
+#include <kernel/core_interface.h>
 
 /* core includes */
 #include <platform_generic.h>
