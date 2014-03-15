@@ -155,6 +155,9 @@ namespace Kernel
 	 * \param thread_id          kernel name of the targeted thread
 	 * \param event_id           kernel name of the targeted thread event
 	 * \param signal_context_id  kernel name of the handlers signal context
+	 *
+	 * \retval  0  succeeded
+	 * \retval -1  failed
 	 */
 	inline int route_thread_event(unsigned const thread_id,
 	                              unsigned const event_id,
