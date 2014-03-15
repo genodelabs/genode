@@ -134,12 +134,12 @@ namespace Kernel
 	/**
 	 * Get attributes of the kernel objects
 	 */
-	size_t thread_size()          { return sizeof(Thread); }
-	size_t pd_size()              { return sizeof(Tlb) + sizeof(Pd); }
-	size_t signal_context_size()  { return sizeof(Signal_context); }
-	size_t signal_receiver_size() { return sizeof(Signal_receiver); }
-	unsigned pd_alignm_log2()     { return Tlb::ALIGNM_LOG2; }
-	size_t vm_size()              { return sizeof(Vm); }
+	size_t   thread_size()          { return sizeof(Thread); }
+	size_t   pd_size()              { return sizeof(Tlb) + sizeof(Pd); }
+	size_t   signal_context_size()  { return sizeof(Signal_context); }
+	size_t   signal_receiver_size() { return sizeof(Signal_receiver); }
+	unsigned pd_alignment_log2()    { return Tlb::ALIGNM_LOG2; }
+	size_t   vm_size()              { return sizeof(Vm); }
 
 	enum { STACK_SIZE = 64 * 1024 };
 

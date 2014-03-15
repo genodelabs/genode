@@ -23,10 +23,10 @@ namespace Kernel
 	size_t   mode_transition_size();
 	size_t   thread_size();
 	size_t   pd_size();
+	unsigned pd_alignment_log2();
 	size_t   signal_context_size();
 	size_t   signal_receiver_size();
 	size_t   vm_size();
-	unsigned kernel_pd_alignm_log2();
 
 	/**
 	 * Kernel names of the kernel calls

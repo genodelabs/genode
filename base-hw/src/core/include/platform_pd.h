@@ -24,12 +24,6 @@
 #include <platform_thread.h>
 #include <address_space.h>
 
-namespace Kernel
-{
-	Genode::size_t pd_size();
-	unsigned       pd_alignm_log2();
-}
-
 namespace Genode
 {
 	/**
@@ -69,7 +63,7 @@ namespace Genode
 				Range_allocator * ram = platform()->ram_alloc();
 				bool kernel_pd_ok =
 					ram->alloc_aligned(Kernel::pd_size(), &kernel_pd,
-					                   Kernel::pd_alignm_log2()).is_ok();
+					                   Kernel::pd_alignment_log2()).is_ok();
 				if (!kernel_pd_ok) {
 					PERR("failed to allocate kernel object");
 					throw Root::Quota_exceeded();
