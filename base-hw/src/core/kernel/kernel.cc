@@ -128,8 +128,8 @@ namespace Kernel
 	/**
 	 * Get attributes of the mode transition region in every PD
 	 */
-	addr_t mode_transition_virt_base() { return mtc()->VIRT_BASE; }
-	size_t mode_transition_size()      { return mtc()->SIZE; }
+	addr_t mode_transition_base() { return mtc()->VIRT_BASE; }
+	size_t mode_transition_size() { return mtc()->SIZE; }
 
 	/**
 	 * Get attributes of the kernel objects

@@ -19,7 +19,7 @@
 
 namespace Kernel
 {
-	addr_t   mode_transition_virt_base();
+	addr_t   mode_transition_base();
 	size_t   mode_transition_size();
 	size_t   thread_size();
 	size_t   pd_size();

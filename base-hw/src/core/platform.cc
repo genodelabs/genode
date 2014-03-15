@@ -46,12 +46,6 @@ extern int       _boot_modules_end;
  */
 typedef Native_region * (*Region_pool)(unsigned const);
 
-namespace Kernel
-{
-	addr_t mode_transition_virt_base();
-	size_t mode_transition_size();
-}
-
 
 /**
  * Helper to initialise allocators through include/exclude region lists
@@ -95,7 +89,7 @@ Native_region * Platform::_core_only_ram_regions(unsigned const i)
 		{ 0, 1 },
 
 		/* mode transition region */
-		{ Kernel::mode_transition_virt_base(), Kernel::mode_transition_size() },
+		{ Kernel::mode_transition_base(), Kernel::mode_transition_size() },
 
 		/* core image */
 		{ (addr_t)&_prog_img_beg,
