@@ -114,8 +114,8 @@ namespace Kernel
 	 * \retval >0  kernel name of the new thread
 	 * \retval  0  failed
 	 */
-	inline int new_thread(void * const p, unsigned const priority,
-	                      char const * const label)
+	inline unsigned new_thread(void * const p, unsigned const priority,
+	                           char const * const label)
 	{
 		return call(call_id_new_thread(), (Call_arg)p, (Call_arg)priority,
 		            (Call_arg)label);
