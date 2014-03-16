@@ -109,7 +109,7 @@ namespace Genode {
 
 			inline void wait_for_exit()
 			{
-				while (1) { Kernel::pause_thread(0); }
+				while (1) { Kernel::pause_current_thread(); }
 			};
 
 			bool supports_direct_unmap() const { return 1; }

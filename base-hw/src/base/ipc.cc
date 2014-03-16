@@ -55,7 +55,7 @@ Ipc_ostream::Ipc_ostream(Native_capability dst, Msgbuf_base *snd_msg)
 void Ipc_istream::_wait()
 {
 	/* FIXME: this shall be not supported */
-	Kernel::pause_thread(0);
+	Kernel::pause_current_thread();
 }
 
 

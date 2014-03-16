@@ -59,7 +59,7 @@ thread_check_stopped_and_restart(Genode::Thread_base * const t)
 /**
  * Pause execution of current thread
  */
-static inline void thread_stop_myself() { Kernel::pause_thread(0); }
+static inline void thread_stop_myself() { Kernel::pause_current_thread(); }
 
 
 #endif /* _LOCK_HELPER_H_ */

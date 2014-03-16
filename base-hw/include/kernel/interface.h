@@ -35,18 +35,18 @@ namespace Kernel
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_pause_thread()        { return 0; }
-	constexpr Call_arg call_id_resume_thread()       { return 1; }
-	constexpr Call_arg call_id_yield_thread()        { return 2; }
-	constexpr Call_arg call_id_send_request_msg()    { return 3; }
-	constexpr Call_arg call_id_send_reply_msg()      { return 4; }
-	constexpr Call_arg call_id_await_request_msg()   { return 5; }
-	constexpr Call_arg call_id_kill_signal_context() { return 6; }
-	constexpr Call_arg call_id_submit_signal()       { return 7; }
-	constexpr Call_arg call_id_await_signal()        { return 8; }
-	constexpr Call_arg call_id_signal_pending()      { return 9; }
-	constexpr Call_arg call_id_ack_signal()          { return 10; }
-	constexpr Call_arg call_id_print_char()          { return 11; }
+	constexpr Call_arg call_id_pause_current_thread() { return 0; }
+	constexpr Call_arg call_id_resume_thread()        { return 1; }
+	constexpr Call_arg call_id_yield_thread()         { return 2; }
+	constexpr Call_arg call_id_send_request_msg()     { return 3; }
+	constexpr Call_arg call_id_send_reply_msg()       { return 4; }
+	constexpr Call_arg call_id_await_request_msg()    { return 5; }
+	constexpr Call_arg call_id_kill_signal_context()  { return 6; }
+	constexpr Call_arg call_id_submit_signal()        { return 7; }
+	constexpr Call_arg call_id_await_signal()         { return 8; }
+	constexpr Call_arg call_id_signal_pending()       { return 9; }
+	constexpr Call_arg call_id_ack_signal()           { return 10; }
+	constexpr Call_arg call_id_print_char()           { return 11; }
 
 
 	/*****************************************************************
@@ -86,16 +86,11 @@ namespace Kernel
 
 
 	/**
-	 * Prevent thread from participating in CPU scheduling
-	 *
-	 * \param thread_id  kernel name of the targeted thread or 0
-	 *
-	 * If thread_id is set to 0 the caller targets itself. If the caller
-	 * doesn't target itself, the call is restricted to core threads.
+	 * Pause execution of calling thread
 	 */
-	inline void pause_thread(unsigned const thread_id)
+	inline void pause_current_thread()
 	{
-		call(call_id_pause_thread(), thread_id);
+		call(call_id_pause_current_thread());
 	}
 
 

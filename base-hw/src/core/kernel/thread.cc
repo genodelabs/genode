@@ -380,25 +380,20 @@ void Thread::_call_start_thread()
 }
 
 
+void Thread::_call_pause_current_thread() { _pause(); }
+
+
 void Thread::_call_pause_thread()
 {
-	/* take a shortcut if a thread wants to pause itself */
-	unsigned const thread_id = user_arg_1();
-	if (!thread_id || thread_id == id()) {
-		_pause();
-		return;
-	}
 	/* check permissions */
 	if (!_core()) {
 		PWRN("not entitled to pause thread");
-		_stop();
 		return;
 	}
 	/* lookup thread */
-	Thread * const thread = Thread::pool()->object(thread_id);
+	Thread * const thread = Thread::pool()->object(user_arg_1());
 	if (!thread) {
 		PWRN("failed to lookup thread");
-		_stop();
 		return;
 	}
 	/* pause thread */
@@ -949,6 +944,7 @@ void Thread::_call(unsigned const processor_id)
 	case call_id_new_thread():           _call_new_thread(); return;
 	case call_id_bin_thread():           _call_bin_thread(); return;
 	case call_id_start_thread():         _call_start_thread(); return;
+	case call_id_pause_current_thread(): _call_pause_current_thread(); return;
 	case call_id_pause_thread():         _call_pause_thread(); return;
 	case call_id_resume_thread():        _call_resume_thread(); return;
 	case call_id_yield_thread():         _call_yield_thread(); return;

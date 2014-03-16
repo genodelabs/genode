@@ -236,6 +236,7 @@ class Kernel::Thread
 		void _call_new_thread();
 		void _call_bin_thread();
 		void _call_start_thread();
+		void _call_pause_current_thread();
 		void _call_pause_thread();
 		void _call_resume_thread();
 		void _call_yield_thread();

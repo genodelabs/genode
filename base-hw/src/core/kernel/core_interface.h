@@ -47,6 +47,7 @@ namespace Kernel
 	constexpr Call_arg call_id_new_vm()              { return 25; }
 	constexpr Call_arg call_id_run_vm()              { return 26; }
 	constexpr Call_arg call_id_pause_vm()            { return 27; }
+	constexpr Call_arg call_id_pause_thread()        { return 28; }
 
 	/**
 	 * Create a domain
@@ -119,6 +120,17 @@ namespace Kernel
 	{
 		return call(call_id_new_thread(), (Call_arg)p, (Call_arg)priority,
 		            (Call_arg)label);
+	}
+
+
+	/**
+	 * Pause execution of a specific thread
+	 *
+	 * \param thread_id  kernel name of the targeted thread
+	 */
+	inline void pause_thread(unsigned const thread_id)
+	{
+		call(call_id_pause_thread(), thread_id);
 	}
 
 
