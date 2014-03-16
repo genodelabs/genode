@@ -603,7 +603,12 @@ void Thread::_call_access_thread_regs()
 
 void Thread::_call_update_pd()
 {
-	assert(_core());
+	/* check permissions */
+	if (!_core()) {
+		PWRN("not entitled to update domain");
+		return;
+	}
+	/* update hardware caches */
 	Processor::flush_tlb_by_pid(user_arg_1());
 }
 
