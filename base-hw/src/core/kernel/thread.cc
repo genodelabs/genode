@@ -553,9 +553,11 @@ unsigned Thread_event::signal_context_id() const
 void Thread::_call_access_thread_regs()
 {
 	/* check permissions */
+	unsigned const reads = user_arg_2();
+	unsigned const writes = user_arg_3();
 	if (!_core()) {
 		PWRN("not entitled to access thread regs");
-		user_arg_0(-1);
+		user_arg_0(reads + writes);
 		return;
 	}
 	/* get targeted thread */
@@ -563,12 +565,10 @@ void Thread::_call_access_thread_regs()
 	Thread * const t = Thread::pool()->object(thread_id);
 	if (!t) {
 		PWRN("unknown thread");
-		user_arg_0(-1);
+		user_arg_0(reads + writes);
 		return;
 	}
 	/* execute read operations */
-	unsigned const reads = user_arg_2();
-	unsigned const writes = user_arg_3();
 	addr_t * const utcb = (addr_t *)_utcb_phys->base();
 	addr_t * const read_ids = &utcb[0];
 	addr_t * const read_values = (addr_t *)user_arg_4();

@@ -177,13 +177,11 @@ namespace Kernel
 	 * \param read_values   base of value buffer for read operations
 	 * \param write_values  base of value buffer for write operations
 	 *
-	 * \retval  0  all operations done
-	 * \retval >0  amount of undone operations
-	 * \retval -1  failed to start processing operations
+	 * \return  amount of undone operations according to the execution order
 	 *
-	 * Operations are processed in order of the appearance of the register
-	 * names in the callers UTCB. If reads = 0, read_values is of no relevance.
-	 * If writes = 0, write_values is of no relevance.
+	 * Operations are executed in order of the appearance of the register names
+	 * in the callers UTCB. If reads = 0, read_values is of no relevance. If
+	 * writes = 0, write_values is of no relevance.
 	 *
 	 * Expected structure at the callers UTCB base:
 	 *
@@ -200,11 +198,11 @@ namespace Kernel
 	 *                  ...                   ...
 	 *         (writes - 1) * sizeof(addr_t): write value #writes
 	 */
-	inline int access_thread_regs(unsigned const thread_id,
-	                              unsigned const reads,
-	                              unsigned const writes,
-	                              addr_t * const read_values,
-	                              addr_t * const write_values)
+	inline unsigned access_thread_regs(unsigned const thread_id,
+	                                   unsigned const reads,
+	                                   unsigned const writes,
+	                                   addr_t * const read_values,
+	                                   addr_t * const write_values)
 	{
 		return call(call_id_access_thread_regs(), thread_id, reads, writes,
 		            (Call_arg)read_values, (Call_arg)write_values);
