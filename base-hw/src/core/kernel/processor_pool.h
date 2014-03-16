@@ -25,7 +25,7 @@ namespace Kernel
 	/**
 	 * Return kernel name of core domain
 	 */
-	unsigned core_id();
+	Pd * core();
 
 	/**
 	 * Thread that consumes processor time if no other thread is available
@@ -75,7 +75,7 @@ class Kernel::Idle_thread : public Thread
 		{
 			ip = (addr_t)&_main;
 			sp = (addr_t)&_stack[STACK_SIZE];
-			init(processor, core_id(), 0, 0);
+			init(processor, core(), 0, 0);
 		}
 };
 

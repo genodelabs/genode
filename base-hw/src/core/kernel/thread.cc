@@ -190,8 +190,7 @@ Thread::Thread(unsigned const priority, char const * const label)
 }
 
 
-void
-Thread::init(Processor * const processor, unsigned const pd_id_arg,
+void Thread::init(Processor * const processor, Pd * const pd,
              Native_utcb * const utcb_phys, bool const start)
 {
 	assert(_state == AWAITS_START)
@@ -201,8 +200,7 @@ Thread::init(Processor * const processor, unsigned const pd_id_arg,
 	_utcb_phys = utcb_phys;
 
 	/* join protection domain */
-	_pd = Pd::pool()->object(pd_id_arg);
-	assert(_pd);
+	_pd = pd;
 	addr_t const tlb = _pd->tlb()->base();
 	User_context::init_thread(tlb, pd_id());
 
@@ -356,26 +354,33 @@ void Thread::_call_start_thread()
 		user_arg_0(0);
 		return;
 	}
-	/* lookup targeted thread */
+	/* lookup thread */
 	unsigned const thread_id = user_arg_1();
 	Thread * const thread = Thread::pool()->object(thread_id);
 	if (!thread) {
-		PWRN("unknown thread");
+		PWRN("failed to lookup  thread");
 		user_arg_0(0);
 		return;
 	}
-	/* lookup targeted processor */
+	/* lookup processor */
 	unsigned const processor_id = user_arg_2();
 	Processor * const processor = processor_pool()->processor(processor_id);
 	if (!processor) {
-		PWRN("unknown processor");
+		PWRN("failed to lookup  processor");
+		user_arg_0(0);
+		return;
+	}
+	/* lookup domain */
+	unsigned const pd_id = user_arg_3();
+	Pd * const pd = Pd::pool()->object(pd_id);
+	if (!pd) {
+		PWRN("failed to lookup domain");
 		user_arg_0(0);
 		return;
 	}
 	/* start thread */
-	unsigned const pd_id = user_arg_3();
 	Native_utcb * const utcb = (Native_utcb *)user_arg_4();
-	thread->init(processor, pd_id, utcb, 1);
+	thread->init(processor, pd, utcb, 1);
 	user_arg_0((Call_ret)thread->_pd->tlb());
 }
 

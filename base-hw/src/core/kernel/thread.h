@@ -301,12 +301,12 @@ class Kernel::Thread
 		/**
 		 * Prepare thread to get scheduled the first time
 		 *
-		 * \param processor  kernel object of targeted processor
-		 * \param pd_id      kernel name of target protection domain
+		 * \param processor  targeted processor
+		 * \param pd         targeted domain
 		 * \param utcb       core local pointer to userland thread-context
 		 * \param start      wether to start executing the thread
 		 */
-		void init(Processor * const processor, unsigned const pd_id,
+		void init(Processor * const processor, Pd * const pd,
 		          Native_utcb * const utcb, bool const start);
 
 
