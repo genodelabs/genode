@@ -571,21 +571,22 @@ void Thread::_call_access_thread_regs()
 	/* execute read operations */
 	addr_t * const utcb = (addr_t *)_utcb_phys->base();
 	addr_t * const read_ids = &utcb[0];
-	addr_t * const read_values = (addr_t *)user_arg_4();
+	addr_t * values = (addr_t *)user_arg_4();
 	for (unsigned i = 0; i < reads; i++) {
-		if (t->_read_reg(read_ids[i], read_values[i])) {
+		if (t->_read_reg(read_ids[i], *values)) {
 			user_arg_0(reads + writes - i);
 			return;
 		}
+		values++;
 	}
 	/* execute write operations */
 	addr_t * const write_ids = &utcb[reads];
-	addr_t * const write_values = (addr_t *)user_arg_5();
 	for (unsigned i = 0; i < writes; i++) {
-		if (t->_write_reg(write_ids[i], write_values[i])) {
+		if (t->_write_reg(write_ids[i], *values)) {
 			user_arg_0(writes - i);
 			return;
 		}
+		values++;
 	}
 	user_arg_0(0);
 	return;

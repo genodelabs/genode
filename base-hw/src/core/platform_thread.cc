@@ -194,8 +194,8 @@ int Platform_thread::start(void * const ip, void * const sp)
 	addr_t * write_regs = (addr_t *)Thread_base::myself()->utcb()->base();
 	write_regs[0] = Reg_id::IP;
 	write_regs[1] = Reg_id::SP;
-	addr_t write_values[] = { (addr_t)ip, (addr_t)sp };
-	if (Kernel::access_thread_regs(id(), 0, WRITES, 0, write_values)) {
+	addr_t values[] = { (addr_t)ip, (addr_t)sp };
+	if (Kernel::access_thread_regs(id(), 0, WRITES, values)) {
 		PERR("failed to initialize thread registers");
 		return -1;
 	}
@@ -260,7 +260,7 @@ Thread_state Platform_thread::state()
 	Genode::memcpy(dst, src, size);
 	Thread_state thread_state;
 	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
-	if (Kernel::access_thread_regs(id(), length, 0, (addr_t *)cpu_state, 0)) {
+	if (Kernel::access_thread_regs(id(), length, 0, (addr_t *)cpu_state)) {
 		throw Cpu_session::State_access_failed();
 	}
 	return thread_state;
@@ -275,7 +275,7 @@ void Platform_thread::state(Thread_state thread_state)
 	void  * dst = Thread_base::myself()->utcb()->base();
 	Genode::memcpy(dst, src, size);
 	Cpu_state * const cpu_state = static_cast<Cpu_state *>(&thread_state);
-	if (Kernel::access_thread_regs(id(), 0, length, 0, (addr_t *)cpu_state)) {
+	if (Kernel::access_thread_regs(id(), 0, length, (addr_t *)cpu_state)) {
 		throw Cpu_session::State_access_failed();
 	}
 };

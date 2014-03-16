@@ -171,11 +171,10 @@ namespace Kernel
 	/**
 	 * Access plain member variables of a kernel thread-object
 	 *
-	 * \param thread_id     kernel name of the targeted thread
-	 * \param reads         amount of read operations
-	 * \param writes        amount of write operations
-	 * \param read_values   base of value buffer for read operations
-	 * \param write_values  base of value buffer for write operations
+	 * \param thread_id  kernel name of the targeted thread
+	 * \param reads      amount of read operations
+	 * \param writes     amount of write operations
+	 * \param values     base of the value buffer for all operations
 	 *
 	 * \return  amount of undone operations according to the execution order
 	 *
@@ -192,20 +191,22 @@ namespace Kernel
 	 *                  ...                   ...
 	 * (reads + writes - 1) * sizeof(addr_t): write register name #writes
 	 *
-	 * Expected structure at write_values:
+	 * Expected structure at values:
 	 *
-	 *                    0 * sizeof(addr_t): write value #1
+	 *                    0 * sizeof(addr_t): read destination #1
 	 *                  ...                   ...
-	 *         (writes - 1) * sizeof(addr_t): write value #writes
+	 *          (reads - 1) * sizeof(addr_t): read destination #reads
+	 *          (reads - 0) * sizeof(addr_t): write value #1
+	 *                  ...                   ...
+	 * (reads + writes - 1) * sizeof(addr_t): write value #writes
 	 */
 	inline unsigned access_thread_regs(unsigned const thread_id,
 	                                   unsigned const reads,
 	                                   unsigned const writes,
-	                                   addr_t * const read_values,
-	                                   addr_t * const write_values)
+	                                   addr_t * const values)
 	{
 		return call(call_id_access_thread_regs(), thread_id, reads, writes,
-		            (Call_arg)read_values, (Call_arg)write_values);
+		            (Call_arg)values);
 	}
 
 

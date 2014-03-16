@@ -140,8 +140,8 @@ void Pager_activation_base::entry()
 		enum { READS = sizeof(read_regs)/sizeof(read_regs[0]) };
 		void * const utcb = Thread_base::myself()->utcb()->base();
 		memcpy(utcb, read_regs, sizeof(read_regs));
-		addr_t * const read_values = (addr_t *)&_fault;
-		if (Kernel::access_thread_regs(thread_id, READS, 0, read_values, 0)) {
+		addr_t * const values = (addr_t *)&_fault;
+		if (Kernel::access_thread_regs(thread_id, READS, 0, values)) {
 			PWRN("failed to read fault data");
 			continue;
 		}
