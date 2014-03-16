@@ -334,13 +334,16 @@ void Thread::_call_new_thread()
 void Thread::_call_bin_thread()
 {
 	/* check permissions */
-	assert(_core());
-
-	/* get targeted thread */
-	unsigned thread_id = (unsigned)user_arg_1();
-	Thread * const thread = Thread::pool()->object(thread_id);
-	assert(thread);
-
+	if (!_core()) {
+		PWRN("not entitled to bin thread");
+		return;
+	}
+	/* lookup thread */
+	Thread * const thread = Thread::pool()->object(user_arg_1());
+	if (!thread) {
+		PWRN("failed to lookup thread");
+		return;
+	}
 	/* destroy thread */
 	thread->~Thread();
 }
