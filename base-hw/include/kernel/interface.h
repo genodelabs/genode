@@ -90,15 +90,12 @@ namespace Kernel
 	 *
 	 * \param thread_id  kernel name of the targeted thread or 0
 	 *
-	 * \retval  0  succeeded
-	 * \retval -1  the targeted thread does not exist or is still active
-	 *
 	 * If thread_id is set to 0 the caller targets itself. If the caller
 	 * doesn't target itself, the call is restricted to core threads.
 	 */
-	inline int pause_thread(unsigned const thread_id)
+	inline void pause_thread(unsigned const thread_id)
 	{
-		return call(call_id_pause_thread(), thread_id);
+		call(call_id_pause_thread(), thread_id);
 	}
 
 
