@@ -382,21 +382,28 @@ void Thread::_call_start_thread()
 
 void Thread::_call_pause_thread()
 {
-	unsigned const tid = user_arg_1();
-
-	/* shortcut for a thread to pause itself */
-	if (!tid) {
+	/* take a shortcut if a thread wants to pause itself */
+	unsigned const thread_id = user_arg_1();
+	if (!thread_id || thread_id == id()) {
 		_pause();
 		user_arg_0(0);
 		return;
 	}
-
-	/* get targeted thread and check permissions */
-	Thread * const t = Thread::pool()->object(tid);
-	assert(t && (_core() || this == t));
-
-	/* pause targeted thread */
-	t->_pause();
+	/* check permissions */
+	if (!_core()) {
+		PWRN("not entitled to pause thread");
+		_stop();
+		return;
+	}
+	/* lookup thread */
+	Thread * const thread = Thread::pool()->object(thread_id);
+	if (!thread) {
+		PWRN("failed to lookup thread");
+		user_arg_0(-1);
+		return;
+	}
+	/* pause thread */
+	thread->_pause();
 	user_arg_0(0);
 }
 
