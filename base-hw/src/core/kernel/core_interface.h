@@ -282,7 +282,7 @@ namespace Kernel
 	 *
 	 * Regaining of the supplied memory is not supported by now.
 	 */
-	inline int new_vm(void * const dst, void * const state,
+	inline unsigned new_vm(void * const dst, void * const state,
 	                  unsigned const signal_context_id)
 	{
 		return call(call_id_new_vm(), (Call_arg)dst, (Call_arg)state,
