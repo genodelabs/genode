@@ -508,7 +508,7 @@ namespace Init {
 				_name(start_node, name_registry),
 				_pd_args(start_node),
 				_resources(start_node, _name.unique, prio_levels_log2, affinity_space),
-				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false),
+				_entrypoint(cap_session, ENTRYPOINT_STACK_SIZE, _name.unique, false, _resources.affinity.location()),
 				_binary_rom(_name.file, _name.unique),
 				_binary_rom_ds(_binary_rom.dataspace()),
 				_config(_resources.ram.cap(), start_node),
