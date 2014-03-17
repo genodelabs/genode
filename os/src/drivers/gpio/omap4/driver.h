@@ -253,24 +253,18 @@ class Omap4_driver : public Gpio::Driver
 
 
 Omap4_driver::Gpio_bank Omap4_driver::_gpio_bank[Omap4_driver::MAX_BANKS] = {
-	Gpio_bank(Genode::Board_base::GPIO1_MMIO_BASE,
-	          Genode::Board_base::GPIO1_MMIO_SIZE,
-	          Genode::Board_base::GPIO1_IRQ),
-	Gpio_bank(Genode::Board_base::GPIO2_MMIO_BASE,
-	          Genode::Board_base::GPIO2_MMIO_SIZE,
-	          Genode::Board_base::GPIO2_IRQ),
-	Gpio_bank(Genode::Board_base::GPIO3_MMIO_BASE,
-	          Genode::Board_base::GPIO3_MMIO_SIZE,
-	          Genode::Board_base::GPIO3_IRQ),
-	Gpio_bank(Genode::Board_base::GPIO4_MMIO_BASE,
-	          Genode::Board_base::GPIO4_MMIO_SIZE,
-	          Genode::Board_base::GPIO4_IRQ),
-	Gpio_bank(Genode::Board_base::GPIO5_MMIO_BASE,
-	          Genode::Board_base::GPIO5_MMIO_SIZE,
-	          Genode::Board_base::GPIO5_IRQ),
-	Gpio_bank(Genode::Board_base::GPIO6_MMIO_BASE,
-	          Genode::Board_base::GPIO6_MMIO_SIZE,
-	          Genode::Board_base::GPIO6_IRQ),
+	{ Genode::Board_base::GPIO1_MMIO_BASE, Genode::Board_base::GPIO1_MMIO_SIZE,
+	  Genode::Board_base::GPIO1_IRQ },
+	{ Genode::Board_base::GPIO2_MMIO_BASE, Genode::Board_base::GPIO2_MMIO_SIZE,
+	  Genode::Board_base::GPIO2_IRQ },
+	{ Genode::Board_base::GPIO3_MMIO_BASE, Genode::Board_base::GPIO3_MMIO_SIZE,
+	  Genode::Board_base::GPIO3_IRQ },
+	{ Genode::Board_base::GPIO4_MMIO_BASE, Genode::Board_base::GPIO4_MMIO_SIZE,
+	  Genode::Board_base::GPIO4_IRQ },
+	{ Genode::Board_base::GPIO5_MMIO_BASE, Genode::Board_base::GPIO5_MMIO_SIZE,
+	  Genode::Board_base::GPIO5_IRQ },
+	{ Genode::Board_base::GPIO6_MMIO_BASE, Genode::Board_base::GPIO6_MMIO_SIZE,
+	  Genode::Board_base::GPIO6_IRQ },
 };
 
 
