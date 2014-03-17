@@ -98,6 +98,8 @@ namespace Kernel
 	 *
 	 * \param base  base of the region within the current domain
 	 * \param size  size of the region
+	 *
+	 * Does apply only to data caches.
 	 */
 	inline void update_region(addr_t const base, size_t const size)
 	{
