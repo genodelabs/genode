@@ -152,13 +152,11 @@ class Kernel::Thread
 		void _stop();
 
 		/**
-		 * Try to escape from blocking state, if in any, and resume execution
+		 * Cancel blocking if possible
 		 *
-		 * \retval -1  failed
-		 * \retval  0  succeeded, execution was paused
-		 * \retval  1  succeeded, execution was not paused
+		 * \return  wether thread was in a cancelable blocking beforehand
 		 */
-		int _resume();
+		bool _resume();
 
 		/**
 		 * Handle an exception thrown by the memory management unit

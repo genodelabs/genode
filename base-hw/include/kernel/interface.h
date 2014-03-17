@@ -95,18 +95,13 @@ namespace Kernel
 
 
 	/**
-	 * Let an already started thread participate in CPU scheduling
+	 * Cancel blocking of a thread if possible
 	 *
 	 * \param thread_id  kernel name of the targeted thread
 	 *
-	 * \retval  0  succeeded and thread was paused beforehand
-	 * \retval  1  succeeded and thread was active beforehand
-	 * \retval -1  failed
-	 *
-	 * If the targeted thread blocks for any event except a 'start_thread'
-	 * call this call cancels the blocking.
+	 * \return  wether thread was in a cancelable blocking beforehand
 	 */
-	inline int resume_thread(unsigned const thread_id)
+	inline bool resume_thread(unsigned const thread_id)
 	{
 		return call(call_id_resume_thread(), thread_id);
 	}

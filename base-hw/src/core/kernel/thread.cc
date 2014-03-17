@@ -129,28 +129,24 @@ void Thread::_await_ipc_failed()
 }
 
 
-int Thread::_resume()
+bool Thread::_resume()
 {
 	switch (_state) {
 	case AWAITS_RESUME:
 		_schedule();
-		return 0;
-	case SCHEDULED:
-		return 1;
+		return true;
 	case AWAITS_IPC:
 		Ipc_node::cancel_waiting();
-		return 0;
+		return true;
 	case AWAITS_SIGNAL:
 		Signal_handler::cancel_waiting();
-		return 0;
+		return true;
 	case AWAITS_SIGNAL_CONTEXT_KILL:
 		Signal_context_killer::cancel_waiting();
-		return 0;
-	case AWAITS_START:
-	case STOPPED:;
+		return true;
+	default:
+		return false;
 	}
-	PWRN("failed to resume thread");
-	return -1;
 }
 
 
@@ -412,20 +408,20 @@ void Thread::_call_pause_thread()
 void Thread::_call_resume_thread()
 {
 	/* lookup thread */
-	Thread * const t = Thread::pool()->object(user_arg_1());
-	if (!t) {
-		PWRN("unknown thread");
-		user_arg_0(-1);
+	Thread * const thread = Thread::pool()->object(user_arg_1());
+	if (!thread) {
+		PWRN("failed to lookup thread");
+		user_arg_0(false);
 		return;
 	}
 	/* check permissions */
-	if (!_core() && pd_id() != t->pd_id()) {
+	if (!_core() && pd_id() != thread->pd_id()) {
 		PWRN("not entitled to resume thread");
-		user_arg_0(-1);
+		_stop();
 		return;
 	}
-	/* resume targeted thread */
-	user_arg_0(t->_resume());
+	/* resume thread */
+	user_arg_0(thread->_resume());
 }
 
 
