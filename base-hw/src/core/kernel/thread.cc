@@ -615,9 +615,16 @@ void Thread::_call_update_pd()
 
 void Thread::_call_update_region()
 {
-	assert(_core());
-
-	/* FIXME we don't handle instruction caches by now */
+	/* check permissions */
+	if (!_core()) {
+		PWRN("not entitled to update region");
+		return;
+	}
+	/*
+	 * Flush hardware caches
+	 *
+	 * FIXME we don't handle instruction caches by now
+	 */
 	Processor::flush_data_cache_by_virt_region((addr_t)user_arg_1(),
 	                                           (size_t)user_arg_2());
 }
