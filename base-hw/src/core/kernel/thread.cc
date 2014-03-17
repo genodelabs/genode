@@ -884,21 +884,26 @@ void Thread::_call_bin_signal_receiver()
 void Thread::_call_new_vm()
 {
 	/* check permissions */
-	assert(_core());
-
-	/* dispatch arguments */
-	void * const allocator = (void * const)user_arg_1();
-	Genode::Cpu_state_modes * const state =
-		(Genode::Cpu_state_modes * const)user_arg_2();
-	Signal_context * const context =
-		Signal_context::pool()->object(user_arg_3());
-	assert(context);
-
-	/* create vm */
+	if (!_core()) {
+		PWRN("not entitled to create virtual machine");
+		user_arg_0(0);
+		return;
+	}
+	/* lookup signal context */
+	auto const context = Signal_context::pool()->object(user_arg_3());
+	if (!context) {
+		PWRN("failed to lookup signal context");
+		user_arg_0(0);
+		return;
+	}
+	/* create virtual machine */
+	typedef Genode::Cpu_state_modes Cpu_state_modes;
+	auto const allocator = reinterpret_cast<void *>(user_arg_1());
+	auto const state = reinterpret_cast<Cpu_state_modes *>(user_arg_2());
 	Vm * const vm = new (allocator) Vm(state, context);
 
-	/* return vm id */
-	user_arg_0((Call_ret)vm->id());
+	/* return kernel name of virtual machine */
+	user_arg_0(vm->id());
 }
 
 
