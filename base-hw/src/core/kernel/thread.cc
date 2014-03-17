@@ -928,13 +928,17 @@ void Thread::_call_run_vm()
 void Thread::_call_pause_vm()
 {
 	/* check permissions */
-	assert(_core());
-
-	/* get targeted vm via its id */
+	if (!_core()) {
+		PWRN("not entitled to pause virtual machine");
+		return;
+	}
+	/* lookup virtual machine */
 	Vm * const vm = Vm::pool()->object(user_arg_1());
-	assert(vm);
-
-	/* pause targeted vm */
+	if (!vm) {
+		PWRN("failed to lookup virtual machine");
+		return;
+	}
+	/* pause virtual machine */
 	vm->pause();
 }
 
