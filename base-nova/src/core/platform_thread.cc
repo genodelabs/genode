@@ -286,7 +286,7 @@ Weak_ptr<Address_space> Platform_thread::address_space()
 Platform_thread::Platform_thread(const char *name, unsigned, int thread_id)
 :
 	_pd(0), _pager(0), _id_base(cap_map()->insert(1)),
-	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0),
+	_sel_exc_base(Native_thread::INVALID_INDEX), _location(boot_cpu(), 0, 0, 0),
 	_features(0)
 {
 	strncpy(_name, name, sizeof(_name));
