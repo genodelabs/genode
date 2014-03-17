@@ -53,6 +53,9 @@ Thread_capability Cpu_session_component::create_thread(Name  const &name,
 		                                                  _default_exception_handler,
 		                                                  trace_control_index,
 		                                                  *trace_control);
+
+		/* set default affinity defined by CPU session */
+		thread->platform_thread()->affinity(_location);
 	} catch (Allocator::Out_of_memory) {
 		throw Out_of_metadata();
 	}
@@ -121,13 +124,6 @@ int Cpu_session_component::start(Thread_capability thread_cap,
 	 * we need to update the pager object with the current exception handler.
 	 */
 	thread->update_exception_sigh();
-
-	/*
-	 * If no affinity location was set for this specific thread before,
-	 * we set the one which was defined for the whole CPU session.
-	 */
-	if (!thread->platform_thread()->affinity().valid())
-		thread->platform_thread()->affinity(_location);
 
 	return thread->platform_thread()->start((void *)ip, (void *)sp);
 }

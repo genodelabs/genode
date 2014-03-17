@@ -68,12 +68,11 @@ namespace Genode {
 			 *
 			 * \param ip      instruction pointer to start at
 			 * \param sp      stack pointer to use
-			 * \param cpu_no  target cpu
 			 *
 			 * \retval  0  successful
 			 * \retval -1  thread could not be started
 			 */
-			int start(void *ip, void *sp, unsigned int cpu_no = 0);
+			int start(void *ip, void *sp);
 
 			/**
 			 * Pause this thread

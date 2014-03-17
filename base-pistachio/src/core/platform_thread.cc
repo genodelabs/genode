@@ -50,8 +50,9 @@ void Platform_thread::affinity(Affinity::Location location)
 		return;
 	}
 
-	if (L4_Set_ProcessorNo(_l4_thread_id, cpu_no) == 0)
-		PERR("Error setting processor number.");
+	if (_l4_thread_id != L4_nilthread)
+		if (L4_Set_ProcessorNo(_l4_thread_id, cpu_no) == 0)
+			PERR("Error setting processor number.");
 }
 
 
@@ -61,7 +62,7 @@ Affinity::Location Platform_thread::affinity()
 }
 
 
-int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
+int Platform_thread::start(void *ip, void *sp)
 {
 	L4_ThreadId_t thread = _l4_thread_id;
 	L4_ThreadId_t pager  = _pager ? _pager->cap().dst() : L4_nilthread;
@@ -108,7 +109,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	}
 
 	/* get the thread running on the right cpu */
-	affinity(Affinity::Location(cpu_no, 0));
+	affinity(_location);
 
 	/* assign priority */
 	if (!L4_Set_Priority(thread,
