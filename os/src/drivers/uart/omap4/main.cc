@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 		}
 
 		Uart::Driver *create(unsigned index, unsigned baudrate,
-								 Uart::Char_avail_callback &callback)
+		                     Uart::Char_avail_callback &callback)
 		{
 			if (index > UARTS_NUM)
 				throw Uart::Driver_factory::Not_available();

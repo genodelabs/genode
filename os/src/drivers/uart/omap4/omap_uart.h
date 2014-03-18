@@ -29,7 +29,7 @@
 class Omap_uart : public Genode::Tl16c750_base, public Uart::Driver, public Genode::Irq_handler
 {
 	private:
-		Genode::Attached_io_mem_dataspace _uart_mmio;
+		Genode::Attached_io_mem_dataspace &_uart_mmio;
 
 		Uart::Char_avail_callback &_char_avail_callback;
 
