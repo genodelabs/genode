@@ -45,6 +45,8 @@ LD_SCRIPT_STATIC = $(LD_SCRIPT_DEFAULT) \
                    $(call select_from_repositories,src/platform/context_area.stdlib.ld)
 endif
 
+include $(GEN_CORE_DIR)/version.inc
+
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)

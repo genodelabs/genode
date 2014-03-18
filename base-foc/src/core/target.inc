@@ -42,6 +42,8 @@ INC_DIR     += $(REP_DIR)/src/core/include \
                $(BASE_DIR)/src/base/thread \
                $(REP_DIR)/src/base/console
 
+include $(GEN_CORE_DIR)/version.inc
+
 vpath context_area.cc             $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath dataspace_component.cc      $(GEN_CORE_DIR)

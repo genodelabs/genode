@@ -36,6 +36,8 @@ INC_DIR     += $(REP_DIR)/src/core/include \
                $(REP_DIR)/include/codezero/dummies \
                $(BASE_DIR)/src/base/thread
 
+include $(GEN_CORE_DIR)/version.inc
+
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)
 vpath rom_session_component.cc    $(GEN_CORE_DIR)

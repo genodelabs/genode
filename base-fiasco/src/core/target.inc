@@ -36,6 +36,8 @@ INC_DIR     += $(REP_DIR)/src/core/include \
 
 LIBS        += base-common
 
+include $(GEN_CORE_DIR)/version.inc
+
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath multiboot_info.cc           $(GEN_CORE_DIR)
 vpath ram_session_component.cc    $(GEN_CORE_DIR)

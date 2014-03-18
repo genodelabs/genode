@@ -181,6 +181,8 @@ int main()
 	 */
 	inhibit_tracing = true;
 
+	PINF("Genode " GENODE_VERSION);
+
 	PDBG("--- create local services ---");
 
 	static Trace::Source_registry trace_sources;

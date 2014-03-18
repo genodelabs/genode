@@ -60,6 +60,9 @@ SRC_CC += console.cc \
           pager.cc \
           _main.cc
 
+# provide Genode version information
+include $(BASE_DIR)/src/core/version.inc
+
 # declare file locations
 vpath _main.cc                    $(BASE_DIR)/src/platform
 vpath cpu_session_component.cc    $(BASE_DIR)/src/core
