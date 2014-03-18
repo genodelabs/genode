@@ -1,12 +1,23 @@
 <config>
+	<parent-provides>
+		<service name="CAP"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
 	<start name="hello_server">
-		<resource name="RAM" quantum="256K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Hello"/></provides>
 	</start>
 	<start name="timer">
-		<resource name="RAM" quantum="256K"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
 	</start>
 	<start name="hello_client">
-		<resource name="RAM" quantum="256K"/>
+		<resource name="RAM" quantum="1M"/>
 	</start>
 </config>

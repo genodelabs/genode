@@ -269,7 +269,7 @@ entry to init's 'config' file, which is located at 'build/bin/config'.
 For information about the configuring the init process, please refer
 to [http://genode.org/documentation/developer-resources/init].
 
-Now rebuild 'hello/server', go to 'build/bin', run './core'.
+Now rebuild 'core', 'init', and 'hello/server', go to 'build/bin', run './core'.
 
 
 Writing client code
@@ -411,7 +411,8 @@ Extend your 'config' file as follows.
 # Add start entries for 'Timer' service and hello client:
 
   ! <start name="timer">
-  !   <resource name="RAM" quantum="512K"/>
+  !   <resource name="RAM" quantum="1M"/>
+  !   <provides><service name="Timer"/></provides>
   ! </start>
   ! <start name="hello_client">
   !   <resource name="RAM" quantum="1M"/>
