@@ -1,6 +1,6 @@
 /*
  * \brief  Driver for Exynos5 UART
- * \author Stefan Kalkowski <stefan.kalkowski@gende-labs.com>
+ * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
  * \date   2013-06-05
  */
 

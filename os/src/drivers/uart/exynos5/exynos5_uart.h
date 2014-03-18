@@ -1,5 +1,6 @@
 /*
  * \brief  Driver for EXYNOS5 UARTs
+ * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
  * \author Ivan Loskutov <ivan.loskutov@ksyslabs.org>
  * \date   2013-06-05
  */
