@@ -15,6 +15,7 @@
 #define _MODE_H_
 
 class View;
+class Canvas_base;
 
 class Mode
 {
@@ -53,7 +54,7 @@ class Mode
 		/**
 		 * Discard all references to specified view
 		 */
-		virtual void forget(View const &v) {
+		virtual void forget(Canvas_base &, View const &v) {
 			if (&v == _focused_view) _focused_view = 0; }
 };
 

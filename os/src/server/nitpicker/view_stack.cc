@@ -315,7 +315,7 @@ void View_stack::remove_view(Canvas_base &canvas, View const &view, bool redraw)
 	 * the current one, resulting in a dangling pointer right after the view
 	 * gets destructed by the caller of 'removed_view'.
 	 */
-	_mode.forget(view);
+	_mode.forget(canvas, view);
 
 	/* redraw area where the view was visible */
 	if (redraw)

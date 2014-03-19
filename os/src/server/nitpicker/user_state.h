@@ -89,7 +89,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Mode interface
 		 */
-		void forget(Canvas_base &, View const &);
+		void forget(Canvas_base &, View const &) override;
 };
 
 #endif

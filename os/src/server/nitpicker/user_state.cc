@@ -281,7 +281,7 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 void User_state::forget(Canvas_base &canvas, View const &view)
 {
 	if (focused_view() == &view) {
-		Mode::forget(view);
+		Mode::forget(canvas, view);
 		_menubar.state(Menubar_state(*this, "", "", BLACK));
 		update_all_views(canvas);
 	}
