@@ -63,7 +63,6 @@ class Platform_timer
 		Genode::Irq_connection     _timer_irq;
 		unsigned long mutable      _curr_time_usec;
 		Genode::uint16_t mutable   _counter_init_value;
-		Genode::Lock  mutable      _update_curr_time_lock;
 		bool          mutable      _handled_wrap;
 
 		/**
@@ -122,8 +121,6 @@ class Platform_timer
 		 */
 		unsigned long curr_time() const
 		{
-			Genode::Lock::Guard lock(_update_curr_time_lock);
-
 			Genode::uint32_t passed_ticks;
 
 			/*
@@ -174,8 +171,6 @@ class Platform_timer
 		 */
 		void schedule_timeout(unsigned long timeout_usec)
 		{
-			Genode::Lock::Guard lock(_update_curr_time_lock);
-
 			/* limit timer-interrupt rate */
 			enum { MAX_TIMER_IRQS_PER_SECOND = 4*1000 };
 			if (timeout_usec < 1000*1000/MAX_TIMER_IRQS_PER_SECOND)
