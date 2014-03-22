@@ -13,7 +13,6 @@ if {[have_spec pistachio]} {
 	exit 0
 }
 
-assert_spec 32bit
 
 set verbose_mode      "no"
 
@@ -24,7 +23,7 @@ set platform_cmds     {
 } 
 
 # default tool_chain timeout, overwritten by platform if required
-set tool_chain_timeout  400
+set tool_chain_timeout  450
 set noux_boot_timeout   100
 
 if {[have_spec arm]} {
@@ -48,7 +47,11 @@ if {[have_spec arm]} {
 }
 
 if {[have_spec x86]} {
-	set platform          "nova_x86_32"
+	if {[have_spec 32bit]} {
+		set platform          "nova_x86_32"
+	} else {
+		set platform          "nova_x86_64"
+	}
 	set platform_base_dir "base-nova"
 }
 
