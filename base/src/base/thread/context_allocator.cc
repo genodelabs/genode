@@ -34,34 +34,28 @@ addr_t Thread_base::Context_allocator::addr_to_base(void *addr)
 
 size_t Thread_base::Context_allocator::base_to_idx(addr_t base)
 {
-	/* the first context isn't managed through the indices */
-	return ((base - Native_config::context_area_virtual_base()) /
-	       Native_config::context_virtual_size()) - 1;
+	return (base - Native_config::context_area_virtual_base()) /
+	       Native_config::context_virtual_size();
 }
 
 
 addr_t Thread_base::Context_allocator::idx_to_base(size_t idx)
 {
-	/* the first context isn't managed through the indices */
 	return Native_config::context_area_virtual_base() +
-	       (idx + 1) * Native_config::context_virtual_size();
+	       idx * Native_config::context_virtual_size();
 }
 
 
 Thread_base::Context *
 Thread_base::Context_allocator::alloc(Thread_base *thread_base, bool main_thread)
 {
-	Lock::Guard _lock_guard(_threads_lock);
+	if (main_thread)
+		/* the main-thread context is the first one */
+		return base_to_context(Native_config::context_area_virtual_base());
+
 	try {
-		addr_t base;
-		if (main_thread) {
-			/* the main-thread context isn't managed by '_alloc' */
-			base = Native_config::context_area_virtual_base();
-		} else {
-			/* contexts besides main-thread context are managed by '_alloc' */
-			base = idx_to_base(_alloc.alloc());
-		}
-		return base_to_context(base);
+		Lock::Guard _lock_guard(_threads_lock);
+		return base_to_context(idx_to_base(_alloc.alloc()));
 	} catch(Bit_allocator<MAX_THREADS>::Out_of_indices) {
 		return 0;
 	}
@@ -70,13 +64,9 @@ Thread_base::Context_allocator::alloc(Thread_base *thread_base, bool main_thread
 
 void Thread_base::Context_allocator::free(Context *context)
 {
-	Lock::Guard _lock_guard(_threads_lock);
 	addr_t const base = addr_to_base(context);
 
-	/* the main-thread context isn't managed by '_alloc' */
-	if (base == Native_config::context_area_virtual_base()) { return; }
-
-	/* contexts besides main-thread context are managed by '_alloc' */
+	Lock::Guard _lock_guard(_threads_lock);
 	_alloc.free(base_to_idx(base));
 }
 

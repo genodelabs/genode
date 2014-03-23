@@ -183,13 +183,16 @@ namespace Genode {
 						Native_config::context_area_virtual_size() /
 						Native_config::context_virtual_size();
 
-					Bit_allocator<MAX_THREADS> _alloc;
-					Lock                       _threads_lock;
+					struct Context_bit_allocator : Bit_allocator<MAX_THREADS>
+					{
+						Context_bit_allocator()
+						{
+							/* the first index is used by main thread */
+							_reserve(0, 1);
+						}
+					} _alloc;
 
-					/**
-					 * Detect if a context already exists at the specified address
-					 */
-					bool _is_in_use(addr_t base);
+					Lock _threads_lock;
 
 				public:
 
