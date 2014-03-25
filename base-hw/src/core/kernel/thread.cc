@@ -268,12 +268,6 @@ char const * Kernel::Thread::pd_label() const
 
 void Thread::_call_new_pd()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to create protection domain");
-		user_arg_0(0);
-		return;
-	}
 	/* create translation lookaside buffer and protection domain */
 	void * p = (void *)user_arg_1();
 	Tlb * const tlb = new (p) Tlb();
@@ -285,12 +279,6 @@ void Thread::_call_new_pd()
 
 void Thread::_call_bin_pd()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to destruct protection domain");
-		user_arg_0(-1);
-		return;
-	}
 	/* lookup protection domain */
 	unsigned id = user_arg_1();
 	Pd * const pd = Pd::pool()->object(id);
@@ -312,12 +300,6 @@ void Thread::_call_bin_pd()
 
 void Thread::_call_new_thread()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to create thread");
-		user_arg_0(0);
-		return;
-	}
 	/* create new thread */
 	void * const p = (void *)user_arg_1();
 	unsigned const priority = user_arg_2();
@@ -329,11 +311,6 @@ void Thread::_call_new_thread()
 
 void Thread::_call_bin_thread()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to bin thread");
-		return;
-	}
 	/* lookup thread */
 	Thread * const thread = Thread::pool()->object(user_arg_1());
 	if (!thread) {
@@ -347,12 +324,6 @@ void Thread::_call_bin_thread()
 
 void Thread::_call_start_thread()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("permission denied");
-		user_arg_0(0);
-		return;
-	}
 	/* lookup thread */
 	unsigned const thread_id = user_arg_1();
 	Thread * const thread = Thread::pool()->object(thread_id);
@@ -389,11 +360,6 @@ void Thread::_call_pause_current_thread() { _pause(); }
 
 void Thread::_call_pause_thread()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to pause thread");
-		return;
-	}
 	/* lookup thread */
 	Thread * const thread = Thread::pool()->object(user_arg_1());
 	if (!thread) {
@@ -407,12 +373,6 @@ void Thread::_call_pause_thread()
 
 void Thread::_call_resume_thread()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to resume thread");
-		_stop();
-		return;
-	}
 	/* lookup thread */
 	Thread * const thread = Thread::pool()->object(user_arg_1());
 	if (!thread) {
@@ -509,12 +469,6 @@ void Thread::_call_send_reply_msg()
 
 void Thread::_call_route_thread_event()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to route thread event");
-		user_arg_0(-1);
-		return;
-	}
 	/* get targeted thread */
 	unsigned const thread_id = user_arg_1();
 	Thread * const t = Thread::pool()->object(thread_id);
@@ -570,16 +524,10 @@ unsigned Thread_event::signal_context_id() const
 
 void Thread::_call_access_thread_regs()
 {
-	/* check permissions */
-	unsigned const reads = user_arg_2();
-	unsigned const writes = user_arg_3();
-	if (!_core()) {
-		PWRN("not entitled to access thread regs");
-		user_arg_0(reads + writes);
-		return;
-	}
 	/* get targeted thread */
 	unsigned const thread_id = user_arg_1();
+	unsigned const reads = user_arg_2();
+	unsigned const writes = user_arg_3();
 	Thread * const t = Thread::pool()->object(thread_id);
 	if (!t) {
 		PWRN("unknown thread");
@@ -613,11 +561,6 @@ void Thread::_call_access_thread_regs()
 
 void Thread::_call_update_pd()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to update domain");
-		return;
-	}
 	/* update hardware caches */
 	Processor::flush_tlb_by_pid(user_arg_1());
 }
@@ -625,11 +568,6 @@ void Thread::_call_update_pd()
 
 void Thread::_call_update_region()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to update region");
-		return;
-	}
 	/* flush hardware caches */
 	Processor::flush_data_cache_by_virt_region((addr_t)user_arg_1(),
 	                                           (size_t)user_arg_2());
@@ -716,12 +654,6 @@ void Thread::_call_print_char()
 
 void Thread::_call_new_signal_receiver()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to create signal receiver");
-		user_arg_0(0);
-		return;
-	}
 	/* create receiver */
 	void * const p = (void *)user_arg_1();
 	Signal_receiver * const r = new (p) Signal_receiver();
@@ -731,12 +663,6 @@ void Thread::_call_new_signal_receiver()
 
 void Thread::_call_new_signal_context()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to create signal context");
-		user_arg_0(0);
-		return;
-	}
 	/* lookup receiver */
 	unsigned const id = user_arg_2();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
@@ -850,12 +776,6 @@ void Thread::_call_kill_signal_context()
 
 void Thread::_call_bin_signal_context()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to kill signal context");
-		user_arg_0(-1);
-		return;
-	}
 	/* lookup signal context */
 	unsigned const id = user_arg_1();
 	Signal_context * const c = Signal_context::pool()->object(id);
@@ -872,12 +792,6 @@ void Thread::_call_bin_signal_context()
 
 void Thread::_call_bin_signal_receiver()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to kill signal receiver");
-		user_arg_0(-1);
-		return;
-	}
 	/* lookup signal receiver */
 	unsigned const id = user_arg_1();
 	Signal_receiver * const r = Signal_receiver::pool()->object(id);
@@ -893,12 +807,6 @@ void Thread::_call_bin_signal_receiver()
 
 void Thread::_call_new_vm()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to create virtual machine");
-		user_arg_0(0);
-		return;
-	}
 	/* lookup signal context */
 	auto const context = Signal_context::pool()->object(user_arg_3());
 	if (!context) {
@@ -919,11 +827,6 @@ void Thread::_call_new_vm()
 
 void Thread::_call_run_vm()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to run virtual machine");
-		return;
-	}
 	/* lookup virtual machine */
 	Vm * const vm = Vm::pool()->object(user_arg_1());
 	if (!vm) {
@@ -937,11 +840,6 @@ void Thread::_call_run_vm()
 
 void Thread::_call_pause_vm()
 {
-	/* check permissions */
-	if (!_core()) {
-		PWRN("not entitled to pause virtual machine");
-		return;
-	}
 	/* lookup virtual machine */
 	Vm * const vm = Vm::pool()->object(user_arg_1());
 	if (!vm) {
@@ -979,39 +877,52 @@ int Thread::_write_reg(addr_t const id, addr_t const value)
 
 void Thread::_call(unsigned const processor_id)
 {
-	switch (user_arg_0()) {
-	case call_id_new_thread():           _call_new_thread(); return;
-	case call_id_bin_thread():           _call_bin_thread(); return;
-	case call_id_start_thread():         _call_start_thread(); return;
+	/* switch over unrestricted kernel calls */
+	unsigned const call_id = user_arg_0();
+	switch (call_id) {
 	case call_id_pause_current_thread(): _call_pause_current_thread(); return;
-	case call_id_pause_thread():         _call_pause_thread(); return;
-	case call_id_resume_thread():        _call_resume_thread(); return;
 	case call_id_resume_local_thread():  _call_resume_local_thread(); return;
 	case call_id_yield_thread():         _call_yield_thread(); return;
 	case call_id_send_request_msg():     _call_send_request_msg(); return;
 	case call_id_send_reply_msg():       _call_send_reply_msg(); return;
 	case call_id_await_request_msg():    _call_await_request_msg(); return;
-	case call_id_update_pd():            _call_update_pd(); return;
-	case call_id_update_region():        _call_update_region(); return;
-	case call_id_new_pd():               _call_new_pd(); return;
-	case call_id_print_char():           _call_print_char(); return;
-	case call_id_new_signal_receiver():  _call_new_signal_receiver(); return;
-	case call_id_new_signal_context():   _call_new_signal_context(); return;
 	case call_id_kill_signal_context():  _call_kill_signal_context(); return;
-	case call_id_bin_signal_context():   _call_bin_signal_context(); return;
-	case call_id_bin_signal_receiver():  _call_bin_signal_receiver(); return;
-	case call_id_await_signal():         _call_await_signal(); return;
 	case call_id_submit_signal():        _call_submit_signal(); return;
+	case call_id_await_signal():         _call_await_signal(); return;
 	case call_id_signal_pending():       _call_signal_pending(); return;
 	case call_id_ack_signal():           _call_ack_signal(); return;
-	case call_id_new_vm():               _call_new_vm(); return;
-	case call_id_run_vm():               _call_run_vm(); return;
-	case call_id_pause_vm():             _call_pause_vm(); return;
-	case call_id_bin_pd():               _call_bin_pd(); return;
-	case call_id_access_thread_regs():   _call_access_thread_regs(); return;
-	case call_id_route_thread_event():   _call_route_thread_event(); return;
+	case call_id_print_char():           _call_print_char(); return;
+	default:
+		/* check wether this is a core thread */
+		if (!_core()) {
+			PWRN("not entitled to do kernel call");
+			_stop();
+			return;
+		}
+	}
+	/* switch over kernel calls that are restricted to core */
+	switch (call_id) {
+	case call_id_new_thread():          _call_new_thread(); return;
+	case call_id_bin_thread():          _call_bin_thread(); return;
+	case call_id_start_thread():        _call_start_thread(); return;
+	case call_id_resume_thread():       _call_resume_thread(); return;
+	case call_id_access_thread_regs():  _call_access_thread_regs(); return;
+	case call_id_route_thread_event():  _call_route_thread_event(); return;
+	case call_id_update_pd():           _call_update_pd(); return;
+	case call_id_update_region():       _call_update_region(); return;
+	case call_id_new_pd():              _call_new_pd(); return;
+	case call_id_bin_pd():              _call_bin_pd(); return;
+	case call_id_new_signal_receiver(): _call_new_signal_receiver(); return;
+	case call_id_new_signal_context():  _call_new_signal_context(); return;
+	case call_id_bin_signal_context():  _call_bin_signal_context(); return;
+	case call_id_bin_signal_receiver(): _call_bin_signal_receiver(); return;
+	case call_id_new_vm():              _call_new_vm(); return;
+	case call_id_run_vm():              _call_run_vm(); return;
+	case call_id_pause_vm():            _call_pause_vm(); return;
+	case call_id_pause_thread():        _call_pause_thread(); return;
 	default:
 		PWRN("unknown kernel call");
 		_stop();
+		return;
 	}
 }
