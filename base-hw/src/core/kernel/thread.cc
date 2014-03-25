@@ -407,6 +407,12 @@ void Thread::_call_pause_thread()
 
 void Thread::_call_resume_thread()
 {
+	/* check permissions */
+	if (!_core()) {
+		PWRN("not entitled to resume thread");
+		_stop();
+		return;
+	}
 	/* lookup thread */
 	Thread * const thread = Thread::pool()->object(user_arg_1());
 	if (!thread) {
@@ -414,10 +420,18 @@ void Thread::_call_resume_thread()
 		user_arg_0(false);
 		return;
 	}
-	/* check permissions */
-	if (!_core() && pd_id() != thread->pd_id()) {
-		PWRN("not entitled to resume thread");
-		_stop();
+	/* resume thread */
+	user_arg_0(thread->_resume());
+}
+
+
+void Thread::_call_resume_local_thread()
+{
+	/* lookup thread */
+	Thread * const thread = Thread::pool()->object(user_arg_1());
+	if (!thread || pd_id() != thread->pd_id()) {
+		PWRN("failed to lookup thread");
+		user_arg_0(0);
 		return;
 	}
 	/* resume thread */
@@ -972,6 +986,7 @@ void Thread::_call(unsigned const processor_id)
 	case call_id_pause_current_thread(): _call_pause_current_thread(); return;
 	case call_id_pause_thread():         _call_pause_thread(); return;
 	case call_id_resume_thread():        _call_resume_thread(); return;
+	case call_id_resume_local_thread():  _call_resume_local_thread(); return;
 	case call_id_yield_thread():         _call_yield_thread(); return;
 	case call_id_send_request_msg():     _call_send_request_msg(); return;
 	case call_id_send_reply_msg():       _call_send_reply_msg(); return;

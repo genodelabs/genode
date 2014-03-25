@@ -36,7 +36,7 @@ namespace Kernel
 	 * Kernel names of the kernel calls
 	 */
 	constexpr Call_arg call_id_pause_current_thread() { return 0; }
-	constexpr Call_arg call_id_resume_thread()        { return 1; }
+	constexpr Call_arg call_id_resume_local_thread()  { return 1; }
 	constexpr Call_arg call_id_yield_thread()         { return 2; }
 	constexpr Call_arg call_id_send_request_msg()     { return 3; }
 	constexpr Call_arg call_id_send_reply_msg()       { return 4; }
@@ -95,15 +95,15 @@ namespace Kernel
 
 
 	/**
-	 * Cancel blocking of a thread if possible
+	 * Cancel blocking of a thread of the current domain if possible
 	 *
 	 * \param thread_id  kernel name of the targeted thread
 	 *
 	 * \return  wether thread was in a cancelable blocking beforehand
 	 */
-	inline bool resume_thread(unsigned const thread_id)
+	inline bool resume_local_thread(unsigned const thread_id)
 	{
-		return call(call_id_resume_thread(), thread_id);
+		return call(call_id_resume_local_thread(), thread_id);
 	}
 
 

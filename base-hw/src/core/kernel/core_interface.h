@@ -34,20 +34,21 @@ namespace Kernel
 	constexpr Call_arg call_id_new_thread()          { return 12; }
 	constexpr Call_arg call_id_bin_thread()          { return 13; }
 	constexpr Call_arg call_id_start_thread()        { return 14; }
-	constexpr Call_arg call_id_access_thread_regs()  { return 15; }
-	constexpr Call_arg call_id_route_thread_event()  { return 16; }
-	constexpr Call_arg call_id_update_pd()           { return 17; }
-	constexpr Call_arg call_id_update_region()       { return 18; }
-	constexpr Call_arg call_id_new_pd()              { return 19; }
-	constexpr Call_arg call_id_bin_pd()              { return 20; }
-	constexpr Call_arg call_id_new_signal_receiver() { return 21; }
-	constexpr Call_arg call_id_new_signal_context()  { return 22; }
-	constexpr Call_arg call_id_bin_signal_context()  { return 23; }
-	constexpr Call_arg call_id_bin_signal_receiver() { return 24; }
-	constexpr Call_arg call_id_new_vm()              { return 25; }
-	constexpr Call_arg call_id_run_vm()              { return 26; }
-	constexpr Call_arg call_id_pause_vm()            { return 27; }
-	constexpr Call_arg call_id_pause_thread()        { return 28; }
+	constexpr Call_arg call_id_resume_thread()       { return 15; }
+	constexpr Call_arg call_id_access_thread_regs()  { return 16; }
+	constexpr Call_arg call_id_route_thread_event()  { return 17; }
+	constexpr Call_arg call_id_update_pd()           { return 18; }
+	constexpr Call_arg call_id_update_region()       { return 19; }
+	constexpr Call_arg call_id_new_pd()              { return 20; }
+	constexpr Call_arg call_id_bin_pd()              { return 21; }
+	constexpr Call_arg call_id_new_signal_receiver() { return 22; }
+	constexpr Call_arg call_id_new_signal_context()  { return 23; }
+	constexpr Call_arg call_id_bin_signal_context()  { return 24; }
+	constexpr Call_arg call_id_bin_signal_receiver() { return 25; }
+	constexpr Call_arg call_id_new_vm()              { return 26; }
+	constexpr Call_arg call_id_run_vm()              { return 27; }
+	constexpr Call_arg call_id_pause_vm()            { return 28; }
+	constexpr Call_arg call_id_pause_thread()        { return 29; }
 
 	/**
 	 * Create a domain
@@ -160,6 +161,19 @@ namespace Kernel
 	{
 		return (Tlb *)call(call_id_start_thread(), thread_id, cpu_id, pd_id,
 		                   (Call_arg)utcb);
+	}
+
+
+	/**
+	 * Cancel blocking of a thread if possible
+	 *
+	 * \param thread_id  kernel name of the targeted thread
+	 *
+	 * \return  wether thread was in a cancelable blocking beforehand
+	 */
+	inline bool resume_thread(unsigned const thread_id)
+	{
+		return call(call_id_resume_thread(), thread_id);
 	}
 
 

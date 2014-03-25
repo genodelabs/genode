@@ -237,6 +237,7 @@ class Kernel::Thread
 		void _call_pause_current_thread();
 		void _call_pause_thread();
 		void _call_resume_thread();
+		void _call_resume_local_thread();
 		void _call_yield_thread();
 		void _call_await_request_msg();
 		void _call_send_request_msg();

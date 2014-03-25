@@ -52,7 +52,7 @@ static inline void thread_switch_to(Genode::Thread_base * const t)
 static inline bool
 thread_check_stopped_and_restart(Genode::Thread_base * const t)
 {
-	return Kernel::resume_thread(native_thread_id(t));
+	return Kernel::resume_local_thread(native_thread_id(t));
 }
 
 
