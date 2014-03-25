@@ -79,7 +79,7 @@ Signal_receiver_capability Signal_session_component::alloc_receiver()
 
 void Signal_session_component::free_receiver(Signal_receiver_capability cap)
 {
-	/* lookup ressource info */
+	/* look up ressource info */
 	Receiver * const r = _receivers.lookup_and_lock(cap);
 	if (!r) {
 		PERR("unknown signal receiver");
@@ -122,7 +122,7 @@ Signal_session_component::alloc_context(Signal_receiver_capability r,
 
 void Signal_session_component::free_context(Signal_context_capability cap)
 {
-	/* lookup ressource info */
+	/* look up ressource info */
 	Context * const c = _contexts.lookup_and_lock(cap);
 	if (!c) {
 		PERR("unknown signal context");
