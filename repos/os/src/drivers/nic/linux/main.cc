@@ -4,11 +4,15 @@
  * \author Christian Helmuth
  * \date   2011-08-08
  *
- * Currently, we connect to tap0 only. Possbile candidates for configuration
- * options are:
+ * Configuration options are:
  *
  * - TAP device to connect to (default is tap0)
  * - MAC address (default is 02-00-00-00-00-01)
+ *
+ * These can be set in the config section as follows:
+ *  <config>
+ *  	<nic mac="12:23:34:45:56:67" tap="tap1"/>
+ *  </config>
  */
 
 /*
@@ -29,6 +33,9 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <linux/if_tun.h>
+
+#include <os/config.h>
+#include <nic/xml_node.h>
 
 
 class Linux_driver : public Nic::Driver
@@ -79,9 +86,21 @@ class Linux_driver : public Nic::Driver
 				/* this error is fatal */
 				throw Genode::Exception();
 			}
+
 			Genode::memset(&ifr, 0, sizeof(ifr));
 			ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-			Genode::strncpy(ifr.ifr_name, "tap0", sizeof(ifr.ifr_name));
+
+			/* get tap device from config */
+			try {
+				Genode::Xml_node nic_node = Genode::config()->xml_node().sub_node("nic");
+				nic_node.attribute("tap").value(ifr.ifr_name, sizeof(ifr.ifr_name));
+				PINF("Using tap device \"%s\"", ifr.ifr_name);
+			} catch (...) {
+				/* use tap0 if no config has been provided */
+				Genode::strncpy(ifr.ifr_name, "tap0", sizeof(ifr.ifr_name));
+				PINF("No config provided, using tap0");
+			}
+
 			ret = ioctl(fd, TUNSETIFF, (void *) &ifr);
 			if (ret != 0) {
 				PERR("could not configure /dev/net/tun: no virtual network emulation");
@@ -98,13 +117,26 @@ class Linux_driver : public Nic::Driver
 		Linux_driver(Nic::Rx_buffer_alloc &alloc)
 		: _alloc(alloc), _tap_fd(_setup_tap_fd()), _rx_thread(_tap_fd, *this)
 		{
-			/* fake MAC address (unicast, locally managed) */
-			_mac_addr.addr[0] = 0x02;
-			_mac_addr.addr[1] = 0x00;
-			_mac_addr.addr[2] = 0x00;
-			_mac_addr.addr[3] = 0x00;
-			_mac_addr.addr[4] = 0x00;
-			_mac_addr.addr[5] = 0x01;
+			/* try using configured MAC address */
+			try {
+				Genode::Xml_node nic_config = Genode::config()->xml_node().sub_node("nic");
+				nic_config.attribute("mac").value(&_mac_addr);
+				PINF("Using configured MAC address \"%02x:%02x:%02x:%02x:%02x:%02x\"",
+						_mac_addr.addr[0],
+						_mac_addr.addr[1],
+						_mac_addr.addr[2],
+						_mac_addr.addr[3],
+						_mac_addr.addr[4],
+						_mac_addr.addr[5]	);
+			} catch (...) {
+				/* fall back to fake MAC address (unicast, locally managed) */
+				_mac_addr.addr[0] = 0x02;
+				_mac_addr.addr[1] = 0x00;
+				_mac_addr.addr[2] = 0x00;
+				_mac_addr.addr[3] = 0x00;
+				_mac_addr.addr[4] = 0x00;
+				_mac_addr.addr[5] = 0x01;
+			}
 
 			_rx_thread.start();
 		}
