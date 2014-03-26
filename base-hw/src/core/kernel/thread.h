@@ -165,10 +165,8 @@ class Kernel::Thread
 
 		/**
 		 * Handle kernel-call request of the thread
-		 *
-		 * \param processor_id  kernel name of the trapped processor
 		 */
-		void _call(unsigned const processor_id);
+		void _call();
 
 		/**
 		 * Read a thread register

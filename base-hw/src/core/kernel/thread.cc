@@ -222,7 +222,7 @@ void Thread::exception(unsigned const processor_id)
 {
 	switch (cpu_exception) {
 	case SUPERVISOR_CALL:
-		_call(processor_id);
+		_call();
 		return;
 	case PREFETCH_ABORT:
 		_mmu_exception();
@@ -875,7 +875,7 @@ int Thread::_write_reg(addr_t const id, addr_t const value)
 }
 
 
-void Thread::_call(unsigned const processor_id)
+void Thread::_call()
 {
 	/* switch over unrestricted kernel calls */
 	unsigned const call_id = user_arg_0();
