@@ -62,108 +62,27 @@ addr_t __core_pd_sel;
 
 
 /**
- * Returns true if the phys address intersects with some other reserved area.
+ * Map preserved physical pages core-exclusive
+ *
+ * This function uses the virtual-memory region allocator to find a region
+ * fitting the desired mapping. Other allocators are left alone.
  */
-static bool intersects(addr_t const phys, const Hip::Mem_desc * mem_desc_const,
-                       size_t const num_mem_desc)
-{ 
-	/* check whether phys intersects with some reserved area */
-	Hip::Mem_desc const * mem_desc = mem_desc_const;
-	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
-		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
-
-		if (mem_desc->addr > ~0UL) continue;
-
-		addr_t base = trunc_page(mem_desc->addr);
-		size_t size;
-		/* truncate size if base+size larger then natural 32/64 bit boundary */
-		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
-			size = round_page(~0UL - mem_desc->addr + 1);
-		else
-			size = round_page(mem_desc->addr + mem_desc->size) - base;
-
-		if (base <= phys && phys < base + size)
-			return true;
-	}
-
-	/* check whether phys is part of available memory */
-	mem_desc = mem_desc_const;
-	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
-		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
-
-		if (mem_desc->addr > ~0UL) continue;
-
-		addr_t base = trunc_page(mem_desc->addr);
-		size_t size;
-		/* truncate size if base+size larger then natural 32/64 bit boundary */
-		if (mem_desc->addr >= ~0UL - mem_desc->size + 1)
-			size = round_page(~0UL - mem_desc->addr + 1);
-		else
-			size = round_page(mem_desc->addr + mem_desc->size) - base;
-	
-		if (base <= phys && phys < base + size)
-			return false;
-	}
-
-	return true;
-}
-
-
-/**
- * Map preserved physical page for the exclusive read-execute-only used by core
- */
-addr_t Platform::_map_page(addr_t const phys_page, addr_t const pages,
-                           bool const extra_page)
+addr_t Platform::_map_pages(addr_t phys_page, addr_t const pages)
 {
 	addr_t const phys_addr = phys_page << get_page_size_log2();
-	addr_t const size = pages << get_page_size_log2();
-	addr_t const size_extra = size + (extra_page ? get_page_size() : 0);
+	addr_t const size      = pages << get_page_size_log2();
 
 	/* try to reserve contiguous virtual area */
-	void * core_local_ptr = 0;
-	if (!region_alloc()->alloc(size_extra, &core_local_ptr))
+	void *core_local_ptr = 0;
+	if (!region_alloc()->alloc(size, &core_local_ptr))
 		return 0;
-	/* free the virtual area, but re allocate it later in two pieces */
-	region_alloc()->free(core_local_ptr, size_extra);
 
 	addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
-	/* allocate two separate regions - first part */
-	if (region_alloc()->alloc_addr(size, core_local_addr).is_error())
-		return 0;
-
-	/* allocate two separate regions - second part */
-	if (extra_page) {
-		/* second region can be freed separately now, if unneeded */
-		if (region_alloc()->alloc_addr(get_page_size(), core_local_addr +
-		                               size).is_error())
-			return 0;
-	}
-
-	/* map first part */
 	int res = map_local(__main_thread_utcb, phys_addr, core_local_addr, pages,
 	                    Nova::Rights(true, true, true), true);
 
-	/* map second part - if requested */
-	if (!res && extra_page)
-		res = map_local(__main_thread_utcb, phys_addr + size,
-	                    core_local_addr + size, 1,
-	                    Nova::Rights(true, true, false), true);
-
 	return res ? 0 : core_local_addr;
-}
-
-
-void Platform::_unmap_page(addr_t const phys, addr_t const virt,
-                           addr_t const pages)
-{
-	/* unmap page */
-	unmap_local(__main_thread_utcb, virt, pages);
-	/* put virtual address back to allocator */
-	region_alloc()->free((void *)(virt), pages << get_page_size_log2());
-	/* put physical address back to allocator */
-	if (phys != 0)
-		ram_alloc()->add_range(phys, pages << get_page_size_log2());
 }
 
 
@@ -514,9 +433,9 @@ Platform::Platform() :
 		                             (mem_desc->aux < rom_mem_end);
 
 		/* map ROM + extra page for the case aux crosses page boundary */
-		addr_t core_local_addr = _map_page(rom_mem_start >> get_page_size_log2(),
-		                                   rom_mem_size  >> get_page_size_log2(),
-		                                   aux_in_rom_area);
+		addr_t core_local_addr = _map_pages(rom_mem_start >> get_page_size_log2(),
+		                                    (rom_mem_size >> get_page_size_log2()) +
+		                                    (aux_in_rom_area ? 1 : 0));
 		if (!core_local_addr) {
 			PERR("could not map multi boot module");
 			nova_die();
@@ -534,15 +453,6 @@ Platform::Platform() :
 		if (aux_in_rom_area) {
 			aux = core_local_addr + (mem_desc->aux - mem_desc->addr);
 			aux_len = strlen(reinterpret_cast<char const *>(aux)) + 1;
-
-			/* if last page is unused, free it up */
-			if (aux + aux_len <= round_page(core_local_addr) + rom_mem_size) {
-				bool overlap = intersects(rom_mem_end,
-				                          (Hip::Mem_desc *)mem_desc_base,
-				                          num_mem_desc);
-				_unmap_page(overlap ? 0 : rom_mem_end,
-				            round_page(core_local_addr) + rom_mem_size, 1);
-			}
 
 			/* all behind rom module will be cleared, copy the command line */
 			char *name_tmp = commandline_to_basename(reinterpret_cast<char *>(aux));
@@ -574,15 +484,7 @@ Platform::Platform() :
 
 				/* allocate new pages if it was not successful beforehand */
 				if (err) {
-					/* check whether we can free up unused page */
-					if (aux + aux_len <= mapped_cmd_line + get_page_size()) {
-						addr_t phys = (curr_cmd_line_page + 1) << get_page_size_log2();
-						phys = intersects(phys, (Hip::Mem_desc *)mem_desc_base,
-						                  num_mem_desc) ? 0 : phys;
-						_unmap_page(phys, mapped_cmd_line + get_page_size(), 1);
-					}
-
-					mapped_cmd_line = _map_page(curr_cmd_line_page, 1, true);
+					mapped_cmd_line = _map_pages(curr_cmd_line_page, 2);
 					prev_cmd_line_page = curr_cmd_line_page;
 
 					if (!mapped_cmd_line) {
@@ -641,8 +543,7 @@ Platform::Platform() :
 		ram_alloc()->alloc(4096, &phys_ptr);
 
 		addr_t phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-		addr_t core_local_addr = _map_page(phys_addr >> get_page_size_log2(),
-		                                   1, false);
+		addr_t core_local_addr = _map_pages(phys_addr >> get_page_size_log2(), 1);
 		
 		Cap_range * range = reinterpret_cast<Cap_range *>(core_local_addr);
 		*range = Cap_range(index);

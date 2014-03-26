@@ -45,10 +45,7 @@ namespace Genode {
 			/* available CPUs */
 			Affinity::Space _cpus;
 
-			addr_t _map_page(addr_t const phys_page, addr_t const pages,
-			                 bool const extra_page);
-			void _unmap_page(addr_t const phys, addr_t const virt,
-			                 addr_t const pages);
+			addr_t _map_pages(addr_t phys_page, addr_t pages);
 
 		public:
 
