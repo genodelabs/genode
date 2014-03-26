@@ -479,7 +479,7 @@ namespace Genode {
 			static constexpr size_t capacity() { return CAPACITY; }
 
 			bool valid() const {
-				return (_length <= CAPACITY) && (_buf[_length - 1] == '\0'); }
+				return (_length <= CAPACITY) && (_length != 0) && (_buf[_length - 1] == '\0'); }
 
 			char const *string() const { return valid() ? _buf : ""; }
 
