@@ -23,6 +23,7 @@ extern "C" void errx(int eval, const char *fmt, ...)
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
+	printf("\n");
 	env()->parent()->exit(eval);
 	while(1) ;
 }
