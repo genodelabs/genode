@@ -215,28 +215,26 @@ class Kernel::Ipc_node
 		/**
 		 * Send a request and wait for the according reply
 		 *
-		 * \param dest        targeted IPC node
-		 * \param req_base    base of the request payload
-		 * \param req_size    size of the request payload
-		 * \param inbuf_base  base of the reply buffer
-		 * \param inbuf_size  size of the reply buffer
+		 * \param dst       targeted IPC node
+		 * \param buf_base  base of receive buffer and request message
+		 * \param buf_size  size of receive buffer
+		 * \param msg_size  size of request message
 		 */
-		void send_request(Ipc_node * const dst, void * const req_base,
-		                  size_t const req_size, void * const inbuf_base,
-		                  size_t const inbuf_size)
+		void send_request(Ipc_node * const dst, void * const buf_base,
+		                  size_t const buf_size, size_t const msg_size)
 		{
 			/* assertions */
 			assert(_state == INACTIVE || _state == PREPARE_REPLY);
 
 			/* prepare transmission of request message */
-			_outbuf.base = req_base;
-			_outbuf.size = req_size;
+			_outbuf.base = buf_base;
+			_outbuf.size = msg_size;
 			_outbuf.src  = this;
 			_outbuf_dst  = dst;
 
 			/* prepare reception of reply message */
-			_inbuf.base = inbuf_base;
-			_inbuf.size = inbuf_size;
+			_inbuf.base = buf_base;
+			_inbuf.size = buf_size;
 			/* don't clear '_inbuf.origin' because we might prepare a reply */
 
 			/* update state */
@@ -250,20 +248,20 @@ class Kernel::Ipc_node
 		/**
 		 * Wait until a request has arrived and load it for handling
 		 *
-		 * \param inbuf_base  base of the request buffer
-		 * \param inbuf_size  size of the request buffer
+		 * \param buf_base  base of receive buffer
+		 * \param buf_size  size of receive buffer
 		 *
 		 * \return  wether a request could be received already
 		 */
-		bool await_request(void * const inbuf_base,
-		                   size_t const inbuf_size)
+		bool await_request(void * const buf_base,
+		                   size_t const buf_size)
 		{
 			/* assertions */
 			assert(_state == INACTIVE);
 
 			/* prepare receipt of request */
-			_inbuf.base = inbuf_base;
-			_inbuf.size = inbuf_size;
+			_inbuf.base = buf_base;
+			_inbuf.size = buf_size;
 			_inbuf.src  = 0;
 
 			/* if anybody already announced a request receive it */
@@ -279,16 +277,16 @@ class Kernel::Ipc_node
 		/**
 		 * Reply to last request if there's any
 		 *
-		 * \param reply_base  base of the reply payload
-		 * \param reply_size  size of the reply payload
+		 * \param msg_base  base of reply message
+		 * \param msg_size  size of reply message
 		 */
-		void send_reply(void * const reply_base,
-		                size_t const reply_size)
+		void send_reply(void * const msg_base,
+		                size_t const msg_size)
 		{
 			/* reply to the last request if we have to */
 			if (_state == PREPARE_REPLY) {
 				if (_inbuf.src) {
-					_inbuf.src->_receive_reply(reply_base, reply_size);
+					_inbuf.src->_receive_reply(msg_base, msg_size);
 					_inbuf.src = 0;
 				}
 				_state = INACTIVE;

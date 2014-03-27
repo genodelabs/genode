@@ -420,13 +420,10 @@ void Thread::_call_send_request_msg()
 		_unschedule(AWAITS_IPC);
 		return;
 	}
-	void * msg_base;
-	size_t msg_size;
 	void * buf_base;
-	size_t buf_size;
-	Native_utcb::Message * const msg = _utcb_phys->message();
-	msg->request_info(msg_base, msg_size, buf_base, buf_size);
-	Ipc_node::send_request(dst, msg_base, msg_size, buf_base, buf_size);
+	size_t buf_size, msg_size;
+	_utcb_phys->message()->request_info(buf_base, buf_size, msg_size);
+	Ipc_node::send_request(dst, buf_base, buf_size, msg_size);
 	_unschedule(AWAITS_IPC);
 }
 

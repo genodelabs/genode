@@ -165,25 +165,23 @@ class Genode::Message_tpl
 		/**
 		 * Get properties of request message and receive buffer
 		 *
-		 * \return msg_base  base of complete send-message data
-		 * \return msg_size  size of complete send-message data
-		 * \return buf_base  base of receive buffer
+		 * \return buf_base  base of receive buffer and request message
 		 * \return buf_size  size of receive buffer
+		 * \return msg_size  size of request message
 		 */
-		void request_info(void * & msg_base, size_t & msg_size,
-		                  void * & buf_base, size_t & buf_size) const
+		void request_info(void * & buf_base, size_t & buf_size,
+		                  size_t & msg_size) const
 		{
-			msg_base = (void *)this;
-			msg_size = _size();
 			buf_base = (void *)this;
 			buf_size = MAX_SIZE;
+			msg_size = _size();
 		}
 
 		/**
 		 * Get properties of reply message
 		 *
-		 * \return msg_base  base of complete send-message data
-		 * \return msg_size  size of complete send-message data
+		 * \return msg_base  base of reply message
+		 * \return msg_size  size of reply message
 		 */
 		void reply_info(void * & msg_base, size_t & msg_size) const
 		{
