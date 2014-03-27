@@ -71,7 +71,7 @@ void Thread::_receive_signal(void * const base, size_t const size)
 }
 
 
-void Thread::_await_ipc_succeeded(size_t const s)
+void Thread::_await_ipc_succeeded()
 {
 	switch (_state) {
 	case AWAITS_IPC:

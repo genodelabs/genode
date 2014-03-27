@@ -104,7 +104,7 @@ class Kernel::Ipc_node
 			/* update state */
 			if (_state != PREPARE_AND_AWAIT_REPLY) { _state = INACTIVE; }
 			else { _state = PREPARE_REPLY; }
-			_await_ipc_succeeded(_inbuf.size);
+			_await_ipc_succeeded();
 		}
 
 		/**
@@ -115,7 +115,7 @@ class Kernel::Ipc_node
 			/* directly receive request if we've awaited it */
 			if (_state == AWAIT_REQUEST) {
 				_receive_request(r);
-				_await_ipc_succeeded(_inbuf.size);
+				_await_ipc_succeeded();
 				return;
 			}
 			/* cannot receive yet, so queue request */
@@ -183,10 +183,8 @@ class Kernel::Ipc_node
 
 		/**
 		 * IPC node returned from waiting due to message receipt
-		 *
-		 * \param s  size of incoming message
 		 */
-		virtual void _await_ipc_succeeded(size_t const s) = 0;
+		virtual void _await_ipc_succeeded() = 0;
 
 		/**
 		 * IPC node returned from waiting due to cancellation
