@@ -280,7 +280,6 @@ class Kernel::Thread
 		 ** Ipc_node **
 		 **************/
 
-		void _received_ipc_request(size_t const s);
 		void _await_ipc_succeeded(size_t const s);
 		void _await_ipc_failed();
 

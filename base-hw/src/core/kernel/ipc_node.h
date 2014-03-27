@@ -182,11 +182,6 @@ class Kernel::Ipc_node
 		}
 
 		/**
-		 * IPC node received a request without waiting
-		 */
-		virtual void _received_ipc_request(size_t const s) = 0;
-
-		/**
 		 * IPC node returned from waiting due to message receipt
 		 *
 		 * \param s  size of incoming message
@@ -278,7 +273,6 @@ class Kernel::Ipc_node
 			/* if anybody already announced a request receive it */
 			if (!_request_queue.empty()) {
 				_receive_request(_request_queue.dequeue());
-				_received_ipc_request(_inbuf.size);
 				return true;
 			}
 			/* no request announced, so wait */

@@ -71,20 +71,6 @@ void Thread::_receive_signal(void * const base, size_t const size)
 }
 
 
-void Thread::_received_ipc_request(size_t const s)
-{
-	switch (_state) {
-	case SCHEDULED:
-		user_arg_0(0);
-		return;
-	default:
-		PWRN("wrong thread state to receive IPC");
-		_stop();
-		return;
-	}
-}
-
-
 void Thread::_await_ipc_succeeded(size_t const s)
 {
 	switch (_state) {
@@ -418,7 +404,10 @@ void Thread::_call_await_request_msg()
 	void * buf_base;
 	size_t buf_size;
 	_utcb_phys->message()->info_about_await_request(buf_base, buf_size);
-	if (Ipc_node::await_request(buf_base, buf_size)) { return; }
+	if (Ipc_node::await_request(buf_base, buf_size)) {
+		user_arg_0(0);
+		return;
+	}
 	_unschedule(AWAITS_IPC);
 }
 
