@@ -151,29 +151,27 @@ class Genode::Message_tpl
 	public:
 
 		/**
-		 * Get information about current await-request operation
+		 * Get properties of receive buffer
 		 *
 		 * \return buf_base  base of receive buffer
 		 * \return buf_size  size of receive buffer
 		 */
-		void info_about_await_request(void * & buf_base, size_t & buf_size)
-		const
+		void buffer_info(void * & buf_base, size_t & buf_size) const
 		{
 			buf_base = (void *)this;
 			buf_size = MAX_SIZE;
 		}
 
 		/**
-		 * Get information about current send-request operation
+		 * Get properties of request message and receive buffer
 		 *
 		 * \return msg_base  base of complete send-message data
 		 * \return msg_size  size of complete send-message data
 		 * \return buf_base  base of receive buffer
 		 * \return buf_size  size of receive buffer
 		 */
-		void info_about_send_request(void * & msg_base, size_t & msg_size,
-		                             void * & buf_base, size_t & buf_size)
-		const
+		void request_info(void * & msg_base, size_t & msg_size,
+		                  void * & buf_base, size_t & buf_size) const
 		{
 			msg_base = (void *)this;
 			msg_size = _size();
@@ -182,13 +180,12 @@ class Genode::Message_tpl
 		}
 
 		/**
-		 * Get information about current send-reply operation
+		 * Get properties of reply message
 		 *
 		 * \return msg_base  base of complete send-message data
 		 * \return msg_size  size of complete send-message data
 		 */
-		void info_about_send_reply(void * & msg_base, size_t & msg_size)
-		const
+		void reply_info(void * & msg_base, size_t & msg_size) const
 		{
 			msg_base = (void *)this;
 			msg_size = _size();

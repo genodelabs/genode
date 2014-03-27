@@ -221,11 +221,9 @@ class Kernel::Ipc_node
 		 * \param inbuf_base  base of the reply buffer
 		 * \param inbuf_size  size of the reply buffer
 		 */
-		void send_request_await_reply(Ipc_node * const dst,
-		                              void * const     req_base,
-		                              size_t const     req_size,
-		                              void * const     inbuf_base,
-		                              size_t const     inbuf_size)
+		void send_request(Ipc_node * const dst, void * const req_base,
+		                  size_t const req_size, void * const inbuf_base,
+		                  size_t const inbuf_size)
 		{
 			/* assertions */
 			assert(_state == INACTIVE || _state == PREPARE_REPLY);

@@ -403,7 +403,7 @@ void Thread::_call_await_request_msg()
 {
 	void * buf_base;
 	size_t buf_size;
-	_utcb_phys->message()->info_about_await_request(buf_base, buf_size);
+	_utcb_phys->message()->buffer_info(buf_base, buf_size);
 	if (Ipc_node::await_request(buf_base, buf_size)) {
 		user_arg_0(0);
 		return;
@@ -424,10 +424,9 @@ void Thread::_call_send_request_msg()
 	size_t msg_size;
 	void * buf_base;
 	size_t buf_size;
-	_utcb_phys->message()->info_about_send_request(msg_base, msg_size,
-	                                               buf_base, buf_size);
-	Ipc_node::send_request_await_reply(dst, msg_base, msg_size,
-	                                   buf_base, buf_size);
+	Native_utcb::Message * const msg = _utcb_phys->message();
+	msg->request_info(msg_base, msg_size, buf_base, buf_size);
+	Ipc_node::send_request(dst, msg_base, msg_size, buf_base, buf_size);
 	_unschedule(AWAITS_IPC);
 }
 
@@ -436,7 +435,7 @@ void Thread::_call_send_reply_msg()
 {
 	void * msg_base;
 	size_t msg_size;
-	_utcb_phys->message()->info_about_send_reply(msg_base, msg_size);
+	_utcb_phys->message()->reply_info(msg_base, msg_size);
 	Ipc_node::send_reply(msg_base, msg_size);
 	bool const await_request_msg = user_arg_1();
 	if (await_request_msg) { _call_await_request_msg(); }
