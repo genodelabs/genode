@@ -85,20 +85,6 @@ void Thread::_received_ipc_request(size_t const s)
 }
 
 
-void Thread::_await_ipc()
-{
-	switch (_state) {
-	case SCHEDULED:
-		_unschedule(AWAITS_IPC);
-		return;
-	default:
-		PWRN("wrong thread state to await IPC");
-		_stop();
-		return;
-	}
-}
-
-
 void Thread::_await_ipc_succeeded(size_t const s)
 {
 	switch (_state) {
@@ -432,7 +418,8 @@ void Thread::_call_await_request_msg()
 	void * buf_base;
 	size_t buf_size;
 	_utcb_phys->message()->info_about_await_request(buf_base, buf_size);
-	Ipc_node::await_request(buf_base, buf_size);
+	if (Ipc_node::await_request(buf_base, buf_size)) { return; }
+	_unschedule(AWAITS_IPC);
 }
 
 
@@ -441,7 +428,7 @@ void Thread::_call_send_request_msg()
 	Thread * const dst = Thread::pool()->object(user_arg_1());
 	if (!dst) {
 		PWRN("unknown recipient");
-		_await_ipc();
+		_unschedule(AWAITS_IPC);
 		return;
 	}
 	void * msg_base;
@@ -452,6 +439,7 @@ void Thread::_call_send_request_msg()
 	                                               buf_base, buf_size);
 	Ipc_node::send_request_await_reply(dst, msg_base, msg_size,
 	                                   buf_base, buf_size);
+	_unschedule(AWAITS_IPC);
 }
 
 

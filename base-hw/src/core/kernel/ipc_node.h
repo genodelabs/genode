@@ -187,11 +187,6 @@ class Kernel::Ipc_node
 		virtual void _received_ipc_request(size_t const s) = 0;
 
 		/**
-		 * IPC node started waiting for message receipt
-		 */
-		virtual void _await_ipc() = 0;
-
-		/**
 		 * IPC node returned from waiting due to message receipt
 		 *
 		 * \param s  size of incoming message
@@ -256,7 +251,6 @@ class Kernel::Ipc_node
 			/* update state */
 			if (_state != PREPARE_REPLY) { _state = AWAIT_REPLY; }
 			else { _state = PREPARE_AND_AWAIT_REPLY; }
-			_await_ipc();
 
 			/* announce request */
 			dst->_announce_request(&_outbuf);
@@ -267,8 +261,10 @@ class Kernel::Ipc_node
 		 *
 		 * \param inbuf_base  base of the request buffer
 		 * \param inbuf_size  size of the request buffer
+		 *
+		 * \return  wether a request could be received already
 		 */
-		void await_request(void * const inbuf_base,
+		bool await_request(void * const inbuf_base,
 		                   size_t const inbuf_size)
 		{
 			/* assertions */
@@ -283,11 +279,11 @@ class Kernel::Ipc_node
 			if (!_request_queue.empty()) {
 				_receive_request(_request_queue.dequeue());
 				_received_ipc_request(_inbuf.size);
-				return;
+				return true;
 			}
 			/* no request announced, so wait */
 			_state = AWAIT_REQUEST;
-			_await_ipc();
+			return false;
 		}
 
 		/**
