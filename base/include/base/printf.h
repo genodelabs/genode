@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2013 Genode Labs GmbH
+ * Copyright (C) 2006-2014 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -50,19 +50,6 @@ namespace Genode {
 #define ESC_END
 #endif /* GENODE_RELEASE */
 
-/*
- * We're using heavy CPP wizardry here to prevent compiler errors after macro
- * expansion. Each macro works as follows:
- *
- * - Support one format string plus zero or more arguments.
- * - Put all static strings (including the format string) in the first argument
- *   of the call to printf() and let the compiler merge them.
- * - Append the function name (magic static string variable) as first argument.
- * - (Optionally) append the arguments to the macro with ", ##__VA_ARGS__". CPP
- *   only appends the comma and arguments if __VA__ARGS__ is not empty,
- *   otherwise nothing (not even the comma) is appended.
- */
-
 /**
  * Suppress debug messages in release version
  */
@@ -76,11 +63,24 @@ namespace Genode {
 
 /**
  * Print debug message with function name
+ *
+ * We're using heavy CPP wizardry here to prevent compiler errors after macro
+ * expansion. Each macro works as follows:
+ *
+ * - Support one format string plus zero or more arguments.
+ * - Put all static strings (including the format string) in the first argument
+ *   of the call to printf() and let the compiler merge them.
+ * - Append the function name (magic static string variable) as first argument.
+ * - (Optionally) append the arguments to the macro with ", ##__VA_ARGS__". CPP
+ *   only appends the comma and arguments if __VA__ARGS__ is not empty,
+ *   otherwise nothing (not even the comma) is appended.
  */
 #define PDBG(fmt, ...) \
-	if (DO_PDBG) \
-		Genode::printf("%s: " ESC_DBG fmt ESC_END "\n", \
-		               __PRETTY_FUNCTION__, ##__VA_ARGS__ )
+	do { \
+		if (DO_PDBG) \
+			Genode::printf("%s: " ESC_DBG fmt ESC_END "\n", \
+			               __PRETTY_FUNCTION__, ##__VA_ARGS__ ); \
+	} while (0)
 
 /**
  * Print log message
@@ -98,8 +98,10 @@ namespace Genode {
  * Print warning message
  */
 #define PWRN(fmt, ...) \
-	if (DO_PWRN) \
-		Genode::printf(ESC_WRN fmt ESC_END "\n", ##__VA_ARGS__ )
+	do { \
+		if (DO_PWRN) \
+			Genode::printf(ESC_WRN fmt ESC_END "\n", ##__VA_ARGS__ ); \
+	} while (0)
 
 /**
  * Print error message
