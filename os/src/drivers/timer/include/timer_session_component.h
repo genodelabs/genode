@@ -193,7 +193,8 @@ namespace Timer {
 				} else schedule_absolute(alarm, now + timeout);
 
 				/* interrupt current 'wait_for_timeout' */
-				_platform_timer->schedule_timeout(0);
+				if (head_timeout(alarm))
+					_platform_timer->schedule_timeout(0);
 			}
 
 			unsigned long curr_time() const

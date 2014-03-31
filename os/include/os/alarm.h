@@ -131,6 +131,14 @@ namespace Genode {
 			 * \return          true if an alarm is scheduled
 			 */
 			bool next_deadline(Alarm::Time *deadline);
+
+			/**
+			 * Determine if given alarm object is current head element
+			 *
+			 * \param alarm  alarm object
+			 * \return true if alarm is head element of timeout queue
+			 */
+			bool head_timeout(const Alarm * alarm) { return _head == alarm; }
 	};
 }
 
