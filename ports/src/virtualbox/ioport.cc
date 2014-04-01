@@ -52,7 +52,7 @@ class Guest_ioports
 			bool contains(RTIOPORT PortStart, RTUINT cPorts) const
 			{
 				return (PortStart >= _PortStart)
-				 && (PortStart + cPorts - 1 <= _PortStart + _cPorts - 1);
+				 && (PortStart <= _PortStart + _cPorts - 1);
 			}
 
 			bool partof(RTIOPORT PortStart, RTUINT cPorts) const
@@ -125,8 +125,10 @@ class Guest_ioports
 		Range *_lookup(RTIOPORT PortStart, RTUINT cPorts)
 		{
 			for (Range *r = _ranges.first(); r; r = r->next())
-				if (r->contains(PortStart, cPorts))
+				if (r->contains(PortStart, cPorts)) {
+//					PINF("lookuped %lx %lx", r->_PortStart, r->_cPorts);
 					return r;
+				}
 
 			return 0;
 		}
@@ -140,10 +142,14 @@ class Guest_ioports
 		               R3PTRTYPE(PFNIOMIOPORTOUTSTRING) pfnOutStringCallback,
 		               R3PTRTYPE(PFNIOMIOPORTINSTRING) pfnInStringCallback)
 		{
+/*
 			Range *r = _lookup(PortStart, cPorts);
-			if (r)
+			if (r) {
+				PERR("failure 0x%lx+0x%lx", PortStart, cPorts);
+				while (1) {}
 				return VERR_GENERAL_FAILURE;
-
+			}
+*/
 			_ranges.insert(new (Genode::env()->heap())
 			               Range(pDevIns, PortStart, cPorts, pvUser,
 			                     pfnOutCallback, pfnInCallback,
@@ -182,8 +188,8 @@ class Guest_ioports
 				return r->write(Port, u32Value, cbValue);
 
 			char c = u32Value & 0xff;
-//			PWRN("attempted to write to non-existing port 0x%lx+%u  %c (%02x)", Port, cbValue,
-//			     c >= 32 && c <= 176 ? c : '.', c);
+			PWRN("attempted to write to non-existing port 0x%lx+%u  %c (%02x)", Port, cbValue,
+			     c >= 32 && c <= 176 ? c : '.', c);
 			return VINF_SUCCESS;
 //			return VERR_GENERAL_FAILURE; /* recompiler does not like this */
 		}
@@ -197,7 +203,7 @@ class Guest_ioports
 					return err;
 			}
 
-//			PWRN("attempted to read from non-existing port 0x%x+%u %p", port, cbValue, r);
+			PWRN("attempted to read from non-existing port 0x%x+%u %p", port, cbValue, r);
 
 			switch (cbValue)
 			{
