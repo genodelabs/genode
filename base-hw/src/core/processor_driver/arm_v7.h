@@ -18,6 +18,14 @@
 #include <processor_driver/arm.h>
 #include <board.h>
 
+/**
+ * Helpers that increase readability of MCR and MRC commands
+ */
+#define READ_CLIDR(rd)   "mrc p15, 1, " #rd ", c0, c0, 1\n"
+#define READ_CCSIDR(rd)  "mrc p15, 1, " #rd ", c0, c0, 0\n"
+#define WRITE_CSSELR(rs) "mcr p15, 2, " #rs ", c0, c0, 0\n"
+#define WRITE_DCCSW(rs)  "mcr p15, 0, " #rs ", c7, c10, 2\n"
+
 namespace Arm_v7
 {
 	using namespace Genode;
@@ -264,55 +272,97 @@ namespace Arm_v7
 
 void Arm::Processor_driver::flush_data_caches()
 {
-	/*
-	 * FIXME This routine is taken from the ARMv7 reference manual by
-	 *       applying the inline-assembly framework and replacing 'Loop1'
-	 *       with '1:', 'Loop2' with '2:', 'Loop3' with '3:', 'Skip'
-	 *       with '4:' and 'Finished' with '5:'. It might get implemented
-	 *       with more beauty.
-	 */
 	asm volatile (
-		"mrc p15, 1, r0, c0, c0, 1\n"  /* read CLIDR into R0 */
+
+		/* get the cache level value (Clidr::Loc) */
+		READ_CLIDR(r0)
 		"ands r3, r0, #0x7000000\n"
-		"mov r3, r3, lsr #23\n"        /* cache level value (naturally aligned) */
+		"mov r3, r3, lsr #23\n"
+
+		/* skip all if cache level value is zero */
 		"beq 5f\n"
 		"mov r9, #0\n"
 
+		/* begin loop over cache numbers */
 		"1:\n"
-		"add r2, r9, r9, lsr #1\n"     /* work out 3 x cachelevel */
-		"mov r1, r0, lsr r2\n"         /* bottom 3 bits are the Cache type for this level */
-		"and r1, r1, #7\n"             /* get those 3 bits alone */
+
+		/* work out 3 x cache level */
+		"add r2, r9, r9, lsr #1\n"
+
+		/* get the cache type of current cache number (Clidr::CtypeX) */
+		"mov r1, r0, lsr r2\n"
+		"and r1, r1, #7\n"
 		"cmp r1, #2\n"
-		"blt 4f\n"                     /* no cache or only instruction cache at this level */
-		"mcr p15, 2, r9, c0, c0, 0\n"  /* write CSSELR from R9 */
-		"isb\n"                        /* ISB to sync the change to the CCSIDR */
-		"mrc p15, 1, r1, c0, c0, 0\n"  /* read current CCSIDR to R1 */
-		"and r2, r1, #0x7\n"           /* extract the line length field */
-		"add r2, r2, #4\n"             /* add 4 for the line length offset (log2 16 bytes) */
+
+		/* skip cache number if there's no data cache at this level */
+		"blt 4f\n"
+
+		/* select the appropriate CCSIDR according to cache level and type */
+		WRITE_CSSELR(r9)
+		"isb\n"
+
+		/* get the line length of current cache (Ccsidr::LineSize) */
+		READ_CCSIDR(r1)
+		"and r2, r1, #0x7\n"
+
+		/* add 4 for the line-length offset (log2 of 16 bytes) */
+		"add r2, r2, #4\n"
+
+		/* get the associativity or max way size (Ccsidr::Associativity) */
 		"ldr r4, =0x3ff\n"
-		"ands r4, r4, r1, lsr #3\n"    /* R4 is the max number on the way size (right aligned) */
-		"clz r5, r4\n"                 /* R5 is the bit position of the way size increment */
-		"mov r8, r4\n"                 /* R8 working copy of the max way size (right aligned) */
+		"ands r4, r4, r1, lsr #3\n"
 
+		/* get the bit position of the way-size increment */
+		"clz r5, r4\n"
+
+		/* get a working copy of the max way size */
+		"mov r8, r4\n"
+
+		/* begin loop over way numbers */
 		"2:\n"
-		"ldr r7, =0x00007fff\n"
-		"ands r7, r7, r1, lsr #13\n"   /* R7 is the max number of the index size (right aligned) */
 
+		/* get the number of sets or the max index size (Ccsidr::NumSets) */
+		"ldr r7, =0x00007fff\n"
+		"ands r7, r7, r1, lsr #13\n"
+
+		/* begin loop over indices */
 		"3:\n"
-		"orr r6, r9, r8, lsl r5\n"     /* factor in the way number and cache number into R11 */
-		"orr r6, r6, r7, lsl r2\n"     /* factor in the index number */
-		"mcr p15, 0, r6, c7, c10, 2\n" /* DCCSW, clean by set/way */
-		"subs r7, r7, #1\n"            /* decrement the index */
+
+		/* factor in the way number and cache number into write value */
+		"orr r6, r9, r8, lsl r5\n"
+
+		/* factor in the index number into write value */
+		"orr r6, r6, r7, lsl r2\n"
+
+		/* invalidate data cache by set/way */
+		WRITE_DCCSW(r6)
+
+		/* decrement the index */
+		"subs r7, r7, #1\n"
+
+		/* end loop over indices */
 		"bge 3b\n"
-		"subs r8, r8, #1\n"            /* decrement the way number */
+
+		/* decrement the way number */
+		"subs r8, r8, #1\n"
+
+		/* end loop over way numbers */
 		"bge 2b\n"
 
+		/* label to skip a cache number */
 		"4:\n"
-		"add r9, r9, #2\n"             /* increment the cache number */
+
+		/* increment the cache number */
+		"add r9, r9, #2\n"
 		"cmp r3, r9\n"
+
+		/* end loop over cache numbers */
 		"bgt 1b\n"
+
+		/* synchronize data */
 		"dsb\n"
 
+		/* label to skip all */
 		"5:\n"
 		::: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9");
 }
