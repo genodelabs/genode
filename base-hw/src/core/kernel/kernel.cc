@@ -199,7 +199,7 @@ extern "C" void init_kernel_multiprocessor()
 	 ***********************************************************************/
 
 	/* synchronize data view of all processors */
-	Processor::flush_data_caches();
+	Processor::invalidate_data_caches();
 	Processor::invalidate_instruction_caches();
 	Processor::invalidate_control_flow_predictions();
 	Processor::data_synchronization_barrier();

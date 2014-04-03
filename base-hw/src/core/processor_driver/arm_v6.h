@@ -227,5 +227,11 @@ void Arm::Processor_driver::flush_data_caches()
 }
 
 
+void Arm::Processor_driver::invalidate_data_caches()
+{
+	asm volatile ("mcr p15, 0, %[rd], c7, c6, 0" :: [rd]"r"(0) : );
+}
+
+
 #endif /* _PROCESSOR_DRIVER__ARM_V6_H_ */
 
