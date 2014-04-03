@@ -73,14 +73,17 @@ void Thread_base::_thread_bootstrap()
 
 void Thread_base::_init_platform_thread(Type type)
 {
+	/* if no cpu session is given, use it from the environment */
+	if (!_cpu_session)
+		_cpu_session = env()->cpu_session();
+
 	/* nothing platform specific to do if this is not a special thread */
 	if (type == NORMAL)
 	{
 		/* create server object */
 		char buf[48];
 		name(buf, sizeof(buf));
-		Cpu_session * cpu = env()->cpu_session();
-		_thread_cap = cpu->create_thread(buf, (addr_t)&_context->utcb);
+		_thread_cap = _cpu_session->create_thread(buf, (addr_t)&_context->utcb);
 		return;
 	}
 

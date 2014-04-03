@@ -186,8 +186,10 @@ void Thread_base::free_secondary_stack(void* stack_addr)
 }
 
 
-Thread_base::Thread_base(const char *name, size_t stack_size, Type const type)
+Thread_base::Thread_base(const char *name, size_t stack_size, Type const type,
+                         Cpu_session *cpu_session)
 :
+	_cpu_session(cpu_session),
 	_context(type == REINITIALIZED_MAIN ?
 	                 _context : _alloc_context(stack_size, type == MAIN)),
 	_join_lock(Lock::LOCKED)
@@ -195,6 +197,10 @@ Thread_base::Thread_base(const char *name, size_t stack_size, Type const type)
 	strncpy(_context->name, name, sizeof(_context->name));
 	_init_platform_thread(type);
 }
+
+
+Thread_base::Thread_base(const char *name, size_t stack_size, Type type)
+: Thread_base(name, stack_size, type, nullptr) { }
 
 
 Thread_base::~Thread_base()

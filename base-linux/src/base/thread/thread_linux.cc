@@ -53,7 +53,7 @@ void Thread_base::_thread_start()
 	Thread_base * const thread = Thread_base::myself();
 
 	/* inform core about the new thread and process ID of the new thread */
-	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(env()->cpu_session());
+	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(thread->_cpu_session);
 	if (cpu)
 		cpu->thread_id(thread->cap(), thread->tid().pid, thread->tid().tid);
 
@@ -71,9 +71,13 @@ void Thread_base::_thread_start()
 
 void Thread_base::_init_platform_thread(Type type)
 {
+	/* if no cpu session is given, use it from the environment */
+	if (!_cpu_session)
+		_cpu_session = env()->cpu_session();
+
 	/* for normal threads create an object at the CPU session */
 	if (type == NORMAL) {
-		_thread_cap = env()->cpu_session()->create_thread(_context->name);
+		_thread_cap = _cpu_session->create_thread(_context->name);
 		return;
 	}
 	/* adjust initial object state for main threads */
@@ -109,7 +113,7 @@ void Thread_base::_deinit_platform_thread()
 	}
 
 	/* inform core about the killed thread */
-	env()->cpu_session()->kill_thread(_thread_cap);
+	_cpu_session->kill_thread(_thread_cap);
 }
 
 
@@ -141,5 +145,5 @@ void Thread_base::start()
 
 void Thread_base::cancel_blocking()
 {
-	env()->cpu_session()->cancel_blocking(_thread_cap);
+	_cpu_session->cancel_blocking(_thread_cap);
 }

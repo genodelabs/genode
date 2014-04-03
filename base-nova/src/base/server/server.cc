@@ -20,7 +20,6 @@
 
 /* NOVA includes */
 #include <nova/syscalls.h>
-#include <nova_cpu_session/connection.h>
 #include <nova/util.h>
 
 using namespace Genode;
@@ -206,7 +205,7 @@ Rpc_entrypoint::Rpc_entrypoint(Cap_session *cap_session, size_t stack_size,
 
 		/* place new thread on the specified CPU */
 		if (location.valid())
-			env()->cpu_session()->affinity(_thread_cap, location);
+			_cpu_session->affinity(_thread_cap, location);
 
 		/* magic value evaluated by thread_nova.cc to start a local thread */
 		_tid.ec_sel = Native_thread::INVALID_INDEX - 1;

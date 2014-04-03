@@ -64,7 +64,7 @@
 #include <util/bit_allocator.h>
 #include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
-
+#include <cpu_session/capability.h>   /* for 'Cpu_session_capability' type */
 
 namespace Genode {
 
@@ -285,6 +285,11 @@ namespace Genode {
 			Genode::Pager_capability  _pager_cap;
 
 			/**
+			 * Pointer to cpu session used for this thread
+			 */
+			Genode::Cpu_session *_cpu_session;
+
+			/**
 			 * Pointer to primary thread context
 			 */
 			Context *_context;
@@ -321,7 +326,7 @@ namespace Genode {
 			/**
 			 * Hook for platform-specific constructor supplements
 			 *
-			 * \param main_thread  wether this is the main thread
+			 * \param main_thread  whether this is the main thread
 			 */
 			void _init_platform_thread(Type type);
 
@@ -351,6 +356,21 @@ namespace Genode {
 			 */
 			Thread_base(const char *name, size_t stack_size,
 			            Type type = NORMAL);
+
+			/**
+			 * Constructor
+			 *
+			 * \param name        thread name for debugging
+			 * \param stack_size  stack size
+			 * \param type        enables selection of special construction
+			 * \param cpu_session capability to cpu session used for construction
+			 *
+			 * \throw Stack_too_large
+			 * \throw Stack_alloc_failed
+			 * \throw Context_alloc_failed
+			 */
+			Thread_base(const char *name, size_t stack_size, Type type,
+			            Cpu_session *);
 
 			/**
 			 * Destructor
@@ -498,6 +518,15 @@ namespace Genode {
 			 */
 			explicit Thread(const char *name, Type type = NORMAL)
 			: Thread_base(name, STACK_SIZE, type) { }
+
+			/**
+			 * Constructor
+			 *
+			 * \param name         thread name (for debugging)
+			 * \param cpu_session  thread created via specific cpu session
+			 */
+			explicit Thread(const char *name, Cpu_session * cpu_session)
+			: Thread_base(name, STACK_SIZE, Type::NORMAL, cpu_session) { }
 	};
 }
 

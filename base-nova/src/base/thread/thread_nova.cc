@@ -87,11 +87,15 @@ void Thread_base::_init_platform_thread(Type type)
 	if (_tid.exc_pt_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 
+	/* if no cpu session is given, use it from the environment */
+	if (!_cpu_session)
+		_cpu_session = env()->cpu_session();
+
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
 
-	_thread_cap = env()->cpu_session()->create_thread(buf);
+	_thread_cap = _cpu_session->create_thread(buf);
 	if (!_thread_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
@@ -121,7 +125,7 @@ void Thread_base::_deinit_platform_thread()
 
 	/* de-announce thread */
 	if (_thread_cap.valid())
-		env()->cpu_session()->kill_thread(_thread_cap);
+		_cpu_session->kill_thread(_thread_cap);
 
 	if (_pager_cap.valid())
 		env()->rm_session()->remove_client(_pager_cap);
@@ -146,7 +150,7 @@ void Thread_base::start()
 	if (!_pager_cap.valid())
 		throw Cpu_session::Thread_creation_failed();
 
-	if (env()->cpu_session()->set_pager(_thread_cap, _pager_cap))
+	if (_cpu_session->set_pager(_thread_cap, _pager_cap))
 		throw Cpu_session::Thread_creation_failed();
 
 	/* create EC at core */
@@ -157,10 +161,10 @@ void Thread_base::start()
 	/* local thread have no start instruction pointer - set via portal entry */
 	addr_t thread_ip = global ? reinterpret_cast<addr_t>(_thread_start) : 0;
 
-	try { env()->cpu_session()->state(_thread_cap, state); }
+	try { _cpu_session->state(_thread_cap, state); }
 	catch (...) { throw Cpu_session::Thread_creation_failed(); }
 
-	if (env()->cpu_session()->start(_thread_cap, thread_ip, _context->stack_top()))
+	if (_cpu_session->start(_thread_cap, thread_ip, _context->stack_top()))
 		throw Cpu_session::Thread_creation_failed();
 
 	/* request native EC thread cap */ 
@@ -184,7 +188,7 @@ void Thread_base::start()
 
 	if (global)
 		/* request creation of SC to let thread run*/
-		env()->cpu_session()->resume(_thread_cap);
+		_cpu_session->resume(_thread_cap);
 }
 
 

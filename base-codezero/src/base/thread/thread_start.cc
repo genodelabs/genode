@@ -41,32 +41,36 @@ void Thread_base::_thread_start()
 
 void Thread_base::_deinit_platform_thread()
 {
-	env()->cpu_session()->kill_thread(_thread_cap);
+	_cpu_session->kill_thread(_thread_cap);
 	env()->rm_session()->remove_client(_pager_cap);
 }
 
 
 void Thread_base::start()
 {
+	/* if no cpu session is given, use it from the environment */
+	if (!_cpu_session)
+		_cpu_session = env()->cpu_session();
+
 	/* create thread at core */
 	char buf[48];
 	name(buf, sizeof(buf));
-	_thread_cap = env()->cpu_session()->create_thread(buf);
+	_thread_cap = _cpu_session->create_thread(buf);
 
 	/* assign thread to protection domain */
 	env()->pd_session()->bind_thread(_thread_cap);
 
 	/* create new pager object and assign it to the new thread */
 	_pager_cap = env()->rm_session()->add_client(_thread_cap);
-	env()->cpu_session()->set_pager(_thread_cap, _pager_cap);
+	_cpu_session->set_pager(_thread_cap, _pager_cap);
 
 	/* register initial IP and SP at core */
-	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
+	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
 }
 
 
 void Thread_base::cancel_blocking()
 {
 	Codezero::l4_mutex_unlock(utcb()->running_lock());
-	env()->cpu_session()->cancel_blocking(_thread_cap);
+	_cpu_session->cancel_blocking(_thread_cap);
 }

@@ -40,3 +40,4 @@ xml_generator
 blk_cache
 rump_ext2
 virtualbox_auto_disk
+thread

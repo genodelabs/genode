@@ -52,7 +52,7 @@ void Thread_base::_deinit_platform_thread()
 	env_context_area_rm_session()->detach(utcb);
 
 	/* destroy server object */
-	env()->cpu_session()->kill_thread(_thread_cap);
+	_cpu_session->kill_thread(_thread_cap);
 	if (_pager_cap.valid()) {
 		env()->rm_session()->remove_client(_pager_cap);
 	}
@@ -66,11 +66,11 @@ void Thread_base::start()
 
 	/* create pager object and assign it to the thread */
 	_pager_cap = env()->rm_session()->add_client(_thread_cap);
-	env()->cpu_session()->set_pager(_thread_cap, _pager_cap);
+	_cpu_session->set_pager(_thread_cap, _pager_cap);
 
 	/* attach userland thread-context */
 	try {
-		Ram_dataspace_capability ds = env()->cpu_session()->utcb(_thread_cap);
+		Ram_dataspace_capability ds = _cpu_session->utcb(_thread_cap);
 		size_t const size = sizeof(_context->utcb);
 		addr_t dst = Context_allocator::addr_to_base(_context) +
 		             Native_config::context_virtual_size() - size -
@@ -81,11 +81,11 @@ void Thread_base::start()
 		sleep_forever();
 	}
 	/* start thread with its initial IP and aligned SP */
-	env()->cpu_session()->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
+	_cpu_session->start(_thread_cap, (addr_t)_thread_start, _context->stack_top());
 }
 
 
 void Thread_base::cancel_blocking()
 {
-	env()->cpu_session()->cancel_blocking(_thread_cap);
+	_cpu_session->cancel_blocking(_thread_cap);
 }

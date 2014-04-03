@@ -7,6 +7,7 @@ install_config {
 		<parent-provides>
 			<service name="LOG"/>
 			<service name="RM"/>
+			<service name="CPU"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> </any-service>
@@ -21,6 +22,6 @@ build_boot_image "core init test-thread"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until "child exited with exit value 0.*\n" 10
+run_genode_until "child exited with exit value 0.*\n" 20
 
 puts "Test succeeded"

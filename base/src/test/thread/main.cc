@@ -15,6 +15,8 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <base/thread.h>
+#include <base/env.h>
+#include <cpu_session/connection.h>
 
 
 using namespace Genode;
@@ -149,12 +151,45 @@ static void test_main_thread()
 }
 
 
+/******************************************
+ ** Using cpu-session for thread creation *
+ ******************************************/
+
+struct Cpu_helper : Thread<0x1000>
+{
+	Cpu_helper(const char * name, Cpu_session * cpu)
+	: Thread<0x1000>(name, cpu) { }
+
+	void entry()
+	{
+		printf("%s : _cpu_session=0x%p env()->cpu_session()=0x%p\n", _context->name, _cpu_session, env()->cpu_session());
+	}
+};
+
+static void test_cpu_session()
+{
+	Cpu_helper thread0("prio high  ", env()->cpu_session());
+	thread0.start();
+	thread0.join();
+
+	Cpu_connection con1("prio middle", Cpu_session::PRIORITY_LIMIT / 4);
+	Cpu_helper thread1("prio middle", &con1);
+	thread1.start();
+	thread1.join();
+
+	Cpu_connection con2("prio low", Cpu_session::PRIORITY_LIMIT / 2);
+	Cpu_helper thread2("prio low   ", &con2);
+	thread2.start();
+	thread2.join();
+}
+
 int main()
 {
 	try {
 		test_context_alloc();
 		test_stack_alignment();
 		test_main_thread();
+		test_cpu_session();
 	} catch (int error) {
 		return error;
 	}

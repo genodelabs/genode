@@ -26,6 +26,7 @@ using namespace Genode;
  * This function is provided by the process environment.
  */
 namespace Genode {
+
 	Rm_session  *env_context_area_rm_session();
 	Ram_session *env_context_area_ram_session();
 }
@@ -108,7 +109,7 @@ Thread_base::_alloc_context(size_t stack_size, bool main_thread)
 		ds_cap = env_context_area_ram_session()->alloc(ds_size);
 		addr_t attach_addr = ds_addr - Native_config::context_area_virtual_base();
 		if (attach_addr != (addr_t)env_context_area_rm_session()->attach_at(ds_cap, attach_addr, ds_size))
-			throw Stack_alloc_failed(); 
+			throw Stack_alloc_failed();
 	}
 	catch (Ram_session::Alloc_failed) { throw Stack_alloc_failed(); }
 
@@ -172,10 +173,7 @@ Thread_base *Thread_base::myself()
 }
 
 
-void Thread_base::join()
-{
-	_join_lock.lock();
-}
+void Thread_base::join() { _join_lock.lock(); }
 
 
 void* Thread_base::alloc_secondary_stack(char const *name, size_t stack_size)
@@ -193,15 +191,21 @@ void Thread_base::free_secondary_stack(void* stack_addr)
 }
 
 
-Thread_base::Thread_base(const char *name, size_t stack_size, Type type)
+Thread_base::Thread_base(const char *name, size_t stack_size, Type type,
+                         Cpu_session *cpu_session)
 :
+	_cpu_session(cpu_session),
 	_context(type == REINITIALIZED_MAIN ?
-	                 _context : _alloc_context(stack_size, type == MAIN)),
+	         _context : _alloc_context(stack_size, type == MAIN)),
 	_join_lock(Lock::LOCKED)
 {
 	strncpy(_context->name, name, sizeof(_context->name));
 	_init_platform_thread(type);
 }
+
+
+Thread_base::Thread_base(const char *name, size_t stack_size, Type type)
+: Thread_base(name, stack_size, type, nullptr) { }
 
 
 Thread_base::~Thread_base()

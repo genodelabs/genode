@@ -276,9 +276,9 @@ namespace Genode {
 /**
  * Return Linux-specific extension of the Env::CPU session interface
  */
-Linux_cpu_session *cpu_session()
+Linux_cpu_session *cpu_session(Cpu_session * cpu_session)
 {
-	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(env()->cpu_session());
+	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(cpu_session);
 
 	if (!cpu) {
 		PERR("could not obtain Linux extension to CPU session interface");
@@ -401,7 +401,9 @@ void Thread_base::join()
 }
 
 
-Thread_base::Thread_base(const char *name, size_t stack_size, Type)
+Thread_base::Thread_base(const char *name, size_t stack_size, Type type,
+                         Cpu_session * cpu_sess)
+: _cpu_session(cpu_sess)
 {
 	_tid.meta_data = new (env()->heap()) Thread_meta_data_created(this);
 
@@ -416,18 +418,15 @@ Thread_base::Thread_base(const char *name, size_t stack_size, Type)
 
 	_tid.meta_data->wait_for_construction();
 
-	Linux_cpu_session *cpu = dynamic_cast<Linux_cpu_session *>(env()->cpu_session());
+	Linux_cpu_session *cpu = cpu_session(_cpu_session);
 
-	if (!cpu) {
-		PERR("could not obtain Linux extension to CPU session interface");
-		struct Could_not_access_linux_cpu_session { };
-		throw Could_not_access_linux_cpu_session();
-	}
-
-	_thread_cap = cpu_session()->create_thread(name);
-	cpu_session()->thread_id(_thread_cap, _tid.pid, _tid.tid);
+	_thread_cap = cpu->create_thread(name);
+	cpu->thread_id(_thread_cap, _tid.pid, _tid.tid);
 }
 
+
+Thread_base::Thread_base(const char *name, size_t stack_size, Type type)
+: Thread_base(name, stack_size, type, env()->cpu_session()) { }
 
 void Thread_base::cancel_blocking()
 {
@@ -457,5 +456,5 @@ Thread_base::~Thread_base()
 	_tid.meta_data = 0;
 
 	/* inform core about the killed thread */
-	cpu_session()->kill_thread(_thread_cap);
+	cpu_session(_cpu_session)->kill_thread(_thread_cap);
 }
