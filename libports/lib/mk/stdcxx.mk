@@ -32,6 +32,7 @@ SRC_CC  += new_op.cc new_opnt.cc new_opv.cc new_opvnt.cc new_handler.cc
 SRC_CC  += del_op.cc del_opnt.cc del_opv.cc del_opvnt.cc
 SRC_CC  += bad_cast.cc bad_alloc.cc bad_typeid.cc
 SRC_CC  += eh_aux_runtime.cc hash_bytes.cc
+SRC_CC  += tinfo.cc
 INC_DIR += $(STDCXX_DIR)/libsupc++
 
 include $(REP_DIR)/lib/import/import-stdcxx.mk
