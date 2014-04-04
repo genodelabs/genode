@@ -281,6 +281,21 @@ namespace Arm
 		};
 
 		/**
+		 * Instruction Cache Invalidate by MVA to PoU
+		 */
+		struct Icimvau : Register<32>
+		{
+			/**
+			 * Write register value
+			 */
+			static void write(access_t const v)
+			{
+				asm volatile (
+					"mcr p15, 0, %[v], c7, c5, 1\n" :: [v] "r" (v) : );
+			}
+		};
+
+		/**
 		 * Data Cache Clean by MVA to PoC
 		 */
 		struct Dccmvac : Register<32>
@@ -667,6 +682,21 @@ namespace Arm
 			addr_t const top = base + size;
 			base = base & LINE_ALIGNM_MASK;
 			for (; base < top; base += LINE_SIZE) { Dccmvac::write(base); }
+		}
+
+		/**
+		 * Invalidate every instruction-cache entry within a virtual region
+		 */
+		static void
+		invalidate_instr_caches_by_virt_region(addr_t base, size_t const size)
+		{
+			enum {
+				LINE_SIZE        = 1 << Board::CACHE_LINE_SIZE_LOG2,
+				LINE_ALIGNM_MASK = ~(LINE_SIZE - 1),
+			};
+			addr_t const top = base + size;
+			base = base & LINE_ALIGNM_MASK;
+			for (; base < top; base += LINE_SIZE) { Icimvau::write(base); }
 		}
 	};
 }
