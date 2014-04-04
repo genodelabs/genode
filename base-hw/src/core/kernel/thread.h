@@ -280,8 +280,10 @@ class Kernel::Thread
 		 ** Ipc_node **
 		 **************/
 
-		void _await_ipc_succeeded();
-		void _await_ipc_failed();
+		void _send_request_succeeded();
+		void _send_request_failed();
+		void _await_request_succeeded();
+		void _await_request_failed();
 
 	public:
 

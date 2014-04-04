@@ -104,7 +104,7 @@ class Kernel::Ipc_node
 			/* update state */
 			if (_state != PREPARE_AND_AWAIT_REPLY) { _state = INACTIVE; }
 			else { _state = PREPARE_REPLY; }
-			_await_ipc_succeeded();
+			_send_request_succeeded();
 		}
 
 		/**
@@ -115,7 +115,7 @@ class Kernel::Ipc_node
 			/* directly receive request if we've awaited it */
 			if (_state == AWAIT_REQUEST) {
 				_receive_request(r);
-				_await_ipc_succeeded();
+				_await_request_succeeded();
 				return;
 			}
 			/* cannot receive yet, so queue request */
@@ -177,19 +177,29 @@ class Kernel::Ipc_node
 				_outbuf_dst = 0;
 				if (!_inbuf.src) { _state = INACTIVE; }
 				else { _state = PREPARE_REPLY; }
-				_await_ipc_failed();
+				_send_request_failed();
 			}
 		}
 
 		/**
-		 * IPC node returned from waiting due to message receipt
+		 * IPC node returned from waiting due to reply receipt
 		 */
-		virtual void _await_ipc_succeeded() = 0;
+		virtual void _send_request_succeeded() = 0;
 
 		/**
-		 * IPC node returned from waiting due to cancellation
+		 * IPC node returned from waiting due to reply cancellation
 		 */
-		virtual void _await_ipc_failed() = 0;
+		virtual void _send_request_failed() = 0;
+
+		/**
+		 * IPC node returned from waiting due to request receipt
+		 */
+		virtual void _await_request_succeeded() = 0;
+
+		/**
+		 * IPC node returned from waiting due to request cancellation
+		 */
+		virtual void _await_request_failed() = 0;
 
 	protected:
 
@@ -312,16 +322,16 @@ class Kernel::Ipc_node
 			case AWAIT_REPLY:
 				_cancel_outbuf_request();
 				_state = INACTIVE;
-				_await_ipc_failed();
+				_send_request_failed();
 				return;
 			case AWAIT_REQUEST:
 				_state = INACTIVE;
-				_await_ipc_failed();
+				_await_request_failed();
 				return;
 			case PREPARE_AND_AWAIT_REPLY:
 				_cancel_outbuf_request();
 				_state = PREPARE_REPLY;
-				_await_ipc_failed();
+				_send_request_failed();
 				return;
 			default: return;
 			}

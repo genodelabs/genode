@@ -71,33 +71,35 @@ void Thread::_receive_signal(void * const base, size_t const size)
 }
 
 
-void Thread::_await_ipc_succeeded()
+void Thread::_send_request_succeeded()
 {
-	switch (_state) {
-	case AWAITS_IPC:
-		user_arg_0(0);
-		_schedule();
-		return;
-	default:
-		PWRN("wrong thread state to receive IPC");
-		_stop();
-		return;
-	}
+	assert(_state == AWAITS_IPC);
+	user_arg_0(0);
+	_schedule();
 }
 
 
-void Thread::_await_ipc_failed()
+void Thread::_send_request_failed()
 {
-	switch (_state) {
-	case AWAITS_IPC:
-		user_arg_0(-1);
-		_schedule();
-		return;
-	default:
-		PWRN("wrong thread state to cancel IPC");
-		_stop();
-		return;
-	}
+	assert(_state == AWAITS_IPC);
+	user_arg_0(-1);
+	_schedule();
+}
+
+
+void Thread::_await_request_succeeded()
+{
+	assert(_state == AWAITS_IPC);
+	user_arg_0(0);
+	_schedule();
+}
+
+
+void Thread::_await_request_failed()
+{
+	assert(_state == AWAITS_IPC);
+	user_arg_0(-1);
+	_schedule();
 }
 
 
