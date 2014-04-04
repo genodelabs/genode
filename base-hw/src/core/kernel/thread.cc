@@ -544,8 +544,8 @@ void Thread::_call_update_pd()
 void Thread::_call_update_region()
 {
 	/* flush hardware caches */
-	Processor::flush_data_cache_by_virt_region((addr_t)user_arg_1(),
-	                                           (size_t)user_arg_2());
+	Processor::flush_data_caches_by_virt_region((addr_t)user_arg_1(),
+	                                            (size_t)user_arg_2());
 }
 
 

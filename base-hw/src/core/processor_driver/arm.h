@@ -281,6 +281,21 @@ namespace Arm
 		};
 
 		/**
+		 * Data Cache Clean by MVA to PoC
+		 */
+		struct Dccmvac : Register<32>
+		{
+			/**
+			 * Write register value
+			 */
+			static void write(access_t const v)
+			{
+				asm volatile (
+					"mcr p15, 0, %[v], c7, c10, 1\n" :: [v] "r" (v) : );
+			}
+		};
+
+		/**
 		 * Context identification register
 		 */
 		struct Cidr : Register<32>
@@ -639,20 +654,19 @@ namespace Arm
 			flush_caches();
 		}
 
-		/*
-		 * Clean every data-cache entry within a region via MVA
+		/**
+		 * Clean every data-cache entry within a virtual region
 		 */
-		static void flush_data_cache_by_virt_region(addr_t base, size_t const size)
+		static void
+		flush_data_caches_by_virt_region(addr_t base, size_t const size)
 		{
 			enum {
-				CACHE_LINE_SIZE        = 1 << Board::CACHE_LINE_SIZE_LOG2,
-				CACHE_LINE_ALIGNM_MASK = ~(CACHE_LINE_SIZE - 1),
+				LINE_SIZE        = 1 << Board::CACHE_LINE_SIZE_LOG2,
+				LINE_ALIGNM_MASK = ~(LINE_SIZE - 1),
 			};
 			addr_t const top = base + size;
-			base = base & CACHE_LINE_ALIGNM_MASK;
-			for (; base < top; base += CACHE_LINE_SIZE)
-				asm volatile ("mcr p15, 0, %[base], c7, c10, 1\n" /* DCCMVAC */
-				              :: [base] "r" (base) : );
+			base = base & LINE_ALIGNM_MASK;
+			for (; base < top; base += LINE_SIZE) { Dccmvac::write(base); }
 		}
 	};
 }
