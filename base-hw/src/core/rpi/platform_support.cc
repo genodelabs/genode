@@ -15,39 +15,8 @@
 #include <platform.h>
 #include <board.h>
 #include <processor_driver.h>
-#include <kernel/irq.h>
 
 using namespace Genode;
-
-namespace Kernel { void init_platform(); }
-
-/**
- * Interrupts that core shall provide to users
- */
-static unsigned irq_ids[] =
-{
-	Board::TIMER_IRQ,
-	Board::DWC_IRQ
-};
-
-enum { IRQ_IDS_SIZE = sizeof(irq_ids)/sizeof(irq_ids[0]) };
-
-
-void Kernel::init_platform()
-{
-	/* make user IRQs become known by cores IRQ session backend and kernel */
-	static uint8_t _irqs[IRQ_IDS_SIZE][sizeof(Irq)];
-	for (unsigned i = 0; i < IRQ_IDS_SIZE; i++) {
-		new (_irqs[i]) Irq(irq_ids[i]);
-	}
-}
-
-
-unsigned * Platform::_irq(unsigned const i)
-{
-	return i < IRQ_IDS_SIZE ? &irq_ids[i] : 0;
-}
-
 
 Native_region * Platform::_ram_regions(unsigned const i)
 {

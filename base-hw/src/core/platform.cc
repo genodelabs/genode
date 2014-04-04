@@ -19,6 +19,7 @@
 /* core includes */
 #include <core_parent.h>
 #include <platform.h>
+#include <pic.h>
 #include <util.h>
 
 using namespace Genode;
@@ -120,11 +121,8 @@ Platform::Platform()
 	init_alloc(&_core_mem_alloc, _ram_regions, _core_only_ram_regions, psl2);
 
 	/* make interrupts available to the interrupt allocator */
-	for (unsigned i = 0; ; i++) {
-		unsigned * const irq = _irq(i);
-		if (!irq) { break; }
-		_irq_alloc.add_range(*irq, 1);
-	}
+	for (unsigned i = 0; i < Kernel::Pic::MAX_INTERRUPT_ID; i++)
+		_irq_alloc.add_range(i, 1);
 
 	/*
 	 * Use byte granuarity for MMIO regions because on some platforms, devices

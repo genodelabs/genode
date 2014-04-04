@@ -16,54 +16,8 @@
 #include <board.h>
 #include <pic.h>
 #include <processor_driver.h>
-#include <kernel/irq.h>
 
 using namespace Genode;
-
-namespace Kernel { void init_platform(); }
-
-/**
- * Interrupts that core shall provide to users
- */
-static unsigned irq_ids[] =
-{
-	Board::EPIT_2_IRQ,
-	Board::GPIO1_IRQL,
-	Board::GPIO1_IRQH,
-	Board::GPIO2_IRQL,
-	Board::GPIO2_IRQH,
-	Board::GPIO3_IRQL,
-	Board::GPIO3_IRQH,
-	Board::GPIO4_IRQL,
-	Board::GPIO4_IRQH,
-	Board::GPIO5_IRQL,
-	Board::GPIO5_IRQH,
-	Board::GPIO6_IRQL,
-	Board::GPIO6_IRQH,
-	Board::GPIO7_IRQL,
-	Board::GPIO7_IRQH,
-	Board::I2C_2_IRQ,
-	Board::I2C_3_IRQ
-};
-
-enum { IRQ_IDS_SIZE = sizeof(irq_ids)/sizeof(irq_ids[0]) };
-
-
-void Kernel::init_platform()
-{
-	/* make user IRQs become known by cores IRQ session backend and kernel */
-	static uint8_t _irqs[IRQ_IDS_SIZE][sizeof(Irq)];
-	for (unsigned i = 0; i < IRQ_IDS_SIZE; i++) {
-		new (_irqs[i]) Irq(irq_ids[i]);
-	}
-}
-
-
-unsigned * Platform::_irq(unsigned const i)
-{
-	return i < IRQ_IDS_SIZE ? &irq_ids[i] : 0;
-}
-
 
 Native_region * Platform::_ram_regions(unsigned const i)
 {

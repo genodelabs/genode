@@ -34,6 +34,7 @@
 #include <unmanaged_singleton.h>
 
 /* base-hw includes */
+#include <kernel/irq.h>
 #include <kernel/perf_counter.h>
 
 using namespace Kernel;
@@ -55,8 +56,6 @@ namespace Kernel
 	typedef Genode::umword_t       umword_t;
 	typedef Genode::Core_tlb       Core_tlb;
 	typedef Genode::Core_thread_id Core_thread_id;
-
-	void init_platform();
 }
 
 namespace Kernel
@@ -120,6 +119,20 @@ namespace Kernel
 	 * Get core attributes
 	 */
 	unsigned core_id() { return core()->id(); }
+
+	/**
+	 * Return wether an interrupt is private to the kernel
+	 *
+	 * \param interrupt_id  kernel name of the targeted interrupt
+	 */
+	bool private_interrupt(unsigned const interrupt_id)
+	{
+		bool ret = 0;
+		for (unsigned i = 0; i < PROCESSORS; i++) {
+			ret |= interrupt_id == Timer::interrupt_id(i);
+		}
+		return ret;
+	}
 }
 
 
@@ -264,8 +277,13 @@ extern "C" void init_kernel_multiprocessor()
 		t.sp = (addr_t)s + STACK_SIZE;
 		t.init(processor_pool()->processor(processor_id), core(), &utcb, 1);
 
+		/* initialize interrupt objects */
+		static Genode::uint8_t _irqs[Pic::MAX_INTERRUPT_ID * sizeof(Irq)];
+		for (unsigned i = 0; i < Pic::MAX_INTERRUPT_ID; i++) {
+			if (private_interrupt(i)) { continue; }
+			new (&_irqs[i * sizeof(Irq)]) Irq(i);
+		}
 		/* kernel initialization finished */
-		init_platform();
 		Genode::printf("kernel initialized\n");
 	}
 	reset_scheduling_time(processor_id);
