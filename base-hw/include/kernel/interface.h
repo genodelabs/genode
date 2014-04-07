@@ -48,6 +48,7 @@ namespace Kernel
 	constexpr Call_arg call_id_ack_signal()           { return 10; }
 	constexpr Call_arg call_id_print_char()           { return 11; }
 	constexpr Call_arg call_id_update_data_region()   { return 12; }
+	constexpr Call_arg call_id_update_instr_region()  { return 13; }
 
 
 	/*****************************************************************
@@ -130,6 +131,17 @@ namespace Kernel
 	inline void update_data_region(addr_t const base, size_t const size)
 	{
 		call(call_id_update_data_region(), (Call_arg)base, (Call_arg)size);
+	}
+
+	/**
+	 * Globally apply writes to an instruction region in the current domain
+	 *
+	 * \param base  base of the region within the current domain
+	 * \param size  size of the region
+	 */
+	inline void update_instr_region(addr_t const base, size_t const size)
+	{
+		call(call_id_update_instr_region(), (Call_arg)base, (Call_arg)size);
 	}
 
 	/**

@@ -549,6 +549,15 @@ void Thread::_call_update_data_region()
 }
 
 
+void Thread::_call_update_instr_region()
+{
+	auto base = (addr_t)user_arg_1();
+	auto const size = (size_t)user_arg_2();
+	Processor::flush_data_caches_by_virt_region(base, size);
+	Processor::invalidate_instr_caches_by_virt_region(base, size);
+}
+
+
 void Thread::_print_activity_table()
 {
 	for (unsigned id = 0; id < MAX_THREADS; id++) {
@@ -856,6 +865,7 @@ void Thread::_call()
 	unsigned const call_id = user_arg_0();
 	switch (call_id) {
 	case call_id_update_data_region():   _call_update_data_region(); return;
+	case call_id_update_instr_region():  _call_update_instr_region(); return;
 	case call_id_pause_current_thread(): _call_pause_current_thread(); return;
 	case call_id_resume_local_thread():  _call_resume_local_thread(); return;
 	case call_id_yield_thread():         _call_yield_thread(); return;

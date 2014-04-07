@@ -242,6 +242,7 @@ class Kernel::Thread
 		void _call_send_reply_msg();
 		void _call_update_pd();
 		void _call_update_data_region();
+		void _call_update_instr_region();
 		void _call_print_char();
 		void _call_new_signal_receiver();
 		void _call_new_signal_context();
