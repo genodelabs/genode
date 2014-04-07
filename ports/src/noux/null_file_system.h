@@ -44,7 +44,7 @@ namespace Noux {
 
 		public:
 
-			Null_file_system() { }
+			Null_file_system(Xml_node) { }
 
 
 			/*********************************
@@ -162,7 +162,7 @@ namespace Noux {
 			 ** File_system interface **
 			 ***************************/
 
-			char const *name() const { return "null"; }
+			static char const *name() { return "null"; }
 
 
 			/********************************

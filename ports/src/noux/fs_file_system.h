@@ -574,7 +574,7 @@ namespace Noux {
 			 ** File_system interface **
 			 ***************************/
 
-			char const *name() const { return "fs"; }
+			static char const *name() { return "fs"; }
 
 			void sync()
 			{

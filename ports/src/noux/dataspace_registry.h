@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
+#include <dataspace/client.h>
 
 namespace Noux {
 

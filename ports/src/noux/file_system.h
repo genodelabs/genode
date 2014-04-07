@@ -37,13 +37,6 @@ namespace Noux {
 		File_system() : next(0) { }
 
 		/**
-		 * Return name of file system
-		 *
-		 * This function is used for debugging only.
-		 */
-		virtual char const *name() const = 0;
-
-		/**
 		 * Synchronize file system
 		 *
 		 * This function is only used by a Fs_file_system because such a

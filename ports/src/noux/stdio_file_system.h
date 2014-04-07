@@ -179,7 +179,7 @@ namespace Noux {
 			 ** File_system interface **
 			 ***************************/
 
-			char const *name() const { return "stdio"; }
+			static char const *name() { return "stdio"; }
 
 
 			/********************************

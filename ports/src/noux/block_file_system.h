@@ -271,7 +271,7 @@ namespace Noux {
 			 ** File_system interface **
 			 ***************************/
 
-			char const *name() const { return "block"; }
+			static char const *name() { return "block"; }
 
 
 			/********************************

@@ -30,6 +30,17 @@
 #include <io_receptor_registry.h>
 #include <destruct_queue.h>
 #include <kill_broadcaster.h>
+#include <file_system_registry.h>
+
+/* supported file systems */
+#include <tar_file_system.h>
+#include <fs_file_system.h>
+#include <terminal_file_system.h>
+#include <null_file_system.h>
+#include <zero_file_system.h>
+#include <stdio_file_system.h>
+#include <random_file_system.h>
+#include <block_file_system.h>
 
 
 static const bool verbose_quota  = false;
@@ -993,6 +1004,23 @@ void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
 
 
+template <typename FILE_SYSTEM>
+struct File_system_factory : Noux::File_system_registry::Entry
+{
+	Noux::File_system *create(Genode::Xml_node node) override
+	{
+		return new FILE_SYSTEM(node);
+	}
+
+	bool matches(Genode::Xml_node node) override
+	{
+		char buf[100];
+		node.type_name(buf, sizeof(buf));
+		return node.has_type(FILE_SYSTEM::name());
+	}
+};
+
+
 int main(int argc, char **argv)
 {
 	using namespace Noux;
@@ -1017,9 +1045,20 @@ int main(int argc, char **argv)
 		verbose = config()->xml_node().attribute("verbose").has_value("yes");
 	} catch (Xml_node::Nonexistent_attribute) { }
 
+	/* register file systems */
+	static File_system_registry fs_registry;
+	fs_registry.insert(*new File_system_factory<Tar_file_system>());
+	fs_registry.insert(*new File_system_factory<Fs_file_system>());
+	fs_registry.insert(*new File_system_factory<Terminal_file_system>());
+	fs_registry.insert(*new File_system_factory<Null_file_system>());
+	fs_registry.insert(*new File_system_factory<Zero_file_system>());
+	fs_registry.insert(*new File_system_factory<Stdio_file_system>());
+	fs_registry.insert(*new File_system_factory<Random_file_system>());
+	fs_registry.insert(*new File_system_factory<Block_file_system>());
+
 	/* initialize virtual file system */
 	static Dir_file_system
-		root_dir(config()->xml_node().sub_node("fstab"));
+		root_dir(config()->xml_node().sub_node("fstab"), fs_registry);
 
 	/* set user information */
 	try {

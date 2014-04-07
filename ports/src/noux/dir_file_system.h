@@ -20,14 +20,8 @@
 
 /* Noux includes */
 #include <noux_session/sysio.h>
-#include <tar_file_system.h>
-#include <fs_file_system.h>
-#include <terminal_file_system.h>
-#include <null_file_system.h>
-#include <zero_file_system.h>
-#include <stdio_file_system.h>
-#include <random_file_system.h>
-#include <block_file_system.h>
+#include <file_system_registry.h>
+#include <vfs_handle.h>
 
 
 namespace Noux {
@@ -69,7 +63,9 @@ namespace Noux {
 
 		public:
 
-			Dir_file_system(Xml_node node) : _first_file_system(0)
+			Dir_file_system(Xml_node node, File_system_registry &fs_registry)
+			:
+				_first_file_system(0)
 			{
 				/* remember directory name */
 				if (node.has_type("fstab"))
@@ -81,59 +77,22 @@ namespace Noux {
 
 					Xml_node sub_node = node.sub_node(i);
 
-					if (sub_node.has_type("tar")) {
-						_append_file_system(new Tar_file_system(sub_node));
-						continue;
-					}
-
-					if (sub_node.has_type("fs")) {
-						_append_file_system(new Fs_file_system(sub_node));
-						continue;
-					}
-
 					/* traverse into <dir> nodes */
 					if (sub_node.has_type("dir")) {
-						_append_file_system(new Dir_file_system(sub_node));
+						_append_file_system(new Dir_file_system(sub_node,
+						                                        fs_registry));
 						continue;
 					}
 
-					if (sub_node.has_type("terminal")) {
-						_append_file_system(new Terminal_file_system(sub_node));
+					File_system_registry::Entry *fs = fs_registry.lookup(sub_node);
+					if (fs) {
+						_append_file_system(fs->create(sub_node));
 						continue;
 					}
 
-					if (sub_node.has_type("null")) {
-						_append_file_system(new Null_file_system());
-
-						continue;
-					}
-
-					if (sub_node.has_type("zero")) {
-						_append_file_system(new Zero_file_system());
-
-						continue;
-					}
-
-					if (sub_node.has_type("stdio")) {
-						_append_file_system(new Stdio_file_system(sub_node));
-						continue;
-					}
-
-					if (sub_node.has_type("random")) {
-						_append_file_system(new Random_file_system(0, 0));
-						continue;
-					}
-
-					if (sub_node.has_type("block")) {
-						_append_file_system(new Block_file_system(sub_node));
-						continue;
-					}
-
-					{
-						char type_name[64];
-						sub_node.type_name(type_name, sizeof(type_name));
-						PWRN("unknown fstab node type <%s>", type_name);
-					}
+					char type_name[64];
+					sub_node.type_name(type_name, sizeof(type_name));
+					PWRN("unknown fstab node type <%s>", type_name);
 				}
 			}
 
@@ -660,26 +619,11 @@ namespace Noux {
 
 			/**
 			 * Synchronize all file systems
-			 *
-			 * Only file system using the File_system_session interface are
-			 * synchronized.
 			 */
 			void sync()
 			{
-				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
-					Fs_file_system *fs_fs = dynamic_cast<Fs_file_system *>(fs);
-					if (fs_fs) {
-						fs_fs->sync();
-						continue;
-					}
-
-					/* the directory might contain Fs_file_systems */
-					Dir_file_system *dir_fs = dynamic_cast<Dir_file_system *>(fs);
-					if (dir_fs) {
-						dir_fs->sync();
-						continue;
-					}
-				}
+				for (File_system *fs = _first_file_system; fs; fs = fs->next)
+					fs->sync();
 			}
 
 

@@ -250,8 +250,10 @@ namespace Noux {
 
 		public:
 
-			Random_file_system(void *bytes, size_t nbytes)
+			Random_file_system(Xml_node node)
 			{
+				void   *bytes = 0;
+				size_t nbytes = 0;
 				_arc4random = new (env()->heap()) Arc4random(bytes, nbytes);
 			}
 
@@ -376,7 +378,7 @@ namespace Noux {
 			 ** File_system interface **
 			 ***************************/
 
-			char const *name() const { return "random"; }
+			static char const *name() { return "random"; }
 
 
 			/********************************
