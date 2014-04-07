@@ -541,7 +541,7 @@ void Thread::_call_update_pd()
 }
 
 
-void Thread::_call_update_region()
+void Thread::_call_update_data_region()
 {
 	/* flush hardware caches */
 	Processor::flush_data_caches_by_virt_region((addr_t)user_arg_1(),
@@ -884,7 +884,7 @@ void Thread::_call()
 	case call_id_access_thread_regs():  _call_access_thread_regs(); return;
 	case call_id_route_thread_event():  _call_route_thread_event(); return;
 	case call_id_update_pd():           _call_update_pd(); return;
-	case call_id_update_region():       _call_update_region(); return;
+	case call_id_update_data_region():  _call_update_data_region(); return;
 	case call_id_new_pd():              _call_new_pd(); return;
 	case call_id_bin_pd():              _call_bin_pd(); return;
 	case call_id_new_signal_receiver(): _call_new_signal_receiver(); return;

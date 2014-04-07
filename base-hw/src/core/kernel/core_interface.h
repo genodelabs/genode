@@ -38,7 +38,7 @@ namespace Kernel
 	constexpr Call_arg call_id_access_thread_regs()  { return 16; }
 	constexpr Call_arg call_id_route_thread_event()  { return 17; }
 	constexpr Call_arg call_id_update_pd()           { return 18; }
-	constexpr Call_arg call_id_update_region()       { return 19; }
+	constexpr Call_arg call_id_update_data_region()  { return 19; }
 	constexpr Call_arg call_id_new_pd()              { return 20; }
 	constexpr Call_arg call_id_bin_pd()              { return 21; }
 	constexpr Call_arg call_id_new_signal_receiver() { return 22; }
@@ -102,9 +102,9 @@ namespace Kernel
 	 *
 	 * Does apply only to data caches.
 	 */
-	inline void update_region(addr_t const base, size_t const size)
+	inline void update_data_region(addr_t const base, size_t const size)
 	{
-		call(call_id_update_region(), (Call_arg)base, (Call_arg)size);
+		call(call_id_update_data_region(), (Call_arg)base, (Call_arg)size);
 	}
 
 

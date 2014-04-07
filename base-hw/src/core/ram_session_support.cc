@@ -34,6 +34,6 @@ void Ram_session_component::_clear_ds (Dataspace_component * ds)
 	memset((void *)ds->phys_addr(), 0, ds->size());
 
 	/* make the new DS-content visible to other PDs */
-	Kernel::update_region(ds->phys_addr(), ds->size());
+	Kernel::update_data_region(ds->phys_addr(), ds->size());
 }
 
