@@ -47,6 +47,7 @@ namespace Kernel
 	constexpr Call_arg call_id_signal_pending()       { return 9; }
 	constexpr Call_arg call_id_ack_signal()           { return 10; }
 	constexpr Call_arg call_id_print_char()           { return 11; }
+	constexpr Call_arg call_id_update_data_region()   { return 12; }
 
 
 	/*****************************************************************
@@ -120,6 +121,16 @@ namespace Kernel
 		call(call_id_yield_thread(), thread_id);
 	}
 
+	/**
+	 * Globally apply writes to a data region in the current domain
+	 *
+	 * \param base  base of the region within the current domain
+	 * \param size  size of the region
+	 */
+	inline void update_data_region(addr_t const base, size_t const size)
+	{
+		call(call_id_update_data_region(), (Call_arg)base, (Call_arg)size);
+	}
 
 	/**
 	 * Send request message and await receipt of corresponding reply message

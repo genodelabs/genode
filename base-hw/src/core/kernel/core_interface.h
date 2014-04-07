@@ -31,14 +31,13 @@ namespace Kernel
 	/**
 	 * Kernel names of the kernel calls
 	 */
-	constexpr Call_arg call_id_new_thread()          { return 12; }
-	constexpr Call_arg call_id_bin_thread()          { return 13; }
-	constexpr Call_arg call_id_start_thread()        { return 14; }
-	constexpr Call_arg call_id_resume_thread()       { return 15; }
-	constexpr Call_arg call_id_access_thread_regs()  { return 16; }
-	constexpr Call_arg call_id_route_thread_event()  { return 17; }
-	constexpr Call_arg call_id_update_pd()           { return 18; }
-	constexpr Call_arg call_id_update_data_region()  { return 19; }
+	constexpr Call_arg call_id_new_thread()          { return 13; }
+	constexpr Call_arg call_id_bin_thread()          { return 14; }
+	constexpr Call_arg call_id_start_thread()        { return 15; }
+	constexpr Call_arg call_id_resume_thread()       { return 16; }
+	constexpr Call_arg call_id_access_thread_regs()  { return 17; }
+	constexpr Call_arg call_id_route_thread_event()  { return 18; }
+	constexpr Call_arg call_id_update_pd()           { return 19; }
 	constexpr Call_arg call_id_new_pd()              { return 20; }
 	constexpr Call_arg call_id_bin_pd()              { return 21; }
 	constexpr Call_arg call_id_new_signal_receiver() { return 22; }
@@ -91,20 +90,6 @@ namespace Kernel
 	inline void update_pd(unsigned const pd_id)
 	{
 		call(call_id_update_pd(), pd_id);
-	}
-
-
-	/**
-	 * Write-through the cached contents of a region in the current domain
-	 *
-	 * \param base  base of the region within the current domain
-	 * \param size  size of the region
-	 *
-	 * Does apply only to data caches.
-	 */
-	inline void update_data_region(addr_t const base, size_t const size)
-	{
-		call(call_id_update_data_region(), (Call_arg)base, (Call_arg)size);
 	}
 
 
