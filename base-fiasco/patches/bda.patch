@@ -13,3 +13,28 @@
  
    if ((s = strstr(cmdline, " -comirq=")))
      i = strtoul(s + 9, 0, 0);
+--- fiasco/snapshot/l4/pkg/bootstrap/server/src/startup.cc	2008-07-30 13:19:01.000000000 +0200
+--- fiasco/snapshot/l4/pkg/bootstrap/server/src/startup.cc	2014-04-07 11:09:34.483037907 +0200
+@@ -709,11 +709,21 @@
+   if (mbi->flags & L4UTIL_MB_CMDLINE)
+     {
+       const char *s;
+-      int comport = 1;
++      int comport = -1;
+ 
+       if ((s = check_arg(L4_CHAR_PTR(mbi->cmdline), "-comport")))
+ 	comport = strtoul(s + 9, 0, 0);
+ 
++      if (comport == -1) {
++        /* try to read Bios Data Area (BDA) to get comport information */
++        unsigned short comport_count = (*((unsigned short *)0x410) >> 9) & 0x7;
++        if (comport_count)
++          comport = *((unsigned short *)0x400);
++        else
++          /* give up and try default values */
++          comport = 1;
++      }
++
+       if (check_arg(L4_CHAR_PTR(mbi->cmdline), "-serial"))
+ 	com_cons_init(comport);
+     }
