@@ -103,7 +103,7 @@ append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Framebuffer"/></provides>
-		<config buffered="yes" width="1400" height="1050" depth="16" />
+		<config buffered="yes" width="1024" height="768" depth="16" />
 	</start>}
 
 append config $config_of_app
