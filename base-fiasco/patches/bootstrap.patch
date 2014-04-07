@@ -1,0 +1,11 @@
+--- fiasco/snapshot/l4/pkg/bootstrap/server/src/startup.cc	2014-04-07 11:55:10.811087853 +0200
+--- fiasco/snapshot/l4/pkg/bootstrap/server/src/startup.cc	2014-04-07 11:56:24.891089205 +0200
+@@ -289,7 +289,7 @@
+ 
+   printf("  move modules to %lx with offset %lx\n", modaddr, offset);
+ 
+-  for (i = dir; i != mbi->mods_count - dir ; offset > 0 ? i-- : i++)
++  for (i = dir; offset > 0 ? i != 0 : i <= mbi->mods_count ; offset > 0 ? i-- : i++)
+     {
+       unsigned long start = (L4_MB_MOD_PTR(mbi->mods_addr))[i-1].mod_start;
+       unsigned long end = (L4_MB_MOD_PTR(mbi->mods_addr))[i-1].mod_end;
