@@ -21,7 +21,7 @@
 
 /* Noux includes */
 #include <noux_session/sysio.h>
-#include "file_system.h"
+#include <vfs/single_file_system.h>
 
 /*-
  * Copyright (c) 2010, 2012
@@ -229,154 +229,19 @@ namespace Noux {
 	};
 
 
-	class Random_file_system : public File_system
+	class Random_file_system : public Vfs::Single_file_system
 	{
 		private:
 
-			Arc4random *_arc4random;
-
-			const char *_filename() { return "urandom"; }
-
-			bool _is_root(const char *path)
-			{
-				return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
-			}
-
-			bool _is_device_random_file(const char *path)
-			{
-				return (strlen(path) == (strlen(_filename()) + 1)) &&
-					   (strcmp(&path[1], _filename()) == 0);
-			}
+			Arc4random _arc4random;
 
 		public:
 
-			Random_file_system(Xml_node node)
-			{
-				void   *bytes = 0;
-				size_t nbytes = 0;
-				_arc4random = new (env()->heap()) Arc4random(bytes, nbytes);
-			}
-
-			~Random_file_system()
-			{
-				destroy(env()->heap(), _arc4random);
-			}
-
-
-			/*********************************
-			 ** Directory-service interface **
-			 *********************************/
-
-			Dataspace_capability dataspace(char const *path)
-			{
-				/* not supported */
-				return Dataspace_capability();
-			}
-
-			void release(char const *path, Dataspace_capability ds_cap)
-			{
-				/* not supported */
-			}
-
-			bool stat(Sysio *sysio, char const *path)
-			{
-				Sysio::Stat st = { 0, 0, 0, 0, 0, 0 };
-
-				if (_is_root(path))
-					st.mode = Sysio::STAT_MODE_DIRECTORY;
-				else if (_is_device_random_file(path)) {
-					st.mode = Sysio::STAT_MODE_CHARDEV;
-				} else {
-					sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
-					return false;
-				}
-
-				sysio->stat_out.st = st;
-				return true;
-			}
-
-			bool dirent(Sysio *sysio, char const *path, off_t index)
-			{
-				if (_is_root(path)) {
-					if (index == 0) {
-						sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_CHARDEV;
-						strncpy(sysio->dirent_out.entry.name,
-						        _filename(),
-						        sizeof(sysio->dirent_out.entry.name));
-					} else {
-						sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_END;
-					}
-
-					return true;
-				}
-
-				return false;
-			}
-
-			size_t num_dirent(char const *path)
-			{
-				if (_is_root(path))
-					return 1;
-				else
-					return 0;
-			}
-
-			bool is_directory(char const *path)
-			{
-				if (_is_root(path))
-					return true;
-
-				return false;
-			}
-
-			char const *leaf_path(char const *path)
-			{
-				return path;
-			}
-
-			Vfs_handle *open(Sysio *sysio, char const *path)
-			{
-				if (!_is_device_random_file(path)) {
-					sysio->error.open = Sysio::OPEN_ERR_UNACCESSIBLE;
-					return 0;
-				}
-
-				return new (env()->heap()) Vfs_handle(this, this, 0);
-			}
-
-			bool unlink(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool readlink(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool rename(Sysio *sysio, char const *from_path, char const *to_path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool mkdir(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool symlink(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			/***************************
-			 ** File_system interface **
-			 ***************************/
+			Random_file_system(Xml_node config)
+			:
+				Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
+				_arc4random(0, 0)
+			{ }
 
 			static char const *name() { return "random"; }
 
@@ -385,24 +250,26 @@ namespace Noux {
 			 ** File I/O service interface **
 			 ********************************/
 
-			bool write(Sysio *sysio, Vfs_handle *handle)
+			Write_result write(Vfs::Vfs_handle *, char const *, size_t buf_size, size_t &out_count) override
 			{
-				sysio->write_out.count = sysio->write_in.count;
+				out_count = buf_size;
 
-				return true;
+				return WRITE_OK;
 			}
 
-			bool read(Sysio *sysio, Vfs_handle *vfs_handle)
+			Read_result read(Vfs::Vfs_handle *vfs_handle, char *dst, size_t count,
+			                 size_t &out_count) override
 			{
-				size_t nbytes = sysio->read_in.count;
+				_arc4random.get(dst, count);
+				out_count = count;
 
-				_arc4random->get(sysio->read_out.chunk, nbytes);
-				sysio->read_out.count = nbytes;
-
-				return true;
+				return READ_OK;
 			}
 
-			bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) { return true; }
+			Ftruncate_result ftruncate(Vfs::Vfs_handle *, size_t) override
+			{
+				return FTRUNCATE_OK;
+			}
 	};
 }
 

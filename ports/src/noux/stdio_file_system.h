@@ -17,167 +17,30 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <util/string.h>
+#include <vfs/single_file_system.h>
 
 /* Noux includes */
 #include <noux_session/sysio.h>
-#include "file_system.h"
 #include "terminal_connection.h"
 
 
 namespace Noux {
 
-	class Stdio_file_system : public File_system
+	class Stdio_file_system : public Vfs::Single_file_system
 	{
 		private:
-
-			enum { FILENAME_MAX_LEN = 64 };
-			char _filename[FILENAME_MAX_LEN];
 
 			Terminal::Session_client *_terminal;
 			bool _echo;
 
-
-			bool _is_root(const char *path)
-			{
-				return (strcmp(path, "") == 0) || (strcmp(path, "/") == 0);
-			}
-
-			bool _is_stdio_file(const char *path)
-			{
-				return (strlen(path) == (strlen(_filename) + 1)) &&
-					   (strcmp(&path[1], _filename) == 0);
-			}
-
 		public:
 
-			Stdio_file_system(Xml_node config,
-			                  Terminal::Session_client *terminal = terminal())
+			Stdio_file_system(Xml_node config)
 			:
-				_terminal(terminal),
+				Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
+				_terminal(terminal()),
 				_echo(true)
-			{
-				_filename[0] = '\0';
-
-				try { config.attribute("name").value(_filename, sizeof(_filename)); }
-				catch (...) { }
-
-			}
-
-
-			/*********************************
-			 ** Directory-service interface **
-			 *********************************/
-
-			Dataspace_capability dataspace(char const *path)
-			{
-				/* not supported */
-				return Dataspace_capability();
-			}
-
-			void release(char const *path, Dataspace_capability ds_cap)
-			{
-				/* not supported */
-			}
-
-			bool stat(Sysio *sysio, char const *path)
-			{
-				Sysio::Stat st = { 0, 0, 0, 0, 0, 0 };
-
-				if (_is_root(path))
-					st.mode = Sysio::STAT_MODE_DIRECTORY;
-				else if (_is_stdio_file(path)) {
-					st.mode = Sysio::STAT_MODE_CHARDEV;
-				} else {
-					sysio->error.stat = Sysio::STAT_ERR_NO_ENTRY;
-					return false;
-				}
-
-				sysio->stat_out.st = st;
-				return true;
-			}
-
-			bool dirent(Sysio *sysio, char const *path, off_t index)
-			{
-				if (_is_root(path)) {
-					if (index == 0) {
-						sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_CHARDEV;
-						strncpy(sysio->dirent_out.entry.name,
-						        _filename,
-						        sizeof(sysio->dirent_out.entry.name));
-					} else {
-						sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_END;
-					}
-
-					return true;
-				}
-
-				return false;
-			}
-
-			size_t num_dirent(char const *path)
-			{
-				if (_is_root(path))
-					return 1;
-				else
-					return 0;
-			}
-
-			bool is_directory(char const *path)
-			{
-				if (_is_root(path))
-					return true;
-
-				return false;
-			}
-
-			char const *leaf_path(char const *path)
-			{
-				return path;
-			}
-
-			Vfs_handle *open(Sysio *sysio, char const *path)
-			{
-				if (!_is_stdio_file(path)) {
-					sysio->error.open = Sysio::OPEN_ERR_UNACCESSIBLE;
-					return 0;
-				}
-
-				return new (env()->heap()) Vfs_handle(this, this, 0);
-			}
-
-			bool unlink(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool readlink(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool rename(Sysio *sysio, char const *from_path, char const *to_path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool mkdir(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			bool symlink(Sysio *sysio, char const *path)
-			{
-				/* not supported */
-				return false;
-			}
-
-			/***************************
-			 ** File_system interface **
-			 ***************************/
+			{ }
 
 			static char const *name() { return "stdio"; }
 
@@ -186,55 +49,53 @@ namespace Noux {
 			 ** File I/O service interface **
 			 ********************************/
 
-			bool write(Sysio *sysio, Vfs_handle *handle)
+			Write_result write(Vfs::Vfs_handle *, char const *buf, size_t buf_size,
+			                   size_t &out_count) override
 			{
-				sysio->write_out.count = _terminal->write(sysio->write_in.chunk, sysio->write_in.count);
+				out_count = _terminal->write(buf, buf_size);
 
-				return true;
+				return WRITE_OK;
 			}
 
-			bool read(Sysio *sysio, Vfs_handle *vfs_handle)
+			Read_result read(Vfs::Vfs_handle *, char *dst, size_t count, size_t &out_count) override
 			{
-				sysio->read_out.count = _terminal->read(sysio->read_out.chunk, sysio->read_in.count);
+				out_count = _terminal->read(dst, count);
 
 				if (_echo)
-					_terminal->write(sysio->read_out.chunk, sysio->read_in.count);
+					_terminal->write(dst, count);
 
-				return true;
+				return READ_OK;
 			}
 
-			bool ftruncate(Sysio *sysio, Vfs_handle *vfs_handle) { return true; }
-
-			bool ioctl(Sysio *sysio, Vfs_handle *vfs_handle)
+			Ftruncate_result ftruncate(Vfs::Vfs_handle *, size_t) override
 			{
-				switch (sysio->ioctl_in.request) {
+				return FTRUNCATE_OK;
+			}
 
-				case Sysio::Ioctl_in::OP_TIOCSETAF:
+			Ioctl_result ioctl(Vfs::Vfs_handle *vfs_handle, Ioctl_opcode opcode,
+			                   Ioctl_arg arg, Ioctl_out &out) override
+			{
+				switch (opcode) {
+
+				case Vfs::File_io_service::IOCTL_OP_TIOCSETAF:
 					{
-						if (sysio->ioctl_in.argp & (Sysio::Ioctl_in::VAL_ECHO)) {
-							_echo = true;
-						}
-						else {
-							_echo = false;
-						}
-
-						return true;
+						_echo = (arg & (Vfs::File_io_service::IOCTL_VAL_ECHO));
+						return IOCTL_OK;
 					}
 
-				case Sysio::Ioctl_in::OP_TIOCSETAW:
+				case Vfs::File_io_service::IOCTL_OP_TIOCSETAW:
 					{
 						PDBG("OP_TIOCSETAW not implemented");
-						return false;
+						return IOCTL_ERR_INVALID;
 					}
 
 				default:
 
-					PDBG("invalid ioctl(request=0x%x), %d", sysio->ioctl_in.request,
-					     Sysio::Ioctl_in::OP_TIOCSETAW);
+					PDBG("invalid ioctl(request=0x%x)", opcode);
 					break;
 				}
 
-				return false;
+				return IOCTL_ERR_INVALID;
 			}
 	};
 }

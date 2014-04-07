@@ -22,13 +22,9 @@
 
 /* Noux includes */
 #include <noux_session/sysio.h>
-#include "file_system.h"
+#include <vfs/file_system.h>
 
 
-namespace Noux {
-
-	Terminal::Connection *terminal();
-
-}
+namespace Noux { Terminal::Connection *terminal(); }
 
 #endif /* _NOUX__TERMINAL_CONNECTION_H_ */

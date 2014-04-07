@@ -16,14 +16,13 @@
 
 /* Noux includes */
 #include <io_channel.h>
-#include <file_system.h>
-#include <dir_file_system.h>
+#include <vfs/dir_file_system.h>
 
 namespace Noux {
 
 	struct Vfs_io_channel : Io_channel, Signal_dispatcher_base
 	{
-		Vfs_handle *_fh;
+		Vfs::Vfs_handle *_fh;
 
 		Absolute_path _path;
 		Absolute_path _leaf_path;
@@ -31,12 +30,12 @@ namespace Noux {
 		Signal_receiver &_sig_rec;
 
 		Vfs_io_channel(char const *path, char const *leaf_path,
-		               Dir_file_system *root_dir, Vfs_handle *vfs_handle,
+		               Vfs::Dir_file_system *root_dir, Vfs::Vfs_handle *vfs_handle,
 		               Signal_receiver &sig_rec)
 		: _fh(vfs_handle), _path(path), _leaf_path(leaf_path),
 		  _sig_rec(sig_rec)
 		{
-			_fh->fs()->register_read_ready_sigh(_fh, _sig_rec.manage(this));
+			_fh->fs().register_read_ready_sigh(_fh, _sig_rec.manage(this));
 		}
 
 		~Vfs_io_channel()
@@ -45,42 +44,63 @@ namespace Noux {
 			destroy(env()->heap(), _fh);
 		}
 
-		bool write(Sysio *sysio, size_t &count)
+		bool write(Sysio *sysio, size_t &offset) override
 		{
-			if (!_fh->fs()->write(sysio, _fh))
-				return false;
+			size_t out_count = 0;
 
-			count = sysio->write_out.count;
-			_fh->_seek += count;
+			sysio->error.write = _fh->fs().write(_fh, sysio->write_in.chunk,
+		                                         sysio->write_in.count, out_count);
+		    if (sysio->error.write != Vfs::File_io_service::WRITE_OK)
+		    	return false;
+
+			_fh->advance_seek(out_count);
+
+			sysio->write_out.count = out_count;
+			offset = out_count;
+
 			return true;
 		}
 
-		bool read(Sysio *sysio)
+		bool read(Sysio *sysio) override
 		{
-			if (!_fh->fs()->read(sysio, _fh))
+			size_t count = min(sysio->read_in.count, sizeof(sysio->read_out.chunk));
+
+			size_t out_count = 0;
+
+			sysio->error.read = _fh->fs().read(_fh, sysio->read_out.chunk, count, out_count);
+
+			if (sysio->error.read != Vfs::File_io_service::READ_OK)
 				return false;
 
-			_fh->_seek += sysio->read_out.count;
+			sysio->read_out.count = out_count;
+
+			_fh->advance_seek(out_count);
+
 			return true;
 		}
 
-		bool fstat(Sysio *sysio)
+		bool fstat(Sysio *sysio) override
 		{
 			/*
-			 * 'sysio.stat_in' is not used in '_fh->ds()->stat()',
+			 * 'sysio.stat_in' is not used in '_fh->ds().stat()',
 			 * so no 'sysio' member translation is needed here
 			 */
-			bool result = _fh->ds()->stat(sysio, _leaf_path.base());
-			sysio->fstat_out.st = sysio->stat_out.st;
-			return result;
+			sysio->error.stat =  _fh->ds().stat(_leaf_path.base(),
+			                                    sysio->fstat_out.st);
+
+			return (sysio->error.stat == Vfs::Directory_service::STAT_OK);
+
 		}
 
-		bool ftruncate(Sysio *sysio)
+		bool ftruncate(Sysio *sysio) override
 		{
-			return _fh->fs()->ftruncate(sysio, _fh);
+
+			sysio->error.ftruncate = _fh->fs().ftruncate(_fh, sysio->ftruncate_in.length);
+
+			return (sysio->error.ftruncate == Vfs::File_io_service::FTRUNCATE_OK);
 		}
 
-		bool fcntl(Sysio *sysio)
+		bool fcntl(Sysio *sysio) override
 		{
 			switch (sysio->fcntl_in.cmd) {
 
@@ -103,20 +123,20 @@ namespace Noux {
 		 * to directories). Hence, '_path' is the absolute path of the
 		 * directory to inspect.
 		 */
-		bool dirent(Sysio *sysio)
+		bool dirent(Sysio *sysio) override
 		{
 			/*
 			 * Return artificial dir entries for "." and ".."
 			 */
 			unsigned const index = _fh->seek() / sizeof(Sysio::Dirent);
 			if (index < 2) {
-				sysio->dirent_out.entry.type = Sysio::DIRENT_TYPE_DIRECTORY;
+				sysio->dirent_out.entry.type = Vfs::Directory_service::DIRENT_TYPE_DIRECTORY;
 				strncpy(sysio->dirent_out.entry.name,
 				        index ? ".." : ".",
 				        sizeof(sysio->dirent_out.entry.name));
 
 				sysio->dirent_out.entry.fileno = 1;
-				_fh->_seek += sizeof(Sysio::Dirent);
+				_fh->advance_seek(sizeof(Sysio::Dirent));
 				return true;
 			}
 
@@ -125,10 +145,11 @@ namespace Noux {
 			 * Align index range to zero when calling the directory service.
 			 */
 
-			if (!_fh->ds()->dirent(sysio, _path.base(), index - 2))
+			if (!_fh->ds().dirent(_path.base(), index - 2,
+			                      sysio->dirent_out.entry))
 				return false;
 
-			_fh->_seek += sizeof(Sysio::Dirent);
+			_fh->advance_seek(sizeof(Sysio::Dirent));
 			return true;
 		}
 
@@ -147,38 +168,43 @@ namespace Noux {
 			return 0;
 		}
 
-		bool ioctl(Sysio *sysio)
+		bool ioctl(Sysio *sysio) override
 		{
-			return _fh->fs()->ioctl(sysio, _fh);
+			Vfs::File_system::Ioctl_arg arg = (Vfs::File_system::Ioctl_arg)sysio->ioctl_in.argp;
+
+			sysio->error.ioctl = _fh->fs().ioctl(_fh, sysio->ioctl_in.request, arg, sysio->ioctl_out);
+
+			return (sysio->error.ioctl == Vfs::File_io_service::IOCTL_OK);
 		}
 
-		bool lseek(Sysio *sysio)
+		bool lseek(Sysio *sysio) override
 		{
 			switch (sysio->lseek_in.whence) {
-			case Sysio::LSEEK_SET: _fh->_seek = sysio->lseek_in.offset; break;
-			case Sysio::LSEEK_CUR: _fh->_seek += sysio->lseek_in.offset; break;
+			case Sysio::LSEEK_SET: _fh->seek(sysio->lseek_in.offset); break;
+			case Sysio::LSEEK_CUR: _fh->advance_seek(sysio->lseek_in.offset); break;
 			case Sysio::LSEEK_END:
 				off_t offset = sysio->lseek_in.offset;
 				sysio->fstat_in.fd = sysio->lseek_in.fd;
-				_fh->_seek = size(sysio) + offset;
+				_fh->seek(size(sysio) + offset);
 				break;
 			}
-			sysio->lseek_out.offset = _fh->_seek;
+			sysio->lseek_out.offset = _fh->seek();
 			return true;
 		}
 
-		bool check_unblock(bool rd, bool wr, bool ex) const
+		bool check_unblock(bool rd, bool wr, bool ex) const override
 		{
-			return _fh->fs()->check_unblock(_fh, rd, wr, ex);
+			return _fh->fs().check_unblock(_fh, rd, wr, ex);
 		}
 
-		bool path(char *path, size_t len)
+		bool path(char *path, size_t len) override
 		{
 			strncpy(path, _path.base(), len);
 			path[len - 1] = '\0';
 
 			return true;
 		}
+
 
 		/**************************************
 		 ** Signal_dispatcher_base interface **
@@ -187,7 +213,7 @@ namespace Noux {
 		/**
 		 * Called by Noux main loop on the occurrence of new input
 		 */
-		void dispatch(unsigned)
+		void dispatch(unsigned) override
 		{
 			Io_channel::invoke_all_notifiers();
 		}

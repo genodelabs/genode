@@ -25,22 +25,21 @@
 #include <terminal_io_channel.h>
 #include <dummy_input_io_channel.h>
 #include <pipe_io_channel.h>
-#include <dir_file_system.h>
 #include <user_info.h>
 #include <io_receptor_registry.h>
 #include <destruct_queue.h>
 #include <kill_broadcaster.h>
-#include <file_system_registry.h>
+#include <vfs/dir_file_system.h>
 
 /* supported file systems */
-#include <tar_file_system.h>
-#include <fs_file_system.h>
-#include <terminal_file_system.h>
-#include <null_file_system.h>
-#include <zero_file_system.h>
-#include <stdio_file_system.h>
+#include <vfs/tar_file_system.h>
+#include <vfs/fs_file_system.h>
+#include <vfs/terminal_file_system.h>
+#include <vfs/null_file_system.h>
+#include <vfs/zero_file_system.h>
+#include <vfs/block_file_system.h>
 #include <random_file_system.h>
-#include <block_file_system.h>
+#include <stdio_file_system.h>
 
 
 static const bool verbose_quota  = false;
@@ -164,7 +163,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			{
 				size_t const count_in = _sysio->write_in.count;
 
-				for (size_t count = 0; count != count_in; ) {
+				for (size_t offset = 0; offset != count_in; ) {
 
 					Shared_pointer<Io_channel> io = _lookup_channel(_sysio->write_in.fd);
 
@@ -174,20 +173,19 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					if (io->check_unblock(false, true, false)) {
 						/*
 						 * 'io->write' is expected to update
-						 * '_sysio->write_out.count' and 'count'
+						 * '_sysio->write_out.count' and 'offset'
 						 */
-						result = io->write(_sysio, count);
+						result = io->write(_sysio, offset);
 						if (result == false)
 							break;
 					} else {
 						if (result == false) {
 							/* nothing was written yet */
-							_sysio->error.write = Sysio::WRITE_ERR_INTERRUPT;
+							_sysio->error.write = Vfs::File_io_service::WRITE_ERR_INTERRUPT;
 						}
 						break;
 					}
 				}
-
 				break;
 			}
 
@@ -201,7 +199,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				if (io->check_unblock(true, false, false))
 					result = io->read(_sysio);
 				else
-					_sysio->error.read = Sysio::READ_ERR_INTERRUPT;
+					_sysio->error.read = Vfs::File_io_service::READ_ERR_INTERRUPT;
 
 				break;
 			}
@@ -215,7 +213,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				if (io->check_unblock(false, true, false))
 					result = io->ftruncate(_sysio);
 				else
-					_sysio->error.ftruncate = Sysio::FTRUNCATE_ERR_INTERRUPT;
+					_sysio->error.ftruncate = Vfs::File_io_service::FTRUNCATE_ERR_INTERRUPT;
 
 				break;
 			}
@@ -230,9 +228,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				size_t   path_len  = strlen(_sysio->stat_in.path);
 				uint32_t path_hash = hash_path(_sysio->stat_in.path, path_len);
 
-				result = root_dir()->stat(_sysio, _sysio->stat_in.path);
+				_sysio->error.stat = root_dir()->stat(_sysio->stat_in.path,
+				                                      _sysio->stat_out.st);
 
-				/**
+				result = (_sysio->error.stat == Vfs::Directory_service::STAT_OK);
+
+				/*
 				 * Instead of using the uid/gid given by the actual file system
 				 * we use the ones specificed in the config.
 				 */
@@ -285,7 +286,10 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_OPEN:
 			{
-				Vfs_handle *vfs_handle = root_dir()->open(_sysio, _sysio->open_in.path);
+				Vfs::Vfs_handle *vfs_handle = 0;
+				_sysio->error.open = root_dir()->open(_sysio->open_in.path,
+				                                      _sysio->open_in.mode,
+				                                      &vfs_handle);
 				if (!vfs_handle)
 					break;
 
@@ -297,7 +301,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 * path because path operations always refer to the global
 				 * root.
 				 */
-				if (vfs_handle->ds() == root_dir())
+				if (&vfs_handle->ds() == root_dir())
 					leaf_path = _sysio->open_in.path;
 
 				Shared_pointer<Io_channel>
@@ -678,29 +682,43 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_UNLINK:
 
-			result = root_dir()->unlink(_sysio, _sysio->unlink_in.path);
+			_sysio->error.unlink = root_dir()->unlink(_sysio->unlink_in.path);
+
+			result = (_sysio->error.unlink == Vfs::Directory_service::UNLINK_OK);
 			break;
 
 		case SYSCALL_READLINK:
 
-			result = root_dir()->readlink(_sysio, _sysio->readlink_in.path);
-			break;
+			_sysio->error.readlink = root_dir()->readlink(_sysio->readlink_in.path,
+			                              _sysio->readlink_out.chunk,
+			                              min(_sysio->readlink_in.bufsiz,
+			                                  sizeof(_sysio->readlink_out.chunk)),
+			                              _sysio->readlink_out.count);
 
+			result = (_sysio->error.readlink == Vfs::Directory_service::READLINK_OK);
+			break;
 
 		case SYSCALL_RENAME:
 
-			result = root_dir()->rename(_sysio, _sysio->rename_in.from_path,
-			                                    _sysio->rename_in.to_path);
+			_sysio->error.rename = root_dir()->rename(_sysio->rename_in.from_path,
+			                                          _sysio->rename_in.to_path);
+
+			result = (_sysio->error.rename == Vfs::Directory_service::RENAME_OK);
 			break;
 
 		case SYSCALL_MKDIR:
 
-			result = root_dir()->mkdir(_sysio, _sysio->mkdir_in.path);
+			_sysio->error.mkdir = root_dir()->mkdir(_sysio->mkdir_in.path, 0);
+
+			result = (_sysio->error.mkdir == Vfs::Directory_service::MKDIR_OK);
 			break;
 
 		case SYSCALL_SYMLINK:
 
-			result = root_dir()->symlink(_sysio, _sysio->symlink_in.newpath);
+			_sysio->error.symlink = root_dir()->symlink(_sysio->symlink_in.oldpath,
+			                                            _sysio->symlink_in.newpath);
+
+			result = (_sysio->error.symlink == Vfs::Directory_service::SYMLINK_OK);
 			break;
 
 		case SYSCALL_USERINFO:
@@ -845,7 +863,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 	}
 
 	catch (Invalid_fd) {
-		_sysio->error.general = Sysio::ERR_FD_INVALID;
+		_sysio->error.general = Vfs::Directory_service::ERR_FD_INVALID;
 		PERR("Invalid file descriptor"); }
 
 	catch (...) { PERR("Unexpected exception"); }
@@ -1004,20 +1022,56 @@ void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
 
 
-template <typename FILE_SYSTEM>
-struct File_system_factory : Noux::File_system_registry::Entry
-{
-	Noux::File_system *create(Genode::Xml_node node) override
-	{
-		return new FILE_SYSTEM(node);
-	}
 
-	bool matches(Genode::Xml_node node) override
-	{
-		char buf[100];
-		node.type_name(buf, sizeof(buf));
-		return node.has_type(FILE_SYSTEM::name());
-	}
+class File_system_factory : public Vfs::File_system_factory
+{
+	public:
+
+		struct Entry_base : Genode::List<Entry_base>::Element
+		{
+			char const * const name;
+
+			Entry_base(char const *name) : name(name) { }
+
+			virtual Vfs::File_system *create(Genode::Xml_node node) = 0;
+
+			bool matches(Genode::Xml_node node) const
+			{
+				return node.has_type(name);
+			}
+		};
+
+		template <typename FILE_SYSTEM>
+		struct Entry : Entry_base
+		{
+			Entry(char const *name) : Entry_base(name) { }
+
+			Vfs::File_system *create(Genode::Xml_node node) override
+			{
+				return new FILE_SYSTEM(node);
+			}
+		};
+
+	private:
+
+		Genode::List<Entry_base> _list;
+
+	public:
+
+		template <typename FS>
+		void add_fs_type()
+		{
+			_list.insert(new Entry<FS>(FS::name()));
+		}
+
+		Vfs::File_system *create(Genode::Xml_node node) override
+		{
+			for (Entry_base *e = _list.first(); e; e = e->next())
+				if (e->matches(node))
+					return e->create(node);
+
+			return 0;
+		}
 };
 
 
@@ -1046,19 +1100,19 @@ int main(int argc, char **argv)
 	} catch (Xml_node::Nonexistent_attribute) { }
 
 	/* register file systems */
-	static File_system_registry fs_registry;
-	fs_registry.insert(*new File_system_factory<Tar_file_system>());
-	fs_registry.insert(*new File_system_factory<Fs_file_system>());
-	fs_registry.insert(*new File_system_factory<Terminal_file_system>());
-	fs_registry.insert(*new File_system_factory<Null_file_system>());
-	fs_registry.insert(*new File_system_factory<Zero_file_system>());
-	fs_registry.insert(*new File_system_factory<Stdio_file_system>());
-	fs_registry.insert(*new File_system_factory<Random_file_system>());
-	fs_registry.insert(*new File_system_factory<Block_file_system>());
+	static File_system_factory fs_factory;
+	fs_factory.add_fs_type<Vfs::Tar_file_system>();
+	fs_factory.add_fs_type<Vfs::Fs_file_system>();
+	fs_factory.add_fs_type<Vfs::Terminal_file_system>();
+	fs_factory.add_fs_type<Vfs::Null_file_system>();
+	fs_factory.add_fs_type<Vfs::Zero_file_system>();
+	fs_factory.add_fs_type<Vfs::Block_file_system>();
+	fs_factory.add_fs_type<Stdio_file_system>();
+	fs_factory.add_fs_type<Random_file_system>();
 
 	/* initialize virtual file system */
-	static Dir_file_system
-		root_dir(config()->xml_node().sub_node("fstab"), fs_registry);
+	static Vfs::Dir_file_system
+		root_dir(config()->xml_node().sub_node("fstab"), fs_factory);
 
 	/* set user information */
 	try {

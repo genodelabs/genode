@@ -21,6 +21,7 @@
 /* Genode includes */
 #include <os/ring_buffer.h>
 #include <util/misc_math.h>
+#include <vfs/file_system.h>
 
 
 #define SYSIO_DECL(syscall_name, args, results) \
@@ -81,25 +82,16 @@ namespace Noux {
 			STAT_MODE_BLOCKDEV  = 0060000,
 		};
 
-		struct Stat
-		{
-			size_t         size;
-			unsigned       mode;
-			unsigned       uid;
-			unsigned       gid;
-			unsigned long  inode;
-			unsigned       device;
-		};
+		typedef Vfs::Directory_service::Stat Stat;
 
 		/**
 		 * Argument structure used for ioctl syscall
 		 */
 		struct Ioctl_in
 		{
-			enum Opcode { OP_UNDEFINED, OP_TIOCGWINSZ, OP_TIOCSETAF,
-			              OP_TIOCSETAW, OP_FIONBIO, OP_DIOCGMEDIASIZE };
+			typedef Vfs::File_io_service::Ioctl_opcode Opcode;
 
-			enum Val    { VAL_NULL, VAL_ECHO, VAL_ECHONL };
+			typedef Vfs::File_io_service::Ioctl_value Value;
 
 			Opcode request;
 			int argp;
@@ -108,45 +100,14 @@ namespace Noux {
 		/**
 		 * Structure carrying the result values of 'ioctl' syscalls
 		 */
-		struct Ioctl_out
-		{
-			union
-			{
-				/* if request was 'OP_TIOCGSIZE' */
-				struct {
-					int rows;
-					int columns;
-				} tiocgwinsz;
-
-				/* if request was 'OP_DIOCGMEDIASIZE' */
-				struct {
-					/* disk size rounded up to sector size in bytes*/
-					int size;
-
-				} diocgmediasize;
-			};
-		};
+		typedef Vfs::File_io_service::Ioctl_out Ioctl_out;
 
 		enum Lseek_whence { LSEEK_SET, LSEEK_CUR, LSEEK_END };
 
-		enum { DIRENT_MAX_NAME_LEN = 128 };
+		enum { DIRENT_MAX_NAME_LEN = Vfs::Directory_service::DIRENT_MAX_NAME_LEN };
 
-		enum Dirent_type {
-			DIRENT_TYPE_FILE,
-			DIRENT_TYPE_DIRECTORY,
-			DIRENT_TYPE_FIFO,
-			DIRENT_TYPE_CHARDEV,
-			DIRENT_TYPE_BLOCKDEV,
-			DIRENT_TYPE_SYMLINK,
-			DIRENT_TYPE_END
-		};
-
-		struct Dirent
-		{
-			int         fileno;
-			Dirent_type type;
-			char        name[DIRENT_MAX_NAME_LEN];
-		};
+		typedef Vfs::Directory_service::Dirent_type Dirent_type;
+		typedef Vfs::Directory_service::Dirent      Dirent;
 
 		enum Fcntl_cmd {
 			FCNTL_CMD_GET_FILE_STATUS_FLAGS,
@@ -304,34 +265,9 @@ namespace Noux {
 		 */
 		enum Clock_Id        { CLOCK_ID_SECOND };
 
-		enum General_error   { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
-		enum Stat_error      { STAT_ERR_NO_ENTRY     = NUM_GENERAL_ERRORS };
-		enum Fcntl_error     { FCNTL_ERR_CMD_INVALID = NUM_GENERAL_ERRORS };
-		enum Ftruncate_error { FTRUNCATE_ERR_NO_PERM = NUM_GENERAL_ERRORS,
-		                       FTRUNCATE_ERR_INTERRUPT };
-		enum Open_error      { OPEN_ERR_UNACCESSIBLE, OPEN_ERR_NO_PERM,
-		                       OPEN_ERR_EXISTS };
-		enum Execve_error    { EXECVE_NONEXISTENT    = NUM_GENERAL_ERRORS };
+		enum Fcntl_error     { FCNTL_ERR_CMD_INVALID = Vfs::Directory_service::NUM_GENERAL_ERRORS };
+		enum Execve_error    { EXECVE_NONEXISTENT    = Vfs::Directory_service::NUM_GENERAL_ERRORS };
 		enum Select_error    { SELECT_ERR_INTERRUPT };
-		enum Unlink_error    { UNLINK_ERR_NO_ENTRY, UNLINK_ERR_NO_PERM };
-		enum Readlink_error  { READLINK_ERR_NO_ENTRY };
-		enum Rename_error    { RENAME_ERR_NO_ENTRY, RENAME_ERR_CROSS_FS,
-		                       RENAME_ERR_NO_PERM };
-		enum Mkdir_error     { MKDIR_ERR_EXISTS,   MKDIR_ERR_NO_ENTRY,
-		                       MKDIR_ERR_NO_SPACE, MKDIR_ERR_NO_PERM,
-		                       MKDIR_ERR_NAME_TOO_LONG};
-		enum Symlink_error   { SYMLINK_ERR_EXISTS, SYMLINK_ERR_NO_ENTRY,
-		                       SYMLINK_ERR_NAME_TOO_LONG};
-
-		enum Read_error      { READ_ERR_AGAIN, READ_ERR_WOULD_BLOCK,
-		                       READ_ERR_INVALID, READ_ERR_IO,
-		                       READ_ERR_INTERRUPT };
-
-		enum Write_error     { WRITE_ERR_AGAIN, WRITE_ERR_WOULD_BLOCK,
-		                       WRITE_ERR_INVALID, WRITE_ERR_IO,
-		                       WRITE_ERR_INTERRUPT };
-
-		enum Ioctl_error     { IOCTL_ERR_INVALID, IOCTL_ERR_NOTTY };
 
 		/**
 		 * Socket related errors
@@ -375,33 +311,35 @@ namespace Noux {
 		enum Kill_error      { KILL_ERR_SRCH };
 
 		union {
-			General_error   general;
-			Stat_error      stat;
-			Fcntl_error     fcntl;
-			Ftruncate_error ftruncate;
-			Open_error      open;
-			Execve_error    execve;
-			Select_error    select;
-			Unlink_error    unlink;
-			Readlink_error  readlink;
-			Rename_error    rename;
-			Mkdir_error     mkdir;
-			Symlink_error   symlink;
-			Read_error      read;
-			Write_error     write;
-			Ioctl_error     ioctl;
-			Accept_error    accept;
-			Bind_error      bind;
-			Connect_error   connect;
-			Listen_error    listen;
-			Recv_error      recv;
-			Send_error      send;
-			Shutdown_error  shutdown;
-			Socket_error    socket;
-			Clock_error     clock;
-			Utimes_error    utimes;
-			Wait4_error     wait4;
-			Kill_error      kill;
+			Vfs::Directory_service::General_error   general;
+			Vfs::Directory_service::Stat_result     stat;
+			Vfs::File_io_service::Ftruncate_result  ftruncate;
+			Vfs::Directory_service::Open_result     open;
+			Vfs::Directory_service::Unlink_result   unlink;
+			Vfs::Directory_service::Readlink_result readlink;
+			Vfs::Directory_service::Rename_result   rename;
+			Vfs::Directory_service::Mkdir_result    mkdir;
+			Vfs::Directory_service::Symlink_result  symlink;
+			Vfs::File_io_service::Read_result       read;
+			Vfs::File_io_service::Write_result      write;
+			Vfs::File_io_service::Ioctl_result      ioctl;
+
+			Fcntl_error    fcntl;
+			Execve_error   execve;
+			Select_error   select;
+			Accept_error   accept;
+			Bind_error     bind;
+			Connect_error  connect;
+			Listen_error   listen;
+			Recv_error     recv;
+			Send_error     send;
+			Shutdown_error shutdown;
+			Socket_error   socket;
+			Clock_error    clock;
+			Utimes_error   utimes;
+			Wait4_error    wait4;
+			Kill_error     kill;
+
 		} error;
 
 		union {
@@ -435,7 +373,7 @@ namespace Noux {
 			                        { Chunk chunk; size_t count; });
 
 			SYSIO_DECL(readlink,    { Path path; size_t bufsiz; },
-			                        { Chunk chunk; ssize_t count; });
+			                        { Chunk chunk; size_t count; });
 
 			SYSIO_DECL(execve,      { Path filename; Args args; Env env; }, { });
 

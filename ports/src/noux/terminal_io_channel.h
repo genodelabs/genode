@@ -58,14 +58,20 @@ namespace Noux {
 
 		~Terminal_io_channel() { sig_rec.dissolve(this); }
 
-		bool write(Sysio *sysio, size_t &count)
+		bool write(Sysio *sysio, size_t &offset) override
 		{
-			terminal.write(sysio->write_in.chunk, sysio->write_in.count);
-			count = sysio->write_in.count;
+			size_t const count = min(sysio->write_in.count,
+			                         sizeof(sysio->write_in.chunk));
+
+			terminal.write(sysio->write_in.chunk, count);
+
+			sysio->write_out.count = count;
+			offset = count;
+
 			return true;
 		}
 
-		bool read(Sysio *sysio)
+		bool read(Sysio *sysio) override
 		{
 			if (type != STDIN) {
 				PERR("attempt to read from terminal output channel");
@@ -114,7 +120,7 @@ namespace Noux {
 			return true;
 		}
 
-		bool fcntl(Sysio *sysio)
+		bool fcntl(Sysio *sysio) override
 		{
 			/**
 			 * Actually it is "inappropiate" to use fcntl() directly on terminals
@@ -136,7 +142,7 @@ namespace Noux {
 			return false;
 		}
 
-		bool fstat(Sysio *sysio)
+		bool fstat(Sysio *sysio) override
 		{
 			/*
 			 * Supply stat values such that libc is happy. I.e., the libc
@@ -147,7 +153,7 @@ namespace Noux {
 			return true;
 		}
 
-		bool check_unblock(bool rd, bool wr, bool ex) const
+		bool check_unblock(bool rd, bool wr, bool ex) const override
 		{
 			/* never block for writing */
 			if (wr) return true;
@@ -159,11 +165,11 @@ namespace Noux {
 			return (rd && (type == STDIN) && !read_buffer.empty());
 		}
 
-		bool ioctl(Sysio *sysio)
+		bool ioctl(Sysio *sysio) override
 		{
 			switch (sysio->ioctl_in.request) {
 
-			case Sysio::Ioctl_in::OP_TIOCGWINSZ:
+			case Vfs::File_io_service::IOCTL_OP_TIOCGWINSZ:
 				{
 					Terminal::Session::Size size = terminal.size();
 					sysio->ioctl_out.tiocgwinsz.rows    = size.lines();
@@ -171,13 +177,13 @@ namespace Noux {
 					return true;
 				}
 
-			case Sysio::Ioctl_in::OP_TIOCSETAF:
+			case Vfs::File_io_service::IOCTL_OP_TIOCSETAF:
 				{
 					PDBG("OP_TIOCSETAF not implemented");
 					return false;
 				}
 
-			case Sysio::Ioctl_in::OP_TIOCSETAW:
+			case Vfs::File_io_service::IOCTL_OP_TIOCSETAW:
 				{
 					PDBG("OP_TIOCSETAW not implemented");
 					return false;
@@ -198,7 +204,7 @@ namespace Noux {
 		/**
 		 * Called by Noux main loop on the occurrence of new STDIN input
 		 */
-		void dispatch(unsigned)
+		void dispatch(unsigned) override
 		{
 			while ((read_buffer.avail_capacity() > 0) &&
 			       terminal.avail()) {

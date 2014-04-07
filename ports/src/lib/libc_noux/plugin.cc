@@ -962,7 +962,8 @@ namespace {
 			if (verbose)
 				PWRN("stat syscall failed for path \"%s\"", path);
 			switch (sysio()->error.stat) {
-			case Noux::Sysio::STAT_ERR_NO_ENTRY: errno = ENOENT; break;
+			case Vfs::Directory_service::STAT_OK: /* never reached */
+			case Vfs::Directory_service::STAT_ERR_NO_ENTRY: errno = ENOENT; break;
 			}
 			return -1;
 		}
@@ -988,7 +989,7 @@ namespace {
 				opened = true;
 			else
 				switch (sysio()->error.open) {
-					case Noux::Sysio::OPEN_ERR_UNACCESSIBLE:
+				case Vfs::Directory_service::OPEN_ERR_UNACCESSIBLE:
 						if (!(flags & O_CREAT)) {
 							errno = ENOENT;
 							return 0;
@@ -1000,16 +1001,18 @@ namespace {
 							opened = true;
 						else
 							switch (sysio()->error.open) {
-								case Noux::Sysio::OPEN_ERR_EXISTS:
-									/* file has been created by someone else in the meantime */
-									break;
-								case Noux::Sysio::OPEN_ERR_NO_PERM: errno = EPERM;  return 0;
-								default:                            errno = ENOENT; return 0;
+							case Vfs::Directory_service::OPEN_ERR_EXISTS:
+								/* file has been created by someone else in the meantime */
+								break;
+							case Vfs::Directory_service::OPEN_ERR_NO_PERM:
+								errno = EPERM;  return 0;
+							default:
+								errno = ENOENT; return 0;
 							}
 						break;
-					case Noux::Sysio::OPEN_ERR_NO_PERM: errno = EPERM;  return 0;
-					case Noux::Sysio::OPEN_ERR_EXISTS:  errno = EEXIST; return 0;
-					default:                            errno = ENOENT; return 0;
+				case Vfs::Directory_service::OPEN_ERR_NO_PERM: errno = EPERM;  return 0;
+				case Vfs::Directory_service::OPEN_ERR_EXISTS:  errno = EEXIST; return 0;
+				default:                                       errno = ENOENT; return 0;
 				}
 		}
 
@@ -1070,13 +1073,13 @@ namespace {
 
 			if (!noux_syscall(Noux::Session::SYSCALL_WRITE)) {
 				switch (sysio()->error.write) {
-				case Noux::Sysio::WRITE_ERR_AGAIN:       errno = EAGAIN;      break;
-				case Noux::Sysio::WRITE_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
-				case Noux::Sysio::WRITE_ERR_INVALID:     errno = EINVAL;      break;
-				case Noux::Sysio::WRITE_ERR_IO:          errno = EIO;         break;
-				case Noux::Sysio::WRITE_ERR_INTERRUPT:   errno = EINTR;       break;
+				case Vfs::File_io_service::WRITE_ERR_AGAIN:       errno = EAGAIN;      break;
+				case Vfs::File_io_service::WRITE_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
+				case Vfs::File_io_service::WRITE_ERR_INVALID:     errno = EINVAL;      break;
+				case Vfs::File_io_service::WRITE_ERR_IO:          errno = EIO;         break;
+				case Vfs::File_io_service::WRITE_ERR_INTERRUPT:   errno = EINTR;       break;
 				default: 
-					if (sysio()->error.general == Noux::Sysio::ERR_FD_INVALID)
+					if (sysio()->error.general == Vfs::Directory_service::ERR_FD_INVALID)
 						errno = EBADF;
 					else
 						errno = 0;
@@ -1106,13 +1109,13 @@ namespace {
 			if (!noux_syscall(Noux::Session::SYSCALL_READ)) {
 
 				switch (sysio()->error.read) {
-				case Noux::Sysio::READ_ERR_AGAIN:       errno = EAGAIN;      break;
-				case Noux::Sysio::READ_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
-				case Noux::Sysio::READ_ERR_INVALID:     errno = EINVAL;      break;
-				case Noux::Sysio::READ_ERR_IO:          errno = EIO;         break;
-				case Noux::Sysio::READ_ERR_INTERRUPT:   errno = EINTR;       break;
+				case Vfs::File_io_service::READ_ERR_AGAIN:       errno = EAGAIN;      break;
+				case Vfs::File_io_service::READ_ERR_WOULD_BLOCK: errno = EWOULDBLOCK; break;
+				case Vfs::File_io_service::READ_ERR_INVALID:     errno = EINVAL;      break;
+				case Vfs::File_io_service::READ_ERR_IO:          errno = EIO;         break;
+				case Vfs::File_io_service::READ_ERR_INTERRUPT:   errno = EINTR;       break;
 				default:
-					if (sysio()->error.general == Noux::Sysio::ERR_FD_INVALID)
+					if (sysio()->error.general == Vfs::Directory_service::ERR_FD_INVALID)
 						errno = EBADF;
 					else
 						errno = 0;
@@ -1159,12 +1162,12 @@ namespace {
 		 * Marshal ioctl arguments
 		 */
 		sysio()->ioctl_in.fd = noux_fd(fd->context);
-		sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_UNDEFINED;
+		sysio()->ioctl_in.request = Vfs::File_io_service::IOCTL_OP_UNDEFINED;
 
 		switch (request) {
 
 		case TIOCGWINSZ:
-			sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_TIOCGWINSZ;
+			sysio()->ioctl_in.request = Vfs::File_io_service::IOCTL_OP_TIOCGWINSZ;
 			break;
 
 		case TIOCGETA:
@@ -1192,7 +1195,7 @@ namespace {
 
 		case TIOCSETAF:
 			{
-				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_TIOCSETAF;
+				sysio()->ioctl_in.request = Vfs::File_io_service::IOCTL_OP_TIOCSETAF;
 
 				::termios *termios = (::termios *)argp;
 
@@ -1200,11 +1203,11 @@ namespace {
 				 * For now only enabling/disabling of ECHO is supported
 				 */
 				if (termios->c_lflag & (ECHO | ECHONL)) {
-					sysio()->ioctl_in.argp = (Noux::Sysio::Ioctl_in::VAL_ECHO |
-					                          Noux::Sysio::Ioctl_in::VAL_ECHONL);
+					sysio()->ioctl_in.argp = (Vfs::File_io_service::IOCTL_VAL_ECHO |
+					                          Vfs::File_io_service::IOCTL_VAL_ECHONL);
 				}
 				else {
-					sysio()->ioctl_in.argp = Noux::Sysio::Ioctl_in::VAL_NULL;
+					sysio()->ioctl_in.argp = Vfs::File_io_service::IOCTL_VAL_NULL;
 				}
 
 				break;
@@ -1212,7 +1215,7 @@ namespace {
 
 		case TIOCSETAW:
 			{
-				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_TIOCSETAW;
+				sysio()->ioctl_in.request = Vfs::File_io_service::IOCTL_OP_TIOCSETAW;
 				sysio()->ioctl_in.argp = argp ? *(int*)argp : 0;
 
 				break;
@@ -1223,7 +1226,7 @@ namespace {
 				if (verbose)
 					PDBG("FIONBIO - *argp=%d", *argp);
 
-				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_FIONBIO;
+				sysio()->ioctl_in.request = Vfs::File_io_service::IOCTL_OP_FIONBIO;
 				sysio()->ioctl_in.argp = argp ? *(int*)argp : 0;
 
 				break;
@@ -1231,7 +1234,7 @@ namespace {
 
 		case DIOCGMEDIASIZE:
 			{
-				sysio()->ioctl_in.request = Noux::Sysio::Ioctl_in::OP_DIOCGMEDIASIZE;
+				sysio()->ioctl_in.request = Vfs::File_io_service::IOCTL_OP_DIOCGMEDIASIZE;
 				sysio()->ioctl_in.argp = 0;
 
 				break;
@@ -1243,7 +1246,7 @@ namespace {
 			break;
 		}
 
-		if (sysio()->ioctl_in.request == Noux::Sysio::Ioctl_in::OP_UNDEFINED) {
+		if (sysio()->ioctl_in.request == Vfs::File_io_service::IOCTL_OP_UNDEFINED) {
 			errno = ENOTTY;
 			return -1;
 		}
@@ -1251,8 +1254,8 @@ namespace {
 		/* perform syscall */
 		if (!noux_syscall(Noux::Session::SYSCALL_IOCTL)) {
 			switch (sysio()->error.ioctl) {
-			case Noux::Sysio::IOCTL_ERR_INVALID: errno = EINVAL; break;
-			case Noux::Sysio::IOCTL_ERR_NOTTY:   errno = ENOTTY; break;
+			case Vfs::File_io_service::IOCTL_ERR_INVALID: errno = EINVAL; break;
+			case Vfs::File_io_service::IOCTL_ERR_NOTTY:   errno = ENOTTY; break;
 			default: errno = 0; break;
 			}
 
@@ -1373,8 +1376,9 @@ namespace {
 		sysio()->ftruncate_in.length = length;
 		if (!noux_syscall(Noux::Session::SYSCALL_FTRUNCATE)) {
 			switch (sysio()->error.ftruncate) {
-				case Noux::Sysio::FTRUNCATE_ERR_NO_PERM: errno = EPERM; break;
-				case Noux::Sysio::FTRUNCATE_ERR_INTERRUPT: errno = EINTR; break;
+			case Vfs::File_io_service::FTRUNCATE_OK: /* never reached */
+			case Vfs::File_io_service::FTRUNCATE_ERR_NO_PERM:   errno = EPERM; break;
+			case Vfs::File_io_service::FTRUNCATE_ERR_INTERRUPT: errno = EINTR; break;
 			}
 			return -1;
 		}
@@ -1453,8 +1457,8 @@ namespace {
 				case Noux::Sysio::FCNTL_ERR_CMD_INVALID: errno = EINVAL; break;
 				default:
 					switch (sysio()->error.general) {
-						case Noux::Sysio::ERR_FD_INVALID: errno = EINVAL; break;
-						case Noux::Sysio::NUM_GENERAL_ERRORS: break;
+					case Vfs::Directory_service::ERR_FD_INVALID: errno = EINVAL; break;
+					case Vfs::Directory_service::NUM_GENERAL_ERRORS: break;
 					}
 			}
 			return -1;
@@ -1481,23 +1485,23 @@ namespace {
 		if (!noux_syscall(Noux::Session::SYSCALL_DIRENT)) {
 			switch (sysio()->error.general) {
 
-			case Noux::Sysio::ERR_FD_INVALID:
+			case Vfs::Directory_service::ERR_FD_INVALID:
 				errno = EBADF;
 				PERR("dirent: ERR_FD_INVALID");
 				return -1;
 
-			case Noux::Sysio::NUM_GENERAL_ERRORS: return -1;
+			case Vfs::Directory_service::NUM_GENERAL_ERRORS: return -1;
 			}
 		}
 
 		switch (sysio()->dirent_out.entry.type) {
-		case Noux::Sysio::DIRENT_TYPE_DIRECTORY: dirent->d_type = DT_DIR;  break;
-		case Noux::Sysio::DIRENT_TYPE_FILE:      dirent->d_type = DT_REG;  break;
-		case Noux::Sysio::DIRENT_TYPE_SYMLINK:   dirent->d_type = DT_LNK;  break;
-		case Noux::Sysio::DIRENT_TYPE_FIFO:      dirent->d_type = DT_FIFO; break;
-		case Noux::Sysio::DIRENT_TYPE_CHARDEV:   dirent->d_type = DT_CHR; break;
-		case Noux::Sysio::DIRENT_TYPE_BLOCKDEV:  dirent->d_type = DT_BLK; break;
-		case Noux::Sysio::DIRENT_TYPE_END:       return 0;
+		case Vfs::Directory_service::DIRENT_TYPE_DIRECTORY: dirent->d_type = DT_DIR;  break;
+		case Vfs::Directory_service::DIRENT_TYPE_FILE:      dirent->d_type = DT_REG;  break;
+		case Vfs::Directory_service::DIRENT_TYPE_SYMLINK:   dirent->d_type = DT_LNK;  break;
+		case Vfs::Directory_service::DIRENT_TYPE_FIFO:      dirent->d_type = DT_FIFO; break;
+		case Vfs::Directory_service::DIRENT_TYPE_CHARDEV:   dirent->d_type = DT_CHR; break;
+		case Vfs::Directory_service::DIRENT_TYPE_BLOCKDEV:  dirent->d_type = DT_BLK; break;
+		case Vfs::Directory_service::DIRENT_TYPE_END:       return 0;
 		}
 
 		dirent->d_fileno = sysio()->dirent_out.entry.fileno;
@@ -1529,12 +1533,12 @@ namespace {
 		if (!noux_syscall(Noux::Session::SYSCALL_LSEEK)) {
 			switch (sysio()->error.general) {
 
-			case Noux::Sysio::ERR_FD_INVALID:
+			case Vfs::Directory_service::ERR_FD_INVALID:
 				errno = EBADF;
 				PERR("lseek: ERR_FD_INVALID");
 				return -1;
 
-			case Noux::Sysio::NUM_GENERAL_ERRORS: return -1;
+			case Vfs::Directory_service::NUM_GENERAL_ERRORS: return -1;
 			}
 		}
 
@@ -1549,8 +1553,8 @@ namespace {
 		if (!noux_syscall(Noux::Session::SYSCALL_UNLINK)) {
 			PWRN("unlink syscall failed for path \"%s\"", path);
 			switch (sysio()->error.unlink) {
-			case Noux::Sysio::UNLINK_ERR_NO_ENTRY: errno = ENOENT; break;
-			default:                               errno = EPERM;  break;
+			case Vfs::Directory_service::UNLINK_ERR_NO_ENTRY: errno = ENOENT; break;
+			default:                                          errno = EPERM;  break;
 			}
 			return -1;
 		}
@@ -1592,10 +1596,10 @@ namespace {
 		if (!noux_syscall(Noux::Session::SYSCALL_RENAME)) {
 			PWRN("rename syscall failed for \"%s\" -> \"%s\"", from_path, to_path);
 			switch (sysio()->error.rename) {
-			case Noux::Sysio::RENAME_ERR_NO_ENTRY: errno = ENOENT; break;
-			case Noux::Sysio::RENAME_ERR_CROSS_FS: errno = EXDEV;  break;
-			case Noux::Sysio::RENAME_ERR_NO_PERM:  errno = EPERM;  break;
-			default:                               errno = EPERM;  break;
+			case Vfs::Directory_service::RENAME_ERR_NO_ENTRY: errno = ENOENT; break;
+			case Vfs::Directory_service::RENAME_ERR_CROSS_FS: errno = EXDEV;  break;
+			case Vfs::Directory_service::RENAME_ERR_NO_PERM:  errno = EPERM;  break;
+			default:                                          errno = EPERM;  break;
 			}
 			return -1;
 		}
@@ -1611,12 +1615,12 @@ namespace {
 		if (!noux_syscall(Noux::Session::SYSCALL_MKDIR)) {
 			PWRN("mkdir syscall failed for \"%s\" mode=0x%x", path, (int)mode);
 			switch (sysio()->error.mkdir) {
-			case Noux::Sysio::MKDIR_ERR_EXISTS:        errno = EEXIST;       break;
-			case Noux::Sysio::MKDIR_ERR_NO_ENTRY:      errno = ENOENT;       break;
-			case Noux::Sysio::MKDIR_ERR_NO_SPACE:      errno = ENOSPC;       break;
-			case Noux::Sysio::MKDIR_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; break;
-			case Noux::Sysio::MKDIR_ERR_NO_PERM:       errno = EPERM;        break;
-			default:                                   errno = EPERM;        break;
+			case Vfs::Directory_service::MKDIR_ERR_EXISTS:        errno = EEXIST;       break;
+			case Vfs::Directory_service::MKDIR_ERR_NO_ENTRY:      errno = ENOENT;       break;
+			case Vfs::Directory_service::MKDIR_ERR_NO_SPACE:      errno = ENOSPC;       break;
+			case Vfs::Directory_service::MKDIR_ERR_NAME_TOO_LONG: errno = ENAMETOOLONG; break;
+			case Vfs::Directory_service::MKDIR_ERR_NO_PERM:       errno = EPERM;        break;
+			default:                                              errno = EPERM;        break;
 			}
 			return -1;
 		}

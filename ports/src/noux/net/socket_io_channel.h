@@ -83,9 +83,9 @@ namespace Noux {
 
 				switch (errno) {
 				/* case EAGAIN:      sysio->error.read = Sysio::READ_ERR_AGAIN;       break; */
-				case EWOULDBLOCK: sysio->error.read = Sysio::READ_ERR_WOULD_BLOCK; break;
-				case EINVAL:      sysio->error.read = Sysio::READ_ERR_INVALID;     break;
-				case EIO:         sysio->error.read = Sysio::READ_ERR_IO;          break;
+				case EWOULDBLOCK: sysio->error.read = Vfs::File_io_service::READ_ERR_WOULD_BLOCK; break;
+				case EINVAL:      sysio->error.read = Vfs::File_io_service::READ_ERR_INVALID;     break;
+				case EIO:         sysio->error.read = Vfs::File_io_service::READ_ERR_IO;          break;
 				default:
 					PDBG("unhandled errno: %d", errno);
 					break;
@@ -107,9 +107,9 @@ namespace Noux {
 
 				switch (errno) {
 				/* case EAGAIN:      sysio->error.read = Sysio::READ_ERR_AGAIN;       break; */
-				case EWOULDBLOCK: sysio->error.read = Sysio::READ_ERR_WOULD_BLOCK; break;
-				case EINVAL:      sysio->error.read = Sysio::READ_ERR_INVALID;     break;
-				case EIO:         sysio->error.read = Sysio::READ_ERR_IO;          break;
+				case EWOULDBLOCK: sysio->error.read = Vfs::File_io_service::READ_ERR_WOULD_BLOCK; break;
+				case EINVAL:      sysio->error.read = Vfs::File_io_service::READ_ERR_INVALID;     break;
+				case EIO:         sysio->error.read = Vfs::File_io_service::READ_ERR_IO;          break;
 				default:
 					PDBG("unhandled errno: %d", errno);
 					break;
@@ -145,7 +145,7 @@ namespace Noux {
 
 				switch (sysio->ioctl_in.request) {
 
-				case Sysio::Ioctl_in::OP_FIONBIO: request = FIONBIO; break;
+				case Vfs::File_io_service::IOCTL_OP_FIONBIO: request = FIONBIO; break;
 				default:
 					PDBG("invalid ioctl request: %d", sysio->ioctl_in.request);
 					return false;

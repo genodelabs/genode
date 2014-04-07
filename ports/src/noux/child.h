@@ -22,7 +22,7 @@
 
 /* Noux includes */
 #include <file_descriptor_registry.h>
-#include <dir_file_system.h>
+#include <vfs/dir_file_system.h>
 #include <noux_session/capability.h>
 #include <args.h>
 #include <environment.h>
@@ -183,10 +183,10 @@ namespace Noux {
 				enum { NAME_MAX_LEN = 128 };
 				char _name[NAME_MAX_LEN];
 
-				Dir_file_system    * const _root_dir;
-				Dataspace_capability const _binary_ds;
+				Vfs::Dir_file_system * const _root_dir;
+				Dataspace_capability   const _binary_ds;
 
-				Elf(char const * const binary_name, Dir_file_system * root_dir,
+				Elf(char const * const binary_name, Vfs::Dir_file_system * root_dir,
 				    Dataspace_capability binary_ds)
 				:
 					_root_dir(root_dir), _binary_ds(binary_ds)
@@ -285,7 +285,7 @@ namespace Noux {
 				io->unregister_wake_up_notifier(&notifier);
 			}
 
-			Dir_file_system    * const root_dir() { return _elf._root_dir; }
+			Vfs::Dir_file_system * const root_dir() { return _elf._root_dir; }
 
 			/**
 			 * Method for handling noux network related system calls
@@ -310,22 +310,22 @@ namespace Noux {
 			 *                               looked up at the virtual file
 			 *                               system
 			 */
-			Child(char const        *binary_name,
-			      Parent_exit       *parent_exit,
-			      Kill_broadcaster  &kill_broadcaster,
-			      Parent_execve     &parent_execve,
-			      int                pid,
-			      Signal_receiver   *sig_rec,
-			      Dir_file_system   *root_dir,
-			      Args               const &args,
-			      Sysio::Env         const &env,
-			      Cap_session       *cap_session,
-			      Service_registry  &parent_services,
-			      Rpc_entrypoint    &resources_ep,
-			      bool               forked,
-			      Allocator         *destruct_alloc,
-			      Destruct_queue    &destruct_queue,
-			      bool               verbose)
+			Child(char const           *binary_name,
+			      Parent_exit          *parent_exit,
+			      Kill_broadcaster     &kill_broadcaster,
+			      Parent_execve        &parent_execve,
+			      int                   pid,
+			      Signal_receiver      *sig_rec,
+			      Vfs::Dir_file_system *root_dir,
+			      Args           const &args,
+			      Sysio::Env     const &env,
+			      Cap_session          *cap_session,
+			      Service_registry     &parent_services,
+			      Rpc_entrypoint       &resources_ep,
+			      bool                  forked,
+			      Allocator            *destruct_alloc,
+			      Destruct_queue       &destruct_queue,
+			      bool                  verbose)
 			:
 				Family_member(pid),
 				Destruct_queue::Element<Child>(destruct_alloc),

@@ -15,11 +15,8 @@
 #define _NOUX__PATH_H_
 
 /* Genode includes */
-#include <os/path.h>
+#include <vfs/types.h>
 
-/* Noux includes */
-#include <noux_session/sysio.h>
-
-namespace Noux { typedef Path<Sysio::MAX_PATH_LEN> Absolute_path; }
+namespace Noux { using Vfs::Absolute_path; }
 
 #endif /* _NOUX__PATH_H_ */

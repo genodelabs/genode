@@ -229,12 +229,12 @@ namespace Noux {
 				_pipe->writer_close();
 			}
 
-			bool check_unblock(bool rd, bool wr, bool ex) const
+			bool check_unblock(bool rd, bool wr, bool ex) const override
 			{
 				return wr && _pipe->any_space_avail_for_writing();
 			}
 
-			bool write(Sysio *sysio, size_t &count)
+			bool write(Sysio *sysio, size_t &offset) override
 			{
 				/*
 				 * If the write operation is larger than the space available in
@@ -246,17 +246,18 @@ namespace Noux {
 				 */
 
 				/* dimension the pipe write operation to the not yet written data */
-				size_t curr_count = _pipe->write(sysio->write_in.chunk + count,
-				                                 sysio->write_in.count - count);
-				count += curr_count;
+				size_t curr_count = _pipe->write(sysio->write_in.chunk + offset,
+				                                 sysio->write_in.count - offset);
+				offset += curr_count;
 				return true;
 			}
 
-			bool fstat(Sysio *sysio)
+			bool fstat(Sysio *sysio) override
 			{
 				sysio->fstat_out.st.mode = Sysio::STAT_MODE_CHARDEV;
 				return true;
 			}
+
 
 			/**************************************
 			 ** Signal_dispatcher_base interface **
@@ -265,7 +266,7 @@ namespace Noux {
 			/**
 			 * Called by Noux main loop on the occurrence of new STDIN input
 			 */
-			void dispatch(unsigned)
+			void dispatch(unsigned) override
 			{
 				Io_channel::invoke_all_notifiers();
 			}
@@ -293,7 +294,7 @@ namespace Noux {
 				_pipe->reader_close();
 			}
 
-			bool check_unblock(bool rd, bool wr, bool ex) const
+			bool check_unblock(bool rd, bool wr, bool ex) const override
 			{
 				/* unblock if the writer has already closed its pipe end */
 				if (_pipe->writer_is_gone())
@@ -302,7 +303,7 @@ namespace Noux {
 				return (rd && _pipe->data_avail_for_reading());
 			}
 
-			bool read(Sysio *sysio)
+			bool read(Sysio *sysio) override
 			{
 				size_t const max_count =
 					min(sysio->read_in.count,
@@ -314,7 +315,7 @@ namespace Noux {
 				return true;
 			}
 
-			bool fstat(Sysio *sysio)
+			bool fstat(Sysio *sysio) override
 			{
 				sysio->fstat_out.st.mode = Sysio::STAT_MODE_CHARDEV;
 				return true;
@@ -327,7 +328,7 @@ namespace Noux {
 			/**
 			 * Called by Noux main loop on the occurrence of new STDIN input
 			 */
-			void dispatch(unsigned)
+			void dispatch(unsigned) override
 			{
 				Io_channel::invoke_all_notifiers();
 			}
