@@ -69,8 +69,8 @@ proc create_boot_directory { } { }
 # Append string to variable only if 'condition' is satisfied
 #
 proc append_if {condition var string} {
-	global $var
-	if {$condition} { append $var $string }
+	upvar $var up_var
+	if {$condition} { append up_var $string }
 }
 
 
@@ -78,8 +78,8 @@ proc append_if {condition var string} {
 # Append element to list only if 'condition' is satisfied
 #
 proc lappend_if {condition var string} {
-	global $var
-	if {$condition} { lappend $var $string }
+	upvar $var up_var
+	if {$condition} { lappend up_var $string }
 }
 
 
