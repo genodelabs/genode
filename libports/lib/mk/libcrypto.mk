@@ -1,5 +1,5 @@
 LIBCRYPTO     = libcrypto-1.0.0
-LIBCRYPTO_DIR = $(REP_DIR)/contrib/openssl-1.0.1c/crypto
+LIBCRYPTO_DIR = $(REP_DIR)/contrib/openssl-1.0.1g/crypto
 
 #
 # ARM is not supported currently (needs testing)
@@ -102,7 +102,7 @@ SRC_C_err      = err.c err_all.c err_prn.c
 #
 # evp (e_camellia.c x86 only?)
 #
-SRC_C_evp      = encode.c digest.c evp_enc.c evp_key.c evp_acnf.c \
+SRC_C_evp      = encode.c digest.c evp_cnf.c evp_enc.c evp_key.c evp_acnf.c \
                  e_des.c e_bf.c e_idea.c e_des3.c e_camellia.c e_rc4.c \
                  e_aes.c names.c e_seed.c e_xcbc_d.c e_rc2.c e_cast.c \
                  e_rc5.c m_null.c m_md2.c m_md4.c m_md5.c m_sha.c \

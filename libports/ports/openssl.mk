@@ -1,4 +1,4 @@
-OPENSSL_VERSION  = 1.0.1c
+OPENSSL_VERSION  = 1.0.1g
 OPENSSL          = openssl-$(OPENSSL_VERSION)
 OPENSSL_TGZ      = $(OPENSSL).tar.gz
 OPENSSL_SIG      = $(OPENSSL_TGZ).asc
