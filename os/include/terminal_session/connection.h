@@ -41,9 +41,10 @@ namespace Terminal {
 			sig_rec.dissolve(&sig_ctx);
 		}
 
-		Connection()
+		Connection(char const *label = "")
 		:
-			Genode::Connection<Session>(session("ram_quota=%zd", 2*4096)),
+			Genode::Connection<Session>(session("ram_quota=%zd, label=\"%s\"",
+			                                    2*4096, label)),
 			Session_client(cap())
 		{
 			wait_for_connection(cap());
