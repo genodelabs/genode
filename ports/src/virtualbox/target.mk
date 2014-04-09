@@ -5,7 +5,7 @@ include $(REP_DIR)/lib/mk/virtualbox-common.inc
 TARGET = virtualbox
 SRC_CC = main.cc cxx_dummies.cc devices.cc drivers.cc dummies.cc libc.cc \
          logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc iommio.cc ioport.cc \
-         hwaccm.cc
+         hwaccm.cc thread.cc 
 
 LIBS  += base
 LIBS  += config_args
@@ -16,6 +16,7 @@ LIBS  += virtualbox-bios virtualbox-recompiler virtualbox-runtime \
          virtualbox-hwaccl virtualbox-dis
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
+INC_DIR += $(call select_from_repositories,src/lib/pthread)
 
 INC_DIR += $(VBOX_DIR)/Runtime/include
 INC_DIR += $(VBOX_DIR)/Frontends/VBoxBFE
