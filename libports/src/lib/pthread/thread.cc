@@ -25,8 +25,6 @@
 
 using namespace Genode;
 
-static const bool verbose = false;
-
 extern "C" {
 
 	/* Thread */
@@ -71,25 +69,36 @@ extern "C" {
 
 	pthread_t pthread_self(void)
 	{
-		static struct pthread_attr main_thread_attr;
-		static struct pthread main_thread(&main_thread_attr, 0, 0, 64*1024,
-		                                  "main", nullptr);
-
 		Thread_base *myself = Thread_base::myself();
 
-		/* the main thread does not have a Genode thread object */
-		if (!myself)
-			return &main_thread;
-
 		pthread_t pthread = dynamic_cast<pthread_t>(myself);
+		if (pthread)
+			return pthread;
 
-		if (!pthread) {
-			if (verbose)
-				PDBG("pthread_self() possibly called from alien thread, returning &main_thread.");
-			return &main_thread;
+		/* either it is the main thread, an alien thread or a bug */
+
+		/* determine name of thread */
+		char name[Thread_base::Context::NAME_LEN];
+		myself->name(name, sizeof(name));
+
+		/* determine if stack is in first context area slot */
+		addr_t stack = reinterpret_cast<addr_t>(&myself);
+		bool is_main = Native_config::context_area_virtual_base() <= stack &&
+		               stack < Native_config::context_area_virtual_base() +
+		               Native_config::context_virtual_size();
+
+		/* check that stack and name is of main thread */
+		if (is_main && !strcmp(name, "main")) {
+			/* create a pthread object containing copy of main Thread_base */
+			static struct pthread_attr main_thread_attr;
+			static struct pthread main(*myself, &main_thread_attr);
+
+			return &main;
 		}
 
-		return pthread;
+		PERR("pthread_self() called from alien thread named '%s'", name);
+
+		return nullptr;
 	}
 
 
@@ -359,7 +368,6 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		PDBG("not implemented yet");
 		*attr = 0;
 
 		return 0;
@@ -452,7 +460,7 @@ extern "C" {
 				 * logs a warning if the timeout is lower than the minimum. To
 				 * prevent the warning, limit timeouts to >= 10 ms here.
 				 */
-				if (timeout != 0) timeout = max(timeout, 10);
+				if (timeout != 0) timeout = max(timeout, 10U);
 				c->signal_sem.down(timeout);
 			} catch (Timeout_exception) {
 				result = ETIMEDOUT;

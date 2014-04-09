@@ -65,7 +65,11 @@ int main(int argc, char **argv)
 {
 	printf("--- pthread test ---\n");
 
-	printf("main thread: running, my thread ID is %p\n", pthread_self());
+	pthread_t pthread_main = pthread_self();
+
+	printf("main thread: running, my thread ID is %p\n", pthread_main);
+	if (!pthread_main)
+		return -1;
 
 	Thread thread[NUM_THREADS];
 

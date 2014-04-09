@@ -42,3 +42,4 @@ blk_cache
 rump_ext2
 virtualbox_auto_disk
 thread
+pthread

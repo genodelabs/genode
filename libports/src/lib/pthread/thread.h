@@ -50,6 +50,18 @@ extern "C" {
 				_attr->pthread = this;
 		}
 
+		/**
+		 * Constructor to create pthread object out of existing thread,
+		 * e.g. main Genode thread
+		 */
+		pthread(Thread_base &myself, pthread_attr_t attr)
+		: Thread_base(myself),
+		  _attr(attr), _start_routine(nullptr), _arg(nullptr)
+		{
+			if (_attr)
+				_attr->pthread = this;
+		}
+
 		void entry()
 		{
 			void *exit_status = _start_routine(_arg);
