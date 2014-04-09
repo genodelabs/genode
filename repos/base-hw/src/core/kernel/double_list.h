@@ -20,13 +20,17 @@
 namespace Kernel
 {
 	/**
-	 * Inheritable ability for objects of type T to be item in a double list
+	 * Ability to be an item in a double connected list
+	 *
+	 * \param T  object type that inherits from Double_list_item<T>
 	 */
 	template <typename T>
 	class Double_list_item;
 
 	/**
-	 * Double connected list for objects of type T
+	 * Double connected list
+	 *
+	 * \param T  object type that inherits from Double_list_item<T>
 	 */
 	template <typename T>
 	class Double_list;
@@ -39,9 +43,14 @@ class Kernel::Double_list_item
 
 	private:
 
-		Double_list_item * _next;
-		Double_list_item * _prev;
-		Double_list<T> *   _list;
+		Double_list_item<T> * _next;
+		Double_list_item<T> * _prev;
+		Double_list<T> *      _list;
+
+		/**
+		 * Return the object behind this item
+		 */
+		T * _object() { return static_cast<T *>(this); }
 
 	protected:
 
@@ -80,10 +89,10 @@ class Kernel::Double_list
 		/**
 		 * Insert item 't' from behind into list
 		 */
-		void insert_tail(T * const t)
+		void insert_tail(Item * const i)
 		{
-			Item * i = static_cast<Item *>(t);
-			assert(i && !i->Item::_list);
+			/* assertions */
+			assert(!i->_list);
 
 			/* update new item */
 			i->_prev = _tail;
@@ -99,10 +108,10 @@ class Kernel::Double_list
 		/**
 		 * Remove item 't' from list
 		 */
-		void remove(T * const t)
+		void remove(Item * const i)
 		{
-			Item * i = static_cast<Item *>(t);
-			assert(_head && i && i->Item::_list == this);
+			/* assertions */
+			assert(i->_list == this);
 
 			/* update next item or _tail */
 			if (i != _tail) { i->_next->_prev = i->_prev; }
@@ -136,12 +145,26 @@ class Kernel::Double_list
 			_tail = i;
 		}
 
+		/**
+		 * Call a function for each object in the list
+		 *
+		 * \param function  targeted function of type 'void function(T *)'
+		 */
+		template <typename Function>
+		void for_each(Function function)
+		{
+			Item * i = _head;
+			while (i) {
+				function(i->_object());
+				i = i->_next;
+			}
+		}
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		T * head() const { return static_cast<T *>(_head); }
+		T * head() const { return _head ? _head->_object() : 0; }
 };
 
 #endif /* _KERNEL__DOUBLE_LIST_H_ */
