@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <pthread.h>
+#include "thread.h"
 
 using namespace Genode;
 
@@ -29,17 +30,6 @@ static const bool verbose = false;
 extern "C" {
 
 	/* Thread */
-
-
-	enum { STACK_SIZE=64*1024 };
-
-
-	struct pthread_attr
-	{
-		pthread_t pthread;
-
-		pthread_attr() : pthread(0) { }
-	};
 
 
 	int pthread_attr_init(pthread_attr_t *attr)
@@ -65,51 +55,6 @@ extern "C" {
 	}
 
 
-	/*
-	 * This class is named 'struct pthread' because the 'pthread_t' type is
-	 * defined as 'struct pthread*' in '_pthreadtypes.h'
-	 */
-	struct pthread : Thread<STACK_SIZE>
-	{
-		pthread_attr_t _attr;
-		void *(*_start_routine) (void *);
-		void *_arg;
-
-		pthread(pthread_attr_t attr, void *(*start_routine) (void *), void *arg)
-		: Thread<STACK_SIZE>("pthread"),
-		  _attr(attr),
-		  _start_routine(start_routine),
-		  _arg(arg)
-		{
-			if (_attr)
-				_attr->pthread = this;
-		}
-
-		void entry()
-		{
-			void *exit_status = _start_routine(_arg);
-			pthread_exit(exit_status);
-		}
-	};
-
-
-	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-	                   void *(*start_routine) (void *), void *arg)
-	{
-		pthread_t thread_obj = new (env()->heap())
-		                           pthread(attr ? *attr : 0, start_routine, arg);
-
-		if (!thread_obj)
-			return EAGAIN;
-
-		*thread = thread_obj;
-
-		thread_obj->start();
-
-		return 0;
-	}
-
-
 	int pthread_cancel(pthread_t thread)
 	{
 		destroy(env()->heap(), thread);
@@ -127,7 +72,8 @@ extern "C" {
 	pthread_t pthread_self(void)
 	{
 		static struct pthread_attr main_thread_attr;
-		static struct pthread main_thread(&main_thread_attr, 0, 0);
+		static struct pthread main_thread(&main_thread_attr, 0, 0, 64*1024,
+		                                  "main", nullptr);
 
 		Thread_base *myself = Thread_base::myself();
 

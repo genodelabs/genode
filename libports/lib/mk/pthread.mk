@@ -1,5 +1,5 @@
 SRC_CC = semaphore.cc \
-         thread.cc
+         thread.cc thread_create.cc 
 
 LIBS  += libc
 
