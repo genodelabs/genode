@@ -1,5 +1,5 @@
 /*
- * \brief  CPU driver for core
+ * \brief  Processor driver for core
  * \author Norman Feske
  * \author Martin stein
  * \date   2012-08-30
@@ -27,7 +27,12 @@ namespace Arm_v6
 	using namespace Genode;
 
 	/**
-	 * CPU driver for core
+	 * Part of processor state that is not switched on every mode transition
+	 */
+	class Processor_lazy_state { };
+
+	/**
+	 * Processor driver for core
 	 */
 	struct Processor_driver : Arm::Processor_driver
 	{
@@ -213,6 +218,18 @@ namespace Arm_v6
 		 * Return kernel name of the executing processor
 		 */
 		static unsigned executing_id() { return primary_id(); }
+
+
+		/**
+		 * Prepare for the proceeding of a user
+		 */
+		static void prepare_proceeding(Processor_lazy_state *,
+		                               Processor_lazy_state *) { }
+
+		/**
+		 * Return wether to retry an undefined user instruction after this call
+		 */
+		bool retry_undefined_instr(Processor_lazy_state *) { return false; }
 	};
 }
 

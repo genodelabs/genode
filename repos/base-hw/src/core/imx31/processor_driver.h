@@ -1,5 +1,5 @@
 /*
- * \brief  CPU driver for core
+ * \brief  Processor driver for core
  * \author Martin Stein
  * \date   2012-04-23
  */
@@ -19,13 +19,9 @@
 
 namespace Genode
 {
-	/**
-	 * CPU driver for core
-	 */
-	class Processor_driver : public Arm_v6::Processor_driver { };
+	using Arm_v6::Processor_lazy_state;
+	using Arm_v6::Processor_driver;
 }
-
-namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
 
 #endif /* _IMX31__PROCESSOR_DRIVER_H_ */
 

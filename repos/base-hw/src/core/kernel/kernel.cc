@@ -341,7 +341,7 @@ extern "C" void kernel()
 	/* determine local processor scheduler */
 	unsigned const processor_id = Processor::executing_id();
 	Processor * const processor = processor_pool()->processor(processor_id);
-	Processor_scheduler * const scheduler = processor->scheduler();
+	Scheduler<Processor_client> * const scheduler = processor->scheduler();
 
 	/*
 	 * Request the current processor occupant without any update. While this
@@ -349,17 +349,20 @@ extern "C" void kernel()
 	 * scheduling of the local activities in a way that an update would return
 	 * an occupant other than that whose exception caused the kernel entry.
 	 */
-	Processor_client * const old_occupant = scheduler->occupant();
-	old_occupant->exception(processor_id);
+	Processor_client * const old_client = scheduler->occupant();
+	Processor_lazy_state * const old_state = old_client->lazy_state();
+	old_client->exception(processor_id);
 
 	/*
 	 * The processor local as well as remote exception-handling may have
 	 * changed the scheduling of the local activities. Hence we must update the
 	 * processor occupant.
 	 */
-	Processor_client * const new_occupant = scheduler->update_occupant();
-	if (old_occupant != new_occupant) { reset_scheduling_time(processor_id); }
-	new_occupant->proceed(processor_id);
+	Processor_client * const new_client = scheduler->update_occupant();
+	Processor_lazy_state * const new_state = new_client->lazy_state();
+	if (old_client != new_client) { reset_scheduling_time(processor_id); }
+	processor->prepare_proceeding(old_state, new_state);
+	new_client->proceed(processor_id);
 }
 
 

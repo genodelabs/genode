@@ -167,7 +167,7 @@ void Thread::init(Processor * const processor, Pd * const pd,
 	assert(_state == AWAITS_START)
 
 	/* store thread parameters */
-	Processor_client::_processor(processor);
+	Processor_client::_processor = processor;
 	_utcb_phys = utcb_phys;
 
 	/* join protection domain */
@@ -210,11 +210,17 @@ void Thread::exception(unsigned const processor_id)
 	case FAST_INTERRUPT_REQUEST:
 		_interrupt(processor_id);
 		return;
+	case UNDEFINED_INSTRUCTION:
+		if (_processor->retry_undefined_instr(&_lazy_state)) { return; }
+		PWRN("undefined instruction");
+		_stop();
+		return;
 	case RESET:
 		return;
 	default:
 		PWRN("unknown exception");
 		_stop();
+		return;
 	}
 }
 

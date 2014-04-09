@@ -23,6 +23,9 @@
 
 namespace Kernel
 {
+	using Genode::Processor_driver;
+	using Genode::Processor_lazy_state;
+
 	/**
 	 * A single user of a multiplexable processor
 	 */
@@ -41,11 +44,10 @@ namespace Kernel
 
 class Kernel::Processor_client : public Processor_scheduler::Item
 {
-	private:
-
-		Processor * __processor;
-
 	protected:
+
+		Processor *          _processor;
+		Processor_lazy_state _lazy_state;
 
 		using List_item = Genode::List_element<Processor_client>;
 
@@ -74,16 +76,6 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		 * Yield currently scheduled processor share of the context
 		 */
 		void _yield();
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		void _processor(Processor * const processor)
-		{
-			__processor = processor;
-		}
 
 	public:
 
@@ -122,7 +114,7 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		Processor_client(Processor * const processor, Priority const priority)
 		:
 			Processor_scheduler::Item(priority),
-			__processor(processor),
+			_processor(processor),
 			_flush_tlb_li(this)
 		{ }
 
@@ -134,6 +126,13 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 			if (!_scheduled()) { return; }
 			_unschedule();
 		}
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Processor_lazy_state * lazy_state() { return &_lazy_state; }
 };
 
 class Kernel::Processor : public Processor_driver

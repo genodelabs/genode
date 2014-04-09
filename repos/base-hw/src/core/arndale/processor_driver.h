@@ -1,5 +1,5 @@
 /*
- * \brief  CPU driver for core
+ * \brief  Processor driver for core
  * \author Martin Stein
  * \date   2012-04-23
  */
@@ -19,8 +19,10 @@
 
 namespace Genode
 {
+	using Cortex_a15::Processor_lazy_state;
+
 	/**
-	 * CPU driver for core
+	 * Processor driver for core
 	 */
 	class Processor_driver : public Cortex_a15::Processor_driver
 	{
@@ -40,8 +42,6 @@ namespace Genode
 			static unsigned primary_id() { return Board::PRIMARY_MPIDR_AFF_0; }
 	};
 }
-
-namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
 
 #endif /* _ARNDALE__PROCESSOR_DRIVER_H_ */
 

@@ -1,5 +1,5 @@
 /*
- * \brief  CPU definition for Raspberry Pi
+ * \brief  Processor driver for core
  * \author Norman Feske
  * \date   2013-04-11
  */
@@ -17,9 +17,11 @@
 /* core includes */
 #include <processor_driver/arm_v6.h>
 
-namespace Genode { class Processor_driver : public Arm_v6::Processor_driver { }; }
-
-namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
+namespace Genode
+{
+	using Arm_v6::Processor_lazy_state;
+	using Arm_v6::Processor_driver;
+}
 
 #endif /* _RPI__PROCESSOR_DRIVER_H_ */
 

@@ -1,5 +1,5 @@
 /*
- * \brief  CPU driver for core
+ * \brief  Processor driver for core
  * \author Martin Stein
  * \date   2012-04-23
  */
@@ -19,8 +19,10 @@
 
 namespace Genode
 {
+	using Cortex_a9::Processor_lazy_state;
+
 	/**
-	 * CPU driver for core
+	 * Processor driver for core
 	 */
 	class Processor_driver : public Cortex_a9::Processor_driver
 	{
@@ -38,7 +40,4 @@ namespace Genode
 	};
 }
 
-namespace Kernel { typedef Genode::Processor_driver Processor_driver; }
-
 #endif /* _VEA9X4__PROCESSOR_DRIVER_H_ */
-

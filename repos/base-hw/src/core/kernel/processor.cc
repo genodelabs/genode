@@ -49,13 +49,13 @@ void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 		/* check wether the interrupt is a processor-scheduling timeout */
 		if (timer()->interrupt_id(processor_id) == irq_id) {
 
-			__processor->scheduler()->yield_occupation();
+			_processor->scheduler()->yield_occupation();
 			timer()->clear_interrupt(processor_id);
 
 		/* check wether the interrupt is our inter-processor interrupt */
 		} else if (ic->is_ip_interrupt(irq_id, processor_id)) {
 
-			__processor->ip_interrupt();
+			_processor->ip_interrupt();
 
 		/* after all it must be a user interrupt */
 		} else {
@@ -69,7 +69,7 @@ void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 }
 
 
-void Kernel::Processor_client::_schedule() { __processor->schedule(this); }
+void Kernel::Processor_client::_schedule() { _processor->schedule(this); }
 
 
 void Kernel::Processor_client::tlb_to_flush(unsigned pd_id)
@@ -141,15 +141,15 @@ void Kernel::Processor::schedule(Processor_client * const client)
 
 void Kernel::Processor_client::_unschedule()
 {
-	assert(__processor->id() == Processor::executing_id());
-	__processor->scheduler()->remove(this);
+	assert(_processor->id() == Processor::executing_id());
+	_processor->scheduler()->remove(this);
 }
 
 
 void Kernel::Processor_client::_yield()
 {
-	assert(__processor->id() == Processor::executing_id());
-	__processor->scheduler()->yield_occupation();
+	assert(_processor->id() == Processor::executing_id());
+	_processor->scheduler()->yield_occupation();
 }
 
 

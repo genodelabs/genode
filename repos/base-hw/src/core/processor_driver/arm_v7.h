@@ -290,6 +290,8 @@ namespace Arm_v7
 			Sctlr::write(Sctlr::init_virt_kernel());
 		}
 
+		inline static void finish_init_phys_kernel();
+
 		/**
 		 * Configure this module appropriately for the first kernel run
 		 */
@@ -299,6 +301,7 @@ namespace Arm_v7
 			Sctlr::write(Sctlr::init_phys_kernel());
 			Psr::write(Psr::init_kernel());
 			flush_tlb();
+			finish_init_phys_kernel();
 		}
 
 		/**
