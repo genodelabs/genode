@@ -67,7 +67,7 @@ class Noux_connection
 	private:
 
 		Noux::Connection _connection;
-		Noux::Sysio      *_sysio;
+		Noux::Sysio     *_sysio;
 
 		Noux::Sysio *_obtain_sysio()
 		{
