@@ -4,6 +4,23 @@
                                ===========
 
 
+An Exploration of ARM TrustZone Technology | 2014-04-10
+#######################################################
+
+| A new article supplemented by a demonstration video presents our endeavour
+| of combining Genode with the security features of ARM TrustZone.
+
+ARM TrustZone technology has been around for half a decade. Even though it is
+used on most ARM-based devices ranging from low-cost development boards to
+mobile phones like the Samsung Galaxy S4, there exists almost no public body
+of knowledge around this technology. This prompted us to start a series of
+experiments with ARM's security extensions. Our line of work ultimately led to
+a demonstrable prototype where Genode is used as secure OS behind the back of
+Android running on a FreeScale i.MX53 SABRE tablet. We share our experience
+(and of course the full source code) in the form of the article
+[http:/documentation/articles/trustzone - An Exploration of ARM TrustZone Technology...]
+
+
 Genode OS Framework release 14.02 | 2014-02-28
 ##############################################
 
