@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 	int ret, fd;
 	ssize_t count;
 
-	char const *dir_name      = "/testdir";
+	char const *dir_name      = "testdir";
 	char const *dir_name2     = "testdir2";
 	char const *file_name     = "test.tst";
 	char const *file_name2    = "test2.tst";
@@ -151,6 +151,8 @@ int main(int argc, char *argv[])
 
 		/* read directory entries */
 		DIR *dir;
+
+		CALL_AND_CHECK(ret, chdir(".."), ret == 0, "dir_name=..");
 		CALL_AND_CHECK(dir, opendir(dir_name), dir, "dir_name=\"%s\"", dir_name);
 		printf("calling readdir()\n");
 		for (;;) {
@@ -188,7 +190,6 @@ int main(int argc, char *argv[])
 		               "file_name=%s", file_name4);
 
 		/* test 'fchdir()' */
-		CALL_AND_CHECK(ret, chdir("/"), ret == 0, "");
 		CALL_AND_CHECK(fd, open(dir_name, O_RDONLY), fd >= 0, "dir_name=%s", dir_name);
 		CALL_AND_CHECK(ret, fchdir(fd), ret == 0, "");
 		CALL_AND_CHECK(ret, close(fd), ret == 0, "");
@@ -202,18 +203,18 @@ int main(int argc, char *argv[])
 		CALL_AND_CHECK(ret, stat(dir_name2, &stat_buf), (ret == -1), "dir_name=%s", dir_name2);
 
 		/* test symbolic links */
-		if ((symlink("/", "/symlinks_supported") == 0) || (errno != ENOSYS)) {
-			CALL_AND_CHECK(ret, mkdir("/a", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/a");
-			CALL_AND_CHECK(ret, mkdir("/c", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/c");
-			CALL_AND_CHECK(ret, symlink("/a", "/c/d"),
+		if ((symlink("/", "symlinks_supported") == 0) || (errno != ENOSYS)) {
+			CALL_AND_CHECK(ret, mkdir("a", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "a");
+			CALL_AND_CHECK(ret, mkdir("c", 0777), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "c");
+			CALL_AND_CHECK(ret, symlink("../a", "c/d"),
 			               ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/c/d");
-			CALL_AND_CHECK(ret, symlink("/c", "/e"), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "/e");
+			CALL_AND_CHECK(ret, symlink("c", "e"), ((ret == 0) || (errno == EEXIST)), "dir_name=%s", "e");
 
-			CALL_AND_CHECK(fd, open("/a/b", O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", "/a/b");
+			CALL_AND_CHECK(fd, open("a/b", O_CREAT | O_WRONLY), fd >= 0, "file_name=%s", "a/b");
 			CALL_AND_CHECK(count, write(fd, pattern, pattern_size), (size_t)count == pattern_size, "");
 			CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 
-			CALL_AND_CHECK(fd, open("/e/d/b", O_RDONLY), fd >= 0, "file_name=%s", "/e/d/b");
+			CALL_AND_CHECK(fd, open("e/d/b", O_RDONLY), fd >= 0, "file_name=%s", "e/d/b");
 			CALL_AND_CHECK(count, read(fd, buf, sizeof(buf)), (size_t)count == pattern_size, "");
 			CALL_AND_CHECK(ret, close(fd), ret == 0, "");
 			printf("content of file: \"%s\"\n", buf);
@@ -225,8 +226,8 @@ int main(int argc, char *argv[])
 			}
 
 			/* test unlink for symbolic links */
-			CALL_AND_CHECK(ret, unlink("/c/d"), (ret == 0), "symlink=%s", "/c/d");
-			CALL_AND_CHECK(ret, stat("/c/d", &stat_buf), (ret == -1), "symlink=%s", "/c/d");
+			CALL_AND_CHECK(ret, unlink("c/d"), (ret == 0), "symlink=%s", "c/d");
+			CALL_AND_CHECK(ret, stat("c/d", &stat_buf), (ret == -1), "symlink=%s", "c/d");
 		}
 
 		if (i < (iterations - 1))
