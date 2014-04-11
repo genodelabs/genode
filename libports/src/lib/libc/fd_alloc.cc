@@ -72,7 +72,7 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 
 void File_descriptor_allocator::free(File_descriptor *fdo)
 {
-	::free(fdo->fd_path);
+	::free((void *)fdo->fd_path);
 	Allocator_avl_base::free(reinterpret_cast<void*>(fdo->libc_fd));
 }
 

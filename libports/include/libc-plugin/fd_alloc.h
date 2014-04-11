@@ -40,7 +40,7 @@ namespace Libc {
 	struct File_descriptor
 	{
 		int             libc_fd = -1;
-		char           *fd_path = 0;  /* for 'fchdir', 'fstat' */
+		char     const *fd_path = 0;  /* for 'fchdir', 'fstat' */
 		Plugin         *plugin  = 0;
 		Plugin_context *context = 0;
 		unsigned        flags   = 0;  /* for 'fcntl' */
@@ -50,14 +50,15 @@ namespace Libc {
 		void path(char const *newpath)
 		{
 			if (newpath) {
-				size_t path_size = ::strlen(newpath) + 1;
-				fd_path = (char*)malloc(path_size);
-				if (!fd_path) {
+				size_t const path_size = ::strlen(newpath) + 1;
+				char *buf = (char*)malloc(path_size);
+				if (!buf) {
 					PERR("could not allocate path buffer for libc_fd %d%s",
 					     libc_fd, libc_fd == ANY_FD ? " (any)" : "");
 					return;
 				}
-				::memcpy(fd_path, newpath, path_size);
+				::memcpy(buf, newpath, path_size);
+				fd_path = buf;
 			} else
 				fd_path = 0;
 		}
