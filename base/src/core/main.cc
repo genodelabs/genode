@@ -172,7 +172,10 @@ class Core_child : public Child_policy
  ** Core main **
  ***************/
 
-namespace Genode { extern bool inhibit_tracing; }
+namespace Genode {
+	extern bool        inhibit_tracing;
+	extern char const *version_string;
+}
 
 int main()
 {
@@ -181,7 +184,7 @@ int main()
 	 */
 	inhibit_tracing = true;
 
-	PINF("Genode " GENODE_VERSION);
+	PINF("Genode %s", Genode::version_string);
 
 	PDBG("--- create local services ---");
 

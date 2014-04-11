@@ -13,4 +13,14 @@ GENODE_VERSION := $(shell \
 	|| \
 		echo "<unknown version>")
 
-CC_OPT_main += -DGENODE_VERSION="\"$(GENODE_VERSION)\""
+CC_OPT_version += -DGENODE_VERSION="\"$(GENODE_VERSION)\""
+
+SRC_CC += version.cc
+
+vpath version.cc $(BASE_DIR)/src/core
+
+version.o: force_version_compilation
+
+force_version_compilation:
+
+# vi: set ft=make :
