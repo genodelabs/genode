@@ -39,10 +39,12 @@ namespace Libc {
 
 	struct File_descriptor
 	{
-		int             libc_fd;
-		char           *fd_path;    /* for 'fchdir()' */
-		Plugin         *plugin;
-		Plugin_context *context;
+		int             libc_fd = -1;
+		char           *fd_path = 0;  /* for 'fchdir', 'fstat' */
+		Plugin         *plugin  = 0;
+		Plugin_context *context = 0;
+		unsigned        flags   = 0;  /* for 'fcntl' */
+		unsigned        status  = 0;  /* for 'fcntl' */
 		Genode::Lock    lock;
 
 		void path(char const *newpath)
