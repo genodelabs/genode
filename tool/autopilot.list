@@ -8,6 +8,7 @@ tar_rom
 noux
 noux_net_netcat
 libc_ffat
+libc_vfs
 timed_semaphore
 signal
 sub_rm
