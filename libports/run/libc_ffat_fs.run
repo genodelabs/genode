@@ -1,5 +1,5 @@
 #
-# \brief  Test for using the libc_fs plugin with the FFAT file system
+# \brief  Test for using the libc_vfs plugin with the FFAT file system
 # \author Christian Prochaska
 # \date   2012-07-03
 #
@@ -21,7 +21,7 @@ set build_components {
 	core init
 	drivers/timer
 	server/ffat_fs
-	test/libc_fs
+	test/libc_vfs
 }
 
 lappend_if [have_spec  pci] build_components drivers/pci
@@ -63,8 +63,16 @@ set config {
 		<provides> <service name="File_system"/> </provides>
 		<config> <policy label="" root="/" writeable="yes" /> </config>
 	</start>
-	<start name="test-libc_fs">
+	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="2M"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<fs/>
+				</vfs>
+			</libc>
+		</config>
 	</start>
 }
 
@@ -116,8 +124,8 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer ffat_fs
-	ld.lib.so libc.lib.so libc_log.lib.so libc_fs.lib.so
-	test-libc_fs
+	ld.lib.so libc.lib.so
+	test-libc_vfs
 }
 
 lappend_if [have_spec pci]   boot_modules pci_drv

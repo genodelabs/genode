@@ -109,11 +109,16 @@ append config {
 			<arg value="1024"/>
 			<arg value="-endsize"/>
 			<arg value="1024"/>
-			<arg value="-serverip"/> }
+			<arg value="-serverip"/>}
 append config "
-			<arg value=\"$ip_addr\"/>
+			<arg value=\"$ip_addr\"/>"
+append config {
+			<argv verbose="0" listenip="0.0.0.0" />
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
 		</config>
-	</start> "
+	</start>}
 
 append config {
 </config>
@@ -128,7 +133,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_log.lib.so lwip_nic_dhcp.lib.so lwip.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so
 	test-ping_client_libc_lwip
 }
 

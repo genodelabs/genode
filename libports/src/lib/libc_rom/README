@@ -1,5 +1,0 @@
-The 'libc_rom' plugin allows the use of Genode's ROM-session interface via file
-operations of the C library.
-
-This implementation is very preliminary. It supports no file operations other
-than open and read.

@@ -81,6 +81,9 @@ append config {
 		<resource name="RAM" quantum="16M"/>
 		<config>
 			<argv verbose="0" listenip="0.0.0.0" />
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
 		</config>
 		<route> }
 append_if $use_nic_bridge config {
@@ -147,7 +150,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so lwip.lib.so libc_log.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so
 }
 
 lappend_if $use_nic_bridge boot_modules nic_bridge

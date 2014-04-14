@@ -75,7 +75,7 @@ set boot_modules {
 	usb_drv
 	gpio_drv
 	test-lwip_httpsrv_tracing_nob
-	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so
 }
 
 build_boot_image  [join $boot_modules " "]

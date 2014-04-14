@@ -117,12 +117,19 @@ namespace {
 			Gpu_driver         *_driver;
 			Gpu_driver::Client *_client;
 
+			/*
+			 * Assign a priority of 1 to override libc_vfs.
+			 */
+			enum { PLUGIN_PRIORITY = 1 };
+
 		public:
 
-			Plugin(Gpu_driver *driver) : _driver(driver), _client(0)
+			Plugin(Gpu_driver *driver)
+			:
+				Libc::Plugin(PLUGIN_PRIORITY), _driver(driver), _client(0)
 			{
 				if (!_driver) {
-					PERR("could not initalize GPU driver");
+					PERR("could not initialize GPU driver");
 					return;
 				}
 				_client = _driver->create_client();

@@ -3,16 +3,15 @@
 # \author Norman Feske
 # \date   2012-08-16
 #
-# This run script combines the lighttpd web server with the tar_fs file system
-# to host the genode.org website. When executed the first time, the genode.org
-# website is downloaded to 'bin/genode_org/website'. When the web server is up,
-# you may point your web browser to http://localhost:5555
+# This run script uses the lighttpd web server to host the genode.org website.
+# When executed the first time, the genode.org website is downloaded to
+# 'bin/genode_org/website'. When the web server is up, you may point your web
+# browser to http://localhost:5555
 #
 
 set build_components {
 	core init
 	drivers/timer
-	server/tar_fs
 	app/lighttpd
 }
 
@@ -107,14 +106,6 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	</start> }
 
 append config {
-	<start name="tar_fs">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="File_system"/></provides>
-		<config>
-			<archive name="genode_org.tar" />
-			<policy label="lighttpd" root="/" />
-		</config>
-	</start>
 	<start name="lighttpd">
 		<resource name="RAM" quantum="1G" />
 		<config>
@@ -122,6 +113,15 @@ append config {
 			<arg value="-f" />
 			<arg value="/etc/lighttpd/lighttpd.conf" />
 			<arg value="-D" />
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev">
+						<log/>
+						<null/>
+					</dir>
+					<tar name="genode_org.tar"/>
+				</vfs>
+			</libc>
 		</config>
 	</start>}
 
@@ -176,8 +176,8 @@ exec tar cfv bin/genode_org.tar -h -C bin/genode_org .
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so tar_fs
-	libc.lib.so libm.lib.so libc_fs.lib.so libc_log.lib.so
+	core init timer ld.lib.so
+	libc.lib.so libm.lib.so
 	lwip.lib.so zlib.lib.so
 	lighttpd genode_org.tar
 }

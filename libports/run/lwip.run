@@ -75,7 +75,12 @@ set config {
 	</start>
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="5M"/>
-	</start> }
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
 
 append_if [have_spec platform_arndale] config {
 	<start name="platform_drv">
@@ -125,7 +130,7 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="3M"/>
 		<provides> <service name="PCI"/> </provides>
-	</start> }
+	</start>}
 
 append config {
 </config>
@@ -140,7 +145,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so test-lwip_httpsrv
+	ld.lib.so libc.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 # platform-specific modules

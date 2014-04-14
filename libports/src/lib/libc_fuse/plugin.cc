@@ -55,9 +55,9 @@ static inline int check_result(int res)
 }
 
 
-/***************************
+/****************************
  ** override libc defaults **
- ***************************/
+ ****************************/
 
 /*
 extern "C" int access(const char *pathname, int mode)
@@ -122,12 +122,14 @@ namespace {
 	{
 		private:
 
+			enum { PLUGIN_PRIORITY = 1 };
+
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Plugin()
+			Plugin() : Libc::Plugin(PLUGIN_PRIORITY)
 			{
 				if (!Fuse::init_fs()) {
 					PERR("FUSE fs initialization failed");
@@ -169,6 +171,14 @@ namespace {
 				if (Fuse::initialized() == 0)
 					return false;
 
+				return true;
+			}
+
+			bool supports_rmdir(const char *path)
+			{
+				PDBGV("path: %s", path);
+				if (Fuse::fuse() == 0)
+					return false;
 				return true;
 			}
 
@@ -498,6 +508,14 @@ namespace {
 				return check_result(res);
 			}
 
+			int rmdir(const char *path)
+			{
+				PDBGV("path: %s", path);
+				int res = Fuse::fuse()->op.rmdir(path);
+
+				return check_result(res);
+			}
+
 			int stat(const char *path, struct stat *buf)
 			{
 				PDBGV("path: %s", path);
@@ -545,8 +563,17 @@ namespace {
 
 } /* unnamed namespace */
 
+
 void __attribute__((constructor)) init_libc_fuse(void)
 {
+	/*
+	 * During the initialization of the plugin, we already require the VFS.
+	 * Hence, we need to make sure to initialize the VFS before doing our
+	 * own initialization.
+	 */
+	extern void init_libc_vfs(void);
+	init_libc_vfs();
+
 	PDBGV("using the libc_fuse plugin");
 	static Plugin plugin;
 }

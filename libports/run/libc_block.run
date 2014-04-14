@@ -76,6 +76,14 @@ set config {
 	<start name="test-libc_block">
 		<resource name="RAM" quantum="2M"/>
 		<config>
+			<libc stdout="/dev/log">
+				<vfs>
+					<dir name="dev">
+						<log/>
+						<block name="blkdev"/>
+					</dir>
+				</vfs>
+			</libc>
 		</config>
 	</start>
 }
@@ -128,7 +136,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_log.lib.so libc_block.lib.so
+	ld.lib.so libc.lib.so
 	test-libc_block
 }
 

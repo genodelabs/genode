@@ -12,7 +12,7 @@ set build_components {
 	drivers/timer
 	server/ram_blk
 	server/rump_fs
-	test/libc_fs
+	test/libc_vfs
 }
 
 build $build_components
@@ -60,8 +60,16 @@ append config {
 		<provides><service name="File_system"/></provides>
 		<config fs="msdos"><policy label="" root="/" writeable="yes"/></config>
 	</start>
-	<start name="test-libc_fs">
+	<start name="test-libc_vfs">
 		<resource name="RAM" quantum="4M"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<fs/>
+				</vfs>
+			</libc>
+		</config>
 	</start>
 </config>}
 
@@ -73,10 +81,9 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer test-libc_fs ram_blk
+	core init timer test-libc_vfs ram_blk
 	rump.lib.so rump_fs.lib.so rump_fs
 	ld.lib.so fs.raw libc.lib.so
-	libc_fs.lib.so libc_log.lib.so
 }
 
 build_boot_image $boot_modules

@@ -17,7 +17,6 @@ if {$use_nic_driver}    { set network_driver "nic_drv" }
 set build_components {
 	core init
 	drivers/timer
-	server/ram_fs
 	server/nic_bridge
 	server/http_blk
 	app/lighttpd
@@ -126,36 +125,6 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="ram_fs">
-		<resource name="RAM" quantum="15M"/>
-		<provides><service name="File_system"/></provides>
-		<config>
-			<policy label="lighttpd" root="/" />
-			<content>
-				<dir name="etc">
-					<dir name="lighttpd">
-						<inline name="lighttpd.conf">
-# lighttpd configuration
-server.port          = 80
-server.document-root = "/website"
-server.event-handler = "select"
-server.network-backend = "write"
-index-file.names     = (
-  "index.xhtml", "index.html", "index.htm"
-)
-mimetype.assign      = (
-  ".html"         =>      "text/html",
-  ".htm"          =>      "text/html"
-)
-						</inline>
-					</dir>
-				</dir>
-				<dir name="website">
-					<rom name="index.bin" as="index.bin" />
-				</dir>
-			</content>
-		</config>
-	</start>
 	<start name="http_blk">
 		<resource name="RAM" quantum="2M" />
 		<provides><service name="Block"/></provides>
@@ -178,7 +147,36 @@ mimetype.assign      = (
 			<arg value="-f" />
 			<arg value="/etc/lighttpd/lighttpd.conf" />
 			<arg value="-D" />
-			<libc ip_addr="10.0.1.1" gateway="10.0.1.5" netmask="255.255.255.0"/>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+			      ip_addr="10.0.1.1" gateway="10.0.1.5" netmask="255.255.255.0">
+				<vfs>
+					<dir name="dev">
+						<log/>
+						<null/>
+					</dir>
+					<dir name="etc">
+						<dir name="lighttpd">
+							<inline name="lighttpd.conf">
+# lighttpd configuration
+server.port          = 80
+server.document-root = "/website"
+server.event-handler = "select"
+server.network-backend = "write"
+index-file.names     = (
+  "index.xhtml", "index.html", "index.htm"
+)
+mimetype.assign      = (
+  ".html"         =>      "text/html",
+  ".htm"          =>      "text/html"
+)
+							</inline>
+						</dir>
+					</dir>
+					<dir name="website">
+						<rom name="index.bin" as="index.bin" />
+					</dir>
+				</vfs>
+			</libc>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -197,8 +195,8 @@ catch { exec dd if=/dev/zero of=bin/index.bin bs=512 count=400 }
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so ram_fs
-	libc.lib.so libm.lib.so libc_fs.lib.so libc_log.lib.so
+	core init timer ld.lib.so
+	libc.lib.so libm.lib.so
 	lwip.lib.so zlib.lib.so
 	lighttpd nic_bridge http_blk index.bin test-rom_blk
 }

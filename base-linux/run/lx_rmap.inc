@@ -44,7 +44,6 @@ append_if [expr {$test_type eq "static"}] config {
 	<start name="test-lx_rmap_static">}
 append_if [expr {$test_type eq "dynamic"}] config {
 	<start name="test-lx_rmap_dynamic">}
-
 append config {
 		<resource name="RAM" quantum="8M"/>
 	</start>
@@ -61,9 +60,6 @@ set boot_modules { core init}
 lappend_if [expr {$test_type eq "static"}]  boot_modules test-lx_rmap_static
 lappend_if [expr {$test_type eq "dynamic"}] boot_modules test-lx_rmap_dynamic
 lappend_if [expr {$test_type eq "dynamic"}] boot_modules ld.lib.so
-lappend_if [expr {$test_type eq "dynamic"}] boot_modules libc.lib.so
-lappend_if [expr {$test_type eq "dynamic"}] boot_modules libc_log.lib.so
-lappend_if [expr {$test_type eq "dynamic"}] boot_modules libm.lib.so
 
 build_boot_image $boot_modules
 

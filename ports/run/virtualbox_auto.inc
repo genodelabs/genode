@@ -117,7 +117,7 @@ install_config $config
 set boot_modules {
 	core init timer
 	part_blk ahci
-	ld.lib.so libc.lib.so libc_fs.lib.so
+	ld.lib.so libc.lib.so
 	rump.lib.so rump_fs.lib.so rump_fs
 	virtualbox vbox-auto-test-helper
 }

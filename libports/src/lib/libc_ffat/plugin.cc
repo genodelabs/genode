@@ -162,12 +162,17 @@ class Plugin : public Libc::Plugin
 			return directory_plugin_context->ffat_dir();
 		}
 
+		/*
+		 * Override libc_vfs
+		 */
+		enum { PLUGIN_PRIORITY = 1 };
+
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Plugin()
+		Plugin() : Libc::Plugin(PLUGIN_PRIORITY)
 		{
 			/* mount the file system */
 			if (verbose)
@@ -188,42 +193,59 @@ class Plugin : public Libc::Plugin
 		 * TODO: decide if the file named <path> shall be handled by this plugin
 		 */
 
-		bool supports_mkdir(const char *path, mode_t)
+		bool supports_mkdir(const char *path, mode_t) override
 		{
 			if (verbose)
 				PDBG("path = %s", path);
 			return true;
 		}
 
-		bool supports_open(const char *pathname, int flags)
+		bool supports_open(const char *pathname, int flags) override
 		{
 			if (verbose)
 				PDBG("pathname = %s", pathname);
 			return true;
 		}
 
-		bool supports_rename(const char *oldpath, const char *newpath)
+		bool supports_rename(const char *oldpath, const char *newpath) override
 		{
 			if (verbose)
 				PDBG("oldpath = %s, newpath = %s", oldpath, newpath);
 			return true;
 		}
 
-		bool supports_stat(const char *path)
+		bool supports_rmdir(const char *path) override
 		{
 			if (verbose)
 				PDBG("path = %s", path);
 			return true;
 		}
 
-		bool supports_unlink(const char *path)
+		bool supports_stat(const char *path) override
 		{
 			if (verbose)
 				PDBG("path = %s", path);
 			return true;
 		}
 
-		int close(Libc::File_descriptor *fd)
+		bool supports_unlink(const char *path) override
+		{
+			if (verbose)
+				PDBG("path = %s", path);
+			return true;
+		}
+
+		bool supports_symlink(const char *, const char *) override
+		{
+			/*
+			 * Even though FFAT does not support symlinks, we still want
+			 * to capture calls of 'symlink' to return ENOSYS, which is
+			 * checked in the file-system test.
+			 */
+			return true;
+		}
+
+		int close(Libc::File_descriptor *fd) override
 		{
 			using namespace Ffat;
 
@@ -257,7 +279,7 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		int fcntl(Libc::File_descriptor *fd, int cmd, long arg)
+		int fcntl(Libc::File_descriptor *fd, int cmd, long arg) override
 		{
 			switch (cmd) {
 				case F_GETFD: return context(fd)->fd_flags();
@@ -267,12 +289,12 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		int fstat(Libc::File_descriptor *fd, struct stat *buf)
+		int fstat(Libc::File_descriptor *fd, struct stat *buf) override
 		{
 			return stat(context(fd)->filename(), buf);
 		}
 
-		int fstatfs(Libc::File_descriptor *, struct statfs *buf)
+		int fstatfs(Libc::File_descriptor *, struct statfs *buf) override
 		{
 			/* libc's opendir() fails if _fstatfs() returns -1, so we return 0 here */
 			if (verbose)
@@ -280,7 +302,7 @@ class Plugin : public Libc::Plugin
 			return 0;
 		}
 
-		int fsync(Libc::File_descriptor *fd)
+		int fsync(Libc::File_descriptor *fd) override
 		{
 			using namespace Ffat;
 
@@ -302,7 +324,7 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		int ftruncate(Libc::File_descriptor *fd, ::off_t length)
+		int ftruncate(Libc::File_descriptor *fd, ::off_t length) override
 		{
 			using namespace Ffat;
 
@@ -330,7 +352,7 @@ class Plugin : public Libc::Plugin
 		}
 
 		ssize_t getdirentries(Libc::File_descriptor *fd, char *buf,
-		                      ::size_t nbytes, ::off_t *basep)
+		                      ::size_t nbytes, ::off_t *basep) override
 		{
 			using namespace Ffat;
 
@@ -392,7 +414,7 @@ class Plugin : public Libc::Plugin
 			return sizeof(struct dirent);
 		}
 
-		::off_t lseek(Libc::File_descriptor *fd, ::off_t offset, int whence)
+		::off_t lseek(Libc::File_descriptor *fd, ::off_t offset, int whence) override
 		{
 			using namespace Ffat;
 
@@ -430,7 +452,7 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		int mkdir(const char *path, mode_t mode)
+		int mkdir(const char *path, mode_t mode) override
 		{
 			using namespace Ffat;
 
@@ -465,7 +487,7 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		Libc::File_descriptor *open(const char *pathname, int flags)
+		Libc::File_descriptor *open(const char *pathname, int flags) override
 		{
 			using namespace Ffat;
 
@@ -567,7 +589,7 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		int rename(const char *oldpath, const char *newpath)
+		int rename(const char *oldpath, const char *newpath) override
 		{
 			using namespace Ffat;
 
@@ -603,7 +625,7 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		ssize_t read(Libc::File_descriptor *fd, void *buf, ::size_t count)
+		ssize_t read(Libc::File_descriptor *fd, void *buf, ::size_t count) override
 		{
 			using namespace Ffat;
 
@@ -629,7 +651,7 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		int stat(const char *path, struct stat *buf)
+		int stat(const char *path, struct stat *buf) override
 		{
 			using namespace Ffat;
 
@@ -705,7 +727,7 @@ class Plugin : public Libc::Plugin
 			return 0;
 		}
 
-		int unlink(const char *path)
+		int unlink(const char *path) override
 		{
 			using namespace Ffat;
 
@@ -738,7 +760,12 @@ class Plugin : public Libc::Plugin
 			}
 		}
 
-		ssize_t write(Libc::File_descriptor *fd, const void *buf, ::size_t count)
+		int rmdir(const char *path) override
+		{
+			return unlink(path);
+		}
+
+		ssize_t write(Libc::File_descriptor *fd, const void *buf, ::size_t count) override
 		{
 			using namespace Ffat;
 
@@ -762,6 +789,12 @@ class Plugin : public Libc::Plugin
 					PERR("f_write() returned an unexpected error code");
 					return -1;
 			}
+		}
+
+		int symlink(const char *, const char *) override
+		{
+			errno = ENOSYS;
+			return -1;
 		}
 };
 

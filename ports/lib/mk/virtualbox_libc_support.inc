@@ -8,6 +8,7 @@ SRC_C += stdio/findfp.c
 SRC_C += stdio/stdio.c
 SRC_C += string/memchr.c
 SRC_C += string/strncmp.c
+SRC_C += string/strdup.c
 
 # Genode libc code
 SRC_CC += libc/clock_gettime.cc
@@ -23,8 +24,8 @@ SRC_CC += libc/select.cc
 # Genode terminal plugin
 SRC_CC += libc_terminal/plugin.cc
 
-# Genode fs plugin
-SRC_CC += libc_fs/plugin.cc
+# Genode vfs plugin
+SRC_CC += libc_vfs/plugin.cc
 SRC_CC += libc/pread_pwrite.cc
 
 # Genode lock pipe plugin (needed by VirtualBox "HostSerial" driver)

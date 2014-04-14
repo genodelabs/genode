@@ -40,11 +40,12 @@ install_config {
 		<resource name="RAM" quantum="2M"/>
 		<config>
 			<iterations value="1"/>
-			<libc cwd="/tmp" >
+			<libc stdout="/dev/log" cwd="/tmp" >
 				<vfs>
 					<dir name="tmp" >
 						<fs/>
 					</dir>
+					<dir name="dev"> <log/> </dir>
 				</vfs>
 			</libc>
 		</config>
@@ -58,7 +59,7 @@ install_config {
 
 build_boot_image {
 	core init
-	ld.lib.so libc.lib.so libc_log.lib.so
+	ld.lib.so libc.lib.so
 	ram_fs test-libc_vfs
 }
 

@@ -185,8 +185,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer tcp_terminal nic_bridge
-	ld.lib.so noux_net libc.lib.so libm.lib.so
-	libc_lock_pipe.lib.so libc_log.lib.so
+	ld.lib.so noux_net libc.lib.so libm.lib.so libc_lock_pipe.lib.so
 	libc_resolv.lib.so libc_noux.lib.so lwip.lib.so noux_netcat.tar
 }
 

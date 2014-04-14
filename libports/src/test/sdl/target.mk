@@ -1,3 +1,3 @@
 TARGET   = test-sdl
-LIBS     = sdl libc libc_log
+LIBS     = sdl libc
 SRC_CC   = main.cc

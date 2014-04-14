@@ -60,6 +60,11 @@ set config  {
 
 	<start name="test-lwip_httpsrv_tracing">
 		<resource name="RAM" quantum="64M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>}
 
@@ -75,7 +80,7 @@ set boot_modules {
 	usb_drv
 	gpio_drv
 	test-lwip_httpsrv_tracing
-	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so
 }
 
 build_boot_image  [join $boot_modules " "]

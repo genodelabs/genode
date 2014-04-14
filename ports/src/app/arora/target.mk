@@ -44,12 +44,12 @@ HEADERS_FILTER_OUT = \
 
 QT_MAIN_STACK_SIZE = 768*1024
 
-LIBS += libm libc_lwip libc_lwip_nic_dhcp libc_log
+LIBS += libm libc_lwip libc_lwip_nic_dhcp
 
 RESOURCES += demo_html.qrc
 
 #
-# Prevent contrib code from causing warnings with our toolchain compiler
+# Prevent contrib code from causing warnings with our tool chain
 #
 CC_WARN += -Wno-unused-but-set-variable
 

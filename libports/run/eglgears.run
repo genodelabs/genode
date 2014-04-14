@@ -97,6 +97,11 @@ append config {
 					<start name="eglgears">
 						<resource name="RAM" quantum="1G"/>
 						<route><any-service> <parent /> <any-child/> </any-service></route>
+						<config>
+							<libc stdout="/dev/log">
+								<vfs> <dir name="dev"> <log/> </dir> </vfs>
+							</libc>
+						</config>
 					</start>
 				</config>
 			</launcher>
@@ -110,7 +115,7 @@ install_config $config
 set boot_modules {
 	core init ld.lib.so timer nitpicker nit_fb
 	launchpad eglgears
-	gallium.lib.so libc.lib.so libm.lib.so libc_log.lib.so pthread.lib.so
+	gallium.lib.so libc.lib.so libm.lib.so pthread.lib.so
 }
 
 lappend_if [have_spec       linux] boot_modules fb_sdl

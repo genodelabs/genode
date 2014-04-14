@@ -41,6 +41,24 @@ set config {
 		<resource name="RAM" quantum="3M"/>
 		<config>
 			<script name="hello.py"/>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<inline name="hello.py">
+print " \r\n\r";
+print "        -============================-";
+print "        ||                          ||";
+print "        ||    Python Core 2.6.4     ||";
+print "        ||                          ||";
+print "        ||       Genode 11.11       ||";
+print "        ||                          ||";
+print "        -============================-";
+print " \r";
+print "   2011 by Genode Labs <www.genode-labs.com>";
+print " \r\n\r";
+					</inline>
+				</vfs>
+			</libc>
 		</config>
 	</start>
 </config>
@@ -52,29 +70,11 @@ install_config $config
 # Boot modules
 #
 
-# Fill up hello.py with zeros, otherwise on OKL4 it fails on native machines.
-# OKL4 bootstrap procedure loads the script to the designated address but does
-# not clear the remainder of the page. Hence, the script is followed by some
-# garbage, which the interpreter tries to execute.
-
-set test_file "[genode_dir]/libports/src/test/python/hello.py"
-set file_size [exec du -b $test_file]
-set file_size [regexp -inline {[0-9]+} $file_size]
-set file_size [expr 4096 - $file_size]
-catch { exec dd if=/dev/zero of=bin/hello.py.tmp bs=1 count=$file_size}
-exec cp  $test_file bin/hello.py
-exec cat bin/hello.py.tmp >>bin/hello.py
-exec rm  bin/hello.py.tmp
-set file_size [exec du -b bin/hello.py]
-set file_size [regexp -inline {[0-9]+} $file_size]
-if {$file_size != 4096 } { puts "hello.py could not be prepared properly"; exit 1 }
-
 # generic modules
 set boot_modules {
 	core init
-	ld.lib.so libc.lib.so libc_log.lib.so libc_rom.lib.so libm.lib.so python.lib.so
+	ld.lib.so libc.lib.so libm.lib.so python.lib.so
 	test-python
-	hello.py
 }
 
 build_boot_image $boot_modules
@@ -101,7 +101,5 @@ compare_output_to {
 [init -> test-python]    2011 by Genode Labs <www.genode-labs.com>
 [init -> test-python]
 }
-
-exec rm bin/hello.py
 
 # vi: set ft=tcl :

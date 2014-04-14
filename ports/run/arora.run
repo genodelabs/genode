@@ -89,12 +89,17 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 	</start>
-        <start name="loader">
-                <resource name="RAM" quantum="2M"/>
-                <provides><service name="Loader"/></provides>
-        </start>
+	<start name="loader">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Loader"/></provides>
+	</start>
 	<start name="arora">
 		<resource name="RAM" quantum="2G"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>}
 
@@ -116,7 +121,7 @@ set boot_modules {
 	testnit
 	arora
 	ld.lib.so
-	libc.lib.so libm.lib.so lwip.lib.so libc_log.lib.so
+	libc.lib.so libm.lib.so lwip.lib.so
 	zlib.lib.so libpng.lib.so jpeg.lib.so libssl.lib.so libcrypto.lib.so
 	freetype.lib.so
 	libc_lock_pipe.lib.so

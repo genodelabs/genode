@@ -4,7 +4,7 @@ NTFS_3G_DIR = $(REP_DIR)/contrib/$(NTFS_3G)
 SRC_C  = ntfs-3g.c ntfs-3g_common.c
 SRC_CC = init.cc
 
-LIBS   = libc libc_block libc_fuse libfuse libntfs-3g
+LIBS   = libc libc_vfs libc_fuse libfuse libntfs-3g
 
 CC_OPT = -DHAVE_TIMESPEC -DHAVE_CONFIG_H -DRECORD_LOCKING_NOT_IMPLEMENTED
 

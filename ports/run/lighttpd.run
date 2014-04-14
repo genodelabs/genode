@@ -9,7 +9,6 @@ set build_components {
 	drivers/pci
 	drivers/nic
 	drivers/timer
-	server/ram_fs
 	app/lighttpd
 }
 
@@ -42,7 +41,7 @@ append config {
 
 append_if [have_spec pci] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="4M"/>
 		<provides><service name="PCI"/></provides>
 	</start>}
 
@@ -51,15 +50,22 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
-	<start name="ram_fs">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="File_system"/></provides>
+	<start name="lighttpd">
+		<resource name="RAM" quantum="1G" />
 		<config>
-			<policy label="lighttpd" root="/" />
-			<content>
-				<dir name="etc">
-					<dir name="lighttpd">
-						<inline name="lighttpd.conf">
+			<arg value="lighttpd" />
+			<arg value="-f" />
+			<arg value="/etc/lighttpd/lighttpd.conf" />
+			<arg value="-D" />
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev">
+						<log/>
+						<null/>
+					</dir>
+					<dir name="etc">
+						<dir name="lighttpd">
+							<inline name="lighttpd.conf">
 # lighttpd configuration
 server.port          = 80
 server.document-root = "/website"
@@ -72,11 +78,11 @@ mimetype.assign      = (
   ".html"         =>      "text/html",
   ".htm"          =>      "text/html"
 )
-						</inline>
+							</inline>
+						</dir>
 					</dir>
-				</dir>
-				<dir name="website">
-					<inline name="index.html">
+					<dir name="website">
+						<inline name="index.html">
 <html>
 	<head>
 		<title>Hello</title>
@@ -86,18 +92,10 @@ mimetype.assign      = (
 		<b>I am bold ;-)</b>
 	</body>
 </html>
-					</inline>
-				</dir>
-			</content>
-		</config>
-	</start>
-	<start name="lighttpd">
-		<resource name="RAM" quantum="1G" />
-		<config>
-			<arg value="lighttpd" />
-			<arg value="-f" />
-			<arg value="/etc/lighttpd/lighttpd.conf" />
-			<arg value="-D" />
+						</inline>
+					</dir>
+				</vfs>
+			</libc>
 		</config>
 	</start>}
 
@@ -113,9 +111,9 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so nic_drv ram_fs
-	libc.lib.so libm.lib.so libc_fs.lib.so libc_log.lib.so
-	lwip.lib.so zlib.lib.so libcrypto.lib.so libssl.lib.so
+	core init timer ld.lib.so nic_drv
+	libc.lib.so libm.lib.so
+	lwip.lib.so zlib.lib.so
 	lighttpd
 }
 

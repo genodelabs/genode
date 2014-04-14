@@ -71,6 +71,11 @@ append config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 	<start name="test-http_clnt">
 		<resource name="RAM" quantum="32M"/>
@@ -78,6 +83,11 @@ append config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>}
 
@@ -93,7 +103,7 @@ set boot_modules {
 	timer nic_drv
 	nic_bridge
 	ld.lib.so
-	libc.lib.so libc_log.lib.so
+	libc.lib.so
 	lwip.lib.so
 	test-http_clnt
 	test-lwip_httpsrv_static

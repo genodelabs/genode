@@ -1,5 +1,5 @@
 TARGET   = test-http_clnt
-LIBS     = lwip libc libc_log
+LIBS     = lwip libc libc_vfs
 SRC_CC   = main.cc
 REQUIRES = foc
 

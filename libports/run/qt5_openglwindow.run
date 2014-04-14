@@ -10,7 +10,6 @@ build {
 	drivers/framebuffer
 	drivers/timer
 	server/nitpicker
-	server/liquid_framebuffer
 	app/qt5/examples/openglwindow
 }
 
@@ -77,6 +76,11 @@ append config {
 	</start>
 	<start name="openglwindow">
 		<resource name="RAM" quantum="80M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
@@ -93,14 +97,12 @@ set boot_modules {
 	init
 	timer
 	nitpicker
-	liquid_fb
 	openglwindow
 	freetype.lib.so
 	gallium.lib.so
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	libc_log.lib.so
 	libc_lock_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so

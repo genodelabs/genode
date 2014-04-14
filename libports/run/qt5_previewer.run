@@ -100,7 +100,6 @@ set boot_modules {
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	libc_log.lib.so
 	libc_lock_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so

@@ -10,8 +10,6 @@ build {
 	drivers/framebuffer
 	drivers/timer
 	server/nitpicker
-	server/liquid_framebuffer
-	server/tar_fs
 	app/qt5/qt_quicktest
 	lib/qt5/qtdeclarative/src/imports/qtquick2
 }
@@ -83,16 +81,16 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 	</start>
-	<start name="tar_fs">
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<archive name="qt5_fs.tar" />
-			<policy label="" root="/" />
-		</config>
-	</start>
 	<start name="qt_quicktest">
 		<resource name="RAM" quantum="80M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<tar name="qt5_fs.tar" />
+				</vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
@@ -113,16 +111,12 @@ set boot_modules {
 	init
 	timer
 	nitpicker
-	liquid_fb
-	tar_fs
 	qt_quicktest
 	freetype.lib.so
 	gallium.lib.so
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	libc_fs.lib.so
-	libc_log.lib.so
 	libc_lock_pipe.lib.so
 	libcrypto.lib.so
 	libm.lib.so

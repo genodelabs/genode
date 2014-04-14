@@ -10,7 +10,6 @@ build {
 	drivers/framebuffer
 	drivers/timer
 	server/nitpicker
-	server/liquid_framebuffer
 	server/loader
 	server/tar_rom
 	test/nitpicker
@@ -102,7 +101,6 @@ set boot_modules {
 	init
 	timer
 	nitpicker
-	liquid_fb
 	loader
 	tar_rom
 	testnit
@@ -112,7 +110,6 @@ set boot_modules {
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	libc_log.lib.so
 	libc_lock_pipe.lib.so
 	libcrypto.lib.so
 	libm.lib.so

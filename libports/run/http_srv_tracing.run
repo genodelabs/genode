@@ -30,7 +30,7 @@ requires_installation_of lynx
 
 build {
 	core init
-	drivers/pci drivers/timer drivers/nic
+	drivers/acpi drivers/pci drivers/timer drivers/nic
 	test/lwip/http_srv_tracing
 }
 
@@ -59,7 +59,7 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
-		<resource name="RAM" quantum="568K"/>
+		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
@@ -68,13 +68,32 @@ set config {
 	</start>
 	<start name="test-lwip_httpsrv_tracing">
 		<resource name="RAM" quantum="64M"/>
-	</start> }
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>}
 
-append_if [have_spec pci] config {
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="3M"/>
 		<provides> <service name="PCI"/> </provides>
-	</start> }
+	</start>}
 
 append config {
 </config>
@@ -90,12 +109,13 @@ install_config $config
 set boot_modules {
 	core init timer
 	nic_drv
-	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so
 	test-lwip_httpsrv_tracing
 }
 
 # platform-specific modules
-lappend_if [have_spec pci] boot_modules pci_drv
+lappend_if [have_spec pci]  boot_modules pci_drv
+lappend_if [have_spec acpi] boot_modules acpi_drv
 
 build_boot_image $boot_modules
 

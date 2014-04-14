@@ -40,7 +40,15 @@ install_config {
 	<start name="test-expat">
 		<resource name="RAM" quantum="2M"/>
 		<config>
-			<test_tag test_attribute="test_value" />
+			<libc stdout="/dev/log">
+				<vfs>
+					<inline name="config"><config>
+							<test_tag test_attribute="test_value" />
+						</config>
+					</inline>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
 		</config>
 	</start>
 </config>
@@ -52,7 +60,7 @@ install_config {
 
 build_boot_image {
 	core init timer
-	ld.lib.so libc.lib.so libc_log.lib.so libc_rom.lib.so expat.lib.so
+	ld.lib.so libc.lib.so expat.lib.so
 	test-expat
 }
 

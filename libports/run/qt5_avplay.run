@@ -120,7 +120,6 @@ set boot_modules {
 	icu.lib.so
 	ld.lib.so
 	libc.lib.so
-	libc_log.lib.so
 	libc_lock_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so
@@ -140,8 +139,6 @@ set boot_modules {
 	swscale.lib.so
 	sdl.lib.so
 	pthread.lib.so
-	libc_log.lib.so
-	libc_rom.lib.so
 	avplay
 	mediafile
 	stdcxx.lib.so

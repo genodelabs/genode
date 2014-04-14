@@ -1,6 +1,6 @@
 INC_DIR += $(PRG_DIR)
 
-LIBS += libc libc_log
+LIBS += libc libc_vfs
 
 # set the stack size of the main thread
 CC_CXX_OPT += -DQT_MAIN_STACK_SIZE=$(QT_MAIN_STACK_SIZE)

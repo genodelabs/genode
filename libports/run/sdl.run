@@ -70,6 +70,9 @@ append config {
 	</start>
 	<start name="test-sdl">
 		<resource name="RAM" quantum="32M"/>
+		<libc stdout="/dev/log">
+			<vfs> <dir name="dev"> <log/> </dir> </vfs>
+		</libc>
 	</start>
 </config>}
 
@@ -84,7 +87,7 @@ set boot_modules {
 	core init
 	timer
 	test-sdl
-	ld.lib.so libc.lib.so libc_log.lib.so sdl.lib.so pthread.lib.so
+	ld.lib.so libc.lib.so sdl.lib.so pthread.lib.so
 }
 
 # platform-specific modules

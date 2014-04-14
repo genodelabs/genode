@@ -1,5 +1,5 @@
 #
-# \brief  Test for using the libc_fs plugin with the TAR file system
+# \brief  Test for using the libc_vfs plugin with the TAR file system
 # \author Christian Prochaska
 # \date   2012-08-20
 #
@@ -53,6 +53,14 @@ set config {
 	</start>
 	<start name="test-libc_fs_tar_fs">
 		<resource name="RAM" quantum="2M"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<fs/>
+				</vfs>
+			</libc>
+		</config>
 	</start>
 }
 
@@ -82,7 +90,7 @@ exec tar cfv bin/libc_fs_tar_fs.tar -C bin/libc_fs_tar_fs .
 # generic modules
 set boot_modules {
 	core init timer tar_fs
-	ld.lib.so libc.lib.so libc_log.lib.so libc_fs.lib.so
+	ld.lib.so libc.lib.so
 	test-libc_fs_tar_fs libc_fs_tar_fs.tar
 }
 

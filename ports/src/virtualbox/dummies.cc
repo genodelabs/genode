@@ -184,7 +184,6 @@ DUMMY(-1, SELMR3Term)
 DUMMY(-1, SELMR3GetSelectorInfo)
 
 DUMMY(-1, libc_select_notify) /* needed for libc_terminal plugin */
-DUMMY(-1, strdup)
 DUMMY(-1, DISInstrToStrEx)
 CHECKED_DUMMY(-1, signal)
 

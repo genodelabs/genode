@@ -42,6 +42,11 @@ set config {
 	</start>
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="5M"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
@@ -54,7 +59,7 @@ install_config $config
 
 set boot_modules {
 	core init timer nic_drv
-	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so test-lwip_httpsrv
+	ld.lib.so libc.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 build_boot_image $boot_modules

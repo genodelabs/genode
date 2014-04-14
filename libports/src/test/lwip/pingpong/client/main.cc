@@ -75,12 +75,13 @@ sendping(const char *addr, size_t dsize, size_t count)
 		if (n == 0)
 			break;
 		if (n != (sizeof (Packetheader) + p.h.dsize)) {
-			printf("ERROR: size mismatch: %ld != %lu\n", n, sizeof (Packetheader) + p.h.dsize);
+			printf("ERROR: size mismatch: %ld != %lu\n",
+			       (long)n, (long)(sizeof (Packetheader) + p.h.dsize));
 			break;
 		}
 
 		if (verbose)
-			printf("%u	%ld\n", p.h.id, n);
+			printf("%u	%ld\n", (unsigned)p.h.id, (long)n);
 	}
 
 	close(s);

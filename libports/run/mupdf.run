@@ -61,6 +61,14 @@ append config {
 	</start>
 	<start name="mupdf">
 		<resource name="RAM" quantum="1G"/>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<rom name="test.pdf" />
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
@@ -83,7 +91,7 @@ if {![file exist bin/test.pdf]} {
 set boot_modules {
 	core init ld.lib.so timer
 	mupdf
-	libc.lib.so libm.lib.so libc_log.lib.so libc_rom.lib.so
+	libc.lib.so libm.lib.so
 	openjpeg.lib.so freetype.lib.so libpng.lib.so zlib.lib.so jbig2dec.lib.so
 	mupdf.lib.so jpeg.lib.so
 	test.pdf

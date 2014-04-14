@@ -63,6 +63,11 @@ set config {
 	</start>
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="2M"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>}
 
 append_if [have_spec acpi] config {
@@ -112,7 +117,7 @@ install_config $config
 set boot_modules {
 	core init timer
 	usb_drv
-	ld.lib.so libc.lib.so libc_log.lib.so lwip.lib.so test-lwip_httpsrv
+	ld.lib.so libc.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 lappend_if [have_spec acpi]             boot_modules acpi_drv

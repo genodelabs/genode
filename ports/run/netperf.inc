@@ -180,7 +180,10 @@ append config {
 			<arg value="-f"/>
 			<libc tx_buf_size="2M" rx_buf_size="2M"}
 append_if [have_spec linux] config " ip_addr=\"$lx_ip_addr\" netmask=\"255.255.255.0\" gateway=\"10.0.2.1\""
-append config {/>
+append config {
+			      stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
 		</config>}
 append_if $use_nic_bridge config {
 		<route>
@@ -202,7 +205,6 @@ install_config $config
 set boot_modules {
 	core init timer
 	ld.lib.so libc.lib.so libm.lib.so
-	libc_log.lib.so
 }
 
 append                     boot_modules " $netperf_app "

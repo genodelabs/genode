@@ -1,5 +1,6 @@
-set mkfs_cmd   mkfs.exfat
-set mkfs_opts  ""
-set filesystem fuse_exfat
+set mkfs_cmd        mkfs.exfat
+set mkfs_opts       ""
+set filesystem      fuse_exfat
+set libc_dev_blkdev {<block name="blkdev"/>}
 
 source ${genode_dir}/libports/run/libc_filesystem_test.inc

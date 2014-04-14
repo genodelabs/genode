@@ -52,6 +52,9 @@ set config {
 		<resource name="RAM" quantum="16M"/>
 		<config>
 			<argv verbose="0" listenip="0.0.0.0" />
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
 		</config>
 	</start> }
 
@@ -104,7 +107,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so lwip.lib.so libc_log.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so
 	test-ping_server_libc_lwip
 }
 

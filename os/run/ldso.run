@@ -18,6 +18,11 @@ install_config {
 		</default-route>
 		<start name="test-ldso">
 			<resource name="RAM" quantum="2M"/>
+			<config>
+				<libc stdout="/dev/log">
+					<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				</libc>
+			</config>
 		</start>
 	</config>
 }

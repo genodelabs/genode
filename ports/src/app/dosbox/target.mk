@@ -54,5 +54,5 @@ CC_WARN += -Wno-unused-variable -Wno-unused-function -Wno-switch -Wno-unused-val
            -Wno-sign-compare -Wno-narrowing -Wno-missing-braces -Wno-array-bounds \
            -Wno-parentheses
 
-LIBS += libc libm libpng sdl sdl_net stdcxx zlib
-LIBS += libc_log libc_fs libc_lwip_nic_dhcp config_args
+LIBS += libc libc_vfs libm libpng sdl sdl_net stdcxx zlib
+LIBS += libc_lwip_nic_dhcp config_args

@@ -20,14 +20,19 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="test-libc">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
 
 build_boot_image {
 	core init test-libc
-	ld.lib.so libc.lib.so libc_log.lib.so libm.lib.so
+	ld.lib.so libc.lib.so libm.lib.so
 }
 
 append qemu_args " -nographic -m 64 "

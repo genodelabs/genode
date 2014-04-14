@@ -1,5 +1,5 @@
 TARGET   = test-ping_client_lwip
-LIBS     = base libc lwip libc_log config_args
+LIBS     = base libc lwip libc_vfs config_args
 SRC_CC   = main.cc pingpong.cc
 
 INC_DIR += $(REP_DIR)/src/lib/lwip/include

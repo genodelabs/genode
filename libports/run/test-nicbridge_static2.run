@@ -4,9 +4,8 @@
 
 set build_components {
 	core init
-	drivers/timer drivers/pci drivers/nic
+	drivers/timer drivers/input drivers/pci drivers/nic
 	server/nic_bridge
-	server/ram_fs
 	app/lighttpd
 	test/lwip/http_clnt
 
@@ -66,15 +65,23 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="ram_fs">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="File_system"/></provides>
+	<start name="lighttpd">
+		<resource name="RAM" quantum="256M" />
 		<config>
-			<policy label="lighttpd" root="/" />
-			<content>
-				<dir name="etc">
-					<dir name="lighttpd">
-						<inline name="lighttpd.conf">
+			<arg value="lighttpd" />
+			<arg value="-f" />
+			<arg value="/etc/lighttpd/lighttpd.conf" />
+			<arg value="-D" />
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+			      ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1">
+				<vfs>
+					<dir name="dev">
+						<log/>
+						<null/>
+					</dir>
+					<dir name="etc">
+						<dir name="lighttpd">
+							<inline name="lighttpd.conf">
 # lighttpd configuration
 server.port          = 80
 server.document-root = "/website"
@@ -87,11 +94,11 @@ mimetype.assign      = (
   ".html"         =>      "text/html",
   ".htm"          =>      "text/html"
 )
-						</inline>
+							</inline>
+						</dir>
 					</dir>
-				</dir>
-				<dir name="website">
-					<inline name="index.html">
+					<dir name="website">
+						<inline name="index.html">
 <html>
 	<head>
 		<title>Hello</title>
@@ -101,19 +108,10 @@ mimetype.assign      = (
 		<b>I am bold ;-)</b>
 	</body>
 </html>
-					</inline>
-				</dir>
-			</content>
-		</config>
-	</start>
-	<start name="lighttpd">
-		<resource name="RAM" quantum="256M" />
-		<config>
-			<libc ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1"/>
-			<arg value="lighttpd" />
-			<arg value="-f" />
-			<arg value="/etc/lighttpd/lighttpd.conf" />
-			<arg value="-D" />
+						</inline>
+					</dir>
+				</vfs>
+			</libc>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -126,6 +124,11 @@ mimetype.assign      = (
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>}
 
@@ -141,12 +144,11 @@ set boot_modules {
 	timer nic_drv
 	nic_bridge
 	ld.lib.so
-	libc.lib.so libc_log.lib.so
+	libc.lib.so
 	lwip.lib.so
 	test-http_clnt
-	ram_fs
-	libm.lib.so libc_fs.lib.so
-	zlib.lib.so libcrypto.lib.so libssl.lib.so
+	libm.lib.so
+	zlib.lib.so
 	lighttpd
 }
 
@@ -164,5 +166,6 @@ append_if [have_spec x86]     qemu_args " -net nic,model=pcnet "
 append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user "
+append qemu_args " -nographic -serial mon:stdio "
 
 run_genode_until forever

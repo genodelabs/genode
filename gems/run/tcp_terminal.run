@@ -59,6 +59,9 @@ set config {
 		<provides> <service name="Terminal"/> </provides>
 		<config>
 			<policy label="test-terminal_echo" port="8888"/>
+			<libc stdout="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</lib>
 		</config>
 	</start>
 	<start name="test-terminal_echo">
@@ -85,7 +88,7 @@ install_config $config
 set boot_modules {
 	core init timer
 	nic_drv
-	ld.lib.so libc.lib.so lwip.lib.so libc_log.lib.so libc_lock_pipe.lib.so
+	ld.lib.so libc.lib.so lwip.lib.so libc_lock_pipe.lib.so
 	tcp_terminal
 	test-terminal_echo
 }

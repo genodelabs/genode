@@ -54,8 +54,17 @@ set config {
 	<start name="gdb_monitor">
 		<resource name="RAM" quantum="4M"/>
 		<config>
-			<target name="test-gdb_monitor"/>
+			<target name="test-gdb_monitor">
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log">
+						<vfs> <dir name="dev"> <log/> </dir> </vfs>
+					</libc>
+				</config>
+			</target>
 			<preserve name="RAM" quantum="3M"/>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
 		</config>
 	</start>
 </config>
@@ -70,7 +79,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_log.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
+	ld.lib.so libc.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
 	uart_drv
 	gdb_monitor test-gdb_monitor
 }

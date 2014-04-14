@@ -1,6 +1,5 @@
 set build_components {
-	core init virtualbox 
-	server/ram_fs
+	core init virtualbox
 	drivers/input
 	drivers/framebuffer
 	drivers/timer
@@ -29,23 +28,11 @@ set config {
 		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
-		<any-service><parent/><any-child/></any-service>
+		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="ram_fs">
-		<resource name="RAM" quantum="256M"/>
-		<provides><service name="File_system"/></provides>
-		<config>
-			<content>
-				<dir name="iso">
-					<rom name="test.iso" />
-				</dir>
-			</content>
-			<policy label="" root="/" writeable="yes" />
-		</config>
 	</start>}
 
 append_if [have_spec acpi] config {
@@ -93,19 +80,21 @@ append config {
 	<start name="virtualbox">
 		<resource name="RAM" quantum="1G"/>
 		<config>
-			<image type="iso" file="/iso/test.iso" />
+			<image type="iso" file="test.iso" />
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<rom name="test.iso" />
+				</vfs>
+			</libc>
 		</config>
-		<route>
-			<service name="File_system"> <child name="ram_fs"/> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
 	</start>
 </config>
 }
 
 install_config $config
 
-set boot_modules { core init timer virtualbox ram_fs test.iso }
+set boot_modules { core init timer virtualbox test.iso }
 
 # platform-specific modules
 lappend_if [have_spec         ps2] boot_modules ps2_drv

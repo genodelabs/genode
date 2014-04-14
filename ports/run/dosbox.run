@@ -7,7 +7,6 @@ set build_components {
 	core init
 	drivers/timer
 	drivers/audio_out
-	server/tar_fs
 	drivers/framebuffer drivers/pci drivers/input
 	app/dosbox
 }
@@ -99,18 +98,16 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="tar_fs">
-		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<archive name="dosbox.tar" />
-			<policy label="" root="/" />
-		</config>
-	</start>
 	<start name="dosbox">
 		<resource name="RAM" quantum="128M"/>
 		<config>
 			<sdl_audio_volume value="100"/>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<tar name="dosbox.tar"/>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
 		</config>
 	</start>
 </config>}
@@ -123,8 +120,6 @@ if {![file exists bin/dosbox.tar]} {
 	puts "play. Mount the directory from within DosBox by entering 'mount C: <dir>',"
 	puts "change CWD to C: and play the game!"
 	puts ""
-	puts "(Note: for all games, which need a R/W filesystem, you cannot use 'tar_fs'.)"
-	puts ""
 	exit 1
 }
 
@@ -135,8 +130,8 @@ if {![file exists bin/dosbox.tar]} {
 # generic modules
 set boot_modules {
 	core init timer audio_out_drv
-	tar_fs ld.lib.so
-	libc_fs.lib.so libc.lib.so libc_log.lib.so
+	ld.lib.so
+	libc.lib.so
 	libm.lib.so lwip.lib.so libpng.lib.so
 	stdcxx.lib.so sdl.lib.so sdl_net.lib.so pthread.lib.so zlib.lib.so
 	dosbox dosbox.tar

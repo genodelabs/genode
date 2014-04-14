@@ -13,4 +13,3 @@ include $(QT5_REP_DIR)/src/app/qt5/tmpl/target_defaults.inc
 
 include $(QT5_REP_DIR)/src/app/qt5/tmpl/target_final.inc
 
-LIBS += libc_fs

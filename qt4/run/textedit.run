@@ -134,12 +134,20 @@ append config {
 	</start>
 	<start name="textedit">
 		<resource name="RAM" quantum="40M"/>
-		<config xpos="3" ypos="0" width="500" height="710"/>
+		<config xpos="3" ypos="0" width="500" height="710">
+			<libc>
+				<vfs> <fs/> </vfs>
+			</libc>
+		</config>
 	</start>
 	<start name="textedit2">
 		<binary name="textedit" />
 		<resource name="RAM" quantum="40M"/>
-		<config xpos="512" ypos="0" width="500" height="710"/>
+		<config xpos="512" ypos="0" width="500" height="710">
+			<libc>
+				<vfs> <fs/> </vfs>
+			</libc>
+		</config>
 	</start>
 </config>
 }
@@ -162,7 +170,6 @@ set boot_modules {
 	ld.lib.so
 	libc.lib.so
 	libc_lock_pipe.lib.so
-	libc_fs.lib.so
 	libm.lib.so
 	libpng.lib.so
 	jpeg.lib.so

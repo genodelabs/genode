@@ -12,6 +12,14 @@ set config_of_app {
 			<service name="File_system"> <child name="rump_fs"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
+		<config>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<fs />
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
+		</config>
 	</start>
 }
 
@@ -37,6 +45,12 @@ append config_of_app "
 }
 
 append config_of_app {
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<fs />
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+			</libc>
 		</config>
 		<route>
 			<service name="File_system"> <child name="rump_fs"/> </service>
