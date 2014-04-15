@@ -78,22 +78,6 @@ namespace Genode
 			{
 				size_t ram_quota =
 					Arg_string::find_arg(args, "ram_quota").long_value(0);
-
-				/*
-				 * FIXME
-				 * We check these assertions because space for initial SLAB
-				 * blocks can be scaled pragmatically only via
-				 * RECEIVERS_SLAB_BLOCK_SIZE and CONTEXTS_SLAB_BLOCK_SIZE
-				 * (array size can't come from a function)
-				 */
-				if (Signal_session_component::RECEIVERS_SB_SIZE <
-				    32 * Kernel::signal_receiver_size() ||
-				    Signal_session_component::CONTEXTS_SB_SIZE  <
-				    32 * Kernel::signal_context_size())
-				{
-					PERR("Undersized SLAB blocks");
-					throw Root::Exception();
-				}
 				return new (md_alloc())
 					Signal_session_component(md_alloc(), ram_quota);
 			}
