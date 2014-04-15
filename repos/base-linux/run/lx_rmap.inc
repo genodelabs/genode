@@ -67,6 +67,7 @@ build_boot_image $boot_modules
 # Execute test
 #
 
-run_genode_until forever
+run_genode_until "child exited with exit value 0.*\n" 10
+puts "Test succeeded"
 
 # vi: set ft=tcl :

@@ -67,6 +67,7 @@ int main()
 		PLOG("before RAM dataspace attach");
 		env()->rm_session()->attach_at(ds, beg);
 		PERR("after RAM dataspace attach -- ERROR");
+		sleep_forever();
 	} catch (Rm_session::Region_conflict) {
 		PLOG("OK caught Region_conflict exception");
 	}
@@ -79,6 +80,7 @@ int main()
 		PLOG("before sub-RM dataspace attach");
 		env()->rm_session()->attach_at(ds, beg);
 		PERR("after sub-RM dataspace attach -- ERROR");
+		sleep_forever();
 	} catch (Rm_session::Region_conflict) {
 		PLOG("OK caught Region_conflict exception");
 	}
@@ -98,8 +100,7 @@ int main()
 		*addr = 0x55;
 		PLOG("after touch (%x/%x)", val, *addr);
 	} catch (Rm_session::Region_conflict) {
-		PLOG("OK caught Region_conflict exception -- ERROR");
+		PERR("Caught Region_conflict exception -- ERROR");
+		sleep_forever();
 	}
-
-	sleep_forever();
 }
