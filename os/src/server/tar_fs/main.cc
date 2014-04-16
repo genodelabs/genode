@@ -235,7 +235,7 @@ namespace File_system {
 			Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
 			{
 				PDBGV("_root = %s, dir_name = %s, name = %s, create = %d",
- 				      _root.record()->name(),
+				      _root.record()->name(),
 				      _handle_registry.lookup(dir_handle)->record()->name(),
 				      name.string(),
 				      create);
@@ -276,7 +276,7 @@ namespace File_system {
 			Dir_handle dir(Path const &path, bool create)
 			{
 				PDBGV("_root = %s, path = %s, create = %d",
-					  _root.record()->name(), path.string(), create);
+				      _root.record()->name(), path.string(), create);
 
 				_assert_valid_path(path.string());
 
@@ -379,19 +379,35 @@ namespace File_system {
 
 				Node *node = _handle_registry.lookup(node_handle);
 
-				status.size = node->record()->size();
-
 				/* convert TAR record modes to stat modes */
 				switch (node->record()->type()) {
-					case Record::TYPE_DIR:     status.mode |= Status::MODE_DIRECTORY; break;
-					case Record::TYPE_FILE:    status.mode |= Status::MODE_FILE; break;
-					case Record::TYPE_SYMLINK: status.mode |= Status::MODE_SYMLINK; break;
+					case Record::TYPE_DIR:
+						{
+							status.size = node->record()->size();
+
+							/* count directory entries */
+							Lookup_member_of_path lookup_criterion(node->record()->name(), ~0);
+							_lookup(&lookup_criterion);
+
+							status.size = lookup_criterion.cnt*sizeof(Directory_entry);
+							status.mode |= Status::MODE_DIRECTORY;
+						break;
+						}
+
+					case Record::TYPE_FILE:
+						status.size = node->record()->size();
+						status.mode |= Status::MODE_FILE;
+						break;
+
+					case Record::TYPE_SYMLINK:
+						status.size = node->record()->size();
+						status.mode |= Status::MODE_SYMLINK;
+						break;
+
 					default:
 						if (verbose)
 							PWRN("unhandled record type %d", node->record()->type());
 				}
-
-				PDBGV("name = %s", node->record()->name());
 
 				return status;
 			}

@@ -58,7 +58,7 @@ namespace File_system {
 
 			/* record type values */
 			enum { TYPE_FILE    = 0, TYPE_HARDLINK = 1,
-				   TYPE_SYMLINK = 2, TYPE_DIR      = 5 };
+			       TYPE_SYMLINK = 2, TYPE_DIR      = 5 };
 
 			size_t             size() const { return _read(_size); }
 			unsigned            uid() const { return _read(_uid);  }
