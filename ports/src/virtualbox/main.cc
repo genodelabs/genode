@@ -36,6 +36,29 @@ void operator delete(void * p) {
 	Genode::env()->heap()->free(p, 0);
 }
 
+
+namespace {
+	template <int MAX_ARGS>
+	struct Args
+	{
+		int   argc           = 0;
+		char *argv[MAX_ARGS] = { };
+
+		struct Too_many_arguments { };
+
+		void add(char const *arg)
+		{
+			/* argv[MAX_ARGS - 1] must be unused and set to 0 */
+			if (argc >= MAX_ARGS - 1)
+				throw Too_many_arguments();
+
+			/* XXX yes const-casting hurts but main() needs char** */
+			argv[argc++] = const_cast<char *>(arg);
+		}
+	};
+} /* unnamed namespace  */
+
+
 extern "C" {
 
 /* string conversion function currently does not convert ... */
@@ -124,15 +147,14 @@ int nanosleep(const struct timespec *req, struct timespec *rem) {
 /* main function of VBox is in Frontends/VBoxBFE/VBoxBFE.cpp */
 extern "C" DECLEXPORT(int) TrustedMain (int argc, char **argv, char **envp);
 
-int main(int, char **)
+int main()
 {
 	static char c_mem[16];
 	static char c_type[4];
 	static char c_file[128];
 	static bool bOverlay = false;
 
-	int argc = 9;
-	char * argv[argc + 1];
+	static Args<64> args;
 
 	/* request max available memory */
 	size_t vm_size = Genode::env()->ram_session()->avail();
@@ -164,51 +186,41 @@ int main(int, char **)
 		return 2;
 	}
 
-	argv[0] = (char *)"virtualbox";
-	argv[1] = (char *)"-m";
+	args.add("virtualbox");
+	args.add("-m");
 
 	Genode::snprintf(c_mem, sizeof(c_mem), "%u", vm_size / 1024 / 1024);
-	argv[2] = c_mem;
-	argv[3] = (char *)"-boot";
+	args.add(c_mem);
+	args.add("-boot");
 
 	if (!Genode::strcmp(c_type, "iso")) {
-		argv[4] = (char *)"d";
-		argv[5] = (char *)"-cdrom";
+		args.add("d");
+		args.add("-cdrom");
 	} else 
 	if (!Genode::strcmp(c_type, "vdi")) {
-		argv[4] = (char *)"c";
-		argv[5] = (char *)"-hda";
+		args.add("c");
+		args.add("-hda");
 	} else {
 		PERR("invalid configuration - abort");
 		return 3;
 	}
 
-	argv[6] = c_file;
-	argv[7] = (char *)"-ioapic";
-
-	if (9 > argc + 1) {
-		PERR("argc argv misconfiguration - abort");
-		return 4;
-	}
+	args.add(c_file);
+	args.add("-ioapic");
 
 	if (bOverlay)
-		argv[8] = (char *)"-overlay";
-	else {
-		argc   -= 1;
-		argv[8] = 0;
-	}
-	argv[9] = 0;
+		args.add("-overlay");
 
 	PINF("start %s image '%s' with %zu MB Guest memory=%zu",
 	     c_type, c_file, vm_size / 1024 / 1024,
 	     Genode::env()->ram_session()->avail());
 
-	if (RT_FAILURE(RTR3InitExe(argc, (char ***)&argv, 0))) {
-        PERR("Intialization of VBox Runtime failed.");
+	if (RT_FAILURE(RTR3InitExe(args.argc, (char ***)&args.argv, 0))) {
+		PERR("Intialization of VBox Runtime failed.");
 		return 5;
 	}
 
-    return TrustedMain(argc, argv, NULL);
+	return TrustedMain(args.argc, args.argv, NULL);
 }
 
 } /* EXTERN "C" */
