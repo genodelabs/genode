@@ -124,7 +124,7 @@ struct Main
 			}
 			catch (...) { }
 
-			PINF("Using file=%s as device with block size %zx.", file, blk_sz);
+			PINF("Using file=%s as device with block size %zd.", file, blk_sz);
 
 			try {
 				return new (Genode::env()->heap()) Ram_blk(file, blk_sz);
