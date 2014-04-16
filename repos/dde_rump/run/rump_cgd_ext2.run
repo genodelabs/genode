@@ -1,0 +1,136 @@
+#
+# Check used commands
+#
+set dd [check_installed dd]
+
+#
+# Build
+#
+set build_components {
+	core init
+	drivers/timer
+	server/ram_blk
+	server/rump_cgd
+	server/rump_fs
+	test/libc_vfs
+}
+
+build $build_components
+
+#
+# Prepare image
+#
+set disk_image "cgd.raw"
+
+puts "preparing bin/$disk_image..."
+
+if {![file exists $disk_image]} {
+	catch { exec $dd if=/dev/zero of=bin/$disk_image bs=1M count=16 }
+}
+
+set cgd_key [exec [genode_dir]/tool/rump -c bin/$disk_image]
+
+if {[catch { exec [genode_dir]/tool/rump -c -d "/dev/rcgd0a" -f -F ext2fs -k "$cgd_key" bin/$disk_image }]} {
+	puts stderr "could not format crypto device."
+	exit 1
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="ram_blk">
+		<resource name="RAM" quantum="20M"/>
+		<provides><service name="Block"/></provides>}
+append config "
+		<config file=\"$disk_image\" block_size=\"512\"/>"
+append config {
+	</start>
+	<start name="rump_cgd">
+		<resource name="RAM" quantum="8M" />
+		<provides><service name="Block"/></provides>
+		<config action="configure">
+			<params>
+				<method>key</method>}
+append config "
+				<key>$cgd_key</key>"
+append config {
+			</params>
+		</config>
+		<route>
+			<service name="Block"> <child name="ram_blk"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="rump_fs">
+		<resource name="RAM" quantum="16M"/>
+		<provides><service name="File_system"/></provides>
+		<config fs="ext2fs">
+			<policy label="" root="/" writeable="yes"/>
+		</config>
+		<route>
+			<service name="Block"> <child name="rump_cgd"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-libc_vfs">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<libc stdout="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<fs/>
+				</vfs>
+			</libc>
+		</config>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ram_blk rump_cgd rump_fs test-libc_vfs
+	ld.lib.so libc.lib.so
+	rump.lib.so rump_cgd.lib.so rump_fs.lib.so
+}
+
+append boot_modules "$disk_image"
+
+build_boot_image $boot_modules
+
+append qemu_args " -m 256 -nographic"
+
+run_genode_until {.*child exited with exit value 0.*} 60
+
+exec rm -f bin/$disk_image
+puts "\nTest succeeded\n"
+
+# vi: set ft=tcl :
