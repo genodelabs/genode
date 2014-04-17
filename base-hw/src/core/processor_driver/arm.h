@@ -625,7 +625,7 @@ namespace Arm
 		 * Invalidate all entries of all instruction caches
 		 */
 		__attribute__((always_inline))
-		static void invalidate_instruction_caches()
+		static void invalidate_instr_caches()
 		{
 			asm volatile ("mcr p15, 0, %[rd], c7, c5, 0" :: [rd]"r"(0) : );
 		}
@@ -646,7 +646,7 @@ namespace Arm
 		static void flush_caches()
 		{
 			flush_data_caches();
-			invalidate_instruction_caches();
+			invalidate_instr_caches();
 		}
 
 		/**
