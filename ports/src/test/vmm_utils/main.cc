@@ -24,7 +24,7 @@ using Genode::printf;
 using Genode::sleep_forever;
 
 
-class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher
+class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 {
 	private:
 
@@ -60,7 +60,7 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher
 
 		Vcpu_dispatcher(Cap_connection &cap, Type type)
 		:
-			Vmm::Vcpu_dispatcher(STACK_SIZE, cap),
+			Vmm::Vcpu_dispatcher<Genode::Thread_base>(STACK_SIZE, cap),
 			_vcpu_thread(STACK_SIZE)
 		{
 			using namespace Nova;

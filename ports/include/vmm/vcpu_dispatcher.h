@@ -18,6 +18,7 @@ namespace Vmm {
 
 	using namespace Genode;
 
+	template <class T>
 	class Vcpu_dispatcher;
 }
 
@@ -25,7 +26,8 @@ namespace Vmm {
 /**
  * Thread that handles virtualization events of a 'Vmm::Vcpu_thread'
  */
-class Vmm::Vcpu_dispatcher : public Genode::Thread_base
+template <class T>
+class Vmm::Vcpu_dispatcher : public T
 {
 	private:
 
@@ -57,15 +59,28 @@ class Vmm::Vcpu_dispatcher : public Genode::Thread_base
 
 		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap)
 		:
-			Thread_base("vCPU dispatcher", stack_size),
+			T("vCPU dispatcher", stack_size),
 			_cap(cap)
 		{
 			using namespace Genode;
 
-			/* request creation of a 'local' EC */                              
-			_tid.ec_sel = Native_thread::INVALID_INDEX - 1;                     
-			Thread_base::start();                                               
+			/* request creation of a 'local' EC */
+			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+			T::start();
 
+		}
+
+		template <typename X>
+		Vcpu_dispatcher(size_t stack_size, Cap_connection &cap,
+		                X attr, void *(*start_routine) (void *), void *arg)
+		: T(attr, start_routine, arg, stack_size, "vCPU dispatcher", nullptr),
+		  _cap(cap)
+		{
+			using namespace Genode;
+
+			/* request creation of a 'local' EC */
+			T::_tid.ec_sel = Native_thread::INVALID_INDEX - 1;
+			T::start();
 		}
 
 		/**
@@ -82,7 +97,7 @@ class Vmm::Vcpu_dispatcher : public Genode::Thread_base
 			/* Create the portal at the desired selector index */
 			_cap.rcv_window(exc_base + EV);
 
-			Native_capability thread_cap(tid().ec_sel);
+			Native_capability thread_cap(T::tid().ec_sel);
 			Native_capability handler =
 				_cap.alloc(thread_cap, (Nova::mword_t)entry, mtd.value());
 
@@ -111,7 +126,7 @@ class Vmm::Vcpu_dispatcher : public Genode::Thread_base
 		 */
 		Nova::mword_t sel_sm_ec()
 		{
-			return tid().exc_pt_sel + Nova::SM_SEL_EC;
+			return T::tid().exc_pt_sel + Nova::SM_SEL_EC;
 		}
 };
 

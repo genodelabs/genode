@@ -246,7 +246,9 @@ class Guest_memory
 };
 
 
-class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
+typedef Vmm::Vcpu_dispatcher<Genode::Thread_base> Vcpu_handler;
+
+class Vcpu_dispatcher : public Vcpu_handler,
                         public StaticReceiver<Vcpu_dispatcher>
 {
 	private:
@@ -683,7 +685,7 @@ class Vcpu_dispatcher : public Vmm::Vcpu_dispatcher,
 		                bool                    has_vmx,
 		                Vmm::Vcpu_thread       *vcpu_thread)
 		:
-			Vmm::Vcpu_dispatcher(STACK_SIZE, cap_connection),
+			Vcpu_handler(STACK_SIZE, cap_connection),
 			_vcpu(vcpu_lock, unsynchronized_vcpu),
 			_vcpu_thread(vcpu_thread),
 			_guest_memory(guest_memory),

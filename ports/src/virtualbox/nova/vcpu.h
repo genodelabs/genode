@@ -58,7 +58,7 @@ static inline Genode::uint32_t sel_ar_conv_from_nova(Genode::uint16_t v)
 extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite);
 
 
-class Vcpu_handler : public Vmm::Vcpu_dispatcher
+class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 {
 	private:
 
@@ -507,7 +507,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher
 
 		Vcpu_handler()
 		:
-			Vmm::Vcpu_dispatcher(STACK_SIZE, _cap_connection),
+			Vmm::Vcpu_dispatcher<Genode::Thread_base>(STACK_SIZE,
+			                                          _cap_connection),
 			_ec_sel(Genode::cap_map()->insert()),
 			_lock_startup(Genode::Lock::LOCKED),
 			_signal_emt(Genode::Lock::LOCKED),
