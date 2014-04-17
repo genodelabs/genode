@@ -42,8 +42,7 @@ class Ram_blk : public Block::Driver
 		         bool               read)
 		{
 			/* sanity check block number */
-			if ((block_number + block_count > _file_sz / _blk_sz)
-				|| block_number < 0) {
+			if (block_number + block_count > _file_sz / _blk_sz) {
 				PWRN("requested blocks %lld-%lld out of range!",
 					 block_number, block_number + block_count);
 				return;
