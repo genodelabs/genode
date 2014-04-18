@@ -137,12 +137,17 @@ namespace {
 			 */
 			static char const *_dev_name() { return "/dev/terminal"; }
 
+			/*
+			 * Prioritize plugin over libc_vfs
+			 */
+			enum { PLUGIN_PRIORITY = 1 };
+
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Plugin() { }
+			Plugin() : Libc::Plugin(PLUGIN_PRIORITY) { }
 
 			bool supports_stat(const char *path)
 			{
