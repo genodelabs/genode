@@ -731,6 +731,18 @@ extern "C" int rename(const char *oldpath, const char *newpath)
 }
 
 
+extern "C" int rmdir(const char *path)
+{
+	try {
+		Absolute_path resolved_path;
+		resolve_symlinks_except_last_element(path, resolved_path);
+		FNAME_FUNC_WRAPPER(rmdir, resolved_path.base());
+	} catch(Symlink_resolve_error) {
+		return -1;
+	}
+}
+
+
 extern "C" ssize_t send(int libc_fd, const void *buf, ::size_t len, int flags) {
 	FD_FUNC_WRAPPER(send, libc_fd, buf, len, flags); }
 

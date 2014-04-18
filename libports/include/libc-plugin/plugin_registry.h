@@ -36,6 +36,7 @@ namespace Libc {
 			Plugin *get_plugin_for_pipe();
 			Plugin *get_plugin_for_readlink(const char *path, char *buf, size_t bufsiz);
 			Plugin *get_plugin_for_rename(const char *oldpath, const char *newpath);
+			Plugin *get_plugin_for_rmdir(const char *path);
 			Plugin *get_plugin_for_socket(int domain, int type, int protocol);
 			Plugin *get_plugin_for_stat(const char *path, struct stat *);
 			Plugin *get_plugin_for_symlink(const char *oldpath, const char *newpath);

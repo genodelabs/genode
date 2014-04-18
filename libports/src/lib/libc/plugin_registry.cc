@@ -71,6 +71,8 @@ Plugin *Plugin_registry::get_plugin_for_readlink(const char *path, char *buf, si
 Plugin *Plugin_registry::get_plugin_for_rename(const char *oldpath, const char *newpath) {
 	GET_PLUGIN_FOR(rename, oldpath, newpath) }
 
+Plugin *Plugin_registry::get_plugin_for_rmdir(const char *path) {
+	GET_PLUGIN_FOR(rmdir, path) }
 
 Plugin *Plugin_registry::get_plugin_for_socket(int domain, int type, int protocol) {
 	GET_PLUGIN_FOR(socket, domain, type, protocol) }

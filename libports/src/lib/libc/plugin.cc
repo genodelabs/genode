@@ -93,6 +93,12 @@ bool Plugin::supports_rename(const char *, const char *)
 }
 
 
+bool Plugin::supports_rmdir(const char*)
+{
+	return false;
+}
+
+
 bool Plugin::supports_select(int, fd_set *, fd_set *,
                              fd_set *, struct timeval *)
 {
@@ -193,6 +199,7 @@ DUMMY(int, -1, munmap,       (void *, ::size_t));
 DUMMY(int, -1, pipe,         (File_descriptor*[2]));
 DUMMY(ssize_t, -1, readlink, (const char *, char *, size_t));
 DUMMY(int, -1, rename,       (const char *, const char *));
+DUMMY(int, -1, rmdir,        (const char*));
 DUMMY(int, -1, select,       (int, fd_set *, fd_set *, fd_set *, struct timeval *));
 DUMMY(int, -1, stat,         (const char*, struct stat*));
 DUMMY(int, -1, symlink,      (const char*, const char*));

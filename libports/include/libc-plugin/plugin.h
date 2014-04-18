@@ -55,6 +55,7 @@ namespace Libc {
 			virtual bool supports_pipe();
 			virtual bool supports_readlink(const char *path, char *buf, size_t bufsiz);
 			virtual bool supports_rename(const char *oldpath, const char *newpath);
+			virtual bool supports_rmdir(const char *path);
 			virtual bool supports_select(int nfds,
 			                             fd_set *readfds,
 			                             fd_set *writefds,
@@ -116,6 +117,7 @@ namespace Libc {
 			                         struct sockaddr *src_addr, socklen_t *addrlen);
 			virtual ssize_t recvmsg(File_descriptor *, struct msghdr *msg, int flags);
 			virtual int rename(const char *oldpath, const char *newpath);
+			virtual int rmdir(const char *pathname);
 			virtual int select(int nfds, fd_set *readfds, fd_set *writefds,
 			                   fd_set *exceptfds, struct timeval *timeout);
 			virtual ssize_t send(File_descriptor *, const void *buf, ::size_t len, int flags);
