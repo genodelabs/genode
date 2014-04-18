@@ -393,7 +393,7 @@ class Audio_out::Root : public Audio_out::Root_component
 int main()
 {
 	static Cap_connection cap;
-	enum { STACK_SIZE = 1024 * sizeof(addr_t) }; 
+	enum { STACK_SIZE = 4*1024*sizeof(addr_t) }; 
 
 	for (int i = 0; i < MAX_CHANNELS; i++)
 		_channels[i] = new (env()->heap()) Audio_out::Channel();
