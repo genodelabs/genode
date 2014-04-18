@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 		CALL_AND_CHECK(ret, unlink(file_name), (ret == 0), "file_name=%s", file_name);
 		CALL_AND_CHECK(ret, stat(file_name, &stat_buf), (ret == -1), "file_name=%s", file_name);
 		CALL_AND_CHECK(ret, stat(dir_name2, &stat_buf), (ret == 0), "dir_name=%s", dir_name2);
-		CALL_AND_CHECK(ret, unlink(dir_name2), (ret == 0), "dir_name=%s", dir_name2);
+		CALL_AND_CHECK(ret, rmdir(dir_name2), (ret == 0), "dir_name=%s", dir_name2);
 		CALL_AND_CHECK(ret, stat(dir_name2, &stat_buf), (ret == -1), "dir_name=%s", dir_name2);
 
 		/* test symbolic links */
