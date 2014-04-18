@@ -290,7 +290,7 @@ namespace File_system {
 			Symlink_handle symlink(Dir_handle, Name const &name, bool create)
 			{
 				/* not supported */
-				return Symlink_handle(-1);
+				throw Permission_denied();
 			}
 
 			Dir_handle dir(Path const &path, bool create)

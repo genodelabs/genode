@@ -302,7 +302,7 @@ namespace File_system {
 		                 Dir_handle, Name const &, Mode, bool);
 		GENODE_RPC_THROW(Rpc_symlink, Symlink_handle, symlink,
 		                 GENODE_TYPE_LIST(Invalid_handle, Node_already_exists,
-		                                  Invalid_name, Lookup_failed),
+		                                  Invalid_name, Lookup_failed, Permission_denied),
 		                 Dir_handle, Name const &, bool);
 		GENODE_RPC_THROW(Rpc_dir, Dir_handle, dir,
 		                 GENODE_TYPE_LIST(Permission_denied, Node_already_exists,
