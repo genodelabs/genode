@@ -211,8 +211,10 @@ class Plugin : public Libc::Plugin
 
 		/**
 		 * Constructor
+		 *
+		 * Use priority 1 to override libc_vfs.
 		 */
-		Plugin() { }
+		Plugin() : Libc::Plugin(1) { }
 
 		~Plugin() { }
 
