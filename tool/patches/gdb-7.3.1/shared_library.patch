@@ -1,0 +1,101 @@
+shared_library.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Enable shared library support.
+---
+ gdb/amd64-tdep.c  |    4 ++++
+ gdb/arm-tdep.c    |    4 ++++
+ gdb/configure.tgt |    5 ++++-
+ gdb/i386-tdep.c   |    4 ++++
+ 4 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/gdb/amd64-tdep.c b/gdb/amd64-tdep.c
+index 9b5d5bb..db3821a 100644
+--- a/gdb/amd64-tdep.c
++++ b/gdb/amd64-tdep.c
+@@ -45,6 +45,8 @@
+ #include "features/i386/amd64.c"
+ #include "features/i386/amd64-avx.c"
+ 
++#include "solib-svr4.h"
++
+ /* Note that the AMD64 architecture was previously known as x86-64.
+    The latter is (forever) engraved into the canonical system name as
+    returned by config.guess, and used as the name for the AMD64 port
+@@ -2465,6 +2467,8 @@ amd64_init_abi (struct gdbarch_info info, struct gdbarch *gdbarch)
+   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
+   const struct target_desc *tdesc = info.target_desc;
+ 
++  set_solib_svr4_fetch_link_map_offsets(gdbarch, svr4_lp64_fetch_link_map_offsets);
++
+   /* AMD64 generally uses `fxsave' instead of `fsave' for saving its
+      floating-point registers.  */
+   tdep->sizeof_fpregset = I387_SIZEOF_FXSAVE;
+diff --git a/gdb/arm-tdep.c b/gdb/arm-tdep.c
+index bb52ad4..155208e 100644
+--- a/gdb/arm-tdep.c
++++ b/gdb/arm-tdep.c
+@@ -57,6 +57,8 @@
+ 
+ #include "features/arm-with-m.c"
+ 
++#include "solib-svr4.h"
++
+ static int arm_debug;
+ 
+ /* Macros for setting and testing a bit in a minimal symbol that marks
+@@ -8465,6 +8467,8 @@ arm_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
+   tdep = xcalloc (1, sizeof (struct gdbarch_tdep));
+   gdbarch = gdbarch_alloc (&info, tdep);
+ 
++  set_solib_svr4_fetch_link_map_offsets(gdbarch, svr4_ilp32_fetch_link_map_offsets);
++
+   /* Record additional information about the architecture we are defining.
+      These are gdbarch discriminators, like the OSABI.  */
+   tdep->arm_abi = arm_abi;
+diff --git a/gdb/configure.tgt b/gdb/configure.tgt
+index 5ab1554..ae57017 100644
+--- a/gdb/configure.tgt
++++ b/gdb/configure.tgt
+@@ -96,7 +96,7 @@ arm*-*-symbianelf*)
+ 	;;
+ arm*-*-* | thumb*-*-* | strongarm*-*-* | xscale-*-*)
+ 	# Target: ARM embedded system
+-	gdb_target_obs="arm-tdep.o"
++	gdb_target_obs="arm-tdep.o solib.o solib-svr4.o"
+ 	gdb_sim=../sim/arm/libsim.a
+ 	;;
+ 
+@@ -623,6 +623,9 @@ x86_64-*-openbsd*)
+ 			i387-tdep.o i386bsd-tdep.o i386obsd-tdep.o \
+ 			bsd-uthread.o corelow.o solib.o solib-svr4.o"
+ 	;;
++x86_64-*-*)
++	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o solib.o solib-svr4.o"
++	;;
+ xtensa*-*-linux*)	gdb_target=linux
+ 	# Target: GNU/Linux Xtensa
+ 	gdb_target_obs="xtensa-tdep.o xtensa-config.o xtensa-linux-tdep.o \
+diff --git a/gdb/i386-tdep.c b/gdb/i386-tdep.c
+index 5f4089b..3c13bea 100644
+--- a/gdb/i386-tdep.c
++++ b/gdb/i386-tdep.c
+@@ -60,6 +60,8 @@
+ #include "features/i386/i386-avx.c"
+ #include "features/i386/i386-mmx.c"
+ 
++#include "solib-svr4.h"
++
+ /* Register names.  */
+ 
+ static const char *i386_register_names[] =
+@@ -7051,6 +7053,8 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
+   tdep = XCALLOC (1, struct gdbarch_tdep);
+   gdbarch = gdbarch_alloc (&info, tdep);
+ 
++  set_solib_svr4_fetch_link_map_offsets(gdbarch, svr4_ilp32_fetch_link_map_offsets);
++
+   /* General-purpose registers.  */
+   tdep->gregset = NULL;
+   tdep->gregset_reg_offset = NULL;

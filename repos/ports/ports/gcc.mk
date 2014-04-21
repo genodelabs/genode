@@ -49,7 +49,10 @@ endif
 $(CONTRIB_DIR)/$(GCC): $(DOWNLOAD_DIR)/$(GCC_TGZ).verified
 	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR)
 
-include ../../tool/tool_chain_gcc_patches.inc
+# needed in 'tool_chain_gcc_patches.inc'
+GENODE_DIR := $(abspath ../..)
+
+include $(GENODE_DIR)/tool/tool_chain_gcc_patches.inc
 
 $(CONTRIB_DIR)/$(GCC)/configure:: $(CONTRIB_DIR)/$(GCC)
 	@#

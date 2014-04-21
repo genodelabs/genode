@@ -1,0 +1,22 @@
+arm_single_step.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Enable software single-stepping on ARM.
+---
+ gdb/arm-tdep.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/gdb/arm-tdep.c b/gdb/arm-tdep.c
+index 155208e..91537d6 100644
+--- a/gdb/arm-tdep.c
++++ b/gdb/arm-tdep.c
+@@ -8467,6 +8467,8 @@ arm_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
+   tdep = xcalloc (1, sizeof (struct gdbarch_tdep));
+   gdbarch = gdbarch_alloc (&info, tdep);
+ 
++  set_gdbarch_software_single_step(gdbarch, arm_software_single_step);
++
+   set_solib_svr4_fetch_link_map_offsets(gdbarch, svr4_ilp32_fetch_link_map_offsets);
+ 
+   /* Record additional information about the architecture we are defining.

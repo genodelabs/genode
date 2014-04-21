@@ -1,0 +1,29 @@
+link_spec.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Enable LINK_SPEC customization via configure arguments
+
+We add a hook for sneaking our custom LINK_SPEC definition into the GCC
+configure process by uncommentig the 'host_xm_include_list'. This enables us
+to supply a custom header file to be included into 'gcc/config.h' defining
+the 'LINK_SPEC' macro. This macro expresses the policy of how the GCC
+frontend invokes 'ld' on multiarch platforms. I.e., on x86, we need to pass
+'-melf_i386' to 'ld' when building in '-m32' mode.
+---
+ gcc/configure.ac |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gcc/configure.ac b/gcc/configure.ac
+index 2d1876f..b7604d6 100644
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -1759,7 +1759,7 @@ for f in $xm_file; do
+ done
+ 
+ host_xm_file_list=
+-host_xm_include_list=
++#host_xm_include_list=
+ for f in $host_xm_file; do
+   case $f in
+     ansidecl.h )

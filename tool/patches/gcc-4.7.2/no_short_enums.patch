@@ -1,0 +1,22 @@
+no_short_enums.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Ensure -fno-short-enums as default.
+---
+ gcc/config/arm/arm.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gcc/config/arm/arm.c b/gcc/config/arm/arm.c
+index 35b73c5..52370a8 100644
+--- a/gcc/config/arm/arm.c
++++ b/gcc/config/arm/arm.c
+@@ -23384,7 +23384,7 @@ arm_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+ static bool
+ arm_default_short_enums (void)
+ {
+-  return TARGET_AAPCS_BASED && arm_abi != ARM_ABI_AAPCS_LINUX;
++  return false;
+ }
+ 
+ 

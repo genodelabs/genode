@@ -1,0 +1,212 @@
+tmake_file_extra_parts.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Enable support for passing custom 'tmake_file' and 'extra_parts' to the
+GCC configure process uncommenting the default initialization of the
+respective variables. The 'extra_parts' variable is used to carry the
+information about which crtN files are to be created.
+---
+ gcc/config.gcc     |    2 +-
+ libgcc/config.host |   44 ++++++++++++++++++++++----------------------
+ 2 files changed, 23 insertions(+), 23 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 5fcd192..653e5d9 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -204,7 +204,7 @@
+ 
+ out_file=
+ common_out_file=
+-tmake_file=
++#tmake_file=
+ extra_headers=
+ user_headers_inc_next_pre=
+ user_headers_inc_next_post=
+diff --git a/libgcc/config.host b/libgcc/config.host
+index ef9791b..b11d221 100644
+--- a/libgcc/config.host
++++ b/libgcc/config.host
+@@ -69,8 +69,8 @@
+ 
+ asm_hidden_op=.hidden
+ enable_execute_stack=
+-extra_parts=
+-tmake_file=
++#extra_parts=
++#tmake_file=
+ tm_file=
+ tm_define=
+ md_unwind_header=no-unwind.h
+@@ -172,14 +172,14 @@ case ${host} in
+ *-*-darwin*)
+   asm_hidden_op=.private_extern
+   tmake_file="$tmake_file t-darwin ${cpu_type}/t-darwin t-libgcc-pic t-slibgcc-darwin"
+-  extra_parts="crt3.o crttms.o crttme.o"
++#  extra_parts="crt3.o crttms.o crttme.o"
+   ;;
+ *-*-freebsd*)
+   # This is the generic ELF configuration of FreeBSD.  Later
+   # machine-specific sections may refine and add to this
+   # configuration.
+   tmake_file="$tmake_file t-freebsd t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
+-  extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
++#  extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
+   case ${target_thread_file} in
+     posix)
+       tmake_file="${tmake_file} t-freebsd-thread"
+@@ -195,11 +195,11 @@ case ${host} in
+   ;;
+ *-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
+   tmake_file="$tmake_file t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver t-linux"
+-  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
++#  extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
+   ;;
+ *-*-lynxos*)
+   tmake_file="$tmake_file t-lynx $cpu_type/t-crtstuff t-crtstuff-pic t-libgcc-pic"
+-  extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o"
++#  extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o"
+   ;;
+ *-*-netbsd*)
+   tmake_file="$tmake_file t-crtstuff-pic t-libgcc-pic t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
+@@ -208,7 +208,7 @@ case ${host} in
+   # a.out configurations.
+   case ${host} in
+     *-*-netbsd*1.[7-9]* | *-*-netbsd[2-9]* | *-*-netbsdelf[2-9]*)
+-      extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtbeginT.o"
++#      extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtbeginT.o"
+       ;;
+   esac
+   ;;
+@@ -222,7 +222,7 @@ case ${host} in
+   ;;
+ *-*-rtems*)
+   tmake_file="$tmake_file t-rtems"
+-  extra_parts="crtbegin.o crtend.o"
++#  extra_parts="crtbegin.o crtend.o"
+   ;;
+ *-*-solaris2*)
+   # Unless linker support and dl_iterate_phdr are present,
+@@ -251,7 +251,7 @@ case ${host} in
+   esac
+   ;;
+ *-*-uclinux*)
+-  extra_parts="crtbegin.o crtend.o"
++#  extra_parts="crtbegin.o crtend.o"
+   ;;
+ *-*-*vms*)
+   tmake_file="vms/t-vms"
+@@ -261,7 +261,7 @@ case ${host} in
+   tmake_file=t-vxworks
+   ;;
+ *-*-elf)
+-  extra_parts="crtbegin.o crtend.o"
++#  extra_parts="crtbegin.o crtend.o"
+   ;;
+ esac
+ 
+@@ -360,7 +360,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
+ 	case ${host} in
+ 	arm*-*-eabi* | arm*-*-rtemseabi*)
+ 	  tmake_file="${tmake_file} arm/t-bpabi"
+-	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
++#	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
+ 	  ;;
+ 	arm*-*-symbianelf*)
+ 	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
+@@ -409,7 +409,7 @@ bfin*-linux-uclibc*)
+ 	tmake_file="$tmake_file bfin/t-bfin bfin/t-crtstuff t-libgcc-pic t-fdpbit bfin/t-linux"
+ 	# No need to build crtbeginT.o on uClibc systems.  Should probably
+ 	# be moved to the OS specific section above.
+-	extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o"
++#	extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o"
+ 	md_unwind_header=bfin/linux-unwind.h
+ 	;;
+ bfin*-rtems*)
+@@ -418,7 +418,7 @@ bfin*-rtems*)
+ 	;;
+ bfin*-*)
+ 	tmake_file="$tmake_file bfin/t-bfin t-fdpbit"
+-	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
++#	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
+         ;;
+ cr16-*-elf)
+ 	tmake_file="${tmake_file} cr16/t-cr16 cr16/t-crtlibid t-fdpbit"
+@@ -579,7 +579,7 @@ i[34567]86-*-solaris2* | x86_64-*-solaris2.1[0-9]*)
+ i[4567]86-wrs-vxworks|i[4567]86-wrs-vxworksae)
+ 	;;
+ i[34567]86-*-cygwin*)
+-	extra_parts="crtbegin.o crtend.o crtfastmath.o"
++#	extra_parts="crtbegin.o crtend.o crtfastmath.o"
+ 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
+ 	if test x$enable_sjlj_exceptions = xyes; then
+ 		tmake_eh_file="i386/t-sjlj-eh"
+@@ -595,7 +595,7 @@ i[34567]86-*-cygwin*)
+ 	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} i386/t-slibgcc-cygming i386/t-cygming i386/t-cygwin i386/t-crtfm i386/t-chkstk t-dfprules"
+ 	;;
+ i[34567]86-*-mingw*)
+-	extra_parts="crtbegin.o crtend.o crtfastmath.o"
++#	extra_parts="crtbegin.o crtend.o crtfastmath.o"
+ 	case ${target_thread_file} in
+ 	  win32)
+ 	    tmake_file="$tmake_file i386/t-gthr-win32"
+@@ -656,7 +656,7 @@ ia64*-*-freebsd*)
+ 	;;
+ ia64*-*-linux*)
+ 	# Don't use crtbeginT.o from *-*-linux* default.
+-	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
++#	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
+ 	tmake_file="$tmake_file ia64/t-ia64 ia64/t-ia64-elf t-crtfm t-softfp-tf ia64/t-softfp t-softfp ia64/t-softfp-compat ia64/t-eh-ia64 t-libunwind ia64/t-linux"
+ 	if test x$with_system_libunwind != xyes ; then
+ 		tmake_file="${tmake_file} t-libunwind-elf ia64/t-linux-libunwind"
+@@ -738,11 +738,11 @@ microblaze*-linux*)
+ 	;;
+ microblaze*-*-*)
+         tmake_file="microblaze/t-microblaze t-fdpbit"
+-	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
++#	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
+ 	;;
+ mips-sgi-irix6.5*)
+ 	tmake_file="$tmake_file mips/t-irix6 t-crtfm mips/t-tpbit t-slibgcc mips/t-slibgcc-irix"
+-	extra_parts="crtbegin.o crtend.o crtfastmath.o irix-crti.o irix-crtn.o"
++#	extra_parts="crtbegin.o crtend.o crtfastmath.o irix-crti.o irix-crtn.o"
+ 	md_unwind_header=mips/irix6-unwind.h
+ 	;;
+ mips*-*-netbsd*)			# NetBSD/mips, either endian.
+@@ -811,7 +811,7 @@ mipstx39-*-elf* | mipstx39el-*-elf*)
+ 	tmake_file="$tmake_file mips/t-crtstuff mips/t-mips16"
+ 	;;
+ mmix-knuth-mmixware)
+-	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
++#	extra_parts="crti.o crtn.o crtbegin.o crtend.o"
+ 	tmake_file="${tmake_file} ${cpu_type}/t-${cpu_type}"
+ 	;;
+ mn10300-*-*)
+@@ -946,7 +946,7 @@ s390x-*-linux*)
+ 	;;
+ s390x-ibm-tpf*)
+ 	tmake_file="${tmake_file} s390/t-crtstuff t-libgcc-pic t-eh-dw2-dip"
+-	extra_parts="crtbeginS.o crtendS.o"
++#	extra_parts="crtbeginS.o crtendS.o"
+ 	md_unwind_header=s390/tpf-unwind.h
+ 	;;
+ score-*-elf)
+@@ -1128,7 +1128,7 @@ xtensa*-*-linux*)
+ 	;;
+ am33_2.0-*-linux*)
+ 	# Don't need crtbeginT.o from *-*-linux* default.
+-	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
++#	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
+ 	tmake_file="$tmake_file t-fdpbit"
+ 	;;
+ m32c-*-elf*|m32c-*-rtems*)
+@@ -1136,7 +1136,7 @@ m32c-*-elf*|m32c-*-rtems*)
+  	;;
+ mep*-*-*)
+ 	tmake_file="mep/t-mep t-fdpbit"
+-	extra_parts="crtbegin.o crtend.o"
++#	extra_parts="crtbegin.o crtend.o"
+ 	;;
+ *)
+ 	echo "*** Configuration ${host} not supported" 1>&2

@@ -1,0 +1,35 @@
+cppflags_for_target.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Allow customization of CPPFLAGS_FOR_TARGET, not supported by the original
+GCC config and build system.
+---
+ Makefile.tpl |    1 +
+ configure.ac |    1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/Makefile.tpl b/Makefile.tpl
+index 371c3b6..5cbd6e6 100644
+--- a/Makefile.tpl
++++ b/Makefile.tpl
+@@ -507,6 +507,7 @@ COMPILER_LD_FOR_TARGET=@COMPILER_LD_FOR_TARGET@
+ COMPILER_NM_FOR_TARGET=@COMPILER_NM_FOR_TARGET@
+ 
+ CFLAGS_FOR_TARGET = @CFLAGS_FOR_TARGET@
++CPPFLAGS_FOR_TARGET = @CPPFLAGS_FOR_TARGET@
+ CXXFLAGS_FOR_TARGET = @CXXFLAGS_FOR_TARGET@
+ 
+ LIBCFLAGS_FOR_TARGET = $(CFLAGS_FOR_TARGET)
+diff --git a/configure.ac b/configure.ac
+index 40aeeee..a44a000 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -2142,6 +2142,7 @@ if test "x$CFLAGS_FOR_TARGET" = x; then
+     *) CFLAGS_FOR_TARGET="-g $CFLAGS" ;;
+   esac
+ fi
++AC_SUBST(CPPFLAGS_FOR_TARGET)
+ AC_SUBST(CFLAGS_FOR_TARGET)
+ 
+ if test "x$CXXFLAGS_FOR_TARGET" = x; then
