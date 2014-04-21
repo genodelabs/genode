@@ -509,7 +509,7 @@ $(GDB_BINARIES): build/$(PLATFORM)/gdb/Makefile
 
 $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gdb...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gdb install
+	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gdb install MAKEINFO=true
 
 #
 # Clean rules
