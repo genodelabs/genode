@@ -97,7 +97,7 @@ set config  {
 append config "
 		<config uhci=\"$use_usb_11\" ehci=\"$use_usb_20\" xhci=\"$use_usb_30\">"
 append config {
-			<nic mac="2e:60:90:0c:4e:01" />
+			<nic mac="02:00:00:00:01:01" />
 		</config>
 		<route>
 			<any-service> <parent/> <any-child/> </any-service>

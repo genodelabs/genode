@@ -116,7 +116,7 @@ set config  {
 		</provides>
 		<config uhci="yes" ehci="yes">
 			<hid />
-			<nic mac="2e:60:90:0c:4e:01" />
+			<nic mac="02:00:00:00:01:01" />
 		</config>
 		<route>
 			<service name="LOG"> <child name="terminal_log"/> </service>

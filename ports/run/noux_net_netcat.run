@@ -130,7 +130,7 @@ append_if $use_usb_driver config {
 			<service name="Input"/>
 		</provides>
 		<config uhci="no" ehci="yes" xhci="no">
-			<nic mac="2e:60:90:0c:4e:03"/>
+			<nic mac="02:00:00:00:01:01"/>
 		</config>
 	</start>}
 
