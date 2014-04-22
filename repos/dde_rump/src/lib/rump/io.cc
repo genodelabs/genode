@@ -340,3 +340,13 @@ void rump_io_backend_sync()
 	backend()->submit();
 }
 
+
+void rumpuser_dprintf(const char *fmt, ...)
+{
+	va_list list;
+	va_start(list, fmt);
+
+	Genode::vprintf(fmt, list);
+
+	va_end(list);
+}
