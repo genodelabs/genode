@@ -426,7 +426,8 @@ class File_system::Root : public Root_component<Session_component>
 
 struct File_system::Main
 {
-	Server::Entrypoint &ep;
+	Server::Entrypoint             &ep;
+	Server::Signal_rpc_member<Main> resource_dispatcher;
 
 	/*
 	 * Initialize root interface
@@ -436,12 +437,17 @@ struct File_system::Main
 	Root fs_root = { ep, sliced_heap };
 
 
+	/* return immediately from resource requests */
+	void resource_handler(unsigned) { }
+
 	Main(Server::Entrypoint &ep)
 		:
-			ep(ep)
+			ep(ep),
+			resource_dispatcher(ep, *this, &Main::resource_handler)
 	{
 		File_system::init(ep);
 		env()->parent()->announce(ep.manage(fs_root));
+		env()->parent()->resource_avail_sigh(resource_dispatcher);
 	}
 };
 

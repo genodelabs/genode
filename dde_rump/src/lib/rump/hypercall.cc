@@ -61,7 +61,7 @@ int rumpuser_init(int version, const struct rumpuser_hyperup *hyp)
  ** Threads **
  *************/
 
-static Hard_context _main_thread("main thread", 0, 0, 0, false);
+static Hard_context _main_thread(0);
 
 static Hard_context *myself()
 {
@@ -108,7 +108,7 @@ int rumpuser_thread_create(func f, void *arg, const char *name,
 	if (mustjoin)
 		*cookie = (void *)++count;
 
-	new (Genode::env()->heap()) Hard_context(name, f, arg, mustjoin ? count : 0);
+	new (Genode::env()->heap()) Hard_context_thread(name, f, arg, mustjoin ? count : 0);
 
 	return 0;
 }
@@ -123,6 +123,8 @@ void rumpuser_seterrno(int e) { errno = e; }
 
 int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 {
+	enum { RESERVE_MEM = 2U * 1024 * 1024 };
+
 	/* support one cpu */
 	PDBG("%s", name);
 	if (!Genode::strcmp(name, "_RUMPUSER_NCPU")) {
@@ -139,11 +141,18 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 	if (!Genode::strcmp(name, "RUMP_MEMLIMIT")) {
 
 		/* leave 2 MB for the Genode */
-		size_t rump_ram =  Genode::env()->ram_session()->avail() - (2 * 1024 * 1024);
+		size_t rump_ram =  Genode::env()->ram_session()->avail();
+
+		if (rump_ram <= RESERVE_MEM) {
+			PERR("Insufficient quota need left: %zu < %u bytes", rump_ram, RESERVE_MEM);
+			return -1;
+		}
+
+		rump_ram -= RESERVE_MEM;
 
 		/* convert to string */
 		Genode::snprintf((char *)buf, buflen, "%zu", rump_ram);
-		PINF("Asserting rump kernel %zu KB of RAM", rump_ram / 1024);
+		PERR("Asserting rump kernel %zu KB of RAM", rump_ram / 1024);
 		return 0;
 	}
 

@@ -88,11 +88,11 @@ namespace Allocator {
 					/* lookup phys. address */
 					_ds_phys[_index] = Genode::Dataspace_client(_ds_cap[_index]).phys_addr();
 				} catch (Genode::Ram_session::Quota_exceeded) {
-					PERR("Backend allocator exhausted");
+					PWRN("Backend allocator exhausted");
 					_quota_exceeded = true;
 					return false;
 				} catch (Genode::Rm_session::Attach_failed) {
-					PERR("Backend VM region exhausted");
+					PWRN("Backend VM region exhausted");
 					_quota_exceeded = true;
 					return false;
 				}
@@ -116,7 +116,7 @@ namespace Allocator {
 			}
 
 			/**
-			 * Allocate 
+			 * Allocate
 			 */
 			bool alloc(size_t size, void **out_addr)
 			{
@@ -126,10 +126,8 @@ namespace Allocator {
 					return done;
 
 				done = _alloc_block();
-				if (!done) {
-					PERR("Backend allocator exhausted\n");
+				if (!done)
 					return false;
-				}
 
 				return _range.alloc(size, out_addr);
 			}

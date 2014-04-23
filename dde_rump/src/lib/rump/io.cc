@@ -39,7 +39,7 @@ struct Packet : Genode::List<Packet>::Element
 };
 
 
-class Backend : public Hard_context
+class Backend : public Hard_context_thread
 {
 
 	private:
@@ -211,7 +211,7 @@ class Backend : public Hard_context
 	public:
 
 		Backend()
-		: Hard_context("block_io", 0, 0, 0, false),
+		: Hard_context_thread("block_io", 0, 0, 0, false),
 		_alloc(Genode::env()->heap()),
 		_session(&_alloc),
 		_alloc_sem(COUNT),

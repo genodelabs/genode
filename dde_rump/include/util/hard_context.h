@@ -33,14 +33,33 @@ namespace Timer {
 	class Connection;
 };
 
-class Hard_context : public Genode::Thread<sizeof(Genode::addr_t) * 2048>
+
+class Hard_context
 {
 	private:
 
-		func                      _func;
-		void                     *_arg;
-		int                       _cookie;
-		lwp                      *_lwp;
+		int  _cookie;
+		lwp *_lwp     = 0;
+
+	public:
+
+		Hard_context(int cookie)
+		: _cookie(cookie){ }
+
+		void set_lwp(lwp *l) { _lwp = l; }
+		lwp *get_lwp() { return _lwp; }
+
+		static Timer::Connection *timer();
+};
+
+
+class Hard_context_thread : public Hard_context,
+                            public Genode::Thread<sizeof(Genode::addr_t) * 2048>
+{
+	private:
+
+		func  _func;
+		void *_arg;
 
 	protected:
 
@@ -52,14 +71,10 @@ class Hard_context : public Genode::Thread<sizeof(Genode::addr_t) * 2048>
 
 	public:
 
-		Hard_context(char const *name, func f, void *arg, int cookie, bool run = true)
-		: Thread(name),
-			_func(f), _arg(arg), _cookie(cookie), _lwp(0) { if (run) start(); }
-
-		void set_lwp(lwp *l) { _lwp = l; }
-		lwp *get_lwp() { return _lwp; }
-
-		static Timer::Connection *timer();
+		Hard_context_thread(char const *name, func f, void *arg, int cookie, bool run = true)
+		: Hard_context(cookie), Thread(name),
+			_func(f), _arg(arg) { if (run) start(); }
 };
+
 
 #endif /* _INCLUDE__HARD_CONTEXT_H_ */
