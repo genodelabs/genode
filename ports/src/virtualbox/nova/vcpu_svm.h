@@ -19,25 +19,10 @@ class Vcpu_handler_svm : public Vcpu_handler
 {
 	private:
 
+		__attribute__((noreturn)) void _svm_default() { _default_handler(); }
+
 		__attribute__((noreturn)) void _svm_vintr() {
-			_default_handler(SVM_EXIT_VINTR);
-		}
-		__attribute__((noreturn)) void _svm_rdtsc() {
-			_default_handler(SVM_EXIT_RDTSC);
-		}
-
-		__attribute__((noreturn)) void _svm_msr() {
-			_default_handler(SVM_EXIT_MSR);
-		}
-
-		__attribute__((noreturn)) void _svm_recall()
-		{
-			_default_handler(SVM_INVALID);
-		}
-
-		__attribute__((noreturn)) void _svm_halt()
-		{
-			_default_handler(SVM_EXIT_HLT);
+			_irq_window(SVM_EXIT_VINTR);
 		}
 
 		__attribute__((noreturn)) void _svm_ioio()
@@ -53,18 +38,14 @@ class Vcpu_handler_svm : public Vcpu_handler
 
 				PERR("invalid gueststate");
 
-				/* deadlock here */
-				_signal_vcpu.lock();
-
-
 				utcb->ctrl[0] = ctrl0;
 				utcb->ctrl[1] = 0;
 				utcb->mtd = Mtd::CTRL;
 				
-				Nova::reply(myself->stack_top());
+				Nova::reply(_stack_reply);
 			}
 
-			_default_handler(SVM_EXIT_IOIO);
+			_default_handler();
 		}
 
 		template <unsigned X>
@@ -84,40 +65,43 @@ class Vcpu_handler_svm : public Vcpu_handler
 		{
 			using namespace Nova;
 
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
-			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
+			/* enable VM exits for CPUID */
+			next_utcb.mtd     = Nova::Mtd::CTRL;
+			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_CPUID;
+			next_utcb.ctrl[1] = 0;
 
-			/* we are ready, unlock our creator */
-			_lock_startup.unlock();
+			void *exit_status = _start_routine(_arg);
+			pthread_exit(exit_status);
 
-			/* wait until EMT thread say so */
-			_signal_vcpu.lock();
-
-			Nova::reply(myself->stack_top());
+			Nova::reply(nullptr);
 		}
 
 	public:
 
-		Vcpu_handler_svm()
+		Vcpu_handler_svm(size_t stack_size, const pthread_attr_t *attr,
+	                     void *(*start_routine) (void *), void *arg)
+		: Vcpu_handler(stack_size, attr, start_routine, arg) 
 		{
 			using namespace Nova;
 
 			typedef Vcpu_handler_svm This;
 
 			register_handler<RECALL, This,
-				&This::_svm_recall>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_IOIO, This,
 				&This::_svm_ioio> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_VINTR, This,
 				&This::_svm_vintr> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_RDTSC, This,
-				&This::_svm_rdtsc> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_MSR, This,
-				&This::_svm_msr> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_NPT, This,
 				&This::_svm_npt<SVM_NPT>>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_HLT, This,
-				&This::_svm_halt>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_default>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+			register_handler<SVM_EXIT_CPUID, This,
+				&This::_svm_default> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<VCPU_STARTUP, This,
 				&This::_svm_startup>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 

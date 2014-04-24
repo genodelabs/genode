@@ -18,6 +18,7 @@
 #include <base/flex_iterator.h>
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
+#include <os/attached_rom_dataspace.h>
 
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
@@ -51,129 +52,77 @@ static Genode::Semaphore *r0_halt_sem()
 
 /* Genode specific function */
 
-void SUPR3QueryHWACCLonGenodeSupport(VM * pVM) {
+static Genode::Attached_rom_dataspace hip_rom("hypervisor_info_page");
+
+void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
+{
 	try {
-		using namespace Genode;
-
-		Rom_connection hip_rom("hypervisor_info_page");
-
-		Nova::Hip * const hip = env()->rm_session()->attach(hip_rom.dataspace());
-
-		if (!hip)
-			return;
+		Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
 
 		pVM->hwaccm.s.svm.fSupported = hip->has_feature_svm();
 		pVM->hwaccm.s.vmx.fSupported = hip->has_feature_vmx();
 
+		PINF("support svm %u vmx %u", hip->has_feature_svm(), hip->has_feature_vmx());
 	} catch (...) {
 		PWRN("No hardware acceleration available - execution will be slow!");
 	} /* if we get an exception let hardware support off */
 }
 
 
-void SUPR3QueryHWACCLonGenodeCreateVM(VM * pVM)
-{
-	bool svm = pVM->hwaccm.s.svm.fSupported;
-
-	if (!svm && !pVM->hwaccm.s.vmx.fSupported) {
-		PERR("SVM nor VMX supported by hardware accelerated code called !");
-		return;
-	}
-
-	Assert(!vcpu_handler);
-
-	if (svm)
-		vcpu_handler = new Vcpu_handler_svm();
-	else
-		vcpu_handler = new Vcpu_handler_vmx();
-
-}
-
-
 /* VirtualBox SUPLib interface */
-int SUPR3QueryVTxSupported(void)
-{
-	return VINF_SUCCESS;
-}
+int SUPR3QueryVTxSupported(void) { return VINF_SUCCESS; }
 
 
 int SUPR3CallVMMR0Fast(PVMR0 pVMR0, unsigned uOperation, VMCPUID idCpu)
 {
-	switch (uOperation)
-	{
-		case SUP_VMMR0_DO_HWACC_RUN:
-		{
-
-			VM     * pVM   = reinterpret_cast<VM *>(pVMR0);
-			PVMCPU   pVCpu = &pVM->aCpus[idCpu];
-			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
-
-			return vcpu_handler->run_hw(pVMR0, idCpu);
-		}
-
-		default:
-			break;
-
+	switch (uOperation) {
+	case SUP_VMMR0_DO_HWACC_RUN:
+		return vcpu_handler->run_hw(pVMR0, idCpu);
 	}
-	return VERR_INTERNAL_ERROR;	
+	return VERR_INTERNAL_ERROR;
 }
 
 
 int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
                      uOperation, uint64_t u64Arg, PSUPVMMR0REQHDR pReqHdr)
 {
-	static unsigned counter = 0;
+	switch (uOperation) {
 
-	switch(uOperation)
-	{
-		case VMMR0_DO_GVMM_CREATE_VM:
-			genode_VMMR0_DO_GVMM_CREATE_VM(pReqHdr);
-			return VINF_SUCCESS;
+	case VMMR0_DO_GVMM_CREATE_VM:
+		genode_VMMR0_DO_GVMM_CREATE_VM(pReqHdr);
+		return VINF_SUCCESS;
 
-		case VMMR0_DO_GVMM_SCHED_HALT:
-//			counter ++;
-//			PERR("halt %u", counter);
-			r0_halt_sem()->down();
-//			PERR("halt - done");
-			return VINF_SUCCESS;
+	case VMMR0_DO_GVMM_SCHED_HALT:
+		r0_halt_sem()->down();
+		return VINF_SUCCESS;
 
-		case VMMR0_DO_GVMM_SCHED_WAKE_UP:
-//			counter ++;
-//			PERR("sched wake up %u", counter);
-			r0_halt_sem()->up();
-			return VINF_SUCCESS;
+	case VMMR0_DO_GVMM_SCHED_WAKE_UP:
+		r0_halt_sem()->up();
+		return VINF_SUCCESS;
 
-		case VMMR0_DO_GVMM_SCHED_POLL:
-			/* called by 'vmR3HaltGlobal1Halt' */
-//			PDBG("SUPR3CallVMMR0Ex: VMMR0_DO_GVMM_SCHED_POLL");
-			return VINF_SUCCESS;
+	/* called by 'vmR3HaltGlobal1Halt' */
+	case VMMR0_DO_GVMM_SCHED_POLL:
+		return VINF_SUCCESS;
 
-		case VMMR0_DO_VMMR0_INIT:
-		{
-			VM * pVM = reinterpret_cast<VM *>(pVMR0);
-			SUPR3QueryHWACCLonGenodeSupport(pVM); 
-			return VINF_SUCCESS;
-		}
-		case VMMR0_DO_HWACC_SETUP_VM:
-		{
-			VM * pVM = reinterpret_cast<VM *>(pVMR0);
-			SUPR3QueryHWACCLonGenodeCreateVM(pVM);
-			return VINF_SUCCESS;
-		}
-		case VMMR0_DO_HWACC_ENABLE:
-			return VINF_SUCCESS;
+	case VMMR0_DO_VMMR0_INIT:
+		SUPR3QueryHWACCLonGenodeSupport(reinterpret_cast<VM *>(pVMR0));
+		return VINF_SUCCESS;
 
-		case VMMR0_DO_GVMM_SCHED_POKE:
-		{
-			/* XXX only do one of it - either recall or up - not both XXX */
-			vcpu_handler->recall();
-			r0_halt_sem()->up();
-			return VINF_SUCCESS;
-		}
+	case VMMR0_DO_HWACC_SETUP_VM:
+		return VINF_SUCCESS;
 
-		default:
-			PERR("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
-			return VERR_GENERAL_FAILURE;
+	case VMMR0_DO_HWACC_ENABLE:
+		return VINF_SUCCESS;
+
+	/* XXX only do one of it - either recall or up - not both XXX */
+	case VMMR0_DO_GVMM_SCHED_POKE:
+		vcpu_handler->recall();
+		r0_halt_sem()->up();
+		return VINF_SUCCESS;
+
+	default:
+		PERR("SUPR3CallVMMR0Ex: unhandled uOperation %d", uOperation);
+		return VERR_GENERAL_FAILURE;
 	}
 }
 
@@ -181,7 +130,8 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 /**
  * Various support stuff - base-nova specific.
  */
-uint64_t genode_cpu_hz() {
+uint64_t genode_cpu_hz()
+{
 	static uint64_t cpu_freq = 0;
 
 	if (!cpu_freq) {
@@ -205,12 +155,6 @@ uint64_t genode_cpu_hz() {
 }
 
 
-extern "C" int pthread_yield() {
-	Nova::ec_ctrl(Nova::EC_YIELD);
-	return 0;
-}
-
-
 bool Vmm_memory::unmap_from_vm(RTGCPHYS GCPhys)
 {
 	size_t const size = 1;
@@ -230,5 +174,29 @@ bool Vmm_memory::unmap_from_vm(RTGCPHYS GCPhys)
 	Rights rwx(true, true, true);
 	revoke(Mem_crd(vmm_local >> PAGE_SIZE_LOG2, order, rwx), false);
 
+	return true;
+}
+
+
+extern "C" void pthread_yield(void) { Nova::ec_ctrl(Nova::EC_YIELD); }
+
+
+extern "C"
+bool create_emt_vcpu(pthread_t * pthread, size_t stack,
+                     const pthread_attr_t *attr,
+                     void *(*start_routine)(void *), void *arg)
+{
+	Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
+
+	if (!hip->has_feature_vmx() && !hip->has_feature_svm())
+		return false;
+
+	if (hip->has_feature_vmx())
+		vcpu_handler = new Vcpu_handler_vmx(stack, attr, start_routine, arg);
+
+	if (hip->has_feature_svm())
+		vcpu_handler = new Vcpu_handler_svm(stack, attr, start_routine, arg);
+
+	*pthread = vcpu_handler;
 	return true;
 }

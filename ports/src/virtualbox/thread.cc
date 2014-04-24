@@ -28,6 +28,14 @@
 
 extern "C" {
 
+	/**
+	 * Returns true if a vCPU could be started. If false we run without
+	 * hardware acceleration support.
+	 */
+	bool create_emt_vcpu(pthread_t * pthread, size_t stack,
+	                     const pthread_attr_t *attr,
+	                     void *(*start_routine) (void *), void *arg);
+
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
@@ -45,6 +53,13 @@ extern "C" {
 			     "limit to %zu Bytes", rtthread->szName, rtthread->cbStack,
 			     stack_size);
 		
+		if (rtthread->enmType == RTTHREADTYPE_EMULATION) {
+
+			if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg))
+				return 0;
+			/* no haredware support, create normal pthread thread */
+		}
+
 		pthread_t thread_obj = new (Genode::env()->heap())
 		                           pthread(attr ? *attr : 0, start_routine,
 		                           arg, stack_size, rtthread->szName, nullptr);

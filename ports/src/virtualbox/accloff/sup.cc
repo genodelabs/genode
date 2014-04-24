@@ -25,6 +25,9 @@
 #include "sup.h"
 #include "vmm_memory.h"
 
+/* Libc include */
+#include <pthread.h>
+
 /* VirtualBox SUPLib interface */
 
 int SUPR3QueryVTxSupported(void)
@@ -77,6 +80,16 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned
 }
 
 
+extern "C"
+bool create_emt_vcpu(pthread_t * thread, size_t stack_size,
+                     const pthread_attr_t *attr,
+                     void *(*start_routine)(void *), void *arg)
+{
+	/* no hardware acceleration support */
+	return false;
+}
+
+
 /**
  * Dummies and unimplemented stuff.
  */
@@ -85,13 +98,12 @@ uint64_t genode_cpu_hz() {
 	return 1000000000ULL; /* XXX fixed 1GHz return value */
 }
 
+
 bool Vmm_memory::unmap_from_vm(RTGCPHYS GCPhys)
 {
 	PWRN("%s unimplemented", __func__);
 	return false;
 }
 
-extern "C" int pthread_yield() {
-	PWRN("%s unimplemented", __func__);
-	return 0;
-}
+
+extern "C" void pthread_yield() { PWRN("%s unimplemented", __func__); }

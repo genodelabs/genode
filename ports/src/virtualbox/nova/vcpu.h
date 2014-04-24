@@ -39,6 +39,12 @@
 #include "guest_memory.h"
 #include "vmm_memory.h"
 
+/* Genode libc pthread binding */
+#include "thread.h"
+
+/* LibC includes */
+#include <setjmp.h>
+
 /*
  * VirtualBox stores segment attributes in Intel format using a 32-bit
  * value. NOVA represents the attributes in packet format using a 16-bit
@@ -55,20 +61,21 @@ static inline Genode::uint32_t sel_ar_conv_from_nova(Genode::uint16_t v)
 	return (v & 0xff) | (((uint32_t )v << 4) & 0x1f000);
 }
 
+
+/*
+ * Used to map memory for virtual framebuffer to VM
+ */
 extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite);
 
 
-class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
+class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 {
 	private:
-
-		enum { STACK_SIZE = 4096 };
 
 		Genode::Cap_connection _cap_connection;
 		Vmm::Vcpu_other_pd     _vcpu;
 
 		Genode::addr_t _ec_sel = 0;
-
 
 		void fpu_save(char * data) {
 			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
@@ -82,41 +89,48 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 
 	protected:
 
-		/* unlocked by first startup exception */
-		Genode::Lock _lock_startup;
-		Genode::Lock _signal_vcpu;
-		Genode::Lock _signal_emt;
+		struct {
+			Nova::mword_t mtd;
+			unsigned intr_state;
+			unsigned ctrl[2];
+		} next_utcb;
 
-		PVM          _current_vm;
-		PVMCPU       _current_vcpu;
-		unsigned     _current_exit_cond;
+		PVM      _current_vm;
+		PVMCPU   _current_vcpu;
+		void *   _stack_reply;
+		jmp_buf  _env;
 
-		__attribute__((noreturn)) void _default_handler(unsigned cond)
+		void switch_to_hw(PCPUMCTX pCtx) {
+			unsigned long value;
+
+			if (!setjmp(_env)) {
+				_stack_reply = reinterpret_cast<void *>(&value - 1);
+				Nova::reply(_stack_reply);
+			}
+		}
+
+		__attribute__((noreturn)) void _irq_window(unsigned cond)
 		{
-			using namespace Nova;
-			using namespace Genode;
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
 
-			Thread_base *myself = Thread_base::myself();
-			Utcb *utcb = reinterpret_cast<Utcb *>(myself->utcb());
+			Assert(!(utcb->intr_state & 3));
+			Assert(utcb->flags & X86_EFL_IF);
 
-			/* tell caller what happened */
-			_current_exit_cond = cond;
+			if (irq_win(utcb)) {
+				/* reset mtd to not transfer anything back by accident */
+				utcb->mtd = 0;
+				/* inject IRQ */
+				if (inj_event(utcb, _current_vcpu))
+					Nova::reply(_stack_reply);
+			}
 
-			PVMCPU   pVCpu = _current_vcpu;
-			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
+			/* go back to re-compiler */
+			longjmp(_env, 1);
+		}
 
-			fpu_save(reinterpret_cast<char *>(&pCtx->fpu));
-
-			/* unblock caller */
-			_signal_emt.unlock();
-
-			/* block myself */
-			_signal_vcpu.lock();
-
-			fpu_load(reinterpret_cast<char *>(&pCtx->fpu));
-			utcb->mtd |= Mtd::FPU;
-
-			Nova::reply(myself->stack_top());
+		__attribute__((noreturn)) void _default_handler()
+		{
+			longjmp(_env, 1);
 		}
 
 
@@ -128,13 +142,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 			using namespace Nova;
 			using namespace Genode;
 
+			addr_t stack_top;
+
+			Assert(utcb->actv_state == 0);
+			Assert(!(utcb->intr_state & 3));
+
+			Assert(!(utcb->inj_info & 0x80000000));
+
 			if (unmap) {
 				PERR("unmap not implemented\n");
-
-				/* deadlock until implemented */
-				_signal_vcpu.lock();
-
-				Nova::reply(myself->stack_top());
+				Nova::reply(reinterpret_cast<void *>(&stack_top));
 			}
 	
 			Flexpage_iterator fli;
@@ -159,26 +176,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 			}
 
 			/* emulator has to take over if fault region is not ram */	
-			if (!pv) {
-				/* tell caller what happened */
-				_current_exit_cond = NPT_EPT;
-
-				PVMCPU   pVCpu = _current_vcpu;
-				PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
-
-				fpu_save(reinterpret_cast<char *>(&pCtx->fpu));
-
-				/* unblock caller */
-				_signal_emt.unlock();
-
-				/* block myself */
-				_signal_vcpu.lock();
-
-				fpu_load(reinterpret_cast<char *>(&pCtx->fpu));
-				utcb->mtd |= Mtd::FPU;
-
-				Nova::reply(myself->stack_top());
-			}
+			if (!pv)
+				longjmp(_env, 1);
 
 			/* fault region is ram - so map it */
 			enum {
@@ -210,7 +209,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 				res = utcb->append_item(crd, flexpage.hotspot, USER_PD, GUEST_PGT);
 			} while (res);
 
-			Nova::reply(myself->stack_top());
+			Nova::reply(reinterpret_cast<void *>(&stack_top));
 		}
 
 		/**
@@ -396,7 +395,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 		}
 
 
-		inline void inj_event(Nova::Utcb * utcb, PVMCPU pVCpu)
+		inline bool inj_event(Nova::Utcb * utcb, PVMCPU pVCpu)
 		{
 			PCPUMCTX const pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
 
@@ -409,7 +408,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 
 				if (VMCPU_FF_ISPENDING(pVCpu, (VMCPU_FF_INTERRUPT_APIC|VMCPU_FF_INTERRUPT_PIC))) {
 
-					if (!(utcb->flags & X86_EFL_IF)) {
+					if (!(pCtx->rflags.u & X86_EFL_IF)) {
 
 						unsigned vector = 0;
 						utcb->inj_info  = 0x1000 | vector;
@@ -430,9 +429,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 			}
 
 			/* can an interrupt be dispatched ? */
-			if (!TRPMHasTrap(pVCpu) || !(utcb->flags & X86_EFL_IF) ||
+			if (!TRPMHasTrap(pVCpu) || !(pCtx->rflags.u & X86_EFL_IF) ||
 			    VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS))
-				return;
+				return false;
 
 			#ifdef VBOX_STRICT
 			if (TRPMHasTrap(pVCpu)) {
@@ -472,20 +471,44 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 			utcb->inj_error = Event.n.u32ErrorCode;
 
 			utcb->mtd      |= Nova::Mtd::INJ; 
-
 /*
-			PDBG("type:info:vector %x:%x:%x",
+			Vmm::printf("type:info:vector %x:%x:%x\n",
 			     Event.n.u3Type, utcb->inj_info, u8Vector);
 */
+			return true;
 		}
 
 
-		inline void irq_win(Nova::Utcb * utcb, PVMCPU pVCpu)
+		inline bool irq_win(Nova::Utcb * utcb)
 		{
-			Assert(utcb->flags & X86_EFL_IF);
+			Assert(!(VMCPU_FF_ISSET(_current_vcpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
 
-			Nova::mword_t const mtd = Nova::Mtd::INJ; 
-			utcb->mtd               = ~mtd;
+			uint32_t check_vm = VM_FF_HWACCM_TO_R3_MASK | VM_FF_REQUEST
+			                    | VM_FF_PGM_POOL_FLUSH_PENDING
+			                    | VM_FF_PDM_DMA;
+			uint32_t check_vcpu = VMCPU_FF_HWACCM_TO_R3_MASK
+			                      | VMCPU_FF_PGM_SYNC_CR3
+			                      | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL
+			                      | VMCPU_FF_REQUEST;
+
+			if (VM_FF_ISPENDING(_current_vm, check_vm)
+			    || VMCPU_FF_ISPENDING(_current_vcpu, check_vcpu))
+			{ 
+				Assert(VM_FF_ISPENDING(_current_vm, VM_FF_HWACCM_TO_R3_MASK) ||
+				       VMCPU_FF_ISPENDING(_current_vcpu,
+				                          VMCPU_FF_HWACCM_TO_R3_MASK));
+
+    	        Assert(!(RT_UNLIKELY(VM_FF_ISPENDING(_current_vm,
+				                                     VM_FF_PGM_NO_MEMORY))));
+
+				return false;
+			}
+
+			/* Is in Realmode ? */
+			if (!(utcb->cr0 & X86_CR0_PE))
+				return false;
+
+			return true;
 		}
 
 		virtual bool hw_load_state(Nova::Utcb *, VM *, PVMCPU) = 0;
@@ -505,21 +528,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 		};
 
 
-		Vcpu_handler()
+		Vcpu_handler(size_t stack_size, const pthread_attr_t *attr,
+	                 void *(*start_routine) (void *), void *arg)
 		:
-			Vmm::Vcpu_dispatcher<Genode::Thread_base>(STACK_SIZE,
-			                                          _cap_connection),
-			_ec_sel(Genode::cap_map()->insert()),
-			_lock_startup(Genode::Lock::LOCKED),
-			_signal_emt(Genode::Lock::LOCKED),
-			_signal_vcpu(Genode::Lock::LOCKED)
+			Vmm::Vcpu_dispatcher<pthread>(stack_size, _cap_connection,
+			                              attr ? *attr : 0, start_routine, arg),
+			_ec_sel(Genode::cap_map()->insert())
 		{ }
 
 		void start() {
 			_vcpu.start(_ec_sel);
-
-			/* wait until vCPU thread is up */
-			_lock_startup.lock();
 		}
 
 		void recall()
@@ -623,23 +641,28 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
 
+			Assert(Thread_base::utcb() == Thread_base::myself()->utcb());
+
+			/* take the utcb state prepared during the last exit */
+			utcb->mtd        = next_utcb.mtd;
+			utcb->intr_state = next_utcb.intr_state;
+			utcb->actv_state = 0; /* XXX */
+			utcb->ctrl[0]    = next_utcb.ctrl[0];
+			utcb->ctrl[1]    = next_utcb.ctrl[1];
+
 			using namespace Nova;
-			Genode::Thread_base *myself = Genode::Thread_base::myself();
+
+			/* check whether to inject interrupts */	
+			inj_event(utcb, pVCpu);
 
 			/* Transfer vCPU state from vBox to Nova format */
 			if (!vbox_to_utcb(utcb, pVM, pVCpu) ||
 				!hw_load_state(utcb, pVM, pVCpu)) {
 
 				PERR("loading vCPU state failed");
-				/* deadlock here */
-				_signal_emt.lock();
+				return VERR_INTERNAL_ERROR;
 			}
 			
-			/* check whether to inject interrupts */	
-			inj_event(utcb, pVCpu);
-
-	ResumeExecution:
-
 			/*
 			 * Flag vCPU to be "pokeable" by external events such as interrupts
 			 * from virtual devices. Only if this flag is set, the
@@ -649,17 +672,24 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 			 */
 			VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC);
 
-			this->_current_vm   = pVM;
-			this->_current_vcpu = pVCpu;
+			/* write FPU state from pCtx to vCPU */
+			fpu_load(reinterpret_cast<char *>(&pCtx->fpu));
 
-			/* let vCPU run */
-			_signal_vcpu.unlock();
+			utcb->mtd |= Mtd::FPU;
 
-			/* waiting to be woken up */
-			_signal_emt.lock();
+			_current_vm   = pVM;
+			_current_vcpu = pVCpu;
 
-			this->_current_vm   = 0;
-			this->_current_vcpu = 0;
+			/* switch to hardware accelerated mode */
+			switch_to_hw(pCtx);
+
+			Assert(utcb->actv_state == 0);
+
+			_current_vm   = 0;
+			_current_vcpu = 0;
+
+			/* write FPU state of vCPU to pCtx */
+			fpu_save(reinterpret_cast<char *>(&pCtx->fpu));
 
 //			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_GLOBAL_TLB_FLUSH);
 
@@ -668,89 +698,23 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread_base>
 			/* Transfer vCPU state from Nova to vBox format */
 			if (!utcb_to_vbox(utcb, pVM, pVCpu) ||
 				!hw_save_state(utcb, pVM, pVCpu)) {
+
 				PERR("saving vCPU state failed");
-				/* deadlock here */
-				_signal_emt.lock();
+				return VERR_INTERNAL_ERROR;
 			}
 
 			/* reset message transfer descriptor for next invocation */
-			utcb->mtd = 0;
+			next_utcb.mtd        = 0;
+			next_utcb.intr_state = utcb->intr_state;
+			next_utcb.ctrl[0]    = utcb->ctrl[0];
+			next_utcb.ctrl[1]    = utcb->ctrl[1];
 
-			if (utcb->intr_state & 3) {
-/*
-				PDBG("reset intr_state - exit reason %u", _current_exit_cond);
-*/
-				utcb->intr_state &= ~3;
-				utcb->mtd |= Mtd::STA;
+			if (next_utcb.intr_state & 3) {
+				next_utcb.intr_state &= ~3U;
+				next_utcb.mtd        |= Mtd::STA;
 			}
 
-			switch (_current_exit_cond)
-			{
-				case RECALL:
-
-				case VMX_EXIT_EPT_VIOLATION:
-				case VMX_EXIT_PORT_IO:
-				case VMX_EXIT_ERR_INVALID_GUEST_STATE:
-				case VMX_EXIT_HLT:
-
-				case SVM_EXIT_IOIO:
-				case SVM_NPT:
-				case SVM_EXIT_HLT:
-				case SVM_INVALID:
-				case SVM_EXIT_MSR:
-
-				case EMULATE_INSTR:
-					return VINF_EM_RAW_EMULATE_INSTR;
-
-				case SVM_EXIT_VINTR:
-				case VMX_EXIT_IRQ_WINDOW:
-				{
-					if (VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)) {
-						if (pCtx->rip != EMGetInhibitInterruptsPC(pVCpu))
-							PERR("inhibit interrupts %x %x", pCtx->rip, EMGetInhibitInterruptsPC(pVCpu));
-					}
-
-					uint32_t check_vm = VM_FF_HWACCM_TO_R3_MASK | VM_FF_REQUEST
-					                    | VM_FF_PGM_POOL_FLUSH_PENDING
-					                    | VM_FF_PDM_DMA;
-					uint32_t check_vcpu = VMCPU_FF_HWACCM_TO_R3_MASK
-					                      | VMCPU_FF_PGM_SYNC_CR3
-					                      | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL
-					                      | VMCPU_FF_REQUEST;
-
-					if (VM_FF_ISPENDING(pVM, check_vm)
-					    || VMCPU_FF_ISPENDING(pVCpu, check_vcpu))
-					{ 
-						Assert(VM_FF_ISPENDING(pVM, VM_FF_HWACCM_TO_R3_MASK) ||
-				               VMCPU_FF_ISPENDING(pVCpu, VMCPU_FF_HWACCM_TO_R3_MASK));
-
-		    	        if (RT_UNLIKELY(VM_FF_ISPENDING(pVM, VM_FF_PGM_NO_MEMORY)))
-						{
-							PERR(" no memory");
-							while (1) {}
-						}
-
-//						PERR(" em raw to r3");
-						return VINF_EM_RAW_TO_R3;
-					}
-
-					if ((utcb->intr_state & 3))
-						PERR("irq window with intr_state %x", utcb->intr_state);
-
-					irq_win(utcb, pVCpu);
-
-					goto ResumeExecution;
-				}
-
-				default:
-
-					PERR("unknown exit cond:ip:qual[0],[1] %lx:%lx:%llx:%llx",
-					     _current_exit_cond, utcb->ip, utcb->qual[0], utcb->qual[1]);
-
-					while (1) {}
-			}
-
-			return VERR_INTERNAL_ERROR;	
+			return VINF_EM_RAW_EMULATE_INSTR;
 		}
 };
 
