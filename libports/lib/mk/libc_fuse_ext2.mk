@@ -5,7 +5,7 @@ FILTER_OUT = fuse-ext2.probe.c fuse-ext2.wait.c
 SRC_C  = $(filter-out $(FILTER_OUT), $(notdir $(wildcard $(FUSE_EXT2_DIR)/*.c)))
 SRC_CC = init.cc
 
-LIBS   = libc libc_vfs libc_fuse libfuse libext2fs
+LIBS   = libc libc_fuse libfuse libext2fs
 
 CC_OPT = -DHAVE_CONFIG_H -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 

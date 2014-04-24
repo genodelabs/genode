@@ -162,63 +162,71 @@ class Libc_file_system_factory : public Vfs::File_system_factory
 };
 
 
-static Genode::Xml_node libc_config()
-{
-	return Genode::config()->xml_node().sub_node("libc");
-}
+namespace Libc {
+
+	static Genode::Xml_node config()
+	{
+		return Genode::config()->xml_node().sub_node("libc");
+	}
 
 
-static Genode::Xml_node libc_vfs_config()
-{
-	return libc_config().sub_node("vfs");
-}
+	Genode::Xml_node vfs_config() __attribute__((weak));
+	Genode::Xml_node vfs_config()
+	{
+		return Libc::config().sub_node("vfs");
+	}
 
 
-class Libc_config_attr
-{
-	private:
+	class Config_attr
+	{
+		private:
 
-		char _buf[Vfs::MAX_PATH_LEN];
+			char _buf[Vfs::MAX_PATH_LEN];
 
-	public:
+		public:
 
-		Libc_config_attr(char const *attr_name, char const *default_value)
-		{
-			strncpy(_buf, default_value, sizeof(_buf));
-			try {
-				libc_config().attribute(attr_name).value(_buf, sizeof(_buf));
-			} catch (...) { }
-		}
+			Config_attr(char const *attr_name, char const *default_value)
+			{
+				Genode::strncpy(_buf, default_value, sizeof(_buf));
+				try {
+					Libc::config().attribute(attr_name).value(_buf, sizeof(_buf));
+				} catch (...) { }
+			}
 
-		char const *string() const { return _buf; }
-};
-
-
-static char const *libc_initial_cwd()
-{
-	static Libc_config_attr initial_cwd("cwd", "/");
-	return initial_cwd.string();
-}
+			char const *string() const { return _buf; }
+	};
 
 
-static char const *libc_config_stdin()
-{
-	static Libc_config_attr stdin("stdin", "");
-	return stdin.string();
-}
+	char const *initial_cwd() __attribute__((weak));
+	char const *initial_cwd()
+	{
+		static Config_attr initial_cwd("cwd", "/");
+		return initial_cwd.string();
+	}
 
 
-static char const *libc_config_stdout()
-{
-	static Libc_config_attr stdout("stdout", "");
-	return stdout.string();
-}
+	char const *config_stdin() __attribute__((weak));
+	char const *config_stdin()
+	{
+		static Config_attr stdin("stdin", "");
+		return stdin.string();
+	}
 
 
-static char const *libc_config_stderr()
-{
-	static Libc_config_attr stderr("stderr", "");
-	return stderr.string();
+	char const *config_stdout() __attribute__((weak));
+	char const *config_stdout()
+	{
+		static Config_attr stdout("stdout", "");
+		return stdout.string();
+	}
+
+
+	char const *config_stderr() __attribute__((weak));
+	char const *config_stderr()
+	{
+		static Config_attr stderr("stderr", "");
+		return stderr.string();
+	}
 }
 
 
@@ -236,7 +244,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		Genode::Xml_node _vfs_config()
 		{
 			try {
-				return libc_vfs_config();
+				return vfs_config();
 			} catch (...) {
 				PINF("no VFS configured");
 				return Genode::Xml_node("<vfs/>");
@@ -275,11 +283,11 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		 */
 		Vfs_plugin() : _root_dir(_vfs_config(), _fs_factory)
 		{
-			chdir(libc_initial_cwd());
+			chdir(initial_cwd());
 
-			_open_stdio(0, libc_config_stdin(),  O_RDONLY);
-			_open_stdio(1, libc_config_stdout(), O_WRONLY);
-			_open_stdio(2, libc_config_stderr(), O_WRONLY);
+			_open_stdio(0, config_stdin(),  O_RDONLY);
+			_open_stdio(1, config_stdout(), O_WRONLY);
+			_open_stdio(2, config_stderr(), O_WRONLY);
 		}
 
 		~Vfs_plugin() { }

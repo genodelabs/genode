@@ -25,7 +25,7 @@ SRC_CC += libc/select.cc
 SRC_CC += libc_terminal/plugin.cc
 
 # Genode vfs plugin
-SRC_CC += libc_vfs/plugin.cc
+SRC_CC += libc/vfs_plugin.cc
 SRC_CC += libc/pread_pwrite.cc
 
 # Genode lock pipe plugin (needed by VirtualBox "HostSerial" driver)

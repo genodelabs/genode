@@ -3,7 +3,7 @@ CONTRIB_DIR = $(REP_DIR)/contrib/netperf
 
 LIBS   += base libc libm libc-resolv libc-net libc-nameser libc-isc
 # plug-in to libc
-LIBS   += libc_vfs config_args
+LIBS   += config_args
 
 SRC_C   = netserver.c netlib.c netsh.c nettest_bsd.c dscp.c
 # omni test

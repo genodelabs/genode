@@ -1,3 +1,3 @@
 TARGET = test-libc_fs_tar_fs
-LIBS   = libc libc_vfs
+LIBS   = libc
 SRC_CC = main.cc

@@ -62,6 +62,20 @@ enum { verbose = false };
 enum { verbose_signals = false };
 
 
+/*
+ * Customize libc VFS
+ */
+namespace Libc {
+
+	/*
+	 * Override the weak function interface of the VFS plugin as Noux programs
+	 * do not obtain a VFS configuration via Genode's config mechansim.
+	 */
+	Genode::Xml_node vfs_config() { return Xml_node("<vfs/>"); }
+}
+
+
+
 class Noux_connection
 {
 	private:
@@ -805,12 +819,19 @@ namespace {
 
 	class Plugin : public Libc::Plugin
 	{
+		private:
+
+			/*
+			 * Override the libc's default VFS plugin
+			 */
+			enum { PLUGIN_PRIORITY = 1 };
+
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Plugin()
+			Plugin() : Libc::Plugin(PLUGIN_PRIORITY)
 			{
 				/* register inherited open file descriptors */
 				int fd = 0;
@@ -829,6 +850,7 @@ namespace {
 			bool supports_unlink(char const *)                   { return true; }
 			bool supports_readlink(const char *, char *, size_t) { return true; }
 			bool supports_rename(const char *, const char *)     { return true; }
+			bool supports_rmdir(char const *)                    { return true; }
 			bool supports_mkdir(const char *, mode_t)            { return true; }
 			bool supports_socket(int, int, int)                  { return true; }
 			bool supports_mmap()                                 { return true; }
@@ -849,12 +871,13 @@ namespace {
 			::off_t lseek(Libc::File_descriptor *, ::off_t offset, int whence);
 			ssize_t read(Libc::File_descriptor *, void *, ::size_t);
 			ssize_t readlink(const char *path, char *buf, size_t bufsiz);
+			int rename(const char *oldpath, const char *newpath);
+			int rmdir(char const *path);
 			int stat(char const *, struct stat *);
 			int symlink(const char *, const char *);
 			int ioctl(Libc::File_descriptor *, int request, char *argp);
 			int pipe(Libc::File_descriptor *pipefd[2]);
 			int unlink(char const *path);
-			int rename(const char *oldpath, const char *newpath);
 			int mkdir(const char *path, mode_t mode);
 			void *mmap(void *addr, ::size_t length, int prot, int flags,
 			           Libc::File_descriptor *, ::off_t offset);
@@ -1560,6 +1583,12 @@ namespace {
 		}
 
 		return 0;
+	}
+
+
+	int Plugin::rmdir(char const *path)
+	{
+		return Plugin::unlink(path);
 	}
 
 

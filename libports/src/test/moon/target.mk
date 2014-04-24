@@ -1,3 +1,3 @@
 TARGET = test-moon
-LIBS   = luacxx libc libm libc_vfs
+LIBS   = luacxx libc libm
 SRC_CC = main.cc
