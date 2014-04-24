@@ -14,6 +14,7 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <util/string.h>
+#include <rm_session/connection.h>
 
 /* VirtualBox includes */
 #include <VBox/vmm/mm.h>
@@ -32,6 +33,96 @@
 #include "util.h"
 
 
+/**
+ * Sub rm_session as backend for the Libc::Mem_alloc implementation.
+ * Purpose is that memory allocation by vbox of a specific type (MMTYP) are
+ * all located within a 2G virtual window. Reason is that virtualbox converts
+ * internally pointers at several places in base + offset, whereby offset is
+ * a int32_t type.
+ */
+class Sub_rm_connection : public Genode::Rm_connection
+{
+
+	private:
+
+		Genode::addr_t const _offset;
+		Genode::size_t const _size;
+
+	public:
+
+		Sub_rm_connection(Genode::size_t size)
+		:
+			Genode::Rm_connection(0, size),
+			_offset(Genode::env()->rm_session()->attach(dataspace())),
+			_size(size)
+		{ }
+
+		Local_addr attach(Genode::Dataspace_capability ds,
+		                  Genode::size_t size = 0, Genode::off_t offset = 0,
+		                  bool use_local_addr = false,
+		                  Local_addr local_addr = (void *)0,
+		                  bool executable = false)
+		{
+			Local_addr addr = Rm_connection::attach(ds, size, offset,
+			                                        use_local_addr, local_addr,
+			                                        executable);
+			Genode::addr_t new_addr = addr;
+			new_addr += _offset;
+			return Local_addr(new_addr);
+		}
+
+		bool contains(void * ptr)
+		{
+			Genode::addr_t addr = reinterpret_cast<Genode::addr_t>(ptr);
+
+			return (_offset <= addr && addr < _offset + _size);
+		}
+
+};
+
+
+static struct {
+	Sub_rm_connection * conn;
+	Libc::Mem_alloc_impl  * heap;
+} memory_regions [MM_TAG_HWACCM];
+
+
+static Libc::Mem_alloc * heap_by_mmtag(MMTAG enmTag)
+{
+	enum { REGION_SIZE = 4096 * 4096 };
+	static Genode::Lock memory_init_lock;
+
+	Assert(enmTag < sizeof(memory_regions) / sizeof(memory_regions[0]));
+
+	if (memory_regions[enmTag].conn)
+		return memory_regions[enmTag].heap;
+
+	Genode::Lock::Guard guard(memory_init_lock);
+
+	if (memory_regions[enmTag].conn)
+		return memory_regions[enmTag].heap;
+
+	memory_regions[enmTag].conn = new Sub_rm_connection(REGION_SIZE);
+	memory_regions[enmTag].heap = new Libc::Mem_alloc_impl(memory_regions[enmTag].conn);
+
+	return memory_regions[enmTag].heap;
+}
+
+
+static Libc::Mem_alloc * heap_by_pointer(void * pv)
+{
+	for (unsigned i = 0; i < sizeof(memory_regions) / sizeof(memory_regions[0]); i++) {
+		if (!memory_regions[i].heap)
+			continue;
+
+		if (memory_regions[i].conn->contains(pv))
+			return memory_regions[i].heap;
+	}
+
+	return nullptr;
+}
+
+
 int MMR3Init(PVM pVM)
 {
 	PDBG("MMR3Init called, not implemented");
@@ -48,7 +139,7 @@ int MMR3InitUVM(PUVM pUVM)
 
 void *MMR3HeapAllocU(PUVM pUVM, MMTAG enmTag, size_t cbSize)
 {
-	return Libc::mem_alloc()->alloc(cbSize, Genode::log2(RTMEM_ALIGNMENT));
+	return heap_by_mmtag(enmTag)->alloc(cbSize, Genode::log2(RTMEM_ALIGNMENT));
 }
 
 
@@ -79,13 +170,7 @@ static size_t round_size_by_mmtag(MMTAG enmTag, size_t cb)
 void *MMR3HeapAlloc(PVM pVM, MMTAG enmTag, size_t cbSize)
 {
 	size_t const rounded_size = round_size_by_mmtag(enmTag, cbSize);
-
-	void *ret = Libc::mem_alloc()->alloc(rounded_size, align_by_mmtag(enmTag));
-
-//	PINF("MMR3HeapAlloc: enmTag=%d cbSize=0x%zx -> 0x%p (0x%zx)",
-//	     enmTag, cbSize, ret, rounded_size);
-
-	return ret;
+	return heap_by_mmtag(enmTag)->alloc(rounded_size, align_by_mmtag(enmTag));
 }
 
 
@@ -116,12 +201,9 @@ int MMR3HyperAllocOnceNoRel(PVM pVM, size_t cb, unsigned uAlignment,
 
 	size_t const rounded_size = round_size_by_mmtag(enmTag, cb);
 
-	void *ret = Libc::mem_alloc()->alloc(rounded_size, align_log2);
+	void *ret = heap_by_mmtag(enmTag)->alloc(rounded_size, align_log2);
 	if (ret)
 		Genode::memset(ret, 0, cb);
-
-	PINF("MMR3HyperAllocOnceNoRel: enmTag=%d align_log2=%u cb=0x%zx -> 0x%p",
-	     enmTag, align_log2, cb, ret);
 
 	*ppv = ret;
 
@@ -147,13 +229,19 @@ int MMHyperAlloc(PVM pVM, size_t cb, unsigned uAlignment, MMTAG enmTag, void **p
 
 int MMHyperFree(PVM pVM, void *pv)
 {
-	Libc::mem_alloc()->free(pv);
-
+	MMR3HeapFree(pv);
 	return VINF_SUCCESS;
 }
 
 
-void MMR3HeapFree(void *pv) { Libc::mem_alloc()->free(pv); }
+void MMR3HeapFree(void *pv)
+{
+	Libc::Mem_alloc *heap = heap_by_pointer(pv);
+
+	Assert(heap);
+
+	heap->free(pv);
+}
 
 
 RTR0PTR MMHyperR3ToR0(PVM pVM, RTR3PTR R3Ptr) { return (RTR0PTR)R3Ptr; }

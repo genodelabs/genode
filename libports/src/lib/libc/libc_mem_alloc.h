@@ -108,9 +108,10 @@ namespace Libc {
 
 		public:
 
-			Mem_alloc_impl()
+			Mem_alloc_impl(Genode::Rm_session  * rm  = Genode::env()->rm_session(),
+			               Genode::Ram_session * ram = Genode::env()->ram_session())
 			:
-				_ds_pool(Genode::env()->ram_session(), Genode::env()->rm_session()),
+				_ds_pool(ram, rm),
 				_alloc(0),
 				_chunk_size(MIN_CHUNK_SIZE)
 			{ }
