@@ -74,7 +74,7 @@ build_boot_image {
 
 run_genode_until {.*child exited with exit value 0.*} 60
 
-puts "\ntest succeeded\n"
+puts "\nTest succeeded\n"
 
 #
 # Cleanup test-directory structure

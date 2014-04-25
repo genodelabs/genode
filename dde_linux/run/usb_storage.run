@@ -144,6 +144,6 @@ append qemu_args {  \
 
 run_genode_until {.*child exited with exit value 0.*} 100
 
-puts "\ntest succeeded\n"
+puts "\nTest succeeded\n"
 
 # vi: set ft=tcl :
