@@ -136,6 +136,12 @@ class Genode::Rect
 		bool fits(Area<DT> area) const { return w() >= area.w() && h() >= area.h(); }
 
 		/**
+		 * Return true if the specified point lies within the rectangle
+		 */
+		bool contains(Point<CT> p) const {
+			return p.x() >= x1() && p.x() <= x2() && p.y() >= y1() && p.y() <= y2(); }
+
+		/**
 		 * Create new rectangle by intersecting two rectangles
 		 */
 		static Rect intersect(Rect r1, Rect r2) {
