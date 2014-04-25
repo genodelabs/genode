@@ -971,14 +971,18 @@ void Nitpicker::Main::handle_input(unsigned)
 			import_input_events(ev_buf, input.flush(), user_state,
 			                    canvas_accessor.canvas());
 
-		Point const new_mouse_pos = user_state.mouse_pos();
+		Point const new_mouse_pos  = user_state.mouse_pos();
+		Point const menubar_offset = Point(0, Framebuffer_screen::MENUBAR_HEIGHT);
+		Point const report_pos     = new_mouse_pos - menubar_offset;
 
 		/* report mouse-position updates */
-		if (pointer_reporter.is_enabled() && old_mouse_pos != new_mouse_pos)
+		if (pointer_reporter.is_enabled() && old_mouse_pos != new_mouse_pos
+		 && new_mouse_pos.y() >= 0)
+
 			Genode::Reporter::Xml_generator xml(pointer_reporter, [&] ()
 			{
-				xml.attribute("xpos", new_mouse_pos.x());
-				xml.attribute("ypos", new_mouse_pos.y());
+				xml.attribute("xpos", report_pos.x());
+				xml.attribute("ypos", report_pos.y());
 			});
 
 		/* update mouse cursor */
