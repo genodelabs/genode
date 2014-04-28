@@ -260,7 +260,7 @@ namespace Genode {
 	template <typename BMDT, unsigned SLAB_BLOCK_SIZE = 256 * sizeof(addr_t)>
 	class Allocator_avl_tpl : public Allocator_avl_base
 	{
-		private:
+		protected:
 
 			/*
 			 * Pump up the Block class with custom meta-data type

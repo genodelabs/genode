@@ -21,7 +21,32 @@
 #include <util.h>
 
 namespace Genode {
+	class Core_mem_translator;
 	class Core_mem_allocator;
+};
+
+
+/**
+ * Interface of an allocator that allows to return physical addresses
+ * of its used virtual address ranges, and vice versa.
+ */
+class Genode::Core_mem_translator : public Genode::Range_allocator
+{
+	public:
+
+		/**
+		 * Returns physical address for given virtual one
+		 *
+		 * \param addr  virtual address
+		 */
+		virtual void * phys_addr(void * addr) = 0;
+
+		/**
+		 * Returns virtual address for given physical one
+		 *
+		 * \param addr  physical address
+		 */
+		virtual void * virt_addr(void * addr) = 0;
 };
 
 
@@ -31,12 +56,134 @@ namespace Genode {
  * The class itself implements a ready-to-use memory allocator for
  * core that allows to allocate memory at page granularity only.
  */
-class Genode::Core_mem_allocator : public Genode::Range_allocator
+class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 {
 	public:
 
 		using Page_allocator = Allocator_avl_tpl<Empty, get_page_size()>;
 		using Phys_allocator = Synchronized_range_allocator<Page_allocator>;
+
+		/**
+		 * Metadata for allocator blocks that stores a related address
+		 */
+		struct Metadata { void * map_addr; };
+
+		/**
+		 * Page-size granular allocator that links ranges to related ones.
+		 */
+		class Mapped_avl_allocator
+		: public Allocator_avl_tpl<Metadata, get_page_size()>
+		{
+			public:
+
+				/**
+				 * Constructor
+				 *
+				 * \param md_alloc  metadata allocator
+				 */
+				explicit Mapped_avl_allocator(Allocator *md_alloc)
+				: Allocator_avl_tpl<Metadata, get_page_size()>(md_alloc) {}
+
+				/**
+				 * Returns related address for allocated range
+				 *
+				 * \param addr  address within allocated range
+				 */
+				void * map_addr(void * addr);
+		};
+
+		using Synchronized_mapped_allocator =
+			Synchronized_range_allocator<Mapped_avl_allocator>;
+
+		/**
+		 * Unsynchronized allocator for core-mapped memory
+		 *
+		 * This is an allocator of core-mapped memory. It is meant to be used as
+		 * meta-data allocator for the other allocators and as back end for core's
+		 * synchronized memory allocator.
+		 */
+		class Mapped_mem_allocator : public Genode::Core_mem_translator
+		{
+			private:
+
+				Mapped_avl_allocator *_phys_alloc;
+				Mapped_avl_allocator *_virt_alloc;
+
+			public:
+
+				/**
+				 * Constructor
+				 *
+				 * \param phys_alloc  allocator of physical memory
+				 * \param virt_alloc  allocator of core-local virtual memory ranges
+				 */
+
+				Mapped_mem_allocator(Mapped_avl_allocator *phys_alloc,
+				                     Mapped_avl_allocator *virt_alloc)
+				: _phys_alloc(phys_alloc), _virt_alloc(virt_alloc) { }
+
+				/**
+				 * Establish mapping between physical and virtual address range
+				 *
+				 * Note: has to be implemented by platform specific code
+				 *
+				 * \param virt_addr  start address of virtual range
+				 * \param phys_addr  start address of physical range
+				 * \param size       size of range
+				 */
+				bool _map_local(addr_t virt_addr, addr_t phys_addr, unsigned size);
+
+				/**
+				 * Destroy mapping between physical and virtual address range
+				 *
+				 * Note: has to be implemented by platform specific code
+				 *
+				 * \param virt_addr  start address of virtual range
+				 * \param size       size of range
+				 */
+				bool _unmap_local(addr_t virt_addr, unsigned size);
+
+
+				/***********************************
+				 ** Core_mem_translator interface **
+				 ***********************************/
+
+				void * phys_addr(void * addr) {
+					return _virt_alloc->map_addr(addr); }
+
+				void * virt_addr(void * addr) {
+					return _phys_alloc->map_addr(addr); }
+
+
+				/*******************************
+				 ** Range allocator interface **
+				 *******************************/
+
+				int add_range(addr_t base, size_t size)    { return -1; }
+				int remove_range(addr_t base, size_t size) { return -1; }
+				Alloc_return alloc_aligned(size_t size, void **out_addr,
+				                           int align = 0);
+				Alloc_return alloc_addr(size_t size, addr_t addr) {
+					return Alloc_return::RANGE_CONFLICT; }
+				void         free(void *addr) {}
+				size_t       avail() { return _phys_alloc->avail(); }
+				bool         valid_addr(addr_t addr) {
+					return _virt_alloc->valid_addr(addr); }
+
+
+				/*************************
+				 ** Allocator interface **
+				 *************************/
+
+				bool   alloc(size_t size, void **out_addr) {
+					return alloc_aligned(size, out_addr).is_ok(); }
+				void   free(void *addr, size_t) { free(addr); }
+				size_t consumed() { return _phys_alloc->consumed(); }
+				size_t overhead(size_t size) {
+					return _phys_alloc->overhead(size); }
+				bool   need_size_for_free() const override {
+					return _phys_alloc->need_size_for_free(); }
+		};
 
 	protected:
 
@@ -52,7 +199,7 @@ class Genode::Core_mem_allocator : public Genode::Range_allocator
 		 * This allocator must only be used to allocate memory
 		 * ranges at page granularity.
 		 */
-		Phys_allocator _phys_alloc;
+		Synchronized_mapped_allocator _phys_alloc;
 
 		/**
 		 * Synchronized allocator of core's virtual memory ranges
@@ -60,10 +207,20 @@ class Genode::Core_mem_allocator : public Genode::Range_allocator
 		 * This allocator must only be used to allocate memory
 		 * ranges at page granularity.
 		 */
-		Phys_allocator _virt_alloc;
+		Synchronized_mapped_allocator _virt_alloc;
 
-		bool _map_local(addr_t virt_addr, addr_t phys_addr, unsigned size);
-		bool _unmap_local(addr_t virt_addr, unsigned size);
+		/**
+		   * Unsynchronized core-mapped memory allocator
+		   *
+		   * This allocator is internally used within this class for
+		   * allocating meta data for the other allocators. It is not
+		   * synchronized to avoid nested locking. The lock-guarded
+		   * access to this allocator from the outer world is
+		   * provided via the 'Allocator' interface implemented by
+		   * 'Core_mem_allocator'. The allocator works at byte
+		   * granularity.
+		   */
+		Mapped_mem_allocator _mem_alloc;
 
 	public:
 
@@ -71,18 +228,41 @@ class Genode::Core_mem_allocator : public Genode::Range_allocator
 		 * Constructor
 		 */
 		Core_mem_allocator()
-		: _phys_alloc(&_lock, this),
-		  _virt_alloc(&_lock, this) { }
+		: _phys_alloc(&_lock, &_mem_alloc),
+		  _virt_alloc(&_lock, &_mem_alloc),
+		  _mem_alloc(_phys_alloc.raw(), _virt_alloc.raw()) { }
 
 		/**
 		 * Access physical-memory allocator
 		 */
-		Phys_allocator *phys_alloc() { return &_phys_alloc; }
+		Synchronized_mapped_allocator *phys_alloc() { return &_phys_alloc; }
 
 		/**
 		 * Access core's virtual-memory allocator
 		 */
-		Phys_allocator *virt_alloc() { return &_virt_alloc; }
+		Synchronized_mapped_allocator *virt_alloc() { return &_virt_alloc; }
+
+		/**
+		 * Access core's local memory allocator unsynchronized
+		 */
+		Mapped_mem_allocator *raw() { return &_mem_alloc; }
+
+
+		/***********************************
+		 ** Core_mem_translator interface **
+		 ***********************************/
+
+		void * phys_addr(void * addr)
+		{
+			Lock::Guard lock_guard(_lock);
+			return _virt_alloc.raw()->map_addr(addr);
+		}
+
+		void * virt_addr(void * addr)
+		{
+			Lock::Guard lock_guard(_lock);
+			return _phys_alloc.raw()->map_addr(addr);
+		}
 
 
 		/*******************************
@@ -91,11 +271,22 @@ class Genode::Core_mem_allocator : public Genode::Range_allocator
 
 		int          add_range(addr_t base, size_t size) { return -1; }
 		int          remove_range(addr_t base, size_t size) { return -1; }
-		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0);
 		Alloc_return alloc_addr(size_t size, addr_t addr) {
 			return Alloc_return::RANGE_CONFLICT; }
-		void         free(void *addr) {}
-		size_t       avail() { return _phys_alloc.avail(); }
+
+		Alloc_return alloc_aligned(size_t size, void **out_addr, int align = 0)
+		{
+			Lock::Guard lock_guard(_lock);
+			return _mem_alloc.alloc_aligned(size, out_addr, align);
+		}
+
+		void free(void *addr)
+		{
+			Lock::Guard lock_guard(_lock);
+			return _mem_alloc.free(addr);
+		}
+
+		size_t avail() { return _phys_alloc.avail(); }
 
 		bool valid_addr(addr_t addr) { return _virt_alloc.valid_addr(addr); }
 

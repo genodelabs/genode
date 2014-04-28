@@ -566,8 +566,9 @@ Platform::Platform() :
  ** Support for core memory management **
  ****************************************/
 
-bool Core_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
-                                    unsigned size)
+bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t virt_addr,
+                                                          addr_t phys_addr,
+                                                          unsigned size)
 {
 	map_local((Utcb *)Thread_base::myself()->utcb(), phys_addr,
 	          virt_addr, size / get_page_size(),
@@ -576,7 +577,8 @@ bool Core_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 }
 
 
-bool Core_mem_allocator::_unmap_local(addr_t virt_addr, unsigned size)
+bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t virt_addr,
+                                                            unsigned size)
 {
 	unmap_local((Utcb *)Thread_base::myself()->utcb(),
 	            virt_addr, size / get_page_size());
