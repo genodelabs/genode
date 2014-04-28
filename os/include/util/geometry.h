@@ -56,6 +56,11 @@ class Genode::Point
 		 * Operator for testing non-equality of two points
 		 */
 		bool operator != (Point const &p) const { return p.x() != _x || p.y() != _y; }
+
+		/**
+		 * Operator for testing equality of two points
+		 */
+		bool operator == (Point const &p) const { return p.x() == _x && p.y() == _y; }
 };
 
 
