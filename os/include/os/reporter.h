@@ -29,6 +29,8 @@ class Genode::Reporter : Noncopyable
 
 		String<100> const _name;
 
+		size_t const _buffer_size;
+
 		bool _enabled = false;
 
 		struct Connection
@@ -36,14 +38,16 @@ class Genode::Reporter : Noncopyable
 			Report::Connection report;
 			Attached_dataspace ds = { report.dataspace() };
 
-			Connection(char const *name) : report(name) { }
+			Connection(char const *name, size_t buffer_size)
+			: report(name, buffer_size) { }
 		};
 
 		Lazy_volatile_object<Connection> _conn;
 
 	public:
 
-		Reporter(char const *report_name) : _name(report_name) { }
+		Reporter(char const *report_name, size_t buffer_size = 4096)
+		: _name(report_name), _buffer_size(buffer_size) { }
 
 		/**
 		 * Enable or disable reporting
@@ -53,7 +57,7 @@ class Genode::Reporter : Noncopyable
 			if (enabled == _enabled) return;
 
 			if (enabled)
-				_conn.construct(_name.string());
+				_conn.construct(_name.string(), _buffer_size);
 			else
 				_conn.destruct();
 
