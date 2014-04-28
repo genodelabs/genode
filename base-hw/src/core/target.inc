@@ -29,6 +29,8 @@ INC_DIR += $(REP_DIR)/src/core \
 SRC_CC += console.cc \
           cpu_session_component.cc \
           cpu_session_support.cc \
+          core_rm_session.cc \
+          core_mem_alloc.cc \
           dataspace_component.cc \
           dump_alloc.cc \
           io_mem_session_component.cc \
@@ -47,6 +49,7 @@ SRC_CC += console.cc \
           signal_session_component.cc \
           trace_session_component.cc \
           thread.cc \
+          thread_support.cc \
           kernel/kernel.cc \
           kernel/thread.cc \
           kernel/vm.cc \
@@ -75,8 +78,11 @@ vpath rm_session_component.cc     $(BASE_DIR)/src/core
 vpath rom_session_component.cc    $(BASE_DIR)/src/core
 vpath trace_session_component.cc  $(BASE_DIR)/src/core
 vpath dump_alloc.cc               $(BASE_DIR)/src/core
+vpath context_area.cc             $(BASE_DIR)/src/core
+vpath core_mem_alloc.cc           $(BASE_DIR)/src/core
 vpath console.cc                  $(REP_DIR)/src/base
 vpath pager.cc                    $(REP_DIR)/src/base
 vpath _main.cc                    $(BASE_DIR)/src/platform
+vpath thread.cc                   $(BASE_DIR)/src/base/thread
 vpath %                           $(REP_DIR)/src/core
 

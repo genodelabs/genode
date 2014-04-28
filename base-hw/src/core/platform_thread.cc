@@ -17,6 +17,9 @@
 #include <platform_pd.h>
 #include <core_env.h>
 #include <rm_session_component.h>
+#include <map_local.h>
+
+#include <kernel/pd.h>
 
 /* kernel includes */
 #include <kernel/kernel.h>
@@ -51,19 +54,16 @@ Platform_thread::~Platform_thread()
 		/* the RM client may be destructed before platform thread */
 		if (_rm_client) {
 			Rm_session_component * const rm = _rm_client->member_rm_session();
-			rm->detach(_utcb_virt);
+			rm->detach(_utcb_pd_addr);
 		}
 	}
+
 	/* free UTCB */
-	if (_pd == Kernel::core_pd()->platform_pd()) {
-		Range_allocator * const ram = platform()->ram_alloc();
-		ram->free(_utcb_phys, sizeof(Native_utcb));
-	} else {
-		Ram_session_component * const ram =
-			dynamic_cast<Ram_session_component *>(core_env()->ram_session());
-		assert(ram);
-		ram->free(_utcb);
-	}
+	Ram_session_component * const ram =
+		dynamic_cast<Ram_session_component *>(core_env()->ram_session());
+	assert(ram);
+	ram->free(_utcb);
+
 	/* release from pager */
 	if (_rm_client) {
 		Pager_object * const object = dynamic_cast<Pager_object *>(_rm_client);
@@ -78,29 +78,27 @@ Platform_thread::~Platform_thread()
 }
 
 
-Platform_thread::Platform_thread(size_t const stack_size,
-                                 const char * const label)
-:
-	_stack_size(stack_size),
-	_pd(Kernel::core_pd()->platform_pd()),
-	_rm_client(0),
-	_utcb_virt(0),
-	_main_thread(0)
+Platform_thread::Platform_thread(const char * const label,
+                                 Native_utcb * utcb)
+: _pd(Kernel::core_pd()->platform_pd()),
+  _rm_client(0),
+  _utcb_core_addr(utcb),
+  _utcb_pd_addr(utcb),
+  _main_thread(0)
 {
 	strncpy(_label, label, LABEL_MAX_LEN);
 
 	/* create UTCB for a core thread */
-	Range_allocator * const ram = platform()->ram_alloc();
-	if (!ram->alloc_aligned(sizeof(Native_utcb), (void **)&_utcb_phys,
-	                        MIN_MAPPING_SIZE_LOG2).is_ok())
-	{
+	void *utcb_phys;
+	if (!platform()->ram_alloc()->alloc(sizeof(Native_utcb), &utcb_phys)) {
 		PERR("failed to allocate UTCB");
 		throw Cpu_session::Out_of_metadata();
 	}
-	_utcb_virt = _utcb_phys;
+	map_local((addr_t)utcb_phys, (addr_t)_utcb_core_addr,
+	          sizeof(Native_utcb) / get_page_size());
 
 	/* set-up default start-info */
-	_utcb_virt->core_start_info()->init(Processor_driver::primary_id());
+	_utcb_core_addr->core_start_info()->init(Processor_driver::primary_id());
 
 	/* create kernel object */
 	_id = Kernel::new_thread(_kernel_thread, Kernel::Priority::MAX, _label);
@@ -115,10 +113,9 @@ Platform_thread::Platform_thread(const char * const label,
                                  unsigned const virt_prio,
                                  addr_t const utcb)
 :
-	_stack_size(0),
 	_pd(nullptr),
 	_rm_client(0),
-	_utcb_virt((Native_utcb *)utcb),
+	_utcb_pd_addr((Native_utcb *)utcb),
 	_main_thread(0)
 {
 	strncpy(_label, label, LABEL_MAX_LEN);
@@ -136,7 +133,7 @@ Platform_thread::Platform_thread(const char * const label,
 		PERR("failed to allocate UTCB");
 		throw Cpu_session::Out_of_metadata();
 	}
-	_utcb_phys = (Native_utcb *)ram->phys_addr(_utcb);
+	_utcb_core_addr = (Native_utcb *)core_env()->rm_session()->attach(_utcb);
 
 	/* create kernel object */
 	enum { MAX_PRIO = Kernel::Priority::MAX };
@@ -157,6 +154,7 @@ int Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
 		PERR("thread already in another protection domain");
 		return -1;
 	}
+
 	/* join protection domain */
 	_pd = pd;
 	_main_thread = main_thread;
@@ -178,13 +176,13 @@ int Platform_thread::start(void * const ip, void * const sp)
 {
 	/* attach UTCB in case of a main thread */
 	if (_main_thread) {
-		_utcb_virt = main_thread_utcb();
+		_utcb_pd_addr = UTCB_MAIN_THREAD;
 		if (!_rm_client) {
 			PERR("invalid RM client");
 			return -1;
 		};
 		Rm_session_component * const rm = _rm_client->member_rm_session();
-		try { rm->attach(_utcb, 0, 0, true, _utcb_virt, 0); }
+		try { rm->attach(_utcb, 0, 0, true, _utcb_pd_addr, 0); }
 		catch (...) {
 			PERR("failed to attach UTCB");
 			return -1;
@@ -207,9 +205,8 @@ int Platform_thread::start(void * const ip, void * const sp)
 	else { processor_id = Processor_driver::primary_id(); }
 
 	/* start executing new thread */
-	_utcb_phys->start_info()->init(_id, _utcb);
-	_tlb = Kernel::start_thread(_id, processor_id, _pd->id(), _utcb_phys);
-	if (!_tlb) {
+	_utcb_core_addr->start_info()->init(_id, _utcb);
+	if (!Kernel::start_thread(_id, processor_id, _pd->id(), _utcb_core_addr)) {
 		PERR("failed to start thread");
 		return -1;
 	}

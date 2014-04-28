@@ -1,6 +1,7 @@
 /*
  * \brief   Platform implementation specific for hw
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2011-12-21
  */
 
@@ -18,9 +19,14 @@
 
 /* core includes */
 #include <core_parent.h>
+#include <page_slab.h>
+#include <map_local.h>
 #include <platform.h>
-#include <pic.h>
+#include <platform_pd.h>
 #include <util.h>
+#include <pic.h>
+#include <kernel/kernel.h>
+#include <translation_table.h>
 
 using namespace Genode;
 
@@ -86,12 +92,6 @@ Native_region * Platform::_core_only_ram_regions(unsigned const i)
 {
 	static Native_region _r[] =
 	{
-		/* avoid null pointers */
-		{ 0, 1 },
-
-		/* mode transition region */
-		{ Kernel::mode_transition_base(), Kernel::mode_transition_size() },
-
 		/* core image */
 		{ (addr_t)&_prog_img_beg,
 		  (size_t)((addr_t)&_prog_img_end - (addr_t)&_prog_img_beg) },
@@ -103,22 +103,32 @@ Native_region * Platform::_core_only_ram_regions(unsigned const i)
 	return i < sizeof(_r)/sizeof(_r[0]) ? &_r[i] : 0;
 }
 
+static Native_region * virt_region(unsigned const i) {
+	static Native_region r = { VIRT_ADDR_SPACE_START, VIRT_ADDR_SPACE_SIZE };
+	return i ? 0 : &r; }
+
+static Core_mem_allocator * _core_mem_allocator = 0;
 
 Platform::Platform()
 :
-	_core_mem_alloc(0),
-	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
+	_io_mem_alloc(core_mem_alloc()),
 	_irq_alloc(core_mem_alloc()),
 	_vm_start(VIRT_ADDR_SPACE_START), _vm_size(VIRT_ADDR_SPACE_SIZE)
 {
+	static Page_slab pslab(&_core_mem_alloc);
+	Kernel::core_pd()->platform_pd()->page_slab(&pslab);
+	_core_mem_allocator = &_core_mem_alloc;
+
 	/*
 	 * Initialise platform resource allocators.
 	 * Core mem alloc must come first because it is
 	 * used by the other allocators.
 	 */
 	enum { VERBOSE = 0 };
-	unsigned const psl2 = get_page_size_log2();
-	init_alloc(&_core_mem_alloc, _ram_regions, _core_only_ram_regions, psl2);
+	init_alloc(_core_mem_alloc.phys_alloc(), _ram_regions,
+	           _core_only_ram_regions, get_page_size_log2());
+	init_alloc(_core_mem_alloc.virt_alloc(), virt_region,
+	           _core_only_ram_regions, get_page_size_log2());
 
 	/* make interrupts available to the interrupt allocator */
 	for (unsigned i = 0; i < Kernel::Pic::MAX_INTERRUPT_ID; i++)
@@ -139,11 +149,16 @@ Platform::Platform()
 			Rom_module(header->base, header->size, (const char*)header->name);
 		_rom_fs.insert(rom_module);
 	}
+
 	/* print ressource summary */
 	if (VERBOSE) {
-		printf("Core memory allocator\n");
+		printf("Core virtual memory allocator\n");
 		printf("---------------------\n");
-		_core_mem_alloc.raw()->dump_addr_tree();
+		_core_mem_alloc.virt_alloc()->raw()->dump_addr_tree();
+		printf("\n");
+		printf("RAM memory allocator\n");
+		printf("---------------------\n");
+		_core_mem_alloc.phys_alloc()->raw()->dump_addr_tree();
 		printf("\n");
 		printf("IO memory allocator\n");
 		printf("-------------------\n");
@@ -171,3 +186,76 @@ void Core_parent::exit(int exit_value)
 	while (1) ;
 }
 
+
+/****************************************
+ ** Support for core memory management **
+ ****************************************/
+
+bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages, bool io_mem)
+{
+	Translation_table *tt = Kernel::core_pd()->translation_table();
+	const Page_flags flags = Page_flags::map_core_area(io_mem);
+
+	try {
+		for (unsigned i = 0; i < 2; i++) {
+			try {
+				Lock::Guard guard(*Kernel::core_pd()->platform_pd()->lock());
+
+				tt->insert_translation(to_virt, from_phys,
+				                       num_pages * get_page_size(), flags,
+				                       Kernel::core_pd()->platform_pd()->page_slab());
+				return true;
+			} catch(Page_slab::Out_of_slabs) {
+				Kernel::core_pd()->platform_pd()->page_slab()->alloc_slab_block();
+			}
+		}
+	} catch(Allocator::Out_of_memory) {
+		PERR("Translation table needs to much RAM");
+	} catch(...) {
+		PERR("Invalid mapping %p -> %p (%zx)", (void*)from_phys, (void*)to_virt,
+			 get_page_size() * num_pages);
+	}
+	return false;
+}
+
+
+bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
+{
+	try {
+		Lock::Guard guard(*Kernel::core_pd()->platform_pd()->lock());
+
+		Translation_table *tt = Kernel::core_pd()->translation_table();
+		tt->remove_translation(virt_addr, num_pages * get_page_size(),
+		                       Kernel::core_pd()->platform_pd()->page_slab());
+
+		/* update translation caches of all processors */
+		Kernel::update_pd(Kernel::core_pd()->id());
+		return true;
+	} catch(...) {
+		PERR("tried to remove invalid region!");
+	}
+	return false;
+}
+
+
+bool Core_mem_allocator::Mapped_mem_allocator::_map_local(addr_t   virt_addr,
+                                                          addr_t   phys_addr,
+                                                          unsigned size)
+{
+	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->page_slab();
+	slab->backing_store(_core_mem_allocator->raw());
+	bool ret = ::map_local(phys_addr, virt_addr, size / get_page_size(), false);
+	slab->backing_store(_core_mem_allocator);
+	return ret;
+}
+
+
+bool Core_mem_allocator::Mapped_mem_allocator::_unmap_local(addr_t   virt_addr,
+                                                            unsigned size)
+{
+	Genode::Page_slab * slab = Kernel::core_pd()->platform_pd()->page_slab();
+	slab->backing_store(_core_mem_allocator->raw());
+	bool ret = ::unmap_local(virt_addr, size / get_page_size());
+	slab->backing_store(_core_mem_allocator);
+	return ret;
+}

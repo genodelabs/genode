@@ -20,25 +20,15 @@
 #include <root/root.h>
 
 /* Core includes */
-#include <tlb.h>
+#include <translation_table.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <address_space.h>
+#include <page_slab.h>
+#include <kernel/kernel.h>
 
 namespace Genode
 {
-	/**
-	 * Regain all administrative memory that isn't used anymore by 'tlb'
-	 */
-	inline void regain_ram_from_tlb(Tlb * tlb)
-	{
-		size_t s;
-		void * base;
-		while (tlb->regain_memory(base, s)) {
-			platform()->ram_alloc()->free(base, s);
-		}
-	}
-
 	class Platform_thread;
 
 	/**
@@ -48,42 +38,59 @@ namespace Genode
 	{
 		protected:
 
-			unsigned           _id;
-			Native_capability  _parent;
-			Native_thread_id   _main_thread;
-			char const * const _label;
-			Tlb *              _tlb;
+			Lock                _lock; /* safeguard translation table and slab */
+			unsigned            _id;
+			Native_capability   _parent;
+			Native_thread_id    _main_thread;
+			char const * const  _label;
+			Translation_table * _tt;      /* translation table virtual addr.  */
+			Translation_table * _tt_phys; /* translation table physical addr. */
+			uint8_t             _kernel_pd[sizeof(Kernel::Pd)];
+			Page_slab         * _pslab;   /* page table allocator */
 
 		public:
 
 			/**
 			 * Constructor for core pd
+			 *
+			 * \param tt    translation table address
+			 * \param slab  page table allocator
 			 */
-			Platform_pd(Tlb * tlb)
-			: _main_thread(0), _label("core"), _tlb(tlb) { }
+			Platform_pd(Translation_table * tt, Page_slab * slab)
+			: _main_thread(0), _label("core"), _tt(tt),
+			  _tt_phys(tt), _pslab(slab) { }
 
 			/**
-			 * Constructor
+			 * Constructor for non-core pd
+			 *
+			 * \param label  name of protection domain
 			 */
 			Platform_pd(char const *label) : _main_thread(0), _label(label)
 			{
-				/* get some aligned space for the kernel object */
-				void * kernel_pd = 0;
-				Range_allocator * ram = platform()->ram_alloc();
-				bool kernel_pd_ok =
-					ram->alloc_aligned(Kernel::pd_size(), &kernel_pd,
-					                   Kernel::pd_alignment_log2()).is_ok();
-				if (!kernel_pd_ok) {
+				Lock::Guard guard(_lock);
+
+				Core_mem_allocator * cma =
+					static_cast<Core_mem_allocator*>(platform()->core_mem_alloc());
+				void *tt;
+
+				/* get some aligned space for the translation table */
+				if (!cma->alloc_aligned(sizeof(Translation_table), (void**)&tt,
+				                        Translation_table::ALIGNM_LOG2).is_ok()) {
 					PERR("failed to allocate kernel object");
 					throw Root::Quota_exceeded();
 				}
+
+				_tt      = new (tt) Translation_table();
+				_tt_phys = (Translation_table*) cma->phys_addr(_tt);
+				_pslab   = new (cma) Page_slab(cma);
+				Kernel::mtc()->map(_tt, _pslab);
+
 				/* create kernel object */
-				_id = Kernel::new_pd(kernel_pd, this);
+				_id = Kernel::new_pd(&_kernel_pd, this);
 				if (!_id) {
 					PERR("failed to create kernel object");
 					throw Root::Unavailable();
 				}
-				_tlb = (Tlb *)kernel_pd;
 			}
 
 			/**
@@ -109,6 +116,14 @@ namespace Genode
 				return t->join_pd(this, 0, Address_space::weak_ptr());
 			}
 
+
+			/**
+			 * Unbind thread 't' from protection domain
+			 */
+			void unbind_thread(Platform_thread *t) {
+				t->join_pd(nullptr, false, Address_space::weak_ptr()); }
+
+
 			/**
 			 * Assign parent interface to protection domain
 			 */
@@ -127,8 +142,13 @@ namespace Genode
 			 ** Accessors **
 			 ***************/
 
-			unsigned const     id()    { return _id;    }
-			char const * const label() { return _label; }
+			Lock              * lock()                      { return &_lock;   }
+			unsigned const      id()                        { return _id;      }
+			char const * const  label()                     { return _label;   }
+			Page_slab         * page_slab()                 { return _pslab;   }
+			Translation_table * translation_table()         { return _tt;      }
+			Translation_table * translation_table_phys()    { return _tt_phys; }
+			void                page_slab(Page_slab *pslab) { _pslab = pslab;  }
 
 
 			/*****************************

@@ -1,6 +1,7 @@
 /*
  * \brief   CPU specific implementations of core
  * \author  Martin Stein
+ * \author Stefan Kalkowski
  * \date    2013-11-11
  */
 
@@ -25,7 +26,7 @@ using namespace Kernel;
 Thread_cpu_support::Thread_cpu_support(Thread * const t)
 :
 	_fault(t),
-	_fault_tlb(0),
+	_fault_pd(0),
 	_fault_addr(0),
 	_fault_writes(0),
 	_fault_signal(0)
@@ -57,7 +58,7 @@ addr_t Thread::* Thread::_reg(addr_t const id) const
 		/* [15] */ (addr_t Thread::*)&Thread::ip,
 		/* [16] */ (addr_t Thread::*)&Thread::cpsr,
 		/* [17] */ (addr_t Thread::*)&Thread::cpu_exception,
-		/* [18] */ (addr_t Thread::*)&Thread::_fault_tlb,
+		/* [18] */ (addr_t Thread::*)&Thread::_fault_pd,
 		/* [19] */ (addr_t Thread::*)&Thread::_fault_addr,
 		/* [20] */ (addr_t Thread::*)&Thread::_fault_writes,
 		/* [21] */ (addr_t Thread::*)&Thread::_fault_signal
@@ -79,7 +80,7 @@ void Thread::_mmu_exception()
 {
 	_unschedule(AWAITS_RESUME);
 	if (in_fault(_fault_addr, _fault_writes)) {
-		_fault_tlb    = (addr_t)_pd->tlb();
+		_fault_pd    = (addr_t)_pd->platform_pd();
 		_fault_signal = _fault.signal_context_id();
 		_fault.submit();
 		return;

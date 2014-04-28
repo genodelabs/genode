@@ -51,9 +51,7 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 
 		List_item _flush_tlb_li;     /* TLB maintainance work list item       */
 		unsigned  _flush_tlb_pd_id;  /* id of pd that TLB entries are flushed */
-		unsigned  _flush_tlb_ref_cnt; /* reference counter */
-
-		friend class Processor;
+		bool      _flush_tlb_ref_cnt[PROCESSORS]; /* reference counters */
 
 		/**
 		 * Handle an interrupt exception that occured during execution
@@ -104,7 +102,7 @@ class Kernel::Processor_client : public Processor_scheduler::Item
 		virtual void proceed(unsigned const processor_id) = 0;
 
 		/**
-		 * Sets the pd id, which TLB entries should be flushed
+		 * Enqueues TLB maintainance work into queue of the processors
 		 *
 		 * \param pd_id  protection domain kernel object's id
 		 */
@@ -142,11 +140,8 @@ class Kernel::Processor : public Processor_driver
 {
 	private:
 
-		using Ipi_scheduler = Genode::List<Genode::List_element<Processor_client> >;
-
 		unsigned const      _id;
 		Processor_scheduler _scheduler;
-		Ipi_scheduler       _ipi_scheduler;
 		bool                _ip_interrupt_pending;
 
 	public:
@@ -163,6 +158,11 @@ class Kernel::Processor : public Processor_driver
 		{ }
 
 		/**
+		 * Perform outstanding TLB maintainance work
+		 */
+		void flush_tlb();
+
+		/**
 		 * Notice that the inter-processor interrupt isn't pending anymore
 		 */
 		void ip_interrupt()
@@ -174,6 +174,7 @@ class Kernel::Processor : public Processor_driver
 			 * available.
 			 */
 			_ip_interrupt_pending = false;
+			flush_tlb();
 		}
 
 		/**
@@ -182,19 +183,6 @@ class Kernel::Processor : public Processor_driver
 		 * \param client  targeted client
 		 */
 		void schedule(Processor_client * const client);
-
-
-		/**
-		 * Add processor client to the TLB maintainance queue of the processor
-		 *
-		 * \param client  targeted client
-		 */
-		void flush_tlb(Processor_client * const client);
-
-		/**
-		 * Perform outstanding TLB maintainance work
-		 */
-		void flush_tlb();
 
 
 		/***************

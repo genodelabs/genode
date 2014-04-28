@@ -47,6 +47,7 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 	{
 		{ Board::GIC_CPU_MMIO_BASE, Board::GIC_CPU_MMIO_SIZE },
 		{ Board::MCT_MMIO_BASE, Board::MCT_MMIO_SIZE },
+		{ Board::UART_2_MMIO_BASE, 0x1000 },
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }

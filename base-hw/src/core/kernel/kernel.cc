@@ -30,19 +30,23 @@
 #include <trustzone.h>
 #include <timer.h>
 #include <pic.h>
+#include <map_local.h>
 
 /* base includes */
+#include <base/allocator_avl.h>
 #include <unmanaged_singleton.h>
+#include <base/native_types.h>
 
 /* base-hw includes */
 #include <kernel/irq.h>
 #include <kernel/perf_counter.h>
-
 using namespace Kernel;
 
 extern Genode::Native_thread_id _main_thread_id;
 extern "C" void CORE_MAIN();
 extern void * _start_secondary_processors;
+extern int _prog_img_beg;
+extern int _prog_img_end;
 
 Genode::Native_utcb * _main_thread_utcb;
 
@@ -55,7 +59,6 @@ namespace Kernel
 
 	/* import Genode types */
 	typedef Genode::umword_t       umword_t;
-	typedef Genode::Core_tlb       Core_tlb;
 	typedef Genode::Core_thread_id Core_thread_id;
 }
 
@@ -95,24 +98,65 @@ namespace Kernel
 	 */
 	Pd * core_pd()
 	{
+		using Ttable = Genode::Translation_table;
+		constexpr int tt_align  = 1 << Ttable::ALIGNM_LOG2;
+
 		/**
-		 * Core protection-domain
+		 * Dummy page slab backend allocator for bootstrapping only
 		 */
-		struct Core_pd : public Platform_pd, public Pd
+		struct Simple_allocator : Genode::Core_mem_translator
 		{
-			/**
-			 * Constructor
-			 */
-			Core_pd(Tlb * const tlb)
-			: Platform_pd(tlb),
-			  Pd(tlb, this)
+			Simple_allocator() { }
+
+			int add_range(addr_t base, size_t size) { return -1; }
+			int remove_range(addr_t base, size_t size) { return -1; }
+			Alloc_return alloc_aligned(size_t size, void **out_addr, int align) {
+				return Alloc_return::RANGE_CONFLICT; }
+			Alloc_return alloc_addr(size_t size, addr_t addr) {
+				return Alloc_return::RANGE_CONFLICT; }
+			void   free(void *addr) {}
+			size_t avail() { return 0; }
+			bool valid_addr(addr_t addr) { return false; }
+			bool alloc(size_t size, void **out_addr) { return false; }
+			void free(void *addr, size_t) {  }
+			size_t overhead(size_t size) { return 0; }
+			bool need_size_for_free() const override { return false; }
+
+			void * phys_addr(void * addr) { return addr; }
+			void * virt_addr(void * addr) { return addr; }
+		};
+
+		struct Core_pd : Platform_pd, Pd
+		{
+			Core_pd(Ttable * tt, Genode::Page_slab * slab)
+			: Platform_pd(tt, slab),
+			  Pd(tt, this)
 			{
+				using namespace Genode;
+
 				Platform_pd::_id = Pd::id();
+
+				/* map exception vector for core */
+				Kernel::mtc()->map(tt, slab);
+
+				/* map core's program image */
+				addr_t start = trunc_page((addr_t)&_prog_img_beg);
+				addr_t end   = round_page((addr_t)&_prog_img_end);
+				map_local(start, start, (end-start) / get_page_size());
+
+				/* map core's mmio regions */
+				Native_region * r = Platform::_core_only_mmio_regions(0);
+				for (unsigned i = 0; r;
+				     r = Platform::_core_only_mmio_regions(++i))
+					map_local(r->base, r->base, r->size / get_page_size(), true);
 			}
 		};
-		constexpr int tlb_align = 1 << Core_tlb::ALIGNM_LOG2;
-		Core_tlb * core_tlb = unmanaged_singleton<Core_tlb, tlb_align>();
-		return unmanaged_singleton<Core_pd>(core_tlb);
+
+		Simple_allocator  * sa   = unmanaged_singleton<Simple_allocator>();
+		Ttable            * tt   = unmanaged_singleton<Ttable, tt_align>();
+		Genode::Page_slab * slab = unmanaged_singleton<Genode::Page_slab,
+		                                               tt_align>(sa);
+		return unmanaged_singleton<Core_pd>(tt, slab);
 	}
 
 	/**
@@ -142,12 +186,12 @@ namespace Kernel
 	/**
 	 * Get attributes of the kernel objects
 	 */
-	size_t   thread_size()          { return sizeof(Thread); }
-	size_t   pd_size()              { return sizeof(Tlb) + sizeof(Pd); }
-	size_t   signal_context_size()  { return sizeof(Signal_context); }
-	size_t   signal_receiver_size() { return sizeof(Signal_receiver); }
-	unsigned pd_alignment_log2()    { return Tlb::ALIGNM_LOG2; }
-	size_t   vm_size()              { return sizeof(Vm); }
+	size_t thread_size()          { return sizeof(Thread); }
+	size_t signal_context_size()  { return sizeof(Signal_context); }
+	size_t signal_receiver_size() { return sizeof(Signal_receiver); }
+	size_t vm_size()              { return sizeof(Vm); }
+	unsigned pd_alignm_log2() { return Genode::Translation_table::ALIGNM_LOG2; }
+	size_t pd_size() { return sizeof(Genode::Translation_table) + sizeof(Pd); }
 
 	enum { STACK_SIZE = 64 * 1024 };
 
@@ -160,7 +204,7 @@ namespace Kernel
 		return s;
 	}
 
-	addr_t   core_tlb_base;
+	addr_t   core_tt_base;
 	unsigned core_pd_id;
 }
 
@@ -184,8 +228,8 @@ extern "C" void init_kernel_uniprocessor()
 	 ************************************************************************/
 
 	/* calculate in advance as needed later when data writes aren't allowed */
-	core_tlb_base = core_pd()->tlb()->base();
-	core_pd_id    = core_pd()->id();
+	core_tt_base = (addr_t) core_pd()->translation_table();
+	core_pd_id   = core_pd()->id();
 
 	/* initialize all processor objects */
 	processor_pool();
@@ -216,7 +260,7 @@ extern "C" void init_kernel_multiprocessor()
 	Processor::init_phys_kernel();
 
 	/* switch to core address space */
-	Processor::init_virt_kernel(core_tlb_base, core_pd_id);
+	Processor::init_virt_kernel(core_tt_base, core_pd_id);
 
 	/************************************
 	 ** Now it's safe to use 'cmpxchg' **
@@ -306,9 +350,6 @@ extern "C" void kernel()
 	 */
 	Processor_client * const old_occupant = scheduler->occupant();
 	old_occupant->exception(processor_id);
-
-	/* check for TLB maintainance requirements */
-	processor->flush_tlb();
 
 	/*
 	 * The processor local as well as remote exception-handling may have

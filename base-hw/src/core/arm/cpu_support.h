@@ -27,7 +27,7 @@ class Kernel::Thread_cpu_support
 	protected:
 
 		Thread_event _fault;
-		addr_t       _fault_tlb;
+		addr_t       _fault_pd;
 		addr_t       _fault_addr;
 		addr_t       _fault_writes;
 		addr_t       _fault_signal;

@@ -20,22 +20,9 @@
 #include <platform.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
-#include <tlb.h>
+#include <translation_table.h>
 
 using namespace Genode;
-
-
-/**************************************
- ** Helpers for processor broadcasts **
- **************************************/
-
-struct Update_pd_data { unsigned const pd_id; };
-
-void update_pd(void * const data)
-{
-	auto const d = reinterpret_cast<Update_pd_data *>(data);
-	Kernel::update_pd(d->pd_id);
-}
 
 
 /***************
@@ -46,22 +33,19 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 {
 	/* remove mapping from the translation table of the thread that we serve */
 	Platform_thread * const pt = (Platform_thread *)badge();
-	if (!pt) {
-		PWRN("failed to get platform thread of RM client");
+	if (!pt || !pt->pd()) return;
+
+	Lock::Guard guard(*pt->pd()->lock());
+
+	Translation_table * const tt = pt->pd()->translation_table();
+	if (!tt) {
+		PWRN("failed to get translation table of RM client");
 		return;
 	}
-	Tlb * const tlb = pt->tlb();
-	if (!tlb) {
-		PWRN("failed to get page table of RM client");
-		return;
-	}
-	tlb->remove_region(virt_base, size);
+	tt->remove_translation(virt_base, size,pt->pd()->page_slab());
 
 	/* update translation caches of all processors */
 	Kernel::update_pd(pt->pd()->id());
-
-	/* try to get back released memory from the translation table */
-	regain_ram_from_tlb(tlb);
 }
 
 
@@ -72,37 +56,36 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 int Pager_activation_base::apply_mapping()
 {
 	/* prepare mapping */
-	Tlb * const tlb = (Tlb *)_fault.tlb;
+	Platform_pd * const pd = (Platform_pd*)_fault.pd;
+
+	Lock::Guard guard(*pd->lock());
+
+	Translation_table * const tt = pd->translation_table();
+	Page_slab * page_slab = pd->page_slab();
+
 	Page_flags const flags =
 	Page_flags::apply_mapping(_mapping.writable,
 	                          _mapping.write_combined,
 	                          _mapping.io_mem);
 
-	/* insert mapping into TLB */
-	unsigned sl2;
-	sl2 = tlb->insert_translation(_mapping.virt_address, _mapping.phys_address,
-	                              _mapping.size_log2, flags);
-	if (sl2)
-	{
-		/* try to get some natural aligned RAM */
-		void * ram;
-		bool ram_ok = platform()->ram_alloc()->alloc_aligned(1<<sl2, &ram,
-		                                                     sl2).is_ok();
-		if (!ram_ok) {
-			PWRN("failed to allocate additional RAM for TLB");
-			return -1;
+	/* insert mapping into translation table */
+	try {
+		for (unsigned retry = 0; retry < 2; retry++) {
+			try {
+				tt->insert_translation(_mapping.virt_address, _mapping.phys_address,
+									   1 << _mapping.size_log2, flags, page_slab);
+				return 0;
+			} catch(Page_slab::Out_of_slabs) {
+				page_slab->alloc_slab_block();
+			}
 		}
-		/* try to translate again with extra RAM */
-		sl2 = tlb->insert_translation(_mapping.virt_address,
-		                              _mapping.phys_address,
-		                              _mapping.size_log2, flags, ram);
-		if (sl2) {
-			PWRN("TLB needs to much RAM");
-			regain_ram_from_tlb(tlb);
-			return -1;
-		}
+	} catch(Allocator::Out_of_memory) {
+		PERR("Translation table needs to much RAM");
+	} catch(...) {
+		PERR("Invalid mapping %p -> %p (%zx)", (void*)_mapping.phys_address,
+			 (void*)_mapping.virt_address, 1 << _mapping.size_log2);
 	}
-	return 0;
+	return -1;
 }
 
 

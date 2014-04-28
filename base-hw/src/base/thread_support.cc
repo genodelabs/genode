@@ -1,6 +1,7 @@
 /**
  * \brief  Platform specific parts of the thread API
  * \author Martin Stein
+ * \author Stefan Kalkowski
  * \date   2012-02-12
  */
 
@@ -21,29 +22,50 @@ using namespace Genode;
 
 namespace Genode { Rm_session * env_context_area_rm_session(); }
 
+extern Ram_dataspace_capability _main_thread_utcb_ds;
+extern Native_thread_id         _main_thread_id;
+
+
+/**
+ * Return virtual UTCB location of main threads
+ */
+Native_utcb * main_thread_utcb() { return UTCB_MAIN_THREAD; }
+
 
 /*****************
  ** Thread_base **
  *****************/
 
-Native_utcb * Thread_base::utcb()
+void Thread_base::_init_platform_thread(Type type)
 {
-	if (this) { return &_context->utcb; }
-	return main_thread_utcb();
-}
+	if (type == NORMAL) { return; }
 
+	/* if we got reinitialized we have to get rid of the old UTCB */
+	size_t const utcb_size = sizeof(Native_utcb);
+	addr_t const context_area = Native_config::context_area_virtual_base();
+	addr_t const utcb_new = (addr_t)&_context->utcb - context_area;
+	Rm_session * const rm = env_context_area_rm_session();
+	if (type == REINITIALIZED_MAIN) { rm->detach(utcb_new); }
 
-void Thread_base::_thread_start()
-{
-	Thread_base::myself()->_thread_bootstrap();
-	Thread_base::myself()->entry();
-	Thread_base::myself()->_join_lock.unlock();
-	Genode::sleep_forever();
+	/* remap initial main-thread UTCB according to context-area spec */
+	try { rm->attach_at(_main_thread_utcb_ds, utcb_new, utcb_size); }
+	catch(...) {
+		PERR("failed to re-map UTCB");
+		while (1) ;
+	}
+	/* adjust initial object state in case of a main thread */
+	tid().thread_id = _main_thread_id;
+	_thread_cap     = env()->parent()->main_thread_cap();
 }
 
 
 void Thread_base::_deinit_platform_thread()
 {
+	if (!_cpu_session)
+		_cpu_session = env()->cpu_session();
+
+	_cpu_session->kill_thread(_thread_cap);
+
 	/* detach userland thread-context */
 	size_t const size = sizeof(_context->utcb);
 	addr_t utcb = Context_allocator::addr_to_base(_context) +
@@ -51,8 +73,6 @@ void Thread_base::_deinit_platform_thread()
 	              Native_config::context_area_virtual_base();
 	env_context_area_rm_session()->detach(utcb);
 
-	/* destroy server object */
-	_cpu_session->kill_thread(_thread_cap);
 	if (_pager_cap.valid()) {
 		env()->rm_session()->remove_client(_pager_cap);
 	}
@@ -61,6 +81,14 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::start()
 {
+	if (!_cpu_session)
+		_cpu_session = env()->cpu_session();
+
+	/* create server object */
+	char buf[48];
+	name(buf, sizeof(buf));
+	_thread_cap = _cpu_session->create_thread(buf, (addr_t)&_context->utcb);
+
 	/* assign thread to protection domain */
 	env()->pd_session()->bind_thread(_thread_cap);
 

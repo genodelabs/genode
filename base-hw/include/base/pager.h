@@ -93,7 +93,7 @@ class Genode::Ipc_pager
 		 */
 		struct Fault_thread_regs
 		{
-			addr_t tlb;
+			addr_t pd;
 			addr_t ip;
 			addr_t addr;
 			addr_t writes;

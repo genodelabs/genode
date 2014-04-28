@@ -1,6 +1,7 @@
 /*
  * \brief   Protection-domain facility
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-02-12
  */
 
@@ -18,10 +19,15 @@ using namespace Genode;
 
 Platform_pd::~Platform_pd()
 {
-	_tlb->remove_region(platform()->vm_start(), platform()->vm_size());
-	regain_ram_from_tlb(_tlb);
+	Lock::Guard guard(_lock);
+
 	if (Kernel::bin_pd(_id)) {
 		PERR("failed to destruct protection domain at kernel");
 	}
+
+	_tt->remove_translation(platform()->vm_start(), platform()->vm_size(),
+	                        _pslab);
+
+	/* TODO: destroy page slab and translation table!!! */
 }
 

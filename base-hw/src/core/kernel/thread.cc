@@ -172,8 +172,7 @@ void Thread::init(Processor * const processor, Pd * const pd,
 
 	/* join protection domain */
 	_pd = pd;
-	addr_t const tlb = _pd->tlb()->base();
-	User_context::init_thread(tlb, pd_id());
+	User_context::init_thread((addr_t)_pd->translation_table(), pd_id());
 
 	/* print log message */
 	if (START_VERBOSE) {
@@ -243,11 +242,13 @@ char const * Kernel::Thread::pd_label() const
 
 void Thread::_call_new_pd()
 {
-	/* create translation lookaside buffer and protection domain */
-	void * p = (void *)user_arg_1();
-	Tlb * const tlb = new (p) Tlb();
-	p = (void *)((addr_t)p + sizeof(Tlb));
-	Pd * const pd = new (p) Pd(tlb, (Platform_pd *)user_arg_2());
+	using namespace Genode;
+
+	/* create protection domain */
+	void        * p        = (void *) user_arg_1();
+	Platform_pd * ppd      = (Platform_pd *) user_arg_2();
+	Translation_table * tt = ppd->translation_table_phys();
+	Pd * const pd          = new (p) Pd(tt, ppd);
 	user_arg_0(pd->id());
 }
 
@@ -262,10 +263,8 @@ void Thread::_call_bin_pd()
 		user_arg_0(-1);
 		return;
 	}
-	/* destruct translation lookaside buffer and protection domain */
-	Tlb * const tlb = pd->tlb();
+	/* destruct protection domain */
 	pd->~Pd();
-	tlb->~Tlb();
 
 	/* clean up buffers of memory management */
 	Processor::flush_tlb_by_pid(pd->id());
@@ -326,7 +325,7 @@ void Thread::_call_start_thread()
 	/* start thread */
 	Native_utcb * const utcb = (Native_utcb *)user_arg_4();
 	thread->init(processor, pd, utcb, 1);
-	user_arg_0((Call_ret)thread->_pd->tlb());
+	user_arg_0((Call_ret)thread->_pd->translation_table());
 }
 
 
@@ -538,10 +537,6 @@ void Thread::_call_access_thread_regs()
 void Thread::_call_update_pd()
 {
 	tlb_to_flush(user_arg_1());
-
-	/* inform other processors */
-	for (unsigned i = 0; i < PROCESSORS; i++)
-		Kernel::processor_pool()->processor(i)->flush_tlb(this);
 }
 
 

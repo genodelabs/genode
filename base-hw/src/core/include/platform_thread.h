@@ -34,6 +34,7 @@ namespace Genode {
 	class Thread_state;
 	class Rm_client;
 	class Platform_thread;
+	class Platform_pd;
 
 	/**
 	 * Userland interface for the management of kernel thread-objects
@@ -42,15 +43,13 @@ namespace Genode {
 	{
 		enum { LABEL_MAX_LEN = 32 };
 
-		size_t                   _stack_size;
 		Platform_pd *            _pd;
 		Weak_ptr<Address_space>  _address_space;
 		unsigned                 _id;
 		Rm_client *              _rm_client;
-		Native_utcb *            _utcb_phys;
-		Native_utcb *            _utcb_virt;
-		Tlb *                    _tlb;
-		Ram_dataspace_capability _utcb;
+		Native_utcb *            _utcb_core_addr; /* UTCB address in core */
+		Native_utcb *            _utcb_pd_addr;   /* UTCB address in pd   */
+		Ram_dataspace_capability _utcb;           /* UTCB dataspace       */
 		char                     _label[LABEL_MAX_LEN];
 		char                     _kernel_thread[sizeof(Kernel::Thread)];
 
@@ -81,10 +80,10 @@ namespace Genode {
 			/**
 			 * Constructor for core threads
 			 *
-			 * \param stack_size  initial size of the stack
 			 * \param label       debugging label
+			 * \param utcb        virtual address of UTCB within core
 			 */
-			Platform_thread(size_t const stack_size, const char * const label);
+			Platform_thread(const char * const label, Native_utcb * utcb);
 
 			/**
 			 * Constructor for threads outside of core
@@ -182,13 +181,7 @@ namespace Genode {
 
 			Native_thread_id id() const { return _id; }
 
-			size_t stack_size() const { return _stack_size; }
-
-			Native_utcb * utcb_virt() const { return _utcb_virt; }
-
 			Ram_dataspace_capability utcb() const { return _utcb; }
-
-			Tlb * tlb() const { return _tlb; }
 	};
 }
 

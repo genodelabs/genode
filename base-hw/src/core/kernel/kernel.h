@@ -17,6 +17,9 @@
 
 #include <kernel/pd.h>
 
-namespace Kernel { Pd * core_pd(); }
+namespace Kernel {
+	Pd                      * core_pd();
+	Mode_transition_control * mtc();
+}
 
 #endif /* _KERNEL__KERNEL_H_ */

@@ -1,6 +1,7 @@
 /*
  * \brief  Platform interface
  * \author Martin Stein
+ * \author Stefan Kalkowski
  * \date   2011-12-21
  */
 
@@ -25,6 +26,8 @@
 
 /* core includes */
 #include <platform_generic.h>
+#include <core_rm_session.h>
+#include <core_mem_alloc.h>
 
 namespace Genode {
 
@@ -33,16 +36,23 @@ namespace Genode {
 	 */
 	class Platform : public Platform_generic
 	{
-		typedef Synchronized_range_allocator<Allocator_avl> Phys_allocator;
+		typedef Core_mem_allocator::Phys_allocator Phys_allocator;
 
-		Phys_allocator _core_mem_alloc; /* core-accessible memory */
-		Phys_allocator _io_mem_alloc;   /* MMIO allocator         */
-		Phys_allocator _io_port_alloc;  /* I/O port allocator     */
-		Phys_allocator _irq_alloc;      /* IRQ allocator          */
-		Rom_fs         _rom_fs;         /* ROM file system        */
+		Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
+		Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
+		Phys_allocator     _irq_alloc;      /* IRQ allocator          */
+		Rom_fs             _rom_fs;         /* ROM file system        */
 
-		addr_t _vm_start; /* base of virtual address space */
-		size_t _vm_size;  /* size of virtual address space */
+		/*
+		 * Virtual-memory range for non-core address spaces.
+		 * The virtual memory layout of core is maintained in
+		 * '_core_mem_alloc.virt_alloc()'.
+		 */
+		addr_t             _vm_start;
+		size_t             _vm_size;
+
+
+		public:
 
 		/**
 		 * Get one of the consecutively numbered available resource regions
@@ -79,8 +89,6 @@ namespace Genode {
 		 */
 		static unsigned * _irq(unsigned const i);
 
-		public:
-
 			/**
 			 * Constructor
 			 */
@@ -91,13 +99,18 @@ namespace Genode {
 			 ** Platform_generic interface **
 			 ********************************/
 
-			inline Range_allocator * core_mem_alloc() { return &_core_mem_alloc; }
+			inline Range_allocator * core_mem_alloc() {
+				return &_core_mem_alloc; }
 
-			inline Range_allocator * ram_alloc() { return &_core_mem_alloc; }
+			inline Range_allocator * ram_alloc() {
+				return _core_mem_alloc.phys_alloc(); }
+
+			inline Range_allocator * region_alloc() {
+				return _core_mem_alloc.virt_alloc(); }
 
 			inline Range_allocator * io_mem_alloc() { return &_io_mem_alloc; }
 
-			inline Range_allocator * io_port_alloc() { return &_io_port_alloc; }
+			inline Range_allocator * io_port_alloc() { return 0; }
 
 			inline Range_allocator * irq_alloc() { return &_irq_alloc; }
 
@@ -113,13 +126,6 @@ namespace Genode {
 			};
 
 			bool supports_direct_unmap() const { return 1; }
-
-			inline Range_allocator * region_alloc()
-			{
-				Kernel::log() << __PRETTY_FUNCTION__ << "not implemented\n";
-				while (1) ;
-				return 0;
-			}
 
 			Affinity::Space affinity_space() const
 			{

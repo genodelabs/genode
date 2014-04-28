@@ -1,6 +1,7 @@
 /*
  * \brief   Kernel backend for protection domains
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-11-30
  */
 
@@ -21,8 +22,9 @@
 #include <kernel/configuration.h>
 #include <kernel/object.h>
 #include <kernel/processor.h>
-#include <tlb.h>
+#include <translation_table.h>
 #include <assert.h>
+#include <page_slab.h>
 
 /* structure of the mode transition */
 extern int            _mt_begin;
@@ -148,7 +150,7 @@ class Kernel::Mode_transition_control
 	public:
 
 		enum {
-			SIZE_LOG2 = Tlb::MIN_PAGE_SIZE_LOG2,
+			SIZE_LOG2 = Genode::Translation_table::MIN_PAGE_SIZE_LOG2,
 			SIZE = 1 << SIZE_LOG2,
 			VIRT_BASE = Processor::EXCEPTION_ENTRY,
 			VIRT_END = VIRT_BASE + SIZE,
@@ -185,17 +187,18 @@ class Kernel::Mode_transition_control
 		/**
 		 * Map the mode transition page to a virtual address space
 		 *
-		 * \param tlb  translation buffer of the address space
+		 * \param tt   translation buffer of the address space
 		 * \param ram  RAM donation for mapping (first try without)
-		 *
-		 * \return  RAM-donation size that is needed to do the mapping
 		 */
-		size_t map(Tlb * tlb, addr_t ram = 0)
+		void map(Genode::Translation_table * tt,
+		         Genode::Page_slab         * alloc)
 		{
-			addr_t const phys_base = (addr_t)&_mt_begin;
-			return tlb->insert_translation(VIRT_BASE, phys_base, SIZE_LOG2,
-			                               Page_flags::mode_transition(),
-			                               (void *)ram);
+			try {
+				addr_t const phys_base = (addr_t)&_mt_begin;
+				tt->insert_translation(VIRT_BASE, phys_base, SIZE,
+				                       Page_flags::mode_transition(), alloc);
+			} catch(...) {
+				PERR("Inserting exception vector in page table failed!"); }
 		}
 
 		/**
@@ -227,11 +230,14 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 {
 	private:
 
-		Tlb * const         _tlb;
-		Platform_pd * const _platform_pd;
+		Genode::Translation_table * const _tt;
+		Platform_pd               * const _platform_pd;
 
 		/* keep ready memory for size-aligned extra costs at construction */
-		enum { EXTRA_RAM_SIZE = 2 * Tlb::MAX_COSTS_PER_TRANSLATION };
+		enum {
+			EXTRA_RAM_SIZE = 2 * Genode::Translation_table::MAX_COSTS_PER_TRANSLATION
+		};
+
 		char _extra_ram[EXTRA_RAM_SIZE];
 
 	public:
@@ -239,33 +245,12 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		/**
 		 * Constructor
 		 *
-		 * \param tlb          translation lookaside buffer of the PD
+		 * \param tt          translation lookaside buffer of the PD
 		 * \param platform_pd  core object of the PD
 		 */
-		Pd(Tlb * const tlb, Platform_pd * const platform_pd)
-		:
-			_tlb(tlb), _platform_pd(platform_pd)
-		{
-			/* try to add translation for mode transition region */
-			unsigned const slog2 = mtc()->map(tlb);
-
-			/* extra ram needed to translate mode transition region */
-			if (slog2)
-			{
-				/* get size aligned extra ram */
-				addr_t const ram = (addr_t)&_extra_ram;
-				addr_t const ram_end = ram + sizeof(_extra_ram);
-				addr_t const aligned_ram = (ram_end - (1 << slog2)) &
-				                           ~((1 << slog2) - 1);
-				addr_t const aligned_ram_end = aligned_ram + (1 << slog2);
-
-				/* check attributes of aligned extra ram */
-				assert(aligned_ram >= ram && aligned_ram_end <= ram_end)
-
-				/* translate mode transition region globally */
-				mtc()->map(tlb, aligned_ram);
-			}
-		}
+		Pd(Genode::Translation_table * const tt,
+		   Platform_pd * const platform_pd)
+		: _tt(tt), _platform_pd(platform_pd) { }
 
 		/**
 		 * Destructor
@@ -278,7 +263,7 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		void admit(Processor::Context * const c)
 		{
 			c->protection_domain(id());
-			c->tlb(tlb()->base());
+			c->translation_table((addr_t)translation_table());
 		}
 
 
@@ -286,9 +271,10 @@ class Kernel::Pd : public Object<Pd, MAX_PDS, Pd_ids, pd_ids, pd_pool>
 		 ** Accessors **
 		 ***************/
 
-		Tlb * tlb() const { return _tlb; }
-
 		Platform_pd * platform_pd() const { return _platform_pd; }
+
+		Genode::Translation_table * translation_table() const {
+			return _tt; }
 };
 
 #endif /* _KERNEL__PD_H_ */

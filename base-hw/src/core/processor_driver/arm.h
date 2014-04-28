@@ -1,6 +1,7 @@
 /*
  * \brief  CPU driver for core
  * \author Martin stein
+ * \author Stefan Kalkowski
  * \date   2012-09-11
  */
 
@@ -514,18 +515,18 @@ namespace Arm
 			 ** files. So take care if you attempt to change them.   **
 			 **********************************************************/
 
-			uint32_t cidr;          /* context ID register backup */
-			uint32_t section_table; /* base address of applied section table */
+			uint32_t cidr;    /* context ID register backup */
+			uint32_t t_table; /* base address of applied translation table */
 
 			/**
 			 * Get base of assigned translation lookaside buffer
 			 */
-			addr_t tlb() const { return section_table; }
+			addr_t translation_table() const { return t_table; }
 
 			/**
 			 * Assign translation lookaside buffer
 			 */
-			void tlb(addr_t const st) { section_table = st; }
+			void translation_table(addr_t const tt) { t_table = tt; }
 
 			/**
 			 * Assign protection domain
@@ -567,13 +568,13 @@ namespace Arm
 			/**
 			 * Initialize thread context
 			 *
-			 * \param tlb    physical base of appropriate page table
+			 * \param tt     physical base of appropriate translation table
 			 * \param pd_id  kernel name of appropriate protection domain
 			 */
-			void init_thread(addr_t const tlb, unsigned const pd_id)
+			void init_thread(addr_t const tt, unsigned const pd_id)
 			{
-				cidr = pd_id;
-				section_table = tlb;
+				cidr    = pd_id;
+				t_table = tt;
 			}
 
 			/**
