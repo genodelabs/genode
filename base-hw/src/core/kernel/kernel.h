@@ -1,6 +1,7 @@
 /*
  * \brief   Singlethreaded minimalistic kernel
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2013-09-30
  */
 
@@ -14,6 +15,8 @@
 #ifndef _KERNEL__KERNEL_H_
 #define _KERNEL__KERNEL_H_
 
-namespace Kernel { unsigned core_id(); }
+#include <kernel/pd.h>
+
+namespace Kernel { Pd * core_pd(); }
 
 #endif /* _KERNEL__KERNEL_H_ */

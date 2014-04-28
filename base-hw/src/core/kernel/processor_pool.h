@@ -1,6 +1,7 @@
 /*
  * \brief   Provide a processor object for every available processor
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2014-01-14
  */
 
@@ -18,15 +19,11 @@
 #include <unmanaged_singleton.h>
 
 /* core includes */
+#include <kernel/kernel.h>
 #include <kernel/thread.h>
 
 namespace Kernel
 {
-	/**
-	 * Return kernel name of core domain
-	 */
-	Pd * core();
-
 	/**
 	 * Thread that consumes processor time if no other thread is available
 	 */
@@ -75,7 +72,7 @@ class Kernel::Idle_thread : public Thread
 		{
 			ip = (addr_t)&_main;
 			sp = (addr_t)&_stack[STACK_SIZE];
-			init(processor, core(), 0, 0);
+			init(processor, core_pd(), 0, 0);
 		}
 };
 

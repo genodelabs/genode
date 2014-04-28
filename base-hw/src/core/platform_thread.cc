@@ -1,6 +1,7 @@
 /*
  * \brief   Thread facility
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-02-12
  */
 
@@ -13,12 +14,14 @@
 
 /* core includes */
 #include <platform_thread.h>
+#include <platform_pd.h>
 #include <core_env.h>
 #include <rm_session_component.h>
 
-using namespace Genode;
+/* kernel includes */
+#include <kernel/kernel.h>
 
-namespace Kernel { unsigned core_id(); }
+using namespace Genode;
 
 void Platform_thread::_init() { }
 
@@ -30,7 +33,7 @@ bool Platform_thread::_attaches_utcb_by_itself()
 	 * virtual context area by itself, as it is done for other threads
 	 * through a sub RM-session.
 	 */
-	return _pd_id == Kernel::core_id() || !_main_thread;
+	return _pd == Kernel::core_pd()->platform_pd() || !_main_thread;
 }
 
 
@@ -52,7 +55,7 @@ Platform_thread::~Platform_thread()
 		}
 	}
 	/* free UTCB */
-	if (_pd_id == Kernel::core_id()) {
+	if (_pd == Kernel::core_pd()->platform_pd()) {
 		Range_allocator * const ram = platform()->ram_alloc();
 		ram->free(_utcb_phys, sizeof(Native_utcb));
 	} else {
@@ -76,11 +79,10 @@ Platform_thread::~Platform_thread()
 
 
 Platform_thread::Platform_thread(size_t const stack_size,
-                                 unsigned const pd_id,
                                  const char * const label)
 :
 	_stack_size(stack_size),
-	_pd_id(pd_id),
+	_pd(Kernel::core_pd()->platform_pd()),
 	_rm_client(0),
 	_utcb_virt(0),
 	_main_thread(0)
@@ -114,7 +116,7 @@ Platform_thread::Platform_thread(const char * const label,
                                  addr_t const utcb)
 :
 	_stack_size(0),
-	_pd_id(0),
+	_pd(nullptr),
 	_rm_client(0),
 	_utcb_virt((Native_utcb *)utcb),
 	_main_thread(0)
@@ -147,16 +149,16 @@ Platform_thread::Platform_thread(const char * const label,
 }
 
 
-int Platform_thread::join_pd(unsigned const pd_id, bool const main_thread,
+int Platform_thread::join_pd(Platform_pd * pd, bool const main_thread,
                              Weak_ptr<Address_space> address_space)
 {
 	/* check if thread is already in another protection domain */
-	if (_pd_id && _pd_id != pd_id) {
+	if (_pd && _pd != pd) {
 		PERR("thread already in another protection domain");
 		return -1;
 	}
 	/* join protection domain */
-	_pd_id = pd_id;
+	_pd = pd;
 	_main_thread = main_thread;
 	_address_space = address_space;
 	return 0;
@@ -206,7 +208,7 @@ int Platform_thread::start(void * const ip, void * const sp)
 
 	/* start executing new thread */
 	_utcb_phys->start_info()->init(_id, _utcb);
-	_tlb = Kernel::start_thread(_id, processor_id, _pd_id, _utcb_phys);
+	_tlb = Kernel::start_thread(_id, processor_id, _pd->id(), _utcb_phys);
 	if (!_tlb) {
 		PERR("failed to start thread");
 		return -1;

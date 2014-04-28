@@ -1,6 +1,7 @@
 /*
  * \brief   Platform specific part of a Genode protection domain
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-02-12
  */
 
@@ -45,13 +46,21 @@ namespace Genode
 	 */
 	class Platform_pd : public Address_space
 	{
-		unsigned           _id;
-		Native_capability  _parent;
-		Native_thread_id   _main_thread;
-		char const * const _label;
-		Tlb *              _tlb;
+		protected:
+
+			unsigned           _id;
+			Native_capability  _parent;
+			Native_thread_id   _main_thread;
+			char const * const _label;
+			Tlb *              _tlb;
 
 		public:
+
+			/**
+			 * Constructor for core pd
+			 */
+			Platform_pd(Tlb * tlb)
+			: _main_thread(0), _label("core"), _tlb(tlb) { }
 
 			/**
 			 * Constructor
@@ -95,9 +104,9 @@ namespace Genode
 				{
 					/* annotate that we've got a main thread from now on */
 					_main_thread = t->id();
-					return t->join_pd(_id, 1, Address_space::weak_ptr());
+					return t->join_pd(this, 1, Address_space::weak_ptr());
 				}
-				return t->join_pd(_id, 0, Address_space::weak_ptr());
+				return t->join_pd(this, 0, Address_space::weak_ptr());
 			}
 
 			/**
@@ -118,6 +127,7 @@ namespace Genode
 			 ** Accessors **
 			 ***************/
 
+			unsigned const     id()    { return _id;    }
 			char const * const label() { return _label; }
 
 

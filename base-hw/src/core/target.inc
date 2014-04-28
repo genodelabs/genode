@@ -54,7 +54,6 @@ SRC_CC += console.cc \
           kernel/irq.cc \
           kernel/processor.cc \
           kernel/processor_pool.cc \
-          processor_broadcast.cc \
           rm_session_support.cc \
           trustzone.cc \
           pager.cc \

@@ -1,6 +1,7 @@
 /*
  * \brief   Userland interface for the management of kernel thread-objects
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2012-02-02
  */
 
@@ -42,7 +43,7 @@ namespace Genode {
 		enum { LABEL_MAX_LEN = 32 };
 
 		size_t                   _stack_size;
-		unsigned                 _pd_id;
+		Platform_pd *            _pd;
 		Weak_ptr<Address_space>  _address_space;
 		unsigned                 _id;
 		Rm_client *              _rm_client;
@@ -81,11 +82,9 @@ namespace Genode {
 			 * Constructor for core threads
 			 *
 			 * \param stack_size  initial size of the stack
-			 * \param pd_id       kernel name of targeted protection domain
 			 * \param label       debugging label
 			 */
-			Platform_thread(size_t const stack_size,
-			                unsigned const pd_id, const char * const label);
+			Platform_thread(size_t const stack_size, const char * const label);
 
 			/**
 			 * Constructor for threads outside of core
@@ -105,14 +104,14 @@ namespace Genode {
 			/**
 			 * Join a protection domain
 			 *
-			 * \param pd_id          kernel name of targeted protection domain
+			 * \param pd             platform pd object pointer
 			 * \param main_thread    wether thread is the first in protection domain
 			 * \param address_space  corresponding Genode address space
 			 *
 			 * \retval  0  succeeded
 			 * \retval -1  failed
 			 */
-			int join_pd(unsigned const pd_id, bool const main_thread,
+			int join_pd(Platform_pd *  const pd, bool const main_thread,
 			            Weak_ptr<Address_space> address_space);
 
 			/**
@@ -179,7 +178,7 @@ namespace Genode {
 
 			Pager_object * pager();
 
-			unsigned pd_id() const { return _pd_id; }
+			Platform_pd * pd() const { return _pd; }
 
 			Native_thread_id id() const { return _id; }
 

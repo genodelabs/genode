@@ -1,6 +1,7 @@
 /*
  * \brief  Singlethreaded minimalistic kernel
  * \author Martin Stein
+ * \author Stefan Kalkowski
  * \date   2011-10-20
  *
  * This kernel is the only code except the mode transition PIC, that runs in
@@ -92,33 +93,27 @@ namespace Kernel
 	/**
 	 * Static kernel PD that describes core
 	 */
-	Pd * core()
+	Pd * core_pd()
 	{
 		/**
 		 * Core protection-domain
 		 */
-		class Core_pd : public Pd
+		struct Core_pd : public Platform_pd, public Pd
 		{
-			public:
-
-				/**
-				 * Constructor
-				 */
-				Core_pd(Tlb * const tlb, Platform_pd * const platform_pd)
-				:
-					Pd(tlb, platform_pd)
-				{ }
+			/**
+			 * Constructor
+			 */
+			Core_pd(Tlb * const tlb)
+			: Platform_pd(tlb),
+			  Pd(tlb, this)
+			{
+				Platform_pd::_id = Pd::id();
+			}
 		};
 		constexpr int tlb_align = 1 << Core_tlb::ALIGNM_LOG2;
 		Core_tlb * core_tlb = unmanaged_singleton<Core_tlb, tlb_align>();
-		Core_pd  * core_pd  = unmanaged_singleton<Core_pd>(core_tlb, nullptr);
-		return core_pd;
+		return unmanaged_singleton<Core_pd>(core_tlb);
 	}
-
-	/**
-	 * Get core attributes
-	 */
-	unsigned core_id() { return core()->id(); }
 
 	/**
 	 * Return wether an interrupt is private to the kernel
@@ -189,8 +184,8 @@ extern "C" void init_kernel_uniprocessor()
 	 ************************************************************************/
 
 	/* calculate in advance as needed later when data writes aren't allowed */
-	core_tlb_base = core()->tlb()->base();
-	core_pd_id    = core_id();
+	core_tlb_base = core_pd()->tlb()->base();
+	core_pd_id    = core_pd()->id();
 
 	/* initialize all processor objects */
 	processor_pool();
@@ -275,7 +270,7 @@ extern "C" void init_kernel_multiprocessor()
 		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
 		t.ip = (addr_t)CORE_MAIN;;
 		t.sp = (addr_t)s + STACK_SIZE;
-		t.init(processor_pool()->processor(processor_id), core(), &utcb, 1);
+		t.init(processor_pool()->processor(processor_id), core_pd(), &utcb, 1);
 
 		/* initialize interrupt objects */
 		static Genode::uint8_t _irqs[Pic::MAX_INTERRUPT_ID * sizeof(Irq)];
@@ -312,6 +307,9 @@ extern "C" void kernel()
 	Processor_client * const old_occupant = scheduler->occupant();
 	old_occupant->exception(processor_id);
 
+	/* check for TLB maintainance requirements */
+	processor->flush_tlb();
+
 	/*
 	 * The processor local as well as remote exception-handling may have
 	 * changed the scheduling of the local activities. Hence we must update the
@@ -338,5 +336,5 @@ Kernel::Cpu_context::Cpu_context()
 	_init(STACK_SIZE);
 	sp = (addr_t)kernel_stack;
 	ip = (addr_t)kernel;
-	core()->admit(this);
+	core_pd()->admit(this);
 }

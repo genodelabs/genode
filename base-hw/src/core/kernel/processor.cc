@@ -1,6 +1,7 @@
 /*
  * \brief   A multiplexable common instruction processor
  * \author  Martin Stein
+ * \author  Stefan Kalkowski
  * \date    2014-01-14
  */
 
@@ -13,6 +14,7 @@
 
 /* core includes */
 #include <kernel/processor.h>
+#include <kernel/thread.h>
 #include <kernel/irq.h>
 #include <pic.h>
 #include <timer.h>
@@ -59,6 +61,25 @@ void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 void Kernel::Processor_client::_schedule() { __processor->schedule(this); }
 
 
+void Kernel::Processor_client::tlb_to_flush(unsigned pd_id)
+{
+	/* initialize pd and reference counter, and remove client from scheduler */
+	_flush_tlb_pd_id   = pd_id;
+	_flush_tlb_ref_cnt = PROCESSORS;
+	_unschedule();
+}
+
+
+void Kernel::Processor_client::flush_tlb_by_id()
+{
+	Processor::flush_tlb_by_pid(_flush_tlb_pd_id);
+
+	/* if reference counter reaches zero, add client to scheduler again */
+	if (--_flush_tlb_ref_cnt == 0)
+		_schedule();
+}
+
+
 void Kernel::Processor::schedule(Processor_client * const client)
 {
 	if (_id != executing_id()) {
@@ -98,4 +119,29 @@ void Kernel::Processor_client::_yield()
 {
 	assert(__processor->id() == Processor::executing_id());
 	__processor->scheduler()->yield_occupation();
+}
+
+
+void Kernel::Processor::flush_tlb(Processor_client * const client)
+{
+	/* find the last working item in the TLB work queue */
+	Genode::List_element<Processor_client> * last = _ipi_scheduler.first();
+	while (last && last->next()) last = last->next();
+
+	/* insert new work item at the end of the work list */
+	_ipi_scheduler.insert(&client->_flush_tlb_li, last);
+
+	/* enforce kernel entry of the corresponding processor */
+	pic()->trigger_ip_interrupt(_id);
+}
+
+
+void Kernel::Processor::flush_tlb()
+{
+	/* iterate through the list of TLB work items, and proceed them */
+	for (Genode::List_element<Processor_client> * cli = _ipi_scheduler.first(); cli;
+		 cli = _ipi_scheduler.first()) {
+		cli->object()->flush_tlb_by_id();
+		_ipi_scheduler.remove(cli);
+	}
 }

@@ -19,6 +19,7 @@
 /* core includes */
 #include <platform.h>
 #include <platform_thread.h>
+#include <kernel/kernel.h>
 
 using namespace Genode;
 
@@ -56,7 +57,7 @@ void Thread_base::_thread_start()
 Thread_base::Thread_base(const char * const label, size_t const stack_size, Type)
 {
 	_tid.platform_thread = new (platform()->core_mem_alloc())
-		Platform_thread(stack_size, Kernel::core_id(), label);
+		Platform_thread(stack_size, label);
 }
 
 

@@ -1,6 +1,7 @@
 /*
  * \brief  RM- and pager implementations specific for base-hw and core
  * \author Martin Stein
+ * \author Stefan Kalkowski
  * \date   2012-02-12
  */
 
@@ -19,7 +20,6 @@
 #include <platform.h>
 #include <platform_pd.h>
 #include <platform_thread.h>
-#include <processor_broadcast.h>
 #include <tlb.h>
 
 using namespace Genode;
@@ -58,9 +58,7 @@ void Rm_client::unmap(addr_t, addr_t virt_base, size_t size)
 	tlb->remove_region(virt_base, size);
 
 	/* update translation caches of all processors */
-	Update_pd_data data { pt->pd_id() };
-	Processor_broadcast_operation const operation(update_pd, &data);
-	processor_broadcast()->execute(&operation);
+	Kernel::update_pd(pt->pd()->id());
 
 	/* try to get back released memory from the translation table */
 	regain_ram_from_tlb(tlb);

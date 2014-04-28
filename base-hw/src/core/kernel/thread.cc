@@ -1,6 +1,7 @@
 /*
  * \brief  Kernel backend for execution contexts in userland
  * \author Martin Stein
+ * \author Stefan Kalkowski
  * \date   2013-09-15
  */
 
@@ -31,7 +32,7 @@ typedef Genode::Thread_state Thread_state;
 
 unsigned Thread::pd_id() const { return _pd ? _pd->id() : 0; }
 
-bool Thread::_core() const { return pd_id() == core_id(); }
+bool Thread::_core() const { return pd_id() == core_pd()->id(); }
 
 void Thread::_signal_context_kill_pending()
 {
@@ -536,8 +537,11 @@ void Thread::_call_access_thread_regs()
 
 void Thread::_call_update_pd()
 {
-	/* update hardware caches */
-	Processor::flush_tlb_by_pid(user_arg_1());
+	tlb_to_flush(user_arg_1());
+
+	/* inform other processors */
+	for (unsigned i = 0; i < PROCESSORS; i++)
+		Kernel::processor_pool()->processor(i)->flush_tlb(this);
 }
 
 
