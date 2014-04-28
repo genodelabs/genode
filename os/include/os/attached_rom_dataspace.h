@@ -40,6 +40,20 @@ class Genode::Attached_rom_dataspace
 		 */
 		void _try_attach()
 		{
+			/*
+			 * Normally, '_ds.construct()' would implicitly destruct an
+			 * existing dataspace upon re-construction. However, we have to
+			 * explicitly destruct the original dataspace prior calling
+			 * '_rom.dataspace()'.
+			 *
+			 * The ROM server may destroy the original dataspace when the
+			 * 'dataspace()' function is called. In this case, all existing
+			 * mappings of the dataspace will be flushed by core. A destruction
+			 * of 'Attached_dataspace' after this point will attempt to detach
+			 * the already flushed mappings, thereby producing error messages
+			 * at core.
+			 */
+			_ds.destruct();
 			try { _ds.construct(_rom.dataspace()); }
 			catch (Attached_dataspace::Invalid_dataspace) { }
 		}
