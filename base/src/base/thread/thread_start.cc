@@ -38,6 +38,9 @@ void Thread_base::_thread_start()
 
 void Thread_base::_deinit_platform_thread()
 {
+	if (!_cpu_session)
+		_cpu_session = env()->cpu_session();
+
 	_cpu_session->kill_thread(_thread_cap);
 }
 
