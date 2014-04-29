@@ -1,5 +1,5 @@
-if {![have_spec x86_32] && ![have_spec exynos5]} {
-	puts "\nThe AHCI driver supports x86_32 architecture and exynos5 only\n"
+if {![have_spec x86] && ![have_spec exynos5]} {
+	puts "\nThe AHCI driver supports x86 architecture and exynos5 only\n"
 	exit 0
 }
 
@@ -9,8 +9,8 @@ if {![have_spec x86_32] && ![have_spec exynos5]} {
 
 set build_components { core init drivers/timer drivers/ahci test/blk/cli }
 
-lappend_if [have_spec x86_32]  build_components drivers/pci
 lappend_if [have_spec acpi]    build_components drivers/acpi
+lappend_if [have_spec pci]     build_components drivers/pci
 lappend_if [have_spec pci]     build_components drivers/pci/device_pd
 lappend_if [have_spec exynos5] build_components drivers/platform
 
@@ -49,7 +49,7 @@ append_if [have_spec exynos5] config {
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="6M"/>
 		<binary name="acpi_drv"/>
 		<provides>
 			<service name="PCI"/>
@@ -61,7 +61,7 @@ append_if [have_spec acpi] config {
 		</route>
 	</start>}
 
-append_if [expr ![have_spec acpi] && [have_spec x86_32]] config {
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="PCI"/></provides>
@@ -110,9 +110,10 @@ install_config $config
 
 set boot_modules { core init timer ahci test-blk-cli }
 
-append_if [have_spec x86_32]  boot_modules { pci_drv acpi_drv }
-append_if [have_spec nova]    boot_modules pci_device_pd
-append_if [have_spec exynos5] boot_modules platform_drv
+lappend_if [have_spec pci]     boot_modules pci_drv
+lappend_if [have_spec acpi]    boot_modules acpi_drv
+lappend_if [have_spec nova]    boot_modules pci_device_pd
+lappend_if [have_spec exynos5] boot_modules platform_drv
 
 build_boot_image $boot_modules
 
