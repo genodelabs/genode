@@ -74,10 +74,16 @@ void QNitpickerWindowSurface::flush(QWindow *window, const QRegion &region, cons
     Q_UNUSED(offset);
 
     if (verbose)
-    	qDebug() << "QNitpickerWindowSurface::flush()";
+    	qDebug() << "QNitpickerWindowSurface::flush("
+    	         << "window =" << window
+    	         << ", region =" << region
+    	         << ", offset =" << offset
+    	         << ")";
 
-    QRect geo = _platform_window->geometry();
-    _platform_window->refresh(0, 0, geo.width(), geo.height());
+    _platform_window->refresh(region.boundingRect().x() + offset.x(),
+                              region.boundingRect().y() + offset.y(),
+                              region.boundingRect().width(),
+                              region.boundingRect().height());
 }
 
 void QNitpickerWindowSurface::resize(const QSize &size, const QRegion &staticContents)

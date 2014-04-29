@@ -491,7 +491,7 @@ unsigned char *QNitpickerPlatformWindow::framebuffer()
 void QNitpickerPlatformWindow::refresh(int x, int y, int w, int h)
 {
 	if (qnpw_verbose)
-	    qDebug() << "QNitpickerPlatformWindow::refresh()";
+	    qDebug("QNitpickerPlatformWindow::refresh(%d, %d, %d, %d)", x, y, w, h);
 
 	_framebuffer_session.refresh(x, y, w, h);
 }
