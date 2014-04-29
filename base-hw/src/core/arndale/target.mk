@@ -6,7 +6,7 @@
 #
 
 # declare wich specs must be given to build this target
-REQUIRES += platform_arndale
+REQUIRES += hw_arndale
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/arndale

@@ -6,7 +6,7 @@
 #
 
 # declare wich specs must be given to build this target
-REQUIRES += platform_panda
+REQUIRES += hw_panda
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/panda

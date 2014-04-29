@@ -6,7 +6,7 @@
 #
 
 # declare wich specs must be given to build this target
-REQUIRES += platform_pbxa9
+REQUIRES += hw_pbxa9
 
 # add include paths
 INC_DIR += $(REP_DIR)/src/core/pbxa9

@@ -6,7 +6,7 @@
 #
 
 # declare wich specs must be given to build this target
-REQUIRES += platform_vea9x4
+REQUIRES += hw_vea9x4
 ifeq ($(filter-out $(SPECS),trustzone),)
   REQUIRES += no_trustone
 endif
