@@ -25,24 +25,28 @@ namespace Kernel
 {
 	class Pic : Genode::Mmio
 	{
-		struct Irq_pending_basic : Register<0x0, 32>
-		{
-			struct Timer : Bitfield<0, 1> { };
-			struct Gpu   : Bitfield<8, 2> { };
-		};
+		public:
 
-		struct Irq_pending_gpu_1 : Register<0x04, 32> { };
-		struct Irq_pending_gpu_2 : Register<0x08, 32> { };
-		struct Irq_enable_gpu_1  : Register<0x10, 32> { };
-		struct Irq_enable_gpu_2  : Register<0x14, 32> { };
-
-		struct Irq_enable_basic  : Register<0x18, 32> { };
-
-		struct Irq_disable_gpu_1  : Register<0x1c, 32> { };
-		struct Irq_disable_gpu_2  : Register<0x20, 32> { };
-		struct Irq_disable_basic  : Register<0x24, 32> { };
+			enum { MAX_INTERRUPT_ID = 64 };
 
 		private:
+
+			struct Irq_pending_basic : Register<0x0, 32>
+			{
+				struct Timer : Bitfield<0, 1> { };
+				struct Gpu   : Bitfield<8, 2> { };
+			};
+
+			struct Irq_pending_gpu_1 : Register<0x04, 32> { };
+			struct Irq_pending_gpu_2 : Register<0x08, 32> { };
+			struct Irq_enable_gpu_1  : Register<0x10, 32> { };
+			struct Irq_enable_gpu_2  : Register<0x14, 32> { };
+
+			struct Irq_enable_basic  : Register<0x18, 32> { };
+
+			struct Irq_disable_gpu_1  : Register<0x1c, 32> { };
+			struct Irq_disable_gpu_2  : Register<0x20, 32> { };
+			struct Irq_disable_basic  : Register<0x24, 32> { };
 
 			typedef Genode::uint32_t uint32_t;
 
@@ -76,7 +80,7 @@ namespace Kernel
 				}
 
 				/* search for lowest set bit in pending masks */
-				for (unsigned i = 0; i < 64; i++) {
+				for (unsigned i = 0; i < MAX_INTERRUPT_ID; i++) {
 					if (!_is_pending(i, p1, p2))
 						continue;
 
