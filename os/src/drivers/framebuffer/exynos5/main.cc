@@ -39,12 +39,13 @@ class Framebuffer::Session_component
 {
 	private:
 
-		size_t               _width;
-		size_t               _height;
-		Driver::Format       _format;
-		size_t               _size;
-		Dataspace_capability _ds;
-		addr_t               _phys_base;
+		size_t                    _width;
+		size_t                    _height;
+		Driver::Format            _format;
+		size_t                    _size;
+		Dataspace_capability      _ds;
+		addr_t                    _phys_base;
+		Signal_context_capability _sync_sigh;
 
 		/**
 		 * Convert Driver::Format to Framebuffer::Mode::Format
@@ -88,16 +89,25 @@ class Framebuffer::Session_component
 		 ** Framebuffer::Session interface **
 		 ************************************/
 
-		Dataspace_capability dataspace() { return _ds; }
+		Dataspace_capability dataspace() override { return _ds; }
 
-		Mode mode() const
+		Mode mode() const override
 		{
 			return Mode(_width, _height, _convert_format(_format));
 		}
 
-		void mode_sigh(Genode::Signal_context_capability) { }
+		void mode_sigh(Genode::Signal_context_capability) override { }
 
-		void refresh(int, int, int, int) { }
+		void sync_sigh(Genode::Signal_context_capability sigh) override
+		{
+			_sync_sigh = sigh;
+		}
+
+		void refresh(int, int, int, int) override
+		{
+			if (_sync_sigh.valid())
+				Signal_transmitter(_sync_sigh).submit();
+		}
 };
 
 

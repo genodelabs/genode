@@ -30,9 +30,10 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 {
 	private:
 
-		size_t const _width;
-		size_t const _height;
+		size_t              const _width;
+		size_t              const _height;
 		Attached_io_mem_dataspace _fb_mem;
+		Signal_context_capability _sync_sigh;
 
 	public:
 
@@ -45,16 +46,25 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 		 ** Framebuffer::Session interface **
 		 ************************************/
 
-		Dataspace_capability dataspace() { return _fb_mem.cap(); }
+		Dataspace_capability dataspace() override { return _fb_mem.cap(); }
 
-		Mode mode() const
+		Mode mode() const override
 		{
 			return Mode(_width, _height, Mode::RGB565);
 		}
 
-		void mode_sigh(Genode::Signal_context_capability) { }
+		void mode_sigh(Genode::Signal_context_capability) override { }
 
-		void refresh(int, int, int, int) { }
+		void sync_sigh(Genode::Signal_context_capability sigh) override
+		{
+			_sync_sigh = sigh;
+		}
+
+		void refresh(int, int, int, int) override
+		{
+			if (_sync_sigh.valid())
+				Signal_transmitter(_sync_sigh).submit();
+		}
 };
 
 

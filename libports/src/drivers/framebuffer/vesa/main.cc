@@ -94,6 +94,30 @@ namespace Framebuffer {
 			Genode::Dataspace_capability _fb_ds;
 			void                        *_fb_addr;
 
+			Genode::Signal_context_capability _sync_sigh;
+
+			void _refresh_buffered(int x, int y, int w, int h)
+			{
+				/* clip specified coordinates against screen boundaries */
+				int x2 = min(x + w - 1, (int)_scr_width  - 1),
+				    y2 = min(y + h - 1, (int)_scr_height - 1);
+				int x1 = max(x, 0),
+				    y1 = max(y, 0);
+				if (x1 > x2 || y1 > y2) return;
+
+				/* determine bytes per pixel */
+				int bypp = 0;
+				if (_scr_mode == 16) bypp = 2;
+				if (!bypp) return;
+
+				/* copy pixels from back buffer to physical frame buffer */
+				char *src = (char *)_bb_addr + bypp*(_scr_width*y + x),
+				     *dst = (char *)_fb_addr + bypp*(_scr_width*y + x);
+
+				blit(src, bypp*_scr_width, dst, bypp*_scr_width,
+				     bypp*(x2 - x1 + 1), y2 - y1 + 1);
+			}
+
 		public:
 
 			/**
@@ -146,43 +170,30 @@ namespace Framebuffer {
 			 ** Framebuffer session interface **
 			 ***********************************/
 
-			Dataspace_capability dataspace() {
+			Dataspace_capability dataspace() override {
 				return _buffered ? Dataspace_capability(_bb_ds)
 				                 : Dataspace_capability(_fb_ds); }
 
-			void release() { }
-
-			Mode mode() const
+			Mode mode() const override
 			{
 				return Mode(_scr_width, _scr_height,
 				            _scr_mode == 16 ? Mode::RGB565 : Mode::INVALID);
 			}
 
-			void mode_sigh(Genode::Signal_context_capability) { }
+			void mode_sigh(Genode::Signal_context_capability) override { }
 
-			/* not implemented */
-			void refresh(int x, int y, int w, int h)
+			void sync_sigh(Genode::Signal_context_capability sigh) override
 			{
-				if (!_buffered) return;
+				_sync_sigh = sigh;
+			}
 
-				/* clip specified coordinates against screen boundaries */
-				int x2 = min(x + w - 1, (int)_scr_width  - 1),
-				    y2 = min(y + h - 1, (int)_scr_height - 1);
-				int x1 = max(x, 0),
-				    y1 = max(y, 0);
-				if (x1 > x2 || y1 > y2) return;
+			void refresh(int x, int y, int w, int h) override
+			{
+				if (_buffered)
+					_refresh_buffered(x, y, w, h);
 
-				/* determine bytes per pixel */
-				int bypp = 0;
-				if (_scr_mode == 16) bypp = 2;
-				if (!bypp) return;
-
-				/* copy pixels from back buffer to physical frame buffer */
-				char *src = (char *)_bb_addr + bypp*(_scr_width*y + x),
-				     *dst = (char *)_fb_addr + bypp*(_scr_width*y + x);
-
-				blit(src, bypp*_scr_width, dst, bypp*_scr_width,
-				     bypp*(x2 - x1 + 1), y2 - y1 + 1);
+				if (_sync_sigh.valid())
+					Signal_transmitter(_sync_sigh).submit();
 			}
 	};
 
@@ -196,7 +207,7 @@ namespace Framebuffer {
 	{
 		protected:
 
-			Session_component *_create_session(const char *args)
+			Session_component *_create_session(const char *args) override
 			{
 				unsigned long scr_width  = session_arg("width",  args, "fb_width", 1024),
 				              scr_height = session_arg("height", args, "fb_height", 768),

@@ -45,10 +45,11 @@ namespace Framebuffer {
 			                  int max_width = 0,
 			                  int max_height = 0);
 
-			Genode::Dataspace_capability dataspace();
-			Mode mode() const;
-			void mode_sigh(Genode::Signal_context_capability sigh_cap);
-			void refresh(int x, int y, int w, int h);
+			Genode::Dataspace_capability dataspace() override;
+			Mode mode() const override;
+			void mode_sigh(Genode::Signal_context_capability) override;
+			void sync_sigh(Genode::Signal_context_capability) override;
+			void refresh(int, int, int, int) override;
 	};
 
 }

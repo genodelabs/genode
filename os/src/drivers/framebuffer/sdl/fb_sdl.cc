@@ -52,6 +52,8 @@ namespace Framebuffer {
 
 			Mode _mode;
 
+			Genode::Signal_context_capability _sync_sigh;
+
 		public:
 
 			/**
@@ -59,13 +61,18 @@ namespace Framebuffer {
 			 */
 			Session_component() : _mode(scr_width, scr_height, Mode::RGB565) { }
 
-			Genode::Dataspace_capability dataspace() { return fb_ds_cap; }
+			Genode::Dataspace_capability dataspace() override { return fb_ds_cap; }
 
-			Mode mode() const { return _mode; }
+			Mode mode() const override { return _mode; }
 
-			void mode_sigh(Genode::Signal_context_capability) { }
+			void mode_sigh(Genode::Signal_context_capability) override { }
 
-			void refresh(int x, int y, int w, int h)
+			void sync_sigh(Genode::Signal_context_capability sigh) override
+			{
+				_sync_sigh = sigh;
+			}
+
+			void refresh(int x, int y, int w, int h) override
 			{
 				/* clip refresh area to screen boundaries */
 				int x1 = Genode::max(x, 0);
@@ -73,21 +80,25 @@ namespace Framebuffer {
 				int x2 = Genode::min(x + w - 1, scr_width  - 1);
 				int y2 = Genode::min(y + h - 1, scr_height - 1);
 
-				if (x1 > x2 || y1 > y2) return;
+				if (x1 <= x2 && y1 <= y2) {
 
-				/* copy pixels from shared dataspace to sdl surface */
-				const int start_offset = _mode.bytes_per_pixel()*(y1*scr_width + x1);
-				const int line_len     = _mode.bytes_per_pixel()*(x2 - x1 + 1);
-				const int pitch        = _mode.bytes_per_pixel()*scr_width;
+					/* copy pixels from shared dataspace to sdl surface */
+					const int start_offset = _mode.bytes_per_pixel()*(y1*scr_width + x1);
+					const int line_len     = _mode.bytes_per_pixel()*(x2 - x1 + 1);
+					const int pitch        = _mode.bytes_per_pixel()*scr_width;
 
-				char *src = (char *)fb_ds_addr     + start_offset;
-				char *dst = (char *)screen->pixels + start_offset;
+					char *src = (char *)fb_ds_addr     + start_offset;
+					char *dst = (char *)screen->pixels + start_offset;
 
-				for (int i = y1; i <= y2; i++, src += pitch, dst += pitch)
-					Genode::memcpy(dst, src, line_len);
+					for (int i = y1; i <= y2; i++, src += pitch, dst += pitch)
+						Genode::memcpy(dst, src, line_len);
 
-				/* flush pixels in sdl window */
-				SDL_UpdateRect(screen, x1, y1, x2 - x1 + 1, y2 - y1 + 1);
+					/* flush pixels in sdl window */
+					SDL_UpdateRect(screen, x1, y1, x2 - x1 + 1, y2 - y1 + 1);
+				}
+
+				if (_sync_sigh.valid())
+					Genode::Signal_transmitter(_sync_sigh).submit();
 			}
 	};
 
@@ -102,7 +113,7 @@ namespace Framebuffer {
 	{
 		protected:
 
-			Session_component *_create_session(const char *args) {
+			Session_component *_create_session(const char *args) override {
 				return new (md_alloc()) Session_component(); }
 
 		public:

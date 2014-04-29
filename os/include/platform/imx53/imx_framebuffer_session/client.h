@@ -25,18 +25,21 @@ namespace Framebuffer {
 		explicit Imx_client(Capability<Imx_session> session)
 		: Genode::Rpc_client<Imx_session>(session) { }
 
-		Genode::Dataspace_capability dataspace() {
+		Genode::Dataspace_capability dataspace() override {
 			return call<Rpc_dataspace>(); }
 
-		Mode mode() const { return call<Rpc_mode>(); }
+		Mode mode() const override { return call<Rpc_mode>(); }
 
-		void mode_sigh(Genode::Signal_context_capability sigh) {
+		void mode_sigh(Genode::Signal_context_capability sigh) override {
 			call<Rpc_mode_sigh>(sigh); }
 
-		void refresh(int x, int y, int w, int h) {
+		void sync_sigh(Genode::Signal_context_capability sigh) override {
+			call<Rpc_sync_sigh>(sigh); }
+
+		void refresh(int x, int y, int w, int h) override {
 			call<Rpc_refresh>(x, y, w, h); }
 
-		void overlay(Genode::addr_t phys_addr, int x, int y, int alpha) {
+		void overlay(Genode::addr_t phys_addr, int x, int y, int alpha) override {
 			call<Rpc_overlay>(phys_addr, x, y, alpha); }
 	};
 }

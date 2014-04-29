@@ -311,6 +311,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		Canvas_accessor          &_canvas_accessor;
 		Buffer_provider          &_buffer_provider;
 		Signal_context_capability _mode_sigh;
+		Signal_context_capability _sync_sigh;
 		Framebuffer::Mode         _mode;
 		bool                      _alpha = false;
 
@@ -362,24 +363,26 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		 ** Framebuffer::Session interface **
 		 ************************************/
 
-		Dataspace_capability dataspace()
+		Dataspace_capability dataspace() override
 		{
 			_buffer = _buffer_provider.realloc_buffer(_mode, _alpha);
 
 			return _buffer ? _buffer->ds_cap() : Genode::Ram_dataspace_capability();
 		}
 
-		Mode mode() const
+		Mode mode() const override { return _mode; }
+
+		void mode_sigh(Signal_context_capability sigh) override
 		{
-			return _mode;
+			_mode_sigh = sigh;
 		}
 
-		void mode_sigh(Signal_context_capability mode_sigh)
+		void sync_sigh(Signal_context_capability sigh) override
 		{
-			_mode_sigh = mode_sigh;
+			_sync_sigh = sigh;
 		}
 
-		void refresh(int x, int y, int w, int h)
+		void refresh(int x, int y, int w, int h) override
 		{
 			_view_stack.update_session_views(_canvas(), _session,
 			                                 Rect(Point(x, y), Area(w, h)));
@@ -391,6 +394,9 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 				_flush_merger.reset();
 			}
 			_flush_merger.defer = true;
+
+			if (_sync_sigh.valid())
+				Signal_transmitter(_sync_sigh).submit();
 		}
 };
 

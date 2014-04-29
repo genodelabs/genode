@@ -55,11 +55,12 @@ namespace Framebuffer
 	{
 		private:
 
-			Genode::Dataspace_capability _fb_ds_cap;
-			Genode::Dataspace_client     _fb_ds;
-			Genode::addr_t               _regs_base;
-			Genode::addr_t               _sys_regs_base;
-			Timer::Connection            _timer;
+			Genode::Dataspace_capability      _fb_ds_cap;
+			Genode::Dataspace_client          _fb_ds;
+			Genode::addr_t                    _regs_base;
+			Genode::addr_t                    _sys_regs_base;
+			Timer::Connection                 _timer;
+			Genode::Signal_context_capability _sync_sigh;
 
 			enum {
 				/**
@@ -155,13 +156,19 @@ namespace Framebuffer
                 reg_write(PL11X_REG_CTRL,   ctrl | CTRL_POWER);
 			}
 
-			Genode::Dataspace_capability dataspace() { return _fb_ds_cap; }
+			Genode::Dataspace_capability dataspace() override { return _fb_ds_cap; }
 
-			Mode mode() const { return Mode(SCR_WIDTH, SCR_HEIGHT, Mode::RGB565); }
+			Mode mode() const override { return Mode(SCR_WIDTH, SCR_HEIGHT, Mode::RGB565); }
 
-			void mode_sigh(Genode::Signal_context_capability) { }
+			void mode_sigh(Genode::Signal_context_capability) override { }
 
-			void refresh(int x, int y, int w, int h) { }
+			void sync_sigh(Genode::Signal_context_capability sigh) override { _sync_sigh = sigh; }
+
+			void refresh(int x, int y, int w, int h) override
+			{
+				if (_sync_sigh.valid())
+					Genode::Signal_transmitter(_sync_sigh).submit();
+			}
 	};
 
 
@@ -175,7 +182,7 @@ namespace Framebuffer
 
 		protected:
 
-			Session_component *_create_session(const char *args) {
+			Session_component *_create_session(const char *args) override {
 				return new (md_alloc()) Session_component(_lcd_regs_base,
 				                                          _sys_regs_base,
 				                                          _fb_ds_cap); }

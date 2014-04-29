@@ -76,6 +76,11 @@ namespace Framebuffer {
 	}
 
 
+	void Session_component::sync_sigh(Genode::Signal_context_capability sigh_cap)
+	{
+		_framebuffer.sync_sigh(sigh_cap);
+	}
+
 	void Session_component::refresh(int x, int y, int w, int h)
 	{
 		_framebuffer.refresh(x, y, w, h);

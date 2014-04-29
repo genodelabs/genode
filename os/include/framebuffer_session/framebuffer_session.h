@@ -105,6 +105,11 @@ namespace Framebuffer {
 		 */
 		virtual void refresh(int x, int y, int w, int h) = 0;
 
+		/**
+		 * Register signal handler for refresh synchronization
+		 */
+		virtual void sync_sigh(Genode::Signal_context_capability) = 0;
+
 
 		/*********************
 		 ** RPC declaration **
@@ -114,8 +119,10 @@ namespace Framebuffer {
 		GENODE_RPC(Rpc_mode, Mode, mode);
 		GENODE_RPC(Rpc_refresh, void, refresh, int, int, int, int);
 		GENODE_RPC(Rpc_mode_sigh, void, mode_sigh, Genode::Signal_context_capability);
+		GENODE_RPC(Rpc_sync_sigh, void, sync_sigh, Genode::Signal_context_capability);
 
-		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_mode, Rpc_mode_sigh, Rpc_refresh);
+		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_mode, Rpc_mode_sigh, Rpc_refresh,
+		                     Rpc_sync_sigh);
 	};
 }
 

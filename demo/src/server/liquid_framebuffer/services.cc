@@ -276,29 +276,37 @@ namespace Framebuffer
 
 			Window_content &_window_content;
 
+			Genode::Signal_context_capability _sync_sigh;
+
 		public:
 
 			Session_component(Window_content &window_content)
 			: _window_content(window_content) { }
 
-			Genode::Dataspace_capability dataspace()
+			Genode::Dataspace_capability dataspace() override
 			{
 				_window_content.realloc_framebuffer();
 				return _window_content.fb_ds_cap();
 			}
 
-			Mode mode() const
+			Mode mode() const override
 			{
 				return Mode(_window_content.mode_size().w(),
 				            _window_content.mode_size().h(), Mode::RGB565);
 			}
 
-			void mode_sigh(Genode::Signal_context_capability sigh) {
+			void mode_sigh(Genode::Signal_context_capability sigh) override {
 				_window_content.mode_sigh(sigh); }
 
-			void refresh(int x, int y, int w, int h)
+			void sync_sigh(Genode::Signal_context_capability sigh) override {
+				_sync_sigh = sigh; }
+
+			void refresh(int x, int y, int w, int h) override
 			{
 				_window_content.redraw_area(x, y, w, h);
+
+				if (_sync_sigh.valid())
+					Genode::Signal_transmitter(_sync_sigh).submit();
 			}
 	};
 
@@ -311,7 +319,7 @@ namespace Framebuffer
 
 		protected:
 
-			Session_component *_create_session(const char *args) {
+			Session_component *_create_session(const char *args) override {
 				return new (md_alloc()) Session_component(_window_content); }
 
 		public:
