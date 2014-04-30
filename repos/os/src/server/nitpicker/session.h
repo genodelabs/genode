@@ -61,6 +61,8 @@ class Session : public Session_list::Element
 
 		virtual void submit_input_event(Input::Event ev) = 0;
 
+		virtual void submit_sync() = 0;
+
 		Genode::Session_label const &label() const { return _label; }
 
 		Texture_base const *texture() const { return _texture; }

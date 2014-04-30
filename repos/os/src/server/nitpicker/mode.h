@@ -54,7 +54,7 @@ class Mode
 		/**
 		 * Discard all references to specified view
 		 */
-		virtual void forget(Canvas_base &, View const &v) {
+		virtual void forget(View const &v) {
 			if (&v == _focused_view) _focused_view = 0; }
 };
 

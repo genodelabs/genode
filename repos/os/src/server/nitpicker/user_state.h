@@ -76,10 +76,10 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Handle input event
 		 *
-		 * This function controls the Nitpicker mode and the
-		 * user state variables.
+		 * This function controls the Nitpicker mode and the user state
+		 * variables.
 		 */
-		void handle_event(Input::Event ev, Canvas_base &);
+		void handle_event(Input::Event ev);
 
 		/**
 		 * Accessors
@@ -89,7 +89,7 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Mode interface
 		 */
-		void forget(Canvas_base &, View const &) override;
+		void forget(View const &) override;
 };
 
 #endif

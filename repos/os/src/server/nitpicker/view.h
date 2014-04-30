@@ -16,11 +16,18 @@
 
 #include <util/string.h>
 #include <util/list.h>
+#include <util/dirty_rect.h>
 
 #include "mode.h"
 #include "session.h"
 
 class Buffer;
+
+#include <framebuffer_session/framebuffer_session.h>
+extern Framebuffer::Session *tmp_fb;
+
+
+typedef Genode::Dirty_rect<Rect, 3> Dirty_rect;
 
 
 /*
@@ -57,12 +64,12 @@ class View : public Same_buffer_list_elem,
 		Transparent const _transparent;   /* background is partly visible */
 		Background        _background;    /* view is a background view    */
 
-		View    *_parent;         /* parent view                          */
-		Rect     _geometry;       /* position and size relative to parent */
-		Rect     _label_rect;     /* position and size of label           */
-		Point    _buffer_off;     /* offset to the visible buffer area    */
-		Session &_session;        /* session that created the view        */
-		char     _title[TITLE_LEN];
+		View      *_parent;         /* parent view                          */
+		Rect       _geometry;       /* position and size relative to parent */
+		Rect       _label_rect;     /* position and size of label           */
+		Point      _buffer_off;     /* offset to the visible buffer area    */
+		Session   &_session;        /* session that created the view        */
+		char       _title[TITLE_LEN];
 
 		Genode::List<View_parent_elem> _children;
 

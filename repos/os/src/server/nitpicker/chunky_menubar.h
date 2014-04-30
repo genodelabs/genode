@@ -49,18 +49,19 @@ class Chunky_menubar : public Texture<PT>,
 		 ** Session interface **
 		 ***********************/
 
-		void submit_input_event(Input::Event) { }
+		void submit_input_event(Input::Event) override { }
+		void submit_sync() override { }
 
 
 		/********************
 		 ** View interface **
 		 ********************/
 
-		int  frame_size(Mode const &mode) const { return 0; }
-		void frame(Canvas_base &canvas, Mode const &mode) { }
-		void draw(Canvas_base &canvas, Mode const &mode)
+		int  frame_size(Mode const &mode) const override { return 0; }
+		void frame(Canvas_base &canvas, Mode const &mode) const override { }
+		void draw(Canvas_base &canvas, Mode const &mode) const override
 		{
-			Clip_guard clip_guard(canvas, *this);
+			Clip_guard clip_guard(canvas, geometry());
 
 			/* draw menubar content */
 			canvas.draw_texture(abs_position(), *this, Texture_painter::SOLID, BLACK, false);
@@ -71,7 +72,7 @@ class Chunky_menubar : public Texture<PT>,
 		 ** Menubar interface **
 		 ***********************/
 
-		void state(Menubar_state const state)
+		void state(Menubar_state const state) override
 		{
 			*static_cast<Menubar_state *>(this) = state;
 

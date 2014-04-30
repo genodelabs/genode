@@ -42,20 +42,30 @@ struct Background : private Texture_base, Session, View
 	 ** Session interface **
 	 ***********************/
 
-	void submit_input_event(Input::Event) { }
+	void submit_input_event(Input::Event) override { }
+	void submit_sync() override { }
 
 
 	/********************
 	 ** View interface **
 	 ********************/
 
-	int  frame_size(Mode const &mode) const { return 0; }
-	void frame(Canvas_base &canvas, Mode const &mode) { }
+	int  frame_size(Mode const &mode) const override { return 0; }
+	void frame(Canvas_base &canvas, Mode const &mode) const override { }
 
-	void draw(Canvas_base &canvas, Mode const &mode) const
+	void draw(Canvas_base &canvas, Mode const &mode) const override
 	{
 		Rect const view_rect = abs_geometry();
 		Clip_guard clip_guard(canvas, view_rect);
+
+		if (tmp_fb) {
+			for (unsigned i = 0; i < 7; i++) {
+
+				canvas.draw_box(view_rect, Color(i*2,i*6,i*16*2));
+				tmp_fb->refresh(0,0,1024,768);
+			}
+		}
+
 		canvas.draw_box(view_rect, color);
 	}
 };

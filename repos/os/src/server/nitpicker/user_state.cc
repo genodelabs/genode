@@ -43,7 +43,7 @@ User_state::User_state(Global_keys &global_keys, Area view_stack_size, Menubar &
 { }
 
 
-void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
+void User_state::handle_event(Input::Event ev)
 {
 	Input::Keycode     const keycode = ev.keycode();
 	Input::Event::Type const type    = ev.type();
@@ -101,13 +101,12 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 	struct Update_all_guard
 	{
 		User_state  &user_state;
-		Canvas_base &canvas;
 		bool        update_menubar = false;
 		bool        update_views   = false;
 		char const *menu_title     = "";
 
-		Update_all_guard(User_state &user_state, Canvas_base &canvas)
-		: user_state(user_state), canvas(canvas) { }
+		Update_all_guard(User_state &user_state)
+		: user_state(user_state) { }
 
 		~Update_all_guard()
 		{
@@ -123,9 +122,9 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 				user_state._menubar.state(state);
 
 			if (update_menubar || update_views)
-				user_state.update_all_views(canvas);
+				user_state.update_all_views();
 		}
-	} update_all_guard(*this, canvas);
+	} update_all_guard(*this);
 
 	/*
 	 * Handle start of a key sequence
@@ -138,7 +137,7 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 		 */
 		if (kill() && keycode == Input::BTN_LEFT) {
 			if (pointed_view)
-				lock_out_session(canvas, pointed_view->session());
+				lock_out_session(pointed_view->session());
 
 			/* leave kill mode */
 			update_all_guard.update_menubar = true;
@@ -278,12 +277,12 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
  ** Mode interface **
  ********************/
 
-void User_state::forget(Canvas_base &canvas, View const &view)
+void User_state::forget(View const &view)
 {
 	if (focused_view() == &view) {
-		Mode::forget(canvas, view);
+		Mode::forget(view);
 		_menubar.state(Menubar_state(*this, "", "", BLACK));
-		update_all_views(canvas);
+		update_all_views();
 	}
 	if (_input_receiver && view.belongs_to(*_input_receiver))
 		_input_receiver = 0;

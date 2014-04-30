@@ -48,7 +48,8 @@ class Mouse_cursor : public Texture<PT>,
 		 ** Session interface **
 		 ***********************/
 
-		void submit_input_event(Input::Event) { }
+		void submit_input_event(Input::Event) override { }
+		void submit_sync() override { }
 
 
 		/********************
@@ -59,18 +60,18 @@ class Mouse_cursor : public Texture<PT>,
 		 * The mouse cursor is always displayed without a surrounding frame.
 		 */
 
-		int frame_size(Mode const &mode) const { return 0; }
+		int frame_size(Mode const &mode) const override { return 0; }
 
-		void frame(Canvas_base &canvas, Mode const &mode) const { }
+		void frame(Canvas_base &canvas, Mode const &mode) const override { }
 
-		void draw(Canvas_base &canvas, Mode const &mode) const
+		void draw(Canvas_base &canvas, Mode const &mode) const override
 		{
 			Rect const view_rect = abs_geometry();
 
 			Clip_guard clip_guard(canvas, view_rect);
 
 			/* draw area behind the mouse cursor */
-			_view_stack.draw_rec(canvas, view_stack_next(), 0, 0, view_rect);
+			_view_stack.draw_rec(canvas, view_stack_next(), view_rect);
 
 			/* draw mouse cursor */
 			canvas.draw_texture(view_rect.p1(), *this, Texture_painter::MASKED, BLACK, true);

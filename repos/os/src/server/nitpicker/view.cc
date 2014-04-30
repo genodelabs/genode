@@ -108,6 +108,14 @@ void View::draw(Canvas_base &canvas, Mode const &mode) const
 	 */
 	if (!canvas.clip().valid() || !&_session) return;
 
+	if (tmp_fb) {
+		for (unsigned i = 0; i < 7; i++) {
+			canvas.draw_box(view_rect, Color(i*2,i*6,i*16*2));
+			tmp_fb->refresh(0,0,1024,768);
+		}
+	}
+
+
 	/* allow alpha blending only in flat mode */
 	bool allow_alpha = mode.flat();
 
