@@ -15,7 +15,6 @@
 #define _INCLUDE__BASE__CANCELABLE_LOCK_H_
 
 #include <base/lock_guard.h>
-#include <base/native_types.h>
 #include <base/blocking.h>
 
 namespace Genode {
@@ -33,7 +32,7 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Cancelable_lock(State initial = UNLOCKED);
+			explicit Cancelable_lock(State initial = UNLOCKED);
 
 			/**
 			 * Try to aquire lock an block while lock is not free

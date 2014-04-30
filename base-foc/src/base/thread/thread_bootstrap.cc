@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <util/construct_at.h>
 #include <base/thread.h>
+#include <base/sleep.h>
 
 
 /*****************************
@@ -54,6 +55,5 @@ void Genode::Thread_base::_thread_start()
 	Thread_base::myself()->_thread_bootstrap();
 	Thread_base::myself()->entry();
 	Thread_base::myself()->_join_lock.unlock();
-	Lock sleep_forever_lock(Lock::LOCKED);
-	sleep_forever_lock.lock();
+	sleep_forever();
 }

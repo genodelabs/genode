@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__PLATFORM__PBXA9__PL011_DEFS_H_
 #define _INCLUDE__PLATFORM__PBXA9__PL011_DEFS_H_
 
+#include <base/stdint.h>
 #include <drivers/board_base.h>
 
 enum {

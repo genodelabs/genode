@@ -14,6 +14,8 @@
 #ifndef _INCLUDE__PLATFORM__VPB926__PL011_DEFS_H_
 #define _INCLUDE__PLATFORM__VPB926__PL011_DEFS_H_
 
+#include <base/stdint.h>
+
 #warning pl011 untested on vpb926
 
 enum {

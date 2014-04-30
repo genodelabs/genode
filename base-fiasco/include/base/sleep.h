@@ -15,14 +15,16 @@
 #ifndef _INCLUDE__BASE__SLEEP_H_
 #define _INCLUDE__BASE__SLEEP_H_
 
-#include <base/lock.h>
+/* L4/Fiasco includes */
+namespace Fiasco {
+#include <l4/sys/ipc.h>
+}
 
 namespace Genode {
 
 	__attribute__((noreturn)) inline void sleep_forever()
 	{
-		Lock sleep;
-		while (true) sleep.lock();
+		while (true) Fiasco::l4_ipc_sleep((Fiasco::l4_timeout_t){0});
 	}
 }
 
