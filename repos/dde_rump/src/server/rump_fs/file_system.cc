@@ -154,18 +154,3 @@ void File_system::init(Server::Entrypoint &ep)
 
 
 bool File_system::supports_symlinks() { return _supports_symlinks; }
-
-
-/*
- * On some platforms we end-up pulling in string.h prototypes
- */
-extern "C" void *memcpy(void *d, void *s, size_t n)
-{
-	return Genode::memcpy(d, s, n);
-}
-
-
-extern "C" void *memset(void *s, int c, size_t n)
-{
-	return Genode::memset(s, c, n);
-}
