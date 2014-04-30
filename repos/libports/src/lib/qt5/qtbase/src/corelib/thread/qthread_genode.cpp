@@ -639,8 +639,10 @@ void QThread::start(Priority priority)
     if (d->genode_thread) {
 
         if (d->stackSize > 0) {
-            if (!d->genode_thread->set_stack_size(d->stackSize)) {
-                qWarning("QThread::start: Thread stack size error");
+            try {
+                d->genode_thread->stack_size(d->stackSize);
+            } catch (...) {
+                qWarning("QThread::start: Thread stack allocation error");
 
                 // we failed to set the stacksize, and as the documentation states,
                 // the thread will fail to run...
