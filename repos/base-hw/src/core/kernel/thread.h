@@ -71,6 +71,7 @@ class Kernel::Thread
 	public Processor_driver::User_context,
 	public Object<Thread, MAX_THREADS, Thread_ids, thread_ids, thread_pool>,
 	public Processor_client,
+	public Processor_domain_update,
 	public Ipc_node,
 	public Signal_context_killer,
 	public Signal_handler,
@@ -285,6 +286,13 @@ class Kernel::Thread
 		void _send_request_failed();
 		void _await_request_succeeded();
 		void _await_request_failed();
+
+
+		/*****************************
+		 ** Processor_domain_update **
+		 *****************************/
+
+		void _processor_domain_update_unblocks() { _resume(); }
 
 	public:
 

@@ -542,7 +542,7 @@ void Thread::_call_access_thread_regs()
 
 void Thread::_call_update_pd()
 {
-	tlb_to_flush(user_arg_1());
+	if (Processor_domain_update::_perform(user_arg_1())) { _pause(); }
 }
 
 
