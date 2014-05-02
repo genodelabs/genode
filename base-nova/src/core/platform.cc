@@ -107,7 +107,7 @@ static void page_fault_handler()
 	addr_t pf_type = utcb->qual[0];
 
 	print_page_fault("\nPAGE-FAULT IN CORE", pf_addr, pf_ip,
-	                 (Genode::Rm_session::Fault_type)pf_type, ~0UL);
+	                 (Genode::Rm_session::Fault_type)pf_type, 0);
 
 	/* dump stack trace */
 	struct Core_img
