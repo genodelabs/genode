@@ -102,6 +102,6 @@ build_boot_image { core init timer rom_blk part_blk test-blk-cli ata.raw }
 
 append qemu_args " -nographic -m 128 "
 
-run_genode_until "Tests finished successfully.*\n.*Tests finished successfully.*\n" 50
+run_genode_until "Tests finished successfully.*\n.*Tests finished successfully.*\n" 100
 exec rm bin/ata.raw
 puts "Test succeeded"
