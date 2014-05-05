@@ -43,10 +43,10 @@ struct Bm_header
 	long size; /* size of module data in bytes */
 };
 
-extern int       _boot_modules_begin;
-extern Bm_header _boot_module_headers_begin;
-extern Bm_header _boot_module_headers_end;
-extern int       _boot_modules_end;
+extern Bm_header _boot_modules_headers_begin;
+extern Bm_header _boot_modules_headers_end;
+extern int       _boot_modules_binaries_begin;
+extern int       _boot_modules_binaries_end;
 
 /**
  * Functionpointer that provides accessor to a pool of address regions
@@ -97,8 +97,9 @@ Native_region * Platform::_core_only_ram_regions(unsigned const i)
 		  (size_t)((addr_t)&_prog_img_end - (addr_t)&_prog_img_beg) },
 
 		/* boot modules */
-		{ (addr_t)&_boot_modules_begin,
-		  (size_t)((addr_t)&_boot_modules_end - (addr_t)&_boot_modules_begin) }
+		{ (addr_t)&_boot_modules_binaries_begin,
+		  (size_t)((addr_t)&_boot_modules_binaries_end -
+		           (addr_t)&_boot_modules_binaries_begin) }
 	};
 	return i < sizeof(_r)/sizeof(_r[0]) ? &_r[i] : 0;
 }
@@ -143,8 +144,8 @@ Platform::Platform()
 	init_alloc(&_io_mem_alloc, _mmio_regions, _core_only_mmio_regions, 0);
 
 	/* add boot modules to ROM FS */
-	Bm_header * header = &_boot_module_headers_begin;
-	for (; header < &_boot_module_headers_end; header++) {
+	Bm_header * header = &_boot_modules_headers_begin;
+	for (; header < &_boot_modules_headers_end; header++) {
 		Rom_module * rom_module = new (core_mem_alloc())
 			Rom_module(header->base, header->size, (const char*)header->name);
 		_rom_fs.insert(rom_module);

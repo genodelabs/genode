@@ -32,6 +32,7 @@
 
 /* common constants */
 _mt_constants
+_common_constants
 
 
 /************

@@ -72,11 +72,18 @@
 	.set contextidr_offset,     18 * 4
 	.set section_table_offset,  19 * 4
 
-	/* alignment constraints */
-	.set min_page_size_log2, 12
-
 	/* size of local variables */
 	.set context_ptr_size, 1 * 4
+.endm
+
+/**
+ * Constant values that are pretty commonly used
+ */
+.macro _common_constants
+
+	/* alignment constraints */
+	.set min_page_size_log2, 12
+	.set data_access_alignm_log2, 2
 .endm
 
 /**
