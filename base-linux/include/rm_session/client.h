@@ -19,10 +19,8 @@
 
 namespace Genode {
 
-	struct Rm_session_client : Rm_session
+	struct Rm_session_client : Rm_session, Rm_session_capability
 	{
-		Rm_session_capability const _cap;
-
 		typedef Rm_session Rpc_interface;
 
 		/**
@@ -30,10 +28,10 @@ namespace Genode {
 		 *
 		 * \throw Local_interface::Non_local_capability
 		 */
-		Rm_session *_local() const { return Rm_session_capability::deref(_cap); }
+		Rm_session *_local() const { return Rm_session_capability::deref(*this); }
 
 		explicit Rm_session_client(Rm_session_capability session)
-		: _cap(session) { }
+		: Rm_session_capability(session) { }
 
 		Local_addr attach(Dataspace_capability ds, size_t size = 0,
 		                  off_t offset = 0, bool use_local_addr = false,

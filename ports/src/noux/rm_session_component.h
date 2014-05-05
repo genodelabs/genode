@@ -261,8 +261,15 @@ class Noux::Rm_session_component : public Rpc_object<Rm_session>
 			 */
 			if (size == 0) size = Dataspace_client(ds).size() - offset;
 
-			local_addr = _rm.attach(ds, size, offset, use_local_addr,
-			                        local_addr, executable);
+			for (;;) {
+				try {
+					local_addr = _rm.attach(ds, size, offset, use_local_addr,
+					                        local_addr, executable);
+					break;
+				} catch (Rm_session::Out_of_metadata) {
+					Genode::env()->parent()->upgrade(_rm, "ram_quota=8096");
+				}
+			}
 
 			Region * region = new (env()->heap())
 			                  Region(*this, ds, size, offset, local_addr);
