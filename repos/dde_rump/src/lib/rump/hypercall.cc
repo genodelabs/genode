@@ -103,7 +103,7 @@ struct lwp * rumpuser_curlwp(void)
 int rumpuser_thread_create(func f, void *arg, const char *name,
                            int mustjoin, int priority, int cpui_dx, void **cookie)
 {
-	static int count = 0;
+	static long count = 0;
 
 	if (mustjoin)
 		*cookie = (void *)++count;

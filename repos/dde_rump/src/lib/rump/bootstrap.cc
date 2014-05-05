@@ -158,7 +158,7 @@ struct Sym_tab
 			if (sym->st_shndx == SHN_UNDEF || !sym->st_value)
 				continue;
 	
-			char const *name = (char const *)sym->st_name + str_tab;
+			char const *name = (char const *)(sym->st_name + str_tab);
 			if (!is_wanted(name))
 				continue;
 
@@ -166,7 +166,7 @@ struct Sym_tab
 			/* set absolute value */
 			sym_tab[out_cnt].st_value += map->l_addr; 
 			if (verbose)
-				PDBG("Read symbol %s val: %x", name, sym_tab[out_cnt].st_value);
+				PDBG("Read symbol %s val: %zx", name, sym_tab[out_cnt].st_value);
 			out_cnt++;
 		}
 	}
