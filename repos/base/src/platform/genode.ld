@@ -83,7 +83,10 @@ SECTIONS
 		__l4sys_invoke_indirect = .;
 		LONG(0xeacff000);
 
-		*(.data .data.* .gnu.linkonce.d.*)
+		*(.data .gnu.linkonce.d.*)
+
+		/* include all data subsections except those of the boot modules */
+		*(EXCLUDE_FILE (*boot_modules.o) .data.*)
 	} : rw
 
 	/* exception frames for C++ */
@@ -119,6 +122,15 @@ SECTIONS
 
 	/* end of program image -- must be after last section */
 	_prog_img_end = .;
+
+	/*
+	 * Separate location for the binaries of the boot modules
+	 *
+	 * This is merely used by base-hw yet to enable on-demand mapping.
+	 * Must be a subsection of data as object copy may not copy the content
+	 * to the uImage otherwise.
+	 */
+	.data.boot_modules_binaries : { *(.data.boot_modules_binaries) } : rw
 
 	/DISCARD/ : {
 		*(.note)
