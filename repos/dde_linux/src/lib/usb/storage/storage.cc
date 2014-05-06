@@ -116,8 +116,9 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 			cmnd->request = &req;
 
 			/* send command to host driver */
-			if (_sdev->host->hostt->queuecommand(_sdev->host, cmnd)) {
-				throw Request_congestion();
+			while((_sdev->host->hostt->queuecommand(_sdev->host, cmnd)) != 0) {
+				Server::wait_and_dispatch_one_signal();
+				__wait_event();
 			}
 		}
 
@@ -211,5 +212,6 @@ void Storage_device::_async_done(struct scsi_cmnd *cmnd)
 
 	device->ack_packet(*packet);
 	Genode::destroy(Genode::env()->heap(), packet);
+	scsi_free_buffer(cmnd);
 	_scsi_free_command(cmnd);
 }
