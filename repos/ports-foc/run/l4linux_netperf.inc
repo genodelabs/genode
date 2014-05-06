@@ -4,7 +4,17 @@
 # \date   2013-07-08
 #
 
+assert_spec foc
+assert_spec 32bit
+
+if {[have_spec arm]} {
 assert_spec foc_arndale
+}
+
+set ip [check_installed ip]
+set wget [check_installed wget]
+set md5 [check_installed md5sum]
+
 
 if {$use_nic_bridge == 1} {
 set route_nic "nic_bridge"
@@ -54,6 +64,9 @@ set build_components {
 	l4linux
 }
 
+lappend_if [have_spec     pci] build_components drivers/pci
+lappend_if [have_spec    acpi] build_components drivers/acpi
+
 build $build_components
 create_boot_directory
 
@@ -82,9 +95,35 @@ set config  {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+}
+
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="12M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start> }
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
+	<start name="pci_drv">
+		<resource name="RAM" quantum="3M"/>
+		<provides> <service name="PCI"/> </provides>
+	</start> }
+
+append config {
 	<start name="kdb_uart_drv">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Terminal"/></provides>
+		<provides>
+			<service name="Terminal"/>
+			<service name="Uart"/>
+		</provides>
 		<config><policy label="l4linux" uart="0"/></config>
 	</start>
 	<start name="usb_drv">
@@ -93,7 +132,7 @@ set config  {
 		<provides>
 			<service name="Nic"/>
 		</provides>
-		<hid />}
+		}
 append config "
 		<config uhci=\"$use_usb_11\" ehci=\"$use_usb_20\" xhci=\"$use_usb_30\">"
 append config {
@@ -103,10 +142,15 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+}
+append_if [have_spec arm] config {
 	<start name="platform_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Regulator"/></provides>
 	</start>
+}
+
+append config {
 	<start name="l4linux">
 		<resource name="RAM" quantum="512M"/>
 		<config args="mem=400M console=ttyS0 l4x_rd=initrd.gz l4x_cpus=1 l4x_cpus_map=0"/>
@@ -148,22 +192,30 @@ set boot_modules {
 	initrd.gz
 	usb_drv
 	nic_bridge
-	platform_drv
 	kdb_uart_drv
 }
 
+lappend_if [have_spec arm] boot_modules  platform_drv
+lappend_if [have_spec pci] boot_modules  pci_drv
+lappend_if [have_spec acpi] boot_modules acpi_drv
+
 set uri "http://genode.org/files/l4linux/initrd-arm-netperf.gz"
+if {[have_spec x86]} {
+	set uri "http://genode.org/files/l4linux/busybox-initrd-x86-20140506.gz"
+} elseif {[have_spec arm]} {
+	set uri "http://genode.org/files/l4linux/initrd-arm-mdev.gz"
+}
 
 if {![file exists bin/initrd.gz]} {
 	puts "Download initramfs ..."
-	exec >& /dev/null wget -c -O bin/initrd.gz $uri
+	exec >& /dev/null $wget -c -O bin/initrd.gz $uri
+	exec >& /dev/null $wget -O bin/initrd.gz.md5 $uri.md5
+	cd bin
+	exec $md5 -c initrd.gz.md5
+	cd ..
 }
-exec >& /dev/null wget -O bin/initrd.gz.md5 $uri.md5
-cd bin
-exec md5sum -c initrd.gz.md5
-cd ..
 
-build_boot_image  [join $boot_modules " "]
+build_boot_image $boot_modules
 
 
 #
@@ -174,7 +226,7 @@ set ip_match "(\[0-9]{1,3})\\.(\[0-9]{1,3})\\.(\[0-9]{1,3})\\.(\[0-9]{1,3})"
 #
 # Local IP
 #
-set ip_string [ exec ip addr show dev eth0 ]
+set ip_string [ exec $ip addr show dev eth0 ]
 regexp $ip_match $ip_string ip_local
 
 
