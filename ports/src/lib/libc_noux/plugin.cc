@@ -68,10 +68,11 @@ enum { verbose_signals = false };
 namespace Libc {
 
 	/*
-	 * Override the weak function interface of the VFS plugin as Noux programs
-	 * do not obtain a VFS configuration via Genode's config mechansim.
+	 * Override the weak function interface of the libc and VFS plugin as Noux
+	 * programs do not obtain such configuration via Genode's config mechanism.
 	 */
-	Genode::Xml_node vfs_config() { return Xml_node("<vfs/>"); }
+	Genode::Xml_node config()     { return Xml_node("<libc/>"); }
+	Genode::Xml_node vfs_config() { return Xml_node("<vfs/>");  }
 }
 
 

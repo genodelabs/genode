@@ -164,7 +164,8 @@ class Libc_file_system_factory : public Vfs::File_system_factory
 
 namespace Libc {
 
-	static Genode::Xml_node config()
+	Genode::Xml_node config() __attribute__((weak));
+	Genode::Xml_node config()
 	{
 		return Genode::config()->xml_node().sub_node("libc");
 	}
