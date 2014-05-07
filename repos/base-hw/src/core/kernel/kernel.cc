@@ -212,8 +212,9 @@ namespace Kernel
 /**
  * Enable kernel-entry assembly to get an exclusive stack at every processor
  */
-char     kernel_stack[PROCESSORS][Kernel::STACK_SIZE] __attribute__((aligned()));
 unsigned kernel_stack_size = Kernel::STACK_SIZE;
+char     kernel_stack[PROCESSORS][Kernel::STACK_SIZE]
+         __attribute__((aligned(16)));
 
 
 /**
