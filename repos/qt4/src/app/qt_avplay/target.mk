@@ -6,4 +6,4 @@ include $(QT4_REP_DIR)/src/app/tmpl/target_defaults.inc
 
 include $(QT4_REP_DIR)/src/app/tmpl/target_final.inc
 
-LIBS += qnitpickerviewwidget
+LIBS += qnitpickerviewwidget qoost

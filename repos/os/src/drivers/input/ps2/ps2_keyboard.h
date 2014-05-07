@@ -30,9 +30,9 @@ class Ps2_keyboard : public Input_driver
 		static const bool verbose            = false;
 		static const bool verbose_scan_codes = false;
 
-		Serial_interface &_kbd;
-		Event_queue      &_ev_queue;
-		bool              _xlate_mode;
+		Serial_interface   &_kbd;
+		Input::Event_queue &_ev_queue;
+		bool                _xlate_mode;
 
 		/**
 		 * Array for tracking the current keyboard state
@@ -363,7 +363,7 @@ class Ps2_keyboard : public Input_driver
 		 * If 'xlate_mode' is true, we do not attempt to manually switch the
 		 * keyboard to scan code set 2 but just decode the scan-code set 1.
 		 */
-		Ps2_keyboard(Serial_interface &kbd, Event_queue &ev_queue, bool xlate_mode)
+		Ps2_keyboard(Serial_interface &kbd, Input::Event_queue &ev_queue, bool xlate_mode)
 		:
 			_kbd(kbd), _ev_queue(ev_queue), _xlate_mode(xlate_mode)
 		{

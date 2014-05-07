@@ -54,6 +54,25 @@ class Avplay_policy : public QObject, public Genode::Slave_policy
 			arg1_node.setAttribute("value", _mediafile);
 			config_node.appendChild(arg1_node);
 
+			/*
+			 * Configure libc of avplay to direct output to LOG and to obtain
+			 * the mediafile from ROM.
+			 */
+			QDomElement libc_node = config_doc.createElement("libc");
+			libc_node.setAttribute("stdout", "/dev/log");
+			libc_node.setAttribute("stderr", "/dev/log");
+			QDomElement libc_vfs_node = config_doc.createElement("vfs");
+			QDomElement libc_vfs_dev_node = config_doc.createElement("dir");
+			libc_vfs_dev_node.setAttribute("name", "dev");
+			QDomElement libc_vfs_dev_log_node = config_doc.createElement("log");
+			libc_vfs_dev_node.appendChild(libc_vfs_dev_log_node);
+			libc_vfs_node.appendChild(libc_vfs_dev_node);
+			QDomElement libc_vfs_mediafile_node = config_doc.createElement("rom");
+			libc_vfs_mediafile_node.setAttribute("name", "mediafile");
+			libc_vfs_node.appendChild(libc_vfs_mediafile_node);
+			libc_node.appendChild(libc_vfs_node);
+			config_node.appendChild(libc_node);
+
 			QDomElement sdl_audio_volume_node = config_doc.createElement("sdl_audio_volume");
 			sdl_audio_volume_node.setAttribute("value", QString::number(_sdl_audio_volume));
 			config_node.appendChild(sdl_audio_volume_node);

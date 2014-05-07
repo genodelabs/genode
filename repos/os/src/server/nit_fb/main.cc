@@ -82,11 +82,11 @@ namespace Input {
 			 ** Input session interface **
 			 *****************************/
 
-			Genode::Dataspace_capability dataspace() { return _to_input_ds; }
+			Genode::Dataspace_capability dataspace() override { return _to_input_ds; }
 
-			bool is_pending() const { return _from_input->is_pending(); }
+			bool is_pending() const override { return _from_input->is_pending(); }
 
-			int flush()
+			int flush() override
 			{
 				/* flush events at input session */
 				int num_events = _from_input->flush();
@@ -102,6 +102,11 @@ namespace Input {
 					_to_ev_buf[i] = e;
 				}
 				return num_events;
+			}
+
+			void sigh(Genode::Signal_context_capability sigh) override
+			{
+				_from_input->sigh(sigh);
 			}
 	};
 }

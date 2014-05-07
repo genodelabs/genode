@@ -110,6 +110,14 @@ namespace Input {
 			 * Flush input events
 			 */
 			Genode::size_t flush() { return _client.flush(); }
+
+			/**
+			 * Register signal handler for input notifications
+			 */
+			void sigh(Genode::Signal_context_capability sigh)
+			{
+				_client.sigh(sigh);
+			}
 	};
 
 
@@ -183,6 +191,12 @@ namespace Input {
 				}
 				return dst_count;
 			}
+
+			void sigh(Genode::Signal_context_capability sigh)
+			{
+				for (Source *e = _sources.first(); e; e = e->next())
+					e->sigh(sigh);
+			}
 	};
 
 
@@ -214,17 +228,22 @@ namespace Input {
 			 ** Input-session interface **
 			 *****************************/
 
-			Genode::Dataspace_capability dataspace() { return _ev_ds.cap(); }
+			Genode::Dataspace_capability dataspace() override { return _ev_ds.cap(); }
 
-			bool is_pending() const
+			bool is_pending() const override
 			{
 				return _source_registry.any_source_has_pending_input();
 			}
 
-			int flush()
+			int flush() override
 			{
 				return _source_registry.flush_sources(_ev_ds.local_addr<Event>(),
 				                                       MAX_EVENTS);
+			}
+
+			void sigh(Genode::Signal_context_capability sigh) override
+			{
+				_source_registry.sigh(sigh);
 			}
 	};
 

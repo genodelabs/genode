@@ -66,11 +66,11 @@ namespace Input {
 			 ** Input session interface **
 			 *****************************/
 
-			Dataspace_capability dataspace() { return _real_input.dataspace(); }
+			Dataspace_capability dataspace() override { return _real_input.dataspace(); }
 
-			bool is_pending() const { return _real_input.is_pending(); }
+			bool is_pending() const override { return _real_input.is_pending(); }
 
-			int flush()
+			int flush() override
 			{
 				/* translate mouse position to child's coordinate system */
 				Transformer::Delta delta = _transformer.delta();
@@ -96,6 +96,11 @@ namespace Input {
 				}
 
 				return num_ev;
+			}
+
+			void sigh(Signal_context_capability sigh) override
+			{
+				_real_input.sigh(sigh);
 			}
 	};
 }

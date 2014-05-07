@@ -17,6 +17,7 @@
 #include <dataspace/capability.h>
 #include <base/rpc_server.h>
 #include <session/session.h>
+#include <base/signal.h>
 
 namespace Input {
 
@@ -45,6 +46,11 @@ namespace Input {
 		 */
 		virtual int flush() = 0;
 
+		/**
+		 * Register signal handler to be notified on arrival of new input
+		 */
+		virtual void sigh(Genode::Signal_context_capability) = 0;
+
 
 		/*********************
 		 ** RPC declaration **
@@ -53,8 +59,9 @@ namespace Input {
 		GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, dataspace);
 		GENODE_RPC(Rpc_is_pending, bool, is_pending);
 		GENODE_RPC(Rpc_flush, int, flush);
+		GENODE_RPC(Rpc_sigh, void, sigh, Genode::Signal_context_capability);
 
-		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_is_pending, Rpc_flush);
+		GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_is_pending, Rpc_flush, Rpc_sigh);
 	};
 }
 

@@ -11,77 +11,30 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+/* Genode include */
 #include <base/env.h>
 #include <base/semaphore.h>
 #include <base/rpc_server.h>
 #include <framebuffer_session/framebuffer_session.h>
-#include <input/component.h>
+#include <input/root.h>
 #include <nitpicker_gfx/texture_painter.h>
 #include <os/pixel_rgb565.h>
+#include <os/static_root.h>
 
+/* local includes */
 #include "services.h"
 
 
 typedef Genode::Texture<Genode::Pixel_rgb565> Texture_rgb565;
 
 
-/*****************
- ** Event queue **
- *****************/
-
-class Event_queue
+/**
+ * Return singleton instance of input session component
+ */
+Input::Session_component &input_session()
 {
-	private:
-
-		enum { QUEUE_SIZE = 1024 };
-
-		Input::Event      _queue[QUEUE_SIZE];
-		int               _head;
-		int               _tail;
-		Genode::Semaphore _sem;
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		Event_queue(): _head(0), _tail(0)
-		{
-			Scout::memset(_queue, 0, sizeof(_queue));
-		}
-
-		void post(Input::Event ev)
-		{
-			if ((_head + 1)%QUEUE_SIZE != _tail) {
-				_queue[_head] = ev;
-				_head = (_head + 1)%QUEUE_SIZE;
-				_sem.up();
-			}
-		}
-
-		Input::Event get()
-		{
-			_sem.down();
-			Input::Event dst_ev = _queue[_tail];
-			_tail = (_tail + 1)%QUEUE_SIZE;
-			return dst_ev;
-		}
-
-		int pending() { return _head != _tail; }
-
-} _ev_queue;
-
-
-/***************************
- ** Input service backend **
- ***************************/
-
-namespace Input {
-
-	void event_handling(bool enable) { }
-	bool event_pending() { return _ev_queue.pending(); }
-	Event get_event() { return _ev_queue.get(); }
-
+	static Input::Session_component inst;
+	return inst;
 }
 
 
@@ -93,16 +46,16 @@ class Window_content : public Scout::Element
 		{
 			private:
 
-				Event_queue *_ev_queue;
-				Scout::Point _old_mouse_position;
-				Element     *_element;
+				Input::Session_component &_input_session;
+				Scout::Point              _old_mouse_position;
+				Element                  *_element;
 
 			public:
 
-				Content_event_handler(Event_queue *ev_queue,
+				Content_event_handler(Input::Session_component &input_session,
 				                      Scout::Element *element)
 				:
-					_ev_queue(ev_queue), _element(element) { }
+					_input_session(input_session),_element(element) { }
 
 				void handle(Scout::Event &ev)
 				{
@@ -123,10 +76,10 @@ class Window_content : public Scout::Element
 					     : Input::Event::INVALID;
 
 					if (type != Input::Event::INVALID)
-						_ev_queue->post(Input::Event(type, code, mouse_position.x(),
-						                             mouse_position.y(),
-						                             mouse_position.x() - _old_mouse_position.x(),
-						                             mouse_position.y() - _old_mouse_position.y()));
+						_input_session.submit(Input::Event(type, code, mouse_position.x(),
+						                                   mouse_position.y(),
+						                                   mouse_position.x() - _old_mouse_position.x(),
+						                                   mouse_position.y() - _old_mouse_position.y()));
 
 					_old_mouse_position = mouse_position;
 				}
@@ -173,9 +126,9 @@ class Window_content : public Scout::Element
 
 		};
 
-		bool                              _config_alpha;
-		Content_event_handler             _ev_handler;
-		Fb_texture                       *_fb;
+		bool                   _config_alpha;
+		Content_event_handler  _ev_handler;
+		Fb_texture            *_fb;
 
 		/**
 		 * Size of the framebuffer handed out by the next call of 'dataspace'
@@ -198,11 +151,12 @@ class Window_content : public Scout::Element
 
 	public:
 
-		Window_content(unsigned fb_w, unsigned fb_h, Event_queue *ev_queue,
+		Window_content(unsigned fb_w, unsigned fb_h,
+		               Input::Session_component &input_session,
 		               bool config_alpha)
 		:
 			_config_alpha(config_alpha),
-			_ev_handler(ev_queue, this),
+			_ev_handler(input_session, this),
 			_fb(new (Genode::env()->heap()) Fb_texture(fb_w, fb_h, _config_alpha)),
 			_next_size(fb_w, fb_h),
 			_designated_size(_next_size)
@@ -268,76 +222,52 @@ Scout::Element *window_content() { return _window_content; }
  ** Implementation of the framebuffer service **
  ***********************************************/
 
-namespace Framebuffer
+namespace Framebuffer { class Session_component; }
+
+class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 {
-	class Session_component : public Genode::Rpc_object<Session>
-	{
-		private:
+	private:
 
-			Window_content &_window_content;
+		Window_content &_window_content;
 
-			Genode::Signal_context_capability _sync_sigh;
+		Genode::Signal_context_capability _sync_sigh;
 
-		public:
+	public:
 
-			Session_component(Window_content &window_content)
-			: _window_content(window_content) { }
+		Session_component(Window_content &window_content)
+		: _window_content(window_content) { }
 
-			Genode::Dataspace_capability dataspace() override
-			{
-				_window_content.realloc_framebuffer();
-				return _window_content.fb_ds_cap();
-			}
+		Genode::Dataspace_capability dataspace() override
+		{
+			_window_content.realloc_framebuffer();
+			return _window_content.fb_ds_cap();
+		}
 
-			Mode mode() const override
-			{
-				return Mode(_window_content.mode_size().w(),
-				            _window_content.mode_size().h(), Mode::RGB565);
-			}
+		Mode mode() const override
+		{
+			return Mode(_window_content.mode_size().w(),
+			            _window_content.mode_size().h(), Mode::RGB565);
+		}
 
-			void mode_sigh(Genode::Signal_context_capability sigh) override {
-				_window_content.mode_sigh(sigh); }
+		void mode_sigh(Genode::Signal_context_capability sigh) override {
+			_window_content.mode_sigh(sigh); }
 
-			void sync_sigh(Genode::Signal_context_capability sigh) override {
-				_sync_sigh = sigh; }
+		void sync_sigh(Genode::Signal_context_capability sigh) override {
+			_sync_sigh = sigh; }
 
-			void refresh(int x, int y, int w, int h) override
-			{
-				_window_content.redraw_area(x, y, w, h);
+		void refresh(int x, int y, int w, int h) override
+		{
+			_window_content.redraw_area(x, y, w, h);
 
-				if (_sync_sigh.valid())
-					Genode::Signal_transmitter(_sync_sigh).submit();
-			}
-	};
-
-
-	class Root : public Genode::Root_component<Session_component>
-	{
-		private:
-
-			Window_content &_window_content;
-
-		protected:
-
-			Session_component *_create_session(const char *args) override {
-				return new (md_alloc()) Session_component(_window_content); }
-
-		public:
-
-			Root(Genode::Rpc_entrypoint *session_ep,
-			     Genode::Allocator      *md_alloc,
-			     Window_content         &window_content)
-			:
-				Genode::Root_component<Session_component>(session_ep, md_alloc),
-				_window_content(window_content)
-			{ }
-	};
-}
+			if (_sync_sigh.valid())
+				Genode::Signal_transmitter(_sync_sigh).submit();
+		}
+};
 
 
 void init_window_content(unsigned fb_w, unsigned fb_h, bool config_alpha)
 {
-	static Window_content content(fb_w, fb_h, &_ev_queue, config_alpha);
+	static Window_content content(fb_w, fb_h, input_session(), config_alpha);
 	_window_content = &content;
 }
 
@@ -346,11 +276,10 @@ void init_services(Genode::Rpc_entrypoint &ep)
 {
 	using namespace Genode;
 
-	/*
-	 * Let the entry point serve the framebuffer and input root interfaces
-	 */
-	static Framebuffer::Root    fb_root(&ep, env()->heap(), *_window_content);
-	static       Input::Root input_root(&ep, env()->heap());
+	static Framebuffer::Session_component fb_session(*_window_content);
+	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
+
+	static Input::Root_component input_root(ep, input_session());
 
 	/*
 	 * Now, the root interfaces are ready to accept requests.

@@ -16,11 +16,10 @@
 
 /* Genode */
 #include <input/keycodes.h>
-
-/* Local */
-#include <input/component.h>
-
 #include <base/printf.h>
+
+/* local */
+#include <input.h>
 
 /**
  * Convert SDL keycode to Genode keycode
@@ -139,14 +138,7 @@ static long convert_keycode(int sdl_keycode)
 };
 
 
-void Input::event_handling(bool enable) { }
-bool Input::event_pending() { return SDL_PollEvent(0); }
-
-
-/**
- * Wait for an event, Zzz...zz..
- */
-Input::Event Input::get_event()
+Input::Event wait_for_event()
 {
 	using namespace Input;
 

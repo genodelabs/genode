@@ -23,6 +23,14 @@
 #include <qoost/compound_widget.h>
 #include <qoost/qmember.h>
 
+/* Genode includes */
+#include <base/service.h>
+#include <cap_session/connection.h>
+#include <input/root.h>
+#include <os/config.h>
+#include <rom_session/connection.h>
+
+/* local includes */
 #include "control_bar.h"
 
 
@@ -31,6 +39,35 @@ class Main_window : public Compound_widget<QWidget, QVBoxLayout>
 	Q_OBJECT
 
 	private:
+
+		struct Mediafile_name
+		{
+			/* get the name of the media file from the config file */
+			enum { MAX_LEN_MEDIAFILE_NAME = 256 };
+			char buf[MAX_LEN_MEDIAFILE_NAME];
+
+			Mediafile_name()
+			{
+				Genode::strncpy(buf, "mediafile", sizeof(buf));
+				try {
+					Genode::config()->xml_node().sub_node("mediafile")
+						.attribute("name").value(buf, sizeof(buf));
+				} catch(...) {
+					PWRN("no <mediafile> config node found, using \"mediafile\"");
+				}
+			}
+		} _mediafile_name;
+
+		enum { STACK_SIZE = 2*sizeof(Genode::addr_t)*1024 };
+		Genode::Cap_connection _cap;
+		Genode::Rpc_entrypoint _ep { &_cap, STACK_SIZE, "avplay_ep" };
+		Genode::Service_registry _input_registry;
+		Genode::Service_registry _nitpicker_framebuffer_registry;
+
+		Input::Session_component _input_session;
+		Input::Root_component    _input_root { _ep, _input_session };
+
+		Genode::Local_service _input_service { Input::Session::service_name(), &_input_root };
 
 		QMember<QNitpickerViewWidget> _avplay_widget;
 		QMember<Control_bar>          _control_bar;

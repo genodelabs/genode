@@ -71,12 +71,12 @@ class Ps2_mouse : public Input_driver
 
 		static const bool verbose = false;
 
-		Serial_interface &_aux;
-		Event_queue      &_ev_queue;
+		Serial_interface   &_aux;
+		Input::Event_queue &_ev_queue;
 
-		Type              _type;
+		Type                _type;
 
-		bool              _button_state[NUM_BUTTONS];
+		bool                _button_state[NUM_BUTTONS];
 
 		unsigned char _packet[MAX_PACKET_LEN];
 		int           _packet_len;
@@ -149,9 +149,10 @@ class Ps2_mouse : public Input_driver
 
 	public:
 
-		Ps2_mouse(Serial_interface &aux, Event_queue &ev_queue)
+		Ps2_mouse(Serial_interface &aux, Input::Event_queue &ev_queue)
 		:
-			_aux(aux), _ev_queue(ev_queue), _type(PS2),
+			_aux(aux),
+			_ev_queue(ev_queue), _type(PS2),
 			_packet_len(PS2_PACKET_LEN), _packet_idx(0)
 		{
 			for (unsigned i = 0; i < NUM_BUTTONS; ++i)

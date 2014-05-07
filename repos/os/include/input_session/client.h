@@ -24,14 +24,17 @@ namespace Input {
 		explicit Session_client(Session_capability session)
 		: Genode::Rpc_client<Session>(session) { }
 
-		Genode::Dataspace_capability dataspace() {
+		Genode::Dataspace_capability dataspace() override {
 			return call<Rpc_dataspace>(); }
 
-		bool is_pending() const {
+		bool is_pending() const override {
 			return call<Rpc_is_pending>(); }
 
-		int flush() {
+		int flush() override {
 			return call<Rpc_flush>(); }
+
+		void sigh(Genode::Signal_context_capability sigh) override {
+			call<Rpc_sigh>(sigh); }
 	};
 }
 

@@ -17,6 +17,11 @@
 /* qt_avplay includes */
 #include "main_window.h"
 
+/* Genode includes */
+#include <rom_session/connection.h>
+#include <base/process.h>
+#include <base/printf.h>
+
 
 static inline void load_stylesheet()
 {
@@ -36,6 +41,14 @@ int main(int argc, char *argv[])
 	QApplication app(argc, argv);
 
 	load_stylesheet();
+
+	/* look for dynamic linker */
+	try {
+		static Genode::Rom_connection ldso_rom("ld.lib.so");
+		Genode::Process::dynamic_linker(ldso_rom.dataspace());
+	} catch (...) {
+		PERR("ld.lib.so not found");
+	}
 
 	QMember<Main_window> main_window;
 

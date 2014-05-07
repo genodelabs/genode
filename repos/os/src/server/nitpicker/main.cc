@@ -257,7 +257,18 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 		Event      _ev_buf[MAX_EVENTS];
 		unsigned   _num_ev = 0;
 
+		Signal_context_capability _sigh;
+
 	public:
+
+		/**
+		 * Wake up client
+		 */
+		void submit_signal()
+		{
+			if (_sigh.valid())
+				Signal_transmitter(_sigh).submit();
+		}
 
 		/**
 		 * Enqueue event into local event buffer of the input session
@@ -269,6 +280,8 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 
 			/* insert event into local event buffer */
 			_ev_buf[_num_ev++] = *ev;
+
+			submit_signal();
 		}
 
 
@@ -276,11 +289,11 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 		 ** Input session interface **
 		 *****************************/
 
-		Dataspace_capability dataspace() { return _ev_ram_ds.cap(); }
+		Dataspace_capability dataspace() override { return _ev_ram_ds.cap(); }
 
-		bool is_pending() const { return _num_ev > 0; }
+		bool is_pending() const override { return _num_ev > 0; }
 
-		int flush()
+		int flush() override
 		{
 			unsigned ev_cnt;
 
@@ -292,6 +305,8 @@ class Input::Session_component : public Genode::Rpc_object<Session>
 			_num_ev = 0;
 			return ev_cnt;
 		}
+
+		void sigh(Genode::Signal_context_capability sigh) override { _sigh = sigh; }
 };
 
 

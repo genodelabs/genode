@@ -17,100 +17,61 @@
 #include <base/env.h>
 #include <base/rpc_server.h>
 #include <os/attached_ram_dataspace.h>
+#include <os/ring_buffer.h>
 #include <root/component.h>
 #include <input_session/input_session.h>
-#include <input/event.h>
+#include <input/event_queue.h>
 
 
-namespace Input {
+namespace Input { class Session_component; }
 
-	/********************
-	 ** Input back end **
-	 ********************/
+class Input::Session_component : public Genode::Rpc_object<Input::Session>
+{
+	private:
 
-	/**
-	 * Enable/disable input event handling
-	 *
-	 * \param enable  enable (true) or disable (false) back end
-	 *
-	 * The front end informs the back end about when to start capturing input
-	 * events for an open session. Later, the back end may be deactivated on
-	 * session destruction.
-	 */
-	void event_handling(bool enable);
+		Genode::Attached_ram_dataspace _ds { Genode::env()->ram_session(),
+		                                     Event_queue::QUEUE_SIZE*sizeof(Input::Event) };
 
-	/**
-	 * Check if an event is pending
-	 */
-	bool event_pending();
+		Event_queue _event_queue;
 
-	/**
-	 * Wait for an event, Zzz...zz..
-	 */
-	Input::Event get_event();
+	public:
+
+		/**
+		 * Return reference to event queue of the session
+		 */
+		Event_queue &event_queue() { return _event_queue; }
+
+		/**
+		 * Submit input event to event queue
+		 *
+		 * \throw Input::Event_queue::Overflow
+		 */
+		void submit(Input::Event event) { _event_queue.add(event); }
 
 
-	/*****************************
-	 ** Input service front end **
-	 *****************************/
+		/******************************
+		 ** Input::Session interface **
+		 ******************************/
 
-	class Session_component : public Genode::Rpc_object<Session>
-	{
-		private:
+		Genode::Dataspace_capability dataspace() override { return _ds.cap(); }
 
-			/*
-			 * Input event buffer that is shared with the client
-			 */
-			enum { MAX_EVENTS = 1000 };
+		bool is_pending() const override { return !_event_queue.empty(); }
 
-			Genode::Attached_ram_dataspace _ev_ds;
+		int flush() override
+		{
+			Input::Event *dst = _ds.local_addr<Input::Event>();
+			
+			unsigned cnt = 0;
+			for (; cnt < Event_queue::QUEUE_SIZE && !_event_queue.empty(); cnt++)
+				*dst++ = _event_queue.get();
 
-		public:
+			return cnt;
+		}
 
-			Session_component()
-			: _ev_ds(Genode::env()->ram_session(), MAX_EVENTS*sizeof(Event)) {
-				event_handling(true); }
-
-			~Session_component() {
-				event_handling(false); }
-
-			Genode::Dataspace_capability dataspace() { return _ev_ds.cap(); }
-
-			bool is_pending() const { return event_pending(); }
-
-			int flush()
-			{
-				/* dump events into event buffer dataspace */
-				int i;
-				Input::Event *ev_ds_buf = _ev_ds.local_addr<Input::Event>();
-				for (i = 0; (i < MAX_EVENTS) && event_pending(); ++i)
-					ev_ds_buf[i] = get_event();
-
-				/* return number of flushed events */
-				return i;
-			}
-	};
-
-
-	/**
-	 * Shortcut for single-client root component
-	 */
-	typedef Genode::Root_component<Session_component, Genode::Single_client> Root_component;
-
-
-	class Root : public Root_component
-	{
-		protected:
-
-			Session_component *_create_session(const char *args) {
-				return new (md_alloc()) Session_component(); }
-
-		public:
-
-			Root(Genode::Rpc_entrypoint *session_ep,
-			     Genode::Allocator      *md_alloc)
-			: Root_component(session_ep, md_alloc) { }
-	};
-}
+		void sigh(Genode::Signal_context_capability sigh) override
+		{
+			_event_queue.sigh(sigh);
+		}
+};
 
 #endif /* _INCLUDE__INPUT__COMPONENT_H_ */

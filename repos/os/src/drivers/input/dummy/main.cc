@@ -15,6 +15,7 @@
 /* Genode */
 #include <base/env.h>
 #include <base/sleep.h>
+#include <base/signal.h>
 #include <base/rpc_server.h>
 #include <root/component.h>
 #include <cap_session/connection.h>
@@ -41,15 +42,17 @@ namespace Input {
 	{
 		public:
 
-			Dataspace_capability dataspace() { return ev_ds_cap; }
+			Dataspace_capability dataspace() override { return ev_ds_cap; }
 
-			bool is_pending() const { return 0; }
+			bool is_pending() const override { return 0; }
 
-			int flush()
+			int flush() override
 			{
 				/* return number of flushed events */
 				return 0;
 			}
+
+			void sigh(Genode::Signal_context_capability) override { }
 	};
 
 

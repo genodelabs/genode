@@ -15,7 +15,7 @@
 
 #include <base/printf.h>
 #include <base/rpc_server.h>
-#include <input/component.h>
+#include <input/root.h>
 #include <os/ring_buffer.h>
 
 #include <lx_emul.h>
@@ -25,19 +25,27 @@
 using namespace Genode;
 
 
-/*********************
- ** Input component **
- *********************/
+/**
+ * Return singleton instance of input-session component
+ */
+static Input::Session_component &input_session()
+{
+	static Input::Session_component inst;
+	return inst;
+}
 
-typedef Ring_buffer<Input::Event, 512> Input_ring_buffer;
 
-static Input_ring_buffer ev_queue;
-
-namespace Input {
-
-	void event_handling(bool enable) { }
-	bool event_pending() { return !ev_queue.empty(); }
-	Event get_event()    { return ev_queue.get(); }
+/**
+ * Return singleton instance of input-root component
+ *
+ * On the first call (from 'start_input_service'), the 'ep' argument is
+ * specified. All subsequent calls (from 'input_callback') just return the
+ * reference to the singleton instance.
+ */
+static Input::Root_component &input_root(Rpc_entrypoint *ep = 0)
+{
+	static Input::Root_component root(*ep, input_session());
+	return root;
 }
 
 
@@ -58,20 +66,20 @@ static void input_callback(enum input_event_type type,
 	}
 
 	try {
-		ev_queue.add(Input::Event(t, code,
-		                          absolute_x, absolute_y,
-		                          relative_x, relative_y));
-	} catch (Input_ring_buffer::Overflow) {
+		input_session().submit(Input::Event(t, code,
+		                                    absolute_x, absolute_y,
+		                                    relative_x, relative_y));
+	} catch (Input::Event_queue::Overflow) {
 		PWRN("input ring buffer overflow");
 	}
 }
 
 
-void start_input_service(void *ep)
+void start_input_service(void *ep_ptr)
 {
-	Rpc_entrypoint *e = static_cast<Rpc_entrypoint *>(ep);
-	static Input::Root input_root(e, env()->heap());
-	env()->parent()->announce(e->manage(&input_root));
+	Rpc_entrypoint *ep = static_cast<Rpc_entrypoint *>(ep_ptr);
+
+	env()->parent()->announce(ep->manage(&input_root(ep)));
 
 	genode_input_register(input_callback);
 }
