@@ -4,7 +4,7 @@
 *.rej
 
 /build
-
+/contrib
 /repos/base-codezero/contrib
 /repos/base-fiasco/contrib
 /repos/base-fiasco/download
