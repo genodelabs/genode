@@ -1,0 +1,25 @@
+#
+# \brief  Test using netperf with a network bridge and with a  native driver or
+#         if not available for the platform using usb 3.0 by default
+# \author Alexander Boettcher
+# \date   2013-07-08
+#
+
+if {[is_qemu_available]} {
+	puts "\nNetperf running on Qemu with a bridge is not supported.\n"
+	exit
+}
+
+if {[have_spec omap4]} {
+	puts stderr "\nTest requires 1 Gbit network interface - not supported for omap4\n"
+	exit 0
+}
+
+# network configuration
+set use_nic_bridge      1
+set use_usb_11          "no"
+set use_usb_20          "no"
+set use_usb_30          "yes"
+
+source ${genode_dir}/repos/ports/run/netperf_lxip.inc
+source ${genode_dir}/repos/ports/run/netperf.inc

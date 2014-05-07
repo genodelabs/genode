@@ -1,0 +1,222 @@
+if {![have_spec foc] || ![have_spec 32bit]} {
+	puts "\nThe Noux GDB scenario is supported on 32-bit Fiasco.OC only\n"
+	exit 0
+}
+
+source ${genode_dir}/repos/ports/run/noux_gdb.inc
+
+if {[have_spec arm]} {
+	set tool_prefix "genode-arm-"
+}
+
+if {[have_spec x86]} {
+	set tool_prefix "genode-x86-"
+}
+
+#
+# Uncomment the following line when working on the GDB source code. Otherwise,
+# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
+#
+#exec rm -rf noux-pkg/[noux_gdb_pkg_name]/ bin/[noux_gdb_pkg_name]/
+
+set build_components {
+	core init drivers/timer noux lib/libc_noux
+	drivers/framebuffer drivers/pci drivers/input drivers/usb
+	server/terminal server/terminal_crosslink
+	app/gdb_monitor
+	test/gdb_monitor
+}
+
+lappend_if [have_spec gpio]    build_components drivers/gpio
+
+lappend build_components noux-pkg/[noux_gdb_pkg_name]
+
+# the application to be debugged with GDB
+lappend build_components test/gdb_monitor
+set gdb_target_binary_name test-gdb_monitor
+
+build $build_components
+
+# names of the binaries needed for the GDB monitor test
+set gdb_target_binaries {
+	test-gdb_monitor
+	ld.lib.so
+	libc.lib.so
+	libc_log.lib.so
+}
+lappend gdb_target_binaries ${gdb_target_binary_name}
+
+create_gdb_tar
+create_binary_and_source_tars ${gdb_target_binary_name} ${gdb_target_binaries}
+
+create_boot_directory
+
+append config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CAP"/>
+			<service name="RAM"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="SIGNAL"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start> }
+
+append_if [have_spec sdl] config {
+		<start name="fb_sdl">
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="Input"/>
+				<service name="Framebuffer"/>
+			</provides>
+		</start>}
+
+append_if [have_spec pci] config {
+		<start name="pci_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="PCI"/></provides>
+		</start>}
+
+append_if [have_spec framebuffer] config {
+		<start name="fb_drv">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="Framebuffer"/></provides>
+		</start>}
+
+append_if [have_spec ps2] config {
+		<start name="ps2_drv">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Input"/></provides>
+		</start>}
+
+append_if [have_spec gpio] config {
+	<start name="gpio_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Gpio"/></provides>
+		<config/>
+	</start>}
+
+append_if [expr ![have_spec ps2] && [have_spec usb]] config {
+		<start name="usb_drv">
+			<resource name="RAM" quantum="12M"/>
+			<provides><service name="Input"/></provides>
+			<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
+		</start>}
+
+append config {
+
+		<start name="terminal_noux">
+			<binary name="terminal"/>
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Terminal"/></provides>
+			<config>
+				<keyboard layout="de"/>
+			</config>
+		</start>
+		<start name="terminal_gdb">
+			<binary name="terminal_crosslink"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Terminal"/> </provides>
+		</start>
+		<start name="gdb_monitor">
+			<resource name="RAM" quantum="10M"/>
+			<route>
+				<service name="Terminal"><child name="terminal_gdb"/></service>
+				<any-service><parent/><any-child/></any-service>
+			</route>
+			<config> }
+append config "
+				<target name=\"${gdb_target_binary_name}\"/> "
+append config {
+				<preserve name="RAM" quantum="5M"/>
+			</config>
+		</start>
+		<start name="noux">
+			<resource name="RAM" quantum="1G"/>
+			<route>
+				<service name="Terminal">
+					<if-arg key="label" value=""/><child name="terminal_noux"/>
+				</service>
+				<service name="Terminal">
+					<if-arg key="label" value="noux(terminal_fs)"/><child name="terminal_gdb"/>
+				</service>
+				<any-service><parent/><any-child/></any-service>
+			</route>
+			<config>
+				<fstab>
+					<tar name="gdb.tar" at="/"/>
+					<dir name="dev"><terminal name="gdb"/></dir>
+					<dir name="gdb"> }
+append config "
+						<tar name=\"${gdb_target_binary_name}.tar\"/>
+						<dir name=\"src\"> <tar name=\"${gdb_target_binary_name}-src.tar\"/> </dir> "
+append config {
+					</dir>
+				</fstab> }
+append config "
+				<start name=\"/bin/${tool_prefix}gdb\">
+					<arg value=\"/gdb/${gdb_target_binary_name}\"/> "
+append config {
+					<arg value="-ex" /><arg value="set interactive-mode off" />
+					<arg value="-ex" /><arg value="directory /gdb/src" />
+					<arg value="-ex" /><arg value="target remote /dev/gdb" />
+					<arg value="-ex" /><arg value="symbol-file /gdb/ld.lib.so" />
+					<arg value="-ex" /><arg value="b call_program_main" />
+					<arg value="-ex" /><arg value="c" />
+					<arg value="-ex" /><arg value="delete 1" /> }
+append config "
+					<arg value=\"-ex\" /><arg value=\"symbol-file /gdb/${gdb_target_binary_name}\" /> "
+append config {
+					<arg value="-ex" /><arg value="b main()" />
+					<arg value="-ex" /><arg value="set solib-search-path /gdb" />
+					<arg value="-ex" /><arg value="sharedlibrary" />
+					<arg value="-ex" /><arg value="c" />
+					<arg value="-ex" /><arg value="delete 2" />
+					<arg value="-ex" /><arg value="set interactive-mode auto" />
+				</start>
+			</config>
+		</start>
+	</config>
+}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so noux terminal terminal_crosslink
+	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
+	libc_lock_pipe.lib.so libc_log.lib.so libc_terminal.lib.so
+	gdb_monitor test-gdb_monitor
+	gdb.tar test-gdb_monitor.tar test-gdb_monitor-src.tar
+}
+
+# platform-specific modules
+lappend_if [have_spec       linux] boot_modules fb_sdl
+lappend_if [have_spec         pci] boot_modules pci_drv
+lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec         ps2] boot_modules ps2_drv
+lappend_if [have_spec         usb] boot_modules usb_drv
+lappend_if [have_spec        gpio] boot_modules gpio_drv
+
+build_boot_image $boot_modules
+
+run_genode_until forever
+
+exec rm bin/gdb.tar

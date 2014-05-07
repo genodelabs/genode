@@ -1,4 +1,0 @@
-set use_nic_client 0
-set use_nic_bridge 0
-
-source ${genode_dir}/os/run/network_test_nic.inc

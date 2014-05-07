@@ -1,4 +1,4 @@
-REPOSITORIES  = $(GENODE_DIR)/base-nova
+REPOSITORIES  = $(GENODE_DIR)/repos/base-nova
 
 #
 # The current NOVA kernel build is optimized for Intel Core2 Duo.

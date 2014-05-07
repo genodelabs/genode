@@ -1,1 +1,1 @@
-REPOSITORIES  = $(GENODE_DIR)/base-linux
+REPOSITORIES  = $(GENODE_DIR)/repos/base-linux

@@ -1,0 +1,11 @@
+#
+# \brief  Test for Linux-specific region map (dynamic binary)
+# \author Christian Helmuth
+# \date   2013-09-06
+#
+
+set test_type "dynamic"
+
+source ${genode_dir}/repos/base-linux/run/lx_rmap.inc
+
+# vi: set ft=tcl :

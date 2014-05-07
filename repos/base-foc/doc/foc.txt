@@ -1,0 +1,142 @@
+
+                     ===================================
+                     Genode on the Fiasco.OC microkernel
+                     ===================================
+
+
+                            Stefan Kalkowski
+
+
+Fiasco.OC is a microkernel developed by the OS group of the TU-Dresden. It's
+an object-oriented capability-based system for x86, ARM and PowerPC platforms.
+
+This document provides brief instructions about downloading, building and
+booting the Fiasco.OC version of Genode.
+
+
+Prerequisites
+#############
+
+You need certain tools to use the Fiasco.OC build system. On Debian/Ubuntu
+systems you have to install the following packages:
+
+! apt-get install make gawk pkg-config subversion patch
+
+Moreover, you need to download and install the tool-chain used by Genode. Have
+a look at this page:
+
+:[http://genode.org/download/tool-chain]:
+  Genode tool-chain
+
+If you want to use the so called run-scripts in Genode, a mechanism that
+automates building, integration and testing of components, you have to install
+the following, additional package:
+
+! apt-get install expect
+
+
+Building the Fiasco.OC version of Genode
+########################################
+
+The current version of Genode is available at the public subversion repository:
+
+:http://genode.org/download/subversion-repository:
+  Information about accessing the Genode public subversion repository
+
+After you've fetched the Genode source tree from the subversion repository, or
+downloaded the latest release tar archive, you need the Fiasco.OC source code,
+its kernel-bindings, additional bootstrap tools etc. To simplify that step,
+you can use a Makefile in the 'base-foc' directory of the Genode source tree,
+just do:
+
+! cd base-foc
+! make prepare
+
+This will install all necessary third-party source code in the 'contrib' folder.
+
+For the vesa driver on x86 the x86emu library is required and can be downloaded
+and prepared by invoking the following command from within the 'libports'
+directory:
+
+! make prepare PKG=x86emu
+
+Now, go to a directory where you want the Genode/Fiasco.OC build directory to
+remain. Use the helper script in the 'tool' directory of the Genode
+source tree to create the initial build environment. You need to state the
+build directory you want to create, and the hardware architecture to run
+Fiasco.OC/Genode on. Choose 'foc_x86_32', 'foc_x86_64', or 'foc_pbxa9'
+depending on whether you want to build for the 32-bit or 64-bit X86
+architecture, or for ARMs Cortex-A9.
+
+! <genode-dir>/tool/create_builddir foc_x86_32 \
+!     BUILD_DIR=<build-dir>
+
+Now, go to the newly created build directory and type make:
+
+! cd <build-dir>
+! make
+
+This will build the Fiasco.OC kernel, its bootstrap code, and every Genode component,
+that runs on top of Fiasco.OC.
+
+If you just want to give Genode/Fiasco.OC a try, you can call e.g.: the demo run-script
+instead of building everything:
+
+! cd <build-dir>
+! make run/demo
+
+
+Running L4Linux on top of Genode
+################################
+
+To get the L4Linux running on top of Genode, you have to change to the
+'ports-foc' repository within your Genode source tree and do a 'make prepare':
+
+! cd ports-foc
+! make prepare
+
+This will fetch the currently supported version from the L4Linux subversion
+repository, and apply a patch to it, that is needed to execute it on top of
+Genode.
+
+Before compiling L4Linux for Genode/Fiasco.OC you have to integrate the 'ports-foc'
+repository into your build environment. Therefore edit the 'etc/build.conf' file
+in your build directory, and uncomment the following line:
+
+! REPOSITORIES += $(GENODE_DIR)/repos/ports-foc
+
+After that you can build and run L4Linux by issuing:
+
+! make run/l4linux
+
+in your build directory. This run-script boots a single L4Linux instance into
+a minimal console environment. After booting completes, the run-scripts tries
+to download the Genode project webpage via the 'wget' tool within the L4Linux
+environment. If all wents fine the run-script completes successfully.
+
+
+Integration of Fiasco.OC with Genode
+####################################
+
+If you don't want the Genode build system to build the Fiasco.OC kernel for
+you, but you want to provide your own version, you have to state in the
+'etc/foc.conf' file within your build directory, where to find it:
+
+! L4_BUILD_DIR = <l4re-build-dir>
+! KERNEL       = <fiasco.oc-kernel-binary>
+
+The first variable states where to find the kernel bindings (the L4RE build
+directory), the second one states where your kernel binary can be found.
+After adding these variable to the file, you have to do a full cleanup
+in your build directory to ensure, that the right bindings are used:
+
+! make cleanall
+
+From now on, run-scripts will use your provided kernel.
+
+
+Further Information
+###################
+
+:[http://os.inf.tu-dresden.de/fiasco]:
+  Official website for the Fiasco.OC microkernel.

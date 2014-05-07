@@ -1,0 +1,128 @@
+#
+# \brief  Test for using the GDB monitor
+# \author Christian Prochaska
+# \author Norman Feske
+# \date   2011-05-24
+#
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/timer drivers/uart
+	app/gdb_monitor
+	test/gdb_monitor
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="uart_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config>
+			<policy label="gdb_monitor" uart="1"/>
+		</config>
+	</start>
+	<start name="gdb_monitor">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<target name="test-gdb_monitor">
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log">
+						<vfs> <dir name="dev"> <log/> </dir> </vfs>
+					</libc>
+				</config>
+			</target>
+			<preserve name="RAM" quantum="3M"/>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
+	uart_drv
+	gdb_monitor test-gdb_monitor
+}
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+#
+set local_port 5555
+
+# qemu config
+append qemu_args " -m 128 -nographic "
+
+# connect comport 0 to stdio
+append qemu_args " -serial mon:stdio "
+
+# connect comport 1 with TCP port $local_port
+append qemu_args " -serial chardev:uart "
+append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait "
+
+run_genode_until {.*Remote debugging using /dev/terminal.*} 30
+
+puts "GDB monitor is up, starting GDB in a new terminal"
+
+source ${genode_dir}/repos/ports/run/gdb_monitor.inc
+
+set gdb_target_binary "test-gdb_monitor"
+
+# sequence of GDB commands to execute at startup
+set gdb_cmds ""
+append gdb_cmds "-ex \"target remote localhost:$local_port\" "
+
+append gdb_cmds [gdb_main_breakpoint_cmds $gdb_target_binary]
+
+# ask the user for confirmations again
+append gdb_cmds {-ex "set interactive-mode auto" }
+
+puts "command: [gdb] bin/$gdb_target_binary $gdb_cmds"
+
+exec [terminal] -e "[gdb] bin/test-gdb_monitor $gdb_cmds" &
+
+interact
+
+# vi: set ft=tcl :

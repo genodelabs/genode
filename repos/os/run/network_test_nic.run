@@ -1,0 +1,14 @@
+source ${genode_dir}/repos/os/run/network_test_nic_raw.run
+set test_result_raw $test_result 
+
+source ${genode_dir}/repos/os/run/network_test_nic_raw_client.run
+set test_result_raw_client $test_result
+
+source ${genode_dir}/repos/os/run/network_test_nic_raw_bridge_client.run
+set test_result_raw_bridge_client $test_result
+
+puts "\nTest results:\n"
+puts "nic              : $test_result_raw"
+puts "nic+client       : $test_result_raw_client"
+puts "nic+bridge+client: $test_result_raw_bridge_client"
+puts ""

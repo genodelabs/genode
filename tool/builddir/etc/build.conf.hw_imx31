@@ -1,1 +1,1 @@
-REPOSITORIES += $(GENODE_DIR)/base-hw
+REPOSITORIES += $(GENODE_DIR)/repos/base-hw

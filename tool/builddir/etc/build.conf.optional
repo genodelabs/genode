@@ -8,7 +8,7 @@
 #
 # Make sure to execute 'make prepare' in 'libports' prior building.
 #
-#REPOSITORIES += $(GENODE_DIR)/libports
+#REPOSITORIES += $(GENODE_DIR)/repos/libports
 
 #
 # Qt4 tool kit
@@ -16,7 +16,7 @@
 # The 'qt4' repository depends on 'libc' and 'libports'
 # Make sure to execute 'make prepare' in 'qt4' prior building.
 #
-#REPOSITORIES += $(GENODE_DIR)/qt4
+#REPOSITORIES += $(GENODE_DIR)/repos/qt4
 
 #
 # Ports of popular 3rd-party applications
@@ -24,21 +24,21 @@
 # The 'ports' repository depends on 'libc', 'libports', and 'qt4'.
 # Make sure to execute 'make prepare' in 'ports' prior building.
 #
-#REPOSITORIES += $(GENODE_DIR)/ports
+#REPOSITORIES += $(GENODE_DIR)/repos/ports
 
 #
 # Ports of the Linux TCP/IP stack and Linux drivers (USB) from the Linux kernel
 #
-#REPOSITORIES += $(GENODE_DIR)/dde_linux
+#REPOSITORIES += $(GENODE_DIR)/repos/dde_linux
 
 #
 # NetBSD file-system support
 #
-#REPOSITORIES += $(GENODE_DIR)/dde_rump
+#REPOSITORIES += $(GENODE_DIR)/repos/dde_rump
 
 #
 # High-level Genode-specific services and applications
 #
 # The 'gems' repository depends on 'libc', 'libports', and 'qt4'.
 #
-#REPOSITORIES += $(GENODE_DIR)/gems
+#REPOSITORIES += $(GENODE_DIR)/repos/gems

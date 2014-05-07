@@ -16,7 +16,7 @@ usage:
 	@echo
 	@echo "usage:"
 	@echo
-	@echo "  create_builddir <platform> BUILD_DIR=<build-dir>"
+	@echo "  create_builddir <platform> [BUILD_DIR=<build-dir>]"
 	@echo
 	@echo "  <platform>   can be:"
 	@echo "                  'linux_x86'"
@@ -44,7 +44,10 @@ usage:
 	@echo "                  'foc_arndale'"
 	@echo "                  'lx_hybrid_x86'"
 	@echo
-	@echo "  <build-dir>  is the location of the build directory to create"
+	@echo "  The definition of BUILD_DIR is optional. If specified,"
+	@echo "  <build-dir> is the location of the build directory to create."
+	@echo "  If not specified, the build directory will be created at"
+	@echo "  <genode-dir>/build/<platform>."
 	@echo
 
 #
@@ -53,9 +56,16 @@ usage:
 #
 GENODE_DIR ?= $(realpath $(dir $(MAKEFILE_LIST))/..)
 
-ifeq ($(BUILD_DIR),)
-$(PLATFORM):: usage
-	@echo "Error: BUILD_DIR not defined." ; false
+#
+# Define default location of the build directory if not explicitly specified
+#
+BUILD_DIR ?= $(GENODE_DIR)/build/$(PLATFORM)
+
+ifneq ($(wildcard $(BUILD_DIR)),)
+$(PLATFORM):: build_dir_already_exists
+build_dir_already_exists:
+	@echo "Directory $(BUILD_DIR) already exists."
+	@false
 endif
 
 #
@@ -76,7 +86,7 @@ $(BUILD_DIR)/etc:
 
 $(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
 	@echo "GENODE_DIR    = $(GENODE_ABS_DIR)" > $@
-	@echo 'BASE_DIR      = $$(GENODE_DIR)/base' >> $@
+	@echo 'BASE_DIR      = $$(GENODE_DIR)/repos/base' >> $@
 
 #
 # Supply -no-kvm argument to Qemu for kernels that are incompatible with KVM
@@ -181,7 +191,7 @@ foc_arndale::
 	@echo "SPECS = genode foc_arndale" > $(BUILD_DIR)/etc/specs.conf
 
 codezero_vpb926::
-	@echo "CODEZERO_DIR = $(GENODE_DIR)/base-codezero/contrib" > $(BUILD_DIR)/etc/codezero.conf
+	@echo "CODEZERO_DIR = $(GENODE_DIR)/repos/base-codezero/contrib" > $(BUILD_DIR)/etc/codezero.conf
 
 hw_pbxa9::
 	@echo "SPECS = genode hw_pbxa9" > $(BUILD_DIR)/etc/specs.conf
@@ -212,6 +222,7 @@ lx_hybrid_x86::
 	@echo "SPECS += always_hybrid" >> $(BUILD_DIR)/etc/specs.conf
 
 $(PLATFORM)::
-	@echo "successfully created build directory at $(BUILD_DIR)"
+	@echo "Successfully created build directory at $(BUILD_DIR)."
+	@echo "Please adjust $(BUILD_DIR)/etc/build.conf according to your needs."
 
 .PHONY: $(PLATFORM)

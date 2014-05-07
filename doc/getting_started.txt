@@ -88,11 +88,11 @@ steps are required:
 
 # Download the kernel:
   ! cd <genode-dir>
-  ! make -C base-okl4 prepare
+  ! make -C repos/base-okl4 prepare
 # Create a build directory
   ! ./tool/create_builddir okl4_x86 BUILD_DIR=build.okl4
 # Uncomment the following line in 'build.okl4/etc/build.conf'
-  ! REPOSITORIES += $(GENODE_DIR)/libports
+  ! REPOSITORIES += $(GENODE_DIR)/repos/libports
 # Build and execute the demo using Qemu
   ! make -C build.okl4 run/demo
 

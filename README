@@ -36,7 +36,7 @@ usage scenario.
 Directory overview
 ##################
 
-The Genode source tree is composed of the following subdirectories:
+The source tree is composed of the following subdirectories:
 
 :'doc':
 
@@ -50,144 +50,16 @@ The Genode source tree is composed of the following subdirectories:
 
   ! doc/components.txt
 
-:'base':
+:'repos':
 
-  This directory contains the source-code repository of the fundamental
-  frameworks and interfaces of Genode. Furthermore, it contains the generic
-  parts of core.
-
-:'os':
-
-  This directory contains the non-base OS components such as the init process,
-  device drivers, and basic system services.
-
-:'demo':
-
-  This directory contains the source-code repository of various services and
-  applications that we use for demonstration purposes. For example, a graphical
-  application launcher called Launchpad and the Scout tutorial browser.
-
-:'base-<platform>':
-  These directories contain platform-specific source-code repositories
-  complementing the 'base' repository. The following platforms are supported:
-
-  :'linux':
-    Linux kernel (both x86_32 and x86_64)
-
-  :'nova':
-    NOVA hypervisor developed at University of Technology Dresden
-    See [http://genode.org/documentation/platforms/nova]
-
-  :'foc':
-    Fiasco.OC is a modernized version of the Fiasco microkernel with a
-    completely revised kernel interface fostering capability-based
-    security. It is not compatible with L4/Fiasco.
-    See [http://genode.org/documentation/platforms/foc]
-
-  :'hw':
-    The hw platform allows the execution of Genode on bare ARM hardware
-    without the need for a separate kernel. The kernel functionality is
-    included in core.
-    See [http://genode.org/documentation/platforms/hw]
-
-  :'okl4':
-    OKL4 kernel (x86_32 and ARM) developed at Open-Kernel-Labs.
-    See [http://genode.org/documentation/platforms/okl4]
-
-  :'pistachio':
-    L4ka::Pistachio kernel developed at University of Karlsruhe.
-    See [http://genode.org/documentation/platforms/pistachio]
-
-  :'fiasco':
-    L4/Fiasco kernel developed at University of Technology Dresden.
-    See [http://genode.org/documentation/platforms/fiasco]
-
-  :'codezero':
-    Codezero microkernel developed by B-Labs
-    See [http://genode.org/documentation/platforms/codezero]
-
-  :'host':
-    Pseudo platform documenting the interface between the generic and
-    platform-specific parts of the base framework. This is not a functional
-    base platform.
+  This directory contains the so-called source-code repositories of Genode.
+  Please refer to the README file in the 'repos' directory to learn more
+  about the roles of the individual repositories.
 
 :'tool':
 
   Source-code management tools and scripts. Please refer to the README file
   contained in the directory.
-
-:'hello_tutorial':
-
-  Tutorial for creating a simple client-server scenario with Genode. This
-  repository includes documentation and the complete source code.
-
-:'libports':
-
-  This source-code repository contains ports of popular open-source libraries
-  to Genode, most importantly the C library. The repository contains no
-  upstream source code but means to download the code and adapt it to Genode.
-  For instructions about how to use this mechanism, please consult the README
-  file at the top level of the repository. Among the 3rd-party libraries
-  are Qt5, libSDL, freetype, Python, ncurses, Mesa, and libav.
-
-:'dde_linux':
-
-  This source-code repository contains the device driver environment for
-  executing Linux device drivers natively on Genode. Currently, this
-  repository hosts the USB stack.
-
-:'linux_drivers':
-
-  Deprecated version of the Linux device driver environment featuring audio
-  drivers and the Intel GEM driver. This repository is in a transitionary
-  phase. Its functionality will be incorporated into 'dde_linux'.
-
-:'dde_ipxe':
-
-  This source-code repository contains the device-driver environment for
-  executing drivers of the iPXE project.
-
-:'dde_oss':
-
-  This source-code repository contains the device-driver environment for the
-  audio drivers of the Open Sound System (OSS).
-
-:'dde_rump':
-
-  This source-code repository contains the port of rump kernels, which are
-  used to execute subsystems of the NetBSD kernel as user level processes.
-  The repository contains a server that uses a rump kernel to provide
-  various NetBSD file systems to Genode.
-
-:'qt4':
-
-  This source-code repository contains the Genode version of Qt4 framework.
-  Please find more information about using Qt4 with Genode in the repository's
-  'README' file. Please note that the Qt4 support is deprecated. Use Qt5
-  as contained in 'libports' instead.
-
-:'ports':
-
-  This source-code repository hosts ports of 3rd-party applications to
-  Genode. The repository does not contain upstream source code but provides
-  a mechanism for downloading the official source distributions and adapt
-  them to the Genode environment. The used mechanism is roughly the same
-  as used for the 'libports' repository. Please consult 'libports/README'
-  for further information.
-
-:'ports-<platform>':
-
-  These platform-specific source-code repositories contain software that
-  capitalizes special features of the respective kernel platform.
-  For the Fiasco.OC platform, 'ports-foc' hosts a port of the L4Linux
-  kernel. For further information, please refer to the README file at the
-  top level of the respective repository.
-
-:'gems':
-
-  This source-code repository contains Genode applications that use
-  both native Genode interfaces as well as features of other high-level
-  repositories, in particular shared libraries provided by 'libports'.
 
 
 Contact

@@ -1,0 +1,42 @@
+assert_spec okl4_x86
+
+build "core init"
+
+create_boot_directory
+
+install_config "[exec cat [genode_dir]/repos/os/src/init/config.priority]"
+
+build_boot_image "core init"
+
+append qemu_args "-nographic -m 256"
+
+# run genode until the init->init.2 process gives us a life sign
+run_genode_until "init.2.*No children to start.*\n" 100
+
+puts "dumping priorities using the kernel debugger..."
+
+# send escape key to break into the kernel debugger, wait for prompt
+send "\x1b"
+expect "> "
+
+# send commend for dumping the scheduling queue
+send "q"
+expect "idle : idle_thread"
+
+set output $expect_out(buffer)
+
+#
+# The 'output' variable contains the kernel-debugger output since
+# the last prompt until the current expect string. But we care
+# only for the lines with the actual scheduler queues. Each
+# line of interest starts with a '[' character.
+#
+grep_output {^\[}
+
+compare_output_to {
+	[128]: (roottask) (entrypoi) (signal) (pager) (ioport) (init) {init} (signal h) (init.1) {init.1} (init.2) (signal h) (init.11) (init.12)
+	[112]: {init.11} (signal h)
+	[ 96]: {init.12} (signal h) (init.121) {init.121} (signal h)
+	[ 64]: {init.2} (signal h)
+}
+

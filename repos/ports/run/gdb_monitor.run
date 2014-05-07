@@ -1,0 +1,252 @@
+#
+# \brief  Test for using the GDB monitor
+# \author Christian Prochaska
+# \author Norman Feske
+# \date   2011-05-24
+#
+
+#
+# Only Genode/Fiasco.OC and Genode/NOVA supports all the tested features
+# at this time
+#
+
+if {![is_qemu_available] || (![have_spec foc] && ![have_spec nova])} {
+	 puts "Run script is only supported for foc or nova in Qemu"; exit 0
+}
+
+assert_spec 32bit
+
+#
+# Build
+#
+
+build {
+	core init
+	drivers/timer drivers/uart
+	app/gdb_monitor
+	test/gdb_monitor
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="uart_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config>
+			<policy label="gdb_monitor" uart="1"/>
+		</config>
+	</start>
+	<start name="gdb_monitor">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<target name="test-gdb_monitor">
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log">
+						<vfs> <dir name="dev"> <log/> </dir> </vfs>
+					</libc>
+				</config>
+			</target>
+			<preserve name="RAM" quantum="3M"/>
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+			</libc>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init timer
+	ld.lib.so libc.lib.so libc_lock_pipe.lib.so libc_terminal.lib.so
+	uart_drv
+	gdb_monitor test-gdb_monitor
+}
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+#
+set local_port 5555
+
+# qemu config
+append qemu_args " -m 128 -nographic "
+
+# connect comport 0 to stdio
+append qemu_args " -serial mon:stdio "
+
+# connect comport 1 with TCP port $local_port
+append qemu_args " -serial chardev:uart "
+append qemu_args " -chardev socket,id=uart,port=$local_port,host=localhost,server,nowait "
+
+run_genode_until {.*Remote debugging using /dev/terminal.*} 30
+
+puts "GDB monitor is up, starting GDB"
+
+source ${genode_dir}/repos/ports/run/gdb_monitor.inc
+
+set gdb_target_binary "test-gdb_monitor"
+
+# sequence of GDB commands to execute at startup
+set gdb_cmds ""
+append gdb_cmds {-ex "target remote localhost:$local_port" }
+
+append gdb_cmds [gdb_main_breakpoint_cmds $gdb_target_binary]
+
+#
+# Test commands
+#
+
+# test: breakpoint in shared library 
+append gdb_cmds {-ex "b puts" }
+append gdb_cmds {-ex "c" }
+
+# test: stack trace when not in syscall
+append gdb_cmds {-ex "bt" }
+
+# test: modify variable
+append gdb_cmds {-ex "print test_var" }
+append gdb_cmds {-ex "set var test_var=2" }
+append gdb_cmds {-ex "print test_var" }
+
+# test: 'call' command
+if {![have_spec nova]} {
+append gdb_cmds {-ex "call test_var_func()" }
+}
+
+# test: thread info
+append gdb_cmds {-ex "b Test_thread::entry()" }
+append gdb_cmds {-ex "c" }
+append gdb_cmds {-ex "info threads" }
+
+# test: single stepping
+append gdb_cmds {-ex "step" }
+
+# test: catch segmentation fault
+append gdb_cmds {-ex "c" }
+
+# test: stack trace when in syscall
+append gdb_cmds {-ex "thread 1" }
+append gdb_cmds {-ex "bt" }
+
+# quit
+append gdb_cmds {-ex "q" }
+
+# run GDB and redirect stderr to stdio to get the relevant output into the expect buffer  
+eval spawn [gdb] bin/$gdb_target_binary -n -batch $gdb_cmds 2&>1
+
+set timeout 120
+expect {
+	timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+}
+
+set gdb_output $expect_out(buffer)
+
+#
+# Evaluate the test results
+#
+
+if {![regexp {Breakpoint 2, main ()} $gdb_output]} {
+	puts stderr "Error: Breakpoint in main() did not trigger"
+	exit -1
+}
+
+if {![regexp {Breakpoint 3, puts ()} $gdb_output]} {
+	puts "Error: Breakpoint in shared library did not trigger"
+	exit -1
+}
+
+if {![regexp {#0  puts} $gdb_output] ||
+    ![regexp {in func2 ()} $gdb_output] ||
+    ![regexp {in func1 ()} $gdb_output] ||
+    ![regexp {in main ()} $gdb_output]} {
+
+	puts stderr "Error: Stack trace when not in syscall is not as expected"
+	exit -1
+}
+
+if {![regexp {\$1 = 1} $gdb_output]} {
+	puts stderr "Error: first 'print test_var' command didn't result in the expected output"
+	exit -1
+}
+
+if {![regexp {\$2 = 2} $gdb_output]} {
+	puts stderr "Error: second 'print test_var' command didn't result in the expected output"
+	exit -1
+}
+
+if {![have_spec nova]} {
+if {![regexp {\$3 = 3} $gdb_output]} {
+	puts stderr "Error: 'call' command didn't result in the expected output"
+	exit -1
+}
+}
+
+if {![regexp {Breakpoint 4, Test_thread::entry()} $gdb_output]} {
+	puts stderr "Error: Breakpoint in test thread did not trigger"
+	exit -1
+}
+
+if {![regexp {\* 2    Thread 2          Test_thread::entry} $gdb_output] || 
+    ![regexp {  1    Thread 1} $gdb_output]} {
+	puts stderr "Error: Thread info is not as expected"
+	exit -1
+}
+
+if {![regexp {46				func()} $gdb_output]} {
+	puts stderr "Error: Single stepping didn't result in the expected output"
+	exit -1
+}
+
+if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $gdb_output]} {
+	puts stderr "Error: Segmentation fault exception was not catched"
+	exit -1
+}
+
+if {![regexp {thread_stop_myself \(\)} $gdb_output] ||
+    ![regexp {Genode::Cancelable_lock::lock \(this=} $gdb_output] ||
+    ![regexp {Genode::Thread_base::join \(this=} $gdb_output] ||
+    ![regexp {in main \(\)} $gdb_output]} {
+
+	puts stderr "Error: Stack trace when in syscall is not as expected"
+	exit -1
+
+}
+
+puts "Test succeeded"
+
+# vi: set ft=tcl :

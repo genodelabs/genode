@@ -6,14 +6,14 @@
 #
 # This repository is deprecated.
 #
-#REPOSITORIES += $(GENODE_DIR)/linux_drivers
+#REPOSITORIES += $(GENODE_DIR)/repos/linux_drivers
 
 #
 # Drivers ported from the Open Sound System
 #
-#REPOSITORIES += $(GENODE_DIR)/dde_oss
+#REPOSITORIES += $(GENODE_DIR)/repos/dde_oss
 
 #
 # Drivers ported from iPXE
 #
-#REPOSITORIES += $(GENODE_DIR)/dde_ipxe
+#REPOSITORIES += $(GENODE_DIR)/repos/dde_ipxe

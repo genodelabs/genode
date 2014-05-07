@@ -1,0 +1,12 @@
+set mkfs_cmd   mkfs.vfat
+set mkfs_opts  "-F32"
+set filesystem ffat
+
+#
+# The ffat_libc plugin opens a block session directly. If the VFS opened
+# the block session, the plugin would try to open a second one, which
+# would get denied by the block driver.
+#
+set libc_dev_blkdev ""
+
+source ${genode_dir}/repos/libports/run/libc_filesystem_test.inc
