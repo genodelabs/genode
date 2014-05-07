@@ -7,7 +7,7 @@ DASH_URL = http://gondor.apana.org.au/~herbert/dash/files/$(DASH_TGZ)
 #
 PORTS += $(DASH)
 
-prepare:: $(CONTRIB_DIR)/$(DASH)
+prepare-dash: $(CONTRIB_DIR)/$(DASH)
 
 #
 # Port-specific local rules
@@ -18,4 +18,7 @@ $(DOWNLOAD_DIR)/$(DASH_TGZ):
 $(CONTRIB_DIR)/$(DASH): $(DOWNLOAD_DIR)/$(DASH_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -N -p0 < src/noux-pkg/dash/build.patch
+
+clean-dash:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(DASH)
 

@@ -9,7 +9,7 @@ GNUSED_KEY = GNU
 #
 PORTS += $(GNUSED)
 
-prepare:: $(CONTRIB_DIR)/$(GNUSED)
+prepare-sed: $(CONTRIB_DIR)/$(GNUSED)
 
 #
 # Port-specific local rules
@@ -27,4 +27,7 @@ $(DOWNLOAD_DIR)/$(GNUSED_TGZ).verified: $(DOWNLOAD_DIR)/$(GNUSED_TGZ) \
                                         $(DOWNLOAD_DIR)/$(GNUSED_SIG)
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GNUSED_TGZ) $(DOWNLOAD_DIR)/$(GNUSED_SIG) $(GNUSED_KEY)
 	$(VERBOSE)touch $@
+
+clean-sed:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(SED)
 

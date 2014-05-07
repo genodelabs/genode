@@ -11,7 +11,7 @@ WHICH_KEY      = GNU
 #
 PORTS += $(WHICH)
 
-prepare:: $(CONTRIB_DIR)/$(WHICH)
+prepare-which: $(CONTRIB_DIR)/$(WHICH)
 
 #
 # Port-specific local rules
@@ -29,3 +29,6 @@ $(DOWNLOAD_DIR)/$(WHICH_TGZ).verified: $(DOWNLOAD_DIR)/$(WHICH_TGZ) \
 
 $(CONTRIB_DIR)/$(WHICH): $(DOWNLOAD_DIR)/$(WHICH_TGZ).verified
 	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
+
+clean-which:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(WHICH)

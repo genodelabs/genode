@@ -24,7 +24,7 @@ python_not_installed:
 	@false;
 endif
 
-prepare:: fetch-new-version $(CONTRIB_DIR)/$(SEOUL)/genode_prepared
+prepare-seoul: fetch-new-version $(CONTRIB_DIR)/$(SEOUL)/genode_prepared
 
 #
 # Port-specific local rules
@@ -63,3 +63,6 @@ $(CONTRIB_DIR)/$(SEOUL)/genode_prepared: $(CONTRIB_DIR)/$(SEOUL)
 	touch $(CURDIR)/$@
 
 .PHONY: fetch-new-version
+
+clean-seoul:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(SEOUL)

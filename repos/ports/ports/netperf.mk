@@ -27,7 +27,7 @@ apply_patches-netperf: checkout-netperf
 		xargs -ixxx sh -c "patch -p0 -r - -N -d $(CONTRIB_DIR)/$(NETPERF) < xxx" || true
 	$(VERBOSE)echo '#define NETPERF_VERSION "$(NETPERF_VERSION)"' >$(CONTRIB_DIR)/$(NETPERF)/src/netperf_version.h
 
-prepare:: apply_patches-netperf
+prepare-netperf: apply_patches-netperf
 
 clean-netperf:
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(NETPERF)

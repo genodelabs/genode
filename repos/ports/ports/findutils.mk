@@ -11,7 +11,7 @@ FINDUTILS_KEY      = GNU
 #
 PORTS += $(FINDUTILS)
 
-prepare:: $(CONTRIB_DIR)/$(FINDUTILS)
+prepare-findutils: $(CONTRIB_DIR)/$(FINDUTILS)
 
 #
 # Port-specific local rules
@@ -30,3 +30,6 @@ $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ).verified: $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ) \
 $(CONTRIB_DIR)/$(FINDUTILS): $(DOWNLOAD_DIR)/$(FINDUTILS_TGZ).verified
 	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(FINDUTILS) -N -p1 < src/noux-pkg/findutils/build.patch
+
+clean-findutils:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(FINDUTILS)

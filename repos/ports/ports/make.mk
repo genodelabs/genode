@@ -11,7 +11,7 @@ GNUMAKE_KEY      = GNU
 #
 PORTS += $(GNUMAKE)
 
-prepare:: $(CONTRIB_DIR)/$(GNUMAKE)
+prepare-make: $(CONTRIB_DIR)/$(GNUMAKE)
 
 #
 # Port-specific local rules
@@ -30,3 +30,5 @@ $(DOWNLOAD_DIR)/$(GNUMAKE_TGZ).verified: $(DOWNLOAD_DIR)/$(GNUMAKE_TGZ) \
 $(CONTRIB_DIR)/$(GNUMAKE): $(DOWNLOAD_DIR)/$(GNUMAKE_TGZ).verified
 	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
+clean-make:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(GNUMAKE)

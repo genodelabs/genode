@@ -12,7 +12,7 @@ LIGHTTPD_KEY      = stbuehler@lighttpd.net
 #
 PORTS += $(LIGHTTPD)
 
-prepare:: $(CONTRIB_DIR)/$(LIGHTTPD)
+prepare-lighttpd: $(CONTRIB_DIR)/$(LIGHTTPD)
 
 #
 # Port-specific local rules
@@ -31,3 +31,6 @@ $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ).verified: $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ) \
 $(CONTRIB_DIR)/$(LIGHTTPD): $(DOWNLOAD_DIR)/$(LIGHTTPD_TGZ).verified
 	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -N -p1 < src/app/lighttpd/disable_gethostbyaddr_fcntl.patch
+
+clean-lighttpd:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(LIGHTTPD)

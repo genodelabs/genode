@@ -45,7 +45,7 @@ GDB_CONTENT := gdb/regformats/regdat.sh \
 #
 PORTS += $(GDB)
 
-prepare:: clean-gdb $(CONTRIB_DIR)/$(GDB)/configure generated_files
+prepare-gdb: clean-gdb $(CONTRIB_DIR)/$(GDB)/configure generated_files
 
 clean-gdb:
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(GDB)

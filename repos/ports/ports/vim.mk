@@ -13,7 +13,7 @@ PORTS += $(VIM)
 #
 $(call check_tool,sed)
 
-prepare:: $(CONTRIB_DIR)/$(VIM)
+prepare-vim: $(CONTRIB_DIR)/$(VIM)
 
 #
 # Port-specific local rules
@@ -40,3 +40,6 @@ $(CONTRIB_DIR)/$(VIM): $(DOWNLOAD_DIR)/$(VIM_TBZ2).verified
 	@#
 	$(VERBOSE)sed -i "/default_vim_dir/s/.(VIMRCLOC)/\/share\/vim/" $@/src/Makefile
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(VIM) -N -p1 < src/noux-pkg/vim/build.patch
+
+clean-vim:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(VIM)

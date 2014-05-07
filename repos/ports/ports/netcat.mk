@@ -8,7 +8,7 @@ GNUNETCAT_URL = http://downloads.sourceforge.net/sourceforge/netcat/netcat-$(GNU
 #
 PORTS += $(GNUNETCAT)
 
-prepare:: $(CONTRIB_DIR)/$(GNUNETCAT)
+prepare-netcat: $(CONTRIB_DIR)/$(GNUNETCAT)
 
 #
 # Port-specific local rules
@@ -19,3 +19,5 @@ $(DOWNLOAD_DIR)/$(GNUNETCAT_TBZ):
 $(CONTRIB_DIR)/$(GNUNETCAT): $(DOWNLOAD_DIR)/$(GNUNETCAT_TBZ)
 	$(VERBOSE)tar xfj $< -C $(CONTRIB_DIR) && touch $@
 
+clean-netcat:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(GNUNETCAT)

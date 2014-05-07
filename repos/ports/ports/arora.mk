@@ -7,7 +7,7 @@ ARORA_URL = http://arora.googlecode.com/files/$(ARORA_TGZ)
 #
 PORTS += $(ARORA)
 
-prepare:: $(CONTRIB_DIR)/$(ARORA)
+prepare-arora: $(CONTRIB_DIR)/$(ARORA)
 
 PATCHES_DIR = src/app/arora/patches
 
@@ -21,3 +21,6 @@ $(CONTRIB_DIR)/$(ARORA): $(DOWNLOAD_DIR)/$(ARORA_TGZ)
 	$(VERBOSE)tar xfz $< -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)for p in $(shell cat $(PATCHES_DIR)/series); do \
 		patch -d $@ -p1 -i ../../$(PATCHES_DIR)/$$p; done;
+
+clean-arora:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(ARORA)

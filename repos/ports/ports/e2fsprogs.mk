@@ -10,7 +10,7 @@ $(call check_tool,git)
 #
 PORTS += $(E2FSPROGS)
 
-prepare:: $(CONTRIB_DIR)/$(E2FSPROGS)
+prepare-e2fsprogs: $(CONTRIB_DIR)/$(E2FSPROGS)
 
 #
 # Port-specific local rules
@@ -21,3 +21,6 @@ $(CONTRIB_DIR)/$(E2FSPROGS):
 	git checkout -b $(E2FSPROGS_BRANCH) $(E2FSPROGS_BRANCH)
 	$(VERBOSE)for i in src/noux-pkg/e2fsprogs/patches/*.patch; do \
 		patch -d $(CONTRIB_DIR)/$(E2FSPROGS) -N -p1 < $$i; done || true
+
+clean-e2fsprogs:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(E2FSPROGS)

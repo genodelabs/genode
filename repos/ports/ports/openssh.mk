@@ -11,7 +11,7 @@ OPENSSH_KEY      = 3981992A1523ABA079DBFC66CE8ECB0386FF9C48
 #
 PORTS += $(OPENSSH)
 
-prepare:: $(CONTRIB_DIR)/$(OPENSSH)
+prepare-openssh: $(CONTRIB_DIR)/$(OPENSSH)
 
 #
 # Port-specific local rules
@@ -32,3 +32,6 @@ $(CONTRIB_DIR)/$(OPENSSH): $(DOWNLOAD_DIR)/$(OPENSSH_TGZ).verified
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/openssh/monitor_fdpass.c.patch
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/openssh/sshconnect.h.patch
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/openssh/includes_h.patch
+
+clean-openssh:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(OPENSSH)

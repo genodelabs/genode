@@ -9,7 +9,7 @@ GNUGREP_KEY = GNU
 #
 PORTS += $(GNUGREP)
 
-prepare:: $(CONTRIB_DIR)/$(GNUGREP)
+prepare-grep: $(CONTRIB_DIR)/$(GNUGREP)
 
 #
 # Port-specific local rules
@@ -28,3 +28,5 @@ $(DOWNLOAD_DIR)/$(GNUGREP_TXZ).verified: $(DOWNLOAD_DIR)/$(GNUGREP_TXZ) \
 	$(VERBOSE)$(SIGVERIFIER) $(DOWNLOAD_DIR)/$(GNUGREP_TXZ) $(DOWNLOAD_DIR)/$(GNUGREP_SIG) $(GNUGREP_KEY)
 	$(VERBOSE)touch $@
 
+clean-grep:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(GNUGREP)

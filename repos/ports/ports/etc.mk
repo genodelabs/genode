@@ -19,7 +19,7 @@ $(CONTRIB_DIR)/$(ETC):
 	$(ECHO) "checking out 'etc' to '$@'"
 	$(VERBOSE)svn export $(ETC_SVN_BASE)/etc $@
 
-prepare:: $(CONTRIB_DIR)/$(ETC)
+prepare-etc: $(CONTRIB_DIR)/$(ETC)
 
 clean-etc:
 	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(ETC)

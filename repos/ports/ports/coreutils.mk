@@ -11,7 +11,7 @@ COREUTILS_KEY      = GNU
 #
 PORTS += $(COREUTILS)
 
-prepare:: $(CONTRIB_DIR)/$(COREUTILS)
+prepare-coreutils: $(CONTRIB_DIR)/$(COREUTILS)
 
 #
 # Port-specific local rules
@@ -30,3 +30,5 @@ $(DOWNLOAD_DIR)/$(COREUTILS_TGZ).verified: $(DOWNLOAD_DIR)/$(COREUTILS_TGZ) \
 $(CONTRIB_DIR)/$(COREUTILS): $(DOWNLOAD_DIR)/$(COREUTILS_TGZ)
 	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 
+clean-coreutils:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(COREUTILS)

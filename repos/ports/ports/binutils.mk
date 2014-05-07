@@ -11,7 +11,7 @@ BINUTILS_KEY      = GNU
 #
 PORTS += $(BINUTILS)
 
-prepare:: $(CONTRIB_DIR)/$(BINUTILS)
+prepare-binutils: $(CONTRIB_DIR)/$(BINUTILS)
 
 #
 # Port-specific local rules
@@ -30,3 +30,6 @@ $(DOWNLOAD_DIR)/$(BINUTILS_TBZ2).verified: $(DOWNLOAD_DIR)/$(BINUTILS_TBZ2) \
 $(CONTRIB_DIR)/$(BINUTILS): $(DOWNLOAD_DIR)/$(BINUTILS_TBZ2).verified
 	$(VERBOSE)tar xfj $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(BINUTILS) -N -p1 < src/noux-pkg/binutils/build.patch
+
+clean-binutils:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(BINUTILS)

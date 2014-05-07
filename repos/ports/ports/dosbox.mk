@@ -7,7 +7,7 @@ DOSBOX_SVN_URL = http://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk
 #
 PORTS += $(DOSBOX)
 
-prepare:: $(CONTRIB_DIR)/$(DOSBOX)
+prepare-dosbox: $(CONTRIB_DIR)/$(DOSBOX)
 
 #
 # Port-specific local rules
@@ -17,3 +17,6 @@ $(CONTRIB_DIR)/$(DOSBOX):
 	$(VERBOSE)svn export $(DOSBOX_SVN_URL)@$(DOSBOX_REV) $@
 	$(VERBOSE)for i in src/app/dosbox/patches/*.patch; do \
 		patch -N -p0 < $$i; done || true
+
+clean-dosbox:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(DOSBOX)

@@ -11,7 +11,7 @@ BASH_KEY      = GNU
 #
 PORTS += $(BASH)
 
-prepare:: $(CONTRIB_DIR)/$(BASH)
+prepare-bash: $(CONTRIB_DIR)/$(BASH)
 
 #
 # Port-specific local rules
@@ -32,3 +32,5 @@ $(CONTRIB_DIR)/$(BASH): $(DOWNLOAD_DIR)/$(BASH_TGZ).verified
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(BASH) -N -p1 < src/noux-pkg/bash/build.patch
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(BASH) -N -p1 < src/noux-pkg/bash/check_dev_tty.patch
 
+clean-bash:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(BASH)

@@ -10,7 +10,7 @@ LYNX_KEY     = dickey@sf1.isc.org
 #
 PORTS += $(LYNX)
 
-prepare:: $(CONTRIB_DIR)/$(LYNX)
+prepare-lynx: $(CONTRIB_DIR)/$(LYNX)
 
 #
 # Port-specific local rules
@@ -34,3 +34,6 @@ $(DOWNLOAD_DIR)/$(LYNX_TGZ).verified: $(DOWNLOAD_DIR)/$(LYNX_TGZ)
 $(CONTRIB_DIR)/$(LYNX): $(DOWNLOAD_DIR)/$(LYNX_TGZ).verified
 	$(VERBOSE)tar xfz $(<:.verified=) -C $(CONTRIB_DIR) && touch $@
 	$(VERBOSE)patch -d contrib/ -N -p0 < src/noux-pkg/lynx/build.patch
+
+clean-lynx:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(LYNX)

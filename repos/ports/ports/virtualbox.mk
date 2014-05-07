@@ -57,7 +57,7 @@ apply_patches:
 		patch -p0 -N -d $(CONTRIB_DIR)/$(VIRTUALBOX) -i $$p; \
 	done
 
-prepare:: $(CONTRIB_DIR)/$(VIRTUALBOX) apply_patches
+prepare-virtualbox: $(CONTRIB_DIR)/$(VIRTUALBOX) apply_patches
 
 #
 # Port-specific local rules
@@ -80,3 +80,6 @@ $(CONTRIB_DIR)/$(VIRTUALBOX): $(DOWNLOAD_DIR)/$(VIRTUALBOX_TBZ2).verified
 	rm $(CONTRIB_DIR)/$(VIRTUALBOX)/src/VBox/Frontends/VBoxBFE/SDLConsole.h && \
 	rm $(CONTRIB_DIR)/$(VIRTUALBOX)/src/VBox/Frontends/VBoxBFE/SDLFramebuffer.h; \
 	if [ $$? -ne 0 ]; then rm -r $(CONTRIB_DIR)/$(VIRTUALBOX); exit 1; fi
+
+clean-virtualbox:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(VIRTUALBOx)

@@ -10,7 +10,7 @@ GCC_KEY     = GNU
 #
 PORTS += $(GCC)
 
-prepare:: $(CONTRIB_DIR)/$(GCC)/configure
+prepare-gcc: $(CONTRIB_DIR)/$(GCC)/configure
 
 #
 # Port-specific local rules
@@ -57,3 +57,6 @@ $(CONTRIB_DIR)/$(GCC)/configure:: $(CONTRIB_DIR)/$(GCC)
 	@#
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(GCC) -N -p1 < src/noux-pkg/gcc/build.patch
 	$(VERBOSE)patch -d $(CONTRIB_DIR)/$(GCC) -N -p1 < src/noux-pkg/gcc/build_with_makeinfo_5.patch
+
+clean-gcc:
+	$(VERBOSE)rm -rf $(CONTRIB_DIR)/$(GCC)
