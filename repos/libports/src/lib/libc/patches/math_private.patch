@@ -1,5 +1,4 @@
---- /tmp/math_private.h	2009-04-15 17:09:50.000000000 +0200
-+++ msun/src/math_private.h	2009-04-15 17:10:09.000000000 +0200
++++ src/lib/libc/lib/msun/src/math_private.h
 @@ -225,6 +225,7 @@
  
  /* Asm versions of some functions. */

@@ -1,4 +1,4 @@
-REP_INC_DIR += include/openssl
+INC_DIR += $(call select_from_ports,openssl)/include
 
 ifeq ($(filter-out $(SPECS),x86_32),)
 TARGET_CPUARCH=x86_32

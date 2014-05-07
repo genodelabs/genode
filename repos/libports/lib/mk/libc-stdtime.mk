@@ -1,4 +1,4 @@
-LIBC_STDTIME_DIR = $(LIBC_DIR)/libc/stdtime
+LIBC_STDTIME_DIR = $(LIBC_DIR)/lib/libc/stdtime
 
 SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIBC_STDTIME_DIR)/*.c)))
 

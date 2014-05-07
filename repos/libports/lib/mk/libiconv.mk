@@ -1,19 +1,19 @@
-include $(REP_DIR)/ports/libiconv.inc
+LIBICONV_PORT_DIR := $(call select_from_ports,libiconv)
 
-LIBICONV_DIR = $(REP_DIR)/contrib/$(LIBICONV)
-LIBS      += libc
+LIBS += libc
+
+INC_DIR += $(LIBICONV_PORT_DIR)/include/iconv
 
 # find 'config.h'
-INC_DIR += $(REP_DIR)/src/lib/libiconv
 INC_DIR += $(REP_DIR)/src/lib/libiconv/private
 
-CC_DEF    += -DLIBDIR=\"\"
+CC_DEF += -DLIBDIR=\"\"
 
-SRC_C = iconv.c \
-        relocatable.c \
-        localcharset.c
+SRC_C := iconv.c \
+         relocatable.c \
+         localcharset.c
 
 SHARED_LIB = yes
 
-vpath %.c $(LIBICONV_DIR)/lib
-vpath %.c $(LIBICONV_DIR)/libcharset/lib
+vpath %.c $(LIBICONV_PORT_DIR)/src/lib/libiconv/lib
+vpath %.c $(LIBICONV_PORT_DIR)/src/lib/libiconv/libcharset/lib

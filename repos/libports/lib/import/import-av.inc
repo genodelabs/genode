@@ -1,2 +1,1 @@
-LIBAV       := libav-0.8.2
-REP_INC_DIR += contrib/$(LIBAV)
+INC_DIR += $(call select_from_ports,libav)/include/libav

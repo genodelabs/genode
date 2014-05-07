@@ -1,5 +1,4 @@
---- contrib/SDL-1.2.13/src/video/SDL_video.c	2007-12-31 05:48:14.000000000 +0100
-+++ contrib/SDL-1.2.13/src/video/SDL_video.c	2010-04-15 20:57:54.000000000 +0200
++++ src/lib/sdl/src/video/SDL_video.c
 @@ -28,8 +28,8 @@
  #include "SDL_blit.h"
  #include "SDL_pixels_c.h"
@@ -21,8 +20,7 @@
  #if SDL_VIDEO_DRIVER_DUMMY
  	&DUMMY_bootstrap,
  #endif
---- contrib/SDL-1.2.13/src/video/SDL_sysvideo.h	2007-12-31 05:48:14.000000000 +0100
-+++ contrib/SDL-1.2.13/src/video/SDL_sysvideo.h	2010-04-15 20:57:54.000000000 +0200
++++ src/lib/sdl/src/video/SDL_sysvideo.h
 @@ -404,6 +404,9 @@
  #if SDL_VIDEO_DRIVER_AALIB
  extern VideoBootStrap AALIB_bootstrap;

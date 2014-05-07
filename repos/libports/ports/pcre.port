@@ -1,0 +1,26 @@
+LICENSE   := BSD
+VERSION   := 8.30
+DOWNLOADS := pcre.archive
+
+URL(pcre) := http://sourceforge.net/projects/pcre/files/pcre/$(VERSION)/pcre-$(VERSION).tar.bz2
+SHA(pcre) := 68d28fb383325b8af9e3d481d30f586b46c56022
+SIG(pcre) := ${URL(pcre)}.sig
+KEY(pcre) := ph10@cam.ac.uk
+DIR(pcre) := src/lib/pcre
+
+default: include/pcre/pcre.h
+
+include/pcre/pcre.h: $(DOWNLOADS)
+
+subst := \
+	"@PCRE_MAJOR@/8" \
+	"@PCRE_MINOR@/30" \
+	"@PCRE_PRERELEASE@/" \
+	"@PCRE_DATE@/2012-02-04"
+
+apply_substitutions = for i in $(subst); do sed -i "s/$$i/g" $(1); done
+
+include/pcre/pcre.h:
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp src/lib/pcre/pcre.h.in $@
+	$(VERBOSE)$(call apply_substitutions,$@)

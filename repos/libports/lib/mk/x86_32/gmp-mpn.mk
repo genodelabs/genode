@@ -63,6 +63,5 @@ endif
 
 vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/32bit
 vpath %.c   $(GMP_MPN_DIR)/generic
-vpath %.asm $(REP_DIR)/src/lib/gmp/mpn/x86_32
 vpath %.asm $(GMP_MPN_DIR)/x86/pentium
 vpath %.asm $(GMP_MPN_DIR)/x86

@@ -105,8 +105,9 @@ INC_DIR += $(QT5_REP_DIR)/include/qt5/genode
 # included (in 'base/mk/lib.mk') by iterating through the elements of the
 # 'LIBS' variable. Hence, we also need to manually import the stdlib snippet.
 #
-LIBS += stdcxx
+LIBS += stdcxx gallium
 include $(call select_from_repositories,lib/import/import-stdcxx.mk)
+include $(call select_from_repositories,lib/import/import-gallium.mk)
 
 # custom main() thread stack size support via main() wrapper
 ifeq ($(findstring -DQT_MAIN_STACK_SIZE, $(CC_CXX_OPT)), -DQT_MAIN_STACK_SIZE)

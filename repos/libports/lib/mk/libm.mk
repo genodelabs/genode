@@ -1,5 +1,7 @@
-LIBC_DIR = $(REP_DIR)/contrib/libc-8.2.0
-LIBM_DIR = $(LIBC_DIR)/msun
+LIBC_PORT_DIR := $(call select_from_ports,libc)
+LIBC_DIR      := $(LIBC_PORT_DIR)/src/lib/libc
+LIBM_DIR      := $(LIBC_DIR)/lib/msun
+
 LIBS = libc
 
 #
@@ -15,7 +17,7 @@ INC_DIR += $(LIBM_DIR)/ld80
 #
 # finding 'fpmath.h', included by 'invtrig.h'
 #
-INC_DIR += $(LIBC_DIR)/libc/include
+INC_DIR += $(LIBC_DIR)/lib/libc/include
 
 FILTER_OUT += s_exp2l.c
 

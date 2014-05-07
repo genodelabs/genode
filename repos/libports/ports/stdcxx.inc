@@ -1,2 +1,0 @@
-STDCXX_VERSION = 4.7.2
-STDCXX         = stdcxx-$(STDCXX_VERSION)

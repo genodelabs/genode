@@ -20,6 +20,22 @@ HASHVERIFIER = $(CURDIR)/../../tool/download_hashver
 MAKEFLAGS   += --no-print-directory
 
 #
+# Support for transitioning to the new tool/ports/prepare_port mechanism
+#
+
+# obtain version of the port
+port_version = $(strip $(shell grep "^VERSION" ports/$1.port | sed "s/^.*=//"))
+
+# collect information about ports available via tool/ports/prepare_port
+#NEW_PORTS := $(foreach PORT,$(wildcard ports/*.port),\
+#                   $(notdir $(PORT:.port=))-$(call port_version,$(PORT)))
+NEW_PORTS := $(patsubst %.port,%,$(notdir $(wildcard ports/*.port)))
+
+# generic rule for invoking the new tool/ports/prepare_port mechanism
+$(addprefix prepare-,$(NEW_PORTS)):
+	$(VERBOSE)../../tool/ports/prepare_port $(patsubst prepare-%,%,$@)
+
+#
 # Create download and contrib directory so that '<port>.mk' files
 # do not need to care for them.
 #
@@ -50,13 +66,15 @@ $(call check_tool,sha256sum)
 # Furthermore, each '<port>.mk' file extends the 'prepare' rule for
 # downloading and unpacking the corresponding upstream sources.
 #
-PKG ?= $(patsubst ports/%.mk,%,$(wildcard ports/*.mk))
-include $(addprefix ports/,$(addsuffix .mk,$(PKG)))
+PKG ?= $(patsubst ports/%.mk,%,$(wildcard ports/*.mk)) $(NEW_PORTS)
+-include $(addprefix ports/,$(addsuffix .mk,$(PKG)))
+
+LIST_OF_PORTS = $(sort $(PORTS) $(foreach P,$(NEW_PORTS),$P-$(call port_version,$P)))
 
 help::
 	$(ECHO)
 	$(ECHO) "Download and unpack upstream source codes:"
-	@for i in $(PORTS); do echo "  $$i"; done
+	@for i in $(LIST_OF_PORTS); do echo "  $$i"; done
 	$(ECHO)
 	$(ECHO) "Downloads will be placed into the '$(DOWNLOAD_DIR)/' directory."
 	$(ECHO) "Source codes will be unpacked in the '$(CONTRIB_DIR)/' directory."

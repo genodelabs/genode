@@ -1,0 +1,173 @@
+LICENSE   := MIT
+VERSION   := 5.9
+DOWNLOADS := ncurses.archive
+
+URL(ncurses) := http://ftp.gnu.org/pub/gnu/ncurses/ncurses-$(VERSION).tar.gz
+SHA(ncurses) := 3e042e5f2c7223bffdaac9646a533b8c758b65b5
+SIG(ncurses) := ${URL(ncurses)}.sig
+DIR(ncurses) := src/lib/ncurses
+
+DIRS := include/ncurses
+DIR_CONTENT(include/ncurses) := \
+    $(addprefix src/lib/ncurses/include/,\
+         nc_alloc.h nc_panel.h nc_tparm.h term_entry.h tic.h hashed_db.h \
+         capdefaults.c)
+
+#$(call check_tool,sed)
+#$(call check_tool,mawk)
+
+gen_inc   := curses.h ncurses_def.h ncurses_dll.h term.h \
+             unctrl.h termcap.h parametrized.h hashsize.h \
+             init_keytry.h keys.list make_keys MKterm.h.awk
+
+gen_src   := names.c unctrl.c fallback.c comp_captab.c codes.c
+
+gen_tools := make_hash make_keys
+
+gen_files := $(addprefix include/ncurses/,$(gen_inc)) \
+             $(addprefix src/lib/ncurses/,$(gen_src)) \
+             $(addprefix src/lib/ncurses/,$(gen_tools))
+
+default: $(gen_files) cleanup_gen_tools
+
+$(gen_files): _dirs
+
+cleanup_gen_tools: $(gen_files)
+	$(VERBOSE)rm $(addprefix src/lib/ncurses/,$(gen_tools))
+
+#
+# Generate headers and source codes
+#
+
+subst := \
+	"@NCURSES_MAJOR@/5" \
+	"@NCURSES_MINOR@/9" \
+	"@NCURSES_PATCH@/20110404" \
+	"@NCURSES_MOUSE_VERSION@/1" \
+	"@NCURSES_CONST@/\/*nothing*\/" \
+	"@NCURSES_INLINE@/inline" \
+	"@NCURSES_OPAQUE@/0" \
+	"@NCURSES_INTEROP_FUNCS@/0" \
+	"@NCURSES_SIZE_T@/short" \
+	"@NCURSES_TPARM_VARARGS@/1" \
+	"@NCURSES_CH_T@/chtype" \
+	"@NCURSES_LIBUTF8@/0" \
+	"@NCURSES_OSPEED@/short" \
+	"@NCURSES_WCHAR_T@/0" \
+	"@NCURSES_WINT_T@/0" \
+	"@NCURSES_SBOOL@/char" \
+	"@NCURSES_XNAMES@/1" \
+	"@HAVE_TERMIOS_H@/1" \
+	"@HAVE_TCGETATTR@/1" \
+	"@NCURSES_CCHARW_MAX@/5" \
+	"@NCURSES_EXT_COLORS@/0" \
+	"@NCURSES_EXT_FUNCS@/1" \
+	"@NCURSES_SP_FUNCS@/0" \
+	"@NCURSES_OK_WCHAR_T@/" \
+	"@NCURSES_WRAP_PREFIX@/_nc_" \
+	"@cf_cv_header_stdbool_h@/1" \
+	"@cf_cv_enable_opaque@/NCURSES_OPAQUE" \
+	"@cf_cv_enable_reentrant@/0" \
+	"@cf_cv_enable_lp64@/0" \
+	"@cf_cv_typeof_chtype@/long" \
+	"@cf_cv_typeof_mmask_t@/long" \
+	"@cf_cv_type_of_bool@/unsigned char" \
+	"@cf_cv_1UL@/1UL" \
+	"@USE_CXX_BOOL@/defined(__cplusplus)" \
+	"@BROKEN_LINKER@/0" \
+	"@NEED_WCHAR_H@/0" \
+	"@GENERATED_EXT_FUNCS@/generated" \
+	"@HAVE_TERMIO_H@/1" \
+	"@HAVE_VSSCANF@/1"
+
+apply_substitutions = $(VERBOSE)for i in $(subst); do sed -i "s/$$i/g" $(1); done
+
+ncurses_include_dir := src/lib/ncurses/include
+ncurses_src_dir     := src/lib/ncurses/ncurses
+
+include/ncurses/curses.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cp src/lib/ncurses/include/curses.h.in $@
+	$(call apply_substitutions,$@)
+	$(VERBOSE)AWK=mawk sh $(ncurses_include_dir)/MKkey_defs.sh $(ncurses_include_dir)/Caps >> $@
+	$(VERBOSE)cat $(ncurses_include_dir)/curses.tail >> $@
+
+include/ncurses/ncurses_def.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)AWK=mawk sh $(ncurses_include_dir)/MKncurses_def.sh $(ncurses_include_dir)/ncurses_defs > $@
+
+include/ncurses/parametrized.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)AWK=mawk sh $(ncurses_include_dir)/MKparametrized.sh $(ncurses_include_dir)/Caps > $@
+
+include/ncurses/hashsize.h: $(ncurses_include_dir)/MKhashsize.sh
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)AWK=mawk sh $< $(ncurses_include_dir)/Caps > $@
+
+include/ncurses/keys.list:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)AWK=mawk sh $(ncurses_src_dir)/tinfo/MKkeys_list.sh $(ncurses_include_dir)/Caps | sort > $@
+
+include/ncurses/init_keytry.h: src/lib/ncurses/make_keys include/ncurses/keys.list
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)src/lib/ncurses/make_keys include/ncurses/keys.list > $@
+
+include/ncurses/term.h: include/ncurses/MKterm.h.awk
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mawk -f $< $(ncurses_include_dir)/Caps > $@
+
+include/ncurses/MKterm.h.awk: $(ncurses_include_dir)/MKterm.h.awk.in
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cp $< $@
+	$(call apply_substitutions,$@)
+
+include/ncurses/ncurses_dll.h: $(ncurses_include_dir)/ncurses_dll.h.in
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cp $< $@
+	$(call apply_substitutions,$@)
+
+include/ncurses/termcap.h: $(ncurses_include_dir)/termcap.h.in
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cp $< $@
+	$(call apply_substitutions,$@)
+
+include/ncurses/unctrl.h: $(ncurses_include_dir)/unctrl.h.in
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cp $< $@
+	$(call apply_substitutions,$@)
+
+src/lib/ncurses/names.c:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mawk -f $(ncurses_src_dir)/tinfo/MKnames.awk bigstrings=1 $(ncurses_include_dir)/Caps > $@
+
+src/lib/ncurses/codes.c:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mawk -f $(ncurses_src_dir)/tinfo/MKcodes.awk bigstrings=1 $(ncurses_include_dir)/Caps > $@
+
+src/lib/ncurses/fallback.c: $(ncurses_src_dir)/tinfo/MKfallback.sh
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)sh -e $< x src/lib/ncurses/misc/terminfo.src tic linux vt102 > $@ 2> /dev/null
+	$(VERBOSE)#sh -e $< /usr/share/terminfo $(ncurses_src_dir)/misc/terminfo.src /usr/bin/tic > $@
+
+src/lib/ncurses/unctrl.c:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)echo | mawk -f $(ncurses_src_dir)/base/MKunctrl.awk bigstrings=1 > $@
+
+src/lib/ncurses/comp_captab.c: src/lib/ncurses/make_hash
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cd $(dir $@);\
+	          sh -e $(realpath $(ncurses_src_dir))/tinfo/MKcaptab.sh \
+	          mawk 1 $(realpath $(ncurses_src_dir))/tinfo/MKcaptab.awk \
+	          $(realpath $(ncurses_include_dir))/Caps > $(notdir $@)
+
+src/lib/ncurses/make_keys: $(ncurses_src_dir)/tinfo/make_keys.c
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)$(CC) -o $@ -DHAVE_CONFIG_H -I$(REP_DIR)/include/ncurses \
+	                -Iinclude/ncurses -Isrc/lib/ncurses -I$(ncurses_src_dir) $<
+
+src/lib/ncurses/make_hash: $(ncurses_src_dir)/tinfo/make_hash.c
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)$(CC) -o $@ -DHAVE_CONFIG_H -I$(REP_DIR)/include/ncurses \
+	                -Iinclude/ncurses -Isrc/lib/ncurses -I$(ncurses_src_dir) $<
+
+src/lib/ncurses/make_keys: src/lib/ncurses/names.c

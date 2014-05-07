@@ -1,4 +1,4 @@
-LIBC_REGEX_DIR = $(LIBC_DIR)/libc/regex
+LIBC_REGEX_DIR = $(LIBC_DIR)/lib/libc/regex
 
 #
 # 'engine.c' is meant to be included by other compilation units. It cannot

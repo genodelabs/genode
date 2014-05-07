@@ -1,5 +1,4 @@
---- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/icount.c.orig	2013-12-09 15:27:23.231370552 +0100
-+++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/icount.c	2013-12-09 15:27:35.755370914 +0100
++++ src/lib/fuse-ext2/e2fsprogs-1.41.12.newgit/ext2fs/icount.c
 @@ -9,6 +9,8 @@
   * %End-Header%
   */

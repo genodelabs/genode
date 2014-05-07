@@ -1,0 +1,10 @@
+LICENSE   := zlib
+VERSION   := 1.2.8
+DOWNLOADS := zlib.archive
+
+URL(zlib) := http://downloads.sourceforge.net/project/libpng/zlib/$(VERSION)/zlib-$(VERSION).tar.gz
+SHA(zlib) := a4d316c404ff54ca545ea71a27af7dbc29817088
+DIR(zlib) := src/lib/zlib
+
+DIRS := include/zlib
+DIR_CONTENT(include/zlib) := $(addprefix src/lib/zlib/,zconf.h zlib.h)

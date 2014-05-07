@@ -1,6 +1,6 @@
-LIBC_ISC_DIR = $(LIBC_DIR)/libc/isc
+LIBC_ISC_DIR = $(LIBC_DIR)/lib/libc/isc
 
-INC_DIR += $(LIBC_DIR)/libc/isc
+INC_DIR += $(LIBC_DIR)/lib/libc/isc
 
 SRC_C = $(notdir $(wildcard $(LIBC_ISC_DIR)/*.c))
 

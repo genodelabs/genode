@@ -1,12 +1,14 @@
-include $(REP_DIR)/ports/sdl.inc
-
-SDL_DIR = $(REP_DIR)/contrib/$(SDL)
+SDL_PORT_DIR := $(call select_from_ports,sdl)
+SDL_DIR      := $(SDL_PORT_DIR)/src/lib/sdl
 
 # build shared object
 SHARED_LIB = yes
 
 # use default warning level for 3rd-party code
 CC_WARN =
+
+INC_DIR += $(SDL_PORT_DIR)/include
+INC_DIR += $(SDL_PORT_DIR)/include/SDL
 
 # backends
 SRC_CC   = video/SDL_genode_fb_video.cc \

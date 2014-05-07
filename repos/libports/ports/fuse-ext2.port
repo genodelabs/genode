@@ -1,0 +1,16 @@
+LICENSE   := GPLv2
+VERSION   := svn-220
+DOWNLOADS := fuse-ext2.svn
+
+URL(fuse-ext2) := http://svn.code.sf.net/p/fuse-ext2/code/branch/renzo
+REV(fuse-ext2) := 220
+DIR(fuse-ext2) := src/lib/fuse-ext2
+
+PATCHES := src/lib/fuse-ext2/patches/*.patch
+
+DIRS     := $(addprefix include/fuse-ext2/,e2p et ext2fs)
+e2fs_dir := src/lib/fuse-ext2/e2fsprogs-1.41.12.newgit
+
+DIR_CONTENT(include/fuse-ext2/e2p)    := $(e2fs_dir)/e2p/*.h
+DIR_CONTENT(include/fuse-ext2/et)     := $(e2fs_dir)/et/*.h
+DIR_CONTENT(include/fuse-ext2/ext2fs) := $(e2fs_dir)/ext2fs/*.h

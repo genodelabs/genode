@@ -1,6 +1,6 @@
 SRC_C = intel_bufmgr_gem.c intel_bufmgr.c ioctl.cc
 
-LIBDRM_DIR := $(REP_DIR)/contrib/libdrm-2.4.21
+LIBDRM_DIR := $(call select_from_ports,libdrm)/src/lib/libdrm
 INC_DIR    += $(LIBDRM_DIR) $(LIBDRM_DIR)/include/drm $(LIBDRM_DIR)/intel
 
 LIBS   += libc cxx

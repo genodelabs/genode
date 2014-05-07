@@ -1,4 +1,4 @@
-LIBC_LOCALE_DIR = $(LIBC_DIR)/libc/locale
+LIBC_LOCALE_DIR = $(LIBC_DIR)/lib/libc/locale
 
 SRC_C = $(notdir $(wildcard $(LIBC_LOCALE_DIR)/*.c))
 

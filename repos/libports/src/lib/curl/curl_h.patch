@@ -2,8 +2,7 @@ We have no osreldate.h because this header is normally created by
 `sys/conf/newvers.sh` but since our libc is based on FreeBSD 8.2
 let's just define the symbol.
 
---- curl-7.29.0/include/curl/curl.h.orig	2012-12-04 00:06:21.701911303 +0100
-+++ curl-7.29.0/include/curl/curl.h	2012-12-04 00:07:01.208367480 +0100
++++ src/lib/curl/include/curl/curl.h
 @@ -47,8 +47,7 @@
  #include <limits.h>
  

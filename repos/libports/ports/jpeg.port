@@ -1,0 +1,10 @@
+LICENSE   := JPEG
+VERSION   := 7
+DOWNLOADS := jpeg.archive
+
+URL(jpeg) := http://www.ijg.org/files/jpegsrc.v7.tar.gz
+SHA(jpeg) := 88cced0fc3dbdbc82115e1d08abce4e9d23a4b47
+DIR(jpeg) := src/lib/jpeg
+
+DIRS := include/jpeg
+DIR_CONTENT(include/jpeg) := src/lib/jpeg/*.h

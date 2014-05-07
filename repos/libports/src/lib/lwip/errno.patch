@@ -1,5 +1,4 @@
---- lwip-STABLE-1_4_1-RC1/src/include/lwip/arch.h.orig
-+++ lwip-STABLE-1_4_1-RC1/src/include/lwip/arch.h
++++ src/lib/lwip/src/include/lwip/arch.h
 @@ -208,6 +208,12 @@ extern "C" {
  extern int errno;
  #endif

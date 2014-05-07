@@ -1,13 +1,13 @@
-MESA            = Mesa-7.8.1
-MESA_DIR        = $(REP_DIR)/contrib/$(MESA)
-GALLIUM_SRC_DIR = $(MESA_DIR)/src/gallium
+MESA_PORT_DIR   := $(call select_from_ports,mesa)
+GALLIUM_SRC_DIR := $(MESA_PORT_DIR)/src/lib/mesa/src/gallium
 
-LIBS += cxx libc libm
+LIBS += cxx libc libm mesa_host_tools
 
 INC_DIR += $(GALLIUM_SRC_DIR)/include \
            $(GALLIUM_SRC_DIR)/auxiliary \
            $(GALLIUM_SRC_DIR)/auxiliary/util \
-           $(GALLIUM_SRC_DIR)/drivers
+           $(GALLIUM_SRC_DIR)/drivers \
+           $(MESA_PORT_DIR)/include
 
 CC_OPT += -U__linux__
 
@@ -18,11 +18,3 @@ CC_OPT += -U__linux__
 # that include 'p_compiler.h', we unconditionally include 'sys/types.h'.
 #
 CC_OPT += -D__USE_MISC -include sys/types.h
-
-#
-# Detect missing preparation of Mesa library, skip unprepared library
-#
-ifeq ($(wildcard $(REP_DIR)/include/GL),)
-REQUIRES = prepare_mesa
-endif
-

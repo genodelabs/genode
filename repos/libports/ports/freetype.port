@@ -1,0 +1,17 @@
+LICENSE := GPLv2
+VERSION := 2.3.9
+
+DOWNLOADS := freetype.archive
+
+BASE_URL := http://mirrors.zerg.biz/nongnu/freetype/freetype-old
+
+URL(freetype) := $(BASE_URL)/freetype-$(VERSION).tar.gz
+SIG(freetype) := ${URL(freetype)}.sig
+KEY(freetype) := wl@gnu.org
+SHA(freetype) := 2c82a4f87b076c13d878129c8651645803585ff4
+DIR(freetype) := src/lib/freetype/contrib
+
+DIRS := include include/freetype
+
+DIR_CONTENT(include)          := src/lib/freetype/contrib/include/ft2build.h
+DIR_CONTENT(include/freetype) := src/lib/freetype/contrib/include/freetype/*

@@ -1,4 +1,4 @@
-LIBC_STDLIB_DIR = $(LIBC_DIR)/libc/stdlib
+LIBC_STDLIB_DIR = $(LIBC_DIR)/lib/libc/stdlib
 FILTER_OUT = exit.c atexit.c malloc.c
 
 #SRC_C = $(notdir $(wildcard $(LIBC_STDLIB_DIR)/*.c))

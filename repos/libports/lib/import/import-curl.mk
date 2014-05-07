@@ -1,4 +1,4 @@
-REP_INC_DIR += include/curl
+INC_DIR += $(call select_from_ports,curl)/include
 
 ifeq ($(filter-out $(SPECS),x86_32),)
 TARGET_CPUARCH=x86_32

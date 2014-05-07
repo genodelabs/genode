@@ -1,8 +1,7 @@
 Since noux.mk is using a brute-force approach for setting
 CFLAGS, CPPFLAGs etc. disable this check.
 
---- curl-7.29.0/configure.orig	2013-02-23 16:55:37.710076636 +0100
-+++ curl-7.29.0/configure	2013-02-23 16:56:01.286193552 +0100
++++ src/lib/curl/configure
 @@ -3671,8 +3671,8 @@
  
 -  if test $xc_bad_var_libs = yes ||

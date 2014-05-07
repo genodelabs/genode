@@ -1,0 +1,19 @@
+LICENSE   := LGPL
+VERSION   := 1.2.13
+DOWNLOADS := sdl.archive
+
+URL(sdl) := http://www.libsdl.org/release/SDL-$(VERSION).tar.gz
+SHA(sdl) := 51fcaa3e1d5c01fd813ea08688780f86b19cf539
+SIG(sdl) := ${URL(sdl)}.sig
+KEY(sdl) := 1528635D8053A57F77D1E08630A59377A7763BE6
+DIR(sdl) := src/lib/sdl
+
+PATCHES   := src/lib/sdl/SDL_video.patch src/lib/sdl/SDL_audio.patch
+
+# wipe original 'SDL_config.h' file because it conflicts with out version
+_dirs: remove_default_config
+remove_default_config: $(DOWNLOADS)
+	$(VERBOSE)rm src/lib/sdl/include/SDL_config.h
+
+DIRS := include/SDL
+DIR_CONTENT(include/SDL) := src/lib/sdl/include/*.h

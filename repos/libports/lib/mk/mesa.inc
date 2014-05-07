@@ -1,12 +1,7 @@
-MESA         = Mesa-7.8.1
-MESA_DIR     = $(REP_DIR)/contrib/$(MESA)
-MESA_SRC_DIR = $(MESA_DIR)/src/mesa
+MESA_PORT_DIR := $(call select_from_ports,mesa)
+MESA_SRC_DIR  := $(MESA_PORT_DIR)/src/lib/mesa/src/mesa
 
-ifeq ($(wildcard $(MESA_DIR)),)
-REQUIRES += prepare_mesa
-endif
-
-LIBS += cxx libc libm
+LIBS += cxx libc libm mesa_host_tools
 
 #
 # Prevent warning about non-existing 'fpu_control.h' included
@@ -14,8 +9,9 @@ LIBS += cxx libc libm
 #
 CC_OPT += -U__linux__
 
-INC_DIR += $(MESA_DIR)/src/mesa \
-           $(MESA_DIR)/src/gallium/include \
-           $(MESA_DIR)/src/gallium/auxiliary
+INC_DIR += $(MESA_PORT_DIR)/src/lib/mesa/src/mesa \
+           $(MESA_PORT_DIR)/src/lib/mesa/src/gallium/include \
+           $(MESA_PORT_DIR)/src/lib/mesa/src/gallium/auxiliary \
+           $(MESA_PORT_DIR)/include
 
 #SHARED_LIB = yes

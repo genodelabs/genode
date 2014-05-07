@@ -1,5 +1,4 @@
---- lwip-STABLE-1_4_1-RC1/src/api/sockets.c.orig
-+++ lwip-STABLE-1_4_1-RC1/src/api/sockets.c
++++ src/lib/lwip/src/api/sockets.c
 @@ -171,6 +171,9 @@ static const int err_to_errno_table[] = {
    set_errno(sk->err); \
  } while (0)

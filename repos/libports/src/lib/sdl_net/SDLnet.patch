@@ -1,5 +1,4 @@
---- contrib/SDL_net-1.2.8/SDLnet.c.orig	2013-10-22 23:17:40.135873087 +0200
-+++ contrib/SDL_net-1.2.8/SDLnet.c	2013-10-22 23:28:28.845485683 +0200
++++ src/lib/sdl_net/SDLnet.c
 @@ -122,11 +122,11 @@
  	} else {
  		address->host = inet_addr(host);

@@ -1,5 +1,4 @@
---- libc/net/getaddrinfo.c.orig
-+++ libc/net/getaddrinfo.c
++++ src/lib/libc/lib/libc/net/getaddrinfo.c
 @@ -329,7 +329,7 @@ do { \
  	((x) == (y) || (/*CONSTCOND*/(w) && ((x) == ANY || (y) == ANY)))
  

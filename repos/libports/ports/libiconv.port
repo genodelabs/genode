@@ -1,0 +1,29 @@
+LICENSE   := GPLv3
+VERSION   := 1.14
+DOWNLOADS := libiconv.archive
+
+URL(libiconv) := http://ftp.gnu.org/pub/gnu/libiconv/libiconv-$(VERSION).tar.gz
+SHA(libiconv) := be7d67e50d72ff067b2c0291311bc283add36965
+SIG(libiconv) := ${URL(libiconv)}.sig
+KEY(libiconv) := GNU
+DIR(libiconv) := src/lib/libiconv
+
+default: include/iconv/iconv.h
+
+include/iconv/iconv.h: $(DOWNLOADS)
+
+iconv_subst := \
+	"@DLL_VARIABLE@/" \
+	"@EILSEQ@/" \
+	"@ICONV_CONST@/" \
+	"@USE_MBSTATE_T@/1" \
+	"@BROKEN_WCHAR_H@/0" \
+	"@HAVE_WCHAR_T@/1"
+
+apply_substitutions = for i in $(iconv_subst); do sed -i "s/$$i/g" $(1); done
+
+include/iconv/iconv.h:
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp src/lib/libiconv/include/iconv.h.in $@
+	$(VERBOSE)$(call apply_substitutions,$@)
+

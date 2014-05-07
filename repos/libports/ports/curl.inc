@@ -1,2 +1,0 @@
-CURL_VERSION = 7.29.0
-CURL         = curl-$(CURL_VERSION)

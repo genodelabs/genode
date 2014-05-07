@@ -1,6 +1,4 @@
-include $(REP_DIR)/ports/curl.inc
-
-CURL_DIR = $(REP_DIR)/contrib/$(CURL)
+CURL_PORT_DIR = $(call select_from_ports,curl)
 
 SRC_C = \
   file.c timeval.c base64.c hostip.c progress.c formdata.c              \
@@ -31,4 +29,4 @@ include $(REP_DIR)/lib/import/import-curl.mk
 
 SHARED_LIB = yes
 
-vpath %.c $(CURL_DIR)/lib
+vpath %.c $(CURL_PORT_DIR)/src/lib/curl/lib

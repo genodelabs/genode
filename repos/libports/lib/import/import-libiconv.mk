@@ -1,1 +1,1 @@
-REP_INC_DIR += include/iconv
+INC_DIR += $(call select_from_ports,libiconv)/include/iconv

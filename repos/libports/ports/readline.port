@@ -1,0 +1,13 @@
+LICENSE   := GPLv3
+VERSION   := 6.0
+DOWNLOADS := readline.archive
+
+URL(readline) := ftp://ftp.gnu.org/gnu/readline/readline-$(VERSION).tar.gz
+SHA(readline) := 1e511b091514ef631c539552316787c75ace5262
+SIG(readline) := ${URL(readline)}.sig
+KEY(readline) := GNU
+DIR(readline) := src/lib/readline
+
+DIRS := include/readline
+DIR_CONTENT(include/readline) := $(addprefix src/lib/readline/,\
+                                   rlstdc.h rltypedefs.h keymaps.h tilde.h)

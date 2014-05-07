@@ -1,5 +1,4 @@
---- src/lib/libc/gen/_pthread_stubs.c	Mon Jan 18 14:51:51 2010 +0100
-+++ libc/gen/_pthread_stubs.c	Thu Feb 04 22:05:48 2010 +0100
++++ src/lib/libc/lib/libc/gen/_pthread_stubs.c
 @@ -253,7 +253,7 @@
  STUB_FUNC2(pthread_attr_setschedparam, PJT_ATTR_SETSCHEDPARAM, int, void *, void *)
  STUB_FUNC2(pthread_attr_setschedpolicy, PJT_ATTR_SETSCHEDPOLICY, int, void *, int)

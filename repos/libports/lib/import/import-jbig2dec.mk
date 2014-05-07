@@ -1,1 +1,1 @@
-REP_INC_DIR += include/jbig2dec
+INC_DIR += $(call select_from_ports,jbig2dec)/include/jbig2dec

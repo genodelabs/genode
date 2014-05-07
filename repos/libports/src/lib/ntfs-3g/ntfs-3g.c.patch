@@ -1,5 +1,4 @@
---- contrib/ntfs-3g_ntfsprogs-2013.1.13/src/ntfs-3g.c.orig	2013-12-10 16:16:48.000000000 +0100
-+++ contrib/ntfs-3g_ntfsprogs-2013.1.13/src/ntfs-3g.c	2013-12-10 16:19:05.040371689 +0100
++++ src/lib/ntfs-3g/src/ntfs-3g.c
 @@ -151,6 +151,11 @@
  static ntfs_fuse_context_t *ctx;
  static u32 ntfs_sequence;

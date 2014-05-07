@@ -1,6 +1,4 @@
-diff -r 4395e7e35ad9 Modules/posixmodule.c
---- contrib/python-2.6.4/Modules/posixmodule.c	Tue Jan 26 17:04:11 2010 +0100
-+++ contrib/python-2.6.4/Modules/posixmodule.c	Wed Feb 17 18:30:10 2010 +0100
++++ src/lib/python/Modules/posixmodule.c
 @@ -135,16 +135,16 @@
  /* Everything needed is defined in PC/os2emx/pyconfig.h or vms/pyconfig.h */
  #else			/* all other compilers */

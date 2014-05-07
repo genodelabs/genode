@@ -1,4 +1,4 @@
-LIBC_NAMESER_DIR = $(LIBC_DIR)/libc/nameser
+LIBC_NAMESER_DIR = $(LIBC_DIR)/lib/libc/nameser
 
 SRC_C = $(notdir $(wildcard $(LIBC_NAMESER_DIR)/*.c))
 

@@ -1,4 +1,4 @@
-LIBC_GEN_AMD64_DIR = $(LIBC_DIR)/libc/amd64/gen
+LIBC_GEN_AMD64_DIR = $(LIBC_DIR)/lib/libc/amd64/gen
 
 SRC_S  = _setjmp.S setjmp.S
 

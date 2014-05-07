@@ -1,12 +1,11 @@
-LIBSSL     = libssl-1.0.0
-LIBSSL_DIR = $(REP_DIR)/contrib/openssl-1.0.1g
+LIBSSL_PORT_DIR = $(call select_from_ports,openssl)
 
 #
 # ARM is not supported currently (needs testing)
 #
 REQUIRES = x86
 
-LIBS      += libc libcrypto
+LIBS += libc libcrypto
 
 SRC_C = s2_meth.c   s2_srvr.c s2_clnt.c  s2_lib.c  s2_enc.c s2_pkt.c \
         s3_meth.c   s3_srvr.c s3_clnt.c  s3_lib.c  s3_enc.c s3_pkt.c s3_both.c s3_cbc.c \
@@ -19,8 +18,8 @@ SRC_C = s2_meth.c   s2_srvr.c s2_clnt.c  s2_lib.c  s2_enc.c s2_pkt.c \
         ssl_asn1.c ssl_txt.c ssl_algs.c \
         bio_ssl.c ssl_err.c kssl.c tls_srp.c t1_reneg.c
 
-INC_DIR += $(LIBSSL_DIR)/
-INC_DIR += $(LIBSSL_DIR)/crypto
+INC_DIR += $(LIBSSL_PORT_DIR)/include/openssl
+INC_DIR += $(LIBSSL_PORT_DIR)/src/lib/openssl/crypto
 
 ifeq ($(filter-out $(SPECS),x86_32),)
 TARGET_CPUARCH=x86_32
@@ -29,8 +28,9 @@ TARGET_CPUARCH=x86_64
 endif
 
 INC_DIR += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
+INC_DIR += $(LIBSSL_PORT_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
+INC_DIR += $(LIBSSL_PORT_DIR)/include
 
-
-vpath %.c $(LIBSSL_DIR)/ssl
+vpath %.c $(LIBSSL_PORT_DIR)/src/lib/openssl/ssl
 
 SHARED_LIB = yes

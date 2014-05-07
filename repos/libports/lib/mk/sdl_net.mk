@@ -1,11 +1,11 @@
-include $(REP_DIR)/ports/sdl_net.inc
-SDL_NET_DIR = $(REP_DIR)/contrib/$(SDL_NET)
+SDL_NET_PORT_DIR := $(call select_from_ports,sdl_net)
+SDL_NET_DIR      := $(SDL_NET_PORT_DIR)/src/lib/sdl_net
 
-SRC_C = $(notdir $(wildcard $(SDL_NET_DIR)/SDLnet*.c))
+SRC_C = $(notdir $(wildcard $(SDL_NET_PORT_DIR)/src/lib/sdl_net/SDLnet*.c))
 
-vpath %.c $(SDL_NET_DIR)
+vpath %.c $(SDL_NET_PORT_DIR)/src/lib/sdl_net
 
-INC_DIR += $(SDL_NET_DIR)
+INC_DIR += $(SDL_NET_PORT_DIR)/src/lib/sdl_net
 
 LIBS += libc sdl
 

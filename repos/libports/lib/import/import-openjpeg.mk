@@ -1,1 +1,1 @@
-REP_INC_DIR += include/openjpeg
+INC_DIR += $(call select_from_ports,openjpeg)/include/openjpeg

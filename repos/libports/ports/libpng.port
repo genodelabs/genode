@@ -1,0 +1,10 @@
+LICENSE   := PNG
+DOWNLOADS := libpng.archive
+VERSION   := 1.4.1
+
+URL(libpng) := http://prdownloads.sourceforge.net/libpng/libpng-$(VERSION).tar.gz
+SHA(libpng) := 7a3488f5844068d67074f2507dd8a7ed9c69ff04
+DIR(libpng) := src/lib/libpng
+
+DIRS := include/libpng
+DIR_CONTENT(include/libpng) := $(addprefix src/lib/libpng/,pngconf.h png.h pngpriv.h)

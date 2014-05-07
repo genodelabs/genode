@@ -1,5 +1,4 @@
---- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/closefs.c.orig	2013-11-22 17:12:24.152903960 +0100
-+++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/closefs.c	2013-11-22 17:12:52.936905227 +0100
++++ src/lib/fuse-ext2/e2fsprogs-1.41.12.newgit/ext2fs/closefs.c
 @@ -32,19 +32,6 @@
  	}
  }

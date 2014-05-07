@@ -1,0 +1,12 @@
+LICENSE   := GPLv2
+VERSION   := 7.8.1
+DOWNLOADS := mesa.archive
+
+URL(mesa) := ftp://ftp.freedesktop.org/pub/mesa/older-versions/7.x/$(VERSION)/MesaLib-$(VERSION).tar.gz
+SHA(mesa) := 74e72b56c7ae779649c18867fe9e0865f3bfc057
+DIR(mesa) := src/lib/mesa
+
+DIRS := include include/EGL
+DIR_CONTENT(include)     := $(addprefix src/lib/mesa/include/,GL KHR)
+DIR_CONTENT(include/EGL) := $(addprefix src/lib/mesa/include/EGL/,egl.h eglext.h)
+

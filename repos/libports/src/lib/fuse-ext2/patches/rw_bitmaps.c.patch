@@ -1,5 +1,4 @@
---- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/rw_bitmaps.c.orig	2013-12-09 15:17:28.255353356 +0100
-+++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/rw_bitmaps.c	2013-12-09 15:21:02.807359558 +0100
++++ src/lib/fuse-ext2/e2fsprogs-1.41.12.newgit/ext2fs/rw_bitmaps.c
 @@ -34,7 +34,7 @@
  	int		block_nbytes, inode_nbytes;
  	unsigned int	nbits;

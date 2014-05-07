@@ -1,0 +1,11 @@
+LICENSE   := MIT
+VERSION   := 5.1.5
+DOWNLOADS := lua.archive
+
+URL(lua) := http://www.lua.org/ftp/lua-$(VERSION).tar.gz
+SHA(lua) := b3882111ad02ecc6b972f8c1241647905cb2e3fc
+DIR(lua) := src/lib/lua
+
+DIRS := include/lua
+DIR_CONTENT(include/lua) := $(addprefix src/lib/lua/src/,\
+                                        lua.h lauxlib.h luaconf.h lualib.h)

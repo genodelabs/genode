@@ -1,5 +1,4 @@
---- contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.h.orig	2013-12-09 14:39:42.000000000 +0100
-+++ contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.h	2013-12-09 14:33:19.455276804 +0100
++++ src/lib/fuse-ext2/fuse-ext2/fuse-ext2.h
 @@ -88,7 +88,7 @@
  static inline ext2_filsys current_ext2fs(void)
  {

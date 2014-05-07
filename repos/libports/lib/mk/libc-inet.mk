@@ -1,4 +1,4 @@
-LIBC_INET_DIR = $(LIBC_DIR)/libc/inet
+LIBC_INET_DIR = $(LIBC_DIR)/lib/libc/inet
 
 SRC_C = $(filter-out $(FILTER_OUT_C),$(notdir $(wildcard $(LIBC_INET_DIR)/*.c)))
 

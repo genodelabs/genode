@@ -1,0 +1,18 @@
+LICENSE   := GPLv3
+VERSION   := 0.8.2
+DOWNLOADS := libav.archive
+
+URL(libav) := http://www.libav.org/releases/libav-$(VERSION).tar.gz
+SHA(libav) := e5231f8f995fae53c99e0bd30a455b3e5a906b71
+DIR(libav) := src/lib/libav
+SIG(libav) := ${URL(libav)}.asc
+
+PATCHES := src/app/avplay/avplay.patch
+
+include_subdirs := . libavcodec libavfilter libavutil libavformat libswscale \
+                   libavutil/x86 libavutil/arm libavcodec/x86 libavcodec/arm
+
+DIRS := $(addprefix include/libav/,$(include_subdirs))
+
+$(foreach dir,$(include_subdirs),\
+          $(eval DIR_CONTENT(include/libav/$(dir)) := src/lib/libav/$(dir)/*.h))

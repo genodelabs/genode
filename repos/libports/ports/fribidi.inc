@@ -1,2 +1,0 @@
-FRIBIDI_VERSION := 0.19.5
-FRIBIDI         := fribidi-$(FRIBIDI_VERSION)

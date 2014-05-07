@@ -1,2 +1,0 @@
-LIBSSH_VERSION = 0.5.4
-LIBSSH         = libssh-$(LIBSSH_VERSION)

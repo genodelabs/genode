@@ -1,9 +1,9 @@
-FREETYPE     = freetype-2.3.9
-FREETYPE_DIR = $(REP_DIR)/contrib/$(FREETYPE)
-LIBS        += libc
+PORT_DIR     := $(call select_from_ports,freetype)
+FREETYPE_DIR := $(PORT_DIR)/src/lib/freetype/contrib
+LIBS         += libc
 
 # add local freetype headers to include-search path
-INC_DIR += $(FREETYPE_DIR)/src/base
+INC_DIR += $(PORT_DIR)/include $(FREETYPE_DIR)/src/base
 
 # use our custom freetype config files
 CC_DEF += -DFT_CONFIG_CONFIG_H="<freetype-genode/ftconfig.h>"

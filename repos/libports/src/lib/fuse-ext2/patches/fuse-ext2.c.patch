@@ -1,5 +1,4 @@
---- contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.c.orig	2013-11-27 17:49:58.000000000 +0100
-+++ contrib/fuse-ext2-svn-220/fuse-ext2/fuse-ext2.c	2013-11-27 17:50:45.593877786 +0100
++++ src/lib/fuse-ext2/fuse-ext2/fuse-ext2.c	
 @@ -278,7 +278,7 @@
  	goto exit;
  }

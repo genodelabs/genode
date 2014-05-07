@@ -1,4 +1,4 @@
-LIBC_GEN_I386_DIR = $(LIBC_DIR)/libc/i386/gen
+LIBC_GEN_I386_DIR = $(LIBC_DIR)/lib/libc/i386/gen
 
 SRC_S  = _setjmp.S setjmp.S
 

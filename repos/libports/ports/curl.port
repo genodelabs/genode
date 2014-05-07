@@ -1,0 +1,27 @@
+LICENSE   := MIT
+DOWNLOADS := curl.archive
+VERSION   := 7.29.0
+
+URL(curl) := http://curl.haxx.se/download/curl-$(VERSION).tar.gz
+SHA(curl) := 6f5fd02bd9db83d5a1e2f52c8fa3566a60eda4f1
+SIG(curl) := ${URL(curl)}.asc
+KEY(curl) := daniel@haxx.se
+DIR(curl) := src/lib/curl
+
+PATCHES   := src/lib/curl/*.patch
+
+#
+# Assemble public include directory. Filter out 'curlbuild.h' because we
+# provide a custom version of this file in 'libports/include/curl/'.
+#
+# Don't use ':=' for the definition of 'DIR_CONTENT(include/curl)' and
+# 'curl_headers' to defer the evaluation to the time when the directories are
+# created. Otherwise, the '$(wildcard)' would be executed before the
+# downloads are complete.
+#
+curl_include_dir := src/lib/curl/include/curl
+curl_headers      = $(filter-out curlbuild.h,$(notdir $(wildcard $(curl_include_dir)/*.h)))
+
+DIRS := include/curl
+DIR_CONTENT(include/curl) = $(addprefix $(curl_include_dir)/,$(curl_headers))
+

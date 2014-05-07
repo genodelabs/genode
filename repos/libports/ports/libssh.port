@@ -1,0 +1,11 @@
+LICENSE   := LGPL
+DOWNLOADS := libssh.archive
+VERSION   := 0.5.4
+
+URL(libssh) := https://red.libssh.org/attachments/download/41/libssh-$(VERSION).tar.gz
+SIG(libssh) := https://red.libssh.org/attachments/download/42/libssh-$(VERSION).tar.asc
+SHA(libssh) := 4a372378db8fffaf28d5c79d80b2235843aa587c
+DIR(libssh) := src/lib/libssh
+
+DIRS := include
+DIR_CONTENT(include) := src/lib/libssh/include/libssh

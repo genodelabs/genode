@@ -1,5 +1,4 @@
-include $(REP_DIR)/ports/fuse-ext2.inc
-FUSE_EXT2_DIR = $(REP_DIR)/contrib/$(FUSE_EXT2)/fuse-ext2
+FUSE_EXT2_DIR = $(call select_from_ports,fuse-ext2)/src/lib/fuse-ext2/fuse-ext2
 
 TARGET   = ext2_fuse_fs
 

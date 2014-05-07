@@ -2,7 +2,7 @@ include $(REP_DIR)/lib/mk/av.inc
 
 include $(REP_DIR)/lib/import/import-avutil.mk
 
-LIBAVUTIL_DIR = $(REP_DIR)/contrib/$(LIBAV)/libavutil
+LIBAVUTIL_DIR = $(call select_from_ports,libav)/src/lib/libav/libavutil
 
 include $(LIBAVUTIL_DIR)/Makefile
 

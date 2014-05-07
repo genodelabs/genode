@@ -1,5 +1,4 @@
-ZLIB     = zlib-1.2.8
-ZLIB_DIR = $(REP_DIR)/contrib/$(ZLIB)
+ZLIB_DIR = $(call select_from_ports,zlib)/src/lib/zlib
 LIBS    += libc
 INC_DIR += $(ZLIB_DIR)
 SRC_C    = adler32.c compress.c crc32.c deflate.c gzclose.c \

@@ -1,0 +1,12 @@
+LICENSE   := BSD
+VERSION   := 1.2.8
+DOWNLOADS := sdl_net.archive
+
+URL(sdl_net) := http://www.libsdl.org/projects/SDL_net/release/SDL_net-$(VERSION).tar.gz
+SHA(sdl_net) := fd393059fef8d9925dc20662baa3b25e02b8405d
+DIR(sdl_net) := src/lib/sdl_net
+
+PATCHES := src/lib/sdl_net/SDLnet.patch src/lib/sdl_net/SDL_net.h.patch
+
+DIRS := include/SDL
+DIR_CONTENT(include/SDL) := src/lib/sdl_net/SDL_net.h

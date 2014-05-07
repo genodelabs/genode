@@ -1,9 +1,8 @@
-include $(REP_DIR)/ports/exfat.inc
-EXFAT_DIR = $(REP_DIR)/contrib/$(EXFAT)
+EXFAT_DIR := $(call select_from_ports,exfat)/src/lib/exfat
 
 TARGET   = exfat_fuse_fs
 
-SRC_C  = $(notdir $(EXFAT_DIR)/fuse/main.c)
+SRC_C    = $(notdir $(EXFAT_DIR)/fuse/main.c)
 SRC_CC   = fuse_fs_main.cc \
            init.cc
 

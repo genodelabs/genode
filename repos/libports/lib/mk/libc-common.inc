@@ -4,15 +4,16 @@
 # this enables 'ports/lib/mk/seoul_libc_support.mk' to reuse the definitions.
 #
 
-LIBC_DIR     = $(call select_from_repositories,contrib/libc-8.2.0)
-LIBC_REP_DIR = $(realpath $(subst /contrib/libc-8.2.0,,$(LIBC_DIR)))
+LIBC_PORT_DIR := $(call select_from_ports,libc)
+LIBC_DIR      := $(LIBC_PORT_DIR)/src/lib/libc
+LIBC_REP_DIR  := $(realpath $(call select_from_repositories,include/libc-genode)/../..)
 
 # local libc includes
-INC_DIR += $(LIBC_DIR)/libc/locale
-INC_DIR += $(LIBC_DIR)/libc/include
-INC_DIR += $(LIBC_DIR)/libc/stdio
-INC_DIR += $(LIBC_DIR)/libc/net
-INC_DIR += $(LIBC_DIR)/gdtoa
+INC_DIR += $(LIBC_DIR)/lib/libc/locale
+INC_DIR += $(LIBC_DIR)/lib/libc/include
+INC_DIR += $(LIBC_DIR)/lib/libc/stdio
+INC_DIR += $(LIBC_DIR)/lib/libc/net
+INC_DIR += $(LIBC_DIR)/contrib/gdtoa
 
 #CC_OPT += -DGENODE_RELEASE
 

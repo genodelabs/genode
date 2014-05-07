@@ -1,11 +1,10 @@
-LIBPNG     = libpng-1.4.1
-LIBPNG_DIR = $(REP_DIR)/contrib/$(LIBPNG)
-LIBS      += libc libm zlib
+LIBPNG_DIR := $(call select_from_ports,libpng)/src/lib/libpng
+LIBS       += libc libm zlib
 
 # find 'config.h'
 INC_DIR += $(REP_DIR)/src/lib/libpng
 
-CC_DEF    += -DHAVE_CONFIG_H -DPNG_CONFIGURE_LIBPNG
+CC_DEF += -DHAVE_CONFIG_H -DPNG_CONFIGURE_LIBPNG
 
 SRC_C = png.c pngset.c pngget.c pngrutil.c pngtrans.c pngwutil.c \
         pngread.c pngrio.c pngwio.c pngwrite.c pngrtran.c pngwtran.c \

@@ -1,5 +1,5 @@
-GDTOA_DIR      = $(LIBC_DIR)/gdtoa
-LIBC_GDTOA_DIR = $(LIBC_DIR)/libc/gdtoa
+GDTOA_DIR      = $(LIBC_DIR)/contrib/gdtoa
+LIBC_GDTOA_DIR = $(LIBC_DIR)/lib/libc/gdtoa
 
 FILTER_OUT  = arithchk.c strtodnrp.c qnan.c
 FILTER_OUT += machdep_ldisQ.c machdep_ldisx.c

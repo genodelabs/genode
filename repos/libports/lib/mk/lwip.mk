@@ -4,9 +4,8 @@
 # The library implementes TCP and UDP as well as DNS and DHCP.
 #
 
-include $(REP_DIR)/ports/lwip.inc
-
-LWIP_DIR = $(REP_DIR)/contrib/$(LWIP)
+LWIP_PORT_DIR := $(call select_from_ports,lwip)
+LWIP_DIR      := $(LWIP_PORT_DIR)/src/lib/lwip
 
 # Genode platform files
 SRC_CC   = nic.cc printf.cc sys_arch.cc
@@ -32,6 +31,7 @@ D_OPTS  := $(addprefix -D,$(D_OPTS))
 CC_DEF  += $(D_OPTS)
 
 INC_DIR += $(REP_DIR)/include/lwip \
+           $(LWIP_PORT_DIR)/include/lwip \
            $(LWIP_DIR)/src/include \
            $(LWIP_DIR)/src/include/ipv4 \
            $(LWIP_DIR)/src/include/api \

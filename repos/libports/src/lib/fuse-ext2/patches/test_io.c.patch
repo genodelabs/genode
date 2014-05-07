@@ -1,5 +1,4 @@
---- contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/test_io.c.orig	2013-12-09 15:32:11.095378871 +0100
-+++ contrib/fuse-ext2-svn-220/e2fsprogs-1.41.12.newgit/ext2fs/test_io.c	2013-12-09 15:32:20.811379151 +0100
++++ src/lib/fuse-ext2/e2fsprogs-1.41.12.newgit/ext2fs/test_io.c
 @@ -9,6 +9,8 @@
   * %End-Header%
   */

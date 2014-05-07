@@ -1,5 +1,4 @@
-LUA      = lua-5.1.5
-LUA_DIR  = $(REP_DIR)/contrib/$(LUA)/src
+LUA_DIR := $(call select_from_ports,lua)/src/lib/lua/src
 LIBS    += libc libm
 INC_DIR += $(LUA_DIR)
 CC_DEF   = -DLUA_ANSI -DLUA_USE_MKSTEMP

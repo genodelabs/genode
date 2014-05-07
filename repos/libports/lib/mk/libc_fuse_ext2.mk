@@ -1,5 +1,5 @@
-include $(REP_DIR)/ports/fuse-ext2.inc
-FUSE_EXT2_DIR = $(REP_DIR)/contrib/$(FUSE_EXT2)/fuse-ext2
+FUSE_EXT2_PORT_DIR := $(call select_from_ports,fuse-ext2)
+FUSE_EXT2_DIR      := $(FUSE_EXT2_PORT_DIR)/src/lib/fuse-ext2/fuse-ext2
 
 FILTER_OUT = fuse-ext2.probe.c fuse-ext2.wait.c
 SRC_C  = $(filter-out $(FILTER_OUT), $(notdir $(wildcard $(FUSE_EXT2_DIR)/*.c)))
@@ -12,7 +12,8 @@ CC_OPT = -DHAVE_CONFIG_H -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 CC_CXX_OPT +=-fpermissive
 
 INC_DIR += $(REP_DIR)/src/lib/fuse-ext2 \
-           $(FUSE_EXT2_DIR)
+           $(FUSE_EXT2_DIR) \
+           $(FUSE_EXT2_PORT_DIR)/include/fuse-ext2
 
 vpath %.c $(FUSE_EXT2_DIR)
 vpath %.cc $(REP_DIR)/src/lib/fuse-ext2

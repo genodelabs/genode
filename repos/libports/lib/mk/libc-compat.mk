@@ -1,4 +1,4 @@
-LIBC_COMPAT_DIR = $(LIBC_DIR)/libc/compat-43
+LIBC_COMPAT_DIR = $(LIBC_DIR)/lib/libc/compat-43
 
 SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIBC_COMPAT_DIR)/*.c)))
 

@@ -4,7 +4,7 @@ include $(REP_DIR)/lib/import/import-swscale.mk
 
 CC_WARN += -Wno-switch
 
-LIBSWSCALE_DIR = $(REP_DIR)/contrib/$(LIBAV)/libswscale
+LIBSWSCALE_DIR = $(call select_from_ports,libav)/src/lib/libav/libswscale
 
 include $(LIBSWSCALE_DIR)/Makefile
 

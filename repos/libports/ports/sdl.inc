@@ -1,2 +1,0 @@
-SDL_VERSION = 1.2.13
-SDL         = SDL-$(SDL_VERSION)

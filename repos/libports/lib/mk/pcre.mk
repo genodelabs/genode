@@ -1,6 +1,4 @@
-include $(REP_DIR)/ports/pcre.inc
-
-PCRE_DIR = $(REP_DIR)/contrib/$(PCRE)
+PCRE_PORT_DIR := $(call select_from_ports,pcre)
 
 SRC_C = pcre_byte_order.c   \
         pcre_chartables.c   \
@@ -23,8 +21,9 @@ SRC_C = pcre_byte_order.c   \
         pcre_version.c      \
         pcre_xclass.c
 
-INC_DIR += $(PCRE_DIR)
-INC_DIR += $(REP_DIR)/src/lib/pcre/include
+INC_DIR += $(PCRE_PORT_DIR)/include/pcre \
+           $(PCRE_PORT_DIR)/src/lib/pcre \
+           $(REP_DIR)/src/lib/pcre/include
 
 CC_OPT += -DHAVE_CONFIG_H
 
@@ -32,5 +31,5 @@ LIBS += libc zlib readline
 
 SHARED_LIB = yes
 
-vpath %.c $(PCRE_DIR)
+vpath %.c $(PCRE_PORT_DIR)/src/lib/pcre
 vpath pcre_chartables.c $(REP_DIR)/src/lib/pcre

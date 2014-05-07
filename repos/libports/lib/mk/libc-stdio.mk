@@ -1,4 +1,4 @@
-LIBC_STDIO_DIR = $(LIBC_DIR)/libc/stdio
+LIBC_STDIO_DIR = $(LIBC_DIR)/lib/libc/stdio
 
 SRC_C = $(notdir $(wildcard $(LIBC_STDIO_DIR)/*.c))
 

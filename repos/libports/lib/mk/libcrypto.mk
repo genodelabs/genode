@@ -1,5 +1,5 @@
-LIBCRYPTO     = libcrypto-1.0.0
-LIBCRYPTO_DIR = $(REP_DIR)/contrib/openssl-1.0.1g/crypto
+OPENSSL_PORT_DIR := $(call select_from_ports,openssl)
+LIBCRYPTO_DIR    := $(OPENSSL_PORT_DIR)/src/lib/openssl/crypto
 
 #
 # ARM is not supported currently (needs testing)
@@ -205,6 +205,8 @@ SRC_S += rc4_md5.s
 endif
 
 INC_DIR += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
+INC_DIR += $(OPENSSL_PORT_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
+INC_DIR += $(OPENSSL_PORT_DIR)/include
 
 
 #
@@ -220,5 +222,5 @@ buildinf.h:
 	echo "  #define PLATFORM \"FreeBSD-$(TARGET_CPUARCH)\""; \
 	echo "#endif" ) > $@
 
-vpath %.s $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)
+vpath %.s $(call select_from_ports,openssl)/src/lib/openssl/$(TARGET_CPUARCH)
 vpath %.c $(LIBCRYPTO_DIR)

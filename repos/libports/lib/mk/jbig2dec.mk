@@ -1,5 +1,4 @@
-JBIG2DEC     = jbig2dec-0.11
-JBIG2DEC_DIR = $(REP_DIR)/contrib/$(JBIG2DEC)
+JBIG2DEC_DIR = $(call select_from_ports,jbig2dec)/src/lib/jbig2dec
 LIBS        += libc libpng zlib
 INC_DIR     += $(JBIG2DEC_DIR) $(REP_DIR)/include/jbig2dec
 

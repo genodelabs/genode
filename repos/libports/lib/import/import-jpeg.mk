@@ -1,3 +1,2 @@
-JPEG         = jpeg-7
-REP_INC_DIR += contrib/$(JPEG) \
-               include/jpeg
+INC_DIR     += $(call select_from_ports,jpeg)/include/jpeg
+REP_INC_DIR += include/jpeg

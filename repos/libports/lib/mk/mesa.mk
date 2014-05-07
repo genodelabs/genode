@@ -22,7 +22,7 @@ CC_OPT_texcompress_s3tc += -Wno-unused-but-set-variable
 CC_OPT_varray           += -Wno-format
 
 # glsl library
-GLSL_SRC_DIR = $(MESA_DIR)/src/glsl
+GLSL_SRC_DIR = $(MESA_PORT_DIR)/src/lib/mesa/src/glsl
 GLSL_SUBDIRS = pp cl
 SRC_C += $(foreach subdir,$(GLSL_SUBDIRS),$(wildcard $(GLSL_SRC_DIR)/$(subdir)/*.c))
 
@@ -55,11 +55,11 @@ library:
 
 library/%_gc.h: %.gc
 	$(MSG_CONVERT)$@
-	$(VERBOSE)$(REP_DIR)/tool/mesa/glsl/compiler fragment $< $@
+	$(VERBOSE)$(BUILD_BASE_DIR)/tool/mesa/glsl/compiler fragment $< $@
 
 library/slang_vertex_builtin_gc.h: slang_vertex_builtin.gc
 	$(MSG_CONVERT)$@
-	$(VERBOSE)$(REP_DIR)/tool/mesa/glsl/compiler vertex $< $@
+	$(VERBOSE)$(BUILD_BASE_DIR)/tool/mesa/glsl/compiler vertex $< $@
 
 vpath %.gc $(MESA_SRC_DIR)/shader/slang/library
 

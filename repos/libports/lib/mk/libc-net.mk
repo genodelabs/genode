@@ -1,4 +1,4 @@
-LIBC_NET_DIR = $(LIBC_DIR)/libc/net
+LIBC_NET_DIR = $(LIBC_DIR)/lib/libc/net
 
 # needed for compiling getservbyname() and getservbyport()
 SRC_C = getservent.c nsdispatch.c nsparser.c nslexer.c
@@ -27,8 +27,9 @@ include $(REP_DIR)/lib/mk/libc-common.inc
 
 INC_DIR += $(REP_DIR)/include/libc
 INC_DIR += $(REP_DIR)/include/libc/sys
+INC_DIR += $(LIBC_PORT_DIR)/include/libc/sys
 
 # needed for name6.c, contains res_private.h
-INC_DIR += $(LIBC_DIR)/libc/resolv
+INC_DIR += $(LIBC_DIR)/lib/libc/resolv
 
 vpath %.c $(LIBC_NET_DIR)

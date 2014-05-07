@@ -1,0 +1,10 @@
+LICENSE := unknown
+DOWNLOADS := jbig2dec.git
+VERSION := 0.11
+
+URL(jbig2dec) := git://git.ghostscript.com/jbig2dec.git
+REV(jbig2dec) := 58b513e3ec60feac13ea429c4aff12ea8a8de91d
+DIR(jbig2dec) := src/lib/jbig2dec
+
+DIRS := include/jbig2dec
+DIR_CONTENT(include/jbig2dec) := src/lib/jbig2dec/jbig2.h

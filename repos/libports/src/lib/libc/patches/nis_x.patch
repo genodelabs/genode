@@ -1,5 +1,4 @@
---- include/rpcsvc/nis.x.orig	2012-06-03 09:44:28.379015585 +0200
-+++ include/rpcsvc/nis.x		2012-06-03 09:45:45.916091879 +0200
++++ src/lib/libc/include/rpcsvc/nis.x
 @@ -399,10 +399,7 @@
  %#define OARIGHTS(d, n) (((d)->do_armask.do_armask_val+n)->oa_rights)
  %#define WORLD_DEFAULT (NIS_READ_ACC)

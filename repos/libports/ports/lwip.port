@@ -1,0 +1,27 @@
+LICENSE   := BSD
+VERSION   := git
+DOWNLOADS := lwip.git window_scaling_patch.file
+
+URL(lwip) := git://git.savannah.nongnu.org/lwip.git
+REV(lwip) := fe63f36656bd66b4051bdfab93e351a584337d7c
+DIR(lwip) := src/lib/lwip
+
+URL(window_scaling_patch)  := https://savannah.nongnu.org/patch/download.php?file_id=28026
+NAME(window_scaling_patch) := src/lib/lwip/window_scaling.patch
+SHA(window_scaling_patch)  := 5be562adddc05fa00ecead8fbca8d7797e76670e
+
+PATCHES := $(addprefix src/lib/lwip/,window_scaling.patch \
+                                     errno.patch \
+                                     libc_select_notify.patch \
+                                     sockets_c_errno.patch \
+                                     sol_socket_definition.patch)
+
+PATCH_OPT(src/lib/lwip/window_scaling.patch) := -p1 -d src/lib/lwip
+
+DIRS := include/lwip/lwip include/lwip/netif
+
+DIR_CONTENT(include/lwip/lwip) := src/lib/lwip/src/include/lwip/*.h \
+                                  src/lib/lwip/src/include/ipv4/lwip/*.h \
+                                  src/lib/lwip/src/include/ipv6/lwip/*.h
+
+DIR_CONTENT(include/lwip/netif) := src/lib/lwip/src/include/netif/*.h

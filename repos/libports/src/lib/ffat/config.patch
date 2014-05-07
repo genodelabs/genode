@@ -1,6 +1,4 @@
-diff -urN ff007e.orig/src/ffconf.h ff007e/src/ffconf.h
---- ff007e.orig/src/ffconf.h	2009-11-03 00:44:22.000000000 +0100
-+++ ff007e/src/ffconf.h	2012-07-09 13:08:03.000000000 +0200
++++ src/lib/ffat/src/ffconf.h	2012-07-09 13:08:03.000000000 +0200
 @@ -40,7 +40,7 @@
  /* To enable string functions, set _USE_STRFUNC to 1 or 2. */
  

@@ -1,5 +1,4 @@
---- /tmp/freebsd-libc.cvs/stdio/vfwprintf.c	2008-08-04 08:55:42.000000000 +0100
-+++ libc/stdio/vfwprintf.c	2009-02-21 21:44:30.000000000 +0100
++++ src/lib/libc/lib/libc/stdio/vfwprintf.c
 @@ -838,10 +838,10 @@
  				sign = '-';
  			if (expt == INT_MAX) {	/* inf or nan */

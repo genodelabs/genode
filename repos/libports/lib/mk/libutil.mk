@@ -1,4 +1,4 @@
-LIBC_UTIL_DIR = $(LIBC_DIR)/libutil
+LIBC_UTIL_DIR = $(LIBC_DIR)/lib/libutil
 
 # needed by libinetutils
 SRC_C = logout.c logwtmp.c trimdomain.c

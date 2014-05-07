@@ -1,0 +1,12 @@
+LICENSE   := LGPL
+VERSION   := 0.9
+DOWNLOADS := mpc.archive
+
+URL(mpc) := http://www.multiprecision.org/mpc/download/mpc-$(VERSION).tar.gz
+SHA(mpc) := 229722d553030734d49731844abfef7617b64f1a
+SIG(mpc) := ${URL(mpc)}.asc
+KEY(mpc) := AD17A21EF8AED8F1CC02DBD9F7D5C9BF765C61E3
+DIR(mpc) := src/lib/mpc
+
+DIRS := include/mpc
+DIR_CONTENT(include/mpc) := src/lib/mpc/src/mpc.h

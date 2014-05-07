@@ -44,14 +44,14 @@ INC_DIR += $(LIBC_REP_DIR)/src/lib/libc
 vpath %.cc $(LIBC_REP_DIR)/src/lib
 
 # FreeBSD libc FPU math
-FPU_SRC_C = $(wildcard $(LIBC_DIR)/msun/src/*.c) \
-            $(wildcard $(LIBC_DIR)/msun/ld80/*.c) \
-            $(wildcard $(LIBC_DIR)/msun/bsdsrc/*.c)
+FPU_SRC_C = $(wildcard $(LIBC_DIR)/lib/msun/src/*.c) \
+            $(wildcard $(LIBC_DIR)/lib/msun/ld80/*.c) \
+            $(wildcard $(LIBC_DIR)/lib/msun/bsdsrc/*.c)
 SRC_C += $(filter-out e_rem_pio2.c e_rem_pio2f.c s_exp2l.c, $(notdir $(FPU_SRC_C)))
 
-vpath %.c $(LIBC_DIR)/msun/src
-vpath %.c $(LIBC_DIR)/msun/ld80
-vpath %.c $(LIBC_DIR)/msun/bsdsrc
+vpath %.c $(LIBC_DIR)/lib/msun/src
+vpath %.c $(LIBC_DIR)/lib/msun/ld80
+vpath %.c $(LIBC_DIR)/lib/msun/bsdsrc
 
 # Disable warnings for selected files, i.e., to suppress
 # 'is static but used in inline function which is not static'
@@ -80,6 +80,6 @@ CC_OPT_s_cosf += -D__kernel_sindf=__kernel_sindf_cosf
 CC_OPT_s_tanf += -D__ieee754_rem_pio2f=__ieee754_rem_pio2f_s_tanf
 
 CC_OPT  += -D__inline=inline
-INC_DIR += $(LIBC_DIR)/msun/src $(LIBC_DIR)/msun/ld80 $(LIBC_DIR)/msun/bsdsrc
+INC_DIR += $(addprefix $(LIBC_DIR)/lib/msun/,src ld80 bsdsrc)
 
 # vi: set ft=make :

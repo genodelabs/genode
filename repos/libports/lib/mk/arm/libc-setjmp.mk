@@ -1,4 +1,4 @@
-LIBC_GEN_ARM_DIR = $(LIBC_DIR)/libc/arm/gen
+LIBC_GEN_ARM_DIR = $(LIBC_DIR)/lib/libc/arm/gen
 
 SRC_S   = _setjmp.S setjmp.S
 

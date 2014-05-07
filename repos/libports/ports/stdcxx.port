@@ -1,0 +1,45 @@
+LICENSE   := LGPL
+VERSION   := 4.7.2
+DOWNLOADS := gcc.archive
+
+URL(gcc) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.bz2
+SHA(gcc) := a464ba0f26eef24c29bcd1e7489421117fb9ee35
+DIR(gcc) := src/lib/stdcxx
+SIG(gcc) := ${URL(gcc)}
+KEY(gcc) := GNU
+
+TAR_OPT(gcc) := gcc-$(VERSION)/libstdc++-v3 --strip-components=2
+
+DIRS := include/stdcxx
+DIR_CONTENT(include/stdcxx) := \
+    src/lib/stdcxx/include/* \
+    src/lib/stdcxx/libsupc++/new \
+    src/lib/stdcxx/libsupc++/exception \
+    src/lib/stdcxx/libsupc++/typeinfo \
+    src/lib/stdcxx/libsupc++/initializer_list
+
+DIRS += include/stdcxx/bits
+DIR_CONTENT(include/stdcxx/bits) := \
+    src/lib/stdcxx/libsupc++/hash_bytes.h \
+    src/lib/stdcxx/libsupc++/exception_defines.h \
+    src/lib/stdcxx/libsupc++/exception_ptr.h \
+    src/lib/stdcxx/libsupc++/nested_exception.h \
+    src/lib/stdcxx/libsupc++/cxxabi_forced.h \
+    src/lib/stdcxx/libsupc++/atomic_lockfree_defines.h \
+    src/lib/stdcxx/config/cpu/generic/cpu_defines.h \
+    src/lib/stdcxx/config/cpu/generic/cxxabi_tweaks.h \
+    src/lib/stdcxx/config/os/generic/error_constants.h \
+    src/lib/stdcxx/config/os/generic/os_defines.h \
+    src/lib/stdcxx/config/cpu/generic/atomic_word.h \
+    src/lib/stdcxx/config/os/generic/ctype_base.h \
+    src/lib/stdcxx/config/os/generic/ctype_inline.h \
+    src/lib/stdcxx/config/locale/generic/time_members.h \
+    src/lib/stdcxx/config/locale/generic/messages_members.h
+
+DIRS += include/stdcxx/config
+DIR_CONTENT(include/stdcxx/config) := \
+    src/lib/stdcxx/config/allocator/new_allocator_base.h \
+    src/lib/stdcxx/config/locale/generic/c_locale.h \
+    src/lib/stdcxx/config/io/basic_file_stdio.h \
+    src/lib/stdcxx/config/io/c_io_stdio.h
+

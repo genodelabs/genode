@@ -1,8 +1,15 @@
-REP_INC_DIR += include/stdcxx
-REP_INC_DIR += include/stdcxx/std
-REP_INC_DIR += include/stdcxx/c_std
-REP_INC_DIR += include/stdcxx/c_global
-REP_INC_DIR += include/stdcxx-genode
+STDCXX_INCLUDE_DIR := $(call select_from_repositories,include/stdcxx)
+
+INC_DIR += $(STDCXX_INCLUDE_DIR) \
+           $(STDCXX_INCLUDE_DIR)/std \
+           $(STDCXX_INCLUDE_DIR)/c_std \
+           $(STDCXX_INCLUDE_DIR)/c_global
+
+STDCXX_PORT_INCLUDE_DIR := $(call select_from_ports,stdcxx)/include/stdcxx
+INC_DIR += $(STDCXX_PORT_INCLUDE_DIR) \
+           $(STDCXX_PORT_INCLUDE_DIR)/std \
+           $(STDCXX_PORT_INCLUDE_DIR)/c_std \
+           $(STDCXX_PORT_INCLUDE_DIR)/c_global
 
 LIBS += libc
 include $(call select_from_repositories,lib/import/import-libc.mk)

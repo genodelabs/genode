@@ -1,6 +1,4 @@
-include $(REP_DIR)/ports/libssh.inc
-
-LIBSSH_DIR = $(REP_DIR)/contrib/$(LIBSSH)
+LIBSSH_PORT_DIR := $(call select_from_ports,libssh)
 
 SRC_C = \
         agent.c \
@@ -43,7 +41,7 @@ SRC_C = \
         threads.c \
         wrapper.c
 
-#INC_DIR += $(LIBSSH_DIR)
+INC_DIR += $(LIBSSH_PORT_DIR)/include
 INC_DIR += $(REP_DIR)/src/lib/libssh
 
 CC_OPT += -DHAVE_CONFIG_H
@@ -52,4 +50,4 @@ LIBS += libc zlib libcrypto
 
 SHARED_LIB = yes
 
-vpath %.c $(LIBSSH_DIR)/src
+vpath %.c $(LIBSSH_PORT_DIR)/src/lib/libssh/src

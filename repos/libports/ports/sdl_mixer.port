@@ -1,0 +1,10 @@
+LICENSE   := BSD
+VERSION   := 1.2.12
+DOWNLOADS := sdl_mixer.archive
+
+URL(sdl_mixer) := http://www.libsdl.org/projects/SDL_mixer/release/SDL_mixer-$(VERSION).tar.gz
+SHA(sdl_mixer) := a20fa96470ad9e1052f1957b77ffa68fb090b384
+DIR(sdl_mixer) := src/lib/sdl_mixer
+
+DIRS := include/SDL
+DIR_CONTENT(include/SDL) := src/lib/sdl_mixer/SDL_mixer.h

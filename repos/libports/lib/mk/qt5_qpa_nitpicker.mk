@@ -29,7 +29,7 @@ INC_DIR += $(REP_DIR)/contrib/$(QT5)/qtbase/src/platformsupport/eventdispatchers
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION) \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
-LIBS += qt5_xml qt5_gui qt5_core libm freetype gallium
+LIBS += qt5_xml qt5_gui qt5_core libm freetype gallium qoost
 
 vpath % $(call select_from_repositories,contrib/$(QT5)/qtbase/src/platformsupport/eventdispatchers)
 vpath % $(call select_from_repositories,contrib/$(QT5)/qtbase/src/platformsupport/input/evdevkeyboard)

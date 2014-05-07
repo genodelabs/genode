@@ -1,9 +1,9 @@
 include $(REP_DIR)/lib/mk/gallium.inc
 
-EGL_ST_SRC_DIR := $(MESA_DIR)/src/gallium/state_trackers/egl
+EGL_ST_SRC_DIR := $(MESA_PORT_DIR)/src/lib/mesa/src/gallium/state_trackers/egl
 INC_DIR        += $(EGL_ST_SRC_DIR)
-INC_DIR        += $(MESA_DIR)/src/egl/main
-INC_DIR        += $(MESA_DIR)/src/gallium
+INC_DIR        += $(MESA_PORT_DIR)/src/lib/mesa/src/egl/main
+INC_DIR        += $(MESA_PORT_DIR)/src/lib/mesa/src/gallium
 CC_OPT         += -DRTLD_NODELETE=0
 
 # generic driver code
@@ -12,7 +12,7 @@ vpath %.c $(EGL_ST_SRC_DIR)/common
 
 # state tracker declarations for OpenGL ES1 and ES2
 SRC_C += st_es1.c st_es2.c
-vpath %.c $(MESA_DIR)/src/gallium/state_trackers/es
+vpath %.c $(MESA_PORT_DIR)/src/lib/mesa/src/gallium/state_trackers/es
 
 # state tracker declarations for OpenGL
 SRC_C += st_opengl.c
@@ -25,10 +25,10 @@ vpath select_driver.cc $(REP_DIR)/src/lib/egl
 LIBS += blit
 
 # MESA state tracker code
-MESA_ST_SRC_DIR := $(MESA_DIR)/src/mesa/state_tracker
+MESA_ST_SRC_DIR := $(MESA_PORT_DIR)/src/lib/mesa/src/mesa/state_tracker
 INC_DIR += $(MESA_ST_SRC_DIR)
-INC_DIR += $(MESA_DIR)/src/mesa/main
-INC_DIR += $(MESA_DIR)/src/mesa
+INC_DIR += $(MESA_PORT_DIR)/src/lib/mesa/src/mesa/main
+INC_DIR += $(MESA_PORT_DIR)/src/lib/mesa/src/mesa
 
 SRC_C += $(notdir $(wildcard $(MESA_ST_SRC_DIR)/*.c))
 vpath %.c $(MESA_ST_SRC_DIR)

@@ -1,9 +1,7 @@
 - add 'log2()' and 'log2f()' declarations
 - this patch is only needed for FreeBSD libc versions < 9
 
-diff --git a/msun/src/math.h b/msun/src/math.h
---- msun/src/math.h
-+++ msun/src/math.h
++++ src/lib/libc/lib/msun/src/math.h
 @@ -204,6 +204,7 @@
  double	ldexp(double, int);
  double	log(double);

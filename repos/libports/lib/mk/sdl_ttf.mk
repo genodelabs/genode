@@ -1,8 +1,6 @@
-include $(REP_DIR)/ports/sdl_ttf.inc
-
 SRC_C = SDL_ttf.c
 LIBS += libc libm freetype sdl
 
-vpath %.c $(REP_DIR)/contrib/$(SDL_TTF)
+vpath %.c $(call select_from_ports,sdl_ttf)/src/lib/sdl_ttf
 
 SHARED_LIB = yes

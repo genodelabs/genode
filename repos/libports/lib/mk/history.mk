@@ -1,9 +1,11 @@
-READLINE     = readline-6.0
-READLINE_DIR = $(REP_DIR)/contrib/$(READLINE)
-LIBS        += libc
+READLINE_PORT_DIR := $(call select_from_ports,readline)
+READLINE_DIR      := $(READLINE_PORT_DIR)/src/lib/readline
+
+LIBS += libc
 
 # use our customized 'config.h'
 INC_DIR += $(REP_DIR)/include/readline
+INC_DIR += $(READLINE_PORT_DIR)/include/readline
 
 # add local readline headers to include-search path
 INC_DIR += $(READLINE_DIR)

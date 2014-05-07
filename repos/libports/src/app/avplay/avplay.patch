@@ -1,9 +1,7 @@
 - don't show status messages
 - fix audio/video synchronicity (needs more testing)
 
-diff --git a/avplay.c b/avplay.c
---- a/avplay.c
-+++ b/avplay.c
++++ src/lib/libav/avplay.c
 @@ -235,7 +235,7 @@
  };
  static int seek_by_bytes = -1;

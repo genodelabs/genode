@@ -9,7 +9,7 @@
 #
 FILTER_OUT = strcoll.c strxfrm.c wcscoll.c wcsxfrm.c
 
-LIBC_STRING_DIR = $(LIBC_DIR)/libc/string
+LIBC_STRING_DIR = $(LIBC_DIR)/lib/libc/string
 
 SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIBC_STRING_DIR)/*.c)))
 

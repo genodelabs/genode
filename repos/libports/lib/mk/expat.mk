@@ -1,7 +1,7 @@
 include $(REP_DIR)/lib/import/import-expat.mk
 
-EXPAT_DIR = $(REP_DIR)/contrib/$(EXPAT)
-LIBS     += libc
+EXPAT_DIR := $(call select_from_ports,expat)/src/lib/expat/contrib
+LIBS      += libc
 
 SRC_C = xmlparse.c xmlrole.c xmltok.c
 

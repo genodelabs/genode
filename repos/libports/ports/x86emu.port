@@ -1,0 +1,22 @@
+LICENSE := MIT
+VERSION := 1.12.0
+
+DOWNLOADS := xserver.archive
+
+URL(xserver) := http://ftp.x.org/pub/individual/xserver/xorg-server-1.12.0.tar.bz2
+SHA(xserver) := 5f48db767f71e9f58ded6ff356f3b8340820e524
+DIR(xserver) := src/lib/x86emu/contrib
+
+TAR_OPT(xserver) := --strip-components=4 xorg-server-$(VERSION)/hw/xfree86/x86emu
+
+default: fix_cxx
+
+# use sed to replace in a structure a member 'private' - reserved keyword in C++
+fix_cxx: $(DOWNLOADS)
+	$(VERBOSE)sed -i 's/private;/private_ptr;/g' src/lib/x86emu/contrib/x86emu/regs.h
+
+DIRS := include/x86emu include/x86emu/x86emu
+
+DIR_CONTENT(include/x86emu)        := src/lib/x86emu/contrib/x86emu.h
+DIR_CONTENT(include/x86emu/x86emu) := src/lib/x86emu/contrib/x86emu/regs.h \
+                                      src/lib/x86emu/contrib/x86emu/types.h

@@ -2,8 +2,7 @@
 # x86 real-mode emulation library
 #
 
-X86EMU      = x86emu-1.12.0
-X86EMU_DIR  = $(REP_DIR)/contrib/$(X86EMU)
+X86EMU_DIR  = $(call select_from_ports,x86emu)/src/lib/x86emu/contrib
 INC_DIR    += $(X86EMU_DIR) $(REP_DIR)/include/x86emu
 CC_OPT     += -fomit-frame-pointer
 

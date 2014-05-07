@@ -1,0 +1,39 @@
+LICENSE   := OpenSSL
+VERSION   := 1.0.1g
+DOWNLOADS := openssl.archive
+
+URL(openssl) := http://www.openssl.org/source/openssl-$(VERSION).tar.gz
+SHA(openssl) := b28b3bcb1dc3ee7b55024c9f795be60eb3183e3c
+SIG(openssl) := ${URL(openssl)}.asc
+KEY(openssl) := "49A563D9 26BB437D F295C759 9C58A66D 2118CF83 F709453B 5A6A9B85"
+DIR(openssl) := src/lib/openssl
+
+DIRS := include/openssl
+DIR_CONTENT(include/openssl) = $(shell find src/lib/openssl/include/openssl/ -name *.h) \
+                               src/lib/openssl/e_os.h \
+                               src/lib/openssl/crypto/md2/md2.h \
+                               src/lib/openssl/crypto/rc5/rc5.h \
+                               src/lib/openssl/crypto/store/store.h
+
+#
+# Generate ASM codes
+#
+
+#$(call check_tool,sed)
+
+gen_files := src/lib/openssl/x86_64/modexp512.s src/lib/openssl/x86_64/rc4_md5.s
+
+default: $(gen_files)
+$(gen_files): $(DOWNLOADS)
+
+src/lib/openssl/x86_64/modexp512.s:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)perl src/lib/openssl/crypto/bn/asm/modexp512-x86_64.pl \
+		src/lib/openssl/crypto/perlasm/x86as.pl > $@
+
+src/lib/openssl/x86_64/rc4_md5.s:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)perl src/lib/openssl/crypto/rc4/asm/rc4-md5-x86_64.pl \
+		src/lib/openssl/crypto/perlasm/x86as.pl > $@

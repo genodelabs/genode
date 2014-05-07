@@ -1,2 +1,0 @@
-PCRE_VERSION = 8.30
-PCRE         = pcre-$(PCRE_VERSION)

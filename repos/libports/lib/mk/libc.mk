@@ -27,7 +27,7 @@ SRC_C += strcoll.c strxfrm.c wcscoll.c wcsxfrm.c
 include $(REP_DIR)/lib/mk/libc-common.inc
 
 vpath % $(REP_DIR)/src/lib/libc
-vpath % $(LIBC_DIR)/libc/string
+vpath % $(LIBC_DIR)/lib/libc/string
 
 #
 # Shared library, for libc we need symbol versioning

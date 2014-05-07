@@ -1,6 +1,6 @@
 include $(REP_DIR)/lib/mk/libc-gen.inc
 
-LIBC_GEN_I386_DIR = $(LIBC_DIR)/libc/i386/gen
+LIBC_GEN_I386_DIR = $(LIBC_DIR)/lib/libc/i386/gen
 
 FILTER_OUT_S += rfork_thread.S _setjmp.S setjmp.S
 FILTER_OUT_C += _set_tp.c

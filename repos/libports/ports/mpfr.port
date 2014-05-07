@@ -1,0 +1,19 @@
+LICENSE   := GPLv3
+VERSION   := 3.0.0
+DOWNLOADS := mpfr.archive
+
+URL(mpfr) := http://www.mpfr.org/mpfr-$(VERSION)/mpfr-$(VERSION).tar.gz
+SHA(mpfr) := d45409b4586c7dda9cc0c0953f27e6dd5188a908
+SIG(mpfr) := ${URL(mpfr)}.asc
+KEY(mpfr) := GNU
+DIR(mpfr) := src/lib/mpfr
+
+DIRS := include/mpfr
+DIR_CONTENT(include/mpfr) := src/lib/mpfr/mpfr.h
+
+default: include/mpfr/mparam.h
+
+include/mpfr/mparam.h: _dirs
+	@$(MSG_INSTALL)$@
+	@cp src/lib/mpfr/mparam_h.in $@
+

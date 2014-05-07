@@ -1,4 +1,4 @@
-LIBC_GEN_DIR = $(LIBC_DIR)/libc/gen
+LIBC_GEN_DIR = $(LIBC_DIR)/lib/libc/gen
 
 # this file produces a warning about a missing header file, lets drop it
 FILTER_OUT_C += getosreldate.c sem.c valloc.c getpwent.c

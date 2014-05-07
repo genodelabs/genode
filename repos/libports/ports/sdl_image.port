@@ -1,0 +1,10 @@
+LICENSE   := BSD
+VERSION   := 1.2.12
+DOWNLOADS := sdl_image.archive
+
+URL(sdl_image) := http://www.libsdl.org/projects/SDL_image/release/SDL_image-$(VERSION).tar.gz
+SHA(sdl_image) := 5e3e393d4e366638048bbb10d6a269ea3f4e4cf2
+DIR(sdl_image) := src/lib/sdl_image
+
+DIRS := include/SDL
+DIR_CONTENT(include/SDL) := src/lib/sdl_image/SDL_image.h

@@ -1,2 +1,0 @@
-SDL_NET_VERSION = 1.2.8
-SDL_NET         = SDL_net-$(SDL_NET_VERSION)

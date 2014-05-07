@@ -1,7 +1,7 @@
-PYTHON     = python-2.6.4
-PYTHON_DIR = $(REP_DIR)/contrib/$(PYTHON)
-LIBS      += libc libm
-SHARED_LIB = yes
+PYTHON_PORT_DIR := $(call select_from_ports,python)
+PYTHON_DIR      := $(PYTHON_PORT_DIR)/src/lib/python
+LIBS            += libc libm
+SHARED_LIB       = yes
 
 # use our custom 'pyconfig.h' file
 INC_DIR += $(REP_DIR)/include/python

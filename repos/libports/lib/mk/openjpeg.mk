@@ -1,5 +1,5 @@
 OPENJPEG     = openjpeg-1.4
-OPENJPEG_DIR = $(REP_DIR)/contrib/$(OPENJPEG)/libopenjpeg
+OPENJPEG_DIR = $(call select_from_ports,openjpeg)/src/lib/openjpeg/libopenjpeg
 LIBS        += libc libm
 INC_DIR     += $(OPENJPEG_DIR) $(REP_DIR)/include/openjpeg
 

@@ -1,6 +1,6 @@
 include $(REP_DIR)/lib/import/import-icu.mk
 
-ICU_DIR = $(REP_DIR)/contrib/icu
+ICU_DIR = $(call select_from_ports,icu)/src/lib/icu
 
 
 # copy-pasted from $(ICU_DIR)/source/common/Makefile.in and renamed OBJECTS to ICU_COMMON_OBJECTS

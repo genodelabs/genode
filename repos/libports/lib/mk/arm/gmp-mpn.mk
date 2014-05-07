@@ -9,8 +9,6 @@ FILTER_OUT += udiv_w_sdiv.c
 SRC_ASM += copyd.asm copyi.asm
 
 FILTER_OUT += popham.c
-CC_OPT_hamdist  = -DOPERATION_hamdist
-CC_OPT_popcount = -DOPERATION_popcount
 
 SRC_ASM += add_n.asm
 FILTER_OUT += add_n.c
@@ -26,7 +24,7 @@ include $(REP_DIR)/lib/mk/gmp.inc
 
 PWD := $(shell pwd)
 
-SRC_O += $(SRC_ASM:.asm=.o)
+SRC_O += $(SRC_ASM:.asm=.o) hamdist.o popcount.o
 
 #
 # Create execution environment for the m4-ccas tool, which is used by the gmp
@@ -52,6 +50,10 @@ ifneq ($(VERBOSE),)
 M4_OUTPUT_FILTER = > /dev/null
 endif
 
+hamdist.o popcount.o: popham.c
+	$(MSG_COMP)$@
+	$(VERBOSE)$(CC) $(CC_DEF) $(CC_C_OPT) -DOPERATION_${@:.o=} $(INCLUDES) -c $< -o $@
+
 %.o: %.asm
 	$(MSG_ASSEM)$@
 	$(VERBOSE)cd m4env/mpn; \
@@ -61,5 +63,4 @@ endif
 vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/arm
 vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/32bit
 vpath %.c   $(GMP_MPN_DIR)/generic
-#vpath %.asm $(REP_DIR)/src/lib/gmp/mpn/
 vpath %.asm $(GMP_MPN_DIR)/arm
