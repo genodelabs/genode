@@ -30,6 +30,8 @@
 #                 Normally, the libcache is located at 'var/libcache' and
 #                 there is no need to change it.
 #
+# CONTRIB_DIR   - location of ported 3rd-party source codes
+#
 
 ##
 ## Define global configuration variables
@@ -49,6 +51,7 @@ export LIB_CACHE_DIR    ?= $(BUILD_BASE_DIR)/var/libcache
 export LIB_PROGRESS_LOG ?= $(BUILD_BASE_DIR)/progress.log
 export LIB_DEP_FILE     ?= var/libdeps
 export ECHO             ?= echo -e
+export CONTRIB_DIR
 
 #
 # Convert user-defined directories to absolute directories

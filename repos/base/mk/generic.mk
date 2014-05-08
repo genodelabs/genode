@@ -31,6 +31,15 @@ $(wildcard $(OBJECTS)): $(filter-out $(LIB_PROGRESS_LOG),$(MAKEFILE_LIST))
 INCLUDES := $(addprefix -I,$(wildcard $(ALL_INC_DIR)))
 
 #
+# If one of the 3rd-party ports used by the target changed, we need to rebuild
+# all object files because they may include headers from the 3rd-party port.
+#
+# The 'PORT_HASH_FILES' variable is populated as side effect of calling the
+# 'select_from_ports' function.
+#
+$(OBJECTS): $(PORT_HASH_FILES)
+
+#
 # Include dependency files for the corresponding object files except
 # when cleaning
 #

@@ -13,6 +13,7 @@
 ##   INSTALL_DIR      - program target build directory
 ##   DEPS             - library dependencies
 ##   REP_DIR          - repository where the library resides
+##   CONTRIB_DIR      - location of ported 3rd-party source codes
 ##
 
 include $(BASE_DIR)/mk/base-libs.mk
@@ -23,10 +24,9 @@ include $(BASE_DIR)/mk/base-libs.mk
 all:
 
 #
-# Function that searches for files in all
-# repositories and returns the first match.
+# Include common utility functions
 #
-select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/$(1))))
+include $(BASE_DIR)/mk/util.inc
 
 #
 # Include specifics, for example platform, kernel-api etc.
@@ -36,7 +36,7 @@ include $(SPEC_FILES)
 #
 # Include library build instructions
 #
-# We set the 'called_from_lib_mk' variable to allow the library decription file
+# We set the 'called_from_lib_mk' variable to allow the library description file
 # to respond to the build pass.
 #
 BACKUP_INC_DIR := $(INC_DIR)

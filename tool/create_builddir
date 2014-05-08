@@ -61,6 +61,8 @@ GENODE_DIR ?= $(realpath $(dir $(MAKEFILE_LIST))/..)
 #
 BUILD_DIR ?= $(GENODE_DIR)/build/$(PLATFORM)
 
+SHELL := bash
+
 ifneq ($(wildcard $(BUILD_DIR)),)
 $(PLATFORM):: build_dir_already_exists
 build_dir_already_exists:
@@ -76,6 +78,18 @@ endif
 GENODE_ABS_DIR := $(realpath $(shell echo $(GENODE_DIR)))
 
 #
+# Define absolute path to the contrib directory as written to the
+# 'etc/build.conf' file. We use 'abs_path' instead of 'realpath' because the
+# contrib directory may not exist when the build directory is created. In this
+# case, 'realpath' would return an empty string.
+#
+ifeq ($(CONTRIB_DIR),)
+CONTRIB_ABS_DIR := $$(GENODE_DIR)/contrib
+else
+CONTRIB_ABS_DIR := $(abspath $(shell echo $(CONTRIB_DIR)))
+endif
+
+#
 # Generic build-directory preparation rules
 #
 BUILD_CONF          = $(GENODE_ABS_DIR)/tool/builddir/etc/build.conf
@@ -87,6 +101,7 @@ $(BUILD_DIR)/etc:
 $(BUILD_DIR)/etc/build.conf:: $(BUILD_CONF_PLATFORM)
 	@echo "GENODE_DIR    = $(GENODE_ABS_DIR)" > $@
 	@echo 'BASE_DIR      = $$(GENODE_DIR)/repos/base' >> $@
+	@echo 'CONTRIB_DIR   = $(CONTRIB_ABS_DIR)' >> $@
 
 #
 # Supply -no-kvm argument to Qemu for kernels that are incompatible with KVM

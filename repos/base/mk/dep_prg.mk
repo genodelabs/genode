@@ -4,9 +4,9 @@
 all:
 
 #
-# Utility for selecting files from the list of repositories
+# Include common utility functions
 #
-select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/$(1))))
+include $(BASE_DIR)/mk/util.inc
 
 #
 # Include target build instructions to aquire library dependecies

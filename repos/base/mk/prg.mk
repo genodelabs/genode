@@ -20,9 +20,9 @@
 all:
 
 #
-# Function that searches for files in all repositories and returns the first match
+# Include common utility functions
 #
-select_from_repositories = $(firstword $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/$(1))))
+include $(BASE_DIR)/mk/util.inc
 
 #
 # Include target build instructions
