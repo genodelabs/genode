@@ -3,6 +3,8 @@
 *.swp
 *.rej
 
+/build
+
 /repos/base-codezero/contrib
 /repos/base-fiasco/contrib
 /repos/base-fiasco/download
