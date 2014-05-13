@@ -186,10 +186,10 @@ traverse_dependencies: $(dir $(LIB_DEP_FILE)) init_libdep_file init_progress_log
 	            REP_DIR=$$rep TARGET_MK=$$rep/src/$$target \
 	            BUILD_BASE_DIR=$(BUILD_BASE_DIR) \
 	            SHELL=$(SHELL) \
-	            DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)"; \
+	            DARK_COL="$(DARK_COL)" DEFAULT_COL="$(DEFAULT_COL)" || result=false; \
 	    break; \
 	  done; \
-	done
+	done; $$result;
 
 .PHONY: $(LIB_DEP_FILE)
 $(LIB_DEP_FILE): traverse_dependencies
