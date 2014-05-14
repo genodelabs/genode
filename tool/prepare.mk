@@ -17,6 +17,7 @@ GNU_FIND     = find
 SHELL        = bash
 SIGVERIFIER  = $(CURDIR)/../../tool/download_sigver
 HASHVERIFIER = $(CURDIR)/../../tool/download_hashver
+MAKEFLAGS   += --no-print-directory
 
 #
 # Create download and contrib directory so that '<port>.mk' files
