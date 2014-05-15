@@ -483,9 +483,11 @@ class Vfs::Fs_file_system : public File_system
 				path = "/";
 
 			/*
-			 * XXX handle exceptions
+			 * XXX handle more exceptions
 			 */
-			::File_system::Node_handle node = _fs.node(path);
+			::File_system::Node_handle node;
+			try { node = _fs.node(path); } catch (::File_system::Lookup_failed) { return 0; }
+
 			Fs_handle_guard node_guard(_fs, node);
 
 			::File_system::Status status = _fs.status(node);
