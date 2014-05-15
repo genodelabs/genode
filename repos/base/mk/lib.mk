@@ -109,6 +109,15 @@ message:
 #
 all: $(LIB_TAG)
 
+#
+# Trigger the build of host tools
+#
+# We make '$(LIB_TAG)' depend on the host tools to support building host tools
+# from pseudo libraries with no actual source code. In this case '$(OBJECTS)'
+# is empty.
+#
+$(LIB_TAG) $(OBJECTS): $(HOST_TOOLS)
+
 $(LIB_TAG): $(LIB_A) $(LIB_SO) $(INSTALL_SO)
 	@touch $@
 

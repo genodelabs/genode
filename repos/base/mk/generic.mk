@@ -24,20 +24,21 @@ $(SUB_DIRS):
 	$(VERBOSE)mkdir -p $@
 
 #
-# Make sure, that we rebuild object files after Makefile changes
+# Make sure that we rebuild object files and host tools after Makefile changes
 #
-$(wildcard $(OBJECTS)): $(filter-out $(LIB_PROGRESS_LOG),$(MAKEFILE_LIST))
+$(wildcard $(OBJECTS)) $(HOST_TOOLS): $(filter-out $(LIB_PROGRESS_LOG),$(MAKEFILE_LIST))
 
 INCLUDES := $(addprefix -I,$(wildcard $(ALL_INC_DIR)))
 
 #
 # If one of the 3rd-party ports used by the target changed, we need to rebuild
-# all object files because they may include headers from the 3rd-party port.
+# all object files and host tools because they may include sources from the
+# 3rd-party port.
 #
 # The 'PORT_HASH_FILES' variable is populated as side effect of calling the
 # 'select_from_ports' function.
 #
-$(OBJECTS): $(PORT_HASH_FILES)
+$(OBJECTS) $(HOST_TOOLS): $(PORT_HASH_FILES)
 
 #
 # Include dependency files for the corresponding object files except

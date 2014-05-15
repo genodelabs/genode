@@ -181,6 +181,11 @@ endif
 LINK_ITEMS       := $(OBJECTS) $(STATIC_LIBS) $(SHARED_LIBS)
 SHORT_LINK_ITEMS := $(subst $(LIB_CACHE_DIR),$$libs,$(LINK_ITEMS))
 
+#
+# Trigger the build of host tools
+#
+$(LINK_ITEMS) $(TARGET): $(HOST_TOOLS)
+
 LD_CMD += -Wl,--whole-archive -Wl,--start-group
 LD_CMD += $(SHORT_LINK_ITEMS)
 LD_CMD += $(EXT_OBJECTS)
