@@ -55,3 +55,14 @@ $(BUILD_BASE_DIR)/include/bootinfo: $(OKL4_DIR)/libs/bootinfo/include
 	$(VERBOSE)ln -sf $< $@
 
 endif
+
+#
+# Create symlink to elfweaver so that the run tool can use it from within the
+# build directory.
+#
+HOST_TOOLS += $(BUILD_BASE_DIR)/tool/okl4/elfweaver
+
+$(BUILD_BASE_DIR)/tool/okl4/elfweaver:
+	mkdir -p $(dir $@)
+	ln -sf $(OKL4_DIR)/tools/pyelf/elfweaver $@
+

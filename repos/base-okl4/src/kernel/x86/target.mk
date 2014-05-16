@@ -47,10 +47,10 @@ LD_TEXT_ADDR   = 0xf0100000
 
 -include $(PRG_DIR)/../target.inc
 
-LD_SCRIPT_STATIC = $(OKL4_SRC_DIR)/../generated/x86/linker.ld
+LD_SCRIPT_STATIC = $(REP_DIR)/contrib/generated/x86/linker.ld
 INC_DIR          = $(OKL4_BUILD_DIR)/include \
-                   $(OKL4_SRC_DIR)/../generated/x86 \
+                   $(REP_DIR)/contrib/generated/x86 \
                    $(OKL4_SRC_DIR)/pistachio/include
 
-vpath macro_sets.cc $(OKL4_SRC_DIR)/../generated/x86
+vpath macro_sets.cc $(REP_DIR)/contrib/generated/x86
 vpath %.spp         $(OKL4_SRC_DIR)/arch/ia32/pistachio/src

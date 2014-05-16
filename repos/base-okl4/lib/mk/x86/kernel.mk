@@ -1,5 +1,5 @@
 OKL4_BUILD_DIR = $(BUILD_BASE_DIR)/kernel
-OKL4_SRC_DIR   = $(REP_DIR)/contrib/okl4
+OKL4_SRC_DIR   = $(call select_from_ports,okl4)/src/kernel/okl4
 ARCH_DIR       = $(OKL4_SRC_DIR)/arch/ia32
 PLAT_DIR       = $(OKL4_SRC_DIR)/platform/pc99
 INC_SYMLINKS   = arch/apic.h \

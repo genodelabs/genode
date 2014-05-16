@@ -166,7 +166,7 @@ proc build_boot_image {binaries} {
 	#
 	# Run ELF Weaver to create a boot image
 	#
-	set ret [exec "[okl4_dir]/tools/pyelf/elfweaver" merge --output "[run_dir]/image.elf" "[run_dir].weaver.xml"]
+	set ret [exec "./tool/okl4/elfweaver" merge --output "[run_dir]/image.elf" "[run_dir].weaver.xml"]
 	if {[regexp "error" $ret dummy]} {
 		puts stderr "Elfweaver failed: $ret"
 		exit -6

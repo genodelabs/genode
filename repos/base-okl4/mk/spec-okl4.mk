@@ -11,7 +11,7 @@
 #
 # If no OKL4 source directory is set, we use the standard contrib directory
 #
-OKL4_DIR ?= $(BASE_DIR)/../base-okl4/contrib/okl4
+OKL4_DIR ?= $(call select_from_ports,okl4)/src/kernel/okl4
 
 #
 # Make sure that symlink modification times are handled correctly.
