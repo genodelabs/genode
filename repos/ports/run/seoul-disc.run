@@ -1,9 +1,9 @@
 #
-# \brief  Vancouver on Genode - test to boot from a raw disk
+# \brief  Seoul on Genode - test to boot from a raw disk
 # \author Alexander Boettcher
 # \date   2013-06-11
 #
-# This run script starts the Vancouver VMM booting from a disc image.
+# This run script starts the Seoul VMM booting from a disc image.
 # It assumes that the module files are present at '<build-dir>/bin/'
 #
 

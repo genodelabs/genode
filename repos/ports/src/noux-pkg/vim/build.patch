@@ -8,10 +8,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  src/xxd/Makefile |    2 +-
  2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/src/Makefile b/src/Makefile
-index e473ca2..52b75e4 100644
---- a/src/Makefile
-+++ b/src/Makefile
++++ src/noux-pkg/vim/src/Makefile
 @@ -1698,7 +1698,7 @@ $(VIMTARGET): auto/config.mk objects $(OBJ) version.c version.h
  		MAKE="$(MAKE)" sh $(srcdir)/link.sh
  
@@ -21,10 +18,7 @@ index e473ca2..52b75e4 100644
  		$(MAKE) -f Makefile
  
  # Build the language specific files if they were unpacked.
-diff --git a/src/xxd/Makefile b/src/xxd/Makefile
-index 97bbcc7..099330a 100644
---- a/src/xxd/Makefile
-+++ b/src/xxd/Makefile
++++ src/noux-pkg/vim/src/xxd/Makefile
 @@ -1,7 +1,7 @@
  # The most simplistic Makefile
  

@@ -1,7 +1,4 @@
-Index: src/netserver.c
-===================================================================
---- src/netserver.c	(revision 644)
-+++ src/netserver.c	(working copy)
++++ src/app/netperf/src/netserver.c
 @@ -567,7 +567,7 @@
    int do_inet;
    int no_name = 0;
@@ -11,10 +8,7 @@ Index: src/netserver.c
  #endif
  
    if (debug) {
-Index: src/nettest_omni.c
-===================================================================
---- src/nettest_omni.c	(revision 644)
-+++ src/nettest_omni.c	(working copy)
++++ src/app/netperf/src/nettest_omni.c	(working copy)
 @@ -3348,7 +3348,7 @@
  get_transport_cong_control(SOCKET socket, int protocol, char cong_control[], int len)
  {
@@ -77,10 +71,7 @@ Index: src/nettest_omni.c
  #ifdef KLUDGE_SOCKET_OPTIONS
        /* this is for those systems which *INCORRECTLY* fail to pass
  	 attributes across an accept() call. Including this goes
-Index: src/nettest_bsd.h
-===================================================================
---- src/nettest_bsd.h	(revision 644)
-+++ src/nettest_bsd.h	(working copy)
++++ src/app/netperf/src/nettest_bsd.h
 @@ -617,7 +617,7 @@
  extern int  get_sockaddr_family_addr_port(struct sockaddr_storage *sockaddr,
  					  int family,
@@ -90,10 +81,7 @@ Index: src/nettest_bsd.h
  extern void send_tcp_mss(char remote_host[]);
  extern void send_tcp_stream(char remote_host[]);
  extern void send_tcp_maerts(char remote_host[]);
-Index: src/nettest_bsd.c
-===================================================================
---- src/nettest_bsd.c	(revision 644)
-+++ src/nettest_bsd.c	(working copy)
++++ src/app/netperf/src/nettest_bsd.c
 @@ -1066,7 +1066,7 @@
  
  /* pull the port and address out of the sockaddr in host format */

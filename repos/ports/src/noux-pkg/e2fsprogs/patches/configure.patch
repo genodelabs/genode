@@ -1,7 +1,4 @@
-diff --git a/configure b/configure
-index 31ec8d3..1026463 100755
---- a/configure
-+++ b/configure
++++ src/noux-pkg/e2fsprogs/configure
 @@ -4225,10 +4225,10 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
  ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
  ac_compiler_gnu=$ac_cv_c_compiler_gnu

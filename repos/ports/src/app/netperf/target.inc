@@ -1,5 +1,5 @@
 
-CONTRIB_DIR = $(REP_DIR)/contrib/netperf
+NETPERF_DIR := $(call select_from_ports,netperf)/src/app/netperf
 
 LIBS   += base libc libm libc-resolv libc-net libc-nameser libc-isc
 # plug-in to libc
@@ -17,7 +17,7 @@ CC_OPT  += -DHAVE_CONFIG_H -DGENODE_BUILD
 
 CC_WARN = -Wall -Wno-unused
 
-vpath %.c $(CONTRIB_DIR)/src
+vpath %.c $(NETPERF_DIR)/src
 vpath timer.cc $(PRG_DIR)/..
 
 # vi: set ft=make :

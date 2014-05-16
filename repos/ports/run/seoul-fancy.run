@@ -1,11 +1,11 @@
 #
-# \brief  Example for using Vancouver on Genode
+# \brief  Example for using Seoul on Genode
 # \author Norman Feske
 # \author Markus Partheymueller
 # \author Alexander Boettcher
 # \date   2011-11-21
 #
-# This run script starts the Vancouver VMM booting the multiboot modules
+# This run script starts the Seoul VMM booting the multiboot modules
 # listed in the 'multiboot' config node. It assumes that the module files
 # are present at '<build-dir>/bin/' (see the 'boot_modules' variable).
 #

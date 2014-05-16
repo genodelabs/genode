@@ -1,7 +1,4 @@
-diff --git a/debugfs/Makefile.in b/debugfs/Makefile.in
-index bf037e0..f9d71fa 100644
---- a/debugfs/Makefile.in
-+++ b/debugfs/Makefile.in
++++ src/noux-pkg/e2fsprogs/debugfs/Makefile.in
 @@ -31,7 +31,7 @@ SRCS= debug_cmds.c $(srcdir)/debugfs.c $(srcdir)/util.c $(srcdir)/ls.c \
  	$(srcdir)/filefrag.c $(srcdir)/extent_inode.c $(srcdir)/zap.c
  
@@ -11,10 +8,7 @@ index bf037e0..f9d71fa 100644
  DEPLIBS= $(LIBEXT2FS) $(LIBE2P) $(DEPLIBSS) $(DEPLIBCOM_ERR) \
  	$(DEPLIBBLKID) $(DEPLIBUUID)
  
-diff --git a/e2fsck/Makefile.in b/e2fsck/Makefile.in
-index 8e1c891..4073cf8 100644
---- a/e2fsck/Makefile.in
-+++ b/e2fsck/Makefile.in
++++ src/noux-pkg/e2fsprogs/e2fsck/Makefile.in
 @@ -16,7 +16,7 @@ MANPAGES=	e2fsck.8
  FMANPAGES=	e2fsck.conf.5
  
@@ -24,10 +18,7 @@ index 8e1c891..4073cf8 100644
  DEPLIBS= $(DEPLIBQUOTA) $(LIBEXT2FS) $(DEPLIBCOM_ERR) $(DEPLIBBLKID) \
  	 $(DEPLIBUUID) $(DEPLIBE2P)
  
-diff --git a/ext2ed/Makefile.in b/ext2ed/Makefile.in
-index 290f06e..584f6a5 100644
---- a/ext2ed/Makefile.in
-+++ b/ext2ed/Makefile.in
++++ src/noux-pkg/e2fsprogs/ext2ed/Makefile.in
 @@ -16,7 +16,7 @@ MANPAGES=	ext2ed.8
  
  DOC_DIR		=	$datadir/doc/ext2ed
@@ -37,10 +28,7 @@ index 290f06e..584f6a5 100644
  
  SRCS=	$(srcdir)/main.c $(srcdir)/init.c $(srcdir)/general_com.c       \
  	$(srcdir)/inode_com.c $(srcdir)/dir_com.c $(srcdir)/super_com.c \
-diff --git a/intl/Makefile.in b/intl/Makefile.in
-index bf24f63..3754ada 100644
---- a/intl/Makefile.in
-+++ b/intl/Makefile.in
++++ src/noux-pkg/e2fsprogs/intl/Makefile.in
 @@ -191,7 +191,7 @@ LTV_AGE=4
  .c.o:
  	$(E) "	CC $<"
@@ -50,10 +38,7 @@ index bf24f63..3754ada 100644
  
  .y.c:
  	$(YACC) $(YFLAGS) --output $@ $<
-diff --git a/lib/blkid/Makefile.in b/lib/blkid/Makefile.in
-index 3f15c67..4623413 100644
---- a/lib/blkid/Makefile.in
-+++ b/lib/blkid/Makefile.in
++++ src/noux-pkg/e2fsprogs/lib/blkid/Makefile.in
 @@ -127,7 +127,7 @@ tst_types: tst_types.o blkid_types.h
  
  blkid: ../../misc/blkid.o libblkid.a $(DEPLIBUUID)
@@ -63,10 +48,7 @@ index 3f15c67..4623413 100644
  
  test_probe: test_probe.in Makefile
  	$(E) "Creating test_probe..."
-diff --git a/lib/uuid/Makefile.in b/lib/uuid/Makefile.in
-index 14d08c1..4aaf40d 100644
---- a/lib/uuid/Makefile.in
-+++ b/lib/uuid/Makefile.in
++++ src/noux-pkg/e2fsprogs/lib/uuid/Makefile.in
 @@ -83,12 +83,12 @@ tst_uuid.o: $(srcdir)/tst_uuid.c uuid.h
  
  tst_uuid: tst_uuid.o $(DEPSTATIC_LIBUUID)
@@ -82,10 +64,7 @@ index 14d08c1..4aaf40d 100644
  
  uuid.3: $(DEP_SUBSTITUTE) $(srcdir)/uuid.3.in
  	$(E) "	SUBST $@"
-diff --git a/misc/Makefile.in b/misc/Makefile.in
-index 553c361..819e301 100644
---- a/misc/Makefile.in
-+++ b/misc/Makefile.in
++++ src/noux-pkg/e2fsprogs/misc/Makefile.in
 @@ -84,7 +84,7 @@ SRCS=	$(srcdir)/tune2fs.c $(srcdir)/mklost+found.c $(srcdir)/mke2fs.c \
  		$(srcdir)/ismounted.c $(srcdir)/../e2fsck/profile.c \
  		$(srcdir)/e2undo.c $(srcdir)/e2freefrag.c
@@ -168,10 +147,7 @@ index 553c361..819e301 100644
  
  filefrag.profiled: $(FILEFRAG_OBJS)
  	$(E) "	LD $@"
-diff --git a/resize/Makefile.in b/resize/Makefile.in
-index b8fb3ae..2850999 100644
---- a/resize/Makefile.in
-+++ b/resize/Makefile.in
++++ src/noux-pkg/e2fsprogs/resize/Makefile.in
 @@ -28,7 +28,7 @@ SRCS= $(srcdir)/extent.c \
  	$(srcdir)/resource_track.c \
  	$(srcdir)/sim_progress.c
@@ -181,10 +157,7 @@ index b8fb3ae..2850999 100644
  DEPLIBS= $(LIBE2P) $(LIBEXT2FS) $(DEPLIBCOM_ERR)
  
  STATIC_LIBS= $(STATIC_LIBE2P) $(STATIC_LIBEXT2FS) $(STATIC_LIBCOM_ERR) \
-diff --git a/tests/progs/Makefile.in b/tests/progs/Makefile.in
-index 37abf23..3aba8e0 100644
---- a/tests/progs/Makefile.in
-+++ b/tests/progs/Makefile.in
++++ src/noux-pkg/e2fsprogs/tests/progs/Makefile.in
 @@ -37,7 +37,7 @@ test_rel: $(TEST_REL_OBJS) $(DEPLIBS)
  
  crcsum: crcsum.o $(DEPLIBS)

@@ -1,0 +1,9 @@
+LICENSE   := GPLv3
+VERSION   := 8.9
+DOWNLOADS := coreutils.archive
+
+URL(coreutils) := http://ftp.gnu.org/gnu/coreutils/coreutils-$(VERSION).tar.gz
+SHA(coreutils) := 1e7a4d012abf840684d3b769297721377ffc4743
+SIG(coreutils) := ${URL(coreutils)}.sig
+KEY(coreutils) := GNU
+DIR(coreutils) := src/noux-pkg/coreutils

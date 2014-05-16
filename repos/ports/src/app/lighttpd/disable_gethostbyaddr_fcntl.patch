@@ -1,5 +1,4 @@
---- a/contrib/lighttpd-1.4.31/src/fdevent_poll.c.orig
-+++ b/contrib/lighttpd-1.4.31/src/fdevent_poll.c
++++ src/app/lighttpd/src/fdevent_poll.c
 @@ -193,7 +193,7 @@ int fdevent_poll_init(fdevents *ev) {
  int fdevent_poll_init(fdevents *ev) {
  	UNUSED(ev);
@@ -9,8 +8,7 @@
  		"s", "poll is not supported, try to set server.event-handler = \"select\"");
  
  	return -1;
---- a/contrib/lighttpd-1.4.31/src/http-header-glue.c.orig
-+++ b/contrib/lighttpd-1.4.31/src/http-header-glue.c
++++ src/app/lighttpd/src/http-header-glue.c
 @@ -175,6 +175,7 @@ int http_response_redirect_to_directory(server *srv, connection *con) {
  			break;
  #endif
@@ -28,8 +26,7 @@
  			break;
  		default:
  			log_error_write(srv, __FILE__, __LINE__,
---- a/contrib/lighttpd-1.4.31/src/network.c.orig
-+++ b/contrib/lighttpd-1.4.31/src/network.c
++++ src/app/lighttpd/src/network.c
 @@ -301,6 +301,7 @@ static int network_server_init(server *srv, buffer *host_token, specific_config
  		if (host == NULL) {
  			srv_socket->addr.ipv4.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -46,8 +43,7 @@
  		}
  		srv_socket->addr.ipv4.sin_port = htons(port);
  
---- a/contrib/lighttpd-1.4.31/src/fdevent.c.orig
-+++ b/contrib/lighttpd-1.4.31/src/fdevent.c
++++ src/app/lighttpd/src/fdevent.c
 @@ -198,16 +198,23 @@ void * fdevent_get_context(fdevents *ev, int fd) {
  }
  

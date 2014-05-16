@@ -1,9 +1,9 @@
 #
-# \brief  Vancouver on Genode - for testing network
+# \brief  Seoul on Genode - for testing network
 # \author Alexander Boettcher
 # \date   2013-06-11
 #
-# This run script starts the Vancouver VMM booting from a multiboot image.
+# This run script starts the Seoul VMM booting from a multiboot image.
 # It assumes that the module files are present at '<build-dir>/bin/'
 #
 

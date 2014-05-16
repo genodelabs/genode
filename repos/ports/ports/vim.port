@@ -1,0 +1,23 @@
+LICENSE   := Vim
+VERSION   := 7.3
+DOWNLOADS := vim.archive
+
+URL(vim) := ftp://ftp.vim.org/pub/vim/unix/vim-$(VERSION).tar.bz2
+SHA(vim) := 46faa96c5fab639899b1c655c23d8755b62f036f
+DIR(vim) := src/noux-pkg/vim
+
+PATCHES := src/noux-pkg/vim/build.patch
+
+default : additional_fixes
+additional_fixes : $(DOWNLOADS)
+	@#
+	@# Prevent configure script from breaking unconditionally
+	@# because of cross compiling.
+	@#
+	$(VERBOSE)sed -i "/could not compile program using uint32_t/s/^/#/" src/noux-pkg/vim/src/auto/configure
+	@#
+	@# Fix compiled-in VIM install location. Otherwise, the absolute path used
+	@# during the build will be compiled-in, which makes no sense in the Noux
+	@# environment
+	@#
+	$(VERBOSE)sed -i "/default_vim_dir/s/.(VIMRCLOC)/\/share\/vim/" src/noux-pkg/vim/src/Makefile

@@ -1,0 +1,9 @@
+LICENSE   := GPLv3
+VERSION   := 2.14
+DOWNLOADS := grep.archive
+
+URL(grep) := http://ftp.gnu.org/pub/gnu/grep/grep-$(VERSION).tar.xz
+SHA(grep) := fb6ea404a0ef915334ca6212c7b517432ffe193e
+SIG(grep) := ${URL(grep)}.sig
+KEY(grep) := GNU
+DIR(grep) := src/noux-pkg/grep

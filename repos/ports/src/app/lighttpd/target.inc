@@ -1,10 +1,18 @@
-include $(REP_DIR)/ports/lighttpd.inc
-LIGHTTPD_DIR = $(REP_DIR)/contrib/$(LIGHTTPD)
+LIGHTTPD_DIR := $(call select_from_ports,lighttpd)/src/app/lighttpd
 
 FILTER_OUT = lempar.c lighttpd-angel.c lemon.c
 SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIGHTTPD_DIR)/src/*.c)))
 
 vpath %.c $(LIGHTTPD_DIR)/src
+
+# read version information from configure script
+LIGHTTPD_VERSION := $(subst ., ,$(shell cat $(LIGHTTPD_DIR)/configure |\
+                                        grep "PACKAGE_VERSION=" |\
+                                        sed "s/^.*='//;s/'//"))
+
+LIGHTTPD_MAIN  := $(word 1,$(LIGHTTPD_VERSION))
+LIGHTTPD_MAJOR := $(word 2,$(LIGHTTPD_VERSION))
+LIGHTTPD_MINOR := $(word 3,$(LIGHTTPD_VERSION))
 
 CC_OPT += -DHAVE_SOCKLEN_T -DHAVE_SYSLOG_H -DHAVE_STDINT_H -DUSE_POLL
 CC_OPT += -DHAVE_SYS_WAIT_H -DHAVE_SYS_UN_H -DHAVE_MMAP -DHAVE_SELECT

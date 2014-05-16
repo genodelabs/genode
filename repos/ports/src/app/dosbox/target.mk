@@ -1,7 +1,6 @@
-TARGET = dosbox
+TARGET := dosbox
 
-include $(REP_DIR)/ports/dosbox.inc
-DOSBOX_DIR = $(REP_DIR)/contrib/$(DOSBOX)
+DOSBOX_DIR := $(call select_from_ports,dosbox)/src/app/dosbox
 
 SRC_CC_cpu      = $(notdir $(wildcard $(DOSBOX_DIR)/src/cpu/*.cpp))
 SRC_CC_debug    = $(notdir $(wildcard $(DOSBOX_DIR)/src/debug/*.cpp))

@@ -1,0 +1,13 @@
+LICENSE   := GPLv3
+VERSION   := 4.4.2
+DOWNLOADS := findutils.archive
+
+URL(findutils) := http://ftp.gnu.org/pub/gnu/findutils/findutils-$(VERSION).tar.gz
+SHA(findutils) := e8dd88fa2cc58abffd0bfc1eddab9020231bb024
+SIG(findutils) := ${URL(findutils)}
+KEY(findutils) := GNU
+DIR(findutils) := src/noux-pkg/findutils
+
+PATCHES   := src/noux-pkg/findutils/build.patch
+PATCH_OPT := -p1 -d src/noux-pkg/findutils
+

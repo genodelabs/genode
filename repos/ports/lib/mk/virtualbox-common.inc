@@ -5,14 +5,12 @@ VBOX_MACH_ASM_OPT_x86_32 = -f elf32
 VBOX_MACH_CC_OPT_x86_64  = -DRT_ARCH_AMD64 -D__AMD64__ -DHC_ARCH_BITS=64
 VBOX_MACH_ASM_OPT_x86_64 = -f elf64
 
-include $(REP_DIR)/ports/virtualbox.inc
-
 ifeq ($(shell which yasm),)
 REQUIRES += installation_of_yasm
 REQUIRES += installation_of_iasl
 endif
 
-VIRTUALBOX_DIR = $(REP_DIR)/contrib/$(VIRTUALBOX)
+VIRTUALBOX_DIR = $(call select_from_ports,virtualbox)/src/app/virtualbox
 VBOX_DIR       = $(VIRTUALBOX_DIR)/src/VBox
 
 VBOX_CC_OPT += -DIN_RING3 -DVBOX -DVBOX_OSE \
@@ -38,9 +36,15 @@ VBOX_CC_OPT += -DUSE_SDL
 
 VBOX_CC_OPT += -DRTLOG_REL_ENABLED -DRT_STRICT -DVBOX_STRICT
 
+
+VIRTUALBOX_VERSION_MAJOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_MAJOR = " | grep -v "'VBOX_VERSION_MAJOR" | sed "s/^.*= //")
+VIRTUALBOX_VERSION_MINOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_MINOR = " | grep -v "'VBOX_VERSION_MINOR" | sed "s/^.*= //")
+VIRTUALBOX_VERSION_BUILD := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk | grep "VBOX_VERSION_BUILD = " | grep -v "'VBOX_VERSION_BUILD" | sed "s/^.*= //")
+
 VBOX_CC_OPT += -DVBOX_VERSION_MAJOR=$(VIRTUALBOX_VERSION_MAJOR) \
                -DVBOX_VERSION_MINOR=$(VIRTUALBOX_VERSION_MINOR) \
-               -DVBOX_VERSION_BUILD=$(VIRTUALBOX_VERSION_BUILD)
+               -DVBOX_VERSION_BUILD=$(VIRTUALBOX_VERSION_BUILD) \
+               -DVBOX_VERSION_STRING=\"$(VIRTUALBOX_VERSION_MAJOR).$(VIRTUALBOX_VERSION_MINOR).$(VIRTUALBOX_VERSION_BUILD)_OSE\"
 
 VBOX_CC_OPT += -DVBOX_HDD_NO_DYNAMIC_BACKENDS
 

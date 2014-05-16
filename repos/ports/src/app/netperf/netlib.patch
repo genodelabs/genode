@@ -1,7 +1,4 @@
-Index: src/netlib.c
-===================================================================
---- src/netlib.c	(revision 644)
-+++ src/netlib.c	(working copy)
++++ src/app/netperf/src/netlib.c
 @@ -844,6 +844,10 @@
      exit(1);
    }

@@ -1,8 +1,7 @@
 We do not have poll.h and since struct pollfd etc. pp is defined in
 sys/poll.h we use it instead.
 
---- openssh-6.1p1/monitor_fdpass.c.orig
-+++ openssh-6.1p1/monitor_fdpass.c
++++ src/noux-pkg/openssh/monitor_fdpass.c
 @@ -36,6 +36,10 @@
  #include <errno.h>
  #ifdef HAVE_POLL_H

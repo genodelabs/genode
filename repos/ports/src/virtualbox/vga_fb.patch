@@ -1,4 +1,4 @@
-+++ src/VBox/Devices/Graphics/DevVGA.cpp
++++ src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA.cpp
 @@ -3468,9 +3475,15 @@
      int         rc;
      Assert(pThis);

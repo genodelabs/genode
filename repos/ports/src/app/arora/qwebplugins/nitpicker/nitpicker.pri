@@ -1,5 +1,5 @@
 INC_DIR += $(PRG_DIR)/qwebplugins/nitpicker
-INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/nitpicker
+INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/qwebplugins/nitpicker
 
 INCLUDEPATH += $$PWD
 DEPENDPATH += $$PWD

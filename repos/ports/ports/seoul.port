@@ -1,0 +1,34 @@
+LICENSE   := GPLv2
+VERSION   := git
+DOWNLOADS := seoul.git
+
+URL(seoul) := https://github.com/alex-ab/seoul.git
+REV(seoul) := genode_13_08
+DIR(seoul) := src/app/seoul
+
+#
+# We need to execute some python scripts for preparing the i82576vf
+# device model.
+#
+PYTHON2 := $(notdir $(lastword $(shell which python2 python2.{4,5,6,7,8})))
+ifeq ($(PYTHON2),)
+default : missing_tool
+missing_tool:
+	$(ECHO) "Error: Seoul needs Python 2 to be installed"
+	@false;
+endif
+
+I82576VF_DIR = src/app/seoul/model/intel82576vf
+EXECUTOR_DIR = src/app/seoul/executor
+
+default : additional_steps
+additional_steps : $(DOWNLOADS)
+	@echo "fix python version in code generator scripts ..." && \
+	sed -i "s/env python2/env $(PYTHON2)/" $(I82576VF_DIR)/genreg.py $(EXECUTOR_DIR)/build_instructions.py && \
+	echo "call code generators ... takes a while ..." && \
+	cd $(EXECUTOR_DIR) && \
+	          ./build_instructions.py > instructions.inc && \
+	cd $(CURDIR)/$(I82576VF_DIR) && \
+	          ./genreg.py reg_pci.py ../../include/model/intel82576vfpci.inc && \
+	cd $(CURDIR)/$(I82576VF_DIR) && \
+	          ./genreg.py reg_mmio.py ../../include/model/intel82576vfmmio.inc

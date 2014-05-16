@@ -6,7 +6,7 @@
 BUILD_BIN_DIR = ../../bin
 TARGET_DIR    = $(BUILD_BIN_DIR)/noux-etc/etc
 
-ETC_CONTRIB_DIR = $(REP_DIR)/contrib/etc-8.2.0
+ETC_CONTRIB_DIR := $(call select_from_ports,etc)/src/noux-pkg/etc
 
 ETC_FILES = hosts \
             nsswitch.conf \

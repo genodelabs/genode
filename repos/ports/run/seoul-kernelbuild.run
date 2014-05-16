@@ -1,9 +1,9 @@
 #
-# \brief  Seoul/Vancouver on Genode - build Linux kernel inside VM
+# \brief  Seoul on Genode - build Linux kernel inside VM
 # \author Alexander Boettcher
 # \date   2013-06-11
 #
-# This run script starts the Vancouver VMM booting from a multiboot image.
+# This run script starts the Seoul VMM booting from a multiboot image.
 # It assumes that the module files are present at '<build-dir>/bin/'
 #
 
@@ -61,6 +61,6 @@ append qemu_args " -m 1536 "
 append qemu_args " -cpu phenom "
 append qemu_args " -nographic "
 
-run_genode_until {\[init -\> vancouver\] VMM: #   ! PERF: kbuild [ 0-9]+ s ok} 2000 
+run_genode_until {\[init -\> seoul\] VMM: #   ! PERF: kbuild [ 0-9]+ s ok} 2000 
 
 puts "Test succeeded"

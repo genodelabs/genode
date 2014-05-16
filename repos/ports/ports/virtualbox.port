@@ -1,0 +1,49 @@
+LICENSE         := GPLv2
+VERSION         := 4.2.16
+DOWNLOADS       := virtualbox.archive
+
+VIRTUALBOX_TBZ2 := VirtualBox-$(VERSION).tar.bz2
+
+URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
+DIR(virtualbox) := src/app/virtualbox
+SHA(virtualbox) := bf95d3c4004169ccde6254e4b72c1bed03cb31c6
+
+PATCHES         := src/virtualbox/*.patch
+
+VIRTUALBOX_CONTENT = src/VBox/VMM \
+                     src/VBox/Devices \
+                     src/VBox/Runtime \
+                     src/VBox/GuestHost/HGSMI \
+                     src/VBox/Frontends/VBoxBFE \
+                     src/VBox/Storage \
+                     src/VBox/Disassembler \
+                     src/recompiler \
+                     src/VBox/Main/include/MouseImpl.h \
+                     src/VBox/Main/include/ConsoleEvents.h \
+                     src/VBox/Main/src-client/MouseImpl.cpp \
+                     src/libs/zlib-1.2.6 \
+                     src/libs/liblzf-3.4 \
+                     include/VBox/vmm \
+                     include/iprt \
+                     $(addprefix include/VBox/,types.h cdefs.h hgcmsvc.h \
+                                               err.h dis.h disopcode.h \
+                                               log.h sup.h pci.h param.h \
+                                               ostypes.h VMMDev.h VMMDev2.h \
+                                               vusb.h dbg.h version.h \
+                                               VBoxVideo.h Hardware bioslogo.h \
+                                               scsi.h HGSMI) \
+                     include/VBox/msi.h \
+                     include/VBox/DevPCNet.h \
+                     include/VBox/asmdefs.mac \
+                     include/VBox/err.mac \
+                     include/VBox/vd.h \
+                     include/VBox/vd-ifs.h \
+                     include/VBox/vd-plugin.h \
+                     include/VBox/vd-ifs-internal.h \
+                     include/VBox/vd-cache-plugin.h \
+                     Config.kmk
+
+TAR_OPT(virtualbox) := \
+	--strip-components 1 \
+	$(addprefix $(VIRTUALBOX_TBZ2:.tar.bz2=)/,$(VIRTUALBOX_CONTENT)) \
+	--exclude SDLConsole.h --exclude SDLFramebuffer.h

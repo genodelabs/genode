@@ -15,7 +15,7 @@ index 26b19db..cc54090 100644
 @@ -12,4 +12,4 @@ SOURCES += \
    webpluginfactory.cpp
  
- include $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/clicktoflash/clicktoflash.pri
+ include $(call select_from_ports,arora)/src/app/arora/src/qwebplugins/clicktoflash/clicktoflash.pri
 -
 +include $(REP_DIR)/src/app/arora/qwebplugins/nitpicker/nitpicker.pri
 diff --git a/src/qwebplugins/webpluginfactory.cpp b/src/qwebplugins/webpluginfactory.cpp

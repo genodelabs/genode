@@ -18,7 +18,7 @@ set build_components {
 	core init
 	drivers/timer
 	drivers/rtc
-	vancouver
+	app/seoul
 	drivers/pci
 	drivers/input
 }
@@ -223,8 +223,8 @@ append_if $use_framebuffer config {
 
 if {!$use_fancy_stuff} {
 append config {
-	<start name="vancouver">
-		<binary name="vancouver"/>}
+	<start name="seoul">
+		<binary name="seoul"/>}
 append config "
 		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
 append config {
@@ -305,7 +305,7 @@ if {$use_fancy_stuff} {
 				<service name="Rtc"/>
 			</parent-provides>
 
-			<start name="vancouver_fb">
+			<start name="fb.seoul">
 				<binary name="liquid_fb"/>
 				<resource name="RAM" quantum="16M"/>
 				<provides>
@@ -318,14 +318,14 @@ if {$use_fancy_stuff} {
 				<config xpos="10" ypos="10" width="800" height="600" animate="off"/>
 			</start>
 
-			<start name="vancouver">
-				<binary name="vancouver"/>
+			<start name="seoul">
+				<binary name="seoul"/>
 				<resource name="RAM" quantum="256M"/>
 				<route>
 					<service name="Timer"><parent/></service>
 					<service name="Nic"><parent/></service>
-					<service name="Input"><child name="vancouver_fb"/></service>
-					<service name="Framebuffer"><child name="vancouver_fb"/></service>
+					<service name="Input"><child name="fb.seoul"/></service>
+					<service name="Framebuffer"><child name="fb.seoul"/></service>
 					<any-service><parent/></any-service>
 				</route>
 				<configfile name="vm_linux.cfg"/>
@@ -348,7 +348,7 @@ set boot_modules {
 	pci_drv
 	timer
 	rtc_drv
-	vancouver
+	seoul
 	vm_linux.cfg
 }
 

@@ -1,0 +1,13 @@
+LICENSE   := netperf
+VERSION   := 2.6.0
+DOWNLOADS := netperf.svn
+
+URL(netperf) := http://www.netperf.org/svn/netperf2/tags/netperf-$(VERSION)
+REV(netperf) := HEAD
+DIR(netperf) := src/app/netperf
+
+PATCHES := src/app/netperf/*.patch
+
+default: apply_version
+apply_version: $(DOWNLOADS)
+	$(VERBOSE)echo '#define NETPERF_VERSION "$(VERSION)"' > src/app/netperf/src/netperf_version.h

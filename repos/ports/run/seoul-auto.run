@@ -1,9 +1,9 @@
 #
-# \brief  Vancouver on Genode - for automated testing
+# \brief  Seoul on Genode - for automated testing
 # \author Alexander Boettcher
 # \date   2013-06-11
 #
-# This run script starts the Vancouver VMM booting from a multiboot image.
+# This run script starts the Seoul VMM booting from a multiboot image.
 # It assumes that the module files are present at '<build-dir>/bin/'
 #
 
@@ -54,7 +54,7 @@ append qemu_args " -cpu phenom "
 append qemu_args " -net nic,model=e1000 "
 append qemu_args " -nographic "
 
-run_genode_until {\[init -\> vancouver\] VMM: #   Hello Genode world!} 300
+run_genode_until {\[init -\> seoul\] VMM: #   Hello Genode world!} 300
 
 foreach binary $guest_os_binaries {
 	exec rm -f bin/$binary

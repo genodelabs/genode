@@ -73,24 +73,25 @@ vpath % $(PRG_DIR)/qwebplugins/nitpicker
 vpath % $(PRG_DIR)/useragent
 vpath % $(PRG_DIR)/utils
 
-vpath % $(REP_DIR)/contrib/$(ARORA)/src
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/adblock
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/bookmarks
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/bookmarks/xbel
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/network
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar/networkcookiejar
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/data
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/data/graphics
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/data/searchengines
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/history
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/htmls
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/locationbar
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/opensearch
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/clicktoflash
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/nitpicker
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/useragent
-vpath % $(REP_DIR)/contrib/$(ARORA)/src/utils
+ARORA_PORT_DIR := $(call select_from_ports,arora)
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/adblock
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/bookmarks
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/bookmarks/xbel
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/network
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/network/cookiejar
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/network/cookiejar/networkcookiejar
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/data
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/data/graphics
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/data/searchengines
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/history
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/htmls
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/locationbar
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/opensearch
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/qwebplugins
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/qwebplugins/clicktoflash
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/qwebplugins/nitpicker
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/useragent
+vpath % $(ARORA_PORT_DIR)/src/app/arora/src/utils
 
 -include $(QT_TMPL_DIR)/target_final.inc

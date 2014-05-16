@@ -1,4 +1,4 @@
-+++ src/VBox/Devices/VMMDev/VMMDev.cpp	2013-10-17 13:02:16.787071776 +0200
++++ src/app/virtualbox/src/VBox/Devices/VMMDev/VMMDev.cpp
 @@ -1854,7 +1854,6 @@
              }
              break;

@@ -1,8 +1,7 @@
 set*uid() is not implemented but it does not matter anyway because there
 is only one user per noux instance.
 
---- openssh-6.1p1/sshconnect.h.orig
-+++ openssh-6.1p1/sshconnect.h
++++ src/noux-pkg/openssh/sshconnect.h
 @@ -55,6 +55,7 @@ void	 ssh_userauth2(const char *, const char *, char *, Sensitive *);
  void	 ssh_put_password(char *);
  int	 ssh_local_cmd(const char *);

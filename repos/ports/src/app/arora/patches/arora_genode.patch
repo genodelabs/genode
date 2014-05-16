@@ -29,7 +29,7 @@ index c373a68..ce18643 100644
 --- a/src/adblock/adblock.pri
 +++ b/src/adblock/adblock.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/adblock
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/adblock
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -39,7 +39,7 @@ index ee03def..0debe73 100644
 --- a/src/bookmarks/bookmarks.pri
 +++ b/src/bookmarks/bookmarks.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/bookmarks
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/bookmarks
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -49,13 +49,13 @@ index ee03def..0debe73 100644
      bookmarksdialog.ui
  
 -include(xbel/xbel.pri)
-+include $(REP_DIR)/contrib/$(ARORA)/src/bookmarks/xbel/xbel.pri
++include $(call select_from_ports,arora)/src/app/arora/src/bookmarks/xbel/xbel.pri
 diff --git a/src/bookmarks/xbel/xbel.pri b/src/bookmarks/xbel/xbel.pri
 index 02b0258..ffd181d 100644
 --- a/src/bookmarks/xbel/xbel.pri
 +++ b/src/bookmarks/xbel/xbel.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/bookmarks/xbel
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/bookmarks/xbel
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -118,7 +118,7 @@ index 6ee163d..a3616e2 100644
 --- a/src/history/history.pri
 +++ b/src/history/history.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/history
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/history
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -128,7 +128,7 @@ index ba33005..cace42b 100644
 --- a/src/locationbar/locationbar.pri
 +++ b/src/locationbar/locationbar.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/locationbar
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/locationbar
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -161,7 +161,7 @@ index 8ecf533..4781160 100644
 --- a/src/network/cookiejar/cookiejar.pri
 +++ b/src/network/cookiejar/cookiejar.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/network/cookiejar
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -171,7 +171,7 @@ index 8ecf533..4781160 100644
      cookiesexceptions.ui
  
 -include($$PWD/networkcookiejar/networkcookiejar.pri)
-+include $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
++include $(call select_from_ports,arora)/src/app/arora/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
 +
  
 diff --git a/src/network/cookiejar/networkcookiejar/networkcookiejar.pri b/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
@@ -179,7 +179,7 @@ index 78ac273..f6ae783 100644
 --- a/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
 +++ b/src/network/cookiejar/networkcookiejar/networkcookiejar.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar/networkcookiejar 
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/network/cookiejar/networkcookiejar 
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -189,7 +189,7 @@ index 5c912f4..ca3bdbf 100644
 --- a/src/network/network.pri
 +++ b/src/network/network.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/network
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/network
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -199,13 +199,13 @@ index 5c912f4..ca3bdbf 100644
      schemeaccesshandler.cpp
  
 -include(cookiejar/cookiejar.pri)
-+include $(REP_DIR)/contrib/$(ARORA)/src/network/cookiejar/cookiejar.pri
++include $(call select_from_ports,arora)/src/app/arora/src/network/cookiejar/cookiejar.pri
 diff --git a/src/opensearch/opensearch.pri b/src/opensearch/opensearch.pri
 index dbace74..427cf2a 100644
 --- a/src/opensearch/opensearch.pri
 +++ b/src/opensearch/opensearch.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/opensearch
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/opensearch
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -221,7 +221,7 @@ index 2033e59..193cc82 100644
 --- a/src/qwebplugins/clicktoflash/clicktoflash.pri
 +++ b/src/qwebplugins/clicktoflash/clicktoflash.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/clicktoflash
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/qwebplugins/clicktoflash
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -231,7 +231,7 @@ index d3d9cb7..26b19db 100644
 --- a/src/qwebplugins/qwebplugins.pri
 +++ b/src/qwebplugins/qwebplugins.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/qwebplugins
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -241,7 +241,7 @@ index d3d9cb7..26b19db 100644
    webpluginfactory.cpp
  
 -include(clicktoflash/clicktoflash.pri)
-+include $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/clicktoflash/clicktoflash.pri
++include $(call select_from_ports,arora)/src/app/arora/src/qwebplugins/clicktoflash/clicktoflash.pri
  
 diff --git a/src/src.pri b/src/src.pri
 index 7c1a0e3..5812c05 100644
@@ -251,7 +251,7 @@ index 7c1a0e3..5812c05 100644
 -CONFIG += qt warn_on
 -contains(QT_BUILD_PARTS, tools): CONFIG += uitools
 -else : DEFINES += QT_NO_UITOOLS
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src
 +
 +CC_CXX_OPT += -DGITVERSION=\"\\\"0\\\"\" -DGITCHANGENUMBER=\"\\\"0\\\"\" -include qhash.h -include quiloader.h
  
@@ -290,15 +290,15 @@ index 7c1a0e3..5812c05 100644
 -include(qwebplugins/qwebplugins.pri)
 -include(utils/utils.pri)
 -include(useragent/useragent.pri)
-+include $(REP_DIR)/contrib/$(ARORA)/src/adblock/adblock.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/bookmarks/bookmarks.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/history/history.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/locationbar/locationbar.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/network/network.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/opensearch/opensearch.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/qwebplugins/qwebplugins.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/utils/utils.pri
-+include $(REP_DIR)/contrib/$(ARORA)/src/useragent/useragent.pri
++include $(call select_from_ports,arora)/src/app/arora/src/adblock/adblock.pri
++include $(call select_from_ports,arora)/src/app/arora/src/bookmarks/bookmarks.pri
++include $(call select_from_ports,arora)/src/app/arora/src/history/history.pri
++include $(call select_from_ports,arora)/src/app/arora/src/locationbar/locationbar.pri
++include $(call select_from_ports,arora)/src/app/arora/src/network/network.pri
++include $(call select_from_ports,arora)/src/app/arora/src/opensearch/opensearch.pri
++include $(call select_from_ports,arora)/src/app/arora/src/qwebplugins/qwebplugins.pri
++include $(call select_from_ports,arora)/src/app/arora/src/utils/utils.pri
++include $(call select_from_ports,arora)/src/app/arora/src/useragent/useragent.pri
  
  RESOURCES += \
 -    $$PWD/data/data.qrc \
@@ -361,7 +361,7 @@ index dab73ff..8460fd4 100644
 -include(../install.pri)
 -
 -include(src.pri)
-+include $(REP_DIR)/contrib/$(ARORA)/src/src.pri
++include $(call select_from_ports,arora)/src/app/arora/src/src.pri
  
  SOURCES += main.cpp
  
@@ -417,7 +417,7 @@ index 78f1c48..50f6e1e 100644
 --- a/src/useragent/useragent.pri
 +++ b/src/useragent/useragent.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/useragent
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/useragent
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD
@@ -427,7 +427,7 @@ index fb10c55..489a51d 100644
 --- a/src/utils/utils.pri
 +++ b/src/utils/utils.pri
 @@ -1,3 +1,5 @@
-+INC_DIR += $(REP_DIR)/contrib/$(ARORA)/src/utils
++INC_DIR += $(call select_from_ports,arora)/src/app/arora/src/utils
 +
  INCLUDEPATH += $$PWD
  DEPENDPATH += $$PWD

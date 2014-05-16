@@ -1,0 +1,7 @@
+LICENSE   := BSD
+VERSION   := 8.2.0
+DOWNLOADS := etc.svn
+
+URL(etc)  := http://svn.freebsd.org/base/release/$(VERSION)/etc
+REV(etc)  := HEAD
+DIR(etc)  := src/noux-pkg/etc

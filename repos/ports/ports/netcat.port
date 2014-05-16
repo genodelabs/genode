@@ -1,0 +1,8 @@
+LICENSE   := GPLv2
+VERSION   := 0.7.1
+DOWNLOADS := netcat.archive
+
+URL(netcat) := http://downloads.sourceforge.net/sourceforge/netcat/netcat-$(VERSION).tar.bz2
+SHA(netcat) := b761d70fe9e3e8b3fe33a329b9bc31300dc04d11
+DIR(netcat) := src/noux-pkg/netcat
+

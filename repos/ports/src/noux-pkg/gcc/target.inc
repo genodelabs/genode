@@ -1,5 +1,7 @@
 PWD = $(shell pwd)
 
+NOUX_PKG_DIR := $(REP_DIR)/contrib/gcc-4.7.2
+
 NOUX_CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                       --target=$(GCC_TARGET) \
                       --with-gnu-as --with-gnu-ld --disable-tls --disable-threads --disable-lto \

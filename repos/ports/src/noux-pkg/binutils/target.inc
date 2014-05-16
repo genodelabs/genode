@@ -10,6 +10,6 @@ NOUX_CONFIGURE_ARGS = --disable-werror \
 #
 NOUX_MAKE_ENV = $(NOUX_ENV)
 
-NOUX_PKG_DIR = $(wildcard $(REP_DIR)/contrib/binutils-*)
+NOUX_PKG_DIR = $(call select_from_ports,binutils)/src/noux-pkg/binutils
 
 include $(REP_DIR)/mk/noux.mk

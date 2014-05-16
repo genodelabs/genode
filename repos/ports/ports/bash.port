@@ -1,0 +1,13 @@
+LICENSE   := GPLv3
+VERSION   := 4.1
+DOWNLOADS := bash.archive
+
+URL(bash) := http://ftp.gnu.org/gnu/bash/bash-$(VERSION).tar.gz
+SHA(bash) := 3bd1ec9c66f3689f6b3495bdaaf9077b2e5dc150
+SIG(bash) := ${URL(bash)}.sig
+KEY(bash) := GNU
+DIR(bash) := src/noux-pkg/bash
+
+PATCHES   := src/noux-pkg/bash/build.patch \
+             src/noux-pkg/bash/check_dev_tty.patch
+PATCH_OPT := -p1 -d src/noux-pkg/bash

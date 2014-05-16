@@ -1,4 +1,4 @@
-+++ src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
++++ src/app/virtualbox/src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
 @@ -158,6 +160,7 @@
  static bool        g_fReleaseLog = true; /**< Set if we should open the release. */
         const char *g_pszProgressString;

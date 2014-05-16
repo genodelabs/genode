@@ -1,5 +1,4 @@
---- src/VBox/Devices/Graphics/BIOS/vbetables-gen.c.orig	2013-11-19 16:09:24.844195101 +0100
-+++ src/VBox/Devices/Graphics/BIOS/vbetables-gen.c	2013-11-19 16:09:38.288364715 +0100
++++ src/app/virtualbox/src/VBox/Devices/Graphics/BIOS/vbetables-gen.c
 @@ -13,6 +13,7 @@
  
  ModeInfo modes[] = {

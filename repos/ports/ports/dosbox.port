@@ -1,0 +1,12 @@
+LICENSE   := GPLv2
+VERSION   := svn
+DOWNLOADS := dosbox.svn
+
+URL(dosbox) := http://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk
+DIR(dosbox) := src/app/dosbox
+REV(dosbox) := 3837
+
+PATCHES := $(addprefix src/app/dosbox/patches/,\
+                       $(notdir $(wildcard $(REP_DIR)/src/app/dosbox/patches/*.patch)))
+
+PATCH_OPT := -p2 -d src/app/dosbox

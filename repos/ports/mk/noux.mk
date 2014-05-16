@@ -33,7 +33,7 @@ NOUX_PKG ?= $(TARGET)
 
 LIBS  += libc libm libc_noux
 
-NOUX_PKG_DIR ?= $(wildcard $(REP_DIR)/contrib/$(NOUX_PKG)-*)
+NOUX_PKG_DIR ?= $(call select_from_ports,$(NOUX_PKG))/src/noux-pkg/$(NOUX_PKG)
 
 PWD = $(shell pwd)
 
