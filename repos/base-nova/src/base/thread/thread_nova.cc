@@ -37,25 +37,24 @@ void Thread_base::_thread_start()
 {
 	using namespace Genode;
 
-	/* if the inner catch handling fails, let thread die with some noise */
+	/* catch any exception at this point and try to print an error message */
 	try {
+		Thread_base::myself()->entry();
+	} catch (...) {
+		char thread_name[48];
+		Thread_base::myself()->name(thread_name, sizeof(thread_name));
 
-		/* catch any exception at this point and try to print a error message */
 		try {
-			Thread_base::myself()->entry();
-		} catch (...) {
-			char thread_name[48];
-			Thread_base::myself()->name(thread_name, sizeof(thread_name));
-
 			PERR("Thread '%s' died because of an uncaught exception", thread_name);
+		} catch (...) {
+			/* die in a noisy way */
+			nova_die();
 		}
 
-		Thread_base::myself()->_join_lock.unlock();
-
-	} catch (...) {
-		/* die in a noisy way */
-		nova_die();
+		throw;
 	}
+
+	Thread_base::myself()->_join_lock.unlock();
 
 	/* sleep silently */
 	Genode::sleep_forever();
