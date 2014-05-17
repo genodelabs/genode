@@ -1,7 +1,7 @@
 TARGET      = audio_out_drv
 REQUIRES    = x86_32
 LIBS        = dde_kit
-CONTRIB_DIR = $(REP_DIR)/contrib
+OSS_DIR    := $(call select_from_ports,oss)/src/lib/oss
 
 
 
@@ -23,12 +23,12 @@ SRC_C  = dummies.c
 #
 # Driver sources
 #
-DRV = $(addprefix $(CONTRIB_DIR)/,kernel/drv target)
+DRV = $(addprefix $(OSS_DIR)/,kernel/drv target)
 
 #
 # Framwork sources
 #
-FRAMEWORK = $(addprefix $(CONTRIB_DIR)/kernel/framework/,\
+FRAMEWORK = $(addprefix $(OSS_DIR)/kernel/framework/,\
               osscore audio mixer vmix_core midi ac97)
 
 # find C files
@@ -38,7 +38,7 @@ SRC_C += $(shell find $(DRV) $(FRAMEWORK)  -name *.c -exec basename {} ";")
 PATHS  = $(shell find $(DRV) $(FRAMEWORK) -type d)
 
 # add include directories
-INC_DIR += $(CONTRIB_DIR)/kernel/framework/include $(CONTRIB_DIR)/include \
+INC_DIR += $(OSS_DIR)/kernel/framework/include $(OSS_DIR)/include \
            $(PRG_DIR)/include $(PRG_DIR)
 
 

@@ -1,0 +1,84 @@
+LICENSE   := BSD
+VERSION   := 4.2
+DOWNLOADS := oss.archive
+
+oss       := oss-v4.2-build2006-src-bsd
+URL(oss)  := http://www.4front-tech.com/developer/sources/stable/bsd/$(oss).tar.bz2
+SHA(oss)  := ff1eb11952f05c27fdf8f9d4f64c8f7bbe2abdd4
+DIR(oss)  := src/lib/oss
+
+PATCHES   := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/*.patch)))
+PATCH_OPT := -p1 -d src/lib/oss
+
+#
+# Define the portions of the tar archive to extract
+#
+
+# needed for preparation
+content_setup = $(addprefix setup/,srcconf.c srcconf_freebsd.inc srcconf_vxworks.inc gen_driver_freebsd.inc)
+content += $(content_setup)
+
+# oss framework
+content_framework = $(addprefix kernel/framework/include/,oss_config.h oss_memblk.h \
+                                oss_version.h audio_core.h mixer_core.h oss_calls.h \
+                                internal.h oss_pci.h spdif.h midi_core.h grc3.h ac97.h \
+                                ossddk/oss_exports.h ossddk/oss_limits.PHh ossddk/ossddk.h)
+content += $(content_framework)
+
+# oss core
+content_core = $(addprefix kernel/framework/osscore/,oss_memblk.c oss_core_options.c \
+                                                     oss_core_services.c)
+content += $(content_core)
+content += include/soundcard.h kernel/drv/.config
+
+# audio core
+content_audio = $(addprefix kernel/framework/audio/,oss_audio_core.c oss_spdif.c oss_audiofmt.c \
+                                                    ulaw.h audiocnv.inc oss_grc3.c fltdata2_h.inc \
+                                                    grc3code.inc grc3inc.inc)
+content += $(content_audio)
+
+# mixer core
+content_mixer = $(addprefix kernel/framework/mixer/,oss_mixer_core.c mixerdefs.h)
+content += $(content_mixer)
+
+# vmixer core
+content_vmix = $(addprefix kernel/framework/vmix_core/,vmix_core.c vmix_input.c vmix.h db_scale.h \
+                                                       vmix_import.inc  vmix_import_int.inc \
+                                                       rec_export.inc rec_export_int.inc \
+                                                       vmix_output.c outexport.inc outexport_int.inc \
+                                                       playmix.inc playmix_int.inc playmix_src.inc)
+content += $(content_vmix)
+
+# midi core
+content_midi = $(addprefix kernel/framework/midi/,oss_midi_core.c oss_midi_timers.c oss_midi_mapper.c \
+                                                  oss_midi_queue.c)
+content += $(content_midi)
+
+# ac97 core
+content += kernel/framework/ac97
+
+# drivers
+content_drv += oss_ich oss_hdaudio oss_audiopci
+content += $(addprefix kernel/drv/,$(content_drv))
+
+# use custom options for extracting the tar archive
+TAR_OPT(oss) = $(addprefix $(oss)/,$(content)) --strip-components=1
+
+
+#
+# Build and execute 'srcconf' utility, build 'devices.list'
+#
+
+CC ?= gcc
+default: setup
+setup: $(DOWNLOADS)
+	$(VERBOSE)ln -sf srcconf_freebsd.inc src/lib/oss/setup/srcconf_linux.inc
+	$(VERBOSE)ln -sf gen_driver_freebsd.inc src/lib/oss/setup/gen_driver_linux.inc
+	$(VERBOSE)mkdir -p src/lib/oss/kernel/framework/include
+	$(VERBOSE)mkdir -p src/lib/oss/kernel/OS/Linux
+	$(VERBOSE)$(CC) -g -Isrc/lib/oss/setup -o srcconf src/lib/oss/setup/srcconf.c
+	$(VERBOSE)rm -f src/lib/oss/kernel/framework/include/ossddk/oss_limits.h
+	$(VERBOSE)cat `find src/lib/oss/kernel/drv -name .devices`| grep -v '^#' > src/lib/oss/devices.list
+	$(VERBOSE)cd src/lib/oss && ../../../srcconf
+	$(VERBOSE)cd src/lib/oss/target/build ; for f in *.c; do mv $$f pci_$$f; done
+	$(VERBOSE)rm srcconf
