@@ -19,4 +19,4 @@ help:
 	$(ECHO)
 
 prepare:
-	$(VERBOSE)../../tool/ports/prepare_port oss
+	$(VERBOSE)../../tool/ports/prepare_port oss CHECK_HASH=no

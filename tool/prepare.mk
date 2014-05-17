@@ -33,7 +33,7 @@ NEW_PORTS := $(patsubst %.port,%,$(notdir $(wildcard ports/*.port)))
 
 # generic rule for invoking the new tool/ports/prepare_port mechanism
 $(addprefix prepare-,$(NEW_PORTS)):
-	$(VERBOSE)../../tool/ports/prepare_port $(patsubst prepare-%,%,$@)
+	$(VERBOSE)../../tool/ports/prepare_port $(patsubst prepare-%,%,$@) CHECK_HASH=no
 
 #
 # Create download and contrib directory so that '<port>.mk' files
