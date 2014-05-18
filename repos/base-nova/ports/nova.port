@@ -1,0 +1,9 @@
+LICENSE   := GPLv2
+VERSION   := git
+DOWNLOADS := nova.git
+
+URL(nova) := https://github.com/alex-ab/NOVA.git
+REV(nova) := r5
+DIR(nova) := src/kernel/nova
+
+PATCHES   := $(wildcard $(REP_DIR)/patches/*.patch)

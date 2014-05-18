@@ -1,6 +1,6 @@
 TARGET           = hypervisor
 REQUIRES         = x86 nova
-NOVA_SRC_DIR     = $(REP_DIR)/contrib
+NOVA_SRC_DIR     = $(call select_from_ports,nova)/src/kernel/nova
 NOVA_BUILD_DIR   = $(BUILD_BASE_DIR)/kernel
 STARTUP_LIB      =
 SRC_CC           = $(sort $(notdir $(wildcard $(NOVA_SRC_DIR)/src/*.cpp)))
