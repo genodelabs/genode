@@ -8,9 +8,8 @@
 Documentation
 #############
 
-We use the GOSH syntax
-[http://os.inf.tu-dresden.de/~nf2/files/GOSH/current/gosh.txt]
-for documentation and README files.
+We use the GOSH syntax [https://github.com/nfeske/gosh] for documentation and
+README files.
 
 
 README files
@@ -53,7 +52,7 @@ but use a meaningful subdirectory that corresponds to the component that
 provides the interfaces.
 
 Each RPC interface is represented by a separate include subdirectory. For
-an example, see 'base/include/ram_session/'. The headerfile that defines
+an example, see 'base/include/ram_session/'. The header file that defines
 the RPC function interface has the same base name as the directory. The RPC
 stubs are called 'client.h' and 'server.h'. If your interface uses a custom
 capability type, it is defined in 'capability.h'. Furthermore, if your
