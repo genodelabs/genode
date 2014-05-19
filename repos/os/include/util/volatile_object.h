@@ -43,7 +43,7 @@ class Genode::Volatile_object
 		/**
 		 * Static reservation of memory for the embedded object
 		 */
-		char _space[sizeof(MT)];
+		char _space[sizeof(MT)] __attribute__((aligned(sizeof(addr_t))));
 
 		/**
 		 * True if the volatile object contains a constructed object
