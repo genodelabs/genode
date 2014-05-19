@@ -325,6 +325,51 @@ variable is present in the 'SPECS' variable as supplied by the build directory
 configuration.
 
 
+Building tools to be executed on the host platform
+===================================================
+
+Sometimes, software requires custom tools that are used to generate source
+code or other ingredients for the build process, for example IDL compilers.
+Such tools won't be executed on top of Genode but on the host platform
+during the build process. Hence, they must be compiled with the tool chain
+installed on the host, not the Genode tool chain.
+
+The Genode build system accommodates the building of such host tools as a side
+effect of building a library or a target. Even though it is possible to add
+the tool compilation step to a regular build description file, it is
+recommended to introduce a dedicated pseudo library for building such tools.
+This way, the rules for building host tools are kept separate from rules that
+refer to Genode programs. By convention, the pseudo library should be named
+_<package>_host_tools_ and the host tools should be built at
+_<build-dir>/tool/<package>/_. With _<package>_, we refer to the name of the
+software package the tool belongs to, e.g., qt5 or mupdf. To build a tool
+named _<tool>_, the pseudo library contains a custom make rule like the
+following:
+
+! $(BUILD_BASE_DIR)/tool/<package>/<tool>:
+!     $(MSG_BUILD)$(notdir $@)
+!     $(VERBOSE)mkdir -p $(dir $@)
+!     $(VERBOSE)...build commands...
+
+To let the build system trigger the rule, add the custom target to the
+'HOST_TOOLS' variable:
+
+! HOST_TOOLS += $(BUILD_BASE_DIR)/tool/<package>/<tool>
+
+Once the pseudo library for building the host tools is in place, it can be
+referenced by each target or library that relies on the respective tools via
+the 'LIBS' declaration. The tool can be invoked by referring to
+'$(BUILD_BASE_DIR)/tool/<package>/tool'.
+
+For an example of using custom host tools, please refer to the mupdf package
+found within the libports repository. During the build of the mupdf library,
+two custom tools fontdump and cmapdump are invoked. The tools are built via
+the _lib/mk/mupdf_host_tools.mk_ library description file. The actual mupdf
+library (_lib/mk/mupdf.mk_) has the pseudo library 'mupdf_host_tools' listed
+in its 'LIBS' declaration and refers to the tools relative to
+'$(BUILD_BASE_DIR)'.
+
+
 Automated integration and testing
 #################################
 
