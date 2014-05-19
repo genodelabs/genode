@@ -42,31 +42,31 @@ the 'BUILD_DIR=' argument. For example:
 ! ./tool/create_builddir linux_x86 BUILD_DIR=/tmp/build.linux_x86
 
 This command will create a new build directory for the Linux/x86 platform
-at '/tmp/build.linux_x86/'.
+at _/tmp/build.linux_x86/_.
 
 
 Build-directory configuration via 'build.conf'
 ==============================================
 
 The fresh build directory will contain a 'Makefile', which is a symlink to
-'tool/builddir/build.mk'. This 'Makefile' is the front end of the build system
-and not supposed to be edited. Beside the 'Makefile', there is a 'etc/'
+_tool/builddir/build.mk_. This makefile is the front end of the build system
+and not supposed to be edited. Beside the makefile, there is a _etc/_
 subdirectory that contains the build-directory configuration. For most
-platforms, there is only a single 'build.conf' file, which defines the parts of
+platforms, there is only a single _build.conf_ file, which defines the parts of
 the Genode source tree incorporated in the build process. Those parts are
 called _repositories_.
 
 The repository concept allows for keeping the source code well separated for
 different concerns. For example, the platform-specific code for each target
-platform is located in a dedicated 'base-<platform>' repository. Also, different
+platform is located in a dedicated _base-<platform>_ repository. Also, different
 abstraction levels and features of the system are residing in different
-repositories. The 'etc/build.conf' file defines the set of repositories to
+repositories. The _etc/build.conf_ file defines the set of repositories to
 consider in the build process. At build time, the build system overlays the
 directory structures of all repositories specified via the 'REPOSITORIES'
 declaration to form a single logical source tree. By changing the list of
 'REPOSITORIES', the view of the build system on the source tree can be altered.
-The 'etc/build.conf' as found in a fresh created build directory will list the
-'base-<platform>' repository of the platform selected at the 'create_builddir'
+The _etc/build.conf_ as found in a fresh created build directory will list the
+_base-<platform>_ repository of the platform selected at the 'create_builddir'
 command line as well as the 'base', 'os', and 'demo' repositories needed for
 compiling Genode's default demonstration scenario.  Furthermore, there are a
 number of commented-out lines that can be uncommented for enabling additional
@@ -84,7 +84,7 @@ Building targets
 ================
 
 To build all targets contained in the list of 'REPOSITORIES' as defined in
-'etc/build.conf', simply issue 'make'. This way, all components that are
+_etc/build.conf_, simply issue 'make'. This way, all components that are
 compatible with the build directory's base platform will be built. In practice,
 however, only some of those components may be of interest. Hence, the build
 can be tailored to those components which are of actual interest by specifying
@@ -112,8 +112,8 @@ To remove all but kernel-related generated files, use
 To remove all generated files, use
 ! make cleanall
 
-Both 'clean' and 'cleanall' won't remove any files from the 'bin/'
-subdirectory. This makes the 'bin/' a safe place for files that are
+Both 'clean' and 'cleanall' won't remove any files from the _bin/_
+subdirectory. This makes the _bin/_ a safe place for files that are
 unrelated to the build process, yet required for the integration stage, e.g.,
 binary data.
 
@@ -143,7 +143,7 @@ Enabling parallel builds
 
 To utilize multiple CPU cores during the build process, you may invoke 'make'
 with the '-j' argument. If manually specifying this argument becomes an
-inconvenience, you may add the following line to your 'etc/build.conf' file:
+inconvenience, you may add the following line to your _etc/build.conf_ file:
 
 ! MAKE += -j<N>
 
@@ -184,14 +184,6 @@ Each Genode repository has the following layout:
   'lib/mk/'  | Library build descriptions
 
 
-For each custom source-code repository supplied to the build system, the
-following subdirectories are mandatory:
-
-! lib/mk/
-! src/
-! include/
-
-
 Creating targets and libraries
 ##############################
 
@@ -199,8 +191,8 @@ Target descriptions
 ===================
 
 A good starting point is to look at the init target. The source code of init is
-located at 'os/src/init/'. In this directory, you will find a target description
-file named 'target.mk'. This file contains the building instructions and it is
+located at _os/src/init/_. In this directory, you will find a target description
+file named _target.mk_. This file contains the building instructions and it is
 usually very simple. The build process is controlled by defining the following
 variables.
 
@@ -209,7 +201,7 @@ Build variables to be defined by you
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :'TARGET': is the name of the binary to be created. This is the
-  only *mandatory variable* to be defined in a 'target.mk' file.
+  only *mandatory variable* to be defined in a _target.mk_ file.
 
 :'REQUIRES': expresses the requirements that must be satisfied in order to
   build the target. You find more details about the underlying mechanism in
@@ -218,7 +210,7 @@ Build variables to be defined by you
 :'LIBS': is the list of libraries that are used by the target.
 
 :'SRC_CC': contains the list of '.cc' source files. The default search location
-  for source codes is the directory, where the 'target.mk' file resides.
+  for source codes is the directory, where the _target.mk_ file resides.
 
 :'SRC_C': contains the list of '.c' source files.
 
@@ -257,9 +249,9 @@ source-code repository, where your target lives:
 
 :'REP_DIR': is the base directory of the current source-code repository.
   Normally, specifying locations relative to the base of the repository is
-  never used by 'target.mk' files but needed by library descriptions.
+  never used by _target.mk_ files but needed by library descriptions.
 
-:'PRG_DIR': is the directory, where your 'target.mk' file resides. This
+:'PRG_DIR': is the directory, where your _target.mk_ file resides. This
   variable is always to be used when specifying a relative path.
 
 
@@ -267,8 +259,8 @@ Library descriptions
 ====================
 
 In contrast to target descriptions that are scattered across the whole source
-tree, library descriptions are located at the central place 'lib/mk'. Each
-library corresponds to a '<libname>.mk' file. The base of the description file
+tree, library descriptions are located at the central place _lib/mk_. Each
+library corresponds to a _<libname>.mk_ file. The base of the description file
 is the name of the library. Therefore, no 'TARGET' variable needs to be set.
 The source-code locations are expressed as '$(REP_DIR)'-relative 'vpath'
 commands.
@@ -277,7 +269,7 @@ Library-description files support the following additional declarations:
 
 :'SHARED_LIB = yes': declares that the library should be built as a shared
   object rather than a static library. The resulting object will be called
-  '<libname>.lib.so'.
+  _<libname>.lib.so_.
 
 
 Specializations
@@ -301,20 +293,20 @@ file.
 
 The _user/customer/builder_ decides to build software for a specific platform
 and defines the platform specifics via the 'SPECS' variable per build
-directory in 'etc/specs.conf'. In addition to an (optional) 'etc/specs.conf'
+directory in _etc/specs.conf_. In addition to an (optional) _etc/specs.conf_
 file within the build directory, the build system incorporates the first
-'etc/specs.conf' file found in the repositories as configured for the
+_etc/specs.conf_ file found in the repositories as configured for the
 build directory. For example, for a 'linux_x86' build directory, the
-'base-linux/etc/specs.conf' file is used by default. The build directory's
+_base-linux/etc/specs.conf_ file is used by default. The build directory's
 'specs.conf' file can still be used to extend the 'SPECS' declarations, for
 example to enable special features.
 
 Each '<specname>' in the 'SPECS' variable instructs the build system to
 
-* Include the 'make'-rules of a corresponding 'base/mk/spec-<specname>.mk'
+* Include the 'make'-rules of a corresponding _base/mk/spec-<specname>.mk_
   file. This enables the customization of the build process for each platform.
 
-* Search for '<libname>.mk' files in the 'lib/mk/<specname>/' subdirectory.
+* Search for _<libname>.mk_ files in the _lib/mk/<specname>/_ subdirectory.
   This way, we can provide alternative implementations of one and the same
   library interface for different platforms.
 
@@ -388,8 +380,8 @@ Using so-called run scripts, complete Genode systems can be described in a
 concise and kernel-independent way. Once created, a run script can be used
 to integrate and test-drive a system scenario directly from the build directory.
 The best way to get acquainted with the concept is reviewing the run script
-for the 'hello_tutorial' located at 'hello_tutorial/run/hello.run'.
-Let's revisit each step expressed in the 'hello.run' script:
+for the 'hello_tutorial' located at _hello_tutorial/run/hello.run_.
+Let's revisit each step expressed in the _hello.run_ script:
 
 * Building the components needed for the system using the 'build' command.
   This command instructs the build system to compile the targets listed in
@@ -398,7 +390,7 @@ Let's revisit each step expressed in the 'hello.run' script:
 
 * Creating a new boot directory using the 'create_boot_directory' command.
   The integration of the scenario is performed in a dedicated directory at
-  '<build-dir>/var/run/<run-script-name>/'. When the run script is finished,
+  _<build-dir>/var/run/<run-script-name>/_. When the run script is finished,
   this directory will contain all components of the final system.  In the
   following, we will refer to this directory as run directory.
 
@@ -408,7 +400,7 @@ Let's revisit each step expressed in the 'hello.run' script:
   Genode's init process.
 
 * Creating a bootable system image using the 'build_boot_image' command.
-  This command copies the specified list of files from the '<build-dir>/bin/'
+  This command copies the specified list of files from the _<build-dir>/bin/_
   directory to the run directory and executes the platform-specific steps
   needed to transform the content of the run directory into a bootable
   form. This form depends on the actual base platform and may be an ISO
@@ -426,7 +418,7 @@ Let's revisit each step expressed in the 'hello.run' script:
   a timeout in seconds. If the regular expression does not match until
   the timeout is reached, the run script will abort.
 
-Please note that the 'hello.run' script does not contain kernel-specific
+Please note that the _hello.run_ script does not contain kernel-specific
 information. Therefore it can be executed from the build directory of any base
 platform by using:
 
@@ -437,12 +429,12 @@ will look in all repositories for a run script with the specified name. The run
 script must be located in one of the repositories 'run/' subdirectories and
 have the file extension '.run'.
 
-For a more comprehensive run script, 'os/run/demo.run' serves as a good
+For a more comprehensive run script, _os/run/demo.run_ serves as a good
 example. This run script describes Genode's default demo scenario. As seen in
 'demo.run', parts of init's configuration can be made dependent on the
 platform's properties expressed as spec values. For example, the PCI driver
 gets included in init's configuration only on platforms with a PCI bus. For
-appending conditional snippets to the 'config' file, there exists the 'append_if'
+appending conditional snippets to the _config_ file, there exists the 'append_if'
 command, which takes a condition as first and the snippet as second argument.
 To test for a SPEC value, the command '[have_spec <spec-value>]' is used as
 condition. Analogously to how 'append_if' appends strings, there exists
@@ -455,20 +447,20 @@ The run mechanism explained
 ===========================
 
 Under the hood, run scripts are executed by an expect interpreter. When the
-user invokes a run script via 'make run/<run-script>', the build system invokes
-the run tool at '<genode-dir>/tool/run' with the run script as argument. The
+user invokes a run script via _make run/<run-script>_, the build system invokes
+the run tool at _<genode-dir>/tool/run_ with the run script as argument. The
 run tool is an expect script that has no other purpose than defining several
 commands used by run scripts, including a platform-specific script snippet
 called run environment ('env'), and finally including the actual run script.
-Whereas 'tool/run' provides the implementations of generic and largely
-platform-independent commands, the 'env' snippet included from the platform's
-respective 'base-<platform>/run/env' file contains all platform-specific
+Whereas _tool/run_ provides the implementations of generic and largely
+platform-independent commands, the _env_ snippet included from the platform's
+respective _base-<platform>/run/env_ file contains all platform-specific
 commands. For reference, the most simplistic run environment is the one at
-'base-linux/run/env', which implements the 'create_boot_directory',
+_base-linux/run/env_, which implements the 'create_boot_directory',
 'install_config', 'build_boot_image', and 'run_genode_until' commands for Linux
 as base platform. For the other platforms, the run environments are far more
 elaborative and document precisely how the integration and boot concept works
-on each platform. Hence, the 'base-<platform>/run/env' files are not only
+on each platform. Hence, the _base-<platform>/run/env_ files are not only
 necessary parts of Genode's tooling support but serve as resource for
 peculiarities of using each kernel.
 
@@ -479,7 +471,7 @@ Using run script to implement test cases
 Because run scripts are actually expect scripts, the whole arsenal of
 language features of the Tcl scripting language is available to them. This
 turns run scripts into powerful tools for the automated execution of test
-cases. A good example is the run script at 'libports/run/lwip.run', which tests
+cases. A good example is the run script at _libports/run/lwip.run_, which tests
 the lwIP stack by running a simple Genode-based HTTP server on Qemu. It fetches
 and validates a HTML page from this server. The run script makes use of a
 regular expression as argument to the 'run_genode_until' command to detect the
@@ -490,19 +482,19 @@ that use Qemu as execution environment.
 
 To get the most out of the run mechanism, a basic understanding of the Tcl
 scripting language is required. Furthermore the functions provided by
-'tool/run' and 'base-<platform>/run/env' should be studied.
+_tool/run_ and _base-<platform>/run/env_ should be studied.
 
 
 Automated testing across base platforms
 =======================================
 
 To execute one or multiple test cases on more than one base platform, there
-exists a dedicated tool at 'tool/autopilot'. Its primary purpose is the
+exists a dedicated tool at _tool/autopilot_. Its primary purpose is the
 nightly execution of test cases. The tool takes a list of platforms and of
 run scripts as arguments and executes each run script on each platform. The
 build directory for each platform is created at
-'/tmp/autopilot.<username>/<platform>' and the output of each run script is
-written to a file called '<platform>.<run-script>.log'. On stderr, autopilot
+_/tmp/autopilot.<username>/<platform>_ and the output of each run script is
+written to a file called _<platform>.<run-script>.log_. On stderr, autopilot
 prints the statistics about whether or not each run script executed
 successfully on each platform. If at least one run script failed, autopilot
 returns a non-zero exit code, which makes it straight forward to include
