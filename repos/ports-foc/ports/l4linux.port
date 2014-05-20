@@ -1,0 +1,13 @@
+LICENSE      := GPLv2
+VERSION      := git
+DOWNLOADS    := l4linux.git
+URL(l4linux) := https://github.com/ssumpf/l4linux.git
+REV(l4linux) := 75354b3f0f6ed7b9ebec118670213062c5a4c78e
+DIR(l4linux) := src/l4linux
+sym_link     := src/l4linux/arch/l4/drivers
+
+default: $(sym_link)
+
+# make sure to have downloaded the files before symlinking into it
+$(sym_link) : $(DOWNLOADS)
+	$(VERBOSE)ln -sfT $(REP_DIR)/src/drivers $@

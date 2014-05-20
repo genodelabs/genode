@@ -9,16 +9,17 @@ GENODE_LIBS        := $(foreach l,$(GENODE_LIBS),$(BUILD_BASE_DIR)/var/libcache/
 GENODE_LIBS_SORTED  = $(sort $(wildcard $(GENODE_LIBS)))
 GENODE_LIBS_SORTED += $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
 
-L4LX_BUILD     = $(BUILD_BASE_DIR)/$(LX_TARGET)
-L4LX_BINARY    = $(L4LX_BUILD)/$(TARGET)
-L4LX_SYMLINK   = $(BUILD_BASE_DIR)/bin/$(LX_TARGET)
-L4LX_CONFIG    = $(L4LX_BUILD)/.config
+L4LX_CONTRIB_DIR := $(call select_from_ports,$(LX_TARGET))/src
+L4LX_BUILD        = $(BUILD_BASE_DIR)/$(LX_TARGET)
+L4LX_BINARY       = $(L4LX_BUILD)/$(TARGET)
+L4LX_SYMLINK      = $(BUILD_BASE_DIR)/bin/$(LX_TARGET)
+L4LX_CONFIG       = $(L4LX_BUILD)/.config
 
 $(TARGET): $(L4LX_BINARY)
 
 $(L4LX_BINARY): $(L4LX_CONFIG)
 	$(VERBOSE_MK)$(MAKE) $(VERBOSE_DIR) \
-	               -C $(REP_DIR)/contrib/$(LX_TARGET) \
+	               -C $(L4LX_CONTRIB_DIR)/$(LX_TARGET) \
 	               O=$(L4LX_BUILD) \
 	               CROSS_COMPILE="$(CROSS_DEV_PREFIX)" \
 	               CC="$(CC)" \
@@ -36,4 +37,3 @@ clean:
 	$(VERBOSE)rm -rf $(L4LX_BUILD)
 
 .PHONY: $(L4LX_BINARY)
-
