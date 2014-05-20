@@ -28,7 +28,7 @@ append config [qt5_parent_provides feature]
 append config {
 	</parent-provides>
 	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
+		<any-service> <parent/> <child name="wm"/> <any-child/> </any-service>
 	</default-route>}
 
 append config [qt5_start_nodes feature]

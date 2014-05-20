@@ -21,6 +21,10 @@ proc qt5_build_components { feature_arg } {
 
 	append build_components {
 		server/nitpicker
+		server/report_rom
+		app/floating_window_layouter
+		app/decorator
+		server/wm
 	}
 
 	return $build_components
@@ -50,6 +54,23 @@ proc qt5_start_nodes { feature_arg } {
 		<start name="nitpicker">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Nitpicker"/></provides>
+			<config>
+				<domain name="default" color="#ffffff"/>
+				<policy label="" domain="default"/>
+				<global-key name="KEY_SCROLLLOCK" operation="xray" />
+				<global-key name="KEY_SYSRQ"      operation="kill" />
+				<global-key name="KEY_PRINT"      operation="kill" />
+				<global-key name="KEY_F11"        operation="kill" />
+				<global-key name="KEY_F12"        operation="xray" />
+			</config>
+		</start>
+		<start name="wm">
+			<resource name="RAM" quantum="16M"/>
+			<provides><service name="Nitpicker"/></provides>
+			<route>
+				<service name="Nitpicker"> <child name="nitpicker"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
 		</start>
 	}
 
@@ -73,6 +94,10 @@ proc qt5_boot_modules { feature_arg } {
 
 	append boot_modules {
 		nitpicker
+		report_rom
+		floating_window_layouter
+		decorator
+		wm
 	}
 
 	return $boot_modules
