@@ -13,27 +13,49 @@ if {
 }
 
 
-build "core init test/affinity"
+set build_components { core init test/affinity }
+
+lappend_if [have_spec exynos5] build_components drivers/platform
+
+build $build_components
 
 create_boot_directory
 
-install_config {
+set config {
 	<config>
 		<parent-provides>
 			<service name="LOG"/>
 			<service name="CPU"/>
 			<service name="RM"/>
+			<service name="CAP"/>
+			<service name="SIGNAL"/>
+			<service name="RAM"/>
+			<service name="ROM"/>
+			<service name="IO_MEM"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> </any-service>
-		</default-route>
+		</default-route> }
+
+append_if [have_spec exynos5] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+	</start> }
+
+append config {
 		<start name="test-affinity">
 			<resource name="RAM" quantum="10M"/>
 		</start>
-	</config>
-}
+	</config> }
 
-build_boot_image "core init test-affinity"
+install_config $config
+
+set boot_modules { core init test-affinity }
+
+lappend_if [have_spec exynos5] boot_modules platform_drv
+
+build_boot_image $boot_modules
 
 if {[is_qemu_available]} {
 	set want_cpus_x 4
