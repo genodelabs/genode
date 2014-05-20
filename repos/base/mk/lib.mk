@@ -139,7 +139,7 @@ $(LIB_A): $(OBJECTS)
 # Don't link base libraries against shared libraries except for ld.lib.so
 #
 ifdef SHARED_LIB
-ifneq ($(LIB),ld)
+ifneq ($(LIB),$(DYNAMIC_LINKER))
 override DEPS := $(filter-out $(BASE_LIBS:=.lib),$(DEPS))
 endif
 endif
@@ -173,7 +173,7 @@ USED_SO_FILES    := $(foreach s,$(USED_SHARED_LIBS),$(LIB_CACHE_DIR)/$s/$s.lib.s
 #
 # Don't link ld libary against shared objects
 #
-USED_SO_FILES    := $(filter-out %ld.lib.so,$(USED_SO_FILES))
+USED_SO_FILES    := $(filter-out %$(DYNAMIC_LINKER).lib.so,$(USED_SO_FILES))
 
 #
 # Default entry point of shared libraries

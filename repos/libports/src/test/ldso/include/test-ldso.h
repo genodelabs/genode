@@ -16,6 +16,7 @@
 #define _TEST_LDSO_H_
 
 void lib_1_test();
+void lib_1_good();
 void lib_1_exception();
 void lib_2_exception();
 

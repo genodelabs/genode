@@ -132,6 +132,34 @@ struct Test_stack_align_thread : Thread<0x2000>
 	void entry() { test_stack_align("%f\n%g\n", 3.142, 2.718); }
 };
 
+
+/******************
+ ** Dynamic cast **
+ ******************/
+
+struct Object_base
+{
+	virtual void func() { printf("'Object_base' called: failed\n"); }
+};
+
+struct Object : Object_base
+{
+	void func() { printf("'Object' called: good\n"); }
+};
+
+void test_dynamic_cast_call(Object_base *o)
+{
+	Object *b = dynamic_cast<Object *>(o);
+	b->func();
+}
+
+static void test_dynamic_cast()
+{
+	Object *o = new (Genode::env()->heap()) Object;
+	test_dynamic_cast_call(o);
+}
+
+
 /**
  * Main function of LDSO test
  */
@@ -188,13 +216,22 @@ int main(int argc, char **argv)
 
 	lib_1_test();
 
-	printf("test stack alignment\n");
+	printf("Test stack alignment\n");
 	printf("--------------------\n");
 	test_stack_align("%f\n%g\n", 3.142, 2.718);
 	Test_stack_align_thread t;
 	t.start();
 	t.join();
 	printf("\n");
+
+	printf("Dynamic cast\n");
+	printf("------------\n");
+	test_dynamic_cast();
+	printf("\n");
+
+
+	printf("Destruction\n");
+	printf("-----------\n");
 
 	/* test if return value is propagated correctly by dynamic linker */
 	return 123;

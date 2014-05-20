@@ -1,0 +1,56 @@
+This directory contains Genode's dynamic linker (ldso)
+
+
+Usage
+-----
+
+To build a shared library instead of a regular static library, you just need to
+declare 'SHARED_LIB = yes' in the library-description file.  When doing so, a
+'<libname>.lib.so' file will be generated and installed in the
+'<build-dir>/bin/' directory.  For building an executable that uses a shared
+library, no special precautions are needed. The build system will automatically
+detect the use of shared libraries, concludes that the binary must be
+dynamically linked, and will use the correct linker script.  When loading a
+dynamically linked program, the dynamic linker 'ldso.lib.so' and all used shared
+objects must be loaded as well.
+
+The linker can be configured through the '<config>' node when loading a dynamic
+binary. Currently there are to configurations options, 'ld_bind_now="yes"'
+causes the linker to resolve all symbol references on program loading.
+'ld_verbose="yes"' outputs library load informations before starting the
+program.
+
+Configuration snippet:
+
+!<!-- bind immediately, no library informations -->
+!<start name="dynamic_binary">
+!  <resource name="RAM" quantum="1M" />
+!  <config ld_bind_now="yes" ld_verbose="no">
+!  </config>
+!</start>
+
+Debugging dynamic binaries with GDB stubs
+-----------------------------------------
+
+! # go to directory containing the binaries
+! cd <build/dir>/bin
+!
+! # start GDB with binary to debug
+! gdb <binary name>
+!
+! # break in main routine
+! b main
+!
+! # inspect loaded shared libraries
+! info sharedlibrary
+!
+! # load shared symbols of shared libraries (if not already loaded)
+! share
+!
+! # from here you can debug within libraries
+
+:Known issues:
+
+GDB 7.2 has a regression bug in its line information parser. These issue has
+been fixed with version 7.3.
+

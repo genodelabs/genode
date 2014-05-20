@@ -14,7 +14,7 @@ SRC_CC = atexit.cc dummies.cc rlimit.cc sysctl.cc \
          gettimeofday.cc malloc.cc progname.cc fd_alloc.cc file_operations.cc \
          plugin.cc plugin_registry.cc select.cc exit.cc environ.cc nanosleep.cc \
          libc_mem_alloc.cc pread_pwrite.cc readv_writev.cc poll.cc \
-         libc_pdbg.cc vfs_plugin.cc rtc.cc
+         libc_pdbg.cc vfs_plugin.cc rtc.cc dynamic_linker.cc
 
 INC_DIR += $(REP_DIR)/src/lib/libc
 
