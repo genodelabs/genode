@@ -1,5 +1,5 @@
-LIB_DIR     := $(REP_DIR)/src/lib/dde_ipxe
-CONTRIB_DIR := $(REP_DIR)/contrib/src
+LIB_DIR          := $(REP_DIR)/src/lib/dde_ipxe
+IPXE_CONTRIB_DIR := $(call select_from_ports,dde_ipxe)/src/lib/dde_ipxe/src
 
 LIBS = dde_kit dde_ipxe_support
 
@@ -14,9 +14,10 @@ SRC_C += $(addprefix drivers/bitbash/, bitbash.c spi_bit.c)
 SRC_C += $(addprefix drivers/nvs/, nvs.c threewire.c)
 SRC_C += $(addprefix drivers/net/, pcnet32.c intel.c eepro100.c realtek.c mii.c)
 
-INC_DIR += $(LIB_DIR)/include \
-           $(CONTRIB_DIR)/include $(CONTRIB_DIR) \
-           $(CONTRIB_DIR)/arch/x86/include
+INC_DIR += $(LIB_DIR)/include
+
+INC_DIR += $(IPXE_CONTRIB_DIR)/include $(IPXE_CONTRIB_DIR) \
+           $(IPXE_CONTRIB_DIR)/arch/x86/include
 
 CC_WARN = -Wall -Wno-address
 CC_OPT += $(addprefix -fno-builtin-, putchar toupper tolower)
@@ -35,6 +36,6 @@ vpath nic.c     $(LIB_DIR)
 vpath dde.c     $(LIB_DIR)
 vpath dummies.c $(LIB_DIR)
 
-vpath %.c       $(CONTRIB_DIR)
+vpath %.c       $(IPXE_CONTRIB_DIR)
 
 # vi: set ft=make :
