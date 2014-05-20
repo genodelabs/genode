@@ -52,7 +52,7 @@ HEADERS_FILTERED = $(filter-out $(HEADERS_FILTER_OUT), $(HEADERS))
 SRC_CC += $(SOURCES_FILTERED)
 
 # handle moc-headers, resources and ui descriptions
-$(SRC_CC:.cpp=.o): $(addprefix ui_,$(FORMS:.ui=.h))
+$(addsuffix .o,$(basename $(SRC_CC))): $(addprefix ui_,$(FORMS:.ui=.h))
 
 SRC_CC_QT_GENERATED = $(addprefix moc_,$(HEADERS_FILTERED:.h=.cpp)) \
                       $(addprefix qrc_,$(RESOURCES:.qrc=.cpp))

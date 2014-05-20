@@ -1,20 +1,16 @@
+source ${genode_dir}/repos/libports/run/qt5_common.inc
+
+set feature(Nic) 1
+
 #
 # Build
 #
 
-set build_components {
-	core init
-	drivers/timer drivers/framebuffer drivers/pci drivers/input drivers/nic
-	server/nitpicker
+set build_components [qt5_build_components feature]
+
+append build_components {
 	server/loader server/tar_rom server/nit_fb app/launchpad test/nitpicker
 	app/arora
-}
-
-#
-# Qt5-specific components to build
-#
-append_if [expr ![have_spec qt4_deprecated]] build_components {
-	server/liquid_framebuffer
 }
 
 build $build_components
@@ -30,65 +26,19 @@ exec tar cf bin/nitpicker_plugin.tar -C [genode_dir]/repos/ports/src/app/arora/d
 # Generate config
 #
 
-append config {
+set config {
 <config>
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="RAM"/>
-		<service name="IRQ"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="CAP"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="SIGNAL"/>
+	<parent-provides>}
+append config [qt5_parent_provides feature]
+append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
-
-append_if [have_spec pci] config {
-	<start name="pci_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides><service name="PCI"/></provides>
-	</start>}
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start> }
+append config [qt5_start_nodes feature]
 
 append config {
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>
-	<start name="nic_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides><service name="Nic"/></provides>
-	</start>
-	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
-	</start>
 	<start name="loader">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Loader"/></provides>
@@ -109,11 +59,9 @@ install_config $config
 # Boot modules
 #
 
-# generic modules
-set boot_modules {
-	core init
-	timer nic_drv
-	nitpicker
+set boot_modules [qt5_boot_modules feature]
+
+append boot_modules {
 	loader
 	tar_rom
 	nit_fb
@@ -152,7 +100,6 @@ if {[have_spec qt4_deprecated]} {
 	# Qt5-specific boot modules
 	#
 	append boot_modules {
-		liquid_fb
 		gallium.lib.so
 		icu.lib.so
 		pthread.lib.so
@@ -176,12 +123,6 @@ if {[have_spec qt4_deprecated]} {
 	}
 }
 
-# platform-specific modules
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         pci] boot_modules pci_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 "
@@ -192,3 +133,4 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 append qemu_args " -net user "
 
 run_genode_until forever
+

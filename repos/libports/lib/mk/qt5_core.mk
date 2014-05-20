@@ -25,6 +25,10 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
+# reduce 'not implemented yet' noise
+SRC_CC += libc_dummies.cc
+vpath libc_dummies.cc $(REP_DIR)/src/lib/qt5
+
 INC_DIR += $(REP_DIR)/include/qt5/qtbase/QtCore/private \
            $(REP_DIR)/src/lib/qt5/qtbase/src/corelib/thread \
            $(REP_DIR)/contrib/$(QT5)/qtbase/include/QtCore/$(QT_VERSION) \

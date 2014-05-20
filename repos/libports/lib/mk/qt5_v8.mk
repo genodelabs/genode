@@ -49,7 +49,7 @@ QT_SOURCES += \
   regexp-macro-assembler-ia32.cc \
   stub-cache-ia32.cc
 QT_VPATH += qtjsbackend/src/3rdparty/v8/src/ia32
-else 
+else
 ifeq ($(filter-out $(SPECS),arm),)
 QT_DEFINES += -DV8_TARGET_ARCH_ARM
 QT_SOURCES += \
@@ -57,6 +57,7 @@ QT_SOURCES += \
   builtins-arm.cc \
   code-stubs-arm.cc \
   codegen-arm.cc \
+  constants-arm.cc \
   cpu-arm.cc \
   debug-arm.cc \
   deoptimizer-arm.cc \
@@ -71,7 +72,7 @@ QT_SOURCES += \
   regexp-macro-assembler-arm.cc \
   stub-cache-arm.cc
 QT_VPATH += qtjsbackend/src/3rdparty/v8/src/arm
-endif 
+endif
 endif
 endif
 
@@ -80,4 +81,3 @@ QT_VPATH += qtjsbackend/generated
 include $(REP_DIR)/lib/mk/qt5.inc
 
 LIBS += qt5_network
-

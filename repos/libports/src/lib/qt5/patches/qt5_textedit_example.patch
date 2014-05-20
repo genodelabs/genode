@@ -4,16 +4,16 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- qtbase/examples/widgets/richtext/textedit/main.cpp |   21 +++++++++++++++++++-
- .../widgets/richtext/textedit/textedit.cpp         |   11 +++++-----
+ qtbase/examples/widgets/richtext/textedit/main.cpp |   17 ++++++++++++++++-
+ .../widgets/richtext/textedit/textedit.cpp         |   11 +++++------
  .../widgets/richtext/textedit/textedit.pro         |    4 ----
- 3 files changed, 25 insertions(+), 11 deletions(-)
+ 3 files changed, 21 insertions(+), 11 deletions(-)
 
 diff --git a/qtbase/examples/widgets/richtext/textedit/main.cpp b/qtbase/examples/widgets/richtext/textedit/main.cpp
-index 196dbfc..2513df9 100644
+index 196dbfc..ff8d024 100644
 --- a/qtbase/examples/widgets/richtext/textedit/main.cpp
 +++ b/qtbase/examples/widgets/richtext/textedit/main.cpp
-@@ -39,16 +39,35 @@
+@@ -39,6 +39,10 @@
  **
  ****************************************************************************/
  
@@ -24,11 +24,7 @@ index 196dbfc..2513df9 100644
  #include "textedit.h"
  #include <QApplication>
  
-+/* disable "not implemented yet" messages */
-+extern "C" void _sigprocmask() { }
-+extern "C" void sigprocmask() { }
-+
- int main(int argc, char *argv[])
+@@ -46,9 +50,20 @@ int main(int argc, char *argv[])
  {
      Q_INIT_RESOURCE(textedit);
  

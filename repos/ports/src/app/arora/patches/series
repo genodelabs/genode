@@ -6,5 +6,4 @@ arora_disable_adblock.patch
 arora_bookmarks.patch
 arora_disable_program_exit.patch
 arora_startpage.patch
-arora_disable_log_messages.patch
 arora_disable_ssl_messageboxes.patch

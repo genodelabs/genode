@@ -14,16 +14,7 @@ include $(REP_DIR)/lib/mk/qt5_version.inc
 #
 all: qmake/qmake moc/moc rcc/rcc uic/uic
 
-#
-# Determine qmakespec to be passed to the sub makefiles
-#
-ifeq ($(shell uname -m),x86_64)
-HOST_ARCH := 64
-else
-HOST_ARCH := 32
-endif
-
-QMAKESPEC = $(REP_DIR)/contrib/$(QT5)/qtbase/mkspecs/linux-g++-$(HOST_ARCH)
+QMAKESPEC = $(REP_DIR)/contrib/$(QT5)/qtbase/mkspecs/linux-g++
 
 #
 # Build qmake

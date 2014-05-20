@@ -76,7 +76,7 @@ index 5702c59..3d616b5 100644
  QT_BEGIN_NAMESPACE
 diff --git a/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 new file mode 100644
-index 0000000..3a8cf90
+index 0000000..a2e5634
 --- /dev/null
 +++ b/qtjsbackend/src/3rdparty/v8/src/platform-genode.cc
 @@ -0,0 +1,701 @@
@@ -209,17 +209,17 @@ index 0000000..3a8cf90
 +  return 0;
 +}
 +
-+#if 0
++
 +CpuImplementer OS::GetCpuImplementer() {
-+  UNIMPLEMENTED();
++  return UNKNOWN_IMPLEMENTER;
 +}
 +
 +
 +bool OS::ArmCpuHasFeature(CpuFeature feature) {
-+  UNIMPLEMENTED();
++  return false;
 +}
 +
-+
++#if 0
 +bool OS::ArmUsingHardFloat() {
 +  UNIMPLEMENTED();
 +}
