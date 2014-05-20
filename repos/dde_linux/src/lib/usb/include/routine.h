@@ -16,7 +16,7 @@
 
 #include <base/env.h>
 #include <util/list.h>
-#include <libc/setjmp.h>
+#include <setjmp.h>
 
 extern "C" {
 #include <dde_kit/memory.h>

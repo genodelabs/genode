@@ -37,12 +37,12 @@ CC_OPT  += -DINTERRUPT_VC_USB=9
 # for 'dwc_otg_driver.c' for preventing calls to set_irq_type
 CC_OPT  += -DIRQF_TRIGGER_LOW=1
 
-INC_DIR += $(CONTRIB_DIR)/drivers/usb/host/dwc_otg/dwc_common_port \
-           $(CONTRIB_DIR)/drivers/usb/host/dwc_otg/dwc_otg
+INC_DIR += $(LX_CONTRIB_DIR)/drivers/usb/host/dwc_otg/dwc_common_port \
+           $(LX_CONTRIB_DIR)/drivers/usb/host/dwc_otg/dwc_otg
 SRC_CC  += platform.cc
 
 vpath platform.cc $(LIB_DIR)/arm/platform_rpi
-vpath %.c         $(CONTRIB_DIR)/drivers/net/usb
+vpath %.c         $(LX_CONTRIB_DIR)/drivers/net/usb
 
 # enable C++11 support
 CC_CXX_OPT += -std=gnu++11

@@ -6,9 +6,9 @@ SRC_CC   += main.cc lx_emul.cc irq.cc timer.cc event.cc storage.cc \
             input_component.cc nic.cc
 SRC_C    += dummies.c scsi.c evdev.c
 
-CONTRIB_DIR := $(REP_DIR)/contrib
-DRIVERS_DIR := $(CONTRIB_DIR)/drivers
-USB_DIR     := $(DRIVERS_DIR)/usb
+LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/dde_linux
+DRIVERS_DIR    := $(LX_CONTRIB_DIR)/drivers
+USB_DIR        := $(DRIVERS_DIR)/usb
 
 CC_OLEVEL = -O2
 
@@ -17,7 +17,7 @@ CC_OLEVEL = -O2
 # 'contrib' before falling back to our custom 'lx_emul.h' header.
 #
 INC_DIR += $(LIB_INC_DIR)
-INC_DIR += $(CONTRIB_DIR)/include $(CONTRIB_DIR)/include/uapi $(CONTRIB_DIR)
+INC_DIR += $(LX_CONTRIB_DIR)/include $(LX_CONTRIB_DIR)/include/uapi $(LX_CONTRIB_DIR)
 
 CC_OPT += -U__linux__ -D__KERNEL__
 CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG
@@ -57,13 +57,13 @@ SRC_C += $(addprefix scsi/,scsi.c constants.c)
 # Determine the header files included by the contrib code. For each
 # of these header files we create a symlink to 'lx_emul.h'.
 #
-GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(CONTRIB_DIR) |\
+GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(LX_CONTRIB_DIR) |\
                         sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" | sort | uniq)
 
 #
 # Filter out original Linux headers that exist in the contrib directory
 #
-NO_GEN_INCLUDES := $(shell cd $(CONTRIB_DIR)/include; find -name "*.h" | sed "s/.\///" | sed "s/.*include\///")
+NO_GEN_INCLUDES := $(shell cd $(LX_CONTRIB_DIR)/include; find -name "*.h" | sed "s/.\///" | sed "s/.*include\///")
 GEN_INCLUDES    := $(filter-out $(NO_GEN_INCLUDES),$(GEN_INCLUDES))
 
 #

@@ -5,17 +5,17 @@ LIB_INC_DIR = $(LIB_DIR)/include
 
 LIBS += base cxx dde_kit
 
-CONTRIB_DIR := $(REP_DIR)/contrib
-NET_DIR     := $(CONTRIB_DIR)/net
+LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/dde_linux
+NET_DIR        := $(LX_CONTRIB_DIR)/net
 
 #
 # The order of include-search directories is important, we need to look into
 # 'contrib' before falling back to our custom 'lx_emul.h' header.
 #
 INC_DIR += $(LIB_INC_DIR)
-INC_DIR += $(CONTRIB_DIR)/include $(CONTRIB_DIR)/include/uapi \
-           $(CONTRIB_DIR)/lxip/include $(CONTRIB_DIR)/lxip/include/uapi \
-           $(CONTRIB_DIR)
+INC_DIR += $(LX_CONTRIB_DIR)/include $(LX_CONTRIB_DIR)/include/uapi \
+           $(LX_CONTRIB_DIR)/lxip/include $(LX_CONTRIB_DIR)/lxip/include/uapi \
+           $(LX_CONTRIB_DIR)
 
 CC_OLEVEL = -O2
 
@@ -57,13 +57,13 @@ SRC_C += net/ipv4/ipconfig.c
 # Determine the header files included by the contrib code. For each
 # of these header files we create a symlink to 'lx_emul.h'.
 #
-GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(CONTRIB_DIR) |\
+GEN_INCLUDES := $(shell grep -rh "^\#include .*\/" $(LX_CONTRIB_DIR) |\
                         sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" | sort | uniq)
 
 #
 # Filter out original Linux headers that exist in the contrib directory
 #
-NO_GEN_INCLUDES := $(shell cd $(CONTRIB_DIR); find -name "*.h" | sed "s/.\///" | sed "s/.*include\///")
+NO_GEN_INCLUDES := $(shell cd $(LX_CONTRIB_DIR); find -name "*.h" | sed "s/.\///" | sed "s/.*include\///")
 GEN_INCLUDES    := $(filter-out $(NO_GEN_INCLUDES),$(GEN_INCLUDES))
 
 #
@@ -88,6 +88,6 @@ $(GEN_INCLUDES):
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)ln -s $(LIB_INC_DIR)/lx_emul.h $@
 
-vpath %.c $(CONTRIB_DIR)
+vpath %.c $(LX_CONTRIB_DIR)
 vpath %.c $(LIB_DIR)
 vpath %.cc $(LIB_DIR)

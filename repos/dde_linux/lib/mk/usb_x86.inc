@@ -16,6 +16,6 @@ include $(REP_DIR)/lib/mk/usb.inc
 CC_OPT  += -DCONFIG_PCI -DCONFIG_USB_EHCI_PCI=1 -DCONFIG_USB_XHCI_HCD=1
 
 vpath platform.cc $(LIB_DIR)/x86
-vpath %.c         $(CONTRIB_DIR)/drivers/net/usb
+vpath %.c         $(LX_CONTRIB_DIR)/drivers/net/usb
 
 # vi:set ft=make :
