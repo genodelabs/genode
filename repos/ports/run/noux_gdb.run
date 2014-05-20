@@ -24,7 +24,6 @@ set build_components {
 	drivers/framebuffer drivers/pci drivers/input drivers/usb
 	server/terminal server/terminal_crosslink
 	app/gdb_monitor
-	test/gdb_monitor
 }
 
 lappend_if [have_spec gpio]    build_components drivers/gpio
@@ -42,7 +41,6 @@ set gdb_target_binaries {
 	test-gdb_monitor
 	ld.lib.so
 	libc.lib.so
-	libc_log.lib.so
 }
 lappend gdb_target_binaries ${gdb_target_binary_name}
 
@@ -136,10 +134,19 @@ append config {
 				<service name="Terminal"><child name="terminal_gdb"/></service>
 				<any-service><parent/><any-child/></any-service>
 			</route>
-			<config> }
+			<config>
+				<libc stdout="/dev/log" stderr="/dev/log">
+					<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				</libc> }
 append config "
-				<target name=\"${gdb_target_binary_name}\"/> "
+				<target name=\"${gdb_target_binary_name}\"> "
 append config {
+					<config>
+						<libc stdout="/dev/log" stderr="/dev/log">
+							<vfs> <dir name="dev"> <log/> </dir> </vfs>
+						</libc>
+					</config>
+				</target>
 				<preserve name="RAM" quantum="5M"/>
 			</config>
 		</start>
@@ -150,14 +157,14 @@ append config {
 					<if-arg key="label" value=""/><child name="terminal_noux"/>
 				</service>
 				<service name="Terminal">
-					<if-arg key="label" value="noux(terminal_fs)"/><child name="terminal_gdb"/>
+					<if-arg key="label" value="/dev/gdb"/><child name="terminal_gdb"/>
 				</service>
 				<any-service><parent/><any-child/></any-service>
 			</route>
 			<config>
 				<fstab>
 					<tar name="gdb.tar" at="/"/>
-					<dir name="dev"><terminal name="gdb"/></dir>
+					<dir name="dev"><terminal name="gdb" label="/dev/gdb"/></dir>
 					<dir name="gdb"> }
 append config "
 						<tar name=\"${gdb_target_binary_name}.tar\"/>
@@ -202,7 +209,7 @@ install_config $config
 set boot_modules {
 	core init timer ld.lib.so noux terminal terminal_crosslink
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so expat.lib.so
-	libc_lock_pipe.lib.so libc_log.lib.so libc_terminal.lib.so
+	libc_lock_pipe.lib.so libc_terminal.lib.so
 	gdb_monitor test-gdb_monitor
 	gdb.tar test-gdb_monitor.tar test-gdb_monitor-src.tar
 }
