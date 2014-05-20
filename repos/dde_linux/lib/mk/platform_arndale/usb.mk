@@ -2,7 +2,7 @@ SRC_C   += usbnet.c asix_devices.c asix_common.c ax88172a.c ax88179_178a.c
 
 include $(REP_DIR)/lib/mk/xhci.inc
 include $(REP_DIR)/lib/mk/usb.inc
-include $(REP_DIR)/lib/mk/arm/usb.inc
+include $(REP_DIR)/lib/mk/armv7/usb.inc
 
 CC_OPT  += -DCONFIG_USB_EHCI_S5P -DCONFIG_USB_EHCI_TT_NEWSCHED -DCONFIG_OF -DCONFIG_USB_DWC3_HOST \
            -DCONFIG_USB_OTG_UTILS -DCONFIG_USB_XHCI_PLATFORM -DDWC3_QUIRK

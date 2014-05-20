@@ -23,7 +23,7 @@ SRC_C += \
 SRC_C += usbnet.c smsc95xx.c
 
 include $(REP_DIR)/lib/mk/usb.inc
-include $(REP_DIR)/lib/mk/arm/usb.inc
+include $(REP_DIR)/lib/mk/armv6/usb.inc
 
 CC_OPT  += -DDWC_LINUX -DPLATFORM_INTERFACE
 

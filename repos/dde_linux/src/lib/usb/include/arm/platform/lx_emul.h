@@ -13,6 +13,8 @@
 #ifndef _ARM__PLATFORM__LX_EMUL_H_
 #define _ARM__PLATFORM__LX_EMUL_H_
 
+#include <platform/lx_emul_barrier.h>
+
 /*************************
  ** asm-generic/sizes.h **
  *************************/
@@ -265,6 +267,5 @@ int claim_fiq(struct fiq_handler *f);
 void set_fiq_regs(struct pt_regs const *regs);
 void enable_fiq();
 void set_fiq_handler(void *start, unsigned int length);
-
 
 #endif /* _ARM__PLATFORM__LX_EMUL_H_ */

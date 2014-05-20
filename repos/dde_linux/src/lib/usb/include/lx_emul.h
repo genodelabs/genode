@@ -249,19 +249,6 @@ typedef uint32_t      u_int32_t;
 
 #include <linux/usb/storage.h>
 
-/******************
- ** asm/system.h **
- ******************/
-
-#define mb()  asm volatile ("": : :"memory")
-#define rmb() mb()
-#define wmb() asm volatile ("": : :"memory")
-#define smp_wmb() wmb()
-#define smp_mb() mb()
-
-static inline void barrier() { mb(); }
-
-
 /**********************
  ** linux/compiler.h **
  **********************/
