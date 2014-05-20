@@ -7,6 +7,7 @@
 LIBS += base-common startup
 
 SRC_CC += console/log_console.cc
+SRC_CC += cpu/cache.cc
 SRC_CC += env/env.cc env/context_area.cc env/reinitialize.cc
 SRC_CC += thread/thread.cc thread_support.cc
 
