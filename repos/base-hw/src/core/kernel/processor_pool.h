@@ -80,8 +80,9 @@ class Kernel::Processor_pool
 {
 	private:
 
-		char _processors[PROCESSORS][sizeof(Processor)];
-		char _idle_threads[PROCESSORS][sizeof(Idle_thread)];
+		Timer _timer;
+		char  _processors[PROCESSORS][sizeof(Processor)];
+		char  _idle_threads[PROCESSORS][sizeof(Idle_thread)];
 
 		/**
 		 * Return idle thread of a specific processor
@@ -103,7 +104,7 @@ class Kernel::Processor_pool
 		{
 			for (unsigned i = 0; i < PROCESSORS; i++) {
 				new (_idle_threads[i]) Idle_thread(processor(i));
-				new (_processors[i]) Processor(i, _idle_thread(i));
+				new (_processors[i]) Processor(i, _idle_thread(i), &_timer);
 			}
 		}
 

@@ -232,11 +232,22 @@ class Kernel::Scheduler_item : public Double_list<T>::Item
 template <typename T>
 class Kernel::Scheduler
 {
-	protected:
+	private:
 
 		T * const      _idle;
 		T *            _occupant;
 		Double_list<T> _items[Priority::MAX + 1];
+		bool           _yield;
+
+		bool _check_update(T * const occupant)
+		{
+			if (_yield) {
+				_yield = false;
+				return true;
+			}
+			if (_occupant != occupant) { return true; }
+			return false;
+		}
 
 	public:
 
@@ -252,12 +263,17 @@ class Kernel::Scheduler
 		 *
 		 * \return  updated occupant reference
 		 */
-		T * update_occupant()
+		T * update_occupant(bool & update)
 		{
 			for (int i = Priority::MAX; i >= 0 ; i--) {
-				_occupant = _items[i].head();
-				if (_occupant) { return _occupant; }
+				T * const head = _items[i].head();
+				if (!head) { continue; }
+				update = _check_update(head);
+				_occupant = head;
+				return head;
 			}
+			update = _check_update(_idle);
+			_occupant = 0;
 			return _idle;
 		}
 
@@ -266,6 +282,7 @@ class Kernel::Scheduler
 		 */
 		void yield_occupation()
 		{
+			_yield = true;
 			if (!_occupant) { return; }
 			_items[_occupant->priority()].head_to_tail();
 		}

@@ -16,6 +16,7 @@
 #define _KERNEL__PROCESSOR_H_
 
 /* core includes */
+#include <timer.h>
 #include <processor_driver.h>
 #include <kernel/scheduler.h>
 
@@ -142,6 +143,16 @@ class Kernel::Processor : public Processor_driver
 		unsigned const      _id;
 		Processor_scheduler _scheduler;
 		bool                _ip_interrupt_pending;
+		Timer * const       _timer;
+
+		/**
+		 * Reset the scheduling timer for a new scheduling interval
+		 */
+		void _reset_timer()
+		{
+			unsigned const tics = _timer->ms_to_tics(USER_LAP_TIME_MS);
+			_timer->start_one_shot(tics, _id);
+		}
 
 	public:
 
@@ -150,11 +161,34 @@ class Kernel::Processor : public Processor_driver
 		 *
 		 * \param id           kernel name of the processor object
 		 * \param idle_client  client that gets scheduled on idle
+		 * \param timer        timer that is used for scheduling the processor
 		 */
-		Processor(unsigned const id, Processor_client * const idle_client)
+		Processor(unsigned const id, Processor_client * const idle_client,
+		          Timer * const timer)
 		:
-			_id(id), _scheduler(idle_client), _ip_interrupt_pending(false)
+			_id(id), _scheduler(idle_client), _ip_interrupt_pending(false),
+			_timer(timer)
 		{ }
+
+		/**
+		 * Initializate on the processor that this object corresponds to
+		 */
+		void init_processor_local() { _reset_timer(); }
+
+		/**
+		 * Check for a scheduling timeout and handle it in case
+		 *
+		 * \param interrupt_id  kernel name of interrupt that caused this call
+		 *
+		 * \return  wether it was a timeout and therefore has been handled
+		 */
+		bool check_timer_interrupt(unsigned const interrupt_id)
+		{
+			if (_timer->interrupt_id(_id) != interrupt_id) { return false; }
+			_scheduler.yield_occupation();
+			_timer->clear_interrupt(_id);
+			return true;
+		}
 
 		/**
 		 * Perform outstanding TLB maintainance work
@@ -183,6 +217,33 @@ class Kernel::Processor : public Processor_driver
 		 */
 		void schedule(Processor_client * const client);
 
+		/**
+		 * Handle exception of the processor and proceed its user execution
+		 */
+		void exception()
+		{
+			/*
+			 * Request the current occupant without any update. While the
+			 * processor was outside the kernel, another processor may have changed the
+			 * scheduling of the local activities in a way that an update would return
+			 * an occupant other than that whose exception caused the kernel entry.
+			 */
+			Processor_client * const old_client = _scheduler.occupant();
+			Processor_lazy_state * const old_state = old_client->lazy_state();
+			old_client->exception(_id);
+
+			/*
+			 * The processor local as well as remote exception-handling may have
+			 * changed the scheduling of the local activities. Hence we must update the
+			 * occupant.
+			 */
+			bool update;
+			Processor_client * const new_client = _scheduler.update_occupant(update);
+			if (update) { _reset_timer(); }
+			Processor_lazy_state * const new_state = new_client->lazy_state();
+			prepare_proceeding(old_state, new_state);
+			new_client->proceed(_id);
+		}
 
 		/***************
 		 ** Accessors **

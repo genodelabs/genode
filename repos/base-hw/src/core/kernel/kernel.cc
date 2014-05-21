@@ -75,25 +75,6 @@ namespace Kernel
 	Signal_receiver_pool * signal_receiver_pool() { return unmanaged_singleton<Signal_receiver_pool>(); }
 
 	/**
-	 * Return singleton kernel-timer
-	 */
-	Timer * timer()
-	{
-		static Timer _object;
-		return &_object;
-	}
-
-	/**
-	 * Start a new scheduling lap
-	 */
-	void reset_scheduling_time(unsigned const processor_id)
-	{
-		unsigned const tics = timer()->ms_to_tics(USER_LAP_TIME_MS);
-		timer()->start_one_shot(tics, processor_id);
-	}
-
-
-	/**
 	 * Static kernel PD that describes core
 	 */
 	Pd * core_pd()
@@ -287,9 +268,13 @@ extern "C" void init_kernel_multiprocessor()
 	 */
 	perf_counter()->enable();
 
-	/* initialize interrupt controller */
-	pic()->init_processor_local();
+	/* locally initialize processor */
 	unsigned const processor_id = Processor::executing_id();
+	Processor * const processor = processor_pool()->processor(processor_id);
+	processor->init_processor_local();
+
+	/* locally initialize interrupt controller */
+	pic()->init_processor_local();
 	pic()->unmask(Timer::interrupt_id(processor_id), processor_id);
 
 	/* as primary processor create the core main thread */
@@ -315,7 +300,7 @@ extern "C" void init_kernel_multiprocessor()
 		_main_thread_utcb->start_info()->init(t.id(), Genode::Native_capability());
 		t.ip = (addr_t)CORE_MAIN;;
 		t.sp = (addr_t)s + STACK_SIZE;
-		t.init(processor_pool()->processor(processor_id), core_pd(), &utcb, 1);
+		t.init(processor, core_pd(), &utcb, 1);
 
 		/* initialize interrupt objects */
 		static Genode::uint8_t _irqs[Pic::MAX_INTERRUPT_ID * sizeof(Irq)];
@@ -326,7 +311,6 @@ extern "C" void init_kernel_multiprocessor()
 		/* kernel initialization finished */
 		Genode::printf("kernel initialized\n");
 	}
-	reset_scheduling_time(processor_id);
 }
 
 
@@ -338,31 +322,10 @@ extern "C" void kernel()
 	/* ensure that no other processor accesses kernel data while we do */
 	data_lock().lock();
 
-	/* determine local processor scheduler */
+	/* determine local processor object and let it handle its exception */
 	unsigned const processor_id = Processor::executing_id();
 	Processor * const processor = processor_pool()->processor(processor_id);
-	Scheduler<Processor_client> * const scheduler = processor->scheduler();
-
-	/*
-	 * Request the current processor occupant without any update. While this
-	 * processor was outside the kernel, another processor may have changed the
-	 * scheduling of the local activities in a way that an update would return
-	 * an occupant other than that whose exception caused the kernel entry.
-	 */
-	Processor_client * const old_client = scheduler->occupant();
-	Processor_lazy_state * const old_state = old_client->lazy_state();
-	old_client->exception(processor_id);
-
-	/*
-	 * The processor local as well as remote exception-handling may have
-	 * changed the scheduling of the local activities. Hence we must update the
-	 * processor occupant.
-	 */
-	Processor_client * const new_client = scheduler->update_occupant();
-	Processor_lazy_state * const new_state = new_client->lazy_state();
-	if (old_client != new_client) { reset_scheduling_time(processor_id); }
-	processor->prepare_proceeding(old_state, new_state);
-	new_client->proceed(processor_id);
+	processor->exception();
 }
 
 

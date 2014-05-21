@@ -44,24 +44,22 @@ void Kernel::Processor_client::_interrupt(unsigned const processor_id)
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
 	Pic * const ic = pic();
-	if (ic->take_request(irq_id))
-	{
+	if (ic->take_request(irq_id)) {
+
 		/* check wether the interrupt is a processor-scheduling timeout */
-		if (timer()->interrupt_id(processor_id) == irq_id) {
+		if (!_processor->check_timer_interrupt(irq_id)) {
 
-			_processor->scheduler()->yield_occupation();
-			timer()->clear_interrupt(processor_id);
+			/* check wether the interrupt is our inter-processor interrupt */
+			if (ic->is_ip_interrupt(irq_id, processor_id)) {
 
-		/* check wether the interrupt is our inter-processor interrupt */
-		} else if (ic->is_ip_interrupt(irq_id, processor_id)) {
+				_processor->ip_interrupt();
 
-			_processor->ip_interrupt();
+			/* after all it must be a user interrupt */
+			} else {
 
-		/* after all it must be a user interrupt */
-		} else {
-
-			/* try to inform the user interrupt-handler */
-			Irq::occurred(irq_id);
+				/* try to inform the user interrupt-handler */
+				Irq::occurred(irq_id);
+			}
 		}
 	}
 	/* end interrupt request at controller */
