@@ -38,8 +38,15 @@ Native_utcb * main_thread_utcb() { return UTCB_MAIN_THREAD; }
 
 void Thread_base::_init_platform_thread(Type type)
 {
-	if (type == NORMAL) { return; }
+	if (!_cpu_session) { _cpu_session = env()->cpu_session(); }
+	if (type == NORMAL) {
 
+		/* create server object */
+		char buf[48];
+		name(buf, sizeof(buf));
+		_thread_cap = _cpu_session->create_thread(buf, (addr_t)&_context->utcb);
+		return;
+	}
 	/* if we got reinitialized we have to get rid of the old UTCB */
 	size_t const utcb_size = sizeof(Native_utcb);
 	addr_t const context_area = Native_config::context_area_virtual_base();
@@ -81,14 +88,6 @@ void Thread_base::_deinit_platform_thread()
 
 void Thread_base::start()
 {
-	if (!_cpu_session)
-		_cpu_session = env()->cpu_session();
-
-	/* create server object */
-	char buf[48];
-	name(buf, sizeof(buf));
-	_thread_cap = _cpu_session->create_thread(buf, (addr_t)&_context->utcb);
-
 	/* assign thread to protection domain */
 	env()->pd_session()->bind_thread(_thread_cap);
 
