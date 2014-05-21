@@ -26,23 +26,7 @@ $(BUILD_BASE_DIR)/include/%:
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)ln -sf $(L4_BUILD_DIR)/include/$* $@
 
-#
-# Sanity checks
-#
-ifeq ($(L4_BUILD_DIR),$(BUILD_BASE_DIR)/l4)
-ifeq ($(L4_CONFIG),)
-all: $(REP_DIR)/contrib l4_config_not_defined
-l4_config_not_defined:
-	$(VERBOSE)$(ECHO) "Error: L4_CONFIG is not defined, platform not supported"
-	@false
-endif
-endif
-
-$(REP_DIR)/contrib:
-	$(VERBOSE)$(ECHO) "--> Please, execute 'make prepare' in $(REP_DIR)"
-	$(VERBOSE)$(ECHO) "--> before compiling Genode apps for Fiasco.OC."
-	$(VERBOSE)$(ECHO) "--> Run 'make cleanall' before next compilation."
-	$(VERBOSE)exit 1
+FOC_CONTRIB_DIR := $(call select_from_ports,foc)/src/kernel/foc
 
 #
 # Create L4 build directory
@@ -50,8 +34,8 @@ $(REP_DIR)/contrib:
 # Resetting the 'MAKEFLAGS' is important because otherwise, the L4
 # build system will stuble over predefined variables, i.e., 'LIB'
 #
-$(BUILD_BASE_DIR)/l4/.kconfig: $(REP_DIR)/contrib
-	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) $(VERBOSE_DIR) -C $(REP_DIR)/contrib/l4 B=$(dir $@) \
+$(BUILD_BASE_DIR)/l4/.kconfig:
+	$(VERBOSE_MK) MAKEFLAGS= $(MAKE) $(VERBOSE_DIR) -C $(FOC_CONTRIB_DIR)/l4 B=$(dir $@) \
 	     DROPSCONF_DEFCONFIG="$(L4_CONFIG)" \
 	     VERBOSE="$(VERBOSE)" SYSTEM_TARGET="$(CROSS_DEV_PREFIX)"
 

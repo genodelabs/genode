@@ -2,7 +2,7 @@ TARGET        = fiasco.oc
 REQUIRES     += foc
 FOC_BUILD_DIR = $(BUILD_BASE_DIR)/kernel/$(TARGET)
 FIASCO        = $(FOC_BUILD_DIR)/fiasco
-FIASCO_SRC    = $(REP_DIR)/contrib/kernel/fiasco
+FIASCO_SRC   := $(call select_from_ports,foc)/src/kernel/foc/kernel/fiasco
 STARTUP_LIB   =
 
 $(TARGET): $(FIASCO)
