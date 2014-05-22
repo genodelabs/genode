@@ -1,11 +1,6 @@
 OPENSSL_PORT_DIR := $(call select_from_ports,openssl)
 LIBCRYPTO_DIR    := $(OPENSSL_PORT_DIR)/src/lib/openssl/crypto
 
-#
-# ARM is not supported currently (needs testing)
-#
-REQUIRES = x86
-
 SHARED_LIB = yes
 
 LIBS += libc
@@ -202,6 +197,8 @@ TARGET_CPUARCH=x86_64
 
 SRC_S += modexp512.s
 SRC_S += rc4_md5.s
+else ifeq ($(filter-out $(SPECS),arm),)
+TARGET_CPUARCH=arm
 endif
 
 INC_DIR += $(REP_DIR)/src/lib/openssl/$(TARGET_CPUARCH)/
