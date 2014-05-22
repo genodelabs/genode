@@ -1,7 +1,7 @@
 #
 # Provide version information to main.cc
 #
-GENODE_ROOT_DIR = $(BASE_DIR)/..
+GENODE_ROOT_DIR = $(BASE_DIR)/../..
 GENODE_VERSION := $(shell \
 		which git > /dev/null \
 		&& git -C $(GENODE_ROOT_DIR) describe --dirty=" <local changes>" 2> /dev/null \
