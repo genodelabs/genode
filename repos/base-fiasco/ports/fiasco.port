@@ -1,0 +1,13 @@
+LICENSE     := GPLv2
+VERSION     := 1.0
+DOWNLOADS   := fiasco.archive
+URL(fiasco) := http://downloads.sourceforge.net/project/genode/3rd/3rd_fiasco.tar.bz2
+SHA(fiasco) := 0e7e24ab8ff2780b1854e3a6372b9a9c09c5b47d
+DIR(fiasco) := src/kernel/fiasco
+PATCHES     := $(shell find $(REP_DIR)/patches -name *.patch)
+PATCH_OPT   := -p0 -d src/kernel/fiasco
+
+$(call check_tool,wget)
+$(call check_tool,patch)
+$(call check_tool,tar)
+$(call check_tool,byacc)

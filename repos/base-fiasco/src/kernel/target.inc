@@ -2,7 +2,7 @@ TARGET           = fiasco
 REQUIRES        += fiasco
 FIASCO_BUILD_DIR = $(BUILD_BASE_DIR)/kernel/$(TARGET)
 FIASCO           = $(FIASCO_BUILD_DIR)/fiasco
-FIASCO_SRC       = $(REP_DIR)/contrib/fiasco/snapshot/kernel/fiasco
+FIASCO_SRC       = $(L4_SRC_DIR)/kernel/fiasco
 STARTUP_LIB      =
 
 $(TARGET): $(FIASCO)
