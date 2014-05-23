@@ -2,7 +2,7 @@ TARGET           = kernel
 REQUIRES        += pistachio
 KERNEL_BUILD_DIR = $(BUILD_BASE_DIR)/kernel/pistachio
 KERNEL           = $(KERNEL_BUILD_DIR)/x86-kernel
-KERNEL_SRC       = $(REP_DIR)/contrib/kernel
+KERNEL_SRC      := $(call select_from_ports,pistachio)/src/kernel/pistachio/kernel
 STARTUP_LIB      =
 
 LIBGCC_DIR = $(dir $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name))
