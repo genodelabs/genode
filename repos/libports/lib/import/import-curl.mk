@@ -1,9 +1,9 @@
 INC_DIR += $(call select_from_ports,curl)/include
 
-ifeq ($(filter-out $(SPECS),x86_32),)
-TARGET_CPUARCH=x86_32
-else ifeq ($(filter-out $(SPECS),x86_64),)
-TARGET_CPUARCH=x86_64
+ifeq ($(filter-out $(SPECS),32bit),)
+TARGET_CPUARCH=32bit
+else ifeq ($(filter-out $(SPECS),64bit),)
+TARGET_CPUARCH=64bit
 endif
 
 # include architecture specific curlbuild.h
