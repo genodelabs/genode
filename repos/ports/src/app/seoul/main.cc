@@ -1121,9 +1121,10 @@ class Machine : public StaticReceiver<Machine>
 					return true;
 				}
 			}
-			msg.wallclocktime = _rtc->get_current_time();
+			/* get_current_time is in microseconds */
+			msg.wallclocktime = _rtc->get_current_time() / 1000000U * MessageTime::FREQUENCY;
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
-			msg.timestamp = _unsynchronized_motherboard.clock()->clock(1000000U);
+			msg.timestamp = _unsynchronized_motherboard.clock()->clock(MessageTime::FREQUENCY);
 
 			*Genode::Thread_base::myself()->utcb() = utcb_backup;
 

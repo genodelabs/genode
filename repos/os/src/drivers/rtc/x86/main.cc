@@ -214,7 +214,8 @@ static uint64_t get_rtc_time(void)
 
 	PDBG("Date:%02d.%02d.%04d Time:%02d:%02d:%02d\n", day, mon, year, hour, min, sec);
 
-	return mktime(day, mon, year, hour, min, sec) * 1000000UL;
+	/* return microseconds */
+	return mktime(day, mon, year, hour, min, sec) * 1000000ULL; 
 }
 
 

@@ -25,6 +25,9 @@ namespace Rtc {
 	{
 		static const char *service_name() { return "Rtc"; }
 
+		/**
+		 * Get microseconds elapsed since 1.1.1970 UTC.
+		 */
 		virtual Genode::uint64_t get_current_time() = 0;
 
 		GENODE_RPC(Rpc_get_current_time, Genode::uint64_t, get_current_time);
