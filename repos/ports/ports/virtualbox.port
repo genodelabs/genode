@@ -1,12 +1,12 @@
 LICENSE         := GPLv2
-VERSION         := 4.2.16
+VERSION         := 4.2.24
 DOWNLOADS       := virtualbox.archive
 
 VIRTUALBOX_TBZ2 := VirtualBox-$(VERSION).tar.bz2
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := bf95d3c4004169ccde6254e4b72c1bed03cb31c6
+SHA(virtualbox) := 4685a898fb426ae59081a3b3adf3f5b8c5cfd34e
 
 PATCHES         := src/virtualbox/*.patch
 
@@ -41,7 +41,8 @@ VIRTUALBOX_CONTENT = src/VBox/VMM \
                      include/VBox/vd-plugin.h \
                      include/VBox/vd-ifs-internal.h \
                      include/VBox/vd-cache-plugin.h \
-                     Config.kmk
+                     Config.kmk \
+                     include/VBox/VBoxVideo3D.h
 
 TAR_OPT(virtualbox) := \
 	--strip-components 1 \
