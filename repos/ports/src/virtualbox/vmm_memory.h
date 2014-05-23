@@ -168,28 +168,6 @@ class Vmm_memory
 		}
 
 		bool unmap_from_vm(RTGCPHYS GCPhys);
-/*
-		{
-			size_t const size = 1;
-
-			Region *r = _lookup_unsynchronized(GCPhys, size);
-			if (!r) return false;
-
-			using Genode::addr_t;
-			addr_t const vmm_local = (addr_t)r->local_addr<addr_t>();
-
-			Assert(vmm_local);
-			Assert(!((r->size() - 1) & vmm_local));
-
-			using namespace Nova;
-			unsigned const order = Genode::log2(r->size() >> PAGE_SIZE_LOG2);
-
-			Rights rwx(true, true, true);
-			revoke(Mem_crd(vmm_local >> PAGE_SIZE_LOG2, order, rwx), false);
-
-			return true;
-		}
-*/
 };
 
 

@@ -1,0 +1,12 @@
++++ src/app/virtualbox/src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp	2014-05-14
+@@ -1132,7 +1135,9 @@
+             parms[1].u.pointer.size = sizeof (SHFLSTRING) + cbString;
+ 
+             parms[2].type = VBOX_HGCM_SVC_PARM_32BIT;
+-            parms[2].u.uint32 = !g_fShareReadOnly[i];
++            parms[2].u.uint32 = g_fShareReadOnly[i] ? 0 : SHFL_ADD_MAPPING_F_WRITABLE;
++
++            parms[2].u.uint32 |= SHFL_ADD_MAPPING_F_AUTOMOUNT;
+ 
+             rc2 = gVMMDev->hgcmHostCall ("VBoxSharedFolders",
+                                          SHFL_FN_ADD_MAPPING, SHFL_CPARMS_ADD_MAPPING, &parms[0]);

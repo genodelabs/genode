@@ -21,7 +21,6 @@
 #include "vcpu.h"
 #include "vmx.h"
 
-extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite);
 
 class Vcpu_handler_vmx : public Vcpu_handler
 {
@@ -75,11 +74,17 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			_irq_window(VMX_EXIT_IRQ_WINDOW);
 		}
 
+		__attribute__((noreturn)) void _vmx_recall()
+		{
+			Vcpu_handler::_recall_handler();
+		}
+
 	public:
 
 		Vcpu_handler_vmx(size_t stack_size, const pthread_attr_t *attr,
-	                     void *(*start_routine) (void *), void *arg)
-		: Vcpu_handler(stack_size, attr, start_routine, arg) 
+		                 void *(*start_routine) (void *), void *arg,
+		                 Genode::Cpu_session * cpu_session)
+		: Vcpu_handler(stack_size, attr, start_routine, arg, cpu_session) 
 		{
 			using namespace Nova;
 
@@ -116,7 +121,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			register_handler<VCPU_STARTUP, This,
 				&This::_vmx_startup> (exc_base, Mtd::ALL | Mtd::FPU);
 			register_handler<RECALL, This,
-				&This::_vmx_default> (exc_base, Mtd::ALL | Mtd::FPU);
+				&This::_vmx_recall> (exc_base, Mtd::EFL | Mtd::STA);
 
 			start();
 		}

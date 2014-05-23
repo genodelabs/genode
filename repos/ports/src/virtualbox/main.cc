@@ -28,6 +28,9 @@
 void *operator new (Genode::size_t size) {
 	return Genode::env()->heap()->alloc(size); }
 
+void *operator new [] (Genode::size_t size) {
+	return Genode::env()->heap()->alloc(size); }
+
 void operator delete(void * p) {
 	if (Genode::env()->heap()->need_size_for_free()) {
 		PERR("leaking memory - delete operator is missing size information");
@@ -39,59 +42,39 @@ void operator delete(void * p) {
 
 namespace {
 	template <int MAX_ARGS>
-	struct Args
+	class Args
 	{
-		int   argc           = 0;
-		char *argv[MAX_ARGS] = { };
+		private:
 
-		struct Too_many_arguments { };
+			int   _argc           = 0;
+			char *_argv[MAX_ARGS] = { };
 
-		void add(char const *arg)
-		{
-			/* argv[MAX_ARGS - 1] must be unused and set to 0 */
-			if (argc >= MAX_ARGS - 1)
-				throw Too_many_arguments();
+		public:
 
-			/* XXX yes const-casting hurts but main() needs char** */
-			argv[argc++] = const_cast<char *>(arg);
-		}
+			class Too_many_arguments { };
+
+			void add(char const *arg)
+			{
+				/* argv[MAX_ARGS - 1] must be unused and set to 0 */
+				if (_argc >= MAX_ARGS - 1)
+					throw Too_many_arguments();
+
+				/* XXX yes const-casting hurts but main() needs char**, if in
+				 * doubt we should strdup() here, right? */
+				_argv[_argc++] = const_cast<char *>(arg);
+			}
+
+			char *** argvp() {
+				static char ** argv = _argv; 
+				return &argv;
+			}
+
+			int argc() { return _argc; }
 	};
 } /* unnamed namespace  */
 
 
 extern "C" {
-
-/* string conversion function currently does not convert ... */
-int RTStrCurrentCPToUtf8Tag(char **ppszString, char *pszString,
-                            const char *pszTag)
-{
-	/* dangerous */
-	*ppszString = pszString;
-	return 0;
-}
-
-/* don't use 'Runtime/r3/posix/utf8-posix.cpp' because it depends on libiconv */
-int RTStrUtf8ToCurrentCPTag(char **ppszString, char *pszString,
-                            const char *pszTag)
-{
-	/* dangerous */
-	*ppszString = pszString;
-	return 0;
-}
-
-
-char * RTPathRealDup(const char *pszPath)
-{
-	/* dangerous */
-	return (char *)pszPath;
-}
-
-
-bool RTPathExists(const char *pszPath)
-{
-	return true;
-}
-
 
 /* make output of Virtualbox visible */
 size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
@@ -150,6 +133,7 @@ extern "C" DECLEXPORT(int) TrustedMain (int argc, char **argv, char **envp);
 int main()
 {
 	static char c_mem[16];
+	static char c_vram[16];
 	static char c_type[4];
 	static char c_file[128];
 	static bool bOverlay = false;
@@ -159,13 +143,17 @@ int main()
 	/* request max available memory */
 	size_t vm_size = Genode::env()->ram_session()->avail();
 
-	enum { VMM_MEMORY = 64 * 1024 * 1024 /* let a bit memory for the VMM */ };
-	if (vm_size < VMM_MEMORY) {
+	enum {
+	       VMM_MEMORY  = 88 * 1024 * 1024, /* let a bit memory for the VMM */
+	       VRAM_MEMORY =  8 * 1024 * 1024, /* video memory */
+	};
+
+	if (vm_size < VMM_MEMORY + VRAM_MEMORY) {
 		PERR("not enough memory available - need %u, available only %zu "
-		     "- exit", VMM_MEMORY, vm_size);
+		     "- exit", VMM_MEMORY + VRAM_MEMORY, vm_size);
 		return 1;
 	}
-	vm_size -= VMM_MEMORY;
+	vm_size -= VMM_MEMORY + VRAM_MEMORY;
 
 	try {
 		using namespace Genode;
@@ -187,12 +175,14 @@ int main()
 	}
 
 	args.add("virtualbox");
-	args.add("-m");
 
 	Genode::snprintf(c_mem, sizeof(c_mem), "%u", vm_size / 1024 / 1024);
-	args.add(c_mem);
-	args.add("-boot");
+	args.add("-m"); args.add(c_mem);
 
+	Genode::snprintf(c_vram, sizeof(c_vram), "%u", VRAM_MEMORY / 1024 / 1024);
+	args.add("-vram"); args.add(c_vram);
+
+	args.add("-boot");
 	if (!Genode::strcmp(c_type, "iso")) {
 		args.add("d");
 		args.add("-cdrom");
@@ -211,16 +201,37 @@ int main()
 	if (bOverlay)
 		args.add("-overlay");
 
-	PINF("start %s image '%s' with %zu MB Guest memory=%zu",
-	     c_type, c_file, vm_size / 1024 / 1024,
-	     Genode::env()->ram_session()->avail());
+	/* shared folder setup */
+	unsigned shares = 0;
+	try {
+		using namespace Genode;
+		for (Xml_node node = config()->xml_node().sub_node("share");
+		     true; node = node.next("share")) {
 
-	if (RT_FAILURE(RTR3InitExe(args.argc, (char ***)&args.argv, 0))) {
+			Xml_node::Attribute share_dir_host  = node.attribute("host");
+			Xml_node::Attribute share_dir_guest = node.attribute("guest");
+
+			char * dir_host  = new char[share_dir_host.value_size()];
+			char * dir_guest = new char[share_dir_guest.value_size()];
+
+			share_dir_host.value(dir_host, share_dir_host.value_size());
+			share_dir_guest.value(dir_guest, share_dir_guest.value_size());
+
+			args.add("-share"); args.add(dir_host), args.add(dir_guest);
+			shares ++;
+		}
+	} catch(Genode::Xml_node::Nonexistent_sub_node) { }
+
+	PINF("start %s image '%s' with %zu MB guest memory=%zu and %u shared folders",
+	     c_type, c_file, vm_size / 1024 / 1024,
+	     Genode::env()->ram_session()->avail(), shares);
+
+	if (RT_FAILURE(RTR3InitExe(args.argc(), args.argvp(), 0))) {
 		PERR("Intialization of VBox Runtime failed.");
 		return 5;
 	}
 
-	return TrustedMain(args.argc, args.argv, NULL);
+	return TrustedMain(args.argc(), *args.argvp(), NULL);
 }
 
-} /* EXTERN "C" */
+} /* extern "C" */

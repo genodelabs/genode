@@ -63,9 +63,10 @@ static inline Genode::uint32_t sel_ar_conv_from_nova(Genode::uint16_t v)
 
 
 /*
- * Used to map memory for virtual framebuffer to VM
+ * Used to map mmio memory to VM
  */
-extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite);
+extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
+                                 void **ppv);
 
 
 class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
@@ -86,6 +87,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
 			asm volatile ("fxrstor %0" : : "m" (*data));
 		}
+
+		enum { IRQ_INJ_VALID_MASK = 0x80000000UL };
 
 	protected:
 
@@ -115,13 +118,14 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 			Assert(!(utcb->intr_state & 3));
 			Assert(utcb->flags & X86_EFL_IF);
+			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
 			if (irq_win(utcb)) {
 				/* reset mtd to not transfer anything back by accident */
 				utcb->mtd = 0;
 				/* inject IRQ */
-				if (inj_event(utcb, _current_vcpu))
-					Nova::reply(_stack_reply);
+				inj_event(utcb, _current_vcpu, utcb->flags & X86_EFL_IF);
+				Nova::reply(_stack_reply);
 			}
 
 			/* go back to re-compiler */
@@ -130,9 +134,25 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 		__attribute__((noreturn)) void _default_handler()
 		{
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+
+			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
+
 			longjmp(_env, 1);
 		}
 
+		__attribute__((noreturn)) void _recall_handler()
+		{
+			/* take care - Mtd::EFL | Mtd::STA are solely written to utcb */
+			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+
+			Assert(!(utcb->intr_state & 3));
+
+			utcb->mtd = 0;
+			inj_event(utcb, _current_vcpu, utcb->flags & X86_EFL_IF);
+
+			Nova::reply(_stack_reply);
+		}
 
 		template <unsigned NPT_EPT>
 		__attribute__((noreturn)) inline
@@ -142,37 +162,32 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			using namespace Nova;
 			using namespace Genode;
 
-			addr_t stack_top;
-
 			Assert(utcb->actv_state == 0);
 			Assert(!(utcb->intr_state & 3));
 
-			Assert(!(utcb->inj_info & 0x80000000));
+			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
 			if (unmap) {
 				PERR("unmap not implemented\n");
-				Nova::reply(reinterpret_cast<void *>(&stack_top));
+				Nova::reply(_stack_reply);
 			}
-	
+
+			enum { MAP_SIZE = 0x1000UL };
+
 			Flexpage_iterator fli;
-			void *pv = guest_memory()->lookup_ram(reason, 0x1000UL, fli);
+			void *pv = guest_memory()->lookup_ram(reason, MAP_SIZE, fli);
 
 			if (!pv) {
-				pv = vmm_memory()->lookup(reason, 0x1000UL);
-				if (pv) { /* XXX */
-					fli = Genode::Flexpage_iterator((addr_t)pv, 0x1000UL,
-					                                reason, 0x1000UL, reason);
-					int res = MMIO2_MAPPED_SYNC(_current_vm, reason, 0x1);
-/*
-					Genode::addr_t fb_phys = 0xf0000000UL;
-					Genode::addr_t fb_size = 0x00400000UL;
-					pv = vmm_memory()->lookup(fb_phys, fb_size);
-
-					fli = Genode::Flexpage_iterator((addr_t)pv, fb_size,
-					                                fb_phys, fb_size, fb_phys);
-					int res = MMIO2_MAPPED_SYNC(_current_vm, fb_phys, fb_size);
-*/
-				}
+				/**
+				 * Check whether this is some mmio memory provided by VMM
+				 * we can map, e.g. VMMDev memory or framebuffer currently.
+				 */
+				int res = MMIO2_MAPPED_SYNC(_current_vm, reason, MAP_SIZE, &pv);
+				if (pv && (res == VINF_SUCCESS))
+					fli = Genode::Flexpage_iterator((addr_t)pv, MAP_SIZE,
+					                                reason, MAP_SIZE, reason);
+				else
+					pv = 0;
 			}
 
 			/* emulator has to take over if fault region is not ram */	
@@ -209,7 +224,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				res = utcb->append_item(crd, flexpage.hotspot, USER_PD, GUEST_PGT);
 			} while (res);
 
-			Nova::reply(reinterpret_cast<void *>(&stack_top));
+			Nova::reply(_stack_reply);
 		}
 
 		/**
@@ -395,10 +410,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		}
 
 
-		inline bool inj_event(Nova::Utcb * utcb, PVMCPU pVCpu)
+		inline bool inj_event(Nova::Utcb * utcb, PVMCPU pVCpu, bool if_flag)
 		{
-			PCPUMCTX const pCtx  = CPUMQueryGuestCtxPtr(pVCpu);
-
 			if (!TRPMHasTrap(pVCpu)) {
 
 				if (VMCPU_FF_TESTANDCLEAR(pVCpu, VMCPU_FF_INTERRUPT_NMI)) {
@@ -408,7 +421,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 				if (VMCPU_FF_ISPENDING(pVCpu, (VMCPU_FF_INTERRUPT_APIC|VMCPU_FF_INTERRUPT_PIC))) {
 
-					if (!(pCtx->rflags.u & X86_EFL_IF)) {
+					if (!if_flag) {
 
 						unsigned vector = 0;
 						utcb->inj_info  = 0x1000 | vector;
@@ -424,12 +437,12 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 						rc = TRPMAssertTrap(pVCpu, irq, TRPM_HARDWARE_INT);
 						Assert(RT_SUCCESS(rc));
 					} else
-						PWRN("pending interrupt blocked due to INHIBIT flag");
+						Vmm::printf("pending interrupt blocked due to INHIBIT flag\n");
 				}
 			}
 
 			/* can an interrupt be dispatched ? */
-			if (!TRPMHasTrap(pVCpu) || !(pCtx->rflags.u & X86_EFL_IF) ||
+			if (!TRPMHasTrap(pVCpu) || !if_flag ||
 			    VMCPU_FF_ISSET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS))
 				return false;
 
@@ -452,8 +465,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			/* If a new event is pending, then dispatch it now. */
 			int rc = TRPMQueryTrapAll(pVCpu, &u8Vector, &enmType, &u32ErrorCode, 0);
 			AssertRC(rc);
-			Assert(pCtx->eflags.Bits.u1IF == 1 || enmType == TRPM_TRAP);
-			Assert(enmType != TRPM_SOFTWARE_INT);
+			Assert(enmType == TRPM_HARDWARE_INT);
 
 			/* Clear the pending trap. */
 			rc = TRPMResetTrap(pVCpu);
@@ -462,8 +474,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			Event.n.u8Vector = u8Vector;
 			Event.n.u1Valid  = 1;
 			Event.n.u32ErrorCode = u32ErrorCode;
-
-			Assert(enmType == TRPM_HARDWARE_INT);
 
 			Event.n.u3Type = SVM_EVENT_EXTERNAL_IRQ;
 
@@ -529,10 +539,12 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 
 		Vcpu_handler(size_t stack_size, const pthread_attr_t *attr,
-	                 void *(*start_routine) (void *), void *arg)
+		             void *(*start_routine) (void *), void *arg,
+		             Genode::Cpu_session * cpu_session)
 		:
 			Vmm::Vcpu_dispatcher<pthread>(stack_size, _cap_connection,
 			                              attr ? *attr : 0, start_routine, arg),
+			_vcpu(cpu_session),
 			_ec_sel(Genode::cap_map()->insert())
 		{ }
 
@@ -653,7 +665,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			using namespace Nova;
 
 			/* check whether to inject interrupts */	
-			inj_event(utcb, pVCpu);
+			inj_event(utcb, pVCpu, pCtx->rflags.u & X86_EFL_IF);
 
 			/* Transfer vCPU state from vBox to Nova format */
 			if (!vbox_to_utcb(utcb, pVM, pVCpu) ||

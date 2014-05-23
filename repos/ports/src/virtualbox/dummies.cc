@@ -51,7 +51,7 @@ CHECKED_DUMMY( 0, vmmR3SwitcherInit)  /* world switcher */
 CHECKED_DUMMY(-1, atexit)
 CHECKED_DUMMY(-1, getpid)
 CHECKED_DUMMY(-1, pdmR3FileR3)
-CHECKED_DUMMY(-1, setlocale)
+CHECKED_DUMMY(0, setlocale)
 CHECKED_DUMMY(-1, sigaddset)
 CHECKED_DUMMY(-1, sigemptyset)
 CHECKED_DUMMY(-1, siginterrupt)
@@ -127,7 +127,6 @@ CHECKED_DUMMY( 0, PGMR3InitFinalize)
 DUMMY(-1, PGMR3SharedModuleCheckAll)
 DUMMY(-1, PGMR3SharedModuleUnregister)
 DUMMY(-1, PGMR3SharedModuleRegister)
-DUMMY(-1, PGMR3MappingsSize)
 DUMMY(-1, PGMR3MappingsUnfix)
 DUMMY(-1, PGMR3PhysChangeMemBalloon)
 DUMMY(-1, PGMR3MappingsFix)
@@ -161,19 +160,14 @@ DUMMY(-1, PGMGetShadowMode)
 DUMMY(-1, PGMGetHostMode)
 
 CHECKED_DUMMY(0, poll)  /* needed by 'DrvHostSerial.cpp' */
-DUMMY(-1, printf)
 DUMMY(-1, pthread_key_delete)
-DUMMY(-1, reallocf)
 DUMMY(-1, RTCrc32);
 DUMMY(-1, RTCrc32Start)
 DUMMY(-1, RTCrc32Finish)
 DUMMY(-1, RTCrc32Process)
 DUMMY(-1, RTMemExecFree)
 DUMMY(-1, RTMemPageFree)
-DUMMY(-1, RTPathHasPath)
 DUMMY(-1, RTPathAppend)
-DUMMY(-1, rtPathPosixRename)
-CHECKED_DUMMY(0, rtProcInitExePath)
 DUMMY(-1, RTSemEventWaitEx)
 
 CHECKED_DUMMY( 0, SELMR3InitFinalize)
@@ -206,14 +200,13 @@ DUMMY(-1, VMMR3GetHostToGuestSwitcher)
 DUMMY(-1, pthread_kill)
 DUMMY(-1, sscanf)
 DUMMY(-1, RTHeapSimpleRelocate)
-DUMMY(-1, RTHeapOffsetInit)
+DUMMY(-1, RTHeapSimpleAlloc)
 DUMMY(-1, RTHeapSimpleInit)
-DUMMY(-1, RTHeapOffsetFree)
 DUMMY(-1, RTHeapSimpleFree)
 DUMMY(-1, RTAvloU32Get)
 DUMMY(-1, RTAvloU32Remove)
 DUMMY(-1, RTAvloU32GetBestFit)
-CHECKED_DUMMY(0, RTAvloU32RemoveBestFit)
+DUMMY( 0, RTAvloU32RemoveBestFit)
 DUMMY(-1, RTAvlU32Destroy)
 DUMMY(-1, RTAvlU32GetBestFit)
 DUMMY(-1, RTAvloU32DoWithAll)
@@ -240,14 +233,7 @@ DUMMY(-1, IOMInterpretINS)
 
 DUMMY(-1, DISInstrToStrWithReader)
 
-DUMMY(0, RTPathQueryInfoEx)
-
 DUMMY(-1, RTFileQueryFsSizes)
-
-time_t mktime(tm *) {
-	PERR("mktime not implemented, return 0");
-	return 0;
-}
 
 DUMMY(-1, pthread_mutex_timedlock)
 
@@ -257,8 +243,6 @@ CHECKED_DUMMY( 0, PGMR3HandlerVirtualRegister) /* XXX */
 /*
  * Dummies added for storage
  */
-DUMMY(-1, closedir)
-DUMMY(-1, readdir_r)
 DUMMY(-1, RTAvlrFileOffsetDestroy)
 DUMMY(-1, RTAvlrFileOffsetGet)
 DUMMY(-1, RTAvlrFileOffsetGetBestFit)
@@ -271,13 +255,8 @@ DUMMY(-1, RTAvlrU64Insert)
 DUMMY(-1, RTAvlrU64RangeGet)
 DUMMY(-1, RTAvlrU64RangeRemove)
 DUMMY(-1, RTAvlrU64Remove)
-DUMMY(-1, RTDirOpenFiltered)
-DUMMY(-1, RTDirReadEx)
-DUMMY(-1, RTDirClose)
 DUMMY(-1, RTLdrClose)
-DUMMY(-1, RTLdrGetSymbol)
 DUMMY(-1, RTMemDupExTag)
-DUMMY(-1, RTPathQueryInfo)
 DUMMY(-1, rtPathRootSpecLen)
 DUMMY(-1, RTPathStartsWithRoot)
 DUMMY(-1, RTSocketToNative)
@@ -296,7 +275,14 @@ DUMMY(-1, RTTcpSgWrite)
 DUMMY(-1, RTTcpSgWriteNB)
 DUMMY(-1, RTTcpWrite)
 DUMMY(-1, RTTcpWriteNB)
-DUMMY(-1, strncat)
+DUMMY(-1, RTTimeLocalExplode)
+
+DUMMY(-1, RTSymlinkCreate)
+DUMMY(-1, RTSymlinkRead)
+DUMMY(-1, RTSymlinkDelete)
+
+CHECKED_DUMMY(0, futimes)
+CHECKED_DUMMY(0, lutimes)
 
 int __isthreaded;
 

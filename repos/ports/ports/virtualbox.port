@@ -17,6 +17,7 @@ VIRTUALBOX_CONTENT = src/VBox/VMM \
                      src/VBox/Frontends/VBoxBFE \
                      src/VBox/Storage \
                      src/VBox/Disassembler \
+                     src/VBox/HostServices/SharedFolders \
                      src/recompiler \
                      src/VBox/Main/include/MouseImpl.h \
                      src/VBox/Main/include/ConsoleEvents.h \
@@ -31,7 +32,8 @@ VIRTUALBOX_CONTENT = src/VBox/VMM \
                                                ostypes.h VMMDev.h VMMDev2.h \
                                                vusb.h dbg.h version.h \
                                                VBoxVideo.h Hardware bioslogo.h \
-                                               scsi.h HGSMI) \
+                                               scsi.h shflsvc.h VBoxGuest2.h \
+                                               HGSMI) \
                      include/VBox/msi.h \
                      include/VBox/DevPCNet.h \
                      include/VBox/asmdefs.mac \

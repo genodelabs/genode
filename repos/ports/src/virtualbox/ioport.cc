@@ -133,6 +133,14 @@ class Guest_ioports
 			return 0;
 		}
 
+		bool _white_listed(RTIOPORT port)
+		{
+			/* LPT1 */ if (port >= 0x0378 && port <= 0x037f) return true;
+			/* ECP  */ if (port >= 0x0778 && port <= 0x077a) return true;
+			/* IDE1 */ if (port >= 0x0170 && port <= 0x017f) return true;
+			return false;
+		}
+
 	public:
 
 		int  add_range(PPDMDEVINS pDevIns,
@@ -181,17 +189,19 @@ class Guest_ioports
 			return deleted ? VINF_SUCCESS : VERR_GENERAL_FAILURE;
 		}
 
-		VBOXSTRICTRC write(RTIOPORT Port, uint32_t u32Value, size_t cbValue)
+		VBOXSTRICTRC write(RTIOPORT port, uint32_t u32Value, size_t cbValue)
 		{
-			Range *r = _lookup(Port, cbValue);
+			Range *r = _lookup(port, cbValue);
 			if (r)
-				return r->write(Port, u32Value, cbValue);
+				return r->write(port, u32Value, cbValue);
+
+			if (_white_listed(port))
+				return VINF_SUCCESS;
 
 			char c = u32Value & 0xff;
-			PWRN("attempted to write to non-existing port 0x%lx+%u  %c (%02x)", Port, cbValue,
-			     c >= 32 && c <= 176 ? c : '.', c);
+			PWRN("attempted to write to non-existing port 0x%lx+%u  %c (%02x)",
+			     port, cbValue, c >= 32 && c <= 176 ? c : '.', c);
 			return VINF_SUCCESS;
-//			return VERR_GENERAL_FAILURE; /* recompiler does not like this */
 		}
 
 		VBOXSTRICTRC read(RTIOPORT port, uint32_t *pu32Value, unsigned cbValue)
@@ -203,7 +213,9 @@ class Guest_ioports
 					return err;
 			}
 
-			PWRN("attempted to read from non-existing port 0x%x+%u %p", port, cbValue, r);
+			if (!_white_listed(port))
+				PWRN("attempted to read from non-existing port 0x%x+%u %p",
+				     port, cbValue, r);
 
 			switch (cbValue)
 			{

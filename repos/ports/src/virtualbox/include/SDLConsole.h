@@ -241,6 +241,6 @@ class SDLConsole : public Console {
 
 		void     eventQuit() { PERR("%s:%s called", __FILE__, __FUNCTION__); }
 		void     resetKeys(void) { PERR("%s:%s called", __FILE__, __FUNCTION__); }
-		VMMDev   *getVMMDev() { /*PERR("%s:%s called", __FILE__, __FUNCTION__);*/ return 0; }
+		VMMDev   *getVMMDev() { return gVMMDev; }
 		Display  *getDisplay() { return gDisplay; }
 };

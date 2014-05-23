@@ -25,6 +25,7 @@ SRC_CC += Devices/Storage/fdc.c
 SRC_CC += Devices/Storage/DrvRawImage.cpp
 SRC_CC += Devices/Network/DevPCNet.cpp
 SRC_CC += Devices/VMMDev/VMMDev.cpp
+SRC_CC += Devices/VMMDev/VMMDevHGCM.cpp
 SRC_CC += GuestHost/HGSMI/HGSMICommon.cpp
 SRC_CC += Devices/Serial/DevSerial.cpp
 SRC_CC += Devices/PC/DevIoApic.cpp
@@ -42,7 +43,7 @@ CC_WARN += -Wno-unused-but-set-variable
 # VGASTATE::lock member would violate the assertion
 # '!((uintptr_t)pvSample & 7)' in 'stamR3RegisterU'.
 #
-CC_OPT += -DVBOX_WITH_HGSMI -DVBOX_WITH_WDDM -DVBOX_WITH_VDMA
+CC_OPT += -DVBOX_WITH_WDDM -DVBOX_WITH_VDMA
 
 Devices/Graphics/DevVGA.o: vbetables.h
 

@@ -76,18 +76,24 @@ class Vcpu_handler_svm : public Vcpu_handler
 			Nova::reply(nullptr);
 		}
 
+		__attribute__((noreturn)) void _svm_recall()
+		{
+			Vcpu_handler::_recall_handler();
+		}
+
 	public:
 
 		Vcpu_handler_svm(size_t stack_size, const pthread_attr_t *attr,
-	                     void *(*start_routine) (void *), void *arg)
-		: Vcpu_handler(stack_size, attr, start_routine, arg) 
+		                 void *(*start_routine) (void *), void *arg,
+		                 Genode::Cpu_session * cpu_session)
+		: Vcpu_handler(stack_size, attr, start_routine, arg, cpu_session) 
 		{
 			using namespace Nova;
 
 			typedef Vcpu_handler_svm This;
 
 			register_handler<RECALL, This,
-				&This::_svm_default>(vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
+				&This::_svm_recall>(vcpu().exc_base(), Mtd(Mtd::EFL | Mtd::STA));
 			register_handler<SVM_EXIT_IOIO, This,
 				&This::_svm_ioio> (vcpu().exc_base(), Mtd(Mtd::ALL | Mtd::FPU));
 			register_handler<SVM_EXIT_VINTR, This,

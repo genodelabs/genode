@@ -15,6 +15,7 @@
 #define _SUP_H_
 
 /* Genode includes */
+#include <cpu_session/cpu_session.h>
 #include "util/misc_math.h"
 #include "util/string.h"
 
@@ -72,5 +73,7 @@ void inline genode_VMMR0_DO_GVMM_CREATE_VM(PSUPVMMR0REQHDR pReqHdr)
 	req.pVMR0 = pVM->pVMR0;
 	req.pVMR3 = pVM;
 }
+
+Genode::Cpu_session * get_vcpu_cpu_session();
 
 #endif /* _SUP_H_ */

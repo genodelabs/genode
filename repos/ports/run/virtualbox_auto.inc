@@ -17,6 +17,7 @@ set build_components {
 
 lappend_if [have_spec acpi]  build_components drivers/acpi
 lappend_if [have_spec pci]   build_components drivers/pci
+lappend_if [have_spec x86]   build_components drivers/rtc
 
 build $build_components
 
@@ -38,7 +39,7 @@ set config {
 		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
-		<any-service><parent/><any-child/></any-service>
+		<any-service> <any-child/> <parent/> </any-service>
 	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -70,8 +71,7 @@ set config {
 		<route>
 			<any-service><child name="part_blk"/> <parent/><any-child/></any-service>
 		</route>
-	</start>
-}
+	</start>}
 
 append_if [have_spec acpi] config {
 	<start name="acpi">
@@ -91,19 +91,27 @@ append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="PCI"/> </provides>
-	</start> }
+	</start>}
 
 append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
-	</start> }
+	</start>}
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes" width="1024" height="768" depth="16" />
+	</start>}
+
+append_if [have_spec x86] config {
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Rtc"/>
+		</provides>
 	</start>}
 
 append config $config_of_app
@@ -117,7 +125,9 @@ install_config $config
 set boot_modules {
 	core init timer
 	part_blk ahci
-	ld.lib.so libc.lib.so
+	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
+	libc_lock_pipe.lib.so libc_terminal.lib.so
+	libiconv.lib.so
 	rump.lib.so rump_fs.lib.so rump_fs
 	virtualbox vbox-auto-test-helper
 }
@@ -158,8 +168,6 @@ lappend_if [have_spec        acpi] boot_modules acpi_drv
 lappend_if [have_spec         pci] boot_modules pci_drv
 lappend_if [have_spec framebuffer] boot_modules fb_drv
 lappend_if [have_spec        nova] boot_modules pci_device_pd
+lappend_if [have_spec         x86] boot_modules rtc_drv
 
 build_boot_image $boot_modules
-
-append qemu_args " -m 1512 "
-append qemu_args " -cpu phenom "

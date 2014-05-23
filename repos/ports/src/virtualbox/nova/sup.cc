@@ -22,7 +22,6 @@
 
 #include <vmm/vcpu_thread.h>
 #include <vmm/vcpu_dispatcher.h>
-#include <vmm/printf.h>
 
 /* NOVA includes that come with Genode */
 #include <nova/syscalls.h>
@@ -184,7 +183,8 @@ extern "C" void pthread_yield(void) { Nova::ec_ctrl(Nova::EC_YIELD); }
 extern "C"
 bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      const pthread_attr_t *attr,
-                     void *(*start_routine)(void *), void *arg)
+                     void *(*start_routine)(void *), void *arg,
+                     Genode::Cpu_session * cpu_session)
 {
 	Nova::Hip * hip = hip_rom.local_addr<Nova::Hip>();
 
@@ -192,10 +192,12 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 		return false;
 
 	if (hip->has_feature_vmx())
-		vcpu_handler = new Vcpu_handler_vmx(stack, attr, start_routine, arg);
+		vcpu_handler = new Vcpu_handler_vmx(stack, attr, start_routine, arg,
+		                                    cpu_session);
 
 	if (hip->has_feature_svm())
-		vcpu_handler = new Vcpu_handler_svm(stack, attr, start_routine, arg);
+		vcpu_handler = new Vcpu_handler_svm(stack, attr, start_routine, arg,
+		                                    cpu_session);
 
 	*pthread = vcpu_handler;
 	return true;

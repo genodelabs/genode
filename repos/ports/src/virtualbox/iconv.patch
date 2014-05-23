@@ -1,0 +1,17 @@
++++ src/app/virtualbox/src/VBox/Runtime/r3/posix/utf8-posix.cpp
+@@ -319,11 +319,11 @@
+             size_t      cbOutLeft = cbOutput2;
+             const void *pvInputLeft = pvInput;
+             void       *pvOutputLeft = pvOutput;
+-#if defined(RT_OS_LINUX) || defined(RT_OS_SOLARIS) || (defined(RT_OS_DARWIN) && defined(_DARWIN_FEATURE_UNIX_CONFORMANCE)) /* there are different opinions about the constness of the input buffer. */
++//#if defined(RT_OS_LINUX) || defined(RT_OS_SOLARIS) || (defined(RT_OS_DARWIN) && defined(_DARWIN_FEATURE_UNIX_CONFORMANCE)) /* there are different opinions about the constness of the input buffer. */
+             if (iconv(icHandle, (char **)&pvInputLeft, &cbInLeft, (char **)&pvOutputLeft, &cbOutLeft) != (size_t)-1)
+-#else
+-            if (iconv(icHandle, (const char **)&pvInputLeft, &cbInLeft, (char **)&pvOutputLeft, &cbOutLeft) != (size_t)-1)
+-#endif
++//#else
++//            if (iconv(icHandle, (const char **)&pvInputLeft, &cbInLeft, (char **)&pvOutputLeft, &cbOutLeft) != (size_t)-1)
++//#endif
+             {
+                 if (!cbInLeft)
+                 {

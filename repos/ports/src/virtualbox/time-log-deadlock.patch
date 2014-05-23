@@ -1,0 +1,11 @@
++++ src/app/virtualbox/src/VBox/Runtime/common/log/log.cpp
+@@ -3063,7 +3066,8 @@
+                 {
+ 
+ #if defined(IN_RING3) || defined(IN_RC)
+-                    uint64_t u64 = RTTimeProgramMicroTS();
++//                    uint64_t u64 = RTTimeProgramMicroTS();
++                    uint64_t u64 = 0;
+                     psz += RTStrFormatNumber(psz, (uint32_t)(u64 / RT_US_1HOUR), 10, 2, 0, RTSTR_F_ZEROPAD);
+                     *psz++ = ':';
+                     uint32_t u32 = (uint32_t)(u64 % RT_US_1HOUR);

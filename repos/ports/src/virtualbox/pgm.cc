@@ -15,6 +15,8 @@
 #include <base/printf.h>
 #include <util/string.h>
 
+#include <vmm/printf.h>
+
 /* VirtualBox includes */
 #include "PGMInternal.h" /* enable access to pgm.s.* */
 #include <VBox/vmm/mm.h>
@@ -73,10 +75,7 @@ int PGMR3PhysRomRegister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys,
 int PGMPhysWrite(PVM pVM, RTGCPHYS GCPhys, const void *pvBuf, size_t cbWrite)
 {
 	void *pv = guest_memory()->lookup(GCPhys, cbWrite);
-/*
-	PLOG("PGMPhysWrite: GCPhys=0x%lx pvBuf=0x%p cbWrite=0x%zx pv=%p",
-	     (long)GCPhys, pvBuf, cbWrite, pv);
-*/
+
 	if (pv) {
 		memcpy(pv, pvBuf, cbWrite);
 		return VINF_SUCCESS;
@@ -309,19 +308,32 @@ int PGMR3Init(PVM pVM)
 
 int PGMR3PhysTlbGCPhys2Ptr(PVM pVM, RTGCPHYS GCPhys, bool fWritable, void **ppv)
 {
-	void *pv = guest_memory()->lookup(GCPhys, 1);
+	size_t const size = 1;
+	void *pv = guest_memory()->lookup(GCPhys, size);
+
+	if (pv) {
+		*ppv = pv;
+		return VINF_SUCCESS;
+	}
+
+	PFNPGMR3PHYSHANDLER  pfnHandlerR3 = 0;
+	void                *pvUserR3     = 0;
+
+	pv = vmm_memory()->lookup(GCPhys, size, &pfnHandlerR3, &pvUserR3);
 
 	if (!pv) {
-		PERR("PGMR3PhysTlbGCPhys2Ptr: lookup for GCPhys=0x%lx failed", (long)GCPhys);
-		guest_memory()->dump();
+		PERR("%s: lookup for GCPhys=0x%p failed", __func__, GCPhys);
 		return VERR_PGM_PHYS_TLB_UNASSIGNED;
 	}
 
-	*ppv = pv;
-
-//	PLOG("PGMR3PhysTlbGCPhys2Ptr: GCPhys=0x%lx -> pv=%p", (long)GCPhys, pv);
-
-	return VINF_SUCCESS;
+	/* pv valid - check handlers next */
+	if (!pfnHandlerR3 && !pvUserR3) {
+		*ppv = pv;
+		return VINF_SUCCESS;
+	}
+ 
+	PERR("%s: denied access - handlers set - GCPhys=0x%p", __func__, GCPhys);
+	return VERR_PGM_PHYS_TLB_CATCH_ALL;
 }
 
 
@@ -524,28 +536,42 @@ int PGMHandlerPhysicalReset(PVM, RTGCPHYS GCPhys)
 }
 
 
-extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite)
+extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
+                                 void **ppv)
 {
+	/* DON'T USE normal printf in this function - corrupts unsaved UTCB !!! */
+
 	PFNPGMR3PHYSHANDLER  pfnHandlerR3 = 0;
 	void                *pvUserR3     = 0;
 
 	void * pv = vmm_memory()->lookup(GCPhys, cbWrite, &pfnHandlerR3, &pvUserR3);
 
-	if (!pv || !pfnHandlerR3 || !pvUserR3) {
-		PERR("%s: GCPhys=0x%lx cbWrite=0x%zx", __func__,
-		     GCPhys, cbWrite);
-		return VERR_GENERAL_FAILURE;
-	}
+	if (!pv)
+		return VERR_PGM_PHYS_TLB_UNASSIGNED;
 
-	int rc = pfnHandlerR3(pVM, GCPhys, 0, 0, cbWrite, PGMACCESSTYPE_WRITE,
-	                      pvUserR3);
-
-	if (rc == VINF_PGM_HANDLER_DO_DEFAULT) {
-//		PERR("%s: ok %p %lx+%zx", __func__, pfnHandlerR3, GCPhys, cbWrite);
+	if (!pfnHandlerR3 && !pvUserR3) {
+		*ppv = pv;
+		/* you may map it */
 		return VINF_SUCCESS;
 	}
 
-	PERR("unexpected %s return code %d", __FUNCTION__, rc);
+	if (pfnHandlerR3 && pvUserR3) {
+		int rc = pfnHandlerR3(pVM, GCPhys, 0, 0, cbWrite, PGMACCESSTYPE_WRITE,
+		                      pvUserR3);
+
+		if (rc == VINF_PGM_HANDLER_DO_DEFAULT) {
+			*ppv = pv;
+			/* you may map it */
+			return VINF_SUCCESS;
+		}
+		
+		Vmm::printf("%s: GCPhys=0x%lx failed - unexpected rc=%d\n",
+		            __func__, GCPhys, rc);
+		return rc;
+	}
+
+	Vmm::printf("%s: GCPhys=0x%lx failed - unexpected state \n",
+	            __func__, GCPhys);
 	return VERR_GENERAL_FAILURE;
 }
 
@@ -580,4 +606,14 @@ void PGMR3Reset(PVM pVM)
 	}
 
 	PERR("clearing ram and rom areas missing !!!!!!!");	
+}
+
+
+int PGMR3MappingsSize(PVM pVM, uint32_t *pcb)
+{
+	PINF("%s - not implemented - %p", __func__, __builtin_return_address(0));
+
+	*pcb = 0;
+
+	return 0;
 }

@@ -14,10 +14,14 @@
 /* Genode includes */
 #include <base/printf.h>
 #include <util/string.h>
+#include <rtc_session/connection.h>
 
 /* libc includes */
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <errno.h>
 
 /* libc memory allocator */
 #include <libc_mem_alloc.h>
@@ -103,6 +107,9 @@ extern "C" char *getenv(const char *name)
 		               "+pdm"
 //		               "+dev_pic.e.l.f"
 //		               "+dev_apic.e.l.f"
+//		               "+dev_vmm.e.l.f"
+//		               "+main.e.l.f"
+//		               "+hgcm.e.l.f"
 		               ;
 
 	if (Genode::strcmp(name, "VBOX_LOG_FLAGS") == 0 ||
@@ -124,4 +131,37 @@ extern "C" int sigaction(int signum, const struct sigaction *act,
 		oldact->sa_flags = SA_SIGINFO;
 
 	return 0;
+}
+
+
+/**
+ * Used by RTTimeNow
+ */
+extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+	if (!tv)
+		return -1;
+
+	try {
+		static Rtc::Connection rtc;
+		/* we need only seconds, current_time in microseconds */
+		tv->tv_sec = rtc.get_current_time() / 1000000ULL;
+		tv->tv_usec = rtc.get_current_time() % 1000000ULL * 1000;
+		return 0;
+	} catch (...) {
+		return -1;
+	}
+}
+
+
+/**
+ * Used by Shared Folders
+ */
+extern "C" long pathconf(char const *path, int name)
+{
+	if (name = _PC_NAME_MAX) return 255;
+
+	PERR("pathconf does not support config option %d", name);
+	errno = EINVAL;
+	return -1;
 }

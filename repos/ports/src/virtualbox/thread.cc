@@ -15,6 +15,7 @@
 #include <base/printf.h>
 #include <base/thread.h>
 #include <base/env.h>
+#include <cpu_session/connection.h>
 
 /* Genode libc pthread binding */
 #include "thread.h"
@@ -26,6 +27,32 @@
 /* vbox */
 #include <internal/thread.h>
 
+static Genode::Cpu_session * get_cpu_session(RTTHREADTYPE type) {
+	using namespace Genode;
+
+	static Cpu_connection * con[RTTHREADTYPE_END - 1];
+	static Lock lock;
+
+	Assert(type && type < RTTHREADTYPE_END);
+
+	Lock::Guard guard(lock);
+
+	if (con[type - 1])
+		return con[type - 1];
+
+	long const prio = (RTTHREADTYPE_END - type) *
+	                  (Cpu_session::PRIORITY_LIMIT / RTTHREADTYPE_END);
+
+	char * data = new (env()->heap()) char[32];
+
+	snprintf(data, 32, "vbox %u", type);
+
+	con[type - 1] = new (env()->heap()) Cpu_connection(data, prio);
+
+	return con[type - 1];
+}
+
+
 extern "C" {
 
 	/**
@@ -34,7 +61,8 @@ extern "C" {
 	 */
 	bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 	                     const pthread_attr_t *attr,
-	                     void *(*start_routine) (void *), void *arg);
+	                     void *(*start_routine) (void *), void *arg,
+	                     Genode::Cpu_session *);
 
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
@@ -52,17 +80,23 @@ extern "C" {
 			PWRN("requested stack for thread '%s' of %zu Bytes is too large, "
 			     "limit to %zu Bytes", rtthread->szName, rtthread->cbStack,
 			     stack_size);
-		
+
+		/* sanity check - emt and vcpu thread have to have same prio class */
+		if (!Genode::strcmp(rtthread->szName, "EMT"))
+			Assert(rtthread->enmType == RTTHREADTYPE_EMULATION);
+
 		if (rtthread->enmType == RTTHREADTYPE_EMULATION) {
 
-			if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg))
+			if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg,
+			                          get_cpu_session(RTTHREADTYPE_EMULATION)))
 				return 0;
 			/* no haredware support, create normal pthread thread */
 		}
 
 		pthread_t thread_obj = new (Genode::env()->heap())
 		                           pthread(attr ? *attr : 0, start_routine,
-		                           arg, stack_size, rtthread->szName, nullptr);
+		                           arg, stack_size, rtthread->szName,
+		                           get_cpu_session(rtthread->enmType));
 
 		if (!thread_obj)
 			return EAGAIN;

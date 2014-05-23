@@ -77,31 +77,8 @@ uint32_t RTBldCfgVersionBuild(void) { return VBOX_VERSION_BUILD; }
 uint32_t RTBldCfgRevision(void)     { return ~0; }
 
 
-/*
- * Copied from 'Runtime/r3/posix/timelocal-posix.cpp'
- */
-
-static int64_t rtTimeLocalUTCOffset(PCRTTIMESPEC pTime, bool fCurrentTime)
+extern "C" DECLHIDDEN(int) rtProcInitExePath(char *pszPath, size_t cchPath)
 {
-	PDBG("rtTimeLocalUTCOffset called - not implemented");
+	Genode::strncpy(pszPath, "/virtualbox", cchPath);
 	return 0;
 }
-
-
-RTDECL(PRTTIME) RTTimeLocalExplode(PRTTIME pTime, PCRTTIMESPEC pTimeSpec)
-{
-    RTTIMESPEC LocalTime = *pTimeSpec;
-    RTTimeSpecAddNano(&LocalTime, rtTimeLocalUTCOffset(&LocalTime, true /* current time, skip fallback */));
-    pTime = RTTimeExplode(pTime, &LocalTime);
-    if (pTime)
-        pTime->fFlags = (pTime->fFlags & ~RTTIME_FLAGS_TYPE_MASK) | RTTIME_FLAGS_TYPE_LOCAL;
-    return pTime;
-}
-
-
-extern "C" RTDECL(int) RTPathAbs(const char *pszPath, char *pszAbsPath, size_t cchAbsPath)
-{
-	Genode::strncpy(pszAbsPath, pszPath, cchAbsPath);
-	return 0;
-}
-

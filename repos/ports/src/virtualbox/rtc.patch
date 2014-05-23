@@ -1,0 +1,9 @@
++++ src/app/virtualbox/src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
+@@ -1470,6 +1481,7 @@
+     rc = CFGMR3InsertNode(pDevices, "mc146818",       &pDev);                       UPDATE_RC();
+     rc = CFGMR3InsertNode(pDev,     "0",              &pInst);                      UPDATE_RC();
+     rc = CFGMR3InsertNode(pInst,    "Config",         &pCfg);                       UPDATE_RC();
++    rc = CFGMR3InsertInteger(pCfg,  "UseUTC",         1);           /* boolean */   UPDATE_RC();
+ 
+     /*
+      * Serial ports

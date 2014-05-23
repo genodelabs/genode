@@ -63,7 +63,7 @@ source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
 
 
 run_genode_until "ignore resize request to 720x400" 20 
-run_genode_until "ignore resize request to 640x480" 15 $spawn_id
+run_genode_until "ignore resize request to 640x480" 25 $spawn_id
 run_genode_until "ignore resize request to 800x600" 35 $spawn_id
 run_genode_until "ignore resize request to 800x600" 90 $spawn_id
 run_genode_until "ignore resize request to 720x400" 10 $spawn_id

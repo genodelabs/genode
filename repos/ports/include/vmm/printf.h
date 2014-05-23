@@ -30,7 +30,7 @@ namespace Vmm {
 /**
  * Print message while preserving the UTCB content
  */
-void Vmm::printf(const char *format, ...)
+inline void Vmm::printf(const char *format, ...)
 {
 	va_list list;
 	va_start(list, format);

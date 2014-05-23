@@ -14,22 +14,13 @@
 /* Genode includes */
 #include <os/attached_ram_dataspace.h>
 #include <base/semaphore.h>
+#include <os/timed_semaphore.h>
 
 /* Genode/Virtualbox includes */
 #include "sup.h"
 
 /* VirtualBox includes */
-#include <VBox/sup.h>
-#include <VBox/vmm/vm.h>
-#include <VBox/vmm/vmm.h>
 #include <VBox/err.h>
-#include <iprt/param.h>
-#include <iprt/err.h>
-#include <iprt/timer.h>
-
-using Genode::Semaphore;
-
-#define B(x) "\033[00;44m" x "\033[0m"
 
 
 struct Attached_gip : Genode::Attached_ram_dataspace
@@ -41,7 +32,8 @@ struct Attached_gip : Genode::Attached_ram_dataspace
 
 
 enum {
-	UPDATE_HZ  = 250,                     /* Hz */
+	UPDATE_HZ  = 100,                     /* Hz */
+	/* Note: UPDATE_MS < 10ms is not supported by alarm timer, take care !*/
 	UPDATE_MS  = 1000 / UPDATE_HZ,
 	UPDATE_NS  = UPDATE_MS * 1000 * 1000,
 };
@@ -50,48 +42,83 @@ enum {
 PSUPGLOBALINFOPAGE g_pSUPGlobalInfoPage;
 
 
-static void _update_tick(PRTTIMER pTimer, void *pvUser, uint64_t iTick)
-{
-	/**
-	 * We're using rdtsc here since timer_session->elapsed_ms produces
-	 * instable results when the timer service is using the Genode PIC
-	 * driver as done for base-nova currently.
-	 */
-	static unsigned long long tsc_last = 0;
+class Periodic_GIP : public Genode::Alarm {
 
-    unsigned now_low, now_high;
-    asm volatile("rdtsc" :  "=a"(now_low), "=d"(now_high) : : "memory");
+	bool on_alarm()
+	{
+		/**
+		 * We're using rdtsc here since timer_session->elapsed_ms produces
+		 * instable results when the timer service is using the Genode PIC
+		 * driver as done for base-nova currently.
+		 */
+		static unsigned long long tsc_last = 0;
 
-	unsigned long long tsc_current = now_high;
-	tsc_current <<= 32;
-	tsc_current  |= now_low;
+		Genode::uint32_t now_low, now_high;
+		asm volatile("rdtsc" :  "=a"(now_low), "=d"(now_high) : : "memory");
 
-	unsigned long long elapsed_tsc    = tsc_current - tsc_last;
-	unsigned long      elapsed_ms     = elapsed_tsc * 1000 / genode_cpu_hz();
-	unsigned long long elapsed_nanots = 1000ULL * 1000 * elapsed_ms;
+		Genode::uint64_t tsc_current = now_high;
+		tsc_current <<= 32;
+		tsc_current  |= now_low;
 
-	tsc_last        = tsc_current;
+		Genode::uint64_t elapsed_tsc;
+		Genode::uint32_t elapsed_ms;
+		enum { BOGUS_MULTIPLIER = 10 };
+
+		/* handle wrap around, backwards running tsc and too bogus timeouts */
+		if (tsc_current < tsc_last ||
+		    tsc_current - tsc_last > BOGUS_MULTIPLIER * UPDATE_MS * genode_cpu_hz() / 1000) {
+
+/*
+			if (tsc_current < tsc_last)
+				PDBG("bogus timeout - set fixed to %lums - calculated ms %llu "
+				     " - time wrapped", UPDATE_MS,
+				     (tsc_current - tsc_last) * 1000 / genode_cpu_hz());
+			else
+				PDBG("bogus timeout - set fixed to %lums - calculated ms %llu "
+				     " > %u * %lums", UPDATE_MS,
+				     (tsc_current - tsc_last) * 1000 / genode_cpu_hz(),
+				     BOGUS_MULTIPLIER, UPDATE_MS);
+*/
+			elapsed_ms  = UPDATE_MS;
+			elapsed_tsc = UPDATE_MS * genode_cpu_hz() / 1000;
+
+		} else {
+			elapsed_tsc = tsc_current - tsc_last;
+			elapsed_ms  = elapsed_tsc * 1000 / genode_cpu_hz();
+		}
+
+		Genode::uint64_t elapsed_nanots = 1000ULL * 1000 * elapsed_ms;
+
+		tsc_last        = tsc_current;
 
 
 
-	SUPGIPCPU *cpu = &g_pSUPGlobalInfoPage->aCPUs[0];
+		SUPGIPCPU *cpu = &g_pSUPGlobalInfoPage->aCPUs[0];
 
-	cpu->u32TransactionId++;
+		/*
+		 * Transaction id must be incremented before and after update,
+		 * read struct SUPGIPCPU description for more details.
+		 */
+		ASMAtomicIncU32(&cpu->u32TransactionId);
 
-	cpu->u64NanoTS += elapsed_nanots;
-	cpu->u64TSC    += elapsed_tsc;
+		cpu->u64NanoTS += elapsed_nanots;
+		cpu->u64TSC    += elapsed_tsc;
 
-	cpu->u32TransactionId++;
+		/*
+		 * Transaction id must be incremented before and after update,
+		 * read struct SUPGIPCPU description for more details.
+		 */
+		ASMAtomicIncU32(&cpu->u32TransactionId);
 
+		return true;
+	}
+};
 
-
-	asm volatile ("":::"memory");
-}
 
 
 int SUPR3Init(PSUPDRVSESSION *ppSession)
 {
-	static bool initialized(false);
+	static bool initialized = false;
 
 	if (initialized) return VINF_SUCCESS;
 
@@ -132,10 +159,9 @@ int SUPR3Init(PSUPDRVSESSION *ppSession)
 	cpu->iCpuSet                 = 0;
 	cpu->idApic                  = 0;
 
-	PRTTIMER pTimer;
-
-	RTTimerCreate(&pTimer, UPDATE_MS, _update_tick, 0);
-	RTTimerStart(pTimer, 0);
+	/* schedule periodic call of GIP update function */
+	static Periodic_GIP alarm;
+	Genode::Timeout_thread::alarm_timer()->schedule(&alarm, UPDATE_MS);
 
 	initialized = true;
 
