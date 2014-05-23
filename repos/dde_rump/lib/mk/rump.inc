@@ -4,9 +4,9 @@
 # \date   2013-12-12
 #
 
-CONTRIB_DIR = $(REP_DIR)/contrib
-RUMP_BASE   = $(BUILD_BASE_DIR)/var/libcache/rump
-RUMP_LIB    = $(RUMP_BASE)/lib
+RUMP_CONTRIB_DIR := $(call select_from_ports,dde_rump)/src/lib/dde_rump
+RUMP_BASE         = $(BUILD_BASE_DIR)/var/libcache/rump
+RUMP_LIB          = $(RUMP_BASE)/lib
 
 SHARED_LIB  = yes
 

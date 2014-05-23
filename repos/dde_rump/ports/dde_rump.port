@@ -1,0 +1,29 @@
+LICENSE   := BSD
+VERSION   := git
+DOWNLOADS := rump.git nblibs.git
+
+URL(rump) := https://github.com/anttikantee/buildrump.sh.git
+REV(rump) := d604845baafa110945cb54a2d9607e6f435c6027
+DIR(rump) := src/lib/dde_rump
+
+URL(nblibs) := https://github.com/rumpkernel/netbsd-userspace-src.git
+REV(nblibs) := b86122315f338042d06ad83ac5bd763a5dbd0c00
+DIR(nblibs) := src/lib/dde_rump/nblibs
+
+PATCHES   := $(shell find $(REP_DIR)/patches/*.patch)
+PATCH_OPT := -N -d ${DIR(rump)} -p1
+
+GIT_NETBSD_COMMIT := ff70642c9d7a8fb4b3242b30de2efc1fd8ad9ad4
+
+# checkout NetBSD sources
+default: checkout_src
+checkout_src: $(DOWNLOADS)
+	@$(MSG_PREFIX)"checkout NetBSD src "
+	$(VERBOSE)src/lib/dde_rump/checkout.sh git src/lib/dde_rump/src
+	$(VERBOSE)cd src/lib/dde_rump/src && git reset --hard $(GIT_NETBSD_COMMIT)
+	$(VERBOSE)ln -s ../src/common src/lib/dde_rump/nblibs/common
+
+DIRS := include/rump
+DIR_CONTENT(include/rump) := src/lib/dde_rump/src/sys/rump/include/rump/*.h
+
+# vi: set ft=make :
