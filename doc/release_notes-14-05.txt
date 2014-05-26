@@ -1,0 +1,1124 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 14.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+With Genode version 14.05, we address two problems that are fundamental for
+the scalability of the framework. The first problem is the way how Genode
+interoperates with existing software. A new concept for integrating 3rd-party
+source code with the framework makes the porting and use of software that
+is maintained outside the Genode source tree easier and more robust than ever.
+The rationale and the new concept are explained in Section
+[Management of ported 3rd-party source code].
+The second problem is concerned about how programs that are built atop a C
+runtime (as is the case for most 3rd-party software) interact with the Genode
+world. Section [Per-process virtual file systems] describes how we
+consolidated many special-purpose solutions into one coherent design of using
+process-local virtual file systems.
+
+In line with our road map, we put forward our storage-related agenda by enabling
+the use of NetBSD's cryptographic device driver (CGD) on Genode. Thereby, we
+continue our engagement with the rump kernel that we started to embrace with
+version 14.02. Section [Block-level encryption using CGD] explains the
+use of CGD as a Genode component.
+
+Apart from those infrastructural improvements, the release cycle has focused
+on the NOVA and base-hw platforms. On NOVA, we are happy to have enabled
+static real-time priorities, which make the kernel much more appealing
+for the designated use for a general-purpose OS. Furthermore, we intensified
+our work on VirtualBox on NOVA by enabling guest-addition support and
+improving stability and performance. The NOVA-related improvements are
+covered by Sections [VirtualBox on NOVA] and [NOVA microhypervisor].
+
+The development of our custom base-hw kernel platform for the ARM architecture
+goes full steam ahead. With the added support for multiple processors, base-hw
+can finally leverage the CPU resources of modern ARM platforms. Furthermore,
+we largely redesigned the memory management to avoid the need to maintain
+identity mappings, which makes the kernel more robust. Section
+[Execution on bare hardware (base-hw)] explains those developments in detail.
+
+Finally, we enhanced the driver support for x86-based platforms by enabling
+USB 3.0 in our Linux device-driver environment
+Section [USB 3.0 for x86-based platforms] outlines the steps we had to take.
+
+
+Management of ported 3rd-party source code
+##########################################
+
+Without the wealth of existing open-source software, Genode would be of little
+use. We regularly combine the work of more than 70 open-source projects with
+the framework. The number is steadily growing because each Genode user longs
+for different features.
+
+Since version 11.08, we employed a common way of integrating 3rd-party
+software with Genode, which came in the form of a makefile per source-code
+repository. Each of those makefiles offered "prepare" and "clean" rules
+that automated the downloading and integration of 3rd-party code.
+The introduced automatism was a big relief for our work flows.
+Since then, the amount of 3rd-party code ported to Genode has been steadily
+increasing. It eventually reached a complexity that became hard to manage
+using the original mechanism.
+In order to make Genode easier to conquer for new users and more
+enjoyable for regular developers, we had to reconsider the way of how
+3rd-party code is integrated with the framework.
+
+We identified the following limitations of the existing approach:
+
+* From the viewpoint of Genode users, the most inconvenient limitation was
+  the lack of proper error messages when a port was not prepared beforehand.
+  Instead, the build system produced confusing error messages when unable to
+  find the source code. According to the trouble-shooting requests on our
+  mailing list, the missing preparation of 3rd-party code seems to be the
+  most prominent road block for new users.
+
+* Still, when having prepared all required 3rd-party ports, the prepared
+  version may become outdated when using Genode over time. Eventually the
+  build process will expect a different version of the 3rd-party code than the
+  one prepared. This happens particularly when switching between branches. In
+  some cases the version of the 3rd-party code is updated quite often (e.g.,
+  base-nova). The build system could not detect such inconsistencies and
+  consequently responded with arcane error messages, or even worse, produced
+  binaries with unexpected runtime behaviour.
+
+* There are many source-code repositories that deal with downloading and
+  integrating 3rd-party code in different ways, namely libports, ports,
+  ports-foc, base-<kernel>, dde_ipxe, dde_rump, dde_linux, dde_oss, qt4. Even
+  though all makefiles contained in those repositories used to contain the
+  "prepare" and "clean" rules, they were not consistent with regard to the
+  handling of corner cases, to the updating of packages, and with the use of
+  additional arguments ("PKG="). Moreover, the individual port-description
+  files (_<repository>/ports/*.mk_) files found in the ports and libports
+  repositories contained a lot of boiler-plate content such as the rules for
+  downloading files via wget, or the rules for checking signatures. Such
+  duplicated code tends to degrade in quality and consistence over time,
+  affecting the user experience and maintenance costs in a negative way.
+
+* The downloaded archives and the extracted 3rd-party code used to reside
+  within the respective repositories (in the _download/_ and _contrib/_
+  subdirectories). This made the use of search tools like grep very inefficient
+  when attempting to search in Genode's source code while excluding 3rd-party
+  sources. For this reason, most regular Genode developers have crafted some
+  special shell aliases for filtered search operations. But this should not be
+  the way to go.
+
+* During the "make prepare" step, most ports of libraries used to create a
+  bunch of symlinks within _<rep-dir/include/_ that pointed to the respective
+  header files within _<rep-dir>/contrib/_. Effectively, this step touched
+  Genode's source tree, which was bad in two ways. First, the portions of the
+  source tree installed by the "make prepare" mechanism had to be blacklisted
+  in Genode's .gitignore file. And second, executing the port-specific "make
+  clean" rules was quite dangerous because those rules operated on the source
+  tree.
+
+
+The way forward
+===============
+
+The points above made the need for a changed source-tree structure apparent.
+Traditionally, all of Genode's source-code repositories alongside the _tool/_
+and _doc/_ directories were located at the root of the tree structure:
+
+! tool/
+! doc/
+! base/
+! base-okl4/Makefile
+!           download/
+!           include/
+!           lib/
+!           src/
+! os/
+! ...
+
+Repositories that incorporated 3rd-party code (e.g., base-okl4 as depicted
+above) hosted a makefile for the preparation, a _download/_ directory for the
+downloaded 3rd-party source code, and a _contrib/_ directory for the extracted
+source code. There was no notion of common tools that would work across
+repositories.
+
+With Genode 14.05, we move all repositories to a _repos/_ directory:
+
+! tool/
+! doc/
+! repos/
+!       base/
+!       base-okl4/
+!       os/
+!       ...
+! contrib/
+
+Downloaded 3rd-party source code resides outside of the actual repository at
+the central 'contrib/' directory. By using this structure, we achieve
+the following:
+
+* Working with grep within the repositories works very efficient because
+  downloaded and extracted 3rd-party code are no longer in the way. They
+  reside next to the repositories.
+
+* In contrast to the original situation where we had no convention about
+  the location of source-code repositories, tools can rely on a convention
+  now. Being located at a known position within the tree, the tools for
+  creating build directories and for managing ports become aware of the
+  location of the repositories as well as the central _contrib/_ directory.
+
+* Adding a supplemental repository is pretty intuitive: Just clone a git
+  repository into _repos/_.
+
+* Tutorials that describe the use of Genode could benefit from the introduced
+  convention as they could suggest creating build directories at the top
+  level, which no longer interferes with the location of the source-code
+  repositories. This would make those tutorials a bit easier to follow.
+
+* The create_builddir tool can create build directories at sensible default
+  locations. E.g., when 'create_builddir' is called with nova_x86_64 as
+  argument but with no BUILD_DIR argument, the tool will create a build
+  directory _build/nova_x86_64/_ by default. This way, we reinforce a useful
+  convention about the naming and location of build directories that will ease
+  the support of Genode users.
+
+* Storing all build directories and downloaded 3rd-party source code somewhere
+  outside the Genode source tree, let's say on different disk partitions, can
+  be easily accomplished by creating a symbolic link for each of the _build/_
+  and _contrib/_ directory.
+
+Of course, changing the source-tree structure at the top-level was no
+light-hearted decision. In particular, it raised the question of how to
+deal with topic branches that were branched off a Genode version with the
+old layout. During the transition, we observed the following patterns
+to deal with that problem:
+
+* Git can deal well with patches that change existing files, even if the
+  file location has changed. For simple patches, e.g., small bug fixes,
+  cherry-picking those individual commits to a current branch works quite
+  well.
+
+* If a commit adds new files, the files will naturally end up at the
+  location specified in the patch, i.e., somewhere outside of the _repos/_
+  directory. You will have to manually move them to the correct location using
+  'git mv' and squash the resulting rename commit onto the original commit
+  using 'git rebase -i'.
+
+* For migrating a series of complex commits to the new layout, we use
+  'git format-patch' to obtain a patch series for the topic branch, prefix
+  the original pathnames with "repos/" using 'sed', and apply the result
+  using 'git am'.
+
+
+Unification of the ports management
+===================================
+
+With the new source-tree layout in place, we could pursue a new take on
+unifying the management of ported 3rd-party source code. The new solution,
+which is very much inspired by the fabulous
+[http://nixos.org/nix - Nix package manager] comes in the form of new tools to
+be found at 'tool/ports/'.
+
+Note that even though the port mechanism described herein looks a bit like
+"package management", it covers a different problem. The problem covered here
+is the integration of existing 3rd-party source code with the Genode source
+tree. Packaging, on the other hand, would provide a means to distribute
+self-contained portions of the Genode source tree including their respective
+3rd-party counterparts as separate packages. Package management is not
+addressed yet.
+
+The new tools capture all ports present in the repositories located under
+_repos/_. Using them is as simple as follows:
+
+:Obtain a list of available ports:
+  ! tool/ports/list
+
+:Download and install a port:
+  ! tool/ports/prepare_port <port-name>
+
+The prepare_port tool will scan all repositories for the specified port and
+install the port into _contrib/_. Each version of an installed
+port resides in a dedicated subdirectory within the _contrib/_ directory.
+The port-specific directory is called port directory. It is named
+_<port-name>-<fingerprint>_. The _<fingerprint>_ uniquely identifies
+the version of the port (it is a SHA1 hash of the ingredients of the
+port). If two versions of the same port are installed, each of them will
+have a different fingerprint. So they end up in different directories.
+
+Within a source-code repository, a port is represented by two files, a
+_<port-name>.port_ and a _<port-name>.hash_ file. Both files reside at the
+_ports/_ subdirectory of the corresponding repository. The
+_<port-name>.port_ file is the port description, which declares the
+ingredients of the port, e.g., the archives to download and the patches to apply.
+The _<port-name>.hash_ file contains the fingerprint of the corresponding
+port description, thereby uniquely identifying a version of the port
+as expected by the checked-out Genode version.
+
+So how does Genode's build system find the source code for a given port?
+If the build system encounters a target that incorporates
+ported source code, it looks up the respective _<port-name>.hash_ file in the
+repositories as specified in the build configuration. The fingerprint found in
+the hash file is used to construct the path to the port directory under
+_contrib/_. If that lookup fails, a meaningful error is printed. Any number of
+versions of the same port can be installed at the same time. I.e., when
+switching Git branches that use different versions of the same port, the build
+system automatically finds the right port version as expected by the currently
+active branch.
+
+For step-by-step instructions of how to add a port using the new mechanism,
+please refer to the updated porting guide:
+
+:Genode Porting Guide:
+
+  [http://genode.org/documentation/developer-resources/porting]
+
+
+:Known limitations:
+
+* There is no garbage collection of stale ports, yet. Each time when a port
+  gets updated, a new version will be created within the _contrib/_ directory.
+  However, the subdirectories can safely be deleted manually to regain
+  disk space. In the worst case, if you deleted a port that is in use,
+  the build system will let you know.
+
+* Even though some port files are equipped with information about
+  cryptographic signatures, those signatures are not checked yet. However,
+  each downloaded archive is checked against a known-good hash value declared
+  in the port description so that the integrity of downloaded files is
+  checked. But as illustrated by the signature declarations in the
+  port descriptions, we plan to increase the confidence by enabling
+  signature checks in addition to the hash-sum checks.
+
+* Dependencies between ports are not covered by port descriptions, yet.
+
+
+:Transition to the new mechanism:
+
+We have reworked the majority of the more than 70 existing ports to the new
+mechanism. The only ports not covered so far are base-codezero, qt5, gcc, gdb,
+and qt4. During the next release cycle, we will keep the original "make
+prepare" mechanism as a front end intact. So the "make prepare" instructions
+as found in many tutorials will still work. But under the hood, "make prepare"
+just invokes the new _tool/ports/prepare_port_ tool.
+
+
+Block-level encryption using CGD
+################################
+
+The need for protection of personal data is becoming generally
+accepted in the information age. Especially, against the background of
+ubiquitous storage devices in smart phones, notebooks, and tablet
+computers, which may go missing easily.
+
+There are several different approaches to prevent unauthorized access
+to data storage. For example, data could be encrypted on a per file
+basis (e.g. EncFS or PEFS). Thereby each file is encrypted using a
+cipher but stored on a regular file system besides unencrypted files.
+Beyond this approach, it is also common to encrypt data on the lower
+block-device layer. With block-level encryption, each block on the
+storage device is encrypted respectively decrypted when written to or read
+from the device (e.g., TrueCrypt, FreeBSD's geli(8), Linux LUKS). On
+top of this cryptographic storage device, a regular file system may be
+used.
+
+Additionally, it is desirable to access the
+encrypted data from various operating systems. In our case, we want to
+use the data from Genode as well as from our current development
+platform Linux.
+
+In Genode 14.02, we introduced a port of the NetBSD based rumpkernels
+to leverage file-system implementations, e.g., ext2. Beside file
+systems, NetBSD itself also offers block-level encryption in form of
+its cryptographic disk-driver _cgd(4)_. In line with our roadmap, we
+enabled the cryptographic-device driver in our rumpkernels port as a
+first step to exploring block-level encryption on Genode.
+
+:[https://www.netbsd.org/docs/guide/en/chap-cgd.html]:
+  NetBSD cryptographic-device driver (CGD)
+
+The heart of our CGD port is the _rump_cgd_ server, which encapsulates
+the rumpkernels and the cgd device. The server uses a block session to
+get access to an existing block device and, in return, provides a
+block session to its client. Each block written or read by the client
+is transparently encrypted resp. decrypted by the server with a given
+key. This enables us to seamlessly integrate CGD into Genode's existing
+infrastructure.
+
+To ease the use, the server interface is modelled after the interface
+of _cgdconfig(8)_. This implies that the key must have the same format
+as used by _cgdconfig_, which means the key is a base64-encoded
+string. The first 4 bytes of the key string denote the actual length
+of the key in bits (these 4 bytes are stored in big endian order). For
+now, we only support the use of a stored key. However, we plan to add
+the use of passphrases in relation with keys later.
+
+Currently, _rump_cgd_ is only able to _configure_ a _cgd_ device but
+can not generate the configuration itself. A configuration or rather a
+working key may be generated by using the new _tool/rump_ script. The
+used cipher is hard-coded to _aes-cbc_ with a key size of 256 bit at
+the moment. Note, the server serves only one client as it
+transparently encrypts/decrypts one back-end block session. Though
+_rump_cgd_ is currently limited with regard to the used cipher and the
+way key input is handled, we plan to extend this
+rumpkernel-based component step by step in the future.
+
+If you want to get some hands on with CGD, the first step is to
+prepare a raw encrypted and ext2-formatted partition image by using
+the 'tool/rump' script
+
+! dd if=/dev/urandom of=/path/to/image
+! rump -c /path/to/image # key is printed to stdout
+! rump -c -k <key> -f -F ext2fs /path/to/image
+
+To use this disk image, the following config snippet can be used
+
+! <start name="rump_cgd">
+!   <resource name="RAM" quantum="8M"/>
+!   <provides><service name="Block"/></provides>
+!   <config action="configure">
+!     <params>
+!       <method>key</method>
+!       <key>AAABAJhpB2Y2UvVjkFdlP4m44449Pi3A/uW211mkanSulJo8</key>
+!     </params>
+!   </config>
+!   <route>
+!     <service name="Block"> <child name="ahci"/> </service>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </route>
+! </start>
+
+Note, we explicitly route the block-session requests for the
+underlying block device to the AHCI driver.
+
+The block service provided by _rump_cgd_, in turn, is used by a file-system
+server.
+
+! <start name="rump_fs">
+!   <resource name="RAM" quantum="16M"/>
+!   <provides><service name="File_system"/></provides>
+!   <config fs="ext2fs">
+!     <policy label="" root="/" writeable="yes"/>
+!   </config>
+!   <route>
+!     <service name="Block"> <child name="rump_cgd"/> </service>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </route>
+! </start>
+
+Currently, the key to access the cryptographically secured device must
+be specified before using the device. Implementing a mechanism which
+asks for the key on the first attempt is in the works.
+
+By using the rumpkernels and the cryptographic-device driver, we are
+able to use block-level encryption on Genode and on Linux.
+In Linux case, we depend on _rumprun_, which can
+run unmodified NetBSD userland tools on top of the rumpkernels to
+manage the cgd device. To ease this task, we provide the
+aforementioned _rump_ wrapper script.
+
+:[https://github.com/rumpkernel/rumprun]: Rumprun
+
+Since the rump script covers the most common use cases for the tools,
+the script is comparatively extensive, hence giving a short tutorial
+is reasonable.
+
+
+:Format a disk image with Ext2:
+
+First, prepare the actual image file
+
+! dd if=/dev/zero of=/path/to/image bs=1M count=128
+
+Second, use _tool/rump_ to format the disk image:
+
+! rump -f -F ext2fs /path/to/image
+
+Afterwards the file system just created may be populated with the
+contents of another directory by executing
+
+! rump -F ext2fs -p /path/to/source /path/to/image
+
+To list the contents of the image run
+
+! rump -F ext2fs -l /path/to/image
+
+
+:Create an encrypted disk image:
+
+Creating a cryptographic-disk image based on cgd(4) is done by
+executing the following command
+
+! rump -c /path/to/image
+
+This will generate a key that may be used to decrypt the image later
+on. Since this command will only generate a key and _not_ initialize
+the disk image, it is highly advised to prepare the disk image by
+using _/dev/urandom_ instead of _/dev/zero_. In other words, only new
+blocks later written to the disk image are encrypted on the fly. In
+addition while generating the key, a temporary configuration file will
+be created. Although this file has proper permissions, it may leak the
+generated key if it is created on persistent storage. To specify a
+more secure directory, the '-t' option can be used:
+
+! rump -c -t /path/to/secure/directory /path/to/image
+
+It is advised to carefully select an empty directory because the specified
+directory is removed at after completion.
+
+Decrypting the disk image requires the key generated in the previous
+step:
+
+! rump -c -k <key> /path/to/image
+
+For now this key has to be specified as command line argument. This is
+an issue if the shell, which is used, is maintaining a history of
+executed commands.
+
+For the sake of completeness let us put all examples together by creating an
+encrypted Ext2 image that will contain all files of Genode's _demo_
+scenario:
+
+! dd if=/dev/urandom of=/tmp/demo.img bs=1M count=16
+! rump -c /tmp/demo.img  # key is printed to stdout
+! rump -c -k <key> -f -F ext2fs -d /dev/rcgd0a /tmp/demo.img
+! rump -c -k <key> -F ext2fs -p $(BUILD_DIR)/var/run/demo /tmp/demo.img
+
+To check if the image was populated successfully, execute the
+following:
+
+! rump -c -k <key> -F ext2fs -l /tmp/demo.img
+
+More detailed information about the options and arguments of
+this tool can be obtained by running:
+
+! rump -h
+
+Since _tool/rump_ just utilizes the rumpkernels running on the host
+system to do its duty, there is a script called _tool/rump_cgdconf_
+that extracts the key from a 'cgdconfig(8)' generated configuration
+file and is also able to generate such a file from a given key.
+Thereby, we try accommodate the interoperability between the general
+rumpkernels-based tools and the _rump_cgd_ server used on Genode.
+
+
+Per-process virtual file systems
+################################
+
+Our C runtime served us quite well over the years. At its core, it has a
+flexible plugin architecture that allows us to combine different back ends
+such the lwIP socket API (using libc_lwip_nic_dhcp), using LOG as stdout via
+(via libc_log), or using a ROM dataspace as a file (via libc_rom). Recently
+however, the original design has started to show its limitations:
+
+Although there is the libc_fs plugin that allows a program to access files
+from a file-system server, there is no way to allow a program to access
+two different file-system servers. For example, if a web server wants to
+obtain its configuration and the website content from two different file
+systems.
+
+Beside the lack of features of individual libc plugins, there are
+problems stemming from combining multiple plugins.
+For example, there is the libc_block plugin that makes a block session
+accessible as a
+pseudo block device named "/dev/blkdev". However, when combined with the
+libc_fs plugin, it is not defined which of the two plugins will respond to
+requests for a file with this name.
+As a quick and dirty work-around, the libc_fs plugin
+explicitly black-lists "/dev/blkdev". The need for such a work-around
+hints at a deficiency of the overall design.
+In general, if multiple plugins are combined, there is no consistent
+virtual file-system structure exposed via getdirentries.
+
+Another inconvenience is a missing concept for handling standard input
+and output. Most programs use
+libc_log to direct stdout to the LOG service. But what if we want to
+direct the output of such a program to a terminal? Granted, there
+exists the terminal_log server to translate a LOG session to a
+terminal session but it would be much nicer to have this flexibility
+at the C-runtime level.
+
+Finally, when looking at the implementation of the plugins, it becomes
+apparent that many of them look similar. We have to admit that there are quite
+a few dusty corners where duplicated code has been accumulated over the years.
+That said, the semantic details (e.g., the quality of error handling) differ
+from plugin to plugin. Seeing the number of file systems (and thereby the
+number of added libc plugins) grow, it became clear that our original
+design would make the situation even worse.
+
+On the other hand, we have gathered overly positive experiences with the
+virtual file-system implementation of our Noux runtime, which is an
+environment for running Unix software on Genode. The VFS as implemented for
+Noux supports stacked file systems (similar to union mounts) of various
+types. It is stable and complete enough to run our tool chain to build Genode
+on Genode. Wouldn't it be a good idea to reuse the Noux VFS for the normal
+libc? With the current release cycle, we pursued this line of thoughts.
+
+The first step was transplanting the VFS code from the Noux runtime to an
+free-standing library. The most substantial
+change was the decoupling of the VFS interfaces from the types provided by
+Noux. All those types had been moved to the VFS library. In the process
+of reshaping the Noux VFS into a library, several existing pseudo file systems
+received a welcome cleanup, and some new ones were added. In particular,
+there is a new "log" file system for writing data to a LOG session, a "rom"
+file system for reading ROM modules, and an "inline" file system for
+reading data defined within the VFS configuration.
+
+The second step was the addition of a new libc_vfs plugin to the C runtime.
+This plugin makes the VFS library available to libc-using programs via the
+original libc plugin interface. It translates the types and functions of the
+VFS library to the types and functions of the C library. At this point, it was
+an optional plugin. As the VFS was meant to replace the various existing plugins
+instead of accompanying them, the next challenge was to revisit all the
+users of the various libc plugins and adapting them to use the libc_vfs
+plugin instead. This was, by far, the more elaborative step. More than 50
+programs and their respective run scripts had to be adapted and tested.
+However, this process was very satisfying because we could see how the
+new VFS plugin satisfies all the use cases formerly accommodated by a zoo
+of special plugins.
+
+As the last step, we could retire several libc plugins such as libc_rom,
+libc_block, libc_log, and libc_fs and merge the libc_vfs into the libc.
+Technically, it is still a plugin, but it is always present.
+
+
+:How has the libc changed?:
+
+Each libc-using program can be configured with a program-local virtual
+file system as illustrated by the following example:
+
+! <config>
+!   ...
+!   <libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+!     <vfs>
+!       <dir name="dev">
+!         <log/>
+!         <null/>
+!       </dir>
+!       <dir name="etc">
+!         <dir name="lighttpd">
+!           <inline name="lighttpd.conf">
+!             ...
+!           </inline>
+!         </dir>
+!       </dir>
+!       <dir name="website">
+!         <tar name="website.tar"/>
+!       </dir>
+!     </vfs>
+!   </libc>
+! </config>
+
+Here you see a lighttpd server that serves a website coming from a TAR
+archive (which is obtained from a ROM module named "website.tar"). There
+are two pseudo devices "/dev/log" and "/dev/null", to which the
+"stdin", "stdout", and "stderr" attributes refer. The "log" file system
+consists of a single node that represents a LOG session. The web server
+configuration is supplied inline as part of the config. (Btw, you can
+try out a very similar scenario using the 'ports/genode_org.run' script)
+
+The VFS implementation resides at 'os/include/vfs/'. This is where you
+can see the file-system types that are available (look for
+_*_file_system.h_ files). Because the same code is used by Noux, we have
+one unified and coherent VFS implementation throughout the framework now.
+
+There are two things needed to adapt your work to the change.
+
+* Remove the use of the libc_{rom, block, log, fs} plugins from your
+  target description files. Those plugins are no more. As of now,
+  the VFS is still internally a plugin, but it is always included with
+  the libc.
+
+* Configure the VFS of your libc-using program in your run script. For
+  most former users of the sole libc_log plugin, this configuration
+  looks like this:
+
+  ! <config>
+  !   <libc stdout="/dev/log" stderr="/dev/log">
+  !     <vfs> <dir name="dev"> <log/> </dir> </vfs>
+  !   </libc>
+  ! </config>
+
+  For former users of other plugins, there are the 'block', 'rom',
+  and 'fs' file-system types available.
+
+
+:Feature set and limitations:
+
+As of now, the following file-system types are supported:
+
+:dir:  represents a directory, which, in turn, can host multiple file
+  systems.
+
+:block:  accesses a block session. The label of the session can be configured
+  via the "label" attribute.
+
+:fs:  accesses a file-system server via a file-system session. The session
+  label can be defined via the "label" attribute.
+
+:inline:  provides the content of the configuration node as the content of
+  a read-only file.
+
+:log:  represents a pseudo device for writing to a LOG session. This type
+  is useful for redirecting stdout to a LOG service such as the one provided
+  by core.
+
+:null and zero:  represent pseudo devices similar to _/dev/null_ and
+  _/dev/zero_ on Unix.
+
+:rom:  makes a ROM module available as a read-only file. If the name of
+  the ROM module differs from the node name, the module name can be
+  expressed by the "label" attribute.
+
+:tar:  obtains a TAR archive as ROM module and makes its content available
+  as a file system. The name of the ROM module corresponds to the
+  name of the tar node.
+
+:terminal:  is a pseudo device that accesses a terminal session. The
+  session can be labeled using the "label" attribute.
+
+There are still two major limitations: First, select is not supported yet.
+That means that programs cannot block for I/O (such as reading from a
+terminal). Because of this limitation, we still keep the libc_terminal around,
+which supports select. As the second limitation, the VFS interface performs
+read and write operations as synchronous requests. This is inherited from the
+Noux implementation. It goes without saying that we plan to change it to
+support non-blocking operations. But this step is not taken yet.
+
+
+Revised session interfaces
+==========================
+
+The session interfaces for framebuffer and file-system access underwent
+the following minor changes.
+
+:Framebuffer session:
+
+  We simplified the framebuffer-session interface by removing the
+  'Framebuffer::Session::release()' function. This step makes the mode-change
+  protocol consistent with the way the ROM-session interface handles
+  ROM-module changes. That is, the client acknowledges the release of its
+  current dataspace by requesting a new dataspace via the
+  'Framebuffer::Session::dataspace()' function.
+
+  To enable framebuffer clients to synchronize their operations with the
+  display frequency, the session interface received the new 'sync_sigh'
+  function. Using this function, a client can register a handler for
+  receiving display-synchronization events. As of now, no framebuffer
+  service implements this feature in a useful way. But this will change
+  in the upcoming release cycle when we overhaul Genode's GUI stack.
+
+:File-system session:
+
+  Until now, there was no exception type for the condition where a symbolic link was
+  created on a file system w/o symlink support, e.g., FAT. The
+  corresponding file-system server (ffat_fs) used to return a negative handle
+  as a work-around. Hence, we added 'Permission_denied' to the list of
+  exceptions thrown by 'File_system::Session::symlink' to handle this case in
+  a clean way.
+
+
+Ported 3rd-party software
+#########################
+
+VirtualBox on NOVA
+==================
+
+With Genode 14.02, we successfully executed more than seven 
+guest-operating systemsa, including MS Windows 7, on top of Genode/NOVA. Based
+on this proof of concept, we invested significant efforts to stabilize
+and extend our port of VirtualBox during the last three months. We
+also paid attention to user friendliness (i.e., features) by enabling
+support for guest-additions.
+
+Regarding stability, one issue we encountered has been occasional
+synchronization problems during the early VMM bootstrap phase. Several
+internal threads in the VMM are started concurrently, like the timer
+thread, emulation thread (EMT), virtual CPU handler thread, hard-disk
+thread, and user-interface frontend thread. Some of these threads are
+favoured regarding their execution over others according to their
+importance. VirtualBox expresses this by host-specific mechanisms like
+priorities and nice levels of the host operating system. For Genode,
+we implemented this specific part accordingly by using multiple Genode
+CPU sessions.
+
+The next working field was the emulation code and the code for
+handling VM exits, which have been executed by two different threads.
+We chose this structure in the original port to satisfy the following
+specific characteristics of the underlying NOVA kernel. The emulation
+code is provided by VirtualBox and is started as a pthread (EMT
+thread). In contrast, the hardware accelerated vCPU thread is running
+solely in the context of the VM in guest mode. When a VM exit happens,
+the exit is reflected by an IPC message sent through a NOVA portal and
+received by a vCPU handler thread running in our port of the
+VirtualBox VMM. This thread must be a NOVA _worker_ thread, one which
+has no scheduling context (SC) associated. The emulation thread
+however is a _global_ thread with an associated SC.
+
+Using two separate threads and synchronization points between them
+enabled us in the first release of the port to quickly make progress,
+which led to the successful execution of Windows guests. Now, one goal was
+to merge both threads in order to avoid thread-context switching costs
+between them. Also, we wanted to get rid of transferring the state
+between vCPU handler and emulation thread back and forth including all
+that ugly synchronization code. For that purpose, we changed the
+startup of the emulation code: We first setup the vCPU handler thread
+and then start the vCPU in the VM. Hereafter, the VM exits immediately
+via a NOVA specific vCPU startup exception and the vCPU handler thread
+gets in control. The vCPU handler thread then actually starts
+executing the VirtualBox specific emulation code (originally executed
+by the EMT thread). Now the vCPU handler thread and the VirtualBox EMT
+thread are physically one execution context. Whenever the emulation
+code decides to switch to hardware accelerated mode, the vCPU handler
+thread can directly setup the transfer of the VM state from the
+VirtualBox emulation mode into the state fields of the vCPU of the
+guest.
+
+Additionally, we had to re-adjust the memory management of our port to
+meet requirements expected by VirtualBox. For some internal data
+structures, VirtualBox saves a pointer to a memory location not just
+as absolute pointer, but instead splits this pointer into a
+process-absolute base and a base-local offset. These structures can
+thereby be shared over different protection domains where the base
+pointer typically differs (shared memory attached at different
+addresses). For the Genode port, we actually don't need this shared
+memory features, however we had to recognize that the space for the
+offset value is a signed integer (int32_t). On a 64bit host, this
+feature caused trouble if the distance of two memory pointers was
+larger than 31 bit (2 GiB). Fortunately, each memory-allocation
+request for such data structures comes with a type field, which we can
+use to make sure that all allocations per type are located within a 2
+GiB virtual range.
+
+Finally, we optimized the VM exits marginally and now try to avoid
+entering the emulation mode during a recall VM exit. If we detect that
+an IRQ is pending by the VMM models during the recall VM-exit
+handling, we inject the IRQ directly into the VM instead of changing
+into the VirtualBox emulation mode by default.
+
+Regarding our keen endeavor to enable VirtualBox's guest additions, we
+started by enabling the VMMDev PCI pseudo device, which is the basis
+for VMM-specific hypercalls executed by guest systems. Beside basic
+functions (e.g., software version reporting from host to guest and
+vice versa) also complex communication protocols can be implemented by
+storing request structures in guest-physical memory and passing their
+addresses to the VMMDev request I/O port. The communication mechanism
+in VirtualBox is called host-guest-communication manager (HGCM) and
+provides host services to the enlightened guest-operating system.
+Among the available services, the most interesting service for us was
+support for _shared folders_ to exchange data between Genode and the
+guest OS. Now, we are able to configure shares in VirtualBox, which
+are mapped to VFS directories. For example
+
+! <start name="virtualbox">
+!   ...
+!   <config>
+!     ...
+!     <libc> <vfs> <dir name="ram"> <fs label="ram" /> </vfs> </libc>
+!     <share host="/ram/miezekatze" guest="miezekatze" />
+!     ...
+!   </config>
+!   <route>
+!     <service name="File_system">
+!       <if-arg key="label" value="ram" /> <child name="ram_fs"/>
+!     </service>
+!     ...
+!   </route>
+! </start>
+
+configures one shared folder _miezekatze_, which is backed by a VFS
+mount to a pre-populated RAM file system.
+
+Furthermore, we integrated the guest-pointer device with the
+Nitpicker pointer and connected the real-time clock VMM model to our
+RTC-device driver. Both features are enabled by default and need no
+further configuration. Currently, both Nitpicker and the guest OS
+draw the mouse pointers on screen. We will improve this in the future
+as the guest informs about GUI state via distinct pointer shapes.
+
+During our development, we updated our port to VirtualBox 4.2.24 with the
+rough plan to go for 4.3 during the rest of the year.
+
+
+Ported libraries
+================
+
+We updated OpenSSL to version 1.0.1g, which contains a fix for the
+heart-bleed bug.
+Furthermore, we enabled OpenSSL and curl for the ARM architecture.
+
+
+Device drivers
+##############
+
+USB 3.0 for x86-based platforms
+===============================
+
+Having support for USB 3.0 or XHCI host controllers on the Exynos 5 platform
+since mid 2013, we decided it was about time to enable USB 3.0 on x86 platforms.
+Because XHCI is a standardized interface, which is also exposed by the Exynos 5
+host controller, the enablement was relatively straight forward. The major
+open issue for x86 was the missing connection of the USB controller to the PCI
+bus. For this, we ported the XHCI-PCI part from Linux and connected it with the
+internal-PCI driver of our _dde_linux_ environment. This step enabled basic XHCI
+support for x86 platforms. Unfortunately, there seems not to be a single USB 3.0
+controller without quirks. Thus, we tested some PCI cards and notebooks and
+added controller-specific quirks as needed. These quirks may not cover all current
+production chips though.
+
+We also enabled and tested the HID, storage, and network profiles for USB 3.0,
+where the supported network chip is, as for Exynos 5, the ASIX AX88179
+Gigabit-Ethernet Adapter.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Multi-processor support
+~~~~~~~~~~~~~~~~~~~~~~~
+
+When we started to contemplate the support for symmetric multiprocessing
+within the base-hw kernel, a plenty of fresh influences on this subject
+floated around in our minds. Most notably, the NOVA port of Genode recently obtained
+SMP support in the course of a prototypically comparison of different models
+for inter-processor communication. In addition to the very insightful
+conclusions of this evaluation, our knowledge about other kernel projects and
+their way to SMP went in. In general, this showed us that the subject - if
+addressed too ambitious - may boast lots of complex stabilization problems, and
+coping with them easily draws down SMP efficiency in the aftermath.
+
+Against this backdrop, we decided - as so often in the evolution of the base-hw kernel - to
+pick the easiest-to-reach and easiest-to-grasp solution first with preliminary
+disregard to secondary requirements like scalability. As the base-hw kernel
+is single-threaded on uniprocessor systems, it was obvious to maintain
+one kernel thread per SMP processor and, as far as possible, let them all
+work in a similar way. To moreover keep the code base of the kernel as
+unmodified as possible, while introducing SMP, access to kernel objects get fully
+serialized by one global spin lock. Therewith, we had a very minimalistic
+starting point for what shall emerge on the kernel side.
+
+Likewise, we started with a feature set narrowed to only the essentials on the
+user side, prohibiting thread migration, any kind of inter-processor
+communication, and also the unmapping of dataspaces, as this would have
+raised the need for synchronization of TLBs. While thread migration
+is still an open issue, means of inter-processor communication and MMU
+synchronization were added successively after having the basic work stable.
+
+First of all, the start-up code of the kernel had to be adapted. The simple
+uniprocessor instantiation was split into three phases: At the very beginning,
+the primary processor runs alone and initializes everything that is needed for
+calling a simple C function, which then prepares and performs the activation of
+the other processors. For each processor, the program provides a dedicated
+piece of memory for the local kernel stack to live in. Now each processor
+goes through the second (the asynchronous multiprocessor) phase, initializing
+its local caches and its memory-management unit. This is a basic prerequisite
+for spin locks to behave globally coherent, which also implies that memory
+accesses at this level can't be synchronized. Therefore, the first
+initialization phase prepares everything in such a way, that the second phase
+can be done without writing to global memory. As soon as the processors are
+done with the second phase, they acquire the global spin lock that protects all
+kernel data. This way, all processors consecutively pass the third initialization
+phase that handles all remaining drivers and kernel objects. This is the last
+time the primary processor plays a special role by doing all the work that
+isn't related to processor-local resources. Afterwards the processors can
+proceed to the main function that is called on every kernel pass.
+
+Another main challenge was the mode-transition assembler code path that
+performs both
+transitions from a processor exception to the call of the kernel-main function
+and from the return of the kernel-main function back to the user
+space. As this can't be synchronized, all corresponding data must be provided per
+processor. This brought in additional offset calculations, which were a little
+tricky to achieve without polluting the user state. But after we managed
+to do so, the kernel was already able to handle user threads on different processors
+as long as they didn't interact with each other.
+
+When it came to synchronous and asynchronous inter-processor communication,
+we enjoyed a big benefit of our approach. Due to fully serializing all kernel
+code paths, none of the communication models had changed with SMP. Thanks to the
+cache coherence of ARM hardware, even shared memory amongst processors isn't a
+problem. The only difference is that now a processor may change the schedule of
+another processor by unblocking one of its threads on communication feedback.
+This may rescind the current scheduling choice of the other processor. To
+avoid lags in this case, we let the unaware processor trap into an IPI. As the
+IPI sender doesn't have to wait for an answer, this isn't a big deal neither
+conceptually nor according to performance.
+
+The last problem we had to solve for common Genode scenarios was the coherency
+of the TLB caches. When unmapping a dataspace at one processor, the corresponding
+TLB entries must be invalidated on all processors, which - at least on
+ARM systems - can be done processor-local only. Thus we needed a protocol to
+broadcast the operation. First, we decided to leave it to the user land to
+reserve a worker thread at each processor and synchronize between them. This
+way, we didn't have to modify the kernel back end that was responsible for
+updating the caches back in uniprocessor mode. Unfortunately, the revised memory
+management explained in Section [Sparsely populated core address space]
+relies on unmap operations at the startup of user threads, which led us into a
+chicken-and-egg situation. Therefore, the broadcasting was moved from the user land
+into the kernel. If a user thread now asks the kernel to update TLB caches, the
+kernel blocks the thread and informs all processors. The last processor that
+completes the operation unblocks the user thread. If this unblocking
+happens remotely, the kernel acts exactly the same as described above in the
+user-communication model. This way, the kernel never blocks itself but only the
+thread that requests an MMU update.
+
+Given that all kernel operations are lightweight non-blocking operations, we
+assume that there is little contention for the global kernel lock. So we hope
+that the simple SMP model will perform well for the foreseeable future where
+we will have to accommodate a handful of processors. If this assumption turns
+out to be wrong, or if the kernel should scale to large-scale SMP systems one
+day, we still have the choice to advance to a more sophisticated approach
+without much backpedaling.
+
+
+Sparsely populated core address space
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As the base-hw platform started as an experiment, its memory management was
+built pretty straight forward. All physical memory of the
+corresponding hardware was mapped to the virtual memory-address space of
+the kernel/core one-by-one. This approach comes with several limitations:
+
+* The amount of physical memory that can be used is limited to a maximum
+  of 4GB on 32-bit ARM platforms
+* Several classes of potential memory bugs within base-hw's core may remain
+  undetected (i.e., dangling pointers)
+* A static mapping of the core/kernel code within a dedicated, restricted area
+  of the address space of all tasks is impossible. Although, this might be
+  valuable to minimize runtime overhead of interrupts, and page faults.
+* As all physical RAM is mapped into core/kernel's address space as
+  cacheable memory, in general it is impossible to map a portion of RAM with
+  other caching attributes, as the cache is working with physical addresses
+  on ARM. This caused problems when dealing with DMA memory, or when sharing
+  uncached memory between TrustZone's secure and normal world in the past.
+
+These limitations are resolved as only memory actually used by base-hw's
+core/kernel is mapped on demand now. Moreover, the mapping from physical to
+virtual isn't necessarily one-by-one anymore.
+
+
+NOVA microhypervisor
+====================
+
+In line with most L4 kernels, the NOVA microhypervisor supports
+priority-based round robin scheduling. However, on Genode we did not
+leverage this feature. The reason was simple: We had no use for
+priorities on NOVA until now. This changes when we are heading towards
+using Genode on a daily basis to perform our work. On live Genode
+systems, we want to prioritize particular workloads over others.
+Admittedly, we also wanted to postpone the solution of one challenging
+technical issue beside just enabling priority configuration.
+
+The NOVA kernel supports the creation of threads with and without a
+scheduling context attached. Scheduling contexts define a time
+quantum, a budget, and a priority. The scheduler uses contexts to
+decide which activity runs next on the CPU. Therefore, a thread
+without a scheduling context attached can be executed only if a thread
+with a scheduling context transfers the context during IPC or during
+an exception implicitly for the time of the request. The transfer of
+the scheduling context implicitly defines the thread's current
+priority level. As a consequence, entrypoint threads inherit the
+priority of client threads and may run on completely different
+priority levels than other threads in the same process. Unfortunately,
+the described behavior interferes with the invariant, which is
+required for Genode's yielding spinlock implementation: All threads of one
+process are running at the same priority level. Otherwise, the system
+may end up in a live lock. Although, the user-level yielding spinlock
+implementation is used solely to protect some few instructions in the
+lock implementation, the live-lock bears a high risk for the system.
+
+To overcome this issue in base-nova, we replaced the generic yielding
+spinlock implementation with a NOVA specific helping lock. So,
+lower-priority threads potentially holding the helping-lock get lent
+the scheduling context of a higher-priority lock applicant and thereby
+can finish the critical section. The core idea is to store the identity of the
+lock holder in form of an execution-context capability in the lock
+variable. Other lock applicants use the stored capability and instruct
+the kernel to help the lock holder with their own scheduling context.
+Consequently, the lock-holder thread will run on the budget of the
+scheduling context obtained by the helping thread and, therefore,
+implicitly at the inherited priority level. The lock holder will
+instruct the kernel to pass back the lent scheduling context to the
+applicant when leaving the critical section.
+
+We had to extend the NOVA syscall interface to express that a thread
+wants to pass its current scheduling context explicitly to another
+thread if and only if both threads belong to the same process and CPU.
+On reschedule, the context implicitly returns to the lending thread.
+Additionally, a thread may request an explicit reschedule in order to
+return a lent scheduling context obtained from another thread.
+
+The current solution enables Genode to use of NOVA's static priorities.
+
+Another unrelated NOVA extension is the ability for a thread to yield
+the CPU. The context gets enqueued at the end of the run queue without
+refreshing the left budget.
+
+
+Build system and tools
+######################
+
+Build system
+============
+
+Sometimes software requires custom tools that are used to generate source
+code or other ingredients for the build process, for example IDL compilers.
+Such tools won't be executed on top of Genode but on the host platform
+during the build process. Hence, they must be compiled with the tool chain
+installed on the host, not the Genode tool chain. The Genode build system
+received new support for building such host tools as a side effect of building
+a library or a target.
+
+Even though it is possible to add the tool compilation step to a regular build
+description file, it is recommended to introduce a dedicated pseudo library
+for building such tools.
+This way, the rules for building host tools are kept separate from rules that
+refer to Genode programs. By convention, the pseudo library should be named
+_<package>_host_tools_ and the host tools should be built at
+_<build-dir>/tool/<package>/_. With _<package>_, we refer to the name of the
+software package the tool belongs to, e.g., qt5 or mupdf. To build a tool
+named _<tool>_, the pseudo library contains a custom make rule like the
+following:
+
+! $(BUILD_BASE_DIR)/tool/<package>/<tool>:
+!     $(MSG_BUILD)$(notdir $@)
+!     $(VERBOSE)mkdir -p $(dir $@)
+!     $(VERBOSE)...build commands...
+
+To let the build system trigger the rule, add the custom target to the
+'HOST_TOOLS' variable:
+
+! HOST_TOOLS += $(BUILD_BASE_DIR)/tool/<package>/<tool>
+
+Once the pseudo library for building the host tools is in place, it can be
+referenced by each target or library that relies on the respective tools via
+the 'LIBS' declaration. The tool can be invoked by referring to
+'$(BUILD_BASE_DIR)/tool/<package>/tool'.
+
+For an example of using custom host tools, please refer to the mupdf package
+found within the libports repository. During the build of the mupdf library,
+two custom tools fontdump and cmapdump are invoked. The tools are built via
+the _lib/mk/mupdf_host_tools.mk_ library description file. The actual mupdf
+library (_lib/mk/mupdf.mk_) has the pseudo library 'mupdf_host_tools' listed
+in its 'LIBS' declaration and refers to the tools relative to
+'$(BUILD_BASE_DIR)'.
+
+
+Rump-kernel tools
+=================
+
+During our work on porting the cryptographic-device driver to Genode,
+we identified the need for tools to process block-device and
+file-system images on our development machines. For this purpose, we
+added the rumpkernel-based tools, which are used for preparing and
+populating disk images as well as creating cgd(4)-based cryptographic
+disk devices.
+
+The rump-tool chain can be built (similar to building GCC for Genode)
+by executing _tool/tool_chain_rump build_. Afterwards, the tools can
+be installed via _tool/tool_chain_rump install_ to the default install
+location _/usr/local/genode-rump_. As mentioned in
+[Block-level encryption using CGD], instead of using the tools
+directly, we added the wrapper shell script _tool/rump_.
+
+
