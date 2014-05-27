@@ -359,11 +359,11 @@ namespace Genode {
 					_rcv_pt_cap_free [i] = (i >= max) ? FREE_INVALID : FREE_SEL;
 
 				for (unsigned i = 0; i < rcv_items; i++) {
-					Utcb::Item * item = utcb->get_item(i);
+					Nova::Utcb::Item * item = utcb->get_item(i);
 					if (!item)
 						break;
 
-					Crd cap = Crd(item->crd);
+					Nova::Crd cap(item->crd);
 
 					/* track which items we got mapped */
 					if (!cap.is_null() && item->is_del()) {

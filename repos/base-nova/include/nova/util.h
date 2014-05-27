@@ -33,19 +33,19 @@ inline void request_event_portal(Genode::Native_capability const &cap,
                                  Genode::addr_t sel, Genode::addr_t event,
                                  unsigned short log2_count = 0)
 {
-	using namespace Nova;
-	Utcb *utcb = (Utcb *)Genode::Thread_base::myself()->utcb();
+	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 	/* save original receive window */
-	Crd orig_crd = utcb->crd_rcv;
+	Nova::Crd orig_crd = utcb->crd_rcv;
 
 	/* request event-handler portal */
-	utcb->crd_rcv = Obj_crd(sel, log2_count);
+	utcb->crd_rcv = Nova::Obj_crd(sel, log2_count);
 	utcb->msg[0]  = event;
 	utcb->msg[1]  = log2_count;
 	utcb->set_msg_word(2);
 
-	uint8_t res = call(cap.local_name());
+	Genode::uint8_t res = Nova::call(cap.local_name());
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
@@ -68,18 +68,20 @@ inline void request_signal_sm_cap(Genode::Native_capability const &cap,
 inline void delegate_vcpu_portals(Genode::Native_capability const &cap,
                                   Genode::addr_t sel)
 {
-	using namespace Nova;
-	Utcb *utcb = reinterpret_cast<Utcb *>(Genode::Thread_base::myself()->utcb());
+	Genode::Thread_base * myself = Genode::Thread_base::myself();
+	Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
 	/* save original receive window */
-	Crd orig_crd = utcb->crd_rcv;
+	Nova::Crd orig_crd = utcb->crd_rcv;
 
-	utcb->crd_rcv = Obj_crd();
+	Nova::Obj_crd obj_crd(sel, Nova::NUM_INITIAL_VCPU_PT_LOG2);
+
+	utcb->crd_rcv = Nova::Obj_crd();
 	utcb->set_msg_word(0);
-	uint8_t res = utcb->append_item(Obj_crd(sel, NUM_INITIAL_VCPU_PT_LOG2), 0);
+	Genode::uint8_t res = utcb->append_item(obj_crd, 0);
 	(void)res;
 
-	res = call(cap.local_name());
+	res = Nova::call(cap.local_name());
 
 	/* restore original receive window */
 	utcb->crd_rcv = orig_crd;
