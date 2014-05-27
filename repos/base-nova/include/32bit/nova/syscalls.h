@@ -280,9 +280,9 @@ namespace Nova {
 
 
 	ALWAYS_INLINE
-	inline uint8_t sm_ctrl(unsigned sm, Sem_op op)
+	inline uint8_t sm_ctrl(unsigned sm, Sem_op op, unsigned long long timeout = 0)
 	{
-		return syscall_0(NOVA_SM_CTRL, op, sm);
+		return syscall_2(NOVA_SM_CTRL, op, sm, timeout >> 32, timeout);
 	}
 
 

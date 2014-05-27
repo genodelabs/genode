@@ -209,7 +209,7 @@ Platform::Platform() :
 {
 	Hip  *hip  = (Hip *)__initial_sp;
 	/* check for right API version */
-	if (hip->api_version != 6)
+	if (hip->api_version != 7)
 		nova_die();
 
 	/*

@@ -71,7 +71,7 @@ namespace Nova {
 	enum Status
 	{
 		NOVA_OK             = 0,
-		NOVA_IPC_TIMEOUT    = 1,
+		NOVA_TIMEOUT        = 1,
 		NOVA_IPC_ABORT      = 2,
 		NOVA_INV_HYPERCALL  = 3,
 		NOVA_INV_SELECTOR   = 4,
