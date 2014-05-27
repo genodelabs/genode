@@ -13,7 +13,7 @@ ECHO    := @echo
 help::
 
 prepare:
-	$(VERBOSE)../../tool/ports/prepare_port dde_ipxe CHECK_HASH=no
+	$(VERBOSE)../../tool/ports/prepare_port dde_ipxe
 
 help::
 	$(ECHO)

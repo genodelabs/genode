@@ -13,7 +13,7 @@ ECHO    := @echo
 help::
 
 prepare:
-	$(VERBOSE)../../tool/ports/prepare_port dde_rump CHECK_HASH=no
+	$(VERBOSE)../../tool/ports/prepare_port dde_rump
 
 help::
 	$(ECHO)

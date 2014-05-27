@@ -18,6 +18,6 @@ help:
 	$(ECHO)
 
 prepare:
-	$(VERBOSE)../../tool/ports/prepare_port okl4 CHECK_HASH=no
+	$(VERBOSE)../../tool/ports/prepare_port okl4
 
 clean cleanall:

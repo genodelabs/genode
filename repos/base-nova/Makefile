@@ -14,7 +14,7 @@ ECHO    := @echo
 help::
 
 prepare:
-	$(VERBOSE)../../tool/ports/prepare_port nova CHECK_HASH=no
+	$(VERBOSE)../../tool/ports/prepare_port nova
 
 help::
 	$(ECHO)
