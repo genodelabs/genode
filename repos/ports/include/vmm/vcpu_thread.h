@@ -44,15 +44,15 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 	private:
 
 		Genode::Pd_connection  _pd_session;
-		Genode::Cpu_connection _cpu_session;
+		Genode::Cpu_session   *_cpu_session;
 
 		Genode::addr_t _exc_pt_sel;
 
 	public:
 
-		Vcpu_other_pd()
+		Vcpu_other_pd(Cpu_session * cpu_session)
 		:
-			_pd_session("VM"), _cpu_session("vCPU"),
+			_pd_session("VM"), _cpu_session(cpu_session),
 			_exc_pt_sel(Genode::cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
 		{ }
 
@@ -60,7 +60,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		{
 			using namespace Genode;
 
-			Thread_capability vcpu_vm = _cpu_session.create_thread("vCPU");
+			Thread_capability vcpu_vm = _cpu_session->create_thread("vCPU");
 			
 			/* assign thread to protection domain */
 			_pd_session.bind_thread(vcpu_vm);
@@ -68,14 +68,14 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			/* create new pager object and assign it to the new thread */
 			Pager_capability pager_cap = env()->rm_session()->add_client(vcpu_vm);
 
-			_cpu_session.set_pager(vcpu_vm, pager_cap);
+			_cpu_session->set_pager(vcpu_vm, pager_cap);
 
 			/* tell parent that this will be a vCPU */
 			Thread_state state;
 			state.sel_exc_base = Native_thread::INVALID_INDEX;
 			state.is_vcpu      = true;
 
-			_cpu_session.state(vcpu_vm, state);
+			_cpu_session->state(vcpu_vm, state);
 
 			/*
 			 * Delegate parent the vCPU exception portals required during PD
@@ -84,7 +84,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			delegate_vcpu_portals(pager_cap, exc_base());
 
 			/* start vCPU in separate PD */
-			_cpu_session.start(vcpu_vm, 0, 0);
+			_cpu_session->start(vcpu_vm, 0, 0);
 
 			/*
 			 * Request native EC thread cap and put it next to the
@@ -101,9 +101,9 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread_base
 {
 	public:
 
-		Vcpu_same_pd(size_t stack_size)
+		Vcpu_same_pd(size_t stack_size, Cpu_session * cpu_session)
 		:
-			Thread_base("vCPU", stack_size)
+			Thread_base("vCPU", stack_size, Type::NORMAL, cpu_session)
 		{
 			/* release pre-allocated selectors of Thread */
 			Genode::cap_map()->remove(tid().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);

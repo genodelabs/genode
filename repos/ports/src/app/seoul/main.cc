@@ -912,10 +912,12 @@ class Machine : public StaticReceiver<Machine>
 						Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
 					Vmm::Vcpu_thread * vcpu_thread;
+					Genode::Cpu_session * cpu = Genode::env()->cpu_session();
+
 					if (_colocate_vm_vmm)
-						vcpu_thread = new Vmm::Vcpu_same_pd(Vcpu_dispatcher::STACK_SIZE);
+						vcpu_thread = new Vmm::Vcpu_same_pd(Vcpu_dispatcher::STACK_SIZE, cpu);
 					else
-						vcpu_thread = new Vmm::Vcpu_other_pd();
+						vcpu_thread = new Vmm::Vcpu_other_pd(cpu);
 
 					Vcpu_dispatcher *vcpu_dispatcher =
 						new Vcpu_dispatcher(_motherboard_lock,
