@@ -1,0 +1,36 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for updating the hash file of a port
+# \author Norman Feske
+# \date   2014-05-07
+#
+
+#
+# Determine Genode base directory based on the known location of the
+# 'create_builddir' tool within the Genode source tree
+#
+GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/ports/mk/front_end.inc
+include $(GENODE_DIR)/tool/ports/mk/check_port_arg.inc
+
+usage:
+	@$(ECHO)
+	@$(ECHO) "--- update hash file of a port ---"
+	@$(ECHO) "usage: update_hash <port-name>"
+	@$(ECHO)
+
+include $(PORT)
+
+_DST_HASH_FILE := $(HASH_FILE)
+
+# XXX remove this line when the tool has stabilized
+STRICT_HASH ?= no
+
+include $(GENODE_DIR)/tool/ports/mk/hash.inc
+
+.PHONY: $(_DST_HASH_FILE)
+
+$(TARGET): $(_DST_HASH_FILE)
+

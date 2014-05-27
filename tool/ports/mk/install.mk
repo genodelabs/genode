@@ -41,24 +41,9 @@ _prefer = $(if $1,$1,$2)
 include $(PORT)
 
 #
-# Common environment
+# Include common definitions
 #
-SHELL   := bash
-VERBOSE ?= @
-ECHO    := echo -e
-HASHSUM := sha1sum
-
-BRIGHT_COL  ?= \033[01;33m
-DARK_COL    ?= \033[00;33m
-DEFAULT_COL ?= \033[0m
-
-MSG_PREFIX   := $(ECHO) "$(DARK_COL)$(notdir $(PORT:.port=))  $(DEFAULT_COL)"
-MSG_DOWNLOAD := $(MSG_PREFIX)"download "
-MSG_APPLY    := $(MSG_PREFIX)"apply "
-MSG_UPDATE   := $(MSG_PREFIX)"update "
-MSG_INSTALL  := $(MSG_PREFIX)"install "
-MSG_GENERATE := $(MSG_PREFIX)"generate "
-MSG_EXTRACT  := $(MSG_PREFIX)"extract "
+include $(GENODE_DIR)/tool/ports/mk/common.inc
 
 #
 # Assertion for the presence of a LICENSE and VERSION declarations in the port
@@ -76,9 +61,6 @@ version_undefined:
 	@$(ECHO) "Error: Version undefined"; false
 endif
 
-
-_PATCHES_IN_REP_DIR := $(foreach P,$(PATCHES),$(wildcard $(REP_DIR)/$(P)))
-
 _DST_HASH_FILE := $(notdir $(PORT:.port=)).hash
 
 
@@ -94,30 +76,7 @@ _dirs: $(DOWNLOADS)
 ## Generate the HASH file
 ##
 
-# The hash depends on the content of the port description file and the
-# patches originating from REP_DIR. Patches that are downloaded are already
-# captured by the hash sums of the downloaded files, which are declared in the
-# port description file.
-#
-# During development when the files of MAKEFILE_LIST often change, the
-# keeping all port hashes up to date is an inconvenience. By setting
-# STRICT_HASH to 'no', the MAKEFILE_LIST can be exluded.
-#
-
-HASH_INPUT += $(_PATCHES_IN_REP_DIR) $(PORT)
-ifneq ($(STRICT_HASH),no)
-HASH_INPUT += $(MAKEFILE_LIST)
-endif
-
-$(_DST_HASH_FILE): $(HASH_INPUT) $(MAKEFILE_LIST)
-	@$(MSG_GENERATE)$(notdir $@)
-	$(VERBOSE)cat $(HASH_INPUT) | $(HASHSUM) | sed "s/ .*//" > $@
-
-_check_hash: $(_DST_HASH_FILE)
-ifneq ($(CHECK_HASH),no)
-	$(VERBOSE)diff $< $(HASH_FILE) > /dev/null ||\
-		($(ECHO) "Error: $(_REL_HASH_FILE) is out of date, expected" `cat $<` ""; false)
-endif
+include $(GENODE_DIR)/tool/ports/mk/hash.inc
 
 
 ##

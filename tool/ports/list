@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for listing ports
+# \author Norman Feske
+# \date   2014-05-07
+#
+
+#
+# Determine Genode base directory based on the known location of the
+# 'create_builddir' tool within the Genode source tree
+#
+GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/ports/mk/front_end.inc
+
+usage:
+	@$(ECHO)
+	@$(ECHO) "--- list available ports ---"
+	@$(ECHO) "usage: list"
+	@$(ECHO)
+
+include $(PORT)
+
+$(TARGET):
+	$(VERBOSE)for i in $(sort $(notdir $(_PORTS:.port=))); do\
+		echo $$i; done
