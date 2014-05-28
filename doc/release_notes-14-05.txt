@@ -263,7 +263,7 @@ switching Git branches that use different versions of the same port, the build
 system automatically finds the right port version as expected by the currently
 active branch.
 
-For step-by-step instructions of how to add a port using the new mechanism,
+For step-by-step instructions on how to add a port using the new mechanism,
 please refer to the updated porting guide:
 
 :Genode Porting Guide:
@@ -324,18 +324,18 @@ encrypted data from various operating systems. In our case, we want to
 use the data from Genode as well as from our current development
 platform Linux.
 
-In Genode 14.02, we introduced a port of the NetBSD based rumpkernels
+In Genode 14.02, we introduced a port of the NetBSD based rump kernels
 to leverage file-system implementations, e.g., ext2. Beside file
 systems, NetBSD itself also offers block-level encryption in form of
 its cryptographic disk-driver _cgd(4)_. In line with our roadmap, we
-enabled the cryptographic-device driver in our rumpkernels port as a
-first step to exploring block-level encryption on Genode.
+enabled the cryptographic-device driver in our rump-kernels port as a
+first step to explore block-level encryption on Genode.
 
 :[https://www.netbsd.org/docs/guide/en/chap-cgd.html]:
   NetBSD cryptographic-device driver (CGD)
 
 The heart of our CGD port is the _rump_cgd_ server, which encapsulates
-the rumpkernels and the cgd device. The server uses a block session to
+the rump kernels and the cgd device. The server uses a block session to
 get access to an existing block device and, in return, provides a
 block session to its client. Each block written or read by the client
 is transparently encrypted resp. decrypted by the server with a given
@@ -358,7 +358,7 @@ the moment. Note, the server serves only one client as it
 transparently encrypts/decrypts one back-end block session. Though
 _rump_cgd_ is currently limited with regard to the used cipher and the
 way key input is handled, we plan to extend this
-rumpkernel-based component step by step in the future.
+rump-kernel-based component step by step in the future.
 
 If you want to get some hands on with CGD, the first step is to
 prepare a raw encrypted and ext2-formatted partition image by using
@@ -407,10 +407,10 @@ Currently, the key to access the cryptographically secured device must
 be specified before using the device. Implementing a mechanism which
 asks for the key on the first attempt is in the works.
 
-By using the rumpkernels and the cryptographic-device driver, we are
+By using the rump kernels and the cryptographic-device driver, we are
 able to use block-level encryption on Genode and on Linux.
 In Linux case, we depend on _rumprun_, which can
-run unmodified NetBSD userland tools on top of the rumpkernels to
+run unmodified NetBSD userland tools on top of the rump kernels to
 manage the cgd device. To ease this task, we provide the
 aforementioned _rump_ wrapper script.
 
@@ -473,7 +473,7 @@ an issue if the shell, which is used, is maintaining a history of
 executed commands.
 
 For the sake of completeness let us put all examples together by creating an
-encrypted Ext2 image that will contain all files of Genode's _demo_
+encrypted ext2 image that will contain all files of Genode's _demo_
 scenario:
 
 ! dd if=/dev/urandom of=/tmp/demo.img bs=1M count=16
@@ -491,12 +491,12 @@ this tool can be obtained by running:
 
 ! rump -h
 
-Since _tool/rump_ just utilizes the rumpkernels running on the host
+Since _tool/rump_ just utilizes the rump kernels running on the host
 system to do its duty, there is a script called _tool/rump_cgdconf_
 that extracts the key from a 'cgdconfig(8)' generated configuration
 file and is also able to generate such a file from a given key.
-Thereby, we try accommodate the interoperability between the general
-rumpkernels-based tools and the _rump_cgd_ server used on Genode.
+Thereby, we try to accommodate the interoperability between the general
+rump-kernel-based tools and the _rump_cgd_ server used on Genode.
 
 
 Per-process virtual file systems
@@ -504,7 +504,7 @@ Per-process virtual file systems
 
 Our C runtime served us quite well over the years. At its core, it has a
 flexible plugin architecture that allows us to combine different back ends
-such the lwIP socket API (using libc_lwip_nic_dhcp), using LOG as stdout via
+such as the lwIP socket API (using libc_lwip_nic_dhcp), using LOG as stdout
 (via libc_log), or using a ROM dataspace as a file (via libc_rom). Recently
 however, the original design has started to show its limitations:
 
@@ -551,12 +551,12 @@ types. It is stable and complete enough to run our tool chain to build Genode
 on Genode. Wouldn't it be a good idea to reuse the Noux VFS for the normal
 libc? With the current release cycle, we pursued this line of thoughts.
 
-The first step was transplanting the VFS code from the Noux runtime to an
+The first step was transplanting the VFS code from the Noux runtime to a
 free-standing library. The most substantial
 change was the decoupling of the VFS interfaces from the types provided by
 Noux. All those types had been moved to the VFS library. In the process
 of reshaping the Noux VFS into a library, several existing pseudo file systems
-received a welcome cleanup, and some new ones were added. In particular,
+received a welcome clean-up, and some new ones were added. In particular,
 there is a new "log" file system for writing data to a LOG session, a "rom"
 file system for reading ROM modules, and an "inline" file system for
 reading data defined within the VFS configuration.
@@ -611,7 +611,7 @@ archive (which is obtained from a ROM module named "website.tar"). There
 are two pseudo devices "/dev/log" and "/dev/null", to which the
 "stdin", "stdout", and "stderr" attributes refer. The "log" file system
 consists of a single node that represents a LOG session. The web server
-configuration is supplied inline as part of the config. (Btw, you can
+configuration is supplied inline as part of the configuration. (BTW, you can
 try out a very similar scenario using the 'ports/genode_org.run' script)
 
 The VFS implementation resides at 'os/include/vfs/'. This is where you
@@ -692,11 +692,11 @@ the following minor changes.
 :Framebuffer session:
 
   We simplified the framebuffer-session interface by removing the
-  'Framebuffer::Session::release()' function. This step makes the mode-change
+  'Framebuffer::Session::release()' method. This step makes the mode-change
   protocol consistent with the way the ROM-session interface handles
   ROM-module changes. That is, the client acknowledges the release of its
   current dataspace by requesting a new dataspace via the
-  'Framebuffer::Session::dataspace()' function.
+  'Framebuffer::Session::dataspace()' method.
 
   To enable framebuffer clients to synchronize their operations with the
   display frequency, the session interface received the new 'sync_sigh'
@@ -721,8 +721,8 @@ Ported 3rd-party software
 VirtualBox on NOVA
 ==================
 
-With Genode 14.02, we successfully executed more than seven 
-guest-operating systemsa, including MS Windows 7, on top of Genode/NOVA. Based
+With Genode 14.02, we successfully executed more than seven
+guest-operating systems, including MS Windows 7, on top of Genode/NOVA. Based
 on this proof of concept, we invested significant efforts to stabilize
 and extend our port of VirtualBox during the last three months. We
 also paid attention to user friendliness (i.e., features) by enabling
@@ -732,7 +732,7 @@ Regarding stability, one issue we encountered has been occasional
 synchronization problems during the early VMM bootstrap phase. Several
 internal threads in the VMM are started concurrently, like the timer
 thread, emulation thread (EMT), virtual CPU handler thread, hard-disk
-thread, and user-interface frontend thread. Some of these threads are
+thread, and user-interface front-end thread. Some of these threads are
 favoured regarding their execution over others according to their
 importance. VirtualBox expresses this by host-specific mechanisms like
 priorities and nice levels of the host operating system. For Genode,
@@ -779,7 +779,7 @@ process-absolute base and a base-local offset. These structures can
 thereby be shared over different protection domains where the base
 pointer typically differs (shared memory attached at different
 addresses). For the Genode port, we actually don't need this shared
-memory features, however we had to recognize that the space for the
+memory features, however, we had to recognize that the space for the
 offset value is a signed integer (int32_t). On a 64bit host, this
 feature caused trouble if the distance of two memory pointers was
 larger than 31 bit (2 GiB). Fortunately, each memory-allocation
@@ -852,16 +852,16 @@ USB 3.0 for x86-based platforms
 ===============================
 
 Having support for USB 3.0 or XHCI host controllers on the Exynos 5 platform
-since mid 2013, we decided it was about time to enable USB 3.0 on x86 platforms.
-Because XHCI is a standardized interface, which is also exposed by the Exynos 5
-host controller, the enablement was relatively straight forward. The major
-open issue for x86 was the missing connection of the USB controller to the PCI
-bus. For this, we ported the XHCI-PCI part from Linux and connected it with the
-internal-PCI driver of our _dde_linux_ environment. This step enabled basic XHCI
-support for x86 platforms. Unfortunately, there seems not to be a single USB 3.0
-controller without quirks. Thus, we tested some PCI cards and notebooks and
-added controller-specific quirks as needed. These quirks may not cover all current
-production chips though.
+since mid 2013, we decided it was about time to enable USB 3.0 on x86
+platforms. Because XHCI is a standardized interface, which is also exposed by
+the Exynos 5 host controller, the enablement was relatively straight forward.
+The major open issue for x86 was the missing connection of the USB controller
+to the PCI bus. For this, we ported the XHCI-PCI part from Linux and connected
+it with the internal-PCI driver of our _dde_linux_ environment. This step
+enabled basic XHCI support for x86 platforms. Unfortunately, there seems not
+to be a single USB 3.0 controller without quirks. Thus, we tested some PCI
+cards and notebooks and added controller-specific quirks as needed. These
+quirks may not cover all current production chips though.
 
 We also enabled and tested the HID, storage, and network profiles for USB 3.0,
 where the supported network chip is, as for Exynos 5, the ASIX AX88179
@@ -879,32 +879,32 @@ Multi-processor support
 
 When we started to contemplate the support for symmetric multiprocessing
 within the base-hw kernel, a plenty of fresh influences on this subject
-floated around in our minds. Most notably, the NOVA port of Genode recently obtained
-SMP support in the course of a prototypically comparison of different models
-for inter-processor communication. In addition to the very insightful
+floated around in our minds. Most notably, the NOVA port of Genode recently
+obtained SMP support in the course of a prototypically comparison of different
+models for inter-processor communication. In addition to the very insightful
 conclusions of this evaluation, our knowledge about other kernel projects and
 their way to SMP went in. In general, this showed us that the subject - if
 addressed too ambitious - may boast lots of complex stabilization problems, and
 coping with them easily draws down SMP efficiency in the aftermath.
 
-Against this backdrop, we decided - as so often in the evolution of the base-hw kernel - to
-pick the easiest-to-reach and easiest-to-grasp solution first with preliminary
-disregard to secondary requirements like scalability. As the base-hw kernel
-is single-threaded on uniprocessor systems, it was obvious to maintain
-one kernel thread per SMP processor and, as far as possible, let them all
-work in a similar way. To moreover keep the code base of the kernel as
-unmodified as possible, while introducing SMP, access to kernel objects get fully
-serialized by one global spin lock. Therewith, we had a very minimalistic
+Against this backdrop, we decided - as so often in the evolution of the base-hw
+kernel - to pick the easiest-to-reach and easiest-to-grasp solution first with
+preliminary disregard to secondary requirements like scalability. As the
+base-hw kernel is single-threaded on uniprocessor systems, it was obvious to
+maintain one kernel thread per SMP processor and, as far as possible, let them
+all work in a similar way. To moreover keep the code base of the kernel as
+unmodified as possible while introducing SMP, access to kernel objects get
+fully serialized by one global spin lock. Therewith, we had a very minimalistic
 starting point for what shall emerge on the kernel side.
 
 Likewise, we started with a feature set narrowed to only the essentials on the
 user side, prohibiting thread migration, any kind of inter-processor
 communication, and also the unmapping of dataspaces, as this would have
 raised the need for synchronization of TLBs. While thread migration
-is still an open issue, means of inter-processor communication and MMU
-synchronization were added successively after having the basic work stable.
+is still an open issue, means of inter-processor communication and TLB
+synchronization were added successively after having the basics work stable.
 
-First of all, the start-up code of the kernel had to be adapted. The simple
+First of all, the startup code of the kernel had to be adapted. The simple
 uniprocessor instantiation was split into three phases: At the very beginning,
 the primary processor runs alone and initializes everything that is needed for
 calling a simple C function, which then prepares and performs the activation of
@@ -917,58 +917,59 @@ accesses at this level can't be synchronized. Therefore, the first
 initialization phase prepares everything in such a way, that the second phase
 can be done without writing to global memory. As soon as the processors are
 done with the second phase, they acquire the global spin lock that protects all
-kernel data. This way, all processors consecutively pass the third initialization
-phase that handles all remaining drivers and kernel objects. This is the last
-time the primary processor plays a special role by doing all the work that
-isn't related to processor-local resources. Afterwards the processors can
-proceed to the main function that is called on every kernel pass.
+kernel data. This way, all processors consecutively pass the third
+initialization phase that handles all remaining drivers and kernel objects.
+This is the last time the primary processor plays a special role by doing all
+the work that isn't related to processor-local resources. Afterwards the
+processors can proceed to the main function that is called on every kernel
+pass.
 
 Another main challenge was the mode-transition assembler code path that
 performs both
 transitions from a processor exception to the call of the kernel-main function
 and from the return of the kernel-main function back to the user
-space. As this can't be synchronized, all corresponding data must be provided per
-processor. This brought in additional offset calculations, which were a little
-tricky to achieve without polluting the user state. But after we managed
-to do so, the kernel was already able to handle user threads on different processors
-as long as they didn't interact with each other.
+space. As this can't be synchronized, all corresponding data must be provided
+per processor. This brought in additional offset calculations, which were a
+little tricky to achieve without polluting the user state. But after we managed
+to do so, the kernel was already able to handle user threads on different
+processors as long as they didn't interact with each other.
 
 When it came to synchronous and asynchronous inter-processor communication,
 we enjoyed a big benefit of our approach. Due to fully serializing all kernel
-code paths, none of the communication models had changed with SMP. Thanks to the
-cache coherence of ARM hardware, even shared memory amongst processors isn't a
-problem. The only difference is that now a processor may change the schedule of
-another processor by unblocking one of its threads on communication feedback.
-This may rescind the current scheduling choice of the other processor. To
-avoid lags in this case, we let the unaware processor trap into an IPI. As the
-IPI sender doesn't have to wait for an answer, this isn't a big deal neither
-conceptually nor according to performance.
+code paths, none of the communication models had changed with SMP. Thanks to
+the cache coherence of ARM hardware, even shared memory amongst processors
+isn't a problem. The only difference is that now a processor may change the
+schedule of another processor by unblocking one of its threads on communication
+feedback. This may rescind the current scheduling choice of the other
+processor. To avoid lags in this case, we let the unaware processor trap into
+an IPI. As the IPI sender doesn't have to wait for an answer, this isn't a big
+deal neither conceptually nor according to performance.
 
 The last problem we had to solve for common Genode scenarios was the coherency
-of the TLB caches. When unmapping a dataspace at one processor, the corresponding
+of the TLBs. When unmapping a dataspace at one processor, the corresponding
 TLB entries must be invalidated on all processors, which - at least on
 ARM systems - can be done processor-local only. Thus we needed a protocol to
 broadcast the operation. First, we decided to leave it to the user land to
 reserve a worker thread at each processor and synchronize between them. This
 way, we didn't have to modify the kernel back end that was responsible for
-updating the caches back in uniprocessor mode. Unfortunately, the revised memory
-management explained in Section [Sparsely populated core address space]
+updating the caches back in uniprocessor mode. Unfortunately, the revised
+memory management explained in Section [Sparsely populated core address space]
 relies on unmap operations at the startup of user threads, which led us into a
-chicken-and-egg situation. Therefore, the broadcasting was moved from the user land
-into the kernel. If a user thread now asks the kernel to update TLB caches, the
-kernel blocks the thread and informs all processors. The last processor that
-completes the operation unblocks the user thread. If this unblocking
-happens remotely, the kernel acts exactly the same as described above in the
-user-communication model. This way, the kernel never blocks itself but only the
-thread that requests an MMU update.
+chicken-and-egg situation. Therefore, the broadcasting was moved from the
+userland into the kernel. If a user thread now asks the kernel to update the
+TLBs, the kernel blocks the thread and informs all processors. The last
+processor that completes the operation unblocks the user thread. If this
+unblocking happens remotely, the kernel acts exactly the same as described
+above in the user-communication model. This way, the kernel never blocks itself
+but only the thread that requests a TLB update.
 
 Given that all kernel operations are lightweight non-blocking operations, we
 assume that there is little contention for the global kernel lock. So we hope
 that the simple SMP model will perform well for the foreseeable future where
-we will have to accommodate a handful of processors. If this assumption turns
-out to be wrong, or if the kernel should scale to large-scale SMP systems one
-day, we still have the choice to advance to a more sophisticated approach
-without much backpedaling.
+we will have to accommodate only a handful of processors. If this assumption
+turns out to be wrong, or if the kernel should scale to large-scale SMP
+systems one day, we still have the choice to advance to a more sophisticated
+approach without much backpedaling.
 
 
 Sparsely populated core address space
@@ -1048,7 +1049,7 @@ On reschedule, the context implicitly returns to the lending thread.
 Additionally, a thread may request an explicit reschedule in order to
 return a lent scheduling context obtained from another thread.
 
-The current solution enables Genode to use of NOVA's static priorities.
+The current solution enables Genode to make use of NOVA's static priorities.
 
 Another unrelated NOVA extension is the ability for a thread to yield
 the CPU. The context gets enqueued at the end of the run queue without
@@ -1098,7 +1099,7 @@ the 'LIBS' declaration. The tool can be invoked by referring to
 For an example of using custom host tools, please refer to the mupdf package
 found within the libports repository. During the build of the mupdf library,
 two custom tools fontdump and cmapdump are invoked. The tools are built via
-the _lib/mk/mupdf_host_tools.mk_ library description file. The actual mupdf
+the _lib/mk/mupdf_host_tools.mk_ library-description file. The actual mupdf
 library (_lib/mk/mupdf.mk_) has the pseudo library 'mupdf_host_tools' listed
 in its 'LIBS' declaration and refers to the tools relative to
 '$(BUILD_BASE_DIR)'.
@@ -1110,7 +1111,7 @@ Rump-kernel tools
 During our work on porting the cryptographic-device driver to Genode,
 we identified the need for tools to process block-device and
 file-system images on our development machines. For this purpose, we
-added the rumpkernel-based tools, which are used for preparing and
+added the rump-kernel-based tools, which are used for preparing and
 populating disk images as well as creating cgd(4)-based cryptographic
 disk devices.
 
@@ -1120,5 +1121,3 @@ be installed via _tool/tool_chain_rump install_ to the default install
 location _/usr/local/genode-rump_. As mentioned in
 [Block-level encryption using CGD], instead of using the tools
 directly, we added the wrapper shell script _tool/rump_.
-
-
