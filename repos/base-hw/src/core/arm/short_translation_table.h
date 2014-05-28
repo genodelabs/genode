@@ -394,10 +394,10 @@ class Arm::Section_table
 			 */
 			static bool valid(access_t & v) { return type(v) != FAULT; }
 
-			static inline Type align(addr_t vo, size_t size)
+			static inline Type align(addr_t vo, addr_t pa, size_t size)
 			{
-				return ((vo & VIRT_OFFSET_MASK) || size < VIRT_SIZE)
-				       ? PAGE_TABLE : SECTION;
+				return ((vo & VIRT_OFFSET_MASK) || (pa & VIRT_OFFSET_MASK) ||
+				        size < VIRT_SIZE) ? PAGE_TABLE : SECTION;
 			}
 		};
 
@@ -588,7 +588,7 @@ class Arm::Section_table
 				             & Descriptor::VIRT_BASE_MASK;
 
 				/* decide granularity of entry that can be inserted */
-				switch (Descriptor::align(vo, size)) {
+				switch (Descriptor::align(vo, pa, size)) {
 
 				case Descriptor::SECTION:
 					{
