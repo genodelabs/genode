@@ -1,4 +1,5 @@
 # Tested for nova 64bit solely.
+assert_spec nova
 assert_spec 64bit
  
 set use_vdi 1
@@ -27,6 +28,10 @@ source ${genode_dir}/repos/ports/run/virtualbox_auto.inc
 
 run_genode_until "vbox_auto_test_helper is done." 20
 exec kill [exp_pid −i $spawn_id]
+
+# reset values used before
+set build_components { }
+set boot_modules { }
 
 set config_of_app {
 	<start name="vbox">

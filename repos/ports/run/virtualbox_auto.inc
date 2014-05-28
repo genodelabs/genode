@@ -5,7 +5,7 @@ if {[is_qemu_available]} {
 	exit
 }
 
-set build_components {
+append build_components {
 	core init virtualbox 
 	server/part_blk
 	server/rump_fs
@@ -122,7 +122,7 @@ append config {
 
 install_config $config
 
-set boot_modules {
+append boot_modules {
 	core init timer
 	part_blk ahci
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so

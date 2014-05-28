@@ -3,8 +3,9 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
-static char buf[256];
+static char buf[128 * 1024];
 
 int main(int argc, char **argv)
 {
@@ -22,8 +23,18 @@ int main(int argc, char **argv)
 		return 1;
 
 	while ((len = read(fd_src, buf, sizeof(buf))) > 0) {
-		write(fd_dst, buf, len);
-		sum += len;
+		while (len) {
+			ssize_t written = write(fd_dst, buf, len);
+			len -= written;
+			sum += written;
+
+			if (written > 0 && len >= 0)
+				continue;
+
+			PERR("could not write whole file - %zu %zu %d\n",
+			     sum, written, errno);
+			return -1;
+		}
 	}
 	close(fd_src);
 	close(fd_dst);
