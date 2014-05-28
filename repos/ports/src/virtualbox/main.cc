@@ -211,11 +211,11 @@ int main()
 			Xml_node::Attribute share_dir_host  = node.attribute("host");
 			Xml_node::Attribute share_dir_guest = node.attribute("guest");
 
-			char * dir_host  = new char[share_dir_host.value_size()];
-			char * dir_guest = new char[share_dir_guest.value_size()];
+			char * dir_host  = new char[share_dir_host.value_size() + 1];
+			char * dir_guest = new char[share_dir_guest.value_size() + 1];
 
-			share_dir_host.value(dir_host, share_dir_host.value_size());
-			share_dir_guest.value(dir_guest, share_dir_guest.value_size());
+			share_dir_host.value(dir_host, share_dir_host.value_size() + 1);
+			share_dir_guest.value(dir_guest, share_dir_guest.value_size() + 1);
 
 			args.add("-share"); args.add(dir_host), args.add(dir_guest);
 			shares ++;
