@@ -232,7 +232,7 @@ The DosBox port can now be prepared by executing
 
 However, we get the following error message:
 
-  Error: <rep-dir>/ports/dosbox.port is out of date, expected <fingerprint>
+! Error: <rep-dir>/ports/dosbox.port is out of date, expected <fingerprint>
 
 We get this message because we had specified the "dummy" hash value in
 the _dosbox.hash_ file. The prepare_port tool computes a fingerprint
