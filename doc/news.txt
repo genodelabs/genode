@@ -4,6 +4,38 @@
                                ===========
 
 
+Genode OS Framework release 14.05 | 2014-05-29
+##############################################
+
+| Version 14.05 greatly improves the way 3rd-party software can be combined
+| with the framework, VirtualBox on NOVA received guest-additions support,
+| there is a new block-encryption facility, and our custom base-hw kernel
+| became able to use multiple processors.
+
+Genode-based system scenarios combine the software of up to 70 different
+open-source projects, which presents the user with the challenge to keep those
+software ports consistent with the framework. The new version comes with new
+tools and build-system improvements, which make the porting and use of such
+3rd-party software easier than ever and pave the ground to scale
+Genode-based systems far beyond the current state.
+
+The second focus of the release cycle was the enhancement of the platform
+support for NOVA on the x86 architecture and for our custom
+kernel on the ARM architecture. The latter received multi-processor
+support and a new memory management concept. For NOVA, we enabled the use of
+real-time priorities and continued our line of work with running VirtualBox
+on this kernel by adding support for guest additions such as file systems
+shared between Genode and the guest OS.
+
+Furthermore, we added a new component for block-level encryption
+based on NetBSD's cryptographic device driver and enabled USB 3.0 on
+x86-based platforms.
+
+More information about all the changes is provided in our detailed
+[http:/documentation/release-notes/14.05 - release documentation of version 14.05...]
+
+
+
 An Exploration of ARM TrustZone Technology | 2014-04-10
 #######################################################
 
