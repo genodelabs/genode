@@ -17,7 +17,7 @@
 
 _PATCHES_IN_REP_DIR := $(foreach P,$(PATCHES),$(wildcard $(REP_DIR)/$(P)))
 
-HASH_INPUT += $(_PATCHES_IN_REP_DIR) $(PORT)
+HASH_INPUT += $(sort $(_PATCHES_IN_REP_DIR)) $(PORT)
 ifneq ($(STRICT_HASH),no)
 HASH_INPUT += $(MAKEFILE_LIST)
 endif
