@@ -158,8 +158,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 
 	if (handler)
 		handler(arg_type, arg_keycode, arg_ax, arg_ay, arg_rx, arg_ry);
-		printk("EVENT: t: %x c: %x ax: %d ay %d rx: %d ry %d\n",
-		       arg_type, arg_keycode, arg_ax, arg_ay, arg_rx, arg_ry);
+
 #if DEBUG_EVDEV
 	printk("event[%ld]. dev: %s, type: %d, code: %d, value: %d\n",
 	       count++, handle->dev->name, type, code, value);

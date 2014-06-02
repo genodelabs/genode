@@ -700,6 +700,12 @@ void *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
 }
 
 
+void *devm_ioremap_resource(struct device *dev, struct resource *res)
+{
+	return _ioremap(res->start, res->end - res->start, 0);
+}
+
+
 void *phys_to_virt(unsigned long address)
 {
 	return (void *)Malloc::dma()->virt_addr(address);
@@ -846,15 +852,10 @@ void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp)
 }
 
 
-void *platform_get_drvdata(const struct platform_device *pdev)
+void *dev_get_platdata(const struct device *dev)
 {
-	return pdev->data;
-}
-
-
-void platform_set_drvdata(struct platform_device *pdev, void *data)
-{
-	pdev->data = data;
+	PDBG("called");
+	return (void *)dev->platform_data;
 }
 
 
@@ -1226,4 +1227,72 @@ u8 mii_resolve_flowctrl_fdx(u16 lcladv, u16 rmtadv)
 	 return cap;
 }
 
+int mii_link_ok (struct mii_if_info *mii)
+{
+	/* first, a dummy read, needed to latch some MII phys */
+	mii->mdio_read(mii->dev, mii->phy_id, MII_BMSR);
+	if (mii->mdio_read(mii->dev, mii->phy_id, MII_BMSR) & BMSR_LSTATUS)
+	        return 1;
+	return 0;
+}
 
+
+unsigned int mii_check_media (struct mii_if_info *mii,
+                              unsigned int ok_to_print,
+                              unsigned int init_media)
+{
+	if (mii_link_ok(mii))
+		netif_carrier_on(mii->dev);
+	else
+		netif_carrier_off(mii->dev);
+	return 0;
+}
+
+
+/******************
+ ** linux/log2.h **
+ ******************/
+
+
+int rounddown_pow_of_two(u32 n)
+{
+	return 1U << Genode::log2(n);
+}
+
+
+/******************
+ ** linux/wait.h **
+ ******************/
+
+void init_waitqueue_head(wait_queue_head_t *q)
+{
+	q->q = 0;
+}
+
+
+void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	if (q->q) {
+		PERR("Non-empty wait queue");
+		return;
+	}
+
+	q->q = wait;
+}
+
+
+void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
+{
+	if (q->q != wait) {
+		PERR("Remove unkown element from wait queue");
+		return;
+	}
+
+	q->q = 0;
+}
+
+
+int waitqueue_active(wait_queue_head_t *q)
+{
+	return q->q ? 1 : 0;
+}

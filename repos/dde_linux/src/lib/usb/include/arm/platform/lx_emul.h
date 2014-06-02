@@ -31,7 +31,6 @@ struct platform_device
 	struct device    dev;
 	u32              num_resources;
 	struct resource *resource;
-	void            *data;
 };
 
 
@@ -162,13 +161,34 @@ enum { GPIOF_OUT_INIT_HIGH = 0x2 };
 
 bool gpio_is_valid(int);
 void gpio_set_value_cansleep(unsigned, int);
-int gpio_request_one(unsigned, unsigned long, const char *);
+int  gpio_request_one(unsigned, unsigned long, const char *);
+
+int devm_gpio_request_one(struct device *dev, unsigned gpio,
+                          unsigned long flags, const char *label);
+
+
+
 
 /****************
  ** linux/of.h **
  ****************/
 
 #define of_match_ptr(ptr) NULL
+
+unsigned of_usb_get_maximum_speed(struct device_node *np);
+unsigned of_usb_get_dr_mode(struct device_node *np);
+int      of_device_is_compatible(const struct device_node *device,
+                                 const char *);
+
+
+/*************************
+ ** linux/of_platform.h **
+ *************************/
+
+struct of_dev_auxdata;
+
+int of_platform_populate(struct device_node *, const struct of_device_id *,
+                         const struct of_dev_auxdata *, struct device *);
 
 
 /*********************
@@ -267,5 +287,20 @@ int claim_fiq(struct fiq_handler *f);
 void set_fiq_regs(struct pt_regs const *regs);
 void enable_fiq();
 void set_fiq_handler(void *start, unsigned int length);
+
+
+/************************************
+ ** /linux/usb/usb_phy_gen_xceiv.h **
+ ************************************/
+
+
+struct usb_phy_gen_xceiv_platform_data
+{
+ unsigned type;
+ int      gpio_reset;
+};
+
+#include <linux/usb/ch9.h>
+#include <linux/usb/phy.h>
 
 #endif /* _ARM__PLATFORM__LX_EMUL_H_ */

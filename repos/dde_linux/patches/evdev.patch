@@ -1,7 +1,14 @@
-diff -r 2949c3919d29 drivers/input/evdev.c
---- a/drivers/input/evdev.c	Mon Apr 22 16:19:56 2013 +0200
-+++ b/drivers/input/evdev.c	Mon Apr 22 16:20:32 2013 +0200
-@@ -1008,6 +1008,9 @@
+commit a30968815ec1e4967a6c531744b2788f2c25e675
+Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date:   Mon Jun 2 13:25:03 2014 +0200
+
+    evdev.patch
+
+diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
+index ce953d8..6263984 100644
+--- a/drivers/input/evdev.c
++++ b/drivers/input/evdev.c
+@@ -1168,6 +1168,9 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,
  	if (error)
  		goto err_cleanup_evdev;
  
@@ -11,7 +18,7 @@ diff -r 2949c3919d29 drivers/input/evdev.c
  	return 0;
  
   err_cleanup_evdev:
-@@ -1040,8 +1043,7 @@
+@@ -1200,8 +1203,7 @@ static const struct input_device_id evdev_ids[] = {
  MODULE_DEVICE_TABLE(input, evdev_ids);
  
  static struct input_handler evdev_handler = {

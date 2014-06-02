@@ -273,7 +273,7 @@ static void omap_ehci_init()
 }
 
 
-extern "C" void module_ehci_hcd_init();
+extern "C" void module_ehci_omap_init();
 extern "C" int  module_usbnet_init();
 extern "C" int  module_smsc95xx_driver_init();
 
@@ -289,7 +289,7 @@ void platform_hcd_init(Services *services)
 	}
 
 	/* register EHCI controller */
-	module_ehci_hcd_init();
+	module_ehci_omap_init();
 
 	/* initialize EHCI */
 	omap_ehci_init();
@@ -313,7 +313,7 @@ void platform_hcd_init(Services *services)
 	static u64 dma_mask = ~(u64)0;
 	pdev->dev.dma_mask = &dma_mask;
 	pdev->dev.coherent_dma_mask = ~0;
-
+	PDBG("register platform device");
 	platform_device_register(pdev);
 }
 

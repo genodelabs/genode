@@ -1,7 +1,14 @@
-diff -r d30e545c9a57 drivers/net/usb/smsc95xx.c
---- a/drivers/net/usb/smsc95xx.c	Mon Apr 22 16:19:09 2013 +0200
-+++ b/drivers/net/usb/smsc95xx.c	Mon Apr 22 16:19:46 2013 +0200
-@@ -1714,7 +1714,13 @@
+commit e3804842c60157bab0d5bf2daa42f99ec3f8499d
+Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date:   Mon Jun 2 13:24:37 2014 +0200
+
+    csum.patch
+
+diff --git a/drivers/net/usb/smsc95xx.c b/drivers/net/usb/smsc95xx.c
+index 424db65..5eb8ac7 100644
+--- a/drivers/net/usb/smsc95xx.c
++++ b/drivers/net/usb/smsc95xx.c
+@@ -1716,7 +1716,13 @@ static int smsc95xx_resume(struct usb_interface *intf)
  
  static void smsc95xx_rx_csum_offload(struct sk_buff *skb)
  {

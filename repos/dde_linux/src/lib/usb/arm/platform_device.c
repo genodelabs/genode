@@ -21,6 +21,8 @@ static int platform_match(struct device *dev, struct device_driver *drv)
 	if (!dev->name)
 		return 0;
 
+
+	printk("MATCH %s %s\n", dev->name, drv->name);
 	return (strcmp(dev->name, drv->name) == 0);
 }
 
@@ -47,6 +49,7 @@ int platform_driver_register(struct platform_driver *drv)
 	if (drv->probe)
 		drv->driver.probe = platform_drv_probe;
 
+	printk("Register: %s\n", drv->driver.name);
 	return driver_register(&drv->driver);
 }
 
@@ -102,9 +105,9 @@ int platform_device_register(struct platform_device *pdev)
 {
 	pdev->dev.bus  = &platform_bus_type;
 	pdev->dev.name = pdev->name;
-	/* XXX: Fill with magic value to see page fault */
+	/*Set parent to ourselfs */
 	if (!pdev->dev.parent)
-		pdev->dev.parent = (struct device *)0xaaaaaaaa;
+		pdev->dev.parent = &pdev->dev;
 	device_add(&pdev->dev);
 	return 0;
 }
@@ -169,3 +172,17 @@ int platform_device_add_resources(struct platform_device *pdev,
 	pdev->num_resources = num;
 	return 0;
 }
+
+
+void *platform_get_drvdata(const struct platform_device *pdev)
+{
+	return dev_get_drvdata(&pdev->dev);
+}
+
+
+void platform_set_drvdata(struct platform_device *pdev, void *data)
+{
+	dev_set_drvdata(&pdev->dev, data);
+}
+
+

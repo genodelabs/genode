@@ -218,6 +218,8 @@ typedef int            pid_t;
 typedef unsigned       fmode_t;
 typedef u32            uid_t;
 typedef u32            gid_t;
+typedef unsigned       kuid_t;
+typedef unsigned       kgid_t;
 typedef long           __kernel_time_t;
 typedef unsigned short umode_t;
 typedef __u16          __be16;
@@ -246,6 +248,13 @@ typedef unsigned long u_long;
 typedef uint8_t       u_int8_t;
 typedef uint16_t      u_int16_t;
 typedef uint32_t      u_int32_t;
+
+
+#define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
+#define BITS_TO_LONGS(nr)       DIV_ROUND_UP(nr, 8 * sizeof(long))
+#define DECLARE_BITMAP(name,bits) \
+	unsigned long name[BITS_TO_LONGS(bits)]
+
 
 #include <linux/usb/storage.h>
 
@@ -279,6 +288,7 @@ typedef uint32_t      u_int32_t;
 
 #undef __unused
 
+#define __printf(a, b) __attribute__((format(printf, a, b)))
 
 /***********************
  ** linux/irqreturn.h **
@@ -480,6 +490,9 @@ long PTR_ERR(const void *ptr);
 static inline long IS_ERR_OR_NULL(const void *ptr) {
 	return !ptr || IS_ERR(ptr); }
 
+static inline void *ERR_PTR(long error) {
+	return (void *) error;
+}
 
 /*******************
  ** linux/major.h **
@@ -646,6 +659,7 @@ static inline unsigned num_online_cpus(void) { return 1U; }
 
 int ilog2(u32 n);
 int  roundup_pow_of_two(u32 n);
+int  rounddown_pow_of_two(u32 n);
 
 
 /********************
@@ -677,6 +691,11 @@ void print_hex_dump(const char *level, const char *prefix_str,
 bool printk_ratelimit();
 bool printk_timed_ratelimit(unsigned long *, unsigned int);
 
+struct va_format
+{
+	const char *fmt;
+	va_list *va;
+};
 
 /**********************************
  ** linux/bitops.h, asm/bitops.h **
@@ -784,6 +803,7 @@ int isprint(int);
  ******************/
 
 #define __init
+#define __initconst
 #define __initdata
 #define __devinit
 #define __devinitconst
@@ -809,6 +829,7 @@ int isprint(int);
 #define MODULE_PARM_DESC(x, y)
 //#define MODULE_ALIAS_MISCDEV(x)  /* needed by agp/backend.c */
 #define MODULE_ALIAS(x)
+#define MODULE_SOFTDEP(x)
 
 #define THIS_MODULE 0
 
@@ -926,6 +947,15 @@ int  mutex_lock_interruptible(struct mutex *m);
 #define DEFINE_MUTEX(mutexname) struct mutex mutexname = { NULL };
 
 
+/***********************
+ ** linux/semaphore.h **
+ ***********************/
+
+struct semaphore;
+
+void down(struct semaphore *sem);
+
+
 /*******************
  ** linux/rwsem.h **
  *******************/
@@ -980,7 +1010,7 @@ enum {
 	CLOCK_MONOTONIC = 1,
 	NSEC_PER_USEC   = 1000L,
 	NSEC_PER_MSEC   = 1000000L,
-	NSEC_PER_SEC    = 1000 * NSEC_PER_MSEC,
+	NSEC_PER_SEC    = 1000L * NSEC_PER_MSEC,
 };
 
 
@@ -1006,7 +1036,7 @@ static inline ktime_t ktime_get(void)
 
 static inline ktime_t ktime_set(const long sec, const unsigned long nsec)
 {
-	return (ktime_t){ .tv64 = (s64)sec * NSEC_PER_SEC + nsec /* ns */ };
+	return (ktime_t){ .tv64 = (s64)sec * NSEC_PER_SEC + (s64)nsec /* ns */ };
 }
 
 static inline ktime_t ktime_add(const ktime_t a, const ktime_t b)
@@ -1148,6 +1178,8 @@ struct workqueue_struct { };
 
 bool queue_delayed_work(struct workqueue_struct *,
                         struct delayed_work *, unsigned long);
+bool cancel_delayed_work(struct delayed_work *);
+
 
 /* needed for 'dwc_common_linux.c' */
 struct workqueue_struct *create_singlethread_workqueue(char *n);
@@ -1161,11 +1193,6 @@ bool queue_work(struct workqueue_struct *wq, struct work_struct *work);
  ** linux/wait.h **
  ******************/
 
-typedef struct wait_queue_head { int dummy; } wait_queue_head_t;
-
-void init_waitqueue_head(wait_queue_head_t *q);
-
-#define __WAIT_QUEUE_HEAD_INITIALIZER(name) { 0 }
 
 typedef struct wait_queue { int dummy; } wait_queue_t;
 
@@ -1174,6 +1201,11 @@ typedef struct wait_queue { int dummy; } wait_queue_t;
 #define DECLARE_WAITQUEUE(name, tsk) \
 	wait_queue_t name = __WAIT_QUEUE_INITIALIZER(name, tsk)
 
+typedef struct wait_queue_head { struct wait_queue *q; } wait_queue_head_t;
+
+void init_waitqueue_head(wait_queue_head_t *q);
+
+#define __WAIT_QUEUE_HEAD_INITIALIZER(name) { 0 }
 #define DECLARE_WAIT_QUEUE_HEAD(name) \
 	wait_queue_head_t name = __WAIT_QUEUE_HEAD_INITIALIZER(name)
 
@@ -1182,6 +1214,7 @@ typedef struct wait_queue { int dummy; } wait_queue_t;
 void __wake_up();
 void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
 void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
+int  waitqueue_active(wait_queue_head_t *q);
 
 #define wake_up(x) __wake_up()
 #define wake_up_all(x) __wake_up()
@@ -1332,6 +1365,11 @@ int atomic_notifier_chain_unregister(struct atomic_notifier_head *nh,
  ** linux/scatterlist.h **
  *************************/
 
+enum {
+	SG_MITER_TO_SG   = 2,
+	SG_MITER_FROM_SG = 4,
+};
+
 struct scatterlist {
 	unsigned long page_link;
 	unsigned int  offset;
@@ -1346,10 +1384,29 @@ struct sg_table
 	unsigned int nents;       /* number of mapped entries */
 };
 
+struct sg_page_iter
+{
+	struct scatterlist *sg;
+};
+
+struct sg_mapping_iter
+{
+	void               *addr;
+	size_t              length;
+
+	struct sg_page_iter piter;
+};
+
+void sg_init_table(struct scatterlist *, unsigned int);
+void sg_set_buf(struct scatterlist *sg, const void *buf, unsigned int buflen);
+void sg_set_page(struct scatterlist *sg, struct page *page,
+                 unsigned int len, unsigned int offset);
+
 struct page        *sg_page(struct scatterlist *sg);
 void               *sg_virt(struct scatterlist *sg);
 struct scatterlist *sg_next(struct scatterlist *);
 
+int    sg_nents(struct scatterlist *sg);
 size_t sg_copy_from_buffer(struct scatterlist *sgl, unsigned int nents,
                            void *buf, size_t buflen);
 size_t sg_copy_to_buffer(struct scatterlist *sgl, unsigned int nents,
@@ -1360,6 +1417,12 @@ size_t sg_copy_to_buffer(struct scatterlist *sgl, unsigned int nents,
 
 #define sg_dma_address(sg) ((sg)->dma_address)
 #define sg_dma_len(sg)     ((sg)->length)
+
+void sg_miter_start(struct sg_mapping_iter *miter, struct scatterlist *sgl,
+                    unsigned int nents, unsigned int flags);
+bool sg_miter_skip(struct sg_mapping_iter *miter, off_t offset);
+bool sg_miter_next(struct sg_mapping_iter *miter);
+void sg_miter_stop(struct sg_mapping_iter *miter);
 
 
 /******************
@@ -1420,8 +1483,21 @@ struct bin_attribute {
 	.store = _store, \
 }
 
+#define __ATTRIBUTE_GROUPS(_name)                               \
+static const struct attribute_group *_name##_groups[] = {       \
+        &_name##_group,                                         \
+        NULL,                                                   \
+}
+
+#define ATTRIBUTE_GROUPS(_name)                                 \
+static const struct attribute_group _name##_group = {           \
+        .attrs = _name##_attrs,                                 \
+};                                                              \
+__ATTRIBUTE_GROUPS(_name)
+
 #define __ATTR_NULL { .attr = { .name = NULL } }
 #define __ATTR_RO(name) __ATTR_NULL
+#define __ATTR_RW(name) __ATTR_NULL
 
 static const char* modalias = "";
 
@@ -1508,11 +1584,15 @@ bool device_can_wakeup(struct device *dev);
 #define dev_WARN(dev, format, arg...) dde_kit_printf("dev_WARN: "  format, ## arg)
 #define dev_err( dev, format, arg...) dde_kit_printf("dev_error: " format, ## arg)
 #define dev_notice(dev, format, arg...) dde_kit_printf("dev_notice: " format, ## arg)
+#define dev_dbg_ratelimited(dev, format, arg...)
+
 
 #if DEBUG_PRINTK
 #define dev_dbg(dev, format, arg...) dde_kit_printf("dev_dbg: " format, ## arg)
+#define dev_vdbg(dev, format, arg...) dde_kit_printf("dev_dbg: " format, ## arg)
 #else
 #define dev_dbg( dev, format, arg...)
+#define dev_vdbg( dev, format, arg...)
 #endif
 
 #define dev_printk(level, dev, format, arg...) \
@@ -1531,6 +1611,7 @@ struct device_driver;
 struct bus_type {
 	const char *name;
 	struct device_attribute *dev_attrs;
+	const struct attribute_group **dev_groups;
 	int (*match)(struct device *dev, struct device_driver *drv);
 	int (*uevent)(struct device *dev, struct kobj_uevent_env *env);
 	int (*probe)(struct device *dev);
@@ -1556,7 +1637,7 @@ struct device_type {
 	const struct attribute_group **groups;
 	void      (*release)(struct device *dev);
 	int       (*uevent)(struct device *dev, struct kobj_uevent_env *env);
-	char     *(*devnode)(struct device *dev, mode_t *mode);
+	char     *(*devnode)(struct device *dev, mode_t *mode, kuid_t *, kgid_t *);
 	const struct dev_pm_ops *pm;
 };
 
@@ -1609,9 +1690,19 @@ struct lock_class_key { int dummy; };
 #define DEVICE_ATTR(_name, _mode, _show, _store) \
 struct device_attribute dev_attr_##_name = __ATTR(_name, _mode, _show, _store)
 
+#define DEVICE_ATTR_RO(_name) \
+struct device_attribute dev_attr_##_name = __ATTR_RO(_name)
+
+#define DEVICE_ATTR_RW(_name) \
+struct device_attribute dev_attr_##_name = __ATTR_RW(_name)
+
 #define DRIVER_ATTR(_name, _mode, _show, _store) \
 struct driver_attribute driver_attr_##_name = \
 	__ATTR(_name, _mode, _show, _store)
+
+#define DRIVER_ATTR_RW(_name) \
+struct driver_attribute driver_attr_##_name = __ATTR_RW(_name)
+
 
 void       *dev_get_drvdata(const struct device *dev);
 int         dev_set_drvdata(struct device *dev, void *data);
@@ -1646,6 +1737,9 @@ int  device_create_file(struct device *device,
                         const struct device_attribute *entry);
 void device_remove_file(struct device *dev,
                         const struct device_attribute *attr);
+int device_for_each_child(struct device *dev, void *data,
+                          int (*fn)(struct device *dev, void *data));
+
 
 void           put_device(struct device *dev);
 struct device *get_device(struct device *dev);
@@ -1670,6 +1764,8 @@ int  bus_register_notifier(struct bus_type *bus,
                            struct notifier_block *nb);
 int  bus_unregister_notifier(struct bus_type *bus,
                              struct notifier_block *nb);
+int  bus_for_each_dev(struct bus_type *bus, struct device *start, void *data,
+                      int (*fn)(struct device *dev, void *data));
 
 struct class *__class_create(struct module *owner,
                              const char *name,
@@ -1693,6 +1789,14 @@ int   devres_destroy(struct device *dev, dr_release_t release,
 void  devres_free(void *res);
 
 void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp);
+
+struct resource;
+
+void *devm_ioremap_resource(struct device *dev, struct resource *res);
+
+void devm_kfree(struct device *dev, void *p);
+
+void *dev_get_platdata(const struct device *dev);
 
 #ifdef __cplusplus
 #undef class
@@ -1742,6 +1846,11 @@ void  dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
 #define DMA_BIT_MASK(n) (((n) == 64) ? ~0ULL : ((1ULL<<(n))-1))
 static inline int dma_set_coherent_mask(struct device *dev, u64 mask) { dev->coherent_dma_mask = mask; return 0; }
 static inline int dma_set_mask(struct device *dev, u64 mask) { *dev->dma_mask = mask; return 0; }
+static inline int dma_coerce_mask_and_coherent(struct device *dev, u64 mask)
+{
+	dma_set_mask(dev, mask);
+	return dma_set_coherent_mask(dev, mask);
+}
 
 /*********************
  ** linux/uaccess.h **
@@ -1990,6 +2099,13 @@ static inline loff_t no_llseek(struct file *file, loff_t offset, int origin) {
 
 struct inode *file_inode(struct file *f);
 
+#define replace_fops(f, fops) \
+do {    \
+        struct file *__file = (f); \
+        fops_put(__file->f_op); \
+        BUG_ON(!(__file->f_op = (fops))); \
+} while(0)
+
 /*******************
  ** linux/namei.h **
  *******************/
@@ -2021,20 +2137,21 @@ enum { SIGIO =  29 };
 struct seq_file { int dummy; };
 
 int seq_printf(struct seq_file *, const char *, ...);
-
+int seq_putc(struct seq_file *, char);
 
 /*****************
  ** linux/gfp.h **
  *****************/
 
 enum {
-	__GFP_DMA  = 0x01u,
-	GFP_DMA    = __GFP_DMA,
-	GFP_DMA32  = 0x04u,   /* needed by 'dwc_common_linux.c' */
-	__GFP_WAIT = 0x10u,
-	GFP_ATOMIC = 0x20u,
-	GFP_KERNEL = 0x0u,
-	GFP_NOIO   = __GFP_WAIT,
+	__GFP_DMA    = 0x01u,
+	__GFP_NOWARN = 0x200u,
+	__GFP_WAIT   = 0x10u,
+	GFP_DMA      = __GFP_DMA,
+	GFP_DMA32    = 0x04u,   /* needed by 'dwc_common_linux.c' */
+	GFP_ATOMIC   = 0x20u,
+	GFP_KERNEL   = 0x0u,
+	GFP_NOIO     = __GFP_WAIT,
 };
 
 unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order);
@@ -2080,7 +2197,7 @@ bool is_highmem(void *);
  ****************/
 
 struct zone *page_zone(const struct page *page);
-
+int    is_vmalloc_addr(const void *x);
 
 /*********************
  ** linux/pagemap.h **
@@ -2232,6 +2349,10 @@ bool in_interrupt(void);
 #include <linux/pci_ids.h>
 #include <uapi/linux/pci_regs.h>
 
+enum {
+	PCI_D3hot = 3,
+};
+
 /*
  * Definitions normally found in pci_regs.h
  */
@@ -2289,11 +2410,12 @@ struct pci_dev {
 	unsigned int devfn;
 	unsigned int irq;
 	struct resource resource[DEVICE_COUNT_RESOURCE];
-	struct pci_bus *bus; /* needed for i915_dma.c */
-	unsigned short vendor;  /* needed for intel-agp.c */
+	struct pci_bus *bus;
+	unsigned short vendor;
 	unsigned short device;
-	unsigned int   class;    /* needed by usb/host/pci-quirks.c */
-	u8             revision; /* needed for ehci-pci.c */
+	unsigned short subsystem_vendor;
+	unsigned int   class;
+	u8             revision;
 	struct device dev; /* needed for intel-agp.c */
 	pci_power_t     current_state;
 };
@@ -2395,6 +2517,9 @@ struct pci_dev *pci_get_slot(struct pci_bus *bus, unsigned int devfn);
 const struct pci_device_id *pci_match_id(const struct pci_device_id *ids,
                                          struct pci_dev *dev);
 void *pci_ioremap_bar(struct pci_dev *pdev, int bar);
+int pci_set_power_state(struct pci_dev *dev, pci_power_t state);
+
+#define for_each_pci_dev(d) printk("for_each_pci_dev called\n"); while(0)
 
 #define to_pci_dev(n) container_of(n, struct pci_dev, dev)
 
@@ -2639,12 +2764,13 @@ int  down_interruptible(struct semaphore *sem);
 
 enum { HID_DEBUG_BUFSIZE=512 };
 
-#define hid_debug_init()         do { } while (0)
-#define hid_dump_input(a,b,c)    do { } while (0)
-#define hid_debug_event(a,b)     do { } while (0)
-#define hid_debug_register(a, b) do { } while (0)
-#define hid_debug_unregister(a)  do { } while (0)
-#define hid_debug_exit()         do { } while (0)
+#define hid_debug_init()            do { } while (0)
+#define hid_dump_input(a,b,c)       do { } while (0)
+#define hid_debug_event(a,b)        do { } while (0)
+#define hid_debug_register(a, b)    do { } while (0)
+#define hid_debug_unregister(a)     do { } while (0)
+#define hid_debug_exit()            do { } while (0)
+#define hid_dump_report(a, b, c, d) do { } while (0)
 
 
 /******************
@@ -2781,6 +2907,15 @@ unsigned int queue_max_hw_sectors(struct request_queue *q);
 #include <scsi/scsi_host.h>
 
 
+/*************************
+ ** scsi/scsi_devinfo.h **
+ *************************/
+
+enum Blist {
+	BLIST_FORCELUN = 2,
+};
+
+
 /********************
  ** scsi/scsi_eh.h **
  *******************/
@@ -2858,9 +2993,9 @@ struct scsi_data_buffer
 struct scsi_cmnd
 {
 	struct scsi_device *device;
-	struct list_head list;  /* scsi_cmnd participates in queue lists */
-
-	unsigned long serial_number;
+	struct list_head    list;  /* scsi_cmnd participates in queue lists */
+	struct delayed_work abort_work;
+	unsigned long       serial_number;
 
 	/*
 	 * This is set to jiffies as it was when the command was first
@@ -2912,6 +3047,7 @@ void trace_scsi_dispatch_cmd_start(struct scsi_cmnd *);
 void trace_scsi_dispatch_cmd_error(struct scsi_cmnd *, int);
 void trace_scsi_dispatch_cmd_done(struct scsi_cmnd *);
 
+
 /************************
  ** scsi/scsi_device.h **
  ************************/
@@ -2955,12 +3091,13 @@ struct scsi_device
 	unsigned short        last_queue_full_count;  /* scsi_track_queue_full() */
 	unsigned long         last_queue_full_time;   /* last queue full time */
 
-	unsigned long         id, lun, channel;
+	unsigned int          id, lun, channel;
 	char                  type;
 	char                  scsi_level;
 	unsigned char         inquiry_len;            /* valid bytes in 'inquiry' */
 	struct scsi_target   *sdev_target;            /* used only for single_lun */
 
+	unsigned              sdev_bflags;
 	unsigned              lockable:1;             /* able to prevent media removal */
 	unsigned              simple_tags:1;          /* simple queue tag messages are enabled */
 	unsigned              ordered_tags:1;         /* ordered queue tag messages are enabled */
@@ -3041,12 +3178,27 @@ enum {
 	CHECKSUM_PARTIAL     = 3,
 
 	NET_IP_ALIGN         = 2,
+	MAX_SKB_FRAGS        = 16,
 };
+
+
+typedef struct skb_frag_struct
+{
+	struct
+	{
+		struct page *p;
+	} page;
+
+	__u32 page_offset;
+	__u32 size;
+} skb_frag_t;
 
 struct skb_shared_info
 {
 	unsigned short nr_frags;
 	unsigned short gso_size;
+
+	skb_frag_t     frags[MAX_SKB_FRAGS];
 };
 
 struct sk_buff
@@ -3102,7 +3254,7 @@ struct sk_buff_head
                        skb != (struct sk_buff *)(queue); \
                        skb = skb->next)
 
-struct skb_shared_info *skb_shinfo(struct sk_buff *);
+struct skb_shared_info *skb_shinfo(struct sk_buff const *);
 struct sk_buff *alloc_skb(unsigned int, gfp_t);
 unsigned char *skb_push(struct sk_buff *, unsigned int);
 unsigned char *skb_pull(struct sk_buff *, unsigned int);
@@ -3118,6 +3270,7 @@ void skb_set_tail_pointer(struct sk_buff *, const int);
 struct sk_buff *skb_clone(struct sk_buff *, gfp_t);
 void skb_reserve(struct sk_buff *, int);
 int skb_header_cloned(const struct sk_buff *);
+unsigned int skb_headlen(const struct sk_buff *);
 int skb_linearize(struct sk_buff *);
 
 
@@ -3153,6 +3306,10 @@ void dev_kfree_skb(struct sk_buff *);
 void dev_kfree_skb_any(struct sk_buff *);
 void kfree_skb(struct sk_buff *);
 
+
+int pskb_expand_head(struct sk_buff *, int, int ntail, gfp_t);
+
+unsigned int skb_frag_size(const skb_frag_t *frag);
 
 /*********************
  ** linux/uapi/if.h **
@@ -3299,6 +3456,7 @@ typedef enum netdev_tx netdev_tx_t;
 enum {
 	MAX_ADDR_LEN    = 32,
 	NET_RX_SUCCESS  = 0,
+	NET_ADDR_RANDOM = 1,
 
 	NETIF_MSG_DRV   = 0x1,
 	NETIF_MSG_PROBE = 0x2,
@@ -3354,6 +3512,7 @@ struct net_device
 	unsigned short needed_headroom;
 	unsigned short needed_tailroom;
 	unsigned char  perm_addr[MAX_ADDR_LEN];
+	unsigned char  addr_assign_type;
 	unsigned char *dev_addr;
 	unsigned char  _dev_addr[ETH_ALEN];
 	unsigned long  trans_start;    /* Time (in jiffies) of last Tx */
@@ -3502,6 +3661,8 @@ struct net_device *alloc_etherdev(int);
 void eth_hw_addr_random(struct net_device *dev);
 void eth_random_addr(u8 *addr);
 
+bool ether_addr_equal(const u8 *addr1, const u8 *addr2);
+
 
 /********************
  ** asm/checksum.h **
@@ -3631,9 +3792,6 @@ void *radix_tree_delete(struct radix_tree_root *, unsigned long);
 
 static inline void dump_stack(void) { }
 
-static inline void * __must_check ERR_PTR(long error) {
-	return (void *) error;
-}
 
 
 /**
@@ -3702,6 +3860,44 @@ struct pt_regs { unsigned long dummy; };
 #define ARM_r9 dummy
 #define ARM_sp dummy
 
+
+/************************
+ ** linux/tracepoint.h **
+ ************************/
+
+#define TRACE_EVENT(name, proto, args, struct, assign, print)
+#define DECLARE_EVENT_CLASS(name, proto, args, tstruct, assign, print)
+#define DEFINE_EVENT(template, name, proto, args)
+
+/* needed by drivers/net/wireless/iwlwifi/iwl-devtrace.h */
+#define TP_PROTO(args...)     args
+#define TP_STRUCT__entry(args...) (args)
+#define TP_ARGS(args...)      (args)
+#define TP_printk(fmt, args...) (fmt "\n" args)
+#define TP_fast_assign(args...) (args)
+/*
+ * #define TP_ARGS(args...)      (args)
+ * #define TP_CONDITION(args...) (args)
+ * #define TP_STRUCT__entry(args...) (args)
+ *
+ * #define TP_fast_assign(args...) (args)
+ * */
+
+
+/*******************
+ ** Tracing stuff **
+ *******************/
+
+static inline void trace_xhci_cmd_completion(void *p1, void *p2) { }
+static inline void trace_xhci_address_ctx(void *p1, void *p2, unsigned long v) { }
+
+static inline void trace_xhci_dbg_init(struct va_format *v) { }
+static inline void trace_xhci_dbg_ring_expansion(struct va_format *v) { }
+static inline void trace_xhci_dbg_context_change(struct va_format *v) { }
+static inline void trace_xhci_dbg_cancel_urb(struct va_format *v) { }
+static inline void trace_xhci_dbg_reset_ep(struct va_format *v) { }
+static inline void trace_xhci_dbg_quirks(struct va_format *v) { }
+static inline void trace_xhci_dbg_address(struct va_format *v) { }
 
 #ifdef __cplusplus
 }

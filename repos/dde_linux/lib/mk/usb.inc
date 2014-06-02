@@ -20,14 +20,16 @@ INC_DIR += $(LIB_INC_DIR)
 INC_DIR += $(LX_CONTRIB_DIR)/include $(LX_CONTRIB_DIR)/include/uapi $(LX_CONTRIB_DIR)
 
 CC_OPT += -U__linux__ -D__KERNEL__
-CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG
+CC_OPT += -DCONFIG_USB_DEVICEFS -DCONFIG_HOTPLUG -DDEBUG -DCONFIG_USB_PHY=1
 
 CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
-          -Wno-unused-function -Wno-overflow 
+          -Wno-unused-function -Wno-overflow
 
 CC_C_OPT += -Wno-unused-but-set-variable -Wno-pointer-sign
 
 CXX_OPT = -fpermissive
+CC_CXX_OPT = -fpermissive
+
 #
 # Suffix of global 'module_init' function
 #
@@ -52,6 +54,7 @@ SRC_C += $(addprefix usb/storage/,scsiglue.c protocol.c transport.c usb.c \
 
 # SCSI
 SRC_C += $(addprefix scsi/,scsi.c constants.c)
+
 
 #
 # Determine the header files included by the contrib code. For each

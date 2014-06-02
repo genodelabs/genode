@@ -26,7 +26,7 @@ extern "C" {
 #include <dde_kit/printf.h>
 #include <dde_kit/types.h>
 
-#define DEBUG_PRINTK 1
+#define DEBUG_PRINTK 0
 #define DEBUG_SLAB   0
 #define DEBUG_TIMER  0
 #define DEBUG_CONG   0
@@ -210,6 +210,7 @@ struct module;
 #define module_init(fn) void module_##fn(void) { fn(); }
 #define module_exit(fn) void module_exit_##fn(void) { fn(); }
 
+void __module_get(struct module *);
 void module_put(struct module *);
 int try_module_get(struct module *);
 
@@ -287,6 +288,7 @@ typedef __u8  u_int8_t;
 
 typedef int16_t  __s16;
 typedef int32_t  __s32;
+typedef int64_t  __s64;
 
 typedef __u16 __le16;
 typedef __u32 __le32;
@@ -415,15 +417,15 @@ void sg_set_page(struct scatterlist *, struct page *, unsigned int,
  ** linux/printk.h **
  ********************/
 
-#define KERN_WARNING "<4>"
+#define KERN_WARNING KERN_WARN
 
-#define pr_crit(fmt, ...)    printk(KERN_CRIT fmt, ##__VA_ARGS__)
-#define pr_emerg(fmt, ...)   printk(KERN_EMERG fmt, ##__VA_ARGS__)
-#define pr_info(fmt, ...)    printk(KERN_INFO fmt, ##__VA_ARGS__)
-#define pr_err(fmt, ...)     printk(KERN_ERR fmt, ##__VA_ARGS__)
+#define pr_crit(fmt, ...)    dde_kit_printf(KERN_CRIT fmt, ##__VA_ARGS__)
+#define pr_emerg(fmt, ...)   dde_kit_printf(KERN_EMERG fmt, ##__VA_ARGS__)
+#define pr_err(fmt, ...)     dde_kit_printf(KERN_ERR fmt, ##__VA_ARGS__)
+#define pr_warn(fmt, ...)    dde_kit_printf(KERN_WARN fmt, ##__VA_ARGS__)
+#define pr_info(fmt, ...)    dde_kit_printf(KERN_INFO fmt, ##__VA_ARGS__)
 #define pr_notice(fmt, ...)  printk(KERN_NOTICE fmt, ##__VA_ARGS__)
 #define pr_cont(fmt, ...)    printk(KERN_CONT fmt, ##__VA_ARGS__)
-#define pr_warn(fmt, ...)    printk(KERN_WARN fmt, ##__VA_ARGS__)
 
 #define pr_info_once(fmt, ...)  printk(KERN_INFO fmt, ##__VA_ARGS__)
 #define pr_err_once(fmt, ...)   printk(KERN_ERR fmt, ##__VA_ARGS__)
@@ -454,7 +456,12 @@ static inline int _printk(const char *fmt, ...)
 #define vprintk dde_kit_vprintf
 #define panic   dde_kit_panic
 #else
-#define printk(...)
+
+static inline int printk(const char *fmt, ...)
+{
+	return 0;
+}
+
 #define vprintk(...)
 #define panic(...)
 #endif
@@ -467,6 +474,14 @@ static inline int _printk(const char *fmt, ...)
 u32 hash_32(u32 val, unsigned int);
 u32 hash32_ptr(const void *);
 
+/**********************
+ ** linux/hashtable.h *
+ **********************/
+
+#define HASH_SIZE(name) (ARRAY_SIZE(name))
+
+#define DEFINE_HASHTABLE(name, bits) \
+	struct hlist_head name[1 << (bits)] = { [0 ... ((1 << (bits)) - 1)] = HLIST_HEAD_INIT }
 
 /****************************************************************
  ** arch/(*)/include/asm/(processor.h|segment.h|thread_info.h) **
@@ -833,9 +848,11 @@ enum { NUMA_NO_NODE = -1 };
 struct static_key { };
 
 #define STATIC_KEY_INIT_FALSE ((struct static_key) {})
+#define STATIC_KEY_INIT_TRUE  ((struct static_key) {})
 
 void static_key_slow_inc(struct static_key *);
 void static_key_slow_dec(struct static_key *);
+bool static_key_true(struct static_key *);
 bool static_key_false(struct static_key *);
 bool static_key_enabled(struct static_key *);
 
@@ -938,6 +955,7 @@ unsigned long ilog2(unsigned long n);
  * For now, hardcoded
  */
 #define PAGE_SIZE 4096
+#define PAGE_MASK (~(PAGE_SIZE - 1))
 
 enum {
 	PAGE_SHIFT = 12,
@@ -964,7 +982,7 @@ struct page
  *************************/
 
 enum { RES_USAGE };
-struct res_counter;
+struct res_counter { };
 int res_counter_charge_nofail(struct res_counter *, unsigned long,
                               struct res_counter **);
 u64 res_counter_uncharge(struct res_counter *, unsigned long);
@@ -1005,6 +1023,9 @@ struct page_frag
  ** linux/mm.h **
  ****************/
 
+#define page_private(page) ((page)->private)
+#define set_page_private(page, v) ((page)->private = (v))
+
 extern unsigned long totalram_pages;
 extern unsigned long num_physpages;
 
@@ -1018,6 +1039,18 @@ struct page *virt_to_head_page(const void *x);
 struct page *virt_to_page(const void *x);
 
 void si_meminfo(struct sysinfo *);
+
+int is_vmalloc_addr(const void *x);
+
+int get_user_pages_fast(unsigned long start, int nr_pages, int write,
+                        struct page **pages);
+
+
+/*********************
+ ** linux/pagemap.h **
+ *********************/
+
+void release_pages(struct page **pages, int nr, int cold);
 
 
 /********************
@@ -1046,6 +1079,7 @@ enum {
 	__GFP_COLD       = 0x100u,
 	__GFP_NOWARN     = 0x200u,
 	__GFP_REPEAT     = 0x400u,
+	__GFP_NORETRY    = 0x1000u,
 	__GFP_MEMALLOC   = 0x2000u,
 	__GFP_ZERO       = 0x8000u,
 	__GFP_COMP       = 0x4000u,
@@ -1109,6 +1143,7 @@ void kmem_cache_destroy(struct kmem_cache *);
  ** linux/vmalloc.h **
  *********************/
 
+void *vmalloc(unsigned long size);
 void *vzalloc(unsigned long size);
 void vfree(const void *addr);
 
@@ -1219,15 +1254,6 @@ struct rw_semaphore { int dummy; };
 #define __RWSEM_INITIALIZER(name) { 0 }
 
 
-/*********************
- ** linux/seqlock.h **
- *********************/
-
-typedef unsigned seqlock_t;
-
-void seqlock_init (seqlock_t *);
-
-#define __SEQLOCK_UNLOCKED(x) 0
 
 /*********************
  ** linux/jiffies.h **
@@ -1310,7 +1336,7 @@ static inline s64 ktime_to_ms(const ktime_t kt)
 
 static inline ktime_t ktime_get_real(void)
 {
-	return (ktime_t) { .tv64 = jiffies * (1000 / HZ) * NSEC_PER_MSEC };
+	return (ktime_t) { .tv64 = (s64)(jiffies * (1000 / HZ) * NSEC_PER_MSEC) };
 }
 
 
@@ -1471,6 +1497,12 @@ static inline void hlist_nulls_del_init_rcu(struct hlist_nulls_node *n)
 }
 
 
+/**********************
+ ** linux/rcu_list.h **
+ **********************/
+
+#define list_entry_rcu(ptr, type, member) list_entry(ptr, type, member)
+
 /*********************
  ** linux/lockdep.h **
  *********************/
@@ -1621,6 +1653,8 @@ void *__alloc_percpu(size_t size, size_t align);
 #define __this_cpu_ptr(ptr) per_cpu_ptr(ptr, 0)
 #define this_cpu_ptr(ptr) per_cpu_ptr(ptr, 0)
 #define __this_cpu_read(pcp) pcp
+#define __this_cpu_write(pcp, val) pcp = val;
+
 
 #define this_cpu_inc(pcp) pcp += 1
 #define this_cpu_dec(pcp) pcp -= 1
@@ -2126,6 +2160,8 @@ static inline void current_uid_gid(kuid_t *u, kgid_t *g)
 
 kgid_t current_egid(void);
 
+void put_group_info(struct group_info *);
+
 
 /*************************
  ** asm-generic/fcntl.h **
@@ -2198,9 +2234,13 @@ struct pipe_buf_operations
 	void (*get)(struct pipe_inode_info *, struct pipe_buffer *);
 };
 
+extern const struct pipe_buf_operations nosteal_pipe_buf_ops;
+
 void *generic_pipe_buf_map(struct pipe_inode_info *, struct pipe_buffer *, int);
 void  generic_pipe_buf_unmap(struct pipe_inode_info *, struct pipe_buffer *, void *);
 int   generic_pipe_buf_confirm(struct pipe_inode_info *, struct pipe_buffer *);
+
+
 
 
 /********************
@@ -2261,8 +2301,9 @@ struct kvec
 	size_t iov_len;
 };
 
-int memcpy_toiovec(struct iovec *iov, unsigned char *kdata, int len);
-
+size_t iov_length(const struct iovec *iov, unsigned long nr_segs);
+int    memcpy_toiovec(struct iovec *iov, unsigned char *kdata, int len);
+int    memcpy_fromiovec(unsigned char *kdata, struct iovec *iov, int len);
 
 /*******************************
  ** uapi/asm-generic/ioctls.h **
@@ -2311,6 +2352,7 @@ struct sock_filter;
 struct sk_filter
 {
 	atomic_t        refcnt;
+	unsigned        len;
 	struct rcu_head rcu;
 };
 
@@ -2319,6 +2361,11 @@ int sk_filter(struct sock *, struct sk_buff *);
 int sk_attach_filter(struct sock_fprog *, struct sock *);
 int sk_detach_filter(struct sock *);
 int sk_get_filter(struct sock *, struct sock_filter *, unsigned);
+
+int          bpf_tell_extensions(void);
+unsigned int sk_filter_size(unsigned int proglen);
+
+
 
 /*****************************
  ** uapi/linux/hdlc/ioctl.h **
@@ -2363,6 +2410,7 @@ struct delayed_work
 #define INIT_WORK(_work, _func) printk("INIT_WORK not implemented\n");
 
 extern struct workqueue_struct *system_wq;
+extern struct workqueue_struct *system_power_efficient_wq;
 
 bool schedule_work(struct work_struct *work);
 bool schedule_delayed_work(struct delayed_work *, unsigned long);
@@ -2370,7 +2418,9 @@ bool cancel_delayed_work(struct delayed_work *);
 bool cancel_delayed_work_sync(struct delayed_work *);
 bool mod_delayed_work(struct workqueue_struct *, struct delayed_work *,
                       unsigned long);
-
+bool queue_delayed_work(struct workqueue_struct *wq,
+                        struct delayed_work *dwork,
+                        unsigned long delay);
 
 void INIT_DEFERRABLE_WORK(struct delayed_work *, void (*func)(struct work_struct *));
 
@@ -2402,6 +2452,35 @@ enum {
 void sha_transform(__u32 *, const char *, __u32 *);
 
 
+/*********************
+ ** linux/seqlock.h **
+ *********************/
+
+typedef struct seqcount {
+	unsigned sequence;
+} seqcount_t;
+
+typedef unsigned seqlock_t;
+
+#define __SEQLOCK_UNLOCKED(x) 0
+
+void seqlock_init (seqlock_t *);
+
+unsigned raw_seqcount_begin(const seqcount_t *s);
+unsigned raw_read_seqcount_begin(const seqcount_t *s);
+
+unsigned read_seqbegin(const seqlock_t *sl);
+unsigned read_seqretry(const seqlock_t *sl, unsigned start);
+int      read_seqcount_retry(const seqcount_t *s, unsigned start);
+
+void write_seqlock_bh(seqlock_t *);
+void write_sequnlock_bh(seqlock_t *);
+void write_seqlock(seqlock_t *);
+void write_sequnlock(seqlock_t *);
+void write_seqcount_begin(seqcount_t *);
+void write_seqcount_end(seqcount_t *);
+
+
 /***********************
  ** linux/rtnetlink.h **
  ***********************/
@@ -2414,7 +2493,7 @@ struct netlink_callback;
 struct rtnl_af_ops;
 struct dst_entry;
 
-typedef int (*rtnl_doit_func)(struct sk_buff *, struct nlmsghdr *, void *);
+typedef int (*rtnl_doit_func)(struct sk_buff *, struct nlmsghdr *);
 typedef int (*rtnl_dumpit_func)(struct sk_buff *, struct netlink_callback *);
 typedef u16 (*rtnl_calcit_func)(struct sk_buff *, struct nlmsghdr *);
 
@@ -2438,6 +2517,7 @@ void __rtnl_unlock(void);
 int  rtnl_is_locked(void);
 int  rtnl_put_cacheinfo(struct sk_buff *, struct dst_entry *, u32, long, u32);
 
+int lockdep_rtnl_is_held(void);
 
 /********************
  ** net/netevent.h **
@@ -2484,6 +2564,8 @@ enum { FIB_LOOKUP_NOREF = 1 };
 
 struct u64_stats_sync { };
 
+void u64_stats_init(struct u64_stats_sync *);
+
 
 /*************************
  ** net/net_namespace.h **
@@ -2515,6 +2597,7 @@ struct net
 	struct hlist_head       *dev_index_head;
 	unsigned int             dev_base_seq;
 	int                      ifindex;
+	unsigned int             dev_unreg_count;
 	struct net_device       *loopback_dev;
 	struct user_namespace   *user_ns;
 	struct proc_dir_entry   *proc_net_stat;
@@ -2522,7 +2605,7 @@ struct net
 	struct netns_mib         mib;
 	struct netns_ipv4        ipv4;
 	atomic_t                 rt_genid;
-
+	atomic_t                 fnhe_genid;
 };
 
 
@@ -2560,7 +2643,10 @@ void release_net(struct net *net);
 
 int  rt_genid(struct net *);
 void rt_genid_bump(struct net *);
+int  rt_genid_ipv4(struct net *);
+void rt_genid_bump_ipv4(struct net *);
 
+int fnhe_genid(struct net *net);
 
 /**************************
  ** linux/seq_file_net.h **
@@ -2578,24 +2664,6 @@ struct seq_operations { };
  **************************/
 
 struct seq_file { };
-
-
-/*********************
- ** linux/seqlock.h **
- *********************/
-
-typedef struct seqcount {
-	unsigned sequence;
-} seqcount_t;
-
-unsigned read_seqbegin(const seqlock_t *sl);
-unsigned read_seqretry(const seqlock_t *sl, unsigned start);
-void write_seqlock_bh(seqlock_t *);
-void write_sequnlock_bh(seqlock_t *);
-void write_seqlock(seqlock_t *);
-void write_sequnlock(seqlock_t *);
-void write_seqcount_begin(seqcount_t *);
-void write_seqcount_end(seqcount_t *);
 
 
 /**********************
@@ -2732,6 +2800,13 @@ __wsum csum_and_copy_to_user(const void *src, void __user *dst, int len,
 	return sum;
 }
 
+static inline __wsum csum_partial_ext(const void *buff, int len, __wsum sum)
+{
+	 return csum_partial(buff, len, sum);
+}
+
+__wsum csum_block_add_ext(__wsum csum, __wsum csum2, int offset, int len);
+
 
 /*********************
  ** linux/if_vlan.h **
@@ -2749,6 +2824,8 @@ struct vlan_ethhdr
 	__be16  h_vlan_encapsulated_proto;
 };
 
+typedef u64 netdev_features_t;
+
 static inline
 struct net_device *vlan_dev_real_dev(const struct net_device *dev)
 {
@@ -2756,12 +2833,21 @@ struct net_device *vlan_dev_real_dev(const struct net_device *dev)
 }
 
 #define vlan_tx_tag_get(__skb) 0
-struct sk_buff *__vlan_put_tag(struct sk_buff *, u16);
+#define vlan_tx_tag_get_id(__skb) 0
+
+struct sk_buff *__vlan_put_tag(struct sk_buff *, __be16, u16);
 struct sk_buff *vlan_untag(struct sk_buff *);
 int             is_vlan_dev(struct net_device *);
 u16             vlan_tx_tag_present(struct sk_buff *);
 bool            vlan_do_receive(struct sk_buff **);
 bool            vlan_tx_nonzero_tag_present(struct sk_buff *);
+bool            vlan_hw_offload_capable(netdev_features_t, __be16);
+
+/************************
+ ** linux/if_macvlan.h **
+ ************************/
+
+struct net_device * macvlan_dev_real_dev(const struct net_device *dev);
 
 
 /********************
@@ -2851,15 +2937,11 @@ struct rtnl_af_ops
 	                                  const struct nlattr *attr);
 };
 
-typedef int (*rtnl_doit_func)(struct sk_buff *, struct nlmsghdr *, void *);
-typedef int (*rtnl_dumpit_func)(struct sk_buff *, struct netlink_callback *);
-typedef u16 (*rtnl_calcit_func)(struct sk_buff *, struct nlmsghdr *);
-
 #define rtnl_dereference(p) p
 
 extern const struct nla_policy ifla_policy[IFLA_MAX+1];
 
-void rtmsg_ifinfo(int type, struct net_device *dev, unsigned change);
+void rtmsg_ifinfo(int type, struct net_device *dev, unsigned change, gfp_t flags);
 
 
 /**********************
@@ -2896,7 +2978,7 @@ enum {
  ** net/cls_cgroup.h **
  **********************/
 
-void sock_update_classid(struct sock *, struct task_struct *);
+void sock_update_classid(struct sock *);
 
 
 /****************
@@ -2906,7 +2988,6 @@ void sock_update_classid(struct sock *, struct task_struct *);
 struct ip_hdr;
 
 struct iphdr *ip_hdr(const struct sk_buff *skb);
-
 
 /********************************
  ** uapi/linux/netfilter_arp.h **
@@ -3197,6 +3278,8 @@ static inline void get_random_bytes(void *buf, int nbytes)
 }
 
 u32  random32(void);
+u32  prandom_u32(void);
+void prandom_seed(u32);
 void add_device_randomness(const void *, unsigned int);
 u32  next_pseudo_random32(u32);
 void srandom32(u32 seed);
@@ -3236,15 +3319,78 @@ unsigned int net_hash_mix(struct net *);
  ** net/netprio_cgroup.h **
  **************************/
 
-void sock_update_netprioidx(struct sock *, struct task_struct *);
+void sock_update_netprioidx(struct sock *);
 
 
 /******************
  ** linux/ipv6.h **
  ******************/
 
-int inet_v6_ipv6only(const struct sock *);
-int ipv6_only_sock(const struct sock *);
+enum {
+	IP6_MF     = 0x0001,
+	IP6_OFFSET = 0xfff8,
+};
+
+struct frag_hdr
+{
+	__u8 nexthdr;
+	__be16  frag_off;
+};
+
+struct ipv6_opt_hdr
+{
+	__u8 nexthdr;
+	__u8 hdrlen;
+};
+
+struct ipv6hdr
+{
+	__be16                  payload_len;
+	__u8                    nexthdr;
+	struct  in6_addr        saddr;
+	struct  in6_addr        daddr;
+};
+
+struct ipv6_pinfo
+{
+	__u16                   recverr:1;
+};
+
+#define ipv6_optlen(p)  (((p)->hdrlen+1) << 3)
+#define ipv6_authlen(p) (((p)->hdrlen+2) << 2)
+
+int    inet_v6_ipv6only(const struct sock *);
+int    ipv6_only_sock(const struct sock *);
+struct ipv6hdr *ipv6_hdr(const struct sk_buff *);
+bool   ipv6_sk_rxinfo(const struct sock *);
+struct ipv6_pinfo *inet6_sk(const struct sock *);
+
+/************************
+ ** net/ip6_checksum.h **
+ ************************/
+
+__sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+                        const struct in6_addr *daddr,
+                        __u32 len, unsigned short proto,
+                        __wsum csum);
+
+
+/*************************
+ ** uapi/linux/icmpv6.h **
+ *************************/
+
+enum {
+	ICMPV6_ECHO_REQUEST = 128,
+};
+
+struct icmp6hdr
+{
+	__u8 icmp6_type;
+	__u8 icmp6_code;
+};
+
+
+struct icmp6hdr *icmp6_hdr(const struct sk_buff *skb);
 
 
 /********************
@@ -3281,10 +3427,26 @@ bool S_ISSOCK(int);
  *********************/
 
 struct gnet_stats_basic_packed;
-struct gnet_stats_rate_est;
+struct gnet_stats_rate_est64;
 
 void gen_kill_estimator(struct gnet_stats_basic_packed *,
-                        struct gnet_stats_rate_est *);
+                        struct gnet_stats_rate_est64 *);
+
+/*********************
+ ** net/busy_poll.h **
+ *********************/
+
+bool sk_can_busy_loop(struct sock *sk);
+bool sk_busy_loop(struct sock *sk, int nonblock);
+void sk_mark_napi_id(struct sock *sk, struct sk_buff *skb);
+
+/*******************
+ ** linux/sysfs.h **
+ *******************/
+
+struct attribute { };
+int  sysfs_create_link(struct kobject *, struct kobject *, const char *);
+void sysfs_remove_link(struct kobject *, const char *);
 
 
 /*******************
@@ -3294,18 +3456,29 @@ void gen_kill_estimator(struct gnet_stats_basic_packed *,
 struct proto;
 
 void trace_kfree_skb(struct sk_buff *, void *);
+void trace_skb_copy_datagram_iovec(const struct sk_buff *, int);
 void trace_consume_skb(struct sk_buff *);
+
 void trace_sock_exceed_buf_limit(struct sock *, struct proto *, long);
 void trace_sock_rcvqueue_full(struct sock *, struct sk_buff *);
+
 void trace_net_dev_xmit(struct sk_buff *, int , struct net_device *,
                         unsigned int);
+void trace_net_dev_start_xmit(struct sk_buff *, struct net_device *);
 void trace_net_dev_queue(struct sk_buff *);
-void trace_netif_rx(struct sk_buff *);
+
 void trace_netif_receive_skb(struct sk_buff *);
-void trace_napi_poll(struct napi_struct *);
-void trace_skb_copy_datagram_iovec(const struct sk_buff *, int);
+void trace_netif_receive_skb_entry(struct sk_buff *);
+void trace_netif_rx(struct sk_buff *);
+void trace_netif_rx_entry(struct sk_buff *);
+void trace_netif_rx_ni_entry(struct sk_buff *);
+
+
 void trace_udp_fail_queue_rcv_skb(int, struct sock*);
 
+void trace_napi_gro_frags_entry(struct sk_buff *);
+void trace_napi_gro_receive_entry(struct sk_buff *);
+void trace_napi_poll(struct napi_struct *);
 
 /**
  * Misc

@@ -26,7 +26,6 @@
 #include <platform.h>
 
 /* Linux */
-#include <linux/platform_data/usb-ehci-s5p.h>
 #include <linux/platform_data/dwc3-exynos.h>
 
 using namespace Genode;
@@ -52,9 +51,7 @@ static resource _dwc3[] =
 	{ DWC3_IRQ, DWC3_IRQ, "dwc3-irq", IORESOURCE_IRQ },
 };
 
-static struct s5p_ehci_platdata _ehci_data;
 static struct dwc3_exynos_data  _dwc3_data;
-
 
 /**
  * EHCI controller
@@ -288,11 +285,10 @@ static void arndale_xhci_init()
 }
 
 
-extern "C" void module_ehci_hcd_init();
+extern "C" void module_ehci_exynos_init();
 extern "C" void module_usbnet_init();
 extern "C" void module_asix_driver_init();
 extern "C" void module_ax88179_178a_driver_init();
-extern "C" void module_dwc3_exynos_driver_init();
 extern "C" void module_dwc3_driver_init();
 extern "C" void module_xhci_hcd_init();
 
@@ -305,18 +301,17 @@ void ehci_setup(Services *services)
 		module_asix_driver_init();
 
 	/* register EHCI controller */
-	module_ehci_hcd_init();
+	module_ehci_exynos_init();
 
 	/* setup controller */
 	arndale_ehci_init();
 
 	/* setup EHCI-controller platform device */
 	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);
-	pdev->name              = (char *)"s5p-ehci";
+	pdev->name              = (char *)"exynos-ehci";
 	pdev->id                = 0;
 	pdev->num_resources     = 2;
 	pdev->resource          = _ehci;
-	pdev->dev.platform_data = &_ehci_data;
 
 	/*needed for DMA buffer allocation. See 'hcd_buffer_alloc' in 'buffer.c' */
 	static u64 dma_mask         = ~(u64)0;
@@ -332,7 +327,6 @@ void xhci_setup(Services *services)
 	if (services->nic)
 		module_ax88179_178a_driver_init();
 
-	module_dwc3_exynos_driver_init();
 	module_dwc3_driver_init();
 	module_xhci_hcd_init();
 
@@ -340,7 +334,7 @@ void xhci_setup(Services *services)
 
 	/* setup DWC3-controller platform device */
 	platform_device *pdev   = (platform_device *)kzalloc(sizeof(platform_device), 0);
-	pdev->name              = (char *)"exynos-dwc3";
+	pdev->name              = (char *)"dwc3";
 	pdev->id                = 0;
 	pdev->num_resources     = 2;
 	pdev->resource          = _dwc3;

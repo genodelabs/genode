@@ -331,17 +331,21 @@ int netif_running(const struct net_device *dev)
 	return dev->state & (1 << __LINK_STATE_START);
 }
 
+
 int netif_device_present(struct net_device *dev) { return 1; }
+
 
 int netif_carrier_ok(const struct net_device *dev)
 {
 	return !(dev->state & (1 << __LINK_STATE_NOCARRIER));
 }
 
+
 void netif_carrier_on(struct net_device *dev)
 {
 	dev->state &= ~(1 << __LINK_STATE_NOCARRIER);
 }
+
 
 void netif_carrier_off(struct net_device *dev)
 {
@@ -581,7 +585,7 @@ unsigned char *skb_tail_pointer(const struct sk_buff *skb)
 /**
  * Dummy for shared info
  */
-struct skb_shared_info *skb_shinfo(struct sk_buff * /* skb */)
+struct skb_shared_info *skb_shinfo(struct sk_buff const * /* skb */)
 {
 	static skb_shared_info _s = { 0 };
 	return &_s;

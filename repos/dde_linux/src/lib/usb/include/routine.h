@@ -165,7 +165,7 @@ class Routine : public Genode::List<Routine>::Element
 		/**
 		 * Set current to first object
 		 */
-		static void current_use_first() { _current = _list()->first(); }
+		static void make_main_current() { _main = _current = _list()->first(); }
 
 		/**
 		 * Add an object
@@ -196,7 +196,6 @@ class Routine : public Genode::List<Routine>::Element
 				return;
 
 			_list()->remove(_current);
-			_main = _current;
 
 			if (_main && _setjmp(_main->_env))
 				return;

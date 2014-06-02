@@ -25,7 +25,7 @@
 #define SKIP_VERBOSE    0
 
 #if DEBUG_TRACE
-#define TRACE dde_kit_printf("\033[32m%s\033[0m called, not implemented\n", __PRETTY_FUNCTION__)
+#define TRACE dde_kit_printf("\033[32m%s\033[0m called from %p, not implemented\n", __PRETTY_FUNCTION__, __builtin_return_address(0))
 #else
 #define TRACE
 #endif
@@ -69,7 +69,7 @@ long simple_strtoul(const char *cp, char **endp, unsigned int base) { TRACE; ret
  ** linux/log2.h **
  ******************/
 
-int  roundup_pow_of_two(u32 n) { TRACE; return 0; }
+int roundup_pow_of_two(u32 n) { TRACE; return 0; }
 
 
 /********************
@@ -204,15 +204,6 @@ int cancel_delayed_work_sync(struct delayed_work *work) { TRACE; return 0; }
 
 bool flush_work(struct work_struct *work) { TRACE; return 0; }
 bool flush_work_sync(struct work_struct *work) { TRACE; return 0; }
-
-
-/******************
- ** linux/wait.h **
- ******************/
-
-void init_waitqueue_head(wait_queue_head_t *q) { TRACE; }
-void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait) { TRACE; }
-void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait) { TRACE; }
 
 
 /******************
@@ -369,6 +360,9 @@ int  device_create_file(struct device *device,
                         const struct device_attribute *entry) { TRACE; return 0; }
 void device_remove_file(struct device *dev,
                         const struct device_attribute *attr) { TRACE; }
+int device_for_each_child(struct device *dev, void *data,
+                          int (*fn)(struct device *dev, void *data)) { TRACE; return 0; }
+
 
 void put_device(struct device *dev) { TRACE; }
 struct device *get_device(struct device *dev) { TRACE; return dev; }
@@ -405,6 +399,8 @@ void  devres_add(struct device *dev, void *res) { TRACE; }
 int   devres_destroy(struct device *dev, dr_release_t release,
                      dr_match_t match, void *match_data) { TRACE; return 0; }
 void devres_free(void *res) { TRACE; }
+
+void devm_kfree(struct device *dev, void *p) { TRACE; }
 
 
 /*****************************
@@ -503,6 +499,7 @@ struct dentry *lookup_one_len(const char *c, struct dentry *e, int v) { TRACE; r
  **********************/
 
 int seq_printf(struct seq_file *f, const char *fmt, ...) { TRACE; return 0; }
+int seq_putc(struct seq_file *f, char c) { TRACE; return 0;}
 
 
 /*****************
@@ -545,6 +542,7 @@ bool is_highmem(void *ptr) { TRACE; return 0; }
  ****************/
 
 struct zone *page_zone(const struct page *page) { TRACE; return NULL; }
+int    is_vmalloc_addr(const void *x) { TRACE; return 0; }
 
 
 /**********************
@@ -630,6 +628,10 @@ void pci_disable_msi(struct pci_dev *pdev) { TRACE; }
 int  pci_enable_msix(struct pci_dev *pdev, struct msix_entry *entries, int vec) { TRACE; return -1; }
 void pci_disable_msix(struct pci_dev *pdev) { TRACE; }
 
+
+int pci_set_power_state(struct pci_dev *dev, pci_power_t state) { TRACE; return 0; }
+
+
 /**
  * Omitted PCI functions
  */
@@ -645,6 +647,23 @@ void pci_set_master(struct pci_dev *dev) { SKIP; }
 
 unsigned long local_irq_save(unsigned long flags) { SKIP; return 0; }
 unsigned long local_irq_restore(unsigned long flags) { SKIP; return 0; }
+
+
+/*************************
+ ** linux/scatterlist.h **
+ *************************/
+
+void sg_init_table(struct scatterlist *sg, unsigned int nents) { TRACE; }
+void sg_set_buf(struct scatterlist *sg, const void *buf, unsigned int buflen) { TRACE; }
+void sg_set_page(struct scatterlist *sg, struct page *page,
+                 unsigned int len, unsigned int offset) { TRACE; }
+int sg_nents(struct scatterlist *sg) { TRACE; return 0; }
+
+void sg_miter_start(struct sg_mapping_iter *miter, struct scatterlist *sgl,
+                    unsigned int nents, unsigned int flags) { TRACE; }
+bool sg_miter_skip(struct sg_mapping_iter *miter, off_t offset) { TRACE; return false;}
+bool sg_miter_next(struct sg_mapping_iter *miter) { TRACE; return false; }
+void sg_miter_stop(struct sg_mapping_iter *miter) { TRACE; }
 
 
 /*************************
@@ -855,6 +874,10 @@ bool skb_defer_rx_timestamp(struct sk_buff *skb) { TRACE; return 0; }
 
 int skb_linearize(struct sk_buff *skb) { TRACE; return 0; }
 
+unsigned int skb_headlen(const struct sk_buff *skb) { TRACE; return 0; }
+unsigned int skb_frag_size(const skb_frag_t *frag) { TRACE; return 0; }
+
+int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail, gfp_t mask) { TRACE; return 0; }
 
 /*********************
  ** linux/ethtool.h **
@@ -889,11 +912,7 @@ unsigned netdev_mc_count(struct net_device * dev) { TRACE; return 1; }
  ** linux/mii.h **
  *****************/
 
-unsigned int mii_check_media (struct mii_if_info *mii,
-                              unsigned int ok_to_print,
-                              unsigned int init_media) { TRACE; return 0; }
 int mii_ethtool_sset(struct mii_if_info *mii, struct ethtool_cmd *ecmd) { TRACE; return 0; }
-int mii_link_ok (struct mii_if_info *mii) { TRACE; return 0; }
 
 int generic_mii_ioctl(struct mii_if_info *mii_if,
                       struct mii_ioctl_data *mii_data, int cmd,
@@ -908,6 +927,7 @@ struct mii_ioctl_data *if_mii(struct ifreq *rq) { TRACE; return 0; }
 __be16 eth_type_trans(struct sk_buff *skb, struct net_device *dev) { TRACE; return 0; }
 int eth_mac_addr(struct net_device *dev, void *p) { TRACE; return 0; }
 int eth_validate_addr(struct net_device *dev) { TRACE; return 0; }
+bool ether_addr_equal(const u8 *addr1, const u8 *addr2) { TRACE; return 0; }
 
 
 /**********************
@@ -1015,7 +1035,10 @@ void *radix_tree_delete(struct radix_tree_root *root, unsigned long index) { TRA
 
 bool gpio_is_valid(int number) { TRACE; return false; }
 void gpio_set_value_cansleep(unsigned gpio, int value) { TRACE; }
-int gpio_request_one(unsigned gpio, unsigned long flags, const char *label) { TRACE; return 0; }
+int  gpio_request_one(unsigned gpio, unsigned long flags, const char *label) { TRACE; return 0; }
+
+int devm_gpio_request_one(struct device *dev, unsigned gpio,
+                          unsigned long flags, const char *label) { TRACE; return 0; }
 
 
 /*********************
@@ -1051,27 +1074,25 @@ struct phy_device * phy_connect(struct net_device *dev, const char *bus_id,
                                 phy_interface_t interface) { TRACE; return 0; }
 void phy_disconnect(struct phy_device *phydev) { TRACE; }
 
-#ifdef CONFIG_USB_OTG_UTILS
-struct usb_phy *devm_usb_get_phy_by_phandle(struct device *dev, 
-                                            const char *phandle, u8 index)
-{ TRACE; return 0; }
+struct usb_phy *devm_usb_get_phy_by_phandle(struct device *dev, const char *phandle, u8 index) { TRACE; return 0; }
+struct usb_phy *devm_usb_get_phy(struct device *dev, enum usb_phy_type type) { TRACE; return 0; }
+struct usb_phy *devm_usb_get_phy_dev(struct device *dev, u8 index) { TRACE; return 0; }
 
+struct usb_phy *usb_get_phy_dev(struct device *dev, u8 index) { TRACE; return 0; }
+void   usb_put_phy(struct usb_phy *x) { TRACE; }
 
-struct usb_phy *devm_usb_get_phy(struct device *dev,
-                                 enum usb_phy_type type)
-{
-	static struct usb_phy _p;
-	TRACE;
-	return &_p;
-}
-#endif
 
 /****************
  ** linux/of.h **
  ****************/
 
-bool of_property_read_bool(const struct device_node *np, const char *propname) { TRACE; return false; }
-
+struct of_dev_auxdata;
+bool     of_property_read_bool(const struct device_node *np, const char *propname) { TRACE; return false; }
+unsigned of_usb_get_maximum_speed(struct device_node *np) { TRACE; return 0; }
+unsigned of_usb_get_dr_mode(struct device_node *np) { TRACE; return 0; }
+int      of_platform_populate(struct device_node *root, const struct of_device_id *matches,
+                              const struct of_dev_auxdata *lookup, struct device *parent) { TRACE; return 0; }
+int      of_device_is_compatible(const struct device_node *device, const char *compat) { TRACE; return 1; }
 
 
 /******************************

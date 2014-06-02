@@ -1,4 +1,4 @@
-SRC_C   += usbnet.c smsc95xx.c
+SRC_C   += usbnet.c smsc95xx.c ehci-omap.c
 
 include $(REP_DIR)/lib/mk/usb.inc
 include $(REP_DIR)/lib/mk/armv7/usb.inc
@@ -8,3 +8,4 @@ SRC_CC  += platform.cc
 
 vpath platform.cc $(LIB_DIR)/arm/platform_panda
 vpath %.c         $(LX_CONTRIB_DIR)/drivers/net/usb
+vpath %.c         $(LX_CONTRIB_DIR)/drivers/usb/host
