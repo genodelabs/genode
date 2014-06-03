@@ -1,0 +1,87 @@
++++ src/app/virtualbox/src/VBox/HostServices/SharedFolders/service.cpp
+@@ -546,6 +546,14 @@
+                 }
+                 else
+                 {
++
++
++                /* WORKAROUND start */
++                uint32_t read = 0;
++
++                while (paParms[3].u.uint32 && read < paParms[3].u.uint32) {
++
++
+                     /* Execute the function. */
+                     if (pStatusLed)
+                     {
+@@ -559,13 +567,25 @@
+ 
+                     if (RT_SUCCESS(rc))
+                     {
++                        read    += count; 
++                        offset  += count;
++                        pBuffer += count;
++                        count    = paParms[3].u.uint32 - read;
++
+                         /* Update parameters.*/
+-                        paParms[3].u.uint32 = count;
++                        //paParms[3].u.uint32 = count;
+                     }
+                     else
+                     {
+                         paParms[3].u.uint32 = 0;   /* nothing read */
+                     }
++
++
++
++                } /* WORKAROUND - End */
++
++
++
+                 }
+             }
+             break;
+@@ -613,6 +633,16 @@
+                 }
+                 else
+                 {
++
++
++
++                /* WORKAROUND start */
++                uint32_t write = 0;
++
++                while (paParms[3].u.uint32 && write < paParms[3].u.uint32) {
++
++
++
+                     /* Execute the function. */
+                     if (pStatusLed)
+                     {
+@@ -626,13 +656,25 @@
+ 
+                     if (RT_SUCCESS(rc))
+                     {
++                        write   += count; 
++                        offset  += count;
++                        pBuffer += count;
++                        count    = paParms[3].u.uint32 - write;
++
+                         /* Update parameters.*/
+-                        paParms[3].u.uint32 = count;
++                        //paParms[3].u.uint32 = count;
+                     }
+                     else
+                     {
+                         paParms[3].u.uint32 = 0;   /* nothing read */
+                     }
++
++
++
++                } /* WORKAROUND - End */
++
++
++
+                 }
+             }
+             break;
