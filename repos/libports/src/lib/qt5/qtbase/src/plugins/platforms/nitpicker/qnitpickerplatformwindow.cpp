@@ -124,14 +124,17 @@ void QNitpickerPlatformWindow::_process_key_event(Input::Event *ev)
 	_keyboard_handler.processKeycode(keycode, pressed, false);
 }
 
-Nitpicker::View_capability QNitpickerPlatformWindow::_parent_view_cap()
+Nitpicker::View_capability QNitpickerPlatformWindow::_create_view()
 {
+	if (window()->type() == Qt::Desktop)
+		return Nitpicker::View_capability();
+
 	if (window()->transientParent()) {
 		QNitpickerPlatformWindow *parent_platform_window =
 			static_cast<QNitpickerPlatformWindow*>(window()->transientParent()->handle());
-		return parent_platform_window->view_cap();
+		return _nitpicker_session.create_view(parent_platform_window->view_cap());
 	} else
-		return Nitpicker::View_capability();
+		return _nitpicker_session.create_view(Nitpicker::View_capability());
 }
 
 void QNitpickerPlatformWindow::_adjust_and_set_geometry(const QRect &rect)
@@ -157,7 +160,7 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_
 : QPlatformWindow(window),
   _framebuffer_session(_nitpicker_session.framebuffer_session()),
   _framebuffer(0),
-  _view_cap(_nitpicker_session.create_view(_parent_view_cap())),
+  _view_cap(_create_view()),
   _input_session(_nitpicker_session.input_session()),
   _timer(this),
   _keyboard_handler("", -1, false, false, ""),
@@ -174,9 +177,11 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_
 	_ev_buf = static_cast<Input::Event *>
 			  (Genode::env()->rm_session()->attach(_input_session.dataspace()));
 
-	/* bring the view to the top */
-	Nitpicker::View_client(_view_cap).stack(Nitpicker::View_capability(),
-				                            true, false);
+	if (_view_cap.valid()) {
+		/* bring the view to the top */
+		Nitpicker::View_client(_view_cap).stack(Nitpicker::View_capability(),
+					                            true, false);
+	}
 
 	connect(_timer, SIGNAL(timeout()), this, SLOT(handle_events()));
 	_timer->start(10);
@@ -314,7 +319,8 @@ void QNitpickerPlatformWindow::setWindowTitle(const QString &title)
 
 	_title = title.toLocal8Bit();
 
-	Nitpicker::View_client(_view_cap).title(_title.constData());
+	if (_view_cap.valid())
+		Nitpicker::View_client(_view_cap).title(_title.constData());
 
 	if (qnpw_verbose)
 	    qDebug() << "QNitpickerPlatformWindow::setWindowTitle() finished";

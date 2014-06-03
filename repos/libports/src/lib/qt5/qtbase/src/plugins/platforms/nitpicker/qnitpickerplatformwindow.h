@@ -54,7 +54,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		void _process_mouse_event(Input::Event *ev);
 		void _process_key_event(Input::Event *ev);
 
-		Nitpicker::View_capability _parent_view_cap();
+		Nitpicker::View_capability _create_view();
 		void _adjust_and_set_geometry(const QRect &rect);
 
 	public:
