@@ -345,8 +345,9 @@ void QNitpickerPlatformWindow::setWindowIcon(const QIcon &icon)
 
 void QNitpickerPlatformWindow::raise()
 {
-	if (qnpw_verbose)
-	    qDebug() << "QNitpickerPlatformWindow::raise()";
+	/* bring the view to the top */
+	Nitpicker::View_client(_view_cap).stack(Nitpicker::View_capability(),
+	                                        true, false);
 	QPlatformWindow::raise();
 }
 
