@@ -129,6 +129,9 @@ Nitpicker::View_capability QNitpickerPlatformWindow::_create_view()
 	if (window()->type() == Qt::Desktop)
 		return Nitpicker::View_capability();
 
+	if (window()->type() == Qt::Dialog)
+		return _nitpicker_session.create_view(Nitpicker::View_capability());
+
 	if (window()->transientParent()) {
 		QNitpickerPlatformWindow *parent_platform_window =
 			static_cast<QNitpickerPlatformWindow*>(window()->transientParent()->handle());
