@@ -386,6 +386,7 @@ class Net::Socketcall : public Genode::Signal_dispatcher_base,
 			start();
 		}
 
+		~Socketcall() { Env::receiver()->dissolve(this); }
 
 		void entry()
 		{
