@@ -39,7 +39,6 @@ class QNitpickerScreen : public QPlatformScreen
 		QNitpickerScreen()
 		{
 			Framebuffer::Mode const scr_mode = _nitpicker.mode();
-			_nitpicker.buffer(scr_mode, false);
 
 			if (scr_mode.format() != Framebuffer::Mode::RGB565)
 				qCritical() << "Nitpicker screen format is not RGB565";
