@@ -73,6 +73,7 @@ class Open_socket : public Genode::List<Open_socket>::Element
 		enum { READ_BUF_SIZE = 4096 };
 		char           _read_buf[READ_BUF_SIZE];
 		Genode::size_t _read_buf_bytes_used;
+		Genode::size_t _read_buf_bytes_read;
 
 		/**
 		 * Establish remote connection
@@ -196,13 +197,18 @@ class Open_socket : public Genode::List<Open_socket>::Element
 		}
 
 		/**
-		 * Flush internal read buffer into destination buffer
+		 * Read out internal read buffer and copy into destination buffer.
 		 */
-		Genode::size_t flush_read_buffer(char *dst, Genode::size_t dst_len)
+		Genode::size_t read_buffer(char *dst, Genode::size_t dst_len)
 		{
-			Genode::size_t num_bytes = Genode::min(dst_len, _read_buf_bytes_used);
-			Genode::memcpy(dst, _read_buf, num_bytes);
-			_read_buf_bytes_used = 0;
+			Genode::size_t num_bytes = Genode::min(dst_len, _read_buf_bytes_used -
+			                                       _read_buf_bytes_read);
+			Genode::memcpy(dst, _read_buf + _read_buf_bytes_read, num_bytes);
+
+			_read_buf_bytes_read += num_bytes;
+			if (_read_buf_bytes_read >= _read_buf_bytes_used)
+				_read_buf_bytes_used = _read_buf_bytes_read = 0;
+
 			return num_bytes;
 		}
 
@@ -359,7 +365,9 @@ Open_socket_pool *open_socket_pool()
 
 
 Open_socket::Open_socket(int tcp_port)
-: _listen_sd(_remote_listen(tcp_port)), _sd(-1)
+:
+	_listen_sd(_remote_listen(tcp_port)), _sd(-1),
+	_read_buf_bytes_used(0), _read_buf_bytes_read(0)
 {
 	open_socket_pool()->insert(this);
 }
@@ -403,8 +411,8 @@ namespace Terminal {
 			Genode::size_t _read(Genode::size_t dst_len)
 			{
 				Genode::size_t num_bytes =
-					flush_read_buffer(_io_buffer.local_addr<char>(),
-					                  Genode::min(_io_buffer.size(), dst_len));
+					read_buffer(_io_buffer.local_addr<char>(),
+					            Genode::min(_io_buffer.size(), dst_len));
 
 				/*
 				 * If read buffer was in use, look if more data is buffered in
