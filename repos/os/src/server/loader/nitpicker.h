@@ -187,6 +187,7 @@ namespace Nitpicker {
 			Session_component(Rpc_entrypoint            &ep,
 			                  int                        max_width,
 			                  int                        max_height,
+			                  Nitpicker::View_capability parent_view,
 			                  Signal_context_capability  view_ready_sigh,
 			                  const char                *args)
 			:
@@ -196,7 +197,7 @@ namespace Nitpicker {
 				_max_height(max_height),
 
 				/* create Nitpicker view */
-				_nitpicker_view(_nitpicker.create_view()),
+				_nitpicker_view(_nitpicker.create_view(parent_view)),
 
 				/* create proxy view component for the child */
 				_proxy_view(_nitpicker_view, view_ready_sigh),

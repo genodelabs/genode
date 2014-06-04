@@ -176,8 +176,9 @@ namespace Loader {
 				Rpc_entrypoint &ep;
 				Allocator      &_md_alloc;
 
-				int             _max_width;
-				int             _max_height;
+				int                        _max_width;
+				int                        _max_height;
+				Nitpicker::View_capability _parent_view;
 
 				Signal_context_capability view_ready_sigh;
 
@@ -208,6 +209,11 @@ namespace Loader {
 					_max_width = width, _max_height = height;
 				}
 
+				void parent_view(Nitpicker::View_capability view)
+				{
+					_parent_view = view;
+				}
+
 				Genode::Session_capability session(char     const *args,
 				                                   Affinity const &)
 				{
@@ -218,6 +224,7 @@ namespace Loader {
 						Nitpicker::Session_component(ep,
 						                             _max_width,
 						                             _max_height,
+						                             _parent_view,
 						                             view_ready_sigh,
 						                             args);
 
@@ -313,6 +320,11 @@ namespace Loader {
 			void constrain_geometry(int width, int height)
 			{
 				_nitpicker_service.constrain_geometry(width, height);
+			}
+
+			void parent_view(Nitpicker::View_capability view)
+			{
+				_nitpicker_service.parent_view(view);
 			}
 
 			void view_ready_sigh(Signal_context_capability sigh)

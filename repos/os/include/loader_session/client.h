@@ -38,6 +38,9 @@ namespace Loader {
 		void constrain_geometry(int width, int height) {
 			call<Rpc_constrain_geometry>(width, height); }
 
+		void parent_view(Nitpicker::View_capability view) {
+			call<Rpc_parent_view>(view); }
+
 		void view_ready_sigh(Signal_context_capability sigh) {
 			call<Rpc_view_ready_sigh>(sigh); }
 
