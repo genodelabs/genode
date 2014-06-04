@@ -132,7 +132,7 @@ Platform::Platform()
 	           _core_only_ram_regions, get_page_size_log2());
 
 	/* make interrupts available to the interrupt allocator */
-	for (unsigned i = 0; i < Kernel::Pic::MAX_INTERRUPT_ID; i++)
+	for (unsigned i = 0; i <= Kernel::Pic::MAX_INTERRUPT_ID; i++)
 		_irq_alloc.add_range(i, 1);
 
 	/*
