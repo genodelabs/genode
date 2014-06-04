@@ -197,7 +197,7 @@ namespace Arm
 
 			struct Rgn : Bitfield<3, 2> /* outer cachable attributes */
 			{
-				enum { NON_CACHEABLE = 0 };
+				enum { NON_CACHEABLE = 0, CACHEABLE = 1 };
 			};
 
 			struct Ba : Bitfield<14-TTBCR_N, 18+TTBCR_N> { }; /* translation
@@ -227,7 +227,7 @@ namespace Arm
 			static access_t init_virt_kernel(addr_t const sect_table)
 			{
 				return S::bits(0) |
-				       Rgn::bits(Rgn::NON_CACHEABLE) |
+				       Rgn::bits(Rgn::CACHEABLE) |
 				       Ba::masked((addr_t)sect_table);
 			}
 		};
@@ -657,8 +657,8 @@ namespace Arm
 		 */
 		static void flush_tlb_by_pid(unsigned const pid)
 		{
-			asm volatile ("mcr p15, 0, %[pid], c8, c7, 2" :: [pid]"r"(pid) : );
 			flush_caches();
+			asm volatile ("mcr p15, 0, %[pid], c8, c7, 2" :: [pid]"r"(pid) : );
 		}
 
 		/**
@@ -666,8 +666,8 @@ namespace Arm
 		 */
 		static void flush_tlb()
 		{
-			asm volatile ("mcr p15, 0, %[rd], c8, c7, 0" :: [rd]"r"(0) : );
 			flush_caches();
+			asm volatile ("mcr p15, 0, %[rd], c8, c7, 0" :: [rd]"r"(0) : );
 		}
 
 		/**

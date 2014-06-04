@@ -94,7 +94,7 @@ _common_constants
 .macro _init_ttbr0 section_table_reg
 
 	/* IRGN bitfield is set to 1 to compose the TTBR0 value */
-	orr \section_table_reg, \section_table_reg, #0b1000000
+	orr \section_table_reg, \section_table_reg, #0b1001000
 
 	/* write translation-table-base register 0 */
 	mcr p15, 0, \section_table_reg, c2, c0, 0

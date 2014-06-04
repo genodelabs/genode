@@ -92,6 +92,9 @@ namespace Genode
 			aips_1()->prepare_kernel();
 			aips_2()->prepare_kernel();
 		}
+
+		static void outer_cache_invalidate() { }
+		static void outer_cache_flush() { }
 	};
 }
 

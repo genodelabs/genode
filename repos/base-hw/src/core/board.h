@@ -23,6 +23,8 @@ namespace Genode
 	{
 		public:
 
+			static void outer_cache_invalidate() { }
+			static void outer_cache_flush() { }
 			static void prepare_kernel() { }
 
 			static void secondary_processors_ip(void * const ip) { }

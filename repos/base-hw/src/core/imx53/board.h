@@ -97,6 +97,9 @@ namespace Imx53
 			aips_2()->prepare_kernel();
 		}
 
+		static void outer_cache_invalidate() { }
+		static void outer_cache_flush() { }
+
 		/**
 		 * Tell secondary processors where to start execution from
 		 */

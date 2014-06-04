@@ -16,6 +16,7 @@
 #include <board.h>
 #include <processor_driver.h>
 #include <pic.h>
+#include <unmanaged_singleton.h>
 
 using namespace Genode;
 
@@ -52,10 +53,22 @@ Native_region * Platform::_core_only_mmio_regions(unsigned const i)
 		  Board::CORTEX_A9_PRIVATE_MEM_SIZE },
 
 		/* core UART */
-		{ Board::TL16C750_3_MMIO_BASE, Board::TL16C750_MMIO_SIZE }
+		{ Board::TL16C750_3_MMIO_BASE, Board::TL16C750_MMIO_SIZE },
+
+		/* l2 cache controller */
+		{ Board::PL310_MMIO_BASE, Board::PL310_MMIO_SIZE }
 	};
 	return i < sizeof(_regions)/sizeof(_regions[0]) ? &_regions[i] : 0;
 }
 
 
 Processor_driver::User_context::User_context() { cpsr = Psr::init_user(); }
+
+
+static Board::Pl310 * l2_cache() {
+	return unmanaged_singleton<Board::Pl310>(Board::PL310_MMIO_BASE); }
+
+
+void Board::outer_cache_invalidate() { l2_cache()->invalidate(); }
+void Board::outer_cache_flush()      { l2_cache()->flush();      }
+void Board::prepare_kernel()         { l2_cache()->invalidate(); }

@@ -381,6 +381,7 @@ void Arm::Processor_driver::flush_data_caches()
 		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_0
 		WRITE_DCCSW(r6)
 		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_1);
+	Board::outer_cache_flush();
 }
 
 
@@ -390,6 +391,7 @@ void Arm::Processor_driver::invalidate_data_caches()
 		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_0
 		WRITE_DCISW(r6)
 		FOR_ALL_SET_WAY_OF_ALL_DATA_CACHES_1);
+	Board::outer_cache_invalidate();
 }
 
 

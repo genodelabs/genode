@@ -60,6 +60,10 @@ namespace Genode
 			CORTEX_A9_PRIVATE_MEM_SIZE = 0x00002000,
 			CORTEX_A9_CLOCK = MPU_DPLL_CLOCK,
 
+			/* L2 cache */
+			PL310_MMIO_BASE = 0x48242000,
+			PL310_MMIO_SIZE = 0x00001000,
+
 			/* display subsystem */
 			DSS_MMIO_BASE   = 0x58000000,
 			DSS_MMIO_SIZE   = 0x00001000,
