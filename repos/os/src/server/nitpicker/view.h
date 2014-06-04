@@ -140,11 +140,7 @@ class View : public Same_buffer_list_elem,
 		 */
 		virtual int frame_size(Mode const &mode) const
 		{
-			if (mode.focused_view()
-			 && mode.focused_view()->belongs_to(_session))
-				return 5;
-
-			return 3;
+			return mode.is_focused(_session) ? 5 : 3;
 		}
 
 		/**

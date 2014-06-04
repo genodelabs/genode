@@ -21,15 +21,12 @@
 struct Menubar_state
 {
 	Genode::String<128> session_label;
-	Genode::String<128> view_title;
 	Mode                mode;
 	Color               session_color;
 
-	Menubar_state(Mode mode, char const *session_label,
-	              char const *view_title, Color session_color)
+	Menubar_state(Mode mode, char const *session_label, Color session_color)
 	:
-		session_label(session_label), view_title(view_title),
-		mode(mode), session_color(session_color)
+		session_label(session_label), mode(mode), session_color(session_color)
 	{ }
 
 	Menubar_state() : session_color(BLACK) { }

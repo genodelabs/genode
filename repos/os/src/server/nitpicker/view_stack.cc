@@ -40,11 +40,10 @@ static View const *last_stay_top_view(View const *view)
 template <typename VIEW>
 VIEW *View_stack::_next_view(VIEW &view) const
 {
-	Session * const active_session = _mode.focused_view() ?
-	                                &_mode.focused_view()->session() : 0;
+	Session * const focused_session = _mode.focused_session();
 
-	View * const active_background = active_session ?
-	                                 active_session->background() : 0;
+	View * const active_background = focused_session ?
+	                                 focused_session->background() : 0;
 
 	for (VIEW *next_view = &view; ;) {
 
@@ -297,17 +296,6 @@ void View_stack::remove_view(View const &view, bool redraw)
 
 	/* exclude view from view stack */
 	_views.remove(&view);
-
-	/*
-	 * Reset focused and pointed-at view if necessary
-	 *
-	 * Thus must be done after calling '_views.remove' because the new focused
-	 * pointer is determined by traversing the view stack. If the to-be-removed
-	 * view would still be there, we would re-assign the old pointed-to view as
-	 * the current one, resulting in a dangling pointer right after the view
-	 * gets destructed by the caller of 'removed_view'.
-	 */
-	_mode.forget(view);
 
 	_dirty_rect.mark_as_dirty(rect);
 }

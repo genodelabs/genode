@@ -86,6 +86,20 @@ struct Nitpicker::Session : Genode::Session
 	virtual void buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
 
 	/**
+	 * Set focused session
+	 *
+	 * Normally, the focused session is defined by the user by clicking on a
+	 * view. The 'focus' function allows a client to set the focus without user
+	 * action. However, the change of the focus is performed only is the
+	 * currently focused session belongs to a child or the same process as the
+	 * called session. This relationship is checked by comparing the session
+	 * labels of the currently focused session and the caller. This way, a
+	 * common parent can manage the focus among its child processes. But a
+	 * session cannot steal the focus from an unrelated session.
+	 */
+	virtual void focus(Genode::Capability<Session> focused) = 0;
+
+	/**
 	 * Return number of bytes needed for virtual framebuffer of specified size
 	 */
 	static size_t ram_quota(Framebuffer::Mode mode, bool use_alpha)
@@ -108,12 +122,13 @@ struct Nitpicker::Session : Genode::Session
 	GENODE_RPC(Rpc_destroy_view, void, destroy_view, View_capability);
 	GENODE_RPC(Rpc_background, int, background, View_capability);
 	GENODE_RPC(Rpc_mode, Framebuffer::Mode, mode);
+	GENODE_RPC(Rpc_focus, void, focus, Genode::Capability<Session>);
 	GENODE_RPC_THROW(Rpc_buffer, void, buffer, GENODE_TYPE_LIST(Out_of_metadata),
 	                 Framebuffer::Mode, bool);
 
 	GENODE_RPC_INTERFACE(Rpc_framebuffer_session, Rpc_input_session,
 	                     Rpc_create_view, Rpc_destroy_view, Rpc_background,
-	                     Rpc_mode, Rpc_buffer);
+	                     Rpc_mode, Rpc_buffer, Rpc_focus);
 };
 
 #endif /* _INCLUDE__NITPICKER_SESSION__NITPICKER_SESSION_H_ */

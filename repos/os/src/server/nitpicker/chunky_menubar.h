@@ -100,9 +100,8 @@ class Chunky_menubar : public Texture<PT>,
 			                 Color(r / 4, g / 4, b / 4));
 
 			/* draw label */
-			draw_label(_canvas, view_rect.center(label_size(session_label.string(),
-			           view_title.string())), session_label.string(),
-			           WHITE, view_title.string(), session_color);
+			draw_label(_canvas, view_rect.center(label_size(session_label.string(), "")),
+			           session_label.string(), WHITE, "", session_color);
 		}
 
 		using Menubar::state;

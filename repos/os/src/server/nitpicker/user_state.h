@@ -33,16 +33,9 @@ class User_state : public Mode, public View_stack
 		Global_keys &_global_keys;
 
 		/*
-		 * Number of currently pressed keys.
-		 * This counter is used to determine if the user
-		 * is dragging an item.
-		 */
-		unsigned _key_cnt;
-
-		/*
 		 * Menubar to display trusted labeling information
 		 * according to the current Mitpicker mode and the
-		 * focused view.
+		 * focused session.
 		 */
 		Menubar &_menubar;
 
@@ -52,19 +45,21 @@ class User_state : public Mode, public View_stack
 		Point _mouse_pos;
 
 		/*
-		 * Currently pointed-at view
+		 * Currently pointed-at session
 		 */
-		View const *_pointed_view;
+		Session *_pointed_session = nullptr;
 
 		/*
 		 * Session that receives the current stream of input events
 		 */
-		Session *_input_receiver;
+		Session *_input_receiver = nullptr;
 
 		/*
 		 * True while a global key sequence is processed
 		 */
-		bool _global_key_sequence;
+		bool _global_key_sequence = false;
+
+		void _update_all();
 
 	public:
 
@@ -89,7 +84,8 @@ class User_state : public Mode, public View_stack
 		/**
 		 * Mode interface
 		 */
-		void forget(View const &) override;
+		void forget(Session const &) override;
+		void focused_session(Session *) override;
 };
 
 #endif
