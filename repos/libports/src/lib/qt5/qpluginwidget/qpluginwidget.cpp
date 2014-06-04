@@ -14,9 +14,8 @@
 #include <zlib.h>
 
 #include <QtGui>
-#if 0
-#include <private/qwindowsurface_qws_p.h>
-#endif
+
+#include <qnitpickerplatformwindow.h>
 
 #include <qpluginwidget/qpluginwidget.h>
 
@@ -88,11 +87,13 @@ class Signal_wait_thread : public QThread
 
 
 PluginStarter::PluginStarter(QUrl plugin_url, QString &args,
-                             int max_width, int max_height)
+                             int max_width, int max_height,
+                             Nitpicker::View_capability parent_view)
 : _plugin_url(plugin_url),
   _args(args.toLatin1()),
   _max_width(max_width),
   _max_height(max_height),
+  _parent_view(parent_view),
   _pc(0),
   _plugin_loading_state(LOADING),
   _qnam(0),
@@ -191,6 +192,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 
 	_pc->view_ready_sigh(sig_rec.manage(&sig_ctx));
 	_pc->constrain_geometry(_max_width, _max_height);
+	_pc->parent_view(_parent_view);
 	_pc->start("init", "init");
 
 	Timed_semaphore view_ready_semaphore;
@@ -289,6 +291,9 @@ QPluginWidget::QPluginWidget(QWidget *parent, QUrl plugin_url, QString &args,
 	QNitpickerViewWidget(parent),
 	_plugin_loading_state(LOADING),
 	_plugin_starter(0),
+	_plugin_starter_started(false),
+	_plugin_url(plugin_url),
+	_plugin_args(args),
 	_max_width(max_width),
 	_max_height(max_height)
 {
@@ -302,11 +307,6 @@ QPluginWidget::QPluginWidget(QWidget *parent, QUrl plugin_url, QString &args,
 		_last->cleanup();
 		_last = this;
 	}
-
-	_plugin_starter = new PluginStarter(plugin_url, args, max_width, max_height);
-	_plugin_starter->moveToThread(_plugin_starter);
-	connect(_plugin_starter, SIGNAL(finished()), this, SLOT(pluginStartFinished()));
-	_plugin_starter->start();
 }
 
 
@@ -369,6 +369,29 @@ void QPluginWidget::paintEvent(QPaintEvent *event)
 				break;
 		}
 	}
+}
+
+
+void QPluginWidget::showEvent(QShowEvent *event)
+{
+	/* only now do we know the parent widget for sure */
+
+	if (!_plugin_starter_started) {
+
+		QNitpickerPlatformWindow *platform_window =
+			dynamic_cast<QNitpickerPlatformWindow*>(window()->windowHandle()->handle());
+
+		_plugin_starter = new PluginStarter(_plugin_url, _plugin_args,
+		                                    _max_width, _max_height,
+		                                    platform_window->view_cap());
+		_plugin_starter->moveToThread(_plugin_starter);
+		connect(_plugin_starter, SIGNAL(finished()), this, SLOT(pluginStartFinished()));
+		_plugin_starter->start();
+
+		_plugin_starter_started = true;
+	}
+
+	QNitpickerViewWidget::showEvent(event);
 }
 
 

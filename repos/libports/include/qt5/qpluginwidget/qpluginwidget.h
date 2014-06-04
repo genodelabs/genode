@@ -45,6 +45,7 @@ class PluginStarter : public QThread
 		QByteArray _args;
 		int _max_width;
 		int _max_height;
+		Nitpicker::View_capability _parent_view;
 
 		Loader::Connection *_pc;
 		enum Plugin_loading_state _plugin_loading_state;
@@ -60,7 +61,8 @@ class PluginStarter : public QThread
 
 	public:
 		PluginStarter(QUrl plugin_url, QString &args,
-					  int max_width, int max_height);
+					  int max_width, int max_height,
+					  Nitpicker::View_capability parent_view);
 
 		void run();
 		enum Plugin_loading_state plugin_loading_state() { return _plugin_loading_state; }
@@ -82,6 +84,10 @@ class QPluginWidget : public QNitpickerViewWidget
 		QString _plugin_loading_error_string;
 
 		PluginStarter *_plugin_starter;
+		bool _plugin_starter_started;
+
+		QUrl _plugin_url;
+		QString _plugin_args;
 
 		int _max_width;
 		int _max_height;
@@ -95,6 +101,7 @@ class QPluginWidget : public QNitpickerViewWidget
 
 	protected:
 		virtual void paintEvent(QPaintEvent *event);
+		virtual void showEvent(QShowEvent *event);
 
 	protected slots:
 		void pluginStartFinished();
