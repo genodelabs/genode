@@ -17,10 +17,14 @@ if {[have_spec linux]} {
 
 build {
 	core init
-	drivers/pci drivers/timer drivers/nic
+	drivers/timer drivers/nic
 	server/tcp_terminal
 	test/terminal_echo
 }
+
+lappend_if [have_spec acpi]    build_components drivers/acpi
+lappend_if [have_spec pci]     build_components drivers/pci
+lappend_if [have_spec pci]     build_components drivers/pci/device_pd
 
 create_boot_directory
 
@@ -44,7 +48,7 @@ set config {
 		<service name="SIGNAL"/>
 	</parent-provides>
 	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
+		<any-service> <any-child/> <parent/> </any-service>
 	</default-route>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -68,7 +72,22 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 	</start>}
 
-append_if [have_spec pci] config {
+append_if [have_spec acpi] config {
+	<start name="acpi">
+		<resource name="RAM" quantum="6M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<service name="IRQ"> <parent /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>}
+
+append_if [expr ![have_spec acpi] && [have_spec pci]] config {
 	<start name="pci_drv">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="PCI"/> </provides>
@@ -94,7 +113,9 @@ set boot_modules {
 }
 
 # platform-specific modules
-lappend_if [have_spec pci] boot_modules pci_drv
+lappend_if [have_spec pci]     boot_modules pci_drv
+lappend_if [have_spec acpi]    boot_modules acpi_drv
+lappend_if [have_spec nova]    boot_modules pci_device_pd
 
 build_boot_image $boot_modules
 
