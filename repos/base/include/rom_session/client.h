@@ -17,18 +17,21 @@
 #include <rom_session/capability.h>
 #include <base/rpc_client.h>
 
-namespace Genode {
+namespace Genode { struct Rom_session_client; }
 
-	struct Rom_session_client : Rpc_client<Rom_session>
-	{
-		explicit Rom_session_client(Rom_session_capability session)
-		: Rpc_client<Rom_session>(session) { }
+struct Genode::Rom_session_client : Rpc_client<Rom_session>
+{
+	explicit Rom_session_client(Rom_session_capability session)
+	: Rpc_client<Rom_session>(session) { }
 
-		Rom_dataspace_capability dataspace() {
-			return call<Rpc_dataspace>(); }
+	Rom_dataspace_capability dataspace() override {
+		return call<Rpc_dataspace>(); }
 
-		void sigh(Signal_context_capability cap) { call<Rpc_sigh>(cap); }
-	};
-}
+	bool update() override {
+		return call<Rpc_update>(); }
+
+	void sigh(Signal_context_capability cap) override {
+		call<Rpc_sigh>(cap); }
+};
 
 #endif /* _INCLUDE__ROM_SESSION__CLIENT_H_ */

@@ -79,9 +79,25 @@ class Genode::Attached_rom_dataspace
 		void sigh(Signal_context_capability sigh) { _rom.sigh(sigh); }
 
 		/**
-		 * Re-attach ROM module
+		 * Update ROM module content, re-attach if needed
 		 */
-		void update() { _try_attach(); }
+		void update()
+		{
+			/*
+			 * If the dataspace is already attached and the update fits into
+			 * the existing dataspace, we can keep everything in place. The
+			 * dataspace content gets updated by the call of '_rom.update'.
+			 */
+			if (_ds.is_constructed() && _rom.update() == true)
+				return;
+
+			/*
+			 * If there was no valid dataspace attached beforehand or the
+			 * new data size exceeds the capacity of the existing dataspace,
+			 * replace the current dataspace by a new one.
+			 */
+			_try_attach();
+		}
 
 		/**
 		 * Return true of content is present

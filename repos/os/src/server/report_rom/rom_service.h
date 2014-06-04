@@ -73,6 +73,15 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 			return static_cap_cast<Rom_dataspace>(ds_cap);
 		}
 
+		bool update() override
+		{
+			if (!_ds.is_constructed() || _module.size() > _ds->size())
+				return false;
+
+			_module.read_content(_ds->local_addr<char>(), _ds->size());
+			return true;
+		}
+
 		void sigh(Genode::Signal_context_capability sigh) override
 		{
 			_sigh = sigh;
