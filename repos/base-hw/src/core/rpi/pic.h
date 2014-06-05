@@ -27,7 +27,7 @@ namespace Kernel
 	{
 		public:
 
-			enum { MAX_INTERRUPT_ID = 64 };
+			enum { NR_OF_IRQ = 64 };
 
 		private:
 
@@ -80,7 +80,7 @@ namespace Kernel
 				}
 
 				/* search for lowest set bit in pending masks */
-				for (unsigned i = 0; i < MAX_INTERRUPT_ID; i++) {
+				for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 					if (!_is_pending(i, p1, p2))
 						continue;
 

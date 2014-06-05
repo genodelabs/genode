@@ -38,7 +38,7 @@ void Kernel::init_trustzone(Pic * pic)
 	Processor_driver::allow_coprocessor_nonsecure();
 
 	/* configure non-secure interrupts */
-	for (unsigned i = 0; i <= Pic::MAX_INTERRUPT_ID; i++) {
+	for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
 		if ((i != Imx53::Board::EPIT_1_IRQ) &&
 			(i != Imx53::Board::EPIT_2_IRQ) &&
 			(i != Imx53::Board::I2C_2_IRQ)  &&

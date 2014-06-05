@@ -33,7 +33,7 @@ class Arm_gic::Pic
 {
 	public:
 
-		enum { MAX_INTERRUPT_ID = 1023 };
+		enum { NR_OF_IRQ = 1024 };
 
 	protected:
 
@@ -73,7 +73,7 @@ class Arm_gic::Pic
 			 * Interrupt group register
 			 */
 			struct Igroupr :
-				Register_array<0x80, 32, MAX_INTERRUPT_ID + 1, 1>
+				Register_array<0x80, 32, NR_OF_IRQ, 1>
 			{
 				struct Group_status : Bitfield<0, 1> { };
 			};
@@ -82,7 +82,7 @@ class Arm_gic::Pic
 			 * Interrupt set enable registers
 			 */
 			struct Isenabler :
-				Register_array<0x100, 32, MAX_INTERRUPT_ID + 1, 1, true>
+				Register_array<0x100, 32, NR_OF_IRQ, 1, true>
 			{
 				struct Set_enable : Bitfield<0, 1> { };
 			};
@@ -91,7 +91,7 @@ class Arm_gic::Pic
 			 * Interrupt clear enable registers
 			 */
 			struct Icenabler :
-				Register_array<0x180, 32, MAX_INTERRUPT_ID + 1, 1, true>
+				Register_array<0x180, 32, NR_OF_IRQ, 1, true>
 			{
 				struct Clear_enable : Bitfield<0, 1> { };
 			};
@@ -100,7 +100,7 @@ class Arm_gic::Pic
 			 * Interrupt priority level registers
 			 */
 			struct Ipriorityr :
-				Register_array<0x400, 32, MAX_INTERRUPT_ID + 1, 8>
+				Register_array<0x400, 32, NR_OF_IRQ, 8>
 			{
 				enum { GET_MIN = 0xff };
 
@@ -111,7 +111,7 @@ class Arm_gic::Pic
 			 * Interrupt processor target registers
 			 */
 			struct Itargetsr :
-				Register_array<0x800, 32, MAX_INTERRUPT_ID + 1, 8>
+				Register_array<0x800, 32, NR_OF_IRQ, 8>
 			{
 				enum { ALL = 0xff };
 
@@ -122,7 +122,7 @@ class Arm_gic::Pic
 			 * Interrupt configuration registers
 			 */
 			struct Icfgr :
-				Register_array<0xc00, 32, MAX_INTERRUPT_ID + 1, 2>
+				Register_array<0xc00, 32, NR_OF_IRQ, 2>
 			{
 				struct Edge_triggered : Bitfield<1, 1> { };
 			};

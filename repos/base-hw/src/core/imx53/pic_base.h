@@ -31,7 +31,7 @@ namespace Imx53
 	{
 		public:
 
-			enum { MAX_INTERRUPT_ID = 108 };
+			enum { NR_OF_IRQ = 109 };
 
 		protected:
 
@@ -63,7 +63,7 @@ namespace Imx53
 			/**
 			 * Interrupt security registers
 			 */
-			struct Intsec : Register_array<0x80, 32, MAX_INTERRUPT_ID, 1>
+			struct Intsec : Register_array<0x80, 32, NR_OF_IRQ, 1>
 			{
 				struct Nonsecure : Bitfield<0, 1> { };
 			};
@@ -71,7 +71,7 @@ namespace Imx53
 			/**
 			 * Interrupt set enable registers
 			 */
-			struct Enset : Register_array<0x100, 32, MAX_INTERRUPT_ID, 1, true>
+			struct Enset : Register_array<0x100, 32, NR_OF_IRQ, 1, true>
 			{
 				struct Set_enable : Bitfield<0, 1> { };
 			};
@@ -79,7 +79,7 @@ namespace Imx53
 			/**
 			 * Interrupt clear enable registers
 			 */
-			struct Enclear : Register_array<0x180, 32, MAX_INTERRUPT_ID, 1, true>
+			struct Enclear : Register_array<0x180, 32, NR_OF_IRQ, 1, true>
 			{
 				struct Clear_enable : Bitfield<0, 1> { };
 			};
@@ -87,7 +87,7 @@ namespace Imx53
 			/**
 			 * Interrupt priority level registers
 			 */
-			struct Priority  : Register_array<0x400, 32, MAX_INTERRUPT_ID, 8>
+			struct Priority  : Register_array<0x400, 32, NR_OF_IRQ, 8>
 			{
 				enum { MIN_PRIO = 0xff };
 			};
@@ -95,7 +95,7 @@ namespace Imx53
 			/**
 			 * Pending registers
 			 */
-			struct Pndr  : Register_array<0xd00, 32, MAX_INTERRUPT_ID, 1>
+			struct Pndr  : Register_array<0xd00, 32, NR_OF_IRQ, 1>
 			{
 				struct Pending : Bitfield<0, 1> { };
 			};
@@ -103,7 +103,7 @@ namespace Imx53
 			/**
 			 * Highest interrupt pending registers
 			 */
-			struct Hipndr  : Register_array<0xd80, 32, MAX_INTERRUPT_ID, 1, true>
+			struct Hipndr  : Register_array<0xd80, 32, NR_OF_IRQ, 1, true>
 			{
 				struct Pending : Bitfield<0, 1> { };
 			};
@@ -120,7 +120,7 @@ namespace Imx53
 			 */
 			Pic_base() : Mmio(Board::TZIC_MMIO_BASE)
 			{
-				for (unsigned i = 0; i <= MAX_INTERRUPT_ID; i++) {
+				for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 					write<Intsec::Nonsecure>(1, i);
 					write<Enclear::Clear_enable>(1, i);
 				}
@@ -142,7 +142,7 @@ namespace Imx53
 			 */
 			bool take_request(unsigned & i)
 			{
-				for (unsigned j = 0; j <= MAX_INTERRUPT_ID; j++) {
+				for (unsigned j = 0; j < NR_OF_IRQ; j++) {
 					if (read<Hipndr::Pending>(j)) {
 						i = j;
 						return true;
@@ -160,14 +160,14 @@ namespace Imx53
 			 * Validate request number 'i'
 			 */
 			bool valid(unsigned const i) const {
-				return i <= MAX_INTERRUPT_ID; }
+				return i < NR_OF_IRQ; }
 
 			/**
 			 * Unmask all interrupts
 			 */
 			void unmask()
 			{
-				for (unsigned i=0; i <= MAX_INTERRUPT_ID; i++)
+				for (unsigned i=0; i < NR_OF_IRQ; i++)
 					write<Enset::Set_enable>(1, i);
 			}
 
@@ -176,7 +176,7 @@ namespace Imx53
 			 */
 			void mask()
 			{
-				for (unsigned i=0; i <= MAX_INTERRUPT_ID; i++)
+				for (unsigned i=0; i < NR_OF_IRQ; i++)
 					write<Enclear::Clear_enable>(1, i);
 			}
 
@@ -187,7 +187,7 @@ namespace Imx53
 			 */
 			void unmask(unsigned const interrupt_id, unsigned)
 			{
-				if (interrupt_id <= MAX_INTERRUPT_ID) {
+				if (interrupt_id < NR_OF_IRQ) {
 					write<Enset::Set_enable>(1, interrupt_id);
 				}
 			}
@@ -197,7 +197,7 @@ namespace Imx53
 			 */
 			void mask(unsigned const i)
 			{
-				if (i <= MAX_INTERRUPT_ID)
+				if (i < NR_OF_IRQ)
 					write<Enclear::Clear_enable>(1, i);
 			}
 

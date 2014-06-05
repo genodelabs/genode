@@ -303,8 +303,8 @@ extern "C" void init_kernel_multiprocessor()
 		t.init(processor, core_pd(), &utcb, 1);
 
 		/* initialize interrupt objects */
-		static Genode::uint8_t _irqs[(Pic::MAX_INTERRUPT_ID+1) * sizeof(Irq)];
-		for (unsigned i = 0; i <= Pic::MAX_INTERRUPT_ID; i++) {
+		static Genode::uint8_t _irqs[Pic::NR_OF_IRQ * sizeof(Irq)];
+		for (unsigned i = 0; i < Pic::NR_OF_IRQ; i++) {
 			if (private_interrupt(i)) { continue; }
 			new (&_irqs[i * sizeof(Irq)]) Irq(i);
 		}

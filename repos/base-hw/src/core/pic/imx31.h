@@ -126,7 +126,7 @@ namespace Imx31
 
 		public:
 
-			enum { MAX_INTERRUPT_ID = 63 };
+			enum { NR_OF_IRQ = 64 };
 
 			/**
 			 * Constructor, enables all interrupts
@@ -166,7 +166,7 @@ namespace Imx31
 			 * Validate request number 'i'
 			 */
 			bool valid(unsigned const i) const {
-				return i <= MAX_INTERRUPT_ID; }
+				return i < NR_OF_IRQ; }
 
 			/**
 			 * Unmask all interrupts
@@ -193,7 +193,7 @@ namespace Imx31
 			 */
 			void unmask(unsigned const interrupt_id, unsigned)
 			{
-				if (interrupt_id <= MAX_INTERRUPT_ID) {
+				if (interrupt_id < NR_OF_IRQ) {
 					write<Intennum>(interrupt_id);
 				}
 			}
@@ -202,7 +202,7 @@ namespace Imx31
 			 * Mask interrupt 'i'
 			 */
 			void mask(unsigned const i) {
-				if (i <= MAX_INTERRUPT_ID) write<Intdisnum>(i); }
+				if (i < NR_OF_IRQ) write<Intdisnum>(i); }
 
 			/**
 			 * Wether an interrupt is inter-processor interrupt of a processor

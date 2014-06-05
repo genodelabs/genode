@@ -33,7 +33,7 @@ namespace Imx53
 
 			Pic()
 			{
-				for (unsigned i = 0; i <= MAX_INTERRUPT_ID; i++) {
+				for (unsigned i = 0; i < NR_OF_IRQ; i++) {
 					write<Intsec::Nonsecure>(0, i);
 					write<Priority>(0, i);
 				}
@@ -43,7 +43,7 @@ namespace Imx53
 
 			void unsecure(unsigned const i)
 			{
-				if (i <= MAX_INTERRUPT_ID) {
+				if (i < NR_OF_IRQ) {
 					write<Intsec::Nonsecure>(1, i);
 					write<Priority>(0x80, i);
 				}
@@ -51,7 +51,7 @@ namespace Imx53
 
 			void secure(unsigned const i)
 			{
-				if (i <= MAX_INTERRUPT_ID) {
+				if (i < NR_OF_IRQ) {
 					write<Intsec::Nonsecure>(0, i);
 					write<Priority>(0, i);
 				}
