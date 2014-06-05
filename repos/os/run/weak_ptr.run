@@ -1,4 +1,4 @@
-build "core init drivers/timer test/lifetime"
+build "core init drivers/timer test/weak_ptr"
 
 create_boot_directory
 
@@ -21,16 +21,16 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="test-lifetime">
+		<start name="test-weak_ptr">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
 }
 
-build_boot_image "core init timer test-lifetime"
+build_boot_image "core init timer test-weak_ptr"
 
 append qemu_args "-nographic -m 64"
 
-run_genode_until "--- finished test-lifetime ---.*\n" 30
+run_genode_until "--- finished test-weak_ptr ---.*\n" 30
 
 puts "Test succeeded"

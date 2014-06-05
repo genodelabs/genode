@@ -15,11 +15,11 @@
 #define _CORE__INCLUDE__ADDRESS_SPACE_H_
 
 #include <base/stdint.h>
-#include <lifetime.h>
+#include <base/weak_ptr.h>
 
 namespace Genode { struct Address_space; }
 
-struct Genode::Address_space : Genode::Volatile_object<Genode::Address_space>
+struct Genode::Address_space : Genode::Weak_object<Genode::Address_space>
 {
 	/**
 	 * Flush memory mappings of virtual address range

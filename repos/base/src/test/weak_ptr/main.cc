@@ -1,5 +1,5 @@
 /*
- * \brief  Test for lifetime-management utilities
+ * \brief  Test for weak-pointer utilities
  * \author Norman Feske
  * \date   2013-03-12
  */
@@ -15,10 +15,8 @@
 #include <base/printf.h>
 #include <base/env.h>
 #include <base/thread.h>
+#include <base/weak_ptr.h>
 #include <timer_session/connection.h>
-
-/* core includes */
-#include <lifetime.h>
 
 
 /********************************************************************
@@ -28,7 +26,7 @@
 static int weak_ptr_cnt;
 
 
-void Genode::Volatile_object_base::debug_info() const
+void Genode::Weak_object_base::debug_info() const
 {
 	/* count number of weak pointers pointing to the object */
 	weak_ptr_cnt = 0;
@@ -49,7 +47,7 @@ void Genode::Weak_ptr_base::debug_info() const
 struct Fatal_error { };
 
 
-static void assert_weak_ptr_cnt(Genode::Volatile_object_base const *obj,
+static void assert_weak_ptr_cnt(Genode::Weak_object_base const *obj,
                                 int expected_cnt)
 {
 	obj->debug_info();
@@ -81,13 +79,13 @@ static void assert_weak_ptr_valid(Genode::Weak_ptr_base const &ptr, bool valid)
 static bool object_is_constructed;
 
 
-struct Object : Genode::Volatile_object<Object>
+struct Object : Genode::Weak_object<Object>
 {
 	Object() { object_is_constructed = true; }
 	
 	~Object()
 	{
-		Volatile_object<Object>::lock_for_destruction();
+		Weak_object<Object>::lock_for_destruction();
 		object_is_constructed = false;
 	}
 };
@@ -262,7 +260,7 @@ int main(int argc, char **argv)
 {
 	using namespace Genode;
 
-	printf("--- test-lifetime started ---\n");
+	printf("--- test-weak_ptr started ---\n");
 
 	printf("\n-- test tracking of weak pointers --\n");
 	test_weak_pointer_tracking();
@@ -273,6 +271,6 @@ int main(int argc, char **argv)
 	printf("\n-- test acquisition failure --\n");
 	test_acquisition_failure();
 
-	printf("\n--- finished test-lifetime ---\n");
+	printf("\n--- finished test-weak_ptr ---\n");
 	return 0;
 }

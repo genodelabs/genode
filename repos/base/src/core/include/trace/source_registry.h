@@ -18,9 +18,7 @@
 #include <util/string.h>
 #include <base/lock.h>
 #include <base/trace/types.h>
-
-/* core includes */
-#include <lifetime.h>
+#include <base/weak_ptr.h>
 
 /* base-internal include */
 #include <trace/control.h>
@@ -42,7 +40,7 @@ struct Genode::Trace::Source_owner { };
  */
 class Genode::Trace::Source
 :
-	public Genode::Volatile_object<Genode::Trace::Source>,
+	public Genode::Weak_object<Genode::Trace::Source>,
 	public Genode::List<Genode::Trace::Source>::Element
 {
 	private:

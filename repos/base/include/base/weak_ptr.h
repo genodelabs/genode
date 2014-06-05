@@ -14,7 +14,7 @@
  *
  * The utilities provided herein implement a more elegant pattern called
  * "weak pointers" to deal with such situations. An object that might
- * disappear at any time is represented by the 'Volatile_object' class
+ * disappear at any time is represented by the 'Weak_object' class
  * template. It keeps track of a list of so-called weak pointers pointing
  * to the object. A weak pointer, in turn, holds privately the pointer to the
  * object alongside a validity flag. It cannot be used to dereference the
@@ -25,14 +25,14 @@
  * can (and should) be detected via the 'Locked_ptr::is_valid()' function prior
  * dereferencing the pointer.
  *
- * In the event a volatile object gets destructed, all weak pointers that point
+ * In the event a weak object gets destructed, all weak pointers that point
  * to the object are automatically invalidated. So a subsequent conversion into
  * a locked pointer will yield an invalid pointer, which can be detected (in
  * contrast to a dangling pointer).
  *
- * To use this mechanism, the destruction of a volatile object must be
+ * To use this mechanism, the destruction of a weak object must be
  * deferred until no locked pointer points to the object anymore. This is
- * done by calling the function 'Volatile_object::lock_for_destruction()'
+ * done by calling the function 'Weak_object::lock_for_destruction()'
  * at the beginning of the destructor of the to-be-destructed object.
  * When this function returns, all weak pointers to the object will have been
  * invalidated. So it is save to destruct and free the object.
@@ -45,17 +45,18 @@
  * under the terms of the GNU General Public License version 2.
  */
 
-#ifndef _CORE__INCLUDE__LIFETIME_H_
-#define _CORE__INCLUDE__LIFETIME_H_
+#ifndef _INCLUDE__BASE__WEAK_PTR_H_
+#define _INCLUDE__BASE__WEAK_PTR_H_
 
 #include <base/lock.h>
+#include <util/list.h>
 
 namespace Genode {
-	class Volatile_object_base;
+	class Weak_object_base;
 	class Weak_ptr_base;
 	class Locked_ptr_base;
 
-	template <typename T> struct Volatile_object;
+	template <typename T> struct Weak_object;
 	template <typename T> struct Weak_ptr;
 	template <typename T> struct Locked_ptr;
 }
@@ -65,22 +66,22 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 {
 	private:
 
-		friend class Volatile_object_base;
+		friend class Weak_object_base;
 		friend class Locked_ptr_base;
 
-		Lock mutable          _lock;
-		Volatile_object_base *_obj;
-		bool                  _valid; /* true if '_obj' points to an
-		                                 existing object */
+		Lock mutable      _lock;
+		Weak_object_base *_obj;
+		bool              _valid; /* true if '_obj' points to an
+		                             existing object */
 
-		inline void _adopt(Volatile_object_base *obj);
+		inline void _adopt(Weak_object_base *obj);
 		inline void _disassociate();
 
 	protected:
 
-		Volatile_object_base *obj() const { return _valid ? _obj: 0; }
+		Weak_object_base *obj() const { return _valid ? _obj: 0; }
 
-		explicit inline Weak_ptr_base(Volatile_object_base *obj);
+		explicit inline Weak_ptr_base(Weak_object_base *obj);
 
 	public:
 
@@ -108,7 +109,7 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 };
 
 
-class Genode::Volatile_object_base
+class Genode::Weak_object_base
 {
 	private:
 
@@ -123,16 +124,16 @@ class Genode::Volatile_object_base
 
 		/**
 		 * Lock used to defer the destruction of an object derived from
-		 * 'Volatile_object_base'
+		 * 'Weak_object_base'
 		 */
 		Lock _destruct_lock;
 
 	protected:
 
-		inline ~Volatile_object_base();
+		inline ~Weak_object_base();
 
 		/**
-		 * To be called from 'Volatile_object<T>' only
+		 * To be called from 'Weak_object<T>' only
 		 */
 		template <typename T>
 		Weak_ptr<T> _weak_ptr();
@@ -140,7 +141,7 @@ class Genode::Volatile_object_base
 	public:
 
 		/**
-		 * Function to be called by the destructor of a volatile object to
+		 * Function to be called by the destructor of a weak object to
 		 * defer the destruction until no 'Locked_ptr' is held to the object.
 		 */
 		void lock_for_destruction() { _destruct_lock.lock(); }
@@ -156,7 +157,7 @@ class Genode::Locked_ptr_base
 {
 	protected:
 
-		Volatile_object_base *curr;
+		Weak_object_base *curr;
 
 		inline Locked_ptr_base(Weak_ptr_base &weak_ptr);
 		inline ~Locked_ptr_base();
@@ -187,7 +188,7 @@ struct Genode::Weak_ptr : Genode::Weak_ptr_base
 
 
 template <typename T>
-struct Genode::Volatile_object : Genode::Volatile_object_base
+struct Genode::Weak_object : Genode::Weak_object_base
 {
 	Weak_ptr<T> weak_ptr() { return _weak_ptr<T>(); }
 };
@@ -200,6 +201,8 @@ struct Genode::Locked_ptr : Genode::Locked_ptr_base
 
 	T *operator -> () { return static_cast<T *>(curr); }
 
+	T &operator * () { return *static_cast<T *>(curr); }
+
 	bool is_valid() const { return curr != 0; }
 };
 
@@ -208,7 +211,7 @@ struct Genode::Locked_ptr : Genode::Locked_ptr_base
  ** Implementation **
  ********************/
 
-void Genode::Weak_ptr_base::_adopt(Genode::Volatile_object_base *obj)
+void Genode::Weak_ptr_base::_adopt(Genode::Weak_object_base *obj)
 {
 	if (!obj)
 		return;
@@ -252,7 +255,7 @@ void Genode::Weak_ptr_base::_disassociate()
 }
 
 
-Genode::Weak_ptr_base::Weak_ptr_base(Genode::Volatile_object_base *obj)
+Genode::Weak_ptr_base::Weak_ptr_base(Genode::Weak_object_base *obj)
 {
 	_adopt(obj);
 }
@@ -267,7 +270,7 @@ void Genode::Weak_ptr_base::operator = (Weak_ptr_base const &other)
 	if (&other == this)
 		return;
 
-	Volatile_object_base *obj = other.obj();
+	Weak_object_base *obj = other.obj();
 	_disassociate();
 	_adopt(obj);
 }
@@ -292,14 +295,14 @@ Genode::Weak_ptr_base::~Weak_ptr_base()
 
 
 template <typename T>
-Genode::Weak_ptr<T> Genode::Volatile_object_base::_weak_ptr()
+Genode::Weak_ptr<T> Genode::Weak_object_base::_weak_ptr()
 {
 	Weak_ptr_base result(this);
 	return *static_cast<Weak_ptr<T> *>(&result);
 }
 
 
-Genode::Volatile_object_base::~Volatile_object_base()
+Genode::Weak_object_base::~Weak_object_base()
 {
 	{
 		Lock::Guard guard(_list_lock);
@@ -334,4 +337,4 @@ Genode::Locked_ptr_base::~Locked_ptr_base()
 		curr->_destruct_lock.unlock();
 }
 
-#endif /* _CORE__INCLUDE__LIFETIME_H_ */
+#endif /* _INCLUDE__BASE__WEAK_PTR_H_ */

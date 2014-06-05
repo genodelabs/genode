@@ -25,10 +25,10 @@
 #include <base/lock.h>
 #include <base/trace/types.h>
 #include <base/env.h>
+#include <base/weak_ptr.h>
 #include <dataspace/client.h>
 
 /* core includes */
-#include <lifetime.h>
 #include <trace/source_registry.h>
 
 /* base-internal include */
