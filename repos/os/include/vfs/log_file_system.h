@@ -48,7 +48,7 @@ class Vfs::Log_file_system : public Single_file_system
 			while (count > 0) {
 				char tmp[128];
 				int const curr_count = min(count, sizeof(tmp) - 1);
-				strncpy(tmp, src, curr_count);
+				memcpy(tmp, src, curr_count);
 				tmp[curr_count > 0 ? curr_count : 0] = 0;
 				_log.write(tmp);
 				count -= curr_count;
