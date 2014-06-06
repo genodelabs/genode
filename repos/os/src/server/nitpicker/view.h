@@ -14,10 +14,14 @@
 #ifndef _VIEW_H_
 #define _VIEW_H_
 
+/* Genode includes */
 #include <util/string.h>
 #include <util/list.h>
 #include <util/dirty_rect.h>
+#include <base/weak_ptr.h>
+#include <base/rpc_server.h>
 
+/* local includes */
 #include "mode.h"
 #include "session.h"
 
@@ -31,14 +35,19 @@ typedef Genode::Dirty_rect<Rect, 3> Dirty_rect;
 
 
 /*
- * For each buffer, there is a list of views that belong to
- * this buffer. This list is called Same_buffer_list.
+ * For each buffer, there is a list of views that belong to this buffer.
  */
 struct Same_buffer_list_elem : Genode::List<Same_buffer_list_elem>::Element { };
 
-
+/*
+ * The view stack holds a list of all visible view in stacking order.
+ */
 struct View_stack_elem : Genode::List<View_stack_elem>::Element { };
 
+/*
+ * Each session maintains a list of views owned by the session.
+ */
+struct Session_view_list_elem : Genode::List<Session_view_list_elem>::Element { };
 
 /*
  * If a view has a parent, it is a list element of its parent view
@@ -46,9 +55,22 @@ struct View_stack_elem : Genode::List<View_stack_elem>::Element { };
 struct View_parent_elem : Genode::List<View_parent_elem>::Element { };
 
 
+namespace Nitpicker { class View; }
+
+
+/*
+ * We use view capabilities as mere tokens to pass views between sessions.
+ * There is no RPC interface associated with a view.
+ */
+struct Nitpicker::View { GENODE_RPC_INTERFACE(); };
+
+
 class View : public Same_buffer_list_elem,
+             public Session_view_list_elem,
              public View_stack_elem,
-             public View_parent_elem
+             public View_parent_elem,
+             public Genode::Weak_object<View>,
+             public Genode::Rpc_object<Nitpicker::View>
 {
 	public:
 
@@ -86,11 +108,13 @@ class View : public Same_buffer_list_elem,
 		{
 			/* break link to our parent */
 			if (_parent)
-				_parent->remove_child(this);
+				_parent->remove_child(*this);
 
 			/* break links to our children */
-			while (View_parent_elem *e = _children.first())
+			while (View_parent_elem *e = _children.first()) {
 				static_cast<View *>(e)->dissolve_from_parent();
+				_children.remove(e);
+			}
 		}
 
 		/**
@@ -125,9 +149,9 @@ class View : public Same_buffer_list_elem,
 
 		void geometry(Rect geometry) { _geometry = geometry; }
 
-		void add_child(View const *child) { _children.insert(child); }
+		void add_child(View const &child) { _children.insert(&child); }
 
-		void remove_child(View const *child) { _children.remove(child); }
+		void remove_child(View const &child) { _children.remove(&child); }
 
 		template <typename FN>
 		void for_each_child(FN const &fn) const {

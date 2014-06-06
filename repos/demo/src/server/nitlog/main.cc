@@ -21,7 +21,6 @@
 #include <cap_session/connection.h>
 #include <log_session/log_session.h>
 #include <nitpicker_session/connection.h>
-#include <nitpicker_view/client.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
 #include <os/pixel_rgb565.h>
@@ -343,40 +342,42 @@ class Log_view
 {
 	private:
 
-		Nitpicker::View_capability _cap;
+		Nitpicker::Session_client      &_nitpicker;
+		Nitpicker::Point                _pos;
+		Nitpicker::Area                 _size;
+		Nitpicker::Session::View_handle _handle;
 
-		int _x, _y, _w, _h;
+		typedef Nitpicker::Session::Command Command;
 
 	public:
 
-		Log_view(Nitpicker::Session *nitpicker,
-		         int x, int y, int w, int h)
+		Log_view(Nitpicker::Session_client &nitpicker, Nitpicker::Rect geometry)
 		:
-			_x(x), _y(y), _w(w), _h(h)
+			_nitpicker(nitpicker),
+			_pos(geometry.p1()),
+			_size(geometry.area()),
+			_handle(nitpicker.create_view())
 		{
-			using namespace Nitpicker;
-
-			_cap = nitpicker->create_view();
-			View_client(_cap).viewport(_x, _y, _w, _h, 0, 0, true);
-			View_client(_cap).stack(Nitpicker::View_capability(), true, true);
+			move(_pos);
+			top();
 		}
 
 		void top()
 		{
-			Nitpicker::View_client(_cap).stack(Nitpicker::View_capability(), true, true);
+			_nitpicker.enqueue<Command::To_front>(_handle);
+			_nitpicker.execute();
 		}
 
-		void move(int x, int y)
+		void move(Nitpicker::Point pos)
 		{
-			_x = x, _y = y;
-			Nitpicker::View_client(_cap).viewport(_x, _y, _w, _h, 0, 0, true);
+			_pos = pos;
+
+			Nitpicker::Rect rect(_pos, _size);
+			_nitpicker.enqueue<Command::Geometry>(_handle, rect);
+			_nitpicker.execute();
 		}
 
-		/**
-		 * Accessors
-		 */
-		int x() { return _x; }
-		int y() { return _y; }
+		Nitpicker::Point pos() const { return _pos; }
 };
 
 
@@ -424,7 +425,9 @@ int main(int argc, char **argv)
 	canvas.clip(::Rect(::Point(1, 1), ::Area(log_win_w - 2, log_win_h - 2)));
 
 	/* create view for log window */
-	Log_view log_view(&nitpicker, 20, 20, log_win_w, log_win_h);
+	Nitpicker::Rect log_view_geometry(Nitpicker::Point(20, 20),
+	                                  Nitpicker::Area(log_win_w, log_win_h));
+	Log_view log_view(nitpicker, log_view_geometry);
 
 	/* create root interface for service */
 	static Log_root_component log_root(&ep, &sliced_heap, &log_window);
@@ -434,7 +437,8 @@ int main(int argc, char **argv)
 
 	/* handle input events */
 	Input::Event *ev_buf = env()->rm_session()->attach(nitpicker.input()->dataspace());
-	int omx = 0, omy = 0, key_cnt = 0;
+	Nitpicker::Point old_mouse_pos;
+	unsigned key_cnt = 0;
 	while (1) {
 
 		while (!nitpicker.input()->is_pending()) {
@@ -450,16 +454,17 @@ int main(int argc, char **argv)
 			if (ev->type() == Input::Event::PRESS)   key_cnt++;
 			if (ev->type() == Input::Event::RELEASE) key_cnt--;
 
+			Nitpicker::Point mouse_pos(ev->ax(), ev->ay());
+
 			/* move view */
 			if (ev->type() == Input::Event::MOTION && key_cnt > 0)
-				log_view.move(log_view.x() + ev->ax() - omx,
-				              log_view.y() + ev->ay() - omy);
+				log_view.move(log_view.pos() + mouse_pos - old_mouse_pos);
 
 			/* find selected view and bring it to front */
 			if (ev->type() == Input::Event::PRESS && key_cnt == 1)
 				log_view.top();
 
-			omx = ev->ax(); omy = ev->ay();
+			old_mouse_pos = mouse_pos;
 		}
 	}
 	return 0;

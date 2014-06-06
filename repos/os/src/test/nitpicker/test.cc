@@ -16,7 +16,6 @@
 #include <base/sleep.h>
 #include <base/printf.h>
 #include <nitpicker_session/connection.h>
-#include <nitpicker_view/client.h>
 #include <timer_session/connection.h>
 #include <input/event.h>
 
@@ -26,34 +25,53 @@ class Test_view : public List<Test_view>::Element
 {
 	private:
 
-		Nitpicker::View_capability  _cap;
-		int                         _x, _y, _w, _h;
-		const char                 *_title;
-		Test_view            const *_parent_view;
+		typedef Nitpicker::Session::View_handle View_handle;
+		typedef Nitpicker::Session::Command     Command;
+
+		Nitpicker::Session_client &_nitpicker;
+		View_handle                _handle;
+		int                        _x, _y, _w, _h;
+		const char                *_title;
+		Test_view                 *_parent_view;
 
 	public:
 
-		Test_view(Nitpicker::Session *nitpicker,
+		Test_view(Nitpicker::Session_client *nitpicker,
 		          int x, int y, int w, int h,
 		          const char *title,
 		          Test_view *parent_view = 0)
 		:
+			_nitpicker(*nitpicker),
 			_x(x), _y(y), _w(w), _h(h), _title(title), _parent_view(parent_view)
 		{
 			using namespace Nitpicker;
 
-			View_capability parent_cap = parent_view ? parent_view->_cap
-			                           : View_capability();
+			View_handle parent_handle;
 
-			_cap = nitpicker->create_view(parent_cap);
-			View_client(_cap).viewport(_x, _y, _w, _h, 0, 0, true);
-			View_client(_cap).stack(Nitpicker::View_capability(), true, true);
-			View_client(_cap).title(_title);
+			if (_parent_view)
+				parent_handle = _nitpicker.view_handle(_parent_view->view_cap());
+
+			_handle = _nitpicker.create_view(parent_handle);
+
+			if (parent_handle.valid())
+				_nitpicker.release_view_handle(parent_handle);
+
+			Nitpicker::Rect rect(Nitpicker::Point(_x, _y), Nitpicker::Area(_w, _h));
+			_nitpicker.enqueue<Command::Geometry>(_handle, rect);
+			_nitpicker.enqueue<Command::To_front>(_handle);
+			_nitpicker.enqueue<Command::Title>(_handle, _title);
+			_nitpicker.execute();
+		}
+
+		Nitpicker::View_capability view_cap()
+		{
+			return _nitpicker.view_capability(_handle);
 		}
 
 		void top()
 		{
-			Nitpicker::View_client(_cap).stack(Nitpicker::View_capability(), true, true);
+			_nitpicker.enqueue<Command::To_front>(_handle);
+			_nitpicker.execute();
 		}
 
 		/**
@@ -69,7 +87,9 @@ class Test_view : public List<Test_view>::Element
 			_x = _parent_view ? x - _parent_view->x() : x;
 			_y = _parent_view ? y - _parent_view->y() : y;
 
-			Nitpicker::View_client(_cap).viewport(_x, _y, _w, _h, 0, 0, true);
+			Nitpicker::Rect rect(Nitpicker::Point(_x, _y), Nitpicker::Area(_w, _h));
+			_nitpicker.enqueue<Command::Geometry>(_handle, rect);
+			_nitpicker.execute();
 		}
 
 		/**

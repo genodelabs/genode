@@ -93,7 +93,7 @@ void User_state::handle_event(Input::Event ev)
 	if (type == Event::RELEASE && Mode::drag()) Mode::dec_key_cnt();
 
 	View const * const pointed_view    = find_view(_mouse_pos);
-	Session    * const pointed_session = pointed_view ? &pointed_view->session() : 0;
+	::Session  * const pointed_session = pointed_view ? &pointed_view->session() : 0;
 
 	/*
 	 * Deliver a leave event if pointed-to session changed
@@ -175,7 +175,7 @@ void User_state::handle_event(Input::Event ev)
 		 * to the global receiver. To reflect that change, we need to update
 		 * the whole screen.
 		 */
-		Session * const global_receiver = _global_keys.global_receiver(keycode);
+		::Session * const global_receiver = _global_keys.global_receiver(keycode);
 		if (global_receiver) {
 			_global_key_sequence    = true;
 			_input_receiver         = global_receiver;
@@ -252,7 +252,7 @@ void User_state::handle_event(Input::Event ev)
  ** Mode interface **
  ********************/
 
-void User_state::forget(Session const &session)
+void User_state::forget(::Session const &session)
 {
 	Mode::forget(session);
 
@@ -260,10 +260,13 @@ void User_state::forget(Session const &session)
 		View * const pointed_view = find_view(_mouse_pos);
 		_pointed_session = pointed_view ? &pointed_view->session() : nullptr;
 	}
+
+	if (_input_receiver == &session)
+		_input_receiver = nullptr;
 }
 
 
-void User_state::focused_session(Session *session)
+void User_state::focused_session(::Session *session)
 {
 	Mode::focused_session(session);
 

@@ -237,14 +237,13 @@ void View_stack::refresh_view(View const &view, Rect const rect)
 }
 
 
-void View_stack::viewport(View &view, Rect const rect, Point const buffer_off)
+void View_stack::geometry(View &view, Rect const rect)
 {
 	Rect const old_outline = _outline(view);
 
 	refresh_view(view, Rect(Point(), _size));
 
 	view.geometry(Rect(rect));
-	view.buffer_off(buffer_off);
 
 	refresh_view(view, Rect(Point(), _size));
 
@@ -253,6 +252,14 @@ void View_stack::viewport(View &view, Rect const rect, Point const buffer_off)
 	/* update labels (except when moving the mouse cursor) */
 	if (&view != _first_view())
 		_place_labels(compound);
+}
+
+
+void View_stack::buffer_offset(View &view, Point const buffer_off)
+{
+	view.buffer_off(buffer_off);
+
+	refresh_view(view, Rect(Point(), _size));
 }
 
 
@@ -291,6 +298,8 @@ View *View_stack::find_view(Point p)
 
 void View_stack::remove_view(View const &view, bool redraw)
 {
+	view.for_each_child([&] (View const &child) { remove_view(child); });
+
 	/* remember geometry of view to remove */
 	Rect rect = _outline(view);
 

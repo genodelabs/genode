@@ -14,7 +14,7 @@
 #include <base/printf.h>
 #include <base/sleep.h>
 #include <loader_session/connection.h>
-#include <nitpicker_view/client.h>
+#include <nitpicker_session/client.h>
 #include <timer_session/connection.h>
 
 using namespace Genode;
@@ -36,16 +36,23 @@ int main(int argc, char **argv)
 	Loader::Session::View_geometry geometry = loader.view_geometry();
 	Nitpicker::View_capability view_cap = loader.view();
 
-	Nitpicker::View_client view(view_cap);
-	view.stack(Nitpicker::View_capability(), true, false);
+	static Nitpicker_connection nitpicker;
+
+	Nitpicker::Session::View_handle view_handle = nitpicker.view_handle(view_cap);
+
+	nitpicker.enqueue<Nitpicker::Session::Command::To_front>(view_handle);
+	nitpicker.execute();
 
 	Timer::Connection timer;
 
 	while(1) {
 
 		for (unsigned i = 0; i < 10; i++) {
-			view.viewport(50*i, 50*i, geometry.width, geometry.height,
-			              geometry.buf_x, geometry.buf_y, true);
+
+			Nitpicker::Rect rect(Nitpicker::Point(50*i, 50*i),
+			                     Nitpicker::Area(geometry.width, geometry.height));
+			nitpicker.enqueue<Nitpicker::Session::Command::Geometry>(rect);
+
 			timer.msleep(1000);
 		}
 	}

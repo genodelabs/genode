@@ -19,8 +19,7 @@
 #include <qwindowsystem_qws.h>
 #endif
 
-#include <nitpicker_view/capability.h>
-#include <nitpicker_view/client.h>
+#include <nitpicker_session/client.h>
 
 class QNitpickerViewWidget : public QWidget
 {
@@ -38,7 +37,10 @@ private slots:
     void destroyed(QObject *obj = 0);
 
 protected:
-    Nitpicker::View_client *vc;
+
+    Nitpicker::Session_client      *nitpicker;
+    Nitpicker::Session::View_handle view_handle;
+
     int orig_w;
     int orig_h;
     int orig_buf_x;
@@ -51,7 +53,9 @@ protected:
 public:
     QNitpickerViewWidget(QWidget *parent =0);
     ~QNitpickerViewWidget();
-    void setNitpickerView(Nitpicker::View_capability view, int buf_x, int buf_y, int w, int h);
+    void setNitpickerView(Nitpicker::Session_client *nitpicker,
+                          Nitpicker::Session::View_handle view_handle,
+                          int buf_x, int buf_y, int w, int h);
 };
 
 #endif // QNITPICKERVIEWWIDGET_H

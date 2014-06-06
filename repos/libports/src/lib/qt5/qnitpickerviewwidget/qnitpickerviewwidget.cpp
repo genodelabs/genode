@@ -20,26 +20,29 @@
 
 
 QNitpickerViewWidget::QNitpickerViewWidget(QWidget *parent)
-    : QWidget(parent), vc(0), orig_w(0), orig_h(0), orig_buf_x(0), orig_buf_y(0)
+    : QWidget(parent), nitpicker(0), orig_w(0), orig_h(0), orig_buf_x(0), orig_buf_y(0)
 {
 }
 
 
-void QNitpickerViewWidget::setNitpickerView(Nitpicker::View_capability view, int buf_x, int buf_y, int w, int h)
+void QNitpickerViewWidget::setNitpickerView(Nitpicker::Session_client *new_nitpicker,
+                                            Nitpicker::Session::View_handle new_view_handle,
+                                            int buf_x, int buf_y, int w, int h)
 {
 	orig_buf_x = buf_x;
 	orig_buf_y = buf_y;
 	orig_w = w;
 	orig_h = h;
 //	PDBG("orig_w = %d, orig_h = %d", orig_w, orig_h);
-	vc = new Nitpicker::View_client(view);
+
+	nitpicker = new_nitpicker;
+	view_handle = new_view_handle;
 	setFixedSize(orig_w, orig_h);
 }
 
 
 QNitpickerViewWidget::~QNitpickerViewWidget()
 {
-	delete vc;
 }
 
 
@@ -61,15 +64,27 @@ void QNitpickerViewWidget::hideEvent(QHideEvent *event)
 #endif
 	QWidget::hideEvent(event);
 
-	if (vc)
-		vc->viewport(mapToGlobal(pos()).x(), mapToGlobal(pos()).y(), 0, 0, orig_buf_x, orig_buf_y, 1);
+	if (nitpicker) {
+
+		typedef Nitpicker::Session::Command Command;
+
+		Nitpicker::Rect geometry(Nitpicker::Point(mapToGlobal(pos()).x(),
+		                                          mapToGlobal(pos()).y()),
+		                         Nitpicker::Area(0, 0));
+		nitpicker->enqueue<Command::Geometry>(view_handle, geometry);
+
+		Nitpicker::Point offset(orig_buf_x, orig_buf_y);
+		nitpicker->enqueue<Command::Offset>(view_handle, offset);
+
+		nitpicker->execute();
+	}
 }
 
 void QNitpickerViewWidget::paintEvent(QPaintEvent *event)
 {
 	QWidget::paintEvent(event);
 
-	if (!vc)
+	if (!nitpicker)
 		return;
 
 	/* mark all sliders as unchecked */
@@ -221,19 +236,20 @@ void QNitpickerViewWidget::paintEvent(QPaintEvent *event)
 		}
 	}
 
+	typedef Nitpicker::Session::Command Command;
+
 	/* argument to mapToGlobal() is relative to the Widget's origin
 	 * the plugin view starts at (0, 0)
 	 */
 	if (mask().isEmpty()) {
-/*		PDBG("x0 = %d, y0 = %d, w = %d, h = %d, buf_x = %d, buf_y = %d",
-             x0, y0, w, h, orig_buf_x + diff_x, orig_buf_y + diff_y); */
-		vc->viewport(x0,
-					 y0,
-					 /*qMin(width(), w)*/w,
-					 /*qMin(height(), h)*/h,
-					 orig_buf_x + diff_x,
-					 orig_buf_y + diff_y,
-					 false);
+//		PDBG("x0 = %d, y0 = %d, w = %d, h = %d, buf_x = %d, buf_y = %d",
+//             x0, y0, w, h, orig_buf_x + diff_x, orig_buf_y + diff_y);
+
+		Nitpicker::Rect geometry(Nitpicker::Point(x0, y0),
+		                         Nitpicker::Area(w, h));
+		nitpicker->enqueue<Command::Geometry>(view_handle, geometry);
+		Nitpicker::Point offset(orig_buf_x + diff_x, orig_buf_y + diff_y);
+		nitpicker->enqueue<Command::Offset>(view_handle, offset);
 	} else {
 /*		PDBG("x = %d, y = %d, w = %d, h = %d, buf_x = %d, buf_y = %d",
              mapToGlobal(mask().boundingRect().topLeft()).x(),
@@ -241,19 +257,29 @@ void QNitpickerViewWidget::paintEvent(QPaintEvent *event)
              mask().boundingRect().width(),
              mask().boundingRect().height(),
              orig_buf_x + diff_x, orig_buf_y + diff_y); */
-		vc->viewport(mapToGlobal(mask().boundingRect().topLeft()).x(),
-					 mapToGlobal(mask().boundingRect().topLeft()).y(),
-					 mask().boundingRect().width(),
-					 mask().boundingRect().height(),
-					 orig_buf_x + diff_x,
-					 orig_buf_y + diff_y,
-					 false);
+
+		Nitpicker::Rect const
+			geometry(Nitpicker::Point(mapToGlobal(mask().boundingRect().topLeft()).x(),
+			                          mapToGlobal(mask().boundingRect().topLeft()).y()),
+			         Nitpicker::Area(mask().boundingRect().width(),
+			                         mask().boundingRect().height()));
+		nitpicker->enqueue<Command::Geometry>(view_handle, geometry);
+
+		Nitpicker::Point offset(orig_buf_x + diff_x, orig_buf_y + diff_y);
+		nitpicker->enqueue<Command::Offset>(view_handle, offset);
 	}
 
 	/* bring the plugin view to the front of the Qt window */
 	QNitpickerPlatformWindow *platform_window =
 		dynamic_cast<QNitpickerPlatformWindow*>(window()->windowHandle()->handle());
-	vc->stack(platform_window->view_cap(), false, true);
+
+	Nitpicker::Session::View_handle neighbor_handle =
+		nitpicker->view_handle(platform_window->view_cap());
+
+	nitpicker->enqueue<Command::To_front>(view_handle, neighbor_handle);
+	nitpicker->execute();
+
+	nitpicker->release_view_handle(neighbor_handle);
 }
 #if 0
 void QNitpickerViewWidget::windowEvent(QWSWindow *window,

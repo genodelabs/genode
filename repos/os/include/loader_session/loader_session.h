@@ -18,7 +18,7 @@
 #include <base/rpc.h>
 #include <base/rpc_args.h>
 #include <dataspace/capability.h>
-#include <nitpicker_view/capability.h>
+#include <nitpicker_session/client.h>
 #include <base/signal.h>
 #include <session/session.h>
 

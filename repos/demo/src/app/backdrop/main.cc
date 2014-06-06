@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <nitpicker_session/connection.h>
-#include <nitpicker_view/client.h>
 #include <framebuffer_session/client.h>
 #include <base/printf.h>
 #include <base/sleep.h>
@@ -241,8 +240,7 @@ int main(int argc, char **argv)
 	nitpicker.buffer(mode, false);
 
 	static Framebuffer::Session_client framebuffer(nitpicker.framebuffer_session());
-	Nitpicker::View_capability         view_cap = nitpicker.create_view();
-	static Nitpicker::View_client      view(view_cap);
+	Nitpicker::Session::View_handle    view_handle = nitpicker.create_view();
 
 	if (mode.format() != Framebuffer::Mode::RGB565) {
 		printf("Error: Color mode %d not supported\n", (int)mode.format());
@@ -256,9 +254,14 @@ int main(int argc, char **argv)
 	convert_png_to_rgb565(png_data, fb, mode.width(), mode.height());
 
 	/* display view behind all others */
-	nitpicker.background(view_cap);
-	view.viewport(0, 0, mode.width(), mode.height(), 0, 0, false);
-	view.stack(Nitpicker::View_capability(), false, false);
+	typedef Nitpicker::Session::Command Command;
+	nitpicker.enqueue<Command::Background>(view_handle);
+	Nitpicker::Rect rect(Nitpicker::Point(),
+	                     Nitpicker::Area(mode.width(), mode.height()));
+	nitpicker.enqueue<Command::Geometry>(view_handle, rect);
+	nitpicker.enqueue<Command::To_back>(view_handle);
+	nitpicker.execute();
+
 	framebuffer.refresh(0, 0, mode.width(), mode.height());
 
 	sleep_forever();

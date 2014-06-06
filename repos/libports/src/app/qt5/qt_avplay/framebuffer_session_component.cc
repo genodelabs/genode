@@ -13,11 +13,12 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <nitpicker_view/client.h>
+#include <nitpicker_session/client.h>
 #include <util/arg_string.h>
 #include <util/misc_math.h>
 
 #include "framebuffer_session_component.h"
+#include <qnitpickerplatformwindow.h>
 
 namespace Framebuffer {
 
@@ -49,9 +50,22 @@ namespace Framebuffer {
 		         _limited_size(session_arg(args, "fb_height"), max_height),
 		         _nitpicker.mode().format());
 		_nitpicker.buffer(mode, false);
-		Nitpicker::View_capability nitpicker_view_cap = _nitpicker.create_view();
+
+		QNitpickerPlatformWindow *platform_window =
+			dynamic_cast<QNitpickerPlatformWindow*>(nitpicker_view_widget
+				.window()->windowHandle()->handle());
+
+		Nitpicker::Session::View_handle parent_view_handle =
+			_nitpicker.view_handle(platform_window->view_cap());
+
+		Nitpicker::Session::View_handle nitpicker_view_handle =
+			_nitpicker.create_view(parent_view_handle);
+
+		_nitpicker.release_view_handle(parent_view_handle);
+
 		Mode _mode = _framebuffer.mode();
-		nitpicker_view_widget.setNitpickerView(nitpicker_view_cap,
+		nitpicker_view_widget.setNitpickerView(&_nitpicker,
+		                                       nitpicker_view_handle,
 		                                       0, 0,
 		                                       _mode.width(),
 		                                       _mode.height());

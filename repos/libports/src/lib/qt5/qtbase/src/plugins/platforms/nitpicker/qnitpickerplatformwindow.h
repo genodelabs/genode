@@ -37,24 +37,24 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 	private:
 
-		Nitpicker::Connection        _nitpicker_session;
-		Framebuffer::Session_client  _framebuffer_session;
-		unsigned char               *_framebuffer;
-		Nitpicker::View_capability   _view_cap;
-		Input::Session_client        _input_session;
-		Input::Event                *_ev_buf;
-		QMember<QTimer>          	 _timer;
-		Qt::MouseButtons         	 _mouse_button_state;
-		QEvdevKeyboardHandler    	 _keyboard_handler;
-		QByteArray               	 _title;
-		bool                     	 _resize_handle;
-		bool                     	 _decoration;
-		EGLSurface               	 _egl_surface;
+		Nitpicker::Connection           _nitpicker_session;
+		Framebuffer::Session_client     _framebuffer_session;
+		unsigned char                  *_framebuffer;
+		Nitpicker::Session::View_handle _view_handle;
+		Input::Session_client           _input_session;
+		Input::Event                   *_ev_buf;
+		QMember<QTimer>                 _timer;
+		Qt::MouseButtons                _mouse_button_state;
+		QEvdevKeyboardHandler           _keyboard_handler;
+		QByteArray                      _title;
+		bool                            _resize_handle;
+		bool                            _decoration;
+		EGLSurface                      _egl_surface;
 
 		void _process_mouse_event(Input::Event *ev);
 		void _process_key_event(Input::Event *ev);
 
-		Nitpicker::View_capability _create_view();
+		Nitpicker::Session::View_handle _create_view();
 		void _adjust_and_set_geometry(const QRect &rect);
 
 	public:

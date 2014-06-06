@@ -162,12 +162,18 @@ class View_stack
 		void refresh_view(View const &view, Rect);
 
 		/**
-		 * Define position and viewport
+		 * Define view geometry
 		 *
-		 * \param pos         position of view on screen
+		 * \param rect  new geometry of view on screen
+		 */
+		void geometry(View &view, Rect rect);
+
+		/**
+		 * Define buffer offset of view
+		 *
 		 * \param buffer_off  view offset of displayed buffer
 		 */
-		void viewport(View &view, Rect pos, Point buffer_off);
+		void buffer_offset(View &view, Point buffer_off);
 
 		/**
 		 * Insert view at specified position in view stack

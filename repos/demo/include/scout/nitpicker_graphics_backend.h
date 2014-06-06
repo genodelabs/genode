@@ -16,7 +16,6 @@
 
 /* Genode includes */
 #include <nitpicker_session/connection.h>
-#include <nitpicker_view/client.h>
 #include <os/pixel_rgb565.h>
 
 /* Scout includes */
@@ -53,19 +52,25 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 
 		void *_fb_local_base = { _map_fb_ds() };
 
-		Point                   _position;
-		Area                    _view_size;
-		Nitpicker::View_client  _view;
-		Canvas_base            *_canvas[2];
-		bool                    _flip_state = { false };
+		typedef Nitpicker::Session::View_handle View_handle;
+
+		Point        _position;
+		Area         _view_size;
+		View_handle  _view;
+		Canvas_base *_canvas[2];
+		bool         _flip_state = { false };
 
 		void _update_viewport()
 		{
-			_view.viewport(_position.x(), _position.y(),
-			               _view_size.w(), _view_size.h(),
-			               0,
-			               _flip_state ? -_max_size.h() : 0,
-			               true);
+			typedef Nitpicker::Session::Command Command;
+
+			Nitpicker::Rect rect(_position, _view_size);
+			_nitpicker.enqueue<Command::Geometry>(_view, rect);
+
+			Nitpicker::Point offset(0, _flip_state ? -_max_size.h() : 0);
+			_nitpicker.enqueue<Command::Offset>(_view, offset);
+
+			_nitpicker.execute();
 		}
 
 		void _refresh_view(Rect rect)
@@ -146,7 +151,9 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 
 		void bring_to_front()
 		{
-			_view.stack(Nitpicker::View_capability(), true, true);
+			typedef Nitpicker::Session::Command Command;
+			_nitpicker.enqueue<Command::To_front>(_view);
+			_nitpicker.execute();
 		}
 
 		void view_area(Area area)

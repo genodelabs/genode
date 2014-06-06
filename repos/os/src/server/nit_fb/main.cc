@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/sleep.h>
-#include <nitpicker_view/client.h>
 #include <cap_session/connection.h>
 #include <nitpicker_session/connection.h>
 #include <dataspace/client.h>
@@ -176,9 +175,13 @@ int main(int argc, char **argv)
 	/*
 	 * Create Nitpicker view and bring it to front
 	 */
-	Nitpicker::View_client view(nitpicker.create_view());
-	view.viewport(view_x, view_y, view_w, view_h, 0, 0, false);
-	view.stack(Nitpicker::View_capability(), true, true);
+	Nitpicker::Session::View_handle view = nitpicker.create_view();
+	typedef Nitpicker::Session::Command Command;
+	Nitpicker::Rect geometry(Nitpicker::Point(view_x, view_y),
+	                         Nitpicker::Area(view_w, view_h));
+	nitpicker.enqueue<Command::Geometry>(view, geometry);
+	nitpicker.enqueue<Command::To_front>(view);
+	nitpicker.execute();
 
 	/*
 	 * Initialize server entry point
@@ -243,7 +246,11 @@ int main(int argc, char **argv)
 			try {
 				config()->reload();
 				cfg = Config_args();
-				view.viewport(cfg.xpos, cfg.ypos, cfg.width, cfg.height, 0, 0, true);
+
+				Nitpicker::Rect geometry(Nitpicker::Point(cfg.xpos, cfg.ypos),
+				                         Nitpicker::Area(cfg.width, cfg.height));
+				nitpicker.enqueue<Command::Geometry>(view, geometry);
+				nitpicker.execute();
 			} catch (...) {
 				PERR("Error while reloading config");
 			}
