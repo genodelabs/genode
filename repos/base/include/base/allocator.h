@@ -218,7 +218,7 @@ namespace Genode {
 	 *                 was allocated
 	 * \param obj      object to destroy
 	 */
-	template <typename T, typename DEALLOC> void destroy(DEALLOC dealloc, T *obj);
+	template <typename T, typename DEALLOC> void destroy(DEALLOC && dealloc, T *obj);
 }
 
 void *operator new    (Genode::size_t, Genode::Allocator *);
@@ -259,7 +259,7 @@ void operator delete (void *, Genode::Deallocator &);
 
 /* implemented here as it needs the special delete operators */
 template <typename T, typename DEALLOC>
-void Genode::destroy(DEALLOC dealloc, T *obj)
+void Genode::destroy(DEALLOC && dealloc, T *obj)
 {
 	if (!obj)
 		return;
