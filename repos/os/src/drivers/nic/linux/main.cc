@@ -36,6 +36,9 @@
 #include <net/if.h>
 #include <linux/if_tun.h>
 
+#include <os/config.h>
+#include <nic/xml_node.h>
+
 
 class Linux_driver : public Nic::Driver
 {
