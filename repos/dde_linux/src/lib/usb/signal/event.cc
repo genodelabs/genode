@@ -177,12 +177,16 @@ static void __wait_completion(struct completion *work)
 static unsigned long
 __wait_completion_timeout(struct completion *work, unsigned long timeout)
 {
-	unsigned long _j = jiffies + (timeout / HZ);
+	unsigned long _j = jiffies + timeout;
 	while (!work->done) {
+		/* send signal */
+		Event_context::e()->submit();
 		__wait_event();
 
-		if (_j >= jiffies)
+		if (_j <= jiffies) {
+			dde_kit_log(1, "Timeout");
 			return 0;
+		}
 	}
 
 	work->done = 0;
@@ -194,9 +198,8 @@ __wait_completion_timeout(struct completion *work, unsigned long timeout)
 unsigned long wait_for_completion_timeout(struct completion *work,
                                           unsigned long timeout)
 {
-	dde_kit_log(DEBUG_COMPLETION, "%p state: %u", work, work->done);
-	__wait_completion(work);
-	return 1;
+	dde_kit_log(DEBUG_COMPLETION, "%p state: %u timeout: %lu", work, work->done, timeout);
+	return __wait_completion_timeout(work, timeout);
 }
 
 
