@@ -76,7 +76,8 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 			_base  = base;
 			_bits  = _md_alloc->alloc(_block_cnt(size)/8);
 			_array = new (_md_alloc) Bit_array_base(_block_cnt(size),
-			                                        (addr_t*)_bits);
+			                                        (addr_t*)_bits,
+			                                        true);
 			return 0;
 		}
 
