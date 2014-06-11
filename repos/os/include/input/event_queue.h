@@ -78,6 +78,8 @@ class Input::Event_queue
 		bool empty() const { return _queue.empty(); }
 
 		int avail_capacity() const { return _queue.avail_capacity(); }
+
+		void reset() { _queue.reset(); }
 };
 
 #endif /* _EVENT_QUEUE_H_ */

@@ -132,6 +132,11 @@ class Ring_buffer
 			else
 				return _tail - _head - 1;
 		}
+
+		/**
+		 * Discard all ring-buffer elements
+		 */
+		void reset() { _head = _tail; }
 };
 
 #endif /* _INCLUDE__OS__RING_BUFFER_H_ */
