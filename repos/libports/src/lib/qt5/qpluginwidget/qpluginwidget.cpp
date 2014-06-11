@@ -89,17 +89,17 @@ class Signal_wait_thread : public QThread
 PluginStarter::PluginStarter(QUrl plugin_url, QString &args,
                              int max_width, int max_height,
                              Nitpicker::View_capability parent_view)
-: _plugin_url(plugin_url),
-  _args(args.toLatin1()),
-  _max_width(max_width),
-  _max_height(max_height),
-  _parent_view(parent_view),
-  _pc(0),
-  _plugin_loading_state(LOADING),
-  _qnam(0),
-  _reply(0)
-{
-}
+:
+	_plugin_url(plugin_url),
+	_args(args.toLatin1()),
+	_max_width(max_width),
+	_max_height(max_height),
+	_parent_view(parent_view),
+	_pc(0),
+	_plugin_loading_state(LOADING),
+	_qnam(0),
+	_reply(0)
+{ }
 
 
 void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf)
@@ -191,7 +191,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 	Signal_receiver sig_rec;
 
 	_pc->view_ready_sigh(sig_rec.manage(&sig_ctx));
-	_pc->constrain_geometry(_max_width, _max_height);
+	_pc->constrain_geometry(Loader::Area(_max_width, _max_height));
 	_pc->parent_view(_parent_view);
 	_pc->start("init", "init");
 
@@ -274,21 +274,27 @@ void PluginStarter::networkReplyFinished()
 }
 
 
-Nitpicker::View_capability PluginStarter::plugin_view(int *w, int *h, int *buf_x, int *buf_y)
+Loader::Area PluginStarter::view_size()
 {
-	Loader::Session::View_geometry geometry = _pc->view_geometry();
-	if (w) *w = geometry.width;
-	if (h) *h = geometry.height;
-	if (buf_x) *buf_x = geometry.buf_x;
-	if (buf_y) *buf_y = geometry.buf_y;
-	return _pc->view();
+	return _pc ? _pc->view_size() : Loader::Area();
 }
 
+
+void PluginStarter::view_geometry(Loader::Rect rect, Loader::Point offset)
+{
+	if (_pc)
+		_pc->view_geometry(rect, offset);
+}
+
+
+/*******************
+ ** QPluginWidget **
+ *******************/
 
 QPluginWidget::QPluginWidget(QWidget *parent, QUrl plugin_url, QString &args,
                              int max_width, int max_height)
 :
-	QNitpickerViewWidget(parent),
+	QEmbeddedViewWidget(parent),
 	_plugin_loading_state(LOADING),
 	_plugin_starter(0),
 	_plugin_starter_started(false),
@@ -329,18 +335,46 @@ void QPluginWidget::cleanup()
 		/* delete the QThread object */
 		delete _plugin_starter;
 		_plugin_starter = 0;
-		delete vc;
-		vc = 0;
 	}
 }
 
 
 void QPluginWidget::paintEvent(QPaintEvent *event)
 {
-	if (_plugin_loading_state == LOADED)
-		QNitpickerViewWidget::paintEvent(event);
-	else {
-		QWidget::paintEvent(event);
+	QWidget::paintEvent(event);
+
+	if (_plugin_loading_state == LOADED) {
+
+		QEmbeddedViewWidget::View_geometry const view_geometry =
+			QEmbeddedViewWidget::_calc_view_geometry();
+
+		if (mask().isEmpty()) {
+
+			Loader::Rect const geometry(Loader::Point(view_geometry.x,
+			                                          view_geometry.y),
+			                            Loader::Area(view_geometry.w,
+			                                         view_geometry.h));
+
+			Loader::Point const offset(view_geometry.buf_x,
+			                           view_geometry.buf_y);
+
+			_plugin_starter->view_geometry(geometry, offset);
+
+		} else {
+
+			Loader::Rect const
+				geometry(Loader::Point(mapToGlobal(mask().boundingRect().topLeft()).x(),
+				                       mapToGlobal(mask().boundingRect().topLeft()).y()),
+				         Loader::Area(mask().boundingRect().width(),
+				                      mask().boundingRect().height()));
+
+			Loader::Point const offset(view_geometry.buf_x, view_geometry.buf_y);
+
+			_plugin_starter->view_geometry(geometry, offset);
+		}
+
+	} else {
+
 		QPainter painter(this);
 		painter.drawRect(0, 0, width() - 1, height() - 1);
 		switch (_plugin_loading_state) {
@@ -391,7 +425,7 @@ void QPluginWidget::showEvent(QShowEvent *event)
 		_plugin_starter_started = true;
 	}
 
-	QNitpickerViewWidget::showEvent(event);
+	QEmbeddedViewWidget::showEvent(event);
 }
 
 
@@ -400,19 +434,45 @@ void QPluginWidget::pluginStartFinished()
 	_plugin_loading_state = _plugin_starter->plugin_loading_state();
 
 	if (_plugin_loading_state == LOADED) {
-		Nitpicker::View_capability view = _plugin_starter->plugin_view(&orig_w, &orig_h, &orig_buf_x, &orig_buf_y);
 
-		vc = new Nitpicker::View_client(view);
+		Loader::Area const size = _plugin_starter->view_size();
 
-		setFixedSize((_max_width > -1) ? qMin(orig_w, _max_width) : orig_w,
-		             (_max_height > -1) ? qMin(orig_h, _max_height) : orig_h);
+		QEmbeddedViewWidget::_orig_geometry(size.w(), size.h(), 0, 0);
+
+		int w = (_max_width  > -1) ? qMin(size.w(), (unsigned)_max_width)  : size.w();
+		int h = (_max_height > -1) ? qMin(size.h(), (unsigned)_max_height) : size.h();
+
+		setFixedSize(w, h);
+
 	} else {
 		_plugin_loading_error_string = _plugin_starter->plugin_loading_error_string();
-		setFixedSize((_max_width > -1) ? _max_width : 100,
+		setFixedSize((_max_width  > -1) ? _max_width  : 100,
 		             (_max_height > -1) ? _max_height : 100);
 		cleanup();
 	}
 
 	update();
+}
+
+
+void QPluginWidget::hideEvent(QHideEvent *event)
+{
+	QWidget::hideEvent(event);
+
+	if (_plugin_loading_state == LOADED) {
+
+		QEmbeddedViewWidget::View_geometry const view_geometry =
+			QEmbeddedViewWidget::_calc_view_geometry();
+
+		typedef Nitpicker::Session::Command Command;
+
+		Loader::Rect geometry(Loader::Point(mapToGlobal(pos()).x(),
+		                                    mapToGlobal(pos()).y()),
+		                      Loader::Area(0, 0));
+
+		Loader::Point offset(view_geometry.buf_x, view_geometry.buf_y);
+
+		_plugin_starter->view_geometry(geometry, offset);
+	}
 }
 

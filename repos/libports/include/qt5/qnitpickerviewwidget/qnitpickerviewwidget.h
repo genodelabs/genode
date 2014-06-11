@@ -21,41 +21,68 @@
 
 #include <nitpicker_session/client.h>
 
-class QNitpickerViewWidget : public QWidget
+
+class QEmbeddedViewWidget : public QWidget
 {
-    Q_OBJECT
+	Q_OBJECT
 
 private:
-    QHash<QScrollBar*, bool> _scrollbars;
+
+	QHash<QScrollBar*, bool> _scrollbars;
+
+	int _orig_w = 0;
+	int _orig_h = 0;
+	int _orig_buf_x = 0;
+	int _orig_buf_y = 0;
 
 private slots:
-#if 0
-    void windowEvent(QWSWindow *window,
-                     QWSServer::WindowEvent eventType);
-#endif
-    void valueChanged();
-    void destroyed(QObject *obj = 0);
+
+	void valueChanged();
+	void destroyed(QObject *obj = 0);
 
 protected:
 
-    Nitpicker::Session_client      *nitpicker;
-    Nitpicker::Session::View_handle view_handle;
+	struct View_geometry
+	{
+		int x, y, w, h, buf_x, buf_y;
+	};
 
-    int orig_w;
-    int orig_h;
-    int orig_buf_x;
-    int orig_buf_y;
+	QEmbeddedViewWidget(QWidget *parent = 0);
 
-    virtual void showEvent(QShowEvent *event);
-    virtual void hideEvent(QHideEvent *event);
-    virtual void paintEvent(QPaintEvent *event);
+	virtual ~QEmbeddedViewWidget();
+
+	void _orig_geometry(int w, int h, int buf_x, int buf_y)
+	{
+		_orig_w = w;
+		_orig_h = h;
+		_orig_buf_x = buf_x;
+		_orig_buf_y = buf_y;
+	}
+
+	View_geometry _calc_view_geometry();
+};
+
+
+class QNitpickerViewWidget : public QEmbeddedViewWidget
+{
+	Q_OBJECT
+
+protected:
+
+	Nitpicker::Session_client      *nitpicker;
+	Nitpicker::Session::View_handle view_handle;
+
+	virtual void showEvent(QShowEvent *event);
+	virtual void hideEvent(QHideEvent *event);
+	virtual void paintEvent(QPaintEvent *event);
 
 public:
-    QNitpickerViewWidget(QWidget *parent =0);
-    ~QNitpickerViewWidget();
-    void setNitpickerView(Nitpicker::Session_client *nitpicker,
-                          Nitpicker::Session::View_handle view_handle,
-                          int buf_x, int buf_y, int w, int h);
+
+	QNitpickerViewWidget(QWidget *parent =0);
+	~QNitpickerViewWidget();
+	void setNitpickerView(Nitpicker::Session_client *nitpicker,
+	                      Nitpicker::Session::View_handle view_handle,
+	                      int buf_x, int buf_y, int w, int h);
 };
 
 #endif // QNITPICKERVIEWWIDGET_H
