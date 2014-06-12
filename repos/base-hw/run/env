@@ -85,8 +85,6 @@ proc build_boot_image {binaries} {
 		"\n /* core includes */" \
 		"\n.include \"macros.s\"" \
 		"\n" \
-		"\n_common_constants" \
-		"\n" \
 		"\n.section .data" \
 		"\n" \
 		"\n.p2align data_access_alignm_log2" \

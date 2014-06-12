@@ -11,6 +11,7 @@
  * under the terms of the GNU General Public License version 2.
  */
 
+.include "arm/mode_transition.s"
 .include "macros.s"
 
 
@@ -20,9 +21,6 @@
 
 /* size of local variables */
 .set buffer_size, 1 * 4
-
-/* common constants */
-_mt_constants
 
 
 /************
