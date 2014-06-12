@@ -87,7 +87,7 @@ proc build_boot_image {binaries} {
 		"\n" \
 		"\n.section .data" \
 		"\n" \
-		"\n.p2align data_access_alignm_log2" \
+		"\n.p2align DATA_ACCESS_ALIGNM_LOG2" \
 		"\n.global _boot_modules_headers_begin" \
 		"\n_boot_modules_headers_begin:" > $boot_modules
 
@@ -113,7 +113,7 @@ proc build_boot_image {binaries} {
 	foreach binary $binaries {
 		if {$binary == "core"} { continue }
 		exec echo -e \
-			"\n.p2align data_access_alignm_log2" \
+			"\n.p2align DATA_ACCESS_ALIGNM_LOG2" \
 			"\n_boot_module_${i}_name:" \
 			"\n.string \"${binary}\"" \
 			"\n.byte 0" >> $boot_modules
@@ -131,7 +131,7 @@ proc build_boot_image {binaries} {
 	foreach binary $binaries {
 		if {$binary == "core"} { continue }
 		exec echo -e \
-			"\n.p2align min_page_size_log2" \
+			"\n.p2align MIN_PAGE_SIZE_LOG2" \
 			"\n_boot_module_${i}_begin:" \
 			"\n.incbin \"[run_dir]/genode/${binary}\"" \
 			"\n_boot_module_${i}_end:" >> $boot_modules

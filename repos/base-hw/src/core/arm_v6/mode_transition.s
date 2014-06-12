@@ -20,7 +20,7 @@
  ***************/
 
 /* size of local variables */
-.set buffer_size, 1 * 4
+.set BUFFER_SIZE, 1 * 4
 
 
 /************
@@ -63,13 +63,13 @@
 
 	/* load kernel cidr */
 	adr sp, _mt_master_context_begin
-	ldr sp, [sp, #contextidr_offset]
+	ldr sp, [sp, #CONTEXTIDR_OFFSET]
 	mcr p15, 0, sp, c13, c0, 1
 	_flush_branch_predictor
 
 	/* load kernel section table */
 	adr sp, _mt_master_context_begin
-	ldr sp, [sp, #section_table_offset]
+	ldr sp, [sp, #SECTION_TABLE_OFFSET]
 	mcr p15, 0, sp, c2, c0, 0
 	_flush_branch_predictor
 
@@ -88,22 +88,22 @@
 	stmia sp, {r0-r12}^
 
 	/* save user lr and sp */
-	add r0, sp, #sp_offset
+	add r0, sp, #SP_OFFSET
 	stmia r0, {sp,lr}^
 
 	/* adjust and save user pc */
 	.if \pc_adjust != 0
 		sub lr, lr, #\pc_adjust
 	.endif
-	str lr, [sp, #pc_offset]
+	str lr, [sp, #PC_OFFSET]
 
 	/* save user psr */
 	mrs r0, spsr
-	str r0, [sp, #psr_offset]
+	str r0, [sp, #PSR_OFFSET]
 
 	/* save type of exception that interrupted the user */
 	mov r0, #\exception_type
-	str r0, [sp, #exception_type_offset]
+	str r0, [sp, #EXCEPTION_TYPE_OFFSET]
 
 	/*
 	 * Switch to supervisor mode
@@ -118,7 +118,7 @@
 	adr r0, _mt_master_context_begin
 
 	/* load kernel context */
-	add r0, r0, #sp_offset
+	add r0, r0, #SP_OFFSET
 	ldm r0, {sp, lr, pc}
 
 .endm
@@ -139,7 +139,7 @@
 	 * To enable such switching, the kernel context must be stored within this
 	 * region, thus one should map it solely accessable for privileged modes.
 	 */
-	.p2align min_page_size_log2
+	.p2align MIN_PAGE_SIZE_LOG2
 	.global _mt_begin
 	_mt_begin:
 
@@ -160,8 +160,8 @@
 	b _fiq_entry /* 0x1c: fast interrupt request */
 
 	/* PICs that switch from a user exception to the kernel */
-	_rst_entry: _user_to_kernel_pic rst_type, rst_pc_adjust
-	_und_entry: _user_to_kernel_pic und_type, und_pc_adjust
+	_rst_entry: _user_to_kernel_pic RST_TYPE, RST_PC_ADJUST
+	_und_entry: _user_to_kernel_pic UND_TYPE, UND_PC_ADJUST
 	_swi_entry:
 
 	/*
@@ -179,12 +179,12 @@
 	/*movs pc, r14*/
 
 	/* slow high level service routine */
-	_slow_swi_entry: _user_to_kernel_pic svc_type, svc_pc_adjust
+	_slow_swi_entry: _user_to_kernel_pic SVC_TYPE, SVC_PC_ADJUST
 
-	_pab_entry: _user_to_kernel_pic pab_type, pab_pc_adjust
-	_dab_entry: _user_to_kernel_pic dab_type, dab_pc_adjust
-	_irq_entry: _user_to_kernel_pic irq_type, irq_pc_adjust
-	_fiq_entry: _user_to_kernel_pic fiq_type, fiq_pc_adjust
+	_pab_entry: _user_to_kernel_pic PAB_TYPE, PAB_PC_ADJUST
+	_dab_entry: _user_to_kernel_pic DAB_TYPE, DAB_PC_ADJUST
+	_irq_entry: _user_to_kernel_pic IRQ_TYPE, IRQ_PC_ADJUST
+	_fiq_entry: _user_to_kernel_pic FIQ_TYPE, FIQ_PC_ADJUST
 
 	/* kernel must jump to this point to switch to a user context */
 	.p2align 2
@@ -195,24 +195,24 @@
 	ldr lr, _mt_client_context_ptr
 
 	/* buffer user pc */
-	ldr r0, [lr, #pc_offset]
+	ldr r0, [lr, #PC_OFFSET]
 	adr r1, _mt_buffer
 	str r0, [r1]
 
 	/* buffer user psr */
-	ldr r0, [lr, #psr_offset]
+	ldr r0, [lr, #PSR_OFFSET]
 	msr spsr, r0
 
 	/* load user r0 ... r12 */
 	ldm lr, {r0-r12}
 
 	/* load user sp and lr */
-	add sp, lr, #sp_offset
+	add sp, lr, #SP_OFFSET
 	ldm sp, {sp,lr}^
 
 	/* get user cidr and section table */
-	ldr sp, [lr, #contextidr_offset]
-	ldr lr, [lr, #section_table_offset]
+	ldr sp, [lr, #CONTEXTIDR_OFFSET]
+	ldr lr, [lr, #SECTION_TABLE_OFFSET]
 
 	/********************************************************
 	 ** From now on, until we leave kernel mode, we must   **

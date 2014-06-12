@@ -21,15 +21,15 @@
  ***************/
 
 /* hardware names of processor modes */
-.set usr_mode, 16
-.set fiq_mode, 17
-.set irq_mode, 18
-.set svc_mode, 19
-.set abt_mode, 23
-.set und_mode, 27
+.set USR_MODE, 16
+.set FIQ_MODE, 17
+.set IRQ_MODE, 18
+.set SVC_MODE, 19
+.set ABT_MODE, 23
+.set UND_MODE, 27
 
 /* size of local variables */
-.set buffer_size, 2 * 4
+.set BUFFER_SIZE, 2 * 4
 
 
 /************
@@ -48,7 +48,7 @@
 	_get_processor_id \buf_reg
 
 	/* multiply processor name with pointer size to get offset of pointer */
-	mov \target_reg, #context_ptr_size
+	mov \target_reg, #CONTEXT_PTR_SIZE
 	mul \buf_reg, \buf_reg, \target_reg
 
 	/* get base of the pointer array */
@@ -72,7 +72,7 @@
 	_get_processor_id \buf_reg
 
 	/* multiply processor name with buffer size to get offset of buffer */
-	mov \target_reg, #buffer_size
+	mov \target_reg, #BUFFER_SIZE
 	mul \buf_reg, \buf_reg, \target_reg
 
 	/* get base of the buffer array */
@@ -130,7 +130,7 @@
 	 *************************************************************************/
 
 	/* disable fast interrupts when not in fast-interrupt mode */
-	.if \exception_type != fiq_type
+	.if \exception_type != FIQ_TYPE
 		cpsid f
 	.endif
 
@@ -139,8 +139,8 @@
 	 * buffer of this processor. Hence go to svc mode and buffer user r0 and
 	 * user r1 to globally mapped memory to be able to pollute r0 and r1.
 	 */
-	.if \exception_type != rst_type && \exception_type != svc_type
-		cps #svc_mode
+	.if \exception_type != RST_TYPE && \exception_type != SVC_TYPE
+		cps #SVC_MODE
 	.endif
 	stm sp, {r0, r1}^
 
@@ -148,25 +148,25 @@
 	mov r0, sp
 
 	/* switch back to previous privileged mode */
-	.if \exception_type == und_type
-		cps #und_mode
+	.if \exception_type == UND_TYPE
+		cps #UND_MODE
 	.endif
-	.if \exception_type == pab_type
-		cps #abt_mode
+	.if \exception_type == PAB_TYPE
+		cps #ABT_MODE
 	.endif
-	.if \exception_type == dab_type
-		cps #abt_mode
+	.if \exception_type == DAB_TYPE
+		cps #ABT_MODE
 	.endif
-	.if \exception_type == irq_type
-		cps #irq_mode
+	.if \exception_type == IRQ_TYPE
+		cps #IRQ_MODE
 	.endif
-	.if \exception_type == fiq_type
-		cps #fiq_mode
+	.if \exception_type == FIQ_TYPE
+		cps #FIQ_MODE
 	.endif
 
 	/* load kernel contextidr and base of the kernel section-table */
 	adr sp, _mt_master_context_begin
-	add sp, #contextidr_offset
+	add sp, #CONTEXTIDR_OFFSET
 	ldm sp, {r1, sp}
 
 	/* switch to kernel protection-domain */
@@ -184,7 +184,7 @@
 	.if \pc_adjust != 0
 		sub lr, lr, #\pc_adjust
 	.endif
-	str lr, [sp, #pc_offset]
+	str lr, [sp, #PC_OFFSET]
 
 	/* move buffer pointer to lr to enable us to save user r0 - r12 via stm */
 	mov lr, r0
@@ -196,7 +196,7 @@
 	stm sp, {r0-r12}^
 
 	/* save user sp and user lr */
-	add r0, sp, #sp_offset
+	add r0, sp, #SP_OFFSET
 	stm r0, {sp, lr}^
 
 	/* get user psr and type of exception that interrupted the user */
@@ -302,7 +302,7 @@
 	 * To enable such switching, the kernel context must be stored within this
 	 * region, thus one should map it solely accessable for privileged modes.
 	 */
-	.p2align min_page_size_log2
+	.p2align MIN_PAGE_SIZE_LOG2
 	.global _mt_begin
 	_mt_begin:
 
@@ -336,7 +336,7 @@
 	and r9, r8, #0b11111
 
 	/* skip following instructions if previous mode was user mode */
-	cmp r9, #usr_mode
+	cmp r9, #USR_MODE
 	beq 1f
 
 	/*
@@ -359,18 +359,18 @@
 
 	/* switch to kernel to handle the fast interrupt */
 	1:
-	_user_to_kernel_pic fiq_type, fiq_pc_adjust
+	_user_to_kernel_pic FIQ_TYPE, FIQ_PC_ADJUST
 
 	/***************************************************************
 	 ** Code that switches from a non-FIQ exception to the kernel **
 	 ***************************************************************/
 
-	_rst_entry: _user_to_kernel_pic rst_type, rst_pc_adjust
-	_und_entry: _user_to_kernel_pic und_type, und_pc_adjust
-	_svc_entry: _user_to_kernel_pic svc_type, svc_pc_adjust
-	_pab_entry: _user_to_kernel_pic pab_type, pab_pc_adjust
-	_dab_entry: _user_to_kernel_pic dab_type, dab_pc_adjust
-	_irq_entry: _user_to_kernel_pic irq_type, irq_pc_adjust
+	_rst_entry: _user_to_kernel_pic RST_TYPE, RST_PC_ADJUST
+	_und_entry: _user_to_kernel_pic UND_TYPE, UND_PC_ADJUST
+	_svc_entry: _user_to_kernel_pic SVC_TYPE, SVC_PC_ADJUST
+	_pab_entry: _user_to_kernel_pic PAB_TYPE, PAB_PC_ADJUST
+	_dab_entry: _user_to_kernel_pic DAB_TYPE, DAB_PC_ADJUST
+	_irq_entry: _user_to_kernel_pic IRQ_TYPE, IRQ_PC_ADJUST
 
 	/**************************************************************
 	 ** Kernel-entry code that is common for all user exceptions **
@@ -379,7 +379,7 @@
 	_common_user_to_kernel_pic:
 
 	/* save user psr and type of exception that interrupted the user */
-	add sp, sp, #psr_offset
+	add sp, sp, #PSR_OFFSET
 	stm sp, {r0, r1}
 
 	/*********************************************************
@@ -395,18 +395,18 @@
 	 * exit stores a buffer pointer into its banked sp that is also
 	 * needed by the subsequent kernel entry.
 	 */
-	cps #svc_mode
+	cps #SVC_MODE
 
 	/* get base of the kernel-stacks area and the kernel-stack size */
 	adr r0, _mt_master_context_begin
-	add r1, r0, #r12_offset
+	add r1, r0, #R12_OFFSET
 	ldm r1, {r2, r3}
 
 	/* determine top of the kernel stack of this processor and apply it as SP */
 	_init_kernel_sp r3, r2
 
 	/* apply kernel lr and kernel pc */
-	add r1, r0, #lr_offset
+	add r1, r0, #LR_OFFSET
 	ldm r1, {lr, pc}
 
 	_mt_local_variables
@@ -424,23 +424,23 @@
 	_get_buffer_ptr sp, r0
 
 	/* buffer user pc and base of user section-table globally mapped */
-	ldr r0, [lr, #pc_offset]
-	ldr r1, [lr, #section_table_offset]
+	ldr r0, [lr, #PC_OFFSET]
+	ldr r1, [lr, #SECTION_TABLE_OFFSET]
 	stm sp, {r0, r1}
 
 	/* buffer user psr in spsr */
-	ldr r0, [lr, #psr_offset]
+	ldr r0, [lr, #PSR_OFFSET]
 	msr spsr, r0
 
 	/* setup banked user sp and banked user lr */
-	add r0, lr, #sp_offset
+	add r0, lr, #SP_OFFSET
 	ldm r0, {sp, lr}^
 
 	/* setup user r0 to r12 */
 	ldm lr, {r0-r12}^
 
 	/* load user contextidr */
-	ldr lr, [lr, #contextidr_offset]
+	ldr lr, [lr, #CONTEXTIDR_OFFSET]
 
 	/********************************************************
 	 ** From now on, until we leave kernel mode, we must   **
@@ -473,15 +473,15 @@
 		b _mon_dab_entry           /* data abort             */
 		nop                        /* reserved               */
 		b _mon_irq_entry           /* interrupt request      */
-		_vm_to_kernel fiq_type, 4  /* fast interrupt request */
+		_vm_to_kernel FIQ_TYPE, 4  /* fast interrupt request */
 
 		/* PICs that switch from a vm exception to the kernel */
-		_mon_rst_entry: _vm_to_kernel rst_type, 0
-		_mon_und_entry: _vm_to_kernel und_type, 4
-		_mon_svc_entry: _vm_to_kernel svc_type, 0
-		_mon_pab_entry: _vm_to_kernel pab_type, 4
-		_mon_dab_entry: _vm_to_kernel dab_type, 8
-		_mon_irq_entry: _vm_to_kernel irq_type, 4
+		_mon_rst_entry: _vm_to_kernel RST_TYPE, 0
+		_mon_und_entry: _vm_to_kernel UND_TYPE, 4
+		_mon_svc_entry: _vm_to_kernel SVC_TYPE, 0
+		_mon_pab_entry: _vm_to_kernel PAB_TYPE, 4
+		_mon_dab_entry: _vm_to_kernel DAB_TYPE, 8
+		_mon_irq_entry: _vm_to_kernel IRQ_TYPE, 4
 
 	/* kernel must jump to this point to switch to a vm */
 	.p2align 2

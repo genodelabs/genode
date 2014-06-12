@@ -36,6 +36,6 @@
  ***************************************************/
 
 /* alignment constraints */
-.set min_page_size_log2, 12
-.set data_access_alignm_log2, 2
+.set MIN_PAGE_SIZE_LOG2, 12
+.set DATA_ACCESS_ALIGNM_LOG2, 2
 
