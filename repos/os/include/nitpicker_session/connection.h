@@ -30,6 +30,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 
 		Framebuffer::Session_client _framebuffer;
 		Input::Session_client       _input;
+		Genode::size_t              _session_quota = 0;
 
 		/**
 		 * Create session and return typed session capability
@@ -75,10 +76,19 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			char argbuf[ARGBUF_SIZE];
 			argbuf[0] = 0;
 
-			Genode::Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
-			                            ram_quota(mode, use_alpha));
+			Genode::size_t const needed = ram_quota(mode, use_alpha);
+			Genode::size_t const upgrade = needed > _session_quota
+			                             ? needed - _session_quota
+			                             : 0;
 
-			Genode::env()->parent()->upgrade(cap(), argbuf);
+			if (upgrade > 0) {
+				Genode::Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+				                            upgrade);
+
+				Genode::env()->parent()->upgrade(cap(), argbuf);
+				_session_quota += upgrade;
+			}
+
 			Session_client::buffer(mode, use_alpha);
 		}
 
