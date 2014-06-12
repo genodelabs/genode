@@ -175,12 +175,10 @@ void add_device_randomness(const void *buf, unsigned int size) { TRACE; }
 
 #define KTIME_RET ({TRACE; ktime_t t = { 0 }; return t;})
 
-ktime_t ktime_add(const ktime_t lhs, const ktime_t rhs) { KTIME_RET; }
 ktime_t ktime_add_ns(const ktime_t kt, u64 nsec) { KTIME_RET; }
-ktime_t ktime_get(void) { KTIME_RET; }
 ktime_t ktime_get_monotonic_offset(void) { KTIME_RET; }
-ktime_t ktime_set(const long secs, const unsigned long nsecs) { KTIME_RET; }
 ktime_t ktime_sub(const ktime_t lhs, const ktime_t rhs) { KTIME_RET; }
+ktime_t ktime_get_real(void) { TRACE; ktime_t ret; return ret; }
 
 struct timeval ktime_to_timeval(const ktime_t kt) { TRACE; struct timeval ret;  return ret; }
 
@@ -193,16 +191,6 @@ s64 ktime_us_delta(const ktime_t later, const ktime_t earlier) { TRACE; return 0
 
 unsigned long round_jiffies(unsigned long j) { TRACE; return 1; }
 void set_timer_slack(struct timer_list *time, int slack_hz) { TRACE; }
-
-/*********************
- ** linux/hrtimer.h **
- *********************/
-
-ktime_t ktime_get_real(void) { TRACE; ktime_t ret; return ret; }
-int hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
-                           unsigned long delta_ns, const enum hrtimer_mode mode) { TRACE; return 0; }
-void hrtimer_init(struct hrtimer *timer, clockid_t clock_id, enum hrtimer_mode mode) { TRACE; }
-int hrtimer_cancel(struct hrtimer *timer) { TRACE; return 0; }
 
 
 /***********************

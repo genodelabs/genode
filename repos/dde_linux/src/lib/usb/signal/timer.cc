@@ -27,11 +27,12 @@ static Signal_helper *_signal = 0;
 /**
  * Signal context for time-outs
  */
+template<typename CLASS>
 class Timer_context
 {
 	private:
 
-		timer_list                              *_timer;     /* Linux timer */
+		CLASS                                   *_timer;     /* Linux timer */
 		dde_kit_timer                           *_dde_timer; /* DDE kit timer */
 		Genode::Signal_rpc_member<Timer_context> _dispatcher;
 
@@ -40,7 +41,7 @@ class Timer_context
 
 	public:
 
-		Timer_context(timer_list *timer)
+		Timer_context(CLASS *timer)
 		: _timer(timer), _dde_timer(0),
 		  _dispatcher(_signal->ep(), *this, &Timer_context::_handle) {}
 
@@ -54,6 +55,7 @@ class Timer_context
 		}
 
 		char const *debug() { return "Timer_context"; }
+
 		/**
 		 * Return true if timer is pending
 		 */
@@ -70,8 +72,8 @@ class Timer_context
 		/**
 		 * Convert 'timer_list' to 'Timer_conext'
 		 */
-		static Timer_context *to_ctx(timer_list const *timer) {
-			return static_cast<Timer_context *>(timer->timer); }
+		static Timer_context *to_ctx(CLASS const *timer) {
+			return static_cast<Timer_context<CLASS> *>(timer->timer); }
 
 		void remove()
 		{
@@ -80,8 +82,6 @@ class Timer_context
 
 			_dde_timer = 0;
 		}
-
-		timer_list *l() { return _timer; }
 };
 
 
@@ -90,7 +90,7 @@ class Timer_context
  */
 static void handler(void *timer)
 {
-	Timer_context *t = static_cast<Timer_context *>(timer);
+	Timer_context<timer_list> *t = static_cast<Timer_context<timer_list> *>(timer);
 
 	/* set context and submit */
 	_signal->sender().context(t->cap());
@@ -107,14 +107,14 @@ void Timer::init(Server::Entrypoint &ep) {
  *******************/
 
 void init_timer(struct timer_list *timer) {
-	timer->timer = (void *) new (Genode::env()->heap()) Timer_context(timer); }
+	timer->timer = (void *) new (Genode::env()->heap()) Timer_context<timer_list>(timer); }
 
 
 int mod_timer(struct timer_list *timer, unsigned long expires)
 {
 	dde_kit_log(DEBUG_TIMER, "Timer: %p j: %lu ex: %lu func %p",
 	            timer, jiffies, expires, timer->function);
-	Timer_context::to_ctx(timer)->schedule(expires);
+	Timer_context<timer_list>::to_ctx(timer)->schedule(expires);
 	return 0; 
 }
 
@@ -130,7 +130,7 @@ void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
 
 int timer_pending(const struct timer_list * timer)
 {
-	bool pending = Timer_context::to_ctx(timer)->pending();
+	bool pending = Timer_context<timer_list>::to_ctx(timer)->pending();
 	dde_kit_log(DEBUG_TIMER, "Pending %p %u", timer, pending);
 	return pending;
 }
@@ -139,7 +139,34 @@ int timer_pending(const struct timer_list * timer)
 int del_timer(struct timer_list *timer)
 {
 	dde_kit_log(DEBUG_TIMER, "Delete timer %p", timer);
-	Timer_context::to_ctx(timer)->remove();
+	Timer_context<timer_list>::to_ctx(timer)->remove();
 	return 0;
 }
 
+
+/*********************
+ ** linux/hrtimer.h **
+ *********************/
+
+void hrtimer_init(struct hrtimer *timer, clockid_t clock_id, enum hrtimer_mode mode)
+{
+	timer->timer = (void *) new (Genode::env()->heap()) Timer_context<hrtimer>(timer);
+	timer->data  = timer;
+}
+
+
+int hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
+                           unsigned long delta_ns, const enum hrtimer_mode mode)
+{
+	unsigned long expires = tim.tv64 / (NSEC_PER_MSEC * DDE_KIT_HZ);
+	dde_kit_log(DEBUG_TIMER, "HR: e: %lu j %lu", jiffies, expires);
+	Timer_context<hrtimer>::to_ctx(timer)->schedule(expires);
+	return 0;
+}
+
+
+int hrtimer_cancel(struct hrtimer *timer)
+{
+	Timer_context<hrtimer>::to_ctx(timer)->remove();
+	return 0;
+}

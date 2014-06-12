@@ -712,7 +712,19 @@ long find_next_zero_bit_le(const void *addr,
 int ffs(int x);
 int fls(int x);
 
-#define for_each_set_bit(bit, addr, size) for ((bit) = 0; !bit; bit++, dev_err(0, "for_each_set_bit should not be called\n"))
+static inline unsigned find_next_bit(unsigned long where, unsigned size, unsigned bit)
+{
+	for (; bit < size; bit++)
+		if ((1 << bit) & where)
+			return bit;
+
+	return size;
+}
+
+#define for_each_set_bit(bit, addr, size) \
+	for ((e) = find_next_bit((*addr), (size), 0); \
+	(e) < (size);                                 \
+	(e) =  find_next_bit((*addr),(size), (e) + 1))
 
 
 /*****************************************
@@ -945,6 +957,32 @@ long time_after_eq(long a, long b);
 long time_before(long a, long b);
 
 
+/******************
+ ** linux/time.h **
+ ******************/
+
+struct timespec {
+	__kernel_time_t tv_sec;
+	long            tv_nsec;
+};
+
+struct timeval { };
+struct timespec current_kernel_time(void);
+void do_gettimeofday(struct timeval *tv);
+
+#define CURRENT_TIME (current_kernel_time())
+
+
+
+enum {
+	CLOCK_REALTIME  = 0,
+	CLOCK_MONOTONIC = 1,
+	NSEC_PER_USEC   = 1000L,
+	NSEC_PER_MSEC   = 1000000L,
+	NSEC_PER_SEC    = 1000 * NSEC_PER_MSEC,
+};
+
+
 /*******************
  ** linux/ktime.h **
  *******************/
@@ -959,16 +997,30 @@ static inline ktime_t ktime_add_us(const ktime_t kt, const u64 usec)
 {
 	return ktime_add_ns(kt, usec * 1000);
 }
+
+static inline ktime_t ktime_get(void)
+{
+	return (ktime_t){ .tv64 = (s64)jiffies * HZ * NSEC_PER_MSEC /* ns */ };
+}
+
+static inline ktime_t ktime_set(const long sec, const unsigned long nsec)
+{
+	return (ktime_t){ .tv64 = (s64)sec * NSEC_PER_SEC + nsec /* ns */ };
+}
+
+static inline ktime_t ktime_add(const ktime_t a, const ktime_t b)
+{
+	return (ktime_t){ .tv64 = a.tv64 + b.tv64 /* ns */ };
+}
+
+
 s64 ktime_us_delta(const ktime_t later, const ktime_t earlier);
 
 struct timeval ktime_to_timeval(const ktime_t);
 
 ktime_t ktime_get_real(void);
-ktime_t ktime_get(void);
 ktime_t ktime_sub(const ktime_t, const ktime_t);
 ktime_t ktime_get_monotonic_offset(void);
-ktime_t ktime_add(const ktime_t, const ktime_t);
-ktime_t ktime_set(const long, const unsigned long);
 
 /*******************
  ** linux/timer.h **
@@ -1010,6 +1062,8 @@ enum hrtimer_restart { HRTIMER_NORESTART = 0 };
 struct hrtimer
 {
 	enum hrtimer_restart (*function)(struct hrtimer *);
+	struct hrtimer        *data;
+	void                  *timer;
 };
 
 int hrtimer_start_range_ns(struct hrtimer *, ktime_t,
@@ -1175,31 +1229,6 @@ void __wait_event(void);
 	_wait_event_timeout(condition, timeout); \
 	1;                              \
 })
-
-
-/******************
- ** linux/time.h **
- ******************/
-
-struct timespec {
-	__kernel_time_t tv_sec;
-	long            tv_nsec;
-};
-
-struct timeval { };
-struct timespec current_kernel_time(void);
-void do_gettimeofday(struct timeval *tv);
-
-#define CURRENT_TIME (current_kernel_time())
-
-
-
-enum {
-	CLOCK_REALTIME  = 0,
-	CLOCK_MONOTONIC = 1,
-	NSEC_PER_USEC   = 1000L,
-	NSEC_PER_MSEC   = 1000000L,
-};
 
 
 /*******************

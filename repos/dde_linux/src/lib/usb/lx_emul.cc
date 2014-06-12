@@ -950,12 +950,16 @@ unsigned long msecs_to_jiffies(const unsigned int m) { return m / JIFFIES_TICK_M
 long time_after_eq(long a, long b) { return (a - b) >= 0; }
 long time_after(long a, long b)    { return (b - a) < 0; }
 
+
+/*********
+ ** DMA **
+ *********/
+
 struct dma_pool
 {
 	size_t size;
 	int    align;
 };
-
 
 struct dma_pool *dma_pool_create(const char *name, struct device *d, size_t size,
                                  size_t align, size_t alloc)
